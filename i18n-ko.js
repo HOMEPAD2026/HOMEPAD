@@ -10334,6 +10334,11 @@
     "The biggest fish and the fastest boss knock-outs, in Rankings. Honour only.": "가장 큰 물고기와 가장 빠른 보스 처치, 랭킹에서. 명예만 걸려 있어요.",
     "Seven new codex pages": "새 도감 7페이지",
     "The far ring's bosses, each a scam people still fall for, with how to beat it.": "먼 사냥터 보스들, 지금도 사람들이 당하는 사기와 그 대처법.",
+    "Recommended from level {n}": "레벨 {n}부터 추천",
+    "{x} is recommended from level {n}: the scammers here hit hard": "{x}는 레벨 {n}부터 추천: 이곳 사기꾼은 세게 때려요",
+    "The raid is recommended from level {n}: it hits hard": "레이드는 레벨 {n}부터 추천: 공격이 강해요",
+    "Recommended Lv {n}+ · one boss for everyone": "추천 Lv {n}+ · 모두의 보스 하나",
+    "A hunting ground fits your level now: {x} (level {a}–{b})": "이제 레벨에 맞는 사냥터: {x} (레벨 {a}–{b})",
   };
 
 

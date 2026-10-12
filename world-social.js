@@ -79,7 +79,7 @@ export function createRaid(ctx) {
   const toTown = Math.atan2(-RAID.x, -RAID.z);
   const gate = K.makeArch ? K.makeArch(RAID.color) : null;
   if (gate) { gate.scale.setScalar(1.5); gate.position.set(Math.sin(toTown) * RAID.r, 0, Math.cos(toTown) * RAID.r); gate.rotation.y = toTown; root.add(gate); }
-  const sign = K.label(T("Weekly raid"), { accent: "#39ff88", size: 1.1, sub: T("Level {n}+ · one boss for everyone", { n: RAID_MIN_LV }) });
+  const sign = K.label(T("Weekly raid"), { accent: "#39ff88", size: 1.1, sub: T("Recommended Lv {n}+ · one boss for everyone", { n: RAID_MIN_LV }) });
   sign.position.set(Math.sin(toTown) * RAID.r, 9, Math.cos(toTown) * RAID.r); root.add(sign);
 
   // the shared HP, the hits waiting to be reported, what others did in between
@@ -229,8 +229,8 @@ export function createRaid(ctx) {
       const now = Date.now(); // wall-clock timers: a slow frame rate mustn't slow the reports
       if (now >= pollAt) { pollAt = now + (nr ? 10e3 : 120e3); if (nr || now - lastFetch > 110e3) load(); }
       if (inn) {
-        if (ctx.level() < RAID_MIN_LV) { if (!warnedLv) { warnedLv = true; ctx.toast(T("The raid is for level {n} and up. Come back stronger!", { n: RAID_MIN_LV })); } }
-        else spawn();
+        if (ctx.level() < RAID_MIN_LV && !warnedLv) { warnedLv = true; ctx.toast(T("The raid is recommended from level {n}: it hits hard", { n: RAID_MIN_LV })); }
+        spawn(); // open to every level
       } else warnedLv = false;
       if (now >= sendAt) { sendAt = now + 5200; send(); }
       if (now >= paintAt) { paintAt = now + 500; paint(); }

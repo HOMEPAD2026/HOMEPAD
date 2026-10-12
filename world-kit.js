@@ -183,6 +183,8 @@ export function makeStage(canvas, opts = {}) {
     scale(k) { const r = Math.max(0.5, cap * Math.max(0.6, Math.min(1, k))); if (Math.abs(r - renderer.getPixelRatio()) < 0.02) return false; renderer.setPixelRatio(r); if (composer) composer.setPixelRatio(r); resize(); return true; },
     // slower devices: no bloom, no shadows, fewer pixels
     degrade() { renderer.setPixelRatio(1); cap = 1; if (composer) { composer.dispose?.(); composer = null; } renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); resize(); },
+    // the game's own chain (world-post.js) takes over from the plain bloom composer
+    useComposer(c) { if (composer && composer !== c) { try { composer.dispose(); } catch { /* fine */ } } composer = c; this.composer = c; resize(); },
     snap() { if (composer) composer.render(); else renderer.render(scene, camera); return new Promise((res) => canvas.toBlob(res, "image/png")); },
     THREE, scene, camera, renderer, sun, hemi, composer, quality: q, on: (fn) => (updates.add(fn), () => updates.delete(fn)),
     dispose() { running = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); }); },

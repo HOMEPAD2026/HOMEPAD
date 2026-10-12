@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -63,7 +63,13 @@ const P = (() => { try { return { ...blank(), ...JSON.parse(localStorage.getItem
 if (P.tutBits == null) P.tutBits = (1 << Math.min(3, P.tut | 0)) - 1;
 const S = (() => { const d = { quality: "auto", sound: true, sens: 1 }; try { return { ...d, ...JSON.parse(localStorage.getItem(SETS) || "{}") }; } catch { return d; } })();
 let cloudT = 0;
-const save = () => { try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private window */ } clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 6000); };
+// the save goes to this browser at most every 1.5 s (a whole save on every knock-out and pickup was a hitch), and
+// right away when the page is hidden or closed
+let lsT = 0;
+const writeLocal = () => { clearTimeout(lsT); lsT = 0; try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private window */ } };
+const save = () => { if (!lsT) lsT = setTimeout(writeLocal, 1500); clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 6000); };
+addEventListener("pagehide", () => { if (lsT) writeLocal(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden && lsT) writeLocal(); });
 const saveSet = () => { try { localStorage.setItem(SETS, JSON.stringify(S)); } catch { /* private window */ } };
 // the level from XP on a rising curve (world-rpg-data.js); a save from the old 100-a-level curve is converted once,
 // keeping its level
@@ -259,9 +265,23 @@ const planet = new THREE.Group(); planet.name = "world"; st.scene.add(planet);
 // where you stand on the plaza: in front of the fountain, facing it (the world slides, so this is its offset)
 const HOME = new THREE.Vector3(-1.2, 0, -7.6); planet.position.copy(HOME); // a little off centre, so walking straight on slides past the fountain
 // the finishing look (world-look.js): a colour grade per time of day, varied grass, contact shadows under the halls
-const grade = LOOK.addGrade(st); st.on((dt) => { LOOK.time.value += dt; });
+let grade = LOOK.addGrade(st); st.on((dt) => { LOOK.time.value += dt; });
+// the picture after the scene (world-post.js): real antialiasing with bloom, ink edges, AO on Ultra, low fog and sun
+// shafts, a 3D colour grade per time of day and ground
+const postLevel = S.quality === "ultra" || S.quality === "high" ? "ultra" : S.quality === "low" || S.quality === "saver" ? "low" : S.quality === "medium" ? "medium" : st.quality.low ? "low" : st.quality.coarse ? "medium" : "ultra";
+let fxPost = null; const lgrade = LOOK.lutGrade(), sunDir = st.sun.position.clone().sub(st.sun.target.position).normalize();
+Promise.resolve(POST.buildPost(st, { level: postLevel, bloom: [0.28, 0.25, 1.15], lite: st.quality.coarse })).then((p) => {
+  fxPost = p; if (!p) return;
+  p.edge.uniforms.thick.value = Math.max(1, st.renderer.getPixelRatio() * 0.7);
+  if (!p.grade) grade = LOOK.addGrade(st); else grade = null; // WebGL 1: the old grade on the new chain
+  nightK = -1; dayNight();
+}).catch(() => {});
+st.on((dt) => { if (fxPost) fxPost.tick(dt, sunDir); });
 const groundG = K.makeGround(); planet.add(groundG);
 { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) LOOK.groundLook(gm.material, { low: S.quality === "low" || S.quality === "saver" }); }
+// far shadows (world-look.js): halls, trees and the grounds' props shade the ground past the real shadow's reach
+const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir }) : null;
+if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
 const sky = K.makeSky(); st.scene.add(sky);
 const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
 const stars = K.makeStars(); st.scene.add(stars);
@@ -385,7 +405,8 @@ async function dressWorld(kit) {
   shops.forEach(boxOf);
   K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
   // the hunting grounds (world-zones.js)
-  const zs = ZN.makeZones({ THREE, K, planet, kit, T, low: S.quality === "low" || S.quality === "saver" }); spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
+  const zs = ZN.makeZones({ THREE, K, planet, kit, T, low: S.quality === "low" || S.quality === "saver", onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); } });
+  if (gshadow) zs.root.traverse((o) => { if (o.name === "zone-ground") gshadow.receive(o.material); }); spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
   // chimneys smoke: the Launchpad's factory and the town's tall chimneys
   [shopG("launch"), ...town.filter((g) => /^town:chimney/.test(g.name))].forEach((g) => {
     if (!g) return; const tw = /^town:/.test(g.name); smokes.push(K.smoke(g, tw ? new THREE.Vector3(0, 5.6 * (g.children[0] ? g.children[0].scale.x : 1), 0) : new THREE.Vector3(-1.5, 6.6, -0.9)));
@@ -630,7 +651,7 @@ $("wp-act-photo").addEventListener("click", () => setPhoto(true));
 $("wp-photo-btn").addEventListener("click", () => { if (!frozen) setPhoto(true); });
 
 // ---------------- movement: the world slides under the player ----------------
-const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
+const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 214; /* past the far ring of hunting grounds (their outer edge is ~206 m out); the hills start at 228 */
 let mode = "hub"; // "hub" | "island" (world-island.js takes over the ground)
 const at = new THREE.Vector3(0, 0, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
 let speedNow = 0, hop = 0, vy = 0, grounded = true, near = null, stepT = 0, walked = 0, shake = 0;
@@ -1289,9 +1310,9 @@ function openMap() {
   const lvNow = level(), fits = (z) => z.id !== "raid" && lvNow >= z.lv[0] && lvNow <= z.lv[1] + 2;
   const me0 = here(new THREE.Vector3()), S2 = 0.85;
   const ringSvg = `<svg class="wp-ringmap" viewBox="-200 -200 400 400" role="img" aria-label="${esc(T("Hunting grounds"))}"><circle r="178" class="orbit"/><circle r="100" class="orbit"/><circle r="16" class="town"/><text y="4" class="tn">${esc(T("Town"))}</text>`
-    + ZN.ZONES.map((z, i) => { const x = z.x * S2, y = z.z * S2, c = "#" + new THREE.Color(z.color).getHexString(); return `<g class="zn${fits(z) ? " fit" : ""}${lvNow < z.lv[0] ? " hard" : ""}" data-z="${i}" tabindex="0" role="button" aria-label="${esc(z.name)} · ${esc(T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}" style="--c:${c}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(z.r * S2).toFixed(1)}"/>${fits(z) ? `<circle class="halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(z.r * S2 + 6).toFixed(1)}"/>` : ""}<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}">${z.lv[0]}–${z.lv[1]}</text></g>`; }).join("")
+    + ZN.ZONES.map((z, i) => { const x = z.x * S2, y = z.z * S2, c = "#" + new THREE.Color(z.color).getHexString(); return `<g class="zn${fits(z) ? " fit" : ""}" data-z="${i}" tabindex="0" role="button" aria-label="${esc(z.name)} · ${esc(T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}" style="--c:${c}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(z.r * S2).toFixed(1)}"/>${fits(z) ? `<circle class="halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(z.r * S2 + 6).toFixed(1)}"/>` : ""}<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}">${z.lv[0]}–${z.lv[1]}</text></g>`; }).join("")
     + `<circle class="me" cx="${(me0.x * S2).toFixed(1)}" cy="${(me0.z * S2).toFixed(1)}" r="5"/></svg>`;
-  const zoneHtml = `<h3 style="--c:#ff9a4a">${esc(T("Hunting grounds"))}</h3>${ringSvg}<ul class="wp-maplist">` + [...ZN.ZONES, SOC.RAID].map((z, i) => `<li><button type="button" data-z="${i}"><i style="--c:#${new THREE.Color(z.color).getHexString()}"></i><span><b>${esc(z.name)}${fits(z) ? ` <em class="wp-fit">${esc(T("Right for you"))}</em>` : ""}</b><small>${esc(z.id === "raid" ? T("Level {n}+", { n: z.lv[0] }) + (raid && raid.nextText() ? " · " + raid.nextText() : "") : T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}${level() < z.lv[0] ? " · " + esc(T("Too strong for you yet")) : ""}</small></span></button></li>`).join("") + "</ul>";
+  const zoneHtml = `<h3 style="--c:#ff9a4a">${esc(T("Hunting grounds"))}</h3>${ringSvg}<ul class="wp-maplist">` + [...ZN.ZONES, SOC.RAID].map((z, i) => `<li><button type="button" data-z="${i}"><i style="--c:#${new THREE.Color(z.color).getHexString()}"></i><span><b>${esc(z.name)}${fits(z) ? ` <em class="wp-fit">${esc(T("Right for you"))}</em>` : ""}</b><small>${esc(z.id === "raid" ? T("Level {n}+", { n: z.lv[0] }) + (raid && raid.nextText() ? " · " + raid.nextText() : "") : T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}${level() < z.lv[0] ? " · " + esc(T("Recommended from level {n}", { n: z.lv[0] })) : ""}</small></span></button></li>`).join("") + "</ul>";
   const key = [["#ffc861", "Friends"], ["rgba(159,230,255,.75)", "Other players"], ["#ff4d6d", "Scammers"], ["#2f86ff", "Race pad"], ["#ffc861", "Fast travel"], ["#7ee0a0", "My Island gate"], ["#35d8d0", "Platform World"], ["#ff7ad9", "ARCIA"]];
   const keyHtml = `<div class="wp-mapkey"><b>${esc(T("Minimap"))}</b>${key.map(([c, n]) => `<span><i style="--c:${c}"></i>${esc(T(n))}</span>`).join("")}<span><i class="ring"></i>${esc(T("Where to go next"))}</span><span><i class="sq">L</i>${esc(T("Halls, by their first letter"))}</span></div>`;
   const raceHtml = race ? `<h3 style="--c:#2f86ff">${esc(T("Hoverboard race"))}</h3><ul class="wp-maplist"><li><button type="button" data-race="1"><i style="--c:#2f86ff"></i><span><b>${esc(T("Race pad"))}</b><small>${esc(T("Eight rings around the plaza, against the clock"))}</small></span></button></li></ul>` : "";
@@ -1552,7 +1573,7 @@ function gateReveal(z) {
   const off = st.on(() => { const k = (performance.now() - t0) / 7000; beam.material.opacity = Math.min(1, k * 6) * Math.max(0, 1 - Math.max(0, k - 0.7) / 0.3) * 0.55; beam.scale.x = beam.scale.z = 1 + Math.sin(k * 30) * 0.03;
     if (!reduce && !frozen && k < 0.25) camYaw = angLerp(y0, want, Math.min(1, k * 6));
     if (k >= 1) { off(); planet.remove(beam); beam.geometry.dispose(); beam.material.dispose(); } });
-  toast(T("A new hunting ground opens: {x} (level {a}–{b})", { x: z.name, a: z.lv[0], b: z.lv[1] }));
+  toast(T("A hunting ground fits your level now: {x} (level {a}–{b})", { x: z.name, a: z.lv[0], b: z.lv[1] }));
   Snd.level && Snd.level();
 }
 const dustGeo = new THREE.SphereGeometry(0.18, 6, 5);
@@ -2242,6 +2263,13 @@ const skyEnv = (() => {
     const old = rt; rt = pm.fromScene(sc, 0.03); st.scene.environment = rt.texture; if (old) old.dispose();
   };
 })();
+// the air for the post chain: low fog thicker at dawn, dusk and night and in some grounds, sun shafts by day, heat over lava
+const AIR_FOG = { swamp: 0.018, peaks: 0.01, void: 0.008, wastes: 0.012, reef: 0.01, depths: 0.008, abyss: 0.006 };
+function airFor(k, dusk, zz) {
+  const id = zz ? zz.id : "", col = new THREE.Color(0xdfe8f0).lerp(new THREE.Color(0x1a2440), k).lerp(new THREE.Color(0xf0c8a0), dusk);
+  if (zz) col.lerp(new THREE.Color(zz.fog), 0.6);
+  return { fog: 0.0015 + dusk * 0.012 + k * 0.004 + (AIR_FOG[id] || 0), color: col, rays: (1 - k) * (0.25 + dusk * 0.6) * (/^(abyss|void|depths)$/.test(id) ? 0.3 : 1), heat: id === "abyss" ? 1 : 0, sunColor: st.sun.color };
+}
 function dayNight() {
   const d = new Date(Date.now() + 9 * 3600e3);
   const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
@@ -2250,6 +2278,7 @@ function dayNight() {
   setTimeout(() => skyEnv(k), 0);
   const dusk = Math.max(0, 1 - Math.abs(k - 0.5) * 2.4);
   if (grade) grade.set(k, dusk);
+  if (fxPost) { const zz = mode === "hub" && combat ? combat.zone() : null; if (lgrade.set(k, dusk, zz && zz.id)) fxPost.setLut(lgrade.tex()); fxPost.setAir(airFor(k, dusk, zz)); }
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
   st.sun.intensity = 2.35 * (1 - k * 0.65); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
@@ -2302,15 +2331,18 @@ function camCollide(target) {
 
 // ---------------- frame rate watch: drop quality once if the device can't keep up ----------------
 let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false, liteFx = false;
-// dynamic resolution (Auto): every 2.5 s, a little fewer pixels below 40 fps, a little more back after a run of 56+
-let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0;
+// dynamic resolution (Auto). A change resizes every render target, which is itself a hitch, so it changes rarely:
+// down a step after two slow 4-second spells in a row (under 38 fps), back up only after 20 s of 58+, and never
+// within 20 s of the last change (at most twice up a session, so it can't see-saw)
+let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0;
 function dynRes(dt) {
   if (S.quality !== "auto" || degraded || photo || navigator.webdriver || !st.scale) return;
-  dynAcc += dt; dynN++; if (performance.now() - dynT0 < 2500 || dynAcc < 1) return;
-  const fps = dynN / dynAcc; dynAcc = 0; dynN = 0; dynT0 = performance.now();
-  if (fps < 40 && dynK > 0.6) { dynK = Math.max(0.6, dynK - 0.12); dynGood = 0; st.scale(dynK); }
-  else if (fps > 56 && dynK < 1) { if (++dynGood >= 3) { dynK = Math.min(1, dynK + 0.08); dynGood = 0; st.scale(dynK); } }
-  else dynGood = 0;
+  dynAcc += dt; dynN++; if (performance.now() - dynT0 < 4000 || dynAcc < 1.5) return;
+  const fps = dynN / dynAcc, now = performance.now(); dynAcc = 0; dynN = 0; dynT0 = now;
+  dynBad = fps < 38 ? dynBad + 1 : 0; dynGood = fps > 58 ? dynGood + 1 : 0;
+  if (now - dynLast < 20000) return;
+  if (dynBad >= 2 && dynK > 0.6) { dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
+  else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
 }
 function watchFps(dt) {
   if (st.idle) st.idle(!!(frozen && !photo && !introOn && !flying)); // a menu is open: the world behind it rests
@@ -2448,7 +2480,7 @@ async function dive() {
 }
 
 // ---------------- start ----------------
-dailyState(); dayNight(); worldReady = true; setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
+dailyState(); dayNight(); worldReady = true; try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
 $("wp-loading").classList.add("done");
@@ -2468,7 +2500,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
-  stage: () => st, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
+  stage: () => st, post: () => fxPost, gshadow: () => gshadow, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },

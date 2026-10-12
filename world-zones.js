@@ -6,7 +6,7 @@ import { ZONES, zoneAt, pondOf } from "./world-rpg-data.js";
 import { farProps } from "./world-zones-far.js";
 export { ZONES, zoneAt };
 
-export function makeZones({ THREE, K, planet, kit, T, low = false }) {
+export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = null }) {
   const root = new THREE.Group(); root.name = "zones"; planet.add(root);
   const rnd = (seed) => { let a = seed; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; };
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, flatShading: true, ...o });
@@ -17,7 +17,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false }) {
     const r = rnd(97 + zi * 13);
     // the ground and its border
     const ground = new THREE.Mesh(new THREE.CircleGeometry(zn.r, 64), new THREE.MeshStandardMaterial({ color: zn.ground, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; ground.userData.keep = true; g.add(ground);
+    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; ground.userData.keep = true; ground.name = "zone-ground"; g.add(ground);
     const border = new THREE.Mesh(new THREE.TorusGeometry(zn.r, 0.12, 8, 128), glowM(zn.color, 1.6)); border.rotation.x = Math.PI / 2; border.position.y = 0.08; border.userData.keep = true; g.add(border);
     for (let i = 0; i < 28; i++) { const a = (i / 28) * Math.PI * 2; const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.1, 6), std(0x2a3442, { metalness: 0.5 })); post.position.set(Math.cos(a) * zn.r, 0.55, Math.sin(a) * zn.r); const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), glowM(zn.color, 2.4)); cap.position.y = 0.62; post.add(cap); g.add(post); }
     // the gate on the side facing the plaza
@@ -49,7 +49,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false }) {
       for (let i = 0; i < 14; i++) { const [x, z] = spot(2); const c = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.1, 5), glowM(0x8a5cff, 1.2)); c.position.y = 0.5; prop(c, x, z); }
     }
     // the far ring (Lv 30–100): each ground's own scene (world-zones-far.js)
-    else if (zn.deco) lazy.push({ zn, g, built: false, build: () => { farProps({ THREE, K, zn, g: pg, r, prop, spot, std, glowM, spins, low }); if (K.mergeStatic) K.mergeStatic(pg); } });
+    else if (zn.deco) lazy.push({ zn, g, built: false, build: () => { farProps({ THREE, K, zn, g: pg, r, prop, spot, std, glowM, spins, low }); if (K.mergeStatic) K.mergeStatic(pg); if (onBuilt) onBuilt(zn); } });
     // the props never move: merge the ones that look alike into one mesh each (hundreds of draw calls fewer)
     if (K.mergeStatic) K.mergeStatic(g);
     g.userData = { zone: zn, border };

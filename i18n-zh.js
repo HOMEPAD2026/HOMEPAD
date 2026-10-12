@@ -10504,6 +10504,11 @@
     "The biggest fish and the fastest boss knock-outs, in Rankings. Honour only.": "最大的鱼和最快的首领击倒，在排行榜里。只为荣誉。",
     "Seven new codex pages": "七页新图鉴",
     "The far ring's bosses, each a scam people still fall for, with how to beat it.": "远方狩猎场的首领，每个都是人们仍会上当的骗局，并附应对方法。",
+    "Recommended from level {n}": "建议 {n} 级以上",
+    "{x} is recommended from level {n}: the scammers here hit hard": "{x} 建议 {n} 级以上：这里的骗子很凶",
+    "The raid is recommended from level {n}: it hits hard": "团队首领战建议 {n} 级以上：攻击很强",
+    "Recommended Lv {n}+ · one boss for everyone": "建议 Lv {n}+ · 所有人共同的首领",
+    "A hunting ground fits your level now: {x} (level {a}–{b})": "现在适合你等级的狩猎场：{x}（{a}–{b} 级）",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

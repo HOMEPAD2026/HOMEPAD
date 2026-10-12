@@ -50,6 +50,58 @@ export function addGrade(st) {
   return { pass, set };
 }
 
+// ---------------- the grade as a 3D colour table (world-post.js applies it): time of day, then the ground's mood ----------------
+// each mood: saturation, contrast, lift/gain per channel, shadow and highlight tints, warmth
+const GD = {
+  day: { sat: 1.08, con: 1.05, lift: [0, 0, 0.01], gain: [1, 1, 1], sh: [0, 0.012, 0.03], hi: [0.025, 0.018, 0], warm: 0.1 },
+  dusk: { sat: 1.16, con: 1.08, lift: [0.01, 0, 0.02], gain: [1.04, 0.98, 0.94], sh: [0.03, 0, 0.05], hi: [0.07, 0.03, 0], warm: 0.6 },
+  night: { sat: 0.92, con: 1.07, lift: [0, 0.005, 0.02], gain: [0.92, 0.95, 1.06], sh: [0, 0, 0.04], hi: [0.01, 0.01, 0.03], warm: -0.3 },
+};
+// a ground's mood is added on top (in it fully, fading at its edge)
+export const ZONE_GRADE = {
+  spam: { sh: [0, 0.01, 0.02] }, fields: { warm: 0.35, sat: 0.05 }, swamp: { gain: [0.95, 1.03, 0.92], sat: -0.04 }, canyon: { warm: 0.5, con: 0.03 }, depths: { sh: [0.03, 0, 0.05], gain: [1, 0.96, 1.04] },
+  peaks: { sat: -0.06, hi: [-0.01, 0.01, 0.04], gain: [0.97, 1, 1.05] }, dunes: { warm: 0.7, sat: 0.06 }, reef: { gain: [0.92, 1.03, 1.05], sh: [0, 0.02, 0.03] },
+  wastes: { gain: [1, 1.05, 0.88], sat: -0.06 }, ruins: { sh: [0.03, 0, 0.05], gain: [1, 0.96, 1.04] }, abyss: { gain: [1.08, 0.95, 0.88], con: 0.06 }, void: { sh: [0.04, 0, 0.06], gain: [1.04, 0.94, 1.06], sat: 0.05 },
+};
+const mixA = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+function blend(a, b, t) { return { sat: a.sat + (b.sat - a.sat) * t, con: a.con + (b.con - a.con) * t, lift: mixA(a.lift, b.lift, t), gain: mixA(a.gain, b.gain, t), sh: mixA(a.sh, b.sh, t), hi: mixA(a.hi, b.hi, t), warm: a.warm + (b.warm - a.warm) * t }; }
+function addZone(p, z, k) { if (!z || k <= 0) return p; const q = { ...p, lift: [...p.lift], gain: [...p.gain], sh: [...p.sh], hi: [...p.hi] };
+  if (z.sat) q.sat += z.sat * k; if (z.con) q.con += z.con * k; if (z.warm) q.warm += z.warm * k;
+  for (const key of ["sh", "hi"]) if (z[key]) q[key] = q[key].map((v, i) => v + z[key][i] * k);
+  if (z.gain) q.gain = q.gain.map((v, i) => v * (1 + (z.gain[i] - 1) * k)); return q; }
+const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+/// the table: N³ colours, each input colour mapped through the mood
+export function gradeLut(p, N = 16, out = null) {
+  const data = out ? out.image.data : new Uint8Array(N * N * N * 4);
+  let i = 0;
+  for (let b = 0; b < N; b++) for (let g = 0; g < N; g++) for (let r = 0; r < N; r++) {
+    let c = [r / (N - 1), g / (N - 1), b / (N - 1)];
+    c = c.map((v, j) => v * p.gain[j] + p.lift[j] * (1 - v));
+    c = c.map((v) => (v - 0.5) * p.con + 0.5);
+    const l = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    c = c.map((v) => l + (v - l) * p.sat);
+    const sh = 1 - sm(0, 0.55, l), hi = sm(0.45, 1, l);
+    c = c.map((v, j) => v + p.sh[j] * sh + p.hi[j] * hi);
+    c[0] += p.warm * 0.03; c[2] -= p.warm * 0.03;
+    data[i++] = Math.round(Math.max(0, Math.min(1, c[0])) * 255); data[i++] = Math.round(Math.max(0, Math.min(1, c[1])) * 255); data[i++] = Math.round(Math.max(0, Math.min(1, c[2])) * 255); data[i++] = 255;
+  }
+  if (out) { out.needsUpdate = true; return out; }
+  const t = new THREE.Data3DTexture(data, N, N, N); t.format = THREE.RGBAFormat; t.type = THREE.UnsignedByteType; t.minFilter = t.magFilter = THREE.LinearFilter;
+  t.wrapS = t.wrapT = t.wrapR = THREE.ClampToEdgeWrapping; t.unpackAlignment = 1; t.needsUpdate = true; return t;
+}
+/// the grade for the game: set(night amount, dusk amount, the ground you're in or null, how far in 0–1)
+export function lutGrade() {
+  let tex = null, key = "";
+  return {
+    tex: () => tex,
+    set(k, dusk, zoneId, zk = 1) {
+      const kk = `${k.toFixed(2)}|${dusk.toFixed(2)}|${zoneId || ""}|${zk.toFixed(1)}`; if (kk === key) return false; key = kk;
+      let p = blend(blend(GD.day, GD.night, k), GD.dusk, dusk); p = addZone(p, ZONE_GRADE[zoneId], zk);
+      tex = gradeLut(p, 16, tex); return true;
+    },
+  };
+}
+
 // ---------------- the ground: two greens and worn earth in soft patches, darker in the hollows ----------------
 export function groundLook(mat, { low } = {}) {
   mat.onBeforeCompile = (sh) => {
@@ -124,4 +176,43 @@ export function contactShadow(r = 3, strength = 0.42) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2), new THREE.MeshBasicMaterial({ map: shadowTex, color: 0x0a1a14, transparent: true, opacity: strength, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.y = 0.045; m.renderOrder = -1; m.name = "contact-shadow";
   return m;
+}
+
+// ---------------- far shadows: one big shadow map of everything that stands still, baked from the sun ----------------
+// The real shadow map covers ~26 m round you; past that the ground (and each hunting ground's floor) takes its shade
+// from this bake — halls, trees, the far grounds' props. Rebaked when new things are built (lazy grounds, decor).
+// Things under a metre (water, puddles, paths) don't cast; moving things (scammers, players, effects) are left out.
+export function groundShadow({ renderer, planet, sunDir, size = 2048, extent = 440, skip = new Set(["combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid"]) }) {
+  const rt = new THREE.WebGLRenderTarget(size, size);
+  rt.depthTexture = new THREE.DepthTexture(size, size); rt.depthTexture.type = THREE.UnsignedIntType;
+  const cam = new THREE.OrthographicCamera(-extent / 2, extent / 2, extent / 2, -extent / 2, 1, 900);
+  const U = { gsTex: { value: rt.depthTexture }, gsM: { value: new THREE.Matrix4() }, gsPl: { value: new THREE.Vector3() }, gsOn: { value: 0 }, gsPx: { value: 1 / size }, gsK: { value: 0.4 }, gsNear: { value: 18 } };
+  const depthMat = new THREE.MeshDepthMaterial(), holder = new THREE.Scene(); holder.overrideMaterial = depthMat;
+  const patched = new Set();
+  function bake() {
+    const parent = planet.parent, pos = planet.position.clone(), off = [];
+    planet.traverse((o) => { if (o.visible && (skip.has(o.name) || o.isSprite || o.isPoints || o.isLine || o.userData.noBake || patched.has(o.material))) { o.visible = false; off.push(o); } });
+    planet.position.set(0, 0, 0); holder.add(planet); planet.updateMatrixWorld(true);
+    cam.position.copy(sunDir).multiplyScalar(450); cam.lookAt(0, 0, 0); cam.updateMatrixWorld(true);
+    const prevRT = renderer.getRenderTarget(); renderer.setRenderTarget(rt); renderer.clear(); renderer.render(holder, cam); renderer.setRenderTarget(prevRT);
+    if (parent) parent.add(planet); planet.position.copy(pos); planet.updateMatrixWorld(true); off.forEach((o) => { o.visible = true; });
+    U.gsM.value.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); U.gsOn.value = 1;
+  }
+  let soon = 0;
+  /// a material that receives the far shade (the ground, the grounds' floors)
+  function receive(mat) {
+    if (patched.has(mat)) return; patched.add(mat);
+    const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => "";
+    mat.onBeforeCompile = (sh, r) => {
+      if (prev) prev(sh, r); Object.assign(sh.uniforms, U);
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 gsW;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\ngsW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 gsW; uniform sampler2D gsTex; uniform mat4 gsM; uniform vec3 gsPl; uniform float gsOn, gsPx, gsK, gsNear;").replace("#include <map_fragment>", `#include <map_fragment>
+        if (gsOn > 0.5) { vec3 lp = gsW - gsPl; vec4 sc = gsM * vec4(lp, 1.0); vec3 s = sc.xyz * 0.5 + 0.5;
+          if (s.x > 0.0 && s.x < 1.0 && s.y > 0.0 && s.y < 1.0) {
+            float sh = 0.0; for (int i = -1; i <= 1; i += 2) for (int j = -1; j <= 1; j += 2) sh += step(texture2D(gsTex, s.xy + vec2(float(i), float(j)) * gsPx * 1.5).r, s.z - 0.0012);
+            diffuseColor.rgb *= 1.0 - sh * 0.25 * gsK * smoothstep(gsNear, gsNear + 10.0, length(gsW.xz)); } }`);
+    };
+    mat.customProgramCacheKey = () => prevKey() + "|gsh"; mat.needsUpdate = true;
+  }
+  return { bake, receive, rebakeSoon: (ms = 1200) => { clearTimeout(soon); soon = setTimeout(bake, ms); }, tick: () => { U.gsPl.value.copy(planet.position); }, uniforms: U };
 }

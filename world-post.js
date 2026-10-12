@@ -1,0 +1,161 @@
+// world-post.js — the game's picture after the scene is drawn, one pass at a time:
+//
+//   scene      drawn into a multisampled target (real antialiasing with bloom on), or by N8AO, which draws it and
+//              adds ambient occlusion (soft shade in corners, under things, between props)
+//   edges      ink lines where depth jumps or creases (the mixed model packs read as one drawn style); a darker shade
+//              of the colour under them, never pure black, fading out with distance
+//   bloom      the glow of bright things (as before)
+//   air        height fog that lies low in the morning and at dusk, sun shafts toward the sun, heat shimmer over lava
+//   output     tone mapping and sRGB
+//   grade      a 3D colour table built from the time of day and the ground you're in (world-look.js makes it), and the
+//              vignette
+//   fxaa       smooths what's left after AO (multisampling and AO don't mix)
+//
+// Levels: "medium" (multisampling, edges, bloom, air, grade) and "ultra" (AO, edges, bloom, air with shafts, grade, FXAA).
+// Low and Saver keep the plain renderer with its own antialiasing. WebGL 1: FXAA and no 3D table.
+import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import { EffectComposer } from "./vendor/three/addons/EffectComposer.js";
+import { RenderPass } from "./vendor/three/addons/RenderPass.js";
+import { UnrealBloomPass } from "./vendor/three/addons/UnrealBloomPass.js";
+import { OutputPass } from "./vendor/three/addons/OutputPass.js";
+import { ShaderPass } from "./vendor/three/addons/ShaderPass.js";
+import { Pass, FullScreenQuad } from "./vendor/three/addons/Pass.js";
+import { FXAAShader } from "./vendor/three/addons/FXAAShader.js";
+
+const VS = "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }";
+const LIN = "float lin(float d){ float z = d * 2.0 - 1.0; return (2.0 * near * far) / (far + near - z * (far - near)); }";
+
+// a pass that draws the scene and remembers which depth texture it wrote (the composer swaps its two targets)
+class ScenePass extends RenderPass {
+  render(renderer, writeBuffer, readBuffer, dt, mask) { super.render(renderer, writeBuffer, readBuffer, dt, mask); this.depth = readBuffer.depthTexture; }
+}
+
+// a full-screen pass with its own material that also reads the scene's depth
+class DepthPass extends Pass {
+  constructor(shader, depth) {
+    super(); this.uniforms = THREE.UniformsUtils.clone(shader.uniforms); this.depth = depth;
+    this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VS, fragmentShader: shader.fragmentShader, defines: shader.defines || {} });
+    this.fsQuad = new FullScreenQuad(this.material);
+  }
+  render(renderer, writeBuffer, readBuffer) {
+    this.uniforms.tDiffuse.value = readBuffer.texture; this.uniforms.tDepth.value = this.depth();
+    if (this.before) this.before(this.uniforms);
+    renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer); this.fsQuad.render(renderer);
+  }
+  setSize(w, h) { if (this.uniforms.res) this.uniforms.res.value.set(1 / w, 1 / h); }
+  dispose() { this.material.dispose(); this.fsQuad.dispose(); }
+}
+
+const EdgeShader = {
+  uniforms: { tDiffuse: { value: null }, tDepth: { value: null }, res: { value: new THREE.Vector2(1 / 1280, 1 / 720) }, near: { value: 0.1 }, far: { value: 1200 },
+    strength: { value: 0.85 }, ink: { value: 0.32 }, depthT: { value: 0.06 }, fadeNear: { value: 40 }, fadeFar: { value: 130 }, thick: { value: 1.0 } },
+  fragmentShader: `uniform sampler2D tDiffuse, tDepth; uniform vec2 res; uniform float near, far, strength, ink, depthT, fadeNear, fadeFar, thick; varying vec2 vUv;
+    ${LIN}
+    float luma(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv); float d0 = texture2D(tDepth, vUv).r;
+      if (d0 >= 0.99999) { gl_FragColor = c; return; }
+      vec2 px = res * thick; float z0 = lin(d0);
+      float zl = lin(texture2D(tDepth, vUv - vec2(px.x, 0.0)).r), zr = lin(texture2D(tDepth, vUv + vec2(px.x, 0.0)).r);
+      float zd = lin(texture2D(tDepth, vUv - vec2(0.0, px.y)).r), zu = lin(texture2D(tDepth, vUv + vec2(0.0, px.y)).r);
+      // a silhouette or a crease: the depth around bends away from the centre (relative to how far it is)
+      float lap = abs(zl + zr + zu + zd - 4.0 * z0) / max(z0, 0.5);
+      float e = smoothstep(depthT, depthT * 2.6, lap);
+      float l0 = luma(c.rgb), lx = abs(luma(texture2D(tDiffuse, vUv + vec2(px.x, 0.0)).rgb) - l0) + abs(luma(texture2D(tDiffuse, vUv + vec2(0.0, px.y)).rgb) - l0);
+      e = max(e, smoothstep(0.22, 0.5, lx) * 0.35);
+      e *= 1.0 - smoothstep(fadeNear, fadeFar, z0);
+      gl_FragColor = vec4(mix(c.rgb, c.rgb * ink, clamp(e * strength, 0.0, 1.0)), c.a);
+    }`,
+};
+
+const AirShader = {
+  uniforms: { tDiffuse: { value: null }, tDepth: { value: null }, res: { value: new THREE.Vector2() }, near: { value: 0.1 }, far: { value: 1200 },
+    invProj: { value: new THREE.Matrix4() }, camWorld: { value: new THREE.Matrix4() },
+    fogCol: { value: new THREE.Color(0xdfe8f0) }, fogH: { value: 2.2 }, fogK: { value: 0.0 }, sun: { value: new THREE.Vector2(0.5, 0.8) }, sunCol: { value: new THREE.Color(0xffd9a0) },
+    rays: { value: 0 }, heat: { value: 0 }, time: { value: 0 } },
+  defines: { RAYS: 1 },
+  fragmentShader: `uniform sampler2D tDiffuse, tDepth; uniform vec2 res, sun; uniform float near, far, fogH, fogK, rays, heat, time; uniform vec3 fogCol, sunCol; uniform mat4 invProj, camWorld; varying vec2 vUv;
+    void main(){
+      vec2 uv = vUv;
+      // heat over lava: the picture shimmers, more toward the bottom (the ground)
+      if (heat > 0.001) uv += vec2(sin(uv.y * 90.0 + time * 4.0), cos(uv.x * 70.0 + time * 3.1)) * 0.0016 * heat * (1.0 - uv.y);
+      vec4 c = texture2D(tDiffuse, uv); float d = texture2D(tDepth, uv).r;
+      if (fogK > 0.0001 && d < 0.99999) {
+        vec4 vp = invProj * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); vp /= vp.w; vec3 wp = (camWorld * vec4(vp.xyz, 1.0)).xyz;
+        float hf = exp(-max(wp.y, 0.0) / fogH) * (1.0 - exp(-length(vp.xyz) * fogK));
+        c.rgb = mix(c.rgb, fogCol, clamp(hf, 0.0, 0.8));
+      }
+      #if RAYS == 1
+      if (rays > 0.001) { // shafts: march toward the sun over the open sky, light adds up where it gets through
+        vec2 dlt = (sun - uv) / 20.0; vec2 p = uv; float acc = 0.0, w = 1.0;
+        for (int i = 0; i < 20; i++) { p += dlt; acc += step(0.99999, texture2D(tDepth, clamp(p, 0.0, 1.0)).r) * w; w *= 0.93; }
+        float fall = 1.0 - smoothstep(0.0, 0.9, distance(uv, sun));
+        c.rgb += sunCol * acc / 12.0 * rays * fall;
+      }
+      #endif
+      gl_FragColor = c;
+    }`,
+};
+
+// the grade: a 3D colour table (WebGL 2), mixed in, and the vignette
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null }, lut: { value: null }, amount: { value: 1 }, vig: { value: 0.22 }, aspect: { value: 1.6 } },
+  vertexShader: VS,
+  fragmentShader: `precision highp sampler3D; uniform sampler2D tDiffuse; uniform sampler3D lut; uniform float amount, vig, aspect; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(tDiffuse, vUv); vec3 s = clamp(c.rgb, 0.0, 1.0);
+      vec3 g = texture(lut, s * (15.0 / 16.0) + 0.5 / 16.0).rgb; c.rgb = mix(c.rgb, g, amount);
+      vec2 d = (vUv - 0.5) * vec2(aspect, 1.0); c.rgb *= 1.0 - vig * smoothstep(0.35, 1.05, length(d));
+      gl_FragColor = c; }`,
+};
+
+/// replace the stage's composer with the game's chain; returns controls, or null (low / saver: the plain renderer)
+export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], lite = false } = {}) {
+  if (level !== "medium" && level !== "ultra") return null;
+  const r = st.renderer, gl2 = r.capabilities.isWebGL2, cam = st.camera, scene = st.scene;
+  const size = r.getDrawingBufferSize(new THREE.Vector2());
+  const ao = level === "ultra" && gl2;
+  const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: ao || !gl2 ? 0 : lite ? 2 : 4 }); // phones (lite): 2 samples
+  rt.depthTexture = new THREE.DepthTexture(size.x, size.y); rt.depthTexture.type = THREE.UnsignedIntType;
+  const comp = new EffectComposer(r, rt);
+  let depth, aoPass = null;
+  if (ao) { // N8AO draws the scene itself and keeps its own depth
+    return import("./vendor/three/addons/N8AO.js").then(({ N8AOPass }) => finish(N8AOPass)).catch(() => finish(null));
+  }
+  return Promise.resolve(finish(null));
+
+  function finish(N8AOPass) {
+    if (N8AOPass) {
+      aoPass = new N8AOPass(scene, cam, size.x, size.y);
+      Object.assign(aoPass.configuration, { aoRadius: 1.4, distanceFalloff: 1.2, intensity: 2.2, halfRes: true, depthAwareUpsampling: true, gammaCorrection: false, color: new THREE.Color(0x0a1420) });
+      aoPass.setQualityMode && aoPass.setQualityMode("Low");
+      comp.addPass(aoPass); depth = () => aoPass.beautyRenderTarget.depthTexture;
+    } else { const sp = new ScenePass(scene, cam); comp.addPass(sp); depth = () => sp.depth || rt.depthTexture; }
+    const edge = new DepthPass(EdgeShader, depth); edge.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; }; comp.addPass(edge);
+    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); comp.addPass(bl);
+    const air = new DepthPass({ ...AirShader, defines: { RAYS: level === "ultra" ? 1 : 0 } }, depth);
+    air.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; u.invProj.value.copy(cam.projectionMatrixInverse); u.camWorld.value.copy(cam.matrixWorld); };
+    comp.addPass(air);
+    comp.addPass(new OutputPass());
+    let grade = null;
+    if (gl2) { grade = new ShaderPass(GradeShader); comp.addPass(grade); }
+    let fxaa = null;
+    if (ao || !gl2) { fxaa = new ShaderPass(FXAAShader); comp.addPass(fxaa); }
+    const fit = () => { const s = r.getDrawingBufferSize(new THREE.Vector2()); if (fxaa) fxaa.uniforms.resolution.value.set(1 / s.x, 1 / s.y); if (grade) grade.uniforms.aspect.value = s.x / Math.max(1, s.y); };
+    st.useComposer(comp); fit(); addEventListener("resize", () => setTimeout(fit, 50));
+    const sunV = new THREE.Vector3(); let raysWant = 0;
+    return {
+      level, ao: !!aoPass, composer: comp, edge, air, grade,
+      setLut(tex, amount = 1) { if (grade) { grade.uniforms.lut.value = tex; grade.uniforms.amount.value = tex ? amount : 0; } },
+      setVignette(v) { if (grade) grade.uniforms.vig.value = v; },
+      /// each frame: the sun's place on screen (for the shafts) and the clock
+      tick(dt, sunDir) {
+        air.uniforms.time.value += dt;
+        if (level === "ultra" && sunDir) { sunV.copy(cam.position).addScaledVector(sunDir, 500).project(cam); const ok = sunV.z < 1 && Math.abs(sunV.x) < 1.6 && Math.abs(sunV.y) < 1.6; air.uniforms.sun.value.set(sunV.x * 0.5 + 0.5, sunV.y * 0.5 + 0.5); air.uniforms.rays.value = ok ? raysWant : 0; }
+      },
+      /// the air: fog density and colour, shafts' strength (0–1), heat (0–1)
+      setAir({ fog = 0, color, rays = 0, heat = 0, sunColor } = {}) { const u = air.uniforms; if (lite) { fog = fog > 0.006 ? fog : 0; rays = 0; } air.enabled = fog > 0.0001 || heat > 0.001 || rays > 0.001; /* phones: only a ground's own fog and heat */ u.fogK.value = fog; if (color) u.fogCol.value.copy(color); raysWant = rays; u.heat.value = heat; if (sunColor) u.sunCol.value.copy(sunColor); },
+      setEdges(on) { edge.enabled = !!on; },
+      setAO(on) { if (aoPass) aoPass.configuration.intensity = on ? 2.2 : 0; },
+    };
+  }
+}
