@@ -3094,3 +3094,35 @@ html.wp-pcphone .wp-fh{bottom:auto;top:96px;zoom:1.25}
 .wp-party u{display:block;height:100%;background:linear-gradient(90deg,#ff4d6d,#ff8fa0)}
 .wp-party .away{opacity:.5}
 html.wp-pcphone .wp-party{width:200px}
+
+/* ---- ARCIRCLE World HUD tokens: one scale for surfaces, lines, corners, spacing and motion ---- */
+body.wp{--hud-bg:rgba(10,14,22,.78);--hud-bg-strong:rgba(10,14,22,.94);--hud-line:rgba(255,255,255,.12);--hud-line-strong:rgba(255,255,255,.24);--hud-ink:#eef3f7;--hud-ink-2:rgba(222,233,244,.72);--hud-accent:#39ff88;--hud-r-s:10px;--hud-r-m:16px;--hud-r-l:22px;--hud-r-pill:999px;--hud-gap:8px;--hud-ease:cubic-bezier(.2,.9,.3,1);--hud-t:.2s}
+body.wp .wp-btn{background:var(--hud-bg);border-color:var(--hud-line);border-radius:var(--hud-r-pill);transition:border-color var(--hud-t),background var(--hud-t),transform var(--hud-t) var(--hud-ease)}
+body.wp .wp-btn:active{transform:scale(.96)}
+body.wp .wp-quests{border-radius:var(--hud-r-m);border-color:var(--hud-line);background:var(--hud-bg)}
+body.wp .wp-card,body.wp .wp-sheet{border-radius:var(--hud-r-l);border-color:var(--hud-line)}
+body.wp .wp-toast{border-radius:var(--hud-r-pill)}
+/* numbers line up as they change (levels, ARCL, HP, cool-downs, distances) */
+body.wp .wp-hud,body.wp .wp-purse,body.wp .wp-qmark,body.wp [class^="wc-"],body.wp .wp-xpbar{font-variant-numeric:tabular-nums}
+/* keyboard focus is always visible */
+body.wp :is(button,a,input,select,[tabindex]):focus-visible{outline:2px solid var(--hud-accent);outline-offset:2px}
+/* a panel rises a little as it opens */
+@keyframes wpRise{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+body.wp .wp-card:not([hidden]){animation:wpRise var(--hud-t) var(--hud-ease) both}
+/* the game's icons (world-icons.js) */
+.wi-ic{display:block;flex-shrink:0}
+.wp-wheel button b .wi-ic{width:24px;height:24px}
+.wp-guide-legend kbd .wi-ic{width:15px;height:15px}
+@media (prefers-reduced-motion:reduce){body.wp .wp-card{animation:none!important}body.wp .wp-btn:active{transform:none}}
+/* the turning 3D views (world-preview.js): you in the paper doll, the selected weapon in its card */
+.wpv-canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.wpv-canvas:active{cursor:grabbing}
+.wr-avatar.has-3d{display:block;grid-column:1/-1;position:relative;height:200px;border-radius:12px;background:radial-gradient(circle at 50% 70%,rgba(47,134,255,.18),transparent 70%)}
+.wr-avatar.has-3d>span{position:absolute;left:10px;top:8px;z-index:1;font:700 12px var(--f-num);color:rgba(222,233,244,.7);pointer-events:none}
+.wr-3d{height:150px;margin:-4px -4px 10px;border-radius:12px;background:radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--rc,#556) 26%,transparent),transparent 70%)}
+/* the loading screen's little planet (world-loading3d.js) takes the logo's place */
+.wp-loading .wp-load3d{width:200px;height:200px;margin-bottom:-18px}
+.wp-loading.has-3d>img{display:none}
+/* rankings: the value column (level, score, time) is one right-aligned column of the same width on every row */
+.wq-rank li>button em{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;min-width:76px;text-align:right;white-space:nowrap;line-height:1.25}
+.wq-rank li>button em small{margin-top:2px}

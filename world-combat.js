@@ -78,6 +78,8 @@ export function createCombat(ctx) {
   const sprite = (c, o = 1) => { const s = pool.pop() || new THREE.Sprite(spriteMat(c, o)); s.material.color.set(c); s.material.opacity = o; s.material.rotation = 0; s.visible = true; s.userData.pooled = true; return s; };
   function puff(pos, color, { n = 10, speed = 4, size = 0.35, life = 0.6, up = 1, grav = 4 } = {}) {
     if (ctx.reduce || (ctx.lite && ctx.lite())) n = Math.ceil(n / 3);
+    // the GPU particles (world-particles.js): one draw call for all of them; big slow rising puffs are smoke
+    if (ctx.parts) { const smoke = grav < 0 && size >= 1; ctx.parts.emit({ at: pos, color, n, speed, size: smoke ? size : size * 1.1, life, up, grav, drag: smoke ? 1.6 : 0.9, kind: smoke ? "smoke" : "glow", jitter: smoke ? 0.8 : 0.15 }); return; }
     for (let i = 0; i < n; i++) {
       const s = sprite(color); s.position.copy(pos); s.scale.setScalar(size * (0.6 + Math.random() * 0.8)); add(s);
       const a = Math.random() * TAU;
@@ -142,7 +144,7 @@ export function createCombat(ctx) {
   // its materials every few seconds was a hitch on phones
   const mobPool = new Map();
   const takeEnemy = (kit, key) => { const a = mobPool.get(key); if (a && a.length) return a.pop(); const e = K.enemy(kit, key); if (e) e.key = key; return e; };
-  function retire(m, i) { root.remove(m.g); mobs.splice(i, 1); if (m.e && m.e.key) { m.g.remove(m.e.obj); m.e.obj.position.x = 0; const a = mobPool.get(m.e.key) || []; if (a.length < 6) { a.push(m.e); mobPool.set(m.e.key, a); } } }
+  function retire(m, i) { root.remove(m.g); mobs.splice(i, 1); if (m.e && m.e.key) { m.g.remove(m.e.obj); m.e.obj.position.x = 0; m.e.obj.rotation.x = m.e.obj.rotation.z = 0; const a = mobPool.get(m.e.key) || []; if (a.length < 6) { a.push(m.e); mobPool.set(m.e.key, a); } } }
   const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }), ringBoss = new THREE.MeshBasicMaterial({ color: 0xff4d6d }), ringElite = new THREE.MeshBasicMaterial({ color: 0xffc861 });
   const geoCache = new Map(), geoOf = (k, make) => { let g = geoCache.get(k); if (!g) { g = make(); geoCache.set(k, g); } return g; };
   function spawnMob(o = {}) {
@@ -171,7 +173,7 @@ export function createCombat(ctx) {
     const baseY = skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
     e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);
-    e.obj.traverse((x) => { if (x.isMesh && x.material) { if (!e.own) x.material = x.material.clone(); if (x.material.emissive && !x.material.userData.glow) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } }); e.own = true; // its own materials, once
+    e.obj.traverse((x) => { if (x.isMesh && x.material) { if (!e.own) { x.material = x.material.clone(); if (K.toonLook) K.toonLook(x.material, { rim: 0xff9a8a }); } if (x.material.emissive && !x.material.userData.glow) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } }); e.own = true; // its own materials, once
     const bb = new THREE.Box3().setFromObject(e.obj); const bar = hpBar(bs ? 3.2 : rank === "elite" ? 2.1 : 1.7); bar.position.y = bb.max.y + (bs ? 0.9 : 0.5); g.add(bar);
     const sh = new THREE.Mesh(geoOf("sh" + !!bs, () => new THREE.CircleGeometry(bs ? 2.6 : 0.7, 24)), shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.04; g.add(sh);
     if (rank) { const rr = new THREE.Mesh(geoOf("ring" + !!bs, () => new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48)), rank === "boss" ? ringBoss : ringElite); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
@@ -201,6 +203,8 @@ export function createCombat(ctx) {
     const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1)));
     m.hp -= dmg; m.hitT = 0.18; label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
+    if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
+    m.leanT = kind === "heavy" ? 0.42 : 0.3; m.leanL = m.leanT; m.leanX = tmp.x; m.leanZ = tmp.z; // it rocks back away from the blow
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
     if (!m.raid) tryStep(m, tmp, kb);
     if (kind === "ice") { const deep = brOf("ice") === "a"; m.slow = deep ? 5 : 3; if (deep) { m.stun = Math.max(m.stun, m.rank === "boss" ? 0.2 : 0.6); m.statue = true; } }
@@ -290,6 +294,7 @@ export function createCombat(ctx) {
       if (m.statue && m.stun <= 0) { m.statue = false; shards(m.g.position.clone().setY(m.y + 0.5), 0xcff6ff, 16, 6); Snd.pop && Snd.pop(); } // the ice statue shatters
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
+      if (m.leanT > 0) { m.leanT = Math.max(0, m.leanT - dt); const e = Math.sin((m.leanT / m.leanL) * Math.PI) * (m.rank === "boss" ? 0.1 : m.rank === "elite" ? 0.22 : 0.36) * (ctx.reduce ? 0.4 : 1), ry = m.g.rotation.y, c = Math.cos(ry), s = Math.sin(ry); body.rotation.x = (m.leanX * s + m.leanZ * c) * e; body.rotation.z = -(m.leanX * c - m.leanZ * s) * e; } else if (body.rotation.x || body.rotation.z) { body.rotation.x = 0; body.rotation.z = 0; }
       if (m.punch > 0) { if (!m.bs) m.bs = body.scale.clone(); m.punch = Math.max(0, m.punch - dt * 7); const q = ctx.reduce ? 0 : Math.sin(m.punch * Math.PI) * 0.16; body.scale.set(m.bs.x * (1 + q), m.bs.y * (1 - q), m.bs.z * (1 + q)); }
       if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
@@ -345,7 +350,7 @@ export function createCombat(ctx) {
     }
   }
   function slam(m) {
-    const p = m.g.position.clone(); ring(p, 0xff4d6d, { r0: 0.5, r1: 7, life: 0.7, y: 0.1 }); puff(p.clone().setY(0.5), 0xff8a6a, { n: 30, speed: 7, size: 0.6, life: 0.7, grav: 3 }); ctx.shake(0.45);
+    const p = m.g.position.clone(); ring(p, 0xff4d6d, { r0: 0.5, r1: 7, life: 0.7, y: 0.1 }); puff(p.clone().setY(0.5), 0xff8a6a, { n: 30, speed: 7, size: 0.6, life: 0.7, grav: 3 }); ctx.shake(0.45); if (ctx.wave) ctx.wave(p, 1.1); if (ctx.parts) ctx.parts.smoke(p.clone().setY(0.4), 0x9a8a7a, 14, 1.8);
     ctx.here(me); if (me.distanceTo(tmp.copy(p).setY(me.y)) < 7 && guardT <= 0 && !down && ctx.hopY() < 0.8) { tmp.copy(me).sub(p).setY(0).normalize(); ctx.knock(tmp, 13); ctx.hurt(); damage(hitDamage(Math.round(m.atk * 1.4), stats().def)); }
   }
 
@@ -489,7 +494,7 @@ export function createCombat(ctx) {
       for (let i = 0; i < 2; i++) { const blade = new THREE.Mesh(new THREE.RingGeometry(1.6, 3.6, 48, 1, 0, TAU * 0.8), additive(i ? col : 0xffffff, i ? 0.5 : 0.8)); blade.material.side = THREE.DoubleSide; blade.rotation.x = -Math.PI / 2; blade.position.copy(me).setY(0.9 + i * 0.25); add(blade); fx.push({ o: blade, life: 0.4, t: 0, op0: i ? 0.5 : 0.8, onTick: (k) => { blade.rotation.z = k * 9 * (i ? -1 : 1); blade.scale.setScalar(0.8 + k * 0.4); } }); }
       hitAll((m) => m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 3.8 + (m.rank === "boss" ? 2 : 0), 2.0);
     } else if (kind === 1) { // quake
-      ring(me, 0xffc861, { r0: 0.5, r1: 7, life: 0.6, y: 0.12 }); ring(me, 0xffffff, { r0: 0.3, r1: 5, life: 0.45, y: 0.14 }); if (VX) VX.impact(me.clone().setY(0.3), "meteor", { big: 1.2 }); shards(me.clone().setY(0.3), 0x8a6a4a, 24, 9); ctx.shake(0.55);
+      ring(me, 0xffc861, { r0: 0.5, r1: 7, life: 0.6, y: 0.12 }); ring(me, 0xffffff, { r0: 0.3, r1: 5, life: 0.45, y: 0.14 }); if (VX) VX.impact(me.clone().setY(0.3), "meteor", { big: 1.2 }); shards(me.clone().setY(0.3), 0x8a6a4a, 24, 9); ctx.shake(0.55); if (ctx.wave) ctx.wave(me, 0.9); if (ctx.parts) ctx.parts.smoke(me.clone().setY(0.3), 0x9a8a7a, 10, 1.5);
       hitAll((m) => m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 6.5 + (m.rank === "boss" ? 2 : 0), 2.4);
       for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 6.5) m.stun = Math.max(m.stun, m.rank === "boss" ? 0.3 : 1.0);
     } else if (kind === 2 || kind === 3) { // beam / piercing arrow: everything on the line
@@ -732,7 +737,7 @@ export function createCombat(ctx) {
         if (VX) VX.impact(p.clone().setY(0.8), "meteor", { big: s.big || 1 });
         flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5 * (s.big || 1), life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
         puff(p.clone().setY(0.8), 0xff7a2a, { n: 34, speed: 9, size: 0.9, life: 0.8, grav: -1 }); puff(p.clone().setY(0.6), 0x55504a, { n: 16, speed: 2.5, size: 1.6, life: 1.4, grav: -1.2 });
-        shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45);
+        shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45); if (ctx.wave) ctx.wave(p, 1.3 * (s.big || 1)); if (ctx.parts) ctx.parts.sparks(p.clone().setY(0.6), 0xff7a2a, 30);
         root.remove(s.o); s.o.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); shots.splice(i, 1);
         continue;
       }

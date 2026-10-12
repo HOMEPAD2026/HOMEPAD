@@ -97,6 +97,31 @@ const AirShader = {
     }`,
 };
 
+// shockwaves: a ring that runs out from a slam or a meteor and bends the picture as it passes (up to four at once)
+const WarpShader = {
+  uniforms: { tDiffuse: { value: null }, waves: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] }, aspect: { value: 1.6 } },
+  vertexShader: VS,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform vec4 waves[4]; uniform float aspect; varying vec2 vUv;
+    void main(){ vec2 uv = vUv; float glow = 0.0;
+      for (int i = 0; i < 4; i++) { vec4 w = waves[i]; if (w.w <= 0.0) continue;
+        vec2 d = (vUv - w.xy) * vec2(aspect, 1.0); float l = length(d); float x = (l - w.z) / 0.045; float band = exp(-x * x);
+        uv -= (l > 1e-4 ? d / l : vec2(0.0)) / vec2(aspect, 1.0) * band * w.w * 0.035 * sign(x + 0.0001); glow += band * w.w; }
+      vec4 c = texture2D(tDiffuse, uv); c.rgb += glow * 0.05; gl_FragColor = c; }`,
+};
+
+// photo mode's depth of field: what's at the focus stays sharp, nearer and farther soften (a 24-tap disc, on demand)
+const DofShader = {
+  uniforms: { tDiffuse: { value: null }, tDepth: { value: null }, res: { value: new THREE.Vector2() }, near: { value: 0.1 }, far: { value: 1200 }, focus: { value: 8 }, range: { value: 6 }, maxR: { value: 9 } },
+  fragmentShader: `uniform sampler2D tDiffuse, tDepth; uniform vec2 res; uniform float near, far, focus, range, maxR; varying vec2 vUv;
+    ${LIN}
+    float coc(vec2 uv){ float z = lin(texture2D(tDepth, uv).r); return clamp((abs(z - focus) - range * 0.25) / range, 0.0, 1.0); }
+    void main(){ float c0 = coc(vUv); vec4 acc = texture2D(tDiffuse, vUv); float wsum = 1.0;
+      if (c0 > 0.01) for (int i = 1; i < 24; i++) { float fi = float(i), a = fi * 2.39996, r = sqrt(fi / 24.0) * maxR * c0;
+        vec2 o = vec2(cos(a), sin(a)) * r * res; float cs = coc(vUv + o); float w = cs >= c0 * 0.5 ? 1.0 : cs * 2.0;
+        acc += texture2D(tDiffuse, vUv + o) * w; wsum += w; }
+      gl_FragColor = acc / wsum; }`,
+};
+
 // the grade: a 3D colour table (WebGL 2), mixed in, and the vignette
 const GradeShader = {
   uniforms: { tDiffuse: { value: null }, lut: { value: null }, amount: { value: 1 }, vig: { value: 0.22 }, aspect: { value: 1.6 } },
@@ -135,26 +160,40 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
     const air = new DepthPass({ ...AirShader, defines: { RAYS: level === "ultra" ? 1 : 0 } }, depth);
     air.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; u.invProj.value.copy(cam.projectionMatrixInverse); u.camWorld.value.copy(cam.matrixWorld); };
     comp.addPass(air);
+    const dof = new DepthPass(DofShader, depth); dof.enabled = false; dof.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; }; comp.addPass(dof);
     comp.addPass(new OutputPass());
+    const warp = new ShaderPass(WarpShader); warp.enabled = false; comp.addPass(warp);
     let grade = null;
     if (gl2) { grade = new ShaderPass(GradeShader); comp.addPass(grade); }
     let fxaa = null;
     if (ao || !gl2) { fxaa = new ShaderPass(FXAAShader); comp.addPass(fxaa); }
-    const fit = () => { const s = r.getDrawingBufferSize(new THREE.Vector2()); if (fxaa) fxaa.uniforms.resolution.value.set(1 / s.x, 1 / s.y); if (grade) grade.uniforms.aspect.value = s.x / Math.max(1, s.y); };
+    const fit = () => { const s = r.getDrawingBufferSize(new THREE.Vector2()); if (fxaa) fxaa.uniforms.resolution.value.set(1 / s.x, 1 / s.y); if (grade) grade.uniforms.aspect.value = s.x / Math.max(1, s.y); warp.uniforms.aspect.value = s.x / Math.max(1, s.y); };
     st.useComposer(comp); fit(); addEventListener("resize", () => setTimeout(fit, 50));
     const sunV = new THREE.Vector3(); let raysWant = 0;
+    const waves = [], wv = new THREE.Vector3();
+    function tickWaves(dt) {
+      for (let i = waves.length - 1; i >= 0; i--) { const w = waves[i]; w.t += dt; if (w.t >= w.life) waves.splice(i, 1); }
+      const U = warp.uniforms.waves.value; U.forEach((v) => v.set(0, 0, 0, 0));
+      waves.slice(-4).forEach((w, i) => { w.at(wv); wv.project(cam); if (wv.z > 1) return; const k = w.t / w.life; U[i].set(wv.x * 0.5 + 0.5, wv.y * 0.5 + 0.5, w.speed * w.t, w.power * (1 - k) * (1 - k)); });
+      warp.enabled = waves.length > 0;
+    }
     return {
       level, ao: !!aoPass, composer: comp, edge, air, grade,
       setLut(tex, amount = 1) { if (grade) { grade.uniforms.lut.value = tex; grade.uniforms.amount.value = tex ? amount : 0; } },
       setVignette(v) { if (grade) grade.uniforms.vig.value = v; },
       /// each frame: the sun's place on screen (for the shafts) and the clock
       tick(dt, sunDir) {
-        air.uniforms.time.value += dt;
+        air.uniforms.time.value += dt; tickWaves(dt);
         if (level === "ultra" && sunDir) { sunV.copy(cam.position).addScaledVector(sunDir, 500).project(cam); const ok = sunV.z < 1 && Math.abs(sunV.x) < 1.6 && Math.abs(sunV.y) < 1.6; air.uniforms.sun.value.set(sunV.x * 0.5 + 0.5, sunV.y * 0.5 + 0.5); air.uniforms.rays.value = ok ? raysWant : 0; }
       },
       /// the air: fog density and colour, shafts' strength (0–1), heat (0–1)
       setAir({ fog = 0, color, rays = 0, heat = 0, sunColor } = {}) { const u = air.uniforms; if (lite) { fog = fog > 0.006 ? fog : 0; rays = 0; } air.enabled = fog > 0.0001 || heat > 0.001 || rays > 0.001; /* phones: only a ground's own fog and heat */ u.fogK.value = fog; if (color) u.fogCol.value.copy(color); raysWant = rays; u.heat.value = heat; if (sunColor) u.sunCol.value.copy(sunColor); },
       setEdges(on) { edge.enabled = !!on; },
+      /// a shockwave: at() writes its world position (it may move), power 0–1.5, speed in screen heights a second
+      shock(at, { power = 1, speed = 1.1, life = 0.6 } = {}) { waves.push({ at, power, speed, life, t: 0 }); if (waves.length > 6) waves.shift(); },
+      /// photo mode's depth of field: focus (metres from the camera), range (how deep the sharp part is); null turns it off
+      setDof(o) { if (!o) { dof.enabled = false; return; } dof.enabled = true; const u = dof.uniforms; u.focus.value = o.focus ?? 8; u.range.value = o.range ?? 6; u.maxR.value = o.blur ?? 9; },
+      dof,
       setAO(on) { if (aoPass) aoPass.configuration.intensity = on ? 2.2 : 0; },
     };
   }

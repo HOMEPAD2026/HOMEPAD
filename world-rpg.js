@@ -247,7 +247,7 @@ export function createRpg(ctx) {
     const p = parseBase(it.b), on = R().eq[p.slot] && R().eq[p.slot].id === it.id, cur = R().eq[p.slot], g = itemStats(it), c = cur && !on ? itemStats(cur) : {};
     const keys = [...new Set([...Object.keys(g), ...Object.keys(c)])];
     const need = TIERS[p.tier].lv;
-    return `<div class="wr-detail" style="--rc:${rc(it)}"><div class="wr-d-h">${iconSvg(p.slot, rc(it))}<div><h3>${esc(itemName(it))}</h3><small>${esc(T(RARITY[it.r || 0].name))} · ${esc(T(SLOT_NAME[p.slot]))} · ${esc(T("Lv {n}", { n: it.lv }))}</small></div></div>
+    return `<div class="wr-detail" style="--rc:${rc(it)}">${p.slot === "weapon" ? `<div class="wr-3d" data-w3d="${esc(it.id)}"></div>` : ""}<div class="wr-d-h">${iconSvg(p.slot, rc(it))}<div><h3>${esc(itemName(it))}</h3><small>${esc(T(RARITY[it.r || 0].name))} · ${esc(T(SLOT_NAME[p.slot]))} · ${esc(T("Lv {n}", { n: it.lv }))}</small></div></div>
       <ul class="wr-stats">${keys.map((k) => statLine(k, g[k] || 0, on || !cur ? 0 : (g[k] || 0) - (c[k] || 0))).join("")}</ul>
       ${p.slot === "weapon" ? `<div class="wr-kind"><b>${esc(T(WEAPON_KINDS[weaponKind(it)].name))}</b><span>${esc(T(WEAPON_KINDS[weaponKind(it)].line))}</span>
         <div class="wr-kinds" role="group" aria-label="${esc(T("Weapon kind"))}">${WEAPON_KINDS.map((k, i) => `<button type="button" data-kind="${i}" aria-pressed="${weaponKind(it) === i}">${esc(T(k.name))}</button>`).join("")}</div>
@@ -334,11 +334,24 @@ export function createRpg(ctx) {
       <nav class="wr-switch"><button type="button" data-view="inv" aria-pressed="${view === "inv"}">${esc(T("Character"))}</button><button type="button" data-view="forge" aria-pressed="${view === "forge"}">${esc(T("Forge"))}</button>${log ? `<button type="button" data-view="log" aria-pressed="${view === "log"}">${esc(T("Adventure log"))}${log.pending() ? `<i class="wr-dot">${log.pending()}</i>` : ""}</button>` : ""}</nav>
       <button type="button" class="wa-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
       <div class="wr-body">${view === "forge" ? forgeHTML() : view === "log" && log ? log.html() : invHTML()}</div></div>`;
+    if (view === "inv") preview3d();
+  }
+  // the turning 3D view (world-preview.js): the selected weapon in its card, or else you, gear on, in the paper doll
+  let PV = null;
+  function preview3d() {
+    const go = () => {
+      if (!open || view !== "inv") return;
+      const wd = el.querySelector("[data-w3d]"), it = wd && findItem(wd.dataset.w3d), pb = it && parseBase(it.b);
+      if (it && pb) { const m = weapon3d(weaponKind(it), pb.tier, RARITY[it.r || 0].color, ((it.r || 0) >= 3 ? 0.35 : (it.r || 0) >= 2 ? 0.15 : 0) + (Number(it.tm) || 0) * 0.14); PV.mount(wd, m, { kind: "item" }); return; }
+      const av = ctx.avatar(), slot = el.querySelector(".wr-avatar");
+      if (av && !av.bot && slot) { slot.classList.add("has-3d"); PV.mount(slot, PV.figureOf(av.obj), { kind: "figure" }); }
+    };
+    if (PV) go(); else import("./world-preview.js").then((m) => { PV = m; go(); }).catch(() => {});
   }
   // the panel slides in when it opens, not again on every repaint (equipping, selling…)
   let opening = false;
   function show(v) { view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
-  function hide() { const tp = document.querySelector(".wr-tip"); if (tp) tp.hidden = true; if (!open) return; open = false; fresh.clear(); el.hidden = true; sel = null; ctx.freeze(false); }
+  function hide() { const tp = document.querySelector(".wr-tip"); if (tp) tp.hidden = true; if (!open) return; open = false; fresh.clear(); el.hidden = true; sel = null; ctx.freeze(false); if (PV) PV.stop(); }
   function hammer() { const a = el.querySelector(".wr-detail"); if (a) { a.classList.remove("hit"); void a.offsetWidth; a.classList.add("hit"); } }
   async function buy(id) {
     const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return; }

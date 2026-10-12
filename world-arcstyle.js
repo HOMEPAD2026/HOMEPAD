@@ -283,10 +283,41 @@ export function makeArcFountain() {
 }
 
 /// night: hall windows light up warm (k 0 = day, 1 = night); the glass is one shared material, so this is one change
+/// At night each pane goes its own way: most glow warm, some stay dark, a few change now and then (a shader step on the
+/// shared glass, keyed on the pane's place in the world, so it costs nothing per building)
+const NIGHT = { value: 0 }, CLOCK = { value: 0 }, ORG = { value: new THREE.Vector3() }; // ORG: the world group's offset (the world slides under you)
+let paned = false;
+function paneGlass() {
+  if (paned) return; paned = true; const g = glass();
+  g.onBeforeCompile = (sh) => {
+    sh.uniforms.uNight = NIGHT; sh.uniforms.uClock = CLOCK; sh.uniforms.uOrg = ORG;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; uniform vec3 uOrg;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvPane = (modelMatrix * vec4(transformed, 1.0)).xyz - uOrg;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; uniform float uNight, uClock;").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+      { vec3 cell = floor(vPane * vec3(1.15, 1.6, 1.15)); float hh = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+        float era = floor(uClock / 37.0 + hh * 9.0); float on = step(0.28, fract(sin(dot(cell + era, vec3(4.1, 7.7, 2.3))) * 9631.7));
+        float k = mix(0.08, 0.75 + hh * 0.6, on); totalEmissiveRadiance *= mix(1.0, k, uNight); }`);
+  };
+  g.customProgramCacheKey = () => "panes"; g.needsUpdate = true;
+}
 export function setNight(k) {
-  const g = glass();
+  const g = glass(); paneGlass();
   g.emissive.setHex(0x1f6fd6).lerp(new THREE.Color(0xffc27a), k * 0.85);
-  g.emissiveIntensity = 0.75 + k * 1.15;
+  g.emissiveIntensity = 0.75 + k * 1.15; NIGHT.value = k;
+}
+export const tickNight = (dt, org) => { CLOCK.value += dt; if (org) ORG.value.copy(org); };
+
+/// the hall's name on a lit board over its door (the floating tag stays for far away)
+export function hallSign(name, color) {
+  const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 192; const g = cv.getContext("2d");
+  const hex = "#" + new THREE.Color(color).getHexString();
+  g.fillStyle = "#1a2232"; g.fillRect(0, 0, 1024, 192);
+  g.fillStyle = hex; g.fillRect(0, 168, 1024, 24);
+  let fs = 104; g.font = `800 ${fs}px Sora, system-ui, sans-serif`; while (g.measureText(name).width > 940 && fs > 40) { fs -= 6; g.font = `800 ${fs}px Sora, system-ui, sans-serif`; }
+  g.fillStyle = "#f4f8fc"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(name, 512, 88);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 0.5), new THREE.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.55, roughness: 0.5 }));
+  const back = new THREE.Mesh(box(2.86, 0.62, 0.1, 0.05), trim());
+  face.position.z = 0.056; const s = new THREE.Group(); s.add(back, face); s.name = "hall-sign"; return s;
 }
 
 /// fewer draw calls for a group of static props: every mesh under `group` (except sprites, those marked

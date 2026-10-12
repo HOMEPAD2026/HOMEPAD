@@ -17,6 +17,7 @@ import { OutputPass } from "./vendor/three/addons/OutputPass.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
 import { GLTFLoader } from "./vendor/three/addons/GLTFLoader.js";
 import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js";
+import { KTX2Loader } from "./vendor/three/addons/KTX2Loader.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 import { villainize } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
@@ -121,9 +122,19 @@ export function quality(force = "auto") {
 export function webglOk() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
 }
+// one loader set-up for every model file: meshopt geometry, and GPU-compressed (KTX2 / Basis) textures that stay
+// compressed on the graphics card (a fraction of the memory of PNG / WebP, and no decoding on the main thread)
+let RENDERER = null, ktx2 = null;
+export function gltfLoader() {
+  const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
+  if (RENDERER && !ktx2 && ktx2 !== false) { try { ktx2 = new KTX2Loader().setTranscoderPath("/vendor/three/basis/").detectSupport(RENDERER); } catch (e) { console.warn("ktx2:", e); ktx2 = false; } }
+  if (ktx2) L.setKTX2Loader(ktx2);
+  return L;
+}
 export function makeStage(canvas, opts = {}) {
   const q = quality(opts.quality);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !q.low, alpha: false, powerPreference: "high-performance" });
+  if (!RENDERER) RENDERER = renderer;
   renderer.setPixelRatio(q.dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -286,7 +297,7 @@ export function makeGround({ radius = 330 } = {}) {
   const ring = new THREE.Mesh(new THREE.TorusGeometry(pr, 0.07, 8, 128), glow(C.cyan, 1.1)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.06; g.add(ring);
   scatter(g, 260, 175);
   // far hills all around: the edge of the world melts into them and the fog
-  const hills = new THREE.Group(), rr = rand(5), hillGeo = new THREE.IcosahedronGeometry(1, 1);
+  const hills = new THREE.Group(), rr = rand(5), hillGeo = new THREE.IcosahedronGeometry(1, 1); hills.name = "blobs";
   const hillMats = [solid(0x3f7a64, { flat: true, roughness: 1 }), solid(0x356b70, { flat: true, roughness: 1 }), solid(0x4c8a6a, { flat: true, roughness: 1 })];
   for (let i = 0; i < 46; i++) {
     const a = (i / 46) * Math.PI * 2 + rr() * 0.1, d = radius * (0.72 + rr() * 0.22);
@@ -561,6 +572,7 @@ export function makeShop(spec) {
   // the building itself: the ARCIRCLE hall for this shop (world-arcstyle.js), the accent on its roof
   if (BUILDING[spec.id]) {
     const b = ARC.makeArcBuilding(spec.id, col); b.position.y = 0.34; g.add(b); body.visible = false;
+    if (ARC.hallSign) { const sg = ARC.hallSign(spec.name, col); sg.position.set(0, 0.34 + 0.28 + 2.3 + 0.42, 1.76); g.add(sg); } // the name over the door
     accent.position.y = 0.34 + b.userData.h + 0.1; tag.position.y = accent.position.y + (ACCENT_H[spec.shape] || 2) + 1.3; g.userData.building = b;
   }
   return g;
@@ -615,7 +627,7 @@ const CITY_NAMES = ["building-e", "building-n", "building-a", "building-d", "bui
 let kitP = null;
 export function loadKit(ver = "") {
   if (kitP) return kitP;
-  const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
+  const L = gltfLoader();
   const one = (u) => new Promise((res, rej) => L.load(u + ver, res, undefined, rej));
   // the town (props + buildings) first; the scammer robots (the biggest file) load right after, so the world shows sooner
   kitP = Promise.all([one("/models/world/scifi-props.glb"), one("/models/world/kenney-city.glb")]).then(([p, c]) => {
@@ -760,11 +772,37 @@ export function makePaths() {
 export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)];
 export { ARCBOT_IDS };
 export const arcNight = (k) => ARC.setNight(k);
+export const arcTick = (dt, org) => ARC.tickNight && ARC.tickNight(dt, org);
 export const mergeStatic = (g) => ARC.mergeStatic(g);
+// ---------------- character shading: soft toon bands and a rim of light ----------------
+// The sun's light falls on characters in two soft steps instead of a smooth roll-off, and their outline catches a rim
+// of sky light, so they read clearly against the ground and the town (a shader step on their own materials).
+export const TOON = { rim: { value: new THREE.Color(0x9fd8ff) }, rimK: { value: 0.55 }, band: { value: 0.65 } };
+const tooned = new WeakSet();
+export function toonLook(m, { rim = null } = {}) {
+  if (!m || tooned.has(m) || !m.isMeshStandardMaterial || m.transparent || (m.emissive && m.emissiveIntensity > 0.5 && m.emissive.getHex())) return m;
+  tooned.add(m);
+  const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => "", own = rim != null ? { value: new THREE.Color(rim) } : null;
+  m.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.uRim = own || TOON.rim; sh.uniforms.uRimK = TOON.rimK; sh.uniforms.uBand = TOON.band;
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uRim; uniform float uRimK, uBand;").replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
+      #if NUM_DIR_LIGHTS > 0
+      { float ndl = dot(normal, directionalLights[0].direction);
+        float toon = smoothstep(-0.02, 0.08, ndl) * 0.55 + smoothstep(0.4, 0.52, ndl) * 0.45;
+        reflectedLight.directDiffuse *= mix(1.0, clamp(toon / max(ndl, 0.08), 0.0, 2.2), uBand * step(0.0, ndl)); }
+      #endif
+      { float fr = pow(1.0 - clamp(dot(normal, geometryViewDir), 0.0, 1.0), 3.0); reflectedLight.indirectDiffuse += uRim * fr * uRimK; }`);
+  };
+  m.customProgramCacheKey = () => prevKey() + "|toon" + (own ? "o" : ""); m.needsUpdate = true;
+  return m;
+}
+const toonAll = (obj, o) => { obj.traverse((x) => { if (x.isMesh && x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach((mm) => toonLook(mm, o)); }); return obj; };
+export { toonAll };
 const charCache = new Map();
 export async function makeCharacter(id, ver = "", outfit = null) {
   const ab = arcbotOf(id);
-  if (ab) { const b = makeArcBot(THREE, withOutfit(ab, outfit)); shadowy(b.obj, true, false); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
+  if (ab) { const b = makeArcBot(THREE, withOutfit(ab, outfit)); shadowy(b.obj, true, false); toonAll(b.obj); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
   if (id === "bot" || !CHARACTERS.includes(id)) {
     const r = makeRobot(); r.scale.setScalar(0.8);
     const rings = r.userData.crown.children;
@@ -773,14 +811,14 @@ export async function makeCharacter(id, ver = "", outfit = null) {
   }
   let src = charCache.get(id);
   if (!src) {
-    const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
+    const L = gltfLoader();
     src = await new Promise((res, rej) => L.load(`/models/world/chars/character-${id}.glb${ver}`, res, undefined, rej));
     charCache.set(id, src);
   }
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
-  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false);
+  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); toonAll(inner);
   // the ARCIRCLE crown: the two rings of the mark over the head
   const crown = new THREE.Group(); crown.position.y = 2.45;
   const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
@@ -978,7 +1016,7 @@ export function bubble(text, accent = "#ff7ad9") { const sp = label(text, { acce
 // ---------------- model packs (world-decor.js): one GLB per pack, one root node per model ----------------
 export function loadPack(url, ver = "") {
   return new Promise((res, rej) => {
-    const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
+    const L = gltfLoader();
     L.load(url + ver, (g) => { const models = new Map(); for (const n of g.scene.children) models.set(n.name, n); g.scene.updateMatrixWorld(true); res({ models, clips: g.animations }); }, undefined, rej);
   });
 }

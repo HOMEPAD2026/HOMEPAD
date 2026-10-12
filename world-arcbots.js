@@ -86,6 +86,10 @@ export function makeArcBot(THREE, spec) {
   const eyeHappy = [-1, 1].map((s) => { const e = mesh(new THREE.TorusGeometry(0.085, 0.026, 6, 16, Math.PI), M.eye, s * 0.18, -0.02, 0); e.castShadow = false; e.visible = false; eyes.add(e); return e; });
   // knocked out: an X for each eye
   const eyeX = [-1, 1].map((s) => { const g = new THREE.Group(); g.position.set(s * 0.18, 0, 0); [0.75, -0.75].forEach((r) => { const bar = mesh(new THREE.BoxGeometry(0.2, 0.045, 0.03), M.eye); bar.rotation.z = r; bar.castShadow = false; g.add(bar); }); g.visible = false; eyes.add(g); return g; });
+  // star eyes (a level up), > < eyes (a hard hit): shown for a moment by face(expr, seconds)
+  const starGeo = (() => { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + (i / 10) * TAU, r = i % 2 ? 0.045 : 0.11; if (i) sh.lineTo(Math.cos(a) * r, Math.sin(a) * r); else sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); } return new THREE.ShapeGeometry(sh); })();
+  const eyeStar = [-1, 1].map((s) => { const e = mesh(starGeo, M.eye, s * 0.18, 0, 0.012); e.castShadow = false; e.visible = false; eyes.add(e); return e; });
+  const eyeSquint = [-1, 1].map((s) => { const g = new THREE.Group(); g.position.set(s * 0.18, 0, 0); [0.5, -0.5].forEach((r, i) => { const bar = mesh(new THREE.BoxGeometry(0.13, 0.04, 0.03), M.eye, -s * 0.02, (i ? -1 : 1) * 0.035, 0); bar.rotation.z = r * s; bar.castShadow = false; g.add(bar); }); g.visible = false; eyes.add(g); return g; });
   [-1, 1].forEach((s) => {
     const pod = mesh(new THREE.CylinderGeometry(0.15, 0.16, 0.14, 24), M.shell, s * 0.6, 0.45, 0); pod.rotation.z = Math.PI / 2; head.add(pod);
     const rim = mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 28), M.ring, s * 0.675, 0.45, 0); rim.rotation.y = Math.PI / 2; head.add(rim);
@@ -97,9 +101,29 @@ export function makeArcBot(THREE, spec) {
 
   // ---------------- the twenty-five looks: accessories on the same body ----------------
   const spin = []; // little things that keep moving (stars, rings, flames)
+  // springs (antenna, ears, cape, scarf): they lag behind the head's movement and bob back, so a jump, a stop or a
+  // hit sets them swinging. add: on top of a swing set each frame (the cape, the scarf) instead of a fixed rest pose
+  const springs = [];
+  function spring(o, amp = 1, add = false) { springs.push({ o, amp, add, rx: o.rotation.x, rz: o.rotation.z, x: 0, z: 0, vx: 0, vz: 0 }); }
+  const hp0 = new THREE.Vector3(), hp1 = new THREE.Vector3(), hv = new THREE.Vector3(), hv0 = new THREE.Vector3(), acc = new THREE.Vector3(), qi = new THREE.Quaternion();
+  let springOn = false;
+  function tickSprings(dt) {
+    if (!springs.length || dt <= 0) return; dt = Math.min(dt, 1 / 20);
+    head.getWorldPosition(hp1);
+    if (!springOn) { springOn = true; hp0.copy(hp1); return; }
+    hv.copy(hp1).sub(hp0).divideScalar(dt); hp0.copy(hp1);
+    acc.copy(hv).sub(hv0).divideScalar(dt); hv0.copy(hv);
+    if (acc.lengthSq() > 2500) acc.setLength(50); // a teleport or a respawn: not a shove
+    obj.getWorldQuaternion(qi).invert(); acc.applyQuaternion(qi);
+    for (const S of springs) {
+      const tx = THREE.MathUtils.clamp(-acc.z * 0.012 * S.amp - acc.y * 0.006 * S.amp, -0.7, 0.7), tz = THREE.MathUtils.clamp(acc.x * 0.012 * S.amp, -0.7, 0.7);
+      S.vx += ((tx - S.x) * 120 - S.vx * 9) * dt; S.vz += ((tz - S.z) * 120 - S.vz * 9) * dt; S.x += S.vx * dt; S.z += S.vz * dt;
+      if (S.add) { S.o.rotation.x += S.x; S.o.rotation.z = S.rz + S.z * 0.6; } else { S.o.rotation.x = S.rx + S.x; S.o.rotation.z = S.rz + S.z; }
+    }
+  }
   const ACC = {
-    antenna: () => { const a = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6), M.trim, 0.18, 1.0, 0); a.rotation.z = -0.25; const tip = mesh(new THREE.SphereGeometry(0.05, 10, 8), M.ring, 0.21, 1.12, 0); head.add(a, tip); },
-    cat: () => [-1, 1].forEach((s) => { const e = mesh(new THREE.ConeGeometry(0.16, 0.26, 4), M.shell, s * 0.33, 0.98, 0); e.rotation.set(0, Math.PI / 4, s * -0.32); const inner = mesh(new THREE.ConeGeometry(0.09, 0.15, 4), M.accent, s * 0.325, 0.96, 0.05); inner.rotation.copy(e.rotation); head.add(e, inner); }),
+    antenna: () => { const pv = joint("antenna", 0.205, 0.893, 0); pv.rotation.z = -0.25; pv.add(mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6), M.trim, 0, 0.11, 0), mesh(new THREE.SphereGeometry(0.05, 10, 8), M.ring, 0, 0.235, 0)); head.add(pv); spring(pv, 1.4); },
+    cat: () => [-1, 1].forEach((s) => { const pv = joint("ear", s * 0.3, 0.86, 0); const e = mesh(new THREE.ConeGeometry(0.16, 0.26, 4), M.shell, s * 0.03, 0.12, 0); e.rotation.set(0, Math.PI / 4, s * -0.32); const inner = mesh(new THREE.ConeGeometry(0.09, 0.15, 4), M.accent, s * 0.025, 0.1, 0.05); inner.rotation.copy(e.rotation); pv.add(e, inner); head.add(pv); spring(pv, 0.6); }),
     hardhat: () => { const h = mesh(new THREE.SphereGeometry(0.6, 28, 14, 0, TAU, 0, Math.PI / 2), M.accent, 0, 0.68, 0); h.scale.set(1.05, 0.62, 1.02); const brim = mesh(new THREE.CylinderGeometry(0.66, 0.66, 0.04, 28), M.accent, 0, 0.68, 0.06); const ridge = mesh(new THREE.BoxGeometry(0.08, 0.06, 0.9), M.trim, 0, 1.03, 0); head.add(h, brim, ridge); },
     wrench: () => { const w = new THREE.Group(); w.add(mesh(new THREE.BoxGeometry(0.05, 0.36, 0.05), M.trim, 0, -0.18, 0), mesh(new THREE.TorusGeometry(0.06, 0.025, 6, 12, Math.PI * 1.5), M.trim, 0, -0.38, 0)); w.position.set(0, -0.34, 0.08); w.rotation.x = 1.2; arms[0].add(w); },
     cross: () => { const c = new THREE.Group(); c.add(mesh(new THREE.BoxGeometry(0.16, 0.05, 0.02), glow(0xff4d5a, 1.6)), mesh(new THREE.BoxGeometry(0.05, 0.16, 0.02), glow(0xff4d5a, 1.6))); c.position.set(0, 0.86, 0.48); c.rotation.x = -0.6; head.add(c); },
@@ -110,14 +134,14 @@ export function makeArcBot(THREE, spec) {
     backpack: () => { const b = mesh(new THREE.SphereGeometry(0.22, 16, 12), M.accent, 0, 0.3, -0.3); b.scale.set(1.1, 1.2, 0.7); torso.add(b); torso.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.26, 10), M.trim, 0.12, 0.26, -0.44), mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.26, 10), M.trim, -0.12, 0.26, -0.44)); },
     explorer: () => { const h = mesh(new THREE.SphereGeometry(0.58, 24, 12, 0, TAU, 0, Math.PI / 2.2), std(0xc89a5a), 0, 0.62, 0); h.scale.set(1.08, 0.55, 1.04); const brim = mesh(new THREE.CylinderGeometry(0.78, 0.8, 0.03, 28), std(0xb8864a), 0, 0.66, 0); head.add(h, brim); },
     hood: () => { const h = mesh(new THREE.SphereGeometry(0.66, 30, 20, Math.PI / 2 + 0.95, TAU - 1.9, 0, 2.2), std(spec.trim === 0x0f151c ? 0x1a222c : 0x3a2a5a, { roughness: 0.8, side: THREE.DoubleSide }), 0, 0.5, -0.02); h.scale.set(1.05, 1.0, 1.0); head.add(h); },
-    cape: () => { const c = mesh(new THREE.PlaneGeometry(0.66, 0.7, 1, 4), std(0x2a1a44, { roughness: 0.8, side: THREE.DoubleSide }), 0, 0.12, -0.3); c.castShadow = false; torso.add(c); spin.push((dt, t, sp) => { c.rotation.x = 0.15 + sp * 0.6 + Math.sin(t * 3) * 0.04; }); },
+    cape: () => { const c = mesh(new THREE.PlaneGeometry(0.66, 0.7, 1, 4), std(0x2a1a44, { roughness: 0.8, side: THREE.DoubleSide }), 0, 0.12, -0.3); c.castShadow = false; torso.add(c); spin.push((dt, t, sp) => { c.rotation.x = 0.15 + sp * 0.6 + Math.sin(t * 3) * 0.04; }); spring(c, 0.9, true); },
     bolt: () => { const shape = new THREE.Shape(); [[0, 0.2], [0.08, 0.02], [0.02, 0.02], [0.07, -0.2], [-0.08, 0.04], [-0.01, 0.04], [-0.05, 0.2]].forEach(([x, y], i) => (i ? shape.lineTo(x, y) : shape.moveTo(x, y))); const b = mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false }), glow(0xffd23a, 2), 0, 0.3, 0.28); b.scale.setScalar(0.9); torso.add(b); chest.visible = false; },
     leaves: () => [[-0.22, 1.0, 0.2], [0.05, 1.04, 0.15], [0.28, 0.94, 0.0]].forEach(([x, y, r], i) => { const l = mesh(new THREE.SphereGeometry(0.11, 10, 8), std(i % 2 ? 0x6fd65a : 0x3ea84a, { roughness: 0.7 }), x, y, 0); l.scale.set(0.5, 1.2, 0.18); l.rotation.z = -x * 2 + r; head.add(l); }),
     chef: () => { const c = mesh(new THREE.CylinderGeometry(0.34, 0.3, 0.32, 24), std(0xffffff, { roughness: 0.8 }), 0, 0.98, -0.02); const puff = mesh(new THREE.SphereGeometry(0.38, 20, 14), std(0xffffff, { roughness: 0.8 }), 0, 1.2, -0.02); puff.scale.y = 0.6; head.add(c, puff); },
     visorband: () => { const v = mesh(new THREE.TorusGeometry(0.58, 0.03, 6, 40, Math.PI * 0.9), glow(spec.accent, 2), 0, 0.62, 0); v.rotation.set(0, 0, Math.PI * 0.05); v.scale.set(1.07, 1, 1); head.add(v); },
     aviator: () => { const h = mesh(new THREE.SphereGeometry(0.6, 28, 16, 0, TAU, 0, Math.PI / 2), std(0x7a4a26, { roughness: 0.7 }), 0, 0.5, -0.04); h.scale.set(1.06, 0.9, 1.0); head.add(h); },
     goggles: () => { const g = new THREE.Group(); g.position.set(0, 0.86, 0.36); g.rotation.x = -0.75; [-1, 1].forEach((s) => { g.add(mesh(new THREE.TorusGeometry(0.1, 0.035, 8, 20), M.trim, s * 0.13, 0, 0), mesh(new THREE.CircleGeometry(0.09, 16), std(0xffc861, { emissive: 0xffa040, emissiveIntensity: 0.6, roughness: 0.1 }), s * 0.13, 0, 0.01)); }); head.add(g); },
-    scarf: () => { const s = mesh(new THREE.TorusGeometry(0.22, 0.07, 10, 24), M.accent, 0, 0.55, 0); s.rotation.x = Math.PI / 2; torso.add(s); const tail = mesh(new THREE.BoxGeometry(0.12, 0.26, 0.05), M.accent, 0.12, 0.42, -0.2); tail.rotation.z = 0.3; torso.add(tail); spin.push((dt, t, sp) => { tail.rotation.x = 0.3 + sp * 0.9 + Math.sin(t * 6) * 0.08 * (0.3 + sp); }); },
+    scarf: () => { const s = mesh(new THREE.TorusGeometry(0.22, 0.07, 10, 24), M.accent, 0, 0.55, 0); s.rotation.x = Math.PI / 2; torso.add(s); const tail = mesh(new THREE.BoxGeometry(0.12, 0.26, 0.05), M.accent, 0.12, 0.42, -0.2); tail.rotation.z = 0.3; torso.add(tail); spin.push((dt, t, sp) => { tail.rotation.x = 0.3 + sp * 0.9 + Math.sin(t * 6) * 0.08 * (0.3 + sp); }); spring(tail, 1.1, true); },
     beret: () => { const b = mesh(new THREE.SphereGeometry(0.42, 22, 10, 0, TAU, 0, Math.PI / 2), M.accent, 0.08, 0.86, -0.02); b.scale.set(1.15, 0.38, 1.1); b.rotation.z = -0.25; const nub = mesh(new THREE.SphereGeometry(0.05, 8, 6), M.accent, 0.03, 1.02, 0); head.add(b, nub); },
     brush: () => { const b = new THREE.Group(); b.add(mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.4, 8), std(0x8a5a2a), 0, -0.2, 0), mesh(new THREE.ConeGeometry(0.04, 0.1, 8), glow(spec.accent, 1.2), 0, -0.44, 0)); b.position.set(0, -0.32, 0.08); b.rotation.x = 1.3; arms[1].add(b); },
     halo: () => { const h = mesh(new THREE.TorusGeometry(0.3, 0.03, 8, 40), glow(0xffd27a, 2.4), 0, 1.22, -0.05); h.rotation.x = Math.PI / 2 - 0.2; h.castShadow = false; head.add(h); spin.push((dt, t) => { h.position.y = 1.22 + Math.sin(t * 2) * 0.03; }); },
@@ -153,9 +177,9 @@ export function makeArcBot(THREE, spec) {
     fidget: { len: 2.2, f: (t, p, sp, k) => { const a = Math.sin(Math.min(1, k / 0.45) * Math.PI), b = k > 0.45 ? Math.sin(((k - 0.45) / 0.55) * Math.PI) : 0; p.alz = -0.2 - 2.6 * a; p.arz = 0.2 + 2.6 * a; p.alx = -0.3 * a; p.arx = -0.3 * a; p.y = 0.04 * a; p.hx = -0.2 * a; p.hy = Math.sin(k * Math.PI * 4) * 0.6 * b; } },
     celebrate: { len: 1.8, happy: true, f: (t, p, sp, k) => { const e = Math.sin(Math.min(1, k) * Math.PI); p.y = Math.abs(Math.sin(k * Math.PI * 3)) * 0.35 * e; p.alz = -2.5 * e + Math.sin(t * 14) * 0.25 * e; p.arz = 2.5 * e - Math.sin(t * 14) * 0.25 * e; p.ty = Math.sin(k * Math.PI * 2) * 0.4; } },
   };
-  let cur = "idle", curT = 0, curSp = 1, from = null, fadeT = 0, fadeLen = 0.18, oneShot = false, held = false, blinkT = 2, exprHappy = false;
+  let cur = "idle", curT = 0, curSp = 1, from = null, fadeT = 0, fadeLen = 0.18, oneShot = false, held = false, blinkT = 2, exprHappy = false, expr = "", exprT = 0;
   // reactions on top of the animation: a flinch with squinting eyes, the head turned toward someone, a squash on landing
-  let hurtT = 0, lookY = 0, lookWant = 0, landT = 0, landK = 0, idleFor = 0, fidgetAt = 7 + Math.random() * 6, exprKo = false;
+  let hurtT = 0, hurtF = -1, hurtS = 0, lookY = 0, lookWant = 0, landT = 0, landK = 0, idleFor = 0, fidgetAt = 7 + Math.random() * 6, exprKo = false;
   const ring0 = M.ring.emissiveIntensity;
   const pose = P0(), last = P0();
   function apply(p) {
@@ -175,8 +199,9 @@ export function makeArcBot(THREE, spec) {
   let tt = 0;
   return {
     obj, spec, height: 2.1, play, busy: () => oneShot && !held,
-    face: (expr) => setHappy(expr === "happy"),
-    hurt() { hurtT = 0.42; },
+    face: (x, secs = 1.4) => { if (x === "happy" || x === "wow" || x === "star" || x === "ouch") { expr = x; exprT = secs; } else { expr = ""; exprT = 0; } },
+    // fwd: +1 pushed forward (hit from behind) … -1 pushed back; side: +1 pushed to its right
+    hurt(fwd = -1, side = 0) { hurtT = 0.42; expr = "ouch"; exprT = 0.5; hurtF = Math.max(-1, Math.min(1, fwd)); hurtS = Math.max(-1, Math.min(1, side)); },
     look(yaw) { lookWant = Math.max(-0.85, Math.min(0.85, yaw || 0)); },
     land(k = 1) { landT = 0.28; landK = Math.max(0.3, Math.min(1, k)); },
     // where the gear sits on this body (world-rpg.js dress): [x, y, z] in the joint's own space
@@ -190,7 +215,7 @@ export function makeArcBot(THREE, spec) {
       // fade from where the last animation left off
       if (from && fadeT < fadeLen) { fadeT += dt; const w = sm(Math.min(1, fadeT / fadeLen)); for (const key in p) p[key] = from[key] + (p[key] - from[key]) * w; if (fadeT >= fadeLen) from = null; }
       // reactions (added after the fade, so they sit on top of whatever plays)
-      if (hurtT > 0) { hurtT = Math.max(0, hurtT - dt); const e = Math.sin((hurtT / 0.42) * Math.PI); p.tx -= 0.32 * e; p.hx -= 0.28 * e; p.rz += Math.sin(tt * 40) * 0.05 * e; }
+      if (hurtT > 0) { hurtT = Math.max(0, hurtT - dt); const e = Math.sin((hurtT / 0.42) * Math.PI); p.tx += 0.34 * e * hurtF; p.hx += 0.3 * e * hurtF; p.rz -= 0.3 * e * hurtS; p.hz -= 0.22 * e * hurtS; p.alz -= 0.5 * e; p.arz += 0.5 * e; p.rz += Math.sin(tt * 40) * 0.04 * e; }
       lookY += (lookWant - lookY) * Math.min(1, dt * 5); if (cur === "idle" || cur === "walk") p.hy += lookY;
       Object.assign(last, p); apply(p);
       if (landT > 0) { landT = Math.max(0, landT - dt); const e = Math.sin((landT / 0.28) * Math.PI) * landK; root.scale.set(1 + 0.12 * e, 1 - 0.2 * e, 1 + 0.12 * e); } else if (root.scale.y !== 1) root.scale.set(1, 1, 1);
@@ -199,10 +224,15 @@ export function makeArcBot(THREE, spec) {
       // the ear rings breathe while idle
       M.ring.emissiveIntensity = ring0 * (cur === "idle" || cur === "fidget" ? 0.85 + Math.sin(tt * 2.2) * 0.25 : 1);
       setKo(cur === "die" && curT > 0.35);
-      setHappy(!!A.happy && k < 1);
+      // a moment's expression on top: happy, wow (wide round eyes), stars, > <
+      if (exprT > 0) exprT = Math.max(0, exprT - dt); const ex = exprT > 0 && !exprKo ? expr : "";
+      setHappy((!!A.happy && k < 1) || ex === "happy");
+      const sq = ex === "ouch", sx = ex === "star", plain = !exprKo && !exprHappy && !sq && !sx;
+      eyeOpen.forEach((e) => { e.visible = plain; e.scale.x = ex === "wow" ? 1.3 : 1; }); eyeStar.forEach((e) => { e.visible = sx; e.rotation.z = tt * 2; e.scale.setScalar(1 + Math.sin(tt * 10) * 0.12); }); eyeSquint.forEach((e) => (e.visible = sq && !exprKo && !exprHappy));
       // blink now and then
-      blinkT -= dt; const bl = blinkT < 0.1 ? Math.max(0.12, Math.abs(blinkT - 0.05) / 0.05) : 1; if (blinkT < 0) blinkT = 2.2 + Math.random() * 3.5; eyeOpen.forEach((e) => (e.scale.y = hurtT > 0 ? Math.min(bl, 0.3) : bl));
+      blinkT -= dt; const bl = blinkT < 0.1 ? Math.max(0.12, Math.abs(blinkT - 0.05) / 0.05) : 1; if (blinkT < 0) blinkT = 2.2 + Math.random() * 3.5; eyeOpen.forEach((e) => (e.scale.y = ex === "wow" ? 1.25 : hurtT > 0 ? Math.min(bl, 0.3) : bl));
       const sp = cur === "sprint" ? 1 : cur === "walk" ? 0.5 : 0; spin.forEach((f) => f(dt, tt, sp));
+      tickSprings(dt);
       crown.rotation.y += dt * 1.4; crown.position.y = 2.42 + Math.sin(tt * 2) * 0.04;
     },
   };

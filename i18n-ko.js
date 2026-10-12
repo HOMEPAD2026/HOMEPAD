@@ -10339,6 +10339,10 @@
     "The raid is recommended from level {n}: it hits hard": "레이드는 레벨 {n}부터 추천: 공격이 강해요",
     "Recommended Lv {n}+ · one boss for everyone": "추천 Lv {n}+ · 모두의 보스 하나",
     "A hunting ground fits your level now: {x} (level {a}–{b})": "이제 레벨에 맞는 사냥터: {x} (레벨 {a}–{b})",
+    "Ready": "준비 완료",
+    "Calling in the scammers…": "사기꾼들을 불러오는 중…",
+    "Raising the town…": "마을을 세우는 중…",
+    "Focus blur needs Medium quality or higher (Settings)": "초점 흐림은 화질 중간 이상에서 됩니다 (설정)",
   };
 
 

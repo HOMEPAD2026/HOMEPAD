@@ -10509,6 +10509,10 @@
     "The raid is recommended from level {n}: it hits hard": "团队首领战建议 {n} 级以上：攻击很强",
     "Recommended Lv {n}+ · one boss for everyone": "建议 Lv {n}+ · 所有人共同的首领",
     "A hunting ground fits your level now: {x} (level {a}–{b})": "现在适合你等级的狩猎场：{x}（{a}–{b} 级）",
+    "Ready": "准备就绪",
+    "Calling in the scammers…": "正在召集骗子们…",
+    "Raising the town…": "正在建造城镇…",
+    "Focus blur needs Medium quality or higher (Settings)": "焦点模糊需要中等或更高画质（设置）",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -33,7 +33,11 @@ const coarse = matchMedia("(pointer: coarse)").matches;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const lc = (a) => String(a || "").toLowerCase();
 const hex = (c) => "#" + c.toString(16).padStart(6, "0");
-const loadbar = (k) => { const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; const n = $("wp-loadpct"); if (n) n.textContent = Math.round(k * 100) + "%"; };
+// the loading screen: the bar, the step it is on, and a little planet whose town rises as each step finishes
+// (world-loading3d.js)
+const load3d = (() => { try { const h = $("wp-loading"); if (!h || !K.webglOk || !K.webglOk()) return null; const l = L3D.loadingScene(THREE, h, { reduce }); if (l) h.classList.add("has-3d"); return l; } catch { return null; } })();
+const loadbar = (k) => { const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; const n = $("wp-loadpct"); if (n) n.textContent = Math.round(k * 100) + "%";
+  if (load3d) load3d.set(k); const sp = document.querySelector("#wp-loading > span"); if (sp) sp.textContent = k >= 1 ? T("Ready") : k >= 0.75 ? T("Calling in the scammers…") : k >= 0.35 ? T("Raising the town…") : T("Building the planet…"); };
 const usd = (v) => v == null ? "—" : v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + Math.round(v).toLocaleString("en-US");
 
 // ---------------- language: the site's dictionaries (i18n.js); templates are translated, then filled ----------------
@@ -42,9 +46,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -282,7 +286,13 @@ const groundG = K.makeGround(); planet.add(groundG);
 // far shadows (world-look.js): halls, trees and the grounds' props shade the ground past the real shadow's reach
 const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir }) : null;
 if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
-const sky = K.makeSky(); st.scene.add(sky);
+// the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
+const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
+const sky = lowGfx ? K.makeSky() : ENV.makeSkyDome(); st.scene.add(sky);
+if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
+// rolling hills round the edge of the world (world-env.js) in place of the old round blobs
+st.on((dt) => { if (K.arcTick) K.arcTick(dt, planet.position); }); // the halls' night windows (world-arcstyle.js)
+{ const blobs = groundG.getObjectByName("blobs"); if (blobs) groundG.remove(blobs); groundG.add(ENV.makeHills()); }
 const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
 const stars = K.makeStars(); st.scene.add(stars);
 const halo = K.makeHalo(0.5); halo.position.set(0, 135, -360); halo.rotation.set(0.32, 0.2, 0); halo.traverse((o) => { if (o.material) o.material.fog = false; }); st.scene.add(halo);
@@ -401,6 +411,7 @@ let kit = await Promise.race([kitP, new Promise((r) => setTimeout(() => r(null),
 loadbar(0.75);
 async function dressWorld(kit) {
   if (!kit) return;
+  if (!lowGfx) ENV.unifyPalette(kit.props); // one palette across the asset packs (world-env.js)
   shops.forEach((g) => K.decorate(g, kit));
   shops.forEach(boxOf);
   K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
@@ -475,7 +486,7 @@ if (kit) await dressWorld(kit); else kitP.then((k) => { if (k) { kit = k; dressW
 // ---------------- input ----------------
 const keys = new Set();
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
-let camDist = coarse ? 1.12 : 1, camZoom = 1;
+let camDist = coarse ? 1.12 : 1, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
 const MOVE_KEYS = ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"];
 addEventListener("keydown", (e) => {
@@ -587,7 +598,7 @@ const EMOTES = [["emote-yes", "Wave", "✋"], ["emote-no", "No", "✕"], ["sit",
 const wheel = document.createElement("div"); wheel.className = "wp-wheel"; wheel.hidden = true; wheel.setAttribute("data-no-i18n", "");
 // eight fixed lines to say (others see them over your figure for a minute; no free text, so nothing to moderate)
 const SAY = ["Hi!", "Nice hit!", "Help!", "Raid now?", "Follow me", "Thanks!", "GG", "Scan before you buy"];
-wheel.innerHTML = EMOTES.map(([a, n, g], i) => `<button type="button" data-e="${a}" style="--i:${i}"><b>${g}</b><span>${esc(n.includes(" ") ? T(n) : W(n))}</span></button>`).join("") +
+wheel.innerHTML = EMOTES.map(([a, n, g], i) => `<button type="button" data-e="${a}" style="--i:${i}"><b>${ICONS.GLYPH[g] ? ICONS.icon(ICONS.GLYPH[g], 22) : g}</b><span>${esc(n.includes(" ") ? T(n) : W(n))}</span></button>`).join("") +
   `<div class="wp-say" role="group" aria-label="${esc(W("Say"))}">${SAY.map((s, i) => `<button type="button" data-say="${i}">${esc(s.includes(" ") || s.length > 4 ? T(s) : W(s))}</button>`).join("")}<button type="button" class="wp-say-inv" data-invite>${esc(T("Invite a friend"))}</button></div>`;
 document.body.appendChild(wheel);
 function openWheel() { if (frozen || !grounded) return; wheel.hidden = !wheel.hidden; }
@@ -725,7 +736,7 @@ function tryMove(d, dist) {
   return hit;
 }
 const angLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
-let jumpBuf = 0;
+let jumpBuf = 0; const hitFrom = new THREE.Vector3(); let hitAt = 0; // the last blow's push, for the flinch
 // a running jump carries you forward: the speed you had when you left the ground stays with you in the air
 const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
 function jump() { if (jetOn() && !frozen) { jetHigh = !jetHigh; Snd.board(); return; } if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
@@ -1550,6 +1561,7 @@ function burst(color) {
   const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 900; m.scale.setScalar(1 + k * 7); m.material.opacity = 0.9 * (1 - k); if (k >= 1) { off(); st.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 function levelUp(n, from) {
+  if (avatar && avatar.face) avatar.face("star", 2.4); // star eyes
   const pas = RPG.PASSIVES.find((x) => x.lv === n); if (pas) setTimeout(() => toast(T("New passive: {x} — {y}", { x: T(pas.name), y: T(pas.line) })), 1600);
   if (grounded && !boarding && mode === "hub") { vy = 7.5; grounded = false; } // a little jump for joy
   if (avatar && avatar.arc && !boarding) avatar.play("celebrate", { once: true }); // an ARC Bot throws its arms up
@@ -1818,7 +1830,7 @@ guide.className = "wp-guide"; guide.id = "wp-guide"; guide.hidden = true; guide.
     [K2("Shift", "m w2"), K2("Z", "m"), K2("X", "b"), K2("C", "b"), K2("V", "b"), K2("B", "b"), K2("N"), K2("M", "u"), K2(","), K2("Shift", "w2")],
     [K2("Ctrl", "b w15"), K2("Alt"), K2(W("Space"), "m w6"), K2("Alt"), K2("Ctrl", "w15")],
   ].map((r) => `<div class="wp-kb-row">${r.join("")}</div>`).join("");
-  const li = (keys, what, c) => `<li><span>${keys.map((k) => `<kbd style="--k:${c[0]};--kc:${c[1]}">${esc(k)}</kbd>`).join(" ")}</span>${esc(what.includes(" ") ? T(what) : W(what))}</li>`;
+  const li = (keys, what, c) => `<li><span>${keys.map((k) => `<kbd style="--k:${c[0]};--kc:${c[1]}">${ICONS.GLYPH[k] ? ICONS.icon(ICONS.GLYPH[k], 16) : esc(k)}</kbd>`).join(" ")}</span>${esc(what.includes(" ") ? T(what) : W(what))}</li>`;
   const M = ["#ff5f73", "#fff"], A = ["#ffd34d", "#3b2416"], U = ["#6fdc8c", "#0a2414"], B = ["#7ea3ff", "#0b1838"];
   const legend = `<ul class="wp-guide-legend">
     <h4>${esc(W("Moving"))}</h4>${li(["W", "A", "S", "D"], "Move (or the arrow keys)", M)}${li(["Shift"], "Run (hold)", M)}${li([W("Space")], "Jump", M)}
@@ -1871,13 +1883,15 @@ $("wp-set-reset").addEventListener("click", (e) => {
   try { localStorage.removeItem(SAVE); } catch { /* private */ } location.reload();
 });
 // photo mode: the HUD steps aside, drag to frame the shot, then save or share it
-let photoFilter = "none", photoSticker = 0, photoHour = null;
+let photoFilter = "none", photoSticker = 0, photoHour = null, photoDof = 0;
+// photo mode's focus (world-post.js): you stay sharp, the background (and anything right in front) softens
+{ const pw = new THREE.Vector3(); st.on(() => { if (!fxPost || !fxPost.setDof) return; if (!photo || !photoDof) { if (fxPost.dof && fxPost.dof.enabled) fxPost.setDof(null); return; } player.getWorldPosition(pw); pw.y += 1; const d = st.camera.position.distanceTo(pw); fxPost.setDof({ focus: d, range: photoDof === 2 ? Math.max(1.2, d * 0.18) : Math.max(2, d * 0.35), blur: photoDof === 2 ? 12 : 7 }); }); }
 const photoStickers = () => ["", quests && quests.title(), (P.rpg && P.rpg.x && P.rpg.x.ach || []).includes("raid1") ? T("Raid Breaker") : "", P.rpg && P.rpg.x && P.rpg.x.stitle ? T("Season Star") : "", "ARCIRCLE World"].filter((x, i) => i === 0 || x);
 { // filters, a sticker and a pose (built here so the words come from the game's own maps)
   const o = document.createElement("div"); o.className = "wp-photo-opts"; o.setAttribute("data-no-i18n", "");
   o.innerHTML = `<div><span>${esc(W("Filter"))}</span>${["none", "warm", "cool", "noir", "neon", "film", "vivid"].map((f) => `<button type="button" data-pf="${f}" aria-pressed="${f === "none"}">${esc(W(f[0].toUpperCase() + f.slice(1)))}</button>`).join("")}</div>
     <div><span>${esc(W("Time"))}</span>${[["", "Now"], [7, "Morning"], [13, "Noon"], [18.3, "Dusk"], [22, "Night"]].map(([h, n]) => `<button type="button" data-ph="${h}" aria-pressed="${h === ""}">${esc(W(n))}</button>`).join("")}</div>
-    <div><span>${esc(W("Sticker"))}</span><button type="button" id="wp-photo-sticker">${esc(W("None"))}</button><span>${esc(W("Pose"))}</span>${[["emote-yes", "Wave"], ["sit", "Sit"], ["interact-right", "Point"]].map(([a, n]) => `<button type="button" data-pp="${a}">${esc(W(n))}</button>`).join("")}</div>`;
+    <div><span>${esc(W("Sticker"))}</span><button type="button" id="wp-photo-sticker">${esc(W("None"))}</button><span>${esc(W("Pose"))}</span>${[["emote-yes", "Wave"], ["sit", "Sit"], ["interact-right", "Point"]].map(([a, n]) => `<button type="button" data-pp="${a}">${esc(W(n))}</button>`).join("")}</div><div class="wp-photo-dof"><span>${esc(W("Focus"))}</span>${[["0", "Off"], ["1", "Soft"], ["2", "Strong"]].map(([v, n]) => `<button type="button" data-pd="${v}" aria-pressed="${v === "0"}">${esc(W(n))}</button>`).join("")}</div>`;
   $("wp-photo-bar").prepend(o);
   o.addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
@@ -1885,6 +1899,7 @@ const photoStickers = () => ["", quests && quests.title(), (P.rpg && P.rpg.x && 
     else if (b.dataset.ph != null) { photoHour = b.dataset.ph === "" ? null : Number(b.dataset.ph); o.querySelectorAll("[data-ph]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); nightK = -1; dayNight(); } // the light of another hour, for this photo
     else if (b.id === "wp-photo-sticker") { const l = photoStickers(); photoSticker = (photoSticker + 1) % l.length; b.textContent = l[photoSticker] || W("None"); }
     else if (b.dataset.pp && avatar) avatar.play(b.dataset.pp, { once: b.dataset.pp !== "sit" });
+    else if (b.dataset.pd != null) { photoDof = Number(b.dataset.pd); o.querySelectorAll("[data-pd]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); if (!fxPost && photoDof) toast(T("Focus blur needs Medium quality or higher (Settings)")); }
   });
 }
 function setPhoto(on) {
@@ -1987,7 +2002,10 @@ rpg = RPG.createRpg({
   openCraft: (t, id) => { if (life) life.showSheet(t, id); }, onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
-combat = FIGHT.createCombat({ vfx,
+// the GPU particles (world-particles.js): sparks, streaks, glow and smoke for the fights, in one or two draw calls
+const parts = PART.createParticles({ THREE, parent: planet, low: lowGfx || st.quality.coarse });
+st.on((dt) => parts.tick(dt));
+combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
   kit: () => kit, here: (v) => here(v), facing: () => facing, avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),
@@ -2001,8 +2019,8 @@ combat = FIGHT.createCombat({ vfx,
   legend: () => { document.body.classList.remove("wc-legend"); void document.body.offsetWidth; document.body.classList.add("wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
-  knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; },
-  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && avatar.hurt) avatar.hurt(); else if (avatar && !boarding) avatar.play("emote-no", { once: true }); },
+  knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; hitFrom.copy(d); hitAt = performance.now(); },
+  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && avatar.hurt) { /* rock away from the blow: forward if it came from behind, sideways from the side */ const fresh = performance.now() - hitAt < 200, f = facing; avatar.hurt(fresh ? hitFrom.x * Math.sin(f) + hitFrom.z * Math.cos(f) : -1, fresh ? hitFrom.x * Math.cos(f) - hitFrom.z * Math.sin(f) : 0); } else if (avatar && !boarding) avatar.play("emote-no", { once: true }); },
   screenOf: (p) => { const v = p.clone(); planet.localToWorld(v); v.project(st.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
   // a boss arrives: the camera turns to it for a moment and its name card comes up
   bossIntro: (pos, name, zone, lv, line) => {
@@ -2097,7 +2115,30 @@ decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shop
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
-const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (f, cm) => { if (quests) quests.on.fish(); const s = sess(); if (!s || !f) return; const wk = Math.floor((Date.now() - Date.UTC(1970, 0, 5)) / 6048e5); let b = {}; try { b = JSON.parse(localStorage.getItem("arc.world.fishwk") || "{}"); } catch { /* private */ } if (b.wk === wk && b.cm >= cm) return; try { localStorage.setItem("arc.world.fishwk", JSON.stringify({ wk, cm })); } catch { /* private */ } post({ action: "world-fish", ...s, fish: f.id, cm }).catch(() => {}); }, /* this week's biggest catch goes to the board */ buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (f, cm) => { if (avatar && avatar.face) avatar.face("wow", 1.6); if (quests) quests.on.fish(); const s = sess(); if (!s || !f) return; const wk = Math.floor((Date.now() - Date.UTC(1970, 0, 5)) / 6048e5); let b = {}; try { b = JSON.parse(localStorage.getItem("arc.world.fishwk") || "{}"); } catch { /* private */ } if (b.wk === wk && b.cm >= cm) return; try { localStorage.setItem("arc.world.fishwk", JSON.stringify({ wk, cm })); } catch { /* private */ } post({ action: "world-fish", ...s, fish: f.id, cm }).catch(() => {}); }, /* this week's biggest catch goes to the board */ buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+// water (world-env.js): foam round the edge, caustics on the floor, the sky at a glance (the fountain and the far ponds)
+const waterMats = [];
+if (!lowGfx) {
+  fountain.traverse((o) => { if (o.isMesh && o.geometry && o.geometry.type === "CircleGeometry" && o.material && o.material.transparent) { const m = ENV.waterMat({ r: o.geometry.parameters.radius, color: 0x38c8ff, deep: 0x0a5a8a, glow: 0.22, opacity: 0.86 }); o.material = m; waterMats.push(m); } });
+  planet.getObjectByName("life").children.forEach((g) => { if (!/^pond:/.test(g.name)) return; const w = g.children[0]; if (!w || !w.isMesh || !w.material.color) return;
+    const hot = g.name === "pond:abyss", c = w.material.color.getHex();
+    const m = ENV.waterMat({ r: w.geometry.parameters.radius, color: c, deep: new THREE.Color(c).multiplyScalar(0.4).getHex(), foam: hot ? 0xffd080 : 0xeaffff, glow: hot ? 0.9 : 0.12, opacity: 0.92 });
+    m.polygonOffset = true; m.polygonOffsetFactor = -4; w.material = m; waterMats.push(m); });
+  st.on((dt) => { for (const m of waterMats) m.uniforms.uTime.value += dt; });
+}
+// the meadow (world-env.js): blades round you that sway and lie down where you walk (none on Low / Saver). Built once
+// the town is up (the mask is painted from what stands on the ground) and repainted once more when the coin city is in
+let grass = null, gmask = null;
+function makeMeadow() {
+  if (lowGfx || grass) return;
+  gmask = ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }] });
+  const big = S.quality === "ultra" || S.quality === "high" || (S.quality === "auto" && !st.quality.coarse);
+  grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 16000 : 32000, size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow });
+  planet.add(grass.mesh);
+  st.on((dt) => { const on = mode === "hub"; grass.mesh.visible = on; if (on) grass.tick(dt, -planet.position.x, -planet.position.z); });
+  setTimeout(() => gmask.paint(), 20000);
+  nightK = -1; dayNight();
+}
 st.on((dt) => life.tick(dt));
 // ?decor=0 leaves it out (to compare frame rates, or on a device that struggles); automated browsers (software
 // rendering, a frame a second) get it only with ?decor=1
@@ -2270,6 +2311,7 @@ function airFor(k, dusk, zz) {
   if (zz) col.lerp(new THREE.Color(zz.fog), 0.6);
   return { fog: 0.0015 + dusk * 0.012 + k * 0.004 + (AIR_FOG[id] || 0), color: col, rays: (1 - k) * (0.25 + dusk * 0.6) * (/^(abyss|void|depths)$/.test(id) ? 0.3 : 1), heat: id === "abyss" ? 1 : 0, sunColor: st.sun.color };
 }
+const CLOUD = { night: new THREE.Color(0x3a4660), dusk: new THREE.Color(0xffc8a0), shade: new THREE.Color(0xa8b8cc), nshade: new THREE.Color(0x141a2a), dshade: new THREE.Color(0xc87a7a) };
 function dayNight() {
   const d = new Date(Date.now() + 9 * 3600e3);
   const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
@@ -2295,6 +2337,13 @@ function dayNight() {
     stars.visible = !!th.dark; stars.material.opacity = th.dark ? 0.85 : 0;
     if (th.cloud != null) { clouds.userData.mat.color.set(th.cloud); clouds.userData.mat.emissiveIntensity = th.dark ? 0.05 : 0.25; }
   }
+  { const u = sky.material.uniforms; if (u.uCloudLit) { // the drifting cloud layer: white by day, peach at dusk, slate at night
+    u.uCloudLit.value.setRGB(1, 1, 1).lerp(CLOUD.night, k).lerp(CLOUD.dusk, dusk * 0.8); u.uCloudShade.value.copy(CLOUD.shade).lerp(CLOUD.nshade, k).lerp(CLOUD.dshade, dusk * 0.6);
+    u.uSunCol.value.copy(st.sun.color); u.uCloudK.value = 1 - k * 0.7; u.uCover.value = mood === "rain" ? 0.3 : 0.48;
+    if (th && th.cloud != null) { u.uCloudLit.value.set(th.cloud); u.uCloudShade.value.set(th.cloud).multiplyScalar(0.6); } } }
+  if (K.TOON) { K.TOON.rimK.value = 0.5 - k * 0.15 + dusk * 0.2; K.TOON.rim.value.set(0x9fd8ff).lerp(new THREE.Color(0x7a8cff), k).lerp(new THREE.Color(0xffb37a), dusk * 0.7); } // the characters' rim light
+  if (grass) grass.setLight(th && th.dark ? 0.3 : 1 - k * 0.7, k > 0.5 ? 0x5a9a8a : 0x7cc65a);
+  for (const m of waterMats) { m.uniforms.uLight.value = 1 - k * 0.6; m.uniforms.uSky.value.copy(skyU.mid.value).lerp(skyU.glow.value, 0.3); }
   aurora.visible = (th && th.aurora) || mood === "aurora";
   fireflies.visible = k > 0.4 && !th; fireflies.material.opacity = Math.min(1, (k - 0.4) * 2) * 0.9;
   // inside a hunting ground the air takes its colour
@@ -2441,11 +2490,18 @@ st.on((dt0, t) => {
   if (!photo && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
   camPos.sub(at).multiplyScalar(photo ? 1 : camFit).add(at);
   if (shake > 0 && reduce) shake = 0;
-  if (shake > 0) { shake = Math.max(0, shake - dt); camPos.x += (Math.random() - 0.5) * shake; camPos.y += (Math.random() - 0.5) * shake; }
+  // shake: a smooth rattle that dies away (not a new random jump every frame)
+  if (shake > 0) { shake = Math.max(0, shake - dt); shakeT += dt; const a = shake * 0.6; camPos.x += (Math.sin(shakeT * 47) + Math.sin(shakeT * 83) * 0.5) * a; camPos.y += (Math.sin(shakeT * 61 + 1.3) + Math.sin(shakeT * 97) * 0.5) * a; }
+  if (mode === "hub") camPos.y = Math.max(camPos.y, 0.6); // never under the ground
   camLook.set(-Math.sin(camYaw) * 2.6, 1.4 + (hop - at.y) * 0.5, -Math.cos(camYaw) * 2.6).add(at);
   const landing = performance.now() < landUntil;
-  cam.position.lerp(camPos, 1 - Math.exp(-dt * (landing ? 2.4 : 10))); cam.lookAt(camLook);
-  const fov = 55 + Math.min(1, speedNow / 12.5) * 7; if (Math.abs(cam.fov - fov) > 0.05) { cam.fov = THREE.MathUtils.lerp(cam.fov, fov, 0.08); cam.updateProjectionMatrix(); }
+  cam.position.lerp(camPos, 1 - Math.exp(-dt * (landing ? 2.4 : 10)));
+  // the point it looks at follows a touch behind, so steps, hops and landings don't jolt the picture
+  if (!lookInit) { camLookS.copy(camLook); lookInit = true; } camLookS.lerp(camLook, 1 - Math.exp(-dt * (landing ? 3 : 14))); cam.lookAt(camLookS);
+  // speed widens the view: a little at a run, more on the board and the jetpack (and a kick as a sprint starts)
+  const sk = THREE.MathUtils.smoothstep(speedNow, 2, 22), kick = Math.max(0, speedNow - lastSpeed) * 0.35; lastSpeed = THREE.MathUtils.lerp(lastSpeed, speedNow, 1 - Math.exp(-dt * 3));
+  const fov = 55 + sk * 11 + Math.min(3, kick) + (jetOn() && jetHigh ? 2 : 0);
+  if (Math.abs(cam.fov - fov) > 0.05) { cam.fov = THREE.MathUtils.lerp(cam.fov, fov, 1 - Math.exp(-dt * (fov > cam.fov ? 6 : 3))); cam.updateProjectionMatrix(); }
 });
 
 // ---------------- the dive: space, the round planet, down through the clouds onto the ground ----------------
@@ -2480,11 +2536,11 @@ async function dive() {
 }
 
 // ---------------- start ----------------
-dailyState(); dayNight(); worldReady = true; try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
+dailyState(); makeMeadow(); dayNight(); worldReady = true; try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
 $("wp-loading").classList.add("done");
-setTimeout(() => $("wp-loading").remove(), 600);
+setTimeout(() => { if (load3d) load3d.dispose(); $("wp-loading").remove(); }, 600);
 await setAvatar(P.char || "arc-arc");
 await dive();
 landed = true; feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
@@ -2500,7 +2556,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
-  stage: () => st, post: () => fxPost, gshadow: () => gshadow, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
+  stage: () => st, post: () => fxPost, gshadow: () => gshadow, grass: () => grass, gmask: () => gmask, parts: () => parts, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
