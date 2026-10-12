@@ -379,7 +379,7 @@ export function createCombat(ctx) {
   function strike(m, c) {
     ctx.here(me);
     const can = () => !down && guardT <= 0 && ctx.hopY() < 0.8;
-    if (c.kind === "slam") { slam(m); ctx.buzz && ctx.buzz(80); return; }
+    if (c.kind === "slam") { slam(m); return; } // slam() buzzes only when it hits you
     if (c.kind === "cone") {
       for (let i = 0; i < 18; i++) { const a = Math.atan2(c.dir.z, c.dir.x) + (Math.random() - 0.5) * 1.2, r = 2 + Math.random() * 7; puff(m.g.position.clone().add(new V3(Math.cos(a) * r, 0.6, Math.sin(a) * r)), m.zone ? m.zone.color : 0xff6a4a, { n: 2, speed: 3, size: 0.8, life: 0.5, grav: -1 }); }
       ctx.shake(0.3); tmp.copy(me).sub(m.g.position).setY(0); const dd = tmp.length();
@@ -391,7 +391,7 @@ export function createCombat(ctx) {
   }
   // half its HP gone: the boss roars, glows red, moves and strikes faster, and calls two helpers
   function enrage(m) {
-    m.rage = true; ctx.toast(T("{x} is enraged!", { x: m.bossName })); Snd.roar && Snd.roar(); ctx.shake(0.5); ctx.buzz && ctx.buzz(120);
+    m.rage = true; ctx.toast(T("{x} is enraged!", { x: m.bossName })); Snd.roar && Snd.roar(); ctx.shake(0.5);
     ring(m.g.position, 0xff2d4d, { r0: 1, r1: 12, life: 0.9, y: 0.15 }); flash(m.g.position.clone().setY(2), 0xff4d6d, 8, 0.4);
     const aura = new THREE.Sprite(spriteMat(0xff2d4d, 0.5)); aura.scale.setScalar(9); aura.position.y = 2.4; m.g.add(aura); m.rageAura = aura;
     m.glow = 0.6; m.zone && (m.spec = { ...m.spec, color: "#ff2d4d" });
@@ -1041,6 +1041,7 @@ export function createCombat(ctx) {
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, mobsRaw: () => mobs,
     /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
+    bossNear: (r = 40) => { ctx.here(me); return mobs.some((m) => !m.dead && m.rank === "boss" && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < r); },
     dangerNear: (r = 24) => { ctx.here(me); return mobs.some((m) => !m.dead && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < (m.rank === "boss" ? r : 14)); }, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z, cast: m.cast ? m.cast.kind : m.dash ? "dash" : m.rush ? "rush" : m.wind ? "wind" : "", rage: !!m.rage, rare: !!m.rare })), mshots: mshots.length, charging: chg.on, items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
     spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd);
       // in front of you; with free, turned aside when that spot is inside something (the fountain, a hall)
