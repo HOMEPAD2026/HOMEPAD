@@ -14,7 +14,7 @@
 //   street items  ARCL coins, speed boots, a spring, XP stars, mana crystals, health potions, a shield, a magnet
 // ARCL goes through the server's claim: "street" (5), "hunt" (8–12 by tier, level-gated), "boss" (30), "pickup" (2),
 // each limited per day, because the server can't watch a fight.
-import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT } from "./world-rpg-data.js";
+import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush } from "./world-rpg-data.js";
 import { weaponKind, potion as potion3d, token as token3d } from "./world-gear3d.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
@@ -963,7 +963,7 @@ export function createCombat(ctx) {
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
       if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) {
-        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) ? "elite" : "", rare = !rank && Math.random() < 0.03;
+        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) ? "elite" : "", rare = !rank && Math.random() < 0.03 * goldenRush();
         const m0 = spawnMob({ type, lv, rank, zone: z, rare });
         // in the far ring the fake airdrops come in threes
         if (m0 && type === "drop" && z.lv[0] >= 30 && !rare && alive <= 2) for (let k = 0; k < 2; k++) { const a = Math.random() * TAU; spawnMob({ type, lv, zone: z, at: m0.g.position.clone().add(new V3(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2)) }); }

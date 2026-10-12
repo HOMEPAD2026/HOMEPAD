@@ -125,7 +125,7 @@ export function createLife(ctx) {
     for (const x of pool) { roll -= wt(x); if (roll <= 0) { fsh = x; break; } }
     const cm = Math.round(fsh.cm[0] + (fsh.cm[1] - fsh.cm[0]) * Math.pow(r(), 1.6));
     const best = d.x.fish[fsh.id] || 0, rec = cm > best; if (rec) d.x.fish[fsh.id] = cm;
-    gainMastery(d, "fm", rec ? 2 : 1, "Fishing");
+    gainMastery(d, "fm", rec ? 2 : 1, "Fishing"); ctx.onCatch && ctx.onCatch(fsh);
     ctx.toast(rec ? T("Caught a {x}, {n} cm — your biggest!", { x: T(fsh.name), n: cm }) : T("Caught a {x}, {n} cm", { x: T(fsh.name), n: cm }));
     ctx.Snd.win && ctx.Snd.win(); ctx.save(); paintMats();
     // the fish leaps out of the water and falls back in

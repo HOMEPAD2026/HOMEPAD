@@ -42,9 +42,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -303,14 +303,24 @@ for (const [g, c] of [[portal, 0x38e8ff], [isleGate, 0x2ee07a]]) { g.add(GEAR.ga
 const board = GEAR.hoverboard(); board.visible = false; player.add(board); // world-gear3d.js
 // the second ride: the explorer rover (level 10); V switches between the two while riding
 const rover = GEAR.rover(); rover.visible = false; player.add(rover);
-let ride = (() => { try { return localStorage.getItem("arc.world.ride") === "rover" ? "rover" : "board"; } catch { return "board"; } })();
-const rideObj = () => (ride === "rover" ? rover : board);
+// the third (level 30): a jetpack — you cruise a few metres up, Space climbs higher or comes back down; in a fight it
+// keeps you low (the bosses' ground strikes must still reach you)
+const jet = GEAR.jetpack(); jet.visible = false; player.add(jet);
+// an airship that cruises round the far ring, high up: lights blinking, its name on the side (scenery)
+const ship = GEAR.airship(); planet.add(ship); spins.push((dt, t) => { const a = t * 0.018; ship.position.set(Math.cos(a) * 140, 46 + Math.sin(t * 0.3) * 1.5, Math.sin(a) * 140); ship.rotation.y = -a; ship.userData.update(t); });
+let ride = (() => { try { const v = localStorage.getItem("arc.world.ride"); return v === "rover" || v === "jet" ? v : "board"; } catch { return "board"; } })();
+const rideObj = () => (ride === "rover" ? rover : ride === "jet" ? jet : board);
+let jetHigh = false;
+const jetOn = () => boarding && ride === "jet" && mode === "hub";
+const jetAlt = () => (document.body.classList.contains("wc-fight") ? 0.5 : jetHigh ? 8 : 3.2);
 function switchRide() {
   if (ride === "board" && level() < 10) { toast(T("The rover opens at level {n}", { n: 10 })); return; }
-  ride = ride === "board" ? "rover" : "board"; try { localStorage.setItem("arc.world.ride", ride); } catch { /* fine */ }
-  if (boarding) { board.visible = ride === "board"; rover.visible = ride === "rover"; if (avatar) avatar.obj.position.y = ride === "rover" ? 0.84 : 0.45; Snd.board(); }
-  toast(ride === "rover" ? T("Ride: explorer rover") : T("Ride: hoverboard"));
+  ride = ride === "board" ? "rover" : ride === "rover" && level() >= 30 ? "jet" : "board"; try { localStorage.setItem("arc.world.ride", ride); } catch { /* fine */ }
+  if (boarding) { showRide(); Snd.board(); }
+  toast(ride === "rover" ? T("Ride: explorer rover") : ride === "jet" ? T("Ride: jetpack · Space climbs or comes down") : T("Ride: hoverboard"));
+  if (ride === "board" && level() >= 10 && level() < 30) setTimeout(() => toast(T("The jetpack opens at level {n}", { n: 30 })), 1400);
 }
+function showRide() { board.visible = boarding && ride === "board"; rover.visible = boarding && ride === "rover"; jet.visible = boarding && ride === "jet"; if (avatar) avatar.obj.position.y = !boarding || ride === "jet" ? 0 : ride === "rover" ? 0.84 : 0.45; }
 addEventListener("keydown", (e) => { if ((e.key === "v" || e.key === "V") && !e.repeat && !e.target.closest("input,textarea,[contenteditable]") && mode === "hub") switchRide(); });
 let avatar = null, nameTag = null;
 // the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
@@ -671,7 +681,7 @@ const angLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * 
 let jumpBuf = 0;
 // a running jump carries you forward: the speed you had when you left the ground stays with you in the air
 const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
-function jump() { if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
+function jump() { if (jetOn() && !frozen) { jetHigh = !jetHigh; Snd.board(); return; } if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
 function emote(name) { if (!avatar || frozen || !grounded) return; avatar.play(name, { once: true }); if (pet) pet.emote(); }
 // landing from a jump: a ring of light where you touch down (the ARC Bots also squash a little)
 function landRing(y) {
@@ -712,18 +722,20 @@ const tapOr = (key, tap) => (coarse ? tap : key);
 function setBoard(on) {
   if (frozen) return;
   if (on && level() >= 10) setTimeout(() => hint("rover", tapOr(T("Press V to switch between the hoverboard and the explorer rover"), T("Hold the ride button to switch to the explorer rover"))), 1200);
-  boarding = on; board.visible = on && ride === "board"; rover.visible = on && ride === "rover"; if (avatar) avatar.obj.position.y = on ? (ride === "rover" ? 0.84 : 0.45) : 0;
+  if (on && ride === "jet" && level() < 30) ride = "board"; // a save from a higher level on a fresh one
+  boarding = on; showRide(); jetHigh = false;
   $("wp-act-board").setAttribute("aria-pressed", String(on)); Snd.board();
-  toast(on ? (ride === "rover" ? T("Rover on: hold Shift (or Run) to speed up · V switches ride") : T("Hoverboard on: hold Shift (or Run) to fly")) : T("Hoverboard off"));
+  toast(on ? (ride === "rover" ? T("Rover on: hold Shift (or Run) to speed up · V switches ride") : ride === "jet" ? T("Jetpack on: Space climbs or comes down · V switches ride") : T("Hoverboard on: hold Shift (or Run) to fly")) : T("Hoverboard off"));
 }
 function step(dt) {
   // the floor: flat ground in the hub, the bricks under your feet on an island
   const floor = mode === "island" ? island.floorAt(here(tmp2)) : 0;
-  if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { const impact = -vy; hop = floor; vy = 0; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
+  if (jetOn()) { const want = floor + jetAlt(); hop += (want - hop) * Math.min(1, dt * 2.4); vy = 0; grounded = true; player.position.y = hop; }
+  else if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { const impact = -vy; hop = floor; vy = 0; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
   else if (hop > floor + 0.05) { grounded = false; vy = 0; }
   else if (floor > hop) hop = floor;
   player.position.y = hop;
-  at.y = THREE.MathUtils.lerp(at.y, floor, grounded ? 0.2 : 0.04);
+  at.y = THREE.MathUtils.lerp(at.y, jetOn() ? hop * 0.75 : floor, grounded ? 0.2 : 0.04);
   if (frozen) { speedNow = THREE.MathUtils.lerp(speedNow, 0, 0.2); return; }
   if (flying) {
     const k = Math.min(1, (performance.now() - flying.t0) / flying.ms), e = 1 - Math.pow(1 - k, 3);
@@ -1502,6 +1514,20 @@ function levelUp(n, from) {
   const el = $("wp-levelup"); $("wp-levelup-n").textContent = String(n);
   el.hidden = false; el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
   setTimeout(() => { el.hidden = true; }, 1900);
+  // a new hunting ground opens at this level: a beam of light rises over its gate and the camera turns to it
+  const opened = RPG.ZONES.find((z) => z.lv[0] > (from || n - 1) && z.lv[0] <= n && z.lv[0] > 1);
+  if (opened && mode === "hub") setTimeout(() => gateReveal(opened), 2200);
+}
+function gateReveal(z) {
+  const a = Math.atan2(-z.x, -z.z), gx = z.x + Math.sin(a) * z.r, gz = z.z + Math.cos(a) * z.r, c = new THREE.Color(z.color);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2.4, 90, 24, 1, true), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+  beam.position.set(gx, 45, gz); planet.add(beam);
+  const t0 = performance.now(), dx = gx - (-planet.position.x), dz = gz - (-planet.position.z), want = Math.atan2(-dx, -dz), y0 = camYaw;
+  const off = st.on(() => { const k = (performance.now() - t0) / 7000; beam.material.opacity = Math.min(1, k * 6) * Math.max(0, 1 - Math.max(0, k - 0.7) / 0.3) * 0.55; beam.scale.x = beam.scale.z = 1 + Math.sin(k * 30) * 0.03;
+    if (!reduce && !frozen && k < 0.25) camYaw = angLerp(y0, want, Math.min(1, k * 6));
+    if (k >= 1) { off(); planet.remove(beam); beam.geometry.dispose(); beam.material.dispose(); } });
+  toast(T("A new hunting ground opens: {x} (level {a}–{b})", { x: z.name, a: z.lv[0], b: z.lv[1] }));
+  Snd.level && Snd.level();
 }
 const dustGeo = new THREE.SphereGeometry(0.18, 6, 5);
 function dust(n) {
@@ -1793,23 +1819,25 @@ $("wp-set-reset").addEventListener("click", (e) => {
   try { localStorage.removeItem(SAVE); } catch { /* private */ } location.reload();
 });
 // photo mode: the HUD steps aside, drag to frame the shot, then save or share it
-let photoFilter = "none", photoSticker = 0;
+let photoFilter = "none", photoSticker = 0, photoHour = null;
 const photoStickers = () => ["", quests && quests.title(), (P.rpg && P.rpg.x && P.rpg.x.ach || []).includes("raid1") ? T("Raid Breaker") : "", P.rpg && P.rpg.x && P.rpg.x.stitle ? T("Season Star") : "", "ARCIRCLE World"].filter((x, i) => i === 0 || x);
 { // filters, a sticker and a pose (built here so the words come from the game's own maps)
   const o = document.createElement("div"); o.className = "wp-photo-opts"; o.setAttribute("data-no-i18n", "");
-  o.innerHTML = `<div><span>${esc(W("Filter"))}</span>${["none", "warm", "cool", "noir", "neon"].map((f) => `<button type="button" data-pf="${f}" aria-pressed="${f === "none"}">${esc(W(f[0].toUpperCase() + f.slice(1)))}</button>`).join("")}</div>
+  o.innerHTML = `<div><span>${esc(W("Filter"))}</span>${["none", "warm", "cool", "noir", "neon", "film", "vivid"].map((f) => `<button type="button" data-pf="${f}" aria-pressed="${f === "none"}">${esc(W(f[0].toUpperCase() + f.slice(1)))}</button>`).join("")}</div>
+    <div><span>${esc(W("Time"))}</span>${[["", "Now"], [7, "Morning"], [13, "Noon"], [18.3, "Dusk"], [22, "Night"]].map(([h, n]) => `<button type="button" data-ph="${h}" aria-pressed="${h === ""}">${esc(W(n))}</button>`).join("")}</div>
     <div><span>${esc(W("Sticker"))}</span><button type="button" id="wp-photo-sticker">${esc(W("None"))}</button><span>${esc(W("Pose"))}</span>${[["emote-yes", "Wave"], ["sit", "Sit"], ["interact-right", "Point"]].map(([a, n]) => `<button type="button" data-pp="${a}">${esc(W(n))}</button>`).join("")}</div>`;
   $("wp-photo-bar").prepend(o);
   o.addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.pf) { photoFilter = b.dataset.pf; o.querySelectorAll("[data-pf]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); cv.style.filter = SOC.PHOTO_FILTERS[photoFilter] || ""; }
+    else if (b.dataset.ph != null) { photoHour = b.dataset.ph === "" ? null : Number(b.dataset.ph); o.querySelectorAll("[data-ph]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); nightK = -1; dayNight(); } // the light of another hour, for this photo
     else if (b.id === "wp-photo-sticker") { const l = photoStickers(); photoSticker = (photoSticker + 1) % l.length; b.textContent = l[photoSticker] || W("None"); }
     else if (b.dataset.pp && avatar) avatar.play(b.dataset.pp, { once: b.dataset.pp !== "sit" });
   });
 }
 function setPhoto(on) {
   photo = on; document.body.classList.toggle("wp-photo", on); $("wp-photo-bar").hidden = !on;
-  if (!on) cv.style.filter = "";
+  if (!on) { cv.style.filter = ""; if (photoHour != null) { photoHour = null; nightK = -1; dayNight(); document.querySelectorAll("[data-ph]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.ph === ""))); } }
   frozen = on; keys.clear(); paintPrompt();
   if (on) toast(T("Photo mode: drag to frame, scroll to zoom"));
 }
@@ -2011,7 +2039,7 @@ decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shop
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
-const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: () => { if (quests) quests.on.fish(); }, buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
 st.on((dt) => life.tick(dt));
 // ?decor=0 leaves it out (to compare frame rates, or on a device that struggles); automated browsers (software
 // rendering, a frame a second) get it only with ?decor=1
@@ -2036,7 +2064,7 @@ async function openProfile(w) {
     el.innerHTML = `<div class="wp-prof-card"><button type="button" class="wp-btn wp-x" data-px aria-label="${esc(T("Close"))}">×</button>
       <div class="wp-prof-face">${thumbCache[char] ? `<img src="${thumbCache[char]}" alt="">` : ""}<b>${lv}</b></div>
       <h2>${esc(name)}</h2>${quests.titleOf(row.t) ? `<p class="wp-prof-title">${esc(quests.titleOf(row.t))}</p>` : ""}
-      <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / 15</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div><div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
+      <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / ${QST.CODEX.length + QST.CODEX_STORY.length}</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div><div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
       <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
       ${me || !sess() ? "" : `<div class="wp-prof-gift"><span>${esc(T("Send a gift"))}</span>${inbox.sendOptions().map((g) => `<button type="button" class="wp-btn" data-pgift="${g.kind}:${g.n}" ${g.can ? "" : "disabled"}>${esc(g.label)}</button>`).join("")}</div>`}</div>`;
     if (char && !thumbCache[char]) renderThumbsFor([char]).then(() => { if (el.isConnected) paint(fr); });
@@ -2178,7 +2206,7 @@ const skyEnv = (() => {
 })();
 function dayNight() {
   const d = new Date(Date.now() + 9 * 3600e3);
-  const h = Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
+  const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
   const k = h >= 20 || h < 5 ? 1 : h >= 17 ? (h - 17) / 3 : h < 7 ? 1 - (h - 5) / 2 : 0;
   if (Math.abs(k - nightK) < 0.01) return; nightK = k;
   setTimeout(() => skyEnv(k), 0);
@@ -2264,7 +2292,7 @@ function watchFps(dt) {
 // ---------------- the loop ----------------
 const cam = st.camera;
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), base = new THREE.Vector3();
-let animState = "", npcT = 0, introOn = false, landUntil = 0, hoverT = 0;
+let animState = "", npcT = 0, introOn = false, landUntil = 0, hoverT = 0, idleT = 0, idleNext = 7;
 const tmpTr = new THREE.Vector3();
 // walking up to a building: it gives a small springy nod, as if the door just opened for you
 function greet(g) {
@@ -2290,7 +2318,11 @@ st.on((dt0, t) => {
     if (inner && !avatar.bot) { inner.rotation.x = THREE.MathUtils.lerp(inner.rotation.x, grounded && !boarding ? Math.min(1, speedNow / 12.5) * 0.16 : 0, 0.15); inner.rotation.z = THREE.MathUtils.lerp(inner.rotation.z, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6), 0.12); }
     if (speedNow > 1 && !wheel.hidden) wheel.hidden = true;
     speedLines.style.opacity = String(THREE.MathUtils.clamp((speedNow - 13) / 8, 0, 0.9));
-    avatar.obj.rotation.y = facing;
+    // standing still for a while: a look round, now and then
+    const still = grounded && !boarding && speedNow < 0.3 && !frozen && !document.body.classList.contains("wc-fight");
+    idleT = still ? idleT + dt : 0; let lookOff = 0;
+    if (idleT > idleNext) { const k = (idleT - idleNext) / 3.4; if (k >= 1) { idleT = 0; idleNext = 8 + Math.random() * 7; } else if (!reduce) lookOff = Math.sin(k * Math.PI * 2) * Math.sin(k * Math.PI) * 0.55; }
+    avatar.obj.rotation.y = facing + lookOff;
     if (avatar.bot) avatar.update(dt, t, Math.min(1, speedNow / 8), 0);
     else {
       avatar.update(dt, t);
@@ -2299,7 +2331,7 @@ st.on((dt0, t) => {
       else if (!avatar.busy() || (grounded && want !== "idle" && !boarding)) { if (want !== "jump") avatar.play(want, { speed: want === "walk" ? Math.max(0.8, speedNow / 6.5) : 1 }); animState = want; }
     }
   }
-  if (boarding) { const ro = rideObj(); ro.userData.update(t, speedNow); ro.rotation.y = facing; }
+  if (boarding) { const ro = rideObj(); ro.userData.update(t, speedNow, ride === "jet" ? (jetHigh ? 1 : 0.5) : 0); ro.rotation.y = facing; }
   if (npc && (npcT += dt) > 6) { npcT = 0; const lines = ["Hi! I'm ARCIA. Ask me anything.", "Scan a token before you buy it.", "A real airdrop never asks you to pay.", "Check the LP lock before you ape."]; npc.userData.line = (npc.userData.line + 1) % lines.length; npc.remove(npc.userData.bub); npc.userData.bub = K.bubble(T(lines[npc.userData.line])); npc.add(npc.userData.bub); if (labels) labels.dirty = true; if (Math.random() < 0.5) npc.userData.ac.play("emote-yes", { once: true }); }
   if (npc) npc.userData.ac.update(dt, t);
   tickQuantum(t);

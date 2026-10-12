@@ -1,7 +1,7 @@
 // game.test.mjs — the game's pure rules (no browser): the season, the quiz, fusion, the raid's twist, its calendar, the codex.
 // Run: node tests/world/game.test.mjs
 import { seasonOf, tierOf, SEASON_TIERS, quizFor, QUIZ } from "../../world-season.js";
-import { fuseResult, FUSE_MAX_R, xpNeed, xpAt, levelOfXp, xpFromOld, xpProgress, mobStats, itemStats, temperCost, ZONES, pondOf } from "../../world-rpg-data.js";
+import { fuseResult, FUSE_MAX_R, xpNeed, xpAt, levelOfXp, xpFromOld, xpProgress, mobStats, itemStats, temperCost, ZONES, pondOf, xpEvent, xpBoost, goldenRush } from "../../world-rpg-data.js";
 import * as SRV from "../../api/_world-social.mjs";
 import { RAID_MODS, raidModOf, raidIcs, phaseOf } from "../../world-social.js";
 import { CODEX, CODEX_STORY } from "../../world-quests.js";
@@ -50,9 +50,9 @@ check([0, 99, 100, 1250, 2499, 7999, 19899].every((x) => levelOfXp(xpFromOld(x))
 check(xpProgress(xpFromOld(1250)).into === Math.floor(0.5 * xpNeed(13)), "and the share of the level already done");
 check([1, 7, 33, 90].every((l) => SRV.xpAt(l) === xpAt(l) && SRV.xpNeed(l) === xpNeed(l)) && SRV.levelOfSave({ xp: 2450 }) === 25 && SRV.levelOfSave({ xp: xpAt(25), xpv: 2 }) === 25, "the server uses the same curve and reads old saves the old way");
 { const kills = (l) => xpNeed(l) / mobStats(l).xp; check(kills(5) >= 4 && kills(20) > 10 && kills(80) < 50, "about " + [5, 20, 40, 80].map((l) => Math.round(kills(l))).join(" / ") + " knock-outs of your own level per level at 5 / 20 / 40 / 80"); }
-// the codex: fifteen pages, each with how to beat the scam
+// the codex: twenty-two pages (the far ring's seven bosses too), each with how to beat the scam
 const all = [...CODEX_STORY, ...CODEX];
-check(all.length === 15 && new Set(all.map((c) => c.id)).size === 15, "fifteen pages with their own ids");
+check(all.length === 22 && new Set(all.map((c) => c.id)).size === 22, "twenty-two pages with their own ids");
 check(all.every((c) => c.name && c.line && c.beat), "every page says how the scam works and how to beat it");
 check(CODEX_STORY.every((c) => ["phisher", "airdrop", "honeypot", "doppel", "golem", "dragon"].includes(c.story)), "the story pages follow the six scammers");
 
@@ -65,6 +65,11 @@ check(CODEX_STORY.every((c) => ["phisher", "airdrop", "honeypot", "doppel", "gol
   check(ZONES.filter((z) => z.lv[0] < 30).every((z) => !pondOf(z)), "the near grounds have none"); }
 // every boss has its saying
 check(ZONES.every((z) => z.boss && z.boss.line && z.boss.line.length < 60), "every boss has a short saying");
+
+// the weekday events: a near ground and a far one; the weekend everywhere, with the golden rush
+{ const mon = Date.UTC(2026, 9, 12, 3), sat = Date.UTC(2026, 9, 17, 3); const e = xpEvent(mon);
+  check(e.zone === "spam" && e.far === "peaks" && xpBoost("peaks", mon) === 1.5 && xpBoost("reef", mon) === 1 && goldenRush(mon) === 1, "Monday: Spam Alley and Ponzi Peaks");
+  check(xpEvent(sat).all && xpBoost("void", sat) === 1.5 && goldenRush(sat) === 3, "the weekend: everywhere, golden scammers three times as often"); }
 
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1);

@@ -3,7 +3,7 @@
 // Everything here pays XP, scrap and potions — never ARCL — so nothing in it can be farmed into tokens.
 // Saved inside the character (P.rpg.x), so it travels with world-save.
 import { miniDrone } from "./world-gear3d.js";
-import { TITLE_BONUS, bonusLine, PETS, petLevel, petNext, xpEvent, ZONES, WEEKDAY_ZONE } from "./world-rpg-data.js";
+import { TITLE_BONUS, bonusLine, PETS, petLevel, petNext, xpEvent, ZONES, WEEKDAY_ZONE, WEEKDAY_FAR } from "./world-rpg-data.js";
 import { seasonOf, SEASON_PTS, SEASON_TIERS, tierOf, quizFor, QUIZ_XP } from "./world-season.js";
 const NEWK = "arc.world.newTabs";
 const seenTabs = () => { try { return JSON.parse(localStorage.getItem(NEWK) || "[]"); } catch { return []; } };
@@ -38,6 +38,14 @@ export const ACH = [
   { id: "lv20", name: "Legend", line: "Reach level 20", ev: "level", n: 20, title: "Legend" },
   { id: "raid1", name: "Raid breaker", line: "Help bring down a weekly raid boss", ev: "raid", n: 1, title: "Raid Breaker" },
   { id: "quiz", name: "Scam spotter", line: "Answer 25 quiz questions right", ev: "quizOk", n: 25, title: "Scam Spotter" },
+  // the far ring: in each ground, knock out 30 scammers, beat its boss and catch its fish (three steps)
+  { id: "gpeaks", name: "Peak warden", line: "In Ponzi Peaks: 30 knock-outs, its boss, its fish", ev: "ground", zone: "peaks", fish: "cod", n: 3, title: "Peak Warden" },
+  { id: "gdunes", name: "Desert warden", line: "In Exit-Scam Desert: 30 knock-outs, its boss, its fish", ev: "ground", zone: "dunes", fish: "snapper", n: 3, title: "Dune Walker" },
+  { id: "greef", name: "Reef warden", line: "In Phishing Reef: 30 knock-outs, its boss, its fish", ev: "ground", zone: "reef", fish: "angler", n: 3, title: "Reef Keeper" },
+  { id: "gwastes", name: "Farm breaker", line: "In Bot Farm Wastes: 30 knock-outs, its boss, its fish", ev: "ground", zone: "wastes", fish: "barb", n: 3, title: "Farm Breaker" },
+  { id: "gruins", name: "Auditor", line: "In Fake Exchange Ruins: 30 knock-outs, its boss, its fish", ev: "ground", zone: "ruins", fish: "sturgeon", n: 3, title: "Auditor" },
+  { id: "gabyss", name: "Bridge keeper", line: "In Bridge Hack Abyss: 30 knock-outs, its boss, its fish", ev: "ground", zone: "abyss", fish: "ray", n: 3, title: "Bridge Keeper" },
+  { id: "gvoid", name: "Last guard", line: "In The Last Rug: 30 knock-outs, its boss, its fish", ev: "ground", zone: "void", fish: "leviathan", n: 3, title: "Last Guard" },
 ];
 // the codex: every scammer here stands for a real scam
 export const CODEX = [
@@ -49,6 +57,14 @@ export const CODEX = [
   { id: "boss-swamp", name: "The Honeypot Queen", line: "A token you can buy but can't sell: the contract blocks sells for everyone but the owner. The Scanner's sell simulation catches it.", beat: "Run the Scanner's sell test before you buy." },
   { id: "boss-canyon", name: "The Rug Titan", line: "A big launch with unlocked liquidity and a team wallet holding most of the supply. When it dumps, the price goes to zero.", beat: "Look for locked liquidity and a holder list that isn't one wallet." },
   { id: "boss-depths", name: "The Rug Dragon", line: "The long con: months of hype, then the treasury and liquidity vanish together. Check where the money sits and who can move it.", beat: "Follow the money: who can move the treasury, and is any of it locked?" },
+  // the far ring's bosses: each a scam people still fall for
+  { id: "boss-peaks", name: "The Ponzi Patriarch", line: "Pays early members out of later members' deposits and calls it yield. It only works while new money keeps coming, then it stops all at once.", beat: "Ask where the yield comes from. If the answer is new deposits, it's a Ponzi." },
+  { id: "boss-dunes", name: "The Sand Wyrm", line: "The exit scam: a project that raises money, goes quiet, and one day the site, the socials and the treasury are all gone.", beat: "Prefer teams you can verify, vesting you can check on-chain, and treasuries behind a multisig." },
+  { id: "boss-reef", name: "The Kraken Phisher", line: "Look-alike sites, fake support chats and \"verify your wallet\" pop-ups, all built to get a signature or a recovery phrase.", beat: "Type the address yourself or use a bookmark. No real site asks for your recovery phrase." },
+  { id: "boss-wastes", name: "The Swarm Mother", line: "Thousands of bot accounts make a coin look busy: fake holders, fake replies, fake volume. The crowd is the product.", beat: "Look at real holders and real liquidity, not follower counts or reply storms." },
+  { id: "boss-ruins", name: "The Insolvent King", line: "An exchange that lends out deposits it doesn't have, then \"pauses withdrawals\" when everyone asks for them at once.", beat: "Not your keys, not your coins: keep what you're not trading in your own wallet." },
+  { id: "boss-abyss", name: "The Bridge Breaker", line: "Bridges hold huge pools of locked tokens; one bad key or contract bug and an attacker walks off with all of it.", beat: "Bridge only what you need, through bridges with audits, and don't leave funds sitting on the other side." },
+  { id: "boss-void", name: "The Final Rug", line: "Every trick at once: a hyped launch, unlocked liquidity, a team wallet, bots in the chat, and a deadline to \"get in now\".", beat: "Urgency is the tell. Scan it, check the locks and the holders, and let the deadline pass." },
   { id: "boss-raid", name: "The Ponzi Leviathan", line: "\"Guaranteed\" daily returns paid out of the next people's deposits. It grows while new money flows in, then collapses on everyone still inside.", beat: "Fixed daily returns don't exist. If payouts depend on new deposits, it's a Ponzi." },
 ];
 // the six scammers of the story (world-kit.js SCAMMERS): their page opens when you beat them on the planet
@@ -90,11 +106,17 @@ export function createQuests(ctx) {
     for (const q of todays()) if (q.ev === ev && !x.d.done.includes(q.id)) { x.d.p[q.id] = (x.d.p[q.id] || 0) + n; if (x.d.p[q.id] >= q.n && !x.d.notified?.includes(q.id)) { x.d.notified = [...(x.d.notified || []), q.id]; ctx.toast(T("Daily hunt done: {x}. Claim it in the Adventure log.", { x: T(q.name) })); } }
     checkAch(); ctx.save();
   }
+  // how far an achievement is: most count an event; a ground's is its three steps
+  function haveOf(a, x) {
+    if (a.ev === "level") return ctx.level(); if (a.ev === "zoneSet") return x.zones.length;
+    if (a.ev === "ground") { const fish = ((ctx.rpg.data() || {}).x || {}).fish || {}; return ((x.zk || {})[a.zone] >= 30 ? 1 : 0) + (x.seen["boss-" + a.zone] ? 1 : 0) + (fish[a.fish] ? 1 : 0); }
+    return x.c[a.ev] || 0;
+  }
   function checkAch() {
     const x = X(), lv = ctx.level();
     for (const a of ACH) {
       if (x.ach.includes(a.id)) continue;
-      const have = a.ev === "level" ? lv : a.ev === "zoneSet" ? x.zones.length : x.c[a.ev] || 0;
+      const have = haveOf(a, x);
       if (have >= a.n) { x.ach.push(a.id); ctx.Snd.win && ctx.Snd.win(); ctx.toast(T("Achievement: {x} — new title \"{t}\"", { x: T(a.name), t: T(a.title) })); if (a.id === "k10") ctx.toast(T("A companion drone joins you!")); ctx.onAch && ctx.onAch(a); }
     }
   }
@@ -106,7 +128,7 @@ export function createQuests(ctx) {
 
   // events from the fight (world-combat.js) and the rest of the game
   const on = {
-    kill: (k) => { const x = X(); bump("kill"); petFeed(); if (k.rank === "elite") bump("elite"); if (k.rank === "boss") bump("boss"); x.seen[k.rank === "boss" ? "boss-" + k.zone : k.type] = (x.seen[k.rank === "boss" ? "boss-" + k.zone : k.type] || 0) + 1; },
+    kill: (k) => { const x = X(); if (k.zone && /^(peaks|dunes|reef|wastes|ruins|abyss|void)$/.test(k.zone)) { x.zk = x.zk || {}; x.zk[k.zone] = Math.min(9999, (x.zk[k.zone] || 0) + 1); if (x.zk[k.zone] === 30 || k.rank === "boss") checkAch(); } bump("kill"); petFeed(); if (k.rank === "elite") bump("elite"); if (k.rank === "boss") bump("boss"); x.seen[k.rank === "boss" ? "boss-" + k.zone : k.type] = (x.seen[k.rank === "boss" ? "boss-" + k.zone : k.type] || 0) + 1; },
     loot: (it) => { bump("loot"); if (it.r >= 2) bump("rare"); if (it.r >= 4) bump("legendary"); },
     skill: () => bump("skill"),
     zone: (z) => { if (!z) return; const x = X(); if (!x.d.zones.includes(z.id)) { x.d.zones.push(z.id); bump("zone"); } if (!x.zones.includes(z.id)) { x.zones.push(z.id); checkAch(); ctx.save(); } },
@@ -114,13 +136,14 @@ export function createQuests(ctx) {
     level: () => { checkAch(); ctx.save(); },
     raid: () => { const x = X(); x.seen["boss-raid"] = (x.seen["boss-raid"] || 0) + 1; bump("raid"); },
     chest: () => { seasonAdd("chest"); ctx.save(); },
+    fish: () => { checkAch(); },
   };
 
   // the week at a glance: which ground has the XP event each day, and the raid's Monday reset
   const DAYN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   function weekHTML() {
     const today = (new Date(Date.now() + 9 * 3600e3).getUTCDay() + 6) % 7;
-    return `<ol class="wq-week">${DAYN.map((d, i) => { const zid = WEEKDAY_ZONE[(i + 1) % 7], z = zid && ZONES.find((y) => y.id === zid); return `<li class="${i === today ? "now" : ""}" style="--zc:${z ? "#" + z.color.toString(16).padStart(6, "0") : "#39ff88"}"><b>${esc(T(d))}</b><small>${esc(z ? z.name.split(" ")[0] : T("All"))}</small>${i === 0 ? `<em>${esc(T("New raid"))}</em>` : ""}</li>`; }).join("")}</ol>`;
+    return `<ol class="wq-week">${DAYN.map((d, i) => { const zid = WEEKDAY_ZONE[(i + 1) % 7], z = zid && ZONES.find((y) => y.id === zid), fid = WEEKDAY_FAR[(i + 1) % 7], fz = fid && ZONES.find((y) => y.id === fid); return `<li class="${i === today ? "now" : ""}" style="--zc:${z ? "#" + z.color.toString(16).padStart(6, "0") : "#39ff88"}"><b>${esc(T(d))}</b><small>${esc(z ? z.name.split(" ")[0] : T("All"))}${fz ? `<br>${esc(fz.name.split(" ")[0])}` : ""}</small>${i === 0 ? `<em>${esc(T("New raid"))}</em>` : ""}</li>`; }).join("")}</ol>`;
   }
   // ---------------- the season log ----------------
   function seasonClaim(i) {
@@ -210,9 +233,9 @@ export function createQuests(ctx) {
     const tabs = [["daily", "Daily"], ["ach", "Achievements"], ["season", "Season"], ["codex", "Codex"], ["pets", "Pets"], ["rank", "Rankings"]];
     let body = "";
     const ev = xpEvent(), evZone = ev.zone && ZONES.find((z) => z.id === ev.zone);
-    const evHTML = `<div class="wq-event"><b>${esc(ev.all ? T("Weekend: XP ×{k} everywhere", { k: ev.k }) : T("Today: XP ×{k} in {z}", { k: ev.k, z: evZone ? evZone.name : "" }))}</b><small>${esc(T("A different hunting ground each weekday, all of them at the weekend."))}</small>${weekHTML()}</div>`;
+    const evHTML = `<div class="wq-event"><b>${esc(ev.all ? T("Weekend: XP ×{k} everywhere, and golden scammers three times as often", { k: ev.k }) : (ev.far ? T("Today: XP ×{k} in {z} and {f}", { k: ev.k, z: evZone ? evZone.name : "", f: (ZONES.find((y) => y.id === ev.far) || {}).name || "" }) : T("Today: XP ×{k} in {z}", { k: ev.k, z: evZone ? evZone.name : "" })))}</b><small>${esc(T("Two hunting grounds each weekday, one near and one far; all of them at the weekend."))}</small>${weekHTML()}</div>`;
     if (tab === "daily") body = `${ctx.signedIn && ctx.signedIn() ? `<div class="wq-chest${ctx.dailyDone && ctx.dailyDone() ? " done" : ""}"><span class="wq-chest-ico" aria-hidden="true"></span><div><b>${esc(T("Daily reward"))}</b><small>${esc(ctx.dailyDone && ctx.dailyDone() ? T("Today's chest is open. Come back tomorrow.") : T("Today's chest is waiting: ARCL and a bonus, more each day of your streak."))}</small></div><button type="button" data-qdaily>${esc(ctx.dailyDone && ctx.dailyDone() ? T("See the week") : T("Open"))}</button></div>` : ""}${evHTML}<p class="wr-note">${esc(T("Three hunts a day, the same for everyone. They pay XP, scrap and a potion."))}</p><ul class="wq-list">${todays().map((q) => { const p = Math.min(q.n, x.d.p[q.id] || 0), done = x.d.done.includes(q.id); return `<li class="${done ? "done" : p >= q.n ? "ready" : ""}"><div><b>${esc(T(q.name))}</b><small>+${q.xp} XP · +${q.scrap} ${esc(T("scrap"))}</small>${bar(p, q.n)}</div><span>${p} / ${q.n}</span>${done ? `<em class="ok" aria-label="${esc(T("Done"))}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></em>` : `<button type="button" data-qclaim="${q.id}" ${p >= q.n ? "" : "disabled"}>${esc(T("Claim"))}</button>`}</li>`; }).join("")}</ul>`;
-    else if (tab === "ach") body = `<p class="wr-note">${esc(T("Each achievement gives a title to wear under your name."))}</p><ul class="wq-list">${ACH.map((a) => { const got = x.ach.includes(a.id), have = a.ev === "level" ? ctx.level() : a.ev === "zoneSet" ? x.zones.length : x.c[a.ev] || 0, worn = x.title === a.id; return `<li class="${got ? "done" : ""}"><div><b>${esc(T(a.name))}</b><small>${esc(T(a.line))} · ${esc(T("title"))}: “${esc(T(a.title))}”${TITLE_BONUS[a.id] ? ` <em class="wq-bonus">${esc(bonusLine(TITLE_BONUS[a.id]))}</em>` : ""}</small>${got ? "" : bar(have, a.n)}</div><span>${Math.min(have, a.n)} / ${a.n}</span>${got ? `<span class="wq-acts"><button type="button" data-title="${a.id}" aria-pressed="${worn}">${esc(worn ? T("Worn") : T("Wear"))}</button><button type="button" class="wq-share" data-ashare="${a.id}" aria-label="${esc(T("Share"))}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span>` : `<em class="lock" aria-label="${esc(T("Locked"))}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></em>`}</li>`; }).join("")}</ul>`;
+    else if (tab === "ach") body = `<p class="wr-note">${esc(T("Each achievement gives a title to wear under your name."))}</p><ul class="wq-list">${ACH.map((a) => { const got = x.ach.includes(a.id), have = haveOf(a, x), worn = x.title === a.id; return `<li class="${got ? "done" : ""}"><div><b>${esc(T(a.name))}</b><small>${esc(T(a.line))} · ${esc(T("title"))}: “${esc(T(a.title))}”${TITLE_BONUS[a.id] ? ` <em class="wq-bonus">${esc(bonusLine(TITLE_BONUS[a.id]))}</em>` : ""}</small>${got ? "" : bar(have, a.n)}</div><span>${Math.min(have, a.n)} / ${a.n}</span>${got ? `<span class="wq-acts"><button type="button" data-title="${a.id}" aria-pressed="${worn}">${esc(worn ? T("Worn") : T("Wear"))}</button><button type="button" class="wq-share" data-ashare="${a.id}" aria-label="${esc(T("Share"))}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span>` : `<em class="lock" aria-label="${esc(T("Locked"))}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></em>`}</li>`; }).join("")}</ul>`;
     else if (tab === "season") {
       const sn = seasonOf(), pts = x.ss.pts, tier = tierOf(pts), next = SEASON_TIERS[tier], left = Math.max(0, Math.ceil((sn.ends - Date.now()) / 864e5));
       body = `<div class="wq-season"><div><b>${esc(T("Season {n}", { n: sn.id }))}</b><small>${esc(T("{n} days left", { n: left }))}</small></div><strong>${pts.toLocaleString("en-US")} <small>${esc(T("points"))}</small></strong>${bar(next ? pts - (tier ? SEASON_TIERS[tier - 1].pts : 0) : 1, next ? next.pts - (tier ? SEASON_TIERS[tier - 1].pts : 0) : 1)}<em>${esc(next ? T("{n} to tier {t}", { n: next.pts - pts, t: tier + 1 }) : T("Every tier done this season"))}</em></div>

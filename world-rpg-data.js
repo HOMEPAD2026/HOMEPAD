@@ -129,6 +129,7 @@ export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, M
 export const TITLE_BONUS = {
   k10: { atk: 2 }, k100: { atk: 5 }, k1000: { atk: 10 }, e25: { crit: 2 }, b1: { hp: 30 }, b10: { hp: 80 }, leg: { crit: 3 },
   zones: { spd: 4 }, plus10: { def: 6 }, lv20: { atk: 4, def: 4 }, raid1: { def: 8 }, quiz: { sp: 30 }, season: { atk: 3, def: 3 },
+  gpeaks: { hp: 60 }, gdunes: { spd: 5 }, greef: { sp: 50 }, gwastes: { atk: 6 }, gruins: { def: 10 }, gabyss: { crit: 4 }, gvoid: { atk: 8, def: 8 },
 };
 export const bonusLine = (b) => Object.entries(b || {}).map(([k, v]) => `${STAT_NAME[k]} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(", ");
 
@@ -157,12 +158,16 @@ export function fuseResult(items, pickSlot = Math.random(), want = "") {
 
 // this week's XP events (Seoul time): one hunting ground a weekday, everywhere at the weekend — XP only
 export const WEEKDAY_ZONE = [null, "spam", "fields", "swamp", "canyon", "depths", null];
+// …and one of the far ring each weekday too (the last two only at the weekend, when every ground has it)
+export const WEEKDAY_FAR = [null, "peaks", "dunes", "reef", "wastes", "ruins", null];
 export const XP_EVENT = 1.5;
 export function xpEvent(t = Date.now()) {
   const d = new Date(t + 9 * 3600e3).getUTCDay();
-  return d === 0 || d === 6 ? { all: true, k: XP_EVENT, zone: null } : { all: false, k: XP_EVENT, zone: WEEKDAY_ZONE[d] };
+  return d === 0 || d === 6 ? { all: true, k: XP_EVENT, zone: null, far: null } : { all: false, k: XP_EVENT, zone: WEEKDAY_ZONE[d], far: WEEKDAY_FAR[d] };
 }
-export const xpBoost = (zoneId, t = Date.now()) => { const e = xpEvent(t); return e.all || (zoneId && zoneId === e.zone) ? e.k : 1; };
+export const xpBoost = (zoneId, t = Date.now()) => { const e = xpEvent(t); return e.all || (zoneId && (zoneId === e.zone || zoneId === e.far)) ? e.k : 1; };
+/// the weekend's golden rush: golden scammers turn up three times as often (only the chance: they still run)
+export const goldenRush = (t = Date.now()) => (xpEvent(t).all ? 3 : 1);
 
 // companions: one comes with each of three achievements; they grow with the scammers knocked out beside them
 export const PETS = [

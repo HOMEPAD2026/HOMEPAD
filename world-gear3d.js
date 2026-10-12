@@ -348,6 +348,46 @@ export function rover(color = 0x38e8ff) {
   return g;
 }
 
+// ---------------- the third ride (level 30): a jetpack on your back, two thrusters with flames ----------------
+// it sits behind the character (+Z is behind: the rides turn with facing); update(t, speed, lift) flickers the flames
+export function jetpack(color = 0xffc861) {
+  const g = new THREE.Group();
+  g.add(mesh(rbox(0.62, 0.72, 0.32, 0.1), shellMat(), 0, 1.25, -0.34));
+  g.add(mesh(new THREE.BoxGeometry(0.5, 0.06, 0.04), glowMat(color, 2.4), 0, 1.4, -0.51));
+  const flames = [];
+  for (const s of [-1, 1]) {
+    g.add(mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.62, 14), darkMat(), s * 0.26, 1.15, -0.42));
+    g.add(mesh(new THREE.TorusGeometry(0.12, 0.025, 6, 18), glowMat(color, 2.6), s * 0.26, 1.42, -0.42).rotateX(Math.PI / 2));
+    g.add(mesh(new THREE.CylinderGeometry(0.11, 0.15, 0.12, 14), darkMat(), s * 0.26, 0.8, -0.42));
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 12, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 1.6, 0.5), transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    f.rotation.x = Math.PI; f.position.set(s * 0.26, 0.45, -0.42); g.add(f);
+    const core = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.34, 10, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 3, 2.6), transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    core.rotation.x = Math.PI; core.position.set(s * 0.26, 0.58, -0.42); g.add(core); flames.push(f, core);
+  }
+  g.userData.update = (t, speed = 0, lift = 1) => { const k = 0.7 + Math.sin(t * 40) * 0.12 + Math.sin(t * 23) * 0.08; flames.forEach((f, i) => { const big = (i % 2 ? 0.8 : 1) * (0.6 + lift * 0.6 + Math.min(1, speed / 18) * 0.5); f.scale.set(1, k * big, 1); f.position.y = (i % 2 ? 0.58 : 0.45) - (k * big - 1) * 0.25; }); };
+  return g;
+}
+
+// ---------------- the airship over the far ring (scenery): an envelope, a gondola, fins, a turning prop, lights ----------------
+export function airship() {
+  const g = new THREE.Group(); g.name = "airship";
+  const env = mesh(new THREE.SphereGeometry(5, 28, 18), new THREE.MeshStandardMaterial({ color: 0xeef3f7, roughness: 0.45, metalness: 0.05 })); env.scale.set(1, 0.85, 2.6); g.add(env);
+  const band = mesh(new THREE.TorusGeometry(4.3, 0.18, 8, 48), glowMat(0x38e8ff, 2)); band.scale.set(1, 1, 2.6); band.rotation.x = Math.PI / 2; g.add(band);
+  // its name down each side (a canvas texture: the brand, not a model)
+  const c = document.createElement("canvas"); c.width = 512; c.height = 96; const x = c.getContext("2d"); x.fillStyle = "rgba(0,0,0,0)"; x.fillRect(0, 0, 512, 96); x.font = "900 66px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#1b2a3c"; x.fillText("ARCIRCLE", 256, 50);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  for (const s of [-1, 1]) { const p = mesh(new THREE.PlaneGeometry(12, 2.25), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide }), s * 5.02, 0.4, 0); p.rotation.y = s * Math.PI / 2; g.add(p); }
+  g.add(mesh(rbox(2.2, 1.1, 4.2, 0.4), shellMat(), 0, -4.6, 0.5));
+  g.add(mesh(new THREE.BoxGeometry(2.0, 0.3, 3.6), glowMat(0xffc861, 1.4), 0, -4.4, 0.5));
+  for (const s of [-1, 1]) g.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), darkMat(), s * 0.9, -3.3, 0.5));
+  for (const [rx, ry] of [[0, 1], [Math.PI / 2, 1]]) { const f = mesh(new THREE.BoxGeometry(0.2, 4.2, 2.6), shellMat(), 0, 0, -12); f.rotation.z = rx; g.add(f); }
+  const prop = new THREE.Group(); prop.position.set(0, -4.6, -2.0); for (let i = 0; i < 3; i++) { const b = mesh(new THREE.BoxGeometry(0.18, 1.6, 0.08), darkMat(), 0, 0, 0); b.rotation.z = (i / 3) * Math.PI * 2; prop.add(b); } g.add(prop);
+  const lights = []; for (const [lx, ly, lz, col] of [[0, 4.2, 6, 0xff4d6d], [0, 4.2, -6, 0x39ff88], [5, 0, 0, 0xffc861], [-5, 0, 0, 0xffc861]]) { const l = mesh(new THREE.SphereGeometry(0.22, 8, 6), glowMat(col, 3), lx, ly, lz); g.add(l); lights.push(l); }
+  g.userData.update = (t) => { prop.rotation.z = t * 8; lights.forEach((l, i) => { l.visible = Math.sin(t * 3 + i * 1.6) > -0.2; }); };
+  g.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+  return g;
+}
+
 // ---------------- things to gather: ore (stone with glowing veins), data crystals, and fallen logs ----------------
 export function gatherNode(kind) {
   const g = new THREE.Group();

@@ -363,12 +363,15 @@ export async function drawCard({ head, title, line, badge, name, lv, icon = "", 
   return new Promise((ok) => cv.toBlob(ok, "image/png"));
 }
 /// a photo with the game's frame: a slim bar along the bottom with the mark, the name and the link
-export const PHOTO_FILTERS = { none: "", warm: "sepia(.28) saturate(1.25) brightness(1.04)", cool: "hue-rotate(-12deg) saturate(1.15) contrast(1.05)", noir: "grayscale(1) contrast(1.25)", neon: "saturate(1.8) contrast(1.15) hue-rotate(8deg)" };
+export const PHOTO_FILTERS = { none: "", warm: "sepia(.28) saturate(1.25) brightness(1.04)", cool: "hue-rotate(-12deg) saturate(1.15) contrast(1.05)", noir: "grayscale(1) contrast(1.25)", neon: "saturate(1.8) contrast(1.15) hue-rotate(8deg)", film: "sepia(.18) contrast(1.12) saturate(.85) brightness(1.02)", vivid: "saturate(1.45) contrast(1.08) brightness(1.03)" };
 /// the photo: a filter, a sticker in the corner, and (unless frame is false) the bar along the bottom
 export async function frameShot(blob, { name, lv, where, filter = "", sticker = "", frame = true } = {}) {
   const img = await loadImg(URL.createObjectURL(blob)); if (!img) return blob;
   const W = img.naturalWidth, H = img.naturalHeight, bar = frame ? Math.round(Math.max(64, H * 0.085)) : 0, cv = document.createElement("canvas"); cv.width = W; cv.height = H + bar;
   const g = cv.getContext("2d"); g.filter = PHOTO_FILTERS[filter] || "none"; g.drawImage(img, 0, 0); g.filter = "none";
+  // film: a little grain and darker corners
+  if (filter === "film") { const n = document.createElement("canvas"); n.width = n.height = 128; const ng = n.getContext("2d"), id = ng.createImageData(128, 128); for (let i = 0; i < id.data.length; i += 4) { const v = Math.random() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 18; } ng.putImageData(id, 0, 0);
+    g.fillStyle = g.createPattern(n, "repeat"); g.fillRect(0, 0, W, H); const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.72); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.38)"); g.fillStyle = vg; g.fillRect(0, 0, W, H); }
   if (sticker) {
     const s = Math.round(Math.max(28, H * 0.045)); g.font = font(800, s); const tw = g.measureText(sticker).width, pad = s * 0.7, bw = tw + pad * 2, bh = s * 1.9, x = W - bw - s, y = s;
     g.save(); g.translate(x + bw / 2, y + bh / 2); g.rotate(-0.06); g.fillStyle = "rgba(6,18,28,.82)"; g.strokeStyle = "#ffc861"; g.lineWidth = Math.max(2, s * 0.09); g.beginPath(); g.roundRect(-bw / 2, -bh / 2, bw, bh, bh / 2); g.fill(); g.stroke();
