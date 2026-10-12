@@ -61,7 +61,7 @@ export function createCombat(ctx) {
   const cd = { attack: 0, ice: 0, fire: 0, shock: 0, meteor: 0, dodge: 0 };
   const stats = () => rpg.stats();
   const maxHp = () => stats().hp, maxSp = () => stats().sp;
-  let quietT = 0, hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
+  let fightOn = false, quietT = 0, hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
   const buffs = {}; let shieldShown = false;
   let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null;
   const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3(), ONE = new V3(1, 1, 1);
@@ -155,6 +155,8 @@ export function createCombat(ctx) {
     }
     if (!p) return null;
     const lv = Math.max(1, o.lv || 1), rank = o.rank || "", st = mobStats(lv, rank);
+    // the far grounds hit harder (their pow): more HP, attack and defence, and a little more XP for it
+    const pow = (o.zone && o.zone.pow) || 1; if (pow !== 1 && !o.raid) { st.hp = Math.round(st.hp * pow); st.atk = Math.round(st.atk * pow); st.def = Math.round(st.def * (1 + (pow - 1) * 0.6)); st.xp = Math.round(st.xp * (1 + (pow - 1) * 0.5)); }
     if (o.raid) st.hp = o.max;
     const g = new THREE.Group(); g.position.copy(p);
     const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
@@ -162,7 +164,7 @@ export function createCombat(ctx) {
     const baseY = skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
     e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);
-    e.obj.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (x.material.emissive) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } });
+    e.obj.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (x.material.emissive && !x.material.userData.glow) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } });
     const bb = new THREE.Box3().setFromObject(e.obj); const bar = hpBar(bs ? 3.2 : rank === "elite" ? 2.1 : 1.7); bar.position.y = bb.max.y + (bs ? 0.9 : 0.5); g.add(bar);
     const sh = new THREE.Mesh(new THREE.CircleGeometry(bs ? 2.6 : 0.7, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.04; g.add(sh);
     if (rank) { const rr = new THREE.Mesh(new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48), new THREE.MeshBasicMaterial({ color: rank === "boss" ? 0xff4d6d : 0xffc861 })); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
@@ -212,6 +214,7 @@ export function createCombat(ctx) {
   function kill(m) {
     m.dead = 0.001; Snd.coin && Snd.coin();
     const p = m.g.position.clone().setY(m.y + 0.4);
+    if (VX) VX.shatter(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), { big: m.rank === "boss" ? 2 : m.rank === "elite" ? 1.4 : 1, coins: m.rank === "boss" ? 8 : 3, where: (v) => ctx.here(v) });
     shards(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), m.rank === "boss" ? 40 : 16, m.rank === "boss" ? 10 : 7); flash(p, 0xffffff, m.rank === "boss" ? 8 : 2.6, 0.25); puff(p, 0xffc861, { n: m.rank === "boss" ? 40 : 12, speed: 5, size: 0.3, life: 0.8, grav: 6 });
     ctx.shake(m.rank === "boss" ? 0.6 : 0.18);
     if (m.rank === "boss" && ctx.slowmo) { ctx.slowmo(700); ctx.punch && ctx.punch(); } // the boss goes down in slow motion
@@ -263,7 +266,7 @@ export function createCombat(ctx) {
       if (m.statue && m.stun <= 0) { m.statue = false; shards(m.g.position.clone().setY(m.y + 0.5), 0xcff6ff, 16, 6); Snd.pop && Snd.pop(); } // the ice statue shatters
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
-      body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.glow; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
+      body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.userData.glow) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.glow; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) continue;
       const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1);
@@ -354,8 +357,10 @@ export function createCombat(ctx) {
     if (!ctx.active() || cd.attack > 0) return false;
     combo = comboT > 0 ? (combo % 3) + 1 : 1; comboT = 0.75;
     const heavy = combo === 3, kind = wKind(), ham = kind === 1;
-    if (kind >= 2) return shoot(kind, heavy);
-    if (ham) comboT = 1.1;
+    if (rpg.swing) rpg.swing(heavy);
+    ctx.here(me); fwdOf(fwd); if (ctx.onSwing) ctx.onSwing(me.clone(), fwd.clone(), heavy, kind === 1); // a rock, a crystal or a log in front gets the hit too
+    if (kind >= 2) { const ok = shoot(kind, heavy); comboT = cd.attack + 0.6; return ok; } // the next shot has time to follow up
+    if (ham) comboT = 1.2;
     cd.attack = ham ? (heavy ? 0.85 : 0.55) : heavy ? 0.5 : 0.3;
     const av = ctx.avatar(); if (av) av.play(heavy ? "pick-up" : "interact-right", { once: true, fade: 0.04, speed: heavy ? 2.2 : 2.0 });
     Snd.swing && Snd.swing(heavy);
@@ -766,7 +771,7 @@ export function createCombat(ctx) {
     const z = zone;
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
-      if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) { const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)); spawnMob({ type: z.mobs[Math.floor(Math.random() * z.mobs.length)], lv, rank: Math.random() < 0.12 ? "elite" : "", zone: z }); } }
+      if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) { const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)); spawnMob({ type: z.mobs[Math.floor(Math.random() * z.mobs.length)], lv, rank: Math.random() < (z.elite || 0.12) ? "elite" : "", zone: z }); } }
       const next = bossAt()[z.id] || 0;
       if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + BOSS_EVERY); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
     } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid())) {
@@ -791,6 +796,9 @@ export function createCombat(ctx) {
       const quiet = calmT <= 0 && hp >= maxHp() - 0.5 && sp >= maxSp() - 0.5 && !mobs.some((m) => !m.dead && m.g.position.distanceTo(me) < 12);
       if (!quiet) quietT = 0; else if (!quietT) quietT = performance.now();
       vit.classList.toggle("calm", !!quietT && performance.now() - quietT > 3000);
+      // a fight close by: the side panels step back (the quest list folds to its title) so the fight has the screen
+      const fight = mobs.some((m) => !m.dead && m.g.position.distanceTo(me) < 14);
+      if (fight !== fightOn) { fightOn = fight; document.body.classList.toggle("wc-fight", fight); }
       const mh = maxHp(), ms = maxSp(), h0 = hp, s0 = sp; if (calmT <= 0) hp = Math.min(mh, hp + mh * 0.025 * dt); sp = Math.min(ms, sp + ms * 0.06 * dt);
       if (Math.floor(h0) !== Math.floor(hp) || Math.floor(s0) !== Math.floor(sp)) paintVit();
       if (hp / mh < 0.3 && ctx.inHub()) { heartT -= dt; if (heartT <= 0) { heartT = 0.85; Snd.heart && Snd.heart(); } }

@@ -186,6 +186,28 @@ export function createVfx(ctx) {
       return { tick: (k) => { sh.material.uniforms.uR.value = 0.1 + k * 0.9; fade(sh, 1 - k); sp.material.uniforms.uAge.value = k * 0.8; gl.material.opacity = Math.max(0, 1 - k * 2); } };
     });
   }
+  // 24 destruction: a scammer breaks into glowing data cubes that tumble out; coins arc up and fly to you (where())
+  const cubeGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+  function shatter(at, color = 0xff4d6d, { big = 1, coins = 3, where = null } = {}) {
+    const n = Math.round((big > 1 ? 34 : 16) * (low ? 0.5 : 1));
+    return once(planet, at, 1.1, (g) => {
+      const mat = new THREE.MeshBasicMaterial({ color: hdr(color, 1.6), transparent: true, depthWrite: false });
+      const cubes = new THREE.InstancedMesh(cubeGeo, mat, n), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+      const P = []; for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, sp = (1.8 + Math.random() * 3) * big; P.push({ v: new THREE.Vector3(Math.cos(a) * sp, 2 + Math.random() * 4 * big, Math.sin(a) * sp), s: (0.6 + Math.random() * 1.2) * big, r: Math.random() * 6 }); }
+      cubes.frustumCulled = false; g.add(cubes);
+      const gl = sprite(GLOW, color, 2.6 * big, 1.6); g.add(gl);
+      const coin = [], cs = []; for (let i = 0; i < coins; i++) { const c = sprite(GLOW, GOLD, 0.5, 2.0); g.add(c); coin.push(c); const a = Math.random() * Math.PI * 2; cs.push(new THREE.Vector3(Math.cos(a) * 1.2, 2.2 + Math.random(), Math.sin(a) * 1.2)); }
+      const tgt = new THREE.Vector3();
+      return { tick: (k, t) => {
+        P.forEach((p, i) => { const pos = p.v.clone().multiplyScalar(t); pos.y -= 4.9 * t * t; if (pos.y + at.y < 0.08) pos.y = 0.08 - at.y; e.set(p.r + t * 6, p.r * 2 + t * 4, 0); q.setFromEuler(e); const sc = p.s * (1 - k * 0.8); m4.compose(pos, q, new THREE.Vector3(sc, sc, sc)); cubes.setMatrixAt(i, m4); });
+        cubes.instanceMatrix.needsUpdate = true; mat.opacity = 1 - k * k;
+        gl.material.opacity = Math.max(0, 1 - k * 3);
+        if (where) where(tgt); else tgt.copy(at);
+        coin.forEach((c, i) => { const kk = Math.min(1, k * 1.25), arc = Math.sin(kk * Math.PI); const local = tgt.clone().sub(at).setY(1.2 - at.y);
+          c.position.copy(cs[i]).multiplyScalar(1 - kk).add(local.multiplyScalar(kk)); c.position.y += arc * 1.4; c.material.opacity = kk < 1 ? 1 : 0; c.scale.setScalar(0.5 + arc * 0.25); });
+      } };
+    });
+  }
   // 16 buff: two arrows and a small circle in the buff's colour, on you
   function buff(color = 0x39ff88) {
     return once(player, null, 1.3, (g) => {
@@ -240,5 +262,5 @@ export function createVfx(ctx) {
     }
     tickDome(dt);
   }
-  return { tick, freeze: (on) => { held = !!on; }, portal, teleport, rise, levelUp, chest, impact, summon, collect, buff, shield, count: () => live.length };
+  return { tick, freeze: (on) => { held = !!on; }, shatter, portal, teleport, rise, levelUp, chest, impact, summon, collect, buff, shield, count: () => live.length };
 }

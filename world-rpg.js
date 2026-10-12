@@ -6,7 +6,7 @@
 // once); the Forge sells for ARCL through the server too.
 import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, skillLevel, bonusLine } from "./world-rpg-data.js";
 export * from "./world-rpg-data.js";
-import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade } from "./world-gear3d.js";
+import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade, weaponThumb } from "./world-gear3d.js";
 const RESHAPE = 40; // scrap to turn a weapon into another kind
 const BAG = 24;
 const isNewTab = (k) => { try { return !JSON.parse(localStorage.getItem("arc.world.newTabs") || "[]").includes(k); } catch { return false; } };
@@ -66,7 +66,7 @@ export function createRpg(ctx) {
     let roll = Math.random() * 100 + (rank === "boss" ? 55 : rank === "elite" ? 25 : 0) + lv * 0.6, r = 0;
     if (roll > 99) r = 4; else if (roll > 90) r = 3; else if (roll > 72) r = 2; else if (roll > 45) r = 1;
     if (r === 4 && rank !== "boss") r = 3; // Legendary only from bosses
-    return { id: rid(), b: baseId(slot, tier), r, lv: Math.max(1, Math.min(60, lv)), p: 0 };
+    return { id: rid(), b: baseId(slot, tier), r, lv: Math.max(1, Math.min(100, lv)), p: 0 };
   }
   function equip(id) {
     const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return;
@@ -151,7 +151,22 @@ export function createRpg(ctx) {
   // ---------------- gear you can see ----------------
   // the Kenney characters have arm-left / arm-right / head bones: a blade in the right hand, a shield on the left
   // arm, a helmet on the head, a glow on the chest for armour; colours follow rarity
-  let worn = [];
+  let worn = [], wHand = null;
+  // the weapon in hand moves with the attack, its own way (the arm's animation is shared by all kinds):
+  // swords slash across, the hammer lifts high and slams, the blaster kicks back, the bow draws, the staff rises
+  function swing(heavy) { if (wHand) { wHand.t = 0; wHand.heavy = !!heavy; } }
+  function tickSwing(dt) {
+    const h = wHand; if (!h || h.t >= 1) return;
+    const dur = h.kind === 1 ? 0.5 : h.kind === 3 ? 0.55 : 0.28; h.t = Math.min(1, h.t + dt / dur);
+    const k = h.t, up = Math.sin(Math.min(1, k * 1.4) * Math.PI), e = k < 0.35 ? k / 0.35 : 1 - (k - 0.35) / 0.65;
+    const g = h.g; g.rotation.copy(h.r0); g.position.copy(h.p0);
+    if (h.kind === 0) { g.rotation.z += (k < 0.4 ? -k / 0.4 : -1 + (k - 0.4) / 0.6 * 1.0) * 1.2; g.rotation.x += up * 0.5; }
+    else if (h.kind === 1) { g.rotation.x += (k < 0.45 ? -(k / 0.45) * 2.2 : -2.2 + Math.min(1, (k - 0.45) / 0.15) * 3.0); }
+    else if (h.kind === 2) { g.position.z -= e * 0.12; g.rotation.x -= e * 0.35; }
+    else if (h.kind === 3) { g.position.z -= Math.sin(k * Math.PI) * 0.18; g.rotation.y += Math.sin(k * Math.PI) * 0.25; }
+    else { g.position.y += up * 0.25; g.rotation.x -= up * 0.6; }
+    if (k >= 1) { g.rotation.copy(h.r0); g.position.copy(h.p0); }
+  }
   function dress() {
     const av = ctx.avatar(); worn.forEach((m) => m.parent && m.parent.remove(m)); worn = [];
     if (!av || av.bot) return;
@@ -167,7 +182,7 @@ export function createRpg(ctx) {
     const wm = wpb ? weapon3d(weaponKind(eq.weapon), wpb.tier, RARITY[eq.weapon.r || 0].color, glowOf(eq.weapon)) : null, sm = eq.shield && model("shield", eq.shield);
     // a little bigger than life: the characters are chibi, and a blaster or a bow at true size disappears in the hand
     const hold = (m) => { const hd = m.userData.hold; m.scale.multiplyScalar(m.name === "weapon:blaster" ? 1.6 : m.name === "weapon:bow" ? 1.45 : 1.2); if (hd === "down") { m.rotation.x = Math.PI; m.position.y = 0.06; } else if (hd === "up") m.position.y = 0.05; else { m.rotation.y = Math.PI; m.position.set(0, -0.05, -0.02); } return m; }; // the hand's +Z points behind you
-    if (wm) { const w = new THREE.Group(); w.add(hold(wm)); put(bone("arm-right"), w, at("weapon", 0.02, -0.72, 0.12), [0.25, 0, 0]); }
+    if (wm) { const w = new THREE.Group(); w.add(hold(wm)); put(bone("arm-right"), w, at("weapon", 0.02, -0.72, 0.12), [0.25, 0, 0]); wHand = { g: w, kind: weaponKind(eq.weapon), r0: w.rotation.clone(), p0: w.position.clone(), t: 1 }; } else wHand = null;
     // dual swords and no shield: the second blade in the other hand
     if (wm && weaponKind(eq.weapon) === 0 && !eq.shield) { const w = new THREE.Group(); w.add(hold(offBlade(wpb.tier, RARITY[eq.weapon.r || 0].color, glowOf(eq.weapon)))); put(bone("arm-left"), w, at("shield", -0.02, -0.72, 0.12), [0.25, 0, 0]); }
     if (sm) { const w = new THREE.Group(); sm.rotation.y = -Math.PI / 2; sm.position.y = -0.35; w.add(sm); put(bone("arm-left"), w, at("shield", -0.16, -0.5, 0.05)); }
@@ -183,7 +198,9 @@ export function createRpg(ctx) {
   document.body.appendChild(el);
   let open = false, sel = null, view = "inv", forgeTab = "gear", log = null, fuseSel = [], fuseSlot = "", invPane = "gear";
   const rc = (it) => RARITY[it.r || 0].color;
-  const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${iconSvg(parseBase(it.b).slot, rc(it))}${it.p ? `<b>+${it.p}</b>` : ""}<small>${it.lv}</small>${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>` : "";
+  // a weapon shows its own 3D picture (its kind at a glance); the rest keep their icons
+  const pic = (it) => { const p = parseBase(it.b); if (p && p.slot === "weapon") { const u = weaponThumb(weaponKind(it), p.tier, rc(it)); if (u) return `<img class="wr-3d" src="${u}" alt="">`; } return iconSvg(p.slot, rc(it)); };
+  const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${pic(it)}${it.p ? `<b>+${it.p}</b>` : ""}<small>${it.lv}</small>${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>` : "";
   const statLine = (k, v, d) => `<li><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(Math.round(d * 10) / 10)}</i>` : ""}</li>`;
   function detail(it) {
     if (!it) return `<div class="wr-detail empty"><p>${esc(T("Pick a piece of gear to see it here."))}</p></div>`;
@@ -211,7 +228,7 @@ export function createRpg(ctx) {
         ${s.sets.length ? `<p class="wr-sets">${Object.entries(s.sets.reduce((m, x) => ((m[x.set] = Math.max(m[x.set] || 0, x.need)), m), {})).map(([set, need]) => esc(T("{x} set ({n})", { x: set, n: need }))).join(" · ")}</p>` : `<p class="wr-sets dim">${esc(T("Wear 2, 4 or 7 pieces of one set for a bonus."))}</p>`}${ctx.titleLine ? ctx.titleLine() : ""}${skillsHTML()}</section>
       <section class="wr-bag"><div class="wr-bag-h"><h3>${esc(T("Bag"))} <small>${r.bag.length}/${BAG}</small></h3><span class="wr-res"><b>${r.scrap}</b> ${esc(T("Scrap"))} · <b>${r.hp}</b> ${esc(T("health potions"))} · <b>${r.sp}</b> ${esc(T("mana potions"))}${r.recall > 0 ? ` · <button type="button" class="wr-recall" data-recall>${esc(T("Recall to the plaza ({n})", { n: r.recall }))}</button>` : ""}</span></div>
         <div class="wr-cells">${Array.from({ length: BAG }, (_, i) => `<div class="wr-cell">${r.bag[i] ? tile(r.bag[i], `data-pick="${r.bag[i].id}"`) : ""}</div>`).join("")}</div>
-        <div class="wr-bag-f"><button type="button" class="go" data-best>${esc(T("Equip best"))}</button><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button><button type="button" class="gold" data-forge>${esc(T("Forge"))}</button></div>
+        <div class="wr-bag-f"><button type="button" class="go" data-best>${esc(T("Equip best"))}</button><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button><button type="button" data-craft>${esc(T("Workbench"))}</button><button type="button" class="gold" data-forge>${esc(T("Forge"))}</button></div>
         ${plan ? planHTML() : detail(sel && findItem(sel))}</section></div>`;
   }
   // ---------------- skills and their branches ----------------
@@ -339,6 +356,7 @@ export function createRpg(ctx) {
     if (d.salvage) { salvage(d.salvage); return; }
     if (d.sell) { sellItem(d.sell); return; }
     if (b.hasAttribute("data-wardrobe")) { if (ctx.openWardrobe) ctx.openWardrobe(); return; }
+    if (b.hasAttribute("data-craft")) { hide(); if (ctx.openCraft) ctx.openCraft(); return; }
     if (b.hasAttribute("data-best")) { equipBest(false); return; }
     if (b.hasAttribute("data-bestgo")) { equipBest(true); return; }
     if (b.hasAttribute("data-bestno")) { plan = null; paint(); return; }
@@ -371,7 +389,7 @@ export function createRpg(ctx) {
   el.addEventListener("keydown", (e) => { e.stopPropagation(); const k = e.key.toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
 
   return {
-    stats, addItem, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg,
+    stats, swing, tickSwing, addItem, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg,
     potions: () => ({ hp: R().hp, sp: R().sp, recall: R().recall }), useRecall: () => { const r = R(); if (!(r.recall > 0)) return false; r.recall--; ctx.save(); return true; },
     onLevel: () => changed(), refresh: () => { cache = null; ctx.onStats(stats()); },
     data: () => R(),

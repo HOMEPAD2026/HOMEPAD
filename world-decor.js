@@ -9,6 +9,7 @@
 //
 // ctx: { THREE, K, planet, blocked(v), shops[], zones[], ver, low, reduce, on(fn), here(v), onWeapons() }
 import { infinityStatue } from "./world-gear3d.js";
+import { sway } from "./world-look.js";
 export const PACKS = ["q-nature", "q-props", "kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "kk-furniture", "kenney-furniture", "kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-weapons", "kenney-survival", "kenney-pets"];
 
 export function createDecor(ctx) {
@@ -65,7 +66,9 @@ export function createDecor(ctx) {
       m.compose(new THREE.Vector3(s[0], 0, s[1]), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), r() * 6.283), new THREE.Vector3(k, k, k));
       per.get(nm).push(m);
     }
-    for (const [nm, mats] of per) { if (!mats.length) continue; const inst = K.packInstanced(p, nm, mats, { h }); if (inst) { inst.name = pack + ":" + nm + "×" + mats.length; const sh = (h || 0) >= 4; inst.traverse((m) => { if (m.isMesh) m.castShadow = sh; }); root.add(inst); } }
+    for (const [nm, mats] of per) { if (!mats.length) continue; const inst = K.packInstanced(p, nm, mats, { h }); if (inst) { inst.name = pack + ":" + nm + "×" + mats.length; const sh = (h || 0) >= 4; inst.traverse((m) => { if (m.isMesh) m.castShadow = sh; });
+      if (/flower|Bush|Grass|Tree|mushroom|plant/i.test(nm) && !ctx.low) sway(inst, { frac: (h || 1) >= 4 ? 0.025 : 0.07 });
+      root.add(inst); } }
   }
   const group = (name) => { const g = new THREE.Group(); g.name = name; root.add(g); return g; };
   // merged per 24 m square rather than all in one, so what's off screen (or outside the shadow box) is skipped

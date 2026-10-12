@@ -5,6 +5,7 @@
 // ("Buildings & Shops", "Plants & Decorations", "Building Blocks") are the reference: white ceramic bodies, domed and
 // rounded roofs, blue glass, lines of light, round green trees.
 import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import { windLook, waterLook } from "./world-look.js";
 import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
 const TAU = Math.PI * 2;
@@ -191,10 +192,10 @@ export function makeTrees(matrices, { blossom = 0.12, maple = 0.08, pine = 0.18,
   const all = [...round, ...pines];
   if (all.length) { const t = new THREE.InstancedMesh(trunk, wood(), all.length); all.forEach((m, i) => t.setMatrixAt(i, m)); t.castShadow = true; g.add(t); }
   if (round.length) {
-    const cm = new THREE.InstancedMesh(crownGeo(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0 }), round.length), c = new THREE.Color();
+    const cm = new THREE.InstancedMesh(crownGeo(), windLook(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0 }), { amp: 0.07, h: 2.6 }), round.length), c = new THREE.Color();
     round.forEach((m, i) => { cm.setMatrixAt(i, m); cm.setColorAt(i, c.set(cols[i])); }); cm.castShadow = true; cm.receiveShadow = true; g.add(cm);
   }
-  if (pines.length) { const pm = new THREE.InstancedMesh(pineGeo(), new THREE.MeshStandardMaterial({ color: 0x2f8f58, vertexColors: true, roughness: 0.8 }), pines.length); pines.forEach((m, i) => pm.setMatrixAt(i, m)); pm.castShadow = true; g.add(pm); }
+  if (pines.length) { const pm = new THREE.InstancedMesh(pineGeo(), windLook(new THREE.MeshStandardMaterial({ color: 0x2f8f58, vertexColors: true, roughness: 0.8 }), { amp: 0.05, h: 3 }), pines.length); pines.forEach((m, i) => pm.setMatrixAt(i, m)); pm.castShadow = true; g.add(pm); }
   return g;
 }
 
@@ -248,6 +249,7 @@ export function plazaTexture() {
 export function makeArcFountain() {
   const g = new THREE.Group(); g.name = "fountain";
   const water = new THREE.MeshStandardMaterial({ color: 0x38c8ff, emissive: 0x1a8ad8, emissiveIntensity: 0.55, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.88 });
+  waterLook(water); // ripples and a bright edge (world-look.js)
   const P = [
     [tor(4.25, 0.32, 96), stone(), { y: 0.26, rx: Math.PI / 2, sz: 1.6 }], [cyl(4.25, 4.35, 0.18, 96), stone(), { y: 0.06 }],
     [tor(4.25, 0.05, 96), light(0x35d8d0), { y: 0.5, rx: Math.PI / 2 }],

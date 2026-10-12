@@ -102,7 +102,7 @@ r = await W.handle({ action: "world-arcl-claim", ...S4, kind: "boss", zone: 2 })
 r = await W.handle({ action: "world-arcl-claim", ...S4, kind: "boss", zone: 3 }); check(r.status === 400, "Rug Canyon's boss needs level 15");
 // the character's gear is saved and checked
 T += 60000; r = await W.handle({ action: "world-save", ...S4, data: { xp: 1260, name: "kmp", rpg: { eq: { weapon: { id: "abc123", b: "weapon-2", r: 2, lv: 10, p: 3 }, shield: { id: "x", b: "bad" } }, bag: [{ id: "def456", b: "ring-1", r: 9, lv: 999, p: 50 }], scrap: 120, hp: 4, sp: 2 } } });
-const sv = db.get(`worldSave/${me}`); check(r.status === 200 && sv.rpg.eq.weapon.p === 3 && !sv.rpg.eq.shield && sv.rpg.bag[0].r === 4 && sv.rpg.bag[0].lv === 60 && sv.rpg.bag[0].p === 10 && sv.rpg.scrap === 120, "gear saved; bad pieces dropped, numbers clamped");
+const sv = db.get(`worldSave/${me}`); check(r.status === 200 && sv.rpg.eq.weapon.p === 3 && !sv.rpg.eq.shield && sv.rpg.bag[0].r === 4 && sv.rpg.bag[0].lv === 100 && sv.rpg.bag[0].p === 10 && sv.rpg.scrap === 120, "gear saved; bad pieces dropped, numbers clamped");
 // this week's hunters and the drop feed
 { const u = new URL("http://x/api/social?world=hunt-top"); const h = await W.read(u); const top = h.body.top; check(top.length >= 1 && top[0].n >= 13 && top[0].name === "kmp", "hunt-top: hunt tier 3 (3) + boss (10) = 13 points " + JSON.stringify(top)); }
 T += 61000; r = await W.handle({ action: "world-feed-drop", ...S4, b: "ring-4", r: 4 }); check(r.status === 200 && r.body.ok, "a Legendary goes in the feed");

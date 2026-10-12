@@ -18,6 +18,7 @@ import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js"
 import { GLTFLoader } from "./vendor/three/addons/GLTFLoader.js";
 import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
+import { villainize } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 
@@ -601,7 +602,8 @@ export function makeScammer(spec) {
 }
 
 // ---------------- the kit: Quaternius Sci-Fi Essentials (CC0), repacked in /models/world ----------------
-// scifi-props.glb holds one scene per prop in this order; scifi-enemies.glb holds the three enemy robots.
+// scifi-props.glb holds one scene per prop in this order (the three enemy robots of scifi-enemies.glb are now drawn
+// in code: world-gear3d.js villainize).
 const PROP_NAMES = ["Crate", "CrateLarge", "CrateTarp", "CrateTarpLarge", "Barrel", "Barrel2", "Chest", "Locker", "Dish", "KeyCard", "Desk", "Chair", "Shelves"];
 const ENEMY_NAMES = ["EyeDrone", "QuadShell", "Trilobite"];
 // kenney-city.glb (Kenney City Kit Industrial 2.0, CC0), one scene per model in this order
@@ -622,7 +624,8 @@ export function loadKit(ver = "") {
       return out;
     };
     const kit = { props: { ...split(p, PROP_NAMES), ...split(c, CITY_NAMES) }, enemies: {} };
-    kit.enemiesReady = one("/models/world/scifi-enemies.glb").then((e) => { Object.assign(kit.enemies, split(e, ENEMY_NAMES)); return kit; }).catch((err) => { console.warn("world robots:", err); return kit; });
+    // the scammers are drawn in code now (world-gear3d.js villainize): no robot file to download
+    kit.enemiesReady = Promise.resolve().then(() => { villainize(kit); return kit; }).catch((err) => { console.warn("world robots:", err); return kit; });
     // the creatures the far hunting grounds dress their scammers as (Quaternius, CC0); clips come named "Bat/Run" and so on
     kit.monstersReady = kit.enemiesReady.then(() => loadPack("/models/world/packs/q-monsters.glb", ver)).then((p) => {
       for (const [n, node] of p.models) kit.enemies[n] = { scene: node, clips: p.clips.filter((c) => c.name.startsWith(n + "/")).map((c) => { const x = c.clone(); x.name = c.name.slice(n.length + 1); return x; }) };

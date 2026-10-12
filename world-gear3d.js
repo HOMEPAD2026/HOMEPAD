@@ -6,6 +6,7 @@
 // how world-rpg.js should turn it at rest: "down" (a blade hanging), "up" (a staff, a hammer), "fwd" (a blaster or a bow).
 import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
+import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 
 export const WEAPON_KINDS = [
   { id: "swords", name: "Dual Swords", line: "Fast three-hit combo up close" },
@@ -25,7 +26,7 @@ export function weaponKind(it) {
 const shellMat = () => new THREE.MeshPhysicalMaterial({ color: 0xf2f6fa, roughness: 0.28, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.12 });
 const darkMat = () => new THREE.MeshStandardMaterial({ color: 0x1b2433, roughness: 0.45, metalness: 0.5 });
 const trimMat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.3, metalness: 0.7 });
-const glowMat = (c, k = 2.2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.25, metalness: 0.1 });
+const glowMat = (c, k = 2.2) => { const m = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.25, metalness: 0.1 }); m.userData.glow = true; return m; }; // glow: left alone by hit flashes and tints
 const crystalMat = (c) => new THREE.MeshPhysicalMaterial({ color: c, emissive: c, emissiveIntensity: 0.9, roughness: 0.05, transparent: true, opacity: 0.9, flatShading: true });
 const rbox = (w, h, d, r = 0.03) => new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001));
 const mesh = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; return m; };
@@ -195,5 +196,179 @@ export function token(color = 0xffb83d, faceTex = null, star = false) {
       const sg = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 1 }); const sm = mesh(sg, glowMat(0xffffff, 1.6), 0, 0, z * 0.055); if (z < 0) sm.rotation.y = Math.PI; g.add(sm); }
   }
   g.add(mesh(new THREE.TorusGeometry(0.47, 0.012, 6, 48), glowMat(color, 2.4)));
+  return g;
+}
+
+// ---------------- the scammers, redrawn as villain bots: a dark glossy shell, red light, a little white trim ----------------
+// They take the place of the three robot models (EyeDrone → the spam drone, QuadShell → the fake airdrop crate,
+// Trilobite → the rug crawler), at the same size, with their own clips (Idle, Run, Attack, Hit, TurnOff, BackFlip), so
+// every scammer, stage boss, gatekeeper and raid boss that used those models wears the new look.
+const vShell = () => new THREE.MeshPhysicalMaterial({ color: 0x232b3a, roughness: 0.3, metalness: 0.35, clearcoat: 1, clearcoatRoughness: 0.15 });
+const vRed = (k = 2.4) => glowMat(0xff1f3d, Math.min(1.6, k * 0.6));
+const part = (name, ...kids) => { const g = new THREE.Group(); g.name = name; kids.forEach((k) => g.add(k)); return g; };
+const Q = (x, y, z) => new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)).toArray();
+const track = (name, prop, times, values) => (prop === "quaternion" ? new THREE.QuaternionKeyframeTrack(`${name}.quaternion`, times, values.flat()) : new THREE.VectorKeyframeTrack(`${name}.${prop}`, times, values.flat()));
+const clip = (name, dur, tracks) => new THREE.AnimationClip(name, dur, tracks);
+
+function spamDrone() {
+  const body = part("v-body");
+  body.add(mesh(new THREE.SphereGeometry(0.5, 28, 20), vShell()));
+  body.add(mesh(new THREE.TorusGeometry(0.5, 0.04, 8, 40), shellMat()).rotateX(Math.PI / 2));
+  const eye = part("v-eye", mesh(new THREE.SphereGeometry(0.22, 20, 16), new THREE.MeshPhysicalMaterial({ color: 0x0a0d14, roughness: 0.1, clearcoat: 1 })), mesh(new THREE.SphereGeometry(0.12, 16, 12), vRed(3), 0, 0, 0.13), mesh(new THREE.TorusGeometry(0.24, 0.03, 8, 32), vRed(2)));
+  eye.position.set(0, 0.04, 0.42); body.add(eye);
+  for (const s of [-1, 1]) { const fin = part(s < 0 ? "v-finL" : "v-finR", mesh(rbox(0.5, 0.06, 0.26, 0.03), shellMat(), s * 0.25, 0, 0), mesh(new THREE.BoxGeometry(0.36, 0.07, 0.04), vRed(2), s * 0.27, 0, 0.12)); fin.position.set(s * 0.45, 0.05, 0); body.add(fin); }
+  const ant = part("v-ant", mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.32, 6), shellMat(), 0, 0.16, 0), mesh(new THREE.SphereGeometry(0.06, 10, 8), vRed(3), 0, 0.34, 0)); ant.position.y = 0.46; body.add(ant);
+  body.add(mesh(new THREE.ConeGeometry(0.16, 0.24, 16), vRed(2.6), 0, -0.55, 0).rotateX(Math.PI));
+  const root = part("v-root", body);
+  const t4 = [0, 0.4, 0.8, 1.2];
+  const clips = [
+    clip("Idle", 1.6, [track("v-body", "position", [0, 0.8, 1.6], [[0, 0, 0], [0, 0.08, 0], [0, 0, 0]]), track("v-ant", "quaternion", [0, 0.8, 1.6], [Q(0, 0, 0.15), Q(0, 0, -0.15), Q(0, 0, 0.15)])]),
+    clip("Run", 0.4, [track("v-body", "quaternion", [0, 0.2, 0.4], [Q(0.25, 0, 0.08), Q(0.25, 0, -0.08), Q(0.25, 0, 0.08)]), track("v-finL", "quaternion", [0, 0.1, 0.2, 0.3, 0.4], [Q(0, 0, 0.5), Q(0, 0, -0.3), Q(0, 0, 0.5), Q(0, 0, -0.3), Q(0, 0, 0.5)]), track("v-finR", "quaternion", [0, 0.1, 0.2, 0.3, 0.4], [Q(0, 0, -0.5), Q(0, 0, 0.3), Q(0, 0, -0.5), Q(0, 0, 0.3), Q(0, 0, -0.5)])]),
+    clip("Attack", 0.6, [track("v-body", "position", [0, 0.2, 0.3, 0.6], [[0, 0, 0], [0, 0, -0.3], [0, 0, 0.5], [0, 0, 0]]), track("v-eye", "scale", [0, 0.2, 0.3, 0.6], [[1, 1, 1], [1.4, 1.4, 1.4], [0.9, 0.9, 0.9], [1, 1, 1]])]),
+    clip("Hit", 0.35, [track("v-body", "quaternion", [0, 0.1, 0.35], [Q(0, 0, 0), Q(-0.5, 0.3, 0.2), Q(0, 0, 0)])]),
+    clip("TurnOff", 1.2, [track("v-body", "position", [0, 1.2], [[0, 0, 0], [0, -0.6, 0]]), track("v-body", "quaternion", [0, 1.2], [Q(0, 0, 0), Q(0.9, 0, 0.6)]), track("v-eye", "scale", [0, 0.6, 1.2], [[1, 1, 1], [1, 0.2, 1], [0.6, 0.05, 0.6]])]),
+    clip("BackFlip", 0.9, [track("v-body", "quaternion", t4, [Q(0, 0, 0), Q(-2.1, 0, 0), Q(-4.2, 0, 0), Q(-6.283, 0, 0)]), track("v-body", "position", t4, [[0, 0, 0], [0, 0.7, 0], [0, 0.7, 0], [0, 0, 0]])]),
+  ];
+  return { scene: root, clips };
+}
+function dropCrate() {
+  const body = part("v-body");
+  body.add(mesh(rbox(1.0, 0.8, 1.0, 0.1), shellMat(), 0, 0.4, 0));
+  for (const r of [0, Math.PI / 2]) body.add(mesh(new THREE.BoxGeometry(1.04, 0.82, 0.14), vRed(1.8), 0, 0.4, 0).rotateY(r));
+  const lid = part("v-lid", mesh(rbox(1.1, 0.2, 1.1, 0.06), vShell(), 0, 0.1, 0.5), mesh(new THREE.TorusKnotGeometry(0.14, 0.04, 40, 6, 2, 3), vRed(2.4), 0, 0.3, 0.5));
+  lid.position.set(0, 0.8, -0.5); body.add(lid);
+  for (const s of [-1, 1]) body.add(mesh(new THREE.CapsuleGeometry(0.06, 0.08, 4, 8), vRed(3), s * 0.18, 0.5, 0.52).rotateZ(Math.PI / 2));
+  const legs = [];
+  for (const [x, z] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) { const l = part(`v-leg${legs.length}`, mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.4, 8), vShell(), 0, -0.2, 0), mesh(new THREE.SphereGeometry(0.09, 10, 8), shellMat(), 0, -0.4, 0)); l.position.set(x, 0.05, z); body.add(l); legs.push(l); }
+  body.position.y = 0.4;
+  const root = part("v-root", body);
+  const step = (a) => [0, 0.15, 0.3].map((t, i) => ({ t, q: Q(i === 1 ? a : -a, 0, 0) }));
+  const legTracks = legs.map((l, i) => { const a = i % 3 === 0 ? 0.6 : -0.6; return track(l.name, "quaternion", [0, 0.15, 0.3], step(a).map((x) => x.q)); });
+  const clips = [
+    clip("Idle", 1.4, [track("v-lid", "quaternion", [0, 0.7, 1.4], [Q(0, 0, 0), Q(-0.25, 0, 0), Q(0, 0, 0)]), track("v-body", "scale", [0, 0.7, 1.4], [[1, 1, 1], [1.03, 0.97, 1.03], [1, 1, 1]])]),
+    clip("Run", 0.3, [...legTracks, track("v-body", "position", [0, 0.075, 0.15, 0.225, 0.3], [[0, 0.4, 0], [0, 0.48, 0], [0, 0.4, 0], [0, 0.48, 0], [0, 0.4, 0]])]),
+    clip("Attack", 0.6, [track("v-lid", "quaternion", [0, 0.2, 0.6], [Q(0, 0, 0), Q(-1.6, 0, 0), Q(0, 0, 0)]), track("v-body", "position", [0, 0.2, 0.3, 0.6], [[0, 0.4, 0], [0, 0.8, 0], [0, 0.4, 0.4], [0, 0.4, 0]])]),
+    clip("Hit", 0.35, [track("v-body", "scale", [0, 0.1, 0.35], [[1, 1, 1], [1.2, 0.8, 1.2], [1, 1, 1]])]),
+    clip("TurnOff", 1.2, [track("v-lid", "quaternion", [0, 1.2], [Q(0, 0, 0), Q(-2.2, 0, 0)]), track("v-body", "scale", [0, 1.2], [[1, 1, 1], [1.15, 0.55, 1.15]])]),
+    clip("BackFlip", 0.9, [track("v-body", "quaternion", [0, 0.3, 0.6, 0.9], [Q(0, 0, 0), Q(-2.1, 0, 0), Q(-4.2, 0, 0), Q(-6.283, 0, 0)]), track("v-body", "position", [0, 0.3, 0.6, 0.9], [[0, 0.4, 0], [0, 1.3, 0], [0, 1.3, 0], [0, 0.4, 0]])]),
+  ];
+  return { scene: root, clips };
+}
+function rugCrawler() {
+  const body = part("v-body");
+  const shellM = mesh(new THREE.SphereGeometry(0.6, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), vShell()); shellM.scale.set(1, 0.55, 1.35); body.add(shellM);
+  // the rug on its back: purple with a red woven border, rippling
+  const rug = part("v-rug", mesh(new THREE.BoxGeometry(0.95, 0.04, 1.35), new THREE.MeshStandardMaterial({ color: 0x5a2a8a, roughness: 0.9 }), 0, 0, 0), mesh(new THREE.BoxGeometry(1.0, 0.03, 1.4), vRed(1.4), 0, -0.01, 0));
+  rug.position.y = 0.34; body.add(rug);
+  for (let i = -2; i <= 2; i++) body.add(mesh(new THREE.BoxGeometry(0.03, 0.03, 0.12), glowMat(0xffc861, 1.8), i * 0.18, 0.37, 0.72));
+  for (const s of [-1, 1]) body.add(mesh(new THREE.SphereGeometry(0.08, 12, 10), vRed(3), s * 0.2, 0.18, 0.74));
+  body.add(mesh(rbox(0.5, 0.14, 0.12, 0.04), shellMat(), 0, 0.06, 0.8));
+  const legs = [];
+  for (const z of [-0.45, 0, 0.45]) for (const s of [-1, 1]) { const l = part(`v-leg${legs.length}`, mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.34, 6), vShell(), s * 0.12, -0.12, 0).rotateZ(s * 0.75)); l.position.set(s * 0.5, 0.08, z); body.add(l); legs.push(l); }
+  const tail = part("v-tail", mesh(new THREE.ConeGeometry(0.1, 0.5, 8), vShell(), 0, 0, -0.25).rotateX(-Math.PI / 2), mesh(new THREE.SphereGeometry(0.06, 8, 6), vRed(3), 0, 0, -0.5)); tail.position.set(0, 0.12, -0.78); body.add(tail);
+  body.position.y = 0.3;
+  const root = part("v-root", body);
+  const legTracks = legs.map((l, i) => track(l.name, "quaternion", [0, 0.1, 0.2], i % 2 ? [Q(0.5, 0, 0), Q(-0.5, 0, 0), Q(0.5, 0, 0)] : [Q(-0.5, 0, 0), Q(0.5, 0, 0), Q(-0.5, 0, 0)]));
+  const clips = [
+    clip("Idle", 1.6, [track("v-rug", "quaternion", [0, 0.8, 1.6], [Q(0.04, 0, 0), Q(-0.04, 0, 0), Q(0.04, 0, 0)]), track("v-tail", "quaternion", [0, 0.8, 1.6], [Q(0, 0.4, 0), Q(0, -0.4, 0), Q(0, 0.4, 0)])]),
+    clip("Run", 0.2, [...legTracks, track("v-tail", "quaternion", [0, 0.1, 0.2], [Q(0, 0.3, 0), Q(0, -0.3, 0), Q(0, 0.3, 0)])]),
+    clip("Attack", 0.55, [track("v-body", "quaternion", [0, 0.2, 0.3, 0.55], [Q(0, 0, 0), Q(-0.5, 0, 0), Q(0.3, 0, 0), Q(0, 0, 0)]), track("v-rug", "position", [0, 0.2, 0.3, 0.55], [[0, 0.34, 0], [0, 0.6, -0.2], [0, 0.34, 0.3], [0, 0.34, 0]])]),
+    clip("Hit", 0.35, [track("v-body", "quaternion", [0, 0.1, 0.35], [Q(0, 0, 0), Q(0, 0, 0.35), Q(0, 0, 0)])]),
+    clip("TurnOff", 1.2, [track("v-body", "quaternion", [0, 1.2], [Q(0, 0, 0), Q(0, 0, Math.PI)]), track("v-body", "position", [0, 1.2], [[0, 0.3, 0], [0, 0.55, 0]])]),
+    clip("BackFlip", 0.9, [track("v-body", "quaternion", [0, 0.3, 0.6, 0.9], [Q(0, 0, 0), Q(-2.1, 0, 0), Q(-4.2, 0, 0), Q(-6.283, 0, 0)]), track("v-body", "position", [0, 0.3, 0.6, 0.9], [[0, 0.3, 0], [0, 1.2, 0], [0, 1.2, 0], [0, 0.3, 0]])]),
+  ];
+  return { scene: root, clips };
+}
+const VILLAIN = { EyeDrone: spamDrone, QuadShell: dropCrate, Trilobite: rugCrawler };
+// the bottom and top of the robot models they replace (so every scale and height already tuned for those still fits)
+const SIZE = { EyeDrone: [-1, 1], QuadShell: [-0.64, 0.64], Trilobite: [-0.87, 0.87] };
+// fewer draw calls: inside each moving part, the meshes that share a look become one (the parts still move apart)
+function mergeParts(root) {
+  const key = (m) => [m.type, m.color && m.color.getHex(), m.emissive && m.emissive.getHex(), m.emissiveIntensity, m.roughness, m.metalness, m.clearcoat, !!m.userData.glow, m.transparent, m.opacity].join("|");
+  root.traverse((part) => {
+    const groups = new Map();
+    for (const c of [...part.children]) { if (!c.isMesh || c.children.length) continue; const k = key(c.material); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); }
+    for (const list of groups.values()) {
+      if (list.length < 2) continue;
+      const geos = list.map((c) => { c.updateMatrix(); let g = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone(); g.applyMatrix4(c.matrix); for (const a of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(a)) g.deleteAttribute(a); if (!g.attributes.uv) g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)); return g; });
+      const merged = mergeGeometries(geos, false); if (!merged) continue;
+      const m = new THREE.Mesh(merged, list[0].material); m.castShadow = true; part.add(m); list.forEach((c) => part.remove(c));
+    }
+  });
+}
+/// put the villains in place of the robot models, each at the size of the model it replaces
+export function villainize(kit) {
+  for (const [name, build] of Object.entries(VILLAIN)) {
+    const v = build(), [y0, y1] = SIZE[name]; mergeParts(v.scene);
+    const want = { min: { y: y0 }, max: { y: y1 } }, have = new THREE.Box3().setFromObject(v.scene);
+    { const ext = have.getSize(new THREE.Vector3()), k = (name === "Trilobite" ? 2.8 : 2) / Math.max(0.01, ext.x, ext.y, ext.z); /* the old models all fill a 2 m box */ const wrap = new THREE.Group(); wrap.name = "v-wrap"; v.scene.scale.setScalar(k); v.scene.position.y = want.min.y - have.min.y * k; wrap.add(v.scene); v.scene = wrap; }
+    kit.enemies[name] = v;
+  }
+  return kit;
+}
+
+// ---------------- small pictures of a weapon for the bag (one shared offscreen renderer, each picture made once) ----------------
+let thumbR = null, thumbScene = null, thumbCam = null;
+const thumbs = new Map();
+export function weaponThumb(kind, tier, color) {
+  const key = `${kind}-${tier}-${color}`; if (thumbs.has(key)) return thumbs.get(key);
+  try {
+    if (!thumbR) {
+      thumbR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); thumbR.setSize(112, 112); thumbR.outputColorSpace = THREE.SRGBColorSpace; thumbR.toneMapping = THREE.ACESFilmicToneMapping;
+      thumbScene = new THREE.Scene(); thumbScene.add(new THREE.HemisphereLight(0xeaf4ff, 0x30405a, 1.8)); const l = new THREE.DirectionalLight(0xffffff, 2.4); l.position.set(2, 3, 4); thumbScene.add(l);
+      thumbCam = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
+    }
+    const w = weapon(kind, tier, color, 0.3); w.rotation.set(0, 0, 0);
+    if (w.userData.hold === "fwd") w.rotation.y = -Math.PI / 2; else w.rotation.z = -Math.PI / 4; // laid across the tile
+    const b = new THREE.Box3().setFromObject(w), c = b.getCenter(new THREE.Vector3()), r = b.getSize(new THREE.Vector3()).length() / 2;
+    w.position.sub(c); thumbScene.add(w);
+    thumbCam.position.set(0, 0, r / Math.tan((14 * Math.PI) / 180) * 1.05); thumbCam.lookAt(0, 0, 0);
+    thumbR.render(thumbScene, thumbCam);
+    const url = thumbR.domElement.toDataURL("image/png"); thumbScene.remove(w);
+    thumbs.set(key, url); return url;
+  } catch { thumbs.set(key, null); return null; }
+}
+
+// ---------------- the explorer rover: a white body on four chunky wheels, a dark canopy, lights in front ----------------
+export function rover(color = 0x38e8ff) {
+  const g = new THREE.Group();
+  g.add(mesh(rbox(1.3, 0.42, 2.0, 0.16), shellMat(), 0, 0.62, 0));
+  g.add(mesh(rbox(1.0, 0.34, 0.6, 0.14), new THREE.MeshPhysicalMaterial({ color: 0x0a0f18, roughness: 0.1, clearcoat: 1 }), 0, 0.98, 0.62)); // the windscreen in front; you stand on the deck behind it
+  for (const s of [-1, 1]) { g.add(mesh(new THREE.BoxGeometry(0.04, 0.08, 1.9), glowMat(color, 2.4), s * 0.66, 0.6, 0)); g.add(mesh(new THREE.CapsuleGeometry(0.07, 0.12, 4, 8), glowMat(0xffffff, 2.6), s * 0.42, 0.66, 1.0).rotateZ(Math.PI / 2)); }
+  const wheels = [];
+  for (const [x, z] of [[-0.72, 0.68], [0.72, 0.68], [-0.72, -0.68], [0.72, -0.68]]) {
+    const w = new THREE.Group(); w.position.set(x, 0.36, z);
+    w.add(mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.3, 20), darkMat()).rotateZ(Math.PI / 2));
+    w.add(mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.32, 12), shellMat()).rotateZ(Math.PI / 2));
+    w.add(mesh(new THREE.TorusGeometry(0.2, 0.025, 6, 20), glowMat(color, 2.2), x > 0 ? 0.17 : -0.17, 0, 0).rotateY(Math.PI / 2));
+    g.add(w); wheels.push(w);
+  }
+  g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6), darkMat(), 0.45, 1.3, -0.7)); g.add(mesh(new THREE.SphereGeometry(0.06, 8, 6), glowMat(color, 3), 0.45, 1.56, -0.7));
+  g.userData.update = (t, speed = 0) => { wheels.forEach((w) => (w.rotation.x += speed * 0.016 * 2.8)); g.position.y = Math.abs(Math.sin(t * 14)) * 0.02 * Math.min(1, speed / 6); };
+  return g;
+}
+
+// ---------------- things to gather: ore (stone with glowing veins), data crystals, and fallen logs ----------------
+export function gatherNode(kind) {
+  const g = new THREE.Group();
+  if (kind === "ore") {
+    const rock = mesh(new THREE.DodecahedronGeometry(0.75, 0), new THREE.MeshStandardMaterial({ color: 0x6d7887, roughness: 0.85, flatShading: true }), 0, 0.5, 0); rock.scale.set(1.2, 0.8, 1); g.add(rock);
+    for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2; g.add(mesh(new THREE.OctahedronGeometry(0.16, 0), glowMat(0xffb83d, 1.6), Math.cos(a) * 0.6, 0.55 + (i % 2) * 0.2, Math.sin(a) * 0.5)); }
+  } else if (kind === "crystal") {
+    for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2, h = 0.7 + (i % 3) * 0.35; const c = mesh(new THREE.OctahedronGeometry(0.22, 0), crystalMat(0x38e8ff), Math.cos(a) * 0.25, h / 2, Math.sin(a) * 0.25); c.scale.set(1, h * 2.2, 1); c.rotation.set(Math.cos(a) * 0.3, 0, Math.sin(a) * 0.3); g.add(c); }
+    g.add(mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.18, 8), new THREE.MeshStandardMaterial({ color: 0x46505e, roughness: 0.9, flatShading: true }), 0, 0.09, 0));
+  } else {
+    for (let i = 0; i < 3; i++) { const l = mesh(new THREE.CylinderGeometry(0.22, 0.24, 1.6, 10), new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.9 }), 0, 0.22 + (i === 2 ? 0.36 : 0), (i === 2 ? 0 : i ? 0.24 : -0.24)); l.rotation.z = Math.PI / 2; g.add(l);
+      for (const s of [-1, 1]) g.add(mesh(new THREE.CircleGeometry(0.21, 12), new THREE.MeshStandardMaterial({ color: 0xe0b878, roughness: 0.8 }), s * 0.81, l.position.y, l.position.z).rotateY(s * Math.PI / 2)); }
+    g.add(mesh(new THREE.ConeGeometry(0.12, 0.25, 6), new THREE.MeshStandardMaterial({ color: 0x4caf6a, roughness: 0.8 }), 0.2, 0.86, 0));
+  }
+  return g;
+}
+// a fish, jumping out of the water when caught
+export function fish(color = 0x38c8ff) {
+  const g = new THREE.Group();
+  const body = mesh(new THREE.SphereGeometry(0.22, 16, 12), new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.4 })); body.scale.set(0.6, 0.8, 1.5); g.add(body);
+  g.add(mesh(new THREE.ConeGeometry(0.16, 0.24, 4), new THREE.MeshStandardMaterial({ color, roughness: 0.4 }), 0, 0, -0.38).rotateX(-Math.PI / 2));
+  for (const s of [-1, 1]) g.add(mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0x0a0f18 }), s * 0.1, 0.06, 0.2));
   return g;
 }

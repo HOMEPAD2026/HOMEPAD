@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -240,7 +240,10 @@ K.setFlat(1.35);
 const planet = new THREE.Group(); planet.name = "world"; st.scene.add(planet);
 // where you stand on the plaza: in front of the fountain, facing it (the world slides, so this is its offset)
 const HOME = new THREE.Vector3(-1.2, 0, -7.6); planet.position.copy(HOME); // a little off centre, so walking straight on slides past the fountain
-planet.add(K.makeGround());
+// the finishing look (world-look.js): a colour grade per time of day, varied grass, contact shadows under the halls
+const grade = LOOK.addGrade(st); st.on((dt) => { LOOK.time.value += dt; });
+const groundG = K.makeGround(); planet.add(groundG);
+{ const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) LOOK.groundLook(gm.material, { low: S.quality === "low" || S.quality === "saver" }); }
 const sky = K.makeSky(); st.scene.add(sky);
 const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
 const stars = K.makeStars(); st.scene.add(stars);
@@ -250,6 +253,7 @@ planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeD
 const lamps = K.makeLamps(); planet.add(lamps);
 const spins = [];
 const shops = K.SHOPS.map((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); planet.add(g); K.shadowy(g); spins.push(...g.userData.spin); return g; });
+shops.forEach((g) => { const cs = LOOK.contactShadow((g.userData.radius || 3) + 2.2, 0.38); cs.position.x = g.position.x; cs.position.z = g.position.z; planet.add(cs); });
 const shopG = (id) => shops.find((g) => g.userData.spec.id === id);
 const portal = K.makePortal(T("Platform World")); K.placeOn(portal, K.dirOf(K.PORTAL.theta, K.PORTAL.phi)); planet.add(portal); spins.push(...portal.userData.spin);
 // the way to the islands
@@ -279,6 +283,17 @@ spins.push(vfx.portal(portal), vfx.portal(isleGate, { colors: [[0x2ee07a, 0x9fff
 // each gate gets its frame (world-gear3d.js): two white pillars and an arch, its name lifted above it
 for (const [g, c] of [[portal, 0x38e8ff], [isleGate, 0x2ee07a]]) { g.add(GEAR.gateFrame(c)); g.children.forEach((o) => { if (o.isSprite && o.position.y > 4) o.position.y = 7.6; }); }
 const board = GEAR.hoverboard(); board.visible = false; player.add(board); // world-gear3d.js
+// the second ride: the explorer rover (level 10); V switches between the two while riding
+const rover = GEAR.rover(); rover.visible = false; player.add(rover);
+let ride = (() => { try { return localStorage.getItem("arc.world.ride") === "rover" ? "rover" : "board"; } catch { return "board"; } })();
+const rideObj = () => (ride === "rover" ? rover : board);
+function switchRide() {
+  if (ride === "board" && level() < 10) { toast(T("The rover opens at level {n}", { n: 10 })); return; }
+  ride = ride === "board" ? "rover" : "board"; try { localStorage.setItem("arc.world.ride", ride); } catch { /* fine */ }
+  if (boarding) { board.visible = ride === "board"; rover.visible = ride === "rover"; if (avatar) avatar.obj.position.y = ride === "rover" ? 0.84 : 0.45; Snd.board(); }
+  toast(ride === "rover" ? T("Ride: explorer rover") : T("Ride: hoverboard"));
+}
+addEventListener("keydown", (e) => { if ((e.key === "v" || e.key === "V") && !e.repeat && !e.target.closest("input,textarea,[contenteditable]") && mode === "hub") switchRide(); });
 let avatar = null, nameTag = null;
 // the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
 function paintFace() { const img = $("wc-face-img"), id = P.char || "arc-arc"; if (!img) return; if (thumbCache[id]) { img.src = thumbCache[id]; return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) img.src = thumbCache[id]; }); }
@@ -286,7 +301,7 @@ async function setAvatar(id) {
   const a = await K.makeCharacter(id, VER, P.outfit || null).catch(() => K.makeCharacter("bot"));
   setTimeout(paintFace, 300);
   if (avatar) player.remove(avatar.obj);
-  avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = boarding ? 0.45 : 0;
+  avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = boarding ? (ride === "rover" ? 0.84 : 0.45) : 0;
   if (rpg) rpg.dress();
   setNameTag(); paintCrown();
 }
@@ -658,9 +673,9 @@ function lookAround(dt) {
 }
 function setBoard(on) {
   if (frozen) return;
-  boarding = on; board.visible = on; if (avatar) avatar.obj.position.y = on ? 0.45 : 0;
+  boarding = on; board.visible = on && ride === "board"; rover.visible = on && ride === "rover"; if (avatar) avatar.obj.position.y = on ? (ride === "rover" ? 0.84 : 0.45) : 0;
   $("wp-act-board").setAttribute("aria-pressed", String(on)); Snd.board();
-  toast(on ? T("Hoverboard on: hold Shift (or Run) to fly") : T("Hoverboard off"));
+  toast(on ? (ride === "rover" ? T("Rover on: hold Shift (or Run) to speed up · V switches ride") : T("Hoverboard on: hold Shift (or Run) to fly")) : T("Hoverboard off"));
 }
 function step(dt) {
   // the floor: flat ground in the hub, the bricks under your feet on an island
@@ -1834,7 +1849,7 @@ rpg = RPG.createRpg({
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
-  onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
+  openCraft: () => { if (life) life.showSheet(); }, onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
 combat = FIGHT.createCombat({ vfx,
@@ -1862,7 +1877,7 @@ combat = FIGHT.createCombat({ vfx,
     c.innerHTML = `<small>${esc(T("Boss · Lv {n}", { n: lv }))}</small><b>${esc(name)}</b><span>${esc(T("appeared in {z}!", { z: zone }))}</span>`;
     document.body.appendChild(c); setTimeout(() => c.remove(), 2800);
   },
-  float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
+  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
   pay: (id, onStatus) => arclShop.pay(id, "", onStatus),
   // knocked out: lie down and wait; back up on the spot (a revive) or on the plaza
   down: (on, where) => {
@@ -1939,6 +1954,10 @@ const inbox = INBOX.createInbox({ T: TW, esc, post, sess, toast, Snd, rpg: () =>
 // ---------------- set dressing from the free model packs (world-decor.js) ----------------
 decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: S.quality === "low" || S.quality === "saver", lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
 st.on((dt) => decor.tick(dt));
+st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
+// gathering, the workbench and fishing (world-life.js)
+const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+st.on((dt) => life.tick(dt));
 // ?decor=0 leaves it out (to compare frame rates, or on a device that struggles); automated browsers (software
 // rendering, a frame a second) get it only with ?decor=1
 const decorOn = /[?&]decor=1\b/.test(location.search) || (!navigator.webdriver && !/[?&]decor=0\b/.test(location.search));
@@ -2109,6 +2128,7 @@ function dayNight() {
   if (Math.abs(k - nightK) < 0.01) return; nightK = k;
   setTimeout(() => skyEnv(k), 0);
   const dusk = Math.max(0, 1 - Math.abs(k - 0.5) * 2.4);
+  if (grade) grade.set(k, dusk);
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
   st.sun.intensity = 2.35 * (1 - k * 0.65); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
@@ -2213,7 +2233,7 @@ st.on((dt0, t) => {
       else if (!avatar.busy() || (grounded && want !== "idle" && !boarding)) { if (want !== "jump") avatar.play(want, { speed: want === "walk" ? Math.max(0.8, speedNow / 6.5) : 1 }); animState = want; }
     }
   }
-  if (boarding) { board.userData.update(t); board.rotation.y = facing; }
+  if (boarding) { const ro = rideObj(); ro.userData.update(t, speedNow); ro.rotation.y = facing; }
   if (npc && (npcT += dt) > 6) { npcT = 0; const lines = ["Hi! I'm ARCIA. Ask me anything.", "Scan a token before you buy it.", "A real airdrop never asks you to pay.", "Check the LP lock before you ape."]; npc.userData.line = (npc.userData.line + 1) % lines.length; npc.remove(npc.userData.bub); npc.userData.bub = K.bubble(T(lines[npc.userData.line])); npc.add(npc.userData.bub); if (labels) labels.dirty = true; if (Math.random() < 0.5) npc.userData.ac.play("emote-yes", { once: true }); }
   if (npc) npc.userData.ac.update(dt, t);
   tickQuantum(t);
@@ -2311,7 +2331,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
-  stage: () => st, vfx: () => vfx, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
+  stage: () => st, vfx: () => vfx, life: () => life, ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
