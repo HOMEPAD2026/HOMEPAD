@@ -136,7 +136,7 @@ export function createCombat(ctx) {
     };
     return sp;
   }
-  const label = (m) => m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : T(m.spec.name)), m.hp / m.max, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" ? "#ffd27a" : lvColor(m.lv), m.rank);
+  const label = (m) => m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : T(m.spec.name)), m.hp / m.max, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank);
   /// a scammer: { type, lv, rank ("" | "elite" | "boss"), at (V3), zone, boss: zone.boss spec }
   function spawnMob(o = {}) {
     const kit = ctx.kit(); if (!kit) return null;
@@ -171,6 +171,8 @@ export function createCombat(ctx) {
     add(g); e.play("Run");
     if (VX && rank && !o.raid) VX.summon(p, rank === "boss");
     const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: baseY, glow: skin ? 0.05 : 0.18 };
+    // a golden scammer: rare, runs from you, gone in 25 seconds; five times the XP and a better chest
+    if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
       const crown = new THREE.Group(); crown.position.y = bb.max.y + 1.2; g.add(crown);
@@ -178,11 +180,12 @@ export function createCombat(ctx) {
       const aura = new THREE.Mesh(new THREE.SphereGeometry(Math.max(3, (bb.max.y - bb.min.y) * 0.7), 24, 16), additive(0x39ff88, 0.08)); aura.position.y = (bb.max.y + bb.min.y) / 2; g.add(aura);
       m.crown = crown; m.aura = aura;
     }
+    m.em = []; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) m.em.push(x.material); });
     label(m); mobs.push(m);
     if (m.slow === 0) { const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6), 0), new THREE.MeshPhysicalMaterial({ color: 0xbfefff, transparent: true, opacity: 0.45, roughness: 0.05, flatShading: true })); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
-    if (bs && o.raid) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv); }
-    else if (bs) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv); else ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); }
+    if (bs && o.raid) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); }
+    else if (bs) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); else ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); }
     return m;
   }
   function hit(m, raw, from, kind, crit) {
@@ -201,6 +204,8 @@ export function createCombat(ctx) {
     if (crit || kind === "heavy") stopT = Math.max(stopT, crit ? 0.07 : 0.05);
     else if (kind === "melee") stopT = Math.max(stopT, 0.03); // even a plain cut bites for a moment
     m.punch = 1; // the body squashes and springs back (tickMobs)
+    if (kind === "melee" || kind === "heavy" || kind === "shot") Snd.impact && Snd.impact(wKind());
+    if (m.rank === "boss" && !m.raid && !m.rage && m.hp > 0 && m.hp < m.max * 0.5) enrage(m);
     if ((kind === "melee" || kind === "heavy") && !ctx.reduce) { // a bright slash mark across the body, at the angle of the swing
       const big = kind === "heavy" ? 1.5 : 1, ang = combo === 2 ? 0.6 : combo === 3 ? -0.2 : -0.7;
       for (const [w, c, o] of [[2.6, 0xffffff, 0.95], [3.4, crit ? 0xffd27a : 0x8fe6ff, 0.55]]) { const sl = sprite(c, o); sl.material.rotation = ang; sl.scale.set(w * big, 0.16 * big * (c === 0xffffff ? 1 : 2.2), 1); sl.position.copy(m.g.position).setY(m.y + 0.7); add(sl); fx.push({ o: sl, life: 0.16, t: 0, op0: o }); }
@@ -212,10 +217,11 @@ export function createCombat(ctx) {
     if (m.raid) { ctx.raidHit && ctx.raidHit(dmg); if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return; }
     if (m.hp <= 0) kill(m);
   }
+  const stepV = new V3(); // its own: callers pass tmp / tmp2 as the direction
   function tryStep(m, dir, dist) {
-    tmp2.copy(m.g.position).addScaledVector(dir, dist);
-    if (ctx.blocked(tmp2)) { m.wander += Math.PI * 0.6; return false; }
-    m.g.position.copy(tmp2); return true;
+    stepV.copy(m.g.position).addScaledVector(dir, dist);
+    if (ctx.blocked(stepV)) { m.wander += Math.PI * 0.6; return false; }
+    m.g.position.copy(stepV); return true;
   }
   function kill(m) {
     m.dead = 0.001; Snd.coin && Snd.coin();
@@ -234,6 +240,7 @@ export function createCombat(ctx) {
     // the drop: a chest with a beam in its rarity's colour
     const d = rpg.rollDrop(m.lv, m.rank); if (d) dropChest(m.g.position.clone(), d);
     if (m.rank === "boss") { const d2 = rpg.rollDrop(m.lv, "boss"); if (d2) dropChest(m.g.position.clone().add(new V3(1.6, 0, 0.8)), d2); }
+    if (m.rare) { const d3 = rpg.rollDrop(m.lv, "elite"); if (d3) dropChest(m.g.position.clone().add(new V3(-1.4, 0, 0.6)), d3); ctx.float(T("Golden!"), p.clone().setY(3), "#ffd27a", true); }
     if (Math.random() < 0.18) { const x = m.g.position.clone(); x.y = 1; const it = ITEMS[Math.random() < 0.5 ? 5 : 4]; const g = itemMesh(it); g.position.copy(x).add(new V3(-1, 0, 0.5)); add(g); items.push({ g, it, k: 0 }); }
   }
   function dropChest(at, item) {
@@ -262,7 +269,10 @@ export function createCombat(ctx) {
     const st = stats();
     for (let i = mobs.length - 1; i >= 0; i--) {
       const m = mobs[i];
-      m.e.mixer.update(dt);
+      // far away (30 m+): the animation steps every third frame and the HP bar is hidden
+      const far = m.rank !== "boss" && !m.dead && Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) > 30;
+      if (far) { m.acc = (m.acc || 0) + dt; if ((m.fc = (m.fc || 0) + 1) % 3 === 0) { m.e.mixer.update(m.acc); m.acc = 0; } } else { m.e.mixer.update(dt + (m.acc || 0)); m.acc = 0; }
+      if (!m.raid) m.bar.visible = !far;
       if (m.dead) { m.dead += dt; m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) { root.remove(m.g); mobs.splice(i, 1); } continue; }
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
       if (d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { root.remove(m.g); mobs.splice(i, 1); if (m.rank === "boss") hideBossBar(); continue; }
@@ -273,10 +283,12 @@ export function createCombat(ctx) {
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
       if (m.punch > 0) { if (!m.bs) m.bs = body.scale.clone(); m.punch = Math.max(0, m.punch - dt * 7); const q = ctx.reduce ? 0 : Math.sin(m.punch * Math.PI) * 0.16; body.scale.set(m.bs.x * (1 + q), m.bs.y * (1 - q), m.bs.z * (1 + q)); }
-      body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.userData.glow) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.glow; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
+      if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
-      if (m.stun > 0) continue;
-      const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1);
+      if (m.stun > 0) { if (m.cast) endCast(m); continue; }
+      if (m.rank === "boss" && !m.raid && bossAI(m, dt, t, d)) continue; // a boss winding up a move stands its ground
+      if (behave(m, dt, t, d, i)) continue; // a ranged, charging or fleeing scammer doing its own thing
+      const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1) * (m.rage ? 1.3 : 1);
       if (d < 15 && d > m.reach * 0.9) { tmp.divideScalar(d); if (!tryStep(m, tmp, sp * dt)) { tmp2.set(-tmp.z, 0, tmp.x); tryStep(m, tmp2, sp * dt); } m.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
       else if (d >= 15) { m.wander += (Math.random() - 0.5) * dt; tmp.set(Math.cos(m.wander), 0, Math.sin(m.wander)); tryStep(m, tmp, sp * 0.4 * dt); m.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
       const r = Math.hypot(m.g.position.x, m.g.position.z); if (r < 14) m.g.position.multiplyScalar(14 / r);
@@ -289,7 +301,7 @@ export function createCombat(ctx) {
         else { tmp.copy(me).sub(m.g.position).setY(0).normalize(); ctx.knock(tmp, m.rank === "boss" ? 11 : 7); ctx.hurt(); damage(hitDamage(m.atk, st.def)); }
       }
       if (m.raid) { raidTick(m, dt, t, d); m.crown.rotation.y += dt * 0.8; m.crown.children.forEach((c, k) => { c.rotation.x += dt * 3; }); m.aura.material.opacity = 0.06 + Math.sin(t * 2) * 0.03 + (raidPhase >= 4 ? 0.05 : 0); }
-      if (m.rank === "boss") {
+      if (m.rank === "boss" && m.raid) {
         m.slam = (m.slam || 6) - dt;
         // a red circle grows on the ground a second before the slam: step out of it
         if (m.slam <= 1.1 && !m.warned && d < 14) { m.warned = true; const disc = new THREE.Mesh(new THREE.CircleGeometry(7, 48), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(m.g.position).setY(0.07); add(disc); fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.28 * k + Math.sin(k * 30) * 0.06; disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); }
@@ -329,9 +341,168 @@ export function createCombat(ctx) {
     ctx.here(me); if (me.distanceTo(tmp.copy(p).setY(me.y)) < 7 && guardT <= 0 && !down && ctx.hopY() < 0.8) { tmp.copy(me).sub(p).setY(0).normalize(); ctx.knock(tmp, 13); ctx.hurt(); damage(hitDamage(Math.round(m.atk * 1.4), stats().def)); }
   }
 
+  // ---------------- bosses: a move list per ground, a red warning before each move, a second phase at half HP ----------------
+  // slam: a circle round the boss · cone: a fan in front of it · line: a charge straight at you · rain: circles under your feet
+  const PATTERNS = ["slam", "cone", "line", "rain"];
+  const patsOf = (m) => { const zi = m.zone ? ZONES.indexOf(m.zone) : 0; return PATTERNS.slice(0, zi >= 5 ? 4 : zi >= 3 ? 3 : zi >= 1 ? 2 : 1); };
+  const WIND = { slam: 1.1, cone: 0.95, line: 0.85, rain: 1.15 };
+  function warnDisc(at, r, life) { const disc = new THREE.Mesh(new THREE.CircleGeometry(r, 40), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(at).setY(0.08); add(disc); fx.push({ o: disc, life, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.3 * k + Math.sin(k * 30) * 0.05; disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); return disc; }
+  function bossAI(m, dt, t, d) {
+    if (m.cast) { // winding up: stand still, then strike
+      const c = m.cast; c.t += dt;
+      if (!ctx.reduce && c.kind === "slam") { const k = Math.min(1, c.t / c.wind), q = Math.sin(k * Math.PI * 0.5); m.g.scale.set(1 + q * 0.1, 1 - q * 0.2, 1 + q * 0.1); }
+      if (c.t >= c.wind) { m.g.scale.copy(ONE); strike(m, c); m.cast = null; }
+      return true;
+    }
+    if (m.dash) { // the charge in flight
+      const s = m.dash; s.t += dt; const k = Math.min(1, s.t / 0.32); m.g.position.lerpVectors(s.a, s.b, k);
+      ctx.here(me); if (!s.hit && !down && guardT <= 0 && ctx.hopY() < 0.8 && Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) < 2.2) { s.hit = true; tmp.set(s.b.x - s.a.x, 0, s.b.z - s.a.z).normalize(); ctx.knock(tmp, 14); ctx.hurt(); damage(hitDamage(Math.round(m.atk * 1.3), stats().def)); ctx.buzz && ctx.buzz(70); }
+      if (Math.random() < 0.6) puff(m.g.position.clone().setY(0.4), 0xd8c8a8, { n: 2, speed: 2, size: 0.7, life: 0.4, grav: 1 });
+      if (k >= 1) { m.dash = null; ring(m.g.position, 0xff4d6d, { r0: 0.5, r1: 3.4, life: 0.4, y: 0.1 }); ctx.shake(0.25); }
+      return true;
+    }
+    m.next = (m.next ?? 4.5) - dt * (m.rage ? 1.45 : 1);
+    if (m.next > 0 || d > 16) return false;
+    const pats = m.pats || (m.pats = patsOf(m)), kind = d > 7 && pats.includes("line") && Math.random() < 0.6 ? "line" : pats[Math.floor(Math.random() * pats.length)];
+    m.next = (m.rage ? 4.2 : 6) + Math.random() * 2.5;
+    ctx.here(me); const dir = tmp.copy(me).sub(m.g.position).setY(0).normalize().clone(); m.g.rotation.y = Math.atan2(dir.x, dir.z);
+    const c = { kind, t: 0, wind: WIND[kind] * (m.rage ? 0.85 : 1), dir, marks: [] };
+    if (kind === "slam") c.marks.push(warnDisc(m.g.position, 7, c.wind));
+    else if (kind === "cone") { const fan = new THREE.Mesh(new THREE.CircleGeometry(9.5, 32, -0.62, 1.24), additive(0xff2d4d, 0.3)); fan.rotation.x = -Math.PI / 2; fan.rotation.z = Math.atan2(dir.z, dir.x) * -1; fan.position.copy(m.g.position).setY(0.08); add(fan); fx.push({ o: fan, life: c.wind, t: 0, onTick: (k) => { fan.material.opacity = 0.1 + 0.32 * k + Math.sin(k * 30) * 0.05; } }); }
+    else if (kind === "line") { const L = Math.min(16, d + 4), ln = new THREE.Mesh(new THREE.PlaneGeometry(2.6, L), additive(0xff2d4d, 0.3)); ln.rotation.x = -Math.PI / 2; ln.rotation.z = Math.atan2(dir.x, dir.z); const mid = m.g.position.clone().addScaledVector(dir, L / 2); ln.position.copy(mid).setY(0.08); add(ln); c.L = L; fx.push({ o: ln, life: c.wind, t: 0, onTick: (k) => { ln.material.opacity = 0.1 + 0.32 * k + Math.sin(k * 30) * 0.05; } }); }
+    else if (kind === "rain") { c.spots = []; for (let i = 0; i < (m.rage ? 6 : 4); i++) { const at = i === 0 ? me.clone() : me.clone().add(new V3((Math.random() - 0.5) * 9, 0, (Math.random() - 0.5) * 9)); at.y = 0; c.spots.push(at); warnDisc(at, 2.3, c.wind); } }
+    m.cast = c; m.e.play("Attack", { once: true, fade: 0.1 }); Snd.warn && Snd.warn();
+    return true;
+  }
+  function endCast(m) { m.cast = null; m.g.scale.copy(ONE); }
+  function strike(m, c) {
+    ctx.here(me);
+    const can = () => !down && guardT <= 0 && ctx.hopY() < 0.8;
+    if (c.kind === "slam") { slam(m); ctx.buzz && ctx.buzz(80); return; }
+    if (c.kind === "cone") {
+      for (let i = 0; i < 18; i++) { const a = Math.atan2(c.dir.z, c.dir.x) + (Math.random() - 0.5) * 1.2, r = 2 + Math.random() * 7; puff(m.g.position.clone().add(new V3(Math.cos(a) * r, 0.6, Math.sin(a) * r)), m.zone ? m.zone.color : 0xff6a4a, { n: 2, speed: 3, size: 0.8, life: 0.5, grav: -1 }); }
+      ctx.shake(0.3); tmp.copy(me).sub(m.g.position).setY(0); const dd = tmp.length();
+      if (dd < 9.5 && tmp.normalize().dot(c.dir) > Math.cos(0.62) && can()) { ctx.knock(tmp, 10); ctx.hurt(); damage(hitDamage(Math.round(m.atk * 1.25), stats().def)); ctx.buzz && ctx.buzz(60); }
+      return;
+    }
+    if (c.kind === "line") { const a = m.g.position.clone(), b = a.clone().addScaledVector(c.dir, c.L - 1); if (ctx.blocked(b)) b.copy(a).addScaledVector(c.dir, (c.L - 1) * 0.5); m.dash = { a, b, t: 0, hit: false }; Snd.dash && Snd.dash(); return; }
+    if (c.kind === "rain") for (const at of c.spots) { puff(at.clone().setY(0.5), 0xff6a4a, { n: 14, speed: 6, size: 0.5, life: 0.5, grav: 2 }); ring(at, 0xff4d6d, { r0: 0.3, r1: 2.6, life: 0.35, y: 0.1 }); if (can() && Math.hypot(me.x - at.x, me.z - at.z) < 2.3) { ctx.hurt(); damage(hitDamage(Math.round(m.atk * 0.9), stats().def)); ctx.buzz && ctx.buzz(50); } }
+  }
+  // half its HP gone: the boss roars, glows red, moves and strikes faster, and calls two helpers
+  function enrage(m) {
+    m.rage = true; ctx.toast(T("{x} is enraged!", { x: m.bossName })); Snd.roar && Snd.roar(); ctx.shake(0.5); ctx.buzz && ctx.buzz(120);
+    ring(m.g.position, 0xff2d4d, { r0: 1, r1: 12, life: 0.9, y: 0.15 }); flash(m.g.position.clone().setY(2), 0xff4d6d, 8, 0.4);
+    const aura = new THREE.Sprite(spriteMat(0xff2d4d, 0.5)); aura.scale.setScalar(9); aura.position.y = 2.4; m.g.add(aura); m.rageAura = aura;
+    m.glow = 0.6; m.zone && (m.spec = { ...m.spec, color: "#ff2d4d" });
+    if (m.zone) for (let i = 0; i < 2; i++) { const a = Math.random() * TAU; spawnMob({ type: m.zone.mobs[i % m.zone.mobs.length], lv: Math.max(1, m.lv - 4), zone: m.zone, at: m.g.position.clone().add(new V3(Math.cos(a) * 5, 0, Math.sin(a) * 5)) }); }
+    bossEl.classList.add("rage");
+  }
+
+  // ---------------- the scammers' own ways (from level 8): spam bots shoot spam from a distance, rug gremlins charge,
+  // a golden scammer runs ----------------
+  const mshots = [];
+  const envGeo = new THREE.BoxGeometry(0.55, 0.36, 0.06), envMat = new THREE.MeshStandardMaterial({ color: 0xf4f6fa, emissive: 0xff4d6d, emissiveIntensity: 0.5, roughness: 0.5 });
+  function behave(m, dt, t, d, i) {
+    if (m.rank === "boss" || m.raid) return false;
+    const face = () => { m.g.rotation.y = Math.atan2(tmp.x, tmp.z); };
+    if (m.rare) {
+      if ((m.rare -= dt) <= 0) { puff(m.g.position.clone().setY(0.8), 0xffc861, { n: 20, speed: 4, size: 0.4, life: 0.7, grav: -2 }); ctx.float(T("It got away"), m.g.position.clone().setY(2.6), "#ffd27a"); root.remove(m.g); mobs.splice(i, 1); return true; }
+      if (d < 14) { tmp.copy(m.g.position).sub(me).setY(0).normalize(); if (!tryStep(m, tmp, m.spec.speed * (m.slow > 0 ? 0.35 : 1) * dt)) { tmp2.set(-tmp.z, 0, tmp.x); tryStep(m, tmp2, m.spec.speed * dt); } face(); m.g.position.y = Math.abs(Math.sin(t * 9 + i)) * 0.2; if (m.zone && Math.hypot(m.g.position.x - m.zone.x, m.g.position.z - m.zone.z) > m.zone.r) { tmp.set(m.zone.x - m.g.position.x, 0, m.zone.z - m.g.position.z).normalize(); m.g.position.addScaledVector(tmp, m.spec.speed * dt * 2); } return true; }
+      return false;
+    }
+    if (m.lv < 8) return false;
+    if (m.spec.id === "spam") { // keeps its distance and throws spam mail
+      m.shotT = (m.shotT ?? 1.5 + Math.random() * 2) - dt;
+      if (d > 11) return false;
+      tmp.copy(me).sub(m.g.position).setY(0).divideScalar(d || 1);
+      if (d < 5.5) { tmp2.copy(tmp).negate(); tryStep(m, tmp2, m.spec.speed * 0.8 * (m.slow > 0 ? 0.35 : 1) * dt); }
+      else { tmp2.set(-tmp.z, 0, tmp.x).multiplyScalar(Math.sin(t * 0.7 + i) > 0 ? 1 : -1); tryStep(m, tmp2, m.spec.speed * 0.35 * dt); }
+      face(); m.g.position.y = Math.abs(Math.sin(t * 6 + i)) * 0.12;
+      if (m.shotT <= 0.35 && !m.aimed) { m.aimed = true; m.hitT = 0.12; }
+      if (m.shotT <= 0) { m.shotT = 2.6 + Math.random() * 1.2; m.aimed = false; const env = new THREE.Mesh(envGeo, envMat); env.position.copy(m.g.position).setY(1.1); add(env); mshots.push({ o: env, v: tmp.clone().multiplyScalar(9), life: 1.7, dmg: hitDamage(Math.round(m.atk * 0.8), stats().def) }); m.e.play("Attack", { once: true, fade: 0.05 }); }
+      return true;
+    }
+    if (m.spec.id === "rug" && m.lv >= 12) { // winds up, then charges in a straight line
+      m.dashCd = (m.dashCd ?? 2 + Math.random() * 3) - dt;
+      if (m.wind) { m.wind.t += dt; m.g.position.x += Math.sin(t * 60) * 0.02; if (m.wind.t >= 0.55) { m.rush = { a: m.g.position.clone(), b: m.g.position.clone().addScaledVector(m.wind.dir, 8), t: 0, hit: false }; m.wind = null; } return true; }
+      if (m.rush) { const r = m.rush; r.t += dt; const k = Math.min(1, r.t / 0.3); tmp2.lerpVectors(r.a, r.b, k); if (!ctx.blocked(tmp2)) m.g.position.copy(tmp2); else k < 1 && (r.t = 1);
+        if (!r.hit && !down && guardT <= 0 && ctx.hopY() < 0.8 && Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) < 1.4) { r.hit = true; tmp.copy(me).sub(m.g.position).setY(0).normalize(); ctx.knock(tmp, 9); ctx.hurt(); damage(hitDamage(Math.round(m.atk * 1.2), stats().def)); ctx.buzz && ctx.buzz(40); }
+        if (r.t >= 0.3) { m.rush = null; m.dashCd = 4.5 + Math.random() * 2.5; } return true; }
+      if (m.dashCd <= 0 && d > 4 && d < 9) { tmp.copy(me).sub(m.g.position).setY(0).normalize(); face(); m.wind = { t: 0, dir: tmp.clone() };
+        const ln = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 8), additive(0xff2d4d, 0.25)); ln.rotation.x = -Math.PI / 2; ln.rotation.z = Math.atan2(tmp.x, tmp.z); ln.position.copy(m.g.position).addScaledVector(tmp, 4).setY(0.08); add(ln); fx.push({ o: ln, life: 0.55, t: 0, onTick: (k) => { ln.material.opacity = 0.1 + 0.25 * k; } }); return true; }
+    }
+    return false;
+  }
+  function tickMShots(dt) {
+    ctx.here(me);
+    for (let i = mshots.length - 1; i >= 0; i--) {
+      const s = mshots[i]; s.life -= dt; s.o.position.addScaledVector(s.v, dt); s.o.rotation.y += dt * 8; s.o.rotation.x = Math.sin(s.life * 10) * 0.3;
+      const hitMe = !down && Math.hypot(me.x - s.o.position.x, me.z - s.o.position.z) < 0.9 && ctx.hopY() < 1.2;
+      if (hitMe || s.life <= 0) {
+        root.remove(s.o); mshots.splice(i, 1);
+        if (hitMe) { if (buffs.shield > 0 || guardT > 0) { flash(me.clone().setY(1.2), 0x4fa8ff, 2.4, 0.25); if (guardT > 0) ctx.float(T("Dodged"), me.clone().setY(2.6), "#9fe6ff"); } else { ctx.hurt(); damage(s.dmg); ctx.buzz && ctx.buzz(30); } puff(s.o.position.clone(), 0xff8fa0, { n: 8, speed: 3, size: 0.3, life: 0.4 }); }
+      }
+    }
+  }
+
+  // ---------------- the charged attack: hold the attack, let go when the ring is full ----------------
+  // swords spin all round, the hammer quakes and stuns, the blaster fires a beam, the bow a piercing arrow, the staff a field
+  const CHARGE = [{ name: "Whirlwind" }, { name: "Quake" }, { name: "Beam" }, { name: "Piercing arrow" }, { name: "Arcane field" }];
+  const chg = { on: false, t: 0, ring: null, full: false, tick: 0 };
+  const CHG_START = 0.3, CHG_FULL = 0.8, CHG_SP = 12;
+  function chargeStart() { if (!ctx.active()) return; chg.on = true; chg.t = 0; chg.full = false; chg.tick = 0; }
+  function chargeTick(dt) {
+    if (!chg.on) return;
+    chg.t += dt; const k = Math.max(0, Math.min(1, (chg.t - CHG_START) / CHG_FULL));
+    if (chg.t >= CHG_START && !chg.ring) { const r = new THREE.Group(), a = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: 0x8fe6ff, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false })); a.rotation.x = Math.PI / 2; r.add(a); const f = new THREE.Mesh(new THREE.RingGeometry(0.2, 1.4, 48, 1, 0, 0.01), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false })); f.rotation.x = -Math.PI / 2; r.add(f); r.userData = { a, f }; add(r); chg.ring = r; }
+    if (!chg.ring) return;
+    ctx.here(me); chg.ring.position.copy(me).setY(0.12);
+    const { a, f } = chg.ring.userData; f.geometry.dispose(); f.geometry = new THREE.RingGeometry(0.2, 1.4, 48, 1, Math.PI / 2, Math.max(0.01, k * TAU));
+    a.material.color.set(k >= 1 ? 0xffc861 : 0x8fe6ff); a.scale.setScalar(1 + (k >= 1 ? Math.sin(chg.t * 18) * 0.05 : 0));
+    if ((chg.tick -= dt) <= 0 && k < 1) { chg.tick = 0.12; Snd.charge && Snd.charge(k); if (!ctx.reduce) puff(me.clone().add(new V3((Math.random() - 0.5) * 3, 0.4, (Math.random() - 0.5) * 3)), 0x8fe6ff, { n: 1, speed: 0.5, size: 0.25, life: 0.3, grav: -2 }); }
+    if (k >= 1 && !chg.full) { chg.full = true; ring(me, 0xffc861, { r0: 0.5, r1: 2, life: 0.3, y: 0.1 }); Snd.pop && Snd.pop(); }
+  }
+  function chargeEnd(fire = true) {
+    if (!chg.on) return false; chg.on = false;
+    const k = Math.max(0, Math.min(1, (chg.t - CHG_START) / CHG_FULL));
+    if (chg.ring) { root.remove(chg.ring); chg.ring.traverse((o) => { o.geometry && o.geometry.dispose(); o.material && o.material.dispose(); }); chg.ring = null; }
+    if (!fire || k < 0.5 || !ctx.active()) return false;
+    if (sp < CHG_SP) { ctx.toast(T("Not enough SP")); return false; }
+    sp -= CHG_SP; paintVit(); charged(0.75 + k * 0.5); return true;
+  }
+  function charged(power) {
+    const kind = wKind(), base = stats().atk * power, col = wColor().getHex();
+    ctx.here(me); fwdOf(fwd); cd.attack = 0.6; Snd.charged && Snd.charged(); ctx.buzz && ctx.buzz(25); ctx.shake(0.3); ctx.punch && ctx.punch();
+    if (rpg.swing) rpg.swing(true);
+    const av = ctx.avatar(); if (av) av.play("pick-up", { once: true, fade: 0.04, speed: 2.2 });
+    ctx.float(T(CHARGE[kind].name), me.clone().setY(3), "#ffd27a", true);
+    let n = 0; const hitAll = (test, mult, k2) => { for (const m of mobs) { if (m.dead) continue; if (test(m)) { const c = critRoll(); hit(m, base * mult * (c ? 1.8 : 1), me, k2 || "heavy", c); n++; } } };
+    if (kind === 0) { // whirlwind
+      for (let i = 0; i < 2; i++) { const blade = new THREE.Mesh(new THREE.RingGeometry(1.6, 3.6, 48, 1, 0, TAU * 0.8), additive(i ? col : 0xffffff, i ? 0.5 : 0.8)); blade.material.side = THREE.DoubleSide; blade.rotation.x = -Math.PI / 2; blade.position.copy(me).setY(0.9 + i * 0.25); add(blade); fx.push({ o: blade, life: 0.4, t: 0, op0: i ? 0.5 : 0.8, onTick: (k) => { blade.rotation.z = k * 9 * (i ? -1 : 1); blade.scale.setScalar(0.8 + k * 0.4); } }); }
+      hitAll((m) => m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 3.8 + (m.rank === "boss" ? 2 : 0), 2.0);
+    } else if (kind === 1) { // quake
+      ring(me, 0xffc861, { r0: 0.5, r1: 7, life: 0.6, y: 0.12 }); ring(me, 0xffffff, { r0: 0.3, r1: 5, life: 0.45, y: 0.14 }); if (VX) VX.impact(me.clone().setY(0.3), "meteor", { big: 1.2 }); shards(me.clone().setY(0.3), 0x8a6a4a, 24, 9); ctx.shake(0.55);
+      hitAll((m) => m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 6.5 + (m.rank === "boss" ? 2 : 0), 2.4);
+      for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 6.5) m.stun = Math.max(m.stun, m.rank === "boss" ? 0.3 : 1.0);
+    } else if (kind === 2 || kind === 3) { // beam / piercing arrow: everything on the line
+      aim(fwd); const L = kind === 2 ? 16 : 22, w = kind === 2 ? 1.4 : 1.0;
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(kind === 2 ? 0.35 : 0.12, kind === 2 ? 0.35 : 0.12, L, 12, 1, true), additive(kind === 2 ? 0x8fe6ff : col, 0.85)); beam.rotation.x = Math.PI / 2; const bg = new THREE.Group(); bg.add(beam); beam.position.z = L / 2; bg.position.copy(me).setY(1.1); bg.rotation.y = Math.atan2(fwd.x, fwd.z); add(bg);
+      fx.push({ o: bg, life: kind === 2 ? 0.35 : 0.25, t: 0, onTick: (k) => { beam.material.opacity = 0.85 * (1 - k); beam.scale.x = beam.scale.z = 1 + k * (kind === 2 ? 1.5 : 0.5); } });
+      hitAll((m) => { tmp.copy(m.g.position).sub(me).setY(0); const pr = tmp.dot(fwd); if (pr < 0 || pr > L) return false; return tmp.addScaledVector(fwd, -pr).length() < w + (m.rank === "boss" ? 1.6 : 0); }, kind === 2 ? 2.2 : 2.5, "melee");
+    } else { // arcane field
+      const tg = aim(fwd), at = tg ? tg.g.position.clone().setY(0) : me.clone().addScaledVector(fwd, 6).setY(0);
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(4.2, 48), additive(0xb48cff, 0.4)); disc.rotation.x = -Math.PI / 2; disc.position.copy(at).setY(0.09); add(disc); fx.push({ o: disc, life: 0.9, t: 0, op0: 0.4, onTick: (k) => { disc.scale.setScalar(0.4 + Math.min(1, k * 3) * 0.6); } });
+      ring(at, 0xd8c4ff, { r0: 0.5, r1: 4.4, life: 0.5, y: 0.12 }); if (VX) VX.impact(at.clone().setY(0.4), "shock", { big: 1.6 });
+      hitAll((m) => m.g.position.distanceTo(tmp.copy(at).setY(m.g.position.y)) < 4.2 + (m.rank === "boss" ? 1.6 : 0), 2.1, "melee");
+      for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(at).setY(m.g.position.y)) < 4.2) m.slow = Math.max(m.slow, 3);
+    }
+    if (n) stopT = Math.max(stopT, 0.08);
+    return true;
+  }
+
   // ---------------- the boss bar and the zone banner ----------------
   const bossEl = document.createElement("div"); bossEl.className = "wc-boss"; bossEl.id = "wc-boss"; bossEl.hidden = true; bossEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bossEl);
-  function bossBar(m) { bossEl.hidden = false; bossEl.classList.toggle("raid", !!m.raid); bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
+  function bossBar(m) { bossEl.hidden = false; bossEl.classList.toggle("raid", !!m.raid); bossEl.classList.toggle("rage", !!m.rage); bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
   function hideBossBar() { bossEl.hidden = true; }
   const zoneEl = document.createElement("div"); zoneEl.className = "wc-zone"; zoneEl.id = "wc-zone"; zoneEl.hidden = true; zoneEl.setAttribute("data-no-i18n", ""); (document.querySelector(".wp-hud-r") || document.body).appendChild(zoneEl); // under the minimap
   const bannerEl = document.createElement("div"); bannerEl.className = "wc-banner"; bannerEl.hidden = true; bannerEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bannerEl);
@@ -678,7 +849,7 @@ export function createCombat(ctx) {
       return;
     }
     closePick();
-    if (id === "attack") attack(); else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
+    if (id === "attack") { attack(); chargeStart(); } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
     b.classList.remove("press"); void b.offsetWidth; b.classList.add("press");
   });
   slotBtn.addEventListener("pointerup", (e) => {
@@ -686,6 +857,9 @@ export function createCombat(ctx) {
     closePick(); const s = slotSkill(); cast(s.id); slotBtn.classList.remove("press"); void slotBtn.offsetWidth; slotBtn.classList.add("press");
   });
   slotBtn.addEventListener("pointercancel", () => clearTimeout(holdT));
+  const atkBtn = bar.querySelector('[data-skill="attack"]'); // holding the attack button charges it; letting go fires
+  atkBtn.addEventListener("pointerup", () => chargeEnd()); atkBtn.addEventListener("pointercancel", () => chargeEnd(false)); atkBtn.addEventListener("lostpointercapture", () => chargeEnd());
+  atkBtn.addEventListener("contextmenu", (e) => e.preventDefault());
   slotBtn.addEventListener("contextmenu", (e) => e.preventDefault());
   function paintSkills() {
     const s = slotSkill(), n = learned().length;
@@ -735,6 +909,7 @@ export function createCombat(ctx) {
     ghostHp = Math.max(ghostHp, hp); hp = Math.max(0, hp - n); calmT = 4; paintVit();
     vit.classList.remove("hit"); void vit.offsetWidth; vit.classList.add("hit");
     ctx.float("-" + n, tmp2.copy(me).setY(2.6), "#ff5f73", n > maxHp() * 0.2);
+    ctx.buzz && ctx.buzz(n > maxHp() * 0.2 ? 60 : 25);
     if (hp <= 0) goDown();
   }
   const dead = document.createElement("div"); dead.className = "wc-dead"; dead.id = "wc-dead"; dead.hidden = true; dead.setAttribute("role", "alertdialog"); dead.setAttribute("aria-modal", "true"); dead.setAttribute("data-no-i18n", "");
@@ -787,7 +962,12 @@ export function createCombat(ctx) {
     const z = zone;
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
-      if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) { const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)); spawnMob({ type: z.mobs[Math.floor(Math.random() * z.mobs.length)], lv, rank: Math.random() < (z.elite || 0.12) ? "elite" : "", zone: z }); } }
+      if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) {
+        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) ? "elite" : "", rare = !rank && Math.random() < 0.03;
+        const m0 = spawnMob({ type, lv, rank, zone: z, rare });
+        // in the far ring the fake airdrops come in threes
+        if (m0 && type === "drop" && z.lv[0] >= 30 && !rare && alive <= 2) for (let k = 0; k < 2; k++) { const a = Math.random() * TAU; spawnMob({ type, lv, zone: z, at: m0.g.position.clone().add(new V3(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2)) }); }
+      } }
       const next = bossAt()[z.id] || 0;
       if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + BOSS_EVERY); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
     } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid())) {
@@ -819,7 +999,7 @@ export function createCombat(ctx) {
       if (Math.floor(h0) !== Math.floor(hp) || Math.floor(s0) !== Math.floor(sp)) paintVit();
       if (hp / mh < 0.3 && ctx.inHub()) { heartT -= dt; if (heartT <= 0) { heartT = 0.85; Snd.heart && Snd.heart(); } }
     }
-    tickFx(dt);
+    tickFx(dt); chargeTick(dt);
     if (stopT > 0) { stopT -= dt; return; } // hit-stop: everything in the fight holds still for a beat
     tickShots(dt);
     if (!ctx.inHub()) { root.visible = false; zoneEl.hidden = true; bossEl.hidden = true; edgeEl.hidden = true; return; } // an island or a sheet: the boss bar steps away too
@@ -830,13 +1010,13 @@ export function createCombat(ctx) {
       paintZone(); edgeEl.hidden = !(zone && ctx.level() < zone.lv[0]); edgeEl.classList.toggle("deadly", !!zone && ctx.level() < zone.lv[0] - 10);
       const bm = mobs.find((m) => m.rank === "boss" && !m.dead); if (bm && bossEl.hidden) bossBar(bm); else if (!bm && !bossEl.hidden) hideBossBar();
     }
-    tickMobs(dt, t); tickItems(dt, t); tickDrops(dt, t);
+    tickMobs(dt, t); tickMShots(dt); tickItems(dt, t); tickDrops(dt, t);
     if (!on) return;
     spawnTick(dt);
     if ((itemT -= dt) <= 0) { itemT = 5 + Math.random() * 6; if (items.length < 7) spawnItem(); }
   }
-  function keyDown(k) {
-    if (k === "j") return attack();
+  function keyDown(k, repeat) {
+    if (k === "j") { if (repeat) return true; attack(); chargeStart(); return true; } // held: the charge (keyUp lets it go)
     if (k === "k") return dodge() || true;
     if (k === "q") return nextSkill() || true;
     if (k === "4") return drink("hp") || true;
@@ -844,9 +1024,10 @@ export function createCombat(ctx) {
     if (k === "z") { const s = slotSkill(); if (s) cast(s.id); else ctx.toast(T("Your first skill opens at level 10")); return true; }
     return false;
   }
+  function keyUp(k, cancel) { if (k === "j") chargeEnd(!cancel); }
   let lastLv = ctx.level();
   function onLevel(n, before) {
-    paintSkills(); hp = maxHp(); sp = maxSp(); ghostHp = hp; paintVit(); paintPots();
+    paintSkills(); hp = maxHp(); sp = maxSp(); ghostHp = hp; paintVit(); paintPots(); ctx.buzz && ctx.buzz([20, 30, 60]);
     ctx.here(me); pillar(me, 0xffb347, 16, 1.6, 1.1); ring(me, 0xffc861, { r0: 0.4, r1: 5, life: 0.9, y: 0.15 }); puff(me.clone().setY(1.2), 0xffe08a, { n: 30, speed: 6, size: 0.4, life: 1.2, grav: -2 });
     if (before) { const now = stats(); [["atk", "Attack"], ["def", "Defense"], ["hp", "Max HP"], ["sp", "Max SP"]].forEach(([k, n], i) => { const d = now[k] - before[k]; if (d > 0) setTimeout(() => ctx.float(`${T(n)} +${d}`, me.clone().setY(2.8 + i * 0.1), "#ffe08a"), 500 + i * 260); }); }
     const s = SKILLS.filter((x) => x.lv > lastLv && x.lv <= n).pop(); lastLv = n;
@@ -854,10 +1035,10 @@ export function createCombat(ctx) {
   }
   return {
     bosses: () => mobs.filter((m) => m.rank === "boss" && !m.dead && m.zone).map((m) => m.zone.id),
-    potsCheck, tick, keyDown, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
+    potsCheck, tick, keyDown, keyUp, chargeStart, chargeEnd, charged, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
-    spawnMob, spawnItem, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z })), items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
+    spawnMob, spawnItem, mobsRaw: () => mobs, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z, cast: m.cast ? m.cast.kind : m.dash ? "dash" : m.rush ? "rush" : m.wind ? "wind" : "", rage: !!m.rage, rare: !!m.rare })), mshots: mshots.length, charging: chg.on, items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
     spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd);
       // in front of you; with free, turned aside when that spot is inside something (the fountain, a hall)
       let at = null; for (const turn of o.free ? [0, 0.7, -0.7, 1.4, -1.4, 2.2, -2.2, Math.PI] : []) { const d = fwd.clone().applyAxisAngle(UP, turn), c = me.clone().addScaledVector(d, dist).setY(0); if (!ctx.blocked(c)) { at = c; break; } }

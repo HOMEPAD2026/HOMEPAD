@@ -2,7 +2,7 @@
 // a tinted ground with a glowing border, a gate facing the plaza with the name and levels, and props that set the
 // mood — crates and spam signs, gift boxes in a field, a swamp, red rock spires, dark crystals. Inside a ground the
 // fog turns to its colour (world-play.js asks zoneAt()).
-import { ZONES, zoneAt } from "./world-rpg-data.js";
+import { ZONES, zoneAt, pondOf } from "./world-rpg-data.js";
 import { farProps } from "./world-zones-far.js";
 export { ZONES, zoneAt };
 
@@ -11,7 +11,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false }) {
   const rnd = (seed) => { let a = seed; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; };
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, flatShading: true, ...o });
   const glowM = (c, k = 2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
-  const spins = [], signs = [], gates = [];
+  const spins = [], signs = [], gates = [], lazy = [];
   ZONES.forEach((zn, zi) => {
     const g = new THREE.Group(); g.position.set(zn.x, 0, zn.z); root.add(g);
     const r = rnd(97 + zi * 13);
@@ -25,8 +25,11 @@ export function makeZones({ THREE, K, planet, kit, T, low = false }) {
     const gate = K.makeArch(zn.color); gate.scale.setScalar(1.25); gate.position.set(Math.sin(toPlaza) * zn.r, 0, Math.cos(toPlaza) * zn.r); gate.rotation.y = toPlaza; gate.userData.keep = true; g.add(gate); gates.push(gate);
     const sign = K.label(zn.name, { accent: "#" + new THREE.Color(zn.color).getHexString(), size: 1.0, sub: T("Level {a}–{b}", { a: zn.lv[0], b: zn.lv[1] }) }); sign.position.set(gate.position.x, 7.6, gate.position.z); g.add(sign); signs.push({ sign, x: zn.x + gate.position.x, z: zn.z + gate.position.z });
     // props
-    const prop = (mesh, x, z, ry = r() * 6) => { mesh.position.set(x, mesh.position.y, z); mesh.rotation.y = ry; mesh.traverse((o) => { if (o.isMesh) o.castShadow = true; }); g.add(mesh); return mesh; };
-    const spot = (minR = 4) => { for (let k = 0; k < 20; k++) { const a = r() * Math.PI * 2, d = minR + r() * (zn.r - minR - 2); const x = Math.cos(a) * d, z = Math.sin(a) * d; if (Math.hypot(x - gate.position.x, z - gate.position.z) > 6) return [x, z]; } return [0, 0]; };
+    // a far ground's props go in a group of their own, built only when you come near (faster start, fewer draw calls)
+    const pg = zn.deco ? new THREE.Group() : g; if (pg !== g) { pg.name = "props"; g.add(pg); }
+    const prop = (mesh, x, z, ry = r() * 6) => { mesh.position.set(x, mesh.position.y, z); mesh.rotation.y = ry; mesh.traverse((o) => { if (o.isMesh) o.castShadow = true; }); pg.add(mesh); return mesh; };
+    const pd = pondOf(zn), pdx = pd ? pd.x - zn.x : 0, pdz = pd ? pd.z - zn.z : 0; // the fishing pond stays clear
+    const spot = (minR = 4) => { for (let k = 0; k < 20; k++) { const a = r() * Math.PI * 2, d = minR + r() * (zn.r - minR - 2); const x = Math.cos(a) * d, z = Math.sin(a) * d; if (Math.hypot(x - gate.position.x, z - gate.position.z) > 6 && (!pd || Math.hypot(x - pdx, z - pdz) > pd.r + 2.5)) return [x, z]; } return [0, 0]; };
     if (zn.id === "spam") {
       for (let i = 0; i < 9; i++) { const [x, z] = spot(); const c = kit && K.prop(kit, ["Crate", "CrateLarge", "CrateTarp", "Barrel"][i % 4], { s: 1.6 + r() }); if (c) prop(c, x, z); }
       for (let i = 0; i < 4; i++) { const [x, z] = spot(6); const s = K.label(["FREE $$$", "CLICK HERE", "YOU WON", "DM ME"][i], { accent: "#ff4d6d", color: "#ffc861", size: 0.7 }); s.position.set(x, 3.2, z); g.add(s); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3, 6), std(0x2a3442)); pole.position.set(x, 1.5, z); g.add(pole); }
@@ -46,7 +49,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false }) {
       for (let i = 0; i < 14; i++) { const [x, z] = spot(2); const c = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.1, 5), glowM(0x8a5cff, 1.2)); c.position.y = 0.5; prop(c, x, z); }
     }
     // the far ring (Lv 30–100): each ground's own scene (world-zones-far.js)
-    else if (zn.deco) farProps({ THREE, K, zn, g, r, prop, spot, std, glowM, spins, low });
+    else if (zn.deco) lazy.push({ zn, g, built: false, build: () => { farProps({ THREE, K, zn, g: pg, r, prop, spot, std, glowM, spins, low }); if (K.mergeStatic) K.mergeStatic(pg); } });
     // the props never move: merge the ones that look alike into one mesh each (hundreds of draw calls fewer)
     if (K.mergeStatic) K.mergeStatic(g);
     g.userData = { zone: zn, border };
@@ -54,5 +57,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false }) {
   });
   // a gate's sign right over your head would sit on top of the HUD: it fades out while you stand under it
   const fadeSigns = () => { const px = -planet.position.x, pz = -planet.position.z; for (const s of signs) { const d = Math.hypot(s.x - px, s.z - pz), k = Math.max(0, Math.min(1, (d - 6) / 6)); s.sign.material.opacity = k; s.sign.visible = k > 0.02; } };
-  return { root, gates, update: (dt, t) => { spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt };
+  // the far grounds come together when you're within 70 m of one (one a frame, so a fly-by never stalls)
+  const buildNear = (all) => { const px = -planet.position.x, pz = -planet.position.z; for (const l of lazy) { if (l.built) continue; if (all || Math.hypot(l.zn.x - px, l.zn.z - pz) < l.zn.r + 70) { l.built = true; l.build(); if (!all) return; } } };
+  return { root, gates, update: (dt, t) => { buildNear(false); spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt, buildAll: () => buildNear(true), built: () => lazy.filter((l) => l.built).map((l) => l.zn.id) };
 }

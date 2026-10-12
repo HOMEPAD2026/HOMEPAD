@@ -12,6 +12,7 @@
 // (that order is the time-lapse). TYPES is append-only: a brick's kind is its index.
 import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
+import { createShowcase } from "./world-showcase.js";
 
 export const ISLAND_N = 36, LOT_N = 9, HMAX = 24, MAX_BRICKS = 12000;
 export const COLORS = [
@@ -227,6 +228,9 @@ export function createIsland(ctx) {
   const brickRoot = new THREE.Group(); root.add(brickRoot);
   let set = brickSet(brickRoot, N);
   const land = new THREE.Group(); root.add(land);
+  // beside your own island: the aquarium and the boss trophies (world-showcase.js)
+  const show = ctx.showcase ? createShowcase({ THREE, K, T, fishList: ctx.showcase.fish, zones: ctx.showcase.zones, fish3d: ctx.showcase.fish3d }) : null;
+  if (show) root.add(show.group);
   const ghostRoot = new THREE.Group(); root.add(ghostRoot);
   const fxRoot = new THREE.Group(); root.add(fxRoot);
   const gridTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 64, 64); g.strokeStyle = "rgba(0,0,0,.16)"; g.lineWidth = 2; g.strokeRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; })();
@@ -683,6 +687,7 @@ export function createIsland(ctx) {
     undo.length = 0; redo.length = 0; anims.length = 0;
     residents.splice(0).forEach((r) => root.remove(r.g)); lastDoors = bricks.filter((b) => TYPES[b.t].id === "door").length; syncResidents(false);
     root.visible = true; active = true; ghostRoot.visible = false; applyTheme(theme);
+    if (show) { if (kind === "home" && !readOnly) show.build(ctx.showcase.data() || {}, N + 6); else show.clear(); }
     ctx.goTo(ISLE.clone().add(new V3(-N / 2 + 3.5, 0, N / 2 - 3.5)), Math.PI * 0.75);
     setSave(kind === "lot" || readOnly ? "" : sess() ? T("Saved to your wallet") : T("Saved in this browser"));
     paintHud(); document.body.classList.add("wi-on"); document.body.classList.toggle("wi-visit", readOnly);
@@ -934,7 +939,7 @@ export function createIsland(ctx) {
     near(consider) { consider(exit, "isle-exit", {}, 2.6); residents.forEach((r) => consider(r.g, "resident", { res: r }, 1.8)); },
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
     mini(put) { put(exit, "#35d8d0", 6); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
-    tick(dt, t) { if (!active) return; tickAnims(); tickLapse(); tickResidents(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
+    showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
     openIsles, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };

@@ -2986,3 +2986,83 @@ html.wp-pcphone .wl-card{zoom:1.3;width:min(460px,calc((100vw - 24px) / 1.3))}
 @keyframes wcEdge{0%,100%{opacity:.6}50%{opacity:1}}
 html.wp-less .wc-edge{animation:none;opacity:.7}
 @media (prefers-reduced-motion:reduce){.wc-banner b i,.wc-banner hr{animation:none}.wc-edge{animation:none;opacity:.8}}
+
+/* v41: a boss's cut-in — black bars close in, a red band crosses with the name; its saying under the card's name */
+.wc-cutin{position:fixed;inset:0;z-index:21;pointer-events:none}
+.wc-cutin>i{position:absolute;left:0;right:0;height:11vh;background:#05060a;animation:wcBars 2.6s cubic-bezier(.2,.9,.3,1) forwards}
+.wc-cutin>i:first-child{top:0;transform-origin:top}.wc-cutin>i:nth-child(2){bottom:0;transform-origin:bottom}
+.wc-cutband{position:absolute;left:-10%;right:-10%;top:58%;height:58px;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,transparent,rgba(255,45,77,.85) 20%,rgba(255,45,77,.85) 80%,transparent);transform:skewY(-4deg);animation:wcBand 2.6s cubic-bezier(.2,.9,.3,1) forwards;overflow:hidden}
+.wc-cutband b{font:900 40px var(--f-ui);letter-spacing:.02em;color:#fff;white-space:nowrap;text-transform:none;opacity:.95}
+@keyframes wcBars{0%{transform:scaleY(0)}15%{transform:scaleY(1)}80%{transform:scaleY(1)}100%{transform:scaleY(0)}}
+@keyframes wcBand{0%{transform:skewY(-4deg) translateX(100%)}18%{transform:skewY(-4deg) translateX(0)}78%{transform:skewY(-4deg) translateX(-2%)}100%{transform:skewY(-4deg) translateX(-110%)}}
+.wc-bosscard i{font:italic 600 15px var(--f-ui);color:#ffd2da;opacity:.9}
+.wc-bosscard{animation-duration:3s}
+/* the boss bar when the boss is enraged */
+.wc-boss.rage{box-shadow:0 0 0 1px rgba(255,45,77,.7),0 0 26px rgba(255,45,77,.45);animation:wcRage 1.1s ease-in-out infinite}
+.wc-boss.rage b::after{content:" !";color:#ff4d6d}
+@keyframes wcRage{0%,100%{box-shadow:0 0 0 1px rgba(255,45,77,.7),0 0 18px rgba(255,45,77,.35)}50%{box-shadow:0 0 0 1px rgba(255,45,77,.9),0 0 34px rgba(255,45,77,.6)}}
+@media (max-width:640px){.wc-cutband{height:44px}.wc-cutband b{font-size:26px}}
+@media (prefers-reduced-motion:reduce){.wc-boss.rage{animation:none}}
+html.wp-less .wc-boss.rage{animation:none}
+
+/* v42: the workbench in three tabs — Make, Temper, Mastery — and the bag's filter */
+.wl-tabs{display:flex;gap:6px;margin:16px 0 4px;padding:4px;border-radius:14px;background:rgba(255,255,255,.04)}
+.wl-tabs button{flex:1;height:36px;border:0;border-radius:10px;background:none;color:rgba(222,233,244,.7);font:800 13px var(--f-ui);cursor:pointer}
+.wl-tabs button[aria-selected="true"]{background:rgba(56,232,255,.14);color:#fff;box-shadow:inset 0 0 0 1px rgba(56,232,255,.35)}
+.wl-tabs button:focus-visible{outline:2px solid #8fe6ff;outline-offset:1px}
+.wl-body{min-height:180px;max-height:min(52vh,460px);overflow:auto;padding-right:2px}
+.wl-recipes li p{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.wl-recipes li.no{opacity:.62}
+.wl-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:rgba(255,255,255,.05);font:700 12px var(--f-ui);color:#dfe8f2}
+.wl-chip i{width:8px;height:8px;border-radius:2px;background:var(--c)}
+.wl-chip.short{background:rgba(255,45,77,.12);color:#ffb3c0}
+.wl-temper{display:grid;grid-template-columns:92px 1fr;gap:14px;align-items:center;margin-top:12px}
+.wl-wpn{width:92px;height:92px;border-radius:16px;border:2px solid var(--rc);background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--rc) 30%,transparent),rgba(6,10,16,.9) 70%);display:grid;place-items:center}
+.wl-wpn img{width:84%;height:84%;object-fit:contain}
+.wl-temper b{display:block;font:800 16px var(--f-ui);color:#fff}
+.wl-temper small{display:block;margin-top:4px;font:600 12px/1.4 var(--f-ui);color:rgba(222,233,244,.62)}
+.wl-stars{display:flex;gap:5px;margin:8px 0 0}
+.wl-stars i,.wr-temper em i{width:14px;height:14px;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:rgba(255,255,255,.14)}
+.wl-stars i.on,.wr-temper em i.on{background:#ffc861;filter:drop-shadow(0 0 4px rgba(255,200,97,.8))}
+.wl-cost{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 12px}
+.wl-wide{width:100%}
+.wl-mastery{display:grid;gap:10px;margin-top:12px}
+.wl-mastery>div{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04)}
+.wl-mastery b{display:flex;justify-content:space-between;font:800 14px var(--f-ui);color:#fff}
+.wl-mastery b em{font-style:normal;color:#9fffd0}
+.wl-mastery i{display:block;height:6px;margin:8px 0 6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.wl-mastery u{display:block;height:100%;background:linear-gradient(90deg,#35d8d0,#9fffd0)}
+.wl-mastery small{font:600 12px var(--f-ui);color:rgba(222,233,244,.62)}
+.wl-body h3 small{font-weight:700;color:rgba(222,233,244,.55)}
+.wl-body h4{margin:12px 0 6px;font:800 12px var(--f-ui);color:rgba(222,233,244,.7)}
+.wl-foot{margin:14px 0 0;font:600 11px/1.4 var(--f-ui);color:rgba(222,233,244,.5)}
+.wl-made{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);padding:10px 18px;border-radius:14px;background:rgba(8,14,24,.92);border:1px solid var(--c);color:#fff;font:900 18px var(--f-ui);box-shadow:0 0 30px color-mix(in srgb,var(--c) 45%,transparent);pointer-events:none;animation:wlMade 1.3s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes wlMade{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%)}}
+.wr-tm{position:absolute;top:3px;left:5px;font:900 9px var(--f-ui);font-style:normal;letter-spacing:-.5px;color:#ffc861}
+.wr-temper{display:flex;align-items:center;gap:8px;margin:10px 0 0;font:700 12px var(--f-ui);color:rgba(222,233,244,.75)}
+.wr-temper em{display:flex;gap:3px}
+.wr-temper b{color:#ffc861}
+.wr-temper button{margin-left:auto;height:28px;padding:0 10px;border-radius:9px;border:1px solid rgba(56,232,255,.35);background:rgba(56,232,255,.08);color:#dff8ff;font:700 12px var(--f-ui);cursor:pointer}
+.wr-bagf{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.wr-bagf button{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:rgba(222,233,244,.75);font:700 12px var(--f-ui);cursor:pointer}
+.wr-bagf button[aria-pressed="true"]{border-color:rgba(56,232,255,.5);background:rgba(56,232,255,.12);color:#fff}
+.wr-cell.dim{opacity:.25}
+.wr-cell.new{position:relative}
+.wr-cell.new::after{content:"";position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#39ff88;box-shadow:0 0 8px #39ff88;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.wl-made{animation:none;opacity:0}}
+
+/* v43: the map's ring of hunting grounds — the ones right for your level ringed, you as a dot */
+.wp-ringmap{display:block;width:min(100%,340px);margin:4px auto 10px;overflow:visible}
+.wp-ringmap .orbit{fill:none;stroke:rgba(255,255,255,.08);stroke-dasharray:3 5}
+.wp-ringmap .town{fill:rgba(255,255,255,.1);stroke:rgba(255,255,255,.35)}
+.wp-ringmap text{font:800 11px var(--f-ui);fill:#fff;text-anchor:middle;pointer-events:none}
+.wp-ringmap .tn{font-size:9px;fill:rgba(255,255,255,.7)}
+.wp-ringmap .zn{cursor:pointer;outline:none}
+.wp-ringmap .zn circle{fill:color-mix(in srgb,var(--c) 30%,rgba(8,12,20,.8));stroke:var(--c);stroke-width:1.5}
+.wp-ringmap .zn.hard circle{fill:rgba(8,12,20,.85);stroke-dasharray:3 3;opacity:.7}
+.wp-ringmap .zn .halo{fill:none;stroke:#39ff88;stroke-width:2;animation:wpHalo 1.6s ease-in-out infinite}
+.wp-ringmap .zn:hover circle,.wp-ringmap .zn:focus-visible circle{stroke-width:3}
+.wp-ringmap .me{fill:#ffc861;stroke:#fff;stroke-width:1.5}
+@keyframes wpHalo{0%,100%{opacity:.45}50%{opacity:1}}
+.wp-fit{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:rgba(57,255,136,.14);border:1px solid rgba(57,255,136,.45);font:800 10px var(--f-ui);font-style:normal;color:#9fffd0;vertical-align:1px}
+@media (prefers-reduced-motion:reduce){.wp-ringmap .zn .halo{animation:none}}

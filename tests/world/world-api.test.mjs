@@ -99,5 +99,7 @@ check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({
   check(o && o.wear.head === "halo" && o.wear.aura === "rings" && !o.wear.back && !o.wear.hat && o.accent === "ffc861", "the wardrobe outfit is kept, cleaned " + JSON.stringify(o)); }
 { const r = cleanSave({ xpv: 2, rpg: { eq: { weapon: { id: "w0001", b: "weapon-2", r: 1, lv: 9, k: 3, lk: 1 }, shield: { id: "s0001", b: "shield-1", r: 0, lv: 3, k: 2 } }, bag: [{ id: "w0002", b: "weapon-0", r: 0, lv: 1, k: 9 }] } }).rpg;
   check(r.eq.weapon.k === 3 && r.eq.weapon.lk === 1 && !("k" in r.eq.shield) && !("k" in r.bag[0]), "a weapon keeps its kind and lock; bad kinds and kinds on other gear are dropped"); }
+{ const r = cleanSave({ xpv: 2, rpg: { eq: { weapon: { id: "w0001", b: "weapon-2", r: 1, lv: 9, tm: 3 }, shield: { id: "s0001", b: "shield-1", r: 0, lv: 3, tm: 2 } }, bag: [{ id: "w0002", b: "weapon-0", r: 0, lv: 1, tm: 9 }] } }).rpg;
+  check(r.eq.weapon.tm === 3 && !("tm" in r.eq.shield) && !("tm" in r.bag[0]), "a weapon keeps its temper stage (1–5); bad stages and stages on other gear are dropped"); }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

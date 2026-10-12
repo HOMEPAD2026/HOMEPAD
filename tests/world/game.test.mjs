@@ -1,7 +1,7 @@
 // game.test.mjs — the game's pure rules (no browser): the season, the quiz, fusion, the raid's twist, its calendar, the codex.
 // Run: node tests/world/game.test.mjs
 import { seasonOf, tierOf, SEASON_TIERS, quizFor, QUIZ } from "../../world-season.js";
-import { fuseResult, FUSE_MAX_R, xpNeed, xpAt, levelOfXp, xpFromOld, xpProgress, mobStats } from "../../world-rpg-data.js";
+import { fuseResult, FUSE_MAX_R, xpNeed, xpAt, levelOfXp, xpFromOld, xpProgress, mobStats, itemStats, temperCost, ZONES, pondOf } from "../../world-rpg-data.js";
 import * as SRV from "../../api/_world-social.mjs";
 import { RAID_MODS, raidModOf, raidIcs, phaseOf } from "../../world-social.js";
 import { CODEX, CODEX_STORY } from "../../world-quests.js";
@@ -55,6 +55,16 @@ const all = [...CODEX_STORY, ...CODEX];
 check(all.length === 15 && new Set(all.map((c) => c.id)).size === 15, "fifteen pages with their own ids");
 check(all.every((c) => c.name && c.line && c.beat), "every page says how the scam works and how to beat it");
 check(CODEX_STORY.every((c) => ["phisher", "airdrop", "honeypot", "doppel", "golem", "dragon"].includes(c.story)), "the story pages follow the six scammers");
+
+// tempering: each stage adds 4% to the weapon; the cost grows with the stage
+{ const a = itemStats({ b: "weapon-2", r: 1, lv: 20, p: 0 }).atk, b = itemStats({ b: "weapon-2", r: 1, lv: 20, p: 0, tm: 5 }).atk;
+  check(b > a && Math.abs(b / a - 1.2) < 0.05, "five temper stages add about 20% attack " + a + " → " + b);
+  check(temperCost(2).ore === 2 * temperCost(1).ore && temperCost(5).scrap === 100, "temper costs grow by the stage"); }
+// the far grounds' ponds sit inside their ground, clear of the gate side
+{ const far = ZONES.filter((z) => z.lv[0] >= 30); check(far.every((z) => { const p = pondOf(z); return p && Math.hypot(p.x - z.x, p.z - z.z) + p.r < z.r - 2; }), "each far ground has a pond inside it");
+  check(ZONES.filter((z) => z.lv[0] < 30).every((z) => !pondOf(z)), "the near grounds have none"); }
+// every boss has its saying
+check(ZONES.every((z) => z.boss && z.boss.line && z.boss.line.length < 60), "every boss has a short saying");
 
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1);

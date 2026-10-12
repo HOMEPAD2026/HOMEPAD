@@ -45,7 +45,9 @@ const ids = (a, re, max) => (Array.isArray(a) ? [...new Set(a.map(String).filter
 const cleanItem = (x) => (x && typeof x === "object" && /^[a-z0-9]{4,10}$/.test(String(x.id)) && /^(weapon|shield|armor|helm|ring|boots|necklace)-[0-4]$/.test(String(x.b))
   ? { id: String(x.id), b: String(x.b), r: Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0))), lv: Math.max(1, Math.min(100, Math.floor(Number(x.lv) || 1))), p: Math.max(0, Math.min(10, Math.floor(Number(x.p) || 0))),
       // a weapon's chosen kind (world-gear3d.js: 0 swords … 4 staff) and a piece's lock
-      ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.k) && x.k >= 0 && x.k <= 4 ? { k: x.k } : {}), ...(x.lk ? { lk: 1 } : {}) } : null);
+      ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.k) && x.k >= 0 && x.k <= 4 ? { k: x.k } : {}), ...(x.lk ? { lk: 1 } : {}),
+      // a weapon's temper stage (world-life.js workbench): 1–5
+      ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.tm) && x.tm >= 1 && x.tm <= 5 ? { tm: x.tm } : {}) } : null);
 const num = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 function cleanRpg(r) {
   if (!r || typeof r !== "object") return undefined;
