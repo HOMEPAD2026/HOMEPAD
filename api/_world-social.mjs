@@ -51,13 +51,28 @@ export const tagOf = (id) => { let h = 2166136261; for (const ch of String(id)) 
 // levels (the same numbers as world-rpg-data.js): the XP from one level to the next grows with the level. A save
 // without xpv: 2 still counts XP the old way (100 a level) until the game converts it (xpFromOld), so its level holds.
 export const XP_VERSION = 2;
-export const xpNeed = (lv) => 100 + 30 * (lv - 1) + (lv - 1) * (lv - 1);
-export const xpAt = (lv) => { const n = Math.max(0, Math.floor(lv) - 1); return 100 * n + 15 * n * (n - 1) + ((n - 1) * n * (2 * n - 1)) / 6; };
-export const levelOfXp = (xp) => { const v = Math.max(0, Number(xp) || 0); let lv = 1; while (lv < 200 && xpAt(lv + 1) <= v) lv++; return lv; };
+// Levels 1–200 keep the curve they always had; past 200 each level costs 150 XP more than the one before (about 46,000
+// at 200, 91,000 at 500), a long, steady climb to the cap. Nobody's level changes: below 200 the numbers are the same.
+export const LV_MAX = 500, LV_BEND = 200;
+const need0 = (lv) => 100 + 30 * (lv - 1) + (lv - 1) * (lv - 1);
+const at0 = (lv) => { const n = Math.max(0, Math.floor(lv) - 1); return 100 * n + 15 * n * (n - 1) + ((n - 1) * n * (2 * n - 1)) / 6; };
+export const xpNeed = (lv) => (lv < LV_BEND ? need0(lv) : need0(LV_BEND) + 150 * (lv - LV_BEND));
+export const xpAt = (lv) => { const L = Math.floor(lv); if (L <= LV_BEND) return at0(L); const m = L - LV_BEND; return at0(LV_BEND) + m * need0(LV_BEND) + 75 * m * (m - 1); };
+export const XP_MAX = xpAt(LV_MAX);
+export const levelOfXp = (xp) => { const v = Math.max(0, Number(xp) || 0); let lo = 1, hi = LV_MAX; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (xpAt(mid) <= v) lo = mid; else hi = mid - 1; } return lo; };
 export const xpFromOld = (xp) => { const v = Math.max(0, Math.floor(Number(xp) || 0)), lv = 1 + Math.floor(v / 100); return xpAt(lv) + Math.floor(((v % 100) / 100) * xpNeed(lv)); };
 /// a saved player's level, whichever curve its save is on
-export const levelOfSave = (sv) => (!sv ? 1 : sv.xpv === XP_VERSION ? levelOfXp(sv.xp) : 1 + Math.floor((Number(sv.xp) || 0) / 100));
+export const levelOfSave = (sv) => (!sv ? 1 : sv.xpv === XP_VERSION ? levelOfXp(sv.xp) : Math.min(LV_MAX, 1 + Math.floor((Number(sv.xp) || 0) / 100)));
 export const levelOf = (xp) => levelOfXp(xp);
+// how fast XP may climb on the server (api/_world.mjs save). The game runs in the browser, so the server can't watch
+// a fight; it bounds the pace instead. xpPerMin: about 30 knock-outs a minute of the strongest scammers within reach,
+// on a 1.5x event day; real play stays well under it. The allowance refills at that pace into a bank holding up to
+// 30 minutes of it (plus room for rewards that land at once), a day brings at most 4 hours of it, and a first save
+// (progress from before signing in) brings at most level 30. A save asking for more is cut to what's allowed, and
+// the cut is noted (worldXpFlag/<wallet>) for the team to look at.
+export const xpPerMin = (lv) => Math.round(45 * (6 + 3 * Math.min(110, Math.max(1, lv) + 10)));
+export const XP_RULES = { burst: 3000, bankMin: 30, dayMin: 240, firstLv: 30 };
+export const xpBankCap = (lv) => XP_RULES.burst + xpPerMin(lv) * XP_RULES.bankMin;
 
 /// deps: { getDocs, setDoc, commit, json, now, signer, isoWeek, credit(w, kind, n), lists() }
 export function makeSocial(deps) {

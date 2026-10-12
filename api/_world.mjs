@@ -27,7 +27,8 @@
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
-import { makeSocial, cleanNote, XP_VERSION, xpFromOld, levelOfSave } from "./_world-social.mjs";
+import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
+const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const WINDOW = 120e3;
@@ -66,7 +67,7 @@ function cleanOutfit(o) {
 export function cleanSave(d) {
   const o = d && typeof d === "object" ? d : {};
   // XP on the rising level curve (xpv 2); a save from an older game (100 XP a level) is converted so its level holds
-  const xp = Math.max(0, Math.min(5e6, Math.floor(o.xpv === XP_VERSION ? Number(o.xp) || 0 : xpFromOld(o.xp))));
+  const xp = Math.max(0, Math.min(XP_MAX, Math.floor(o.xpv === XP_VERSION ? Number(o.xp) || 0 : xpFromOld(o.xp))));
   const name = String(o.name || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
   return {
     xp, xpv: XP_VERSION, name, char: CHARS.has(o.char) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
@@ -166,6 +167,19 @@ export function make(deps) {
     const d = await getDocs([`worldSave/${s.wallet}`]);
     return json(200, { ok: true, wallet: s.wallet, firstTime: !!first.ok, save: d[`worldSave/${s.wallet}`] || null });
   }
+  // what a save may add: { xp (to store), gain, cut, bank (the allowance left), dayKey }
+  async function xpGuard(w, old, want) {
+    const dayKey = `worldXpDay/${w}_${seoulDay(now())}`;
+    if (!old) { const xp = Math.min(want, xpAt(XP_RULES.firstLv)); return { xp, gain: 0, cut: want - xp, bank: XP_RULES.burst, dayKey }; }
+    const oldXp = old.xpv === XP_VERSION ? old.xp || 0 : xpFromOld(old.xp);
+    // the allowance carries over between saves (a save that adds nothing still keeps it, so it can't be topped up that way)
+    const lv = levelOfXp(oldXp), cap = xpBankCap(lv), mins = Math.max(0, (now() - (old.at || 0)) / 60e3);
+    const bank = Math.min(cap, (old.xb == null ? cap : Math.max(0, old.xb)) + xpPerMin(lv) * mins);
+    if (want <= oldXp) return { xp: want, gain: 0, cut: 0, bank: Math.floor(bank), dayKey }; // nothing new (or less: the player's own choice)
+    const today = ((await getDocs([dayKey]))[dayKey] || {}).n || 0, dayLeft = Math.max(0, xpPerMin(lv) * XP_RULES.dayMin - today);
+    const gain = Math.floor(Math.max(0, Math.min(want - oldXp, bank, dayLeft)));
+    return { xp: oldXp + gain, gain, cut: want - oldXp - gain, bank: Math.floor(bank - gain), dayKey };
+  }
   async function save(b) {
     const s = signer(b); if (s.err) return s.err;
     const key = `worldSave/${s.wallet}`, old = (await getDocs([key]))[key];
@@ -177,10 +191,13 @@ export function make(deps) {
       else if ((o.renames || 0) > (o.renamesUsed || 0)) await setDoc(`worldOwn/${s.wallet}`, { ...o, renamesUsed: (o.renamesUsed || 0) + 1 });
       else data.name = old.name;
     }
-    // XP can only climb so fast between saves (a save at least every few minutes while playing)
-    const oldXp = old ? (old.xpv === XP_VERSION ? old.xp || 0 : xpFromOld(old.xp)) : 0;
-    if (old && data.xp > oldXp + 3000) data.xp = oldXp + 3000;
-    await setDoc(key, { ...data, at: now() });
+    // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
+    // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.
+    const g = await xpGuard(s.wallet, old, data.xp);
+    data.xp = g.xp;
+    await setDoc(key, { ...data, at: now(), xb: g.bank });
+    if (g.gain > 0) await commit([{ inc: g.dayKey, fields: { n: g.gain } }]).catch(() => {});
+    if (g.cut > 0) await commit([{ inc: `worldXpFlag/${s.wallet}`, fields: { n: 1, cut: g.cut } }]).catch(() => {});
     await social.dirUpdate(s.wallet, data).catch(() => {}); // the player directory (Rankings → Players)
     return json(200, { ok: true, at: now() });
   }

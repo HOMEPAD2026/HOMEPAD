@@ -83,9 +83,15 @@ export const skillLevel = (level, unlock) => (level < unlock ? 0 : Math.min(5, 1
 // Saves from before (100 XP every level, xpv missing) are converted once so nobody's level changes (xpFromOld).
 // api/_world-social.mjs keeps the same numbers for the server.
 export const XP_VERSION = 2;
-export const xpNeed = (lv) => 100 + 30 * (lv - 1) + (lv - 1) * (lv - 1);
-export const xpAt = (lv) => { const n = Math.max(0, Math.floor(lv) - 1); return 100 * n + 15 * n * (n - 1) + ((n - 1) * n * (2 * n - 1)) / 6; };
-export const levelOfXp = (xp) => { const v = Math.max(0, Number(xp) || 0); let lv = 1; while (lv < 200 && xpAt(lv + 1) <= v) lv++; return lv; };
+// Levels 1–200 keep the curve they always had; past 200 each level costs 150 XP more than the one before (about 46,000
+// at 200, 91,000 at 500), a long, steady climb to the cap. Nobody's level changes: below 200 the numbers are the same.
+export const LV_MAX = 500, LV_BEND = 200;
+const need0 = (lv) => 100 + 30 * (lv - 1) + (lv - 1) * (lv - 1);
+const at0 = (lv) => { const n = Math.max(0, Math.floor(lv) - 1); return 100 * n + 15 * n * (n - 1) + ((n - 1) * n * (2 * n - 1)) / 6; };
+export const xpNeed = (lv) => (lv < LV_BEND ? need0(lv) : need0(LV_BEND) + 150 * (lv - LV_BEND));
+export const xpAt = (lv) => { const L = Math.floor(lv); if (L <= LV_BEND) return at0(L); const m = L - LV_BEND; return at0(LV_BEND) + m * need0(LV_BEND) + 75 * m * (m - 1); };
+export const XP_MAX = xpAt(LV_MAX);
+export const levelOfXp = (xp) => { const v = Math.max(0, Number(xp) || 0); let lo = 1, hi = LV_MAX; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (xpAt(mid) <= v) lo = mid; else hi = mid - 1; } return lo; };
 export const xpFromOld = (xp) => { const v = Math.max(0, Math.floor(Number(xp) || 0)), lv = 1 + Math.floor(v / 100); return xpAt(lv) + Math.floor(((v % 100) / 100) * xpNeed(lv)); };
 /// where you are inside your level: { lv, into, need }
 export const xpProgress = (xp) => { const lv = levelOfXp(xp); return { lv, into: Math.floor(xp - xpAt(lv)), need: xpNeed(lv) }; };

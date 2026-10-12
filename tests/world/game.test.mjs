@@ -45,7 +45,10 @@ check(raidMax(0) === 500000 && raidMax(1) === 200000 && raidMax(1000) === 200000
 
 // levels: a rising curve, the same on the server, and old saves keep their level
 check(xpNeed(1) === 100 && xpNeed(10) > 400 && xpNeed(20) > 900 && xpNeed(80) > 8000, "each level needs more XP than the last");
-check([2, 5, 10, 25, 40, 80].every((l) => levelOfXp(xpAt(l)) === l && levelOfXp(xpAt(l) - 1) === l - 1), "levelOfXp and xpAt agree at every boundary");
+check([2, 5, 10, 25, 40, 80, 199, 200, 201, 350, 500].every((l) => levelOfXp(xpAt(l)) === l && levelOfXp(xpAt(l) - 1) === l - 1), "levelOfXp and xpAt agree at every boundary");
+{ const R = await import("../../world-rpg-data.js"); let steps = true; for (let l = 1; l < 500; l++) if (xpAt(l + 1) - xpAt(l) !== xpNeed(l)) steps = false;
+  check(R.LV_MAX === 500 && levelOfXp(R.XP_MAX + 1e9) === 500 && steps && xpNeed(200) - xpNeed(199) < 500 && xpNeed(300) - xpNeed(299) === 150, "levels go to 500; past 200 each costs 150 XP more than the last");
+  check(xpAt(200) === 3218029 && xpAt(49) === 74360, "levels up to 200 cost what they always did"); }
 check([0, 99, 100, 1250, 2499, 7999, 19899].every((x) => levelOfXp(xpFromOld(x)) === 1 + Math.floor(x / 100)), "converting an old save keeps its level");
 check(xpProgress(xpFromOld(1250)).into === Math.floor(0.5 * xpNeed(13)), "and the share of the level already done");
 check([1, 7, 33, 90].every((l) => SRV.xpAt(l) === xpAt(l) && SRV.xpNeed(l) === xpNeed(l)) && SRV.levelOfSave({ xp: 2450 }) === 25 && SRV.levelOfSave({ xp: xpAt(25), xpv: 2 }) === 25, "the server uses the same curve and reads old saves the old way");
