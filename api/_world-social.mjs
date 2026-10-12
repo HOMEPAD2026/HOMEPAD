@@ -4,7 +4,7 @@
 //   POST { action: "world-stamp-hide", …signature, at }   the island's owner hides (or shows again) one note
 //   GET  ?world=island-week                               { week, top: [{ wallet, name, n, likes }] }  likes this week
 //   GET  ?world=friends&wallets=0x…,…                     { friends: { wallet: { name, lv, seen, isle, likes } } }
-//   GET  ?world=ghosts                                    { ghosts: [{ t, x, z, c, lv, s?, sa?, p? }] }  last 2 minutes (s: a fixed line said in the last minute; p: the tag of the friend who invited them)
+//   GET  ?world=ghosts                                    { ghosts: [{ t, x, z, c, lv, s?, sa?, p?, h?, zn? }] }  (h: HP %, zn: the ground; signed-in only, for parties)  last 2 minutes (s: a fixed line said in the last minute; p: the tag of the friend who invited them)
 //   GET  ?world=raid&wallet=0x…?                          { week, hp, max, down, top, mine, claimed, players, fellAt, next }
 //   GET  ?world=raid-history                              { weeks: [{ week, players, max, dmg, fell, hours }] }  last 8
 //   POST { action: "world-raid-hit", …signature, dmg }    damage dealt in the last 5 s, capped at 60 × saved level
@@ -14,6 +14,8 @@
 //   POST { action: "world-gifts-take", …signature }       { gifts } waiting for you, then cleared · GET ?world=gifts&wallet= { n }
 //   POST { action: "world-stamp-reply", …signature, at, r } the owner answers a stamp with fixed reply r (0–5)
 //   POST { action: "world-race", …signature, ms }         a hoverboard race time · GET ?world=race-top { week, top }
+//   POST { action: "world-fish", …signature, fish, cm }   the week's biggest catches · GET ?world=fish-top { week, top }
+//   POST { action: "world-bossrun", …signature, zone, ms } the week's fastest boss knock-outs · GET ?world=boss-top { week, top }
 //   (world-ping with s = the sign-in: the wanderer shows your name and level, n / l / w in ?world=ghosts)
 //
 // The server can't watch a fight, so the raid trusts the game within a cap (one report per 5 s, 60 × level each) and
@@ -133,6 +135,28 @@ export function makeSocial(deps) {
   const pubRace = ({ w, name, ms }) => ({ w: w.slice(0, 6) + "…" + w.slice(-4), name: name || "", ms });
   async function raceTop() { const wk = isoWeek(now()); return json(200, { week: wk, top: (((await one(`worldStats/race_${wk}`)) || {}).top || []).map(pubRace) }, "public, max-age=20"); }
 
+  // ---- the week's records: the biggest fish and the fastest boss knock-out (self-reported like the race, so they only
+  // rank: honour, no rewards). Sizes and times outside what the game can produce are refused. ----
+  const FISH_MAX = { guppy: 14, minnow: 18, carp: 55, eel: 90, whale: 160, koi: 70, cod: 80, snapper: 60, angler: 110, barb: 50, sturgeon: 150, ray: 130, leviathan: 300 };
+  const BOSS_ZONES = new Set(["spam", "fields", "swamp", "canyon", "depths", "peaks", "dunes", "reef", "wastes", "ruins", "abyss", "void"]);
+  const BOSS_MIN_MS = 8000, BOSS_MAX_MS = 1800e3;
+  async function recordPut(b, kind) {
+    const s = signer(b); if (s.err) return s.err;
+    let e;
+    if (kind === "fish") { const id = String(b.fish || ""), cm = Math.floor(Number(b.cm)); if (!FISH_MAX[id] || !(cm >= 1 && cm <= FISH_MAX[id])) return json(400, { error: "that catch doesn't look right" }); e = { fish: id, v: cm }; }
+    else { const zn = String(b.zone || ""), ms = Math.floor(Number(b.ms)); if (!BOSS_ZONES.has(zn) || !(ms >= BOSS_MIN_MS && ms <= BOSS_MAX_MS)) return json(400, { error: "that time doesn't look right" }); e = { zone: zn, v: ms }; }
+    const better = (a, c) => (kind === "fish" ? a.v > c.v : a.v < c.v);
+    const wk = isoWeek(now()), key = `worldStats/${kind}_${wk}`, cur = (await one(key)) || { top: [] };
+    const old = (cur.top || []).find((x) => x.w === s.wallet);
+    if (old && !better(e, old)) return json(200, { ok: true, best: old.v, top: (cur.top || []).map(pubRec) });
+    const sv = await one(`worldSave/${s.wallet}`);
+    const top = [{ w: s.wallet, name: String((sv || {}).name || "").slice(0, 16), ...e, at: now() }, ...(cur.top || []).filter((x) => x.w !== s.wallet)].sort((a, c) => (kind === "fish" ? c.v - a.v : a.v - c.v)).slice(0, 20);
+    await setDoc(key, { top });
+    return json(200, { ok: true, best: e.v, top: top.map(pubRec) });
+  }
+  const pubRec = ({ w, name, v, fish, zone }) => ({ w: w.slice(0, 6) + "…" + w.slice(-4), name: name || "", v, ...(fish ? { fish } : {}), ...(zone ? { zone } : {}) });
+  async function recordTop(kind) { const wk = isoWeek(now()); return json(200, { week: wk, top: (((await one(`worldStats/${kind}_${wk}`)) || {}).top || []).map(pubRec) }, "public, max-age=20"); }
+
   // ---- guestbook: the owner answers a stamp with one of a few fixed replies ----
   const REPLIES = 6;
   async function stampReply(b) {
@@ -182,8 +206,10 @@ export function makeSocial(deps) {
     const at = now(), key = `worldGhosts/${Math.floor(at / GHOST_LIFE)}_${parseInt(t, 36) % GHOST_SHARDS}`, cur = (await one(key)) || { list: [] };
     // a line from the fixed list (0–7, shown for a minute; there's no free text to moderate) and a friend's tag from an invite link
     const s = Number.isInteger(g.s) && g.s >= 0 && g.s < 8 ? g.s : null, p = /^[0-9a-z]{7}$/.test(String(g.p || "")) ? g.p : "";
+    // for a hunting party: HP as a percentage and the ground you're in (shown to the friends who put you in theirs)
+    const h = Number.isInteger(g.h) && g.h >= 0 && g.h <= 100 ? g.h : null, zn = /^[a-z]{3,8}$/.test(String(g.zn || "")) ? g.zn : "";
     const old = (cur.list || []).find((y) => y.t === t) || {};
-    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w } : {}) };
+    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w } : {}) };
     const list = [e, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
     await setDoc(key, { list });
   }
@@ -192,7 +218,7 @@ export function makeSocial(deps) {
     for (const win of [w, w - 1]) for (let i = 0; i < GHOST_SHARDS; i++) keys.push(`worldGhosts/${win}_${i}`);
     const d = await getDocs(keys), seen = new Map();
     for (const k of keys) for (const y of ((d[k] || {}).list || [])) if (at - y.at < GHOST_LIFE && (!seen.has(y.t) || seen.get(y.t).at < y.at)) seen.set(y.t, y);
-    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, sa, p, n, l, w }) => ({ t, x, z, c, lv, ...(sa && at - sa < 60e3 ? { s, sa } : {}), ...(p ? { p } : {}), ...(n ? { n, l, w } : {}) })) }, "public, max-age=10");
+    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, sa, p, n, l, w, h, zn }) => ({ t, x, z, c, lv, ...(sa && at - sa < 60e3 ? { s, sa } : {}), ...(p ? { p } : {}), ...(n ? { n, l, w } : {}), ...(h != null && n ? { h } : {}), ...(zn && n ? { zn } : {}) })) }, "public, max-age=10");
   }
 
   // ---- the weekly raid boss ----
@@ -255,6 +281,8 @@ export function makeSocial(deps) {
       if (view === "raid-history") return raidHistory();
       if (view === "players") return players();
       if (view === "race-top") return raceTop();
+      if (view === "fish-top") return recordTop("fish");
+      if (view === "boss-top") return recordTop("boss");
       if (view === "gifts") return giftsCount(lc(url.searchParams.get("wallet")));
       if (view === "raid") { const w = lc(url.searchParams.get("wallet")); return json(200, pub(await raidState(isAddr(w) ? w : "")), isAddr(w) ? "no-store" : "public, max-age=10"); }
       return null;
@@ -265,6 +293,8 @@ export function makeSocial(deps) {
       if (b.action === "world-gift") return gift(b);
       if (b.action === "world-gifts-take") return giftsTake(b);
       if (b.action === "world-race") return raceTime(b);
+      if (b.action === "world-fish") return recordPut(b, "fish");
+      if (b.action === "world-bossrun") return recordPut(b, "boss");
       if (b.action === "world-raid-hit") return raidHit(b);
       if (b.action === "world-raid-claim") return raidClaim(b);
       return null;

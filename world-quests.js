@@ -200,7 +200,7 @@ export function createQuests(ctx) {
   }
 
   // ---------------- rankings: players (the directory and who's on now), levels, codex, hunters, raid, race ----------------
-  const RK = [["players", "Players"], ["level", "Levels"], ["codex", "Codex"], ["hunt", "Hunters"], ["raid", "Raid damage"], ["race", "Race"]];
+  const RK = [["players", "Players"], ["level", "Levels"], ["codex", "Codex"], ["hunt", "Hunters"], ["raid", "Raid damage"], ["race", "Race"], ["fish", "Biggest fish"], ["boss", "Boss runs"]];
   const titleOf = (t) => (t === "season" ? T("Season Star") : (ACH.find((a) => a.id === t) || {}).title ? T(ACH.find((a) => a.id === t).title) : "");
   const agoOf = (t) => { if (!t) return ""; const m = Math.floor((Date.now() - t) / 60000); return m < 15 ? T("just now") : m < 60 ? T("{n} min ago", { n: m }) : m < 1440 ? T("{n} h ago", { n: Math.floor(m / 60) }) : m < 2880 ? T("yesterday") : T("{n} days ago", { n: Math.floor(m / 1440) }); };
   const face = (c) => { const src = ctx.charThumb ? ctx.charThumb(c) : ""; return `<i class="wq-face">${src ? `<img src="${src}" alt="">` : ""}</i>`; };
@@ -219,6 +219,11 @@ export function createQuests(ctx) {
       }
       const by = rk === "level" ? [...L].sort((a, b) => b.lv - a.lv || b.cx - a.cx) : [...L].filter((r) => r.cx > 0).sort((a, b) => b.cx - a.cx || b.lv - a.lv);
       return nav + `<p class="wr-note">${esc(rk === "level" ? T("Everyone who's played with a wallet, by level.") : T("Codex pages found: every page is a real scam learned."))}</p>` + (by.length ? `<ol class="wq-rank">${by.slice(0, 50).map((r, i) => prow(r, i, rk === "level" ? `Lv ${r.lv}` : esc(T("{n} of 15 pages", { n: r.cx })))).join("")}</ol>` : none);
+    }
+    if (rk === "fish" || rk === "boss") { // the week's records: honour only, nothing is won
+      const fishName = (id) => { const f = (ctx.fishList || []).find((x) => x.id === id); return f ? T(f.name) : id; }, zoneName = (id) => (ZONES.find((z) => z.id === id) || {}).name || id;
+      const fmt = (r) => (rk === "fish" ? `${r.v} cm` : `${Math.floor(r.v / 60000)}:${String(Math.floor(r.v / 1000) % 60).padStart(2, "0")}`), sub = (r) => (rk === "fish" ? fishName(r.fish) : zoneName(r.zone));
+      return nav + `<p class="wr-note">${esc(rk === "fish" ? T("This week's biggest catches. A new personal best goes on the board when you're signed in.") : T("This week's fastest boss knock-outs, from the boss appearing to its fall."))}</p>` + (recs ? (recs.length ? `<ol class="wq-rank">${recs.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}<small>${esc(sub(r))}</small></b><em>${esc(fmt(r))}</em></li>`).join("")}</ol>` : `<p class="wr-empty">${esc(T("Nobody yet this week. Be the first!"))}</p>`) : `<p class="wr-empty">${esc(T("Loading…"))}</p>`);
     }
     if (rk === "race") {
       const fmt = (ms) => (ms / 1000).toFixed(2) + " s";
@@ -258,16 +263,17 @@ export function createQuests(ctx) {
     else body = rankHTML();
     return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-qtab="${id}" aria-pressed="${id === tab}">${esc(T(n))}${id === "season" || id === "pets" ? nb(id) : ""}</button>`).join("")}</nav>${body}`;
   }
-  let rk = "players", dir = null, dirAt = 0, race = null;
+  let rk = "players", dir = null, dirAt = 0, race = null, recs = null;
   let past = null;
   async function loadTop() {
     if (rk === "players" || rk === "level" || rk === "codex") { if (!dir || Date.now() - dirAt > 60e3) { try { const r = await fetch("/api/social?world=players"); dir = r.ok ? await r.json() : { list: [] }; dirAt = Date.now(); } catch { dir = dir || { list: [] }; } if (ctx.needThumbs) ctx.needThumbs([...new Set((dir.list || []).slice(0, 100).map((r) => r.char))]); } return; }
     if (rk === "race") { try { const r = await fetch("/api/social?world=race-top"); race = r.ok ? ((await r.json()).top || []) : []; } catch { race = []; } return; }
+    if (rk === "fish" || rk === "boss") { try { const r = await fetch("/api/social?world=" + rk + "-top"); recs = r.ok ? ((await r.json()).top || []) : []; } catch { recs = []; } return; }
     try { const r = await fetch(rk === "raid" ? "/api/social?world=raid" : "/api/social?world=hunt-top"); top = r.ok ? ((await r.json()).top || []) : []; } catch { top = []; }
     if (rk === "raid" && !past) { try { const r = await fetch("/api/social?world=raid-history"); past = r.ok ? ((await r.json()).weeks || []) : []; } catch { past = []; } }
   }
   function click(b) {
-    if (b.dataset.rk) { rk = b.dataset.rk; if (rk === "raid") seeTab("raidrank"); if (rk === "players") seeTab("players"); top = null; if (rk === "race") race = null; loadTop().then(() => ctx.repaint()); return true; }
+    if (b.dataset.rk) { rk = b.dataset.rk; if (rk === "raid") seeTab("raidrank"); if (rk === "players") seeTab("players"); top = null; if (rk === "race") race = null; recs = null; loadTop().then(() => ctx.repaint()); return true; }
     if (b.dataset.prof) { if (ctx.openProfile) ctx.openProfile(b.dataset.prof); return false; }
     if (b.hasAttribute("data-sclaimall")) { const x = X(); SEASON_TIERS.forEach((t, i) => { if (x.ss.pts >= t.pts && !x.ss.got.includes(i)) seasonClaim(i); }); return true; }
     if (b.dataset.qtab) { tab = b.dataset.qtab; seeTab(tab); if (tab === "rank") { top = null; loadTop().then(() => ctx.repaint()); } return true; }

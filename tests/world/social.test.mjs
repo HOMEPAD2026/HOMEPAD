@@ -107,6 +107,17 @@ r = await W.read(new URL("http://x/api/social?world=plaza")); check(r.body.isle 
   check(r.body.best === 24000, "a slower run keeps the best");
   r = await W.handle({ action: "world-race", ...them, ms: 21000 }); r = await rd("race-top");
   check(r.body.top.length === 2 && r.body.top[0].ms === 21000 && r.body.top[0].name === "them" && !/^0x[0-9a-f]{40}$/.test(r.body.top[0].w), "the week's best, fastest first, wallets shortened");
+  // the week's biggest fish and fastest boss knock-outs
+  r = await W.handle({ action: "world-fish", ...me, fish: "guppy", cm: 99 }); check(r.status === 400, "a guppy can't be 99 cm");
+  r = await W.handle({ action: "world-fish", ...me, fish: "shark", cm: 20 }); check(r.status === 400, "no fish we don't have");
+  r = await W.handle({ action: "world-fish", ...me, fish: "angler", cm: 80 }); r = await W.handle({ action: "world-fish", ...me, fish: "carp", cm: 40 });
+  check(r.body.best === 80, "a smaller catch keeps the biggest");
+  r = await W.handle({ action: "world-fish", ...them, fish: "leviathan", cm: 250 }); r = await rd("fish-top");
+  check(r.body.top.length === 2 && r.body.top[0].v === 250 && r.body.top[0].fish === "leviathan" && r.body.top[1].v === 80, "the biggest catches first");
+  r = await W.handle({ action: "world-bossrun", ...me, zone: "reef", ms: 2000 }); check(r.status === 400, "an impossible boss time: refused");
+  r = await W.handle({ action: "world-bossrun", ...me, zone: "moon", ms: 60000 }); check(r.status === 400, "only our grounds");
+  r = await W.handle({ action: "world-bossrun", ...me, zone: "reef", ms: 90000 }); r = await W.handle({ action: "world-bossrun", ...them, zone: "void", ms: 60000 }); r = await rd("boss-top");
+  check(r.body.top.length === 2 && r.body.top[0].v === 60000 && r.body.top[0].zone === "void", "the fastest boss knock-outs first");
   // named wanderers
   T += 1000; await W.handle({ action: "world-ping", id: "namedghost0001", g: { x: 3, z: 4, c: "arc-luna", lv: 13 }, s: me });
   await W.handle({ action: "world-ping", id: "plainghost0002", g: { x: 5, z: 6, c: "bot", lv: 2 } });

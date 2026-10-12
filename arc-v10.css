@@ -3081,3 +3081,16 @@ html.wp-pcphone .wp-fh{bottom:auto;top:96px;zoom:1.25}
 .wp-loadpct{display:block;margin-top:6px;font:800 12px var(--f-num,var(--f-ui));font-style:normal;color:rgba(222,233,244,.6);font-variant-numeric:tabular-nums}
 /* v45: on a phone the action buttons keep clear of the screen's edges */
 @media (pointer:coarse){html.wp-pcphone .wp-acts,html.wp-pcphone .wc-bar.coarse{right:max(22px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom))}}
+
+/* v46: the hunting party — a strip under the HP card: each friend's HP and where they are */
+.wp-party{position:relative;display:grid;gap:6px;width:min(300px,100%);padding:10px 12px;border-radius:14px;background:rgba(8,14,24,.72);border:1px solid rgba(255,200,97,.3);color:#eef3f7;font:700 12px var(--f-ui);pointer-events:none}
+.wp-party[hidden]{display:none}
+.wp-party>b{display:flex;justify-content:space-between;font:800 12px var(--f-ui);color:#ffd27a}
+.wp-party>b em{font-style:normal;color:#9fffd0}
+.wp-party>div{display:grid;gap:3px}
+.wp-party>div span{display:flex;justify-content:space-between;gap:6px}
+.wp-party>div span small,.wp-party>div>small{font-weight:600;color:rgba(222,233,244,.62)}
+.wp-party i{display:block;height:5px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.wp-party u{display:block;height:100%;background:linear-gradient(90deg,#ff4d6d,#ff8fa0)}
+.wp-party .away{opacity:.5}
+html.wp-pcphone .wp-party{width:200px}

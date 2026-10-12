@@ -181,6 +181,7 @@ export function createCombat(ctx) {
       m.crown = crown; m.aura = aura;
     }
     m.em = []; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) m.em.push(x.material); });
+    if (bs) m.born = performance.now(); // for the week's fastest boss knock-outs
     label(m); mobs.push(m);
     if (m.slow === 0) { const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6), 0), new THREE.MeshPhysicalMaterial({ color: 0xbfefff, transparent: true, opacity: 0.45, roughness: 0.05, flatShading: true })); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
@@ -233,7 +234,7 @@ export function createCombat(ctx) {
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
-    if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + BOSS_EVERY); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); }
+    if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + BOSS_EVERY); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
     else if (zi >= 0 && tier >= 2) ctx.claim("hunt", { tier }, ctx.screenOf(p));
     else ctx.claim("street", {}, ctx.screenOf(p));
     ctx.onKill && ctx.onKill({ type: m.spec.id, lv: m.lv, rank: m.rank, zone: m.zone && m.zone.id });

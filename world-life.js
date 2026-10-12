@@ -52,7 +52,8 @@ export function createLife(ctx) {
     const v = new THREE.Vector3(x, 0, z); if (ctx.blocked(v) || Math.hypot(x, z) < 17) return;
     if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 4)) return;
     if ((ctx.zones || []).some((zn) => { const p = pondOf(zn); return p && Math.hypot(p.x - x, p.z - z) < p.r + 2; })) return;
-    const g = gatherNode(kind); mergeStatic(g); g.position.set(x, 0, z); // its parts in one mesh per material: a few draw calls each g.rotation.y = r() * 6.28; g.scale.setScalar(kind === "wood" ? 1 : 1.1); root.add(g);
+    // its parts in one mesh per material: a few draw calls each
+    const g = gatherNode(kind); mergeStatic(g); g.position.set(x, 0, z); g.rotation.y = r() * 6.28; g.scale.setScalar(kind === "wood" ? 1 : 1.1); root.add(g);
     nodes.push({ kind, x, z, g, hp: 3, back: 0 });
   }
   const KINDS = ["ore", "crystal", "wood"];
@@ -125,7 +126,7 @@ export function createLife(ctx) {
     for (const x of pool) { roll -= wt(x); if (roll <= 0) { fsh = x; break; } }
     const cm = Math.round(fsh.cm[0] + (fsh.cm[1] - fsh.cm[0]) * Math.pow(r(), 1.6));
     const best = d.x.fish[fsh.id] || 0, rec = cm > best; if (rec) d.x.fish[fsh.id] = cm;
-    gainMastery(d, "fm", rec ? 2 : 1, "Fishing"); ctx.onCatch && ctx.onCatch(fsh);
+    gainMastery(d, "fm", rec ? 2 : 1, "Fishing"); ctx.onCatch && ctx.onCatch(fsh, cm, rec);
     ctx.toast(rec ? T("Caught a {x}, {n} cm — your biggest!", { x: T(fsh.name), n: cm }) : T("Caught a {x}, {n} cm", { x: T(fsh.name), n: cm }));
     ctx.Snd.win && ctx.Snd.win(); ctx.save(); paintMats();
     // the fish leaps out of the water and falls back in

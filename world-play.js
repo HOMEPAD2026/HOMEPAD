@@ -129,7 +129,7 @@ async function cloudSave() {
 let stats = null, visitSent = false;
 async function ping() {
   if (document.hidden) return;
-  let g; try { if (mode === "hub" && !introOn) { const v = here(new THREE.Vector3()); g = { x: Math.round(v.x * 10) / 10, z: Math.round(v.z * 10) / 10, c: P.char || "bot", lv: level() }; if (said && !said.sent && Date.now() - said.at < 60e3) { g.s = said.s; said.sent = true; } if (P.pal) g.p = P.pal; } } catch { /* not ready yet */ }
+  let g; try { if (mode === "hub" && !introOn) { const v = here(new THREE.Vector3()); g = { x: Math.round(v.x * 10) / 10, z: Math.round(v.z * 10) / 10, c: P.char || "bot", lv: level() }; if (combat) { const vt = combat.vitals(), zz = combat.zone(); g.h = Math.max(0, Math.min(100, Math.round((100 * vt.hp) / (vt.max || 1)))); if (zz) g.zn = zz.id; } if (said && !said.sent && Date.now() - said.at < 60e3) { g.s = said.s; said.sent = true; } if (P.pal) g.p = P.pal; } } catch { /* not ready yet */ }
   // signed in and not hidden (Settings): the sign-in goes along, so others see your name and level over your figure
   const se = g && S.showName !== false ? sess() : null;
   try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent, ...(g ? { g } : {}), ...(se ? { s: se } : {}) }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
@@ -586,6 +586,29 @@ function say(i) {
 // play together: a link with your wanderer tag; whoever opens it sees you as a friend (and you them), and near each other you both get +10% XP
 const myTag = SOC.tagOf(vid);
 const together = () => !!(ghosts && ghosts.palNear && ghosts.palNear(20));
+// a hunting party: up to three friends you pick (on their profile card). Their figures show their HP and where they
+// are; with one of them within 30 m, knock-outs give +15% XP (instead of the +10% for a friend nearby)
+const PARTY = "arc.world.party", isWallet = (a) => /^0x[0-9a-f]{40}$/.test(String(a || ""));
+let party = (() => { try { return JSON.parse(localStorage.getItem(PARTY) || "[]").map((a) => String(a).toLowerCase()).filter(isWallet).slice(0, 3); } catch { return []; } })();
+const inParty = (w) => party.includes(String(w || "").toLowerCase());
+function partyToggle(w) {
+  w = String(w || "").toLowerCase(); if (!isWallet(w)) return;
+  if (inParty(w)) party = party.filter((x) => x !== w);
+  else { if (!island.isFriend(w)) { toast(T("Add them as a friend first")); return; } if (party.length >= 3) { toast(T("A party is you and three friends")); return; } party = [...party, w]; }
+  try { localStorage.setItem(PARTY, JSON.stringify(party)); } catch { /* private */ } paintParty();
+}
+const partyNear = (r = 30) => { if (!party.length || !ghosts || mode !== "hub") return false; const me0 = here(new THREE.Vector3()); return ghosts.named().some((g) => inParty(g.wallet) && Math.hypot(g.x - me0.x, g.z - me0.z) < r); };
+const partyEl = document.createElement("div"); partyEl.className = "wp-party"; partyEl.id = "wp-party"; partyEl.hidden = true; partyEl.setAttribute("data-no-i18n", ""); partyEl.setAttribute("aria-label", T("Party")); (document.querySelector(".wp-hud-l") || document.body).appendChild(partyEl); // under the quest list
+function paintParty() {
+  if (!party.length || mode !== "hub") { partyEl.hidden = true; return; }
+  const me0 = here(new THREE.Vector3()), seen = ghosts ? ghosts.named() : [], names = (() => { try { return JSON.parse(localStorage.getItem(PARTY + ".n") || "{}"); } catch { return {}; } })();
+  partyEl.hidden = false;
+  partyEl.innerHTML = `<b>${esc(T("Party"))}${partyNear() ? ` <em>${esc(T("+15% XP"))}</em>` : ""}</b>` + party.map((w) => { const g = seen.find((x) => String(x.wallet).toLowerCase() === w), nm = (g && g.name) || names[w] || w.slice(0, 6) + "…";
+    if (g) { names[w] = g.name; }
+    const d = g ? Math.round(Math.hypot(g.x - me0.x, g.z - me0.z)) : null, zn = g && g.zn ? (RPG.ZONES.find((z) => z.id === g.zn) || {}).name : "";
+    return `<div class="${g ? "" : "away"}"><span>${esc(nm)}${g ? ` <small>Lv ${g.lv}</small>` : ""}</span>${g && g.h != null ? `<i><u style="width:${g.h}%"></u></i>` : ""}<small>${g ? (d < 30 ? esc(T("{n} m away", { n: d })) : zn ? esc(zn) : esc(T("{n} m away", { n: d }))) : esc(T("Not in the world"))}</small></div>`; }).join("");
+  try { localStorage.setItem(PARTY + ".n", JSON.stringify(names)); } catch { /* private */ }
+}
 { const c = document.createElement("div"); c.className = "wp-together"; c.id = "wp-together"; c.hidden = true; c.setAttribute("role", "status"); c.textContent = T("With a friend · +10% XP"); document.body.appendChild(c); }
 { const w = (new URLSearchParams(location.search).get("with") || "").toLowerCase(); if (/^[0-9a-z]{7}$/.test(w) && w !== myTag && P.pal !== w) { P.pal = w; save(); setTimeout(() => toast(T("You joined a friend's invite. Find them in town: near each other you both get +10% XP.")), 4000); } }
 async function invite() {
@@ -1875,7 +1898,7 @@ $("wp-shot-frame").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; shotRaw = shotFramed = shotSrc = null; });
 
 // ---------------- what's new: once after an update, a card with a way to try each new thing ----------------
-const NEWV = "b361";
+const NEWV = "b372";
 function maybeNew() {
   try { if (localStorage.getItem("arc.world.newv") === NEWV) return; } catch { return; }
   if (!P.char || !P.guideSeen || new URLSearchParams(location.search).has("nointro")) return;
@@ -1883,13 +1906,13 @@ function maybeNew() {
 }
 function openNew() {
   const items = [
-    ["bots", T("25 ARC Bots"), T("ARCIRCLE World's own robot characters, each with its own look. Pick one now.")],
-    ["raid", T("A twist on the raid every week"), T("Iron shell, swarm week, red rain and more. Its fall is filmed as a clip to keep.")],
-    ["together", T("Play together"), T("Eight lines to say (T), and an invite link: near a friend you both get +10% XP.")],
-    ["codex", T("The codex, all 15 pages"), T("The story's six scammers too, each with how to beat the scam.")],
-    ["season", T("Your season card"), T("Points, tier, knock-outs and raids on one card to share.")],
-    ["isles", T("Island tour"), T("Surprise me: hop from one random island to the next.")],
-    ["pad", T("Controllers and dodge"), T("Play with a game controller. K dodges: a quick dash nothing can hit.")],
+    ["grounds", T("Hunting grounds with their own world"), T("Snow, sand, bubbles, embers and stars; bosses that warn, then rage at half HP. Open the map's ring.")],
+    ["charge", T("Charged attacks"), T("Hold attack, let go when the ring is full: a whirlwind, a quake, a beam, a piercing arrow or a field.")],
+    ["bench", T("Temper, mastery, pond fish"), T("Temper your weapon with what you gather; each far ground has a pond and a fish of its own.")],
+    ["jet", T("A jetpack at level 30"), T("V switches ride: hoverboard, rover, jetpack. Space climbs or comes down.")],
+    ["party", T("A hunting party"), T("Add up to three friends on their card: their HP and where they are, and +15% XP together.")],
+    ["records", T("Weekly records"), T("The biggest fish and the fastest boss knock-outs, in Rankings. Honour only.")],
+    ["codex", T("Seven new codex pages"), T("The far ring's bosses, each a scam people still fall for, with how to beat it.")],
   ];
   const el = document.createElement("div"); el.className = "wp-new"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
   el.innerHTML = `<div class="wp-new-card"><small>${esc(W("Update"))}</small><h2>${esc(T("What's new in ARCIRCLE World"))}</h2><ul>${items.map(([k, t, l]) => `<li><button type="button" data-new="${k}"><b>${esc(t)}</b><span>${esc(l)}</span><i aria-hidden="true">›</i></button></li>`).join("")}</ul><button type="button" class="wp-cta" data-new="close">${esc(T("Let's play"))}</button></div>`;
@@ -1899,6 +1922,10 @@ function openNew() {
     const b = e.target.closest("[data-new]"); if (!b && e.target !== el) return; done(); const k = b ? b.dataset.new : "close";
     if (k === "raid") { const z = SOC.RAID, a = Math.atan2(-z.x, -z.z); flyTo({ position: new THREE.Vector3(z.x + Math.sin(a) * (z.r + 3), 0, z.z + Math.cos(a) * (z.r + 3)), userData: { radius: 0.5 } }); }
     else if (k === "season" || k === "pets" || k === "quiz" || k === "codex") { quests.setTab(k === "quiz" ? "codex" : k); rpg.show("log"); }
+    else if (k === "grounds") openMap();
+    else if (k === "bench") { if (life) life.showSheet("temper"); }
+    else if (k === "records") { quests.setTab("rank"); quests.setRank("fish"); rpg.show("log"); }
+    else if (k === "charge" || k === "jet" || k === "party") openGuide();
     else if (k === "together") openWheel();
     else if (k === "bots") openMake();
     else if (k === "pad") openGuide();
@@ -1938,8 +1965,8 @@ combat = FIGHT.createCombat({ vfx,
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },
   onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); },
-  onKill: (k) => { if (quests) quests.on.kill(k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, // the boss trophies on My Island onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
-  xpBoost: (zid) => RPG.xpBoost(zid) * (together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
+  onKill: (k) => { if (quests) quests.on.kill(k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
+  xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
   onLoot: (it) => { if (quests) quests.on.loot(it); if (it.r >= 3) shareDrop(it); },
   legend: () => { document.body.classList.remove("wc-legend"); void document.body.offsetWidth; document.body.classList.add("wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
@@ -1959,6 +1986,7 @@ combat = FIGHT.createCombat({ vfx,
     if (!reduce) document.body.appendChild(bars);
     document.body.appendChild(c); setTimeout(() => c.remove(), 3000); setTimeout(() => bars.remove(), 2600);
   },
+  onBossRun: (zone, ms) => { const s = sess(); if (s && ms >= 8000) post({ action: "world-bossrun", ...s, zone, ms }).catch(() => {}); },
   buzz: (ms) => buzz(ms), hint: (id) => hint(id, { charge: tapOr(T("Hold J to charge a stronger blow, let go when the ring is full"), T("Hold the attack button to charge a stronger blow")), dodge: tapOr(T("Red on the ground means a strike is coming: step out, or dodge with K"), T("Red on the ground means a strike is coming: step out, or tap dodge")), pond: T("This ground has a pond with a fish of its own") }[id] || id),
   onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
   pay: (id, onStatus) => arclShop.pay(id, "", onStatus),
@@ -1974,7 +2002,7 @@ combat = FIGHT.createCombat({ vfx,
 });
 // the Adventure log (daily hunts, achievements and titles, the codex, top hunters) and the companion drone
 quests = QST.createQuests({
-  T, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why),
+  T, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why), fishList: LIFE.FISH,
   // Rankings → Players: portraits, who's around now, a player's card
   charThumb: (id) => thumbCache[id] || "", needThumbs: (ids) => renderThumbsFor(ids).then(() => rpg.isOpen() && rpg.repaint()),
   online: () => (ghosts && ghosts.named ? ghosts.named() : []), openProfile: (w) => openProfile(w),
@@ -2039,7 +2067,7 @@ decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shop
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
-const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: () => { if (quests) quests.on.fish(); }, buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (f, cm, rec) => { if (quests) quests.on.fish(); const s = sess(); if (rec && s && f) post({ action: "world-fish", ...s, fish: f.id, cm }).catch(() => {}); }, /* a personal best goes to the week's board */ buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
 st.on((dt) => life.tick(dt));
 // ?decor=0 leaves it out (to compare frame rates, or on a device that struggles); automated browsers (software
 // rendering, a frame a second) get it only with ?decor=1
@@ -2065,7 +2093,7 @@ async function openProfile(w) {
       <div class="wp-prof-face">${thumbCache[char] ? `<img src="${thumbCache[char]}" alt="">` : ""}<b>${lv}</b></div>
       <h2>${esc(name)}</h2>${quests.titleOf(row.t) ? `<p class="wp-prof-title">${esc(quests.titleOf(row.t))}</p>` : ""}
       <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / ${QST.CODEX.length + QST.CODEX_STORY.length}</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div><div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
-      <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
+      <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${me || !isFr ? "" : `<button type="button" class="wp-btn" data-pparty aria-pressed="${inParty(w)}">${esc(inParty(w) ? T("In your party") : T("Add to party"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
       ${me || !sess() ? "" : `<div class="wp-prof-gift"><span>${esc(T("Send a gift"))}</span>${inbox.sendOptions().map((g) => `<button type="button" class="wp-btn" data-pgift="${g.kind}:${g.n}" ${g.can ? "" : "disabled"}>${esc(g.label)}</button>`).join("")}</div>`}</div>`;
     if (char && !thumbCache[char]) renderThumbsFor([char]).then(() => { if (el.isConnected) paint(fr); });
   };
@@ -2080,7 +2108,8 @@ async function openProfile(w) {
     if (e.target.closest("[data-pvisit]")) { close(); rpg.hide(); goIsland({ visit: w }); return; }
     if (e.target.closest("[data-pgo]")) { const g = ghosts && ghosts.named().find((x) => x.wallet === w); if (g) { close(); rpg.hide(); goNear(g.x, g.z); } return; }
     const gb = e.target.closest("[data-pgift]"); if (gb) { const [k, n] = gb.dataset.pgift.split(":"); gb.disabled = true; inbox.send(w, k, Number(n)).then(() => { if (el.isConnected) paint(fr); }); return; }
-    if (e.target.closest("[data-pfriend]")) { island.toggleFriend(w, row.name || (fr && fr.name) || ""); paint(fr); }
+    if (e.target.closest("[data-pfriend]")) { island.toggleFriend(w, row.name || (fr && fr.name) || ""); if (!island.isFriend(w) && inParty(w)) partyToggle(w); paint(fr); }
+    if (e.target.closest("[data-pparty]")) { partyToggle(w); paint(fr); }
   });
 }
 // a card to share (an achievement): the photo sheet shows it with save / share / post
@@ -2409,7 +2438,7 @@ async function dive() {
 }
 
 // ---------------- start ----------------
-dailyState(); dayNight(); worldReady = true;
+dailyState(); dayNight(); worldReady = true; setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
 $("wp-loading").classList.add("done");
