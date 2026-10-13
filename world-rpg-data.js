@@ -123,12 +123,21 @@ export const zoneAt = (x, z) => ZONES.find((zn) => Math.hypot(x - zn.x, z - zn.z
 /// ground, away from its gate
 export const pondOf = (zn) => { if (!zn || zn.lv[0] < 30) return null; const a = Math.atan2(zn.z, zn.x) + 1.9, d = zn.r * 0.52; return { x: zn.x + Math.cos(a) * d, z: zn.z + Math.sin(a) * d, r: 2.6 }; };
 
-// the Forge: what it sells for ARCL (the server keeps these prices; tiers 0–3, Legendary only from bosses)
-export const FORGE_PRICE = [40, 120, 300, 700];
-export const FORGE_SUPPLY = { "hp5": { name: "5 health potions", arcl: 30, kind: "hp", n: 5 }, "sp5": { name: "5 mana potions", arcl: 30, kind: "sp", n: 5 }, "recall3": { name: "3 recall scrolls", arcl: 20, kind: "recall", n: 3 } };
+// the Forge: what it sells for ARCL (the server keeps these prices: api/_world-shop.mjs). Tiers 0–3, and the Arc set
+// (tier 4, Legendary) from level 20 for 6,000.
+export const FORGE_PRICE = [40, 120, 300, 700, 6000];
+// the Masterwork bench: Arc-set Epic or Legendary pieces made at your level band (each ten levels, 20–100), plain or
+// already enhanced to +5 or +10. The dearest, a +10 Legendary at level 100, is 105,000 ARCL.
+export const mwBand = (level) => Math.max(20, Math.min(100, Math.floor(Number(level) / 10) * 10));
+export const mwPrice = (lv, r, p) => Math.round(((r === 4 ? 2000 + 280 * lv : 400 + 60 * lv) * (p === 10 ? 3.5 : p === 5 ? 1.8 : 1)) / 10) * 10;
+export const mwId = (slot, r, p) => `mw:${slot}:${r}:${p}`;
+export const FORGE_SUPPLY = { "hp5": { name: "5 health potions", arcl: 30, kind: "hp", n: 5 }, "sp5": { name: "5 mana potions", arcl: 30, kind: "sp", n: 5 }, "recall3": { name: "3 recall scrolls", arcl: 20, kind: "recall", n: 3 },
+  "hp20": { name: "20 health potions", arcl: 100, kind: "hp", n: 20 }, "sp20": { name: "20 mana potions", arcl: 100, kind: "sp", n: 20 }, "recall10": { name: "10 recall scrolls", arcl: 60, kind: "recall", n: 10 },
+  "scrap100": { name: "100 scrap", arcl: 150, kind: "scrap", n: 100 }, "scrap500": { name: "500 scrap", arcl: 650, kind: "scrap", n: 500 } };
 export const forgeId = (slot, tier) => `${slot}:${tier}`;
-// selling back to the Forge (the server keeps the same numbers: api/_world-shop.mjs SELL_PRICE, 150 a day)
-export const SELL_PRICE = [6, 18, 45, 110, 260], SELL_DAY_CAP = 150;
+// selling back to the Forge (the server keeps the same numbers: api/_world-shop.mjs SELL_PRICE, 1,500 a day), and the
+// day's ARCL limit everything shares (DAILY_CAP there)
+export const SELL_PRICE = [6, 18, 45, 110, 260], SELL_DAY_CAP = 1500, ARCL_DAY_CAP = 30000;
 export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, Math.floor(Number(it && it.r) || 0)))] * (1 + 0.05 * Math.max(0, Math.min(10, Math.floor(Number(it && it.p) || 0)))));
 
 // titles: each achievement's title adds a small bonus while you wear it (world-quests.js; "season" from the season log)

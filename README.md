@@ -72,7 +72,7 @@ ARCIA is ARCIRCLE's virtual idol and AI mascot ([@ARCIAonArc](https://x.com/ARCI
 ### ARCIRCLE World
 The home page opens on a 3D gate with two ways in: **Platform World** (the site) and **Game World** (`/play`), an open planet split into districts where you walk between the halls, fight scammers in hunting grounds, build your own island, join a weekly raid and collect gear. It runs in the browser on PC and mobile. The first beta (from 11 October 2026) is open to wallets holding 1,000,000+ `$ARCIRCLE` on Arc.
 
-In-game points (ARCL) are earned by playing and spent on cosmetics. **ARCL can't be bought, has no exchange and no price**, and the amount you can earn is small and capped per day.
+In-game points (ARCL) are earned by playing and spent on cosmetics. **ARCL can't be bought, has no exchange and no price**, and what you can earn is capped per day (30,000 in all, with each activity under its own limit). The Forge sells gear for ARCL, up to Masterwork pieces made at your level.
 
 ## Repository layout
 

@@ -4,7 +4,7 @@
 // Saved with the rest of your progress (P.rpg → world-save, checked for shape in api/_world.mjs). Gear dropped by
 // scammers turns into scrap, or sells back to the Forge through the server (by rarity, capped per day, each piece
 // once); the Forge sells for ARCL through the server too.
-import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, skillLevel, bonusLine } from "./world-rpg-data.js";
+import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, ARCL_DAY_CAP, mwBand, mwPrice, mwId, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, skillLevel, bonusLine } from "./world-rpg-data.js";
 export * from "./world-rpg-data.js";
 import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade, weaponThumb, gearThumb } from "./world-gear3d.js";
 const RESHAPE = 40; // scrap to turn a weapon into another kind
@@ -280,7 +280,7 @@ export function createRpg(ctx) {
       <div class="wr-acts">${on ? `<button type="button" data-unequip="${p.slot}">${esc(T("Unequip"))}</button>` : `<button type="button" class="go" data-equip="${it.id}" ${need > ctx.level() ? "disabled" : ""}>${esc(T("Equip"))}</button>`}
       <button type="button" data-enhance="${it.id}" ${(it.p || 0) >= 10 ? "disabled" : ""}>${esc(T("Enhance"))} <small>${(it.p || 0) >= 10 ? "MAX" : esc(T("{n} scrap", { n: enhanceCost(it) }))}</small></button>
       <button type="button" data-lock="${it.id}" aria-pressed="${!!it.lk}">${esc(it.lk ? T("Unlock") : T("Lock"))}</button>
-      ${on ? "" : `<button type="button" class="sell" data-sell="${it.id}" ${it.lk ? "disabled" : ""}><img src="/images/arcl-64.png" alt="" width="16" height="16">${esc(T("Sell"))} <small>+${sellPrice(it)}</small></button><button type="button" class="warn" data-salvage="${it.id}" ${it.lk ? "disabled" : ""}>${esc(T("Salvage"))} <small>+${scrapOf(it)}</small></button>`}</div></div>`;
+      ${on ? "" : `<button type="button" class="sell" data-sell="${it.id}" ${it.lk || (view === "forge" && forgeTab === "sell" && sellGate().closed) ? "disabled" : ""}><img src="/images/arcl-64.png" alt="" width="16" height="16">${esc(view === "forge" && forgeTab === "sell" && sellGate().closed ? T("Sold out today") : T("Sell"))} <small>+${sellPrice(it)}</small></button><button type="button" class="warn" data-salvage="${it.id}" ${it.lk ? "disabled" : ""}>${esc(T("Salvage"))} <small>+${scrapOf(it)}</small></button>`}</div></div>`;
   }
   const findItem = (id) => R().bag.find((x) => x.id === id) || Object.values(R().eq).find((x) => x && x.id === id) || null;
   function invHTML() {
@@ -338,17 +338,49 @@ export function createRpg(ctx) {
     ctx.onFuse && ctx.onFuse(it);
   }
   // ---------------- the Forge ----------------
+  // a buy button; anything from 5,000 ARCL asks once more before it's bought (the second tap buys)
+  let askBuy = "";
+  function buyBtn(id, price, ok, why) {
+    if (!ok) return `<button type="button" class="wr-buy" disabled>${esc(why)}</button>`;
+    const bal = ctx.arclBal(), short = bal < price;
+    return `<button type="button" class="wr-buy${askBuy === id ? " ask" : ""}${short ? " short" : ""}" data-buy="${id}" data-price="${price}"><img src="/images/arcl-64.png" alt="" width="18" height="18">${askBuy === id ? esc(T("Buy for {n}?", { n: price.toLocaleString("en-US") })) : price.toLocaleString("en-US")}</button>`;
+  }
+  // the Masterwork bench: Arc-set pieces made at your level band, Epic or Legendary, plain, +5 or +10
+  let mwR = 4, mwP = 0;
+  function masterHTML(lv, bal) {
+    const band = mwBand(lv), ok = lv >= 20;
+    const pick = (k, v, label, on) => `<button type="button" data-mw="${k}:${v}" aria-pressed="${on}">${esc(label)}</button>`;
+    return `<div class="wr-mwbar"><p>${esc(ok ? T("Made at level {n} (your level band). Each ten levels makes them stronger, and dearer.", { n: band }) : T("The Masterwork bench opens at level 20."))}</p>
+      <div class="wr-mwpick" role="group" aria-label="${esc(T("Rarity"))}">${pick("r", 3, T("Epic"), mwR === 3)}${pick("r", 4, T("Legendary"), mwR === 4)}</div>
+      <div class="wr-mwpick" role="group" aria-label="${esc(T("Enhancement"))}">${pick("p", 0, "+0", mwP === 0)}${pick("p", 5, "+5", mwP === 5)}${pick("p", 10, "+10", mwP === 10)}</div></div>
+      <div class="wr-forge-grid">${SLOTS.map((sl) => { const it = { b: baseId(sl, 4), r: mwR, lv: band, p: mwP }, g = itemStats(it), price = mwPrice(band, mwR, mwP);
+        return `<article class="wr-fcard mw${ok ? "" : " locked"}" style="--rc:${rc(it)}"><div class="wr-fart">${iconSvg(sl, rc(it))}</div><h4>${esc(BASES[sl][4])}${mwP ? ` +${mwP}` : ""}</h4><small>${esc(T(RARITY[mwR].name))} · ${esc(T("Lv {n}", { n: band }))}</small><p>${Object.entries(g).map(([k, v]) => `${esc(T(STAT_NAME[k]))} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(" · ")}</p>${buyBtn(mwId(sl, mwR, mwP), price, ok, T("Needs level {n}", { n: 20 }))}</article>`; }).join("")}</div>
+      <p class="wr-note">${esc(T("A weapon comes in the kind you're holding. Prices are in ARCL, earned by playing; ARCL can't be bought."))}</p>`;
+  }
+  // today's two selling limits, from the server: the Forge buys up to 1,500 ARCL of gear a day, and every ARCL you
+  // earn shares the day's 30,000. When either is full, selling waits for midnight (Seoul time), and this says so.
+  function sellGate() {
+    const d = ctx.arclDay ? ctx.arclDay() : null;
+    const sellCap = d ? d.sellCap : SELL_DAY_CAP, sold = d ? d.sold : SELL_DAY_CAP - sellLeft(), cap = d ? d.cap : ARCL_DAY_CAP, today = d ? d.today : 0;
+    const sl = Math.max(0, sellCap - sold), el2 = Math.max(0, cap - today), closed = sl <= 0 || el2 <= 0;
+    const ms = (() => { const n = new Date(Date.now() + 9 * 3600e3); return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - 9 * 3600e3 - Date.now(); })();
+    const h = Math.floor(ms / 3600e3), m = Math.floor((ms % 3600e3) / 60e3), when = h ? T("{h} h {m} min", { h, m }) : T("{m} min", { m: Math.max(1, m) });
+    const bar = (label, a, b) => `<div class="wr-sellcap"><span>${esc(label)}</span><b>${a.toLocaleString("en-US")} / ${b.toLocaleString("en-US")} ARCL</b><i><u style="width:${Math.min(100, (100 * a) / b)}%"></u></i></div>`;
+    const why = sl <= 0 ? T("Today's {n} ARCL of sales is used.", { n: sellCap.toLocaleString("en-US") }) : T("Today's {n} ARCL is earned.", { n: cap.toLocaleString("en-US") });
+    return { closed, why, when, html: `${closed ? `<div class="wr-sellshut" role="status"><b>${esc(T("Selling is closed until midnight (Seoul time)"))}</b><span>${esc(why)} ${esc(T("The Forge buys again in {t}. Pieces stay in your bag.", { t: when }))}</span></div>` : ""}${bar(T("Sales left today"), sl, sellCap)}${bar(T("ARCL earned today"), today, cap)}` };
+  }
   function forgeHTML() {
     const lv = ctx.level(), bal = ctx.arclBal();
-    const tabs = [["gear", "Gear"], ["acc", "Accessories"], ["supplies", "Supplies"], ["sell", "Sell"], ["enhance", "Enhance"], ["fuse", "Fuse"]];
+    const tabs = [["gear", "Gear"], ["acc", "Accessories"], ["master", "Masterwork"], ["supplies", "Supplies"], ["sell", "Sell"], ["enhance", "Enhance"], ["fuse", "Fuse"]];
     let body = "";
-    if (forgeTab === "supplies") body = `<div class="wr-forge-grid">${Object.entries(FORGE_SUPPLY).map(([id, x]) => `<article class="wr-fcard"><div class="wr-fart sup-${x.kind}">${x.kind === "recall" ? '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v4L6 13a6 6 0 0 0 12 0l-4-6V3"/></svg>'}</div><h4>${esc(T(x.name))}</h4><button type="button" class="wr-buy" data-buy="${id}"><img src="/images/arcl-64.png" alt="" width="18" height="18">${x.arcl}</button></article>`).join("")}</div>`;
-    else if (forgeTab === "sell") body = `<div class="wr-sellcap"><span>${esc(T("Sales left today"))}</span><b>${sellLeft()} / ${SELL_DAY_CAP} ARCL</b><i><u style="width:${100 * sellLeft() / SELL_DAY_CAP}%"></u></i></div><p class="wr-note">${esc(T("Sell gear from your bag for ARCL: the price goes by rarity and a little up with each +. Up to {n} ARCL of sales a day; worn gear isn't for sale.", { n: SELL_DAY_CAP }))}</p>${R().bag.length ? `<div class="wr-cells enh">${R().bag.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}<span class="wr-price"><img src="/images/arcl-64.png" alt="" width="12" height="12">${sellPrice(it)}</span></div>`).join("")}</div>` : `<p class="wa-empty">${esc(T("Your bag is empty."))}</p>`}${detail(sel && R().bag.find((x) => x.id === sel))}`;
+    if (forgeTab === "supplies") body = `<div class="wr-forge-grid">${Object.entries(FORGE_SUPPLY).map(([id, x]) => `<article class="wr-fcard"><div class="wr-fart sup-${x.kind}">${x.kind === "scrap" ? '<svg viewBox="0 0 24 24"><path d="M4 15l5-9 4 3 7-3-3 10-6 3z"/><path d="M9 6l1 8 7-5"/></svg>' : x.kind === "recall" ? '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v4L6 13a6 6 0 0 0 12 0l-4-6V3"/></svg>'}</div><h4>${esc(T(x.name))}</h4>${buyBtn(id, x.arcl, true, "")}</article>`).join("")}</div>`;
+    else if (forgeTab === "sell") body = `${sellGate().html}<p class="wr-note">${esc(T("Sell gear from your bag for ARCL: the price goes by rarity and a little up with each +. Up to {n} ARCL of sales a day; worn gear isn't for sale.", { n: SELL_DAY_CAP.toLocaleString("en-US") }))}</p>${R().bag.length ? `<div class="wr-cells enh">${R().bag.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}<span class="wr-price"><img src="/images/arcl-64.png" alt="" width="12" height="12">${sellPrice(it)}</span></div>`).join("")}</div>` : `<p class="wa-empty">${esc(T("Your bag is empty."))}</p>`}${detail(sel && R().bag.find((x) => x.id === sel))}`;
     else if (forgeTab === "fuse") body = fuseHTML();
+    else if (forgeTab === "master") body = masterHTML(lv, bal);
     else if (forgeTab === "enhance") { const all = [...Object.values(R().eq).filter(Boolean), ...R().bag]; body = `<p class="wr-note">${esc(T("Enhancing always works: it costs scrap, which you get by salvaging gear. Each + adds 8% to the piece."))} <b>${R().scrap} ${esc(T("Scrap"))}</b></p><div class="wr-cells enh">${all.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}</div>`).join("")}</div>${detail(sel && findItem(sel))}`; }
     else {
       const slots = forgeTab === "gear" ? ["weapon", "shield", "armor", "helm"] : ["ring", "boots", "necklace"];
-      body = `<div class="wr-forge-grid">${slots.flatMap((sl) => [0, 1, 2, 3].map((t) => { const it = { b: baseId(sl, t), r: t, lv: TIERS[t].lv, p: 0 }, g = itemStats(it), ok = lv >= TIERS[t].lv; return `<article class="wr-fcard${ok ? "" : " locked"}" style="--rc:${rc(it)}"><div class="wr-fart">${iconSvg(sl, rc(it))}</div><h4>${esc(BASES[sl][t])}</h4><small>${esc(T(RARITY[t].name))} · ${esc(T("Lv {n}", { n: TIERS[t].lv }))}</small><p>${Object.entries(g).map(([k, v]) => `${esc(T(STAT_NAME[k]))} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(" · ")}</p><button type="button" class="wr-buy" data-buy="${forgeId(sl, t)}" ${ok ? "" : "disabled"}>${ok ? `<img src="/images/arcl-64.png" alt="" width="18" height="18">${FORGE_PRICE[t]}` : esc(T("Needs level {n}", { n: TIERS[t].lv }))}</button></article>`; })).join("")}</div><p class="wr-note">${esc(T("Legendary gear only drops from hunting-ground bosses."))}</p>`;
+      body = `<div class="wr-forge-grid">${slots.flatMap((sl) => [0, 1, 2, 3, 4].map((t) => { const it = { b: baseId(sl, t), r: t, lv: TIERS[t].lv, p: 0 }, g = itemStats(it), ok = lv >= TIERS[t].lv; return `<article class="wr-fcard${ok ? "" : " locked"}" style="--rc:${rc(it)}"><div class="wr-fart">${iconSvg(sl, rc(it))}</div><h4>${esc(BASES[sl][t])}</h4><small>${esc(T(RARITY[t].name))} · ${esc(T("Lv {n}", { n: TIERS[t].lv }))}</small><p>${Object.entries(g).map(([k, v]) => `${esc(T(STAT_NAME[k]))} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(" · ")}</p>${buyBtn(forgeId(sl, t), FORGE_PRICE[t], ok, T("Needs level {n}", { n: TIERS[t].lv }))}</article>`; })).join("")}</div><p class="wr-note">${esc(T("The Arc set (Legendary) is forged from level 20. Stronger pieces made at your own level are on the Masterwork bench."))}</p>`;
     }
     return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}${id === "fuse" && isNewTab("fuse") ? '<i class="nb">NEW</i>' : ""}</button>`).join("")}<span class="wa-bal"><img src="/images/arcl-64.png" alt="" width="24" height="24"><b>${Math.round(bal).toLocaleString("en-US")}</b></span></nav>${body}`;
   }
@@ -377,10 +409,14 @@ export function createRpg(ctx) {
   function show(v) { view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
   function hide() { const tp = document.querySelector(".wr-tip"); if (tp) tp.hidden = true; if (!open) return; open = false; fresh.clear(); el.hidden = true; sel = null; ctx.freeze(false); if (PV) PV.stop(); }
   function hammer() { const a = el.querySelector(".wr-detail"); if (a) { a.classList.remove("hit"); void a.offsetWidth; a.classList.add("hit"); } }
-  async function buy(id) {
+  async function buy(id, price = 0) {
     const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return; }
+    if (price > ctx.arclBal()) { ctx.toast(T("Not enough ARCL: you have {a}, it's {b}", { a: Math.floor(ctx.arclBal()).toLocaleString("en-US"), b: price.toLocaleString("en-US") })); return; }
+    if (price >= 5000 && askBuy !== id) { askBuy = id; paint(); return; }
+    askBuy = "";
     if (R().bag.length >= BAG && !FORGE_SUPPLY[id]) { ctx.toast(T("Your bag is full")); return; }
-    const r = await ctx.post({ action: "world-forge-buy", ...s, item: id });
+    const wk = R().eq.weapon ? weaponKind(R().eq.weapon) : null;
+    const r = await ctx.post({ action: "world-forge-buy", ...s, item: id, ...(wk != null && /^(mw:weapon|weapon:4)/.test(id) ? { k: wk } : {}) });
     if (!r.ok) { ctx.toast(r.j.error || T("Couldn't buy that")); ctx.Snd.bad && ctx.Snd.bad(); return; }
     if (r.j.supply) { const x = r.j.supply; R()[x.kind] = (R()[x.kind] || 0) + x.n; ctx.save(); ctx.onPots && ctx.onPots(); ctx.toast(T("Bought: {x} · you have {n}", { x: T(FORGE_SUPPLY[id].name), n: R()[x.kind] })); }
     else { addItem(r.j.item, true); sel = r.j.item.id; ctx.toast(T("Bought: {x}", { x: itemName(r.j.item) })); }
@@ -407,9 +443,9 @@ export function createRpg(ctx) {
     if (res.j.left != null) setSellLeft(res.j.left); else if (res.j.capped) setSellLeft(0);
     if (res.j.capped && !res.j.credited) {
       ctx.Snd.bad && ctx.Snd.bad();
-      ctx.toast(res.j.full === "earn" ? T("Today's ARCL is full ({n} a day). The piece stays in your bag: sell it tomorrow.", { n: 300 })
-        : T("That's today's {n} ARCL of sales — the Forge buys again tomorrow.", { n: SELL_DAY_CAP }));
-      return;
+      ctx.toast(res.j.full === "earn" ? T("Today's ARCL is full ({n} a day). The piece stays in your bag: sell it tomorrow.", { n: ARCL_DAY_CAP.toLocaleString("en-US") })
+        : T("That's today's {n} ARCL of sales — the Forge buys again tomorrow.", { n: SELL_DAY_CAP.toLocaleString("en-US") }));
+      ctx.arclRefresh().then(() => open && paint()); return;
     }
     const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) r.bag.splice(i, 1); sel = null;
     ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: res.j.credited })); if (ctx.arclFly) ctx.arclFly(res.j.credited, from);
@@ -453,7 +489,8 @@ export function createRpg(ctx) {
     if (b.hasAttribute("data-sort")) { sortBag(); return; }
     if (b.hasAttribute("data-junk")) { salvageCommons(); return; }
     if (b.hasAttribute("data-forge")) { view = "forge"; sel = null; show("forge"); return; }
-    if (d.buy) buy(d.buy);
+    if (d.mw) { const [k, v] = d.mw.split(":"); if (k === "r") mwR = +v; else mwP = +v; askBuy = ""; paint(); return; }
+    if (d.buy) buy(d.buy, Number(d.price) || 0);
   });
   // a quick look: hover a piece (mouse) or hold it (touch) to compare it with what you wear
   const tip = document.createElement("div"); tip.className = "wr-tip"; tip.hidden = true; tip.setAttribute("role", "tooltip"); tip.setAttribute("data-no-i18n", ""); document.body.appendChild(tip);
