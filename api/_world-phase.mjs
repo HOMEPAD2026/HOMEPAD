@@ -9,7 +9,7 @@
 // the closed beta's data stays where it was (read for the CBT rewards, never changed). What a player paid
 // $ARCIRCLE for carries over: worldOwn falls back to the closed beta's record, minus what was bought with ARCL.
 // The flip to the open beta is two constants here and the same two in world-lock.js: phase "obt", epoch 2.
-export const WORLD_PHASE = { phase: "closed", epoch: 1 };
+export const WORLD_PHASE = { phase: "obt", epoch: 2 }; // b409: the open beta (from 14 October 2026)
 
 // collections that are not progress and stay the same in every epoch: payments, counts, presence, crews, coin lots,
 // health counters, the CBT reward records

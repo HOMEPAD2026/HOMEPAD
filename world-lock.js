@@ -10,8 +10,8 @@
 //   window.arcWorldLock: { ok() → bool, ask({ cancelHref }) → Promise<bool>, need, phase, epoch }
 (function () {
   "use strict";
-  var PHASE = "closed";
-  var EPOCH = 1;
+  var PHASE = "obt"; // b409: the open beta
+  var EPOCH = 2;
   var GMS = ["0x1250fe3b1de11da51457bca3fc8840f4ab4aeac1"]; // api/_world-village.mjs GM_WALLETS
   var OPEN = PHASE === "obt";
   var NEED = 1000000;
