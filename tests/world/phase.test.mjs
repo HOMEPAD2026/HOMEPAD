@@ -105,7 +105,8 @@ const sign = async (x) => { const issued = new Date(T).toISOString(); return { w
   r = await W.handle({ action: "world-cbt-claim", ...(await sign(F)), ep: 2 });
   check(r.status === 404, "a wallet new in the open beta: no CBT reward");
   r = await W.handle({ action: "world-cbt-claim", ...(await sign(G)), ep: 2 });
-  check(r.status === 404, "GMs: no CBT reward");
+  check(r.status === 200 && r.body.rank === 2 && r.body.items.length === 3 && r.body.items[0].b === "weapon-1", "GMs: outside the ranking, the 2nd place's set (weapon + 2)");
+  check(db.get("worldCbt/top").list.every((x) => x.w !== lcw(G)), "and the ranking itself stays without GMs");
   r = await W.handle({ action: "world-login", ...(await sign(A)) });
   check(r.body.cbt.claimed && r.body.cbt.items.length === 4, "after the claim, sign-in says it's been claimed"); }
 
