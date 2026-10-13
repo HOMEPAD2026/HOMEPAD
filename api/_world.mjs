@@ -50,6 +50,8 @@ const cleanItem = (x) => (x && typeof x === "object" && /^[a-z0-9]{4,10}$/.test(
       ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.k) && x.k >= 0 && x.k <= 4 ? { k: x.k } : {}), ...(x.lk ? { lk: 1 } : {}),
       // a weapon's temper stage (world-life.js workbench): 1–5
       ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.tm) && x.tm >= 1 && x.tm <= 5 ? { tm: x.tm } : {}) } : null);
+// a weapon's kind when none was chosen: settled by its id (world-gear3d.js weaponKind, the same hash)
+export const idKind = (id) => { let h = 7; for (const ch of String(id || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 5; };
 const num = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 function cleanRpg(r) {
   if (!r || typeof r !== "object") return undefined;
@@ -212,11 +214,26 @@ export function make(deps) {
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const data = cleanSave(b.data);
     if (data.rpg && data.rpg.bag.length > BAG_BASE) data.rpg.bag = data.rpg.bag.slice(0, bagSize(await shop.own(s.wallet)));
-    if (old && old.name && data.name && data.name !== old.name) {
+    // changing the character or the name (once they're set) takes a Character change (10,000 $ARCIRCLE); a name-only
+    // change can also use an old ARCL Name change. Without one, the old character and name stay.
+    const charCh = !!(old && old.char && data.char && data.char !== old.char), nameCh = !!(old && old.name && data.name && data.name !== old.name);
+    if (charCh || nameCh) {
       const o = await shop.own(s.wallet);
-      if (!o.freeRename) await setDoc(`worldOwn/${s.wallet}`, { ...o, freeRename: true });
-      else if ((o.renames || 0) > (o.renamesUsed || 0)) await setDoc(`worldOwn/${s.wallet}`, { ...o, renamesUsed: (o.renamesUsed || 0) + 1 });
-      else data.name = old.name;
+      if ((o.rechars || 0) > (o.recharsUsed || 0)) await setDoc(`worldOwn/${s.wallet}`, { ...o, recharsUsed: (o.recharsUsed || 0) + 1 });
+      else if (!charCh && (o.renames || 0) > (o.renamesUsed || 0)) await setDoc(`worldOwn/${s.wallet}`, { ...o, renamesUsed: (o.renamesUsed || 0) + 1 });
+      else { data.char = old.char; data.name = old.name; }
+    }
+    // a weapon's kind (k) changed on a piece the last save already had takes a Weapon kind change (5,000 $ARCIRCLE)
+    // each; without enough of them, those pieces keep their old kind
+    if (old && old.rpg && data.rpg) {
+      const kindOf = (it) => (Number.isInteger(it.k) ? it.k : idKind(it.id)), before = new Map();
+      for (const it of [...Object.values(old.rpg.eq || {}), ...(old.rpg.bag || []), ...(old.rpg.store || [])]) if (it && String(it.b || "").startsWith("weapon-")) before.set(it.id, kindOf(it));
+      const now_ = [...Object.values(data.rpg.eq || {}), ...data.rpg.bag, ...(data.rpg.store || [])].filter((it) => it && it.b.startsWith("weapon-") && before.has(it.id) && kindOf(it) !== before.get(it.id));
+      if (now_.length) {
+        const o = await shop.own(s.wallet), left = (o.rekinds || 0) - (o.rekindsUsed || 0);
+        if (left >= now_.length) await setDoc(`worldOwn/${s.wallet}`, { ...o, rekindsUsed: (o.rekindsUsed || 0) + now_.length });
+        else for (const it of now_) it.k = before.get(it.id);
+      }
     }
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
     // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.

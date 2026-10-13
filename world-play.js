@@ -2154,14 +2154,38 @@ $("wp-make-grid").addEventListener("click", (e) => {
   pickChar = b.dataset.c; $("wp-make-grid").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
   setAvatar(pickChar).then(() => avatar && avatar.play("emote-yes", { once: true }));
 });
-$("wp-make-go").addEventListener("click", () => {
-  P.char = pickChar;
-  let nm = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player");
-  // with a wallet: the first name change is free, later ones need a Name change from the ARCL Shop (the server checks too)
-  const o = arclShop.own();
-  if (P.name && nm !== P.name && sess() && o && o.freeRename && (o.renames || 0) <= (o.renamesUsed || 0)) { toast(T("Changing your name again needs a Name change from the ARCL Shop")); nm = P.name; }
-  P.name = nm; save();
+// the character maker: the first pick (and first name) is free; changing either later is a Character change,
+// 10,000 $ARCIRCLE from your wallet (half burned, half to the treasury), which the server checks on the next save
+const CHAR_COST = 10000;
+function finishMake(ch, nm) {
+  P.char = ch; P.name = nm; save();
   setNameTag(); make.hidden = true; frozen = false; camYaw = facing - Math.PI; paintQuests(); tutorialStep(-1); maybeGuide();
+  const ask = $("wp-make-ask"); if (ask) ask.remove();
+}
+$("wp-make-go").addEventListener("click", () => {
+  const nm = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player");
+  const charCh = !!(P.char && P.guideSeen && pickChar !== P.char), nameCh = !!(P.name && P.guideSeen && nm !== P.name);
+  if (!charCh && !nameCh) { finishMake(pickChar, nm); return; }
+  const o = arclShop.own() || {};
+  // a change already paid for (or an old ARCL Name change, for a name alone) goes straight through
+  if ((o.rechars || 0) > (o.recharsUsed || 0) || (!charCh && (o.renames || 0) > (o.renamesUsed || 0))) { finishMake(pickChar, nm); toast(T("Character changed")); return; }
+  let ask = $("wp-make-ask"); if (ask) ask.remove();
+  ask = document.createElement("div"); ask.id = "wp-make-ask"; ask.className = "wp-make-ask"; ask.setAttribute("role", "group");
+  const signed = !!sess();
+  ask.innerHTML = `<p>${esc(signed ? T("Changing your character or name costs {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury).", { n: CHAR_COST.toLocaleString("en-US") }) : T("Changing your character or name costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.", { n: CHAR_COST.toLocaleString("en-US") }))}</p><p class="wp-make-st" aria-live="polite"></p>
+    <div>${signed ? `<button type="button" class="wp-btn go" data-mpay>${esc(T("Pay {n} $ARCIRCLE", { n: CHAR_COST.toLocaleString("en-US") }))}</button>` : ""}<button type="button" class="wp-btn" data-mkeep>${esc(T("Keep my character"))}</button></div>`;
+  $("wp-make-go").after(ask);
+  ask.addEventListener("click", (e) => {
+    if (e.target.closest("[data-mkeep]")) {
+      // back to the one you have
+      pickChar = P.char; $("wp-make-name").value = P.name || ""; setAvatar(P.char); ask.remove();
+      $("wp-make-grid").querySelectorAll("button[data-c]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.c === P.char)));
+      make.hidden = true; frozen = false; return;
+    }
+    const pb = e.target.closest("[data-mpay]"); if (!pb) return;
+    pb.disabled = true; const st = ask.querySelector(".wp-make-st");
+    arclShop.pay("rechar", "", (t) => { if (st) st.textContent = t; }).then((ok) => { if (ok) { finishMake(pickChar, nm); toast(T("Character changed")); } else pb.disabled = false; }).catch(() => { pb.disabled = false; });
+  });
 });
 const setEl = $("wp-setsheet");
 function openSet() {
@@ -2404,6 +2428,7 @@ rpg = RPG.createRpg({
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
   buyBag: (onStatus) => arclShop.pay("bagplus", "", onStatus),
+  buyRekind: (onStatus) => arclShop.pay("rekind", "", onStatus), own: () => arclShop.own(),
   openCraft: (t, id) => { if (life) life.showSheet(t, id); }, onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclDay: () => { const a = arclShop.arcl(); return a ? { today: a.today || 0, cap: a.cap || 30000, sold: a.sold || 0, sellCap: a.sellCap || 1500 } : null; }, arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();

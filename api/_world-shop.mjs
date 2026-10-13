@@ -100,12 +100,15 @@ export const CATALOG = [
   { id: "trail-gold", cat: "style", name: "Gold board trail", line: "A gold trail behind your hoverboard.", usd: 1, arcl: 200 },
   { id: "trail-pink", cat: "style", name: "Pink board trail", line: "A pink trail behind your hoverboard.", usd: 1, arcl: 200 },
   { id: "trail-rainbow", cat: "style", name: "Rainbow board trail", line: "Every colour, cycling behind your hoverboard.", usd: 4, arcl: 1000 },
-  { id: "rename", cat: "style", name: "Name change", line: "Change your name once more (the first change is free).", usd: 0.5, arcl: 100, use: true },
+  // the old ARCL name change: no longer sold (a character change covers the name now); bought ones still work
+  { id: "rename", cat: "retired", name: "Name change", line: "Change your name once more.", usd: null, arcl: null, use: true },
   // plaza: be seen in the hub
   { id: "feature-isle", cat: "plaza", name: "Island of the day", line: "Your island on the plaza screen for 24 hours, with a Visit button.", usd: 5, arcl: null, use: true, hours: 24 },
   { id: "billboard", cat: "plaza", name: "Plaza billboard", line: "An ArcPad coin on the plaza billboard for 6 hours.", usd: 3, arcl: null, use: true, hours: 6, target: "coin" },
   // not on the shelves: bought from the game itself
   { id: "revive", cat: "game", name: "Revive", line: "Get back up where you fell, with full HP and SP (and end a 24-hour rest).", tokens: 10000, usd: null, arcl: null, use: true },
+  { id: "rekind", cat: "game", name: "Weapon kind change", line: "Turn one weapon into another kind (dual swords, hammer, blaster, bow or staff). It keeps its stats.", tokens: 5000, usd: null, arcl: null, use: true },
+  { id: "rechar", cat: "game", name: "Character change", line: "Pick another character and a new name.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "bagplus", cat: "game", name: "Bigger bag", line: "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
 ];
@@ -349,6 +352,8 @@ export function makeShop(deps) {
     const o = await own(w), at = now();
     if (it.id === "rename") o.renames = (o.renames || 0) + 1;
     else if (it.id === "revive") { o.revives = (o.revives || 0) + 1; const k = await one(`worldKo/${w}`); if (k && (k.until > at || k.down)) await setDoc(`worldKo/${w}`, { ...k, until: 0, down: 0, paid: (k.paid || 0) + 1 }); }
+    else if (it.id === "rekind") o.rekinds = (o.rekinds || 0) + 1; // used up by the save that changes a weapon's kind (api/_world.mjs)
+    else if (it.id === "rechar") o.rechars = (o.rechars || 0) + 1; // used up by the save that changes the character or name
     else if (it.id === "bagplus") o.bag = Math.min((BAG_MAX - BAG_BASE) / BAG_STEP, Math.max(0, Math.floor(Number(o.bag) || 0)) + 1);
     else if (it.id === "lot13") o.lots = [...new Set([...(o.lots || []), lc(target)])];
     else if (it.id === "feature-isle" || it.id === "billboard") {

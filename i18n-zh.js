@@ -10690,6 +10690,15 @@
     "Hooded Rogue": "兜帽盗贼",
     "Ranger": "游侠",
     "Barbarian": "野蛮人",
+    "Character changed": "角色已更换",
+    "Changing your character or name costs {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury).": "更换角色或名字需要从钱包支付 {n} $ARCIRCLE(一半销毁,一半进入金库)。",
+    "Changing your character or name costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.": "更换角色或名字需要 {n} $ARCIRCLE。用钱包登录后即可支付。",
+    "Pay {n} $ARCIRCLE": "支付 {n} $ARCIRCLE",
+    "Keep my character": "保留当前角色",
+    "Make it a {x} for {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury). It keeps its stats.": "从钱包支付 {n} $ARCIRCLE 改为{x}(一半销毁,一半进入金库)。属性不变。",
+    "Changing a weapon's kind costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.": "更改武器类型需要 {n} $ARCIRCLE。用钱包登录后即可支付。",
+    "Keep it": "保持不变",
+    "Change kind: {n} $ARCIRCLE": "更改类型:{n} $ARCIRCLE",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

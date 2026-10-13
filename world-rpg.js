@@ -7,7 +7,7 @@
 import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, ARCL_DAY_CAP, mwBand, mwPrice, mwId, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, skillLevel, bonusLine } from "./world-rpg-data.js";
 export * from "./world-rpg-data.js";
 import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade, weaponThumb, gearThumb, gearModel3d } from "./world-gear3d.js";
-const RESHAPE = 40; // scrap to turn a weapon into another kind
+const KIND_COST = 5000; // $ARCIRCLE to turn a weapon into another kind (a Weapon kind change; the server checks it on save)
 // the bag: 24 slots, and 8 more for each "Bigger bag" bought with $ARCIRCLE (api/_world-shop.mjs bagSize), up to 120
 const BAG_BASE = 24, BAG_STEP = 8, BAG_MAX = 120;
 let BAG = BAG_BASE;
@@ -140,10 +140,14 @@ export function createRpg(ctx) {
   }
   // a locked piece stays: no selling, salvaging or fusing it, and Equip best leaves it on
   // a weapon's kind (dual swords, hammer, blaster, bow, staff) can be changed for a little scrap; it keeps its stats
+  // changing it takes a Weapon kind change, 5,000 $ARCIRCLE from your wallet: asked first (kindAsk), then paid
+  let kindAsk = null; // { id, k, st }: the change waiting for a yes, and the payment's status line
+  const kindCredit = () => { const o = ctx.own ? ctx.own() : null; return o ? (o.rekinds || 0) - (o.rekindsUsed || 0) : 0; };
+  function applyKind(it, k) { it.k = k; const o = ctx.own && ctx.own(); if (o) o.rekindsUsed = (o.rekindsUsed || 0) + 1; kindAsk = null; changed(T("Now a {x}", { x: T(WEAPON_KINDS[k].name) })); ctx.save && ctx.save(); }
   function reshape(id, k) {
-    const it = findItem(id), r = R(); if (!it || weaponKind(it) === k) return;
-    if ((r.scrap || 0) < RESHAPE) { ctx.toast(T("Not enough scrap")); return; }
-    r.scrap -= RESHAPE; it.k = k; changed(T("Now a {x}", { x: T(WEAPON_KINDS[k].name) }));
+    const it = findItem(id); if (!it || weaponKind(it) === k) { kindAsk = null; paint(); return; }
+    if (kindCredit() > 0) { applyKind(it, k); return; } // one already paid for
+    kindAsk = { id, k, st: "" }; paint();
   }
   function lock(id) { const it = findItem(id); if (!it) return; it.lk = it.lk ? 0 : 1; if (!it.lk) delete it.lk; changed(it.lk ? T("Locked: {x}", { x: itemName(it) }) : T("Unlocked: {x}", { x: itemName(it) })); }
   function unequip(slot) { const r = R(); if (!r.eq[slot]) return; if (r.bag.length >= BAG) { ctx.toast(T("Your bag is full")); return; } r.bag.push(r.eq[slot]); delete r.eq[slot]; changed(); }
@@ -292,7 +296,7 @@ export function createRpg(ctx) {
       <ul class="wr-stats">${keys.map((k) => statLine(k, g[k] || 0, on || !cur ? 0 : (g[k] || 0) - (c[k] || 0))).join("")}</ul>
       ${p.slot === "weapon" ? `<div class="wr-kind"><b>${esc(T(WEAPON_KINDS[weaponKind(it)].name))}</b><span>${esc(T(WEAPON_KINDS[weaponKind(it)].line))}</span>
         <div class="wr-kinds" role="group" aria-label="${esc(T("Weapon kind"))}">${WEAPON_KINDS.map((k, i) => `<button type="button" data-kind="${i}" aria-pressed="${weaponKind(it) === i}">${esc(T(k.name))}</button>`).join("")}</div>
-        <small>${esc(T("Change kind: {n} scrap", { n: RESHAPE }))}</small>
+        ${kindAsk && kindAsk.id === it.id ? `<div class="wr-bagask wr-kindask" role="group"><p>${esc(kindAsk.st || (ctx.sess() ? T("Make it a {x} for {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury). It keeps its stats.", { x: T(WEAPON_KINDS[kindAsk.k].name), n: KIND_COST.toLocaleString("en-US") }) : T("Changing a weapon's kind costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.", { n: KIND_COST.toLocaleString("en-US") })))}</p>${ctx.sess() && ctx.buyRekind ? `<button type="button" class="go" data-kindpay>${esc(T("Pay {n} $ARCIRCLE", { n: KIND_COST.toLocaleString("en-US") }))}</button>` : ""}<button type="button" data-kindno>${esc(T("Keep it"))}</button></div>` : `<small>${esc(T("Change kind: {n} $ARCIRCLE", { n: KIND_COST.toLocaleString("en-US") }))}</small>`}
         <p class="wr-temper"><span>${esc(T("Temper"))}</span><em>${Array.from({ length: 5 }, (_, i) => `<i class="${i < (it.tm || 0) ? "on" : ""}"></i>`).join("")}</em>${it.tm ? `<b>+${it.tm * 4}%</b>` : ""}${ctx.openCraft ? `<button type="button" data-tempergo>${esc(T("Workbench"))}</button>` : ""}</p></div>` : ""}
       <p class="wr-set">${esc(T("{x} set", { x: TIERS[p.tier].set }))}${need > ctx.level() ? ` · <span class="need">${esc(T("Needs level {n}", { n: need }))}</span>` : ""}</p>
       <div class="wr-acts">${on ? `<button type="button" data-unequip="${p.slot}">${esc(T("Unequip"))}</button>` : `<button type="button" class="go" data-equip="${it.id}" ${need > ctx.level() ? "disabled" : ""}>${esc(T("Equip"))}</button>`}
@@ -513,6 +517,12 @@ export function createRpg(ctx) {
     if (b.hasAttribute("data-bestno")) { plan = null; paint(); return; }
     if (d.lock) { lock(d.lock); return; }
     if (d.kind != null && sel) { reshape(sel, +d.kind); return; }
+    if (b.hasAttribute("data-kindno")) { kindAsk = null; paint(); return; }
+    if (b.hasAttribute("data-kindpay") && kindAsk) {
+      const ask = kindAsk; b.disabled = true;
+      ctx.buyRekind((t) => { if (t && kindAsk === ask) { ask.st = t; paint(); } }).then((ok) => { const it = findItem(ask.id); if (ok && it) applyKind(it, ask.k); else if (kindAsk === ask) paint(); }).catch(() => { if (kindAsk === ask) { kindAsk = null; paint(); } });
+      return;
+    }
     if (b.hasAttribute("data-sort")) { sortBag(); return; }
     if (b.hasAttribute("data-junk")) { salvageCommons(); return; }
     if (b.hasAttribute("data-forge")) { view = "forge"; sel = null; show("forge"); return; }
