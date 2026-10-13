@@ -117,7 +117,7 @@ export function quality(force = "auto") {
   const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
   const medium = f === "medium";
   const dpr = Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : medium ? 1.5 : f === "ultra" ? 2 : coarse ? 1.5 : 1.75); // phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain)
-  return { coarse, low, saver, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : 2048 };
+  return { coarse, low, saver, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : f === "ultra" ? 4096 : 2048 }; // Ultra on a computer: crisper shadows near you
 }
 export function webglOk() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
@@ -212,15 +212,15 @@ export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, s
   const cv = document.createElement("canvas"); cv.width = 1024; cv.height = sub ? 300 : 220;
   const g = cv.getContext("2d");
   // long text shrinks to fit the plate instead of running off its ends
-  let fs = 92; g.font = `700 ${fs}px Sora, system-ui, sans-serif`;
-  while (fs > 44 && g.measureText(text).width > 860) { fs -= 4; g.font = `700 ${fs}px Sora, system-ui, sans-serif`; }
+  let fs = 92; g.font = `700 ${fs}px Sora, 'Pretendard Variable', system-ui, sans-serif`;
+  while (fs > 44 && g.measureText(text).width > 860) { fs -= 4; g.font = `700 ${fs}px Sora, 'Pretendard Variable', system-ui, sans-serif`; }
   const w = Math.min(1000, g.measureText(text).width + 120);
   const x0 = (1024 - w) / 2, h = 150, y0 = 20, r = 75;
   g.fillStyle = "rgba(6,10,16,.78)"; g.beginPath(); g.roundRect(x0, y0, w, h, r); g.fill();
   g.lineWidth = 6; g.strokeStyle = accent; g.stroke();
   g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, 512, y0 + h / 2 + 4);
   // the line under it (a title, a level) sits on its own small dark pill so it reads against a bright sky or floor
-  if (sub) { g.font = "700 62px Sora, system-ui, sans-serif"; const sw = Math.min(1000, g.measureText(sub).width + 64); g.fillStyle = "rgba(6,10,16,.72)"; g.beginPath(); g.roundRect(512 - sw / 2, y0 + h + 22, sw, 88, 44); g.fill(); g.fillStyle = accent; g.fillText(sub, 512, y0 + h + 68); }
+  if (sub) { g.font = "700 62px Sora, 'Pretendard Variable', system-ui, sans-serif"; const sw = Math.min(1000, g.measureText(sub).width + 64); g.fillStyle = "rgba(6,10,16,.72)"; g.beginPath(); g.roundRect(512 - sw / 2, y0 + h + 22, sw, 88, 44); g.fill(); g.fillStyle = accent; g.fillText(sub, 512, y0 + h + 68); }
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
   sp.scale.set(5.2 * size, 5.2 * size * cv.height / 1024, 1);
@@ -575,7 +575,7 @@ export function makeShop(spec) {
   g.userData = { spec, spin, tag, body, accent, radius: 3.2 };
   // the building itself: the ARCIRCLE hall for this shop (world-arcstyle.js), the accent on its roof
   if (BUILDING[spec.id]) {
-    const b = ARC.makeArcBuilding(spec.id, col); b.position.y = 0.34; g.add(b); body.visible = false;
+    const b = ARC.makeArcBuilding(spec.id, col, spec.district); b.position.y = 0.34; g.add(b); body.visible = false;
     if (ARC.hallSign) { const sg = ARC.hallSign(spec.name, col); sg.position.set(0, 0.34 + 0.28 + 2.3 + 0.42, 1.76); g.add(sg); } // the name over the door
     accent.position.y = 0.34 + b.userData.h + 0.1; tag.position.y = accent.position.y + (ACCENT_H[spec.shape] || 2) + 1.3; g.userData.building = b;
   }
@@ -777,6 +777,7 @@ export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) =
 export { ARCBOT_IDS };
 export const arcNight = (k) => ARC.setNight(k);
 export const arcTick = (dt, org) => ARC.tickNight && ARC.tickNight(dt, org);
+export const arcPulse = (k) => ARC.setPulse && ARC.setPulse(k);
 export const mergeStatic = (g) => ARC.mergeStatic(g);
 // ---------------- character shading: soft toon bands and a rim of light ----------------
 // The sun's light falls on characters in two soft steps instead of a smooth roll-off, and their outline catches a rim
@@ -826,7 +827,7 @@ const OUTLINE = new Map();
 function outlineMat(color, t) {
   const k = color + ":" + t; if (OUTLINE.has(k)) return OUTLINE.get(k);
   const m = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
-  m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>\n  transformed += normalize(normal) * ${t.toFixed(4)} / max(1e-4, length(modelMatrix[0].xyz));`); };
+  m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>\n  transformed += normal * inversesqrt(max(dot(normal, normal), 1e-8)) * ${t.toFixed(4)} / max(1e-4, length(modelMatrix[0].xyz)); /* a zero normal must not make a NaN position */`); };
   m.customProgramCacheKey = () => "outline" + k; OUTLINE.set(k, m); return m;
 }
 export function outlineAll(obj, { color = 0x0b1220, t = 0.022 } = {}) {

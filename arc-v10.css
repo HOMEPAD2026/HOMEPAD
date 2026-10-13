@@ -1075,6 +1075,8 @@ html.wg-lock,html.wg-lock body{overflow:hidden}
 .wg.wg-flat .wg-hint{display:none}
 .wg.wg-diving .wg-main,.wg.wg-diving .wg-top{opacity:0;transform:translateY(10px);transition:opacity .45s ease,transform .45s ease}
 .wg.wg-diving::after{opacity:.2;transition:opacity .6s}
+/* the dive ends in the loading screen's dark, so the page change underneath it doesn't show */
+.wg.wg-diving .wg-cv{opacity:0;transition:opacity .45s ease .7s}
 @media (max-width:640px){
   .wg-doors{grid-template-columns:1fr;gap:10px;margin-top:20px}
   .wg-door{padding:15px 48px 15px 16px;border-radius:18px}
@@ -1952,6 +1954,19 @@ html.wp-pcphone .wc-v em{min-width:100px}
 .wc-revive small,.wc-respawn small{font-size:12px;opacity:.8}
 .wc-respawn{align-items:center;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.04);color:#eef3f7}
 .wc-respawn:disabled,.wc-revive:disabled{opacity:.55;cursor:default}
+/* after the day's free revive: the paid revive and the rest sit side by side with the same weight */
+.wc-revive.paid{background:rgba(47,224,176,.1);border:1px solid rgba(47,224,176,.45);color:#d8fff1;box-shadow:none}
+.wc-dead-card .wc-respawn small{text-align:center}
+.wc-rest{appearance:none;display:flex;align-self:flex-start;width:max-content;max-width:100%;align-items:center;gap:8px;margin:2px 0 6px;padding:6px 12px;min-height:34px;border-radius:12px;border:1px solid rgba(180,140,255,.4);background:rgba(20,14,36,.7);color:#e6dcff;font:600 13px var(--f-ui);cursor:pointer;pointer-events:auto;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.wc-rest b{font-weight:800;color:#c9b2ff}
+html.wp-pcphone .wc-rest{min-height:52px;padding:8px 18px;font-size:18px;border-radius:16px}
+.wr-bagplus{appearance:none;margin-left:6px;height:26px;padding:0 10px;border-radius:8px;border:1px solid rgba(255,200,97,.45);background:rgba(255,200,97,.12);color:#ffe2a8;font:700 12px var(--f-ui);cursor:pointer;vertical-align:middle}
+.wr-bagask{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,200,97,.3);background:rgba(255,200,97,.06)}
+.wr-bagask p{flex:1 1 100%;margin:0;font-size:13px;line-height:1.45;color:#f4ead6}
+.wr-bagask button{appearance:none;height:34px;padding:0 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#eef3f7;font:700 13px var(--f-ui);cursor:pointer}
+.wr-bagask button.go{border:0;background:linear-gradient(180deg,#ffd27a,#ffb23d);color:#2a1a00}
+html.wp-pcphone .wr-bagplus{height:44px;font-size:17px;padding:0 14px}
+html.wp-pcphone .wr-bagask p{font-size:18px}html.wp-pcphone .wr-bagask button{height:52px;font-size:18px}
 .wc-dead-note{margin:0;font-size:12px;line-height:1.5;color:rgba(222,233,244,.55)}
 
 /* ---------- v23: your character (world-rpg.js) — gear, bag, the Forge — and the hunting grounds ---------- */
@@ -3205,3 +3220,21 @@ html.wp-pcphone .wp-hub-h h2{font-size:36px}
 .wc-banner.on::before{animation:wcWipe 3.2s cubic-bezier(.2,.9,.3,1) forwards}
 @keyframes wcWipe{0%{transform:translate(-50%,-50%) scaleX(0);opacity:1}14%{transform:translate(-50%,-50%) scaleX(1);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-50%) scaleX(1);opacity:0}}
 @media (prefers-reduced-motion:reduce){.wc-banner.on::before{animation:none;transform:translate(-50%,-50%) scaleX(1);opacity:.8}}
+
+/* a Rare or better find: a card that turns over at the top of the screen (world-play.js lootCard) */
+.wp-loot{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 120px);z-index:40;transform:translateX(-50%);perspective:700px;pointer-events:none}
+.wp-loot-in{position:relative;width:150px;height:190px;transform:rotateY(180deg) scale(.6);opacity:0;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,1.3,.4,1),opacity .25s}
+.wp-loot.on .wp-loot-in{transform:rotateY(0) scale(1);opacity:1}
+.wp-loot.out .wp-loot-in{transform:translateY(-30px) scale(.8);opacity:0;transition:transform .5s ease-in,opacity .5s}
+.wp-loot-back,.wp-loot-face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:2px solid var(--rc)}
+.wp-loot-back{transform:rotateY(180deg);background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--rc) 45%,transparent),rgba(6,10,16,.95) 70%)}
+.wp-loot-face{display:grid;justify-items:center;align-content:center;gap:6px;padding:12px;background:linear-gradient(180deg,rgba(14,20,30,.96),rgba(6,10,16,.96));box-shadow:0 0 28px color-mix(in srgb,var(--rc) 55%,transparent);text-align:center}
+.wp-loot-face img{width:84px;height:84px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+.wp-loot-face b{font:800 14px/1.2 var(--f-ui);color:#fff}
+.wp-loot-face small{font:800 11px var(--f-ui);color:var(--rc);letter-spacing:.04em}
+html.wp-pcphone .wp-loot{top:300px}html.wp-pcphone .wp-loot-in{width:240px;height:300px}html.wp-pcphone .wp-loot-face img{width:140px;height:140px}html.wp-pcphone .wp-loot-face b{font-size:22px}html.wp-pcphone .wp-loot-face small{font-size:17px}
+@media (prefers-reduced-motion:reduce){.wp-loot-in{transition:opacity .2s}.wp-loot .wp-loot-in{transform:none}}
+
+/* damage numbers: a tall, heavy display face for digits (Big Shoulders Display 900, self-hosted), tabular so a stacking number doesn't jitter */
+.wp-float-n{font-family:'Big Shoulders Display',var(--f-ui);font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.wp-float-n.crit{letter-spacing:.03em}

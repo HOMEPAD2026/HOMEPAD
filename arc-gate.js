@@ -55,6 +55,7 @@
       mark();
       if (!scene || reduce) { location.href = "/play"; return; }
       el.classList.add("wg-diving");
+      try { sessionStorage.setItem("arc.gate.dove", String(Date.now())); } catch (e) { /* private */ } // /play lands without a second dive
       scene.dive().then(function () { location.href = "/play"; });
     };
     // Game World's beta: a wallet holding 1,000,000 $ARCIRCLE (world-lock.js)

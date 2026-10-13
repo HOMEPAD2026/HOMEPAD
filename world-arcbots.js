@@ -144,6 +144,7 @@ export function makeArcBot(THREE, spec) {
     scarf: () => { const s = mesh(new THREE.TorusGeometry(0.22, 0.07, 10, 24), M.accent, 0, 0.55, 0); s.rotation.x = Math.PI / 2; torso.add(s); const tail = mesh(new THREE.BoxGeometry(0.12, 0.26, 0.05), M.accent, 0.12, 0.42, -0.2); tail.rotation.z = 0.3; torso.add(tail); spin.push((dt, t, sp) => { tail.rotation.x = 0.3 + sp * 0.9 + Math.sin(t * 6) * 0.08 * (0.3 + sp); }); spring(tail, 1.1, true); },
     beret: () => { const b = mesh(new THREE.SphereGeometry(0.42, 22, 10, 0, TAU, 0, Math.PI / 2), M.accent, 0.08, 0.86, -0.02); b.scale.set(1.15, 0.38, 1.1); b.rotation.z = -0.25; const nub = mesh(new THREE.SphereGeometry(0.05, 8, 6), M.accent, 0.03, 1.02, 0); head.add(b, nub); },
     brush: () => { const b = new THREE.Group(); b.add(mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.4, 8), std(0x8a5a2a), 0, -0.2, 0), mesh(new THREE.ConeGeometry(0.04, 0.1, 8), glow(spec.accent, 1.2), 0, -0.44, 0)); b.position.set(0, -0.32, 0.08); b.rotation.x = 1.3; arms[1].add(b); },
+    pumpkin: () => { const p = mesh(new THREE.SphereGeometry(0.3, 18, 12), std(0xff8a1e, { roughness: 0.6 }), 0, 1.12, -0.02); p.scale.set(1.15, 0.8, 1.1); const st = mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.16, 6), std(0x4a6a2a), 0, 1.4, -0.02); st.rotation.z = 0.3; head.add(p, st); }, // Halloween
     halo: () => { const h = mesh(new THREE.TorusGeometry(0.3, 0.03, 8, 40), glow(0xffd27a, 2.4), 0, 1.22, -0.05); h.rotation.x = Math.PI / 2 - 0.2; h.castShadow = false; head.add(h); spin.push((dt, t) => { h.position.y = 1.22 + Math.sin(t * 2) * 0.03; }); },
     rings: () => { const r = new THREE.Group(); r.position.y = 0.25; [0, 1].forEach((i) => { const t = mesh(new THREE.TorusGeometry(0.5 + i * 0.06, 0.018, 6, 48), glow(i ? 0x2ee07a : spec.accent, 1.8)); t.rotation.x = Math.PI / 2 + (i ? 0.5 : -0.4); t.castShadow = false; r.add(t); }); torso.add(r); spin.push((dt) => { r.rotation.y += dt * 1.2; }); },
     coat: () => { const c = mesh(new THREE.CylinderGeometry(0.3 * bulky, 0.38 * bulky, 0.42, 20, 1, true), std(0xffffff, { roughness: 0.8, side: THREE.DoubleSide }), 0, 0.12, 0); torso.add(c); },
@@ -247,7 +248,7 @@ export function makeArcBot(THREE, spec) {
 export const WARDROBE_SLOTS = ["head", "face", "neck", "back", "aura"];
 export const WARDROBE = [
   { id: "antenna", slot: "head", name: "Antenna", lv: 1 }, { id: "cat", slot: "head", name: "Cat ears", lv: 5 }, { id: "beret", slot: "head", name: "Beret", lv: 5 },
-  { id: "hardhat", slot: "head", name: "Hard hat", lv: 10 }, { id: "halo", slot: "head", name: "Halo", lv: 20 }, { id: "flame", slot: "head", name: "Flame crest", lv: 50 },
+  { id: "hardhat", slot: "head", name: "Hard hat", lv: 10 }, { id: "halo", slot: "head", name: "Halo", lv: 20 }, { id: "flame", slot: "head", name: "Flame crest", lv: 50 }, { id: "pumpkin", slot: "head", name: "Pumpkin", lv: 1, event: "halloween" },
   { id: "goggles", slot: "face", name: "Goggles", lv: 1 }, { id: "visorband", slot: "face", name: "Visor band", lv: 10 },
   { id: "scarf", slot: "neck", name: "Scarf", lv: 1 },
   { id: "backpack", slot: "back", name: "Backpack", lv: 5 }, { id: "cape", slot: "back", name: "Cape", lv: 10 }, { id: "wings", slot: "back", name: "Wings", lv: 15 },
@@ -256,7 +257,7 @@ export const WARDROBE = [
 export const WARDROBE_COLORS = [["", "The look's own"], ["2f86ff", "Arc Blue"], ["2ee07a", "Circle Mint"], ["38e8ff", "Cyan"], ["ffc861", "Gold"], ["a67bff", "Violet"], ["ff4d6d", "Coral"]];
 const SLOT_OF = Object.fromEntries(WARDROBE.map((w) => [w.id, w.slot]));
 // the parts of the 25 looks that sit in a wardrobe place (so a worn part replaces them)
-const BASE_SLOT = { antenna: "head", cat: "head", beret: "head", hardhat: "head", halo: "head", flame: "head", chef: "head", aviator: "head", hood: "head", bubble: "head", fins: "head", leaves: "head", crystals: "head",
+const BASE_SLOT = { pumpkin: "head", antenna: "head", cat: "head", beret: "head", hardhat: "head", halo: "head", flame: "head", chef: "head", aviator: "head", hood: "head", bubble: "head", fins: "head", leaves: "head", crystals: "head",
   goggles: "face", visorband: "face", scarf: "neck", backpack: "back", cape: "back", wings: "back", rings: "aura", stars: "aura" };
 /// a look with an outfit on: outfit = { wear: { head: "halo", back: "cape", … }, accent: "ffc861" }
 export function withOutfit(spec, outfit) {

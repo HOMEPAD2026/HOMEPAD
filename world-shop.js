@@ -325,6 +325,15 @@ export function createShop(ctx) {
   return {
     refresh, claim, flushQueue, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
     pay: async (id, target = "", onStatus = null) => !!(await payArc(id, target, null, onStatus)), // the game's own purchases (a revive)
+    /// knocked out (world-combat.js): "down" records it and says whether today's free get-up is left; "rest" starts the
+    /// 24-hour rest; "view" reads the state. null when signed out or offline (the game then keeps its own count).
+    ko: async (what) => {
+      const s = sess(); if (!s) return null;
+      try {
+        if (what === "view") { const r = await fetch("/api/social?world=ko&wallet=" + s.wallet, { cache: "no-store" }); return r.ok ? await r.json() : null; }
+        const r = await post({ action: what === "rest" ? "world-ko-rest" : "world-ko", ...s }); return r.ok ? r.j : null;
+      } catch { return null; }
+    },
     arcl: () => arcl, own: () => own, open: () => !sheet.hidden || !daily.hidden, fly: (n, from) => flyCoins(n, from),
   };
 }

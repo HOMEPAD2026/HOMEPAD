@@ -103,16 +103,27 @@ export function lutGrade() {
 }
 
 // ---------------- the ground: two greens and worn earth in soft patches, darker in the hollows ----------------
-export function groundLook(mat, { low } = {}) {
+/// the world group's offset (the world slides under you): ground patterns are read in the world's own coordinates
+export const lookOrigin = { value: new THREE.Vector3() };
+export function groundLook(mat, { low, paths = [] } = {}) {
+  // worn paths: packed earth from the plaza out to each hunting ground's gate (segments x1, z1, x2, z2), wavering a little
+  const P = paths.slice(0, 16), NP = Math.max(1, P.length), seg = Array.from({ length: NP }, (_, i) => new THREE.Vector4(...(P[i] || [0, 0, 0, 0])));
   mat.onBeforeCompile = (sh) => {
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 lkW;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nlkW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 lkW;" + NOISE).replace("#include <map_fragment>", `#include <map_fragment>
+    const CL = (globalThis.__arcCloud ??= { k: { value: 1 }, t: { value: 0 } }); sh.uniforms.uCloud = CL.k; sh.uniforms.uCloudT = CL.t;
+    sh.uniforms.uPath = { value: seg }; sh.uniforms.uLkOrg = lookOrigin;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 lkW; uniform vec3 uLkOrg;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nlkW = (modelMatrix * vec4(transformed, 1.0)).xyz - uLkOrg;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 lkW; uniform float uCloud, uCloudT;" + (P.length ? `uniform vec4 uPath[${NP}];` : "") + NOISE).replace("#include <map_fragment>", `#include <map_fragment>
       { vec2 p = lkW.xz; float big = lk_fbm(p * 0.035), mid = lk_fbm(p * 0.14 + 7.3)${low ? "" : ", fine = lk_n(p * 1.7)"};
         vec3 lush = vec3(0.86, 1.06, 0.84), dry = vec3(1.12, 1.07, 0.82), earth = vec3(1.05, 0.9, 0.72);
         vec3 t = mix(lush, dry, smoothstep(0.42, 0.7, big));
         t = mix(t, earth, smoothstep(0.64, 0.8, mid) * 0.35);
-        diffuseColor.rgb *= t${low ? "" : " * (0.94 + 0.12 * fine)"}; }`);
+        diffuseColor.rgb *= t${low ? "" : " * (0.94 + 0.12 * fine)"};
+        { float cc = sin(p.x * 0.021 + uCloudT * 0.05) * sin(p.y * 0.017 - uCloudT * 0.032) + sin((p.x + p.y) * 0.013 + uCloudT * 0.041) * 0.6; diffuseColor.rgb *= 1.0 - smoothstep(0.3, 0.95, cc) * 0.26 * uCloud; }
+        ${P.length ? `float pd = 1e9; for (int i = 0; i < ${NP}; i++) { vec4 sg = uPath[i]; vec2 a = sg.xy, ab = sg.zw - sg.xy; float h = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-3), 0.0, 1.0); pd = min(pd, length(p - a - ab * h)); }
+        float w = 1.0 + 0.35 * lk_n(p * 0.21); float onPath = 1.0 - smoothstep(w * 0.55, w, pd);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.3, 0.2, 0.11) * (0.85 + 0.3 * lk_n(p * 2.3)), onPath * 0.85); /* linear: a warm packed-earth brown */` : ""} }`);
   };
+  mat.customProgramCacheKey = () => "groundLook|" + NP + (P.length ? "p" : "") + (low ? "l" : ""); // its own program (later patches add to this key)
   mat.needsUpdate = true;
 }
 

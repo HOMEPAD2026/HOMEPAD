@@ -3,7 +3,7 @@
    2026-09-25; those pages load legacy.css and never this file. */
 :root{
   /* v10 type: one family for words, one for numbers. The pixel face is the logo's only. */
-  --f-ui:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-ui:'Sora','Pretendard Variable',system-ui,-apple-system,'Segoe UI',sans-serif;
   --f-num:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --f-pixel:var(--f-ui);
   /* v10 corners: controls, cards, sheets (pills and hairlines keep their own) */

@@ -1,7 +1,7 @@
 /* arc-nav.css — the shared ARCIRCLE PAD menu (arc-nav.js). Loaded on every page that has it.
    One fixed bar on top (plus a second row for the menu you're in), a 5-tab bar on phones, and the old
    navigation hidden: the top switcher, the two bottom bars, the utilities sheet and ArcPad's sidebar. */
-:root{--f-ui:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;--f-num:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;--f-pixel:var(--f-ui);--r-ctl:10px;--r-card:16px;--r-sheet:24px} /* v10 tokens (style.css has them too; pages without style.css need them here) */
+:root{--f-ui:'Sora','Pretendard Variable',system-ui,-apple-system,'Segoe UI',sans-serif;--f-num:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;--f-pixel:var(--f-ui);--r-ctl:10px;--r-card:16px;--r-sheet:24px} /* v10 tokens (style.css has them too; pages without style.css need them here) */
 
 :root{
   --anav-bg:rgba(5,9,22,.88);--anav-panel:#0a1024;--anav-line:rgba(150,175,255,.13);--anav-ink:#eaf0fb;

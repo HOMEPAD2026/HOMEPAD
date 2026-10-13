@@ -22,8 +22,18 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
+// height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
+// mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
+// own fog chunks once, before anything compiles; the height comes from mvPosition, so every shader with fog has it.
+{ const C = THREE.ShaderChunk;
+  if (!/vFogH/.test(C.fog_vertex)) {
+    C.fog_pars_vertex = C.fog_pars_vertex.replace("varying float vFogDepth;", "varying float vFogDepth; varying float vFogH;");
+    C.fog_vertex = C.fog_vertex.replace("vFogDepth = - mvPosition.z;", "vFogDepth = - mvPosition.z; vFogH = (transpose(mat3(viewMatrix)) * (mvPosition.xyz - viewMatrix[3].xyz)).y;");
+    C.fog_pars_fragment = C.fog_pars_fragment.replace("varying float vFogDepth;", "varying float vFogDepth; varying float vFogH;");
+    C.fog_fragment = C.fog_fragment.replace("gl_FragColor.rgb = mix(", "fogFactor *= 1.0 - 0.5 * smoothstep( 4.0, 60.0, vFogH );\n\tgl_FragColor.rgb = mix(");
+  } }
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // less motion: the device's own setting, or the switch in Settings (arc.world.set → motion: "less")
@@ -87,6 +97,15 @@ function gain(n, why) {
   toast(T("+{n} XP · {why}", { n, why }));
   if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } else Snd.pick();
   badges();
+}
+// a Rare or better find turns over like a card at the top of the screen: the back first, then the piece and its name
+function lootCard(it) {
+  if (!rpg) return; const R = RPG.RARITY[it.r] || RPG.RARITY[0];
+  document.querySelectorAll(".wp-loot").forEach((e) => e.remove());
+  const el = document.createElement("div"); el.className = "wp-loot r" + it.r; el.style.setProperty("--rc", R.color); el.setAttribute("role", "status");
+  el.innerHTML = `<div class="wp-loot-in"><div class="wp-loot-back"></div><div class="wp-loot-face">${rpg.thumb ? rpg.thumb(it) : ""}<b>${esc(rpg.itemName(it))}</b><small>${esc(T(R.name))}</small></div></div>`;
+  document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on"));
+  setTimeout(() => el.classList.add("out"), 2600); setTimeout(() => el.remove(), 3200);
 }
 let toastT = 0;
 function toast(msg) { const t = $("wp-toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); }
@@ -295,8 +314,10 @@ Promise.resolve(POST.buildPost(st, { level: postLevel, bloom: [0.28, 0.25, 1.15]
   nightK = -1; dayNight();
 }).catch(() => {});
 st.on((dt) => { if (fxPost) fxPost.tick(dt, sunDir); });
+// worn paths from the plaza out to each hunting ground's gate (the ground shows packed earth, the grass leaves them bare)
+const WORN_PATHS = RPG.ZONES.filter((z) => Math.hypot(z.x, z.z) < 260).map((z) => { const d = Math.hypot(z.x, z.z), ux = z.x / d, uz = z.z / d, a = K.flatR ? K.flatR(11) + 1 : 16; return [ux * a, uz * a, ux * (d - z.r + 0.5), uz * (d - z.r + 0.5)]; });
 const groundG = K.makeGround(); planet.add(groundG);
-{ const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) LOOK.groundLook(gm.material, { low: S.quality === "low" || S.quality === "saver" }); }
+{ const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) LOOK.groundLook(gm.material, { low: S.quality === "low" || S.quality === "saver", paths: WORN_PATHS }); }
 // far shadows (world-look.js): halls, trees and the grounds' props shade the ground past the real shadow's reach
 // far culling: whole groups (a hall, a hunting ground's props, a decor cell) more than ~150 m away (110 m on a phone)
 // are skipped — the fog has them mostly hidden anyway, and they were hundreds of draw calls. Anything that needs the
@@ -336,17 +357,23 @@ if (!lowGfx && K.setCharHook) K.setCharHook((obj, arc) => { if (!arc) ENV.unifyP
 const sky = lowGfx ? K.makeSky() : ENV.makeSkyDome({ lite: st.quality.coarse }); st.scene.add(sky);
 if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
 // rolling hills round the edge of the world (world-env.js) in place of the old round blobs
-st.on((dt) => { if (K.arcTick) K.arcTick(dt, planet.position); }); // the halls' night windows (world-arcstyle.js)
+st.on((dt, t) => { if (K.arcTick) K.arcTick(dt, planet.position); LOOK.lookOrigin.value.copy(planet.position); ENV.CLOUD.t.value = t; });
+// the town's lights pulse with the music's beat (the light lines, the plaza rings); stronger on a concert night
+st.on(() => { try { if (mode !== "hub" || reduce) return; const b = music.level ? music.level() : 0, k = b * (concertOn() ? 0.9 : 0.4); if (K.arcPulse) K.arcPulse(k * 0.6); if (fountain.userData.pulse) fountain.userData.pulse(k); } catch { /* still loading */ } });
+// concert night: Saturdays 20:00–23:00 Seoul time (?concert=1 to try it): the stage lights up and the town pulses harder
+function concertOn() { try { const q = new URLSearchParams(location.search).get("concert"); if (q) return q === "1"; } catch { /* fine */ } const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCDay() === 6 && d.getUTCHours() >= 20 && d.getUTCHours() < 23; }
 { const blobs = groundG.getObjectByName("blobs"); if (blobs) groundG.remove(blobs); groundG.add(ENV.makeHills()); }
 const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
 const stars = K.makeStars(); st.scene.add(stars);
 const halo = K.makeHalo(0.5); halo.position.set(0, 135, -360); halo.rotation.set(0.32, 0.2, 0); halo.traverse((o) => { if (o.material) o.material.fog = false; }); st.scene.add(halo);
 const clouds = K.makeClouds(); planet.add(clouds);
 // mountains on the horizon, birds, butterflies and fish (world-ambient.js; nothing but the mountains on Low)
-const amb = AMB.createAmbient({ THREE, planet, low: lowGfx }); let ambNight = 0; // ambNight: set by dayNight
+const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn() }); let ambNight = 0; // ambNight: set by dayNight
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
 planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
 const lamps = K.makeLamps(); planet.add(lamps);
+// Halloween (world-halloween.js, 17 Oct – 2 Nov): pumpkins by the lamps and round the fountain, glowing after dark
+const halloween = HW.halloweenOn(), pumpkins = halloween && !lowGfx ? HW.createPumpkins({ THREE, planet, spots: lamps.userData.spots || [], extra: Array.from({ length: 8 }, (_, i) => [Math.sin((i / 8) * Math.PI * 2 + 0.2) * 6.4, -Math.cos((i / 8) * Math.PI * 2 + 0.2) * 6.4, 1.1]) }) : null;
 // rain wets the world: the ground darkens and turns glossy, puddles gather on the lawns, the halls' shells shine
 const puddles = (() => { const g = new THREE.Group(); g.name = "puddles"; g.visible = false; g.userData.noBake = true; let s = 11; const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
   const mat = new THREE.MeshStandardMaterial({ color: 0x3a4a5a, roughness: 0.04, metalness: 0.65, transparent: true, opacity: 0.72, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 });
@@ -465,6 +492,47 @@ function paintTrail() { const c = TRAILS[(P.style || {}).trail]; trail.mat.unifo
 const cards = [], mixers = [], town = [], lockedStages = [], coinBuildings = [], smokes = [], qOrbs = [];
 let coinData = null, lastSeen = 0, myCoins = [], labels = null, npc = null, board3 = null, arcStats = null;
 let zoneRoot = null; // the hunting grounds' group (the camera looks through their tall props)
+const folk = []; // the town's walking ARC Bots
+let stage = null; // ARCIA's stage (makeStage)
+// ARCIA's stage in front of her studio: a low platform, a truss with two speakers and four moving spotlights, and a
+// screen with the track that's playing. While the music plays she dances; on a concert night the lights go all out.
+function makeStage(g, ac) {
+  const sg = new THREE.Group(); sg.name = "stage"; g.add(sg);
+  const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.2, ...o });
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.36, 2.2), M(0x2a3446)); deck.position.set(0, 0.18, -0.35); deck.receiveShadow = true; deck.castShadow = true;
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(3.42, 0.05, 0.05), M(0xff7ad9, { emissive: 0xff7ad9, emissiveIntensity: 1.8 })); edge.position.set(0, 0.34, 0.76);
+  const posts = [-1.6, 1.6].map((x) => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.2, 0.12), M(0x8a96a8, { metalness: 0.7 })); p.position.set(x, 1.6, -1.35); return p; });
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.14, 0.14), M(0x8a96a8, { metalness: 0.7 })); beam.position.set(0, 3.2, -1.35);
+  const spk = [-1.95, 1.95].map((x) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.1, 0.5), M(0x1a1f2a)); b.position.set(x, 0.55, -0.6); const cone = new THREE.Mesh(new THREE.CircleGeometry(0.18, 20), M(0x0b0f16, { emissive: 0x35d8d0, emissiveIntensity: 0.4 })); cone.position.set(0, 0.15, 0.26); b.add(cone); return b; });
+  // the screen: the track that's playing
+  const cv = document.createElement("canvas"); cv.width = 512; cv.height = 160; const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.81), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })); screen.position.set(0, 2.55, -1.3);
+  let shown = "";
+  const paintScreen = (id) => { if (id === shown) return; shown = id; const c = cv.getContext("2d"), t = (MUS.TITLES || {})[id];
+    const gr = c.createLinearGradient(0, 0, 512, 0); gr.addColorStop(0, "#1a0f2e"); gr.addColorStop(1, "#0b1a2e"); c.fillStyle = gr; c.fillRect(0, 0, 512, 160);
+    c.fillStyle = "#ff7ad9"; c.font = "800 22px Sora, system-ui, sans-serif"; c.fillText(t ? "NOW PLAYING" : "ARCIA STAGE", 24, 40);
+    c.fillStyle = "#ffffff"; c.font = "800 44px Sora, system-ui, sans-serif"; c.fillText(t ? t[0] : "♪", 24, 96);
+    c.fillStyle = "#9fb1c6"; c.font = "600 24px Sora, system-ui, sans-serif"; c.fillText(t ? t[1] : "", 24, 134); tex.needsUpdate = true; };
+  paintScreen("");
+  // four spotlights hanging from the truss: soft cones that sweep (additive, a shader that fades along the cone)
+  const coneMat = (c) => new THREE.ShaderMaterial({ uniforms: { uC: { value: new THREE.Color(c) }, uK: { value: 0.3 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: "varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "uniform vec3 uC; uniform float uK; varying float vY; void main(){ gl_FragColor = vec4(uC, pow(vY, 1.6) * uK); }" });
+  const coneG = new THREE.ConeGeometry(0.9, 3.6, 20, 1, true); coneG.translate(0, -1.8, 0);
+  const spots = [0xff7ad9, 0x35d8d0, 0xffc861, 0xb48cff].map((c, i) => { const s = new THREE.Group(); s.position.set(-1.2 + i * 0.8, 3.1, -1.25); const m = new THREE.Mesh(coneG, coneMat(c)); s.add(m); sg.add(s); return { s, m, ph: i * 1.7 }; });
+  sg.add(deck, edge, ...posts, beam, ...spk, screen);
+  ac.obj.position.y = 0.36; // ARCIA stands on it
+  let dance = 0, danceT = 0;
+  return { tick(dt, t) {
+    const st0 = music.state ? music.state() : null, playing = !!(st0 && st0.playing && !st0.paused), concert = concertOn(), b = music.level ? music.level() : 0;
+    paintScreen(playing ? st0.playing : "");
+    const night = (() => { try { return ambNight; } catch { return 0; } })(), k = (concert ? 1 : 0.35 + night * 0.4) * (0.6 + b * 0.8);
+    spots.forEach((p, i) => { p.s.rotation.z = Math.sin(t * (concert ? 1.6 : 0.6) + p.ph) * 0.55; p.s.rotation.x = 0.35 + Math.sin(t * (concert ? 1.1 : 0.4) + p.ph * 1.3) * 0.25; p.m.material.uniforms.uK.value = k * 0.35; });
+    edge.material.emissiveIntensity = 1.2 + b * 2.4;
+    // she dances while the music plays: a move, a breath, the next move
+    if (playing) { danceT -= dt; if (danceT <= 0 && !ac.busy?.()) { danceT = 2.2 + Math.random() * 1.6; ac.play(["emote-yes", "celebrate", "interact-right"][dance++ % 3], { once: true }); } }
+  } };
+}
 let facing = Math.PI, boarding = false, worldReady = false;
 const fighters = [];
 const floorU = []; st.on((dt) => { for (const u of floorU) u.uFt.value += dt; }); // the grounds' floors (their seams pulse)
@@ -510,6 +578,16 @@ async function dressWorld(kit) {
   if (ac) {
     const g = new THREE.Group(); g.add(ac.obj); const bub = K.bubble(T("Hi! I'm ARCIA. Ask me anything.")); g.add(bub);
     K.placeOn(g, K.dirOf(16, 296)); planet.add(g); g.userData = { radius: 0.9, ac, bub, line: 0 }; npc = g; mixers.push(ac.mixer);
+    try { stage = makeStage(g, ac); } catch { stage = null; }
+  }
+  // town folk: a few ARC Bots walking the ring between the fountain and the halls, stopping now and then to look
+  // round or wave (none on Low; three on a phone, six elsewhere). They're scenery: they don't block you or talk.
+  if (!lowGfx) {
+    const ids = ["arc-neo", "arc-luna", "arc-kai", "arc-pixi", "arc-orbit", "arc-mint"], N = st.quality.coarse ? 3 : 6;
+    for (let i = 0; i < N; i++) K.makeCharacter(ids[i], VER).then((c) => {
+      if (!c) return; const g = new THREE.Group(); g.name = "folk"; g.add(c.obj); planet.add(g); if (c.mixer) mixers.push(c.mixer);
+      folk.push({ g, c, r: 9.2 + (i % 3) * 1.1, a: (i / N) * Math.PI * 2 + Math.random() * 0.4, dir: i % 2 ? 1 : -1, sp: 1.0 + Math.random() * 0.5, wait: 1 + Math.random() * 4, walkT: 0, anim: "" });
+    }).catch(() => {});
   }
   // the Exchange's live price board
   const ex = shopG("swap");
@@ -971,7 +1049,7 @@ function applyOwn(o) {
   if (P.style.plate && !items.includes(P.style.plate)) P.style.plate = "";
   if (P.style.trail && !items.includes(P.style.trail)) P.style.trail = "";
   if (P.isleTheme && !items.includes(P.isleTheme)) { P.isleTheme = ""; island.setTheme(""); }
-  setNameTag(); paintTrail();
+  setNameTag(); paintTrail(); if (rpg && rpg.setBagPlus) rpg.setBagPlus(o && o.bag);
 }
 // the plaza screen: the island of the day or a coin, from the shop (GET ?world=plaza)
 let plazaNow = null;
@@ -1606,7 +1684,7 @@ let labelT = 0;
 const PIN_TEX = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d");
   g.fillStyle = "rgba(6,10,16,.82)"; g.beginPath(); g.arc(32, 32, 25, 0, 7); g.fill(); g.lineWidth = 7; g.strokeStyle = "#fff"; g.stroke(); g.fillStyle = "#fff"; g.beginPath(); g.arc(32, 32, 8, 0, 7); g.fill();
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
-const NAME_FAR = 55, PIN_FAR = 170;
+const NAME_FAR = 42, PIN_FAR = 170, NAME_MAX = 6; // names: the six nearest big signs within 42 m
 function pinOf(l) {
   if (l.userData.pin) return l.userData.pin;
   const p = new THREE.Sprite(new THREE.SpriteMaterial({ map: PIN_TEX, color: new THREE.Color(l.userData.accent || "#39ff88"), transparent: true, opacity: 0, depthWrite: false, fog: false }));
@@ -1625,12 +1703,12 @@ function fadeLabels(dt) {
   }
   if ((labelT -= dt) <= 0) { labelT = 0.2; big.sort((a, b) => a.userData.d - b.userData.d); big.forEach((l, i) => { l.userData.rank = i; }); declutter(); }
   for (const l of labels) {
-    const d = l.userData.d, isBig = l.userData.s0.x >= 3.6, far = isBig ? NAME_FAR : 30;
+    const d = l.userData.d, isBig = l.userData.s0.x >= 3.6, far = isBig ? (l.userData.rank < NAME_MAX ? NAME_FAR : 0) : 30;
     const room = l.renderOrder === 10 ? (l.userData.clear === false ? 0 : 1) : 1;
     const want = THREE.MathUtils.clamp((d - (isBig ? 10 : 7.5)) / 5, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1) * room;
     l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, 0.15); l.visible = l.material.opacity > 0.02;
     if (isBig && l.parent) {
-      const pw = THREE.MathUtils.clamp((d - NAME_FAR + 6) / 8, 0, 1) * THREE.MathUtils.clamp((PIN_FAR - d) / 20, 0, 1) * (l.userData.pinClear === false ? 0 : 1) * (l.userData.rank < 14 ? 1 : 0);
+      const pw = (l.userData.rank < NAME_MAX ? THREE.MathUtils.clamp((d - NAME_FAR + 6) / 8, 0, 1) : 1) * THREE.MathUtils.clamp((PIN_FAR - d) / 20, 0, 1) * (l.userData.pinClear === false ? 0 : 1) * (l.userData.rank < 14 ? 1 : 0);
       if (pw > 0.01 || l.userData.pin) { const p = pinOf(l); p.material.opacity = THREE.MathUtils.lerp(p.material.opacity, pw, 0.15); p.visible = p.material.opacity > 0.02; const s = d * 0.024; p.scale.set(s, s, 1); }
     }
   }
@@ -1642,7 +1720,7 @@ function declutter() {
     if (l.renderOrder !== 10 || !l.parent) continue;
     const d = l.userData.d, isBig = l.userData.s0.x >= 3.6;
     if (d > (isBig ? PIN_FAR : 32)) { l.userData.clear = true; continue; }
-    l.getWorldPosition(lbV); const pin = isBig && d > NAME_FAR - 2;
+    l.getWorldPosition(lbV); const pin = isBig && (d > NAME_FAR - 2 || l.userData.rank >= NAME_MAX);
     lbV.project(cam); if (lbV.z > 1 || Math.abs(lbV.x) > 1.2 || Math.abs(lbV.y) > 1.2) { l.userData.clear = true; l.userData.pinClear = true; continue; }
     const px = k / Math.max(1, d), x = (lbV.x * 0.5 + 0.5) * W, y = (-lbV.y * 0.5 + 0.5) * H;
     let w, h, cy = y;
@@ -2155,6 +2233,7 @@ rpg = RPG.createRpg({
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
+  buyBag: (onStatus) => arclShop.pay("bagplus", "", onStatus),
   openCraft: (t, id) => { if (life) life.showSheet(t, id); }, onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
@@ -2171,7 +2250,7 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   onKill: (k) => { if (quests) quests.on.kill(k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
   xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
-  onLoot: (it) => { if (quests) quests.on.loot(it); if (it.r >= 3) shareDrop(it); },
+  onLoot: (it) => { if (quests) quests.on.loot(it); if (it.r >= 3) shareDrop(it); if (it.r >= 2) lootCard(it); },
   legend: () => { document.body.classList.remove("wc-legend"); void document.body.offsetWidth; document.body.classList.add("wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
@@ -2192,8 +2271,8 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   onBossRun: (zone, ms) => { const s = sess(); if (s && ms >= 8000) post({ action: "world-bossrun", ...s, zone, ms }).catch(() => {}); },
   onBoss: () => music.victory(),
   buzz: (ms) => buzz(ms), hint: (id) => hint(id, { charge: tapOr(T("Hold J to charge a stronger blow, let go when the ring is full"), T("Hold the attack button to charge a stronger blow")), dodge: tapOr(T("Red on the ground means a strike is coming: step out, or dodge with K"), T("Red on the ground means a strike is coming: step out, or tap dodge")), pond: T("This ground has a pond with a fish of its own") }[id] || id),
-  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
-  pay: (id, onStatus) => arclShop.pay(id, "", onStatus),
+  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, halloween: HW.halloweenOn(), slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
+  pay: (id, onStatus) => arclShop.pay(id, "", onStatus), ko: (what) => arclShop.ko(what), signedIn: () => !!sess(),
   // knocked out: lie down and wait; back up on the spot (a revive) or on the plaza
   down: (on, where) => {
     if (on && boarding) setBoard(false);
@@ -2290,7 +2369,7 @@ if (!lowGfx) {
 let grass = null, gmask = null;
 function makeMeadow() {
   if (lowGfx || grass) return;
-  gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }] }));
+  gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }], paths: WORN_PATHS }));
   const big = S.quality === "ultra" || S.quality === "high" || (S.quality === "auto" && !st.quality.coarse);
   grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 16000 : 32000, size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow });
   planet.add(grass.mesh); reflHide.push(grass.mesh);
@@ -2450,6 +2529,7 @@ if (coarse) $("wp-keys").hidden = true; else $("wp-acts").hidden = true;
 // ---------------- day and night (Seoul time) ----------------
 // a blue day sky over the ground, stars and the far planets at night (?hour=21 tries another hour)
 const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x2a66c4), mid: new THREE.Color(0x76b0e4), glow: new THREE.Color(0xd2e8f0) }, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x07102a), glow: new THREE.Color(0x173452) }, DUSK = new THREE.Color(0xf0a070);
+const HALLOW_FOG = new THREE.Color(0x2a1840); // Halloween nights: a violet fog
 const FOG = { day: new THREE.Color(0xb4d4e4), night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
 const hourParam = Number(new URLSearchParams(location.search).get("hour"));
 let nightK = -1, skyOverride = "";
@@ -2511,10 +2591,10 @@ function dayNight() {
   if (fxPost) { const zz = mode === "hub" && combat ? combat.zone() : null; if (lgrade.set(k, dusk, zz && zz.id)) fxPost.setLut(lgrade.tex()); fxPost.setAir(airFor(k, dusk, zz)); }
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
-  st.sun.intensity = 2.35 * (1 - k * 0.65); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
-  st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.92 + k * 0.12;
-  if (st.scene.fog) st.scene.fog.density = 0.0032 + k * 0.0026; st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
-  if (st.scene.fog) st.scene.fog.color.copy(FOG.day).lerp(FOG.night, k).lerp(FOG.dusk, dusk * 0.5);
+  st.sun.intensity = 2.15 * (1 - k * 0.62); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
+  st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.8 + k * 0.22; /* a calmer day: the white plaza was glaring */
+  if (st.scene.fog) st.scene.fog.density = 0.0028 + k * 0.0028; ENV.CLOUD.k.value = Math.max(0, 1 - k * 1.4) * ((() => { try { return mood === "rain"; } catch { return false; } })() ? 1.4 : 1); /* cloud shadows by day, more on a rainy one */ st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
+  if (st.scene.fog) st.scene.fog.color.copy(FOG.day).lerp(FOG.night, k).lerp(FOG.dusk, dusk * 0.5); if (halloween && st.scene.fog) st.scene.fog.color.lerp(HALLOW_FOG, k * 0.55); if (pumpkins) pumpkins.glow(k);
   stars.material.opacity = 0.85 * k; stars.visible = k > 0.02;
   skyPlanets.children.forEach((p) => { p.material.opacity = 0.95 * k; }); skyPlanets.visible = k > 0.02;
   clouds.userData.mat.color.setHSL(0.6, 0.15, 1 - k * 0.72); clouds.userData.mat.emissiveIntensity = 0.25 * (1 - k);
@@ -2656,6 +2736,16 @@ st.on((dt0, t) => {
   if (boarding) { const ro = rideObj(); ro.userData.update(t, speedNow, ride === "jet" ? (jetHigh ? 1 : 0.5) : 0); ro.rotation.y = facing; }
   if (npc && (npcT += dt) > 6) { npcT = 0; const lines = ["Hi! I'm ARCIA. Ask me anything.", "Scan a token before you buy it.", "A real airdrop never asks you to pay.", "Check the LP lock before you ape."]; npc.userData.line = (npc.userData.line + 1) % lines.length; npc.remove(npc.userData.bub); npc.userData.bub = K.bubble(T(lines[npc.userData.line])); npc.add(npc.userData.bub); if (labels) labels.dirty = true; if (Math.random() < 0.5) npc.userData.ac.play("emote-yes", { once: true }); }
   if (npc) npc.userData.ac.update(dt, t);
+  if (stage && mode === "hub") stage.tick(dt, t);
+  if (mode === "hub" && folk.length) for (const f of folk) {
+    const want = f.wait > 0 ? (f.wave ? "emote-yes" : "idle") : "walk";
+    if (f.wait > 0) { f.wait -= dt; if (f.wait <= 0) { f.walkT = 8 + Math.random() * 12; f.wave = false; } }
+    else { f.a += (f.dir * f.sp * dt) / f.r; f.walkT -= dt; if (f.walkT <= 0) { f.wait = 2.5 + Math.random() * 4; f.wave = Math.random() < 0.3; } }
+    if (want !== f.anim) { f.anim = want; try { f.c.play(want, want === "emote-yes" ? { once: true } : {}); } catch { /* no such clip */ } }
+    const x = Math.sin(f.a) * f.r, z = -Math.cos(f.a) * f.r; f.g.position.set(x, 0, z);
+    f.g.rotation.y = Math.atan2(Math.cos(f.a) * f.dir, Math.sin(f.a) * f.dir); // facing along the ring
+    if (f.c.update && !f.c.mixer) f.c.update(dt, t); /* an ARC Bot's mixer already steps it */
+  }
   tickQuantum(t);
   for (let i = rockets.length - 1; i >= 0; i--) if (!rockets[i](dt)) rockets.splice(i, 1);
   if (aurora.visible) aurora.userData.update(dt, t);
@@ -2711,6 +2801,14 @@ st.on((dt0, t) => {
 // ---------------- the dive: space, the round planet, down through the clouds onto the ground ----------------
 async function dive() {
   if (reduce || new URLSearchParams(location.search).has("nointro")) return;
+  // from the home gate (arc-gate.js marks it): it already flew down to the robot, so no second trip out to space
+  let fromGate = false; try { const g = Number(sessionStorage.getItem("arc.gate.dove")) || 0; sessionStorage.removeItem("arc.gate.dove"); fromGate = Date.now() - g < 90e3; } catch { /* private mode */ }
+  if (fromGate) {
+    introOn = true; frozen = true; document.body.classList.add("wp-intro");
+    cam.position.set(0, 46, 20); cam.lookAt(0, 0, -4); landUntil = performance.now() + 2200;
+    await sleep(60); introOn = false; document.body.classList.remove("wp-intro");
+    await sleep(1200); frozen = false; return;
+  }
   const veil = $("wp-veil"), fog = st.scene.fog, P0 = new THREE.Vector3(0, 52, 112), P1 = new THREE.Vector3(0, 32 + 2.5, 2.5), L0 = new THREE.Vector3(0, 4, 0), L1 = new THREE.Vector3(0, 32, -7);
   introOn = true; frozen = true; document.body.classList.add("wp-intro");
   planet.visible = false; sky.visible = false; halo.visible = false; player.visible = false;
@@ -2744,10 +2842,14 @@ dailyState(); makeMeadow(); dayNight(); worldReady = true; if (st.quality.coarse
 setTimeout(() => { const go = () => { if (mode === "hub") farCull.all(bakeMiniMap); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else go(); }, 6000); /* the minimap's ground, once the town is up, when the page is idle */ try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
+// the way in is one move: the robot is dressed while the loading screen is still up, the first frame you see is the
+// start of the dive (never the town first and then a jump back out to space), and from the home gate, which has
+// already dived down to the robot, the camera only comes down the last stretch to land behind you
+await setAvatar(P.char || "arc-arc");
+const landing = dive();
 $("wp-loading").classList.add("done");
 setTimeout(() => { if (load3d) load3d.dispose(); $("wp-loading").remove(); }, 600);
-await setAvatar(P.char || "arc-arc");
-await dive();
+await landing;
 landed = true; feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
 if (!P.authSeen && !sess()) openAuth();
 else if (!P.char) openMake();

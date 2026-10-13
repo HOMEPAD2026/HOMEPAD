@@ -10,7 +10,10 @@ import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
 
 /* ---------------- the grass mask: where blades may grow, painted from what stands on the ground ---------------- */
 /// planet: the world group; extent: the side of the square it covers (metres); size: texture pixels
-export function grassMask({ planet, extent = 680, size = 512, zones = [], clear = [], skip = new Set(["ground", "zones", "combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid", "grass", "hills", "ambient", "puddles", "particles", "smoke"]) }) {
+/// moving cloud shadows on the meadow and the ground (world-look.js groundLook reads the same): k = how strong (0 at night), t = their clock
+export const CLOUD = (globalThis.__arcCloud ??= { k: { value: 1 }, t: { value: 0 } });
+
+export function grassMask({ planet, extent = 680, size = 512, zones = [], clear = [], paths = [], skip = new Set(["ground", "zones", "combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid", "grass", "hills", "ambient", "puddles", "particles", "smoke"]) }) {
   const cv = document.createElement("canvas"); cv.width = cv.height = size;
   const g = cv.getContext("2d"), px = size / extent, toPx = (v) => (v + extent / 2) * px;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.NoColorSpace; tex.flipY = false; /* row = z, as the shader reads it */ tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
@@ -26,6 +29,7 @@ export function grassMask({ planet, extent = 680, size = 512, zones = [], clear 
     // the hunting grounds have floors of their own (a ring of short grass is left round the posts)
     for (const zn of zones) hole(zn.x, zn.z, zn.r - 0.5);
     for (const c of clear) hole(c.x, c.z, c.r); // the plaza (it is part of the ground mesh, so the walk below skips it)
+    g.strokeStyle = "#000"; g.lineCap = "round"; g.lineWidth = Math.max(1, 1.5 * px); for (const [x1, z1, x2, z2] of paths) { g.beginPath(); g.moveTo(toPx(x1), toPx(z1)); g.lineTo(toPx(x2), toPx(z2)); g.stroke(); } // the worn paths
     planet.updateMatrixWorld(true); inv.copy(planet.matrixWorld).invert();
     const walk = (o) => {
       if (!o.visible || skip.has(o.name) || o.isSprite || o.isPoints || o.isLine || o.userData.noBake) return;
@@ -56,13 +60,14 @@ export function grassMask({ planet, extent = 680, size = 512, zones = [], clear 
 
 /* ---------------- grass ---------------- */
 const BLADE_VS = /* glsl */`
+  float cloudShade(vec2 p, float t){ float c = sin(p.x * 0.021 + t * 0.05) * sin(p.y * 0.017 - t * 0.032) + sin((p.x + p.y) * 0.013 + t * 0.041) * 0.6; return smoothstep(0.3, 0.95, c) * 0.26; }
   #include <common>
   #include <fog_pars_vertex>
   attribute vec4 aRnd; // x, z in [0,1): the blade's place in the square; w: height; z… unused
   uniform vec2 uCenter; uniform float uSize, uTime; uniform vec2 uWind; uniform vec3 uPush;
   uniform sampler2D uMask; uniform float uMaskExt;
   uniform sampler2D gsTex; uniform mat4 gsM; uniform float gsOn, gsK;
-  uniform vec2 uLamps[20]; uniform float uLampK;
+  uniform vec2 uLamps[20]; uniform float uLampK; uniform float uCloud, uCloudT;
   varying float vY, vShade, vTone, vFlower, vLamp;
   void main() {
     vec2 off = fract(aRnd.xy - uCenter / uSize + 0.5) - 0.5;
@@ -97,6 +102,7 @@ const BLADE_VS = /* glsl */`
     vShade = 1.0;
     if (gsOn > 0.5) { vec4 sc = gsM * vec4(p.x, 0.05, p.y, 1.0); vec3 sp = sc.xyz * 0.5 + 0.5;
       if (sp.x > 0.0 && sp.x < 1.0 && sp.y > 0.0 && sp.y < 1.0) vShade = 1.0 - step(texture2D(gsTex, sp.xy).r, sp.z - 0.0015) * 0.45 * gsK / 0.4; }
+    vShade *= 1.0 - cloudShade(p, uCloudT) * uCloud; // a cloud's shadow passing over
     vec4 mvPosition = modelViewMatrix * vec4(wp, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     #include <fog_vertex>
@@ -140,6 +146,7 @@ export function makeGrass({ count = 40000, size = 64, mask, gshadow = null }) {
     uRoot: { value: new THREE.Color(0x2c5a2a) }, uTip: { value: new THREE.Color(0x7cc65a) }, uDry: { value: new THREE.Color(0xc8c070) }, uSun: { value: new THREE.Color(0xfff2c0) }, uLight: { value: 1 },
     gsTex: gsU.gsTex, gsM: gsU.gsM, gsOn: gsU.gsOn, gsK: gsU.gsK,
     uLamps: { value: Array.from({ length: 20 }, () => new THREE.Vector2(9999, 9999)) }, uLampK: { value: 0 },
+    uCloud: CLOUD.k, uCloudT: CLOUD.t,
   };
   const mat = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]), vertexShader: BLADE_VS, fragmentShader: BLADE_FS, fog: true, side: THREE.DoubleSide, depthWrite: false });
   Object.assign(mat.uniforms, U); // shared objects, so the shadow uniforms stay live
