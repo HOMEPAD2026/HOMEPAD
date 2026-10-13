@@ -1,7 +1,7 @@
 // arc-gate.js — the front door of arcircle.app: a 3D ARCIRCLE World and two ways in.
 //   Game World      → /play, the planet you walk as a robot (world-play.js)
 //   Platform World  → the site as it is (this overlay goes away)
-// Game World's beta asks for a holder wallet first (world-lock.js: 1,000,000 $ARCIRCLE on Arc). Shown once per browser session on the home page. ?gate shows it again; ?skip or automation skips it.
+// Game World's door follows world-lock.js PHASE (the closed beta asked for a holder wallet; the open beta doesn't). Shown once per browser session on the home page. ?gate shows it again; ?skip or automation skips it.
 // The 3D scene (world-gate.js + world-kit.js + three.js) loads only here, after the overlay is up.
 (function () {
   "use strict";
@@ -65,7 +65,7 @@
       try { sessionStorage.setItem("arc.gate.dove", String(Date.now())); } catch (e) { /* private */ } // /play lands without a second dive
       scene.dive().then(function () { location.href = "/play"; });
     };
-    // Game World's beta: a wallet holding 1,000,000 $ARCIRCLE (world-lock.js)
+    // Game World's door (world-lock.js): open to everyone in the open beta
     var L = window.arcWorldLock;
     if (L && !L.ok()) L.ask().then(function (v) { if (v) go(); }); else go();
   });

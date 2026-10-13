@@ -13,7 +13,7 @@
 // Accounts: "Sign in with wallet" is a free personal_sign (api/_world.mjs). With it, progress is saved to the wallet
 // on the server; without it (guest), progress stays in this browser (localStorage "arc.world"). Settings live in
 // "arc.world.set". Who's online and how many have visited come from the same API (heartbeat every 50 s).
-// Game World's first beta is for wallets holding at least 1,000,000 $ARCIRCLE (world-lock.js); the Platform World stays open.
+// Who may enter Game World follows world-lock.js PHASE (the open beta: everyone); the Platform World stays open.
 if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
   document.getElementById("wp-loading").hidden = true;
   if (window.arcWorldLock) await window.arcWorldLock.ask({ cancelHref: "/?skip" });
