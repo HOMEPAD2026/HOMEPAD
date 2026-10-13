@@ -10359,7 +10359,7 @@
     "Level up": "레벨 업",
     "The rover": "탐사 로버",
     "The jetpack": "제트팩",
-    "Picked for your device: phones get the Medium picture at 1.5× pixels, computers Ultra, and it eases off if frames drop.": "기기에 맞춰 고릅니다. 폰은 중간 화질(1.5배 해상도), PC는 최고 화질이고, 프레임이 떨어지면 자동으로 낮춥니다.",
+    "Picked for your device: the Medium picture at 1.5× pixels on phones and computers, easing off if frames drop. A strong PC can choose Ultra.": "기기에 맞춰 고릅니다. 폰과 PC 모두 중간 화질(1.5배 해상도)이고, 프레임이 떨어지면 자동으로 낮춥니다. 사양 좋은 PC는 최고 화질을 고를 수 있어요.",
     "The lightest: no grass, no picture effects, fewer particles.": "가장 가볍습니다. 풀, 화면 효과가 없고 입자도 적습니다.",
     "Smooth edges, ink outlines, fog and colour grading, grass (less on phones).": "부드러운 모서리, 외곽선, 안개와 색보정, 풀(폰에서는 적게)이 켜집니다.",
     "Everything: soft shade in corners, sun shafts, the fountain's reflection, outlines on characters, the most grass.": "모든 효과: 구석의 부드러운 그늘, 빛줄기, 분수 반사, 캐릭터 외곽선, 가장 많은 풀.",

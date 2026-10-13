@@ -10529,7 +10529,7 @@
     "Level up": "升级",
     "The rover": "探索车",
     "The jetpack": "喷气背包",
-    "Picked for your device: phones get the Medium picture at 1.5× pixels, computers Ultra, and it eases off if frames drop.": "按设备自动选择：手机为中等画质（1.5 倍像素），电脑为最高画质，帧率下降时会自动降低。",
+    "Picked for your device: the Medium picture at 1.5× pixels on phones and computers, easing off if frames drop. A strong PC can choose Ultra.": "按设备自动选择：手机和电脑均为中等画质（1.5 倍像素），帧率下降时会自动降低。高配电脑可选择最高画质。",
     "The lightest: no grass, no picture effects, fewer particles.": "最轻量：没有草地和画面效果，粒子更少。",
     "Smooth edges, ink outlines, fog and colour grading, grass (less on phones).": "平滑边缘、描边、雾与调色、草地（手机上较少）。",
     "Everything: soft shade in corners, sun shafts, the fountain's reflection, outlines on characters, the most grass.": "全部效果：角落柔和阴影、光束、喷泉倒影、角色描边、最多的草。",

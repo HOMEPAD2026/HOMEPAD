@@ -177,7 +177,9 @@ async function signIn() {
 const LOGGED = "arc.world.logged";
 async function resumeSession() {
   const s = sess(); if (!s) return;
-  try { if (localStorage.getItem(LOGGED) === s.issued) return; } catch { return; }
+  // already signed in with this signature: no new sign-in, but the closed beta's reward is still asked for (b411: it
+  // only came with a fresh sign-in, so a player who stayed signed in across the open beta's start never got it)
+  try { if (localStorage.getItem(LOGGED) === s.issued) { setTimeout(() => cbtReward({ eligible: true }), 1500); return; } } catch { return; }
   const r = await post({ action: "world-login", ...s }).catch(() => null);
   if (!r || !r.ok) return;
   try { localStorage.setItem(LOGGED, s.issued); } catch { /* private */ }
@@ -202,6 +204,7 @@ async function cbtReward(c) {
   if (r0.x.cbt === EPOCH) return;
   const s = sess(); if (!s) return;
   const r = await post({ action: "world-cbt-claim", ...s }).catch(() => null);
+  if (r && r.status === 404) { r0.x.cbt = EPOCH; save(); return; } // no closed-beta progress on this wallet: don't ask again
   if (!r || !r.ok || !Array.isArray(r.j.items)) return;
   const have = new Set([...Object.values(r0.eq || {}), ...(r0.bag || []), ...(r0.store || [])].filter(Boolean).map((x) => x.id));
   const got = r.j.items.filter((it) => it && it.id && !have.has(it.id));
@@ -400,7 +403,9 @@ const HOME = new THREE.Vector3(-1.2, 0, -7.6); planet.position.copy(HOME); // a 
 let grade = LOOK.addGrade(st); st.on((dt) => { LOOK.time.value += dt; });
 // the picture after the scene (world-post.js): real antialiasing with bloom, ink edges, AO on Ultra, low fog and sun
 // shafts, a 3D colour grade per time of day and ground
-const postLevel = S.quality === "ultra" || S.quality === "high" ? "ultra" : S.quality === "low" || S.quality === "saver" ? "low" : S.quality === "medium" ? "medium" : st.quality.low ? "low" : st.quality.coarse ? "medium" : "ultra";
+// Auto is Medium on computers too (b411): Auto on a computer used to be Ultra (AO, SMAA, sun shafts, a mirror pool, the
+// shadow map every frame, 60,000 grass blades), which held a GTX 980 at 30–40 fps. Ultra is still one tap away.
+const postLevel = S.quality === "ultra" || S.quality === "high" ? "ultra" : S.quality === "low" || S.quality === "saver" ? "low" : S.quality === "medium" ? "medium" : st.quality.low ? "low" : "medium";
 let fxPost = null; const lgrade = LOOK.lutGrade(), sunDir = st.sun.position.clone().sub(st.sun.target.position).normalize();
 Promise.resolve(POST.buildPost(st, { level: postLevel, bloom: [0.28, 0.25, 1.15], lite: st.quality.coarse })).then((p) => {
   fxPost = p; if (!p) return;
@@ -419,7 +424,7 @@ const groundG = K.makeGround(); planet.add(groundG);
 // whole world (the far-shadow bake, the grass mask, the minimap picture) runs inside farCull.all().
 const farCull = (() => {
   const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles"]);
-  const CONT = ["decor", "life", "zones"], R = st.quality.coarse ? 110 : 150, box = new THREE.Box3(), sph = new THREE.Sphere();
+  const CONT = ["decor", "life", "zones"], R = st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, box = new THREE.Box3(), sph = new THREE.Sphere();
   let list = [], at = 0, scanAt = -1e9, hidden = new Set();
   function scan() {
     list = []; planet.updateMatrixWorld(true);
@@ -473,7 +478,8 @@ planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeD
 const lamps = K.makeLamps(); planet.add(lamps);
 // at night the three lamps nearest you really light what's round them (you, scammers, the walls): three point lights
 // that move to whichever lamps are closest (a computer; a phone keeps the painted pools)
-const lampLights = lowGfx || st.quality.coarse ? [] : [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffc27a, 0, 11, 1.7); l.castShadow = false; planet.add(l); return l; });
+// the lamps' three point lights cost every lit surface on screen a little more: Ultra only (b411; Auto on a computer had them)
+const lampLights = lowGfx || st.quality.coarse || postLevel !== "ultra" ? [] : [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffc27a, 0, 11, 1.7); l.castShadow = false; planet.add(l); return l; });
 { const spots = lamps.userData.spots || [], v = new THREE.Vector3(); let t = 0;
   st.on((dt) => { if (!lampLights.length || !spots.length) return; const k = typeof ambNight === "number" ? ambNight : 0;
     if (k < 0.05) { lampLights.forEach((l) => { l.intensity = 0; }); return; }
@@ -2401,7 +2407,7 @@ $("wp-set-q").addEventListener("click", (e) => {
 });
 // what each quality level turns on (shown under the choice)
 function qNote(q) {
-  return T({ auto: "Picked for your device: phones get the Medium picture at 1.5× pixels, computers Ultra, and it eases off if frames drop.",
+  return T({ auto: "Picked for your device: the Medium picture at 1.5× pixels on phones and computers, easing off if frames drop. A strong PC can choose Ultra.",
     low: "The lightest: no grass, no picture effects, fewer particles.", medium: "Smooth edges, ink outlines, fog and colour grading, grass (less on phones).",
     ultra: "Everything: soft shade in corners, sun shafts, the fountain's reflection, outlines on characters, the most grass.",
     saver: "Half the frames and 1× pixels, no bloom or shadows: for a long session on battery." }[q] || "");
@@ -2804,7 +2810,7 @@ let grass = null, gmask = null;
 function makeMeadow() {
   if (lowGfx || grass) return;
   gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }], paths: WORN_PATHS }));
-  const big = S.quality === "ultra" || S.quality === "high" || (S.quality === "auto" && !st.quality.coarse);
+  const big = S.quality === "ultra" || S.quality === "high"; // 60,000 blades only when asked for (b411)
   grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 16000 : 32000, size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
   planet.add(grass.mesh); reflHide.push(grass.mesh);
   st.on((dt) => { const on = mode === "hub"; grass.mesh.visible = on; if (on) grass.tick(dt, -planet.position.x, -planet.position.z); });
@@ -3052,7 +3058,8 @@ function dayNight() {
   const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
   const k = h >= 20 || h < 5 ? 1 : h >= 17 ? (h - 17) / 3 : h < 7 ? 1 - (h - 5) / 2 : 0;
   if (Math.abs(k - nightK) < 0.01) return; nightK = k;
-  setTimeout(() => skyEnv(k), 0);
+  // skyEnv is made further down the module, past awaits: a first call that comes too early tries again next time
+  setTimeout(() => { try { skyEnv(k); } catch { nightK = -1; } }, 0);
   const dusk = Math.max(0, 1 - Math.abs(k - 0.5) * 2.4);
   if (grade) grade.set(k, dusk);
   if (fxPost) { const zz = mode === "hub" && combat ? combat.zone() : null; if (lgrade.set(k, dusk, zz && zz.id)) fxPost.setLut(lgrade.tex()); fxPost.setAir(airFor(k, dusk, zz)); }
