@@ -236,11 +236,25 @@ const Snd = (() => {
     warn: () => tone(520, 0.16, { type: "square", v: 0.03, to: 480 }),
   };
 })();
-// the music (world-music.js): calm in town, the hunt in a ground, the boss track while one is up; Settings → Music
+// the music (world-music.js): six K-pop tracks in a shuffled order; the note button in the top bar turns it on and off
+// (S.bgm), Settings → Music sets the volume, and Sound off silences it too
 const musicVol = () => (S.music ?? 55) / 100;
-const music = MUS.createMusic({ ver: VER, volume: musicVol(), on: () => !!S.sound && musicVol() > 0 });
+const music = MUS.createMusic({ ver: VER, volume: musicVol(), on: () => !!S.sound && S.bgm !== false && musicVol() > 0 });
 addEventListener("pointerdown", () => { Snd.init(); music.start(); }, { once: true });
 addEventListener("keydown", () => { Snd.init(); music.start(); }, { once: true });
+function paintMusicBtn() {
+  const b = $("wp-music-btn"); if (!b) return; const on = S.bgm !== false;
+  b.setAttribute("aria-pressed", on ? "true" : "false"); b.classList.toggle("off", !on);
+  b.title = on ? T("Music on (tap to turn off)") : T("Music off (tap to turn on)");
+}
+if ($("wp-music-btn")) {
+  $("wp-music-btn").addEventListener("click", (e) => {
+    e.stopPropagation(); S.bgm = S.bgm === false; saveSet(); paintMusicBtn();
+    if (S.bgm && !S.sound) { S.sound = true; saveSet(); try { Snd.set(true); } catch { /* not ready */ } } // music on with the sound off: sound comes on too
+    Snd.init(); music.start(); music.refresh();
+  });
+  paintMusicBtn();
+}
 
 // ---------------- the scene ----------------
 const cv = $("wp-cv");
@@ -450,6 +464,7 @@ function paintTrail() { const c = TRAILS[(P.style || {}).trail]; trail.mat.unifo
 // ---- state that the rest of the file shares (declared before anything can call into it) ----
 const cards = [], mixers = [], town = [], lockedStages = [], coinBuildings = [], smokes = [], qOrbs = [];
 let coinData = null, lastSeen = 0, myCoins = [], labels = null, npc = null, board3 = null, arcStats = null;
+let zoneRoot = null; // the hunting grounds' group (the camera looks through their tall props)
 let facing = Math.PI, boarding = false, worldReady = false;
 const fighters = [];
 const floorU = []; st.on((dt) => { for (const u of floorU) u.uFt.value += dt; }); // the grounds' floors (their seams pulse)
@@ -464,7 +479,8 @@ async function dressWorld(kit) {
   shops.forEach(boxOf);
   K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
   // the hunting grounds (world-zones.js)
-  const zs = ZN.makeZones({ THREE, K, planet, kit, T, low: S.quality === "low" || S.quality === "saver", onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } });
+  const zs = (zoneRoot = null, ZN.makeZones({ THREE, K, planet, kit, T, low: S.quality === "low" || S.quality === "saver", onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } }));
+  zoneRoot = zs.root;
   // each ground's own floor (world-env.js): cracked rock, ripples, moss, paving, ice, glowing seams
   if (!lowGfx) zs.root.children.forEach((g) => { const zn = g.userData && g.userData.zone, gm = g.children.find((c) => c.name === "zone-ground"); if (zn && gm) floorU.push(ENV.zoneFloor(gm.material, zn, { lite: st.quality.coarse })); });
   if (gshadow) zs.root.traverse((o) => { if (o.name === "zone-ground") gshadow.receive(o.material); }); spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
@@ -1583,24 +1599,63 @@ function scamCheck(dt) {
   for (const g of fighters) { if (!g.userData.live) continue; g.getWorldPosition(tmp); if (tmp.distanceTo(at) < g.userData.radius + 1.3) { startFight(g); return; } }
 }
 
-// labels fade out as the camera comes close, and the small ones (coins, orbs) only show nearby
-// big labels (shops, districts): only the five nearest stay up, so the sky isn't a wall of signs
+// labels fade out as the camera comes close, and the small ones (coins, orbs) only show nearby.
+// Big signs (halls, districts) read as a name up to 55 m; past that a small pin in the sign's colour marks the spot.
+// Signs never stack on screen: every few frames the nearest wins its place and any that would overlap it fade out.
 let labelT = 0;
+const PIN_TEX = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d");
+  g.fillStyle = "rgba(6,10,16,.82)"; g.beginPath(); g.arc(32, 32, 25, 0, 7); g.fill(); g.lineWidth = 7; g.strokeStyle = "#fff"; g.stroke(); g.fillStyle = "#fff"; g.beginPath(); g.arc(32, 32, 8, 0, 7); g.fill();
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const NAME_FAR = 55, PIN_FAR = 170;
+function pinOf(l) {
+  if (l.userData.pin) return l.userData.pin;
+  const p = new THREE.Sprite(new THREE.SpriteMaterial({ map: PIN_TEX, color: new THREE.Color(l.userData.accent || "#39ff88"), transparent: true, opacity: 0, depthWrite: false, fog: false }));
+  p.renderOrder = 9; p.userData.isPin = true; p.position.copy(l.position); p.visible = false; l.parent.add(p); l.userData.pin = p; return p;
+}
+const lbV = new THREE.Vector3();
 function fadeLabels(dt) {
-  if (!labels || labels.dirty) { labels = []; planet.traverse((o) => { if (o.isSprite && o.material.map) labels.push(o); }); }
+  if (!labels || labels.dirty) { labels = []; planet.traverse((o) => { if (o.isSprite && o.material.map && !o.userData.isPin) labels.push(o); }); }
   const big = [];
   for (const l of labels) {
     l.getWorldPosition(tmp); const d = tmp.distanceTo(cam.position); l.userData.d = d;
     if (!l.userData.s0) l.userData.s0 = l.scale.clone();
     if (l.userData.s0.x >= 3.6) big.push(l);
     // far signs grow a little and near ones shrink, so a name stays a readable size on screen without crowding you
-    if (l.renderOrder === 10) { const sk = l.userData.s0.x >= 3.6 ? THREE.MathUtils.clamp(d / 30, 0.8, 1.7) : THREE.MathUtils.clamp(d / 14, 0.85, 1.35); l.scale.set(l.userData.s0.x * sk, l.userData.s0.y * sk, 1); } // K.label signs only
+    if (l.renderOrder === 10) { const sk = l.userData.s0.x >= 3.6 ? THREE.MathUtils.clamp(d / 30, 0.8, 1.5) : THREE.MathUtils.clamp(d / 14, 0.85, 1.35); l.scale.set(l.userData.s0.x * sk, l.userData.s0.y * sk, 1); } // K.label signs only
   }
-  if ((labelT -= dt) <= 0) { labelT = 0.4; big.sort((a, b) => a.userData.d - b.userData.d); big.forEach((l, i) => { l.userData.rank = i; }); }
+  if ((labelT -= dt) <= 0) { labelT = 0.2; big.sort((a, b) => a.userData.d - b.userData.d); big.forEach((l, i) => { l.userData.rank = i; }); declutter(); }
   for (const l of labels) {
-    const d = l.userData.d, isBig = l.userData.s0.x >= 3.6, far = isBig ? (l.userData.rank < 5 ? 95 : 0) : 30;
-    const want = THREE.MathUtils.clamp((d - (isBig ? 10 : 7.5)) / 5, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1);
+    const d = l.userData.d, isBig = l.userData.s0.x >= 3.6, far = isBig ? NAME_FAR : 30;
+    const room = l.renderOrder === 10 ? (l.userData.clear === false ? 0 : 1) : 1;
+    const want = THREE.MathUtils.clamp((d - (isBig ? 10 : 7.5)) / 5, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1) * room;
     l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, 0.15); l.visible = l.material.opacity > 0.02;
+    if (isBig && l.parent) {
+      const pw = THREE.MathUtils.clamp((d - NAME_FAR + 6) / 8, 0, 1) * THREE.MathUtils.clamp((PIN_FAR - d) / 20, 0, 1) * (l.userData.pinClear === false ? 0 : 1) * (l.userData.rank < 14 ? 1 : 0);
+      if (pw > 0.01 || l.userData.pin) { const p = pinOf(l); p.material.opacity = THREE.MathUtils.lerp(p.material.opacity, pw, 0.15); p.visible = p.material.opacity > 0.02; const s = d * 0.024; p.scale.set(s, s, 1); }
+    }
+  }
+}
+// screen space: each sign (and pin) takes its rectangle, nearest first; one that would overlap a taken one waits
+function declutter() {
+  const H = innerHeight, W = innerWidth, k = H / (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2)), taken = [], items = [];
+  for (const l of labels) {
+    if (l.renderOrder !== 10 || !l.parent) continue;
+    const d = l.userData.d, isBig = l.userData.s0.x >= 3.6;
+    if (d > (isBig ? PIN_FAR : 32)) { l.userData.clear = true; continue; }
+    l.getWorldPosition(lbV); const pin = isBig && d > NAME_FAR - 2;
+    lbV.project(cam); if (lbV.z > 1 || Math.abs(lbV.x) > 1.2 || Math.abs(lbV.y) > 1.2) { l.userData.clear = true; l.userData.pinClear = true; continue; }
+    const px = k / Math.max(1, d), x = (lbV.x * 0.5 + 0.5) * W, y = (-lbV.y * 0.5 + 0.5) * H;
+    let w, h, cy = y;
+    if (pin) { w = h = d * 0.024 * px * 0.8; } else { const pl = l.userData.plate || [0.7, 0.6, 0.5]; w = l.scale.x * pl[0] * px; h = l.scale.y * pl[1] * px; cy = y + (pl[2] - 0.5) * l.scale.y * px; }
+    // your own things and fights come first: mobs' names, names over players (smaller scores win)
+    const score = d * (l.userData.keep ? 0.3 : 1);
+    items.push({ l, pin, score, r: [x - w / 2, cy - h / 2, x + w / 2, cy + h / 2] });
+  }
+  items.sort((a, b) => a.score - b.score);
+  for (const it of items) {
+    const r = it.r, hit = taken.some((t) => r[0] < t[2] && t[0] < r[2] && r[1] < t[3] && t[1] < r[3]);
+    if (!hit) taken.push(r);
+    if (it.pin) it.l.userData.pinClear = !hit; else it.l.userData.clear = !hit;
   }
 }
 
@@ -2506,6 +2561,11 @@ function camCollide(target) {
   const close = [];
   const lists = mode === "island" ? [] : [shops, town, coinBuildings, arches];
   for (const list of lists) for (const g of list) { g.getWorldPosition(tmp); if (tmp.distanceTo(head) < len + 7) close.push(g); }
+  // inside a hunting ground: its tall props too (the Dark Market's obelisks filled the screen with black)
+  if (zoneRoot && mode !== "island") { const px = -planet.position.x, pz = -planet.position.z, now = performance.now();
+    for (const g of zoneRoot.children) { const zn = g.userData && g.userData.zone; if (!zn || Math.hypot(px - zn.x, pz - zn.z) > zn.r + 6) continue;
+      if (!g.userData.tallAt || now - g.userData.tallAt > 5000) { g.userData.tallAt = now; const tall = []; g.traverse((o) => { if (!o.isMesh || o.isSprite || o.name === "zone-ground" || !o.geometry) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); const bb = o.geometry.boundingBox; if (bb.max.y - bb.min.y > 1.6 || o.position.y > 1.2) tall.push(o); }); g.userData.tall = tall; }
+      close.push(...g.userData.tall); } }
   const hits = new Set();
   if (close.length) for (const h of ray.intersectObjects(close, true)) { if (!h.object.isMesh || h.object.isSprite || h.distance < 0.4) continue; let o = h.object; while (o.parent && !close.includes(o)) o = o.parent; if (close.includes(o)) hits.add(o); }
   for (const g of [...ghosted.keys()]) if (!hits.has(g)) ghost(g, false);

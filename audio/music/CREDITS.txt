@@ -1,0 +1,10 @@
+ARCIRCLE World background music (played in a shuffled order by world-music.js)
+
+kpop-1.mp3  "Epic K-pop Music" by ribhavagrawal (Pixabay #488526)
+kpop-2.mp3  "Tell Me" (K-pop) by kontraa (Pixabay #244611)
+kpop-3.mp3  "Modern K-pop" by kulakovka (Pixabay #308489)
+kpop-4.mp3  "Han River Nights" (ambient K-pop) by ultrafi (Pixabay #476579)
+kpop-5.mp3  "Neon Run" (K-pop) by sounovamusic (Pixabay #473070)
+kpop-6.mp3  "K-pop" by kulakovka (Pixabay #308509)
+
+Source: pixabay.com, under the Pixabay Content License. Re-encoded to 128 kbps MP3 for streaming.

@@ -1706,6 +1706,17 @@ html{--acts-w:0px}
   body.wi-building #wi>.wi-bar{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 226px)}
   #wi>.wi-build{left:12px;right:calc(var(--j, 150px) + 28px);transform:none;width:auto;max-width:none}
   html.wp-pcphone #wi>.wi-build{right:190px}
+  /* the island bar on a phone: left of the buttons at a phone's size, the title on top and the actions in a grid
+     (one row of five ran off both ends of the bar) */
+  html.wp-pcphone #wi>.wi-bar{left:16px;right:calc(var(--acts-w) + 12px);transform:none;width:auto;max-width:none;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:24px}
+  html.wp-pcphone #wi>.wi-bar .wi-title{justify-content:flex-start;gap:4px 14px;white-space:normal}
+  html.wp-pcphone #wi>.wi-bar .wi-title b{font-size:26px}
+  html.wp-pcphone #wi>.wi-bar .wi-title span{flex-wrap:wrap;gap:4px 14px;font-size:19px}
+  html.wp-pcphone #wi>.wi-bar .wi-title small{flex-basis:100%;font-size:18px}
+  html.wp-pcphone #wi>.wi-bar .wi-acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  html.wp-pcphone #wi>.wi-bar .wi-b{height:62px;justify-content:center;padding:0 10px;font-size:20px;border-radius:18px}
+  html.wp-pcphone #wi>.wi-bar .wi-b kbd{display:none}
+  html.wp-pcphone #wi>.wi-bar #wi-build-btn:not([aria-pressed=true]){background:rgba(126,224,160,.16);border-color:rgba(126,224,160,.55);color:#bfffd8}
   body.wi-on .wp-prompt{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 130px)}
 }
 @media (pointer:coarse) and (max-width:720px){
@@ -2067,6 +2078,9 @@ body.wc-low::after{content:"";position:fixed;inset:0;z-index:10;pointer-events:n
 @keyframes wcLow{50%{box-shadow:inset 0 0 90px 10px rgba(255,30,60,.25)}}
 body.wc-legend::before{content:"";position:fixed;inset:0;z-index:15;pointer-events:none;box-shadow:inset 0 0 160px 40px rgba(255,200,97,.75);animation:wpHurt 1.6s ease-out forwards}
 .wp-bag-btn svg{fill:none}
+/* the music button: a note, struck through when off */
+.wp-music-btn svg{fill:none}.wp-music-btn svg.no{display:none}.wp-music-btn.off svg.on{display:none}.wp-music-btn.off svg.no{display:block}.wp-music-btn.off{opacity:.62}
+.wp-music-btn[aria-pressed=true]{box-shadow:inset 0 0 0 1.5px rgba(57,255,136,.55)}
 @media (prefers-reduced-motion:reduce){body.wc-low::after,.wr-tile.r4{animation:none}.wc-banner.on{animation:none}}
 
 /* ---------- v24: the Adventure log (world-quests.js) — daily hunts, achievements, codex, top hunters ---------- */

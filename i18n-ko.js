@@ -10366,6 +10366,8 @@
     "Half the frames and 1× pixels, no bloom or shadows: for a long session on battery.": "프레임 절반, 1배 해상도, 빛번짐과 그림자 없음: 배터리로 오래 할 때.",
     "Open the raid panel": "레이드 창 열기",
     "Raid": "레이드",
+    "Music on (tap to turn off)": "음악 켜짐 (누르면 꺼짐)",
+    "Music off (tap to turn on)": "음악 꺼짐 (누르면 켜짐)",
   };
 
 

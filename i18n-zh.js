@@ -10536,6 +10536,8 @@
     "Half the frames and 1× pixels, no bloom or shadows: for a long session on battery.": "帧数减半、1 倍像素、无泛光与阴影：适合用电池长时间游玩。",
     "Open the raid panel": "打开团战面板",
     "Raid": "团战",
+    "Music on (tap to turn off)": "音乐已开启（点击关闭）",
+    "Music off (tap to turn on)": "音乐已关闭（点击开启）",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

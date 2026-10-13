@@ -225,6 +225,7 @@ export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, s
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
   sp.scale.set(5.2 * size, 5.2 * size * cv.height / 1024, 1);
   sp.renderOrder = 10;
+  sp.userData.accent = accent; sp.userData.plate = [w / 1024, h / cv.height, (y0 + h / 2) / cv.height]; // the plate's share of the sprite, and where it sits (world-play.js keeps signs from overlapping)
   return sp;
 }
 
@@ -392,7 +393,10 @@ export function makeStars(n = 1400) {
     p.set([r * s * Math.cos(th), r * u, r * s * Math.sin(th)], i * 3);
   }
   geo.setAttribute("position", new THREE.BufferAttribute(p, 3));
-  return new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xbfd8ff, size: 1.6, sizeAttenuation: true, transparent: true, opacity: 0.85, fog: false }));
+  // a soft round dot (a point with no texture is drawn as a square)
+  const dot = document.createElement("canvas"); dot.width = dot.height = 32; { const g = dot.getContext("2d"), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,.75)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); }
+  const tex = new THREE.CanvasTexture(dot); tex.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.Points(geo, new THREE.PointsMaterial({ map: tex, color: 0xbfd8ff, size: 2.2, sizeAttenuation: true, transparent: true, opacity: 0.85, depthWrite: false, fog: false }));
 }
 
 // ---------------- the robot ----------------
@@ -1023,11 +1027,15 @@ export function smoke(parent, at, { rate = 0.35, color = 0xd5dde6 } = {}) {
 }
 // rain around the camera (a falling market) and an aurora (a rising one)
 export function makeRain(n = 900) {
-  const geo = new THREE.BufferGeometry(), p = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) p.set([(Math.random() - 0.5) * 60, Math.random() * 30, (Math.random() - 0.5) * 60], i * 3);
+  // thin slanted streaks (two points a drop), not dots: a dot drawn as a point is a square, and close to the camera a
+  // bright one (it caught the bloom) read as a glowing box floating round you
+  const geo = new THREE.BufferGeometry(), p = new Float32Array(n * 6), L = 0.7, SX = 0.08;
+  for (let i = 0; i < n; i++) { const x = (Math.random() - 0.5) * 60, y = Math.random() * 30, z = (Math.random() - 0.5) * 60; p.set([x, y, z, x - SX, y - L, z], i * 6); }
   geo.setAttribute("position", new THREE.BufferAttribute(p, 3));
-  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x9cc8ff, size: 0.12, transparent: true, opacity: 0.55, depthWrite: false }));
-  pts.userData.update = (dt, center) => { pts.position.set(center.x, center.y - 4, center.z); const a = geo.attributes.position.array; for (let i = 1; i < a.length; i += 3) { a[i] -= dt * 22; if (a[i] < 0) a[i] += 30; } geo.attributes.position.needsUpdate = true; };
+  const pts = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xa8c6e4, transparent: true, opacity: 0.32, depthWrite: false }));
+  pts.frustumCulled = false; pts.userData.noBake = true;
+  pts.userData.update = (dt, center) => { pts.position.set(center.x, center.y - 4, center.z); const a = geo.attributes.position.array, dy = dt * 22;
+    for (let i = 0; i < a.length; i += 6) { a[i + 1] -= dy; a[i + 4] -= dy; if (a[i + 4] < 0) { a[i + 1] += 30; a[i + 4] += 30; } } geo.attributes.position.needsUpdate = true; };
   return pts;
 }
 export function makeAurora() {
