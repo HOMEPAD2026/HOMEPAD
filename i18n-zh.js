@@ -10764,6 +10764,11 @@
     "Enter your village each week; the best ones win ARCL (50,000 the first week).": "每周让村庄参赛，最佳村庄赢得 ARCL（首周 50,000）。",
     "Character, Log and Village buttons": "角色、日志、村庄按钮",
     "One tap from the top bar. Bought bricks and styles now ask if you'd like to build with them right away.": "在顶栏一键打开。购买的积木和风格会询问你是否马上使用。",
+    "A new look on screen": "全新界面",
+    "Your portrait and level up top, Shop, Map and Menu tiles, a minimap with north and zoom, and a dock for Character, Bag, Craft and Build.": "顶部是你的头像和等级、商店/地图/菜单图块、带北向和缩放的小地图，底部是角色、背包、制作、建造快捷栏。",
+    "Zoom the minimap": "放大小地图",
+    "Character, bag, craft and build": "角色、背包、制作、建造",
+    "Build on your island": "在你的岛上建造",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
