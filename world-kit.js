@@ -160,7 +160,9 @@ export function makeStage(canvas, opts = {}) {
   const q = quality(opts.quality);
   LABEL_RES = q.coarse ? 0.5 : 1; // name plates at half size on phones (label())
   if (ARC.setSignRes) ARC.setSignRes(q.coarse ? 0.5 : 1); // and the halls' signs
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !q.low, alpha: false, powerPreference: "high-performance" });
+  // opts.post: the game's picture goes through its own chain (world-post.js), which antialiases there, so the canvas
+  // itself needs none (b411: a multisampled canvas under the chain was paid for on every frame and never seen)
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !q.low && !opts.post, alpha: false, powerPreference: "high-performance" });
   if (!RENDERER) RENDERER = renderer;
   renderer.setPixelRatio(q.dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
