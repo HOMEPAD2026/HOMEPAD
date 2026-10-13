@@ -312,8 +312,12 @@
       '<button type="button" class="cw-i cw-dis" data-cw="disconnect"><span>' + esc(L("Disconnect", "연결 해제", "断开连接")) + "</span></button>";
   }
   function ago(t) { var s = Math.max(1, (Date.now() - t) / 1000); return s < 3600 ? Math.round(s / 60) + "m" : s < 86400 ? Math.round(s / 3600) + "h" : Math.round(s / 86400) + "d"; }
+  // on a phone the menu is a sheet fixed to the bottom of the screen; inside the top bar it can't be (the bar's
+  // backdrop blur makes it the box that "fixed" measures from, so the sheet landed above the screen), so it goes to <body>
+  var phoneQ = window.matchMedia ? matchMedia("(max-width:900px)") : null;
   function openMenu() {
     if (!menu) return;
+    var want = phoneQ && phoneQ.matches ? D.body : root; if (menu.parentNode !== want) want.appendChild(menu);
     menuHtml(); menu.hidden = false; btn.setAttribute("aria-expanded", "true");
     var a = api.address();
     balances(a).then(function () { if (!menu.hidden) menuHtml(); });
@@ -353,7 +357,7 @@
       else if (k === "connect") { closeMenu(); api.connect(); }
       else if (k === "net") switchTo(t.getAttribute("data-net"));
     });
-    D.addEventListener("click", function (e) { if (root && !root.contains(e.target)) closeMenu(); });
+    D.addEventListener("click", function (e) { if (root && !root.contains(e.target) && !(menu && menu.contains(e.target))) closeMenu(); });
     D.addEventListener("keydown", function (e) { if (e.key === "Escape" && menu && !menu.hidden) { closeMenu(); btn.focus(); } });
     // the bell sits next to the wallet on every page (ArcPad / CirclePad bring their own inside the bar already)
     if (!right.querySelector(".nb") && window.arcChrome && window.arcChrome.mountBell) window.arcChrome.mountBell(right, root);
