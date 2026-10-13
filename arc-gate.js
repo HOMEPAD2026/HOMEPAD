@@ -27,6 +27,13 @@
   var who = saved && typeof saved.name === "string" ? saved.name.replace(/[<>&"'`]/g, "").slice(0, 16) : "";
   var gb = who ? T.cont.replace("{name}", who) : T.gb;
   var el = document.createElement("div");
+  // the beta's label follows world-lock.js PHASE: the holder beta, between the betas, the open beta
+  function betaLabel() {
+    var ph = window.arcWorldLock && window.arcWorldLock.phase;
+    if (ph === "closed") return { ko: "CBT 종료 · OBT 곧 오픈", zh: "CBT 已结束 · OBT 即将开启" }[lang] || "CBT closed · Open beta soon";
+    if (ph === "obt") return { ko: "오픈 베타 · 누구나 입장", zh: "公开测试 · 所有人可进入" }[lang] || "Open beta · everyone welcome";
+    return T.beta;
+  }
   el.className = "wg"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wg-h");
   el.innerHTML =
     '<canvas class="wg-cv" aria-hidden="true"></canvas>' +
@@ -34,7 +41,7 @@
     '<button type="button" class="wg-skip" data-no-i18n>' + T.skip + "</button></div>" +
     '<div class="wg-main"><h1 id="wg-h" data-no-i18n>' + T.h + '</h1><p data-no-i18n>' + T.p + "</p>" +
     '<div class="wg-doors">' +
-    '<a class="wg-door wg-game" href="/play" data-no-i18n><span class="wg-k">' + T.g + ' <em class="wg-beta">' + T.beta + "</em></span><b>" + gb + "</b><small>" + T.gs + '</small><span class="wg-stats" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>' +
+    '<a class="wg-door wg-game" href="/play" data-no-i18n><span class="wg-k">' + T.g + ' <em class="wg-beta">' + betaLabel() + "</em></span><b>" + gb + "</b><small>" + T.gs + '</small><span class="wg-stats" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>' +
     '<button type="button" class="wg-door wg-plat" data-no-i18n><span class="wg-k">' + T.f + "</span><b>" + T.fb + "</b><small>" + T.fs + '</small><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' +
     '</div><p class="wg-hint" data-no-i18n>' + T.hint + "</p></div>";
   (document.body || H).appendChild(el);
