@@ -190,6 +190,8 @@ export function makeStage(canvas, opts = {}) {
     idle(on) { const e = on ? 4 : base; if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
     // a first, gentle step for a slow frame rate: fewer pixels, everything else kept
     lighter() { const r = renderer.getPixelRatio(); if (r <= 1) return false; renderer.setPixelRatio(Math.max(1, r - 0.5)); cap = renderer.getPixelRatio(); if (composer) composer.setPixelRatio(cap); resize(); return true; },
+    // a second step (a phone warming up over a long session): half-size sun shadows, everything else kept
+    softer() { const m = sun.shadow.mapSize.x; if (!sun.castShadow || m <= 512) return false; sun.shadow.mapSize.set(m / 2, m / 2); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } return true; },
     // dynamic resolution: k of the preset's pixel ratio (0.6–1), changed quietly as the frame rate moves
     scale(k) { const r = Math.max(0.5, cap * Math.max(0.6, Math.min(1, k))); if (Math.abs(r - renderer.getPixelRatio()) < 0.02) return false; renderer.setPixelRatio(r); if (composer) composer.setPixelRatio(r); resize(); return true; },
     // slower devices: no bloom, no shadows, fewer pixels

@@ -3238,3 +3238,8 @@ html.wp-pcphone .wp-loot{top:300px}html.wp-pcphone .wp-loot-in{width:240px;heigh
 /* damage numbers: a tall, heavy display face for digits (Big Shoulders Display 900, self-hosted), tabular so a stacking number doesn't jitter */
 .wp-float-n{font-family:'Big Shoulders Display',var(--f-ui);font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .wp-float-n.crit{letter-spacing:.03em}
+
+/* b382: a save that hasn't reached the server yet (world-play.js cloudSave retries it) */
+.wp-savenote{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:44;padding:6px 14px;border-radius:999px;background:rgba(40,26,6,.82);border:1px solid rgba(255,200,97,.4);color:#ffe2a8;font:600 12px var(--f-ui);pointer-events:none}
+.wp-savenote[hidden]{display:none}
+html.wp-pcphone .wp-savenote{font-size:18px;padding:10px 20px}

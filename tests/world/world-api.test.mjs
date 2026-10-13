@@ -121,5 +121,14 @@ check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({
   check(r.eq.weapon.k === 3 && r.eq.weapon.lk === 1 && !("k" in r.eq.shield) && !("k" in r.bag[0]), "a weapon keeps its kind and lock; bad kinds and kinds on other gear are dropped"); }
 { const r = cleanSave({ xpv: 2, rpg: { eq: { weapon: { id: "w0001", b: "weapon-2", r: 1, lv: 9, tm: 3 }, shield: { id: "s0001", b: "shield-1", r: 0, lv: 3, tm: 2 } }, bag: [{ id: "w0002", b: "weapon-0", r: 0, lv: 1, tm: 9 }] } }).rpg;
   check(r.eq.weapon.tm === 3 && !("tm" in r.eq.shield) && !("tm" in r.bag[0]), "a weapon keeps its temper stage (1–5); bad stages and stages on other gear are dropped"); }
+// anonymous health counters (world-diag.js)
+{
+  let r = await W.handle({ action: "world-diag", kind: "fps", b: 2, dev: "phone", q: "auto" }); check(r.status === 200, "an fps band is counted");
+  r = await W.handle({ action: "world-diag", kind: "err", msg: "TypeError: x is undefined", src: "/world-play.js:12", gpu: "Adreno 640", dev: "phone" }); check(r.status === 200, "an error is counted");
+  await W.handle({ action: "world-diag", kind: "err", msg: "TypeError: x is undefined", src: "/world-play.js:12", gpu: "Adreno 640", dev: "phone" });
+  r = await W.read(new URL("http://x/?world=diag")); const e = r.body.errors[0];
+  check(r.status === 200 && e && e.n === 2 && e.gpu === "Adreno 640" && r.body.days[0].n.fps_ph_auto_2 === 1, "the view shows the counts and the message: " + JSON.stringify(e));
+  r = await W.handle({ action: "world-diag", kind: "wallet" }); check(r.status === 400, "nothing else is taken");
+}
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

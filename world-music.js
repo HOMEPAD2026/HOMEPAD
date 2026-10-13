@@ -48,6 +48,15 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
     if (on()) playNext();
     document.addEventListener("visibilitychange", () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
   }
+  /// every tap or key: phones only let sound start from a gesture that counts (a tap's end, a click, a key; a touch's
+  /// pointerdown doesn't), so the music may have been created silent. This wakes it and starts the track if it's on.
+  function unlock() {
+    if (!started) { start(); }
+    if (!ctx) return;
+    if (ctx.state !== "running" && !document.hidden) ctx.resume().catch(() => {});
+    if (on() && vol > 0) { if (!cur) playNext(); else if (cur.a.paused) cur.a.play().catch(() => {}); }
+  }
+  const unlocked = () => !!ctx && ctx.state === "running" && (!(on() && vol > 0) || (cur && !cur.a.paused));
   /// where you are ("calm", "hunt", "boss"): the playlist plays the same everywhere, so this only keeps the old call working
   function set() {}
   /// a boss fell: the music dips for a moment, then comes back
@@ -71,5 +80,5 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
   }
   /// skip to another track
   function skip() { if (cur) { cur.done = true; } playNext(); }
-  return { start, set, victory, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
+  return { start, unlock, unlocked, set, victory, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
 }
