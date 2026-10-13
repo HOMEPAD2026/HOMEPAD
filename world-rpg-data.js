@@ -97,9 +97,12 @@ export const levelOfXp = (xp) => { const v = Math.max(0, Number(xp) || 0); let l
 export const xpFromOld = (xp) => { const v = Math.max(0, Math.floor(Number(xp) || 0)), lv = 1 + Math.floor(v / 100); return xpAt(lv) + Math.floor(((v % 100) / 100) * xpNeed(lv)); };
 /// where you are inside your level: { lv, into, need }
 export const xpProgress = (xp) => { const lv = levelOfXp(xp); return { lv, into: Math.floor(xp - xpAt(lv)), need: xpNeed(lv) }; };
+// tougher since b401: every scammer has about a third more health and a tenth more bite, elites more again, and a
+// boss is a real fight (24x a scammer's health, 1.9x its attack, a thicker hide). XP per knock-out is unchanged.
+export const MOB_K = { hp: { "": 1, elite: 3.4, boss: 24 }, atk: { "": 1, elite: 1.4, boss: 1.9 }, def: { "": 1, elite: 1.2, boss: 1.5 } };
 export const mobStats = (lv, rank = "") => {
-  const k = rank === "boss" ? 14 : rank === "elite" ? 2.6 : 1;
-  return { hp: Math.round((20 + lv * 14) * k), atk: Math.round((8 + lv * 4.5) * (rank === "boss" ? 1.6 : rank === "elite" ? 1.3 : 1)), def: Math.round(lv * 1.2), xp: Math.round((6 + lv * 3) * (rank === "boss" ? 15 : rank === "elite" ? 3 : 1)) };
+  const r = rank === "boss" || rank === "elite" ? rank : "";
+  return { hp: Math.round((27 + lv * 19) * MOB_K.hp[r]), atk: Math.round((9 + lv * 5) * MOB_K.atk[r]), def: Math.round(lv * 1.5 * MOB_K.def[r]), xp: Math.round((6 + lv * 3) * (rank === "boss" ? 15 : rank === "elite" ? 3 : 1)) };
 };
 export const hitDamage = (atk, def) => Math.max(1, Math.round(atk - def * 0.5));
 

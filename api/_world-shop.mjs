@@ -158,6 +158,20 @@ export function makeShop(deps) {
     const log = [...(L.log || []), { t, k, n, at: now() }].slice(-40);
     const got = t === "earn" && !k.startsWith("daily") && k !== "stamp" && !(EARN_BY[k] && (EARN_BY[k].repeat || EARN_BY[k].weekly)) && !k.startsWith("support:") && !(L.got || []).includes(k) ? [...(L.got || []), k] : L.got || [];
     await setDoc(`worldArcl/${w}`, { ...L, log, got, bal: undefined, earned: undefined, spent: undefined });
+    return { log, got };
+  }
+  // this week's ARCL board: the wallet's week total and the board in one read, then the board written back
+  async function weekTop(w, wk, amt) {
+    const key = `worldStats/arclWeek_${wk}`, d = await getDocs([`worldArclWeek/${wk}_${w}`, key]);
+    const mine = (d[`worldArclWeek/${wk}_${w}`] || {}).n || amt, cur = d[key] || { top: [] };
+    const top = [{ w: short(w), id: w, n: mine }, ...(cur.top || []).filter((x) => x.id !== w)].sort((a, b) => b.n - a.n).slice(0, 20);
+    await setDoc(key, { top });
+  }
+  // the answer after a credit or a spend: the balance read alongside the ledger note (one round trip, not three)
+  async function settle(w, noting, ...more) {
+    const [n, B] = await Promise.all([noting.catch(() => null), balance(w), ...more.map((p) => p.catch(() => {}))]);
+    if (n) { B.log = n.log.slice(-30).reverse(); B.got = n.got; }
+    return B;
   }
   async function balance(w) {
     const d = await getDocs([`worldArclBal/${w}`, `worldArcl/${w}`]);
@@ -172,12 +186,7 @@ export function makeShop(deps) {
     if (amt <= 0) return 0;
     const wk = isoWeek(now());
     await commit([{ inc: dk, fields: { n: amt } }, { inc: `worldArclBal/${w}`, fields: { bal: amt, earned: amt } }, { inc: `worldArclWeek/${wk}_${w}`, fields: { n: amt } }]);
-    await note(w, "earn", kind, amt).catch(() => {});
-    try {
-      const mine = ((await one(`worldArclWeek/${wk}_${w}`)) || {}).n || amt, key = `worldStats/arclWeek_${wk}`, cur = (await one(key)) || { top: [] };
-      const top = [{ w: short(w), id: w, n: mine }, ...(cur.top || []).filter((x) => x.id !== w)].sort((a, b) => b.n - a.n).slice(0, 20);
-      await setDoc(key, { top });
-    } catch { /* the credit stands */ }
+    await Promise.all([note(w, "earn", kind, amt).catch(() => {}), weekTop(w, wk, amt).catch(() => { /* the credit stands */ })]);
     return amt;
   }
   /// ARCL given by the GM (the village contest's prizes): outside the daily cap, noted in the ledger
@@ -199,22 +208,24 @@ export function makeShop(deps) {
     const w = s.wallet, it = b.item || {}, id = String(it.id || "");
     if (!/^[a-z0-9]{4,10}$/.test(id) || !/^(weapon|shield|armor|helm|ring|boots|necklace)-[0-4]$/.test(String(it.b || ""))) return json(400, { error: "that isn't a piece of gear" });
     const price = sellPrice(it), day = seoulDay(now()), dk = `worldSellDay/${w}_${day}`, sk = `worldSold/${w}_${id}`;
-    const sold = ((await one(dk)) || {}).n || 0, earned = ((await one(`worldArclDay/${w}_${day}`)) || {}).n || 0;
+    const ek = `worldArclDay/${w}_${day}`, d0 = await getDocs([dk, ek]), sold = (d0[dk] || {}).n || 0, earned = (d0[ek] || {}).n || 0;
     // a sale is paid inside both of today's limits: 1,500 ARCL of sales and the 30,000 ARCL a day everything shares.
     // With no room left the piece stays in the bag, unsold, so it can still be sold tomorrow.
     const amt = Math.max(0, Math.min(price, SELLCAP() - sold, DAYCAP() - earned));
     if (amt <= 0) return json(200, { ok: true, credited: 0, capped: true, full: sold >= SELLCAP() ? "sell" : "earn", price, left: Math.max(0, SELLCAP() - sold), ...(await balance(w)) });
-    if (!(await commit([{ create: sk, data: { at: now(), b: it.b, got: amt } }])).ok) {
+    // the sale record, the day's sales, the day's earnings, the balance and the week in one atomic write (fast: the
+    // Forge answers in a few round trips, not a dozen)
+    const wk = isoWeek(now()), pay = [{ inc: dk, fields: { n: amt } }, { inc: ek, fields: { n: amt } }, { inc: `worldArclBal/${w}`, fields: { bal: amt, earned: amt } }, { inc: `worldArclWeek/${wk}_${w}`, fields: { n: amt } }];
+    if (!(await commit([{ create: sk, data: { at: now(), b: it.b, got: amt } }, ...pay])).ok) {
       // sold before: refused, unless that sale paid nothing (an older version recorded sales the day's limit had
       // already swallowed); then it sells properly now
       const prev = (await one(sk)) || {};
       if (prev.got !== 0 && !(prev.got == null && prev.at > now() - 3 * 864e5 && await unpaid(w, prev.at))) return json(409, { error: "that piece was already sold" });
       await setDoc(sk, { at: now(), b: it.b, got: amt, again: true });
+      await commit(pay);
     }
-    await commit([{ inc: dk, fields: { n: amt } }]);
-    const got = await credit(w, "sell", amt);
-    if (got !== amt) await setDoc(sk, { at: now(), b: it.b, got }).catch(() => {});
-    return json(200, { ok: true, credited: got, price, capped: got < price, left: Math.max(0, SELLCAP() - sold - amt), ...(await balance(w)) });
+    const B = await settle(w, note(w, "earn", "sell", amt), weekTop(w, wk, amt));
+    return json(200, { ok: true, credited: amt, price, capped: amt < price, left: Math.max(0, SELLCAP() - sold - amt), ...B });
   }
   // this week's hunters: points only for knock-outs the server counted (the daily caps above bound them)
   async function huntPoint(w, pts) {
@@ -384,15 +395,13 @@ export function makeShop(deps) {
     const s = signer(b); if (s.err) return s.err;
     const w = s.wallet, it = ITEM[b.item];
     if (!it || it.arcl == null) return json(400, { error: "this item isn't sold for ARCL" });
-    const why = await checkBuy(w, it, b.target); if (why) return json(400, { error: why });
-    const { bal } = await balance(w);
-    if (bal < it.arcl) return json(400, { error: "not enough ARCL" });
-    // one ARCL purchase at a time per wallet (so two at once can't both spend the same balance)
-    if (!(await commit([{ create: `worldArclSpend/${w}_${Math.floor(now() / 3000)}`, data: { at: now() } }])).ok) return json(429, { error: "one moment" });
-    await commit([{ inc: `worldArclBal/${w}`, fields: { bal: -it.arcl, spent: it.arcl } }]);
-    await note(w, "spend", it.id, -it.arcl).catch(() => {});
+    const [why, B0] = await Promise.all([checkBuy(w, it, b.target), getDocs([`worldArclBal/${w}`])]); if (why) return json(400, { error: why });
+    if (((B0[`worldArclBal/${w}`] || {}).bal || 0) < it.arcl) return json(400, { error: "not enough ARCL" });
+    // one ARCL purchase at a time per wallet (so two at once can't both spend the same balance), paid in the same write
+    if (!(await commit([{ create: `worldArclSpend/${w}_${Math.floor(now() / 3000)}`, data: { at: now() } }, { inc: `worldArclBal/${w}`, fields: { bal: -it.arcl, spent: it.arcl } }])).ok) return json(429, { error: "one moment" });
     const o = await grant(w, it, b.target, "arcl");
-    return json(200, { ok: true, item: it.id, own: o, ...(await balance(w)) });
+    const B = await settle(w, note(w, "spend", it.id, -it.arcl));
+    return json(200, { ok: true, item: it.id, own: o, ...B });
   }
 
   // ---- the Forge: ARCL for gear and supplies ----
@@ -403,22 +412,21 @@ export function makeShop(deps) {
     if (!sup && !(m && FORGE_SLOTS.includes(m[1])) && !(mw && FORGE_SLOTS.includes(mw[1]))) return json(400, { error: "the Forge doesn't sell that" });
     const tier = m ? +m[2] : 0;
     let price = sup ? sup.arcl : m ? FORGE_PRICE[tier] : 0, band = 0;
+    const d0 = await getDocs([`worldSave/${w}`, `worldArclBal/${w}`]), bal = (d0[`worldArclBal/${w}`] || {}).bal || 0;
     if (m || mw) {
-      const save = await one(`worldSave/${w}`), level = levelOfSave(save);
+      const level = levelOfSave(d0[`worldSave/${w}`]);
       if (m && level < FORGE_TIER_LV[tier]) return json(400, { error: `needs level ${FORGE_TIER_LV[tier]} (your saved level is ${level})` });
       if (mw) { if (level < 20) return json(400, { error: `needs level 20 (your saved level is ${level})` }); band = mwBand(level); price = mwPrice(band, +mw[2], +mw[3]); }
     }
-    const { bal } = await balance(w);
     if (bal < price) return json(400, { error: "not enough ARCL" });
-    if (!(await commit([{ create: `worldArclSpend/${w}_${Math.floor(now() / 3000)}`, data: { at: now() } }])).ok) return json(429, { error: "one moment" });
-    await commit([{ inc: `worldArclBal/${w}`, fields: { bal: -price, spent: price } }]);
-    await note(w, "spend", sup ? "forge:" + id : mw ? "forge:mw-" + mw[1] : "forge:" + m[1], -price).catch(() => {});
-    await commit([{ inc: "worldStats/forge", fields: { sold: 1, arcl: price } }]).catch(() => {});
-    if (sup) return json(200, { ok: true, supply: { kind: sup.kind, n: sup.n }, ...(await balance(w)) });
+    // the pace gate, the payment and the Forge's count in one atomic write; then the note and the new balance together
+    if (!(await commit([{ create: `worldArclSpend/${w}_${Math.floor(now() / 1500)}`, data: { at: now() } }, { inc: `worldArclBal/${w}`, fields: { bal: -price, spent: price } }, { inc: "worldStats/forge", fields: { sold: 1, arcl: price } }])).ok) return json(429, { error: "one moment" });
+    const B = await settle(w, note(w, "spend", sup ? "forge:" + id : mw ? "forge:mw-" + mw[1] : "forge:" + m[1], -price));
+    if (sup) return json(200, { ok: true, supply: { kind: sup.kind, n: sup.n }, ...B });
     const k = Number.isInteger(b.k) && b.k >= 0 && b.k <= 4 ? b.k : undefined; // a weapon's kind (sword … staff), the one you wield
     const item = mw ? { id: rid().slice(0, 6), b: `${mw[1]}-4`, r: +mw[2], lv: band, p: +mw[3], ...(mw[1] === "weapon" && k != null ? { k } : {}) }
       : { id: rid().slice(0, 6), b: `${m[1]}-${tier}`, r: tier, lv: FORGE_TIER_LV[tier], p: 0, ...(m[1] === "weapon" && tier === 4 && k != null ? { k } : {}) };
-    return json(200, { ok: true, item, ...(await balance(w)) });
+    return json(200, { ok: true, item, ...B });
   }
 
   // ---- $ARCIRCLE: quote, then the player's own transfer to FeeBurn, then the receipt ----

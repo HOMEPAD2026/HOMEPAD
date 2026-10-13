@@ -62,14 +62,20 @@ export function createRpg(ctx) {
   const scrapOf = (it) => Math.round((2 + (it.lv || 1)) * (1 + (it.r || 0) * 1.5) * (1 + (it.p || 0) * 0.5));
   const enhanceCost = (it) => Math.round(((it.p || 0) + 1) * 12 * (1 + (it.r || 0)) * (1 + (it.lv || 1) / 20));
   /// a drop from a scammer of level lv: rank "", "elite" or "boss"; null when nothing drops
+  // gear is meant to be rare (b401): about 1 in 30 scammers, 1 in 17 elites and 1 in 10 bosses drop a piece at all,
+  // and of what drops, most is Common or Uncommon. DROP.chance: per kill; DROP.odds: the % of a drop by grade
+  // (Common, Uncommon, Rare, Epic, Legendary). Legendary only from bosses.
+  const DROP = {
+    chance: { "": 0.033, elite: 0.06, boss: 0.1 },
+    odds: { "": [70, 22, 6.5, 1.5, 0], elite: [55, 30, 11, 4, 0], boss: [35, 35, 20, 8, 2] },
+  };
   function rollDrop(lv, rank) {
-    const chance = rank === "boss" ? 1 : rank === "elite" ? 0.55 : 0.16;
-    if (Math.random() > chance) return null;
+    const k = rank === "boss" || rank === "elite" ? rank : "";
+    if (Math.random() >= DROP.chance[k]) return null;
     const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)];
     const tier = Math.max(0, Math.min(4, TIERS.filter((t) => t.lv <= lv).length - 1));
-    let roll = Math.random() * 100 + (rank === "boss" ? 55 : rank === "elite" ? 25 : 0) + lv * 0.6, r = 0;
-    if (roll > 99) r = 4; else if (roll > 90) r = 3; else if (roll > 72) r = 2; else if (roll > 45) r = 1;
-    if (r === 4 && rank !== "boss") r = 3; // Legendary only from bosses
+    const odds = DROP.odds[k]; let roll = Math.random() * 100, r = 0;
+    while (r < odds.length - 1 && roll >= odds[r]) { roll -= odds[r]; r++; }
     return { id: rid(), b: baseId(slot, tier), r, lv: Math.max(1, Math.min(100, lv)), p: 0 };
   }
   function equip(id) {
@@ -434,47 +440,78 @@ export function createRpg(ctx) {
   function show(v) { view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
   function hide() { const tp = document.querySelector(".wr-tip"); if (tp) tp.hidden = true; if (!open) return; open = false; fresh.clear(); el.hidden = true; sel = null; ctx.freeze(false); if (PV) PV.stop(); }
   function hammer() { const a = el.querySelector(".wr-detail"); if (a) { a.classList.remove("hit"); void a.offsetWidth; a.classList.add("hit"); } }
+  // the Forge answers at once (b401): the counter, the sound and the bag move on the click, and the server's answer
+  // settles it a moment later (or puts it back, with the reason). Its answer carries the new balance, so no extra read.
+  const pend = new Set(); let buying = 0, line = Promise.resolve(), lastBuy = 0;
+  // quick clicks on the Forge all go through: the server takes one ARCL purchase per 1.5 s, so the requests queue
+  // behind each other (the counter and your pack have already moved)
+  const queued = (fn) => { const p = line.then(async () => { const w = lastBuy + 1600 - Date.now(); if (w > 0) await new Promise((r) => setTimeout(r, w)); lastBuy = Date.now(); return fn(); }); line = p.catch(() => {}); return p; };
+  const settle = (j) => { if (!pend.size && !buying && ctx.arclApply) ctx.arclApply(j); else if (!ctx.arclApply) ctx.arclRefresh().then(() => open && paint()); };
   async function buy(id, price = 0) {
     const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return; }
     if (price > ctx.arclBal()) { ctx.toast(T("Not enough ARCL: you have {a}, it's {b}", { a: Math.floor(ctx.arclBal()).toLocaleString("en-US"), b: price.toLocaleString("en-US") })); return; }
     if (price >= 5000 && askBuy !== id) { askBuy = id; paint(); return; }
     askBuy = "";
-    if (R().bag.length >= BAG && !FORGE_SUPPLY[id]) { ctx.toast(T("Your bag is full")); return; }
+    const sup = FORGE_SUPPLY[id];
+    if (R().bag.length >= BAG && !sup) { ctx.toast(T("Your bag is full")); return; }
     const wk = R().eq.weapon ? weaponKind(R().eq.weapon) : null;
-    const r = await ctx.post({ action: "world-forge-buy", ...s, item: id, ...(wk != null && /^(mw:weapon|weapon:4)/.test(id) ? { k: wk } : {}) });
-    if (!r.ok) { ctx.toast(r.j.error || T("Couldn't buy that")); ctx.Snd.bad && ctx.Snd.bad(); return; }
-    if (r.j.supply) { const x = r.j.supply; R()[x.kind] = (R()[x.kind] || 0) + x.n; ctx.save(); ctx.onPots && ctx.onPots(); ctx.toast(T("Bought: {x} · you have {n}", { x: T(FORGE_SUPPLY[id].name), n: R()[x.kind] })); }
+    // on the click: the price leaves the counter, supplies land in your pack, the anvil rings
+    buying++; if (ctx.arclDelta && price) ctx.arclDelta(-price);
+    if (sup) { R()[sup.kind] = (R()[sup.kind] || 0) + sup.n; ctx.onPots && ctx.onPots(); ctx.toast(T("Bought: {x} · you have {n}", { x: T(sup.name), n: R()[sup.kind] })); }
+    ctx.Snd.win && ctx.Snd.win(); hammer(); paint();
+    const r = await queued(() => ctx.post({ action: "world-forge-buy", ...s, item: id, ...(wk != null && /^(mw:weapon|weapon:4)/.test(id) ? { k: wk } : {}) })).catch(() => ({ ok: false, j: {} }));
+    buying--;
+    if (!r.ok) {
+      if (ctx.arclDelta && price) ctx.arclDelta(price);
+      if (sup) { R()[sup.kind] = Math.max(0, (R()[sup.kind] || 0) - sup.n); ctx.onPots && ctx.onPots(); }
+      ctx.toast(r.j.error ? T(r.j.error) : T("Couldn't buy that")); ctx.Snd.bad && ctx.Snd.bad(); paint(); return;
+    }
+    if (r.j.supply) { const x = r.j.supply; if (!sup || x.kind !== sup.kind || x.n !== sup.n) { R()[x.kind] = (R()[x.kind] || 0) + x.n; } ctx.save(); }
     else { addItem(r.j.item, true); sel = r.j.item.id; ctx.toast(T("Bought: {x}", { x: itemName(r.j.item) })); }
-    ctx.Snd.win && ctx.Snd.win(); ctx.arclRefresh().then(() => open && paint()); paint();
+    settle(r.j); paint();
   }
-  let selling = false;
   // what's left of today's 150 ARCL of sales (the server's word after each sale; a new day starts full)
   const sdKey = "arc.world.sold", sday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   const sellLeft = () => { try { const v = JSON.parse(localStorage.getItem(sdKey) || "null"); return v && v.day === sday() ? v.left : SELL_DAY_CAP; } catch { return SELL_DAY_CAP; } };
   const setSellLeft = (n) => { try { localStorage.setItem(sdKey, JSON.stringify({ day: sday(), left: Math.max(0, n) })); } catch { /* private */ } };
   async function sellItem(id) {
-    if (selling) return; const r = R(), it = r.bag.find((x) => x.id === id); if (!it) return; if (it.lk) { ctx.toast(T("Unlock it first")); return; }
+    if (pend.has(id)) return; const r = R(), it = r.bag.find((x) => x.id === id); if (!it) return; if (it.lk) { ctx.toast(T("Unlock it first")); return; }
     const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return; }
-    selling = true;
     const sb = el.querySelector(`[data-sell="${id}"]`), sr = sb && sb.getBoundingClientRect(), from = sr ? { x: sr.left + sr.width / 2, y: sr.top + sr.height / 2 } : null;
+    // what the sale should pay, inside today's limits as far as this browser knows; when it's sure to pay, the piece
+    // leaves the bag and the coins fly on the click
+    const day = ctx.arclDay ? ctx.arclDay() : null, room = day ? Math.min(day.sellCap - day.sold, day.cap - day.today) : sellLeft();
+    const want = Math.max(0, Math.min(sellPrice(it), room)), fast = want > 0;
+    let at = -1;
+    pend.add(id);
+    if (fast) {
+      at = r.bag.indexOf(it); r.bag.splice(at, 1); sel = null; setSellLeft(sellLeft() - want);
+      if (ctx.arclDelta) ctx.arclDelta(want, { sold: want, today: want }); if (ctx.arclFly) ctx.arclFly(want, from);
+      ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: want }));
+    } else if (sb) { sb.disabled = true; sb.classList.add("busy"); }
     const res = await ctx.post({ action: "world-sell", ...s, item: { id: it.id, b: it.b, r: it.r, lv: it.lv, p: it.p || 0 } }).catch(() => ({ ok: false, j: {} }));
-    selling = false;
+    pend.delete(id);
+    const putBack = () => { if (at >= 0 && !r.bag.some((x) => x.id === id)) { r.bag.splice(Math.min(at, r.bag.length), 0, it); } if (fast) { setSellLeft(sellLeft() + want); if (ctx.arclDelta) ctx.arclDelta(-want, { sold: -want, today: -want }); } };
     if (res.status === 409) {
-      // the server has this piece as sold already: take it out of the bag so it stops failing
+      // the server has this piece as sold already: out of the bag so it stops failing
+      if (fast && ctx.arclDelta) { setSellLeft(sellLeft() + want); ctx.arclDelta(-want, { sold: -want, today: -want }); }
       const k = r.bag.findIndex((x) => x.id === id); if (k >= 0) r.bag.splice(k, 1); sel = null;
       changed(T("Already sold — taken out of your bag")); return;
     }
-    if (!res.ok) { ctx.toast(res.j.error ? T(res.j.error) : T("Couldn't sell that")); ctx.Snd.bad && ctx.Snd.bad(); return; }
+    if (!res.ok) { putBack(); changed(); ctx.toast(res.j.error ? T(res.j.error) : T("Couldn't sell that")); ctx.Snd.bad && ctx.Snd.bad(); return; }
     if (res.j.left != null) setSellLeft(res.j.left); else if (res.j.capped) setSellLeft(0);
     if (res.j.capped && !res.j.credited) {
+      putBack(); changed();
       ctx.Snd.bad && ctx.Snd.bad();
       ctx.toast(res.j.full === "earn" ? T("Today's ARCL is full ({n} a day). The piece stays in your bag: sell it tomorrow.", { n: ARCL_DAY_CAP.toLocaleString("en-US") })
         : T("That's today's {n} ARCL of sales — the Forge buys again tomorrow.", { n: SELL_DAY_CAP.toLocaleString("en-US") }));
-      ctx.arclRefresh().then(() => open && paint()); return;
+      settle(res.j); return;
     }
-    const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) r.bag.splice(i, 1); sel = null;
-    ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: res.j.credited })); if (ctx.arclFly) ctx.arclFly(res.j.credited, from);
-    ctx.arclRefresh().then(() => open && paint());
+    if (!fast) {
+      const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) r.bag.splice(i, 1); sel = null;
+      ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: res.j.credited })); if (ctx.arclFly) ctx.arclFly(res.j.credited, from);
+    } else if (res.j.credited !== want) ctx.toast(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: res.j.credited }));
+    settle(res.j);
   }
   el.addEventListener("click", (e) => {
     if (e.target === el || e.target.closest("[data-x]")) { hide(); return; }

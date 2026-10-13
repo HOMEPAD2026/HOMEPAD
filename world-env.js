@@ -415,3 +415,23 @@ export function reflectPool(Reflector, pool, renderer, hide = [], frame = null) 
   pool.parent.add(m); pool.visible = false;
   return m;
 }
+
+// a cool rim of light round the characters (b401): the edges facing away from the camera catch a little sky, so a
+// figure reads against the ground at night and in shade. One shared strength (brighter at night).
+const RIM = { value: 0.22 }, RIMC = { value: new THREE.Color(0.55, 0.78, 1.0) };
+const rimDone = new WeakSet();
+export function rimMaterial(m) {
+  if (!m || rimDone.has(m) || !(m.isMeshStandardMaterial || m.isMeshToonMaterial || m.isMeshPhongMaterial || m.isMeshLambertMaterial)) return;
+  rimDone.add(m); if (m.userData.rim) return; m.userData.rim = 1;
+  const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => "";
+  m.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    if (/uRimK|uCrimC/.test(sh.fragmentShader)) return; // the toon look (world-kit) or a copied material already has a rim
+    sh.uniforms.uCrim = RIM; sh.uniforms.uCrimC = RIMC;
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uCrim; uniform vec3 uCrimC;").replace("#include <dithering_fragment>", `{ float rf = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.6); gl_FragColor.rgb += uCrimC * rf * uCrim; }
+#include <dithering_fragment>`);
+  };
+  m.customProgramCacheKey = () => prevKey() + "|rim"; m.needsUpdate = true;
+}
+export function rimLight(root) { if (root && root.traverse) root.traverse((x) => { if (x.isMesh && x.material && !x.userData.noRim) [].concat(x.material).forEach(rimMaterial); }); }
+export const rimStrength = RIM;

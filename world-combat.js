@@ -224,7 +224,7 @@ export function createCombat(ctx) {
     const lv = Math.max(1, o.lv || 1), rank = o.rank || "", st = mobStats(lv, rank);
     // the far grounds hit harder (their pow): more HP, attack and defence, and a little more XP for it
     const pow = (o.zone && o.zone.pow) || 1; if (pow !== 1 && !o.raid) { st.hp = Math.round(st.hp * pow); st.atk = Math.round(st.atk * pow); st.def = Math.round(st.def * (1 + (pow - 1) * 0.6)); st.xp = Math.round(st.xp * (1 + (pow - 1) * 0.5)); }
-    if (o.raid) st.hp = o.max;
+    if (o.raid) { st.hp = o.max; st.atk = Math.round(st.atk * 0.85); } // the shared weekly raid keeps a little gentler bite
     const g = new THREE.Group(); g.position.copy(p);
     const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
     const sc = skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow;
@@ -330,7 +330,6 @@ export function createCombat(ctx) {
     ctx.onKill && ctx.onKill({ type: m.spec.id, lv: m.lv, rank: m.rank, zone: m.zone && m.zone.id });
     // the drop: a chest with a beam in its rarity's colour
     const d = rpg.rollDrop(m.lv, m.rank); if (d) dropChest(m.g.position.clone(), d);
-    if (m.rank === "boss") { const d2 = rpg.rollDrop(m.lv, "boss"); if (d2) dropChest(m.g.position.clone().add(new V3(1.6, 0, 0.8)), d2); }
     if (m.rare) { const d3 = rpg.rollDrop(m.lv, "elite"); if (d3) dropChest(m.g.position.clone().add(new V3(-1.4, 0, 0.6)), d3); ctx.float(T("Golden!"), p.clone().setY(3), "#ffd27a", true); }
     if (Math.random() < 0.18) { const x = m.g.position.clone(); x.y = 1; const it = ITEMS[Math.random() < 0.5 ? 5 : 4]; const g = itemMesh(it); g.position.copy(x).add(new V3(-1, 0, 0.5)); add(g); items.push({ g, it, k: 0 }); }
   }
@@ -402,7 +401,7 @@ export function createCombat(ctx) {
       m.g.position.y = m.rank === "boss" ? Math.abs(Math.sin(t * 2)) * 0.3 : Math.abs(Math.sin(t * 6 + i)) * 0.12;
       // their hit: the boss also slams the ground now and then
       if (d <= m.reach && hurtT <= 0 && !down) {
-        hurtT = m.rank === "boss" ? 1.6 : 1.3; m.e.play("Attack", { once: true, fade: 0.05 });
+        hurtT = m.rank === "boss" ? (m.rage ? 1.05 : 1.35) : m.rank === "elite" ? 1.15 : 1.3; m.e.play("Attack", { once: true, fade: 0.05 });
         if (buffs.shield > 0 || guardT > 0) { flash(me.clone().setY(1.2), 0x4fa8ff, 3.2, 0.3); Snd.pop && Snd.pop(); if (guardT > 0) ctx.float(T("Dodged"), me.clone().setY(2.6), "#9fe6ff"); }
         else { tmp.copy(me).sub(m.g.position).setY(0).normalize(); ctx.knock(tmp, m.rank === "boss" ? 11 : 7); ctx.hurt(); damage(hitDamage(m.atk, st.def)); }
       }
@@ -470,7 +469,7 @@ export function createCombat(ctx) {
     m.next = (m.next ?? 4.5) - dt * (m.rage ? 1.45 : 1);
     if (m.next > 0 || d > 16) return false;
     const pats = m.pats || (m.pats = patsOf(m)), kind = d > 7 && pats.includes("line") && Math.random() < 0.6 ? "line" : pats[Math.floor(Math.random() * pats.length)];
-    m.next = (m.rage ? 4.2 : 6) + Math.random() * 2.5;
+    m.next = (m.rage ? 3.4 : 5) + Math.random() * 2.2; // b401: bosses use their big moves more often
     ctx.here(me); const dir = tmp.copy(me).sub(m.g.position).setY(0).normalize().clone(); m.g.rotation.y = Math.atan2(dir.x, dir.z);
     const c = { kind, t: 0, wind: WIND[kind] * (m.rage ? 0.85 : 1), dir, marks: [] };
     if (kind === "slam") c.marks.push(warnDisc(m.g.position, 7, c.wind));
@@ -496,11 +495,11 @@ export function createCombat(ctx) {
   }
   // half its HP gone: the boss roars, glows red, moves and strikes faster, and calls two helpers
   function enrage(m) {
-    m.rage = true; ctx.toast(T("{x} is enraged!", { x: m.bossName })); Snd.roar && Snd.roar(); ctx.shake(0.5);
+    m.rage = true; m.atk = Math.round(m.atk * 1.2); ctx.toast(T("{x} is enraged!", { x: m.bossName })); Snd.roar && Snd.roar(); ctx.shake(0.5);
     ring(m.g.position, 0xff2d4d, { r0: 1, r1: 12, life: 0.9, y: 0.15 }); flash(m.g.position.clone().setY(2), 0xff4d6d, 8, 0.4);
     const aura = new THREE.Sprite(spriteMat(0xff2d4d, 0.5)); aura.scale.setScalar(9); aura.position.y = 2.4; m.g.add(aura); m.rageAura = aura;
     m.glow = 0.6; m.zone && (m.spec = { ...m.spec, color: "#ff2d4d" });
-    if (m.zone) for (let i = 0; i < 2; i++) { const a = Math.random() * TAU; spawnMob({ type: m.zone.mobs[i % m.zone.mobs.length], lv: Math.max(1, m.lv - 4), zone: m.zone, at: m.g.position.clone().add(new V3(Math.cos(a) * 5, 0, Math.sin(a) * 5)) }); }
+    if (m.zone) for (let i = 0; i < 3; i++) { const a = Math.random() * TAU; spawnMob({ type: m.zone.mobs[i % m.zone.mobs.length], lv: Math.max(1, m.lv - 4), zone: m.zone, at: m.g.position.clone().add(new V3(Math.cos(a) * 5, 0, Math.sin(a) * 5)) }); }
     bossEl.classList.add("rage");
   }
 
