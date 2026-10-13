@@ -3760,6 +3760,11 @@ html.wp-pcphone #wi>.wi-sheet .wi-card{zoom:1.38;width:min(680px,calc((100vw - 3
 .wp-prompt .wp-enter2[hidden]{display:none}
 .wp-prompt .wp-enter2 span{font-weight:700;color:#bfffd8}
 .wp-prompt .wp-enter2 small{font-size:12px;color:rgba(222,240,230,.75)}
+/* b407: the map's teleport — a short flash as you vanish and appear somewhere else */
+.wp-tpflash{position:fixed;inset:0;z-index:19;pointer-events:none;opacity:0;background:radial-gradient(60% 55% at 50% 55%,rgba(220,250,255,.95),rgba(110,210,255,.55) 45%,rgba(20,60,120,0) 80%)}
+.wp-tpflash.on{animation:wpTpFlash .62s ease-out}
+@keyframes wpTpFlash{0%{opacity:0}28%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.wp-tpflash.on{animation:none}}
 /* ---- b398: the HUD made of the sheet's pieces (world-art/hud-sheet.png, sliced by tools: images/hud/*.webp); the numbers, names and bars on them are live. Generated: tools/hud-sprites.py ---- */
 body.wp{--hud-font:'Pretendard Variable',Pretendard,var(--f-ui)}
 body.wp .wp-hud .wp-hud-l{gap:2.80px}
