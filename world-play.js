@@ -345,6 +345,7 @@ const intro = new THREE.Group(); intro.visible = false; st.scene.add(intro);
   intro.add(pl, K.makeHalo()); intro.userData.pl = pl;
 }
 K.setFlat(1.35);
+K.spreadTown(1.7, 3); // the halls and houses further apart (b403)
 // the world: everything on the ground lives in this group, which slides under the player
 const planet = new THREE.Group(); planet.name = "world"; st.scene.add(planet);
 // where you stand on the plaza: in front of the fountain, facing it (the world slides, so this is its offset)
@@ -453,7 +454,7 @@ shops.forEach((g) => { const cs = LOOK.contactShadow((g.userData.radius || 3) + 
 const shopG = (id) => shops.find((g) => g.userData.spec.id === id);
 const portal = K.makePortal(T("Platform World")); K.placeOn(portal, K.dirOf(K.PORTAL.theta, K.PORTAL.phi)); planet.add(portal); spins.push(...portal.userData.spin);
 // the way to the islands
-const isleGate = K.makePortal(T("My Island")); K.placeOn(isleGate, K.dirOf(14, 140)); planet.add(isleGate); spins.push(...isleGate.userData.spin);
+const isleGate = K.makePortal(T("My Island")); K.placeOn(isleGate, K.dirOf(K.spreadTheta(14), 140)); planet.add(isleGate); spins.push(...isleGate.userData.spin);
 isleGate.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.transparent) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0x7ee0a0), 0.5); o.material.emissive.lerp(new THREE.Color(0x7ee0a0), 0.5); } });
 // the plaza: the ARCIRCLE rings fountain in the middle, an arch over each district's way out, the plaza screen
 const fountain = K.makeFountain(); planet.add(fountain); spins.push(...fountain.userData.spin);
@@ -641,7 +642,7 @@ async function dressWorld(kit) {
   const ac = await K.makeCharacter("female-e", VER).catch(() => null);
   if (ac) {
     const g = new THREE.Group(); g.add(ac.obj); const bub = K.bubble(T("Hi! I'm ARCIA. Ask me anything.")); g.add(bub);
-    K.placeOn(g, K.dirOf(16, 296)); planet.add(g); g.userData = { radius: 0.9, ac, bub, line: 0 }; npc = g; mixers.push(ac.mixer);
+    K.placeOn(g, K.dirOf(K.spreadTheta(16), 296)); planet.add(g); g.userData = { radius: 0.9, ac, bub, line: 0 }; npc = g; mixers.push(ac.mixer);
     try { stage = makeStage(g, ac); } catch { stage = null; }
   }
   // town folk: a few ARC Bots walking the ring between the fountain and the halls, stopping now and then to look
