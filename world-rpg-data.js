@@ -182,7 +182,11 @@ export function xpEvent(t = Date.now()) {
 }
 export const xpBoost = (zoneId, t = Date.now()) => { const e = xpEvent(t); return e.all || (zoneId && (zoneId === e.zone || zoneId === e.far)) ? e.k : 1; };
 /// the weekend's golden rush: golden scammers turn up three times as often (only the chance: they still run)
-export const goldenRush = (t = Date.now()) => (xpEvent(t).all ? 3 : 1);
+/// this week's event, turning every week (Seoul time, weeks from Monday): "boss" — bosses come back every 15 minutes
+/// instead of 30; "elite" — twice the elites; "gold" — golden scammers twice as often all week
+export const WEEK_EVENTS = { boss: { name: "Boss rush", line: "Bosses come back every 15 minutes" }, elite: { name: "Elite week", line: "Twice as many elite scammers" }, gold: { name: "Golden week", line: "Golden scammers twice as often" } };
+export const weekEvent = (t = Date.now()) => ["boss", "elite", "gold"][Math.floor((t + 9 * 3600e3 - Date.UTC(1970, 0, 5)) / 6048e5) % 3];
+export const goldenRush = (t = Date.now()) => (xpEvent(t).all ? 3 : 1) * (weekEvent(t) === "gold" ? 2 : 1);
 
 // companions: one comes with each of three achievements; they grow with the scammers knocked out beside them
 export const PETS = [

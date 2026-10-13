@@ -15,7 +15,7 @@
 //   street items  ARCL coins, speed boots, a spring, XP stars, mana crystals, health potions, a shield, a magnet
 // ARCL goes through the server's claim: "street" (5), "hunt" (8–12 by tier, level-gated), "boss" (30), "pickup" (2),
 // each limited per day, because the server can't watch a fight.
-import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush } from "./world-rpg-data.js";
+import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush, weekEvent } from "./world-rpg-data.js";
 import { weaponKind, potion as potion3d, token as token3d } from "./world-gear3d.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
@@ -45,7 +45,8 @@ const ITEMS = [
   { id: "shield", name: "Shield", w: 8, color: 0x4fa8ff, secs: 30 },
   { id: "magnet", name: "Magnet", w: 8, color: 0xff4d6d, secs: 20 },
 ];
-const BOSS_EVERY = 30 * 60e3, BOSS_FIRST = 2 * 60e3, BKEY = "arc.world.boss";
+const BOSS_FIRST = 2 * 60e3, BKEY = "arc.world.boss";
+const bossEvery = () => (weekEvent() === "boss" ? 15 : 30) * 60e3; // a boss rush week brings them back twice as fast
 
 /// ctx: { THREE, K, kit(), planet, st, here(v), facing(), moveDir(v) → bool, avatar(), level(), T, lang, esc, toast, Snd,
 ///        reduce, coarse, inHub(), active(), gain(xp, why), claim(kind, extra, from), knock(dir, power), dash(dir, dist),
@@ -166,7 +167,7 @@ export function createCombat(ctx) {
       g.fillStyle = "rgba(6,10,16,.85)"; g.beginPath(); g.roundRect(16, 28, 128, 12, 6); g.fill();
       // the damage just taken shows as a pale tail that catches up a moment later; ticks mark each tenth (each quarter on a boss)
       if (trail > k) { g.fillStyle = "rgba(255,240,230,.85)"; g.beginPath(); g.roundRect(18, 30, 124 * Math.min(1, trail), 8, 4); g.fill(); }
-      g.fillStyle = k > 0.5 ? "#39ff88" : k > 0.25 ? "#ffc861" : "#ff4d6d"; g.beginPath(); g.roundRect(18, 30, 124 * Math.max(0, k), 8, 4); g.fill();
+      g.fillStyle = document.documentElement.classList.contains("wp-cb") ? (k > 0.5 ? "#4fa8ff" : k > 0.25 ? "#ffc861" : "#ff8a1e") : k > 0.5 ? "#39ff88" : k > 0.25 ? "#ffc861" : "#ff4d6d"; // colour-blind friendly: blue → amber → orange g.beginPath(); g.roundRect(18, 30, 124 * Math.max(0, k), 8, 4); g.fill();
       g.fillStyle = "rgba(6,10,16,.55)"; const seg = rank === "boss" ? 4 : 10; for (let i = 1; i < seg; i++) g.fillRect(18 + (124 * i) / seg - 0.75, 30, 1.5, 8);
       if (rank === "elite") { g.fillStyle = "#ffc861"; g.beginPath(); g.moveTo(8, 34); g.lineTo(12, 30); g.lineTo(16, 34); g.lineTo(12, 38); g.closePath(); g.fill(); } // an elite's mark
       tex.needsUpdate = true;
@@ -323,7 +324,7 @@ export function createCombat(ctx) {
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
-    if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + BOSS_EVERY); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
+    if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + bossEvery()); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
     else if (zi >= 0 && tier >= 2) ctx.claim("hunt", { tier }, ctx.screenOf(p));
     else ctx.claim("street", {}, ctx.screenOf(p));
     ctx.onKill && ctx.onKill({ type: m.spec.id, lv: m.lv, rank: m.rank, zone: m.zone && m.zone.id });
@@ -1191,13 +1192,13 @@ export function createCombat(ctx) {
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
       if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) {
-        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) ? "elite" : "", rare = !rank && Math.random() < 0.03 * goldenRush();
+        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) * (weekEvent() === "elite" ? 2 : 1) ? "elite" : "", rare = !rank && Math.random() < 0.03 * goldenRush();
         const m0 = spawnMob({ type, lv, rank, zone: z, rare });
         // in the far ring the fake airdrops come in threes
         if (m0 && type === "drop" && z.lv[0] >= 30 && !rare && alive <= 2) for (let k = 0; k < 2; k++) { const a = Math.random() * TAU; spawnMob({ type, lv, zone: z, at: m0.g.position.clone().add(new V3(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2)) }); }
       } }
       const next = bossAt()[z.id] || 0;
-      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + BOSS_EVERY); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
+      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + bossEvery()); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
     } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid())) {
       if ((spawnT -= dt) <= 0) { spawnT = 22 + Math.random() * 30; if (mobs.filter((m) => !m.dead && !m.zone).length < 3) spawnMob({ lv: 1 + Math.floor(Math.random() * 3) }); }
     }

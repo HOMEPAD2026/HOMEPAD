@@ -885,7 +885,7 @@ const lp = new THREE.Vector3();
 const wp0 = new THREE.Vector3();
 // the season's dressing and the market stalls (world-holiday.js): placed once the town stands, on free ground round
 // the fountain (each spot checked against what's already there)
-const holiday = { solids: [], ticks: [] };
+const holiday = { solids: [], ticks: [] }; let bounty = null; // the bounty board: the day's hunts (Adventure log → Daily)
 function freeSpots(n, radii, gap, step = 12) {
   const out = [], v = new THREE.Vector3();
   for (const r of radii) for (let a = 7; a < 360 && out.length < n; a += step) {
@@ -898,7 +898,9 @@ function freeSpots(n, radii, gap, step = 12) {
 }
 let holTries = 0;
 const placeHoliday = () => { if (!(kit && town.length) && holTries++ < 30) { setTimeout(placeHoliday, 1000); return; } try {
-  const st3 = HOL.createStalls({ THREE, planet, spots: freeSpots(3, [15.5, 17.5], 9) }); holiday.solids.push(...st3.stalls);
+  const spots = freeSpots(4, [15.5, 17.5], 9);
+  const st3 = HOL.createStalls({ THREE, planet, spots: spots.slice(0, 3) }); holiday.solids.push(...st3.stalls);
+  if (spots[3]) { bounty = HOL.createBountyBoard({ THREE, planet, at: spots[3] }); holiday.solids.push(bounty); }
   if (HOL.christmasOn()) { const t = freeSpots(1, [13, 14.5], 0, 17)[0] || [0, 13]; const x = HOL.createChristmas({ THREE, planet, spots: lamps.userData.spots || [], tree: [t[0], t[1]] }); holiday.ticks.push(x.tick); const tg = new THREE.Group(); tg.position.set(t[0], 0, t[1]); tg.userData.radius = 2.4; planet.add(tg); holiday.solids.push(tg); }
   if (HOL.lunarOn()) { const l = HOL.createLanterns({ THREE, planet, spots: lamps.userData.spots || [] }); holiday.ticks.push(l.tick); }
 } catch (err) { console.warn("holiday", err); } };
@@ -1189,6 +1191,7 @@ function nearest() {
   consider(pad, "pad", {}, 1.6);
   if (race && !race.racing()) consider(race.pad, "race", {}, 1.8);
   if (npc) consider(npc, "npc", {}, 2.4);
+  if (bounty) consider(bounty, "bounty", {}, 2.0);
   return best;
 }
 function paintPrompt() {
@@ -1199,7 +1202,7 @@ function paintPrompt() {
   if (p.hidden) { p.hidden = false; void p.offsetWidth; }
   p.classList.add("on");
   const b = (s) => `<b>${esc(s)}</b>`;
-  $("wp-enter-t").innerHTML = near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
+  $("wp-enter-t").innerHTML = near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
 
@@ -1267,6 +1270,7 @@ function enter(n) {
   if (n.kind === "resident") { island.talk(n.res); return; }
   if (n.kind === "portal") { location.href = "/?skip"; return; }
   if (n.kind === "pad") { openMap(); return; }
+  if (n.kind === "bounty") { if (quests && rpg) { quests.setTab("daily"); rpg.show("log"); } return; }
   if (n.kind === "race") { race.start(); return; }
   if (n.kind === "npc") { doorThen(n.g, () => openSheet("ARCIA", T("Arc's AI idol. Ask her anything about a coin, a wallet or this world."), "/arc#arcia")); return; }
   if (n.kind === "coin") {
@@ -1985,7 +1989,7 @@ function tutorialStep(done) {
   // steps can be done in any order (jumping before walking counts); the hint shows the first one not done yet
   if (done >= 0) {
     const bit = 1 << done; if ((P.tutBits | 0) & bit || P.tut >= TUT.length) return;
-    P.tutBits = (P.tutBits | 0) | bit; if (TUT_XP[done]) setTimeout(() => gain(TUT_XP[done], T("Getting started")), 300);
+    P.tutBits = (P.tutBits | 0) | bit; if (TUT_XP[done] && !P.tutAgain) setTimeout(() => gain(TUT_XP[done], T("Getting started")), 300);
     let n = 0; while (n < TUT.length && P.tutBits & (1 << n)) n++;
     if (n === P.tut) { save(); return; }
     P.tut = n; save();
@@ -2103,7 +2107,7 @@ function openSet() {
   $("wp-set-fps").setAttribute("aria-pressed", String(!!S.fps)); $("wp-set-fps").textContent = S.fps ? T("On") : T("Show");
   setEl.querySelectorAll("#wp-set-lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
   $("wp-set-q-note").textContent = qNote(S.quality === "high" ? "ultra" : S.quality);
-  $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false;
+  $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false; $("wp-set-big").checked = !!S.big; $("wp-set-cb").checked = !!S.cb;
   const d = dailyState(), c = d.c, val = { shops: c.shops.length, jumps: c.jumps, walk: Math.round(c.walk) };
   $("wp-daily").innerHTML = DAILY.map((g) => `<li class="${d.done.includes(g.id) ? "ok" : ""}"><i></i><span>${esc(T(g.t))}</span><small data-no-i18n>${Math.min(val[g.id], g.n)}/${g.n}</small></li>`).join("") + `<li class="streak"><span>${esc(T("Streak: {n} days", { n: d.streak || 0 }))}</span></li>`;
   $("wp-badges").innerHTML = BADGES.map((b) => `<li class="${P.badges.includes(b.id) ? "ok" : ""}" title="${esc(T(b.t))}"><b>${esc(T(b.title))}</b><small>${esc(T(b.t))}</small></li>`).join("");
@@ -2189,6 +2193,13 @@ let lastInput = 0; for (const ev of ["pointerdown", "keydown", "touchstart"]) ad
 const buzz = (ms) => { if (S.vib === false || reduce || !navigator.vibrate || performance.now() - lastInput > 4000 || document.hidden) return; try { navigator.vibrate(ms); } catch { /* not allowed */ } };
 if (navigator.vibrate && matchMedia("(pointer: coarse)").matches) { $("wp-set-vibrow").hidden = false; $("wp-set-vib").checked = S.vib !== false; $("wp-set-vib").addEventListener("change", (e) => { S.vib = e.target.checked; saveSet(); if (S.vib) buzz(30); }); }
 $("wp-set-showname").addEventListener("change", (e) => { S.showName = !!e.target.checked; saveSet(); });
+// easier to read: larger text across the HUD and the windows; colours that don't lean on red against green
+const paintA11y = () => { document.documentElement.classList.toggle("wp-big", !!S.big); document.documentElement.classList.toggle("wp-cb", !!S.cb); };
+paintA11y();
+$("wp-set-big").addEventListener("change", (e) => { S.big = !!e.target.checked; saveSet(); paintA11y(); });
+$("wp-set-cb").addEventListener("change", (e) => { S.cb = !!e.target.checked; saveSet(); paintA11y(); });
+// the tutorial again from the first step (its XP was given the first time, so not again)
+$("wp-set-tut").addEventListener("click", () => { P.tut = 0; P.tutBits = 0; P.tutAgain = true; save(); closeSet(); tutorialStep(-1); setTimeout(openGuide, 300); });
 $("wp-set-motion").addEventListener("change", (e) => { S.motion = e.target.checked ? "less" : ""; saveSet(); $("wp-set-q-note").innerHTML = `${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`; });
 $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; saveSet(); });
 $("wp-set-char").addEventListener("click", () => { closeSet(); openMake(); });
@@ -2622,7 +2633,7 @@ if (coarse) $("wp-keys").hidden = true; else $("wp-acts").hidden = true;
 // a blue day sky over the ground, stars and the far planets at night (?hour=21 tries another hour)
 const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x2a66c4), mid: new THREE.Color(0x76b0e4), glow: new THREE.Color(0xd2e8f0) }, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x07102a), glow: new THREE.Color(0x173452) }, DUSK = new THREE.Color(0xf0a070);
 const HALLOW_FOG = new THREE.Color(0x2a1840); // Halloween nights: a violet fog
-const FOG = { day: new THREE.Color(0xb4d4e4), night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
+const FOG = { day: new THREE.Color(0x9ec6e8), /* a bluer day haze: distance reads as air, not milk */ night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
 const hourParam = Number(new URLSearchParams(location.search).get("hour"));
 let nightK = -1, skyOverride = "";
 // island skies from the ARCL Shop
@@ -2961,6 +2972,7 @@ $("wp-loading").classList.add("done");
 setTimeout(() => { if (load3d) load3d.dispose(); $("wp-loading").remove(); }, 600);
 await landing;
 landed = true; feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
+{ const we = RPG.WEEK_EVENTS && RPG.weekEvent ? RPG.WEEK_EVENTS[RPG.weekEvent()] : null; if (we) setTimeout(() => feed(T("This week: {x} — {y}", { x: `<b>${esc(T(we.name))}</b>`, y: esc(T(we.line)) }), "#ffc861"), 2600); } // this week's event
 if (!P.authSeen && !sess()) openAuth();
 else if (!P.char) openMake();
 else { tutorialStep(-1); maybeGuide(); }

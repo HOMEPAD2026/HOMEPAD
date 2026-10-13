@@ -66,3 +66,19 @@ export function createStalls({ THREE, planet, spots = [] }) {
   });
   return { root, stalls: root.children };
 }
+
+/// the bounty board: a post-and-plank notice board with pinned papers (the day's hunts open from it: world-play.js)
+export function createBountyBoard({ THREE, planet, at = [0, 0, 0] }) {
+  const g = new THREE.Group(); g.position.set(at[0], 0, at[1]); g.rotation.y = at[2] || 0; g.name = "bounty"; planet.add(g);
+  const wood = new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.8 });
+  const cv = document.createElement("canvas"); cv.width = 512; cv.height = 320; const x = cv.getContext("2d");
+  x.fillStyle = "#6e4426"; x.fillRect(0, 0, 512, 320); for (let i = 0; i < 6; i++) { x.fillStyle = i % 2 ? "#7a4c2b" : "#674023"; x.fillRect(0, i * 54, 512, 52); }
+  x.fillStyle = "#ffe7b0"; x.font = "900 54px 'Big Shoulders Display', Sora, sans-serif"; x.textAlign = "center"; x.fillText("BOUNTIES", 256, 62);
+  [[60, 96, -0.06], [200, 104, 0.05], [340, 92, -0.03], [120, 196, 0.04], [270, 200, -0.05], [400, 190, 0.06]].forEach(([px, py, r]) => { x.save(); x.translate(px + 50, py + 45); x.rotate(r); x.fillStyle = "#f4ead2"; x.fillRect(-48, -42, 96, 84); x.fillStyle = "#b03a2e"; x.beginPath(); x.arc(0, -36, 5, 0, 7); x.fill(); x.fillStyle = "#5a4630"; for (let l = 0; l < 4; l++) x.fillRect(-36, -18 + l * 14, 72 - (l % 2) * 20, 4); x.restore(); });
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const board = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 0.1), [wood, wood, wood, wood, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }), wood]); board.position.y = 1.55; board.castShadow = true;
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 0.5), wood); roof.position.set(0, 2.32, 0.1); roof.rotation.x = 0.25;
+  const postG = new THREE.CylinderGeometry(0.06, 0.07, 2.3, 6); [-1.05, 1.05].forEach((px) => { const p = new THREE.Mesh(postG, wood); p.position.set(px, 1.15, -0.02); g.add(p); });
+  g.add(board, roof); g.userData.radius = 1.2;
+  return g;
+}

@@ -3294,3 +3294,23 @@ html.wp-pcphone .wp-lvup-st{font-size:20px}
 /* in a fight the quest list folds to its header (the view stays clear); it opens again when the fight is over */
 body.wc-fight .wp-quests ol{display:none}
 body.wc-fight .wp-quests{opacity:.75}
+/* b387: Settings → Larger text (the HUD and the windows a size up) and colour-blind friendly colours */
+html.wp-big .wp-hud,html.wp-big .wr-card,html.wp-big .wa-sheet,html.wp-big .wp-mapsheet .wp-card,html.wp-big .wp-feed,html.wp-big .wp-toast,html.wp-big .wc-dead-card,html.wp-big .wp-quests,html.wp-big .wc-boss{zoom:1.15}
+html.wp-cb .wc-v.hp span{color:#ffae5a}
+html.wp-cb .wc-v.hp i b{background:linear-gradient(180deg,#ffc27a,#ff8a1e)}
+html.wp-cb .wc-boss u{background:linear-gradient(90deg,#ff8a1e,#ffc861)}
+html.wp-cb .wp-float-n{text-shadow:0 2px 0 #000,0 0 6px #000}
+/* gear sets: two buttons by the bag's tools — tap to wear, the disk icon saves what you wear now */
+.wr-sets-b{display:flex;gap:8px;margin:6px 0}
+.wr-gset{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04)}
+.wr-gset.on{border-color:rgba(126,224,160,.5)}
+.wr-gset button{appearance:none;border:0;background:none;color:#eef3f7;font:700 12.5px var(--f-ui);padding:6px 12px;cursor:pointer}
+.wr-gset button.sv{padding:6px 8px;border-left:1px solid rgba(255,255,255,.12);color:#9fb3c6}
+.wr-gset button.sv svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;vertical-align:-3px}
+html.wp-pcphone .wr-gset button{font-size:18px;padding:12px 18px}html.wp-pcphone .wr-gset button.sv svg{width:22px;height:22px}
+.wr-store-t{display:flex;align-items:center;gap:10px;margin:6px 0 2px}
+.wr-store-t button{appearance:none;height:30px;padding:0 12px;border-radius:9px;border:1px solid rgba(143,230,255,.4);background:rgba(143,230,255,.08);color:#cfefff;font:700 12.5px var(--f-ui);cursor:pointer}
+.wr-store-t button[aria-pressed="true"]{background:rgba(143,230,255,.2)}
+.wr-store-t small{font-size:12px;color:#9fb3c6}
+.wr-cells.store .wr-cell{background:rgba(143,230,255,.05)}
+html.wp-pcphone .wr-store-t button{height:48px;font-size:18px;padding:0 18px}html.wp-pcphone .wr-store-t small{font-size:16px}
