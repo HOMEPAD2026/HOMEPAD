@@ -3346,3 +3346,22 @@ html.wp-pcphone .wp-crewsheet .wp-card{zoom:1.35}
 .wp-arciaq-card p{margin:6px 0 12px;font-size:15px;line-height:1.5;color:#f6eef8}
 .wp-arciaq-card div{display:flex;gap:8px;justify-content:flex-end}
 html.wp-pcphone .wp-arciaq-card{zoom:1.5}
+/* the player card's showcase: gear they wear and the titles they've earned (world-play.js showcase) */
+.wp-prof-card{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
+.wp-prof-card h2 .wp-crew-tag{margin-right:8px;vertical-align:4px}
+.wp-prof-show{margin:0 0 16px;text-align:left}
+.wp-prof-show h3{display:flex;align-items:baseline;justify-content:space-between;margin:12px 0 8px;font:800 13px var(--f-ui);color:rgba(222,233,244,.8)}
+.wp-prof-show h3 small{font:700 12px var(--f-ui);color:rgba(222,233,244,.5)}
+.wp-prof-gear{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0;padding:0;list-style:none}
+.wp-prof-gear li{position:relative;aspect-ratio:1;border-radius:12px;background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--rc) 30%,transparent),rgba(255,255,255,.03) 70%);border:1px solid color-mix(in srgb,var(--rc) 55%,transparent);display:grid;place-items:center;overflow:hidden}
+.wp-prof-gear li img,.wp-prof-gear li svg{width:82%;height:82%;object-fit:contain}
+.wp-prof-gear li b{position:absolute;right:3px;bottom:2px;font:900 10px var(--f-ui);color:#fff;text-shadow:0 1px 2px #000}
+.wp-prof-titles{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.wp-prof-titles li{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font:700 12px var(--f-ui);color:rgba(232,240,248,.85)}
+.wp-prof-titles li.worn{background:linear-gradient(180deg,rgba(255,210,122,.25),rgba(242,168,58,.15));border-color:#ffd27a;color:#ffe2a6}
+.wp-prof-none{margin:0;font-size:12.5px;color:rgba(222,233,244,.55)}
+@media (max-width:380px){.wp-prof-gear{grid-template-columns:repeat(4,1fr)}}
+.wr-doll-acts{display:inline-flex;gap:6px;margin-left:8px;vertical-align:middle}.wr-doll-acts .wr-wardrobe{margin-left:0}
+.wp-crew-who{flex:1;min-width:0;appearance:none;border:0;background:none;padding:0;text-align:left;color:inherit;font:700 13.5px var(--f-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.wp-crew-who:hover,.wp-crew-who:focus-visible{color:#9ff3ff;text-decoration:underline}
+html.wp-pcphone .wp-prof-card{zoom:2;width:min(400px,calc((100vw - 24px) / 2));max-height:calc((100svh - 40px) / 2)}

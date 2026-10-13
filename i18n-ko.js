@@ -10503,6 +10503,15 @@
     "Sure": "좋아요",
     "Just chat": "그냥 얘기할래요",
     "ARCIA's favour: {x}": "ARCIA의 부탁: {x}",
+    "Gear": "장비",
+    "Titles": "칭호",
+    "No titles yet": "아직 칭호가 없어요",
+    "Season pass, last tier": "시즌 패스 마지막 단계",
+    "My card": "내 카드",
+    "Player cards": "플레이어 카드",
+    "A player's card shows the gear they wear and every title they've earned. Yours: Character → My card.": "플레이어 카드에 착용한 장비와 획득한 모든 칭호가 보여요. 내 카드: 캐릭터 → 내 카드.",
+    "Every piece in 3D": "모든 장비를 3D로",
+    "Armour, rings and necklaces turn in 3D on their card in the bag, like weapons.": "무기처럼 갑옷, 반지, 목걸이도 가방의 장비 카드에서 3D로 돌아가요.",
   };
 
 

@@ -199,13 +199,24 @@ export function makeSocial(deps) {
 
   // ---- friends: what a friend's card shows (their save's name and level, about when they last played — to the
 // 10 minutes — and their island) ----
+  const showGear = (sv) => {
+    const eq = (sv && sv.rpg && sv.rpg.eq) || {};
+    return ["weapon", "shield", "helm", "armor", "boots", "ring", "necklace"].map((s) => eq[s]).filter((it) => it && /^[a-z]+-[0-4]$/.test(String(it.b))).map((it) => ({ id: /^[a-z0-9]{4,10}$/.test(String(it.id)) ? it.id : "", b: it.b, r: Math.max(0, Math.min(4, Number(it.r) || 0)), p: Math.max(0, Math.min(10, Number(it.p) || 0)), ...(Number.isInteger(it.k) ? { k: it.k } : {}) }));
+  };
   async function friends(wallets) {
     const list = [...new Set(String(wallets || "").split(",").map(lc).filter(isAddr))].slice(0, 30);
-    const keys = list.flatMap((w) => [`worldSave/${w}`, `worldIsland/${w}`, `worldIslandLikes/${w}`]);
+    const keys = list.flatMap((w) => [`worldSave/${w}`, `worldIsland/${w}`, `worldIslandLikes/${w}`, `worldCrewOf/${w}`]);
     const d = list.length ? await getDocs(keys) : {}, out = {};
+    // the crews they're in (for the tag on the card)
+    const cids = [...new Set(list.map((w) => (d[`worldCrewOf/${w}`] || {}).id).filter((x) => /^[0-9a-f]{12}$/.test(String(x || ""))))];
+    const cd = cids.length ? await getDocs(cids.map((id) => `worldCrew/${id}`)) : {};
     for (const w of list) {
-      const sv = d[`worldSave/${w}`] || null, isl = d[`worldIsland/${w}`] || null;
-      out[w] = { name: (sv && sv.name) || "", lv: sv ? levelOfSave(sv) : 0, seen: sv && sv.at ? Math.floor(sv.at / 600e3) * 600e3 : 0, char: (sv && sv.char) || "", isle: isl ? isl.n || 0 : 0, likes: (d[`worldIslandLikes/${w}`] || {}).n || 0 };
+      const sv = d[`worldSave/${w}`] || null, isl = d[`worldIsland/${w}`] || null, x = (sv && sv.rpg && sv.rpg.x) || {};
+      const cr = cd[`worldCrew/${(d[`worldCrewOf/${w}`] || {}).id}`], crew = cr && !cr.closed && (cr.members || []).includes(w) ? cr.tag : "";
+      out[w] = { name: (sv && sv.name) || "", lv: sv ? levelOfSave(sv) : 0, seen: sv && sv.at ? Math.floor(sv.at / 600e3) * 600e3 : 0, char: (sv && sv.char) || "", isle: isl ? isl.n || 0 : 0, likes: (d[`worldIslandLikes/${w}`] || {}).n || 0,
+        // the showcase: the titles they've earned and wear, and the gear they have on (slot, rarity, tier, +, weapon kind)
+        ach: (Array.isArray(x.ach) ? x.ach : []).filter((a) => TITLE_ID.test(String(a))).slice(0, 40), t: TITLE_ID.test(String(x.title || "")) ? x.title : "", st: x.stitle ? 1 : 0,
+        gear: showGear(sv), ...(crew ? { cr: crew } : {}) };
     }
     return json(200, { friends: out }, "no-store");
   }

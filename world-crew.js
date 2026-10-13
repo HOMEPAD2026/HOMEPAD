@@ -1,7 +1,7 @@
 // world-crew.js — the Crew window (the menu → Crew): found a crew or join one with its invite code, see your crew's
 // members, their levels and this week's hunting points, share the code, and this week's crews by points.
 // The server keeps it all (api/_world-crew.mjs); your crew's tag shows before your name over your head.
-export function createCrew({ T, esc, toast, post, sess, onTag = () => {}, freeze = () => {} }) {
+export function createCrew({ T, esc, toast, post, sess, openProfile = null, onTag = () => {}, freeze = () => {} }) {
   const el = document.createElement("aside"); el.className = "wp-mapsheet wp-crewsheet"; el.hidden = true; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
   document.body.appendChild(el);
   let crew = null, top = [], busy = false;
@@ -14,7 +14,7 @@ export function createCrew({ T, esc, toast, post, sess, onTag = () => {}, freeze
     } catch { /* offline: keep what we had */ }
     onTag(crew ? crew.tag : "");
   }
-  const row = (m) => `<li${m.cap ? ' class="cap"' : ""}><b>${esc(m.name || m.w)}</b><small>Lv ${m.lv}</small><em>${m.pts.toLocaleString("en-US")}</em>${crew && crew.owner === me() && m.wallet !== me() ? `<button type="button" class="wp-link" data-kick="${esc(m.wallet)}">${esc(T("Remove"))}</button>` : m.cap ? `<i>${esc(T("Captain"))}</i>` : ""}</li>`;
+  const row = (m) => `<li${m.cap ? ' class="cap"' : ""}>${openProfile ? `<button type="button" class="wp-crew-who" data-prof="${esc(m.wallet)}">${esc(m.name || m.w)}</button>` : `<b>${esc(m.name || m.w)}</b>`}<small>Lv ${m.lv}</small><em>${m.pts.toLocaleString("en-US")}</em>${crew && crew.owner === me() && m.wallet !== me() ? `<button type="button" class="wp-link" data-kick="${esc(m.wallet)}">${esc(T("Remove"))}</button>` : m.cap ? `<i>${esc(T("Captain"))}</i>` : ""}</li>`;
   function paint() {
     const signed = !!sess();
     let body;
@@ -47,6 +47,7 @@ export function createCrew({ T, esc, toast, post, sess, onTag = () => {}, freeze
     if (b.hasAttribute("data-copy") && crew && crew.code) { try { navigator.clipboard.writeText(crew.code); toast(T("Code copied")); } catch { toast(crew.code); } }
     if (b.hasAttribute("data-newcode")) act({ action: "world-crew-code" }, T("A new code; the old one stops working"));
     if (b.hasAttribute("data-leave")) { if (b.dataset.sure) act({ action: "world-crew-leave" }, T("You left the crew")); else { b.dataset.sure = "1"; b.textContent = T("Tap again to leave"); } }
+    if (b.dataset.prof && openProfile) { openProfile(b.dataset.prof); return; }
     if (b.dataset.kick) act({ action: "world-crew-kick", wallet: b.dataset.kick }, T("Removed from the crew"));
   });
   function hide() { if (el.hidden) return; el.hidden = true; freeze(false); }

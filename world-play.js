@@ -2328,7 +2328,7 @@ $("wp-shot-frame").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; shotRaw = shotFramed = shotSrc = null; });
 
 // ---------------- what's new: once after an update, a card with a way to try each new thing ----------------
-const NEWV = "b388";
+const NEWV = "b390";
 function maybeNew() {
   try { if (localStorage.getItem("arc.world.newv") === NEWV) return; } catch { return; }
   if (!P.char || !P.guideSeen || new URLSearchParams(location.search).has("nointro")) return;
@@ -2336,6 +2336,8 @@ function maybeNew() {
 }
 function openNew() {
   const items = [
+    ["card", T("Player cards"), T("A player's card shows the gear they wear and every title they've earned. Yours: Character → My card.")],
+    ["inspect", T("Every piece in 3D"), T("Armour, rings and necklaces turn in 3D on their card in the bag, like weapons.")],
     ["crew", T("Crews"), T("Found a crew or join one with its code: a tag before your name and a weekly table. The menu → Crew.")],
     ["master", T("The Forge grows"), T("The Legendary Arc set from level 20, and a Masterwork bench that makes gear at your level, up to +10.")],
     ["lock", T("Lock-on and sharper fights"), T("Tab or the target button locks on; crescent slashes, afterimages when you dodge, elites with an element.")],
@@ -2361,6 +2363,8 @@ function openNew() {
     else if (k === "pad") openGuide();
     else if (k === "fuse") { rpg.forgeTab("fuse"); rpg.show("forge"); }
     else if (k === "crew") crewUI.show();
+    else if (k === "card") { const s0 = sess(); if (s0) openProfile(String(s0.wallet).toLowerCase()); else rpg.show("inv"); }
+    else if (k === "inspect") rpg.show("inv");
     else if (k === "master") { rpg.forgeTab("master"); rpg.show("forge"); }
     else if (k === "lock") openGuide();
     else if (k === "bag") rpg.show("inv");
@@ -2394,7 +2398,7 @@ const flt = (text, pos, color, big, weight = 0) => {
 };
 rpg = RPG.createRpg({
   THREE, T, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd, reduce, scene: () => st.scene,
-  freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
+  freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar, openProfile: (w) => openProfile(w),
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
   buyBag: (onStatus) => arclShop.pay("bagplus", "", onStatus),
@@ -2406,7 +2410,7 @@ const parts = PART.createParticles({ THREE, parent: planet, low: lowGfx || st.qu
 // the platform, live in the town (world-live.js): the LED band round the fountain, and fireworks for a new launch
 const live = LIVE.createLive({ THREE, planet, parts, reduce });
 // crews (world-crew.js): the window from the menu, and your crew's tag before your name
-const crewUI = CREW.createCrew({ T, esc, toast, post, sess, onTag: (t) => { if ((P.crewTag || "") !== (t || "")) { P.crewTag = t || ""; setNameTag(); } }, freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); } });
+const crewUI = CREW.createCrew({ T, esc, toast, post, sess, openProfile: (w) => openProfile(w), onTag: (t) => { if ((P.crewTag || "") !== (t || "")) { P.crewTag = t || ""; setNameTag(); } }, freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); } });
 setTimeout(() => { if (sess()) crewUI.load(); }, 4000);
 // footprints in snow and sand, and autumn leaves round you in town (world-tracks.js)
 const tracks = TRK.createTracks({ THREE, planet, reduce });
@@ -2563,6 +2567,18 @@ race = RACE.createRace({ THREE, K, planet, T: TW, esc, here: (v) => here(v), blo
   inHub: () => mode === "hub" && !introOn && !flying, post, sess, toast, Snd, reduce, onTop: () => {} });
 st.on((dt) => { race.update(); race.spin(dt); });
 // ---------------- a player's card (Rankings → Players, or someone around you) ----------------
+// the showcase on a player's card: the gear they have on (rarity colour, +level) and the titles they've earned, the
+// one they wear lit gold; tap a piece or a title for its name
+function showcase(fr, wornT) {
+  if (!fr || !Array.isArray(fr.ach)) return "";
+  const titled = QST.ACH.filter((a) => a.title), got = titled.filter((a) => fr.ach.includes(a.id)), list = [...got.map((a) => ({ id: a.id, t: T(a.title), line: T(a.line) })), ...(fr.st ? [{ id: "season", t: T("Season Star"), line: T("Season pass, last tier") }] : [])];
+  const gear = (fr.gear || []).filter((it) => RPG.parseBase(it.b));
+  const tile = (it) => { const R = RPG.RARITY[it.r] || RPG.RARITY[0]; return `<li style="--rc:${R.color}" title="${esc(rpg.itemName(it))} · ${esc(T(R.name))}">${rpg.thumb ? rpg.thumb(it) : ""}${it.p ? `<b>+${it.p}</b>` : ""}</li>`; };
+  return `<div class="wp-prof-show">
+    ${gear.length ? `<h3>${esc(T("Gear"))}</h3><ul class="wp-prof-gear">${gear.map(tile).join("")}</ul>` : ""}
+    <h3>${esc(T("Titles"))} <small>${list.length} / ${titled.length + 1}</small></h3>
+    ${list.length ? `<ul class="wp-prof-titles">${list.map((x) => `<li${x.id === wornT ? ' class="worn"' : ""} title="${esc(x.line)}">${esc(x.t)}</li>`).join("")}</ul>` : `<p class="wp-prof-none">${esc(T("No titles yet"))}</p>`}</div>`;
+}
 async function openProfile(w) {
   if (!/^0x[0-9a-f]{40}$/.test(String(w || ""))) return;
   document.querySelectorAll(".wp-prof").forEach((x) => x.remove());
@@ -2570,11 +2586,12 @@ async function openProfile(w) {
   el.className = "wp-prof"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
   const paint = (fr) => {
     const name = row.name || (fr && fr.name) || w.slice(0, 6) + "…" + w.slice(-4), lv = row.lv || (fr && fr.lv) || 1, char = row.char || (fr && fr.char) || "", me = sess() && sess().wallet === w;
-    const isFr = island.isFriend(w), ago = row.at ? Math.floor((Date.now() - row.at) / 60000) : null;
+    const isFr = island.isFriend(w), ago = row.at ? Math.floor((Date.now() - row.at) / 60000) : null, wornT = (fr && fr.t) || row.t || "";
     el.innerHTML = `<div class="wp-prof-card"><button type="button" class="wp-btn wp-x" data-px aria-label="${esc(T("Close"))}">×</button>
       <div class="wp-prof-face">${thumbCache[char] ? `<img src="${thumbCache[char]}" alt="">` : ""}<b>${lv}</b></div>
-      <h2>${esc(name)}</h2>${quests.titleOf(row.t) ? `<p class="wp-prof-title">${esc(quests.titleOf(row.t))}</p>` : ""}
+      <h2>${fr && fr.cr ? `<span class="wp-crew-tag sm">${esc(fr.cr)}</span>` : ""}${esc(name)}</h2>${quests.titleOf(wornT) ? `<p class="wp-prof-title">${esc(quests.titleOf(wornT))}</p>` : ""}
       <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / ${QST.CODEX.length + QST.CODEX_STORY.length}</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div><div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
+      ${showcase(fr, wornT)}
       <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${me || !isFr ? "" : `<button type="button" class="wp-btn" data-pparty aria-pressed="${inParty(w)}">${esc(inParty(w) ? T("In your party") : T("Add to party"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
       ${me || !sess() ? "" : `<div class="wp-prof-gift"><span>${esc(T("Send a gift"))}</span>${inbox.sendOptions().map((g) => `<button type="button" class="wp-btn" data-pgift="${g.kind}:${g.n}" ${g.can ? "" : "disabled"}>${esc(g.label)}</button>`).join("")}</div>`}</div>`;
     if (char && !thumbCache[char]) renderThumbsFor([char]).then(() => { if (el.isConnected) paint(fr); });
@@ -2582,7 +2599,7 @@ async function openProfile(w) {
   paint(null); document.body.appendChild(el); frozen = true; keys.clear();
   // Escape closes the card first (the Adventure log under it stays open)
   const onKey = (e) => { if (e.key === "Escape" && el.isConnected) { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
-  const close = () => { el.remove(); removeEventListener("keydown", onKey, true); frozen = !!(rpg && rpg.isOpen()); };
+  const close = () => { el.remove(); removeEventListener("keydown", onKey, true); frozen = !!((rpg && rpg.isOpen()) || crewUI.isOpen()); };
   addEventListener("keydown", onKey, true);
   let fr = null; try { const r = await fetch("/api/social?world=friends&wallets=" + w); fr = r.ok ? ((await r.json()).friends || {})[w] || null : null; } catch { /* the card stays as it is */ } if (el.isConnected) paint(fr);
   el.addEventListener("click", (e) => {

@@ -10673,6 +10673,15 @@
     "Sure": "好的",
     "Just chat": "只是聊聊",
     "ARCIA's favour: {x}": "ARCIA 的委托：{x}",
+    "Gear": "装备",
+    "Titles": "称号",
+    "No titles yet": "还没有称号",
+    "Season pass, last tier": "赛季通行证最终阶段",
+    "My card": "我的名片",
+    "Player cards": "玩家名片",
+    "A player's card shows the gear they wear and every title they've earned. Yours: Character → My card.": "玩家名片会显示其穿戴的装备和获得的所有称号。你的名片：角色 → 我的名片。",
+    "Every piece in 3D": "每件装备都有 3D",
+    "Armour, rings and necklaces turn in 3D on their card in the bag, like weapons.": "和武器一样，护甲、戒指和项链在背包的装备卡片上也会 3D 旋转。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
