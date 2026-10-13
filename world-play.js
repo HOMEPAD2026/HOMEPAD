@@ -377,7 +377,7 @@ try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
 loadbar(0.15);
 // bloom only on what glows: the white halls lit by the sun stay under the threshold (a wider, stronger bloom washed the
 // whole screen white on phones when a hall or an arch was close to the camera)
-const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomThreshold: 1.15, fov: 55, shadows: true, quality: S.quality, groundY: 0,
+const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomThreshold: 1.15, fov: 55, shadows: true, quality: S.quality, groundY: 0, post: true,
   // the graphics context gone for good (rare: a phone short on memory): a way back in
   onLost: () => { if (document.querySelector(".wp-lost")) return; const el = document.createElement("div"); el.className = "wp-leave wp-lost"; el.setAttribute("role", "alertdialog"); el.innerHTML = `<div class="wp-card wp-leave-card"><h2>${esc(T("The graphics paused"))}</h2><p>${esc(T("Your phone needed the memory back. Your progress is saved."))}</p><div class="wp-leave-btns"><button type="button" class="wp-cta" data-reload>${esc(T("Reload the game"))}</button></div></div>`; el.addEventListener("click", (e) => { if (e.target.closest("[data-reload]")) location.reload(); }); document.body.appendChild(el); },
   onRestored: () => { document.querySelectorAll(".wp-lost").forEach((e) => e.remove()); },
@@ -3141,7 +3141,9 @@ function dynRes(dt) {
   if (S.quality !== "auto" || degraded || photo || navigator.webdriver || !st.scale) return;
   dynAcc += dt; dynN++; if (performance.now() - dynT0 < 4000 || dynAcc < 1.5) return;
   const fps = dynN / dynAcc, now = performance.now(); dynAcc = 0; dynN = 0; dynT0 = now;
-  const capF = S.fpsCap || 60; dynBad = fps < capF * 0.63 ? dynBad + 1 : 0; dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
+  // b411: slow means under 80% of the limit on a phone (48 of 60: phones sat at 40–50 and never eased off) and 70% on
+  // a computer; it was 63% for both
+  const capF = S.fpsCap || 60; dynBad = fps < capF * (st.quality.coarse ? 0.8 : 0.7) ? dynBad + 1 : 0; dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
   if (now - dynLast < 20000) return;
   if (dynBad >= 2 && dynK > 0.6) { dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
