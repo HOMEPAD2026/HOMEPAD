@@ -3365,3 +3365,8 @@ html.wp-pcphone .wp-arciaq-card{zoom:1.5}
 .wp-crew-who{flex:1;min-width:0;appearance:none;border:0;background:none;padding:0;text-align:left;color:inherit;font:700 13.5px var(--f-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .wp-crew-who:hover,.wp-crew-who:focus-visible{color:#9ff3ff;text-decoration:underline}
 html.wp-pcphone .wp-prof-card{zoom:2;width:min(400px,calc((100vw - 24px) / 2));max-height:calc((100svh - 40px) / 2)}
+/* the captain's Remove in a crew row: small and quiet, not a headline link */
+.wp-crew-list [data-kick]{flex:none;font:600 12px var(--f-ui);color:rgba(222,233,244,.55);text-decoration:none;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:none;cursor:pointer}
+.wp-crew-list [data-kick]:hover,.wp-crew-list [data-kick]:focus-visible{color:#ffb4b4;border-color:rgba(255,120,120,.5)}
+/* the player card sits over other windows: solid enough that what's behind doesn't read through */
+.wp-prof-card{background:linear-gradient(180deg,rgba(14,28,48,.97),rgba(8,17,31,.97))}
