@@ -376,8 +376,9 @@ export function setNight(k) {
 export const tickNight = (dt, org) => { CLOCK.value += dt; if (org) ORG.value.copy(org); };
 
 /// the hall's name on a lit board over its door (the floating tag stays for far away)
+let SIGN_RES = 1; export const setSignRes = (k) => { SIGN_RES = k; }; // half-size sign canvases on phones (world-kit makeStage)
 export function hallSign(name, color) {
-  const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 192; const g = cv.getContext("2d");
+  const cv = document.createElement("canvas"); cv.width = Math.round(1024 * SIGN_RES); cv.height = Math.round(192 * SIGN_RES); const g = cv.getContext("2d"); if (SIGN_RES !== 1) g.scale(SIGN_RES, SIGN_RES);
   const hex = "#" + new THREE.Color(color).getHexString();
   g.fillStyle = "#1a2232"; g.fillRect(0, 0, 1024, 192);
   g.fillStyle = hex; g.fillRect(0, 168, 1024, 24);

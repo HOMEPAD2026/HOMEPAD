@@ -264,7 +264,7 @@ export function createDecor(ctx) {
     for (const c of critters) {
       const o = c.o, near = Math.hypot(tmp.x - o.position.x, tmp.z - o.position.z);
       if (near > 70) continue; // far away: frozen (cheaper)
-      c.mixer.update(dt);
+      if (near > 26) { c.acc = (c.acc || 0) + dt; if ((c.fc = (c.fc || 0) + 1) % 3 === 0) { c.mixer.update(c.acc); c.acc = 0; } } else { c.mixer.update(dt + (c.acc || 0)); c.acc = 0; } // past 26 m: its animation every third frame (it still walks every frame)
       if (c.wait > 0) { c.wait -= dt; if (c.wait <= 0) { const a = r() * 6.283, d = 3 + r() * 6, x = o.position.x + Math.sin(a) * d, z = o.position.z + Math.cos(a) * d; if (free(x, z, 0) || Math.hypot(x, z) > 17 && Math.hypot(x, z) < 45 && !ctx.blocked(new THREE.Vector3(x, 0, z))) { c.to = [x, z]; c.play(c.walk); } else c.wait = 0.5; } continue; }
       if (!c.to) continue;
       const dx = c.to[0] - o.position.x, dz = c.to[1] - o.position.z, dd = Math.hypot(dx, dz);

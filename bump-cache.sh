@@ -15,6 +15,8 @@ cd "$(dirname "$0")"
 # ArcPad / CirclePad / Reward load one bundle each (tools/build-bundles.mjs);
 # rebuild them from the source files first so they never go stale.
 if command -v node >/dev/null 2>&1; then node tools/build-bundles.mjs; else echo "WARNING: node not found - bundles NOT rebuilt"; fi
+# ARCIRCLE World's modules, minified into /w/ (tools/build-world.mjs); without esbuild play.html uses the sources.
+if command -v node >/dev/null 2>&1; then node tools/build-world.mjs; fi
 # ARCIA's knowledge of the site (api/_arcia-kb.mjs) follows the page copy.
 if command -v python3 >/dev/null 2>&1; then python3 tools/build-arcia-kb.py; fi
 # /updates collects every utility guide's "New in vN" notes (needs beautifulsoup4; skipped without it).

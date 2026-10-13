@@ -1,0 +1,38 @@
+// world-all.js — every module of the game, gathered so they load together once the beta check in world-play.js has
+// passed. In the build (tools/build-world.mjs, served from /w/) they become one minified file; from the source folder
+// the browser fetches them side by side, as before.
+import * as K from "./world-kit.js";
+import * as IS from "./world-island.js";
+import * as SHOP from "./world-shop.js";
+import * as STYLE from "./world-style.js";
+import * as HELP from "./world-support.js";
+import * as FIGHT from "./world-combat.js";
+import * as RPG from "./world-rpg.js";
+import * as ZN from "./world-zones.js";
+import * as QST from "./world-quests.js";
+import * as SOC from "./world-social.js";
+import * as ARCBOT from "./world-arcbots.js";
+import * as INBOX from "./world-inbox.js";
+import * as RACE from "./world-race.js";
+import * as WARD from "./world-wardrobe.js";
+import * as DECOR from "./world-decor.js";
+import * as VFX from "./world-vfx.js";
+import * as GEAR from "./world-gear3d.js";
+import * as LOOK from "./world-look.js";
+import * as LIFE from "./world-life.js";
+import * as WX from "./world-weather.js";
+import * as MUS from "./world-music.js";
+import * as POST from "./world-post.js";
+import * as ENV from "./world-env.js";
+import * as PART from "./world-particles.js";
+import * as ICONS from "./world-icons.js";
+import * as L3D from "./world-loading3d.js";
+import * as AMB from "./world-ambient.js";
+import * as HW from "./world-halloween.js";
+import * as DIAG from "./world-diag.js";
+import * as LIVE from "./world-live.js";
+import * as HOL from "./world-holiday.js";
+import * as TRK from "./world-tracks.js";
+import * as CREW from "./world-crew.js";
+import * as VILL from "./world-village.js";
+export default [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL];
