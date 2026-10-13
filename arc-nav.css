@@ -194,10 +194,10 @@ html.cw-on #wallet-slot,html.cw-on .anav-wallet{display:none!important}
 .cw-m .cw-net button[aria-pressed=true] i{background:#34d3b4;opacity:1}
 .cw-m .cw-warn{display:block;width:calc(100% - 12px);margin:0 6px 8px;padding:8px;border-radius:var(--r-ctl);border:1px solid rgba(255,182,72,.4);background:rgba(255,182,72,.08);color:#ffd28a;font:600 12.5px var(--f-ui);cursor:pointer}
 .cw-note{margin:0 6px 8px;padding:8px 10px;border-radius:var(--r-ctl);background:rgba(255,255,255,.04);color:#a9b5cb;font-size:12.5px;line-height:1.45}
-.cw .cw-bal{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 6px 6px}
-.cw .cw-bal>div{padding:8px 10px;border-radius:var(--r-ctl);background:rgba(255,255,255,.035)}
-.cw .cw-bal small{display:block;color:#93a0b8;font-size:11.5px}
-.cw .cw-bal b{display:block;margin-top:2px;font:600 14px var(--f-num);font-variant-numeric:tabular-nums}
+.cw-m .cw-bal{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 6px 6px}
+.cw-m .cw-bal>div{padding:8px 10px;border-radius:var(--r-ctl);background:rgba(255,255,255,.035)}
+.cw-m .cw-bal small{display:block;color:#93a0b8;font-size:11.5px}
+.cw-m .cw-bal b{display:block;margin-top:2px;font:600 14px var(--f-num);font-variant-numeric:tabular-nums}
 .cw-m .cw-i{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:10px;border-radius:var(--r-ctl);border:0;background:none;color:#e4ebf4;text-decoration:none;font:500 13.5px var(--f-ui);cursor:pointer;text-align:left}
 .cw-m .cw-i:hover{background:rgba(255,255,255,.05)}
 .cw-m .cw-i small{color:#93a0b8;font-size:12px}
@@ -240,7 +240,7 @@ html.cw-on #wallet-slot,html.cw-on .anav-wallet{display:none!important}
   .cw .cw-b .cw-l{display:none}.cw .cw-b .cw-s{display:inline}
   .cw .cw-b.cw-off{padding:0 12px}
   .cw .cw-b.cw-on .cw-a{font-size:12px}
-  .cw-m{position:fixed;left:8px;right:8px;top:auto;bottom:calc(var(--anav-bot,64px) + 8px);width:auto;max-height:70vh;overflow:auto}
+  .cw-m{position:fixed;left:8px;right:8px;top:auto;bottom:calc(var(--anav-bot,64px) + 8px + env(safe-area-inset-bottom));z-index:1300;width:auto;max-height:70vh;overflow:auto}
   .cw-modal{align-items:end;padding:0}
   .cw-card{width:100%;border-radius:var(--r-sheet) var(--r-sheet) 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 }
