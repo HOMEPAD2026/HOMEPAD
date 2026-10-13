@@ -68,7 +68,8 @@ export function scopeStore(store, epoch) {
 // ---- the closed beta's rewards ----
 // every wallet with a closed-beta save: 1 Legendary weapon. The top 3 by level (GMs left out; ties by XP) also get
 // 3 / 2 / 1 more Legendary pieces in random slots. Tier 1 (Cold Wallet: worn from level 5), item level 15.
-export const CBT_REWARD = { r: 4, tier: 1, lv: 15, top: [3, 2, 1] };
+// GM wallets aren't in the ranking (so no player loses a place) but get the 2nd place's set: the weapon and 2 more.
+export const CBT_REWARD = { r: 4, tier: 1, lv: 15, top: [3, 2, 1], gmRank: 2 };
 export const CBT_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"];
 const rid = () => { const a = new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a, (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join(""); };
 const pick = (n) => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };

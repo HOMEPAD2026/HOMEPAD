@@ -243,7 +243,8 @@ export function make(deps) {
   async function cbtInfo(w) {
     const d = await raw.getDocs([`worldSave/${w}`, `worldCbtClaim/${w}`]), c = d[`worldCbtClaim/${w}`];
     if (c) return { eligible: true, rank: c.rank || 0, claimed: true, items: Array.isArray(c.items) ? c.items : [] };
-    if (!d[`worldSave/${w}`] || isGM(w)) return { eligible: false, rank: 0, claimed: false };
+    if (isGM(w)) return { eligible: true, rank: CBT_REWARD.gmRank, claimed: false }; // outside the ranking, the 2nd place's set
+    if (!d[`worldSave/${w}`]) return { eligible: false, rank: 0, claimed: false };
     const top = await cbtTop(), i = top.findIndex((r) => r.w === w);
     return { eligible: true, rank: i + 1, claimed: false };
   }
