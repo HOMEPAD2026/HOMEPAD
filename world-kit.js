@@ -125,7 +125,7 @@ export function quality(force = "auto") {
   const low = f === "low" || f === "saver" ? true : f === "medium" || f === "ultra" ? false : tier ? tier === "low" : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
   const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
   const medium = f === "medium";
-  const dpr = Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : medium ? 1.5 : f === "ultra" ? 2 : coarse ? 1.5 : 1.75); // phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain)
+  const dpr = Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : medium ? 1.5 : f === "ultra" ? 2 : 1.5); // Auto: 1.5× on phones and computers (b411: computers were 1.75×); phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain)
   return { coarse, low, saver, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : f === "ultra" ? 4096 : 2048 }; // Ultra on a computer: crisper shadows near you
 }
 /// the graphics chip's class from its name: "high", "low", or "" (unknown); asked once
