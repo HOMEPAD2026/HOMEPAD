@@ -173,7 +173,9 @@ export function createCombat(ctx) {
     };
     return sp;
   }
-  const label = (m) => { const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail < k) m.trail = k; m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : T(m.spec.name)), k, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank, m.trail); };
+  const AFFIX = [{ id: "frost", name: "Frost {x}", color: "#7fe0ff", p: 0xbff2ff }, { id: "blaze", name: "Blazing {x}", color: "#ff8a3c", p: 0xffa040 }, { id: "venom", name: "Toxic {x}", color: "#9aff5a", p: 0x9aff5a }];
+  const tmpA = new V3();
+  const label = (m) => { const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail < k) m.trail = k; m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : m.affix ? T(m.affix.name, { x: T(m.spec.name) }) : T(m.spec.name)), k, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank, m.trail); };
   // the pale tail: holds for a moment after a hit, then slides down to the HP (redrawn at most 20 times a second)
   function tickTrail(m, dt) {
     const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail <= k + 0.002) return;
@@ -242,6 +244,8 @@ export function createCombat(ctx) {
     if (VX && rank && !o.raid) VX.summon(p, rank === "boss");
     const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: baseY, glow: skin ? 0.05 : 0.18 };
     // a golden scammer: rare, runs from you, gone in 25 seconds; five times the XP and a better chest
+    // an elite comes with an element: frost, blazing or toxic — its own colour, motes round it and a name to match
+    if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
     if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
@@ -380,6 +384,10 @@ export function createCombat(ctx) {
       if (m.crownG) { m.crownG.rotation.y += dt * 1.2; m.crownG.position.y = m.crownY + Math.sin(t * 2.4 + (m.ph || 0)) * 0.06; }
       if (m.leanT > 0) { m.leanT = Math.max(0, m.leanT - dt); const e = Math.sin((m.leanT / m.leanL) * Math.PI) * (m.rank === "boss" ? 0.1 : m.rank === "elite" ? 0.22 : 0.36) * (ctx.reduce ? 0.4 : 1), ry = m.g.rotation.y, c = Math.cos(ry), s = Math.sin(ry); body.rotation.x = (m.leanX * s + m.leanZ * c) * e; body.rotation.z = -(m.leanX * c - m.leanZ * s) * e; } else if (body.rotation.x || body.rotation.z) { body.rotation.x = 0; body.rotation.z = 0; }
       if (m.punch > 0) { if (!m.bs) m.bs = body.scale.clone(); m.punch = Math.max(0, m.punch - dt * 7); const q = ctx.reduce ? 0 : Math.sin(m.punch * Math.PI) * 0.16; body.scale.set(m.bs.x * (1 + q), m.bs.y * (1 - q), m.bs.z * (1 + q)); }
+      if (m.affix && !far && !ctx.reduce && ctx.parts && (m.afT = (m.afT || 0) - dt) <= 0) { // its element's motes
+        m.afT = 0.28; const a = m.affix.id; tmpA.copy(m.g.position).setY((m.y || 0.6) + 0.5);
+        ctx.parts.emit(a === "venom" ? { at: tmpA, kind: "smoke", n: 1, speed: 0.6, up: 1, size: 0.5, life: 1.1, grav: -0.6, color: m.affix.p, jitter: 0.6 } : { at: tmpA, kind: "glow", n: 2, speed: 0.8, up: a === "blaze" ? 1.4 : 0.3, size: 0.22, life: 0.9, grav: a === "blaze" ? -2.5 : 0.8, color: m.affix.p, jitter: 0.7 });
+      }
       if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) { if (m.cast) endCast(m); continue; }
@@ -606,8 +614,22 @@ export function createCombat(ctx) {
 
   // ---------------- the boss bar and the zone banner ----------------
   const bossEl = document.createElement("div"); bossEl.className = "wc-boss"; bossEl.id = "wc-boss"; bossEl.hidden = true; bossEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bossEl);
-  function bossBar(m) { bossEl.hidden = false; bossEl.classList.toggle("raid", !!m.raid); bossEl.classList.toggle("rage", !!m.rage); bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
-  function hideBossBar() { bossEl.hidden = true; }
+  // the boss's bar: built once per boss, then only its widths change, so the pale "just lost" tail can slide down after
+  // the red, and a notch marks half HP (where a hunting-ground boss rages)
+  let bossIdSeq = 0;
+  function bossBar(m) {
+    if (!m.barId) m.barId = ++bossIdSeq;
+    const k = Math.max(0, m.hp / m.max);
+    if (bossEl.hidden || bossEl.dataset.bid !== String(m.barId)) {
+      bossEl.hidden = false; bossEl.dataset.bid = String(m.barId);
+      bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><q class="wc-bt" style="width:${100 * k}%"></q><u style="width:${100 * k}%"></u>${m.raid ? "" : '<s class="wc-ph" style="left:50%" aria-hidden="true"></s>'}</i><em></em>`;
+    }
+    bossEl.classList.toggle("raid", !!m.raid); bossEl.classList.toggle("rage", !!m.rage);
+    const u = bossEl.querySelector("u"), q = bossEl.querySelector(".wc-bt"), em = bossEl.querySelector("em");
+    if (u) u.style.width = 100 * k + "%"; if (q) q.style.width = 100 * k + "%";
+    if (em) em.textContent = `${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}`;
+  }
+  function hideBossBar() { bossEl.hidden = true; bossEl.dataset.bid = ""; }
   const zoneEl = document.createElement("div"); zoneEl.className = "wc-zone"; zoneEl.id = "wc-zone"; zoneEl.hidden = true; zoneEl.setAttribute("data-no-i18n", ""); (document.querySelector(".wp-hud-r") || document.body).appendChild(zoneEl); // under the minimap
   const bannerEl = document.createElement("div"); bannerEl.className = "wc-banner"; bannerEl.hidden = true; bannerEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bannerEl);
   const bossAt = () => { try { return JSON.parse(localStorage.getItem(BKEY) || "{}"); } catch { return {}; } };

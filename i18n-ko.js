@@ -10417,6 +10417,9 @@
     "up to 30 a day": "하루 최대 30회",
     "Lock on": "락온",
     "No scammer close enough to lock on": "락온할 수 있는 가까운 스캐머가 없어요",
+    "Frost {x}": "냉기 {x}",
+    "Blazing {x}": "화염 {x}",
+    "Toxic {x}": "맹독 {x}",
   };
 
 

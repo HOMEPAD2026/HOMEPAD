@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag", "world-live"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag", "world-live", "world-holiday"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 // height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
 // mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
@@ -56,9 +56,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Cheer: "환호", Dance: "춤", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Cheer: "欢呼", Dance: "跳舞", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -502,7 +502,7 @@ async function setAvatar(id) {
   const a = await K.makeCharacter(id, VER, P.outfit || null).catch(() => K.makeCharacter("bot"));
   setTimeout(paintFace, 300);
   if (avatar) player.remove(avatar.obj);
-  avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = !boarding || ride === "jet" ? 0 : ride === "rover" ? 0.84 : 0.45;
+  headYaw = 0; avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = !boarding || ride === "jet" ? 0 : ride === "rover" ? 0.84 : 0.45;
   if (rpg) rpg.dress();
   setNameTag(); paintCrown();
 }
@@ -542,6 +542,7 @@ function paintTrail() { const c = TRAILS[(P.style || {}).trail]; trail.mat.unifo
 
 // ---- state that the rest of the file shares (declared before anything can call into it) ----
 const cards = [], mixers = [], town = [], lockedStages = [], coinBuildings = [], smokes = [], qOrbs = [];
+let headYaw = 0; const tmpLook = new THREE.Vector3(); // your head turning toward who is close (the loop)
 let coinData = null, lastSeen = 0, myCoins = [], labels = null, npc = null, board3 = null, arcStats = null;
 let zoneRoot = null; // the hunting grounds' group (the camera looks through their tall props)
 const folk = []; // the town's walking ARC Bots
@@ -793,7 +794,7 @@ cv.addEventListener("wheel", (e) => { camDist = THREE.MathUtils.clamp(camDist + 
 $("wp-act-jump").addEventListener("click", () => jump());
 $("wp-act-run").addEventListener("click", (e) => { runToggle = !runToggle; e.currentTarget.setAttribute("aria-pressed", String(runToggle)); });
 // the emote wheel: T, or the wave button on a phone
-const EMOTES = [["emote-yes", "Wave", "✋"], ["emote-no", "No", "✕"], ["sit", "Sit", "◡"], ["interact-right", "Point", "➚"], ["pick-up", "Pick up", "⇩"], ["die", "Faint", "✶"]];
+const EMOTES = [["emote-yes", "Wave", "✋"], ["emote-no", "No", "✕"], ["sit", "Sit", "◡"], ["interact-right", "Point", "➚"], ["pick-up", "Pick up", "⇩"], ["die", "Faint", "✶"], ["cheer", "Cheer", "★"], ["dance", "Dance", "♪"]];
 const wheel = document.createElement("div"); wheel.className = "wp-wheel"; wheel.hidden = true; wheel.setAttribute("data-no-i18n", "");
 // eight fixed lines to say (others see them over your figure for a minute; no free text, so nothing to moderate)
 const SAY = ["Hi!", "Nice hit!", "Help!", "Raid now?", "Follow me", "Thanks!", "GG", "Scan before you buy"];
@@ -878,10 +879,31 @@ function inputs() {
   const run = keys.has("shift") || runToggle || (joy && Math.hypot(joy.dx, joy.dy) > 0.95) || (gpad.on && gpad.run);
   return { x, y, m, run };
 }
-const SOLIDS = () => [shops, [portal, isleGate, fountainCore], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live), decor ? decor.solids() : []];
+const SOLIDS = () => [shops, [portal, isleGate, fountainCore], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live), decor ? decor.solids() : [], holiday.solids];
 const lp = new THREE.Vector3();
 // a point on the ground (the world group's coordinates) inside a building? — the street scammers ask
 const wp0 = new THREE.Vector3();
+// the season's dressing and the market stalls (world-holiday.js): placed once the town stands, on free ground round
+// the fountain (each spot checked against what's already there)
+const holiday = { solids: [], ticks: [] };
+function freeSpots(n, radii, gap, step = 12) {
+  const out = [], v = new THREE.Vector3();
+  for (const r of radii) for (let a = 7; a < 360 && out.length < n; a += step) {
+    const x = Math.sin((a * Math.PI) / 180) * r, z = Math.cos((a * Math.PI) / 180) * r; v.set(x, 0, z);
+    if (blockedAt(v) || [[2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dz]) => blockedAt(v.set(x + dx, 0, z + dz)))) continue;
+    if (out.some(([px, pz]) => Math.hypot(px - x, pz - z) < gap)) continue;
+    out.push([x, z, Math.atan2(-x, -z)]);
+  }
+  return out;
+}
+let holTries = 0;
+const placeHoliday = () => { if (!(kit && town.length) && holTries++ < 30) { setTimeout(placeHoliday, 1000); return; } try {
+  const st3 = HOL.createStalls({ THREE, planet, spots: freeSpots(3, [15.5, 17.5], 9) }); holiday.solids.push(...st3.stalls);
+  if (HOL.christmasOn()) { const t = freeSpots(1, [13, 14.5], 0, 17)[0] || [0, 13]; const x = HOL.createChristmas({ THREE, planet, spots: lamps.userData.spots || [], tree: [t[0], t[1]] }); holiday.ticks.push(x.tick); const tg = new THREE.Group(); tg.position.set(t[0], 0, t[1]); tg.userData.radius = 2.4; planet.add(tg); holiday.solids.push(tg); }
+  if (HOL.lunarOn()) { const l = HOL.createLanterns({ THREE, planet, spots: lamps.userData.spots || [] }); holiday.ticks.push(l.tick); }
+} catch (err) { console.warn("holiday", err); } };
+setTimeout(placeHoliday, 1500);
+st.on((dt, t) => { if (holiday.ticks.length && mode === "hub") holiday.ticks.forEach((f) => f(t, ambNight)); });
 function blockedAt(v) {
   wp0.set(v.x + planet.position.x, 0, v.z + planet.position.z);
   for (const list of SOLIDS()) for (const g of list) {
@@ -939,7 +961,16 @@ let jumpBuf = 0; const hitFrom = new THREE.Vector3(); let hitAt = 0; // the last
 // a running jump carries you forward: the speed you had when you left the ground stays with you in the air
 const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
 function jump() { if (jetOn() && !frozen) { jetHigh = !jetHigh; Snd.board(); return; } if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
-function emote(name) { if (!avatar || frozen || !grounded) return; avatar.play(name, { once: true }); if (pet) pet.emote(); }
+// an emote; ARC Bots change their face with it. Cheer throws the arms up (a Kenney character waves), Dance twirls
+// twice with a bounce
+let danceT = 0;
+function emote(name) {
+  if (!avatar || frozen || !grounded) return;
+  const clip = name === "cheer" ? (avatar.arc ? "celebrate" : "emote-yes") : name === "dance" ? (avatar.arc ? "celebrate" : "emote-yes") : name;
+  avatar.play(clip, { once: true }); if (pet) pet.emote();
+  if (avatar.face) avatar.face(name === "cheer" ? "star" : name === "dance" || name === "emote-yes" ? "happy" : name === "die" ? "ouch" : "", 2);
+  if (name === "dance" && !reduce) { danceT = 2.4; vy = 4.5; grounded = false; }
+}
 // landing from a jump: a ring of light where you touch down (the ARC Bots also squash a little)
 function landRing(y) {
   if (reduce) return;
@@ -1603,11 +1634,15 @@ function drawMini() {
       const px = c + rx * sc, py = c + rz * sc, col = "#" + new THREE.Color(zn.color).getHexString();
       mg.strokeStyle = col; mg.globalAlpha = 0.55; mg.lineWidth = 2; mg.setLineDash([5, 4]); mg.beginPath(); mg.arc(px, py, zn.r * sc, 0, 6.283); mg.stroke(); mg.setLineDash([]);
       mg.globalAlpha = 0.12; mg.fillStyle = col; mg.fill(); mg.globalAlpha = 1;
+      // its levels, written in the middle while it's on the map
+      if (zn.lv && Math.hypot(px - c, py - c) < c - 18) { mg.font = "800 10px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.lineWidth = 3; mg.strokeStyle = "rgba(4,10,18,.85)"; const tx = `Lv ${zn.lv[0]}–${zn.lv[1]}`; mg.strokeText(tx, px, py + (bossUp.includes(zn.id) ? 14 : 0)); mg.fillStyle = col; mg.fillText(tx, px, py + (bossUp.includes(zn.id) ? 14 : 0)); }
       if (bossUp.includes(zn.id)) { const pr = 8 + Math.sin(performance.now() / 180) * 2; mg.fillStyle = "#ff4d6d"; mg.beginPath(); mg.arc(px, py, pr, 0, 6.283); mg.fill(); mg.fillStyle = "#fff"; mg.font = "900 12px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.fillText("!", px, py + 0.5); }
     }
     // other players: friends in gold and a little bigger
     if (ghosts) ghosts.each((g, w) => { const fr = !!(w && w.wallet && island.isFriend(w.wallet)); put(g, fr ? "#ffc861" : "rgba(159,230,255,.55)", fr ? 5 : 3); });
     coinBuildings.forEach((g) => put(g, g.userData.mine ? "#39ff88" : "rgba(238,243,247,.55)", 4));
+    // scammers round you: small red dots (an elite a little bigger, gold-edged)
+    if (combat) for (const m of combat.mobsRaw()) if (!m.dead && !m.raid && m.rank !== "boss") put(m.g, m.rank === "elite" ? "#ffb35a" : "rgba(255,90,110,.9)", m.rank === "elite" ? 3.4 : 2.4);
     cards.forEach((g) => put(g, "#ffc861", 3.5));
     put(portal, "#35d8d0", 6); put(pad, "#ffc861", 5); put(isleGate, "#7ee0a0", 6); if (npc) put(npc, "#ff7ad9", 5);
     if (race) { put(race.pad, "#2f86ff", 5); const rt = race.target(); if (rt) { const q = put(rt, "", 0); mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(q.px, q.py, 9, 0, 6.283); mg.stroke(); } }
@@ -2783,7 +2818,10 @@ st.on((dt0, t) => {
     const still = grounded && !boarding && speedNow < 0.3 && !frozen && !document.body.classList.contains("wc-fight");
     idleT = still ? idleT + dt : 0; let lookOff = 0;
     if (idleT > idleNext) { const k = (idleT - idleNext) / 3.4; if (k >= 1) { idleT = 0; idleNext = 8 + Math.random() * 7; } else if (!reduce) lookOff = Math.sin(k * Math.PI * 2) * Math.sin(k * Math.PI) * 0.55; }
+    if (danceT > 0) { danceT = Math.max(0, danceT - dt); lookOff += (1 - danceT / 2.4) * Math.PI * 4; if (grounded && danceT > 0.4 && Math.floor(danceT * 2.5) !== Math.floor((danceT + dt) * 2.5)) { vy = 3.2; grounded = false; } }
     avatar.obj.rotation.y = facing + lookOff;
+    const headJ = avatar.headJ === undefined ? (avatar.headJ = avatar.obj.getObjectByName("head") || null) : avatar.headJ;
+    if (headJ) headJ.rotation.y -= headYaw; // take off last frame's turn before the animation runs (it may or may not set the head)
     if (avatar.bot) avatar.update(dt, t, Math.min(1, speedNow / 8), 0);
     else {
       avatar.update(dt, t);
@@ -2791,6 +2829,19 @@ st.on((dt0, t) => {
       if (combat && combat.vitals().down) { /* lying down until a revive or a respawn */ }
       else if (!avatar.busy() || (grounded && want !== "idle" && !boarding)) { if (want !== "jump") avatar.play(want, { speed: want === "walk" ? Math.max(0.8, speedNow / 6.5) : 1 }); animState = want; }
     }
+  }
+  // your head turns toward who's close (ARCIA, the walking bots, a scammer coming at you): within 7 m and in front,
+  // never past a shoulder
+  if (avatar && avatar.headJ) {
+    let want = 0;
+    if (!reduce && mode === "hub" && !photo) {
+      const me = here(tmpLook), body = avatar.obj.rotation.y; let best = 49;
+      const consider = (x, z) => { const dx = x - me.x, dz = z - me.z, d2 = dx * dx + dz * dz; if (d2 < 0.5 || d2 > best) return; let a = Math.atan2(dx, dz) - body; a = Math.atan2(Math.sin(a), Math.cos(a)); if (Math.abs(a) > 1.7) return; best = d2; want = THREE.MathUtils.clamp(a, -0.85, 0.85); };
+      if (npc) consider(npc.position.x, npc.position.z);
+      for (const f of folk) consider(f.g.position.x, f.g.position.z);
+      if (combat) for (const m of combat.mobsRaw()) if (!m.dead) consider(m.g.position.x, m.g.position.z);
+    }
+    headYaw += (want - headYaw) * Math.min(1, dt * 5); avatar.headJ.rotation.y += headYaw;
   }
   if (boarding) { const ro = rideObj(); ro.userData.update(t, speedNow, ride === "jet" ? (jetHigh ? 1 : 0.5) : 0); ro.rotation.y = facing; }
   if (npc && (npcT += dt) > 6) { npcT = 0; const lines = ["Hi! I'm ARCIA. Ask me anything.", "Scan a token before you buy it.", "A real airdrop never asks you to pay.", "Check the LP lock before you ape."]; npc.userData.line = (npc.userData.line + 1) % lines.length; npc.remove(npc.userData.bub); npc.userData.bub = K.bubble(T(lines[npc.userData.line])); npc.add(npc.userData.bub); if (labels) labels.dirty = true; if (Math.random() < 0.5) npc.userData.ac.play("emote-yes", { once: true }); }

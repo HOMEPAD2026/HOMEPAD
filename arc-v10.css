@@ -3284,3 +3284,13 @@ html.wp-pcphone .wr-sellshut b{font-size:19px}
 @keyframes wpLvSt{to{opacity:1;transform:none}}
 html.wp-pcphone .wp-lvup-st{font-size:20px}
 @media (prefers-reduced-motion:reduce){.wp-loot-rays{animation:none}.wp-lvup-st li{animation:none;opacity:1;transform:none}}
+/* b386: the boss bar — a pale tail of what was just lost slides down after the red; a notch at half HP */
+.wc-boss i{position:relative}
+.wc-boss i u{position:relative;z-index:1}
+.wc-boss .wc-bt{position:absolute;left:0;top:0;bottom:0;display:block;background:rgba(255,238,226,.75);transition:width .55s ease .35s;quotes:none}
+.wc-boss .wc-bt::before,.wc-boss .wc-bt::after{content:none}
+.wc-boss .wc-ph{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;z-index:2;background:rgba(255,255,255,.85);box-shadow:0 0 6px rgba(255,255,255,.6);text-decoration:none}
+.wc-boss.rage .wc-ph{background:#ff2d4d;box-shadow:0 0 8px #ff2d4d}
+/* in a fight the quest list folds to its header (the view stays clear); it opens again when the fight is over */
+body.wc-fight .wp-quests ol{display:none}
+body.wc-fight .wp-quests{opacity:.75}
