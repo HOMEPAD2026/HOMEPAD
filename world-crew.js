@@ -29,7 +29,7 @@ export function createCrew({ T, esc, toast, post, sess, openProfile = null, onTa
     el.innerHTML = `<div class="wp-card"><div class="wp-sheet-head"><h2>${esc(T("Crew"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
       ${body}
       <h3 class="wp-crew-toph">${esc(T("This week's crews"))}</h3>
-      ${top.length ? `<ol class="wp-crew-top">${top.map((c, i) => `<li><i>${i + 1}</i><span class="wp-crew-tag sm">${esc(c.tag)}</span><b>${esc(c.name)}</b><small>${esc(T("{n} members", { n: c.m }))}</small><em>${(c.n || 0).toLocaleString("en-US")}</em></li>`).join("")}</ol>` : `<p class="wp-crew-note">${esc(T("No crews on the board yet this week."))}</p>`}
+      ${top.length ? `<ol class="wp-crew-top">${top.map((c, i) => `<li><i>${i + 1}</i><span class="wp-crew-tag sm">${esc(c.tag)}</span><b>${esc(c.name)}</b><small>${esc(c.m === 1 ? T("1 member") : T("{n} members", { n: c.m }))}</small><em>${(c.n || 0).toLocaleString("en-US")}</em></li>`).join("")}</ol>` : `<p class="wp-crew-note">${esc(T("No crews on the board yet this week."))}</p>`}
       <p class="wp-crew-note">${esc(T("Hunting points come from knocking out scammers and bosses; a crew's total is its members' points this week."))}</p></div>`;
   }
   async function act(body, okMsg) {
