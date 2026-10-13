@@ -109,9 +109,27 @@
     if (list.length === 1) return use(list[0]);
     return chooser(list);
   };
+  // the wallet's address. Some wallets answer the request with an empty list (Bitget Wallet on a non-EVM network,
+  // a WalletConnect session that didn't include Arc, a phone coming back from the wallet app a moment early): ask
+  // again quietly, use the address the WalletConnect session already holds, and only then say what to do.
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  function accountsOf(w) {
+    var p = w.provider, ok = function (a) { return a && a[0] && isAddr(a[0]); };
+    return p.request({ method: "eth_requestAccounts" }).then(function (a) {
+      if (ok(a)) return a;
+      if (w.addr && isAddr(w.addr)) return [w.addr];
+      return p.request({ method: "eth_accounts" }).catch(function () { return []; }).then(function (b) {
+        if (ok(b)) return b;
+        return wait(800).then(function () { return p.request({ method: "eth_accounts" }).catch(function () { return []; }); }).then(function (c) {
+          if (ok(c)) return c;
+          var x = new Error(L("Your wallet didn't share an address. In the wallet, pick an EVM account (Ethereum or Arc, not Bitcoin, Solana or Tron), then connect again.", "지갑이 주소를 보내주지 않았어요. 지갑에서 EVM 계정(이더리움 또는 Arc, 비트코인·솔라나·트론 아님)을 선택한 뒤 다시 연결해 주세요.", "钱包没有提供地址。请在钱包中选择 EVM 账户（以太坊或 Arc，而不是比特币、Solana 或 Tron），然后重新连接。"));
+          x.noAccount = true; throw x;
+        });
+      });
+    });
+  }
   function use(w) {
-    return w.provider.request({ method: "eth_requestAccounts" }).then(function (a) {
-      if (!a || !a[0]) throw new Error("no account");
+    return accountsOf(w).then(function (a) {
       S.addr = lc(a[0]); S.live = true; S.prov = w.provider; S.rdns = w.info.rdns || "";
       attach(w.provider);
       remember(S.addr, S.rdns);
@@ -132,9 +150,12 @@
     var slow = new Promise(function (_, no) { setTimeout(function () { no(new Error("timeout")); }, 15000); });
     WC = Promise.race([import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.8.18/dist/appkit.min.js"), slow]).then(function (m) {
       var arc = { id: ARC.id, name: ARC.name, nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [ARC.rpc] } }, blockExplorers: { default: { name: "Explorer", url: ARC.expl } }, chainNamespace: "eip155", caipNetworkId: "eip155:" + ARC.id, testnet: false };
-      var ad = new m.WagmiAdapter({ projectId: pid, networks: [arc] });
+      // Ethereum is listed too: a wallet that doesn't know Arc yet (Bitget Wallet, for one) then still shares an
+      // account. Signing in is a plain message signature, the same on any network.
+      var eth = { id: 1, name: "Ethereum", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: ["https://cloudflare-eth.com"] } }, blockExplorers: { default: { name: "Etherscan", url: "https://etherscan.io" } }, chainNamespace: "eip155", caipNetworkId: "eip155:1", testnet: false };
+      var ad = new m.WagmiAdapter({ projectId: pid, networks: [arc, eth] });
       var modal = m.createAppKit({
-        adapters: [ad], networks: [arc], defaultNetwork: arc, allowUnsupportedChain: true, projectId: pid,
+        adapters: [ad], networks: [arc, eth], defaultNetwork: arc, allowUnsupportedChain: true, projectId: pid,
         metadata: { name: "ARCIRCLE", description: "ARCIRCLE on Circle's Arc", url: location.origin, icons: [location.origin + "/images/arcircle-mark-sm.png"] },
         features: { email: false, socials: false, analytics: false },
         themeMode: "dark", themeVariables: { "--w3m-z-index": 20000, "--w3m-accent": "#35d8d0" },
@@ -154,7 +175,7 @@
         function check() {
           var a = W.core.getAccount(W.config);
           if (a && a.isConnected && a.address && a.connector && a.connector.getProvider) {
-            a.connector.getProvider().then(function (p) { finish(null, { provider: p, info: { name: a.connector.name || "WalletConnect", rdns: "walletconnect" } }); }, function (e) { finish(e); });
+            a.connector.getProvider().then(function (p) { finish(null, { provider: p, addr: a.address, info: { name: a.connector.name || "WalletConnect", rdns: "walletconnect" } }); }, function (e) { finish(e); });
             return;
           }
           // a session from before reconnects within a moment; if there isn't one, open the modal
@@ -213,7 +234,8 @@
       }).join("");
       var apps = phone ? '<div class="cw-sec">' + esc(L("Open this page in a wallet app", "지갑 앱에서 이 페이지 열기", "在钱包应用中打开本页")) + '</div>' +
         '<a class="cw-w" href="https://metamask.app.link/dapp/' + esc(here) + '"><span class="cw-wi mm" aria-hidden="true"></span><b>MetaMask</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" +
-        '<a class="cw-w" href="https://go.cb-w.com/dapp?cb_url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi cb" aria-hidden="true"></span><b>Coinbase Wallet</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" : "";
+        '<a class="cw-w" href="https://go.cb-w.com/dapp?cb_url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi cb" aria-hidden="true"></span><b>Coinbase Wallet</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" +
+        '<a class="cw-w" href="https://bkcode.vip?action=dapp&url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi bg" aria-hidden="true"></span><b>Bitget Wallet</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" : "";
       ch.innerHTML = '<div class="cw-scrim" data-x></div><div class="cw-card">' +
         '<div class="cw-card-h"><b>' + esc(L("Connect a wallet", "지갑 연결", "连接钱包")) + '</b><button type="button" class="cw-x" data-x aria-label="' + esc(L("Close", "닫기", "关闭")) + '">×</button></div>' +
         (rows ? '<div class="cw-list">' + rows + "</div>" : '<p class="cw-none">' + esc(L("No wallet in this browser yet.", "이 브라우저에 지갑이 없어요.", "此浏览器还没有钱包。")) + "</p>") +
