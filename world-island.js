@@ -762,6 +762,7 @@ export function createIsland(ctx) {
       <button type="button" id="wi-redo" title="${esc(T("Redo"))} (Ctrl+Y)"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3"/></svg><span>${esc(T("Redo"))}</span></button>
       <button type="button" id="wi-done" class="wi-done" title="${esc(T("Done"))} (B)"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span>${esc(T("Done"))}</span></button>
     </div>
+    <div class="wi-hot-name" id="wi-hot-name" aria-live="polite"></div>
     <div class="wi-hot" id="wi-hot" role="listbox" aria-label="${esc(T("Bricks"))}"></div>
     <button type="button" class="wi-more" id="wi-pal-btn">${esc(T("All bricks"))}<kbd>Tab</kbd></button>
   </div>
@@ -798,7 +799,8 @@ export function createIsland(ctx) {
     ui.querySelectorAll("[data-tool]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tool === tool)));
     $("wi-mirror").setAttribute("aria-pressed", String(mirror));
     $("wi-layer").setAttribute("aria-pressed", String(layer >= 0)); $("wi-layer-t").textContent = layer >= 0 ? T("Layer {n}", { n: layer + 1 }) : T("Layer");
-    $("wi-hot").innerHTML = hot.map((id, i) => { const t = TYPES[TI[id]]; return `<button type="button" role="option" aria-selected="${i === slot}" data-slot="${i}" title="${esc(t.name)}${unlocked(t) ? "" : " · " + esc(lockText(t))}" class="${unlocked(t) ? "" : "locked"}"><img alt="" src="${thumbs[TI[id]] || ""}"><i style="--c:${hexc(i === slot ? curColor() : t.color)}"></i><kbd>${i + 1}</kbd></button>`; }).join("");
+    { const ht = TYPES[TI[hot[slot]]], hn = $("wi-hot-name"); if (hn) hn.textContent = ht ? T(ht.name) : ""; } // the brick in hand, by name (b405)
+    $("wi-hot").innerHTML = hot.map((id, i) => { const t = TYPES[TI[id]]; return `<button type="button" role="option" aria-selected="${i === slot}" data-slot="${i}" title="${esc(t.name)}${unlocked(t) ? "" : " · " + esc(lockText(t))}" class="${unlocked(t) ? "" : "locked"}">${thumbs[TI[id]] ? `<img alt="" src="${thumbs[TI[id]]}">` : `<span class="wi-ph" style="--c:${hexc(t.color)}"></span>`}<i style="--c:${hexc(i === slot ? curColor() : t.color)}"></i><kbd>${i + 1}</kbd></button>`; }).join("");
     if (!thumbsDone) renderThumbs().then(paintBuild);
   }
   const hexc = (i) => "#" + (COLORS[i] ?? 0xffffff).toString(16).padStart(6, "0");
@@ -998,7 +1000,7 @@ export function createIsland(ctx) {
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
     mini(put) { put(exit, "#35d8d0", 6); if (centre) put(centre, "#ffc861", 8); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
     showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); tickCentre(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
-    openIsles, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
+    openIsles, tour, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };
 }

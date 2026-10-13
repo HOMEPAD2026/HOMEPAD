@@ -10603,6 +10603,13 @@
     "The graphics paused": "그래픽이 잠시 멈췄어요",
     "Your phone needed the memory back. Your progress is saved.": "휴대폰이 메모리를 회수했어요. 진행 상황은 저장돼 있어요.",
     "Reload the game": "게임 다시 불러오기",
+    "My island": "내 섬",
+    "Build and decorate your own": "직접 짓고 꾸미기",
+    "Visit a random island": "무작위 섬 방문",
+    "A player's island you haven't seen": "아직 가보지 않은 플레이어의 섬",
+    "Browse islands": "섬 둘러보기",
+    "Popular, this week, friends": "인기, 이번 주, 친구",
+    "Leave the game for the platform": "게임을 나가 플랫폼으로",
   };
 
 
