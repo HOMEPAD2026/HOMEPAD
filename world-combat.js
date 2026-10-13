@@ -9,8 +9,9 @@
 //                 changes it). They grow stronger every five levels and cost SP
 //   potions       4 and 5 (or the small buttons): health and mana, from drops or the Forge
 //   damage        your Attack against their Defense (world-rpg-data.js); critical hits from your Critical stat
-//   HP and SP     from your level and gear (world-rpg.js). At 0 HP: respawn on the plaza for free, or revive on the
-//                 spot for 10,000 $ARCIRCLE (the player's own transfer; half is burned)
+//   HP and SP     from your level and gear (world-rpg.js). At 0 HP: the first time each day you get up for free;
+//                 after that, revive on the spot for 10,000 $ARCIRCLE (the player's own transfer; half is burned) or
+//                 rest 24 hours (no fighting until it ends)
 //   street items  ARCL coins, speed boots, a spring, XP stars, mana crystals, health potions, a shield, a magnet
 // ARCL goes through the server's claim: "street" (5), "hunt" (8–12 by tier, level-gated), "boss" (30), "pickup" (2),
 // each limited per day, because the server can't watch a fight.
@@ -146,25 +147,50 @@ export function createCombat(ctx) {
   function hpBar(w = 1.7) {
     const cv = document.createElement("canvas"); cv.width = 160; cv.height = 44; const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false })); sp.scale.set(w, w * 44 / 160, 1); sp.renderOrder = 11;
-    sp.userData.draw = (lv, name, k, color, rank) => {
+    sp.userData.draw = (lv, name, k, color, rank, trail = k) => {
       const g = cv.getContext("2d"); g.clearRect(0, 0, 160, 44); g.font = "800 15px Sora, sans-serif"; g.textAlign = "center";
       g.fillStyle = "rgba(6,10,16,.8)"; g.beginPath(); g.roundRect(2, 2, 156, 21, 10); g.fill();
       if (rank) { g.strokeStyle = rank === "boss" ? "#ff4d6d" : "#ffc861"; g.lineWidth = 2; g.stroke(); }
       const t = `Lv ${lv} ${name}`; let fs = 15; while (fs > 9 && g.measureText(t).width > 148) { fs -= 1; g.font = `800 ${fs}px Sora, sans-serif`; } // a long boss name shrinks to fit
       g.fillStyle = color; g.fillText(t, 80, 17 + (15 - fs) * 0.2);
       g.fillStyle = "rgba(6,10,16,.85)"; g.beginPath(); g.roundRect(16, 28, 128, 12, 6); g.fill();
-      g.fillStyle = k > 0.5 ? "#39ff88" : k > 0.25 ? "#ffc861" : "#ff4d6d"; g.beginPath(); g.roundRect(18, 30, 124 * Math.max(0, k), 8, 4); g.fill(); tex.needsUpdate = true;
+      // the damage just taken shows as a pale tail that catches up a moment later; ticks mark each tenth (each quarter on a boss)
+      if (trail > k) { g.fillStyle = "rgba(255,240,230,.85)"; g.beginPath(); g.roundRect(18, 30, 124 * Math.min(1, trail), 8, 4); g.fill(); }
+      g.fillStyle = k > 0.5 ? "#39ff88" : k > 0.25 ? "#ffc861" : "#ff4d6d"; g.beginPath(); g.roundRect(18, 30, 124 * Math.max(0, k), 8, 4); g.fill();
+      g.fillStyle = "rgba(6,10,16,.55)"; const seg = rank === "boss" ? 4 : 10; for (let i = 1; i < seg; i++) g.fillRect(18 + (124 * i) / seg - 0.75, 30, 1.5, 8);
+      if (rank === "elite") { g.fillStyle = "#ffc861"; g.beginPath(); g.moveTo(8, 34); g.lineTo(12, 30); g.lineTo(16, 34); g.lineTo(12, 38); g.closePath(); g.fill(); } // an elite's mark
+      tex.needsUpdate = true;
     };
     return sp;
   }
-  const label = (m) => m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : T(m.spec.name)), m.hp / m.max, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank);
+  const label = (m) => { const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail < k) m.trail = k; m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : T(m.spec.name)), k, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank, m.trail); };
+  // the pale tail: holds for a moment after a hit, then slides down to the HP (redrawn at most 20 times a second)
+  function tickTrail(m, dt) {
+    const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail <= k + 0.002) return;
+    if ((m.trailHold = (m.trailHold || 0) - dt) > 0) return;
+    m.trail = Math.max(k, m.trail - dt * 0.8); m.trailT = (m.trailT || 0) - dt; if (m.trailT <= 0 || m.trail <= k) { m.trailT = 0.05; label(m); }
+  }
   /// a scammer: { type, lv, rank ("" | "elite" | "boss"), at (V3), zone, boss: zone.boss spec }
   // scammers are kept for reuse (a few per model) instead of copied afresh each time: a copy of a skinned model and
   // its materials every few seconds was a hitch on phones
   const mobPool = new Map();
   const takeEnemy = (kit, key) => { const a = mobPool.get(key); if (a && a.length) return a.pop(); const e = K.enemy(kit, key); if (e) e.key = key; return e; };
-  function retire(m, i) { root.remove(m.g); mobs.splice(i, 1); if (m.e && m.e.key) { m.g.remove(m.e.obj); m.e.obj.position.x = 0; m.e.obj.rotation.x = m.e.obj.rotation.z = 0; const a = mobPool.get(m.e.key) || []; if (a.length < 6) { a.push(m.e); mobPool.set(m.e.key, a); } } }
+  // gone: its HP bar's canvas texture is freed (one per scammer: these piled up over a long hunt, slowing the game and,
+  // on phones, running the GPU out of memory, which showed as black squares); a scammer that doesn't go back to the
+  // pool frees its own materials too
+  function retire(m, i) {
+    root.remove(m.g); mobs.splice(i, 1);
+    if (m.bar) { if (m.bar.material.map) m.bar.material.map.dispose(); m.bar.material.dispose(); }
+    if (m.shell) m.shell.material.dispose();
+    if (m.crown) m.crown.traverse((x) => { if (x.isMesh) { x.geometry.dispose(); x.material.dispose(); } });
+    if (m.aura) { m.aura.geometry.dispose(); m.aura.material.dispose(); }
+    if (m.e && m.e.key) { m.g.remove(m.e.obj); m.e.obj.position.x = 0; m.e.obj.rotation.x = m.e.obj.rotation.z = 0; const a = mobPool.get(m.e.key) || []; if (a.length < 6) { a.push(m.e); mobPool.set(m.e.key, a); return; } }
+    if (m.e && m.e.obj) { const seen = new Set(); m.e.obj.traverse((x) => { if (x.isMesh && x.material && !seen.has(x.material) && !x.userData.outline) { seen.add(x.material); x.material.dispose(); } }); if (m.e.mixer) m.e.mixer.stopAllAction(); }
+  }
   const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }), ringBoss = new THREE.MeshBasicMaterial({ color: 0xff4d6d }), ringElite = new THREE.MeshBasicMaterial({ color: 0xffc861 });
+  const crownMat = new THREE.MeshStandardMaterial({ color: 0xffc861, metalness: 0.85, roughness: 0.25, emissive: 0x6a4a10, emissiveIntensity: 0.6, side: THREE.DoubleSide });
+  const crownBossMat = new THREE.MeshStandardMaterial({ color: 0xff5f73, metalness: 0.7, roughness: 0.3, emissive: 0x7a1020, emissiveIntensity: 0.8, side: THREE.DoubleSide });
+  const bossHazeMat = new THREE.MeshBasicMaterial({ color: 0xff4d6d, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false });
   const geoCache = new Map(), geoOf = (k, make) => { let g = geoCache.get(k); if (!g) { g = make(); geoCache.set(k, g); } return g; };
   function spawnMob(o = {}) {
     const kit = ctx.kit(); if (!kit) return null;
@@ -192,7 +218,13 @@ export function createCombat(ctx) {
     const baseY = skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
     e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);
-    e.obj.traverse((x) => { if (x.isMesh && x.material) { if (!e.own) { x.material = x.material.clone(); if (K.toonLook) K.toonLook(x.material, { rim: 0xff9a8a }); if (K.dissolveLook) K.dissolveLook(x.material, e.dis || (e.dis = { value: 0 })); } if (x.material.emissive && !x.material.userData.glow) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } }); if (!e.own && K.outlineAll && !ctx.coarse && !(ctx.lite && ctx.lite())) e.outlines = K.outlineAll(e.obj, { color: 0x1a0a14, t: 0.03 }); e.own = true; if (e.dis) e.dis.value = 0; (e.outlines || []).forEach((o) => { o.visible = true; }); // its own materials (and a dark rim), once
+    e.obj.traverse((x) => { if (x.isMesh && x.material) { if (!e.own) { x.material = x.material.clone(); if (K.toonLook) K.toonLook(x.material, { rim: 0xff9a8a }); if (K.dissolveLook) K.dissolveLook(x.material, e.dis || (e.dis = { value: 0 })); } if (x.material.emissive && !x.material.userData.glow) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } }); if (!e.own && K.outlineAll && !ctx.coarse && !(ctx.lite && ctx.lite())) e.outlines = K.outlineAll(e.obj, { color: 0x1a0a14, t: 0.03 }); e.own = true; if (e.dis) e.dis.value = 0;
+    // Halloween (world-halloween.js): about one plain scammer in five comes as a ghost, see-through with a pale glow
+    const ghost = !!(ctx.halloween && !rank && !o.raid && !o.rare && Math.random() < 0.22);
+    e.obj.traverse((x) => { if (!x.isMesh || !x.material || Array.isArray(x.material) || x.userData.outline) return; const mt = x.material; if (!mt.userData.g0) mt.userData.g0 = { t: mt.transparent, o: mt.opacity, e: mt.emissive ? mt.emissive.getHex() : 0, ei: mt.emissiveIntensity };
+      const want = ghost ? [true, 0.6] : [mt.userData.g0.t, mt.userData.g0.o]; if (mt.transparent !== want[0]) { mt.transparent = want[0]; mt.needsUpdate = true; } mt.opacity = want[1]; mt.depthWrite = !ghost;
+      if (mt.emissive && !mt.userData.glow) { if (ghost) { mt.emissive.set(0x9ec8ff); mt.emissiveIntensity = 0.45; } else { mt.emissive.setHex(mt.userData.g0.e); mt.emissiveIntensity = mt.userData.g0.ei; } } });
+    (e.outlines || []).forEach((ol) => { ol.visible = !ghost; });
     const bb = new THREE.Box3().setFromObject(e.obj); const bar = hpBar(bs ? 3.2 : rank === "elite" ? 2.1 : 1.7); bar.position.y = bb.max.y + (bs ? 0.9 : 0.5); g.add(bar);
     const sh = new THREE.Mesh(geoOf("sh" + !!bs, () => new THREE.CircleGeometry(bs ? 2.6 : 0.7, 24)), shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.04; g.add(sh);
     if (rank) { const rr = new THREE.Mesh(geoOf("ring" + !!bs, () => new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48)), rank === "boss" ? ringBoss : ringElite); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
@@ -209,6 +241,15 @@ export function createCombat(ctx) {
       m.crown = crown; m.aura = aura;
     }
     m.em = []; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) m.em.push(x.material); });
+    m.sc = sc; m.ph = Math.random() * TAU; m.ghost = ghost;
+    // ranks read at a glance: a small gold crown over an elite, a red one and a faint red haze round a boss
+    if ((rank === "elite" || (rank === "boss" && !o.raid)) && !ctx.lite?.()) {
+      const boss = rank === "boss", cg = new THREE.Group(), s0 = boss ? 0.55 : 0.28, mat = boss ? crownBossMat : crownMat;
+      const band = new THREE.Mesh(geoOf("crownBand", () => new THREE.CylinderGeometry(1, 1, 0.45, 10, 1, true)), mat); cg.add(band);
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU, sp = new THREE.Mesh(geoOf("crownSpike", () => new THREE.ConeGeometry(0.28, 0.6, 4)), mat); sp.position.set(Math.cos(a) * 0.9, 0.5, Math.sin(a) * 0.9); cg.add(sp); }
+      cg.scale.setScalar(s0); m.crownY = bar.position.y + (boss ? 0.95 : 0.5); cg.position.y = m.crownY; g.add(cg); m.crownG = cg;
+      if (boss) { const haze = new THREE.Mesh(geoOf("bossHaze", () => new THREE.SphereGeometry(1, 20, 14)), bossHazeMat); const hh = Math.max(2, (bb.max.y - bb.min.y) * 0.75); haze.scale.setScalar(hh); haze.position.y = (bb.max.y + bb.min.y) / 2; g.add(haze); }
+    }
     if (bs) m.born = performance.now(); // for the week's fastest boss knock-outs
     label(m); mobs.push(m);
     if (m.slow === 0) { const shR = Math.round(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6) * 10) / 10; const shell = new THREE.Mesh(geoOf("shell" + shR, () => new THREE.IcosahedronGeometry(shR, 0)), new THREE.MeshPhysicalMaterial({ color: 0xbfefff, transparent: true, opacity: 0.45, roughness: 0.05, flatShading: true })); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
@@ -220,7 +261,7 @@ export function createCombat(ctx) {
   function hit(m, raw, from, kind, crit) {
     if (m.dead) return;
     const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1)));
-    m.hp -= dmg; m.hitT = 0.18; label(m); if (m.rank === "boss") bossBar(m);
+    if (m.trail == null || m.trailHold <= 0) m.trail = Math.max(0, m.hp / m.max); m.trailHold = 0.4; m.hp -= dmg; m.hitT = 0.18; label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
     if (kind !== "pet") { if (ctx.hitstop) ctx.hitstop(kind === "heavy" ? 85 : kind === "meteor" ? 70 : crit ? 70 : 38); if (ctx.kickCam) ctx.kickCam(tmp, kind === "heavy" ? 0.16 : crit ? 0.12 : 0.06); }
     if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
@@ -275,11 +316,17 @@ export function createCombat(ctx) {
     if (m.rare) { const d3 = rpg.rollDrop(m.lv, "elite"); if (d3) dropChest(m.g.position.clone().add(new V3(-1.4, 0, 0.6)), d3); ctx.float(T("Golden!"), p.clone().setY(3), "#ffd27a", true); }
     if (Math.random() < 0.18) { const x = m.g.position.clone(); x.y = 1; const it = ITEMS[Math.random() < 0.5 ? 5 : 4]; const g = itemMesh(it); g.position.copy(x).add(new V3(-1, 0, 0.5)); add(g); items.push({ g, it, k: 0 }); }
   }
+  const beamGeo = new THREE.CylinderGeometry(0.28, 0.5, 7, 20, 1, true);
+  const beamMat = (c) => new THREE.ShaderMaterial({ uniforms: { uC: { value: c.clone() }, uO: { value: 0.5 }, uT: { value: 0 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    vertexShader: "varying vec2 vUv; varying float vE; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vec3 n = normalize(normalMatrix * normal); vE = abs(dot(n, normalize(-mv.xyz))); gl_Position = projectionMatrix * mv; }",
+    fragmentShader: "uniform vec3 uC; uniform float uO, uT; varying vec2 vUv; varying float vE; void main(){ float up = pow(1.0 - vUv.y, 1.7); float core = pow(vE, 2.5); float rip = 0.85 + 0.15 * sin(vUv.y * 18.0 - uT * 5.0); gl_FragColor = vec4(uC * (0.6 + core * 0.8), up * (0.25 + core * 0.75) * rip * uO); }" });
+  const chestWood = new THREE.MeshStandardMaterial({ color: 0x6a4428, roughness: 0.7 });
   function dropChest(at, item) {
     const c = new THREE.Color(RARITY[item.r].color), g = new THREE.Group(); g.position.copy(at).setY(0);
-    const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.55), new THREE.MeshStandardMaterial({ color: 0x6a4428, roughness: 0.7 })); box.position.y = 0.3;
-    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.18, 0.59), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.6, metalness: 0.6, roughness: 0.3 })); lid.position.y = 0.65;
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 9, 16, 1, true), additive(c, item.r >= 2 ? 0.55 : 0.3)); beam.material.side = THREE.DoubleSide; beam.position.y = 4.5;
+    // the box's shape and wood are shared by every chest; the lid's colour and the beam are its own, freed when it goes
+    const box = new THREE.Mesh(geoOf("chestBox", () => new THREE.BoxGeometry(0.8, 0.55, 0.55)), chestWood); box.position.y = 0.3;
+    const lid = new THREE.Mesh(geoOf("chestLid", () => new THREE.BoxGeometry(0.84, 0.18, 0.59)), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.6, metalness: 0.6, roughness: 0.3 })); lid.position.y = 0.65;
+    const beam = new THREE.Mesh(beamGeo, beamMat(c)); beam.position.y = 3.5; /* a soft column of the rarity's colour, fading upward (a solid cylinder read as a slab) */
     g.add(box, lid, beam); add(g);
     puff(at.clone().setY(1), c.getHex(), { n: 16, speed: 4, size: 0.4, life: 0.8, grav: -1 });
     if (item.r >= 4) { ctx.shake(0.3); ctx.legend && ctx.legend(); }
@@ -288,10 +335,10 @@ export function createCombat(ctx) {
   function tickDrops(dt, t) {
     ctx.here(me);
     for (let i = drops.length - 1; i >= 0; i--) {
-      const d = drops[i]; d.t += dt; d.beam.material.opacity = (d.item.r >= 2 ? 0.45 : 0.25) + Math.sin(t * 4) * 0.1; d.lid.rotation.y = Math.sin(t * 2) * 0.1;
+      const d = drops[i]; d.t += dt; const bu = d.beam.material.uniforms; bu.uO.value = (d.item.r >= 3 ? 0.75 : d.item.r >= 2 ? 0.55 : 0.32) + Math.sin(t * 4) * 0.08; bu.uT.value = t; d.lid.rotation.y = Math.sin(t * 2) * 0.1;
       const dist = Math.hypot(d.g.position.x - me.x, d.g.position.z - me.z);
       if (dist < 1.5 || d.t > 120 || dist > 60) {
-        root.remove(d.g); drops.splice(i, 1);
+        root.remove(d.g); drops.splice(i, 1); d.lid.material.dispose(); d.beam.material.dispose();
         if (dist < 1.5) { const ok = rpg.addItem(d.item); Snd.chest && Snd.chest(); ring(d.g.position, new THREE.Color(RARITY[d.item.r].color).getHex(), { r0: 0.3, r1: 2.4, life: 0.4 }); if (ok) ctx.float(rpg.itemName(d.item), d.g.position.clone().setY(2.4), RARITY[d.item.r].color, d.item.r >= 3); ctx.onLoot && ctx.onLoot(d.item); }
       }
     }
@@ -308,12 +355,16 @@ export function createCombat(ctx) {
       if (m.dead) { m.dead += dt; if (m.e && m.e.dis && !ctx.reduce) { m.e.dis.value = Math.min(1, m.dead / 0.45); if (m.e.outlines) m.e.outlines.forEach((o) => { o.visible = false; }); m.g.position.y += dt * 0.8; if (m.dead > 0.5) { m.e.dis.value = 0; retire(m, i); } } else { m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); } continue; } // breaks up into data cubes
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
       if (d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
-      m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
+      m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt); tickTrail(m, dt);
       if (m.burn > 0) { m.burn -= dt; m.burnT = (m.burnT || 0) - dt; if (m.burnT <= 0) { m.burnT = 0.5; m.hp -= m.burnD; label(m); puff(m.g.position.clone().setY(m.y + 0.3), 0xff7a2a, { n: 3, speed: 1, size: 0.5, life: 0.4, grav: -3 }); if (m.raid) { ctx.raidHit && ctx.raidHit(m.burnD); m.hp = Math.max(1, m.hp); } if (m.rank === "boss") bossBar(m); if (m.hp <= 0) { kill(m); continue; } } }
       if (m.shell) { m.shell.visible = m.slow > 0; m.shell.material.opacity = m.statue && m.stun > 0 ? 0.85 : 0.45; }
       if (m.statue && m.stun <= 0) { m.statue = false; shards(m.g.position.clone().setY(m.y + 0.5), 0xcff6ff, 16, 6); Snd.pop && Snd.pop(); } // the ice statue shatters
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
+      // a breath: a slight squash and stretch, each one out of step with the rest (a hit squashes it harder)
+      if (m.sc && !ctx.reduce) { const b = Math.sin(t * (m.rank === "boss" ? 1.6 : 3.2) + (m.ph || 0)) * (m.rank === "boss" ? 0.02 : 0.035) - (m.hitT > 0 ? 0.08 : 0); body.scale.set(m.sc * (1 - b * 0.5), m.sc * (1 + b), m.sc * (1 - b * 0.5)); }
+      if (m.ghost) body.position.y = (m.y || 0) + 0.35 + Math.sin(t * 2.2 + (m.ph || 0)) * 0.18; // a ghost floats
+      if (m.crownG) { m.crownG.rotation.y += dt * 1.2; m.crownG.position.y = m.crownY + Math.sin(t * 2.4 + (m.ph || 0)) * 0.06; }
       if (m.leanT > 0) { m.leanT = Math.max(0, m.leanT - dt); const e = Math.sin((m.leanT / m.leanL) * Math.PI) * (m.rank === "boss" ? 0.1 : m.rank === "elite" ? 0.22 : 0.36) * (ctx.reduce ? 0.4 : 1), ry = m.g.rotation.y, c = Math.cos(ry), s = Math.sin(ry); body.rotation.x = (m.leanX * s + m.leanZ * c) * e; body.rotation.z = -(m.leanX * c - m.leanZ * s) * e; } else if (body.rotation.x || body.rotation.z) { body.rotation.x = 0; body.rotation.z = 0; }
       if (m.punch > 0) { if (!m.bs) m.bs = body.scale.clone(); m.punch = Math.max(0, m.punch - dt * 7); const q = ctx.reduce ? 0 : Math.sin(m.punch * Math.PI) * 0.16; body.scale.set(m.bs.x * (1 + q), m.bs.y * (1 - q), m.bs.z * (1 + q)); }
       if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
@@ -434,7 +485,14 @@ export function createCombat(ctx) {
   // ---------------- the scammers' own ways (from level 8): spam bots shoot spam from a distance, rug gremlins charge,
   // a golden scammer runs ----------------
   const mshots = [];
-  const envGeo = new THREE.BoxGeometry(0.55, 0.36, 0.06), envMat = new THREE.MeshStandardMaterial({ color: 0xf4f6fa, emissive: 0xff4d6d, emissiveIntensity: 0.5, roughness: 0.5 });
+  // spam mail: a real-looking envelope (paper, the flap's lines, a red SPAM stamp), lit like everything else; it used
+  // to be a plain white box with a pink glow, which the bloom turned into a bright square flying round you
+  const envTex = (() => { const cv = document.createElement("canvas"); cv.width = 128; cv.height = 84; const g = cv.getContext("2d");
+    g.fillStyle = "#f1e9ee"; g.fillRect(0, 0, 128, 84); g.strokeStyle = "#b79aa8"; g.lineWidth = 3; g.beginPath(); g.moveTo(4, 6); g.lineTo(64, 46); g.lineTo(124, 6); g.stroke();
+    g.strokeStyle = "#d8c6cf"; g.lineWidth = 2; g.beginPath(); g.moveTo(4, 80); g.lineTo(50, 44); g.moveTo(124, 80); g.lineTo(78, 44); g.stroke();
+    g.translate(96, 60); g.rotate(-0.25); g.strokeStyle = "#e0284a"; g.lineWidth = 3; g.strokeRect(-24, -10, 48, 20); g.fillStyle = "#e0284a"; g.font = "800 15px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("SPAM", 0, 1);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  const envGeo = new THREE.BoxGeometry(0.55, 0.36, 0.05), envMat = new THREE.MeshStandardMaterial({ map: envTex, color: 0xd8d0d6, emissive: 0xff4d6d, emissiveIntensity: 0.06, roughness: 0.7 });
   function behave(m, dt, t, d, i) {
     if (m.rank === "boss" || m.raid) return false;
     const face = () => { m.g.rotation.y = Math.atan2(tmp.x, tmp.z); };
@@ -483,7 +541,7 @@ export function createCombat(ctx) {
   const CHARGE = [{ name: "Whirlwind" }, { name: "Quake" }, { name: "Beam" }, { name: "Piercing arrow" }, { name: "Arcane field" }];
   const chg = { on: false, t: 0, ring: null, full: false, tick: 0 };
   const CHG_START = 0.3, CHG_FULL = 0.8, CHG_SP = 12;
-  function chargeStart() { if (!ctx.active()) return; chg.on = true; chg.t = 0; chg.full = false; chg.tick = 0; }
+  function chargeStart() { if (!ctx.active() || resting()) return; chg.on = true; chg.t = 0; chg.full = false; chg.tick = 0; }
   function chargeTick(dt) {
     if (!chg.on) return;
     chg.t += dt; const k = Math.max(0, Math.min(1, (chg.t - CHG_START) / CHG_FULL));
@@ -576,6 +634,7 @@ export function createCombat(ctx) {
   const wColor = () => { const d = rpg.data && rpg.data(), w = d && d.eq && d.eq.weapon; return new THREE.Color(w ? RARITY[w.r || 0].color : "#38e8ff"); };
   function attack() {
     if (!ctx.active() || cd.attack > 0) return false;
+    if (resting()) { if (cd.attack <= 0) { cd.attack = 1.2; restNote(); } return false; }
     combo = comboT > 0 ? (combo % 3) + 1 : 1; comboT = 0.75;
     const heavy = combo === 3, kind = wKind(), ham = kind === 1;
     if (rpg.swing) rpg.swing(heavy);
@@ -620,6 +679,7 @@ export function createCombat(ctx) {
   const brOf = (id) => { const s = SKILLS.find((x) => x.id === id); if (!s || skillLevel(ctx.level(), s.lv) < BRANCH_AT) return ""; const b = ((rpg.data() || {}).x || {}).br || {}; return b[id] === "a" || b[id] === "b" ? b[id] : ""; };
   function cast(id) {
     const s = SKILLS.find((x) => x.id === id); if (!s || !ctx.active()) return false;
+    if (resting()) { restNote(); return false; }
     if (!unlocked(s)) { ctx.toast(T("{x} unlocks at level {n}", { x: T(s.name), n: s.lv })); return false; }
     if (cd[id] > 0) return false;
     if (sp < s.sp) { ctx.toast(T("Not enough SP")); vit.classList.remove("low"); void vit.offsetWidth; vit.classList.add("low"); return false; }
@@ -687,7 +747,7 @@ export function createCombat(ctx) {
     for (let i = 0; i <= n; i++) { const p = a.clone().lerp(b, i / n); if (i && i < n) p.add(new V3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6)); pts.push(p); }
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
     const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: new THREE.Color(1.6, 1.3, 3.0), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); add(line);
-    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 18, 0.07, 5), new THREE.MeshBasicMaterial({ color: 0xf2ecff, transparent: true })); add(tube);
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 18, 0.07, 5), new THREE.MeshBasicMaterial({ color: 0xf2ecff, transparent: true })); add(tube); fx.push({ o: tube, life: 0.24, t: 0, op0: 1 }); // (it used to stay behind: every zap left a white line in the scene)
     const aura = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 18, 0.22, 6), additive(0x9a6cff, 0.55)); add(aura); fx.push({ o: aura, life: 0.26, t: 0, op0: 0.55 });
     fx.push({ o: line, life: 0.28, t: 0, onTick: () => { const p = geo.attributes.position; for (let i = 1; i < n; i++) p.setXYZ(i, pts[i].x + (Math.random() - 0.5) * 0.25, pts[i].y + (Math.random() - 0.5) * 0.25, pts[i].z + (Math.random() - 0.5) * 0.25); p.needsUpdate = true; } });
     fx.push({ o: tube, life: 0.22, t: 0 });
@@ -784,6 +844,8 @@ export function createCombat(ctx) {
   // ---------------- street items ----------------
   const pickW = ITEMS.reduce((a, b) => a + b.w, 0);
   const coinTex = new THREE.TextureLoader().load("/images/arcl-128.png"); coinTex.colorSpace = THREE.SRGBColorSpace;
+  // a street item that's picked up or left behind frees its shapes and materials (they used to pile up over a long hunt)
+  const freeItem = (g) => g.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
   function itemMesh(it) {
     const g = new THREE.Group(), c = it.color;
     const glowM = (k = 1.2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.3, metalness: 0.3 });
@@ -807,7 +869,7 @@ export function createCombat(ctx) {
     const g = itemMesh(it); g.position.copy(p); add(g); items.push({ g, it, k: Math.random() * 6 });
   }
   function pick(x) {
-    const p = x.g.position.clone(); root.remove(x.g); items.splice(items.indexOf(x), 1);
+    const p = x.g.position.clone(); root.remove(x.g); freeItem(x.g); items.splice(items.indexOf(x), 1);
     if (x.pulled && ctx.onFetch) ctx.onFetch();
     puff(p, x.it.color, { n: 12, speed: 4, size: 0.35, life: 0.6, grav: 2 }); ring(p, x.it.color, { r0: 0.2, r1: 1.8, life: 0.35, y: 0.1 });
     if (VX) { VX.collect(p, x.it.color); if (x.it.secs && x.it.id !== "shield") VX.buff(x.it.color); }
@@ -827,7 +889,7 @@ export function createCombat(ctx) {
     for (let i = items.length - 1; i >= 0; i--) {
       const x = items[i]; x.g.rotation.y += dt * 1.8; x.g.position.y = 1.0 + Math.sin(t * 2.4 + x.k) * 0.15;
       const d = Math.hypot(x.g.position.x - me.x, x.g.position.z - me.z);
-      if (d > 50) { root.remove(x.g); items.splice(i, 1); continue; }
+      if (d > 50) { root.remove(x.g); freeItem(x.g); items.splice(i, 1); continue; }
       if ((buffs.magnet > 0 && d < 9) || (petPull && d < petPull)) { if (!(buffs.magnet > 0 && d < 9)) x.pulled = true; tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
       if (d < 2.6 && !(buffs.magnet > 0) && ctx.hopY() < 2.6) { x.fly = (x.fly || 0) + dt * 3; tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * (4 + x.fly * 12)); x.g.position.y += Math.sin(Math.min(1, x.fly) * Math.PI) * 0.9; x.g.scale.setScalar(1 + Math.min(1, x.fly) * 0.25); }
       if (d < 1.3 && ctx.hopY() < 2.6) pick(x);
@@ -940,6 +1002,7 @@ export function createCombat(ctx) {
     vit.classList.toggle("danger", hp / mh < 0.3); document.body.classList.toggle("wc-low", hp / mh < 0.3 && !down && ctx.inHub());
   }
   function damage(n) {
+    if (resting() || down) return;
     ghostHp = Math.max(ghostHp, hp); hp = Math.max(0, hp - n); calmT = 4; paintVit();
     vit.classList.remove("hit"); void vit.offsetWidth; vit.classList.add("hit");
     ctx.float("-" + n, tmp2.copy(me).setY(2.6), "#ff5f73", n > maxHp() * 0.2);
@@ -948,7 +1011,7 @@ export function createCombat(ctx) {
   }
   const dead = document.createElement("div"); dead.className = "wc-dead"; dead.id = "wc-dead"; dead.hidden = true; dead.setAttribute("role", "alertdialog"); dead.setAttribute("aria-modal", "true"); dead.setAttribute("data-no-i18n", "");
   document.body.appendChild(dead);
-  let waitT = 0, paying = false;
+  let paying = false, restPaint = 0;
   // what to try next time, from what just happened
   function tipAfterKO() {
     ctx.here(me); const pots = rpg.potions(), z = zoneAt(me.x, me.z) || zone, lv = ctx.level(), st = stats(), eqN = Object.values(rpg.data().eq || {}).filter(Boolean).length;
@@ -959,32 +1022,86 @@ export function createCombat(ctx) {
       : T("Tip: watch the red ring before a boss slams, and step out of it.");
     return ctx.esc(tip);
   }
-  function goDown() {
+  // Knocked out: the first time each day (Seoul time) you get up for free, here or on the plaza. After that there are two
+  // choices, side by side and with no clock on them: revive here for 10,000 $ARCIRCLE (your own transfer; half is
+  // burned), or rest for 24 hours (back on the plaza; no fighting and no hunting rewards until it ends). Signed in, the
+  // server keeps the count (api/_world-shop.mjs knockout); a guest's count stays in this browser.
+  const KO_LOCAL = "arc.world.ko", seoulDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const koLocal = () => { try { const k = JSON.parse(localStorage.getItem(KO_LOCAL) || "{}"); return { used: k.day === seoulDay() ? k.used || 0 : 0, until: Number(k.until) || 0, down: !!k.down }; } catch { return { used: 0, until: 0, down: false }; } };
+  const koLocalSet = (k) => { try { localStorage.setItem(KO_LOCAL, JSON.stringify({ day: seoulDay(), ...k })); } catch { /* private mode */ } };
+  let restUntil = 0, koFree = false, restEl = null;
+  const resting = () => restUntil > Date.now();
+  const left = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? T("{h} h {m} min", { h, m }) : T("{m} min", { m: Math.max(1, m) }); };
+  function koCard(k) {
+    koFree = !!k.free;
+    if (k.free) {
+      dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p>
+        <button type="button" class="wc-revive free" id="wc-revive"><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("Free: today's one free revive")}</small></span></button>
+        <button type="button" class="wc-respawn" id="wc-respawn"><b>${T("Respawn on the plaza")}</b><small>${T("free")}</small></button>
+        <p class="wc-dead-tip">${tipAfterKO()}</p>
+        <p class="wc-dead-note" id="wc-dead-note">${T("After this one, a knockout today means a revive for 10,000 $ARCIRCLE or a 24-hour rest.")}</p></div>`;
+    } else {
+      dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("Today's free revive is used. Pick either one:")}</p>
+        <button type="button" class="wc-revive paid" id="wc-revive"${ctx.signedIn && !ctx.signedIn() ? " disabled" : ""}><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
+        <button type="button" class="wc-respawn" id="wc-rest"><b>${T("Rest for 24 hours")}</b><small>${T("Back on the plaza. You can walk, build and shop, but not fight, until it ends")}</small></button>
+        <p class="wc-dead-tip">${tipAfterKO()}</p>
+        <p class="wc-dead-note" id="wc-dead-note">${ctx.signedIn && !ctx.signedIn() ? T("Sign in with your wallet to revive with $ARCIRCLE.") : T("Reviving sends $ARCIRCLE from your own wallet; you confirm it there.")}</p></div>`;
+    }
+  }
+  async function goDown() {
     if (down) return; down = true; ctx.down(true); document.body.classList.remove("wc-low");
     for (const m of mobs) if (!m.dead && m.rank !== "boss") { m.dead = 0.001; puff(m.g.position.clone().setY(0.6), 0xff4d6d, { n: 8, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
-    waitT = performance.now() + 8000;
-    dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p>
-      <button type="button" class="wc-respawn" id="wc-respawn" disabled><b>${T("Respawn on the plaza")}</b><small id="wc-wait"></small></button>
-      <button type="button" class="wc-revive" id="wc-revive"><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
-      <p class="wc-dead-tip">${tipAfterKO()}</p>
-      <p class="wc-dead-note" id="wc-dead-note">${T("Reviving sends $ARCIRCLE from your own wallet; you confirm it there.")}</p></div>`;
-    setTimeout(() => { dead.hidden = false; }, 900);
+    dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p></div>`;
+    const shown = new Promise((r) => setTimeout(() => { dead.hidden = false; r(); }, 900));
+    let k = ctx.ko ? await ctx.ko("down") : null;
+    if (!k) { const l = koLocal(); k = l.used < 1 ? { free: true } : { free: false }; koLocalSet(k.free ? { used: l.used + 1, until: 0, down: false } : { used: l.used, until: 0, down: true }); }
+    await shown; if (down) koCard(k);
   }
   function getUp(where) {
     down = false; paying = false; dead.hidden = true; hp = maxHp(); sp = maxSp(); ghostHp = hp; guardT = 3; paintVit(); ctx.down(false, where);
     if (where === "plaza") { hideBossBar(); for (const m of mobs) if (m.rank === "boss") { root.remove(m.g); } for (let i = mobs.length - 1; i >= 0; i--) if (mobs[i].rank === "boss") mobs.splice(i, 1); }
     ctx.here(me); ring(me, 0x39ff88, { r0: 0.4, r1: 3.4, life: 0.6, y: 0.15 }); puff(me.clone().setY(1.2), 0x39ff88, { n: 18, speed: 4, size: 0.35, life: 0.8, grav: -1 });
   }
+  // resting: a small chip by the HP bars with the time left; tapping it offers the revive again (never on its own)
+  function setRest(until) {
+    restUntil = until || 0; const l = koLocal(); if (!ctx.signedIn || !ctx.signedIn()) koLocalSet({ used: l.used, until: restUntil, down: false });
+    if (resting() && !restEl) {
+      restEl = document.createElement("button"); restEl.type = "button"; restEl.className = "wc-rest"; restEl.id = "wc-rest-chip"; restEl.setAttribute("data-no-i18n", "");
+      restEl.addEventListener("click", () => { if (!resting() || down) return; koFree = false; dead.innerHTML = `<div class="wc-dead-card"><h2>${T("Resting")}</h2><p>${T("You can fight again in {t}.", { t: left(restUntil - Date.now()) })}</p>
+        <button type="button" class="wc-revive paid" id="wc-revive"${ctx.signedIn && !ctx.signedIn() ? " disabled" : ""}><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive now")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
+        <button type="button" class="wc-respawn" id="wc-keep"><b>${T("Keep resting")}</b></button>
+        <p class="wc-dead-note" id="wc-dead-note">${T("Reviving sends $ARCIRCLE from your own wallet; you confirm it there.")}</p></div>`; dead.hidden = false; });
+      vit.after(restEl);
+    }
+    if (restEl) { restEl.hidden = !resting(); paintRest(); }
+    document.body.classList.toggle("wc-resting", resting());
+  }
+  function paintRest() { if (restEl && resting()) restEl.innerHTML = `<b>${esc0(T("Resting"))}</b> ${esc0(left(restUntil - Date.now()))}`; else if (restEl && !restEl.hidden) setRest(0); }
+  const esc0 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const restNote = () => { ctx.toast(T("You're resting after a knockout: you can fight again in {t}.", { t: left(restUntil - Date.now()) })); };
   dead.addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     if (b.id === "wc-respawn") { getUp("plaza"); return; }
+    if (b.id === "wc-keep") { dead.hidden = true; return; }
+    if (b.id === "wc-rest") {
+      b.disabled = true; const k = ctx.ko ? await ctx.ko("rest") : null;
+      setRest(k && k.until ? k.until : Date.now() + 24 * 3600e3); getUp("plaza"); return;
+    }
+    if (b.id === "wc-revive" && koFree && down) { getUp("here"); return; }
     if (b.id === "wc-revive" && !paying) {
       paying = true; b.disabled = true;
       const note = dead.querySelector("#wc-dead-note");
       const ok = await ctx.pay("revive", (t) => { note.textContent = t; }).catch(() => false);
-      if (ok && down) getUp("here"); else { paying = false; b.disabled = false; }
+      if (ok) { setRest(0); if (down) getUp("here"); else dead.hidden = true; } else { paying = false; b.disabled = false; }
     }
   });
+  // on the way in: a rest that's still running, or a knockout left without a choice (a reload brings the choice back)
+  setTimeout(async () => {
+    let k = ctx.ko ? await ctx.ko("view") : null;
+    if (!k) { const l = koLocal(); k = { until: l.until > Date.now() ? l.until : 0, pending: l.down }; }
+    if (k.until) setRest(k.until);
+    else if (k.pending && !down) { down = true; ctx.down(true); if (k.freeLeft > 0) { const r = ctx.ko ? await ctx.ko("down") : { free: true }; koCard(r || { free: true }); } else koCard({ free: false }); dead.hidden = false; }
+  }, 2500);
   paintVit();
 
   // ---------------- the loop ----------------
@@ -994,6 +1111,7 @@ export function createCombat(ctx) {
     const kit = ctx.kit(); if (!kit || !kit.enemies || !kit.enemies.EyeDrone) return; // the robots are still loading
     ctx.here(me);
     const z = zone;
+    if (resting()) return; // resting after a knockout: no scammers come for you
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
       if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) {
@@ -1019,7 +1137,7 @@ export function createCombat(ctx) {
     if (VX && (buffs.shield > 0) !== shieldShown) { shieldShown = buffs.shield > 0; VX.shield(shieldShown); }
     if ((buffPaint -= dt) <= 0 || changed) { buffPaint = 0.5; paintBuffs(); potsCheck(); }
     if (ghostHp > hp) { ghostHp = Math.max(hp, ghostHp - dt * maxHp() * 0.5); paintVit(); }
-    if (down) { const left = Math.max(0, (waitT - performance.now()) / 1000), b = dead.querySelector("#wc-respawn"), w = dead.querySelector("#wc-wait"); if (b && w) { b.disabled = left > 0; w.textContent = left > 0 ? T("free, in {n} s", { n: Math.ceil(left) }) : T("free"); } }
+    if ((restPaint -= dt) <= 0) { restPaint = 20; if (restEl) paintRest(); }
     else {
       guardT = Math.max(0, guardT - dt); calmT = Math.max(0, calmT - dt);
       // out of a fight with full bars: the vitals panel shrinks to slim bars (phones get their screen back)

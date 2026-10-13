@@ -157,6 +157,12 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
     } else { const sp = new ScenePass(scene, cam); comp.addPass(sp); depth = () => sp.depth || rt.depthTexture; }
     const edge = new DepthPass(EdgeShader, depth); edge.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; }; comp.addPass(edge);
     const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); comp.addPass(bl);
+    // what the bloom takes in is cleaned first: a pixel that isn't a number (one bad shader result on some phone GPUs)
+    // and a pinpoint far brighter than anything should be (a specular glint on a glossy part) spread through the
+    // bloom's small mips into big black or white squares. Not-a-number becomes black, and nothing goes above 6.
+    bl.materialHighPassFilter.fragmentShader = bl.materialHighPassFilter.fragmentShader.replace("vec4 texel = texture2D( tDiffuse, vUv );",
+      "vec4 texel = texture2D( tDiffuse, vUv ); if (!(texel.r == texel.r) || !(texel.g == texel.g) || !(texel.b == texel.b)) texel = vec4(0.0, 0.0, 0.0, 1.0); texel.rgb = min(texel.rgb, vec3(6.0));");
+    bl.materialHighPassFilter.needsUpdate = true;
     const air = new DepthPass({ ...AirShader, defines: { RAYS: level === "ultra" ? 1 : 0 } }, depth);
     air.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; u.invProj.value.copy(cam.projectionMatrixInverse); u.camWorld.value.copy(cam.matrixWorld); };
     comp.addPass(air);

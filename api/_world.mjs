@@ -25,7 +25,7 @@
 // Notes, the weekly island contest, friends, wanderers and the raid boss: api/_world-social.mjs.
 // Firestore: worldStats/main { visitors, players } · worldCounted/<wallet> (counted once in players) · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
-import { makeShop, FEE_BURN } from "./_world-shop.mjs";
+import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -53,7 +53,7 @@ const num = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
 function cleanRpg(r) {
   if (!r || typeof r !== "object") return undefined;
   const eq = {}; for (const k of ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"]) { const it = cleanItem(r.eq && r.eq[k]); if (it && it.b.startsWith(k + "-")) eq[k] = it; }
-  const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, 24);
+  const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, BAG_MAX); // trimmed to the player's own size on save
   const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, companions, season, friends, skill branches
   return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 16000 ? { x: extra } : {}) }; // quests, codex, fish, trophies…: room to grow
 }
@@ -185,6 +185,7 @@ export function make(deps) {
     const key = `worldSave/${s.wallet}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const data = cleanSave(b.data);
+    if (data.rpg && data.rpg.bag.length > BAG_BASE) data.rpg.bag = data.rpg.bag.slice(0, bagSize(await shop.own(s.wallet)));
     if (old && old.name && data.name && data.name !== old.name) {
       const o = await shop.own(s.wallet);
       if (!o.freeRename) await setDoc(`worldOwn/${s.wallet}`, { ...o, freeRename: true });

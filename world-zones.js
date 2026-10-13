@@ -50,6 +50,19 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
     }
     // the far ring (Lv 30–100): each ground's own scene (world-zones-far.js)
     else if (zn.deco) lazy.push({ zn, g, built: false, build: () => { farProps({ THREE, K, zn, g: pg, r, prop, spot, std, glowM, spins, low }); if (K.mergeStatic) K.mergeStatic(pg); if (onBuilt) onBuilt(zn); } });
+    // a frame round the near grounds, just outside the posts: each ground's own silhouette on the skyline (billboards,
+    // fences and hay, reeds and dead trunks, red rock walls, dark crystal shards); the gate's side is left open
+    { const RIM = { spam: "boards", fields: "fence", swamp: "reeds", canyon: "walls", depths: "shards" }, kind = RIM[zn.id];
+      if (kind) { const n = 18, ga = Math.atan2(gate.position.x, gate.position.z);
+        for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + r() * 0.15; let da = Math.abs(((a - ga + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (da < 0.42) continue;
+          const rr = zn.r + 2.2 + r() * 1.6, x = Math.sin(a) * rr, z = Math.cos(a) * rr, m = new THREE.Group();
+          if (kind === "boards") { const h = 3 + r() * 2; const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, h, 6), std(0x2a3442)); pole.position.y = h / 2; const b = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, 0.1), glowM([0xff4d6d, 0xffc861, 0x35d8d0][i % 3], 0.9)); b.position.y = h; m.add(pole, b); }
+          else if (kind === "fence") { for (let k = -1; k <= 1; k++) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.0, 0.14), std(0x8a6a44)); p.position.set(k * 1.1, 0.5, 0); m.add(p); } for (const y of [0.35, 0.75]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.1, 0.08), std(0x9a7a50)); rail.position.y = y; m.add(rail); } if (i % 3 === 0) { const hay = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.9, 12), std(0xd8b860)); hay.rotation.z = Math.PI / 2; hay.position.set(0, 0.55, 1.2); m.add(hay); } }
+          else if (kind === "reeds") { for (let k = 0; k < 5; k++) { const h = 1.2 + r() * 1.2; const rd = new THREE.Mesh(new THREE.ConeGeometry(0.06, h, 4), std(0x6a8a4a)); rd.position.set((r() - 0.5) * 1.2, h / 2, (r() - 0.5) * 1.2); rd.rotation.z = (r() - 0.5) * 0.3; m.add(rd); } if (i % 4 === 0) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.24, 3.2, 6), std(0x3a2e24)); t.position.y = 1.5; t.rotation.z = 0.25; m.add(t); } }
+          else if (kind === "walls") { const h = 4 + r() * 5; const w = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 0), std([0xb85a3a, 0x9a4a30, 0xc86a40][i % 3])); w.scale.set(1, h / 3.2, 0.8); w.position.y = h / 2 - 0.4; m.add(w); }
+          else { const h = 1.6 + r() * 2.4; const sh = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), std(0x2c2244, { emissive: 0x3a1c6a, emissiveIntensity: 0.6 })); sh.scale.set(0.7, h, 0.7); sh.position.y = h * 0.45; sh.rotation.z = (r() - 0.5) * 0.4; m.add(sh); }
+          m.position.set(x, 0, z); m.rotation.y = a + Math.PI / 2; m.traverse((o) => { if (o.isMesh) o.castShadow = true; }); pg.add(m);
+        } } }
     // the props never move: merge the ones that look alike into one mesh each (hundreds of draw calls fewer)
     if (K.mergeStatic) K.mergeStatic(g);
     g.userData = { zone: zn, border };

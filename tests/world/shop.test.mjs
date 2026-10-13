@@ -134,5 +134,35 @@ r = await W.handle({ action: "world-sell", ...S5, item: { id: "capd01", b: "armo
 r = await W.handle({ action: "world-sell", ...S5, item: { id: "lgcy01", b: "boots-1", r: 1, lv: 5, p: 0 } });
 check(r.status === 200 && r.body.credited === 18, "a sale an older version left unpaid sells now: +18");
 r = await W.handle({ action: "world-sell", ...S5, item: { id: "lgcy01", b: "boots-1", r: 1, lv: 5, p: 0 } }); check(r.status === 409, "then it's sold for good");
+// knocked out: one free get-up a day, then a revive ($ARCIRCLE) or a 24-hour rest; and the bigger bag
+{
+  T += 3600e3; const w6 = ethers.Wallet.createRandom(), m6 = w6.address.toLowerCase(), i6 = new Date(T).toISOString(), S6 = { wallet: w6.address, issued: i6, signature: await w6.signMessage(loginMessage(w6.address, i6)) };
+  const ko = async () => (await W.read(new URL("http://x/?world=ko&wallet=" + m6))).body;
+  r = await W.handle({ action: "world-ko", ...S6 }); check(r.status === 200 && r.body.free === true && r.body.freeLeft === 0, "first knockout of the day: free");
+  r = await W.handle({ action: "world-ko-rest", ...S6 }); check(r.status === 400, "no rest needed after a free get-up");
+  T += 6000; r = await W.handle({ action: "world-ko", ...S6 }); check(r.status === 200 && r.body.free === false && r.body.pending, "second knockout: not free, a choice pending");
+  r = await W.handle({ action: "world-arcl-claim", ...S6, kind: "street" }); check(r.status === 423, "no hunting rewards while the choice is pending");
+  r = await W.handle({ action: "world-ko-rest", ...S6 }); check(r.status === 200 && r.body.until === T + 24 * 3600e3 && !r.body.pending, "rest: 24 hours from now");
+  check((await ko()).until === T + 24 * 3600e3, "the rest shows in the view");
+  r = await W.handle({ action: "world-arcl-claim", ...S6, kind: "street" }); check(r.status === 423, "resting: no hunting rewards");
+  // a revive ends the rest
+  r = await W.handle({ action: "world-pay-quote", ...S6, item: "revive" }); const qr = r.body; check(r.status === 200 && qr.tokens === 10000, "revive: 10,000 $ARCIRCLE");
+  const HR = "0x" + "e1".repeat(32); receipts[HR] = { status: "0x1", logs: [{ address: ARCIRCLE, topics: [TR, pad(m6), pad(FEE_BURN)], data: "0x" + BigInt(qr.amount).toString(16) }] };
+  r = await W.handle({ action: "world-pay-confirm", ...S6, quote: qr.quote, tx: HR }); check(r.status === 200, "revive paid");
+  check((await ko()).until === 0, "the revive ended the rest");
+  T += 5000; r = await W.handle({ action: "world-arcl-claim", ...S6, kind: "street" }); check(r.status === 200, "hunting rewards open again");
+  // the next day: a free get-up again
+  T += 864e5; const i7 = new Date(T).toISOString(), S7 = { wallet: w6.address, issued: i7, signature: await w6.signMessage(loginMessage(w6.address, i7)) };
+  r = await W.handle({ action: "world-ko", ...S7 }); check(r.status === 200 && r.body.free === true, "a new day: free again");
+  // the bag: 24, +8 per purchase, up to 120
+  const bagBuy = async (n) => { const q = (await W.handle({ action: "world-pay-quote", ...S7, item: "bagplus" })).body; const h = "0x" + (0xb000 + n).toString(16).padStart(4, "0").repeat(16); receipts[h] = { status: "0x1", logs: [{ address: ARCIRCLE, topics: [TR, pad(m6), pad(FEE_BURN)], data: "0x" + BigInt(q.amount || 0).toString(16) }] }; return W.handle({ action: "world-pay-confirm", ...S7, quote: q.quote, tx: h }); };
+  r = await bagBuy(1); check(r.status === 200 && r.body.own.bag === 1, "bigger bag: 32 slots");
+  const items = Array.from({ length: 40 }, (_, i) => ({ id: "bg" + String(i).padStart(4, "0"), b: "ring-0", r: 0, lv: 1, p: 0 }));
+  r = await W.handle({ action: "world-save", ...S7, data: { xp: 0, rpg: { eq: {}, bag: items } } }); check(r.status === 200, "saved a 40-piece bag");
+  check(db.get("worldSave/" + m6).rpg.bag.length === 32, "kept to the bag's size: " + db.get("worldSave/" + m6).rpg.bag.length);
+  for (let i = 2; i <= 12; i++) await bagBuy(i);
+  check(db.get("worldOwn/" + m6).bag === 12, "twelve bigger bags: 120 slots");
+  r = await W.handle({ action: "world-pay-quote", ...S7, item: "bagplus" }); check(r.status === 400 && /120/.test(r.body.error), "no more past 120");
+}
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

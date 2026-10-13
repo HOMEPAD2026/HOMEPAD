@@ -3,6 +3,7 @@
 //
 // ctx: { THREE, T, esc, level(), charId(), outfit(), save(outfit), toast, Snd }
 import { ARCBOTS, makeArcBot, withOutfit, WARDROBE, WARDROBE_SLOTS, WARDROBE_COLORS } from "./world-arcbots.js";
+import { halloweenOn } from "./world-halloween.js";
 
 const SLOT_NAME = { head: "Head", face: "Face", neck: "Neck", back: "Back", aura: "Aura" };
 
@@ -39,7 +40,7 @@ export function createWardrobe(ctx) {
     const lv = ctx.level(), sp = specOf();
     const body = el.querySelector(".wd-parts");
     body.innerHTML = !sp ? `<p class="wd-note">${esc(T("The wardrobe is for the ARC Bots. Pick one in Settings → Change character."))}</p>` :
-      WARDROBE_SLOTS.map((sl) => `<section><h3>${esc(T(SLOT_NAME[sl]))}</h3><div class="wd-row"><button type="button" data-wslot="${sl}" data-wid="" aria-pressed="${!(draft.wear || {})[sl]}">${esc(T("The look's own"))}</button>${WARDROBE.filter((w) => w.slot === sl).map((w) => {
+      WARDROBE_SLOTS.map((sl) => `<section><h3>${esc(T(SLOT_NAME[sl]))}</h3><div class="wd-row"><button type="button" data-wslot="${sl}" data-wid="" aria-pressed="${!(draft.wear || {})[sl]}">${esc(T("The look's own"))}</button>${WARDROBE.filter((w) => w.slot === sl && (!w.event || (w.event === "halloween" && halloweenOn()))).map((w) => {
         const locked = lv < w.lv; return `<button type="button" data-wslot="${sl}" data-wid="${w.id}" aria-pressed="${(draft.wear || {})[sl] === w.id}" ${locked ? "disabled" : ""}>${esc(T(w.name))}${locked ? `<small>${esc(T("Lv {n}", { n: w.lv }))}</small>` : ""}</button>`; }).join("")}</div></section>`).join("") +
       `<section><h3>${esc(T("Accent colour"))}</h3><div class="wd-row wd-colors">${WARDROBE_COLORS.map(([hex, name]) => `<button type="button" data-wcol="${hex}" aria-pressed="${(draft.accent || "") === hex}" title="${esc(T(name))}" style="--c:${hex ? "#" + hex : "conic-gradient(#2f86ff,#2ee07a,#ffc861,#ff4d6d,#2f86ff)"}"><i></i><span>${esc(T(name))}</span></button>`).join("")}</div></section>`;
     el.querySelector(".wd-name").textContent = sp ? sp.name : "";

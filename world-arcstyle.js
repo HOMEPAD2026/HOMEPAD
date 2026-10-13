@@ -18,6 +18,17 @@ export const stone = () => mat("stone", () => new THREE.MeshStandardMaterial({ c
 export const trim = () => mat("trim", () => new THREE.MeshStandardMaterial({ color: 0x2a3446, roughness: 0.42, metalness: 0.3 }));
 export const glass = () => mat("glass", () => new THREE.MeshStandardMaterial({ color: 0x3f8fe8, roughness: 0.12, metalness: 0.35, emissive: 0x1f6fd6, emissiveIntensity: 0.75 }));
 export const light = (c) => mat("light" + c, () => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.9, roughness: 0.4, toneMapped: true }), { glow: c });
+const shellBase = () => shell(), stoneBase = () => stone();
+const shellOf = (c) => mat("shell" + c, () => new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.06 }), { paint: c });
+const stoneOf = (c) => mat("stone" + c, () => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0.02 }), { paint: c });
+// the districts: a stone and a shape each (world-kit.js passes the shop's district)
+const DISTRICT_STYLE = {
+  Launch: { shell: 0xe2ede7, stone: 0xb9cbc2, h: 1.0 },
+  Finance: { shell: 0xeee6d8, stone: 0xcabca4, h: 1.22, extra: "pediment" },
+  Research: { shell: 0xdde8f4, stone: 0xb6c6d8, h: 1.1, extra: "glassband" },
+  ARCL: { shell: 0xf0e7cc, stone: 0xcdbd92, h: 0.95, w: 1.05, extra: "coin" },
+  ARCIA: { shell: 0xeee1ee, stone: 0xcbb6cc, h: 1.05, extra: "stage" },
+};
 export const tint = (c) => mat("tint" + c, () => new THREE.MeshStandardMaterial({ color: c, roughness: 0.32, metalness: 0.12 }), { paint: c });
 export const wood = () => mat("wood", () => new THREE.MeshStandardMaterial({ color: 0x7a5236, roughness: 0.8 }), { paint: 0x7a5236 });
 
@@ -71,9 +82,11 @@ const KIND = {
   scanner: { roof: "spire", tower: true }, predict: { roof: "dome", rings: true }, reward: { roof: "flat", stacks: true },
   arcia: { roof: "dome", wings: true }, "arcl-shop": { roof: "awning" }, "arcl-ex": { roof: "dome", columns: true }, forge: { roof: "step", stacks: true },
 };
-export function makeArcBuilding(id, color) {
+export function makeArcBuilding(id, color, district = "") {
   const k = KIND[id] || { roof: "dome" }, c = light(color), P = [];
-  const W = 4.4, D = 3.4, H1 = 2.3; // the hall
+  // each district has its own stone and proportions, so the halls don't read as one building copied round the plaza
+  const ds = DISTRICT_STYLE[district] || {}, shell = ds.shell ? () => shellOf(ds.shell) : shellBase, stone = ds.stone ? () => stoneOf(ds.stone) : stoneBase;
+  const W = 4.4 * (ds.w || 1), D = 3.4, H1 = 2.3 * (ds.h || 1); // the hall
   // a stone base step, the hall, the upper drum
   P.push([box(W + 0.5, 0.28, D + 0.5, 0.1), stone(), { y: 0.14 }]);
   P.push([box(W, H1, D, 0.32), shell(), { y: 0.28 + H1 / 2 }]);
@@ -125,6 +138,11 @@ export function makeArcBuilding(id, color) {
   if (k.vault) P.push([cyl(0.62, 0.62, 0.12, 40), trim(), { y: 0.28 + 1.3, z: D / 2 + 0.06, rx: Math.PI / 2 }], [tor(0.48, 0.05, 40), c, { y: 0.28 + 1.3, z: D / 2 + 0.14 }]);
   if (k.stacks) for (const x of [-1.5, 1.5]) P.push([cyl(0.28, 0.34, 1.6, 20), shell(), { x, y: top + 0.8, z: -0.9 }], [tor(0.3, 0.04, 30), c, { x, y: top + 1.45, z: -0.9, rx: Math.PI / 2 }]);
   if (k.screen) P.push([box(1.9, 0.9, 0.1, 0.06), glass(), { y: top + 0.25, z: D / 2 - 0.1 }]);
+  // the district's own touch: Finance a pediment over columns' line, Research a glass band, ARCL a gold coin crest, ARCIA a pair of stage lights
+  if (ds.extra === "pediment") P.push([box(W * 0.56, 0.16, 0.5, 0.05), shell(), { x: -W * 0.24, y: 0.28 + H1 + 0.42, z: D / 2 + 0.05, rz: 0.32 }], [box(W * 0.56, 0.16, 0.5, 0.05), shell(), { x: W * 0.24, y: 0.28 + H1 + 0.42, z: D / 2 + 0.05, rz: -0.32 }], [box(W * 0.8, 0.05, 0.05, 0.02), c, { y: 0.28 + H1 + 0.2, z: D / 2 + 0.3 }]);
+  if (ds.extra === "glassband") P.push([box(W + 0.02, 0.36, D + 0.02, 0.06), glass(), { y: 0.28 + H1 * 0.5 + 0.95 }]);
+  if (ds.extra === "coin") P.push([cyl(0.62, 0.62, 0.14, 32), tint(0xffc861), { y: 0.28 + H1 + 0.55, z: D / 2 + 0.05, rx: Math.PI / 2 }], [tor(0.62, 0.05, 40), c, { y: 0.28 + H1 + 0.55, z: D / 2 + 0.14 }]);
+  if (ds.extra === "stage") for (const s of [-1, 1]) P.push([cyl(0.05, 0.05, 1.1, 8), trim(), { x: s * (W / 2 - 0.3), y: top + 0.55, z: D / 2 - 0.3 }], [cyl(0.2, 0.14, 0.3, 16), light(0xff7ad9), { x: s * (W / 2 - 0.3), y: top + 1.15, z: D / 2 - 0.2, rx: 0.6 }]);
   // planters with round shrubs by the door
   for (const s of [-1, 1]) { P.push([box(0.62, 0.42, 0.62, 0.1), shell(), { x: s * 1.2, y: 0.28 + 0.21, z: D / 2 + 0.75 }], [new THREE.IcosahedronGeometry(0.36, 2), tint(0x48b85a), { x: s * 1.2, y: 0.28 + 0.62, z: D / 2 + 0.75 }]); }
   const g = bake(P); g.name = "arc-building:" + id; g.userData.h = h; g.userData.w = W + 1.2;
@@ -183,10 +201,20 @@ export function makeArcTownPiece(kind, seed = 0) {
 // ---------------- trees and shrubs: round, lush, instanced ----------------
 // one crown shape (four soft spheres), coloured per tree (instanceColor), shaded lighter on top in the geometry
 function crownGeo() {
-  const parts = [[0, 1.6, 0, 1.05], [0.62, 1.38, 0.22, 0.78], [-0.58, 1.34, -0.16, 0.8], [0.1, 2.2, -0.1, 0.72]].map(([x, y, z, r]) => { const g = new THREE.SphereGeometry(r, 12, 8); g.translate(x, y, z); return g; });
-  const g = mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)), false);
-  const pos = g.attributes.position, col = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) { const k = THREE.MathUtils.clamp((pos.getY(i) - 0.7) / 1.9, 0, 1); const v = 0.62 + k * 0.5; col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v; }
+  // a fluffy crown: seven lumpy blobs, and normals bent out from the crown's middle so the light wraps round it softly
+  // like one cloud of leaves (not seven balls); darker low and inside, brighter at the top
+  let sd = 7; const rn = () => ((sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const B = [[0, 1.65, 0, 0.95], [0.66, 1.45, 0.25, 0.72], [-0.62, 1.4, -0.18, 0.74], [0.12, 2.25, -0.08, 0.7], [-0.25, 1.55, 0.62, 0.66], [0.3, 1.5, -0.62, 0.64], [-0.45, 2.05, 0.3, 0.58]];
+  const parts = B.map(([x, y, z, r]) => { const g = new THREE.IcosahedronGeometry(r, 1).toNonIndexed(), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { const k = 1 + (Math.sin(p.getX(i) * 7.1 + p.getY(i) * 5.3) * 0.5 + 0.5) * 0.12 + rn() * 0.02; p.setXYZ(i, p.getX(i) * k + x, p.getY(i) * k + y, p.getZ(i) * k + z); }
+    g.computeVertexNormals(); return g; });
+  const g = mergeGeometries(parts, false), pos = g.attributes.position, nor = g.attributes.normal, col = new Float32Array(pos.count * 3), C = new THREE.Vector3(0, 1.7, 0), v = new THREE.Vector3(), n = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i); n.fromBufferAttribute(nor, i); const out = v.clone().sub(C).normalize();
+    n.lerp(out, 0.72).normalize(); nor.setXYZ(i, n.x, n.y, n.z);
+    const k = THREE.MathUtils.clamp((v.y - 0.7) / 1.9, 0, 1), inner = THREE.MathUtils.clamp(v.distanceTo(C) / 1.25, 0, 1);
+    const c = (0.56 + k * 0.5) * (0.78 + inner * 0.22); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = c;
+  }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3));
   return g;
 }
@@ -275,17 +303,17 @@ export function makeArcFountain() {
   const pool = new THREE.Mesh(new THREE.CircleGeometry(4.15, 72), water); pool.rotation.x = -Math.PI / 2; pool.position.y = 0.32; g.add(pool);
   const bowl = new THREE.Mesh(new THREE.CircleGeometry(1.9, 48), water); bowl.rotation.x = -Math.PI / 2; bowl.position.y = 2.08; g.add(bowl);
   const top = new THREE.Mesh(new THREE.CircleGeometry(0.95, 36), water); top.rotation.x = -Math.PI / 2; top.position.y = 3.43; g.add(top);
-  // the ARCIRCLE rings over it, as before
-  const rings = new THREE.Group(); rings.position.y = 10.5; rings.scale.setScalar(0.85);
-  const ra = new THREE.Mesh(tor(2.1, 0.2, 96), new THREE.MeshStandardMaterial({ color: 0x2f86ff, emissive: 0x1d63d6, emissiveIntensity: 1.1, roughness: 0.25, metalness: 0.3 }));
-  const rb = new THREE.Mesh(tor(2.1, 0.2, 96), new THREE.MeshStandardMaterial({ color: 0x2ee07a, emissive: 0x17a85a, emissiveIntensity: 1.1, roughness: 0.25, metalness: 0.3 }));
+  // the ARCIRCLE rings over it: the plaza's landmark, high and large enough to find the centre of town from anywhere
+  const rings = new THREE.Group(); rings.position.y = 16; rings.scale.setScalar(2.1);
+  const ra = new THREE.Mesh(tor(2.1, 0.2, 96), new THREE.MeshStandardMaterial({ color: 0x2f86ff, emissive: 0x1d63d6, emissiveIntensity: 1.5, roughness: 0.25, metalness: 0.3 }));
+  const rb = new THREE.Mesh(tor(2.1, 0.2, 96), new THREE.MeshStandardMaterial({ color: 0x2ee07a, emissive: 0x17a85a, emissiveIntensity: 1.5, roughness: 0.25, metalness: 0.3 }));
   ra.position.x = -1.05; rb.position.x = 1.05; rb.rotation.x = Math.PI / 2; rings.add(ra, rb); g.add(rings);
   // water: drops from the top bowl falling into the middle one, and from the middle into the pool (one instanced mesh)
   const N = 120, drops = new THREE.InstancedMesh(new THREE.SphereGeometry(0.08, 6, 5), new THREE.MeshBasicMaterial({ color: 0xd6f6ff, transparent: true, opacity: 0.85 }), N);
   drops.frustumCulled = false; g.add(drops);
   const o = new THREE.Object3D();
-  g.userData = { radius: 0, spin: [(dt, t) => {
-    rings.rotation.y = t * 0.35; ra.rotation.y = Math.sin(t * 0.7) * 0.25; rings.position.y = 10.5 + Math.sin(t * 1.2) * 0.25;
+  g.userData = { radius: 0, pulse: (k) => { ra.material.emissiveIntensity = 1.5 * (1 + k); rb.material.emissiveIntensity = 1.5 * (1 + k); }, spin: [(dt, t) => {
+    rings.rotation.y = t * 0.35; ra.rotation.y = Math.sin(t * 0.7) * 0.25; rings.position.y = 16 + Math.sin(t * 1.2) * 0.35;
     water.emissiveIntensity = 0.5 + Math.sin(t * 2) * 0.08;
     for (let i = 0; i < N; i++) {
       const lower = i % 2, a = ((i >> 1) / (N / 2)) * TAU, k = ((t * 0.7 + (i * 0.618) % 1) % 1);
@@ -307,13 +335,28 @@ function paneGlass() {
   g.onBeforeCompile = (sh) => {
     sh.uniforms.uNight = NIGHT; sh.uniforms.uClock = CLOCK; sh.uniforms.uOrg = ORG;
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; varying float vPaneUp; uniform vec3 uOrg;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvPane = (modelMatrix * vec4(transformed, 1.0)).xyz - uOrg; vPaneUp = abs(normalize(mat3(modelMatrix) * objectNormal).y);");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; varying float vPaneUp; uniform float uNight, uClock;").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; varying float vPaneUp; uniform float uNight, uClock; uniform vec3 uOrg;").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
       { vec3 cell = floor(vPane * vec3(1.15, 1.6, 1.15)); float hh = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
         float era = floor(uClock / 37.0 + hh * 9.0); float on = step(0.28, fract(sin(dot(cell + era, vec3(4.1, 7.7, 2.3))) * 9631.7));
-        float k = mix(0.08, 0.75 + hh * 0.6, on); totalEmissiveRadiance *= mix(1.0, k, uNight * (1.0 - smoothstep(0.3, 0.55, vPaneUp))); }`);
+        float k = mix(0.08, 0.75 + hh * 0.6, on); totalEmissiveRadiance *= mix(1.0, k, uNight * (1.0 - smoothstep(0.3, 0.55, vPaneUp)));
+        // a room behind each window: the view ray goes on through the glass into a grid of small rooms and shows the wall,
+        // floor or ceiling it meets (interior mapping); walls change colour room by room, and at night the lit rooms glow warm
+        if (vPaneUp < 0.4) {
+          vec3 cs = vec3(1.74, 1.25, 1.74), rd = normalize(vPane - (cameraPosition - uOrg)), p = vPane + rd * 0.02, c0 = floor(p / cs);
+          vec3 tt = ((c0 + step(0.0, rd)) * cs - p) / (rd + sign(rd) * 1e-5 + vec3(1e-6)); float tm = min(tt.x, min(tt.y, tt.z));
+          float rh = fract(sin(dot(c0, vec3(7.13, 3.31, 5.77))) * 4375.85);
+          vec3 wall = mix(vec3(0.62, 0.68, 0.78), vec3(0.92, 0.8, 0.64), rh) * (tm == tt.x ? 0.82 : 1.0);
+          vec3 room = tm == tt.y ? (rd.y > 0.0 ? vec3(0.93, 0.94, 0.97) : vec3(0.42, 0.33, 0.27)) : wall;
+          room *= 1.0 - clamp(tm / 3.0, 0.0, 1.0) * 0.55;
+          float see = 0.8 * (1.0 - smoothstep(0.25, 0.4, vPaneUp));
+          diffuseColor.rgb = mix(diffuseColor.rgb, room * 0.75, see);
+          totalEmissiveRadiance = mix(totalEmissiveRadiance, totalEmissiveRadiance * 0.3 + room * vec3(0.35, 0.5, 0.75) * 0.25 * (1.0 - uNight) + room * vec3(1.0, 0.82, 0.58) * on * uNight * 0.9, see);
+        } }`);
   };
-  g.customProgramCacheKey = () => "panes"; g.needsUpdate = true;
+  g.customProgramCacheKey = () => "panes2"; g.needsUpdate = true;
 }
+/// the beat (world-music.js level): every baked light line in town brightens a little with it (one shared material)
+export function setPulse(k) { GLOW().color.setScalar(1 + k); }
 export function setNight(k) {
   const g = glass(); paneGlass();
   g.emissive.setHex(0x1f6fd6).lerp(new THREE.Color(0xffc27a), k * 0.85);

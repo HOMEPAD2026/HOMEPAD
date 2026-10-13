@@ -5,7 +5,7 @@ const TAU = Math.PI * 2;
 const hash = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
 const vnoise = (x) => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return hash(i) * (1 - u) + hash(i + 1) * u; };
 
-export function createAmbient({ THREE, planet, low = false, fountainY = 0.3 }) {
+export function createAmbient({ THREE, planet, low = false, fountainY = 0.3, bats = false }) {
   const root = new THREE.Group(); root.name = "ambient"; root.userData.noBake = true; planet.add(root);
 
   /* the horizon: two rings of mountains, the far one paler, both melting into the fog colour */
@@ -62,9 +62,10 @@ export function createAmbient({ THREE, planet, low = false, fountainY = 0.3 }) {
       for (const m of mts) m.uniforms.uLight.value = 1 - night * 0.7;
       const day = night < 0.6;
       // the flock circles a point over the town, each bird a little off the line, wings beating then gliding
-      bL.visible = bR.visible = day;
-      if (day) { birds.forEach((u, i) => { const a = t * 0.07 + u.ph * 0.05; v.set(Math.cos(a) * 70, 44 + Math.sin(t * 0.3 + u.ph) * 2, Math.sin(a) * 70).add(u.off);
-        const flap = Math.sin(t * 9 + u.ph) * (Math.sin(t * 0.7 + u.ph) > 0 ? 0.7 : 0.12); place(bL, i, v, -a, u.s, flap, 1); place(bR, i, v, -a, u.s, -flap, -1); });
+      // Halloween nights: the flock comes back as bats, lower, quicker and less orderly
+      const bat = bats && !day; bL.visible = bR.visible = day || bat; bm.color.set(bat ? 0x150c1e : 0x2a3446);
+      if (day || bat) { birds.forEach((u, i) => { const a = t * (bat ? 0.16 : 0.07) + u.ph * 0.05, R = bat ? 34 + Math.sin(t * 0.9 + u.ph) * 6 : 70; v.set(Math.cos(a) * R, (bat ? 18 : 44) + Math.sin(t * (bat ? 1.7 : 0.3) + u.ph) * (bat ? 3 : 2), Math.sin(a) * R).add(u.off);
+        const flap = bat ? Math.sin(t * 22 + u.ph) * 0.9 : Math.sin(t * 9 + u.ph) * (Math.sin(t * 0.7 + u.ph) > 0 ? 0.7 : 0.12); place(bL, i, v, -a, u.s * (bat ? 0.8 : 1), flap, 1); place(bR, i, v, -a, u.s * (bat ? 0.8 : 1), -flap, -1); });
         if (NB) { bL.instanceMatrix.needsUpdate = true; bR.instanceMatrix.needsUpdate = true; } }
       // butterflies wander in loops round a spot near you (not in the hunting grounds); a spot left far behind moves to you
       const fly = day && !inGround; fL.visible = fR.visible = fly;

@@ -105,7 +105,8 @@ export const CATALOG = [
   { id: "feature-isle", cat: "plaza", name: "Island of the day", line: "Your island on the plaza screen for 24 hours, with a Visit button.", usd: 5, arcl: null, use: true, hours: 24 },
   { id: "billboard", cat: "plaza", name: "Plaza billboard", line: "An ArcPad coin on the plaza billboard for 6 hours.", usd: 3, arcl: null, use: true, hours: 6, target: "coin" },
   // not on the shelves: bought from the game itself
-  { id: "revive", cat: "game", name: "Revive", line: "Get back up where you fell, with full HP and SP.", tokens: 10000, usd: null, arcl: null, use: true },
+  { id: "revive", cat: "game", name: "Revive", line: "Get back up where you fell, with full HP and SP (and end a 24-hour rest).", tokens: 10000, usd: null, arcl: null, use: true },
+  { id: "bagplus", cat: "game", name: "Bigger bag", line: "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
 ];
 const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
@@ -119,6 +120,12 @@ export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, M
 const FORGE_SUPPLY = { hp5: { arcl: 30, kind: "hp", n: 5 }, sp5: { arcl: 30, kind: "sp", n: 5 }, recall3: { arcl: 20, kind: "recall", n: 3 } };
 
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+// the bag (world-rpg.js): 24 slots, and 8 more for each "Bigger bag" (10,000 $ARCIRCLE), up to 120
+export const BAG_BASE = 24, BAG_STEP = 8, BAG_MAX = 120;
+export const bagSize = (o) => Math.min(BAG_MAX, BAG_BASE + BAG_STEP * Math.max(0, Math.floor(Number(o && o.bag) || 0)));
+// knocked out (world-combat.js): the first time each day (Seoul time) you get up for free; after that, a revive for
+// 10,000 $ARCIRCLE or a 24-hour rest, when you can't fight and the hunting rewards are closed
+export const KO_FREE = 1, KO_REST_MS = 24 * 3600e3;
 export function isoWeek(t) {
   const d = new Date(t + 9 * 3600e3); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3);
   const y = d.getUTCFullYear(), first = new Date(Date.UTC(y, 0, 4)); return `${y}-W${String(1 + Math.round(((d - first) / 864e5 - 3 + ((first.getUTCDay() + 6) % 7)) / 7)).padStart(2, "0")}`;
@@ -225,6 +232,28 @@ export function makeShop(deps) {
   }
   const onceOk = async (w, kind) => (await commit([{ create: `worldArclOnce/${w}_${kind}`, data: { at: now() } }])).ok;
 
+  // ---- knocked out: one free get-up a day, then a revive ($ARCIRCLE) or a 24-hour rest ----
+  async function koOf(w) { const k = (await one(`worldKo/${w}`)) || {}, day = seoulDay(now()); return { day, used: k.day === day ? k.used || 0 : 0, until: Number(k.until) || 0, n: k.n || 0, paid: k.paid || 0, at: k.at || 0, down: Number(k.down) || 0 }; }
+  // pending: knocked out with no free get-up left and no choice made yet (a reload brings the choice back)
+  const koView = (k) => ({ freeLeft: Math.max(0, KO_FREE - k.used), until: k.until > now() ? k.until : 0, pending: !!k.down && !(k.until > now()), cost: ITEM.revive.tokens });
+  async function knockout(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const w = s.wallet, k = await koOf(w), t = now();
+    if (k.until > t) return json(200, { ok: true, free: false, ...koView(k) }); // already resting
+    if (t - k.at < 5000) return json(429, { error: "too fast" });
+    if (k.used < KO_FREE) { await setDoc(`worldKo/${w}`, { day: k.day, used: k.used + 1, until: 0, n: k.n + 1, paid: k.paid, at: t, down: 0 }); return json(200, { ok: true, free: true, ...koView({ ...k, used: k.used + 1 }) }); }
+    await setDoc(`worldKo/${w}`, { day: k.day, used: k.used, until: 0, n: k.n + 1, paid: k.paid, at: t, down: t });
+    return json(200, { ok: true, free: false, ...koView({ ...k, down: t }) });
+  }
+  /// the second choice after a knockout with no free get-up left: rest for 24 hours (from now)
+  async function koRest(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const w = s.wallet, k = await koOf(w), t = now();
+    if (k.until > t) return json(200, { ok: true, ...koView(k) });
+    if (!k.down) return json(400, { error: k.used < KO_FREE ? "you still have today's free get-up" : "no knockout to rest from" });
+    const until = t + KO_REST_MS; await setDoc(`worldKo/${w}`, { day: k.day, used: k.used, until, n: k.n, paid: k.paid, at: t, down: 0 });
+    return json(200, { ok: true, ...koView({ ...k, until }) });
+  }
   async function claim(b) {
     const s = signer(b); if (s.err) return s.err;
     const w = s.wallet, kind = String(b.kind || ""), e = EARN_BY[kind];
@@ -233,6 +262,7 @@ export function makeShop(deps) {
     if (kind === "sell") return json(400, { error: "sell gear at the Forge" });
     if (kind === "raid") return json(400, { error: "the raid's reward is claimed at the raid" });
     let n = e.n;
+    if (e.repeat && /^(street|hunt|boss|pickup)$/.test(kind)) { const k = await koOf(w); if (k.until > now() || k.down) return json(423, { error: "resting after a knockout", until: k.until }); }
     if (e.repeat) {
       // hunting grounds: the stronger the scammer, the more ARCL, but only for a character whose saved level could
       // be there (the server can't watch the fight; the level comes from the saved progress)
@@ -297,6 +327,7 @@ export function makeShop(deps) {
     const o = await own(w);
     if (!it.use && o.items.includes(it.id)) return "you already have this";
     if (it.needs && !o.items.includes(it.needs)) return "get the 48×48 expansion first";
+    if (it.id === "bagplus" && bagSize(o) >= BAG_MAX) return `your bag is as big as it gets (${BAG_MAX} slots)`;
     if (it.id === "rename" && !(deps.hasName ? await deps.hasName(w) : true)) return "your first name is free: set it in the character maker";
     if (it.target === "coin" || it.target === "mycoin") {
       const coin = lc(target); if (!isAddr(coin)) return "pick a coin";
@@ -310,7 +341,8 @@ export function makeShop(deps) {
   async function grant(w, it, target, via) {
     const o = await own(w), at = now();
     if (it.id === "rename") o.renames = (o.renames || 0) + 1;
-    else if (it.id === "revive") o.revives = (o.revives || 0) + 1;
+    else if (it.id === "revive") { o.revives = (o.revives || 0) + 1; const k = await one(`worldKo/${w}`); if (k && (k.until > at || k.down)) await setDoc(`worldKo/${w}`, { ...k, until: 0, down: 0, paid: (k.paid || 0) + 1 }); }
+    else if (it.id === "bagplus") o.bag = Math.min((BAG_MAX - BAG_BASE) / BAG_STEP, Math.max(0, Math.floor(Number(o.bag) || 0)) + 1);
     else if (it.id === "lot13") o.lots = [...new Set([...(o.lots || []), lc(target)])];
     else if (it.id === "feature-isle" || it.id === "billboard") {
       const P = (await one("worldStats/plaza")) || { isle: [], coin: [] }, k = it.id === "billboard" ? "coin" : "isle";
@@ -410,7 +442,7 @@ export function makeShop(deps) {
   }
 
   return {
-    stampCredit, own, plaza, rewardArcl, credit, isoWeek,
+    stampCredit, own, plaza, koOf, rewardArcl, credit, isoWeek,
     owns: async (w, id) => ((await own(w)).items || []).includes(id),
     lotPremium: async (w, coin) => ((await own(w)).lots || []).includes(lc(coin)),
     renames: async (w) => (await own(w)).renames || 0,
@@ -420,6 +452,7 @@ export function makeShop(deps) {
       if (view === "arcl") return isAddr(w) ? json(200, { ...(await balance(w)), cap: DAILY_CAP, today: ((await one(`worldArclDay/${w}_${seoulDay(now())}`)) || {}).n || 0, earn: EARN, exchange: EXCHANGE, notify: !!(await one(`worldArclNotify/${w}`)) }) : json(400, { error: "wallet must be an address" });
       if (view === "arcl-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/arclWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n }) => ({ w: s, n })) }, "public, max-age=30");
       if (view === "plaza") return json(200, await plaza(), "public, max-age=30");
+      if (view === "ko") return isAddr(w) ? json(200, koView(await koOf(w)), "no-store") : json(400, { error: "wallet" });
       if (view === "hunt-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/huntWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n, name }) => ({ w: s, n, name: name || "" })) }, "public, max-age=30");
       if (view === "drops") return json(200, { drops: (((await one("worldStats/drops")) || {}).list || []).filter((x) => now() - x.at < 864e5) }, "public, max-age=20");
       return null;
@@ -432,6 +465,8 @@ export function makeShop(deps) {
       if (b.action === "world-sell") return sell(b);
       if (b.action === "world-pay-quote") return quote(b);
       if (b.action === "world-pay-confirm") return confirm(b);
+      if (b.action === "world-ko") return knockout(b);
+      if (b.action === "world-ko-rest") return koRest(b);
       if (b.action === "world-arcl-notify") { const s = signer(b); if (s.err) return s.err; await setDoc(`worldArclNotify/${s.wallet}`, { on: !!b.on, at: now() }); return json(200, { ok: true, notify: !!b.on }); }
       return null;
     },
