@@ -8,7 +8,7 @@
 //   the scammers    stage enemies; v0 has the first one, the Phisher
 //   the kit         Quaternius "Sci-Fi Essentials Kit" models (CC0, /models/world): props around the shops, the
 //                   enemy robots the scammers wear, key cards to collect
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 import { RoomEnvironment } from "./vendor/three/addons/RoomEnvironment.js";
 import { EffectComposer } from "./vendor/three/addons/EffectComposer.js";
 import { RenderPass } from "./vendor/three/addons/RenderPass.js";

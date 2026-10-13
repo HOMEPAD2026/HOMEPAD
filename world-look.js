@@ -4,7 +4,7 @@
 //
 // Every change is a small addition to a material's own shader (onBeforeCompile), so the lights, shadows and fog keep
 // working as before; on the Low preset only the cheap ones are used.
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 import { ShaderPass } from "./vendor/three/addons/ShaderPass.js";
 
 const NOISE = `

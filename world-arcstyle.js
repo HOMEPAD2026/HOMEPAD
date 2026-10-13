@@ -4,7 +4,7 @@
 // light), so a building costs four or five draw calls however many parts it has. The art-direction sheets
 // ("Buildings & Shops", "Plants & Decorations", "Building Blocks") are the reference: white ceramic bodies, domed and
 // rounded roofs, blue glass, lines of light, round green trees.
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 import { windLook, waterLook } from "./world-look.js";
 import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
