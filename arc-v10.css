@@ -3752,12 +3752,12 @@ body.wp .wp-hud .wc-vit .wc-v.hp{position:absolute;left:143.92px;top:15.12px;wid
 body.wp .wp-hud .wc-vit .wc-v.sp{position:absolute;left:143.92px;top:39.20px;width:164.08px;height:20.16px;display:flex;align-items:center;gap:0}
 body.wp .wp-hud .wc-vit .wc-v.xp{position:absolute;left:143.92px;top:62.16px;width:164.08px;height:20.16px;display:flex;align-items:center;gap:0}
 body.wp .wp-hud .wc-vit .wc-v span{display:none}
-body.wp .wp-hud .wc-vit .wc-v i{flex:none;width:82.88px;height:10.64px;border-radius:5.60px;background:#08143a;border:0;box-shadow:inset 0 1.12px 1.68px rgba(0,0,0,.55)}
+body.wp .wp-hud .wc-vit .wc-v i{flex:none;width:73.92px;height:10.64px;border-radius:5.60px;background:#08143a;border:0;box-shadow:inset 0 1.12px 1.68px rgba(0,0,0,.55)}
 body.wp .wp-hud .wc-vit .wc-v i b,.wc-vit .wc-v i u{border-radius:5.60px}
 body.wp .wp-hud .wc-vit .wc-v.hp i b{background:linear-gradient(180deg,#ff8a9c,#ff3d5c 50%,#e01d45)!important}
 body.wp .wp-hud .wc-vit .wc-v.sp i b{background:linear-gradient(180deg,#9ff0ff,#38b8ff 50%,#1d84e8)!important}
 body.wp .wp-hud .wc-vit .wc-v.xp i b{background:linear-gradient(180deg,#8dffd2,#2fe0a0 50%,#17b97c)!important}
-body.wp .wp-hud .wc-vit .wc-v em{margin-left:auto;font:800 15.12px/1 var(--hud-font);white-space:nowrap;color:#fff;opacity:1!important;letter-spacing:0}
+body.wp .wp-hud .wc-vit .wc-v em{margin-left:auto;padding-left:4.48px;font:800 13.44px/1 var(--hud-font);white-space:nowrap;color:#fff;opacity:1!important;letter-spacing:0}
 body.wp .wp-hud .wc-vit.calm{padding:0!important}
 body.wp .wp-hud .wp-quests{width:290.08px;height:80.64px;background:url("/images/hud/quests.webp?v=1") center/100% 100% no-repeat!important;border:0!important;border-radius:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;position:relative;display:block;overflow:visible}
 body.wp .wp-hud .wp-quests-h{position:absolute;left:0;top:6.16px;width:100%;height:33.60px;padding:0 45.92px 0 49.84px!important;display:flex;align-items:center;justify-content:space-between;background:none;font:800 17.92px/1 var(--hud-font);color:#fff}
@@ -3765,7 +3765,7 @@ body.wp .wp-hud .wp-quests-h::before,body.wp .wp-hud .wp-quests-h::after{display
 body.wp .wp-hud .wp-quests-h b{font:800 17.92px/1 var(--hud-font);color:#ffc93a}
 body.wp .wp-hud .wp-quests ol{position:absolute;left:0;top:44.24px;width:100%;height:26.88px;margin:0;padding:0!important;display:block}
 body.wp .wp-hud .wp-quests li{display:none!important}
-body.wp .wp-hud .wp-quests li.cur,body.wp .wp-hud .wp-quests li.done-now{display:flex!important;align-items:center;height:26.88px;padding:0 45.92px 0 51.52px;background:none!important;border:0!important;border-radius:0;font:700 15.12px/1.1 var(--hud-font);color:#fff}
+body.wp .wp-hud .wp-quests li.cur,body.wp .wp-hud .wp-quests li.done-now,body.wp .wp-hud .wp-quests li.done{display:flex!important;align-items:center;height:26.88px;padding:0 45.92px 0 51.52px;background:none!important;border:0!important;border-radius:0;font:700 15.12px/1.1 var(--hud-font);color:#fff}
 body.wp .wp-hud .wp-quests li i,body.wp .wp-hud .wp-quests li.cur::after{display:none!important}
 body.wp .wp-hud .wp-quests li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.wp .wp-hud .wp-quests li small{margin-left:5.60px;font:800 14.00px/1 var(--hud-font);color:#fff}
@@ -3853,4 +3853,6 @@ body.wp .wc-slot.wc-fire{--sk1:#ff9a4a;--sk2:#e2541c;--sk3:#a8300a}
 body.wp .wc-slot.wc-ice{--sk1:#6fd6ff;--sk2:#2f8cff;--sk3:#1a4fc0}
 body.wp .wc-slot.wc-shock{--sk1:#a15cff;--sk2:#6f22e0;--sk3:#4a12a8}
 body.wp .wc-slot.wc-meteor{--sk1:#ff6a5a;--sk2:#d6262e;--sk3:#8a1018}
+body.wp .wp-hud .wp-brand i,body.wp .wp-hud .wa-chip,body.wp .wp-hud .wp-cards,body.wp .wp-hud .wp-rrow .wp-vlv{display:none!important}
+@media (pointer:coarse){html.wp-pcphone body.wp .wp-dock{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px)}html.wp-pcphone .wp-joyrest{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px + 113px + 40px)}html.wp-pcphone.wp-land body.wp .wp-dock{bottom:max(10px,env(safe-area-inset-bottom))}}
 /* ---- b398 end ---- */
