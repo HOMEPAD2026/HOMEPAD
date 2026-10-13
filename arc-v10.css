@@ -3339,3 +3339,10 @@ html.wp-pcphone .wr-store-t button{height:48px;font-size:18px;padding:0 18px}htm
 .wp-crew-toph{margin:16px 0 6px;font:800 14px var(--f-ui)}
 @media (max-width:560px){.wp-crew-forms{grid-template-columns:1fr}}
 html.wp-pcphone .wp-crewsheet .wp-card{zoom:1.35}
+/* ARCIA's favour of the day */
+.wp-arciaq{position:fixed;inset:0;z-index:46;display:grid;place-items:end center;padding-bottom:calc(140px + env(safe-area-inset-bottom));background:rgba(2,4,8,.25)}
+.wp-arciaq-card{width:min(440px,calc(100vw - 32px));padding:16px 18px;border-radius:18px;background:rgba(18,10,24,.9);border:1px solid rgba(255,122,217,.45);box-shadow:0 12px 40px rgba(0,0,0,.4);animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
+.wp-arciaq-card small{font:800 12px var(--f-ui);color:#ff9ae4;letter-spacing:.06em}
+.wp-arciaq-card p{margin:6px 0 12px;font-size:15px;line-height:1.5;color:#f6eef8}
+.wp-arciaq-card div{display:flex;gap:8px;justify-content:flex-end}
+html.wp-pcphone .wp-arciaq-card{zoom:1.5}

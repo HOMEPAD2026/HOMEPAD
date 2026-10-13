@@ -1206,6 +1206,40 @@ function paintPrompt() {
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
 
+// ---------------- ARCIA's favour of the day ----------------
+// Talk to ARCIA on the plaza: once a day she asks a small favour (from a fixed list, the same for everyone that day);
+// done, she thanks you with some XP. Kept in this browser.
+const ARCIA_TASKS = [
+  { id: "kill5", t: "Knock out 5 scammers for me?", n: 5, on: "kill" },
+  { id: "elite1", t: "There's an elite out there. Could you knock one out?", n: 1, on: "kill", f: (k) => k && k.rank === "elite" },
+  { id: "loot3", t: "Bring back 3 pieces of gear from the hunting grounds?", n: 3, on: "loot" },
+  { id: "fish1", t: "I'd love a fish from one of the ponds. Catch one?", n: 1, on: "fish" },
+  { id: "zone2", t: "Go and look round 2 hunting grounds for me?", n: 2, on: "zone" },
+  { id: "kill12", t: "The streets are busy today. Knock out 12 scammers?", n: 12, on: "kill" },
+];
+const AQ_KEY = "arc.world.arciaQ";
+const aqDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const aqTask = () => ARCIA_TASKS[Math.floor(Date.parse(aqDay()) / 864e5) % ARCIA_TASKS.length];
+const aqGet = () => { try { const v = JSON.parse(localStorage.getItem(AQ_KEY) || "null"); return v && v.day === aqDay() ? v : { day: aqDay(), id: aqTask().id, got: 0, on: false, done: false, seen: [] }; } catch { return { day: aqDay(), id: aqTask().id, got: 0, on: false, done: false, seen: [] }; } };
+const aqSet = (v) => { try { localStorage.setItem(AQ_KEY, JSON.stringify(v)); } catch { /* private */ } };
+function arciaOn(kind, x) {
+  const q = aqGet(), t = ARCIA_TASKS.find((y) => y.id === q.id); if (!q.on || q.done || !t || t.on !== kind || (t.f && !t.f(x))) return;
+  if (kind === "zone") { const id = x && x.id; if (!id || (q.seen || []).includes(id)) return; q.seen = [...(q.seen || []), id]; }
+  q.got = Math.min(t.n, q.got + 1);
+  if (q.got >= t.n) { q.done = true; aqSet(q); const xp = 60 + level() * 3; setTimeout(() => { feed(T("ARCIA: thank you! That helps a lot."), "#ff7ad9"); gain(xp, T("A favour for ARCIA")); }, 400); }
+  else { aqSet(q); if (q.got === Math.ceil(t.n / 2)) feed(T("ARCIA's favour: {a}/{b}", { a: q.got, b: t.n }), "#ff7ad9"); }
+}
+/// near ARCIA: her favour first (once a day); false when there's nothing to ask, so the chat opens as before
+function arciaAsk() {
+  const q = aqGet(), t = ARCIA_TASKS.find((y) => y.id === q.id); if (!t || q.done || (q.on && q.asked)) return false;
+  const el = document.createElement("div"); el.className = "wp-arciaq"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", "");
+  el.innerHTML = `<div class="wp-arciaq-card"><small>ARCIA</small><p>${esc(q.on ? T("How's it going? {a}/{b} so far.", { a: q.got, b: t.n }) : T(t.t))}</p><div>${q.on ? "" : `<button type="button" class="wp-btn go" data-aq="yes">${esc(T("Sure"))}</button>`}<button type="button" class="wp-btn" data-aq="chat">${esc(T("Just chat"))}</button></div></div>`;
+  document.body.appendChild(el); frozen = true; keys.clear(); paintPrompt();
+  el.addEventListener("click", (e) => { const b = e.target.closest("[data-aq]"); if (!b && e.target !== el) return; el.remove(); frozen = false;
+    if (b && b.dataset.aq === "yes") { q.on = true; q.asked = true; aqSet(q); toast(T("ARCIA's favour: {x}", { x: T(t.t) })); if (avatar && avatar.face) avatar.face("happy", 1.5); }
+    else if (b && b.dataset.aq === "chat") { q.asked = q.on; aqSet(q); if (npc) openSheet("ARCIA", T("Arc's AI idol. Ask her anything about a coin, a wallet or this world."), "/arc#arcia"); } });
+  return true;
+}
 // ---------------- shops, coins, ARCIA ----------------
 const sheet = $("wp-sheet"), frame = $("wp-frame");
 let openShop = null;
@@ -1272,7 +1306,7 @@ function enter(n) {
   if (n.kind === "pad") { openMap(); return; }
   if (n.kind === "bounty") { if (quests && rpg) { quests.setTab("daily"); rpg.show("log"); } return; }
   if (n.kind === "race") { race.start(); return; }
-  if (n.kind === "npc") { doorThen(n.g, () => openSheet("ARCIA", T("Arc's AI idol. Ask her anything about a coin, a wallet or this world."), "/arc#arcia")); return; }
+  if (n.kind === "npc") { if (arciaAsk()) return; doorThen(n.g, () => openSheet("ARCIA", T("Arc's AI idol. Ask her anything about a coin, a wallet or this world."), "/arc#arcia")); return; }
   if (n.kind === "coin") {
     const c = n.coin;
     doorThen(n.g, () => { openSheet("$" + c.symbol, `${c.name || c.symbol} · ${T("market cap {v}", { v: usd(Number(c.marketCapUsd) || 0) })}${n.g.userData.mine ? " · " + T("your coin") : ""}`, "/arc#coin/" + c.token); $("wp-sheet-lot").hidden = !n.g.userData.mine; lotCoin = { token: lc(c.token), symbol: c.symbol }; });
@@ -1823,10 +1857,11 @@ function fadeLabels(dt) {
     const d = l.userData.d, isBig = l.userData.s0.x >= 3.6, far = isBig ? (l.userData.rank < NAME_MAX ? NAME_FAR : 0) : 30;
     const room = l.renderOrder === 10 ? (l.userData.clear === false ? 0 : 1) : 1;
     const want = THREE.MathUtils.clamp((d - (isBig ? 10 : 7.5)) / 5, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1) * room;
-    l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, 0.15); l.visible = l.material.opacity > 0.02;
+    // a sign that has to give way goes at once; one that may show comes in gently (two never sit on each other)
+    l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, want < l.material.opacity ? (room ? 0.3 : 0.6) : 0.12); l.visible = l.material.opacity > 0.02;
     if (isBig && l.parent) {
       const pw = (l.userData.rank < NAME_MAX ? THREE.MathUtils.clamp((d - NAME_FAR + 6) / 8, 0, 1) : 1) * THREE.MathUtils.clamp((PIN_FAR - d) / 20, 0, 1) * (l.userData.pinClear === false ? 0 : 1) * (l.userData.rank < 14 ? 1 : 0);
-      if (pw > 0.01 || l.userData.pin) { const p = pinOf(l); p.material.opacity = THREE.MathUtils.lerp(p.material.opacity, pw, 0.15); p.visible = p.material.opacity > 0.02; const s = d * 0.024; p.scale.set(s, s, 1); }
+      if (pw > 0.01 || l.userData.pin) { const p = pinOf(l); p.material.opacity = THREE.MathUtils.lerp(p.material.opacity, pw, pw < p.material.opacity ? 0.5 : 0.1 * (l.material.opacity < 0.2 ? 1 : 0.2)); p.visible = p.material.opacity > 0.02; const s = d * 0.024; p.scale.set(s, s, 1); }
     }
   }
 }
@@ -2293,7 +2328,7 @@ $("wp-shot-frame").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; shotRaw = shotFramed = shotSrc = null; });
 
 // ---------------- what's new: once after an update, a card with a way to try each new thing ----------------
-const NEWV = "b372";
+const NEWV = "b388";
 function maybeNew() {
   try { if (localStorage.getItem("arc.world.newv") === NEWV) return; } catch { return; }
   if (!P.char || !P.guideSeen || new URLSearchParams(location.search).has("nointro")) return;
@@ -2301,13 +2336,13 @@ function maybeNew() {
 }
 function openNew() {
   const items = [
-    ["grounds", T("Hunting grounds with their own world"), T("Snow, sand, bubbles, embers and stars; bosses that warn, then rage at half HP. Open the map's ring.")],
-    ["charge", T("Charged attacks"), T("Hold attack, let go when the ring is full: a whirlwind, a quake, a beam, a piercing arrow or a field.")],
-    ["bench", T("Temper, mastery, pond fish"), T("Temper your weapon with what you gather; each far ground has a pond and a fish of its own.")],
-    ["jet", T("A jetpack at level 30"), T("V switches ride: hoverboard, rover, jetpack. Space climbs or comes down.")],
-    ["party", T("A hunting party"), T("Add up to three friends on their card: their HP and where they are, and +15% XP together.")],
-    ["records", T("Weekly records"), T("The biggest fish and the fastest boss knock-outs, in Rankings. Honour only.")],
-    ["codex", T("Seven new codex pages"), T("The far ring's bosses, each a scam people still fall for, with how to beat it.")],
+    ["crew", T("Crews"), T("Found a crew or join one with its code: a tag before your name and a weekly table. The menu → Crew.")],
+    ["master", T("The Forge grows"), T("The Legendary Arc set from level 20, and a Masterwork bench that makes gear at your level, up to +10.")],
+    ["lock", T("Lock-on and sharper fights"), T("Tab or the target button locks on; crescent slashes, afterimages when you dodge, elites with an element.")],
+    ["bag", T("Storage and gear sets"), T("48 places of storage, two gear sets to swap in one tap, and a bigger bag for $ARCIRCLE.")],
+    ["live", T("The town, live"), T("$ARCIRCLE's price, burns and new launches turn round the fountain; fireworks for every launch.")],
+    ["sky", T("Weather and seasons"), T("Lightning, rainbows, morning mist, auroras, autumn leaves, and Halloween from 17 October.")],
+    ["ko", T("Knockouts"), T("The first each day is free; after that a revive for $ARCIRCLE or a 24-hour rest.")],
   ];
   const el = document.createElement("div"); el.className = "wp-new"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
   el.innerHTML = `<div class="wp-new-card"><small>${esc(W("Update"))}</small><h2>${esc(T("What's new in ARCIRCLE World"))}</h2><ul>${items.map(([k, t, l]) => `<li><button type="button" data-new="${k}"><b>${esc(t)}</b><span>${esc(l)}</span><i aria-hidden="true">›</i></button></li>`).join("")}</ul><button type="button" class="wp-cta" data-new="close">${esc(T("Let's play"))}</button></div>`;
@@ -2325,6 +2360,10 @@ function openNew() {
     else if (k === "bots") openMake();
     else if (k === "pad") openGuide();
     else if (k === "fuse") { rpg.forgeTab("fuse"); rpg.show("forge"); }
+    else if (k === "crew") crewUI.show();
+    else if (k === "master") { rpg.forgeTab("master"); rpg.show("forge"); }
+    else if (k === "lock") openGuide();
+    else if (k === "bag") rpg.show("inv");
     else if (k === "isles") island.openIsles();
   });
 }
@@ -2380,11 +2419,11 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },
-  onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); },
-  onKill: (k) => { if (quests) quests.on.kill(k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
+  onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); if (z) arciaOn("zone", z); },
+  onKill: (k) => { if (quests) quests.on.kill(k); arciaOn("kill", k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
   xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
-  onLoot: (it) => { if (quests) quests.on.loot(it); if (it.r >= 3) shareDrop(it); if (it.r >= 2) lootCard(it); },
+  onLoot: (it) => { if (quests) quests.on.loot(it); arciaOn("loot", it); if (it.r >= 3) shareDrop(it); if (it.r >= 2) lootCard(it); },
   legend: () => { document.body.classList.remove("wc-legend"); void document.body.offsetWidth; document.body.classList.add("wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
@@ -2484,7 +2523,7 @@ decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shop
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
-const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (f, cm) => { if (avatar && avatar.face) avatar.face("wow", 1.6); if (quests) quests.on.fish(); const s = sess(); if (!s || !f) return; const wk = Math.floor((Date.now() - Date.UTC(1970, 0, 5)) / 6048e5); let b = {}; try { b = JSON.parse(localStorage.getItem("arc.world.fishwk") || "{}"); } catch { /* private */ } if (b.wk === wk && b.cm >= cm) return; try { localStorage.setItem("arc.world.fishwk", JSON.stringify({ wk, cm })); } catch { /* private */ } post({ action: "world-fish", ...s, fish: f.id, cm }).catch(() => {}); }, /* this week's biggest catch goes to the board */ buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (f, cm) => { if (avatar && avatar.face) avatar.face("wow", 1.6); if (quests) quests.on.fish(); arciaOn("fish", f); const s = sess(); if (!s || !f) return; const wk = Math.floor((Date.now() - Date.UTC(1970, 0, 5)) / 6048e5); let b = {}; try { b = JSON.parse(localStorage.getItem("arc.world.fishwk") || "{}"); } catch { /* private */ } if (b.wk === wk && b.cm >= cm) return; try { localStorage.setItem("arc.world.fishwk", JSON.stringify({ wk, cm })); } catch { /* private */ } post({ action: "world-fish", ...s, fish: f.id, cm }).catch(() => {}); }, /* this week's biggest catch goes to the board */ buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
 // water (world-env.js): foam round the edge, caustics on the floor, the sky at a glance (the fountain and the far ponds)
 const waterMats = [], reflHide = [parts.glowMesh, parts.smokeMesh], reflU = [];
 if (!lowGfx) {
