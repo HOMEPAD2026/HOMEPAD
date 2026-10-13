@@ -1621,6 +1621,8 @@ function paintQuests() {
   const cur = open[0], tg = cur && cur.target();
   if (tg !== questTarget) { if (beacon.parent) beacon.parent.remove(beacon); questTarget = tg; if (tg) tg.add(beacon); }
 }
+// the quest card's title row opens the Adventure log (the card shows the quest you're on)
+$("wp-quests-h").addEventListener("click", () => { closeAll(); if (rpg && quests) rpg.show("log"); });
 $("wp-quests-h").addEventListener("click", (e) => { const q = $("wp-quests"); const o = q.classList.toggle("closed"); e.currentTarget.setAttribute("aria-expanded", String(!o)); try { localStorage.setItem("arc.world.qopen", o ? "0" : "1"); } catch { /* private */ } });
 // on a phone the quest list starts folded to its title (tap to open); the choice is remembered
 (() => { let open = null; try { open = localStorage.getItem("arc.world.qopen"); } catch { /* private */ } if (open === "0" || (open === null && coarse)) { $("wp-quests").classList.add("closed"); $("wp-quests-h").setAttribute("aria-expanded", "false"); } })();
@@ -2055,7 +2057,8 @@ async function refreshPurse(force) {
   purseAt = Date.now();
   // two plain reads (no batch: some endpoints refuse or rate-limit items inside one), each falling back through
   // the config's other Arc endpoints; a read that fails keeps the last number instead of showing 0
-  const f = (v) => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "K" : v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  // five characters at most, so a balance fits its half of the purse card: 0.86, 99.99, 999, 12.5K, 999K, 1.16M, 25.4M
+  const f = (v) => v >= 1e8 ? (v / 1e6).toFixed(0) + "M" : v >= 1e7 ? (v / 1e6).toFixed(1) + "M" : v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e5 ? (v / 1e3).toFixed(0) + "K" : v >= 1e3 ? (v / 1e3).toFixed(1) + "K" : v >= 100 ? v.toFixed(0) : v.toLocaleString("en-US", { maximumFractionDigits: 2 });
   const n = (h) => Number(BigInt(h) / 10n ** 14n) / 1e4;
   const tok = /^0x[0-9a-fA-F]{40}$/.test(CFG.ARCIRCLE_TOKEN || "") ? CFG.ARCIRCLE_TOKEN : "";
   $("wp-purse").classList.toggle("loading", bal.arc == null);
@@ -2748,7 +2751,7 @@ const HUB = [
   ["You", [["inv", "bag", "Character and bag", "I"], ["crew", "crew", "Crew", ""], ["wardrobe", "shirt", "Wardrobe", ""], ["make", "person", "Change character", ""]]],
   ["Adventure", [["daily", "check", "Daily hunts", "L"], ["ach", "trophy", "Achievements", ""], ["season", "season", "Season", ""], ["codex", "codex", "Codex", ""], ["pets", "paw", "Pets", ""], ["rank", "chart", "Rankings", ""]]],
   ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "My Island", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""]]],
-  ["More", [["photo", "photo", "Photo mode", "P"], ["emote", "wave", "Emotes", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["set", "gear", "Settings", ""]]],
+  ["More", [["photo", "photo", "Photo mode", "P"], ["emote", "wave", "Emotes", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["music", "music", "Music on / off", ""], ["set", "gear", "Settings", ""]]],
 ];
 hubEl = document.createElement("div"); hubEl.className = "wp-hub"; hubEl.hidden = true; hubEl.setAttribute("role", "dialog"); hubEl.setAttribute("aria-modal", "true"); hubEl.setAttribute("data-no-i18n", "");
 document.body.appendChild(hubEl);
@@ -2780,6 +2783,7 @@ hubEl.addEventListener("click", (e) => {
   else if (id === "guide") openGuide();
   else if (id === "help") openHelp();
   else if (id === "set") $("wp-set-btn").click();
+  else if (id === "music") $("wp-music-btn").click();
 });
 hubEl.addEventListener("keydown", (e) => { if (e.key === "Escape" && !hubEl.hidden) { e.stopPropagation(); closeHub(); } });
 $("wp-more-btn").addEventListener("click", (e) => { e.stopPropagation(); if (hubEl.hidden) openHub(); else closeHub(); });

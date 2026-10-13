@@ -27,6 +27,7 @@ const P = {
   anvil: '<path d="M4 8h12c0 2 1.5 3 4 3v2c-3 0-5 1-6 3H9c-.5-2-2-3-5-3z"/><path d="M8 16l-1 4h10l-1-4"/>',
   wrench: '<path d="M14.5 4a4 4 0 0 0-4.6 5.4L4 15.3 6.7 18l5.9-5.9A4 4 0 0 0 18 7.5l-2.3 2.3-2.4-.6-.6-2.4z"/>',
   map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/>',
+  music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
   village: '<path d="M3 20h18"/><path d="M4.5 20v-8l5-4 5 4v8"/><path d="M14.5 20v-5.5l3-2.5 3 2.5V20"/><path d="M8 20v-4h3v4"/><path d="M9.5 8V3.5l3.5 1.2-3.5 1.3"/>',
   island: '<path d="M3 18c3-2 6-2 9 0s6 2 9 0"/><path d="M12 15V7"/><path d="M12 7c-3-2-6-1-7 1M12 7c3-2 6-1 7 1M12 7c-1-2-3-3-5-2M12 7c1-2 3-3 5-2"/>',
   mail: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 8l9 6 9-6"/>',

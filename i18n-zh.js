@@ -10769,6 +10769,7 @@
     "Zoom the minimap": "放大小地图",
     "Character, bag, craft and build": "角色、背包、制作、建造",
     "Build on your island": "在你的岛上建造",
+    "Music on / off": "音乐 开 / 关",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
