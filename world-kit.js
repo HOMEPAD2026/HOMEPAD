@@ -113,11 +113,30 @@ export function quality(force = "auto") {
   const coarse = matchMedia("(pointer: coarse)").matches;
   const cores = navigator.hardwareConcurrency || 4;
   const f = force === "high" ? "ultra" : force;
-  const low = f === "low" || f === "saver" ? true : f === "medium" || f === "ultra" ? false : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
+  // Auto: the phone's graphics chip decides when it's known (iPhones report few cores but have strong GPUs); the
+  // core count is the fallback
+  const tier = gpuTier();
+  const low = f === "low" || f === "saver" ? true : f === "medium" || f === "ultra" ? false : tier ? tier === "low" : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
   const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
   const medium = f === "medium";
   const dpr = Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : medium ? 1.5 : f === "ultra" ? 2 : coarse ? 1.5 : 1.75); // phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain)
   return { coarse, low, saver, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : f === "ultra" ? 4096 : 2048 }; // Ultra on a computer: crisper shadows near you
+}
+/// the graphics chip's class from its name: "high", "low", or "" (unknown); asked once
+let GPU_TIER = null;
+export function gpuTier() {
+  if (GPU_TIER !== null) return GPU_TIER;
+  let name = "";
+  try { const gl = document.createElement("canvas").getContext("webgl"), x = gl && gl.getExtension("WEBGL_debug_renderer_info"); name = gl ? String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : ""; const lose = gl && gl.getExtension("WEBGL_lose_context"); if (lose) lose.loseContext(); } catch { name = ""; }
+  const n = name.toLowerCase(), num = (re) => { const m = n.match(re); return m ? Number(m[1]) : 0; };
+  let t = "";
+  if (/apple/.test(n)) t = "high"; // iPhones and iPads from the A12 on
+  else if (/adreno/.test(n)) t = num(/adreno[^0-9]*(\d{3})/) >= 640 ? "high" : "low";
+  else if (/immortalis|mali-g7\d\d|mali-g6[1-9]\d|mali-g7[1-9]/.test(n)) t = "high";
+  else if (/mali|powervr|swiftshader|llvmpipe/.test(n)) t = "low";
+  else if (/nvidia|geforce|radeon|amd|intel\(r\) (iris|arc)|apple m\d/.test(n)) t = "high";
+  GPU_TIER = t;
+  return t;
 }
 export function webglOk() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
@@ -175,9 +194,12 @@ export function makeStage(canvas, opts = {}) {
   const updates = new Set();
   const clock = new THREE.Clock();
   let raf = 0, running = true, every = 1, nth = 0, base = q.saver ? 2 : 1, cap = q.dpr; // cap: the most pixels dynamic resolution may use (lighter / degrade lower it)
-  function frame() {
-    if (!running) return;
+  // the frame limit (Settings): 60 by default, so a 90/120/144 Hz screen doesn't draw the world twice as often
+  let gap = 1000 / 60, lastAt = 0, lost = false;
+  function frame(now) {
+    if (!running || lost) return;
     raf = requestAnimationFrame(frame);
+    if (now && lastAt) { const el = now - lastAt; if (el < gap - 2) return; lastAt = el < gap * 3 ? lastAt + gap * Math.max(1, Math.floor(el / gap)) : now; } else lastAt = now || performance.now(); // keeps 45 on a 60 Hz screen at 45, not 30
     if (every > 1 && (++nth % every)) return; // a menu covers the world: draw it a few times a second, not 60
     const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
     updates.forEach((fn) => fn(dt, t));
@@ -185,7 +207,28 @@ export function makeStage(canvas, opts = {}) {
   }
   frame();
   document.addEventListener("visibilitychange", () => { if (document.hidden) { running = false; cancelAnimationFrame(raf); } else if (!running) { running = true; clock.getDelta(); frame(); } });
+  // the graphics context lost (a phone reclaiming memory, the app in the background): stop drawing; three.js rebuilds
+  // its state when it comes back, and the world carries on. If it never comes back, the page offers a reload.
+  let lostT = 0;
+  canvas.addEventListener("webglcontextlost", (e) => {
+    e.preventDefault(); lost = true; cancelAnimationFrame(raf);
+    clearTimeout(lostT); lostT = setTimeout(() => { if (lost && opts.onLost) opts.onLost(); }, 4000);
+  });
+  canvas.addEventListener("webglcontextrestored", () => {
+    lost = false; clearTimeout(lostT); if (opts.onRestored) opts.onRestored();
+    if (composer && composer.setSize) { try { resize(); } catch { /* sized on the next frame */ } }
+    clock.getDelta(); if (running) frame();
+  });
   return {
+    fps(n) { gap = 1000 / Math.max(20, Math.min(240, Number(n) || 60)); },
+    // the first frames without hitches: every material in the scene compiled while the loading screen is up (hidden
+    // things too, shown for the moment of the call), the GPU doing it in parallel where it can
+    warm(ms = 5000) {
+      const hidden = []; scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+      let p; try { p = renderer.compileAsync ? renderer.compileAsync(scene, camera) : Promise.resolve(renderer.compile(scene, camera)); } catch { p = Promise.resolve(); }
+      hidden.forEach((o) => { o.visible = false; });
+      return Promise.race([p.catch(() => {}), new Promise((r) => setTimeout(r, ms))]);
+    },
     // a full-screen menu is open: the world behind it only needs a few frames a second (saves battery and heat)
     idle(on) { const e = on ? 4 : base; if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
     // a first, gentle step for a slow frame rate: fewer pixels, everything else kept

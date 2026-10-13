@@ -10770,6 +10770,9 @@
     "Character, bag, craft and build": "角色、背包、制作、建造",
     "Build on your island": "在你的岛上建造",
     "Music on / off": "音乐 开 / 关",
+    "The graphics paused": "画面暂停了",
+    "Your phone needed the memory back. Your progress is saved.": "手机收回了内存。你的进度已保存。",
+    "Reload the game": "重新加载游戏",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -3712,6 +3712,11 @@ body.wp .wp-hud .wp-purse span::before{width:28px;height:28px}
   .wp-acts .wp-act:not(.wp-act-jump){--s:calc(47 * var(--u))}
   .wp-acts .wp-act-run{right:0;bottom:calc(166 * var(--u))}.wp-acts .wp-act-board{right:calc(53 * var(--u));bottom:calc(166 * var(--u))}.wp-acts .wp-act-emote{right:calc(106 * var(--u));bottom:calc(166 * var(--u))}
 }
+/* b401: the shop and the Forge answer on the click: a button waiting on the server dims and shows a small spinner */
+.wa-busy,.wr-forge .busy,button.sell.busy{position:relative;opacity:.7;pointer-events:none}
+.wa-busy::after,button.sell.busy::after{content:"";position:absolute;right:8px;top:50%;width:12px;height:12px;margin-top:-6px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:waSpin .6s linear infinite}
+@keyframes waSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.wa-busy::after,button.sell.busy::after{animation:none}}
 /* ---- b398: the HUD made of the sheet's pieces (world-art/hud-sheet.png, sliced by tools: images/hud/*.webp); the numbers, names and bars on them are live. Generated: tools/hud-sprites.py ---- */
 body.wp{--hud-font:'Pretendard Variable',Pretendard,var(--f-ui)}
 body.wp .wp-hud .wp-hud-l{gap:2.80px}

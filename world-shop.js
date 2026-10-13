@@ -262,7 +262,7 @@ export function createShop(ctx) {
     if (b.dataset.use) { ctx.use(b.dataset.use); paintShop(); return; }
     if (b.dataset.build) { close(); ctx.buildWith(b.dataset.build); return; } // straight to your island's builder, the piece in hand
     const card = b.closest(".wa-item"), sel = card && card.querySelector(".wa-coin"), target = sel ? sel.value : "";
-    if (b.dataset.arcl) await buyArcl(b.dataset.arcl, target, card);
+    if (b.dataset.arcl) { b.classList.add("wa-busy"); b.setAttribute("aria-busy", "true"); try { await buyArcl(b.dataset.arcl, target, card); } finally { b.classList.remove("wa-busy"); b.removeAttribute("aria-busy"); } }
     else if (b.dataset.arc) await payArc(b.dataset.arc, target, card);
   });
   function needSignIn() { if (sess()) return false; toast(T("Sign in with your wallet first")); close(); ctx.openAuth(); return true; }
@@ -270,8 +270,11 @@ export function createShop(ctx) {
     if (needSignIn()) return;
     busy = true;
     try {
-      const r = await post({ action: "world-arcl-spend", ...sess(), item: id, target });
-      if (!r.ok) { toast(r.j.error || T("Couldn't buy that")); Snd.bad(); return; }
+      // the counter moves at once (the price is known); the server's answer then settles it, or puts it back
+      const it = cat && (cat.items || []).find((x) => x.id === id), price = it && it.arcl != null ? Number(it.arcl) : 0;
+      if (price) delta(-price);
+      const r = await post({ action: "world-arcl-spend", ...sess(), item: id, target }).catch(() => ({ ok: false, j: {} }));
+      if (!r.ok) { if (price) delta(price); toast(r.j.error || T("Couldn't buy that")); Snd.bad(); return; }
       arcl = { ...(arcl || {}), ...r.j }; own = r.j.own; ctx.onOwn(own); paintChip(true);
       bought(id, card);
     } finally { busy = false; }
@@ -323,7 +326,12 @@ export function createShop(ctx) {
     document.body.appendChild(el); setTimeout(() => el.remove(), 2600);
   }
 
+  // a sale or a Forge buy answers with the new balance: shown at once, without another round trip. `delta` moves the
+  // counter before the answer arrives (the Forge's instant feedback); the server's numbers then settle it.
+  function apply(j, roll = true) { if (!j) return; arcl = { ...(arcl || {}), ...j }; paintChip(roll); }
+  function delta(n, d = {}) { if (!arcl) return; arcl = { ...arcl, bal: Math.max(0, (arcl.bal || 0) + n), today: Math.max(0, (arcl.today || 0) + (d.today || 0)), sold: Math.max(0, (arcl.sold || 0) + (d.sold || 0)) }; paintChip(true); }
   return {
+    apply, delta,
     refresh, claim, flushQueue, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
     pay: async (id, target = "", onStatus = null) => !!(await payArc(id, target, null, onStatus)), // the game's own purchases (a revive)
     /// knocked out (world-combat.js): "down" records it and says whether today's free get-up is left; "rest" starts the

@@ -10600,6 +10600,9 @@
     "Character, bag, craft and build": "캐릭터, 가방, 제작, 건축",
     "Build on your island": "내 섬에서 짓기",
     "Music on / off": "음악 켜기 / 끄기",
+    "The graphics paused": "그래픽이 잠시 멈췄어요",
+    "Your phone needed the memory back. Your progress is saved.": "휴대폰이 메모리를 회수했어요. 진행 상황은 저장돼 있어요.",
+    "Reload the game": "게임 다시 불러오기",
   };
 
 
