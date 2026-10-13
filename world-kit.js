@@ -64,6 +64,12 @@ export const SHOPS = [
     line: "Weapons, armour and accessories for ARCL. Bring scrap to enhance your gear." },
 ];
 export const PORTAL = { id: "platform", name: "Platform World", theta: 14, phi: 265 };
+// The town spread out from the plaza (b403): in the flat world everything between the plaza's edge (12°) and 60° moves
+// out along its own spoke by SPREAD.k (and SPREAD.c degrees more), so the halls, Coin City and the houses stand apart instead of crowding round
+// the spawn point. Bearings stay; what lies past 60° (the far countryside, the hunting grounds) doesn't move.
+// world-play.js calls spreadTown() once, after the intro planet (which keeps the round layout) is built.
+export const SPREAD = { k: 1, c: 0, max: 60 };
+export const spreadTheta = (th) => (th > 12 && th <= SPREAD.max ? 12 + (th - 12) * SPREAD.k + SPREAD.c : th);
 // districts: a sign over each, a colour on the minimap
 export const DISTRICTS = [
   { id: "launch", name: "Launch District", theta: 33, phi: 17, color: 0x39ff88 },
@@ -783,12 +789,22 @@ export function decorate(shop, kit) {
 export const TOWN = [
   ["windmill", 42, 72, 2.6, 0.4], ["windmill", 46, 88, 2.4, 1.2], ["windmill", 41, 104, 2.7, 2.0],
   ["water-tower", 44, 128, 2.4, 0.2], ["building-h", 47, 145, 2.4, 1.2], ["building-k", 43, 160, 2.4, 2.6],
-  ["solar-panel-landscape-group", 42, 250, 2.4, 0.3], ["solar-panel-portrait-group", 46, 268, 2.4, 1.1], ["building-s", 43, 285, 2.4, 0.8],
-  ["water-tower", 47, 305, 2.4, 0.4], ["shipping-container-a", 41, 320, 2.4, 0.5], ["shipping-container-c", 44, 332, 2.4, 1.9],
+  ["solar-panel-landscape-group", 42, 242, 2.4, 0.3], ["solar-panel-portrait-group", 46, 268, 2.4, 1.1], ["building-s", 43, 285, 2.4, 0.8],
+  ["water-tower", 47, 305, 2.4, 0.4], ["shipping-container-a", 37, 318, 2.4, 0.5], ["shipping-container-c", 35, 334, 2.4, 1.9],
   ["windmill", 80, 40, 2.8, 0.2], ["building-h", 85, 110, 2.6, 2.2], ["windmill", 100, 300, 2.8, 1.6], ["building-s", 110, 20, 2.6, 1.0],
   ["detail-tank-large", 95, 130, 1.8, 0.3], ["windmill", 120, 200, 2.8, 0.7], ["chimney-large", 105, 250, 2.0, 0], ["building-k", 130, 80, 2.6, 1.5],
   ["water-tower", 140, 300, 2.6, 0.4], ["windmill", 150, 160, 2.8, 2.9], ["building-h", 160, 20, 2.6, 0.5],
 ];
+export function spreadTown(k = 1.7, c = 3) {
+  if (SPREAD.k !== 1) return; SPREAD.k = k; SPREAD.c = c;
+  SHOPS.forEach((x) => { x.theta = spreadTheta(x.theta); });
+  SCAMMERS.forEach((x) => { x.theta = spreadTheta(x.theta); });
+  DISTRICTS.forEach((x) => { x.theta = x.id === "coins" ? 12 + (x.theta - 12) * k + c : spreadTheta(x.theta); }); // Coin City's sign stays past its lots
+  PORTAL.theta = spreadTheta(PORTAL.theta);
+  COIN_LOTS.forEach((l) => { l[0] = spreadTheta(l[0]); });
+  TOWN.forEach((t) => { t[1] = spreadTheta(t[1]); });
+  CARDS.forEach((c) => { c[0] = spreadTheta(c[0]); });
+}
 export function makeTown(kit) {
   const out = [];
   TOWN.forEach(([n, th, ph, sc, ry]) => {
