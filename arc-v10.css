@@ -1190,7 +1190,7 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 /* Game World beta gate (world-lock.js): a holder pass */
 .wl{position:fixed;inset:0;z-index:13000;display:grid;place-items:center;padding:16px;background:radial-gradient(60% 50% at 50% 40%,rgba(53,216,208,.10),transparent 70%),rgba(2,4,8,.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-family:var(--f-ui);color:#eef3f7;animation:wlIn .25s ease}
 @keyframes wlIn{from{opacity:0}}
-.wl-card{position:relative;width:min(440px,100%);padding:0 26px 24px;border-radius:26px;overflow:hidden;background:linear-gradient(180deg,#0b1220,#070b14 60%);border:1px solid rgba(120,196,255,.22);box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.03) inset}
+.wl-gcard{position:relative;width:min(440px,100%);padding:0 26px 24px;border-radius:26px;overflow:hidden;background:linear-gradient(180deg,#0b1220,#070b14 60%);border:1px solid rgba(120,196,255,.22);box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.03) inset}
 .wl-top{position:relative;overflow:hidden;height:150px;margin:0 -26px;display:grid;place-items:center;background:radial-gradient(70% 90% at 50% 100%,rgba(63,155,255,.35),transparent 70%),linear-gradient(180deg,#0e1a33,#0b1220);border-bottom:1px solid rgba(120,196,255,.16)}
 .wl-top img{position:relative;z-index:1;filter:drop-shadow(0 6px 18px rgba(53,216,208,.5))}
 .wl-rings{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
@@ -1200,7 +1200,7 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wl-rings i:nth-child(3){width:216px;height:216px;border-color:#39ff88;animation:wlSpin 22s linear infinite;border-left-color:transparent;border-top-color:transparent;opacity:.35}
 @keyframes wlSpin{to{transform:rotate(360deg)}}
 .wl-tag{position:absolute;left:18px;top:16px;z-index:1;padding:5px 11px;border-radius:999px;background:rgba(57,255,136,.12);border:1px solid rgba(57,255,136,.4);color:#8dffbc;font:700 12px var(--f-ui)}
-.wl-card h2{margin:20px 0 8px;font:800 26px/1.15 var(--f-display,var(--f-ui));letter-spacing:-.02em;color:#fff}
+.wl-gcard h2{margin:20px 0 8px;font:800 26px/1.15 var(--f-display,var(--f-ui));letter-spacing:-.02em;color:#fff}
 .wl-lead{margin:0 0 16px;font-size:14px;line-height:1.55;color:rgba(222,233,244,.72)}
 .wl-req{display:grid;gap:8px;margin:0 0 16px}
 .wl-req div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
@@ -1217,7 +1217,7 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wl-bad{margin:0 0 4px;font-size:13px;line-height:1.5;color:#ffb3c0}
 .wl-bad.good{color:#8dffbc}
 .wl-bad[hidden]{display:none}
-.wl-act{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:14px}
+.wl-gact{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:14px}
 .wl-go{appearance:none;height:52px;padding:0 24px;border:0;border-radius:16px;cursor:pointer;font:800 15px var(--f-ui);color:#04121a;background:linear-gradient(90deg,#3f9bff,#35d8d0,#39ff88);box-shadow:0 10px 30px rgba(53,216,208,.28)}
 .wl-go:disabled{cursor:progress;filter:saturate(.6) brightness(.9)}
 .wl-go:focus-visible,.wl-back:focus-visible{outline:2px solid #35d8d0;outline-offset:2px}
@@ -3370,3 +3370,6 @@ html.wp-pcphone .wp-prof-card{zoom:2;width:min(400px,calc((100vw - 24px) / 2));m
 .wp-crew-list [data-kick]:hover,.wp-crew-list [data-kick]:focus-visible{color:#ffb4b4;border-color:rgba(255,120,120,.5)}
 /* the player card sits over other windows: solid enough that what's behind doesn't read through */
 .wp-prof-card{background:linear-gradient(180deg,rgba(14,28,48,.97),rgba(8,17,31,.97))}
+
+/* the beta gate on a phone that shows the PC layout (play.html wp-pcphone): sized like the other windows */
+html.wp-pcphone .wl-gcard{zoom:1.7;width:min(440px,calc((100vw - 24px) / 1.7));max-height:calc((100svh - 32px) / 1.7);overflow:auto}
