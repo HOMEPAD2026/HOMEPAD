@@ -49,14 +49,14 @@
     return new Promise(function (resolve) {
       var el = document.createElement("div");
       el.className = "wl"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wl-h");
-      el.innerHTML = '<div class="wl-card wl-pass" data-no-i18n>' +
+      el.innerHTML = '<div class="wl-gcard wl-pass" data-no-i18n>' +
         '<div class="wl-top"><div class="wl-rings" aria-hidden="true"><i></i><i></i><i></i></div><img src="/images/arcircle-mark-sm.png" alt="" width="58" height="34"><span class="wl-tag">' + T.tag + '</span></div>' +
         '<h2 id="wl-h">' + T.h + '</h2><p class="wl-lead">' + T.p + '</p>' +
         '<dl class="wl-req"><div><dt>' + T.req + '</dt><dd>' + T.reqv + '</dd></div><div><dt>' + T.platl + '</dt><dd class="wl-dev"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="14" height="10" rx="1.6"/><path d="M6 17.5h7"/><rect x="17.5" y="8" width="5" height="10" rx="1.2"/></svg>' + T.plat + '</dd></div></dl>' +
         '<div class="wl-meter" hidden><div class="wl-mrow"><span>' + T.have + ' <b class="wl-have">0</b></span><span>' + T.needw + ' <b>' + fmt(NEED) + '</b></span></div><i class="wl-bar"><b></b></i></div>' +
         '<p class="wl-bad" role="alert" hidden></p>' +
         (!window.ethereum ? '<p class="wl-hint">' + (/Android|iPhone|iPad/i.test(navigator.userAgent || "") ? T.phone : T.pc) + '</p>' : '') +
-        '<div class="wl-act"><button type="button" class="wl-go">' + T.go + '</button><a class="wl-back" href="' + (o.cancelHref || "#") + '">' + T.back + '</a></div></div>';
+        '<div class="wl-gact"><button type="button" class="wl-go">' + T.go + '</button><a class="wl-back" href="' + (o.cancelHref || "#") + '">' + T.back + '</a></div></div>';
       document.body.appendChild(el);
       document.documentElement.classList.add("wl-open"); // the wallet chooser (arc-connect.js) opens above this card
       var go = el.querySelector(".wl-go"), bad = el.querySelector(".wl-bad"), meter = el.querySelector(".wl-meter");
@@ -66,7 +66,7 @@
       document.addEventListener("keydown", onKey, true);
       el.querySelector(".wl-back").addEventListener("click", function (e) { if (!o.cancelHref) { e.preventDefault(); done(false); } });
       function say(t, good) { bad.textContent = t; bad.hidden = !t; bad.classList.toggle("good", !!good); }
-      function shake() { var c = el.querySelector(".wl-card"); c.classList.remove("wl-shake"); void c.offsetWidth; c.classList.add("wl-shake"); }
+      function shake() { var c = el.querySelector(".wl-gcard"); c.classList.remove("wl-shake"); void c.offsetWidth; c.classList.add("wl-shake"); }
       var busy = false;
       go.addEventListener("click", function () {
         if (busy) return; busy = true; say(""); go.disabled = true; go.textContent = T.busy;
