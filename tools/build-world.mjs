@@ -1,0 +1,105 @@
+#!/usr/bin/env node
+// tools/build-world.mjs — ARCIRCLE World's code, minified, for play.html.
+//
+// The game is ~45 ES modules (world-*.js, 1.35 MB as written). Phones paid for every byte and every file. This
+// bundles them with esbuild into /w/:
+//   w/world-play.js   the entry (the beta check, then the game); loaded as /w/world-play.js?v=N so the asset
+//                     version (VER, read from its own URL) keeps working
+//   w/c-<hash>.js     the rest: world-all.js and everything it pulls in, plus the parts loaded on demand (the 3D
+//                     preview, N8AO, the reflector, SMAA), each named by its content so caches stay right
+// three.js itself stays the shared file /vendor/three/three-0.186.1.module.min.js (already minified, cached
+// across pages). No source maps (each build would add megabytes to the repository); the sources are next door.
+//
+// play.html's block between <!-- world-build --> and <!-- /world-build --> is rewritten with the module preloads.
+// Edit the source files, never /w/. bump-cache.sh runs this.
+//
+//   node tools/build-world.mjs           build (needs esbuild; without it play.html loads the source modules)
+//   node tools/build-world.mjs --check   fail if /w/ is older than the sources
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const OUT = path.join(ROOT, "w");
+const THREE_URL = "/vendor/three/three-0.186.1.module.min.js";
+const PLAY = path.join(ROOT, "play.html");
+
+// the sources: every world-*.js the entry reaches, and the three.js add-ons
+function sources() {
+  const list = fs.readdirSync(ROOT).filter((f) => /^world-[a-z0-9-]+\.js$/.test(f)).sort();
+  const addons = fs.readdirSync(path.join(ROOT, "vendor/three/addons")).filter((f) => f.endsWith(".js")).sort().map((f) => "vendor/three/addons/" + f);
+  return [...list, ...addons];
+}
+function srcHash() {
+  const h = crypto.createHash("sha256");
+  for (const f of sources()) { h.update(f); h.update(fs.readFileSync(path.join(ROOT, f))); }
+  h.update(fs.readFileSync(fileURLToPath(import.meta.url)));
+  return h.digest("hex").slice(0, 16);
+}
+const STAMP = path.join(OUT, ".src-hash");
+const stamp = () => { try { return fs.readFileSync(STAMP, "utf8").trim(); } catch { return ""; } };
+
+// play.html: the block of module preloads and the script tag
+function writePlay(useBuild, preloads) {
+  let html = fs.readFileSync(PLAY, "utf8");
+  const ver = (/\?v=(\d+)/.exec(html) || [])[1] || "1";
+  const a = html.indexOf("<!-- world-build -->"), b = html.indexOf("<!-- /world-build -->");
+  if (a < 0 || b < a) throw new Error("play.html has no <!-- world-build --> block");
+  const lines = useBuild
+    ? [`<link rel="modulepreload" href="/w/world-play.js?v=${ver}">`, ...preloads.map((f) => `<link rel="modulepreload" href="/w/${f}">`)]
+    : ["<!-- the source modules (no build): world-play.js imports world-all.js, which imports the rest -->", `<link rel="modulepreload" href="/world-play.js?v=${ver}">`, `<link rel="modulepreload" href="/world-all.js">`];
+  html = html.slice(0, a) + "<!-- world-build -->\n" + lines.join("\n") + "\n" + html.slice(b);
+  html = html.replace(/<script type="module" src="\/(?:w\/)?world-play\.js\?v=\d+"><\/script>/, `<script type="module" src="/${useBuild ? "w/" : ""}world-play.js?v=${ver}"></script>`);
+  fs.writeFileSync(PLAY, html);
+}
+
+const check = process.argv.includes("--check");
+const want = srcHash();
+if (check) {
+  if (stamp() !== want) { console.error("w/ is out of date: run node tools/build-world.mjs (or sh bump-cache.sh)"); process.exit(1); }
+  console.log("w/ is up to date"); process.exit(0);
+}
+
+let esbuild = null;
+try { esbuild = await import("esbuild"); } catch { try { esbuild = (await import("node:module")).createRequire(import.meta.url)("esbuild"); } catch { esbuild = null; } } // NODE_PATH works through require
+if (!esbuild) {
+  if (stamp() === want && fs.existsSync(path.join(OUT, "world-play.js"))) { console.log("world build: esbuild not found, /w/ already matches the sources"); process.exit(0); }
+  // never ship a stale build: without esbuild, play.html goes back to the source modules
+  writePlay(false, []);
+  console.warn("WARNING: esbuild not found and /w/ is out of date — play.html now loads the source modules (npm i --no-save esbuild@0.24 to build)");
+  process.exit(0);
+}
+if (stamp() === want && fs.existsSync(path.join(OUT, "world-play.js")) && !process.argv.includes("--force")) {
+  const keep = JSON.parse(fs.readFileSync(path.join(OUT, ".preload.json"), "utf8"));
+  writePlay(true, keep);
+  console.log("world build: up to date");
+  process.exit(0);
+}
+
+// a clean folder (only ever ROOT/w)
+if (path.basename(OUT) !== "w" || path.dirname(OUT) !== ROOT) throw new Error("refusing to clear " + OUT);
+fs.rmSync(OUT, { recursive: true, force: true });
+fs.mkdirSync(OUT);
+const threeExternal = {
+  name: "three-external",
+  setup(b) { b.onResolve({ filter: /three-0\.186\.1\.module\.min\.js$/ }, () => ({ path: THREE_URL, external: true })); },
+};
+const res = await esbuild.build({
+  absWorkingDir: ROOT, entryPoints: ["world-play.js"], outdir: OUT, bundle: true, splitting: true, format: "esm",
+  minify: true, target: ["es2022"], sourcemap: false, entryNames: "[name]", chunkNames: "c-[hash]", metafile: true,
+  legalComments: "eof", plugins: [threeExternal], logLevel: "warning",
+});
+// what to preload: the chunks the entry needs at start (static imports) and the game's chunk (world-all.js)
+const outs = res.metafile.outputs, rel = (p) => path.relative(OUT, path.join(ROOT, p));
+const entry = Object.keys(outs).find((k) => outs[k].entryPoint === "world-play.js");
+const pre = new Set();
+for (const im of outs[entry].imports) if (im.kind === "import-statement" && !im.external) pre.add(rel(im.path));
+const allChunk = Object.keys(outs).find((k) => outs[k].inputs && outs[k].inputs["world-all.js"]);
+if (allChunk) { pre.add(rel(allChunk)); for (const im of outs[allChunk].imports) if (im.kind === "import-statement" && !im.external) pre.add(rel(im.path)); }
+const preloads = [...pre].filter((f) => f.endsWith(".js"));
+fs.writeFileSync(path.join(OUT, ".preload.json"), JSON.stringify(preloads));
+fs.writeFileSync(STAMP, want + "\n");
+writePlay(true, preloads);
+let total = 0; for (const k of Object.keys(outs)) if (k.endsWith(".js")) total += outs[k].bytes;
+console.log(`world build: ${Object.keys(outs).filter((k) => k.endsWith(".js")).length} files, ${(total / 1024).toFixed(0)} KB (preload ${preloads.length + 1})`);

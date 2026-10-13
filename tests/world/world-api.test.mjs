@@ -130,6 +130,12 @@ check(cleanSave({ char: "kk-knight" }).char === "kk-knight" && cleanSave({ char:
   r = await W.read(new URL("http://x/?world=diag")); const e = r.body.errors[0];
   check(r.status === 200 && e && e.n === 2 && e.gpu === "Adreno 640" && r.body.days[0].n.fps_ph_auto_2 === 1, "the view shows the counts and the message: " + JSON.stringify(e));
   r = await W.handle({ action: "world-diag", kind: "wallet" }); check(r.status === 400, "nothing else is taken");
+  // frame-rate bands by chip class (b404): three phones on Adreno 6xx, two typical 55+, one 30-40; the slowest 10% lower
+  for (const [p50, p10] of [[7, 4], [7, 3], [4, 1]]) await W.handle({ action: "world-diag", kind: "frames", dev: "phone", q: "auto", tier: "h", fam: "adreno6", cap: 60, dpr: 1.5, p50, p10 });
+  r = await W.handle({ action: "world-diag", kind: "frames", dev: "phone", q: "auto", tier: "x; drop", fam: "../../etc", cap: 999, dpr: 99, p50: 99, p10: -5 }); check(r.status === 200, "odd values are clamped, not stored as given");
+  r = await W.read(new URL("http://x/?world=diag")); const ty = r.body.frames.find((f) => f.kind === "typical" && f.who === "ph_auto_h"), fm = r.body.frames.find((f) => f.kind === "family" && f.who === "ph_adreno6");
+  const keys = Object.keys(r.body.days[0].n).join(" ");
+  check(ty && ty.n === 3 && ty.median === "55+" && fm && fm.n === 3 && !/etc|drop|999/.test(keys) && r.body.days[0].n.cap_ph_60 === 4 && r.body.days[0].n.dpr_ph_1p5 === 3, "frames: per class and family, with the median band: " + JSON.stringify(ty) + " " + keys.slice(0, 200));
 }
 { const r = cleanSave({ xpv: 2, rpg: { eq: {}, bag: [], store: Array.from({ length: 60 }, (_, i) => ({ id: "st" + String(i).padStart(4, "0"), b: "ring-0", r: 0, lv: 1, p: 0 })).concat([{ id: "bad", b: "x" }]) } }).rpg;
   check(r.store.length === 48 && r.store[0].b === "ring-0", "storage keeps 48 clean pieces"); }

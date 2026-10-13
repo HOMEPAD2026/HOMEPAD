@@ -128,7 +128,7 @@ const BLADE_FS = /* glsl */`
   }`;
 
 /// the meadow. count: blades; size: the square that follows you (metres)
-export function makeGrass({ count = 40000, size = 64, mask, gshadow = null }) {
+export function makeGrass({ count = 40000, size = 64, mask, gshadow = null, mediump = false }) {
   // a blade: a tapered strip in three bends and a tip, rooted at y = 0, one unit tall
   const W = 0.075, ys = [0, 0.3, 0.62, 1], pos = [];
   ys.forEach((y, i) => { const w = W * (1 - y * 0.85); if (i < 3) pos.push(-w, y, 0, w, y, 0); else pos.push(0, y, 0); });
@@ -150,7 +150,7 @@ export function makeGrass({ count = 40000, size = 64, mask, gshadow = null }) {
     uLamps: { value: Array.from({ length: 20 }, () => new THREE.Vector2(9999, 9999)) }, uLampK: { value: 0 },
     uCloud: CLOUD.k, uCloudT: CLOUD.t,
   };
-  const mat = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]), vertexShader: BLADE_VS, fragmentShader: BLADE_FS, fog: true, side: THREE.DoubleSide, depthWrite: false });
+  const mat = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]), vertexShader: BLADE_VS, fragmentShader: (mediump ? "precision mediump float;\n" : "") + BLADE_FS, fog: true, side: THREE.DoubleSide, depthWrite: false });
   Object.assign(mat.uniforms, U); // shared objects, so the shadow uniforms stay live
   const mesh = new THREE.Mesh(geo, mat); mesh.name = "grass"; mesh.frustumCulled = false; mesh.renderOrder = 1; mesh.userData.noBake = true;
   const day = new THREE.Color(), night = new THREE.Color(0x0e1a14);

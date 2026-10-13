@@ -158,6 +158,8 @@ export function gltfLoader() {
 }
 export function makeStage(canvas, opts = {}) {
   const q = quality(opts.quality);
+  LABEL_RES = q.coarse ? 0.5 : 1; // name plates at half size on phones (label())
+  if (ARC.setSignRes) ARC.setSignRes(q.coarse ? 0.5 : 1); // and the halls' signs
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !q.low, alpha: false, powerPreference: "high-performance" });
   if (!RENDERER) RENDERER = renderer;
   renderer.setPixelRatio(q.dpr);
@@ -259,9 +261,12 @@ const solid = (color, { flat, ...o } = {}) => new THREE.MeshStandardMaterial({ c
 const glossy = (color, o = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.18, metalness: 0.65, clearcoat: 1, clearcoatRoughness: 0.15, ...o });
 
 // a crisp text label that always faces the camera
+// name plates are drawn at half resolution on phones (b404): a 1024-wide plate is ~1 MB of graphics memory each and a
+// town has dozens; on a phone screen the half-size one looks the same. makeStage sets it.
+let LABEL_RES = 1;
 export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, sub = "", pre = "", preColor = "#ffc861" } = {}) {
-  const cv = document.createElement("canvas"); cv.width = 1024; cv.height = sub ? 300 : 220;
-  const g = cv.getContext("2d");
+  const LH = sub ? 300 : 220, cv = document.createElement("canvas"); cv.width = Math.round(1024 * LABEL_RES); cv.height = Math.round(LH * LABEL_RES);
+  const g = cv.getContext("2d"); if (LABEL_RES !== 1) g.scale(LABEL_RES, LABEL_RES); // drawn in the same 1024-wide units
   // long text shrinks to fit the plate instead of running off its ends ("pre", like [GM], goes first in its own colour)
   const all = pre ? pre + " " + text : text;
   let fs = 92; g.font = `700 ${fs}px Sora, 'Pretendard Variable', system-ui, sans-serif`;
@@ -277,9 +282,9 @@ export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, s
   if (sub) { g.font = "700 62px Sora, 'Pretendard Variable', system-ui, sans-serif"; const sw = Math.min(1000, g.measureText(sub).width + 64); g.fillStyle = "rgba(6,10,16,.72)"; g.beginPath(); g.roundRect(512 - sw / 2, y0 + h + 22, sw, 88, 44); g.fill(); g.fillStyle = accent; g.fillText(sub, 512, y0 + h + 68); }
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
-  sp.scale.set(5.2 * size, 5.2 * size * cv.height / 1024, 1);
+  sp.scale.set(5.2 * size, 5.2 * size * LH / 1024, 1);
   sp.renderOrder = 10;
-  sp.userData.accent = accent; sp.userData.plate = [w / 1024, h / cv.height, (y0 + h / 2) / cv.height]; // the plate's share of the sprite, and where it sits (world-play.js keeps signs from overlapping)
+  sp.userData.accent = accent; sp.userData.plate = [w / 1024, h / LH, (y0 + h / 2) / LH]; // the plate's share of the sprite, and where it sits (world-play.js keeps signs from overlapping)
   return sp;
 }
 
@@ -401,18 +406,26 @@ export function makeScreen() {
   return g;
 }
 
-// soft low-poly clouds; they drift slowly (update with dt)
+// soft low-poly clouds; they drift slowly (update with dt). One instanced mesh for every puff of every cloud (b404:
+// it was a mesh per puff, about 110 transparent draws on its own); nearly opaque before, now solid, which looks the same
 export function makeClouds(n = 26, { spread = 260, y = 38 } = {}) {
   const g = new THREE.Group(), rr = rand(21), puff = new THREE.IcosahedronGeometry(1, 1);
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true, transparent: true, opacity: 0.92, emissive: 0x9fb6c8, emissiveIntensity: 0.25 });
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true, emissive: 0x9fb6c8, emissiveIntensity: 0.25 });
+  const clouds = [], puffs = [];
   for (let i = 0; i < n; i++) {
-    const c = new THREE.Group();
-    const k = 3 + Math.floor(rr() * 4);
-    for (let j = 0; j < k; j++) { const m = new THREE.Mesh(puff, mat); m.position.set((j - k / 2) * 2.4 + rr(), rr() * 1.2, rr() * 2 - 1); m.scale.setScalar(2 + rr() * 2.2); c.add(m); }
-    c.position.set((rr() - 0.5) * spread * 2, y + rr() * 18, (rr() - 0.5) * spread * 2); c.scale.setScalar(1 + rr() * 1.4);
-    g.add(c);
+    const k = 3 + Math.floor(rr() * 4), list = [];
+    for (let j = 0; j < k; j++) { const p = new THREE.Vector3((j - k / 2) * 2.4 + rr(), rr() * 1.2, rr() * 2 - 1); list.push({ p, s: 2 + rr() * 2.2 }); }
+    const c = { x: (rr() - 0.5) * spread * 2, y: y + rr() * 18, z: (rr() - 0.5) * spread * 2, s: 1 + rr() * 1.4, list };
+    clouds.push(c); puffs.push(...list.map((q) => ({ c, q })));
   }
-  g.userData = { mat, update: (dt) => { g.children.forEach((c, i) => { c.position.x += dt * (0.6 + (i % 3) * 0.25); if (c.position.x > spread) c.position.x -= spread * 2; }); } };
+  const mesh = new THREE.InstancedMesh(puff, mat, puffs.length); mesh.name = "clouds"; mesh.frustumCulled = false; g.add(mesh);
+  const m4 = new THREE.Matrix4(), v = new THREE.Vector3(), q0 = new THREE.Quaternion(), sc = new THREE.Vector3();
+  function place() {
+    puffs.forEach(({ c, q }, i) => { v.set(c.x + q.p.x * c.s, c.y + q.p.y * c.s, c.z + q.p.z * c.s); sc.setScalar(q.s * c.s); mesh.setMatrixAt(i, m4.compose(v, q0, sc)); });
+    mesh.instanceMatrix.needsUpdate = true;
+  }
+  place();
+  g.userData = { mat, update: (dt) => { clouds.forEach((c, i) => { c.x += dt * (0.6 + (i % 3) * 0.25); if (c.x > spread) c.x -= spread * 2; }); place(); } };
   return g;
 }
 // distant Kenney planets in the sky

@@ -118,6 +118,15 @@ export function make(deps) {
   async function diag(b) {
     const day = `worldDiag/${seoulDay(now())}`, dev = b.dev === "phone" ? "ph" : "pc", q = word(b.q, 8) || "auto";
     if (b.kind === "fps") { const f = Math.max(0, Math.min(4, Math.floor(Number(b.b) || 0))); await commit([{ inc: day, fields: { [`fps_${dev}_${q}_${f}`]: 1 } }]).catch(() => {}); return json(200, { ok: true }); }
+    if (b.kind === "frames") {
+      // the frame-rate bands from real devices (world-diag.js): per device, quality, chip class and family
+      const band = (v) => Math.max(0, Math.min(7, Math.floor(Number(v) || 0)));
+      const tier = /^[hlu]$/.test(String(b.tier)) ? b.tier : "u", fam = /^[a-z0-9]{2,12}$/.test(String(b.fam)) ? b.fam : "other";
+      const cap = [30, 45, 60].includes(Number(b.cap)) ? Number(b.cap) : 60, dpr = Math.max(0.5, Math.min(3, Math.round((Number(b.dpr) || 1) * 4) / 4));
+      const p50 = band(b.p50), p10 = band(b.p10), k = `${dev}_${q}_${tier}`;
+      await commit([{ inc: day, fields: { [`f50_${k}_${p50}`]: 1, [`f10_${k}_${p10}`]: 1, [`fam_${dev}_${fam}_${p50}`]: 1, [`cap_${dev}_${cap}`]: 1, [`dpr_${dev}_${String(dpr).replace(".", "p")}`]: 1 } }]).catch(() => {});
+      return json(200, { ok: true });
+    }
     if (b.kind === "mem") { await commit([{ inc: day, fields: { [`mem_${dev}_${q}`]: 1 } }]).catch(() => {}); return json(200, { ok: true }); }
     if (b.kind === "err") {
       const msg = String(b.msg || "").slice(0, 180); if (!msg) return json(400, { error: "empty" });
@@ -133,7 +142,15 @@ export function make(deps) {
     const out = days.map((x) => ({ day: x, n: d[`worldDiag/${x}`] || {} }));
     const errs = [...new Set(out.flatMap((x) => Object.keys(x.n).filter((k) => k.startsWith("err_")).map((k) => k.slice(4))))].slice(0, 40);
     const m = errs.length ? await getDocs(errs.map((h) => `worldDiagMsg/${h}`)) : {};
-    return json(200, { days: out, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
+    // frames: for each device / quality / chip class (and chip family), how many reports fell in each band, and the band
+    // half of them reached (the median) — the numbers Auto quality is tuned by
+    const BANDS = ["<15", "15-20", "20-25", "25-30", "30-40", "40-50", "50-55", "55+"], fr = {};
+    for (const x of out) for (const [key, v] of Object.entries(x.n)) {
+      const m = /^(f50|f10|fam)_(.+)_(\d)$/.exec(key); if (!m) continue;
+      const g = (fr[m[1] + ":" + m[2]] = fr[m[1] + ":" + m[2]] || [0, 0, 0, 0, 0, 0, 0, 0]); g[+m[3]] += v;
+    }
+    const frames = Object.entries(fr).map(([k, c]) => { const n = c.reduce((a, b) => a + b, 0); let s = 0, med = 0; for (let i = 0; i < 8; i++) { s += c[i]; if (s * 2 >= n) { med = i; break; } } const [kind, who] = k.split(":"); return { kind: kind === "f50" ? "typical" : kind === "f10" ? "slowest10" : "family", who, n, median: BANDS[med], bands: Object.fromEntries(c.map((v, i) => [BANDS[i], v]).filter((e) => e[1])) }; }).sort((a, b) => b.n - a.n);
+    return json(200, { days: out, frames, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
   }
   async function ping(b) {
     const id = String(b.id || "");

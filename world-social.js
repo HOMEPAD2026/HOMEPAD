@@ -69,13 +69,17 @@ export function createRaid(ctx) {
     gaugeMat.color.set(k > 0.5 ? 0x39ff88 : k > 0.25 ? 0xffc861 : 0xff4d6d);
   }
   const rim = new THREE.Mesh(new THREE.TorusGeometry(RAID.r, 0.16, 8, 128), glow(RAID.color, 1.8)); rim.rotation.x = Math.PI / 2; rim.position.y = 0.1; root.add(rim);
-  const pillars = [];
+  // the eight pillars and their spinning lights: two instanced meshes (b404; were sixteen meshes with eight materials)
+  const pillars = [], pilM = new THREE.InstancedMesh(new THREE.BoxGeometry(1.1, 6, 1.1), new THREE.MeshStandardMaterial({ color: 0x1a2a24, metalness: 0.5, roughness: 0.35, flatShading: true }), 8);
+  const capM = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.55, 0), glow(RAID.color, 2.4), 8), pm4 = new THREE.Matrix4(), pq = new THREE.Quaternion(), pv = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), yAx = new THREE.Vector3(0, 1, 0);
+  pilM.castShadow = true; pilM.name = "raid-pillars"; capM.name = "raid-lights";
   for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * TAU + Math.PI / 8;
-    const p = new THREE.Mesh(new THREE.BoxGeometry(1.1, 6, 1.1), new THREE.MeshStandardMaterial({ color: 0x1a2a24, metalness: 0.5, roughness: 0.35, flatShading: true }));
-    p.position.set(Math.cos(a) * (RAID.r + 1.4), 3, Math.sin(a) * (RAID.r + 1.4)); p.castShadow = true; root.add(p);
-    const cap = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), glow(RAID.color, 2.4)); cap.position.y = 3.8; p.add(cap); pillars.push(cap);
+    const a = (i / 8) * TAU + Math.PI / 8, x = Math.cos(a) * (RAID.r + 1.4), z = Math.sin(a) * (RAID.r + 1.4);
+    pilM.setMatrixAt(i, pm4.makeTranslation(x, 3, z)); pillars.push({ x, z, rotation: { y: 0 }, position: { y: 3.8 } });
   }
+  root.add(pilM, capM);
+  const placeCaps = () => { pillars.forEach((c, i) => { pq.setFromAxisAngle(yAx, c.rotation.y); pv.set(c.x, 3 + c.position.y, c.z); capM.setMatrixAt(i, pm4.compose(pv, pq, one)); }); capM.instanceMatrix.needsUpdate = true; };
+  placeCaps();
   const toTown = Math.atan2(-RAID.x, -RAID.z);
   const gate = K.makeArch ? K.makeArch(RAID.color) : null;
   if (gate) { gate.scale.setScalar(1.5); gate.position.set(Math.sin(toTown) * RAID.r, 0, Math.cos(toTown) * RAID.r); gate.rotation.y = toTown; root.add(gate); }
@@ -237,7 +241,7 @@ export function createRaid(ctx) {
     state: () => st,
     tick(dt, t) {
       rune.rotation.z += dt * 0.15; rim.material.emissiveIntensity = 1.4 + Math.sin(t * 2) * 0.4; marks.rotation.z -= dt * 0.03; marks.material.opacity = 0.26 + Math.sin(t * 1.5) * 0.06;
-      pillars.forEach((p, i) => { p.rotation.y = t * 1.2 + i; p.position.y = 3.8 + Math.sin(t * 2 + i) * 0.15; });
+      pillars.forEach((p, i) => { p.rotation.y = t * 1.2 + i; p.position.y = 3.8 + Math.sin(t * 2 + i) * 0.15; }); placeCaps();
       if (gauge && gaugeK < 0.25) gaugeMat.opacity = 0.6 + Math.sin(t * 8) * 0.25;
       tickConfetti(dt, t);
       { ctx.here(me); const d = Math.hypot(me.x - sign.parent.position.x - sign.position.x, me.z - sign.parent.position.z - sign.position.z), k = Math.max(0, Math.min(1, (d - 6) / 6)); sign.material.opacity = k; sign.visible = k > 0.02; }
