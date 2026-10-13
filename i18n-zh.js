@@ -10773,6 +10773,13 @@
     "The graphics paused": "画面暂停了",
     "Your phone needed the memory back. Your progress is saved.": "手机收回了内存。你的进度已保存。",
     "Reload the game": "重新加载游戏",
+    "My island": "我的岛屿",
+    "Build and decorate your own": "建造并装饰你自己的岛",
+    "Visit a random island": "随机拜访一座岛",
+    "A player's island you haven't seen": "你还没去过的玩家岛屿",
+    "Browse islands": "浏览岛屿",
+    "Popular, this week, friends": "热门、本周、好友",
+    "Leave the game for the platform": "离开游戏前往平台",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

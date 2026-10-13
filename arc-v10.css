@@ -3717,6 +3717,41 @@ body.wp .wp-hud .wp-purse span::before{width:28px;height:28px}
 .wa-busy::after,button.sell.busy::after{content:"";position:absolute;right:8px;top:50%;width:12px;height:12px;margin-top:-6px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:waSpin .6s linear infinite}
 @keyframes waSpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.wa-busy::after,button.sell.busy::after{animation:none}}
+/* b405: the ARCIRCLE logo's menu — my island, a random island, browse islands, the Platform World */
+.wp-brand-menu{position:fixed;z-index:60;width:min(300px,calc(100vw - 24px));padding:6px;border-radius:18px;background:linear-gradient(180deg,rgba(20,30,48,.97),rgba(10,16,28,.97));border:1px solid rgba(120,200,255,.3);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);display:flex;flex-direction:column;gap:2px;font-family:var(--hud-font,system-ui)}
+.wp-brand-menu[hidden]{display:none}
+.wp-brand-menu button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;border-radius:13px;background:transparent;color:#eef5ff;text-align:left;cursor:pointer}
+.wp-brand-menu button:hover,.wp-brand-menu button:focus-visible{background:rgba(80,170,255,.16);outline:none}
+.wp-brand-menu button:focus-visible{box-shadow:0 0 0 2px #6cc8ff inset}
+.wp-bm-i{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:rgba(60,140,255,.18);color:#8fd2ff}
+.wp-bm-i.home{background:rgba(57,255,136,.16);color:#7dffb0}.wp-bm-i.dice{background:rgba(255,200,97,.16);color:#ffd27a}.wp-bm-i.globe{background:rgba(180,140,255,.16);color:#c9b0ff}
+.wp-bm-i svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.wp-bm-t{display:flex;flex-direction:column;gap:2px;min-width:0}.wp-bm-t b{font-size:15px;font-weight:700}.wp-bm-t small{font-size:12px;color:#9fb4cc}
+html.wp-pcphone .wp-brand-menu{zoom:1.42}
+/* b405: the "where to go next" marker, bigger (players lost it) */
+.wp-qmark{margin:-30px 0 0 -30px}
+.wp-qmark svg{width:36px;height:36px;stroke:#3a2a06;stroke-width:1.2;filter:drop-shadow(0 0 8px rgba(255,200,97,.85)) drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.wp-qmark b{padding:3px 10px;font-size:14px;border:1px solid rgba(255,200,97,.45)}
+html.wp-pcphone .wp-qmark{zoom:1.42}
+/* b405: the builder's bricks bigger, so you can see what you're building with (a player's idea) */
+.wi-hot button{width:72px;height:72px;border-radius:15px}
+.wi-hot button i{width:12px;height:12px}
+.wi-hot button .wi-ph{display:block;width:62%;height:62%;margin:19%;border-radius:8px;background:var(--c,#7ee0a0);box-shadow:inset 0 -6px 0 rgba(0,0,0,.22),inset 0 3px 0 rgba(255,255,255,.25)}
+.wi-hot-name{font:700 13px var(--f-ui);color:#e6f6ee;padding:4px 12px;border-radius:999px;background:rgba(10,14,22,.82);border:1px solid rgba(126,224,160,.35)}
+.wi-hot-name:empty{display:none}
+@media (max-width:720px){.wi-hot button{flex:0 0 58px;width:58px;height:58px}}
+html.wp-pcphone #wi>.wi-build{gap:10px}
+html.wp-pcphone #wi .wi-hot{width:100%;box-sizing:border-box;gap:8px;padding:8px;border-radius:22px;overflow:visible;max-width:none}
+html.wp-pcphone #wi .wi-hot button{flex:1 1 0;width:auto;height:auto;aspect-ratio:1;max-width:98px;border-radius:18px;border-width:3px}
+html.wp-pcphone #wi .wi-hot button i{width:16px;height:16px;left:8px;bottom:8px}
+html.wp-pcphone #wi .wi-hot kbd{display:none}
+html.wp-pcphone #wi .wi-tools{width:100%;box-sizing:border-box;justify-content:space-between;gap:2px;padding:6px;border-radius:22px;overflow:visible;max-width:none}
+html.wp-pcphone #wi .wi-tools>i{display:none}
+html.wp-pcphone #wi .wi-tools button{flex:1 1 0;min-width:0;padding:10px 0 8px;font-size:15px;border-radius:15px}
+html.wp-pcphone #wi .wi-tools span{display:block}
+html.wp-pcphone #wi .wi-tools svg{width:30px;height:30px}
+html.wp-pcphone #wi .wi-hot-name{font-size:21px;padding:6px 18px}
+html.wp-pcphone body.wi-building #wi>.wi-bar{display:none} /* while building, the bigger tools take the room; Done brings the island's bar back */
 /* ---- b398: the HUD made of the sheet's pieces (world-art/hud-sheet.png, sliced by tools: images/hud/*.webp); the numbers, names and bars on them are live. Generated: tools/hud-sprites.py ---- */
 body.wp{--hud-font:'Pretendard Variable',Pretendard,var(--f-ui)}
 body.wp .wp-hud .wp-hud-l{gap:2.80px}

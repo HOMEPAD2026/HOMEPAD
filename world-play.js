@@ -1790,7 +1790,25 @@ function drawMini() {
   else K.DISTRICTS.forEach((d) => { const v = K.spot(d.theta, d.phi).add(planet.position); const dd = v.length(); if (dd < bd) { bd = dd; dn = d.name; } });
   $("wp-mini-n").textContent = bd < 22 ? dn : "";
 }
-const qm = $("wp-qmark"), proj = new THREE.Vector3();
+const qm = $("wp-qmark"), proj = new THREE.Vector3(); let qmZ = 0; addEventListener("resize", () => { qmZ = 0; });
+// the way to the goal on the ground at your feet (b405, a player's idea): three gold chevrons pointing toward the
+// quest's target, pulsing outward; gone within 8 m of it, in menus and in photo mode
+const footGuide = (() => {
+  const sh = new THREE.Shape(); sh.moveTo(0, 0.42); sh.lineTo(0.5, -0.16); sh.lineTo(0.28, -0.16); sh.lineTo(0, 0.14); sh.lineTo(-0.28, -0.16); sh.lineTo(-0.5, -0.16); sh.closePath();
+  const geo = new THREE.ShapeGeometry(sh); geo.rotateX(-Math.PI / 2); // flat on the ground, the tip toward -z
+  const g = new THREE.Group(); g.name = "foot-guide"; g.visible = false;
+  const mats = [0, 1, 2].map(() => new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.7, depthWrite: false, fog: false, toneMapped: false }));
+  mats.forEach((m, i) => { const c = new THREE.Mesh(geo, m); c.position.z = -(2.4 + i * 1.25); c.scale.setScalar(1.35 + i * 0.15); c.renderOrder = 3; g.add(c); });
+  st.scene.add(g); return { g, mats, p: new THREE.Vector3() };
+})();
+function paintFootGuide() {
+  const g = footGuide.g;
+  if (!questTarget || frozen || photo || mode !== "hub" || S.footGuide === false) { g.visible = false; return; }
+  questTarget.getWorldPosition(footGuide.p); const dx = footGuide.p.x - at.x, dz = footGuide.p.z - at.z;
+  if (Math.hypot(dx, dz) < 8) { g.visible = false; return; }
+  g.position.set(at.x, 0.09, at.z); g.rotation.y = Math.atan2(-dx, -dz); g.visible = true;
+  const t = performance.now() / 1000; footGuide.mats.forEach((m, i) => { m.opacity = reduce ? 0.7 : 0.4 + 0.5 * Math.max(0, Math.sin(t * 4 - i * 0.9)); });
+}
 function paintMarker() {
   if (!questTarget || frozen || photo || mode !== "hub") { qm.hidden = true; return; }
   questTarget.getWorldPosition(proj); const dist = proj.distanceTo(at);
@@ -1807,7 +1825,7 @@ function paintMarker() {
     if (x > r.left - p && x < r.right + p && y > r.top - p && y < r.bottom + p) { const toL = x - (r.left - p), toR = r.right + p - x, toT = y - (r.top - p), toB = r.bottom + p - y, mn = Math.min(r.left > p * 2 ? toL : 1e9, r.right < W - p * 2 ? toR : 1e9, r.top > p * 2 ? toT : 1e9, toB); if (mn === toL) x = r.left - p; else if (mn === toR) x = r.right + p; else if (mn === toT) y = r.top - p; else y = r.bottom + p; }
   }
   qm.hidden = false; qm.classList.toggle("edge", !inside);
-  qm.style.transform = `translate(${x}px,${y}px)`;
+  if (!qmZ) qmZ = parseFloat(getComputedStyle(qm).zoom) || 1; const qz = qmZ; qm.style.transform = `translate(${x / qz}px,${y / qz}px)`; // a zoomed marker (phones) moves in its own units
   qm.querySelector("svg").style.transform = inside ? "rotate(180deg)" : `rotate(${Math.atan2(y - H / 2, x - W / 2) * 180 / Math.PI + 90}deg)`;
   $("wp-qmark-d").textContent = Math.round(dist) + " m";
 }
@@ -2481,7 +2499,36 @@ function openNew() {
   });
 }
 // ---------------- closing things ----------------
-function closeAll() { try { village.hide(); crewUI.hide(); } catch { /* not built yet */ } closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
+// the ARCIRCLE logo (b405, a player's idea): a small menu — your island, a player's island (a random one, or the
+// list), or the Platform World (where the logo used to go straight away)
+const brandA = document.querySelector(".wp-brand"), brandM = document.createElement("div");
+brandM.className = "wp-brand-menu"; brandM.id = "wp-brand-menu"; brandM.hidden = true; brandM.setAttribute("role", "menu"); brandM.setAttribute("data-no-i18n", "");
+function paintBrandMenu() {
+  const ICON = {
+    home: '<path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/>',
+    dice: '<rect x="4.5" y="4.5" width="15" height="15" rx="3.5"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.4" fill="currentColor" stroke="none"/>',
+    list: '<path d="M9 7h11M9 12h11M9 17h11"/><circle cx="5" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="5" cy="17" r="1.2" fill="currentColor" stroke="none"/>',
+    globe: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.6 2.4 2.6 13.6 0 16M12 4c-2.6 2.4-2.6 13.6 0 16"/>',
+  };
+  const it = (k, icon, t, sub) => `<button type="button" role="menuitem" data-bm="${k}"><span class="wp-bm-i ${icon}" aria-hidden="true"><svg viewBox="0 0 24 24">${ICON[icon]}</svg></span><span class="wp-bm-t"><b>${esc(t)}</b><small>${esc(sub)}</small></span></button>`;
+  brandM.innerHTML = it("mine", "home", T("My island"), T("Build and decorate your own")) + it("random", "dice", T("Visit a random island"), T("A player's island you haven't seen")) + it("list", "list", T("Browse islands"), T("Popular, this week, friends")) + it("platform", "globe", T("Platform World"), T("Leave the game for the platform"));
+}
+if (brandA) {
+  document.body.appendChild(brandM);
+  // under the logo, in the screen's own coordinates (the HUD may be zoomed on a phone; the menu carries the same zoom)
+  const placeBrandMenu = () => { const r = brandA.getBoundingClientRect(), z = parseFloat(getComputedStyle(brandM).zoom) || 1; brandM.style.left = Math.max(8, r.left) / z + "px"; brandM.style.top = (r.bottom + 8) / z + "px"; };
+  addEventListener("resize", () => { if (!brandM.hidden) placeBrandMenu(); });
+  brandA.setAttribute("aria-haspopup", "menu"); brandA.setAttribute("aria-expanded", "false");
+  brandA.addEventListener("click", (e) => { e.preventDefault(); const open = brandM.hidden; if (open) paintBrandMenu(); brandM.hidden = !open; if (open) placeBrandMenu(); brandA.setAttribute("aria-expanded", String(open)); if (open) { const f = brandM.querySelector("button"); if (f) f.focus({ preventScroll: true }); } });
+  brandM.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-bm]"); if (!b) return; brandM.hidden = true; brandA.setAttribute("aria-expanded", "false");
+    const k = b.dataset.bm;
+    if (k === "mine") goIsland({}); else if (k === "random") island.tour(); else if (k === "list") island.openIsles(); else if (k === "platform") location.href = brandA.getAttribute("href") || "/?skip";
+  });
+  document.addEventListener("pointerdown", (e) => { if (!brandM.hidden && !brandM.contains(e.target) && !brandA.contains(e.target)) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !brandM.hidden) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); brandA.focus(); } });
+}
+function closeAll() { try { if (!brandM.hidden) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); } } catch { /* fine */ } try { village.hide(); crewUI.hide(); } catch { /* not built yet */ } closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
 // ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
 const help = HELP.createSupport({
   T, lang: LANG, esc, toast, where: mode === "island" ? "island" : "game",
@@ -3117,7 +3164,7 @@ st.on((dt0, t) => {
   pickCards();
   lockedCheck(dt);
   if ((miniT += dt) > 0.08) { miniT = 0; drawMini(); }
-  paintMarker();
+  paintMarker(); paintFootGuide();
   watchFps(dt);
   if (introOn) return; // the dive drives the camera
   // camera: behind and above the player, orbiting with camYaw / camPitch, wider when running; build mode sits higher
