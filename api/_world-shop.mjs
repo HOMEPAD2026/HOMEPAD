@@ -33,7 +33,7 @@ const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523
 
 export const ARCIRCLE = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
 export const FEE_BURN = "0x7f53f5014bc2cfe52ed8fb9370f2bcd497b93034"; // ArcircleFeeBurn on Arc: burnBps 5000, treasury 0xa066…02F8
-export const DAILY_CAP = 300;
+export const DAILY_CAP = 30000; // b383: from 300; each activity keeps its own daily limit (EARN) underneath it
 export const QUOTE_MS = 10 * 60e3;
 // the exchange: nothing is decided yet — the page shows these as "not set"
 export const EXCHANGE = { open: false, rate: null, minClaim: null, startsAt: null, budget: null };
@@ -49,11 +49,11 @@ export const EARN = [
   { kind: "liked1", n: 10, label: "A like from another player" }, { kind: "liked10", n: 40, label: "10 likes" }, { kind: "liked50", n: 120, label: "50 likes" },
   { kind: "stamp", n: 5, label: "Leave a stamp on someone's island", more: "up to 3 a day" },
   // the streets: the server can't watch a fight, so these are small, limited per day and spaced out
-  { kind: "street", n: 5, label: "Knock out a street scammer", more: "up to 10 a day", repeat: { max: 10, gap: 12 } },
-  { kind: "pickup", n: 2, label: "Pick up an ARCL coin in the street", more: "up to 10 a day", repeat: { max: 10, gap: 6 } },
-  { kind: "hunt", n: 8, label: "Knock out a scammer in a hunting ground", more: "5–12 by its level, up to 10 a day", repeat: { max: 10, gap: 10 } },
-  { kind: "sell", n: 0, label: "Sell gear at the Forge", more: "6–260 by rarity, up to 150 a day" },
-  { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 3 a day", repeat: { max: 3, gap: 240 } },
+  { kind: "street", n: 5, label: "Knock out a street scammer", more: "up to 100 a day", repeat: { max: 100, gap: 12 } },
+  { kind: "pickup", n: 2, label: "Pick up an ARCL coin in the street", more: "up to 100 a day", repeat: { max: 100, gap: 6 } },
+  { kind: "hunt", n: 8, label: "Knock out a scammer in a hunting ground", more: "5–12 by its level, up to 100 a day", repeat: { max: 100, gap: 10 } },
+  { kind: "sell", n: 0, label: "Sell gear at the Forge", more: "6–260 by rarity, up to 1,500 a day" },
+  { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 30 a day", repeat: { max: 30, gap: 240 } },
   { kind: "raid", n: 40, label: "Help bring down the weekly raid boss", more: "once a week, after it falls", weekly: true },
 ];
 const EARN_BY = Object.fromEntries(EARN.map((e) => [e.kind, e]));
@@ -112,12 +112,17 @@ export const CATALOG = [
 const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
 // the Forge (world-rpg.js): gear for ARCL, tiers 0–3 (Legendary only drops from bosses), and supplies.
 // Mirrors world-rpg-data.js (SLOTS, TIERS, FORGE_PRICE, FORGE_SUPPLY).
-const FORGE_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"], FORGE_TIER_LV = [1, 5, 10, 15], FORGE_PRICE = [40, 120, 300, 700];
+const FORGE_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"], FORGE_TIER_LV = [1, 5, 10, 15, 20], FORGE_PRICE = [40, 120, 300, 700, 6000];
+// the Masterwork bench (world-rpg-data.js MW): Arc-set Epic or Legendary pieces made at your level band (20–100),
+// plain, +5 or +10. Mirrors mwBand and mwPrice there.
+export const mwBand = (level) => Math.max(20, Math.min(100, Math.floor(Number(level) / 10) * 10));
+export const mwPrice = (lv, r, p) => Math.round(((r === 4 ? 2000 + 280 * lv : 400 + 60 * lv) * (p === 10 ? 3.5 : p === 5 ? 1.8 : 1)) / 10) * 10;
 // selling gear back to the Forge: by rarity, a little more per enhancement; the server can't see where a piece came
 // from (drops happen in the browser), so sales are capped per day and each piece sells once
-export const SELL_PRICE = [6, 18, 45, 110, 260], SELL_DAY_CAP = 150;
+export const SELL_PRICE = [6, 18, 45, 110, 260], SELL_DAY_CAP = 1500;
 export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, Math.floor(Number(it && it.r) || 0)))] * (1 + 0.05 * Math.max(0, Math.min(10, Math.floor(Number(it && it.p) || 0)))));
-const FORGE_SUPPLY = { hp5: { arcl: 30, kind: "hp", n: 5 }, sp5: { arcl: 30, kind: "sp", n: 5 }, recall3: { arcl: 20, kind: "recall", n: 3 } };
+const FORGE_SUPPLY = { hp5: { arcl: 30, kind: "hp", n: 5 }, sp5: { arcl: 30, kind: "sp", n: 5 }, recall3: { arcl: 20, kind: "recall", n: 3 },
+  hp20: { arcl: 100, kind: "hp", n: 20 }, sp20: { arcl: 100, kind: "sp", n: 20 }, recall10: { arcl: 60, kind: "recall", n: 10 }, scrap100: { arcl: 150, kind: "scrap", n: 100 }, scrap500: { arcl: 650, kind: "scrap", n: 500 } };
 
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 // the bag (world-rpg.js): 24 slots, and 8 more for each "Bigger bag" (10,000 $ARCIRCLE), up to 120
@@ -134,6 +139,8 @@ const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b) → { wallet } | { err }, launchRecord?, tokenBalance?, arcPrice?, receipt?, randomId? }
 export function makeShop(deps) {
+  // the day's limits (tests may set their own)
+  const DAYCAP = () => (deps.dayCap ? deps.dayCap() : DAILY_CAP), SELLCAP = () => (deps.sellCap ? deps.sellCap() : SELL_DAY_CAP);
   const { getDocs, setDoc, commit, json, signer } = deps;
   const now = () => deps.now();
   const rid = deps.randomId || (() => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join(""));
@@ -157,7 +164,7 @@ export function makeShop(deps) {
   async function credit(w, kind, n) {
     const day = seoulDay(now()), dk = `worldArclDay/${w}_${day}`;
     const today = ((await one(dk)) || {}).n || 0;
-    const amt = Math.max(0, Math.min(n, DAILY_CAP - today));
+    const amt = Math.max(0, Math.min(n, DAYCAP() - today));
     if (amt <= 0) return 0;
     const wk = isoWeek(now());
     await commit([{ inc: dk, fields: { n: amt } }, { inc: `worldArclBal/${w}`, fields: { bal: amt, earned: amt } }, { inc: `worldArclWeek/${wk}_${w}`, fields: { n: amt } }]);
@@ -182,10 +189,10 @@ export function makeShop(deps) {
     if (!/^[a-z0-9]{4,10}$/.test(id) || !/^(weapon|shield|armor|helm|ring|boots|necklace)-[0-4]$/.test(String(it.b || ""))) return json(400, { error: "that isn't a piece of gear" });
     const price = sellPrice(it), day = seoulDay(now()), dk = `worldSellDay/${w}_${day}`, sk = `worldSold/${w}_${id}`;
     const sold = ((await one(dk)) || {}).n || 0, earned = ((await one(`worldArclDay/${w}_${day}`)) || {}).n || 0;
-    // a sale is paid inside both of today's limits: 150 ARCL of sales and the 300 ARCL a day everything shares.
+    // a sale is paid inside both of today's limits: 1,500 ARCL of sales and the 30,000 ARCL a day everything shares.
     // With no room left the piece stays in the bag, unsold, so it can still be sold tomorrow.
-    const amt = Math.max(0, Math.min(price, SELL_DAY_CAP - sold, DAILY_CAP - earned));
-    if (amt <= 0) return json(200, { ok: true, credited: 0, capped: true, full: sold >= SELL_DAY_CAP ? "sell" : "earn", price, left: Math.max(0, SELL_DAY_CAP - sold), ...(await balance(w)) });
+    const amt = Math.max(0, Math.min(price, SELLCAP() - sold, DAYCAP() - earned));
+    if (amt <= 0) return json(200, { ok: true, credited: 0, capped: true, full: sold >= SELLCAP() ? "sell" : "earn", price, left: Math.max(0, SELLCAP() - sold), ...(await balance(w)) });
     if (!(await commit([{ create: sk, data: { at: now(), b: it.b, got: amt } }])).ok) {
       // sold before: refused, unless that sale paid nothing (an older version recorded sales the day's limit had
       // already swallowed); then it sells properly now
@@ -196,7 +203,7 @@ export function makeShop(deps) {
     await commit([{ inc: dk, fields: { n: amt } }]);
     const got = await credit(w, "sell", amt);
     if (got !== amt) await setDoc(sk, { at: now(), b: it.b, got }).catch(() => {});
-    return json(200, { ok: true, credited: got, price, capped: got < price, left: Math.max(0, SELL_DAY_CAP - sold - amt), ...(await balance(w)) });
+    return json(200, { ok: true, credited: got, price, capped: got < price, left: Math.max(0, SELLCAP() - sold - amt), ...(await balance(w)) });
   }
   // this week's hunters: points only for knock-outs the server counted (the daily caps above bound them)
   async function huntPoint(w, pts) {
@@ -377,21 +384,25 @@ export function makeShop(deps) {
   async function forgeBuy(b) {
     const s = signer(b); if (s.err) return s.err;
     const w = s.wallet, id = String(b.item || "");
-    const sup = FORGE_SUPPLY[id], m = /^([a-z]+):([0-3])$/.exec(id);
-    if (!sup && !(m && FORGE_SLOTS.includes(m[1]))) return json(400, { error: "the Forge doesn't sell that" });
-    const tier = m ? +m[2] : 0, price = sup ? sup.arcl : FORGE_PRICE[tier];
-    if (m) {
+    const sup = FORGE_SUPPLY[id], m = /^([a-z]+):([0-4])$/.exec(id), mw = /^mw:([a-z]+):([34]):(0|5|10)$/.exec(id);
+    if (!sup && !(m && FORGE_SLOTS.includes(m[1])) && !(mw && FORGE_SLOTS.includes(mw[1]))) return json(400, { error: "the Forge doesn't sell that" });
+    const tier = m ? +m[2] : 0;
+    let price = sup ? sup.arcl : m ? FORGE_PRICE[tier] : 0, band = 0;
+    if (m || mw) {
       const save = await one(`worldSave/${w}`), level = levelOfSave(save);
-      if (level < FORGE_TIER_LV[tier]) return json(400, { error: `needs level ${FORGE_TIER_LV[tier]} (your saved level is ${level})` });
+      if (m && level < FORGE_TIER_LV[tier]) return json(400, { error: `needs level ${FORGE_TIER_LV[tier]} (your saved level is ${level})` });
+      if (mw) { if (level < 20) return json(400, { error: `needs level 20 (your saved level is ${level})` }); band = mwBand(level); price = mwPrice(band, +mw[2], +mw[3]); }
     }
     const { bal } = await balance(w);
     if (bal < price) return json(400, { error: "not enough ARCL" });
     if (!(await commit([{ create: `worldArclSpend/${w}_${Math.floor(now() / 3000)}`, data: { at: now() } }])).ok) return json(429, { error: "one moment" });
     await commit([{ inc: `worldArclBal/${w}`, fields: { bal: -price, spent: price } }]);
-    await note(w, "spend", sup ? "forge:" + id : "forge:" + m[1], -price).catch(() => {});
+    await note(w, "spend", sup ? "forge:" + id : mw ? "forge:mw-" + mw[1] : "forge:" + m[1], -price).catch(() => {});
     await commit([{ inc: "worldStats/forge", fields: { sold: 1, arcl: price } }]).catch(() => {});
     if (sup) return json(200, { ok: true, supply: { kind: sup.kind, n: sup.n }, ...(await balance(w)) });
-    const item = { id: rid().slice(0, 6), b: `${m[1]}-${tier}`, r: tier, lv: FORGE_TIER_LV[tier], p: 0 };
+    const k = Number.isInteger(b.k) && b.k >= 0 && b.k <= 4 ? b.k : undefined; // a weapon's kind (sword … staff), the one you wield
+    const item = mw ? { id: rid().slice(0, 6), b: `${mw[1]}-4`, r: +mw[2], lv: band, p: +mw[3], ...(mw[1] === "weapon" && k != null ? { k } : {}) }
+      : { id: rid().slice(0, 6), b: `${m[1]}-${tier}`, r: tier, lv: FORGE_TIER_LV[tier], p: 0, ...(m[1] === "weapon" && tier === 4 && k != null ? { k } : {}) };
     return json(200, { ok: true, item, ...(await balance(w)) });
   }
 
@@ -449,7 +460,7 @@ export function makeShop(deps) {
     async read(view, url) {
       const w = lc(url.searchParams.get("wallet"));
       if (view === "shop") return json(200, { items: CATALOG, own: isAddr(w) ? await own(w) : null, plaza: await plaza(), feeBurn: FEE_BURN, token: ARCIRCLE, burnPct: 50, exchange: EXCHANGE }, isAddr(w) ? "no-store" : "public, max-age=30");
-      if (view === "arcl") return isAddr(w) ? json(200, { ...(await balance(w)), cap: DAILY_CAP, today: ((await one(`worldArclDay/${w}_${seoulDay(now())}`)) || {}).n || 0, earn: EARN, exchange: EXCHANGE, notify: !!(await one(`worldArclNotify/${w}`)) }) : json(400, { error: "wallet must be an address" });
+      if (view === "arcl") return isAddr(w) ? json(200, { ...(await balance(w)), cap: DAYCAP(), today: ((await one(`worldArclDay/${w}_${seoulDay(now())}`)) || {}).n || 0, sold: ((await one(`worldSellDay/${w}_${seoulDay(now())}`)) || {}).n || 0, sellCap: SELLCAP(), earn: EARN, exchange: EXCHANGE, notify: !!(await one(`worldArclNotify/${w}`)) }) : json(400, { error: "wallet must be an address" });
       if (view === "arcl-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/arclWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n }) => ({ w: s, n })) }, "public, max-age=30");
       if (view === "plaza") return json(200, await plaza(), "public, max-age=30");
       if (view === "ko") return isAddr(w) ? json(200, koView(await koOf(w)), "no-store") : json(400, { error: "wallet" });

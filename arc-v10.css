@@ -3243,3 +3243,19 @@ html.wp-pcphone .wp-loot{top:300px}html.wp-pcphone .wp-loot-in{width:240px;heigh
 .wp-savenote{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:44;padding:6px 14px;border-radius:999px;background:rgba(40,26,6,.82);border:1px solid rgba(255,200,97,.4);color:#ffe2a8;font:600 12px var(--f-ui);pointer-events:none}
 .wp-savenote[hidden]{display:none}
 html.wp-pcphone .wp-savenote{font-size:18px;padding:10px 20px}
+
+/* b383: the Forge — the Masterwork bench, the two-tap buy for dear pieces, and the day's selling limits */
+.wr-mwbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:6px 0 10px}
+.wr-mwbar p{flex:1 1 100%;margin:0;font-size:13px;color:#cfd8e2}
+.wr-mwpick{display:inline-flex;gap:4px;padding:3px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.wr-mwpick button{appearance:none;border:0;background:none;color:#cfd8e2;font:700 13px var(--f-ui);padding:6px 12px;border-radius:9px;cursor:pointer}
+.wr-mwpick button[aria-pressed="true"]{background:linear-gradient(180deg,#ffd27a,#ffb23d);color:#2a1a00}
+.wr-fcard.mw{background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 14%,transparent),rgba(255,255,255,.02));border-color:color-mix(in srgb,var(--rc) 45%,transparent)}
+.wr-buy.ask{background:linear-gradient(180deg,#ffd27a,#ffb23d)!important;color:#2a1a00!important}
+.wr-buy.short{opacity:.6}
+.wr-sellshut{display:flex;flex-direction:column;gap:3px;margin:6px 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.4);color:#ffd6dd}
+.wr-sellshut b{font:800 14px var(--f-ui);color:#ff9cad}
+.wr-sellshut span{font-size:13px;line-height:1.45}
+html.wp-pcphone .wr-mwbar p,html.wp-pcphone .wr-sellshut span{font-size:18px}
+html.wp-pcphone .wr-mwpick button{font-size:18px;padding:12px 18px}
+html.wp-pcphone .wr-sellshut b{font-size:19px}

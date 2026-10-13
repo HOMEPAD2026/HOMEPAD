@@ -1,7 +1,10 @@
 // shop.test.mjs — the World API (shop) against an in-memory store. Run: node tests/world/shop.test.mjs (needs ethers 6)
 import { ethers } from "ethers";
 const { make, loginMessage } = await import("../../api/_world.mjs");
-const { FEE_BURN, ARCIRCLE, DAILY_CAP } = await import("../../api/_world-shop.mjs");
+const { FEE_BURN, ARCIRCLE, DAILY_CAP: REAL_CAP, SELL_DAY_CAP: REAL_SELL } = await import("../../api/_world-shop.mjs");
+// the older checks below were written for a 300-a-day limit and 150 a day of sales: they keep those numbers, set
+// through the test hooks; the real limits are checked at the end
+const caps = { day: 300, sell: 150 }, DAILY_CAP = 300;
 const { recoverSigner } = await import("../../api/social.mjs");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
@@ -16,7 +19,7 @@ const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFini
 const w = ethers.Wallet.createRandom(), me = w.address.toLowerCase();
 const COIN = "0x" + "c".repeat(40);
 let bal = 0n, receipts = {};
-const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T,
+const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, dayCap: () => caps.day, sellCap: () => caps.sell,
   launchRecord: async (c) => (c === COIN ? { creator: me, symbol: "CCC" } : null),
   tokenBalance: async () => bal, arcPrice: async () => 0.002, receipt: async (h) => receipts[h] || null });
 const issued = new Date(T).toISOString(), sig = await w.signMessage(loginMessage(w.address, issued)), S = { wallet: w.address, issued, signature: sig };
@@ -78,9 +81,9 @@ r = await W.handle({ action: "world-arcl-notify", ...S2, on: true }); a = await 
 T += 864e5 * 2; const iss3 = new Date(T).toISOString(), S3 = { wallet: w.address, issued: iss3, signature: await w.signMessage(loginMessage(w.address, iss3)) };
 r = await W.handle({ action: "world-arcl-claim", ...S3, kind: "street" }); check(r.status === 200 && r.body.credited === 5, "a street scammer: 5 ARCL");
 r = await W.handle({ action: "world-arcl-claim", ...S3, kind: "street" }); check(r.status === 429, "right after: too fast");
-let st = 1; for (let i = 0; i < 12; i++) { T += 13000; r = await W.handle({ action: "world-arcl-claim", ...S3, kind: "street" }); if (r.body.credited) st++; }
-check(st === 10, "10 street scammers a day: " + st);
-T += 7000; r = await W.handle({ action: "world-arcl-claim", ...S3, kind: "pickup" }); check(r.status === 200 && r.body.credited === 2, "a street coin: 2 ARCL");
+caps.day = REAL_CAP; let st = 1; for (let i = 0; i < 104; i++) { T += 13000; r = await W.handle({ action: "world-arcl-claim", ...S3, kind: "street" }); if (r.body.credited) st++; }
+check(st === 100, "100 street scammers a day: " + st);
+T += 7000; r = await W.handle({ action: "world-arcl-claim", ...S3, kind: "pickup" }); check(r.status === 200 && r.body.credited === 2, "a street coin: 2 ARCL"); caps.day = 300;
 a = await arcl(); check(!a.got.includes("street") && a.earn.some((e) => e.kind === "street"), "street claims repeat (not one-time), and they're listed");
 // revive: a fixed 10,000 $ARCIRCLE, any price
 r = await W.handle({ action: "world-pay-quote", ...S3, item: "revive" }); check(r.status === 200 && r.body.tokens === 10000 && r.body.to === FEE_BURN, "revive: 10,000 $ARCIRCLE to FeeBurn");
@@ -163,6 +166,29 @@ r = await W.handle({ action: "world-sell", ...S5, item: { id: "lgcy01", b: "boot
   for (let i = 2; i <= 12; i++) await bagBuy(i);
   check(db.get("worldOwn/" + m6).bag === 12, "twelve bigger bags: 120 slots");
   r = await W.handle({ action: "world-pay-quote", ...S7, item: "bagplus" }); check(r.status === 400 && /120/.test(r.body.error), "no more past 120");
+}
+// b383: the real limits, the Arc set, the Masterwork bench and the bigger supplies
+{
+  check(REAL_CAP === 30000 && REAL_SELL === 1500, "the day's limit is 30,000 ARCL, sales 1,500");
+  caps.day = REAL_CAP; caps.sell = REAL_SELL;
+  T += 864e5; const w8 = ethers.Wallet.createRandom(), m8 = w8.address.toLowerCase(), i8 = new Date(T).toISOString(), S8 = { wallet: w8.address, issued: i8, signature: await w8.signMessage(loginMessage(w8.address, i8)) };
+  const give = (n) => db.set("worldArclBal/" + m8, { bal: n, earned: n, spent: 0 });
+  db.set("worldSave/" + m8, { xp: 0, xpv: 2 }); give(200000);
+  r = await W.handle({ action: "world-forge-buy", ...S8, item: "armor:4" }); check(r.status === 400 && /level 20/.test(r.body.error), "the Arc set needs level 20");
+  r = await W.handle({ action: "world-forge-buy", ...S8, item: "mw:ring:4:10" }); check(r.status === 400 && /level 20/.test(r.body.error), "so does the Masterwork bench");
+  const { xpAt } = await import("../../api/_world-social.mjs");
+  db.set("worldSave/" + m8, { xp: xpAt(57), xpv: 2 });
+  T += 4000; r = await W.handle({ action: "world-forge-buy", ...S8, item: "armor:4" }); check(r.status === 200 && r.body.item.b === "armor-4" && r.body.item.r === 4 && r.body.item.lv === 20 && r.body.bal === 194000, "the Arc set: Legendary, Lv 20, 6,000");
+  T += 4000; r = await W.handle({ action: "world-forge-buy", ...S8, item: "mw:weapon:4:10", k: 3 });
+  check(r.status === 200 && r.body.item.b === "weapon-4" && r.body.item.r === 4 && r.body.item.lv === 50 && r.body.item.p === 10 && r.body.item.k === 3 && r.body.bal === 194000 - 56000, "Masterwork: a Legendary +10 at the Lv 50 band, 56,000, in the kind you hold " + JSON.stringify(r.body.item));
+  T += 4000; r = await W.handle({ action: "world-forge-buy", ...S8, item: "mw:boots:3:5" }); check(r.status === 200 && r.body.item.r === 3 && r.body.item.p === 5 && r.body.bal === 138000 - 6120, "Masterwork: an Epic +5, 6,120");
+  T += 4000; r = await W.handle({ action: "world-forge-buy", ...S8, item: "mw:boots:2:0" }); check(r.status === 400, "the bench makes only Epic and Legendary");
+  T += 4000; r = await W.handle({ action: "world-forge-buy", ...S8, item: "mw:boots:4:7" }); check(r.status === 400, "plain, +5 or +10 only");
+  give(1000); T += 4000; r = await W.handle({ action: "world-forge-buy", ...S8, item: "mw:helm:4:10" }); check(r.status === 400 && /not enough/.test(r.body.error), "not enough ARCL: refused");
+  T += 4000; r = await W.handle({ action: "world-forge-buy", ...S8, item: "scrap500" }); check(r.status === 200 && r.body.supply.kind === "scrap" && r.body.supply.n === 500 && r.body.bal === 350, "500 scrap for 650");
+  const G = await import("../../world-rpg-data.js"), SH = await import("../../api/_world-shop.mjs");
+  check([20, 50, 100].every((lv) => [3, 4].every((rr) => [0, 5, 10].every((pp) => G.mwPrice(lv, rr, pp) === SH.mwPrice(lv, rr, pp)))) && G.mwBand(57) === SH.mwBand(57) && G.SELL_DAY_CAP === REAL_SELL && G.ARCL_DAY_CAP === REAL_CAP, "the game and the server agree on the prices and limits");
+  const v = (await W.read(new URL("http://x/?world=arcl&wallet=" + m8))).body; check(v.cap === 30000 && v.sellCap === 1500 && v.sold === 0, "the view says both limits and today's sales");
 }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);
