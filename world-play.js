@@ -1042,14 +1042,7 @@ function step(dt) {
   { const cs = meShadow; if (cs) { const up = Math.max(0, hop - floor); cs.position.y = floor - hop + 0.05; cs.material.opacity = 0.5 * Math.max(0, 1 - up / 3); cs.scale.setScalar(1 + up * 0.15); cs.visible = mode === "hub" || mode === "island"; } } // the spot stays on the floor as you jump, fainter higher up
   at.y = THREE.MathUtils.lerp(at.y, jetOn() ? hop * 0.75 : floor, grounded ? 0.2 : 0.04);
   if (frozen) { speedNow = THREE.MathUtils.lerp(speedNow, 0, 0.2); return; }
-  if (flying) {
-    const k = Math.min(1, (performance.now() - flying.t0) / flying.ms), e = 1 - Math.pow(1 - k, 3);
-    planet.position.lerpVectors(flying.from, flying.to, e);
-    camYaw = angLerp(camYaw, flying.face - Math.PI, 0.08); facing = angLerp(facing, flying.face, 0.1);
-    speedNow = 0.6 * (1 - k);
-    if (k >= 1) { facing = flying.face; camYaw = flying.face - Math.PI; flying = null; if (mode === "hub") vfx.teleport(here()); }
-    return;
-  }
+  if (flying) { stepTeleport(); speedNow = 0; return; }
   const { x, y, m, run } = inputs();
   let sp = 0;
   // in the air with no input: keep gliding the way you jumped, slowing a little
@@ -1081,16 +1074,72 @@ function step(dt) {
   }
   speedNow = THREE.MathUtils.lerp(speedNow, sp, 0.2);
 }
-// fly to a place: the player lands in front of it (things face the plaza) and turns to it
+// fly to a place (the map): a teleport (b407). The character is drawn up into a beam of light and vanishes, the
+// screen flashes, and it forms again in front of the place out of a second beam — instead of the town sliding past
+// under it. The player lands in front of the place (things face the plaza) and turns to it.
+const TP = (() => { const k = /[?&]tpslow=1\b/.test(location.search) ? 10 : 1; return { OUT: 560 * k, GAP: 160 * k, IN: 760 * k }; })(); // ?tpslow=1: ten times slower, to look at it
+const tpGlow = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(150,235,255,.75)"); gr.addColorStop(1, "rgba(60,160,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, fog: false, toneMapped: false }));
+  sp.position.y = 1.1; sp.visible = false; sp.renderOrder = 12; player.add(sp); return sp;
+})();
+const tpFlash = document.createElement("div"); tpFlash.className = "wp-tpflash"; tpFlash.setAttribute("aria-hidden", "true"); document.body.appendChild(tpFlash);
 function flyTo(g) {
   if (mode !== "hub") leaveIsland();
   const p = g.position, front = new THREE.Vector3(-p.x, 0, -p.z);
   if (front.lengthSq() < 1e-4) front.set(0, 0, 1);
   front.normalize();
   const stand = new THREE.Vector3(p.x, 0, p.z).addScaledVector(front, (g.userData.radius || 1) + 1.7);
-  vfx.teleport(here());
-  flying = { from: planet.position.clone(), to: stand.clone().negate(), face: Math.atan2(p.x - stand.x, p.z - stand.z), t0: performance.now(), ms: reduce ? 1 : 1500 };
-  camPitch = 0.05;
+  if (reduce) { planet.position.copy(stand).negate(); facing = Math.atan2(p.x - stand.x, p.z - stand.z); camYaw = facing - Math.PI; vfx.teleport(here()); return; }
+  vfx.teleport(here(), { color: 0x7fe9ff, color2: 0x2f86ff });
+  if (Snd.dash) Snd.dash();
+  flying = { to: stand.clone().negate(), face: Math.atan2(p.x - stand.x, p.z - stand.z), t0: performance.now(), jumped: false };
+}
+// where to look from on arrival: straight behind you if nothing (a tree, a stall) stands between the camera and you,
+// otherwise a little to one side or the other
+const tpRay = new THREE.Raycaster(), tpSkip = /^(grass|ground|hills|clouds|puddles|world-ground|sky)/;
+function clearYaw(face) {
+  planet.updateMatrixWorld(true);
+  const near = [], aims = [new THREE.Vector3(0, 1.4, 0), new THREE.Vector3(0, 0.35, 0)]; // the head and the feet: both in view
+  for (const c of planet.children) { if (c.visible && !tpSkip.test(c.name || "")) near.push(c); } // big groups too (their origin can be far from what they hold)
+  for (const off of [0, 0.5, -0.5, 1.0, -1.0]) {
+    const yaw = face - Math.PI + off, cp = new THREE.Vector3(0, 5.2 + camPitch * 6, 9.6).multiplyScalar(camDist * camZoom).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    const blocked = aims.some((aim) => { const d = cp.clone().sub(aim), len = d.length(); tpRay.set(aim, d.normalize()); tpRay.far = len; tpRay.camera = st.camera; // sprites need the camera to be tested
+      return tpRay.intersectObjects(near, true).some((h) => h.distance > 1.2 && h.object.isMesh && h.object.name !== "grass" && !(h.object.material && h.object.material.transparent)); });
+    if (!blocked) return yaw;
+  }
+  return face - Math.PI;
+}
+function stepTeleport() {
+  const f = flying, t = performance.now() - f.t0, { OUT, GAP, IN } = TP;
+  if (t < OUT) {
+    // drawn up into the beam: thinner and taller, a white glow swelling round it, a little lift off the ground
+    const k = t / OUT, e = k * k * (3 - 2 * k);
+    player.scale.set(1 - 0.94 * e, 1 + 1.1 * e, 1 - 0.94 * e); player.position.y += e * 0.6;
+    tpGlow.visible = true; tpGlow.material.opacity = 0.25 + 0.75 * e; tpGlow.scale.setScalar(1.2 + 2.6 * e);
+    camYaw = angLerp(camYaw, f.face - Math.PI, 0.03);
+    if (k > 0.72 && !f.flashed) { f.flashed = true; tpFlash.classList.remove("on"); void tpFlash.offsetWidth; tpFlash.classList.add("on"); }
+    return;
+  }
+  if (!f.jumped) {
+    // gone: the jump itself, under the flash; the arrival beam is already falling where you'll stand
+    f.jumped = true; player.visible = false;
+    planet.position.copy(f.to); facing = f.face; camPitch = 0.32; camYaw = clearYaw(f.face); // a higher look at the arrival, from a side nothing stands in the way of
+    vfx.teleport(here(), { color: 0xffe08a, color2: 0x39ff88 });
+  }
+  if (t < OUT + GAP) return;
+  if (t < OUT + GAP + IN) {
+    // formed again: out of a thin bright column into the character, with a little overshoot; the glow fades out
+    if (!player.visible) { player.visible = true; if (Snd.land) Snd.land(); else if (Snd.enter) Snd.enter(); }
+    const k = (t - OUT - GAP) / IN, c1 = 1.70158, c3 = c1 + 1, back = 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2);
+    const w = 0.06 + 0.94 * back, h = 2.1 - 1.1 * Math.min(1, k * 1.25);
+    player.scale.set(w, Math.max(1, h), w);
+    tpGlow.material.opacity = Math.max(0, 1 - k * 1.3); tpGlow.scale.setScalar(3.8 - 2.4 * k);
+    return;
+  }
+  player.scale.set(1, 1, 1); tpGlow.visible = false; tpGlow.material.opacity = 0; flying = null;
+  dust(6);
 }
 
 // ---------------- My Island (world-island.js): a floating island you build, and other players' islands ----------------
