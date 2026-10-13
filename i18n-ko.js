@@ -10599,6 +10599,7 @@
     "Zoom the minimap": "미니맵 확대",
     "Character, bag, craft and build": "캐릭터, 가방, 제작, 건축",
     "Build on your island": "내 섬에서 짓기",
+    "Music on / off": "음악 켜기 / 끄기",
   };
 
 
