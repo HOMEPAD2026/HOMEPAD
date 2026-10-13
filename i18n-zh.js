@@ -10585,6 +10585,8 @@
     "5–12 by its level, up to 100 a day": "按等级 5–12，每天最多 100 次",
     "6–260 by rarity, up to 1,500 a day": "按稀有度 6–260，每天最多 1,500",
     "up to 30 a day": "每天最多 30 次",
+    "Lock on": "锁定",
+    "No scammer close enough to lock on": "附近没有可锁定的骗子",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

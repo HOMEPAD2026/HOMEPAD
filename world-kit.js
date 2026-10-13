@@ -659,6 +659,15 @@ export function loadKit(ver = "") {
 }
 const shadowy = (o, cast = true, recv = true) => { o.traverse((m) => { if (m.isMesh) { m.castShadow = cast; m.receiveShadow = recv; } }); return o; };
 export { shadowy };
+/// a frozen copy of a posed figure in one see-through material (the dodge's afterimages): shapes are shared, outlines
+/// and labels left out; free it with freeGhost
+export function poseGhost(obj, mat) {
+  const g = SkeletonUtils.clone(obj);
+  const drop = []; g.traverse((o) => { if (o.isSprite || (o.userData && o.userData.outline)) drop.push(o); else if (o.isMesh) { o.material = mat; o.castShadow = false; o.receiveShadow = false; } });
+  drop.forEach((o) => o.parent && o.parent.remove(o));
+  return g;
+}
+export function freeGhost(g) { g.traverse((o) => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.dispose(); }); if (g.parent) g.parent.remove(g); }
 export function prop(kit, name, { s = 1, x = 0, z = 0, y = 0, ry = 0 } = {}) {
   const src = kit.props[name]; if (!src) return null;
   const inner = SkeletonUtils.clone(src.scene);

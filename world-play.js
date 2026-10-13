@@ -102,10 +102,36 @@ function gain(n, why) {
 function lootCard(it) {
   if (!rpg) return; const R = RPG.RARITY[it.r] || RPG.RARITY[0];
   document.querySelectorAll(".wp-loot").forEach((e) => e.remove());
-  const el = document.createElement("div"); el.className = "wp-loot r" + it.r; el.style.setProperty("--rc", R.color); el.setAttribute("role", "status");
-  el.innerHTML = `<div class="wp-loot-in"><div class="wp-loot-back"></div><div class="wp-loot-face">${rpg.thumb ? rpg.thumb(it) : ""}<b>${esc(rpg.itemName(it))}</b><small>${esc(T(R.name))}</small></div></div>`;
+  const el = document.createElement("div"); el.className = "wp-loot r" + it.r + (it.r >= 4 ? " legend" : ""); el.style.setProperty("--rc", R.color); el.setAttribute("role", "status");
+  // a Legendary gets the middle of the screen, turning rays behind it, a chime and a little longer to be admired
+  if (it.r >= 4) { try { Snd.level(); } catch { /* sound off */ } if (avatar && avatar.face) avatar.face("star", 2); }
+  el.innerHTML = `${it.r >= 4 ? '<i class="wp-loot-rays" aria-hidden="true"></i>' : ""}<div class="wp-loot-in"><div class="wp-loot-back"></div><div class="wp-loot-face">${rpg.thumb ? rpg.thumb(it) : ""}<b>${esc(rpg.itemName(it))}</b><small>${esc(T(R.name))}</small></div></div>`;
   document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on"));
-  setTimeout(() => el.classList.add("out"), 2600); setTimeout(() => el.remove(), 3200);
+  const stay = it.r >= 4 ? 3800 : 2600; setTimeout(() => el.classList.add("out"), stay); setTimeout(() => el.remove(), stay + 600);
+}
+// a critical hit: the edges of the screen flash gold (at most four times a second)
+let critEl = null, critT = 0;
+function critFlash() {
+  if (reduce || performance.now() - critT < 250) return; critT = performance.now();
+  if (!critEl) { critEl = document.createElement("div"); critEl.className = "wp-critflash"; critEl.setAttribute("aria-hidden", "true"); document.body.appendChild(critEl); }
+  critEl.classList.remove("on"); void critEl.offsetWidth; critEl.classList.add("on");
+}
+// the dodge's afterimages: three frozen, see-through copies of you along the dash (computers; a phone keeps the
+// lighter streaks)
+let ghostMat = null;
+function afterimage() {
+  if (reduce || liteFx || st.quality.coarse || !avatar || !avatar.obj || !K.poseGhost) return false;
+  if (!ghostMat) ghostMat = new THREE.MeshBasicMaterial({ color: 0x8fe6ff, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false });
+  for (let i = 0; i < 3; i++) setTimeout(() => {
+    if (!avatar || !avatar.obj) return;
+    avatar.obj.updateMatrixWorld(true);
+    const g = K.poseGhost(avatar.obj, ghostMat);
+    avatar.obj.matrixWorld.decompose(g.position, g.quaternion, g.scale); st.scene.add(g); planet.attach(g); // stays where you were as the world slides on
+    setTimeout(() => K.freeGhost(g), 400 - i * 55);
+  }, i * 55);
+  // the shared material fades as a whole: each copy lives under 0.4 s, so one fade per dash reads as three
+  const t1 = performance.now(), off2 = st.on(() => { const k = (performance.now() - t1) / 520; ghostMat.opacity = 0.34 * Math.max(0, 1 - k); if (k >= 1) off2(); });
+  return true;
 }
 let toastT = 0;
 function toast(msg) { const t = $("wp-toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); }
@@ -1791,11 +1817,12 @@ function burst(color) {
   const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 900; m.scale.setScalar(1 + k * 7); m.material.opacity = 0.9 * (1 - k); if (k >= 1) { off(); st.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 function levelUp(n, from) {
+  const grew = (() => { try { const a = RPG.statsOf(from || n - 1, rpg.data().eq), b = RPG.statsOf(n, rpg.data().eq); return [["atk", "Attack"], ["def", "Defense"], ["hp", "Max HP"], ["sp", "Max SP"]].map(([k, l]) => [T(l), b[k] - a[k]]).filter(([, d]) => d > 0); } catch { return []; } })();
   if (avatar && avatar.face) avatar.face("star", 2.4); // star eyes
   // a level-up card across the middle of the screen: the new level, rays behind it, what it opened
   { const el = document.createElement("div"); el.className = "wp-lvup"; el.setAttribute("role", "status"); el.setAttribute("data-no-i18n", "");
     const opens = []; if (n === 10) opens.push(T("The rover")); if (n === 30) opens.push(T("The jetpack")); const z = RPG.ZONES.find((x) => x.lv[0] === n); if (z) opens.push(z.name);
-    el.innerHTML = `<i class="wp-lvup-rays" aria-hidden="true"></i><small>${esc(T("Level up"))}</small><b>${n}</b>${opens.length ? `<span>${esc(opens.join(" · "))}</span>` : ""}`;
+    el.innerHTML = `<i class="wp-lvup-rays" aria-hidden="true"></i><small>${esc(T("Level up"))}</small><b>${n}</b>${opens.length ? `<span>${esc(opens.join(" · "))}</span>` : ""}${grew.length ? `<ul class="wp-lvup-st">${grew.map(([l, d], i) => `<li style="--i:${i}">${esc(l)} <em>+${d}</em></li>`).join("")}</ul>` : ""}`;
     document.body.appendChild(el); setTimeout(() => el.classList.add("out"), reduce ? 1600 : 2200); setTimeout(() => el.remove(), reduce ? 1900 : 2700); }
   const pas = RPG.PASSIVES.find((x) => x.lv === n); if (pas) setTimeout(() => toast(T("New passive: {x} — {y}", { x: T(pas.name), y: T(pas.line) })), 1600);
   if (grounded && !boarding && mode === "hub") { vy = 7.5; grounded = false; } // a little jump for joy
@@ -2258,7 +2285,7 @@ const parts = PART.createParticles({ THREE, parent: planet, low: lowGfx || st.qu
 st.on((dt) => parts.tick(dt));
 combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
-  kit: () => kit, here: (v) => here(v), facing: () => facing, avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
+  kit: () => kit, here: (v) => here(v), facing: () => facing, faceTo: (a) => { facing = a; }, afterimage: () => afterimage(), critFlash: () => critFlash(), avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },

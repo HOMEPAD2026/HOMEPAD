@@ -10415,6 +10415,8 @@
     "5–12 by its level, up to 100 a day": "레벨에 따라 5–12, 하루 최대 100회",
     "6–260 by rarity, up to 1,500 a day": "등급에 따라 6–260, 하루 최대 1,500",
     "up to 30 a day": "하루 최대 30회",
+    "Lock on": "락온",
+    "No scammer close enough to lock on": "락온할 수 있는 가까운 스캐머가 없어요",
   };
 
 

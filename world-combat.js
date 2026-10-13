@@ -67,6 +67,16 @@ export function createCombat(ctx) {
   let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null;
   const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3(), ONE = new V3(1, 1, 1);
   const add = (m) => { root.add(m); return m; };
+  // the swing's crescent: bright at the outer edge, a white core, a head that sweeps along the arc and a tail that
+  // fades behind it (one shader on the swing's ring; additive, so it glows without a box round it)
+  const slashMat = (c) => new THREE.ShaderMaterial({ uniforms: { uC: { value: new THREE.Color(c) }, uK: { value: 0 }, uO: { value: 1 }, uR: { value: new THREE.Vector2(1, 1.5) } },
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    vertexShader: "varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `uniform vec3 uC; uniform float uK, uO; uniform vec2 uR; varying vec2 vP;
+      void main(){ float r = length(vP), a = atan(vP.y, vP.x); float t = clamp((a - 0.2) / 2.6, 0.0, 1.0);
+        float head = mix(0.2, 1.15, uK); float along = smoothstep(head - 0.8, head, t) * (1.0 - smoothstep(head, head + 0.05, t));
+        float rr = clamp((r - uR.x) / (uR.y - uR.x), 0.0, 1.0); float body = pow(rr, 2.0) * (1.0 - smoothstep(0.9, 1.0, rr)); float core = smoothstep(0.72, 0.95, rr) * (1.0 - smoothstep(0.95, 1.0, rr));
+        float al = (body * 0.75 + core) * along * uO; gl_FragColor = vec4(mix(uC, vec3(1.0), core * 0.85) * al, al); }` });
   const additive = (c, o = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
   const dotTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,.7)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
   const spriteMat = (c, o = 1) => new THREE.SpriteMaterial({ map: dotTex, color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -284,6 +294,9 @@ export function createCombat(ctx) {
       for (const [w, c, o] of [[2.6, 0xffffff, 0.95], [3.4, crit ? 0xffd27a : 0x8fe6ff, 0.55]]) { const sl = sprite(c, o); sl.material.rotation = ang; sl.scale.set(w * big, 0.16 * big * (c === 0xffffff ? 1 : 2.2), 1); sl.position.copy(m.g.position).setY(m.y + 0.7); add(sl); fx.push({ o: sl, life: 0.16, t: 0, op0: o }); }
     }
     if (crit && ctx.slowmo) ctx.slowmo(160);
+    if (crit && kind !== "pet" && ctx.critFlash) ctx.critFlash();
+    // a heavy blow drives it back: dust kicks up behind its feet, along the push
+    if (kind === "heavy" && !ctx.reduce && m.rank !== "boss") puff(tmp2.copy(m.g.position).addScaledVector(tmp, 0.6).setY(0.2), 0xd8c8a8, { n: 8, speed: 2.2, size: 0.45, life: 0.45, grav: 1.5 });
     if (kind === "heavy" && ctx.punch) ctx.punch();
     // the raid boss's HP is everyone's: the hit is reported (world-raid.js) and it only falls when the server says so
     if (m.raid && raidMod === "rally" && Math.random() < 0.15) { const h = Math.max(1, Math.round(maxHp() * 0.012)); if (!down && hp < maxHp()) { hp = Math.min(maxHp(), hp + h); paintVit(); ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); } } // Rally week: hits on the boss mend you a little
@@ -344,7 +357,7 @@ export function createCombat(ctx) {
     }
   }
   function tickMobs(dt, t) {
-    ctx.here(me);
+    ctx.here(me); tickLock(dt);
     const st = stats();
     for (let i = mobs.length - 1; i >= 0; i--) {
       const m = mobs[i];
@@ -636,6 +649,7 @@ export function createCombat(ctx) {
     if (!ctx.active() || cd.attack > 0) return false;
     if (resting()) { if (cd.attack <= 0) { cd.attack = 1.2; restNote(); } return false; }
     combo = comboT > 0 ? (combo % 3) + 1 : 1; comboT = 0.75;
+    faceLock();
     const heavy = combo === 3, kind = wKind(), ham = kind === 1;
     if (rpg.swing) rpg.swing(heavy);
     ctx.here(me); fwdOf(fwd); if (ctx.onSwing) ctx.onSwing(me.clone(), fwd.clone(), heavy, kind === 1); // a rock, a crystal or a log in front gets the hit too
@@ -645,11 +659,13 @@ export function createCombat(ctx) {
     const av = ctx.avatar(); if (av) av.play(heavy ? "pick-up" : "interact-right", { once: true, fade: 0.04, speed: heavy ? 2.2 : 2.0 });
     Snd.swing && Snd.swing(heavy);
     ctx.here(me); fwdOf(fwd);
-    const arc = new THREE.Group(), blade = new THREE.Mesh(new THREE.RingGeometry(1.0, heavy ? 1.7 : 1.45, 40, 1, 0.2, 2.6), new THREE.MeshBasicMaterial({ color: heavy ? 0xfff2c8 : 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false }));
-    const glowB = new THREE.Mesh(new THREE.RingGeometry(0.85, heavy ? 2.1 : 1.7, 40, 1, 0.2, 2.6), additive(heavy ? 0xffc861 : 0x7fe6ff, 0.6)); glowB.material.side = THREE.DoubleSide;
-    const tilt = combo === 1 ? -0.6 : combo === 2 ? 0.7 : -1.5; blade.rotation.z = tilt; glowB.rotation.z = tilt; arc.add(glowB, blade);
+    // the crescent takes the weapon's colour (its rarity), gold on the third blow or with a hammer
+    const wpn = rpg.data && rpg.data() && rpg.data().eq && rpg.data().eq.weapon, wc = heavy || ham ? 0xffc861 : wpn && (wpn.r || 0) >= 1 ? new THREE.Color(RARITY[wpn.r].color).getHex() : 0x7fe6ff;
+    const r0 = heavy ? 0.85 : 0.9, r1 = heavy ? 2.1 : 1.7, sm = slashMat(wc); sm.uniforms.uR.value.set(r0, r1);
+    const arc = new THREE.Group(), blade = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 48, 1, 0.2, 2.6), sm);
+    const tilt = combo === 1 ? -0.6 : combo === 2 ? 0.7 : -1.5; blade.rotation.z = tilt; arc.add(blade);
     arc.rotation.y = ctx.facing(); arc.position.copy(me).setY(heavy ? 0.9 : 1.15).addScaledVector(fwd, 1.0); add(arc);
-    fx.push({ o: arc, life: 0.24, t: 0, grow: [0.75, heavy ? 1.45 : 1.2], onTick: (k) => { blade.material.opacity = 0.95 * (1 - k); glowB.material.opacity = 0.6 * (1 - k); arc.rotation.z = (combo === 2 ? 1 : -1) * k * 1.2; } });
+    fx.push({ o: arc, life: 0.26, t: 0, grow: [0.8, heavy ? 1.45 : 1.2], onTick: (k) => { sm.uniforms.uK.value = Math.min(1, k * 1.6); sm.uniforms.uO.value = 1 - k * k; arc.rotation.z = (combo === 2 ? 1 : -1) * k * 1.2; } });
     if (heavy) { ring(me.clone().addScaledVector(fwd, 1.4), 0xffc861, { r0: 0.4, r1: 2.6, life: 0.3, y: 0.1 }); puff(me.clone().addScaledVector(fwd, 1.4).setY(0.3), 0xd8c8a8, { n: 10, speed: 3, size: 0.5, life: 0.5, grav: 2 }); }
     const reach = ham ? (heavy ? 3.9 : 3.0) : heavy ? 3.1 : 2.6, base = stats().atk * (heavy ? 1.7 : combo === 2 ? 1.15 : 1) * (ham ? 1.45 : 1);
     if (ham) { arc.scale.multiplyScalar(1.25); if (heavy) { ring(me, 0xffc861, { r0: 0.5, r1: 4.2, life: 0.4, y: 0.1 }); if (VX) VX.impact(me.clone().setY(0.4), "hit", { big: 1.6 }); ctx.shake(0.25); } }
@@ -665,11 +681,45 @@ export function createCombat(ctx) {
     if (!ctx.moveDir(tmp)) fwdOf(tmp);
     ctx.dash(tmp, 6.5); Snd.dash ? Snd.dash() : Snd.jump && Snd.jump();
     ctx.here(me);
-    for (let i = 0; i < 6; i++) setTimeout(() => { ctx.here(me); const s = sprite(0x9fe6ff, 0.5); s.position.copy(me).setY(1.1); s.scale.set(1.2, 2.2, 1); add(s); fx.push({ o: s, life: 0.35, t: 0, op0: 0.5 }); }, i * 35);
+    // afterimages: frozen see-through copies of you along the dash (world-play.js), or soft streaks on a phone
+    if (!(ctx.afterimage && ctx.afterimage())) for (let i = 0; i < 6; i++) setTimeout(() => { ctx.here(me); const s = sprite(0x9fe6ff, 0.5); s.position.copy(me).setY(1.1); s.scale.set(1.2, 2.2, 1); add(s); fx.push({ o: s, life: 0.35, t: 0, op0: 0.5 }); }, i * 35);
     return true;
   }
+  // ---- lock-on: Tab (or the target button) picks the nearest scammer within 16 m, again for the next one; your blows
+  // and skills turn to it, and a ring turns under it. Gone when it falls, runs out of reach, or the last one is passed.
+  let lockT = null, lockMark = null;
+  const lockAlive = () => !!(lockT && !lockT.dead && mobs.includes(lockT) && lockT.g.position.distanceTo(tmp3.copy(me).setY(lockT.g.position.y)) < 22);
+  const tmp3 = new V3();
+  function lockOn() {
+    ctx.here(me);
+    const list = mobs.filter((m) => !m.dead && m.g.position.distanceTo(tmp3.copy(me).setY(m.g.position.y)) < 16).sort((a, b) => a.g.position.distanceToSquared(me) - b.g.position.distanceToSquared(me));
+    if (!list.length) { lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
+    const i = lockAlive() ? list.indexOf(lockT) : -1;
+    lockT = i < 0 ? list[0] : i + 1 < list.length ? list[i + 1] : null; // past the last one: the lock lets go
+    paintLock(); Snd.pop && Snd.pop();
+  }
+  function faceLock() { if (!lockAlive() || !ctx.faceTo) return; ctx.here(me); ctx.faceTo(Math.atan2(lockT.g.position.x - me.x, lockT.g.position.z - me.z)); }
+  function paintLock() {
+    const on = lockAlive(); if (lockBtn) lockBtn.classList.toggle("on", on);
+    if (!on) { if (lockMark) lockMark.visible = false; return; }
+    if (!lockMark) {
+      lockMark = new THREE.Group(); const mat = additive(0xff6a4d, 0.85); mat.side = THREE.DoubleSide;
+      const ringM = new THREE.Mesh(new THREE.RingGeometry(0.92, 1.02, 48), mat); ringM.rotation.x = -Math.PI / 2; lockMark.add(ringM);
+      for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 3), mat); c.rotation.z = Math.PI / 2; const a = (i / 3) * TAU; c.position.set(Math.cos(a) * 1.25, 0, Math.sin(a) * 1.25); c.rotation.y = -a; c.rotation.x = -Math.PI / 2; lockMark.add(c); }
+      lockMark.renderOrder = 4; add(lockMark);
+    }
+    lockMark.visible = true;
+  }
+  function tickLock(dt) {
+    if (!lockT) return;
+    if (!lockAlive()) { lockT = null; paintLock(); return; }
+    const big = lockT.rank === "boss" ? 2.6 : lockT.rank === "elite" ? 1.4 : 1;
+    lockMark.position.copy(lockT.g.position).setY(0.09); lockMark.scale.setScalar(big * (1 + Math.sin(performance.now() / 160) * 0.04)); lockMark.rotation.y += dt * 1.6;
+  }
   function aim(out) {
-    ctx.here(me); fwdOf(out); let best = null, bd = 24;
+    ctx.here(me); fwdOf(out);
+    if (lockAlive()) { out.copy(lockT.g.position).sub(me).setY(0).normalize(); return lockT; }
+    let best = null, bd = 24;
     for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length(); if (d < bd && tmp.normalize().dot(out) > 0.5) { bd = d; best = m; } }
     if (best) out.copy(best.g.position).sub(me).setY(0).normalize();
     return best;
@@ -919,9 +969,11 @@ export function createCombat(ctx) {
   bar.innerHTML = `<div class="wc-buffs" id="wc-buffs"></div>
     <div class="wc-pots"><button type="button" class="wc-pot hp" data-skill="pot-hp" aria-label="${T("Health potion")}">${ICON.hp}<b class="wc-key">4</b><em id="wc-pot-hp">0</em></button><button type="button" class="wc-pot sp" data-skill="pot-sp" aria-label="${T("Mana potion")}">${ICON.hp}<b class="wc-key">5</b><em id="wc-pot-sp">0</em></button></div>
     <button type="button" class="wc-skill wc-slot" data-skill="slot"><i></i><em class="wc-cd"></em><b class="wc-key">Z</b><small class="wc-lock"></small><small class="wc-slv"></small><span class="wc-swap" data-swap hidden aria-label="${T("Change skill")}"><svg viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3"/></svg></span></button>
+    <button type="button" class="wc-lockon" data-skill="lockon" aria-label="${T("Lock on")}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b class="wc-key">Tab</b></button>
     <button type="button" class="wc-attack" data-skill="attack" aria-label="${T("Attack")}"><i>${ICON.attack}</i><em class="wc-cd"></em><b class="wc-key">J</b><span class="wc-combo" id="wc-combo"></span></button>
     <div class="wc-pick" id="wc-pick" hidden role="menu"></div>`;
   document.body.appendChild(bar);
+  const lockBtn = bar.querySelector(".wc-lockon");
   // the one skill slot: the skill set there (or the newest learned), locked until level 10
   const learned = () => SKILLS.filter((x) => unlocked(x));
   const slotSkill = () => { const l = learned(); if (!l.length) return null; const want = (rpg.data() || {}).sk; return l.find((x) => x.id === want) || l[l.length - 1]; };
@@ -945,6 +997,7 @@ export function createCombat(ctx) {
       return;
     }
     closePick();
+    if (id === "lockon") { lockOn(); return; }
     if (id === "attack") { attack(); chargeStart(); try { b.setPointerCapture(e.pointerId); } catch { /* not capturable */ } } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
     b.classList.remove("press"); void b.offsetWidth; b.classList.add("press");
   });
@@ -1061,6 +1114,7 @@ export function createCombat(ctx) {
     down = false; paying = false; dead.hidden = true; hp = maxHp(); sp = maxSp(); ghostHp = hp; guardT = 3; paintVit(); ctx.down(false, where);
     if (where === "plaza") { hideBossBar(); for (const m of mobs) if (m.rank === "boss") { root.remove(m.g); } for (let i = mobs.length - 1; i >= 0; i--) if (mobs[i].rank === "boss") mobs.splice(i, 1); }
     ctx.here(me); ring(me, 0x39ff88, { r0: 0.4, r1: 3.4, life: 0.6, y: 0.15 }); puff(me.clone().setY(1.2), 0x39ff88, { n: 18, speed: 4, size: 0.35, life: 0.8, grav: -1 });
+    if (!ctx.reduce) pillar(me, where === "here" ? 0x39ff88 : 0x8fe6ff, 12, 1.2, 0.9); // back on your feet: a column of light
   }
   // resting: a small chip by the HP bars with the time left; tapping it offers the revive again (never on its own)
   function setRest(until) {
@@ -1171,6 +1225,7 @@ export function createCombat(ctx) {
     if (k === "j") { if (repeat) return true; attack(); chargeStart(); return true; } // held: the charge (keyUp lets it go)
     if (k === "k") return dodge() || true;
     if (k === "q") return nextSkill() || true;
+    if (k === "tab") { lockOn(); return true; }
     if (k === "4") return drink("hp") || true;
     if (k === "5") return drink("sp") || true;
     if (k === "z") { const s = slotSkill(); if (s) cast(s.id); else ctx.toast(T("Your first skill opens at level 10")); return true; }

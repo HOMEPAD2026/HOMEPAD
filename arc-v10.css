@@ -3259,3 +3259,28 @@ html.wp-pcphone .wp-savenote{font-size:18px;padding:10px 20px}
 html.wp-pcphone .wr-mwbar p,html.wp-pcphone .wr-sellshut span{font-size:18px}
 html.wp-pcphone .wr-mwpick button{font-size:18px;padding:12px 18px}
 html.wp-pcphone .wr-sellshut b{font-size:19px}
+/* b384: lock-on (Tab) — a small target button by the skill buttons; lit while a scammer is locked */
+.wc-lockon{position:absolute;right:150px;bottom:96px;width:44px;height:44px;display:grid;place-items:center;padding:0;border-radius:50%;appearance:none;cursor:pointer;pointer-events:auto;touch-action:none;border:2px solid rgba(255,255,255,.35);background:rgba(10,16,26,.66);color:#dfe8f1;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .12s,background .2s,border-color .2s}
+.wc-lockon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.wc-lockon .wc-key{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);font-size:9px}
+.wc-lockon.on{background:rgba(255,106,77,.28);border-color:#ff6a4d;color:#ffd2c8;box-shadow:0 0 16px rgba(255,106,77,.45)}
+.wc-lockon:active{transform:scale(.92)}
+@media (pointer:coarse){.wc-bar.coarse .wc-lockon{right:calc(196 * var(--u));bottom:calc(100 * var(--u));width:calc(46 * var(--u));height:calc(46 * var(--u))}.wc-bar.coarse .wc-lockon svg{width:calc(22 * var(--u));height:calc(22 * var(--u))}}
+/* a critical hit: the screen's edges flash gold for a moment */
+.wp-critflash{position:fixed;inset:0;z-index:11;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 58%,rgba(255,210,122,.38) 100%)}
+.wp-critflash.on{animation:wpCrit .22s ease-out}
+@keyframes wpCrit{0%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.wp-critflash.on{animation:none}}
+/* a Legendary find: centre stage, bigger, with turning rays */
+.wp-loot.legend{top:50%;transform:translate(-50%,-50%)}
+.wp-loot.legend .wp-loot-in{width:190px;height:240px}
+.wp-loot-rays{position:absolute;left:50%;top:50%;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,200,97,.28) 0 7deg,transparent 7deg 22deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 66%);mask:radial-gradient(circle,#000 18%,transparent 66%);animation:wpRays 6s linear infinite;opacity:0;transition:opacity .5s}
+.wp-loot.on .wp-loot-rays{opacity:1}.wp-loot.out .wp-loot-rays{opacity:0}
+@keyframes wpRays{to{transform:rotate(360deg)}}
+/* level up: what grew, one line after another */
+.wp-lvup-st{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:700 14px var(--f-ui);color:#eaf6ff}
+.wp-lvup-st li{opacity:0;transform:translateY(6px);animation:wpLvSt .35s ease-out forwards;animation-delay:calc(.5s + var(--i) * .14s)}
+.wp-lvup-st em{font-style:normal;color:#7dffb0}
+@keyframes wpLvSt{to{opacity:1;transform:none}}
+html.wp-pcphone .wp-lvup-st{font-size:20px}
+@media (prefers-reduced-motion:reduce){.wp-loot-rays{animation:none}.wp-lvup-st li{animation:none;opacity:1;transform:none}}
