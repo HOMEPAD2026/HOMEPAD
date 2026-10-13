@@ -15,7 +15,7 @@ export function createInbox(ctx) {
   // the bell in the top bar, with a count of what's waiting
   const btn = document.createElement("button");
   btn.type = "button"; btn.className = "wp-btn wp-icon wp-inbox-btn"; btn.id = "wp-inbox-btn"; btn.title = T("Inbox"); btn.setAttribute("aria-haspopup", "dialog");
-  btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10a6 6 0 0 1 12 0v4l2 3H4l2-3z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="wp-sr">${esc(T("Inbox"))}</span>`;
+  btn.innerHTML = `<svg class="hi" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="hiBellA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe7a0"/><stop offset="1" stop-color="#f0a12a"/></linearGradient></defs><path d="M16 3.5a2 2 0 0 1 2 2v.6a8 8 0 0 1 6 7.7v5.5l2.6 3.6a1 1 0 0 1-.8 1.6H6.2a1 1 0 0 1-.8-1.6L8 19.3v-5.5a8 8 0 0 1 6-7.7v-.6a2 2 0 0 1 2-2z" fill="url(#hiBellA)"/><path d="M12.5 26.5a3.5 3.5 0 0 0 7 0z" fill="#c9771a"/><path d="M11 12.5a5 5 0 0 1 3.5-3.6" stroke="#fff" stroke-opacity=".8" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><span class="wp-sr">${esc(T("Inbox"))}</span>`;
   const bag = $("wp-vil-btn") || $("wp-bag-btn"); if (bag && bag.parentNode) bag.parentNode.insertBefore(btn, bag.nextSibling);
   btn.addEventListener("click", () => (open ? hide() : show()));
 
@@ -23,6 +23,7 @@ export function createInbox(ctx) {
   function paintDot() {
     const n = gifts + (ctx.bookNew() || 0) + friendsOn().length;
     btn.dataset.dot = n ? String(Math.min(n, 99)) : "";
+    if (ctx.onDot) ctx.onDot(n);
   }
   async function poll(force) {
     const s = ctx.sess();

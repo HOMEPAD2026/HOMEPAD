@@ -10594,6 +10594,11 @@
     "Enter your village each week; the best ones win ARCL (50,000 the first week).": "매주 마을로 참가하세요. 가장 멋진 마을은 ARCL을 받아요 (첫 주 50,000).",
     "Character, Log and Village buttons": "캐릭터 · 일지 · 마을 버튼",
     "One tap from the top bar. Bought bricks and styles now ask if you'd like to build with them right away.": "상단 바에서 바로 열어요. 산 블록과 스타일은 바로 지어 볼지 물어봐요.",
+    "A new look on screen": "새로워진 화면",
+    "Your portrait and level up top, Shop, Map and Menu tiles, a minimap with north and zoom, and a dock for Character, Bag, Craft and Build.": "위쪽엔 내 초상화와 레벨, 상점·지도·메뉴 타일, 북쪽 표시와 확대가 되는 미니맵, 아래엔 캐릭터·가방·제작·건축 독이 생겼어요.",
+    "Zoom the minimap": "미니맵 확대",
+    "Character, bag, craft and build": "캐릭터, 가방, 제작, 건축",
+    "Build on your island": "내 섬에서 짓기",
   };
 
 

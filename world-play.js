@@ -56,9 +56,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Bricks: "블록", Colours: "색상", Height: "높이", Trophies: "트로피", Lights: "조명", Plants: "식물", Theme: "테마", Character: "캐릭터", Log: "모험 일지", Village: "마을", Later: "나중에", Pick: "선택", Visit: "방문", Cottage: "오두막", Castle: "성", Palace: "궁전", Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Cheer: "환호", Dance: "춤", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Bag: "가방", Craft: "제작", Build: "건축", Help: "도움말", Bricks: "블록", Colours: "색상", Height: "높이", Trophies: "트로피", Lights: "조명", Plants: "식물", Theme: "테마", Character: "캐릭터", Log: "모험 일지", Village: "마을", Later: "나중에", Pick: "선택", Visit: "방문", Cottage: "오두막", Castle: "성", Palace: "궁전", Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Cheer: "환호", Dance: "춤", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Bricks: "积木", Colours: "颜色", Height: "高度", Trophies: "奖杯", Lights: "灯光", Plants: "植物", Theme: "主题", Character: "角色", Log: "冒险日志", Village: "村庄", Later: "稍后", Pick: "选择", Visit: "访问", Cottage: "小屋", Castle: "城堡", Palace: "宫殿", Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Cheer: "欢呼", Dance: "跳舞", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Bag: "背包", Craft: "制作", Build: "建造", Help: "帮助", Bricks: "积木", Colours: "颜色", Height: "高度", Trophies: "奖杯", Lights: "灯光", Plants: "植物", Theme: "主题", Character: "角色", Log: "冒险日志", Village: "村庄", Later: "稍后", Pick: "选择", Visit: "访问", Cottage: "小屋", Castle: "城堡", Palace: "宫殿", Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Cheer: "欢呼", Dance: "跳舞", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -501,7 +501,7 @@ function showRide() { board.visible = boarding && ride === "board"; rover.visibl
 addEventListener("keydown", (e) => { if (!worldReady) return; /* still loading */ if ((e.key === "v" || e.key === "V") && !e.repeat && !e.target.closest("input,textarea,[contenteditable]") && mode === "hub") switchRide(); });
 let avatar = null, nameTag = null;
 // the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
-function paintFace() { const img = $("wc-face-img"), id = P.char || "arc-arc"; if (!img) return; if (thumbCache[id]) { img.src = thumbCache[id]; return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) img.src = thumbCache[id]; }); }
+function paintFace() { const imgs = [$("wc-face-img"), $("wp-lv-face")].filter(Boolean), id = P.char || "arc-arc"; if (!imgs.length) return; const put = () => imgs.forEach((img) => { img.src = thumbCache[id]; }); if (thumbCache[id]) { put(); return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) put(); }); }
 async function setAvatar(id) {
   const a = await K.makeCharacter(id, VER, P.outfit || null).catch(() => K.makeCharacter("bot"));
   setTimeout(paintFace, 300);
@@ -688,6 +688,7 @@ if (kit) await dressWorld(kit); else kitP.then((k) => { if (k) { kit = k; dressW
 // ---------------- input ----------------
 const keys = new Set();
 let hubEl = null; // the menu (built further down)
+let inboxDot = 0; // mail waiting (world-inbox.js): a dot on the Menu tile
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
 let camDist = coarse ? 1.12 : 1, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
@@ -1713,20 +1714,27 @@ function bakeMiniMap() {
     const px = new Uint8Array(N * N * 4); r.readRenderTargetPixels(rt, 0, 0, N, N, px); rt.dispose();
     const cv = document.createElement("canvas"); cv.width = cv.height = N; const g = cv.getContext("2d"), img = g.createImageData(N, N);
     for (let y = 0; y < N; y++) img.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4); // the picture comes bottom row first
+    // the render target holds linear light: brighten it to screen colours, a little richer, so the minimap reads as land
+    // (green, paths, roofs) even at night
+    const LUT = new Uint8Array(256); for (let i = 0; i < 256; i++) LUT[i] = Math.min(255, Math.round(255 * Math.pow(i / 255, 1 / 2.2) * 1.08));
+    const d = img.data; for (let i = 0; i < d.length; i += 4) { const r0 = LUT[d[i]], g0 = LUT[d[i + 1]], b0 = LUT[d[i + 2]], l = (r0 + g0 + b0) / 3; d[i] = Math.max(0, Math.min(255, l + (r0 - l) * 1.25)); d[i + 1] = Math.max(0, Math.min(255, l + (g0 - l) * 1.25)); d[i + 2] = Math.max(0, Math.min(255, l + (b0 - l) * 1.25)); }
     g.putImageData(img, 0, 0); miniMap = cv;
   } catch (e) { console.warn("minimap:", e); }
 }
+let miniZoom = 1; // the minimap's zoom button: 1 or 2
+$("wp-mini-zoom").addEventListener("click", (e) => { miniZoom = miniZoom === 1 ? 2 : 1; e.currentTarget.setAttribute("aria-pressed", String(miniZoom === 2)); });
+$("wp-mini-full").addEventListener("click", () => { closeAll(); openMap(); });
 function drawMini() {
-  const W = mini.width, c = W / 2, range = mode === "island" ? 26 : 40, sc = (c - 10) / range;
+  const W = mini.width, c = W / 2, range = (mode === "island" ? 26 : 40) / miniZoom, sc = (c - 10) / range;
   mg.clearRect(0, 0, W, W);
   mg.save(); mg.beginPath(); mg.arc(c, c, c - 2, 0, 6.283); mg.clip();
-  mg.fillStyle = "rgba(8,14,22,.82)"; mg.fillRect(0, 0, W, W);
+  mg.fillStyle = "#1b4630"; mg.fillRect(0, 0, W, W); // a green ground under everything, like the land
   mg.strokeStyle = "rgba(53,216,208,.14)"; mg.lineWidth = 2; [0.33, 0.66].forEach((k) => { mg.beginPath(); mg.arc(c, c, (c - 2) * k, 0, 6.283); mg.stroke(); });
   const cs = Math.cos(camYaw), sn = Math.sin(camYaw);
   // the ground itself under the marks: a picture of the world from above, turned with the camera (taken once it's built)
   if (mode !== "island" && miniMap) { const E = MINI_E, k = E / miniMap.width, plx = -planet.position.x, plz = -planet.position.z, a = sc * cs * k, b = sc * sn * k;
     mg.save(); mg.globalAlpha = 0.9; mg.setTransform(a, b, -b, a, c + sc * (cs * (-E / 2 - plx) - sn * (-E / 2 - plz)), c + sc * (sn * (-E / 2 - plx) + cs * (-E / 2 - plz))); mg.drawImage(miniMap, 0, 0); mg.restore();
-    mg.fillStyle = "rgba(8,14,22,.28)"; mg.fillRect(0, 0, W, W); }
+    mg.fillStyle = "rgba(8,20,14,.1)"; mg.fillRect(0, 0, W, W); }
   const put = (g, color, r, glyph) => {
     g.getWorldPosition(tmp);
     const rx = tmp.x * cs - tmp.z * sn, rz = tmp.x * sn + tmp.z * cs;
@@ -1763,8 +1771,10 @@ function drawMini() {
   if (questTarget && mode === "hub") { const p = put(questTarget, "", 0); if (p) { mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(p.px, p.py, 12, 0, 6.283); mg.stroke(); } }
   mg.restore();
   const fa = facing - Math.PI - camYaw;
-  mg.save(); mg.translate(c, c); mg.rotate(-fa); mg.fillStyle = "#eef3f7"; mg.beginPath(); mg.moveTo(0, -11); mg.lineTo(8, 9); mg.lineTo(0, 4); mg.lineTo(-8, 9); mg.closePath(); mg.fill(); mg.restore();
+  mg.save(); mg.translate(c, c); mg.rotate(-fa); mg.beginPath(); mg.moveTo(0, -22); mg.lineTo(15, 16); mg.lineTo(0, 8); mg.lineTo(-15, 16); mg.closePath(); mg.shadowColor = "rgba(0,0,0,.6)"; mg.shadowBlur = 8; mg.fillStyle = "#ffffff"; mg.fill(); mg.shadowBlur = 0; mg.lineWidth = 2.5; mg.strokeStyle = "#0c1534"; mg.stroke(); mg.restore();
   mg.strokeStyle = "rgba(255,255,255,.18)"; mg.lineWidth = 2; mg.beginPath(); mg.arc(c, c, c - 2, 0, 6.283); mg.stroke();
+  // north, on the rim: it turns with the camera
+  { const r = c - 24, nx = c + r * sn, ny = c - r * cs; mg.font = "900 30px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.lineWidth = 6; mg.strokeStyle = "rgba(6,12,30,.85)"; mg.strokeText("N", nx, ny + 1); mg.fillStyle = "#ffffff"; mg.fillText("N", nx, ny + 1); }
   let dn = "", bd = Infinity;
   if (mode === "island") { dn = island.title(); bd = 0; }
   else K.DISTRICTS.forEach((d) => { const v = K.spot(d.theta, d.phi).add(planet.position); const dd = v.length(); if (dd < bd) { bd = dd; dn = d.name; } });
@@ -2083,7 +2093,7 @@ function paintHud() {
   $("wp-lv").querySelector("b").textContent = "Lv " + level();
   const fl = $("wc-face-lv"); if (fl) fl.textContent = String(level());
   const xq = RPG.xpProgress(P.xp); $("wp-xpfill").style.width = Math.min(100, (100 * xq.into) / xq.need).toFixed(1) + "%";
-  $("wp-lv").title = `${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")} XP`;
+  $("wp-lv").title = `${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")} XP`; $("wp-lv-xp").textContent = `${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")}`;
   $("wp-cards").querySelector("b").textContent = `${P.cards.length}/${K.CARDS.length}`;
   const next = K.SCAMMERS.find((s) => !P.beaten.includes(s.id));
   $("wp-stage").textContent = next ? T("Stage {n} · {name}", { n: next.stage, name: next.name }) : T("Every stage cleared");
@@ -2405,7 +2415,7 @@ $("wp-shot-frame").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; shotRaw = shotFramed = shotSrc = null; });
 
 // ---------------- what's new: once after an update, a card with a way to try each new thing ----------------
-const NEWV = "b396";
+const NEWV = "b397";
 function maybeNew() {
   try { if (localStorage.getItem("arc.world.newv") === NEWV) return; } catch { return; }
   if (!P.char || !P.guideSeen || new URLSearchParams(location.search).has("nointro")) return;
@@ -2413,6 +2423,7 @@ function maybeNew() {
 }
 function openNew() {
   const items = [
+    ["hud", T("A new look on screen"), T("Your portrait and level up top, Shop, Map and Menu tiles, a minimap with north and zoom, and a dock for Character, Bag, Craft and Build.")],
     ["village", T("Your island is a village"), T("Decorate it to raise its score and level. Its village centre grows with it, and each level blesses you with more XP and max HP.")],
     ["contest", T("The weekly village contest"), T("Enter your village each week; the best ones win ARCL (50,000 the first week).")],
     ["buttons", T("Character, Log and Village buttons"), T("One tap from the top bar. Bought bricks and styles now ask if you'd like to build with them right away.")],
@@ -2449,6 +2460,7 @@ function openNew() {
     else if (k === "lock") openGuide();
     else if (k === "bag") rpg.show("inv");
     else if (k === "isles") island.openIsles();
+    else if (k === "hud") { if (rpg) rpg.show("inv"); }
     else if (k === "village") village.show();
     else if (k === "contest") village.show("contest");
     else if (k === "buttons") rpg.show("log");
@@ -2606,7 +2618,7 @@ function goNear(x, z) {
   planet.position.set(-sx, 0, -sz); hop = 0; vy = 0; grounded = true; facing = Math.atan2(x - sx, z - sz); camYaw = facing - Math.PI;
   Snd.dash && Snd.dash();
 }
-const inbox = INBOX.createInbox({ T: TW, esc, post, sess, toast, Snd, rpg: () => rpg, island, ghosts: () => ghosts, goIsland: (o) => goIsland(o), goNear,
+const inbox = INBOX.createInbox({ onDot: (n) => { inboxDot = n; paintMenuDot(); }, T: TW, esc, post, sess, toast, Snd, rpg: () => rpg, island, ghosts: () => ghosts, goIsland: (o) => goIsland(o), goNear,
   openProfile: (w) => openProfile(w), inHub: () => mode === "hub", bookNew: () => island.bookNew(), save: () => save(), onPots: () => combat && combat.potsCheck() });
 // ---------------- set dressing from the free model packs (world-decor.js) ----------------
 decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: S.quality === "low" || S.quality === "saver", lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
@@ -2702,7 +2714,9 @@ async function shareCard(o) {
   const blob = await SOC.drawCard({ ...o, name: P.name || W("Player"), lv: level() }); if (!blob) return;
   rpg.hide(); showShot(blob, o.title ? T("{x} in ARCIRCLE World ♾", { x: o.title }) : "");
 }
-function paintBagDot() { const b = $("wp-log-btn"); if (b) b.dataset.dot = quests.pending() ? String(quests.pending()) : ""; } // rewards waiting: on the Log button, where they are
+function paintBagDot() { const b = $("wp-log-btn"); if (b) b.dataset.dot = quests.pending() ? String(quests.pending()) : ""; paintMenuDot(); } // rewards waiting: on the Log button, where they are
+// the Menu tile's red dot: mail or rewards waiting (on a phone the bell and the Log button live in the menu)
+function paintMenuDot() { const m = $("wp-more-btn"); if (m) m.dataset.dot = inboxDot || (quests && quests.pending && quests.pending()) ? "1" : ""; }
 setInterval(paintBagDot, 4000);
 // a recall scroll: straight back to the plaza
 function recallHome() {
@@ -2772,6 +2786,17 @@ $("wp-more-btn").addEventListener("click", (e) => { e.stopPropagation(); if (hub
 $("wp-shop-btn").addEventListener("click", () => { closeAll(); arclShop.openShop(); });
 $("wp-bag-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("inv"); });
 $("wp-log-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("log"); });
+// the dock (bottom left): Character, Bag, Craft (the Forge), Build (your island's builder)
+// red dots on the dock: new pieces in the bag, new stamps on your island
+setInterval(() => { const b = $("wp-dk-bag"), i = $("wp-dk-build"); if (b) b.dataset.dot = rpg && rpg.freshN && rpg.freshN() ? "1" : ""; if (i) i.dataset.dot = island.bookNew && island.bookNew() ? "1" : ""; }, 2000);
+$("wp-dk-char").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("inv"); });
+$("wp-dk-bag").addEventListener("click", () => { closeAll(); if (rpg) { rpg.show("inv"); setTimeout(() => { const b = document.querySelector("#wr-inv .wr-bag, #wr-inv .wr-cells"); if (b) b.scrollIntoView({ block: "nearest" }); }, 60); } });
+$("wp-dk-craft").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("forge"); });
+$("wp-dk-build").addEventListener("click", async () => {
+  closeAll();
+  if (!onMyIsland()) await goIsland({});
+  if (onMyIsland() && !island.building()) island.keyDown({ key: "b", preventDefault() {} });
+});
 const openVillage = (tab) => { closeAll(); village.show(tab); };
 $("wp-vil-btn").addEventListener("click", () => openVillage());
 $("wp-vlv").addEventListener("click", () => openVillage());

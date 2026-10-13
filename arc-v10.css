@@ -3459,3 +3459,256 @@ html.wp-pcphone .wv-after .wp-card{zoom:1.6;width:min(460px,calc((100vw - 24px) 
 .wv-up p{font-size:13.5px}
 .wv-entries .wp-link{font:700 12.5px var(--f-ui);text-decoration:none;color:#9ff3ff;padding:4px 6px}
 .wv-entries .wp-link:hover{text-decoration:underline}
+
+/* ---- b397: the game HUD, redrawn (the October mockup): a brand row with the World pill; a level plate with your
+   portrait, the bar and the numbers; ARCL and key-card pills; Shop, Map and Menu tiles; the HP card with its icons; one
+   purse card; the quest card; a minimap with north, zoom and the full map; a dock (Character, Bag, Craft, Build); the
+   stick at rest. Sized for a PC here; a phone (html.wp-pcphone, 980 px wide) zooms the same pieces up. ---- */
+body.wp{--hn-bg:linear-gradient(180deg,rgba(30,48,104,.9),rgba(11,19,48,.92));--hn-bg2:linear-gradient(180deg,rgba(18,30,70,.92),rgba(8,14,36,.94));--hn-edge:rgba(128,182,255,.42);--hn-shadow:0 8px 22px rgba(0,8,30,.45),inset 0 1px 0 rgba(255,255,255,.16),inset 0 -2px 0 rgba(0,0,0,.25);--hn-cyan:#4fe3ff;--hn-gold:#ffc861}
+body.wp .wp-hud{padding:max(12px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 0 max(18px,env(safe-area-inset-left))}
+body.wp .wp-hud .wp-hud-l{gap:10px}
+html.wp-pcphone body.wp .wp-hud .wp-hud-l,html.wp-pcphone body.wp .wp-hud .wp-hud-r,html.wp-pcphone body.wp .wp-dock{zoom:1.42}
+/* the brand row */
+body.wp .wp-hud .wp-brand{gap:10px;height:34px;font-size:19px;letter-spacing:.1em;color:#fff;text-shadow:0 2px 8px rgba(0,10,40,.6)}
+body.wp .wp-hud .wp-brand img{width:auto;height:24px;filter:drop-shadow(0 0 8px rgba(79,227,255,.55))}
+body.wp .wp-hud .wp-brand b{font-weight:900}
+body.wp .wp-hud .wp-brand i{display:inline-flex;align-items:center;gap:7px;height:32px;margin-left:6px;padding:0 15px 0 10px;border-radius:999px;background:var(--hn-bg2);border:1px solid var(--hn-edge);box-shadow:var(--hn-shadow);font:800 13px var(--f-ui);letter-spacing:.02em;color:#eaf3ff}
+body.wp .wp-hud .wp-brand i svg{width:18px;height:18px;fill:none;stroke:var(--hn-cyan);stroke-width:1.8}
+/* the chips row: the level plate, ARCL, key cards (and the stage on a PC) */
+body.wp .wp-hud .wp-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+body.wp .wp-hud .wp-chip{height:44px;padding:0 14px;border-radius:16px;background:var(--hn-bg);border:1px solid var(--hn-edge);box-shadow:var(--hn-shadow);font:800 13px var(--f-ui);color:#fff}
+body.wp .wp-hud .wp-lv{position:relative;height:60px;padding:0 14px 0 4px;gap:10px;border-radius:30px 18px 18px 30px}
+body.wp .wp-hud .wp-lv-face{flex:none;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#4a9cff,#0f2a5c);border:2.5px solid var(--hn-cyan);box-shadow:0 0 12px rgba(79,227,255,.5);overflow:hidden}
+body.wp .wp-hud .wp-lv-face img{width:100%;height:100%;object-fit:cover;object-position:50% 28%}
+body.wp .wp-hud .wp-lv-face img:not([src]){visibility:hidden}
+body.wp .wp-hud .wp-lv-t{display:grid;gap:4px;min-width:104px}
+body.wp .wp-hud .wp-lv b{font:900 19px/1 var(--f-ui);color:#fff;letter-spacing:.01em}
+body.wp .wp-hud .wp-xpbar{display:block;width:104px;height:7px;margin:0;border-radius:6px;background:rgba(2,8,24,.75);box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+body.wp .wp-hud .wp-xpbar i{border-radius:6px;background:linear-gradient(90deg,#2f86ff,var(--hn-cyan));box-shadow:0 0 8px rgba(79,227,255,.7)}
+body.wp .wp-hud .wp-lv small{font:800 11px/1 var(--f-num);color:var(--hn-cyan);white-space:nowrap}
+body.wp .wp-hud .wa-chip{gap:8px;padding:0 16px 0 12px}
+body.wp .wp-hud .wa-chip img{width:24px;height:24px}
+body.wp .wp-hud .wa-chip b{font:900 15px var(--f-num)}
+body.wp .wp-hud .wa-chip small{font:800 11px var(--f-ui);color:#cfe7ff}
+body.wp .wp-hud .wp-cards{gap:8px}
+body.wp .wp-hud .wp-cards svg{width:22px;height:22px;padding:3px;border-radius:7px;background:linear-gradient(180deg,#9b6cff,#5b3ad0);stroke:#fff;box-shadow:0 0 10px rgba(155,108,255,.55)}
+body.wp .wp-hud .wp-cards b{font:900 15px var(--f-num)}
+body.wp .wp-hud .wp-stage{height:34px;font-size:12px;color:#d6e6ff}
+/* the HP card */
+body.wp .wp-hud .wc-vit{width:316px;grid-template-columns:64px 1fr;column-gap:12px;row-gap:5px;padding:10px 14px 10px 10px;border-radius:20px;background:var(--hn-bg);border:1px solid var(--hn-edge);box-shadow:var(--hn-shadow);opacity:1}
+body.wp .wp-hud .wc-face{width:64px;height:64px;border:2.5px solid var(--hn-cyan)}
+body.wp .wp-hud .wc-face b{font-size:11px}
+body.wp .wp-hud .wc-v{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:8px}
+body.wp .wp-hud .wc-v span{position:relative;display:flex;align-items:center;gap:5px;font:900 13px var(--f-ui)}
+body.wp .wp-hud .wc-v span::before{content:"";flex:none;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+body.wp .wp-hud .wc-v.hp span{color:#ff5f78;--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 3.2C20.5 15.7 12 21 12 21z'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wc-v.sp span{color:#4fc6ff;--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5s6.5 7.4 6.5 12a6.5 6.5 0 0 1-13 0c0-4.6 6.5-12 6.5-12z'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wc-v.xp span{color:var(--hn-gold);--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wc-v i{height:10px;border-radius:6px;background:rgba(2,8,24,.8);border:1px solid rgba(255,255,255,.08)}
+body.wp .wp-hud .wc-v i b{border-radius:6px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+body.wp .wp-hud .wc-v.hp i b{background:linear-gradient(90deg,#e8324f,#ff6f86)}
+body.wp .wp-hud .wc-v.sp i b{background:linear-gradient(90deg,#2f86ff,#5fd8ff)}
+body.wp .wp-hud .wc-v.xp i b{background:linear-gradient(90deg,#20c86a,#7dffb0)}
+body.wp .wp-hud .wc-v em{min-width:0;font:800 12.5px var(--f-num);color:#fff;opacity:1}
+body.wp .wp-hud .wc-vit.calm{padding:10px 14px 10px 10px;gap:5px 12px}
+body.wp .wp-hud .wc-vit.calm .wc-v i{height:10px}
+/* the quest card: a title row and the quest you're on */
+body.wp .wp-hud .wp-quests{width:272px;border-radius:18px;background:var(--hn-bg);border:1px solid var(--hn-edge);box-shadow:var(--hn-shadow)}
+body.wp .wp-hud .wp-quests-h{gap:8px;padding:10px 12px 8px;font:900 14px var(--f-ui)}
+body.wp .wp-hud .wp-quests-h::before{content:"";flex:none;width:22px;height:22px;border-radius:6px;background:linear-gradient(180deg,#ffd27a,#e89a2a) center/contain;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z'/%3E%3C/svg%3E") center/contain no-repeat}
+body.wp .wp-hud .wp-quests-h>span{flex:1;text-align:left}
+body.wp .wp-hud .wp-quests-h b{font:900 13px var(--f-num);color:var(--hn-gold)}
+body.wp .wp-hud .wp-quests-h::after{content:"";width:8px;height:8px;margin:0 2px 0 4px;border:solid #dfeaff;border-width:2px 2px 0 0;transform:rotate(45deg);transition:transform .2s ease}
+body.wp .wp-hud .wp-quests:not(.closed) .wp-quests-h::after{transform:rotate(135deg)}
+body.wp .wp-hud .wp-quests ol{padding:0 8px 8px;gap:4px}
+body.wp .wp-hud .wp-quests.closed ol{display:grid}
+body.wp .wp-hud .wp-quests.closed li:not(.cur):not(.done-now){display:none}
+body.wp .wp-hud .wp-quests li{align-items:center;gap:8px;padding:7px 10px;border-radius:12px;background:rgba(2,8,26,.55);border:1px solid rgba(128,182,255,.16);font:700 12px/1.3 var(--f-ui)}
+body.wp .wp-hud .wp-quests li i{width:16px;height:16px;margin:0;border-radius:50%;border:2px solid rgba(160,200,255,.5)}
+body.wp .wp-hud .wp-quests li small{display:inline;font:800 11px var(--f-num)}
+body.wp .wp-hud .wp-quests li.cur::after{content:"";flex:none;width:6px;height:6px;border:solid rgba(223,234,255,.7);border-width:2px 2px 0 0;transform:rotate(45deg)}
+body.wc-fight .wp-hud .wp-quests ol{display:none}
+/* the right column: the wallet, then the tiles; the purse; the village chip and who's online; the minimap */
+body.wp .wp-hud .wp-hud-r{gap:10px}
+body.wp .wp-hud .wp-hud-btns{position:relative;flex-wrap:nowrap;justify-content:flex-end;align-items:flex-start;gap:8px;padding-top:44px}
+body.wp .wp-hud #wp-wallet{position:absolute;top:0;right:0;height:34px;padding:0 14px;border-radius:999px;background:var(--hn-bg2);border:1px solid var(--hn-edge);box-shadow:var(--hn-shadow);font:800 12.5px var(--f-ui)}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet){position:relative;flex-direction:column;justify-content:center;gap:3px;width:56px;height:56px;padding:0;border-radius:16px;background:radial-gradient(120% 90% at 50% 0%,rgba(96,146,255,.5),rgba(14,26,66,.96) 72%);border:1.5px solid var(--hn-edge);box-shadow:var(--hn-shadow)}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet) svg{width:24px;height:24px;stroke-width:1.9}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet) .wp-bl,body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)>span:not(.wp-sr){display:block;font:800 10.5px/1 var(--f-ui);letter-spacing:0;color:#fff}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet) .wp-sr{position:static;width:auto;height:auto;clip:auto;margin:0;overflow:visible;white-space:nowrap;font:800 10.5px/1 var(--f-ui);color:#fff}
+body.wp .wp-hud .wp-hud-btns>.wp-btn.wp-shop-btn{width:72px;background:radial-gradient(120% 90% at 50% 0%,rgba(255,190,90,.45),rgba(52,26,6,.96) 72%)!important;border:2px solid #ffb547!important;box-shadow:0 0 16px rgba(255,170,60,.55),inset 0 1px 0 rgba(255,255,255,.3)!important;animation:none;color:#fff!important}
+body.wp .wp-hud .wp-hud-btns>.wp-btn.wp-shop-btn svg{width:28px;height:28px;stroke:#ffd27a;fill:none;stroke-width:2}
+body.wp .wp-hud .wp-hud-btns>.wp-btn[data-dot]:not([data-dot=""])::after{content:"";position:absolute;top:-4px;right:-4px;min-width:12px;width:12px;height:12px;padding:0;border-radius:50%;background:#ff3d5e;border:2px solid #0b1430;box-shadow:0 0 8px rgba(255,61,94,.8)}
+body.wp .wp-hud .wp-hud-btns>.wp-log-btn[data-dot]:not([data-dot=""])::after,body.wp .wp-hud .wp-hud-btns>#wp-inbox-btn[data-dot]:not([data-dot=""])::after{content:attr(data-dot);width:auto;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font:900 10px/14px var(--f-ui);color:#fff;text-align:center}
+body.wp .wp-hud #wp-bag-btn{display:none}
+body.wp .wp-hud .wp-purse{display:flex;gap:0;padding:6px 6px;border-radius:18px;background:var(--hn-bg);border:1px solid var(--hn-edge);box-shadow:var(--hn-shadow)}
+body.wp .wp-hud .wp-purse[hidden]{display:none}
+body.wp .wp-hud .wp-purse span{display:grid;grid-template-columns:30px auto;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:3px 12px 3px 6px;border:0;border-radius:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+body.wp .wp-hud .wp-purse span+span{border-left:1px solid rgba(128,182,255,.25);padding-left:12px}
+body.wp .wp-hud .wp-purse span::before{content:"";grid-row:1/span 2;width:30px;height:30px;border-radius:50%;background:center/18px no-repeat var(--pi),var(--pc)}
+body.wp .wp-hud .wp-purse span:first-child{--pc:linear-gradient(180deg,#3d8bff,#1f5fd6);--pi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M15.5 8.5c-.6-1.2-1.9-2-3.5-2-2 0-3.5 1-3.5 2.6 0 3.6 7 1.8 7 5.4 0 1.6-1.6 2.9-3.6 2.9-1.6 0-3-.8-3.6-2M12 4.5v15'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wp-purse span:last-child{--pc:linear-gradient(180deg,#14204a,#0a1230);--pi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234fe3ff' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M12 12c-2-2.6-3.6-4-5.6-4a4 4 0 0 0 0 8c2 0 3.6-1.4 5.6-4zm0 0c2 2.6 3.6 4 5.6 4a4 4 0 0 0 0-8c-2 0-3.6 1.4-5.6 4z'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wp-purse small{font:800 10px var(--f-ui);color:rgba(223,234,255,.75);text-align:left}
+body.wp .wp-hud .wp-purse b{font:900 15px var(--f-num);color:#fff;text-align:left}
+body.wp .wp-hud .wp-rrow{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+body.wp .wp-hud .wp-rrow .wp-vlv{height:32px;border-radius:999px;padding:0 12px 0 10px;font-size:12px}
+body.wp .wp-hud .wp-online{height:32px;padding:0 13px;border-radius:999px;background:var(--hn-bg2);border:1px solid var(--hn-edge);box-shadow:var(--hn-shadow);font:800 12px var(--f-ui);color:#fff}
+body.wp .wp-hud .wp-online i{width:9px;height:9px}
+body.wp .wp-hud .wp-mini{width:156px;height:156px;border-radius:50%;border:3px solid #3ee6ff;box-shadow:0 0 18px rgba(62,230,255,.45),inset 0 0 0 2px rgba(6,12,30,.9),0 8px 22px rgba(0,8,30,.45);background:#06102a}
+body.wp .wp-hud .wp-mini canvas{border-radius:50%}
+body.wp .wp-hud .wp-mini-b{position:absolute;right:-8px;display:grid;place-items:center;width:32px;height:32px;padding:0;border-radius:50%;background:var(--hn-bg2);border:1.5px solid var(--hn-edge);box-shadow:var(--hn-shadow);color:#eaf3ff;cursor:pointer}
+body.wp .wp-hud .wp-mini-b svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body.wp .wp-hud .wp-mini-zoom{bottom:32px}
+body.wp .wp-hud .wp-mini-full{bottom:-6px;right:-14px;border-radius:10px}
+body.wp .wp-hud .wp-mini-zoom[aria-pressed="true"]{color:#0b1430;background:#3ee6ff}
+body.wp .wp-hud .wp-mini-n{bottom:-12px}
+/* the dock: Character, Bag, Craft, Build */
+.wp-dock{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:calc(max(12px,env(safe-area-inset-bottom)) + 40px);z-index:19;display:flex;gap:8px;padding:6px;border-radius:20px;background:rgba(6,12,32,.45);border:1px solid rgba(128,182,255,.2)}
+.wp-dk{position:relative;appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:68px;height:78px;padding:0;border-radius:18px;background:radial-gradient(120% 90% at 50% 0%,rgba(96,146,255,.5),rgba(14,26,66,.96) 72%);border:1.5px solid var(--hn-edge,rgba(128,182,255,.42));box-shadow:0 8px 22px rgba(0,8,30,.45),inset 0 1px 0 rgba(255,255,255,.16),inset 0 -2px 0 rgba(0,0,0,.25);color:#fff;cursor:pointer;transition:transform .12s ease,filter .12s ease}
+.wp-dk:hover{filter:brightness(1.12)}.wp-dk:active{transform:scale(.95)}
+.wp-dk svg{width:34px;height:34px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.wp-dk span{font:800 11px/1 var(--f-ui);letter-spacing:0;color:#fff}
+#wp-dk-char svg{stroke:#8ff0ff}#wp-dk-bag svg{stroke:#c7b3ff}#wp-dk-craft svg{stroke:#ffd27a}#wp-dk-build svg{stroke:#8dffb6}
+.wp-dk[data-dot]:not([data-dot=""])::after{content:"+";position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#ff3d5e;border:2px solid #0b1430;font:900 13px/14px var(--f-ui);color:#fff;text-align:center}
+body.wp-photo .wp-dock,body.wp-intro .wp-dock,body.wi-on .wp-dock,body.wp-photo .wp-joyrest,body.wp-intro .wp-joyrest,body.wi-on .wp-joyrest{display:none!important}
+/* the stick at rest (phones): where your thumb goes; it moves to wherever you touch */
+.wp-joyrest{display:none}
+@media (pointer:coarse){
+  .wp-joyrest{position:fixed;z-index:18;left:max(36px,env(safe-area-inset-left));bottom:calc(max(12px,env(safe-area-inset-bottom)) + 300px);display:block;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(12,22,54,.35) 0 54%,rgba(12,22,54,.55) 55% 100%);border:3px solid rgba(160,200,255,.35);box-shadow:inset 0 0 0 30px rgba(255,255,255,.03);pointer-events:none;transition:opacity .15s}
+  .wp-joyrest i{position:absolute;left:50%;top:50%;width:92px;height:92px;margin:-46px 0 0 -46px;border-radius:50%;background:radial-gradient(circle at 40% 32%,#e8f1ff,#9db6dc);box-shadow:0 6px 16px rgba(0,0,0,.35),inset 0 -4px 0 rgba(0,0,0,.12)}
+  .wp-joyrest b{position:absolute;left:50%;top:50%;width:0;height:0;border:11px solid transparent}
+  .wp-joyrest .u{margin:-112px 0 0 -11px;border-bottom:13px solid rgba(223,234,255,.75);border-top:0}
+  .wp-joyrest .d{margin:99px 0 0 -11px;border-top:13px solid rgba(223,234,255,.75);border-bottom:0}
+  .wp-joyrest .l{margin:-11px 0 0 -112px;border-right:13px solid rgba(223,234,255,.75);border-left:0}
+  .wp-joyrest .r{margin:-11px 0 0 99px;border-left:13px solid rgba(223,234,255,.75);border-right:0}
+  .wp-joy.on~.wp-joyrest{opacity:0}
+  body.wp .wp-dock{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 18px);background:none;border:0;padding:0}
+}
+html:not(.wp-pcphone) .wp-joyrest{width:150px;height:150px}
+html:not(.wp-pcphone) .wp-joyrest i{width:56px;height:56px;margin:-28px 0 0 -28px}
+html:not(.wp-pcphone) .wp-joyrest .u{margin-top:-72px}html:not(.wp-pcphone) .wp-joyrest .d{margin-top:59px}html:not(.wp-pcphone) .wp-joyrest .l{margin-left:-72px}html:not(.wp-pcphone) .wp-joyrest .r{margin-left:59px}
+html:not(.wp-pcphone) .wp-joyrest{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 110px)}
+/* on a phone: Shop, Map and Menu up top (the rest live in the menu and the dock); no stage chip */
+@media (pointer:coarse){
+  body.wp .wp-hud #wp-photo-btn,body.wp .wp-hud #wp-log-btn,body.wp .wp-hud #wp-vil-btn,body.wp .wp-hud #wp-inbox-btn,body.wp .wp-hud #wp-music-btn,body.wp .wp-hud #wp-help-btn,body.wp .wp-hud #wp-set-btn{display:none!important}
+  body.wp .wp-hud #wp-map-btn,body.wp .wp-hud #wp-more-btn{display:flex!important}
+  body.wp .wp-hud .wp-stage{display:none}
+}
+/* a narrower PC: the tiles keep their icons, the names go */
+@media (pointer:fine) and (max-width:1180px){
+  body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet):not(.wp-shop-btn) .wp-bl,body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet):not(.wp-shop-btn) .wp-sr{display:none}
+  body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet){width:46px;height:46px}
+  body.wp .wp-hud .wp-hud-btns>.wp-btn.wp-shop-btn{width:62px}
+}
+@media (prefers-reduced-motion:reduce){.wp-dk,.wp-joyrest{transition:none}}
+body.wp .wp-hud #wp-more-btn{display:flex}
+/* the feed (events, finds) sits above the dock on a PC */
+@media (pointer:fine){body.wp .wp-feed{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 140px)}body.wi-on .wp-feed{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 34px)}}
+/* the filled icons (play.html class "hi"): their own colours, a soft shadow; a sheen on every tile */
+svg.hi{fill:none!important;stroke:none!important;overflow:visible;filter:drop-shadow(0 2px 2.5px rgba(0,6,24,.5))}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet) svg.hi{width:30px;height:30px}
+body.wp .wp-hud .wp-hud-btns>.wp-btn.wp-shop-btn svg.hi{width:34px;height:34px}
+.wp-dk svg.hi{width:38px;height:38px}
+body.wp .wp-hud .wp-brand i svg.hi{width:20px;height:20px}
+body.wp .wp-hud .wp-cards svg.hi{width:24px;height:24px;padding:0;background:none;box-shadow:none}
+body.wp .wp-hud .wp-vlv svg.hi{width:20px;height:20px}
+#wp-inbox-btn svg.hi{width:30px;height:30px}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)::before,.wp-dk::before{content:"";position:absolute;left:3px;right:3px;top:2px;height:46%;border-radius:13px 13px 50% 50%/13px 13px 22% 22%;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0));pointer-events:none}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)>*,.wp-dk>*{position:relative}
+/* ---- b397, second pass: closer to the mockup — darker glass, the gradient mark in its own plate, plain numbers,
+   coloured icons on the bars, a green minimap, the action buttons with navy rims ---- */
+body.wp{--hn-bg:linear-gradient(180deg,rgba(16,26,60,.84),rgba(7,12,32,.88));--hn-bg2:linear-gradient(180deg,rgba(14,22,52,.88),rgba(6,10,28,.9));--hn-edge:rgba(112,160,240,.4);--hn-shadow:0 8px 20px rgba(0,4,20,.45),inset 0 1px 0 rgba(255,255,255,.1)}
+body.wp .wp-hud .wp-brand{gap:8px;height:44px;font-size:20px;letter-spacing:.12em}
+body.wp .wp-hud .wp-brand-in{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px 0 10px;border-radius:16px;background:rgba(6,10,28,.62);border:1px solid rgba(112,160,240,.18)}
+body.wp .wp-hud .wp-logo{width:52px;height:26px;filter:drop-shadow(0 0 6px rgba(46,231,255,.45))}
+body.wp .wp-hud .wp-brand b{font:900 20px var(--f-ui);letter-spacing:.12em}
+body.wp .wp-hud .wp-brand i{height:34px;margin-left:0;padding:0 16px 0 10px;font-size:14px}
+/* plain numbers, as on the mockup (not the monospaced face) */
+body.wp .wp-hud .wp-lv small,body.wp .wp-hud .wa-chip b,body.wp .wp-hud .wp-cards b,body.wp .wp-hud .wc-v em,body.wp .wp-hud .wp-quests-h b,body.wp .wp-hud .wp-quests li small,body.wp .wp-hud .wp-purse b,body.wp .wp-hud .wp-online b,body.wp .wp-hud .wp-vlv b{font-family:var(--f-ui);font-variant-numeric:tabular-nums;letter-spacing:0}
+/* the level plate: a big portrait, the level with a little arrow, the bar, the numbers */
+body.wp .wp-hud .wp-lv{height:64px;padding:0 16px 0 2px;gap:10px;border-radius:32px 18px 18px 32px;background:linear-gradient(90deg,rgba(10,18,46,.78),rgba(8,14,36,.55));border-color:rgba(112,160,240,.28)}
+body.wp .wp-hud .wp-lv-face{width:60px;height:60px;border-width:3px}
+body.wp .wp-hud .wp-lv b{display:flex;align-items:center;gap:8px;font-size:21px}
+body.wp .wp-hud .wp-lv b::after{content:"";width:0;height:0;border:6px solid transparent;border-left:8px solid rgba(200,215,240,.5);border-right:0;margin-left:auto}
+body.wp .wp-hud .wp-lv-t{min-width:112px}
+body.wp .wp-hud .wp-xpbar{width:112px}
+body.wp .wp-hud .wp-lv small{font-size:12px;font-weight:800}
+body.wp .wp-hud .wa-chip{background:var(--hn-bg);border-color:var(--hn-edge)}
+body.wp .wp-hud .wa-chip b{font-size:16px}
+body.wp .wp-hud .wp-cards b{font-size:16px}
+/* the HP card: a big portrait without the badge (the level is in the plate above), coloured icons */
+body.wp .wp-hud .wc-vit{grid-template-columns:66px 1fr;padding:10px 16px 10px 10px}
+body.wp .wp-hud .wc-face{width:66px;height:66px;border-width:3px}
+body.wp .wp-hud .wc-face b{display:none}
+body.wp .wp-hud .wc-v{grid-template-columns:46px 1fr auto}
+body.wp .wp-hud .wc-v span::before{width:17px;height:17px;background:var(--ic) center/contain no-repeat;-webkit-mask:none;mask:none}
+body.wp .wp-hud .wc-v.hp span{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ff8da0'/%3E%3Cstop offset='1' stop-color='%23e8203f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 3.2C20.5 15.7 12 21 12 21z' fill='url(%23a)'/%3E%3Cpath d='M7 8.5a2.5 2.5 0 0 1 2.4-1.6' stroke='white' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wc-v.sp span{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%239ff0ff'/%3E%3Cstop offset='1' stop-color='%232f86ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M12 2.5s6.5 7.4 6.5 12a6.5 6.5 0 0 1-13 0c0-4.6 6.5-12 6.5-12z' fill='url(%23a)'/%3E%3Cpath d='M9 14.5a3 3 0 0 0 2 3' stroke='white' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wc-v.xp span{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffe58a'/%3E%3Cstop offset='1' stop-color='%23f0a12a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='12' cy='12' r='10.5' fill='url(%23a)' stroke='%23b86e10' stroke-width='1.2'/%3E%3Ctext x='12' y='15.6' text-anchor='middle' font-family='Arial' font-weight='900' font-size='10' fill='%235a3006'%3EXP%3C/text%3E%3C/svg%3E")}
+body.wp .wp-hud .wc-v.xp span{color:#ffd56a}
+body.wp .wp-hud .wc-v i{height:11px}
+body.wp .wp-hud .wc-v em{font-size:13px;font-weight:800}
+/* the quest card: an open book, a round mark on the quest you're on */
+body.wp .wp-hud .wp-quests-h::before{width:24px;height:22px;border-radius:0;-webkit-mask:none;mask:none;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 28'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffcf6a'/%3E%3Cstop offset='1' stop-color='%23e0781c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M2 5c4.5-2.5 9.5-2.5 14 .5 4.5-3 9.5-3 14-.5v20c-4.5-2.5-9.5-2.5-14 .5-4.5-3-9.5-3-14-.5z' fill='url(%23a)'/%3E%3Cpath d='M4.5 6.5c3.5-1.6 7-1.4 10 .4v15.5c-3-1.6-6.5-1.8-10-.4zM17.5 6.9c3-1.8 6.5-2 10-.4v15.5c-3.5-1.4-7-1.2-10 .4z' fill='%23fff6e0'/%3E%3Cpath d='M7 10h5M7 13.5h5M20 10h5M20 13.5h5' stroke='%23e0a24a' stroke-width='1.3' stroke-linecap='round'/%3E%3Cpath d='M23 4v8l1.7-1.2L26.4 12V4z' fill='%23ff5f78'/%3E%3C/svg%3E")}
+body.wp .wp-hud .wp-quests li.cur i{width:20px;height:20px;border:0;background:radial-gradient(circle at 40% 35%,#e9f1ff,#8fa6c8 60%,#56698c);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+body.wp .wp-hud .wp-quests li{background:rgba(2,6,20,.5)}
+/* the minimap: a brighter rim and glow */
+body.wp .wp-hud .wp-mini{border:3px solid #39e3ff;box-shadow:0 0 22px rgba(57,227,255,.55),inset 0 0 0 2px rgba(6,12,30,.9),0 8px 22px rgba(0,8,30,.45);background:#1b4630}
+body.wp .wp-hud .wp-mini-b{background:rgba(8,14,34,.92)}
+/* tiles: darker, the light on the edge */
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet),.wp-dk{background:radial-gradient(120% 95% at 50% 0%,rgba(78,118,214,.42),rgba(8,14,38,.95) 70%);border:1.5px solid rgba(112,160,240,.45)}
+.wp-dock{background:rgba(6,10,28,.55)}
+@media (pointer:coarse){body.wp .wp-dock{padding:6px;border-radius:20px;background:rgba(6,10,28,.5);border:1px solid rgba(112,160,240,.2)}}
+/* the action buttons (phones): navy rims and a lip in each button's own darker colour, jump's in gold */
+.wp-acts .wp-act{border-color:#0c1534;box-shadow:inset 0 calc(var(--s) * -.1) 0 var(--d),0 calc(var(--s) * .07) 0 0 var(--d),0 calc(var(--s) * .07) 0 var(--o) #0c1534,0 calc(var(--s) * .14) calc(var(--s) * .14) rgba(0,0,0,.35)}
+.wp-acts .wp-act-jump{box-shadow:inset 0 calc(var(--s) * -.1) 0 var(--d),0 calc(var(--s) * .07) 0 0 #f5b13a,0 calc(var(--s) * .07) 0 var(--o) #0c1534,0 calc(var(--s) * .14) calc(var(--s) * .14) rgba(0,0,0,.35)}
+.wp-acts .wp-act svg,html.wp-pcphone .wp-acts .wp-act svg{filter:drop-shadow(2px 0 0 #0c1534) drop-shadow(-2px 0 0 #0c1534) drop-shadow(0 2px 0 #0c1534) drop-shadow(0 -2px 0 #0c1534)}
+@media (pointer:coarse){
+  .wc-bar.coarse .wc-attack,.wc-bar.coarse .wc-slot:not(.locked),.wc-bar.coarse .wc-pot{border:calc(3 * var(--u)) solid #0c1534!important;box-shadow:0 calc(4 * var(--u)) 0 0 rgba(0,0,0,.3),0 calc(4 * var(--u)) 0 calc(3 * var(--u)) #0c1534,0 calc(8 * var(--u)) calc(10 * var(--u)) rgba(0,0,0,.35),inset 0 calc(-5 * var(--u)) 0 rgba(0,0,0,.18),inset 0 calc(3 * var(--u)) 0 rgba(255,255,255,.35)!important}
+  .wc-bar.coarse .wc-slot:not(.locked){width:calc(72 * var(--u));height:calc(72 * var(--u));right:calc(184 * var(--u));bottom:calc(12 * var(--u))}
+  .wc-bar.coarse .wc-pot{width:calc(46 * var(--u));height:calc(46 * var(--u));border-radius:calc(14 * var(--u))}
+  .wc-bar.coarse .wc-pots{right:calc(2 * var(--u));bottom:calc(100 * var(--u));gap:calc(9 * var(--u))}
+  .wp-acts .wp-act-jump{--s:calc(84 * var(--u))}
+  .wp-acts .wp-act-run{bottom:calc(158 * var(--u))}.wp-acts .wp-act-board{bottom:calc(158 * var(--u))}.wp-acts .wp-act-emote{bottom:calc(158 * var(--u))}
+  .wp-acts .wp-act:not(.wp-act-jump){--s:calc(45 * var(--u))}
+}
+/* widths matched to the mockup, so the level plate, ARCL and the key cards share one row beside Shop, Map and Menu */
+body.wp .wp-hud .wp-lv{padding-right:14px;gap:8px}
+body.wp .wp-hud .wp-lv-face{width:58px;height:58px}
+body.wp .wp-hud .wp-lv-t{min-width:100px}
+body.wp .wp-hud .wp-xpbar{width:100px}
+body.wp .wp-hud .wa-chip{padding:0 14px 0 10px}
+body.wp .wp-hud .wp-cards{padding:0 14px 0 10px}
+body.wp .wp-hud .wp-purse{padding:5px 4px}
+body.wp .wp-hud .wp-purse span{grid-template-columns:28px auto;column-gap:7px;padding:2px 10px 2px 4px}
+body.wp .wp-hud .wp-purse span+span{padding-left:10px}
+body.wp .wp-hud .wp-purse span::before{width:28px;height:28px}
+/* the dock: a little narrower, so the skill button keeps its room */
+.wp-dock{gap:6px;padding:5px}
+.wp-dk{width:66px;height:78px}
+@media (pointer:coarse){body.wp .wp-dock{padding:5px}
+  .wp-joyrest{background:radial-gradient(circle,rgba(12,22,54,.18) 0 52%,rgba(12,22,54,.34) 53% 100%);border:2.5px solid rgba(190,215,255,.32)}
+  .wp-joyrest::before{content:"";position:absolute;inset:22%;border-radius:50%;border:2px solid rgba(190,215,255,.22)}
+  .wp-joyrest i{background:radial-gradient(circle at 40% 32%,rgba(240,246,255,.95),rgba(170,190,222,.85));z-index:1}
+  /* held sideways: the stick sits between the quest card and the dock */
+  html.wp-land .wp-joyrest{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 168px);width:220px;height:220px}
+  html.wp-land .wp-joyrest i{width:84px;height:84px;margin:-42px 0 0 -42px}
+  html.wp-land .wp-joyrest .u{margin-top:-102px}html.wp-land .wp-joyrest .d{margin-top:89px}html.wp-land .wp-joyrest .l{margin-left:-102px}html.wp-land .wp-joyrest .r{margin-left:89px}
+}
+/* phones: the thumb buttons a little bigger and up off the very edge, as on the mockup; the dock and the stick with them */
+@media (pointer:coarse){
+  html.wp-pcphone body.wp .wp-acts,html.wp-pcphone body.wp .wc-bar.coarse{bottom:calc(max(24px,env(safe-area-inset-bottom)) + 56px)}
+  html.wp-pcphone body.wp .wp-dock{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 62px)}
+  html.wp-pcphone .wp-joyrest{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 350px)}
+  html.wp-pcphone.wp-land body.wp .wp-acts,html.wp-pcphone.wp-land body.wp .wc-bar.coarse{bottom:max(24px,env(safe-area-inset-bottom))}
+  html.wp-pcphone.wp-land body.wp .wp-dock{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 18px)}
+  html.wp-pcphone.wp-land .wp-joyrest{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 168px)}
+  .wp-acts .wp-act-jump{--s:calc(88 * var(--u))}
+  .wc-bar.coarse .wc-attack{width:calc(88 * var(--u));height:calc(88 * var(--u));right:calc(96 * var(--u))}
+  .wc-bar.coarse .wc-slot:not(.locked){width:calc(74 * var(--u));height:calc(74 * var(--u));right:calc(192 * var(--u));bottom:calc(14 * var(--u))}
+  .wc-bar.coarse .wc-pot{width:calc(48 * var(--u));height:calc(48 * var(--u))}
+  .wc-bar.coarse .wc-pots{bottom:calc(104 * var(--u))}
+  .wc-bar.coarse .wc-lockon{right:calc(204 * var(--u));bottom:calc(106 * var(--u))}
+  .wp-acts .wp-act:not(.wp-act-jump){--s:calc(47 * var(--u))}
+  .wp-acts .wp-act-run{right:0;bottom:calc(166 * var(--u))}.wp-acts .wp-act-board{right:calc(53 * var(--u));bottom:calc(166 * var(--u))}.wp-acts .wp-act-emote{right:calc(106 * var(--u));bottom:calc(166 * var(--u))}
+}
