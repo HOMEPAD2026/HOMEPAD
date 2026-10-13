@@ -60,6 +60,8 @@ await W.handle({ action: "world-ping", id: "ghostghost0002", g: { x: 900, z: 0, 
 await W.handle({ action: "world-ping", id: "ghostghost0003", g: { x: 1, z: 1, c: "<script>", lv: 500 } });
 r = await W.read(new URL("http://x/api/social?world=ghosts"));
 check(r.body.ghosts.length === 2 && r.body.ghosts.some((g) => g.x === 12.3 && g.c === "female-b") && r.body.ghosts.some((g) => g.c === "bot" && g.lv === 99), "wanderers: off-map dropped, fields cleaned");
+await W.handle({ action: "world-ping", id: "ghostghost0004", g: { x: 2, z: 2, c: "kk-ranger", lv: 9 } });
+r = await W.read(new URL("http://x/api/social?world=ghosts")); check(r.body.ghosts.some((g) => g.c === "kk-ranger"), "a wanderer can be a KayKit adventurer");
 T += 130e3; r = await W.read(new URL("http://x/api/social?world=ghosts")); check(r.body.ghosts.length === 0, "wanderers fade after 2 minutes");
 // raid
 const T0 = T, iss2 = new Date(T).toISOString();

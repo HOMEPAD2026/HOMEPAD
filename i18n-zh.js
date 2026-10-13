@@ -10683,6 +10683,13 @@
     "Every piece in 3D": "每件装备都有 3D",
     "Armour, rings and necklaces turn in 3D on their card in the bag, like weapons.": "和武器一样，护甲、戒指和项链在背包的装备卡片上也会 3D 旋转。",
     "1 member": "1 名成员",
+    "Adventurers": "冒险者",
+    "Knight": "骑士",
+    "Mage": "法师",
+    "Rogue": "盗贼",
+    "Hooded Rogue": "兜帽盗贼",
+    "Ranger": "游侠",
+    "Barbarian": "野蛮人",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

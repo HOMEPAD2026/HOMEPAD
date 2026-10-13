@@ -10513,6 +10513,13 @@
     "Every piece in 3D": "모든 장비를 3D로",
     "Armour, rings and necklaces turn in 3D on their card in the bag, like weapons.": "무기처럼 갑옷, 반지, 목걸이도 가방의 장비 카드에서 3D로 돌아가요.",
     "1 member": "멤버 1명",
+    "Adventurers": "모험가",
+    "Knight": "기사",
+    "Mage": "마법사",
+    "Rogue": "도적",
+    "Hooded Rogue": "후드 도적",
+    "Ranger": "레인저",
+    "Barbarian": "바바리안",
   };
 
 
