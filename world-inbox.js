@@ -16,7 +16,7 @@ export function createInbox(ctx) {
   const btn = document.createElement("button");
   btn.type = "button"; btn.className = "wp-btn wp-icon wp-inbox-btn"; btn.id = "wp-inbox-btn"; btn.title = T("Inbox"); btn.setAttribute("aria-haspopup", "dialog");
   btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10a6 6 0 0 1 12 0v4l2 3H4l2-3z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="wp-sr">${esc(T("Inbox"))}</span>`;
-  const bag = $("wp-bag-btn"); if (bag && bag.parentNode) bag.parentNode.insertBefore(btn, bag.nextSibling);
+  const bag = $("wp-vil-btn") || $("wp-bag-btn"); if (bag && bag.parentNode) bag.parentNode.insertBefore(btn, bag.nextSibling);
   btn.addEventListener("click", () => (open ? hide() : show()));
 
   const friendsOn = () => { const g = ctx.ghosts(); return g ? g.named().filter((w) => w.wallet && ctx.island.isFriend(w.wallet)) : []; };

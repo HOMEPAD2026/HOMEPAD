@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag", "world-live", "world-holiday", "world-tracks", "world-crew"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag", "world-live", "world-holiday", "world-tracks", "world-crew", "world-village"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 // height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
 // mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
@@ -56,9 +56,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Cheer: "환호", Dance: "춤", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Bricks: "블록", Colours: "색상", Height: "높이", Trophies: "트로피", Lights: "조명", Plants: "식물", Theme: "테마", Character: "캐릭터", Log: "모험 일지", Village: "마을", Later: "나중에", Pick: "선택", Visit: "방문", Cottage: "오두막", Castle: "성", Palace: "궁전", Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Cheer: "환호", Dance: "춤", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Cheer: "欢呼", Dance: "跳舞", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Bricks: "积木", Colours: "颜色", Height: "高度", Trophies: "奖杯", Lights: "灯光", Plants: "植物", Theme: "主题", Character: "角色", Log: "冒险日志", Village: "村庄", Later: "稍后", Pick: "选择", Visit: "访问", Cottage: "小屋", Castle: "城堡", Palace: "宫殿", Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Cheer: "欢呼", Dance: "跳舞", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -91,8 +91,11 @@ if (P.xpv !== RPG.XP_VERSION) { P.xp = RPG.xpFromOld(P.xp); P.xpv = RPG.XP_VERSI
 let lvMemo = [-1, 1];
 const level = () => { if (lvMemo[0] !== P.xp) lvMemo = [P.xp, RPG.levelOfXp(P.xp)]; return lvMemo[1]; };
 let xpHeld = false; // window.arcWorld.holdXp(true): screenshots and tests keep the level where it is
+// the village blessing (world-village.js): +2% XP and +1% max HP for each village level after the first
+const bless = () => { const v = P.vill, s = sess(); return (v && s && v.w === lc(s.wallet) && v.blessing) || { xp: 0, hp: 0 }; };
 function gain(n, why) {
   if (xpHeld) return;
+  if (n > 0 && bless().xp) n = Math.round(n * (1 + bless().xp / 100));
   const before = level(); P.xp += n; save(); paintHud();
   toast(T("+{n} XP · {why}", { n, why }));
   if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } else Snd.pick();
@@ -175,6 +178,7 @@ function loggedIn(r, quiet) {
   if (sv && (sv.xp || 0) > P.xp) { PROGRESS.forEach((k) => { if (sv[k] != null && sv[k] !== "") P[k] = sv[k]; }); try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } toast(T("Welcome back, {name}. Your progress is loaded.", { name: P.name || "" })); }
   else { if (!quiet || r.j.firstTime) toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
   arclShop.refresh().then(() => { arclShop.flushQueue(); arclChecks(); setTimeout(() => arclShop.maybeDaily(), 1500); });
+  setTimeout(() => { village.load(); setNameTag(); }, 600);
 }
 // a save that doesn't reach the server (offline, a server hiccup, too soon after the last) is tried again on its own,
 // sooner at first and then less often, and right away when the connection comes back; a small note shows meanwhile
@@ -511,7 +515,8 @@ function setNameTag() {
   if (nameTag) { player.remove(nameTag); nameTag.material.map.dispose(); }
   const title = BADGES.find((b) => b.id === P.badges[P.badges.length - 1]);
   const pl = PLATES[(P.style || {}).plate] || ["#35d8d0", "#eef3f7"];
-  nameTag = K.label((P.crewTag ? `[${P.crewTag}] ` : "") + (P.name || W("Player")), { accent: pl[0], color: pl[1], size: 0.42, sub: (quests && quests.title()) || (title ? T(title.title) : "") }); nameTag.position.y = 3.15; player.add(nameTag);
+  const s = sess(), gm = !!(s && VILL.isGM(s.wallet)); // the GM wallet wears [GM] in gold
+  nameTag = K.label((P.crewTag ? `[${P.crewTag}] ` : "") + (P.name || W("Player")), { accent: pl[0], color: pl[1], size: 0.42, sub: (quests && quests.title()) || (title ? T(title.title) : ""), pre: gm ? "[GM]" : "" }); nameTag.position.y = 3.15; player.add(nameTag);
 }
 // the hoverboard's light trail (a bought colour, or a faint default)
 const TRAILS = { "trail-cyan": 0x35d8d0, "trail-gold": 0xffc861, "trail-pink": 0xff7ad9, "trail-rainbow": 0xff4d6d }; // the rainbow one cycles (see the loop)
@@ -1092,6 +1097,7 @@ const island = IS.createIsland({
   owns: (id) => arclShop.owns(id),
   skyTheme: (th) => { skyOverride = th || ""; nightK = -1; dayNight(); },
   // a saved island and its likes earn ARCL (the server checks the saved island)
+  makeCentre: (L) => VILL.makeCentre(THREE, K, L), onVillage: (v) => setVillage(v),
   onSaved: (x) => { [[20, "isle20"], [100, "isle100"], [300, "isle300"]].forEach(([n, k]) => { if (x.bricks >= n) arclClaim(k); }); [[1, "res1"], [5, "res5"]].forEach(([n, k]) => { if (x.residents >= n) arclClaim(k); }); },
   onLikes: (n) => { [[1, "liked1"], [10, "liked10"], [50, "liked50"]].forEach(([m, k]) => { if (n >= m) arclClaim(k); }); },
   onArcl: (n) => { if (n > 0) { arclShop.refresh().then(() => toast(T("+{n} ARCL · {why}", { n, why: T("Leave a stamp on someone's island") }))); Snd.coin(); } },
@@ -1124,9 +1130,50 @@ const arclShop = SHOP.createShop({
     else if (id.startsWith("style-")) { P.isleTheme = P.isleTheme === id ? "" : id; island.setTheme(P.isleTheme); }
     save(); setNameTag(); paintTrail();
   },
-  onBought: (id) => { if (id === "feature-isle" || id === "billboard") refreshPlaza(); if (id.startsWith("plate-") || id.startsWith("trail-")) arclShop.close(); if (avatar) avatar.play("emote-yes", { once: true }); burst(0x4fd6ff); },
+  buildWith: (id) => buildWith(id),
+  onBought: (id) => { if (/^(brick|pack|style)-|^isle(48|64)$/.test(id)) setTimeout(() => afterBuy(id), 700); if (id === "feature-isle" || id === "billboard") refreshPlaza(); if (id.startsWith("plate-") || id.startsWith("trail-")) arclShop.close(); if (avatar) avatar.play("emote-yes", { once: true }); burst(0x4fd6ff); },
   furnace: () => { const f = shopG("reward"); if (f) f.userData.boost = 1; },
 });
+// ---------------- your village (world-village.js, api/_world-village.mjs): level, score, blessing, weekly contest ----------------
+const village = VILL.createVillage({
+  T: TW, esc, toast, post, sess, Snd,
+  pay: (id, target, onStatus) => arclShop.pay(id, target, onStatus),
+  goVillage: () => goIsland({}), visit: (w) => goIsland({ visit: w }),
+  freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); },
+  onVillage: (v) => setVillage(v),
+});
+// a bought brick, pack, island style or expansion: use it now on your island, or later (both a tap, neither pushed)
+const onMyIsland = () => mode === "island" && island.kind() === "home" && !island.readOnly();
+async function buildWith(id) {
+  closeAll();
+  if (/^style-/.test(id)) { P.isleTheme = id; save(); island.setTheme(id); }
+  if (!onMyIsland()) await goIsland({});
+  if (!onMyIsland()) return;
+  if (/^style-/.test(id)) { island.setTheme(id); toast(T("Your island's style is on")); }
+  else if (/^isle(48|64)$/.test(id)) toast(T("Your island is {n}×{n} now: more room to build", { n: id === "isle64" ? 64 : 48 }));
+  else island.useItem(id);
+}
+function afterBuy(id) {
+  document.querySelectorAll(".wv-after").forEach((e) => e.remove());
+  const style = /^style-/.test(id), grow = /^isle(48|64)$/.test(id);
+  const el = document.createElement("div"); el.className = "wp-leave wv-after"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
+  el.innerHTML = `<div class="wp-card wp-leave-card"><h2>${esc(style ? T("Your new island style is ready") : grow ? T("Your island has more room") : T("Your new pieces are in your builder"))}</h2>
+    <p>${esc(style ? T("Put it on your island now, or any time from the shop's Use button.") : grow ? T("Go and build on it now, or come back to it any time.") : T("Build with them now (they'll be in your hotbar), or find them later in the builder's palette. Every new kind of piece raises your village score."))}</p>
+    <div class="wp-leave-btns"><button type="button" class="wp-btn" data-later>${esc(T("Later"))}</button><button type="button" class="wp-btn" data-now>${esc(style ? T("Use it now") : T("Build with it now"))}</button></div></div>`;
+  document.body.appendChild(el); frozen = true; keys.clear();
+  const done = () => { el.remove(); const sh = $("wa-sheet"); frozen = !!(sh && !sh.hidden); }; // back to the shop if it's still open
+  el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-later]")) done(); else if (e.target.closest("[data-now]")) { done(); buildWith(id); } });
+  el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); done(); } });
+  setTimeout(() => { const b = el.querySelector("[data-later]"); if (b && !coarse) b.focus(); }, 40);
+}
+function setVillage(v) {
+  const s = sess(); if (!v || !s || v.wallet !== lc(s.wallet)) return;
+  const prev = P.vill && P.vill.w === v.wallet ? P.vill.level : 0;
+  P.vill = { w: v.wallet, level: v.level, xp: v.xp, need: v.need, next: v.next, score: v.score, blessing: v.blessing || { xp: 0, hp: 0 }, payable: !!v.payable };
+  save(); paintHud(); if (rpg) rpg.refresh();
+  island.setVillage && island.setVillage(v.level, { score: v.score, payable: !!v.payable, next: v.next });
+  if (prev && v.level > prev) { toast(T("Your village is now level {n}", { n: v.level })); Snd.level(); burst(0x39ff88); }
+}
 const done1 = new Set(); // claims already sent this session
 function arclClaim(kind, extra = {}, from = null) { if (done1.has(kind)) return; done1.add(kind); arclShop.claim(kind, extra, from).then((n) => { if (!n && !sess()) done1.delete(kind); }); }
 function applyOwn(o) {
@@ -1202,7 +1249,7 @@ function paintPrompt() {
   if (p.hidden) { p.hidden = false; void p.offsetWidth; }
   p.classList.add("on");
   const b = (s) => `<b>${esc(s)}</b>`;
-  $("wp-enter-t").innerHTML = near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
+  $("wp-enter-t").innerHTML = near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "village" ? (near.mine ? T("Open {x}", { x: b(T("My village")) }) : T("Village centre · Lv {n}", { n: near.level })) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
 
@@ -1301,6 +1348,7 @@ function enter(n) {
   if (n.kind === "isle") { goIsland({}); return; }
   if (n.kind === "screen") { if (plazaNow && plazaNow.isle) goIsland({ visit: plazaNow.isle.wallet }); else if (plazaNow && plazaNow.coin) openSheet("$" + plazaNow.coin.symbol, T("On the plaza billboard"), "/arc#coin/" + plazaNow.coin.token); return; }
   if (n.kind === "isle-exit") { leaveIsland(); return; }
+  if (n.kind === "village") { if (n.mine) openVillage(); else village.show("contest"); return; }
   if (n.kind === "resident") { island.talk(n.res); return; }
   if (n.kind === "portal") { location.href = "/?skip"; return; }
   if (n.kind === "pad") { openMap(); return; }
@@ -2039,6 +2087,9 @@ function paintHud() {
   $("wp-cards").querySelector("b").textContent = `${P.cards.length}/${K.CARDS.length}`;
   const next = K.SCAMMERS.find((s) => !P.beaten.includes(s.id));
   $("wp-stage").textContent = next ? T("Stage {n} · {name}", { n: next.stage, name: next.name }) : T("Every stage cleared");
+  // the village level, next to yours (a dot when an upgrade is ready to buy)
+  const vc = $("wp-vlv"), s = sess(), v = P.vill && s && P.vill.w === lc(s.wallet) ? P.vill : null;
+  if (vc) { vc.hidden = false; vc.querySelector("b").textContent = "Lv " + (v ? v.level : 1); vc.dataset.up = v && v.payable ? "1" : ""; vc.title = v ? T("Village level {n} · score {s} · XP +{x}% · max HP +{h}%", { n: v.level, s: (v.score || 0).toLocaleString("en-US"), x: v.blessing.xp, h: v.blessing.hp }) : T("My village"); }
 }
 // tutorial: move, jump, then follow the light
 // the first three minutes: move, jump, a shop, then a training fight, your gear, the Adventure log and your island
@@ -2354,7 +2405,7 @@ $("wp-shot-frame").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; shotRaw = shotFramed = shotSrc = null; });
 
 // ---------------- what's new: once after an update, a card with a way to try each new thing ----------------
-const NEWV = "b390";
+const NEWV = "b396";
 function maybeNew() {
   try { if (localStorage.getItem("arc.world.newv") === NEWV) return; } catch { return; }
   if (!P.char || !P.guideSeen || new URLSearchParams(location.search).has("nointro")) return;
@@ -2362,6 +2413,9 @@ function maybeNew() {
 }
 function openNew() {
   const items = [
+    ["village", T("Your island is a village"), T("Decorate it to raise its score and level. Its village centre grows with it, and each level blesses you with more XP and max HP.")],
+    ["contest", T("The weekly village contest"), T("Enter your village each week; the best ones win ARCL (50,000 the first week).")],
+    ["buttons", T("Character, Log and Village buttons"), T("One tap from the top bar. Bought bricks and styles now ask if you'd like to build with them right away.")],
     ["card", T("Player cards"), T("A player's card shows the gear they wear and every title they've earned. Yours: Character → My card.")],
     ["inspect", T("Every piece in 3D"), T("Armour, rings and necklaces turn in 3D on their card in the bag, like weapons.")],
     ["crew", T("Crews"), T("Found a crew or join one with its code: a tag before your name and a weekly table. The menu → Crew.")],
@@ -2395,10 +2449,13 @@ function openNew() {
     else if (k === "lock") openGuide();
     else if (k === "bag") rpg.show("inv");
     else if (k === "isles") island.openIsles();
+    else if (k === "village") village.show();
+    else if (k === "contest") village.show("contest");
+    else if (k === "buttons") rpg.show("log");
   });
 }
 // ---------------- closing things ----------------
-function closeAll() { try { crewUI.hide(); } catch { /* not built yet */ } closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
+function closeAll() { try { village.hide(); crewUI.hide(); } catch { /* not built yet */ } closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
 // ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
 const help = HELP.createSupport({
   T, lang: LANG, esc, toast, where: mode === "island" ? "island" : "game",
@@ -2425,7 +2482,7 @@ const flt = (text, pos, color, big, weight = 0) => {
 rpg = RPG.createRpg({
   THREE, T, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd, reduce, scene: () => st.scene,
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar, openProfile: (w) => openProfile(w),
-  extraStats: () => (quests ? quests.titleBonus() : null),
+  extraStats: () => { const t = quests ? quests.titleBonus() : null, h = bless().hp; return h ? { ...(t || {}), hpPct: h } : t; },
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
   buyBag: (onStatus) => arclShop.pay("bagplus", "", onStatus),
   buyRekind: (onStatus) => arclShop.pay("rekind", "", onStatus), own: () => arclShop.own(),
@@ -2437,7 +2494,7 @@ const parts = PART.createParticles({ THREE, parent: planet, low: lowGfx || st.qu
 // the platform, live in the town (world-live.js): the LED band round the fountain, and fireworks for a new launch
 const live = LIVE.createLive({ THREE, planet, parts, reduce });
 // crews (world-crew.js): the window from the menu, and your crew's tag before your name
-const crewUI = CREW.createCrew({ T, esc, toast, post, sess, openProfile: (w) => openProfile(w), onTag: (t) => { if ((P.crewTag || "") !== (t || "")) { P.crewTag = t || ""; setNameTag(); } }, freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); } });
+const crewUI = CREW.createCrew({ isGM: (w) => VILL.isGM(w), T, esc, toast, post, sess, openProfile: (w) => openProfile(w), onTag: (t) => { if ((P.crewTag || "") !== (t || "")) { P.crewTag = t || ""; setNameTag(); } }, freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); } });
 setTimeout(() => { if (sess()) crewUI.load(); }, 4000);
 // footprints in snow and sand, and autumn leaves round you in town (world-tracks.js)
 const tracks = TRK.createTracks({ THREE, planet, reduce });
@@ -2488,7 +2545,7 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   },
 });
 // the Adventure log (daily hunts, achievements and titles, the codex, top hunters) and the companion drone
-quests = QST.createQuests({
+quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
   T, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why), fishList: LIFE.FISH,
   // Rankings → Players: portraits, who's around now, a player's card
   charThumb: (id) => thumbCache[id] || "", needThumbs: (ids) => renderThumbsFor(ids).then(() => rpg.isOpen() && rpg.repaint()),
@@ -2618,8 +2675,8 @@ async function openProfile(w) {
     const isFr = island.isFriend(w), ago = row.at ? Math.floor((Date.now() - row.at) / 60000) : null, wornT = (fr && fr.t) || row.t || "";
     el.innerHTML = `<div class="wp-prof-card"><button type="button" class="wp-btn wp-x" data-px aria-label="${esc(T("Close"))}">×</button>
       <div class="wp-prof-face">${thumbCache[char] ? `<img src="${thumbCache[char]}" alt="">` : ""}<b>${lv}</b></div>
-      <h2>${fr && fr.cr ? `<span class="wp-crew-tag sm">${esc(fr.cr)}</span>` : ""}${esc(name)}</h2>${quests.titleOf(wornT) ? `<p class="wp-prof-title">${esc(quests.titleOf(wornT))}</p>` : ""}
-      <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / ${QST.CODEX.length + QST.CODEX_STORY.length}</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div><div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
+      <h2>${VILL.isGM(w) ? '<b class="wv-gmtag">[GM]</b> ' : ""}${fr && fr.cr ? `<span class="wp-crew-tag sm">${esc(fr.cr)}</span>` : ""}${esc(name)}</h2>${quests.titleOf(wornT) ? `<p class="wp-prof-title">${esc(quests.titleOf(wornT))}</p>` : ""}
+      <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / ${QST.CODEX.length + QST.CODEX_STORY.length}</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div>${fr && fr.village && fr.village.score ? `<div><dt>${esc(T("Village score"))}</dt><dd>${fr.village.score.toLocaleString("en-US")}</dd></div>` : ""}<div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
       ${showcase(fr, wornT)}
       <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${me || !isFr ? "" : `<button type="button" class="wp-btn" data-pparty aria-pressed="${inParty(w)}">${esc(inParty(w) ? T("In your party") : T("Add to party"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
       ${me || !sess() ? "" : `<div class="wp-prof-gift"><span>${esc(T("Send a gift"))}</span>${inbox.sendOptions().map((g) => `<button type="button" class="wp-btn" data-pgift="${g.kind}:${g.n}" ${g.can ? "" : "disabled"}>${esc(g.label)}</button>`).join("")}</div>`}</div>`;
@@ -2628,7 +2685,7 @@ async function openProfile(w) {
   paint(null); document.body.appendChild(el); frozen = true; keys.clear();
   // Escape closes the card first (the Adventure log under it stays open)
   const onKey = (e) => { if (e.key === "Escape" && el.isConnected) { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
-  const close = () => { el.remove(); removeEventListener("keydown", onKey, true); frozen = !!((rpg && rpg.isOpen()) || crewUI.isOpen()); };
+  const close = () => { el.remove(); removeEventListener("keydown", onKey, true); frozen = !!((rpg && rpg.isOpen()) || crewUI.isOpen() || village.isOpen()); };
   addEventListener("keydown", onKey, true);
   let fr = null; try { const r = await fetch("/api/social?world=friends&wallets=" + w); fr = r.ok ? ((await r.json()).friends || {})[w] || null : null; } catch { /* the card stays as it is */ } if (el.isConnected) paint(fr);
   el.addEventListener("click", (e) => {
@@ -2645,7 +2702,7 @@ async function shareCard(o) {
   const blob = await SOC.drawCard({ ...o, name: P.name || W("Player"), lv: level() }); if (!blob) return;
   rpg.hide(); showShot(blob, o.title ? T("{x} in ARCIRCLE World ♾", { x: o.title }) : "");
 }
-function paintBagDot() { const b = $("wp-bag-btn"); if (b) b.dataset.dot = quests.pending() ? String(quests.pending()) : ""; }
+function paintBagDot() { const b = $("wp-log-btn"); if (b) b.dataset.dot = quests.pending() ? String(quests.pending()) : ""; } // rewards waiting: on the Log button, where they are
 setInterval(paintBagDot, 4000);
 // a recall scroll: straight back to the plaza
 function recallHome() {
@@ -2676,13 +2733,13 @@ $("wp-help-btn").addEventListener("click", () => openHelp());
 const HUB = [
   ["You", [["inv", "bag", "Character and bag", "I"], ["crew", "crew", "Crew", ""], ["wardrobe", "shirt", "Wardrobe", ""], ["make", "person", "Change character", ""]]],
   ["Adventure", [["daily", "check", "Daily hunts", "L"], ["ach", "trophy", "Achievements", ""], ["season", "season", "Season", ""], ["codex", "codex", "Codex", ""], ["pets", "paw", "Pets", ""], ["rank", "chart", "Rankings", ""]]],
-  ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "My Island", ""], ["inbox", "mail", "Inbox", ""]]],
+  ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "My Island", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""]]],
   ["More", [["photo", "photo", "Photo mode", "P"], ["emote", "wave", "Emotes", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["set", "gear", "Settings", ""]]],
 ];
 hubEl = document.createElement("div"); hubEl.className = "wp-hub"; hubEl.hidden = true; hubEl.setAttribute("role", "dialog"); hubEl.setAttribute("aria-modal", "true"); hubEl.setAttribute("data-no-i18n", "");
 document.body.appendChild(hubEl);
 function paintHub() {
-  const isArc = String(P.char || "arc-arc").startsWith("arc-"), dot = { daily: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('.wp-hud [data-dot]:not([data-dot=""])') };
+  const isArc = String(P.char || "arc-arc").startsWith("arc-"), dot = { daily: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])') };
   hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}</h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>` +
     HUB.map(([g, items]) => `<section><h3>${esc(T(g))}</h3><div class="wp-hub-grid">${items.filter(([id]) => id !== "wardrobe" || isArc).filter(([id]) => id !== "island" || mode === "hub").map(([id, ic, label, key]) =>
       `<button type="button" data-hub="${id}">${ICONS.icon(ic, 26)}<span>${esc(T(label))}</span>${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}</button>`).join("")}</div></section>`).join("") + `</div>`;
@@ -2702,6 +2759,7 @@ hubEl.addEventListener("click", (e) => {
   else if (id === "bench") { if (life) life.showSheet("make"); }
   else if (id === "map") openMap();
   else if (id === "island") goIsland({});
+  else if (id === "village") village.show();
   else if (id === "inbox") inbox.show();
   else if (id === "photo") setPhoto(true);
   else if (id === "emote") openWheel();
@@ -2713,6 +2771,10 @@ hubEl.addEventListener("keydown", (e) => { if (e.key === "Escape" && !hubEl.hidd
 $("wp-more-btn").addEventListener("click", (e) => { e.stopPropagation(); if (hubEl.hidden) openHub(); else closeHub(); });
 $("wp-shop-btn").addEventListener("click", () => { closeAll(); arclShop.openShop(); });
 $("wp-bag-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("inv"); });
+$("wp-log-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("log"); });
+const openVillage = (tab) => { closeAll(); village.show(tab); };
+$("wp-vil-btn").addEventListener("click", () => openVillage());
+$("wp-vlv").addEventListener("click", () => openVillage());
 
 // ---------------- the Back button (a phone's, or the browser's) ----------------
 // With a window open, Back closes it; on the plain game screen it asks before leaving the game.
@@ -3081,6 +3143,7 @@ dailyState(); makeMeadow(); dayNight(); worldReady = true; if (st.quality.coarse
 setTimeout(() => { const go = () => { if (mode === "hub") farCull.all(bakeMiniMap); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else go(); }, 6000); /* the minimap's ground, once the town is up, when the page is idle */ try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
+if (sess()) setTimeout(() => village.load(), 3500); // your village level and blessing
 // the way in is one move: the robot is dressed while the loading screen is still up, the first frame you see is the
 // start of the dive (never the town first and then a jump back out to space), and from the home gate, which has
 // already dived down to the robot, the camera only comes down the last stretch to land behind you
@@ -3105,7 +3168,7 @@ arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.h
 window.arcWorld = {
   stage: () => st, post: () => fxPost, gshadow: () => gshadow, grass: () => grass, gmask: () => gmask, parts: () => parts, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
-  mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
+  mode: () => mode, island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
   coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, robots: () => !!(kit && kit.enemies && kit.enemies.EyeDrone), quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),

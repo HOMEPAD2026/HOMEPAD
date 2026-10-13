@@ -3383,3 +3383,79 @@ html.wp-pcphone .wl-gcard{zoom:1.7;width:min(440px,calc((100vw - 24px) / 1.7));m
 .wp-make-ask div{display:flex;flex-wrap:wrap;gap:8px}
 .wp-make-ask .wp-btn{flex:1 1 auto}
 html.wp-pcphone .wp-make-ask p{font-size:18px}
+/* ---- b396: the village (world-village.js): HUD buttons with names, the village chip, the Village window, [GM] ---- */
+.wp-lbtn{gap:6px;padding:0 13px 0 10px}
+.wp-lbtn svg{width:18px;height:18px;fill:none}
+.wp-lbtn .wp-bl{font:700 12.5px var(--f-ui);letter-spacing:.01em}
+.wp-vil-btn svg{stroke:#ffd98a}
+.wp-log-btn svg{stroke:#9ff3ff}
+.wp-bag-btn svg{stroke:#b9ffd6}
+@media (pointer:coarse){.wp-lbtn{width:38px;padding:0;justify-content:center}.wp-lbtn .wp-bl{display:none}}
+@media (max-width:1180px) and (pointer:fine){.wp-lbtn .wp-bl{display:none}.wp-lbtn{width:38px;padding:0;justify-content:center}}
+/* the village level chip, beside your own */
+.wp-vlv{appearance:none;cursor:pointer;color:#ffe2a8;gap:6px;padding:0 10px 0 8px;position:relative}
+.wp-vlv svg{width:15px;height:15px;fill:none;stroke:#ffc861;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.wp-vlv span{font:600 11.5px var(--f-ui);color:rgba(255,226,168,.75)}
+.wp-vlv b{font-family:var(--f-num);font-weight:800;color:#ffe2a8}
+.wp-vlv:hover{border-color:rgba(255,200,97,.6)}
+.wp-vlv[data-up="1"]::after{content:"";position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#ffc861;box-shadow:0 0 0 2px rgba(10,14,22,.9),0 0 10px #ffc861}
+@media (max-width:640px){.wp-vlv span{display:none}}
+.wi-vlv{color:#ffd98a!important;font-weight:700}
+/* [GM]: the game master's wallet, in gold, wherever their name shows */
+.wv-gmtag{font-style:normal;font-weight:900;color:#ffc861;letter-spacing:.02em;text-shadow:0 0 10px rgba(255,200,97,.35)}
+/* the Village window */
+.wv-sheet .wp-card{width:min(640px,calc(100vw - 28px));max-height:calc(100svh - 40px);overflow:auto;background:linear-gradient(180deg,rgba(20,24,18,.97),rgba(10,14,12,.97));border-color:rgba(255,200,97,.22)}
+.wv-tabs{display:flex;gap:4px;margin:14px 0 16px;padding:4px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.wv-tabs button{flex:1;appearance:none;height:34px;border:0;border-radius:9px;background:none;color:rgba(232,240,232,.7);font:700 13.5px var(--f-ui);cursor:pointer}
+.wv-tabs button[aria-pressed="true"]{background:rgba(255,200,97,.16);color:#ffe2a8;box-shadow:inset 0 0 0 1px rgba(255,200,97,.35)}
+.wv-head{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.wv-head>div:last-child{flex:1;min-width:0}
+.wv-head h3{margin:0 0 8px;font:800 19px var(--f-ui);color:#fff6e4}
+.wv-head small{font:600 12px var(--f-num);color:rgba(232,240,232,.62)}
+.wv-badge{flex:none;display:grid;place-items:center;align-content:center;width:76px;height:84px;clip-path:polygon(50% 0,100% 22%,100% 78%,50% 100%,0 78%,0 22%);background:linear-gradient(160deg,#ffe08a,#c98a1c)}
+.wv-badge small{font:800 10px var(--f-ui);color:#4a2e00;letter-spacing:.06em;margin-bottom:-2px}
+.wv-badge b{font:900 38px/1 'Big Shoulders Display',var(--f-num);color:#2a1a00}
+.wv-bar{height:10px;margin-bottom:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.wv-bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#39ff88,#ffc861)}
+.wv-up{margin:0 0 14px;padding:14px;border-radius:14px;background:linear-gradient(180deg,rgba(255,200,97,.14),rgba(255,200,97,.05));border:1px solid rgba(255,200,97,.45)}
+.wv-up p{margin:0 0 10px;font-size:13.5px;line-height:1.5;color:#f6ead2}
+.wv-up .wv-st{color:#ffe2a8;font-weight:600}
+.wv-up .wp-btn{width:100%;justify-content:center}
+.wv-cols{display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+.wv-cols section{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08)}
+.wv-cols h4,.wv-sheet h4{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 8px;font:800 13.5px var(--f-ui);color:#eef3e8}
+.wv-cols h4 b{font:800 18px var(--f-num);color:#7dffb0}
+.wv-parts{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:3px}
+.wv-parts li{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:rgba(232,240,232,.75)}
+.wv-parts li b{font:700 12.5px var(--f-num);color:#eef3e8}
+.wv-tip,.wv-note{margin:6px 0 10px;font-size:12px;line-height:1.5;color:rgba(222,233,224,.62)}
+.wv-note{font-size:13px}
+.wv-cols .wp-btn{margin-top:4px}
+.wv-sheet h4{margin-top:16px}
+.wv-entries,.wv-win{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.wv-entries li,.wv-win li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.035)}
+.wv-entries i,.wv-win i{font:800 12px var(--f-num);font-style:normal;width:18px;color:rgba(232,240,232,.55)}
+.wv-entries b,.wv-win b{flex:1;min-width:0;font:700 13.5px var(--f-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wv-entries small{font-size:11.5px;color:rgba(232,240,232,.55)}
+.wv-win em{font:800 13px var(--f-num);font-style:normal;color:#ffc861}
+.wv-win li:first-child{background:rgba(255,200,97,.1)}
+.wv-pickb{height:28px;padding:0 10px;font-size:12px}
+.wv-pickb[aria-pressed="true"]{background:rgba(255,200,97,.2)!important;border-color:#ffc861!important;color:#ffe2a8}
+.wv-gm{display:grid;gap:8px;margin:12px 0;padding:12px 14px;border-radius:14px;border:1px dashed rgba(255,200,97,.55);background:rgba(255,200,97,.05)}
+.wv-gm span{font-size:12.5px;color:#f6ead2;line-height:1.45}
+.wv-gm label{display:flex;align-items:center;gap:8px;font:700 12.5px var(--f-ui);color:#ffe2a8}
+.wv-gm input{width:120px;height:32px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,200,97,.4);background:rgba(4,8,6,.6);color:#fff;font:700 14px var(--f-num)}
+.wv-past{margin:10px 0 4px;font:700 11.5px var(--f-num);color:rgba(232,240,232,.5)}
+@media (max-width:560px){.wv-cols{grid-template-columns:1fr}.wv-badge{width:62px;height:70px}.wv-badge b{font-size:30px}}
+html.wp-pcphone .wv-sheet .wp-card{zoom:1.6;width:min(640px,calc((100vw - 24px) / 1.6));max-height:calc((100svh - 40px) / 1.6)}
+html.wp-pcphone .wv-cols{grid-template-columns:1fr}
+html.wp-pcphone .wv-after .wp-card{zoom:1.6;width:min(460px,calc((100vw - 24px) / 1.6))}
+.wp-log-btn{position:relative}
+.wp-log-btn[data-dot]:not([data-dot=""])::after{content:attr(data-dot);position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ff4d6d;color:#fff;font:800 10px/16px var(--f-ui);text-align:center}
+.wv-gold{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:100%;height:44px;padding:0 18px;border:0;border-radius:999px;cursor:pointer;font:800 14px var(--f-ui);color:#2a1a00;background:linear-gradient(180deg,#ffe08a,#f2b232);box-shadow:0 4px 16px rgba(242,178,50,.3),inset 0 1px 0 rgba(255,255,255,.55)}
+.wv-gold:hover{filter:brightness(1.06)}.wv-gold:disabled{opacity:.55;cursor:default}
+.wv-sheet .wv-tip{font-size:12px;line-height:1.5;color:rgba(222,233,224,.6);margin:8px 0 6px}
+.wv-sheet .wv-note{font-size:13px;color:rgba(222,233,224,.7)}
+.wv-up p{font-size:13.5px}
+.wv-entries .wp-link{font:700 12.5px var(--f-ui);text-decoration:none;color:#9ff3ff;padding:4px 6px}
+.wv-entries .wp-link:hover{text-decoration:underline}

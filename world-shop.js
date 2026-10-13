@@ -245,7 +245,7 @@ export function createShop(ctx) {
     const pickCoin = it.target === "coin" || it.target === "mycoin";
     const coins = pickCoin ? (it.target === "mycoin" ? ctx.myCoins() : ctx.coins()) : [];
     const arclBtn = it.arcl != null ? `<button type="button" class="wa-pay-arcl" data-arcl="${it.id}" aria-label="${esc(T("Buy for {n} ARCL", { n: fmt(it.arcl) }))}"><img src="/images/arcl-64.png" alt="" width="22" height="22">${fmt(it.arcl)}</button>` : `<span class="wa-pay-only">${esc(T("$ARCIRCLE only"))}</span>`;
-    const buy = have && !it.use ? (usable ? `<button type="button" class="wa-use" data-use="${it.id}" aria-pressed="${using}">${esc(using ? T("In use") : T("Use"))}</button>` : `<span class="wa-owned">${esc(/^(brick|pack)-/.test(it.id) ? T("In your builder") : T("Owned"))}</span>`)
+    const buy = have && !it.use ? (usable ? `<button type="button" class="wa-use" data-use="${it.id}" aria-pressed="${using}">${esc(using ? T("In use") : T("Use"))}</button>` : /^(brick|pack)-|^isle(48|64)$/.test(it.id) && ctx.buildWith ? `<button type="button" class="wa-use" data-build="${it.id}">${esc(T("Build with it"))}</button>` : `<span class="wa-owned">${esc(T("Owned"))}</span>`)
       : locked ? `<span class="wa-need">${esc(T("Needs the 48×48 expansion"))}</span>`
       : (pickCoin && !coins.length) ? `<span class="wa-need">${esc(it.target === "mycoin" ? T("Launch a coin on ArcPad first") : T("No coins to show yet"))}</span>`
       : `${arclBtn}<button type="button" class="wa-pay-arc" data-arc="${it.id}">$${it.usd} ${esc(T("in $ARCIRCLE"))}</button>`;
@@ -260,6 +260,7 @@ export function createShop(ctx) {
     if (b.dataset.tab) { tab = b.dataset.tab; paintShop(); return; }
     if (b.hasAttribute("data-ex")) { openExchange(); return; }
     if (b.dataset.use) { ctx.use(b.dataset.use); paintShop(); return; }
+    if (b.dataset.build) { close(); ctx.buildWith(b.dataset.build); return; } // straight to your island's builder, the piece in hand
     const card = b.closest(".wa-item"), sel = card && card.querySelector(".wa-coin"), target = sel ? sel.value : "";
     if (b.dataset.arcl) await buyArcl(b.dataset.arcl, target, card);
     else if (b.dataset.arc) await payArc(b.dataset.arc, target, card);

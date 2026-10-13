@@ -35,7 +35,7 @@ export function createIsland(ctx) {
   const V3 = THREE.Vector3;
 
   // ---------------- materials: painted parts take the brick's colour, fixed parts keep their own ----------------
-  const fixedPatch = (m) => { m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace("#include <color_vertex>", "#if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )\n vColor = vec3( 1.0 );\n#endif"); }; m.customProgramCacheKey = () => "fixed"; return m; };
+  const fixedPatch = (m) => { m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace("#include <color_vertex>", "#if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )\n vColor = vec4( 1.0 ); // r186: vColor is a vec4\n#endif"); }; m.customProgramCacheKey = () => "fixed"; return m; };
   const std = (o) => new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.05, ...o });
   const M = {
     paint: std({ color: 0xffffff, roughness: 0.42 }),
@@ -259,6 +259,7 @@ export function createIsland(ctx) {
 
   // ---------------- state ----------------
   let bricks = [], occ = new Map(), cols = new Map();
+  let cRect = null; const CS = 6; // the village centre's 6×6 cells ([x0, z0]); nothing is built there
   const key = (x, y, z) => x + "," + y + "," + z, ckey = (x, z) => x + "," + z;
   function index() {
     occ = new Map(); cols = new Map();
@@ -266,7 +267,7 @@ export function createIsland(ctx) {
   }
   function addIndex(b) { for (let k = 0; k < TYPES[b.t].tall; k++) occ.set(key(b.x, b.y + k, b.z), b); const c = ckey(b.x, b.z); let a = cols.get(c); if (!a) cols.set(c, (a = [])); a.push(b); }
   function dropIndex(b) { for (let k = 0; k < TYPES[b.t].tall; k++) occ.delete(key(b.x, b.y + k, b.z)); const a = cols.get(ckey(b.x, b.z)); if (a) a.splice(a.indexOf(b), 1); }
-  const free = (x, y, z, tall = 1) => { if (x < 0 || z < 0 || x >= N || z >= N || y < 0 || y + tall > HM) return false; for (let k = 0; k < tall; k++) if (occ.has(key(x, y + k, z))) return false; return true; };
+  const free = (x, y, z, tall = 1) => { if (x < 0 || z < 0 || x >= N || z >= N || y < 0 || y + tall > HM) return false; if (cRect && x >= cRect[0] && x < cRect[0] + CS && z >= cRect[1] && z < cRect[1] + CS) return false; for (let k = 0; k < tall; k++) if (occ.has(key(x, y + k, z))) return false; return true; };
 
   // ---------------- walking on bricks: floor under the feet, walls in the way ----------------
   const local = (v) => new V3(v.x - ISLE.x, v.y, v.z - ISLE.z);
@@ -284,6 +285,7 @@ export function createIsland(ctx) {
   function blocked(v) {
     const p = local(v), lim = N / 2 + 2.6;
     if (Math.abs(p.x) > lim || Math.abs(p.z) > lim) return true;
+    if (centre && centre.visible) { const c = centre.position, r = 1.95 * centre.scale.x + 0.25; if (Math.abs(p.x - c.x) < r && Math.abs(p.z - c.z) < r && p.y < centre.userData.h * centre.scale.x) return true; }
     for (const [dx, dz] of CORNERS) {
       const [cx, cz] = cellOf(p.x + dx, p.z + dz), a = cols.get(ckey(cx, cz)); if (!a) continue;
       for (const b of a) { if (!TYPES[b.t].solid) continue; const [y0, y1] = span(b); if (y1 > p.y + 0.56 && y0 < p.y + 1.8) return true; }
@@ -561,7 +563,7 @@ export function createIsland(ctx) {
     const body = kind === "lot" ? { action: "world-lot-save", ...s, coin: lotCoin.token, data } : { action: "world-island-save", ...s, data, name: P.name || "", n: st2.bricks, res: st2.residents, theme: myTheme };
     try {
       const r = await post(body);
-      if (r.ok) { setSave(T("Saved to your wallet")); if (kind === "home") ctx.onSaved(st2); }
+      if (r.ok) { setSave(T("Saved to your wallet")); if (kind === "home") { ctx.onSaved(st2); if (r.j.village && ctx.onVillage) ctx.onVillage(r.j.village); } }
       else if (r.status === 503) setSave(T("Saved in this browser"));
       else if (r.status === 429) { clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 9000); }
       else setSave(r.j.error || T("Couldn't save"));
@@ -590,7 +592,7 @@ export function createIsland(ctx) {
     const j = await r.json();
     if (j.enabled === false) throw new Error(T("Island visits open once cloud saving is switched on."));
     if (!j.data) throw new Error(T("That wallet hasn't built an island yet"));
-    visitInfo = { wallet, name: j.name || wallet.slice(0, 6) + "…" + wallet.slice(-4), likes: j.likes || 0, stamps: j.stamps || [] };
+    visitInfo = { wallet, name: j.name || wallet.slice(0, 6) + "…" + wallet.slice(-4), likes: j.likes || 0, stamps: j.stamps || [], vlevel: (j.village && j.village.level) || 1, vscore: (j.village && j.village.score) || 0 };
     const n0 = unb64(j.data)[1] || ISLAND_N;
     return { list: decode(j.data, n0), N: n0, theme: j.theme || "" };
   }
@@ -679,6 +681,35 @@ export function createIsland(ctx) {
   }
   function setTheme(th) { myTheme = th || ""; if (active && kind === "home" && !readOnly) { applyTheme(myTheme); saveSoon(); } }
 
+  // ---------------- the village centre (world-village.js): six cells square, as near the middle as there's room ----------------
+  // Its level is the village's (api/_world-village.mjs); it grows from a cottage to a palace. Your own island and the
+  // islands you visit have one; a coin's lot doesn't. With no 6×6 room left on the island it stands off the back edge.
+  let centre = null, myVLevel = 0, myVInfo = null;
+  function findSpot() {
+    const c = Math.floor(N / 2) - CS / 2, empty = (x, z) => !(cols.get(ckey(x, z)) || []).length;
+    const fits = (x0, z0) => { if (x0 < 0 || z0 < 0 || x0 + CS > N || z0 + CS > N) return false; for (let x = x0; x < x0 + CS; x++) for (let z = z0; z < z0 + CS; z++) if (!empty(x, z)) return false; return true; };
+    for (let r = 0; r < N; r++) for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === r && fits(c + dx, c + dz)) return [c + dx, c + dz];
+    return null;
+  }
+  function dropCentre() { if (!centre) return; root.remove(centre); centre.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); centre = null; }
+  function placeCentre(level, cheer) {
+    dropCentre(); if (!ctx.makeCentre || kind !== "home") { cRect = null; return; }
+    if (!cheer || !cRect) cRect = findSpot();
+    centre = ctx.makeCentre(Math.max(1, level || 1));
+    if (cRect) { centre.scale.setScalar(1.45); centre.position.set(cRect[0] + CS / 2 - N / 2, 0, cRect[1] + CS / 2 - N / 2); }
+    else { centre.scale.setScalar(0.75); centre.position.set(0, 0, -N / 2 - 1.5); }
+    root.add(centre); ctx.labelsDirty();
+    if (cheer) { confetti(new V3(centre.position.x, centre.userData.h * centre.scale.x + 1, centre.position.z)); Snd.win(); }
+  }
+  const centreLevel = () => (readOnly ? (visitInfo && visitInfo.vlevel) || 1 : myVLevel || 1);
+  /// the village's level from world-play.js (and the score, and whether an upgrade is ready), for your own island
+  function setVillage(level, info) {
+    const was = myVLevel; myVLevel = level || 0; myVInfo = info || null;
+    if (active && kind === "home" && !readOnly && centre && centre.userData.level !== centreLevel()) placeCentre(centreLevel(), was > 0 && myVLevel > was);
+    paintHud();
+  }
+  function tickCentre(dt, t) { if (centre) for (const f of centre.userData.spin) f(dt, t); }
+
   // ---------------- entering and leaving ----------------
   let active = false;
   async function enter(opt = {}) {
@@ -693,6 +724,7 @@ export function createIsland(ctx) {
     HM = N === 64 ? 32 : HMAX;
     bricks = list; index(); set.clear(); set = brickSet(brickRoot, N); set.sync(bricks);
     undo.length = 0; redo.length = 0; anims.length = 0;
+    cRect = null; placeCentre(centreLevel(), false);
     residents.splice(0).forEach((r) => root.remove(r.g)); lastDoors = bricks.filter((b) => TYPES[b.t].id === "door").length; syncResidents(false);
     root.visible = true; active = true; ghostRoot.visible = false; applyTheme(theme);
     if (show) { if (kind === "home" && !readOnly) show.build(ctx.showcase.data() || {}, N + 6); else show.clear(); }
@@ -707,7 +739,7 @@ export function createIsland(ctx) {
   function leave() {
     if (!active) return;
     if (!readOnly) { clearTimeout(saveT); try { if (bricks.length || localStorage.getItem(LKEY())) localStorage.setItem(LKEY(), JSON.stringify({ d: encode(bricks, N), at: Date.now() })); } catch { /* private */ } cloudSave(); }
-    setBuild(false); active = false; root.visible = false; pending = null; lapse = null; ctx.skyTheme("");
+    setBuild(false); active = false; root.visible = false; pending = null; lapse = null; ctx.skyTheme(""); dropCentre(); cRect = null;
     document.body.classList.remove("wi-on", "wi-visit", "wi-lapse"); closeSheets();
   }
 
@@ -756,7 +788,7 @@ export function createIsland(ctx) {
     if (!active) return;
     const s = stats();
     $("wi-name").textContent = readOnly ? (visitInfo ? T("{name}'s island", { name: visitInfo.name }) : "") : kind === "lot" ? T("{sym} lot", { sym: "$" + lotCoin.symbol }) : T("My Island");
-    $("wi-stats").innerHTML = `<span>${esc(s.bricks === 1 ? T("1 brick") : T("{n} bricks", { n: s.bricks }))}</span><span>${esc(s.residents === 1 ? T("1 resident") : T("{n} residents", { n: s.residents }))}</span><span>${esc(T("Beauty {n}", { n: s.beauty }))}</span>`;
+    $("wi-stats").innerHTML = `<span>${esc(s.bricks === 1 ? T("1 brick") : T("{n} bricks", { n: s.bricks }))}</span><span>${esc(s.residents === 1 ? T("1 resident") : T("{n} residents", { n: s.residents }))}</span><span>${esc(T("Beauty {n}", { n: s.beauty }))}</span>${kind === "home" ? `<span class="wi-vlv">${esc(T("Village Lv {n}", { n: centreLevel() }))}${readOnly ? (visitInfo && visitInfo.vscore ? " · " + esc(T("score {s}", { s: visitInfo.vscore.toLocaleString("en-US") })) : "") : myVInfo && myVInfo.score ? " · " + esc(T("score {s}", { s: myVInfo.score.toLocaleString("en-US") })) : ""}</span>` : ""}`;
     q(".wi-acts").hidden = readOnly; $("wi-replay-btn").hidden = !bricks.length;
     $("wi-bp-btn").hidden = kind === "lot"; $("wi-book-btn").hidden = kind === "lot";
   }
@@ -825,6 +857,18 @@ export function createIsland(ctx) {
   function openSheet(id) { closeSheets(); $(id).hidden = false; ctx.freeze(true); }
   function closeSheets() { ["wi-pal", "wi-bp", "wi-isles", "wi-book"].forEach((id) => { const e = $(id); if (e && !e.hidden) { e.hidden = true; ctx.freeze(false); } }); }
   function openPalette() { paintPal(); openSheet("wi-pal"); if (!thumbsDone) renderThumbs().then(() => { if (!$("wi-pal").hidden) paintPal(); }); }
+  /// a piece you bought, in your hands: the builder opens with it in the hotbar and its shelf open in the palette
+  function useItem(id) {
+    if (!active || kind !== "home" || readOnly) return false;
+    const list = TYPES.filter((t) => t.pack === id);
+    setBuild(true);
+    if (list.length) {
+      const t = list[0], at = hot.indexOf(t.id); if (at >= 0) slot = at; else { hot[slot] = t.id; saveHot(); }
+      list.slice().reverse().forEach((x) => addRecent(x.id)); color = -1; setTool("place"); palCat = t.cat; paintBuild(); openPalette();
+      toast(T("{x} is in your hotbar. Pick a piece and place it.", { x: T(t.name) }));
+    }
+    return true;
+  }
   function openBlueprints() {
     $("wi-bplist").innerHTML = Object.keys(BP).map((id) => { const list = bpList(id), ok = list.every((b) => unlocked(TYPES[b.t])); return `<button type="button" data-bp="${id}" class="${ok ? "" : "locked"}"><b>${esc(T(BP_NAMES[id]))}</b><small>${esc(T("{n} bricks", { n: list.length }))}${ok ? "" : " · " + esc(T("needs bricks you haven't unlocked"))}</small></button>`; }).join("");
     openSheet("wi-bp");
@@ -947,13 +991,13 @@ export function createIsland(ctx) {
   }
 
   return {
-    TYPES, enter, leave, floorAt, blocked, keyDown, tap, hover, makeStatic, stats, setOwned, setTheme,
+    TYPES, enter, leave, floorAt, blocked, keyDown, tap, hover, makeStatic, stats, setOwned, setTheme, setVillage, useItem, centre: () => centre,
     active: () => active, building: () => building, readOnly: () => readOnly, kind: () => kind,
     title: () => (readOnly && visitInfo ? T("{name}'s island", { name: visitInfo.name }) : kind === "lot" ? "$" + lotCoin.symbol : T("My Island")),
-    near(consider) { consider(exit, "isle-exit", {}, 2.6); residents.forEach((r) => consider(r.g, "resident", { res: r }, 1.8)); },
+    near(consider) { consider(exit, "isle-exit", {}, 2.6); if (centre) { centre.userData.radius = 2.2 * centre.scale.x; consider(centre, "village", { level: centreLevel(), mine: !readOnly }, 1.4); } residents.forEach((r) => consider(r.g, "resident", { res: r }, 1.8)); },
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
-    mini(put) { put(exit, "#35d8d0", 6); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
-    showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
+    mini(put) { put(exit, "#35d8d0", 6); if (centre) put(centre, "#ffc861", 8); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
+    showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); tickCentre(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
     openIsles, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };
