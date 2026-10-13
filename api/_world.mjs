@@ -28,6 +28,7 @@
 import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
 import { makeCrew } from "./_world-crew.mjs";
+import { makeVillage, isGM } from "./_world-village.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const lc = (a) => String(a || "").toLowerCase();
@@ -72,7 +73,7 @@ export function cleanSave(d) {
   const o = d && typeof d === "object" ? d : {};
   // XP on the rising level curve (xpv 2); a save from an older game (100 XP a level) is converted so its level holds
   const xp = Math.max(0, Math.min(XP_MAX, Math.floor(o.xpv === XP_VERSION ? Number(o.xp) || 0 : xpFromOld(o.xp))));
-  const name = String(o.name || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
+  const name = String(o.name || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").replace(/\[\s*g\s*m\s*\]/gi, "").trim().slice(0, 16); // [GM] comes from the wallet, never the name
   return {
     xp, xpv: XP_VERSION, name, char: CHARS.has(o.char) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
     visited: ids(o.visited, /^[a-z0-9-]{1,24}$/, 40), beaten: ids(o.beaten, /^[a-z0-9-]{1,24}$/, 20),
@@ -151,7 +152,7 @@ export function make(deps) {
       if (seen.ok) await commit([{ inc: `worldOnline/${w}`, fields: { n: 1 } }]);
       // where you are, for the wanderers others see; signed in (and not hidden in Settings), with your name and level
       let who = null;
-      if (b.g && b.s && typeof b.s === "object") { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) { const cr = await crew.crewOf(v.wallet).catch(() => null); who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet, ...(cr && cr.tag && !cr.closed ? { tag: cr.tag } : {}) }; } } }
+      if (b.g && b.s && typeof b.s === "object") { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) { const cr = await crew.crewOf(v.wallet).catch(() => null); who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet, ...(cr && cr.tag && !cr.closed ? { tag: cr.tag } : {}), ...(isGM(v.wallet) ? { gm: 1 } : {}) }; } } }
       if (b.g) await social.ghostPing(id, b.g, who).catch(() => {});
     }
     return json(200, { ok: true, ...(await stats()) });
@@ -164,7 +165,8 @@ export function make(deps) {
     if (who !== wallet) return { err: json(403, { error: "signature doesn't match the wallet" }) };
     return { wallet };
   }
-  const shop = makeShop({ ...deps, json, now, signer, hasName: async (w) => !!(((await getDocs([`worldSave/${w}`]))[`worldSave/${w}`] || {}).name) });
+  let village = null; // made below (it reads the shop's ownership; the shop asks it about Village upgrades)
+  const shop = makeShop({ ...deps, json, now, signer, isleNext: (w) => village.nextUp(w), hasName: async (w) => !!(((await getDocs([`worldSave/${w}`]))[`worldSave/${w}`] || {}).name) });
   // the help desk's reviewers: SUPPORT_ADMINS (comma-separated wallets) and the owner of ArcircleFeeBurn
   let adminCache = null;
   async function admins() {
@@ -175,6 +177,7 @@ export function make(deps) {
   }
   const social = makeSocial({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
   const crew = makeCrew({ ...deps, json, now, signer, isoWeek: shop.isoWeek, levelOfSave });
+  village = makeVillage({ ...deps, json, now, signer, isoWeek: shop.isoWeek, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n) });
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -256,7 +259,7 @@ export function make(deps) {
     const key = `worldIsland/${s.wallet}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const name = cleanName(b.name), res = Math.max(0, Math.min(8, Math.floor(Number(b.res) || 0)));
-    await setDoc(key, { data: String(b.data), name, n: ok.n, res, at: now(), N: ok.N, theme });
+    await setDoc(key, { data: String(b.data), name, n: ok.n, res, at: now(), N: ok.N, theme, ...village.onSave(old, b.data, theme) }); // the village's score and XP (api/_world-village.mjs)
     // the recent list (and the name / size in the top list)
     try {
       const L = await lists(), entry = { wallet: s.wallet, name, n: ok.n };
@@ -264,14 +267,14 @@ export function make(deps) {
       const top = (L.top || []).map((x) => (x.wallet === s.wallet ? { ...x, name, n: ok.n } : x));
       if (ok.n > 0) await setDoc("worldStats/islands", { top, recent });
     } catch { /* the island itself is saved */ }
-    return json(200, { ok: true, at: now(), n: ok.n });
+    return json(200, { ok: true, at: now(), n: ok.n, village: await village.view(s.wallet) });
   }
   async function island(wallet) {
     const w = lc(wallet); if (!isAddr(w)) return json(400, { error: "wallet must be an address" });
     const d = await getDocs([`worldIsland/${w}`, `worldIslandLikes/${w}`, `worldStamps/${w}`]);
     const isl = d[`worldIsland/${w}`];
     if (!isl) return json(200, { wallet: w, data: null });
-    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, theme: isl.theme || "", likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: pubStamps((d[`worldStamps/${w}`] || {}).list || []) });
+    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, theme: isl.theme || "", likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: pubStamps((d[`worldStamps/${w}`] || {}).list || []), village: await village.view(w) });
   }
   async function like(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -281,6 +284,7 @@ export function make(deps) {
     const first = await commit([{ create: `worldLikes/${target}_${s.wallet}`, data: { at: now() } }]);
     if (!first.ok) return json(409, { error: "you already liked this island" });
     await commit([{ inc: `worldIslandLikes/${target}`, fields: { n: 1 } }]);
+    await village.onLike(target).catch(() => {}); // a like is 10 village XP
     const likes = ((await getDocs([`worldIslandLikes/${target}`]))[`worldIslandLikes/${target}`] || {}).n || 1;
     try {
       const L = await lists();
@@ -342,7 +346,7 @@ export function make(deps) {
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
-      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)); if (r) return r;
+      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)) || (await village.read(w, url)); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -356,7 +360,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await support.handle(b)) || (await crew.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

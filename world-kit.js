@@ -210,17 +210,20 @@ const solid = (color, { flat, ...o } = {}) => new THREE.MeshStandardMaterial({ c
 const glossy = (color, o = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.18, metalness: 0.65, clearcoat: 1, clearcoatRoughness: 0.15, ...o });
 
 // a crisp text label that always faces the camera
-export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, sub = "" } = {}) {
+export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, sub = "", pre = "", preColor = "#ffc861" } = {}) {
   const cv = document.createElement("canvas"); cv.width = 1024; cv.height = sub ? 300 : 220;
   const g = cv.getContext("2d");
-  // long text shrinks to fit the plate instead of running off its ends
+  // long text shrinks to fit the plate instead of running off its ends ("pre", like [GM], goes first in its own colour)
+  const all = pre ? pre + " " + text : text;
   let fs = 92; g.font = `700 ${fs}px Sora, 'Pretendard Variable', system-ui, sans-serif`;
-  while (fs > 44 && g.measureText(text).width > 860) { fs -= 4; g.font = `700 ${fs}px Sora, 'Pretendard Variable', system-ui, sans-serif`; }
-  const w = Math.min(1000, g.measureText(text).width + 120);
+  while (fs > 44 && g.measureText(all).width > 860) { fs -= 4; g.font = `700 ${fs}px Sora, 'Pretendard Variable', system-ui, sans-serif`; }
+  const w = Math.min(1000, g.measureText(all).width + 120);
   const x0 = (1024 - w) / 2, h = 150, y0 = 20, r = 75;
   g.fillStyle = "rgba(6,10,16,.78)"; g.beginPath(); g.roundRect(x0, y0, w, h, r); g.fill();
-  g.lineWidth = 6; g.strokeStyle = accent; g.stroke();
-  g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, 512, y0 + h / 2 + 4);
+  g.lineWidth = 6; g.strokeStyle = pre ? preColor : accent; g.stroke();
+  g.textBaseline = "middle";
+  if (pre) { const pw = g.measureText(pre + " ").width, x = 512 - g.measureText(all).width / 2; g.textAlign = "left"; g.fillStyle = preColor; g.fillText(pre, x, y0 + h / 2 + 4); g.fillStyle = color; g.fillText(text, x + pw, y0 + h / 2 + 4); g.textAlign = "center"; }
+  else { g.fillStyle = color; g.textAlign = "center"; g.fillText(text, 512, y0 + h / 2 + 4); }
   // the line under it (a title, a level) sits on its own small dark pill so it reads against a bright sky or floor
   if (sub) { g.font = "700 62px Sora, 'Pretendard Variable', system-ui, sans-serif"; const sw = Math.min(1000, g.measureText(sub).width + 64); g.fillStyle = "rgba(6,10,16,.72)"; g.beginPath(); g.roundRect(512 - sw / 2, y0 + h + 22, sw, 88, 44); g.fill(); g.fillStyle = accent; g.fillText(sub, 512, y0 + h + 68); }
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;

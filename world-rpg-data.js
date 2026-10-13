@@ -66,6 +66,8 @@ export function statsOf(level, eq, extra) {
   s.hp = Math.round(s.hp * (1 + (hpPct + allPct) / 100)); s.sp = Math.round(s.sp * (1 + allPct / 100));
   // the title you wear adds a little (TITLE_BONUS)
   if (extra) for (const k of ["atk", "def", "hp", "sp", "crit", "spd"]) if (extra[k]) s[k] += extra[k];
+  // the village blessing: a share more max HP
+  if (extra && extra.hpPct) s.hp = Math.round(s.hp * (1 + extra.hpPct / 100));
   // small passives on the way to the first skill: level 3 tougher, 5 quicker, 7 sharper
   if (level >= 3) s.hp = Math.round(s.hp * 1.05);
   if (level >= 5) s.spd += 5;

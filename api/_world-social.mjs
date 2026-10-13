@@ -26,6 +26,7 @@
 //            worldRaidIn/<week>_<wallet> · worldRaidFell/<week> { at } · worldGhosts/<2-min window>_<shard 0–7> { list }
 //            worldRaidGap/<week>_<wallet>_<slot> · worldRaidClaim/<week>_<wallet>
 //            worldStats/players { list, n } · worldGifts/<wallet> { list } · worldGiftDay/<wallet>_<day> { n } · worldStats/race_<week> { top }
+import { isGM } from "./_world-village.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
@@ -99,7 +100,7 @@ export function makeSocial(deps) {
   async function dirUpdate(w, sv) {
     if (!isAddr(w) || !sv) return;
     const x = (sv.rpg && sv.rpg.x) || {};
-    const row = { w, name: String(sv.name || "").slice(0, 16), lv: levelOfSave(sv), char: String(sv.char || "").slice(0, 16), t: TITLE_ID.test(String(x.title || "")) ? x.title : "", cx: Math.min(99, Object.keys(x.seen || {}).length + (Array.isArray(sv.beaten) ? sv.beaten.length : 0)), at: now() };
+    const row = { w, name: String(sv.name || "").slice(0, 16), lv: levelOfSave(sv), char: String(sv.char || "").slice(0, 16), t: TITLE_ID.test(String(x.title || "")) ? x.title : "", cx: Math.min(99, Object.keys(x.seen || {}).length + (Array.isArray(sv.beaten) ? sv.beaten.length : 0)), ...(isGM(w) ? { gm: 1 } : {}), at: now() };
     const key = "worldStats/players", cur = (await one(key)) || { list: [] }, old = (cur.list || []).find((y) => y.w === w);
     if (old && now() - (old.at || 0) < 15 * 60e3 && ["name", "lv", "char", "t", "cx"].every((k) => old[k] === row[k])) return;
     const list = [row, ...(cur.list || []).filter((y) => y.w !== w)].slice(0, DIR_MAX);
@@ -216,7 +217,7 @@ export function makeSocial(deps) {
       out[w] = { name: (sv && sv.name) || "", lv: sv ? levelOfSave(sv) : 0, seen: sv && sv.at ? Math.floor(sv.at / 600e3) * 600e3 : 0, char: (sv && sv.char) || "", isle: isl ? isl.n || 0 : 0, likes: (d[`worldIslandLikes/${w}`] || {}).n || 0,
         // the showcase: the titles they've earned and wear, and the gear they have on (slot, rarity, tier, +, weapon kind)
         ach: (Array.isArray(x.ach) ? x.ach : []).filter((a) => TITLE_ID.test(String(a))).slice(0, 40), t: TITLE_ID.test(String(x.title || "")) ? x.title : "", st: x.stitle ? 1 : 0,
-        gear: showGear(sv), ...(crew ? { cr: crew } : {}) };
+        gear: showGear(sv), ...(crew ? { cr: crew } : {}), ...(isGM(w) ? { gm: 1 } : {}), village: { score: (isl && isl.vscore) || 0, xp: (isl && isl.vxp) || 0 } };
     }
     return json(200, { friends: out }, "no-store");
   }
@@ -235,7 +236,7 @@ export function makeSocial(deps) {
     // for a hunting party: HP as a percentage and the ground you're in (shown to the friends who put you in theirs)
     const h = Number.isInteger(g.h) && g.h >= 0 && g.h <= 100 ? g.h : null, zn = /^[a-z]{3,8}$/.test(String(g.zn || "")) ? g.zn : "";
     const old = (cur.list || []).find((y) => y.t === t) || {};
-    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w, ...(who.tag ? { cr: who.tag } : {}) } : {}) };
+    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w, ...(who.tag ? { cr: who.tag } : {}), ...(who.gm ? { gm: 1 } : {}) } : {}) };
     const list = [e, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
     await setDoc(key, { list });
   }

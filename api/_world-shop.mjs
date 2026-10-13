@@ -108,6 +108,7 @@ export const CATALOG = [
   // not on the shelves: bought from the game itself
   { id: "revive", cat: "game", name: "Revive", line: "Get back up where you fell, with full HP and SP (and end a 24-hour rest).", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "rekind", cat: "game", name: "Weapon kind change", line: "Turn one weapon into another kind (dual swords, hammer, blaster, bow or staff). It keeps its stats.", tokens: 5000, usd: null, arcl: null, use: true },
+  { id: "isleup", cat: "game", name: "Village upgrade", line: "Your village's next level, from level 5 on (its XP has to be there first).", tokens: 1000, usd: null, arcl: null, use: true },
   { id: "rechar", cat: "game", name: "Character change", line: "Pick another character and a new name.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "bagplus", cat: "game", name: "Bigger bag", line: "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
@@ -177,6 +178,13 @@ export function makeShop(deps) {
       const top = [{ w: short(w), id: w, n: mine }, ...(cur.top || []).filter((x) => x.id !== w)].sort((a, b) => b.n - a.n).slice(0, 20);
       await setDoc(key, { top });
     } catch { /* the credit stands */ }
+    return amt;
+  }
+  /// ARCL given by the GM (the village contest's prizes): outside the daily cap, noted in the ledger
+  async function award(w, kind, n) {
+    const amt = Math.max(0, Math.floor(Number(n) || 0)); if (!amt) return 0;
+    await commit([{ inc: `worldArclBal/${w}`, fields: { bal: amt, earned: amt } }]);
+    await note(w, "earn", kind, amt).catch(() => {});
     return amt;
   }
   // an older sale record without its amount: unpaid when the ledger reaches back past it and shows no sale credit
@@ -338,6 +346,7 @@ export function makeShop(deps) {
     if (!it.use && o.items.includes(it.id)) return "you already have this";
     if (it.needs && !o.items.includes(it.needs)) return "get the 48×48 expansion first";
     if (it.id === "bagplus" && bagSize(o) >= BAG_MAX) return `your bag is as big as it gets (${BAG_MAX} slots)`;
+    if (it.id === "isleup") { const u = deps.isleNext ? await deps.isleNext(w) : { why: "not available" }; if (u.why) return u.why; }
     if (it.id === "rename" && !(deps.hasName ? await deps.hasName(w) : true)) return "your first name is free: set it in the character maker";
     if (it.target === "coin" || it.target === "mycoin") {
       const coin = lc(target); if (!isAddr(coin)) return "pick a coin";
@@ -353,6 +362,7 @@ export function makeShop(deps) {
     if (it.id === "rename") o.renames = (o.renames || 0) + 1;
     else if (it.id === "revive") { o.revives = (o.revives || 0) + 1; const k = await one(`worldKo/${w}`); if (k && (k.until > at || k.down)) await setDoc(`worldKo/${w}`, { ...k, until: 0, down: 0, paid: (k.paid || 0) + 1 }); }
     else if (it.id === "rekind") o.rekinds = (o.rekinds || 0) + 1; // used up by the save that changes a weapon's kind (api/_world.mjs)
+    else if (it.id === "isleup") o.isleLv = Math.max(o.isleLv || 0, Math.floor(Number(String(target || "").replace(/^lv:/, "")) || 0)); // the level this payment was quoted for
     else if (it.id === "rechar") o.rechars = (o.rechars || 0) + 1; // used up by the save that changes the character or name
     else if (it.id === "bagplus") o.bag = Math.min((BAG_MAX - BAG_BASE) / BAG_STEP, Math.max(0, Math.floor(Number(o.bag) || 0)) + 1);
     else if (it.id === "lot13") o.lots = [...new Set([...(o.lots || []), lc(target)])];
@@ -417,15 +427,16 @@ export function makeShop(deps) {
     const w = s.wallet, it = ITEM[b.item];
     if (!it) return json(400, { error: "unknown item" });
     const why = await checkBuy(w, it, b.target); if (why) return json(400, { error: why });
-    let price = 0, wei;
-    if (it.tokens) wei = BigInt(it.tokens) * 10n ** 18n; // a fixed $ARCIRCLE amount (revive)
+    let price = 0, wei, target = lc(b.target || "");
+    if (it.id === "isleup") { const u = await deps.isleNext(w); wei = BigInt(u.tokens) * 10n ** 18n; target = "lv:" + u.next; } // the price of the next village level
+    else if (it.tokens) wei = BigInt(it.tokens) * 10n ** 18n; // a fixed $ARCIRCLE amount (revive)
     else {
       price = deps.arcPrice ? Number(await deps.arcPrice().catch(() => 0)) : 0;
       if (!(price > 0)) return json(503, { error: "can't price $ARCIRCLE right now; try again in a minute" });
       wei = BigInt(Math.ceil((it.usd / price) * 1e6)) * 10n ** 12n;
     }
     const id = rid(), exp = now() + QUOTE_MS;
-    await setDoc(`worldPayQuote/${id}`, { wallet: w, item: it.id, target: lc(b.target || ""), usd: it.usd, amount: wei.toString(), price, exp });
+    await setDoc(`worldPayQuote/${id}`, { wallet: w, item: it.id, target, usd: it.usd, amount: wei.toString(), price, exp });
     return json(200, { ok: true, quote: id, item: it.id, usd: it.usd, amount: wei.toString(), tokens: Number(wei / 10n ** 12n) / 1e6, to: FEE_BURN, token: ARCIRCLE, exp });
   }
   async function confirm(b) {
@@ -458,7 +469,7 @@ export function makeShop(deps) {
   }
 
   return {
-    stampCredit, own, plaza, koOf, rewardArcl, credit, isoWeek,
+    stampCredit, own, plaza, koOf, rewardArcl, credit, award, isoWeek,
     owns: async (w, id) => ((await own(w)).items || []).includes(id),
     lotPremium: async (w, coin) => ((await own(w)).lots || []).includes(lc(coin)),
     renames: async (w) => (await own(w)).renames || 0,
