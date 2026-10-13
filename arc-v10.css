@@ -3909,3 +3909,31 @@ body.wp .wp-hud .wp-brand i,body.wp .wp-hud .wa-chip,body.wp .wp-hud .wp-cards,b
 @media (pointer:coarse){html.wp-pcphone body.wp .wp-dock{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px)}html.wp-pcphone .wp-joyrest{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px + 113px + 40px)}html.wp-pcphone.wp-land body.wp .wp-dock{bottom:max(10px,env(safe-area-inset-bottom))}}
 body.wp #wp-dk-build{display:none!important}
 /* ---- b398 end ---- */
+/* between the betas (world-lock.js PHASE "closed"): CBT closed, OBT coming soon */
+.wl-closed .wl-tag{background:rgba(255,200,97,.12);border-color:rgba(255,200,97,.45);color:#ffd88f}
+.wl-closed .wl-req dd{font-size:13px;line-height:1.35;max-width:62%}
+.wl-closed a.wl-go{display:grid;place-items:center;align-self:stretch;text-decoration:none;color:#04121a;font-size:15px;font-weight:800}
+.wl-gm{appearance:none;align-self:center;padding:4px 8px;border:0;background:none;cursor:pointer;font:600 12.5px var(--f-ui);color:rgba(222,233,244,.55);text-decoration:underline;text-underline-offset:3px}
+.wl-gm:disabled{cursor:progress}
+.wl-gm:focus-visible{outline:2px solid #35d8d0;outline-offset:2px;border-radius:6px}
+/* the closed beta's reward (world-play.js cbtCard): Legendary gold */
+.wp-cbt{position:fixed;inset:0;z-index:12500;display:grid;place-items:center;padding:16px;background:rgba(2,4,8,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-family:var(--f-ui);color:#eef3f7;animation:wlIn .25s ease}
+.wp-cbt-card{position:relative;width:min(420px,100%);padding:0 22px 20px;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,#1a1408,#0b0d12 55%);border:1px solid rgba(255,200,97,.35);box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 60px rgba(255,200,97,.12)}
+.wp-cbt-top{height:86px;margin:0 -22px 14px;background:radial-gradient(60% 120% at 50% 100%,rgba(255,200,97,.45),transparent 70%),linear-gradient(180deg,#2a1f0a,#1a1408);border-bottom:1px solid rgba(255,200,97,.22);display:grid;place-items:center}
+.wp-cbt-top i{width:46px;height:46px;transform:rotate(45deg);border-radius:10px;background:linear-gradient(135deg,#fff3c4,#ffc861 45%,#c98a1c);box-shadow:0 0 30px rgba(255,200,97,.7)}
+.wp-cbt-card>small{display:block;font:700 12px var(--f-ui);color:#ffd88f}
+.wp-cbt-card h2{margin:4px 0 6px;font:800 21px/1.2 var(--f-display,var(--f-ui));color:#fff}
+.wp-cbt-card p{margin:0 0 12px;font-size:13.5px;line-height:1.5;color:rgba(238,243,247,.72)}
+.wp-cbt-card ul{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.wp-cbt-card li{display:grid;grid-template-columns:34px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(255,200,97,.07);border:1px solid rgba(255,200,97,.22);animation:wpCbtIn .4s ease both;animation-delay:calc(var(--i) * 90ms + 150ms)}
+.wp-cbt-card li svg{grid-row:1/3;width:30px;height:30px;fill:none;stroke:var(--ic);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.wp-cbt-card li b{font:700 14px var(--f-ui);color:#ffe2a6}
+.wp-cbt-card li small{font-size:12px;color:rgba(238,243,247,.6)}
+@keyframes wpCbtIn{from{opacity:0;transform:translateY(6px)}}
+.wp-cbt-act{display:flex;gap:10px}
+.wp-cbt-act button{flex:1;appearance:none;height:46px;border-radius:14px;cursor:pointer;font:800 14px var(--f-ui)}
+.wp-cbt-bag{border:0;color:#1a1204;background:linear-gradient(90deg,#ffc861,#ffe08f)}
+.wp-cbt-x{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#eef3f7}
+.wp-cbt-act button:focus-visible{outline:2px solid #ffc861;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.wp-cbt,.wp-cbt-card li{animation:none}}
+html.wp-pcphone .wp-cbt-card{zoom:1.7;width:min(420px,calc((100vw - 24px) / 1.7));max-height:calc((100svh - 32px) / 1.7);overflow:auto}

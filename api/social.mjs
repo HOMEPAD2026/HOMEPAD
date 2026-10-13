@@ -96,6 +96,7 @@ import * as webpush from "./_webpush.mjs";
 import * as v6mod from "./_arcpad-v6.mjs";
 import * as vearcia from "./_vearcia.mjs";
 import * as worldmod from "./_world.mjs";
+import { WORLD_PHASE } from "./_world-phase.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -203,7 +204,7 @@ const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDoc
 // ArcPad v6 (api/_arcpad-v6.mjs): comments, referrals, launch plans
 let V6 = null;
 let WORLD = null;
-const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, storeEnabled, recover: recoverSigner, issuedOk, json, launchRecord, tokenBalance,
+const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, storeEnabled, recover: recoverSigner, issuedOk, json, launchRecord, tokenBalance, phase: WORLD_PHASE,
   arcPrice: async () => (await token.tokenStats(null)).price, receipt: (h) => rpcCall("eth_getTransactionReceipt", [h]), ownerOf: (a) => rpcCall("eth_call", [{ to: a, data: "0x8da5cb5b" }, "latest"]) }));
 const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)), veTier: (w) => vearcia.veTierOf(w),
   argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));

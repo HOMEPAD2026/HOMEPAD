@@ -10784,6 +10784,19 @@
     "{n} friends, one at random": "{n} 位好友中随机一位",
     "No friends yet: a random island": "还没有好友：随机一座岛",
     "No friends yet: add one with Add friend on their island. Here's a random island.": "还没有好友：在对方的岛上点「加好友」。先带你去一座随机的岛。",
+    "Closed beta reward": "CBT 奖励",
+    "Rank {n} in the closed beta. Thank you!": "封闭测试第 {n} 名，谢谢你！",
+    "Thank you for playing the closed beta!": "感谢参与封闭测试！",
+    "{n} Legendary pieces for your new start. Worn from level {lv}.": "为你的全新开始准备的 {n} 件传说装备。{lv} 级起可穿戴。",
+    "A Legendary weapon for your new start. Worn from level {lv}.": "为你的全新开始准备的传说武器。{lv} 级起可穿戴。",
+    "Open the bag": "打开背包",
+    "Weapon": "武器",
+    "Shield": "盾牌",
+    "Armor": "铠甲",
+    "Helmet": "头盔",
+    "Ring": "戒指",
+    "Boots": "靴子",
+    "Necklace": "项链",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

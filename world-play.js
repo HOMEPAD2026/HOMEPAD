@@ -75,6 +75,17 @@ const SAVE = "arc.world", SETS = "arc.world.set", SESS = "arc.world.sess", VID =
 const blank = () => ({ xp: 0, visited: [], beaten: [], cards: [], quests: [], badges: [], char: "", name: "", daily: null, tut: 0, authSeen: false });
 const P = (() => { try { return { ...blank(), ...JSON.parse(localStorage.getItem(SAVE) || "{}") }; } catch { return blank(); } })();
 if (P.tutBits == null) P.tutBits = (1 << Math.min(3, P.tut | 0)) - 1;
+// a fresh start (world-lock.js EPOCH, api/_world-phase.mjs): progress from an earlier test stays behind — level, XP,
+// gear, quests, the island's numbers, the ARCL queue. The name, the character, the outfit, settings and friends stay.
+const EPOCH = (window.arcWorldLock && window.arcWorldLock.epoch) || 1;
+if ((P.ep || 1) !== EPOCH) {
+  const friends = P.rpg && P.rpg.x && Array.isArray(P.rpg.x.friends) ? P.rpg.x.friends : null;
+  for (const k of ["xp", "xpv", "visited", "beaten", "cards", "quests", "badges", "daily", "rpg", "isle", "vill"]) delete P[k];
+  Object.assign(P, { xp: 0, visited: [], beaten: [], cards: [], quests: [], badges: [], daily: null, ...(friends ? { rpg: { x: { friends } } } : {}) });
+  for (const k of ["isle", "sold", "ko", "boss", "arclq", "fishwk"]) { try { localStorage.removeItem("arc.world." + k); } catch { /* private */ } }
+  P.ep = EPOCH; try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ }
+}
+P.ep = EPOCH;
 const S = (() => { const d = { quality: "auto", sound: true, sens: 1 }; try { return { ...d, ...JSON.parse(localStorage.getItem(SETS) || "{}") }; } catch { return d; } })();
 let cloudT = 0;
 // the save goes to this browser at most every 1.5 s (a whole save on every knock-out and pickup was a hitch), and
@@ -145,8 +156,8 @@ const addr = () => (AC && AC.address && AC.address()) || "";
 const vid = (() => { try { let v = localStorage.getItem(VID); if (!/^[a-z0-9]{20}$/.test(v || "")) { v = Array.from(crypto.getRandomValues(new Uint8Array(20)), (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join(""); localStorage.setItem(VID, v); } return v; } catch { return "guest0000000000000000"; } })();
 const sess = () => { try { const s = JSON.parse(localStorage.getItem(SESS) || "null"); return s && Date.now() - Date.parse(s.issued) < 23.5 * 3600e3 ? s : null; } catch { return null; } };
 const loginMessage = (wallet, issued) => `ARCIRCLE World — sign in\n\nWallet: ${lc(wallet)}\nIssued: ${issued}\n\nThis only proves the wallet is yours. It costs nothing and moves nothing.`;
-const post = (body) => fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }));
-const PROGRESS = ["xp", "xpv", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily", "rpg", "outfit"];
+const post = (body) => fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ep: EPOCH, ...body }) }).then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }));
+const PROGRESS = ["xp", "xpv", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily", "rpg", "outfit", "ep"];
 async function signIn() {
   if (!AC) throw new Error(T("Wallet connect isn't available here."));
   if (!AC.live || !AC.live()) await AC.connect();
@@ -173,12 +184,47 @@ async function resumeSession() {
   loggedIn(r, true);
 }
 function loggedIn(r, quiet) {
-  const sv = r.j.save;
+  const sv = r.j.save && (r.j.save.ep || 1) === EPOCH ? r.j.save : null; // never an earlier test's progress
   if (sv && sv.xpv !== RPG.XP_VERSION) { sv.xp = RPG.xpFromOld(sv.xp); sv.xpv = RPG.XP_VERSION; } // a save from the old level curve
   if (sv && (sv.xp || 0) > P.xp) { PROGRESS.forEach((k) => { if (sv[k] != null && sv[k] !== "") P[k] = sv[k]; }); try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } toast(T("Welcome back, {name}. Your progress is loaded.", { name: P.name || "" })); }
   else { if (!quiet || r.j.firstTime) toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
   arclShop.refresh().then(() => { arclShop.flushQueue(); arclChecks(); setTimeout(() => arclShop.maybeDaily(), 1500); });
   setTimeout(() => { village.load(); setNameTag(); }, 600);
+  if (r.j.cbt) setTimeout(() => cbtReward(r.j.cbt), 2500);
+}
+// ---- the closed beta's rewards (api/_world-phase.mjs): asked for once signed in to the open beta. The server keeps
+// the pieces with the claim, so asking again returns the same ones; each is added to the bag once (by its id).
+async function cbtReward(c) {
+  if (!c || !c.eligible || EPOCH < 2) return;
+  let ready = false; try { ready = !!rpg; } catch { /* still loading (rpg is declared further down) */ }
+  if (!ready) { setTimeout(() => cbtReward(c), 2000); return; }
+  const r0 = rpg.data(); r0.x = r0.x || {};
+  if (r0.x.cbt === EPOCH) return;
+  const s = sess(); if (!s) return;
+  const r = await post({ action: "world-cbt-claim", ...s }).catch(() => null);
+  if (!r || !r.ok || !Array.isArray(r.j.items)) return;
+  const have = new Set([...Object.values(r0.eq || {}), ...(r0.bag || []), ...(r0.store || [])].filter(Boolean).map((x) => x.id));
+  const got = r.j.items.filter((it) => it && it.id && !have.has(it.id));
+  for (const it of got) rpg.addItem({ ...it }, true);
+  r0.x.cbt = EPOCH; save();
+  if (got.length) cbtCard(got, r.j.rank || 0);
+}
+function cbtCard(items, rank) {
+  const el = document.createElement("div"); el.className = "wp-cbt"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wp-cbt-h"); el.setAttribute("data-no-i18n", "");
+  const leg = RPG.RARITY[4], wearLv = (RPG.TIERS[(RPG.parseBase(items[0].b) || {}).tier || 0] || {}).lv || 1;
+  el.innerHTML = `<div class="wp-cbt-card"><div class="wp-cbt-top" aria-hidden="true"><i></i></div><small>${esc(T("Closed beta reward"))}</small>
+    <h2 id="wp-cbt-h">${esc(rank ? T("Rank {n} in the closed beta. Thank you!", { n: rank }) : T("Thank you for playing the closed beta!"))}</h2>
+    <p>${esc(items.length > 1 ? T("{n} Legendary pieces for your new start. Worn from level {lv}.", { n: items.length, lv: wearLv }) : T("A Legendary weapon for your new start. Worn from level {lv}.", { lv: wearLv }))}</p>
+    <ul>${items.map((it, i) => { const pb = RPG.parseBase(it.b) || { slot: "weapon" }; return `<li style="--i:${i}">${RPG.iconSvg(pb.slot, leg.color)}<b>${esc(RPG.itemName(it))}</b><small>${esc(T("Legendary"))} · ${esc(T(RPG.SLOT_NAME[pb.slot] || pb.slot))} · ${esc(T("Lv {n}", { n: it.lv }))}</small></li>`; }).join("")}</ul>
+    <div class="wp-cbt-act"><button type="button" class="wp-cbt-bag">${esc(T("Open the bag"))}</button><button type="button" class="wp-cbt-x">${esc(T("Close"))}</button></div></div>`;
+  document.body.appendChild(el);
+  const close = () => { el.remove(); document.removeEventListener("keydown", onKey, true); };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  el.querySelector(".wp-cbt-x").addEventListener("click", close);
+  el.querySelector(".wp-cbt-bag").addEventListener("click", () => { close(); rpg.show(); });
+  el.addEventListener("click", (e) => { if (e.target === el) close(); });
+  setTimeout(() => el.querySelector(".wp-cbt-bag").focus(), 40);
 }
 // a save that doesn't reach the server (offline, a server hiccup, too soon after the last) is tried again on its own,
 // sooner at first and then less often, and right away when the connection comes back; a small note shows meanwhile

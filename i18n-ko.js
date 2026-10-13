@@ -10614,6 +10614,19 @@
     "{n} friends, one at random": "친구 {n}명 중 무작위",
     "No friends yet: a random island": "아직 친구가 없어요: 무작위 섬으로",
     "No friends yet: add one with Add friend on their island. Here's a random island.": "아직 친구가 없어요. 다른 플레이어 섬에서 친구 추가를 눌러 보세요. 무작위 섬으로 안내할게요.",
+    "Closed beta reward": "CBT 보상",
+    "Rank {n} in the closed beta. Thank you!": "클로즈 베타 {n}위, 고마워요!",
+    "Thank you for playing the closed beta!": "클로즈 베타에 함께해 줘서 고마워요!",
+    "{n} Legendary pieces for your new start. Worn from level {lv}.": "새 출발을 위한 전설 장비 {n}개예요. 레벨 {lv}부터 착용할 수 있어요.",
+    "A Legendary weapon for your new start. Worn from level {lv}.": "새 출발을 위한 전설 무기예요. 레벨 {lv}부터 착용할 수 있어요.",
+    "Open the bag": "가방 열기",
+    "Weapon": "무기",
+    "Shield": "방패",
+    "Armor": "갑옷",
+    "Helmet": "투구",
+    "Ring": "반지",
+    "Boots": "신발",
+    "Necklace": "목걸이",
   };
 
 

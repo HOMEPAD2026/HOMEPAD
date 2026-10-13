@@ -29,6 +29,7 @@ import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize } from "./_world-shop.mj
 import { makeSupport } from "./_world-support.mjs";
 import { makeCrew } from "./_world-crew.mjs";
 import { makeVillage, isGM } from "./_world-village.mjs";
+import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const lc = (a) => String(a || "").toLowerCase();
@@ -80,6 +81,7 @@ export function cleanSave(d) {
     cards: ids(o.cards, /^c\d{1,2}$/, 40), quests: ids(o.quests, /^[a-z0-9-]{1,24}$/, 60), badges: ids(o.badges, /^[a-z0-9-]{1,24}$/, 40),
     daily: o.daily && typeof o.daily === "object" ? { day: String(o.daily.day || "").slice(0, 10), done: ids(o.daily.done, /^[a-z0-9-]{1,24}$/, 10), streak: Math.max(0, Math.min(3650, Math.floor(Number(o.daily.streak) || 0))) } : null,
     ...(o.outfit && typeof o.outfit === "object" ? { outfit: cleanOutfit(o.outfit) } : {}),
+    ...(Number.isInteger(o.ep) && o.ep >= 1 && o.ep <= 99 ? { ep: o.ep } : {}), // the test this progress belongs to (api/_world-phase.mjs)
   };
 }
 
@@ -101,8 +103,13 @@ const shortW = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 const pubStamps = (list) => list.slice(-20).map(({ m, h, ...x }) => (h ? { ...x, h: 1 } : m ? { ...x, m } : x));
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
 
-/// deps: { getDocs, setDoc, commit, storeEnabled, recover, issuedOk, json, launchRecord?, now? }
+/// deps: { getDocs, setDoc, commit, storeEnabled, recover, issuedOk, json, launchRecord?, now?, phase? }
+/// phase (api/_world-phase.mjs WORLD_PHASE): { phase: "cbt" | "closed" | "obt", epoch }; without it, the closed beta
 export function make(deps) {
+  const PH = deps.phase && typeof deps.phase === "object" ? deps.phase : { phase: "cbt", epoch: 1 };
+  // the store as this epoch sees it (every module gets it); `raw` reads the closed beta's own data for its rewards
+  const raw = { getDocs: deps.getDocs, setDoc: deps.setDoc, commit: deps.commit };
+  deps = { ...deps, ...scopeStore(raw, PH.epoch) };
   const { getDocs, setDoc, commit, recover, issuedOk, json } = deps;
   const now = () => (deps.now ? deps.now() : Date.now());
   const on = () => (deps.storeEnabled ? deps.storeEnabled() : true);
@@ -110,7 +117,7 @@ export function make(deps) {
     const w = Math.floor(now() / WINDOW);
     const d = await getDocs(["worldStats/main", `worldOnline/${w}`, `worldOnline/${w - 1}`]);
     const m = d["worldStats/main"] || {}, a = (d[`worldOnline/${w}`] || {}).n || 0, b = (d[`worldOnline/${w - 1}`] || {}).n || 0;
-    return { online: Math.max(a, b), visitors: m.visitors || 0, uniques: m.uniques || 0, players: m.players || 0 };
+    return { online: Math.max(a, b), visitors: m.visitors || 0, uniques: m.uniques || 0, players: m.players || 0, phase: PH.phase, epoch: PH.epoch };
   }
   // ---- anonymous health counters (world-diag.js): errors, frame-rate bands, a GPU memory climb; no wallet, no place ----
   const word = (x, n) => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, n);
@@ -200,6 +207,9 @@ export function make(deps) {
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
   async function gate(b) {
     const s = signer(b); if (s.err) return s.err;
+    // between the betas only GM wallets play; in the open beta everyone does, with no balance to hold
+    if (PH.phase === "closed") return json(200, { ok: isGM(s.wallet), closed: true, phase: PH.phase, wallet: s.wallet });
+    if (PH.phase === "obt") return json(200, { ok: true, phase: PH.phase, wallet: s.wallet });
     if (!deps.tokenBalance) return json(503, { error: "the balance check isn't available" });
     let bal; try { bal = BigInt(await deps.tokenBalance(ARCIRCLE_TOKEN, s.wallet)); } catch { return json(502, { error: "couldn't read the balance on Arc — try again in a moment" }); }
     const whole = Number(bal / 10n ** 18n);
@@ -213,7 +223,46 @@ export function make(deps) {
     const counted = await commit([{ create: `worldCounted/${s.wallet}`, data: { at: now() } }]);
     if (counted.ok) await commit([{ inc: "worldStats/main", fields: { players: 1 } }]);
     const d = await getDocs([`worldSave/${s.wallet}`]);
-    return json(200, { ok: true, wallet: s.wallet, firstTime: !!first.ok, save: d[`worldSave/${s.wallet}`] || null });
+    return json(200, { ok: true, wallet: s.wallet, firstTime: !!first.ok, save: d[`worldSave/${s.wallet}`] || null, phase: PH.phase, epoch: PH.epoch, ...(PH.epoch >= 2 ? { cbt: await cbtInfo(s.wallet) } : {}) });
+  }
+  // ---- the closed beta's rewards (api/_world-phase.mjs CBT_REWARD), from its own data, which never changes ----
+  // the level ranking's top 3, frozen the first time it's read once the closed beta is over (GMs left out; ties by XP)
+  async function cbtTop() {
+    const frozen = (await raw.getDocs(["worldCbt/top"]))["worldCbt/top"];
+    if (frozen && Array.isArray(frozen.list)) return frozen.list;
+    const rows = (((await raw.getDocs(["worldStats/players"]))["worldStats/players"] || {}).list || []).filter((r) => r && isAddr(r.w) && !isGM(r.w) && !r.gm);
+    rows.sort((a, c) => (c.lv || 0) - (a.lv || 0));
+    const cut = rows.length > 3 ? rows[2].lv || 0 : 0, cand = rows.filter((r) => (r.lv || 0) >= cut).slice(0, 30);
+    const sv = cand.length ? await raw.getDocs(cand.map((r) => `worldSave/${lc(r.w)}`)) : {};
+    const xpOf = (w) => { const x = sv[`worldSave/${lc(w)}`]; return x ? (x.xpv === XP_VERSION ? x.xp || 0 : xpFromOld(x.xp)) : 0; };
+    const list = cand.map((r) => ({ w: lc(r.w), name: String(r.name || "").slice(0, 16), lv: r.lv || 0, xp: xpOf(r.w) })).sort((a, c) => c.lv - a.lv || c.xp - a.xp).slice(0, 3);
+    if (PH.phase !== "cbt") { const made = await raw.commit([{ create: "worldCbt/top", data: { list, at: now() } }]).catch(() => ({ ok: false })); if (!made.ok) { const again = (await raw.getDocs(["worldCbt/top"]))["worldCbt/top"]; if (again && Array.isArray(again.list)) return again.list; } }
+    return list;
+  }
+  // { eligible (a closed-beta save), rank (1–3, or 0), claimed, items (once claimed) }
+  async function cbtInfo(w) {
+    const d = await raw.getDocs([`worldSave/${w}`, `worldCbtClaim/${w}`]), c = d[`worldCbtClaim/${w}`];
+    if (c) return { eligible: true, rank: c.rank || 0, claimed: true, items: Array.isArray(c.items) ? c.items : [] };
+    if (!d[`worldSave/${w}`] || isGM(w)) return { eligible: false, rank: 0, claimed: false };
+    const top = await cbtTop(), i = top.findIndex((r) => r.w === w);
+    return { eligible: true, rank: i + 1, claimed: false };
+  }
+  // the pieces are made once and kept with the claim, so asking again returns the same ones (the game adds each id once)
+  async function cbtClaim(b) {
+    if (!(PH.epoch >= 2)) return json(409, { error: "the closed beta's rewards come with the open beta" });
+    const s = signer(b); if (s.err) return s.err;
+    const info = await cbtInfo(s.wallet);
+    if (!info.eligible) return json(404, { error: "this wallet has no closed beta progress" });
+    if (info.claimed) return json(200, { ok: true, again: true, rank: info.rank, items: info.items });
+    const items = cbtItems(info.rank);
+    const made = await raw.commit([{ create: `worldCbtClaim/${s.wallet}`, data: { at: now(), rank: info.rank, items } }]);
+    if (!made.ok) { const c = (await raw.getDocs([`worldCbtClaim/${s.wallet}`]))[`worldCbtClaim/${s.wallet}`] || {}; return json(200, { ok: true, again: true, rank: c.rank || 0, items: c.items || [] }); }
+    return json(200, { ok: true, rank: info.rank, items });
+  }
+  // GET ?world=phase: where the test stands, and the closed beta's top 3 (public: names and levels from the directory)
+  async function phaseView() {
+    const top = await cbtTop().catch(() => []);
+    return json(200, { phase: PH.phase, epoch: PH.epoch, reward: CBT_REWARD, top: top.map((r, i) => ({ rank: i + 1, w: r.w, name: r.name, lv: r.lv })) }, "public, max-age=30");
   }
   // what a save may add: { xp (to store), gain, cut, bank (the allowance left), dayKey }
   async function xpGuard(w, old, want) {
@@ -359,6 +408,7 @@ export function make(deps) {
         try { const v = BigInt(await deps.tokenBalance(ARCIRCLE_TOKEN, lc(a))); return json(200, { wallet: lc(a), arc: v.toString() }, "public, max-age=20"); }
         catch { return json(502, { error: "couldn't read the balance on Arc" }); }
       }
+      if (w === "phase") { if (!on()) return json(200, { phase: PH.phase, epoch: PH.epoch, top: [] }); return phaseView(); }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
@@ -372,6 +422,13 @@ export function make(deps) {
       if (b.action === "world-ping") return ping(b);
       if (b.action === "world-diag") return diag(b);
       if (b.action === "world-login") return login(b);
+      if (!String(b.action || "").startsWith("world-support-")) {
+        // between the betas: GM wallets only
+        if (PH.phase === "closed") { const s = b.wallet ? signer(b) : null; if (!s || s.err || !isGM(s.wallet)) return json(423, { error: "the closed beta has ended — the open beta is coming soon", closed: true }); }
+        // a fresh start: a game still holding an earlier test's progress may not write it into this one
+        if (PH.epoch >= 2 && Number(b.ep) !== PH.epoch) return json(409, { error: "this game is from an earlier test — reload the page", stale: true });
+      }
+      if (b.action === "world-cbt-claim") return cbtClaim(b);
       if (b.action === "world-save") return save(b);
       if (b.action === "world-island-save") return islandSave(b);
       if (b.action === "world-like") return like(b);
