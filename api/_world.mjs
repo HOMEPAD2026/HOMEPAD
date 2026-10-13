@@ -107,6 +107,29 @@ export function make(deps) {
     const m = d["worldStats/main"] || {}, a = (d[`worldOnline/${w}`] || {}).n || 0, b = (d[`worldOnline/${w - 1}`] || {}).n || 0;
     return { online: Math.max(a, b), visitors: m.visitors || 0, uniques: m.uniques || 0, players: m.players || 0 };
   }
+  // ---- anonymous health counters (world-diag.js): errors, frame-rate bands, a GPU memory climb; no wallet, no place ----
+  const word = (x, n) => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, n);
+  const hash = (t) => { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
+  async function diag(b) {
+    const day = `worldDiag/${seoulDay(now())}`, dev = b.dev === "phone" ? "ph" : "pc", q = word(b.q, 8) || "auto";
+    if (b.kind === "fps") { const f = Math.max(0, Math.min(4, Math.floor(Number(b.b) || 0))); await commit([{ inc: day, fields: { [`fps_${dev}_${q}_${f}`]: 1 } }]).catch(() => {}); return json(200, { ok: true }); }
+    if (b.kind === "mem") { await commit([{ inc: day, fields: { [`mem_${dev}_${q}`]: 1 } }]).catch(() => {}); return json(200, { ok: true }); }
+    if (b.kind === "err") {
+      const msg = String(b.msg || "").slice(0, 180); if (!msg) return json(400, { error: "empty" });
+      const h = hash(msg);
+      await commit([{ inc: day, fields: { [`err_${h}`]: 1 } }]).catch(() => {});
+      await commit([{ create: `worldDiagMsg/${h}`, data: { msg, src: String(b.src || "").slice(0, 60), gpu: String(b.gpu || "").slice(0, 80), dev, at: now() } }]).catch(() => {});
+      return json(200, { ok: true });
+    }
+    return json(400, { error: "unknown kind" });
+  }
+  async function diagView() {
+    const days = [0, 1, 2].map((i) => seoulDay(now() - i * 864e5)), d = await getDocs(days.map((x) => `worldDiag/${x}`));
+    const out = days.map((x) => ({ day: x, n: d[`worldDiag/${x}`] || {} }));
+    const errs = [...new Set(out.flatMap((x) => Object.keys(x.n).filter((k) => k.startsWith("err_")).map((k) => k.slice(4))))].slice(0, 40);
+    const m = errs.length ? await getDocs(errs.map((h) => `worldDiagMsg/${h}`)) : {};
+    return json(200, { days: out, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
+  }
   async function ping(b) {
     const id = String(b.id || "");
     if (!/^[a-z0-9]{12,40}$/.test(id)) return json(400, { error: "bad id" });
@@ -286,6 +309,7 @@ export function make(deps) {
     // GET ?world=…
     async read(url) {
       const w = url.searchParams.get("world");
+      if (w === "diag") { if (!on()) return json(503, { error: "storage is off" }); return diagView(); }
       // a wallet's $ARCIRCLE on Arc (public chain data), for when the browser's own RPC reads fail
       if (w === "holding") {
         const a = url.searchParams.get("wallet");
@@ -305,6 +329,7 @@ export function make(deps) {
       if (b.action === "world-gate") return gate(b);
       if (!on()) return json(503, { error: "storage is off" });
       if (b.action === "world-ping") return ping(b);
+      if (b.action === "world-diag") return diag(b);
       if (b.action === "world-login") return login(b);
       if (b.action === "world-save") return save(b);
       if (b.action === "world-island-save") return islandSave(b);

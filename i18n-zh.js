@@ -10558,6 +10558,7 @@
     "Bigger bag": "背包扩容",
     "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.": "背包永久增加 8 格。可重复购买，每次 8 格，最多 120 格。",
     "Get back up where you fell, with full HP and SP (and end a 24-hour rest).": "在倒下的地方以满 HP 和 SP 起身（并结束 24 小时休息）。",
+    "Not saved to your wallet yet: trying again": "尚未保存到钱包：正在重试",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

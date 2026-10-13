@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 // height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
 // mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
@@ -150,10 +150,19 @@ function loggedIn(r, quiet) {
   else { if (!quiet || r.j.firstTime) toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
   arclShop.refresh().then(() => { arclShop.flushQueue(); arclChecks(); setTimeout(() => arclShop.maybeDaily(), 1500); });
 }
+// a save that doesn't reach the server (offline, a server hiccup, too soon after the last) is tried again on its own,
+// sooner at first and then less often, and right away when the connection comes back; a small note shows meanwhile
+let saveFails = 0, saveRetryT = 0;
+function paintSaveNote() { const el = $("wp-savenote"); if (!el) return; el.hidden = saveFails < 2; el.textContent = T("Not saved to your wallet yet: trying again"); }
+addEventListener("online", () => { if (saveFails) { clearTimeout(saveRetryT); cloudSave(); } });
 async function cloudSave() {
   const s = sess(); if (!s) return;
   const data = {}; PROGRESS.forEach((k) => (data[k] = P[k]));
-  try { const r = await post({ action: "world-save", ...s, data }); if (r.status === 400 && /expired/.test(r.j.error || "")) { try { localStorage.setItem(SESS, JSON.stringify({ ...s, issued: new Date(0).toISOString() })); } catch { /* private */ } paintAcct(); } } catch { /* next time */ }
+  let retry = 0;
+  try { const r = await post({ action: "world-save", ...s, data }); if (r.status === 400 && /expired/.test(r.j.error || "")) { try { localStorage.setItem(SESS, JSON.stringify({ ...s, issued: new Date(0).toISOString() })); } catch { /* private */ } paintAcct(); }
+    else if (r.status === 429) retry = 9000; else if (!r.ok && r.status >= 500 && r.status !== 503) retry = Math.min(120e3, 10e3 * 2 ** saveFails); else if (r.ok) { saveFails = 0; paintSaveNote(); } }
+  catch { retry = Math.min(120e3, 10e3 * 2 ** saveFails); }
+  if (retry) { saveFails++; paintSaveNote(); clearTimeout(saveRetryT); saveRetryT = setTimeout(cloudSave, retry); }
 }
 let stats = null, visitSent = false;
 async function ping() {
@@ -227,7 +236,8 @@ const Snd = (() => {
     }, k === "raid" ? 250 : 500);
   }
   return {
-    init, scene, set(on) { S.sound = on; saveSet(); if (on) init(); if (out) out.gain.value = on ? 0.42 : 0; try { music.refresh(); } catch { /* not set up yet */ } },
+    init, unlock: () => { init(); if (ctx && ctx.state !== "running") ctx.resume().catch(() => {}); }, ready: () => !S.sound || (!!ctx && ctx.state === "running"),
+    scene, set(on) { S.sound = on; saveSet(); if (on) init(); if (out) out.gain.value = on ? 0.42 : 0; try { music.refresh(); } catch { /* not set up yet */ } },
     step: () => noise(0.05, 0.05, 1400), jump: () => tone(300, 0.22, { type: "triangle", to: 620, v: 0.12 }), land: () => noise(0.09, 0.09, 500),
     pick: () => { tone(880, 0.12, { v: 0.12 }); tone(1320, 0.18, { v: 0.1, at: 0.08 }); },
     enter: () => { tone(520, 0.1, { type: "triangle", v: 0.12 }); tone(780, 0.14, { type: "triangle", v: 0.1, at: 0.07 }); },
@@ -259,8 +269,11 @@ const Snd = (() => {
 // (S.bgm), Settings → Music sets the volume, and Sound off silences it too
 const musicVol = () => (S.music ?? 55) / 100;
 const music = MUS.createMusic({ ver: VER, volume: musicVol(), on: () => !!S.sound && S.bgm !== false && musicVol() > 0 });
-addEventListener("pointerdown", () => { Snd.init(); music.start(); }, { once: true });
-addEventListener("keydown", () => { Snd.init(); music.start(); }, { once: true });
+// sound may only start from a gesture the browser counts: on a phone that's the end of a tap, not its start. Every tap,
+// click and key tries until both the effects and the music are actually running (caught before anything else can
+// stop the event)
+const wake = () => { if (Snd.ready() && music.unlocked()) return; Snd.unlock(); music.unlock(); };
+["pointerup", "touchend", "click", "keydown", "pointerdown"].forEach((ev) => addEventListener(ev, wake, { capture: true, passive: true }));
 function paintMusicBtn() {
   const b = $("wp-music-btn"); if (!b) return; const on = S.bgm !== false;
   b.setAttribute("aria-pressed", on ? "true" : "false"); b.classList.toggle("off", !on);
@@ -369,6 +382,9 @@ const halo = K.makeHalo(0.5); halo.position.set(0, 135, -360); halo.rotation.set
 const clouds = K.makeClouds(); planet.add(clouds);
 // mountains on the horizon, birds, butterflies and fish (world-ambient.js; nothing but the mountains on Low)
 const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn() }); let ambNight = 0; // ambNight: set by dayNight
+// anonymous health counters (world-diag.js): script errors, the frame rate band, a GPU memory climb
+const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+st.on((dt) => diag.tick(dt));
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
 planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
 const lamps = K.makeLamps(); planet.add(lamps);
@@ -2679,7 +2695,7 @@ function watchFps(dt) {
     // still slow after that: fewer sparks and puffs in fights
     if (degraded) { if (fpsN / fpsAcc < 22) { liteFx = true; toast(T("Fewer effects to keep things smooth")); } fpsAcc = 0; fpsN = 0; fpsT0 = performance.now(); return; }
     // slow: first fewer pixels (twice at most), and only then no bloom and no shadows
-    if (fpsN / fpsAcc < 26 && !(st.lighter && st.lighter())) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); }
+    if (fpsN / fpsAcc < 26 && !(st.lighter && st.lighter()) && !(st.softer && st.softer())) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); }
     fpsAcc = 0; fpsN = 0; fpsT0 = performance.now();
   }
 }

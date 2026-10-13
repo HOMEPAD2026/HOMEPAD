@@ -10388,6 +10388,7 @@
     "Bigger bag": "가방 확장",
     "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.": "가방 8칸 영구 추가. 다시 사면 8칸씩 더, 최대 120칸.",
     "Get back up where you fell, with full HP and SP (and end a 24-hour rest).": "쓰러진 자리에서 HP·SP 가득 찬 채로 일어나요 (24시간 휴식도 끝나요).",
+    "Not saved to your wallet yet: trying again": "아직 지갑에 저장되지 않았어요: 다시 시도하는 중",
   };
 
 
