@@ -1,298 +1,112 @@
 <p align="center">
-  <img src="images/og-card.jpg" alt="HOMEPAD — launch a token on Robinhood Chain, every trade fee flows back to $HOME" width="720">
+  <img src="images/og/og-home.jpg" alt="ARCIRCLE — the community launchpad on Circle's Arc chain" width="720">
 </p>
 
-<h1 align="center">🏡 HOMEPAD</h1>
+<h1 align="center">♾ ARCIRCLE</h1>
 
 <p align="center">
-  A permissionless token launchpad on <a href="https://docs.robinhood.com/chain">Robinhood Chain</a>.<br>
-  <strong>Every launch pays rent, and rent goes home</strong> — a share of every trade fee buys back <a href="https://rh-scan.com/token/0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f">$HOME</a>.
+  A community launchpad and on-chain playground on <a href="https://www.arc.io">Circle's Arc</a>, with a second home on <a href="https://docs.robinhood.com/chain">Robinhood Chain</a>.<br>
+  Launch a coin for 1 USDC, fund one together, trade, predict, stake — and walk around it all in a 3D world.
 </p>
 
 <p align="center">
-  <a href="https://homepad.fun">Live site</a> ·
-  <a href="https://homepad.fun/world">World map</a> ·
-  <a href="https://homepad.fun/rent">Proof of Rent</a> ·
+  <a href="https://www.arcircle.app">arcircle.app</a> ·
+  <a href="https://www.arcircle.app/arc">ArcPad</a> ·
+  <a href="https://www.arcircle.app/circle">CirclePad</a> ·
+  <a href="https://www.arcircle.app/play">Game World</a> ·
+  <a href="https://www.arcircle.app/arcia">ARCIA</a> ·
   <a href="https://x.com/ARCIRCLEonArc">X</a> ·
-  <a href="https://t.me/HOMEonRobin">Telegram</a> ·
-  <a href="https://homepad.fun/mechanism.html">How it works</a> ·
-  <a href="https://homepad.fun/docs.html">Docs</a>
+  <a href="https://t.me/ARCIRCLEonarc">Telegram</a>
 </p>
 
 <p align="center">
-  <img alt="status" src="https://img.shields.io/badge/status-live%20on%20mainnet-39ff88?style=flat-square">
-  <img alt="chain" src="https://img.shields.io/badge/chain-Robinhood%20Chain%20mainnet%20(4663)-39ff88?style=flat-square">
-  <img alt="uniswap" src="https://img.shields.io/badge/liquidity-Uniswap%20v4-4d9fff?style=flat-square">
-  <img alt="tests" src="https://img.shields.io/badge/contract%20tests-37%20passing-39ff88?style=flat-square">
-  <img alt="slither" src="https://img.shields.io/badge/slither-clean%20on%20active%20contracts-39ff88?style=flat-square">
+  <img alt="Arc" src="https://img.shields.io/badge/Arc-mainnet%20(5042)-2f86ff?style=flat-square">
+  <img alt="Robinhood Chain" src="https://img.shields.io/badge/Robinhood%20Chain-mainnet%20(4663)-39ff88?style=flat-square">
+  <img alt="liquidity" src="https://img.shields.io/badge/liquidity-Uniswap%20v4-4d9fff?style=flat-square">
+  <img alt="stack" src="https://img.shields.io/badge/site-static%20%2B%20Vercel%20functions-9fb1c6?style=flat-square">
 </p>
 
 ---
 
-## 🏡 Welcome
+## What ARCIRCLE is
 
-Welcome to everyone new to HOMEPAD & `$HOME`.
+ARCIRCLE PAD is a launchpad built on Circle's Arc chain, where gas is paid in USDC. It started with one idea — anyone should be able to launch a coin with real liquidity from the first block — and grew into a small ecosystem around **$ARCIRCLE**: community-funded launches, a swap, prediction rounds, staking that pays you in every new coin, an AI mascot, and a 3D game world you can walk through.
 
-We've only just begun. After building and testing on testnet, HOMEPAD officially went live on mainnet on **September 10, 2026**. We're a brand-new launchpad on Robinhood Chain, and this is only the beginning.
+Everything that moves money is a contract you sign yourself. The site never holds your keys and never sends a transaction for you.
 
-**Every launch pays rent. Every trade creates rent. And rent goes home to `$HOME`.** 🏡
+## Official coins
 
-If you're new here, take a look through [the website](https://homepad.fun) and our recent posts on [X](https://x.com/ARCIRCLEonArc) to learn what we're building.
+Only these two coins are official. Anything else using the ARCIRCLE or ARCIA name is not ours.
 
-| Token | Contract |
+| Coin | Chain | Contract |
+|---|---|---|
+| ♾ `$ARCIRCLE` | Arc | `0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7` |
+| 💙💚 `$ARCIA` | Robinhood Chain | `0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25` |
+
+`$ARCIRCLE` on Robinhood Chain (`0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4`) is the **same** coin bridged through ARCIRCLE OMNI (LayerZero): it is minted only when `$ARCIRCLE` is locked on Arc, 1 for 1, so both chains share one supply of 1,000,000,000.
+
+The old `$ARCIA` on Arc and the ♾ Infinite test coin were retired on 5 October 2026 and are not official.
+
+## Products
+
+### Launch
+- **ArcPad** (`/arc#launch`) — instant, permissionless launches. A real Uniswap v4 pool exists from the first block, with single-sided liquidity locked for good. 1 USDC to launch on Arc (USDC pair), or about $1 in ETH on Robinhood Chain (ETH pair). Fixed supply of 1,000,000,000; 8% goes to the platform treasury at creation. A 1% base fee on every trade, most of it to the creator; creators can add up to 2% more, all theirs.
+- **CirclePad** (`/circle`) — community-funded launches, one project at a time. A 72-hour USDC raise into an on-chain escrow, burn-to-vote on the name, ticker, logo and roadmap (every vote burns 1,000 `$ARCIRCLE`), then one transaction splits the escrow 80 / 15 / 5 and the coin launches with an airdrop to contributors. Every round's report is public at `/circle/round/<n>`.
+- **Launch Drop** — stake `$ARCIRCLE` and receive a piece of every new ArcPad coin: half of the treasury's 8% (4% of each new coin's supply) goes to veARCIRCLE holders, paid by a contract.
+
+### Trade and play
+- **ARCIRCLE Swap** (`/arc#swap`) — buy and sell any Arc token with a Uniswap v4 pool in one transaction, routed through USDC and `$ARCIRCLE`. 0.1% fee; when it's taken in `$ARCIRCLE`, half is burned.
+- **ARCIRCLE Orders** (`/arc#orders`) — limit, stop and market orders on Arc, Robinhood Chain and Solana.
+- **ARCIRCLE Predict** (`/arc#predict`) — scheduled UP / DOWN rounds on Arc tokens in USDC, plus multiplier rounds with four price bands, and rounds on Robinhood Chain coins in ETH.
+- **Paper Trading** (`/arc#paper`) — a weekly event with $10,000 of play money on live BTC, ETH and SOL prices. Sign in with a message: no gas, no real money.
+- **ARCIRCLE Scanner** (`/arc#scanner`) — a quick safety read of a token before you buy.
+
+### Hold
+- **ARCIRCLE Staking / veARCIRCLE** (`/arc#staking`) — lock `$ARCIRCLE` for 1 week to 1 year for veARCIRCLE, which earns the Launch Drop, raffle weight and voting tiers (Bronze, Silver, Gold, Diamond).
+- **veARCIA** (`/arc#vearcia`, Robinhood Chain) — stake `$ARCIA` for 1 to 20 days for a share of a streaming `$ARCIA` reward pool, boosted for `$ARCIRCLE` holders.
+- **ARCIRCLE NFT Vault** (`/arc#nft`) — creator fees from team launches buy NFTs that are raffled to `$ARCIRCLE` holders. The vault has no withdraw.
+
+### ARCIA
+ARCIA is ARCIRCLE's virtual idol and AI mascot ([@ARCIAonArc](https://x.com/ARCIAonArc)). She answers questions about the platform in the site chat (`/arcia`), in English, Korean and Chinese, and only from what the platform actually publishes. ARCIA DESK (`/arc#desk`, beta) is her trading desk with on-chain limits the owner sets.
+
+### ARCIRCLE World
+The home page opens on a 3D gate with two ways in: **Platform World** (the site) and **Game World** (`/play`), an open planet split into districts where you walk between the halls, fight scammers in hunting grounds, build your own island, join a weekly raid and collect gear. It runs in the browser on PC and mobile. The first beta (from 11 October 2026) is open to wallets holding 1,000,000+ `$ARCIRCLE` on Arc.
+
+In-game points (ARCL) are earned by playing and spent on cosmetics. **ARCL can't be bought, has no exchange and no price**, and the amount you can earn is small and capped per day.
+
+## Repository layout
+
+The site is static HTML, CSS and JavaScript with no build step, plus a few Vercel functions.
+
+| Path | What's there |
 |---|---|
-| `$HOME` | `0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f` |
-| `$HOMEPAD` | `0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5` |
+| `*.html` | The pages (`index`, `arcpad`, `circlepad`, `arcircle`, `arcia`, `play`, `docs`, `updates` …) |
+| `arc*.js`, `config*.js` | The Arc and Robinhood Chain app: launch, swap, orders, predict, staking, wallet |
+| `world-*.js` | ARCIRCLE World, the 3D game (three.js, vendored in `vendor/three/`) |
+| `api/` | Vercel functions: ARCIA, the game's server (saves, rankings, raid, ARCL), stats, alerts |
+| `contracts/` | Solidity sources (Hardhat) for the launchpad, escrows, staking, swap, predict and more |
+| `tests/` | Node tests for the API and game logic |
+| `audio/music/` | The game's background music (credits in `CREDITS.txt`) |
+| `tools/` | Build helpers and workflow templates |
 
-Welcome, `$HOME`. 🏡💚
-
-> **Live on mainnet.** Hybrid, Instant Liquidity, and Paired (`$HOME`, `$HOMEPAD`, or any standard ERC-20 by contract address) are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve is deferred — shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
-
-## Adventure (`adventure.html`)
-
-Reads and writes **Pons V2's own contracts** on Robinhood Chain directly — a third-party bonding-curve launchpad, not HOMEPAD's, integrated rather than reimplemented. Addresses (`PONS_V2_*` in `config.js`) and the ABIs (`pons-abi.js`) are transcribed from [Pons' own integration docs](https://docs.ponsfamily.com/v2), not guessed, and the ABI set was parse- and encode-tested against ethers v6 in a scratch environment before shipping (ethers v6's human-readable parser doesn't support named `struct` declarations the way viem's `parseAbi` does, so structs are written as inline `tuple(...)` types).
-
-As of integration time, Pons' own docs state two things this page is built around rather than past: **v2 is unaudited** (three independent reviews in progress, none closed), and **public launching is closed** — only wallets Pons has whitelisted can launch today (`canLaunch(address)`). So:
-
-- **Explore is fully read-only and works for everyone**, whitelist or not: `TokenLaunched` events (bounded by a generic `blockAtOrAfter(isoTimestamp, namespace)` helper, refactored out of the existing `firstHomepadBlock()` binary search so Pons gets its own independent bound/cache without touching HOMEPAD's — same technique, separate namespace) joined with each launch's curve reserves/graduation progress and token metadata, linking out to Pons' own launchpad to trade.
-- **Launch checks `canLaunch(connectedAddress)` live** before showing the form. Not eligible gets a plain "invite-only right now" message linking to Pons' docs; eligible gets the real launch form. This is asked fresh every time rather than cached, so the page opens up the moment Pons does, with no code change needed here.
-- The launch form is **native-ETH only for this first pass** (no custom pair-token quote yet) and pins `previewLaunchEconomics` immediately before signing — the same pattern Pons' own docs recommend — so a changed launch config reverts the transaction instead of settling on different terms.
-
-**`adventure-cn.html` / `adventure-cn.js`** (despite the filename, now English — see history): identical Pons V2 integration and behavior to `adventure.html`, plus one thing the plain page doesn't have — a spotlight card for **$橋 (Chinese PONS)**, a community-submitted token (`ADV_CN_FEATURED_TOKEN` in `config.js`) paired with CNY on Pairex, with its own live market cap/24h change (Dexscreener), a live burn read (`Transfer`-to-dead-address events on the token's own contract, not a typed-in number), a copy-able CA, a buy link, and the creator's own posted story. `adventure-cn.js` is a maintained duplicate of `adventure.js`, not a shared i18n layer — a logic fix to one should be mirrored in the other. Deliberately does **not** copy Pons' own site design or use their logo for the general Pons V2 integration — the spotlight section uses the token's own supplied artwork (`images/qiao-logo.png`), which is different from borrowing another *platform's* UI/branding. Rebuilt again same day into a playful "橋 JUMP" page (see the Adventure section's history) with a self-contained canvas mini-game (`qiao-game.js`) and the generic Pons V2 Explore/Launch sections removed entirely from this page (still fully present on `adventure.html`).
-
-## cnPONS (`cnPONS.html`)
-
-A curated picker for launching a HOMEPAD Paired-mode coin against a **real Robinhood Chain Stock Token for a Chinese company** (Alibaba, PDD, Tencent Music, and others in `CONFIG.CN_STOCK_TICKERS`). Every address is resolved **live, every page load**, from Robinhood's own public asset registry (`CONFIG.RH_STOCK_ASSETS_API`, `GET https://api.robinhood.com/rhj/assets`) by matching that symbol allowlist — nothing is hardcoded, so a wrong or fabricated contract address is never a risk a visitor is exposed to; a ticker simply doesn't appear if Robinhood's live registry doesn't list it.
-
-This surfaces the **same known, unresolved pricing risk** documented above `QUOTE_TOKENS` in `config.js`: each Stock Token carries a `currentMultiplier` that Robinhood adjusts on real corporate actions, and `HomepadFactoryPaired`/its router don't re-sync a pool's price to that multiplier after launch. cnPONS doesn't wait for that to be fixed — it's opt-in, with the risk stated plainly on the page — but it's why the main launch form's Stock quote list stays empty while this exists as a separate, clearly-labeled path.
-
-Explore reads the Paired factory's own `launches()` directly and keeps only entries whose `quoteToken` matches a currently-live CN stock address. The launch form asks for a starting valuation by hand (in the stock's own units) rather than auto-filling one, since a stock that's never been paired before has no Dexscreener price to compute from.
-
-Robinhood's asset API isn't CORS-enabled for arbitrary browser origins — a direct `fetch()` from the page failed outright. `api/rh-stock-assets.js` (a Vercel serverless function, CommonJS since there's no `package.json` declaring ESM) proxies it: the browser calls this same-origin endpoint, the function makes the actual server-to-server call where CORS doesn't apply, and the response is cached at Vercel's edge (`s-maxage=300`) since the full asset list changes rarely. `CONFIG.RH_STOCK_ASSETS_API` points at this proxy path, not Robinhood's URL directly.
-
-## World map (`world.html`)
-
-One coin per capital, 197 capitals. A capital is claimed by launching on the **Paired factory with the quote fixed to `$HOMEPAD`**, name = country name, ticker = capital (or ISO3 when the capital is too long/non-ASCII), and logo = that country's canonical outline at `https://homepad.fun/world/logos/<ISO2>.svg`. The claim modal locks all four; the user's wallet signs, so the user is the on-chain creator and the existing 70% creator / 30% `$HOME` split applies with no new contracts. (Earlier ETH-paired claims — from before this was switched to `$HOMEPAD` — still count, so nothing already claimed is orphaned.)
-
-**Reset rule.** A fresh claim gets `WORLD_RESET_GRACE_SEC` (5 minutes) purely as sniping protection — not a real deadline, just long enough that a claim can't be reset before its own launch transaction has even had time to settle. After that, whenever the capital's current market cap is under `WORLD_RESET_MCAP_USD` ($50K) — five minutes later or five months later, no further time limit — anyone can reset it: pay `WORLD_RESET_FEE_HOMEPAD` (2,000,000 `$HOMEPAD`) to the `$HOME` treasury, then launch it again themselves. The map (`world.js`) verifies this on-chain before showing a takeover as valid or letting the claim modal offer one: the fee transfer's block timestamp must fall after the current holder's grace window closed and at or before the new claim's launch. The mcap-at-reset-time check is enforced by the app, not provable from past chain state alone; an airtight version needs a small registry contract, which is a natural next step once this is validated. All three constants live in `config.js`.
-
-The map's source of truth is the chain, not a database: `world.js` re-derives every claim (and resolves reset chains) from `fetchAllLaunches()`. Anyone can also claim through the normal launch form by matching those fields with the `$HOMEPAD` quote — it's the same rule. `world-data.js` and `world/logos/` are generated by `worldgen/` (see its README; regenerating logos is a breaking change for existing claims since verification is an exact URL match).
-
-**Firebase is optional.** `firebase-config.js` ships as `null` and the map works without it. Filling it in makes the site record each claim/reset to Firestore (`claims/{iso2}`, create-only per `firestore.rules`) for the features that will need a database: wallet login, governance votes, city unlocks. The map never trusts Firestore over the factory.
-
-**$NHOOD mottos.** A capital's current owner can burn `NHOOD_MOTTO_BURN_AMOUNT` $NHOOD (either of its two deployments — Pons and Pairex have separate contracts, `NHOOD_TOKEN_ADDRESSES` lists both) to inscribe a short line shown next to the flag everywhere the name appears — list rows, the activity feed, the claim modal. The burn itself (a real `Transfer` to the standard dead address) is verified on-chain at submit time the same way the reset fee is; the motto *text* is stored in Firestore (`mottos/{iso2}`) rather than re-verified on every read, since arbitrary strings have nowhere to live on-chain without a dedicated contract — the same trust boundary the reset mcap check already has. Needs `firebase-config.js` filled in to actually persist; the burn still happens either way.
-
-**World Passport.** Holding >= `PASSPORT_STAMP_PCT`% (1%) of a claimed capital's coin supply earns a permanent stamp for that country, recorded to Firestore (`passportStamps/{address}_{iso2}`, create-only) the first time "Check my passport" finds it — stays earned even if the balance later drops. A public leaderboard reads the same collection. Stamps are meant to make a holder eligible for a future share of that capital's fees, and `PASSPORT_BONUS_STAMP_COUNT`+ (5) stamps for a planned bonus-reward event — **neither payout mechanism exists yet**; today this only tracks and displays qualification. Same trust boundary as mottos: the frontend checks the real on-chain balance honestly before writing a stamp, but Firestore's rules can't independently re-verify a balance (no RPC access from a rule) — fine while stamps are a badge, needs closing (a server-side check or a registry contract) before any real payout uses this.
-
-**On the page today:** a live "Recent activity" feed (real `Launched` events off both factories, claim/reset labeled, tx-linked — not a database log); a wallet-gated "My Capitals" panel with each held capital's live protected/grace/at-risk status; a "❓ How this works" button opening a two-tab guide (one-page summary + a full walkthrough of every rule); Share-on-X on a successful claim/reset; a search box that flies the map to a unique match; and a `$NHOOD` panel in the hero (CA, copy button, Pairex buy link) plus a "$NHOOD burns" section that reads `Transfer`-to-dead-address events on both deployments live — a burn shows up the moment it happens, nothing here is typed in.
-
-Planned: once a capital passes a market-cap milestone, its country's other cities open to claim; a registry contract to make the reset rule (and motto/passport storage) fully on-chain-verifiable; the actual fee-sharing and bonus-reward mechanisms behind World Passport.
-
-## What it does
-
-Anyone can launch a fixed-supply (1,000,000,000) ERC-20 through HOMEPAD, with no admin key anywhere in the contracts — nobody, including whoever runs HOMEPAD, can pause, drain, or redirect a launch after it exists. Every trade pays a fee that is split **immediately, on-chain** between the token's creator and the `$HOME` treasury. No contract ever holds fee money. [Proof of Rent](https://homepad.fun/rent) shows every fee ever collected, each one traceable to its transaction.
-
-### Four launch modes
-
-| Mode | What happens at launch | Price comes from | Creator needs |
-|---|---|---|---|
-| **Hybrid** *(default)* | A real Uniswap v4 pool from block one, **single-sided** (all supply, priced against a virtual ETH reserve) | Curve-like impact, real pool — visible on Dexscreener immediately | Nothing (0 ETH) |
-| **Bonding Curve** *(deferred)* | A standalone curve contract holds the supply; graduates into a locked v4 pool once it raises the threshold — graduates via Uniswap V2, whose Robinhood Chain mainnet router address isn't confirmed yet, so this mode is deferred | Constant-product curve on virtual reserves | Nothing (0 ETH) |
-| **Instant Liquidity** | A real Uniswap v4 pool, **two-sided** — creator's ETH seeds actual liquidity | Real pool from block one | ETH for liquidity |
-| **Paired** | Hybrid, priced in an ERC-20 quote instead of ETH — single-sided v4 pool, either currency ordering. Live: `$HOME`, `$HOMEPAD` (own tabs), or any standard ERC-20 pasted into the "Token" tab. See the risk note below for what "standard" rules out | Curve-like, in the quote token | Nothing (buys need a one-time approve) |
-
-All four share the same fee structure and the same **Dev Buy** option (`launchAndBuy()` — buy your own tokens atomically in the launch transaction). Every trade on every mode gets an exact, on-chain **minOut** — for the three v4-based modes this comes from a static-call simulation of the real swap (there's no on-chain quoter for a v4 pool), not an off-chain estimate.
-
-> ⚠️ **Known open risk (non-standard quote tokens):** the "Token" tab accepts any contract address, and `HomepadFactoryPaired` can't tell a plain ERC-20 from a fee-on-transfer, rebasing, or Robinhood Stock Token. Stock Tokens carry a `uiMultiplier()` that changes on corporate actions (splits, dividends — AAPL has already had one); `HomepadFactoryPaired`/`HomepadPairedSwapRouter` don't account for it, so a pool quoted in one could mis-price if a corporate action lands while it's open. Fee-on-transfer tokens break the router's `transferFrom` accounting. The launch form warns creators in the tab itself; `$HOME` and `$HOMEPAD` are plain fixed-supply tokens with none of these issues. `CONFIG.QUOTE_TOKENS` (optional quick-pick chips in that tab) stays empty until a specific token has been checked.
-
-### Fees
-
-- **1% base fee** on every trade, protocol-wide → split **70% creator / 30% `$HOME` treasury** by default (`creatorShareBps=7000`, `homeShareBps=10000` — the platform wallet's own cut is 0% at these defaults, all of the non-creator share currently goes to `$HOME`).
-- Creators can add **up to 2% extra** at launch — that part is 100% theirs.
-- Total per launch: 1–3%.
-- **Fee currency**: the hook takes its cut from the swap's output side (`feeCurrency = zeroForOne ? currency1 : currency0`). A buy pays the fee in the launched token; a sell pays it in ETH. Creator and `$HOME` receive whichever it was — Proof of Rent values token-denominated rent in ETH at the pair's own price.
-- **Creators receive fees the same way**: 70% of every trade, paid to the creator's wallet inside the trade itself — as the launched token on buys, as ETH on sells. Nothing to claim.
-- **Launch allocation (not a fee)**: every Hybrid and Instant launch transfers 8% of the 1,000,000,000 supply to the `$HOME` treasury at creation (`HOME_ALLOCATION_BPS = 800`, a factory constant); the remaining 92% goes into the pool. Same idea as Pons V2's allocation. Goal: an on-chain lock. Until that contract ships, every allocation is burned by hand (to `0x…dEaD`) and each token page shows whether it has been.
-- **Why both currencies**: buys give the treasury tokens, sells give it ETH — both halves of a pair. A contract is in development to turn that into permanent liquidity for the launches; until then Proof of Rent shows what the treasury holds.
-- **Launching itself is free** — `launch()` isn't payable and requires no ETH. Only `launchAndBuy()` takes ETH (or, for Paired, the quote token), and that amount becomes the creator's own dev-buy or Instant-mode liquidity — it's never a fee.
-- The split is **immutable once a factory is deployed** — there is no function anywhere that changes it after the fact.
-
-### The rent loop
-
-```
-launch a token → trading happens → rent (fees) collected → $HOME bought back
-       ↑                                                          ↓
-  more creators arrive  ←  community grows  ←  liquidity deepens (POL)
-```
-
-[Proof of Rent](https://homepad.fun/rent) shows the left half of this loop live — total rent, 24h rent, creator payouts, launch volume, all read straight from on-chain events. The right half (buyback, protocol-owned liquidity) is **not automated yet**: `contracts/scripts/distribute-rent.js` is an interactive manual script for the four-way split described on the [Flywheel page](https://homepad.fun/flywheel.html) (50% buyback / 30% POL / 10% creator incentives / 10% ops), and Proof of Rent shows those rows as zero rather than implying they already run.
-
-## Repo layout
-
-```
-.
-├── index.html · explore.html · launch.html      Frontend pages (plain HTML/CSS/JS, no build step)
-├── mechanism.html · docs.html · flywheel.html
-├── guide-launch.html · guide-trade.html · guide-rent.html   Plain-language 3-step walkthrough, linked from the footer
-├── rent.html            Proof of Rent — live on-chain rent dashboard
-├── app.js               Routing, launch form, Explore, token pages, Profile, trading
-├── rent.js              Proof of Rent's on-chain aggregation (fee events, volume, poolId attribution)
-├── home-stats.js        $HOME live stats (Dexscreener + Blockscout) and the home carousel
-├── wallet-appkit.js     Wallet connection (Reown AppKit / wagmi)
-├── footer.js · launch-modal.js
-├── world.html · world.js                        World map game — claim/defend a capital, mottos, passport, leaderboard
-├── adventure.html · adventure.js · pons-abi.js   Adventure — Pons V2 explore (read-only) + a whitelist-gated launch form for their factory
-├── adventure-cn.html · adventure-cn.js · qiao-game.js   "橋 JUMP" — mascot mini-game, $橋 spotlight, story (filename predates the language switch)
-├── cnPONS.html · cnPONS.js               Launch/Explore paired with real Robinhood Chain Stock Tokens for Chinese companies, resolved live from Robinhood's own API
-├── api/rh-stock-assets.js                Vercel serverless function — proxies Robinhood's asset API for cnPONS (that API isn't CORS-enabled for a direct browser fetch)
-├── world-data.js · world/logos/*.svg            197 capitals (name/ticker/coords) and each country's outline logo — generated, see worldgen/
-├── worldgen/            Generator for world-data.js + world/logos/ (mledoze/countries + world-atlas + d3-geo)
-├── firebase-config.js   Optional Firestore project config for World (ships null — claims/resets work without it; mottos/passport/leaderboard need it)
-├── firestore.rules      Firestore security rules for claims/mottos/passportStamps
-├── config.js            Every address, RPC, and URL in one place
-├── abis.js              Contract ABIs
-├── style.css            Stylesheet for the ARCIRCLE PAD pages (/, /arc, /circle, /arcircle, /reward)
-├── legacy.css           Frozen stylesheet for the original HOMEPAD pages (World, Rent, cnPONS, guides, …)
-├── *.bundle.js          ArcPad / CirclePad / Reward / $ARCIRCLE scripts joined + minified by tools/build-bundles.mjs — never edit by hand
-├── tools/build-bundles.mjs  Which source files go into each bundle, in load order
-├── bump-cache.sh        Rebuilds the bundles, then rotates the shared ?v= cache-buster — run after any .js/.css change
-├── vercel.json           Clean-URL rewrite (/rent -> rent.html, /world -> world.html)
-├── images/              Stickers, favicons, Open Graph card, generated map logos
-├── FRONTEND.md          Frontend notes
-└── contracts/           Hardhat project
-    ├── contracts/       HomepadFactoryHybrid · HomepadHybridHook · HomepadFactoryV4 · BondingCurveV4 ·
-    │                    HomepadFactoryInstant · HomepadHook · HomepadSwapRouter · HomepadFactoryPaired · HomepadPairedSwapRouter …
-    ├── test/            37 tests across all modes
-    ├── scripts/         deploy-*.js per mode (incl. deploy-paired.js), distribute-rent.js,
-    │                    verify-testnet.js / lib/verify.js (Blockscout source verification,
-    │                    works against either network via --network)
-    └── README.md        Contract-level notes
-```
-
-## Running it
-
-### Frontend
-
-No build tooling — any static file server works:
-
+### Run it locally
 ```bash
-npx serve .
-# or: python3 -m http.server 8080
+npx serve .                # or any static server, then open http://localhost:3000
+node tests/world/game.test.mjs
 ```
+`bump-cache.sh` rebuilds the minified CSS bundles and refreshes the cache-busting version on every page.
 
-Everything is driven by `config.js`. The site talks to Robinhood Chain **mainnet** by default; connecting a wallet prompts it to add/switch to Robinhood Chain automatically.
+## Safety
 
-### Contracts
+- Contracts are open source in `contracts/`. **They have not had a professional external audit.** ARCIRCLE Perps stays closed until its contract has been audited.
+- The wallet and the game never send a transaction on their own; every action is one you review and sign.
+- Check addresses against this page or [arcircle.app/arcircle](https://www.arcircle.app/arcircle). The team will never DM you first or ask for your seed phrase.
+- Nothing here is financial advice. Crypto is risky; only use what you can afford to lose.
 
-```bash
-cd contracts
-npm install
-cp .env.example .env        # fill in a deployer key — never a wallet holding real funds
-npx hardhat test            # 37 tests
+## Credits
 
-# Mainnet (live deployment target):
-npx hardhat run scripts/deploy-hybrid.js  --network robinhoodMainnet
-npx hardhat run scripts/deploy-instant.js --network robinhoodMainnet
-npx hardhat run scripts/deploy-paired.js  --network robinhoodMainnet  # never set DEPLOY_MOCK_STOCKS on mainnet — powers the $HOME and $HOMEPAD pairs today
+- 3D characters and props: [Kenney](https://kenney.nl) and [Quaternius](https://quaternius.com) (CC0).
+- Background music: six tracks from Pixabay, listed in [`audio/music/CREDITS.txt`](audio/music/CREDITS.txt).
+- Built on [Arc](https://www.arc.io), [Robinhood Chain](https://docs.robinhood.com/chain), [Uniswap v4](https://docs.uniswap.org/contracts/v4/overview) and [three.js](https://threejs.org).
 
-# Bonding Curve is deferred — see Status above. When ready:
-npx hardhat run scripts/deploy.js --network robinhoodMainnet          # needs a confirmed UNISWAP_V2_ROUTER first
-
-# Testnet (for local dev/testing only):
-npx hardhat run scripts/deploy-hybrid.js  --network robinhoodTestnet
-npx hardhat run scripts/deploy-v4.js      --network robinhoodTestnet
-npx hardhat run scripts/deploy-instant.js --network robinhoodTestnet
-DEPLOY_MOCK_STOCKS=1 npx hardhat run scripts/deploy-paired.js --network robinhoodTestnet
-```
-
-Every `deploy-*.js` script above verifies its own contracts' source on Blockscout automatically right after deploying (both networks' official explorer — Etherscan doesn't support Robinhood Chain at all). To retroactively verify contracts that were already deployed before this was added, `scripts/verify-testnet.js` verifies all of them in one run (despite the filename, it works against either network via `--network`):
-
-```bash
-npx hardhat run scripts/verify-testnet.js --network robinhoodMainnet
-```
-
-After deploying, paste the printed addresses into `config.js`. If a factory is ever redeployed, add the previous `{ factory, router }` pair to the matching `LEGACY_*_FACTORIES` list so tokens launched on it keep showing up.
-
-## Deployed contracts (mainnet)
-
-Network: Robinhood Chain mainnet · chain ID `4663` · RPC `https://rpc.mainnet.chain.robinhood.com` · [explorer](https://robinhoodchain.blockscout.com)
-
-| Contract | Address |
-|---|---|
-| Hybrid Factory | `0x73Ee9CF9C0bA0D1f375A7be8D3483Df4F3785F0C` |
-| Hybrid Hook | `0xa42D91Dd900384873CFd907Ab8d1047846b34044` |
-| Hybrid Swap Router | `0xBB001483EB3213Dc79e2Ea0cDfFdb08A5813a85A` |
-| Instant Liquidity Factory | `0x8EB532d862838f3A84710736aBaF62970F801317` |
-| Instant Hook | `0x408BF145843c050A080D6BA6D0C415484BB0C044` |
-| Instant Swap Router | `0x0E7ee82dCDF53581B5Fc4c454C58945Bba151a19` |
-| Uniswap v4 PoolManager (mainnet) | `0x8366a39CC670B4001A1121B8F6A443A643e40951` |
-| Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
-| Bonding Curve Factory | *not yet deployed — deferred, see Status* |
-| Paired Factory | `0x917F2f7A7E4607937c3562E96b2E02325264B813` |
-| Paired Hook | `0xB85aA5549848e2805F9c1c30d86f59c9F32F8044` |
-| Paired Swap Router | `0x1fB52768E4DDD54E18327d13E87E4E2cf5F8d592` |
-
-`$HOME`: `0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f` · [Dexscreener](https://dexscreener.com/robinhood/0x177e26bc396d8a264542033533d71a94957375027bf4b47a7467cc444233bdfa) · [rh-scan](https://rh-scan.com/token/0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f)
-
-<details>
-<summary>Previous testnet deployment (superseded)</summary>
-
-Network: Robinhood Chain testnet · chain ID `46630` · RPC `https://rpc.testnet.chain.robinhood.com` · [explorer](https://explorer.testnet.chain.robinhood.com)
-
-| Contract | Address |
-|---|---|
-| Hybrid Factory | `0x403DE4697e1d3A7E837e5778532E1247B9C87b99` |
-| Bonding Curve Factory (`HomepadFactoryV4`) | `0x154f77D9CEE487E97553330028ED1425a238085d` |
-| Instant Liquidity Factory | `0xcfF2c7FFbd867CcaE3c253Baaf10d58d5eC1ba17` |
-| Stock Pair Factory (`HomepadFactoryPaired`) | `0x7750339Eb5b5E11d934c6FA3e0f6e9f23df0Aa4f` |
-| Mock TSLA / NVDA / AAPL (testnet quote tokens) | `0x45165C...25Be3` / `0x426657...27A28` / `0x866863...376CC7` |
-
-</details>
-
-Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, chain ID `4663`): Uniswap v4 PoolManager `0x8366a39CC670B4001A1121B8F6A443A643e40951`; Stock Tokens TSLA `0x322F0929c4625eD5bAd873c95208D54E1c003b2d`, NVDA `0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC`, AAPL `0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9` — each cross-checked against multiple independent sources, not just one.
-
-## How the frontend reads the chain
-
-- Explore, the home carousel, and Profile batch every read through **Multicall3** (2 RPC round-trips for the whole list), falling back to individual calls if it's unavailable.
-- 24h price change is reconstructed from each token's own trade events; the home carousel skips that step (`fetchAllLaunches({ skipHistory: true })`) so the first paint stays fast.
-- Profile creator fees are exact, not estimated: Instant/Hybrid/Paired sum the hook's `FeeRouted` events for that token's poolId, valuing buy-side (token-denominated) fees in ETH at each trade's own price; Bonding Curve replays the curve's own split math over its `Buy`/`Sell` events.
-- **Proof of Rent** (`rent.html`) is about the treasury allocation and its burns, not fee revenue: per featured launch it reads `balanceOf(0x…dEaD)` against the 8% allocation (burned ✓ / pending, share of supply, rent burned on top) and lists every `Transfer` into the burn address as the proof-of-burn ledger — balances and a handful of token-contract logs, no PoolManager scan. `CONFIG.RENT_FEATURED_TOKENS` names the launches shown; any launch whose allocation has actually been burned appears on its own. Platform-wide volume and fee totals are deliberately not published there.
-- Every `eth_getLogs` the site makes is bounded to start at `CONFIG.CONTRACTS_LIVE_SINCE` (the block found by a one-time timestamp binary search, cached in localStorage) rather than block 0. The chain has tens of millions of blocks before HOMEPAD existed and the PoolManager address carries every v4 swap on the chain — an unbounded query made the public RPC time out (`log query timed out`, -32000), which is what showed Proof of Rent at 0 ETH on launch day despite real fees. FeeRouted is additionally bounded to the block range of the swaps just fetched, since the hook emits it in the same transaction.
-- **ArcPad, CirclePad, Reward and the $ARCIRCLE page load one `*.bundle.js` each**, built from the source files listed in `tools/build-bundles.mjs`. Edit the sources; `sh bump-cache.sh` rebuilds the bundles (minified when `esbuild` is installed, plain-joined otherwise). A new script for those pages goes into that list, not into the HTML.
-- **$ARCIRCLE is NOT LIVE (relaunching).** Its contract lives in two places only: `config-arc.js` (`ARCIRCLE_TOKEN`, `ARCIRCLE_CURVE`, `ARCIRCLE_BUY_URL`, `ARCIRCLE_LAUNCHED_AT`) for every page, and `api/_arcircle.mjs` for the server. While they are empty, `<html>` gets `.arc-notlive`: `.arc-nl-only` markup ("Not live") shows, `.arc-live-only` markup hides, and nothing reads the chain for $ARCIRCLE. At relaunch, fill both files — addresses and links (`data-arc-ca`, `data-arc-href`) fill themselves in.
-- **$ARCIRCLE numbers** on the $ARCIRCLE and Reward pages (price, 24h volume, holders, supply split, treasury buybacks, revenue so far, a wallet's holding period) come from `GET /api/social?token=arcircle[&wallet=]` (`api/_token.mjs`). The server scans the curve's trades and the token's transfers once, resumably (memory + Firestore `tokenStats/arcircle_v1`), and serves everyone from that. The revenue sources shown on both pages are defined once in `arc-token.js` (`ARC_REVENUE`); keep the static rows in `arcircle.html` / `reward.html` identical to it.
-- **After changing any `.js` or `.css`, run `sh bump-cache.sh` before committing.** Every script/style tag shares one `?v=` cache-buster; the CDN and browsers key on the full URL, so a change shipped under the same `?v=` is invisible to anyone who already has the old file cached.
-- Every deferred factory address (`FACTORY_ADDRESS`, `PAIRED_FACTORY_ADDRESS`) is guarded with a `*Configured()` check before any contract call — Explore, token pages, and the launch form all skip a deferred mode cleanly instead of throwing on an empty address. `curveFactoryConfigured()` in particular exists because that guard was originally missing and took down Explore + every token page, not just curve ones, until it was added.
-- Explorer link-outs (`CONFIG.BLOCK_EXPLORER`) point at **rh-scan**, a community Robinhood-mainnet explorer — `/token/{addr}` for ERC-20s, `/address/{addr}` for everything else. Data reads (holder counts, source verification) stay on the official **Blockscout** instance (`BLOCKSCOUT_API_BASE` / `HOME_BLOCKSCOUT_API_BASE`) — rh-scan is links only, never an RPC/data source.
-- Every token detail page embeds a full-width Dexscreener chart (`dexscreener.com/robinhood/{tokenAddr}`) above the trade/details grid, same for all four modes — in addition to the always-available on-chain price chart built from trade events, which works even before Dexscreener has indexed a brand-new pair.
-
-## Status
-
-- [x] Hybrid, Instant Liquidity, and Paired deployed live on mainnet. The Paired factory powers the $HOME and $HOMEPAD pairs (`CONFIG.HOME_QUOTE` / `CONFIG.HOMEPAD_QUOTE`, own tabs) and the "Token" tab — any ERC-20 by contract address, resolved on-chain in the form (needs no allow-list, `HomepadFactoryPaired` accepts any ERC-20). Robinhood Stock Tokens technically work as a quote but aren't recommended (corporate-action `uiMultiplier` risk, see the note above); `QUOTE_TOKENS` quick-picks stay empty until a specific token is checked. Bonding Curve is deferred (needs a confirmed mainnet V2 router) — see `.env.example` for both networks' confirmed PoolManager addresses side by side, to avoid redeploying with the wrong one
-- [x] Per-token live Dexscreener chart on every launch's detail page
-- [x] Proof of Rent reads the treasury and burn address directly (balances, no PoolManager logs), shows the 8% allocation's burn status per launch with a proof-of-burn tx ledger. First burn 2026-09-11: 82,452,560 `$HOMEPAD` (the full allocation plus accrued buy-side rent) — [tx](https://rh-scan.com/tx/0x5f89c4790f4aae434269afd8908469d246347a5b1bf656cdf57e75a5d4fa1c24)
-- [x] Explore (search / sort / filter), token pages with charts and trading, Profile (launches / holdings / fees), Proof of Rent dashboard
-- [x] Mobile and desktop passes
-- [x] Slippage protection on every trade (Hybrid/Instant/Paired use a static-call quote + tolerance for minOut, matching Bonding Curve)
-- [x] Automatic source verification on deploy (Blockscout)
-- [x] Contract-level review pass: fixed-supply vanilla ERC-20, no owner/pause/blacklist anywhere, hooks hold only afterSwap+afterSwapReturnDelta permissions (no ability to block a sale or liquidity removal), fee split immutable per factory, Slither static analysis run with no real findings on the active contracts (findings were either false positives — reentrancy guards/try-catch patterns Slither doesn't fully model — or scoped to superseded pre-v4 contracts), HookScan (Uniswap v4 hook-specific analyzer) run against both hooks with zero findings on all 4 detectors
-- [x] Confirmed dead code removed (`HomepadHybridSwapRouter.sol` — Hybrid and Instant both actually deploy the generic `HomepadSwapRouter`)
-- [x] `website` field on `LaunchMeta`/`Launch` (contract-side, all four factories) is now fully wired end-to-end — launch form input, on-chain meta, and the token page's "Website ↗" link
-- [x] World map: 197 capitals, chain-derived claim/reset resolution, live activity feed, My Capitals, World Passport, $NHOOD mottos and burn tracking — all read live, no database as the source of truth for anything on-chain
-- [ ] World: registry contract for a fully on-chain-verifiable reset/passport mcap check (currently app-enforced)
-- [ ] World Passport: the actual fee-sharing and bonus-reward payout mechanisms (stamps only track/display eligibility today)
-- [ ] Anti-snipe wallet caps for Hybrid launches
-- [ ] RENT model automation (buyback + POL — see Proof of Rent and the Flywheel page)
-- [ ] Stock Pair corporate-action handling (see the warning above) — needed before Stock Pair uses real Stock Tokens
-- [ ] Professional security audit
-- [ ] Live scanner check on mainnet (Dexscreener/GMGN/a v4-aware honeypot checker) once a real token is launched — can't be verified from code alone
-
-## Security & disclaimer
-
-The contracts have **no admin key**: no pause, no upgrade, no fee redirect. Graduated liquidity is burned, not locked. That protects against the *platform* being the rug — it does nothing about a *token* being one. Verify the contract address of anything you buy. Nothing here is financial advice.
-
-Not affiliated with, operated by, or endorsed by Robinhood Markets.
-
----
-
-<p align="center">Built in public. 💚</p>
+<p align="center">♾ 💚</p>
