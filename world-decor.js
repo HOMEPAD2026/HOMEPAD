@@ -4,18 +4,19 @@
 //   the districts: a rocket and landers at Launch, gold and cars at Finance, dishes and solar at Research, plants at ARCIA
 //   the hunting grounds: a camp at each gate and props in each ground's theme
 //   the gear: KayKit weapons and shields in the ARC Bots' hands (world-rpg.js dress)
+//   the neighbourhoods: Kenney's suburban houses and city offices between the districts, and a city skyline far out
 // Nothing here is solid except the few big pieces in solids(); the packs load in stages after the world is up, and
 // the ones only the hunting grounds use load when you get near one.
 //
 // ctx: { THREE, K, planet, blocked(v), shops[], zones[], ver, low, reduce, on(fn), here(v), onWeapons() }
 import { infinityStatue } from "./world-gear3d.js";
 import { sway } from "./world-look.js";
-export const PACKS = ["q-nature", "q-props", "kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "kk-furniture", "kenney-furniture", "kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-weapons", "kenney-survival", "kenney-pets"];
+export const PACKS = ["k-suburban", "k-commercial", "q-nature", "q-props", "kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "kk-furniture", "kenney-furniture", "kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-weapons", "kenney-survival", "kenney-pets"];
 
 export function createDecor(ctx) {
   const { THREE, K, planet } = ctx;
   const root = new THREE.Group(); root.name = "decor"; planet.add(root);
-  const packs = {}, loading = {}, solids = [], critters = [];
+  const packs = {}, loading = {}, solids = [], critters = [], homes = [];
   let landmark = null;
   let rnd = 1234567;
   const r = () => ((rnd = (rnd * 16807) % 2147483647) / 2147483647);
@@ -165,6 +166,53 @@ export function createDecor(ctx) {
     mergeCells(g);
   }
 
+  // ---------------- the neighbourhoods: houses and offices on the green, a skyline on the horizon ----------------
+  // Kenney City Kits (Suburban, Commercial). Houses stand in the ring past the halls (52–74 m), facing the plaza with a
+  // stone path and a planter at the door; offices near the Finance and ARCL halls; the hunting grounds and Coin City
+  // stay clear. Far out (205–240 m, past the hunting grounds) a ring of towers draws a city line over the hills.
+  const inZone = (x, z, pad) => (ctx.zones || []).some((zn) => Math.hypot(x - zn.x, z - zn.z) < zn.r + pad);
+  const bearing = (x, z) => ((Math.atan2(x, -z) * 180) / Math.PI + 360) % 360;
+  const coinCity = (x, z) => { const b = bearing(x, z), d = Math.hypot(x, z); return (b < 58 || b > 302) && d < 86; };
+  function dressNeighbourhoods() {
+    const g = group("decor-homes");
+    const HOUSES = "abcdefghijklmnopqrstu".split("").map((c) => "building-type-" + c), OFFICES = "abcdefghijklmn".split("").map((c) => "building-" + c);
+    const ok = (x, z, room) => free(x, z, room) && !inZone(x, z, room + 4) && !coinCity(x, z);
+    const N = ctx.low ? 8 : ctx.lite ? 14 : 22;
+    for (let i = 0, placed = 0; i < N * 4 && placed < N; i++) {
+      const a = ((i % N) / N) * 6.283 + Math.floor(i / N) * 0.13 + r() * 0.3, d = 52 + r() * 22, x = Math.sin(a) * d, z = -Math.cos(a) * d;
+      const b = bearing(x, z), office = b > 80 && b < 180 && r() < 0.65, room = office ? 4.6 : 4.2;
+      if (!ok(x, z, room)) continue; take(x, z, room); placed++;
+      const face = Math.atan2(-x, -z) + (r() - 0.5) * 0.5;
+      const h = office ? 9 + r() * 6 : 5.6 + r() * 1.6, o = at(piece(office ? "k-commercial" : "k-suburban", (office ? OFFICES : HOUSES)[Math.floor(r() * (office ? OFFICES : HOUSES).length)], { h }), x, z, face);
+      if (!o) continue; g.add(solid(o, Math.min(4.2, Math.max(o.userData.size.x, o.userData.size.z) * 0.5))); homes.push([Math.round(x), Math.round(z), office ? 1 : 0]);
+      // the front: a stone path to the door and a planter by it (houses); an awning or parasols (offices)
+      const fx = Math.sin(face), fz = Math.cos(face), front = Math.max(o.userData.size.z, 3) * 0.5;
+      if (!office) {
+        g.add(at(piece("k-suburban", "path-stones-short", { w: 2.4 }), x + fx * (front + 1.3), z + fz * (front + 1.3), face));
+        g.add(at(piece("k-suburban", "planter", { w: 1.6 }), x + fx * (front + 0.9) + fz * 2.2, z + fz * (front + 0.9) - fx * 2.2, face));
+        if (r() < 0.5) g.add(at(piece("k-suburban", r() < 0.5 ? "tree-small" : "tree-large", { h: 3.4 + r() * 1.6 }), x - fz * (front + 2), z + fx * (front + 2), r() * 6.283));
+      } else if (r() < 0.6) g.add(at(piece("k-commercial", r() < 0.5 ? "detail-parasol-a" : "detail-parasol-b", { h: 2.4 }), x + fx * (front + 2.2), z + fz * (front + 2.2), face));
+    }
+    mergeCells(g);
+    if (ctx.low) return;
+    // the skyline: low-detail towers, instanced (one draw per model), never solid (nobody walks that far)
+    const TOW = ["low-detail-building-a", "low-detail-building-b", "low-detail-building-c", "low-detail-building-d", "low-detail-building-e", "low-detail-building-f", "low-detail-building-g", "low-detail-building-h", "low-detail-building-i", "low-detail-building-j", "low-detail-building-k", "low-detail-building-l", "low-detail-building-m", "low-detail-building-n", "low-detail-building-wide-a", "low-detail-building-wide-b"];
+    const pk = packs["k-commercial"]; if (!pk) return;
+    const per = new Map(); TOW.forEach((n) => per.set(n, []));
+    // two stretches of city on the horizon (behind Finance and behind Research), in one hazy blue-grey: a far
+    // silhouette that the fog and the evening take, not a wall of white towers
+    const M = ctx.lite ? 26 : 44, ARCS = [[62, 150], [205, 268]];
+    for (let i = 0; i < M; i++) {
+      const [b0, b1] = ARCS[i % 2], b = ((b0 + r() * (b1 - b0)) * Math.PI) / 180, d = 262 + r() * 34, x = Math.sin(b) * d, z = -Math.cos(b) * d;
+      if (inZone(x, z, 8)) continue;
+      const nm = TOW[Math.floor(r() * TOW.length)], k = 0.8 + r() * 0.5, m = new THREE.Matrix4();
+      m.compose(new THREE.Vector3(x, -1, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(-x, -z) + (r() - 0.5)), new THREE.Vector3(k, k * (0.8 + r() * 0.8), k));
+      per.get(nm).push(m);
+    }
+    const sky = group("decor-skyline"), haze = new THREE.MeshStandardMaterial({ color: 0x9fb6cf, roughness: 0.95, metalness: 0 });
+    for (const [nm, mats] of per) { if (!mats.length) continue; const inst = K.packInstanced(pk, nm, mats, { h: 16 }); if (inst) { inst.traverse((m) => { if (m.isMesh) { m.material = haze; m.castShadow = false; m.receiveShadow = false; m.frustumCulled = false; } }); inst.userData.keep = true; sky.add(inst); } }
+  }
+
   // ---------------- the hunting grounds: a camp by each gate, props in each ground's theme ----------------
   const THEME = {
     spam: [["kenney-survival", "box-large", 1.1], ["kenney-survival", "barrel", 1.1], ["kk-resources", "Fuel_C_Jerrycan", 0.6], ["kenney-survival", "signpost", 1.6], ["kk-resources", "Parts_Pile_Medium", 0.8]],
@@ -244,7 +292,8 @@ export function createDecor(ctx) {
     await Promise.all(["kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "q-nature", "q-props"].map(load)); dressTown();
     await Promise.all(["kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-furniture", "kenney-furniture"].map(load)); dressDistricts();
     await load("kenney-pets"); addCritters();
+    await Promise.all(["k-suburban", "k-commercial"].map(load)); dressNeighbourhoods();
     setInterval(nearZones, 3000); nearZones();
   }
-  return { root, start, solids: () => solids, tick: (dt) => tickCritters(dt), gear, ready: (n) => !!packs[n], debug: () => ({ packs: Object.keys(packs), critters: critters.length, solids: solids.length, zones: [...dressed] }) };
+  return { root, start, solids: () => solids, tick: (dt) => tickCritters(dt), gear, ready: (n) => !!packs[n], debug: () => ({ packs: Object.keys(packs), critters: critters.length, solids: solids.length, zones: [...dressed], homes }) };
 }

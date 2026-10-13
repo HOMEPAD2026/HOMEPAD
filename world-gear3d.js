@@ -4,7 +4,7 @@
 //
 // Each weapon is built in its own hand frame: the hand grips at the origin, +Y is up and +Z points forward. hold says
 // how world-rpg.js should turn it at rest: "down" (a blade hanging), "up" (a staff, a hammer), "fwd" (a blaster or a bow).
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
 import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 

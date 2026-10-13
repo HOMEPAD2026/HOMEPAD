@@ -968,7 +968,7 @@ function jump() { if (jetOn() && !frozen) { jetHigh = !jetHigh; Snd.board(); ret
 let danceT = 0;
 function emote(name) {
   if (!avatar || frozen || !grounded) return;
-  const clip = name === "cheer" ? (avatar.arc ? "celebrate" : "emote-yes") : name === "dance" ? (avatar.arc ? "celebrate" : "emote-yes") : name;
+  const clip = name === "cheer" ? (avatar.arc || avatar.kk ? "celebrate" : "emote-yes") : name === "dance" ? (avatar.arc ? "celebrate" : avatar.kk ? "cheer" : "emote-yes") : name;
   avatar.play(clip, { once: true }); if (pet) pet.emote();
   if (avatar.face) avatar.face(name === "cheer" ? "star" : name === "dance" || name === "emote-yes" ? "happy" : name === "die" ? "ouch" : "", 2);
   if (name === "dance" && !reduce) { danceT = 2.4; vy = 4.5; grounded = false; }
@@ -2102,11 +2102,13 @@ $("wp-set-acct").addEventListener("click", async (e) => {
   if (e.target.id === "wp-acct-in") { try { await signIn(); paintAcct(); paintHud(); } catch (err) { toast((err && err.message) || T("Sign-in failed.")); } }
 });
 const make = $("wp-make");
+const KK_NAME = { "kk-knight": "Knight", "kk-mage": "Mage", "kk-rogue": "Rogue", "kk-rogue-hooded": "Hooded Rogue", "kk-ranger": "Ranger", "kk-barbarian": "Barbarian" };
 let pickChar = P.char || "arc-arc";
 function openMake() {
   // the ARC Bots first (each with its name and role), then the classic characters
-  const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/arcircle-mark-sm.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : ""}</button>`; };
-  $("wp-make-grid").innerHTML = `<p class="wp-make-sec">${esc(T("ARC Bots"))}</p>` + K.CHARACTERS.filter((id) => id.startsWith("arc-")).map(cell).join("") + `<p class="wp-make-sec">${esc(T("Classic characters"))}</p>` + K.CHARACTERS.filter((id) => !id.startsWith("arc-")).map(cell).join("");
+  const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.startsWith("kk-") ? T(KK_NAME[id] || id) : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/arcircle-mark-sm.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : ""}</button>`; };
+  const sec = (h, ids) => (ids.length ? `<p class="wp-make-sec">${esc(T(h))}</p>` + ids.map(cell).join("") : "");
+  $("wp-make-grid").innerHTML = sec("ARC Bots", K.CHARACTERS.filter((id) => id.startsWith("arc-"))) + sec("Adventurers", K.CHARACTERS.filter((id) => id.startsWith("kk-"))) + sec("Classic characters", K.CHARACTERS.filter((id) => !id.startsWith("arc-") && !id.startsWith("kk-")));
   $("wp-make-name").value = P.name || "";
   make.hidden = false; frozen = true; keys.clear(); paintPrompt();
   camYaw = facing;
@@ -2152,14 +2154,38 @@ $("wp-make-grid").addEventListener("click", (e) => {
   pickChar = b.dataset.c; $("wp-make-grid").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
   setAvatar(pickChar).then(() => avatar && avatar.play("emote-yes", { once: true }));
 });
-$("wp-make-go").addEventListener("click", () => {
-  P.char = pickChar;
-  let nm = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player");
-  // with a wallet: the first name change is free, later ones need a Name change from the ARCL Shop (the server checks too)
-  const o = arclShop.own();
-  if (P.name && nm !== P.name && sess() && o && o.freeRename && (o.renames || 0) <= (o.renamesUsed || 0)) { toast(T("Changing your name again needs a Name change from the ARCL Shop")); nm = P.name; }
-  P.name = nm; save();
+// the character maker: the first pick (and first name) is free; changing either later is a Character change,
+// 10,000 $ARCIRCLE from your wallet (half burned, half to the treasury), which the server checks on the next save
+const CHAR_COST = 10000;
+function finishMake(ch, nm) {
+  P.char = ch; P.name = nm; save();
   setNameTag(); make.hidden = true; frozen = false; camYaw = facing - Math.PI; paintQuests(); tutorialStep(-1); maybeGuide();
+  const ask = $("wp-make-ask"); if (ask) ask.remove();
+}
+$("wp-make-go").addEventListener("click", () => {
+  const nm = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player");
+  const charCh = !!(P.char && P.guideSeen && pickChar !== P.char), nameCh = !!(P.name && P.guideSeen && nm !== P.name);
+  if (!charCh && !nameCh) { finishMake(pickChar, nm); return; }
+  const o = arclShop.own() || {};
+  // a change already paid for (or an old ARCL Name change, for a name alone) goes straight through
+  if ((o.rechars || 0) > (o.recharsUsed || 0) || (!charCh && (o.renames || 0) > (o.renamesUsed || 0))) { finishMake(pickChar, nm); toast(T("Character changed")); return; }
+  let ask = $("wp-make-ask"); if (ask) ask.remove();
+  ask = document.createElement("div"); ask.id = "wp-make-ask"; ask.className = "wp-make-ask"; ask.setAttribute("role", "group");
+  const signed = !!sess();
+  ask.innerHTML = `<p>${esc(signed ? T("Changing your character or name costs {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury).", { n: CHAR_COST.toLocaleString("en-US") }) : T("Changing your character or name costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.", { n: CHAR_COST.toLocaleString("en-US") }))}</p><p class="wp-make-st" aria-live="polite"></p>
+    <div>${signed ? `<button type="button" class="wp-btn go" data-mpay>${esc(T("Pay {n} $ARCIRCLE", { n: CHAR_COST.toLocaleString("en-US") }))}</button>` : ""}<button type="button" class="wp-btn" data-mkeep>${esc(T("Keep my character"))}</button></div>`;
+  $("wp-make-go").after(ask);
+  ask.addEventListener("click", (e) => {
+    if (e.target.closest("[data-mkeep]")) {
+      // back to the one you have
+      pickChar = P.char; $("wp-make-name").value = P.name || ""; setAvatar(P.char); ask.remove();
+      $("wp-make-grid").querySelectorAll("button[data-c]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.c === P.char)));
+      make.hidden = true; frozen = false; return;
+    }
+    const pb = e.target.closest("[data-mpay]"); if (!pb) return;
+    pb.disabled = true; const st = ask.querySelector(".wp-make-st");
+    arclShop.pay("rechar", "", (t) => { if (st) st.textContent = t; }).then((ok) => { if (ok) { finishMake(pickChar, nm); toast(T("Character changed")); } else pb.disabled = false; }).catch(() => { pb.disabled = false; });
+  });
 });
 const setEl = $("wp-setsheet");
 function openSet() {
@@ -2402,6 +2428,7 @@ rpg = RPG.createRpg({
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
   buyBag: (onStatus) => arclShop.pay("bagplus", "", onStatus),
+  buyRekind: (onStatus) => arclShop.pay("rekind", "", onStatus), own: () => arclShop.own(),
   openCraft: (t, id) => { if (life) life.showSheet(t, id); }, onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclDay: () => { const a = arclShop.arcl(); return a ? { today: a.today || 0, cap: a.cap || 30000, sold: a.sold || 0, sellCap: a.sellCap || 1500 } : null; }, arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
@@ -2422,7 +2449,7 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   kit: () => kit, here: (v) => here(v), facing: () => facing, faceTo: (a) => { facing = a; }, afterimage: () => afterimage(), critFlash: () => critFlash(), avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
-  dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },
+  dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); if (avatar && avatar.kk && grounded) avatar.play("dodge", { once: true, speed: 1.4, fade: 0.05 }); },
   onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); if (z) arciaOn("zone", z); },
   onKill: (k) => { if (quests) quests.on.kill(k); arciaOn("kill", k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
   xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
@@ -2432,7 +2459,7 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
   knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; hitFrom.copy(d); hitAt = performance.now(); },
-  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && avatar.hurt) { /* rock away from the blow: forward if it came from behind, sideways from the side */ const fresh = performance.now() - hitAt < 200, f = facing; avatar.hurt(fresh ? hitFrom.x * Math.sin(f) + hitFrom.z * Math.cos(f) : -1, fresh ? hitFrom.x * Math.cos(f) - hitFrom.z * Math.sin(f) : 0); } else if (avatar && !boarding) avatar.play("emote-no", { once: true }); },
+  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && avatar.hurt) { /* rock away from the blow: forward if it came from behind, sideways from the side */ const fresh = performance.now() - hitAt < 200, f = facing; avatar.hurt(fresh ? hitFrom.x * Math.sin(f) + hitFrom.z * Math.cos(f) : -1, fresh ? hitFrom.x * Math.cos(f) - hitFrom.z * Math.sin(f) : 0); } else if (avatar && !boarding) avatar.play(avatar.kk ? "hit" : "emote-no", { once: true }); },
   screenOf: (p) => { const v = p.clone(); planet.localToWorld(v); v.project(st.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
   // a boss arrives: the camera turns to it for a moment and its name card comes up
   bossIntro: (pos, name, zone, lv, line) => {
@@ -2510,7 +2537,9 @@ function offerClip(blob) {
 if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the camera like the town's arches
 ghosts = SOC.createGhosts({ THREE, K, planet, T: (s, v) => (s === "Hi!" || s === "Friend" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag,
   isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
-  onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; } });
+  onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; },
+  // other players stand as their own characters (not the see-through capsules) once the model is in
+  makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(id, VER).catch(() => null)) });
 // ---------------- the inbox: gifts, new stamps, friends playing now ----------------
 // stand next to someone in town (a friend from the inbox, a player's card): a short hop, facing them
 function goNear(x, z) {

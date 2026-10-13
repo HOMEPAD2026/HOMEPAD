@@ -3373,3 +3373,13 @@ html.wp-pcphone .wp-prof-card{zoom:2;width:min(400px,calc((100vw - 24px) / 2));m
 
 /* the beta gate on a phone that shows the PC layout (play.html wp-pcphone): sized like the other windows */
 html.wp-pcphone .wl-gcard{zoom:1.7;width:min(440px,calc((100vw - 24px) / 1.7));max-height:calc((100svh - 32px) / 1.7);overflow:auto}
+/* the Forge's cards show the piece in 3D (world-rpg.js fart) */
+.wr-fart img.wr-3d{width:auto;height:84px;max-width:90%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45)) drop-shadow(0 0 10px color-mix(in srgb,var(--rc,#ff9a4a) 45%,transparent));pointer-events:none}
+.wr-fcard.locked .wr-fart img.wr-3d{filter:grayscale(.7) brightness(.7)}
+/* the character maker: a change after the first pick asks for its price (world-play.js) */
+.wp-make-ask{margin-top:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,200,97,.3);background:rgba(255,200,97,.06)}
+.wp-make-ask p{margin:0 0 10px;font-size:13.5px;line-height:1.5;color:#f4ead6}
+.wp-make-ask p.wp-make-st:empty{display:none}
+.wp-make-ask div{display:flex;flex-wrap:wrap;gap:8px}
+.wp-make-ask .wp-btn{flex:1 1 auto}
+html.wp-pcphone .wp-make-ask p{font-size:18px}

@@ -10513,6 +10513,22 @@
     "Every piece in 3D": "모든 장비를 3D로",
     "Armour, rings and necklaces turn in 3D on their card in the bag, like weapons.": "무기처럼 갑옷, 반지, 목걸이도 가방의 장비 카드에서 3D로 돌아가요.",
     "1 member": "멤버 1명",
+    "Adventurers": "모험가",
+    "Knight": "기사",
+    "Mage": "마법사",
+    "Rogue": "도적",
+    "Hooded Rogue": "후드 도적",
+    "Ranger": "레인저",
+    "Barbarian": "바바리안",
+    "Character changed": "캐릭터를 바꿨어요",
+    "Changing your character or name costs {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury).": "캐릭터나 이름을 바꾸려면 지갑에서 {n} $ARCIRCLE이 들어요 (절반은 소각, 절반은 트레저리로).",
+    "Changing your character or name costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.": "캐릭터나 이름을 바꾸려면 {n} $ARCIRCLE이 들어요. 지갑으로 로그인하면 결제할 수 있어요.",
+    "Pay {n} $ARCIRCLE": "{n} $ARCIRCLE 결제",
+    "Keep my character": "지금 캐릭터 유지",
+    "Make it a {x} for {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury). It keeps its stats.": "지갑에서 {n} $ARCIRCLE을 내고 {x}(으)로 바꿔요 (절반은 소각, 절반은 트레저리로). 능력치는 그대로예요.",
+    "Changing a weapon's kind costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.": "무기 종류를 바꾸려면 {n} $ARCIRCLE이 들어요. 지갑으로 로그인하면 결제할 수 있어요.",
+    "Keep it": "그대로 두기",
+    "Change kind: {n} $ARCIRCLE": "종류 변경: {n} $ARCIRCLE",
   };
 
 

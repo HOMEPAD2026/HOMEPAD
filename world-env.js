@@ -6,7 +6,7 @@
 // the vertex shader (so the square never moves on the CPU), its height comes from a mask of where grass may grow
 // (not on the plaza, the paths, under the halls or inside a hunting ground) and it fades out at the square's edge.
 // It writes no depth, so the ink edges and the AO in world-post.js don't outline every blade.
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 
 /* ---------------- the grass mask: where blades may grow, painted from what stands on the ground ---------------- */
 /// planet: the world group; extent: the side of the square it covers (metres); size: texture pixels

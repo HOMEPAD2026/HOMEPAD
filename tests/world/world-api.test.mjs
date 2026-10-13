@@ -115,6 +115,7 @@ r = await off.read(u); check(r.body.enabled === false, "storage off: islands say
 check(cleanSave({ xp: 2450 }).xpv === 2 && cleanSave({ xp: 2450 }).xp === 15004 + Math.floor(0.5 * 1396), "an old 2,450 XP save becomes level 25 on the new curve");
 // characters: the ARC Bots are kept, anything else unknown is dropped
 check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({ char: "arc-nobody" }).char === "" && cleanSave({ char: "male-c" }).char === "male-c", "saves keep ARC Bot characters and drop unknown ones");
+check(cleanSave({ char: "kk-knight" }).char === "kk-knight" && cleanSave({ char: "kk-rogue-hooded" }).char === "kk-rogue-hooded" && cleanSave({ char: "kk-dragon" }).char === "", "saves keep the KayKit adventurers and drop unknown ones");
 { const o = cleanSave({ xpv: 2, outfit: { wear: { head: "halo", back: "<b>", aura: "rings", hat: "x" }, accent: "FFC861" } }).outfit;
   check(o && o.wear.head === "halo" && o.wear.aura === "rings" && !o.wear.back && !o.wear.hat && o.accent === "ffc861", "the wardrobe outfit is kept, cleaned " + JSON.stringify(o)); }
 { const r = cleanSave({ xpv: 2, rpg: { eq: { weapon: { id: "w0001", b: "weapon-2", r: 1, lv: 9, k: 3, lk: 1 }, shield: { id: "s0001", b: "shield-1", r: 0, lv: 3, k: 2 } }, bag: [{ id: "w0002", b: "weapon-0", r: 0, lv: 1, k: 9 }] } }).rpg;
@@ -132,5 +133,21 @@ check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({
 }
 { const r = cleanSave({ xpv: 2, rpg: { eq: {}, bag: [], store: Array.from({ length: 60 }, (_, i) => ({ id: "st" + String(i).padStart(4, "0"), b: "ring-0", r: 0, lv: 1, p: 0 })).concat([{ id: "bad", b: "x" }]) } }).rpg;
   check(r.store.length === 48 && r.store[0].b === "ring-0", "storage keeps 48 clean pieces"); }
+// changing the character or name later takes a Character change; a weapon's kind, a Weapon kind change
+{ const v = ethers.Wallet.createRandom(), a = v.address.toLowerCase(); T += 60000; const iss = new Date(T).toISOString(), sg = await v.signMessage(loginMessage(v.address, iss)), M = { wallet: v.address, issued: iss, signature: sg };
+  const wpn = (k) => ({ eq: { weapon: { id: "wpn001", b: "weapon-1", r: 1, lv: 5, p: 0, ...(k == null ? {} : { k }) } }, bag: [], store: [] });
+  r = await W.handle({ action: "world-save", ...M, data: { xp: 50, xpv: 2, name: "Aria", char: "kk-knight", rpg: wpn(1) } }); check(r.status === 200 && db.get("worldSave/" + a).char === "kk-knight", "the first pick is free");
+  T += 9000; await W.handle({ action: "world-save", ...M, data: { xp: 50, xpv: 2, name: "Bria", char: "kk-mage", rpg: wpn(2) } });
+  let sv = db.get("worldSave/" + a); check(sv.char === "kk-knight" && sv.name === "Aria", "a later character or name change without paying: the old ones stay");
+  check(sv.rpg.eq.weapon.k === 1, "a weapon's kind changed without paying: it keeps its kind");
+  db.set("worldOwn/" + a, { items: [], rechars: 1, rekinds: 1 });
+  T += 9000; await W.handle({ action: "world-save", ...M, data: { xp: 50, xpv: 2, name: "Bria", char: "kk-mage", rpg: wpn(2) } });
+  sv = db.get("worldSave/" + a); const o = db.get("worldOwn/" + a);
+  check(sv.char === "kk-mage" && sv.name === "Bria" && o.recharsUsed === 1, "a paid Character change goes through, and is used up");
+  check(sv.rpg.eq.weapon.k === 2 && o.rekindsUsed === 1, "a paid Weapon kind change goes through, and is used up");
+  T += 9000; await W.handle({ action: "world-save", ...M, data: { xp: 50, xpv: 2, name: "Cara", char: "kk-rogue", rpg: wpn(3) } });
+  sv = db.get("worldSave/" + a); check(sv.char === "kk-mage" && sv.name === "Bria" && sv.rpg.eq.weapon.k === 2, "once used, the next change needs paying again");
+  T += 9000; await W.handle({ action: "world-save", ...M, data: { xp: 50, xpv: 2, name: "Bria", char: "kk-mage", rpg: { eq: { weapon: { id: "wpn002", b: "weapon-1", r: 1, lv: 5, p: 0, k: 4 } }, bag: [], store: [] } } });
+  check(db.get("worldSave/" + a).rpg.eq.weapon.k === 4, "a new weapon (from the Forge) comes in any kind"); }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

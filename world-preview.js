@@ -1,7 +1,7 @@
 // world-preview.js — a small turning 3D view inside a panel: your character as it stands, with its gear on (the
 // character sheet), or the selected weapon (its card). One extra canvas, created the first time it is needed and
 // moved into whichever panel shows a preview; it stops drawing when the panel closes or repaints. Drag turns it.
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 
 let r = null, scene = null, cam = null, holder = null, raf = 0, spin = 0.5, last = 0, drag = null, auto = true, failed = false;

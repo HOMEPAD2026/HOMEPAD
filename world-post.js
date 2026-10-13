@@ -13,7 +13,7 @@
 //
 // Levels: "medium" (multisampling, edges, bloom, air, grade) and "ultra" (AO, edges, bloom, air with shafts, grade, FXAA).
 // Low and Saver keep the plain renderer with its own antialiasing. WebGL 1: FXAA and no 3D table.
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 import { EffectComposer } from "./vendor/three/addons/EffectComposer.js";
 import { RenderPass } from "./vendor/three/addons/RenderPass.js";
 import { UnrealBloomPass } from "./vendor/three/addons/UnrealBloomPass.js";

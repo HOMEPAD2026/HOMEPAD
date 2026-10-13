@@ -8,7 +8,7 @@
 //   the scammers    stage enemies; v0 has the first one, the Phisher
 //   the kit         Quaternius "Sci-Fi Essentials Kit" models (CC0, /models/world): props around the shops, the
 //                   enemy robots the scammers wear, key cards to collect
-import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
+import * as THREE from "./vendor/three/three-0.186.1.module.min.js";
 import { RoomEnvironment } from "./vendor/three/addons/RoomEnvironment.js";
 import { EffectComposer } from "./vendor/three/addons/EffectComposer.js";
 import { RenderPass } from "./vendor/three/addons/RenderPass.js";
@@ -150,7 +150,7 @@ export function makeStage(canvas, opts = {}) {
   const sun = new THREE.DirectionalLight(0xffffff, 2.1); sun.position.set(30, 60, 40); scene.add(sun); scene.add(sun.target);
   // soft shadows around the robot (it always stands at the top of the world, so one fixed shadow box covers it)
   if (opts.shadows && !q.low && !q.saver) {
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap ?? THREE.PCFShadowMap; // (newer three.js folds the soft one into PCF)
     sun.castShadow = true; sun.shadow.mapSize.set(q.shadowSize, q.shadowSize); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     const gy = opts.groundY ?? R;
     sun.position.set(14, gy + 34, 18); sun.target.position.set(0, gy, -4);
@@ -517,12 +517,23 @@ export function makeShop(spec) {
       break;
     }
     case "vault": {
-      const vd = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 40), glossy(0x8a96a8)); vd.rotation.x = Math.PI / 2; vd.position.y = 1.0;
-      const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 32), trim); wheel.position.set(0, 1.0, 0.14);
-      const sp1 = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.08, 0.06), trim); sp1.position.set(0, 1.0, 0.14);
-      const sp2 = sp1.clone(); sp2.rotation.z = Math.PI / 2;
-      accent.add(vd, wheel, sp1, sp2);
-      spin.push((dt, t) => { const a = Math.sin(t * 0.6) * 0.8; wheel.rotation.z = sp1.rotation.z = a; sp2.rotation.z = a + Math.PI / 2; });
+      // a vault door seen from both sides: steel face, gold rim and bolts, the handle wheel turning on each face
+      const vd = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 40), glossy(0x5d6b80)); vd.rotation.x = Math.PI / 2; vd.position.y = 1.0;
+      const gold = glossy(0xffc861, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4a10, emissiveIntensity: 0.35 });
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.07, 10, 48), gold); rim.position.y = 1.0;
+      accent.add(vd, rim);
+      const boltGeo = new THREE.SphereGeometry(0.05, 8, 6), wheels = [];
+      for (const side of [1, -1]) {
+        const z = 0.11 * side, f = new THREE.Group(); f.position.set(0, 1.0, z);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.025, 6, 40), gold); f.add(ring);
+        { const bolts = new THREE.InstancedMesh(boltGeo, gold, 12), m4 = new THREE.Matrix4(); for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; bolts.setMatrixAt(i, m4.makeTranslation(Math.cos(a) * 0.74, Math.sin(a) * 0.74, 0)); } f.add(bolts); } // one draw for the ring of bolts
+        const w = new THREE.Group(); w.position.z = 0.04 * side;
+        const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.06, 8, 32), trim); w.add(wheel);
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.08, 20), gold); hub.rotation.x = Math.PI / 2; w.add(hub);
+        for (let k = 0; k < 3; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.06, 0.05), trim); sp.rotation.z = (k / 3) * Math.PI; w.add(sp); }
+        f.add(w); wheels.push([w, side]); accent.add(f);
+      }
+      spin.push((dt, t) => { const a = Math.sin(t * 0.6) * 0.8; for (const [w, sd] of wheels) w.rotation.z = a * sd; });
       break;
     }
     case "dish": {
@@ -790,7 +801,9 @@ export function makePaths() {
 
 // ---------------- players: Kenney Mini Characters (CC0) or the ARC Bot ----------------
 // the ARC Bots (world-arcbots.js, ARCIRCLE World's own characters) first, then the hover bot and the Kenney characters
-export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)];
+// KayKit Adventurers (CC0, kaylousberg.com): six heroes on one rig, their moves in one shared file (kk-anims.glb)
+export const KK_CHARS = ["knight", "mage", "rogue", "rogue-hooded", "ranger", "barbarian"].map((c) => "kk-" + c);
+export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c), ...KK_CHARS];
 export { ARCBOT_IDS };
 export const arcNight = (k) => ARC.setNight(k);
 export const arcTick = (dt, org) => ARC.tickNight && ARC.tickNight(dt, org);
@@ -880,12 +893,13 @@ export async function makeCharacter(id, ver = "", outfit = null) {
     src = await new Promise((res, rej) => L.load(`/models/world/chars/character-${id}.glb${ver}`, res, undefined, rej));
     charCache.set(id, src);
   }
+  if (id.startsWith("kk-")) return makeKK(id, src, ver);
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
   const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); toonAll(inner); if (charHook) charHook(inner, false);
   // the ARCIRCLE crown: the two rings of the mark over the head
-  const crown = new THREE.Group(); crown.position.y = 2.45;
+  const crown = new THREE.Group(); crown.position.y = 2.45; crown.name = "crown";
   const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
   r1.position.x = -0.1; r2.position.x = 0.1; r2.rotation.x = Math.PI / 2; crown.add(r1, r2); obj.add(crown);
   const mixer = new THREE.AnimationMixer(inner), acts = {};
@@ -902,6 +916,48 @@ export async function makeCharacter(id, ver = "", outfit = null) {
   play("idle");
   return {
     obj, mixer, play, height: 2.1, busy: () => !!oneShot,
+    setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
+    update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
+  };
+}
+
+// the KayKit heroes: their clips (one file for all six) under the game's own names, so the rest of the game asks for
+// "walk" or "emote-yes" whichever character you play; attack(kind, heavy) swings with the weapon you hold
+let kkAnimsP = null;
+const KK_AS = { idle: "Idle_A", walk: "Walking_A", sprint: "Running_A", jump: "Jump_Full_Short", fall: "Jump_Idle", sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle",
+  die: "Death_A", "pick-up": "PickUp", "emote-yes": "Waving", "emote-no": "Idle_B", "interact-right": "Interact", celebrate: "Cheering", cheer: "Cheering", fidget: "Idle_B",
+  hit: "Hit_A", dodge: "Dodge_Forward", block: "Melee_Block", cast: "Ranged_Magic_Raise", fish: "Fishing_Cast", reel: "Fishing_Reeling", catch: "Fishing_Catch", mine: "Pickaxing", chop: "Chopping", hammer: "Hammering", dig: "Digging", spawn: "Spawn_Ground", lie: "Lie_Idle" };
+const KK_ATK = [["Melee_Dualwield_Attack_Slice", "Melee_1H_Attack_Slice_Horizontal"], ["Melee_2H_Attack_Chop", "Melee_2H_Attack_Spin"], ["Ranged_1H_Shoot", "Ranged_1H_Shoot"], ["Ranged_Bow_Release", "Ranged_Bow_Release"], ["Ranged_Magic_Shoot", "Ranged_Magic_Spellcasting"]];
+async function makeKK(id, src, ver) {
+  if (!kkAnimsP) kkAnimsP = new Promise((res, rej) => gltfLoader().load(`/models/world/chars/kk-anims.glb${ver}`, (g) => res(g.animations), undefined, rej)).catch((e) => { kkAnimsP = null; throw e; });
+  const clips = await kkAnimsP;
+  const inner = SkeletonUtils.clone(src.scene);
+  const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
+  const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
+  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); toonAll(inner); if (charHook) charHook(inner, false);
+  const crown = new THREE.Group(); crown.position.y = 2.45; crown.name = "crown";
+  const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
+  r1.position.x = -0.1; r2.position.x = 0.1; r2.rotation.x = Math.PI / 2; crown.add(r1, r2); obj.add(crown);
+  const mixer = new THREE.AnimationMixer(inner), acts = {}, byClip = new Map(clips.map((c) => [c.name, c]));
+  const act = (name) => { const cn = KK_AS[name] || name; if (!acts[cn]) { const c = byClip.get(cn); if (!c) return null; acts[cn] = mixer.clipAction(c); } return acts[cn]; };
+  let cur = null, oneShot = null;
+  const ONCE_HOLD = new Set(["Death_A", "Lie_Idle"]);
+  const play = (name, { once = false, fade = 0.18, speed = 1 } = {}) => {
+    const a = act(name); if (!a) return null;
+    if (!once && cur === a && !oneShot) return a;
+    a.reset(); a.timeScale = speed; a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once && ONCE_HOLD.has(a.getClip().name);
+    if (cur && cur !== a) cur.crossFadeTo(a, fade, false);
+    a.play(); cur = a;
+    if (once) { oneShot = a; const done = (e) => { if (e.action === a) { mixer.removeEventListener("finished", done); oneShot = null; if (!a.clampWhenFinished) { const i = act("idle"); if (i && cur === a) { i.reset().play(); a.crossFadeTo(i, 0.2, false); cur = i; } } } }; mixer.addEventListener("finished", done); }
+    return a;
+  };
+  play("idle");
+  // where the game's gear goes on this rig: the hand slots, the head, the chest (world-rpg.js dress)
+  const BONES = { "arm-right": "handslotr", "arm-left": "handslotl", head: "head", torso: "chest" }; // three.js drops the dots from node names
+  return {
+    obj, mixer, play, height: 2.1, kk: true, bones: BONES, busy: () => !!oneShot,
+    mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.62, 0], armor: [0, 0.18, 0], armorR: 0.5, necklace: [0, 0.32, 0.26] },
+    attack(kind = 0, heavy = false) { const pair = KK_ATK[kind] || KK_ATK[0]; play(pair[heavy ? 1 : 0], { once: true, fade: 0.06, speed: kind === 1 ? 1.25 : 1.6 }); },
     setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
     update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
   };

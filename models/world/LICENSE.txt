@@ -29,3 +29,12 @@ textures resized to WebP where large, meshopt-compressed. All CC0 1.0 Universal 
     Bat, Dragon, Skeleton, Slime from "Lowpoly Animated Monsters" and Spider, Rat, Wasp, Frog, Snake from
     "Animated Easy Enemies", both by Quaternius (CC0) — https://quaternius.itch.io — converted from FBX to glTF
     with three.js, scaled to one unit tall, clips renamed to Run / Attack / Hit / Idle / Death.
+
+models/world/packs/k-commercial.glb, models/world/packs/k-suburban.glb (the town's houses and offices, the far skyline — world-decor.js)
+From "City Kit (Commercial) 2.1" and "City Kit (Suburban) 2.0" by Kenney — https://kenney.nl — CC0 1.0 Universal.
+Repacked for the web with glTF-Transform (one root node per model, textures to WebP, meshopt-compressed).
+
+models/world/chars/character-kk-*.glb, models/world/chars/kk-anims.glb (the adventurer characters and their moves)
+From "KayKit : Adventurers Character Pack 2.0" (free version) and "KayKit : Character Animations 1.1" by Kay Lousberg —
+https://kaylousberg.com — CC0 1.0 Universal. Characters: texture to WebP, meshopt-compressed with glTF-Transform.
+Animations: chosen Rig_Medium clips retargeted onto one bone tree, compressed with gltfpack.

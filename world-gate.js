@@ -4,11 +4,14 @@ export async function start(canvas, { reduce = false } = {}) {
   const K = await import("./world-kit.js" + new URL(import.meta.url).search);
   const { THREE, R } = K;
   try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
-  const st = K.makeStage(canvas, { fog: 0.0012, bloom: 0.85, fov: 42 });
+  // gentler than the game's: from this far the planet's glowing trims and the halo add up, and a strong bloom turned
+// the whole planet milky white
+const st = K.makeStage(canvas, { fog: 0.0012, bloom: 0.3, bloomRadius: 0.3, bloomThreshold: 1.4, fov: 42 }); // only the hottest cores glow (on a real GPU the bloom works in HDR, so the trims at 2× emissive all went over a 0.9 threshold)
+  st.renderer.toneMappingExposure = 0.84;
   const world = new THREE.Group(); st.scene.add(world);
   const VER = new URL(import.meta.url).search;
   const planet = K.makePlanet({ map: "/models/world/planet-surface.jpg" + VER }); world.add(planet);
-  const halo = K.makeHalo(); world.add(halo);
+  const halo = K.makeHalo(); world.add(halo); halo.userData.rings.forEach((m) => { m.material.emissiveIntensity = 0.32; });
   st.scene.add(K.makeStars());
   const spins = [];
   const shops = K.SHOPS.map((s) => { const b = K.makeShop(s); K.placeOn(b, K.dirOf(s.theta, s.phi)); planet.add(b); spins.push(...b.userData.spin); return b; });
