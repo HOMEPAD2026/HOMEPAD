@@ -39,16 +39,18 @@ function loop(t) {
   r.render(scene, cam);
 }
 /// show obj in container (an element sized by CSS). kind: "figure" stands on the floor, "item" floats and tilts
-export function mount(container, obj, { kind = "figure" } = {}) {
+// a model made just for the preview (own) is freed when it is replaced; a figure shares its geometry with your character
+const drop = (c) => { holder.remove(c); if (c.userData.own) c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => m.dispose()); }); };
+export function mount(container, obj, { kind = "figure", own = false } = {}) {
   if (!container || !obj || !init()) return false;
-  holder.children.slice().forEach((c) => holder.remove(c));
+  holder.children.slice().forEach(drop);
   const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
   const tall = Math.max(size.y, size.x * 0.8, size.z * 0.8, 0.1);
   const pivot = new THREE.Group(); obj.position.sub(c); pivot.add(obj);
   if (kind === "figure") { pivot.position.y = size.y / 2; view.y = size.y * 0.47; view.dist = tall * 2.15; }
   else { pivot.rotation.z = 0.5; pivot.position.y = tall * 0.6; view.y = tall * 0.6; view.dist = tall * 2.6; }
   scene.getObjectByName("floor").scale.setScalar(Math.max(size.x, size.z, 0.6) * 0.9);
-  holder.add(pivot); spin = 0.5; auto = true;
+  pivot.userData.own = own; holder.add(pivot); spin = 0.5; auto = true;
   container.appendChild(r.domElement);
   if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); }
   return true;
@@ -59,4 +61,4 @@ export function figureOf(obj) {
   c.traverse((o) => { if (o.isSprite || o.name === "crown") o.visible = false; });
   c.updateMatrixWorld(true); return c;
 }
-export function stop() { if (holder) holder.children.slice().forEach((c) => holder.remove(c)); if (r && r.domElement.parentNode) r.domElement.remove(); }
+export function stop() { if (holder) holder.children.slice().forEach(drop); if (r && r.domElement.parentNode) r.domElement.remove(); }

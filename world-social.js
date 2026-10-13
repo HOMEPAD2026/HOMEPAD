@@ -290,7 +290,7 @@ export function createGhosts(ctx) {
         if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); arrive(g); }
         w.x = x.x; w.z = x.z; w.at = now;
         // signed in (and not hidden): their name and level on the plate instead of just the level
-        const nm = x.n ? `${x.n} · Lv ${x.l || x.lv}` : ""; w.wallet = x.w || ""; w.name = x.n || ""; w.lv = x.l || x.lv; w.h = Number.isInteger(x.h) ? x.h : null; w.zn = x.zn || "";
+        const nm = x.n ? `${x.cr ? "[" + String(x.cr).slice(0, 4) + "] " : ""}${x.n} · Lv ${x.l || x.lv}` : ""; // a crew's tag before the name w.wallet = x.w || ""; w.name = x.n || ""; w.lv = x.l || x.lv; w.h = Number.isInteger(x.h) ? x.h : null; w.zn = x.zn || "";
         if (nm && w.nm !== nm) { w.nm = nm; const tag = w.g.children.find((c) => c.isSprite && c.userData.lvTag); if (tag) { w.g.remove(tag); tag.material.map && tag.material.map.dispose(); } const t2 = K.label(x.n, { accent: "#9ff3ff", size: 0.42, sub: "Lv " + (x.l || x.lv) }); t2.position.y = 2.45; t2.material.opacity = 0.9; t2.userData.lvTag = true; w.g.add(t2); }
         // a friend from an invite link: a gold ring and a "Friend" plate
         const pal = !!(ctx.isPal && ctx.isPal(x)); if (pal && !w.pal) { w.pal = true; const pl = K.label(ctx.T("Friend"), { accent: "#ffc861", size: 0.42 }); pl.position.y = 2.75; w.g.add(pl); w.plate = pl; const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.78, 32), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; w.g.add(ring); }

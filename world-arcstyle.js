@@ -292,6 +292,17 @@ export function plazaTexture() {
 export function makeArcFountain() {
   const g = new THREE.Group(); g.name = "fountain";
   const water = new THREE.MeshStandardMaterial({ color: 0x38c8ff, emissive: 0x1a8ad8, emissiveIntensity: 0.55, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.88 });
+  // light dancing on the water: a caustic net drifting slowly (a shader step on the fountain's one water material)
+  const WT = { value: 0 };
+  water.onBeforeCompile = (sh) => {
+    sh.uniforms.uWT = WT;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 vWp;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvWp = position.xy;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec2 vWp; uniform float uWT;").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+      { vec2 q = vWp * 2.2; float t = uWT * 0.7, c = 0.0;
+        for (int i = 0; i < 3; i++) { q += vec2(sin(q.y * 0.9 + t), cos(q.x * 0.8 - t * 1.1)) * 0.55; c += abs(sin(q.x) + cos(q.y)); }
+        c = pow(clamp(1.0 - c / 4.2, 0.0, 1.0), 3.0); totalEmissiveRadiance += vec3(0.55, 0.9, 1.0) * c * 0.9; }`);
+  };
+  water.customProgramCacheKey = () => "water-caustic";
   waterLook(water); // ripples and a bright edge (world-look.js)
   const P = [
     [tor(4.25, 0.32, 96), stone(), { y: 0.26, rx: Math.PI / 2, sz: 1.6 }], [cyl(4.25, 4.35, 0.18, 96), stone(), { y: 0.06 }],
@@ -314,7 +325,7 @@ export function makeArcFountain() {
   const o = new THREE.Object3D();
   g.userData = { radius: 0, pulse: (k) => { ra.material.emissiveIntensity = 1.5 * (1 + k); rb.material.emissiveIntensity = 1.5 * (1 + k); }, spin: [(dt, t) => {
     rings.rotation.y = t * 0.35; ra.rotation.y = Math.sin(t * 0.7) * 0.25; rings.position.y = 16 + Math.sin(t * 1.2) * 0.35;
-    water.emissiveIntensity = 0.5 + Math.sin(t * 2) * 0.08;
+    water.emissiveIntensity = 0.5 + Math.sin(t * 2) * 0.08; WT.value = t;
     for (let i = 0; i < N; i++) {
       const lower = i % 2, a = ((i >> 1) / (N / 2)) * TAU, k = ((t * 0.7 + (i * 0.618) % 1) % 1);
       const r0 = lower ? 2.0 : 1.0, r1 = lower ? 3.6 : 1.85, y0 = lower ? 2.05 : 3.4, y1 = lower ? 0.35 : 2.08;

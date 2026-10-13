@@ -312,7 +312,8 @@ let thumbR = null, thumbScene = null, thumbCam = null;
 const thumbs = new Map();
 // the rest of the gear in the bag: small 3D pictures built here (a helm, a chest plate, a shield, boots, a ring, a
 // necklace), in the piece's rarity colour, a little more ornate with each tier
-function gearModel3d(slot, tier, color) {
+/// a piece of armour or jewellery as a small model (the bag's thumbnails and the piece's turning 3D view)
+export function gearModel3d(slot, tier, color) {
   const g = new THREE.Group(), c = new THREE.Color(color);
   const metal = new THREE.MeshStandardMaterial({ color: c, metalness: 0.75, roughness: 0.3, emissive: c, emissiveIntensity: 0.12 + tier * 0.05 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x2a3446, metalness: 0.5, roughness: 0.45 }), gem = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: c, emissiveIntensity: 1.1, roughness: 0.15, metalness: 0.1 });

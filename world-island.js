@@ -348,11 +348,19 @@ export function createIsland(ctx) {
       const a = anims[i], k = (now - a.t0) / 220;
       if (k < 0) { set.pose(a.b, 0, 0); continue; }
       if (k >= 1) { set.pose(a.b, 0, 1); anims.splice(i, 1); continue; }
+      if (k >= 0.6 && !a.hit) { a.hit = true; if (anims.length < 40) bump(a.b); } // it lands: a little ring of dust at its foot
       const lift = k < 0.6 ? (1 - k / 0.6) * 0.9 : 0, sq = k < 0.6 ? 1 : 1 - Math.sin((k - 0.6) / 0.4 * Math.PI) * 0.22;
       set.pose(a.b, lift, sq);
     }
   }
   const shardGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+  const bumpGeo = new THREE.RingGeometry(0.35, 0.62, 28); bumpGeo.rotateX(-Math.PI / 2);
+  function bump(b) {
+    const [cx, cz] = set.center(b.x, b.z), m = new THREE.Mesh(bumpGeo, new THREE.MeshBasicMaterial({ color: 0xeef3f7, transparent: true, opacity: 0.55, depthWrite: false }));
+    m.position.set(cx, b.y + 0.04, cz); fxRoot.add(m); const t0 = performance.now();
+    const step = () => { const k = (performance.now() - t0) / 320; if (k >= 1) { fxRoot.remove(m); m.material.dispose(); return; } m.scale.setScalar(1 + k * 0.9); m.material.opacity = 0.55 * (1 - k); requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
   function shatter(b) {
     if (ctx.reduce) return;
     const [cx, cz] = set.center(b.x, b.z), c = COLORS[b.c] ?? 0xffffff;
@@ -763,9 +771,15 @@ export function createIsland(ctx) {
   }
   const hexc = (i) => "#" + (COLORS[i] ?? 0xffffff).toString(16).padStart(6, "0");
   let palCat = 0;
+  // the bricks you picked last, first in their own tab ("Recent", kept in this browser)
+  const RKEY = "arc.world.recentBricks";
+  const recent = () => { try { const a = JSON.parse(localStorage.getItem(RKEY) || "[]"); return Array.isArray(a) ? a.slice(0, 12) : []; } catch { return []; } };
+  const addRecent = (id) => { try { localStorage.setItem(RKEY, JSON.stringify([id, ...recent().filter((x) => x !== id)].slice(0, 12))); } catch { /* private */ } };
   function paintPal() {
-    $("wi-cats").innerHTML = CAT.map((c, i) => `<button type="button" data-cat="${i}" aria-pressed="${i === palCat}">${esc(T(c))}</button>`).join("");
-    $("wi-grid").innerHTML = TYPES.map((t, i) => (t.cat !== palCat ? "" : `<button type="button" data-k="${i}" class="${unlocked(t) ? "" : "locked"}" aria-pressed="${i === cur()}"><img alt="" src="${thumbs[i] || ""}"><b>${esc(t.name)}</b>${unlocked(t) ? "" : `<small>${esc(lockText(t))}</small>`}</button>`)).join("");
+    const rec = recent(); if (palCat === -1 && !rec.length) palCat = 0;
+    $("wi-cats").innerHTML = (rec.length ? `<button type="button" data-cat="-1" aria-pressed="${palCat === -1}">${esc(T("Recent"))}</button>` : "") + CAT.map((c, i) => `<button type="button" data-cat="${i}" aria-pressed="${i === palCat}">${esc(T(c))}</button>`).join("");
+    const show = (t) => (palCat === -1 ? rec.includes(t.id) : t.cat === palCat);
+    $("wi-grid").innerHTML = TYPES.map((t, i) => (!show(t) ? "" : `<button type="button" data-k="${i}" class="${unlocked(t) ? "" : "locked"}" aria-pressed="${i === cur()}"><img alt="" src="${thumbs[i] || ""}"><b>${esc(t.name)}</b>${unlocked(t) ? "" : `<small>${esc(lockText(t))}</small>`}</button>`)).join("");
     $("wi-colors").innerHTML = COLORS.map((c, i) => `<button type="button" data-col="${i}" aria-pressed="${i === curColor()}" style="--c:${hexc(i)}" aria-label="${esc(T("Colour {n}", { n: i + 1 }))}"></button>`).join("");
   }
   const thumbs = []; let thumbsDone = false, thumbsBusy = null;
@@ -875,7 +889,7 @@ export function createIsland(ctx) {
     if (b.id === "wi-pal-btn") { openPalette(); return; }
     if (b.dataset.slot != null) { slot = +b.dataset.slot; color = -1; setTool("place"); paintBuild(); return; }
     if (b.dataset.cat != null) { palCat = +b.dataset.cat; paintPal(); return; }
-    if (b.dataset.k != null) { const t = TYPES[+b.dataset.k]; if (!unlocked(t)) { toast(T("Locked: {why}", { why: lockText(t) })); return; } const at = hot.indexOf(t.id); if (at >= 0) slot = at; else { hot[slot] = t.id; saveHot(); } color = -1; setTool("place"); paintPal(); paintBuild(); return; }
+    if (b.dataset.k != null) { const t = TYPES[+b.dataset.k]; if (!unlocked(t)) { toast(T("Locked: {why}", { why: lockText(t) })); return; } const at = hot.indexOf(t.id); if (at >= 0) slot = at; else { hot[slot] = t.id; saveHot(); } addRecent(t.id); color = -1; setTool("place"); paintPal(); paintBuild(); return; }
     if (b.dataset.col != null) { color = +b.dataset.col; paintPal(); paintBuild(); return; }
     if (b.dataset.bp) { closeSheets(); startBlueprint(bpList(b.dataset.bp), T(BP_NAMES[b.dataset.bp])); return; }
     if (b.id === "wi-copy") { const code = toCode(bricks); if (!code) { toast(T("Build something first")); return; } try { await navigator.clipboard.writeText(code); toast(T("Code copied. Anyone can paste it into Blueprints.")); } catch { $("wi-code-in").value = code; toast(T("Here's your code: copy it from the box")); } return; }

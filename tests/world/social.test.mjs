@@ -45,6 +45,15 @@ r = await W.handle({ action: "world-like", ...them, target: A }); check(r.status
 r = await W.read(new URL("http://x/api/social?world=island-week")); check(r.body.top.length === 1 && r.body.top[0].wallet === A && r.body.top[0].likes === 1 && /^\d{4}-W\d\d$/.test(r.body.week), "this week's contest has it");
 // friends
 r = await W.read(new URL("http://x/api/social?world=friends&wallets=" + A + "," + B + ",junk")); check(Object.keys(r.body.friends).length === 2 && r.body.friends[A].isle === 1 && r.body.friends[A].likes === 1, "friends' cards");
+// the card's showcase: earned titles, the worn one, the gear on, the crew's tag
+{ const sv = db.get(`worldSave/${A}`) || {}; db.set(`worldSave/${A}`, { ...sv, rpg: { eq: { weapon: { id: "abcd12", b: "weapon-2", r: 3, lv: 10, p: 4, k: 1 }, ring: { id: "ring01", b: "ring-1", r: 1, lv: 5, p: 0 } }, bag: [], x: { ach: ["k10", "b1", "<bad>"], title: "b1", stitle: 1 } } });
+  db.set(`worldCrewOf/${A}`, { id: "0123456789ab" }); db.set("worldCrew/0123456789ab", { id: "0123456789ab", tag: "ARC", members: [A], owner: A, code: "ZZZZZZ" });
+  r = await W.read(new URL("http://x/api/social?world=friends&wallets=" + A)); const f = r.body.friends[A];
+  check(f.ach.join() === "k10,b1" && f.t === "b1" && f.st === 1, "a card lists the titles earned and the one worn");
+  check(f.gear.length === 2 && f.gear[0].b === "weapon-2" && f.gear[0].p === 4 && f.gear[0].k === 1 && f.gear[1].b === "ring-1" && !("lv" in f.gear[0]), "a card shows the gear on (slot, rarity, +, kind)");
+  check(f.cr === "ARC" && !("code" in f), "a card shows the crew's tag (and never its code)");
+  db.set("worldCrew/0123456789ab", { id: "0123456789ab", tag: "ARC", members: [], owner: A, closed: 1 });
+  r = await W.read(new URL("http://x/api/social?world=friends&wallets=" + A)); check(!r.body.friends[A].cr, "a closed crew's tag is gone from the card"); }
 // ghosts
 await W.handle({ action: "world-ping", id: "ghostghost0001", g: { x: 12.34, z: -5, c: "female-b", lv: 7 } });
 await W.handle({ action: "world-ping", id: "ghostghost0002", g: { x: 900, z: 0, c: "x", lv: 7 } });

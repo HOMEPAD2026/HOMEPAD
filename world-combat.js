@@ -15,7 +15,7 @@
 //   street items  ARCL coins, speed boots, a spring, XP stars, mana crystals, health potions, a shield, a magnet
 // ARCL goes through the server's claim: "street" (5), "hunt" (8–12 by tier, level-gated), "boss" (30), "pickup" (2),
 // each limited per day, because the server can't watch a fight.
-import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush } from "./world-rpg-data.js";
+import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush, weekEvent } from "./world-rpg-data.js";
 import { weaponKind, potion as potion3d, token as token3d } from "./world-gear3d.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
@@ -45,7 +45,8 @@ const ITEMS = [
   { id: "shield", name: "Shield", w: 8, color: 0x4fa8ff, secs: 30 },
   { id: "magnet", name: "Magnet", w: 8, color: 0xff4d6d, secs: 20 },
 ];
-const BOSS_EVERY = 30 * 60e3, BOSS_FIRST = 2 * 60e3, BKEY = "arc.world.boss";
+const BOSS_FIRST = 2 * 60e3, BKEY = "arc.world.boss";
+const bossEvery = () => (weekEvent() === "boss" ? 15 : 30) * 60e3; // a boss rush week brings them back twice as fast
 
 /// ctx: { THREE, K, kit(), planet, st, here(v), facing(), moveDir(v) → bool, avatar(), level(), T, lang, esc, toast, Snd,
 ///        reduce, coarse, inHub(), active(), gain(xp, why), claim(kind, extra, from), knock(dir, power), dash(dir, dist),
@@ -67,6 +68,16 @@ export function createCombat(ctx) {
   let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null;
   const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3(), ONE = new V3(1, 1, 1);
   const add = (m) => { root.add(m); return m; };
+  // the swing's crescent: bright at the outer edge, a white core, a head that sweeps along the arc and a tail that
+  // fades behind it (one shader on the swing's ring; additive, so it glows without a box round it)
+  const slashMat = (c) => new THREE.ShaderMaterial({ uniforms: { uC: { value: new THREE.Color(c) }, uK: { value: 0 }, uO: { value: 1 }, uR: { value: new THREE.Vector2(1, 1.5) } },
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    vertexShader: "varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `uniform vec3 uC; uniform float uK, uO; uniform vec2 uR; varying vec2 vP;
+      void main(){ float r = length(vP), a = atan(vP.y, vP.x); float t = clamp((a - 0.2) / 2.6, 0.0, 1.0);
+        float head = mix(0.2, 1.15, uK); float along = smoothstep(head - 0.8, head, t) * (1.0 - smoothstep(head, head + 0.05, t));
+        float rr = clamp((r - uR.x) / (uR.y - uR.x), 0.0, 1.0); float body = pow(rr, 2.0) * (1.0 - smoothstep(0.9, 1.0, rr)); float core = smoothstep(0.72, 0.95, rr) * (1.0 - smoothstep(0.95, 1.0, rr));
+        float al = (body * 0.75 + core) * along * uO; gl_FragColor = vec4(mix(uC, vec3(1.0), core * 0.85) * al, al); }` });
   const additive = (c, o = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
   const dotTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,.7)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
   const spriteMat = (c, o = 1) => new THREE.SpriteMaterial({ map: dotTex, color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -156,14 +167,16 @@ export function createCombat(ctx) {
       g.fillStyle = "rgba(6,10,16,.85)"; g.beginPath(); g.roundRect(16, 28, 128, 12, 6); g.fill();
       // the damage just taken shows as a pale tail that catches up a moment later; ticks mark each tenth (each quarter on a boss)
       if (trail > k) { g.fillStyle = "rgba(255,240,230,.85)"; g.beginPath(); g.roundRect(18, 30, 124 * Math.min(1, trail), 8, 4); g.fill(); }
-      g.fillStyle = k > 0.5 ? "#39ff88" : k > 0.25 ? "#ffc861" : "#ff4d6d"; g.beginPath(); g.roundRect(18, 30, 124 * Math.max(0, k), 8, 4); g.fill();
+      g.fillStyle = document.documentElement.classList.contains("wp-cb") ? (k > 0.5 ? "#4fa8ff" : k > 0.25 ? "#ffc861" : "#ff8a1e") : k > 0.5 ? "#39ff88" : k > 0.25 ? "#ffc861" : "#ff4d6d"; // colour-blind friendly: blue → amber → orange g.beginPath(); g.roundRect(18, 30, 124 * Math.max(0, k), 8, 4); g.fill();
       g.fillStyle = "rgba(6,10,16,.55)"; const seg = rank === "boss" ? 4 : 10; for (let i = 1; i < seg; i++) g.fillRect(18 + (124 * i) / seg - 0.75, 30, 1.5, 8);
       if (rank === "elite") { g.fillStyle = "#ffc861"; g.beginPath(); g.moveTo(8, 34); g.lineTo(12, 30); g.lineTo(16, 34); g.lineTo(12, 38); g.closePath(); g.fill(); } // an elite's mark
       tex.needsUpdate = true;
     };
     return sp;
   }
-  const label = (m) => { const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail < k) m.trail = k; m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : T(m.spec.name)), k, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank, m.trail); };
+  const AFFIX = [{ id: "frost", name: "Frost {x}", color: "#7fe0ff", p: 0xbff2ff }, { id: "blaze", name: "Blazing {x}", color: "#ff8a3c", p: 0xffa040 }, { id: "venom", name: "Toxic {x}", color: "#9aff5a", p: 0x9aff5a }];
+  const tmpA = new V3();
+  const label = (m) => { const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail < k) m.trail = k; m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : m.affix ? T(m.affix.name, { x: T(m.spec.name) }) : T(m.spec.name)), k, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank, m.trail); };
   // the pale tail: holds for a moment after a hit, then slides down to the HP (redrawn at most 20 times a second)
   function tickTrail(m, dt) {
     const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail <= k + 0.002) return;
@@ -232,6 +245,8 @@ export function createCombat(ctx) {
     if (VX && rank && !o.raid) VX.summon(p, rank === "boss");
     const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: baseY, glow: skin ? 0.05 : 0.18 };
     // a golden scammer: rare, runs from you, gone in 25 seconds; five times the XP and a better chest
+    // an elite comes with an element: frost, blazing or toxic — its own colour, motes round it and a name to match
+    if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
     if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
@@ -284,6 +299,9 @@ export function createCombat(ctx) {
       for (const [w, c, o] of [[2.6, 0xffffff, 0.95], [3.4, crit ? 0xffd27a : 0x8fe6ff, 0.55]]) { const sl = sprite(c, o); sl.material.rotation = ang; sl.scale.set(w * big, 0.16 * big * (c === 0xffffff ? 1 : 2.2), 1); sl.position.copy(m.g.position).setY(m.y + 0.7); add(sl); fx.push({ o: sl, life: 0.16, t: 0, op0: o }); }
     }
     if (crit && ctx.slowmo) ctx.slowmo(160);
+    if (crit && kind !== "pet" && ctx.critFlash) ctx.critFlash();
+    // a heavy blow drives it back: dust kicks up behind its feet, along the push
+    if (kind === "heavy" && !ctx.reduce && m.rank !== "boss") puff(tmp2.copy(m.g.position).addScaledVector(tmp, 0.6).setY(0.2), 0xd8c8a8, { n: 8, speed: 2.2, size: 0.45, life: 0.45, grav: 1.5 });
     if (kind === "heavy" && ctx.punch) ctx.punch();
     // the raid boss's HP is everyone's: the hit is reported (world-raid.js) and it only falls when the server says so
     if (m.raid && raidMod === "rally" && Math.random() < 0.15) { const h = Math.max(1, Math.round(maxHp() * 0.012)); if (!down && hp < maxHp()) { hp = Math.min(maxHp(), hp + h); paintVit(); ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); } } // Rally week: hits on the boss mend you a little
@@ -306,7 +324,7 @@ export function createCombat(ctx) {
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
-    if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + BOSS_EVERY); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
+    if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + bossEvery()); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
     else if (zi >= 0 && tier >= 2) ctx.claim("hunt", { tier }, ctx.screenOf(p));
     else ctx.claim("street", {}, ctx.screenOf(p));
     ctx.onKill && ctx.onKill({ type: m.spec.id, lv: m.lv, rank: m.rank, zone: m.zone && m.zone.id });
@@ -344,7 +362,7 @@ export function createCombat(ctx) {
     }
   }
   function tickMobs(dt, t) {
-    ctx.here(me);
+    ctx.here(me); tickLock(dt);
     const st = stats();
     for (let i = mobs.length - 1; i >= 0; i--) {
       const m = mobs[i];
@@ -367,6 +385,10 @@ export function createCombat(ctx) {
       if (m.crownG) { m.crownG.rotation.y += dt * 1.2; m.crownG.position.y = m.crownY + Math.sin(t * 2.4 + (m.ph || 0)) * 0.06; }
       if (m.leanT > 0) { m.leanT = Math.max(0, m.leanT - dt); const e = Math.sin((m.leanT / m.leanL) * Math.PI) * (m.rank === "boss" ? 0.1 : m.rank === "elite" ? 0.22 : 0.36) * (ctx.reduce ? 0.4 : 1), ry = m.g.rotation.y, c = Math.cos(ry), s = Math.sin(ry); body.rotation.x = (m.leanX * s + m.leanZ * c) * e; body.rotation.z = -(m.leanX * c - m.leanZ * s) * e; } else if (body.rotation.x || body.rotation.z) { body.rotation.x = 0; body.rotation.z = 0; }
       if (m.punch > 0) { if (!m.bs) m.bs = body.scale.clone(); m.punch = Math.max(0, m.punch - dt * 7); const q = ctx.reduce ? 0 : Math.sin(m.punch * Math.PI) * 0.16; body.scale.set(m.bs.x * (1 + q), m.bs.y * (1 - q), m.bs.z * (1 + q)); }
+      if (m.affix && !far && !ctx.reduce && ctx.parts && (m.afT = (m.afT || 0) - dt) <= 0) { // its element's motes
+        m.afT = 0.28; const a = m.affix.id; tmpA.copy(m.g.position).setY((m.y || 0.6) + 0.5);
+        ctx.parts.emit(a === "venom" ? { at: tmpA, kind: "smoke", n: 1, speed: 0.6, up: 1, size: 0.5, life: 1.1, grav: -0.6, color: m.affix.p, jitter: 0.6 } : { at: tmpA, kind: "glow", n: 2, speed: 0.8, up: a === "blaze" ? 1.4 : 0.3, size: 0.22, life: 0.9, grav: a === "blaze" ? -2.5 : 0.8, color: m.affix.p, jitter: 0.7 });
+      }
       if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) { if (m.cast) endCast(m); continue; }
@@ -593,8 +615,22 @@ export function createCombat(ctx) {
 
   // ---------------- the boss bar and the zone banner ----------------
   const bossEl = document.createElement("div"); bossEl.className = "wc-boss"; bossEl.id = "wc-boss"; bossEl.hidden = true; bossEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bossEl);
-  function bossBar(m) { bossEl.hidden = false; bossEl.classList.toggle("raid", !!m.raid); bossEl.classList.toggle("rage", !!m.rage); bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
-  function hideBossBar() { bossEl.hidden = true; }
+  // the boss's bar: built once per boss, then only its widths change, so the pale "just lost" tail can slide down after
+  // the red, and a notch marks half HP (where a hunting-ground boss rages)
+  let bossIdSeq = 0;
+  function bossBar(m) {
+    if (!m.barId) m.barId = ++bossIdSeq;
+    const k = Math.max(0, m.hp / m.max);
+    if (bossEl.hidden || bossEl.dataset.bid !== String(m.barId)) {
+      bossEl.hidden = false; bossEl.dataset.bid = String(m.barId);
+      bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><q class="wc-bt" style="width:${100 * k}%"></q><u style="width:${100 * k}%"></u>${m.raid ? "" : '<s class="wc-ph" style="left:50%" aria-hidden="true"></s>'}</i><em></em>`;
+    }
+    bossEl.classList.toggle("raid", !!m.raid); bossEl.classList.toggle("rage", !!m.rage);
+    const u = bossEl.querySelector("u"), q = bossEl.querySelector(".wc-bt"), em = bossEl.querySelector("em");
+    if (u) u.style.width = 100 * k + "%"; if (q) q.style.width = 100 * k + "%";
+    if (em) em.textContent = `${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}`;
+  }
+  function hideBossBar() { bossEl.hidden = true; bossEl.dataset.bid = ""; }
   const zoneEl = document.createElement("div"); zoneEl.className = "wc-zone"; zoneEl.id = "wc-zone"; zoneEl.hidden = true; zoneEl.setAttribute("data-no-i18n", ""); (document.querySelector(".wp-hud-r") || document.body).appendChild(zoneEl); // under the minimap
   const bannerEl = document.createElement("div"); bannerEl.className = "wc-banner"; bannerEl.hidden = true; bannerEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bannerEl);
   const bossAt = () => { try { return JSON.parse(localStorage.getItem(BKEY) || "{}"); } catch { return {}; } };
@@ -636,6 +672,7 @@ export function createCombat(ctx) {
     if (!ctx.active() || cd.attack > 0) return false;
     if (resting()) { if (cd.attack <= 0) { cd.attack = 1.2; restNote(); } return false; }
     combo = comboT > 0 ? (combo % 3) + 1 : 1; comboT = 0.75;
+    faceLock();
     const heavy = combo === 3, kind = wKind(), ham = kind === 1;
     if (rpg.swing) rpg.swing(heavy);
     ctx.here(me); fwdOf(fwd); if (ctx.onSwing) ctx.onSwing(me.clone(), fwd.clone(), heavy, kind === 1); // a rock, a crystal or a log in front gets the hit too
@@ -645,11 +682,13 @@ export function createCombat(ctx) {
     const av = ctx.avatar(); if (av) av.play(heavy ? "pick-up" : "interact-right", { once: true, fade: 0.04, speed: heavy ? 2.2 : 2.0 });
     Snd.swing && Snd.swing(heavy);
     ctx.here(me); fwdOf(fwd);
-    const arc = new THREE.Group(), blade = new THREE.Mesh(new THREE.RingGeometry(1.0, heavy ? 1.7 : 1.45, 40, 1, 0.2, 2.6), new THREE.MeshBasicMaterial({ color: heavy ? 0xfff2c8 : 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false }));
-    const glowB = new THREE.Mesh(new THREE.RingGeometry(0.85, heavy ? 2.1 : 1.7, 40, 1, 0.2, 2.6), additive(heavy ? 0xffc861 : 0x7fe6ff, 0.6)); glowB.material.side = THREE.DoubleSide;
-    const tilt = combo === 1 ? -0.6 : combo === 2 ? 0.7 : -1.5; blade.rotation.z = tilt; glowB.rotation.z = tilt; arc.add(glowB, blade);
+    // the crescent takes the weapon's colour (its rarity), gold on the third blow or with a hammer
+    const wpn = rpg.data && rpg.data() && rpg.data().eq && rpg.data().eq.weapon, wc = heavy || ham ? 0xffc861 : wpn && (wpn.r || 0) >= 1 ? new THREE.Color(RARITY[wpn.r].color).getHex() : 0x7fe6ff;
+    const r0 = heavy ? 0.85 : 0.9, r1 = heavy ? 2.1 : 1.7, sm = slashMat(wc); sm.uniforms.uR.value.set(r0, r1);
+    const arc = new THREE.Group(), blade = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 48, 1, 0.2, 2.6), sm);
+    const tilt = combo === 1 ? -0.6 : combo === 2 ? 0.7 : -1.5; blade.rotation.z = tilt; arc.add(blade);
     arc.rotation.y = ctx.facing(); arc.position.copy(me).setY(heavy ? 0.9 : 1.15).addScaledVector(fwd, 1.0); add(arc);
-    fx.push({ o: arc, life: 0.24, t: 0, grow: [0.75, heavy ? 1.45 : 1.2], onTick: (k) => { blade.material.opacity = 0.95 * (1 - k); glowB.material.opacity = 0.6 * (1 - k); arc.rotation.z = (combo === 2 ? 1 : -1) * k * 1.2; } });
+    fx.push({ o: arc, life: 0.26, t: 0, grow: [0.8, heavy ? 1.45 : 1.2], onTick: (k) => { sm.uniforms.uK.value = Math.min(1, k * 1.6); sm.uniforms.uO.value = 1 - k * k; arc.rotation.z = (combo === 2 ? 1 : -1) * k * 1.2; } });
     if (heavy) { ring(me.clone().addScaledVector(fwd, 1.4), 0xffc861, { r0: 0.4, r1: 2.6, life: 0.3, y: 0.1 }); puff(me.clone().addScaledVector(fwd, 1.4).setY(0.3), 0xd8c8a8, { n: 10, speed: 3, size: 0.5, life: 0.5, grav: 2 }); }
     const reach = ham ? (heavy ? 3.9 : 3.0) : heavy ? 3.1 : 2.6, base = stats().atk * (heavy ? 1.7 : combo === 2 ? 1.15 : 1) * (ham ? 1.45 : 1);
     if (ham) { arc.scale.multiplyScalar(1.25); if (heavy) { ring(me, 0xffc861, { r0: 0.5, r1: 4.2, life: 0.4, y: 0.1 }); if (VX) VX.impact(me.clone().setY(0.4), "hit", { big: 1.6 }); ctx.shake(0.25); } }
@@ -665,11 +704,45 @@ export function createCombat(ctx) {
     if (!ctx.moveDir(tmp)) fwdOf(tmp);
     ctx.dash(tmp, 6.5); Snd.dash ? Snd.dash() : Snd.jump && Snd.jump();
     ctx.here(me);
-    for (let i = 0; i < 6; i++) setTimeout(() => { ctx.here(me); const s = sprite(0x9fe6ff, 0.5); s.position.copy(me).setY(1.1); s.scale.set(1.2, 2.2, 1); add(s); fx.push({ o: s, life: 0.35, t: 0, op0: 0.5 }); }, i * 35);
+    // afterimages: frozen see-through copies of you along the dash (world-play.js), or soft streaks on a phone
+    if (!(ctx.afterimage && ctx.afterimage())) for (let i = 0; i < 6; i++) setTimeout(() => { ctx.here(me); const s = sprite(0x9fe6ff, 0.5); s.position.copy(me).setY(1.1); s.scale.set(1.2, 2.2, 1); add(s); fx.push({ o: s, life: 0.35, t: 0, op0: 0.5 }); }, i * 35);
     return true;
   }
+  // ---- lock-on: Tab (or the target button) picks the nearest scammer within 16 m, again for the next one; your blows
+  // and skills turn to it, and a ring turns under it. Gone when it falls, runs out of reach, or the last one is passed.
+  let lockT = null, lockMark = null;
+  const lockAlive = () => !!(lockT && !lockT.dead && mobs.includes(lockT) && lockT.g.position.distanceTo(tmp3.copy(me).setY(lockT.g.position.y)) < 22);
+  const tmp3 = new V3();
+  function lockOn() {
+    ctx.here(me);
+    const list = mobs.filter((m) => !m.dead && m.g.position.distanceTo(tmp3.copy(me).setY(m.g.position.y)) < 16).sort((a, b) => a.g.position.distanceToSquared(me) - b.g.position.distanceToSquared(me));
+    if (!list.length) { lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
+    const i = lockAlive() ? list.indexOf(lockT) : -1;
+    lockT = i < 0 ? list[0] : i + 1 < list.length ? list[i + 1] : null; // past the last one: the lock lets go
+    paintLock(); Snd.pop && Snd.pop();
+  }
+  function faceLock() { if (!lockAlive() || !ctx.faceTo) return; ctx.here(me); ctx.faceTo(Math.atan2(lockT.g.position.x - me.x, lockT.g.position.z - me.z)); }
+  function paintLock() {
+    const on = lockAlive(); if (lockBtn) lockBtn.classList.toggle("on", on);
+    if (!on) { if (lockMark) lockMark.visible = false; return; }
+    if (!lockMark) {
+      lockMark = new THREE.Group(); const mat = additive(0xff6a4d, 0.85); mat.side = THREE.DoubleSide;
+      const ringM = new THREE.Mesh(new THREE.RingGeometry(0.92, 1.02, 48), mat); ringM.rotation.x = -Math.PI / 2; lockMark.add(ringM);
+      for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 3), mat); c.rotation.z = Math.PI / 2; const a = (i / 3) * TAU; c.position.set(Math.cos(a) * 1.25, 0, Math.sin(a) * 1.25); c.rotation.y = -a; c.rotation.x = -Math.PI / 2; lockMark.add(c); }
+      lockMark.renderOrder = 4; add(lockMark);
+    }
+    lockMark.visible = true;
+  }
+  function tickLock(dt) {
+    if (!lockT) return;
+    if (!lockAlive()) { lockT = null; paintLock(); return; }
+    const big = lockT.rank === "boss" ? 2.6 : lockT.rank === "elite" ? 1.4 : 1;
+    lockMark.position.copy(lockT.g.position).setY(0.09); lockMark.scale.setScalar(big * (1 + Math.sin(performance.now() / 160) * 0.04)); lockMark.rotation.y += dt * 1.6;
+  }
   function aim(out) {
-    ctx.here(me); fwdOf(out); let best = null, bd = 24;
+    ctx.here(me); fwdOf(out);
+    if (lockAlive()) { out.copy(lockT.g.position).sub(me).setY(0).normalize(); return lockT; }
+    let best = null, bd = 24;
     for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length(); if (d < bd && tmp.normalize().dot(out) > 0.5) { bd = d; best = m; } }
     if (best) out.copy(best.g.position).sub(me).setY(0).normalize();
     return best;
@@ -919,9 +992,11 @@ export function createCombat(ctx) {
   bar.innerHTML = `<div class="wc-buffs" id="wc-buffs"></div>
     <div class="wc-pots"><button type="button" class="wc-pot hp" data-skill="pot-hp" aria-label="${T("Health potion")}">${ICON.hp}<b class="wc-key">4</b><em id="wc-pot-hp">0</em></button><button type="button" class="wc-pot sp" data-skill="pot-sp" aria-label="${T("Mana potion")}">${ICON.hp}<b class="wc-key">5</b><em id="wc-pot-sp">0</em></button></div>
     <button type="button" class="wc-skill wc-slot" data-skill="slot"><i></i><em class="wc-cd"></em><b class="wc-key">Z</b><small class="wc-lock"></small><small class="wc-slv"></small><span class="wc-swap" data-swap hidden aria-label="${T("Change skill")}"><svg viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3"/></svg></span></button>
+    <button type="button" class="wc-lockon" data-skill="lockon" aria-label="${T("Lock on")}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b class="wc-key">Tab</b></button>
     <button type="button" class="wc-attack" data-skill="attack" aria-label="${T("Attack")}"><i>${ICON.attack}</i><em class="wc-cd"></em><b class="wc-key">J</b><span class="wc-combo" id="wc-combo"></span></button>
     <div class="wc-pick" id="wc-pick" hidden role="menu"></div>`;
   document.body.appendChild(bar);
+  const lockBtn = bar.querySelector(".wc-lockon");
   // the one skill slot: the skill set there (or the newest learned), locked until level 10
   const learned = () => SKILLS.filter((x) => unlocked(x));
   const slotSkill = () => { const l = learned(); if (!l.length) return null; const want = (rpg.data() || {}).sk; return l.find((x) => x.id === want) || l[l.length - 1]; };
@@ -945,6 +1020,7 @@ export function createCombat(ctx) {
       return;
     }
     closePick();
+    if (id === "lockon") { lockOn(); return; }
     if (id === "attack") { attack(); chargeStart(); try { b.setPointerCapture(e.pointerId); } catch { /* not capturable */ } } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
     b.classList.remove("press"); void b.offsetWidth; b.classList.add("press");
   });
@@ -1061,6 +1137,7 @@ export function createCombat(ctx) {
     down = false; paying = false; dead.hidden = true; hp = maxHp(); sp = maxSp(); ghostHp = hp; guardT = 3; paintVit(); ctx.down(false, where);
     if (where === "plaza") { hideBossBar(); for (const m of mobs) if (m.rank === "boss") { root.remove(m.g); } for (let i = mobs.length - 1; i >= 0; i--) if (mobs[i].rank === "boss") mobs.splice(i, 1); }
     ctx.here(me); ring(me, 0x39ff88, { r0: 0.4, r1: 3.4, life: 0.6, y: 0.15 }); puff(me.clone().setY(1.2), 0x39ff88, { n: 18, speed: 4, size: 0.35, life: 0.8, grav: -1 });
+    if (!ctx.reduce) pillar(me, where === "here" ? 0x39ff88 : 0x8fe6ff, 12, 1.2, 0.9); // back on your feet: a column of light
   }
   // resting: a small chip by the HP bars with the time left; tapping it offers the revive again (never on its own)
   function setRest(until) {
@@ -1115,13 +1192,13 @@ export function createCombat(ctx) {
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
       if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) {
-        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) ? "elite" : "", rare = !rank && Math.random() < 0.03 * goldenRush();
+        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) * (weekEvent() === "elite" ? 2 : 1) ? "elite" : "", rare = !rank && Math.random() < 0.03 * goldenRush();
         const m0 = spawnMob({ type, lv, rank, zone: z, rare });
         // in the far ring the fake airdrops come in threes
         if (m0 && type === "drop" && z.lv[0] >= 30 && !rare && alive <= 2) for (let k = 0; k < 2; k++) { const a = Math.random() * TAU; spawnMob({ type, lv, zone: z, at: m0.g.position.clone().add(new V3(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2)) }); }
       } }
       const next = bossAt()[z.id] || 0;
-      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + BOSS_EVERY); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
+      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + bossEvery()); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
     } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid())) {
       if ((spawnT -= dt) <= 0) { spawnT = 22 + Math.random() * 30; if (mobs.filter((m) => !m.dead && !m.zone).length < 3) spawnMob({ lv: 1 + Math.floor(Math.random() * 3) }); }
     }
@@ -1171,6 +1248,7 @@ export function createCombat(ctx) {
     if (k === "j") { if (repeat) return true; attack(); chargeStart(); return true; } // held: the charge (keyUp lets it go)
     if (k === "k") return dodge() || true;
     if (k === "q") return nextSkill() || true;
+    if (k === "tab") { lockOn(); return true; }
     if (k === "4") return drink("hp") || true;
     if (k === "5") return drink("sp") || true;
     if (k === "z") { const s = slotSkill(); if (s) cast(s.id); else ctx.toast(T("Your first skill opens at level 10")); return true; }

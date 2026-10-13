@@ -3259,3 +3259,109 @@ html.wp-pcphone .wp-savenote{font-size:18px;padding:10px 20px}
 html.wp-pcphone .wr-mwbar p,html.wp-pcphone .wr-sellshut span{font-size:18px}
 html.wp-pcphone .wr-mwpick button{font-size:18px;padding:12px 18px}
 html.wp-pcphone .wr-sellshut b{font-size:19px}
+/* b384: lock-on (Tab) — a small target button by the skill buttons; lit while a scammer is locked */
+.wc-lockon{position:absolute;right:150px;bottom:96px;width:44px;height:44px;display:grid;place-items:center;padding:0;border-radius:50%;appearance:none;cursor:pointer;pointer-events:auto;touch-action:none;border:2px solid rgba(255,255,255,.35);background:rgba(10,16,26,.66);color:#dfe8f1;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .12s,background .2s,border-color .2s}
+.wc-lockon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.wc-lockon .wc-key{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);font-size:9px}
+.wc-lockon.on{background:rgba(255,106,77,.28);border-color:#ff6a4d;color:#ffd2c8;box-shadow:0 0 16px rgba(255,106,77,.45)}
+.wc-lockon:active{transform:scale(.92)}
+@media (pointer:coarse){.wc-bar.coarse .wc-lockon{right:calc(196 * var(--u));bottom:calc(100 * var(--u));width:calc(46 * var(--u));height:calc(46 * var(--u))}.wc-bar.coarse .wc-lockon svg{width:calc(22 * var(--u));height:calc(22 * var(--u))}}
+/* a critical hit: the screen's edges flash gold for a moment */
+.wp-critflash{position:fixed;inset:0;z-index:11;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 58%,rgba(255,210,122,.38) 100%)}
+.wp-critflash.on{animation:wpCrit .22s ease-out}
+@keyframes wpCrit{0%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.wp-critflash.on{animation:none}}
+/* a Legendary find: centre stage, bigger, with turning rays */
+.wp-loot.legend{top:50%;transform:translate(-50%,-50%)}
+.wp-loot.legend .wp-loot-in{width:190px;height:240px}
+.wp-loot-rays{position:absolute;left:50%;top:50%;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,200,97,.28) 0 7deg,transparent 7deg 22deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 66%);mask:radial-gradient(circle,#000 18%,transparent 66%);animation:wpRays 6s linear infinite;opacity:0;transition:opacity .5s}
+.wp-loot.on .wp-loot-rays{opacity:1}.wp-loot.out .wp-loot-rays{opacity:0}
+@keyframes wpRays{to{transform:rotate(360deg)}}
+/* level up: what grew, one line after another */
+.wp-lvup-st{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:700 14px var(--f-ui);color:#eaf6ff}
+.wp-lvup-st li{opacity:0;transform:translateY(6px);animation:wpLvSt .35s ease-out forwards;animation-delay:calc(.5s + var(--i) * .14s)}
+.wp-lvup-st em{font-style:normal;color:#7dffb0}
+@keyframes wpLvSt{to{opacity:1;transform:none}}
+html.wp-pcphone .wp-lvup-st{font-size:20px}
+@media (prefers-reduced-motion:reduce){.wp-loot-rays{animation:none}.wp-lvup-st li{animation:none;opacity:1;transform:none}}
+/* b386: the boss bar — a pale tail of what was just lost slides down after the red; a notch at half HP */
+.wc-boss i{position:relative}
+.wc-boss i u{position:relative;z-index:1}
+.wc-boss .wc-bt{position:absolute;left:0;top:0;bottom:0;display:block;background:rgba(255,238,226,.75);transition:width .55s ease .35s;quotes:none}
+.wc-boss .wc-bt::before,.wc-boss .wc-bt::after{content:none}
+.wc-boss .wc-ph{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;z-index:2;background:rgba(255,255,255,.85);box-shadow:0 0 6px rgba(255,255,255,.6);text-decoration:none}
+.wc-boss.rage .wc-ph{background:#ff2d4d;box-shadow:0 0 8px #ff2d4d}
+/* in a fight the quest list folds to its header (the view stays clear); it opens again when the fight is over */
+body.wc-fight .wp-quests ol{display:none}
+body.wc-fight .wp-quests{opacity:.75}
+/* b387: Settings → Larger text (the HUD and the windows a size up) and colour-blind friendly colours */
+html.wp-big .wp-hud,html.wp-big .wr-card,html.wp-big .wa-sheet,html.wp-big .wp-mapsheet .wp-card,html.wp-big .wp-feed,html.wp-big .wp-toast,html.wp-big .wc-dead-card,html.wp-big .wp-quests,html.wp-big .wc-boss{zoom:1.15}
+html.wp-cb .wc-v.hp span{color:#ffae5a}
+html.wp-cb .wc-v.hp i b{background:linear-gradient(180deg,#ffc27a,#ff8a1e)}
+html.wp-cb .wc-boss u{background:linear-gradient(90deg,#ff8a1e,#ffc861)}
+html.wp-cb .wp-float-n{text-shadow:0 2px 0 #000,0 0 6px #000}
+/* gear sets: two buttons by the bag's tools — tap to wear, the disk icon saves what you wear now */
+.wr-sets-b{display:flex;gap:8px;margin:6px 0}
+.wr-gset{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04)}
+.wr-gset.on{border-color:rgba(126,224,160,.5)}
+.wr-gset button{appearance:none;border:0;background:none;color:#eef3f7;font:700 12.5px var(--f-ui);padding:6px 12px;cursor:pointer}
+.wr-gset button.sv{padding:6px 8px;border-left:1px solid rgba(255,255,255,.12);color:#9fb3c6}
+.wr-gset button.sv svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;vertical-align:-3px}
+html.wp-pcphone .wr-gset button{font-size:18px;padding:12px 18px}html.wp-pcphone .wr-gset button.sv svg{width:22px;height:22px}
+.wr-store-t{display:flex;align-items:center;gap:10px;margin:6px 0 2px}
+.wr-store-t button{appearance:none;height:30px;padding:0 12px;border-radius:9px;border:1px solid rgba(143,230,255,.4);background:rgba(143,230,255,.08);color:#cfefff;font:700 12.5px var(--f-ui);cursor:pointer}
+.wr-store-t button[aria-pressed="true"]{background:rgba(143,230,255,.2)}
+.wr-store-t small{font-size:12px;color:#9fb3c6}
+.wr-cells.store .wr-cell{background:rgba(143,230,255,.05)}
+html.wp-pcphone .wr-store-t button{height:48px;font-size:18px;padding:0 18px}html.wp-pcphone .wr-store-t small{font-size:16px}
+/* b388: the Crew window */
+.wp-crewsheet .wp-card{width:min(560px,calc(100vw - 28px));max-height:calc(100svh - 40px);overflow:auto}
+.wp-crew-forms{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wp-crew-forms form{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)}
+.wp-crew-forms h3{margin:0;font:800 14px var(--f-ui)}
+.wp-crew-forms label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#b9c6d4}
+.wp-crew-forms input{height:36px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(4,8,14,.6);color:#eef3f7;font:600 14px var(--f-ui)}
+.wp-crew-forms small,.wp-crew-note{font-size:12px;color:#9fb3c6;line-height:1.45}
+.wp-crew-h{display:flex;align-items:center;gap:12px;margin:4px 0 10px}
+.wp-crew-h h3{margin:0;font:800 18px var(--f-ui)}.wp-crew-h small{color:#9fb3c6;font-size:12.5px}
+.wp-crew-tag{display:inline-grid;place-items:center;min-width:52px;height:36px;padding:0 8px;border-radius:10px;background:linear-gradient(180deg,#2f86ff,#2ee07a);color:#04121a;font:900 16px 'Big Shoulders Display',var(--f-ui);letter-spacing:.04em}
+.wp-crew-tag.sm{min-width:38px;height:24px;font-size:12px;border-radius:7px}
+.wp-crew-list,.wp-crew-top{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:4px}
+.wp-crew-list li,.wp-crew-top li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.035)}
+.wp-crew-list li.cap{background:rgba(255,200,97,.08)}
+.wp-crew-list b,.wp-crew-top b{flex:1;font:700 13.5px var(--f-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-crew-list small,.wp-crew-top small{color:#9fb3c6;font-size:12px}
+.wp-crew-list em,.wp-crew-top em{font:800 13px var(--f-num);color:#7dffb0;font-style:normal;min-width:48px;text-align:right}
+.wp-crew-list i{font-style:normal;font-size:11px;color:#ffc861}
+.wp-crew-top i{font-style:normal;width:18px;color:#9fb3c6;font:700 12px var(--f-num)}
+.wp-crew-code{display:flex;align-items:center;gap:10px;margin:8px 0 12px;flex-wrap:wrap}
+.wp-crew-code b{font:900 20px var(--f-num);letter-spacing:.18em;color:#ffe2a8}
+.wp-crew-toph{margin:16px 0 6px;font:800 14px var(--f-ui)}
+@media (max-width:560px){.wp-crew-forms{grid-template-columns:1fr}}
+html.wp-pcphone .wp-crewsheet .wp-card{zoom:1.35}
+/* ARCIA's favour of the day */
+.wp-arciaq{position:fixed;inset:0;z-index:46;display:grid;place-items:end center;padding-bottom:calc(140px + env(safe-area-inset-bottom));background:rgba(2,4,8,.25)}
+.wp-arciaq-card{width:min(440px,calc(100vw - 32px));padding:16px 18px;border-radius:18px;background:rgba(18,10,24,.9);border:1px solid rgba(255,122,217,.45);box-shadow:0 12px 40px rgba(0,0,0,.4);animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
+.wp-arciaq-card small{font:800 12px var(--f-ui);color:#ff9ae4;letter-spacing:.06em}
+.wp-arciaq-card p{margin:6px 0 12px;font-size:15px;line-height:1.5;color:#f6eef8}
+.wp-arciaq-card div{display:flex;gap:8px;justify-content:flex-end}
+html.wp-pcphone .wp-arciaq-card{zoom:1.5}
+/* the player card's showcase: gear they wear and the titles they've earned (world-play.js showcase) */
+.wp-prof-card{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
+.wp-prof-card h2 .wp-crew-tag{margin-right:8px;vertical-align:4px}
+.wp-prof-show{margin:0 0 16px;text-align:left}
+.wp-prof-show h3{display:flex;align-items:baseline;justify-content:space-between;margin:12px 0 8px;font:800 13px var(--f-ui);color:rgba(222,233,244,.8)}
+.wp-prof-show h3 small{font:700 12px var(--f-ui);color:rgba(222,233,244,.5)}
+.wp-prof-gear{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0;padding:0;list-style:none}
+.wp-prof-gear li{position:relative;aspect-ratio:1;border-radius:12px;background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--rc) 30%,transparent),rgba(255,255,255,.03) 70%);border:1px solid color-mix(in srgb,var(--rc) 55%,transparent);display:grid;place-items:center;overflow:hidden}
+.wp-prof-gear li img,.wp-prof-gear li svg{width:82%;height:82%;object-fit:contain}
+.wp-prof-gear li b{position:absolute;right:3px;bottom:2px;font:900 10px var(--f-ui);color:#fff;text-shadow:0 1px 2px #000}
+.wp-prof-titles{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.wp-prof-titles li{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font:700 12px var(--f-ui);color:rgba(232,240,248,.85)}
+.wp-prof-titles li.worn{background:linear-gradient(180deg,rgba(255,210,122,.25),rgba(242,168,58,.15));border-color:#ffd27a;color:#ffe2a6}
+.wp-prof-none{margin:0;font-size:12.5px;color:rgba(222,233,244,.55)}
+@media (max-width:380px){.wp-prof-gear{grid-template-columns:repeat(4,1fr)}}
+.wr-doll-acts{display:inline-flex;gap:6px;margin-left:8px;vertical-align:middle}.wr-doll-acts .wr-wardrobe{margin-left:0}
+.wp-crew-who{flex:1;min-width:0;appearance:none;border:0;background:none;padding:0;text-align:left;color:inherit;font:700 13.5px var(--f-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.wp-crew-who:hover,.wp-crew-who:focus-visible{color:#9ff3ff;text-decoration:underline}
+html.wp-pcphone .wp-prof-card{zoom:2;width:min(400px,calc((100vw - 24px) / 2));max-height:calc((100svh - 40px) / 2)}

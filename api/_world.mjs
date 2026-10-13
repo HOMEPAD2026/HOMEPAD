@@ -27,6 +27,7 @@
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
+import { makeCrew } from "./_world-crew.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const lc = (a) => String(a || "").toLowerCase();
@@ -54,8 +55,9 @@ function cleanRpg(r) {
   if (!r || typeof r !== "object") return undefined;
   const eq = {}; for (const k of ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"]) { const it = cleanItem(r.eq && r.eq[k]); if (it && it.b.startsWith(k + "-")) eq[k] = it; }
   const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, BAG_MAX); // trimmed to the player's own size on save
+  const store = (Array.isArray(r.store) ? r.store : []).map(cleanItem).filter(Boolean).slice(0, 48); // storage (world-rpg.js STORE)
   const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, companions, season, friends, skill branches
-  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 16000 ? { x: extra } : {}) }; // quests, codex, fish, trophies…: room to grow
+  return { eq, bag, store, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 16000 ? { x: extra } : {}) }; // quests, codex, fish, trophies…: room to grow
 }
 // the ARC Bot wardrobe: one part per place, and an accent colour (world-arcbots.js WARDROBE)
 const OUTFIT_SLOTS = ["head", "face", "neck", "back", "aura"];
@@ -147,7 +149,7 @@ export function make(deps) {
       if (seen.ok) await commit([{ inc: `worldOnline/${w}`, fields: { n: 1 } }]);
       // where you are, for the wanderers others see; signed in (and not hidden in Settings), with your name and level
       let who = null;
-      if (b.g && b.s && typeof b.s === "object") { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet }; } }
+      if (b.g && b.s && typeof b.s === "object") { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) { const cr = await crew.crewOf(v.wallet).catch(() => null); who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet, ...(cr && cr.tag && !cr.closed ? { tag: cr.tag } : {}) }; } } }
       if (b.g) await social.ghostPing(id, b.g, who).catch(() => {});
     }
     return json(200, { ok: true, ...(await stats()) });
@@ -170,6 +172,7 @@ export function make(deps) {
     adminCache = { set, at: now() }; return set;
   }
   const social = makeSocial({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
+  const crew = makeCrew({ ...deps, json, now, signer, isoWeek: shop.isoWeek, levelOfSave });
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -322,7 +325,7 @@ export function make(deps) {
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
-      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await support.read(w, url)); if (r) return r;
+      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -336,7 +339,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await support.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await support.handle(b)) || (await crew.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

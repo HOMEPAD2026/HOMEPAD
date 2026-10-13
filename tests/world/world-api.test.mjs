@@ -130,5 +130,7 @@ check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({
   check(r.status === 200 && e && e.n === 2 && e.gpu === "Adreno 640" && r.body.days[0].n.fps_ph_auto_2 === 1, "the view shows the counts and the message: " + JSON.stringify(e));
   r = await W.handle({ action: "world-diag", kind: "wallet" }); check(r.status === 400, "nothing else is taken");
 }
+{ const r = cleanSave({ xpv: 2, rpg: { eq: {}, bag: [], store: Array.from({ length: 60 }, (_, i) => ({ id: "st" + String(i).padStart(4, "0"), b: "ring-0", r: 0, lv: 1, p: 0 })).concat([{ id: "bad", b: "x" }]) } }).rpg;
+  check(r.store.length === 48 && r.store[0].b === "ring-0", "storage keeps 48 clean pieces"); }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);
