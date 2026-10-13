@@ -53,22 +53,20 @@ pill(H + ".wp-rrow .wp-vlv", f"padding:0 {k(6)}!important;margin-right:{k(-14)};
 o(H + ".wp-rrow .wp-vlv span{color:#cfe2ff;font:700 " + k(21) + " var(--hud-font)}")
 o(H + ".wp-rrow .wp-vlv b{font:800 " + k(24) + " var(--hud-font);color:#ffd56a}")
 pill(H + "#wp-wallet", f"padding:0 {k(6)}!important;font:800 {k(24)}/1 var(--hud-font);color:#fff;height:{k(70)}")
-# the HP card
-spr(H + ".wc-vit", "vit", "position:relative;display:block")
-fx, fy = rel("vit", 112 - 50, 378 - 50)
-o(H + f".wc-vit .wc-face{{position:absolute;left:{k(fx)};top:{k(fy)};width:{k(100)};height:{k(100)};border:0;box-shadow:none;background:radial-gradient(circle at 45% 35%,#3b8cff,#0d2a6e 75%)}}")
-o(H + ".wc-vit .wc-face b{display:none}")
-for cls, cy in (("hp", 340), ("sp", 383), ("xp", 424)):
-    rx, ry = rel("vit", 292, cy - 18)
-    o(H + f".wc-vit .wc-v.{cls}{{position:absolute;left:{k(rx)};top:{k(ry)};width:{k(585 - 292)};height:{k(36)};display:flex;align-items:center;gap:0}}")
-o(H + ".wc-vit .wc-v span{display:none}")
-o(H + f".wc-vit .wc-v i{{flex:none;width:{k(132)};height:{k(19)};border-radius:{k(10)};background:#08143a;border:0;box-shadow:inset 0 {k(2)} {k(3)} rgba(0,0,0,.55)}}")
+# the HP card (b400): HP and SP only (the level plate above has your portrait and XP), on the emptied card, 0.8 its size
+VS = 0.8; pw, ph = M["vitpanel"][2] * VS, M["vitpanel"][3] * VS
+o(H + f".wc-vit{{position:relative;display:block;width:{k(pw)};height:{k(ph)};margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:{url('vitpanel')} center/100% 100% no-repeat!important;opacity:1!important}}")
+o(H + ".wc-vit .wc-face,body.wp .wp-hud .wc-vit .wc-v.xp{display:none!important}")
+for cls, cy in (("hp", 0.37), ("sp", 0.69)):
+    o(H + f".wc-vit .wc-v.{cls}{{position:absolute;left:{k(26)};right:{k(26)};top:calc({cy * 100:.1f}% - {k(20)});height:{k(40)};display:flex;align-items:center;gap:0;grid-template-columns:none}}")
+    o(H + f".wc-vit .wc-v.{cls} span{{display:block!important;flex:none;width:{k(M['vit' + cls][2])};height:{k(M['vit' + cls][3])};font-size:0!important;color:transparent!important;background:{url('vit' + cls)} left center/100% 100% no-repeat}}")
+o(H + ".wc-vit .wc-v span::before{display:none!important}")
+o(H + f".wc-vit .wc-v i{{flex:1 1 auto;width:auto;height:{k(19)};margin:0 {k(14)} 0 {k(8)};border-radius:{k(10)};background:#08143a;border:0;box-shadow:inset 0 {k(2)} {k(3)} rgba(0,0,0,.55)}}")
 o(H + f".wc-vit .wc-v i b,.wc-vit .wc-v i u{{border-radius:{k(10)}}}")
 o(H + ".wc-vit .wc-v.hp i b{background:linear-gradient(180deg,#ff8a9c,#ff3d5c 50%,#e01d45)!important}")
 o(H + ".wc-vit .wc-v.sp i b{background:linear-gradient(180deg,#9ff0ff,#38b8ff 50%,#1d84e8)!important}")
-o(H + ".wc-vit .wc-v.xp i b{background:linear-gradient(180deg,#8dffd2,#2fe0a0 50%,#17b97c)!important}")
-o(H + f".wc-vit .wc-v em{{margin-left:auto;padding-left:{k(8)};font:800 {k(24)}/1 var(--hud-font);white-space:nowrap;color:#fff;opacity:1!important;letter-spacing:0}}")
-o(H + ".wc-vit.calm{padding:0!important}")
+o(H + f".wc-vit .wc-v em,body.wp .wp-hud .wc-vit.calm .wc-v em{{flex:none;min-width:{k(120)};max-width:none!important;margin:0;padding:0;text-align:right;font:800 {k(25)}/1 var(--hud-font);white-space:nowrap;color:#fff;opacity:1!important;overflow:visible!important;letter-spacing:0}}")
+o(H + ".wc-vit.calm .wc-v i{height:" + k(19) + "!important}")
 # the quest card: the title row and the quest you're on
 spr(H + ".wp-quests", "quests", "position:relative;display:block;overflow:visible")
 _, hy = rel("quests", 0, 507)
@@ -179,5 +177,6 @@ for el, c in (("fire", ("#ff9a4a", "#e2541c", "#a8300a")), ("ice", ("#6fd6ff", "
 o(H + ".wp-brand i," + H + ".wa-chip," + H + ".wp-cards," + H + ".wp-rrow .wp-vlv{display:none!important}")
 # the dock lower on a phone (the stick with it)
 o("@media (pointer:coarse){html.wp-pcphone body.wp .wp-dock{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px)}html.wp-pcphone .wp-joyrest{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 8px + 113px + 40px)}html.wp-pcphone.wp-land body.wp .wp-dock{bottom:max(10px,env(safe-area-inset-bottom))}}")
+o("body.wp #wp-dk-build{display:none!important}")
 o("/* ---- b398 end ---- */")
 print("\n".join(out))
