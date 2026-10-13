@@ -88,7 +88,9 @@ const BLADE_VS = /* glsl */`
     pos.xz = mat2(c, -s, s, c) * pos.xz;
     // the wind: a slow swell across the meadow and a quick flutter
     float sw = sin(uTime * 1.4 + p.x * 0.11 + p.y * 0.07) * 0.6 + sin(uTime * 3.1 + p.x * 0.7 + p.y * 0.5) * 0.25;
-    vec2 bend = uWind * (0.6 + sw);
+    // gusts: a broad band of stronger wind that rolls across the field every few seconds (you can watch it travel)
+    float gw = dot(p, normalize(uWind + vec2(1e-4))) * 0.045 - uTime * 0.55; float gust = pow(max(0.0, sin(gw)), 6.0);
+    vec2 bend = uWind * (0.6 + sw + gust * 2.2);
     // walking through it: blades within a metre and a half lie down away from you
     vec2 d = p - uPush.xy; float dl = length(d);
     float push = (1.0 - smoothstep(0.2, uPush.z, dl));
@@ -205,11 +207,11 @@ export function makeSkyDome({ lite = false } = {}) {
     uniforms: {
       top: { value: new THREE.Color(0x050a18) }, mid: { value: new THREE.Color(0x0a1a2e) }, glow: { value: new THREE.Color(0x0f3f4a) },
       uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0.4, 0.6, -0.5) }, uSunCol: { value: new THREE.Color(0xfff0d0) },
-      uCloudLit: { value: new THREE.Color(0xffffff) }, uCloudShade: { value: new THREE.Color(0x9fb0c8) }, uCover: { value: 0.48 }, uCloudK: { value: 1 }, uNight: { value: 0 }, uMoon: { value: new THREE.Vector3(-0.5, 0.42, 0.6).normalize() },
+      uCloudLit: { value: new THREE.Color(0xffffff) }, uCloudShade: { value: new THREE.Color(0x9fb0c8) }, uCover: { value: 0.48 }, uCloudK: { value: 1 }, uNight: { value: 0 }, uMoon: { value: new THREE.Vector3(-0.5, 0.42, 0.6).normalize() }, uAur: { value: 0 },
     },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: /* glsl */`
-      uniform vec3 top, mid, glow, uSunCol, uCloudLit, uCloudShade; uniform vec3 uSun, uMoon; uniform float uTime, uCover, uCloudK, uNight; varying vec3 vP;
+      uniform vec3 top, mid, glow, uSunCol, uCloudLit, uCloudShade; uniform vec3 uSun, uMoon; uniform float uTime, uCover, uCloudK, uNight, uAur; varying vec3 vP;
       float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float n2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
         return mix(mix(h2(i), h2(i + vec2(1, 0)), u.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), u.x), u.y); }
@@ -224,6 +226,10 @@ export function makeSkyDome({ lite = false } = {}) {
         if (uNight > 0.01) { vec3 md = normalize(uMoon); float ma = max(dot(d, md), 0.0); float disc = smoothstep(0.99955, 0.99975, ma);
           if (ma > 0.9995) { vec3 mp = d - md * ma; float sea = fbm(mp.xz * 260.0 + 3.0); vec3 moon = vec3(0.93, 0.95, 1.0) * (0.78 + 0.25 * smoothstep(0.35, 0.7, sea));
           c = mix(c, moon, disc * uNight); } c += vec3(0.55, 0.65, 0.9) * pow(ma, 400.0) * 0.5 * uNight; }
+        // an aurora on some nights: green curtains with violet tops, rippling slowly round the sky
+        if (uAur > 0.001 && h > 0.05) { float az = atan(d.z, d.x), w = sin(az * 3.0 + uTime * 0.05) * 0.06 + sin(az * 7.0 - uTime * 0.08) * 0.03;
+          float band = smoothstep(0.14 + w, 0.24 + w, h) * (1.0 - smoothstep(0.3 + w, 0.58 + w, h)), rays = 0.5 + 0.5 * sin(az * 70.0 + sin(az * 9.0 + uTime * 0.2) * 5.0);
+          float au = band * (0.35 + 0.65 * rays) * uAur; c += vec3(0.1, 0.9, 0.5) * au * 0.5 + vec3(0.5, 0.25, 0.95) * au * smoothstep(0.3, 0.5, h) * 0.45; }
         // clouds: projected onto a high flat layer, two drifts at different speeds; thin near the horizon
         if (h > 0.02) {
           vec2 uv = d.xz / (h + 0.12) * 1.6;

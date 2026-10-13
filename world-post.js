@@ -173,6 +173,11 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
     if (gl2) { grade = new ShaderPass(GradeShader); comp.addPass(grade); }
     let fxaa = null;
     if (ao || !gl2) { fxaa = new ShaderPass(FXAAShader); comp.addPass(fxaa); }
+    // a computer at Ultra: SMAA in FXAA's place (crisper edges on fences, wires and grass; loaded only here)
+    if (ao && gl2 && !lite) import("./vendor/three/addons/SMAAPass.js").then(({ SMAAPass }) => {
+      const sz = r.getDrawingBufferSize(new THREE.Vector2()), sm = new SMAAPass(sz.x, sz.y), i = comp.passes.indexOf(fxaa);
+      if (i >= 0) { comp.passes.splice(i, 1, sm); fxaa = null; }
+    }).catch(() => { /* FXAA stays */ });
     const fit = () => { const s = r.getDrawingBufferSize(new THREE.Vector2()); if (fxaa) fxaa.uniforms.resolution.value.set(1 / s.x, 1 / s.y); if (grade) grade.uniforms.aspect.value = s.x / Math.max(1, s.y); warp.uniforms.aspect.value = s.x / Math.max(1, s.y); };
     st.useComposer(comp); fit(); addEventListener("resize", () => setTimeout(fit, 50));
     const sunV = new THREE.Vector3(); let raysWant = 0;

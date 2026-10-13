@@ -760,9 +760,15 @@ export function makeCard(kit) {
 export function makeSky() {
   const m = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color(0x050a18) }, mid: { value: new THREE.Color(0x0a1a2e) }, glow: { value: new THREE.Color(0x0f3f4a) } },
+    uniforms: { top: { value: new THREE.Color(0x050a18) }, mid: { value: new THREE.Color(0x0a1a2e) }, glow: { value: new THREE.Color(0x0f3f4a) }, uAur: { value: 0 }, uT: { value: 0 } },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-    fragmentShader: "uniform vec3 top; uniform vec3 mid; uniform vec3 glow; varying vec3 vP; void main(){ float h = vP.y; vec3 c = mix(mid, top, smoothstep(0.0, 0.7, h)); c = mix(c, glow, smoothstep(0.25, -0.25, h) * 0.85); gl_FragColor = vec4(c, 1.0); }",
+    // uAur: an aurora on some nights — green curtains with violet tops, rippling slowly round the sky
+    fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 glow; uniform float uAur, uT; varying vec3 vP;
+      void main(){ float h = vP.y; vec3 c = mix(mid, top, smoothstep(0.0, 0.7, h)); c = mix(c, glow, smoothstep(0.25, -0.25, h) * 0.85);
+        if (uAur > 0.001) { float az = atan(vP.z, vP.x), w = sin(az * 3.0 + uT * 0.05) * 0.06 + sin(az * 7.0 - uT * 0.08) * 0.03;
+          float band = smoothstep(0.14 + w, 0.24 + w, h) * (1.0 - smoothstep(0.3 + w, 0.58 + w, h)), rays = 0.5 + 0.5 * sin(az * 70.0 + sin(az * 9.0 + uT * 0.2) * 5.0);
+          float a = band * (0.35 + 0.65 * rays) * uAur; c += vec3(0.1, 0.9, 0.5) * a * 0.5 + vec3(0.5, 0.25, 0.95) * a * smoothstep(0.3, 0.5, h) * 0.45; }
+        gl_FragColor = vec4(c, 1.0); }`,
   });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(700, 32, 16), m); sky.renderOrder = -1; return sky;
 }

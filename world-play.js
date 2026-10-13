@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag", "world-live"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 // height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
 // mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
@@ -396,7 +396,7 @@ if (!lowGfx && K.setCharHook) K.setCharHook((obj, arc) => { if (!arc) ENV.unifyP
 const sky = lowGfx ? K.makeSky() : ENV.makeSkyDome({ lite: st.quality.coarse }); st.scene.add(sky);
 if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
 // rolling hills round the edge of the world (world-env.js) in place of the old round blobs
-st.on((dt, t) => { if (K.arcTick) K.arcTick(dt, planet.position); LOOK.lookOrigin.value.copy(planet.position); ENV.CLOUD.t.value = t; });
+st.on((dt, t) => { if (K.arcTick) K.arcTick(dt, planet.position); LOOK.lookOrigin.value.copy(planet.position); ENV.CLOUD.t.value = t; try { if (sky.material.uniforms.uT) sky.material.uniforms.uT.value = t; } catch { /* sky not made yet */ } });
 // the town's lights pulse with the music's beat (the light lines, the plaza rings); stronger on a concert night
 st.on(() => { try { if (mode !== "hub" || reduce) return; const b = music.level ? music.level() : 0, k = b * (concertOn() ? 0.9 : 0.4); if (K.arcPulse) K.arcPulse(k * 0.6); if (fountain.userData.pulse) fountain.userData.pulse(k); } catch { /* still loading */ } });
 // concert night: Saturdays 20:00–23:00 Seoul time (?concert=1 to try it): the stage lights up and the town pulses harder
@@ -414,6 +414,14 @@ st.on((dt) => diag.tick(dt));
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
 planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
 const lamps = K.makeLamps(); planet.add(lamps);
+// at night the three lamps nearest you really light what's round them (you, scammers, the walls): three point lights
+// that move to whichever lamps are closest (a computer; a phone keeps the painted pools)
+const lampLights = lowGfx || st.quality.coarse ? [] : [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffc27a, 0, 11, 1.7); l.castShadow = false; planet.add(l); return l; });
+{ const spots = lamps.userData.spots || [], v = new THREE.Vector3(); let t = 0;
+  st.on((dt) => { if (!lampLights.length || !spots.length) return; const k = typeof ambNight === "number" ? ambNight : 0;
+    if (k < 0.05) { lampLights.forEach((l) => { l.intensity = 0; }); return; }
+    if ((t -= dt) <= 0) { t = 0.5; v.set(-planet.position.x, 0, -planet.position.z); const near = spots.map(([x, z]) => [x, z, (x - v.x) ** 2 + (z - v.z) ** 2]).sort((a, b) => a[2] - b[2]); lampLights.forEach((l, i) => { const p = near[i]; if (p) l.position.set(p[0], 2.75, p[1]); }); }
+    lampLights.forEach((l) => { l.intensity = 28 * k; }); }); }
 // Halloween (world-halloween.js, 17 Oct – 2 Nov): pumpkins by the lamps and round the fountain, glowing after dark
 const halloween = HW.halloweenOn(), pumpkins = halloween && !lowGfx ? HW.createPumpkins({ THREE, planet, spots: lamps.userData.spots || [], extra: Array.from({ length: 8 }, (_, i) => [Math.sin((i / 8) * Math.PI * 2 + 0.2) * 6.4, -Math.cos((i / 8) * Math.PI * 2 + 0.2) * 6.4, 1.1]) }) : null;
 // rain wets the world: the ground darkens and turns glossy, puddles gather on the lawns, the halls' shells shine
@@ -454,6 +462,8 @@ loadbar(0.35);
 
 // the player: a group at the origin; the character inside it turns to face where it walks
 const player = new THREE.Group(); st.scene.add(player);
+// a soft dark spot right under you, so you never look as if you float (there even where sun shadows are off)
+const meShadow = LOOK.contactShadow(0.85, 0.5); meShadow.position.y = 0.05; meShadow.name = "me-contact"; player.add(meShadow);
 // light effects (world-vfx.js): portals, teleports, level ups, impacts, the shield
 const vfx = VFX.createVfx({ THREE, st, planet, player, low: S.quality === "low" || S.quality === "saver", reduce });
 // each hunting ground's air: snow, sand, bubbles, spores, dust, embers, stars (world-weather.js)
@@ -982,6 +992,7 @@ function step(dt) {
   else if (hop > floor + 0.05) { grounded = false; vy = 0; }
   else if (floor > hop) hop = floor;
   player.position.y = hop;
+  { const cs = meShadow; if (cs) { const up = Math.max(0, hop - floor); cs.position.y = floor - hop + 0.05; cs.material.opacity = 0.5 * Math.max(0, 1 - up / 3); cs.scale.setScalar(1 + up * 0.15); cs.visible = mode === "hub" || mode === "island"; } } // the spot stays on the floor as you jump, fainter higher up
   at.y = THREE.MathUtils.lerp(at.y, jetOn() ? hop * 0.75 : floor, grounded ? 0.2 : 0.04);
   if (frozen) { speedNow = THREE.MathUtils.lerp(speedNow, 0, 0.2); return; }
   if (flying) {
@@ -1313,7 +1324,7 @@ async function refreshCoins(first) {
   if (first || !coinData) {
     list.slice().sort((a, b) => b.launchedAt - a.launchedAt).slice(0, 3).reverse().forEach((c) => feed(T("{x} launched on ArcPad {when}", { x: `<b>$${esc(c.symbol)}</b>`, when: ago(c.launchedAt) }), "#4f9dff"));
   } else {
-    if (newest > lastSeen) list.filter((c) => c.launchedAt > lastSeen).slice(0, 3).forEach((c) => { feed(T("New on ArcPad: {x} just launched", { x: `<b>$${esc(c.symbol)}</b>` })); launchRocket(); });
+    if (newest > lastSeen) { list.filter((c) => c.launchedAt > lastSeen).slice(0, 3).forEach((c) => { feed(T("New on ArcPad: {x} just launched", { x: `<b>$${esc(c.symbol)}</b>` })); launchRocket(); }); const lp = shopG("launch"); if (lp && typeof live !== "undefined") { live.fireworks(lp.position.x, lp.position.z, 7); live.refresh(); } }
     // a building pulses when its coin's market cap climbs
     const old = new Map(coinData.map((c) => [c.token, Number(c.marketCapUsd) || 0]));
     coinBuildings.forEach((g) => { const c = list.find((x) => x.token === g.userData.coin.token); if (!c) return; const was = old.get(c.token) || 0, now = Number(c.marketCapUsd) || 0; if (was > 0 && now > was * 1.03) { g.userData.pulse = 1; feed(T("{x} market cap up {p}%", { x: `<b>$${esc(c.symbol)}</b>`, p: Math.round((now / was - 1) * 100) }), "#39ff88"); } });
@@ -2282,6 +2293,9 @@ rpg = RPG.createRpg({
 rpg.dress();
 // the GPU particles (world-particles.js): sparks, streaks, glow and smoke for the fights, in one or two draw calls
 const parts = PART.createParticles({ THREE, parent: planet, low: lowGfx || st.quality.coarse });
+// the platform, live in the town (world-live.js): the LED band round the fountain, and fireworks for a new launch
+const live = LIVE.createLive({ THREE, planet, parts, reduce });
+st.on((dt) => { if (mode === "hub") live.tick(dt); });
 st.on((dt) => parts.tick(dt));
 combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
@@ -2634,6 +2648,8 @@ function dayNight() {
   if (fxPost) { const zz = mode === "hub" && combat ? combat.zone() : null; if (lgrade.set(k, dusk, zz && zz.id)) fxPost.setLut(lgrade.tex()); fxPost.setAir(airFor(k, dusk, zz)); }
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
+  // an aurora on one night in three (by the Seoul date), or with ?aurora=1; strongest in the deep of the night
+  if (skyU.uAur) { const q = new URLSearchParams(location.search).get("aurora"), d = Math.floor((Date.now() + 9 * 3600e3 - 12 * 3600e3) / 864e5), on = q === "1" || (q !== "0" && d % 3 === 0); skyU.uAur.value = on ? Math.max(0, (k - 0.55) / 0.45) : 0; }
   st.sun.intensity = 2.15 * (1 - k * 0.62); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
   st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.8 + k * 0.22; /* a calmer day: the white plaza was glaring */
   if (st.scene.fog) st.scene.fog.density = 0.0028 + k * 0.0028; ENV.CLOUD.k.value = Math.max(0, 1 - k * 1.4) * ((() => { try { return mood === "rain"; } catch { return false; } })() ? 1.4 : 1); /* cloud shadows by day, more on a rainy one */ st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
@@ -2917,6 +2933,6 @@ window.arcWorld = {
   fighters: () => fighters.map((g) => ({ id: g.userData.spec.id, live: !!g.userData.live })),
   // for tests and the art audit: what the last frame drew (draw calls, triangles) and what's in GPU memory
   perf: () => ({ calls: st.renderer.info.render.calls, triangles: st.renderer.info.render.triangles, geometries: st.renderer.info.memory.geometries, textures: st.renderer.info.memory.textures, pixelRatio: st.renderer.getPixelRatio(), avatar: P.char || "" }),
-  avatar: () => avatar,
+  avatar: () => avatar, live: () => live,
   raid: () => raid, ghosts: () => ghosts, tp: (x, z) => { planet.position.set(-x, 0, -z); hop = 0; vy = 0; grounded = true; },
 };
