@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag", "world-live", "world-holiday"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient", "world-halloween", "world-diag", "world-live", "world-holiday", "world-tracks", "world-crew"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 // height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
 // mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
@@ -279,7 +279,7 @@ const Snd = (() => {
     chest: () => { noise(0.25, 0.1, 700); [523, 784, 1046].forEach((f, i) => tone(f, 0.2, { v: 0.1, at: 0.2 + i * 0.08 })); },
     siren: () => [0, 0.32, 0.64].forEach((at) => tone(660, 0.28, { type: "sawtooth", to: 440, v: 0.05, at })),
     swing: (heavy) => { noise(heavy ? 0.14 : 0.09, heavy ? 0.14 : 0.1, heavy ? 1800 : 2600); tone(heavy ? 180 : 260, heavy ? 0.14 : 0.08, { type: "triangle", to: heavy ? 70 : 120, v: 0.07 }); },
-    dash: () => noise(0.16, 0.08, 3200),
+    dash: () => noise(0.16, 0.08, 3200), thunder: () => { noise(2.6, 0.2, 110); noise(1.2, 0.08, 420); },
     heart: () => { tone(70, 0.09, { v: 0.12 }); tone(62, 0.09, { v: 0.1, at: 0.16 }); },
     cast: (k) => k === "ice" ? (tone(1400, 0.18, { to: 700, v: 0.07 }), noise(0.12, 0.06, 5000)) : k === "fire" ? (noise(0.3, 0.14, 500), tone(180, 0.25, { type: "sawtooth", to: 90, v: 0.05 })) : (noise(0.18, 0.12, 3500), tone(90, 0.2, { type: "square", to: 60, v: 0.05 })),
     hurt: () => { tone(200, 0.16, { type: "square", to: 110, v: 0.07 }); noise(0.1, 0.1, 900); },
@@ -511,7 +511,7 @@ function setNameTag() {
   if (nameTag) { player.remove(nameTag); nameTag.material.map.dispose(); }
   const title = BADGES.find((b) => b.id === P.badges[P.badges.length - 1]);
   const pl = PLATES[(P.style || {}).plate] || ["#35d8d0", "#eef3f7"];
-  nameTag = K.label(P.name || W("Player"), { accent: pl[0], color: pl[1], size: 0.42, sub: (quests && quests.title()) || (title ? T(title.title) : "") }); nameTag.position.y = 3.15; player.add(nameTag);
+  nameTag = K.label((P.crewTag ? `[${P.crewTag}] ` : "") + (P.name || W("Player")), { accent: pl[0], color: pl[1], size: 0.42, sub: (quests && quests.title()) || (title ? T(title.title) : "") }); nameTag.position.y = 3.15; player.add(nameTag);
 }
 // the hoverboard's light trail (a bought colour, or a faint default)
 const TRAILS = { "trail-cyan": 0x35d8d0, "trail-gold": 0xffc861, "trail-pink": 0xff7ad9, "trail-rainbow": 0xff4d6d }; // the rainbow one cycles (see the loop)
@@ -542,7 +542,7 @@ function paintTrail() { const c = TRAILS[(P.style || {}).trail]; trail.mat.unifo
 
 // ---- state that the rest of the file shares (declared before anything can call into it) ----
 const cards = [], mixers = [], town = [], lockedStages = [], coinBuildings = [], smokes = [], qOrbs = [];
-let headYaw = 0; const tmpLook = new THREE.Vector3(); // your head turning toward who is close (the loop)
+let headYaw = 0; const tmpLook = new THREE.Vector3(), tmp3t = new THREE.Vector3(); // your head turning toward who is close (the loop)
 let coinData = null, lastSeen = 0, myCoins = [], labels = null, npc = null, board3 = null, arcStats = null;
 let zoneRoot = null; // the hunting grounds' group (the camera looks through their tall props)
 const folk = []; // the town's walking ARC Bots
@@ -899,7 +899,7 @@ function freeSpots(n, radii, gap, step = 12) {
 let holTries = 0;
 const placeHoliday = () => { if (!(kit && town.length) && holTries++ < 30) { setTimeout(placeHoliday, 1000); return; } try {
   const spots = freeSpots(4, [15.5, 17.5], 9);
-  const st3 = HOL.createStalls({ THREE, planet, spots: spots.slice(0, 3) }); holiday.solids.push(...st3.stalls);
+  const st3 = HOL.createStalls({ THREE, planet, spots: spots.slice(0, 3) }); holiday.solids.push(...st3.stalls); holiday.ticks.push((t, night) => st3.tick(1 / 60, night));
   if (spots[3]) { bounty = HOL.createBountyBoard({ THREE, planet, at: spots[3] }); holiday.solids.push(bounty); }
   if (HOL.christmasOn()) { const t = freeSpots(1, [13, 14.5], 0, 17)[0] || [0, 13]; const x = HOL.createChristmas({ THREE, planet, spots: lamps.userData.spots || [], tree: [t[0], t[1]] }); holiday.ticks.push(x.tick); const tg = new THREE.Group(); tg.position.set(t[0], 0, t[1]); tg.userData.radius = 2.4; planet.add(tg); holiday.solids.push(tg); }
   if (HOL.lunarOn()) { const l = HOL.createLanterns({ THREE, planet, spots: lamps.userData.spots || [] }); holiday.ticks.push(l.tick); }
@@ -1061,7 +1061,7 @@ function step(dt) {
     }
     facing = angLerp(facing, Math.atan2(dir.x, dir.z), 1 - Math.exp(-12 * dt));
     if (!look && performance.now() - lastLook > 1400 && y > 0.3) camYaw = angLerp(camYaw, facing - Math.PI, dt * 0.9);
-    stepT -= dt * sp; if (grounded && stepT < 0 && !boarding) { Snd.step(); stepT = 2.6; if (sp > 10) dust(2); }
+    stepT -= dt * sp; if (grounded && stepT < 0 && !boarding) { Snd.step(); stepT = 2.6; if (sp > 10) dust(2); const zz = combat && combat.zone(), soft = zz && { peaks: 0xa9bcd4, dunes: 0xa8824e, canyon: 0x8a4a32 }[zz.id]; if (soft && tracks) { here(tmp2); tracks.step(tmp2.x, tmp2.z, facing, soft); } } // prints in snow and sand
     walked += sp * dt; if (walked > 4) tutorialStep(0);
     dailyDist(sp * dt);
   }
@@ -1407,8 +1407,33 @@ async function refreshArc() {
   if (!first && big && sig !== lastBig) { swimWhale(); feed(T("A whale {side} {v} of $ARCIRCLE", { side: big.side === "buy" ? W("bought") : W("sold"), v: usd(big.usdc) }), "#4f9dff"); }
   lastBig = sig || lastBig;
   const m = s.change24h == null ? "" : s.change24h >= 5 ? "aurora" : s.change24h <= -5 ? "rain" : "clear";
-  if (m !== mood) { mood = m; aurora.visible = m === "aurora"; rain.visible = m === "rain"; setWet(m === "rain"); if (!first && m) feed(m === "aurora" ? T("$ARCIRCLE is up today: an aurora over the planet") : m === "rain" ? T("$ARCIRCLE is down today: rain over the planet") : T("Clear skies over the planet"), "#35d8d0"); }
+  if (m !== mood) { if (mood === "rain" && m !== "rain") rainbowT = 240; mood = m; aurora.visible = m === "aurora"; rain.visible = m === "rain"; setWet(m === "rain"); if (!first && m) feed(m === "aurora" ? T("$ARCIRCLE is up today: an aurora over the planet") : m === "rain" ? T("$ARCIRCLE is down today: rain over the planet") : T("Clear skies over the planet"), "#35d8d0"); }
 }
+// the weather's moments: lightning now and then while it rains (a flash, then the thunder a second or two later), and
+// a rainbow across the sky for a few minutes once the rain stops (?rainbow=1 to see it)
+let rainbow = null, rainbowT = 0, flashT = 0, boltIn = 8;
+function makeRainbow() {
+  const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, uniforms: { uA: { value: 0 } },
+    vertexShader: "varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `uniform float uA; varying vec2 vU;
+      vec3 hue(float h){ return clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0); }
+      void main(){ float t = vU.y; vec3 c = hue(0.78 * (1.0 - t)); float edge = smoothstep(0.0, 0.18, t) * smoothstep(1.0, 0.82, t); float foot = smoothstep(0.0, 0.25, vU.x) * smoothstep(1.0, 0.75, vU.x);
+        gl_FragColor = vec4(c, uA * 0.42 * edge * (0.35 + 0.65 * foot)); }` });
+  const g = new THREE.Mesh(new THREE.RingGeometry(260, 292, 96, 1, 0, Math.PI), m);
+  // the ring's uv runs across it; remap so x runs along the arc and y across the band
+  const uv = g.geometry.attributes.uv, pos = g.geometry.attributes.position; for (let i = 0; i < uv.count; i++) { const x = pos.getX(i), y = pos.getY(i), r = Math.hypot(x, y); uv.setXY(i, Math.atan2(y, x) / Math.PI, (r - 260) / 32); }
+  g.renderOrder = -1; g.frustumCulled = false; st.scene.add(g); return g;
+}
+st.on((dt) => {
+  if (mode !== "hub") return;
+  // lightning
+  if (mood === "rain" && !reduce && ambNight >= 0) { if ((boltIn -= dt) <= 0) { boltIn = 9 + Math.random() * 14; flashT = 0.35; setTimeout(() => { try { Snd.thunder(); } catch { /* sound off */ } if (!reduce) shake = Math.max(shake, 0.12); }, 900 + Math.random() * 1400); } }
+  if (flashT > 0) { flashT = Math.max(0, flashT - dt); const f = flashT > 0.25 ? 1 : flashT > 0.18 ? 0.2 : flashT > 0.1 ? 0.8 : flashT / 0.1 * 0.3; st.hemi.intensity = 0.95 * (1 - Math.max(0, nightK) * 0.4) + f * 2.4; if (flashT === 0) { nightK = -1; dayNight(); } }
+  // the rainbow: it rises opposite the sun and fades
+  const q = new URLSearchParams(location.search).get("rainbow");
+  if (rainbowT > 0 || q === "1") { if (!rainbow) rainbow = makeRainbow(); rainbowT = Math.max(0, rainbowT - dt); const a = q === "1" ? 1 : Math.min(1, (240 - rainbowT) / 12, rainbowT / 20); rainbow.material.uniforms.uA.value = a * (1 - Math.max(0, nightK)); const sd = sunDir || new THREE.Vector3(0, 1, 0); rainbow.position.set(-sd.x * 540, -70, -sd.z * 540 || -540); rainbow.lookAt(0, -70, 0); rainbow.visible = true; }
+  else if (rainbow && rainbow.visible) rainbow.visible = false;
+});
 function burnFire(tokens) {
   const f = shopG("reward"); if (!f) return;
   f.userData.boost = 1;
@@ -2304,7 +2329,7 @@ function openNew() {
   });
 }
 // ---------------- closing things ----------------
-function closeAll() { closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
+function closeAll() { try { crewUI.hide(); } catch { /* not built yet */ } closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
 // ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
 const help = HELP.createSupport({
   T, lang: LANG, esc, toast, where: mode === "island" ? "island" : "game",
@@ -2341,6 +2366,12 @@ rpg.dress();
 const parts = PART.createParticles({ THREE, parent: planet, low: lowGfx || st.quality.coarse });
 // the platform, live in the town (world-live.js): the LED band round the fountain, and fireworks for a new launch
 const live = LIVE.createLive({ THREE, planet, parts, reduce });
+// crews (world-crew.js): the window from the menu, and your crew's tag before your name
+const crewUI = CREW.createCrew({ T, esc, toast, post, sess, onTag: (t) => { if ((P.crewTag || "") !== (t || "")) { P.crewTag = t || ""; setNameTag(); } }, freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); } });
+setTimeout(() => { if (sess()) crewUI.load(); }, 4000);
+// footprints in snow and sand, and autumn leaves round you in town (world-tracks.js)
+const tracks = TRK.createTracks({ THREE, planet, reduce });
+st.on((dt) => { if (mode !== "hub") return; here(tmp3t); tracks.tick(dt, tmp3t.x, tmp3t.z, !(combat && combat.zone())); });
 st.on((dt) => { if (mode === "hub") live.tick(dt); });
 st.on((dt) => parts.tick(dt));
 combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
@@ -2558,7 +2589,7 @@ $("wp-help-btn").addEventListener("click", () => openHelp());
 // the menu: everything in one place, a tap away (the ≡ button on every screen, or Esc with nothing open).
 // Grouped by what you're doing; each tile names its key; a dot marks something waiting (rewards, mail).
 const HUB = [
-  ["You", [["inv", "bag", "Character and bag", "I"], ["wardrobe", "shirt", "Wardrobe", ""], ["make", "person", "Change character", ""]]],
+  ["You", [["inv", "bag", "Character and bag", "I"], ["crew", "crew", "Crew", ""], ["wardrobe", "shirt", "Wardrobe", ""], ["make", "person", "Change character", ""]]],
   ["Adventure", [["daily", "check", "Daily hunts", "L"], ["ach", "trophy", "Achievements", ""], ["season", "season", "Season", ""], ["codex", "codex", "Codex", ""], ["pets", "paw", "Pets", ""], ["rank", "chart", "Rankings", ""]]],
   ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "My Island", ""], ["inbox", "mail", "Inbox", ""]]],
   ["More", [["photo", "photo", "Photo mode", "P"], ["emote", "wave", "Emotes", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["set", "gear", "Settings", ""]]],
@@ -2579,6 +2610,7 @@ hubEl.addEventListener("click", (e) => {
   if (id === "inv") rpg && rpg.show("inv");
   else if (id === "wardrobe") wardrobe.show();
   else if (id === "make") openMake();
+  else if (id === "crew") crewUI.show();
   else if (["daily", "ach", "season", "codex", "pets", "rank"].includes(id)) { if (quests && rpg) { quests.setTab(id); rpg.show("log"); } }
   else if (id === "shop") arclShop.openShop();
   else if (id === "forge") rpg && rpg.show("forge");
@@ -2698,7 +2730,8 @@ function dayNight() {
   if (skyU.uAur) { const q = new URLSearchParams(location.search).get("aurora"), d = Math.floor((Date.now() + 9 * 3600e3 - 12 * 3600e3) / 864e5), on = q === "1" || (q !== "0" && d % 3 === 0); skyU.uAur.value = on ? Math.max(0, (k - 0.55) / 0.45) : 0; }
   st.sun.intensity = 2.15 * (1 - k * 0.62); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
   st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.8 + k * 0.22; /* a calmer day: the white plaza was glaring */
-  if (st.scene.fog) st.scene.fog.density = 0.0028 + k * 0.0028; ENV.CLOUD.k.value = Math.max(0, 1 - k * 1.4) * ((() => { try { return mood === "rain"; } catch { return false; } })() ? 1.4 : 1); /* cloud shadows by day, more on a rainy one */ st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
+  const mist = h >= 5 && h < 8.5 ? Math.sin(((h - 5) / 3.5) * Math.PI) : 0; // early morning: a mist that lifts by half past eight
+  if (st.scene.fog) st.scene.fog.density = 0.0028 + k * 0.0028 + mist * 0.006; ENV.CLOUD.k.value = Math.max(0, 1 - k * 1.4) * ((() => { try { return mood === "rain"; } catch { return false; } })() ? 1.4 : 1); /* cloud shadows by day, more on a rainy one */ st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
   if (st.scene.fog) st.scene.fog.color.copy(FOG.day).lerp(FOG.night, k).lerp(FOG.dusk, dusk * 0.5); if (halloween && st.scene.fog) st.scene.fog.color.lerp(HALLOW_FOG, k * 0.55); if (pumpkins) pumpkins.glow(k);
   stars.material.opacity = 0.85 * k; stars.visible = k > 0.02;
   skyPlanets.children.forEach((p) => { p.material.opacity = 0.95 * k; }); skyPlanets.visible = k > 0.02;
@@ -2859,9 +2892,9 @@ st.on((dt0, t) => {
   if (npc) npc.userData.ac.update(dt, t);
   if (stage && mode === "hub") stage.tick(dt, t);
   if (mode === "hub" && folk.length) for (const f of folk) {
-    const want = f.wait > 0 ? (f.wave ? "emote-yes" : "idle") : "walk";
-    if (f.wait > 0) { f.wait -= dt; if (f.wait <= 0) { f.walkT = 8 + Math.random() * 12; f.wave = false; } }
-    else { f.a += (f.dir * f.sp * dt) / f.r; f.walkT -= dt; if (f.walkT <= 0) { f.wait = 2.5 + Math.random() * 4; f.wave = Math.random() < 0.3; } }
+    const want = f.wait > 0 ? (f.sit ? "sit" : f.wave ? "emote-yes" : "idle") : "walk";
+    if (f.wait > 0) { f.wait -= dt; if (f.wait <= 0) { f.walkT = 8 + Math.random() * 12; f.wave = false; f.sit = false; } }
+    else { f.a += (f.dir * f.sp * dt) / f.r; f.walkT -= dt; if (f.walkT <= 0) { const r = Math.random(); f.sit = r < 0.25; f.wave = !f.sit && r < 0.5; f.wait = f.sit ? 6 + Math.random() * 6 : 2.5 + Math.random() * 4; } } // now and then one sits down for a while
     if (want !== f.anim) { f.anim = want; try { f.c.play(want, want === "emote-yes" ? { once: true } : {}); } catch { /* no such clip */ } }
     const x = Math.sin(f.a) * f.r, z = -Math.cos(f.a) * f.r; f.g.position.set(x, 0, z);
     f.g.rotation.y = Math.atan2(Math.cos(f.a) * f.dir, Math.sin(f.a) * f.dir); // facing along the ring

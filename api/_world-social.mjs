@@ -224,7 +224,7 @@ export function makeSocial(deps) {
     // for a hunting party: HP as a percentage and the ground you're in (shown to the friends who put you in theirs)
     const h = Number.isInteger(g.h) && g.h >= 0 && g.h <= 100 ? g.h : null, zn = /^[a-z]{3,8}$/.test(String(g.zn || "")) ? g.zn : "";
     const old = (cur.list || []).find((y) => y.t === t) || {};
-    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w } : {}) };
+    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w, ...(who.tag ? { cr: who.tag } : {}) } : {}) };
     const list = [e, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
     await setDoc(key, { list });
   }

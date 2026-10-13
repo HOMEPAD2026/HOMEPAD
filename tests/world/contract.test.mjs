@@ -6,12 +6,12 @@ const root = new URL("../../", import.meta.url).pathname;
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const read = (f) => fs.readFileSync(root + f, "utf8");
 const client = fs.readdirSync(root).filter((f) => /^world-.*\.js$/.test(f)).map(read).join("\n");
-const server = ["api/_world.mjs", "api/_world-shop.mjs", "api/_world-social.mjs", "api/_world-support.mjs"].map(read).join("\n");
+const server = ["api/_world.mjs", "api/_world-shop.mjs", "api/_world-social.mjs", "api/_world-support.mjs", "api/_world-crew.mjs"].map(read).join("\n");
 const social = read("api/social.mjs");
 const views = [...new Set([...client.matchAll(/api\/social\?world=([a-z0-9-]+)/g)].map((m) => m[1]))];
 const actions = [...new Set([...client.matchAll(/action: "(world-[a-z0-9-]+)"/g)].map((m) => m[1]))];
 check(views.length > 10 && actions.length > 10, `found ${views.length} views and ${actions.length} actions in the game`);
-for (const v of views) check(new RegExp(`(view|w) === "${v}"`).test(server), `the server answers ?world=${v}`);
+for (const v of views) check(new RegExp(`(view|w|v) === "${v}"`).test(server), `the server answers ?world=${v}`);
 for (const a of actions) check(server.includes(`"${a}"`), `the server handles ${a}`);
 // /api/social: World reads and actions are passed on by pattern, not by a list that has to be kept in step
 const getRule = /\^\[a-z\]\[a-z0-9-\]\{1,30\}\$\/\.test\(url\.searchParams\.get\("world"\)/.test(social);

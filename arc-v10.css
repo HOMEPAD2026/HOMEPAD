@@ -3314,3 +3314,28 @@ html.wp-pcphone .wr-gset button{font-size:18px;padding:12px 18px}html.wp-pcphone
 .wr-store-t small{font-size:12px;color:#9fb3c6}
 .wr-cells.store .wr-cell{background:rgba(143,230,255,.05)}
 html.wp-pcphone .wr-store-t button{height:48px;font-size:18px;padding:0 18px}html.wp-pcphone .wr-store-t small{font-size:16px}
+/* b388: the Crew window */
+.wp-crewsheet .wp-card{width:min(560px,calc(100vw - 28px));max-height:calc(100svh - 40px);overflow:auto}
+.wp-crew-forms{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wp-crew-forms form{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)}
+.wp-crew-forms h3{margin:0;font:800 14px var(--f-ui)}
+.wp-crew-forms label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#b9c6d4}
+.wp-crew-forms input{height:36px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(4,8,14,.6);color:#eef3f7;font:600 14px var(--f-ui)}
+.wp-crew-forms small,.wp-crew-note{font-size:12px;color:#9fb3c6;line-height:1.45}
+.wp-crew-h{display:flex;align-items:center;gap:12px;margin:4px 0 10px}
+.wp-crew-h h3{margin:0;font:800 18px var(--f-ui)}.wp-crew-h small{color:#9fb3c6;font-size:12.5px}
+.wp-crew-tag{display:inline-grid;place-items:center;min-width:52px;height:36px;padding:0 8px;border-radius:10px;background:linear-gradient(180deg,#2f86ff,#2ee07a);color:#04121a;font:900 16px 'Big Shoulders Display',var(--f-ui);letter-spacing:.04em}
+.wp-crew-tag.sm{min-width:38px;height:24px;font-size:12px;border-radius:7px}
+.wp-crew-list,.wp-crew-top{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:4px}
+.wp-crew-list li,.wp-crew-top li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.035)}
+.wp-crew-list li.cap{background:rgba(255,200,97,.08)}
+.wp-crew-list b,.wp-crew-top b{flex:1;font:700 13.5px var(--f-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-crew-list small,.wp-crew-top small{color:#9fb3c6;font-size:12px}
+.wp-crew-list em,.wp-crew-top em{font:800 13px var(--f-num);color:#7dffb0;font-style:normal;min-width:48px;text-align:right}
+.wp-crew-list i{font-style:normal;font-size:11px;color:#ffc861}
+.wp-crew-top i{font-style:normal;width:18px;color:#9fb3c6;font:700 12px var(--f-num)}
+.wp-crew-code{display:flex;align-items:center;gap:10px;margin:8px 0 12px;flex-wrap:wrap}
+.wp-crew-code b{font:900 20px var(--f-num);letter-spacing:.18em;color:#ffe2a8}
+.wp-crew-toph{margin:16px 0 6px;font:800 14px var(--f-ui)}
+@media (max-width:560px){.wp-crew-forms{grid-template-columns:1fr}}
+html.wp-pcphone .wp-crewsheet .wp-card{zoom:1.35}
