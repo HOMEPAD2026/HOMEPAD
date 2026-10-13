@@ -3752,6 +3752,14 @@ html.wp-pcphone #wi .wi-tools span{display:block}
 html.wp-pcphone #wi .wi-tools svg{width:30px;height:30px}
 html.wp-pcphone #wi .wi-hot-name{font-size:21px;padding:6px 18px}
 html.wp-pcphone body.wi-building #wi>.wi-bar{display:none} /* while building, the bigger tools take the room; Done brings the island's bar back */
+/* b406: the My Island gate's second button — a friend's island at random */
+#wi>.wi-sheet:not([hidden]){display:grid} /* the islands window opens from the town too (the menu's Island, the map), not only on an island */
+html.wp-pcphone #wi>.wi-sheet .wi-card{zoom:1.38;width:min(680px,calc((100vw - 32px) / 1.38));max-height:calc((100svh - 32px) / 1.38)} /* island windows at a phone's reading size */
+.wp-prompt:not([hidden]){display:flex;flex-direction:column;align-items:center;gap:10px}
+.wp-prompt .wp-enter2{flex-direction:column;align-items:center;gap:2px;padding:10px 22px;background:rgba(20,64,44,.86);border:1px solid rgba(126,224,160,.55)}
+.wp-prompt .wp-enter2[hidden]{display:none}
+.wp-prompt .wp-enter2 span{font-weight:700;color:#bfffd8}
+.wp-prompt .wp-enter2 small{font-size:12px;color:rgba(222,240,230,.75)}
 /* ---- b398: the HUD made of the sheet's pieces (world-art/hud-sheet.png, sliced by tools: images/hud/*.webp); the numbers, names and bars on them are live. Generated: tools/hud-sprites.py ---- */
 body.wp{--hud-font:'Pretendard Variable',Pretendard,var(--f-ui)}
 body.wp .wp-hud .wp-hud-l{gap:2.80px}

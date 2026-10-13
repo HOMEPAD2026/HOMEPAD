@@ -876,7 +876,8 @@ export function createIsland(ctx) {
     openSheet("wi-bp");
   }
   let isleTab = "top", isleData = null;
-  async function openIsles() {
+  async function openIsles(tab) {
+    if (tab && /^(top|week|recent|friends)$/.test(tab)) isleTab = tab;
     openSheet("wi-isles"); $("wi-isle-list").innerHTML = `<li class="wi-empty">${esc(T("Loading islands…"))}</li>`;
     try { const r = await fetch("/api/social?world=islands"); isleData = r.ok ? await r.json() : null; } catch { isleData = null; }
     weekData = null; paintIsles(); if (isleTab === "week" || isleTab === "friends") loadTab();
@@ -892,6 +893,17 @@ export function createIsland(ctx) {
     if (!pool.length) { toured.clear(); pool = [...seen.keys()].filter((w) => w !== (visitInfo && visitInfo.wallet)); }
     if (!pool.length) { toast(T("No other islands to visit yet")); return; }
     const w = pool[Math.floor(Math.random() * pool.length)]; toured.add(w); closeSheets(); ctx.goIsland({ visit: w });
+  }
+  // a friend's island, picked at random (b406: the My Island gate's second button). Friends whose island has bricks
+  // first; with no friends yet, a random island instead (and how to add one)
+  async function visitFriend() {
+    const me = (sess() || {}).wallet || "", here = visitInfo && visitInfo.wallet;
+    const ws = FR().map((f) => f.w).filter((w) => /^0x[0-9a-f]{40}$/.test(w || "") && w !== me && w !== here);
+    if (!ws.length) { toast(T("No friends yet: add one with Add friend on their island. Here's a random island.")); return tour(); }
+    let built = [];
+    try { const r = await fetch("/api/social?world=friends&wallets=" + ws.join(",")); const j = r.ok ? await r.json() : {}; built = ws.filter((w) => ((j.friends || {})[w] || {}).isle); } catch { built = []; }
+    const pool = built.length ? built : ws, w = pool[Math.floor(Math.random() * pool.length)];
+    closeSheets(); ctx.goIsland({ visit: w });
   }
   async function loadTab() {
     if (isleTab === "week" && !weekData) { try { const r = await fetch("/api/social?world=island-week"); weekData = r.ok ? await r.json() : { top: [] }; } catch { weekData = { top: [] }; } }
@@ -1000,7 +1012,7 @@ export function createIsland(ctx) {
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
     mini(put) { put(exit, "#35d8d0", 6); if (centre) put(centre, "#ffc861", 8); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
     showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); tickCentre(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
-    openIsles, tour, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
+    openIsles, tour, visitFriend, friendCount: () => FR().length, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };
 }

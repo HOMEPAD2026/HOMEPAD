@@ -1259,8 +1259,11 @@ function paintPrompt() {
   p.classList.add("on");
   const b = (s) => `<b>${esc(s)}</b>`;
   $("wp-enter-t").innerHTML = near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "village" ? (near.mine ? T("Open {x}", { x: b(T("My village")) }) : T("Village centre · Lv {n}", { n: near.level })) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
+  { const e2 = $("wp-enter2"), on = near.kind === "isle"; e2.hidden = !on; if (on) e2.innerHTML = `<span>${esc(T("Visit a friend's island"))}</span><small>${esc(island.friendCount() ? T("{n} friends, one at random", { n: island.friendCount() }) : T("No friends yet: a random island"))}</small>`; }
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
+// at the My Island gate, a second button (b406): a friend's island, at random
+$("wp-enter2").addEventListener("click", () => { if (near && near.kind === "isle") island.visitFriend(); });
 
 // ---------------- ARCIA's favour of the day ----------------
 // Talk to ARCIA on the plaza: once a day she asks a small favour (from a fixed list, the same for everyone that day);
@@ -2808,7 +2811,7 @@ $("wp-help-btn").addEventListener("click", () => openHelp());
 const HUB = [
   ["You", [["inv", "bag", "Character and bag", "I"], ["crew", "crew", "Crew", ""], ["wardrobe", "shirt", "Wardrobe", ""], ["make", "person", "Change character", ""]]],
   ["Adventure", [["daily", "check", "Daily hunts", "L"], ["ach", "trophy", "Achievements", ""], ["season", "season", "Season", ""], ["codex", "codex", "Codex", ""], ["pets", "paw", "Pets", ""], ["rank", "chart", "Rankings", ""]]],
-  ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "My Island", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""]]],
+  ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "Island", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""]]],
   ["More", [["photo", "photo", "Photo mode", "P"], ["emote", "wave", "Emotes", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["music", "music", "Music on / off", ""], ["set", "gear", "Settings", ""]]],
 ];
 hubEl = document.createElement("div"); hubEl.className = "wp-hub"; hubEl.hidden = true; hubEl.setAttribute("role", "dialog"); hubEl.setAttribute("aria-modal", "true"); hubEl.setAttribute("data-no-i18n", "");
@@ -2833,7 +2836,7 @@ hubEl.addEventListener("click", (e) => {
   else if (id === "forge") rpg && rpg.show("forge");
   else if (id === "bench") { if (life) life.showSheet("make"); }
   else if (id === "map") openMap();
-  else if (id === "island") goIsland({});
+  else if (id === "island") island.openIsles(island.friendCount() ? "friends" : "top"); // b406: your island, your friends' and everyone's, to pick from
   else if (id === "village") village.show();
   else if (id === "inbox") inbox.show();
   else if (id === "photo") setPhoto(true);

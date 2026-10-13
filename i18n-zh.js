@@ -10780,6 +10780,10 @@
     "Browse islands": "浏览岛屿",
     "Popular, this week, friends": "热门、本周、好友",
     "Leave the game for the platform": "离开游戏前往平台",
+    "Visit a friend's island": "拜访好友的岛屿",
+    "{n} friends, one at random": "{n} 位好友中随机一位",
+    "No friends yet: a random island": "还没有好友：随机一座岛",
+    "No friends yet: add one with Add friend on their island. Here's a random island.": "还没有好友：在对方的岛上点「加好友」。先带你去一座随机的岛。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

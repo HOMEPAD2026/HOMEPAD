@@ -10610,6 +10610,10 @@
     "Browse islands": "섬 둘러보기",
     "Popular, this week, friends": "인기, 이번 주, 친구",
     "Leave the game for the platform": "게임을 나가 플랫폼으로",
+    "Visit a friend's island": "친구 섬 방문",
+    "{n} friends, one at random": "친구 {n}명 중 무작위",
+    "No friends yet: a random island": "아직 친구가 없어요: 무작위 섬으로",
+    "No friends yet: add one with Add friend on their island. Here's a random island.": "아직 친구가 없어요. 다른 플레이어 섬에서 친구 추가를 눌러 보세요. 무작위 섬으로 안내할게요.",
   };
 
 
