@@ -11,12 +11,20 @@
   var lang = (document.documentElement.getAttribute("lang") || "en").slice(0, 2);
   try { lang = localStorage.getItem("arcircle.lang") || lang; } catch (e) { /* private */ }
   var T = { ko: { full: "전체 화면", window: "창 모드", mobile: "모바일", bar: "화면" }, zh: { full: "全屏", window: "窗口", mobile: "手机", bar: "画面" }, en: { full: "Full screen", window: "Window", mobile: "Mobile", bar: "Screen" } }[lang === "ko" || lang === "zh" ? lang : "en"];
-  var PHONE_W = 980, PHONE_H = Math.round(980 * 19.5 / 9), BAR = 56;
+  var PHONE_W = 980, PHONE_H = Math.round(980 * 19.5 / 9), BAR = 44;
+  // b418: the bar is three small icons in the middle (no logo, no words); the words are their tooltips
+  var ICON = {
+    full: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
+    window: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 20h6"/>',
+    mobile: '<rect x="7" y="3" width="10" height="18" rx="2.2"/><path d="M11 17.5h2"/>',
+  };
   var css = ".wp-shell{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;background:radial-gradient(70% 60% at 50% 0%,rgba(63,155,255,.16),transparent 70%),#04070e;font-family:Sora,system-ui,sans-serif;color:#eef3f7}" +
     ".wp-shell-bar{flex:none;height:" + BAR + "px;width:100%;display:flex;align-items:center;justify-content:center;gap:14px;padding:0 16px;box-sizing:border-box}" +
-    ".wp-shell-bar b{font:800 14px Sora,system-ui,sans-serif;letter-spacing:.01em;margin-right:6px}" +
-    ".wp-shell-seg{display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(120,180,255,.2)}" +
-    ".wp-shell-seg button{appearance:none;border:0;border-radius:9px;padding:7px 14px;background:none;color:#cfe0f5;font:700 13px Sora,system-ui,sans-serif;cursor:pointer}" +
+    
+    ".wp-shell-seg{display:flex;gap:2px;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(120,180,255,.2)}" +
+    ".wp-shell-seg button{appearance:none;display:grid;place-items:center;width:34px;height:28px;border:0;border-radius:8px;padding:0;background:none;color:#cfe0f5;cursor:pointer}" +
+    ".wp-shell-seg button:hover{background:rgba(255,255,255,.08)}" +
+    ".wp-shell-seg svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}" +
     ".wp-shell-seg button[aria-pressed=true]{background:linear-gradient(90deg,#3f9bff,#35d8d0);color:#04121a}" +
     ".wp-shell-seg button:focus-visible{outline:2px solid #35d8d0;outline-offset:2px}" +
     ".wp-shell-stage{flex:1;width:100%;display:flex;align-items:flex-start;justify-content:center;min-height:0}" +
@@ -26,8 +34,8 @@
   function build() {
     var st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
     var el = document.createElement("div"); el.className = "wp-shell";
-    el.innerHTML = '<div class="wp-shell-bar" role="toolbar" aria-label="' + T.bar + '"><img src="/images/arcircle-mark-sm.png" alt="" width="34" height="20"><b>ARCIRCLE World</b><div class="wp-shell-seg">' +
-      ["full", "window", "mobile"].map(function (v) { return '<button type="button" data-view="' + v + '" aria-pressed="' + (v === V) + '">' + T[v] + "</button>"; }).join("") +
+    el.innerHTML = '<div class="wp-shell-bar" role="toolbar" aria-label="' + T.bar + '"><div class="wp-shell-seg">' +
+      ["full", "window", "mobile"].map(function (v) { return '<button type="button" data-view="' + v + '" aria-pressed="' + (v === V) + '" title="' + T[v] + '" aria-label="' + T[v] + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[v] + "</svg></button>"; }).join("") +
       '</div></div><div class="wp-shell-stage"><div class="wp-shell-box' + (V === "mobile" ? " phone" : "") + '"><iframe title="ARCIRCLE World" allow="fullscreen; autoplay; clipboard-write; web-share"></iframe></div></div>';
     document.body.appendChild(el);
     var fr = el.querySelector("iframe"), box = el.querySelector(".wp-shell-box");
