@@ -31,7 +31,7 @@
 <script src="arc-log.js?v=1791979889"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791979889">
+<link rel="stylesheet" href="/circlepad.min.css?v=1791971093">
 </head>
 <body class="bigpad-page circlepad-page ax-dock-host">
 
@@ -444,8 +444,34 @@
   </span>
 </nav>
 
-<!-- which round the page runs (api/_rounds.mjs → window.CP_ROUNDS, read by circlepad-boot.js) -->
-<script src="/api/social?circle=boot"></script>
+<!-- which round the page runs (api/_rounds.mjs → window.CP_ROUNDS, read by circlepad-boot.js before any other CirclePad
+     script reads CONFIG). The last answer is kept on this device, so a return visit boots from it at once instead of waiting
+     on /api/social (a cold function can take seconds); the fresh answer comes in the background and is kept for next time,
+     and if it names a different round than the one the page booted with, the page reloads once. A first visit has nothing kept
+     and loads the script the old way (same origin, so document.write's script is allowed). -->
+<script>
+(function () {
+  var K = "circlepad.boot.v1", kept = null;
+  try { kept = JSON.parse(localStorage.getItem(K) || "null"); } catch (e) { /* storage blocked */ }
+  var put = function (v) { try { localStorage.setItem(K, JSON.stringify({ v: v, at: Date.now() })); } catch (e) { /* fine */ } };
+  // the round circlepad-boot.js picks: the newest one past #1 with an escrow
+  var pick = function (v) { var b = null; ((v && v.list) || []).forEach(function (r) { if (r && r.n > 1 && /^0x[0-9a-fA-F]{40}$/.test(String(r.escrow || "")) && (!b || r.n > b.n)) b = r; }); return b ? b.n + ":" + b.escrow.toLowerCase() : ""; };
+  if (!(kept && kept.v && Array.isArray(kept.v.list) && Date.now() - kept.at < 30 * 864e5)) { window.__cpBootKeep = put; document.write('<script src="/api/social?circle=boot"><\/script>'); return; }
+  window.CP_ROUNDS = kept.v;
+  var t0 = Date.now();
+  fetch("/api/social?circle=boot").then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
+    var m = /window\.CP_ROUNDS\s*=\s*(\{[\s\S]*\})\s*;?\s*$/.exec(t || "");
+    if (!m) return;
+    var v = JSON.parse(m[1]), now = pick(v), was = pick(kept.v);
+    if (!now && was) return; // a round never disappears: that answer is an RPC hiccup, keep what we have
+    put(v);
+    if (now === was || Date.now() - t0 > 20000) return;
+    try { if (Date.now() - Number(sessionStorage.getItem(K) || 0) < 60000) return; sessionStorage.setItem(K, String(Date.now())); } catch (e) { return; }
+    location.reload();
+  }).catch(function () { /* offline: the kept round stands */ });
+})();
+</script>
+<script>if (window.CP_ROUNDS && window.CP_ROUNDS.list && window.__cpBootKeep) window.__cpBootKeep(window.CP_ROUNDS);</script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 14 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, circlepad.js, arc-fx.js, arcircle-live.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
 <script src="circlepad.bundle.js?v=1791979889"></script>
