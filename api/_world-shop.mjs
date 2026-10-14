@@ -110,10 +110,21 @@ export const CATALOG = [
   { id: "rekind", cat: "game", name: "Weapon kind change", line: "Turn one weapon into another kind (dual swords, hammer, blaster, bow or staff). It keeps its stats.", tokens: 5000, usd: null, arcl: null, use: true },
   { id: "isleup", cat: "game", name: "Village upgrade", line: "Your village's next level, from level 5 on (its XP has to be there first).", tokens: 1000, usd: null, arcl: null, use: true },
   { id: "rechar", cat: "game", name: "Character change", line: "Pick another character and a new name.", tokens: 10000, usd: null, arcl: null, use: true },
+  // the season's Starter Package (STARTER below): a fixed $ARCIRCLE price that rises with each of your three buys
+  { id: "starter", cat: "starter", name: "Starter Package", line: "1 random Legendary item, 2× EXP for 24 hours and 100 healing potions.", tokens: 30000, usd: null, arcl: null, use: true },
   { id: "bagplus", cat: "game", name: "Bigger bag", line: "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
 ];
 const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
+// ---- the Starter Package, sold by season (b414) ----
+// Each season has its own count: at most `max` buys per wallet, at prices[0], prices[1], prices[2]. A buy gives a
+// random-slot Legendary piece (the tier you can wear at your level, at least Cold Wallet; item level your level, at
+// least 15), 2× EXP for 24 hours (added on top of time left) and 100 healing potions. The pieces and potions wait in
+// worldOwn.starter.gifts until the game takes them (by gift id, once). A new season: a new id here (and open: true);
+// open: false stops sales and keeps what was bought.
+export const STARTER = { season: "S1", name: "Season 1", open: true, max: 3, prices: [30000, 40000, 50000], boostHours: 24, potions: 100, tierLv: [1, 5, 10, 15, 20] };
+export const starterBought = (o) => (o && o.starter && o.starter.season === STARTER.season ? o.starter.n || 0 : 0);
+const STARTER_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"];
 // the Forge (world-rpg.js): gear for ARCL, tiers 0–3 (Legendary only drops from bosses), and supplies.
 // Mirrors world-rpg-data.js (SLOTS, TIERS, FORGE_PRICE, FORGE_SUPPLY).
 const FORGE_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"], FORGE_TIER_LV = [1, 5, 10, 15, 20], FORGE_PRICE = [40, 120, 300, 700, 6000];
@@ -358,6 +369,7 @@ export function makeShop(deps) {
     if (it.needs && !o.items.includes(it.needs)) return "get the 48×48 expansion first";
     if (it.id === "bagplus" && bagSize(o) >= BAG_MAX) return `your bag is as big as it gets (${BAG_MAX} slots)`;
     if (it.id === "isleup") { const u = deps.isleNext ? await deps.isleNext(w) : { why: "not available" }; if (u.why) return u.why; }
+    if (it.id === "starter") { if (!STARTER.open) return "the Starter Package isn't on sale this season"; if (starterBought(o) >= STARTER.max) return `you've bought the Starter Package ${STARTER.max} times this season`; }
     if (it.id === "rename" && !(deps.hasName ? await deps.hasName(w) : true)) return "your first name is free: set it in the character maker";
     if (it.target === "coin" || it.target === "mycoin") {
       const coin = lc(target); if (!isAddr(coin)) return "pick a coin";
@@ -374,6 +386,15 @@ export function makeShop(deps) {
     else if (it.id === "revive") { o.revives = (o.revives || 0) + 1; const k = await one(`worldKo/${w}`); if (k && (k.until > at || k.down)) await setDoc(`worldKo/${w}`, { ...k, until: 0, down: 0, paid: (k.paid || 0) + 1 }); }
     else if (it.id === "rekind") o.rekinds = (o.rekinds || 0) + 1; // used up by the save that changes a weapon's kind (api/_world.mjs)
     else if (it.id === "isleup") o.isleLv = Math.max(o.isleLv || 0, Math.floor(Number(String(target || "").replace(/^lv:/, "")) || 0)); // the level this payment was quoted for
+    else if (it.id === "starter") {
+      const st0 = o.starter && o.starter.season === STARTER.season ? o.starter : { season: STARTER.season, n: 0, gifts: [] };
+      const sv = (await getDocs([`worldSave/${w}`]))[`worldSave/${w}`], lv = Math.max(1, sv ? levelOfSave(sv) : 1);
+      const tier = Math.max(1, STARTER.tierLv.filter((x) => x <= lv).length - 1), slot = STARTER_SLOTS[Math.floor(Math.random() * STARTER_SLOTS.length)];
+      const item = { id: rid().slice(0, 8), b: `${slot}-${tier}`, r: 4, lv: Math.max(15, Math.min(100, lv)), p: 0, ...(slot === "weapon" ? { k: Math.floor(Math.random() * 5) } : {}) };
+      const gift = { gid: rid().slice(0, 10), item, hp: STARTER.potions, at };
+      o.starter = { season: STARTER.season, n: (st0.n || 0) + 1, gifts: [...(st0.gifts || []), gift].slice(-STARTER.max) };
+      o.xpBoostUntil = Math.max(at, Number(o.xpBoostUntil) || 0) + STARTER.boostHours * 3600e3;
+    }
     else if (it.id === "rechar") o.rechars = (o.rechars || 0) + 1; // used up by the save that changes the character or name
     else if (it.id === "bagplus") o.bag = Math.min((BAG_MAX - BAG_BASE) / BAG_STEP, Math.max(0, Math.floor(Number(o.bag) || 0)) + 1);
     else if (it.id === "lot13") o.lots = [...new Set([...(o.lots || []), lc(target)])];
@@ -437,6 +458,7 @@ export function makeShop(deps) {
     const why = await checkBuy(w, it, b.target); if (why) return json(400, { error: why });
     let price = 0, wei, target = lc(b.target || "");
     if (it.id === "isleup") { const u = await deps.isleNext(w); wei = BigInt(u.tokens) * 10n ** 18n; target = "lv:" + u.next; } // the price of the next village level
+    else if (it.id === "starter") { const n = starterBought(await own(w)); wei = BigInt(STARTER.prices[n]) * 10n ** 18n; target = `${STARTER.season}:${n + 1}`; } // this season's next price
     else if (it.tokens) wei = BigInt(it.tokens) * 10n ** 18n; // a fixed $ARCIRCLE amount (revive)
     else {
       price = deps.arcPrice ? Number(await deps.arcPrice().catch(() => 0)) : 0;
@@ -483,6 +505,7 @@ export function makeShop(deps) {
     renames: async (w) => (await own(w)).renames || 0,
     async read(view, url) {
       const w = lc(url.searchParams.get("wallet"));
+      if (view === "starter") { const o = isAddr(w) ? await own(w) : null, n = starterBought(o); return json(200, { ...STARTER, bought: n, next: n < STARTER.max ? STARTER.prices[n] : null, boostUntil: (o && o.xpBoostUntil) || 0, now: now() }, "no-store"); }
       if (view === "shop") return json(200, { items: CATALOG, own: isAddr(w) ? await own(w) : null, plaza: await plaza(), feeBurn: FEE_BURN, token: ARCIRCLE, burnPct: 50, exchange: EXCHANGE }, isAddr(w) ? "no-store" : "public, max-age=30");
       if (view === "arcl") return isAddr(w) ? json(200, { ...(await balance(w)), cap: DAYCAP(), today: ((await one(`worldArclDay/${w}_${seoulDay(now())}`)) || {}).n || 0, sold: ((await one(`worldSellDay/${w}_${seoulDay(now())}`)) || {}).n || 0, sellCap: SELLCAP(), earn: EARN, exchange: EXCHANGE, notify: !!(await one(`worldArclNotify/${w}`)) }) : json(400, { error: "wallet must be an address" });
       if (view === "arcl-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/arclWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n }) => ({ w: s, n })) }, "public, max-age=30");
