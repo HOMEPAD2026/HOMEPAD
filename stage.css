@@ -662,3 +662,6 @@ body.catpage{background:radial-gradient(60% 50% at 25% 0%,rgba(47,107,255,.28),t
 .fd.found span{opacity:1}
 @media (max-width:900px){.cathero{grid-template-columns:1fr;padding-top:96px}.cat-photo{max-width:420px}.find{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (prefers-reduced-motion:reduce){.fd img{transition:none}}
+
+/* Reduced motion, site-wide: anything that still animates finishes at once (no loops, no smooth scroll). */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}

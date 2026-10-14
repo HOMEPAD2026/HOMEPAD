@@ -2629,7 +2629,7 @@
     paintBook();
     input.addEventListener("input", grow);
     input.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); } });
-    log.addEventListener("scroll", function () { stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60; });
+    log.addEventListener("scroll", function () { stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60; }, { passive: true });
     Q(".aa-sugg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) send(b.textContent); });
     Q(".aa-new").addEventListener("click", restart);
     panel.querySelector(".aa-cheer-btn").addEventListener("click", function (e) {

@@ -127,7 +127,9 @@
     D.addEventListener("arc:lang", paint);
     setInterval(function () { if (panel.classList.contains("active") && !D.hidden) refresh(); }, 15000);
     var lastA = null;
-    setInterval(function () { var a = acct(); if (a !== lastA) { lastA = a; refresh(); } }, 1500);
+    var acctCheck = function () { if (D.hidden) return; var a = acct(); if (a !== lastA) { lastA = a; refresh(); } };
+    setInterval(acctCheck, 1500);
+    D.addEventListener("visibilitychange", acctCheck);
     refresh();
   }
 
@@ -355,14 +357,15 @@
       });
     }, { threshold: 0.6 });
     var seen = new WeakSet();
-    function scan() { [].forEach.call(D.querySelectorAll(SEL), function (el) { if (!seen.has(el) && /\d/.test(el.textContent)) { seen.add(el); io.observe(el); } }); }
-    scan(); setInterval(scan, 3000);
+    function scan() { if (D.hidden) return; [].forEach.call(D.querySelectorAll(SEL), function (el) { if (!seen.has(el) && /\d/.test(el.textContent)) { seen.add(el); io.observe(el); } }); }
+    scan(); setInterval(scan, 3000); D.addEventListener("visibilitychange", scan);
   }
 
   // ---- values still loading: a soft shimmer instead of a bare "—", then a calm "—" if nothing comes ----
   function pending() {
     var SEL = "main b, main strong, .bp-main b, .bp-main strong, [data-hm-num], [data-lb]";
     function mark() {
+      if (D.hidden) return;
       [].forEach.call(D.querySelectorAll(SEL), function (el) {
         if (el.__v9p || el.children.length || el.textContent.trim() !== "—") return;
         var fs = parseFloat(getComputedStyle(el).fontSize); if (fs < 14) return;
@@ -372,7 +375,7 @@
         setTimeout(function () { if (el.classList.contains("v9-skel")) { el.classList.remove("v9-skel"); el.classList.add("v9-na"); el.title = L("Not available right now — Arc didn't answer. It fills in by itself when it does.", "지금은 불러올 수 없어요 — Arc 응답이 오면 자동으로 채워져요.", "暂时无法读取——Arc 响应后会自动显示。"); } }, 6000);
       });
     }
-    mark(); setInterval(mark, 1500);
+    mark(); setInterval(mark, 1500); D.addEventListener("visibilitychange", mark);
   }
 
   // ---- ARCIA's button says one thing a day ----

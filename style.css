@@ -19044,3 +19044,6 @@ html.tr-on .tr-q{visibility:hidden;}
 @media (max-width:560px){.aa-stagelink{top:8px;left:8px;padding:6px 11px;font-size:.72rem;}}
 .aa-g-stage{display:inline-block;margin-top:5px;font-size:.7rem;font-weight:700;color:#9fe8ff;text-decoration:none;}
 .aa-g-stage:hover{text-decoration:underline;}
+
+/* Reduced motion, site-wide: anything that still animates finishes at once (no loops, no smooth scroll). */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
