@@ -33,6 +33,8 @@
     var idle = window.requestIdleCallback || function (f) { return setTimeout(f, 2500); };
     window.addEventListener("load", function () {
       if (navigator.connection && (navigator.connection.saveData || /2g/.test(navigator.connection.effectiveType || ""))) return;
+      // phones and tablets: the 671 KB (gz) prefetch costs metered data and battery for a tab most never open
+      try { if (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 900) return; } catch (e) { /* keep the prefetch */ }
       idle(function () {
         if (st) return;
         var l = document.createElement("link");

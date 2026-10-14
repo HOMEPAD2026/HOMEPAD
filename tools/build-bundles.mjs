@@ -52,6 +52,14 @@ export const BUNDLES = {
     "i18n-boot.js", "config-arc.js", "arc-fmt.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arcircle-plus.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
     "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-nav.js", "arc-connect.js", "arc-v9.js", "arc-v10.js", "arc-v12.js", "arc-chrome.js", "arc-a11y.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
+  // The home page (index.html). arc-log.js and i18n-boot.js stay in its <head> and world-lock.js / arc-gate.js at the
+  // top of <body> (the front door has to be up before the page paints); everything else is this one file, loaded
+  // where the separate tags were (end of <body>, not deferred: the scripts start themselves on DOMContentLoaded while
+  // the document is still "loading", in this order, exactly as the old tags did).
+  "home.bundle.js": [
+    "arc-hubpulse.js", "config-arc.js", "arc-home-live.js", "arcircle-hub.js", "arc-burnvote-chip.js", "arc-social.js", "arc-footer.js", "arc-fmt.js", "arc-home.js",
+    "arc-cmdk.js", "arc-nav.js", "arc-connect.js", "arc-v9.js", "arc-v10.js", "arc-v12.js", "arc-chrome.js", "i18n.js", "arc-glyph.js", "arc-arcia-fab.js",
+  ],
   // ARCIA on pages other than ArcPad: arc-arcia-fab.js loads this on the first tap of "Ask ARCIA"
   // (ArcPad itself gets her from arcpad-tools.bundle.js).
   "arcia.bundle.js": ["arc-order-line.js", "arc-arcia.js"],
@@ -76,6 +84,62 @@ export const CSS_PURGED = {
     scan: ["play.html", "world-play.js", "world-kit.js", "world-island.js", "world-shop.js", "world-style.js", "world-support.js", "world-combat.js", "world-rpg.js", "world-rpg-data.js", "world-zones.js", "world-quests.js", "world-social.js", "world-inbox.js", "world-race.js", "world-wardrobe.js", "world-season.js", "world-lock.js", "arc-connect.js", "i18n.js", "i18n-boot.js", "arc-log.js"],
   },
 };
+// Per-page stylesheets. arc.min.css is the whole site's styles (~1.9 MB, ~360 KB gzipped), render-blocking, and most
+// pages use a fifth of it or less. Each page below links its own cut of the same sources instead: the rules
+// whose classes and ids can appear on that page — its HTML plus every script it runs, including the ones it loads
+// later (arcpad-tools.bundle.js, ARCIA, the escrow code). The cut is deliberately loose (see pageUsage): a rule kept
+// for nothing costs a few bytes, a rule dropped by mistake breaks the page. arc.min.css is still built (updates.html,
+// which tools/build-updates.py writes, and anything new links it).
+const ARCIA_LAZY = BUNDLES["arcia.bundle.js"];
+export const CSS_PAGES = {
+  "index.min.css": ["index.html", "arc-log.js", "i18n-boot.js", "world-lock.js", "arc-gate.js", "world-gate.js", "world-kit.js", ...BUNDLES["home.bundle.js"], ...ARCIA_LAZY],
+  "arcpad.min.css": ["arcpad.html", "arc-log.js", "wallet-arc.js", ...BUNDLES["arcpad.bundle.js"], ...BUNDLES["arcpad-tools.bundle.js"]],
+  "circlepad.min.css": ["circlepad.html", "arc-log.js", ...BUNDLES["circlepad.bundle.js"], "circlepad-escrow-code.js", ...ARCIA_LAZY],
+  "arcircle.min.css": ["arcircle.html", "arc-log.js", ...BUNDLES["arcircle.bundle.js"], ...ARCIA_LAZY],
+  "reward.min.css": ["reward.html", "arc-log.js", ...BUNDLES["reward.bundle.js"], ...ARCIA_LAZY],
+  // the small pages share one: /me /stats /roadmap /brand /start /support /arcl /airdrops
+  "pages.min.css": ["me.html", "stats.html", "roadmap.html", "brand.html", "start.html", "support.html", "arcl.html", "airdrops.html", "arcl-page.js", "support-page.js", "arc-drops.js", "arc-log.js", ...BUNDLES["pages.bundle.js"], ...ARCIA_LAZY],
+};
+// The listed files plus every same-site ES module they import, statically or with import() (arcl-page.js renders
+// world-shop.js's markup, arc-gate.js loads world-gate.js, ...), followed all the way down. vendor/ is left out.
+export function withImports(files) {
+  const out = [...files];
+  for (let i = 0; i < out.length; i++) {
+    if (!/\.m?js$/.test(out[i])) continue;
+    const src = fs.readFileSync(path.join(ROOT, out[i]), "utf8");
+    for (const m of src.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["'`](?:\.\/|\/)?([\w.-]+\.m?js)/g))
+      if (!out.includes(m[1]) && fs.existsSync(path.join(ROOT, m[1]))) out.push(m[1]);
+  }
+  return out;
+}
+// What a page's sources can put in class / id attributes:
+//   used      every identifier-like word in them (so "ax-card" in a string, a template or the HTML counts)
+//   prefixes  words that something is glued onto — "ax-tab-" + name, `cp-st-${s}`, "lvl" + n — every class starting
+//             with one is kept
+//   suffixes  "-on" / `${k}-active` — every class ending with one is kept
+//   numbered  one- or two-letter words glued the same way ("t" + n, `vt${i}`): only those followed by digits (t3, vt1)
+export function pageUsage(text) {
+  const used = new Set(text.match(/[_a-zA-Z][\w-]*/g));
+  const prefixes = new Set(), suffixes = new Set(), numbered = new Set();
+  for (const w of used) if (/[-_]$/.test(w) && w.length >= 2) prefixes.add(w);
+  for (const m of text.matchAll(/([_a-zA-Z][\w-]*)(?:["'`]\s*\+|\$\{)/g)) (m[1].length >= 3 ? prefixes : numbered).add(m[1]);
+  for (const m of text.matchAll(/(?:\}|\+\s*["'`])(-[\w-]*[_a-zA-Z0-9])/g)) suffixes.add(m[1]);
+  const num = numbered.size ? new RegExp(`^(?:${[...numbered].join("|")})\\d`) : null;
+  return { used, prefixes: [...prefixes], suffixes: [...suffixes], numbered: num };
+}
+
+// @keyframes that nothing kept names (a rule's animation, or a script / inline style setting one) go too.
+export function dropUnusedKeyframes(css, used) {
+  const pieces = cssPieces(css);
+  const rest = pieces.filter((p) => !(p.pre && /^@(-webkit-)?keyframes\b/.test(p.pre))).map((p) => p.stmt || `${p.pre}{${p.body}}`).join("\n");
+  const named = new Set(rest.match(/[_a-zA-Z][\w-]*/g));
+  return pieces.map((p) => {
+    if (p.stmt) return p.stmt;
+    const k = /^@(?:-webkit-)?keyframes\s+["']?([\w-]+)/.exec(p.pre);
+    return k && !named.has(k[1]) && !used.has(k[1]) ? "" : `${p.pre}{${p.body}}`;
+  }).filter(Boolean).join("\n");
+}
+
 /// the top-level pieces of a stylesheet: { pre, body } for blocks, { stmt } for "@import …;"
 function cssPieces(css) {
   const out = []; let i = 0, n = css.length;
@@ -98,11 +162,22 @@ function cssPieces(css) {
   return out;
 }
 const splitSel = (s) => { const out = []; let d = 0, cur = ""; for (const c of s) { if (c === "(" || c === "[") d++; else if (c === ")" || c === "]") d--; if (c === "," && d === 0) { out.push(cur); cur = ""; } else cur += c; } out.push(cur); return out.map((x) => x.trim()).filter(Boolean); };
-export function purgeCss(css, used) {
-  const keepSel = (sel) => { const names = sel.replace(/\[[^\]]*\]/g, "").replace(/:(?:not|is|where|has)\(/g, "(").match(/[.#](-?[_a-zA-Z][\w-]*)/g) || []; return names.every((x) => used.has(x.slice(1))); };
+// "usage" is a Set of words (world.min.css), or pageUsage()'s { used, prefixes, suffixes } — then a name passes if a
+// prefix or suffix covers it, and whatever sits inside :not() / :is() / :where() / :has() / :nth-*() is not required
+// at all (".btn:not(.ghost)" styles every .btn even when no .ghost exists anywhere).
+export function purgeCss(css, usage) {
+  const loose = !(usage instanceof Set), used = loose ? usage.used : usage;
+  const has = !loose ? (n) => used.has(n) : (n) => used.has(n) || usage.prefixes.some((p) => n.startsWith(p)) || usage.suffixes.some((x) => n.endsWith(x)) || !!(usage.numbered && usage.numbered.test(n));
+  const unwrap = (sel) => { let out = "", d = 0; for (const c of sel) { if (c === "(") d++; else if (c === ")") d--; else if (!d) out += c; } return out; };
+  const keepSel = (sel) => {
+    let t = sel.replace(/\[[^\]]*\]/g, "");
+    t = loose ? unwrap(t) : t.replace(/:(?:not|is|where|has)\(/g, "(");
+    const names = t.match(/[.#](-?[_a-zA-Z][\w-]*)/g) || [];
+    return names.every((x) => has(x.slice(1)));
+  };
   return cssPieces(css).map((p) => {
     if (p.stmt) return p.stmt;
-    if (/^@(media|supports|container|layer)\b/.test(p.pre)) { const inner = purgeCss(p.body, used); return inner.trim() ? `${p.pre}{${inner}}` : ""; }
+    if (/^@(media|supports|container|layer)\b/.test(p.pre)) { const inner = purgeCss(p.body, usage); return inner.trim() ? `${p.pre}{${inner}}` : ""; }
     if (p.pre.startsWith("@")) return `${p.pre}{${p.body}}`;
     const sels = splitSel(p.pre).filter(keepSel);
     return sels.length ? `${sels.join(",")}{${p.body}}` : "";
@@ -238,6 +313,31 @@ export async function build({ check = false, force = false } = {}) {
     if (!force && curHash === hash && cur.length) { console.log(`${out}: up to date`); continue; }
     const used = new Set(scanned.match(/[_a-zA-Z][\w-]*/g));
     const src = cfg.purge.map((f) => purgeCss(read(f), used)).join("\n") + "\n" + cfg.keep.map(read).join("\n");
+    let code = src;
+    if (esbuild) { const r = await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none", charset: "utf8" }); code = r.code; }
+    fs.writeFileSync(dest, banner + code);
+    console.log(`${out}: ${(srcAll.length / 1024).toFixed(0)} KB of sources -> ${((banner + code).length / 1024).toFixed(0)} KB`);
+  }
+  // per-page cuts of arc.min.css (CSS_PAGES)
+  const arcSrc = CSS_BUNDLES["arc.min.css"];
+  for (const [out, listed] of Object.entries(CSS_PAGES)) {
+    const scan = withImports(listed);
+    const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+    const scanned = scan.map(read).join("\n").replace(/\?v=\d+/g, "");
+    const srcAll = "purge-v3\n" + arcSrc.map((f) => `/* ${f} */\n` + read(f)).join("\n") + "\n/* scan */\n" + scanned;
+    const hash = crypto.createHash("sha256").update(srcAll).digest("hex").slice(0, 16);
+    const banner = `/* ${out} — built by tools/build-bundles.mjs: ${arcSrc.join(", ")} cut to what ${scan[0]} and its scripts use. Do not edit; edit the sources. src:${hash} */\n`;
+    const dest = path.join(ROOT, out);
+    const cur = fs.existsSync(dest) ? fs.readFileSync(dest, "utf8") : "";
+    const curHash = (/src:([0-9a-f]{16})/.exec(cur.slice(0, 800)) || [])[1];
+    if (check) { if (curHash !== hash) stale.push(out); continue; }
+    if (!force && curHash === hash && cur.length) { console.log(`${out}: up to date`); continue; }
+    // comments name classes of other pages ("see .xl-card in style.css"); read the code without them
+    const bare = esbuild
+      ? (await Promise.all(scan.map(async (f) => /\.js$/.test(f) ? (await esbuild.transform(read(f), { minifyWhitespace: true, target: "esnext", legalComments: "none" }).catch(() => ({ code: read(f) }))).code : read(f).replace(/<!--[\s\S]*?-->/g, " ")))).join("\n")
+      : scanned;
+    const usage = pageUsage(bare);
+    const src = dropUnusedKeyframes(arcSrc.map((f) => purgeCss(read(f), usage)).join("\n"), usage.used);
     let code = src;
     if (esbuild) { const r = await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none", charset: "utf8" }); code = r.code; }
     fs.writeFileSync(dest, banner + code);
