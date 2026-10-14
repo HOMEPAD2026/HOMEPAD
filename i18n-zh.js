@@ -10843,6 +10843,12 @@
     "Stake locked": "质押锁仓完成",
     "Search & language": "搜索 · 语言",
     "Burn total is on its way": "销毁量正在加载",
+    "Controller disconnected": "手柄已断开",
+    "switch skill": "切换技能",
+    "lock on": "锁定目标",
+    "climb / descend": "上升 / 下降",
+    "switch ride": "切换坐骑",
+    "get off": "下来",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

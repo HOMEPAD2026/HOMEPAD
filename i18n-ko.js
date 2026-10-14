@@ -10673,6 +10673,12 @@
     "Stake locked": "스테이킹 락업 완료",
     "Search & language": "검색 · 언어",
     "Burn total is on its way": "소각량을 불러오고 있어요",
+    "Controller disconnected": "컨트롤러 연결이 끊겼어요",
+    "switch skill": "스킬 바꾸기",
+    "lock on": "대상 고정",
+    "climb / descend": "오르기 / 내려오기",
+    "switch ride": "탈것 바꾸기",
+    "get off": "내리기",
   };
 
 
