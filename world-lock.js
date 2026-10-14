@@ -83,7 +83,7 @@
       var go = el.querySelector(closed ? ".wl-gm" : ".wl-go"), bad = el.querySelector(".wl-bad"), meter = el.querySelector(".wl-meter");
       setTimeout(function () { (closed ? el.querySelector(".wl-back") : go).focus(); }, 30);
       function done(v) { el.remove(); document.documentElement.classList.remove("wl-open"); document.removeEventListener("keydown", onKey, true); resolve(v); }
-      function onKey(e) { if (e.key === "Escape") { e.stopPropagation(); if (o.cancelHref) location.href = o.cancelHref; else done(false); } }
+      function onKey(e) { if (e.key === "Escape") { e.stopPropagation(); if (o.cancelHref) (window.__arcFrame ? window.top : window).location.href = o.cancelHref; else done(false); } }
       document.addEventListener("keydown", onKey, true);
       el.querySelector(".wl-back").addEventListener("click", function (e) { if (!o.cancelHref) { e.preventDefault(); done(false); } });
       function say(t, good) { bad.textContent = t; bad.hidden = !t; bad.classList.toggle("good", !!good); }

@@ -14,10 +14,12 @@
 // on the server; without it (guest), progress stays in this browser (localStorage "arc.world"). Settings live in
 // "arc.world.set". Who's online and how many have visited come from the same API (heartbeat every 50 s).
 // Who may enter Game World follows world-lock.js PHASE (the open beta: everyone); the Platform World stays open.
+// a computer showing the game in a smaller window or as a phone (play.html, b416): this page is only the frame around it
+if (window.__arcShell) await new Promise(() => {});
 if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
   document.getElementById("wp-loading").hidden = true;
   if (window.arcWorldLock) await window.arcWorldLock.ask({ cancelHref: "/?skip" });
-  else { location.replace("/?skip"); await new Promise(() => {}); }
+  else { (window.__arcFrame ? window.top : window).location.replace("/?skip"); await new Promise(() => {}); }
   document.getElementById("wp-loading").hidden = false;
 }
 const VER = new URL(import.meta.url).search;
@@ -809,6 +811,8 @@ addEventListener("blur", () => keys.clear());
 const joyEl = $("wp-joy"), knob = joyEl.querySelector("i");
 let downAt = null, hoverXY = null, pinch = null;
 const JOYMAX = document.documentElement.classList.contains("wp-pcphone") ? 118 : 56;
+// the phone frame on a computer (b416): the mouse works the stick like a thumb (press on the left half and drag)
+const mouseStick = window.__arcFrame === "mobile";
 const touches = new Map(); // non-stick touches: two of them pinch to zoom
 cv.addEventListener("contextmenu", (e) => { if (mode === "island") e.preventDefault(); });
 cv.addEventListener("pointerdown", (e) => {
@@ -822,12 +826,12 @@ cv.addEventListener("pointerdown", (e) => {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); const [a, b] = [...touches.values()];
     pinch = { d: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), cd: camDist, live: false }; look = null; return;
   }
-  const willJoy = !photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy;
+  const willJoy = !photo && (e.pointerType !== "mouse" || mouseStick) && e.clientX < innerWidth * 0.5 && !joy;
   if (e.pointerType === "touch" && !willJoy) {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.size === 2) { const [a, b] = [...touches.values()]; if (Math.hypot(a.x - b.x, a.y - b.y) < innerWidth * 0.42) { pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camDist, live: false }; look = null; return; } touches.delete(e.pointerId); }
   }
-  if (!photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy) {
+  if (!photo && (e.pointerType !== "mouse" || mouseStick) && e.clientX < innerWidth * 0.5 && !joy) {
     joy = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0 };
     joyEl.style.left = e.clientX + "px"; joyEl.style.top = e.clientY + "px"; joyEl.classList.add("on"); knob.style.transform = "";
   } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
@@ -1549,7 +1553,7 @@ function enter(n) {
   if (n.kind === "isle-exit") { leaveIsland(); return; }
   if (n.kind === "village") { if (n.mine) openVillage(); else village.show("contest"); return; }
   if (n.kind === "resident") { island.talk(n.res); return; }
-  if (n.kind === "portal") { location.href = "/?skip"; return; }
+  if (n.kind === "portal") { (window.__arcFrame ? window.top : window).location.href = "/?skip"; return; }
   if (n.kind === "pad") { openMap(); return; }
   if (n.kind === "bounty") { if (quests && rpg) { quests.setTab("daily"); rpg.show("log"); } return; }
   if (n.kind === "race") { race.start(); return; }
@@ -2549,7 +2553,15 @@ function maybeGuide() { if (!P.guideSeen && auth.hidden && make.hidden && guide.
 
 // phones: the compact (PC-style) layout or the large one; applied on reload (play.html sets the viewport)
 const VP = (() => { try { return localStorage.getItem("arc.world.vp") || "pc"; } catch { return "pc"; } })();
-if (coarse) { $("wp-set-vp-row").hidden = false; $("wp-set-vp").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vp === VP))); }
+// the screen on a computer (play.html, world-shell.js): the whole window, a smaller window, or a phone; the page around
+// the game is reloaded with the choice
+{ const cur = window.__arcFrame || "full";
+  if (window.__arcFrame || !coarse) {
+    $("wp-set-view-row").hidden = false; $("wp-set-view-l").textContent = T("Screen");
+    $("wp-set-view").querySelectorAll("button").forEach((b) => { b.textContent = T({ full: "Full", window: "Window", mobile: "Mobile" }[b.dataset.view]); b.setAttribute("aria-pressed", String(b.dataset.view === cur)); });
+    $("wp-set-view").addEventListener("click", (e) => { const b = e.target.closest("button[data-view]"); if (!b || b.dataset.view === cur) return; try { localStorage.setItem("arc.world.view", b.dataset.view); } catch { /* private */ } window.top.location.reload(); });
+  } }
+if (coarse && window.__arcFrame !== "mobile") { $("wp-set-vp-row").hidden = false; $("wp-set-vp").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vp === VP))); }
 $("wp-set-guide").addEventListener("click", () => { closeSet(); openGuide(); });
 $("wp-set-vp").addEventListener("click", (e) => { const b = e.target.closest("button[data-vp]"); if (!b || b.dataset.vp === VP) return; try { localStorage.setItem("arc.world.vp", b.dataset.vp); } catch { /* private */ } location.reload(); });
 $("wp-set-snd").addEventListener("change", (e) => Snd.set(e.target.checked));
@@ -2713,7 +2725,7 @@ if (brandA) {
   brandM.addEventListener("click", (e) => {
     const b = e.target.closest("[data-bm]"); if (!b) return; brandM.hidden = true; brandA.setAttribute("aria-expanded", "false");
     const k = b.dataset.bm;
-    if (k === "mine") goIsland({}); else if (k === "random") island.tour(); else if (k === "list") island.openIsles(); else if (k === "platform") location.href = brandA.getAttribute("href") || "/?skip";
+    if (k === "mine") goIsland({}); else if (k === "random") island.tour(); else if (k === "list") island.openIsles(); else if (k === "platform") (window.__arcFrame ? window.top : window).location.href = brandA.getAttribute("href") || "/?skip";
   });
   document.addEventListener("pointerdown", (e) => { if (!brandM.hidden && !brandM.contains(e.target) && !brandA.contains(e.target)) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); } });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !brandM.hidden) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); brandA.focus(); } });
@@ -3087,7 +3099,7 @@ addEventListener("popstate", () => {
 });
 leaveEl.addEventListener("click", (e) => {
   if (e.target.id === "wp-leave-stay" || e.target === leaveEl) closeLeave();
-  if (e.target.id === "wp-leave-go") { leaving = true; cloudSave(); history.go(-2); setTimeout(() => { location.href = "/"; }, 500); }
+  if (e.target.id === "wp-leave-go") { leaving = true; cloudSave(); history.go(-2); setTimeout(() => { (window.__arcFrame ? window.top : window).location.href = "/"; }, 500); }
 });
 guard();
 $("wp-set-help").addEventListener("click", () => openHelp());
