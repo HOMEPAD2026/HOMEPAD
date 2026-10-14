@@ -10658,6 +10658,10 @@
     "Bought {n} of {n} this season": "이번 시즌 {n}회 모두 구매했어요",
     "Sign in to buy": "로그인하고 구매하기",
     "Buy for {n} $ARCIRCLE": "{n} $ARCIRCLE로 구매",
+    "Screen": "화면",
+    "Full": "전체",
+    "Window": "창 모드",
+    "Mobile": "모바일",
   };
 
 

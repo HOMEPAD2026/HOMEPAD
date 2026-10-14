@@ -10828,6 +10828,10 @@
     "Bought {n} of {n} this season": "本赛季已购满 {n} 次",
     "Sign in to buy": "登录后购买",
     "Buy for {n} $ARCIRCLE": "以 {n} $ARCIRCLE 购买",
+    "Screen": "画面",
+    "Full": "全屏",
+    "Window": "窗口",
+    "Mobile": "手机",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
