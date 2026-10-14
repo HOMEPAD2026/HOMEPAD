@@ -183,14 +183,25 @@ async function resumeSession() {
   const s = sess(); if (!s) return;
   // already signed in with this signature: no new sign-in, but the closed beta's reward is still asked for (b411: it
   // only came with a fresh sign-in, so a player who stayed signed in across the open beta's start never got it)
-  try { if (localStorage.getItem(LOGGED) === s.issued) { setTimeout(() => cbtReward({ eligible: true }), 1500); return; } } catch { return; }
+  // b417: the server's save is read on every visit, not only on a new sign-in: progress made on another device since
+  // (a phone, then this computer) is loaded instead of this browser's older copy being shown, and saved over it
   const r = await post({ action: "world-login", ...s }).catch(() => null);
   if (!r || !r.ok) return;
   try { localStorage.setItem(LOGGED, s.issued); } catch { /* private */ }
   loggedIn(r, true);
 }
+// starting over (Settings → Reset): the next save says so, and the server's progress isn't loaded back in
+const resetting = (() => { try { return localStorage.getItem("arc.world.reset") === "1"; } catch { return false; } })();
+// the server's progress, newer than this browser's: taken over (PROGRESS fields), kept here, then the game reloads so
+// every part of it (level, gear, quests) starts from it
+function takeServer(sv, why) {
+  if (sv.xpv !== RPG.XP_VERSION) { sv.xp = RPG.xpFromOld(sv.xp); sv.xpv = RPG.XP_VERSION; }
+  PROGRESS.forEach((k) => { if (sv[k] != null && sv[k] !== "") P[k] = sv[k]; }); P.ep = EPOCH;
+  try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ }
+  toast(why); setTimeout(() => location.reload(), 1600);
+}
 function loggedIn(r, quiet) {
-  const sv = r.j.save && (r.j.save.ep || 1) === EPOCH ? r.j.save : null; // never an earlier test's progress
+  const sv = !resetting && r.j.save && (r.j.save.ep || 1) === EPOCH ? r.j.save : null; // never an earlier test's progress
   if (sv && sv.xpv !== RPG.XP_VERSION) { sv.xp = RPG.xpFromOld(sv.xp); sv.xpv = RPG.XP_VERSION; } // a save from the old level curve
   if (sv && (sv.xp || 0) > P.xp) { PROGRESS.forEach((k) => { if (sv[k] != null && sv[k] !== "") P[k] = sv[k]; }); try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } toast(T("Welcome back, {name}. Your progress is loaded.", { name: P.name || "" })); }
   else { if (!quiet || r.j.firstTime) toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
@@ -242,7 +253,10 @@ async function cloudSave() {
   const s = sess(); if (!s) return;
   const data = {}; PROGRESS.forEach((k) => (data[k] = P[k]));
   let retry = 0;
-  try { const r = await post({ action: "world-save", ...s, data }); if (r.status === 400 && /expired/.test(r.j.error || "")) { try { localStorage.setItem(SESS, JSON.stringify({ ...s, issued: new Date(0).toISOString() })); } catch { /* private */ } paintAcct(); }
+  try { const r = await post({ action: "world-save", ...s, data, ...(resetting ? { reset: true } : {}) });
+    if (r.ok && resetting) { try { localStorage.removeItem("arc.world.reset"); } catch { /* private */ } }
+    if (r.status === 409 && r.j.behind && r.j.save) { takeServer(r.j.save, T("Your newer progress from another device is loaded.")); return; }
+    if (r.status === 400 && /expired/.test(r.j.error || "")) { try { localStorage.setItem(SESS, JSON.stringify({ ...s, issued: new Date(0).toISOString() })); } catch { /* private */ } paintAcct(); }
     else if (r.status === 429) retry = 9000; else if (!r.ok && r.status >= 500 && r.status !== 503) retry = Math.min(120e3, 10e3 * 2 ** saveFails); else if (r.ok) { saveFails = 0; paintSaveNote(); } }
   catch { retry = Math.min(120e3, 10e3 * 2 ** saveFails); }
   if (retry) { saveFails++; paintSaveNote(); clearTimeout(saveRetryT); saveRetryT = setTimeout(cloudSave, retry); }
@@ -2587,7 +2601,7 @@ $("wp-set-char").addEventListener("click", () => { closeSet(); openMake(); });
 let resetArm = 0;
 $("wp-set-reset").addEventListener("click", (e) => {
   if (Date.now() - resetArm > 3000) { resetArm = Date.now(); e.currentTarget.textContent = T("Tap again to reset"); return; }
-  try { localStorage.removeItem(SAVE); } catch { /* private */ } location.reload();
+  try { localStorage.removeItem(SAVE); localStorage.setItem("arc.world.reset", "1"); } catch { /* private */ } location.reload();
 });
 // photo mode: the HUD steps aside, drag to frame the shot, then save or share it
 let photoFilter = "none", photoSticker = 0, photoHour = null, photoDof = 0;

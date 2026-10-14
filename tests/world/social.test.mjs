@@ -91,7 +91,7 @@ r = await W.read(new URL("http://x/api/social?world=plaza")); check(r.body.isle 
 // ---- the directory, gifts, guestbook replies, race times, named wanderers ----
 {
   const rd = async (q) => W.read(new URL("http://x/api/social?world=" + q));
-  T += 9000; r = await W.handle({ action: "world-save", ...me, data: { xp: 1250, name: "kmp", char: "arc-luna", rpg: { x: { title: "k10", seen: { spam: 3, drop: 1 } } }, beaten: ["phisher"] } });
+  T += 9000; r = await W.handle({ action: "world-save", ...me, reset: true, data: { xp: 1250, name: "kmp", char: "arc-luna", rpg: { x: { title: "k10", seen: { spam: 3, drop: 1 } } }, beaten: ["phisher"] } }); // below the 1,900 set above: a start-over (b417)
   check(r.status === 200, "saved");
   r = await rd("players"); const row = (r.body.list || []).find((x) => x.w === A);
   check(row && row.name === "kmp" && row.lv === 13 && row.char === "arc-luna" && row.t === "k10" && row.cx === 3 && r.body.n >= 1, "the directory has the player: name, level, character, title, codex pages");

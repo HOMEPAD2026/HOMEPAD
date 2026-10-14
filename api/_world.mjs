@@ -285,6 +285,10 @@ export function make(deps) {
     const key = `worldSave/${s.wallet}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const data = cleanSave(b.data);
+    // b417: a save behind the stored one (another device has played on since: a phone at level 30, a computer still
+    // showing level 20) is refused, and the newer progress is sent back for the game to load. It used to be taken as
+    // "the player's own choice", so the older device wrote over the newer progress. Starting over says so (reset).
+    if (old && !b.reset) { const oldXp = old.xpv === XP_VERSION ? old.xp || 0 : xpFromOld(old.xp); if (data.xp < oldXp) return json(409, { error: "your progress on another device is newer", behind: true, save: old }); }
     if (data.rpg && data.rpg.bag.length > BAG_BASE) data.rpg.bag = data.rpg.bag.slice(0, bagSize(await shop.own(s.wallet)));
     // changing the character or the name (once they're set) takes a Character change (10,000 $ARCIRCLE); a name-only
     // change can also use an old ARCL Name change. Without one, the old character and name stay.
@@ -310,7 +314,8 @@ export function make(deps) {
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
     // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.
     const boostK = (Number((await shop.own(s.wallet).catch(() => ({}))).xpBoostUntil) || 0) > now() ? 2 : 1;
-    const g = await xpGuard(s.wallet, old, data.xp, boostK);
+    // GM wallets (the team's own testing) aren't paced
+    const g = isGM(s.wallet) ? { xp: data.xp, gain: 0, cut: 0, bank: old && old.xb != null ? old.xb : 0, dayKey: "" } : await xpGuard(s.wallet, old, data.xp, boostK);
     data.xp = g.xp;
     await setDoc(key, { ...data, at: now(), xb: g.bank });
     if (g.gain > 0) await commit([{ inc: g.dayKey, fields: { n: g.gain } }]).catch(() => {});

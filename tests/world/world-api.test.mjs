@@ -53,8 +53,10 @@ check(r.status === 429, "saving again within 8 s: refused");
   db.set(`worldXpDay/${me}_${new Date(T + 9 * 3600e3).toISOString().slice(0, 10)}`, { n: SRV.xpPerMin(SRV.levelOfXp(sv().xp)) * SRV.XP_RULES.dayMin });
   T += 600e3; const x3 = sv().xp; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: x3 + 5000, xpv: 2 } });
   check(sv().xp === x3, "a day's XP limit reached: nothing more today");
-  T += 9e3; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 50, xpv: 2 } });
-  check(sv().xp === 50, "less XP than before is the player's own choice");
+  T += 9e3; const hi = sv().xp; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 50, xpv: 2 } });
+  check(r.status === 409 && r.body.behind && r.body.save && r.body.save.xp === hi && sv().xp === hi, "a save behind the stored one (an older device): refused, and the newer progress is sent back");
+  T += 9e3; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 50, xpv: 2 }, reset: true });
+  check(r.status === 200 && sv().xp === 50, "starting over (reset): less XP is taken");
   const w2 = ethers.Wallet.createRandom(), sig2 = await w2.signMessage(loginMessage(w2.address, issued));
   r = await W.handle({ action: "world-save", wallet: w2.address, issued, signature: sig2, data: { xp: 5e6, xpv: 2 } });
   check(db.get("worldSave/" + w2.address.toLowerCase()).xp === SRV.xpAt(SRV.XP_RULES.firstLv), "a first save brings at most level 30, not level 200"); }
