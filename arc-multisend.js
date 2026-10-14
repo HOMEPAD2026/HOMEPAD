@@ -1630,7 +1630,7 @@
     let lT;
     ta().addEventListener("input", () => { paintGutter(); paintStarts(); clearTimeout(lT); lT = setTimeout(reparse, 180); });
     ta().addEventListener("paste", () => setTimeout(sweep, 0));
-    ta().addEventListener("scroll", () => { $("ams-gutter").scrollTop = ta().scrollTop; });
+    ta().addEventListener("scroll", () => { $("ams-gutter").scrollTop = ta().scrollTop; }, { passive: true });
     $("ams-same").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\d.,]/g, ""); clearTimeout(lT); lT = setTimeout(reparse, 150); });
     $("ams-mixed").addEventListener("change", reparse);
     $("ams-file").addEventListener("change", (e) => {

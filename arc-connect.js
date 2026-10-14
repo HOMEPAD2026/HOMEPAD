@@ -400,8 +400,8 @@
   // ---------------- app pages: follow the page's own wallet ----------------
   function follow() {
     var last = null;
-    setInterval(function () {
-      if (!appMode()) return;
+    var sync = function () {
+      if (D.hidden || !appMode()) return;
       var a = api.address(), key = a + "|" + chainId() + "|" + solOn();
       if (key === last) return;
       var was = last;
@@ -409,7 +409,9 @@
       if (a) remember(a); else if (was && ls.get(OFF) === "1") ls.set(KEY, null);
       if (a && was !== null && was.split("|")[0] === "") morph();
       paint(); emit(); claims();
-    }, 500);
+    };
+    setInterval(sync, 500);
+    D.addEventListener("visibilitychange", sync);
     // ArcPad's connect from another page: /arc?connect=1 opens it once the page is ready
     if (/[?&]connect=1\b/.test(location.search) && appMode()) {
       setTimeout(function () { if (!api.address()) api.connect(); try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) { /* fine */ } }, 1200);
@@ -423,7 +425,7 @@
     setTimeout(claims, 2500);
     // the bar is rebuilt on a language change
     D.addEventListener("arc:lang", function () { setTimeout(function () { root = null; api.mount(); }, 80); });
-    setInterval(function () { var r = D.querySelector(".anav-right"); if (r && !r.querySelector(".cw-b")) { root = null; api.mount(); } }, 1000);
+    setInterval(function () { if (D.hidden) return; var r = D.querySelector(".anav-right"); if (r && !r.querySelector(".cw-b")) { root = null; api.mount(); } }, 1000);
   }
   if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", function () { setTimeout(init, 0); }); else setTimeout(init, 0);
 })();

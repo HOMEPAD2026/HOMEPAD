@@ -600,13 +600,14 @@ async function initCirclepadRound() {
   wireCirclepadRefund();
 
   if (_circlepadCountdownTimer) clearInterval(_circlepadCountdownTimer);
-  _circlepadCountdownTimer = setInterval(updateCirclepadCountdown, 1000);
+  _circlepadCountdownTimer = setInterval(() => { if (!document.hidden) updateCirclepadCountdown(); }, 1000);
 
   // Light polling for totals/leaderboard so other people's contributions
   // show up without a page reload. A contribution made from THIS tab
   // already triggers its own immediate refresh (see wireCirclepadContribute).
   if (_circlepadPollTimer) clearInterval(_circlepadPollTimer);
   _circlepadPollTimer = setInterval(() => {
+    if (document.hidden) return; // a background tab skips the poll; coming back refreshes at once (below)
     refreshCirclepadCore();
     refreshCirclepadLeaderboard();
   }, 15000);
@@ -1086,6 +1087,14 @@ window.cpCatCount = () => CIRCLEPAD_VOTE_CATEGORIES.length;
 
 let _circlepadGovPollTimer = null;
 let _govClockTimer = null;
+// The polls and clocks above sit still while the tab is hidden; when it comes back, catch up once.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  if (_circlepadCountdownTimer) updateCirclepadCountdown();
+  if (_circlepadPollTimer) { refreshCirclepadCore(); refreshCirclepadLeaderboard(); }
+  if (_circlepadGovPollTimer) refreshCirclepadGovernance();
+  if (_govClockTimer) tickGovClocks();
+});
 let _govSkew = 0; // chain time minus this device's clock, seconds
 let _govLast = null; // last rendered state
 const _govDrafts = new Map(); // category → option drafts, survive the 15s refresh
@@ -1227,8 +1236,8 @@ async function initCirclepadGovernance() {
   paintCirclepadGovernanceFromCache(); // instant on a return visit; real fetch overwrites it below
   await refreshCirclepadGovernance();
   if (_circlepadGovPollTimer) clearInterval(_circlepadGovPollTimer);
-  _circlepadGovPollTimer = setInterval(refreshCirclepadGovernance, 15000);
-  if (!_govClockTimer) _govClockTimer = setInterval(tickGovClocks, 1000);
+  _circlepadGovPollTimer = setInterval(() => { if (!document.hidden) refreshCirclepadGovernance(); }, 15000);
+  if (!_govClockTimer) _govClockTimer = setInterval(() => { if (!document.hidden) tickGovClocks(); }, 1000);
 }
 
 // Three small batched rounds rather than one call per category/option:

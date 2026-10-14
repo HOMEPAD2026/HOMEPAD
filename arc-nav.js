@@ -158,7 +158,7 @@ try {
     root.setAttribute("data-no-i18n", "");
     root.innerHTML =
       '<div class="anav-in">' +
-        '<a class="anav-logo" href="/" aria-label="ARCIRCLE PAD — ' + esc(t("Home")) + '"><img src="/images/arcircle-mark-sm.png" alt="" width="160" height="111"><span>ARCIRCLE</span></a>' +
+        '<a class="anav-logo" href="/" aria-label="ARCIRCLE PAD — ' + esc(t("Home")) + '"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>ARCIRCLE</span></a>' +
         '<div class="anav-groups" role="navigation" aria-label="' + esc(t("Menu")) + '">' +
           GROUPS.map(function (g) {
             return '<div class="anav-g' + (here[0] === g.id ? " here" : "") + '" data-g="' + g.id + '">' +
@@ -170,7 +170,7 @@ try {
           '<button type="button" class="anav-ic anav-search" aria-label="' + esc(t("Search")) + '" hidden>' + svg("search") + "</button>" +
           '<div class="anav-lang"><button type="button" class="anav-ic anav-lb" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(t("Language")) + '">' + lang().toUpperCase() + "</button>" +
             '<div class="anav-lmenu" hidden>' + LANGS.map(function (l) { return '<button type="button" data-l="' + l[0] + '"' + (lang() === l[0] ? ' aria-current="true"' : "") + ">" + l[1] + "</button>"; }).join("") + "</div></div>" +
-          '<a class="anav-chip" href="/arcircle" title="$ARCIRCLE — ' + esc(t("The core coin")) + '"><img src="/images/arcircle-mark-sm.png" alt="" width="160" height="111"><span>$ARCIRCLE</span></a>' +
+          '<a class="anav-chip" href="/arcircle" title="$ARCIRCLE — ' + esc(t("The core coin")) + '"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>$ARCIRCLE</span></a>' +
           '<a class="anav-chip" href="/arcia" title="$ARCIA — ' + esc(t("ARCIA's coin")) + '"><img src="/images/arcia-avatar-96.jpg" alt="" width="96" height="96" class="r"><span>$ARCIA</span></a>' +
           '<div class="cw"></div>' + // the wallet button: arc-connect.js fills it (the same one on every page)
         "</div>" +
