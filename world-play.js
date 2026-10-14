@@ -395,7 +395,7 @@ try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
 loadbar(0.15);
 // bloom only on what glows: the white halls lit by the sun stay under the threshold (a wider, stronger bloom washed the
 // whole screen white on phones when a hall or an arch was close to the camera)
-const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomThreshold: 1.15, fov: 55, shadows: true, quality: S.quality, groundY: 0, post: true,
+const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomThreshold: 1.15, fov: 55, shadows: true, quality: S.quality, groundY: 0, post: true, look: { toon: 0.4 }, // look: the stylized finish (world-kit.js stylize)
   // the graphics context gone for good (rare: a phone short on memory): a way back in
   onLost: () => { if (document.querySelector(".wp-lost")) return; const el = document.createElement("div"); el.className = "wp-leave wp-lost"; el.setAttribute("role", "alertdialog"); el.innerHTML = `<div class="wp-card wp-leave-card"><h2>${esc(T("The graphics paused"))}</h2><p>${esc(T("Your phone needed the memory back. Your progress is saved."))}</p><div class="wp-leave-btns"><button type="button" class="wp-cta" data-reload>${esc(T("Reload the game"))}</button></div></div>`; el.addEventListener("click", (e) => { if (e.target.closest("[data-reload]")) location.reload(); }); document.body.appendChild(el); },
   onRestored: () => { document.querySelectorAll(".wp-lost").forEach((e) => e.remove()); },
@@ -443,6 +443,8 @@ const groundG = K.makeGround(); planet.add(groundG);
 const farCull = (() => {
   const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles"]);
   const CONT = ["decor", "life", "zones"], R = st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, box = new THREE.Box3(), sph = new THREE.Sphere();
+  // b420: on a computer at Medium / Ultra what's culled dissolves over its last 10 m instead of popping (K.fadeLook)
+  const FADE = !st.quality.coarse && (postLevel === "medium" || postLevel === "ultra") && K.fadeLook;
   let list = [], at = 0, scanAt = -1e9, hidden = new Set(), sig = "";
   // what's in the world, cheaply: a new scan only when this changes (b413: a full scan every 15 s walked every object in
   // the world, a regular stutter while moving), or at most once a minute
@@ -450,18 +452,18 @@ const farCull = (() => {
   function scan() {
     list = []; planet.updateMatrixWorld(true);
     const inv = new THREE.Matrix4().copy(planet.matrixWorld).invert();
-    const add = (o) => { if (!o.visible && !hidden.has(o)) return; box.setFromObject(o); if (box.isEmpty()) return; box.applyMatrix4(inv); box.getBoundingSphere(sph); if (sph.radius > 60) return; list.push({ o, c: sph.center.clone(), r: sph.radius }); };
+    const add = (o) => { if (!o.visible && !hidden.has(o)) return; box.setFromObject(o); if (box.isEmpty()) return; box.applyMatrix4(inv); box.getBoundingSphere(sph); if (sph.radius > 60) return; list.push({ o, c: sph.center.clone(), r: sph.radius }); if (FADE) o.traverse((m) => { if (m.isMesh && m.material) [].concat(m.material).forEach(K.fadeLook); }); };
     for (const c of planet.children) { if (SKIP.has(c.name)) { if (CONT.includes(c.name)) c.children.forEach(add); continue; } add(c); }
   }
   function tick() {
     const now = performance.now(); if (now - at < 400) return; at = now;
     if (now - scanAt > 60000 || (now - scanAt > 2000 && sigNow() !== sig)) { sig = sigNow(); const was = [...hidden]; was.forEach((o) => { o.visible = true; }); hidden.clear(); scan(); scanAt = now; }
-    const px = -planet.position.x, pz = -planet.position.z, on = mode === "hub";
+    const px = -planet.position.x, pz = -planet.position.z, on = mode === "hub"; if (FADE) K.FADE.value = on ? R : 1e6;
     for (const it of list) { const far = on && Math.hypot(it.c.x - px, it.c.z - pz) - it.r > R;
       if (far && it.o.visible) { it.o.visible = false; hidden.add(it.o); } else if (!far && hidden.has(it.o)) { it.o.visible = true; hidden.delete(it.o); } }
   }
   function all(fn) { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); try { return fn(); } finally { was.forEach((o) => { if (hidden.has(o)) o.visible = false; }); } }
-  return { tick, all, rescan: () => { scanAt = -1e9; } };
+  return { tick, all, rescan: () => { scanAt = -1e9; }, prep: () => { if (FADE) { scan(); scanAt = performance.now(); sig = sigNow(); } } };
 })();
 st.on(() => { try { farCull.tick(); } catch { /* still loading */ } });
 // the frame count, and the sun's shadow map redrawn every other frame below Ultra (the sun stands still; only the
@@ -476,8 +478,11 @@ const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "a
 // every character made from here on: the asset packs' palette (not the ARC Bots, drawn in it already) and a dark rim
 // and a cool rim of light (all presets but Saver)
 if (K.setCharHook) K.setCharHook((obj, arc) => { if (!lowGfx) { if (!arc) ENV.unifyPalette(obj); if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); } if (S.quality !== "saver" && ENV.rimLight) ENV.rimLight(obj); });
-const sky = lowGfx ? K.makeSky() : ENV.makeSkyDome({ lite: st.quality.coarse }); st.scene.add(sky);
-if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
+// (b420: every preset but Saver has the cumulus now; the dome reads them from a table baked once, cheaper than before)
+const sky = S.quality === "saver" ? K.makeSky() : ENV.makeSkyDome({ lite: st.quality.coarse || lowGfx }); st.scene.add(sky);
+if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); try { sky.userData.bake(st.renderer); } catch (e) { console.warn("sky:", e); } st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
+// Low has no picture chain (world-post.js), so its vignette is a still layer over the canvas: no pass of its own
+if (postLevel === "low" && S.quality !== "saver") { const v = document.createElement("div"); v.className = "wp-vig"; v.setAttribute("aria-hidden", "true"); v.style.cssText = "position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at 50% 50%,transparent 55%,rgba(12,30,56,.24) 100%)"; cv.after(v); }
 // rolling hills round the edge of the world (world-env.js) in place of the old round blobs
 st.on((dt, t) => { if (K.arcTick) K.arcTick(dt, planet.position); LOOK.lookOrigin.value.copy(planet.position); ENV.CLOUD.t.value = t; try { if (sky.material.uniforms.uT) sky.material.uniforms.uT.value = t; } catch { /* sky not made yet */ } });
 // the town's lights pulse with the music's beat (the light lines, the plaza rings); stronger on a concert night
@@ -3122,9 +3127,9 @@ if (coarse) $("wp-keys").hidden = true; else $("wp-acts").hidden = true;
 
 // ---------------- day and night (Seoul time) ----------------
 // a blue day sky over the ground, stars and the far planets at night (?hour=21 tries another hour)
-const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x2a66c4), mid: new THREE.Color(0x76b0e4), glow: new THREE.Color(0xd2e8f0) }, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x07102a), glow: new THREE.Color(0x173452) }, DUSK = new THREE.Color(0xf0a070);
+const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x0e4ed2), mid: new THREE.Color(0x2c9af2), glow: new THREE.Color(0x92d8fc) } /* b420: a clear, saturated anime blue, light cyan at the horizon (deeper than it reads: tone mapping pales it) */, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x07102a), glow: new THREE.Color(0x173452) }, DUSK = new THREE.Color(0xf0a070);
 const HALLOW_FOG = new THREE.Color(0x2a1840); // Halloween nights: a violet fog
-const FOG = { day: new THREE.Color(0x9ec6e8), /* a bluer day haze: distance reads as air, not milk */ night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
+const FOG = { day: new THREE.Color(0xb0dcf6), /* a bluer day haze: distance reads as air, not milk (b420: the horizon's light cyan) */ night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
 const hourParam = Number(new URLSearchParams(location.search).get("hour"));
 let nightK = -1, skyOverride = "";
 // island skies from the ARCL Shop
@@ -3169,11 +3174,11 @@ const skyEnv = (() => {
 // the air for the post chain: low fog thicker at dawn, dusk and night and in some grounds, sun shafts by day, heat over lava
 const AIR_FOG = { swamp: 0.018, peaks: 0.01, void: 0.008, wastes: 0.012, reef: 0.01, depths: 0.008, abyss: 0.006 };
 function airFor(k, dusk, zz) {
-  const id = zz ? zz.id : "", col = new THREE.Color(0xdfe8f0).lerp(new THREE.Color(0x1a2440), k).lerp(new THREE.Color(0xf0c8a0), dusk);
+  const id = zz ? zz.id : "", col = new THREE.Color(0xbfe6fb).lerp(new THREE.Color(0x1a2440), k).lerp(new THREE.Color(0xf0c8a0), dusk);
   if (zz) col.lerp(new THREE.Color(zz.fog), 0.6);
-  return { fog: 0.0015 + dusk * 0.012 + k * 0.004 + (AIR_FOG[id] || 0), color: col, rays: (1 - k) * (0.25 + dusk * 0.6) * (/^(abyss|void|depths)$/.test(id) ? 0.3 : 1), heat: id === "abyss" ? 1 : 0, sunColor: st.sun.color };
+  return { fog: 0.0008 + dusk * 0.012 + k * 0.0047 + (AIR_FOG[id] || 0), color: col, rays: (1 - k) * (0.25 + dusk * 0.6) * (/^(abyss|void|depths)$/.test(id) ? 0.3 : 1), heat: id === "abyss" ? 1 : 0, sunColor: st.sun.color };
 }
-const CLOUD = { night: new THREE.Color(0x3a4660), dusk: new THREE.Color(0xffc8a0), shade: new THREE.Color(0xa8b8cc), nshade: new THREE.Color(0x141a2a), dshade: new THREE.Color(0xc87a7a) };
+const CLOUD = { night: new THREE.Color(0x3a4660), dusk: new THREE.Color(0xffc8a0), shade: new THREE.Color(0xb2cdf2), /* a soft blue underside */ nshade: new THREE.Color(0x141a2a), dshade: new THREE.Color(0xc87a7a) };
 function dayNight() {
   const d = new Date(Date.now() + 9 * 3600e3);
   const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
@@ -3191,7 +3196,7 @@ function dayNight() {
   st.sun.intensity = 2.15 * (1 - k * 0.62); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
   st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; if (ENV.rimStrength) ENV.rimStrength.value = 0.16 + k * 0.18; st.renderer.toneMappingExposure = 0.8 + k * 0.22; /* a calmer day: the white plaza was glaring */
   const mist = h >= 5 && h < 8.5 ? Math.sin(((h - 5) / 3.5) * Math.PI) : 0; // early morning: a mist that lifts by half past eight
-  if (st.scene.fog) st.scene.fog.density = 0.0028 + k * 0.0028 + mist * 0.006; ENV.CLOUD.k.value = Math.max(0, 1 - k * 1.4) * ((() => { try { return mood === "rain"; } catch { return false; } })() ? 1.4 : 1); /* cloud shadows by day, more on a rainy one */ st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
+  if (st.scene.fog) st.scene.fog.density = (st.quality.coarse ? 0.0024 : 0.0016) + k * (st.quality.coarse ? 0.0032 : 0.004) + mist * 0.006; /* b420: a clearer day, far hills keep their colour (phones a little less: their culling at 110 m has no fade); nights as before */ ENV.CLOUD.k.value = Math.max(0, 1 - k * 1.4) * ((() => { try { return mood === "rain"; } catch { return false; } })() ? 1.4 : 1); /* cloud shadows by day, more on a rainy one */ st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
   if (st.scene.fog) st.scene.fog.color.copy(FOG.day).lerp(FOG.night, k).lerp(FOG.dusk, dusk * 0.5); if (halloween && st.scene.fog) st.scene.fog.color.lerp(HALLOW_FOG, k * 0.55); if (pumpkins) pumpkins.glow(k);
   stars.material.opacity = 0.85 * k; stars.visible = k > 0.02;
   skyPlanets.children.forEach((p) => { p.material.opacity = 0.95 * k; }); skyPlanets.visible = k > 0.02;
@@ -3204,7 +3209,7 @@ function dayNight() {
     if (th.cloud != null) { clouds.userData.mat.color.set(th.cloud); clouds.userData.mat.emissiveIntensity = th.dark ? 0.05 : 0.25; }
   }
   { const u = sky.material.uniforms; if (u.uCloudLit) { // the drifting cloud layer: white by day, peach at dusk, slate at night
-    u.uCloudLit.value.setRGB(1, 1, 1).lerp(CLOUD.night, k).lerp(CLOUD.dusk, dusk * 0.8); u.uCloudShade.value.copy(CLOUD.shade).lerp(CLOUD.nshade, k).lerp(CLOUD.dshade, dusk * 0.6);
+    u.uCloudLit.value.setRGB(1.3, 1.3, 1.3).lerp(CLOUD.night, k).lerp(CLOUD.dusk, dusk * 0.8); u.uCloudShade.value.copy(CLOUD.shade).lerp(CLOUD.nshade, k).lerp(CLOUD.dshade, dusk * 0.6);
     u.uSunCol.value.copy(st.sun.color); u.uCloudK.value = 1 - k * 0.7; u.uNight.value = th && th.dark ? 1 : k; u.uCover.value = mood === "rain" ? 0.3 : 0.48;
     if (th && th.cloud != null) { u.uCloudLit.value.set(th.cloud); u.uCloudShade.value.set(th.cloud).multiplyScalar(0.6); } } }
   ambNight = th && th.dark ? 1 : k;
@@ -3458,7 +3463,7 @@ async function dive() {
 
 // ---------------- start ----------------
 dailyState(); makeMeadow(); dayNight(); worldReady = true; if (st.quality.coarse) setTimeout(trimCasters, 9000); // phones: little things stop casting sun shadows
-setTimeout(() => { const go = () => { if (mode === "hub") farCull.all(bakeMiniMap); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else go(); }, 6000); /* the minimap's ground, once the town is up, when the page is idle */ try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
+setTimeout(() => { const go = () => { if (mode === "hub") farCull.all(bakeMiniMap); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else go(); }, 6000); /* the minimap's ground, once the town is up, when the page is idle */ farCull.prep(); /* (b420: what's far fades: its shaders made before this compile, not a second copy later) */ try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
 if (sess()) setTimeout(() => village.load(), 3500); // your village level and blessing
@@ -3466,6 +3471,7 @@ if (sess()) setTimeout(() => village.load(), 3500); // your village level and bl
 // start of the dive (never the town first and then a jump back out to space), and from the home gate, which has
 // already dived down to the robot, the camera only comes down the last stretch to land behind you
 await setAvatar(P.char || "arc-arc");
+farCull.prep(); // (again for what came in since: the fade's shaders made before warm compiles everything)
 await st.warm(4000); // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
 const landing = dive();
 $("wp-loading").classList.add("done");

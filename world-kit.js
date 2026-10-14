@@ -163,8 +163,52 @@ export function gltfLoader() {
   if (ktx2) L.setKTX2Loader(ktx2);
   return L;
 }
+// the stylized look (b420, the game only; never Saver): patched into three.js's own chunks before anything compiles
+// (the environment map below compiles standard materials, and a program made before the patch would be reused), so
+// every lit material carries it for no extra pass and no extra shader program.
+//   tone   ACES, then the saturation it takes away and a cool lift, so shade stays soft and coloured (bright, clean key
+//          art, never crushed blacks); it runs in each material on Low, in the output pass above that
+//   toon   the characters' two soft light bands (toonLook), gentler, on the town, props and ground: the world and the
+//          cast read as one drawn style. Characters skip it (ARC_CHAR_TOON), they have their own.
+let STYLED = false;
+export function stylize({ toon = 0.4, sat = 1.16 } = {}) {
+  if (STYLED) return; STYLED = true;
+  const C = THREE.ShaderChunk;
+  C.tonemapping_pars_fragment = C.tonemapping_pars_fragment.replace("vec3 CustomToneMapping( vec3 color ) { return color; }", `vec3 CustomToneMapping( vec3 color ) {
+    vec3 c = ACESFilmicToneMapping( color ); float l = dot( c, vec3( 0.2126, 0.7152, 0.0722 ) );
+    c = clamp( mix( vec3( l ), c, ${sat.toFixed(3)} ), 0.0, 1.0 );
+    return c + vec3( 0.012, 0.018, 0.032 ) * ( 1.0 - c ); }`);
+  if (toon > 0) C.lights_fragment_end += `
+#if NUM_DIR_LIGHTS > 0 && !defined( ARC_CHAR_TOON ) && ( defined( STANDARD ) || defined( LAMBERT ) || defined( PHONG ) )
+	{ float ndlT = dot( normal, directionalLights[ 0 ].direction );
+	  float toonT = smoothstep( -0.02, 0.1, ndlT ) * 0.6 + smoothstep( 0.38, 0.55, ndlT ) * 0.4;
+	  reflectedLight.directDiffuse *= mix( 1.0, clamp( toonT / max( ndlT, 0.08 ), 0.0, 1.8 ), ${toon.toFixed(3)} * step( 0.0, ndlT ) ); }
+#endif`;
+}
+// far things dissolve instead of popping (b420): world-play.js's far culling skips whole groups once their nearest
+// edge is past a radius; their surfaces now thin out in a screen-door dither over the last 10 m before it (each
+// pixel by its own distance from you, the same test the culling makes for the group's edge), so a group is already
+// gone when it's skipped and comes back the same way. Desktops only (a discard costs tile GPUs their early depth test).
+// FADE.value: the radius; very large switches it off. The player stands at the world's origin (the world slides).
+export const FADE = { value: 1e6 };
+const faded = new WeakSet();
+export function fadeLook(m) {
+  if (!m || faded.has(m) || m.transparent || !(m.isMeshStandardMaterial || m.isMeshLambertMaterial || m.isMeshPhongMaterial)) return m;
+  faded.add(m);
+  const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => "";
+  m.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.uFadeR = FADE;
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uFadeR;").replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
+      { vec2 fw = cameraPosition.xz + ( vec4( - vViewPosition, 0.0 ) * viewMatrix ).xz; float fk = clamp( ( uFadeR - length( fw ) ) / 10.0, 0.0, 1.0 );
+        if ( fk < 0.999 && fk <= fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) ) ) discard; }`);
+  };
+  m.customProgramCacheKey = () => prevKey() + "|fade"; m.needsUpdate = true;
+  return m;
+}
 export function makeStage(canvas, opts = {}) {
   const q = quality(opts.quality);
+  if (opts.look && !q.saver) stylize(opts.look);
   LABEL_RES = q.coarse ? 0.5 : 1; // name plates at half size on phones (label())
   if (ARC.setSignRes) ARC.setSignRes(q.coarse ? 0.5 : 1); // and the halls' signs
   // opts.post: the game's picture goes through its own chain (world-post.js), which antialiases there, so the canvas
@@ -173,7 +217,7 @@ export function makeStage(canvas, opts = {}) {
   if (!RENDERER) RENDERER = renderer;
   renderer.setPixelRatio(q.dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMapping = opts.look && !q.saver ? THREE.CustomToneMapping : THREE.ACESFilmicToneMapping; // (stylize: ACES and a softer, more saturated finish)
   renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(C.space);
@@ -419,7 +463,7 @@ export function makeScreen() {
 // it was a mesh per puff, about 110 transparent draws on its own); nearly opaque before, now solid, which looks the same
 export function makeClouds(n = 26, { spread = 260, y = 38 } = {}) {
   const g = new THREE.Group(), rr = rand(21), puff = new THREE.IcosahedronGeometry(1, 1);
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true, emissive: 0x9fb6c8, emissiveIntensity: 0.25 });
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: false, emissive: 0x9fb6c8, emissiveIntensity: 0.25 }); // smooth: round puffs (b420), banded by stylize()
   const clouds = [], puffs = [];
   for (let i = 0; i < n; i++) {
     const k = 3 + Math.floor(rr() * 4), list = [];
@@ -905,7 +949,7 @@ export function toonLook(m, { rim = null } = {}) {
   m.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
     sh.uniforms.uRim = own || TOON.rim; sh.uniforms.uRimK = TOON.rimK; sh.uniforms.uBand = TOON.band;
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uRim; uniform float uRimK, uBand;").replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n#define ARC_CHAR_TOON\nuniform vec3 uRim; uniform float uRimK, uBand;").replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
       #if NUM_DIR_LIGHTS > 0
       { float ndl = dot(normal, directionalLights[0].direction);
         float toon = smoothstep(-0.02, 0.08, ndl) * 0.55 + smoothstep(0.4, 0.52, ndl) * 0.45;

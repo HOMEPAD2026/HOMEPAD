@@ -53,7 +53,7 @@ export function addGrade(st) {
 // ---------------- the grade as a 3D colour table (world-post.js applies it): time of day, then the ground's mood ----------------
 // each mood: saturation, contrast, lift/gain per channel, shadow and highlight tints, warmth
 const GD = {
-  day: { sat: 1.08, con: 1.05, lift: [0, 0, 0.01], gain: [1, 1, 1], sh: [0, 0.012, 0.03], hi: [0.025, 0.018, 0], warm: 0.1 },
+  day: { sat: 1.1, con: 1.03, lift: [0.01, 0.014, 0.024], gain: [1.02, 1.02, 1], sh: [0, 0.014, 0.032], hi: [0.03, 0.022, 0], warm: 0.16 }, // b420: brighter and softer (key-art day: lifted, airy shade)
   dusk: { sat: 1.16, con: 1.08, lift: [0.01, 0, 0.02], gain: [1.04, 0.98, 0.94], sh: [0.03, 0, 0.05], hi: [0.07, 0.03, 0], warm: 0.6 },
   night: { sat: 0.92, con: 1.07, lift: [0, 0.005, 0.02], gain: [0.92, 0.95, 1.06], sh: [0, 0, 0.04], hi: [0.01, 0.01, 0.03], warm: -0.3 },
 };
