@@ -10834,6 +10834,12 @@
     "Window": "窗口",
     "Mobile": "手机",
     "Your newer progress from another device is loaded.": "已载入你在其他设备上的最新进度。",
+    "Controller disconnected": "手柄已断开",
+    "switch skill": "切换技能",
+    "lock on": "锁定目标",
+    "climb / descend": "上升 / 下降",
+    "switch ride": "切换坐骑",
+    "get off": "下来",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

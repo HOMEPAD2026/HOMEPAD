@@ -10664,6 +10664,12 @@
     "Window": "창 모드",
     "Mobile": "모바일",
     "Your newer progress from another device is loaded.": "다른 기기에서 진행한 최신 기록을 불러왔어요.",
+    "Controller disconnected": "컨트롤러 연결이 끊겼어요",
+    "switch skill": "스킬 바꾸기",
+    "lock on": "대상 고정",
+    "climb / descend": "오르기 / 내려오기",
+    "switch ride": "탈것 바꾸기",
+    "get off": "내리기",
   };
 
 

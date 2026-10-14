@@ -161,3 +161,66 @@ body.wp :is(.wp-chip,.wp-btn,.wp-purse span,.wp-card,.wp-quests,.wp-feed li,.wp-
 body.wp :is(.wp-hub,.wa-daily,.wp-cbt,.wp-st){background-color:rgba(2,6,20,.72)}
 
 @media (prefers-reduced-motion:reduce){body.wp .wr-tile::after{animation:none!important;opacity:0}}
+
+/* ---------------- toasts: a stack of up to three under the top edge, newest on top (world-play.js toast) ---------------- */
+/* #wp-toast is only the anchor; each line is a pooled .wp-tst placed with transform (--y) and faded with opacity */
+body.wp .wp-toast{width:0;height:0;padding:0;border:0;background:none;opacity:1;transform:none;transition:none;overflow:visible}
+body.wp .wp-tst{--y:0px;position:absolute;left:0;top:0;display:flex;align-items:center;gap:8px;width:max-content;max-width:min(520px,calc(100vw - 32px));padding:9px 16px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(18,40,92,.95),rgba(9,22,56,.95));border:1px solid var(--ui-edge-soft);box-shadow:var(--ui-hi),0 0 14px rgba(47,134,255,.3),0 8px 22px rgba(0,4,20,.5);
+  font:700 13px/1.35 var(--f-ui);color:var(--ui-ink);opacity:0;transform:translate(-50%,calc(var(--y) - 14px));transition:opacity .25s ease,transform .25s ease;will-change:transform}
+body.wp .wp-tst.on{opacity:1;transform:translate(-50%,var(--y))}
+body.wp .wp-tst b{flex:none;padding:2px 7px;border-radius:999px;background:linear-gradient(180deg,var(--ui-gold-1),var(--ui-gold-2));color:var(--ui-gold-ink);font:900 11px/1.2 var(--f-num)}
+body.wp .wp-tst.bump b{animation:wpTstBump .3s ease}
+/* a phone on the computer-style layout draws a wider page scaled down: the stack (and a controller's legend) zoom up like the HUD */
+html.wp-pcphone body.wp .wp-toast,html.wp-pcphone body.wp.wp-gpad .wp-keys{zoom:1.4}
+html.wp-pcphone body.wp .wp-tst{max-width:min(520px,calc(100vw / 1.4 - 24px))}
+@keyframes wpTstBump{40%{transform:scale(1.35)}}
+
+/* "+XP" beside the XP bar (world-play.js xpFloat): rises and fades, transform and opacity only */
+body.wp .wp-xpf{position:absolute;left:100%;top:50%;margin-left:4px;z-index:2;pointer-events:none;white-space:nowrap;opacity:0;font:900 14px/1 var(--f-num);color:var(--ui-xp-1);
+  text-shadow:-1px 0 0 #031030,1px 0 0 #031030,0 -1px 0 #031030,0 1px 0 #031030,0 0 10px rgba(56,216,255,.7)}
+body.wp .wp-xpf.go{animation:wpXpf 1.2s ease-out forwards}
+@keyframes wpXpf{0%{opacity:0;transform:translate(0,-20%) scale(.7)}14%{opacity:1;transform:translate(0,-50%) scale(1.15)}30%{opacity:1;transform:translate(0,-65%) scale(1)}100%{opacity:0;transform:translate(0,-210%) scale(1)}}
+
+/* ---------------- the quest card: the title folds it, the book opens the Adventure log; the distance on the quest line ---------------- */
+body.wp .wp-quests-top{display:flex;align-items:center}
+body.wp .wp-quests-top>.wp-quests-h{flex:1;min-width:0;width:auto}
+body.wp .wp-quests-log{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0 8px 0 2px;padding:0;border-radius:9px;cursor:pointer;color:#ffd27a;
+  border:1px solid var(--ui-edge-dim);background:linear-gradient(180deg,#183676,#0e2152);box-shadow:inset 0 1px 0 rgba(170,220,255,.18),0 2px 0 rgba(0,4,18,.5)}
+body.wp .wp-quests-log:hover{border-color:var(--ui-edge-soft);filter:brightness(1.15)}
+body.wp .wp-quests-log:active{transform:translateY(1px)}
+body.wp .wp-quests-log svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+body.wp .wp-qdist{font:800 11.5px var(--f-num);font-style:normal;color:var(--ui-cyan);white-space:nowrap}
+/* the HUD skin (arc-v10.css, quests.webp) draws a book at the title's left: the log button sits over it, the title keeps the rest */
+body.wp .wp-hud .wp-quests-log{position:absolute;left:5px;top:6.16px;z-index:1;width:42px;height:33.6px;margin:0;border:0;border-radius:10px;background:none;box-shadow:none;color:transparent}
+body.wp .wp-hud .wp-quests-log svg{display:none}
+body.wp .wp-hud .wp-quests-log:hover{background:radial-gradient(circle,rgba(255,210,122,.32),transparent 70%);filter:none}
+body.wp .wp-hud .wp-quests-log:focus-visible{outline:2px solid var(--ui-cyan);outline-offset:-2px}
+body.wp .wp-hud .wp-quests li .wp-qdist{flex:none;margin-left:5px;font:800 13px/1 var(--hud-font,var(--f-num));color:#7fe3ff}
+
+/* ---------------- combat focus (world-play.js, body.wp-focus while body.wc-fight, 2 s after): the extras step back ---------------- */
+body.wp :is(.wp-dock,.wp-feed,.wp-keys,.wp-shop-btn,.wp-starter-btn){transition:opacity .3s ease,translate .3s ease,visibility 0s}
+body.wp.wp-focus :is(.wp-dock,.wp-feed,.wp-shop-btn,.wp-starter-btn),body.wp.wp-focus-k .wp-keys{opacity:0;translate:0 14px;visibility:hidden;pointer-events:none;transition:opacity .3s ease,translate .3s ease,visibility 0s .3s}
+body.wp.wp-focus :is(.wp-shop-btn,.wp-starter-btn){translate:0 -10px}
+
+/* ---------------- the key legend: only what works now; it eases in when it changes ---------------- */
+body.wp .wp-keys.swap{animation:wpKeysIn .28s ease}
+@keyframes wpKeysIn{from{opacity:0;translate:0 6px}}
+body.wp .wp-keys[data-ctx=fight] kbd{border-color:rgba(255,120,140,.55)}
+body.wp .wp-keys[data-ctx=near] kbd:first-child{background:linear-gradient(180deg,var(--ui-gold-1),var(--ui-gold-2));color:var(--ui-gold-ink)}
+/* controller glyphs (body.wp-gpad): coloured face buttons, pill shoulders, ringed sticks */
+body.wp .wp-pad{display:inline-grid;place-items:center;box-sizing:border-box;min-width:19px;height:19px;padding:0 3px;margin:0 1px;border-radius:50%;font:900 10px/1 var(--f-ui);font-style:normal;color:#fff;
+  background:linear-gradient(180deg,#56637f,#2b3550);border:1.5px solid rgba(255,255,255,.6);box-shadow:0 1px 0 rgba(0,0,0,.45);text-shadow:0 1px 0 rgba(0,0,0,.4)}
+body.wp .wp-pad-a{background:linear-gradient(180deg,#5fe08f,#1c9a50)}
+body.wp .wp-pad-b{background:linear-gradient(180deg,#ff7d8c,#d32f45)}
+body.wp .wp-pad-x{background:linear-gradient(180deg,#6fb2ff,#2a68e0)}
+body.wp .wp-pad-y{background:linear-gradient(180deg,#ffe27a,#e0a514);color:#3a2600;text-shadow:none}
+body.wp :is(.wp-pad-lb,.wp-pad-rb,.wp-pad-lt,.wp-pad-rt){min-width:25px;border-radius:7px 7px 5px 5px;font-size:9px}
+body.wp :is(.wp-pad-lt,.wp-pad-rt){border-radius:5px 5px 8px 8px}
+body.wp :is(.wp-pad-l,.wp-pad-r){background:radial-gradient(circle,#56637f 0 46%,#1a2236 50% 100%);font-size:9px}
+body.wp :is(.wp-pad-up,.wp-pad-dn,.wp-pad-st){border-radius:5px;font-size:9px}
+body.wp .wp-prompt kbd:has(.wp-pad){padding:0;background:none;border:0;box-shadow:none}
+
+@media (prefers-reduced-motion:reduce){body.wp :is(.wp-tst,.wp-dock,.wp-feed,.wp-keys,.wp-shop-btn,.wp-starter-btn){transition:none!important}body.wp :is(.wp-tst.bump b,.wp-keys.swap){animation:none!important}body.wp .wp-xpf.go{animation-name:wpXpfStill}}
+@keyframes wpXpfStill{0%,70%{opacity:1;transform:translate(0,-50%)}100%{opacity:0;transform:translate(0,-50%)}}
+html.wp-less body.wp :is(.wp-tst,.wp-dock,.wp-feed,.wp-keys,.wp-shop-btn,.wp-starter-btn){transition:none!important}html.wp-less body.wp :is(.wp-tst.bump b,.wp-keys.swap){animation:none!important}html.wp-less body.wp .wp-xpf.go{animation-name:wpXpfStill}

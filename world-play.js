@@ -59,9 +59,11 @@ const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
   ko: { "Frame limit": "프레임 제한", Bag: "가방", Craft: "제작", Build: "건축", Help: "도움말", Bricks: "블록", Colours: "색상", Height: "높이", Trophies: "트로피", Lights: "조명", Plants: "식물", Theme: "테마", Character: "캐릭터", Log: "모험 일지", Village: "마을", Later: "나중에", Pick: "선택", Visit: "방문", Cottage: "오두막", Castle: "성", Palace: "궁전", Music: "음악", Film: "필름", Vivid: "선명", Time: "시간", Now: "지금", Morning: "아침", Noon: "한낮", Dusk: "노을", Night: "밤", Vibration: "진동", Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Focus: "초점", Off: "끔", Soft: "약하게", Strong: "강하게", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Cheer: "환호", Dance: "춤", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
-    move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
+    move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기",
+    attack: "공격", dodge: "회피", skill: "스킬", potions: "물약", read: "읽기", talk: "대화", go: "가기", look: "시점", speed: "가속" },
   zh: { "Frame limit": "帧率上限", Bag: "背包", Craft: "制作", Build: "建造", Help: "帮助", Bricks: "积木", Colours: "颜色", Height: "高度", Trophies: "奖杯", Lights: "灯光", Plants: "植物", Theme: "主题", Character: "角色", Log: "冒险日志", Village: "村庄", Later: "稍后", Pick: "选择", Visit: "访问", Cottage: "小屋", Castle: "城堡", Palace: "宫殿", Music: "音乐", Film: "胶片", Vivid: "鲜艳", Time: "时间", Now: "现在", Morning: "清晨", Noon: "正午", Dusk: "黄昏", Night: "夜晚", Vibration: "振动", Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Focus: "焦点", Off: "关", Soft: "柔和", Strong: "强烈", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Cheer: "欢呼", Dance: "跳舞", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
-    move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
+    move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看",
+    attack: "攻击", dodge: "闪避", skill: "技能", potions: "药水", read: "阅读", talk: "交谈", go: "前往", look: "视角", speed: "加速" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
@@ -112,7 +114,7 @@ function gain(n, why) {
   if (n > 0 && bless().xp) n = Math.round(n * (1 + bless().xp / 100));
   if (n > 0 && xpBoostUntil > Date.now()) n *= 2; // the Starter Package's 2× EXP
   const before = level(); P.xp += n; save(); paintHud();
-  toast(T("+{n} XP · {why}", { n, why }));
+  if (n > 0) xpFloat(n); // a number beside the XP bar; the why (feed lines, quest toasts) is told elsewhere
   if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } else Snd.pick();
   badges();
 }
@@ -151,8 +153,38 @@ function afterimage() {
   const t1 = performance.now(), off2 = st.on(() => { const k = (performance.now() - t1) / 520; ghostMat.opacity = 0.34 * Math.max(0, 1 - k); if (k >= 1) off2(); });
   return true;
 }
-let toastT = 0;
-function toast(msg) { const t = $("wp-toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); }
+// toasts: a small stack under the top edge, newest on top, three at most; the same line again counts up (×2) instead of
+// stacking. Three pooled nodes inside #wp-toast, placed and faded with transform and opacity only
+const TOAST_MAX = 3, toastPool = [], toastLive = [];
+function toastPlace() { let y = 0; toastLive.forEach((t) => { t.el.style.setProperty("--y", y + "px"); y += t.el.offsetHeight + 6; }); }
+function toastOut(t) {
+  const i = toastLive.indexOf(t); if (i < 0) return;
+  toastLive.splice(i, 1); clearTimeout(t.t); t.el.classList.remove("on"); toastPlace();
+  t.t = setTimeout(() => { t.el.hidden = true; toastPool.push(t); }, 260);
+}
+function toast(msg) {
+  const box = $("wp-toast"); if (!box) return; msg = String(msg ?? "");
+  let t = toastLive.find((x) => x.msg === msg);
+  if (t) { t.n++; t.c.textContent = "×" + t.n; t.c.hidden = false; t.el.classList.remove("bump"); void t.el.offsetWidth; t.el.classList.add("bump"); }
+  else {
+    if (toastLive.length >= TOAST_MAX) toastOut(toastLive[toastLive.length - 1]);
+    t = toastPool.pop();
+    if (!t) { const el = document.createElement("div"); el.className = "wp-tst"; el.innerHTML = "<span></span><b hidden></b>"; box.appendChild(el); t = { el, s: el.firstChild, c: el.lastChild }; }
+    clearTimeout(t.t); t.msg = msg; t.n = 1; t.s.textContent = msg; t.c.hidden = true; t.el.classList.remove("on", "bump"); t.el.hidden = false;
+    toastLive.unshift(t); toastPlace(); void t.el.offsetWidth; t.el.classList.add("on");
+  }
+  clearTimeout(t.t); t.t = setTimeout(() => toastOut(t), 2600 + Math.min(2000, msg.length * 25));
+}
+// "+XP" floats up beside the XP bar instead of taking a toast; gains within half a second add up in the one rising
+const xpFl = []; let xpFlI = 0, xpFlLast = null;
+function xpFloat(n) {
+  const host = $("wp-lv"); if (!host || !n) return;
+  const now = performance.now();
+  if (xpFlLast && now - xpFlLast.at < 500) { xpFlLast.n += n; xpFlLast.el.textContent = "+" + xpFlLast.n.toLocaleString("en-US") + " XP"; return; }
+  let f = xpFl[xpFlI]; if (!f) { const el = document.createElement("b"); el.className = "wp-xpf"; el.setAttribute("aria-hidden", "true"); el.setAttribute("data-no-i18n", ""); host.appendChild(el); f = xpFl[xpFlI] = { el }; }
+  xpFlI = (xpFlI + 1) % 3; f.n = n; f.at = now; xpFlLast = f;
+  f.el.textContent = "+" + n.toLocaleString("en-US") + " XP"; f.el.classList.remove("go"); void f.el.offsetWidth; f.el.classList.add("go");
+}
 
 // ---------------- accounts, saving, who's online (api/_world.mjs) ----------------
 const AC = window.arcConnect, CFG = (typeof CONFIG !== "undefined" ? CONFIG : window.CONFIG) || {}; // config-arc.js declares CONFIG with const: a global, but not a window property
@@ -1837,13 +1869,13 @@ function paintQuests() {
   const open = QUESTS.filter((q) => !P.quests.includes(q.id));
   $("wp-quests-n").textContent = `${QUESTS.length - open.length}/${QUESTS.length}`;
   const doneRow = justDone && performance.now() - justDone.at < 3000 ? `<li class="done-now"><i></i><span>${esc(justDone.t)}</span></li>` : "";
-  $("wp-quests-l").innerHTML = doneRow + (open.slice(0, 3).map((q, i) => `<li${i === 0 ? ' class="cur"' : ""}><i></i><span>${esc(T(q.t))}</span>${q.xp ? `<small>+${q.xp} XP</small>` : ""}</li>`).join("") || `<li class="done"><span>${esc(T("All quests done. More soon."))}</span></li>`);
+  $("wp-quests-l").innerHTML = doneRow + (open.slice(0, 3).map((q, i) => `<li${i === 0 ? ' class="cur"' : ""}><i></i><span>${esc(T(q.t))}</span>${i === 0 ? '<em class="wp-qdist" data-no-i18n></em>' : ""}${q.xp ? `<small>+${q.xp} XP</small>` : ""}</li>`).join("") || `<li class="done"><span>${esc(T("All quests done. More soon."))}</span></li>`);
   if (doneRow) setTimeout(paintQuests, 3100);
   const cur = open[0], tg = cur && cur.target();
   if (tg !== questTarget) { if (beacon.parent) beacon.parent.remove(beacon); questTarget = tg; if (tg) tg.add(beacon); }
 }
-// the quest card's title row opens the Adventure log (the card shows the quest you're on)
-$("wp-quests-h").addEventListener("click", () => { closeAll(); if (rpg && quests) rpg.show("log"); });
+// the quest card's title folds the card; the book button beside it opens the Adventure log (one tap used to do both)
+$("wp-quests-log").addEventListener("click", () => { closeAll(); if (rpg && quests) rpg.show("log"); });
 $("wp-quests-h").addEventListener("click", (e) => { const q = $("wp-quests"); const o = q.classList.toggle("closed"); e.currentTarget.setAttribute("aria-expanded", String(!o)); try { localStorage.setItem("arc.world.qopen", o ? "0" : "1"); } catch { /* private */ } });
 // on a phone the quest list starts folded to its title (tap to open); the choice is remembered
 (() => { let open = null; try { open = localStorage.getItem("arc.world.qopen"); } catch { /* private */ } if (open === "0" || (open === null && coarse)) { $("wp-quests").classList.add("closed"); $("wp-quests-h").setAttribute("aria-expanded", "false"); } })();
@@ -3127,6 +3159,50 @@ leaveEl.addEventListener("click", (e) => {
 guard();
 $("wp-set-help").addEventListener("click", () => openHelp());
 if (coarse) $("wp-keys").hidden = true; else $("wp-acts").hidden = true;
+
+// ---------------- HUD context: combat focus, the key legend, the quest distance, controller glyphs ----------------
+// combat focus: while you fight (body.wc-fight, world-combat.js) the dock, the shop and starter tiles and the feed step
+// back (world-skin.css body.wp-focus), leaving HP/SP, the skills, the boss bar and the minimap; the legend shows the
+// fight keys for a few seconds, then goes too (wp-focus-k). It all comes back 2 s after the fight ends
+let focusT = 0, focusK = 0;
+new MutationObserver(() => {
+  const b = document.body.classList, f = b.contains("wc-fight");
+  if (f) { clearTimeout(focusT); focusT = 0; if (!b.contains("wp-focus")) { b.add("wp-focus"); clearTimeout(focusK); focusK = setTimeout(() => b.add("wp-focus-k"), 5000); } }
+  else if (b.contains("wp-focus") && !focusT) focusT = setTimeout(() => { focusT = 0; clearTimeout(focusK); b.remove("wp-focus", "wp-focus-k"); }, 2000);
+}).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+// the key legend shows only what works right now: at a door E and what it does, in a fight the fight keys, on a ride
+// its keys, otherwise walking. With a controller its buttons instead (drawn glyphs: A B X Y, LB RB, the sticks)
+const padG = (g) => `<i class="wp-pad wp-pad-${g === "↑" ? "up" : g === "↓" ? "dn" : g === "☰" ? "st" : g.toLowerCase()}">${esc(g)}</i>`;
+const keyRows = (ctx) => {
+  const near1 = ctx.startsWith("near:") ? ctx.slice(5) : "", ride1 = ctx.startsWith("ride:") ? ctx.slice(5) : "";
+  const move = { k: ["W", "A", "S", "D"], p: ["L"], w: W("move") }, jumpR = { k: ["Space"], p: ["A"], w: W("jump") };
+  if (ctx === "fight") return [{ k: ["J"], p: ["X"], w: W("attack") }, { k: ["K"], p: ["B"], w: W("dodge") }, { k: ["Z"], p: ["Y"], w: W("skill") }, { k: ["Q"], p: ["LB", "RB"], w: T("switch skill") }, { k: ["4", "5"], p: ["LT", "RT"], w: W("potions") }, { k: ["Tab"], p: null, w: T("lock on") }, move];
+  if (near1) return [{ k: ["E"], p: ["↓"], w: W(near1 === "bounty" ? "read" : near1 === "npc" || near1 === "resident" ? "talk" : near1 === "pad" || near1 === "portal" || near1 === "isle" || near1 === "isle-exit" ? "go" : "enter") }, move, jumpR];
+  if (ride1) return [move, ride1 === "jet" ? { k: ["Space"], p: ["A"], w: T("climb / descend") } : jumpR, { k: ["Shift"], p: null, w: W("speed") }, level() >= 10 ? { k: ["V"], p: null, w: T("switch ride") } : null, { k: ["F"], p: null, w: T("get off") }];
+  return [move, jumpR, { k: ["Shift"], p: null, w: W("run") }, { k: ["F"], p: null, w: W("board") }, { k: ["1", "2"], p: ["↑"], w: W("emote") }, { k: ["M"], p: ["☰"], w: W("map") }, { k: ["H"], p: null, w: W("help") }, { k: null, p: ["R"], w: W("look") }, { k: [], p: null, w: W("drag to look") }];
+};
+let keysCtx = "", qdEl = null, qdN = -1; const qdV = new THREE.Vector3();
+function paintKeys(ctx) {
+  const el = $("wp-keys"); if (!el) return;
+  const pad = gpad.on, sig = ctx + (pad ? "|pad" : "") + "|" + (level() >= 10);
+  el.hidden = coarse && !pad; document.body.classList.toggle("wp-gpad", pad);
+  if (sig === keysCtx) return; keysCtx = sig;
+  const rows = keyRows(ctx).filter((r) => r && (pad ? r.p : r.k));
+  el.innerHTML = rows.map((r) => (pad ? r.p.map(padG) : r.k.map((k) => `<kbd>${esc(k)}</kbd>`)).join("") + " " + esc(r.w)).join(" <span>·</span> ");
+  el.dataset.ctx = ctx.split(":")[0]; el.classList.remove("swap"); void el.offsetWidth; el.classList.add("swap");
+  const pk = document.querySelector("#wp-enter kbd"); if (pk) pk.innerHTML = pad ? padG("↓") : "E";
+}
+setInterval(() => {
+  if (!worldReady) return;
+  const ctx = document.body.classList.contains("wc-fight") ? "fight" : near && near.kind && !frozen ? "near:" + near.kind : boarding && mode === "hub" ? "ride:" + ride : "walk";
+  paintKeys(ctx);
+  // the distance to the quest's target on the quest line ("· 42 m"), written only when the number changes
+  const li = document.querySelector("#wp-quests-l li.cur .wp-qdist"); if (li !== qdEl) { qdEl = li; qdN = -1; }
+  if (!qdEl) return;
+  let n = -2; if (questTarget && mode === "hub") { questTarget.getWorldPosition(qdV); n = Math.round(qdV.distanceTo(at)); }
+  if (n !== qdN) { qdN = n; qdEl.textContent = n >= 0 ? ` · ${n.toLocaleString("en-US")} m` : ""; }
+}, 250);
+addEventListener("gamepaddisconnected", () => { if (!(navigator.getGamepads ? [...navigator.getGamepads()] : []).some((g) => g && g.connected)) toast(T("Controller disconnected")); });
 
 // ---------------- day and night (Seoul time) ----------------
 // a blue day sky over the ground, stars and the far planets at night (?hour=21 tries another hour)
