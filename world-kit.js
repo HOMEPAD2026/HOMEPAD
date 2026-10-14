@@ -1008,14 +1008,28 @@ export function outlineAll(obj, { color = 0x0b1220, t = 0.022 } = {}) {
 let charHook = null; export const setCharHook = (f) => { charHook = f; };
 const toonAll = (obj, o) => { obj.traverse((x) => { if (x.isMesh && x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach((mm) => toonLook(mm, o)); }); return obj; };
 export { toonAll };
+// a squash on landing and a flinch from a blow, for the rigs with no pose code of their own (the hover bot, Kenney,
+// KayKit, your own): the whole root squashes and tips at the feet, then eases back. Scale and tilt are put back only
+// when one ends, so a crowd's own fade (world-social.js) or size isn't fought every frame; nothing is made per frame
+function reacts(obj) {
+  let landT = 0, landK = 0, s0 = 1, hurtT = 0, hurtF = 0, hurtS = 0; obj.rotation.order = "YXZ"; // tipped along the way it faces
+  return {
+    land(k = 1) { if (landT <= 0) s0 = obj.scale.y; landT = 0.28; landK = Math.max(0.3, Math.min(1, k)); },
+    hurt(fwd = -1, side = 0) { hurtT = 0.36; hurtF = Math.max(-1, Math.min(1, fwd)); hurtS = Math.max(-1, Math.min(1, side)); },
+    tick(dt) {
+      if (landT > 0) { landT = Math.max(0, landT - dt); const e = Math.sin((landT / 0.28) * Math.PI) * landK; obj.scale.set(s0 * (1 + 0.12 * e), s0 * (1 - 0.2 * e), s0 * (1 + 0.12 * e)); }
+      if (hurtT > 0) { hurtT = Math.max(0, hurtT - dt); const e = Math.sin((hurtT / 0.36) * Math.PI); obj.rotation.x = 0.24 * e * hurtF; obj.rotation.z = -0.2 * e * hurtS; }
+    },
+  };
+}
 const charCache = new Map();
 export async function makeCharacter(id, ver = "", outfit = null) {
   const ab = arcbotOf(id);
   if (ab) { const b = makeArcBot(THREE, withOutfit(ab, outfit)); shadowy(b.obj, true, false); toonAll(b.obj); if (charHook) charHook(b.obj, true); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
   if (id === "bot" || !CHARACTERS.includes(id)) {
     const r = makeRobot(); r.scale.setScalar(0.8);
-    const rings = r.userData.crown.children;
-    return { obj: r, bot: true, play() {}, busy: () => false, update(dt, t, speed, turn) { animateRobot(r, dt, t, speed, turn); }, height: 2.3,
+    const rings = r.userData.crown.children, fx = reacts(r);
+    return { obj: r, bot: true, play() {}, busy: () => false, update(dt, t, speed, turn) { animateRobot(r, dt, t, speed, turn); fx.tick(dt); }, height: 2.3, land: fx.land, hurt: fx.hurt,
       setCrown(a, b) { [a, b].forEach((c, i) => { rings[i].material.color.set(c); rings[i].material.emissive.set(c); }); } };
   }
   let src = charCache.get(id);
@@ -1046,10 +1060,11 @@ export async function makeCharacter(id, ver = "", outfit = null) {
     if (once) { oneShot = a; const done = (e) => { if (e.action === a) { mixer.removeEventListener("finished", done); oneShot = null; } }; mixer.addEventListener("finished", done); }
   };
   play("idle");
+  const fx = reacts(obj);
   return {
-    obj, mixer, play, height: 2.1, busy: () => !!oneShot,
+    obj, mixer, play, height: 2.1, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt,
     setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
-    update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
+    update(dt, t) { mixer.update(dt); fx.tick(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
   };
 }
 
@@ -1086,12 +1101,13 @@ async function makeKK(id, src, ver) {
   play("idle");
   // where the game's gear goes on this rig: the hand slots, the head, the chest (world-rpg.js dress)
   const BONES = { "arm-right": "handslotr", "arm-left": "handslotl", head: "head", torso: "chest" }; // three.js drops the dots from node names
+  const fx = reacts(obj);
   return {
-    obj, mixer, play, height: 2.1, kk: true, bones: BONES, busy: () => !!oneShot,
+    obj, mixer, play, height: 2.1, kk: true, bones: BONES, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt,
     mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.62, 0], armor: [0, 0.18, 0], armorR: 0.5, necklace: [0, 0.32, 0.26] },
     attack(kind = 0, heavy = false) { const pair = KK_ATK[kind] || KK_ATK[0]; play(pair[heavy ? 1 : 0], { once: true, fade: 0.06, speed: kind === 1 ? 1.25 : 1.6 }); },
     setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
-    update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
+    update(dt, t) { mixer.update(dt); fx.tick(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
   };
 }
 
@@ -1157,12 +1173,13 @@ function makeCustom(src) {
   const bone = (...res) => { for (const re of res) { const b = bs.find((x) => re.test(cuNorm(x.name))); if (b) return b.name; } return undefined; };
   const bones = { "arm-right": bone(/righthand$/, /handr$/, /rhand$/, /handright$/, /rightwrist$/, /wristr$/), "arm-left": bone(/lefthand$/, /handl$/, /lhand$/, /handleft$/, /leftwrist$/, /wristl$/),
     head: bone(/head$/), torso: bone(/spine2$/, /upperchest$/, /chest$/, /spine02$/, /spine1$/, /spine$/) };
+  const fx = reacts(obj);
   return {
-    obj, mixer, play, height: 2.1, kk: true, custom: true, bones, busy: () => !!oneShot, // kk: swings with its own clips, wears only the weapon and shield
+    obj, mixer, play, height: 2.1, kk: true, custom: true, bones, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt, // kk: swings with its own clips, wears only the weapon and shield
     mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.3, 0], armor: [0, 0.1, 0], armorR: 0.45, necklace: [0, 0.2, 0.2] },
     attack(kind = 0, heavy = false) { const l = kind === 4 ? lists.cast : kind === 2 || kind === 3 ? lists.shoot : null, all = l && l.length ? l : lists.attack; if (all.length) run(act(all[heavy ? all.length - 1 : 0]), { once: true, fade: 0.06, speed: kind === 1 ? 1.1 : 1.4 }); },
     setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
-    update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
+    update(dt, t) { mixer.update(dt); fx.tick(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
   };
 }
 

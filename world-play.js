@@ -798,10 +798,10 @@ addEventListener("keydown", (e) => {
   if (k === "1") { emote("emote-yes"); return; }
   if (k === "2") { emote("emote-no"); return; }
   if (k === "t") { openWheel(); return; }
-  if (k === " ") { e.preventDefault(); jump(); return; }
+  if (k === " ") { e.preventDefault(); jumpDown = true; jump(); return; }
   if (MOVE_KEYS.includes(k)) { keys.add(k); e.preventDefault(); }
 });
-addEventListener("keyup", (e) => { keys.delete(e.key.toLowerCase()); if (combat) combat.keyUp(e.key.toLowerCase()); });
+addEventListener("keyup", (e) => { keys.delete(e.key.toLowerCase()); if (e.key === " ") jumpDown = false; if (combat) combat.keyUp(e.key.toLowerCase()); });
 addEventListener("blur", () => { if (combat) combat.keyUp("j", true); });
 // a game controller (the standard layout): left stick moves (pushed all the way runs), right stick looks, A jumps, X attacks,
 // B dodges, Y casts the skill, LB / RB change it, LT / RT drink health / mana, Start opens the map, View the log, D-pad up the emotes
@@ -817,8 +817,9 @@ function padTick(dt) {
   if (!frozen && (rx || ry)) { camYaw -= rx * dt * 2.6 * S.sens; camPitch = THREE.MathUtils.clamp(camPitch + ry * dt * 1.4 * S.sens, -0.3, 0.75); lastLook = performance.now(); }
   if (edge(9)) { if (!mapEl.hidden) closeMap(); else if (!frozen) openMap(); }
   if (edge(1) && frozen) closeAll();
+  if (!btn(0) && gpad.prev[0]) jumpDown = false; // A let go: a jump still going up is cut short
   if (!frozen) {
-    if (edge(0)) jump();
+    if (edge(0)) { jumpDown = true; jump(); }
     if (combat && mode === "hub") { if (edge(2)) combat.keyDown("j"); if (!btn(2) && gpad.prev[2]) combat.keyUp("j"); if (edge(1)) combat.keyDown("k"); if (edge(3)) combat.keyDown("z"); if (edge(4) || edge(5)) combat.keyDown("q"); if (edge(6)) combat.keyDown("4"); if (edge(7)) combat.keyDown("5"); }
     if (edge(8) && rpg && quests) { closeAll(); rpg.show("log"); }
     if (edge(12)) openWheel();
@@ -826,7 +827,7 @@ function padTick(dt) {
   }
   gpad.prev = gp.buttons.map((b) => b.pressed);
 }
-addEventListener("blur", () => keys.clear());
+addEventListener("blur", () => { keys.clear(); jumpDown = false; });
 const joyEl = $("wp-joy"), knob = joyEl.querySelector("i");
 let downAt = null, hoverXY = null, pinch = null;
 const JOYMAX = document.documentElement.classList.contains("wp-pcphone") ? 118 : 56;
@@ -885,7 +886,10 @@ const lift = (e) => {
 };
 cv.addEventListener("pointerup", lift); cv.addEventListener("pointercancel", lift);
 cv.addEventListener("wheel", (e) => { camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.0012, 0.6, mode === "island" ? 2.6 : 1.9); }, { passive: true });
-$("wp-act-jump").addEventListener("click", () => jump());
+// the jump button: pressed jumps, let go early cuts the jump short (a keyboard click on it is a full jump)
+{ const jb = $("wp-act-jump"), up = () => { jumpDown = false; };
+  jb.addEventListener("pointerdown", (e) => { try { jb.setPointerCapture(e.pointerId); } catch { /* fine */ } jumpDown = true; jump(); });
+  jb.addEventListener("pointerup", up); jb.addEventListener("pointercancel", up); jb.addEventListener("click", (e) => { if (!e.detail) { jump(); jumpHeld = false; } }); }
 $("wp-act-run").addEventListener("click", (e) => { runToggle = !runToggle; e.currentTarget.setAttribute("aria-pressed", String(runToggle)); });
 // the emote wheel: T, or the wave button on a phone
 const EMOTES = [["emote-yes", "Wave", "✋"], ["emote-no", "No", "✕"], ["sit", "Sit", "◡"], ["interact-right", "Point", "➚"], ["pick-up", "Pick up", "⇩"], ["die", "Faint", "✶"], ["cheer", "Cheer", "★"], ["dance", "Dance", "♪"]];
@@ -1053,10 +1057,13 @@ function tryMove(d, dist) {
   return hit;
 }
 const angLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
-let jumpBuf = 0; const hitFrom = new THREE.Vector3(); let hitAt = 0; // the last blow's push, for the flinch
+let jumpBuf = 0; const hitFrom = new THREE.Vector3(); let hitAt = 0, hitPow = 0; // the last blow's push, for the flinch
+// variable height: let go of jump early (while still going up fast) and the jump is cut short; coyote time: a jump
+// pressed just after walking off an edge (110 ms) still counts
+let jumpDown = false, jumpHeld = false, coyoteAt = 0, trickT = 0;
 // a running jump carries you forward: the speed you had when you left the ground stays with you in the air
-const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
-function jump() { if (jetOn() && !frozen) { jetHigh = !jetHigh; Snd.board(); return; } if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
+const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1), skidV = new THREE.Vector3(); let skidT = 0;
+function jump() { if (jetOn() && !frozen) { jetHigh = !jetHigh; Snd.board(); return; } const coy = !grounded && performance.now() - coyoteAt < 110; if (!grounded && !coy && !frozen) { jumpBuf = performance.now(); return; } if ((!grounded && !coy) || frozen) return; coyoteAt = 0; jumpHeld = true; if (boarding && ride === "board" && !reduce) trickT = 0.55; /* a little spin off the board */ vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
 // an emote; ARC Bots change their face with it. Cheer throws the arms up (a Kenney character waves), Dance twirls
 // twice with a bounce
 let danceT = 0;
@@ -1115,8 +1122,13 @@ function step(dt) {
   // the floor: flat ground in the hub, the bricks under your feet on an island
   const floor = mode === "island" ? island.floorAt(here(tmp2)) : 0;
   if (jetOn()) { const want = floor + jetAlt(); hop += (want - hop) * Math.min(1, dt * 2.4); vy = 0; grounded = true; player.position.y = hop; }
-  else if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { const impact = -vy; hop = floor; vy = 0; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
-  else if (hop > floor + 0.05) { grounded = false; vy = 0; }
+  else if (!grounded) {
+    if (jumpHeld && !jumpDown) { jumpHeld = false; if (vy > 3) vy *= 0.5; } // let go early: a short hop
+    vy -= 24 * dt; hop += vy * dt;
+    // a big fall (impact over 12) lands heavy: more dust, a harder shake, the world slows for a beat; the rest as before
+    if (hop <= floor) { const impact = -vy, heavy = impact > 12; hop = floor; vy = 0; jumpHeld = false; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(); dust(heavy ? 16 : 6, heavy ? 1 : 0); shake = Math.max(shake, heavy ? 0.22 : 0.12); if (heavy && !reduce) slowUntil = Math.max(slowUntil, performance.now() + 150); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } }
+  }
+  else if (hop > floor + 0.05) { grounded = false; vy = 0; coyoteAt = performance.now(); } // walked off an edge
   else if (floor > hop) hop = floor;
   player.position.y = hop;
   { const cs = meShadow; if (cs) { const up = Math.max(0, hop - floor); cs.position.y = floor - hop + 0.05; cs.material.opacity = 0.5 * Math.max(0, 1 - up / 3); cs.scale.setScalar(1 + up * 0.15); cs.visible = mode === "hub" || mode === "island"; } } // the spot stays on the floor as you jump, fainter higher up
@@ -1125,6 +1137,7 @@ function step(dt) {
   if (flying) { stepTeleport(); speedNow = 0; return; }
   const { x, y, m, run } = inputs();
   let sp = 0;
+  if (skidT > 0) { skidT = Math.max(0, skidT - dt); const v = skidV.length(); if (v > 0.3) { tmp2.copy(skidV).divideScalar(v); tryMove(tmp2, v * dt); } skidV.multiplyScalar(Math.max(0, 1 - dt * 9)); } // the skid slides on
   // in the air with no input: keep gliding the way you jumped, slowing a little
   if (!grounded && m <= 0.05 && airV.lengthSq() > 0.25) { const v = airV.length(); tmp2.copy(airV).divideScalar(v); if (!tryMove(tmp2, v * dt)) sp = v; airV.multiplyScalar(1 - Math.min(1, dt * 0.6)); }
   if (m > 0.05) {
@@ -1132,6 +1145,9 @@ function step(dt) {
     dir.set(rx * x + fx * y, 0, rz * x + fz * y).normalize();
     sp = (boarding ? (run ? 22 : 13) : run ? 12.5 : 6.5) * m * (combat ? combat.speedMul() : 1);
     if (!grounded && airV.lengthSq() > 0.25) sp = Math.max(sp, airV.length() * 0.92); // no slowing down mid-jump
+    // turning sharply (over 120 degrees) at a sprint: the feet skid on the old way for a beat, dust, a lean back
+    if (grounded && !boarding && speedNow > 9 && skidT <= 0 && dir.dot(lastDir) < -0.5) { skidT = 0.26; skidV.copy(lastDir).multiplyScalar(speedNow * 0.8); dust(5); if (Snd.step) Snd.step(); }
+    if (skidT > 0) sp *= 0.3;
     lastDir.copy(dir);
     const hit = tryMove(dir, sp * dt);
     if (hit && hit.axis) {
@@ -1572,7 +1588,7 @@ function enter(n) {
   if (n.kind === "isle-exit") { leaveIsland(); return; }
   if (n.kind === "village") { if (n.mine) openVillage(); else village.show("contest"); return; }
   if (n.kind === "resident") { island.talk(n.res); return; }
-  if (n.kind === "portal") { (window.__arcFrame ? window.top : window).location.href = "/?skip"; return; }
+  if (n.kind === "portal") { portalGo(n.g); return; }
   if (n.kind === "pad") { openMap(); return; }
   if (n.kind === "bounty") { if (quests && rpg) { quests.setTab("daily"); rpg.show("log"); } return; }
   if (n.kind === "race") { race.start(); return; }
@@ -2259,15 +2275,12 @@ function gateReveal(z) {
   toast(T("A hunting ground fits your level now: {x} (level {a}–{b})", { x: z.name, a: z.lv[0], b: z.lv[1] }));
   Snd.level && Snd.level();
 }
-const dustGeo = new THREE.SphereGeometry(0.18, 6, 5);
-function dust(n) {
+// footstep, skid and landing dust: puffs on the GPU particle ring (world-particles.js), no mesh or material each;
+// big: a heavy landing's wider, slower cloud
+const dustAt = new THREE.Vector3();
+function dust(n, big = 0) {
   if (reduce) return;
-  for (let i = 0; i < n; i++) {
-    const m = new THREE.Mesh(dustGeo, new THREE.MeshBasicMaterial({ color: 0xcfe0e6, transparent: true, opacity: 0.6, depthWrite: false }));
-    const a = Math.random() * 6.28; m.position.set(Math.cos(a) * 0.4, hop + 0.1, Math.sin(a) * 0.4); st.scene.add(m);
-    const v = new THREE.Vector3(Math.cos(a), 0.6, Math.sin(a)).multiplyScalar(1.4 + Math.random()); const t0 = performance.now();
-    const off = st.on((dt) => { const k = (performance.now() - t0) / 600; m.position.addScaledVector(v, dt); m.scale.setScalar(1 + k * 2); m.material.opacity = 0.6 * (1 - k); if (k >= 1) { off(); st.scene.remove(m); m.material.dispose(); } });
-  }
+  here(dustAt).y = hop + 0.12; parts.emit({ at: dustAt, kind: "smoke", n, speed: 1.7 + big * 2.2, up: 0.45, size: 0.5 + big * 0.45, life: 0.6 + big * 0.35, grav: -0.4, drag: 2.4, color: 0xcfe0e6, color2: 0xa9b8be, jitter: 0.5 });
 }
 
 // ---------------- wallet purse; the crown shows what you hold ----------------
@@ -2816,8 +2829,8 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   legend: () => { replay(document.body, "wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
-  knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; hitFrom.copy(d); hitAt = performance.now(); },
-  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && avatar.hurt) { /* rock away from the blow: forward if it came from behind, sideways from the side */ const fresh = performance.now() - hitAt < 200, f = facing; avatar.hurt(fresh ? hitFrom.x * Math.sin(f) + hitFrom.z * Math.cos(f) : -1, fresh ? hitFrom.x * Math.cos(f) - hitFrom.z * Math.sin(f) : 0); } else if (avatar && !boarding) avatar.play(avatar.kk ? "hit" : "emote-no", { once: true }); },
+  knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; hitFrom.copy(d); hitAt = performance.now(); hitPow = p; },
+  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); const fresh = performance.now() - hitAt < 200; if (fresh) { kickCam(hitFrom, 0.14); if (hitPow >= 11) hitstop(50); } /* the camera jolts along the blow; a heavy one (a boss, a charge) stops the world a beat */ if (avatar && avatar.hurt) { /* rock away from the blow: forward if it came from behind, sideways from the side */ const f = facing; avatar.hurt(fresh ? hitFrom.x * Math.sin(f) + hitFrom.z * Math.cos(f) : -1, fresh ? hitFrom.x * Math.cos(f) - hitFrom.z * Math.sin(f) : 0); } if (avatar && !avatar.arc && !avatar.bot && !boarding) avatar.play(avatar.kk ? "hit" : "emote-no", { once: true }); },
   screenOf: (p) => { const v = p.clone(); planet.localToWorld(v); v.project(st.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
   // a boss arrives: the camera turns to it for a moment and its name card comes up
   bossIntro: (pos, name, zone, lv, line) => {
@@ -3295,7 +3308,31 @@ function watchFps(dt) {
 // ---------------- the loop ----------------
 const cam = st.camera;
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), base = new THREE.Vector3();
-let animState = "", npcT = 0, introOn = false, landUntil = 0, hoverT = 0, idleT = 0, idleNext = 7;
+let animState = "", npcT = 0, introOn = false, landUntil = 0, hoverT = 0, idleT = 0, idleNext = 7, turnNow = 0, afk = false, afkYaw = 0;
+// any input at all (a mouse move too) wakes you from sitting idle; the pad's sticks count through lastInput
+let actAt = performance.now(); for (const ev of ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"]) addEventListener(ev, () => { actAt = performance.now(); }, { passive: true, capture: true });
+// stepping into the portal: drawn in (smaller, spinning, toward its middle), the screen fills with light and the view
+// widens, then off to the platform (0.6 s); a tap or a key goes straight there. Back from it (bfcache), all is undone
+const PULL_MS = 620; let pull = null;
+const pullGo = () => { (window.__arcFrame ? window.top : window).location.href = "/?skip"; };
+function portalGo(g) {
+  if (pull) return;
+  if (reduce) { pullGo(); return; }
+  const p = g.getWorldPosition(new THREE.Vector3()).sub(planet.position); // its spot in the world group
+  pull = { t0: performance.now(), k: 0, from: planet.position.clone(), to: new THREE.Vector3(-p.x, 0, -p.z), done: false };
+  frozen = true; if (Snd.dash) Snd.dash(); vfx.teleport(here(), { color: 0x7fe9ff, color2: 0x2f86ff });
+  const skip = () => { if (pull && !pull.done) { pull.done = true; pullGo(); } };
+  setTimeout(() => { addEventListener("pointerdown", skip, { once: true }); addEventListener("keydown", skip, { once: true }); }, 0); // not the tap or key that opened it
+}
+function stepPull() {
+  const k = Math.min(1, (performance.now() - pull.t0) / PULL_MS), e = k * k * (3 - 2 * k); pull.k = e;
+  planet.position.lerpVectors(pull.from, pull.to, e * 0.85);
+  player.scale.setScalar(Math.max(0.05, 1 - 0.95 * e * e)); player.position.y = hop + e * 0.9; if (avatar) avatar.obj.rotation.y = facing + e * e * Math.PI * 6;
+  tpGlow.visible = true; tpGlow.material.opacity = e; tpGlow.scale.setScalar(1.2 + 3 * e);
+  tpFlash.style.opacity = String(THREE.MathUtils.smoothstep(k, 0.35, 0.95));
+  if (k >= 1 && !pull.done) { pull.done = true; pullGo(); }
+}
+addEventListener("pageshow", (e) => { if (!e.persisted || !pull) return; planet.position.copy(pull.from); pull = null; player.scale.set(1, 1, 1); tpGlow.visible = false; tpFlash.style.opacity = ""; frozen = false; });
 const tmpTr = new THREE.Vector3();
 // walking up to a building: it gives a small springy nod, as if the door just opened for you
 function greet(g) {
@@ -3322,24 +3359,29 @@ st.on((dt0, t) => {
     if (grounded && !boarding && speedNow > 9 && prevSpeed < 3 && !reduce) { if (avatar.land) avatar.land(0.45); parts.emit({ at: new THREE.Vector3(-planet.position.x, 0.15, -planet.position.z), kind: "smoke", n: 6, speed: 1.6, up: 0.6, size: 0.7, life: 0.7, grav: -0.5, drag: 2, color: 0xb8b0a0, jitter: 0.4 }); }
     prevSpeed = speedNow;
     // lean into a run and into turns
-    const turn = angLerp(0, facing - (avatar.lastFacing ?? facing), 1) / Math.max(dt, 1e-3); avatar.lastFacing = facing;
-    const inner = avatar.obj.children[0];
-    if (avatar.lean) avatar.lean(grounded && !boarding ? Math.min(1, speedNow / 12.5) * 0.16 : 0, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6)); // the ARC Bot leans in its own pose
-    else if (inner && !avatar.bot) { inner.rotation.x = THREE.MathUtils.lerp(inner.rotation.x, grounded && !boarding ? Math.min(1, speedNow / 12.5) * 0.16 : 0, 0.15); inner.rotation.z = THREE.MathUtils.lerp(inner.rotation.z, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6), 0.12); }
+    const turn = angLerp(0, facing - (avatar.lastFacing ?? facing), 1) / Math.max(dt, 1e-3); avatar.lastFacing = facing; turnNow = turn;
+    const inner = avatar.obj.children[0], fwdLean = skidT > 0 ? -0.26 : grounded && !boarding ? Math.min(1, speedNow / 12.5) * 0.16 : 0; // a skid leans back
+    if (avatar.lean) avatar.lean(fwdLean, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6)); // the ARC Bot leans in its own pose
+    else if (inner && !avatar.bot) { inner.rotation.x = THREE.MathUtils.lerp(inner.rotation.x, fwdLean, 0.15); inner.rotation.z = THREE.MathUtils.lerp(inner.rotation.z, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6), 0.12); }
     if (speedNow > 1 && !wheel.hidden) wheel.hidden = true;
     speedLines.style.opacity = String(THREE.MathUtils.clamp((speedNow - 13) / 8, 0, 0.9));
     // standing still for a while: a look round, now and then
     const still = grounded && !boarding && speedNow < 0.3 && !frozen && !document.body.classList.contains("wc-fight");
     idleT = still ? idleT + dt : 0; let lookOff = 0;
+    // away from the keys (25 s with no input at all): sit down, the camera slowly circles; any input and it's back
+    const afkNow = still && mode === "hub" && !photo && now0 - Math.max(lastInput, actAt) > 25000;
+    if (afkNow !== afk) { afk = afkNow; if (afk) afkYaw = camYaw; else if (!reduce) camYaw = afkYaw; }
+    if (afk) { idleT = 0; if (!reduce) camYaw += dt0 * 0.1; }
     if (idleT > idleNext) { const k = (idleT - idleNext) / 3.4; if (k >= 1) { idleT = 0; idleNext = 8 + Math.random() * 7; } else if (!reduce) lookOff = Math.sin(k * Math.PI * 2) * Math.sin(k * Math.PI) * 0.55; }
     if (danceT > 0) { danceT = Math.max(0, danceT - dt); lookOff += (1 - danceT / 2.4) * Math.PI * 4; if (grounded && danceT > 0.4 && Math.floor(danceT * 2.5) !== Math.floor((danceT + dt) * 2.5)) { vy = 3.2; grounded = false; } }
+    if (trickT > 0) { trickT = Math.max(0, trickT - dt); const k = 1 - trickT / 0.55; lookOff += Math.PI * 2 * k * k * (3 - 2 * k); } // the board trick: one eased turn
     avatar.obj.rotation.y = facing + lookOff;
     const headJ = avatar.headJ === undefined ? (avatar.headJ = avatar.obj.getObjectByName("head") || null) : avatar.headJ;
     if (headJ) headJ.rotation.y -= headYaw; // take off last frame's turn before the animation runs (it may or may not set the head)
     if (avatar.bot) avatar.update(dt, t, Math.min(1, speedNow / 8), 0);
     else {
       avatar.update(dt, t);
-      const want = boarding ? "idle" : !grounded ? (vy > 0 ? "jump" : "fall") : speedNow > 9 ? "sprint" : speedNow > 0.6 ? "walk" : "idle";
+      const want = boarding ? "idle" : !grounded ? (vy > 0 ? "jump" : "fall") : speedNow > 9 ? "sprint" : speedNow > 0.6 ? "walk" : afk ? "sit" : "idle"; // a rig with no sit keeps its idle
       if (combat && combat.vitals().down) { /* lying down until a revive or a respawn */ }
       else if (!avatar.busy() || (grounded && want !== "idle" && !boarding)) { if (want !== "jump") avatar.play(want, { speed: want === "walk" ? Math.max(0.8, speedNow / 6.5) : 1 }); animState = want; }
     }
@@ -3357,7 +3399,10 @@ st.on((dt0, t) => {
     }
     headYaw += (want - headYaw) * Math.min(1, dt * 5); avatar.headJ.rotation.y += headYaw;
   }
-  if (boarding) { const ro = rideObj(); ro.userData.update(t, speedNow, ride === "jet" ? (jetHigh ? 1 : 0.5) : 0); ro.rotation.y = facing; }
+  // the board banks into a turn (as much as you turn, eased) and spins with a trick; the rover's body rolls out of it
+  if (boarding) { const ro = rideObj(); ro.userData.update(t, speedNow, ride === "jet" ? (jetHigh ? 1 : 0.5) : 0); ro.rotation.order = "YXZ"; ro.rotation.y = avatar ? avatar.obj.rotation.y : facing;
+    const sp = Math.min(1, speedNow / 8), want = ride === "board" ? THREE.MathUtils.clamp(-turnNow * 0.06, -0.38, 0.38) * sp : ride === "rover" ? THREE.MathUtils.clamp(turnNow * 0.03, -0.12, 0.12) * sp : 0;
+    ro.rotation.z += (want - ro.rotation.z) * (1 - Math.exp(-dt * 7)); }
   if (npc && (npcT += dt) > 6) { npcT = 0; const lines = ["Hi! I'm ARCIA. Ask me anything.", "Scan a token before you buy it.", "A real airdrop never asks you to pay.", "Check the LP lock before you ape."]; npc.userData.line = (npc.userData.line + 1) % lines.length; npc.remove(npc.userData.bub); npc.userData.bub = K.bubble(T(lines[npc.userData.line])); npc.add(npc.userData.bub); if (labels) labels.dirty = true; if (Math.random() < 0.5) npc.userData.ac.play("emote-yes", { once: true }); }
   if (npc) npc.userData.ac.update(dt, t);
   if (stage && mode === "hub") stage.tick(dt, t);
@@ -3370,6 +3415,7 @@ st.on((dt0, t) => {
     f.g.rotation.y = Math.atan2(Math.cos(f.a) * f.dir, Math.sin(f.a) * f.dir); // facing along the ring
     if (f.c.update && !f.c.mixer) f.c.update(dt, t); /* an ARC Bot's mixer already steps it */
   }
+  if (pull) stepPull();
   tickQuantum(t);
   for (let i = rockets.length - 1; i >= 0; i--) if (!rockets[i](dt)) rockets.splice(i, 1);
   if (aurora.visible) aurora.userData.update(dt, t);
@@ -3421,7 +3467,7 @@ st.on((dt0, t) => {
   if (!lookInit) { camLookS.copy(camLook); lookInit = true; } camLookS.lerp(camLook, 1 - Math.exp(-dt * (landing ? 3 : 14))); cam.lookAt(camLookS);
   // speed widens the view: a little at a run, more on the board and the jetpack (and a kick as a sprint starts)
   const sk = THREE.MathUtils.smoothstep(speedNow, 2, 22), kick = Math.max(0, speedNow - lastSpeed) * 0.35; lastSpeed = THREE.MathUtils.lerp(lastSpeed, speedNow, 1 - Math.exp(-dt * 3));
-  const fov = 55 + sk * 11 + Math.min(3, kick) + (jetOn() && jetHigh ? 2 : 0);
+  const fov = 55 + sk * 11 + Math.min(3, kick) + (jetOn() && jetHigh ? 2 : 0) + (pull ? pull.k * 22 : 0); // the portal pulls the view wide
   if (Math.abs(cam.fov - fov) > 0.05) { cam.fov = THREE.MathUtils.lerp(cam.fov, fov, 1 - Math.exp(-dt * (fov > cam.fov ? 6 : 3))); cam.updateProjectionMatrix(); }
 });
 
@@ -3480,7 +3526,7 @@ const landing = dive();
 $("wp-loading").classList.add("done");
 setTimeout(() => { if (load3d) load3d.dispose(); $("wp-loading").remove(); }, 600);
 await landing;
-landed = true; feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
+landed = true; actAt = performance.now(); feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
 { const we = RPG.WEEK_EVENTS && RPG.weekEvent ? RPG.WEEK_EVENTS[RPG.weekEvent()] : null; if (we) setTimeout(() => feed(T("This week: {x} — {y}", { x: `<b>${esc(T(we.name))}</b>`, y: esc(T(we.line)) }), "#ffc861"), 2600); } // this week's event
 if (!P.authSeen && !sess()) openAuth();
 else if (!P.char) openMake();
