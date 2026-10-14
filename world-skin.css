@@ -224,3 +224,6 @@ body.wp .wp-prompt kbd:has(.wp-pad){padding:0;background:none;border:0;box-shado
 @media (prefers-reduced-motion:reduce){body.wp :is(.wp-tst,.wp-dock,.wp-feed,.wp-keys,.wp-shop-btn,.wp-starter-btn){transition:none!important}body.wp :is(.wp-tst.bump b,.wp-keys.swap){animation:none!important}body.wp .wp-xpf.go{animation-name:wpXpfStill}}
 @keyframes wpXpfStill{0%,70%{opacity:1;transform:translate(0,-50%)}100%{opacity:0;transform:translate(0,-50%)}}
 html.wp-less body.wp :is(.wp-tst,.wp-dock,.wp-feed,.wp-keys,.wp-shop-btn,.wp-starter-btn){transition:none!important}html.wp-less body.wp :is(.wp-tst.bump b,.wp-keys.swap){animation:none!important}html.wp-less body.wp .wp-xpf.go{animation-name:wpXpfStill}
+/* the boss bar sat low on the left, under the joystick ring: upright it goes above the ring, sideways (no room above it) to the top centre */
+html.wp-pcphone .wc-boss{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 612px)}
+html.wp-pcphone.wp-land .wc-boss{top:86px;bottom:auto;left:50%;transform:translateX(-50%);width:min(560px,calc(100vw - 520px));min-width:300px}
