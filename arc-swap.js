@@ -893,6 +893,7 @@
       S.amt = ""; S.quote = null; S.routes = [];
       S.msg = { k: "ok", html: `${L3("Swapped", "스왑 완료", "兑换完成")} <b data-no-i18n>${esc(fmtRaw(r.amount, mi.decimals))} ${esc(mi.symbol)}</b> → <b data-no-i18n>${esc(fmtRaw(got, mo.decimals))} ${esc(mo.symbol)}</b>${r.burned > 0n ? ` · <span class="v12-burn">${svg("flame", "sw-fl")} <span data-no-i18n data-v12-count="${esc(fmtRaw(r.burned, 18))}" data-v12-key="${esc(rc.hash)}">${esc(fmtRaw(r.burned, 18))}</span></span> $ARCIRCLE ${T("burned")}` : ""} · <a href="${esc(EXPL())}/tx/${esc(rc.hash)}" target="_blank" rel="noopener">${T("View")}${svg("ext", "sw-i sm")}</a>` };
       document.dispatchEvent(new CustomEvent("arcswap:swapped", { detail: { hash: rc.hash } }));
+      document.dispatchEvent(new CustomEvent("arc:success", { detail: { kind: "swap", rows: [["Paid", `${fmtRaw(r.amount, mi.decimals)} ${mi.symbol}`], ["Received", `${fmtRaw(got, mo.decimals)} ${mo.symbol}`]], url: `${EXPL()}/tx/${rc.hash}` } })); // arc-feel.js
       // a swap from an invite link credits the inviter (the server checks the transaction; points in ARCIRCLE Wallet)
       const ref = typeof window.arcRef === "function" ? window.arcRef() : null;
       if (ref && lc(ref) !== me()) (async () => {

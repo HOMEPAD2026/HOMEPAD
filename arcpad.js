@@ -894,6 +894,7 @@ async function submitArcpadLaunch(ev) {
     const receipt = await tx.wait();
     const newToken = typeof arcLaunchedTokenFromReceipt === "function" ? arcLaunchedTokenFromReceipt(receipt) : null;
     statusEl.innerHTML = `<div class="status success">Launched!${newToken ? " Opening your coin's page…" : ""} <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
+    document.dispatchEvent(new CustomEvent("arc:success", { detail: { kind: "launch", rows: [["Coin", `$${symbol}`], ["Name", name], ["Dev buy", devBuyQuote > 0n ? `${ethers.formatUnits(devBuyQuote, quoteDec)} ${quoteSym}` : null]], url: `${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}` } })); // arc-feel.js
     document.getElementById("ap-launch-form").reset();
     document.getElementById("ap-image-preview").innerHTML = ARC_LOGO_PH;
     document.getElementById("ap-image-hint").textContent = "Upload a logo — it's hosted as a 500×500 WebP and only its link goes on-chain, so it adds almost no gas. You can also paste an image URL.";
