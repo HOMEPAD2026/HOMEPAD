@@ -1,0 +1,163 @@
+/* world-skin.css — ARCIRCLE World's game skin (world-art concept sheet, "UI & ICONS"): deep navy → royal-blue glass
+   panels with a thin glowing cyan edge, a glossy number-badge in the header corner, pill tabs (the open one a bright
+   blue gradient), glossy "candy" buttons (gold, blue, teal, purple), rarity-filled inventory slots, glowing orbs.
+   Loaded last in world.min.css (tools/build-bundles.mjs CSS_PURGED "keep"), so it layers over arc-v10.css.
+   Cheap by design: the game draws underneath, so no backdrop-filter, every glow is a static box-shadow, and the only
+   motion (the legendary shine) moves a pseudo-element with transform/opacity, off under prefers-reduced-motion.
+   Every colour comes from the tokens below: change the look here. */
+
+:root{
+  /* panels */
+  --ui-panel:linear-gradient(180deg,#123072 0%,#0d2457 38%,#0a1a42 100%);
+  --ui-panel-solid:#0b1d49;
+  --ui-well:linear-gradient(180deg,rgba(10,30,76,.72),rgba(6,19,52,.82));  /* sunken sections inside a panel */
+  --ui-edge:#3fa9ff;                       /* the thin bright edge */
+  --ui-edge-soft:rgba(96,184,255,.58);
+  --ui-edge-dim:rgba(98,160,255,.22);
+  --ui-glow:0 0 0 1px rgba(2,8,28,.85),0 0 18px rgba(47,134,255,.38),0 24px 60px rgba(0,4,20,.62);
+  --ui-hi:inset 0 1px 0 rgba(170,220,255,.22);
+  --ui-r-l:18px;--ui-r-m:12px;--ui-r-s:9px;
+  /* type */
+  --ui-ink:#ffffff;--ui-ink-2:#a9c4ec;--ui-ink-3:#7f9cc8;
+  /* the brand */
+  --ui-blue:#2f86ff;--ui-cyan:#38d8ff;--ui-green:#39ff88;
+  /* candy buttons: top, bottom, the darker rim underneath, ink */
+  --ui-blue-1:#5cc2ff;--ui-blue-2:#1f6fe8;--ui-blue-3:#0f3f9e;--ui-blue-ink:#fff;
+  --ui-gold-1:#ffe680;--ui-gold-2:#ffb21f;--ui-gold-3:#a8620a;--ui-gold-ink:#3a2200;
+  --ui-teal-1:#5ff0d8;--ui-teal-2:#12b39a;--ui-teal-3:#076b5c;--ui-teal-ink:#032a24;
+  --ui-purple-1:#c79bff;--ui-purple-2:#7b3cf0;--ui-purple-3:#45198f;--ui-purple-ink:#fff;
+  --ui-red-1:#ff8a9a;--ui-red-2:#e8264a;--ui-red-3:#8a0f26;
+  /* rarity: common · uncommon · rare · epic · legendary · mythic */
+  --rar-0:#a9b6c8;--rar-1:#4fe27f;--rar-2:#3f9dff;--rar-3:#b26bff;--rar-4:#ffad2e;--rar-5:#ff4a5c;
+  /* bars */
+  --ui-hp-1:#ff9aa8;--ui-hp-2:#ff3d5c;--ui-hp-3:#c4163c;
+  --ui-sp-1:#9ff0ff;--ui-sp-2:#38b8ff;--ui-sp-3:#1a6fe0;
+  --ui-xp-1:#a8fbff;--ui-xp-2:#38d8ff;
+}
+
+/* ---------------- panels ---------------- */
+body.wp .wr-card,body.wp .wa-card,body.wp .wi-card,body.wp .wp-card,body.wp .wp-hub-card,body.wp .wp-st-card{
+  background:radial-gradient(90% 55% at 50% 0%,rgba(70,150,255,.16),transparent 70%),var(--ui-panel);
+  border:1.5px solid var(--ui-edge-soft);border-radius:var(--ui-r-l);
+  box-shadow:var(--ui-hi),inset 0 0 0 1px rgba(255,255,255,.03),var(--ui-glow);
+  color:var(--ui-ink);-webkit-backdrop-filter:none;backdrop-filter:none}
+/* the bright top edge: a thin light line, brightest in the middle */
+body.wp .wr-card::before,body.wp .wp-hub-card::before{left:22px;right:22px;top:-1px;height:1.5px;background:linear-gradient(90deg,transparent,rgba(120,210,255,.0) 4%,var(--ui-cyan) 50%,rgba(120,210,255,0) 96%,transparent);opacity:.9}
+/* sunken sections */
+body.wp .wr-doll,body.wp .wr-bag,body.wp .wr-detail{background:var(--ui-well);border:1px solid var(--ui-edge-dim);border-radius:14px;box-shadow:inset 0 1px 0 rgba(150,200,255,.06),inset 0 8px 24px rgba(0,0,0,.18)}
+body.wp .wr-detail{border-color:color-mix(in srgb,var(--rc,#3fa9ff) 55%,transparent)}
+body.wp .wr-doll h3,body.wp .wr-bag h3{color:var(--ui-ink);font-weight:800;letter-spacing:.01em}
+body.wp .wr-bag h3 small,body.wp .wr-res{color:var(--ui-ink-3)}
+
+/* ---------------- headers: a glossy badge in the corner, white title, muted line under it ---------------- */
+body.wp .wr-head{position:relative;padding-bottom:14px;margin-bottom:14px}
+body.wp .wr-head::after,body.wp .wa-shop-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,var(--ui-edge-soft),rgba(83,170,255,.12) 70%,transparent);pointer-events:none}
+body.wp .wa-shop-head{position:relative;padding-bottom:14px}
+body.wp .wr-ico{width:50px;height:50px;border-radius:11px;border:1.5px solid rgba(170,225,255,.85);
+  background:linear-gradient(180deg,rgba(255,255,255,.38),rgba(255,255,255,0) 48%),linear-gradient(180deg,var(--ui-blue-1),var(--ui-blue-2) 60%,var(--ui-blue-3));
+  box-shadow:inset 0 -3px 0 rgba(0,20,80,.35),0 0 14px rgba(56,170,255,.55),0 2px 0 rgba(0,0,0,.45)}
+body.wp .wr-ico svg,body.wp .wr-ico svg[style]{stroke:#fff;filter:drop-shadow(0 1px 0 rgba(0,30,90,.6))}
+body.wp .wr-head h2,body.wp .wa-shop-title h2,body.wp .wp-hub-h h2,body.wp .wi-card h2{color:var(--ui-ink);font-weight:800;letter-spacing:.01em;text-shadow:0 2px 0 rgba(0,10,40,.55)}
+body.wp .wr-head p,body.wp .wa-shop-title p{color:var(--ui-ink-2)}
+
+/* ---------------- tabs: dark pills; the open one a bright blue gradient ---------------- */
+body.wp .wr-switch button,body.wp .wa-tabs button,body.wp .wr-panes button,body.wp .wi-cats button,body.wp .wr-bagf button,body.wp .wr-store-t button{
+  border:1px solid var(--ui-edge-dim);background:linear-gradient(180deg,#132a5c,#0b1b40);color:var(--ui-ink-2);
+  box-shadow:inset 0 1px 0 rgba(150,200,255,.1),0 1px 0 rgba(0,0,0,.35);font-weight:800}
+body.wp .wr-switch button,body.wp .wa-tabs button,body.wp .wr-panes button{border-radius:10px}
+body.wp .wr-switch button:hover,body.wp .wa-tabs button:hover,body.wp .wr-panes button:hover,body.wp .wi-cats button:hover,body.wp .wr-bagf button:hover,body.wp .wr-store-t button:hover{color:#fff;border-color:var(--ui-edge-soft);background:linear-gradient(180deg,#183470,#0e2250)}
+body.wp .wr-switch button[aria-pressed=true],body.wp .wa-tabs button[aria-pressed=true],body.wp .wr-panes button[aria-pressed=true],body.wp .wi-cats button[aria-pressed=true],body.wp .wr-bagf button[aria-pressed=true],body.wp .wr-store-t button[aria-pressed=true]{
+  border-color:rgba(170,225,255,.9);color:#fff;text-shadow:0 1px 0 rgba(0,30,100,.55);
+  background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0) 50%),linear-gradient(180deg,var(--ui-blue-1),var(--ui-blue-2));
+  box-shadow:inset 0 -2px 0 rgba(0,30,110,.35),0 0 14px rgba(56,170,255,.5),0 2px 0 rgba(0,0,0,.35)}
+body.wp .wr-panes small{color:inherit;opacity:.75}
+
+/* ---------------- buttons: dark secondary · glossy candy primaries ---------------- */
+body.wp .wr-bag-f button,body.wp .wr-acts button,body.wp .wr-gset,body.wp .wr-buy,body.wp .wa-card .wp-btn,body.wp .wi-card .wp-btn:not(.wp-x),body.wp .wp-mapsheet .wp-btn:not(.wp-x){
+  border:1px solid var(--ui-edge-soft);background:linear-gradient(180deg,#183676,#0e2152);color:#eaf3ff;
+  box-shadow:inset 0 1px 0 rgba(170,220,255,.18),inset 0 -2px 0 rgba(0,8,30,.35),0 2px 0 rgba(0,4,18,.5);
+  transition:transform .08s ease,filter .12s ease}
+body.wp .wr-bag-f button,body.wp .wr-acts button{border-radius:10px}
+body.wp .wr-bag-f button:hover:not(:disabled),body.wp .wr-acts button:hover:not(:disabled),body.wp .wr-buy:hover:not(:disabled){filter:brightness(1.12)}
+/* candy: a gloss band on top, the colour, a darker rim underneath that presses in */
+body.wp .wr-acts button.go,body.wp .wr-bag-f button.go,body.wp .wp-cta,body.wp .wr-bag-f button.gold,body.wp .wr-buy.ask,body.wp .wp-st-buy,body.wp .wr-acts .sell,body.wp .wr-buy:not(:disabled):not(.short){
+  --c1:var(--ui-blue-1);--c2:var(--ui-blue-2);--c3:var(--ui-blue-3);--ci:var(--ui-blue-ink);
+  border:1px solid color-mix(in srgb,var(--c1) 70%,#fff);color:var(--ci);font-weight:800;
+  background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.08) 46%,rgba(255,255,255,0) 52%),linear-gradient(180deg,var(--c1),var(--c2));
+  box-shadow:inset 0 -3px 0 color-mix(in srgb,var(--c3) 70%,transparent),0 3px 0 var(--c3),0 0 14px color-mix(in srgb,var(--c2) 45%,transparent);
+  text-shadow:0 1px 0 color-mix(in srgb,var(--c3) 55%,transparent)}
+body.wp .wr-bag-f button.gold,body.wp .wr-buy.ask,body.wp .wp-st-buy,body.wp .wr-acts .sell,body.wp .wr-buy:not(:disabled):not(.short){--c1:var(--ui-gold-1);--c2:var(--ui-gold-2);--c3:var(--ui-gold-3);--ci:var(--ui-gold-ink);text-shadow:0 1px 0 rgba(255,245,200,.6)}
+body.wp .wr-acts button.warn{border-color:color-mix(in srgb,var(--ui-red-2) 70%,transparent);color:#ffc2cc;background:linear-gradient(180deg,#3a1430,#200a20)}
+body.wp .wr-acts button:active:not(:disabled),body.wp .wr-bag-f button:active:not(:disabled),body.wp .wp-cta:active,body.wp .wr-buy:active:not(:disabled),body.wp .wp-st-buy:active:not(:disabled){transform:translateY(2px);filter:brightness(.96)}
+body.wp .wr-acts button.go:active:not(:disabled),body.wp .wr-bag-f button.go:active,body.wp .wr-bag-f button.gold:active,body.wp .wp-cta:active,body.wp .wr-buy:active:not(:disabled){box-shadow:inset 0 2px 4px color-mix(in srgb,var(--c3) 60%,transparent),0 1px 0 var(--c3)}
+body.wp .wr-acts button:disabled,body.wp .wr-buy:disabled{filter:saturate(.35) brightness(.8)}
+body.wp .wr-buy:disabled{color:#ffd77a}
+body.wp .wr-gset{border-radius:10px;overflow:hidden}
+body.wp .wr-gset.on{border-color:color-mix(in srgb,var(--ui-green) 60%,transparent)}
+
+/* the round close buttons */
+body.wp .wa-x,body.wp .wp-hub-x,body.wp .wr-card .wp-x,body.wp .wi-card .wp-x,body.wp .wp-mapsheet .wp-x{
+  border:1.5px solid var(--ui-edge-soft);color:#dff0ff;
+  background:radial-gradient(circle at 50% 30%,#1d4290,#0b1d49 75%);box-shadow:inset 0 1px 0 rgba(170,220,255,.25),0 0 10px rgba(47,134,255,.3)}
+body.wp .wa-x:hover,body.wp .wp-hub-x:hover{border-color:var(--ui-edge);background:radial-gradient(circle at 50% 30%,#2552ad,#0e2559 75%)}
+
+/* currency chips */
+body.wp .wa-bal{background:linear-gradient(180deg,#0f2552,#09173a);border:1px solid var(--ui-edge-dim);box-shadow:inset 0 1px 0 rgba(150,200,255,.12),inset 0 -2px 0 rgba(0,0,0,.25)}
+
+/* ---------------- slots and rarity ---------------- */
+/* rarity tokens win over the inline colour from the data (world-rpg-data.js RARITY, also used by the 3D gear) */
+body.wp :is(.wr-tile,.wr-fcard,.wr-detail,.wp-loot).r0{--rc:var(--rar-0)!important}body.wp :is(.wr-tile,.wr-fcard,.wr-detail,.wp-loot).r1{--rc:var(--rar-1)!important}
+body.wp :is(.wr-tile,.wr-fcard,.wr-detail,.wp-loot).r2{--rc:var(--rar-2)!important}body.wp :is(.wr-tile,.wr-fcard,.wr-detail,.wp-loot).r3{--rc:var(--rar-3)!important}
+body.wp :is(.wr-tile,.wr-fcard,.wr-detail,.wp-loot).r4{--rc:var(--rar-4)!important}body.wp :is(.wr-tile,.wr-fcard,.wr-detail,.wp-loot).r5{--rc:var(--rar-5)!important}
+body.wp .wr-cell,body.wp .wr-slot{border-radius:12px;border:1px solid rgba(98,160,255,.2);
+  background:radial-gradient(circle at 50% 40%,rgba(40,90,190,.22),transparent 70%),linear-gradient(180deg,#0f2453,#0a1a3e);
+  box-shadow:inset 0 1px 0 rgba(150,200,255,.08),inset 0 -6px 12px rgba(0,0,0,.22)}
+body.wp .wr-slot{border-style:solid}
+body.wp .wr-empty-slot svg{stroke:rgba(150,195,255,.32)}
+body.wp .wr-empty-slot small{color:rgba(170,200,240,.45)}
+body.wp .wr-cells.store .wr-cell{background:linear-gradient(180deg,#0e2a55,#0a1d40)}
+body.wp .wr-tile{--rc:var(--rar-0);border-radius:11px;border:1.5px solid color-mix(in srgb,var(--rc) 85%,#fff);
+  background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--rc) 55%,transparent),transparent 72%),linear-gradient(160deg,color-mix(in srgb,var(--rc) 42%,#0b1d49),color-mix(in srgb,var(--rc) 14%,#071433) 70%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -8px 14px rgba(0,0,0,.28),0 0 10px color-mix(in srgb,var(--rc) 45%,transparent);
+  animation:none}
+body.wp .wr-tile.r0{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -8px 14px rgba(0,0,0,.28)}
+body.wp .wr-tile small{left:auto;right:5px;bottom:3px;color:#fff;font-weight:800;text-shadow:0 0 2px #000,0 1px 1px #000}
+body.wp .wr-tile b{text-shadow:0 0 2px #000,0 1px 1px #000}
+body.wp .wr-tile.sel{outline:2px solid #fff;outline-offset:2px;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 0 16px color-mix(in srgb,var(--rc) 70%,transparent)}
+/* epic and legendary: a shine crossing now and then (a pseudo-element moved with transform; the rest is static) */
+body.wp .wr-tile.r3::after,body.wp .wr-tile.r4::after,body.wp .wr-tile.r5::after{background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.34) 50%,transparent 60%);will-change:transform}
+body.wp .wr-tile.r4::after,body.wp .wr-tile.r5::after{background:linear-gradient(115deg,transparent 38%,rgba(255,236,170,.5) 50%,transparent 62%)}
+/* the Forge's cards take their rarity too */
+body.wp .wr-fcard{border-radius:14px;border:1.5px solid color-mix(in srgb,var(--rc,#3fa9ff) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--rc,#3fa9ff) 12%,#10285c),#0a1a40);
+  box-shadow:inset 0 1px 0 rgba(170,220,255,.14),0 0 12px color-mix(in srgb,var(--rc,#3fa9ff) 22%,transparent)}
+body.wp .wr-fart{border-radius:10px;border:1px solid color-mix(in srgb,var(--rc,#3fa9ff) 30%,transparent);background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--rc,#3fa9ff) 42%,transparent),transparent 70%),linear-gradient(180deg,#0c2050,#081634)}
+body.wp .wr-fcard small{color:var(--rc,#cfe3f5);font-weight:700}
+body.wp .wr-fcard.locked{opacity:.75;filter:saturate(.6)} /* the global .locked greys it out completely; keep a hint of its rarity */
+/* the loot toast */
+body.wp .wp-loot{border-color:var(--rc)}
+
+/* ---------------- the Menu's tiles ---------------- */
+body.wp .wp-hub-grid button{border:1px solid var(--ui-edge-dim);background:linear-gradient(180deg,#14306a,#0c1f4a);box-shadow:inset 0 1px 0 rgba(150,200,255,.12),0 2px 0 rgba(0,4,18,.45)}
+body.wp .wp-hub-grid button:hover{border-color:var(--ui-edge-soft);background:linear-gradient(180deg,#1a3c82,#0f2756)}
+body.wp .wp-hub-card section h3{color:var(--ui-ink-3)}
+
+/* ---------------- the HUD's bars: glossy fills, the damage trail behind HP, outlined numbers ---------------- */
+body.wp .wp-hud .wc-vit .wc-v i{background:#06102e;box-shadow:inset 0 1px 2px rgba(0,0,0,.7),0 0 0 1px rgba(98,160,255,.22)}
+body.wp .wp-hud .wc-vit .wc-v.hp i b{background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0) 48%),linear-gradient(180deg,var(--ui-hp-1),var(--ui-hp-2) 50%,var(--ui-hp-3))!important;box-shadow:0 0 8px rgba(255,61,92,.45)}
+body.wp .wp-hud .wc-vit .wc-v.sp i b{background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0) 48%),linear-gradient(180deg,var(--ui-sp-1),var(--ui-sp-2) 50%,var(--ui-sp-3))!important;box-shadow:0 0 8px rgba(56,184,255,.45)}
+body.wp .wc-v i u{background:linear-gradient(180deg,#fff3c8,#ffd27a);opacity:.85}
+body.wp .wp-hud .wc-vit .wc-v em,body.wp .wp-hud .wp-lv small{text-shadow:-1px 0 0 #031030,1px 0 0 #031030,0 -1px 0 #031030,0 1px 0 #031030,0 2px 2px rgba(0,0,0,.5)}
+body.wp .wp-hud .wp-lv .wp-xpbar i{background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,0) 50%),linear-gradient(90deg,var(--ui-xp-2),var(--ui-xp-1))}
+
+/* ---------------- skill orbs: a ring around each, the locked one a dark disc ---------------- */
+body.wp .wc-bar:not(.coarse) .wc-attack,body.wp .wc-bar:not(.coarse) .wc-skill:not(.locked){box-shadow:0 0 0 3px #0a1a42,0 0 0 4.5px var(--ui-edge-soft),0 0 16px color-mix(in srgb,var(--sk2,#ff3d5c) 45%,transparent),inset 0 -6px 12px rgba(0,0,0,.25),inset 0 4px 8px rgba(255,255,255,.3)}
+body.wp .wc-slot.locked{background:radial-gradient(circle at 50% 35%,#16305e,#081634 72%);border-color:rgba(98,160,255,.35);box-shadow:0 0 0 2px #050d26,inset 0 2px 6px rgba(0,0,0,.5)}
+body.wp .wc-slot.locked .wc-lock{color:var(--ui-ink-2)}
+
+/* ---------------- no frosted glass over the game: the canvas underneath would be blurred every frame ---------------- */
+body.wp :is(.wp-chip,.wp-btn,.wp-purse span,.wp-card,.wp-quests,.wp-feed li,.wp-act,.wi-bar,.wi-tools,.wi-hot,.wi-visitbar,.wc-vit,.wc-rest,.wa-daily,.wp-prompt button,.wr-raid,.wp-new,.wp-wheel .wp-say,.wp-hub,.wc-lockon,.wp-cbt,.wp-st,.wg-skip,.wg-plat){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+/* the full-screen scrims behind a window: a touch darker instead */
+body.wp :is(.wp-hub,.wa-daily,.wp-cbt,.wp-st){background-color:rgba(2,6,20,.72)}
+
+@media (prefers-reduced-motion:reduce){body.wp .wr-tile::after{animation:none!important;opacity:0}}

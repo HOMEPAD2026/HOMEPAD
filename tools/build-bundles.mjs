@@ -72,7 +72,7 @@ export const CSS_BUNDLES = { "arc.min.css": ["style.css", "arc-nav.css", "arc-v9
 export const CSS_PURGED = {
   "world.min.css": {
     purge: ["style.css"],
-    keep: ["arc-nav.css", "arc-v9.css", "arc-v10.css"],
+    keep: ["arc-nav.css", "arc-v9.css", "arc-v10.css", "world-skin.css"],
     scan: ["play.html", "world-play.js", "world-kit.js", "world-island.js", "world-shop.js", "world-style.js", "world-support.js", "world-combat.js", "world-rpg.js", "world-rpg-data.js", "world-zones.js", "world-quests.js", "world-social.js", "world-inbox.js", "world-race.js", "world-wardrobe.js", "world-season.js", "world-lock.js", "arc-connect.js", "i18n.js", "i18n-boot.js", "arc-log.js"],
   },
 };
