@@ -10,6 +10,7 @@
 import { gatherNode, fish as fish3d, weaponThumb, weaponKind } from "./world-gear3d.js";
 import { pondOf, temperCost, temperOf, TEMPER_MAX, TEMPER_STEP, parseBase, RARITY } from "./world-rpg-data.js";
 import { mergeStatic } from "./world-arcstyle.js";
+import { art } from "./world-itemart.js";
 
 export const MATS = { ore: { name: "Ore", color: "#ffb83d" }, crystal: { name: "Data crystal", color: "#38e8ff" }, wood: { name: "Wood", color: "#c98a4a" } };
 export const RECIPES = [
@@ -158,7 +159,7 @@ export function createLife(ctx) {
   // the fish log, town fish and each far ground's own)
   let tab = "make";
   const need = (m, rc) => Object.entries(rc.need).every(([k, n]) => (m[k] || 0) >= n);
-  const chips = (m, req) => Object.entries(req).filter(([k]) => MATS[k]).map(([k, n]) => `<span class="wl-chip${(m[k] || 0) >= n ? "" : " short"}" style="--c:${MATS[k].color}"><i></i>${(m[k] || 0) >= n ? n : `${m[k] || 0}/${n}`} ${esc(T(MATS[k].name))}</span>`).join("");
+  const chips = (m, req) => Object.entries(req).filter(([k]) => MATS[k]).map(([k, n]) => `<span class="wl-chip${(m[k] || 0) >= n ? "" : " short"}" style="--c:${MATS[k].color}">${art(k, 20)}${(m[k] || 0) >= n ? n : `${m[k] || 0}/${n}`} ${esc(T(MATS[k].name))}</span>`).join("");
   // the weapon to temper: the one picked in the bag (from its card), or the one in hand
   let pickId = null;
   function weaponNow() { const d = ctx.rpg() && ctx.rpg().data(); if (!d) return null; const all = [d.eq && d.eq.weapon, ...(d.bag || [])].filter(Boolean); const p = pickId && all.find((x) => x.id === pickId && /^weapon-/.test(x.b)); return p || (d.eq && d.eq.weapon) || null; }
@@ -168,7 +169,7 @@ export function createLife(ctx) {
     if (tab === "make") {
       const list = [...RECIPES].sort((a, b) => need(m, b) - need(m, a));
       body = `<ul class="wl-recipes">${list.map((rc) => { const ok = need(m, rc);
-        return `<li class="${ok ? "ok" : "no"}"><div><b>${esc(T(rc.name))}</b><p>${chips(m, rc.need)}</p></div><button type="button" class="${ok ? "wp-cta" : "wp-btn"}" data-wlmake="${rc.id}" ${ok ? "" : "disabled"}>${esc(T("Make"))}</button></li>`; }).join("")}</ul>`;
+        return `<li class="${ok ? "ok" : "no"}">${art(rc.id, 44)}<div><b>${esc(T(rc.name))}</b><p>${chips(m, rc.need)}</p></div><button type="button" class="${ok ? "wp-cta" : "wp-btn"}" data-wlmake="${rc.id}" ${ok ? "" : "disabled"}>${esc(T("Make"))}</button></li>`; }).join("")}</ul>`;
     } else if (tab === "temper") {
       const w = weaponNow();
       if (!w) body = `<p class="wl-note">${esc(T("Equip a weapon to temper it."))}</p>`; // (or pick one in the bag)
@@ -177,18 +178,18 @@ export function createLife(ctx) {
         body = `<div class="wl-temper"><div class="wl-wpn" style="--rc:${RARITY[w.r || 0].color}">${thumb ? `<img src="${thumb}" alt="">` : ""}</div><div><b>${esc(ctx.rpg().itemName(w))}</b>
           <p class="wl-stars" aria-label="${esc(T("Temper {n} of {m}", { n: tm, m: TEMPER_MAX }))}">${Array.from({ length: TEMPER_MAX }, (_, i) => `<i class="${i < tm ? "on" : ""}"></i>`).join("")}</p>
           <small>${esc(T("Each stage: +{p}% to the weapon, and it glows brighter", { p: Math.round(TEMPER_STEP * 100) }))}</small></div></div>
-          ${cost ? `<p class="wl-cost">${chips(m, cost)}<span class="wl-chip${(d.scrap || 0) >= cost.scrap ? "" : " short"}" style="--c:#c8d2dc"><i></i>${cost.scrap} ${esc(T("Scrap"))}</span></p>
+          ${cost ? `<p class="wl-cost">${chips(m, cost)}<span class="wl-chip${(d.scrap || 0) >= cost.scrap ? "" : " short"}" style="--c:#c8d2dc">${art("scrap", 20)}${cost.scrap} ${esc(T("Scrap"))}</span></p>
           <button type="button" class="${okM ? "wp-cta" : "wp-btn"} wl-wide" data-wltemper ${okM ? "" : "disabled"}>${esc(T("Temper to stage {n}", { n: tm + 1 }))}</button>` : `<p class="wl-note">${esc(T("Fully tempered."))}</p>`}`; }
     } else {
       const gl = masteryLv(d.x.gm), fl = masteryLv(d.x.fm), bar = (xp, lv) => { const nx = masteryNext(lv), lo = 6 * (lv - 1) * (lv - 1); return nx ? `<i><u style="width:${Math.min(100, (100 * ((xp || 0) - lo)) / (nx - lo))}%"></u></i>` : `<i><u style="width:100%"></u></i>`; };
       const groups = [["any", T("Town waters")], ...PONDS.map((p) => [p.where, (ctx.zones.find((z) => z.id === p.where) || {}).name || p.where])];
-      body = `<div class="wl-mastery"><div><b>${esc(T("Gathering"))} <em>${gl}</em></b>${bar(d.x.gm, gl)}<small>${esc(T("Sometimes one more material"))}</small></div><div><b>${esc(T("Fishing"))} <em>${fl}</em></b>${bar(d.x.fm, fl)}<small>${esc(T("Quicker bites, a wider green, rarer fish"))}</small></div></div>
+      body = `<div class="wl-mastery"><div><b><span>${art("pickaxe", 22)}${esc(T("Gathering"))}</span> <em>${gl}</em></b>${bar(d.x.gm, gl)}<small>${esc(T("Sometimes one more material"))}</small></div><div><b><span>${art("fish", 22)}${esc(T("Fishing"))}</span> <em>${fl}</em></b>${bar(d.x.fm, fl)}<small>${esc(T("Quicker bites, a wider green, rarer fish"))}</small></div></div>
         <h3>${esc(T("Fish log"))} <small>${FISH.filter((f) => d.x.fish[f.id]).length} / ${FISH.length}</small></h3>
         ${groups.map(([wh, name]) => { const fs = FISH.filter((f) => (wh === "any" ? f.where === "any" || f.where === "swamp" || f.where === "fountain" : f.where === wh)); return `<h4>${esc(name)}</h4><ul class="wl-fishlog">${fs.map((f) => { const b = d.x.fish[f.id]; return `<li class="${b ? "" : "none"}"><i style="background:#${new THREE.Color(f.color).getHexString()}"></i><span>${esc(b ? T(f.name) : "???")}</span><b>${b ? esc(T("{n} cm", { n: b })) : "—"}</b></li>`; }).join("")}</ul>`; }).join("")}`;
     }
     sheet.innerHTML = `<div class="wl-card"><button type="button" class="wp-btn wp-x" data-wlx aria-label="${esc(T("Close"))}">×</button>
       <h2>${esc(T("Workbench"))}</h2><p class="wl-note">${esc(T("Gather ore, data crystals and wood out in the world (G, or the Gather button), then make things here."))}</p>
-      <div class="wl-mats">${Object.entries(MATS).map(([k, x]) => `<span style="--c:${x.color}"><i></i>${esc(T(x.name))}<b>${m[k] || 0}</b></span>`).join("")}</div>
+      <div class="wl-mats">${Object.entries(MATS).map(([k, x]) => `<span style="--c:${x.color}">${art(k, 28)}${esc(T(x.name))}<b>${m[k] || 0}</b></span>`).join("")}</div>
       <nav class="wl-tabs" role="tablist">${[["make", "Make"], ["temper", "Temper"], ["mastery", "Mastery"]].map(([id, n]) => `<button type="button" role="tab" data-wltab="${id}" aria-selected="${tab === id}">${esc(T(n))}</button>`).join("")}</nav>
       <div class="wl-body">${body}</div>
       <p class="wl-foot">${esc(T("Materials and fish are for the game only: they're never ARCL and can't be sold for it."))}</p></div>`;
