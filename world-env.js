@@ -1,5 +1,5 @@
 // world-env.js — the living ground: grass blades that sway and lie down where you walk, rolling hills round the edge
-// of the world, a sky with drifting layered cloud, and water with foam at its edges and a floor you can see through.
+// of the world, a sky with big puffy cumulus (baked once into a small table), and water with foam at its edges and a floor you can see through.
 // All of it is shader work on a handful of meshes, sized by the quality setting (no grass on Low / Saver).
 //
 // Grass: one instanced mesh of blades in a square that follows you. Each blade's place is wrapped round the square in
@@ -200,7 +200,47 @@ export function makeHills({ inner = 228, outer = 430, rings = 44, segs = 220 } =
   return mesh;
 }
 
-/* ---------------- the sky: a gradient dome with two layers of drifting cloud and the sun's glow ---------------- */
+/* ---------------- the sky: a gradient dome, big puffy cumulus and the sun's glow ---------------- */
+// The clouds (b420) are an anime key-art sky: towering banks of cumulus standing on the horizon and big round puffs
+// overhead, white on top and toward the sun, a soft blue-grey underneath. They're worked out once into a small table
+// (bake(): one draw into a 2048×512 texture over the upper half of the sky, 1024×256 on phones) and the dome only reads
+// it: one texture read a pixel instead of 15 noise samples, cheaper than the old layer on every preset. The table holds
+// each cloud's raw shape, not its edge: the edge is cut at draw time, so it stays crisp however far the table is
+// stretched, and the cover (rain) still moves it. The whole sky turns slowly, like a wind aloft.
+const SKY_NOISE = /* glsl */`
+  float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float n2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(h2(i), h2(i + vec2(1, 0)), u.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), u.x), u.y); }
+  float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < OCT; i++) { v += a * n2(p); p = p * 2.03 + 7.1; a *= 0.5; } return v; }`;
+// the table: x = the puffs overhead (raw), y = how lit they are, z = the banks on the horizon (raw, 0.5 = the edge), w = their light
+const SKY_BAKE = /* glsl */`
+  uniform vec3 uSun; varying vec2 vUv;
+  ${SKY_NOISE}
+  // round puffs: a disc of random size in each cell of a grid (how far inside the nearest one), two sizes heaped
+  // together where a slow noise says a cloud is (it's baked once, so it can afford this)
+  float disc(vec2 p){ vec2 i = floor(p), f = fract(p); float m = -1.0;
+    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 g = vec2(float(x), float(y)), c = i + g;
+      vec2 o = vec2(h2(c), h2(c + 17.3)) * 0.8 + 0.1; m = max(m, 0.3 + 0.35 * h2(c + 5.1) - length(g + o - f)); }
+    return m; }
+  float puff(vec2 uv){ return disc(uv * 1.3) * 0.55 + disc(uv * 3.1 + 7.0) * 0.25 + disc(uv * 7.3 + 3.0) * 0.1 + (fbm(uv * 0.45) - 0.5) * 1.3 + 0.32; }
+  float lobe(vec2 p){ return abs(n2(p) * 2.0 - 1.0); } // rounded bumps (a billow)
+  float bankAt(float az, float h){ vec2 ring = vec2(cos(az), sin(az));
+    float top = 0.05 + 0.33 * smoothstep(0.36, 0.76, fbm(ring * 2.1 + 11.0)); // (tall enough to tower over the far mountains)
+    return top - h + (lobe(ring * 7.0 + vec2(h * 9.0, 0.0)) - 0.5) * 0.07 + (lobe(ring * 19.0 + vec2(0.0, h * 26.0)) - 0.5) * 0.03; }
+  void main(){
+    float az = vUv.x * 6.2831853, el = vUv.y * 1.5707963; float h = sin(el);
+    vec3 d = vec3(cos(az) * cos(el), h, sin(az) * cos(el)); vec3 sd = normalize(uSun); vec2 ring = vec2(cos(az), sin(az));
+    vec2 uv = d.xz / (h + 0.16) * 0.9, so = (normalize(sd.xz + 1e-4) * 0.5 - normalize(d.xz + 1e-4)) * 0.06; // toward the sun and up (away from the horizon)
+    float f = puff(uv), fs = puff(uv + so);
+    float layer = f * smoothstep(0.03, 0.3, h);
+    float lit = clamp(1.05 - (fs - 0.5) * 5.0 + h * 0.15, 0.2, 1.0); // bright where a step toward the sun leaves the cloud, shade under thick parts
+    // the banks: a profile round the horizon (tall where it peaks) built of rounded lobes that climb with height; lit
+    // where a step toward the sun (and up) leaves the cloud, shaded where it stays deep inside: bright crowns, soft cores
+    vec2 lp = normalize(vec2(dot(vec2(-ring.y, ring.x), normalize(sd.xz + 1e-4)), 1.0)) * vec2(0.05, 0.035);
+    float s = bankAt(az, h), si = bankAt(az + lp.x, h + lp.y);
+    float blit = clamp(1.05 - si * 9.0, 0.25, 1.0) * (0.8 + 0.2 * smoothstep(0.0, 0.2, h));
+    gl_FragColor = vec4(layer, lit, clamp(s * 2.0 + 0.5, 0.0, 1.0), blit);
+  }`;
 export function makeSkyDome({ lite = false } = {}) {
   const m = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false, defines: { OCT: lite ? 3 : 5 },
@@ -208,20 +248,19 @@ export function makeSkyDome({ lite = false } = {}) {
       top: { value: new THREE.Color(0x050a18) }, mid: { value: new THREE.Color(0x0a1a2e) }, glow: { value: new THREE.Color(0x0f3f4a) },
       uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0.4, 0.6, -0.5) }, uSunCol: { value: new THREE.Color(0xfff0d0) },
       uCloudLit: { value: new THREE.Color(0xffffff) }, uCloudShade: { value: new THREE.Color(0x9fb0c8) }, uCover: { value: 0.48 }, uCloudK: { value: 1 }, uNight: { value: 0 }, uMoon: { value: new THREE.Vector3(-0.5, 0.42, 0.6).normalize() }, uAur: { value: 0 },
+      uBake: { value: null }, uBaked: { value: 0 },
     },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: /* glsl */`
-      uniform vec3 top, mid, glow, uSunCol, uCloudLit, uCloudShade; uniform vec3 uSun, uMoon; uniform float uTime, uCover, uCloudK, uNight, uAur; varying vec3 vP;
-      float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-      float n2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
-        return mix(mix(h2(i), h2(i + vec2(1, 0)), u.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), u.x), u.y); }
-      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < OCT; i++) { v += a * n2(p); p = p * 2.03 + 7.1; a *= 0.5; } return v; }
+      uniform vec3 top, mid, glow, uSunCol, uCloudLit, uCloudShade; uniform vec3 uSun, uMoon; uniform float uTime, uCover, uCloudK, uNight, uAur, uBaked; uniform sampler2D uBake; varying vec3 vP;
+      ${SKY_NOISE}
       void main(){
         vec3 d = normalize(vP); float h = d.y;
-        vec3 c = mix(mid, top, smoothstep(0.0, 0.7, h)); c = mix(c, glow, smoothstep(0.25, -0.25, h) * 0.85);
+        // deep blue overhead, a clear lighter blue lower down, a pale glow on the horizon
+        vec3 c = mix(mid, top, smoothstep(0.02, 0.75, h)); c = mix(c, glow, smoothstep(0.3, -0.2, h) * 0.9);
         // the sun's glow round where it stands
         vec3 sd = normalize(uSun); float sa = max(dot(d, sd), 0.0);
-        c += uSunCol * (pow(sa, 8.0) * 0.18 + pow(sa, 200.0) * 0.9) * uCloudK;
+        c += uSunCol * (pow(sa, 8.0) * 0.16 + pow(sa, 200.0) * 0.9) * uCloudK;
         // the moon at night: a pale disc with a few darker seas, and a soft halo
         if (uNight > 0.01) { vec3 md = normalize(uMoon); float ma = max(dot(d, md), 0.0); float disc = smoothstep(0.99955, 0.99975, ma);
           if (ma > 0.9995) { vec3 mp = d - md * ma; float sea = fbm(mp.xz * 260.0 + 3.0); vec3 moon = vec3(0.93, 0.95, 1.0) * (0.78 + 0.25 * smoothstep(0.35, 0.7, sea));
@@ -230,20 +269,33 @@ export function makeSkyDome({ lite = false } = {}) {
         if (uAur > 0.001 && h > 0.05) { float az = atan(d.z, d.x), w = sin(az * 3.0 + uTime * 0.05) * 0.06 + sin(az * 7.0 - uTime * 0.08) * 0.03;
           float band = smoothstep(0.14 + w, 0.24 + w, h) * (1.0 - smoothstep(0.3 + w, 0.58 + w, h)), rays = 0.5 + 0.5 * sin(az * 70.0 + sin(az * 9.0 + uTime * 0.2) * 5.0);
           float au = band * (0.35 + 0.65 * rays) * uAur; c += vec3(0.1, 0.9, 0.5) * au * 0.5 + vec3(0.5, 0.25, 0.95) * au * smoothstep(0.3, 0.5, h) * 0.45; }
-        // clouds: projected onto a high flat layer, two drifts at different speeds; thin near the horizon
-        if (h > 0.02) {
-          vec2 uv = d.xz / (h + 0.12) * 1.6;
-          float a = fbm(uv * 1.1 + vec2(uTime * 0.006, uTime * 0.002));
-          float b = fbm(uv * 2.6 - vec2(uTime * 0.011, -uTime * 0.004));
-          float dens = smoothstep(uCover, uCover + 0.28, a * 0.72 + b * 0.38) * smoothstep(0.02, 0.22, h);
-          float lit = smoothstep(0.2, 0.9, fbm(uv * 2.6 + sd.xz * 0.5 - vec2(uTime * 0.011, 0.0)));
-          vec3 cc = mix(uCloudShade, uCloudLit, lit) + uSunCol * pow(sa, 6.0) * 0.35;
-          c = mix(c, cc, dens * 0.85 * uCloudK);
+        // the clouds from the table (bake): the banks first, the puffs over them
+        if (uBaked > 0.5 && h > -0.02) {
+          vec2 tuv = vec2(atan(d.z, d.x) / 6.2831853 + uTime * 0.0006, asin(clamp(h, 0.0, 1.0)) / 1.5707963);
+          vec4 cf = texture2D(uBake, tuv);
+          vec3 sun = uSunCol * pow(sa, 5.0) * 0.4;
+          float bank = smoothstep(0.5, 0.53, cf.z) * smoothstep(-0.02, 0.025, h);
+          c = mix(c, mix(uCloudShade, uCloudLit, cf.w) + sun, bank * uCloudK);
+          float dens = smoothstep(uCover + 0.02, uCover + 0.06, cf.x);
+          c = mix(c, mix(uCloudShade, uCloudLit, cf.y) + sun, dens * 0.96 * uCloudK);
         }
         gl_FragColor = vec4(c, 1.0);
+        // straight to the screen (Low) the sky gets the same tone and colour space the picture chain gives it
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }`,
   });
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(700, 48, 24), m); sky.renderOrder = -1; return sky;
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(700, 48, 24), m); sky.renderOrder = -1;
+  /// work the clouds out once (after uSun is set: their light comes from it)
+  sky.userData.bake = (renderer) => {
+    const w = lite ? 1024 : 2048, rt = new THREE.WebGLRenderTarget(w, w / 4, { depthBuffer: false, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, wrapS: THREE.RepeatWrapping, wrapT: THREE.ClampToEdgeWrapping });
+    const bm = new THREE.ShaderMaterial({ defines: { OCT: 5 }, uniforms: { uSun: m.uniforms.uSun }, depthTest: false, depthWrite: false,
+      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }", fragmentShader: SKY_BAKE });
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bm); quad.frustumCulled = false;
+    const prev = renderer.getRenderTarget(); renderer.setRenderTarget(rt); renderer.render(quad, new THREE.OrthographicCamera()); renderer.setRenderTarget(prev);
+    quad.geometry.dispose(); m.uniforms.uBake.value = rt.texture; m.uniforms.uBaked.value = 1;
+  };
+  return sky;
 }
 
 /* ---------------- water: foam at the edge, the floor seen through it, sky in it at a glance ---------------- */

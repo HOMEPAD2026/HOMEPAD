@@ -10,7 +10,7 @@ export function createAmbient({ THREE, planet, low = false, fountainY = 0.3, bat
 
   /* the horizon: two rings of mountains, the far one paler, both melting into the fog colour */
   const hazeU = { value: new THREE.Color(0xbcd0e0) }, mts = [];
-  for (const [rad, h0, h1, col, seed, haze] of [[540, 30, 95, 0x4d6f6a, 3, 0.45], [640, 55, 150, 0x6f8fa0, 9, 0.68]]) {
+  for (const [rad, h0, h1, col, seed, haze] of [[540, 30, 95, 0x4a9468, 3, 0.28], [640, 55, 150, 0x6a9ccc, 9, 0.48]]) { // b420: green near, blue far, less haze (clear key-art distance)
     const segs = 220, pos = [], idx = [], ys = [];
     for (let i = 0; i <= segs; i++) {
       const a = (i / segs) * TAU, n = vnoise(i * 0.09 + seed * 10) * 0.65 + vnoise(i * 0.31 + seed) * 0.35, h = h0 + (h1 - h0) * Math.pow(n, 1.6);
