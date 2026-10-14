@@ -9990,6 +9990,7 @@
     "Next island": "다음 섬",
     "No other islands to visit yet": "아직 방문할 다른 섬이 없어요",
     "Less motion (no shaking, flashes or confetti)": "움직임 줄이기 (흔들림·번쩍임·색종이 없음)",
+    "Sound effects": "효과음", "Effects volume": "효과음 볼륨", "Footsteps while running": "달릴 때 발소리",
     "Scammers knocked out": "처치한 스캐머",
     "bosses": "보스",
     "Codex pages": "도감 페이지",

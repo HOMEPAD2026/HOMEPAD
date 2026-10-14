@@ -323,6 +323,7 @@ export function createCombat(ctx) {
     else if (kind === "melee") stopT = Math.max(stopT, 0.03); // even a plain cut bites for a moment
     m.punch = 1; // the body squashes and springs back (tickMobs)
     if (kind === "melee" || kind === "heavy" || kind === "shot") Snd.impact && Snd.impact(wKind());
+    Snd.hitFx && Snd.hitFx(kind, crit); if (crit && kind !== "pet") ctx.buzz && ctx.buzz(15); // the element's sound, a crit's ding (world-sfx.js)
     if (m.rank === "boss" && !m.raid && !m.rage && m.hp > 0 && m.hp < m.max * 0.5) enrage(m);
     if ((kind === "melee" || kind === "heavy") && !ctx.reduce) { // a bright slash mark across the body, at the angle of the swing
       const big = kind === "heavy" ? 1.5 : 1, ang = combo === 2 ? 0.6 : combo === 3 ? -0.2 : -0.7;
@@ -353,7 +354,7 @@ export function createCombat(ctx) {
     m.g.position.copy(stepV); return true;
   }
   function kill(m) {
-    m.dead = 0.001; Snd.coin && Snd.coin();
+    m.dead = 0.001; Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
     const p = m.g.position.clone().setY(m.y + 0.4);
     if (VX) VX.shatter(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), { big: m.rank === "boss" ? 2 : m.rank === "elite" ? 1.4 : 1, coins: m.rank === "boss" ? 8 : 3, where: (v) => ctx.here(v) });
     shards(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), m.rank === "boss" ? 40 : 16, m.rank === "boss" ? 10 : 7); flash(p, 0xffffff, m.rank === "boss" ? 8 : 2.6, 0.25); puff(p, 0xffc861, { n: m.rank === "boss" ? 40 : 12, speed: 5, size: 0.3, life: 0.8, grav: 6 });
@@ -388,6 +389,7 @@ export function createCombat(ctx) {
     g.add(box, lid, beam); add(g);
     puff(at.clone().setY(1), c.getHex(), { n: 16, speed: 4, size: 0.4, life: 0.8, grav: -1 });
     if (item.r >= 4) { ctx.shake(0.3); ctx.legend && ctx.legend(); }
+    Snd.drop && Snd.drop(item.r);
     drops.push({ g, item, t: 0, beam, lid });
   }
   function tickDrops(dt, t) {
@@ -397,7 +399,7 @@ export function createCombat(ctx) {
       const dist = Math.hypot(d.g.position.x - me.x, d.g.position.z - me.z);
       if (dist < 1.5 || d.t > 120 || dist > 60) {
         root.remove(d.g); drops.splice(i, 1); d.lid.material.dispose(); d.beam.material.dispose();
-        if (dist < 1.5) { const ok = rpg.addItem(d.item); Snd.chest && Snd.chest(); ring(d.g.position, new THREE.Color(RARITY[d.item.r].color).getHex(), { r0: 0.3, r1: 2.4, life: 0.4 }); if (ok) ctx.float(rpg.itemName(d.item), d.g.position.clone().setY(2.4), RARITY[d.item.r].color, d.item.r >= 3); ctx.onLoot && ctx.onLoot(d.item); }
+        if (dist < 1.5) { const ok = rpg.addItem(d.item); Snd.chest && Snd.chest(d.item.r); ring(d.g.position, new THREE.Color(RARITY[d.item.r].color).getHex(), { r0: 0.3, r1: 2.4, life: 0.4 }); if (ok) ctx.float(rpg.itemName(d.item), d.g.position.clone().setY(2.4), RARITY[d.item.r].color, d.item.r >= 3); ctx.onLoot && ctx.onLoot(d.item); }
       }
     }
   }
@@ -722,7 +724,7 @@ export function createCombat(ctx) {
     if (ham) comboT = 1.2;
     cd.attack = ham ? (heavy ? 0.85 : 0.55) : heavy ? 0.5 : 0.3;
     const av = ctx.avatar(); if (av) av.play(heavy ? "pick-up" : "interact-right", { once: true, fade: 0.04, speed: heavy ? 2.2 : 2.0 });
-    Snd.swing && Snd.swing(heavy);
+    Snd.swing && Snd.swing(heavy, kind);
     ctx.here(me); fwdOf(fwd);
     // the crescent takes the weapon's colour (its rarity), gold on the third blow or with a hammer
     const wpn = rpg.data && rpg.data() && rpg.data().eq && rpg.data().eq.weapon, wc = heavy || ham ? 0xffc861 : wpn && (wpn.r || 0) >= 1 ? new THREE.Color(RARITY[wpn.r].color).getHex() : 0x7fe6ff;
@@ -876,7 +878,7 @@ export function createCombat(ctx) {
   function shoot(kind, heavy) {
     cd.attack = kind === 2 ? (heavy ? 0.45 : 0.26) : kind === 3 ? (heavy ? 0.8 : 0.6) : heavy ? 0.7 : 0.45;
     const av = ctx.avatar(); if (av) av.play("interact-right", { once: true, fade: 0.04, speed: 2.2 });
-    Snd.swing && Snd.swing(heavy);
+    Snd.swing && Snd.swing(heavy, kind);
     const dir = new V3(), target = aim(dir), col = wColor();
     const dmg = stats().atk * (kind === 2 ? 0.8 : kind === 3 ? 1.25 : 1.0) * (heavy && kind === 4 ? 1.4 : 1);
     const fire = (turn, delay) => (delay ? (f) => setTimeout(f, delay) : (f) => f())(() => {

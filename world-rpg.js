@@ -82,9 +82,9 @@ export function createRpg(ctx) {
   function equip(id) {
     const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return;
     const it = r.bag[i], p = parseBase(it.b); if (!p) return;
-    if (TIERS[p.tier].lv > ctx.level()) { ctx.toast(T("Needs level {n}", { n: TIERS[p.tier].lv })); return; }
+    if (TIERS[p.tier].lv > ctx.level()) { ctx.toast(T("Needs level {n}", { n: TIERS[p.tier].lv })); ctx.Snd.bad && ctx.Snd.bad(); return; }
     r.bag.splice(i, 1); if (r.eq[p.slot]) r.bag.splice(i, 0, r.eq[p.slot]); r.eq[p.slot] = it;
-    ctx.Snd.place && ctx.Snd.place(); changed();
+    ctx.Snd.equip ? ctx.Snd.equip() : ctx.Snd.place && ctx.Snd.place(); changed();
   }
   // one number for how strong a set of stats is (for "Equip best": attack and defence weigh most, then health)
   const powerOf = (s) => (s.atk || 0) * 2 + (s.def || 0) * 1.6 + (s.hp || 0) * 0.3 + (s.sp || 0) * 0.08 + (s.crit || 0) * 3 + (s.spd || 0) * 1.2;
@@ -129,7 +129,7 @@ export function createRpg(ctx) {
       const it = pl.eq[sl], i = r.bag.findIndex((x) => x.id === it.id); if (i < 0) continue;
       r.bag.splice(i, 1); if (r.eq[sl]) r.bag.splice(i, 0, r.eq[sl]); r.eq[sl] = it;
     }
-    plan = null; sel = null; ctx.Snd.place && ctx.Snd.place(); flash(pl.swaps);
+    plan = null; sel = null; ctx.Snd.equip ? ctx.Snd.equip() : ctx.Snd.place && ctx.Snd.place(); flash(pl.swaps);
     changed(T("Equipped {n} better pieces · power +{p}", { n: pl.swaps.length, p: pl.gain }));
   }
   function planHTML() {
@@ -158,7 +158,7 @@ export function createRpg(ctx) {
   }
   function lock(id) { const it = findItem(id); if (!it) return; it.lk = it.lk ? 0 : 1; if (!it.lk) delete it.lk; changed(it.lk ? T("Locked: {x}", { x: itemName(it) }) : T("Unlocked: {x}", { x: itemName(it) })); }
   function unequip(slot) { const r = R(); if (!r.eq[slot]) return; if (r.bag.length >= BAG) { ctx.toast(T("Your bag is full")); return; } r.bag.push(r.eq[slot]); delete r.eq[slot]; changed(); }
-  function salvage(id) { const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return; if (r.bag[i].lk) { ctx.toast(T("Unlock it first")); return; } const s = scrapOf(r.bag[i]); r.scrap += s; r.bag.splice(i, 1); sel = null; changed(T("+{n} scrap", { n: s })); }
+  function salvage(id) { const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return; if (r.bag[i].lk) { ctx.toast(T("Unlock it first")); return; } const s = scrapOf(r.bag[i]); r.scrap += s; r.bag.splice(i, 1); sel = null; ctx.Snd.salvage && ctx.Snd.salvage(); changed(T("+{n} scrap", { n: s })); }
   function enhance(id) {
     const r = R(), it = r.bag.find((x) => x.id === id) || Object.values(r.eq).find((x) => x && x.id === id); if (!it) return;
     if ((it.p || 0) >= 10) { ctx.toast(T("Already +10")); return; }
@@ -166,7 +166,7 @@ export function createRpg(ctx) {
     r.scrap -= c; it.p = (it.p || 0) + 1; ctx.Snd.chest && ctx.Snd.chest(); hammer(); changed(T("{x} is now +{n}", { x: itemName({ ...it, p: 0 }), n: it.p })); ctx.onEnhance && ctx.onEnhance(it.p);
   }
   function sortBag() { const r = R(); r.bag.sort((a, b) => (b.r - a.r) || (b.lv - a.lv) || SLOTS.indexOf(parseBase(a.b).slot) - SLOTS.indexOf(parseBase(b.b).slot)); changed(); }
-  function salvageCommons() { const r = R(); let s = 0; r.bag = r.bag.filter((x) => { if ((x.r || 0) === 0 && !(x.p > 0) && !x.lk) { s += scrapOf(x); return false; } return true; }); r.scrap += s; changed(s ? T("+{n} scrap", { n: s }) : T("No common gear to salvage")); }
+  function salvageCommons() { const r = R(); let s = 0; r.bag = r.bag.filter((x) => { if ((x.r || 0) === 0 && !(x.p > 0) && !x.lk) { s += scrapOf(x); return false; } return true; }); r.scrap += s; if (s) ctx.Snd.salvage && ctx.Snd.salvage(); changed(s ? T("+{n} scrap", { n: s }) : T("No common gear to salvage")); }
   function usePotion(kind) {
     const r = R(); if (!(r[kind] > 0)) { ctx.toast(kind === "hp" ? T("No health potions: the Forge sells them") : T("No mana potions: the Forge sells them")); return false; }
     r[kind]--; ctx.save(); if (open) paint(); return true;
@@ -459,7 +459,7 @@ export function createRpg(ctx) {
     // on the click: the price leaves the counter, supplies land in your pack, the anvil rings
     buying++; if (ctx.arclDelta && price) ctx.arclDelta(-price);
     if (sup) { R()[sup.kind] = (R()[sup.kind] || 0) + sup.n; ctx.onPots && ctx.onPots(); ctx.toast(T("Bought: {x} · you have {n}", { x: T(sup.name), n: R()[sup.kind] })); }
-    ctx.Snd.win && ctx.Snd.win(); hammer(); paint();
+    ctx.Snd.buy ? ctx.Snd.buy() : ctx.Snd.win && ctx.Snd.win(); hammer(); paint();
     const r = await queued(() => ctx.post({ action: "world-forge-buy", ...s, item: id, ...(wk != null && /^(mw:weapon|weapon:4)/.test(id) ? { k: wk } : {}) })).catch(() => ({ ok: false, j: {} }));
     buying--;
     if (!r.ok) {

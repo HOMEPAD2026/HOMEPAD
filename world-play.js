@@ -24,7 +24,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules (world-all.js): one file in the build, side by side from the source folder
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL] = (await import("./world-all.js")).default;
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX] = (await import("./world-all.js")).default;
 const { THREE } = K;
 // height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
 // mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
@@ -283,85 +283,8 @@ function paintOnline() {
 setInterval(ping, 50000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
 
-// ---------------- sound: small synthesized effects (WebAudio), started by the first touch or key ----------------
-const Snd = (() => {
-  let ctx = null, out = null;
-  function init() {
-    if (ctx || !S.sound) return;
-    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
-    out = ctx.createGain(); out.gain.value = 0.42; out.connect(ctx.destination);
-    const amb = ctx.createGain(); amb.gain.value = 0.035; const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 520; amb.connect(lp); lp.connect(out);
-    [110, 164.8, 220.4].forEach((f, i) => { const o = ctx.createOscillator(); o.type = i === 2 ? "triangle" : "sine"; o.frequency.value = f; o.detune.value = i * 4; o.connect(amb); o.start(); });
-  }
-  function tone(f, dur, { type = "sine", v = 0.18, to = 0, at = 0 } = {}) {
-    if (!ctx || !S.sound) return;
-    const t = ctx.currentTime + at, o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
-  }
-  function noise(dur, v = 0.12, f = 900) {
-    if (!ctx || !S.sound) return;
-    const n = ctx.createBufferSource(), b = ctx.createBuffer(1, Math.max(1, ctx.sampleRate * dur), ctx.sampleRate), d = b.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-    const fl = ctx.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = f; const g = ctx.createGain(); g.gain.value = v;
-    n.buffer = b; n.connect(fl); fl.connect(g); g.connect(out); n.start();
-  }
-  // a scene: the raid's beat, or a hunting ground's ambience, quietly under everything else
-  let sceneK = "", sceneIv = 0, beat = 0;
-  const RAID_SEQ = [110, 0, 131, 0, 147, 0, 131, 0, 98, 0, 117, 0, 131, 0, 117, 0];
-  function scene(k) {
-    if (k === sceneK) return; sceneK = k; clearInterval(sceneIv); sceneIv = 0; beat = 0;
-    if (!k) return;
-    sceneIv = setInterval(() => {
-      if (!ctx || !S.sound || document.hidden) return; const b = beat++;
-      if (k === "raid") { const s = b % 16; if (s % 4 === 0) { tone(58, 0.24, { to: 40, v: 0.13 }); noise(0.04, 0.05, 140); } if (s % 8 === 4) noise(0.11, 0.06, 1900); if (RAID_SEQ[s]) tone(RAID_SEQ[s], 0.2, { type: "sawtooth", v: 0.022 }); }
-      else if (k === "spam") { if (Math.random() < 0.2) tone(1100 + Math.random() * 1300, 0.05, { type: "square", v: 0.012 }); }
-      else if (k === "fields") { if (b % 12 === 0) noise(2.6, 0.018, 420); if (Math.random() < 0.06) tone(1900 + Math.random() * 600, 0.12, { v: 0.012, to: 2500 }); }
-      else if (k === "swamp") { if (Math.random() < 0.18) tone(170 + Math.random() * 120, 0.14, { to: 430, v: 0.025 }); }
-      else if (k === "canyon") { if (b % 10 === 0) noise(2.4, 0.026, 230); }
-      else if (k === "depths") { if (b % 8 === 0) tone(46, 1.9, { v: 0.045 }); if (Math.random() < 0.08) tone(660, 0.6, { type: "triangle", v: 0.01, to: 330 }); }
-      // the far ring: wind on the peaks, a sand gust, the reef's bubbles, the farm's hum and clicks, a hollow echo in
-      // the ruins, the abyss's rumble and crackle, a shimmer in the void
-      else if (k === "peaks") { if (b % 6 === 0) noise(3.2, 0.03, 700 + Math.random() * 500); if (Math.random() < 0.05) tone(2400 + Math.random() * 800, 0.3, { v: 0.008, to: 3000 }); }
-      else if (k === "dunes") { if (b % 7 === 0) noise(2.8, 0.035, 1500 + Math.random() * 900); }
-      else if (k === "reef") { if (Math.random() < 0.3) tone(300 + Math.random() * 500, 0.09, { to: 700 + Math.random() * 600, v: 0.02 }); if (b % 9 === 0) noise(3, 0.02, 260); }
-      else if (k === "wastes") { if (b % 2 === 0) tone(60, 0.5, { type: "sawtooth", v: 0.012 }); if (Math.random() < 0.25) tone(1800 + Math.random() * 1600, 0.03, { type: "square", v: 0.01 }); }
-      else if (k === "ruins") { if (b % 10 === 0) { tone(196, 1.6, { type: "triangle", v: 0.014, to: 185 }); tone(233, 1.6, { type: "triangle", v: 0.01, to: 220, at: 0.4 }); } }
-      else if (k === "abyss") { if (b % 4 === 0) tone(38, 1.6, { v: 0.05, to: 32 }); if (Math.random() < 0.35) noise(0.05, 0.03, 2600 + Math.random() * 2000); }
-      else if (k === "void") { if (b % 6 === 0) [523, 784, 1175].forEach((f, i) => tone(f * (Math.random() < 0.5 ? 1 : 1.5), 1.2, { v: 0.008, at: i * 0.3 })); if (b % 12 === 0) tone(55, 3, { v: 0.03 }); }
-    }, k === "raid" ? 250 : 500);
-  }
-  return {
-    init, unlock: () => { init(); if (ctx && ctx.state !== "running") ctx.resume().catch(() => {}); }, ready: () => !S.sound || (!!ctx && ctx.state === "running"),
-    scene, set(on) { S.sound = on; saveSet(); if (on) init(); if (out) out.gain.value = on ? 0.42 : 0; try { music.refresh(); } catch { /* not set up yet */ } },
-    step: () => noise(0.05, 0.05, 1400), jump: () => tone(300, 0.22, { type: "triangle", to: 620, v: 0.12 }), land: () => noise(0.09, 0.09, 500),
-    pick: () => { tone(880, 0.12, { v: 0.12 }); tone(1320, 0.18, { v: 0.1, at: 0.08 }); },
-    enter: () => { tone(520, 0.1, { type: "triangle", v: 0.12 }); tone(780, 0.14, { type: "triangle", v: 0.1, at: 0.07 }); },
-    level: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, { type: "triangle", v: 0.12, at: i * 0.09 })),
-    rocket: () => { noise(1.6, 0.16, 180); tone(90, 1.4, { type: "sawtooth", to: 40, v: 0.05 }); },
-    fire: () => noise(1.2, 0.14, 300), whale: () => tone(140, 2.2, { type: "sine", to: 90, v: 0.08 }), shutter: () => noise(0.06, 0.2, 2500),
-    bad: () => tone(220, 0.3, { type: "square", to: 140, v: 0.06 }), win: () => [659, 880, 1175].forEach((f, i) => tone(f, 0.2, { v: 0.12, at: i * 0.1 })),
-    board: () => tone(200, 0.3, { type: "sawtooth", to: 420, v: 0.05 }),
-    place: () => { tone(540 + Math.random() * 180, 0.07, { type: "triangle", v: 0.12 }); noise(0.04, 0.1, 2400); },
-    pop: () => { tone(420, 0.1, { to: 190, v: 0.1 }); noise(0.08, 0.12, 1200); },
-    paint: () => tone(900, 0.09, { to: 1300, v: 0.07 }),
-    coin: () => [1046, 1318, 1568].forEach((f, i) => tone(f, 0.12, { type: "triangle", v: 0.09, at: i * 0.06 })),
-    chest: () => { noise(0.25, 0.1, 700); [523, 784, 1046].forEach((f, i) => tone(f, 0.2, { v: 0.1, at: 0.2 + i * 0.08 })); },
-    siren: () => [0, 0.32, 0.64].forEach((at) => tone(660, 0.28, { type: "sawtooth", to: 440, v: 0.05, at })),
-    swing: (heavy) => { noise(heavy ? 0.14 : 0.09, heavy ? 0.14 : 0.1, heavy ? 1800 : 2600); tone(heavy ? 180 : 260, heavy ? 0.14 : 0.08, { type: "triangle", to: heavy ? 70 : 120, v: 0.07 }); },
-    dash: () => noise(0.16, 0.08, 3200), thunder: () => { noise(2.6, 0.2, 110); noise(1.2, 0.08, 420); },
-    heart: () => { tone(70, 0.09, { v: 0.12 }); tone(62, 0.09, { v: 0.1, at: 0.16 }); },
-    cast: (k) => k === "ice" ? (tone(1400, 0.18, { to: 700, v: 0.07 }), noise(0.12, 0.06, 5000)) : k === "fire" ? (noise(0.3, 0.14, 500), tone(180, 0.25, { type: "sawtooth", to: 90, v: 0.05 })) : (noise(0.18, 0.12, 3500), tone(90, 0.2, { type: "square", to: 60, v: 0.05 })),
-    hurt: () => { tone(200, 0.16, { type: "square", to: 110, v: 0.07 }); noise(0.1, 0.1, 900); },
-    // a hit lands, the weapon's own way: blades ring, the hammer thuds, the blaster zaps, an arrow thunks, the staff chimes
-    impact: (kind) => kind === 1 ? (tone(90, 0.16, { to: 45, v: 0.13 }), noise(0.12, 0.12, 300)) : kind === 2 ? tone(1700, 0.08, { type: "square", to: 500, v: 0.04 }) : kind === 3 ? (noise(0.05, 0.1, 1100), tone(220, 0.06, { type: "triangle", to: 140, v: 0.05 })) : kind === 4 ? [1320, 1760].forEach((f, i) => tone(f, 0.14, { type: "triangle", v: 0.035, at: i * 0.04 })) : (tone(2100 + Math.random() * 400, 0.09, { type: "triangle", v: 0.04, to: 1600 }), noise(0.04, 0.08, 3800)),
-    charge: (k) => tone(260 + k * 520, 0.08, { type: "triangle", v: 0.03 + k * 0.03 }),
-    charged: () => { noise(0.35, 0.16, 900); tone(140, 0.4, { type: "sawtooth", to: 50, v: 0.07 }); tone(880, 0.25, { type: "triangle", to: 1320, v: 0.05 }); },
-    roar: () => { tone(110, 0.9, { type: "sawtooth", to: 55, v: 0.08 }); noise(0.7, 0.12, 400); },
-    warn: () => tone(520, 0.16, { type: "square", v: 0.03, to: 480 }),
-  };
-})();
+// ---------------- sound: small synthesized effects (world-sfx.js, WebAudio), started by the first touch or key ----------------
+const Snd = SFX.createSfx({ S, saveSet, music: () => music, coarse });
 // the music (world-music.js): six K-pop tracks in a shuffled order; the note button in the top bar turns it on and off
 // (S.bgm), Settings → Music sets the volume, and Sound off silences it too
 const musicVol = () => (S.music ?? 55) / 100;
@@ -1115,7 +1038,7 @@ function step(dt) {
   // the floor: flat ground in the hub, the bricks under your feet on an island
   const floor = mode === "island" ? island.floorAt(here(tmp2)) : 0;
   if (jetOn()) { const want = floor + jetAlt(); hop += (want - hop) * Math.min(1, dt * 2.4); vy = 0; grounded = true; player.position.y = hop; }
-  else if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { const impact = -vy; hop = floor; vy = 0; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
+  else if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { const impact = -vy; hop = floor; vy = 0; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(impact); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
   else if (hop > floor + 0.05) { grounded = false; vy = 0; }
   else if (floor > hop) hop = floor;
   player.position.y = hop;
@@ -1148,7 +1071,7 @@ function step(dt) {
     }
     facing = angLerp(facing, Math.atan2(dir.x, dir.z), 1 - Math.exp(-12 * dt));
     if (!look && performance.now() - lastLook > 1400 && y > 0.3) camYaw = angLerp(camYaw, facing - Math.PI, dt * 0.9);
-    stepT -= dt * sp; if (grounded && stepT < 0 && !boarding) { Snd.step(); stepT = 2.6; if (sp > 10) dust(2); const zz = combat && combat.zone(), soft = zz && { peaks: 0xa9bcd4, dunes: 0xa8824e, canyon: 0x8a4a32 }[zz.id]; if (soft && tracks) { here(tmp2); tracks.step(tmp2.x, tmp2.z, facing, soft); } } // prints in snow and sand
+    stepT -= dt * sp; if (grounded && stepT < 0 && !boarding) { Snd.step(sp); stepT = 2.6; if (sp > 10) dust(2); const zz = combat && combat.zone(), soft = zz && { peaks: 0xa9bcd4, dunes: 0xa8824e, canyon: 0x8a4a32 }[zz.id]; if (soft && tracks) { here(tmp2); tracks.step(tmp2.x, tmp2.z, facing, soft); } } // prints in snow and sand
     walked += sp * dt; if (walked > 4) tutorialStep(0);
     dailyDist(sp * dt);
   }
@@ -1830,7 +1753,7 @@ function nearestOf(list) { let b = null, bd = Infinity; list.forEach((g) => { g.
 const beacon = K.makeBeacon(K.C.gold, 22); spins.push(beacon.userData.spin);
 let questTarget = null, justDone = null;
 function checkQuests() {
-  QUESTS.forEach((q) => { if (!P.quests.includes(q.id) && q.done()) { P.quests.push(q.id); save(); justDone = { t: T(q.t), at: performance.now() }; feed(T("Quest done: {q}", { q: `<b>${esc(T(q.t))}</b>` }), "#ffc861"); if (q.xp) gain(q.xp, T(q.t)); else Snd.win(); } });
+  QUESTS.forEach((q) => { if (!P.quests.includes(q.id) && q.done()) { P.quests.push(q.id); save(); justDone = { t: T(q.t), at: performance.now() }; Snd.quest(); feed(T("Quest done: {q}", { q: `<b>${esc(T(q.t))}</b>` }), "#ffc861"); if (q.xp) gain(q.xp, T(q.t)); else Snd.win(); } });
   badges(); paintQuests();
 }
 function paintQuests() {
@@ -2587,11 +2510,13 @@ $("wp-set-vp").addEventListener("click", (e) => { const b = e.target.closest("bu
 $("wp-set-snd").addEventListener("change", (e) => Snd.set(e.target.checked));
 $("wp-set-music").value = String(S.music ?? 55);
 $("wp-set-music").addEventListener("input", (e) => { S.music = Math.round(Number(e.target.value)); music.setVolume(musicVol()); });
+Snd.settings(T); // Sound effects and Footsteps, under Music (world-sfx.js)
 $("wp-set-music").addEventListener("change", () => { saveSet(); music.start(); });
-// vibration on a phone: a hit taken, a boss's strike, a charged attack, a bite on the line, a level up (off in Settings)
+// vibration on a phone: a hit taken, a boss's strike, a charged attack, a bite on the line, a crit, a level up (off in Settings;
+// its own switch: Less motion leaves it on)
 // only while you're playing: nothing buzzes when the phone just sits there (a scammer wandering up, a boss's miss)
 let lastInput = 0; for (const ev of ["pointerdown", "keydown", "touchstart"]) addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true, capture: true });
-const buzz = (ms) => { if (S.vib === false || reduce || !navigator.vibrate || performance.now() - lastInput > 4000 || document.hidden) return; try { navigator.vibrate(ms); } catch { /* not allowed */ } };
+const buzz = (ms) => { if (S.vib === false || !navigator.vibrate || performance.now() - lastInput > 4000 || document.hidden) return; try { navigator.vibrate(ms); } catch { /* not allowed */ } };
 if (navigator.vibrate && matchMedia("(pointer: coarse)").matches) { $("wp-set-vibrow").hidden = false; $("wp-set-vib").checked = S.vib !== false; $("wp-set-vib").addEventListener("change", (e) => { S.vib = e.target.checked; saveSet(); if (S.vib) buzz(30); }); }
 $("wp-set-showname").addEventListener("change", (e) => { S.showName = !!e.target.checked; saveSet(); });
 // easier to read: larger text across the HUD and the windows; colours that don't lean on red against green

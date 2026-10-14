@@ -105,7 +105,7 @@ export function createQuests(ctx) {
   function bump(ev, n = 1) {
     const x = X(); x.c[ev] = (x.c[ev] || 0) + n;
     if (SEASON_PTS[ev]) seasonAdd(ev, n);
-    for (const q of todays()) if (q.ev === ev && !x.d.done.includes(q.id)) { x.d.p[q.id] = (x.d.p[q.id] || 0) + n; if (x.d.p[q.id] >= q.n && !x.d.notified?.includes(q.id)) { x.d.notified = [...(x.d.notified || []), q.id]; ctx.toast(T("Daily hunt done: {x}. Claim it in the Adventure log.", { x: T(q.name) })); } }
+    for (const q of todays()) if (q.ev === ev && !x.d.done.includes(q.id)) { x.d.p[q.id] = (x.d.p[q.id] || 0) + n; if (x.d.p[q.id] >= q.n && !x.d.notified?.includes(q.id)) { x.d.notified = [...(x.d.notified || []), q.id]; ctx.Snd.quest && ctx.Snd.quest(); ctx.toast(T("Daily hunt done: {x}. Claim it in the Adventure log.", { x: T(q.name) })); } }
     checkAch(); ctx.save();
   }
   // how far an achievement is: most count an event; a ground's is its three steps

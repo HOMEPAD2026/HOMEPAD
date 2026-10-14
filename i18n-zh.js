@@ -10160,6 +10160,7 @@
     "Next island": "下一个岛",
     "No other islands to visit yet": "暂时没有其他岛屿可访问",
     "Less motion (no shaking, flashes or confetti)": "减少动效（无抖动、闪光和彩纸）",
+    "Sound effects": "音效", "Effects volume": "音效音量", "Footsteps while running": "奔跑时的脚步声",
     "Scammers knocked out": "击倒的骗子",
     "bosses": "个首领",
     "Codex pages": "图鉴页数",
