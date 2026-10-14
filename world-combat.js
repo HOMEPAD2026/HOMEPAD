@@ -65,7 +65,7 @@ export function createCombat(ctx) {
   const maxHp = () => stats().hp, maxSp = () => stats().sp;
   let fightOn = false, quietT = 0, hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
   const buffs = {}; let shieldShown = false;
-  let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null;
+  let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null, alertT = 0, wuHint = false; // alertT: one "!" at a time; wuHint: the dodge tip once a visit
   const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3(), ONE = new V3(1, 1, 1);
   const add = (m) => { root.add(m); return m; };
   // the swing's crescent: bright at the outer edge, a white core, a head that sweeps along the arc and a tail that
@@ -431,19 +431,31 @@ export function createCombat(ctx) {
       }
       if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
-      if (m.stun > 0) { if (m.cast) endCast(m); continue; }
-      if (m.rank === "boss" && !m.raid && bossAI(m, dt, t, d)) continue; // a boss winding up a move stands its ground
-      if (behave(m, dt, t, d, i)) continue; // a ranged, charging or fleeing scammer doing its own thing
+      if (m.stun > 0) { if (m.cast) endCast(m); m.wu = 0; continue; }
+      // it notices you: a "!" pops over its head (the pooled floating text), once until you've got well away again
+      if (!m.seen && d < 15 && m.rank !== "boss" && !far) { m.seen = true; if (alertT <= 0) { alertT = 0.2; ctx.float("!", tmpA.copy(m.g.position).setY((m.y || 0) + 2.3), "#ffd23a", true); } }
+      else if (m.seen && d > 20) m.seen = false;
+      if (m.rank === "boss" && !m.raid && bossAI(m, dt, t, d)) { m.wu = 0; continue; } // a boss winding up a move stands its ground
+      if (behave(m, dt, t, d, i)) { m.wu = 0; continue; } // a ranged, charging or fleeing scammer doing its own thing
       const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1) * (m.rage ? 1.3 : 1);
       if (d < 15 && d > m.reach * 0.9) { tmp.divideScalar(d); if (!tryStep(m, tmp, sp * dt)) { tmp2.set(-tmp.z, 0, tmp.x); tryStep(m, tmp2, sp * dt); } m.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
       else if (d >= 15) { m.wander += (Math.random() - 0.5) * dt; tmp.set(Math.cos(m.wander), 0, Math.sin(m.wander)); tryStep(m, tmp, sp * 0.4 * dt); m.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
       const r = Math.hypot(m.g.position.x, m.g.position.z); if (r < 14) m.g.position.multiplyScalar(14 / r);
       if (m.zone && Math.hypot(m.g.position.x - m.zone.x, m.g.position.z - m.zone.z) > m.zone.r) { tmp.set(m.zone.x - m.g.position.x, 0, m.zone.z - m.g.position.z).normalize(); m.g.position.addScaledVector(tmp, sp * dt * 2); }
       m.g.position.y = m.rank === "boss" ? Math.abs(Math.sin(t * 2)) * 0.3 : Math.abs(Math.sin(t * 6 + i)) * 0.12;
-      // their hit: the boss also slams the ground now and then
-      if (d <= m.reach && hurtT <= 0 && !down) {
-        hurtT = m.rank === "boss" ? (m.rage ? 1.05 : 1.35) : m.rank === "elite" ? 1.15 : 1.3; m.e.play("Attack", { once: true, fade: 0.05 });
-        if (buffs.shield > 0 || guardT > 0) { flash(me.clone().setY(1.2), 0x4fa8ff, 3.2, 0.3); Snd.pop && Snd.pop(); if (guardT > 0) ctx.float(T("Dodged"), me.clone().setY(2.6), "#9fe6ff"); }
+      // their hit: a short wind-up first (it rocks back, a red ring opens to its reach) so there's time to dodge or
+      // step out; the cycle is the old one plus the wind-up. The boss also slams the ground now and then
+      if (d <= m.reach && hurtT <= 0 && !down && !m.wu) {
+        const w = m.rank === "boss" ? 0.3 : m.rank === "elite" ? 0.28 : 0.34; m.wu = w;
+        hurtT = (m.rank === "boss" ? (m.rage ? 1.05 : 1.35) : m.rank === "elite" ? 1.15 : 1.3) + w; m.e.play("Attack", { once: true, fade: 0.05 });
+        tmp2.copy(m.g.position).sub(me).setY(0).normalize(); m.leanT = m.leanL = w; m.leanX = tmp2.x; m.leanZ = tmp2.z;
+        ring(m.g.position, 0xff2d4d, { r0: 0.4, r1: m.reach + 0.3, life: w, y: 0.07 });
+        if (!wuHint && ctx.hint) { wuHint = true; ctx.hint("dodge"); }
+      }
+      if (m.wu > 0 && (m.wu -= dt) <= 0) {
+        m.wu = 0;
+        if (down || d > m.reach * 1.25) { /* stepped out in time: a miss */ }
+        else if (buffs.shield > 0 || guardT > 0) { flash(me.clone().setY(1.2), 0x4fa8ff, 3.2, 0.3); Snd.pop && Snd.pop(); if (guardT > 0) ctx.float(T("Dodged"), me.clone().setY(2.6), "#9fe6ff"); }
         else { tmp.copy(me).sub(m.g.position).setY(0).normalize(); ctx.knock(tmp, m.rank === "boss" ? 11 : 7); ctx.hurt(); damage(hitDamage(m.atk, st.def)); }
       }
       if (m.raid) { raidTick(m, dt, t, d); m.crown.rotation.y += dt * 0.8; m.crown.children.forEach((c, k) => { c.rotation.x += dt * 3; }); m.aura.material.opacity = 0.06 + Math.sin(t * 2) * 0.03 + (raidPhase >= 4 ? 0.05 : 0); }
@@ -456,7 +468,7 @@ export function createCombat(ctx) {
         else if (m.slam <= 0) { m.slam = 2; m.warned = false; }
       }
     }
-    hurtT = Math.max(0, hurtT - dt);
+    hurtT = Math.max(0, hurtT - dt); alertT -= dt;
   }
   // the raid's phases (world-social.js): 2 calls a swarm now and then, 3 adds a shield that soaks most of a hit,
   // 4 drops red circles around you — step out before they burst
@@ -1035,12 +1047,14 @@ export function createCombat(ctx) {
     meteor: '<svg viewBox="0 0 24 24"><circle cx="15" cy="15" r="5"/><path d="M11 11 4 4M13 9 9 3M9 13 3 9"/></svg>',
     lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
     hp: '<svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v4L6 13a6 6 0 0 0 12 0l-4-6V3"/></svg>',
+    dodge: '<svg viewBox="0 0 24 24"><path d="M3 8h8M2 12h9M3 16h8"/><path d="M14 5l6 7-6 7"/></svg>',
   };
   bar.innerHTML = `<div class="wc-buffs" id="wc-buffs"></div>
-    <div class="wc-pots"><button type="button" class="wc-pot hp" data-skill="pot-hp" aria-label="${T("Health potion")}">${ICON.hp}<b class="wc-key">4</b><em id="wc-pot-hp">0</em></button><button type="button" class="wc-pot sp" data-skill="pot-sp" aria-label="${T("Mana potion")}">${ICON.hp}<b class="wc-key">5</b><em id="wc-pot-sp">0</em></button></div>
+    <div class="wc-pots"><button type="button" class="wc-pot hp" data-skill="pot-hp" aria-label="${T("Health potion")}">${ICON.hp}<b class="wc-key">4</b><em id="wc-pot-hp">0</em></button><button type="button" class="wc-forgechip" data-skill="forge" hidden>${T("Forge")}</button><button type="button" class="wc-pot sp" data-skill="pot-sp" aria-label="${T("Mana potion")}">${ICON.hp}<b class="wc-key">5</b><em id="wc-pot-sp">0</em></button></div>
     <button type="button" class="wc-skill wc-slot" data-skill="slot"><i></i><em class="wc-cd"></em><b class="wc-key">Z</b><small class="wc-lock"></small><small class="wc-slv"></small><span class="wc-swap" data-swap hidden aria-label="${T("Change skill")}"><svg viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3"/></svg></span></button>
     <button type="button" class="wc-lockon" data-skill="lockon" aria-label="${T("Lock on")}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b class="wc-key">Tab</b></button>
     <button type="button" class="wc-attack" data-skill="attack" aria-label="${T("Attack")}"><i>${ICON.attack}</i><em class="wc-cd"></em><b class="wc-key">J</b><span class="wc-combo" id="wc-combo"></span></button>
+    <button type="button" class="wc-dodge" data-skill="dodge" aria-label="${T("Dodge")}"><svg class="wc-ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" pathLength="100"/></svg><i>${ICON.dodge}</i><b class="wc-key">K</b></button>
     <div class="wc-pick" id="wc-pick" hidden role="menu"></div>`;
   document.body.appendChild(bar);
   const lockBtn = bar.querySelector(".wc-lockon");
@@ -1068,7 +1082,9 @@ export function createCombat(ctx) {
     }
     closePick();
     if (id === "lockon") { lockOn(); return; }
-    if (id === "attack") { attack(); chargeStart(); try { b.setPointerCapture(e.pointerId); } catch { /* not capturable */ } } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
+    if (id === "forge") { rpg.forgeTab("supplies"); rpg.show("forge"); return; } // out of health potions at low HP: straight to the Forge's supplies
+    if (id === "dodge") dodge();
+    else if (id === "attack") { attack(); chargeStart(); try { b.setPointerCapture(e.pointerId); } catch { /* not capturable */ } } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
     b.classList.remove("press"); requestAnimationFrame(() => b.classList.add("press")); // b413: no forced layout on every tap
   });
   slotBtn.addEventListener("pointerup", (e) => {
@@ -1093,7 +1109,14 @@ export function createCombat(ctx) {
   // potions can come from anywhere (the Forge, a daily hunt, the season road, a drop): the buttons follow, and pop when they go up
   let potsSeen = null;
   function potsCheck() { const p = rpg.potions(); if (potsSeen && (p.hp !== potsSeen.hp || p.sp !== potsSeen.sp)) { paintPots(); [["hp", "pot-hp"], ["sp", "pot-sp"]].forEach(([k, id]) => { if (p[k] > potsSeen[k]) { const b = bar.querySelector(`[data-skill="${id}"]`); b.classList.remove("got"); void b.offsetWidth; b.classList.add("got"); } }); } potsSeen = { hp: p.hp, sp: p.sp }; }
-  function paintPots() { const p = rpg.potions(); bar.querySelector("#wc-pot-hp").textContent = p.hp; bar.querySelector("#wc-pot-sp").textContent = p.sp; bar.querySelector('[data-skill="pot-hp"]').classList.toggle("empty", !p.hp); bar.querySelector('[data-skill="pot-sp"]').classList.toggle("empty", !p.sp); }
+  function paintPots() { const p = rpg.potions(); bar.querySelector("#wc-pot-hp").textContent = p.hp; bar.querySelector("#wc-pot-sp").textContent = p.sp; bar.querySelector('[data-skill="pot-hp"]').classList.toggle("empty", !p.hp); bar.querySelector('[data-skill="pot-sp"]').classList.toggle("empty", !p.sp); nudge(); }
+  // low HP (under 30%): the health potion pulses, or, with none left, a small "Forge" chip offers more. Touched only
+  // when the state flips (paintVit runs on every HP change)
+  const potHp = bar.querySelector('[data-skill="pot-hp"]'), forgeChip = bar.querySelector(".wc-forgechip"); let nudgeOn = "";
+  function nudge() {
+    const low = !down && hp / maxHp() < 0.3, n = low ? (rpg.potions().hp > 0 ? "pot" : "forge") : "";
+    if (n === nudgeOn) return; nudgeOn = n; potHp.classList.toggle("nudge", n === "pot"); forgeChip.hidden = n !== "forge";
+  }
   const CDT = { attack: 0.5, dodge: 1.1 };
   function paintCd() {
     const sl = slotSkill();
@@ -1104,7 +1127,11 @@ export function createCombat(ctx) {
       b.classList.toggle("cooling", left > 0);
     }
     const c = bar.querySelector("#wc-combo"); if (c) { c.textContent = comboT > 0 && combo > 1 ? `x${combo}` : ""; }
+    // the dodge's ring refills as its cooldown runs out (in 24 steps, so the style isn't written every frame)
+    const q = Math.ceil((cd.dodge / CDT.dodge) * 24);
+    if (q !== dodgeQ) { dodgeQ = q; dodgeRing.style.strokeDashoffset = String((q / 24) * 100); dodgeBtn.classList.toggle("cooling", q > 0); }
   }
+  const dodgeBtn = bar.querySelector(".wc-dodge"), dodgeRing = dodgeBtn.querySelector("circle"); let dodgeQ = -1;
   function paintBuffs() {
     const el = bar.querySelector("#wc-buffs");
     el.innerHTML = Object.entries(buffs).filter(([, s]) => s > 0).map(([id, s]) => { const it = ITEMS.find((x) => x.id === id); return `<span style="--c:#${new THREE.Color(it.color).getHexString()}">${T(it.name)} <b>${Math.ceil(s)}</b></span>`; }).join("");
@@ -1122,7 +1149,7 @@ export function createCombat(ctx) {
     vit.querySelector("#wc-hp-g").style.width = (100 * Math.max(hp, ghostHp) / mh) + "%";
     vit.querySelector("#wc-hp-n").textContent = `${Math.ceil(hp)} / ${mh}`; vit.querySelector("#wc-sp-n").textContent = `${Math.floor(sp)} / ${ms}`;
     const q = ctx.xpProg ? ctx.xpProg() : { into: (ctx.xp ? ctx.xp() : 0) % 100, need: 100 }; vit.querySelector("#wc-xp-b").style.width = Math.min(100, (100 * q.into) / q.need).toFixed(1) + "%"; vit.querySelector("#wc-xp-n").textContent = `${q.into.toLocaleString("en-US")} / ${q.need.toLocaleString("en-US")}`;
-    vit.classList.toggle("danger", hp / mh < 0.3); document.body.classList.toggle("wc-low", hp / mh < 0.3 && !down && ctx.inHub());
+    vit.classList.toggle("danger", hp / mh < 0.3); nudge(); document.body.classList.toggle("wc-low", hp / mh < 0.3 && !down && ctx.inHub());
   }
   function damage(n) {
     if (resting() || down) return;
@@ -1172,7 +1199,7 @@ export function createCombat(ctx) {
     }
   }
   async function goDown() {
-    if (down) return; down = true; ctx.down(true); document.body.classList.remove("wc-low");
+    if (down) return; down = true; ctx.down(true); document.body.classList.remove("wc-low"); nudge();
     for (const m of mobs) if (!m.dead && m.rank !== "boss") { m.dead = 0.001; puff(m.g.position.clone().setY(0.6), 0xff4d6d, { n: 8, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
     dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p></div>`;
     const shown = new Promise((r) => setTimeout(() => { dead.hidden = false; r(); }, 900));

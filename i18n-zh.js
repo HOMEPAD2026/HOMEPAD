@@ -10834,6 +10834,18 @@
     "Window": "窗口",
     "Mobile": "手机",
     "Your newer progress from another device is loaded.": "已载入你在其他设备上的最新进度。",
+    // world: dodge button, salvage undo / confirm, item card, empty states
+    "Tap again to confirm": "再点一次确认",
+    "Salvaged {x} · +{n} scrap": "已分解 {x} · 废料 +{n}",
+    "Salvaged {k} pieces · +{n} scrap": "已分解 {k} 件装备 · 废料 +{n}",
+    "That scrap is spent already": "这些废料已经用掉了",
+    "Put back: {n} scrap returned": "已撤销：退回 {n} 废料",
+    "vs. nothing worn": "对比：未穿戴",
+    "Go hunting": "去狩猎",
+    "Open Forge": "打开铁匠铺",
+    "Your bag is empty. Scammers in the hunting grounds drop gear.": "背包是空的。狩猎场里的骗子会掉落装备。",
+    "You're wearing no gear. The Forge sells some, or equip a piece from your bag.": "你没有穿戴装备。去铁匠铺购买，或从背包里装备一件。",
+    "Dodge": "闪避",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
