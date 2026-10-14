@@ -23,6 +23,13 @@ import { villainize } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 
+// compiled shaders are kept (b413). three.js deletes a shader program when the last material using it is disposed, so
+// an effect that made a material, played, and disposed it (a spark, a ring, a beam, a summon) compiled its shader again
+// the next time: on a phone that is a stop of a tenth of a second or more, on every blow. Materials are now let go
+// without that notice; the garbage collector frees them, and each program stays for the next use (there are only a
+// few hundred kinds). Geometries and textures are still freed as before.
+THREE.Material.prototype.dispose = function () { /* see above */ };
+
 export { THREE };
 export const R = 32; // big enough for districts; everything else is placed in degrees
 export const C = {

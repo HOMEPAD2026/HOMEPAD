@@ -71,6 +71,13 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
   // a gate's sign right over your head would sit on top of the HUD: it fades out while you stand under it
   const fadeSigns = () => { const px = -planet.position.x, pz = -planet.position.z; for (const s of signs) { const d = Math.hypot(s.x - px, s.z - pz), k = Math.max(0, Math.min(1, (d - 6) / 6)); s.sign.material.opacity = k; s.sign.visible = k > 0.02; } };
   // the far grounds come together when you're within 70 m of one (one a frame, so a fly-by never stalls)
-  const buildNear = (all) => { const px = -planet.position.x, pz = -planet.position.z; for (const l of lazy) { if (l.built) continue; if (all || Math.hypot(l.zn.x - px, l.zn.z - pz) < l.zn.r + 70) { l.built = true; l.build(); if (!all) return; } } };
+  // a hunting ground's props are built as you come near (b413: well ahead, in a quiet moment, instead of in the middle
+  // of a frame as you run in; at 40 m from its edge it's built right away if the quiet moment hasn't come)
+  let queued = null;
+  const buildNear = (all) => { const px = -planet.position.x, pz = -planet.position.z;
+    for (const l of lazy) { if (l.built) continue; const d = Math.hypot(l.zn.x - px, l.zn.z - pz) - l.zn.r;
+      if (all || d < 40) { l.built = true; l.build(); if (!all) return; continue; }
+      if (d < 160 && !queued) { queued = l; const go = () => { const q = queued; queued = null; if (q && !q.built) { q.built = true; q.build(); } };
+        if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 2500 }); else setTimeout(go, 300); return; } } };
   return { root, gates, update: (dt, t) => { buildNear(false); spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt, buildAll: () => buildNear(true), built: () => lazy.filter((l) => l.built).map((l) => l.zn.id) };
 }

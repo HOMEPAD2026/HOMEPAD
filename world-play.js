@@ -128,7 +128,7 @@ let critEl = null, critT = 0;
 function critFlash() {
   if (reduce || performance.now() - critT < 250) return; critT = performance.now();
   if (!critEl) { critEl = document.createElement("div"); critEl.className = "wp-critflash"; critEl.setAttribute("aria-hidden", "true"); document.body.appendChild(critEl); }
-  critEl.classList.remove("on"); void critEl.offsetWidth; critEl.classList.add("on");
+  critEl.classList.remove("on"); requestAnimationFrame(() => critEl.classList.add("on"));
 }
 // the dodge's afterimages: three frozen, see-through copies of you along the dash (computers; a phone keeps the
 // lighter streaks)
@@ -425,7 +425,10 @@ const groundG = K.makeGround(); planet.add(groundG);
 const farCull = (() => {
   const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles"]);
   const CONT = ["decor", "life", "zones"], R = st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, box = new THREE.Box3(), sph = new THREE.Sphere();
-  let list = [], at = 0, scanAt = -1e9, hidden = new Set();
+  let list = [], at = 0, scanAt = -1e9, hidden = new Set(), sig = "";
+  // what's in the world, cheaply: a new scan only when this changes (b413: a full scan every 15 s walked every object in
+  // the world, a regular stutter while moving), or at most once a minute
+  const sigNow = () => planet.children.length + ":" + CONT.map((n) => { const c = planet.children.find((x) => x.name === n); return c ? c.children.length : 0; }).join(",");
   function scan() {
     list = []; planet.updateMatrixWorld(true);
     const inv = new THREE.Matrix4().copy(planet.matrixWorld).invert();
@@ -434,7 +437,7 @@ const farCull = (() => {
   }
   function tick() {
     const now = performance.now(); if (now - at < 400) return; at = now;
-    if (now - scanAt > 15000) { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); hidden.clear(); scan(); scanAt = now; }
+    if (now - scanAt > 60000 || (now - scanAt > 2000 && sigNow() !== sig)) { sig = sigNow(); const was = [...hidden]; was.forEach((o) => { o.visible = true; }); hidden.clear(); scan(); scanAt = now; }
     const px = -planet.position.x, pz = -planet.position.z, on = mode === "hub";
     for (const it of list) { const far = on && Math.hypot(it.c.x - px, it.c.z - pz) - it.r > R;
       if (far && it.o.visible) { it.o.visible = false; hidden.add(it.o); } else if (!far && hidden.has(it.o)) { it.o.visible = true; hidden.delete(it.o); } }
@@ -1864,7 +1867,7 @@ function drawMini() {
     const bossUp = combat && combat.bosses ? combat.bosses() : [];
     for (const zn of [...RPG.ZONES, SOC.RAID]) {
       const wx = zn.x + planet.position.x, wz = zn.z + planet.position.z, rx = wx * cs - wz * sn, rz = wx * sn + wz * cs;
-      const px = c + rx * sc, py = c + rz * sc, col = "#" + new THREE.Color(zn.color).getHexString();
+      const px = c + rx * sc, py = c + rz * sc, col = zn._hex || (zn._hex = "#" + new THREE.Color(zn.color).getHexString());
       mg.strokeStyle = col; mg.globalAlpha = 0.55; mg.lineWidth = 2; mg.setLineDash([5, 4]); mg.beginPath(); mg.arc(px, py, zn.r * sc, 0, 6.283); mg.stroke(); mg.setLineDash([]);
       mg.globalAlpha = 0.12; mg.fillStyle = col; mg.fill(); mg.globalAlpha = 1;
       // its levels, written in the middle while it's on the map
@@ -2644,12 +2647,15 @@ function openHelp(t) { closeAll(); help.open(t); }
 // floating numbers: a hit's damage rises from where it landed; quick hits in the same spot add up into one number
 // that bumps as it grows (a flurry reads as one total, not a pile of digits)
 const floats = [];
+// an animation started again without forcing the page to lay itself out (b413: the old remove / offsetWidth / add did,
+// on every merged hit, every tap and every crit): the class comes back on the next frame
+const replay = (el, cls) => { if (!el) return; el.classList.remove(cls); requestAnimationFrame(() => el.classList.add(cls)); };
 const flt = (text, pos, color, big, weight = 0) => {
   const v = pos.clone(); planet.localToWorld(v); v.project(st.camera); if (v.z > 1) return;
   const x = (v.x + 1) / 2 * innerWidth, y = (1 - v.y) / 2 * innerHeight, now = performance.now(), num = /^!?\d+$/.test(String(text)) ? Number(String(text).replace("!", "")) : null;
   for (let i = floats.length - 1; i >= 0; i--) if (!floats[i].el.isConnected || now - floats[i].t > 900) floats.splice(i, 1);
   if (num != null) { const f = floats.find((o) => now - o.t < 420 && Math.hypot(o.x - x, o.y - y) < 70 && o.color === color);
-    if (f) { f.n += num; f.t = now; f.el.textContent = (big || f.big ? "!" : "") + f.n; if (big && !f.big) { f.big = true; f.el.classList.add("crit"); } f.el.classList.remove("bump"); void f.el.offsetWidth; f.el.classList.add("bump"); clearTimeout(f.k); f.k = setTimeout(() => f.el.remove(), 950); return; } }
+    if (f) { f.n += num; f.t = now; f.el.textContent = (big || f.big ? "!" : "") + f.n; if (big && !f.big) { f.big = true; f.el.classList.add("crit"); } replay(f.el, "bump"); clearTimeout(f.k); f.k = setTimeout(() => f.el.remove(), 950); return; } }
   const el = document.createElement("div"); el.className = "wp-float-n" + (big ? " crit" : ""); el.textContent = text; el.style.color = color || "#fff";
   if (num != null) { const f = { el, n: num, t: now, x, y, color, big: !!big }; floats.push(f); f.k = setTimeout(() => el.remove(), 950); }
   el.style.left = ((v.x + 1) / 2 * innerWidth) + "px"; el.style.top = ((1 - v.y) / 2 * innerHeight) + "px";
@@ -2689,7 +2695,7 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
   onLoot: (it) => { if (quests) quests.on.loot(it); arciaOn("loot", it); if (it.r >= 3) shareDrop(it); if (it.r >= 2) lootCard(it); },
-  legend: () => { document.body.classList.remove("wc-legend"); void document.body.offsetWidth; document.body.classList.add("wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
+  legend: () => { replay(document.body, "wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
   knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; hitFrom.copy(d); hitAt = performance.now(); },
@@ -2721,6 +2727,9 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
     if (avatar) avatar.play("idle");
   },
 });
+// b413: scammers and effects readied ahead of the first fight (world-combat.js warm), two models at a time as their
+// packs arrive, out of sight, and never while something is fighting you
+setTimeout(function warmLoop() { try { if (combat && mode === "hub" && !frozen && !combat.dangerNear(40)) combat.warm(st, 2).catch(() => {}); } catch { /* still loading */ } setTimeout(warmLoop, 900); }, 4000);
 // the Adventure log (daily hunts, achievements and titles, the codex, top hunters) and the companion drone
 quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
   T, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why), fishList: LIFE.FISH,
@@ -3178,7 +3187,7 @@ let slowUntil = 0, punch = 0, stopUntil = 0, prevSpeed = 0;
 // a hit stops the world for a few frames (heavier blows longer) and nudges the camera along the blow
 const hitstop = (ms = 45) => { if (reduce) return; stopUntil = Math.max(stopUntil, performance.now() + Math.min(120, ms)); };
 const camKick = new THREE.Vector3(); const kickCam = (dir, k = 0.08) => { if (reduce || !dir) return; camKick.x += dir.x * k; camKick.z += dir.z * k; if (camKick.length() > 0.35) camKick.setLength(0.35); };
-const slowmo = (ms = 170) => { if (reduce) return; slowUntil = Math.max(slowUntil, performance.now() + ms); document.body.classList.remove("wc-crit"); void document.body.offsetWidth; document.body.classList.add("wc-crit"); };
+const slowmo = (ms = 170) => { if (reduce) return; slowUntil = Math.max(slowUntil, performance.now() + ms); replay(document.body, "wc-crit"); };
 st.on((dt0, t) => {
   const now0 = performance.now(), dt = now0 < stopUntil ? dt0 * 0.04 : now0 < slowUntil ? dt0 * 0.3 : dt0;
   punch = Math.max(0, punch - dt0 * 3.2);
@@ -3270,7 +3279,7 @@ st.on((dt0, t) => {
   fadeLabels(dt);
   pickCards();
   lockedCheck(dt);
-  if ((miniT += dt) > 0.08) { miniT = 0; drawMini(); }
+  if ((miniT += dt) > (coarse ? 0.14 : 0.1)) { miniT = 0; drawMini(); } // b413: 7–10 times a second (it was 12)
   paintMarker(); paintFootGuide();
   watchFps(dt);
   if (introOn) return; // the dive drives the camera
