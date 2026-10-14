@@ -8,7 +8,7 @@
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---- price flash ----
-  var WATCH = '[data-ac2="price"],[data-ac2="mcap"],[data-arl="price"],[data-arl="mcap"],#apc-price,#apc-mcap,.ap-launch-card .meta span:first-child';
+  var WATCH = '[data-ac2="price"],[data-ac2="mcap"],[data-arl="price"],[data-arl="mcap"],#apc-price,#apc-mcap,.ap-launch-card .meta span:first-child,[data-tk="price"],[data-hm-price]';
   var last = new WeakMap();
   var SUBS = "₀₁₂₃₄₅₆₇₈₉";
   function toNumber(text) {
@@ -30,6 +30,8 @@
     var prev = last.get(el);
     last.set(el, now);
     if (reduce || prev == null || now == null || now === prev) return;
+    var r = el.getBoundingClientRect(); // off screen (or hidden): nothing to see
+    if (!r.width || r.bottom < 0 || r.top > innerHeight) return;
     el.classList.remove("fx-up", "fx-down");
     void el.offsetWidth; // restart the animation
     el.classList.add(now > prev ? "fx-up" : "fx-down");

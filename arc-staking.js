@@ -633,6 +633,7 @@
       if (fx === "coin") coinFx(body.querySelector(".stk-claim .stk-btn.go"));
       await loadState(); await loadMe(); render();
       if (fx === "lock") lockFx(was.ve);
+      if (h && fx === "lock") document.dispatchEvent(new CustomEvent("arc:success", { detail: { kind: "stake", rows: [["veARCIRCLE", S.me && S.me.ve != null ? Number(S.me.ve).toLocaleString("en-US", { maximumFractionDigits: 2 }) : null]], url: EXPL("tx", h) } })); // arc-feel.js
       if (fx === "open") lockFx(was.ve, true);
       if (fx === "coin") { const e0 = body.querySelector("[data-stk-earned]"); if (e0) roll(e0, 0, Number(e0.dataset.stkEarned) || 0, 900, usd); }
     } catch (e) { say(k, esc(errText(e)), "err"); }

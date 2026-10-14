@@ -10834,6 +10834,14 @@
     "Window": "窗口",
     "Mobile": "手机",
     "Your newer progress from another device is loaded.": "已载入你在其他设备上的最新进度。",
+    // arc-feel.js / arc-nav.js (arc-polish.css)
+    "Coin count is on its way": "币数正在加载",
+    "Waiting for Arc": "正在等待 Arc 响应",
+    "Coin launched": "发币成功",
+    "Swap complete": "兑换完成",
+    "Stake locked": "质押锁仓完成",
+    "Search & language": "搜索 · 语言",
+    "Burn total is on its way": "销毁量正在加载",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

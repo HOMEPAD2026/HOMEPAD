@@ -10664,6 +10664,14 @@
     "Window": "창 모드",
     "Mobile": "모바일",
     "Your newer progress from another device is loaded.": "다른 기기에서 진행한 최신 기록을 불러왔어요.",
+    // arc-feel.js / arc-nav.js (arc-polish.css)
+    "Coin count is on its way": "코인 수를 불러오고 있어요",
+    "Waiting for Arc": "Arc 응답을 기다리는 중",
+    "Coin launched": "코인 런치 완료",
+    "Swap complete": "스왑 완료",
+    "Stake locked": "스테이킹 락업 완료",
+    "Search & language": "검색 · 언어",
+    "Burn total is on its way": "소각량을 불러오고 있어요",
   };
 
 

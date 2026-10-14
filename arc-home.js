@@ -65,10 +65,12 @@
   if (numIO) $$("[data-hm-num]").forEach(function (el) { numIO.observe(el); });
 
   // ================= sections appear as they come into view =================
+  // Every section is visible whatever happens (no JS, a fast fling, reduce motion): .hm-rv only marks the ones below
+  // the fold, and .in, added just before one comes into view, plays a single short rise (arc-polish.css).
   var revIO = !reduce && "IntersectionObserver" in window ? new IntersectionObserver(function (ents) {
     ents.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("in"); revIO.unobserve(en.target); } });
-  }, { threshold: 0.15 }) : null;
-  $$(".hm-sec").forEach(function (s) { if (revIO) { s.classList.add("hm-rv"); revIO.observe(s); } });
+  }, { threshold: 0, rootMargin: "0px 0px 12% 0px" }) : null;
+  $$(".hm-sec").forEach(function (s) { if (revIO && s.getBoundingClientRect().top > innerHeight) { s.classList.add("hm-rv"); revIO.observe(s); } });
 
   // ================= live data =================
   var last = {};

@@ -29,7 +29,7 @@ try {
 
   var TR = {
     ko: {
-      "ARCIRCLE Wallet": "ARCIRCLE 지갑", Trade: "트레이드", Earn: "수익", Tools: "도구", More: "더보기", Home: "홈", Wallet: "지갑", Search: "검색", Language: "언어", Close: "닫기", Menu: "메뉴",
+      "ARCIRCLE Wallet": "ARCIRCLE 지갑", Trade: "트레이드", Earn: "수익", Tools: "도구", More: "더보기", Home: "홈", Wallet: "지갑", Search: "검색", Language: "언어", "Search & language": "검색 · 언어", Close: "닫기", Menu: "메뉴",
       Explore: "탐색", "Every coin on ArcPad, live": "ArcPad의 모든 코인 실시간", Launch: "런치", "Launch a coin with a real pool": "실제 풀과 함께 코인 발행", "Quantum Launch": "퀀텀 런치", "One price for everyone, no snipers": "모두 같은 가격, 스나이퍼 없음", "Game World": "게임 월드", "Walk ARCIRCLE World as a robot": "로봇이 되어 ARCIRCLE 월드를 걷기",
       Orders: "주문", "Limit, stop and DCA orders": "지정가·스탑·분할매수 주문", Predict: "예측", "Call UP or DOWN, up to $5": "UP/DOWN 예측, 최대 $5",
       Portfolio: "포트폴리오", "What your wallet holds": "내 지갑 보유 현황", "Fund a launch together": "함께 모금해서 런치",
@@ -46,7 +46,7 @@ try {
       "Launch, buy and sell on Arc": "Arc에서 발행하고 사고팔기", "Stake, burn and get rewarded": "스테이킹·소각으로 보상받기", "Arc's AI idol and her crew": "Arc의 AI 아이돌과 친구들", "Free tools for any Arc token": "모든 Arc 토큰용 무료 도구",
     },
     zh: {
-      "ARCIRCLE Wallet": "ARCIRCLE 钱包", Trade: "交易", Earn: "收益", Tools: "工具", More: "更多", Home: "首页", Wallet: "钱包", Search: "搜索", Language: "语言", Close: "关闭", Menu: "菜单",
+      "ARCIRCLE Wallet": "ARCIRCLE 钱包", Trade: "交易", Earn: "收益", Tools: "工具", More: "更多", Home: "首页", Wallet: "钱包", Search: "搜索", Language: "语言", "Search & language": "搜索 · 语言", Close: "关闭", Menu: "菜单",
       Explore: "探索", "Every coin on ArcPad, live": "ArcPad 全部代币，实时", Launch: "发币", "Launch a coin with a real pool": "发行代币，自带真实池子", "Quantum Launch": "量子发射", "One price for everyone, no snipers": "所有人同一价格，没有狙击", "Game World": "游戏世界", "Walk ARCIRCLE World as a robot": "化身机器人漫游 ARCIRCLE 世界",
       Orders: "订单", "Limit, stop and DCA orders": "限价、止损和定投订单", Predict: "预测", "Call UP or DOWN, up to $5": "猜涨跌，最多 $5",
       Portfolio: "资产", "What your wallet holds": "你的钱包持仓", "Fund a launch together": "一起众筹发币",
@@ -170,6 +170,10 @@ try {
           '<button type="button" class="anav-ic anav-search" aria-label="' + esc(t("Search")) + '" hidden>' + svg("search") + "</button>" +
           '<div class="anav-lang"><button type="button" class="anav-ic anav-lb" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(t("Language")) + '">' + lang().toUpperCase() + "</button>" +
             '<div class="anav-lmenu" hidden>' + LANGS.map(function (l) { return '<button type="button" data-l="' + l[0] + '"' + (lang() === l[0] ? ' aria-current="true"' : "") + ">" + l[1] + "</button>"; }).join("") + "</div></div>" +
+          // phones (≤480px, arc-polish.css): search and language share this one button
+          '<div class="anav-mx"><button type="button" class="anav-ic anav-mb" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(t("Search & language")) + '">' + svg("search") + "<b>" + lang().toUpperCase() + "</b></button>" +
+            '<div class="anav-mmenu" hidden><button type="button" data-act="search" hidden>' + svg("search") + "<span>" + esc(t("Search")) + "</span></button><hr data-act=\"search\" hidden><small>" + esc(t("Language")) + "</small>" +
+              LANGS.map(function (l) { return '<button type="button" data-l="' + l[0] + '"' + (lang() === l[0] ? ' aria-current="true"' : "") + "><span>" + l[1] + "</span></button>"; }).join("") + "</div></div>" +
           '<a class="anav-chip" href="/arcircle" title="$ARCIRCLE — ' + esc(t("The core coin")) + '"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>$ARCIRCLE</span></a>' +
           '<a class="anav-chip" href="/arcia" title="$ARCIA — ' + esc(t("ARCIA's coin")) + '"><img src="/images/arcia-avatar-96.jpg" alt="" width="96" height="96" class="r"><span>$ARCIA</span></a>' +
           '<div class="cw"></div>' + // the wallet button: arc-connect.js fills it (the same one on every page)
@@ -199,8 +203,9 @@ try {
     wire();
     paintStrip();
     paintMap();
-    if (window.arcCmdk) root.querySelector(".anav-search").hidden = false;
+    if (window.arcCmdk) showSearch();
   }
+  function showSearch() { [].forEach.call(root.querySelectorAll('.anav-search, .anav-mmenu [data-act="search"]'), function (el) { el.hidden = false; }); }
 
   // the second row: this page's own tabs (CirclePad's sidebar), else the pages of the menu you're in
   function paintStrip() {
@@ -276,7 +281,10 @@ try {
     if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) done(); else setTimeout(done, 200);
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
-  function closeLang() { var m = root.querySelector(".anav-lmenu"); m.hidden = true; root.querySelector(".anav-lb").setAttribute("aria-expanded", "false"); }
+  function closeLang() {
+    var m = root.querySelector(".anav-lmenu"); m.hidden = true; root.querySelector(".anav-lb").setAttribute("aria-expanded", "false");
+    root.querySelector(".anav-mmenu").hidden = true; root.querySelector(".anav-mb").setAttribute("aria-expanded", "false");
+  }
   function closeAll() { setOpen(null); closeSheet(); closeLang(); }
 
   function setLang(l) {
@@ -324,6 +332,12 @@ try {
     var lb = root.querySelector(".anav-lb"), lm = root.querySelector(".anav-lmenu");
     lb.addEventListener("click", function (e) { e.stopPropagation(); setOpen(null); var o = lm.hidden; lm.hidden = !o; lb.setAttribute("aria-expanded", o ? "true" : "false"); if (o) lm.querySelector("button").focus(); });
     lm.addEventListener("click", function (e) { var b = e.target.closest("[data-l]"); if (b) setLang(b.dataset.l); });
+    var mb = root.querySelector(".anav-mb"), mm = root.querySelector(".anav-mmenu");
+    mb.addEventListener("click", function (e) { e.stopPropagation(); setOpen(null); var o = mm.hidden; lm.hidden = true; mm.hidden = !o; mb.setAttribute("aria-expanded", o ? "true" : "false"); if (o) { var f = mm.querySelector("button:not([hidden])"); if (f) f.focus(); } });
+    mm.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-l]"); if (b) return setLang(b.dataset.l);
+      if (e.target.closest('[data-act="search"]')) { closeAll(); if (window.arcCmdk) window.arcCmdk.open(); }
+    });
     root.querySelector(".anav-search").addEventListener("click", function () { closeAll(); if (window.arcCmdk) window.arcCmdk.open(); });
     tabs.addEventListener("click", function (e) { var b = e.target.closest("button[data-g]"); if (b) openSheet(b.dataset.g, b); });
     sheet.addEventListener("click", function (e) {
@@ -367,7 +381,7 @@ try {
       if (mq.addEventListener) mq.addEventListener("change", place); else if (mq.addListener) mq.addListener(place);
     }
     // a palette that loads after us still gets its button
-    setTimeout(function () { if (window.arcCmdk) root.querySelector(".anav-search").hidden = false; }, 1500);
+    setTimeout(function () { if (window.arcCmdk) showSearch(); }, 1500);
   }
 
   window.arcNav = { groups: GROUPS, refresh: function () { if (root) refresh(); } };
