@@ -29,7 +29,7 @@ try {
 
   var TR = {
     ko: {
-      "ARCIRCLE Wallet": "ARCIRCLE 지갑", Trade: "트레이드", Earn: "수익", Tools: "도구", More: "더보기", Home: "홈", Wallet: "지갑", Search: "검색", Language: "언어", "Search & language": "검색 · 언어", Close: "닫기", Menu: "메뉴",
+      "ARCIRCLE Wallet": "ARCIRCLE 지갑", Trade: "트레이드", Earn: "수익", Tools: "도구", More: "더보기", Play: "게임", "Enter Game World": "게임 월드 입장", Home: "홈", Wallet: "지갑", Search: "검색", Language: "언어", "Search & language": "검색 · 언어", Close: "닫기", Menu: "메뉴",
       Explore: "탐색", "Every coin on ArcPad, live": "ArcPad의 모든 코인 실시간", Launch: "런치", "Launch a coin with a real pool": "실제 풀과 함께 코인 발행", "Quantum Launch": "퀀텀 런치", "One price for everyone, no snipers": "모두 같은 가격, 스나이퍼 없음", "Game World": "게임 월드", "Walk ARCIRCLE World as a robot": "로봇이 되어 ARCIRCLE 월드를 걷기",
       Orders: "주문", "Limit, stop and DCA orders": "지정가·스탑·분할매수 주문", Predict: "예측", "Call UP or DOWN, up to $5": "UP/DOWN 예측, 최대 $5",
       Portfolio: "포트폴리오", "What your wallet holds": "내 지갑 보유 현황", "Fund a launch together": "함께 모금해서 런치",
@@ -46,7 +46,7 @@ try {
       "Launch, buy and sell on Arc": "Arc에서 발행하고 사고팔기", "Stake, burn and get rewarded": "스테이킹·소각으로 보상받기", "Arc's AI idol and her crew": "Arc의 AI 아이돌과 친구들", "Free tools for any Arc token": "모든 Arc 토큰용 무료 도구",
     },
     zh: {
-      "ARCIRCLE Wallet": "ARCIRCLE 钱包", Trade: "交易", Earn: "收益", Tools: "工具", More: "更多", Home: "首页", Wallet: "钱包", Search: "搜索", Language: "语言", "Search & language": "搜索 · 语言", Close: "关闭", Menu: "菜单",
+      "ARCIRCLE Wallet": "ARCIRCLE 钱包", Trade: "交易", Earn: "收益", Tools: "工具", More: "更多", Play: "游戏", "Enter Game World": "进入游戏世界", Home: "首页", Wallet: "钱包", Search: "搜索", Language: "语言", "Search & language": "搜索 · 语言", Close: "关闭", Menu: "菜单",
       Explore: "探索", "Every coin on ArcPad, live": "ArcPad 全部代币，实时", Launch: "发币", "Launch a coin with a real pool": "发行代币，自带真实池子", "Quantum Launch": "量子发射", "One price for everyone, no snipers": "所有人同一价格，没有狙击", "Game World": "游戏世界", "Walk ARCIRCLE World as a robot": "化身机器人漫游 ARCIRCLE 世界",
       Orders: "订单", "Limit, stop and DCA orders": "限价、止损和定投订单", Predict: "预测", "Call UP or DOWN, up to $5": "猜涨跌，最多 $5",
       Portfolio: "资产", "What your wallet holds": "你的钱包持仓", "Fund a launch together": "一起众筹发币",
@@ -174,6 +174,8 @@ try {
           '<div class="anav-mx"><button type="button" class="anav-ic anav-mb" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(t("Search & language")) + '">' + svg("search") + "<b>" + lang().toUpperCase() + "</b></button>" +
             '<div class="anav-mmenu" hidden><button type="button" data-act="search" hidden>' + svg("search") + "<span>" + esc(t("Search")) + "</span></button><hr data-act=\"search\" hidden><small>" + esc(t("Language")) + "</small>" +
               LANGS.map(function (l) { return '<button type="button" data-l="' + l[0] + '"' + (lang() === l[0] ? ' aria-current="true"' : "") + "><span>" + l[1] + "</span></button>"; }).join("") + "</div></div>" +
+          // Game World from every page of the Platform World: a lit pill in the bar (the dock's centre button on phones)
+          '<a class="anav-play" href="/play" title="' + esc(t("Enter Game World")) + '">' + svg("planet") + "<span>" + esc(t("Game World")) + "</span></a>" +
           '<a class="anav-chip" href="/arcircle" title="$ARCIRCLE — ' + esc(t("The core coin")) + '"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>$ARCIRCLE</span></a>' +
           '<a class="anav-chip" href="/arcia" title="$ARCIA — ' + esc(t("ARCIA's coin")) + '"><img src="/images/arcia-avatar-96.jpg" alt="" width="96" height="96" class="r"><span>$ARCIA</span></a>' +
           '<div class="cw"></div>' + // the wallet button: arc-connect.js fills it (the same one on every page)
@@ -187,7 +189,7 @@ try {
     tabs.setAttribute("aria-label", t("Menu"));
     tabs.setAttribute("data-no-i18n", "");
     tabs.innerHTML = '<a class="anav-tab' + (path === "/" ? " on" : "") + '" href="/">' + svg("home") + "<span>" + esc(t("Home")) + "</span></a>" +
-      GROUPS.map(function (g) { return '<button type="button" class="anav-tab' + (here[0] === g.id ? " on" : "") + '" data-g="' + g.id + '" aria-haspopup="dialog">' + svg(g.icon) + "<span>" + esc(t(g.label)) + "</span></button>"; }).join("");
+      GROUPS.map(function (g, i) { return (i === 2 ? '<a class="anav-tab anav-tab-play" href="/play" aria-label="' + esc(t("Enter Game World")) + '"><i>' + svg("planet") + "</i><span>" + esc(t("Play")) + "</span></a>" : "") + '<button type="button" class="anav-tab' + (here[0] === g.id ? " on" : "") + '" data-g="' + g.id + '" aria-haspopup="dialog">' + svg(g.icon) + "<span>" + esc(t(g.label)) + "</span></button>"; }).join("");
 
     sheet = D.createElement("div");
     sheet.className = "anav-sheet";

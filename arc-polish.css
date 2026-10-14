@@ -164,3 +164,19 @@ body.ax-home .ax-bg{position:absolute;inset:0 0 auto;height:100vh;height:100svh;
   .hm-sec.hm-rv.in{animation:none}
   .pol-copy{opacity:1}
 }
+
+/* ---------------- Game World from the Platform World: a lit pill in the bar, the raised centre of the phone dock (arc-nav.js) ---------------- */
+.anav-play{display:flex;align-items:center;gap:7px;height:36px;padding:0 14px 0 10px;border-radius:999px;white-space:nowrap;font-size:13px!important;font-weight:800!important;color:#fff!important;text-decoration:none!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 55%),linear-gradient(135deg,#2f86ff,#16c9d8 60%,#39ff88);border:1px solid rgba(160,240,255,.7);box-shadow:0 0 0 1px rgba(5,9,22,.6),0 0 18px rgba(47,180,255,.45);transition:transform .15s ease,box-shadow .15s ease}
+.anav-play:hover{transform:translateY(-1px);box-shadow:0 0 0 1px rgba(5,9,22,.6),0 0 26px rgba(57,255,200,.6)}
+.anav-play:active{transform:translateY(1px)}
+.anav-play .anav-i{width:18px;height:18px}
+@media (max-width:1180px){.anav-play span{display:none}.anav-play{width:36px;padding:0;justify-content:center}}
+@media (max-width:900px){.anav-play{display:none}}
+.anav-tabs{grid-template-columns:repeat(6,1fr)!important}
+.anav-tab-play{color:#fff!important;text-decoration:none!important}
+.anav-tab-play i{display:grid;place-items:center;width:46px;height:46px;margin:-22px 0 -2px;border-radius:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0) 55%),linear-gradient(135deg,#2f86ff,#16c9d8 60%,#39ff88);border:2px solid rgba(5,9,22,.95);box-shadow:0 0 0 1px rgba(160,240,255,.6),0 6px 16px rgba(22,201,216,.45)}
+.anav-tab-play i .anav-i{width:24px!important;height:24px!important;color:#fff}
+.anav-tab-play:active i{transform:scale(.94)}
+@media (prefers-reduced-motion:reduce){.anav-play,.anav-tab-play i{transition:none}}

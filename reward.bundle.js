@@ -1,17 +1,898 @@
-/* reward.bundle.js — built by tools/build-bundles.mjs from: i18n-boot.js, config-arc.js, abis.js, arc-shared.js, arc-fmt.js, arc-fx.js, arcircle-live.js, arc-token.js, reward.js, reward-engine.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-cmdk.js, arc-nav.js, arc-connect.js, arc-v9.js, arc-v10.js, arc-v12.js, arc-feel.js, arc-chrome.js, arc-a11y.js, arc-txring.js, arc-glyph.js, arc-arcia-fab.js, i18n.js. Do not edit; edit the sources. src:30af3e3883529149 */
-(function(){"use strict";var t="en";try{var h=/[?&]lang=(en|ko|zh)(?:&|$)/.exec(location.search),F=(navigator.language||"").toLowerCase();t=h?h[1]:localStorage.getItem("arcircle.lang")||(F.indexOf("ko")===0?"ko":F.indexOf("zh")===0?"zh":"en")}catch{}if(!(t!=="ko"&&t!=="zh")&&!(t==="zh"&&/^\/whitepaper/.test(location.pathname))){var c=window.__arcDictLoading||(window.__arcDictLoading={});if(!c[t]){c[t]=!0;var o=document.currentScript&&document.currentScript.src,P=(/[?&]v=(\d+)/.exec(o||"")||[])[1]||"",A=document.createElement("script");A.src="/i18n-"+t+".js"+(P?"?v="+P:""),A.async=!0,A.onerror=function(){c[t]=!1},(document.head||document.documentElement).appendChild(A)}}})();const CONFIG={CHAIN_ID_HEX:"0x13b2",CHAIN_ID_DECIMAL:5042,CHAIN_NAME:"Arc",APP_NAME:"ARCIRCLE PAD",APP_DESCRIPTION:"ArcPad and CirclePad — launch coins on Circle's Arc, paired in USDC.",APP_ICON:"/images/apple-touch-icon.png",RPC_URL:"https://rpc.mainnet.arc.io",RPC_FALLBACKS:["https://rpc.blockdaemon.mainnet.arc.io","https://rpc.drpc.mainnet.arc.io","https://rpc.quicknode.mainnet.arc.io"],REOWN_PROJECT_ID:"278f543c581f60eec5975dc755f0c3dd",CONTRACTS_LIVE_SINCE:"2026-09-22T04:00:00Z",NATIVE_CURRENCY:{name:"USDC",symbol:"USDC",decimals:18},BLOCK_EXPLORER:"https://arc.etherscan.io",USDC_ADDRESS:"0x3600000000000000000000000000000000000000",POOL_MANAGER_ADDRESS:"0x8366a39CC670B4001A1121B8F6A443A643e40951",ARCIRCLE_TOKEN:"0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7",ARCIRCLE_POOL_ID:"0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba",ARCIRCLE_POOL_SLOT:"0xad85d721d91ab50f533ac7d86b01e50798b891ac2a1502187e974fabc0cf854b",ARCIRCLE_QUOTE_DECIMALS:6,ARCIRCLE_CURVE:"",ARCIRCLE_VENUE:"Argus",ARCIRCLE_BUY_URL:"https://argus.world/token/0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7",ARCIRCLE_CHART_URL:"https://dexscreener.com/arc/0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba",ARCIRCLE_LAUNCHED_AT:1790345391,ARCPAD_FACTORY_ADDRESS:"0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E",ARCPAD_HOOK_ADDRESS:"0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044",ARCPAD_ROUTER_ADDRESS:"0xFCA8fD788d44Bb335B1451257366e06D67114785",CIRCLEPAD_ESCROW_ADDRESS:"0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",CIRCLEPAD_VOTE_ADDRESS:"0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2",CIRCLEPAD_VOTE_MODE:"burn",CIRCLEPAD_BURNVOTE_ADDRESS:"0x54121a7894d90a02eA973Ab45EEF424C2716EeB2",CIRCLEPAD_GOV:{2:{mode:"direct",top:!0,airdrop:""},3:{mode:"plan",top:null,closedAt:1791072e3,accent:"#ff8bd8",airdrop:"Round #3 and Round #4 are merged, so one contribution earns two rewards, each pro rata to your share of the raise: $ARCIA on Robinhood Chain, bought with the raise, and your share of Round #4 on Solana — launched through pump.fun by the ARCIRCLE team with ARCIRCLE Orders. Both go out as a snapshot airdrop to the contributor list, with more updates to follow. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are included from Round #2's list.",plan:{buy:{sym:"ARCIA",chain:"Robinhood Chain",token:"0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25",url:"https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25"},also:{round:4,chain:"Solana",sym:"TBA",merged:!0,via:"pump.fun",with:"ARCIRCLE Orders",mergedAt:"5 Oct 2026",snapshot:!0}}}},CIRCLEPAD_SKIPPED:{4:3},CIRCLEPAD_STATUS:{btn:"CirclePad · Round #5 is live",line:"Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade",chip:"Round #5",sub:"live",go:"Launch on Robinhood Chain →",href:"/arc#launch",live:!0},CIRCLEPAD_DELIVERY:{3:{snap:{status:"",txs:[]},drop:{status:"",txs:[]},more:{status:"",txs:[]}}},HIDDEN_COINS:["0x2a15940316335bfb711db7cba98d637396e80c08"],CIRCLEPAD_RESULTS:{1:{sym:"ARCIA",chain:"arc",retired:!0},2:{merged:3},3:{sym:"ARCIA",chain:"rh",token:"0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25"}},CIRCLEPAD_OPENS_AT:0,CIRCLEPAD_ESCROW_VERIFIED:!1,CIRCLEPAD_VERIFIED_ESCROWS:["0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3","0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4"],CIRCLEPAD_ALLOCATION_NOTE:"Every contributor gets an airdrop of the new coin — its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.",CIRCLEPAD_EXTRA_CANDIDATES:{4:["2026-10-02T11:30:00Z"]},CIRCLEPAD_NEXT:[{id:"vote",title:"Burn-to-vote",body:"Until the raise closes. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.",status:"set"},{id:"close",title:"The raise closes",body:"Contributions, withdrawals and voting stop; the vote result is final. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.",status:"set"},{id:"top",title:"Top contributor paid",body:"The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet.",status:"policy"},{id:"launch",title:"The coin launches",body:"On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.",status:"open"},{id:"airdrop",title:"Contributor airdrop",body:"Every contributor gets an airdrop of the new coin. Size and timing: not decided yet.",status:"policy"}],BRIDGE:{TOKEN_MESSENGER:"0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",MESSAGE_TRANSMITTER:"0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",ARC_DOMAIN:26,CHAINS:[{key:"base",name:"Base",chainId:8453,domain:6,usdc:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",rpc:"https://base-rpc.publicnode.com",explorer:"https://basescan.org",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#3b82f6"},{key:"ethereum",name:"Ethereum",chainId:1,domain:0,usdc:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",rpc:"https://ethereum-rpc.publicnode.com",explorer:"https://etherscan.io",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#8a92b2"},{key:"arbitrum",name:"Arbitrum",chainId:42161,domain:3,usdc:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",rpc:"https://arbitrum-one-rpc.publicnode.com",explorer:"https://arbiscan.io",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#28a0f0"},{key:"optimism",name:"OP Mainnet",chainId:10,domain:2,usdc:"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",rpc:"https://optimism-rpc.publicnode.com",explorer:"https://optimistic.etherscan.io",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#ff0420"},{key:"polygon",name:"Polygon",chainId:137,domain:7,usdc:"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",rpc:"https://polygon-bor-rpc.publicnode.com",explorer:"https://polygonscan.com",native:{name:"POL",symbol:"POL",decimals:18},color:"#8247e5",fast:!1},{key:"avalanche",name:"Avalanche",chainId:43114,domain:1,usdc:"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",rpc:"https://avalanche-c-chain-rpc.publicnode.com",explorer:"https://snowtrace.io",native:{name:"Avalanche",symbol:"AVAX",decimals:18},color:"#e84142",fast:!1},{key:"unichain",name:"Unichain",chainId:130,domain:10,usdc:"0x078D782b760474a361dDA0AF3839290b0EF57AD6",rpc:"https://unichain-rpc.publicnode.com",explorer:"https://uniscan.xyz",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#f50db4"},{key:"linea",name:"Linea",chainId:59144,domain:11,usdc:"0x176211869cA2b568f2A7D4EE941E073a821EE1ff",rpc:"https://linea-rpc.publicnode.com",explorer:"https://lineascan.build",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#61dfff"},{key:"sonic",name:"Sonic",chainId:146,domain:13,usdc:"0x29219dd400f2Bf60E5a23d13Be72B486D4038894",rpc:"https://sonic-rpc.publicnode.com",explorer:"https://sonicscan.org",native:{name:"Sonic",symbol:"S",decimals:18},color:"#fe9a4c",fast:!1},{key:"worldchain",name:"World Chain",chainId:480,domain:14,usdc:"0x79A02482A880bCe3F13E09da970dC34dB4cD24D1",rpc:"https://worldchain-mainnet.g.alchemy.com/public",explorer:"https://worldscan.org",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#c9ccd6"},{key:"monad",name:"Monad",chainId:143,domain:15,usdc:"0x754704Bc059F8C67012fEd69BC8A327a5aafb603",rpc:"https://rpc.monad.xyz",explorer:"https://monadscan.com",native:{name:"Monad",symbol:"MON",decimals:18},color:"#836ef9",fast:!1},{key:"sei",name:"Sei",chainId:1329,domain:16,usdc:"0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392",rpc:"https://evm-rpc.sei-apis.com",explorer:"https://seiscan.io",native:{name:"Sei",symbol:"SEI",decimals:18},color:"#c1272d",fast:!1},{key:"hyperevm",name:"HyperEVM",chainId:999,domain:19,usdc:"0xb88339CB7199b77E23DB6E890353E22632Ba630f",rpc:"https://rpc.hyperliquid.xyz/evm",explorer:"https://hyperevmscan.io",native:{name:"HYPE",symbol:"HYPE",decimals:18},color:"#50d2c1",fast:!1},{key:"ink",name:"Ink",chainId:57073,domain:21,usdc:"0x2D270e6886d130D724215A266106e6832161EAEd",rpc:"https://rpc-gel.inkonchain.com",explorer:"https://explorer.inkonchain.com",native:{name:"Ether",symbol:"ETH",decimals:18},color:"#7132f5"}]},ARCLOCK_ADDRESS:"0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",ARCLOCK_RH_ADDRESS:"0x301E1e8dcB43cDddD3244889063aD4220536b38A",LPLOCK_ADDRESS:"0x674E7010Dab5cCb519e06df72b1D4c063952f45B",MULTISEND_ADDRESS:"0x21733285F844cb2F03a5d692de9974F379889956",MULTISEND_V2_ADDRESS:"",DROP_ADDRESS:"",MULTISEND_RH_ADDRESS:"0x07Ec525DC675206618C3e5E7fd92C7C0707df6C4",ORDERS_ADDRESS:"0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e",STAKING_ADDRESS:"0x301E1e8dcB43cDddD3244889063aD4220536b38A",LAUNCHDROP_ADDRESS:"0x0921638A292Bd7Dfd001Ed62367cF8B6f0F7d613",SWAP_ADDRESS:"0x305Da1b305249072b13B73ab394E02046c865d56",SWAP_FROM_BLOCK:25150057,QUANTUM_PAD_ADDRESS:"0x9EBFB3A7724ecE9cE3f0df62532471d532223Fd2",QUANTUM_FROM_BLOCK:25222590,SWAP_FEE_BPS:10,ARCIRCLE_FEEBURN:"0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034",ORDERS_PERMIT2:"0x000000000022D473030F116dDEE9F6B43aC78BA3",ORDERS_FREE_HOLD:1e5,ORDERS_RH_ADDRESS:"0xa53dBd06d8c604107e1Fe1B5936EFCf32D895eE3",ORDERS_RH_FEEBURN:"0x88bE9A0E1B13f5A10Bf155e052CB0327fd6C88D1",ORDERS_RH_PERMIT2:"0x000000000022D473030F116dDEE9F6B43aC78BA3",ORDERS_RH_WETH:"0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",ARCIA_RH_TOKEN:"0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25",VEARCIA_ADDRESS:"0x29C010620f6720582c310aFa8D8115026eC73a7e",WORKS_ADDRESS:"",BUILDER_MINE_ADDRESS:"0x1538c76917dE5911D71c5C397ff18cA09d52B019",ARGUS:{PORTAL:"0xB021Be536808f551b31789422Fd28a6c9c6e97Da",REGISTRY:"0xfA4552DD491acC08051725fe522F4cfEaeC8EDc6",TOKEN_IMPL:"0x1B74922c01DDfD9C77B37D02C0a236611E8Fe500",SPLITTER_IMPL:"0xd9578dd861b2fe59675C2C4B09b026FcB0df37FC",LOCKER_IMPL:"0xb2eD8112Db1bc11F7e7AB7969C2a9d1f819Cfc6A",OLDER_PORTALS:["0xA5628A11c412596e1f63b75a2C0284F843C549d6","0x07a688a001f416cC433c68Ff56Aa26bC5131Cc6E"],HOOK_FLAGS:8260},ARGUS_V5:{PORTAL:"0xeed7559B8A6ABf64427dc41Cb5cc6400109C5D93",CREATOR_REGISTRY:"0x986B478bE2F05b44b47c61E26a0BbcBcC07610eD",HOOK_FLAGS:8396,PLATFORM_WALLET:"0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8",PLATFORM_BPS:3e3,MIN_CREATOR_ALLOC_BPS:5e3,SUPPORT:{DEX_INFO_MCAP:2e4,MARKETING_MCAP:1e5}},PONS:{FACTORY:"0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",FEE_ESCROW:"0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",SPLITS:"0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6",TREASURY:"0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8",PLATFORM_BPS:3e3,CHAIN_ID:4663,RPC:"https://rpc.mainnet.chain.robinhood.com",EXPLORER:"https://robinhoodchain.blockscout.com",APP:"https://www.ponsfamily.com/launchpad",SUPPORT:{DEX_INFO_MCAP:2e4,MARKETING_MCAP:1e5}},ARCPAD_RH:{FACTORY:"0x1446Af2D4b86cf31a96bDe8173c2bC39C8a2EEAf",ROUTER:"0x0ab746332B5b85091b62cBC6F1Ce90F1557465B3",HOOK:"0xD49D2D593FCf79651E2db7f554D4E13f434e8044",DROP:"0x8e67b75b4B91c5c95c4562F99980371e4f466daA",CHAIN_ID:4663,RPC:"https://rpc.mainnet.chain.robinhood.com",EXPLORER:"https://robinhoodchain.blockscout.com",VIRTUAL_USD:4e3},NFT:{VAULT:"0x2eE3ae4140A08930Dc9cEde5cde86f3bC906c304",ROUTER:"0x95B56477722dF40021797121f2faDe759dc88f65",LAUNCHERS:["0x809E486817ADcBdF244060f4C8C24B4c694AF749"],CHAIN_ID:4663,RPC:"https://rpc.mainnet.chain.robinhood.com",EXPLORER:"https://robinhoodchain.blockscout.com"},PUMP:{TREASURY:"DHu2grfJTNV9ipJWkfLXiRR6yLWQWvg4aVDcZJTERmLR",PLATFORM_BPS:3e3,RPC:"/api/social?solrpc=1",KIT:"/vendor/pump-kit.js?v=6c17cca6da",APP:"https://pump.fun/coin",EXPLORER:"https://solscan.io",SUPPORT:{DEX_INFO_MCAP:2e4,MARKETING_MCAP:1e5}},ORDERS_SOL:{PROGRAM:"",EXPLORER:"https://solscan.io"},OMNI:{ADAPTER:"0x075e5DC585efFe0bfdC1a0d452499Ce7AFe2faB6",ROBINHOOD_OFT:"0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4",ROBINHOOD_POOL:"0x1bbed8ae8485bd75d46c3bdb830d47aca49b6ccb4fad57e6263903d0c1f10a50",SOLANA_MINT:"",SOLANA_OFT_STORE:"",SAFE:"0xA4101562b2C6fd5e422A0F78B2fE166dF84A48Fd",CHAINS:{arc:{name:"Arc",eid:30417,chainId:5042,gas:"USDC"},robinhood:{name:"Robinhood Chain",eid:30416,chainId:4663,gas:"ETH",rpc:"https://rpc.mainnet.chain.robinhood.com",explorer:"https://robinhoodchain.blockscout.com"},solana:{name:"Solana",eid:30168,gas:"SOL",explorer:"https://solscan.io"}},LZ_SCAN:"https://layerzeroscan.com/tx/",SHARED_DECIMALS:6},RELAY:{OPERATOR:"0x1A35a754A4251E46971184046ac57E8AD621672E",MIN_ARCIRCLE:"100000",ROUNDS:[{n:1,label:"CirclePad Round #1",escrow:"0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",ballot:"0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2",burnvote:"0x54121a7894d90a02eA973Ab45EEF424C2716EeB2",launch:null}]}},ARCIRCLE_LIVE=/^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN||"");function arcircleUsdFromSqrt(t){var h=Number(t);if(!(h>0)||!ARCIRCLE_LIVE)return null;var F=Math.pow(h/Math.pow(2,96),2),c=BigInt(CONFIG.ARCIRCLE_TOKEN)<0x3600000000000000000000000000000000000000n,o=(c?F:1/F)*Math.pow(10,18-(CONFIG.ARCIRCLE_QUOTE_DECIMALS||6));return isFinite(o)&&o>0?o:null}const ERC20_ABI=[{inputs:[{internalType:"string",name:"name_",type:"string"},{internalType:"string",name:"symbol_",type:"string"},{internalType:"uint256",name:"totalSupply_",type:"uint256"},{internalType:"address",name:"curve",type:"address"}],stateMutability:"nonpayable",type:"constructor"},{inputs:[{internalType:"address",name:"spender",type:"address"},{internalType:"uint256",name:"allowance",type:"uint256"},{internalType:"uint256",name:"needed",type:"uint256"}],name:"ERC20InsufficientAllowance",type:"error"},{inputs:[{internalType:"address",name:"sender",type:"address"},{internalType:"uint256",name:"balance",type:"uint256"},{internalType:"uint256",name:"needed",type:"uint256"}],name:"ERC20InsufficientBalance",type:"error"},{inputs:[{internalType:"address",name:"approver",type:"address"}],name:"ERC20InvalidApprover",type:"error"},{inputs:[{internalType:"address",name:"receiver",type:"address"}],name:"ERC20InvalidReceiver",type:"error"},{inputs:[{internalType:"address",name:"sender",type:"address"}],name:"ERC20InvalidSender",type:"error"},{inputs:[{internalType:"address",name:"spender",type:"address"}],name:"ERC20InvalidSpender",type:"error"},{anonymous:!1,inputs:[{indexed:!0,internalType:"address",name:"owner",type:"address"},{indexed:!0,internalType:"address",name:"spender",type:"address"},{indexed:!1,internalType:"uint256",name:"value",type:"uint256"}],name:"Approval",type:"event"},{anonymous:!1,inputs:[{indexed:!0,internalType:"address",name:"from",type:"address"},{indexed:!0,internalType:"address",name:"to",type:"address"},{indexed:!1,internalType:"uint256",name:"value",type:"uint256"}],name:"Transfer",type:"event"},{inputs:[{internalType:"address",name:"owner",type:"address"},{internalType:"address",name:"spender",type:"address"}],name:"allowance",outputs:[{internalType:"uint256",name:"",type:"uint256"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"address",name:"spender",type:"address"},{internalType:"uint256",name:"value",type:"uint256"}],name:"approve",outputs:[{internalType:"bool",name:"",type:"bool"}],stateMutability:"nonpayable",type:"function"},{inputs:[{internalType:"address",name:"account",type:"address"}],name:"balanceOf",outputs:[{internalType:"uint256",name:"",type:"uint256"}],stateMutability:"view",type:"function"},{inputs:[],name:"decimals",outputs:[{internalType:"uint8",name:"",type:"uint8"}],stateMutability:"view",type:"function"},{inputs:[],name:"name",outputs:[{internalType:"string",name:"",type:"string"}],stateMutability:"view",type:"function"},{inputs:[],name:"symbol",outputs:[{internalType:"string",name:"",type:"string"}],stateMutability:"view",type:"function"},{inputs:[],name:"totalSupply",outputs:[{internalType:"uint256",name:"",type:"uint256"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"address",name:"to",type:"address"},{internalType:"uint256",name:"value",type:"uint256"}],name:"transfer",outputs:[{internalType:"bool",name:"",type:"bool"}],stateMutability:"nonpayable",type:"function"},{inputs:[{internalType:"address",name:"from",type:"address"},{internalType:"address",name:"to",type:"address"},{internalType:"uint256",name:"value",type:"uint256"}],name:"transferFrom",outputs:[{internalType:"bool",name:"",type:"bool"}],stateMutability:"nonpayable",type:"function"}],ARC_FACTORY_ABI=[{inputs:[{internalType:"address",name:"platformTreasury_",type:"address"},{internalType:"address",name:"platformWallet_",type:"address"},{internalType:"address",name:"poolManager_",type:"address"},{internalType:"address",name:"hook_",type:"address"},{internalType:"int24",name:"tickSpacing_",type:"int24"},{internalType:"uint16",name:"baseFeeBps_",type:"uint16"},{internalType:"uint16",name:"creatorShareBps_",type:"uint16"},{internalType:"uint16",name:"platformShareBps_",type:"uint16"}],stateMutability:"nonpayable",type:"constructor"},{anonymous:!1,inputs:[{indexed:!0,internalType:"address",name:"payer",type:"address"},{indexed:!1,internalType:"uint256",name:"amount",type:"uint256"}],name:"LaunchFeeCollected",type:"event"},{anonymous:!1,inputs:[{indexed:!0,internalType:"address",name:"token",type:"address"},{indexed:!0,internalType:"address",name:"creator",type:"address"},{indexed:!0,internalType:"address",name:"quoteToken",type:"address"},{indexed:!1,internalType:"string",name:"name",type:"string"},{indexed:!1,internalType:"string",name:"symbol",type:"string"},{indexed:!1,internalType:"uint16",name:"extraFeeBps",type:"uint16"},{indexed:!1,internalType:"uint256",name:"initialVirtualQuote",type:"uint256"},{indexed:!1,internalType:"string",name:"imageUrl",type:"string"},{indexed:!1,internalType:"string",name:"description",type:"string"}],name:"Launched",type:"event"},{inputs:[],name:"DEFAULT_SUPPLY",outputs:[{internalType:"uint256",name:"",type:"uint256"}],stateMutability:"view",type:"function"},{inputs:[],name:"LAUNCH_FEE",outputs:[{internalType:"uint256",name:"",type:"uint256"}],stateMutability:"view",type:"function"},{inputs:[],name:"MAX_EXTRA_FEE_BPS",outputs:[{internalType:"uint16",name:"",type:"uint16"}],stateMutability:"view",type:"function"},{inputs:[],name:"PLATFORM_ALLOCATION_BPS",outputs:[{internalType:"uint16",name:"",type:"uint16"}],stateMutability:"view",type:"function"},{inputs:[],name:"baseFeeBps",outputs:[{internalType:"uint16",name:"",type:"uint16"}],stateMutability:"view",type:"function"},{inputs:[],name:"creatorShareBps",outputs:[{internalType:"uint16",name:"",type:"uint16"}],stateMutability:"view",type:"function"},{inputs:[],name:"hook",outputs:[{internalType:"contract HomepadHybridHook",name:"",type:"address"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"string",name:"name_",type:"string"},{internalType:"string",name:"symbol_",type:"string"},{internalType:"address",name:"quoteToken_",type:"address"},{internalType:"uint256",name:"initialVirtualQuote_",type:"uint256"},{internalType:"uint16",name:"extraFeeBps_",type:"uint16"},{components:[{internalType:"string",name:"imageUrl",type:"string"},{internalType:"string",name:"description",type:"string"},{internalType:"string",name:"twitter",type:"string"},{internalType:"string",name:"telegram",type:"string"},{internalType:"string",name:"discord",type:"string"},{internalType:"string",name:"website",type:"string"}],internalType:"struct HomepadFactoryArc.LaunchMeta",name:"meta_",type:"tuple"}],name:"launch",outputs:[{internalType:"address",name:"tokenAddr",type:"address"}],stateMutability:"payable",type:"function"},{inputs:[{internalType:"string",name:"name_",type:"string"},{internalType:"string",name:"symbol_",type:"string"},{internalType:"address",name:"quoteToken_",type:"address"},{internalType:"uint256",name:"initialVirtualQuote_",type:"uint256"},{internalType:"uint16",name:"extraFeeBps_",type:"uint16"},{components:[{internalType:"string",name:"imageUrl",type:"string"},{internalType:"string",name:"description",type:"string"},{internalType:"string",name:"twitter",type:"string"},{internalType:"string",name:"telegram",type:"string"},{internalType:"string",name:"discord",type:"string"},{internalType:"string",name:"website",type:"string"}],internalType:"struct HomepadFactoryArc.LaunchMeta",name:"meta_",type:"tuple"},{internalType:"uint256",name:"devBuyQuote",type:"uint256"}],name:"launchAndBuy",outputs:[{internalType:"address",name:"tokenAddr",type:"address"}],stateMutability:"payable",type:"function"},{inputs:[],name:"launchCount",outputs:[{internalType:"uint256",name:"",type:"uint256"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"address",name:"",type:"address"}],name:"launchIndexOf",outputs:[{internalType:"uint256",name:"",type:"uint256"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"uint256",name:"",type:"uint256"}],name:"launches",outputs:[{internalType:"address",name:"token",type:"address"},{internalType:"address",name:"quoteToken",type:"address"},{internalType:"uint256",name:"initialVirtualQuote",type:"uint256"},{internalType:"bool",name:"quoteIsCurrency0",type:"bool"},{internalType:"address",name:"creator",type:"address"},{internalType:"uint256",name:"launchedAt",type:"uint256"},{internalType:"uint16",name:"extraFeeBps",type:"uint16"},{internalType:"string",name:"imageUrl",type:"string"},{internalType:"string",name:"description",type:"string"},{internalType:"string",name:"twitter",type:"string"},{internalType:"string",name:"telegram",type:"string"},{internalType:"string",name:"discord",type:"string"},{internalType:"string",name:"website",type:"string"}],stateMutability:"view",type:"function"},{inputs:[],name:"platformShareBps",outputs:[{internalType:"uint16",name:"",type:"uint16"}],stateMutability:"view",type:"function"},{inputs:[],name:"platformTreasury",outputs:[{internalType:"address",name:"",type:"address"}],stateMutability:"view",type:"function"},{inputs:[],name:"platformWallet",outputs:[{internalType:"address",name:"",type:"address"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"address",name:"token",type:"address"}],name:"poolKeyOf",outputs:[{components:[{internalType:"Currency",name:"currency0",type:"address"},{internalType:"Currency",name:"currency1",type:"address"},{internalType:"uint24",name:"fee",type:"uint24"},{internalType:"int24",name:"tickSpacing",type:"int24"},{internalType:"contract IHooks",name:"hooks",type:"address"}],internalType:"struct PoolKey",name:"key",type:"tuple"}],stateMutability:"view",type:"function"},{inputs:[],name:"poolManager",outputs:[{internalType:"contract IPoolManager",name:"",type:"address"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"address",name:"",type:"address"}],name:"quoteOf",outputs:[{internalType:"address",name:"",type:"address"}],stateMutability:"view",type:"function"},{inputs:[],name:"tickSpacing",outputs:[{internalType:"int24",name:"",type:"int24"}],stateMutability:"view",type:"function"},{inputs:[{internalType:"bytes",name:"data",type:"bytes"}],name:"unlockCallback",outputs:[{internalType:"bytes",name:"",type:"bytes"}],stateMutability:"nonpayable",type:"function"}],state={account:null,signer:null,provider:null},RPC_STATE={urls:null,idx:0,fails:0,firstFailAt:0,switching:null,since:0};function rpcUrls(){if(!RPC_STATE.urls){RPC_STATE.urls=[CONFIG.RPC_URL].concat(Array.isArray(CONFIG.RPC_FALLBACKS)?CONFIG.RPC_FALLBACKS:[]);try{const t=Number(sessionStorage.getItem("arc.rpc.idx"));t>0&&t<RPC_STATE.urls.length&&(RPC_STATE.idx=t,RPC_STATE.since=Date.now())}catch{}}return RPC_STATE.urls}function readProvider(){const t=rpcUrls();if(RPC_STATE.idx>0&&Date.now()-RPC_STATE.since>2*6e4&&!RPC_STATE.switching&&rpcProbe(0),!state.provider){const h=ethers.Network.from(CONFIG.CHAIN_ID_DECIMAL);state.provider=new ethers.JsonRpcProvider(t[RPC_STATE.idx],h,RPC_STATE.idx===0?{staticNetwork:h}:{staticNetwork:h,batchMaxCount:1})}return state.provider}async function rpcHealthy(t){const h=new AbortController,F=setTimeout(()=>h.abort(),4e3);try{const o=await(await fetch(t,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_chainId",params:[]}),signal:h.signal})).json();return o&&parseInt(o.result,16)===CONFIG.CHAIN_ID_DECIMAL}catch{return!1}finally{clearTimeout(F)}}function rpcUse(t){if(t!==RPC_STATE.idx){RPC_STATE.idx=t,RPC_STATE.since=Date.now(),RPC_STATE.fails=0,state.provider=null;try{sessionStorage.setItem("arc.rpc.idx",String(t))}catch{}console.warn("Arc RPC: switched to",rpcUrls()[t]);try{window.dispatchEvent(new CustomEvent("arc:rpc-switched",{detail:{url:rpcUrls()[t]}}))}catch{}}}function rpcProbe(t){if(RPC_STATE.switching)return RPC_STATE.switching;const h=rpcUrls();return RPC_STATE.switching=(async()=>{const F=t===0?[0]:h.map((c,o)=>(RPC_STATE.idx+1+o)%h.length).filter(c=>c!==RPC_STATE.idx);for(const c of F)if(await rpcHealthy(h[c]))return rpcUse(c),!0;return t===0&&(RPC_STATE.since=Date.now()),!1})().finally(()=>{RPC_STATE.switching=null}),RPC_STATE.switching}function rpcNoteFailure(){const t=Date.now();return t-RPC_STATE.firstFailAt>3e4&&(RPC_STATE.firstFailAt=t,RPC_STATE.fails=0),++RPC_STATE.fails>=3?(RPC_STATE.fails=0,rpcProbe()):null}const TRANSIENT_RPC=/failed to fetch|timed out|timeout|429|rate limit|too many|coalesce|network error|ECONNRESET|free plan|batch of more than/i;async function withRetry(t,{tries:h=3,delayMs:F=900}={}){let c;for(let o=0;o<h;o++)try{return await t()}catch(P){if(c=P,!TRANSIENT_RPC.test(String(P&&(P.shortMessage||P.message)||P)))throw P;const A=rpcNoteFailure();A&&await A,await new Promise(j=>setTimeout(j,F*(o+1)))}throw c}const _blockAtOrAfterPromises=new Map;function blockAtOrAfter(t,h){const F=`${h}:${t}`;if(_blockAtOrAfterPromises.has(F))return _blockAtOrAfterPromises.get(F);const c=(async()=>{const o=Math.floor(Date.parse(t)/1e3),P=`arcircle.firstBlock.${CONFIG.CHAIN_ID_DECIMAL}.${h}.${o}`;try{const x=localStorage.getItem(P);if(x)return Number(x)}catch{}const A=readProvider(),j=x=>withRetry(()=>A.getBlock(x)),U=await j("latest");if(Number(U.timestamp)<o)return U.number;const V=Math.max(0,U.number-5e5),L=await j(V),w=Math.max(.01,(Number(U.timestamp)-Number(L.timestamp))/Math.max(1,U.number-V));let E=Math.round(U.number-(Number(U.timestamp)-o)/w);E=Math.min(Math.max(0,E),U.number);let B=8e3,S,$;for(;;){S=Math.max(0,E-B),$=Math.min(U.number,E+B);const[x,H]=await Promise.all([j(S),j($)]),Y=Number(x.timestamp)<o,l=Number(H.timestamp)>=o;if((Y||S===0)&&(l||$===U.number))break;B*=4}for(;$-S>2048;){const x=Math.floor((S+$)/2),H=await j(x);Number(H.timestamp)<o?S=x:$=x}try{localStorage.setItem(P,String(S))}catch{}return S})().catch(o=>{throw _blockAtOrAfterPromises.delete(F),o});return _blockAtOrAfterPromises.set(F,c),c}const LOG_CHUNK_BLOCKS=9e3,RATE_LIMITED=/rate limit|429|-32005|too many requests/i;async function queryFilterChunked(t,h,F,c,{chunk:o=LOG_CHUNK_BLOCKS,concurrency:P=1,onChunk:A=null}={}){if((c==null||c==="latest")&&(c=await withRetry(()=>readProvider().getBlockNumber())),F>c)return[];const j=[];for(let w=F;w<=c;w+=o)j.push([w,Math.min(c,w+o-1)]);const U=async([w,E])=>{for(let B=0;;B++)try{return await t.queryFilter(h,w,E)}catch(S){const $=JSON.stringify(S&&S.error||"")+String(S&&(S.shortMessage||S.message)||S);if(!(RATE_LIMITED.test($)||TRANSIENT_RPC.test($))||B>=9)throw S;{const H=rpcNoteFailure();H&&await H}await new Promise(H=>setTimeout(H,Math.min(8e3,500*2**B)))}},V=new Array(j.length);let L=0;return await Promise.all(Array.from({length:Math.min(P,j.length)},async()=>{for(;L<j.length;){const w=L++;V[w]=await U(j[w]),A&&A(V[w],j[w],w+1,j.length)}})),V.flat()}const MULTICALL3_ADDRESS="0xcA11bde05977b3631167028862bE2a173976CA11",MULTICALL3_ABI=["function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)"];let multicallAvailable=null;async function isMulticallAvailable(){if(multicallAvailable!==null)return multicallAvailable;try{multicallAvailable=await readProvider().getCode(MULTICALL3_ADDRESS)!=="0x"}catch{multicallAvailable=!1}return multicallAvailable||console.warn("Multicall3 not found on this chain — falling back to one request per call."),multicallAvailable}async function multicallRead(t){if(t.length===0)return[];const h=await isMulticallAvailable(),F=()=>Promise.all(t.map(c=>c.contract[c.method](...c.args||[]).catch(o=>(console.warn(`multicallRead fallback: ${c.method} failed`,o),null))));if(!h)return F();try{const c=new ethers.Contract(MULTICALL3_ADDRESS,MULTICALL3_ABI,readProvider()),o=t.map(A=>({target:A.contract.target,allowFailure:!0,callData:A.contract.interface.encodeFunctionData(A.method,A.args||[])}));return(await c.aggregate3.staticCall(o)).map((A,j)=>{if(!A.success)return null;try{const U=t[j].contract.interface.decodeFunctionResult(t[j].method,A.returnData);return U.length===1?U[0]:U}catch{return null}})}catch(c){return console.warn("Multicall3 call failed — falling back to one request per call.",c),F()}}function short(t){return t?`${t.slice(0,6)}…${t.slice(-4)}`:""}function renderContractRows(t){const h=F=>typeof F=="string"&&F.length===42;return`<div class="ac-contracts">${t.map(([F,c,o])=>`
+/* reward.bundle.js — built by tools/build-bundles.mjs from: i18n-boot.js, config-arc.js, abis.js, arc-shared.js, arc-fmt.js, arc-fx.js, arcircle-live.js, arc-token.js, reward.js, reward-engine.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-cmdk.js, arc-nav.js, arc-connect.js, arc-v9.js, arc-v10.js, arc-v12.js, arc-feel.js, arc-chrome.js, arc-a11y.js, arc-txring.js, arc-glyph.js, arc-arcia-fab.js, i18n.js. Do not edit; edit the sources. src:91456ecb2e42b0d3 */
+/* ---- i18n-boot.js ---- */
+// i18n-boot.js — first thing in every bundle: if the visitor reads Korean or Chinese, start
+// downloading that dictionary (i18n-ko.js / i18n-zh.js) right away, while the rest of the page's
+// code runs. i18n.js (last in the bundle) does the translating; English visitors download nothing.
+(function () {
+  "use strict";
+  var l = "en";
+  try {
+    var q = /[?&]lang=(en|ko|zh)(?:&|$)/.exec(location.search);
+    var nav = (navigator.language || "").toLowerCase();
+    l = q ? q[1] : localStorage.getItem("arcircle.lang") || (nav.indexOf("ko") === 0 ? "ko" : nav.indexOf("zh") === 0 ? "zh" : "en");
+  } catch (e) { /* default en */ }
+  if (l !== "ko" && l !== "zh") return;
+  if (l === "zh" && /^\/whitepaper/.test(location.pathname)) return;
+  var busy = window.__arcDictLoading || (window.__arcDictLoading = {});
+  if (busy[l]) return;
+  busy[l] = true;
+  var me = document.currentScript && document.currentScript.src;
+  var v = (/[?&]v=(\d+)/.exec(me || "") || [])[1] || "";
+  var s = document.createElement("script");
+  s.src = "/i18n-" + l + ".js" + (v ? "?v=" + v : "");
+  s.async = true;
+  s.onerror = function () { busy[l] = false; };
+  (document.head || document.documentElement).appendChild(s);
+})();
+;
+/* ---- config-arc.js ---- */
+// Config for the Arc-chain products — ARCPAD (arcpad.html/arcpad.js) and
+// CIRCLEPAD (circlepad.html/circlepad.js). Deliberately a SEPARATE file
+// from config.js (Robinhood Chain / $HOME / HOMEPAD V1): both define a
+// global `CONFIG`, so never load both on the same page.
+//
+// wallet-appkit.js is already fully chain-agnostic — it reads every network
+// parameter (CHAIN_ID_DECIMAL, CHAIN_ID_HEX, CHAIN_NAME, NATIVE_CURRENCY,
+// RPC_URL, BLOCK_EXPLORER, REOWN_PROJECT_ID) from whatever CONFIG is loaded,
+// so pointing it at this file is the only change needed for wallet
+// connect/network-switch to work against Arc — nothing in wallet-appkit.js
+// itself is Robinhood-specific.
+const CONFIG = {
+  CHAIN_ID_HEX: "0x13b2", // 5042 (Arc mainnet) in hex. 5042002 is Arc TESTNET — do not confuse them.
+  CHAIN_ID_DECIMAL: 5042,
+  CHAIN_NAME: "Arc",
+  // What wallets show on their connect / approve screens (WalletConnect).
+  APP_NAME: "ARCIRCLE PAD",
+  APP_DESCRIPTION: "ArcPad and CirclePad — launch coins on Circle's Arc, paired in USDC.",
+  APP_ICON: "/images/apple-touch-icon.png",
+  RPC_URL: "https://rpc.mainnet.arc.io",
+  // Read-only fallbacks, used only when RPC_URL stops answering. These are
+  // the keyless mainnet endpoints listed in Arc's own docs
+  // (docs.arc.io → References → RPC endpoints). Each is health-checked
+  // (eth_chainId must be 5042) before the page switches to it.
+  RPC_FALLBACKS: [
+    "https://rpc.blockdaemon.mainnet.arc.io",
+    "https://rpc.drpc.mainnet.arc.io",
+    "https://rpc.quicknode.mainnet.arc.io",
+  ],
+  // Same WalletConnect/Reown project as the rest of the site (a project ID
+  // isn't chain-restricted for basic RPC/wallet-connect use) — see
+  // config.js's own REOWN_PROJECT_ID.
+  REOWN_PROJECT_ID: "278f543c581f60eec5975dc755f0c3dd",
+  // No HomepadFactoryArc/BigPad-on-Arc contracts existed before deployment.
+  // Set this to the deploy block's timestamp once real (matches how
+  // CONTRACTS_LIVE_SINCE/BIGPAD_LIVE_SINCE work in config.js) — until then,
+  // leave it recent so any eth_getLogs scan stays cheap.
+  CONTRACTS_LIVE_SINCE: "2026-09-22T04:00:00Z",
+
+  // Arc's native currency IS USDC — its NATIVE representation uses 18
+  // decimals (same as ETH); the separate ERC-20 USDC interface below uses
+  // 6. Never confuse the two — see HomepadFactoryArc.sol's own comments.
+  NATIVE_CURRENCY: { name: "USDC", symbol: "USDC", decimals: 18 },
+  BLOCK_EXPLORER: "https://arc.etherscan.io",
+
+  // Arc's native-USDC ERC-20 predeploy (6 decimals) — cross-checked against
+  // Circle's own Arc docs and Uniswap's UniswapX playbook. This is the
+  // quote token ARCPAD launches are priced in.
+  USDC_ADDRESS: "0x3600000000000000000000000000000000000000",
+  // Uniswap v4 PoolManager on Arc mainnet — same cross-check.
+  POOL_MANAGER_ADDRESS: "0x8366a39CC670B4001A1121B8F6A443A643e40951",
+
+  // --- ARCPAD (HomepadFactoryArc + HomepadHybridHook + HomepadArcSwapRouter) ---
+  // Filled in once scripts/deploy-homepad-factory-arc.js actually runs
+  // against --network arcMainnet. Empty here shows as "soon" in the UI,
+  // same convention as config.js's own FACTORY_ADDRESS.
+  // --- $ARCIRCLE, the core coin ---
+  // Launched on Argus (argus.world) on 25 Sep 2026: a Uniswap v4 pool on
+  // Arc's PoolManager, paired with USDC's ERC-20 interface (6 decimals), with
+  // the whole supply in one locked position (no virtual curve, no migration).
+  // Keep api/_arcircle.mjs in step. An empty ARCIRCLE_TOKEN switches every
+  // page to "Not live".
+  ARCIRCLE_TOKEN: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7",
+  ARCIRCLE_POOL_ID: "0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba",
+  // keccak256(poolId ‖ uint256(6)) — where the PoolManager keeps this pool's slot0
+  // (read with extsload; lets pages without ethers read the price)
+  ARCIRCLE_POOL_SLOT: "0xad85d721d91ab50f533ac7d86b01e50798b891ac2a1502187e974fabc0cf854b",
+  ARCIRCLE_QUOTE_DECIMALS: 6, // USDC (ERC-20 interface, 0x3600…)
+  ARCIRCLE_CURVE: "", // only for a foci-style bonding-curve launch (the first launch was one)
+  ARCIRCLE_VENUE: "Argus",
+  ARCIRCLE_BUY_URL: "https://argus.world/token/0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7",
+  ARCIRCLE_CHART_URL: "https://dexscreener.com/arc/0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba",
+  ARCIRCLE_LAUNCHED_AT: 1790345391, // unix seconds the pool was created
+
+  ARCPAD_FACTORY_ADDRESS: "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E",
+  ARCPAD_HOOK_ADDRESS: "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044",
+  ARCPAD_ROUTER_ADDRESS: "0xFCA8fD788d44Bb335B1451257366e06D67114785",
+
+  // --- CIRCLEPAD (BigPadEscrow + BigPadVote, redeployed fresh on Arc — the
+  // contracts are chain-agnostic native-currency contracts, so Arc's own
+  // native USDC is what they raise without any code change) ---
+  CIRCLEPAD_ESCROW_ADDRESS: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
+  // Round #1 started; BigPadVote deployed against it on 26 Sep 2026
+  // (deploy-bigpad-vote.js). Voting runs from the escrow's deadline for 48h.
+  CIRCLEPAD_VOTE_ADDRESS: "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2",
+  // Voting is burn-to-vote: 1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD, open to
+  // any holder. Candidates stay on BigPadVote above; ArcircleBurnVote counts the
+  // burned votes (deploy-arcircle-burn-vote.js). "" until it's deployed — the
+  // page then explains the rules but can't take votes yet.
+  CIRCLEPAD_VOTE_MODE: "burn",
+  // ArcircleBurnVote deployed 27 Sep 2026 00:46 UTC, block 22945226 (deploy-arcircle-burn-vote.js):
+  // voting from then until the raise closes (29 Sep 11:16:07 UTC). Replaces 0x89A5…CB70,
+  // which only opened after the close and never took a vote.
+  CIRCLEPAD_BURNVOTE_ADDRESS: "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2",
+  // Later rounds' governance and rules (circlepad-boot.js switches the page to the newest round). A round's
+  // vote goes live once its BigPadVote (vote) and ArcircleBurnVote (burnvote) are filled in, or at once with
+  // mode: "direct" (no vote contracts: the round wallet signs its candidates, votes are coded transfers to
+  // 0x…dEaD — api/_burnvote.mjs) — keep api/_burnvote.mjs GOV in step. top: the largest contributor receives the 15% over 3 days (true / false / null = not decided);
+  // airdrop: the contributor airdrop's text, or "" = not decided.
+  CIRCLEPAD_GOV: {
+    2: { mode: "direct", top: true, airdrop: "" },
+    // Round #2 merged into Round #3 (3 Oct 2026). chain: a sixth category, the launch chain — these choices go
+    // through the free pre-vote, then the round wallet publishes them (keep api/_burnvote.mjs GOV[3].chain the same).
+    // 4 Oct 2026: Round #3 launches no new coin (the $TIE plan was dropped). The raise buys $ARCIA on Robinhood Chain for
+    // its contributors, who also get an allocation of Round #4's Solana token. mode "plan": no vote on the page (the
+    // burn-to-vote closed — api/_burnvote.mjs GOV[3].closedAt — and its record stays), circlepad-plan.js shows the plan.
+    3: { mode: "plan", top: null, closedAt: 1791072000, accent: "#ff8bd8", // circlepad-v5.js: the round's accent ($ARCIA pink)
+      // 5 Oct 2026: Round #3 and Round #4 are merged. Round #4 is ARCIRCLE's move to Solana through pump.fun with
+      // ARCIRCLE Orders: no separate 3-day raise — the ARCIRCLE team runs it on Solana with ARCIRCLE Orders, and everyone
+      // in Round #3 (now or before the close) is in it automatically. also.merged switches the copy (circlepad-plan.js,
+      // circlepad-boot.js).
+      // 6 Oct 2026: Round #3 + #4's rewards go out as a snapshot airdrop; more updates follow (snapshot: true)
+      airdrop: "Round #3 and Round #4 are merged, so one contribution earns two rewards, each pro rata to your share of the raise: $ARCIA on Robinhood Chain, bought with the raise, and your share of Round #4 on Solana — launched through pump.fun by the ARCIRCLE team with ARCIRCLE Orders. Both go out as a snapshot airdrop to the contributor list, with more updates to follow. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are included from Round #2's list.",
+      plan: { buy: { sym: "ARCIA", chain: "Robinhood Chain", token: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", url: "https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25" },
+        also: { round: 4, chain: "Solana", sym: "TBA", merged: true, via: "pump.fun", with: "ARCIRCLE Orders", mergedAt: "5 Oct 2026", snapshot: true } } },
+  },
+  // Round numbers with no escrow of their own (api/_rounds.mjs SKIPPED — keep the same): Round #4 went into Round #3,
+  // so the round after #3 is #5. Projects shows a short "merged" card in its place.
+  CIRCLEPAD_SKIPPED: { 4: 3 },
+  // 7 Oct 2026: what CirclePad says about its rounds everywhere outside /circle (the main page's button, round card and
+  // live bar, ArcPad's $ARCIRCLE card and roadmap, ARCIA): Round #2 postponed, Rounds #3 + #4 being merged. Set to null
+  // when a round is live again — the pages then follow the round's own state.
+  // 10 Oct 2026: Round #5 is live — ArcPad launches on Robinhood Chain, 4% of every coin to veARCIRCLE automatically
+  // (the Launch Drop). Rounds #3 + #4: a snapshot airdrop once $ARCIA's utilities are upgraded.
+  CIRCLEPAD_STATUS: {
+    btn: "CirclePad · Round #5 is live",
+    line: "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade",
+    chip: "Round #5",
+    sub: "live",
+    go: "Launch on Robinhood Chain →",
+    href: "/arc#launch",
+    live: true, // the home button gets its live dot
+  },
+  // v8: the delivery board under a plan round's hero (circlepad-plan.js) — what the team has done after the close.
+  // Each step: status "" (waiting) | "now" (in progress) | "done", and txs: [{ chain: "rh" | "sol" | "arc", hash, label }].
+  CIRCLEPAD_DELIVERY: {
+    // 6 Oct 2026: Round #3 + #4 go out as a snapshot airdrop, then more updates
+    3: {
+      snap: { status: "", txs: [] }, // the snapshot: who is in, by share of the raise
+      drop: { status: "", txs: [] }, // the snapshot airdrop ($ARCIA on Robinhood Chain + the Round #4 share)
+      more: { status: "", txs: [] }, // the updates that follow (Round #4 on Solana)
+    },
+  },
+  // Each closed round's coin, for the Projects results strip (circlepad-v5.js): sym, chain ("arc" | "rh"), token;
+  // { merged: n } for a round that went into another one; retired: true for a coin that isn't official any more
+  // (no address, no market, no trade link).
+  // Coins kept off ArcPad's lists — Explore, Home (King of the Hill, Trending), the ticker: ♾️ Infinite, the test coin
+  // retired on 5 Oct 2026. Keep api/_argus-arcpad.mjs HIDDEN in step.
+  HIDDEN_COINS: ["0x2a15940316335bfb711db7cba98d637396e80c08"],
+  CIRCLEPAD_RESULTS: {
+    1: { sym: "ARCIA", chain: "arc", retired: true }, // the old $ARCIA on Arc — retired on 5 Oct 2026
+    2: { merged: 3 },
+    3: { sym: "ARCIA", chain: "rh", token: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" },
+  },
+  // Optional, shown on /circle (circlepad-plus.js):
+  //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an
+  //     "opens in" countdown and a calendar file before start(); 0 = not announced
+  //   CIRCLEPAD_ESCROW_VERIFIED — true once the escrow's source is verified on the explorer
+  //   CIRCLEPAD_ALLOCATION_NOTE — how the new coin is shared with contributors
+  //     (shown in the "after the close" questions; empty = "not decided yet")
+  CIRCLEPAD_OPENS_AT: 0,
+  CIRCLEPAD_ESCROW_VERIFIED: false,
+  // Round escrows whose source shows on ArcScan (checked 4 Oct 2026: Round #2 exact match, Round #3 similar match to
+  // Round #2 — the same code). circlepad-v5.js uses this when the live explorer check doesn't answer.
+  CIRCLEPAD_VERIFIED_ESCROWS: ["0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4"],
+  CIRCLEPAD_ALLOCATION_NOTE: "Every contributor gets an airdrop of the new coin — its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.",
+  // Team additions to the Round #1 ballot, added by "Fill every category from
+  // the ideas" (circlepad-ideas.js) after the community's ideas. Keyed by
+  // category (0 name, 1 ticker, 2 logo, 3 roadmap, 4 launch date; dates in UTC).
+  // 27 Sep 2026: a second launch date, 2 Oct 20:30 KST, next to the team's 1 Oct 20:30 KST.
+  CIRCLEPAD_EXTRA_CANDIDATES: { 4: ["2026-10-02T11:30:00Z"] },
+  // What happens after the vote (circlepad-round.js "What happens next"). Each
+  // step: status "set" (fixed by a contract), "policy" (the team's stated plan)
+  // or "open" (not decided yet — shown as such).
+  CIRCLEPAD_NEXT: [
+    { id: "vote", title: "Burn-to-vote", body: "Until the raise closes. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" },
+    { id: "close", title: "The raise closes", body: "Contributions, withdrawals and voting stop; the vote result is final. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
+    { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet.", status: "policy" },
+    { id: "launch", title: "The coin launches", body: "On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.", status: "open" },
+    { id: "airdrop", title: "Contributor airdrop", body: "Every contributor gets an airdrop of the new coin. Size and timing: not decided yet.", status: "policy" },
+  ],
+
+  // --- Bridge (arc-bridge.js): Circle's CCTP V2, native USDC burned on one
+  // chain and minted on the other. Same TokenMessengerV2 / MessageTransmitterV2
+  // on every chain below (developers.circle.com/cctp/references/contract-addresses);
+  // Arc is CCTP domain 26. USDC addresses: developers.circle.com/stablecoins/usdc-contract-addresses.
+  BRIDGE: {
+    TOKEN_MESSENGER: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+    MESSAGE_TRANSMITTER: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    ARC_DOMAIN: 26,
+    CHAINS: [
+      { key: "base", name: "Base", chainId: 8453, domain: 6, usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", rpc: "https://base-rpc.publicnode.com", explorer: "https://basescan.org", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#3b82f6" },
+      { key: "ethereum", name: "Ethereum", chainId: 1, domain: 0, usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", rpc: "https://ethereum-rpc.publicnode.com", explorer: "https://etherscan.io", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#8a92b2" },
+      { key: "arbitrum", name: "Arbitrum", chainId: 42161, domain: 3, usdc: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", rpc: "https://arbitrum-one-rpc.publicnode.com", explorer: "https://arbiscan.io", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#28a0f0" },
+      { key: "optimism", name: "OP Mainnet", chainId: 10, domain: 2, usdc: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", rpc: "https://optimism-rpc.publicnode.com", explorer: "https://optimistic.etherscan.io", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#ff0420" },
+      { key: "polygon", name: "Polygon", chainId: 137, domain: 7, usdc: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", rpc: "https://polygon-bor-rpc.publicnode.com", explorer: "https://polygonscan.com", native: { name: "POL", symbol: "POL", decimals: 18 }, color: "#8247e5", fast: false },
+      { key: "avalanche", name: "Avalanche", chainId: 43114, domain: 1, usdc: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", rpc: "https://avalanche-c-chain-rpc.publicnode.com", explorer: "https://snowtrace.io", native: { name: "Avalanche", symbol: "AVAX", decimals: 18 }, color: "#e84142", fast: false },
+      { key: "unichain", name: "Unichain", chainId: 130, domain: 10, usdc: "0x078D782b760474a361dDA0AF3839290b0EF57AD6", rpc: "https://unichain-rpc.publicnode.com", explorer: "https://uniscan.xyz", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#f50db4" },
+      { key: "linea", name: "Linea", chainId: 59144, domain: 11, usdc: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff", rpc: "https://linea-rpc.publicnode.com", explorer: "https://lineascan.build", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#61dfff" },
+      // v2 (Sept 2026): CCTP V2 chains with Circle's Forwarding Service. Domains, USDC addresses and
+      // "fast: false" (no Fast Transfer as a source) from developers.circle.com — cctp-supported-blockchains,
+      // usdc-contract-addresses, required-block-confirmations; chain ids / RPCs from ethereum-lists.
+      { key: "sonic", name: "Sonic", chainId: 146, domain: 13, usdc: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", rpc: "https://sonic-rpc.publicnode.com", explorer: "https://sonicscan.org", native: { name: "Sonic", symbol: "S", decimals: 18 }, color: "#fe9a4c", fast: false },
+      { key: "worldchain", name: "World Chain", chainId: 480, domain: 14, usdc: "0x79A02482A880bCe3F13E09da970dC34dB4cD24D1", rpc: "https://worldchain-mainnet.g.alchemy.com/public", explorer: "https://worldscan.org", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#c9ccd6" },
+      { key: "monad", name: "Monad", chainId: 143, domain: 15, usdc: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603", rpc: "https://rpc.monad.xyz", explorer: "https://monadscan.com", native: { name: "Monad", symbol: "MON", decimals: 18 }, color: "#836ef9", fast: false },
+      { key: "sei", name: "Sei", chainId: 1329, domain: 16, usdc: "0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392", rpc: "https://evm-rpc.sei-apis.com", explorer: "https://seiscan.io", native: { name: "Sei", symbol: "SEI", decimals: 18 }, color: "#c1272d", fast: false },
+      { key: "hyperevm", name: "HyperEVM", chainId: 999, domain: 19, usdc: "0xb88339CB7199b77E23DB6E890353E22632Ba630f", rpc: "https://rpc.hyperliquid.xyz/evm", explorer: "https://hyperevmscan.io", native: { name: "HYPE", symbol: "HYPE", decimals: 18 }, color: "#50d2c1", fast: false },
+      { key: "ink", name: "Ink", chainId: 57073, domain: 21, usdc: "0x2D270e6886d130D724215A266106e6832161EAEd", rpc: "https://rpc-gel.inkonchain.com", explorer: "https://explorer.inkonchain.com", native: { name: "Ether", symbol: "ETH", decimals: 18 }, color: "#7132f5" },
+    ],
+  },
+
+  // --- ArcLock: creator time locks ("Locked" badge on ArcPad coins) ---
+  // Empty until contracts/scripts/deploy-arc-lock.js runs on arcMainnet;
+  // the lock button and badge stay hidden while it's empty.
+  ARCLOCK_ADDRESS: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
+  // ArcLock on Robinhood Chain (the Locker's Arc | Robinhood switch): the same contract, deployed there with
+  // deploy-arc-lock.js --network robinhoodMainnet. Empty: Robinhood Chain shows as "opening soon" (tokens can be
+  // looked up, nothing can be locked). Keep api/_locker.mjs ARCLOCK_RH_DEFAULT in step.
+  ARCLOCK_RH_ADDRESS: "0x301E1e8dcB43cDddD3244889063aD4220536b38A", // ArcLock on Robinhood Chain (2026-10-02)
+  // ArcLPLock (contracts/ArcLPLock.sol, scripts/deploy-arc-lplock.js): time locks
+  // for Uniswap v4 LP positions, used by the Liquidity Manager. Deployed 27 Sep 2026 —
+  // keep api/_liq-core.mjs LIQ_ADDR.lplock in step.
+  LPLOCK_ADDRESS: "0x674E7010Dab5cCb519e06df72b1D4c063952f45B",
+
+  // --- ArcMultiSend: the Multisender utility (arcpad.html#multisend) ---
+  // Deployed with contracts/scripts/deploy-arc-multisend.js (2026-09-26).
+  // Empty it to put the page back into preview (no sending).
+  MULTISEND_ADDRESS: "0x21733285F844cb2F03a5d692de9974F379889956",
+  // ArcMultiSendV2 (permit, a token per row, NFTs) and ArcDrop (claim drops):
+  // empty until contracts/scripts/deploy-arc-multisend-v2.js / deploy-arc-drop.js
+  // run — their modes stay hidden until then. Keep api/_drop.mjs in step.
+  MULTISEND_V2_ADDRESS: "",
+  DROP_ADDRESS: "",
+  // The Multisender on Robinhood Chain (the page's Arc | Robinhood Chain switch): ArcMultiSendV2 deployed there with
+  // deploy-arc-multisend-v2.js --network robinhoodMainnet — ETH and any ERC-20 or NFT. Empty: Robinhood Chain shows
+  // as "opening soon" (a list can be loaded and checked, not sent).
+  MULTISEND_RH_ADDRESS: "0x07Ec525DC675206618C3e5E7fd92C7C0707df6C4", // ArcMultiSendV2 on Robinhood Chain (2026-10-01)
+  // ARCIRCLE Orders (contracts/contracts/ArcircleOrders.sol, arc-orders.js), deployed on Arc 2026-10-02 (block 23739979).
+  // Its fees go to ArcircleFeeBurn 0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034. Keep api/_orders.mjs CFG in step.
+  ORDERS_ADDRESS: "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e",
+  // ARCIRCLE Staking (veARCIRCLE, contracts/ArcircleStaking.sol): "" until deployed — the page itself reads the
+  // address from /api/desk?stake=state (api/_stake.mjs STAKING_DEFAULT / env STAKING_ADDRESS); this one is for the footer.
+  STAKING_ADDRESS: "0x301E1e8dcB43cDddD3244889063aD4220536b38A",
+  // Launch Drop vault (contracts/ArcLaunchDrop.sol, scripts/deploy-arc-launch-drop.js): every ArcPad coin's 4% →
+  // veARCIRCLE holders, claimed or pushed. Deployed 2026-10-09 (block 25056550). The Staking page reads the vault
+  // through /api/desk?stake=drop (api/_launchdrop.mjs LAUNCHDROP_DEFAULT / env LAUNCHDROP_ADDRESS) — keep them in step.
+  LAUNCHDROP_ADDRESS: "0x0921638A292Bd7Dfd001Ed62367cF8B6f0F7d613",
+  // ARCIRCLE Swap (contracts/ArcircleSwap.sol, arc-swap.js): any Arc token with a Uniswap v4 pool, paid with $ARCIRCLE,
+  // USDC or any token, routed through up to three pools in one transaction. Its fee (SWAP_FEE_BPS, fixed in the contract)
+  // goes to ArcircleFeeBurn below. Live since 10 Oct 2026 (contracts/scripts/deploy-arcircle-swap.js); with "" the page
+  // quotes the same routes through ARCIRCLE Orders as a preview and the Swap button stays off.
+  SWAP_ADDRESS: "0x305Da1b305249072b13B73ab394E02046c865d56", // deployed 2026-10-10 (block 25150057)
+  SWAP_FROM_BLOCK: 25150057, // Activity reads Swapped events from here
+  // Quantum Launch (contracts/QuantumLaunch.sol — QuantumPad + one QuantumBatch per launch; arc-quantum.js, arcpad.html
+  // #quantum): a coin is announced, USDC is committed for a window, then one transaction launches it on ArcPad and
+  // buys with everything committed — everyone at the same price, nobody ahead. Empty until it's deployed
+  // (scripts/deploy-quantum-launch.js); the launch form then offers "Quantum Launch". Keep api/tg-launch.mjs
+  // (QUANTUM_PAD) in step.
+  QUANTUM_PAD_ADDRESS: "0x9EBFB3A7724ecE9cE3f0df62532471d532223Fd2", // deployed + verified 2026-10-10 (block 25222590)
+  QUANTUM_FROM_BLOCK: 25222590,
+  SWAP_FEE_BPS: 10,
+  ARCIRCLE_FEEBURN: "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034", // ArcircleFeeBurn: 50% of fees burned as $ARCIRCLE, 50% treasury
+  ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
+  ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
+  // ARCIRCLE Orders on Robinhood Chain (ArcircleOrdersNative + ArcircleFeeBurnNative, contracts/scripts/deploy-arcircle-orders-rh.js):
+  // live since 4 Oct 2026 (block 79560003); Uniswap's Permit2 is on Robinhood Chain too.
+  ORDERS_RH_ADDRESS: "0xa53dBd06d8c604107e1Fe1B5936EFCf32D895eE3",
+  ORDERS_RH_FEEBURN: "0x88bE9A0E1B13f5A10Bf155e052CB0327fd6C88D1",
+  ORDERS_RH_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  ORDERS_RH_WETH: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+  ARCIA_RH_TOKEN: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", // $ARCIA on Robinhood Chain (Pons): the market Orders opens there
+  // veARCIA (contracts/ArciaStaking.sol on Robinhood Chain, arc-vearcia.js, api/_vearcia.mjs): "" until deployed — the page
+  // previews the numbers and checks the $ARCIRCLE boost with its buttons off. Keep api/_vearcia.mjs VEARCIA_DEFAULT in step.
+  VEARCIA_ADDRESS: "0x29C010620f6720582c310aFa8D8115026eC73a7e", // deployed 2026-10-04, block 79655827
+  // ARCIA WORKS (contracts/ArciaWorks.sol on Arc, arc-works.js, api/_works.mjs): agents hiring agents, USDC escrow.
+  // "" until contracts/scripts/deploy-arcia-works.js runs — the page shows the market, the listings and the agent skills
+  // with its buttons off. Keep api/_works.mjs WORKS_DEFAULT in step.
+  WORKS_ADDRESS: "",
+
+  // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
+  // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.
+  // The server reads BUILDER_MINE_ADDRESS (Vercel env) or api/_mine.mjs — keep them in step.
+  BUILDER_MINE_ADDRESS: "0x1538c76917dE5911D71c5C397ff18cA09d52B019", // Arc mainnet, block 23279278
+
+  // --- Relay Launch (arcpad.html#relay, arc-relay.js) ---
+  // After a CirclePad round closes, the round's recipient wallet launches the
+  // coin the vote picked through Argus Portal #7 and relays the dev-buy tokens
+  // to the round's contributors and to $ARCIRCLE holders (Snapshot + Multisender).
+  // Addresses from Argus's published ABI bundle (argus-v4.json, version 3,
+  // sha256 94f7e126…3da1f); the page refuses to launch if the Portal's
+  // implementation pointers no longer match these.
+  ARGUS: {
+    PORTAL: "0xB021Be536808f551b31789422Fd28a6c9c6e97Da",
+    REGISTRY: "0xfA4552DD491acC08051725fe522F4cfEaeC8EDc6",
+    TOKEN_IMPL: "0x1B74922c01DDfD9C77B37D02C0a236611E8Fe500",
+    SPLITTER_IMPL: "0xd9578dd861b2fe59675C2C4B09b026FcB0df37FC",
+    LOCKER_IMPL: "0xb2eD8112Db1bc11F7e7AB7969C2a9d1f819Cfc6A",
+    OLDER_PORTALS: ["0xA5628A11c412596e1f63b75a2C0284F843C549d6", "0x07a688a001f416cC433c68Ff56Aa26bC5131Cc6E"],
+    HOOK_FLAGS: 0x2044,
+  },
+  // --- Launch on Argus through ArcPad (arc-argus.js, api/_argus-arcpad.mjs) ---
+  // Argus Portal #8 (ArgusV5Portal, verified on ArcScan, deployed by Argus's deployer) takes a
+  // payoutAddress, and its CreatorRegistry lets that payout wallet split the creator fees
+  // (setPayoutSplit). An ArcPad launch sets the payout to the creator's own wallet; the creator
+  // then signs a 70 / 30 split — 70% creator, 30% the ARCIRCLE PAD platform treasury. Argus's
+  // own share (the Portal's treasuryBps) comes off first, exactly as on argus.world.
+  // The Portal's factories (parts, hooks, quote registry) are read from the Portal itself.
+  ARGUS_V5: {
+    PORTAL: "0xeed7559B8A6ABf64427dc41Cb5cc6400109C5D93",
+    CREATOR_REGISTRY: "0x986B478bE2F05b44b47c61E26a0BbcBcC07610eD",
+    HOOK_FLAGS: 0x20cc, // the low 14 bits of every Portal #8 hook address
+    PLATFORM_WALLET: "0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8", // whitepaper: Platform treasury
+    PLATFORM_BPS: 3000, // of the creator share
+    MIN_CREATOR_ALLOC_BPS: 5000, // the creator share must be at least half of the allocation
+    SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // ARCIRCLE PAD's own support policy (not on-chain)
+  },
+  // ArcPad × Pons (arc-pons.js, api/_pons-arcpad.mjs): a coin launched on Pons V2 (Robinhood Chain) from the creator's
+  // own wallet, its creatorFeeRecipient set to the creator's ArcPadPonsSplitter (contracts/contracts/ArcPadPonsSplits.sol):
+  // 70% the creator, 30% the ARCIRCLE PAD treasury, for the life of the coin. With SPLITS empty the Pons option
+  // shows "Being set up" and can't launch. Keep api/_pons-arcpad.mjs in step.
+  PONS: {
+    FACTORY: "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e", // PonsV2LaunchFactory (pons-labs README, verified)
+    FEE_ESCROW: "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",
+    SPLITS: "0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6", // ArcPadPonsSplits (contracts/scripts/deploy-arcpad-pons-splits.js, block 77341424)
+    TREASURY: "0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8", // the same ARCIRCLE PAD treasury as Argus
+    PLATFORM_BPS: 3000,
+    CHAIN_ID: 4663,
+    RPC: "https://rpc.mainnet.chain.robinhood.com",
+    EXPLORER: "https://robinhoodchain.blockscout.com",
+    APP: "https://www.ponsfamily.com/launchpad", // a coin's page: APP + "/" + token
+    SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // the same ArcPad support policy as Argus
+  },
+  // ArcPad's own launches on Robinhood Chain (arc-arcpad-rh.js, api/_arcpad-rh.mjs, contracts/ArcPadFactoryRH.sol +
+  // ArcPadRouterRH.sol): an ETH-paired Uniswap v4 pool from the first block, the same 8% platform allocation and fee
+  // split as ArcPad on Arc, a launch fee of about $1 in ETH (contracts/scripts/deploy-arcpad-rh.js, 10 Oct 2026). Empty
+  // FACTORY shows Robinhood Chain as "soon". Keep in step with api/_arcpad-rh.mjs and api/_launchdrop-rh.mjs defaults.
+  ARCPAD_RH: {
+    FACTORY: "0x1446Af2D4b86cf31a96bDe8173c2bC39C8a2EEAf", // ArcPadFactoryRH (deploy-arcpad-rh.js, block 84421705, launch fee 0.0004 ETH)
+    ROUTER: "0x0ab746332B5b85091b62cBC6F1Ce90F1557465B3", // ArcPadRouterRH
+    HOOK: "0xD49D2D593FCf79651E2db7f554D4E13f434e8044", // its HomepadHybridHook
+    DROP: "0x8e67b75b4B91c5c95c4562F99980371e4f466daA", // ArcLaunchDropRH (the merkle vault for the veARCIRCLE Launch Drop on Robinhood Chain; root poster: the treasury)
+    CHAIN_ID: 4663,
+    RPC: "https://rpc.mainnet.chain.robinhood.com",
+    EXPLORER: "https://robinhoodchain.blockscout.com",
+    VIRTUAL_USD: 4000, // the opening reserve, in dollars of ETH — the same starting market cap as on Arc
+  },
+  // ARCIRCLE NFT Vault (arc-nft.js, api/_nft.mjs, contracts/ArcircleNft.sol) on Robinhood Chain: a coin's Pons creator fees
+  // go to ROUTER (50% the vault, 50% the treasury); the vault buys NFTs and raffles them to $ARCIRCLE holders. The page
+  // reads the live addresses from /api/desk?nft=state; ROUTER here is for the Pons launch option, offered only to the
+  // team wallets in LAUNCHERS. Deployed 2026-10-03 (contracts/scripts/deploy-arcircle-nft.js).
+  NFT: {
+    VAULT: "0x2eE3ae4140A08930Dc9cEde5cde86f3bC906c304", // ArcircleNftVault (block 78683625)
+    ROUTER: "0x95B56477722dF40021797121f2faDe759dc88f65", // ArcircleNftRouter — a team Pons launch names it as the fee recipient
+    LAUNCHERS: ["0x809E486817ADcBdF244060f4C8C24B4c694AF749"],
+    CHAIN_ID: 4663,
+    RPC: "https://rpc.mainnet.chain.robinhood.com",
+    EXPLORER: "https://robinhoodchain.blockscout.com",
+  },
+  // ArcPad × Pump.fun (arc-pump.js, api/_pump-arcpad.mjs, the kit in tools/pump-kit → vendor/pump-kit.js): an ordinary
+  // Pump.fun coin launched from the creator's own Solana wallet, its creator fees shared through Pump's own fee-sharing
+  // program — 70% the creator, 30% the ARCIRCLE PAD treasury — and the split locked for good in the same signing
+  // (update_fee_shares_v2 revokes the config's admin). With TREASURY empty the Pump.fun option would show "Being set up"
+  // and can't launch. Keep api/_pump-arcpad.mjs CFG.treasury (or Vercel env PUMP_TREASURY) in step.
+  PUMP: {
+    TREASURY: "DHu2grfJTNV9ipJWkfLXiRR6yLWQWvg4aVDcZJTERmLR", // ARCIRCLE PAD's Solana wallet (base58) — receives 30% of every ArcPad Pump.fun coin's creator fees
+    PLATFORM_BPS: 3000,
+    RPC: "/api/social?solrpc=1", // the Solana JSON-RPC relay (env SOLANA_RPC_URL on the server picks the node)
+    KIT: "/vendor/pump-kit.js?v=6c17cca6da",
+    APP: "https://pump.fun/coin", // a coin's page: APP + "/" + mint
+    EXPLORER: "https://solscan.io",
+    SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // the same ArcPad support policy as Argus and Pons
+  },
+  // ARCIRCLE Orders on Solana (arc-orders-sol.js, api/_orders-sol.mjs, the program in solana/arcircle-orders): limit
+  // orders that stay in the owner's Solana wallet until the keeper fills them through Jupiter, and market swaps. With
+  // PROGRAM empty the Solana side is a preview. Keep api/_orders-sol.mjs CFG.program (or Vercel env ORDERS_SOL_PROGRAM)
+  // in step.
+  ORDERS_SOL: {
+    PROGRAM: "", // the program id (base58)
+    EXPLORER: "https://solscan.io",
+  },
+  // ARCIRCLE OMNI — $ARCIRCLE on Arc, Robinhood Chain and Solana through LayerZero V2 (omni/README.md).
+  // Arc keeps the one canonical token; the adapter locks it, the other chains mint/burn. Empty addresses
+  // keep the OMNI page in preview for that chain. Keep api/_omni.mjs in step.
+  OMNI: {
+    ADAPTER: "0x075e5DC585efFe0bfdC1a0d452499Ce7AFe2faB6", // Arc · ArcircleOFTAdapter (the lockbox)
+    ROBINHOOD_OFT: "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4", // Robinhood Chain · ArcircleOFT
+    // the official $ARCIRCLE/ETH pool on Robinhood Chain (Uniswap v4, pool id) — new, liquidity still small
+    ROBINHOOD_POOL: "0x1bbed8ae8485bd75d46c3bdb830d47aca49b6ccb4fad57e6263903d0c1f10a50",
+    SOLANA_MINT: "", // Solana · SPL mint from the OFT program
+    SOLANA_OFT_STORE: "",
+    SAFE: "0xA4101562b2C6fd5e422A0F78B2fE166dF84A48Fd", // owner Safe 2-of-3 (same address on Arc and Robinhood Chain)
+    CHAINS: {
+      arc: { name: "Arc", eid: 30417, chainId: 5042, gas: "USDC" },
+      robinhood: { name: "Robinhood Chain", eid: 30416, chainId: 4663, gas: "ETH", rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com" },
+      solana: { name: "Solana", eid: 30168, gas: "SOL", explorer: "https://solscan.io" },
+    },
+    LZ_SCAN: "https://layerzeroscan.com/tx/",
+    SHARED_DECIMALS: 6,
+  },
+  RELAY: {
+    OPERATOR: "0x1A35a754A4251E46971184046ac57E8AD621672E", // every round's recipient wallet
+    MIN_ARCIRCLE: "100000", // whole $ARCIRCLE a wallet needs at the snapshot
+    // one entry per CirclePad round; `launch` is filled in once that round's relay token is live:
+    // { token: "0x…", tx: "0x…", at: "2026-10-01T11:30:00Z", snapshotBlock: 0, drops: ["0x…"] }
+    ROUNDS: [
+      { n: 1, label: "CirclePad Round #1", escrow: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
+        ballot: "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2", burnvote: "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2", launch: null },
+    ],
+  },
+};
+
+// true once $ARCIRCLE is live (its contract address is set above)
+const ARCIRCLE_LIVE = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "");
+/// USD per $ARCIRCLE from its pool's sqrtPriceX96 (a Number or BigInt).
+/// v4 sorts currencies by address; r = sqrtP² / 2^192 is raw currency1 per raw
+/// currency0; $ARCIRCLE has 18 decimals, the USDC quote CONFIG.ARCIRCLE_QUOTE_DECIMALS.
+function arcircleUsdFromSqrt(sqrtX96) {
+  var sp = Number(sqrtX96);
+  if (!(sp > 0) || !ARCIRCLE_LIVE) return null;
+  var r = Math.pow(sp / Math.pow(2, 96), 2);
+  var isToken0 = BigInt(CONFIG.ARCIRCLE_TOKEN) < 0x3600000000000000000000000000000000000000n;
+  var p = (isToken0 ? r : 1 / r) * Math.pow(10, 18 - (CONFIG.ARCIRCLE_QUOTE_DECIMALS || 6));
+  return isFinite(p) && p > 0 ? p : null;
+}
+;
+/* ---- abis.js ---- */
+
+
+
+
+const ERC20_ABI = [{"inputs": [{"internalType": "string", "name": "name_", "type": "string"}, {"internalType": "string", "name": "symbol_", "type": "string"}, {"internalType": "uint256", "name": "totalSupply_", "type": "uint256"}, {"internalType": "address", "name": "curve", "type": "address"}], "stateMutability": "nonpayable", "type": "constructor"}, {"inputs": [{"internalType": "address", "name": "spender", "type": "address"}, {"internalType": "uint256", "name": "allowance", "type": "uint256"}, {"internalType": "uint256", "name": "needed", "type": "uint256"}], "name": "ERC20InsufficientAllowance", "type": "error"}, {"inputs": [{"internalType": "address", "name": "sender", "type": "address"}, {"internalType": "uint256", "name": "balance", "type": "uint256"}, {"internalType": "uint256", "name": "needed", "type": "uint256"}], "name": "ERC20InsufficientBalance", "type": "error"}, {"inputs": [{"internalType": "address", "name": "approver", "type": "address"}], "name": "ERC20InvalidApprover", "type": "error"}, {"inputs": [{"internalType": "address", "name": "receiver", "type": "address"}], "name": "ERC20InvalidReceiver", "type": "error"}, {"inputs": [{"internalType": "address", "name": "sender", "type": "address"}], "name": "ERC20InvalidSender", "type": "error"}, {"inputs": [{"internalType": "address", "name": "spender", "type": "address"}], "name": "ERC20InvalidSpender", "type": "error"}, {"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "owner", "type": "address"}, {"indexed": true, "internalType": "address", "name": "spender", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "value", "type": "uint256"}], "name": "Approval", "type": "event"}, {"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "from", "type": "address"}, {"indexed": true, "internalType": "address", "name": "to", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "value", "type": "uint256"}], "name": "Transfer", "type": "event"}, {"inputs": [{"internalType": "address", "name": "owner", "type": "address"}, {"internalType": "address", "name": "spender", "type": "address"}], "name": "allowance", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "address", "name": "spender", "type": "address"}, {"internalType": "uint256", "name": "value", "type": "uint256"}], "name": "approve", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "nonpayable", "type": "function"}, {"inputs": [{"internalType": "address", "name": "account", "type": "address"}], "name": "balanceOf", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "decimals", "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "name", "outputs": [{"internalType": "string", "name": "", "type": "string"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "symbol", "outputs": [{"internalType": "string", "name": "", "type": "string"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "totalSupply", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "address", "name": "to", "type": "address"}, {"internalType": "uint256", "name": "value", "type": "uint256"}], "name": "transfer", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "nonpayable", "type": "function"}, {"inputs": [{"internalType": "address", "name": "from", "type": "address"}, {"internalType": "address", "name": "to", "type": "address"}, {"internalType": "uint256", "name": "value", "type": "uint256"}], "name": "transferFrom", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "nonpayable", "type": "function"}];
+
+
+
+
+
+
+// HomepadFactoryPaired — hybrid mode paired with an ERC-20 quote (stock tokens / $HOME)
+
+// HomepadPairedSwapRouter — buy/sell for paired launches (quote pulled via transferFrom)
+
+// BigPadEscrow — minimal cap+deadline+escrow contract for BigPad's first
+// round (no voting/leader/vesting logic — see contracts/BigPadEscrow.sol
+// and Docs > Safety design on bigpad.html for why that's deliberate).
+
+// BigPadVote — standalone identity vote (name/ticker/logo/roadmap/launch
+// date) for a BigPad round. Reads contribution weight live from
+// BigPadEscrow rather than holding its own snapshot or any funds — see
+// contracts/BigPadVote.sol. Not wired into the frontend yet
+// (CONFIG.BIGPAD_VOTE_ADDRESS is blank until deployed and a voting UI
+// is built).
+
+// CirclePad (arc-shared.js/circlepad.js) reuses BigPadEscrow.sol/BigPadVote.sol
+// verbatim, just redeployed on Arc — same interface, so these are aliases,
+// not a second copy of the ABI, kept in sync automatically.
+
+// ARCPAD (arcpad.html/arcpad.js) — HomepadFactoryArc + HomepadArcSwapRouter,
+// deployed fresh on Circle's Arc chain. ABIs extracted directly from the
+// compiled Hardhat artifacts (contracts/artifacts/contracts/HomepadFactoryArc.sol/
+// and .../HomepadArcSwapRouter.sol/) rather than hand-transcribed, so they
+// can't drift from what's actually deployed. See contracts/contracts/
+// HomepadFactoryArc.sol for the full mechanics — same Uniswap v4 single-
+// sided-liquidity launch as HOMEPAD_FACTORY_ABI/PAIRED_FACTORY_ABI, but
+// LaunchMeta here has a dedicated `website` field (Robinhood-side HOMEPAD's
+// LaunchMeta does not), and every quote-token transfer measures the actual
+// balance delta rather than trusting the nominal transfer amount.
+const ARC_FACTORY_ABI = [{"inputs": [{"internalType": "address", "name": "platformTreasury_", "type": "address"}, {"internalType": "address", "name": "platformWallet_", "type": "address"}, {"internalType": "address", "name": "poolManager_", "type": "address"}, {"internalType": "address", "name": "hook_", "type": "address"}, {"internalType": "int24", "name": "tickSpacing_", "type": "int24"}, {"internalType": "uint16", "name": "baseFeeBps_", "type": "uint16"}, {"internalType": "uint16", "name": "creatorShareBps_", "type": "uint16"}, {"internalType": "uint16", "name": "platformShareBps_", "type": "uint16"}], "stateMutability": "nonpayable", "type": "constructor"}, {"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "payer", "type": "address"}, {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}], "name": "LaunchFeeCollected", "type": "event"}, {"anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "token", "type": "address"}, {"indexed": true, "internalType": "address", "name": "creator", "type": "address"}, {"indexed": true, "internalType": "address", "name": "quoteToken", "type": "address"}, {"indexed": false, "internalType": "string", "name": "name", "type": "string"}, {"indexed": false, "internalType": "string", "name": "symbol", "type": "string"}, {"indexed": false, "internalType": "uint16", "name": "extraFeeBps", "type": "uint16"}, {"indexed": false, "internalType": "uint256", "name": "initialVirtualQuote", "type": "uint256"}, {"indexed": false, "internalType": "string", "name": "imageUrl", "type": "string"}, {"indexed": false, "internalType": "string", "name": "description", "type": "string"}], "name": "Launched", "type": "event"}, {"inputs": [], "name": "DEFAULT_SUPPLY", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "LAUNCH_FEE", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "MAX_EXTRA_FEE_BPS", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "PLATFORM_ALLOCATION_BPS", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "baseFeeBps", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "creatorShareBps", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "hook", "outputs": [{"internalType": "contract HomepadHybridHook", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "string", "name": "name_", "type": "string"}, {"internalType": "string", "name": "symbol_", "type": "string"}, {"internalType": "address", "name": "quoteToken_", "type": "address"}, {"internalType": "uint256", "name": "initialVirtualQuote_", "type": "uint256"}, {"internalType": "uint16", "name": "extraFeeBps_", "type": "uint16"}, {"components": [{"internalType": "string", "name": "imageUrl", "type": "string"}, {"internalType": "string", "name": "description", "type": "string"}, {"internalType": "string", "name": "twitter", "type": "string"}, {"internalType": "string", "name": "telegram", "type": "string"}, {"internalType": "string", "name": "discord", "type": "string"}, {"internalType": "string", "name": "website", "type": "string"}], "internalType": "struct HomepadFactoryArc.LaunchMeta", "name": "meta_", "type": "tuple"}], "name": "launch", "outputs": [{"internalType": "address", "name": "tokenAddr", "type": "address"}], "stateMutability": "payable", "type": "function"}, {"inputs": [{"internalType": "string", "name": "name_", "type": "string"}, {"internalType": "string", "name": "symbol_", "type": "string"}, {"internalType": "address", "name": "quoteToken_", "type": "address"}, {"internalType": "uint256", "name": "initialVirtualQuote_", "type": "uint256"}, {"internalType": "uint16", "name": "extraFeeBps_", "type": "uint16"}, {"components": [{"internalType": "string", "name": "imageUrl", "type": "string"}, {"internalType": "string", "name": "description", "type": "string"}, {"internalType": "string", "name": "twitter", "type": "string"}, {"internalType": "string", "name": "telegram", "type": "string"}, {"internalType": "string", "name": "discord", "type": "string"}, {"internalType": "string", "name": "website", "type": "string"}], "internalType": "struct HomepadFactoryArc.LaunchMeta", "name": "meta_", "type": "tuple"}, {"internalType": "uint256", "name": "devBuyQuote", "type": "uint256"}], "name": "launchAndBuy", "outputs": [{"internalType": "address", "name": "tokenAddr", "type": "address"}], "stateMutability": "payable", "type": "function"}, {"inputs": [], "name": "launchCount", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "address", "name": "", "type": "address"}], "name": "launchIndexOf", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "name": "launches", "outputs": [{"internalType": "address", "name": "token", "type": "address"}, {"internalType": "address", "name": "quoteToken", "type": "address"}, {"internalType": "uint256", "name": "initialVirtualQuote", "type": "uint256"}, {"internalType": "bool", "name": "quoteIsCurrency0", "type": "bool"}, {"internalType": "address", "name": "creator", "type": "address"}, {"internalType": "uint256", "name": "launchedAt", "type": "uint256"}, {"internalType": "uint16", "name": "extraFeeBps", "type": "uint16"}, {"internalType": "string", "name": "imageUrl", "type": "string"}, {"internalType": "string", "name": "description", "type": "string"}, {"internalType": "string", "name": "twitter", "type": "string"}, {"internalType": "string", "name": "telegram", "type": "string"}, {"internalType": "string", "name": "discord", "type": "string"}, {"internalType": "string", "name": "website", "type": "string"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "platformShareBps", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "platformTreasury", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "platformWallet", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "address", "name": "token", "type": "address"}], "name": "poolKeyOf", "outputs": [{"components": [{"internalType": "Currency", "name": "currency0", "type": "address"}, {"internalType": "Currency", "name": "currency1", "type": "address"}, {"internalType": "uint24", "name": "fee", "type": "uint24"}, {"internalType": "int24", "name": "tickSpacing", "type": "int24"}, {"internalType": "contract IHooks", "name": "hooks", "type": "address"}], "internalType": "struct PoolKey", "name": "key", "type": "tuple"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "poolManager", "outputs": [{"internalType": "contract IPoolManager", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "address", "name": "", "type": "address"}], "name": "quoteOf", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "tickSpacing", "outputs": [{"internalType": "int24", "name": "", "type": "int24"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "bytes", "name": "data", "type": "bytes"}], "name": "unlockCallback", "outputs": [{"internalType": "bytes", "name": "", "type": "bytes"}], "stateMutability": "nonpayable", "type": "function"}];
+;
+/* ---- arc-shared.js ---- */
+/* global ethers, CONFIG */
+// arc-shared.js — the small set of chain-agnostic read helpers ARCPAD and
+// CIRCLEPAD both need (readProvider, multicallRead, blockAtOrAfter), copied
+// out of app.js rather than loading all of it. app.js's own `route()` call
+// at the bottom of that file drives the main HOMEPAD (Robinhood Chain)
+// launchpad UI unconditionally on load — wrong DOM, wrong config, wrong
+// chain for these pages. These specific helpers were already
+// config-driven/chain-agnostic in app.js (nothing Robinhood-specific in
+// them), so they're reproduced here verbatim rather than reimplemented.
+
+const state = {
+  account: null,
+  signer: null,
+  provider: null, // read-only, always available
+};
+
+// Read RPC with failover: CONFIG.RPC_URL first; if it keeps failing with
+// network / rate-limit errors, the next CONFIG.RPC_FALLBACKS endpoint that
+// passes a health check (eth_chainId === CONFIG.CHAIN_ID_DECIMAL) takes
+// over for the rest of this browser session, and the primary is re-tried
+// every 10 minutes. Wallet writes never go through this — they use the
+// wallet's own provider.
+const RPC_STATE = { urls: null, idx: 0, fails: 0, firstFailAt: 0, switching: null, since: 0 };
+function rpcUrls() {
+  if (!RPC_STATE.urls) {
+    RPC_STATE.urls = [CONFIG.RPC_URL].concat(Array.isArray(CONFIG.RPC_FALLBACKS) ? CONFIG.RPC_FALLBACKS : []);
+    try { const i = Number(sessionStorage.getItem("arc.rpc.idx")); if (i > 0 && i < RPC_STATE.urls.length) { RPC_STATE.idx = i; RPC_STATE.since = Date.now(); } } catch { /* storage blocked */ }
+  }
+  return RPC_STATE.urls;
+}
+function readProvider() {
+  const urls = rpcUrls();
+  if (RPC_STATE.idx > 0 && Date.now() - RPC_STATE.since > 2 * 60_000 && !RPC_STATE.switching) rpcProbe(0);
+  if (!state.provider) {
+    const net = ethers.Network.from(CONFIG.CHAIN_ID_DECIMAL);
+    // the fallbacks are free tiers: dRPC refuses batches of more than 3 and QuickNode rate-limits
+    // items inside one, so reads go to them one request at a time
+    state.provider = new ethers.JsonRpcProvider(urls[RPC_STATE.idx], net, RPC_STATE.idx === 0 ? { staticNetwork: net } : { staticNetwork: net, batchMaxCount: 1 });
+  }
+  return state.provider;
+}
+async function rpcHealthy(url) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 4000);
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }), signal: ctl.signal });
+    const j = await r.json();
+    return j && parseInt(j.result, 16) === CONFIG.CHAIN_ID_DECIMAL;
+  } catch { return false; } finally { clearTimeout(t); }
+}
+function rpcUse(i) {
+  if (i === RPC_STATE.idx) return;
+  RPC_STATE.idx = i; RPC_STATE.since = Date.now(); RPC_STATE.fails = 0;
+  state.provider = null;
+  try { sessionStorage.setItem("arc.rpc.idx", String(i)); } catch { /* fine */ }
+  console.warn("Arc RPC: switched to", rpcUrls()[i]);
+  // Contracts built before the switch still hold the old provider — let the
+  // page re-run whatever failed to load.
+  try { window.dispatchEvent(new CustomEvent("arc:rpc-switched", { detail: { url: rpcUrls()[i] } })); } catch { /* old browser */ }
+}
+/// Try endpoints starting at `start` (default: the one after the current).
+function rpcProbe(start) {
+  if (RPC_STATE.switching) return RPC_STATE.switching;
+  const urls = rpcUrls();
+  RPC_STATE.switching = (async () => {
+    const order = start === 0 ? [0] : urls.map((_, k) => (RPC_STATE.idx + 1 + k) % urls.length).filter((k) => k !== RPC_STATE.idx);
+    for (const k of order) { if (await rpcHealthy(urls[k])) { rpcUse(k); return true; } }
+    if (start === 0) RPC_STATE.since = Date.now(); // primary still down — check again in 10 min
+    return false;
+  })().finally(() => { RPC_STATE.switching = null; });
+  return RPC_STATE.switching;
+}
+function rpcNoteFailure() {
+  const now = Date.now();
+  if (now - RPC_STATE.firstFailAt > 30_000) { RPC_STATE.firstFailAt = now; RPC_STATE.fails = 0; }
+  if (++RPC_STATE.fails >= 3) { RPC_STATE.fails = 0; return rpcProbe(); }
+  return null;
+}
+
+const TRANSIENT_RPC = /failed to fetch|timed out|timeout|429|rate limit|too many|coalesce|network error|ECONNRESET|free plan|batch of more than/i;
+async function withRetry(fn, { tries = 3, delayMs = 900 } = {}) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); }
+    catch (err) {
+      lastErr = err;
+      if (!TRANSIENT_RPC.test(String(err && (err.shortMessage || err.message) || err))) throw err;
+      const sw = rpcNoteFailure();
+      if (sw) await sw;
+      await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+// Same technique as app.js's blockAtOrAfter: bounds every eth_getLogs to
+// "since these contracts went live" instead of scanning from block 0,
+// cached in localStorage per chain+namespace so the answer is computed once.
+const _blockAtOrAfterPromises = new Map();
+function blockAtOrAfter(isoTimestamp, namespace) {
+  const memoKey = `${namespace}:${isoTimestamp}`;
+  if (_blockAtOrAfterPromises.has(memoKey)) return _blockAtOrAfterPromises.get(memoKey);
+  const p = (async () => {
+    const target = Math.floor(Date.parse(isoTimestamp) / 1000);
+    const cacheKey = `arcircle.firstBlock.${CONFIG.CHAIN_ID_DECIMAL}.${namespace}.${target}`;
+    try { const c = localStorage.getItem(cacheKey); if (c) return Number(c); } catch { /* storage blocked */ }
+    const provider = readProvider();
+    const blockAt = (n) => withRetry(() => provider.getBlock(n));
+
+    const latest = await blockAt("latest");
+    if (Number(latest.timestamp) < target) return latest.number;
+    const probeN = Math.max(0, latest.number - 500_000);
+    const probe = await blockAt(probeN);
+    const secPerBlock = Math.max(0.01, (Number(latest.timestamp) - Number(probe.timestamp)) / Math.max(1, latest.number - probeN));
+    let guess = Math.round(latest.number - (Number(latest.timestamp) - target) / secPerBlock);
+    guess = Math.min(Math.max(0, guess), latest.number);
+    let span = 8_000, lo, hi;
+    for (;;) {
+      lo = Math.max(0, guess - span); hi = Math.min(latest.number, guess + span);
+      const [bLo, bHi] = await Promise.all([blockAt(lo), blockAt(hi)]);
+      const loBefore = Number(bLo.timestamp) < target, hiAfter = Number(bHi.timestamp) >= target;
+      if ((loBefore || lo === 0) && (hiAfter || hi === latest.number)) break;
+      span *= 4;
+    }
+    while (hi - lo > 2048) {
+      const mid = Math.floor((lo + hi) / 2);
+      const b = await blockAt(mid);
+      if (Number(b.timestamp) < target) lo = mid; else hi = mid;
+    }
+    try { localStorage.setItem(cacheKey, String(lo)); } catch { /* fine */ }
+    return lo;
+  })().catch((err) => { _blockAtOrAfterPromises.delete(memoKey); throw err; });
+  _blockAtOrAfterPromises.set(memoKey, p);
+  return p;
+}
+
+// Arc's public RPC rejects any eth_getLogs spanning more than ~10,000 blocks
+// ("requested range too large", -32012; measured cap 9,960) and Arc makes a
+// block every ~0.5s — ~170k blocks a day — so a single "since deploy" log
+// query stops working within hours. This splits [fromBlock, toBlock] into
+// ranges the RPC accepts. `filter` is anything contract.queryFilter takes
+// (an event filter, an event name, or "*").
+// The public RPC also rate-limits eth_getLogs (-32005 "rate limit
+// exceeded"). Measured on mainnet: one request at a time with exponential
+// backoff on a rate-limit hit is FASTER than running in parallel (10 chunks
+// in ~2.7s sequential vs ~5s with 2 in flight), so concurrency defaults to 1.
+const LOG_CHUNK_BLOCKS = 9_000;
+const RATE_LIMITED = /rate limit|429|-32005|too many requests/i;
+// onChunk(events, [from, to]) fires as each range completes — with the
+// default concurrency of 1 that's strictly in block order, so a caller can
+// checkpoint progress and resume after a failure instead of starting over.
+async function queryFilterChunked(contract, filter, fromBlock, toBlock, { chunk = LOG_CHUNK_BLOCKS, concurrency = 1, onChunk = null } = {}) {
+  if (toBlock == null || toBlock === "latest") toBlock = await withRetry(() => readProvider().getBlockNumber());
+  if (fromBlock > toBlock) return [];
+  const ranges = [];
+  for (let a = fromBlock; a <= toBlock; a += chunk) ranges.push([a, Math.min(toBlock, a + chunk - 1)]);
+  const fetchRange = async ([a, b]) => {
+    for (let attempt = 0; ; attempt++) {
+      try { return await contract.queryFilter(filter, a, b); }
+      catch (err) {
+        const text = JSON.stringify(err && err.error || "") + String(err && (err.shortMessage || err.message) || err);
+        const retryable = RATE_LIMITED.test(text) || TRANSIENT_RPC.test(text);
+        if (!retryable || attempt >= 9) throw err;
+        { const sw = rpcNoteFailure(); if (sw) await sw; }
+        await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** attempt)));
+      }
+    }
+  };
+  const out = new Array(ranges.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, ranges.length) }, async () => {
+    while (next < ranges.length) {
+      const i = next++;
+      out[i] = await fetchRange(ranges[i]);
+      if (onChunk) onChunk(out[i], ranges[i], i + 1, ranges.length);
+    }
+  }));
+  return out.flat();
+}
+
+// Multicall3 — same canonical cross-chain address, confirmed present on Arc
+// mainnet too (Circle's own docs list it at this exact address).
+const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const MULTICALL3_ABI = [
+  "function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)",
+];
+let multicallAvailable = null;
+
+async function isMulticallAvailable() {
+  if (multicallAvailable !== null) return multicallAvailable;
+  try {
+    const code = await readProvider().getCode(MULTICALL3_ADDRESS);
+    multicallAvailable = code !== "0x";
+  } catch {
+    multicallAvailable = false;
+  }
+  if (!multicallAvailable) {
+    console.warn("Multicall3 not found on this chain — falling back to one request per call.");
+  }
+  return multicallAvailable;
+}
+
+async function multicallRead(calls) {
+  if (calls.length === 0) return [];
+  const available = await isMulticallAvailable();
+  const plainFallback = () => Promise.all(calls.map((c) =>
+    c.contract[c.method](...(c.args || [])).catch((err) => {
+      console.warn(`multicallRead fallback: ${c.method} failed`, err);
+      return null;
+    })
+  ));
+
+  if (!available) return plainFallback();
+
+  try {
+    const mc = new ethers.Contract(MULTICALL3_ADDRESS, MULTICALL3_ABI, readProvider());
+    const encoded = calls.map((c) => ({
+      target: c.contract.target,
+      allowFailure: true,
+      callData: c.contract.interface.encodeFunctionData(c.method, c.args || []),
+    }));
+    const results = await mc.aggregate3.staticCall(encoded);
+    return results.map((r, i) => {
+      if (!r.success) return null;
+      try {
+        const decoded = calls[i].contract.interface.decodeFunctionResult(calls[i].method, r.returnData);
+        return decoded.length === 1 ? decoded[0] : decoded;
+      } catch {
+        return null;
+      }
+    });
+  } catch (err) {
+    console.warn("Multicall3 call failed — falling back to one request per call.", err);
+    return plainFallback();
+  }
+}
+
+function short(addr) {
+  return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "";
+}
+
+/// Docs → "Contracts" table shared by ArcPad and CirclePad. `rows` is
+/// [label, address, one-line role]; an empty address renders as a
+/// "not deployed yet" row instead of a broken explorer link. Every address
+/// links to the block explorer from config-arc.js and has a copy button.
+function renderContractRows(rows) {
+  const isAddr = (a) => typeof a === "string" && a.length === 42;
+  return `<div class="ac-contracts">${rows.map(([label, addr, role]) => `
     <div class="ac-row">
       <div class="ac-row-main">
-        <div class="ac-label">${F}</div>
-        <div class="ac-role">${o}</div>
+        <div class="ac-label">${label}</div>
+        <div class="ac-role">${role}</div>
       </div>
-      ${h(c)?`<div class="ac-addr">
-            <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/address/${c}" target="_blank" rel="noopener" title="${c}"><span class="ac-addr-full">${c}</span><span class="ac-addr-short">${short(c)}</span> ↗</a>
-            <button type="button" class="ac-copy" data-copy="${c}" title="Copy address">Copy</button>
-          </div>`:'<div class="ac-addr ac-addr-pending">not deployed yet</div>'}
+      ${isAddr(addr)
+        ? `<div class="ac-addr">
+            <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/address/${addr}" target="_blank" rel="noopener" title="${addr}"><span class="ac-addr-full">${addr}</span><span class="ac-addr-short">${short(addr)}</span> ↗</a>
+            <button type="button" class="ac-copy" data-copy="${addr}" title="Copy address">Copy</button>
+          </div>`
+        : `<div class="ac-addr ac-addr-pending">not deployed yet</div>`}
     </div>`).join("")}
-    <div class="ac-foot">Chain: ${CONFIG.CHAIN_NAME} (id ${CONFIG.CHAIN_ID_DECIMAL}) · RPC <code>${CONFIG.RPC_URL}</code> · Explorer <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}" target="_blank" rel="noopener">${CONFIG.BLOCK_EXPLORER.replace(/^https?:\/\//,"")} ↗</a></div>
-  </div>`}document.addEventListener("click",t=>{const h=t.target.closest(".ac-copy");h&&navigator.clipboard.writeText(h.dataset.copy).then(()=>{const F=h.textContent;h.textContent="Copied",setTimeout(()=>{h.textContent=F},1200)}).catch(()=>{})});async function connectWallet(){if(typeof setUserDisconnected=="function"&&setUserDisconnected(!1),typeof tryOpenAppKit=="function"&&await tryOpenAppKit())return;if(!window.ethereum){alert("No wallet found. Install MetaMask, Rabby, or another EVM wallet.");return}const t=new ethers.BrowserProvider(window.ethereum),h=await t.send("eth_requestAccounts",[]);if(!(!h||!h.length)){state.account=h[0],state.signer=await t.getSigner(),renderHeader(),attachBasicWalletListeners();try{await ensureNetwork()}catch(F){console.warn("network switch declined/failed — showing wrong-network badge instead",F&&F.message)}typeof updateNetworkBadge=="function"&&updateNetworkBadge(),typeof refreshAccountDependentViews=="function"&&refreshAccountDependentViews()}}async function restoreBasicWallet(){if(window.ethereum)try{if(typeof userDisconnected=="function"&&userDisconnected())return;const t=await window.ethereum.request({method:"eth_accounts"});if(!t||!t.length)return;const h=new ethers.BrowserProvider(window.ethereum);state.account=t[0],state.signer=await h.getSigner(),renderHeader(),attachBasicWalletListeners(),typeof updateNetworkBadge=="function"&&updateNetworkBadge(),typeof refreshAccountDependentViews=="function"&&refreshAccountDependentViews()}catch(t){console.warn("basic wallet restore failed",t&&t.message)}}let basicListenersAttached=!1;function attachBasicWalletListeners(){basicListenersAttached||!window.ethereum||(basicListenersAttached=!0,window.ethereum.on("accountsChanged",async t=>{const h=state.account;if(t.length===0)state.account=null,state.signer=null;else{state.account=t[0];const F=new ethers.BrowserProvider(window.ethereum);state.signer=await F.getSigner()}renderHeader(),state.account!==h&&typeof refreshAccountDependentViews=="function"&&refreshAccountDependentViews()}),window.ethereum.on("chainChanged",async t=>{if(window.arcChainSwitching){state.chainId=Number.parseInt(t,16);try{state.signer=await new ethers.BrowserProvider(window.ethereum,"any").getSigner()}catch{}typeof updateNetworkBadge=="function"&&updateNetworkBadge();return}location.reload()}))}async function disconnectWallet(){if(typeof setUserDisconnected=="function"&&setUserDisconnected(!0),typeof hardDisconnect=="function"){await hardDisconnect();return}try{typeof WagmiCoreRef<"u"&&WagmiCoreRef&&typeof wagmiConfigRef<"u"&&wagmiConfigRef&&await WagmiCoreRef.disconnect(wagmiConfigRef)}catch(t){console.warn("Wallet disconnect (AppKit side) failed — clearing local state anyway.",t)}typeof clearStaleWalletStorage=="function"&&clearStaleWalletStorage(),state.account=null,state.signer=null,renderHeader()}async function ensureNetwork(){try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CONFIG.CHAIN_ID_HEX}]})}catch(t){if(t.code===4902)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CONFIG.CHAIN_ID_HEX,chainName:CONFIG.CHAIN_NAME,rpcUrls:[CONFIG.RPC_URL],blockExplorerUrls:[CONFIG.BLOCK_EXPLORER],nativeCurrency:CONFIG.NATIVE_CURRENCY}]});else throw t}}function renderHeader(){const t=document.getElementById("wallet-slot");if(t)if(state.account){t.innerHTML=`
+    <div class="ac-foot">Chain: ${CONFIG.CHAIN_NAME} (id ${CONFIG.CHAIN_ID_DECIMAL}) · RPC <code>${CONFIG.RPC_URL}</code> · Explorer <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}" target="_blank" rel="noopener">${CONFIG.BLOCK_EXPLORER.replace(/^https?:\/\//, "")} ↗</a></div>
+  </div>`;
+}
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".ac-copy");
+  if (!btn) return;
+  navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+    const prev = btn.textContent; btn.textContent = "Copied";
+    setTimeout(() => { btn.textContent = prev; }, 1200);
+  }).catch(() => {});
+});
+
+// ---------- Wallet connect (copied from app.js lines 523-653 verbatim —
+// already CONFIG-driven/chain-agnostic there, nothing Robinhood-specific).
+// wallet-appkit.js must be loaded on the page too (config-arc.js first) —
+// it supplies tryOpenAppKit/hardDisconnect/setUserDisconnected/
+// userDisconnected/clearStaleWalletStorage/ensureAppKitChain/appKitReady,
+// all of which already read CONFIG rather than assuming Robinhood Chain.
+
+async function connectWallet() {
+  if (typeof setUserDisconnected === "function") setUserDisconnected(false);
+  if (typeof tryOpenAppKit === "function" && await tryOpenAppKit()) return;
+
+  if (!window.ethereum) {
+    alert("No wallet found. Install MetaMask, Rabby, or another EVM wallet.");
+    return;
+  }
+  const browserProvider = new ethers.BrowserProvider(window.ethereum);
+  const accounts = await browserProvider.send("eth_requestAccounts", []);
+  if (!accounts || !accounts.length) return;
+  state.account = accounts[0];
+  state.signer = await browserProvider.getSigner();
+  renderHeader();
+  attachBasicWalletListeners();
+  try { await ensureNetwork(); } catch (err) { console.warn("network switch declined/failed — showing wrong-network badge instead", err && err.message); }
+  if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+  if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
+}
+
+async function restoreBasicWallet() {
+  if (!window.ethereum) return;
+  try {
+    if (typeof userDisconnected === "function" && userDisconnected()) return;
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    if (!accounts || !accounts.length) return;
+    const browserProvider = new ethers.BrowserProvider(window.ethereum);
+    state.account = accounts[0];
+    state.signer = await browserProvider.getSigner();
+    renderHeader();
+    attachBasicWalletListeners();
+    if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+    if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
+  } catch (err) {
+    console.warn("basic wallet restore failed", err && err.message);
+  }
+}
+
+let basicListenersAttached = false;
+function attachBasicWalletListeners() {
+  if (basicListenersAttached || !window.ethereum) return;
+  basicListenersAttached = true;
+
+  window.ethereum.on("accountsChanged", async (accounts) => {
+    const prevAccount = state.account;
+    if (accounts.length === 0) {
+      state.account = null;
+      state.signer = null;
+    } else {
+      state.account = accounts[0];
+      const browserProvider = new ethers.BrowserProvider(window.ethereum);
+      state.signer = await browserProvider.getSigner();
+    }
+    renderHeader();
+    if (state.account !== prevAccount && typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
+  });
+
+  window.ethereum.on("chainChanged", async (cid) => {
+    // A page that switches chains on purpose mid-flow (ARCIRCLE OMNI sending from Robinhood Chain) sets
+    // window.arcChainSwitching: keep the session and pick up a signer on the new chain instead of reloading
+    // (the reload is what dropped the connection and the transfer with it). Any other switch still reloads.
+    if (window.arcChainSwitching) {
+      state.chainId = Number.parseInt(cid, 16);
+      try { state.signer = await new ethers.BrowserProvider(window.ethereum, "any").getSigner(); } catch (e) { /* next write asks again */ }
+      if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+      return;
+    }
+    location.reload();
+  });
+}
+
+async function disconnectWallet() {
+  if (typeof setUserDisconnected === "function") setUserDisconnected(true);
+  if (typeof hardDisconnect === "function") { await hardDisconnect(); return; }
+  try {
+    if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
+      await WagmiCoreRef.disconnect(wagmiConfigRef);
+    }
+  } catch (err) {
+    console.warn("Wallet disconnect (AppKit side) failed — clearing local state anyway.", err);
+  }
+  if (typeof clearStaleWalletStorage === "function") clearStaleWalletStorage();
+  state.account = null;
+  state.signer = null;
+  renderHeader();
+}
+
+async function ensureNetwork() {
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: CONFIG.CHAIN_ID_HEX }],
+    });
+  } catch (switchErr) {
+    if (switchErr.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: CONFIG.CHAIN_ID_HEX,
+          chainName: CONFIG.CHAIN_NAME,
+          rpcUrls: [CONFIG.RPC_URL],
+          blockExplorerUrls: [CONFIG.BLOCK_EXPLORER],
+          nativeCurrency: CONFIG.NATIVE_CURRENCY,
+        }],
+      });
+    } else {
+      throw switchErr;
+    }
+  }
+}
+
+// renderHeader() — same wallet-pill/dropdown markup as app.js's, minus the
+// "My Profile" link (no explore.html#/profile equivalent on Arc pages yet).
+// Pages using this must have a `<div id="wallet-slot"></div>` in the header.
+function renderHeader() {
+  const el = document.getElementById("wallet-slot");
+  if (!el) return;
+  if (state.account) {
+    el.innerHTML = `
       <div class="wallet-info">
         <span class="network-badge" id="network-badge">…</span>
         <div class="wallet-dropdown-wrap" id="wallet-dropdown-wrap">
@@ -22,8 +903,8 @@
               <span class="btn-mini" id="wallet-dropdown-copy" style="cursor:pointer">Copy</span>
             </div>
             <div class="wallet-dropdown-network" id="wallet-dropdown-network">…</div>
-            ${ARC_ALT_NET?`<div class="wd-net" id="wallet-dropdown-net" role="radiogroup" aria-label="Wallet network"><button type="button" role="radio" data-net="arc" aria-checked="false"><i aria-hidden="true"></i>${CONFIG.CHAIN_NAME}</button><button type="button" role="radio" data-net="alt" aria-checked="false"><i aria-hidden="true"></i>${ARC_ALT_NET.short}</button>${window.arcSol?'<button type="button" role="radio" data-net="sol" aria-checked="false"><i aria-hidden="true"></i>Solana</button>':""}</div>`:""}
-            ${window.arcSol?'<div class="wd-sol" id="wallet-dropdown-sol" hidden></div>':""}
+            ${ARC_ALT_NET ? `<div class="wd-net" id="wallet-dropdown-net" role="radiogroup" aria-label="Wallet network"><button type="button" role="radio" data-net="arc" aria-checked="false"><i aria-hidden="true"></i>${CONFIG.CHAIN_NAME}</button><button type="button" role="radio" data-net="alt" aria-checked="false"><i aria-hidden="true"></i>${ARC_ALT_NET.short}</button>${window.arcSol ? `<button type="button" role="radio" data-net="sol" aria-checked="false"><i aria-hidden="true"></i>Solana</button>` : ""}</div>` : ""}
+            ${window.arcSol ? `<div class="wd-sol" id="wallet-dropdown-sol" hidden></div>` : ""}
             <button type="button" class="wallet-dropdown-switch" id="wallet-dropdown-switch" hidden>Switch to ${CONFIG.CHAIN_NAME}</button>
             <div class="wallet-dropdown-note" id="wallet-dropdown-note" hidden></div>
             <a class="wallet-dropdown-item" href="${CONFIG.BLOCK_EXPLORER}/address/${state.account}" target="_blank">View on Explorer ↗</a>
@@ -31,19 +912,5978 @@
           </div>
         </div>
       </div>
-    `;const h=document.getElementById("wallet-dropdown");document.getElementById("wallet-pill-btn").onclick=P=>{P.stopPropagation(),h.classList.toggle("open")},document.getElementById("wallet-dropdown-copy").onclick=P=>{P.stopPropagation(),navigator.clipboard.writeText(state.account)},document.getElementById("wallet-dropdown-disconnect").onclick=P=>{P.stopPropagation(),h.classList.remove("open"),disconnectWallet()},document.getElementById("wallet-dropdown-switch").onclick=P=>{P.stopPropagation(),switchToArcNetwork()};const F=document.getElementById("wallet-dropdown-net");F&&(F.onclick=P=>{P.stopPropagation();const A=P.target.closest("[data-net]");!A||A.getAttribute("aria-checked")==="true"||(A.dataset.net==="arc"?switchToArcNetwork():A.dataset.net==="sol"?switchToSolana():switchToAltNetwork())});const c=document.getElementById("wallet-dropdown-note");c&&window.arcSol&&(c.onclick=P=>{const A=P.target.closest("[data-sol-pick]");A&&(P.stopPropagation(),switchToSolana(A.dataset.solPick))});const o=document.getElementById("wallet-dropdown-sol");o&&(o.onclick=P=>{P.stopPropagation(),P.target.closest("[data-sol-copy]")&&window.arcSol.key&&navigator.clipboard.writeText(window.arcSol.key),P.target.closest("[data-sol-off]")&&window.arcSol.disconnect()}),h.onclick=P=>P.stopPropagation(),renderHeader._outsideClose||(renderHeader._outsideClose=!0,document.addEventListener("click",()=>{const P=document.getElementById("wallet-dropdown");P&&P.classList.remove("open")})),updateNetworkBadge()}else t.innerHTML='<button class="btn btn-primary" id="connect-btn" aria-label="Connect wallet"><span class="cw-long">Connect wallet</span><span class="cw-short">Connect</span></button>',document.getElementById("connect-btn").onclick=connectWallet}let switchingNetwork=!1;async function switchToArcNetwork(){if(switchingNetwork)return;switchingNetwork=!0,window.arcSol&&window.arcSol.selected()&&window.arcSol.select(!1),clearTimeout(switchToAltNetwork.t),window.arcChainSwitching=!0;const t=document.getElementById("wallet-dropdown-note"),h=document.getElementById("wallet-dropdown-switch"),F=document.getElementById("network-badge"),c=(j,U)=>{t&&(t.hidden=!j,t.textContent=j||"",t.classList.toggle("bad",!!U))},o=typeof appKitReady<"u"&&appKitReady&&typeof ensureAppKitChain=="function"&&!(typeof IN_APP_WALLET_BROWSER<"u"&&IN_APP_WALLET_BROWSER),P=o?ensureAppKitChain():window.ethereum?ensureNetwork():Promise.reject(new Error("No wallet connected.")),A=o&&typeof openConnectedWalletApp=="function"&&openConnectedWalletApp();h&&(h.disabled=!0,h.textContent="Waiting for your wallet…"),F&&F.classList.add("network-busy"),c(A?`Approve the switch to ${CONFIG.CHAIN_NAME} in your wallet app, then come back here.`:`Approve the switch to ${CONFIG.CHAIN_NAME} in your wallet.`);try{if(await P,c(""),!o){state.chainId=CONFIG.CHAIN_ID_DECIMAL;try{state.signer=await new ethers.BrowserProvider(window.ethereum,"any").getSigner()}catch{}}document.dispatchEvent(new CustomEvent("arc:walletnet",{detail:{chainId:CONFIG.CHAIN_ID_DECIMAL}}))}catch(j){const U=String(j&&(j.shortMessage||j.message)||j);c(/reject|denied|cancel/i.test(U)?"Switch cancelled in the wallet.":U.slice(0,260),!0)}finally{switchingNetwork=!1,switchToAltNetwork.t=setTimeout(()=>{window.arcChainSwitching=!1},4e3),h&&(h.disabled=!1,h.textContent=`Switch to ${CONFIG.CHAIN_NAME}`),F&&F.classList.remove("network-busy"),updateNetworkBadge()}}var ARC_ALT_NET=(()=>{const t=typeof CONFIG<"u"&&CONFIG.PONS;return!t||!t.CHAIN_ID||!t.RPC?null:{id:Number(t.CHAIN_ID),hex:"0x"+Number(t.CHAIN_ID).toString(16),name:"Robinhood Chain",short:"Robinhood",rpc:t.RPC,explorer:t.EXPLORER,native:{name:"Ether",symbol:"ETH",decimals:18}}})();async function switchToAltNetwork(t){const h=!!(t&&t.strict);if(!ARC_ALT_NET||!state.account){if(h)throw new Error("Connect a wallet first.");return}if(switchingNetwork){if(h)throw new Error("Your wallet is already switching networks — try again in a moment.");return}switchingNetwork=!0,window.arcSol&&window.arcSol.selected()&&window.arcSol.select(!1);const F=ARC_ALT_NET,c=document.getElementById("wallet-dropdown-note"),o=document.getElementById("wallet-dropdown-net"),P=(L,w)=>{c&&(c.hidden=!L,c.textContent=L||"",c.classList.toggle("bad",!!w))},A={chainId:F.hex,chainName:F.name,rpcUrls:[F.rpc],blockExplorerUrls:[F.explorer],nativeCurrency:F.native},j=L=>L&&(L.code===4001||L.code==="ACTION_REJECTED"||/reject|denied|cancel/i.test(String(L.shortMessage||L.message||"")));clearTimeout(switchToAltNetwork.t),window.arcChainSwitching=!0;try{sessionStorage.setItem("wallet.autoSwitch."+state.account,"1")}catch{}const V=typeof appKitReady<"u"&&appKitReady&&!(typeof IN_APP_WALLET_BROWSER<"u"&&IN_APP_WALLET_BROWSER)&&typeof openConnectedWalletApp=="function"&&openConnectedWalletApp();o&&o.classList.add("busy"),P(V?`Approve the switch to ${F.name} in your wallet app, then come back here.`:`Approve the switch to ${F.name} in your wallet.`);try{let L=!1;if(typeof WagmiCoreRef<"u"&&WagmiCoreRef&&typeof wagmiConfigRef<"u"&&wagmiConfigRef)try{const E=WagmiCoreRef.getAccount(wagmiConfigRef);E&&E.isConnected&&(Number(E.chainId)!==F.id&&await WagmiCoreRef.switchChain(wagmiConfigRef,{chainId:F.id,addEthereumChainParameter:A}),L=!0)}catch(E){if(j(E))throw E}const w=state.walletProvider||window.ethereum;if(!L){if(!w)throw new Error("No wallet connected.");try{await w.request({method:"wallet_switchEthereumChain",params:[{chainId:F.hex}]})}catch(E){if(j(E))throw E;await w.request({method:"wallet_addEthereumChain",params:[A]}),await w.request({method:"wallet_switchEthereumChain",params:[{chainId:F.hex}]}).catch(()=>{})}}if(state.chainId=F.id,w)try{state.signer=await new ethers.BrowserProvider(w,"any").getSigner(state.account)}catch{}P(""),document.dispatchEvent(new CustomEvent("arc:walletnet",{detail:{chainId:F.id}}))}catch(L){const w=String(L&&(L.shortMessage||L.message)||L);if(P(j(L)?"Switch cancelled in the wallet.":w.slice(0,260),!0),h)throw L}finally{switchingNetwork=!1,o&&o.classList.remove("busy"),switchToAltNetwork.t=setTimeout(()=>{window.arcChainSwitching=!1},4e3),updateNetworkBadge()}}async function switchToSolana(t){const h=window.arcSol;if(!h)return;const F=document.getElementById("wallet-dropdown-note"),c=document.getElementById("wallet-dropdown-net"),o=(A,j)=>{F&&(F.hidden=!A,F.innerHTML=A||"",F.classList.toggle("bad",!!j))},P=A=>String(A).replace(/[<>&"]/g,"");if(!h.key&&(t!=null||!await h.quiet())){const A=h.providers();if(!A.length){const U=(V,L)=>`<a href="${L}"${h.mobile()?"":' target="_blank" rel="noopener"'}>${V}</a>`;o(h.mobile()?`No Solana wallet in this browser — open this page in ${U("Phantom",h.openIn("Phantom"))}, ${U("Solflare",h.openIn("Solflare"))} or ${U("MetaMask",h.openIn("MetaMask"))}.`:`No Solana wallet in this browser — install ${U("Phantom","https://phantom.com/download")} or ${U("Solflare","https://solflare.com/download")}, or turn on Solana in ${U("MetaMask","https://metamask.io/download")}.`,!0);return}if(t==null&&A.length>1){o(`Which Solana wallet? <span class="wd-sol-pick">${A.map((U,V)=>`<button type="button" class="btn-mini" data-sol-pick="${V}">${P(U.name)}</button>`).join("")}</span>`);return}const j=t==null?0:Number(t);if(!A[j])return;c&&c.classList.add("busy"),o(`Approve the connection in ${P(A[j].name)}.`);try{await h.connect(j)}catch(U){const V=String(U&&U.message||U);o(/reject|denied|cancel/i.test(V)||U&&U.code===4001?"Connection cancelled in the wallet.":P(V.slice(0,200)),!0);return}finally{c&&c.classList.remove("busy")}}o(""),h.select(!0)}document.addEventListener("arc:solwallet",()=>{typeof updateNetworkBadge=="function"&&updateNetworkBadge()});async function ensureAltForWrite(){if(!ARC_ALT_NET)throw new Error("Robinhood Chain isn't set up on this page.");const t=ARC_ALT_NET,h=state.walletProvider||window.ethereum;if(!state.account||!h)throw new Error("Connect a wallet first.");let F=null;try{F=Number.parseInt(await h.request({method:"eth_chainId"}),16)}catch{F=null}F!==t.id&&await switchToAltNetwork({strict:!0});const c=new ethers.BrowserProvider(h,"any");for(let o=0;o<8;o++){if(Number((await c.getNetwork()).chainId)===t.id)return state.chainId=t.id,state.signer=await c.getSigner(state.account),state.signer;await new Promise(P=>setTimeout(P,500))}throw new Error(`Your wallet is still on another network — switch it to ${t.name} and try again.`)}async function ensureArcForWrite(){if(await currentChainId().catch(()=>null)===CONFIG.CHAIN_ID_DECIMAL)return;if(typeof appKitReady<"u"&&appKitReady&&typeof ensureAppKitChain=="function"&&!(typeof IN_APP_WALLET_BROWSER<"u"&&IN_APP_WALLET_BROWSER)){await ensureAppKitChain();return}if(!window.ethereum)throw new Error(`Switch your wallet to ${CONFIG.CHAIN_NAME} and try again.`);await ensureNetwork(),state.chainId=CONFIG.CHAIN_ID_DECIMAL,state.signer=await new ethers.BrowserProvider(window.ethereum).getSigner(),typeof updateNetworkBadge=="function"&&updateNetworkBadge()}async function currentChainId(){return state.chainId!=null&&Number.isFinite(Number(state.chainId))?Number(state.chainId):state.signer&&state.signer.provider?Number((await state.signer.provider.getNetwork()).chainId):window.ethereum?Number.parseInt(await window.ethereum.request({method:"eth_chainId"}),16):null}async function updateNetworkBadge(){const t=document.getElementById("network-badge");if(!t||!state.account)return;const h=document.getElementById("wallet-dropdown-network"),F=document.getElementById("wallet-dropdown-switch"),c=window.arcSol,o=document.getElementById("wallet-dropdown-sol"),P=!!(c&&c.selected()&&c.key);if(o&&(o.hidden=!P,P&&(o.innerHTML=`<small>Solana · ${c.name}</small><code>${c.key.slice(0,4)}…${c.key.slice(-4)}</code><span class="btn-mini" data-sol-copy style="cursor:pointer">Copy</span><span class="btn-mini" data-sol-off style="cursor:pointer">Disconnect</span>`)),P){const A=document.getElementById("wallet-dropdown-net");A&&A.querySelectorAll("[data-net]").forEach(U=>U.setAttribute("aria-checked",String(U.dataset.net==="sol"))),t.classList.remove("network-alt","network-bad"),t.classList.add("network-sol"),t.textContent="Solana",t.title=`Solana wallet ${c.key}`,t.style.cursor="",t.onclick=null;const j=document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"], #wallet-dropdown a.wallet-dropdown-item[href*="/account/"]');j&&(j.href=`https://solscan.io/account/${c.key}`),h&&(h.textContent=`Solana wallet connected — your ${CONFIG.CHAIN_NAME} wallet stays as it is`,h.classList.remove("network-bad"),h.classList.add("network-ok")),F&&(F.hidden=!0),document.documentElement.dataset.walletNet="sol";return}t.classList.remove("network-sol");try{const A=await currentChainId();if(A==null)throw new Error("unknown");const j=!!ARC_ALT_NET&&A===ARC_ALT_NET.id,U=A===CONFIG.CHAIN_ID_DECIMAL||j,V=document.getElementById("wallet-dropdown-net");V&&V.querySelectorAll("[data-net]").forEach(w=>w.setAttribute("aria-checked",String(w.dataset.net===(j?"alt":A===CONFIG.CHAIN_ID_DECIMAL?"arc":"")))),t.classList.toggle("network-alt",j);const L=document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"], #wallet-dropdown a.wallet-dropdown-item[href*="/account/"]');if(L&&(L.href=`${j?ARC_ALT_NET.explorer:CONFIG.BLOCK_EXPLORER}/address/${state.account}`),j){t.textContent=ARC_ALT_NET.short,t.title=`Connected to ${ARC_ALT_NET.name}`,t.classList.remove("network-bad"),t.style.cursor="",t.onclick=null,h&&(h.textContent=`Connected to ${ARC_ALT_NET.name}`,h.classList.remove("network-bad"),h.classList.add("network-ok")),F&&(F.hidden=!0),document.documentElement.dataset.walletNet="alt";return}document.documentElement.dataset.walletNet=U?"arc":"other",t.textContent=U?CONFIG.CHAIN_NAME:`Switch to ${CONFIG.CHAIN_NAME}`,t.title=U?`Connected to ${CONFIG.CHAIN_NAME}`:`Your wallet is on chain ${A} — tap to switch to ${CONFIG.CHAIN_NAME}`,t.classList.toggle("network-bad",!U),t.style.cursor=U?"":"pointer",t.onclick=U?null:w=>{w.stopPropagation(),switchToArcNetwork()},h&&(h.textContent=U?`Connected to ${CONFIG.CHAIN_NAME}`:`Wallet is on another network (chain ${A})`,h.classList.toggle("network-bad",!U),h.classList.toggle("network-ok",U)),F&&(F.hidden=U||!!V)}catch{t.textContent="Network?",h&&(h.textContent="Network unknown"),F&&(F.hidden=!1)}}renderHeader(),(function(){"use strict";if(window.arcFmt)return;var t=function(V){return V!=null&&isFinite(V)},h=function(V){return V.indexOf(".")>=0?V.replace(/\.?0+$/,""):V};function F(V,L){if(!t(V))return"—";var w=Math.abs(V),E=L??2;return w>=1e12?h((V/1e12).toFixed(E))+"T":w>=1e9?h((V/1e9).toFixed(E))+"B":w>=1e6?h((V/1e6).toFixed(E))+"M":w>=1e4?h((V/1e3).toFixed(w>=1e5?0:1))+"K":c(V,w>=100?0:2)}function c(V,L){return t(V)?Number(V).toLocaleString("en-US",{maximumFractionDigits:L??2}):"—"}var o="₀₁₂₃₄₅₆₇₈₉";function P(V){if(!t(V))return"—";if(V===0)return"$0";var L=Math.abs(V),w=V<0?"-":"";if(L>=1)return w+"$"+c(L,L>=1e3?0:4);if(L>=.01)return w+"$"+L.toFixed(4).replace(/0+$/,"").replace(/\.$/,"");var E=L.toFixed(20).slice(2),B=E.match(/^0*/)[0].length,S=E.slice(B,B+3).replace(/0+$/,"")||"0";return B<4?w+"$0."+E.slice(0,B)+S:w+"$0.0"+String(B).split("").map(function($){return o[+$]}).join("")+S}function A(V,L){if(!t(V))return"—";var w=Math.abs(V);return L&&w>=.01&&w<1e6?(V<0?"-$":"$")+w.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}):w>0&&w<.01?P(V):w>=1e4?(V<0?"-$":"$")+F(w):(V<0?"-$":"$")+c(w,w>=100?0:2)}function j(V,L,w){return t(V)?(L&&V>0?"+":"")+V.toFixed(w??2)+"%":"—"}function U(V){if(!V)return"—";var L=Math.max(1,Date.now()/1e3-V);return L<60?"now":L<3600?Math.round(L/60)+"m":L<86400?Math.round(L/3600)+"h":Math.round(L/86400)+"d"}window.arcFmt={usd:A,price:P,compact:F,num:c,pct:j,ago:U}})(),(function(){"use strict";var t=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,h='[data-ac2="price"],[data-ac2="mcap"],[data-arl="price"],[data-arl="mcap"],#apc-price,#apc-mcap,.ap-launch-card .meta span:first-child,[data-tk="price"],[data-hm-price]',F=new WeakMap,c="₀₁₂₃₄₅₆₇₈₉";function o(U){if(!U)return null;var V=String(U).replace(/[,\s$]/g,"");V=V.replace(/0\.0([₀-₉]+)(\d+)/,function(B,S,$){var x=S.split("").map(function(H){return c.indexOf(H)}).join("");return"0."+"0".repeat(Number(x))+$});var L=/(-?\d+(?:\.\d+)?)([KMBT])?/i.exec(V);if(!L)return null;var w=parseFloat(L[1]),E={K:1e3,M:1e6,B:1e9,T:1e12}[(L[2]||"").toUpperCase()]||1;return w*E}function P(U){var V=o(U.textContent),L=F.get(U);if(F.set(U,V),!(t||L==null||V==null||V===L)){var w=U.getBoundingClientRect();!w.width||w.bottom<0||w.top>innerHeight||(U.classList.remove("fx-up","fx-down"),U.offsetWidth,U.classList.add(V>L?"fx-up":"fx-down"))}}function A(U){U.querySelectorAll&&(U.matches&&U.matches(h)&&P(U),U.querySelectorAll(h).forEach(P))}function j(){A(document.body),new MutationObserver(function(U){U.forEach(function(V){var L=V.target.nodeType===3?V.target.parentElement:V.target;if(L){var w=L.closest&&L.closest(h);w?P(w):V.addedNodes&&V.addedNodes.forEach(function(E){E.nodeType===1&&A(E)})}})}).observe(document.body,{subtree:!0,childList:!0,characterData:!0})}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",j):j(),window.arcConfetti=function(U){if(t)return;U=U||{};var V=U.colors||["#3f9bff","#35d8d0","#39ff88","#ffc861","#ffffff"],L=document.createElement("canvas");L.className="fx-confetti",L.setAttribute("aria-hidden","true"),document.body.appendChild(L);var w=Math.min(2,window.devicePixelRatio||1),E=innerWidth,B=innerHeight;L.width=E*w,L.height=B*w;var S=L.getContext("2d");S.scale(w,w);for(var $=[],x=U.count||160,H=0;H<x;H++){var Y=H%2===0;$.push({x:Y?-10:E+10,y:B*(.55+Math.random()*.3),vx:(Y?1:-1)*(6+Math.random()*9),vy:-(10+Math.random()*12),w:6+Math.random()*6,h:8+Math.random()*10,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.4,color:V[H%V.length]})}var l=performance.now();function M(C){var O=Math.min(2,(C-(M.prev||C))/16.7);M.prev=C,S.clearRect(0,0,E,B);var I=!1;$.forEach(function(k){k.vy+=.42*O,k.vx*=Math.pow(.99,O),k.x+=k.vx*O,k.y+=k.vy*O,k.r+=k.vr*O,k.y<B+40&&(I=!0),S.save(),S.translate(k.x,k.y),S.rotate(k.r),S.fillStyle=k.color,S.globalAlpha=Math.max(0,1-(C-l)/4200),S.fillRect(-k.w/2,-k.h/2,k.w,k.h*Math.abs(Math.cos(k.r))),S.restore()}),I&&C-l<4200?requestAnimationFrame(M):L.remove()}requestAnimationFrame(M)}})(),(function(){"use strict";var t=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_CURVE||"",h=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_POOL_SLOT||"",F=typeof CONFIG<"u"&&CONFIG.POOL_MANAGER_ADDRESS||"",c=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_VENUE||"",o=1e9,P=["function getReserves() view returns (uint256 quoteReserve_, uint256 tokenReserve_)","function realQuoteReserve() view returns (uint256)","function graduationThreshold() view returns (uint256)","function graduated() view returns (bool)"];function A(E){return Number(ethers.formatUnits(E,6))}function j(E){return Number(ethers.formatUnits(E,18))}function U(E){if(window.arcFmt)return window.arcFmt.price(E);if(E==null||!isFinite(E))return"—";if(E>=1)return"$"+E.toLocaleString("en-US",{maximumFractionDigits:4});if(E>=.001)return"$"+E.toPrecision(4);var B=Math.floor(-Math.log10(E)),S=Math.round(E*Math.pow(10,B+4)).toString().slice(0,4).replace(/0+$/,"")||"0",$=String(B).split("").map(function(x){return"₀₁₂₃₄₅₆₇₈₉"[x]}).join("");return"$0.0"+$+S}function V(E,B){return window.arcFmt?window.arcFmt.usd(E,B):E==null||!isFinite(E)?"—":!B&&Math.abs(E)>=1e3?"$"+Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(E):"$"+E.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}function L(E,B){document.querySelectorAll('[data-arl="'+E+'"]').forEach(function(S){S.textContent=B})}async function w(){if(document.querySelector("[data-arl]")){if(!t&&h&&F){try{var E=await withRetry(function(){return readProvider().call({to:F,data:"0x1e2eaeaf"+h.replace(/^0x/,"")})}),B=arcircleUsdFromSqrt(BigInt(E)&(1n<<160n)-1n);L("price",U(B)),L("mcap",V(B!=null?B*o:null)),L("progress-text","Trading on "+(c||"a DEX")+" · Uniswap v4 pool")}catch{L("progress-text","Live $ARCIRCLE data unavailable right now")}document.querySelectorAll('[data-arl="progress-fill"]').forEach(function(C){C.style.width="100%"});return}if(!t){L("price","Not live"),L("mcap","—"),L("liq","—"),L("progress-text","Not live yet — $ARCIRCLE is relaunching"),document.querySelectorAll('[data-arl="progress-fill"]').forEach(function(C){C.style.width="0%"});return}try{var S=new ethers.Contract(t,P,readProvider()),$=await Promise.all([withRetry(function(){return S.getReserves()}),withRetry(function(){return S.realQuoteReserve()}),withRetry(function(){return S.graduationThreshold()}),withRetry(function(){return S.graduated()})]),x=A($[0][0])/j($[0][1]),H=A($[1]),Y=A($[2]),l=$[3],M=Y>0?Math.min(100,H/Y*100):0;L("price",U(x)),L("mcap",V(x*o)),L("liq",V(H,!0)),L("progress-text",l?"Graduated — trading on its DEX pool":V(H,!0)+" / "+V(Y,!0)+" USDC to graduate · "+M.toFixed(M<10?2:1)+"%"),document.querySelectorAll('[data-arl="progress-fill"]').forEach(function(C){C.style.width=(l?100:Math.max(M,.6))+"%"})}catch{L("progress-text","Live $ARCIRCLE data unavailable right now")}}}window.arcircleLive={refresh:w,fmtUsd:V,fmtPrice:U},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",w):w(),(t||h)&&setInterval(function(){document.hidden||w()},3e4)})(),(function(){"use strict";var t=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,h=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_TOKEN||"",F=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_CURVE||"",c=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_POOL_SLOT||"",o=typeof CONFIG<"u"&&CONFIG.POOL_MANAGER_ADDRESS||"0x8366a39CC670B4001A1121B8F6A443A643e40951",P=typeof CONFIG<"u"&&CONFIG.RPC_URL||"https://rpc.mainnet.arc.io",A=typeof CONFIG<"u"&&CONFIG.BLOCK_EXPLORER||"https://arc.etherscan.io",j="₀₁₂₃₄₅₆₇₈₉";function U(a){if(window.arcFmt)return window.arcFmt.price(a);if(a==null||!isFinite(a))return"—";if(a>=1)return"$"+a.toLocaleString("en-US",{maximumFractionDigits:4});if(a>=.001)return"$"+a.toPrecision(4);var e=Math.floor(-Math.log10(a)),n=Math.round(a*Math.pow(10,e+4)).toString().slice(0,4).replace(/0+$/,"")||"0";return"$0.0"+String(e).split("").map(function(r){return j[r]}).join("")+n}function V(a,e){return window.arcFmt?window.arcFmt.usd(a,e):a==null||!isFinite(a)?"—":!e&&Math.abs(a)>=1e3?"$"+Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(a):a>0&&a<.01?"<$0.01":"$"+a.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}function L(a){return a==null||!isFinite(a)?"—":Math.abs(a)>=1e4?Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(a):a.toLocaleString("en-US",{maximumFractionDigits:2})}function w(a){if(!a)return"";var e=Math.max(0,Date.now()/1e3-a);return e<3600?Math.max(1,Math.floor(e/60))+"m ago":e<86400?Math.floor(e/3600)+"h ago":Math.floor(e/86400)+"d ago"}function E(a){return a?a.slice(0,6)+"…"+a.slice(-4):"—"}function B(a){return String(a??"").replace(/[&<>"']/g,function(e){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[e]})}function S(a){return(Math.round(a)/100).toFixed(2).replace(/\.?0+$/,"")+"%"}function $(a){var e=a&&a.argus;return!e||e.buyTaxBps==null?"Fixed at launch (1–10%)":e.buyTaxBps===e.sellTaxBps?S(e.buyTaxBps)+" buy / sell":S(e.buyTaxBps)+" buy · "+S(e.sellTaxBps)+" sell"}function x(a){var e=a&&a.argus;return!e||!e.verified?"—":e.bonded?"Reached":e.bondProgress==null?"—":e.bondProgress.toFixed(e.bondProgress<10?2:1)+"%"}function H(a,e){return A+"/"+a+"/"+e}var Y=null;function l(a,e){var n=window.AbortController?new AbortController:null,r=n?setTimeout(function(){n.abort()},e||12e3):null;return fetch(a,{signal:n?n.signal:void 0}).then(function(s){if(!s.ok)throw new Error("http "+s.status);return s.json()}).finally(function(){r&&clearTimeout(r)})}function M(a,e){return BigInt("0x"+(String(a).replace(/^0x/,"").slice(e*64,(e+1)*64)||"0"))}function C(){var a=["0x0902f1ac","0x4f1f58fd","0x8b0bc501","0xe7c2b772"],e=a.map(function(n,r){return{jsonrpc:"2.0",id:r,method:"eth_call",params:[{to:F,data:n},"latest"]}});return fetch(P,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(e)}).then(function(n){return n.json()}).then(function(n){var r={};if((Array.isArray(n)?n:[n]).forEach(function(X){r[X.id]=X.result}),!r[0]||r[0]==="0x")throw new Error("curve unreadable");var s=Number(M(r[0],0))/1e6,_=Number(M(r[0],1))/1e18,R=Number(M(r[1]||"0x",0))/1e6,T=Number(M(r[2]||"0x",0))/1e6,p=M(r[3]||"0x",0)>0n,N=_>0?s/_:null;return{partial:!0,price:N,mcap:N!=null?N*1e9:null,liquidity:R,threshold:T,graduated:p,progress:p?100:T>0?Math.min(100,R/T*100):0,toGraduate:p?0:Math.max(0,T-R)}})}function O(){var a={jsonrpc:"2.0",id:1,method:"eth_call",params:[{to:o,data:"0x1e2eaeaf"+c.replace(/^0x/,"")},"latest"]};return fetch(P,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(a)}).then(function(e){return e.json()}).then(function(e){var n=arcircleUsdFromSqrt(BigInt(e&&e.result&&e.result!=="0x"?e.result:"0x0")&(1n<<160n)-1n);if(!(n>0))throw new Error("pool unreadable");return{live:!0,partial:!0,venue:"pool",price:n,mcap:n*1e9}})}function I(a,e){if(!a&&!e&&Y&&Date.now()-Y.at<2e4)return Y.p;var n="/api/social?token=arcircle"+(a?"&wallet="+encodeURIComponent(a):""),r=l(n,a?25e3:15e3).then(function(s){if(!s||s.error||s.price===void 0)throw new Error(s&&s.error||"no data");return s}).catch(function(s){if(a)throw s;return c&&!F?O():F?C():{live:!1,partial:!0,price:null}});return a||(Y={at:Date.now(),p:r},r.catch(function(){Y=null})),r}var k=[],z=null,u=null;function v(){clearTimeout(z),I(null,!0).then(function(a){u=a,k.forEach(function(e){try{e(a)}catch(n){console.warn("arcToken subscriber",n)}}),document.dispatchEvent(new CustomEvent("arcircle:stats",{detail:a})),z=setTimeout(D,a.complete===!1?6e3:3e4)},function(){z=setTimeout(D,3e4)})}function D(){if(document.hidden){z=setTimeout(D,5e3);return}v()}function K(a){k.push(a),u&&a(u),k.length===1&&v()}function Z(a,e,n){if(a){if(!("IntersectionObserver"in window)){e();return}var r=new IntersectionObserver(function(s){s.some(function(_){return _.isIntersecting})&&(r.disconnect(),e())},{rootMargin:n||"0px 0px -10% 0px",threshold:.1});r.observe(a)}}function g(a,e,n,r){if(!(!a||e==null||!isFinite(e))){if(typeof window.arcCountUp=="function")return window.arcCountUp(a,e,n,r);a.textContent=n?n(e):String(e)}}var f=[{id:"launch",tag:"ArcPad",acc:"#4d9fff",name:"Launch fee",sub:"Flat fee on every coin launched on ArcPad",amt:"1 USDC"},{id:"alloc",tag:"ArcPad",acc:"#4d9fff",name:"Platform allocation",sub:"Of every ArcPad coin's supply, set aside at launch",amt:"8%"},{id:"fees",tag:"ArcPad",acc:"#4d9fff",name:"Trading-fee share",sub:"30% of the 1% base fee on every ArcPad trade",amt:"0.3%"},{id:"raise",tag:"CirclePad",acc:"#39ff88",name:"Raise share",sub:"Of each CirclePad raise when it closes",amt:"5%"},{id:"argus",tag:"ArcPad",acc:"#4d9fff",name:"Argus launch share",sub:"30% of the creator share on coins launched on Argus through ArcPad",amt:"30%"},{id:"util",tag:"Utilities",acc:"#ffc861",name:"Utility revenue",sub:"Paid tools and ARCIA 402; Token Scanner unlocks and Builder Mine burn $ARCIRCLE directly",amt:"Burns"},{id:"tax",tag:"$ARCIRCLE",acc:"#35d8d0",name:"Creator fee",sub:"90% of the buy / sell tax on every $ARCIRCLE trade",amt:"90% of tax"}];window.ARC_REVENUE=f;function y(){return f.map(function(a){return'<div class="ax-rev-row" style="--acc:'+a.acc+'" data-rev="'+a.id+'"><span class="ax-tag">'+B(a.tag)+'</span><div class="ax-rev-name"><strong>'+B(a.name)+"</strong><small>"+B(a.sub)+'</small><em class="ax-rev-live" data-rev-live="'+a.id+'"></em></div><div class="ax-rev-amt">'+B(a.amt)+"</div></div>"}).join("")}function b(a,e){var n=e&&e.revenue;if(!n)return"";if(a==="launch")return n.launches!=null?n.launches+" launches so far · "+V(n.launchFees):"";if(a==="alloc")return n.allocationCoins!=null?n.allocationCoins+" coins so far":"";if(a==="fees")return"Paid to the treasury on every trade";if(a==="raise"){var r=n.circle;return r?r.started?r.open?"Round #1: "+V(r.raised)+" raised · "+V(r.share)+" at close":"Round #1: "+V(r.raised)+" raised · "+V(r.share)+" to the platform · "+(typeof CONFIG<"u"&&CONFIG.CIRCLEPAD_STATUS&&CONFIG.CIRCLEPAD_STATUS.line||"Round #2 next"):"Round #1 opens soon":""}return a==="util"?e.burned&&e.burned.bySource?(function(s){var _=["scanner","mine","secret","desk","agent","orders"].reduce(function(R,T){return R+(s[T]?s[T].tokens:0)},0);return _>0?L(_)+" $ARCIRCLE burned by utilities so far":""})(e.burned.bySource):"":a==="tax"?n.creatorTax!=null?V(n.creatorTax)+" earned since launch":e.live===!1?"Starts when $ARCIRCLE is live":n.curveVolume!=null?V(n.curveVolume)+" traded since launch":"":""}function m(a){!a||a.__rev||(a.__rev=!0,a.innerHTML=y(),K(function(e){f.forEach(function(n){var r=a.querySelector('[data-rev-live="'+n.id+'"]'),s=b(n.id,e);r&&r.textContent!==s&&(r.textContent=s,r.classList.toggle("on",!!s))})}))}function i(a){var e=a&&a.querySelector(".ax-rev-list"),n=a&&a.querySelector(".ax-rev-dest");if(!e||!n||a.__flow)return;a.__flow=!0;var r=document.createElement("canvas");r.className="ax-rev-flow",r.setAttribute("aria-hidden","true"),a.insertBefore(r,a.firstChild);var s=r.getContext("2d");if(!s)return;var _=[],R=[],T=!1,p=!1,N=1,X=!0,ee=0;function ae(){var J=a.getBoundingClientRect();N=Math.min(2,window.devicePixelRatio||1),r.width=Math.round(J.width*N),r.height=Math.round(J.height*N),r.style.width=J.width+"px",r.style.height=J.height+"px";var G=n.getBoundingClientRect(),te=e.getBoundingClientRect();X=G.left>te.right-4;var re=e.querySelectorAll(".ax-rev-row");_=Array.prototype.map.call(re,function(oe,he){var ie=oe.getBoundingClientRect(),fe=getComputedStyle(oe).getPropertyValue("--acc").trim()||"#35d8d0",ue=oe.getAttribute("data-rev")||"";if(X){var me=te.right-J.left-2,ge=ie.top+ie.height/2-J.top,Ae=G.left-J.left+2,pe=G.top-J.top+30+(G.height-60)*he/Math.max(1,re.length-1),be=(Ae-me)*.55;return{id:ue,acc:fe,p:[me,ge,me+be,ge,Ae-be,pe,Ae,pe]}}var Ee=te.left-J.left+te.width*(he+1)/(re.length+1),ke=te.bottom-J.top-2,Ie=G.left-J.left+G.width/2+(he-(re.length-1)/2)*10,Me=G.top-J.top+2,Te=(Me-ke)/2;return{id:ue,acc:fe,p:[Ee,ke,Ee,ke+Te,Ie,Me-Te,Ie,Me]}})}function ne(J,G){var te=1-G;return[te*te*te*J[0]+3*te*te*G*J[2]+3*te*G*G*J[4]+G*G*G*J[6],te*te*te*J[1]+3*te*te*G*J[3]+3*te*G*G*J[5]+G*G*G*J[7]]}function de(){s.setTransform(N,0,0,N,0,0),s.clearRect(0,0,r.width,r.height),_.forEach(function(J){var G=J.p;s.beginPath(),s.moveTo(G[0],G[1]),s.bezierCurveTo(G[2],G[3],G[4],G[5],G[6],G[7]),s.strokeStyle=J.acc,s.globalAlpha=.22,s.lineWidth=1.2,s.setLineDash([3,5]),s.stroke()}),s.setLineDash([]),R.forEach(function(J){var G=_[J.k];if(G){var te=ne(G.p,J.t);s.globalAlpha=Math.sin(Math.PI*J.t)*.95,s.fillStyle=G.acc,s.shadowColor=G.acc,s.shadowBlur=8,s.beginPath(),s.arc(te[0],te[1],2.2,0,Math.PI*2),s.fill(),s.shadowBlur=0}}),ce.forEach(function(J){var G=_[J.k];if(G){var te=ne(G.p,J.t),re=Math.min(1,Math.sin(Math.PI*J.t)*1.6);s.font="700 11px Sora, sans-serif";var oe=s.measureText(J.txt).width+14,he=19,ie=te[0]-oe/2,fe=te[1]-he/2;s.globalAlpha=re*.92,s.fillStyle="rgba(6,10,16,.92)",s.strokeStyle=G.acc,s.lineWidth=1,s.shadowColor=G.acc,s.shadowBlur=12,s.beginPath(),s.roundRect?s.roundRect(ie,fe,oe,he,9.5):s.rect(ie,fe,oe,he),s.fill(),s.shadowBlur=0,s.stroke(),s.fillStyle=G.acc,s.textAlign="center",s.textBaseline="middle",s.fillText(J.txt,te[0],te[1]+.5)}}),s.globalAlpha=1}var se=[],le={},ce=[],ve=1200;function Le(){var J=0,G;for(G=0;G<_.length;G++)J+=se[G]==null?1:se[G];var te=Math.random()*J;for(G=0;G<_.length;G++)if(te-=se[G]==null?1:se[G],te<=0)return G;return Math.floor(Math.random()*_.length)}function Re(J){var G=J&&J.revenue||{};le={launch:G.launchFees,raise:G.circle&&G.circle.share,tax:G.creatorTax};var te=0;_.forEach(function(re){var oe=le[re.id];oe>te&&(te=oe)}),se=_.map(function(re){var oe=le[re.id];return .35+(te>0&&oe>0?oe/te*2.4:0)})}function we(){var J=_.map(function(re,oe){return le[re.id]>0?oe:-1}).filter(function(re){return re>=0});if(!(!J.length||ce.length>=2)){var G=J[Math.floor(Math.random()*J.length)],te=le[_[G].id];ce.push({k:G,t:0,v:16e-5,txt:"+"+V(te)})}}var ye=0;function Ce(J){var G=ye?Math.min(50,J-ye):16;ye=J,R.forEach(function(re){re.t+=G*re.v,re.t>=1&&(re.t=0,re.k=Le())}),ve-=G,ve<=0&&(we(),ve=2600+Math.random()*1800);for(var te=ce.length-1;te>=0;te--)ce[te].t+=G*ce[te].v,ce[te].t>=1&&(ce.splice(te,1),n.classList.remove("ax-rev-hit"),n.offsetWidth,n.classList.add("ax-rev-hit"));de(),T&&(ee=requestAnimationFrame(Ce))}function Se(){T||t||!p||document.hidden||(T=!0,ye=0,ee=requestAnimationFrame(Ce))}function xe(){T=!1,cancelAnimationFrame(ee)}ae();for(var q=0;q<14;q++)R.push({k:q%Math.max(1,_.length),t:Math.random(),v:22e-5+Math.random()*16e-5});de();var Q=function(){ae(),de()};window.ResizeObserver&&new ResizeObserver(Q).observe(a),window.addEventListener("resize",Q),document.addEventListener("visibilitychange",function(){document.hidden?xe():Se()}),"IntersectionObserver"in window&&new IntersectionObserver(function(J){p=J.some(function(G){return G.isIntersecting}),p?(Q(),Se()):xe()},{threshold:.05}).observe(a),K(function(J){setTimeout(function(){Q(),Re(J)},60)})}function d(a,e){e=e||{};var n=e.w||320,r=e.h||90,s=4,_=(a||[]).filter(function(ce){return ce!=null&&isFinite(ce)});if(_.length<2)return"";var R=Math.min.apply(null,_),T=Math.max.apply(null,_);T===R&&(T=R*1.01||1,R=R*.99);var p=[],N=a.length,X=null;a.forEach(function(ce,ve){if(ce==null){if(X==null)return;ce=X}X=ce,p.push([s+ve/(N-1)*(n-s*2),s+(1-(ce-R)/(T-R))*(r-s*2)])});var ee=_[_.length-1]>=_[0],ae=ee?"#39ff88":"#ff5d73",ne=p.map(function(ce,ve){return(ve?"L":"M")+ce[0].toFixed(1)+" "+ce[1].toFixed(1)}).join(""),de=ne+"L"+p[p.length-1][0].toFixed(1)+" "+r+"L"+p[0][0].toFixed(1)+" "+r+"Z",se="sg"+Math.random().toString(36).slice(2,7),le=p[p.length-1];return'<svg class="ax-spark '+(ee?"up":"down")+'" viewBox="0 0 '+n+" "+r+'" preserveAspectRatio="none" role="img" aria-label="'+B(e.label||"7-day price")+'"><defs><linearGradient id="'+se+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+ae+'" stop-opacity=".28"/><stop offset="1" stop-color="'+ae+'" stop-opacity="0"/></linearGradient></defs><path d="'+de+'" fill="url(#'+se+')" class="ax-spark-area"/><path d="'+ne+'" fill="none" stroke="'+ae+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" pathLength="1" class="ax-spark-line"/><circle cx="'+le[0].toFixed(1)+'" cy="'+le[1].toFixed(1)+'" r="3.2" fill="'+ae+'" class="ax-spark-dot"/></svg>'}function W(a,e){e=e||{};var n=a.reduce(function(T,p){return T+(p.v||0)},0)||1,r=60,s=2*Math.PI*r,_=0,R=a.map(function(T){var p=(T.v||0)/n*s,N='<circle cx="80" cy="80" r="'+r+'" fill="none" stroke="'+T.color+'" stroke-width="20" stroke-dasharray="'+Math.max(0,p-(p>3?1.5:0)).toFixed(2)+" "+s.toFixed(2)+'" stroke-dashoffset="'+(-_).toFixed(2)+'" class="ax-donut-seg"><title>'+B(T.label)+"</title></circle>";return _+=p,N}).join("");return'<svg class="ax-donut" viewBox="0 0 160 160" role="img" aria-label="'+B(e.label||"Supply split")+'"><g transform="rotate(-90 80 80)"><circle cx="80" cy="80" r="'+r+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="20"/>'+R+'</g><text x="80" y="76" text-anchor="middle" class="ax-donut-big">'+B(e.center||"")+'</text><text x="80" y="96" text-anchor="middle" class="ax-donut-small">'+B(e.sub||"")+"</text></svg>"}window.arcToken={load:I,subscribe:K,mountRevenue:m,mountFlow:i,spark:d,donut:W,onVisible:Z,countTo:g,fmt:{price:U,usd:V,num:L,ago:w,short:E,esc:B,explorer:H,tax:$,bond:x},TOKEN:h,CURVE:F,live:!!h,reduce:t}})(),(function(){"use strict";var t=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_TOKEN||"",h=1e9,F=["function balanceOf(address) view returns (uint256)","function symbol() view returns (string)","function name() view returns (string)"],c=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;function o(e){return document.getElementById(e)}function P(e){return String(e??"").replace(/[&<>"']/g,function(n){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[n]})}function A(){return window.arcToken}function j(e,n){return A()?A().fmt.usd(e,n):"$"+Number(e||0).toFixed(2)}function U(){return new ethers.Contract(CONFIG.ARCPAD_FACTORY_ADDRESS,ARC_FACTORY_ABI,readProvider())}function V(e){return isFinite(e)?e===0?"0":e>=1e4?Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(e):e.toLocaleString("en-US",{maximumFractionDigits:2}):"—"}function L(e){return e?new Date(e*1e3).toISOString().slice(0,10):"—"}function w(e,n,r){!e||n==null||!isFinite(n)||(A()?A().countTo(e,n,r):e.textContent=r?r(n):String(n))}function E(e){return document.querySelectorAll('[data-tk="'+e+'"]')}function B(e,n){Array.prototype.forEach.call(E(e),n)}function S(e,n){B(e,function(r){r.textContent!==n&&(r.textContent=n)})}var $=null;function x(){return $||($=(async function(){for(var e=U(),n=Number(await withRetry(function(){return e.launchCount()})),r=[],s=0;s<n;s+=20){for(var _=[],R=s;R<Math.min(n,s+20);R++)_.push(R);var T=await withRetry(function(){return multicallRead(_.map(function(p){return{contract:e,method:"launches",args:[p]}}))});T.forEach(function(p){p&&r.push({token:p.token,creator:String(p.creator).toLowerCase(),launchedAt:Number(p.launchedAt)})})}return{count:n,rows:r}})(),$.catch(function(){$=null}),$)}async function H(){var e=o("rw-launches");if(e)try{var n=U(),r=Number(await withRetry(function(){return n.launchCount()}));A()?A().onVisible(e,function(){w(e,r,function(s){return String(Math.round(s))})}):e.textContent=String(r)}catch{e.textContent="—"}}function Y(){var e=o("rw-zero");if(e){var n=e.querySelector(".rw-zero-supply"),r=function(){e.classList.add("in"),!c&&n&&(n.__cu=0,w(n,h,function(s){return Math.round(s).toLocaleString("en-US")}))};A()?A().onVisible(e,r,"0px"):r()}}function l(e){if(!(!e||e.partial)){var n=e.revenue||{},r=e.treasury||{};B("tre-usdc",function(T){w(T,r.usdc||0,function(p){return j(p)})}),r.arcircle!=null&&B("tre-arc",function(T){w(T,r.arcircle||0,V)}),S("bb-n",String(e.buybacks?e.buybacks.n:0));var s=o("rw-dash");if(s){var _=function(){B("earned",function(p){w(p,(n.launchFees||0)+(n.creatorTax||0),function(N){return j(N)})}),B("fees",function(p){w(p,n.launchFees||0,function(N){return j(N)})}),B("tax",function(p){n.creatorTax==null&&e.venue==="pool"?p.textContent="—":w(p,n.creatorTax||0,function(N){return j(N)})});var T=n.circle;B("raise",function(p){w(p,T&&T.share||0,function(N){return j(N)})})};S("fees-sub",n.launches!=null?n.launches+" launches × 1 USDC":"1 USDC × every ArcPad launch"),S("tax-sub",e.live===!1?"Starts when $ARCIRCLE is live":e.venue==="pool"?n.curveVolume!=null?"90% of the tax on "+j(n.curveVolume)+" traded":"90% of the tax on every $ARCIRCLE trade":n.curveVolume!=null?"2% of "+j(n.curveVolume)+" traded on the curve":"2% of every $ARCIRCLE trade");var R=n.circle;S("raise-sub",R?R.started?R.open?j(R.raised)+" raised in round #1 so far":j(R.share)+" from round #1 · round #2 next":"Round #1 opens soon":"5% of round #1 when it closes"),s.__seen?_():A()&&A().onVisible(s,function(){s.__seen=!0,_()})}}}var M=0;async function C(e){var n=o("rw-err"),r=o("rw-result"),s=document.querySelector("#rw-check-form button[type=submit]");if(n.hidden=!0,!ethers.isAddress(e)){n.textContent="That doesn't look like a wallet address — it should start with 0x and be 42 characters long.",n.hidden=!1,r.hidden=!0;return}e=ethers.getAddress(e);var _=++M;s.disabled=!0,s.textContent="Checking…";try{var R=t?new ethers.Contract(t,F,readProvider()):null,T=await Promise.all([R?withRetry(function(){return R.balanceOf(e)}):Promise.resolve(null),x(),A()?A().load(e.toLowerCase()).catch(function(){return null}):Promise.resolve(null)]);if(_!==M)return;var p=T[2]&&T[2].wallet?T[2].wallet:null,N=T[0]==null?0:Number(ethers.formatUnits(T[0],18));o("rw-bal").textContent=R?V(N)+" $ARCIRCLE":"Not live",o("rw-bal-sub").textContent=R?N>0?(N/h*100).toPrecision(3).replace(/\.?0+$/,"")+"% of total supply"+(p&&p.rank?" · holder #"+p.rank+" of "+p.of:""):"Not holding $ARCIRCLE right now":"$ARCIRCLE is relaunching — nothing to hold yet";var X=o("rw-held-bar");if(X.style.width="0%",!R)o("rw-held").textContent="—",o("rw-held-sub").textContent="Starts counting when $ARCIRCLE is live";else if(!p)o("rw-held").textContent="—",o("rw-held-sub").textContent="Couldn't read the holding history right now";else if(N<=0||!p.holdingSince)o("rw-held").textContent=N>0&&!p.indexed?"…":"0 days",o("rw-held-sub").textContent=N>0&&!p.indexed?"Still indexing history — try again in a minute":"Not holding $ARCIRCLE right now";else{var ee=p.heldDays;o("rw-held").textContent=ee>=1?ee.toFixed(1)+" days":Math.max(1,Math.round(ee*24))+(Math.round(ee*24)===1?" hour":" hours"),o("rw-held-sub").textContent="Since "+L(p.holdingSince)+" · $ARCIRCLE is "+(p.maxDays||0).toFixed(1)+" days old";var ae=p.maxDays>0?Math.min(100,ee/p.maxDays*100):0;X.__pct=ae}var ne=T[1].rows.filter(function(le){return le.creator===e.toLowerCase()}).sort(function(le,ce){return ce.launchedAt-le.launchedAt});o("rw-created").textContent=String(ne.length),o("rw-created-sub").textContent=ne.length?"Creator activity is what creator rewards are designed to measure":"No ArcPad launches from this address yet",!p||p.circle==null?(o("rw-circle").textContent="—",o("rw-circle-sub").textContent="Couldn't read CirclePad right now"):(o("rw-circle").textContent=j(p.circle,!0),o("rw-circle-sub").textContent=p.referrals&&p.referrals.n?"Invites brought "+j(p.referrals.usdc,!0)+" into CirclePad":p.circle>0?"Contributed to round #1":"No CirclePad contribution yet"),document.dispatchEvent(new CustomEvent("reward:wallet",{detail:{address:e,wallet:p}}));var de=o("rw-created-list");if(de.innerHTML="",ne.length){var se=await multicallRead(ne.slice(0,24).map(function(le){return{contract:new ethers.Contract(le.token,F,readProvider()),method:"symbol"}})).catch(function(){return[]});de.innerHTML=ne.slice(0,24).map(function(le,ce){var ve=se[ce]?"$"+se[ce]:le.token.slice(0,6)+"…"+le.token.slice(-4);return'<a class="rw-chip" href="/arc#coin/'+P(le.token)+'">'+P(ve)+"</a>"}).join("")+(ne.length>24?'<span class="rw-chip rw-chip-more">+'+(ne.length-24)+" more</span>":"")}v(e),O(r);try{history.replaceState(null,"","#check="+e)}catch{}}catch{n.textContent="Couldn't reach Arc to read this wallet — check your connection and try again.",n.hidden=!1}finally{_===M&&(s.disabled=!1,s.textContent="Check")}}function O(e){e.hidden=!1;var n=e.querySelectorAll(".rw-result-card");Array.prototype.forEach.call(n,function(s,_){s.classList.remove("rw-in"),s.style.transitionDelay=c?"0ms":_*90+"ms"}),e.offsetWidth,Array.prototype.forEach.call(n,function(s){s.classList.add("rw-in")});var r=o("rw-held-bar");setTimeout(function(){r.style.width=(r.__pct||0)+"%"},c?0:420)}function I(){return window.ethereum&&typeof window.ethereum.request=="function"?window.ethereum:null}async function k(){var e=I();if(!e)throw new Error("nowallet");var n=await e.request({method:"eth_requestAccounts"});if(!n||!n[0])throw new Error("nowallet");return n[0]}function z(e){return e&&e.message==="nowallet"?"No wallet found in this browser — paste your address instead, or open this page in your wallet app's browser.":e&&(e.code===4001||/reject|denied/i.test(String(e.message)))?"The wallet request was declined.":"Your wallet didn't answer — try again."}function u(){var e=o("rw-err");k().then(function(n){o("rw-addr").value=n,C(n)},function(n){e.textContent=z(n),e.hidden=!1})}function v(e){var n=o("rw-result"),r=o("rw-invite");r||(r=document.createElement("div"),r.id="rw-invite",r.className="rw-invite",n.appendChild(r));var s="https://www.arcircle.app/?ref="+e.toLowerCase();r.innerHTML='<div class="rw-invite-top"><span>Invite link</span><code data-no-i18n>'+P(s)+'</code><button type="button" class="ax-btn ax-btn-ghost rw-invite-copy">Copy</button></div><small>Anyone who opens ARCIRCLE PAD through this link is remembered as your invite in their browser for 30 days, and CirclePad contributions made through it are credited to you. Referral share is a candidate mechanic — nothing is paid for invites yet.</small>',r.querySelector(".rw-invite-copy").addEventListener("click",function(_){var R=_.currentTarget;(navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(s):Promise.reject()).then(function(){R.textContent="Copied",setTimeout(function(){R.textContent="Copy"},1500)},function(){R.textContent="Copy failed"})})}var D={wallet:null,data:null},K=function(e,n){return`ARCIRCLE PAD — rewards poll
-I support: `+e+`
-Wallet: `+String(n).toLowerCase()};function Z(){return"/api/social?poll=rewards"+(D.wallet?"&wallet="+D.wallet:"")}function g(){var e=o("rw-poll"),n=D.data;if(!(!e||!n||!n.enabled)){e.classList.add("on");var r=o("rw-poll-note");r&&r.hidden&&(r.hidden=!1,r.textContent="Support the mechanics you'd keep. You sign a message with your wallet — free, no transaction. One vote per wallet per mechanic; votes from $ARCIRCLE holders are counted separately.");var s=1;Object.keys(n.tally).forEach(function(_){s=Math.max(s,n.tally[_].n)}),Array.prototype.forEach.call(e.querySelectorAll(".rw-vote"),function(_){var R=_.getAttribute("data-mech"),T=n.tally[R]||{n:0,holders:0},p=_.querySelector(".rw-vote-n b");w(p,T.n,function(ne){return String(Math.round(ne))});var N=_.querySelector(".rw-vote-n small"),X=T.holders?(T.n===1?"supporter":"supporters")+" · "+T.holders+(T.holders===1?" holder":" holders"):T.n===1?"supporter":"supporters";N.textContent!==X&&(N.textContent=X),_.querySelector(".rw-vote-bar i").style.width=T.n/s*100+"%";var ee=(n.mine||[]).indexOf(R)>=0,ae=_.querySelector(".rw-vote-btn");ae.classList.toggle("done",ee),ae.disabled=ee||ae.__busy,ae.textContent=ee?"Supported":ae.__busy?"Sign in wallet…":"Support"})}}function f(){return fetch(Z()).then(function(e){return e.json()}).then(function(e){D.data=e,g()}).catch(function(){})}async function y(e,n){var r=o("rw-poll-note");e.__busy=!0,g();try{var s=I();if(!s)throw new Error("nowallet");var _=(await k()).toLowerCase();D.wallet=_;var R=K(n,_),T=await s.request({method:"personal_sign",params:[ethers.hexlify(ethers.toUtf8Bytes(R)),_]}),p=await fetch("/api/social",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"rpoll",mech:n,wallet:_,signature:T})}),N=await p.json().catch(function(){return{}});if(p.ok&&N.tally)D.data=N,typeof window.arcFeedback=="function"&&window.arcFeedback("success");else if(p.status===409)await f();else throw new Error(N.error||"failed")}catch(X){r&&(r.textContent=X&&X.message==="nowallet"?z(X):X&&(X.code===4001||/reject|denied/i.test(String(X.message)))?"The signature was declined — nothing was sent.":"Couldn't record that vote — try again.")}finally{e.__busy=!1,g()}}function b(){var e=o("rw-poll");if(e){e.addEventListener("click",function(s){var _=s.target.closest&&s.target.closest(".rw-vote-btn");!_||_.disabled||y(_,_.closest(".rw-vote").getAttribute("data-mech"))});var n=I(),r=n?n.request({method:"eth_accounts"}).then(function(s){s&&s[0]&&(D.wallet=String(s[0]).toLowerCase())},function(){}):Promise.resolve();r.then(f)}}function m(){var e=o("rw-time");if(e){var n=e.querySelector(".rw-t.now"),r=function(){n&&e.style.setProperty("--fill",n.offsetTop+12+"px")};r(),window.addEventListener("resize",r),A()?A().onVisible(e,function(){r(),e.classList.add("fill")}):e.classList.add("fill")}}var i=[{id:"engine",label:"Burn engine",secs:["engine","burns"]},{id:"build",label:"Build",secs:["build","timeline"]},{id:"programs",label:"Programs",secs:["programs","principles"]},{id:"study",label:"Under study",secs:["mechanics","next"]},{id:"funding",label:"Funding",secs:["funding"]},{id:"wallet",label:"My wallet",secs:["check"]},{id:"faq",label:"FAQ",secs:["faq","commitments","alerts"]}],d=null;function W(){var e=o(i[0].secs[0]);if(!(!e||document.querySelector(".rw-tabs"))){var n=document.createElement("nav");n.className="rw-tabs",n.setAttribute("role","tablist"),n.setAttribute("aria-label","Reward sections"),n.innerHTML='<span class="rw-tab-ink" aria-hidden="true"></span>'+i.map(function(N){return'<button type="button" role="tab" id="rw-tab-'+N.id+'" data-tab="'+N.id+'" aria-controls="'+N.secs[0]+'">'+N.label+"</button>"}).join(""),e.parentNode.insertBefore(n,e);var r=n.querySelector(".rw-tab-ink"),s=null,_=function(N){for(var X=0;X<i.length;X++)if(i[X].secs.indexOf(N)>=0)return i[X];return null},R=function(){var N=n.querySelector('[aria-selected="true"]');N&&(r.style.width=N.offsetWidth+"px",r.style.transform="translateX("+N.offsetLeft+"px)",N.scrollIntoView&&n.scrollWidth>n.clientWidth&&(n.scrollLeft=Math.max(0,N.offsetLeft-(n.clientWidth-N.offsetWidth)/2)))};d=function(N,X){var ee=i.filter(function(ne){return ne.id===N})[0]||i[0];if(i.forEach(function(ne){var de=ne===ee;ne.secs.forEach(function(le){var ce=o(le);ce&&(ce.hidden=!de,ce.setAttribute("role","tabpanel"),ce.setAttribute("aria-labelledby","rw-tab-"+ne.id),de&&s&&s!==ee.id&&(ce.classList.remove("rw-in"),ce.offsetWidth,ce.classList.add("rw-in")))});var se=n.querySelector('[data-tab="'+ne.id+'"]');se.setAttribute("aria-selected",de?"true":"false"),se.tabIndex=de?0:-1}),s=ee.id,R(),X&&X.scroll){var ae=n.getBoundingClientRect().top+window.scrollY-70;(window.scrollY>ae+4||X.force)&&window.scrollTo({top:ae,behavior:X.instant?"auto":"smooth"})}document.dispatchEvent(new CustomEvent("reward:tab",{detail:{tab:ee.id}}))},n.addEventListener("click",function(N){var X=N.target.closest&&N.target.closest("[data-tab]");if(X){d(X.getAttribute("data-tab"),{scroll:!0});try{history.replaceState(null,"","#"+i.filter(function(ee){return ee.id===X.getAttribute("data-tab")})[0].secs[0])}catch{}}}),n.addEventListener("keydown",function(N){if(!(N.key!=="ArrowRight"&&N.key!=="ArrowLeft")){var X=i.findIndex(function(ae){return ae.id===s}),ee=i[(X+(N.key==="ArrowRight"?1:i.length-1))%i.length];d(ee.id),n.querySelector('[data-tab="'+ee.id+'"]').focus()}}),document.addEventListener("click",function(N){var X=N.target.closest&&N.target.closest('a[href^="#"]');if(X){var ee=X.getAttribute("href").slice(1).split("=")[0],ae=_(ee);if(ae){N.preventDefault(),d(ae.id,{scroll:!0,force:!0});try{history.replaceState(null,"","#"+ee)}catch{}}}}),window.addEventListener("resize",R),window.addEventListener("hashchange",function(){var N=location.hash.slice(1).split("=")[0],X=_(N);X&&X.id!==s&&d(X.id,{scroll:!0,force:!0})});var T=location.hash.slice(1).split("=")[0],p=_(T)||i.filter(function(N){return N.id===T})[0];d(p?p.id:i[0].id),p&&T!=="check"&&d(p.id,{scroll:!0,force:!0,instant:!0}),document.fonts&&document.fonts.ready&&document.fonts.ready.then(R)}}function a(){if(W(),H(),Y(),m(),b(),A()){var e=document.querySelector("#funding .ax-rev");e&&(A().mountRevenue(e.querySelector("[data-rev-list]")),A().mountFlow(e)),A().subscribe(l)}var n=o("rw-check-form");n&&n.addEventListener("submit",function(R){R.preventDefault(),C(o("rw-addr").value.trim())});var r=o("rw-usemine");r&&r.addEventListener("click",u);var s=/^#check=(0x[0-9a-fA-F]{40})$/.exec(location.hash);if(s){o("rw-addr").value=s[1],C(s[1]);var _=o("check");_&&_.scrollIntoView()}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",a):a()})(),(function(){"use strict";if(!document.getElementById("rw-meter"))return;const t=a=>document.getElementById(a),h=(a,e)=>(e||document).querySelector(a),F=(a,e)=>Array.from((e||document).querySelectorAll(a)),c=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,o=a=>window.arcI18n&&window.arcI18n.get()!=="en"&&window.arcI18n.translate(a)||a,P=a=>String(a??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[e]),A=()=>window.arcToken,j=1e9,U="https://arc.etherscan.io",V=[15,20,25,30,40,50,60,75,90],L={vote:{name:"Burn-to-vote",acc:"#39ff88"},mine:{name:"Builder Mine",acc:"#ffc861"},scanner:{name:"Token Scanner",acc:"#4d9fff"},secret:{name:"ARCIA's secret file",acc:"#ff8fc7"},desk:{name:"ARCIA DESK",acc:"#b58bff"},agent:{name:"ARCIA AGENT vaults",acc:"#5b8cff"},orders:{name:"Orders & Predict fees",acc:"#4dd4ff"},omni:{name:"OMNI rewards",acc:"#e46bff"},buyback:{name:"Buyback",acc:"#35d8d0"},team:{name:"Team & treasury",acc:"#dfe8f1"},wallet:{name:"Direct burn",acc:"#ff8a4c"},pending:{name:"Being labeled",acc:"#6b7785"}},w=a=>L[a]||L.pending,E={get(a){try{return JSON.parse(localStorage.getItem(a)||"null")}catch{return null}},set(a,e){try{localStorage.setItem(a,JSON.stringify(e))}catch{}}},B=a=>a==null||!isFinite(a)?"—":a>=1e9?(a/1e9).toFixed(2)+"B":a>=1e6?(a/1e6).toFixed(2)+"M":a>=1e4?(a/1e3).toFixed(1)+"K":Math.round(a).toLocaleString("en-US"),S=a=>a==null||!isFinite(a)?"—":Math.round(a).toLocaleString("en-US"),$=a=>A()?A().fmt.usd(a):"$"+Number(a||0).toFixed(2),x=a=>a==null?"—":A()&&A().fmt.price?A().fmt.price(a):"$"+Number(a).toPrecision(3),H=a=>A()&&A().fmt.ago?A().fmt.ago(a):"",Y=a=>a?a.slice(0,6)+"…"+a.slice(-4):"—",l=(a,e,n)=>{!a||e==null||!isFinite(e)||(!c&&A()&&A().countTo?A().countTo(a,e,n):a.textContent=n(e))};let M=null;function C(a,e,n){const r=t("rw-meter"),s=a.pct,_=a.tokens,R=(se,le,ce)=>{const ve=h(`[data-rb="${se}"]`,r);ve&&l(ve,le,ce)};R("pct",s,se=>se.toFixed(2)+"%"),R("tok",_,se=>B(se)),e?R("usd",_*e,se=>$(se)):h('[data-rb="usd"]',r).textContent="—",a.n!=null&&R("n",a.n,se=>Math.round(se).toLocaleString("en-US"));const T=h('[data-rb="fill"]',r);requestAnimationFrame(()=>{T.style.width=Math.min(100,s)+"%"});const p=V.find(se=>se>s),N=h('[data-rb="ms"]',r);p?(N.style.left=p+"%",N.hidden=!1,N.setAttribute("data-label",p+"%"),h('[data-rb="next"]',r).textContent=o("Next milestone")+" "+p+"% · "+B((p-s)/100*j)+" $ARCIRCLE "+o("to go")):(N.hidden=!0,h('[data-rb="next"]',r).textContent="");const X=h('[data-rb="bar-label"]',r);X&&X.setAttribute("aria-label",s.toFixed(2)+"% of the 1,000,000,000 $ARCIRCLE supply burned");const ee=h('[data-rb="pct-inline"]');ee&&(ee.textContent=s.toFixed(2)+"%");const ae=h('[data-rb="stale"]',r);ae.hidden=!n,n&&(ae.textContent=o("Showing the last reading this browser saw")+" ("+new Date(n).toLocaleString()+"). "+o("Live numbers return when Arc data catches up."));const ne=E.get("rw-ms-seen"),de=V.filter(se=>se<=s&&(ne==null||se>ne)).pop();de&&ne!=null&&O(de),(ne==null||s>ne)&&E.set("rw-ms-seen",Math.floor(s)),M!=null&&s>M&&(r.classList.remove("rw-bump"),r.offsetWidth,r.classList.add("rw-bump")),M=s}function O(a){const e=t("rw-meter"),n=document.createElement("div");n.className="rw-ms-hit",n.textContent=a+"% "+o("burned — milestone reached"),e.appendChild(n),c||I(e,36),setTimeout(()=>n.remove(),6e3)}function I(a,e){const n=document.createElement("div");n.className="rw-embers",n.setAttribute("aria-hidden","true");for(let r=0;r<e;r++){const s=document.createElement("i");s.style.left=Math.random()*100+"%",s.style.animationDelay=Math.random()*.6+"s",s.style.setProperty("--dx",(Math.random()*60-30).toFixed(0)+"px"),n.appendChild(s)}a.appendChild(n),setTimeout(()=>n.remove(),2600)}const k=new Set;let z=!0,u=0;function v(a,e){const n=t("rw-feed");if(!a||!a.length){n.innerHTML=`<li class="rw-feed-empty">${P(o("No burns yet."))}</li>`;return}const r=z?[]:a.filter(_=>!k.has(_.tx));n.innerHTML=a.slice(0,18).map(_=>{const R=w(_.kind);return`<li class="rw-burn${r.some(p=>p.tx===_.tx)?" rw-new":""}" style="--acc:${R.acc}">
-        <span class="rw-burn-k"><i></i>${P(o(R.name))}</span>
-        <b class="rw-burn-n" data-no-i18n>${P(S(_.tokens))} <small>$ARCIRCLE</small></b>
-        <span class="rw-burn-m" data-no-i18n>${P(Y(_.from))} · ${P(H(_.ts))}</span>
-        <a class="rw-burn-tx" href="${U}/tx/${P(_.tx)}" target="_blank" rel="noopener" aria-label="${P(o("View transaction"))}">↗</a>
-      </li>`}).join(""),a.forEach(_=>k.add(_.tx));const s=h('[data-rb="feed-at"]');if(s&&(s.textContent=e?o("updated")+" "+new Date(e).toLocaleTimeString():""),r.length&&Date.now()-u>2e4){u=Date.now();const _=r.reduce((R,T)=>R+(T.tokens||0),0);D(_),c||I(t("rw-meter"),Math.min(24,6+r.length*4))}z=!1}function D(a){const e=h(".rw-feed-wrap");if(!e)return;let n=h(".rw-say",e);n||(n=document.createElement("div"),n.className="rw-say",n.setAttribute("role","status"),e.insertBefore(n,t("rw-feed")));const r=["Another {n} $ARCIRCLE gone forever~ 💙💚","{n} $ARCIRCLE just burned! ✨","Burn engine says hi~ {n} $ARCIRCLE burned 🔥"];n.innerHTML=`<img src="images/arcia-avatar-96.jpg" alt="" width="28" height="28"><span data-no-i18n>${P(o(r[Math.floor(Math.random()*r.length)]).replace("{n}",S(a)))}</span>`,n.classList.remove("on"),n.offsetWidth,n.classList.add("on"),clearTimeout(n.__t),n.__t=setTimeout(()=>n.classList.remove("on"),6e3)}function K(a){const e=t("rw-srcbars"),n=Object.entries(a||{}).filter(([,T])=>T&&T.tokens>0).sort((T,p)=>p[1].tokens-T[1].tokens);if(!n.length){e.innerHTML=`<li class="rw-feed-empty">${P(o("No burns yet."))}</li>`;return}const r=n.reduce((T,[,p])=>T+p.tokens,0),s=["team","buyback"],_=[["From utilities and the community",n.filter(([T])=>!s.includes(T))],["From the team",n.filter(([T])=>s.includes(T))]].filter(([,T])=>T.length);e.innerHTML=_.map(([T,p])=>{const N=p[0][1].tokens;return`<li class="rw-sb-group">${P(o(T))}</li>`+p.map(([X,ee])=>{const ae=w(X),ne=Math.max(2,ee.tokens/N*100);return`<li style="--acc:${ae.acc}" data-kind="${P(X)}">
-        <div class="rw-sb-top"><span>${P(o(ae.name))}</span><b data-no-i18n>${P(B(ee.tokens))} <small>· ${(ee.tokens/r*100).toFixed(ee.tokens/r<.01?2:1)}%</small></b></div>
-        <div class="rw-sb-bar"><i style="--w:${ne.toFixed(1)}%"></i></div>
-        <small class="rw-sb-n" data-no-i18n>${ee.n.toLocaleString("en-US")} ${P(o(ee.n===1?"burn":"burns"))}</small>
-      </li>`}).join("")}).join("");const R=()=>e.classList.add("in");A()&&A().onVisible?A().onVisible(e,R):R(),F(".rw-src[data-live]").forEach(T=>{const p=a[T.getAttribute("data-src")];let N=h(".rw-src-n",T);N||(N=document.createElement("em"),N.className="rw-src-n",N.setAttribute("data-no-i18n",""),T.appendChild(N)),N.textContent=p&&p.tokens>0?B(p.tokens)+" "+o("burned"):""})}function Z(a){const e=(n,r)=>{const s=h(`[data-rc="${n}"]`);s&&(s.textContent=r)};a.burned&&e("arc-burned",B(a.burned.tokens)+" · "+a.burned.pct.toFixed(2)+"%"),e("arc-price",x(a.price)),e("arc-mcap",a.mcap!=null?$(a.mcap):"—")}function g(){document.hidden||fetch("/api/social?coin=arcia").then(a=>a.ok?a.json():null).then(a=>{if(!a||a.error)return;const e=(n,r)=>{const s=h(`[data-rc="${n}"]`);s&&(s.textContent=r)};e("arcia-burned",a.burned!=null?B(a.burned)+(a.burnedPct!=null?" · "+a.burnedPct.toFixed(2)+"%":""):"—"),e("arcia-price",x(a.price)),e("arcia-mcap",a.mcap!=null?$(a.mcap):"—")}).catch(()=>{})}function f(){const a=t("rw-flow"),e=h(".rw-flow-svg",a);if(!a||!e)return;const n=a.clientWidth>=880;if(e.style.display=n?"":"none",!n)return;const r=a.getBoundingClientRect(),s=X=>{const ee=X.getBoundingClientRect();return{l:ee.left-r.left,r:ee.right-r.left,t:ee.top-r.top,b:ee.bottom-r.top,cy:(ee.top+ee.bottom)/2-r.top}},_=s(h('[data-node="contract"]',a)),R=s(h('[data-node="burn"]',a)),T=s(h('[data-node="rewards"]',a)),p=(X,ee,ae,ne)=>{const de=(X+ae)/2;return`M${X.toFixed(1)},${ee.toFixed(1)} C${de.toFixed(1)},${ee.toFixed(1)} ${de.toFixed(1)},${ne.toFixed(1)} ${ae.toFixed(1)},${ne.toFixed(1)}`};let N="";F(".rw-src",a).forEach(X=>{const ee=s(X);if(X.hasAttribute("data-live")){const ne=F(".rw-src[data-live]",a).indexOf(X),de=F(".rw-src[data-live]",a).length,se=R.t+18+(R.b-R.t-36)*(ne+.5)/de;N+=`<path class="rw-p rw-p-live" data-src="${X.getAttribute("data-src")}" d="${p(ee.r,ee.cy,R.l,se)}"/>`}else N+=`<path class="rw-p rw-p-plan" data-src="${X.getAttribute("data-src")}" d="${p(ee.r,ee.cy,_.l,_.cy)}"/>`}),N+=`<path class="rw-p rw-p-plan rw-p-out" d="${p(_.r,_.cy-10,R.l,R.cy)}"/>`,N+=`<path class="rw-p rw-p-plan rw-p-out" d="${p(_.r,_.cy+10,T.l,T.cy)}"/>`,e.setAttribute("viewBox",`0 0 ${a.clientWidth} ${a.clientHeight}`),e.innerHTML=N}function y(){const a=t("rw-flow");a.addEventListener("mouseover",e=>{const n=e.target.closest&&e.target.closest(".rw-src");a.classList.toggle("rw-focus",!!n),F(".rw-p",a).forEach(r=>r.classList.toggle("on",!!n&&r.getAttribute("data-src")===n.getAttribute("data-src"))),F(".rw-src",a).forEach(r=>r.classList.toggle("on",r===n))}),a.addEventListener("mouseleave",()=>{a.classList.remove("rw-focus"),F(".rw-p.on, .rw-src.on",a).forEach(e=>e.classList.remove("on"))})}let b=null;document.addEventListener("reward:wallet",a=>{const e=a.detail&&a.detail.wallet,n=a.detail&&a.detail.address,r=t("rw-wburn"),s=t("rw-wburn-sub"),_=t("rw-wburn-share");if(!r)return;const R=e&&e.burned;if(!R){r.textContent="—",s.textContent=o("Couldn't read burns right now"),_.hidden=!0;return}r.textContent=S(R.tokens)+" $ARCIRCLE";const T=Object.entries(R.bySource||{}).sort((p,N)=>N[1].tokens-p[1].tokens).map(([p,N])=>o(w(p).name)+" "+B(N.tokens));s.textContent=R.tokens>0?T.join(" · "):o("No $ARCIRCLE burned from this wallet yet"),_.hidden=!(R.tokens>0),b={addr:n,b:R}});function m(){if(!b)return;const{addr:a,b:e}=b,n=document.createElement("canvas");n.width=1200,n.height=630;const r=n.getContext("2d"),s=r.createLinearGradient(0,0,1200,630);s.addColorStop(0,"#050910"),s.addColorStop(1,"#0b0f16"),r.fillStyle=s,r.fillRect(0,0,1200,630);const _=r.createRadialGradient(980,520,20,980,520,520);_.addColorStop(0,"rgba(255,138,76,.45)"),_.addColorStop(1,"rgba(255,138,76,0)"),r.fillStyle=_,r.fillRect(0,0,1200,630);const R=r.createRadialGradient(120,60,10,120,60,520);R.addColorStop(0,"rgba(63,155,255,.28)"),R.addColorStop(1,"rgba(63,155,255,0)"),r.fillStyle=R,r.fillRect(0,0,1200,630);const T=(ae,ne)=>`${ae} ${ne}px Sora, Inter, system-ui, sans-serif`;r.fillStyle="#eef3f7",r.font=T(800,22),r.fillText("ARCIRCLE PAD · BURN ENGINE",72,92),r.fillStyle="rgba(222,233,244,.66)",r.font=T(600,30),r.fillText("I burned",72,196);const p=r.createLinearGradient(72,0,900,0);p.addColorStop(0,"#ffc861"),p.addColorStop(1,"#ff6a3d"),r.fillStyle=p,r.font=T(800,104),r.fillText(S(e.tokens),72,306),r.fillStyle="#eef3f7",r.font=T(800,44),r.fillText("$ARCIRCLE",76,368),r.font=T(600,24),r.fillStyle="rgba(222,233,244,.72)",Object.entries(e.bySource||{}).sort((ae,ne)=>ne[1].tokens-ae[1].tokens).slice(0,4).forEach(([ae,ne],de)=>{r.fillStyle=w(ae).acc,r.fillRect(76,420+de*38,12,12),r.fillStyle="rgba(222,233,244,.8)",r.fillText(w(ae).name+" · "+S(ne.tokens),100,432+de*38)}),r.font=T(500,22),r.fillStyle="rgba(222,233,244,.55)",r.fillText(Y(a)+" · sent to 0x…dEaD, gone forever",72,590),r.textAlign="right",r.fillStyle="#eef3f7",r.font=T(700,24),r.fillText("arcircle.app/reward",1128,590);const X=1e3,ee=300;[["#ff6a3d",120],["#ffb35c",82],["#fff1c9",42]].forEach(([ae,ne])=>{r.fillStyle=ae,r.beginPath(),r.moveTo(X,ee-ne*1.25),r.bezierCurveTo(X+ne*.9,ee-ne*.3,X+ne*.8,ee+ne*.75,X,ee+ne*.8),r.bezierCurveTo(X-ne*.8,ee+ne*.75,X-ne*.9,ee-ne*.3,X,ee-ne*1.25),r.fill()}),i(n,e)}function i(a,e){let n=t("rw-card-dlg");n||(n=document.createElement("div"),n.id="rw-card-dlg",n.className="rw-card-dlg",n.setAttribute("role","dialog"),n.setAttribute("aria-modal","true"),n.setAttribute("aria-label",o("Your burn card")),n.innerHTML=`<div class="rw-card-box"><button type="button" class="rw-card-x" aria-label="${P(o("Close"))}">×</button><img alt=""><div class="rw-card-acts"><a class="ax-btn ax-btn-grad" data-a="save" download="arcircle-burn-card.png">${P(o("Save image"))}</a><a class="ax-btn ax-btn-ghost" data-a="x" target="_blank" rel="noopener">${P(o("Post on X"))}</a></div><p class="rw-mini">${P(o("Save the image, then attach it to your post."))}</p></div>`,document.body.appendChild(n),n.addEventListener("click",_=>{(_.target===n||_.target.closest(".rw-card-x"))&&(n.hidden=!0)}),document.addEventListener("keydown",_=>{_.key==="Escape"&&(n.hidden=!0)}));const r=a.toDataURL("image/png");h("img",n).src=r,h('[data-a="save"]',n).href=r;const s=`I've burned ${S(e.tokens)} $ARCIRCLE on ARCIRCLE PAD, sent to 0x…dEaD for good 🔥
+    `;
+    const dropdown = document.getElementById("wallet-dropdown");
+    document.getElementById("wallet-pill-btn").onclick = (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle("open");
+    };
+    document.getElementById("wallet-dropdown-copy").onclick = (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(state.account);
+    };
+    document.getElementById("wallet-dropdown-disconnect").onclick = (e) => {
+      e.stopPropagation();
+      dropdown.classList.remove("open");
+      disconnectWallet();
+    };
+    document.getElementById("wallet-dropdown-switch").onclick = (e) => { e.stopPropagation(); switchToArcNetwork(); };
+    const net = document.getElementById("wallet-dropdown-net");
+    if (net) net.onclick = (e) => {
+      e.stopPropagation();
+      const b = e.target.closest("[data-net]");
+      if (!b || b.getAttribute("aria-checked") === "true") return;
+      if (b.dataset.net === "arc") switchToArcNetwork(); else if (b.dataset.net === "sol") switchToSolana(); else switchToAltNetwork();
+    };
+    const noteEl = document.getElementById("wallet-dropdown-note");
+    if (noteEl && window.arcSol) noteEl.onclick = (e) => { const b = e.target.closest("[data-sol-pick]"); if (b) { e.stopPropagation(); switchToSolana(b.dataset.solPick); } };
+    const solBox = document.getElementById("wallet-dropdown-sol");
+    if (solBox) solBox.onclick = (e) => {
+      e.stopPropagation();
+      if (e.target.closest("[data-sol-copy]") && window.arcSol.key) navigator.clipboard.writeText(window.arcSol.key);
+      if (e.target.closest("[data-sol-off]")) window.arcSol.disconnect();
+    };
+    dropdown.onclick = (e) => e.stopPropagation();
+    if (!renderHeader._outsideClose) {
+      renderHeader._outsideClose = true;
+      document.addEventListener("click", () => {
+        const d = document.getElementById("wallet-dropdown");
+        if (d) d.classList.remove("open");
+      });
+    }
+    updateNetworkBadge();
+  } else {
+    el.innerHTML = `<button class="btn btn-primary" id="connect-btn" aria-label="Connect wallet"><span class="cw-long">Connect wallet</span><span class="cw-short">Connect</span></button>`;
+    document.getElementById("connect-btn").onclick = connectWallet;
+  }
+}
 
-Building the burn engine on Arc ♾ @ARCIRCLEonArc
+let switchingNetwork = false;
+/// The one "put my wallet on Arc" action — used by the header badge and
+/// the dropdown's Switch button. On a phone connected over WalletConnect
+/// the approval only appears inside the wallet app, so this also brings
+/// that app to the front (openConnectedWalletApp — must stay synchronous
+/// inside the tap, before any await).
+async function switchToArcNetwork() {
+  if (switchingNetwork) return;
+  switchingNetwork = true;
+  if (window.arcSol && window.arcSol.selected()) window.arcSol.select(false); // the menu shows the EVM wallet again
+  // keep the session through the switch (no reload): the chainChanged handler picks up a signer on Arc instead
+  clearTimeout(switchToAltNetwork.t);
+  window.arcChainSwitching = true;
+  const note = document.getElementById("wallet-dropdown-note");
+  const btn = document.getElementById("wallet-dropdown-switch");
+  const badge = document.getElementById("network-badge");
+  const setNote = (text, bad) => { if (note) { note.hidden = !text; note.textContent = text || ""; note.classList.toggle("bad", !!bad); } };
+  const usingAppKit = typeof appKitReady !== "undefined" && appKitReady && typeof ensureAppKitChain === "function" && !(typeof IN_APP_WALLET_BROWSER !== "undefined" && IN_APP_WALLET_BROWSER);
+  const request = usingAppKit ? ensureAppKitChain() : (window.ethereum ? ensureNetwork() : Promise.reject(new Error("No wallet connected.")));
+  const jumped = usingAppKit && typeof openConnectedWalletApp === "function" && openConnectedWalletApp();
+  if (btn) { btn.disabled = true; btn.textContent = "Waiting for your wallet…"; }
+  if (badge) badge.classList.add("network-busy");
+  setNote(jumped ? `Approve the switch to ${CONFIG.CHAIN_NAME} in your wallet app, then come back here.` : `Approve the switch to ${CONFIG.CHAIN_NAME} in your wallet.`);
+  try {
+    await request;
+    setNote("");
+    if (!usingAppKit) { state.chainId = CONFIG.CHAIN_ID_DECIMAL; try { state.signer = await new ethers.BrowserProvider(window.ethereum, "any").getSigner(); } catch (e) { /* next write asks */ } }
+    document.dispatchEvent(new CustomEvent("arc:walletnet", { detail: { chainId: CONFIG.CHAIN_ID_DECIMAL } }));
+  } catch (err) {
+    const msg = String(err && (err.shortMessage || err.message) || err);
+    setNote(/reject|denied|cancel/i.test(msg) ? "Switch cancelled in the wallet." : msg.slice(0, 260), true);
+  } finally {
+    switchingNetwork = false;
+    switchToAltNetwork.t = setTimeout(() => { window.arcChainSwitching = false; }, 4000);
+    if (btn) { btn.disabled = false; btn.textContent = `Switch to ${CONFIG.CHAIN_NAME}`; }
+    if (badge) badge.classList.remove("network-busy");
+    updateNetworkBadge();
+  }
+}
 
-arcircle.app/reward`;h('[data-a="x"]',n).href="https://x.com/intent/tweet?text="+encodeURIComponent(s),n.hidden=!1,h(".rw-card-x",n).focus()}function d(a){let e=a&&a.burned,n=a&&a.price,r=0;const s=E.get("rw-burn-last");e&&e.pct!=null?E.set("rw-burn-last",{at:Date.now(),burned:e,price:n}):s&&s.burned&&(e=s.burned,n=s.price,r=s.at),!(!e||e.pct==null)&&(C(e,n,r),v(e.list,r||Date.now()),e.bySource&&K(e.bySource),Z({burned:e,price:n,mcap:n!=null?n*j:null}))}function W(){const a=E.get("rw-burn-last");a&&a.burned&&(C(a.burned,a.price,0),v(a.burned.list,a.at),a.burned.bySource&&K(a.burned.bySource)),A()&&A().subscribe(d),g(),setInterval(g,3e4),f(),y();let e=0;window.addEventListener("resize",()=>{clearTimeout(e),e=setTimeout(f,120)}),document.addEventListener("reward:tab",n=>{n.detail&&n.detail.tab==="engine"&&requestAnimationFrame(f)}),document.fonts&&document.fonts.ready&&document.fonts.ready.then(f),document.addEventListener("click",n=>{const r=n.target.closest&&n.target.closest(".rw-copy[data-copy]");if(r){const s=()=>{const _=r.textContent;r.textContent=o("Copied"),setTimeout(()=>{r.textContent=_},1400)};navigator.clipboard&&navigator.clipboard.writeText&&navigator.clipboard.writeText(r.getAttribute("data-copy")).then(s,()=>{});return}n.target.closest&&n.target.closest("#rw-wburn-share")&&m()})}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",W):W()})(),(()=>{"use strict";const t=l=>document.getElementById(l),h=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;h&&document.documentElement.classList.add("rm");const F=l=>window.arcFmt?window.arcFmt.usd(l):l==null||!isFinite(l)?"—":l>=1e3?"$"+Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:1}).format(l):l>=1?"$"+l.toFixed(2):l===0?"$0":"$"+l.toPrecision(2);function c(l,M,C=I=>String(Math.round(I)),O=900){if(!l)return;const I=l.__cu!=null?l.__cu:0;l.__cu=M;const k=v=>{l.__last=C(v),l.textContent=l.__last};if(h||!isFinite(I)||I===M){k(M);return}const z=performance.now();cancelAnimationFrame(l.__raf);const u=v=>{const D=Math.min(1,(v-z)/O),K=1-Math.pow(1-D,3);k(I+(M-I)*K),D<1&&(l.__raf=requestAnimationFrame(u))};l.__raf=requestAnimationFrame(u)}window.arcCountUp=c;const o=t("ap-stat-count");o&&new MutationObserver(()=>{if(o.textContent===o.__last)return;const l=Number(o.textContent.replace(/[^\d.]/g,""));o.textContent.trim()&&isFinite(l)&&/^\d+$/.test(o.textContent.trim())&&c(o,l)}).observe(o,{childList:!0,characterData:!0,subtree:!0});const P=t("ap-stat-vol");if(P&&typeof actPaint=="function"){const l=actPaint;actPaint=function(){l();try{if(typeof ACT<"u"&&ACT.hi!=null){let M=0;ACT.stats.forEach(C=>{M+=C.vol||0}),c(P,M,F)}}catch(M){console.warn(M)}}}const A=[".bp-card",".ac2-card:not(.ac2-swap)",".pf-launch",".bp-mini-stat",".ap-stat",".ax-section","#ap-explore-grid .ap-launch-card",".bp-mech-card",".apc-safety",".ac2-buybacks",".cr-table",".pf-summary"].join(","),j=new WeakSet,U=!h&&"IntersectionObserver"in window?new IntersectionObserver(l=>{l.forEach(M=>{if(!M.isIntersecting)return;const C=M.target,O=C.parentElement?[...C.parentElement.children].filter(I=>I.classList.contains("rv")&&!I.classList.contains("rv-in")):[];C.style.transitionDelay=`${Math.min(O.indexOf(C),6)*55}ms`,C.classList.add("rv-in"),U.unobserve(C)})},{rootMargin:"0px 0px -6% 0px",threshold:.06}):null;function V(l){if(!U)return;const M=l.matches&&l.matches(A)?[l]:[];l.querySelectorAll&&M.push(...l.querySelectorAll(A));for(const C of M){if(j.has(C)||C.closest(".msheet")||!C.offsetParent&&getComputedStyle(C).position!=="fixed")continue;j.add(C);const O=C.getBoundingClientRect();O.top<window.innerHeight*.96&&O.bottom>0||(C.classList.add("rv"),U.observe(C))}}if(U){const l=()=>V(document.body);document.readyState==="loading"?document.addEventListener("DOMContentLoaded",l):l();let M=null;new MutationObserver(C=>{M||(M=requestAnimationFrame(()=>{M=null,C.forEach(O=>O.addedNodes.forEach(I=>{I.nodeType===1&&V(I)}))}))}).observe(document.body,{childList:!0,subtree:!0}),document.addEventListener("arcpad:tab",()=>setTimeout(l,30))}function L(l,M){const C=t(l),O=C&&C.querySelector("svg");if(!O||h)return;C.__drawn!==M&&(C.__drawn=M,C.__drawAt=performance.now());const I=performance.now()-C.__drawAt;I>1500||(O.style.setProperty("--cd",`${-I}ms`),O.classList.add("chart-draw"))}if(typeof apcRenderChart=="function"){const l=apcRenderChart;apcRenderChart=function(){l.apply(this,arguments);try{typeof APC<"u"&&APC.trades&&APC.trades.length&&L("apc-chart",APC.token)}catch{}}}if(typeof ac2RenderChart=="function"){const l=ac2RenderChart;ac2RenderChart=function(){l.apply(this,arguments);try{L("ac2-chart","arcircle")}catch{}}}const w='<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="rkG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4d9fff"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs><path class="rk-flame" d="M26 46c0 7 6 14 6 14s6-7 6-14z"/><path d="M32 4c9 6 13 16 13 27l-5 11H24l-5-11C19 20 23 10 32 4z" fill="url(#rkG)"/><circle cx="32" cy="24" r="5" fill="#050805" stroke="#eaf2e6" stroke-width="2"/><path d="M19 31l-7 9 9 1zM45 31l7 9-9 1z" fill="#35d8d0"/></svg>',E=t("ap-launch-status");if(E){let l=null;new MutationObserver(()=>{const M=E.querySelector(".status.pending"),C=E.querySelector(".status.success");if(M&&/Confirm the launch|Launching/.test(M.textContent)&&!M.querySelector(".ap-rocket-idle")){const I=document.createElement("span");I.className="ap-rocket-idle",I.innerHTML=w,M.insertBefore(I,M.firstChild),l=I}if(C&&!C.__flew){C.__flew=!0;const I=t("ap-launch-submit"),k=(l&&l.isConnected?l:I||C).getBoundingClientRect();if(!h){const z=document.createElement("div");z.className="ap-rocket-fly",z.innerHTML=w,z.style.left=`${k.left+k.width/2-28}px`,z.style.top=`${k.top-10}px`,document.body.appendChild(z),setTimeout(()=>z.remove(),1700)}l=null}}).observe(E,{childList:!0,subtree:!0})}document.addEventListener("pointerdown",l=>{const M=l.target.closest&&l.target.closest(".ax-dock-item, .ax-quick a, .ax-quick button");if(!M||h)return;const C=M.querySelector(".ax-dock-ico, span, svg")||M;C.classList.remove("dock-bounce"),C.offsetWidth,C.classList.add("dock-bounce")},{passive:!0});const B=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_TOKEN||"";let S=null;const $=typeof ARC_ALT_NET<"u"&&ARC_ALT_NET?ARC_ALT_NET:null,x=typeof CONFIG<"u"&&CONFIG.OMNI&&CONFIG.OMNI.ROBINHOOD_OFT||"";async function H(l){if(!state.account||!l)return;const M=state.account,C=!!$&&Number(state.chainId)===$.id,O=l.querySelector("[data-wl=gas]");O&&(O.innerHTML=C?"ETH <small>Robinhood</small>":"USDC <small>gas</small>");try{const I=C?S=S||new ethers.JsonRpcProvider($.rpc,ethers.Network.from($.id),{staticNetwork:!0}):readProvider(),k=C?x:B,z=k?new ethers.Contract(k,ERC20_ABI,I):null,[u,v]=await Promise.all([I.getBalance(M).catch(()=>null),z?z.balanceOf(M).catch(()=>null):null]);if(state.account!==M)return;const D=(Z,g,f)=>Z==null?"—":Number(ethers.formatUnits(Z,g)).toLocaleString("en-US",{maximumFractionDigits:f||2});l.querySelector("[data-wb=usdc]").textContent=D(u,18,C?5:2);const K=l.querySelector("[data-wb=arc]");K&&(K.textContent=D(v,18))}catch{}}function Y(){const l=t("wallet-dropdown");if(!l||l.__enh||!state.account)return;l.__enh=!0;const M=l.querySelector(".wallet-dropdown-address"),C=document.createElement("div");C.className="wd-bal",C.innerHTML='<div><span data-wl="gas">USDC <small>gas</small></span><b data-wb="usdc">…</b></div>'+(B?'<div><span>$ARCIRCLE</span><b data-wb="arc">…</b></div>':""),M&&M.insertAdjacentElement("afterend",C);const O=t("wallet-dropdown-copy");O&&(O.onclick=u=>{u.stopPropagation(),(navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(state.account):Promise.reject()).then(()=>{O.textContent="Copied",setTimeout(()=>{O.textContent="Copy"},1400)},()=>{O.textContent="Copy failed"})});const I=l.querySelector('a.wallet-dropdown-item[href*="/address/"]'),k=document.createDocumentFragment();if(t("bp-panel-portfolio")){const u=document.createElement("button");u.type="button",u.className="wallet-dropdown-item",u.textContent="Portfolio",u.onclick=v=>{v.stopPropagation(),l.classList.remove("open"),window.arcpadShowTab&&window.arcpadShowTab("portfolio")},k.appendChild(u)}if(B){const u=document.createElement("button");u.type="button",u.className="wallet-dropdown-item",u.textContent="Add $ARCIRCLE to wallet",u.onclick=async v=>{v.stopPropagation();const D={type:"ERC20",options:{address:B,symbol:"ARCIRCLE",decimals:18,image:"https://www.arcircle.app/images/arcircle-mark-sm.png"}};try{if(state.signer&&state.signer.provider&&state.signer.provider.send)await state.signer.provider.send("wallet_watchAsset",D);else if(window.ethereum)await window.ethereum.request({method:"wallet_watchAsset",params:D});else throw new Error("no wallet");u.textContent="Added — check your wallet"}catch{u.textContent="Your wallet didn't accept it"}setTimeout(()=>{u.textContent="Add $ARCIRCLE to wallet"},2600)},k.appendChild(u)}I?I.parentNode.insertBefore(k,I):l.appendChild(k);const z=t("wallet-pill-btn");z&&z.addEventListener("click",()=>H(C)),H(C),Y.net||(Y.net=!0,document.addEventListener("arc:walletnet",()=>{const u=document.querySelector("#wallet-dropdown .wd-bal");u&&H(u)}))}if(typeof renderHeader=="function"){const l=renderHeader;renderHeader=function(){l.apply(this,arguments);try{Y()}catch(M){console.warn(M)}}}Y()})(),(function(){"use strict";var t=typeof CONFIG<"u"&&CONFIG.RPC_URL||"https://rpc.mainnet.arc.io",h=typeof CONFIG<"u"&&CONFIG.BLOCK_EXPLORER||"https://arc.etherscan.io",F="arcircle.sound",c=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,o=null;function P(){try{return localStorage.getItem(F)==="on"}catch{return!1}}function A(S,$,x,H,Y){var l=o.createOscillator(),M=o.createGain();l.type=H||"sine",l.frequency.setValueAtTime(S,o.currentTime+$),M.gain.setValueAtTime(1e-4,o.currentTime+$),M.gain.exponentialRampToValueAtTime(Y||.12,o.currentTime+$+.012),M.gain.exponentialRampToValueAtTime(1e-4,o.currentTime+$+x),l.connect(M),M.connect(o.destination),l.start(o.currentTime+$),l.stop(o.currentTime+$+x+.02)}var j={buy:function(){A(988,0,.09,"triangle"),A(1319,.07,.22,"triangle")},sell:function(){A(784,0,.09,"triangle"),A(587,.07,.22,"triangle")},launch:function(){[523,659,784,1047,1319].forEach(function(S,$){A(S,$*.07,.28,"triangle",.1)})},milestone:function(){A(1047,0,.12,"sine",.1),A(1568,.1,.35,"sine",.1)},tap:function(){A(1400,0,.04,"sine",.05)}};window.arcSound=function(S){if(!(!P()||!j[S]))try{o=o||new(window.AudioContext||window.webkitAudioContext),o.state==="suspended"&&o.resume(),j[S]()}catch{}};var U={buy:[18],sell:[10,40,10],launch:[30,60,30,60,90],milestone:[20,40,60],tap:[8]};window.arcHaptic=function(S){if(!(c||!navigator.vibrate||!U[S])&&!(navigator.userActivation&&!navigator.userActivation.hasBeenActive))try{navigator.vibrate(U[S])}catch{}},window.arcFeedback=function(S){window.arcSound(S),window.arcHaptic(S)};var V=[["ArcPad factory","0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E"],["Swap router","0xFCA8fD788d44Bb335B1451257366e06D67114785"],["Fee hook","0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044"],["$ARCIRCLE",typeof CONFIG<"u"&&CONFIG.ARCIRCLE_TOKEN||""],["CirclePad escrow","0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703","cp-escrow"],["CirclePad vote","0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2"],["CirclePad burn vote","0x54121a7894d90a02eA973Ab45EEF424C2716EeB2"],["Creator lock","0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],["LP lock","0x674E7010Dab5cCb519e06df72b1D4c063952f45B"],["Builder Mine",typeof CONFIG<"u"&&CONFIG.BUILDER_MINE_ADDRESS||""],["ARCIRCLE Orders","0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e"],["Orders fee burn","0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034"],["ARCIRCLE Predict","0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6"],["ARCIRCLE Staking",typeof CONFIG<"u"&&CONFIG.STAKING_ADDRESS||""],["Quantum Launch",typeof CONFIG<"u"&&CONFIG.QUANTUM_PAD_ADDRESS||""]],L=function(S){return S.slice(0,6)+"…"+S.slice(-4)};function w(){var S=document.querySelector("footer.ah-footer"),$=document.querySelector("nav.ax-dock"),x=document.createElement("footer");x.className="axf",x.innerHTML=`<div class="axf-in"><div class="axf-brand"><a href="/" class="axf-logo"><img src="/images/arcircle-mark-sm.webp" alt="" width="40" height="28"><span>ARCIRCLE <em>PAD</em></span></a><p>Two launchpads and one core coin on Circle's Arc. Every number on this site is read live from the chain.</p><div class="axf-net" id="axf-net"><span class="axf-dot"></span><span class="axf-net-txt">Arc mainnet · checking…</span></div></div><div class="axf-col"><h4>Products</h4><a href="/arc">ArcPad</a><a href="/circle">CirclePad</a><a href="/arcircle">$ARCIRCLE</a><a href="/relay">Relay Launch</a><a href="/reward">Reward</a><a href="/me">My ARCIRCLE</a></div><div class="axf-col"><h4>Resources</h4><a href="/whitepaper">Whitepaper</a><a href="/whitepaper/ko" lang="ko">백서 (한국어)</a><a href="/arc#docs">ArcPad docs</a><a href="/circle#docs">CirclePad docs</a><a href="/start">Get started</a><a href="/stats">Stats</a><a href="/roadmap">Roadmap</a><a href="/brand">Brand kit</a></div><div class="axf-col axf-contracts" id="axf-contracts"><h4>Contracts</h4>`+V.map(function(l,M){var C=M>=4?" axf-more":"";return l[1]?'<div class="axf-ca'+C+'"'+(l[2]?' data-axf="'+l[2]+'"':"")+"><span>"+l[0]+'</span><a href="'+h+"/address/"+l[1]+'" target="_blank" rel="noopener" data-no-i18n>'+L(l[1])+' ↗</a><button type="button" class="axf-copy" data-copy-ca="'+l[1]+'" aria-label="Copy address">Copy</button></div>':'<div class="axf-ca'+C+'"><span>'+l[0]+'</span><em class="axf-nl">Not live</em></div>'}).join("")+'<button type="button" class="axf-allca" aria-expanded="false" aria-controls="axf-contracts"><span>All contracts</span> <b data-no-i18n>'+V.length+'</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="axf-bottom"><span>Nothing on this site is financial advice. Crypto assets can lose all of their value.</span><button type="button" class="axf-sound" id="axf-sound" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="axf-wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span></span></button></div>',S?S.replaceWith(x):$?$.parentNode.insertBefore(x,$):document.body.appendChild(x),x.addEventListener("click",function(l){var M=l.target.closest&&l.target.closest(".axf-allca");if(M){var C=M.parentNode,O=!C.classList.contains("open");C.classList.toggle("open",O),M.setAttribute("aria-expanded",O?"true":"false"),M.querySelector("span").textContent=O?"Fewer contracts":"All contracts";return}var I=l.target.closest&&l.target.closest("[data-copy-ca]");if(I){var k=function(z){I.textContent=z,setTimeout(function(){I.textContent="Copy"},1400)};(navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(I.getAttribute("data-copy-ca")):Promise.reject()).then(function(){k("Copied")},function(){k("Copy failed")})}});var H=x.querySelector("#axf-sound"),Y=function(){var l=P();H.setAttribute("aria-pressed",l?"true":"false"),H.classList.toggle("on",l),H.querySelector("span").textContent=l?"Sound on":"Sound off"};H.addEventListener("click",function(){try{localStorage.setItem(F,P()?"off":"on")}catch{}Y(),window.arcFeedback("tap")}),Y(),E(x),B(),setInterval(function(){document.hidden||B()},3e4)}function E(S){var $=S.querySelector('[data-axf="cp-escrow"]');if($){var x=function(l){var M=l&&l.list||[];if(M.length){var C=M.filter(function(u){return u.started}),O=C[C.length-1]||M[0],I=function(u){return/^0x[0-9a-fA-F]{40}$/.test(u||"")};if(I(O.escrow)){var k=function(u){return'<a href="'+h+"/address/"+u.escrow+'" target="_blank" rel="noopener" data-no-i18n>#'+u.n+" "+L(u.escrow)+" ↗</a>"},z=M.filter(function(u){return u!==O&&I(u.escrow)}).reverse();$.innerHTML='<span>CirclePad escrow <em class="axf-rn" data-no-i18n>#'+O.n+'</em></span><a href="'+h+"/address/"+O.escrow+'" target="_blank" rel="noopener" data-no-i18n>'+L(O.escrow)+' ↗</a><button type="button" class="axf-copy" data-copy-ca="'+O.escrow+'" aria-label="Copy address">Copy</button>'+(z.length?'<details class="axf-past"><summary>Earlier rounds</summary>'+z.map(k).join("")+"</details>":"")}}};if(window.CP_ROUNDS){x(window.CP_ROUNDS);return}var H=function(){fetch("/api/social?circle=boot").then(function(l){return l.ok?l.text():""}).then(function(l){var M=/window\.CP_ROUNDS\s*=\s*(\{[\s\S]*\})\s*;?\s*$/.exec(l||"");if(M)try{x(JSON.parse(M[1]))}catch{}}).catch(function(){})};if("IntersectionObserver"in window){var Y=new IntersectionObserver(function(l){l.some(function(M){return M.isIntersecting})&&(Y.disconnect(),H())},{rootMargin:"400px"});Y.observe(S)}else H()}}function B(){var S=document.getElementById("axf-net");if(S){var $=performance.now(),x=window.AbortController?new AbortController:null,H=setTimeout(function(){x&&x.abort()},6e3);fetch(t,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_blockNumber",params:[]}),signal:x?x.signal:void 0}).then(function(Y){return Y.json()}).then(function(Y){var l=Math.round(performance.now()-$),M=parseInt(Y.result,16);if(!isFinite(M))throw new Error("bad");S.className="axf-net "+(l<800?"ok":"slow"),S.querySelector(".axf-net-txt").innerHTML="Arc mainnet · block <b data-no-i18n>#"+M.toLocaleString("en-US")+"</b> · "+l+" ms"}).catch(function(){S.className="axf-net bad",S.querySelector(".axf-net-txt").textContent="Arc RPC not reachable right now"}).then(function(){clearTimeout(H)})}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",w):w()})(),(function(){"use strict";(function(){try{var I=new URL(location.href),k=(I.searchParams.get("ref")||"").trim();if(!/^0x[0-9a-fA-F]{40}$/.test(k))return;var z="arcircle.ref.v1",u=JSON.parse(localStorage.getItem(z)||"null");(!u||!u.at||Date.now()-u.at>30*864e5)&&localStorage.setItem(z,JSON.stringify({ref:k.toLowerCase(),at:Date.now(),page:I.pathname})),I.searchParams.delete("ref"),history.replaceState&&history.replaceState(history.state,"",I.pathname+(I.search||"")+I.hash)}catch{}})(),window.arcRef=function(){try{var O=JSON.parse(localStorage.getItem("arcircle.ref.v1")||"null");return O&&Date.now()-O.at<30*864e5?O.ref:null}catch{return null}},(function(){var I=typeof CONFIG<"u"?CONFIG:{},k=/^0x[0-9a-fA-F]{40}$/.test(I.ARCIRCLE_TOKEN||"")?I.ARCIRCLE_TOKEN:"",z=/^0x[0-9a-fA-F]{40}$/.test(I.ARCIRCLE_CURVE||"")?I.ARCIRCLE_CURVE:"",u=/^0x[0-9a-fA-F]{64}$/.test(I.ARCIRCLE_POOL_ID||"")?I.ARCIRCLE_POOL_ID:"",v=document.documentElement;if(v.classList.toggle("arc-live",!!k),v.classList.toggle("arc-notlive",!k),v.classList.toggle("arc-pool",!!k&&!!u&&!z),v.classList.toggle("arc-curve",!!k&&!!z),window.arcircleToken=function(){return k},!!k){var D=I.BLOCK_EXPLORER||"https://arc.etherscan.io",K=function(g){return g.slice(0,6)+"…"+g.slice(-4)},Z=function(){document.querySelectorAll("[data-arc-ca]").forEach(function(g){var f=g.getAttribute("data-arc-ca");g.textContent=f==="full"?k:f==="curve-short"?z?K(z):"—":f==="pool-short"?u?K(u):"—":K(k),f!=="curve-short"&&(g.title=k)}),document.querySelectorAll("[data-arc-href]").forEach(function(g){var f=g.getAttribute("data-arc-href");g.href=f==="scan"?D+"/token/"+k:f==="curve"?z?D+"/address/"+z+"#code":D+"/token/"+k:f==="chart"?I.ARCIRCLE_CHART_URL||D+"/token/"+k:I.ARCIRCLE_BUY_URL||"/arc#arcircle"}),document.querySelectorAll("[data-copy-arc]").forEach(function(g){g.setAttribute("data-copy",k)})};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",Z):Z()}})();function t(){location.href="/reward"}function h(){var O=document.getElementById("ax-stk");O&&O.remove();var I=function(K){return window.arcI18n&&window.arcI18n.get&&window.arcI18n.get()!=="en"&&window.arcI18n.translate&&window.arcI18n.translate(K)||K},k=document.activeElement,z=document.createElement("div");z.id="ax-stk",z.className="ax-stk",z.innerHTML='<div class="ax-stk-scrim" data-stk-close></div><div class="ax-stk-card" role="dialog" aria-modal="true" aria-labelledby="ax-stk-h" tabindex="-1"><button type="button" class="ax-stk-x" data-stk-close aria-label="'+I("Close")+'">'+L+'</button><div class="ax-stk-art"><i class="ax-stk-glow" aria-hidden="true"></i><img src="/images/arcircle-staking-320.webp" alt="ARCIRCLE Staking" width="200" height="200" decoding="async"></div><span class="ax-stk-kick"><i aria-hidden="true"></i>'+I("Coming soon")+'</span><h2 id="ax-stk-h">ARCIRCLE Staking</h2><p>'+I("Staking for $ARCIRCLE is being planned. How it works, what it pays and when it opens will be announced here and on X first.")+'</p><div class="ax-stk-acts"><a class="ax-stk-go" href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">'+I("Follow for updates")+' ↗</a><button type="button" class="ax-stk-ok" data-stk-close>'+I("Got it")+"</button></div></div>",document.body.appendChild(z);var u=z.querySelector(".ax-stk-card");requestAnimationFrame(function(){z.classList.add("in"),u.focus({preventScroll:!0})});var v=function(){if(z.classList.remove("in"),document.removeEventListener("keydown",D,!0),setTimeout(function(){z.remove()},260),k&&k.focus)try{k.focus({preventScroll:!0})}catch{}},D=function(K){if(K.key==="Escape"){K.preventDefault(),v();return}if(K.key==="Tab"){var Z=[].slice.call(u.querySelectorAll("a[href], button")),g=Z.indexOf(document.activeElement);K.shiftKey&&g<=0?(K.preventDefault(),Z[Z.length-1].focus()):!K.shiftKey&&g===Z.length-1&&(K.preventDefault(),Z[0].focus())}};document.addEventListener("keydown",D,!0),z.addEventListener("click",function(K){K.target.closest("[data-stk-close]")&&v()})}window.arcStakingSoon=h;function F(O){return navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(O):new Promise(function(I,k){var z=document.createElement("textarea");z.value=O,z.setAttribute("readonly",""),z.style.position="fixed",z.style.opacity="0",document.body.appendChild(z),z.select();try{document.execCommand("copy")?I():k(new Error("copy failed"))}catch(u){k(u)}document.body.removeChild(z)})}function c(O){var I=O.getAttribute("data-label")||O.textContent;O.setAttribute("data-label",I),F(O.getAttribute("data-copy")).then(function(){O.innerHTML='<svg class="ax-copy-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Copied</span>',O.classList.add("is-done")},function(){O.textContent="Copy failed"}).then(function(){setTimeout(function(){O.textContent=I,O.classList.remove("is-done")},1600)})}document.addEventListener("click",function(O){var I=O.target;if(!(!I||!I.closest)){if(I.closest("[data-reward]")){O.preventDefault(),t();return}var k=I.closest(".ax-copy[data-copy]");k&&c(k)}});var o='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg>',P='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2"/></svg>',A='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>',j='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M4 17.5l4.6-4.4 3.4 3 3.2-3.6 4.8 5"/></svg>',U='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>',V='<svg class="ax-inf" viewBox="0 0 40 20" aria-hidden="true"><defs><linearGradient id="axInfGrad" x1="0" y1="0" x2="40" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs><path class="ax-inf-base" d="M20 10C16.6 5.4 13.8 3.2 10.4 3.2a6.8 6.8 0 0 0 0 13.6c3.4 0 6.2-2.2 9.6-6.8s6.2-6.8 9.6-6.8a6.8 6.8 0 0 1 0 13.6c-3.4 0-6.2-2.2-9.6-6.8z"/><path class="ax-inf-shine" pathLength="100" d="M20 10C16.6 5.4 13.8 3.2 10.4 3.2a6.8 6.8 0 0 0 0 13.6c3.4 0 6.2-2.2 9.6-6.8s6.2-6.8 9.6-6.8a6.8 6.8 0 0 1 0 13.6c-3.4 0-6.2-2.2-9.6-6.8z"/></svg>',L='<svg class="ax-plus" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>',w=[{id:"locker",name:"Locker",sub:"Lock any Arc token until a date you pick",status:"v2",acc:"#35d8d0",href:"/arc#locker",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.4"/></svg>'},{id:"scanner",name:"Token Scanner",sub:"Check any token on Arc, Robinhood Chain or Solana before you buy",status:"v4",acc:"#4d9fff",href:"/arc#scanner",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></svg>'},{id:"multisender",name:"Multisender",sub:"Send a token to many wallets in one go",acc:"#39ff88",href:"/arc#multisend",status:typeof CONFIG<"u"&&/^0x[0-9a-fA-F]{40}$/.test(CONFIG.MULTISEND_ADDRESS||"")?"v2":"Preview",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></svg>'},{id:"bridge",name:"Bridge",sub:"Move USDC between Arc and 14 chains",status:"v2",acc:"#ffc861",href:"/arc#bridge",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></svg>'}],E=[{id:"snapshot",name:"Snapshot",sub:"Every holder of a token at one moment",status:"v1",acc:"#b58bff",href:"/arc#snapshot",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/></svg>'},{id:"liquidity",name:"Liquidity",sub:"Pool dashboard, one-coin shapes and LP locks — Arc and Robinhood",status:"v2",acc:"#39d0ff",href:"/arc#liquidity",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.4"/></svg>'}];E.push({id:"relay",name:"Relay Launch",sub:"CirclePad round → Argus coin, relayed to holders",status:"v1",acc:"#35d8d0",href:"/arc#relay",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></svg>'}),E.push({id:"arcia",name:"ARCIA",sub:"Chat with the AI idol of $ARCIRCLE",status:"v4",acc:"#5b8cff",href:"/arc#arcia",ico:'<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">'});var B=typeof CONFIG<"u"&&CONFIG.OMNI&&/^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER||""),S=[{id:"omni",name:"ARCIRCLE OMNI",sub:"One $ARCIRCLE across Arc, Solana and Robinhood",status:B?"Live":"Preview",acc:"#9b7bff",href:"/arc#omni",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c-1.7-2.3-3.1-3.4-4.8-3.4a3.4 3.4 0 0 0 0 6.8c1.7 0 3.1-1.1 4.8-3.4s3.1-3.4 4.8-3.4a3.4 3.4 0 0 1 0 6.8c-1.7 0-3.1-1.1-4.8-3.4z"/><circle cx="12" cy="3.5" r="1.3"/><circle cx="4" cy="20" r="1.3"/><circle cx="20" cy="20" r="1.3"/></svg>'},{id:"arcia402",name:"ARCIA 402",sub:"ARCIA earns and pays in USDC with x402 on Arc",status:"v1",acc:"#39ff88",href:"/arc#arcia402",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg>'}];S.push({id:"mine",name:"Builder Mine",sub:"Open a mine for your token — builders dig it, the rest is burned",status:"v1",acc:"#ffc861",href:"/arc#mine",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/></svg>'}),S.push({id:"desk",name:"ARCIA DESK",sub:"ARCIA trades new launches on Arc and Robinhood Chain — every trade public",status:"v3",acc:"#39ff88",href:"/arc#desk",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>'});var $=[{id:"agent",name:"ARCIA AGENT",sub:"ARCIA reads any Arc token, calls it and burns it",status:"v2",acc:"#5b8cff",href:"/arc#agent",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>'}];$.push({id:"orders",name:"ARCIRCLE Orders",sub:"Limit, stop, TP/SL, OCO and grid orders — Arc, Robinhood and Solana",status:"v8",acc:"#4dd4ff",href:"/arc#orders",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>'}),$.push({id:"staking",name:"ARCIRCLE Staking",sub:"Lock $ARCIRCLE, earn USDC, vote",status:"v2",acc:"#b58bff",href:"/arc#staking",img:"/images/arcircle-staking-96.webp",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="11" height="9" rx="2"/><path d="M6.8 10.5V8a2.7 2.7 0 0 1 5.4 0v2.5"/><ellipse cx="18" cy="9" rx="2.8" ry="1.3"/><path d="M15.2 9v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3V9M15.2 12.2v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3v-3.2"/></svg>'}),$.push({id:"predict",name:"ARCIRCLE Predict",sub:"UP or DOWN on Arc and Robinhood Chain coins",status:"v3",acc:"#39ff88",href:"/arc#predict",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>'});var x=[{id:"nft",name:"ARCIRCLE NFT Vault",sub:"Fees buy NFTs, holders win them — every draw checkable on-chain",status:"v2",acc:"#ff8bd8",href:"/arc#nft",ico:j},{id:"vearcia",name:"veARCIA",sub:"Stake $ARCIA 1–20 days, earn $ARCIA — $ARCIRCLE boosts it",status:"New",acc:"#ff8bd8",href:"/arc#vearcia",img:"/images/arcia-avatar-96.jpg",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/></svg>'},{id:"works",name:"ARCIA WORKS",sub:"Agents hiring agents — jobs paid in USDC through an escrow on Arc",status:"New",acc:"#ffb547",href:"/arc#works",ico:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="12" rx="2.4"/><path d="M9 7.5V6a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 6v1.5"/><path d="M3.5 12.8h17"/><circle cx="12" cy="12.8" r="1.5"/></svg>'},{id:"next-20",sub:"In development"}],H='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';function Y(){var O=document.querySelector("nav.ax-dock");if(!(!O||document.querySelector("nav.ax-quick"))){var I=document.createElement("nav");I.className="ax-quick",I.setAttribute("aria-label","Quick actions"),I.innerHTML='<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">'+o+'</span><span>Launch</span></a><a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore" aria-label="Explore"><span class="ax-quick-ico">'+U+'</span><span>Explore</span></a><a class="ax-quick-item ax-quick-pf" href="/arc#portfolio" data-arc-tab="portfolio" aria-label="Portfolio"><span class="ax-quick-ico">'+P+'</span><span>Portfolio</span></a><a class="ax-quick-item ax-quick-orders" href="/arc#orders" data-arc-tab="orders" aria-label="Orders"><span class="ax-quick-ico">'+A+'</span><span>Orders</span></a><button type="button" class="ax-quick-util" aria-haspopup="dialog" aria-expanded="false" aria-controls="ax-util" aria-label="Utilities" title="Utilities">'+V+'<span class="ax-plus-wrap">'+L+"</span></button>",O.parentNode.insertBefore(I,O);var k=document.documentElement,z=12,u=function(){var b=O.getBoundingClientRect(),m=I.getBoundingClientRect();k.style.setProperty("--ax-dock-h",Math.round(b.height)+"px");var i=Math.max(0,window.innerHeight-b.bottom),d=window.innerWidth,W=parseFloat(getComputedStyle(O).left)||d/2,a=Math.max(24,2*W-d+12),e=d-24,n=m.width+z+b.width,r=d>=901&&n<=e-a,s=r?Math.min(0,e-(W+n/2))+Math.max(0,a-(W-n/2)):0;k.classList.toggle("ax-float-row",r),r?(k.style.setProperty("--ax-q-shift",Math.round(s-(z+b.width)/2)+"px"),k.style.setProperty("--ax-d-shift",Math.round(s+(m.width+z)/2)+"px"),k.style.setProperty("--ax-q-lift",Math.round((b.height-m.height)/2)+"px"),k.style.setProperty("--ax-float-space",Math.round(i+Math.max(b.height,m.height)+20)+"px")):k.style.setProperty("--ax-float-space",Math.round(i+b.height+10+m.height+20)+"px")};if(u(),window.ResizeObserver){var v=new ResizeObserver(u);v.observe(O),v.observe(I)}window.addEventListener("resize",u);var D=window.scrollY,K=0,Z=!1,g=function(b){I.classList.toggle("ax-quick-hidden",b)};window.addEventListener("scroll",function(){Z||(Z=!0,requestAnimationFrame(function(){Z=!1;var b=window.scrollY,m=b-D;D=b;var i=window.innerHeight+b>=document.documentElement.scrollHeight-4,d=k.classList.contains("ax-float-row"),W=function(a){d?(k.classList.toggle("ax-float-away",a),g(!1)):(k.classList.remove("ax-float-away"),g(a))};if(b<80||i||I.classList.contains("ax-quick-pinned")||I.classList.contains("util-open")){K=0,W(!1);return}K=K>0==m>0?K+m:m,K>24?W(!0):K<-16&&W(!1)}))},{passive:!0}),document.addEventListener("arcpad:tab",function(){K=0,g(!1),k.classList.remove("ax-float-away")}),l(I),I.addEventListener("click",function(b){var m=b.target.closest&&b.target.closest("[data-arc-tab]");!m||typeof window.arcpadShowTab!="function"||(b.preventDefault(),window.arcpadShowTab(m.getAttribute("data-arc-tab")))});var f=function(b){Array.prototype.forEach.call(I.querySelectorAll("[data-arc-tab]"),function(m){m.getAttribute("data-arc-tab")===b?m.setAttribute("aria-current","page"):m.removeAttribute("aria-current")})};document.addEventListener("arcpad:tab",function(b){f(b.detail&&b.detail.tab)});var y=document.querySelector(".bp-panel.active");y&&typeof window.arcpadShowTab=="function"&&f(y.id.replace("bp-panel-",""))}}function l(O){var I=O.querySelector(".ax-quick-util");if(!I)return;var k=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,z=document.createElement("div");z.className="ax-util-scrim",z.hidden=!0;var u=document.createElement("div");u.className="ax-util",u.id="ax-util",u.setAttribute("role","dialog"),u.setAttribute("aria-label","Utilities"),u.setAttribute("tabindex","-1"),u.hidden=!0;var v=function(p,N){if(p.soonPop)return'<div class="ax-util-tile is-coming" role="button" tabindex="0" aria-haspopup="dialog" data-util="'+p.id+'" style="--acc:'+p.acc+";--i:"+N+'"><span class="ax-util-ico ax-util-img"><img src="'+p.img+'" alt="" width="38" height="38" loading="lazy" decoding="async"></span><span class="ax-util-txt"><strong>'+p.name+"</strong><small>"+p.sub+'</small></span><em class="ax-util-st">'+p.status+"</em></div>";var X=p.href?"a":"div";return"<"+X+' class="ax-util-tile'+(p.soon?" is-soon":"")+(p.href?"":" is-off")+'" data-util="'+p.id+'" style="--acc:'+p.acc+";--i:"+N+'"'+(p.href?' href="'+p.href+'"':' aria-disabled="true"')+">"+(p.ico||!p.img?'<span class="ax-util-ico">'+(p.ico||H)+"</span>":'<span class="ax-util-ico ax-util-img"><img src="'+p.img+'" alt="" width="38" height="38" decoding="async"></span>')+'<span class="ax-util-txt"><strong>'+p.name+"</strong><small>"+p.sub+'</small></span><em class="ax-util-st">'+p.status+"</em></"+X+">"},D=function(p,N){return'<div class="ax-util-tile is-soon is-off is-next" data-util="'+p.id+'" style="--acc:#8c98a6;--i:'+N%4+'" aria-disabled="true"><span class="ax-util-ico ax-util-q" aria-hidden="true"><b>?</b></span><span class="ax-util-txt"><strong>Coming soon</strong><small>'+p.sub+'</small></span><em class="ax-util-st">Soon</em><i class="ax-util-no" aria-hidden="true">'+String(N+1).padStart(2,"0")+"</i></div>"};u.innerHTML='<div class="ax-util-head"><span class="ax-util-mark">'+V+'</span><div><strong>Utilities</strong><small>Tools for everyone on Arc</small></div><button type="button" class="ax-util-x" aria-label="Close">'+L+'</button></div><div class="ax-util-pages" aria-roledescription="carousel"><div class="ax-util-track"><div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 5" data-page="0">'+w.map(v).join("")+'</div><div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 5" data-page="1">'+E.map(v).join("")+'</div><div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 5" data-page="2">'+S.map(v).join("")+'</div><div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 5" data-page="3">'+$.map(v).join("")+'</div><div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 5 of 5" data-page="4">'+x.map(function(p,N){return p.href?v(p,N):D(p,N+w.length+E.length+S.length+$.length)}).join("")+'</div></div></div><div class="ax-util-pager" role="tablist" aria-label="Pages"><button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button><button type="button" role="tab" data-go-page="1" aria-selected="false" aria-label="Page 2">2</button><button type="button" role="tab" data-go-page="2" aria-selected="false" aria-label="Page 3">3</button><button type="button" role="tab" data-go-page="3" aria-selected="false" aria-label="Page 4">4</button><button type="button" role="tab" data-go-page="4" aria-selected="false" aria-label="Page 5">5</button></div>',document.body.appendChild(z),document.body.appendChild(u),typeof CONFIG<"u"&&/^0x[0-9a-fA-F]{40}$/.test(CONFIG.BUILDER_MINE_ADDRESS||"")&&window.fetch&&fetch("/api/mine?stats=1").then(function(p){return p.ok?p.json():null}).then(function(p){var N=u.querySelector('[data-util="mine"] small');if(!(!N||!p||!p.live||p.burned==null)){var X=Number(BigInt(p.burned)/1000000000000000000n),ee=X>=1e6?(X/1e6).toFixed(2).replace(/\.?0+$/,"")+"M":X>=1e3?(X/1e3).toFixed(1).replace(/\.0$/,"")+"K":String(X);N.textContent=ee+" $ARCIRCLE burned · "+(p.digging||0)+" digging now"}}).catch(function(){});var K=u.querySelector(".ax-util-track"),Z=[].slice.call(u.querySelectorAll(".ax-util-grid")),g=0,f=null,y=0,b=0,m=!1;function i(p,N){g=Math.max(0,Math.min(Z.length-1,p)),K.classList.toggle("instant",!!N||k),K.style.transform="translateX("+-100*g+"%)",Z.forEach(function(X,ee){ee===g?X.removeAttribute("inert"):X.setAttribute("inert",""),X.classList.toggle("on",ee===g)}),u.querySelectorAll("[data-go-page]").forEach(function(X){X.setAttribute("aria-selected",String(Number(X.getAttribute("data-go-page"))===g))}),u.classList.toggle("on-p2",g>=1),d(N)}function d(p){var N=u.querySelector(".ax-util-pages"),X=Z[g];!N||!X||u.hidden||(N.classList.toggle("instant",!!p||k),N.style.height=X.offsetHeight+"px")}if(window.addEventListener("resize",function(){d(!0)}),window.ResizeObserver){var W=new ResizeObserver(function(){d(!0)});Z.forEach(function(p){W.observe(p)})}i(0,!0),u.querySelector(".ax-util-pager").addEventListener("click",function(p){var N=p.target.closest&&p.target.closest("[data-go-page]");N&&i(Number(N.getAttribute("data-go-page")))});var a=u.querySelector(".ax-util-pages");a.addEventListener("pointerdown",function(p){p.pointerType==="mouse"&&p.button!==0||(f=p.clientX,y=0,b=Date.now(),m=!1)}),window.addEventListener("pointermove",function(p){if(f!=null){if(y=p.clientX-f,!m&&Math.abs(y)>6){m=!0,K.classList.add("instant");try{a.setPointerCapture(p.pointerId)}catch{}}if(m){var N=g===0&&y>0||g===Z.length-1&&y<0;K.style.transform="translateX(calc("+-100*g+"% + "+(N?y/3:y)+"px))"}}});var e=function(){if(f!=null){var p=y,N=Math.abs(p)/Math.max(1,Date.now()-b)>.4;if(f=null,!!m){var X=a.clientWidth||1;(Math.abs(p)>X*.22||N&&Math.abs(p)>24)&&(p<0&&g<Z.length-1||p>0&&g>0)?i(g+(p<0?1:-1)):i(g)}}};window.addEventListener("pointerup",e),window.addEventListener("pointercancel",e),a.addEventListener("click",function(p){m&&(p.preventDefault(),p.stopPropagation(),m=!1)},!0);var n=0;a.addEventListener("wheel",function(p){Math.abs(p.deltaX)<12||Math.abs(p.deltaX)<Math.abs(p.deltaY)||(p.preventDefault(),!(Date.now()-n<450)&&(n=Date.now(),i(g+(p.deltaX>0?1:-1))))},{passive:!1});var r=!1,s=0;function _(){var p=O.getBoundingClientRect(),N=Math.min(440,window.innerWidth-24),X=p.left+p.width/2,ee=Math.max(12,Math.min(window.innerWidth-N-12,X-N/2));u.style.width=N+"px",u.style.left=ee+"px",u.style.bottom=Math.round(window.innerHeight-p.top+10)+"px";var ae=I.getBoundingClientRect();u.style.setProperty("--ox",Math.round(ae.left+ae.width/2-ee)+"px")}function R(){if(!r){r=!0,clearTimeout(s),O.classList.remove("ax-quick-hidden"),O.classList.add("util-open"),I.setAttribute("aria-expanded","true"),z.hidden=!1,u.hidden=!1;var p=document.querySelector(".bp-panel.active"),N=p&&/^\/arc(?:pad\.html)?\/?$/.test(location.pathname)?p.id.replace("bp-panel-",""):"",X=N?u.querySelector('.ax-util-tile[href="/arc#'+N+'"]'):null;Array.prototype.forEach.call(u.querySelectorAll(".ax-util-tile[href]"),function(ee){ee===X?ee.setAttribute("aria-current","page"):ee.removeAttribute("aria-current")}),i(X&&Number(X.parentNode.getAttribute("data-page"))||0,!0),_(),d(!0),u.offsetWidth,u.classList.add("in"),z.classList.add("in"),setTimeout(function(){r&&u.focus({preventScroll:!0})},k?0:180),typeof window.arcHaptic=="function"&&window.arcHaptic("tap")}}function T(p){r&&(r=!1,O.classList.remove("util-open"),I.setAttribute("aria-expanded","false"),u.classList.remove("in"),z.classList.remove("in"),s=setTimeout(function(){u.hidden=!0,z.hidden=!0},k?0:260),p&&I.focus({preventScroll:!0}))}I.addEventListener("click",function(p){p.preventDefault(),p.stopPropagation(),r?T(!0):R()}),z.addEventListener("click",function(){T(!1)}),u.querySelector(".ax-util-x").addEventListener("click",function(){T(!0)}),u.addEventListener("click",function(p){if(p.target.closest&&p.target.closest("a.ax-util-tile")){T(!1);return}if(p.target.closest&&p.target.closest('[data-util="staking"]')){T(!1),h();return}var N=p.target.closest&&p.target.closest(".ax-util-tile.is-off");N&&(N.classList.remove("nudge"),N.offsetWidth,N.classList.add("nudge"))}),u.addEventListener("keydown",function(p){var N=p.target.closest&&p.target.closest('[data-util="staking"]');N&&(p.key==="Enter"||p.key===" ")&&(p.preventDefault(),T(!1),h())}),document.addEventListener("keydown",function(p){if(r){if(p.key==="Escape"){p.preventDefault(),T(!0);return}if((p.key==="ArrowRight"||p.key==="ArrowLeft")&&u.contains(document.activeElement)){p.preventDefault(),i(g+(p.key==="ArrowRight"?1:-1));return}if(p.key==="Tab"){var N=[].slice.call(u.querySelectorAll("a[href], button")).filter(function(ee){return!ee.closest("[inert]")}).concat([I]),X=N.indexOf(document.activeElement);p.shiftKey&&X<=0?(p.preventDefault(),N[N.length-1].focus()):!p.shiftKey&&X===N.length-1&&(p.preventDefault(),N[0].focus())}}}),window.addEventListener("resize",function(){r&&_()}),document.addEventListener("arcpad:tab",function(){T(!1)}),window.arcUtilities={open:R,close:T,list:w.concat(E,S,$,x.filter(function(p){return!!p.href})),page:function(p){if(p==null)return g;i(p)}}}function M(){var O=document.querySelector("nav.ax-dock");if(!(!O||O.querySelector(".ax-dock-glider"))){var I=[].slice.call(O.querySelectorAll(".ax-dock-item")),k=I.findIndex(function(f){return f.getAttribute("aria-current")==="page"}),z="ax-dock-from";if(O.addEventListener("click",function(f){var y=f.target.closest&&f.target.closest(".ax-dock-item");if(!(!y||k<0||I.indexOf(y)===k))try{sessionStorage.setItem(z,String(k))}catch{}}),!(k<0)){var u=document.createElement("span");u.className="ax-dock-glider",u.setAttribute("aria-hidden","true"),O.insertBefore(u,O.firstChild),O.classList.add("has-glider");var v=function(f){var y=I[f];u.style.left=y.offsetLeft+"px",u.style.top=y.offsetTop+"px",u.style.width=y.offsetWidth+"px",u.style.height=y.offsetHeight+"px"},D=null;try{D=sessionStorage.getItem(z),sessionStorage.removeItem(z)}catch{D=null}var K=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,Z=D==null?-1:Number(D);!K&&Z>=0&&Z<I.length&&Z!==k?(v(Z),requestAnimationFrame(function(){requestAnimationFrame(function(){u.classList.add("glide"),v(k)})})):(v(k),requestAnimationFrame(function(){u.classList.add("glide")}));var g=function(){v(k)};window.addEventListener("resize",g),window.ResizeObserver&&new ResizeObserver(g).observe(O)}}}function C(){var O="[data-tk],[data-arl],[data-ac2],[data-lb],#ap-stat-vol,#ac2-liq,#rw-launches,#lkr-count,#apc-price,#apc-mcap,#apc-liq,#apc-vol,#apc-txns,#apc-holders-count,#apc-age",I=[].slice.call(document.querySelectorAll(O)).filter(function(k){return!k.children.length&&k.textContent.trim()==="—"&&!k.closest("[data-no-skel]")});I.length&&(I.forEach(function(k){k.classList.add("arc-skel"),getComputedStyle(k).display==="inline"&&k.classList.add("arc-skel-i");var z=new MutationObserver(function(){k.textContent.trim()!=="—"&&(k.classList.remove("arc-skel","arc-skel-i"),z.disconnect())});z.observe(k,{childList:!0,characterData:!0,subtree:!0}),k.__skelMo=z}),setTimeout(function(){I.forEach(function(k){k.classList.remove("arc-skel","arc-skel-i"),k.__skelMo&&k.__skelMo.disconnect()})},8e3))}Y(),M(),C(),location.hash==="#rewards"&&location.replace("/reward"),window.addEventListener("hashchange",function(){location.hash==="#rewards"&&t()})})(),(function(){"use strict";var t={x:{url:"https://x.com/ARCIRCLEonArc",handle:"@ARCIRCLEonArc",name:"X",sub:"@ARCIRCLEonArc"},tg:{url:"https://t.me/ARCIRCLEonarc",handle:"@ARCIRCLEonarc",name:"Telegram",sub:"Community chat"},alerts:{url:"https://t.me/arcircle_launch",handle:"@arcircle_launch",name:"Launch alerts",sub:"@arcircle_launch"},bot:{url:"https://t.me/ARCIAonArc_bot",handle:"@ARCIAonArc_bot",name:"ARCIA bot",sub:"@ARCIAonArc_bot"}};window.ARC_SOCIAL=t;var h={x:'<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-fill"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',tg:'<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-fill"><path d="M22.05 2.5 2.6 10.13c-1.33.53-1.32 1.27-.24 1.6l4.98 1.55 11.5-7.25c.54-.33 1.04-.15.63.22L10.7 14.3l-.36 5.16c.52 0 .75-.24 1.03-.52l2.48-2.4 5.15 3.8c.95.52 1.63.25 1.87-.88l3.38-15.9c.36-1.39-.53-2.02-1.9-1.06z"/></svg>',bot:'<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 7V4M9 12.5h.01M15 12.5h.01M9.5 16h5"/></svg>',alerts:'<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/><path d="M3.5 8.5a9 9 0 0 1 2.2-4M20.5 8.5a9 9 0 0 0-2.2-4"/></svg>',ext:'<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 13.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5.5"/></svg>'},F=["x","tg","alerts"],c=["x","tg","bot","alerts"],o=function(S,$,x,H){return'<a class="'+$+'" data-soc="'+S+'" href="'+t[S].url+'" target="_blank" rel="noopener"'+(H?' aria-label="'+H+'"':"")+">"+x+"</a>"},P='<i class="soc-live" aria-hidden="true"></i>';function A(S){var $=document.createElement("div");return $.innerHTML=S.trim(),$.firstChild}function j(){var S=document.querySelector("main.ax-hero .ax-sub");if(!(!S||document.querySelector(".ax-social"))){var $='<div class="ax-social" aria-label="Community">'+F.map(function(x){return o(x,"ax-soc ax-soc-"+x,'<span class="ax-soc-ico">'+h[x]+(x==="alerts"?P:"")+'</span><span class="ax-soc-txt"><strong>'+t[x].name+"</strong><small>"+t[x].sub+"</small></span>")}).join("")+"</div>";S.insertAdjacentElement("afterend",A($))}}function U(){var S=document.querySelector(".bp-topbar-right")||document.querySelector("header.ax-top .ax-top-right")||document.querySelector("header.ax-top");if(!(!S||S.querySelector(".soc-head"))){var $=A('<div class="soc-head">'+o("x","soc-head-btn soc-x",h.x,"ARCIRCLE PAD on X")+o("tg","soc-head-btn soc-tg",h.tg,"ARCIRCLE PAD on Telegram")+"</div>"),x=S.querySelector(".lang-toggle");x?S.insertBefore($,x):S.matches("header.ax-top")?S.insertBefore($,S.querySelector(".ax-top-cta")):S.insertBefore($,S.firstChild)}}function V(){var S=document.querySelector(".bp-sidebar .bp-side-foot");if(!(!S||document.querySelector(".bp-side-social"))){var $='<div class="bp-side-social"><div class="bp-side-section-label">Community</div><div class="bp-soc-list">'+c.map(function(x){return o(x,"bp-soc bp-soc-"+x,'<span class="bp-soc-ico">'+h[x]+(x==="alerts"?P:"")+'</span><span class="bp-soc-txt"><strong>'+t[x].name+"</strong><small>"+t[x].sub+'</small></span><span class="bp-soc-ext">'+h.ext+"</span>")}).join("")+"</div></div>";S.parentNode.insertBefore(A($),S)}}function L(){var S=document.querySelector(".axf .axf-brand");if(!(!S||S.querySelector(".axf-social"))){var $='<div class="axf-social" aria-label="Community">'+c.map(function(H){return o(H,"axf-soc axf-soc-"+H,'<span class="axf-soc-ico">'+h[H]+"</span><span>"+t[H].name+"</span>",H==="x"?"ARCIRCLE PAD on X":null)}).join("")+"</div>",x=S.querySelector(".axf-net");S.insertBefore(A($),x||null)}}function w(){var S=function(l){return A('<a class="ap-alerts" id="'+l+'" href="'+t.alerts.url+'" target="_blank" rel="noopener" data-soc="alerts"><span class="ap-alerts-ico">'+h.tg+'<i class="ap-alerts-ping" aria-hidden="true"></i></span><span class="ap-alerts-txt"><strong>Never miss a launch</strong><small>Every new ArcPad coin is posted to our Telegram channel the moment it goes live — logo, market cap and a trade button.</small></span><span class="ap-alerts-cta"><span class="ap-alerts-handle" data-no-i18n>'+t.alerts.handle+"</span><b>Join channel</b></span></a>")},$=document.getElementById("ap-explore-grid");$&&!document.getElementById("ap-alerts-explore")&&$.insertAdjacentElement("afterend",S("ap-alerts-explore"));var x=document.getElementById("ap-home-viewport"),H=x&&(x.closest(".carousel-section")||x.parentNode);H&&!document.getElementById("ap-alerts-home")&&H.insertAdjacentElement("afterend",S("ap-alerts-home"));var Y=document.querySelector("#bp-panel-launch .ap-launch-btn-note");Y&&!document.querySelector(".ap-launch-announce")&&Y.insertAdjacentElement("afterend",A('<a class="ap-launch-announce" href="'+t.alerts.url+'" target="_blank" rel="noopener" data-soc="alerts"><span class="ap-launch-announce-ico">'+h.tg+"</span><span>Your launch is announced automatically in <b data-no-i18n>"+t.alerts.handle+'</b></span><span class="ap-launch-announce-go">'+h.ext+"</span></a>"))}function E(S){var $=S.target.closest&&S.target.closest("[data-soc]");$&&typeof window.va=="function"&&window.va("event",{name:"social_click",data:{to:$.getAttribute("data-soc")}})}function B(){j(),V(),L(),w(),setTimeout(U,0)}document.addEventListener("click",E),document.readyState==="loading"?document.addEventListener("DOMContentLoaded",B):B()})(),(function(){"use strict";if(window.arcCmdk)return;var t=function(u){return window.arcI18n&&window.arcI18n.get&&window.arcI18n.get()!=="en"&&window.arcI18n.translate(u)||u},h=function(u){return String(u??"").replace(/[&<>"']/g,function(v){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[v]})},F=function(u){return/^0x[0-9a-fA-F]{40}$/.test(u)},c=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent||""),o=[["Home","ARCIRCLE PAD","/","page"],["ArcPad","Launch a coin in one transaction","/arc","page"],["Launch a coin","ArcPad launch form","/arc#launch","page"],["CirclePad","Community-funded launches"+(window.CONFIG&&CONFIG.CIRCLEPAD_STATUS&&CONFIG.CIRCLEPAD_STATUS.line?" · "+CONFIG.CIRCLEPAD_STATUS.line:""),"/circle","page"],["$ARCIRCLE","Price, holders, burns and buybacks","/arcircle","page"],["Relay Launch","Every CirclePad coin relayed to holders","/relay","page"],["Reward","Holder rewards","/reward","page"],["My ARCIRCLE","One wallet across the whole site","/me","page"],["Stats","ARCIRCLE PAD in numbers","/stats","page"],["Roadmap","What's done, what's next","/roadmap","page"],["Get started","Add Arc, bring USDC, pick a path","/start","page"],["Brand kit","Logo and colours","/brand","page"],["Round #1 report","CirclePad round results","/circle/round/1","page"],["Whitepaper","How everything fits together","/whitepaper","doc"],["백서 (한국어)","Whitepaper in Korean","/whitepaper/ko","doc"],["ArcPad docs","Fees, curve, graduation","/arc#docs","doc"],["CirclePad docs","Rounds, voting, refunds","/circle#docs","doc"],["X / Twitter","@ARCIRCLEonArc","https://x.com/ARCIRCLEonArc","link"],["Telegram","Community chat","https://t.me/ARCIRCLEonarc","link"]],P={page:"Page",doc:"Docs",util:"Utility",coin:"Coin",link:"Link",addr:"Address"},A=null,j=!1;function U(){A||j||(j=!0,fetch("/api/c?view=coins").then(function(u){return u.ok?u.json():null}).then(function(u){A=u&&Array.isArray(u.coins)?u.coins:[],j=!1,$&&M()}).catch(function(){A=[],j=!1}))}function V(){var u=window.arcUtilities&&Array.isArray(window.arcUtilities.list)?window.arcUtilities.list:[];return u.length||(u=[{name:"Locker",sub:"Lock any Arc token",href:"/arc#locker"},{name:"Token Scanner",sub:"Check any Arc token",href:"/arc#scanner"},{name:"Multisender",sub:"Send a token to many wallets",href:"/arc#multisend"},{name:"Snapshot",sub:"Every holder at one moment",href:"/arc#snapshot"},{name:"Liquidity",sub:"Pool dashboard, one-coin shapes, LP locks",href:"/arc#liquidity"},{name:"Bridge",sub:"Move USDC to Arc",href:"/arc#bridge"}]),u.filter(function(v){return v.href}).map(function(v){return[v.name,v.sub||"",v.href,"util"]})}function L(u,v,D){if(v=String(v||"").toLowerCase(),D=String(D||"").toLowerCase(),!u)return 1;if(v===u)return 100;if(v.indexOf(u)===0)return 60;if(v.indexOf(u)>0)return 40;if(D.indexOf(u)>=0)return 20;for(var K=0,Z=0;Z<v.length&&K<u.length;Z++)v[Z]===u[K]&&K++;return K===u.length?8:0}function w(u){u=u.trim();var v=u.toLowerCase(),D=[];if(F(u))return D.push(["Open coin on ArcPad",u,"/arc#coin/"+u,"addr"]),D.push(["Scan this token","Token Scanner","/arc#scanner?t="+u,"addr"]),D.push(["Look up this wallet","My ARCIRCLE","/me?w="+u.toLowerCase(),"addr"]),D.push(["View on the explorer","arc.etherscan.io",(window.CONFIG&&CONFIG.BLOCK_EXPLORER||"https://arc.etherscan.io")+"/address/"+u,"link"]),D;var K=o.concat(V()),Z={};return K.forEach(function(g){if(!Z[g[2]]){Z[g[2]]=1;var f=Math.max(L(v,g[0],g[1]),L(v,t(g[0]),t(g[1])));f&&D.push(g.concat([f+(g[3]==="page"?2:0)]))}}),v&&A&&A.forEach(function(g){var f=Math.max(L(v.replace(/^\$/,""),g.s,g.n),L(v,g.n,""));!f&&v.length>=4&&g.t.toLowerCase().indexOf(v)===0&&(f=30),f&&D.push(["$"+g.s,g.n,"/arc#coin/"+g.t,"coin",f-1])}),D.sort(function(g,f){return(f[4]||0)-(g[4]||0)}),D.slice(0,v?12:14)}var E,B,S,$=!1,x=0,H=[],Y=null;function l(){E=document.createElement("div"),E.className="ckp",E.hidden=!0,E.setAttribute("role","dialog"),E.setAttribute("aria-modal","true"),E.setAttribute("aria-label","Search"),E.innerHTML='<div class="ck-bg" data-ck-close></div><div class="ck-box"><div class="ck-in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/></svg><input type="text" spellcheck="false" autocomplete="off" role="combobox" aria-expanded="true" aria-controls="ck-list" aria-autocomplete="list"><kbd data-ck-close>Esc</kbd></div><ul class="ck-list" id="ck-list" role="listbox"></ul><div class="ck-foot"><span><kbd>↑</kbd><kbd>↓</kbd> <em></em></span><span><kbd>↵</kbd> <em></em></span><span class="ck-hint"></span></div></div>',document.body.appendChild(E),B=E.querySelector("input"),S=E.querySelector(".ck-list"),E.addEventListener("click",function(u){if(u.target.closest("[data-ck-close]"))return k();var v=u.target.closest("[data-ck-i]");v&&O(Number(v.getAttribute("data-ck-i")),u)}),S.addEventListener("mousemove",function(u){var v=u.target.closest("[data-ck-i]");if(v){var D=Number(v.getAttribute("data-ck-i"));D!==x&&(x=D,C())}}),B.addEventListener("input",function(){x=0,M()}),B.addEventListener("keydown",function(u){u.key==="ArrowDown"?(u.preventDefault(),x=Math.min(H.length-1,x+1),C(!0)):u.key==="ArrowUp"?(u.preventDefault(),x=Math.max(0,x-1),C(!0)):u.key==="Enter"?(u.preventDefault(),O(x,u)):u.key==="Escape"?(u.preventDefault(),k()):u.key==="Tab"&&u.preventDefault()})}function M(){var u=B.value;if(H=w(u),!H.length){S.innerHTML='<li class="ck-none">'+h(t(j?"Loading coins…":"Nothing found. Paste a token or wallet address to jump straight to it."))+"</li>";return}S.innerHTML=H.map(function(v,D){var K=/^https?:/.test(v[2]);return'<li role="option" id="ck-o'+D+'" data-ck-i="'+D+'" class="ck-'+v[3]+'"><span class="ck-k">'+h(t(P[v[3]]||""))+'</span><span class="ck-t"><b'+(v[3]==="coin"||v[3]==="addr"&&D===0?" data-no-i18n":"")+">"+h(v[3]==="coin"?v[0]:t(v[0]))+"</b><small"+(v[3]==="coin"||v[3]==="addr"?" data-no-i18n":"")+">"+h(v[3]==="coin"||/^0x/.test(v[1])?v[1]:t(v[1]))+"</small></span>"+(K?'<span class="ck-ext" aria-hidden="true">↗</span>':"")+"</li>"}).join(""),C()}function C(u){var v=S.querySelectorAll("[data-ck-i]");v.forEach(function(D,K){D.classList.toggle("on",K===x),D.setAttribute("aria-selected",K===x?"true":"false")}),B.setAttribute("aria-activedescendant",v[x]?"ck-o"+x:""),u&&v[x]&&v[x].scrollIntoView({block:"nearest"})}function O(u,v){var D=H[u];if(D){var K=D[2];if(k(),/^https?:/.test(K)){window.open(K,"_blank","noopener");return}var Z=location.pathname.replace(/\.html$/,"").replace(/\/$/,"")||"/",g=K.split("#")[0].split("?")[0]||"/",f=function(y){return y==="/arcpad"?"/arc":y==="/circlepad"?"/circle":y};if(v&&(v.metaKey||v.ctrlKey)){window.open(K,"_blank","noopener");return}if(f(Z)===f(g)&&K.indexOf("#")>=0&&K.indexOf("?")<0){location.hash=K.slice(K.indexOf("#"));return}location.href=K}}function I(u){E||l(),Y=document.activeElement,E.hidden=!1,$=!0,document.documentElement.classList.add("ck-open"),B.placeholder=t("Search pages, utilities, coins, or paste an address");var v=E.querySelectorAll(".ck-foot em");v[0].textContent=t("to move"),v[1].textContent=t("to open"),E.querySelector(".ck-hint").textContent=(c?"⌘":"Ctrl")+" K",B.value=u||"",x=0,M(),U(),requestAnimationFrame(function(){B.focus(),E.classList.add("in")})}function k(){if(!(!E||!$)&&($=!1,E.classList.remove("in"),E.hidden=!0,document.documentElement.classList.remove("ck-open"),Y&&Y.focus))try{Y.focus()}catch{}}document.addEventListener("keydown",function(u){var v=(u.key||"").toLowerCase();if((u.metaKey||u.ctrlKey)&&v==="k"){u.preventDefault(),$?k():I();return}if(v==="/"&&!$&&!u.metaKey&&!u.ctrlKey&&!u.altKey){var D=u.target,K=D&&D.tagName;if(K==="INPUT"||K==="TEXTAREA"||K==="SELECT"||D&&D.isContentEditable)return;u.preventDefault(),I()}}),document.addEventListener("paste",function(u){if(!$){var v=u.target,D=v&&v.tagName;if(!(D==="INPUT"||D==="TEXTAREA"||v&&v.isContentEditable)){var K=(u.clipboardData&&u.clipboardData.getData("text")||"").trim();F(K)&&(u.preventDefault(),I(K))}}});function z(){if(!document.querySelector(".ck-btn")){var u=document.querySelector(".bp-topbar-right"),v=u||document.querySelector("header.ax-top");if(v){var D=document.createElement("button");if(D.type="button",D.className="ck-btn",D.setAttribute("aria-label","Search"),D.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/></svg><span>Search</span><kbd>'+(c?"⌘K":"Ctrl K")+"</kbd>",D.addEventListener("click",function(){I()}),u){D.classList.add("ck-btn-bar"),D.setAttribute("aria-label","Search the whole site"),u.insertBefore(D,u.querySelector(".bp-chain-pill")||u.firstChild);return}var K=v.querySelector(".ax-top-right, .ax-top-cta");K?v.insertBefore(D,K):v.appendChild(D)}}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",z):z(),window.arcCmdk={open:I,close:k}})();try{window.top!==window.self&&/^\/play\b/.test(window.top.location.pathname)&&(document.documentElement.classList.add("in-world"),document.addEventListener("keydown",function(t){t.key==="Escape"&&!t.defaultPrevented&&window.top.postMessage({arcWorld:"close"},location.origin)}))}catch{}(function(){"use strict";if(window.arcNav)return;var t=document,h=t.documentElement,F={planet:'<circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.2 15.2c-1.6 2.4 4.7 2.2 10.3-.6s9.4-6.7 7.3-7.6c-.8-.3-2.2-.1-3.9.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',home:'<path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h4.5V14h4v5.5h4.5V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',grid:'<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/>',rocket:'<path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3M9.5 19.5 12 22l2.5-2.5"/>',doc:'<path d="M6.5 3h8L18.5 6v15h-12z"/><path d="M14.5 3v3h4"/>',search:'<circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/>',link:'<path d="M9.5 14.5 14.5 9.5"/><path d="M11 7.2 13.2 5A4 4 0 1 1 19 10.8L16.8 13"/><path d="M13 16.8 10.8 19A4 4 0 1 1 5 13.2L7.2 11"/>',ext:'<path d="M14 5h5v5M19 5l-8.5 8.5"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',chevron:'<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',wallet:'<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2" fill="currentColor"/>',scan:'<path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/>',bridge:'<path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/>',omni:'<path d="M12 12c-1.7-2.3-3.1-3.4-4.8-3.4a3.4 3.4 0 0 0 0 6.8c1.7 0 3.1-1.1 4.8-3.4s3.1-3.4 4.8-3.4a3.4 3.4 0 0 1 0 6.8c-1.7 0-3.1-1.1-4.8-3.4z"/><circle cx="12" cy="3.5" r="1.3"/><circle cx="4" cy="20" r="1.3"/><circle cx="20" cy="20" r="1.3"/>',arcia:'<path d="M5 17.5V8.5A3.5 3.5 0 0 1 8.5 5h7A3.5 3.5 0 0 1 19 8.5v5a3.5 3.5 0 0 1-3.5 3.5H10l-4 3z"/><path d="M12 8.2l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z"/>',mine:'<path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/>',desk:'<path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/>',agent:'<circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',swap:'<path d="M7 4v14M7 18l-3-3M7 18l3-3M17 20V6M17 6l-3 3M17 6l3 3"/>',orders:'<path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/>',predict:'<path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/>',nft:'<rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M4 17.5l4.6-4.4 3.4 3 3.2-3.6 4.8 5"/>',vea:'<rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/>',stake:'<rect x="5" y="10.5" width="14" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><path d="M12 14v2.5"/>',works:'<rect x="3.5" y="7.5" width="17" height="12" rx="2.4"/><path d="M9 7.5V6a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 6v1.5"/><path d="M3.5 12.8h17"/><circle cx="12" cy="12.8" r="1.5"/>',a402:'<circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/>',relay:'<circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/>',snap:'<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/>',fan:'<circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/>',drop:'<path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.4"/>',lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.3"/>',trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6M10 17h4"/>',star:'<path d="M12 3.2l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.6l6-.9z" fill="currentColor"/>',coin:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3v9.4"/><path d="M9.4 9.6c0-1.3 1.2-2.3 2.6-2.3s2.6.9 2.6 2c0 2.6-5.2 1.3-5.2 3.9 0 1.1 1.2 2 2.6 2s2.6-.9 2.6-2.1"/>',bars:'<path d="M5 20V13"/><path d="M12 20V7"/><path d="M19 20V10"/>',user:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5"/>',gift:'<rect x="4" y="10" width="16" height="10" rx="1"/><path d="M4 10h16M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/>',bank:'<path d="M4 10 12 4l8 6"/><path d="M5 10v9M9.3 10v9M14.7 10v9M19 10v9"/><path d="M3 21h18"/>',clock:'<circle cx="12" cy="12" r="8.2"/><path d="M12 7.5V12l3.2 2"/>',users:'<circle cx="9" cy="8.3" r="3.2"/><path d="M2.8 19.5c0-3.4 2.8-6.2 6.2-6.2s6.2 2.8 6.2 6.2"/><path d="M15.5 6.3a3.1 3.1 0 0 1 0 6.1M18.8 19.5c0-2.7-1.8-5-4.3-5.8"/>',atom:'<circle cx="12" cy="12" r="1.6" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(120 12 12)"/>',crown:'<path d="M4 18.5h16l-1.2-9-4 3.8-2.8-5.6-2.8 5.6-4-3.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'};F.tools='<path d="M14.7 6.3a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3z"/><path d="M14.7 6.3 17 4l3 3-2.3 2.3"/><path d="M5 4.5 9 8.5M4 9.5l3-3"/>',F.cat='<path d="M5 9.5V4.5l3.5 3h7l3.5-3v5c1 1.3 1.5 2.8 1.5 4.5 0 4.1-3.8 6.5-8.5 6.5S3.5 18.1 3.5 14c0-1.7.5-3.2 1.5-4.5z"/><path d="M9 13.2h.01M15 13.2h.01M11 16c.6.5 1.4.5 2 0"/>',F.chat='<path d="M5 17.5V8.5A3.5 3.5 0 0 1 8.5 5h7A3.5 3.5 0 0 1 19 8.5v5a3.5 3.5 0 0 1-3.5 3.5H10l-4 3z"/>',F.chart='<path d="M4 19.5h16"/><path d="M7 16v-4M11 16V8M15 16v-6M19 16V5"/>',F.map='<path d="M9 4.5 3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5z"/><path d="M9 4.5v13M15 6.5v13"/>',F.brand='<circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/>',F.flag='<path d="M5 21V4.5M5 5h11l-2 3.5 2 3.5H5"/>';var c={ko:{"ARCIRCLE Wallet":"ARCIRCLE 지갑",Trade:"트레이드",Earn:"수익",Tools:"도구",More:"더보기",Home:"홈",Wallet:"지갑",Search:"검색",Language:"언어","Search & language":"검색 · 언어",Close:"닫기",Menu:"메뉴",Explore:"탐색","Every coin on ArcPad, live":"ArcPad의 모든 코인 실시간",Launch:"런치","Launch a coin with a real pool":"실제 풀과 함께 코인 발행","Quantum Launch":"퀀텀 런치","One price for everyone, no snipers":"모두 같은 가격, 스나이퍼 없음","Game World":"게임 월드","Walk ARCIRCLE World as a robot":"로봇이 되어 ARCIRCLE 월드를 걷기",Orders:"주문","Limit, stop and DCA orders":"지정가·스탑·분할매수 주문",Predict:"예측","Call UP or DOWN, up to $5":"UP/DOWN 예측, 최대 $5",Portfolio:"포트폴리오","What your wallet holds":"내 지갑 보유 현황","Fund a launch together":"함께 모금해서 런치",Creators:"크리에이터","Relay Launch":"릴레이 런치","Getting started":"시작하기",Staking:"스테이킹","Lock $ARCIRCLE for veARCIRCLE":"$ARCIRCLE 락업 → veARCIRCLE","Stake $ARCIA, earn $ARCIA":"$ARCIA 스테이킹, $ARCIA 보상","NFT Vault":"NFT 볼트","Fees buy NFTs for holders":"수수료로 홀더용 NFT 구매",Reward:"리워드","The $ARCIRCLE burn engine":"$ARCIRCLE 소각 엔진","Builder Mine":"빌더 마인",Airdrops:"에어드랍","Every reward and where it stands":"모든 보상과 진행 상황","Dig coins with 1 USDC":"1 USDC로 코인 채굴",Stats:"통계","Invite friends":"친구 초대","My profile":"내 프로필","Her stage, Arc's AI idol":"Arc의 AI 아이돌 무대","Her cat and his buyback":"ARCIA의 고양이와 바이백","ARCIA trades new coins in public":"ARCIA가 새 코인을 공개 트레이딩","Paste a token, get her safety call":"토큰 주소로 안전 판정 받기","AI agents hire each other in USDC":"AI 에이전트끼리 USDC로 일 거래","Talk to ARCIA":"ARCIA와 대화",Scanner:"스캐너","Safety-scan any token":"토큰 안전 점검",Locker:"락커","Lock tokens or LP":"토큰·LP 잠금",Bridge:"브리지","Move coins between chains":"체인 간 코인 이동",Multisender:"멀티센더","Send to many wallets at once":"여러 지갑에 한 번에 전송",Snapshot:"스냅샷","Holder lists for airdrops":"에어드랍용 홀더 목록",Liquidity:"유동성","Add and manage pool liquidity":"풀 유동성 추가·관리",Docs:"문서","What's new":"새 소식",Whitepaper:"백서",Roadmap:"로드맵",Brand:"브랜드","The core coin":"핵심 코인","ARCIA's coin":"ARCIA의 코인","Everything on ARCIRCLE PAD":"ARCIRCLE PAD 한눈에 보기","Launch, buy and sell on Arc":"Arc에서 발행하고 사고팔기","Stake, burn and get rewarded":"스테이킹·소각으로 보상받기","Arc's AI idol and her crew":"Arc의 AI 아이돌과 친구들","Free tools for any Arc token":"모든 Arc 토큰용 무료 도구"},zh:{"ARCIRCLE Wallet":"ARCIRCLE 钱包",Trade:"交易",Earn:"收益",Tools:"工具",More:"更多",Home:"首页",Wallet:"钱包",Search:"搜索",Language:"语言","Search & language":"搜索 · 语言",Close:"关闭",Menu:"菜单",Explore:"探索","Every coin on ArcPad, live":"ArcPad 全部代币，实时",Launch:"发币","Launch a coin with a real pool":"发行代币，自带真实池子","Quantum Launch":"量子发射","One price for everyone, no snipers":"所有人同一价格，没有狙击","Game World":"游戏世界","Walk ARCIRCLE World as a robot":"化身机器人漫游 ARCIRCLE 世界",Orders:"订单","Limit, stop and DCA orders":"限价、止损和定投订单",Predict:"预测","Call UP or DOWN, up to $5":"猜涨跌，最多 $5",Portfolio:"资产","What your wallet holds":"你的钱包持仓","Fund a launch together":"一起众筹发币",Creators:"创作者","Relay Launch":"接力发币","Getting started":"新手入门",Staking:"质押","Lock $ARCIRCLE for veARCIRCLE":"锁仓 $ARCIRCLE 获得 veARCIRCLE","Stake $ARCIA, earn $ARCIA":"质押 $ARCIA，赚 $ARCIA","NFT Vault":"NFT 金库","Fees buy NFTs for holders":"手续费为持有者购买 NFT",Reward:"奖励","The $ARCIRCLE burn engine":"$ARCIRCLE 销毁引擎","Builder Mine":"建造者矿场",Airdrops:"空投","Every reward and where it stands":"所有奖励及进度","Dig coins with 1 USDC":"用 1 USDC 挖币",Stats:"数据","Invite friends":"邀请好友","My profile":"我的主页","Her stage, Arc's AI idol":"Arc 的 AI 偶像舞台","Her cat and his buyback":"她的猫和回购","ARCIA trades new coins in public":"ARCIA 公开交易新币","Paste a token, get her safety call":"粘贴代币，获得安全判断","AI agents hire each other in USDC":"AI 代理之间用 USDC 雇佣","Talk to ARCIA":"和 ARCIA 聊天",Scanner:"扫描","Safety-scan any token":"代币安全检查",Locker:"锁仓","Lock tokens or LP":"锁定代币或 LP",Bridge:"跨链桥","Move coins between chains":"跨链转移代币",Multisender:"批量转账","Send to many wallets at once":"一次发给多个钱包",Snapshot:"快照","Holder lists for airdrops":"空投用持有者名单",Liquidity:"流动性","Add and manage pool liquidity":"添加和管理池子流动性",Docs:"文档","What's new":"最新更新",Whitepaper:"白皮书",Roadmap:"路线图",Brand:"品牌","The core coin":"核心代币","ARCIA's coin":"ARCIA 的代币","Everything on ARCIRCLE PAD":"ARCIRCLE PAD 一览","Launch, buy and sell on Arc":"在 Arc 上发币和交易","Stake, burn and get rewarded":"质押、销毁、获得奖励","Arc's AI idol and her crew":"Arc 的 AI 偶像和她的伙伴","Free tools for any Arc token":"适用于任何 Arc 代币的免费工具"}},o=function(){var e=(h.getAttribute("lang")||"").slice(0,2);if(e!=="ko"&&e!=="zh")try{e=localStorage.getItem("arcircle.lang")||e}catch{}return e==="ko"||e==="zh"?e:"en"},P=function(e){var n=c[o()];return n&&n[e]||e},A=function(e){return String(e).replace(/[&<>"']/g,function(n){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[n]})},j=function(e,n){return'<svg class="'+(n||"anav-i")+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(F[e]||"")+"</svg>"},U=[{id:"trade",label:"Trade",icon:"predict",line:"Launch, buy and sell on Arc",items:[["explore","Explore","Every coin on ArcPad, live","/arc#explore","grid"],["launch","Launch","Launch a coin with a real pool","/arc#launch","rocket"],["quantum","Quantum Launch","One price for everyone, no snipers","/arc#quantum","atom"],["play","Game World","Walk ARCIRCLE World as a robot","/play","planet"],["swap","Swap","Buy any Arc token with $ARCIRCLE","/arc#swap","swap"],["orders","Orders","Limit, stop and DCA orders","/arc#orders","orders"],["predict","Predict","Call UP or DOWN, up to $5","/arc#predict","predict"],["paper","Paper Trading","Play money, live prices, weekly board","/arc#paper","trophy"],["portfolio","Portfolio","What your wallet holds","/arc#portfolio","wallet"],["circle","CirclePad","Fund a launch together","/circle","brand"]],more:[["perp","Perps (soon)","/arc#perp"],["creators","Creators","/arc#creators"],["relay","Relay Launch","/arc#relay"],["start","Getting started","/start"]]},{id:"earn",label:"Earn",icon:"coin",line:"Stake, burn and get rewarded",items:[["staking","Staking","Lock $ARCIRCLE for veARCIRCLE","/arc#staking","stake"],["vearcia","veARCIA","Stake $ARCIA, earn $ARCIA","/arc#vearcia","vea"],["nft","NFT Vault","Fees buy NFTs for holders","/arc#nft","nft"],["reward","Reward","The $ARCIRCLE burn engine","/reward","gift"],["mine","Builder Mine","Dig coins with 1 USDC","/arc#mine","mine"],["airdrops","Airdrops","Every reward and where it stands","/airdrops","drop"]],more:[["invite","Invite friends","/arc#portfolio"],["stats","Stats","/stats"],["me","My profile","/me"]]},{id:"arcia",label:"ARCIA",icon:"arcia",line:"Arc's AI idol and her crew",items:[["stage","ARCIA","Her stage, Arc's AI idol","/arcia","arcia"],["arcat","ARCAT","Her cat and his buyback","/arcat","cat"],["desk","DESK","ARCIA trades new coins in public","/arc#desk","desk"],["agent","AGENT","Paste a token, get her safety call","/arc#agent","agent"],["works","WORKS","AI agents hire each other in USDC","/arc#works","works"]],more:[["arcia","Talk to ARCIA","/arc#arcia"],["arcia402","ARCIA 402","/arc#arcia402"]]},{id:"tools",label:"Tools",icon:"tools",line:"Free tools for any Arc token",items:[["scanner","Scanner","Safety-scan any token","/arc#scanner","scan"],["locker","Locker","Lock tokens or LP","/arc#locker","lock"],["bridge","Bridge","Move coins between chains","/arc#bridge","bridge"],["multisend","Multisender","Send to many wallets at once","/arc#multisend","fan"],["snapshot","Snapshot","Holder lists for airdrops","/arc#snapshot","snap"],["liquidity","Liquidity","Add and manage pool liquidity","/arc#liquidity","drop"]],more:[["omni","OMNI","/arc#omni"],["docs","Docs","/arc#docs"],["whitepaper","Whitepaper","/whitepaper"],["updates","What's new","/updates"],["roadmap","Roadmap","/roadmap"],["brand","Brand","/brand"],["wallet","ARCIRCLE Wallet","/wallet"]]}],V={home:["trade","explore"],coin:["trade","explore"],compare:["trade","explore"],creator:["trade","creators"],arcircle:[null,null]},L=(location.pathname.replace(/\.html$/,"").replace(/\/+$/,"")||"/").replace(/^\/arcpad$/,"/arc").replace(/^\/circlepad$/,"/circle"),w=L==="/arc",E=function(){var e=location.hash.replace(/^#\/?/,"").split(/[?/]/)[0];return e&&t.getElementById("bp-panel-"+e)?e:"home"},B=w?E():"";function S(){if(w){if(V[B])return V[B];for(var e=0;e<U.length;e++)for(var n=U[e],r=n.items.concat(n.more),s=0;s<r.length;s++)if(r[s][r[s].length===3?2:3]==="/arc#"+B)return[n.id,r[s][0]];return[null,null]}for(var _=0;_<U.length;_++)for(var R=U[_],T=R.items.concat(R.more),p=0;p<T.length;p++){var N=T[p][T[p].length===3?2:3];if(N.indexOf("#")<0&&(L===N||L.indexOf(N+"/")===0))return[R.id,T[p][0]]}return[null,null]}function $(e,n){var r=/^\/arc#([a-z0-9]+)$/.exec(e);if(r&&w&&t.getElementById("bp-panel-"+r[1])&&typeof window.arcpadShowTab=="function"){n&&n.preventDefault(),m(),window.arcpadShowTab(r[1]);return}m()}function x(e,n,r){var s=n[1]===e[0];return'<a class="'+r+(s?" on":"")+'" href="'+A(e[3])+'"'+(s?' aria-current="page"':"")+'><span class="anav-ib">'+j(e[4])+'</span><span class="anav-it-tx"><b>'+A(P(e[1]))+"</b><small>"+A(P(e[2]))+"</small></span></a>"}function H(e){return'<div class="anav-more"><span>'+A(P("More"))+"</span>"+e.more.map(function(n){return'<a href="'+A(n[2])+'">'+A(P(n[1]))+"</a>"}).join("")+"</div>"}function Y(e,n){return'<div class="anav-items">'+e.items.map(function(r){return x(r,n,"anav-it")}).join("")+"</div>"+H(e)}var l,M,C,O,I=null,k=null,z=0,u=[["en","English"],["ko","한국어"],["zh","中文"]];function v(){var e=S();l=t.createElement("div"),l.className="anav",l.id="anav",l.setAttribute("role","banner"),l.setAttribute("data-no-i18n",""),l.innerHTML='<div class="anav-in"><a class="anav-logo" href="/" aria-label="ARCIRCLE PAD — '+A(P("Home"))+'"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>ARCIRCLE</span></a><div class="anav-groups" role="navigation" aria-label="'+A(P("Menu"))+'">'+U.map(function(n){return'<div class="anav-g'+(e[0]===n.id?" here":"")+'" data-g="'+n.id+'"><button type="button" class="anav-gb" aria-expanded="false" aria-controls="anav-p-'+n.id+'">'+A(P(n.label))+j("chevron","anav-chev")+'</button><div class="anav-panel" id="anav-p-'+n.id+'" hidden>'+Y(n,e)+"</div></div>"}).join("")+'</div><div class="anav-right"><button type="button" class="anav-ic anav-search" aria-label="'+A(P("Search"))+'" hidden>'+j("search")+'</button><div class="anav-lang"><button type="button" class="anav-ic anav-lb" aria-haspopup="true" aria-expanded="false" aria-label="'+A(P("Language"))+'">'+o().toUpperCase()+'</button><div class="anav-lmenu" hidden>'+u.map(function(n){return'<button type="button" data-l="'+n[0]+'"'+(o()===n[0]?' aria-current="true"':"")+">"+n[1]+"</button>"}).join("")+'</div></div><div class="anav-mx"><button type="button" class="anav-ic anav-mb" aria-haspopup="true" aria-expanded="false" aria-label="'+A(P("Search & language"))+'">'+j("search")+"<b>"+o().toUpperCase()+'</b></button><div class="anav-mmenu" hidden><button type="button" data-act="search" hidden>'+j("search")+"<span>"+A(P("Search"))+'</span></button><hr data-act="search" hidden><small>'+A(P("Language"))+"</small>"+u.map(function(n){return'<button type="button" data-l="'+n[0]+'"'+(o()===n[0]?' aria-current="true"':"")+"><span>"+n[1]+"</span></button>"}).join("")+'</div></div><a class="anav-chip" href="/arcircle" title="$ARCIRCLE — '+A(P("The core coin"))+'"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>$ARCIRCLE</span></a><a class="anav-chip" href="/arcia" title="$ARCIA — '+A(P("ARCIA's coin"))+'"><img src="/images/arcia-avatar-96.jpg" alt="" width="96" height="96" class="r"><span>$ARCIA</span></a><div class="cw"></div></div></div><div class="anav-strip" role="navigation" aria-label="'+A(P("Menu"))+' 2" hidden><div class="anav-strip-in"></div></div>',M=t.createElement("div"),M.className="anav-tabs",M.setAttribute("role","navigation"),M.setAttribute("aria-label",P("Menu")),M.setAttribute("data-no-i18n",""),M.innerHTML='<a class="anav-tab'+(L==="/"?" on":"")+'" href="/">'+j("home")+"<span>"+A(P("Home"))+"</span></a>"+U.map(function(n){return'<button type="button" class="anav-tab'+(e[0]===n.id?" on":"")+'" data-g="'+n.id+'" aria-haspopup="dialog">'+j(n.icon)+"<span>"+A(P(n.label))+"</span></button>"}).join(""),C=t.createElement("div"),C.className="anav-sheet",C.hidden=!0,C.setAttribute("data-no-i18n",""),C.innerHTML='<div class="anav-scrim"></div><div class="anav-sheet-in" role="dialog" aria-modal="true" aria-labelledby="anav-sheet-h"><div class="anav-sheet-top"><b id="anav-sheet-h"></b><button type="button" class="anav-ic anav-x" aria-label="'+A(P("Close"))+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="anav-sheet-body"></div></div>',t.body.insertBefore(l,t.body.firstChild),t.body.appendChild(M),t.body.appendChild(C),O=l.querySelector(".anav-strip"),h.classList.add("anav-on"),W(),K(),Z(),window.arcCmdk&&D()}function D(){[].forEach.call(l.querySelectorAll('.anav-search, .anav-mmenu [data-act="search"]'),function(e){e.hidden=!1})}function K(){var e=S(),n=O.querySelector(".anav-strip-in"),r=!w&&t.querySelectorAll(".bp-sidebar .bp-nav-item[data-tab]"),s="";if(r&&r.length)s=[].map.call(r,function(T){var p=[].filter.call(T.childNodes,function(X){return X.nodeType===3}).map(function(X){return X.textContent}).join("").trim(),N=T.querySelector("svg");return'<button type="button" class="anav-st'+(T.classList.contains("active")?" on":"")+'" data-local="'+A(T.dataset.tab)+'">'+(N?N.outerHTML.replace("<svg",'<svg class="anav-i"'):"")+"<span>"+A(p)+"</span></button>"}).join(""),O.classList.add("local");else if(e[0]){var _=U.filter(function(T){return T.id===e[0]})[0];s=_.items.map(function(T){var p=e[1]===T[0];return'<a class="anav-st'+(p?" on":"")+'" href="'+A(T[3])+'"'+(p?' aria-current="page"':"")+">"+j(T[4])+"<span>"+A(P(T[1]))+"</span></a>"}).join(""),O.classList.remove("local")}n.innerHTML=s,O.style.setProperty("--strip-acc",r&&r.length?"#39ff88":{trade:"#4d8dff",earn:"#2fe6a4",arcia:"#ff7ad1",tools:"#8fb4d9"}[e[0]]||"#4d8dff"),O.hidden=!s,h.classList.toggle("anav-has-strip",!!s),h.classList.toggle("anav-has-local",!!s&&O.classList.contains("local"));var R=n.querySelector(".on");R&&n.scrollWidth>n.clientWidth&&(n.scrollLeft=Math.max(0,R.offsetLeft-24)),[].forEach.call(l.querySelectorAll(".anav-g"),function(T){T.classList.toggle("here",T.dataset.g===e[0])}),[].forEach.call(M.querySelectorAll(".anav-tab[data-g]"),function(T){T.classList.toggle("on",T.dataset.g===e[0])}),[].forEach.call(l.querySelectorAll(".anav-panel"),function(T){var p=U.filter(function(N){return"anav-p-"+N.id===T.id})[0];T.innerHTML=Y(p,e)})}function Z(){var e=t.getElementById("hm-map-grid"),n=t.getElementById("hm-map-h");e&&(n&&(n.textContent=P("Everything on ARCIRCLE PAD"),n.setAttribute("data-no-i18n","")),e.setAttribute("data-no-i18n",""),e.innerHTML=U.map(function(r){return'<div class="hm-mapc" data-g="'+r.id+'"><div class="hm-mapc-h">'+j(r.icon)+"<div><b>"+A(P(r.label))+"</b><small>"+A(P(r.line))+'</small></div></div><div class="hm-mapc-l">'+r.items.map(function(s){return'<a href="'+A(s[3])+'">'+j(s[4])+"<span><b>"+A(P(s[1]))+"</b><small>"+A(P(s[2]))+"</small></span></a>"}).join("")+"</div></div>"}).join(""))}function g(e){I!==e&&(I=e,[].forEach.call(l.querySelectorAll(".anav-g"),function(n){var r=n.dataset.g===e;n.classList.toggle("open",r),n.querySelector(".anav-gb").setAttribute("aria-expanded",r?"true":"false"),n.querySelector(".anav-panel").hidden=!r}))}function f(e,n){var r=U.filter(function(_){return _.id===e})[0];if(r){k=n||t.activeElement,C.querySelector("#anav-sheet-h").textContent=P(r.label),C.querySelector(".anav-sheet-body").innerHTML='<div class="anav-sheet-grid">'+r.items.map(function(_){return x(_,S(),"anav-it")}).join("")+"</div>"+H(r),C.hidden=!1,h.classList.add("anav-locked"),requestAnimationFrame(function(){C.classList.add("in")});var s=C.querySelector(".anav-x");s&&s.focus()}}function y(){if(!C.hidden){C.classList.remove("in"),h.classList.remove("anav-locked");var e=function(){C.hidden=!0};window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches?e():setTimeout(e,200),k&&k.focus&&k.focus()}}function b(){var e=l.querySelector(".anav-lmenu");e.hidden=!0,l.querySelector(".anav-lb").setAttribute("aria-expanded","false"),l.querySelector(".anav-mmenu").hidden=!0,l.querySelector(".anav-mb").setAttribute("aria-expanded","false")}function m(){g(null),y(),b()}function i(e){if(b(),window.arcI18n&&window.arcI18n.set)return window.arcI18n.set(e),d();var n=t.querySelector('.langs [data-lang="'+e+'"], [data-lang="'+e+'"]:not(#anav *)');if(n)return n.click(),setTimeout(d,30);try{localStorage.setItem("arcircle.lang",e)}catch{}location.reload()}function d(){var e={strip:O.querySelector(".anav-strip-in").scrollLeft},n=l.querySelector(".bp-topbar-right"),r=t.querySelector(".bp-topbar");n&&r&&r.appendChild(n),l.remove(),M.remove(),C.remove(),I=null,v(),a.place&&a.place(),O.querySelector(".anav-strip-in").scrollLeft=e.strip}function W(){var e=window.matchMedia&&matchMedia("(hover: hover) and (pointer: fine)").matches;[].forEach.call(l.querySelectorAll(".anav-g"),function(R){var T=R.dataset.g,p=R.querySelector(".anav-gb");p.addEventListener("click",function(N){N.stopPropagation(),b(),g(I===T?null:T)}),p.addEventListener("keydown",function(N){if(N.key==="ArrowDown"){N.preventDefault(),g(T);var X=R.querySelector(".anav-it");X&&X.focus()}}),e&&(R.addEventListener("mouseenter",function(){clearTimeout(z),z=setTimeout(function(){g(T)},I?0:110)}),R.addEventListener("mouseleave",function(){clearTimeout(z),z=setTimeout(function(){I===T&&g(null)},180)}))}),l.addEventListener("click",function(R){var T=R.target.closest("a[href]");if(T&&l.contains(T))return $(T.getAttribute("href"),R);var p=R.target.closest("[data-local]");if(p){var N=t.querySelector('.bp-sidebar .bp-nav-item[data-tab="'+p.dataset.local+'"]');N&&N.click(),setTimeout(K,0)}});var n=l.querySelector(".anav-lb"),r=l.querySelector(".anav-lmenu");n.addEventListener("click",function(R){R.stopPropagation(),g(null);var T=r.hidden;r.hidden=!T,n.setAttribute("aria-expanded",T?"true":"false"),T&&r.querySelector("button").focus()}),r.addEventListener("click",function(R){var T=R.target.closest("[data-l]");T&&i(T.dataset.l)});var s=l.querySelector(".anav-mb"),_=l.querySelector(".anav-mmenu");s.addEventListener("click",function(R){R.stopPropagation(),g(null);var T=_.hidden;if(r.hidden=!0,_.hidden=!T,s.setAttribute("aria-expanded",T?"true":"false"),T){var p=_.querySelector("button:not([hidden])");p&&p.focus()}}),_.addEventListener("click",function(R){var T=R.target.closest("[data-l]");if(T)return i(T.dataset.l);R.target.closest('[data-act="search"]')&&(m(),window.arcCmdk&&window.arcCmdk.open())}),l.querySelector(".anav-search").addEventListener("click",function(){m(),window.arcCmdk&&window.arcCmdk.open()}),M.addEventListener("click",function(R){var T=R.target.closest("button[data-g]");T&&f(T.dataset.g,T)}),C.addEventListener("click",function(R){if(R.target.closest(".anav-scrim, .anav-x"))return y();var T=R.target.closest("a[href]");T&&$(T.getAttribute("href"),R)})}function a(){if(!t.getElementById("anav")){v(),t.addEventListener("click",function(R){l&&!l.contains(R.target)&&(g(null),b())}),t.addEventListener("keydown",function(R){if(R.key==="Escape"){if(!C.hidden)return y();if(I){var T=l.querySelector('.anav-g[data-g="'+I+'"] .anav-gb');g(null),T&&T.focus()}b()}}),t.addEventListener("arcpad:tab",function(R){B=R.detail&&R.detail.tab||E(),K()}),w&&window.addEventListener("hashchange",function(){B=E(),K()});var e=t.querySelector(".bp-sidebar");e&&!w&&"MutationObserver"in window&&new MutationObserver(function(){clearTimeout(a.t),a.t=setTimeout(K,30)}).observe(e,{subtree:!0,attributes:!0,attributeFilter:["class"]}),t.addEventListener("arc:lang",function(){setTimeout(d,0)}),"MutationObserver"in window&&new MutationObserver(function(){var R=o();R!==a.l&&(a.l=R,d())}).observe(h,{attributes:!0,attributeFilter:["lang"]}),a.l=o();var n=t.querySelector(".bp-topbar-right"),r=n&&n.parentNode,s=window.matchMedia&&matchMedia("all");if(n&&s){var _=function(){var R=l.querySelector(".anav-right");s.matches&&n.parentNode!==R?R.insertBefore(n,R.querySelector(".anav-wallet")):!s.matches&&n.parentNode!==r&&r.appendChild(n),h.classList.toggle("anav-tool-in",s.matches)};_(),a.place=_,s.addEventListener?s.addEventListener("change",_):s.addListener&&s.addListener(_)}setTimeout(function(){window.arcCmdk&&D()},1500)}}window.arcNav={groups:U,refresh:function(){l&&d()}},t.readyState==="loading"?t.addEventListener("DOMContentLoaded",a):a()})(),(function(){"use strict";if(window.arcConnect)return;var t=document,h=t.documentElement,F=function(){var q=(h.getAttribute("lang")||"en").slice(0,2);if(q!=="ko"&&q!=="zh")try{q=localStorage.getItem("arcircle.lang")||q}catch{}return q==="ko"||q==="zh"?q:"en"},c=function(q,Q,J){var G=F();return G==="ko"?Q:G==="zh"?J:q},o=function(q){return String(q??"").replace(/[&<>"']/g,function(Q){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[Q]})},P=function(q){return/^0x[0-9a-fA-F]{40}$/.test(String(q||""))},A=function(q){return String(q||"").toLowerCase()},j=function(q){return q?q.slice(0,6)+"…"+q.slice(-4):""},U=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,V={get:function(q){try{return localStorage.getItem(q)}catch{return null}},set:function(q,Q){try{Q==null?localStorage.removeItem(q):localStorage.setItem(q,Q)}catch{}}},L="arc.cw",w="homepad.walletDisconnected",E="arc.cw.tx",B=function(){return window.CONFIG||{}},S={id:5042,hex:"0x13b2",name:"Arc",rpc:"https://rpc.mainnet.arc.io",expl:"https://arc.etherscan.io",token:"0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7"},$={id:4663,hex:"0x1237",name:"Robinhood Chain",rpc:"https://rpc.mainnet.chain.robinhood.com",expl:"https://robinhoodchain.blockscout.com"},x=[],H=window.arcConnect={on:function(q){x.push(q)}},Y=function(){return typeof connectWallet=="function"&&typeof state<"u"&&!!t.getElementById("wallet-slot")},l=new Map;window.addEventListener("eip6963:announceProvider",function(q){var Q=q.detail;Q&&Q.info&&Q.provider&&l.set(Q.info.rdns||Q.info.uuid,Q)});try{window.dispatchEvent(new Event("eip6963:requestProvider"))}catch{}function M(){var q=Array.from(l.values());return!q.length&&window.ethereum&&q.push({info:{name:window.ethereum.isMetaMask?"MetaMask":window.ethereum.isRabby?"Rabby":c("Browser wallet","브라우저 지갑","浏览器钱包"),rdns:"injected",icon:""},provider:window.ethereum}),q}var C={addr:"",live:!1,prov:null,rdns:"",chain:0};function O(){try{var q=JSON.parse(V.get(L)||"null");return q&&P(q.a)?q:null}catch{return null}}function I(q,Q){P(q)&&V.set(L,JSON.stringify({a:A(q),rdns:Q||(O()||{}).rdns||"",at:Date.now()})),V.set(w,null);try{V.set("arc.v10.acct",A(q))}catch{}}function k(){V.set(L,null),V.set(w,"1")}function z(q){if(!(!q||q.__cw)){q.__cw=!0;try{q.on&&q.on("accountsChanged",function(Q){Y()||(Q&&Q[0]?(C.addr=A(Q[0]),C.live=!0,I(C.addr,C.rdns)):C.live=!1,ee(),D())}),q.on&&q.on("chainChanged",function(Q){Y()||(C.chain=parseInt(Q,16)||0,ee())})}catch{}}}function u(){if(!Y()){var q=O();!q||V.get(w)==="1"||(C.addr=q.a,C.rdns=q.rdns,C.live=!1,ee(),setTimeout(function(){var Q=q.rdns&&l.get(q.rdns)||M()[0];Q&&Q.provider.request({method:"eth_accounts"}).then(function(J){if(J=(J||[]).map(A),J.indexOf(q.a)>=0)return C.prov=Q.provider,C.live=!0,z(Q.provider),Q.provider.request({method:"eth_chainId"}).then(function(G){C.chain=parseInt(G,16)||0})}).catch(function(){}).then(function(){ee(),D()})},350))}}H.address=function(){return Y()?typeof state<"u"&&state.account?A(state.account):"":C.addr},H.live=function(){return Y()?!!(typeof state<"u"&&state.account):C.live};function v(){if(Y()){var q=typeof state<"u"&&state.chainId;return Number(q)||0}return C.chain}H.provider=function(){return Y()?typeof state<"u"&&state.walletProvider||window.ethereum||null:C.live&&C.prov?Promise.resolve(C.prov):H.connect().then(function(){return C.prov})};function D(){var q=H.address();x.forEach(function(Q){try{Q(q)}catch{}})}H.connect=function(){if(Y())return typeof setUserDisconnected=="function"&&setUserDisconnected(!1),Promise.resolve(connectWallet());var q=M();return q.length===1?g(q[0]):W(q)};var K=function(q){return new Promise(function(Q){setTimeout(Q,q)})};function Z(q){var Q=q.provider,J=function(G){return G&&G[0]&&P(G[0])};return Q.request({method:"eth_requestAccounts"}).then(function(G){return J(G)?G:q.addr&&P(q.addr)?[q.addr]:Q.request({method:"eth_accounts"}).catch(function(){return[]}).then(function(te){return J(te)?te:K(800).then(function(){return Q.request({method:"eth_accounts"}).catch(function(){return[]})}).then(function(re){if(J(re))return re;var oe=new Error(c("Your wallet didn't share an address. In the wallet, pick an EVM account (Ethereum or Arc, not Bitcoin, Solana or Tron), then connect again.","지갑이 주소를 보내주지 않았어요. 지갑에서 EVM 계정(이더리움 또는 Arc, 비트코인·솔라나·트론 아님)을 선택한 뒤 다시 연결해 주세요.","钱包没有提供地址。请在钱包中选择 EVM 账户（以太坊或 Arc，而不是比特币、Solana 或 Tron），然后重新连接。"));throw oe.noAccount=!0,oe})})})}function g(q){return Z(q).then(function(Q){return C.addr=A(Q[0]),C.live=!0,C.prov=q.provider,C.rdns=q.info.rdns||"",z(q.provider),I(C.addr,C.rdns),d(),q.provider.request({method:"eth_chainId"}).then(function(J){C.chain=parseInt(J,16)||0}).catch(function(){})}).then(function(){return ee(),D(),ae(),window.arcTxRing&&window.arcTxRing.celebrate&&window.arcTxRing.celebrate(),C.addr})}var f=null;function y(){if(f)return f;var q=B(),Q=q.REOWN_PROJECT_ID||"278f543c581f60eec5975dc755f0c3dd",J=new Promise(function(G,te){setTimeout(function(){te(new Error("timeout"))},15e3)});return f=Promise.race([import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.8.18/dist/appkit.min.js"),J]).then(function(G){var te={id:S.id,name:S.name,nativeCurrency:{name:"USDC",symbol:"USDC",decimals:18},rpcUrls:{default:{http:[S.rpc]}},blockExplorers:{default:{name:"Explorer",url:S.expl}},chainNamespace:"eip155",caipNetworkId:"eip155:"+S.id,testnet:!1},re={id:1,name:"Ethereum",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:{default:{http:["https://cloudflare-eth.com"]}},blockExplorers:{default:{name:"Etherscan",url:"https://etherscan.io"}},chainNamespace:"eip155",caipNetworkId:"eip155:1",testnet:!1},oe=new G.WagmiAdapter({projectId:Q,networks:[te,re]}),he=G.createAppKit({adapters:[oe],networks:[te,re],defaultNetwork:te,allowUnsupportedChain:!0,projectId:Q,metadata:{name:"ARCIRCLE",description:"ARCIRCLE on Circle's Arc",url:location.origin,icons:[location.origin+"/images/arcircle-mark-sm.png"]},features:{email:!1,socials:!1,analytics:!1},themeMode:"dark",themeVariables:{"--w3m-z-index":2e4,"--w3m-accent":"#35d8d0"}});return{modal:he,config:oe.wagmiConfig,core:G.WagmiCore}}),f.catch(function(){f=null}),f}function b(){return d(),y().then(function(q){return new Promise(function(Q,J){var G=!1,te=!1,re=0,oe=null,he=Date.now();function ie(ue,me){if(!G){G=!0,clearInterval(re);try{oe&&oe()}catch{}ue?J(ue):Q(me)}}function fe(){var ue=q.core.getAccount(q.config);if(ue&&ue.isConnected&&ue.address&&ue.connector&&ue.connector.getProvider){ue.connector.getProvider().then(function(me){ie(null,{provider:me,addr:ue.address,info:{name:ue.connector.name||"WalletConnect",rdns:"walletconnect"}})},function(me){ie(me)});return}!te&&Date.now()-he>900&&(te=!0,q.modal.open())}try{oe=q.modal.subscribeState(function(ue){te&&ue&&!ue.open&&setTimeout(function(){if(fe(),!G){var me=new Error(c("The wallet wasn't connected.","지갑이 연결되지 않았어요.","钱包未连接。"));me.closed=!0,ie(me)}},1500)})}catch{}re=setInterval(fe,400),fe()})},function(){throw new Error(c("WalletConnect couldn't load here (the network or an ad blocker may be stopping it). Try again, or use a browser wallet or ARCIRCLE Wallet.","여기서 WalletConnect를 불러오지 못했어요(네트워크나 광고 차단기가 막고 있을 수 있어요). 다시 시도하거나 브라우저 지갑 또는 ARCIRCLE Wallet을 써 주세요.","这里无法加载 WalletConnect（可能被网络或广告拦截器阻止）。请重试，或使用浏览器钱包或 ARCIRCLE Wallet。"))}).then(function(q){return g(q)})}H.walletConnect=b,H.disconnect=function(){if(we(),Y())return V.set(L,null),typeof disconnectWallet=="function"?Promise.resolve(disconnectWallet()):Promise.resolve();var q=C.prov;return C={addr:"",live:!1,prov:null,rdns:"",chain:0},k(),q&&q.request&&q.request({method:"wallet_revokePermissions",params:[{eth_accounts:{}}]}).catch(function(){}),f&&f.then(function(Q){try{Q.core.disconnect(Q.config)}catch{}}).catch(function(){}),ee(),D(),Promise.resolve()};function m(q){if(we(),Y())return q==="arc"&&typeof switchToArcNetwork=="function"?switchToArcNetwork():q==="rh"&&typeof switchToAltNetwork=="function"?switchToAltNetwork():q==="sol"&&typeof switchToSolana=="function"?switchToSolana():void 0;var Q=q==="rh"?$:S,J=C.prov;if(!J)return H.connect();var G=B(),te=G.PONS||{},re=q==="rh"?{chainId:$.hex,chainName:$.name,rpcUrls:[te.RPC||$.rpc],blockExplorerUrls:[te.EXPLORER||$.expl],nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18}}:{chainId:G.CHAIN_ID_HEX||S.hex,chainName:G.CHAIN_NAME||S.name,rpcUrls:[G.RPC_URL||S.rpc],blockExplorerUrls:[G.BLOCK_EXPLORER||S.expl],nativeCurrency:G.NATIVE_CURRENCY||{name:"USDC",symbol:"USDC",decimals:18}};return J.request({method:"wallet_switchEthereumChain",params:[{chainId:Q.hex}]}).catch(function(oe){if(oe&&(oe.code===4902||/unrecognized|not added/i.test(oe.message||"")))return J.request({method:"wallet_addEthereumChain",params:[re]})}).then(function(){return J.request({method:"eth_chainId"})}).then(function(oe){C.chain=parseInt(oe,16)||0,ee()}).catch(function(){})}var i=null;function d(){i&&(i.remove(),i=null)}function W(q){return new Promise(function(Q){d(),i=t.createElement("div"),i.className="cw-modal",i.setAttribute("role","dialog"),i.setAttribute("aria-modal","true"),i.setAttribute("aria-label",c("Connect a wallet","지갑 연결","连接钱包"));var J=location.host+location.pathname+location.search,G=/Android|iPhone|iPad/i.test(navigator.userAgent||""),te=q.map(function(ie,fe){return'<button type="button" class="cw-w" data-i="'+fe+'">'+(ie.info.icon?'<img src="'+o(ie.info.icon)+'" alt="" width="28" height="28">':'<span class="cw-wi" aria-hidden="true"></span>')+"<b>"+o(ie.info.name)+"</b><small>"+o(ie.info.rdns==="app.arcircle.wallet"?c("Email, Google, Apple or X","이메일·구글·애플·X","邮箱、Google、Apple 或 X"):c("Installed","설치됨","已安装"))+"</small></button>"}).join(""),re=G?'<div class="cw-sec">'+o(c("Open this page in a wallet app","지갑 앱에서 이 페이지 열기","在钱包应用中打开本页"))+'</div><a class="cw-w" href="https://metamask.app.link/dapp/'+o(J)+'"><span class="cw-wi mm" aria-hidden="true"></span><b>MetaMask</b><small>'+o(c("Open in the app","앱에서 열기","在应用中打开"))+'</small></a><a class="cw-w" href="https://go.cb-w.com/dapp?cb_url='+o(encodeURIComponent(location.href))+'"><span class="cw-wi cb" aria-hidden="true"></span><b>Coinbase Wallet</b><small>'+o(c("Open in the app","앱에서 열기","在应用中打开"))+'</small></a><a class="cw-w" href="https://bkcode.vip?action=dapp&url='+o(encodeURIComponent(location.href))+'"><span class="cw-wi bg" aria-hidden="true"></span><b>Bitget Wallet</b><small>'+o(c("Open in the app","앱에서 열기","在应用中打开"))+"</small></a>":"";i.innerHTML='<div class="cw-scrim" data-x></div><div class="cw-card"><div class="cw-card-h"><b>'+o(c("Connect a wallet","지갑 연결","连接钱包"))+'</b><button type="button" class="cw-x" data-x aria-label="'+o(c("Close","닫기","关闭"))+'">×</button></div>'+(te?'<div class="cw-list">'+te+"</div>":'<p class="cw-none">'+o(c("No wallet in this browser yet.","이 브라우저에 지갑이 없어요.","此浏览器还没有钱包。"))+"</p>")+'<p class="cw-err" role="alert" hidden></p>'+re+'<div class="cw-sec">'+o(c("More ways","다른 방법","更多方式"))+'</div><button type="button" class="cw-w" data-wc><span class="cw-wi wc" aria-hidden="true"></span><b>WalletConnect</b><small>'+o(c("QR code, any wallet app","QR 코드, 모든 지갑 앱","二维码,任意钱包应用"))+"</small></button>"+(q.some(function(ie){return ie.info&&ie.info.rdns==="app.arcircle.wallet"})?"":'<a class="cw-w" href="/wallet"><span class="cw-wi arc" aria-hidden="true"></span><b>ARCIRCLE Wallet</b><small>'+o(c("Email, Google, Apple or X","이메일·구글·애플·X","邮箱、Google、Apple 或 X"))+"</small></a>")+"</div>",t.body.appendChild(i),i.addEventListener("click",function(ie){if(ie.target.closest("[data-x]")){d(),Q("");return}var fe=ie.target.closest("[data-i]"),ue=function(pe){var be=pe&&(pe.code||pe.data&&pe.data.code),Ee=pe&&(pe.shortMessage||pe.message)||"";return be===-32002||/already pending|already processing/i.test(Ee)?c("Your wallet already has a request open. Click the wallet's icon in the browser toolbar to finish it.","지갑에 이미 열린 요청이 있어요. 브라우저 툴바의 지갑 아이콘을 눌러 마저 진행해 주세요.","钱包里已有一个未完成的请求。请点击浏览器工具栏中的钱包图标完成它。"):be===4001||/reject|denied|cancel/i.test(Ee)||pe&&pe.closed?c("Cancelled in the wallet. Pick a wallet to try again.","지갑에서 취소됐어요. 지갑을 골라 다시 시도해 주세요.","已在钱包中取消。请选择钱包重试。"):Ee||c("Couldn't connect. Try again.","연결하지 못했어요. 다시 시도해 주세요.","无法连接，请重试。")},me=function(pe){if(!i){Q("");return}var be=i.querySelector(".cw-err");be&&(be.textContent=ue(pe),be.hidden=!1)};if(fe){g(q[Number(fe.getAttribute("data-i"))]).then(Q,me);return}var ge=ie.target.closest("[data-wc]");if(ge){var Ae=ge.querySelector("small");Ae&&(Ae.textContent=c("Opening WalletConnect…","WalletConnect 여는 중…","正在打开 WalletConnect…")),ge.classList.add("busy")}ge&&b().then(Q,function(pe){if(pe&&pe.closed){Q("");return}W(q).then(Q),setTimeout(function(){me(pe)},0)})}),t.addEventListener("keydown",function ie(fe){fe.key==="Escape"&&(t.removeEventListener("keydown",ie),d(),Q(""))});var oe=i.querySelector("[data-wc]");oe&&["pointerenter","focus","touchstart"].forEach(function(ie){oe.addEventListener(ie,function(){y().catch(function(){})},{once:!0,passive:!0})});var he=i.querySelector(".cw-w, .cw-x");he&&he.focus()})}var a=null,e=null,n=null,r=0,s=null,_=0,R="",T='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2" fill="currentColor"/></svg>',p=function(q){return(parseInt(String(q).slice(2,8),16)||0)%360};function N(q){return q===5042?"arc":q===4663?"rh":q?"other":""}function X(){try{return!!(window.arcSol&&window.arcSol.selected&&window.arcSol.selected())}catch{return!1}}function ee(){if(e){var q=H.address(),Q=H.live(),J=N(v()),G=Y()&&X();if(h.classList.toggle("cw-in",!!q),!q){e.className="cw-b cw-off",e.innerHTML=T+'<span class="cw-l">'+o(c("Connect wallet","지갑 연결","连接钱包"))+'</span><span class="cw-s">'+o(c("Connect","연결","连接"))+"</span>",e.setAttribute("aria-label",c("Connect wallet","지갑 연결","连接钱包")),e.setAttribute("aria-haspopup","dialog");return}var te=Q?G?"sol":J==="arc"?"ok":J==="rh"?"rh":J?"warn":"ok":"rem";e.className="cw-b cw-on cw-"+te,e.innerHTML='<span class="cw-av" style="--h:'+p(q)+'" aria-hidden="true"></span><span class="cw-a" data-no-i18n>'+o(j(q))+'</span><i class="cw-dot" aria-hidden="true"></i>'+(r?'<span class="cw-n" title="'+o(c("Ready to claim","받을 수 있는 보상","可领取"))+'">'+r+"</span>":""),e.setAttribute("aria-label",c("Wallet","지갑","钱包")+" "+j(q)),e.setAttribute("aria-haspopup","menu"),n&&!n.hidden&&ce()}}function ae(){U||!e||(e.classList.remove("cw-morph"),e.offsetWidth,e.classList.add("cw-morph"))}function ne(q,Q){return fetch(q,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(Q.map(function(J,G){return{jsonrpc:"2.0",id:G,method:J[0],params:J[1]}}))}).then(function(J){return J.json()}).then(function(J){var G={};return(Array.isArray(J)?J:[J]).forEach(function(te){G[te.id]=te.result}),Q.map(function(te,re){return G[re]})})}function de(q){if(s&&R===q&&Date.now()-_<3e4)return Promise.resolve(s);var Q=B(),J=Q.ARCIRCLE_TOKEN||S.token;return ne(Q.RPC_URL||S.rpc,[["eth_getBalance",[q,"latest"]],["eth_call",[{to:J,data:"0x70a08231"+q.slice(2).padStart(64,"0")},"latest"]]]).then(function(G){var te=function(re,oe){try{return Number(BigInt(re||"0x0")/10n**BigInt(oe-4))/1e4}catch{return null}};return s={usdc:te(G[0],18),arc:te(G[1],18)},_=Date.now(),R=q,s}).catch(function(){return null})}var se=function(q,Q){return q==null?"—":Number(q).toLocaleString("en-US",{maximumFractionDigits:Q})};function le(){try{return JSON.parse(V.get(E)||"[]")}catch{return[]}}function ce(){var q=H.address(),Q=H.live(),J=v(),G=N(J),te=Y(),re=(B().BLOCK_EXPLORER||S.expl)+"/address/"+q,oe=le().filter(function(ie){return!ie.from||ie.from===q}).slice(0,6),he=Q?'<div class="cw-net">'+[["arc","Arc"],["rh","Robinhood"]].concat(te&&typeof switchToSolana=="function"?[["sol","Solana"]]:[]).map(function(ie){var fe=ie[0]==="sol"?X():!X()&&G===ie[0];return'<button type="button" data-cw="net" data-net="'+ie[0]+'" aria-pressed="'+fe+'"><i aria-hidden="true"></i>'+ie[1]+"</button>"}).join("")+"</div>"+(G==="other"?'<button type="button" class="cw-warn" data-cw="net" data-net="arc">'+o(c("Wrong network — switch to Arc","다른 네트워크 — Arc로 전환","网络不对 — 切换到 Arc"))+"</button>":""):'<div class="cw-note">'+o(c("Remembered from your last visit. Connect to sign.","지난 방문에서 기억한 지갑이에요. 서명하려면 연결하세요.","上次访问记住的钱包。需要签名时请连接。"))+' <button type="button" class="cw-link" data-cw="connect">'+o(c("Connect","연결","连接"))+"</button></div>";n.innerHTML='<div class="cw-m-h"><span class="cw-av lg" style="--h:'+p(q)+'" aria-hidden="true"></span><div><b data-no-i18n>'+o(j(q))+'</b><button type="button" class="cw-link" data-cw="copy">'+o(c("Copy address","주소 복사","复制地址"))+"</button></div></div>"+he+'<div class="cw-bal" data-cw-bal><div><small>USDC · Arc</small><b data-no-i18n>'+(s&&R===q?se(s.usdc,2):"…")+"</b></div><div><small>$ARCIRCLE</small><b data-no-i18n>"+(s&&R===q?se(s.arc,0):"…")+'</b></div></div><a class="cw-i" href="/me?w='+o(q)+'"><span>'+o(c("Ready to claim","받을 수 있는 보상","可领取"))+"</span>"+(r?'<em class="cw-n">'+r+"</em>":"<small>"+o(c("My ARCIRCLE","My ARCIRCLE","My ARCIRCLE"))+"</small>")+'</a><a class="cw-i" href="/arc#portfolio"><span>'+o(c("Portfolio","포트폴리오","资产"))+'</span></a><details class="cw-tx"'+(oe.length?"":" hidden")+"><summary>"+o(c("Recent transactions","최근 거래","最近交易"))+" <small>"+oe.length+"</small></summary><ul>"+oe.map(function(ie){return'<li class="'+o(ie.s)+'"><a href="'+o(ie.ex+"/tx/"+ie.h)+'" target="_blank" rel="noopener"><i aria-hidden="true"></i><span data-no-i18n>'+o(ie.h.slice(0,10)+"…"+ie.h.slice(-4))+"</span><small>"+o(ie.s==="ok"?c("Confirmed","완료","已确认"):ie.s==="fail"?c("Failed","실패","失败"):c("Pending","대기 중","待确认"))+" · "+o(ve(ie.t))+"</small></a></li>"}).join("")+'</ul></details><a class="cw-i" href="'+o(re)+'" target="_blank" rel="noopener"><span>'+o(c("View on explorer","익스플로러에서 보기","在浏览器中查看"))+' ↗</span></a><button type="button" class="cw-i cw-dis" data-cw="disconnect"><span>'+o(c("Disconnect","연결 해제","断开连接"))+"</span></button>"}function ve(q){var Q=Math.max(1,(Date.now()-q)/1e3);return Q<3600?Math.round(Q/60)+"m":Q<86400?Math.round(Q/3600)+"h":Math.round(Q/86400)+"d"}var Le=window.matchMedia?matchMedia("(max-width:900px)"):null;function Re(){if(n){var q=Le&&Le.matches?t.body:a;n.parentNode!==q&&q.appendChild(n),ce(),n.hidden=!1,e.setAttribute("aria-expanded","true");var Q=H.address();de(Q).then(function(){n.hidden||ce()}),Ce()}}function we(){n&&!n.hidden&&(n.hidden=!0,e.setAttribute("aria-expanded","false"))}var ye=0;function Ce(){var q=H.address();!q||!window.arcV10||!window.arcV10.claims||Date.now()-ye<6e4||(ye=Date.now(),window.arcV10.claims(q).then(function(Q){r=Q.filter(function(J){return J.ready&&!J.other}).length,ee()}).catch(function(){}))}H.mount=function(){var q=t.querySelector(".anav-right");if(q){var Q=q.querySelector(".cw");if(Q&&Q.querySelector(".cw-b")){a=Q;return}if(a=Q||t.createElement("div"),a.className="cw",a.innerHTML='<button type="button" class="cw-b"></button><div class="cw-m" role="menu" hidden></div>',!Q){var J=q.querySelector(".anav-wallet");J?J.replaceWith(a):q.appendChild(a)}e=a.querySelector(".cw-b"),n=a.querySelector(".cw-m"),h.classList.add("cw-on"),e.addEventListener("click",function(G){if(G.stopPropagation(),!H.address()){H.connect();return}n.hidden?Re():we()}),n.addEventListener("click",function(G){var te=G.target.closest("[data-cw]");if(te){G.stopPropagation();var re=te.getAttribute("data-cw");re==="copy"?(navigator.clipboard&&navigator.clipboard.writeText(H.address()),te.textContent=c("Copied","복사됨","已复制"),setTimeout(function(){te.textContent=c("Copy address","주소 복사","复制地址")},1200)):re==="disconnect"?H.disconnect():re==="connect"?(we(),H.connect()):re==="net"&&m(te.getAttribute("data-net"))}}),t.addEventListener("click",function(G){a&&!a.contains(G.target)&&!(n&&n.contains(G.target))&&we()}),t.addEventListener("keydown",function(G){G.key==="Escape"&&n&&!n.hidden&&(we(),e.focus())}),!q.querySelector(".nb")&&window.arcChrome&&window.arcChrome.mountBell&&window.arcChrome.mountBell(q,a),ee()}},t.addEventListener("arc:tx",function(q){var Q=q.detail||{};if(Q.h){var J=le().filter(function(te){return te.h!==Q.h}),G=le().find(function(te){return te.h===Q.h});J.unshift({h:Q.h,s:Q.s,t:G?G.t:Date.now(),ex:Q.ex||S.expl,from:H.address()}),V.set(E,JSON.stringify(J.slice(0,20))),n&&!n.hidden&&ce()}});function Se(){var q=null,Q=function(){if(!(t.hidden||!Y())){var J=H.address(),G=J+"|"+v()+"|"+X();if(G!==q){var te=q;q=G,J?I(J):te&&V.get(w)==="1"&&V.set(L,null),J&&te!==null&&te.split("|")[0]===""&&ae(),ee(),D(),Ce()}}};setInterval(Q,500),t.addEventListener("visibilitychange",Q),/[?&]connect=1\b/.test(location.search)&&Y()&&setTimeout(function(){H.address()||H.connect();try{history.replaceState(null,"",location.pathname+location.hash)}catch{}},1200)}function xe(){H.mount(),u(),Se(),setTimeout(Ce,2500),t.addEventListener("arc:lang",function(){setTimeout(function(){a=null,H.mount()},80)}),setInterval(function(){if(!t.hidden){var q=t.querySelector(".anav-right");q&&!q.querySelector(".cw-b")&&(a=null,H.mount())}},1e3)}t.readyState==="loading"?t.addEventListener("DOMContentLoaded",function(){setTimeout(xe,0)}):setTimeout(xe,0)})(),(function(){"use strict";if(window.arcV9)return;var t=document,h=t.documentElement,F=function(){var g=(h.getAttribute("lang")||"en").slice(0,2);return g==="ko"||g==="zh"?g:"en"},c=function(g,f,y){var b=F();return b==="ko"?f:b==="zh"?y:g},o=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,P=function(){return window.innerWidth<=900},A=window.arcV9={};function j(){var g=new Map;[].forEach.call(t.querySelectorAll(".bp-panel details > summary > h3"),function(f){if(/^\s*New in v\d+/.test(f.textContent)){var y=f.parentNode.parentNode,b=y.parentNode;y.closest(".v9-older")||(g.has(b)||g.set(b,[]),g.get(b).push(y))}}),g.forEach(function(f){if(f.forEach(function(i){i.open=!1}),!(f.length<2)){var y=f[0],b=f.slice(1),m=t.createElement("details");m.className="v9-older",m.innerHTML='<summary><span data-v9t="older">'+c("Earlier updates","이전 업데이트","更早的更新")+"</span> ("+b.length+')<a href="/updates" data-v9t="all">'+c("All updates","전체 업데이트","全部更新")+"</a></summary>",y.parentNode.insertBefore(m,y.nextSibling),b.forEach(function(i){m.appendChild(i)})}})}function U(){var g=t.getElementById("bp-panel-coin");if(g){var f=t.createElement("div");f.className="v9-buybar",f.hidden=!0,f.setAttribute("data-no-i18n",""),t.body.appendChild(f);var y=function(){f.innerHTML='<button type="button" class="b" data-s="buy">'+c("Buy","매수","买入")+'</button><button type="button" class="s" data-s="sell">'+c("Sell","매도","卖出")+"</button>"};y();var b=function(){var d=t.getElementById("apc-argus-trade");return d&&!d.hidden&&d.offsetParent?d:t.getElementById("apc-swap")},m=function(){return g.classList.contains("active")&&/^#coin\//.test(location.hash)&&P()},i=function(){var d=m();if(f.hidden=!d,h.classList.toggle("v9-buybar-on",d),!!d){var W=b(),a=W&&W.getBoundingClientRect();f.classList.toggle("away",!!(a&&a.top<innerHeight-120&&a.bottom>120))}};f.addEventListener("click",function(d){var W=d.target.closest("[data-s]");if(W){var a=b();if(a){var e=a.querySelector('[data-side="'+W.dataset.s+'"], .'+W.dataset.s);e&&e.click();var n=a.getBoundingClientRect().top+scrollY-(parseInt(getComputedStyle(h).getPropertyValue("--anav-h"),10)||56)-60;scrollTo({top:Math.max(0,n),behavior:o?"auto":"smooth"}),setTimeout(function(){var r=a.querySelector("input");r&&r.focus({preventScroll:!0})},o?0:450)}}}),addEventListener("scroll",function(){f.hidden||requestAnimationFrame(i)},{passive:!0}),addEventListener("resize",i),addEventListener("hashchange",function(){setTimeout(i,60)}),t.addEventListener("arcpad:tab",function(){setTimeout(i,60)}),t.addEventListener("arc:lang",y),setTimeout(i,400)}}var V=function(g){return String(g??"").replace(/[&<>"']/g,function(f){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[f]})},L=function(g){if(g==="APC")return typeof APC<"u"?APC:void 0;if(g==="ARC")return typeof ARC<"u"?ARC:void 0;if(g==="state")return typeof state<"u"?state:void 0},w=function(g){return g>=1e3?"$"+(g/1e3).toFixed(g>=1e4?0:1)+"K":"$"+g.toFixed(g>=10?0:2)},E={get:function(g){try{return localStorage.getItem(g)}catch{return null}},set:function(g,f){try{localStorage.setItem(g,f)}catch{}}};function B(){var g=t.getElementById("bp-panel-launch"),f=t.getElementById("ap-launch-form");if(!g||!f||E.get("v9.guide.off")==="1")return;var y=t.createElement("div");y.className="v9-guide ap-only",y.id="v9-guide",y.setAttribute("data-no-i18n","");var b=g.querySelector(":scope > .bp-lede");b?b.parentNode.insertBefore(y,b.nextSibling):f.parentNode.insertBefore(y,f);var m=null,i=!1;function d(){var r=L("state");return r&&r.account?r.account:null}function W(){var r=d(),s=1.1,_=m!=null&&m>=s,R=function(T,p,N,X,ee){return'<li class="'+(p?"done":"")+'"><span class="v9-n">'+(p?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>':T)+"</span><div><b>"+N+"</b><small>"+X+"</small></div>"+(ee||"")+"</li>"};y.innerHTML='<div class="v9-guide-h"><b>'+c("Your first launch in 3 steps","첫 런치, 3단계면 끝","三步完成第一次发币")+'</b><button type="button" class="v9-x" data-g="off" aria-label="'+c("Hide","숨기기","隐藏")+'">×</button></div><ol>'+R(1,!!r,c("Connect a wallet","지갑 연결","连接钱包"),r?V(r.slice(0,6)+"…"+r.slice(-4)):c("MetaMask, Rabby or any wallet that can add Arc.","MetaMask, Rabby 등 Arc를 추가할 수 있는 지갑이면 돼요.","MetaMask、Rabby 或任何能添加 Arc 的钱包。"),r?"":'<button type="button" class="v9-gb" data-g="connect">'+c("Connect","연결","连接")+"</button>")+R(2,_,c("Have about 1.1 USDC on Arc","Arc에 USDC 약 1.1개","在 Arc 上准备约 1.1 USDC"),(m!=null?c("You have ","보유: ","你有 ")+m.toFixed(2)+" USDC · ":"")+c("1 USDC launch fee + gas. On Arc, gas is paid in USDC too.","런치 수수료 1 USDC + 가스비. Arc에서는 가스비도 USDC로 내요.","1 USDC 发币费 + gas。在 Arc 上 gas 也用 USDC 支付。"),_?"":'<a class="v9-gb ghost" href="/arc#bridge" data-g="bridge">'+c("Bridge USDC","USDC 브리지","跨链 USDC")+"</a>")+R(3,!1,c("Name it and launch","이름 짓고 런치","起名并发币"),c("Name, ticker and a logo. Stuck on a name? Ask ARCIA for ideas.","이름, 티커, 로고만 있으면 돼요. 이름이 고민되면 ARCIA에게 물어보세요.","名称、代码和 Logo 即可。想不出名字?让 ARCIA 给点子。"),'<button type="button" class="v9-gb" data-g="start">'+c("Start","시작","开始")+"</button>")+"</ol>"}function a(){var r=d();if(!r||i||typeof readProvider!="function"){r||(m=null),W();return}i=!0,Promise.resolve(readProvider().getBalance(r)).then(function(s){m=Number(s)/1e18}).catch(function(){}).then(function(){i=!1,W()})}y.addEventListener("click",function(r){var s=r.target.closest("[data-g]");if(s){var _=s.dataset.g;if(_==="off"){E.set("v9.guide.off","1"),y.remove();return}if(_==="connect"&&typeof connectWallet=="function"&&Promise.resolve(connectWallet()).then(a,a),_==="start"){var R=t.getElementById("ap-name");R&&(R.scrollIntoView({behavior:o?"auto":"smooth",block:"center"}),setTimeout(function(){R.focus({preventScroll:!0})},o?0:400))}}}),t.addEventListener("arcpad:tab",function(r){r.detail&&r.detail.tab==="launch"&&a()}),t.addEventListener("arc:wallet",a),t.addEventListener("arc:lang",W),setInterval(function(){g.classList.contains("active")&&!t.hidden&&a()},15e3);var e=null,n=function(){if(!t.hidden){var r=d();r!==e&&(e=r,a())}};setInterval(n,1500),t.addEventListener("visibilitychange",n),a()}function S(){var g=t.getElementById("bp-panel-coin");if(!g)return;var f=null;function y(){var m=L("APC");return!m||!m.l||m.l.platform&&m.l.platform!=="arcpad"?null:70+Number(m.l.extraFeeBps||0)}function b(){var m=L("APC");if(!(!m||!m.token||!g.classList.contains("active"))){var i=y();if(i==null){f&&(f.hidden=!0);return}for(var d=m.logs&&m.logs.lo<=m.logs.launchBlock,W=m.trades||[],a=0,e=0;e<W.length;e++)a+=Number(W[e].usdc)||0;if(!f){f=t.createElement("div"),f.className="v9-earn",f.setAttribute("data-no-i18n","");var n=g.querySelector(".ac2-stats, .apc-stats, .ac2-grid")||g.querySelector(".ac2-head");if(!n)return;n.parentNode.insertBefore(f,n.nextSibling)}f.hidden=!1;var r=a*i/1e4;f.innerHTML='<span class="v9-earn-i" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.6 9.8c0-1.2 1.1-2 2.4-2s2.4.8 2.4 1.9c0 2.4-4.8 1.2-4.8 3.6 0 1.1 1.1 1.9 2.4 1.9s2.4-.8 2.4-2"/></svg></span><span>'+(d?c("The creator has earned","크리에이터 누적 수익","创作者已赚取")+" <b>≈ "+w(r)+"</b>":c("Counting what the creator has earned…","크리에이터 수익 계산 중…","正在统计创作者收益…"))+" <small>"+c("— ","· ","· ")+(i/100).toFixed(2)+"% "+c("of every trade goes to whoever launched it","가 매 거래마다 런처에게 가요","的每笔交易归发行者")+'</small></span><a href="/arc#launch" class="v9-earn-go">'+c("Launch yours","나도 런치하기","发行你的币")+"</a>"}}setInterval(function(){t.hidden||b()},4e3),t.addEventListener("arcpad:tab",function(){setTimeout(b,800)}),t.addEventListener("click",function(m){var i=m.target.closest&&m.target.closest("#apc-star");i&&setTimeout(function(){var d=t.getElementById("v9-tgpop");if(d&&d.remove(),i.getAttribute("aria-pressed")==="true"){var W=t.createElement("div");W.id="v9-tgpop",W.className="v9-tgpop",W.setAttribute("role","status"),W.setAttribute("data-no-i18n",""),W.innerHTML="<span>"+c("Watching. Want ARCIA to DM you when it moves 20%?","관심 등록 완료. 20% 움직이면 ARCIA가 DM으로 알려드릴까요?","已关注。涨跌 20% 时让 ARCIA 私信你?")+'</span><button type="button" class="bp-btn-primary sm" data-v7tg>'+c("Telegram alerts","텔레그램 알림","Telegram 提醒")+'</button><button type="button" class="v9-x" aria-label="'+c("Close","닫기","关闭")+'">×</button>',i.parentNode.insertBefore(W,i.nextSibling),W.querySelector(".v9-x").addEventListener("click",function(){W.remove()}),setTimeout(function(){W.isConnected&&W.remove()},12e3)}},60)}),new MutationObserver(function(){var m=t.getElementById("apc-celebrate");if(!(!m||m.__v9)){m.__v9=!0;var i=m.dataset.token,d=typeof arcCoinShareUrl=="function"?arcCoinShareUrl(i):location.origin+"/c/"+i,W=m.querySelector(".apc-cel-actions");if(W){var a=t.createElement("a");a.className="apc-cel-btn",a.target="_blank",a.rel="noopener",a.href="https://t.me/share/url?url="+encodeURIComponent(d)+"&text="+encodeURIComponent(c("Just launched on ArcPad (Circle's Arc)","ArcPad에서 방금 런치했어요 (Circle Arc)","刚在 ArcPad 发币 (Circle Arc)")),a.textContent="Telegram";var e=t.createElement("button");e.type="button",e.className="apc-cel-btn",e.textContent=c("Embed","임베드","嵌入"),e.addEventListener("click",function(){var r=t.getElementById("v7-embed-b");r&&r.click()});var n=W.querySelector(".apc-cel-x");W.insertBefore(a,n),W.insertBefore(e,n)}o||$(m)}}).observe(g,{childList:!0,subtree:!0})}function $(g){var f=g.getBoundingClientRect(),y=t.createElement("div");y.className="v9-confetti",y.setAttribute("aria-hidden","true");for(var b=0;b<46;b++){var m=t.createElement("i"),i=Math.random()*Math.PI*2,d=90+Math.random()*220;m.style.cssText="left:"+(f.left+f.width/2)+"px;top:"+(f.top+30)+"px;--x:"+Math.cos(i)*d+"px;--y:"+(Math.sin(i)*d-120)+"px;--r:"+(Math.random()*720-360)+"deg;background:"+(b%3?b%2?"#4d8dff":"#2fe6a4":"#ffffff")+";animation-delay:"+Math.random()*120+"ms",y.appendChild(m)}t.body.appendChild(y),setTimeout(function(){y.remove()},1800)}A.confetti=$;function x(){var g=t.getElementById("ap-extrafee"),f=t.getElementById("ap-fee-preview");if(!(!g||!f)){var y=t.createElement("p");y.className="v9-feeest",y.setAttribute("data-no-i18n",""),f.parentNode.insertBefore(y,f.nextSibling);var b=function(){var m=70+Number(g.value||0);y.innerHTML=c("At $10K of trading a day, you'd earn about ","하루 거래량이 $10K면 약 ","如果每天交易 $10K,你约赚 ")+"<b>$"+(1e4*m/1e4).toFixed(0)+c("/day","/일","/天")+"</b>"+c(" — paid out on every trade, no claiming."," 을 벌어요 — 매 거래마다 바로 지급, 클레임 필요 없음."," —— 每笔交易即时到账,无需领取。")};g.addEventListener("input",b),t.addEventListener("arc:lang",b),b()}}function H(){var g=t.getElementById("bp-panel-home"),f=t.getElementById("v6-trend");if(!g||!f||!t.getElementById("bp-panel-launch"))return;var y=t.createElement("div");y.className="v9-first",y.hidden=!0,y.setAttribute("data-no-i18n",""),f.parentNode.insertBefore(y,f.nextSibling);function b(){var m=L("ARC");if(!(!m||!m.launches||!m.launches.length||typeof arcAnyStats!="function")){var i=Date.now()/1e3,d=m.launches.filter(function(W){return(!W.platform||W.platform==="arcpad")&&W.launchedAt&&i-W.launchedAt<14*86400}).filter(function(W){var a=arcAnyStats(W);return!a||!a.trades}).sort(function(W,a){return a.launchedAt-W.launchedAt}).slice(0,3);if(!d.length){y.hidden=!0;return}y.hidden=!1,y.innerHTML='<div class="v6-sec-h"><h3>'+c("Be the first buyer","첫 번째 구매자 되기","成为第一个买家")+"</h3><small>"+c("New coins with no trades in the last 24 hours","최근 24시간 거래가 없는 새 코인","近 24 小时无交易的新币")+'</small></div><div class="v9-first-l">'+d.map(function(W){return'<a href="/arc#coin/'+V(W.token)+'" class="v9-fc"><b>$'+V(W.symbol)+"</b><span>"+V(W.name||"")+"</span><em>"+c("Buy from $1","$1부터 매수","$1 起买")+"</em></a>"}).join("")+"</div>"}}setInterval(function(){g.classList.contains("active")&&!t.hidden&&b()},8e3),setTimeout(b,2500)}function Y(){if(E.get("v9.install.off")==="1"||window.matchMedia&&matchMedia("(display-mode: standalone)").matches||navigator.standalone)return;var g=null,f=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!/crios|fxios/i.test(navigator.userAgent);function y(){if(!(!P()||t.getElementById("v9-install"))){var b=t.createElement("div");b.id="v9-install",b.className="v9-install",b.setAttribute("role","dialog"),b.setAttribute("aria-label","Install"),b.setAttribute("data-no-i18n",""),b.innerHTML='<img src="/images/apple-touch-icon.png" alt="" width="40" height="40"><div><b>'+c("Add ARCIRCLE to your home screen","ARCIRCLE을 홈 화면에 추가","把 ARCIRCLE 添加到主屏幕")+"</b><small>"+(g?c("Opens like an app, full screen.","앱처럼 전체 화면으로 열려요.","像 App 一样全屏打开。"):c("Tap Share, then “Add to Home Screen”.","공유 버튼 → ‘홈 화면에 추가’를 누르세요.","点分享,然后“添加到主屏幕”。"))+"</small></div>"+(g?'<button type="button" class="bp-btn-primary sm" data-i="go">'+c("Install","설치","安装")+"</button>":"")+'<button type="button" class="v9-x" data-i="off" aria-label="'+c("Close","닫기","关闭")+'">×</button>',t.body.appendChild(b),b.addEventListener("click",function(m){var i=m.target.closest("[data-i]");if(i){if(i.dataset.i==="go"&&g){g.prompt(),g.userChoice.then(function(){b.remove(),E.set("v9.install.off","1")});return}E.set("v9.install.off","1"),b.remove()}})}}addEventListener("beforeinstallprompt",function(b){b.preventDefault(),g=b,setTimeout(y,2e4)}),f&&setTimeout(y,25e3)}function l(g,f){var y=t.createElement("div");return y.className="v9-toast "+(f||""),y.setAttribute("role","status"),y.setAttribute("data-no-i18n",""),y.innerHTML=g,t.body.appendChild(y),requestAnimationFrame(function(){y.classList.add("in")}),setTimeout(function(){y.classList.remove("in"),setTimeout(function(){y.remove()},300)},4200),y}function M(g,f,y,b){if(o){g.textContent=y(f);return}var m=performance.now(),i=b||700;(function d(W){var a=Math.min(1,(W-m)/i),e=1-Math.pow(1-a,3);g.textContent=y(f*e),a<1&&requestAnimationFrame(d)})(m)}function C(){if(typeof window.apcStatus=="function"){var g=window.apcStatus,f=null;window.apcStatus=function(y,b){var m=L("APC");y==="pending"&&/^Buying/.test(String(b))&&m&&m.user&&(f=m.user.tok);var i=g.apply(this,arguments);if(y==="success"&&/^Bought/.test(String(b))&&m&&f!=null){var d=f,W=m.l&&m.l.symbol?"$"+m.l.symbol:"",a=Date.now();f=null,(function e(){var n=m.user&&m.user.tok;if(n!=null&&n>d){var r=Number(n-d)/1e18,s=l('<b class="v9-cu">+0</b> <span>'+V(W)+"</span><small>"+c("in your wallet","지갑에 들어왔어요","已到账")+"</small>","ok").querySelector(".v9-cu");M(s,r,function(_){return"+"+_.toLocaleString("en-US",{maximumFractionDigits:r<10?4:0})},900);return}Date.now()-a<8e3&&setTimeout(e,400)})()}return i}}}function O(){if(!(!t.getElementById("bp-panel-home")||!t.getElementById("bp-panel-launch"))){var g=new Map,f=function(y){var b=/\$([\d.,]+)\s*([KMB]?)/.exec(y||"");if(!b)return null;var m=parseFloat(b[1].replace(/,/g,""));return m*({K:1e3,M:1e6,B:1e9}[b[2]]||1)};setInterval(function(){t.hidden||[].forEach.call(t.querySelectorAll(".bp-panel.active a.v6-tc, .bp-panel.active .launch-card"),function(y){var b=y.getAttribute("href")||y.dataset.token||"";if(b){var m=y.querySelector(".v6-tc-n > span, .lc-mcap, [data-mcap]")||y,i=f(m.textContent);if(i!=null){var d=g.get(b);g.set(b,i),!(d==null||d===i||o)&&(y.classList.remove("v9-up","v9-down"),y.offsetWidth,y.classList.add(i>d?"v9-up":"v9-down"))}}})},2e3)}}function I(){var g="v9.burned";function f(){t.hidden||fetch("/api/social?token=arcircle").then(function(y){return y.ok?y.json():null}).then(function(y){var b=y&&y.burned&&Number(y.burned.tokens);if(b>0){var m=Number(E.get(g)||0);if(E.set(g,String(b)),!(!(m>0)||b<=m)){var i=t.querySelector('.anav-chip[href="/arcircle"]');if(!(!i||!i.offsetParent)){i.classList.remove("v9-burn"),i.offsetWidth,i.classList.add("v9-burn");var d=t.createElement("span");d.className="v9-burntip",d.textContent="+"+Math.round(b-m).toLocaleString("en-US")+" "+c("burned","소각","已销毁"),i.appendChild(d),setTimeout(function(){d.remove()},3200)}}}}).catch(function(){})}setTimeout(f,4e3),setInterval(f,9e4)}function k(){if(o||!("IntersectionObserver"in window))return;var g=".pg-t b, .ax-fact b, .ax-facts b, .hm-nums b, .ap-stat b, .bp-mini-stat b, .stk-pot b, .rw-meter b, .st-out b",f=new IntersectionObserver(function(m){m.forEach(function(i){if(i.isIntersecting){f.unobserve(i.target);var d=i.target,W=d.textContent,a=/^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/.exec(W.trim());if(!(!a||d.children.length)){var e=parseFloat(a[2].replace(/,/g,""));if(e>0){var n=(a[2].split(".")[1]||"").length,r=/,/.test(a[2])||e>=1e3,s=null;M(d,e,function(R){return s=a[1]+R.toLocaleString("en-US",{minimumFractionDigits:n,maximumFractionDigits:n,useGrouping:r})+a[3],s},800);var _=new MutationObserver(function(){d.textContent!==s&&_.disconnect()});_.observe(d,{childList:!0,characterData:!0,subtree:!0}),setTimeout(function(){_.disconnect(),d.textContent!==W&&d.textContent===s&&(d.textContent=W)},900)}}}})},{threshold:.6}),y=new WeakSet;function b(){t.hidden||[].forEach.call(t.querySelectorAll(g),function(m){!y.has(m)&&/\d/.test(m.textContent)&&(y.add(m),f.observe(m))})}b(),setInterval(b,3e3),t.addEventListener("visibilitychange",b)}function z(){var g="main b, main strong, .bp-main b, .bp-main strong, [data-hm-num], [data-lb]";function f(){t.hidden||[].forEach.call(t.querySelectorAll(g),function(y){if(!(y.__v9p||y.children.length||y.textContent.trim()!=="—")){var b=parseFloat(getComputedStyle(y).fontSize);if(!(b<14)){y.__v9p=Date.now(),y.classList.add("v9-skel");var m=new MutationObserver(function(){y.textContent.trim()!=="—"&&(y.classList.remove("v9-skel","v9-na"),m.disconnect())});m.observe(y,{childList:!0,characterData:!0,subtree:!0}),setTimeout(function(){y.classList.contains("v9-skel")&&(y.classList.remove("v9-skel"),y.classList.add("v9-na"),y.title=c("Not available right now — Arc didn't answer. It fills in by itself when it does.","지금은 불러올 수 없어요 — Arc 응답이 오면 자동으로 채워져요.","暂时无法读取——Arc 响应后会自动显示。"))},6e3)}}})}f(),setInterval(f,1500),t.addEventListener("visibilitychange",f)}function u(){var g=new Date().toISOString().slice(0,10);E.get("v9.bubble")!==g&&setTimeout(function(){var f=t.querySelector(".aa-fab");!f||!f.getBoundingClientRect().width||fetch("/api/c?view=latest&n=20").then(function(y){return y.ok?y.json():null}).catch(function(){return null}).then(function(y){var b=Date.now()/1e3,m=y&&y.coins?y.coins.filter(function(a){return a.launchedAt&&b-a.launchedAt<86400}).length:0,i=m?c(m+(m>1?" new coins":" new coin")+" launched today — want a look?","오늘 새 코인 "+m+"개가 나왔어요 — 구경할래요?","今天有 "+m+" 个新币上线——去看看?"):c("Ask me anything about ARCIRCLE — I'm right here.","ARCIRCLE에 대해 뭐든 물어보세요 — 여기 있어요.","关于 ARCIRCLE 的任何问题都可以问我——我就在这里。"),d=t.createElement("a");d.className="v9-bubble",d.href=m?"/arc#explore":"#",d.textContent=i,d.setAttribute("data-no-i18n",""),m||d.addEventListener("click",function(a){a.preventDefault(),f.click(),d.remove()});var W=f.getBoundingClientRect();d.style.right=Math.max(12,innerWidth-W.right)+"px",d.style.bottom=innerHeight-W.top+10+"px",t.body.appendChild(d),E.set("v9.bubble",g),setTimeout(function(){d.classList.add("out"),setTimeout(function(){d.remove()},400)},7e3)})},9e3)}function v(){var g=scrollY,f=!1;addEventListener("scroll",function(){var y=scrollY,b=y>160&&y>g+4?!0:y<g-4||y<120?!1:f;g=y,b!==f&&(f=b,h.classList.toggle("anav-compact",f))},{passive:!0})}function D(){var g=null,f=null;t.addEventListener("touchstart",function(y){var b=y.target.closest&&y.target.closest(".anav-sheet-in");if(!b||b.scrollTop>0){g=null;return}f=b,g=y.touches[0].clientY},{passive:!0}),t.addEventListener("touchmove",function(y){if(!(g==null||!f)){var b=y.touches[0].clientY-g;b>0&&(f.style.transition="none",f.style.transform="translateY("+b+"px)")}},{passive:!0}),t.addEventListener("touchend",function(y){if(!(g==null||!f)){var b=y.changedTouches[0].clientY-g,m=f;if(g=null,f=null,m.style.transition="",m.style.transform="",b>90){var i=t.querySelector(".anav-sheet .anav-x");i&&i.click()}}})}function K(){if(!t.body.classList.contains("ax-token")||!t.querySelector("main #uses"))return;var g=[].slice.call(t.querySelectorAll("main .ax-section[id]")).filter(function(m){return m.id!=="uses"}),f=window.matchMedia&&matchMedia("(max-width:900px)");function y(){var m=f&&f.matches;g.forEach(function(i){var d=i.querySelector(":scope > h2");if(d)if(m&&!i.classList.contains("v9-fold")){if(i.classList.add("v9-fold"),d.setAttribute("role","button"),d.setAttribute("tabindex","0"),d.setAttribute("aria-expanded","false"),!d.__v9){d.__v9=!0;var W=function(){var a=!i.classList.contains("open");i.classList.toggle("open",a),d.setAttribute("aria-expanded",a?"true":"false")};d.addEventListener("click",function(){i.classList.contains("v9-fold")&&W()}),d.addEventListener("keydown",function(a){(a.key==="Enter"||a.key===" ")&&i.classList.contains("v9-fold")&&(a.preventDefault(),W())})}}else!m&&i.classList.contains("v9-fold")&&(i.classList.remove("v9-fold","open"),d.removeAttribute("role"),d.removeAttribute("tabindex"),d.removeAttribute("aria-expanded"))})}function b(m){var i=t.getElementById(m);if(i&&i.classList.contains("v9-fold")&&!i.classList.contains("open")){i.classList.add("open");var d=i.querySelector(":scope > h2");d&&d.setAttribute("aria-expanded","true")}}t.addEventListener("click",function(m){var i=m.target.closest&&m.target.closest('a[href^="#"]');i&&b(i.getAttribute("href").slice(1))},!0),addEventListener("hashchange",function(){b(location.hash.slice(1))}),y(),f&&(f.addEventListener?f.addEventListener("change",y):f.addListener&&f.addListener(y)),location.hash&&b(location.hash.slice(1))}function Z(){j(),U(),B(),S(),x(),H(),Y(),C(),O(),I(),z(),u(),v(),D(),K(),t.addEventListener("arc:lang",function(){[].forEach.call(t.querySelectorAll('[data-v9t="older"]'),function(g){g.textContent=c("Earlier updates","이전 업데이트","更早的更新")}),[].forEach.call(t.querySelectorAll('[data-v9t="all"]'),function(g){g.textContent=c("All updates","전체 업데이트","全部更新")})})}A.L=c,t.readyState==="loading"?t.addEventListener("DOMContentLoaded",Z):Z()})(),(function(){"use strict";if(window.arcV10)return;var t=document,h=t.documentElement;h.classList.add("v10");var F=function(){var i=(h.getAttribute("lang")||"en").slice(0,2);if(i!=="ko"&&i!=="zh")try{i=localStorage.getItem("arcircle.lang")||i}catch{}return i==="ko"||i==="zh"?i:"en"},c=function(i,d,W){var a=F();return a==="ko"?d:a==="zh"?W:i},o=function(i){return String(i??"").replace(/[&<>"']/g,function(d){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[d]})},P=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,A={get:function(i){try{return localStorage.getItem(i)}catch{return null}},set:function(i,d){try{d==null?localStorage.removeItem(i):localStorage.setItem(i,d)}catch{}}},j=function(i){return/^0x[0-9a-fA-F]{40}$/.test(String(i||""))},U=(location.pathname.replace(/\.html$/,"").replace(/\/+$/,"")||"/").replace(/^\/arcpad$/,"/arc").replace(/^\/circlepad$/,"/circle"),V=U==="/arc",L=window.arcV10={},w={dim:"arc.v10.dim",compact:"arc.v10.compact"};function E(){h.classList.toggle("v10-dim",A.get(w.dim)==="1"),h.classList.toggle("v10-compact",A.get(w.compact)==="1")}E();function B(){return[["dim",c("Dim","어둡게","柔和"),c("Softer contrast for long sessions","오래 볼 때 눈이 편한 대비","长时间浏览时更柔和的对比")],["compact",c("Compact","촘촘하게","紧凑"),c("More coins and rows on one screen","한 화면에 더 많은 코인과 줄","一屏显示更多币和行")]].map(function(i){return"<label><span>"+o(i[1])+"<small>"+o(i[2])+'</small></span><input type="checkbox" data-v10set="'+i[0]+'"'+(A.get(w[i[0]])==="1"?" checked":"")+'><i class="v10-sw" aria-hidden="true"></i></label>'}).join("")}function S(i){var d=i.target.closest&&i.target.closest("[data-v10set]");d&&(A.set(w[d.dataset.v10set],d.checked?"1":null),E())}function $(){var i=t.querySelector(".anav-right");if(!(!i||i.querySelector(".v10-set"))){var d=t.createElement("div");d.className="v10-set",d.innerHTML='<button type="button" class="v10-set-b" aria-haspopup="true" aria-expanded="false" aria-label="'+o(c("Display","화면 설정","显示"))+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button><div class="v10-set-m" hidden></div>';var W=i.querySelector(".anav-lang");i.insertBefore(d,W||i.firstChild);var a=d.querySelector(".v10-set-b"),e=d.querySelector(".v10-set-m"),n=function(){e.hidden=!0,a.setAttribute("aria-expanded","false")};a.addEventListener("click",function(r){if(r.stopPropagation(),!e.hidden)return n();e.innerHTML=B()+'<a href="/me">'+o(c("My ARCIRCLE — everything to claim","My ARCIRCLE — 받을 보상 한눈에","My ARCIRCLE — 所有可领取的"))+"</a>",e.hidden=!1,a.setAttribute("aria-expanded","true")}),e.addEventListener("change",S),t.addEventListener("click",function(r){d.contains(r.target)||n()}),t.addEventListener("keydown",function(r){r.key==="Escape"&&!e.hidden&&(n(),a.focus())})}}function x(){var i=t.querySelector(".anav-lmenu");if(!(!i||i.querySelector(".v10-lset"))){var d=t.createElement("div");d.className="v10-lset v10-set-m",d.style.cssText="position:static;min-width:0;padding:4px 0 0;margin-top:4px;border:0;border-top:1px solid rgba(170,190,230,.14);border-radius:0;background:none;box-shadow:none",d.innerHTML=B(),i.appendChild(d),d.addEventListener("change",S),d.addEventListener("click",function(W){W.stopPropagation()})}}function H(i){[].forEach.call((i||t).querySelectorAll(".bp-panel > .bp-lede, .ams-hero-txt > p"),function(d){if(!(d.dataset.v10cut||(d.textContent||"").trim().length<120)){d.dataset.v10cut="1",d.classList.add("bp-lede","v10-cut");var W=t.createElement("button");W.type="button",W.className="v10-more",W.setAttribute("aria-expanded","false"),W.textContent=c("More","더 보기","更多"),W.addEventListener("click",function(){var a=d.classList.toggle("open");W.setAttribute("aria-expanded",a?"true":"false"),W.textContent=a?c("Less","접기","收起"):c("More","더 보기","更多")}),d.insertAdjacentElement("afterend",W)}})}function Y(){[].forEach.call(t.querySelectorAll(".bp-panel section.asc-guide, .bp-panel .asc-guide"),function(i){if(!(i.closest(".v10-guide")||i.parentNode.closest(".asc-guide"))){var d=i.querySelector(":scope > h2"),W=t.createElement("details");W.className="v10-guide",W.innerHTML="<summary><span>"+o(d?d.textContent.trim():c("How it works","사용 방법","使用说明"))+"</span><small>"+o(c("How it works · what's new","사용 방법 · 새 소식","使用说明 · 更新"))+'</small></summary><div class="v10-guide-in"></div>',i.parentNode.insertBefore(W,i),W.querySelector(".v10-guide-in").appendChild(i),d&&(d.hidden=!0)}})}function l(){var i=t.getElementById("bp-panel-explore");if(i){var d=t.getElementById("ap-ticker");if(d&&d.parentNode!==i){var W=i.querySelector(".cn-explore-toolbar");i.insertBefore(d,W||i.firstChild)}var a=0;(function _(){var R=t.getElementById("ap-filter-panel"),T=i.querySelector(".cn-explore-toolbar > .flt-plat"),p=t.getElementById("v7-presets");if(R&&T&&!R.querySelector(".v10-fg-plat")){var N=t.createElement("div");N.className="flt-group v10-fg-plat",N.innerHTML='<span class="flt-label">'+o(c("Platform","플랫폼","平台"))+"</span>",N.appendChild(T),R.insertBefore(N,R.firstChild)}if(R&&p&&p.parentNode!==R){var X=R.querySelector(".v10-fg-pre")||t.createElement("div");X.className="flt-group v10-fg-pre",X.parentNode||(X.innerHTML='<span class="flt-label">'+o(c("Saved views","저장한 보기","已保存视图"))+"</span>",R.appendChild(X)),X.appendChild(p)}(!R||!T||!p)&&++a<40&&setTimeout(_,400)})();var e=t.getElementById("ap-explore-grid");if(e&&!e.dataset.v10){e.dataset.v10="1";var n=0;e.addEventListener("touchstart",function(_){var R=_.target.closest(".launch-card");R&&(n=setTimeout(function(){R.classList.add("v10-qb")},420))},{passive:!0}),e.addEventListener("touchend",function(){clearTimeout(n)},{passive:!0}),e.addEventListener("touchmove",function(){clearTimeout(n)},{passive:!0});var r=new Set,s=function(){P||[].forEach.call(e.querySelectorAll(".launch-card[data-token] > svg"),function(_){var R=_.parentNode,T=(R.dataset.token||"").toLowerCase();if(!(!T||r.has(T))){r.add(T);var p=_.querySelector("path, polyline");if(!(!p||!p.getTotalLength))try{_.style.setProperty("--len",Math.ceil(p.getTotalLength())),_.classList.add("v10-draw")}catch{}}})};"MutationObserver"in window&&new MutationObserver(function(){clearTimeout(s.t),s.t=setTimeout(s,30)}).observe(e,{childList:!0}),s()}}}function M(){var i=t.getElementById("bp-panel-coin");if(!(!i||i.dataset.v10)){i.dataset.v10="1",i.addEventListener("click",function(W){var a=W.target.closest&&W.target.closest("#v7-ord > h3");if(a&&window.innerWidth<=900){a.parentNode.classList.toggle("v10-open");return}var e=W.target.closest&&W.target.closest(".v10-showall");if(e){var n=e.closest(".ac2-card"),r=n.classList.toggle("v10-all");e.textContent=r?c("Show fewer","접기","收起"):c("Show all","모두 보기","显示全部")}});var d=function(){[].forEach.call(i.querySelectorAll(".ac2-card .ac2-table-wrap"),function(W){var a=W.querySelectorAll("tbody tr").length,e=W.parentNode.querySelector(":scope > .v10-showall");a>8&&!e&&(e=t.createElement("button"),e.type="button",e.className="v10-showall",e.textContent=c("Show all","모두 보기","显示全部"),W.insertAdjacentElement("afterend",e)),e&&(e.hidden=a<=8)})};"MutationObserver"in window&&new MutationObserver(function(){clearTimeout(d.t),d.t=setTimeout(d,80)}).observe(i,{childList:!0,subtree:!0}),d()}}function C(){if(!P){var i=t.querySelector(".bp-panel.active");i&&(i.classList.remove("v10-in"),i.offsetWidth,i.classList.add("v10-in"),setTimeout(function(){i.classList.remove("v10-in")},260))}}function O(){if(U==="/"){var i=t.querySelector(".hm-tour");if(i){var d=A.get("arc.v10.seen");d?i.hidden=!0:A.set("arc.v10.seen",String(Date.now()))}}}function I(){var i="";setInterval(function(){var d=typeof state<"u"&&state&&state.account?String(state.account).toLowerCase():"";d&&d!==i&&j(d)&&(i=d,A.set("arc.v10.acct",d),t.dispatchEvent(new CustomEvent("arc:v10acct",{detail:d})))},1500)}L.account=function(){var i=window.arcConnect&&window.arcConnect.address();if(i)return i;var d=A.get("arc.v10.acct");return j(d)?d:""};var k=function(i){return fetch(i,{cache:"no-store"}).then(function(d){return d.ok?d.json():null}).catch(function(){return null})},z=function(i,d){return Number(i||0).toLocaleString("en-US",{maximumFractionDigits:d??2})},u=function(i){try{var d=Number(BigInt(i||"0")/10n**14n)/1e4;return d>=1e6?(d/1e6).toFixed(2).replace(/\.?0+$/,"")+"M":d>=1e3?(d/1e3).toFixed(1).replace(/\.0$/,"")+"K":z(d,2)}catch{return"—"}};L.claims=function(i){return i=String(i||"").toLowerCase(),Promise.all([k("/api/desk?stake=me&u="+i),k("/api/desk?stake=drop&u="+i),k("/api/desk?vearcia=me&u="+i)]).then(function(d){var W=d[0],a=d[1],e=d[2],n=[];if(W&&W.live&&(n.push({k:"stake",t:c("Staking rewards","스테이킹 보상","质押奖励"),v:z(W.claimable,2)+" USDC",ready:W.claimable>0,href:"/arc#staking"}),W.lock&&W.lock.end&&!W.lock.max)){var r=Math.round((W.lock.end-Date.now()/1e3)/86400);r>=0&&r<=14&&n.push({k:"lock",t:c("Your lock ends soon","락업 종료 임박","锁仓即将到期"),v:r+c(" days","일"," 天"),ready:!1,href:"/arc#staking",warn:!0})}if(a&&a.mode==="vault"){var s=(a.claimable||[]).length;n.push({k:"drop",t:c("Launch Drop","런치 드랍","发币空投"),v:s?s+c(s===1?" coin":" coins","개 코인"," 个币"):c("Nothing yet","아직 없음","暂无"),ready:s>0,href:"/arc#staking",tokens:a.claimable||[],vault:a.vault})}if(e&&e.live&&e.earned&&e.earned[0]){var _=Number(BigInt(e.earned[0])/10n**14n)/1e4;n.push({k:"vea",t:c("veARCIA rewards (Robinhood Chain)","veARCIA 보상 (로빈후드 체인)","veARCIA 奖励(Robinhood Chain)"),v:z(_,2)+" $ARCIA",ready:_>0,href:"/arc#vearcia",other:!0})}return n})};function v(){if(t.body.classList.contains("pg-me")){var i=t.getElementById("me-out");if(i){var d=!1,W=function(){var a=i.querySelector(".me-id");if(!(!a||i.querySelector(".v10-claims"))){var e=(new URLSearchParams(location.search).get("w")||"").toLowerCase();if(j(e)){var n=t.createElement("section");n.className="v10-claims",n.innerHTML='<div class="v10-claims-h"><h2>'+o(c("Ready to claim","받을 수 있는 보상","可领取"))+'</h2></div><p class="v10-claims-empty">'+o(c("Reading…","읽는 중…","读取中…"))+"</p>",a.insertAdjacentElement("afterend",n),L.claims(e).then(function(r){var s=r.filter(function(R){return R.ready&&!R.other}),_=L.account()===e||window.arcConnect&&window.arcConnect.address()===e;n.innerHTML='<div class="v10-claims-h"><h2>'+o(c("Ready to claim","받을 수 있는 보상","可领取"))+"</h2>"+(s.length?_?'<button type="button" class="ld-btn pri" data-v10claim>'+o(c("Claim all on Arc","Arc에서 모두 수령","在 Arc 上全部领取"))+" ("+s.length+")</button>":'<a class="ld-btn" href="/arc#staking">'+o(c("Connect this wallet to claim","이 지갑을 연결해서 수령","连接此钱包以领取"))+"</a>":"")+"</div>"+(r.length?"<ul>"+r.map(function(R){return"<li><span>"+o(R.t)+"</span><span><b data-no-i18n>"+o(R.v)+'</b> <span class="v10-st'+(R.ready?" ok":"")+'">'+o(R.ready?c("ready","수령 가능","可领取"):R.warn?"":"—")+'</span> <a href="'+o(R.href)+'">'+o(c("Open","열기","打开"))+" →</a></span></li>"}).join("")+"</ul>":'<p class="v10-claims-empty">'+o(c("Nothing to claim yet. Lock $ARCIRCLE on Staking to get USDC every week and a piece of every new ArcPad coin.","아직 받을 보상이 없어요. 스테이킹에서 $ARCIRCLE을 락업하면 매주 USDC와 새 ArcPad 코인을 받아요.","暂无可领取的奖励。在质押页面锁仓 $ARCIRCLE,每周可得 USDC,还能分到每个新 ArcPad 币。"))+' <a href="/arc#staking">'+o(c("Open Staking","스테이킹 열기","打开质押"))+" →</a></p>"),n.dataset.rows=JSON.stringify(s.map(function(R){return{k:R.k,tokens:R.tokens||[],vault:R.vault||""}})),_&&!i.querySelector(".v11-start")&&b(e,n)})}}};i.addEventListener("click",function(a){var e=a.target.closest&&a.target.closest("[data-v10claim]");if(!(!e||d)){var n=e.closest(".v10-claims"),r=JSON.parse(n.dataset.rows||"[]");d=!0,e.disabled=!0,D(r,function(s){e.textContent=s}).then(function(s){d=!1,s?(e.classList.add("v10-ok"),K(e,c("Claimed","수령 완료","已领取")),setTimeout(function(){n.remove(),W()},1600)):e.disabled=!1})}}),"MutationObserver"in window&&new MutationObserver(W).observe(i,{childList:!0}),W()}}}function D(i,d){var W=window.CONFIG||{},a=W.STAKING_ADDRESS,e=window.arcConnect?Promise.resolve(window.arcConnect.provider()):Promise.resolve(window.ethereum);return e.then(function(n){return!n||typeof ethers>"u"?(d(c("Open this in a wallet browser","지갑 브라우저에서 열어주세요","请在钱包浏览器中打开")),!1):n.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x13b2"}]}).catch(function(){return null}).then(function(){return new ethers.BrowserProvider(n).getSigner()}).then(function(r){var s=Promise.resolve();return i.forEach(function(_){s=s.then(function(){if(_.k==="stake"&&j(a))return d(c("Confirm the USDC claim…","USDC 수령을 확인하세요…","请确认 USDC 领取…")),new ethers.Contract(a,["function claim() returns (uint256)"],r).claim().then(function(R){return R.wait()});if(_.k==="drop"&&j(_.vault)&&_.tokens.length)return d(c("Confirm the Launch Drop claim…","런치 드랍 수령을 확인하세요…","请确认发币空投领取…")),new ethers.Contract(_.vault,["function claim(address[] list) returns (uint256)"],r).claim(_.tokens.slice(0,20)).then(function(R){return R.wait()})})}),s.then(function(){return d(c("Claimed","수령 완료","已领取")),!0})})}).catch(function(n){return d(String(n&&(n.shortMessage||n.reason||n.message)||n).slice(0,80)),!1})}function K(i,d){if(!(P||!i)){var W=i.getBoundingClientRect(),a=t.querySelector(".anav-right")||t.body,e=a.getBoundingClientRect(),n=t.createElement("span");n.className="v10-fly",n.textContent=d,n.style.left=W.left+W.width/2-30+"px",n.style.top=W.top+"px",t.body.appendChild(n),requestAnimationFrame(function(){n.style.transform="translate("+(e.right-80-W.left)+"px,"+(e.top+10-W.top)+"px) scale(.8)",n.style.opacity="0"}),setTimeout(function(){n.remove()},800)}}L.fly=K;function Z(){var i=0,d=window.scrollY;window.addEventListener("scroll",function(){var r=t.querySelector(".aa-fab");r&&(Math.abs(window.scrollY-d)>24&&r.classList.add("v11-mini"),d=window.scrollY,clearTimeout(i),i=setTimeout(function(){W()||r.classList.remove("v11-mini")},900))},{passive:!0});var W=function(){return!!(window.matchMedia&&matchMedia("(max-width: 640px)").matches)},a=function(){var r=t.querySelector(".aa-fab");return r&&r.classList.toggle("v11-mini",W()),!!r};if(!a())var e=0,n=setInterval(function(){(a()||++e>20)&&clearInterval(n)},500);window.addEventListener("resize",a)}function g(){var i=t.querySelector(".ax-token-hero .ax-ca-note");!i||i.dataset.v11||(i.dataset.v11="1",i.title=c("Tap to read all","눌러서 전체 보기","点击查看全部"),i.addEventListener("click",function(d){d.target.closest("a")||i.classList.toggle("open")}))}function f(){var i=t.getElementById("bp-panel-coin");if(!(!i||i.dataset.v11k)){i.dataset.v11k="1";var d=t.getElementById("apc-swap");if(d&&!d.querySelector(".v11-keys")){var W=t.createElement("p");W.className="v11-keys",W.innerHTML=c("Keys","단축키","快捷键")+": <kbd>B</kbd> "+o(c("buy","매수","买入"))+" · <kbd>S</kbd> "+o(c("sell","매도","卖出"))+" · <kbd>1</kbd>–<kbd>4</kbd> $1 / $5 / $10 / $50",d.appendChild(W)}t.addEventListener("keydown",function(a){if(!(!i.classList.contains("active")||a.metaKey||a.ctrlKey||a.altKey)){var e=a.target,n=e&&e.tagName;if(a.key==="Escape"&&n==="INPUT"&&e.id==="apc-amount"){e.blur();return}if(!(n==="INPUT"||n==="TEXTAREA"||n==="SELECT"||e&&e.isContentEditable)&&!t.querySelector(".cw-modal, .cw-m:not([hidden]), .anav-sheet.in")){var r=a.key.toLowerCase(),s=i.querySelectorAll("#apc-swap .ac2-swap-tabs button"),_=i.querySelectorAll("#apc-quick button");if((r==="b"||r==="s")&&s.length>=2){a.preventDefault(),s[r==="b"?0:1].click();var R=t.getElementById("apc-amount");R&&R.focus()}else/^[1-4]$/.test(r)&&_[Number(r)-1]&&(a.preventDefault(),_[Number(r)-1].click())}}})}}function y(){var i=t.querySelector("#bp-panel-explore .cn-explore-toolbar");if(!(!i||i.querySelector(".v11-cmp"))){var d=t.createElement("button");d.type="button",d.className="flt-btn v11-cmp",d.setAttribute("aria-pressed","false"),d.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"/></svg><span>'+o(c("Compare","비교","比较"))+"</span>";var W=i.querySelector("#ap-filter-btn");i.insertBefore(d,W||null),d.addEventListener("click",function(){var a=h.classList.toggle("v11-cmp-on");d.setAttribute("aria-pressed",a?"true":"false"),d.classList.toggle("on",a),a&&typeof window.arcToast=="function"&&window.arcToast(c("Pick 2 or 3 coins to compare","비교할 코인을 2~3개 고르세요","选择 2 到 3 个币进行比较"),"info")})}}function b(i,d){var W=window.CONFIG||{},a=W.RPC_URL||"https://rpc.mainnet.arc.io";Promise.all([fetch(a,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_getBalance",params:[i,"latest"]})}).then(function(e){return e.json()}).catch(function(){return null}),k("/api/social?token=arcircle&wallet="+i),k("/api/desk?stake=me&u="+i)]).then(function(e){var n=0;try{n=Number(BigInt(e[0]&&e[0].result||"0x0")/10n**14n)/1e4}catch{}var r=e[1]&&e[1].wallet,s=e[2]||{},_=(s.history||[]).reduce(function(N,X){return N+(X.earned||0)},0),R=[[n>=.5,c("USDC on Arc","Arc에 USDC","Arc 上的 USDC"),c("Gas and buys are paid in USDC","가스와 매수 모두 USDC","Gas 和买入都用 USDC"),"/start"],[!!(r&&Number(r.balance)>0),c("Hold $ARCIRCLE","$ARCIRCLE 보유","持有 $ARCIRCLE"),c("The core coin","핵심 코인","核心币"),"/arcircle"],[!!(s.lock&&s.lock.amount>0),c("Lock it for veARCIRCLE","락업해서 veARCIRCLE 받기","锁仓获得 veARCIRCLE"),c("USDC every week + every new coin's drop","매주 USDC + 새 코인 드랍","每周 USDC + 每个新币空投"),"/arc#staking"],[_>0,c("Your first reward","첫 보상 받기","第一笔奖励"),c("Claim it from here","여기서 수령","在这里领取"),"/arc#staking"]],T=R.filter(function(N){return N[0]}).length;if(T!==R.length){var p=t.createElement("section");p.className="v11-start",p.innerHTML='<div class="v11-start-h"><h2>'+o(c("Getting started","시작하기","入门"))+"</h2><span>"+T+" / "+R.length+'</span></div><div class="v11-start-bar"><i style="width:'+T/R.length*100+'%"></i></div><ol>'+R.map(function(N){return'<li class="'+(N[0]?"ok":"")+'"><a href="'+o(N[3])+'"><i aria-hidden="true"></i><span><b>'+o(N[1])+"</b><small>"+o(N[2])+"</small></span></a></li>"}).join("")+"</ol>",d.insertAdjacentElement("afterend",p)}})}function m(){$(),x(),H(),Y(),l(),M(),O(),v(),I(),Z(),g(),f(),y(),V&&t.addEventListener("arcpad:tab",function(){setTimeout(function(){H(),Y(),l(),y(),f()},0),C()}),t.addEventListener("arc:lang",function(){setTimeout(function(){$(),x()},50)}),setTimeout(function(){$(),x(),Y()},1200)}t.readyState==="loading"?t.addEventListener("DOMContentLoaded",m):m()})(),(function(){"use strict";var t=document,h=function(l){return t.getElementById(l)},F=function(l){return window.arcI18n&&window.arcI18n.get()!=="en"&&window.arcI18n.translate(l)||l},c=function(l){return String(l??"").replace(/[&<>"']/g,function(M){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[M]})},o=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,P={get:function(l){try{return localStorage.getItem(l)}catch{return null}},set:function(l,M){try{localStorage.setItem(l,M)}catch{}}},A=[["lock","Your lock"],["drop","Launch Drop"],["vote","Pool vote"],["more","Treasury & stats"]];function j(){var l=h("bp-panel-staking"),M=h("ld-body");if(!(!l||!M)){var C=h("v12-stabs");if(!C){C=t.createElement("div"),C.id="v12-stabs",C.className="v12-stabs",C.setAttribute("role","tablist"),C.setAttribute("aria-label","ARCIRCLE Staking"),M.parentNode.insertBefore(C,M),C.addEventListener("click",function(I){var k=I.target.closest("[data-v12-tab]");k&&U(k.dataset.v12Tab,!0)}),C.addEventListener("keydown",function(I){if(!(I.key!=="ArrowRight"&&I.key!=="ArrowLeft")){var k=A.map(function(D){return D[0]}),z=k.indexOf(l.dataset.v12tab),u=k[(z+(I.key==="ArrowRight"?1:k.length-1))%k.length];U(u,!0);var v=C.querySelector('[data-v12-tab="'+u+'"]');v&&v.focus()}}),new MutationObserver(V).observe(M,{childList:!0,subtree:!0});var O=/[#?&]staking\?[^#]*drop|[?&]drop\b/.test(location.hash)?"drop":P.get("arc.v12.stk")||"lock";U(A.some(function(I){return I[0]===O})?O:"lock",!1),window.addEventListener("hashchange",function(){/staking\?[^#]*drop/.test(location.hash)&&U("drop",!1)})}C.innerHTML=A.map(function(I){var k=l.dataset.v12tab===I[0];return'<button type="button" role="tab" data-v12-tab="'+I[0]+'" aria-selected="'+k+'" tabindex="'+(k?0:-1)+'">'+c(F(I[1]))+(I[0]==="drop"?'<i class="v12-dot" hidden></i>':"")+"</button>"}).join(""),V()}}function U(l,M){var C=h("bp-panel-staking"),O=h("v12-stabs");if(C){var I=C.dataset.v12tab;if(C.dataset.v12tab=l,t.documentElement.dataset.v12stk=l,M&&P.set("arc.v12.stk",l),O&&[].forEach.call(O.querySelectorAll("[data-v12-tab]"),function(z){var u=z.dataset.v12Tab===l;z.setAttribute("aria-selected",String(u)),z.tabIndex=u?0:-1}),M&&I!==l&&!o&&(C.classList.remove("v12-swap"),C.offsetWidth,C.classList.add("v12-swap")),M&&O){var k=O.getBoundingClientRect().top;k<60&&window.scrollBy({top:k-70,behavior:o?"auto":"smooth"})}}}function V(){var l=h("v12-stabs"),M=h("ld-body");if(!(!l||!M)){var C=l.querySelector(".v12-dot");C&&(C.hidden=!M.querySelector('[data-ld="claim"]'))}}function L(){var l=h("hm-map-grid");if(l){var M=function(){[].forEach.call(l.querySelectorAll(".hm-mapc"),function(C){var O=C.querySelector(".hm-mapc-l"),I=O?O.children.length:0;if(!(!O||I<=4||C.querySelector(".v12-more"))){var k=t.createElement("button");k.type="button",k.className="v12-more",k.setAttribute("aria-expanded","false"),k.textContent=F("Show {n} more").replace("{n}",I-4),k.addEventListener("click",function(){var z=!C.classList.contains("v12-open");C.classList.toggle("v12-open",z),k.setAttribute("aria-expanded",String(z)),k.textContent=z?F("Show less"):F("Show {n} more").replace("{n}",I-4)}),C.appendChild(k)}})};M(),new MutationObserver(M).observe(l,{childList:!0})}}function w(){var l=t.querySelector("#bp-panel-coin .ac2-ca-row");l&&[].forEach.call(l.querySelectorAll(".ac2-chip-btn"),function(M){var C=M.querySelector("span"),O=C&&C.textContent.trim();O&&M.getAttribute("aria-label")!==O&&(M.setAttribute("aria-label",O),M.title||(M.title=O))})}var E={coin:"",keys:null,at:0};function B(l){var M=l.querySelector("a.ac2-tx");return M?M.getAttribute("href"):""}function S(l){var M=l.children[2];if(!M)return 0;var C=/\$?([\d,.]+)\s*([KMB])?/.exec(M.textContent||"");return C?Number(C[1].replace(/,/g,""))*({K:1e3,M:1e6,B:1e9}[C[2]]||1):0}function $(){var l=h("apc-trades");!l||l.__v12||(l.__v12=!0,new MutationObserver(function(){var M=(location.hash.match(/coin\/(0x[0-9a-fA-F]{40})/)||[])[1]||"",C=[].slice.call(l.querySelectorAll("tr")).filter(function(u){return B(u)});if(C.length){var O=C.map(B);if(M.toLowerCase()!==E.coin||!E.keys){E={coin:M.toLowerCase(),keys:new Set(O),top:O[0]};return}var I=C.filter(function(u){return!E.keys.has(B(u))}),k=E.top;O.forEach(function(u){E.keys.add(u)}),E.top=O[0];var z=I.length;!z||z>4||O.indexOf(k)!==z||C.indexOf(I[z-1])!==z-1||o||I.forEach(function(u,v){u.style.setProperty("--v12d",v*70+"ms"),u.classList.add("v12-new"),S(u)>=100&&u.classList.add("v12-big"),setTimeout(function(){u.classList.remove("v12-new","v12-big")},2600)})}}).observe(l,{childList:!0}))}var x={};function H(l){var M=l.getAttribute("data-v12-key")||l.getAttribute("data-v12-count"),C=l.getAttribute("data-v12-count")||"",O=/^([\d,]*\.?\d*)\s*([KMB])?$/.exec(C.trim());if(!(!O||!O[1])){var I=Number(O[1].replace(/,/g,"")),k=O[2]||"",z=(O[1].split(".")[1]||"").length;if(!(o||!(I>0)||x[M])){x[M]=1;var u=performance.now(),v=900,D=l.closest(".v12-burn");D&&(D.classList.remove("v12-pop"),D.offsetWidth,D.classList.add("v12-pop")),(function K(Z){var g=Math.min(1,(Z-u)/v),f=1-Math.pow(1-g,3);l.textContent=(I*f).toLocaleString("en-US",{minimumFractionDigits:g<1?0:z,maximumFractionDigits:z})+k,g<1&&l.isConnected?requestAnimationFrame(K):l.textContent=C})(u)}}}new MutationObserver(function(l){l.forEach(function(M){[].forEach.call(M.addedNodes,function(C){C.nodeType===1&&(C.matches("[data-v12-count]")&&H(C),[].forEach.call(C.querySelectorAll("[data-v12-count]"),H))})})}).observe(t.documentElement,{childList:!0,subtree:!0});function Y(){j(),L(),$(),w();var l=t.querySelector("#bp-panel-coin .ac2-ca-row");l&&!l.__v12&&(l.__v12=!0,new MutationObserver(w).observe(l,{childList:!0,subtree:!0,characterData:!0}))}t.readyState==="loading"?t.addEventListener("DOMContentLoaded",Y):Y(),setTimeout(Y,1500),t.addEventListener("arc:lang",function(){j()}),window.arcV12={stkSet:U}})(),(function(){"use strict";if(window.arcFeel)return;var t=document,h=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,F=function(b){return window.arcI18n&&window.arcI18n.get&&window.arcI18n.get()!=="en"&&window.arcI18n.translate(b)||b},c=function(b){return String(b??"").replace(/[&<>"']/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})},o='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',P=".ap-stat > strong:not(#ap-stat-count):not(#ap-stat-vol), .bp-mini-stat strong",A=/^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/,j=new WeakMap,U=new WeakMap,V=new WeakSet,L=!h&&"IntersectionObserver"in window?new IntersectionObserver(function(b){b.forEach(function(m){if(j.set(m.target,m.isIntersecting),!!m.isIntersecting){var i=U.get(m.target);i&&(U.delete(m.target),w(m.target,i))}})},{threshold:.3}):null;function w(b,m){var i=A.exec(m.trim());if(i){var d=parseFloat(i[2].replace(/,/g,""));if(d>0){var W=(i[2].split(".")[1]||"").length,a=/,/.test(i[2])||d>=1e3,e=performance.now(),n=700,r=function(s){return i[1]+s.toLocaleString("en-US",{minimumFractionDigits:W,maximumFractionDigits:W,useGrouping:a})+i[3]};b.__feelMine=r(0),b.textContent=b.__feelMine,(function s(_){if(b.textContent===b.__feelMine){var R=Math.min(1,(_-e)/n),T=1-Math.pow(1-R,3);b.__feelMine=R<1?r(d*T):m,b.textContent=b.__feelMine,R<1&&requestAnimationFrame(s)}})(e)}}}function E(b){if(!V.has(b)){V.add(b);var m=/\d/.test(b.textContent);if(!(m||!L)){L.observe(b);var i=new MutationObserver(function(){var d=b.textContent;d===b.__feelMine||!/\d/.test(d)||(i.disconnect(),j.get(b)?w(b,d):U.set(b,d))});i.observe(b,{childList:!0,characterData:!0,subtree:!0})}}}var B=[[".hm-foot [data-hm-num]","Coin count is on its way"],[".hm-node [data-hm-num]","Burn total is on its way"]];function S(){B.forEach(function(b){[].forEach.call(t.querySelectorAll(b[0]),function(m){if(!(m.__feelE||m.textContent.trim()!=="—")){m.__feelE=Date.now(),m.classList.add("v9-skel");var i=new MutationObserver(function(){m.textContent.trim()!=="—"&&(m.classList.remove("v9-skel","pol-empty"),m.removeAttribute("data-empty"),i.disconnect())});i.observe(m,{childList:!0,characterData:!0,subtree:!0}),setTimeout(function(){m.textContent.trim()==="—"&&(m.classList.remove("v9-skel"),m.classList.add("pol-empty"),m.setAttribute("data-empty",F(b[1])))},6e3)}})}),[].forEach.call(t.querySelectorAll(".v9-na:not([data-empty])"),function(b){b.setAttribute("data-empty",F("Waiting for Arc"))}),[].forEach.call(t.querySelectorAll("[data-empty]:not(.v9-na):not(.pol-empty)"),function(b){b.removeAttribute("data-empty")}),[].forEach.call(t.querySelectorAll(P),E)}for(var $=60,x=[],H=null,Y=null,l=!1,M=0,C=0,O=["#3a78ff","#2ba6ff","#3fe0ef","#9df3ff","#ffffff"],I=0;I<$;I++)x.push({on:!1});function k(b,m){if(!h){if(!H){H=t.createElement("canvas"),H.className="pol-burst",H.setAttribute("aria-hidden","true");var i=Math.min(2,window.devicePixelRatio||1);M=innerWidth,C=innerHeight,H.width=M*i,H.height=C*i,Y=H.getContext("2d"),Y.scale(i,i),t.body.appendChild(H)}x.forEach(function(d,W){var a=-Math.PI/2+(Math.random()-.5)*Math.PI*1.3,e=5+Math.random()*7;d.on=!0,d.x=b,d.y=m,d.vx=Math.cos(a)*e,d.vy=Math.sin(a)*e,d.r=Math.random()*6.28,d.vr=(Math.random()-.5)*.35,d.w=4+Math.random()*4,d.h=6+Math.random()*6,d.c=O[W%O.length],d.life=0,d.max=60+Math.random()*40}),l||(l=!0,requestAnimationFrame(z))}}function z(){Y.clearRect(0,0,M,C);var b=0;x.forEach(function(m){if(m.on){if(m.life++,m.vy+=.28,m.vx*=.985,m.x+=m.vx,m.y+=m.vy,m.r+=m.vr,m.life>m.max||m.y>C+20){m.on=!1;return}b++,Y.save(),Y.translate(m.x,m.y),Y.rotate(m.r),Y.globalAlpha=Math.max(0,1-m.life/m.max),Y.fillStyle=m.c,Y.fillRect(-m.w/2,-m.h/2,m.w,m.h*Math.abs(Math.cos(m.r))),Y.restore()}}),b?requestAnimationFrame(z):(l=!1,H.remove(),H=null,Y=null)}var u={launch:"Coin launched",swap:"Swap complete",stake:"Stake locked"},v=null;function D(b){v&&v.remove();var m=(b.rows||[]).filter(function(e){return e&&e[1]!=null&&e[1]!==""});v=t.createElement("div"),v.className="pol-rcpt",v.setAttribute("role","status"),v.setAttribute("aria-live","polite"),v.innerHTML='<div class="pol-rcpt-h"><i>'+o+"</i><b>"+c(F(u[b.kind]||"Transaction confirmed"))+"</b></div>"+(m.length?"<dl>"+m.map(function(e){return"<dt>"+c(F(e[0]))+'</dt><dd data-no-i18n title="'+c(e[1])+'">'+c(e[1])+"</dd>"}).join("")+"</dl>":"")+(b.url?'<a href="'+c(b.url)+'" target="_blank" rel="noopener">'+c(F("View transaction"))+" ↗</a>":"")+'<button type="button" class="pol-rcpt-x" aria-label="'+c(F("Close"))+'">×</button>',t.body.appendChild(v);var i=v,d=!1,W=function(){d||(d=!0,i.classList.remove("in"),i.classList.add("out"),setTimeout(function(){i.remove(),v===i&&(v=null)},h?0:300))};i.querySelector(".pol-rcpt-x").addEventListener("click",W);var a=setTimeout(W,8e3);i.addEventListener("pointerenter",function(){clearTimeout(a)}),i.addEventListener("pointerleave",function(){clearTimeout(a),a=setTimeout(W,4e3)}),requestAnimationFrame(function(){if(i.classList.add("in"),!t.querySelector(".coin-birth")){var e=i.getBoundingClientRect();k(e.left+e.width/2,e.top+8)}})}t.addEventListener("arc:success",function(b){D(b&&b.detail||{})});var K={el:null,at:0};t.addEventListener("pointerdown",function(b){var m=b.target&&b.target.closest&&b.target.closest("button, a, [role=button], [data-copy]");m&&(K={el:m,at:Date.now()})},!0),t.addEventListener("keydown",function(b){(b.key==="Enter"||b.key===" ")&&t.activeElement&&(K={el:t.activeElement,at:Date.now()})},!0);function Z(b){if(!(!b||!b.getBoundingClientRect||!t.body.contains(b))){var m=b.getBoundingClientRect();if(m.width){var i=t.createElement("span");i.className="pol-copy",i.setAttribute("aria-hidden","true"),i.innerHTML=o,i.style.left=Math.round(Math.min(innerWidth-16,m.right+2))+"px",i.style.top=Math.round(Math.max(16,m.top+2))+"px",t.body.appendChild(i),setTimeout(function(){i.remove()},h?1200:950)}}}var g=window.Clipboard&&window.Clipboard.prototype;if(g&&g.writeText&&!g.__feel){var f=g.writeText;g.writeText=function(){var b=Date.now()-K.at<2e3?K.el:null,m=f.apply(this,arguments);return m&&m.then&&m.then(function(){Z(b)},function(){}),m},g.__feel=!0}function y(){S(),setInterval(function(){t.hidden||S()},1500)}t.readyState==="loading"?t.addEventListener("DOMContentLoaded",y):y(),window.arcFeel={success:D,burst:k}})(),(function(){"use strict";if(window.arcChrome)return;var t=function(f){return window.arcI18n&&window.arcI18n.get&&window.arcI18n.get()!=="en"&&window.arcI18n.translate(f)||f},h=function(f){return String(f??"").replace(/[&<>"']/g,function(y){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[y]})},F=window.arcFmt||{ago:function(f){var y=Math.max(1,Date.now()/1e3-f);return y<3600?Math.round(y/60)+"m":y<86400?Math.round(y/3600)+"h":Math.round(y/86400)+"d"},usd:function(f){return"$"+Math.round(f)}},c={get:function(f){try{return localStorage.getItem(f)}catch{return null}},set:function(f,y){try{localStorage.setItem(f,y)}catch{}}},o=function(){return Math.floor(Date.now()/1e3)},P=(location.pathname.replace(/\.html$/,"").replace(/\/$/,"")||"/").replace(/^\/arcpad$/,"/arc").replace(/^\/circlepad$/,"/circle"),A=[["ArcPad","/arc"],["CirclePad","/circle"],["$ARCIRCLE","/arcircle"],["Relay","/relay"],["Stats","/stats"]];function j(f){if(!f.querySelector(".ps")){var y=location.hash,b=document.createElement("nav");b.className="ps",b.setAttribute("aria-label","Products"),b.innerHTML=A.map(function(i){var d=i[1]==="/relay"?P==="/arc"&&/^#relay/.test(y):i[1]==="/arc"?P==="/arc"&&!/^#relay/.test(y):P===i[1]||P.indexOf(i[1]+"/")===0;return'<a href="'+i[1]+'"'+(d?' aria-current="page" class="on"':"")+(i[0]==="$ARCIRCLE"?" data-no-i18n":"")+">"+h(i[0]==="Stats"?t("Stats"):i[0])+"</a>"}).join("");var m=f.querySelector(".ax-brand");m&&m.insertAdjacentElement("afterend",b)}}var U="arc-nb-seen",V=[{id:"news:pages",ts:1790496e3,t:"New: My ARCIRCLE, Stats, Roadmap and site search",s:"Look up any wallet, or press Ctrl/⌘K anywhere",href:"/me"},{id:"news:relay",ts:1790488800,t:"Relay Launch is in Utilities",s:"Every CirclePad coin relayed to contributors and $ARCIRCLE holders",href:"/relay"}],L=[],w,E,B=!1,S=!1,$=[],x="",H=0;function Y(){var f=window.arcV10,y=f&&f.account&&f.account();return!y||!f.claims?($=[],Promise.resolve()):Date.now()-H<6e4?Promise.resolve():(H=Date.now(),f.claims(y).then(function(b){$=b.filter(function(m){return m.ready||m.warn}).map(function(m){return{k:m.warn?"lock":"claim",t:m.t,s:m.v,href:m.href}}),O()}).catch(function(){}))}var l=function(){var f=Number(c.get(U));return f>0?f:o()-3*86400};function M(){var f=[fetch("/api/c?view=latest&n=5").then(function(y){return y.ok?y.json():null}).catch(function(){return null}),fetch("/api/social?token=arcircle").then(function(y){return y.ok?y.json():null}).catch(function(){return null})];return Promise.all(f).then(function(y){var b=V.slice(),m=y[0],i=y[1];m&&Array.isArray(m.coins)&&m.coins.forEach(function(e){!e||!e.token||!e.launchedAt||b.push({id:"coin:"+e.token,ts:e.launchedAt,k:"coin",t:t("New coin on ArcPad")+": $"+e.symbol,s:e.name+(e.mcapUsd!=null?" · "+F.usd(e.mcapUsd):""),href:"/arc#coin/"+e.token,raw:!0})});var d=i&&i.revenue&&i.revenue.circle;if(d&&d.deadline){var W=d.deadline-o();d.open&&W>0&&W<86400&&b.push({id:"round1:24h",ts:d.deadline-86400,k:"round",t:"CirclePad Round #1 closes within 24 hours",s:t("Raised so far")+": "+(F.num?F.num(d.raised||0,2):d.raised)+" USDC",href:"/circle"}),W<=0&&b.push({id:"round1:closed",ts:d.deadline,k:"round",t:"CirclePad Round #1 has closed",s:"See the results and the winning coin",href:"/circle/round/1"})}var a=window.CONFIG&&CONFIG.RELAY&&CONFIG.RELAY.ROUNDS||[];a.forEach(function(e){if(!(!e.launch||!e.launch.token)){var n=e.launch.at?Math.floor(Date.parse(e.launch.at)/1e3):0;b.push({id:"relay:"+e.n,ts:n||o(),k:"relay",t:"Relay N"+e.n+" is live",s:e.launch.symbol?"$"+e.launch.symbol:"",href:"/relay",raw:!0})}}),b.sort(function(e,n){return n.ts-e.ts}),L=b.slice(0,12),S=!0,O()})}function C(){var f=l();return L.filter(function(y){return y.ts>f}).length}function O(){if(w){var f=C()+$.length,y=w.querySelector(".nb-n");y.textContent=f>9?"9+":String(f),y.hidden=!f,w.setAttribute("aria-label",t("Alerts")+(f?" ("+f+")":"")),B&&k()}}function I(){var f=E.querySelector(".v10-ntabs");f||(f=document.createElement("div"),f.className="v10-ntabs",f.setAttribute("role","tablist"),f.innerHTML='<button type="button" role="tab" data-nt="mine"></button><button type="button" role="tab" data-nt="all"></button>',E.querySelector(".nb-h").insertAdjacentElement("afterend",f),f.addEventListener("click",function(y){var b=y.target.closest("[data-nt]");b&&(y.stopPropagation(),x=b.getAttribute("data-nt"),k())})),f.querySelector('[data-nt="mine"]').textContent=t("For you")+($.length?" ("+$.length+")":""),f.querySelector('[data-nt="all"]').textContent=t("All"),[].forEach.call(f.querySelectorAll("[data-nt]"),function(y){y.setAttribute("aria-selected",y.getAttribute("data-nt")===x?"true":"false")})}function k(){x||(x=$.length?"mine":"all"),I();var f=Number(E.getAttribute("data-seen"))||l(),y=E.querySelector(".nb-list");if(x==="mine"){var b=window.arcV10,m=b&&b.account&&b.account();if(!m){y.innerHTML='<li class="nb-none">'+h(t("Connect a wallet on ArcPad and your rewards, claims and lock dates show up here."))+' <a href="/arc#staking">'+h(t("Open Staking"))+" →</a></li>";return}if(!$.length){y.innerHTML='<li class="nb-none">'+h(t("Nothing to claim right now."))+' <a href="/me?w='+h(m)+'">'+h(t("My ARCIRCLE"))+" →</a></li>";return}y.innerHTML=$.map(function(i){return'<li class="nb-i nb-'+i.k+' new"><a href="'+h(i.href)+'"><i aria-hidden="true"></i><span><b>'+h(i.t)+"</b><small data-no-i18n>"+h(i.s)+"</small></span></a></li>"}).join("")+'<li class="nb-none"><a href="/me?w='+h(m)+'">'+h(t("Everything to claim, in one place"))+" →</a></li>";return}if(!S){y.innerHTML='<li class="nb-none">'+h(t("Loading…"))+"</li>";return}if(!L.length){y.innerHTML='<li class="nb-none">'+h(t("Nothing new yet."))+"</li>";return}y.innerHTML=L.map(function(i){return'<li class="nb-i nb-'+(i.k||"news")+(i.ts>f?" new":"")+'"><a href="'+h(i.href)+'"><i aria-hidden="true"></i><span><b'+(i.raw?" data-no-i18n":"")+">"+h(i.raw?i.t:t(i.t))+"</b><small"+(i.raw?" data-no-i18n":"")+">"+h(i.raw?i.s:t(i.s))+"</small></span><em data-no-i18n>"+h(F.ago(i.ts))+"</em></a></li>"}).join("")}function z(f){B=f??!B,E.hidden=!B,w.setAttribute("aria-expanded",B?"true":"false"),B&&(E.setAttribute("data-seen",String(l())),E.querySelector(".nb-h b").textContent=t("Alerts"),k(),S||M(),Y(),c.set(U,String(o())),O())}function u(f,y){if(!(f.querySelector(".nb-btn")||w&&document.body.contains(w)&&w.offsetParent!==null)){var b=document.createElement("div");b.className="nb",b.innerHTML='<button type="button" class="nb-btn" aria-haspopup="true" aria-expanded="false" aria-label="Alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg><span class="nb-n" hidden>0</span></button><div class="nb-panel" hidden><div class="nb-h"><b>Alerts</b><a href="/roadmap">'+h(t("Roadmap"))+' →</a></div><ul class="nb-list"></ul></div>';var m=f.querySelector(".ck-btn");if(y&&y.parentNode===f)f.insertBefore(b,y);else if(m)m.insertAdjacentElement("afterend",b);else{var i=f.querySelector(".bp-chain-pill, .ax-top-right, .ax-top-cta");i?f.insertBefore(b,i):f.appendChild(b)}w=b.querySelector(".nb-btn"),E=b.querySelector(".nb-panel"),w.addEventListener("click",function(d){d.stopPropagation(),z()}),document.addEventListener("click",function(d){B&&!b.contains(d.target)&&z(!1)}),document.addEventListener("keydown",function(d){B&&d.key==="Escape"&&(z(!1),w.focus())})}}function v(f){var y=f.querySelector(":scope > .lang-toggle"),b=f.querySelector(":scope > .nb");if(y&&b&&b.insertAdjacentElement("afterend",y),!!f.matches(".bp-topbar-right")){var m=document.documentElement,i=function(){m.style.setProperty("--bp-right",Math.ceil(f.getBoundingClientRect().width+26)+"px")};i(),window.ResizeObserver&&new ResizeObserver(i).observe(f),window.addEventListener("resize",i)}}function D(){var f=document.querySelector("header.ax-top"),y=document.querySelector(".bp-topbar-right")||document.querySelector(".anav-right")||f;f&&j(f),y&&(u(y,y.querySelector(":scope > .cw")),v(y),setTimeout(M,2500),setTimeout(Y,3500),document.addEventListener("arc:v10acct",function(){H=0,Y()}),setInterval(function(){document.hidden||(M(),Y())},18e4))}var K=function(){setTimeout(D,0)};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",K):K(),"serviceWorker"in navigator&&(location.protocol==="https:"||location.hostname==="localhost")&&window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})});var Z=!1;function g(f,y){u(f,y),Z||(Z=!0,setTimeout(M,1500),setTimeout(Y,2500),document.addEventListener("arc:v10acct",function(){H=0,Y()}))}window.arcChrome={refresh:M,mountBell:g}})(),(function(){"use strict";const t=[[".cm-modal.in .cm-dialog","[data-close].cm-x"],["#msheet:not([hidden]) .msheet-panel",".msheet-x"],[".modal-overlay:not(.hidden) > .ap-modal-box, .modal-overlay:not(.hidden) > .modal",".ap-modal-close, .modal-close, [data-close]"]],h='a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',F=L=>!!(L.offsetWidth||L.offsetHeight||L.getClientRects().length),c=[];function o(){const L=[];for(const[w,E]of t)document.querySelectorAll(w).forEach(B=>{F(B)&&L.push({box:B,closeSel:E})});return L}const P=L=>[...L.querySelectorAll(h)].filter(w=>F(w)&&!w.closest("[hidden]"));function A(L){const w=L.box;w.hasAttribute("role")||w.setAttribute("role","dialog"),w.hasAttribute("aria-modal")||w.setAttribute("aria-modal","true"),w.hasAttribute("tabindex")||w.setAttribute("tabindex","-1"),L.back=document.activeElement&&document.activeElement!==document.body?document.activeElement:null,c.push(L),requestAnimationFrame(()=>{if(!w.isConnected||w.contains(document.activeElement))return;const E=w.querySelector('input:not([type="hidden"]):not([disabled]),textarea:not([disabled])');(E&&F(E)&&!matchMedia("(pointer:coarse)").matches?E:w).focus({preventScroll:!0})})}function j(L){const w=c.indexOf(L);w>=0&&c.splice(w,1);const E=L.back;E&&E.isConnected&&F(E)&&(!document.activeElement||document.activeElement===document.body||L.box.contains(document.activeElement)||!document.activeElement.isConnected)&&E.focus({preventScroll:!0})}function U(){const L=o();for(const w of c.slice())L.some(E=>E.box===w.box)||j(w);for(const w of L)c.some(E=>E.box===w.box)||A(w)}let V=0;new MutationObserver(()=>{cancelAnimationFrame(V),V=requestAnimationFrame(U)}).observe(document.body,{childList:!0,subtree:!0,attributes:!0,attributeFilter:["class","hidden"]}),document.addEventListener("keydown",L=>{if(L.key!=="Escape"||L.defaultPrevented)return;U();const w=c[c.length-1];if(!w||!w.box.isConnected)return;const E=w.box.querySelector(w.closeSel)||w.box.parentElement&&w.box.parentElement.querySelector(w.closeSel);E&&(L.preventDefault(),E.click())}),document.addEventListener("keydown",L=>{if(L.key!=="Tab")return;const w=c[c.length-1];if(!w||!w.box.isConnected)return;const E=P(w.box);if(!E.length){L.preventDefault(),w.box.focus();return}const B=E[0],S=E[E.length-1],$=document.activeElement;w.box.contains($)?L.shiftKey&&($===B||$===w.box)?(L.preventDefault(),S.focus()):!L.shiftKey&&$===S&&(L.preventDefault(),B.focus()):(L.preventDefault(),(L.shiftKey?S:B).focus())},!0)})(),(function(){"use strict";if(window.arcTxRing)return;var t=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,h=function(x){return window.arcI18n&&window.arcI18n.get&&window.arcI18n.get()!=="en"&&window.arcI18n.translate(x)||x},F=function(x){return String(x??"").replace(/[&<>"']/g,function(H){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[H]})},c=typeof CONFIG<"u"&&CONFIG.BLOCK_EXPLORER||"https://arc.etherscan.io",o=16,P=2*Math.PI*o,A='<path class="txr-ok" d="M13 20.5l4.5 4.5 9-10"/>',j='<path class="txr-bad" d="M15 15l10 10M25 15 15 25"/>',U=null;function V(){return U&&document.body.contains(U)||(U=document.createElement("div"),U.className="txr-host",U.setAttribute("role","status"),U.setAttribute("aria-live","polite"),document.body.appendChild(U)),U}function L(){var x=document.createElement("div");x.className="txr",x.innerHTML='<svg viewBox="0 0 40 40" aria-hidden="true"><circle class="txr-track" cx="20" cy="20" r="'+o+'"/><circle class="txr-fill" cx="20" cy="20" r="'+o+'" stroke-dasharray="'+P.toFixed(2)+'" stroke-dashoffset="'+P.toFixed(2)+'"/><g class="txr-mark"></g></svg><div class="txr-t"><b></b><small></small></div><button type="button" class="txr-x" aria-label="Close">×</button>',V().appendChild(x),requestAnimationFrame(function(){x.classList.add("in")});var H=!1,Y=0,l=x.querySelector(".txr-fill");function M(u,v,D,K){l.style.strokeDashoffset=(P*(1-u)).toFixed(2),x.querySelector("b").textContent=h(v),x.querySelector("small").innerHTML=D||"",K&&x.classList.add(K)}function C(u){clearTimeout(Y),Y=setTimeout(function(){x.classList.remove("in"),x.classList.add("out"),setTimeout(function(){x.remove()},350)},u)}x.querySelector(".txr-x").addEventListener("click",function(){C(0)}),M(.18,"Confirm in your wallet",F(h("Waiting for your signature")));var O=c,I=function(u){return'<a href="'+F(O+"/tx/"+u)+'" target="_blank" rel="noopener">'+F(u.slice(0,10)+"…"+u.slice(-6))+" ↗</a>"},k="",z=function(u,v){if(u){k=u;try{document.dispatchEvent(new CustomEvent("arc:tx",{detail:{h:u,s:v,ex:O}}))}catch{}}};return{chain:function(u){Number(u)===4663&&(O=typeof CONFIG<"u"&&CONFIG.PONS&&CONFIG.PONS.EXPLORER||"https://robinhoodchain.blockscout.com")},sent:function(u){H||(z(u,"pending"),M(.55,"Transaction submitted",F(h("Waiting for a block"))+" · "+I(u),"sent"))},mined:function(u){H||(H=!0,z(u,"ok"),M(1,"Transaction confirmed",I(u),"ok"),x.querySelector(".txr-mark").innerHTML=A,typeof window.arcHaptic=="function"&&window.arcHaptic("milestone"),C(4200))},failed:function(u,v){H||(H=!0,z(u,"fail"),M(1,v==="rejected"?"Cancelled in wallet":"Transaction failed",u?I(u):F(h(v==="rejected"?"Nothing was sent.":"Nothing changed — you can try again."))),x.classList.add(v==="rejected"?"cancel":"bad"),x.querySelector(".txr-mark").innerHTML=j,C(v==="rejected"?2600:6e3))}}}var w=function(x){var H=String(x&&(x.code||x.shortMessage||x.message)||"");return/ACTION_REJECTED|4001|user rejected|user denied|rejected the request/i.test(H+" "+String(x&&x.info&&x.info.error&&x.info.error.code))};function E(){if(typeof ethers>"u"||!ethers.JsonRpcSigner||!ethers.JsonRpcSigner.prototype.sendTransaction)return!1;var x=ethers.JsonRpcSigner.prototype;if(x.__arcRing)return!0;var H=x.sendTransaction;return x.sendTransaction=function(){var Y=L();return H.apply(this,arguments).then(function(l){var M=l&&l.hash;l&&l.chainId!=null&&Y.chain(l.chainId),M&&Y.sent(M);var C=typeof CONFIG<"u"&&(CONFIG.ARCPAD_RH&&CONFIG.ARCPAD_RH.RPC||CONFIG.PONS&&CONFIG.PONS.RPC),O=l&&l.chainId!=null&&Number(l.chainId)===4663&&C&&M,I=O?new ethers.JsonRpcProvider(C,4663,{staticNetwork:!0}).waitForTransaction(M,1,9e5):l&&typeof l.wait=="function"?l.wait():null;return I&&I.then(function(k){k&&k.status===1?Y.mined(M):Y.failed(M,"reverted")},function(k){Y.failed(M,w(k)?"rejected":"reverted")}),l},function(l){throw Y.failed(null,w(l)?"rejected":"error"),l})},x.__arcRing=!0,!0}E()||window.addEventListener("load",E);var B=0,S=null;document.addEventListener("pointerdown",function(x){var H=x.target&&x.target.closest&&x.target.closest("#connect-btn, [data-connect], .connect-btn, .bp-connect, button");H&&(H.id==="connect-btn"||/connect|지갑 연결|연결|连接/i.test(H.textContent||""))&&(B=Date.now())},!0);function $(){if(!t){var x=document.querySelector(".cw-b")||document.getElementById("wallet-pill-btn")||document.getElementById("wallet-slot"),H=x?x.getBoundingClientRect():{left:innerWidth-120,top:16,width:100,height:36},Y=document.createElement("div");Y.className="wcr",Y.setAttribute("aria-hidden","true"),Y.style.left=Math.round(H.left+H.width/2)+"px",Y.style.top=Math.round(H.top+H.height/2)+"px",Y.innerHTML='<i class="l"></i><i class="r"></i><b>'+F(h("Wallet connected"))+"</b>",document.body.appendChild(Y),setTimeout(function(){Y.remove()},1500)}}setInterval(function(){var x=null;try{x=typeof state<"u"&&state&&state.account?String(state.account).toLowerCase():null}catch{x=null}x&&!S&&Date.now()-B<12e4&&(B=0,setTimeout($,120)),S=x},400),window.arcTxRing={demo:function(){var x=L();return setTimeout(function(){x.sent("0x"+"ab".repeat(32))},700),setTimeout(function(){x.mined("0x"+"ab".repeat(32))},1600),x},celebrate:$}})(),(function(){"use strict";if(window.arcGlyph)return;var t=/♾️?/,h={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,OPTION:1,SELECT:1,NOSCRIPT:1,TITLE:1},F="M50 25c-9-11-15-16-24-16a16 16 0 0 0 0 32c9 0 15-5 24-16s15-16 24-16a16 16 0 0 1 0 32c-9 0-15-5-24-16z";function c(){if(!document.getElementById("ax-inf-defs")){var w=document.createElementNS("http://www.w3.org/2000/svg","svg");w.id="ax-inf-defs",w.setAttribute("width","0"),w.setAttribute("height","0"),w.setAttribute("aria-hidden","true"),w.style.cssText="position:absolute;width:0;height:0;overflow:hidden",w.innerHTML='<defs><linearGradient id="axInfG" x1="0" x2="1"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>',document.body.appendChild(w)}}function o(){var w=document.createElement("span");return w.className="ax-glyph",w.setAttribute("role","img"),w.setAttribute("aria-label","♾"),w.innerHTML='<svg viewBox="0 0 100 50" aria-hidden="true"><path d="'+F+'"/></svg>',w}function P(w){for(var E=w.nodeValue,B,S=null;B=t.exec(E);)S=S||document.createDocumentFragment(),B.index&&S.appendChild(document.createTextNode(E.slice(0,B.index))),S.appendChild(o()),E=E.slice(B.index+B[0].length);S&&(E&&S.appendChild(document.createTextNode(E)),w.parentNode.replaceChild(S,w))}function A(w){if(w){if(w.nodeType===3){t.test(w.nodeValue)&&w.parentNode&&!h[w.parentNode.nodeName]&&!w.parentNode.isContentEditable&&P(w);return}if(!(w.nodeType!==1||h[w.nodeName]||!t.test(w.textContent||""))){for(var E=document.createTreeWalker(w,NodeFilter.SHOW_TEXT,{acceptNode:function($){var x=$.parentNode;return!x||h[x.nodeName]||x.isContentEditable||!t.test($.nodeValue)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}}),B=[],S;S=E.nextNode();)B.push(S);B.forEach(P)}}}var j=[],U=!1;function V(){U=!1;var w=j;j=[],c(),w.forEach(A)}function L(){c(),A(document.body),new MutationObserver(function(w){w.forEach(function(E){if(E.type==="characterData")j.push(E.target);else for(var B=0;B<E.addedNodes.length;B++)j.push(E.addedNodes[B])}),j.length&&!U&&(U=!0,requestAnimationFrame(V))}).observe(document.body,{childList:!0,subtree:!0,characterData:!0})}window.arcGlyph={scan:A},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",L):L()})(),(function(){"use strict";if(window.arcArciaFab)return;var t=document.currentScript&&document.currentScript.src,h=(/[?&]v=(\d+)/.exec(t||"")||[])[1]||"",F="/arcia.bundle.js"+(h?"?v="+h:""),c=".anav-tabs, .ax-quick, .ax-dock, .cpx-bar, .asn-sticky",o=null,P=0,A=[],j=!1,U=function($){return window.arcI18n&&window.arcI18n.get()!=="en"&&window.arcI18n.translate($)||$};function V($){if(A.push($),P===2)return L();if(P!==1){if(P=1,!document.getElementById("bp-panel-arcia")){var x=document.createElement("section");x.id="bp-panel-arcia",x.className="bp-panel aa-host",x.hidden=!0,x.setAttribute("data-host","float"),document.body.appendChild(x)}var H=document.createElement("script");H.src=F,H.onload=function(){P=2,L()},H.onerror=function(){P=0,A=[],o&&o.classList.remove("busy"),location.href="/arc#arcia"},document.body.appendChild(H)}}function L(){var $=A;A=[],$.forEach(function(x){try{x()}catch{}})}function w($){if(window.arcArcia&&window.arcArcia.open)return $();if(window.arcLazy&&document.getElementById("bp-panel-arcia")&&!document.querySelector("#bp-panel-arcia[data-host]"))return window.arcLazy.load($);V($)}function E(){if(!(!o||o.hidden||j)){for(var $=window.innerWidth,x=window.innerHeight,H=$<=900,Y=H?14:20,l=o.offsetWidth||(H?46:140),M=$-Y-l-8,C=$-Y+8,O=0,I=document.querySelectorAll(c),k=0;k<I.length;k++){var z=I[k],u=getComputedStyle(z);if(!(z.hidden||u.position!=="fixed"||u.display==="none"||u.visibility==="hidden")){var v=z.getBoundingClientRect();!v.width||!v.height||H&&(v.right<M||v.left>C)||v.top<x*.45||v.top>x||(O=Math.max(O,x-v.top+(H?10:14)))}}o.style.bottom=O?Math.round(O)+"px":""}}var B=(function(){var $=0;return function(){clearTimeout($),$=setTimeout(E,60)}})();function S(){if(!document.querySelector(".aa-fab")){if(o=document.createElement("button"),o.type="button",o.className="aa-fab",o.setAttribute("aria-label",U("Ask ARCIA")),o.innerHTML='<img src="/images/arcia-avatar-96.jpg" alt="" width="48" height="48"><i aria-hidden="true"></i><span>'+U("Ask ARCIA")+"</span>",o.addEventListener("click",function(){if(j){location.href="/arc#arcia";return}o.classList.add("busy"),w(function(){o.classList.remove("busy"),window.arcArcia&&window.arcArcia.open&&window.arcArcia.open()})}),document.body.appendChild(o),getComputedStyle(o).position!=="fixed"){j=!0,o.style.cssText="position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:8px;padding:5px 14px 5px 5px;border-radius:99px;border:1px solid rgba(91,140,255,.45);background:rgba(8,14,26,.92);color:#eef3f7;font:700 13px system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 24px rgba(63,123,255,.25)";var $=o.querySelector("img");$.style.cssText="width:36px;height:36px;border-radius:50%;object-fit:cover";var x=o.querySelector("i");x.style.cssText="position:absolute;left:31px;top:5px;width:9px;height:9px;border-radius:50%;background:#39ff88;box-shadow:0 0 0 2px #080e1a",window.innerWidth<=900&&(o.style.padding="4px",o.querySelector("span").style.display="none")}var H=function(){var l=location.hash.replace(/^#/,"").split(/[?/]/)[0];o.hidden=!!document.querySelector("#bp-panel-arcia:not([data-host])")&&l==="arcia",B()};if(document.addEventListener("arcpad:tab",function(){setTimeout(H,0)}),window.addEventListener("hashchange",H),window.addEventListener("resize",B),window.addEventListener("orientationchange",B),window.addEventListener("load",function(){setTimeout(E,400)}),[300,1200,3e3,6e3].forEach(function(l){setTimeout(E,l)}),"ResizeObserver"in window)try{var Y=new ResizeObserver(B);document.querySelectorAll(c).forEach(function(l){Y.observe(l)})}catch{}H()}}window.arcArciaFab={place:E},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",S):S()})(),(function(){"use strict";var t=["placeholder","title","aria-label"],h="script,style,noscript,code,textarea,[data-no-i18n],.ac2-ca-full,.ac2-ca-short",F="arcircle.lang",c={},o={},P=!1,A=(function(){var v=document.currentScript&&document.currentScript.src;return(/[?&]v=(\d+)/.exec(v||"")||[])[1]||""})();function j(v){var D=window.__arcDict&&window.__arcDict[v];return D&&!c[v]&&(c[v]=D.d,o[v]=D.p),!!c[v]}function U(v){if(!(v==="en"||j(v))){var D=window.__arcDictLoading||(window.__arcDictLoading={});if(!D[v]){D[v]=!0;var K=document.createElement("script");K.src="/i18n-"+v+".js"+(A?"?v="+A:""),K.async=!0,K.onerror=function(){D[v]=!1},(document.head||document.documentElement).appendChild(K)}}}var V=["en","ko","zh"],L={en:"EN",ko:"한",zh:"中"},w={en:"English",ko:"한국어",zh:"简体中文"},E=/^\/whitepaper/.test(location.pathname),B="en";try{var S=(navigator.language||"").toLowerCase();B=localStorage.getItem(F)||(S.indexOf("ko")===0?"ko":S.indexOf("zh")===0?"zh":"en")}catch{}var $=/[?&]lang=(en|ko|zh)(?:&|$)/.exec(location.search);if($){B=$[1];try{localStorage.setItem(F,B)}catch{}}(V.indexOf(B)<0||E&&B==="zh")&&(B="en");function x(v,D){D=D||B,j(D);var K=c[D],Z=o[D];if(!K)return null;var g=v.replace(/\s+/g," ").trim();if(!g)return null;if(Object.prototype.hasOwnProperty.call(K,g))return K[g];for(var f=0;f<Z.length;f++)if(Z[f][0].test(g))return g.replace(Z[f][0],Z[f][1]);return null}function H(v){return!v||v.closest&&v.closest(h)}function Y(v){if(!H(v.parentElement)){var D=v.nodeValue;if(!(v.__tr!=null&&D===v.__tr)&&(v.__en=D,v.__tr=null,B!=="en")){var K=x(D);if(K!=null){var Z=D.match(/^\s*/)[0],g=D.match(/\s*$/)[0];v.__tr=Z+K+g,v.nodeValue=v.__tr}}}}function l(v){if(!H(v)){var D=v.__i18nAttr||(v.__i18nAttr={});t.forEach(function(K){if(v.hasAttribute(K)){var Z=v.getAttribute(K),g=D[K];if(!(g&&g.tr!=null&&Z===g.tr)&&(D[K]={en:Z,tr:null},B!=="en")){var f=x(Z);f!=null&&(D[K].tr=f,v.setAttribute(K,f))}}})}}function M(v){if(v){if(v.nodeType===3){Y(v);return}if(!(v.nodeType!==1||H(v))){v.hasAttribute&&t.some(function(Z){return v.hasAttribute(Z)})&&l(v);for(var D=document.createTreeWalker(v,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT),K;K=D.nextNode();)K.nodeType===3?Y(K):t.some(function(Z){return K.hasAttribute(Z)})&&l(K)}}}function C(){for(var v=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT),D;D=v.nextNode();)if(D.nodeType===3)D.__tr!=null&&D.nodeValue===D.__tr&&(D.nodeValue=D.__en),D.__tr=null;else if(D.__i18nAttr){var K=D.__i18nAttr;Object.keys(K).forEach(function(Z){K[Z].tr!=null&&D.getAttribute(Z)===K[Z].tr&&D.setAttribute(Z,K[Z].en),K[Z].tr=null})}}var O=!1,I=new MutationObserver(function(v){if(!(O||B==="en")){O=!0;try{v.forEach(function(D){D.type==="characterData"?Y(D.target):D.type==="attributes"?l(D.target):D.addedNodes.forEach(M)})}finally{O=!1}}});function k(v,D){if(B=V.indexOf(v)>=0&&!(E&&v==="zh")?v:"en",D)try{localStorage.setItem(F,B)}catch{}var K=document.documentElement;K.lang=B==="zh"?"zh-CN":B,K.classList.toggle("lang-ko",B==="ko"),K.classList.toggle("lang-zh",B==="zh"),B!=="en"&&!j(B)&&U(B),O=!0,C(),B!=="en"&&c[B]&&M(document.body),O=!1,document.querySelectorAll(".lang-toggle [data-l]").forEach(function(Z){var g=Z.getAttribute("data-l")===B;Z.classList.toggle("on",g),Z.setAttribute("aria-pressed",g?"true":"false")});try{document.dispatchEvent(new CustomEvent("arc:lang",{detail:{lang:B}}))}catch{}}function z(){var v=document.querySelector(".bp-topbar-right")||document.querySelector("header.ax-top");if(!(!v||v.querySelector(".lang-toggle"))){var D=document.createElement("div");if(D.className="lang-toggle",D.setAttribute("role","group"),D.setAttribute("aria-label","Language"),D.setAttribute("data-no-i18n",""),D.innerHTML=V.filter(function(g){return!(E&&g==="zh")}).map(function(g){return'<button type="button" data-l="'+g+'" lang="'+(g==="zh"?"zh-CN":g)+'" aria-label="'+w[g]+'" title="'+w[g]+'">'+L[g]+"</button>"}).join(""),D.addEventListener("click",function(g){var f=g.target.closest&&g.target.closest("[data-l]");if(f){if(f.classList.contains("on")){D.classList.toggle("open");return}D.classList.remove("open"),k(f.getAttribute("data-l"),!0)}}),document.addEventListener("click",function(g){D.contains(g.target)||D.classList.remove("open")}),v.matches(".bp-topbar-right"))v.insertBefore(D,v.firstChild);else{var K=v.querySelector(".ax-top-cta"),Z=document.createElement("div");Z.className="ax-top-right",v.insertBefore(Z,K||null),Z.appendChild(D),K&&Z.appendChild(K)}}}function u(){P=!0,z(),k(B,!1),I.observe(document.body,{subtree:!0,childList:!0,characterData:!0,attributes:!0,attributeFilter:t})}window.arcI18n={set:function(v){k(v,!0)},get:function(){return B},translate:function(v,D){return x(v,D)},_ready:function(v){j(v),P&&v===B&&k(B,!1)}},U(B),document.readyState==="loading"?document.addEventListener("DOMContentLoaded",u):u()})();
+/// The wallet menu's second network: Robinhood Chain (Pons launches, OMNI, the desk). Choosing it switches the wallet
+/// there and keeps the page from pulling it back to Arc; anything that writes on Arc still switches back first
+/// (ensureArcForWrite), and Arc in the same menu switches back on demand.
+var ARC_ALT_NET = (() => {
+  const P = typeof CONFIG !== "undefined" && CONFIG.PONS;
+  if (!P || !P.CHAIN_ID || !P.RPC) return null;
+  return { id: Number(P.CHAIN_ID), hex: "0x" + Number(P.CHAIN_ID).toString(16), name: "Robinhood Chain", short: "Robinhood", rpc: P.RPC, explorer: P.EXPLORER, native: { name: "Ether", symbol: "ETH", decimals: 18 } };
+})();
+async function switchToAltNetwork(opts) {
+  const strict = !!(opts && opts.strict); // a write is waiting on it: report failure by throwing
+  if (!ARC_ALT_NET || !state.account) { if (strict) throw new Error("Connect a wallet first."); return; }
+  if (switchingNetwork) { if (strict) throw new Error("Your wallet is already switching networks — try again in a moment."); return; }
+  switchingNetwork = true;
+  if (window.arcSol && window.arcSol.selected()) window.arcSol.select(false);
+  const N = ARC_ALT_NET;
+  const note = document.getElementById("wallet-dropdown-note");
+  const net = document.getElementById("wallet-dropdown-net");
+  const setNote = (text, bad) => { if (note) { note.hidden = !text; note.textContent = text || ""; note.classList.toggle("bad", !!bad); } };
+  const add = { chainId: N.hex, chainName: N.name, rpcUrls: [N.rpc], blockExplorerUrls: [N.explorer], nativeCurrency: N.native };
+  const rejected = (e) => e && (e.code === 4001 || e.code === "ACTION_REJECTED" || /reject|denied|cancel/i.test(String(e.shortMessage || e.message || "")));
+  // the page must not reload (arc-shared chainChanged) or AppKit switch it back (wallet-appkit) meanwhile
+  clearTimeout(switchToAltNetwork.t);
+  window.arcChainSwitching = true;
+  try { sessionStorage.setItem("wallet.autoSwitch." + state.account, "1"); } catch (e) { /* fine */ }
+  const usingAppKit = typeof appKitReady !== "undefined" && appKitReady && !(typeof IN_APP_WALLET_BROWSER !== "undefined" && IN_APP_WALLET_BROWSER);
+  const jumped = usingAppKit && typeof openConnectedWalletApp === "function" && openConnectedWalletApp();
+  if (net) net.classList.add("busy");
+  setNote(jumped ? `Approve the switch to ${N.name} in your wallet app, then come back here.` : `Approve the switch to ${N.name} in your wallet.`);
+  try {
+    let done = false;
+    if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
+      try {
+        const acc = WagmiCoreRef.getAccount(wagmiConfigRef);
+        if (acc && acc.isConnected) { if (Number(acc.chainId) !== N.id) await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: N.id, addEthereumChainParameter: add }); done = true; }
+      } catch (e) { if (rejected(e)) throw e; /* the wallet's own provider below */ }
+    }
+    const eip = state.walletProvider || window.ethereum;
+    if (!done) {
+      if (!eip) throw new Error("No wallet connected.");
+      try { await eip.request({ method: "wallet_switchEthereumChain", params: [{ chainId: N.hex }] }); }
+      catch (e) {
+        if (rejected(e)) throw e;
+        await eip.request({ method: "wallet_addEthereumChain", params: [add] });
+        await eip.request({ method: "wallet_switchEthereumChain", params: [{ chainId: N.hex }] }).catch(() => {});
+      }
+    }
+    state.chainId = N.id;
+    if (eip) { try { state.signer = await new ethers.BrowserProvider(eip, "any").getSigner(state.account); } catch (e) { /* the next write asks again */ } }
+    setNote("");
+    document.dispatchEvent(new CustomEvent("arc:walletnet", { detail: { chainId: N.id } }));
+  } catch (err) {
+    const msg = String(err && (err.shortMessage || err.message) || err);
+    setNote(rejected(err) ? "Switch cancelled in the wallet." : msg.slice(0, 260), true);
+    if (strict) throw err;
+  } finally {
+    switchingNetwork = false;
+    if (net) net.classList.remove("busy");
+    switchToAltNetwork.t = setTimeout(() => { window.arcChainSwitching = false; }, 4000); // late chainChanged events land inside the hold
+    updateNetworkBadge();
+  }
+}
+
+/// The wallet menu's third choice: Solana (ArcPad × Pump.fun). Not a network the EVM wallet can switch to — it connects
+/// the Solana wallet (arc-solwallet.js: Phantom, Solflare, Backpack, MetaMask through the Wallet Standard) beside it and
+/// shows that one in the menu. The EVM wallet stays where it is, and Arc / Robinhood Chain writes keep using it.
+/// With more than one Solana wallet in the browser the menu asks which (`pick` is the answer).
+async function switchToSolana(pick) {
+  const S = window.arcSol;
+  if (!S) return;
+  const note = document.getElementById("wallet-dropdown-note");
+  const net = document.getElementById("wallet-dropdown-net");
+  const setNote = (html, bad) => { if (note) { note.hidden = !html; note.innerHTML = html || ""; note.classList.toggle("bad", !!bad); } };
+  const safe = (t) => String(t).replace(/[<>&"]/g, "");
+  if (!S.key && (pick != null || !(await S.quiet()))) {
+    const list = S.providers();
+    if (!list.length) {
+      const a = (w, href) => `<a href="${href}"${S.mobile() ? "" : ' target="_blank" rel="noopener"'}>${w}</a>`;
+      setNote(S.mobile()
+        ? `No Solana wallet in this browser — open this page in ${a("Phantom", S.openIn("Phantom"))}, ${a("Solflare", S.openIn("Solflare"))} or ${a("MetaMask", S.openIn("MetaMask"))}.`
+        : `No Solana wallet in this browser — install ${a("Phantom", "https://phantom.com/download")} or ${a("Solflare", "https://solflare.com/download")}, or turn on Solana in ${a("MetaMask", "https://metamask.io/download")}.`, true);
+      return;
+    }
+    if (pick == null && list.length > 1) {
+      setNote(`Which Solana wallet? <span class="wd-sol-pick">${list.map((x, i) => `<button type="button" class="btn-mini" data-sol-pick="${i}">${safe(x.name)}</button>`).join("")}</span>`);
+      return;
+    }
+    const i = pick == null ? 0 : Number(pick);
+    if (!list[i]) return;
+    if (net) net.classList.add("busy");
+    setNote(`Approve the connection in ${safe(list[i].name)}.`);
+    try { await S.connect(i); }
+    catch (err) { const m = String((err && err.message) || err); setNote(/reject|denied|cancel/i.test(m) || (err && err.code === 4001) ? "Connection cancelled in the wallet." : safe(m.slice(0, 200)), true); return; }
+    finally { if (net) net.classList.remove("busy"); }
+  }
+  setNote("");
+  S.select(true);
+}
+document.addEventListener("arc:solwallet", () => { if (typeof updateNetworkBadge === "function") updateNetworkBadge(); });
+
+/// The Robinhood Chain twin of ensureArcForWrite (a Multisender send on Robinhood Chain): switch the wallet there if
+/// it isn't, and return a signer that is on it.
+async function ensureAltForWrite() {
+  if (!ARC_ALT_NET) throw new Error("Robinhood Chain isn't set up on this page.");
+  const N = ARC_ALT_NET, eip = state.walletProvider || window.ethereum;
+  if (!state.account || !eip) throw new Error("Connect a wallet first.");
+  let on = null;
+  try { on = Number.parseInt(await eip.request({ method: "eth_chainId" }), 16); } catch (e) { on = null; }
+  if (on !== N.id) await switchToAltNetwork({ strict: true });
+  const bp = new ethers.BrowserProvider(eip, "any");
+  for (let i = 0; i < 8; i++) { // some wallets report the new chain a moment after the switch resolves
+    if (Number((await bp.getNetwork()).chainId) === N.id) { state.chainId = N.id; state.signer = await bp.getSigner(state.account); return state.signer; }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Your wallet is still on another network — switch it to ${N.name} and try again.`);
+}
+
+/// Called right before every transaction on ArcPad / CirclePad: if the
+/// wallet is on another chain, switch it to Arc first (and pick up a
+/// signer for the new chain), so a write never goes out on the wrong
+/// network or fails with a confusing chain-mismatch error.
+async function ensureArcForWrite() {
+  const id = await currentChainId().catch(() => null);
+  if (id === CONFIG.CHAIN_ID_DECIMAL) return;
+  const usingAppKit = typeof appKitReady !== "undefined" && appKitReady && typeof ensureAppKitChain === "function" && !(typeof IN_APP_WALLET_BROWSER !== "undefined" && IN_APP_WALLET_BROWSER);
+  if (usingAppKit) { await ensureAppKitChain(); return; }
+  if (!window.ethereum) throw new Error(`Switch your wallet to ${CONFIG.CHAIN_NAME} and try again.`);
+  await ensureNetwork();
+  state.chainId = CONFIG.CHAIN_ID_DECIMAL;
+  state.signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
+  if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+}
+
+async function currentChainId() {
+  if (state.chainId != null && Number.isFinite(Number(state.chainId))) return Number(state.chainId);
+  if (state.signer && state.signer.provider) return Number((await state.signer.provider.getNetwork()).chainId);
+  if (window.ethereum) return Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
+  return null;
+}
+
+async function updateNetworkBadge() {
+  const badge = document.getElementById("network-badge");
+  if (!badge || !state.account) return;
+  const line = document.getElementById("wallet-dropdown-network");
+  const btn = document.getElementById("wallet-dropdown-switch");
+  // Solana picked in the menu (and its wallet connected): the menu shows that wallet
+  const S = window.arcSol, sol = document.getElementById("wallet-dropdown-sol");
+  const onSol = !!(S && S.selected() && S.key);
+  if (sol) {
+    sol.hidden = !onSol;
+    if (onSol) sol.innerHTML = `<small>Solana · ${S.name}</small><code>${S.key.slice(0, 4)}…${S.key.slice(-4)}</code><span class="btn-mini" data-sol-copy style="cursor:pointer">Copy</span><span class="btn-mini" data-sol-off style="cursor:pointer">Disconnect</span>`;
+  }
+  if (onSol) {
+    const net = document.getElementById("wallet-dropdown-net");
+    if (net) net.querySelectorAll("[data-net]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.net === "sol")));
+    badge.classList.remove("network-alt", "network-bad"); badge.classList.add("network-sol");
+    badge.textContent = "Solana"; badge.title = `Solana wallet ${S.key}`; badge.style.cursor = ""; badge.onclick = null;
+    const ex = document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"], #wallet-dropdown a.wallet-dropdown-item[href*="/account/"]');
+    if (ex) ex.href = `https://solscan.io/account/${S.key}`;
+    if (line) { line.textContent = `Solana wallet connected — your ${CONFIG.CHAIN_NAME} wallet stays as it is`; line.classList.remove("network-bad"); line.classList.add("network-ok"); }
+    if (btn) btn.hidden = true;
+    document.documentElement.dataset.walletNet = "sol";
+    return;
+  }
+  badge.classList.remove("network-sol");
+  try {
+    const chainId = await currentChainId();
+    if (chainId == null) throw new Error("unknown");
+    const onAlt = !!ARC_ALT_NET && chainId === ARC_ALT_NET.id;
+    const isCorrect = chainId === CONFIG.CHAIN_ID_DECIMAL || onAlt;
+    const net = document.getElementById("wallet-dropdown-net");
+    if (net) net.querySelectorAll("[data-net]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.net === (onAlt ? "alt" : chainId === CONFIG.CHAIN_ID_DECIMAL ? "arc" : ""))));
+    badge.classList.toggle("network-alt", onAlt);
+    const ex = document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"], #wallet-dropdown a.wallet-dropdown-item[href*="/account/"]');
+    if (ex) ex.href = `${onAlt ? ARC_ALT_NET.explorer : CONFIG.BLOCK_EXPLORER}/address/${state.account}`;
+    if (onAlt) {
+      badge.textContent = ARC_ALT_NET.short; badge.title = `Connected to ${ARC_ALT_NET.name}`;
+      badge.classList.remove("network-bad"); badge.style.cursor = ""; badge.onclick = null;
+      if (line) { line.textContent = `Connected to ${ARC_ALT_NET.name}`; line.classList.remove("network-bad"); line.classList.add("network-ok"); }
+      if (btn) btn.hidden = true;
+      document.documentElement.dataset.walletNet = "alt";
+      return;
+    }
+    document.documentElement.dataset.walletNet = isCorrect ? "arc" : "other";
+    badge.textContent = isCorrect ? CONFIG.CHAIN_NAME : `Switch to ${CONFIG.CHAIN_NAME}`;
+    badge.title = isCorrect ? `Connected to ${CONFIG.CHAIN_NAME}` : `Your wallet is on chain ${chainId} — tap to switch to ${CONFIG.CHAIN_NAME}`;
+    badge.classList.toggle("network-bad", !isCorrect);
+    badge.style.cursor = isCorrect ? "" : "pointer";
+    badge.onclick = isCorrect ? null : (e) => { e.stopPropagation(); switchToArcNetwork(); };
+    if (line) {
+      line.textContent = isCorrect ? `Connected to ${CONFIG.CHAIN_NAME}` : `Wallet is on another network (chain ${chainId})`;
+      line.classList.toggle("network-bad", !isCorrect);
+      line.classList.toggle("network-ok", isCorrect);
+    }
+    if (btn) btn.hidden = isCorrect || !!net;
+  } catch (err) {
+    badge.textContent = "Network?";
+    if (line) line.textContent = "Network unknown";
+    if (btn) btn.hidden = false;
+  }
+}
+
+// Boot — same tail app.js itself has (`renderHeader(); route();`), minus
+// route() since Arc pages have no HOMEPAD-style hash router. This paints
+// the "Connect wallet" button the instant this script runs, before
+// wallet-appkit.js even loads; wallet-appkit.js's own self-invoked
+// initAppKit() (see its last line) then repaints it if a wallet is
+// already authorized (restoreBasicWallet, called from there) or once
+// AppKit finishes restoring a session. Script order matters: this file
+// must load before wallet-appkit.js so these functions already exist
+// when initAppKit() runs.
+renderHeader();
+;
+/* ---- arc-fmt.js ---- */
+// arc-fmt.js — one way to write numbers across the site (home, /me, /stats, search, alerts).
+//   arcFmt.usd(28100)        "$28.1K"      arcFmt.usd(7.02)   "$7.02"
+//   arcFmt.price(0.0000281)  "$0.0₄281"    (zeros after "0." shown as a subscript count)
+//   arcFmt.compact(966e6)    "966M"        arcFmt.num(1402.5, 2) "1,402.5"
+//   arcFmt.pct(4.2, true)    "+4.20%"      arcFmt.ago(ts)      "5m" / "3h" / "2d"
+//   arcFmt.usd(123.456, true) "$123.46"    (exact: cents kept, no K/M — for single trades and balances)
+// Every page's own formatter hands off to these, so a number reads the same everywhere.
+(function () {
+  "use strict";
+  if (window.arcFmt) return;
+  var fin = function (v) { return v != null && isFinite(v); };
+  var trim = function (s) { return s.indexOf(".") >= 0 ? s.replace(/\.?0+$/, "") : s; };
+  function compact(v, dp) {
+    if (!fin(v)) return "—";
+    var a = Math.abs(v), d = dp == null ? 2 : dp;
+    if (a >= 1e12) return trim((v / 1e12).toFixed(d)) + "T";
+    if (a >= 1e9) return trim((v / 1e9).toFixed(d)) + "B";
+    if (a >= 1e6) return trim((v / 1e6).toFixed(d)) + "M";
+    if (a >= 1e4) return trim((v / 1e3).toFixed(a >= 1e5 ? 0 : 1)) + "K";
+    return num(v, a >= 100 ? 0 : 2);
+  }
+  function num(v, dp) {
+    if (!fin(v)) return "—";
+    return Number(v).toLocaleString("en-US", { maximumFractionDigits: dp == null ? 2 : dp });
+  }
+  var SUB = "₀₁₂₃₄₅₆₇₈₉";
+  function price(v) {
+    if (!fin(v)) return "—";
+    if (v === 0) return "$0";
+    var a = Math.abs(v), sign = v < 0 ? "-" : "";
+    if (a >= 1) return sign + "$" + num(a, a >= 1000 ? 0 : 4);
+    if (a >= 0.01) return sign + "$" + a.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+    var s = a.toFixed(20).slice(2), z = s.match(/^0*/)[0].length, digits = s.slice(z, z + 3).replace(/0+$/, "") || "0";
+    if (z < 4) return sign + "$0." + s.slice(0, z) + digits;
+    return sign + "$0.0" + String(z).split("").map(function (c) { return SUB[+c]; }).join("") + digits;
+  }
+  function usd(v, exact) {
+    if (!fin(v)) return "—";
+    var a = Math.abs(v);
+    if (exact && a >= 0.01 && a < 1e6) return (v < 0 ? "-$" : "$") + a.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (a > 0 && a < 0.01) return price(v);
+    if (a >= 1e4) return (v < 0 ? "-$" : "$") + compact(a);
+    return (v < 0 ? "-$" : "$") + num(a, a >= 100 ? 0 : 2);
+  }
+  function pct(v, signed, dp) {
+    if (!fin(v)) return "—";
+    return (signed && v > 0 ? "+" : "") + v.toFixed(dp == null ? 2 : dp) + "%";
+  }
+  function ago(ts) {
+    if (!ts) return "—";
+    var s = Math.max(1, Date.now() / 1000 - ts);
+    return s < 60 ? "now" : s < 3600 ? Math.round(s / 60) + "m" : s < 86400 ? Math.round(s / 3600) + "h" : Math.round(s / 86400) + "d";
+  }
+  window.arcFmt = { usd: usd, price: price, compact: compact, num: num, pct: pct, ago: ago };
+})();
+;
+/* ---- arc-fx.js ---- */
+// arc-fx.js — small, dependency-free motion helpers shared by the ARCIRCLE
+// PAD pages. Everything respects prefers-reduced-motion.
+//   • price flash: any live price / market-cap readout briefly glows green
+//     when its number goes up and red when it goes down
+//   • confetti: window.arcConfetti() — used after a successful launch
+(function () {
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- price flash ----
+  var WATCH = '[data-ac2="price"],[data-ac2="mcap"],[data-arl="price"],[data-arl="mcap"],#apc-price,#apc-mcap,.ap-launch-card .meta span:first-child,[data-tk="price"],[data-hm-price]';
+  var last = new WeakMap();
+  var SUBS = "₀₁₂₃₄₅₆₇₈₉";
+  function toNumber(text) {
+    if (!text) return null;
+    var t = String(text).replace(/[,\s$]/g, "");
+    // Dexscreener-style small prices: 0.0₅4842 → 0.000004842
+    t = t.replace(/0\.0([₀-₉]+)(\d+)/, function (_, sub, digits) {
+      var n = sub.split("").map(function (c) { return SUBS.indexOf(c); }).join("");
+      return "0." + "0".repeat(Number(n)) + digits;
+    });
+    var m = /(-?\d+(?:\.\d+)?)([KMBT])?/i.exec(t);
+    if (!m) return null;
+    var v = parseFloat(m[1]);
+    var mult = { K: 1e3, M: 1e6, B: 1e9, T: 1e12 }[(m[2] || "").toUpperCase()] || 1;
+    return v * mult;
+  }
+  function check(el) {
+    var now = toNumber(el.textContent);
+    var prev = last.get(el);
+    last.set(el, now);
+    if (reduce || prev == null || now == null || now === prev) return;
+    var r = el.getBoundingClientRect(); // off screen (or hidden): nothing to see
+    if (!r.width || r.bottom < 0 || r.top > innerHeight) return;
+    el.classList.remove("fx-up", "fx-down");
+    void el.offsetWidth; // restart the animation
+    el.classList.add(now > prev ? "fx-up" : "fx-down");
+  }
+  function scan(root) {
+    if (!root.querySelectorAll) return;
+    if (root.matches && root.matches(WATCH)) check(root);
+    root.querySelectorAll(WATCH).forEach(check);
+  }
+  function start() {
+    scan(document.body);
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        var el = m.target.nodeType === 3 ? m.target.parentElement : m.target;
+        if (!el) return;
+        var hit = el.closest && el.closest(WATCH);
+        if (hit) check(hit);
+        else m.addedNodes && m.addedNodes.forEach(function (n) { if (n.nodeType === 1) scan(n); });
+      });
+    }).observe(document.body, { subtree: true, childList: true, characterData: true });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+
+  // ---- confetti ----
+  window.arcConfetti = function (opts) {
+    if (reduce) return;
+    opts = opts || {};
+    var colors = opts.colors || ["#3f9bff", "#35d8d0", "#39ff88", "#ffc861", "#ffffff"];
+    var c = document.createElement("canvas");
+    c.className = "fx-confetti";
+    c.setAttribute("aria-hidden", "true");
+    document.body.appendChild(c);
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = innerWidth, H = innerHeight;
+    c.width = W * dpr; c.height = H * dpr;
+    var ctx = c.getContext("2d");
+    ctx.scale(dpr, dpr);
+    var parts = [];
+    var n = opts.count || 160;
+    for (var i = 0; i < n; i++) {
+      var fromLeft = i % 2 === 0;
+      parts.push({
+        x: fromLeft ? -10 : W + 10, y: H * (0.55 + Math.random() * 0.3),
+        vx: (fromLeft ? 1 : -1) * (6 + Math.random() * 9), vy: -(10 + Math.random() * 12),
+        w: 6 + Math.random() * 6, h: 8 + Math.random() * 10, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
+        color: colors[i % colors.length],
+      });
+    }
+    var t0 = performance.now();
+    function frame(t) {
+      var dt = Math.min(2, (t - (frame.prev || t)) / 16.7); frame.prev = t;
+      ctx.clearRect(0, 0, W, H);
+      var alive = false;
+      parts.forEach(function (p) {
+        p.vy += 0.42 * dt; p.vx *= Math.pow(0.99, dt); p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+        if (p.y < H + 40) alive = true;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+        ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, 1 - (t - t0) / 4200);
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r)));
+        ctx.restore();
+      });
+      if (alive && t - t0 < 4200) requestAnimationFrame(frame);
+      else c.remove();
+    }
+    requestAnimationFrame(frame);
+  };
+})();
+;
+/* ---- arcircle-live.js ---- */
+/* global ethers, readProvider, withRetry */
+// arcircle-live.js — a lightweight, read-only $ARCIRCLE ticker for pages that
+// don't load the full ArcPad trading page (CirclePad, Reward). Reads the foci
+// bonding curve directly (same contract and maths as arcircle-coin.js) and
+// fills any element tagged data-arl="price|mcap|progress-text|progress-fill|
+// liq|holders-note". Needs ethers + arc-shared.js (readProvider, withRetry).
+(function () {
+  "use strict";
+  // From config-arc.js; "" while $ARCIRCLE is not live (relaunching).
+  var CURVE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_CURVE) || "";
+  // Launched on Argus: a Uniswap v4 pool — price from the PoolManager's slot0.
+  var POOL_SLOT = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_POOL_SLOT) || "";
+  var PM = (typeof CONFIG !== "undefined" && CONFIG.POOL_MANAGER_ADDRESS) || "";
+  var VENUE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_VENUE) || "";
+  var SUPPLY = 1000000000;
+  var ABI = [
+    "function getReserves() view returns (uint256 quoteReserve_, uint256 tokenReserve_)",
+    "function realQuoteReserve() view returns (uint256)",
+    "function graduationThreshold() view returns (uint256)",
+    "function graduated() view returns (bool)",
+  ];
+
+  function usdc(raw) { return Number(ethers.formatUnits(raw, 6)); }
+  function tok(raw) { return Number(ethers.formatUnits(raw, 18)); }
+  function fmtPrice(p) {
+    if (window.arcFmt) return window.arcFmt.price(p);
+    if (p == null || !isFinite(p)) return "—";
+    if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 4 });
+    if (p >= 0.001) return "$" + p.toPrecision(4);
+    var zeros = Math.floor(-Math.log10(p));
+    var digits = (Math.round(p * Math.pow(10, zeros + 4)).toString().slice(0, 4).replace(/0+$/, "")) || "0";
+    var sub = String(zeros).split("").map(function (d) { return "₀₁₂₃₄₅₆₇₈₉"[d]; }).join("");
+    return "$0.0" + sub + digits;
+  }
+  function fmtUsd(n, exact) {
+    if (window.arcFmt) return window.arcFmt.usd(n, exact);
+    if (n == null || !isFinite(n)) return "—";
+    if (!exact && Math.abs(n) >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
+    return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function setAll(key, text) {
+    document.querySelectorAll('[data-arl="' + key + '"]').forEach(function (el) { el.textContent = text; });
+  }
+
+  async function refresh() {
+    if (!document.querySelector("[data-arl]")) return;
+    if (!CURVE && POOL_SLOT && PM) {
+      try {
+        var raw = await withRetry(function () { return readProvider().call({ to: PM, data: "0x1e2eaeaf" + POOL_SLOT.replace(/^0x/, "") }); });
+        var p = arcircleUsdFromSqrt(BigInt(raw) & ((1n << 160n) - 1n));
+        setAll("price", fmtPrice(p));
+        setAll("mcap", fmtUsd(p != null ? p * SUPPLY : null));
+        setAll("progress-text", "Trading on " + (VENUE || "a DEX") + " · Uniswap v4 pool");
+      } catch (e) { setAll("progress-text", "Live $ARCIRCLE data unavailable right now"); }
+      document.querySelectorAll('[data-arl="progress-fill"]').forEach(function (el) { el.style.width = "100%"; });
+      return;
+    }
+    if (!CURVE) {
+      setAll("price", "Not live");
+      setAll("mcap", "—");
+      setAll("liq", "—");
+      setAll("progress-text", "Not live yet — $ARCIRCLE is relaunching");
+      document.querySelectorAll('[data-arl="progress-fill"]').forEach(function (el) { el.style.width = "0%"; });
+      return;
+    }
+    try {
+      var c = new ethers.Contract(CURVE, ABI, readProvider());
+      var r = await Promise.all([
+        withRetry(function () { return c.getReserves(); }),
+        withRetry(function () { return c.realQuoteReserve(); }),
+        withRetry(function () { return c.graduationThreshold(); }),
+        withRetry(function () { return c.graduated(); }),
+      ]);
+      var spot = usdc(r[0][0]) / tok(r[0][1]);
+      var real = usdc(r[1]), thr = usdc(r[2]), graduated = r[3];
+      var pct = thr > 0 ? Math.min(100, (real / thr) * 100) : 0;
+      setAll("price", fmtPrice(spot));
+      setAll("mcap", fmtUsd(spot * SUPPLY));
+      setAll("liq", fmtUsd(real, true));
+      setAll("progress-text", graduated
+        ? "Graduated — trading on its DEX pool"
+        : fmtUsd(real, true) + " / " + fmtUsd(thr, true) + " USDC to graduate · " + pct.toFixed(pct < 10 ? 2 : 1) + "%");
+      document.querySelectorAll('[data-arl="progress-fill"]').forEach(function (el) {
+        el.style.width = (graduated ? 100 : Math.max(pct, 0.6)) + "%";
+      });
+    } catch (e) {
+      setAll("progress-text", "Live $ARCIRCLE data unavailable right now");
+    }
+  }
+
+  window.arcircleLive = { refresh: refresh, fmtUsd: fmtUsd, fmtPrice: fmtPrice };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", refresh);
+  else refresh();
+  if (CURVE || POOL_SLOT) setInterval(function () { if (!document.hidden) refresh(); }, 30000);
+})();
+;
+/* ---- arc-token.js ---- */
+// arc-token.js — what the $ARCIRCLE page and the Reward page share:
+//   • arcToken.load(wallet)  live $ARCIRCLE numbers from /api/social?token=arcircle
+//     (price, graduation, 24h volume, holders, buybacks, treasury, revenue),
+//     with a direct read of the curve as a fallback for price and graduation
+//   • the one definition of the ecosystem's revenue sources (ARC_REVENUE),
+//     rendered identically on both pages, each with its live "so far" line
+//   • the revenue flow: particles running from each source into the box it
+//     feeds, drawn on a canvas behind the two columns
+//   • small SVG builders (7-day line, supply donut) and number formats
+// No wallet connection, no ethers. Respects prefers-reduced-motion.
+(function () {
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // From config-arc.js; both "" while $ARCIRCLE is not live (relaunching).
+  var TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "";
+  var CURVE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_CURVE) || "";
+  // Uniswap v4 pool (Argus): price from the PoolManager's slot0 for the pool
+  var POOL_SLOT = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_POOL_SLOT) || "";
+  var PM = (typeof CONFIG !== "undefined" && CONFIG.POOL_MANAGER_ADDRESS) || "0x8366a39CC670B4001A1121B8F6A443A643e40951";
+  var RPC = (typeof CONFIG !== "undefined" && CONFIG.RPC_URL) || "https://rpc.mainnet.arc.io";
+  var EXPLORER = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io";
+
+  // ---------- formats ----------
+  var SUBS = "₀₁₂₃₄₅₆₇₈₉";
+  function price(p) {
+    if (window.arcFmt) return window.arcFmt.price(p);
+    if (p == null || !isFinite(p)) return "—";
+    if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 4 });
+    if (p >= 0.001) return "$" + p.toPrecision(4);
+    var zeros = Math.floor(-Math.log10(p));
+    var digits = (Math.round(p * Math.pow(10, zeros + 4)).toString().slice(0, 4).replace(/0+$/, "")) || "0";
+    return "$0.0" + String(zeros).split("").map(function (d) { return SUBS[d]; }).join("") + digits;
+  }
+  function usd(n, exact) {
+    if (window.arcFmt) return window.arcFmt.usd(n, exact);
+    if (n == null || !isFinite(n)) return "—";
+    if (!exact && Math.abs(n) >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
+    if (n > 0 && n < 0.01) return "<$0.01";
+    return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function num(n) {
+    if (n == null || !isFinite(n)) return "—";
+    if (Math.abs(n) >= 10000) return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
+    return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  }
+  function ago(ts) {
+    if (!ts) return "";
+    var s = Math.max(0, Date.now() / 1000 - ts);
+    return s < 3600 ? Math.max(1, Math.floor(s / 60)) + "m ago" : s < 86400 ? Math.floor(s / 3600) + "h ago" : Math.floor(s / 86400) + "d ago";
+  }
+  function short(a) { return a ? a.slice(0, 6) + "…" + a.slice(-4) : "—"; }
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+  }
+  // Argus launch tax ("3% buy · 5% sell") and bonding milestone, from d.argus
+  function pct(bps) { return (Math.round(bps) / 100).toFixed(2).replace(/\.?0+$/, "") + "%"; }
+  function taxText(d) {
+    var a = d && d.argus;
+    if (!a || a.buyTaxBps == null) return "Fixed at launch (1–10%)";
+    return a.buyTaxBps === a.sellTaxBps ? pct(a.buyTaxBps) + " buy / sell" : pct(a.buyTaxBps) + " buy · " + pct(a.sellTaxBps) + " sell";
+  }
+  function bondText(d) {
+    var a = d && d.argus;
+    if (!a || !a.verified) return "—";
+    if (a.bonded) return "Reached";
+    return a.bondProgress == null ? "—" : a.bondProgress.toFixed(a.bondProgress < 10 ? 2 : 1) + "%";
+  }
+  function explorer(kind, x) { return EXPLORER + "/" + kind + "/" + x; }
+
+  // ---------- data ----------
+  var memo = null; // { at, p }
+  function fetchJson(url, ms) {
+    var ctl = window.AbortController ? new AbortController() : null;
+    var t = ctl ? setTimeout(function () { ctl.abort(); }, ms || 12000) : null;
+    return fetch(url, { signal: ctl ? ctl.signal : undefined }).then(function (r) {
+      if (!r.ok) throw new Error("http " + r.status);
+      return r.json();
+    }).finally(function () { if (t) clearTimeout(t); });
+  }
+  // Fallback: the curve itself, four eth_calls in one batch (price + graduation only).
+  function word(h, i) { return BigInt("0x" + (String(h).replace(/^0x/, "").slice(i * 64, (i + 1) * 64) || "0")); }
+  function readCurve() {
+    var calls = ["0x0902f1ac", "0x4f1f58fd", "0x8b0bc501", "0xe7c2b772"];
+    // getReserves(), realQuoteReserve(), graduationThreshold(), graduated()
+    var body = calls.map(function (d, id) { return { jsonrpc: "2.0", id: id, method: "eth_call", params: [{ to: CURVE, data: d }, "latest"] }; });
+    return fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (out) {
+        var by = {}; (Array.isArray(out) ? out : [out]).forEach(function (x) { by[x.id] = x.result; });
+        if (!by[0] || by[0] === "0x") throw new Error("curve unreadable");
+        var qr = Number(word(by[0], 0)) / 1e6, tr = Number(word(by[0], 1)) / 1e18;
+        var real = Number(word(by[1] || "0x", 0)) / 1e6, thr = Number(word(by[2] || "0x", 0)) / 1e6, grad = word(by[3] || "0x", 0) > 0n;
+        var p = tr > 0 ? qr / tr : null;
+        return { partial: true, price: p, mcap: p != null ? p * 1e9 : null, liquidity: real, threshold: thr, graduated: grad,
+          progress: grad ? 100 : thr > 0 ? Math.min(100, (real / thr) * 100) : 0, toGraduate: grad ? 0 : Math.max(0, thr - real) };
+      });
+  }
+  // Fallback for a pool: slot0 → sqrtPriceX96 → USDC per $ARCIRCLE (config-arc.js)
+  function readPool() {
+    var body = { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: PM, data: "0x1e2eaeaf" + POOL_SLOT.replace(/^0x/, "") }, "latest"] };
+    return fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (out) {
+        var p = arcircleUsdFromSqrt(BigInt(out && out.result && out.result !== "0x" ? out.result : "0x0") & ((1n << 160n) - 1n));
+        if (!(p > 0)) throw new Error("pool unreadable");
+        return { live: true, partial: true, venue: "pool", price: p, mcap: p * 1e9 };
+      });
+  }
+  function load(wallet, fresh) {
+    if (!wallet && !fresh && memo && Date.now() - memo.at < 20000) return memo.p;
+    var url = "/api/social?token=arcircle" + (wallet ? "&wallet=" + encodeURIComponent(wallet) : "");
+    var p = fetchJson(url, wallet ? 25000 : 15000).then(function (j) {
+      if (!j || j.error || j.price === undefined) throw new Error((j && j.error) || "no data");
+      return j;
+    }).catch(function (err) {
+      if (wallet) throw err;
+      if (POOL_SLOT && !CURVE) return readPool();
+      if (!CURVE) return { live: false, partial: true, price: null };
+      return readCurve();
+    });
+    if (!wallet) { memo = { at: Date.now(), p: p }; p.catch(function () { memo = null; }); }
+    return p;
+  }
+  // Keep the page's numbers current: every 30s while visible; while the
+  // server is still indexing history, again after 6s.
+  var subs = [], timer = null, last = null;
+  function tick() {
+    clearTimeout(timer);
+    load(null, true).then(function (d) {
+      last = d;
+      subs.forEach(function (fn) { try { fn(d); } catch (e) { console.warn("arcToken subscriber", e); } });
+      document.dispatchEvent(new CustomEvent("arcircle:stats", { detail: d }));
+      timer = setTimeout(loop, d.complete === false ? 6000 : 30000);
+    }, function () { timer = setTimeout(loop, 30000); });
+  }
+  function loop() { if (document.hidden) { timer = setTimeout(loop, 5000); return; } tick(); }
+  function subscribe(fn) {
+    subs.push(fn);
+    if (last) fn(last);
+    if (subs.length === 1) tick();
+  }
+
+  // ---------- helpers ----------
+  function onVisible(el, fn, margin) {
+    if (!el) return;
+    if (!("IntersectionObserver" in window)) { fn(); return; }
+    var io = new IntersectionObserver(function (ents) {
+      if (ents.some(function (e) { return e.isIntersecting; })) { io.disconnect(); fn(); }
+    }, { rootMargin: margin || "0px 0px -10% 0px", threshold: 0.1 });
+    io.observe(el);
+  }
+  function countTo(el, to, fmt, ms) {
+    if (!el || to == null || !isFinite(to)) return;
+    if (typeof window.arcCountUp === "function") return window.arcCountUp(el, to, fmt, ms);
+    el.textContent = fmt ? fmt(to) : String(to);
+  }
+
+  // ---------- revenue: one definition for both pages ----------
+  var REVENUE = [
+    { id: "launch", tag: "ArcPad", acc: "#4d9fff", name: "Launch fee", sub: "Flat fee on every coin launched on ArcPad", amt: "1 USDC" },
+    { id: "alloc", tag: "ArcPad", acc: "#4d9fff", name: "Platform allocation", sub: "Of every ArcPad coin's supply, set aside at launch", amt: "8%" },
+    { id: "fees", tag: "ArcPad", acc: "#4d9fff", name: "Trading-fee share", sub: "30% of the 1% base fee on every ArcPad trade", amt: "0.3%" },
+    { id: "raise", tag: "CirclePad", acc: "#39ff88", name: "Raise share", sub: "Of each CirclePad raise when it closes", amt: "5%" },
+    { id: "argus", tag: "ArcPad", acc: "#4d9fff", name: "Argus launch share", sub: "30% of the creator share on coins launched on Argus through ArcPad", amt: "30%" },
+    { id: "util", tag: "Utilities", acc: "#ffc861", name: "Utility revenue", sub: "Paid tools and ARCIA 402; Token Scanner unlocks and Builder Mine burn $ARCIRCLE directly", amt: "Burns" },
+    { id: "tax", tag: "$ARCIRCLE", acc: "#35d8d0", name: "Creator fee", sub: "90% of the buy / sell tax on every $ARCIRCLE trade", amt: "90% of tax" },
+  ];
+  window.ARC_REVENUE = REVENUE;
+  function revenueRows() {
+    return REVENUE.map(function (r) {
+      return '<div class="ax-rev-row" style="--acc:' + r.acc + '" data-rev="' + r.id + '">' +
+        '<span class="ax-tag">' + esc(r.tag) + "</span>" +
+        '<div class="ax-rev-name"><strong>' + esc(r.name) + "</strong><small>" + esc(r.sub) + '</small><em class="ax-rev-live" data-rev-live="' + r.id + '"></em></div>' +
+        '<div class="ax-rev-amt">' + esc(r.amt) + "</div></div>";
+    }).join("");
+  }
+  function liveLine(id, d) {
+    var rv = d && d.revenue;
+    if (!rv) return "";
+    if (id === "launch") return rv.launches != null ? rv.launches + " launches so far · " + usd(rv.launchFees) : "";
+    if (id === "alloc") return rv.allocationCoins != null ? rv.allocationCoins + " coins so far" : "";
+    if (id === "fees") return "Paid to the treasury on every trade";
+    if (id === "raise") {
+      var c = rv.circle;
+      if (!c) return "";
+      if (!c.started) return "Round #1 opens soon";
+      if (!c.open) return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " to the platform · " + ((typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_STATUS && CONFIG.CIRCLEPAD_STATUS.line) || "Round #2 next");
+      return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " at close";
+    }
+    if (id === "util") return d.burned && d.burned.bySource ? (function (b) { var t = ["scanner", "mine", "secret", "desk", "agent", "orders"].reduce(function (x, k) { return x + (b[k] ? b[k].tokens : 0); }, 0); return t > 0 ? num(t) + " $ARCIRCLE burned by utilities so far" : ""; })(d.burned.bySource) : "";
+    if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : d.live === false ? "Starts when $ARCIRCLE is live"
+      : rv.curveVolume != null ? usd(rv.curveVolume) + " traded since launch" : "";
+    return "";
+  }
+  function mountRevenue(list) {
+    if (!list || list.__rev) return;
+    list.__rev = true;
+    list.innerHTML = revenueRows();
+    subscribe(function (d) {
+      REVENUE.forEach(function (r) {
+        var el = list.querySelector('[data-rev-live="' + r.id + '"]');
+        var t = liveLine(r.id, d);
+        if (el && el.textContent !== t) { el.textContent = t; el.classList.toggle("on", !!t); }
+      });
+    });
+  }
+
+  // ---------- revenue flow: particles from each source into the box ----------
+  function mountFlow(rev) {
+    var list = rev && rev.querySelector(".ax-rev-list"), dest = rev && rev.querySelector(".ax-rev-dest");
+    if (!list || !dest || rev.__flow) return;
+    rev.__flow = true;
+    var cv = document.createElement("canvas");
+    cv.className = "ax-rev-flow";
+    cv.setAttribute("aria-hidden", "true");
+    rev.insertBefore(cv, rev.firstChild);
+    var ctx = cv.getContext("2d");
+    if (!ctx) return;
+    var paths = [], parts = [], running = false, visible = false, dpr = 1, wide = true, raf = 0;
+    function layout() {
+      var R = rev.getBoundingClientRect();
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.round(R.width * dpr); cv.height = Math.round(R.height * dpr);
+      cv.style.width = R.width + "px"; cv.style.height = R.height + "px";
+      var D = dest.getBoundingClientRect(), L = list.getBoundingClientRect();
+      wide = D.left > L.right - 4; // two columns side by side
+      var rows = list.querySelectorAll(".ax-rev-row");
+      paths = Array.prototype.map.call(rows, function (row, i) {
+        var r = row.getBoundingClientRect();
+        var acc = getComputedStyle(row).getPropertyValue("--acc").trim() || "#35d8d0";
+        var id = row.getAttribute("data-rev") || "";
+        if (wide) {
+          // from the row's right edge into the box's left edge, fanned out over its height
+          var x0 = L.right - R.left - 2, y0 = r.top + r.height / 2 - R.top;
+          var x1 = D.left - R.left + 2, y1 = D.top - R.top + 30 + ((D.height - 60) * i) / Math.max(1, rows.length - 1);
+          var mx = (x1 - x0) * 0.55;
+          return { id: id, acc: acc, p: [x0, y0, x0 + mx, y0, x1 - mx, y1, x1, y1] };
+        }
+        // stacked: from under the list down into the top of the box
+        var sx = L.left - R.left + (L.width * (i + 1)) / (rows.length + 1), sy = L.bottom - R.top - 2;
+        var ex = D.left - R.left + D.width / 2 + (i - (rows.length - 1) / 2) * 10, ey = D.top - R.top + 2;
+        var my = (ey - sy) / 2;
+        return { id: id, acc: acc, p: [sx, sy, sx, sy + my, ex, ey - my, ex, ey] };
+      });
+    }
+    function bez(p, t) {
+      var u = 1 - t;
+      return [u * u * u * p[0] + 3 * u * u * t * p[2] + 3 * u * t * t * p[4] + t * t * t * p[6],
+        u * u * u * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t * t * t * p[7]];
+    }
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      paths.forEach(function (q) {
+        var p = q.p;
+        ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.bezierCurveTo(p[2], p[3], p[4], p[5], p[6], p[7]);
+        ctx.strokeStyle = q.acc; ctx.globalAlpha = 0.22; ctx.lineWidth = 1.2; ctx.setLineDash([3, 5]); ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      parts.forEach(function (pt) {
+        var q = paths[pt.k]; if (!q) return;
+        var xy = bez(q.p, pt.t);
+        ctx.globalAlpha = Math.sin(Math.PI * pt.t) * 0.95;
+        ctx.fillStyle = q.acc; ctx.shadowColor = q.acc; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(xy[0], xy[1], 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+      // amount chips: what each source has actually brought in, riding its path
+      chips.forEach(function (c) {
+        var q = paths[c.k]; if (!q) return;
+        var xy = bez(q.p, c.t), a = Math.min(1, Math.sin(Math.PI * c.t) * 1.6);
+        ctx.font = "700 11px Sora, sans-serif";
+        var w = ctx.measureText(c.txt).width + 14, h = 19, x = xy[0] - w / 2, y = xy[1] - h / 2;
+        ctx.globalAlpha = a * 0.92;
+        ctx.fillStyle = "rgba(6,10,16,.92)"; ctx.strokeStyle = q.acc; ctx.lineWidth = 1;
+        ctx.shadowColor = q.acc; ctx.shadowBlur = 12;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, w, h, 9.5); else ctx.rect(x, y, w, h);
+        ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
+        ctx.fillStyle = q.acc; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(c.txt, xy[0], xy[1] + 0.5);
+      });
+      ctx.globalAlpha = 1;
+    }
+    // sources weighted by what they have earned so far (every one still flows a little)
+    var weights = [], amounts = {}, chips = [], nextChip = 1200;
+    function pick() {
+      var tot = 0, i;
+      for (i = 0; i < paths.length; i++) tot += weights[i] == null ? 1 : weights[i];
+      var r = Math.random() * tot;
+      for (i = 0; i < paths.length; i++) { r -= weights[i] == null ? 1 : weights[i]; if (r <= 0) return i; }
+      return Math.floor(Math.random() * paths.length);
+    }
+    function reweigh(d) {
+      var rv = (d && d.revenue) || {};
+      amounts = { launch: rv.launchFees, raise: rv.circle && rv.circle.share, tax: rv.creatorTax };
+      var max = 0;
+      paths.forEach(function (q) { var v = amounts[q.id]; if (v > max) max = v; });
+      weights = paths.map(function (q) { var v = amounts[q.id]; return 0.35 + (max > 0 && v > 0 ? (v / max) * 2.4 : 0); });
+    }
+    function spawnChip() {
+      var ks = paths.map(function (q, i) { return amounts[q.id] > 0 ? i : -1; }).filter(function (i) { return i >= 0; });
+      if (!ks.length || chips.length >= 2) return;
+      var k = ks[Math.floor(Math.random() * ks.length)], v = amounts[paths[k].id];
+      chips.push({ k: k, t: 0, v: 0.00016, txt: "+" + usd(v) });
+    }
+    var lastT = 0;
+    function frame(t) {
+      var dt = lastT ? Math.min(50, t - lastT) : 16; lastT = t;
+      parts.forEach(function (pt) { pt.t += dt * pt.v; if (pt.t >= 1) { pt.t = 0; pt.k = pick(); } });
+      nextChip -= dt;
+      if (nextChip <= 0) { spawnChip(); nextChip = 2600 + Math.random() * 1800; }
+      for (var c = chips.length - 1; c >= 0; c--) {
+        chips[c].t += dt * chips[c].v;
+        if (chips[c].t >= 1) {
+          chips.splice(c, 1);
+          dest.classList.remove("ax-rev-hit"); void dest.offsetWidth; dest.classList.add("ax-rev-hit");
+        }
+      }
+      draw();
+      if (running) raf = requestAnimationFrame(frame);
+    }
+    function start() {
+      if (running || reduce || !visible || document.hidden) return;
+      running = true; lastT = 0; raf = requestAnimationFrame(frame);
+    }
+    function stop() { running = false; cancelAnimationFrame(raf); }
+    layout();
+    for (var i = 0; i < 14; i++) parts.push({ k: i % Math.max(1, paths.length), t: Math.random(), v: 0.00022 + Math.random() * 0.00016 });
+    draw();
+    var relayout = function () { layout(); draw(); };
+    if (window.ResizeObserver) new ResizeObserver(relayout).observe(rev);
+    window.addEventListener("resize", relayout);
+    document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); else start(); });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (ents) {
+        visible = ents.some(function (e) { return e.isIntersecting; });
+        if (visible) { relayout(); start(); } else stop();
+      }, { threshold: 0.05 }).observe(rev);
+    }
+    // the live lines change row heights
+    subscribe(function (d) { setTimeout(function () { relayout(); reweigh(d); }, 60); });
+  }
+
+  // ---------- SVG builders ----------
+  function spark(values, opts) {
+    opts = opts || {};
+    var W = opts.w || 320, Hh = opts.h || 90, pad = 4;
+    var v = (values || []).filter(function (x) { return x != null && isFinite(x); });
+    if (v.length < 2) return "";
+    var lo = Math.min.apply(null, v), hi = Math.max.apply(null, v);
+    if (hi === lo) { hi = lo * 1.01 || 1; lo = lo * 0.99; }
+    var pts = [], n = values.length, lastV = null;
+    values.forEach(function (x, i) {
+      if (x == null) { if (lastV == null) return; x = lastV; }
+      lastV = x;
+      pts.push([pad + (i / (n - 1)) * (W - pad * 2), pad + (1 - (x - lo) / (hi - lo)) * (Hh - pad * 2)]);
+    });
+    var up = v[v.length - 1] >= v[0];
+    var col = up ? "#39ff88" : "#ff5d73";
+    var line = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join("");
+    var area = line + "L" + pts[pts.length - 1][0].toFixed(1) + " " + Hh + "L" + pts[0][0].toFixed(1) + " " + Hh + "Z";
+    var id = "sg" + Math.random().toString(36).slice(2, 7);
+    var endP = pts[pts.length - 1];
+    return '<svg class="ax-spark ' + (up ? "up" : "down") + '" viewBox="0 0 ' + W + " " + Hh + '" preserveAspectRatio="none" role="img" aria-label="' + esc(opts.label || "7-day price") + '">' +
+      '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + col + '" stop-opacity=".28"/><stop offset="1" stop-color="' + col + '" stop-opacity="0"/></linearGradient></defs>' +
+      '<path d="' + area + '" fill="url(#' + id + ')" class="ax-spark-area"/>' +
+      '<path d="' + line + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" pathLength="1" class="ax-spark-line"/>' +
+      '<circle cx="' + endP[0].toFixed(1) + '" cy="' + endP[1].toFixed(1) + '" r="3.2" fill="' + col + '" class="ax-spark-dot"/></svg>';
+  }
+  function donut(parts, opts) {
+    opts = opts || {};
+    var total = parts.reduce(function (s, p) { return s + (p.v || 0); }, 0) || 1;
+    var R = 60, C = 2 * Math.PI * R, off = 0;
+    var segs = parts.map(function (p) {
+      var len = ((p.v || 0) / total) * C;
+      var s = '<circle cx="80" cy="80" r="' + R + '" fill="none" stroke="' + p.color + '" stroke-width="20" stroke-dasharray="' + Math.max(0, len - (len > 3 ? 1.5 : 0)).toFixed(2) + " " + C.toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" class="ax-donut-seg"><title>' + esc(p.label) + "</title></circle>";
+      off += len;
+      return s;
+    }).join("");
+    return '<svg class="ax-donut" viewBox="0 0 160 160" role="img" aria-label="' + esc(opts.label || "Supply split") + '"><g transform="rotate(-90 80 80)"><circle cx="80" cy="80" r="' + R + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="20"/>' + segs + "</g>" +
+      '<text x="80" y="76" text-anchor="middle" class="ax-donut-big">' + esc(opts.center || "") + '</text><text x="80" y="96" text-anchor="middle" class="ax-donut-small">' + esc(opts.sub || "") + "</text></svg>";
+  }
+
+  window.arcToken = {
+    load: load, subscribe: subscribe, mountRevenue: mountRevenue, mountFlow: mountFlow, spark: spark, donut: donut,
+    onVisible: onVisible, countTo: countTo, fmt: { price: price, usd: usd, num: num, ago: ago, short: short, esc: esc, explorer: explorer, tax: taxText, bond: bondText },
+    TOKEN: TOKEN, CURVE: CURVE, live: !!TOKEN, reduce: reduce,
+  };
+})();
+;
+/* ---- reward.js ---- */
+/* global ethers, CONFIG, ARC_FACTORY_ABI, readProvider, withRetry, multicallRead */
+// reward.js — live bits of the Reward page (reward.html). The reward program
+// itself isn't live, so everything here is read-only context, plus one
+// signed (free) poll:
+//   • hero: the fixed supply counts up and the "0 new tokens" stamps in
+//   • revenue: the shared list (arc-token.js) flowing into the treasury box,
+//     and "earned so far" totals that count up
+//   • "Check a wallet" (typed, linked, or "Use my wallet"): $ARCIRCLE held and
+//     rank, how long it has been held, ArcPad coins created, CirclePad
+//     contribution and invites — cards stagger in, the holding bar grows
+//   • candidate-mechanics poll: one signed vote per wallet per mechanic
+//   • roadmap: the line fills to the current phase, "We are here" pulses
+(function () {
+  "use strict";
+  // From config-arc.js; "" while $ARCIRCLE is not live (relaunching).
+  var ARCIRCLE_TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "";
+  var SUPPLY = 1000000000;
+  var ERC20 = [
+    "function balanceOf(address) view returns (uint256)",
+    "function symbol() view returns (string)",
+    "function name() view returns (string)",
+  ];
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function $(id) { return document.getElementById(id); }
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function T() { return window.arcToken; }
+  function usd(n, exact) { return T() ? T().fmt.usd(n, exact) : "$" + Number(n || 0).toFixed(2); }
+  function factory() { return new ethers.Contract(CONFIG.ARCPAD_FACTORY_ADDRESS, ARC_FACTORY_ABI, readProvider()); }
+  function fmtTok(n) {
+    if (!isFinite(n)) return "—";
+    if (n === 0) return "0";
+    if (n >= 10000) return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
+    return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  }
+  function day(ts) { return ts ? new Date(ts * 1000).toISOString().slice(0, 10) : "—"; }
+  function countTo(el, v, fmt) { if (!el || v == null || !isFinite(v)) return; if (T()) T().countTo(el, v, fmt); else el.textContent = fmt ? fmt(v) : String(v); }
+  function tk(k) { return document.querySelectorAll('[data-tk="' + k + '"]'); }
+  function each(k, fn) { Array.prototype.forEach.call(tk(k), fn); }
+  function setText(k, v) { each(k, function (el) { if (el.textContent !== v) el.textContent = v; }); }
+
+  // ---- ArcPad launches (count for the stats strip; full list for the check) ----
+  var launchesPromise = null;
+  function loadLaunches() {
+    if (launchesPromise) return launchesPromise;
+    launchesPromise = (async function () {
+      var f = factory();
+      var count = Number(await withRetry(function () { return f.launchCount(); }));
+      var rows = [];
+      for (var start = 0; start < count; start += 20) {
+        var idxs = [];
+        for (var i = start; i < Math.min(count, start + 20); i++) idxs.push(i);
+        var batch = await withRetry(function () {
+          return multicallRead(idxs.map(function (i) { return { contract: f, method: "launches", args: [i] }; }));
+        });
+        batch.forEach(function (l) { if (l) rows.push({ token: l.token, creator: String(l.creator).toLowerCase(), launchedAt: Number(l.launchedAt) }); });
+      }
+      return { count: count, rows: rows };
+    })();
+    launchesPromise.catch(function () { launchesPromise = null; });
+    return launchesPromise;
+  }
+
+  async function showLaunchCount() {
+    var el = $("rw-launches");
+    if (!el) return;
+    try {
+      var f = factory();
+      var n = Number(await withRetry(function () { return f.launchCount(); }));
+      if (T()) T().onVisible(el, function () { countTo(el, n, function (v) { return String(Math.round(v)); }); });
+      else el.textContent = String(n);
+    } catch (e) { el.textContent = "—"; }
+  }
+
+  // ---- hero: 1,000,000,000 counts up, the 0 stamps in ----
+  function hero() {
+    var box = $("rw-zero");
+    if (!box) return;
+    var sup = box.querySelector(".rw-zero-supply");
+    var run = function () {
+      box.classList.add("in");
+      if (!reduce && sup) { sup.__cu = 0; countTo(sup, SUPPLY, function (v) { return Math.round(v).toLocaleString("en-US"); }); }
+    };
+    if (T()) T().onVisible(box, run, "0px"); else run();
+  }
+
+  // ---- revenue dashboard + treasury box ----
+  function paintStats(d) {
+    if (!d || d.partial) return;
+    var rv = d.revenue || {};
+    var tre = d.treasury || {};
+    each("tre-usdc", function (el) { countTo(el, tre.usdc || 0, function (v) { return usd(v); }); });
+    if (tre.arcircle != null) each("tre-arc", function (el) { countTo(el, tre.arcircle || 0, fmtTok); });
+    setText("bb-n", String(d.buybacks ? d.buybacks.n : 0));
+    var dash = $("rw-dash");
+    if (!dash) return;
+    var go = function () {
+      each("earned", function (el) { countTo(el, (rv.launchFees || 0) + (rv.creatorTax || 0), function (v) { return usd(v); }); });
+      each("fees", function (el) { countTo(el, rv.launchFees || 0, function (v) { return usd(v); }); });
+      each("tax", function (el) { if (rv.creatorTax == null && d.venue === "pool") el.textContent = "—"; else countTo(el, rv.creatorTax || 0, function (v) { return usd(v); }); });
+      var c = rv.circle;
+      each("raise", function (el) { countTo(el, c ? c.share || 0 : 0, function (v) { return usd(v); }); });
+    };
+    setText("fees-sub", rv.launches != null ? rv.launches + " launches × 1 USDC" : "1 USDC × every ArcPad launch");
+    setText("tax-sub", d.live === false ? "Starts when $ARCIRCLE is live"
+      : d.venue === "pool" ? (rv.curveVolume != null ? "90% of the tax on " + usd(rv.curveVolume) + " traded" : "90% of the tax on every $ARCIRCLE trade")
+      : rv.curveVolume != null ? "2% of " + usd(rv.curveVolume) + " traded on the curve" : "2% of every $ARCIRCLE trade");
+    var c = rv.circle;
+    setText("raise-sub", !c ? "5% of round #1 when it closes" : !c.started ? "Round #1 opens soon" : c.open ? usd(c.raised) + " raised in round #1 so far" : usd(c.share) + " from round #1 · round #2 next");
+    if (dash.__seen) go();
+    else if (T()) T().onVisible(dash, function () { dash.__seen = true; go(); });
+  }
+
+  // ---- Check a wallet ----
+  var checking = 0;
+  async function check(addr) {
+    var err = $("rw-err"), out = $("rw-result"), btn = document.querySelector("#rw-check-form button[type=submit]");
+    err.hidden = true;
+    if (!ethers.isAddress(addr)) {
+      err.textContent = "That doesn't look like a wallet address — it should start with 0x and be 42 characters long.";
+      err.hidden = false; out.hidden = true; return;
+    }
+    addr = ethers.getAddress(addr);
+    var run = ++checking;
+    btn.disabled = true; btn.textContent = "Checking…";
+    try {
+      var tok = ARCIRCLE_TOKEN ? new ethers.Contract(ARCIRCLE_TOKEN, ERC20, readProvider()) : null;
+      var res = await Promise.all([
+        tok ? withRetry(function () { return tok.balanceOf(addr); }) : Promise.resolve(null),
+        loadLaunches(),
+        T() ? T().load(addr.toLowerCase()).catch(function () { return null; }) : Promise.resolve(null),
+      ]);
+      if (run !== checking) return;
+      var ws = res[2] && res[2].wallet ? res[2].wallet : null;
+      var bal = res[0] == null ? 0 : Number(ethers.formatUnits(res[0], 18));
+      $("rw-bal").textContent = !tok ? "Not live" : fmtTok(bal) + " $ARCIRCLE";
+      $("rw-bal-sub").textContent = !tok ? "$ARCIRCLE is relaunching — nothing to hold yet"
+        : bal > 0
+        ? (bal / SUPPLY * 100).toPrecision(3).replace(/\.?0+$/, "") + "% of total supply" + (ws && ws.rank ? " · holder #" + ws.rank + " of " + ws.of : "")
+        : "Not holding $ARCIRCLE right now";
+
+      // holding period
+      var bar = $("rw-held-bar");
+      bar.style.width = "0%";
+      if (!tok) {
+        $("rw-held").textContent = "—";
+        $("rw-held-sub").textContent = "Starts counting when $ARCIRCLE is live";
+      } else if (!ws) {
+        $("rw-held").textContent = "—";
+        $("rw-held-sub").textContent = "Couldn't read the holding history right now";
+      } else if (bal <= 0 || !ws.holdingSince) {
+        $("rw-held").textContent = bal > 0 && !ws.indexed ? "…" : "0 days";
+        $("rw-held-sub").textContent = bal > 0 && !ws.indexed ? "Still indexing history — try again in a minute" : "Not holding $ARCIRCLE right now";
+      } else {
+        var d = ws.heldDays;
+        $("rw-held").textContent = d >= 1 ? d.toFixed(1) + " days" : Math.max(1, Math.round(d * 24)) + (Math.round(d * 24) === 1 ? " hour" : " hours");
+        $("rw-held-sub").textContent = "Since " + day(ws.holdingSince) + " · $ARCIRCLE is " + (ws.maxDays || 0).toFixed(1) + " days old";
+        var pct = ws.maxDays > 0 ? Math.min(100, (d / ws.maxDays) * 100) : 0;
+        bar.__pct = pct;
+      }
+
+      var mine = res[1].rows.filter(function (r) { return r.creator === addr.toLowerCase(); })
+        .sort(function (a, b) { return b.launchedAt - a.launchedAt; });
+      $("rw-created").textContent = String(mine.length);
+      $("rw-created-sub").textContent = mine.length
+        ? "Creator activity is what creator rewards are designed to measure"
+        : "No ArcPad launches from this address yet";
+
+      // CirclePad
+      if (!ws || ws.circle == null) {
+        $("rw-circle").textContent = "—";
+        $("rw-circle-sub").textContent = "Couldn't read CirclePad right now";
+      } else {
+        $("rw-circle").textContent = usd(ws.circle, true);
+        $("rw-circle-sub").textContent = ws.referrals && ws.referrals.n
+          ? "Invites brought " + usd(ws.referrals.usdc, true) + " into CirclePad"
+          : ws.circle > 0 ? "Contributed to round #1" : "No CirclePad contribution yet";
+      }
+      // the burn card (reward-engine.js) fills itself from the same answer
+      document.dispatchEvent(new CustomEvent("reward:wallet", { detail: { address: addr, wallet: ws } }));
+
+      var list = $("rw-created-list");
+      list.innerHTML = "";
+      if (mine.length) {
+        var names = await multicallRead(mine.slice(0, 24).map(function (r) {
+          return { contract: new ethers.Contract(r.token, ERC20, readProvider()), method: "symbol" };
+        })).catch(function () { return []; });
+        list.innerHTML = mine.slice(0, 24).map(function (r, i) {
+          var sym = names[i] ? "$" + names[i] : r.token.slice(0, 6) + "…" + r.token.slice(-4);
+          return '<a class="rw-chip" href="/arc#coin/' + esc(r.token) + '">' + esc(sym) + "</a>";
+        }).join("") + (mine.length > 24 ? '<span class="rw-chip rw-chip-more">+' + (mine.length - 24) + " more</span>" : "");
+      }
+      renderInvite(addr);
+      reveal(out);
+      try { history.replaceState(null, "", "#check=" + addr); } catch (e) { /* fine */ }
+    } catch (e) {
+      err.textContent = "Couldn't reach Arc to read this wallet — check your connection and try again.";
+      err.hidden = false;
+    } finally {
+      if (run === checking) { btn.disabled = false; btn.textContent = "Check"; }
+    }
+  }
+  // result cards stagger in; then the holding bar grows
+  function reveal(out) {
+    out.hidden = false;
+    var cards = out.querySelectorAll(".rw-result-card");
+    Array.prototype.forEach.call(cards, function (c, i) {
+      c.classList.remove("rw-in");
+      c.style.transitionDelay = reduce ? "0ms" : i * 90 + "ms";
+    });
+    void out.offsetWidth;
+    Array.prototype.forEach.call(cards, function (c) { c.classList.add("rw-in"); });
+    var bar = $("rw-held-bar");
+    setTimeout(function () { bar.style.width = (bar.__pct || 0) + "%"; }, reduce ? 0 : 420);
+  }
+
+  // ---- "Use my wallet": the browser wallet's address, read-only ----
+  function injected() { return window.ethereum && typeof window.ethereum.request === "function" ? window.ethereum : null; }
+  async function myAddress() {
+    var eth = injected();
+    if (!eth) throw new Error("nowallet");
+    var acc = await eth.request({ method: "eth_requestAccounts" });
+    if (!acc || !acc[0]) throw new Error("nowallet");
+    return acc[0];
+  }
+  function noWalletMsg(e) {
+    return e && e.message === "nowallet"
+      ? "No wallet found in this browser — paste your address instead, or open this page in your wallet app's browser."
+      : e && (e.code === 4001 || /reject|denied/i.test(String(e.message))) ? "The wallet request was declined." : "Your wallet didn't answer — try again.";
+  }
+  function useMine() {
+    var err = $("rw-err");
+    myAddress().then(function (a) { $("rw-addr").value = a; check(a); }, function (e) { err.textContent = noWalletMsg(e); err.hidden = false; });
+  }
+
+  // ---- Invite link (referral share is a candidate mechanic, not live) ----
+  function renderInvite(addr) {
+    var out = $("rw-result");
+    var box = $("rw-invite");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "rw-invite"; box.className = "rw-invite";
+      out.appendChild(box);
+    }
+    var link = "https://www.arcircle.app/?ref=" + addr.toLowerCase();
+    box.innerHTML = '<div class="rw-invite-top"><span>Invite link</span><code data-no-i18n>' + esc(link) + '</code><button type="button" class="ax-btn ax-btn-ghost rw-invite-copy">Copy</button></div>'
+      + "<small>Anyone who opens ARCIRCLE PAD through this link is remembered as your invite in their browser for 30 days, and CirclePad contributions made through it are credited to you. Referral share is a candidate mechanic — nothing is paid for invites yet.</small>";
+    box.querySelector(".rw-invite-copy").addEventListener("click", function (e) {
+      var b = e.currentTarget;
+      (navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(link) : Promise.reject()).then(
+        function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1500); },
+        function () { b.textContent = "Copy failed"; });
+    });
+  }
+
+  // ---- candidate-mechanics poll ----
+  var POLL = { wallet: null, data: null };
+  var pollMessage = function (mech, wallet) { return "ARCIRCLE PAD — rewards poll\nI support: " + mech + "\nWallet: " + String(wallet).toLowerCase(); };
+  function pollUrl() { return "/api/social?poll=rewards" + (POLL.wallet ? "&wallet=" + POLL.wallet : ""); }
+  function paintPoll() {
+    var box = $("rw-poll"), d = POLL.data;
+    if (!box || !d || !d.enabled) return;
+    box.classList.add("on");
+    var note = $("rw-poll-note");
+    if (note && note.hidden) { note.hidden = false; note.textContent = "Support the mechanics you'd keep. You sign a message with your wallet — free, no transaction. One vote per wallet per mechanic; votes from $ARCIRCLE holders are counted separately."; }
+    var max = 1;
+    Object.keys(d.tally).forEach(function (k) { max = Math.max(max, d.tally[k].n); });
+    Array.prototype.forEach.call(box.querySelectorAll(".rw-vote"), function (v) {
+      var m = v.getAttribute("data-mech"), t = d.tally[m] || { n: 0, holders: 0 };
+      var b = v.querySelector(".rw-vote-n b");
+      countTo(b, t.n, function (x) { return String(Math.round(x)); });
+      var sm = v.querySelector(".rw-vote-n small");
+      var label = t.holders ? (t.n === 1 ? "supporter" : "supporters") + " · " + t.holders + (t.holders === 1 ? " holder" : " holders") : t.n === 1 ? "supporter" : "supporters";
+      if (sm.textContent !== label) sm.textContent = label;
+      v.querySelector(".rw-vote-bar i").style.width = (t.n / max) * 100 + "%";
+      var mineOn = (d.mine || []).indexOf(m) >= 0;
+      var btn = v.querySelector(".rw-vote-btn");
+      btn.classList.toggle("done", mineOn);
+      btn.disabled = mineOn || btn.__busy;
+      btn.textContent = mineOn ? "Supported" : btn.__busy ? "Sign in wallet…" : "Support";
+    });
+  }
+  function loadPoll() {
+    return fetch(pollUrl()).then(function (r) { return r.json(); }).then(function (d) { POLL.data = d; paintPoll(); }).catch(function () { /* poll stays hidden */ });
+  }
+  async function vote(btn, mech) {
+    var note = $("rw-poll-note");
+    btn.__busy = true; paintPoll();
+    try {
+      var eth = injected();
+      if (!eth) throw new Error("nowallet");
+      var w = (await myAddress()).toLowerCase();
+      POLL.wallet = w;
+      var msg = pollMessage(mech, w);
+      var sig = await eth.request({ method: "personal_sign", params: [ethers.hexlify(ethers.toUtf8Bytes(msg)), w] });
+      var r = await fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "rpoll", mech: mech, wallet: w, signature: sig }) });
+      var j = await r.json().catch(function () { return {}; });
+      if (r.ok && j.tally) { POLL.data = j; if (typeof window.arcFeedback === "function") window.arcFeedback("success"); }
+      else if (r.status === 409) await loadPoll();
+      else throw new Error(j.error || "failed");
+    } catch (e) {
+      if (note) note.textContent = e && e.message === "nowallet" ? noWalletMsg(e) : e && (e.code === 4001 || /reject|denied/i.test(String(e.message))) ? "The signature was declined — nothing was sent." : "Couldn't record that vote — try again.";
+    } finally {
+      btn.__busy = false; paintPoll();
+    }
+  }
+  function initPoll() {
+    var box = $("rw-poll");
+    if (!box) return;
+    box.addEventListener("click", function (e) {
+      var btn = e.target.closest && e.target.closest(".rw-vote-btn");
+      if (!btn || btn.disabled) return;
+      vote(btn, btn.closest(".rw-vote").getAttribute("data-mech"));
+    });
+    // a wallet that already trusts this site shows its own votes (no prompt)
+    var eth = injected();
+    var first = eth ? eth.request({ method: "eth_accounts" }).then(function (acc) { if (acc && acc[0]) POLL.wallet = String(acc[0]).toLowerCase(); }, function () {}) : Promise.resolve();
+    first.then(loadPoll);
+  }
+
+  // ---- roadmap: fill the line to the current phase ----
+  function roadmap() {
+    var ol = $("rw-time");
+    if (!ol) return;
+    var now = ol.querySelector(".rw-t.now");
+    var set = function () { if (now) ol.style.setProperty("--fill", now.offsetTop + 12 + "px"); };
+    set();
+    window.addEventListener("resize", set);
+    if (T()) T().onVisible(ol, function () { set(); ol.classList.add("fill"); });
+    else ol.classList.add("fill");
+  }
+
+  // ---- Tabs: the page is seven short views instead of one long scroll (the burn engine first).
+  // Section ids stay as they were, so #funding, #check=0x…, #faq… still land
+  // on the right view (and in-page links switch views).
+  var TABS = [
+    { id: "engine", label: "Burn engine", secs: ["engine", "burns"] },
+    { id: "build", label: "Build", secs: ["build", "timeline"] },
+    { id: "programs", label: "Programs", secs: ["programs", "principles"] },
+    { id: "study", label: "Under study", secs: ["mechanics", "next"] },
+    { id: "funding", label: "Funding", secs: ["funding"] },
+    { id: "wallet", label: "My wallet", secs: ["check"] },
+    { id: "faq", label: "FAQ", secs: ["faq", "commitments", "alerts"] },
+  ];
+  var showTab = null;
+  function mountTabs() {
+    var first = $(TABS[0].secs[0]);
+    if (!first || document.querySelector(".rw-tabs")) return;
+    var nav = document.createElement("nav");
+    nav.className = "rw-tabs";
+    nav.setAttribute("role", "tablist");
+    nav.setAttribute("aria-label", "Reward sections");
+    nav.innerHTML = '<span class="rw-tab-ink" aria-hidden="true"></span>' + TABS.map(function (t) {
+      return '<button type="button" role="tab" id="rw-tab-' + t.id + '" data-tab="' + t.id + '" aria-controls="' + t.secs[0] + '">' + t.label + "</button>";
+    }).join("");
+    first.parentNode.insertBefore(nav, first);
+    var ink = nav.querySelector(".rw-tab-ink"), cur = null;
+    var tabOf = function (secId) { for (var i = 0; i < TABS.length; i++) if (TABS[i].secs.indexOf(secId) >= 0) return TABS[i]; return null; };
+    var moveInk = function () {
+      var b = nav.querySelector('[aria-selected="true"]');
+      if (!b) return;
+      ink.style.width = b.offsetWidth + "px"; ink.style.transform = "translateX(" + b.offsetLeft + "px)";
+      if (b.scrollIntoView && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = Math.max(0, b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2);
+    };
+    showTab = function (id, opts) {
+      var t = TABS.filter(function (x) { return x.id === id; })[0] || TABS[0];
+      TABS.forEach(function (x) {
+        var on = x === t;
+        x.secs.forEach(function (sid) {
+          var sec = $(sid);
+          if (!sec) return;
+          sec.hidden = !on; sec.setAttribute("role", "tabpanel"); sec.setAttribute("aria-labelledby", "rw-tab-" + x.id);
+          if (on && cur && cur !== t.id) { sec.classList.remove("rw-in"); void sec.offsetWidth; sec.classList.add("rw-in"); }
+        });
+        var b = nav.querySelector('[data-tab="' + x.id + '"]');
+        b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1;
+      });
+      cur = t.id;
+      moveInk();
+      if (opts && opts.scroll) {
+        var top = nav.getBoundingClientRect().top + window.scrollY - 70;
+        if (window.scrollY > top + 4 || opts.force) window.scrollTo({ top: top, behavior: opts.instant ? "auto" : "smooth" });
+      }
+      document.dispatchEvent(new CustomEvent("reward:tab", { detail: { tab: t.id } }));
+    };
+    nav.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-tab]");
+      if (!b) return;
+      showTab(b.getAttribute("data-tab"), { scroll: true });
+      try { history.replaceState(null, "", "#" + TABS.filter(function (x) { return x.id === b.getAttribute("data-tab"); })[0].secs[0]); } catch (err) { /* fine */ }
+    });
+    nav.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var i = TABS.findIndex(function (x) { return x.id === cur; });
+      var n = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+      showTab(n.id); nav.querySelector('[data-tab="' + n.id + '"]').focus();
+    });
+    // in-page links (#funding, #check…) switch to the view that holds them
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var id = a.getAttribute("href").slice(1).split("=")[0];
+      var t = tabOf(id);
+      if (!t) return;
+      e.preventDefault();
+      showTab(t.id, { scroll: true, force: true });
+      try { history.replaceState(null, "", "#" + id); } catch (err) { /* fine */ }
+    });
+    window.addEventListener("resize", moveInk);
+    // typed / shared links and the back button
+    window.addEventListener("hashchange", function () {
+      var id = location.hash.slice(1).split("=")[0], t = tabOf(id);
+      if (t && t.id !== cur) showTab(t.id, { scroll: true, force: true });
+    });
+    var h = location.hash.slice(1).split("=")[0];
+    var start = tabOf(h) || TABS.filter(function (x) { return x.id === h; })[0];
+    showTab(start ? start.id : TABS[0].id);
+    if (start && h !== "check") showTab(start.id, { scroll: true, force: true, instant: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInk);
+  }
+
+  function init() {
+    mountTabs();
+    showLaunchCount();
+    hero();
+    roadmap();
+    initPoll();
+    if (T()) {
+      var rev = document.querySelector("#funding .ax-rev");
+      if (rev) { T().mountRevenue(rev.querySelector("[data-rev-list]")); T().mountFlow(rev); }
+      T().subscribe(paintStats);
+    }
+    var form = $("rw-check-form");
+    if (form) form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      check($("rw-addr").value.trim());
+    });
+    var mineBtn = $("rw-usemine");
+    if (mineBtn) mineBtn.addEventListener("click", useMine);
+    var m = /^#check=(0x[0-9a-fA-F]{40})$/.exec(location.hash);
+    if (m) {
+      $("rw-addr").value = m[1];
+      check(m[1]);
+      var sec = $("check");
+      if (sec) sec.scrollIntoView();
+    }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+;
+/* ---- reward-engine.js ---- */
+/* global CONFIG */
+// reward-engine.js — the Reward page's burn engine: the burn meter (hero), the engine flow (live paths
+// run today, dashed ones are being built), the live burn feed and "burned by source", the $ARCIRCLE and
+// $ARCIA cards, milestones, and a wallet's own burn card (a share image). Numbers come from
+// arc-token.js (/api/social?token=arcircle: burned.list / bySource / n) and /api/social?coin=arcia.
+// When the server can't answer, the last reading this browser saw is shown with its time.
+(function () {
+  "use strict";
+  if (!document.getElementById("rw-meter")) return;
+  const $ = (id) => document.getElementById(id);
+  const q = (sel, root) => (root || document).querySelector(sel);
+  const qa = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const T = () => window.arcToken;
+  const SUPPLY = 1e9;
+  const EXPLORER = "https://arc.etherscan.io";
+  const MILESTONES = [15, 20, 25, 30, 40, 50, 60, 75, 90];
+  const KIND = {
+    vote: { name: "Burn-to-vote", acc: "#39ff88" },
+    mine: { name: "Builder Mine", acc: "#ffc861" },
+    scanner: { name: "Token Scanner", acc: "#4d9fff" },
+    secret: { name: "ARCIA's secret file", acc: "#ff8fc7" },
+    desk: { name: "ARCIA DESK", acc: "#b58bff" },
+    agent: { name: "ARCIA AGENT vaults", acc: "#5b8cff" },
+    orders: { name: "Orders & Predict fees", acc: "#4dd4ff" },
+    omni: { name: "OMNI rewards", acc: "#e46bff" },
+    buyback: { name: "Buyback", acc: "#35d8d0" },
+    team: { name: "Team & treasury", acc: "#dfe8f1" },
+    wallet: { name: "Direct burn", acc: "#ff8a4c" },
+    pending: { name: "Being labeled", acc: "#6b7785" },
+  };
+  const kindOf = (k) => KIND[k] || KIND.pending;
+  const ls = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } },
+  };
+  const num = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : Math.round(n).toLocaleString("en-US"));
+  const full = (n) => (n == null || !isFinite(n) ? "—" : Math.round(n).toLocaleString("en-US"));
+  const usd = (n) => (T() ? T().fmt.usd(n) : "$" + Number(n || 0).toFixed(2));
+  const price = (n) => (n == null ? "—" : T() && T().fmt.price ? T().fmt.price(n) : "$" + Number(n).toPrecision(3));
+  const ago = (ts) => (T() && T().fmt.ago ? T().fmt.ago(ts) : "");
+  const short = (a) => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "—");
+  const countTo = (el, v, fmt) => { if (!el || v == null || !isFinite(v)) return; if (!reduce && T() && T().countTo) T().countTo(el, v, fmt); else el.textContent = fmt(v); };
+
+  // ================= the meter =================
+  let lastPct = null;
+  function paintMeter(b, px, stale) {
+    const m = $("rw-meter");
+    const pct = b.pct, tok = b.tokens;
+    const set = (k, v, fmt) => { const el = q(`[data-rb="${k}"]`, m); if (el) countTo(el, v, fmt); };
+    set("pct", pct, (v) => v.toFixed(2) + "%");
+    set("tok", tok, (v) => num(v));
+    if (px) set("usd", tok * px, (v) => usd(v)); else q('[data-rb="usd"]', m).textContent = "—";
+    if (b.n != null) set("n", b.n, (v) => Math.round(v).toLocaleString("en-US"));
+    const fill = q('[data-rb="fill"]', m);
+    requestAnimationFrame(() => { fill.style.width = Math.min(100, pct) + "%"; });
+    const next = MILESTONES.find((x) => x > pct);
+    const ms = q('[data-rb="ms"]', m);
+    if (next) {
+      ms.style.left = next + "%"; ms.hidden = false; ms.setAttribute("data-label", next + "%");
+      q('[data-rb="next"]', m).textContent = tr("Next milestone") + " " + next + "% · " + num(((next - pct) / 100) * SUPPLY) + " $ARCIRCLE " + tr("to go");
+    } else { ms.hidden = true; q('[data-rb="next"]', m).textContent = ""; }
+    const bl = q('[data-rb="bar-label"]', m);
+    if (bl) bl.setAttribute("aria-label", pct.toFixed(2) + "% of the 1,000,000,000 $ARCIRCLE supply burned");
+    const inline = q('[data-rb="pct-inline"]');
+    if (inline) inline.textContent = pct.toFixed(2) + "%";
+    const st = q('[data-rb="stale"]', m);
+    st.hidden = !stale;
+    if (stale) st.textContent = tr("Showing the last reading this browser saw") + " (" + new Date(stale).toLocaleString() + "). " + tr("Live numbers return when Arc data catches up.");
+    // a milestone crossed since this browser last looked: one celebration
+    const seen = ls.get("rw-ms-seen");
+    const crossed = MILESTONES.filter((x) => x <= pct && (seen == null || x > seen)).pop();
+    if (crossed && seen != null) celebrate(crossed);
+    if (seen == null || pct > seen) ls.set("rw-ms-seen", Math.floor(pct));
+    if (lastPct != null && pct > lastPct) { m.classList.remove("rw-bump"); void m.offsetWidth; m.classList.add("rw-bump"); }
+    lastPct = pct;
+  }
+  function celebrate(ms) {
+    const m = $("rw-meter");
+    const tag = document.createElement("div");
+    tag.className = "rw-ms-hit";
+    tag.textContent = ms + "% " + tr("burned — milestone reached");
+    m.appendChild(tag);
+    if (!reduce) embers(m, 36);
+    setTimeout(() => tag.remove(), 6000);
+  }
+  function embers(host, n) {
+    const box = document.createElement("div");
+    box.className = "rw-embers"; box.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < n; i++) {
+      const e = document.createElement("i");
+      e.style.left = Math.random() * 100 + "%";
+      e.style.animationDelay = Math.random() * 0.6 + "s";
+      e.style.setProperty("--dx", (Math.random() * 60 - 30).toFixed(0) + "px");
+      box.appendChild(e);
+    }
+    host.appendChild(box);
+    setTimeout(() => box.remove(), 2600);
+  }
+
+  // ================= feed + sources =================
+  const seenTx = new Set();
+  let firstFeed = true, sayAt = 0;
+  function paintFeed(list, at) {
+    const ol = $("rw-feed");
+    if (!list || !list.length) { ol.innerHTML = `<li class="rw-feed-empty">${esc(tr("No burns yet."))}</li>`; return; }
+    const fresh = firstFeed ? [] : list.filter((x) => !seenTx.has(x.tx));
+    ol.innerHTML = list.slice(0, 18).map((x) => {
+      const k = kindOf(x.kind);
+      const isNew = fresh.some((f) => f.tx === x.tx);
+      return `<li class="rw-burn${isNew ? " rw-new" : ""}" style="--acc:${k.acc}">
+        <span class="rw-burn-k"><i></i>${esc(tr(k.name))}</span>
+        <b class="rw-burn-n" data-no-i18n>${esc(full(x.tokens))} <small>$ARCIRCLE</small></b>
+        <span class="rw-burn-m" data-no-i18n>${esc(short(x.from))} · ${esc(ago(x.ts))}</span>
+        <a class="rw-burn-tx" href="${EXPLORER}/tx/${esc(x.tx)}" target="_blank" rel="noopener" aria-label="${esc(tr("View transaction"))}">↗</a>
+      </li>`;
+    }).join("");
+    list.forEach((x) => seenTx.add(x.tx));
+    const fa = q('[data-rb="feed-at"]');
+    if (fa) fa.textContent = at ? tr("updated") + " " + new Date(at).toLocaleTimeString() : "";
+    if (fresh.length && Date.now() - sayAt > 20000) {
+      sayAt = Date.now();
+      const tot = fresh.reduce((s, x) => s + (x.tokens || 0), 0);
+      arciaSay(tot);
+      if (!reduce) embers($("rw-meter"), Math.min(24, 6 + fresh.length * 4));
+    }
+    firstFeed = false;
+  }
+  function arciaSay(tokens) {
+    const wrap = q(".rw-feed-wrap");
+    if (!wrap) return;
+    let b = q(".rw-say", wrap);
+    if (!b) { b = document.createElement("div"); b.className = "rw-say"; b.setAttribute("role", "status"); wrap.insertBefore(b, $("rw-feed")); }
+    const lines = ["Another {n} $ARCIRCLE gone forever~ 💙💚", "{n} $ARCIRCLE just burned! ✨", "Burn engine says hi~ {n} $ARCIRCLE burned 🔥"];
+    b.innerHTML = `<img src="images/arcia-avatar-96.jpg" alt="" width="28" height="28"><span data-no-i18n>${esc(tr(lines[Math.floor(Math.random() * lines.length)]).replace("{n}", full(tokens)))}</span>`;
+    b.classList.remove("on"); void b.offsetWidth; b.classList.add("on");
+    clearTimeout(b.__t); b.__t = setTimeout(() => b.classList.remove("on"), 6000);
+  }
+  function paintSources(by) {
+    const ul = $("rw-srcbars");
+    const rows = Object.entries(by || {}).filter(([, o]) => o && o.tokens > 0).sort((a, b) => b[1].tokens - a[1].tokens);
+    if (!rows.length) { ul.innerHTML = `<li class="rw-feed-empty">${esc(tr("No burns yet."))}</li>`; return; }
+    // two groups, each scaled to its own largest source (the team's early burns would flatten every utility bar);
+    // the % stays each source's share of everything burned
+    const tot = rows.reduce((s, [, o]) => s + o.tokens, 0);
+    const TEAMISH = ["team", "buyback"];
+    const groups = [["From utilities and the community", rows.filter(([k]) => !TEAMISH.includes(k))], ["From the team", rows.filter(([k]) => TEAMISH.includes(k))]].filter(([, r]) => r.length);
+    ul.innerHTML = groups.map(([title, rs]) => {
+      const max = rs[0][1].tokens;
+      return `<li class="rw-sb-group">${esc(tr(title))}</li>` + rs.map(([k, o]) => {
+        const K = kindOf(k), w = Math.max(2, (o.tokens / max) * 100);
+        return `<li style="--acc:${K.acc}" data-kind="${esc(k)}">
+        <div class="rw-sb-top"><span>${esc(tr(K.name))}</span><b data-no-i18n>${esc(num(o.tokens))} <small>· ${((o.tokens / tot) * 100).toFixed(o.tokens / tot < 0.01 ? 2 : 1)}%</small></b></div>
+        <div class="rw-sb-bar"><i style="--w:${w.toFixed(1)}%"></i></div>
+        <small class="rw-sb-n" data-no-i18n>${o.n.toLocaleString("en-US")} ${esc(tr(o.n === 1 ? "burn" : "burns"))}</small>
+      </li>`;
+      }).join("");
+    }).join("");
+    // bars grow when they're first seen
+    const go = () => ul.classList.add("in");
+    if (T() && T().onVisible) T().onVisible(ul, go); else go();
+    // live sources in the engine light up with their totals
+    qa(".rw-src[data-live]").forEach((el) => {
+      const o = by[el.getAttribute("data-src")];
+      let t = q(".rw-src-n", el);
+      if (!t) { t = document.createElement("em"); t.className = "rw-src-n"; t.setAttribute("data-no-i18n", ""); el.appendChild(t); }
+      t.textContent = o && o.tokens > 0 ? num(o.tokens) + " " + tr("burned") : "";
+    });
+  }
+
+  // ================= coins =================
+  function paintArc(d) {
+    const set = (k, v) => { const el = q(`[data-rc="${k}"]`); if (el) el.textContent = v; };
+    if (d.burned) set("arc-burned", num(d.burned.tokens) + " · " + d.burned.pct.toFixed(2) + "%");
+    set("arc-price", price(d.price));
+    set("arc-mcap", d.mcap != null ? usd(d.mcap) : "—");
+  }
+  function loadArcia() {
+    if (document.hidden) return;
+    fetch("/api/social?coin=arcia").then((r) => (r.ok ? r.json() : null)).then((a) => {
+      if (!a || a.error) return;
+      const set = (k, v) => { const el = q(`[data-rc="${k}"]`); if (el) el.textContent = v; };
+      set("arcia-burned", a.burned != null ? num(a.burned) + (a.burnedPct != null ? " · " + a.burnedPct.toFixed(2) + "%" : "") : "—");
+      set("arcia-price", price(a.price));
+      set("arcia-mcap", a.mcap != null ? usd(a.mcap) : "—");
+    }).catch(() => {});
+  }
+
+  // ================= the engine flow (desktop: an SVG over the three columns) =================
+  function drawFlow() {
+    const box = $("rw-flow"), svg = q(".rw-flow-svg", box);
+    if (!box || !svg) return;
+    const wide = box.clientWidth >= 880;
+    svg.style.display = wide ? "" : "none";
+    if (!wide) return;
+    const r0 = box.getBoundingClientRect();
+    const rel = (el) => { const r = el.getBoundingClientRect(); return { l: r.left - r0.left, r: r.right - r0.left, t: r.top - r0.top, b: r.bottom - r0.top, cy: (r.top + r.bottom) / 2 - r0.top }; };
+    const contract = rel(q('[data-node="contract"]', box)), burn = rel(q('[data-node="burn"]', box)), rew = rel(q('[data-node="rewards"]', box));
+    const curve = (x1, y1, x2, y2) => { const mx = (x1 + x2) / 2; return `M${x1.toFixed(1)},${y1.toFixed(1)} C${mx.toFixed(1)},${y1.toFixed(1)} ${mx.toFixed(1)},${y2.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`; };
+    let paths = "";
+    qa(".rw-src", box).forEach((el) => {
+      const s = rel(el), live = el.hasAttribute("data-live");
+      if (live) {
+        // live utilities burn straight to 0x…dEaD: a fan of curves into the burn node (behind the contract box)
+        const k = qa(".rw-src[data-live]", box).indexOf(el), n = qa(".rw-src[data-live]", box).length;
+        const ty = burn.t + 18 + ((burn.b - burn.t - 36) * (k + 0.5)) / n;
+        paths += `<path class="rw-p rw-p-live" data-src="${el.getAttribute("data-src")}" d="${curve(s.r, s.cy, burn.l, ty)}"/>`;
+      } else {
+        paths += `<path class="rw-p rw-p-plan" data-src="${el.getAttribute("data-src")}" d="${curve(s.r, s.cy, contract.l, contract.cy)}"/>`;
+      }
+    });
+    paths += `<path class="rw-p rw-p-plan rw-p-out" d="${curve(contract.r, contract.cy - 10, burn.l, burn.cy)}"/>`;
+    paths += `<path class="rw-p rw-p-plan rw-p-out" d="${curve(contract.r, contract.cy + 10, rew.l, rew.cy)}"/>`;
+    svg.setAttribute("viewBox", `0 0 ${box.clientWidth} ${box.clientHeight}`);
+    svg.innerHTML = paths;
+  }
+  function hoverFlow() {
+    const box = $("rw-flow");
+    box.addEventListener("mouseover", (e) => {
+      const s = e.target.closest && e.target.closest(".rw-src");
+      box.classList.toggle("rw-focus", !!s);
+      qa(".rw-p", box).forEach((p) => p.classList.toggle("on", !!s && p.getAttribute("data-src") === s.getAttribute("data-src")));
+      qa(".rw-src", box).forEach((x) => x.classList.toggle("on", x === s));
+    });
+    box.addEventListener("mouseleave", () => { box.classList.remove("rw-focus"); qa(".rw-p.on, .rw-src.on", box).forEach((x) => x.classList.remove("on")); });
+  }
+
+  // ================= a wallet's own burns + its share card =================
+  let walletBurn = null;
+  document.addEventListener("reward:wallet", (e) => {
+    const ws = e.detail && e.detail.wallet, addr = e.detail && e.detail.address;
+    const n = $("rw-wburn"), sub = $("rw-wburn-sub"), btn = $("rw-wburn-share");
+    if (!n) return;
+    const b = ws && ws.burned;
+    if (!b) { n.textContent = "—"; sub.textContent = tr("Couldn't read burns right now"); btn.hidden = true; return; }
+    n.textContent = full(b.tokens) + " $ARCIRCLE";
+    const parts = Object.entries(b.bySource || {}).sort((x, y) => y[1].tokens - x[1].tokens).map(([k, o]) => tr(kindOf(k).name) + " " + num(o.tokens));
+    sub.textContent = b.tokens > 0 ? parts.join(" · ") : tr("No $ARCIRCLE burned from this wallet yet");
+    btn.hidden = !(b.tokens > 0);
+    walletBurn = { addr, b };
+  });
+  function card() {
+    if (!walletBurn) return;
+    const { addr, b } = walletBurn;
+    const c = document.createElement("canvas");
+    c.width = 1200; c.height = 630;
+    const g = c.getContext("2d");
+    const bg = g.createLinearGradient(0, 0, 1200, 630);
+    bg.addColorStop(0, "#050910"); bg.addColorStop(1, "#0b0f16");
+    g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+    const glow = g.createRadialGradient(980, 520, 20, 980, 520, 520);
+    glow.addColorStop(0, "rgba(255,138,76,.45)"); glow.addColorStop(1, "rgba(255,138,76,0)");
+    g.fillStyle = glow; g.fillRect(0, 0, 1200, 630);
+    const glow2 = g.createRadialGradient(120, 60, 10, 120, 60, 520);
+    glow2.addColorStop(0, "rgba(63,155,255,.28)"); glow2.addColorStop(1, "rgba(63,155,255,0)");
+    g.fillStyle = glow2; g.fillRect(0, 0, 1200, 630);
+    const font = (w, px) => `${w} ${px}px Sora, Inter, system-ui, sans-serif`;
+    g.fillStyle = "#eef3f7"; g.font = font(800, 22); g.fillText("ARCIRCLE PAD · BURN ENGINE", 72, 92);
+    g.fillStyle = "rgba(222,233,244,.66)"; g.font = font(600, 30); g.fillText("I burned", 72, 196);
+    const grad = g.createLinearGradient(72, 0, 900, 0);
+    grad.addColorStop(0, "#ffc861"); grad.addColorStop(1, "#ff6a3d");
+    g.fillStyle = grad; g.font = font(800, 104); g.fillText(full(b.tokens), 72, 306);
+    g.fillStyle = "#eef3f7"; g.font = font(800, 44); g.fillText("$ARCIRCLE", 76, 368);
+    g.font = font(600, 24); g.fillStyle = "rgba(222,233,244,.72)";
+    const rows = Object.entries(b.bySource || {}).sort((x, y) => y[1].tokens - x[1].tokens).slice(0, 4);
+    rows.forEach(([k, o], i) => { g.fillStyle = kindOf(k).acc; g.fillRect(76, 420 + i * 38, 12, 12); g.fillStyle = "rgba(222,233,244,.8)"; g.fillText(kindOf(k).name + " · " + full(o.tokens), 100, 432 + i * 38); });
+    g.font = font(500, 22); g.fillStyle = "rgba(222,233,244,.55)";
+    g.fillText(short(addr) + " · sent to 0x…dEaD, gone forever", 72, 590);
+    g.textAlign = "right"; g.fillStyle = "#eef3f7"; g.font = font(700, 24); g.fillText("arcircle.app/reward", 1128, 590);
+    // a small flame
+    const fx = 1000, fy = 300;
+    [["#ff6a3d", 120], ["#ffb35c", 82], ["#fff1c9", 42]].forEach(([col, s]) => {
+      g.fillStyle = col; g.beginPath();
+      g.moveTo(fx, fy - s * 1.25); g.bezierCurveTo(fx + s * 0.9, fy - s * 0.3, fx + s * 0.8, fy + s * 0.75, fx, fy + s * 0.8);
+      g.bezierCurveTo(fx - s * 0.8, fy + s * 0.75, fx - s * 0.9, fy - s * 0.3, fx, fy - s * 1.25); g.fill();
+    });
+    openCard(c, b);
+  }
+  function openCard(c, b) {
+    let dlg = $("rw-card-dlg");
+    if (!dlg) {
+      dlg = document.createElement("div");
+      dlg.id = "rw-card-dlg"; dlg.className = "rw-card-dlg"; dlg.setAttribute("role", "dialog"); dlg.setAttribute("aria-modal", "true"); dlg.setAttribute("aria-label", tr("Your burn card"));
+      dlg.innerHTML = `<div class="rw-card-box"><button type="button" class="rw-card-x" aria-label="${esc(tr("Close"))}">×</button><img alt=""><div class="rw-card-acts"><a class="ax-btn ax-btn-grad" data-a="save" download="arcircle-burn-card.png">${esc(tr("Save image"))}</a><a class="ax-btn ax-btn-ghost" data-a="x" target="_blank" rel="noopener">${esc(tr("Post on X"))}</a></div><p class="rw-mini">${esc(tr("Save the image, then attach it to your post."))}</p></div>`;
+      document.body.appendChild(dlg);
+      dlg.addEventListener("click", (e) => { if (e.target === dlg || e.target.closest(".rw-card-x")) dlg.hidden = true; });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") dlg.hidden = true; });
+    }
+    const url = c.toDataURL("image/png");
+    q("img", dlg).src = url;
+    q('[data-a="save"]', dlg).href = url;
+    const text = `I've burned ${full(b.tokens)} $ARCIRCLE on ARCIRCLE PAD, sent to 0x…dEaD for good 🔥\n\nBuilding the burn engine on Arc ♾ @ARCIRCLEonArc\n\narcircle.app/reward`;
+    q('[data-a="x"]', dlg).href = "https://x.com/intent/tweet?text=" + encodeURIComponent(text);
+    dlg.hidden = false;
+    q(".rw-card-x", dlg).focus();
+  }
+
+  // ================= wiring =================
+  function onStats(d) {
+    let b = d && d.burned, px = d && d.price, stale = 0;
+    const saved = ls.get("rw-burn-last");
+    if (b && b.pct != null) ls.set("rw-burn-last", { at: Date.now(), burned: b, price: px });
+    else if (saved && saved.burned) { b = saved.burned; px = saved.price; stale = saved.at; }
+    if (!b || b.pct == null) return;
+    paintMeter(b, px, stale);
+    paintFeed(b.list, stale || Date.now());
+    if (b.bySource) paintSources(b.bySource);
+    paintArc({ burned: b, price: px, mcap: px != null ? px * SUPPLY : null });
+  }
+  function init() {
+    // the last reading first, so the page is never empty while Arc answers
+    const saved = ls.get("rw-burn-last");
+    if (saved && saved.burned) { paintMeter(saved.burned, saved.price, 0); paintFeed(saved.burned.list, saved.at); if (saved.burned.bySource) paintSources(saved.burned.bySource); }
+    if (T()) T().subscribe(onStats);
+    loadArcia(); setInterval(loadArcia, 30000);
+    drawFlow(); hoverFlow();
+    let rt = 0;
+    window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawFlow, 120); });
+    document.addEventListener("reward:tab", (e) => { if (e.detail && e.detail.tab === "engine") requestAnimationFrame(drawFlow); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawFlow);
+    document.addEventListener("click", (e) => {
+      const cp = e.target.closest && e.target.closest(".rw-copy[data-copy]");
+      if (cp) {
+        const done = () => { const o = cp.textContent; cp.textContent = tr("Copied"); setTimeout(() => { cp.textContent = o; }, 1400); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cp.getAttribute("data-copy")).then(done, () => {});
+        return;
+      }
+      if (e.target.closest && e.target.closest("#rw-wburn-share")) card();
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+})();
+;
+/* ---- arc-motion.js ---- */
+/* global ethers, ACT, APC, state, readProvider, ERC20_ABI, CONFIG, actPaint, apcRenderChart, ac2RenderChart, renderHeader */
+// arc-motion.js — the finishing layer on ArcPad / CirclePad / Reward:
+//   • numbers count up to their new value (home stats)
+//   • cards and sections ease in as they scroll into view
+//   • price charts draw themselves the first time a coin opens
+//   • a rocket for the launch: idles while the wallet confirms, lifts off
+//     when the coin is live
+//   • dock icons bounce on tap
+//   • richer wallet menu: USDC (gas) and $ARCIRCLE balances, copy feedback,
+//     Portfolio link, "add $ARCIRCLE to wallet"
+// Everything respects prefers-reduced-motion.
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) document.documentElement.classList.add("rm");
+  const usd = (n) => {
+    if (window.arcFmt) return window.arcFmt.usd(n);
+    if (n == null || !isFinite(n)) return "—";
+    if (n >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+    if (n >= 1) return "$" + n.toFixed(2);
+    return n === 0 ? "$0" : "$" + n.toPrecision(2);
+  };
+
+  // ================= count-up =================
+  function countUp(el, to, fmt = (v) => String(Math.round(v)), ms = 900) {
+    if (!el) return;
+    const from = el.__cu != null ? el.__cu : 0;
+    el.__cu = to;
+    const put = (v) => { el.__last = fmt(v); el.textContent = el.__last; };
+    if (reduce || !isFinite(from) || from === to) { put(to); return; }
+    const t0 = performance.now();
+    cancelAnimationFrame(el.__raf);
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+      put(from + (to - from) * e);
+      if (k < 1) el.__raf = requestAnimationFrame(step);
+    };
+    el.__raf = requestAnimationFrame(step);
+  }
+  window.arcCountUp = countUp;
+  // Launch count: arcpad.js writes the plain number — animate from 0 to it.
+  const cnt = $("ap-stat-count");
+  if (cnt) new MutationObserver(() => {
+    if (cnt.textContent === cnt.__last) return; // our own animation frames
+    const n = Number(cnt.textContent.replace(/[^\d.]/g, ""));
+    if (cnt.textContent.trim() && isFinite(n) && /^\d+$/.test(cnt.textContent.trim())) countUp(cnt, n);
+  }).observe(cnt, { childList: true, characterData: true, subtree: true });
+  // 24h volume across all ArcPad pools, from the activity scan.
+  const vol = $("ap-stat-vol");
+  if (vol && typeof actPaint === "function") {
+    const orig = actPaint;
+    // eslint-disable-next-line no-global-assign
+    actPaint = function () {
+      orig();
+      try {
+        if (typeof ACT !== "undefined" && ACT.hi != null) {
+          let v = 0; ACT.stats.forEach((s) => { v += s.vol || 0; });
+          countUp(vol, v, usd);
+        }
+      } catch (e) { console.warn(e); }
+    };
+  }
+
+  // ================= scroll reveal =================
+  const REVEAL = [".bp-card", ".ac2-card:not(.ac2-swap)", ".pf-launch", ".bp-mini-stat", ".ap-stat", ".ax-section",
+    "#ap-explore-grid .ap-launch-card", ".bp-mech-card", ".apc-safety", ".ac2-buybacks", ".cr-table", ".pf-summary"].join(",");
+  const seen = new WeakSet();
+  const io = !reduce && "IntersectionObserver" in window ? new IntersectionObserver((ents) => {
+    ents.forEach((en) => {
+      if (!en.isIntersecting) return;
+      const el = en.target;
+      const sib = el.parentElement ? [...el.parentElement.children].filter((c) => c.classList.contains("rv") && !c.classList.contains("rv-in")) : [];
+      el.style.transitionDelay = `${Math.min(sib.indexOf(el), 6) * 55}ms`;
+      el.classList.add("rv-in");
+      io.unobserve(el);
+    });
+  }, { rootMargin: "0px 0px -6% 0px", threshold: 0.06 }) : null;
+  function scan(root) {
+    if (!io) return;
+    const els = root.matches && root.matches(REVEAL) ? [root] : [];
+    if (root.querySelectorAll) els.push(...root.querySelectorAll(REVEAL));
+    for (const el of els) {
+      if (seen.has(el) || el.closest(".msheet")) continue;
+      if (!el.offsetParent && getComputedStyle(el).position !== "fixed") continue; // hidden panel — handled when shown
+      seen.add(el);
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight * 0.96 && r.bottom > 0) continue; // already on screen: leave it be
+      el.classList.add("rv");
+      io.observe(el);
+    }
+  }
+  if (io) {
+    const kick = () => scan(document.body);
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", kick); else kick();
+    let q = null;
+    new MutationObserver((muts) => {
+      if (q) return;
+      q = requestAnimationFrame(() => { q = null; muts.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) scan(n); })); });
+    }).observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("arcpad:tab", () => setTimeout(kick, 30));
+  }
+
+  // ================= chart draw-in (first render per coin) =================
+  function drawOnce(boxId, key) {
+    const box = $(boxId);
+    const svg = box && box.querySelector("svg");
+    if (!svg || reduce) return;
+    // The chart re-renders a few times while a coin loads; keep one continuous
+    // draw-in across those re-renders by offsetting the new SVG's animation.
+    if (box.__drawn !== key) { box.__drawn = key; box.__drawAt = performance.now(); }
+    const elapsed = performance.now() - box.__drawAt;
+    if (elapsed > 1500) return;
+    svg.style.setProperty("--cd", `${-elapsed}ms`);
+    svg.classList.add("chart-draw");
+  }
+  if (typeof apcRenderChart === "function") {
+    const orig = apcRenderChart;
+    // eslint-disable-next-line no-global-assign
+    apcRenderChart = function () { orig.apply(this, arguments); try { if (typeof APC !== "undefined" && APC.trades && APC.trades.length) drawOnce("apc-chart", APC.token); } catch (e) { /* cosmetic */ } };
+  }
+  if (typeof ac2RenderChart === "function") {
+    const orig = ac2RenderChart;
+    // eslint-disable-next-line no-global-assign
+    ac2RenderChart = function () { orig.apply(this, arguments); try { drawOnce("ac2-chart", "arcircle"); } catch (e) { /* cosmetic */ } };
+  }
+
+  // ================= launch rocket =================
+  const ROCKET = '<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="rkG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4d9fff"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>'
+    + '<path class="rk-flame" d="M26 46c0 7 6 14 6 14s6-7 6-14z"/><path d="M32 4c9 6 13 16 13 27l-5 11H24l-5-11C19 20 23 10 32 4z" fill="url(#rkG)"/>'
+    + '<circle cx="32" cy="24" r="5" fill="#050805" stroke="#eaf2e6" stroke-width="2"/><path d="M19 31l-7 9 9 1zM45 31l7 9-9 1z" fill="#35d8d0"/></svg>';
+  const ls = $("ap-launch-status");
+  if (ls) {
+    let idle = null;
+    new MutationObserver(() => {
+      const pend = ls.querySelector(".status.pending");
+      const ok = ls.querySelector(".status.success");
+      const launching = pend && /Confirm the launch|Launching/.test(pend.textContent);
+      if (launching && !pend.querySelector(".ap-rocket-idle")) {
+        const r = document.createElement("span");
+        r.className = "ap-rocket-idle"; r.innerHTML = ROCKET;
+        pend.insertBefore(r, pend.firstChild);
+        idle = r;
+      }
+      if (ok && !ok.__flew) {
+        ok.__flew = true;
+        const btn = $("ap-launch-submit");
+        const rect = (idle && idle.isConnected ? idle : btn || ok).getBoundingClientRect();
+        if (!reduce) {
+          const f = document.createElement("div");
+          f.className = "ap-rocket-fly"; f.innerHTML = ROCKET;
+          f.style.left = `${rect.left + rect.width / 2 - 28}px`; f.style.top = `${rect.top - 10}px`;
+          document.body.appendChild(f);
+          setTimeout(() => f.remove(), 1700);
+        }
+        idle = null;
+      }
+    }).observe(ls, { childList: true, subtree: true });
+  }
+
+  // ================= dock bounce =================
+  document.addEventListener("pointerdown", (e) => {
+    const it = e.target.closest && e.target.closest(".ax-dock-item, .ax-quick a, .ax-quick button");
+    if (!it || reduce) return;
+    const ico = it.querySelector(".ax-dock-ico, span, svg") || it;
+    ico.classList.remove("dock-bounce"); void ico.offsetWidth; ico.classList.add("dock-bounce");
+  }, { passive: true });
+
+  // ================= wallet menu =================
+  const ARCIRCLE_TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""; // "" while not live
+  // on Robinhood Chain (the wallet menu's second network): ETH for gas, and $ARCIRCLE's OMNI token there
+  let altRp = null;
+  const ALT = typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET ? ARC_ALT_NET : null;
+  const altToken = (typeof CONFIG !== "undefined" && CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "";
+  async function fillBalances(box) {
+    if (!state.account || !box) return;
+    const acct = state.account;
+    const onAlt = !!ALT && Number(state.chainId) === ALT.id;
+    const lab = box.querySelector("[data-wl=gas]");
+    if (lab) lab.innerHTML = onAlt ? 'ETH <small>Robinhood</small>' : 'USDC <small>gas</small>';
+    try {
+      const p = onAlt ? (altRp = altRp || new ethers.JsonRpcProvider(ALT.rpc, ethers.Network.from(ALT.id), { staticNetwork: true })) : readProvider();
+      const tokAddr = onAlt ? altToken : ARCIRCLE_TOKEN;
+      const tok = tokAddr ? new ethers.Contract(tokAddr, ERC20_ABI, p) : null;
+      const [nat, arc] = await Promise.all([p.getBalance(acct).catch(() => null), tok ? tok.balanceOf(acct).catch(() => null) : null]);
+      if (state.account !== acct) return;
+      const f = (v, d, m) => v == null ? "—" : Number(ethers.formatUnits(v, d)).toLocaleString("en-US", { maximumFractionDigits: m || 2 });
+      box.querySelector("[data-wb=usdc]").textContent = f(nat, 18, onAlt ? 5 : 2);
+      const ab = box.querySelector("[data-wb=arc]");
+      if (ab) ab.textContent = f(arc, 18);
+    } catch { /* leave dashes */ }
+  }
+  function enhanceWallet() {
+    const dd = $("wallet-dropdown");
+    if (!dd || dd.__enh || !state.account) return;
+    dd.__enh = true;
+    const addr = dd.querySelector(".wallet-dropdown-address");
+    const bal = document.createElement("div");
+    bal.className = "wd-bal";
+    bal.innerHTML = `<div><span data-wl="gas">USDC <small>gas</small></span><b data-wb="usdc">…</b></div>` + (ARCIRCLE_TOKEN ? `<div><span>$ARCIRCLE</span><b data-wb="arc">…</b></div>` : "");
+    if (addr) addr.insertAdjacentElement("afterend", bal);
+    const copy = $("wallet-dropdown-copy");
+    if (copy) copy.onclick = (e) => {
+      e.stopPropagation();
+      (navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(state.account) : Promise.reject()).then(
+        () => { copy.textContent = "Copied"; setTimeout(() => { copy.textContent = "Copy"; }, 1400); },
+        () => { copy.textContent = "Copy failed"; });
+    };
+    const explorer = dd.querySelector('a.wallet-dropdown-item[href*="/address/"]');
+    const frag = document.createDocumentFragment();
+    if ($("bp-panel-portfolio")) {
+      const pf = document.createElement("button");
+      pf.type = "button"; pf.className = "wallet-dropdown-item"; pf.textContent = "Portfolio";
+      pf.onclick = (e) => { e.stopPropagation(); dd.classList.remove("open"); if (window.arcpadShowTab) window.arcpadShowTab("portfolio"); };
+      frag.appendChild(pf);
+    }
+    if (ARCIRCLE_TOKEN) {
+      const add = document.createElement("button");
+      add.type = "button"; add.className = "wallet-dropdown-item"; add.textContent = "Add $ARCIRCLE to wallet";
+      add.onclick = async (e) => {
+        e.stopPropagation();
+        const params = { type: "ERC20", options: { address: ARCIRCLE_TOKEN, symbol: "ARCIRCLE", decimals: 18, image: "https://www.arcircle.app/images/arcircle-mark-sm.png" } };
+        try {
+          if (state.signer && state.signer.provider && state.signer.provider.send) await state.signer.provider.send("wallet_watchAsset", params);
+          else if (window.ethereum) await window.ethereum.request({ method: "wallet_watchAsset", params });
+          else throw new Error("no wallet");
+          add.textContent = "Added — check your wallet";
+        } catch { add.textContent = "Your wallet didn't accept it"; }
+        setTimeout(() => { add.textContent = "Add $ARCIRCLE to wallet"; }, 2600);
+      };
+      frag.appendChild(add);
+    }
+    if (explorer) explorer.parentNode.insertBefore(frag, explorer); else dd.appendChild(frag);
+    const pill = $("wallet-pill-btn");
+    if (pill) pill.addEventListener("click", () => fillBalances(bal));
+    fillBalances(bal);
+    if (!enhanceWallet.net) { enhanceWallet.net = true; document.addEventListener("arc:walletnet", () => { const b = document.querySelector("#wallet-dropdown .wd-bal"); if (b) fillBalances(b); }); }
+  }
+  if (typeof renderHeader === "function") {
+    const orig = renderHeader;
+    // eslint-disable-next-line no-global-assign
+    renderHeader = function () { orig.apply(this, arguments); try { enhanceWallet(); } catch (e) { console.warn(e); } };
+  }
+  enhanceWallet();
+})();
+;
+/* ---- arc-footer.js ---- */
+/* global CONFIG */
+// arc-footer.js — the information footer on ArcPad, CirclePad, $ARCIRCLE and
+// Reward: products, resources, every live contract (copy + ArcScan), a live
+// network status (latest Arc block and how fast the RPC answered), and the
+// sound-effects switch. Also owns the site's feedback layer:
+//   window.arcSound(kind)   — short synthesized sounds (off unless enabled)
+//   window.arcHaptic(kind)  — vibration patterns per action
+//   window.arcFeedback(kind) — both; kind = buy | sell | launch | milestone | tap
+(function () {
+  "use strict";
+  var RPC = (typeof CONFIG !== "undefined" && CONFIG.RPC_URL) || "https://rpc.mainnet.arc.io";
+  var EXPLORER = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io";
+  var SOUND_KEY = "arcircle.sound";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------------- sound + haptics ----------------
+  var ctx = null;
+  function soundOn() { try { return localStorage.getItem(SOUND_KEY) === "on"; } catch (e) { return false; } }
+  function tone(freq, start, dur, type, gain) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(freq, ctx.currentTime + start);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+    g.gain.exponentialRampToValueAtTime(gain || 0.12, ctx.currentTime + start + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(ctx.currentTime + start); o.stop(ctx.currentTime + start + dur + 0.02);
+  }
+  var SOUNDS = {
+    buy: function () { tone(988, 0, 0.09, "triangle"); tone(1319, 0.07, 0.22, "triangle"); },
+    sell: function () { tone(784, 0, 0.09, "triangle"); tone(587, 0.07, 0.22, "triangle"); },
+    launch: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, i * 0.07, 0.28, "triangle", 0.1); }); },
+    milestone: function () { tone(1047, 0, 0.12, "sine", 0.1); tone(1568, 0.1, 0.35, "sine", 0.1); },
+    tap: function () { tone(1400, 0, 0.04, "sine", 0.05); },
+  };
+  window.arcSound = function (kind) {
+    if (!soundOn() || !SOUNDS[kind]) return;
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended") ctx.resume();
+      SOUNDS[kind]();
+    } catch (e) { /* no audio */ }
+  };
+  var HAPTICS = { buy: [18], sell: [10, 40, 10], launch: [30, 60, 30, 60, 90], milestone: [20, 40, 60], tap: [8] };
+  window.arcHaptic = function (kind) {
+    if (reduce || !navigator.vibrate || !HAPTICS[kind]) return;
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // browsers refuse it before the first tap
+    try { navigator.vibrate(HAPTICS[kind]); } catch (e) { /* not allowed */ }
+  };
+  window.arcFeedback = function (kind) { window.arcSound(kind); window.arcHaptic(kind); };
+
+  // ---------------- footer ----------------
+  var CONTRACTS = [
+    ["ArcPad factory", "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E"],
+    ["Swap router", "0xFCA8fD788d44Bb335B1451257366e06D67114785"],
+    ["Fee hook", "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044"],
+    // $ARCIRCLE comes from config-arc.js; "" (not live, relaunching) shows "Not live"
+    ["$ARCIRCLE", (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""],
+    // the running round's escrow (filled from the rounds list below); Round #1 until that's known
+    ["CirclePad escrow", "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703", "cp-escrow"],
+    ["CirclePad vote", "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2"],
+    ["CirclePad burn vote", "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2"],
+    ["Creator lock", "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],
+    ["LP lock", "0x674E7010Dab5cCb519e06df72b1D4c063952f45B"],
+    ["Builder Mine", (typeof CONFIG !== "undefined" && CONFIG.BUILDER_MINE_ADDRESS) || ""],
+    ["ARCIRCLE Orders", "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e"],
+    ["Orders fee burn", "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034"],
+    ["ARCIRCLE Predict", "0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6"],
+    ["ARCIRCLE Staking", (typeof CONFIG !== "undefined" && CONFIG.STAKING_ADDRESS) || ""],
+    ["Quantum Launch", (typeof CONFIG !== "undefined" && CONFIG.QUANTUM_PAD_ADDRESS) || ""],
+  ];
+  var short = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
+  function build() {
+    var old = document.querySelector("footer.ah-footer");
+    var dock = document.querySelector("nav.ax-dock");
+    var f = document.createElement("footer");
+    f.className = "axf";
+    f.innerHTML =
+      '<div class="axf-in">' +
+        '<div class="axf-brand"><a href="/" class="axf-logo"><img src="/images/arcircle-mark-sm.webp" alt="" width="40" height="28"><span>ARCIRCLE <em>PAD</em></span></a>' +
+          '<p>Two launchpads and one core coin on Circle\'s Arc. Every number on this site is read live from the chain.</p>' +
+          '<div class="axf-net" id="axf-net"><span class="axf-dot"></span><span class="axf-net-txt">Arc mainnet · checking…</span></div></div>' +
+        '<div class="axf-col"><h4>Products</h4><a href="/arc">ArcPad</a><a href="/circle">CirclePad</a><a href="/arcircle">$ARCIRCLE</a><a href="/relay">Relay Launch</a><a href="/reward">Reward</a><a href="/me">My ARCIRCLE</a></div>' +
+        '<div class="axf-col"><h4>Resources</h4><a href="/whitepaper">Whitepaper</a><a href="/whitepaper/ko" lang="ko">백서 (한국어)</a><a href="/arc#docs">ArcPad docs</a><a href="/circle#docs">CirclePad docs</a><a href="/start">Get started</a><a href="/stats">Stats</a><a href="/roadmap">Roadmap</a><a href="/brand">Brand kit</a></div>' +
+        // the first four show; the rest fold behind "All contracts" (the column was taller than the rest of the footer)
+        '<div class="axf-col axf-contracts" id="axf-contracts"><h4>Contracts</h4>' + CONTRACTS.map(function (c, i) {
+          var more = i >= 4 ? " axf-more" : "";
+          if (!c[1]) return '<div class="axf-ca' + more + '"><span>' + c[0] + '</span><em class="axf-nl">Not live</em></div>';
+          return '<div class="axf-ca' + more + '"' + (c[2] ? ' data-axf="' + c[2] + '"' : '') + '><span>' + c[0] + '</span><a href="' + EXPLORER + '/address/' + c[1] + '" target="_blank" rel="noopener" data-no-i18n>' + short(c[1]) + ' ↗</a>' +
+            '<button type="button" class="axf-copy" data-copy-ca="' + c[1] + '" aria-label="Copy address">Copy</button></div>';
+        }).join("") + '<button type="button" class="axf-allca" aria-expanded="false" aria-controls="axf-contracts"><span>All contracts</span> <b data-no-i18n>' + CONTRACTS.length + '</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>' +
+      '</div>' +
+      '<div class="axf-bottom"><span>Nothing on this site is financial advice. Crypto assets can lose all of their value.</span>' +
+        '<button type="button" class="axf-sound" id="axf-sound" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="axf-wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span></span></button></div>';
+    if (old) old.replaceWith(f);
+    else if (dock) dock.parentNode.insertBefore(f, dock);
+    else document.body.appendChild(f);
+
+    f.addEventListener("click", function (e) {
+      var all = e.target.closest && e.target.closest(".axf-allca");
+      if (all) { var col = all.parentNode, open = !col.classList.contains("open"); col.classList.toggle("open", open); all.setAttribute("aria-expanded", open ? "true" : "false"); all.querySelector("span").textContent = open ? "Fewer contracts" : "All contracts"; return; }
+      var b = e.target.closest && e.target.closest("[data-copy-ca]");
+      if (!b) return;
+      var done = function (t) { b.textContent = t; setTimeout(function () { b.textContent = "Copy"; }, 1400); };
+      (navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(b.getAttribute("data-copy-ca")) : Promise.reject()).then(function () { done("Copied"); }, function () { done("Copy failed"); });
+    });
+    var snd = f.querySelector("#axf-sound");
+    var paint = function () {
+      var on = soundOn();
+      snd.setAttribute("aria-pressed", on ? "true" : "false");
+      snd.classList.toggle("on", on);
+      snd.querySelector("span").textContent = on ? "Sound on" : "Sound off";
+    };
+    snd.addEventListener("click", function () {
+      try { localStorage.setItem(SOUND_KEY, soundOn() ? "off" : "on"); } catch (e) { /* storage blocked */ }
+      paint();
+      window.arcFeedback("tap");
+    });
+    paint();
+    rounds(f);
+    netStatus();
+    setInterval(function () { if (!document.hidden) netStatus(); }, 30000);
+  }
+
+  // CirclePad: the escrow of the round that's running now, and the earlier rounds' escrows folded under it.
+  // /circle already has the list (window.CP_ROUNDS); other pages read the same small script once.
+  function rounds(f) {
+    var row = f.querySelector('[data-axf="cp-escrow"]');
+    if (!row) return;
+    var put = function (v) {
+      var list = (v && v.list) || [];
+      if (!list.length) return;
+      var started = list.filter(function (r) { return r.started; });
+      var cur = started[started.length - 1] || list[0];
+      var ok = function (a) { return /^0x[0-9a-fA-F]{40}$/.test(a || ""); };
+      if (!ok(cur.escrow)) return;
+      var link = function (r) { return '<a href="' + EXPLORER + '/address/' + r.escrow + '" target="_blank" rel="noopener" data-no-i18n>#' + r.n + ' ' + short(r.escrow) + ' ↗</a>'; };
+      var past = list.filter(function (r) { return r !== cur && ok(r.escrow); }).reverse();
+      row.innerHTML = '<span>CirclePad escrow <em class="axf-rn" data-no-i18n>#' + cur.n + '</em></span><a href="' + EXPLORER + '/address/' + cur.escrow + '" target="_blank" rel="noopener" data-no-i18n>' + short(cur.escrow) + ' ↗</a>' +
+        '<button type="button" class="axf-copy" data-copy-ca="' + cur.escrow + '" aria-label="Copy address">Copy</button>' +
+        (past.length ? '<details class="axf-past"><summary>Earlier rounds</summary>' + past.map(link).join("") + '</details>' : '');
+    };
+    if (window.CP_ROUNDS) { put(window.CP_ROUNDS); return; }
+    var go = function () {
+      fetch("/api/social?circle=boot").then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
+        var m = /window\.CP_ROUNDS\s*=\s*(\{[\s\S]*\})\s*;?\s*$/.exec(t || "");
+        if (m) { try { put(JSON.parse(m[1])); } catch (e) { /* keep Round #1 */ } }
+      }).catch(function () {});
+    };
+    // only when the footer comes near the screen: most visits never scroll that far
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); go(); } }, { rootMargin: "400px" });
+      io.observe(f);
+    } else go();
+  }
+
+  // Latest block + round-trip time, straight from the RPC (no ethers needed).
+  function netStatus() {
+    var box = document.getElementById("axf-net");
+    if (!box) return;
+    var t0 = performance.now();
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 6000);
+    fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }), signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var ms = Math.round(performance.now() - t0), n = parseInt(j.result, 16);
+        if (!isFinite(n)) throw new Error("bad");
+        box.className = "axf-net " + (ms < 800 ? "ok" : "slow");
+        box.querySelector(".axf-net-txt").innerHTML = 'Arc mainnet · block <b data-no-i18n>#' + n.toLocaleString("en-US") + '</b> · ' + ms + ' ms';
+      })
+      .catch(function () { box.className = "axf-net bad"; box.querySelector(".axf-net-txt").textContent = "Arc RPC not reachable right now"; })
+      .then(function () { clearTimeout(timer); });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build); else build();
+})();
+;
+/* ---- arcircle-hub.js ---- */
+// arcircle-hub.js — shared behaviour for the ARCIRCLE hub pages (index.html
+// and arcircle.html, plus the dock on ArcPad / CirclePad / Reward): the quick
+// bar above the dock, copy-to-clipboard for the $ARCIRCLE contract address,
+// and redirecting old #rewards links to the Reward page. No chain calls.
+(function () {
+  "use strict";
+
+  // Invite links: ?ref=<wallet>. The first one a visitor arrives with is kept
+  // for 30 days (this browser only) so a future referral program can credit
+  // it; the parameter is then dropped from the address bar.
+  (function captureRef() {
+    try {
+      var u = new URL(location.href);
+      var ref = (u.searchParams.get("ref") || "").trim();
+      if (!/^0x[0-9a-fA-F]{40}$/.test(ref)) return;
+      var KEY = "arcircle.ref.v1";
+      var cur = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!cur || !cur.at || Date.now() - cur.at > 30 * 864e5) localStorage.setItem(KEY, JSON.stringify({ ref: ref.toLowerCase(), at: Date.now(), page: u.pathname }));
+      u.searchParams.delete("ref");
+      if (history.replaceState) history.replaceState(history.state, "", u.pathname + (u.search || "") + u.hash);
+    } catch (e) { /* storage blocked or old browser */ }
+  })();
+  window.arcRef = function () {
+    try { var c = JSON.parse(localStorage.getItem("arcircle.ref.v1") || "null"); return c && Date.now() - c.at < 30 * 864e5 ? c.ref : null; } catch (e) { return null; }
+  };
+
+  // ---- $ARCIRCLE: live or not ----
+  // The contract lives in one place (config-arc.js → CONFIG.ARCIRCLE_TOKEN).
+  // Until it's set, <html> gets .arc-notlive: anything marked .arc-live-only
+  // stays hidden and .arc-nl-only ("Not live") shows — which is also what a
+  // page looks like before any script runs. Once set, addresses and links
+  // are filled in from the config:
+  //   [data-arc-ca="full|short|curve-short"]  text
+  //   [data-arc-href="scan|curve|buy"]         href
+  //   .ax-copy[data-copy-arc]                  copies the contract
+  (function arcircleState() {
+    var C = typeof CONFIG !== "undefined" ? CONFIG : {};
+    var tok = /^0x[0-9a-fA-F]{40}$/.test(C.ARCIRCLE_TOKEN || "") ? C.ARCIRCLE_TOKEN : "";
+    var curve = /^0x[0-9a-fA-F]{40}$/.test(C.ARCIRCLE_CURVE || "") ? C.ARCIRCLE_CURVE : "";
+    var pool = /^0x[0-9a-fA-F]{64}$/.test(C.ARCIRCLE_POOL_ID || "") ? C.ARCIRCLE_POOL_ID : "";
+    var root = document.documentElement;
+    root.classList.toggle("arc-live", !!tok);
+    root.classList.toggle("arc-notlive", !tok);
+    // how it trades: a Uniswap v4 pool (Argus) or a bonding curve
+    root.classList.toggle("arc-pool", !!tok && !!pool && !curve);
+    root.classList.toggle("arc-curve", !!tok && !!curve);
+    window.arcircleToken = function () { return tok; };
+    if (!tok) return;
+    var ex = C.BLOCK_EXPLORER || "https://arc.etherscan.io";
+    var sh = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
+    var fill = function () {
+      document.querySelectorAll("[data-arc-ca]").forEach(function (el) {
+        var k = el.getAttribute("data-arc-ca");
+        el.textContent = k === "full" ? tok : k === "curve-short" ? (curve ? sh(curve) : "—") : k === "pool-short" ? (pool ? sh(pool) : "—") : sh(tok);
+        if (k !== "curve-short") el.title = tok;
+      });
+      document.querySelectorAll("[data-arc-href]").forEach(function (el) {
+        var k = el.getAttribute("data-arc-href");
+        el.href = k === "scan" ? ex + "/token/" + tok : k === "curve" ? (curve ? ex + "/address/" + curve + "#code" : ex + "/token/" + tok)
+          : k === "chart" ? (C.ARCIRCLE_CHART_URL || ex + "/token/" + tok) : (C.ARCIRCLE_BUY_URL || "/arc#arcircle");
+      });
+      document.querySelectorAll("[data-copy-arc]").forEach(function (el) { el.setAttribute("data-copy", tok); });
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill); else fill();
+  })();
+
+  // Rewards used to be a "coming soon" popup; they now have their own page
+  // (/reward). Old links — index.html#rewards, arcircle.html#rewards, any
+  // leftover [data-reward] button — are sent there.
+  function openReward() { location.href = "/reward"; }
+
+  // ---- ARCIRCLE Staking: planned, not built — a "coming soon" card from its utilities tile ----
+  function openStakingSoon() {
+    var old = document.getElementById("ax-stk");
+    if (old) old.remove();
+    var tr = function (x) { return (window.arcI18n && window.arcI18n.get && window.arcI18n.get() !== "en" && window.arcI18n.translate && window.arcI18n.translate(x)) || x; };
+    var before = document.activeElement;
+    var wrap = document.createElement("div");
+    wrap.id = "ax-stk";
+    wrap.className = "ax-stk";
+    wrap.innerHTML =
+      '<div class="ax-stk-scrim" data-stk-close></div>' +
+      '<div class="ax-stk-card" role="dialog" aria-modal="true" aria-labelledby="ax-stk-h" tabindex="-1">' +
+        '<button type="button" class="ax-stk-x" data-stk-close aria-label="' + tr("Close") + '">' + ICON_PLUS + "</button>" +
+        '<div class="ax-stk-art"><i class="ax-stk-glow" aria-hidden="true"></i><img src="/images/arcircle-staking-320.webp" alt="ARCIRCLE Staking" width="200" height="200" decoding="async"></div>' +
+        '<span class="ax-stk-kick"><i aria-hidden="true"></i>' + tr("Coming soon") + "</span>" +
+        '<h2 id="ax-stk-h">ARCIRCLE Staking</h2>' +
+        "<p>" + tr("Staking for $ARCIRCLE is being planned. How it works, what it pays and when it opens will be announced here and on X first.") + "</p>" +
+        '<div class="ax-stk-acts"><a class="ax-stk-go" href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">' + tr("Follow for updates") + ' ↗</a>' +
+        '<button type="button" class="ax-stk-ok" data-stk-close>' + tr("Got it") + "</button></div>" +
+      "</div>";
+    document.body.appendChild(wrap);
+    var card = wrap.querySelector(".ax-stk-card");
+    requestAnimationFrame(function () { wrap.classList.add("in"); card.focus({ preventScroll: true }); });
+    var close = function () {
+      wrap.classList.remove("in");
+      document.removeEventListener("keydown", onKey, true);
+      setTimeout(function () { wrap.remove(); }, 260);
+      if (before && before.focus) { try { before.focus({ preventScroll: true }); } catch (e) { /* gone */ } }
+    };
+    var onKey = function (e) {
+      if (e.key === "Escape") { e.preventDefault(); close(); return; }
+      if (e.key !== "Tab") return;
+      var f = [].slice.call(card.querySelectorAll("a[href], button"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    };
+    document.addEventListener("keydown", onKey, true);
+    wrap.addEventListener("click", function (e) { if (e.target.closest("[data-stk-close]")) close(); });
+  }
+  window.arcStakingSoon = openStakingSoon;
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy") ? resolve() : reject(new Error("copy failed")); }
+      catch (err) { reject(err); }
+      document.body.removeChild(ta);
+    });
+  }
+
+  function handleCopy(btn) {
+    var original = btn.getAttribute("data-label") || btn.textContent;
+    btn.setAttribute("data-label", original);
+    copyText(btn.getAttribute("data-copy")).then(function () {
+      // the label morphs into a check mark (style.css: .ax-copy.is-done)
+      btn.innerHTML = '<svg class="ax-copy-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Copied</span>';
+      btn.classList.add("is-done");
+    }, function () {
+      btn.textContent = "Copy failed";
+    }).then(function () {
+      setTimeout(function () {
+        btn.textContent = original;
+        btn.classList.remove("is-done");
+      }, 1600);
+    });
+  }
+
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    if (t.closest("[data-reward]")) { e.preventDefault(); openReward(); return; }
+    // Only this file's own .ax-copy buttons — arc-shared.js already handles
+    // the .ac-copy[data-copy] buttons in the ArcPad/CirclePad Contracts tab.
+    var copyBtn = t.closest(".ax-copy[data-copy]");
+    if (copyBtn) handleCopy(copyBtn);
+  });
+
+  // ---- Quick bar: a slim second floating row just above the dock, the same
+  // on every page (hub, ArcPad, CirclePad, Reward, $ARCIRCLE): Launch,
+  // Explore, and the utilities button (infinity + plus) that opens the
+  // utilities panel upwards. Launch / Explore go to ArcPad; on ArcPad itself
+  // they switch tabs in place.
+  var ICON_ROCKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg>';
+  var ICON_WALLET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2"/></svg>';
+  var ICON_ORDERS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>';
+  var ICON_NFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M4 17.5l4.6-4.4 3.4 3 3.2-3.6 4.8 5"/></svg>';
+  var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>';
+  // A drawn lemniscate (not the emoji): gradient stroke with a light that
+  // travels round the loop, and a small plus that turns into a close mark.
+  var ICON_INFINITY = '<svg class="ax-inf" viewBox="0 0 40 20" aria-hidden="true">' +
+    '<defs><linearGradient id="axInfGrad" x1="0" y1="0" x2="40" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>' +
+    '<path class="ax-inf-base" d="M20 10C16.6 5.4 13.8 3.2 10.4 3.2a6.8 6.8 0 0 0 0 13.6c3.4 0 6.2-2.2 9.6-6.8s6.2-6.8 9.6-6.8a6.8 6.8 0 0 1 0 13.6c-3.4 0-6.2-2.2-9.6-6.8z"/>' +
+    '<path class="ax-inf-shine" pathLength="100" d="M20 10C16.6 5.4 13.8 3.2 10.4 3.2a6.8 6.8 0 0 0 0 13.6c3.4 0 6.2-2.2 9.6-6.8s6.2-6.8 9.6-6.8a6.8 6.8 0 0 1 0 13.6c-3.4 0-6.2-2.2-9.6-6.8z"/></svg>';
+  var ICON_PLUS = '<svg class="ax-plus" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
+
+  // The four utilities. A tile with an href is live; the others show "Soon"
+  // until their page exists. Multisender says "Preview" until its contract
+  // address is set in config-arc.js (MULTISEND_ADDRESS).
+  var UTILS = [
+    { id: "locker", name: "Locker", sub: "Lock any Arc token until a date you pick", status: "v2", acc: "#35d8d0", href: "/arc#locker",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.4"/></svg>' },
+    { id: "scanner", name: "Token Scanner", sub: "Check any token on Arc, Robinhood Chain or Solana before you buy", status: "v4", acc: "#4d9fff", href: "/arc#scanner",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></svg>' },
+    { id: "multisender", name: "Multisender", sub: "Send a token to many wallets in one go", acc: "#39ff88", href: "/arc#multisend",
+      status: typeof CONFIG !== "undefined" && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.MULTISEND_ADDRESS || "") ? "v2" : "Preview",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></svg>' },
+    { id: "bridge", name: "Bridge", sub: "Move USDC between Arc and 14 chains", status: "v2", acc: "#ffc861", href: "/arc#bridge",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></svg>' },
+  ];
+  // Page 2: Snapshot, Liquidity, Relay Launch, then a placeholder until the next one is decided.
+  var UTILS2 = [
+    { id: "snapshot", name: "Snapshot", sub: "Every holder of a token at one moment", status: "v1", acc: "#b58bff", href: "/arc#snapshot",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/></svg>' },
+    { id: "liquidity", name: "Liquidity", sub: "Pool dashboard, one-coin shapes and LP locks — Arc and Robinhood", status: "v2", acc: "#39d0ff", href: "/arc#liquidity",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.4"/></svg>' },
+  ];
+  UTILS2.push({ id: "relay", name: "Relay Launch", sub: "CirclePad round → Argus coin, relayed to holders", status: "v1", acc: "#35d8d0", href: "/arc#relay",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></svg>' });
+  UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v4", acc: "#5b8cff", href: "/arc#arcia",
+    ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
+  // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, ARCIA DESK.
+  // Page 4: ARCIA AGENT, ARCIRCLE Orders, ARCIRCLE Staking, ARCIRCLE Predict. Page 5: ARCIRCLE NFT Vault, three in development.
+  // Four tiles a page, always — a fifth would make every page as tall as three rows.
+  var omniLive = typeof CONFIG !== "undefined" && CONFIG.OMNI && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER || "");
+  var UTILS3 = [
+    { id: "omni", name: "ARCIRCLE OMNI", sub: "One $ARCIRCLE across Arc, Solana and Robinhood", status: omniLive ? "Live" : "Preview", acc: "#9b7bff", href: "/arc#omni",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c-1.7-2.3-3.1-3.4-4.8-3.4a3.4 3.4 0 0 0 0 6.8c1.7 0 3.1-1.1 4.8-3.4s3.1-3.4 4.8-3.4a3.4 3.4 0 0 1 0 6.8c-1.7 0-3.1-1.1-4.8-3.4z"/><circle cx="12" cy="3.5" r="1.3"/><circle cx="4" cy="20" r="1.3"/><circle cx="20" cy="20" r="1.3"/></svg>' },
+    { id: "arcia402", name: "ARCIA 402", sub: "ARCIA earns and pays in USDC with x402 on Arc", status: "v1", acc: "#39ff88", href: "/arc#arcia402",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg>' },
+  ];
+  UTILS3.push({ id: "mine", name: "Builder Mine", sub: "Open a mine for your token — builders dig it, the rest is burned", status: "v1", acc: "#ffc861", href: "/arc#mine",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/></svg>' });
+  UTILS3.push({ id: "desk", name: "ARCIA DESK", sub: "ARCIA trades new launches on Arc and Robinhood Chain — every trade public", status: "v3", acc: "#39ff88", href: "/arc#desk",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>' });
+  // page 4: ARCIA AGENT, ARCIRCLE Orders, then what's still being built
+  var UTILS4 = [
+    { id: "agent", name: "ARCIA AGENT", sub: "ARCIA reads any Arc token, calls it and burns it", status: "v2", acc: "#5b8cff", href: "/arc#agent",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>' },
+  ];
+  UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop, TP/SL, OCO and grid orders — Arc, Robinhood and Solana", status: "v8", acc: "#4dd4ff", href: "/arc#orders",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
+  // ARCIRCLE Staking: veARCIRCLE — lock $ARCIRCLE, weekly USDC, pool votes (arc-staking.js)
+  UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Lock $ARCIRCLE, earn USDC, vote", status: "v2", acc: "#b58bff", href: "/arc#staking",
+    img: "/images/arcircle-staking-96.webp",
+    // a lock over stacked coins (the tiles draw this icon; the image is only for places that show pictures)
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="11" height="9" rx="2"/><path d="M6.8 10.5V8a2.7 2.7 0 0 1 5.4 0v2.5"/><ellipse cx="18" cy="9" rx="2.8" ry="1.3"/><path d="M15.2 9v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3V9M15.2 12.2v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3v-3.2"/></svg>' });
+  // ARCIRCLE Predict: UP / DOWN rounds on Arc tokens, paid in USDC (arc-predict.js)
+  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc and Robinhood Chain coins", status: "v3", acc: "#39ff88", href: "/arc#predict",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>' });
+  // page 5: what's still being built
+  var NEXT = [
+    // ARCIRCLE NFT Vault: a coin's trading fees buy NFTs, raffled to $ARCIRCLE holders (arc-nft.js)
+    { id: "nft", name: "ARCIRCLE NFT Vault", sub: "Fees buy NFTs, holders win them — every draw checkable on-chain", status: "v2", acc: "#ff8bd8", href: "/arc#nft", ico: ICON_NFT },
+    // veARCIA: stake $ARCIA on Robinhood Chain, $ARCIA rewards, the $ARCIRCLE boost (arc-vearcia.js)
+    { id: "vearcia", name: "veARCIA", sub: "Stake $ARCIA 1–20 days, earn $ARCIA — $ARCIRCLE boosts it", status: "New", acc: "#ff8bd8", href: "/arc#vearcia", img: "/images/arcia-avatar-96.jpg",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/></svg>' },
+    // ARCIA WORKS: agents hiring agents — a register of AI agents and a USDC escrow for their jobs, on Arc (arc-works.js)
+    { id: "works", name: "ARCIA WORKS", sub: "Agents hiring agents — jobs paid in USDC through an escrow on Arc", status: "New", acc: "#ffb547", href: "/arc#works",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="12" rx="2.4"/><path d="M9 7.5V6a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 6v1.5"/><path d="M3.5 12.8h17"/><circle cx="12" cy="12.8" r="1.5"/></svg>' },
+    { id: "next-20", sub: "In development" },
+  ];
+  var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
+
+  function mountQuickBar() {
+    var dock = document.querySelector("nav.ax-dock");
+    if (!dock || document.querySelector("nav.ax-quick")) return;
+    var bar = document.createElement("nav");
+    bar.className = "ax-quick";
+    bar.setAttribute("aria-label", "Quick actions");
+    bar.innerHTML =
+      '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
+      '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore" aria-label="Explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>' +
+      '<a class="ax-quick-item ax-quick-pf" href="/arc#portfolio" data-arc-tab="portfolio" aria-label="Portfolio"><span class="ax-quick-ico">' + ICON_WALLET + '</span><span>Portfolio</span></a>' +
+      '<a class="ax-quick-item ax-quick-orders" href="/arc#orders" data-arc-tab="orders" aria-label="Orders"><span class="ax-quick-ico">' + ICON_ORDERS + '</span><span>Orders</span></a>' +
+      '<button type="button" class="ax-quick-util" aria-haspopup="dialog" aria-expanded="false" aria-controls="ax-util" aria-label="Utilities" title="Utilities">' + ICON_INFINITY + '<span class="ax-plus-wrap">' + ICON_PLUS + "</span></button>";
+    dock.parentNode.insertBefore(bar, dock);
+
+    // Sit exactly one gap above the dock, whatever height it renders at, and
+    // reserve exactly that much room at the bottom of the page (dock + bar +
+    // gaps) so the last cards are never hidden behind them.
+    // On a wide screen the two sit side by side in one row, centred as a pair
+    // (html.ax-float-row), so they cover half the height.
+    var root = document.documentElement, GAP = 12;
+    var sync = function () {
+      var d = dock.getBoundingClientRect(), q = bar.getBoundingClientRect();
+      root.style.setProperty("--ax-dock-h", Math.round(d.height) + "px");
+      var dockBottom = Math.max(0, window.innerHeight - d.bottom);
+      // The pair is centred on the dock's own anchor, which on pages with a
+      // sidebar is the content column, not the window; nudge it sideways when
+      // it would run off either edge of that column.
+      var vw = window.innerWidth, cx = parseFloat(getComputedStyle(dock).left) || vw / 2;
+      var lo = Math.max(24, 2 * cx - vw + 12), hi = vw - 24, w = q.width + GAP + d.width;
+      var row = vw >= 901 && w <= hi - lo;
+      var nudge = row ? Math.min(0, hi - (cx + w / 2)) + Math.max(0, lo - (cx - w / 2)) : 0;
+      root.classList.toggle("ax-float-row", row);
+      if (row) {
+        root.style.setProperty("--ax-q-shift", Math.round(nudge - (GAP + d.width) / 2) + "px");
+        root.style.setProperty("--ax-d-shift", Math.round(nudge + (q.width + GAP) / 2) + "px");
+        root.style.setProperty("--ax-q-lift", Math.round((d.height - q.height) / 2) + "px");
+        root.style.setProperty("--ax-float-space", Math.round(dockBottom + Math.max(d.height, q.height) + 20) + "px");
+      } else root.style.setProperty("--ax-float-space", Math.round(dockBottom + d.height + 10 + q.height + 20) + "px");
+    };
+    sync();
+    if (window.ResizeObserver) { var ro = new ResizeObserver(sync); ro.observe(dock); ro.observe(bar); }
+    window.addEventListener("resize", sync);
+
+    // Out of the way while reading: hide on scroll down, back on scroll up
+    // (and always shown near the top and at the very bottom of the page).
+    var lastY = window.scrollY, acc = 0, ticking = false;
+    var setHidden = function (h) { bar.classList.toggle("ax-quick-hidden", h); };
+    window.addEventListener("scroll", function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false;
+        var y = window.scrollY, dy = y - lastY;
+        lastY = y;
+        var atBottom = window.innerHeight + y >= document.documentElement.scrollHeight - 4;
+        var row = root.classList.contains("ax-float-row");
+        // wide screens: the quick bar and the dock sit side by side and slide away together
+        var hide = function (h) { if (row) { root.classList.toggle("ax-float-away", h); setHidden(false); } else { root.classList.remove("ax-float-away"); setHidden(h); } };
+        if (y < 80 || atBottom || bar.classList.contains("ax-quick-pinned") || bar.classList.contains("util-open")) { acc = 0; hide(false); return; }
+        acc = (acc > 0) === (dy > 0) ? acc + dy : dy; // distance travelled in the current direction
+        if (acc > 24) hide(true);
+        else if (acc < -16) hide(false);
+      });
+    }, { passive: true });
+    document.addEventListener("arcpad:tab", function () { acc = 0; setHidden(false); root.classList.remove("ax-float-away"); });
+
+    mountUtilities(bar);
+
+    bar.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest("[data-arc-tab]");
+      if (!a || typeof window.arcpadShowTab !== "function") return; // other pages: normal navigation
+      e.preventDefault();
+      window.arcpadShowTab(a.getAttribute("data-arc-tab"));
+    });
+
+    var mark = function (tab) {
+      Array.prototype.forEach.call(bar.querySelectorAll("[data-arc-tab]"), function (a) {
+        if (a.getAttribute("data-arc-tab") === tab) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+    };
+    document.addEventListener("arcpad:tab", function (e) { mark(e.detail && e.detail.tab); });
+    var active = document.querySelector(".bp-panel.active");
+    if (active && typeof window.arcpadShowTab === "function") mark(active.id.replace("bp-panel-", ""));
+  }
+  // ---- Utilities panel: opens upwards from the infinity button, on phones
+  // and desktop alike. Escape, the scrim or the button close it.
+  function mountUtilities(bar) {
+    var btn = bar.querySelector(".ax-quick-util");
+    if (!btn) return;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var scrim = document.createElement("div");
+    scrim.className = "ax-util-scrim";
+    scrim.hidden = true;
+    var panel = document.createElement("div");
+    panel.className = "ax-util";
+    panel.id = "ax-util";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Utilities");
+    panel.setAttribute("tabindex", "-1");
+    panel.hidden = true;
+    var tile = function (u, i) {
+      if (u.soonPop) {
+        return '<div class="ax-util-tile is-coming" role="button" tabindex="0" aria-haspopup="dialog" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '">' +
+          '<span class="ax-util-ico ax-util-img"><img src="' + u.img + '" alt="" width="38" height="38" loading="lazy" decoding="async"></span>' +
+          '<span class="ax-util-txt"><strong>' + u.name + "</strong><small>" + u.sub + "</small></span>" +
+          '<em class="ax-util-st">' + u.status + "</em></div>";
+      }
+      var tag = u.href ? "a" : "div";
+      return "<" + tag + ' class="ax-util-tile' + (u.soon ? " is-soon" : "") + (u.href ? "" : " is-off") + '" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '"' +
+        (u.href ? ' href="' + u.href + '"' : ' aria-disabled="true"') + ">" +
+        (u.ico || !u.img ? '<span class="ax-util-ico">' + (u.ico || ICON_SOON) + "</span>" : '<span class="ax-util-ico ax-util-img"><img src="' + u.img + '" alt="" width="38" height="38" decoding="async"></span>') +
+        '<span class="ax-util-txt"><strong>' + u.name + "</strong><small>" + u.sub + "</small></span>" +
+        '<em class="ax-util-st">' + u.status + "</em></" + tag + ">";
+    };
+    var next = function (u, i) {
+      return '<div class="ax-util-tile is-soon is-off is-next" data-util="' + u.id + '" style="--acc:#8c98a6;--i:' + (i % 4) + '" aria-disabled="true">' +
+        '<span class="ax-util-ico ax-util-q" aria-hidden="true"><b>?</b></span>' +
+        '<span class="ax-util-txt"><strong>Coming soon</strong><small>' + u.sub + "</small></span>" +
+        '<em class="ax-util-st">Soon</em><i class="ax-util-no" aria-hidden="true">' + String(i + 1).padStart(2, "0") + "</i></div>";
+    };
+    panel.innerHTML =
+      '<div class="ax-util-head"><span class="ax-util-mark">' + ICON_INFINITY + '</span><div><strong>Utilities</strong><small>Tools for everyone on Arc</small></div>' +
+      '<button type="button" class="ax-util-x" aria-label="Close">' + ICON_PLUS + "</button></div>" +
+      '<div class="ax-util-pages" aria-roledescription="carousel">' +
+        '<div class="ax-util-track">' +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 5" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 5" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 5" data-page="2">' + UTILS3.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 5" data-page="3">' + UTILS4.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 5 of 5" data-page="4">' + NEXT.map(function (u, i) { return u.href ? tile(u, i) : next(u, i + UTILS.length + UTILS2.length + UTILS3.length + UTILS4.length); }).join("") + "</div>" +
+        "</div></div>" +
+      '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
+        '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +
+        '<button type="button" role="tab" data-go-page="1" aria-selected="false" aria-label="Page 2">2</button>' +
+        '<button type="button" role="tab" data-go-page="2" aria-selected="false" aria-label="Page 3">3</button>' +
+        '<button type="button" role="tab" data-go-page="3" aria-selected="false" aria-label="Page 4">4</button>' +
+        '<button type="button" role="tab" data-go-page="4" aria-selected="false" aria-label="Page 5">5</button>' +
+      "</div>";
+    document.body.appendChild(scrim);
+    document.body.appendChild(panel);
+    // Builder Mine's tile: $ARCIRCLE burned and builders digging, once the contract is live
+    if (typeof CONFIG !== "undefined" && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.BUILDER_MINE_ADDRESS || "") && window.fetch) {
+      fetch("/api/mine?stats=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (s) {
+        var el = panel.querySelector('[data-util="mine"] small');
+        if (!el || !s || !s.live || s.burned == null) return;
+        var n = Number(BigInt(s.burned) / 1000000000000000000n);
+        var c = n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
+        el.textContent = c + " $ARCIRCLE burned · " + (s.digging || 0) + " digging now";
+      }).catch(function () { /* keep the line */ });
+    }
+
+    // ---- two pages: the numbers below, a swipe / drag, arrow keys or a sideways trackpad scroll ----
+    var track = panel.querySelector(".ax-util-track"), pages = [].slice.call(panel.querySelectorAll(".ax-util-grid"));
+    var page = 0, dragX = null, dragDx = 0, dragT = 0, moved = false;
+    function goPage(n, instant) {
+      page = Math.max(0, Math.min(pages.length - 1, n));
+      track.classList.toggle("instant", !!instant || reduce);
+      track.style.transform = "translateX(" + (-100 * page) + "%)";
+      pages.forEach(function (g, i) { if (i === page) g.removeAttribute("inert"); else g.setAttribute("inert", ""); g.classList.toggle("on", i === page); });
+      panel.querySelectorAll("[data-go-page]").forEach(function (b) { b.setAttribute("aria-selected", String(Number(b.getAttribute("data-go-page")) === page)); });
+      panel.classList.toggle("on-p2", page >= 1);
+      fit(instant);
+    }
+    // the pages area takes the height of the page on show (a page of short tiles doesn't leave an empty band)
+    function fit(instant) {
+      var vp0 = panel.querySelector(".ax-util-pages"), g = pages[page];
+      if (!vp0 || !g || panel.hidden) return;
+      vp0.classList.toggle("instant", !!instant || reduce);
+      vp0.style.height = g.offsetHeight + "px";
+    }
+    window.addEventListener("resize", function () { fit(true); });
+    // a page can change height after it's measured (fonts arriving, the panel placed narrower, another language):
+    // follow it
+    if (window.ResizeObserver) { var pro = new ResizeObserver(function () { fit(true); }); pages.forEach(function (g) { pro.observe(g); }); }
+    goPage(0, true);
+    panel.querySelector(".ax-util-pager").addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-go-page]");
+      if (b) goPage(Number(b.getAttribute("data-go-page")));
+    });
+    var vp = panel.querySelector(".ax-util-pages");
+    vp.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      dragX = e.clientX; dragDx = 0; dragT = Date.now(); moved = false;
+    });
+    window.addEventListener("pointermove", function (e) {
+      if (dragX == null) return;
+      dragDx = e.clientX - dragX;
+      if (!moved && Math.abs(dragDx) > 6) { moved = true; track.classList.add("instant"); try { vp.setPointerCapture(e.pointerId); } catch (err) { /* ok */ } }
+      if (!moved) return;
+      var edge = (page === 0 && dragDx > 0) || (page === pages.length - 1 && dragDx < 0);
+      track.style.transform = "translateX(calc(" + (-100 * page) + "% + " + (edge ? dragDx / 3 : dragDx) + "px))";
+    });
+    var endDrag = function () {
+      if (dragX == null) return;
+      var dx = dragDx, fast = Math.abs(dx) / Math.max(1, Date.now() - dragT) > 0.4;
+      dragX = null;
+      if (!moved) return;
+      var w = vp.clientWidth || 1;
+      if ((Math.abs(dx) > w * 0.22 || (fast && Math.abs(dx) > 24)) && ((dx < 0 && page < pages.length - 1) || (dx > 0 && page > 0))) goPage(page + (dx < 0 ? 1 : -1));
+      else goPage(page);
+    };
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    // a drag isn't a tap on the tile underneath
+    vp.addEventListener("click", function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+    var wheelT = 0;
+    vp.addEventListener("wheel", function (e) {
+      if (Math.abs(e.deltaX) < 12 || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      if (Date.now() - wheelT < 450) return;
+      wheelT = Date.now();
+      goPage(page + (e.deltaX > 0 ? 1 : -1));
+    }, { passive: false });
+
+    var open = false, closeT = 0;
+    function place() {
+      var r = bar.getBoundingClientRect();
+      var w = Math.min(440, window.innerWidth - 24);
+      var cx = r.left + r.width / 2;
+      var left = Math.max(12, Math.min(window.innerWidth - w - 12, cx - w / 2));
+      panel.style.width = w + "px";
+      panel.style.left = left + "px";
+      panel.style.bottom = Math.round(window.innerHeight - r.top + 10) + "px";
+      // the panel grows out of the button
+      var b = btn.getBoundingClientRect();
+      panel.style.setProperty("--ox", Math.round(b.left + b.width / 2 - left) + "px");
+    }
+    function show() {
+      if (open) return;
+      open = true;
+      clearTimeout(closeT);
+      bar.classList.remove("ax-quick-hidden");
+      bar.classList.add("util-open");
+      btn.setAttribute("aria-expanded", "true");
+      scrim.hidden = false; panel.hidden = false;
+      // open on the page that holds the utility you're on
+      var act = document.querySelector(".bp-panel.active"), here = act && /^\/arc(?:pad\.html)?\/?$/.test(location.pathname) ? act.id.replace("bp-panel-", "") : "";
+      var cur = here ? panel.querySelector('.ax-util-tile[href="/arc#' + here + '"]') : null;
+      Array.prototype.forEach.call(panel.querySelectorAll(".ax-util-tile[href]"), function (a) { if (a === cur) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+      goPage(cur ? Number(cur.parentNode.getAttribute("data-page")) || 0 : 0, true);
+      place();
+      fit(true); // measured again once the panel has its final width
+      void panel.offsetWidth;
+      panel.classList.add("in"); scrim.classList.add("in");
+      // focus moves into the panel itself (keyboard users Tab on from there)
+      setTimeout(function () { if (open) panel.focus({ preventScroll: true }); }, reduce ? 0 : 180);
+      if (typeof window.arcHaptic === "function") window.arcHaptic("tap");
+    }
+    function hide(back) {
+      if (!open) return;
+      open = false;
+      bar.classList.remove("util-open");
+      btn.setAttribute("aria-expanded", "false");
+      panel.classList.remove("in"); scrim.classList.remove("in");
+      closeT = setTimeout(function () { panel.hidden = true; scrim.hidden = true; }, reduce ? 0 : 260);
+      if (back) btn.focus({ preventScroll: true });
+    }
+    btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); if (open) hide(true); else show(); });
+    scrim.addEventListener("click", function () { hide(false); });
+    panel.querySelector(".ax-util-x").addEventListener("click", function () { hide(true); });
+    panel.addEventListener("click", function (e) {
+      if (e.target.closest && e.target.closest("a.ax-util-tile")) { hide(false); return; }
+      if (e.target.closest && e.target.closest('[data-util="staking"]')) { hide(false); openStakingSoon(); return; }
+      var t = e.target.closest && e.target.closest(".ax-util-tile.is-off");
+      if (!t) return;
+      t.classList.remove("nudge"); void t.offsetWidth; t.classList.add("nudge");
+    });
+    panel.addEventListener("keydown", function (e) {
+      var t = e.target.closest && e.target.closest('[data-util="staking"]');
+      if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); hide(false); openStakingSoon(); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (!open) return;
+      if (e.key === "Escape") { e.preventDefault(); hide(true); return; }
+      if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && panel.contains(document.activeElement)) { e.preventDefault(); goPage(page + (e.key === "ArrowRight" ? 1 : -1)); return; }
+      if (e.key !== "Tab") return;
+      var f = [].slice.call(panel.querySelectorAll("a[href], button")).filter(function (el) { return !el.closest("[inert]"); }).concat([btn]);
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    });
+    window.addEventListener("resize", function () { if (open) place(); });
+    document.addEventListener("arcpad:tab", function () { hide(false); });
+    window.arcUtilities = { open: show, close: hide, list: UTILS.concat(UTILS2, UTILS3, UTILS4, NEXT.filter(function (u) { return !!u.href; })), page: function (n) { if (n == null) return page; goPage(n); } };
+  }
+
+  // ---- Dock: the "you are here" highlight slides from the page you came
+  // from to this one (the item you clicked is remembered for one hop).
+  function mountGlider() {
+    var dock = document.querySelector("nav.ax-dock");
+    if (!dock || dock.querySelector(".ax-dock-glider")) return;
+    var items = [].slice.call(dock.querySelectorAll(".ax-dock-item"));
+    var cur = items.findIndex(function (a) { return a.getAttribute("aria-current") === "page"; });
+    var KEY = "ax-dock-from";
+    dock.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest(".ax-dock-item");
+      if (!a || cur < 0 || items.indexOf(a) === cur) return;
+      try { sessionStorage.setItem(KEY, String(cur)); } catch (err) { /* private mode */ }
+    });
+    if (cur < 0) return;
+    var g = document.createElement("span");
+    g.className = "ax-dock-glider";
+    g.setAttribute("aria-hidden", "true");
+    dock.insertBefore(g, dock.firstChild);
+    dock.classList.add("has-glider");
+    var put = function (i) {
+      var it = items[i];
+      g.style.left = it.offsetLeft + "px"; g.style.top = it.offsetTop + "px";
+      g.style.width = it.offsetWidth + "px"; g.style.height = it.offsetHeight + "px";
+    };
+    var from = null;
+    try { from = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (err) { from = null; }
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var fi = from == null ? -1 : Number(from);
+    if (!reduce && fi >= 0 && fi < items.length && fi !== cur) {
+      put(fi);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.add("glide"); put(cur); }); });
+    } else { put(cur); requestAnimationFrame(function () { g.classList.add("glide"); }); }
+    var re = function () { put(cur); };
+    window.addEventListener("resize", re);
+    if (window.ResizeObserver) new ResizeObserver(re).observe(dock);
+  }
+
+  // Loading skeletons: a live number that hasn't arrived yet shows a soft
+  // shimmering bar instead of a bare "—". Only fields that are filled from
+  // the network (not ones that stay "—" by design, like a disconnected
+  // wallet's balance), and never longer than a few seconds — if the data
+  // still isn't there the "—" comes back.
+  function mountSkeletons() {
+    var SEL = "[data-tk],[data-arl],[data-ac2],[data-lb],#ap-stat-vol,#ac2-liq,#rw-launches,#lkr-count,#apc-price,#apc-mcap,#apc-liq,#apc-vol,#apc-txns,#apc-holders-count,#apc-age";
+    var els = [].slice.call(document.querySelectorAll(SEL)).filter(function (el) {
+      return !el.children.length && el.textContent.trim() === "\u2014" && !el.closest("[data-no-skel]");
+    });
+    if (!els.length) return;
+    els.forEach(function (el) {
+      el.classList.add("arc-skel");
+      if (getComputedStyle(el).display === "inline") el.classList.add("arc-skel-i");
+      var mo = new MutationObserver(function () {
+        if (el.textContent.trim() !== "\u2014") { el.classList.remove("arc-skel", "arc-skel-i"); mo.disconnect(); }
+      });
+      mo.observe(el, { childList: true, characterData: true, subtree: true });
+      el.__skelMo = mo;
+    });
+    setTimeout(function () { els.forEach(function (el) { el.classList.remove("arc-skel", "arc-skel-i"); if (el.__skelMo) el.__skelMo.disconnect(); }); }, 8000);
+  }
+
+  mountQuickBar();
+  mountGlider();
+  mountSkeletons();
+
+  if (location.hash === "#rewards") location.replace("/reward");
+  window.addEventListener("hashchange", function () { if (location.hash === "#rewards") openReward(); });
+})();
+;
+/* ---- arc-social.js ---- */
+// arc-social.js — the official community links, placed where each page
+// naturally has room for them:
+//   hub (/)            a glass row under the tagline
+//   every header       X + Telegram icon buttons (desktop)
+//   ArcPad / CirclePad sidebar "Community" block (inside the mobile menu too)
+//   footer             three chips in the brand column
+//   ArcPad             "never miss a launch" card on Home + Explore, and a
+//                      line under the Launch button about the alerts channel
+(function () {
+  "use strict";
+  var S = {
+    x: { url: "https://x.com/ARCIRCLEonArc", handle: "@ARCIRCLEonArc", name: "X", sub: "@ARCIRCLEonArc" },
+    tg: { url: "https://t.me/ARCIRCLEonarc", handle: "@ARCIRCLEonarc", name: "Telegram", sub: "Community chat" },
+    alerts: { url: "https://t.me/arcircle_launch", handle: "@arcircle_launch", name: "Launch alerts", sub: "@arcircle_launch" },
+    bot: { url: "https://t.me/ARCIAonArc_bot", handle: "@ARCIAonArc_bot", name: "ARCIA bot", sub: "@ARCIAonArc_bot" },
+  };
+  window.ARC_SOCIAL = S;
+  var ICON = {
+    x: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-fill"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+    tg: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-fill"><path d="M22.05 2.5 2.6 10.13c-1.33.53-1.32 1.27-.24 1.6l4.98 1.55 11.5-7.25c.54-.33 1.04-.15.63.22L10.7 14.3l-.36 5.16c.52 0 .75-.24 1.03-.52l2.48-2.4 5.15 3.8c.95.52 1.63.25 1.87-.88l3.38-15.9c.36-1.39-.53-2.02-1.9-1.06z"/></svg>',
+    bot: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 7V4M9 12.5h.01M15 12.5h.01M9.5 16h5"/></svg>',
+    alerts: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/><path d="M3.5 8.5a9 9 0 0 1 2.2-4M20.5 8.5a9 9 0 0 0-2.2-4"/></svg>',
+    ext: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 13.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5.5"/></svg>',
+  };
+  var KEYS = ["x", "tg", "alerts"];
+  var KEYS_ALL = ["x", "tg", "bot", "alerts"]; // sidebar + footer also list ARCIA's Telegram bot
+  var a = function (k, cls, inner, label) {
+    return '<a class="' + cls + '" data-soc="' + k + '" href="' + S[k].url + '" target="_blank" rel="noopener"' +
+      (label ? ' aria-label="' + label + '"' : "") + ">" + inner + "</a>";
+  };
+  var live = '<i class="soc-live" aria-hidden="true"></i>';
+  function el(html) { var d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
+
+  // ---- hub: glass row under the tagline ----
+  function hubRow() {
+    var sub = document.querySelector("main.ax-hero .ax-sub");
+    if (!sub || document.querySelector(".ax-social")) return;
+    var html = '<div class="ax-social" aria-label="Community">' + KEYS.map(function (k) {
+      return a(k, "ax-soc ax-soc-" + k,
+        '<span class="ax-soc-ico">' + ICON[k] + (k === "alerts" ? live : "") + "</span>" +
+        '<span class="ax-soc-txt"><strong>' + S[k].name + "</strong><small>" + S[k].sub + "</small></span>");
+    }).join("") + "</div>";
+    sub.insertAdjacentElement("afterend", el(html));
+  }
+
+  // ---- header icon buttons (desktop) ----
+  function headerIcons() {
+    var host = document.querySelector(".bp-topbar-right") || document.querySelector("header.ax-top .ax-top-right") || document.querySelector("header.ax-top");
+    if (!host || host.querySelector(".soc-head")) return;
+    var g = el('<div class="soc-head">' +
+      a("x", "soc-head-btn soc-x", ICON.x, "ARCIRCLE PAD on X") +
+      a("tg", "soc-head-btn soc-tg", ICON.tg, "ARCIRCLE PAD on Telegram") + "</div>");
+    var toggle = host.querySelector(".lang-toggle");
+    if (toggle) host.insertBefore(g, toggle);
+    else if (host.matches("header.ax-top")) host.insertBefore(g, host.querySelector(".ax-top-cta"));
+    else host.insertBefore(g, host.firstChild);
+  }
+
+  // ---- ArcPad / CirclePad sidebar ----
+  function sidebar() {
+    var foot = document.querySelector(".bp-sidebar .bp-side-foot");
+    if (!foot || document.querySelector(".bp-side-social")) return;
+    var html = '<div class="bp-side-social"><div class="bp-side-section-label">Community</div><div class="bp-soc-list">' + KEYS_ALL.map(function (k) {
+      return a(k, "bp-soc bp-soc-" + k,
+        '<span class="bp-soc-ico">' + ICON[k] + (k === "alerts" ? live : "") + "</span>" +
+        '<span class="bp-soc-txt"><strong>' + S[k].name + "</strong><small>" + S[k].sub + "</small></span>" +
+        '<span class="bp-soc-ext">' + ICON.ext + "</span>");
+    }).join("") + "</div></div>";
+    foot.parentNode.insertBefore(el(html), foot);
+  }
+
+  // ---- footer chips ----
+  function footer() {
+    var brand = document.querySelector(".axf .axf-brand");
+    if (!brand || brand.querySelector(".axf-social")) return;
+    var html = '<div class="axf-social" aria-label="Community">' + KEYS_ALL.map(function (k) {
+      return a(k, "axf-soc axf-soc-" + k, '<span class="axf-soc-ico">' + ICON[k] + "</span><span>" + S[k].name + "</span>", k === "x" ? "ARCIRCLE PAD on X" : null);
+    }).join("") + "</div>";
+    var net = brand.querySelector(".axf-net");
+    brand.insertBefore(el(html), net || null);
+  }
+
+  // ---- ArcPad: launch alerts card + launch-form note ----
+  function alertsCard() {
+    var card = function (id) {
+      return el('<a class="ap-alerts" id="' + id + '" href="' + S.alerts.url + '" target="_blank" rel="noopener" data-soc="alerts">' +
+        '<span class="ap-alerts-ico">' + ICON.tg + '<i class="ap-alerts-ping" aria-hidden="true"></i></span>' +
+        '<span class="ap-alerts-txt"><strong>Never miss a launch</strong>' +
+        '<small>Every new ArcPad coin is posted to our Telegram channel the moment it goes live — logo, market cap and a trade button.</small></span>' +
+        '<span class="ap-alerts-cta"><span class="ap-alerts-handle" data-no-i18n>' + S.alerts.handle + "</span><b>Join channel</b></span></a>");
+    };
+    var grid = document.getElementById("ap-explore-grid");
+    if (grid && !document.getElementById("ap-alerts-explore")) grid.insertAdjacentElement("afterend", card("ap-alerts-explore"));
+    var car = document.getElementById("ap-home-viewport");
+    var carWrap = car && (car.closest(".carousel-section") || car.parentNode);
+    if (carWrap && !document.getElementById("ap-alerts-home")) carWrap.insertAdjacentElement("afterend", card("ap-alerts-home"));
+    var note = document.querySelector("#bp-panel-launch .ap-launch-btn-note");
+    if (note && !document.querySelector(".ap-launch-announce")) {
+      note.insertAdjacentElement("afterend", el('<a class="ap-launch-announce" href="' + S.alerts.url + '" target="_blank" rel="noopener" data-soc="alerts">' +
+        '<span class="ap-launch-announce-ico">' + ICON.tg + "</span>" +
+        '<span>Your launch is announced automatically in <b data-no-i18n>' + S.alerts.handle + "</b></span>" +
+        '<span class="ap-launch-announce-go">' + ICON.ext + "</span></a>"));
+    }
+  }
+
+  function track(e) {
+    var t = e.target.closest && e.target.closest("[data-soc]");
+    if (t && typeof window.va === "function") window.va("event", { name: "social_click", data: { to: t.getAttribute("data-soc") } });
+  }
+
+  function mount() {
+    hubRow(); sidebar(); footer(); alertsCard();
+    // after i18n.js has placed the language toggle
+    setTimeout(headerIcons, 0);
+  }
+  document.addEventListener("click", track);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
+})();
+;
+/* ---- arc-cmdk.js ---- */
+// arc-cmdk.js — one search box for the whole site. ⌘K / Ctrl+K (or "/") opens it anywhere;
+// the search button in the top bar does the same on touch screens.
+// It finds pages, utilities, docs sections and ArcPad coins (by name, symbol or address).
+// A pasted 0x address offers: open the coin, scan the token, or look the wallet up on /me.
+(function () {
+  "use strict";
+  if (window.arcCmdk) return;
+  var tr = function (s) { return (window.arcI18n && window.arcI18n.get && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var isAddr = function (a) { return /^0x[0-9a-fA-F]{40}$/.test(a); };
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
+
+  var PAGES = [
+    ["Home", "ARCIRCLE PAD", "/", "page"],
+    ["ArcPad", "Launch a coin in one transaction", "/arc", "page"],
+    ["Launch a coin", "ArcPad launch form", "/arc#launch", "page"],
+    // the round line follows CONFIG.CIRCLEPAD_STATUS (config-arc.js), so it never goes stale here
+    ["CirclePad", "Community-funded launches" + ((window.CONFIG && CONFIG.CIRCLEPAD_STATUS && CONFIG.CIRCLEPAD_STATUS.line) ? " · " + CONFIG.CIRCLEPAD_STATUS.line : ""), "/circle", "page"],
+    ["$ARCIRCLE", "Price, holders, burns and buybacks", "/arcircle", "page"],
+    ["Relay Launch", "Every CirclePad coin relayed to holders", "/relay", "page"],
+    ["Reward", "Holder rewards", "/reward", "page"],
+    ["My ARCIRCLE", "One wallet across the whole site", "/me", "page"],
+    ["Stats", "ARCIRCLE PAD in numbers", "/stats", "page"],
+    ["Roadmap", "What's done, what's next", "/roadmap", "page"],
+    ["Get started", "Add Arc, bring USDC, pick a path", "/start", "page"],
+    ["Brand kit", "Logo and colours", "/brand", "page"],
+    ["Round #1 report", "CirclePad round results", "/circle/round/1", "page"],
+    ["Whitepaper", "How everything fits together", "/whitepaper", "doc"],
+    ["백서 (한국어)", "Whitepaper in Korean", "/whitepaper/ko", "doc"],
+    ["ArcPad docs", "Fees, curve, graduation", "/arc#docs", "doc"],
+    ["CirclePad docs", "Rounds, voting, refunds", "/circle#docs", "doc"],
+    ["X / Twitter", "@ARCIRCLEonArc", "https://x.com/ARCIRCLEonArc", "link"],
+    ["Telegram", "Community chat", "https://t.me/ARCIRCLEonarc", "link"],
+  ];
+  var KIND = { page: "Page", doc: "Docs", util: "Utility", coin: "Coin", link: "Link", addr: "Address" };
+
+  var coins = null, coinsLoading = false;
+  function loadCoins() {
+    if (coins || coinsLoading) return;
+    coinsLoading = true;
+    fetch("/api/c?view=coins").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      coins = (j && Array.isArray(j.coins)) ? j.coins : [];
+      coinsLoading = false;
+      if (open) render();
+    }).catch(function () { coins = []; coinsLoading = false; });
+  }
+  function utils() {
+    var l = (window.arcUtilities && Array.isArray(window.arcUtilities.list)) ? window.arcUtilities.list : [];
+    if (!l.length) l = [
+      { name: "Locker", sub: "Lock any Arc token", href: "/arc#locker" }, { name: "Token Scanner", sub: "Check any Arc token", href: "/arc#scanner" },
+      { name: "Multisender", sub: "Send a token to many wallets", href: "/arc#multisend" }, { name: "Snapshot", sub: "Every holder at one moment", href: "/arc#snapshot" },
+      { name: "Liquidity", sub: "Pool dashboard, one-coin shapes, LP locks", href: "/arc#liquidity" }, { name: "Bridge", sub: "Move USDC to Arc", href: "/arc#bridge" },
+    ];
+    return l.filter(function (u) { return u.href; }).map(function (u) { return [u.name, u.sub || "", u.href, "util"]; });
+  }
+
+  function score(q, a, b) {
+    a = String(a || "").toLowerCase(); b = String(b || "").toLowerCase();
+    if (!q) return 1;
+    if (a === q) return 100;
+    if (a.indexOf(q) === 0) return 60;
+    if (a.indexOf(q) > 0) return 40;
+    if (b.indexOf(q) >= 0) return 20;
+    // loose: every char in order
+    var i = 0; for (var k = 0; k < a.length && i < q.length; k++) if (a[k] === q[i]) i++;
+    return i === q.length ? 8 : 0;
+  }
+  function results(q) {
+    q = q.trim();
+    var ql = q.toLowerCase(), out = [];
+    if (isAddr(q)) {
+      out.push(["Open coin on ArcPad", q, "/arc#coin/" + q, "addr"]);
+      out.push(["Scan this token", "Token Scanner", "/arc#scanner?t=" + q, "addr"]);
+      out.push(["Look up this wallet", "My ARCIRCLE", "/me?w=" + q.toLowerCase(), "addr"]);
+      out.push(["View on the explorer", "arc.etherscan.io", ((window.CONFIG && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io") + "/address/" + q, "link"]);
+      return out;
+    }
+    var pool = PAGES.concat(utils());
+    var seen = {};
+    pool.forEach(function (it) {
+      if (seen[it[2]]) return; seen[it[2]] = 1;
+      var s = Math.max(score(ql, it[0], it[1]), score(ql, tr(it[0]), tr(it[1])));
+      if (s) out.push(it.concat([s + (it[3] === "page" ? 2 : 0)]));
+    });
+    if (ql && coins) {
+      coins.forEach(function (c) {
+        var s = Math.max(score(ql.replace(/^\$/, ""), c.s, c.n), score(ql, c.n, ""));
+        if (!s && ql.length >= 4 && c.t.toLowerCase().indexOf(ql) === 0) s = 30;
+        if (s) out.push(["$" + c.s, c.n, "/arc#coin/" + c.t, "coin", s - 1]);
+      });
+    }
+    out.sort(function (a, b) { return (b[4] || 0) - (a[4] || 0); });
+    return out.slice(0, ql ? 12 : 14);
+  }
+
+  var root, input, list, open = false, sel = 0, items = [], lastFocus = null;
+  function build() {
+    root = document.createElement("div");
+    root.className = "ckp";
+    root.hidden = true;
+    root.setAttribute("role", "dialog");
+    root.setAttribute("aria-modal", "true");
+    root.setAttribute("aria-label", "Search");
+    root.innerHTML =
+      '<div class="ck-bg" data-ck-close></div>' +
+      '<div class="ck-box">' +
+        '<div class="ck-in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/></svg>' +
+          '<input type="text" spellcheck="false" autocomplete="off" role="combobox" aria-expanded="true" aria-controls="ck-list" aria-autocomplete="list">' +
+          '<kbd data-ck-close>Esc</kbd></div>' +
+        '<ul class="ck-list" id="ck-list" role="listbox"></ul>' +
+        '<div class="ck-foot"><span><kbd>↑</kbd><kbd>↓</kbd> <em></em></span><span><kbd>↵</kbd> <em></em></span><span class="ck-hint"></span></div>' +
+      "</div>";
+    document.body.appendChild(root);
+    input = root.querySelector("input");
+    list = root.querySelector(".ck-list");
+    root.addEventListener("click", function (e) {
+      if (e.target.closest("[data-ck-close]")) return hide();
+      var li = e.target.closest("[data-ck-i]");
+      if (li) go(Number(li.getAttribute("data-ck-i")), e);
+    });
+    list.addEventListener("mousemove", function (e) {
+      var li = e.target.closest("[data-ck-i]");
+      if (li) { var i = Number(li.getAttribute("data-ck-i")); if (i !== sel) { sel = i; paintSel(); } }
+    });
+    input.addEventListener("input", function () { sel = 0; render(); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(items.length - 1, sel + 1); paintSel(true); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, sel - 1); paintSel(true); }
+      else if (e.key === "Enter") { e.preventDefault(); go(sel, e); }
+      else if (e.key === "Escape") { e.preventDefault(); hide(); }
+      else if (e.key === "Tab") e.preventDefault();
+    });
+  }
+  function render() {
+    var q = input.value;
+    items = results(q);
+    if (!items.length) {
+      list.innerHTML = '<li class="ck-none">' + esc(coinsLoading ? tr("Loading coins…") : tr("Nothing found. Paste a token or wallet address to jump straight to it.")) + "</li>";
+      return;
+    }
+    list.innerHTML = items.map(function (it, i) {
+      var ext = /^https?:/.test(it[2]);
+      return '<li role="option" id="ck-o' + i + '" data-ck-i="' + i + '" class="ck-' + it[3] + '"><span class="ck-k">' + esc(tr(KIND[it[3]] || "")) + '</span>' +
+        '<span class="ck-t"><b' + (it[3] === "coin" || it[3] === "addr" && i === 0 ? " data-no-i18n" : "") + ">" + esc(it[3] === "coin" ? it[0] : tr(it[0])) + "</b><small" + (it[3] === "coin" || it[3] === "addr" ? " data-no-i18n" : "") + ">" +
+        esc(it[3] === "coin" || /^0x/.test(it[1]) ? it[1] : tr(it[1])) + "</small></span>" + (ext ? '<span class="ck-ext" aria-hidden="true">↗</span>' : "") + "</li>";
+    }).join("");
+    paintSel();
+  }
+  function paintSel(scroll) {
+    var lis = list.querySelectorAll("[data-ck-i]");
+    lis.forEach(function (li, i) { li.classList.toggle("on", i === sel); li.setAttribute("aria-selected", i === sel ? "true" : "false"); });
+    input.setAttribute("aria-activedescendant", lis[sel] ? "ck-o" + sel : "");
+    if (scroll && lis[sel]) lis[sel].scrollIntoView({ block: "nearest" });
+  }
+  function go(i, e) {
+    var it = items[i];
+    if (!it) return;
+    var href = it[2];
+    hide();
+    if (/^https?:/.test(href)) { window.open(href, "_blank", "noopener"); return; }
+    var here = location.pathname.replace(/\.html$/, "").replace(/\/$/, "") || "/";
+    var tgt = href.split("#")[0].split("?")[0] || "/";
+    var norm = function (p) { return p === "/arcpad" ? "/arc" : p === "/circlepad" ? "/circle" : p; };
+    if (e && (e.metaKey || e.ctrlKey)) { window.open(href, "_blank", "noopener"); return; }
+    if (norm(here) === norm(tgt) && href.indexOf("#") >= 0 && href.indexOf("?") < 0) { location.hash = href.slice(href.indexOf("#")); return; }
+    location.href = href;
+  }
+  function show(prefill) {
+    if (!root) build();
+    lastFocus = document.activeElement;
+    root.hidden = false;
+    open = true;
+    document.documentElement.classList.add("ck-open");
+    input.placeholder = tr("Search pages, utilities, coins, or paste an address");
+    var f = root.querySelectorAll(".ck-foot em");
+    f[0].textContent = tr("to move"); f[1].textContent = tr("to open");
+    root.querySelector(".ck-hint").textContent = (mac ? "⌘" : "Ctrl") + " K";
+    input.value = prefill || "";
+    sel = 0;
+    render();
+    loadCoins();
+    requestAnimationFrame(function () { input.focus(); root.classList.add("in"); });
+  }
+  function hide() {
+    if (!root || !open) return;
+    open = false;
+    root.classList.remove("in");
+    root.hidden = true;
+    document.documentElement.classList.remove("ck-open");
+    if (lastFocus && lastFocus.focus) try { lastFocus.focus(); } catch (e) { /* gone */ }
+  }
+
+  document.addEventListener("keydown", function (e) {
+    var k = (e.key || "").toLowerCase();
+    if ((e.metaKey || e.ctrlKey) && k === "k") { e.preventDefault(); open ? hide() : show(); return; }
+    if (k === "/" && !open && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      var t = e.target, tag = t && t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) return;
+      e.preventDefault(); show();
+    }
+  });
+  document.addEventListener("paste", function (e) {
+    if (open) return;
+    var t = e.target, tag = t && t.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || (t && t.isContentEditable)) return;
+    var s = ((e.clipboardData && e.clipboardData.getData("text")) || "").trim();
+    if (isAddr(s)) { e.preventDefault(); show(s); }
+  });
+
+  // the visible trigger in the top bar (every page has either .ax-top or ArcPad/CirclePad's .headbar)
+  function addTrigger() {
+    if (document.querySelector(".ck-btn")) return;
+    var bar = document.querySelector(".bp-topbar-right");
+    var host = bar || document.querySelector("header.ax-top");
+    if (!host) return;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "ck-btn";
+    b.setAttribute("aria-label", "Search");
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/></svg><span>Search</span><kbd>' + (mac ? "⌘K" : "Ctrl K") + "</kbd>";
+    b.addEventListener("click", function () { show(); });
+    if (bar) { b.classList.add("ck-btn-bar"); b.setAttribute("aria-label", "Search the whole site"); bar.insertBefore(b, bar.querySelector(".bp-chain-pill") || bar.firstChild); return; }
+    var cta = host.querySelector(".ax-top-right, .ax-top-cta");
+    if (cta) host.insertBefore(b, cta); else host.appendChild(b);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addTrigger); else addTrigger();
+
+  window.arcCmdk = { open: show, close: hide };
+})();
+;
+/* ---- arc-nav.js ---- */
+// arc-nav.js — the one menu every ARCIRCLE PAD page shares (styles: arc-nav.css).
+//   · four menus — Trade, Earn, ARCIA, Tools — each opening a panel of what's in it, with the rarely used
+//     pages under "More" at the bottom of each panel (their links keep working)
+//   · right side: search (the page's Ctrl+K palette, where it has one), language, $ARCIRCLE, $ARCIA, Wallet
+//   · a second row with the pages of the menu you're in (desktop), or the page's own tabs (CirclePad)
+//   · phones: Home · Trade · Earn · ARCIA · Tools at the bottom; each opens a sheet with its pages
+// It replaces the old top switcher, the two bottom bars and ArcPad's long sidebar (arc-nav.css hides them).
+// Plain script, no dependencies; labels in English, Korean and Chinese (follows the page's language).
+// Inside ARCIRCLE World (/play opens a shop's page in an iframe) the world is the chrome: hide the site's own.
+try {
+  if (window.top !== window.self && /^\/play\b/.test(window.top.location.pathname)) {
+    document.documentElement.classList.add("in-world");
+    // Esc inside the shop goes back to the planet
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !e.defaultPrevented) window.top.postMessage({ arcWorld: "close" }, location.origin); });
+  }
+} catch (e) { /* another origin */ }
+(function () {
+  "use strict";
+  if (window.arcNav) return;
+  var D = document, H = D.documentElement;
+  var ICON = {"planet":"<circle cx=\"12\" cy=\"12\" r=\"5.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/><path d=\"M3.2 15.2c-1.6 2.4 4.7 2.2 10.3-.6s9.4-6.7 7.3-7.6c-.8-.3-2.2-.1-3.9.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/>","home":"<path d=\"M3 11.5 12 4l9 7.5M5.5 10v9.5h4.5V14h4v5.5h4.5V10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>","grid":"<rect x=\"3.5\" y=\"3.5\" width=\"7.5\" height=\"7.5\" rx=\"1.5\"/><rect x=\"13\" y=\"3.5\" width=\"7.5\" height=\"7.5\" rx=\"1.5\"/><rect x=\"3.5\" y=\"13\" width=\"7.5\" height=\"7.5\" rx=\"1.5\"/><rect x=\"13\" y=\"13\" width=\"7.5\" height=\"7.5\" rx=\"1.5\"/>","rocket":"<path d=\"M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z\"/><circle cx=\"12\" cy=\"10.5\" r=\"2\"/><path d=\"M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3M9.5 19.5 12 22l2.5-2.5\"/>","doc":"<path d=\"M6.5 3h8L18.5 6v15h-12z\"/><path d=\"M14.5 3v3h4\"/>","search":"<circle cx=\"10.8\" cy=\"10.8\" r=\"6.3\"/><path d=\"M20 20l-4.5-4.5\"/>","link":"<path d=\"M9.5 14.5 14.5 9.5\"/><path d=\"M11 7.2 13.2 5A4 4 0 1 1 19 10.8L16.8 13\"/><path d=\"M13 16.8 10.8 19A4 4 0 1 1 5 13.2L7.2 11\"/>","ext":"<path d=\"M14 5h5v5M19 5l-8.5 8.5\"/><path d=\"M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4\"/>","chevron":"<path d=\"M6 9l6 6 6-6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>","wallet":"<path d=\"M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3\"/><rect x=\"4\" y=\"8\" width=\"16\" height=\"11\" rx=\"2.5\"/><circle cx=\"16\" cy=\"13.5\" r=\"1.2\" fill=\"currentColor\"/>","scan":"<path d=\"M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z\"/><circle cx=\"11.5\" cy=\"11.5\" r=\"3\"/><path d=\"M13.7 13.7l2.3 2.3\"/>","bridge":"<path d=\"M3 15.5h18\"/><path d=\"M4.5 15.5V19M19.5 15.5V19\"/><path d=\"M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8\"/><path d=\"M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6\"/>","omni":"<path d=\"M12 12c-1.7-2.3-3.1-3.4-4.8-3.4a3.4 3.4 0 0 0 0 6.8c1.7 0 3.1-1.1 4.8-3.4s3.1-3.4 4.8-3.4a3.4 3.4 0 0 1 0 6.8c-1.7 0-3.1-1.1-4.8-3.4z\"/><circle cx=\"12\" cy=\"3.5\" r=\"1.3\"/><circle cx=\"4\" cy=\"20\" r=\"1.3\"/><circle cx=\"20\" cy=\"20\" r=\"1.3\"/>","arcia":"<path d=\"M5 17.5V8.5A3.5 3.5 0 0 1 8.5 5h7A3.5 3.5 0 0 1 19 8.5v5a3.5 3.5 0 0 1-3.5 3.5H10l-4 3z\"/><path d=\"M12 8.2l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z\"/>","mine":"<path d=\"M5 19.5 14.5 10\"/><path d=\"M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6\"/><path d=\"M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5\"/>","desk":"<path d=\"M4 19.5h16\"/><path d=\"M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5\"/><path d=\"M5 9.5l4.5-4 4 3 5.5-5\"/>","agent":"<circle cx=\"12\" cy=\"12\" r=\"3.2\"/><path d=\"M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1\"/>","swap":"<path d=\"M7 4v14M7 18l-3-3M7 18l3-3M17 20V6M17 6l-3 3M17 6l3 3\"/>","orders":"<path d=\"M12 3.5v17\"/><path d=\"M9.5 7H5M9.5 11H3.5M9.5 15H6\"/><path d=\"M14.5 9H19M14.5 13H20.5M14.5 17H17.5\"/>","predict":"<path d=\"M3.5 18.5l5-6 3.5 3 6.5-8.5\"/><path d=\"M14.5 7h4v4\"/><path d=\"M3.5 21h17\"/>","nft":"<rect x=\"3.5\" y=\"4\" width=\"17\" height=\"16\" rx=\"2.5\"/><circle cx=\"9\" cy=\"9.5\" r=\"1.8\"/><path d=\"M4 17.5l4.6-4.4 3.4 3 3.2-3.6 4.8 5\"/>","vea":"<rect x=\"5\" y=\"11\" width=\"14\" height=\"9\" rx=\"2.2\"/><path d=\"M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11\"/><path d=\"M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z\"/>","stake":"<rect x=\"5\" y=\"10.5\" width=\"14\" height=\"9.5\" rx=\"2.2\"/><path d=\"M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5\"/><path d=\"M12 14v2.5\"/>","works":"<rect x=\"3.5\" y=\"7.5\" width=\"17\" height=\"12\" rx=\"2.4\"/><path d=\"M9 7.5V6a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 6v1.5\"/><path d=\"M3.5 12.8h17\"/><circle cx=\"12\" cy=\"12.8\" r=\"1.5\"/>","a402":"<circle cx=\"9\" cy=\"12\" r=\"5.5\"/><path d=\"M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9\"/><path d=\"M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13\"/>","relay":"<circle cx=\"5.5\" cy=\"12\" r=\"2.6\"/><circle cx=\"12\" cy=\"12\" r=\"2.6\"/><circle cx=\"18.5\" cy=\"12\" r=\"2.6\"/><path d=\"M8.1 12h1.3M14.6 12h1.3\"/><path d=\"M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0\"/>","snap":"<path d=\"M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16\"/><circle cx=\"12\" cy=\"10.3\" r=\"2.3\"/><path d=\"M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8\"/>","fan":"<circle cx=\"5.5\" cy=\"12\" r=\"2.2\"/><circle cx=\"18.5\" cy=\"5.5\" r=\"2\"/><circle cx=\"18.5\" cy=\"12\" r=\"2\"/><circle cx=\"18.5\" cy=\"18.5\" r=\"2\"/><path d=\"M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6\"/>","drop":"<path d=\"M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z\"/><path d=\"M9.3 14.2a2.8 2.8 0 0 0 2.7 2.4\"/>","lock":"<rect x=\"5\" y=\"10.5\" width=\"14\" height=\"10\" rx=\"2.5\"/><path d=\"M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7\"/><circle cx=\"12\" cy=\"15.5\" r=\"1.3\"/>","trophy":"<path d=\"M8 4h8v5a4 4 0 0 1-8 0z\"/><path d=\"M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4\"/><path d=\"M12 13v4M9 20h6M10 17h4\"/>","star":"<path d=\"M12 3.2l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.6l6-.9z\" fill=\"currentColor\"/>","coin":"<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M12 7.3v9.4\"/><path d=\"M9.4 9.6c0-1.3 1.2-2.3 2.6-2.3s2.6.9 2.6 2c0 2.6-5.2 1.3-5.2 3.9 0 1.1 1.2 2 2.6 2s2.6-.9 2.6-2.1\"/>","bars":"<path d=\"M5 20V13\"/><path d=\"M12 20V7\"/><path d=\"M19 20V10\"/>","user":"<circle cx=\"12\" cy=\"8\" r=\"3.6\"/><path d=\"M4.5 20c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5\"/>","gift":"<rect x=\"4\" y=\"10\" width=\"16\" height=\"10\" rx=\"1\"/><path d=\"M4 10h16M12 10v10\"/><path d=\"M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z\"/>","bank":"<path d=\"M4 10 12 4l8 6\"/><path d=\"M5 10v9M9.3 10v9M14.7 10v9M19 10v9\"/><path d=\"M3 21h18\"/>","clock":"<circle cx=\"12\" cy=\"12\" r=\"8.2\"/><path d=\"M12 7.5V12l3.2 2\"/>","users":"<circle cx=\"9\" cy=\"8.3\" r=\"3.2\"/><path d=\"M2.8 19.5c0-3.4 2.8-6.2 6.2-6.2s6.2 2.8 6.2 6.2\"/><path d=\"M15.5 6.3a3.1 3.1 0 0 1 0 6.1M18.8 19.5c0-2.7-1.8-5-4.3-5.8\"/>","atom":"<circle cx=\"12\" cy=\"12\" r=\"1.6\" fill=\"currentColor\"/><ellipse cx=\"12\" cy=\"12\" rx=\"9\" ry=\"3.6\"/><ellipse cx=\"12\" cy=\"12\" rx=\"9\" ry=\"3.6\" transform=\"rotate(60 12 12)\"/><ellipse cx=\"12\" cy=\"12\" rx=\"9\" ry=\"3.6\" transform=\"rotate(120 12 12)\"/>","crown":"<path d=\"M4 18.5h16l-1.2-9-4 3.8-2.8-5.6-2.8 5.6-4-3.8z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"};
+  ICON.tools = '<path d="M14.7 6.3a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3z"/><path d="M14.7 6.3 17 4l3 3-2.3 2.3"/><path d="M5 4.5 9 8.5M4 9.5l3-3"/>';
+  ICON.cat = '<path d="M5 9.5V4.5l3.5 3h7l3.5-3v5c1 1.3 1.5 2.8 1.5 4.5 0 4.1-3.8 6.5-8.5 6.5S3.5 18.1 3.5 14c0-1.7.5-3.2 1.5-4.5z"/><path d="M9 13.2h.01M15 13.2h.01M11 16c.6.5 1.4.5 2 0"/>';
+  ICON.chat = '<path d="M5 17.5V8.5A3.5 3.5 0 0 1 8.5 5h7A3.5 3.5 0 0 1 19 8.5v5a3.5 3.5 0 0 1-3.5 3.5H10l-4 3z"/>';
+  ICON.chart = '<path d="M4 19.5h16"/><path d="M7 16v-4M11 16V8M15 16v-6M19 16V5"/>';
+  ICON.map = '<path d="M9 4.5 3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5z"/><path d="M9 4.5v13M15 6.5v13"/>';
+  ICON.brand = '<circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/>';
+  ICON.flag = '<path d="M5 21V4.5M5 5h11l-2 3.5 2 3.5H5"/>';
+
+  var TR = {
+    ko: {
+      "ARCIRCLE Wallet": "ARCIRCLE 지갑", Trade: "트레이드", Earn: "수익", Tools: "도구", More: "더보기", Play: "게임", "Enter Game World": "게임 월드 입장", Home: "홈", Wallet: "지갑", Search: "검색", Language: "언어", "Search & language": "검색 · 언어", Close: "닫기", Menu: "메뉴",
+      Explore: "탐색", "Every coin on ArcPad, live": "ArcPad의 모든 코인 실시간", Launch: "런치", "Launch a coin with a real pool": "실제 풀과 함께 코인 발행", "Quantum Launch": "퀀텀 런치", "One price for everyone, no snipers": "모두 같은 가격, 스나이퍼 없음", "Game World": "게임 월드", "Walk ARCIRCLE World as a robot": "로봇이 되어 ARCIRCLE 월드를 걷기",
+      Orders: "주문", "Limit, stop and DCA orders": "지정가·스탑·분할매수 주문", Predict: "예측", "Call UP or DOWN, up to $5": "UP/DOWN 예측, 최대 $5",
+      Portfolio: "포트폴리오", "What your wallet holds": "내 지갑 보유 현황", "Fund a launch together": "함께 모금해서 런치",
+      Creators: "크리에이터", "Relay Launch": "릴레이 런치", "Getting started": "시작하기",
+      Staking: "스테이킹", "Lock $ARCIRCLE for veARCIRCLE": "$ARCIRCLE 락업 → veARCIRCLE", "Stake $ARCIA, earn $ARCIA": "$ARCIA 스테이킹, $ARCIA 보상",
+      "NFT Vault": "NFT 볼트", "Fees buy NFTs for holders": "수수료로 홀더용 NFT 구매", Reward: "리워드", "The $ARCIRCLE burn engine": "$ARCIRCLE 소각 엔진",
+      "Builder Mine": "빌더 마인", Airdrops: "에어드랍", "Every reward and where it stands": "모든 보상과 진행 상황", "Dig coins with 1 USDC": "1 USDC로 코인 채굴", Stats: "통계", "Invite friends": "친구 초대", "My profile": "내 프로필",
+      "Her stage, Arc's AI idol": "Arc의 AI 아이돌 무대", "Her cat and his buyback": "ARCIA의 고양이와 바이백", "ARCIA trades new coins in public": "ARCIA가 새 코인을 공개 트레이딩",
+      "Paste a token, get her safety call": "토큰 주소로 안전 판정 받기", "AI agents hire each other in USDC": "AI 에이전트끼리 USDC로 일 거래", "Talk to ARCIA": "ARCIA와 대화",
+      Scanner: "스캐너", "Safety-scan any token": "토큰 안전 점검", Locker: "락커", "Lock tokens or LP": "토큰·LP 잠금", Bridge: "브리지", "Move coins between chains": "체인 간 코인 이동",
+      Multisender: "멀티센더", "Send to many wallets at once": "여러 지갑에 한 번에 전송", Snapshot: "스냅샷", "Holder lists for airdrops": "에어드랍용 홀더 목록",
+      Liquidity: "유동성", "Add and manage pool liquidity": "풀 유동성 추가·관리", Docs: "문서", "What's new": "새 소식", Whitepaper: "백서", Roadmap: "로드맵", Brand: "브랜드",
+      "The core coin": "핵심 코인", "ARCIA's coin": "ARCIA의 코인", "Everything on ARCIRCLE PAD": "ARCIRCLE PAD 한눈에 보기",
+      "Launch, buy and sell on Arc": "Arc에서 발행하고 사고팔기", "Stake, burn and get rewarded": "스테이킹·소각으로 보상받기", "Arc's AI idol and her crew": "Arc의 AI 아이돌과 친구들", "Free tools for any Arc token": "모든 Arc 토큰용 무료 도구",
+    },
+    zh: {
+      "ARCIRCLE Wallet": "ARCIRCLE 钱包", Trade: "交易", Earn: "收益", Tools: "工具", More: "更多", Play: "游戏", "Enter Game World": "进入游戏世界", Home: "首页", Wallet: "钱包", Search: "搜索", Language: "语言", "Search & language": "搜索 · 语言", Close: "关闭", Menu: "菜单",
+      Explore: "探索", "Every coin on ArcPad, live": "ArcPad 全部代币，实时", Launch: "发币", "Launch a coin with a real pool": "发行代币，自带真实池子", "Quantum Launch": "量子发射", "One price for everyone, no snipers": "所有人同一价格，没有狙击", "Game World": "游戏世界", "Walk ARCIRCLE World as a robot": "化身机器人漫游 ARCIRCLE 世界",
+      Orders: "订单", "Limit, stop and DCA orders": "限价、止损和定投订单", Predict: "预测", "Call UP or DOWN, up to $5": "猜涨跌，最多 $5",
+      Portfolio: "资产", "What your wallet holds": "你的钱包持仓", "Fund a launch together": "一起众筹发币",
+      Creators: "创作者", "Relay Launch": "接力发币", "Getting started": "新手入门",
+      Staking: "质押", "Lock $ARCIRCLE for veARCIRCLE": "锁仓 $ARCIRCLE 获得 veARCIRCLE", "Stake $ARCIA, earn $ARCIA": "质押 $ARCIA，赚 $ARCIA",
+      "NFT Vault": "NFT 金库", "Fees buy NFTs for holders": "手续费为持有者购买 NFT", Reward: "奖励", "The $ARCIRCLE burn engine": "$ARCIRCLE 销毁引擎",
+      "Builder Mine": "建造者矿场", Airdrops: "空投", "Every reward and where it stands": "所有奖励及进度", "Dig coins with 1 USDC": "用 1 USDC 挖币", Stats: "数据", "Invite friends": "邀请好友", "My profile": "我的主页",
+      "Her stage, Arc's AI idol": "Arc 的 AI 偶像舞台", "Her cat and his buyback": "她的猫和回购", "ARCIA trades new coins in public": "ARCIA 公开交易新币",
+      "Paste a token, get her safety call": "粘贴代币，获得安全判断", "AI agents hire each other in USDC": "AI 代理之间用 USDC 雇佣", "Talk to ARCIA": "和 ARCIA 聊天",
+      Scanner: "扫描", "Safety-scan any token": "代币安全检查", Locker: "锁仓", "Lock tokens or LP": "锁定代币或 LP", Bridge: "跨链桥", "Move coins between chains": "跨链转移代币",
+      Multisender: "批量转账", "Send to many wallets at once": "一次发给多个钱包", Snapshot: "快照", "Holder lists for airdrops": "空投用持有者名单",
+      Liquidity: "流动性", "Add and manage pool liquidity": "添加和管理池子流动性", Docs: "文档", "What's new": "最新更新", Whitepaper: "白皮书", Roadmap: "路线图", Brand: "品牌",
+      "The core coin": "核心代币", "ARCIA's coin": "ARCIA 的代币", "Everything on ARCIRCLE PAD": "ARCIRCLE PAD 一览",
+      "Launch, buy and sell on Arc": "在 Arc 上发币和交易", "Stake, burn and get rewarded": "质押、销毁、获得奖励", "Arc's AI idol and her crew": "Arc 的 AI 偶像和她的伙伴", "Free tools for any Arc token": "适用于任何 Arc 代币的免费工具",
+    },
+  };
+  var lang = function () { var l = (H.getAttribute("lang") || "").slice(0, 2); if (l !== "ko" && l !== "zh") { try { l = localStorage.getItem("arcircle.lang") || l; } catch (e) { /* private mode */ } } return l === "ko" || l === "zh" ? l : "en"; };
+  var t = function (s) { var d = TR[lang()]; return (d && d[s]) || s; };
+  var esc = function (x) { return String(x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var svg = function (k, cls) { return '<svg class="' + (cls || "anav-i") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[k] || "") + "</svg>"; };
+
+  // ---- what's where: [id, label, description, link, icon] ----
+  var GROUPS = [
+    { id: "trade", label: "Trade", icon: "predict", line: "Launch, buy and sell on Arc",
+      items: [["explore", "Explore", "Every coin on ArcPad, live", "/arc#explore", "grid"], ["launch", "Launch", "Launch a coin with a real pool", "/arc#launch", "rocket"],
+        ["quantum", "Quantum Launch", "One price for everyone, no snipers", "/arc#quantum", "atom"],
+        ["play", "Game World", "Walk ARCIRCLE World as a robot", "/play", "planet"],
+        ["swap", "Swap", "Buy any Arc token with $ARCIRCLE", "/arc#swap", "swap"], ["orders", "Orders", "Limit, stop and DCA orders", "/arc#orders", "orders"], ["predict", "Predict", "Call UP or DOWN, up to $5", "/arc#predict", "predict"], ["paper", "Paper Trading", "Play money, live prices, weekly board", "/arc#paper", "trophy"],
+        ["portfolio", "Portfolio", "What your wallet holds", "/arc#portfolio", "wallet"], ["circle", "CirclePad", "Fund a launch together", "/circle", "brand"]],
+      more: [["perp", "Perps (soon)", "/arc#perp"], ["creators", "Creators", "/arc#creators"], ["relay", "Relay Launch", "/arc#relay"], ["start", "Getting started", "/start"]] },
+    { id: "earn", label: "Earn", icon: "coin", line: "Stake, burn and get rewarded",
+      items: [["staking", "Staking", "Lock $ARCIRCLE for veARCIRCLE", "/arc#staking", "stake"], ["vearcia", "veARCIA", "Stake $ARCIA, earn $ARCIA", "/arc#vearcia", "vea"],
+        ["nft", "NFT Vault", "Fees buy NFTs for holders", "/arc#nft", "nft"], ["reward", "Reward", "The $ARCIRCLE burn engine", "/reward", "gift"],
+        ["mine", "Builder Mine", "Dig coins with 1 USDC", "/arc#mine", "mine"], ["airdrops", "Airdrops", "Every reward and where it stands", "/airdrops", "drop"]],
+      more: [["invite", "Invite friends", "/arc#portfolio"], ["stats", "Stats", "/stats"], ["me", "My profile", "/me"]] },
+    { id: "arcia", label: "ARCIA", icon: "arcia", line: "Arc's AI idol and her crew",
+      items: [["stage", "ARCIA", "Her stage, Arc's AI idol", "/arcia", "arcia"], ["arcat", "ARCAT", "Her cat and his buyback", "/arcat", "cat"],
+        ["desk", "DESK", "ARCIA trades new coins in public", "/arc#desk", "desk"], ["agent", "AGENT", "Paste a token, get her safety call", "/arc#agent", "agent"],
+        ["works", "WORKS", "AI agents hire each other in USDC", "/arc#works", "works"]],
+      more: [["arcia", "Talk to ARCIA", "/arc#arcia"], ["arcia402", "ARCIA 402", "/arc#arcia402"]] },
+    { id: "tools", label: "Tools", icon: "tools", line: "Free tools for any Arc token",
+      items: [["scanner", "Scanner", "Safety-scan any token", "/arc#scanner", "scan"], ["locker", "Locker", "Lock tokens or LP", "/arc#locker", "lock"],
+        ["bridge", "Bridge", "Move coins between chains", "/arc#bridge", "bridge"], ["multisend", "Multisender", "Send to many wallets at once", "/arc#multisend", "fan"],
+        ["snapshot", "Snapshot", "Holder lists for airdrops", "/arc#snapshot", "snap"], ["liquidity", "Liquidity", "Add and manage pool liquidity", "/arc#liquidity", "drop"]],
+      more: [["omni", "OMNI", "/arc#omni"], ["docs", "Docs", "/arc#docs"], ["whitepaper", "Whitepaper", "/whitepaper"], ["updates", "What's new", "/updates"], ["roadmap", "Roadmap", "/roadmap"], ["brand", "Brand", "/brand"], ["wallet", "ARCIRCLE Wallet", "/wallet"]] },
+  ];
+  // ArcPad tabs that live in a menu without being one of its items
+  var ARC_EXTRA = { home: ["trade", "explore"], coin: ["trade", "explore"], compare: ["trade", "explore"], creator: ["trade", "creators"], arcircle: [null, null] };
+
+  var path = (location.pathname.replace(/\.html$/, "").replace(/\/+$/, "") || "/").replace(/^\/arcpad$/, "/arc").replace(/^\/circlepad$/, "/circle");
+  var onArc = path === "/arc";
+  var arcTab = function () { var h = location.hash.replace(/^#\/?/, "").split(/[?/]/)[0]; return h && D.getElementById("bp-panel-" + h) ? h : "home"; };
+  var curTab = onArc ? arcTab() : "";
+
+  /// [group id, item id] for where we are
+  function where() {
+    if (onArc) {
+      if (ARC_EXTRA[curTab]) return ARC_EXTRA[curTab];
+      for (var i = 0; i < GROUPS.length; i++) {
+        var g = GROUPS[i], all = g.items.concat(g.more);
+        for (var j = 0; j < all.length; j++) if (all[j][all[j].length === 3 ? 2 : 3] === "/arc#" + curTab) return [g.id, all[j][0]];
+      }
+      return [null, null];
+    }
+    for (var a = 0; a < GROUPS.length; a++) {
+      var gg = GROUPS[a], list = gg.items.concat(gg.more);
+      for (var b = 0; b < list.length; b++) {
+        var href = list[b][list[b].length === 3 ? 2 : 3];
+        if (href.indexOf("#") < 0 && (path === href || path.indexOf(href + "/") === 0)) return [gg.id, list[b][0]];
+      }
+    }
+    return [null, null];
+  }
+
+  // ---- following a link: on ArcPad, its own tabs switch in place ----
+  function go(href, e) {
+    var m = /^\/arc#([a-z0-9]+)$/.exec(href);
+    if (m && onArc && D.getElementById("bp-panel-" + m[1]) && typeof window.arcpadShowTab === "function") {
+      if (e) e.preventDefault();
+      closeAll();
+      window.arcpadShowTab(m[1]);
+      return;
+    }
+    closeAll();
+  }
+
+  // ---- markup ----
+  function itemHtml(it, here, cls) {
+    var on = here[1] === it[0];
+    return '<a class="' + cls + (on ? " on" : "") + '" href="' + esc(it[3]) + '"' + (on ? ' aria-current="page"' : "") + ">" +
+      '<span class="anav-ib">' + svg(it[4]) + "</span><span class=\"anav-it-tx\"><b>" + esc(t(it[1])) + "</b><small>" + esc(t(it[2])) + "</small></span></a>";
+  }
+  function moreHtml(g) {
+    return '<div class="anav-more"><span>' + esc(t("More")) + "</span>" + g.more.map(function (m) { return '<a href="' + esc(m[2]) + '">' + esc(t(m[1])) + "</a>"; }).join("") + "</div>";
+  }
+  function panelHtml(g, here) {
+    return '<div class="anav-items">' + g.items.map(function (it) { return itemHtml(it, here, "anav-it"); }).join("") + "</div>" + moreHtml(g);
+  }
+
+  var root, tabs, sheet, strip, openG = null, lastFocus = null, hoverT = 0;
+  var LANGS = [["en", "English"], ["ko", "한국어"], ["zh", "中文"]];
+
+  function build() {
+    var here = where();
+    root = D.createElement("div");
+    root.className = "anav";
+    root.id = "anav";
+    root.setAttribute("role", "banner");
+    root.setAttribute("data-no-i18n", "");
+    root.innerHTML =
+      '<div class="anav-in">' +
+        '<a class="anav-logo" href="/" aria-label="ARCIRCLE PAD — ' + esc(t("Home")) + '"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>ARCIRCLE</span></a>' +
+        '<div class="anav-groups" role="navigation" aria-label="' + esc(t("Menu")) + '">' +
+          GROUPS.map(function (g) {
+            return '<div class="anav-g' + (here[0] === g.id ? " here" : "") + '" data-g="' + g.id + '">' +
+              '<button type="button" class="anav-gb" aria-expanded="false" aria-controls="anav-p-' + g.id + '">' + esc(t(g.label)) + svg("chevron", "anav-chev") + "</button>" +
+              '<div class="anav-panel" id="anav-p-' + g.id + '" hidden>' + panelHtml(g, here) + "</div></div>";
+          }).join("") +
+        "</div>" +
+        '<div class="anav-right">' +
+          '<button type="button" class="anav-ic anav-search" aria-label="' + esc(t("Search")) + '" hidden>' + svg("search") + "</button>" +
+          '<div class="anav-lang"><button type="button" class="anav-ic anav-lb" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(t("Language")) + '">' + lang().toUpperCase() + "</button>" +
+            '<div class="anav-lmenu" hidden>' + LANGS.map(function (l) { return '<button type="button" data-l="' + l[0] + '"' + (lang() === l[0] ? ' aria-current="true"' : "") + ">" + l[1] + "</button>"; }).join("") + "</div></div>" +
+          // phones (≤480px, arc-polish.css): search and language share this one button
+          '<div class="anav-mx"><button type="button" class="anav-ic anav-mb" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(t("Search & language")) + '">' + svg("search") + "<b>" + lang().toUpperCase() + "</b></button>" +
+            '<div class="anav-mmenu" hidden><button type="button" data-act="search" hidden>' + svg("search") + "<span>" + esc(t("Search")) + "</span></button><hr data-act=\"search\" hidden><small>" + esc(t("Language")) + "</small>" +
+              LANGS.map(function (l) { return '<button type="button" data-l="' + l[0] + '"' + (lang() === l[0] ? ' aria-current="true"' : "") + "><span>" + l[1] + "</span></button>"; }).join("") + "</div></div>" +
+          // Game World from every page of the Platform World: a lit pill in the bar (the dock's centre button on phones)
+          '<a class="anav-play" href="/play" title="' + esc(t("Enter Game World")) + '">' + svg("planet") + "<span>" + esc(t("Game World")) + "</span></a>" +
+          '<a class="anav-chip" href="/arcircle" title="$ARCIRCLE — ' + esc(t("The core coin")) + '"><img src="/images/arcircle-mark-sm.webp" alt="" width="160" height="111"><span>$ARCIRCLE</span></a>' +
+          '<a class="anav-chip" href="/arcia" title="$ARCIA — ' + esc(t("ARCIA's coin")) + '"><img src="/images/arcia-avatar-96.jpg" alt="" width="96" height="96" class="r"><span>$ARCIA</span></a>' +
+          '<div class="cw"></div>' + // the wallet button: arc-connect.js fills it (the same one on every page)
+        "</div>" +
+      "</div>" +
+      '<div class="anav-strip" role="navigation" aria-label="' + esc(t("Menu")) + ' 2" hidden><div class="anav-strip-in"></div></div>';
+
+    tabs = D.createElement("div");
+    tabs.className = "anav-tabs";
+    tabs.setAttribute("role", "navigation");
+    tabs.setAttribute("aria-label", t("Menu"));
+    tabs.setAttribute("data-no-i18n", "");
+    tabs.innerHTML = '<a class="anav-tab' + (path === "/" ? " on" : "") + '" href="/">' + svg("home") + "<span>" + esc(t("Home")) + "</span></a>" +
+      GROUPS.map(function (g, i) { return (i === 2 ? '<a class="anav-tab anav-tab-play" href="/play" aria-label="' + esc(t("Enter Game World")) + '"><i>' + svg("planet") + "</i><span>" + esc(t("Play")) + "</span></a>" : "") + '<button type="button" class="anav-tab' + (here[0] === g.id ? " on" : "") + '" data-g="' + g.id + '" aria-haspopup="dialog">' + svg(g.icon) + "<span>" + esc(t(g.label)) + "</span></button>"; }).join("");
+
+    sheet = D.createElement("div");
+    sheet.className = "anav-sheet";
+    sheet.hidden = true;
+    sheet.setAttribute("data-no-i18n", "");
+    sheet.innerHTML = '<div class="anav-scrim"></div><div class="anav-sheet-in" role="dialog" aria-modal="true" aria-labelledby="anav-sheet-h"><div class="anav-sheet-top"><b id="anav-sheet-h"></b><button type="button" class="anav-ic anav-x" aria-label="' + esc(t("Close")) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="anav-sheet-body"></div></div>';
+
+    D.body.insertBefore(root, D.body.firstChild);
+    D.body.appendChild(tabs);
+    D.body.appendChild(sheet);
+    strip = root.querySelector(".anav-strip");
+    H.classList.add("anav-on");
+    wire();
+    paintStrip();
+    paintMap();
+    if (window.arcCmdk) showSearch();
+  }
+  function showSearch() { [].forEach.call(root.querySelectorAll('.anav-search, .anav-mmenu [data-act="search"]'), function (el) { el.hidden = false; }); }
+
+  // the second row: this page's own tabs (CirclePad's sidebar), else the pages of the menu you're in
+  function paintStrip() {
+    var here = where(), inner = strip.querySelector(".anav-strip-in"), local = !onArc && D.querySelectorAll(".bp-sidebar .bp-nav-item[data-tab]");
+    var html = "";
+    if (local && local.length) {
+      html = [].map.call(local, function (b) {
+        var label = [].filter.call(b.childNodes, function (n) { return n.nodeType === 3; }).map(function (n) { return n.textContent; }).join("").trim();
+        var ic = b.querySelector("svg");
+        return '<button type="button" class="anav-st' + (b.classList.contains("active") ? " on" : "") + '" data-local="' + esc(b.dataset.tab) + '">' + (ic ? ic.outerHTML.replace("<svg", '<svg class="anav-i"') : "") + "<span>" + esc(label) + "</span></button>";
+      }).join("");
+      strip.classList.add("local");
+    } else if (here[0]) {
+      var g = GROUPS.filter(function (x) { return x.id === here[0]; })[0];
+      html = g.items.map(function (it) { var on = here[1] === it[0]; return '<a class="anav-st' + (on ? " on" : "") + '" href="' + esc(it[3]) + '"' + (on ? ' aria-current="page"' : "") + ">" + svg(it[4]) + "<span>" + esc(t(it[1])) + "</span></a>"; }).join("");
+      strip.classList.remove("local");
+    }
+    inner.innerHTML = html;
+    strip.style.setProperty("--strip-acc", local && local.length ? "#39ff88" : ({ trade: "#4d8dff", earn: "#2fe6a4", arcia: "#ff7ad1", tools: "#8fb4d9" })[here[0]] || "#4d8dff");
+    strip.hidden = !html;
+    H.classList.toggle("anav-has-strip", !!html);
+    H.classList.toggle("anav-has-local", !!html && strip.classList.contains("local"));
+    var on = inner.querySelector(".on");
+    if (on && inner.scrollWidth > inner.clientWidth) inner.scrollLeft = Math.max(0, on.offsetLeft - 24);
+    // the menus and the bottom bar follow along
+    [].forEach.call(root.querySelectorAll(".anav-g"), function (el) { el.classList.toggle("here", el.dataset.g === here[0]); });
+    [].forEach.call(tabs.querySelectorAll(".anav-tab[data-g]"), function (el) { el.classList.toggle("on", el.dataset.g === here[0]); });
+    [].forEach.call(root.querySelectorAll(".anav-panel"), function (p) {
+      var g = GROUPS.filter(function (x) { return "anav-p-" + x.id === p.id; })[0];
+      p.innerHTML = panelHtml(g, here);
+    });
+  }
+
+  // the home page's map: the four menus side by side
+  function paintMap() {
+    var grid = D.getElementById("hm-map-grid"), h = D.getElementById("hm-map-h");
+    if (!grid) return;
+    if (h) { h.textContent = t("Everything on ARCIRCLE PAD"); h.setAttribute("data-no-i18n", ""); }
+    grid.setAttribute("data-no-i18n", "");
+    grid.innerHTML = GROUPS.map(function (g) {
+      return '<div class="hm-mapc" data-g="' + g.id + '"><div class="hm-mapc-h">' + svg(g.icon) + "<div><b>" + esc(t(g.label)) + "</b><small>" + esc(t(g.line)) + "</small></div></div>" +
+        '<div class="hm-mapc-l">' + g.items.map(function (it) { return '<a href="' + esc(it[3]) + '">' + svg(it[4]) + "<span><b>" + esc(t(it[1])) + "</b><small>" + esc(t(it[2])) + "</small></span></a>"; }).join("") + "</div></div>";
+    }).join("");
+  }
+
+  // ---- open / close ----
+  function setOpen(id) {
+    if (openG === id) return;
+    openG = id;
+    [].forEach.call(root.querySelectorAll(".anav-g"), function (el) {
+      var on = el.dataset.g === id;
+      el.classList.toggle("open", on);
+      el.querySelector(".anav-gb").setAttribute("aria-expanded", on ? "true" : "false");
+      el.querySelector(".anav-panel").hidden = !on;
+    });
+  }
+  function openSheet(id, from) {
+    var g = GROUPS.filter(function (x) { return x.id === id; })[0];
+    if (!g) return;
+    lastFocus = from || D.activeElement;
+    sheet.querySelector("#anav-sheet-h").textContent = t(g.label);
+    sheet.querySelector(".anav-sheet-body").innerHTML = '<div class="anav-sheet-grid">' + g.items.map(function (it) { return itemHtml(it, where(), "anav-it"); }).join("") + "</div>" + moreHtml(g);
+    sheet.hidden = false;
+    H.classList.add("anav-locked");
+    requestAnimationFrame(function () { sheet.classList.add("in"); });
+    var x = sheet.querySelector(".anav-x"); if (x) x.focus();
+  }
+  function closeSheet() {
+    if (sheet.hidden) return;
+    sheet.classList.remove("in");
+    H.classList.remove("anav-locked");
+    var done = function () { sheet.hidden = true; };
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) done(); else setTimeout(done, 200);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function closeLang() {
+    var m = root.querySelector(".anav-lmenu"); m.hidden = true; root.querySelector(".anav-lb").setAttribute("aria-expanded", "false");
+    root.querySelector(".anav-mmenu").hidden = true; root.querySelector(".anav-mb").setAttribute("aria-expanded", "false");
+  }
+  function closeAll() { setOpen(null); closeSheet(); closeLang(); }
+
+  function setLang(l) {
+    closeLang();
+    if (window.arcI18n && window.arcI18n.set) { window.arcI18n.set(l); return refresh(); }
+    var own = D.querySelector('.langs [data-lang="' + l + '"], [data-lang="' + l + '"]:not(#anav *)');
+    if (own) { own.click(); return setTimeout(refresh, 30); }
+    try { localStorage.setItem("arcircle.lang", l); } catch (e) { /* private mode */ }
+    location.reload();
+  }
+  // rebuild the labels in the page's language
+  function refresh() {
+    var keep = { strip: strip.querySelector(".anav-strip-in").scrollLeft };
+    var tool = root.querySelector(".bp-topbar-right"), home = D.querySelector(".bp-topbar");
+    if (tool && home) home.appendChild(tool);
+    root.remove(); tabs.remove(); sheet.remove(); openG = null;
+    build();
+    if (init.place) init.place();
+    strip.querySelector(".anav-strip-in").scrollLeft = keep.strip;
+  }
+
+  function wire() {
+    var fine = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+    [].forEach.call(root.querySelectorAll(".anav-g"), function (el) {
+      var id = el.dataset.g, btn = el.querySelector(".anav-gb");
+      btn.addEventListener("click", function (e) { e.stopPropagation(); closeLang(); setOpen(openG === id ? null : id); });
+      btn.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowDown") { e.preventDefault(); setOpen(id); var f = el.querySelector(".anav-it"); if (f) f.focus(); }
+      });
+      if (fine) {
+        el.addEventListener("mouseenter", function () { clearTimeout(hoverT); hoverT = setTimeout(function () { setOpen(id); }, openG ? 0 : 110); });
+        el.addEventListener("mouseleave", function () { clearTimeout(hoverT); hoverT = setTimeout(function () { if (openG === id) setOpen(null); }, 180); });
+      }
+    });
+    root.addEventListener("click", function (e) {
+      var a = e.target.closest("a[href]");
+      if (a && root.contains(a)) return go(a.getAttribute("href"), e);
+      var st = e.target.closest("[data-local]");
+      if (st) {
+        var b = D.querySelector('.bp-sidebar .bp-nav-item[data-tab="' + st.dataset.local + '"]');
+        if (b) b.click();
+        setTimeout(paintStrip, 0);
+      }
+    });
+    var lb = root.querySelector(".anav-lb"), lm = root.querySelector(".anav-lmenu");
+    lb.addEventListener("click", function (e) { e.stopPropagation(); setOpen(null); var o = lm.hidden; lm.hidden = !o; lb.setAttribute("aria-expanded", o ? "true" : "false"); if (o) lm.querySelector("button").focus(); });
+    lm.addEventListener("click", function (e) { var b = e.target.closest("[data-l]"); if (b) setLang(b.dataset.l); });
+    var mb = root.querySelector(".anav-mb"), mm = root.querySelector(".anav-mmenu");
+    mb.addEventListener("click", function (e) { e.stopPropagation(); setOpen(null); var o = mm.hidden; lm.hidden = true; mm.hidden = !o; mb.setAttribute("aria-expanded", o ? "true" : "false"); if (o) { var f = mm.querySelector("button:not([hidden])"); if (f) f.focus(); } });
+    mm.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-l]"); if (b) return setLang(b.dataset.l);
+      if (e.target.closest('[data-act="search"]')) { closeAll(); if (window.arcCmdk) window.arcCmdk.open(); }
+    });
+    root.querySelector(".anav-search").addEventListener("click", function () { closeAll(); if (window.arcCmdk) window.arcCmdk.open(); });
+    tabs.addEventListener("click", function (e) { var b = e.target.closest("button[data-g]"); if (b) openSheet(b.dataset.g, b); });
+    sheet.addEventListener("click", function (e) {
+      if (e.target.closest(".anav-scrim, .anav-x")) return closeSheet();
+      var a = e.target.closest("a[href]"); if (a) go(a.getAttribute("href"), e);
+    });
+  }
+
+  function init() {
+    if (D.getElementById("anav")) return;
+    build();
+    D.addEventListener("click", function (e) { if (root && !root.contains(e.target)) { setOpen(null); closeLang(); } });
+    D.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if (!sheet.hidden) return closeSheet();
+      if (openG) { var b = root.querySelector('.anav-g[data-g="' + openG + '"] .anav-gb'); setOpen(null); if (b) b.focus(); }
+      closeLang();
+    });
+    // ArcPad: the menus follow the tab you're on
+    D.addEventListener("arcpad:tab", function (e) { curTab = (e.detail && e.detail.tab) || arcTab(); paintStrip(); });
+    if (onArc) window.addEventListener("hashchange", function () { curTab = arcTab(); paintStrip(); });
+    // CirclePad: its sidebar tabs change from inside the page too
+    var side = D.querySelector(".bp-sidebar");
+    if (side && !onArc && "MutationObserver" in window) new MutationObserver(function () { clearTimeout(init.t); init.t = setTimeout(paintStrip, 30); }).observe(side, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    // the page changed its language (the site's switch, or ARCIA's own)
+    D.addEventListener("arc:lang", function () { setTimeout(refresh, 0); });
+    if ("MutationObserver" in window) new MutationObserver(function () { var l = lang(); if (l !== init.l) { init.l = l; refresh(); } }).observe(H, { attributes: true, attributeFilter: ["lang"] });
+    init.l = lang();
+    // ArcPad / CirclePad: their wallet button (and alerts) sit in this bar instead of a row of their own — on every
+    // screen since v10 (one wallet button, not two). The ARCIRCLE Wallet link moves to Tools → More there.
+    var tool = D.querySelector(".bp-topbar-right"), toolHome = tool && tool.parentNode, mq = window.matchMedia && matchMedia("all");
+    if (tool && mq) {
+      var place = function () {
+        var right = root.querySelector(".anav-right");
+        if (mq.matches && tool.parentNode !== right) right.insertBefore(tool, right.querySelector(".anav-wallet"));
+        else if (!mq.matches && tool.parentNode !== toolHome) toolHome.appendChild(tool);
+        H.classList.toggle("anav-tool-in", mq.matches);
+      };
+      place();
+      init.place = place;
+      if (mq.addEventListener) mq.addEventListener("change", place); else if (mq.addListener) mq.addListener(place);
+    }
+    // a palette that loads after us still gets its button
+    setTimeout(function () { if (window.arcCmdk) showSearch(); }, 1500);
+  }
+
+  window.arcNav = { groups: GROUPS, refresh: function () { if (root) refresh(); } };
+  if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", init); else init();
+})();
+;
+/* ---- arc-connect.js ---- */
+// arc-connect.js — one wallet button for every ARCIRCLE PAD page (styles: arc-nav.css, .cw-*).
+//
+// The same control sits at the right end of the menu bar everywhere: "Connect wallet" until a wallet is connected,
+// then the address with a menu — copy, network, balances, what's ready to claim, portfolio, recent transactions,
+// explorer, disconnect. Two ways of working under the one look:
+//   · app pages (ArcPad, CirclePad, Reward…): the page's own wallet code does the connecting (AppKit / WalletConnect,
+//     Robinhood Chain, Solana); this reads state.account and calls connectWallet() / disconnectWallet() /
+//     switchToArcNetwork() / switchToAltNetwork() / switchToSolana(). The page's own wallet slot is hidden.
+//   · every other page: the browser's wallets (EIP-6963, else window.ethereum), with a small chooser when there are
+//     several, links to open the site inside a wallet app on phones, and WalletConnect right on the page (QR code or
+//     a phone's wallet app, through Reown's AppKit loaded only when it's picked), so a browser without a wallet
+//     extension (Chrome, Edge, Safari on a computer) can still connect without leaving the page.
+// A wallet connected on one page shows on the next (the address is remembered in this browser; signing reconnects
+// when needed). "Disconnect" anywhere forgets it everywhere (shares ArcPad's homepad.walletDisconnected flag).
+//   window.arcConnect: { address(), live(), connect(), disconnect(), provider(), mount(), on(fn) }
+(function () {
+  "use strict";
+  if (window.arcConnect) return;
+  var D = document, H = D.documentElement;
+  var lang = function () { var l = (H.getAttribute("lang") || "en").slice(0, 2); if (l !== "ko" && l !== "zh") { try { l = localStorage.getItem("arcircle.lang") || l; } catch (e) { /* private */ } } return l === "ko" || l === "zh" ? l : "en"; };
+  var L = function (en, ko, zh) { var l = lang(); return l === "ko" ? ko : l === "zh" ? zh : en; };
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var isAddr = function (a) { return /^0x[0-9a-fA-F]{40}$/.test(String(a || "")); };
+  var lc = function (a) { return String(a || "").toLowerCase(); };
+  var short = function (a) { return a ? a.slice(0, 6) + "…" + a.slice(-4) : ""; };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var ls = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* private */ } },
+  };
+  var KEY = "arc.cw", OFF = "homepad.walletDisconnected", TXK = "arc.cw.tx";
+  var C = function () { return window.CONFIG || {}; };
+  var ARC = { id: 5042, hex: "0x13b2", name: "Arc", rpc: "https://rpc.mainnet.arc.io", expl: "https://arc.etherscan.io", token: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7" };
+  var RH = { id: 4663, hex: "0x1237", name: "Robinhood Chain", rpc: "https://rpc.mainnet.chain.robinhood.com", expl: "https://robinhoodchain.blockscout.com" };
+  var subs = [];
+  var api = (window.arcConnect = { on: function (fn) { subs.push(fn); } });
+
+  // ---------------- which mode ----------------
+  var appMode = function () { return typeof connectWallet === "function" && typeof state !== "undefined" && !!D.getElementById("wallet-slot"); };
+
+  // ---------------- browser wallets (EIP-6963) ----------------
+  var provs = new Map();
+  window.addEventListener("eip6963:announceProvider", function (e) {
+    var d = e.detail;
+    if (d && d.info && d.provider) provs.set(d.info.rdns || d.info.uuid, d);
+  });
+  try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) { /* old browser */ }
+  function wallets() {
+    var list = Array.from(provs.values());
+    if (!list.length && window.ethereum) list.push({ info: { name: window.ethereum.isMetaMask ? "MetaMask" : window.ethereum.isRabby ? "Rabby" : L("Browser wallet", "브라우저 지갑", "浏览器钱包"), rdns: "injected", icon: "" }, provider: window.ethereum });
+    return list;
+  }
+
+  // ---------------- the standalone session ----------------
+  var S = { addr: "", live: false, prov: null, rdns: "", chain: 0 };
+  function saved() { try { var j = JSON.parse(ls.get(KEY) || "null"); return j && isAddr(j.a) ? j : null; } catch (e) { return null; } }
+  function remember(a, rdns) { if (isAddr(a)) ls.set(KEY, JSON.stringify({ a: lc(a), rdns: rdns || (saved() || {}).rdns || "", at: Date.now() })); ls.set(OFF, null); try { ls.set("arc.v10.acct", lc(a)); } catch (e) { /* fine */ } }
+  function forget() { ls.set(KEY, null); ls.set(OFF, "1"); }
+  function attach(p) {
+    if (!p || p.__cw) return;
+    p.__cw = true;
+    try {
+      p.on && p.on("accountsChanged", function (a) { if (appMode()) return; if (a && a[0]) { S.addr = lc(a[0]); S.live = true; remember(S.addr, S.rdns); } else { S.live = false; } paint(); emit(); });
+      p.on && p.on("chainChanged", function (c) { if (appMode()) return; S.chain = parseInt(c, 16) || 0; paint(); });
+    } catch (e) { /* provider without events */ }
+  }
+  function restore() {
+    if (appMode()) return;
+    var sv = saved();
+    if (!sv || ls.get(OFF) === "1") return;
+    S.addr = sv.a; S.rdns = sv.rdns; S.live = false;
+    paint();
+    // the wallets announce themselves within a moment: ask the one we used, quietly
+    setTimeout(function () {
+      var w = (sv.rdns && provs.get(sv.rdns)) || wallets()[0];
+      if (!w) return;
+      w.provider.request({ method: "eth_accounts" }).then(function (a) {
+        a = (a || []).map(lc);
+        if (a.indexOf(sv.a) >= 0) { S.prov = w.provider; S.live = true; attach(w.provider); return w.provider.request({ method: "eth_chainId" }).then(function (c) { S.chain = parseInt(c, 16) || 0; }); }
+      }).catch(function () { /* stays remembered */ }).then(function () { paint(); emit(); });
+    }, 350);
+  }
+
+  // ---------------- what everything else asks ----------------
+  api.address = function () {
+    if (appMode()) return typeof state !== "undefined" && state.account ? lc(state.account) : "";
+    return S.addr;
+  };
+  api.live = function () { return appMode() ? !!(typeof state !== "undefined" && state.account) : S.live; };
+  function chainId() {
+    if (appMode()) { var c = typeof state !== "undefined" && state.chainId; return Number(c) || 0; }
+    return S.chain;
+  }
+  /// an EIP-1193 provider for the connected wallet (connects first if needed)
+  api.provider = function () {
+    if (appMode()) return (typeof state !== "undefined" && state.walletProvider) || window.ethereum || null;
+    if (S.live && S.prov) return Promise.resolve(S.prov);
+    return api.connect().then(function () { return S.prov; });
+  };
+  function emit() { var a = api.address(); subs.forEach(function (fn) { try { fn(a); } catch (e) { /* listener's own */ } }); }
+
+  // ---------------- connect / disconnect ----------------
+  api.connect = function () {
+    if (appMode()) {
+      if (typeof setUserDisconnected === "function") setUserDisconnected(false);
+      return Promise.resolve(connectWallet());
+    }
+    var list = wallets();
+    if (list.length === 1) return use(list[0]);
+    return chooser(list);
+  };
+  // the wallet's address. Some wallets answer the request with an empty list (Bitget Wallet on a non-EVM network,
+  // a WalletConnect session that didn't include Arc, a phone coming back from the wallet app a moment early): ask
+  // again quietly, use the address the WalletConnect session already holds, and only then say what to do.
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  function accountsOf(w) {
+    var p = w.provider, ok = function (a) { return a && a[0] && isAddr(a[0]); };
+    return p.request({ method: "eth_requestAccounts" }).then(function (a) {
+      if (ok(a)) return a;
+      if (w.addr && isAddr(w.addr)) return [w.addr];
+      return p.request({ method: "eth_accounts" }).catch(function () { return []; }).then(function (b) {
+        if (ok(b)) return b;
+        return wait(800).then(function () { return p.request({ method: "eth_accounts" }).catch(function () { return []; }); }).then(function (c) {
+          if (ok(c)) return c;
+          var x = new Error(L("Your wallet didn't share an address. In the wallet, pick an EVM account (Ethereum or Arc, not Bitcoin, Solana or Tron), then connect again.", "지갑이 주소를 보내주지 않았어요. 지갑에서 EVM 계정(이더리움 또는 Arc, 비트코인·솔라나·트론 아님)을 선택한 뒤 다시 연결해 주세요.", "钱包没有提供地址。请在钱包中选择 EVM 账户（以太坊或 Arc，而不是比特币、Solana 或 Tron），然后重新连接。"));
+          x.noAccount = true; throw x;
+        });
+      });
+    });
+  }
+  function use(w) {
+    return accountsOf(w).then(function (a) {
+      S.addr = lc(a[0]); S.live = true; S.prov = w.provider; S.rdns = w.info.rdns || "";
+      attach(w.provider);
+      remember(S.addr, S.rdns);
+      closeChooser();
+      return w.provider.request({ method: "eth_chainId" }).then(function (c) { S.chain = parseInt(c, 16) || 0; }).catch(function () {});
+    }).then(function () {
+      paint(); emit(); morph();
+      if (window.arcTxRing && window.arcTxRing.celebrate) window.arcTxRing.celebrate();
+      return S.addr;
+    });
+  }
+  // ---------------- WalletConnect on this page (Reown AppKit, loaded on demand) ----------------
+  var WC = null;
+  function wcLoad() {
+    if (WC) return WC;
+    var cfg = C(), pid = cfg.REOWN_PROJECT_ID || "278f543c581f60eec5975dc755f0c3dd";
+    // a blocked or very slow CDN mustn't leave the button spinning: after 15 s it counts as failed
+    var slow = new Promise(function (_, no) { setTimeout(function () { no(new Error("timeout")); }, 15000); });
+    WC = Promise.race([import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.8.18/dist/appkit.min.js"), slow]).then(function (m) {
+      var arc = { id: ARC.id, name: ARC.name, nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [ARC.rpc] } }, blockExplorers: { default: { name: "Explorer", url: ARC.expl } }, chainNamespace: "eip155", caipNetworkId: "eip155:" + ARC.id, testnet: false };
+      // Ethereum is listed too: a wallet that doesn't know Arc yet (Bitget Wallet, for one) then still shares an
+      // account. Signing in is a plain message signature, the same on any network.
+      var eth = { id: 1, name: "Ethereum", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: ["https://cloudflare-eth.com"] } }, blockExplorers: { default: { name: "Etherscan", url: "https://etherscan.io" } }, chainNamespace: "eip155", caipNetworkId: "eip155:1", testnet: false };
+      var ad = new m.WagmiAdapter({ projectId: pid, networks: [arc, eth] });
+      var modal = m.createAppKit({
+        adapters: [ad], networks: [arc, eth], defaultNetwork: arc, allowUnsupportedChain: true, projectId: pid,
+        metadata: { name: "ARCIRCLE", description: "ARCIRCLE on Circle's Arc", url: location.origin, icons: [location.origin + "/images/arcircle-mark-sm.png"] },
+        features: { email: false, socials: false, analytics: false },
+        themeMode: "dark", themeVariables: { "--w3m-z-index": 20000, "--w3m-accent": "#35d8d0" },
+      });
+      return { modal: modal, config: ad.wagmiConfig, core: m.WagmiCore };
+    });
+    WC.catch(function () { WC = null; }); // a failed load can be tried again
+    return WC;
+  }
+  /// connect through WalletConnect: an existing session comes back by itself; otherwise AppKit's modal opens
+  function useWC() {
+    closeChooser();
+    return wcLoad().then(function (W) {
+      return new Promise(function (resolve, reject) {
+        var done = false, opened = false, iv = 0, unsub = null, t0 = Date.now();
+        function finish(err, w) { if (done) return; done = true; clearInterval(iv); try { unsub && unsub(); } catch (e) { /* fine */ } if (err) reject(err); else resolve(w); }
+        function check() {
+          var a = W.core.getAccount(W.config);
+          if (a && a.isConnected && a.address && a.connector && a.connector.getProvider) {
+            a.connector.getProvider().then(function (p) { finish(null, { provider: p, addr: a.address, info: { name: a.connector.name || "WalletConnect", rdns: "walletconnect" } }); }, function (e) { finish(e); });
+            return;
+          }
+          // a session from before reconnects within a moment; if there isn't one, open the modal
+          if (!opened && Date.now() - t0 > 900) { opened = true; W.modal.open(); }
+        }
+        try { unsub = W.modal.subscribeState(function (st) { if (opened && st && !st.open) setTimeout(function () { check(); if (!done) { var x = new Error(L("The wallet wasn't connected.", "지갑이 연결되지 않았어요.", "钱包未连接。")); x.closed = true; finish(x); } }, 1500); }); } catch (e) { /* the poll covers it */ }
+        iv = setInterval(check, 400); check();
+      });
+    }, function () { throw new Error(L("WalletConnect couldn't load here (the network or an ad blocker may be stopping it). Try again, or use a browser wallet or ARCIRCLE Wallet.", "여기서 WalletConnect를 불러오지 못했어요(네트워크나 광고 차단기가 막고 있을 수 있어요). 다시 시도하거나 브라우저 지갑 또는 ARCIRCLE Wallet을 써 주세요.", "这里无法加载 WalletConnect（可能被网络或广告拦截器阻止）。请重试，或使用浏览器钱包或 ARCIRCLE Wallet。")); }).then(function (w) { return use(w); });
+  }
+  api.walletConnect = useWC;
+
+  api.disconnect = function () {
+    closeMenu();
+    if (appMode()) { ls.set(KEY, null); if (typeof disconnectWallet === "function") return Promise.resolve(disconnectWallet()); return Promise.resolve(); }
+    var p = S.prov;
+    S = { addr: "", live: false, prov: null, rdns: "", chain: 0 };
+    forget();
+    if (p && p.request) p.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }).catch(function () {});
+    if (WC) WC.then(function (W) { try { W.core.disconnect(W.config); } catch (e) { /* fine */ } }).catch(function () {});
+    paint(); emit();
+    return Promise.resolve();
+  };
+  function switchTo(net) {
+    closeMenu();
+    if (appMode()) {
+      if (net === "arc" && typeof switchToArcNetwork === "function") return switchToArcNetwork();
+      if (net === "rh" && typeof switchToAltNetwork === "function") return switchToAltNetwork();
+      if (net === "sol" && typeof switchToSolana === "function") return switchToSolana();
+      return;
+    }
+    var n = net === "rh" ? RH : ARC, p = S.prov;
+    if (!p) return api.connect();
+    var cfg = C(), pons = cfg.PONS || {};
+    var add = net === "rh"
+      ? { chainId: RH.hex, chainName: RH.name, rpcUrls: [pons.RPC || RH.rpc], blockExplorerUrls: [pons.EXPLORER || RH.expl], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }
+      : { chainId: cfg.CHAIN_ID_HEX || ARC.hex, chainName: cfg.CHAIN_NAME || ARC.name, rpcUrls: [cfg.RPC_URL || ARC.rpc], blockExplorerUrls: [cfg.BLOCK_EXPLORER || ARC.expl], nativeCurrency: cfg.NATIVE_CURRENCY || { name: "USDC", symbol: "USDC", decimals: 18 } };
+    return p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: n.hex }] }).catch(function (e) {
+      if (e && (e.code === 4902 || /unrecognized|not added/i.test(e.message || ""))) return p.request({ method: "wallet_addEthereumChain", params: [add] });
+    }).then(function () { return p.request({ method: "eth_chainId" }); }).then(function (c) { S.chain = parseInt(c, 16) || 0; paint(); }).catch(function () {});
+  }
+
+  // ---------------- the chooser (several browser wallets, or none) ----------------
+  var ch = null;
+  function closeChooser() { if (ch) { ch.remove(); ch = null; } }
+  function chooser(list) {
+    return new Promise(function (resolve) {
+      closeChooser();
+      ch = D.createElement("div");
+      ch.className = "cw-modal";
+      ch.setAttribute("role", "dialog"); ch.setAttribute("aria-modal", "true"); ch.setAttribute("aria-label", L("Connect a wallet", "지갑 연결", "连接钱包"));
+      var here = location.host + location.pathname + location.search;
+      var phone = /Android|iPhone|iPad/i.test(navigator.userAgent || "");
+      var rows = list.map(function (w, i) {
+        return '<button type="button" class="cw-w" data-i="' + i + '">' + (w.info.icon ? '<img src="' + esc(w.info.icon) + '" alt="" width="28" height="28">' : '<span class="cw-wi" aria-hidden="true"></span>') + "<b>" + esc(w.info.name) + '</b><small>' + esc(w.info.rdns === "app.arcircle.wallet" ? L("Email, Google, Apple or X", "이메일·구글·애플·X", "邮箱、Google、Apple 或 X") : L("Installed", "설치됨", "已安装")) + "</small></button>";
+      }).join("");
+      var apps = phone ? '<div class="cw-sec">' + esc(L("Open this page in a wallet app", "지갑 앱에서 이 페이지 열기", "在钱包应用中打开本页")) + '</div>' +
+        '<a class="cw-w" href="https://metamask.app.link/dapp/' + esc(here) + '"><span class="cw-wi mm" aria-hidden="true"></span><b>MetaMask</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" +
+        '<a class="cw-w" href="https://go.cb-w.com/dapp?cb_url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi cb" aria-hidden="true"></span><b>Coinbase Wallet</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" +
+        '<a class="cw-w" href="https://bkcode.vip?action=dapp&url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi bg" aria-hidden="true"></span><b>Bitget Wallet</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" : "";
+      ch.innerHTML = '<div class="cw-scrim" data-x></div><div class="cw-card">' +
+        '<div class="cw-card-h"><b>' + esc(L("Connect a wallet", "지갑 연결", "连接钱包")) + '</b><button type="button" class="cw-x" data-x aria-label="' + esc(L("Close", "닫기", "关闭")) + '">×</button></div>' +
+        (rows ? '<div class="cw-list">' + rows + "</div>" : '<p class="cw-none">' + esc(L("No wallet in this browser yet.", "이 브라우저에 지갑이 없어요.", "此浏览器还没有钱包。")) + "</p>") +
+        '<p class="cw-err" role="alert" hidden></p>' +
+        apps +
+        '<div class="cw-sec">' + esc(L("More ways", "다른 방법", "更多方式")) + "</div>" +
+        '<button type="button" class="cw-w" data-wc><span class="cw-wi wc" aria-hidden="true"></span><b>WalletConnect</b><small>' + esc(L("QR code, any wallet app", "QR 코드, 모든 지갑 앱", "二维码,任意钱包应用")) + "</small></button>" +
+        // ARCIRCLE Wallet (email, Google, Apple or X): listed above where this page loads it, otherwise opened on /wallet
+        (list.some(function (w) { return w.info && w.info.rdns === "app.arcircle.wallet"; }) ? "" : '<a class="cw-w" href="/wallet"><span class="cw-wi arc" aria-hidden="true"></span><b>ARCIRCLE Wallet</b><small>' + esc(L("Email, Google, Apple or X", "이메일·구글·애플·X", "邮箱、Google、Apple 或 X")) + "</small></a>") +
+        "</div>";
+      D.body.appendChild(ch);
+      ch.addEventListener("click", function (e) {
+        if (e.target.closest("[data-x]")) { closeChooser(); resolve(""); return; }
+        var b = e.target.closest("[data-i]");
+        var why = function (e) {
+          var code = e && (e.code || (e.data && e.data.code)), m = (e && (e.shortMessage || e.message)) || "";
+          if (code === -32002 || /already pending|already processing/i.test(m)) return L("Your wallet already has a request open. Click the wallet's icon in the browser toolbar to finish it.", "지갑에 이미 열린 요청이 있어요. 브라우저 툴바의 지갑 아이콘을 눌러 마저 진행해 주세요.", "钱包里已有一个未完成的请求。请点击浏览器工具栏中的钱包图标完成它。");
+          if (code === 4001 || /reject|denied|cancel/i.test(m) || (e && e.closed)) return L("Cancelled in the wallet. Pick a wallet to try again.", "지갑에서 취소됐어요. 지갑을 골라 다시 시도해 주세요.", "已在钱包中取消。请选择钱包重试。");
+          return m || L("Couldn't connect. Try again.", "연결하지 못했어요. 다시 시도해 주세요.", "无法连接，请重试。");
+        };
+        var fail = function (e) { if (!ch) { resolve(""); return; } var p = ch.querySelector(".cw-err"); if (p) { p.textContent = why(e); p.hidden = false; } };
+        if (b) { use(list[Number(b.getAttribute("data-i"))]).then(resolve, fail); return; }
+        var wcb = e.target.closest("[data-wc]"); if (wcb) { var sm = wcb.querySelector("small"); if (sm) sm.textContent = L("Opening WalletConnect…", "WalletConnect 여는 중…", "正在打开 WalletConnect…"); wcb.classList.add("busy"); }
+        if (wcb) { useWC().then(resolve, function (err) { if (err && err.closed) { resolve(""); return; } chooser(list).then(resolve); setTimeout(function () { fail(err); }, 0); }); }
+      });
+      D.addEventListener("keydown", function k(e) { if (e.key === "Escape") { D.removeEventListener("keydown", k); closeChooser(); resolve(""); } });
+      // WalletConnect takes a moment to load: start as soon as a pointer or the keyboard comes near it
+      var wcBtn = ch.querySelector("[data-wc]"); if (wcBtn) ["pointerenter", "focus", "touchstart"].forEach(function (t) { wcBtn.addEventListener(t, function () { wcLoad().catch(function () {}); }, { once: true, passive: true }); });
+      var first = ch.querySelector(".cw-w, .cw-x");
+      if (first) first.focus();
+    });
+  }
+
+  // ---------------- the button and its menu ----------------
+  var root = null, btn = null, menu = null, claimN = 0, bal = null, balAt = 0, balFor = "";
+  var ICON_W = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2" fill="currentColor"/></svg>';
+  var hue = function (a) { return (parseInt(String(a).slice(2, 8), 16) || 0) % 360; };
+  function netOf(id) { return id === 5042 ? "arc" : id === 4663 ? "rh" : id ? "other" : ""; }
+  function solOn() { try { return !!(window.arcSol && window.arcSol.selected && window.arcSol.selected()); } catch (e) { return false; } }
+  function paint() {
+    if (!btn) return;
+    var a = api.address(), live = api.live(), net = netOf(chainId()), sol = appMode() && solOn();
+    H.classList.toggle("cw-in", !!a);
+    if (!a) {
+      btn.className = "cw-b cw-off";
+      btn.innerHTML = ICON_W + '<span class="cw-l">' + esc(L("Connect wallet", "지갑 연결", "连接钱包")) + '</span><span class="cw-s">' + esc(L("Connect", "연결", "连接")) + "</span>";
+      btn.setAttribute("aria-label", L("Connect wallet", "지갑 연결", "连接钱包"));
+      btn.setAttribute("aria-haspopup", "dialog");
+      return;
+    }
+    var state_ = !live ? "rem" : sol ? "sol" : net === "arc" ? "ok" : net === "rh" ? "rh" : net ? "warn" : "ok";
+    btn.className = "cw-b cw-on cw-" + state_;
+    btn.innerHTML = '<span class="cw-av" style="--h:' + hue(a) + '" aria-hidden="true"></span><span class="cw-a" data-no-i18n>' + esc(short(a)) + '</span><i class="cw-dot" aria-hidden="true"></i>' + (claimN ? '<span class="cw-n" title="' + esc(L("Ready to claim", "받을 수 있는 보상", "可领取")) + '">' + claimN + "</span>" : "");
+    btn.setAttribute("aria-label", L("Wallet", "지갑", "钱包") + " " + short(a));
+    btn.setAttribute("aria-haspopup", "menu");
+    if (menu && !menu.hidden) menuHtml();
+  }
+  function morph() {
+    if (reduce || !btn) return;
+    btn.classList.remove("cw-morph"); void btn.offsetWidth; btn.classList.add("cw-morph");
+  }
+  function rpc(url, calls) {
+    return fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(calls.map(function (c, i) { return { jsonrpc: "2.0", id: i, method: c[0], params: c[1] }; })) })
+      .then(function (r) { return r.json(); }).then(function (j) { var m = {}; (Array.isArray(j) ? j : [j]).forEach(function (x) { m[x.id] = x.result; }); return calls.map(function (_, i) { return m[i]; }); });
+  }
+  function balances(a) {
+    if (bal && balFor === a && Date.now() - balAt < 30000) return Promise.resolve(bal);
+    var cfg = C(), tok = cfg.ARCIRCLE_TOKEN || ARC.token;
+    return rpc(cfg.RPC_URL || ARC.rpc, [["eth_getBalance", [a, "latest"]], ["eth_call", [{ to: tok, data: "0x70a08231" + a.slice(2).padStart(64, "0") }, "latest"]]]).then(function (r) {
+      var n = function (h, d) { try { return Number(BigInt(h || "0x0") / 10n ** BigInt(d - 4)) / 1e4; } catch (e) { return null; } };
+      bal = { usdc: n(r[0], 18), arc: n(r[1], 18) }; balAt = Date.now(); balFor = a;
+      return bal;
+    }).catch(function () { return null; });
+  }
+  var nf = function (v, d) { return v == null ? "—" : Number(v).toLocaleString("en-US", { maximumFractionDigits: d }); };
+  function txs() { try { return JSON.parse(ls.get(TXK) || "[]"); } catch (e) { return []; } }
+  function menuHtml() {
+    var a = api.address(), live = api.live(), id = chainId(), net = netOf(id), app = appMode();
+    var expl = (C().BLOCK_EXPLORER || ARC.expl) + "/address/" + a;
+    var list = txs().filter(function (t) { return !t.from || t.from === a; }).slice(0, 6);
+    var netRow = !live ? '<div class="cw-note">' + esc(L("Remembered from your last visit. Connect to sign.", "지난 방문에서 기억한 지갑이에요. 서명하려면 연결하세요.", "上次访问记住的钱包。需要签名时请连接。")) + ' <button type="button" class="cw-link" data-cw="connect">' + esc(L("Connect", "연결", "连接")) + "</button></div>"
+      : '<div class="cw-net">' + [["arc", "Arc"], ["rh", "Robinhood"]].concat(app && typeof switchToSolana === "function" ? [["sol", "Solana"]] : []).map(function (n) {
+        var on = n[0] === "sol" ? solOn() : !solOn() && net === n[0];
+        return '<button type="button" data-cw="net" data-net="' + n[0] + '" aria-pressed="' + on + '"><i aria-hidden="true"></i>' + n[1] + "</button>";
+      }).join("") + "</div>" + (net === "other" ? '<button type="button" class="cw-warn" data-cw="net" data-net="arc">' + esc(L("Wrong network — switch to Arc", "다른 네트워크 — Arc로 전환", "网络不对 — 切换到 Arc")) + "</button>" : "");
+    menu.innerHTML =
+      '<div class="cw-m-h"><span class="cw-av lg" style="--h:' + hue(a) + '" aria-hidden="true"></span><div><b data-no-i18n>' + esc(short(a)) + '</b><button type="button" class="cw-link" data-cw="copy">' + esc(L("Copy address", "주소 복사", "复制地址")) + "</button></div></div>" +
+      netRow +
+      '<div class="cw-bal" data-cw-bal><div><small>USDC · Arc</small><b data-no-i18n>' + (bal && balFor === a ? nf(bal.usdc, 2) : "…") + '</b></div><div><small>$ARCIRCLE</small><b data-no-i18n>' + (bal && balFor === a ? nf(bal.arc, 0) : "…") + "</b></div></div>" +
+      '<a class="cw-i" href="/me?w=' + esc(a) + '"><span>' + esc(L("Ready to claim", "받을 수 있는 보상", "可领取")) + "</span>" + (claimN ? '<em class="cw-n">' + claimN + "</em>" : "<small>" + esc(L("My ARCIRCLE", "My ARCIRCLE", "My ARCIRCLE")) + "</small>") + "</a>" +
+      '<a class="cw-i" href="/arc#portfolio"><span>' + esc(L("Portfolio", "포트폴리오", "资产")) + "</span></a>" +
+      '<details class="cw-tx"' + (list.length ? "" : " hidden") + "><summary>" + esc(L("Recent transactions", "최근 거래", "最近交易")) + " <small>" + list.length + "</small></summary><ul>" +
+        list.map(function (t) { return '<li class="' + esc(t.s) + '"><a href="' + esc(t.ex + "/tx/" + t.h) + '" target="_blank" rel="noopener"><i aria-hidden="true"></i><span data-no-i18n>' + esc(t.h.slice(0, 10) + "…" + t.h.slice(-4)) + "</span><small>" + esc(t.s === "ok" ? L("Confirmed", "완료", "已确认") : t.s === "fail" ? L("Failed", "실패", "失败") : L("Pending", "대기 중", "待确认")) + " · " + esc(ago(t.t)) + "</small></a></li>"; }).join("") +
+      "</ul></details>" +
+      '<a class="cw-i" href="' + esc(expl) + '" target="_blank" rel="noopener"><span>' + esc(L("View on explorer", "익스플로러에서 보기", "在浏览器中查看")) + " ↗</span></a>" +
+      '<button type="button" class="cw-i cw-dis" data-cw="disconnect"><span>' + esc(L("Disconnect", "연결 해제", "断开连接")) + "</span></button>";
+  }
+  function ago(t) { var s = Math.max(1, (Date.now() - t) / 1000); return s < 3600 ? Math.round(s / 60) + "m" : s < 86400 ? Math.round(s / 3600) + "h" : Math.round(s / 86400) + "d"; }
+  // on a phone the menu is a sheet fixed to the bottom of the screen; inside the top bar it can't be (the bar's
+  // backdrop blur makes it the box that "fixed" measures from, so the sheet landed above the screen), so it goes to <body>
+  var phoneQ = window.matchMedia ? matchMedia("(max-width:900px)") : null;
+  function openMenu() {
+    if (!menu) return;
+    var want = phoneQ && phoneQ.matches ? D.body : root; if (menu.parentNode !== want) want.appendChild(menu);
+    menuHtml(); menu.hidden = false; btn.setAttribute("aria-expanded", "true");
+    var a = api.address();
+    balances(a).then(function () { if (!menu.hidden) menuHtml(); });
+    claims();
+  }
+  function closeMenu() { if (menu && !menu.hidden) { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); } }
+  var claimAt = 0;
+  function claims() {
+    var a = api.address();
+    if (!a || !window.arcV10 || !window.arcV10.claims || Date.now() - claimAt < 60000) return;
+    claimAt = Date.now();
+    window.arcV10.claims(a).then(function (rows) { claimN = rows.filter(function (r) { return r.ready && !r.other; }).length; paint(); }).catch(function () {});
+  }
+  api.mount = function () {
+    var right = D.querySelector(".anav-right");
+    if (!right) return;
+    var have = right.querySelector(".cw");
+    if (have && have.querySelector(".cw-b")) { root = have; return; }
+    root = have || D.createElement("div");
+    root.className = "cw";
+    root.innerHTML = '<button type="button" class="cw-b"></button><div class="cw-m" role="menu" hidden></div>';
+    if (!have) { var old = right.querySelector(".anav-wallet"); if (old) old.replaceWith(root); else right.appendChild(root); }
+    btn = root.querySelector(".cw-b"); menu = root.querySelector(".cw-m");
+    H.classList.add("cw-on");
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (!api.address()) { api.connect(); return; }
+      if (menu.hidden) openMenu(); else closeMenu();
+    });
+    menu.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-cw]");
+      if (!t) return;
+      e.stopPropagation();
+      var k = t.getAttribute("data-cw");
+      if (k === "copy") { if (navigator.clipboard) navigator.clipboard.writeText(api.address()); t.textContent = L("Copied", "복사됨", "已复制"); setTimeout(function () { t.textContent = L("Copy address", "주소 복사", "复制地址"); }, 1200); }
+      else if (k === "disconnect") api.disconnect();
+      else if (k === "connect") { closeMenu(); api.connect(); }
+      else if (k === "net") switchTo(t.getAttribute("data-net"));
+    });
+    D.addEventListener("click", function (e) { if (root && !root.contains(e.target) && !(menu && menu.contains(e.target))) closeMenu(); });
+    D.addEventListener("keydown", function (e) { if (e.key === "Escape" && menu && !menu.hidden) { closeMenu(); btn.focus(); } });
+    // the bell sits next to the wallet on every page (ArcPad / CirclePad bring their own inside the bar already)
+    if (!right.querySelector(".nb") && window.arcChrome && window.arcChrome.mountBell) window.arcChrome.mountBell(right, root);
+    paint();
+  };
+
+  // ---------------- recent transactions (from the tx ring, arc-txring.js) ----------------
+  D.addEventListener("arc:tx", function (e) {
+    var d = e.detail || {};
+    if (!d.h) return;
+    var list = txs().filter(function (t) { return t.h !== d.h; });
+    var prev = txs().find(function (t) { return t.h === d.h; });
+    list.unshift({ h: d.h, s: d.s, t: prev ? prev.t : Date.now(), ex: d.ex || ARC.expl, from: api.address() });
+    ls.set(TXK, JSON.stringify(list.slice(0, 20)));
+    if (menu && !menu.hidden) menuHtml();
+  });
+
+  // ---------------- app pages: follow the page's own wallet ----------------
+  function follow() {
+    var last = null;
+    var sync = function () {
+      if (D.hidden || !appMode()) return;
+      var a = api.address(), key = a + "|" + chainId() + "|" + solOn();
+      if (key === last) return;
+      var was = last;
+      last = key;
+      if (a) remember(a); else if (was && ls.get(OFF) === "1") ls.set(KEY, null);
+      if (a && was !== null && was.split("|")[0] === "") morph();
+      paint(); emit(); claims();
+    };
+    setInterval(sync, 500);
+    D.addEventListener("visibilitychange", sync);
+    // ArcPad's connect from another page: /arc?connect=1 opens it once the page is ready
+    if (/[?&]connect=1\b/.test(location.search) && appMode()) {
+      setTimeout(function () { if (!api.address()) api.connect(); try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) { /* fine */ } }, 1200);
+    }
+  }
+
+  function init() {
+    api.mount();
+    restore();
+    follow();
+    setTimeout(claims, 2500);
+    // the bar is rebuilt on a language change
+    D.addEventListener("arc:lang", function () { setTimeout(function () { root = null; api.mount(); }, 80); });
+    setInterval(function () { if (D.hidden) return; var r = D.querySelector(".anav-right"); if (r && !r.querySelector(".cw-b")) { root = null; api.mount(); } }, 1000);
+  }
+  if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", function () { setTimeout(init, 0); }); else setTimeout(init, 0);
+})();
+;
+/* ---- arc-v9.js ---- */
+// arc-v9.js — the v9 cleanup's behaviour, shared by every ARCIRCLE PAD page (styles: arc-v9.css).
+// Each part checks for its own page and does nothing elsewhere. Plain script, no dependencies.
+(function () {
+  "use strict";
+  if (window.arcV9) return;
+  var D = document, H = D.documentElement;
+  var lang = function () { var l = (H.getAttribute("lang") || "en").slice(0, 2); return l === "ko" || l === "zh" ? l : "en"; };
+  var L = function (en, ko, zh) { var l = lang(); return l === "ko" ? ko : l === "zh" ? zh : en; };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var phone = function () { return window.innerWidth <= 900; };
+  var api = (window.arcV9 = {});
+
+  // ---- utility guides: keep the newest "New in vN", fold the older ones into one line ----
+  function foldNews() {
+    var groups = new Map();
+    [].forEach.call(D.querySelectorAll(".bp-panel details > summary > h3"), function (h) {
+      if (!/^\s*New in v\d+/.test(h.textContent)) return;
+      var det = h.parentNode.parentNode, par = det.parentNode;
+      if (det.closest(".v9-older")) return;
+      if (!groups.has(par)) groups.set(par, []);
+      groups.get(par).push(det);
+    });
+    groups.forEach(function (list) {
+      list.forEach(function (d) { d.open = false; });
+      if (list.length < 2) return;
+      var keep = list[0], rest = list.slice(1);
+      var box = D.createElement("details");
+      box.className = "v9-older";
+      box.innerHTML = '<summary><span data-v9t="older">' + L("Earlier updates", "이전 업데이트", "更早的更新") + "</span> (" + rest.length + ')<a href="/updates" data-v9t="all">' + L("All updates", "전체 업데이트", "全部更新") + "</a></summary>";
+      keep.parentNode.insertBefore(box, keep.nextSibling);
+      rest.forEach(function (d) { box.appendChild(d); });
+    });
+  }
+
+  // ---- phones: a Buy / Sell bar on the coin page ----
+  function buyBar() {
+    var panel = D.getElementById("bp-panel-coin");
+    if (!panel) return;
+    var bar = D.createElement("div");
+    bar.className = "v9-buybar";
+    bar.hidden = true;
+    bar.setAttribute("data-no-i18n", "");
+    D.body.appendChild(bar);
+    var paint = function () { bar.innerHTML = '<button type="button" class="b" data-s="buy">' + L("Buy", "매수", "买入") + '</button><button type="button" class="s" data-s="sell">' + L("Sell", "매도", "卖出") + "</button>"; };
+    paint();
+    var target = function () { var a = D.getElementById("apc-argus-trade"); return a && !a.hidden && a.offsetParent ? a : D.getElementById("apc-swap"); };
+    var on = function () { return panel.classList.contains("active") && /^#coin\//.test(location.hash) && phone(); };
+    var sync = function () {
+      var show = on();
+      bar.hidden = !show;
+      H.classList.toggle("v9-buybar-on", show);
+      if (!show) return;
+      var t = target(), r = t && t.getBoundingClientRect();
+      bar.classList.toggle("away", !!(r && r.top < innerHeight - 120 && r.bottom > 120));
+    };
+    bar.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-s]"); if (!b) return;
+      var t = target(); if (!t) return;
+      var side = t.querySelector('[data-side="' + b.dataset.s + '"], .' + b.dataset.s);
+      if (side) side.click();
+      var y = t.getBoundingClientRect().top + scrollY - (parseInt(getComputedStyle(H).getPropertyValue("--anav-h"), 10) || 56) - 60;
+      scrollTo({ top: Math.max(0, y), behavior: reduce ? "auto" : "smooth" });
+      setTimeout(function () { var i = t.querySelector("input"); if (i) i.focus({ preventScroll: true }); }, reduce ? 0 : 450);
+    });
+    addEventListener("scroll", function () { if (!bar.hidden) requestAnimationFrame(sync); }, { passive: true });
+    addEventListener("resize", sync);
+    addEventListener("hashchange", function () { setTimeout(sync, 60); });
+    D.addEventListener("arcpad:tab", function () { setTimeout(sync, 60); });
+    D.addEventListener("arc:lang", paint);
+    setTimeout(sync, 400);
+  }
+
+
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  // the page's own top-level state (ArcPad's scripts declare these with const/let, so they aren't on window)
+  /* global APC, ARC, state */
+  var G = function (name) {
+    if (name === "APC") return typeof APC !== "undefined" ? APC : undefined;
+    if (name === "ARC") return typeof ARC !== "undefined" ? ARC : undefined;
+    if (name === "state") return typeof state !== "undefined" ? state : undefined;
+    return undefined;
+  };
+  var usd = function (v) { return v >= 1000 ? "$" + (v / 1000).toFixed(v >= 1e4 ? 0 : 1) + "K" : "$" + v.toFixed(v >= 10 ? 0 : 2); };
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } } };
+
+  // ---- ArcPad: "your first launch in 3 steps" on the Launch tab ----
+  function launchGuide() {
+    var panel = D.getElementById("bp-panel-launch"), form = D.getElementById("ap-launch-form");
+    if (!panel || !form || store.get("v9.guide.off") === "1") return;
+    var box = D.createElement("div");
+    box.className = "v9-guide ap-only";
+    box.id = "v9-guide";
+    box.setAttribute("data-no-i18n", "");
+    var lede = panel.querySelector(":scope > .bp-lede");
+    if (lede) lede.parentNode.insertBefore(box, lede.nextSibling); else form.parentNode.insertBefore(box, form);
+    var bal = null, busy = false;
+    function acct() { var st = G("state"); return st && st.account ? st.account : null; }
+    function paint() {
+      var a = acct(), need = 1.1, okBal = bal != null && bal >= need;
+      var step = function (n, done, title, body, act) {
+        return '<li class="' + (done ? "done" : "") + '"><span class="v9-n">' + (done ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>' : n) + '</span><div><b>' + title + "</b><small>" + body + "</small></div>" + (act || "") + "</li>";
+      };
+      box.innerHTML = '<div class="v9-guide-h"><b>' + L("Your first launch in 3 steps", "첫 런치, 3단계면 끝", "三步完成第一次发币") + '</b><button type="button" class="v9-x" data-g="off" aria-label="' + L("Hide", "숨기기", "隐藏") + '">×</button></div><ol>' +
+        step(1, !!a, L("Connect a wallet", "지갑 연결", "连接钱包"), a ? esc(a.slice(0, 6) + "…" + a.slice(-4)) : L("MetaMask, Rabby or any wallet that can add Arc.", "MetaMask, Rabby 등 Arc를 추가할 수 있는 지갑이면 돼요.", "MetaMask、Rabby 或任何能添加 Arc 的钱包。"),
+          a ? "" : '<button type="button" class="v9-gb" data-g="connect">' + L("Connect", "연결", "连接") + "</button>") +
+        step(2, okBal, L("Have about 1.1 USDC on Arc", "Arc에 USDC 약 1.1개", "在 Arc 上准备约 1.1 USDC"),
+          (bal != null ? L("You have ", "보유: ", "你有 ") + bal.toFixed(2) + " USDC · " : "") + L("1 USDC launch fee + gas. On Arc, gas is paid in USDC too.", "런치 수수료 1 USDC + 가스비. Arc에서는 가스비도 USDC로 내요.", "1 USDC 发币费 + gas。在 Arc 上 gas 也用 USDC 支付。"),
+          okBal ? "" : '<a class="v9-gb ghost" href="/arc#bridge" data-g="bridge">' + L("Bridge USDC", "USDC 브리지", "跨链 USDC") + "</a>") +
+        step(3, false, L("Name it and launch", "이름 짓고 런치", "起名并发币"), L("Name, ticker and a logo. Stuck on a name? Ask ARCIA for ideas.", "이름, 티커, 로고만 있으면 돼요. 이름이 고민되면 ARCIA에게 물어보세요.", "名称、代码和 Logo 即可。想不出名字?让 ARCIA 给点子。"),
+          '<button type="button" class="v9-gb" data-g="start">' + L("Start", "시작", "开始") + "</button>") + "</ol>";
+    }
+    function refresh() {
+      var a = acct();
+      if (!a || busy || typeof readProvider !== "function") { if (!a) bal = null; paint(); return; }
+      busy = true;
+      Promise.resolve(readProvider().getBalance(a)).then(function (b) { bal = Number(b) / 1e18; }).catch(function () { /* keep */ }).then(function () { busy = false; paint(); });
+    }
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-g]"); if (!b) return;
+      var g = b.dataset.g;
+      if (g === "off") { store.set("v9.guide.off", "1"); box.remove(); return; }
+      if (g === "connect" && typeof connectWallet === "function") { Promise.resolve(connectWallet()).then(refresh, refresh); }
+      if (g === "start") { var n = D.getElementById("ap-name"); if (n) { n.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); setTimeout(function () { n.focus({ preventScroll: true }); }, reduce ? 0 : 400); } }
+    });
+    D.addEventListener("arcpad:tab", function (e) { if (e.detail && e.detail.tab === "launch") refresh(); });
+    D.addEventListener("arc:wallet", refresh);
+    D.addEventListener("arc:lang", paint);
+    setInterval(function () { if (panel.classList.contains("active") && !D.hidden) refresh(); }, 15000);
+    var lastA = null;
+    var acctCheck = function () { if (D.hidden) return; var a = acct(); if (a !== lastA) { lastA = a; refresh(); } };
+    setInterval(acctCheck, 1500);
+    D.addEventListener("visibilitychange", acctCheck);
+    refresh();
+  }
+
+  // ---- ArcPad coin page: what the creator has earned, and Telegram alerts after "Watch" ----
+  function coinExtras() {
+    var panel = D.getElementById("bp-panel-coin");
+    if (!panel) return;
+    var line = null;
+    function creatorBps() { var A = G("APC"); if (!A || !A.l) return null; if (A.l.platform && A.l.platform !== "arcpad") return null; return 70 + Number(A.l.extraFeeBps || 0); }
+    function paintEarn() {
+      var A = G("APC");
+      if (!A || !A.token || !panel.classList.contains("active")) return;
+      var bps = creatorBps(); if (bps == null) { if (line) line.hidden = true; return; }
+      var full = A.logs && A.logs.lo <= A.logs.launchBlock, trades = A.trades || [];
+      var vol = 0; for (var i = 0; i < trades.length; i++) vol += Number(trades[i].usdc) || 0;
+      if (!line) { line = D.createElement("div"); line.className = "v9-earn"; line.setAttribute("data-no-i18n", ""); var host = panel.querySelector(".ac2-stats, .apc-stats, .ac2-grid") || panel.querySelector(".ac2-head"); if (!host) return; host.parentNode.insertBefore(line, host.nextSibling); }
+      line.hidden = false;
+      var earned = vol * bps / 10000;
+      line.innerHTML = '<span class="v9-earn-i" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.6 9.8c0-1.2 1.1-2 2.4-2s2.4.8 2.4 1.9c0 2.4-4.8 1.2-4.8 3.6 0 1.1 1.1 1.9 2.4 1.9s2.4-.8 2.4-2"/></svg></span><span>' +
+        (full ? L("The creator has earned", "크리에이터 누적 수익", "创作者已赚取") + ' <b>≈ ' + usd(earned) + "</b>" : L("Counting what the creator has earned…", "크리에이터 수익 계산 중…", "正在统计创作者收益…")) +
+        ' <small>' + L("— ", "· ", "· ") + (bps / 100).toFixed(2) + "% " + L("of every trade goes to whoever launched it", "가 매 거래마다 런처에게 가요", "的每笔交易归发行者") + "</small></span>" +
+        '<a href="/arc#launch" class="v9-earn-go">' + L("Launch yours", "나도 런치하기", "发行你的币") + "</a>";
+    }
+    setInterval(function () { if (!D.hidden) paintEarn(); }, 4000);
+    D.addEventListener("arcpad:tab", function () { setTimeout(paintEarn, 800); });
+    // starring a coin → offer ARCIA's Telegram DM for it
+    D.addEventListener("click", function (e) {
+      var st = e.target.closest && e.target.closest("#apc-star"); if (!st) return;
+      setTimeout(function () {
+        var old = D.getElementById("v9-tgpop"); if (old) old.remove();
+        if (st.getAttribute("aria-pressed") !== "true") return;
+        var pop = D.createElement("div");
+        pop.id = "v9-tgpop"; pop.className = "v9-tgpop"; pop.setAttribute("role", "status"); pop.setAttribute("data-no-i18n", "");
+        pop.innerHTML = "<span>" + L("Watching. Want ARCIA to DM you when it moves 20%?", "관심 등록 완료. 20% 움직이면 ARCIA가 DM으로 알려드릴까요?", "已关注。涨跌 20% 时让 ARCIA 私信你?") + '</span><button type="button" class="bp-btn-primary sm" data-v7tg>' + L("Telegram alerts", "텔레그램 알림", "Telegram 提醒") + '</button><button type="button" class="v9-x" aria-label="' + L("Close", "닫기", "关闭") + '">×</button>';
+        st.parentNode.insertBefore(pop, st.nextSibling);
+        pop.querySelector(".v9-x").addEventListener("click", function () { pop.remove(); });
+        setTimeout(function () { if (pop.isConnected) pop.remove(); }, 12000);
+      }, 60);
+    });
+    // the launch banner: more ways to tell people, and a moment of celebration
+    new MutationObserver(function () {
+      var c = D.getElementById("apc-celebrate");
+      if (!c || c.__v9) return;
+      c.__v9 = true;
+      var tok = c.dataset.token, url = typeof arcCoinShareUrl === "function" ? arcCoinShareUrl(tok) : location.origin + "/c/" + tok;
+      var acts = c.querySelector(".apc-cel-actions");
+      if (acts) {
+        var tg = D.createElement("a");
+        tg.className = "apc-cel-btn"; tg.target = "_blank"; tg.rel = "noopener";
+        tg.href = "https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(L("Just launched on ArcPad (Circle's Arc)", "ArcPad에서 방금 런치했어요 (Circle Arc)", "刚在 ArcPad 发币 (Circle Arc)"));
+        tg.textContent = "Telegram";
+        var emb = D.createElement("button");
+        emb.type = "button"; emb.className = "apc-cel-btn"; emb.textContent = L("Embed", "임베드", "嵌入");
+        emb.addEventListener("click", function () { var b = D.getElementById("v7-embed-b"); if (b) b.click(); });
+        var x = acts.querySelector(".apc-cel-x");
+        acts.insertBefore(tg, x); acts.insertBefore(emb, x);
+      }
+      if (!reduce) confetti(c);
+    }).observe(panel, { childList: true, subtree: true });
+  }
+  // a short burst of the two ring colours from an element
+  function confetti(host) {
+    var r = host.getBoundingClientRect(), layer = D.createElement("div");
+    layer.className = "v9-confetti"; layer.setAttribute("aria-hidden", "true");
+    for (var i = 0; i < 46; i++) {
+      var p = D.createElement("i"), a = Math.random() * Math.PI * 2, d = 90 + Math.random() * 220;
+      p.style.cssText = "left:" + (r.left + r.width / 2) + "px;top:" + (r.top + 30) + "px;--x:" + Math.cos(a) * d + "px;--y:" + (Math.sin(a) * d - 120) + "px;--r:" + (Math.random() * 720 - 360) + "deg;background:" + (i % 3 ? (i % 2 ? "#4d8dff" : "#2fe6a4") : "#ffffff") + ";animation-delay:" + Math.random() * 120 + "ms";
+      layer.appendChild(p);
+    }
+    D.body.appendChild(layer);
+    setTimeout(function () { layer.remove(); }, 1800);
+  }
+  api.confetti = confetti;
+
+  // ---- ArcPad launch form: what the creator's cut could look like ----
+  function feeEstimate() {
+    var slider = D.getElementById("ap-extrafee"), prev = D.getElementById("ap-fee-preview");
+    if (!slider || !prev) return;
+    var out = D.createElement("p"); out.className = "v9-feeest"; out.setAttribute("data-no-i18n", "");
+    prev.parentNode.insertBefore(out, prev.nextSibling);
+    var paint = function () { var bps = 70 + Number(slider.value || 0); out.innerHTML = L("At $10K of trading a day, you'd earn about ", "하루 거래량이 $10K면 약 ", "如果每天交易 $10K,你约赚 ") + "<b>$" + (10000 * bps / 10000).toFixed(0) + L("/day", "/일", "/天") + "</b>" + L(" — paid out on every trade, no claiming.", " 을 벌어요 — 매 거래마다 바로 지급, 클레임 필요 없음.", " —— 每笔交易即时到账,无需领取。"); };
+    slider.addEventListener("input", paint); D.addEventListener("arc:lang", paint); paint();
+  }
+
+  // ---- ArcPad home: newest coins nobody has bought yet ----
+  function firstBuyer() {
+    var home = D.getElementById("bp-panel-home"), trend = D.getElementById("v6-trend");
+    if (!home || !trend || !D.getElementById("bp-panel-launch")) return;
+    var box = D.createElement("div"); box.className = "v9-first"; box.hidden = true; box.setAttribute("data-no-i18n", "");
+    trend.parentNode.insertBefore(box, trend.nextSibling);
+    function paint() {
+      var A = G("ARC"); if (!A || !A.launches || !A.launches.length || typeof arcAnyStats !== "function") return;
+      var now = Date.now() / 1000;
+      var list = A.launches.filter(function (l) { return (!l.platform || l.platform === "arcpad") && l.launchedAt && now - l.launchedAt < 14 * 86400; })
+        .filter(function (l) { var s = arcAnyStats(l); return !s || !s.trades; }).sort(function (a, b) { return b.launchedAt - a.launchedAt; }).slice(0, 3);
+      if (!list.length) { box.hidden = true; return; }
+      box.hidden = false;
+      box.innerHTML = '<div class="v6-sec-h"><h3>' + L("Be the first buyer", "첫 번째 구매자 되기", "成为第一个买家") + "</h3><small>" + L("New coins with no trades in the last 24 hours", "최근 24시간 거래가 없는 새 코인", "近 24 小时无交易的新币") + '</small></div><div class="v9-first-l">' + list.map(function (l) {
+        return '<a href="/arc#coin/' + esc(l.token) + '" class="v9-fc"><b>$' + esc(l.symbol) + "</b><span>" + esc(l.name || "") + "</span><em>" + L("Buy from $1", "$1부터 매수", "$1 起买") + "</em></a>";
+      }).join("") + "</div>";
+    }
+    setInterval(function () { if (home.classList.contains("active") && !D.hidden) paint(); }, 8000);
+    setTimeout(paint, 2500);
+  }
+
+  // ---- install as an app (phones; once, dismissible) ----
+  function installHint() {
+    if (store.get("v9.install.off") === "1" || (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone) return;
+    var deferred = null, ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
+    function show() {
+      if (!phone() || D.getElementById("v9-install")) return;
+      var b = D.createElement("div"); b.id = "v9-install"; b.className = "v9-install"; b.setAttribute("role", "dialog"); b.setAttribute("aria-label", "Install"); b.setAttribute("data-no-i18n", "");
+      b.innerHTML = '<img src="/images/apple-touch-icon.png" alt="" width="40" height="40"><div><b>' + L("Add ARCIRCLE to your home screen", "ARCIRCLE을 홈 화면에 추가", "把 ARCIRCLE 添加到主屏幕") + "</b><small>" +
+        (deferred ? L("Opens like an app, full screen.", "앱처럼 전체 화면으로 열려요.", "像 App 一样全屏打开。") : L("Tap Share, then “Add to Home Screen”.", "공유 버튼 → ‘홈 화면에 추가’를 누르세요.", "点分享,然后“添加到主屏幕”。")) + "</small></div>" +
+        (deferred ? '<button type="button" class="bp-btn-primary sm" data-i="go">' + L("Install", "설치", "安装") + "</button>" : "") + '<button type="button" class="v9-x" data-i="off" aria-label="' + L("Close", "닫기", "关闭") + '">×</button>';
+      D.body.appendChild(b);
+      b.addEventListener("click", function (e) {
+        var t = e.target.closest("[data-i]"); if (!t) return;
+        if (t.dataset.i === "go" && deferred) { deferred.prompt(); deferred.userChoice.then(function () { b.remove(); store.set("v9.install.off", "1"); }); return; }
+        store.set("v9.install.off", "1"); b.remove();
+      });
+    }
+    addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; setTimeout(show, 20000); });
+    if (ios) setTimeout(show, 25000);
+  }
+
+  // ---- a small toast (bottom centre, above the phone tab bar) ----
+  function toast(html, cls) {
+    var t = D.createElement("div");
+    t.className = "v9-toast " + (cls || ""); t.setAttribute("role", "status"); t.setAttribute("data-no-i18n", "");
+    t.innerHTML = html;
+    D.body.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add("in"); });
+    setTimeout(function () { t.classList.remove("in"); setTimeout(function () { t.remove(); }, 300); }, 4200);
+    return t;
+  }
+  // count a number up inside an element: keeps what's around the number ($, K, %, words)
+  function countUp(el, to, fmt, ms) {
+    if (reduce) { el.textContent = fmt(to); return; }
+    var t0 = performance.now(), dur = ms || 700;
+    (function step(t) { var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(to * e); if (k < 1) requestAnimationFrame(step); })(t0);
+  }
+
+  // ---- ArcPad coin page: after a buy, how much you got, counted up ----
+  function buyToast() {
+    if (typeof window.apcStatus !== "function") return;
+    var orig = window.apcStatus, before = null;
+    window.apcStatus = function (type, html) {
+      var A = G("APC");
+      if (type === "pending" && /^Buying/.test(String(html)) && A && A.user) before = A.user.tok;
+      var r = orig.apply(this, arguments);
+      if (type === "success" && /^Bought/.test(String(html)) && A && before != null) {
+        var b0 = before, sym = A.l && A.l.symbol ? "$" + A.l.symbol : "", t0 = Date.now();
+        before = null;
+        (function wait() {
+          var now = A.user && A.user.tok;
+          if (now != null && now > b0) {
+            var got = Number(now - b0) / 1e18;
+            var el = toast('<b class="v9-cu">+0</b> <span>' + esc(sym) + "</span><small>" + L("in your wallet", "지갑에 들어왔어요", "已到账") + "</small>", "ok").querySelector(".v9-cu");
+            countUp(el, got, function (v) { return "+" + v.toLocaleString("en-US", { maximumFractionDigits: got < 10 ? 4 : 0 }); }, 900);
+            return;
+          }
+          if (Date.now() - t0 < 8000) setTimeout(wait, 400);
+        })();
+      }
+      return r;
+    };
+  }
+
+  // ---- coin prices flash when they move (ArcPad home cards and the Explore grid) ----
+  function priceFlash() {
+    if (!D.getElementById("bp-panel-home") || !D.getElementById("bp-panel-launch")) return;
+    var last = new Map();
+    var num = function (t) { var m = /\$([\d.,]+)\s*([KMB]?)/.exec(t || ""); if (!m) return null; var v = parseFloat(m[1].replace(/,/g, "")); return v * ({ K: 1e3, M: 1e6, B: 1e9 }[m[2]] || 1); };
+    setInterval(function () {
+      if (D.hidden) return;
+      [].forEach.call(D.querySelectorAll(".bp-panel.active a.v6-tc, .bp-panel.active .launch-card"), function (c) {
+        var key = c.getAttribute("href") || c.dataset.token || ""; if (!key) return;
+        var vEl = c.querySelector(".v6-tc-n > span, .lc-mcap, [data-mcap]") || c, v = num(vEl.textContent);
+        if (v == null) return;
+        var p = last.get(key); last.set(key, v);
+        if (p == null || p === v || reduce) return;
+        c.classList.remove("v9-up", "v9-down"); void c.offsetWidth; c.classList.add(v > p ? "v9-up" : "v9-down");
+      });
+    }, 2000);
+  }
+
+  // ---- $ARCIRCLE burns: the chip in the menu pulses when more gets burned ----
+  function burnPulse() {
+    var KEY = "v9.burned";
+    function tick() {
+      if (D.hidden) return;
+      fetch("/api/social?token=arcircle").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        var b = d && d.burned && Number(d.burned.tokens); if (!(b > 0)) return;
+        var prev = Number(store.get(KEY) || 0); store.set(KEY, String(b));
+        if (!(prev > 0) || b <= prev) return;
+        var chip = D.querySelector('.anav-chip[href="/arcircle"]');
+        if (!chip || !chip.offsetParent) return;
+        chip.classList.remove("v9-burn"); void chip.offsetWidth; chip.classList.add("v9-burn");
+        var tip = D.createElement("span"); tip.className = "v9-burntip"; tip.textContent = "+" + Math.round(b - prev).toLocaleString("en-US") + " " + L("burned", "소각", "已销毁");
+        chip.appendChild(tip); setTimeout(function () { tip.remove(); }, 3200);
+      }).catch(function () { /* next time */ });
+    }
+    setTimeout(tick, 4000); setInterval(tick, 90000);
+  }
+
+  // ---- numbers count up the first time they come into view ----
+  function countIn() {
+    if (reduce || !("IntersectionObserver" in window)) return;
+    var SEL = ".pg-t b, .ax-fact b, .ax-facts b, .hm-nums b, .ap-stat b, .bp-mini-stat b, .stk-pot b, .rw-meter b, .st-out b";
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        var el = e.target, txt = el.textContent, m = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/.exec(txt.trim());
+        if (!m || el.children.length) return;
+        var v = parseFloat(m[2].replace(/,/g, "")); if (!(v > 0)) return;
+        var dec = (m[2].split(".")[1] || "").length, comma = /,/.test(m[2]) || v >= 1000;
+        var mine = null;
+        countUp(el, v, function (x) { mine = m[1] + x.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: comma }) + m[3]; return mine; }, 800);
+        // if the page writes a fresher value while we count, the page wins
+        var mo = new MutationObserver(function () { if (el.textContent !== mine) mo.disconnect(); });
+        mo.observe(el, { childList: true, characterData: true, subtree: true });
+        setTimeout(function () { mo.disconnect(); if (el.textContent !== txt && el.textContent === mine) el.textContent = txt; }, 900);
+      });
+    }, { threshold: 0.6 });
+    var seen = new WeakSet();
+    function scan() { if (D.hidden) return; [].forEach.call(D.querySelectorAll(SEL), function (el) { if (!seen.has(el) && /\d/.test(el.textContent)) { seen.add(el); io.observe(el); } }); }
+    scan(); setInterval(scan, 3000); D.addEventListener("visibilitychange", scan);
+  }
+
+  // ---- values still loading: a soft shimmer instead of a bare "—", then a calm "—" if nothing comes ----
+  function pending() {
+    var SEL = "main b, main strong, .bp-main b, .bp-main strong, [data-hm-num], [data-lb]";
+    function mark() {
+      if (D.hidden) return;
+      [].forEach.call(D.querySelectorAll(SEL), function (el) {
+        if (el.__v9p || el.children.length || el.textContent.trim() !== "—") return;
+        var fs = parseFloat(getComputedStyle(el).fontSize); if (fs < 14) return;
+        el.__v9p = Date.now(); el.classList.add("v9-skel");
+        var mo = new MutationObserver(function () { if (el.textContent.trim() !== "—") { el.classList.remove("v9-skel", "v9-na"); mo.disconnect(); } });
+        mo.observe(el, { childList: true, characterData: true, subtree: true });
+        setTimeout(function () { if (el.classList.contains("v9-skel")) { el.classList.remove("v9-skel"); el.classList.add("v9-na"); el.title = L("Not available right now — Arc didn't answer. It fills in by itself when it does.", "지금은 불러올 수 없어요 — Arc 응답이 오면 자동으로 채워져요.", "暂时无法读取——Arc 响应后会自动显示。"); } }, 6000);
+      });
+    }
+    mark(); setInterval(mark, 1500); D.addEventListener("visibilitychange", mark);
+  }
+
+  // ---- ARCIA's button says one thing a day ----
+  function arciaBubble() {
+    var day = new Date().toISOString().slice(0, 10);
+    if (store.get("v9.bubble") === day) return;
+    setTimeout(function () {
+      var fab = D.querySelector(".aa-fab"); if (!fab || !fab.getBoundingClientRect().width) return;
+      fetch("/api/c?view=latest&n=20").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (j) {
+        var now = Date.now() / 1000, n = j && j.coins ? j.coins.filter(function (c) { return c.launchedAt && now - c.launchedAt < 86400; }).length : 0;
+        var msg = n ? L(n + (n > 1 ? " new coins" : " new coin") + " launched today — want a look?", "오늘 새 코인 " + n + "개가 나왔어요 — 구경할래요?", "今天有 " + n + " 个新币上线——去看看?")
+          : L("Ask me anything about ARCIRCLE — I'm right here.", "ARCIRCLE에 대해 뭐든 물어보세요 — 여기 있어요.", "关于 ARCIRCLE 的任何问题都可以问我——我就在这里。");
+        var b = D.createElement("a");
+        b.className = "v9-bubble"; b.href = n ? "/arc#explore" : "#"; b.textContent = msg; b.setAttribute("data-no-i18n", "");
+        if (!n) b.addEventListener("click", function (e) { e.preventDefault(); fab.click(); b.remove(); });
+        var r = fab.getBoundingClientRect();
+        b.style.right = Math.max(12, innerWidth - r.right) + "px"; b.style.bottom = (innerHeight - r.top + 10) + "px";
+        D.body.appendChild(b); store.set("v9.bubble", day);
+        setTimeout(function () { b.classList.add("out"); setTimeout(function () { b.remove(); }, 400); }, 7000);
+      });
+    }, 9000);
+  }
+
+  // ---- the second menu row tucks away while you scroll down, comes back when you scroll up ----
+  function compactNav() {
+    var y0 = scrollY, on = false;
+    addEventListener("scroll", function () {
+      var y = scrollY, want = y > 160 && y > y0 + 4 ? true : y < y0 - 4 || y < 120 ? false : on;
+      y0 = y;
+      if (want !== on) { on = want; H.classList.toggle("anav-compact", on); }
+    }, { passive: true });
+  }
+
+  // ---- phones: the menu sheet closes with a swipe down ----
+  function sheetSwipe() {
+    var y = null, el = null;
+    D.addEventListener("touchstart", function (e) { var s = e.target.closest && e.target.closest(".anav-sheet-in"); if (!s || s.scrollTop > 0) { y = null; return; } el = s; y = e.touches[0].clientY; }, { passive: true });
+    D.addEventListener("touchmove", function (e) { if (y == null || !el) return; var dy = e.touches[0].clientY - y; if (dy > 0) { el.style.transition = "none"; el.style.transform = "translateY(" + dy + "px)"; } }, { passive: true });
+    D.addEventListener("touchend", function (e) {
+      if (y == null || !el) return;
+      var dy = e.changedTouches[0].clientY - y, s = el; y = null; el = null;
+      s.style.transition = ""; s.style.transform = "";
+      if (dy > 90) { var x = D.querySelector(".anav-sheet .anav-x"); if (x) x.click(); }
+    });
+  }
+
+  // ---- $ARCIRCLE page on phones: the long sections fold under their titles ----
+  function foldCoinPage() {
+    if (!D.body.classList.contains("ax-token") || !D.querySelector("main #uses")) return;
+    var secs = [].slice.call(D.querySelectorAll("main .ax-section[id]")).filter(function (x) { return x.id !== "uses"; });
+    var mq = window.matchMedia && matchMedia("(max-width:900px)");
+    function apply() {
+      var on = mq && mq.matches;
+      secs.forEach(function (sec) {
+        var h = sec.querySelector(":scope > h2"); if (!h) return;
+        if (on && !sec.classList.contains("v9-fold")) {
+          sec.classList.add("v9-fold");
+          h.setAttribute("role", "button"); h.setAttribute("tabindex", "0"); h.setAttribute("aria-expanded", "false");
+          if (!h.__v9) { h.__v9 = true;
+            var tog = function () { var o = !sec.classList.contains("open"); sec.classList.toggle("open", o); h.setAttribute("aria-expanded", o ? "true" : "false"); };
+            h.addEventListener("click", function () { if (sec.classList.contains("v9-fold")) tog(); });
+            h.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && sec.classList.contains("v9-fold")) { e.preventDefault(); tog(); } });
+          }
+        } else if (!on && sec.classList.contains("v9-fold")) {
+          sec.classList.remove("v9-fold", "open"); h.removeAttribute("role"); h.removeAttribute("tabindex"); h.removeAttribute("aria-expanded");
+        }
+      });
+    }
+    function openFor(id) { var sec = D.getElementById(id); if (sec && sec.classList.contains("v9-fold") && !sec.classList.contains("open")) { sec.classList.add("open"); var h = sec.querySelector(":scope > h2"); if (h) h.setAttribute("aria-expanded", "true"); } }
+    D.addEventListener("click", function (e) { var a = e.target.closest && e.target.closest('a[href^="#"]'); if (a) openFor(a.getAttribute("href").slice(1)); }, true);
+    addEventListener("hashchange", function () { openFor(location.hash.slice(1)); });
+    apply(); if (mq) { if (mq.addEventListener) mq.addEventListener("change", apply); else if (mq.addListener) mq.addListener(apply); }
+    if (location.hash) openFor(location.hash.slice(1));
+  }
+
+  function init() {
+    foldNews();
+    buyBar();
+    launchGuide();
+    coinExtras();
+    feeEstimate();
+    firstBuyer();
+    installHint();
+    buyToast();
+    priceFlash();
+    burnPulse();
+    // v11: numbers no longer count up from zero on every visit (they flash only when they change: priceFlash)
+    // countIn();
+    pending();
+    arciaBubble();
+    compactNav();
+    sheetSwipe();
+    foldCoinPage();
+    D.addEventListener("arc:lang", function () {
+      [].forEach.call(D.querySelectorAll('[data-v9t="older"]'), function (e) { e.textContent = L("Earlier updates", "이전 업데이트", "更早的更新"); });
+      [].forEach.call(D.querySelectorAll('[data-v9t="all"]'), function (e) { e.textContent = L("All updates", "전체 업데이트", "全部更新"); });
+    });
+  }
+  api.L = L;
+  if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", init); else init();
+})();
+;
+/* ---- arc-v10.js ---- */
+// arc-v10.js — "clean, simple, easy on the eyes": the v10 cleanup's behaviour (styles: arc-v10.css).
+// Every ARCIRCLE PAD page runs it; each part checks for its own page. Plain script, no dependencies.
+//   · page intros cut to one line (More / Less)
+//   · Explore: the live-trades strip parks on Explore and stands still; platform + presets move into Filters
+//   · utility guides fold into one "How it works" block (the docs and /updates keep everything)
+//   · home: one main button, the first-visit tour only on the first visit
+//   · Display settings: Dim (softer contrast) and Compact (denser lists), remembered in this browser
+//   · My ARCIRCLE: everything a wallet can claim, in one card, with one "Claim all on Arc"
+//   · motion only when someone acts: tab switch, sparklines drawn once
+(function () {
+  "use strict";
+  if (window.arcV10) return;
+  var D = document, H = D.documentElement;
+  H.classList.add("v10");
+  var lang = function () { var l = (H.getAttribute("lang") || "en").slice(0, 2); if (l !== "ko" && l !== "zh") { try { l = localStorage.getItem("arcircle.lang") || l; } catch (e) { /* private */ } } return l === "ko" || l === "zh" ? l : "en"; };
+  var L = function (en, ko, zh) { var l = lang(); return l === "ko" ? ko : l === "zh" ? zh : en; };
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* private */ } },
+  };
+  var isAddr = function (a) { return /^0x[0-9a-fA-F]{40}$/.test(String(a || "")); };
+  var path = (location.pathname.replace(/\.html$/, "").replace(/\/+$/, "") || "/").replace(/^\/arcpad$/, "/arc").replace(/^\/circlepad$/, "/circle");
+  var onArc = path === "/arc";
+  var api = (window.arcV10 = {});
+
+  // ---------------- Display settings (before anything paints) ----------------
+  var SET = { dim: "arc.v10.dim", compact: "arc.v10.compact" };
+  function applySet() {
+    H.classList.toggle("v10-dim", store.get(SET.dim) === "1");
+    H.classList.toggle("v10-compact", store.get(SET.compact) === "1");
+  }
+  applySet();
+  function setRows() {
+    return [["dim", L("Dim", "어둡게", "柔和"), L("Softer contrast for long sessions", "오래 볼 때 눈이 편한 대비", "长时间浏览时更柔和的对比")],
+      ["compact", L("Compact", "촘촘하게", "紧凑"), L("More coins and rows on one screen", "한 화면에 더 많은 코인과 줄", "一屏显示更多币和行")]]
+      .map(function (r) {
+        return '<label><span>' + esc(r[1]) + "<small>" + esc(r[2]) + '</small></span><input type="checkbox" data-v10set="' + r[0] + '"' + (store.get(SET[r[0]]) === "1" ? " checked" : "") + '><i class="v10-sw" aria-hidden="true"></i></label>';
+      }).join("");
+  }
+  function onSet(e) {
+    var i = e.target.closest && e.target.closest("[data-v10set]");
+    if (!i) return;
+    store.set(SET[i.dataset.v10set], i.checked ? "1" : null);
+    applySet();
+  }
+  function mountSettings() {
+    var right = D.querySelector(".anav-right");
+    if (!right || right.querySelector(".v10-set")) return;
+    var box = D.createElement("div");
+    box.className = "v10-set";
+    box.innerHTML = '<button type="button" class="v10-set-b" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(L("Display", "화면 설정", "显示")) + '">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>' +
+      '<div class="v10-set-m" hidden></div>';
+    var lb = right.querySelector(".anav-lang");
+    right.insertBefore(box, lb || right.firstChild);
+    var b = box.querySelector(".v10-set-b"), m = box.querySelector(".v10-set-m");
+    var close = function () { m.hidden = true; b.setAttribute("aria-expanded", "false"); };
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (!m.hidden) return close();
+      m.innerHTML = setRows() + '<a href="/me">' + esc(L("My ARCIRCLE — everything to claim", "My ARCIRCLE — 받을 보상 한눈에", "My ARCIRCLE — 所有可领取的")) + "</a>";
+      m.hidden = false; b.setAttribute("aria-expanded", "true");
+    });
+    m.addEventListener("change", onSet);
+    D.addEventListener("click", function (e) { if (!box.contains(e.target)) close(); });
+    D.addEventListener("keydown", function (e) { if (e.key === "Escape" && !m.hidden) { close(); b.focus(); } });
+  }
+  // phones: the same two switches sit under the language list
+  function mountLangSettings() {
+    var lm = D.querySelector(".anav-lmenu");
+    if (!lm || lm.querySelector(".v10-lset")) return;
+    var box = D.createElement("div");
+    box.className = "v10-lset v10-set-m";
+    box.style.cssText = "position:static;min-width:0;padding:4px 0 0;margin-top:4px;border:0;border-top:1px solid rgba(170,190,230,.14);border-radius:0;background:none;box-shadow:none";
+    box.innerHTML = setRows();
+    lm.appendChild(box);
+    box.addEventListener("change", onSet);
+    box.addEventListener("click", function (e) { e.stopPropagation(); });
+  }
+
+  // ---------------- page intros: one line ----------------
+  function cutLedes(scope) {
+    [].forEach.call((scope || D).querySelectorAll(".bp-panel > .bp-lede, .ams-hero-txt > p"), function (p) {
+      if (p.dataset.v10cut || (p.textContent || "").trim().length < 120) return;
+      p.dataset.v10cut = "1";
+      p.classList.add("bp-lede", "v10-cut");
+      var b = D.createElement("button");
+      b.type = "button"; b.className = "v10-more"; b.setAttribute("aria-expanded", "false");
+      b.textContent = L("More", "더 보기", "更多");
+      b.addEventListener("click", function () {
+        var open = p.classList.toggle("open");
+        b.setAttribute("aria-expanded", open ? "true" : "false");
+        b.textContent = open ? L("Less", "접기", "收起") : L("More", "더 보기", "更多");
+      });
+      p.insertAdjacentElement("afterend", b);
+    });
+  }
+
+  // ---------------- utility guides: one folded block ----------------
+  function foldGuides() {
+    [].forEach.call(D.querySelectorAll(".bp-panel section.asc-guide, .bp-panel .asc-guide"), function (g) {
+      if (g.closest(".v10-guide") || g.parentNode.closest(".asc-guide")) return;
+      var h = g.querySelector(":scope > h2");
+      var det = D.createElement("details");
+      det.className = "v10-guide";
+      det.innerHTML = '<summary><span>' + esc(h ? h.textContent.trim() : L("How it works", "사용 방법", "使用说明")) + '</span><small>' + esc(L("How it works · what's new", "사용 방법 · 새 소식", "使用说明 · 更新")) + "</small></summary>" +
+        '<div class="v10-guide-in"></div>';
+      g.parentNode.insertBefore(det, g);
+      det.querySelector(".v10-guide-in").appendChild(g);
+      if (h) h.hidden = true;
+    });
+  }
+
+  // ---------------- Explore ----------------
+  function explore() {
+    var panel = D.getElementById("bp-panel-explore");
+    if (!panel) return;
+    // the live-trades strip: here only, standing still
+    var tk = D.getElementById("ap-ticker");
+    if (tk && tk.parentNode !== panel) {
+      var bar = panel.querySelector(".cn-explore-toolbar");
+      panel.insertBefore(tk, bar || panel.firstChild);
+    }
+    // platform chips and saved presets: inside Filters
+    var tries = 0;
+    (function move() {
+      var fp = D.getElementById("ap-filter-panel"), plats = panel.querySelector(".cn-explore-toolbar > .flt-plat"), pre = D.getElementById("v7-presets");
+      if (fp && plats && !fp.querySelector(".v10-fg-plat")) {
+        var g = D.createElement("div");
+        g.className = "flt-group v10-fg-plat";
+        g.innerHTML = '<span class="flt-label">' + esc(L("Platform", "플랫폼", "平台")) + "</span>";
+        g.appendChild(plats);
+        fp.insertBefore(g, fp.firstChild);
+      }
+      if (fp && pre && pre.parentNode !== fp) {
+        var gp = fp.querySelector(".v10-fg-pre") || D.createElement("div");
+        gp.className = "flt-group v10-fg-pre";
+        if (!gp.parentNode) { gp.innerHTML = '<span class="flt-label">' + esc(L("Saved views", "저장한 보기", "已保存视图")) + "</span>"; fp.appendChild(gp); }
+        gp.appendChild(pre);
+      }
+      if ((!fp || !plats || !pre) && ++tries < 40) setTimeout(move, 400);
+    })();
+    // touch: long-press a card for its quick-buy row
+    var grid = D.getElementById("ap-explore-grid");
+    if (grid && !grid.dataset.v10) {
+      grid.dataset.v10 = "1";
+      var t = 0;
+      grid.addEventListener("touchstart", function (e) { var c = e.target.closest(".launch-card"); if (!c) return; t = setTimeout(function () { c.classList.add("v10-qb"); }, 420); }, { passive: true });
+      grid.addEventListener("touchend", function () { clearTimeout(t); }, { passive: true });
+      grid.addEventListener("touchmove", function () { clearTimeout(t); }, { passive: true });
+      // sparklines draw once, the first time a coin shows up
+      var drawn = new Set();
+      var draw = function () {
+        if (reduce) return;
+        [].forEach.call(grid.querySelectorAll(".launch-card[data-token] > svg"), function (svg) {
+          var c = svg.parentNode, k = (c.dataset.token || "").toLowerCase();
+          if (!k || drawn.has(k)) return;
+          drawn.add(k);
+          var p = svg.querySelector("path, polyline");
+          if (!p || !p.getTotalLength) return;
+          try { svg.style.setProperty("--len", Math.ceil(p.getTotalLength())); svg.classList.add("v10-draw"); } catch (e) { /* not measurable */ }
+        });
+      };
+      if ("MutationObserver" in window) new MutationObserver(function () { clearTimeout(draw.t); draw.t = setTimeout(draw, 30); }).observe(grid, { childList: true });
+      draw();
+    }
+  }
+
+  // ---------------- coin page: a short trades list, orders folded on phones ----------------
+  function coinPage() {
+    var panel = D.getElementById("bp-panel-coin");
+    if (!panel || panel.dataset.v10) return;
+    panel.dataset.v10 = "1";
+    panel.addEventListener("click", function (e) {
+      var h = e.target.closest && e.target.closest("#v7-ord > h3");
+      if (h && window.innerWidth <= 900) { h.parentNode.classList.toggle("v10-open"); return; }
+      var s = e.target.closest && e.target.closest(".v10-showall");
+      if (s) { var c = s.closest(".ac2-card"); var all = c.classList.toggle("v10-all"); s.textContent = all ? L("Show fewer", "접기", "收起") : L("Show all", "모두 보기", "显示全部"); }
+    });
+    var add = function () {
+      [].forEach.call(panel.querySelectorAll(".ac2-card .ac2-table-wrap"), function (w) {
+        var rows = w.querySelectorAll("tbody tr").length, btn = w.parentNode.querySelector(":scope > .v10-showall");
+        if (rows > 8 && !btn) { btn = D.createElement("button"); btn.type = "button"; btn.className = "v10-showall"; btn.textContent = L("Show all", "모두 보기", "显示全部"); w.insertAdjacentElement("afterend", btn); }
+        if (btn) btn.hidden = rows <= 8;
+      });
+    };
+    if ("MutationObserver" in window) new MutationObserver(function () { clearTimeout(add.t); add.t = setTimeout(add, 80); }).observe(panel, { childList: true, subtree: true });
+    add();
+  }
+
+  // ---------------- tab switches: one short move ----------------
+  function tabIn() {
+    if (reduce) return;
+    var p = D.querySelector(".bp-panel.active");
+    if (!p) return;
+    p.classList.remove("v10-in"); void p.offsetWidth; p.classList.add("v10-in");
+    setTimeout(function () { p.classList.remove("v10-in"); }, 260);
+  }
+
+  // ---------------- home: one main button ----------------
+  function home() {
+    if (path !== "/") return;
+    var tour = D.querySelector(".hm-tour");
+    if (tour) {
+      var seen = store.get("arc.v10.seen");
+      if (seen) tour.hidden = true;
+      else store.set("arc.v10.seen", String(Date.now()));
+    }
+  }
+
+  // ---------------- remember the wallet the site saw (for My ARCIRCLE and alerts) ----------------
+  function watchAccount() {
+    var last = "";
+    setInterval(function () {
+      var a = typeof state !== "undefined" && state && state.account ? String(state.account).toLowerCase() : "";
+      if (a && a !== last && isAddr(a)) { last = a; store.set("arc.v10.acct", a); D.dispatchEvent(new CustomEvent("arc:v10acct", { detail: a })); }
+    }, 1500);
+  }
+  api.account = function () { var c = window.arcConnect && window.arcConnect.address(); if (c) return c; var a = store.get("arc.v10.acct"); return isAddr(a) ? a : ""; };
+
+  // ---------------- My ARCIRCLE: everything to claim ----------------
+  var getJson = function (u) { return fetch(u, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+  var nf = function (n, d) { return Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: d == null ? 2 : d }); };
+  var big = function (raw) { try { var n = Number(BigInt(raw || "0") / 10n ** 14n) / 1e4; return n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K" : nf(n, 2); } catch (e) { return "—"; } };
+  /// what a wallet can claim right now, across the site
+  api.claims = function (addr) {
+    addr = String(addr || "").toLowerCase();
+    return Promise.all([
+      getJson("/api/desk?stake=me&u=" + addr),
+      getJson("/api/desk?stake=drop&u=" + addr),
+      getJson("/api/desk?vearcia=me&u=" + addr),
+    ]).then(function (r) {
+      var st = r[0], ld = r[1], va = r[2], out = [];
+      if (st && st.live) {
+        out.push({ k: "stake", t: L("Staking rewards", "스테이킹 보상", "质押奖励"), v: nf(st.claimable, 2) + " USDC", ready: st.claimable > 0, href: "/arc#staking" });
+        if (st.lock && st.lock.end && !st.lock.max) {
+          var days = Math.round((st.lock.end - Date.now() / 1000) / 86400);
+          if (days >= 0 && days <= 14) out.push({ k: "lock", t: L("Your lock ends soon", "락업 종료 임박", "锁仓即将到期"), v: days + L(" days", "일", " 天"), ready: false, href: "/arc#staking", warn: true });
+        }
+      }
+      if (ld && ld.mode === "vault") {
+        var n = (ld.claimable || []).length;
+        out.push({ k: "drop", t: L("Launch Drop", "런치 드랍", "发币空投"), v: n ? n + L(n === 1 ? " coin" : " coins", "개 코인", " 个币") : L("Nothing yet", "아직 없음", "暂无"), ready: n > 0, href: "/arc#staking", tokens: ld.claimable || [], vault: ld.vault });
+      }
+      if (va && va.live && va.earned && va.earned[0]) {
+        var a = Number(BigInt(va.earned[0]) / 10n ** 14n) / 1e4;
+        out.push({ k: "vea", t: L("veARCIA rewards (Robinhood Chain)", "veARCIA 보상 (로빈후드 체인)", "veARCIA 奖励(Robinhood Chain)"), v: nf(a, 2) + " $ARCIA", ready: a > 0, href: "/arc#vearcia", other: true });
+      }
+      return out;
+    });
+  };
+  function meCard() {
+    if (!D.body.classList.contains("pg-me")) return;
+    var out = D.getElementById("me-out");
+    if (!out) return;
+    var busy = false;
+    var paint = function () {
+      var id = out.querySelector(".me-id");
+      if (!id || out.querySelector(".v10-claims")) return;
+      var addr = (new URLSearchParams(location.search).get("w") || "").toLowerCase();
+      if (!isAddr(addr)) return;
+      var box = D.createElement("section");
+      box.className = "v10-claims";
+      box.innerHTML = '<div class="v10-claims-h"><h2>' + esc(L("Ready to claim", "받을 수 있는 보상", "可领取")) + '</h2></div><p class="v10-claims-empty">' + esc(L("Reading…", "읽는 중…", "读取中…")) + "</p>";
+      id.insertAdjacentElement("afterend", box);
+      api.claims(addr).then(function (rows) {
+        var arcReady = rows.filter(function (r) { return r.ready && !r.other; });
+        var mine = api.account() === addr || (window.arcConnect && window.arcConnect.address() === addr);
+        box.innerHTML = '<div class="v10-claims-h"><h2>' + esc(L("Ready to claim", "받을 수 있는 보상", "可领取")) + "</h2>" +
+          (arcReady.length ? (mine ? '<button type="button" class="ld-btn pri" data-v10claim>' + esc(L("Claim all on Arc", "Arc에서 모두 수령", "在 Arc 上全部领取")) + " (" + arcReady.length + ")</button>"
+            : '<a class="ld-btn" href="/arc#staking">' + esc(L("Connect this wallet to claim", "이 지갑을 연결해서 수령", "连接此钱包以领取")) + "</a>") : "") + "</div>" +
+          (rows.length ? "<ul>" + rows.map(function (r) {
+            return "<li><span>" + esc(r.t) + '</span><span><b data-no-i18n>' + esc(r.v) + '</b> <span class="v10-st' + (r.ready ? " ok" : "") + '">' + esc(r.ready ? L("ready", "수령 가능", "可领取") : r.warn ? "" : "—") + '</span> <a href="' + esc(r.href) + '">' + esc(L("Open", "열기", "打开")) + " →</a></span></li>";
+          }).join("") + "</ul>" : '<p class="v10-claims-empty">' + esc(L("Nothing to claim yet. Lock $ARCIRCLE on Staking to get USDC every week and a piece of every new ArcPad coin.", "아직 받을 보상이 없어요. 스테이킹에서 $ARCIRCLE을 락업하면 매주 USDC와 새 ArcPad 코인을 받아요.", "暂无可领取的奖励。在质押页面锁仓 $ARCIRCLE,每周可得 USDC,还能分到每个新 ArcPad 币。")) + ' <a href="/arc#staking">' + esc(L("Open Staking", "스테이킹 열기", "打开质押")) + " →</a></p>");
+        box.dataset.rows = JSON.stringify(arcReady.map(function (r) { return { k: r.k, tokens: r.tokens || [], vault: r.vault || "" }; }));
+        if (mine && !out.querySelector(".v11-start")) meStart(addr, box);
+      });
+    };
+    out.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-v10claim]");
+      if (!b || busy) return;
+      var box = b.closest(".v10-claims"), rows = JSON.parse(box.dataset.rows || "[]");
+      busy = true; b.disabled = true;
+      claimAll(rows, function (msg) { b.textContent = msg; }).then(function (ok) {
+        busy = false;
+        if (ok) { b.classList.add("v10-ok"); fly(b, L("Claimed", "수령 완료", "已领取")); setTimeout(function () { box.remove(); paint(); }, 1600); }
+        else b.disabled = false;
+      });
+    });
+    if ("MutationObserver" in window) new MutationObserver(paint).observe(out, { childList: true });
+    paint();
+  }
+  /// Staking USDC + Launch Drop, on Arc, one after the other (each is the wallet's own transaction)
+  function claimAll(rows, say) {
+    var C = window.CONFIG || {};
+    var STK = C.STAKING_ADDRESS;
+    // v11: the wallet from the site's one wallet button (arc-connect.js), else the browser's
+    var getP = window.arcConnect ? Promise.resolve(window.arcConnect.provider()) : Promise.resolve(window.ethereum);
+    return getP.then(function (eth) {
+      if (!eth || typeof ethers === "undefined") { say(L("Open this in a wallet browser", "지갑 브라우저에서 열어주세요", "请在钱包浏览器中打开")); return false; }
+      return eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x13b2" }] }).catch(function () { return null; }).then(function () {
+        return new ethers.BrowserProvider(eth).getSigner();
+      }).then(function (s) {
+        var chain = Promise.resolve();
+        rows.forEach(function (r) {
+          chain = chain.then(function () {
+            if (r.k === "stake" && isAddr(STK)) { say(L("Confirm the USDC claim…", "USDC 수령을 확인하세요…", "请确认 USDC 领取…")); return new ethers.Contract(STK, ["function claim() returns (uint256)"], s).claim().then(function (tx) { return tx.wait(); }); }
+            if (r.k === "drop" && isAddr(r.vault) && r.tokens.length) { say(L("Confirm the Launch Drop claim…", "런치 드랍 수령을 확인하세요…", "请确认发币空投领取…")); return new ethers.Contract(r.vault, ["function claim(address[] list) returns (uint256)"], s).claim(r.tokens.slice(0, 20)).then(function (tx) { return tx.wait(); }); }
+          });
+        });
+        return chain.then(function () { say(L("Claimed", "수령 완료", "已领取")); return true; });
+      });
+    }).catch(function (e) { say(String((e && (e.shortMessage || e.reason || e.message)) || e).slice(0, 80)); return false; });
+  }
+  /// a small "+ claimed" chip flies from the button to the top bar
+  function fly(from, text) {
+    if (reduce || !from) return;
+    var r = from.getBoundingClientRect(), to = D.querySelector(".anav-right") || D.body, t = to.getBoundingClientRect();
+    var f = D.createElement("span");
+    f.className = "v10-fly"; f.textContent = text;
+    f.style.left = r.left + r.width / 2 - 30 + "px"; f.style.top = r.top + "px";
+    D.body.appendChild(f);
+    requestAnimationFrame(function () { f.style.transform = "translate(" + (t.right - 80 - r.left) + "px," + (t.top + 10 - r.top) + "px) scale(.8)"; f.style.opacity = "0"; });
+    setTimeout(function () { f.remove(); }, 800);
+  }
+  api.fly = fly;
+
+  // ---------------- v11: Ask ARCIA shrinks while you scroll ----------------
+  function fabScroll() {
+    var t = 0, lastY = window.scrollY;
+    window.addEventListener("scroll", function () {
+      var f = D.querySelector(".aa-fab");
+      if (!f) return;
+      if (Math.abs(window.scrollY - lastY) > 24) f.classList.add("v11-mini");
+      lastY = window.scrollY;
+      clearTimeout(t);
+      // v12: on a phone she's always the small round avatar (her label covered cards and buttons)
+      t = setTimeout(function () { if (!phoneNow()) f.classList.remove("v11-mini"); }, 900);
+    }, { passive: true });
+    var phoneNow = function () { return !!(window.matchMedia && matchMedia("(max-width: 640px)").matches); };
+    var mini = function () { var f = D.querySelector(".aa-fab"); if (f) f.classList.toggle("v11-mini", phoneNow()); return !!f; };
+    if (!mini()) { var n = 0, iv = setInterval(function () { if (mini() || ++n > 20) clearInterval(iv); }, 500); }
+    window.addEventListener("resize", mini);
+  }
+
+  // ---------------- v11: the $ARCIRCLE contracts note opens on a tap ----------------
+  function caNote() {
+    var n = D.querySelector(".ax-token-hero .ax-ca-note");
+    if (!n || n.dataset.v11) return;
+    n.dataset.v11 = "1";
+    n.title = L("Tap to read all", "눌러서 전체 보기", "点击查看全部");
+    n.addEventListener("click", function (e) { if (e.target.closest("a")) return; n.classList.toggle("open"); });
+  }
+
+  // ---------------- v11: coin page shortcuts (desktop) ----------------
+  function coinKeys() {
+    var panel = D.getElementById("bp-panel-coin");
+    if (!panel || panel.dataset.v11k) return;
+    panel.dataset.v11k = "1";
+    var swap = D.getElementById("apc-swap");
+    if (swap && !swap.querySelector(".v11-keys")) {
+      var h = D.createElement("p");
+      h.className = "v11-keys";
+      h.innerHTML = L("Keys", "단축키", "快捷键") + ': <kbd>B</kbd> ' + esc(L("buy", "매수", "买入")) + ' · <kbd>S</kbd> ' + esc(L("sell", "매도", "卖出")) + ' · <kbd>1</kbd>–<kbd>4</kbd> $1 / $5 / $10 / $50';
+      swap.appendChild(h);
+    }
+    D.addEventListener("keydown", function (e) {
+      if (!panel.classList.contains("active") || e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target, tag = t && t.tagName;
+      if (e.key === "Escape" && tag === "INPUT" && t.id === "apc-amount") { t.blur(); return; }
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) return;
+      if (D.querySelector(".cw-modal, .cw-m:not([hidden]), .anav-sheet.in")) return;
+      var k = e.key.toLowerCase(), tabs = panel.querySelectorAll("#apc-swap .ac2-swap-tabs button"), q = panel.querySelectorAll("#apc-quick button");
+      if ((k === "b" || k === "s") && tabs.length >= 2) { e.preventDefault(); tabs[k === "b" ? 0 : 1].click(); var a = D.getElementById("apc-amount"); if (a) a.focus(); }
+      else if (/^[1-4]$/.test(k) && q[Number(k) - 1]) { e.preventDefault(); q[Number(k) - 1].click(); }
+    });
+  }
+
+  // ---------------- v11: Explore — a visible "Compare" ----------------
+  function compareBtn() {
+    var bar = D.querySelector("#bp-panel-explore .cn-explore-toolbar");
+    if (!bar || bar.querySelector(".v11-cmp")) return;
+    var b = D.createElement("button");
+    b.type = "button"; b.className = "flt-btn v11-cmp"; b.setAttribute("aria-pressed", "false");
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"/></svg><span>' + esc(L("Compare", "비교", "比较")) + "</span>";
+    var f = bar.querySelector("#ap-filter-btn");
+    bar.insertBefore(b, f || null);
+    b.addEventListener("click", function () {
+      var on = H.classList.toggle("v11-cmp-on");
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.classList.toggle("on", on);
+      if (on && typeof window.arcToast === "function") window.arcToast(L("Pick 2 or 3 coins to compare", "비교할 코인을 2~3개 고르세요", "选择 2 到 3 个币进行比较"), "info");
+    });
+  }
+
+  // ---------------- v11: My ARCIRCLE — getting started, for a wallet that's just begun ----------------
+  function meStart(addr, box) {
+    var C = window.CONFIG || {};
+    var rpcUrl = C.RPC_URL || "https://rpc.mainnet.arc.io";
+    Promise.all([
+      fetch(rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [addr, "latest"] }) }).then(function (r) { return r.json(); }).catch(function () { return null; }),
+      getJson("/api/social?token=arcircle&wallet=" + addr),
+      getJson("/api/desk?stake=me&u=" + addr),
+    ]).then(function (r) {
+      var usdc = 0; try { usdc = Number(BigInt((r[0] && r[0].result) || "0x0") / 10n ** 14n) / 1e4; } catch (e) { /* none */ }
+      var w = r[1] && r[1].wallet, st = r[2] || {};
+      var earned = (st.history || []).reduce(function (a, h) { return a + (h.earned || 0); }, 0);
+      var steps = [
+        [usdc >= 0.5, L("USDC on Arc", "Arc에 USDC", "Arc 上的 USDC"), L("Gas and buys are paid in USDC", "가스와 매수 모두 USDC", "Gas 和买入都用 USDC"), "/start"],
+        [!!(w && Number(w.balance) > 0), L("Hold $ARCIRCLE", "$ARCIRCLE 보유", "持有 $ARCIRCLE"), L("The core coin", "핵심 코인", "核心币"), "/arcircle"],
+        [!!(st.lock && st.lock.amount > 0), L("Lock it for veARCIRCLE", "락업해서 veARCIRCLE 받기", "锁仓获得 veARCIRCLE"), L("USDC every week + every new coin's drop", "매주 USDC + 새 코인 드랍", "每周 USDC + 每个新币空投"), "/arc#staking"],
+        [earned > 0, L("Your first reward", "첫 보상 받기", "第一笔奖励"), L("Claim it from here", "여기서 수령", "在这里领取"), "/arc#staking"],
+      ];
+      var done = steps.filter(function (x) { return x[0]; }).length;
+      if (done === steps.length) return;
+      var el = D.createElement("section");
+      el.className = "v11-start";
+      el.innerHTML = '<div class="v11-start-h"><h2>' + esc(L("Getting started", "시작하기", "入门")) + '</h2><span>' + done + " / " + steps.length + '</span></div><div class="v11-start-bar"><i style="width:' + (done / steps.length * 100) + '%"></i></div><ol>' +
+        steps.map(function (x) { return '<li class="' + (x[0] ? "ok" : "") + '"><a href="' + esc(x[3]) + '"><i aria-hidden="true"></i><span><b>' + esc(x[1]) + "</b><small>" + esc(x[2]) + "</small></span></a></li>"; }).join("") + "</ol>";
+      box.insertAdjacentElement("afterend", el);
+    });
+  }
+
+  // ---------------- run ----------------
+  function init() {
+    mountSettings();
+    mountLangSettings();
+    cutLedes();
+    foldGuides();
+    explore();
+    coinPage();
+    home();
+    meCard();
+    watchAccount();
+    fabScroll();
+    caNote();
+    coinKeys();
+    compareBtn();
+    if (onArc) D.addEventListener("arcpad:tab", function () { setTimeout(function () { cutLedes(); foldGuides(); explore(); compareBtn(); coinKeys(); }, 0); tabIn(); });
+    // the bar is rebuilt when the language changes
+    D.addEventListener("arc:lang", function () { setTimeout(function () { mountSettings(); mountLangSettings(); }, 50); });
+    setTimeout(function () { mountSettings(); mountLangSettings(); foldGuides(); }, 1200);
+  }
+  if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", init); else init();
+})();
+;
+/* ---- arc-v12.js ---- */
+// arc-v12.js — layout and motion pass (v12), on every app page that loads the shared chrome:
+//   · Staking: four tabs (Your lock · Launch Drop · Pool vote · Treasury & stats) instead of one long page; the
+//     Launch Drop tab shows a dot when there's something to claim, and #staking?drop… opens on it
+//   · Home: on a phone each menu card shows its first four links and a "+N more" that opens the rest
+//   · Coin page: the header's chips get their names as aria-labels (the phone shows icons only)
+//   · Coin page trades: a trade that wasn't there before slides in, and a big one (≥ $100) glows
+// The styles are in arc-v10.css ("v12"). Everything respects prefers-reduced-motion.
+(function () {
+  "use strict";
+  var D = document;
+  var $ = function (id) { return D.getElementById(id); };
+  var tr = function (s) { return (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var ls = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } } };
+
+  // ---------------- Staking: tabs ----------------
+  var STK_TABS = [["lock", "Your lock"], ["drop", "Launch Drop"], ["vote", "Pool vote"], ["more", "Treasury & stats"]];
+  function stkTabs() {
+    var panel = $("bp-panel-staking"), ld = $("ld-body");
+    if (!panel || !ld) return;
+    var bar = $("v12-stabs");
+    if (!bar) {
+      bar = D.createElement("div");
+      bar.id = "v12-stabs"; bar.className = "v12-stabs"; bar.setAttribute("role", "tablist"); bar.setAttribute("aria-label", "ARCIRCLE Staking");
+      ld.parentNode.insertBefore(bar, ld);
+      bar.addEventListener("click", function (e) { var b = e.target.closest("[data-v12-tab]"); if (b) stkSet(b.dataset.v12Tab, true); });
+      bar.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+        var ks = STK_TABS.map(function (x) { return x[0]; }), i = ks.indexOf(panel.dataset.v12tab);
+        var n = ks[(i + (e.key === "ArrowRight" ? 1 : ks.length - 1)) % ks.length];
+        stkSet(n, true); var nb = bar.querySelector('[data-v12-tab="' + n + '"]'); if (nb) nb.focus();
+      });
+      new MutationObserver(stkBadge).observe(ld, { childList: true, subtree: true });
+      var start = /[#?&]staking\?[^#]*drop|[?&]drop\b/.test(location.hash) ? "drop" : ls.get("arc.v12.stk") || "lock";
+      stkSet(STK_TABS.some(function (x) { return x[0] === start; }) ? start : "lock", false);
+      window.addEventListener("hashchange", function () { if (/staking\?[^#]*drop/.test(location.hash)) stkSet("drop", false); });
+    }
+    bar.innerHTML = STK_TABS.map(function (x) {
+      var on = panel.dataset.v12tab === x[0];
+      return '<button type="button" role="tab" data-v12-tab="' + x[0] + '" aria-selected="' + on + '" tabindex="' + (on ? 0 : -1) + '">' + esc(tr(x[1])) + (x[0] === "drop" ? '<i class="v12-dot" hidden></i>' : "") + "</button>";
+    }).join("");
+    stkBadge();
+  }
+  function stkSet(k, user) {
+    var panel = $("bp-panel-staking"), bar = $("v12-stabs");
+    if (!panel) return;
+    var was = panel.dataset.v12tab;
+    panel.dataset.v12tab = k;
+    D.documentElement.dataset.v12stk = k;
+    if (user) ls.set("arc.v12.stk", k);
+    if (bar) [].forEach.call(bar.querySelectorAll("[data-v12-tab]"), function (b) { var on = b.dataset.v12Tab === k; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; });
+    if (user && was !== k && !reduce) { panel.classList.remove("v12-swap"); void panel.offsetWidth; panel.classList.add("v12-swap"); }
+    if (user && bar) { var top = bar.getBoundingClientRect().top; if (top < 60) window.scrollBy({ top: top - 70, behavior: reduce ? "auto" : "smooth" }); }
+  }
+  function stkBadge() {
+    var bar = $("v12-stabs"), ld = $("ld-body");
+    if (!bar || !ld) return;
+    var dot = bar.querySelector(".v12-dot");
+    if (dot) dot.hidden = !ld.querySelector('[data-ld="claim"]');
+  }
+
+  // ---------------- Home: shorter menu cards on a phone ----------------
+  function homeMap() {
+    var grid = $("hm-map-grid");
+    if (!grid) return;
+    var paint = function () {
+      [].forEach.call(grid.querySelectorAll(".hm-mapc"), function (c) {
+        var l = c.querySelector(".hm-mapc-l"), n = l ? l.children.length : 0;
+        if (!l || n <= 4 || c.querySelector(".v12-more")) return;
+        var b = D.createElement("button");
+        b.type = "button"; b.className = "v12-more"; b.setAttribute("aria-expanded", "false");
+        b.textContent = tr("Show {n} more").replace("{n}", n - 4);
+        b.addEventListener("click", function () { var open = !c.classList.contains("v12-open"); c.classList.toggle("v12-open", open); b.setAttribute("aria-expanded", String(open)); b.textContent = open ? tr("Show less") : tr("Show {n} more").replace("{n}", n - 4); });
+        c.appendChild(b);
+      });
+    };
+    paint();
+    new MutationObserver(paint).observe(grid, { childList: true });
+  }
+
+  // ---------------- Coin page: chip names for icon-only chips ----------------
+  function chipNames() {
+    var row = D.querySelector("#bp-panel-coin .ac2-ca-row");
+    if (!row) return;
+    [].forEach.call(row.querySelectorAll(".ac2-chip-btn"), function (b) {
+      var s = b.querySelector("span");
+      var name = s && s.textContent.trim();
+      if (name && b.getAttribute("aria-label") !== name) { b.setAttribute("aria-label", name); if (!b.title) b.title = name; }
+    });
+  }
+
+  // ---------------- Coin page: new trades slide in ----------------
+  var seen = { coin: "", keys: null, at: 0 };
+  function tradeKey(tr0) { var a = tr0.querySelector("a.ac2-tx"); return a ? a.getAttribute("href") : ""; }
+  function usdOf(tr0) { var td = tr0.children[2]; if (!td) return 0; var m = /\$?([\d,.]+)\s*([KMB])?/.exec(td.textContent || ""); if (!m) return 0; return Number(m[1].replace(/,/g, "")) * ({ K: 1e3, M: 1e6, B: 1e9 }[m[2]] || 1); }
+  function trades() {
+    var body = $("apc-trades");
+    if (!body || body.__v12) return;
+    body.__v12 = true;
+    new MutationObserver(function () {
+      var coin = (location.hash.match(/coin\/(0x[0-9a-fA-F]{40})/) || [])[1] || "";
+      var rows = [].slice.call(body.querySelectorAll("tr")).filter(function (r) { return tradeKey(r); });
+      if (!rows.length) return;
+      var keys = rows.map(tradeKey);
+      // a new coin, or the first list: remember what's there, animate nothing
+      if (coin.toLowerCase() !== seen.coin || !seen.keys) { seen = { coin: coin.toLowerCase(), keys: new Set(keys), top: keys[0] }; return; }
+      var fresh = rows.filter(function (r) { return !seen.keys.has(tradeKey(r)); });
+      var prevTop = seen.top;
+      keys.forEach(function (k) { seen.keys.add(k); });
+      seen.top = keys[0];
+      // only trades that arrived on top of the list we had (a filter switch or "show more" brings older rows into view)
+      var n = fresh.length;
+      if (!n || n > 4 || keys.indexOf(prevTop) !== n || rows.indexOf(fresh[n - 1]) !== n - 1) return;
+      if (reduce) return;
+      fresh.forEach(function (r, i) {
+        r.style.setProperty("--v12d", i * 70 + "ms");
+        r.classList.add("v12-new");
+        if (usdOf(r) >= 100) r.classList.add("v12-big");
+        setTimeout(function () { r.classList.remove("v12-new", "v12-big"); }, 2600);
+      });
+    }).observe(body, { childList: true });
+  }
+
+  // ---------------- count-up: [data-v12-count="1,234.5"] counts from 0 the first time its key shows ----------------
+  // (ARCIRCLE Swap's "$ARCIRCLE burned" after a swap; the page may redraw the same message, so each key plays once)
+  var counted = {};
+  function countUp(el) {
+    var key = el.getAttribute("data-v12-key") || el.getAttribute("data-v12-count");
+    var txt = el.getAttribute("data-v12-count") || "";
+    var m = /^([\d,]*\.?\d*)\s*([KMB])?$/.exec(txt.trim());
+    if (!m || !m[1]) return;
+    var to = Number(m[1].replace(/,/g, "")), suf = m[2] || "", dec = (m[1].split(".")[1] || "").length;
+    if (reduce || !(to > 0) || counted[key]) return;
+    counted[key] = 1;
+    var t0 = performance.now(), dur = 900;
+    var wrap = el.closest(".v12-burn"); if (wrap) { wrap.classList.remove("v12-pop"); void wrap.offsetWidth; wrap.classList.add("v12-pop"); }
+    (function step(t) {
+      var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = (to * e).toLocaleString("en-US", { minimumFractionDigits: k < 1 ? 0 : dec, maximumFractionDigits: dec }) + suf;
+      if (k < 1 && el.isConnected) requestAnimationFrame(step); else el.textContent = txt;
+    })(t0);
+  }
+  new MutationObserver(function (ms) {
+    ms.forEach(function (m) { [].forEach.call(m.addedNodes, function (n) { if (n.nodeType !== 1) return; if (n.matches("[data-v12-count]")) countUp(n); [].forEach.call(n.querySelectorAll("[data-v12-count]"), countUp); }); });
+  }).observe(D.documentElement, { childList: true, subtree: true });
+
+  function boot() {
+    stkTabs(); homeMap(); trades(); chipNames();
+    var head = D.querySelector("#bp-panel-coin .ac2-ca-row");
+    if (head && !head.__v12) { head.__v12 = true; new MutationObserver(chipNames).observe(head, { childList: true, subtree: true, characterData: true }); }
+  }
+  if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", boot); else boot();
+  setTimeout(boot, 1500);
+  D.addEventListener("arc:lang", function () { stkTabs(); });
+  window.arcV12 = { stkSet: stkSet };
+})();
+;
+/* ---- arc-feel.js ---- */
+// arc-feel.js — small moments of feedback on every ARCIRCLE PAD page (styles in arc-polish.css):
+//   · stat tiles count up the first time their number arrives (only once they're on screen)
+//   · a value that never arrives says so in words, instead of a bare "—"
+//   · a successful launch / swap / stake: a light burst (one pooled canvas, ≤ 60 particles, removed when done)
+//     and a receipt card that slides in — pages announce it with document "arc:success"
+//       detail: { kind: "launch" | "swap" | "stake", rows: [[label, value]…], url }
+//   · copying to the clipboard: a check pops beside the button
+// Motion is transform / opacity (and one canvas), nothing loops, and all of it is off under prefers-reduced-motion.
+(function () {
+  "use strict";
+  if (window.arcFeel) return;
+  var D = document;
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var tr = function (s) { return (window.arcI18n && window.arcI18n.get && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  // ---------------- stat tiles count up when their number first arrives ----------------
+  var COUNT = ".ap-stat > strong:not(#ap-stat-count):not(#ap-stat-vol), .bp-mini-stat strong";
+  var NUM = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/;
+  var onScreen = new WeakMap(), waiting = new WeakMap(), watched = new WeakSet();
+  var io = !reduce && "IntersectionObserver" in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      onScreen.set(e.target, e.isIntersecting);
+      if (!e.isIntersecting) return;
+      var w = waiting.get(e.target);
+      if (w) { waiting.delete(e.target); count(e.target, w); }
+    });
+  }, { threshold: 0.3 }) : null;
+  function count(el, txt) {
+    var m = NUM.exec(txt.trim());
+    if (!m) return;
+    var v = parseFloat(m[2].replace(/,/g, ""));
+    if (!(v > 0)) return;
+    var dec = (m[2].split(".")[1] || "").length, comma = /,/.test(m[2]) || v >= 1000, t0 = performance.now(), ms = 700;
+    var fmt = function (x) { return m[1] + x.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: comma }) + m[3]; };
+    el.__feelMine = fmt(0); el.textContent = el.__feelMine;
+    (function step(t) {
+      if (el.textContent !== el.__feelMine) return; // the page wrote a fresher value: it wins
+      var k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+      el.__feelMine = k < 1 ? fmt(v * e) : txt;
+      el.textContent = el.__feelMine;
+      if (k < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+  function watch(el) {
+    if (watched.has(el)) return;
+    watched.add(el);
+    var had = /\d/.test(el.textContent);
+    if (had || !io) return; // already has its number (or no motion): leave it be
+    io.observe(el);
+    var mo = new MutationObserver(function () {
+      var txt = el.textContent;
+      if (txt === el.__feelMine || !/\d/.test(txt)) return;
+      mo.disconnect();
+      if (onScreen.get(el)) count(el, txt); else waiting.set(el, txt);
+    });
+    mo.observe(el, { childList: true, characterData: true, subtree: true });
+  }
+
+  // ---------------- values that never came: say so in words ----------------
+  // the home page's small numbers inside a sentence ("— coins launched so far"): a skeleton while they load, then
+  // the whole sentence becomes one friendly line (arc-polish.css hides the rest of it)
+  var SMALL = [
+    [".hm-foot [data-hm-num]", "Coin count is on its way"],
+    [".hm-node [data-hm-num]", "Burn total is on its way"],
+  ];
+  function empties() {
+    SMALL.forEach(function (x) {
+      [].forEach.call(D.querySelectorAll(x[0]), function (el) {
+        if (el.__feelE || el.textContent.trim() !== "—") return;
+        el.__feelE = Date.now(); el.classList.add("v9-skel");
+        var mo = new MutationObserver(function () { if (el.textContent.trim() !== "—") { el.classList.remove("v9-skel", "pol-empty"); el.removeAttribute("data-empty"); mo.disconnect(); } });
+        mo.observe(el, { childList: true, characterData: true, subtree: true });
+        setTimeout(function () { if (el.textContent.trim() === "—") { el.classList.remove("v9-skel"); el.classList.add("pol-empty"); el.setAttribute("data-empty", tr(x[1])); } }, 6000);
+      });
+    });
+    // a big value v9 gave up on (arc-v9.js pending()): words instead of a faded "—"
+    [].forEach.call(D.querySelectorAll(".v9-na:not([data-empty])"), function (el) { el.setAttribute("data-empty", tr("Waiting for Arc")); });
+    // v9 lets go of .v9-na when the number arrives; the label goes with it
+    [].forEach.call(D.querySelectorAll("[data-empty]:not(.v9-na):not(.pol-empty)"), function (el) { el.removeAttribute("data-empty"); });
+    [].forEach.call(D.querySelectorAll(COUNT), watch);
+  }
+
+  // ---------------- success: a light burst and a receipt ----------------
+  var MAX = 60, pool = [], cv = null, ctx = null, running = false, W = 0, H = 0;
+  var COLORS = ["#3a78ff", "#2ba6ff", "#3fe0ef", "#9df3ff", "#ffffff"];
+  for (var i = 0; i < MAX; i++) pool.push({ on: false });
+  function burst(x, y) {
+    if (reduce) return;
+    if (!cv) {
+      cv = D.createElement("canvas"); cv.className = "pol-burst"; cv.setAttribute("aria-hidden", "true");
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr;
+      ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+      D.body.appendChild(cv);
+    }
+    pool.forEach(function (p, k) {
+      var a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.3, s = 5 + Math.random() * 7;
+      p.on = true; p.x = x; p.y = y; p.vx = Math.cos(a) * s; p.vy = Math.sin(a) * s; p.r = Math.random() * 6.28; p.vr = (Math.random() - 0.5) * 0.35;
+      p.w = 4 + Math.random() * 4; p.h = 6 + Math.random() * 6; p.c = COLORS[k % COLORS.length]; p.life = 0; p.max = 60 + Math.random() * 40;
+    });
+    if (!running) { running = true; requestAnimationFrame(frame); }
+  }
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    var alive = 0;
+    pool.forEach(function (p) {
+      if (!p.on) return;
+      p.life++; p.vy += 0.28; p.vx *= 0.985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      if (p.life > p.max || p.y > H + 20) { p.on = false; return; }
+      alive++;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      ctx.globalAlpha = Math.max(0, 1 - p.life / p.max); ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r)));
+      ctx.restore();
+    });
+    if (alive) requestAnimationFrame(frame);
+    else { running = false; cv.remove(); cv = null; ctx = null; }
+  }
+  var TITLE = { launch: "Coin launched", swap: "Swap complete", stake: "Stake locked" };
+  var card = null;
+  function receipt(d) {
+    if (card) card.remove();
+    var rows = (d.rows || []).filter(function (r) { return r && r[1] != null && r[1] !== ""; });
+    card = D.createElement("div");
+    card.className = "pol-rcpt"; card.setAttribute("role", "status"); card.setAttribute("aria-live", "polite");
+    card.innerHTML = '<div class="pol-rcpt-h"><i>' + CHECK + "</i><b>" + esc(tr(TITLE[d.kind] || "Transaction confirmed")) + "</b></div>" +
+      (rows.length ? "<dl>" + rows.map(function (r) { return "<dt>" + esc(tr(r[0])) + '</dt><dd data-no-i18n title="' + esc(r[1]) + '">' + esc(r[1]) + "</dd>"; }).join("") + "</dl>" : "") +
+      (d.url ? '<a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(tr("View transaction")) + " ↗</a>" : "") +
+      '<button type="button" class="pol-rcpt-x" aria-label="' + esc(tr("Close")) + '">×</button>';
+    D.body.appendChild(card);
+    var me = card, gone = false;
+    var close = function () { if (gone) return; gone = true; me.classList.remove("in"); me.classList.add("out"); setTimeout(function () { me.remove(); if (card === me) card = null; }, reduce ? 0 : 300); };
+    me.querySelector(".pol-rcpt-x").addEventListener("click", close);
+    var t = setTimeout(close, 8000);
+    me.addEventListener("pointerenter", function () { clearTimeout(t); });
+    me.addEventListener("pointerleave", function () { clearTimeout(t); t = setTimeout(close, 4000); });
+    requestAnimationFrame(function () {
+      me.classList.add("in");
+      // the coin page's own "coin is born" moment already celebrates a launch on ArcPad
+      if (D.querySelector(".coin-birth")) return;
+      var r = me.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + 8);
+    });
+  }
+  D.addEventListener("arc:success", function (e) { receipt((e && e.detail) || {}); });
+
+  // ---------------- copied: a check beside the button ----------------
+  var tap = { el: null, at: 0 };
+  D.addEventListener("pointerdown", function (e) { var b = e.target && e.target.closest && e.target.closest("button, a, [role=button], [data-copy]"); if (b) tap = { el: b, at: Date.now() }; }, true);
+  D.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && D.activeElement) tap = { el: D.activeElement, at: Date.now() }; }, true);
+  function copied(el) {
+    if (!el || !el.getBoundingClientRect || !D.body.contains(el)) return;
+    var r = el.getBoundingClientRect();
+    if (!r.width) return;
+    var c = D.createElement("span");
+    c.className = "pol-copy"; c.setAttribute("aria-hidden", "true"); c.innerHTML = CHECK;
+    c.style.left = Math.round(Math.min(innerWidth - 16, r.right + 2)) + "px";
+    c.style.top = Math.round(Math.max(16, r.top + 2)) + "px";
+    D.body.appendChild(c);
+    setTimeout(function () { c.remove(); }, reduce ? 1200 : 950);
+  }
+  var CP = window.Clipboard && window.Clipboard.prototype;
+  if (CP && CP.writeText && !CP.__feel) {
+    var orig = CP.writeText;
+    CP.writeText = function () {
+      var el = Date.now() - tap.at < 2000 ? tap.el : null;
+      var p = orig.apply(this, arguments);
+      if (p && p.then) p.then(function () { copied(el); }, function () { /* the page says it failed */ });
+      return p;
+    };
+    CP.__feel = true;
+  }
+
+  function start() {
+    empties();
+    setInterval(function () { if (!D.hidden) empties(); }, 1500);
+  }
+  if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", start); else start();
+  window.arcFeel = { success: receipt, burst: burst };
+})();
+;
+/* ---- arc-chrome.js ---- */
+// arc-chrome.js — the shared top-bar pieces every page gets:
+//   · product switcher (desktop): ArcPad · CirclePad · $ARCIRCLE · Relay · Stats
+//   · alerts bell: new ArcPad coins, the CirclePad round clock, relay launches and site news.
+//     What counts as "new" is remembered in this browser only (localStorage, optional).
+//   · service worker registration (sw.js) so the site installs as an app and opens offline.
+(function () {
+  "use strict";
+  if (window.arcChrome) return;
+  var tr = function (s) { return (window.arcI18n && window.arcI18n.get && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var F = window.arcFmt || { ago: function (t) { var s = Math.max(1, Date.now() / 1000 - t); return s < 3600 ? Math.round(s / 60) + "m" : s < 86400 ? Math.round(s / 3600) + "h" : Math.round(s / 86400) + "d"; }, usd: function (v) { return "$" + Math.round(v); } };
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
+  };
+  var now = function () { return Math.floor(Date.now() / 1000); };
+  var path = (location.pathname.replace(/\.html$/, "").replace(/\/$/, "") || "/").replace(/^\/arcpad$/, "/arc").replace(/^\/circlepad$/, "/circle");
+
+  // ---------- product switcher ----------
+  var PRODUCTS = [["ArcPad", "/arc"], ["CirclePad", "/circle"], ["$ARCIRCLE", "/arcircle"], ["Relay", "/relay"], ["Stats", "/stats"]];
+  function switcher(host) {
+    if (host.querySelector(".ps")) return;
+    var hash = location.hash;
+    var nav = document.createElement("nav");
+    nav.className = "ps";
+    nav.setAttribute("aria-label", "Products");
+    nav.innerHTML = PRODUCTS.map(function (p) {
+      var on = p[1] === "/relay" ? path === "/arc" && /^#relay/.test(hash) : p[1] === "/arc" ? path === "/arc" && !/^#relay/.test(hash) : path === p[1] || path.indexOf(p[1] + "/") === 0;
+      return '<a href="' + p[1] + '"' + (on ? ' aria-current="page" class="on"' : "") + (p[0] === "$ARCIRCLE" ? " data-no-i18n" : "") + ">" + esc(p[0] === "Stats" ? tr("Stats") : p[0]) + "</a>";
+    }).join("");
+    var brand = host.querySelector(".ax-brand");
+    if (brand) brand.insertAdjacentElement("afterend", nav);
+  }
+
+  // ---------- alerts ----------
+  var SEEN = "arc-nb-seen";
+  var NEWS = [
+    { id: "news:pages", ts: 1790496000, t: "New: My ARCIRCLE, Stats, Roadmap and site search", s: "Look up any wallet, or press Ctrl/⌘K anywhere", href: "/me" },
+    { id: "news:relay", ts: 1790488800, t: "Relay Launch is in Utilities", s: "Every CirclePad coin relayed to contributors and $ARCIRCLE holders", href: "/relay" },
+  ];
+  var items = [], btn, panel, open = false, loaded = false;
+  // v10: "Mine" — what the wallet this browser last connected can claim, or has to act on (arc-v10.js)
+  var mine = [], tab = "", mineAt = 0;
+  function gatherMine() {
+    var V = window.arcV10, a = V && V.account && V.account();
+    if (!a || !V.claims) { mine = []; return Promise.resolve(); }
+    if (Date.now() - mineAt < 60000) return Promise.resolve();
+    mineAt = Date.now();
+    return V.claims(a).then(function (rows) {
+      mine = rows.filter(function (r) { return r.ready || r.warn; }).map(function (r) {
+        return { k: r.warn ? "lock" : "claim", t: r.t, s: r.v, href: r.href };
+      });
+      paint();
+    }).catch(function () { /* later */ });
+  }
+  var seenAt = function () { var v = Number(store.get(SEEN)); return v > 0 ? v : now() - 3 * 86400; };
+  function gather() {
+    var tasks = [
+      fetch("/api/c?view=latest&n=5").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+      fetch("/api/social?token=arcircle").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+    ];
+    return Promise.all(tasks).then(function (r) {
+      var out = NEWS.slice();
+      var latest = r[0], tok = r[1];
+      if (latest && Array.isArray(latest.coins)) latest.coins.forEach(function (c) {
+        if (!c || !c.token || !c.launchedAt) return;
+        out.push({ id: "coin:" + c.token, ts: c.launchedAt, k: "coin", t: tr("New coin on ArcPad") + ": $" + c.symbol, s: c.name + (c.mcapUsd != null ? " · " + F.usd(c.mcapUsd) : ""), href: "/arc#coin/" + c.token, raw: true });
+      });
+      var c = tok && tok.revenue && tok.revenue.circle;
+      if (c && c.deadline) {
+        var left = c.deadline - now();
+        if (c.open && left > 0 && left < 86400) out.push({ id: "round1:24h", ts: c.deadline - 86400, k: "round", t: "CirclePad Round #1 closes within 24 hours", s: tr("Raised so far") + ": " + (F.num ? F.num(c.raised || 0, 2) : c.raised) + " USDC", href: "/circle" });
+        if (left <= 0) out.push({ id: "round1:closed", ts: c.deadline, k: "round", t: "CirclePad Round #1 has closed", s: "See the results and the winning coin", href: "/circle/round/1" });
+      }
+      var rounds = (window.CONFIG && CONFIG.RELAY && CONFIG.RELAY.ROUNDS) || [];
+      rounds.forEach(function (rd) {
+        if (!rd.launch || !rd.launch.token) return;
+        var at = rd.launch.at ? Math.floor(Date.parse(rd.launch.at) / 1000) : 0;
+        out.push({ id: "relay:" + rd.n, ts: at || now(), k: "relay", t: "Relay N" + rd.n + " is live", s: rd.launch.symbol ? "$" + rd.launch.symbol : "", href: "/relay", raw: true });
+      });
+      out.sort(function (a, b) { return b.ts - a.ts; });
+      items = out.slice(0, 12);
+      loaded = true;
+      paint();
+    });
+  }
+  function unread() { var s = seenAt(); return items.filter(function (i) { return i.ts > s; }).length; }
+  function paint() {
+    if (!btn) return;
+    var n = unread() + mine.length;
+    var badge = btn.querySelector(".nb-n");
+    badge.textContent = n > 9 ? "9+" : String(n);
+    badge.hidden = !n;
+    btn.setAttribute("aria-label", tr("Alerts") + (n ? " (" + n + ")" : ""));
+    if (open) list();
+  }
+  function tabs() {
+    var t = panel.querySelector(".v10-ntabs");
+    if (!t) {
+      t = document.createElement("div");
+      t.className = "v10-ntabs"; t.setAttribute("role", "tablist");
+      t.innerHTML = '<button type="button" role="tab" data-nt="mine"></button><button type="button" role="tab" data-nt="all"></button>';
+      panel.querySelector(".nb-h").insertAdjacentElement("afterend", t);
+      t.addEventListener("click", function (e) { var b = e.target.closest("[data-nt]"); if (!b) return; e.stopPropagation(); tab = b.getAttribute("data-nt"); list(); });
+    }
+    t.querySelector('[data-nt="mine"]').textContent = tr("For you") + (mine.length ? " (" + mine.length + ")" : "");
+    t.querySelector('[data-nt="all"]').textContent = tr("All");
+    [].forEach.call(t.querySelectorAll("[data-nt]"), function (b) { b.setAttribute("aria-selected", b.getAttribute("data-nt") === tab ? "true" : "false"); });
+  }
+  function list() {
+    if (!tab) tab = mine.length ? "mine" : "all";
+    tabs();
+    var s = Number(panel.getAttribute("data-seen")) || seenAt();
+    var ul = panel.querySelector(".nb-list");
+    if (tab === "mine") {
+      var V = window.arcV10, a = V && V.account && V.account();
+      if (!a) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Connect a wallet on ArcPad and your rewards, claims and lock dates show up here.")) + ' <a href="/arc#staking">' + esc(tr("Open Staking")) + " →</a></li>"; return; }
+      if (!mine.length) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Nothing to claim right now.")) + ' <a href="/me?w=' + esc(a) + '">' + esc(tr("My ARCIRCLE")) + " →</a></li>"; return; }
+      ul.innerHTML = mine.map(function (i) {
+        return '<li class="nb-i nb-' + i.k + ' new"><a href="' + esc(i.href) + '"><i aria-hidden="true"></i><span><b>' + esc(i.t) + '</b><small data-no-i18n>' + esc(i.s) + "</small></span></a></li>";
+      }).join("") + '<li class="nb-none"><a href="/me?w=' + esc(a) + '">' + esc(tr("Everything to claim, in one place")) + " →</a></li>";
+      return;
+    }
+    if (!loaded) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Loading…")) + "</li>"; return; }
+    if (!items.length) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Nothing new yet.")) + "</li>"; return; }
+    ul.innerHTML = items.map(function (i) {
+      return '<li class="nb-i nb-' + (i.k || "news") + (i.ts > s ? " new" : "") + '"><a href="' + esc(i.href) + '"><i aria-hidden="true"></i><span><b' + (i.raw ? " data-no-i18n" : "") + ">" + esc(i.raw ? i.t : tr(i.t)) + "</b><small" + (i.raw ? " data-no-i18n" : "") + ">" + esc(i.raw ? i.s : tr(i.s)) + '</small></span><em data-no-i18n>' + esc(F.ago(i.ts)) + "</em></a></li>";
+    }).join("");
+  }
+  function toggle(force) {
+    open = force == null ? !open : force;
+    panel.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      panel.setAttribute("data-seen", String(seenAt()));
+      panel.querySelector(".nb-h b").textContent = tr("Alerts");
+      list();
+      if (!loaded) gather();
+      gatherMine();
+      store.set(SEEN, String(now()));
+      paint();
+    }
+  }
+  function bell(host, before) {
+    if (host.querySelector(".nb-btn") || (btn && document.body.contains(btn) && btn.offsetParent !== null)) return;
+    var wrap = document.createElement("div");
+    wrap.className = "nb";
+    wrap.innerHTML = '<button type="button" class="nb-btn" aria-haspopup="true" aria-expanded="false" aria-label="Alerts">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg><span class="nb-n" hidden>0</span></button>' +
+      '<div class="nb-panel" hidden><div class="nb-h"><b>Alerts</b><a href="/roadmap">' + esc(tr("Roadmap")) + ' →</a></div><ul class="nb-list"></ul></div>';
+    var search = host.querySelector(".ck-btn");
+    if (before && before.parentNode === host) host.insertBefore(wrap, before);
+    else if (search) search.insertAdjacentElement("afterend", wrap);
+    else { var cta = host.querySelector(".bp-chain-pill, .ax-top-right, .ax-top-cta"); if (cta) host.insertBefore(wrap, cta); else host.appendChild(wrap); }
+    btn = wrap.querySelector(".nb-btn");
+    panel = wrap.querySelector(".nb-panel");
+    btn.addEventListener("click", function (e) { e.stopPropagation(); toggle(); });
+    document.addEventListener("click", function (e) { if (open && !wrap.contains(e.target)) toggle(false); });
+    document.addEventListener("keydown", function (e) { if (open && e.key === "Escape") { toggle(false); btn.focus(); } });
+  }
+
+  // One order on every page's top bar: [search] [alerts] [language] [page action / wallet].
+  // On ArcPad / CirclePad phones the bar floats over the "Home ▾" row, so that row is told how
+  // much room the right-hand group takes (--bp-right) and never runs underneath it.
+  function tidy(head) {
+    var lang = head.querySelector(":scope > .lang-toggle");
+    var nb = head.querySelector(":scope > .nb");
+    if (lang && nb) nb.insertAdjacentElement("afterend", lang);
+    if (!head.matches(".bp-topbar-right")) return;
+    var root = document.documentElement;
+    var fit = function () { root.style.setProperty("--bp-right", Math.ceil(head.getBoundingClientRect().width + 26) + "px"); };
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(head);
+    window.addEventListener("resize", fit);
+  }
+  function init() {
+    var top = document.querySelector("header.ax-top");
+    // v11: the shared menu bar (arc-nav.js) is where the bell lives, next to the wallet button
+    var head = document.querySelector(".bp-topbar-right") || document.querySelector(".anav-right") || top;
+    if (top) switcher(top);
+    if (head) {
+      bell(head, head.querySelector(":scope > .cw"));
+      tidy(head);
+      setTimeout(gather, 2500);
+      setTimeout(gatherMine, 3500);
+      document.addEventListener("arc:v10acct", function () { mineAt = 0; gatherMine(); });
+      setInterval(function () { if (!document.hidden) { gather(); gatherMine(); } }, 180000);
+    }
+  }
+  // search (arc-cmdk.js) adds its button on DOMContentLoaded too; wait a tick so the bell sits after it
+  var go = function () { setTimeout(init, 0); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+
+  // ---------- installable app ----------
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("/sw.js").catch(function () { /* unsupported */ }); });
+  }
+
+  // v11: every page's menu bar gets the bell next to the wallet button (arc-connect.js asks for it)
+  var belled = false;
+  function mountBell(host, before) {
+    bell(host, before);
+    if (!belled) { belled = true; setTimeout(gather, 1500); setTimeout(gatherMine, 2500); document.addEventListener("arc:v10acct", function () { mineAt = 0; gatherMine(); }); }
+  }
+  window.arcChrome = { refresh: gather, mountBell: mountBell };
+})();
+;
+/* ---- arc-a11y.js ---- */
+// arc-a11y.js — keyboard support for every modal on the page.
+// Whenever a dialog opens (coin editor, lock modal, trade modal, phone trade
+// sheet, …) focus moves into it, Tab / Shift+Tab cycle inside it, Escape
+// closes it, and when it closes focus goes back to the button that opened it.
+// Dialogs are found by watching the DOM, so modals added later by any script
+// get the same behaviour without extra wiring.
+(function () {
+  "use strict";
+  // [selector for the open dialog box, selector for its close control]
+  const KINDS = [
+    [".cm-modal.in .cm-dialog", "[data-close].cm-x"],
+    ["#msheet:not([hidden]) .msheet-panel", ".msheet-x"],
+    [".modal-overlay:not(.hidden) > .ap-modal-box, .modal-overlay:not(.hidden) > .modal", ".ap-modal-close, .modal-close, [data-close]"],
+  ];
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  const visible = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+
+  const stack = []; // [{ box, closeSel, back }]
+  function openDialogs() {
+    const out = [];
+    for (const [sel, closeSel] of KINDS) document.querySelectorAll(sel).forEach((box) => { if (visible(box)) out.push({ box, closeSel }); });
+    return out;
+  }
+  const focusables = (box) => [...box.querySelectorAll(FOCUSABLE)].filter((el) => visible(el) && !el.closest("[hidden]"));
+  function enter(d) {
+    const box = d.box;
+    if (!box.hasAttribute("role")) box.setAttribute("role", "dialog");
+    if (!box.hasAttribute("aria-modal")) box.setAttribute("aria-modal", "true");
+    if (!box.hasAttribute("tabindex")) box.setAttribute("tabindex", "-1");
+    d.back = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+    stack.push(d);
+    // Focus the first form field if there is one, otherwise the dialog itself
+    // (so screen readers read its title), never the close button.
+    requestAnimationFrame(() => {
+      if (!box.isConnected || box.contains(document.activeElement)) return;
+      const field = box.querySelector('input:not([type="hidden"]):not([disabled]),textarea:not([disabled])');
+      (field && visible(field) && !matchMedia("(pointer:coarse)").matches ? field : box).focus({ preventScroll: true });
+    });
+  }
+  function leave(d) {
+    const i = stack.indexOf(d);
+    if (i >= 0) stack.splice(i, 1);
+    const back = d.back;
+    if (back && back.isConnected && visible(back) && (!document.activeElement || document.activeElement === document.body || d.box.contains(document.activeElement) || !document.activeElement.isConnected)) {
+      back.focus({ preventScroll: true });
+    }
+  }
+  function sync() {
+    const open = openDialogs();
+    for (const d of stack.slice()) if (!open.some((o) => o.box === d.box)) leave(d);
+    for (const o of open) if (!stack.some((d) => d.box === o.box)) enter(o);
+  }
+  let t = 0;
+  new MutationObserver(() => { cancelAnimationFrame(t); t = requestAnimationFrame(sync); })
+    .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "hidden"] });
+
+  // Escape runs after the dialog's own handlers (bubble phase), and only if
+  // the dialog is still open by then.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || e.defaultPrevented) return;
+    sync();
+    const top = stack[stack.length - 1];
+    if (!top || !top.box.isConnected) return;
+    const c = top.box.querySelector(top.closeSel) || (top.box.parentElement && top.box.parentElement.querySelector(top.closeSel));
+    if (c) { e.preventDefault(); c.click(); }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const top = stack[stack.length - 1];
+    if (!top || !top.box.isConnected) return;
+    const f = focusables(top.box);
+    if (!f.length) { e.preventDefault(); top.box.focus(); return; }
+    const first = f[0], last = f[f.length - 1], a = document.activeElement;
+    if (!top.box.contains(a)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+    else if (e.shiftKey && (a === first || a === top.box)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+  }, true);
+})();
+;
+/* ---- arc-txring.js ---- */
+/* global ethers, state, CONFIG */
+// arc-txring.js — two small pieces of motion shared by every app page:
+//
+//   · tx ring: every transaction the site asks a wallet to send shows a ring that fills as it
+//     moves — confirm in wallet → submitted → in a block → done (green check) or failed. It hooks
+//     ethers' JsonRpcSigner.sendTransaction once, so every contract call on every page gets it
+//     without the page knowing.
+//   · wallet rings: after someone connects a wallet, two rings (blue, green) swing in and lock
+//     together over the wallet button — the same ring language as ARCIA's entrance.
+(function () {
+  "use strict";
+  if (window.arcTxRing) return;
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var tr = function (s) { return (window.arcI18n && window.arcI18n.get && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var EXPL = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io";
+  var R = 16, C = 2 * Math.PI * R;
+  var CHECK = '<path class="txr-ok" d="M13 20.5l4.5 4.5 9-10"/>', CROSS = '<path class="txr-bad" d="M15 15l10 10M25 15 15 25"/>';
+
+  // ---------------- tx ring ----------------
+  var host = null;
+  function box() {
+    if (host && document.body.contains(host)) return host;
+    host = document.createElement("div");
+    host.className = "txr-host";
+    host.setAttribute("role", "status");
+    host.setAttribute("aria-live", "polite");
+    document.body.appendChild(host);
+    return host;
+  }
+  function ring() {
+    var el = document.createElement("div");
+    el.className = "txr";
+    el.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><circle class="txr-track" cx="20" cy="20" r="' + R + '"/><circle class="txr-fill" cx="20" cy="20" r="' + R + '" stroke-dasharray="' + C.toFixed(2) + '" stroke-dashoffset="' + C.toFixed(2) + '"/><g class="txr-mark"></g></svg>' +
+      '<div class="txr-t"><b></b><small></small></div><button type="button" class="txr-x" aria-label="Close">×</button>';
+    box().appendChild(el);
+    requestAnimationFrame(function () { el.classList.add("in"); });
+    var done = false, timer = 0;
+    var fill = el.querySelector(".txr-fill");
+    function set(p, title, sub, cls) {
+      fill.style.strokeDashoffset = (C * (1 - p)).toFixed(2);
+      el.querySelector("b").textContent = tr(title);
+      el.querySelector("small").innerHTML = sub || "";
+      if (cls) el.classList.add(cls);
+    }
+    function close(ms) { clearTimeout(timer); timer = setTimeout(function () { el.classList.remove("in"); el.classList.add("out"); setTimeout(function () { el.remove(); }, 350); }, ms); }
+    el.querySelector(".txr-x").addEventListener("click", function () { close(0); });
+    set(0.18, "Confirm in your wallet", esc(tr("Waiting for your signature")));
+    var ex = EXPL; // the transaction's own chain's explorer (Robinhood Chain for veARCIA, Pons, Orders RH…)
+    var link = function (h) { return '<a href="' + esc(ex + "/tx/" + h) + '" target="_blank" rel="noopener">' + esc(h.slice(0, 10) + "…" + h.slice(-6)) + " ↗</a>"; };
+    var cur = "";
+    var tell = function (h, st) { if (!h) return; cur = h; try { document.dispatchEvent(new CustomEvent("arc:tx", { detail: { h: h, s: st, ex: ex } })); } catch (e) { /* old browser */ } };
+    return {
+      chain: function (cid) { if (Number(cid) === 4663) ex = (typeof CONFIG !== "undefined" && CONFIG.PONS && CONFIG.PONS.EXPLORER) || "https://robinhoodchain.blockscout.com"; },
+      sent: function (h) { if (done) return; tell(h, "pending"); set(0.55, "Transaction submitted", esc(tr("Waiting for a block")) + " · " + link(h), "sent"); },
+      mined: function (h) { if (done) return; done = true; tell(h, "ok"); set(1, "Transaction confirmed", link(h), "ok"); el.querySelector(".txr-mark").innerHTML = CHECK; if (typeof window.arcHaptic === "function") window.arcHaptic("milestone"); close(4200); },
+      failed: function (h, why) { if (done) return; done = true; tell(h, "fail"); set(1, why === "rejected" ? "Cancelled in wallet" : "Transaction failed", h ? link(h) : esc(tr(why === "rejected" ? "Nothing was sent." : "Nothing changed — you can try again."))); el.classList.add(why === "rejected" ? "cancel" : "bad"); el.querySelector(".txr-mark").innerHTML = CROSS; close(why === "rejected" ? 2600 : 6000); },
+    };
+  }
+  var rejected = function (e) { var m = String((e && (e.code || e.shortMessage || e.message)) || ""); return /ACTION_REJECTED|4001|user rejected|user denied|rejected the request/i.test(m + " " + String(e && e.info && e.info.error && e.info.error.code)); };
+  function hook() {
+    if (typeof ethers === "undefined" || !ethers.JsonRpcSigner || !ethers.JsonRpcSigner.prototype.sendTransaction) return false;
+    var proto = ethers.JsonRpcSigner.prototype;
+    if (proto.__arcRing) return true;
+    var orig = proto.sendTransaction;
+    proto.sendTransaction = function () {
+      var r = ring();
+      return orig.apply(this, arguments).then(function (resp) {
+        var h = resp && resp.hash;
+        if (resp && resp.chainId != null) r.chain(resp.chainId);
+        if (h) r.sent(h);
+        // a Robinhood Chain transaction: the wallet is often switched back to Arc right after, so its provider would
+        // look for the receipt on the wrong chain — follow it on Robinhood Chain's own RPC instead
+        var rhRpc = typeof CONFIG !== "undefined" && ((CONFIG.ARCPAD_RH && CONFIG.ARCPAD_RH.RPC) || (CONFIG.PONS && CONFIG.PONS.RPC));
+        var onRh = resp && resp.chainId != null && Number(resp.chainId) === 4663 && rhRpc && h;
+        var waiting = onRh ? new ethers.JsonRpcProvider(rhRpc, 4663, { staticNetwork: true }).waitForTransaction(h, 1, 900000) : resp && typeof resp.wait === "function" ? resp.wait() : null;
+        if (waiting) {
+          waiting.then(function (rc) { if (rc && rc.status === 1) r.mined(h); else r.failed(h, "reverted"); }, function (e) { r.failed(h, rejected(e) ? "rejected" : "reverted"); });
+        }
+        return resp;
+      }, function (e) { r.failed(null, rejected(e) ? "rejected" : "error"); throw e; });
+    };
+    proto.__arcRing = true;
+    return true;
+  }
+  if (!hook()) window.addEventListener("load", hook);
+
+  // ---------------- wallet rings ----------------
+  var armed = 0, last = null;
+  document.addEventListener("pointerdown", function (e) {
+    var t = e.target && e.target.closest && e.target.closest("#connect-btn, [data-connect], .connect-btn, .bp-connect, button");
+    if (t && (t.id === "connect-btn" || /connect|지갑 연결|연결|连接/i.test(t.textContent || ""))) armed = Date.now();
+  }, true);
+  function celebrate() {
+    if (reduce) return;
+    var target = document.querySelector(".cw-b") || document.getElementById("wallet-pill-btn") || document.getElementById("wallet-slot");
+    var r = target ? target.getBoundingClientRect() : { left: innerWidth - 120, top: 16, width: 100, height: 36 };
+    var el = document.createElement("div");
+    el.className = "wcr";
+    el.setAttribute("aria-hidden", "true");
+    el.style.left = Math.round(r.left + r.width / 2) + "px";
+    el.style.top = Math.round(r.top + r.height / 2) + "px";
+    el.innerHTML = '<i class="l"></i><i class="r"></i><b>' + esc(tr("Wallet connected")) + "</b>";
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1500);
+  }
+  setInterval(function () {
+    var a = null;
+    try { a = typeof state !== "undefined" && state && state.account ? String(state.account).toLowerCase() : null; } catch (e) { a = null; }
+    if (a && !last && Date.now() - armed < 120000) { armed = 0; setTimeout(celebrate, 120); }
+    last = a;
+  }, 400);
+
+  window.arcTxRing = { demo: function () { var r = ring(); setTimeout(function () { r.sent("0x" + "ab".repeat(32)); }, 700); setTimeout(function () { r.mined("0x" + "ab".repeat(32)); }, 1600); return r; }, celebrate: celebrate };
+})();
+;
+/* ---- arc-glyph.js ---- */
+// arc-glyph.js — ♾ drawn as the brand's own infinity mark.
+// Token symbols can be emoji, and "♾" / "♾️" looks different on every phone (a purple box, a thin
+// white glyph, a coloured sticker). Wherever it shows up in the page's text — a ticker, a receipt,
+// a table — it's swapped for one small inline SVG in the ARCIRCLE gradient, so it reads the same
+// everywhere. Inputs, textareas and copied values keep the character itself.
+(function () {
+  "use strict";
+  if (window.arcGlyph) return;
+  var RE = /♾️?/;
+  var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, OPTION: 1, SELECT: 1, NOSCRIPT: 1, TITLE: 1 };
+  var PATH = "M50 25c-9-11-15-16-24-16a16 16 0 0 0 0 32c9 0 15-5 24-16s15-16 24-16a16 16 0 0 1 0 32c-9 0-15-5-24-16z";
+  function defs() {
+    if (document.getElementById("ax-inf-defs")) return;
+    var d = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    d.id = "ax-inf-defs"; d.setAttribute("width", "0"); d.setAttribute("height", "0"); d.setAttribute("aria-hidden", "true");
+    d.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+    d.innerHTML = '<defs><linearGradient id="axInfG" x1="0" x2="1"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>';
+    document.body.appendChild(d);
+  }
+  function mark() {
+    var s = document.createElement("span");
+    s.className = "ax-glyph"; s.setAttribute("role", "img"); s.setAttribute("aria-label", "♾");
+    s.innerHTML = '<svg viewBox="0 0 100 50" aria-hidden="true"><path d="' + PATH + '"/></svg>';
+    return s;
+  }
+  function swap(node) {
+    var t = node.nodeValue, m, frag = null;
+    while ((m = RE.exec(t))) {
+      frag = frag || document.createDocumentFragment();
+      if (m.index) frag.appendChild(document.createTextNode(t.slice(0, m.index)));
+      frag.appendChild(mark());
+      t = t.slice(m.index + m[0].length);
+    }
+    if (!frag) return;
+    if (t) frag.appendChild(document.createTextNode(t));
+    node.parentNode.replaceChild(frag, node);
+  }
+  function scan(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { if (RE.test(root.nodeValue) && root.parentNode && !SKIP[root.parentNode.nodeName] && !root.parentNode.isContentEditable) swap(root); return; }
+    if (root.nodeType !== 1 || SKIP[root.nodeName] || !RE.test(root.textContent || "")) return;
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) { var p = n.parentNode; return !p || SKIP[p.nodeName] || p.isContentEditable || !RE.test(n.nodeValue) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; },
+    });
+    var list = [], n;
+    while ((n = w.nextNode())) list.push(n);
+    list.forEach(swap);
+  }
+  var queue = [], queued = false;
+  function flush() { queued = false; var q = queue; queue = []; defs(); q.forEach(scan); }
+  function start() {
+    defs(); scan(document.body);
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        if (m.type === "characterData") queue.push(m.target);
+        else for (var i = 0; i < m.addedNodes.length; i++) queue.push(m.addedNodes[i]);
+      });
+      if (queue.length && !queued) { queued = true; requestAnimationFrame(flush); }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  window.arcGlyph = { scan: scan };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+;
+/* ---- arc-arcia-fab.js ---- */
+// arc-arcia-fab.js — ARCIA's floating "Ask ARCIA" button, on every ARCIRCLE PAD page.
+// On ArcPad (/arc) her code comes with the tools bundle (arc-lazy.js); everywhere else it's
+// arcia.bundle.js, loaded on the first tap into a hidden host, and she opens as the drawer.
+// The button sits above the page's floating bars (the quick bar and the dock at the bottom,
+// CirclePad's action bar…) so it never covers them, on phones and on desktop alike.
+(function () {
+  "use strict";
+  if (window.arcArciaFab) return;
+  var me = document.currentScript && document.currentScript.src;
+  var v = (/[?&]v=(\d+)/.exec(me || "") || [])[1] || "";
+  var BUNDLE = "/arcia.bundle.js" + (v ? "?v=" + v : "");
+  var BARS = ".anav-tabs, .ax-quick, .ax-dock, .cpx-bar, .asn-sticky";
+  var b = null, st = 0, waiters = [], bare = false;
+  var tr = function (s) { return (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
+
+  function loadStandalone(cb) {
+    waiters.push(cb);
+    if (st === 2) return flush();
+    if (st === 1) return;
+    st = 1;
+    if (!document.getElementById("bp-panel-arcia")) {
+      var host = document.createElement("section");
+      host.id = "bp-panel-arcia"; host.className = "bp-panel aa-host"; host.hidden = true;
+      host.setAttribute("data-host", "float");
+      document.body.appendChild(host);
+    }
+    var s = document.createElement("script");
+    s.src = BUNDLE;
+    s.onload = function () { st = 2; flush(); };
+    s.onerror = function () { st = 0; waiters = []; if (b) b.classList.remove("busy"); location.href = "/arc#arcia"; };
+    document.body.appendChild(s);
+  }
+  function flush() { var w = waiters; waiters = []; w.forEach(function (f) { try { f(); } catch (e) { /* keep going */ } }); }
+  function ready(cb) {
+    if (window.arcArcia && window.arcArcia.open) return cb();
+    if (window.arcLazy && document.getElementById("bp-panel-arcia") && !document.querySelector("#bp-panel-arcia[data-host]")) return window.arcLazy.load(cb); // ArcPad
+    loadStandalone(cb);
+  }
+
+  // above whatever floats at the bottom under the button
+  function place() {
+    if (!b || b.hidden || bare) return;
+    var vw = window.innerWidth, vh = window.innerHeight, mob = vw <= 900;
+    var right = mob ? 14 : 20, w = b.offsetWidth || (mob ? 46 : 140);
+    var x0 = vw - right - w - 8, x1 = vw - right + 8;
+    var lift = 0;
+    var els = document.querySelectorAll(BARS);
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], cs = getComputedStyle(el);
+      if (el.hidden || cs.position !== "fixed" || cs.display === "none" || cs.visibility === "hidden") continue;
+      var r = el.getBoundingClientRect();
+      // phones: anything under the button; desktop: the whole bar line, so the button always sits above it
+      if (!r.width || !r.height || (mob && (r.right < x0 || r.left > x1)) || r.top < vh * 0.45 || r.top > vh) continue;
+      lift = Math.max(lift, vh - r.top + (mob ? 10 : 14));
+    }
+    b.style.bottom = lift ? Math.round(lift) + "px" : "";
+  }
+  var placeSoon = (function () { var t = 0; return function () { clearTimeout(t); t = setTimeout(place, 60); }; })();
+
+  function mount() {
+    if (document.querySelector(".aa-fab")) return;
+    b = document.createElement("button");
+    b.type = "button"; b.className = "aa-fab"; b.setAttribute("aria-label", tr("Ask ARCIA"));
+    b.innerHTML = '<img src="/images/arcia-avatar-96.jpg" alt="" width="48" height="48"><i aria-hidden="true"></i><span>' + tr("Ask ARCIA") + "</span>";
+    // a page without the site stylesheet (the whitepaper): the button styles itself and opens ARCIA's page
+    b.addEventListener("click", function () {
+      if (bare) { location.href = "/arc#arcia"; return; }
+      b.classList.add("busy");
+      ready(function () { b.classList.remove("busy"); if (window.arcArcia && window.arcArcia.open) window.arcArcia.open(); });
+    });
+    document.body.appendChild(b);
+    if (getComputedStyle(b).position !== "fixed") {
+      bare = true;
+      b.style.cssText = "position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:8px;padding:5px 14px 5px 5px;border-radius:99px;border:1px solid rgba(91,140,255,.45);background:rgba(8,14,26,.92);color:#eef3f7;font:700 13px system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 24px rgba(63,123,255,.25)";
+      var im = b.querySelector("img"); im.style.cssText = "width:36px;height:36px;border-radius:50%;object-fit:cover";
+      var dot = b.querySelector("i"); dot.style.cssText = "position:absolute;left:31px;top:5px;width:9px;height:9px;border-radius:50%;background:#39ff88;box-shadow:0 0 0 2px #080e1a";
+      if (window.innerWidth <= 900) { b.style.padding = "4px"; b.querySelector("span").style.display = "none"; }
+    }
+    // on ArcPad's own ARCIA tab the button would only repeat the page
+    var sync = function () { var t = location.hash.replace(/^#/, "").split(/[?/]/)[0]; b.hidden = !!document.querySelector("#bp-panel-arcia:not([data-host])") && t === "arcia"; placeSoon(); };
+    document.addEventListener("arcpad:tab", function () { setTimeout(sync, 0); });
+    window.addEventListener("hashchange", sync);
+    window.addEventListener("resize", placeSoon);
+    window.addEventListener("orientationchange", placeSoon);
+    window.addEventListener("load", function () { setTimeout(place, 400); });
+    [300, 1200, 3000, 6000].forEach(function (ms) { setTimeout(place, ms); });
+    if ("ResizeObserver" in window) { try { var ro = new ResizeObserver(placeSoon); document.querySelectorAll(BARS).forEach(function (el) { ro.observe(el); }); } catch (e) { /* fine */ } }
+    sync();
+  }
+  window.arcArciaFab = { place: place };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
+})();
+;
+/* ---- i18n.js ---- */
+// i18n.js — English / Korean / Simplified Chinese for every ARCIRCLE PAD page.
+//
+// The pages are written in English; this file swaps visible text for Korean
+// or Chinese in place, and swaps it back. It works on text nodes and a few attributes
+// (placeholder / title / aria-label), matching the exact English string or a
+// pattern for strings with live numbers in them. A MutationObserver catches
+// everything the page scripts render later (statuses, cards, tickers), so no
+// page script needs to know about translation. Contract addresses, code and
+// anything inside [data-no-i18n] are never touched.
+//
+// Choice is remembered per visitor (localStorage "arcircle.lang"); the first
+// visit follows the browser language.
+//
+// The dictionaries live in i18n-ko.js and i18n-zh.js and are loaded only for the language in use
+// (i18n-boot.js, first in every bundle, starts that download as early as it can). Until one
+// arrives the page stays in English; then everything is translated in one pass and "arc:lang"
+// fires so scripts that render their own text repaint.
+(function () {
+  "use strict";
+
+  var ATTRS = ["placeholder", "title", "aria-label"];
+  var SKIP = "script,style,noscript,code,textarea,[data-no-i18n],.ac2-ca-full,.ac2-ca-short";
+  var KEY = "arcircle.lang";
+  var DICT = {}, PAT = {};
+  var started = false;
+  var ver = (function () { var c = document.currentScript && document.currentScript.src; return (/[?&]v=(\d+)/.exec(c || "") || [])[1] || ""; })();
+  function adopt(l) { var x = window.__arcDict && window.__arcDict[l]; if (x && !DICT[l]) { DICT[l] = x.d; PAT[l] = x.p; } return !!DICT[l]; }
+  function need(l) {
+    if (l === "en" || adopt(l)) return;
+    var busy = window.__arcDictLoading || (window.__arcDictLoading = {});
+    if (busy[l]) return;
+    busy[l] = true;
+    var s = document.createElement("script");
+    s.src = "/i18n-" + l + ".js" + (ver ? "?v=" + ver : "");
+    s.async = true;
+    s.onerror = function () { busy[l] = false; };
+    (document.head || document.documentElement).appendChild(s);
+  }
+  var LANGS = ["en", "ko", "zh"];
+  var LABEL = { en: "EN", ko: "한", zh: "中" };
+  var ARIA = { en: "English", ko: "한국어", zh: "简体中文" };
+  // The whitepaper has its own English and Korean editions — no Chinese one.
+  var noZh = /^\/whitepaper/.test(location.pathname);
+  var lang = "en";
+  try {
+    var nav = (navigator.language || "").toLowerCase();
+    lang = localStorage.getItem(KEY) || (nav.indexOf("ko") === 0 ? "ko" : nav.indexOf("zh") === 0 ? "zh" : "en");
+  } catch (e) { /* default en */ }
+  // ?lang=ko|zh|en in the address (used by the /ko/coin/ and /zh/coin/
+  // pages' "Trade" links) picks the language and remembers it.
+  var qLang = /[?&]lang=(en|ko|zh)(?:&|$)/.exec(location.search);
+  if (qLang) { lang = qLang[1]; try { localStorage.setItem(KEY, lang); } catch (e) { /* fine */ } }
+  if (LANGS.indexOf(lang) < 0 || (noZh && lang === "zh")) lang = "en";
+
+  function translate(en, l) {
+    l = l || lang;
+    adopt(l);
+    var d = DICT[l], pats = PAT[l];
+    if (!d) return null;
+    var t = en.replace(/\s+/g, " ").trim();
+    if (!t) return null;
+    if (Object.prototype.hasOwnProperty.call(d, t)) return d[t];
+    for (var i = 0; i < pats.length; i++) if (pats[i][0].test(t)) return t.replace(pats[i][0], pats[i][1]);
+    return null;
+  }
+  function skip(el) { return !el || (el.closest && el.closest(SKIP)); }
+
+  // Each text node remembers its English source (__en) and what we last put
+  // there (__tr); anything else in it is fresh English from a page script.
+  function doText(n) {
+    if (skip(n.parentElement)) return;
+    var cur = n.nodeValue;
+    if (n.__tr != null && cur === n.__tr) return;
+    n.__en = cur; n.__tr = null;
+    if (lang === "en") return;
+    var tr = translate(cur);
+    if (tr == null) return;
+    var lead = cur.match(/^\s*/)[0], trail = cur.match(/\s*$/)[0];
+    n.__tr = lead + tr + trail;
+    n.nodeValue = n.__tr;
+  }
+  function doAttrs(el) {
+    if (skip(el)) return;
+    var store = el.__i18nAttr || (el.__i18nAttr = {});
+    ATTRS.forEach(function (a) {
+      if (!el.hasAttribute(a)) return;
+      var v = el.getAttribute(a), s = store[a];
+      if (s && s.tr != null && v === s.tr) return;
+      store[a] = { en: v, tr: null };
+      if (lang === "en") return;
+      var tr = translate(v);
+      if (tr != null) { store[a].tr = tr; el.setAttribute(a, tr); }
+    });
+  }
+  function walk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { doText(root); return; }
+    if (root.nodeType !== 1 || skip(root)) return;
+    if (root.hasAttribute && ATTRS.some(function (a) { return root.hasAttribute(a); })) doAttrs(root);
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    var n;
+    while ((n = w.nextNode())) {
+      if (n.nodeType === 3) doText(n);
+      else if (ATTRS.some(function (a) { return n.hasAttribute(a); })) doAttrs(n);
+    }
+  }
+  function restoreAll() {
+    var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    var n;
+    while ((n = w.nextNode())) {
+      if (n.nodeType === 3) { if (n.__tr != null && n.nodeValue === n.__tr) n.nodeValue = n.__en; n.__tr = null; }
+      else if (n.__i18nAttr) {
+        var st = n.__i18nAttr;
+        Object.keys(st).forEach(function (a) { if (st[a].tr != null && n.getAttribute(a) === st[a].tr) n.setAttribute(a, st[a].en); st[a].tr = null; });
+      }
+    }
+  }
+
+  var paused = false;
+  var observer = new MutationObserver(function (muts) {
+    if (paused || lang === "en") return;
+    paused = true;
+    try {
+      muts.forEach(function (m) {
+        if (m.type === "characterData") doText(m.target);
+        else if (m.type === "attributes") doAttrs(m.target);
+        else m.addedNodes.forEach(walk);
+      });
+    } finally { paused = false; }
+  });
+
+  function setLang(next, save) {
+    lang = LANGS.indexOf(next) >= 0 && !(noZh && next === "zh") ? next : "en";
+    if (save) { try { localStorage.setItem(KEY, lang); } catch (e) { /* fine */ } }
+    var de = document.documentElement;
+    de.lang = lang === "zh" ? "zh-CN" : lang;
+    de.classList.toggle("lang-ko", lang === "ko");
+    de.classList.toggle("lang-zh", lang === "zh");
+    if (lang !== "en" && !adopt(lang)) need(lang); // translated when it arrives (_ready)
+    paused = true;
+    restoreAll();
+    if (lang !== "en" && DICT[lang]) walk(document.body);
+    paused = false;
+    document.querySelectorAll(".lang-toggle [data-l]").forEach(function (b) {
+      var on = b.getAttribute("data-l") === lang;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    try { document.dispatchEvent(new CustomEvent("arc:lang", { detail: { lang: lang } })); } catch (e) { /* old browser */ }
+  }
+
+  function mountToggle() {
+    var host = document.querySelector(".bp-topbar-right") || document.querySelector("header.ax-top");
+    if (!host || host.querySelector(".lang-toggle")) return;
+    var g = document.createElement("div");
+    g.className = "lang-toggle";
+    g.setAttribute("role", "group");
+    g.setAttribute("aria-label", "Language");
+    g.setAttribute("data-no-i18n", "");
+    g.innerHTML = LANGS.filter(function (l) { return !(noZh && l === "zh"); }).map(function (l) {
+      return '<button type="button" data-l="' + l + '" lang="' + (l === "zh" ? "zh-CN" : l) + '" aria-label="' + ARIA[l] + '" title="' + ARIA[l] + '">' + LABEL[l] + "</button>";
+    }).join("");
+    // On phones the group is compact (only the active language shows): tapping it opens the
+    // other choices below, tapping one of those switches and closes it.
+    g.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-l]");
+      if (!b) return;
+      if (b.classList.contains("on")) { g.classList.toggle("open"); return; }
+      g.classList.remove("open");
+      setLang(b.getAttribute("data-l"), true);
+    });
+    document.addEventListener("click", function (e) { if (!g.contains(e.target)) g.classList.remove("open"); });
+    if (host.matches(".bp-topbar-right")) host.insertBefore(g, host.firstChild);
+    else {
+      var cta = host.querySelector(".ax-top-cta");
+      var wrap = document.createElement("div");
+      wrap.className = "ax-top-right";
+      host.insertBefore(wrap, cta || null);
+      wrap.appendChild(g);
+      if (cta) wrap.appendChild(cta);
+    }
+  }
+
+  function start() {
+    started = true;
+    mountToggle();
+    setLang(lang, false);
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+  }
+  window.arcI18n = { set: function (l) { setLang(l, true); }, get: function () { return lang; }, translate: function (s, l) { return translate(s, l); },
+    // i18n-ko.js / i18n-zh.js call this when they arrive
+    _ready: function (l) { adopt(l); if (started && l === lang) setLang(lang, false); } };
+  need(lang);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+})();
+;
