@@ -128,9 +128,12 @@ export function createCombat(ctx) {
     mk.t = 0; mk.m.position.set(pos.x, 0.05, pos.z); mk.m.scale.set(r * 2, r * 2, 1); mk.m.rotation.z = Math.random() * TAU; mk.m.material.color.set(color); mk.m.material.opacity = 1; mk.m.visible = true;
   }
   function tickMarks(dt) { for (const mk of marks) { if (mk.t >= mk.life) continue; mk.t += dt; mk.m.material.opacity = Math.min(1, (mk.life - mk.t) / 1.5); if (mk.t >= mk.life) mk.m.visible = false; } }
+  // rings are kept for reuse (b420): a fight throws several a second, each with its own material
+  const ringPool = [], ringBack = (o) => { if (ringPool.length < 24) ringPool.push(o); else o.material.dispose(); };
   function ring(pos, color, { r0 = 0.3, r1 = 2.6, life = 0.35, y = 0.08 } = {}) {
-    const m = new THREE.Mesh(sgeo(`Ring|${[0.85, 1, 48]}`, () => new THREE.RingGeometry(0.85, 1, 48)), additive(color, 0.9)); m.rotation.x = -Math.PI / 2; m.position.copy(pos); m.position.y = y; m.scale.setScalar(r0); add(m);
-    fx.push({ o: m, life, t: 0, grow: [r0, r1] });
+    const m = ringPool.pop() || new THREE.Mesh(sgeo(`Ring|${[0.85, 1, 48]}`, () => new THREE.RingGeometry(0.85, 1, 48)), additive(color, 0.9)); m.material.color.set(color); m.material.opacity = 0.9; m.visible = true;
+    m.rotation.x = -Math.PI / 2; m.position.copy(pos); m.position.y = y; m.scale.setScalar(r0); add(m);
+    fx.push({ o: m, life, t: 0, grow: [r0, r1], back: ringBack });
   }
   function flash(pos, color, size = 3, life = 0.25) { const s = sprite(color); s.position.copy(pos); s.scale.setScalar(size); add(s); fx.push({ o: s, life, t: 0, grow: [size, size * 1.6] }); }
   // a column of light that fades upward (a gradient, so it glows instead of washing the screen white)
@@ -146,7 +149,8 @@ export function createCombat(ctx) {
       const p = fx[i]; p.t += dt; const k = p.t / p.life;
       if (k >= 1) {
         root.remove(p.o);
-        if (p.o.userData.pooled) { p.o.visible = false; if (pool.length < 400) pool.push(p.o); else p.o.material.dispose(); }
+        if (p.back) { p.o.visible = false; p.back(p.o); }
+        else if (p.o.userData.pooled) { p.o.visible = false; if (pool.length < 400) pool.push(p.o); else p.o.material.dispose(); }
         else { p.o.traverse((o) => { if (o.material) o.material.dispose && o.material.dispose(); if (o.geometry) o.geometry.dispose(); }); }
         fx.splice(i, 1); continue;
       }
@@ -324,6 +328,12 @@ export function createCombat(ctx) {
       const big = kind === "heavy" ? 1.5 : 1, ang = combo === 2 ? 0.6 : combo === 3 ? -0.2 : -0.7;
       for (const [w, c, o] of [[2.6, 0xffffff, 0.95], [3.4, crit ? 0xffd27a : 0x8fe6ff, 0.55]]) { const sl = sprite(c, o); sl.material.rotation = ang; sl.scale.set(w * big, 0.16 * big * (c === 0xffffff ? 1 : 2.2), 1); sl.position.copy(m.g.position).setY(m.y + 0.7); add(sl); fx.push({ o: sl, life: 0.16, t: 0, op0: o }); }
     }
+    // the blow's star (world-vfx.js) where it landed, in the element's colour (a skill's, or the weapon's: cyan
+    // swords, a gold hammer, a pink blaster, a green bow, a violet staff); a crit or a heavy blow pops bigger, gold, and
+    // sends a ring across the ground
+    if (VX && VX.star) { const big = crit || kind === "heavy";
+      VX.star(fxV.copy(m.g.position).addScaledVector(tmp, -0.35).setY(m.y + 0.65), crit ? 0xffb347 : HIT_TINT[kind] ?? WPN_TINT[wKind()] ?? 0xffffff, { big, size: m.rank === "boss" ? 1.5 : kind === "pet" ? 0.6 : 1, rot: kind === "melee" || kind === "heavy" ? -(combo === 2 ? 0.6 : combo === 3 ? -0.2 : -0.7) : undefined });
+      if (big) VX.quake(fxV.copy(m.g.position).setY(0), crit ? 0xffc861 : 0xffe8b0, m.rank === "boss" ? 4.5 : 2.6); }
     if (crit && ctx.slowmo) ctx.slowmo(160);
     if (crit && kind !== "pet" && ctx.critFlash) ctx.critFlash();
     // a heavy blow drives it back: dust kicks up behind its feet, along the push
@@ -335,6 +345,8 @@ export function createCombat(ctx) {
     if (m.hp <= 0) kill(m);
   }
   const stepV = new V3(); // its own: callers pass tmp / tmp2 as the direction
+  const fxV = new V3(); // where a pooled effect plays (copied by world-vfx.js, so one scratch does)
+  const HIT_TINT = { ice: 0x8fe6ff, fire: 0xff8a3c, meteor: 0xff7a2a, shock: 0xc8a8ff, pet: 0x9fffd0, heavy: 0xffc861 }, WPN_TINT = [0x5fd8ff, 0xffb347, 0xff6ad5, 0x7dff8a, 0xb48cff];
   function tryStep(m, dir, dist) {
     stepV.copy(m.g.position).addScaledVector(dir, dist);
     if (ctx.blocked(stepV)) { m.wander += Math.PI * 0.6; return false; }
@@ -346,6 +358,9 @@ export function createCombat(ctx) {
     if (VX) VX.shatter(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), { big: m.rank === "boss" ? 2 : m.rank === "elite" ? 1.4 : 1, coins: m.rank === "boss" ? 8 : 3, where: (v) => ctx.here(v) });
     shards(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), m.rank === "boss" ? 40 : 16, m.rank === "boss" ? 10 : 7); flash(p, 0xffffff, m.rank === "boss" ? 8 : 2.6, 0.25); puff(p, 0xffc861, { n: m.rank === "boss" ? 40 : 12, speed: 5, size: 0.3, life: 0.8, grav: 6 });
     ctx.shake(m.rank === "boss" ? 0.6 : 0.18);
+    // the knock-out's column of light and its ring (world-vfx.js), motes of light floating up out of it
+    if (VX && VX.burst) VX.burst(fxV.copy(p).setY(0), m.rank === "boss" ? 0xff4d6d : m.rank === "elite" || m.rare ? 0xffc861 : 0xffe08a, m.rank === "boss" ? 2.2 : m.rank === "elite" ? 1.4 : 1);
+    if (ctx.parts) ctx.parts.emit({ at: p, kind: "glow", n: m.rank === "boss" ? 36 : 14, speed: 2.4, up: 2.4, spread: 0.8, size: 0.32, life: 1.1, grav: -3.5, drag: 1.4, color: 0xfff2c8, color2: 0xffc861, jitter: 0.6 });
     if (m.rank === "boss" && ctx.slowmo) { ctx.slowmo(700); ctx.punch && ctx.punch(); } // the boss goes down in slow motion
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
@@ -693,6 +708,8 @@ export function createCombat(ctx) {
   // (slower, harder, the third swing slams all round), 2 blaster, 3 bow and 4 staff (shots, below)
   const wKind = () => { const d = rpg.data && rpg.data(), w = d && d.eq && d.eq.weapon; return w ? weaponKind(w) : 0; };
   const wColor = () => { const d = rpg.data && rpg.data(), w = d && d.eq && d.eq.weapon; return new THREE.Color(w ? RARITY[w.r || 0].color : "#38e8ff"); };
+  const arcPool = [], arcBack = (o) => { if (arcPool.length < 6) arcPool.push(o); else o.userData.sm.dispose(); };
+  const slashArc = () => { const arc = new THREE.Group(), sm = slashMat(0xffffff), blade = new THREE.Mesh(undefined, sm); arc.add(blade); arc.userData.sm = sm; arc.userData.blade = blade; return arc; };
   function attack() {
     if (!ctx.active() || cd.attack > 0) return false;
     if (resting()) { if (cd.attack <= 0) { cd.attack = 1.2; restNote(); } return false; }
@@ -709,14 +726,18 @@ export function createCombat(ctx) {
     ctx.here(me); fwdOf(fwd);
     // the crescent takes the weapon's colour (its rarity), gold on the third blow or with a hammer
     const wpn = rpg.data && rpg.data() && rpg.data().eq && rpg.data().eq.weapon, wc = heavy || ham ? 0xffc861 : wpn && (wpn.r || 0) >= 1 ? new THREE.Color(RARITY[wpn.r].color).getHex() : 0x7fe6ff;
-    const r0 = heavy ? 0.85 : 0.9, r1 = heavy ? 2.1 : 1.7, sm = slashMat(wc); sm.uniforms.uR.value.set(r0, r1);
-    const arc = new THREE.Group(), blade = new THREE.Mesh(sgeo(`Ring|${[r0, r1, 48, 1, 0.2, 2.6]}`, () => new THREE.RingGeometry(r0, r1, 48, 1, 0.2, 2.6)), sm);
-    const tilt = combo === 1 ? -0.6 : combo === 2 ? 0.7 : -1.5; blade.rotation.z = tilt; arc.add(blade);
-    arc.rotation.y = ctx.facing(); arc.position.copy(me).setY(heavy ? 0.9 : 1.15).addScaledVector(fwd, 1.0); add(arc);
-    fx.push({ o: arc, life: 0.26, t: 0, grow: [0.8, heavy ? 1.45 : 1.2], onTick: (k) => { sm.uniforms.uK.value = Math.min(1, k * 1.6); sm.uniforms.uO.value = 1 - k * k; arc.rotation.z = (combo === 2 ? 1 : -1) * k * 1.2; } });
+    // (kept for reuse, b420: a new shader material on every swing was garbage three times a second)
+    const r0 = heavy ? 0.85 : 0.9, r1 = heavy ? 2.1 : 1.7, arc = arcPool.pop() || slashArc(), sm = arc.userData.sm, blade = arc.userData.blade;
+    sm.uniforms.uC.value.set(wc); sm.uniforms.uR.value.set(r0, r1); sm.uniforms.uK.value = 0; sm.uniforms.uO.value = 1; arc.visible = true;
+    blade.geometry = sgeo(`Ring|${[r0, r1, 48, 1, 0.2, 2.6]}`, () => new THREE.RingGeometry(r0, r1, 48, 1, 0.2, 2.6));
+    const tilt = combo === 1 ? -0.6 : combo === 2 ? 0.7 : -1.5, sz = ham ? 1.25 : 1; blade.rotation.z = tilt;
+    arc.rotation.set(0, ctx.facing(), 0); arc.position.copy(me).setY(heavy ? 0.9 : 1.15).addScaledVector(fwd, 1.0); add(arc);
+    const turn = combo === 2 ? 1 : -1;
+    if (ctx.parts && !ctx.reduce) ctx.parts.sparks(fxV.copy(me).setY(heavy ? 0.9 : 1.15).addScaledVector(fwd, 1.6), wc, heavy ? 12 : 6, fwd); // sparks thrown off the crescent's edge
+    fx.push({ o: arc, life: 0.26, t: 0, grow: [0.8 * sz, (heavy ? 1.45 : 1.2) * sz], back: arcBack, onTick: (k) => { sm.uniforms.uK.value = Math.min(1, k * 1.6); sm.uniforms.uO.value = 1 - k * k; arc.rotation.z = turn * k * 1.2; } });
     if (heavy) { ring(me.clone().addScaledVector(fwd, 1.4), 0xffc861, { r0: 0.4, r1: 2.6, life: 0.3, y: 0.1 }); puff(me.clone().addScaledVector(fwd, 1.4).setY(0.3), 0xd8c8a8, { n: 10, speed: 3, size: 0.5, life: 0.5, grav: 2 }); }
     const reach = ham ? (heavy ? 3.9 : 3.0) : heavy ? 3.1 : 2.6, base = stats().atk * (heavy ? 1.7 : combo === 2 ? 1.15 : 1) * (ham ? 1.45 : 1);
-    if (ham) { arc.scale.multiplyScalar(1.25); if (heavy) { ring(me, 0xffc861, { r0: 0.5, r1: 4.2, life: 0.4, y: 0.1 }); if (VX) VX.impact(me.clone().setY(0.4), "hit", { big: 1.6 }); ctx.shake(0.25); } }
+    if (ham && heavy) { ring(me, 0xffc861, { r0: 0.5, r1: 4.2, life: 0.4, y: 0.1 }); if (VX) { VX.impact(me.clone().setY(0.4), "hit", { big: 1.6 }); if (VX.boom) VX.boom(fxV.copy(me).addScaledVector(fwd, 1.2).setY(0.9), "hit", { size: 3.4, life: 0.5 }); } ctx.shake(0.25); }
     let any = false;
     for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length() - (m.rank === "boss" ? 2 : 0); if (d < reach && ((ham && heavy) || d < 0.8 || tmp.normalize().dot(fwd) > 0.2)) { const c = critRoll(); hit(m, base * (c ? 1.8 : 1), me, heavy ? "heavy" : "melee", c); any = true; puff(m.g.position.clone().setY(m.y + 0.5), 0xffffff, { n: 6, speed: 4, size: 0.25, life: 0.3 }); } }
     if (any) ctx.shake(heavy ? 0.16 : 0.07);
@@ -841,6 +862,7 @@ export function createCombat(ctx) {
     fx.push({ o: disc, life: 2, t: 0, onTick: (k) => { disc.material.opacity = 0.35 * (1 - k) + Math.sin(k * 40) * 0.05; if ((tick += 1) % 6 === 0) { puff(p.clone().add(new V3((Math.random() - 0.5) * 4, 0.2, (Math.random() - 0.5) * 4)), 0xff7a2a, { n: 2, speed: 1, size: 0.6, life: 0.5, grav: -3 }); for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < 3.2) { m.burn = Math.max(m.burn, 1); m.burnD = Math.max(m.burnD || 0, 2); } } } });
   }
   function bolt(a, b) {
+    if (VX && VX.zap && VX.zap(a, b, { color: 0xb48cff })) return;
     const n = 9, pts = [];
     for (let i = 0; i <= n; i++) { const p = a.clone().lerp(b, i / n); if (i && i < n) p.add(new V3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6)); pts.push(p); }
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
@@ -912,7 +934,7 @@ export function createCombat(ctx) {
         if (s.t < s.life) continue;
         const p = s.at.clone();
         for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < (m.rank === "boss" ? 6.5 : 4.5) * (s.big || 1)) { const c = critRoll(); hit(m, s.dmg * (c ? 1.8 : 1), p, "meteor", c); }
-        if (VX) VX.impact(p.clone().setY(0.8), "meteor", { big: s.big || 1 });
+        if (VX) { VX.impact(p.clone().setY(0.8), "meteor", { big: s.big || 1 }); if (VX.boom) VX.boom(fxV.copy(p).setY(1.6), "meteor", { size: 6.5 * (s.big || 1), life: 0.85 }); }
         flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5 * (s.big || 1), life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
         puff(p.clone().setY(0.8), 0xff7a2a, { n: 34, speed: 9, size: 0.9, life: 0.8, grav: -1 }); puff(p.clone().setY(0.6), 0x55504a, { n: 16, speed: 2.5, size: 1.6, life: 1.4, grav: -1.2 });
         shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45); if (ctx.wave) ctx.wave(p, 1.3 * (s.big || 1)); if (ctx.parts) ctx.parts.sparks(p.clone().setY(0.6), 0xff7a2a, 30); scorch(p, 3.6 * (s.big || 1), 0x1a0c06);
@@ -925,12 +947,12 @@ export function createCombat(ctx) {
         const p = s.o.position.clone(), c = critRoll();
         if (s.kind === "ice") {
           if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "ice", c);
-          shards(p, 0xbff0ff, 14, 6); ring(p, 0x8fe6ff, { r0: 0.3, r1: 2.2, life: 0.4 }); flash(p, 0xcff6ff, 2.2, 0.2); if (VX) VX.impact(p, "ice");
+          shards(p, 0xbff0ff, 14, 6); ring(p, 0x8fe6ff, { r0: 0.3, r1: 2.2, life: 0.4 }); flash(p, 0xcff6ff, 2.2, 0.2); if (VX) { VX.impact(p, "ice"); if (VX.boom) VX.boom(p, "ice", { size: 2.4, life: 0.45 }); }
         } else {
           if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "fire", c);
           for (const m of mobs) if (m !== target && !m.dead && m.g.position.distanceTo(p) < (s.wide ? 4.5 : 3)) hit(m, s.dmg * (s.wide ? 0.8 : 0.6), p, "fire");
           if (s.wide) { ring(p, 0xffd27a, { r0: 0.6, r1: 4.8, life: 0.5 }); groundFire(p); }
-          if (VX) VX.impact(p, "fire", { big: s.wide ? 1.5 : 1 });
+          if (VX) { VX.impact(p, "fire", { big: s.wide ? 1.5 : 1 }); if (VX.boom) VX.boom(p, "fire", { size: s.wide ? 4.6 : 3.4, life: 0.65 }); }
           flash(p, 0xffb060, 4.2, 0.3); puff(p, 0xff7a2a, { n: 18, speed: 6, size: 0.6, life: 0.6, grav: -1 }); puff(p, 0x55504a, { n: 8, speed: 1.5, size: 1.1, life: 1.1, grav: -1.5 }); ring(p, 0xff9a4a, { r0: 0.4, r1: 3.2, life: 0.45 });
           ctx.shake(0.14);
         }
@@ -1320,7 +1342,7 @@ export function createCombat(ctx) {
     ctx.here(me); grp.position.set(me.x, -40, me.z); root.add(grp); // under the ground: drawn, never seen
     // the first time, the light effects too (world-vfx.js: a summon, a boss summon, a chest, a pick-up), played under the
     // ground, and the whole scene compiled: they're out of the camera's view, so only compiling reaches them
-    if (samples.length && VX) { const at = new V3(me.x, -40, me.z); try { VX.summon(at, false); VX.summon(at.clone(), true); if (VX.chest) VX.chest(at.clone()); if (VX.collect) VX.collect(at.clone(), 0xffc861); } catch { /* a missing effect is fine */ } }
+    if (samples.length && VX) { const at = new V3(me.x, -40, me.z); try { VX.summon(at, false); VX.summon(at.clone(), true); if (VX.chest) VX.chest(at.clone()); if (VX.collect) VX.collect(at.clone(), 0xffc861); if (VX.warm) VX.warm(at.clone()); } catch { /* a missing effect is fine */ } }
     try { if (stage.renderer.compileAsync) await stage.renderer.compileAsync(samples.length ? stage.scene : grp, stage.camera, stage.scene); } catch { /* drawn below anyway */ }
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     root.remove(grp); culled.forEach((o) => { o.frustumCulled = true; });

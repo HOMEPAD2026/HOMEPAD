@@ -550,7 +550,7 @@ const player = new THREE.Group(); st.scene.add(player);
 // a soft dark spot right under you, so you never look as if you float (there even where sun shadows are off)
 const meShadow = LOOK.contactShadow(0.85, 0.5); meShadow.position.y = 0.05; meShadow.name = "me-contact"; player.add(meShadow);
 // light effects (world-vfx.js): portals, teleports, level ups, impacts, the shield
-const vfx = VFX.createVfx({ THREE, st, planet, player, low: lowGfx, reduce });
+const vfx = VFX.createVfx({ THREE, st, planet, player, low: lowGfx, reduce, lite: () => { try { return liteFx; } catch { return false; } } }); // (liteFx is declared further down)
 // each hunting ground's air: snow, sand, bubbles, spores, dust, embers, stars (world-weather.js)
 const air = WX.createWeather({ THREE, planet, zones: RPG.ZONES, low: lowGfx, reduce });
 spins.push((dt, t) => air.tick(dt, t, -planet.position.x, -planet.position.z, innerHeight));
@@ -2760,17 +2760,20 @@ const floats = [];
 // an animation started again without forcing the page to lay itself out (b413: the old remove / offsetWidth / add did,
 // on every merged hit, every tap and every crit): the class comes back on the next frame
 const replay = (el, cls) => { if (!el) return; el.classList.remove(cls); requestAnimationFrame(() => el.classList.add(cls)); };
+// (the number nodes are kept for reuse, b420: a fast fight made and dropped a dozen a second; put back in the page, one
+// plays its animation again from the start)
+const fltPool = [], fltDone = (el) => { el.remove(); if (fltPool.length < 24) fltPool.push(el); };
 const flt = (text, pos, color, big, weight = 0) => {
   const v = pos.clone(); planet.localToWorld(v); v.project(st.camera); if (v.z > 1) return;
   const x = (v.x + 1) / 2 * innerWidth, y = (1 - v.y) / 2 * innerHeight, now = performance.now(), num = /^!?\d+$/.test(String(text)) ? Number(String(text).replace("!", "")) : null;
   for (let i = floats.length - 1; i >= 0; i--) if (!floats[i].el.isConnected || now - floats[i].t > 900) floats.splice(i, 1);
   if (num != null) { const f = floats.find((o) => now - o.t < 420 && Math.hypot(o.x - x, o.y - y) < 70 && o.color === color);
-    if (f) { f.n += num; f.t = now; f.el.textContent = (big || f.big ? "!" : "") + f.n; if (big && !f.big) { f.big = true; f.el.classList.add("crit"); } replay(f.el, "bump"); clearTimeout(f.k); f.k = setTimeout(() => f.el.remove(), 950); return; } }
-  const el = document.createElement("div"); el.className = "wp-float-n" + (big ? " crit" : ""); el.textContent = text; el.style.color = color || "#fff";
-  if (num != null) { const f = { el, n: num, t: now, x, y, color, big: !!big }; floats.push(f); f.k = setTimeout(() => el.remove(), 950); }
+    if (f) { f.n += num; f.t = now; f.el.textContent = (big || f.big ? "!" : "") + f.n; if (big && !f.big) { f.big = true; f.el.classList.add("crit"); } replay(f.el, "bump"); clearTimeout(f.k); f.k = setTimeout(() => fltDone(f.el), 950); return; } }
+  const el = fltPool.pop() || document.createElement("div"); el.className = "wp-float-n" + (big ? " crit" : ""); el.textContent = text; el.style.color = color || "#fff"; el.style.removeProperty("--fs");
+  if (num != null) { const f = { el, n: num, t: now, x, y, color, big: !!big }; floats.push(f); f.k = setTimeout(() => fltDone(el), 950); }
   el.style.left = ((v.x + 1) / 2 * innerWidth) + "px"; el.style.top = ((1 - v.y) / 2 * innerHeight) + "px";
   if (weight > 0) el.style.setProperty("--fs", (1 + Math.min(1, weight * 3) * 0.75).toFixed(2)); // a bigger share of the scammer's HP, a bigger number
-  document.body.appendChild(el); if (num == null) setTimeout(() => el.remove(), 950);
+  document.body.appendChild(el); if (num == null) setTimeout(() => fltDone(el), 950);
 };
 rpg = RPG.createRpg({
   THREE, T, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd, reduce, scene: () => st.scene,
@@ -2825,7 +2828,7 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   onBossRun: (zone, ms) => { const s = sess(); if (s && ms >= 8000) post({ action: "world-bossrun", ...s, zone, ms }).catch(() => {}); },
   onBoss: () => music.victory(),
   buzz: (ms) => buzz(ms), hint: (id) => hint(id, { charge: tapOr(T("Hold J to charge a stronger blow, let go when the ring is full"), T("Hold the attack button to charge a stronger blow")), dodge: tapOr(T("Red on the ground means a strike is coming: step out, or dodge with K"), T("Red on the ground means a strike is coming: step out, or tap dodge")), pond: T("This ground has a pond with a fish of its own") }[id] || id),
-  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, halloween: HW.halloweenOn(), slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
+  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n * (liteFx || coarse ? 0.7 : 1)); }, lite: () => liteFx, // a phone's small screen shakes less halloween: HW.halloweenOn(), slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
   pay: (id, onStatus) => arclShop.pay(id, "", onStatus), ko: (what) => arclShop.ko(what), signedIn: () => !!sess(),
   // knocked out: lie down and wait; back up on the spot (a revive) or on the plaza
   down: (on, where) => {

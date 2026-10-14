@@ -4,8 +4,10 @@
 // sparks (GPU particles) and a rune circle on the ground — in colours above 1.0 so the bloom catches them.
 //
 // createVfx({ THREE, st, planet, player, low, reduce }) → { tick(dt), portal(g, o), teleport(p, o), rise(p),
-//   levelUp(), chest(p), impact(p, kind, o), summon(p, boss), collect(p, color), buff(color), shield(on), count() }
+//   levelUp(), chest(p), impact(p, kind, o), summon(p, boss), collect(p, color), buff(color), shield(on), count(),
+//   star(p, color, o), boom(p, kind, o), quake(p, color, r), burst(p, color, big), zap(a, b, o), warm(p) }
 // Positions are in the planet's frame (where the halls and the scammers live); levelUp, buff and shield follow you.
+// The fight's effects (impact, star, boom, quake, burst, zap) are pooled: built once, played again, a hard cap each.
 
 const NOISE = `
 float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -15,7 +17,7 @@ float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a 
 
 export function createVfx(ctx) {
   const { THREE, st, planet, player } = ctx;
-  const low = !!ctx.low, reduce = !!ctx.reduce;
+  const low = !!ctx.low, reduce = !!ctx.reduce, lite = () => low || !!(ctx.lite && ctx.lite()); // lite: low, or the frame rate fell (world-play.js liteFx)
   const U = { uTime: { value: 0 }, uScale: { value: 600 } }; // shared by every effect
   const live = [], keep = [];
   const hdr = (c, k = 2.2) => new THREE.Color(c).multiplyScalar(k);
@@ -83,6 +85,11 @@ export function createVfx(ctx) {
   });
   const GLOW = canvasTex(128, 128, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.35, "rgba(255,255,255,.85)"); r.addColorStop(0.7, "rgba(255,255,255,.25)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(0, 0, w, w); });
   const ARROW = canvasTex(128, 192, (g) => { g.shadowColor = "#fff"; g.shadowBlur = 14; g.fillStyle = "#fff"; g.beginPath(); g.moveTo(64, 14); g.lineTo(112, 74); g.lineTo(80, 74); g.lineTo(80, 176); g.lineTo(48, 176); g.lineTo(48, 74); g.lineTo(16, 74); g.closePath(); g.fill(); });
+  // a hit's star: four long spikes, four short ones and a hot middle (the "tick" of a blow landing)
+  const STAR = canvasTex(128, 128, (g, w) => { const c = w / 2; g.translate(c, c); g.globalCompositeOperation = "lighter";
+    const spike = (a, l, wd) => { g.save(); g.rotate(a); const r = g.createLinearGradient(0, 0, l, 0); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.beginPath(); g.moveTo(0, -wd); g.lineTo(l, 0); g.lineTo(0, wd); g.closePath(); g.fill(); g.restore(); };
+    for (let i = 0; i < 4; i++) { spike((i * Math.PI) / 2, 62, 7); spike((i * Math.PI) / 2 + Math.PI / 4, 34, 5); }
+    const r = g.createRadialGradient(0, 0, 0, 0, 0, 30); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.4, "rgba(255,255,255,.55)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(-30, -30, 60, 60); });
   const RAY = canvasTex(64, 256, (g, w, h) => { const r = g.createLinearGradient(0, h, 0, 0); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.beginPath(); g.moveTo(w / 2 - 6, h); g.lineTo(0, 0); g.lineTo(w, 0); g.lineTo(w / 2 + 6, h); g.closePath(); g.fill(); });
 
   // ---------------- pieces ----------------
@@ -115,6 +122,21 @@ export function createVfx(ctx) {
   }
   const fade = (o, a) => o.traverse((m) => { if (!m.material) return; const u = m.material.uniforms; if (u && u.uFade) u.uFade.value = a; else m.material.opacity = a; });
   function drop(e) { e.parent.remove(e.g); e.g.traverse((m) => { if (m.userData.own && m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); }); }
+  // a pooled effect (b420): a fight plays the same few effects many times a second, so each is built once (its
+  // materials, its buffers) and played again; a finished one waits hidden in its parent. At most cap play at once (half
+  // when lite); one more restarts the oldest. build(g, e) → { tick(k, t), start() }; e.at and e.o hold this play's where/what
+  const pools = {};
+  function pooled(key, cap, parent, at, life, o, build) {
+    if (reduce) return null;
+    const P = pools[key] || (pools[key] = { free: [], busy: 0 }); cap = lite() ? Math.max(1, cap >> 1) : cap;
+    let e = P.free.pop();
+    if (!e && P.busy >= cap) { const i = live.findIndex((x) => x.key === key); if (i >= 0) { e = live[i]; live.splice(i, 1); P.busy--; } }
+    if (!e) { const g = new THREE.Group(); parent.add(g); e = { g, key, parent, at: new THREE.Vector3(), o: {} }; const parts = build(g, e) || {}; e.tick = parts.tick; e.start = parts.start; }
+    e.life = life; e.t = 0; e.o = o; if (at) e.at.copy(at); else e.at.set(0, 0, 0); e.g.position.copy(e.at); e.g.visible = true;
+    if (e.start) e.start(); if (e.tick) e.tick(0, 0);
+    P.busy++; live.push(e); return e;
+  }
+  const park = (e) => { e.g.visible = false; const P = pools[e.key]; P.busy--; P.free.push(e); };
 
   // ---------------- the effects ----------------
   // 06 teleport: a beam drops in, the circle turns, sparks climb; colour by where you're going
@@ -157,17 +179,103 @@ export function createVfx(ctx) {
   // 10 skill impact: a hot flash, a shockwave on the ground, sparks thrown out (ice glitters, fire climbs, shock crackles)
   const IMPACT = { ice: [0x8fe6ff, 0xcff6ff, -6], fire: [0xff7a2a, GOLD2, 2], shock: [0xb48cff, 0xe6d8ff, -3], meteor: [0xff7a2a, GOLD, -4], hit: [0xffffff, 0xffe8b0, -6] };
   function impact(at, kind = "hit", o = {}) {
-    const [c, c2, grav] = IMPACT[kind] || IMPACT.hit, big = o.big || 1;
-    return once(planet, at, kind === "meteor" ? 1.1 : 0.75, (g) => {
-      const gl = sprite(GLOW, c, 2.4 * big, 1.5), hot = sprite(GLOW, c2, 1.1 * big, 2.2); g.add(gl, hot); // a coloured flash with a white-hot middle
-      const sh = shock(c, (kind === "meteor" ? 5.5 : 2.4) * big); sh.position.y = 0.1 - at.y; g.add(sh);
-      const sp = sparks(c, kind === "meteor" ? 80 : 46, { out: 5 * big, up: kind === "fire" ? 3.5 : 2, spread: 0.6, life: 0.65, grav, delay: 0.05, size: kind === "ice" ? 0.2 : 0.28 });
+    if (!IMPACT[kind]) kind = "hit";
+    const [c, c2, grav] = IMPACT[kind], meteor = kind === "meteor";
+    return pooled("imp-" + kind, 6, planet, at, meteor ? 1.1 : 0.75, o, (g, e) => {
+      const gl = sprite(GLOW, c, 2.4, 1.5), hot = sprite(GLOW, c2, 1.1, 2.2); g.add(gl, hot); // a coloured flash with a white-hot middle
+      const sh = shock(c, meteor ? 5.5 : 2.4); g.add(sh);
+      const sp = sparks(c, meteor ? 80 : 46, { out: 5, up: kind === "fire" ? 3.5 : 2, spread: 0.6, life: 0.65, grav, delay: 0.05, size: kind === "ice" ? 0.2 : 0.28 });
       g.add(sp);
-      const rn = kind === "meteor" ? rune(c, 4.5 * big) : null; if (rn) { rn.position.y = 0.07 - at.y; g.add(rn); }
-      return { tick: (k) => { gl.material.opacity = Math.max(0, 1 - k * 1.6); gl.scale.setScalar(2.4 * big * (1 + k * 1.5)); hot.material.opacity = Math.max(0, 1 - k * 3); hot.scale.setScalar(1.1 * big * (1 + k)); sh.material.uniforms.uR.value = 0.1 + Math.sqrt(k) * 0.9; fade(sh, 1 - k);
-        sp.material.uniforms.uAge.value = k * 0.75; if (rn) { rn.rotation.z = k * 2; fade(rn, 1 - k); } } };
+      const rn = meteor ? rune(c, 4.5) : null; if (rn) g.add(rn);
+      return { start: () => { const big = e.o.big || 1, r = (meteor ? 11 : 4.8) * big; sh.position.y = 0.1 - e.at.y; sh.scale.set(r, r, 1); sp.scale.setScalar(big); g.rotation.y = Math.random() * 6.28; if (rn) { rn.position.y = 0.07 - e.at.y; rn.scale.set(9 * big, 9 * big, 1); } },
+        tick: (k) => { const big = e.o.big || 1; gl.material.opacity = Math.max(0, 1 - k * 1.6); gl.scale.setScalar(2.4 * big * (1 + k * 1.5)); hot.material.opacity = Math.max(0, 1 - k * 3); hot.scale.setScalar(1.1 * big * (1 + k)); sh.material.uniforms.uR.value = 0.1 + Math.sqrt(k) * 0.9; fade(sh, 1 - k);
+          sp.material.uniforms.uAge.value = k * 0.75; if (rn) { rn.rotation.z = k * 2; fade(rn, 1 - k); } } };
     });
   }
+  // a blow landing: a star of light that pops big and is gone in a blink, a white-hot dot in its middle, drawn over the
+  // scammer (o: { color, big (a crit or a heavy blow), size, rot (the swing's angle: the long spikes lie along it) })
+  function star(at, color = 0xffffff, o = {}) {
+    o.color = o.color ?? color;
+    return pooled("star", 12, planet, at, o.big ? 0.24 : 0.17, o, (g, e) => {
+      const s1 = sprite(STAR, 0xffffff, 1, 1.8), s2 = sprite(GLOW, 0xffffff, 1, 2.4); s1.renderOrder = s2.renderOrder = 12; s1.material.depthTest = s2.material.depthTest = false; g.add(s1, s2);
+      return { start: () => { s1.material.color.set(e.o.color).multiplyScalar(e.o.big ? 2.4 : 1.8); s1.material.rotation = e.o.rot ?? Math.random() * 6.28; },
+        tick: (k) => { const S = (e.o.big ? 3.4 : 2.1) * (e.o.size || 1), pop = k < 0.22 ? 0.35 + (k / 0.22) * 0.85 : 1.2 - (k - 0.22) * 0.9; // in fast, out slower
+          s1.scale.set(S * pop * 1.15, S * pop * 0.85, 1); s1.material.opacity = 1 - k * k;
+          s2.scale.setScalar(S * 0.55 * (1 - k * 0.5)); s2.material.opacity = Math.max(0, 1 - k * 2.2); } };
+    });
+  }
+  // a fireball's bloom: a billboard of flowing noise that swells, burns from white through orange to a dark edge and
+  // eats itself away (a flipbook without the image: each frame is the noise at that moment)
+  const boomMat = () => base({ uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uK: { value: 0 }, uSeed: { value: 0 }, uFade: { value: 1 }, uS: { value: 1 } },
+    `uniform float uS; varying vec2 vUv; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0); mv.xy += position.xy * uS; gl_Position = projectionMatrix * mv; }`, `${NOISE}
+    uniform vec3 uA, uB; uniform float uK, uSeed, uFade; varying vec2 vUv;
+    void main(){ vec2 c = vUv - 0.5; float r = length(c) * 2.0; if (r > 1.0) discard;
+      float n = fbm(c * 3.2 + vec2(uSeed, uSeed * 0.7) - c / max(r, 0.05) * uK * 1.6);
+      float body = 1.0 - smoothstep(0.3 + 0.55 * uK, 0.95, r + (n - 0.5) * 0.7);
+      float a = body * smoothstep(uK * 1.05 - 0.2, uK * 1.05 + 0.05, n * (1.15 - r * 0.45));
+      float heat = clamp(n * 1.5 - r * 0.85 + (1.0 - uK) * 0.65, 0.0, 1.0);
+      vec3 col = mix(uB * 0.22, uB, smoothstep(0.05, 0.45, heat)); col = mix(col, uA, smoothstep(0.45, 0.8, heat)); col = mix(col, vec3(1.6), smoothstep(0.82, 1.0, heat) * (1.0 - uK));
+      gl_FragColor = vec4(col, a * uFade); }`, { side: THREE.FrontSide });
+  const BOOM = { fire: [0xffd27a, 0xff4d1a], meteor: [0xffc04d, 0xff3a12], ice: [0xe6fbff, 0x2f9be8], shock: [0xf0e6ff, 0x7a4dff], hit: [0xfff2c8, 0xffa733] };
+  function boom(at, kind = "fire", o = {}) {
+    o.kind = o.kind || kind;
+    return pooled("boom", 6, planet, at, o.life || 0.6, o, (g, e) => {
+      const m = new THREE.Mesh(plane, boomMat()); m.frustumCulled = false; m.renderOrder = 5; g.add(m); const u = m.material.uniforms;
+      return { start: () => { const [a, b] = BOOM[e.o.kind] || BOOM.fire; u.uA.value.set(a).multiplyScalar(1.5); u.uB.value.set(b).multiplyScalar(1.3); u.uSeed.value = Math.random() * 40; },
+        tick: (k) => { u.uK.value = k; u.uS.value = (e.o.size || 2.6) * (0.55 + Math.sqrt(k) * 0.6); m.position.y = k * 0.6; } };
+    });
+  }
+  // a shockwave across the ground where a heavy blow or a crit landed: two bands, the inner one a beat behind (at: on the ground)
+  function quake(at, color = 0xffc861, r = 2.6) {
+    return pooled("quake", 6, planet, at, 0.45, { color, r }, (g, e) => {
+      const sh = shock(color, 1), sh2 = shock(color, 1); g.add(sh, sh2); const u = sh.material.uniforms, u2 = sh2.material.uniforms; u.uW.value = 0.16; u2.uW.value = 0.1; sh2.position.y = 0.085;
+      return { start: () => { u.uColor.value.set(e.o.color).multiplyScalar(1.7); u2.uColor.value.set(e.o.color).lerp(WHITE, 0.5).multiplyScalar(1.9); sh.scale.set(e.o.r * 2, e.o.r * 2, 1); sh2.scale.set(e.o.r * 1.4, e.o.r * 1.4, 1); },
+        tick: (k) => { const k2 = Math.max(0, (k - 0.15) / 0.85); u.uR.value = 0.12 + (1 - (1 - k) * (1 - k)) * 0.88; u.uFade.value = 1 - k; u2.uR.value = 0.1 + (1 - (1 - k2) * (1 - k2)) * 0.9; u2.uFade.value = k2 > 0 ? 1 - k2 : 0; } };
+    });
+  }
+  const WHITE = new THREE.Color(0xffffff);
+  // a knock-out: a column of light shoots up, a ring runs out across the ground over a turning rune circle, two halos climb
+  // the column and rays fan from its foot (at: on the ground)
+  function burst(at, color = 0xffc861, big = 1) {
+    return pooled("burst", 4, planet, at, 0.9, { color, big }, (g, e) => {
+      const b = beam(color, 0.5, 6, { speed: 4, k: 1.8 }), b2 = beam(0xffffff, 0.2, 7, { k: 1.4, speed: 6 }), sh = shock(color, 2), gl = sprite(GLOW, color, 2.4, 2); gl.position.y = 0.8;
+      const rays = []; for (let i = 0; i < 6; i++) { const piv = new THREE.Group(), r = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map: RAY, color: 0xffffff, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); piv.rotation.y = (i / 6) * Math.PI * 2; piv.rotation.z = 0.5; piv.position.y = 0.2; r.position.y = 1; piv.add(r); g.add(piv); rays.push(r); }
+      const rn = rune(color, 1.6), halos = [0, 1].map(() => { const h = shock(color, 0.9); h.material.uniforms.uR.value = 0.9; h.material.uniforms.uW.value = 0.2; g.add(h); return h; });
+      g.add(b, b2, sh, gl, rn);
+      return { start: () => { const c = e.o.color; b.material.uniforms.uColor.value.set(c).multiplyScalar(1.8); rn.material.color.set(c).multiplyScalar(1.7); halos.forEach((h) => h.material.uniforms.uColor.value.set(c).multiplyScalar(1.7)); sh.material.uniforms.uColor.value.set(c).multiplyScalar(1.7); gl.material.color.set(c).multiplyScalar(2); rays.forEach((r) => r.material.color.set(c).multiplyScalar(1.6)); g.scale.setScalar(e.o.big); },
+        tick: (k) => { const inn = Math.min(1, k * 7), out = 1 - Math.max(0, (k - 0.35) / 0.65), w = 0.4 + out * 0.6; b.scale.set(0.5 * w, 6 * inn, 0.5 * w); fade(b, out); b2.scale.set(0.2 * out, 7 * inn, 0.2 * out); fade(b2, out);
+          sh.material.uniforms.uR.value = 0.1 + Math.sqrt(k) * 0.9; fade(sh, 1 - k); gl.material.opacity = Math.max(0, 1 - k * 2.5); gl.scale.setScalar(2.4 + k * 2);
+          rays.forEach((r, i) => { const h = 2 * inn * (0.8 + 0.2 * Math.sin(i * 2.3)); r.scale.set(0.35, h, 1); r.position.y = h / 2; r.material.opacity = out * 0.8; });
+          rn.rotation.z = k * 2.4; rn.scale.set(3.2 * (0.7 + inn * 0.3), 3.2 * (0.7 + inn * 0.3), 1); fade(rn, out);
+          halos.forEach((h, i) => { const kk = Math.min(1, Math.max(0, (k - i * 0.12) / 0.7)); h.position.y = 0.2 + kk * 4.5; h.scale.setScalar(1.8 * (1 - kk * 0.5)); fade(h, Math.sin(kk * Math.PI) * out); }); } };
+    });
+  }
+  // lightning between two points: a strip of quads whose middle is shaken sideways on the GPU (a new jag 24 times a
+  // second), no new line or tube for each bolt. o: { color, w (width), amp (how far it jags), life }
+  const zapGeo = new THREE.PlaneGeometry(1, 1, 1, 24); zapGeo.translate(0, 0.5, 0);
+  const zapMat = () => base({ uA: { value: new THREE.Vector3() }, uB: { value: new THREE.Vector3() }, uSeed: { value: 0 }, uW: { value: 0.7 }, uAmp: { value: 0.5 }, uColor: { value: new THREE.Color() }, uFade: { value: 1 } }, `
+    uniform vec3 uA, uB; uniform float uSeed, uW, uAmp, uTime; varying float vX, vY;
+    float h1(float x){ return fract(sin(x * 127.1 + uSeed * 311.7) * 43758.5453); }
+    float jag(float y, float f){ float s = y * 9.0, i = floor(s); return mix(h1(i + f), h1(i + 1.0 + f), fract(s)) - 0.5; }
+    void main(){ float y = position.y; vX = position.x * 2.0; vY = y;
+      vec4 a = modelViewMatrix * vec4(uA, 1.0), b = modelViewMatrix * vec4(uB, 1.0), mv = mix(a, b, y);
+      vec2 d = b.xy - a.xy; float L = length(d); d = L > 1e-4 ? d / L : vec2(0.0, 1.0);
+      float f = floor(uTime * 24.0) * 7.13, off = (jag(y, f) + jag(y * 2.7, f + 3.1) * 0.5) * uAmp * sin(y * 3.14159);
+      mv.xy += vec2(-d.y, d.x) * (off + position.x * uW); gl_Position = projectionMatrix * mv; }`, `
+    uniform vec3 uColor; uniform float uFade, uTime, uSeed; varying float vX, vY;
+    void main(){ float x = abs(vX), core = 1.0 - smoothstep(0.06, 0.2, x), glow = exp(-x * x * 7.0);
+      float fl = 0.75 + 0.25 * sin(uTime * 90.0 + uSeed * 9.0 + vY * 6.0);
+      gl_FragColor = vec4(mix(uColor, vec3(1.6), core), (core + glow * 0.55) * fl * uFade); }`, { add: true });
+  function zap(a, b, o = {}) {
+    o.a = a; o.b = b;
+    return !!pooled("zap", 16, planet, null, o.life || 0.26, o, (g, e) => {
+      const m = new THREE.Mesh(zapGeo, zapMat()); m.frustumCulled = false; m.renderOrder = 6; g.add(m); const u = m.material.uniforms;
+      return { start: () => { u.uA.value.copy(e.o.a); u.uB.value.copy(e.o.b); u.uSeed.value = Math.random() * 50; u.uW.value = e.o.w || 0.7; u.uAmp.value = e.o.amp ?? 0.55; u.uColor.value.set(e.o.color ?? 0xb48cff).multiplyScalar(1.8); },
+        tick: (k) => { u.uFade.value = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4; } };
+    });
+  }
+  // warm(p): the pooled effects played once out of sight (p: under the ground), so their shaders are ready before the first blow
+  function warm(at) { if (reduce) return; star(at); boom(at); quake(at); burst(at); zap(at, at.clone().setY(at.y + 2)); }
   // 07 summon: the circle opens wide and turns, a thin beam and dark-red sparks — a boss (or an elite) arrives
   function summon(at, boss) {
     const c = boss ? 0xff4d6d : GOLD, r = boss ? 4.2 : 2.2;
@@ -197,13 +305,13 @@ export function createVfx(ctx) {
       cubes.frustumCulled = false; g.add(cubes);
       const gl = sprite(GLOW, color, 2.6 * big, 1.6); g.add(gl);
       const coin = [], cs = []; for (let i = 0; i < coins; i++) { const c = sprite(GLOW, GOLD, 0.5, 2.0); g.add(c); coin.push(c); const a = Math.random() * Math.PI * 2; cs.push(new THREE.Vector3(Math.cos(a) * 1.2, 2.2 + Math.random(), Math.sin(a) * 1.2)); }
-      const tgt = new THREE.Vector3();
+      const tgt = new THREE.Vector3(), pos = new THREE.Vector3(), scv = new THREE.Vector3(), local = new THREE.Vector3(); // scratch: nothing new each frame
       return { tick: (k, t) => {
-        P.forEach((p, i) => { const pos = p.v.clone().multiplyScalar(t); pos.y -= 4.9 * t * t; if (pos.y + at.y < 0.08) pos.y = 0.08 - at.y; e.set(p.r + t * 6, p.r * 2 + t * 4, 0); q.setFromEuler(e); const sc = p.s * (1 - k * 0.8); m4.compose(pos, q, new THREE.Vector3(sc, sc, sc)); cubes.setMatrixAt(i, m4); });
+        P.forEach((p, i) => { pos.copy(p.v).multiplyScalar(t); pos.y -= 4.9 * t * t; if (pos.y + at.y < 0.08) pos.y = 0.08 - at.y; e.set(p.r + t * 6, p.r * 2 + t * 4, 0); q.setFromEuler(e); const sc = p.s * (1 - k * 0.8); m4.compose(pos, q, scv.set(sc, sc, sc)); cubes.setMatrixAt(i, m4); });
         cubes.instanceMatrix.needsUpdate = true; mat.opacity = 1 - k * k;
         gl.material.opacity = Math.max(0, 1 - k * 3);
         if (where) where(tgt); else tgt.copy(at);
-        coin.forEach((c, i) => { const kk = Math.min(1, k * 1.25), arc = Math.sin(kk * Math.PI); const local = tgt.clone().sub(at).setY(1.2 - at.y);
+        coin.forEach((c, i) => { const kk = Math.min(1, k * 1.25), arc = Math.sin(kk * Math.PI); local.copy(tgt).sub(at).setY(1.2 - at.y);
           c.position.copy(cs[i]).multiplyScalar(1 - kk).add(local.multiplyScalar(kk)); c.position.y += arc * 1.4; c.material.opacity = kk < 1 ? 1 : 0; c.scale.setScalar(0.5 + arc * 0.25); });
       } };
     });
@@ -258,9 +366,9 @@ export function createVfx(ctx) {
     for (let i = live.length - 1; i >= 0; i--) {
       const e = live[i]; e.t += dt; const k = Math.min(1, e.t / e.life);
       if (e.tick) e.tick(k, e.t);
-      if (k >= 1) { drop(e); live.splice(i, 1); }
+      if (k >= 1) { if (e.key) park(e); else drop(e); live.splice(i, 1); }
     }
     tickDome(dt);
   }
-  return { tick, freeze: (on) => { held = !!on; }, shatter, portal, teleport, rise, levelUp, chest, impact, summon, collect, buff, shield, count: () => live.length };
+  return { tick, freeze: (on) => { held = !!on; }, shatter, portal, teleport, rise, levelUp, chest, impact, summon, collect, buff, shield, star, boom, quake, burst, zap, warm, count: () => live.length };
 }
