@@ -10832,6 +10832,7 @@
     "Full": "全屏",
     "Window": "窗口",
     "Mobile": "手机",
+    "Your newer progress from another device is loaded.": "已载入你在其他设备上的最新进度。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

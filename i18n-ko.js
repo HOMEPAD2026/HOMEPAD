@@ -10662,6 +10662,7 @@
     "Full": "전체",
     "Window": "창 모드",
     "Mobile": "모바일",
+    "Your newer progress from another device is loaded.": "다른 기기에서 진행한 최신 기록을 불러왔어요.",
   };
 
 
