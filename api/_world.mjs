@@ -61,7 +61,7 @@ function cleanRpg(r) {
   const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, BAG_MAX); // trimmed to the player's own size on save
   const store = (Array.isArray(r.store) ? r.store : []).map(cleanItem).filter(Boolean).slice(0, 48); // storage (world-rpg.js STORE)
   const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, companions, season, friends, skill branches
-  return { eq, bag, store, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 16000 ? { x: extra } : {}) }; // quests, codex, fish, trophies…: room to grow
+  return { eq, bag, store, scrap: num(r.scrap, 1e7), hp: num(r.hp, 999), sp: num(r.sp, 999), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 16000 ? { x: extra } : {}) }; // quests, codex, fish, trophies…: room to grow
 }
 // the ARC Bot wardrobe: one part per place, and an accent colour (world-arcbots.js WARDROBE)
 const OUTFIT_SLOTS = ["head", "face", "neck", "back", "aura"];
@@ -266,15 +266,17 @@ export function make(deps) {
     return json(200, { phase: PH.phase, epoch: PH.epoch, reward: CBT_REWARD, top: top.map((r, i) => ({ rank: i + 1, w: r.w, name: r.name, lv: r.lv })) }, "public, max-age=30");
   }
   // what a save may add: { xp (to store), gain, cut, bank (the allowance left), dayKey }
-  async function xpGuard(w, old, want) {
+  // k: 2 while the Starter Package's 2× EXP runs (worldOwn.xpBoostUntil): the allowance fills twice as fast, holds twice as
+  // much and the day's limit doubles
+  async function xpGuard(w, old, want, k = 1) {
     const dayKey = `worldXpDay/${w}_${seoulDay(now())}`;
     if (!old) { const xp = Math.min(want, xpAt(XP_RULES.firstLv)); return { xp, gain: 0, cut: want - xp, bank: XP_RULES.burst, dayKey }; }
     const oldXp = old.xpv === XP_VERSION ? old.xp || 0 : xpFromOld(old.xp);
     // the allowance carries over between saves (a save that adds nothing still keeps it, so it can't be topped up that way)
-    const lv = levelOfXp(oldXp), cap = xpBankCap(lv), mins = Math.max(0, (now() - (old.at || 0)) / 60e3);
-    const bank = Math.min(cap, (old.xb == null ? cap : Math.max(0, old.xb)) + xpPerMin(lv) * mins);
+    const lv = levelOfXp(oldXp), cap = xpBankCap(lv) * k, mins = Math.max(0, (now() - (old.at || 0)) / 60e3);
+    const bank = Math.min(cap, (old.xb == null ? cap : Math.max(0, old.xb)) + xpPerMin(lv) * k * mins);
     if (want <= oldXp) return { xp: want, gain: 0, cut: 0, bank: Math.floor(bank), dayKey }; // nothing new (or less: the player's own choice)
-    const today = ((await getDocs([dayKey]))[dayKey] || {}).n || 0, dayLeft = Math.max(0, xpPerMin(lv) * XP_RULES.dayMin - today);
+    const today = ((await getDocs([dayKey]))[dayKey] || {}).n || 0, dayLeft = Math.max(0, xpPerMin(lv) * k * XP_RULES.dayMin - today);
     const gain = Math.floor(Math.max(0, Math.min(want - oldXp, bank, dayLeft)));
     return { xp: oldXp + gain, gain, cut: want - oldXp - gain, bank: Math.floor(bank - gain), dayKey };
   }
@@ -307,7 +309,8 @@ export function make(deps) {
     }
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
     // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.
-    const g = await xpGuard(s.wallet, old, data.xp);
+    const boostK = (Number((await shop.own(s.wallet).catch(() => ({}))).xpBoostUntil) || 0) > now() ? 2 : 1;
+    const g = await xpGuard(s.wallet, old, data.xp, boostK);
     data.xp = g.xp;
     await setDoc(key, { ...data, at: now(), xb: g.bank });
     if (g.gain > 0) await commit([{ inc: g.dayKey, fields: { n: g.gain } }]).catch(() => {});

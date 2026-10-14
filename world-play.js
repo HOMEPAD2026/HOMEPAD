@@ -101,12 +101,14 @@ const saveSet = () => { try { localStorage.setItem(SETS, JSON.stringify(S)); } c
 if (P.xpv !== RPG.XP_VERSION) { P.xp = RPG.xpFromOld(P.xp); P.xpv = RPG.XP_VERSION; try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } }
 let lvMemo = [-1, 1];
 const level = () => { if (lvMemo[0] !== P.xp) lvMemo = [P.xp, RPG.levelOfXp(P.xp)]; return lvMemo[1]; };
+let xpBoostUntil = 0; // the Starter Package's 2× EXP (worldOwn.xpBoostUntil, b414)
 let xpHeld = false; // window.arcWorld.holdXp(true): screenshots and tests keep the level where it is
 // the village blessing (world-village.js): +2% XP and +1% max HP for each village level after the first
 const bless = () => { const v = P.vill, s = sess(); return (v && s && v.w === lc(s.wallet) && v.blessing) || { xp: 0, hp: 0 }; };
 function gain(n, why) {
   if (xpHeld) return;
   if (n > 0 && bless().xp) n = Math.round(n * (1 + bless().xp / 100));
+  if (n > 0 && xpBoostUntil > Date.now()) n *= 2; // the Starter Package's 2× EXP
   const before = level(); P.xp += n; save(); paintHud();
   toast(T("+{n} XP · {why}", { n, why }));
   if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } else Snd.pick();
@@ -1296,6 +1298,87 @@ function applyOwn(o) {
   if (P.style.trail && !items.includes(P.style.trail)) P.style.trail = "";
   if (P.isleTheme && !items.includes(P.isleTheme)) { P.isleTheme = ""; island.setTheme(""); }
   setNameTag(); paintTrail(); if (rpg && rpg.setBagPlus) rpg.setBagPlus(o && o.bag);
+  starterOwn(o);
+}
+// ---------------- the season's Starter Package (api/_world-shop.mjs STARTER, b414) ----------------
+// Bought with $ARCIRCLE through the shop's payment (the wallet confirms the transfer; half burned, half to the treasury).
+// What it gives waits on the server (worldOwn.starter.gifts) and is taken here once per gift: the Legendary piece goes
+// in the bag, the 100 potions on the pile. The 2× EXP runs on the server's clock (xpBoostUntil).
+function starterOwn(o) {
+  xpBoostUntil = Number(o && o.xpBoostUntil) || 0; paintBoost();
+  const gifts = o && o.starter && Array.isArray(o.starter.gifts) ? o.starter.gifts : [];
+  let ready = false; try { ready = !!rpg; } catch { /* still loading */ }
+  if (!gifts.length || !ready) return;
+  const r = rpg.data(); r.x = r.x || {}; const got = new Set(Array.isArray(r.x.sg) ? r.x.sg : []);
+  const fresh = gifts.filter((g) => g && g.gid && !got.has(g.gid)); if (!fresh.length) return;
+  const have = new Set([...Object.values(r.eq || {}), ...(r.bag || []), ...(r.store || [])].filter(Boolean).map((x) => x.id)), items = [];
+  let pots = 0;
+  for (const g of fresh) { if (g.item && g.item.id && !have.has(g.item.id)) { rpg.addItem({ ...g.item }, true); items.push(g.item); } pots += Math.max(0, Math.floor(g.hp || 0)); got.add(g.gid); }
+  r.hp = (r.hp || 0) + pots; r.x.sg = [...got].slice(-12); save(); rpg.refresh();
+  if (items.length || pots) starterCard(items, pots);
+}
+function paintBoost() { const b = document.querySelector("#wp-starter-btn .wp-st-boost"); if (b) b.hidden = !(xpBoostUntil > Date.now()); }
+setInterval(paintBoost, 60e3);
+const leftOf = (t) => { const m = Math.max(0, Math.round((t - Date.now()) / 60e3)); return m >= 60 ? T("{h} h {m} min left", { h: Math.floor(m / 60), m: m % 60 }) : T("{m} min left", { m }); };
+function starterCard(items, pots) {
+  const el = document.createElement("div"); el.className = "wp-cbt"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wp-stc-h"); el.setAttribute("data-no-i18n", "");
+  const leg = RPG.RARITY[4];
+  el.innerHTML = `<div class="wp-cbt-card"><div class="wp-cbt-top wp-st-top" aria-hidden="true"><img src="/images/world-starter-box.webp" alt=""></div><small>${esc(T("Starter Package"))}</small>
+    <h2 id="wp-stc-h">${esc(T("Your Starter Package is in"))}</h2>
+    <p>${esc(xpBoostUntil > Date.now() ? T("2× EXP is on: {t}.", { t: leftOf(xpBoostUntil) }) : T("Good hunting!"))}</p>
+    <ul>${items.map((it, i) => { const pb = RPG.parseBase(it.b) || { slot: "weapon" }; return `<li style="--i:${i}">${RPG.iconSvg(pb.slot, leg.color)}<b>${esc(RPG.itemName(it))}</b><small>${esc(T("Legendary"))} · ${esc(T(RPG.SLOT_NAME[pb.slot] || pb.slot))} · ${esc(T("Lv {n}", { n: it.lv }))}</small></li>`; }).join("")}
+    ${pots ? `<li style="--i:${items.length}"><svg viewBox="0 0 24 24" aria-hidden="true" style="--ic:#ff8fa3"><path d="M12 20s-7-4.3-8.6-8.5C2.2 8.3 4.2 5.2 7.3 5.2c1.9 0 3.2 1 4.7 2.8 1.5-1.8 2.8-2.8 4.7-2.8 3.1 0 5.1 3.1 3.9 6.3C19 15.7 12 20 12 20z"/></svg><b>${esc(T("{n} healing potions", { n: pots }))}</b><small>${esc(T("Added to your potions"))}</small></li>` : ""}</ul>
+    <div class="wp-cbt-act"><button type="button" class="wp-cbt-bag">${esc(T("Open the bag"))}</button><button type="button" class="wp-cbt-x">${esc(T("Close"))}</button></div></div>`;
+  document.body.appendChild(el);
+  const close = () => { el.remove(); document.removeEventListener("keydown", onKey, true); };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  el.querySelector(".wp-cbt-x").addEventListener("click", close);
+  el.querySelector(".wp-cbt-bag").addEventListener("click", () => { close(); rpg.show(); });
+  el.addEventListener("click", (e) => { if (e.target === el) close(); });
+  setTimeout(() => el.querySelector(".wp-cbt-bag").focus(), 40);
+}
+// the package's window: what's in it, this season's three prices (the next one marked), and the buy button
+async function openStarter() {
+  const s = sess(), fmtN = (n) => Number(n).toLocaleString(LANG === "zh" ? "zh-CN" : LANG === "ko" ? "ko-KR" : "en-US");
+  let v = null; try { const r = await fetch("/api/social?world=starter" + (s ? "&wallet=" + s.wallet : "")); v = r.ok ? await r.json() : null; } catch { v = null; }
+  if (!v || !Array.isArray(v.prices)) { toast(T("The Starter Package isn't available right now")); return; }
+  if (v.boostUntil) { xpBoostUntil = v.boostUntil; paintBoost(); }
+  const el = document.createElement("div"); el.className = "wp-st"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wp-st-h"); el.setAttribute("data-no-i18n", "");
+  const ord = [T("1st"), T("2nd"), T("3rd")], left = v.max - v.bought, on = v.open && left > 0;
+  const row = (ic, t, d) => `<li><i class="wp-st-ic wp-st-${ic}" aria-hidden="true"></i><div><b>${t}</b><small>${esc(d)}</small></div></li>`;
+  el.innerHTML = `<div class="wp-st-card">
+    <button type="button" class="wp-st-x" aria-label="${esc(T("Close"))}">×</button>
+    <div class="wp-st-head"><div><small>${esc(T("ARCIRCLE World · {s}", { s: T(v.name || "Season 1") }))}</small><h2 id="wp-st-h">${esc(T("Starter Package"))}</h2>
+      <p>${esc(T("Up to {n} per account this season.", { n: v.max }))}</p></div><img src="/images/world-starter-box.webp" alt="" width="132" height="108"></div>
+    <ul class="wp-st-list">
+      ${row("leg", `${esc(T("1 random"))} <em>${esc(T("Legendary item"))}</em>`, T("A Legendary piece in a random slot, the tier you can wear at your level (Lv 15 or more)."))}
+      ${row("exp", `<em>${esc(T("2× EXP"))}</em> ${esc(T("for 24 hours"))}`, xpBoostUntil > Date.now() ? T("On now: {t}. Another buy adds 24 hours.", { t: leftOf(xpBoostUntil) }) : T("Starts the moment the payment confirms."))}
+      ${row("pot", `<em>100</em> ${esc(T("healing potions"))}`, T("For hunting and boss fights."))}
+    </ul>
+    <table class="wp-st-price"><thead><tr><th>${esc(T("Purchase"))}</th><th>${esc(T("Price"))}</th></tr></thead><tbody>
+      ${v.prices.map((p, i) => `<tr class="${i < v.bought ? "done" : i === v.bought && on ? "next" : ""}"><td>${esc(ord[i] || String(i + 1))}${i < v.bought ? ` <span>${esc(T("Bought"))}</span>` : ""}</td><td><b>${fmtN(p)}</b> $ARCIRCLE</td></tr>`).join("")}
+    </tbody></table>
+    <p class="wp-st-note">${esc(T("Paid in $ARCIRCLE from your wallet on Arc: 50% is burned and 50% goes to the treasury."))}</p>
+    <p class="wp-st-status" role="status" hidden></p>
+    <button type="button" class="wp-st-buy"${on ? "" : " disabled"}>${esc(!v.open ? T("Not on sale this season") : left <= 0 ? T("Bought {n} of {n} this season", { n: v.max }) : !s ? T("Sign in to buy") : T("Buy for {n} $ARCIRCLE", { n: fmtN(v.next) }))}</button></div>`;
+  document.body.appendChild(el); frozen = true; keys.clear();
+  const close = () => { el.remove(); document.removeEventListener("keydown", onKey, true); frozen = false; };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  el.querySelector(".wp-st-x").addEventListener("click", close);
+  el.addEventListener("click", (e) => { if (e.target === el) close(); });
+  const buy = el.querySelector(".wp-st-buy"), st = el.querySelector(".wp-st-status");
+  const say = (t) => { st.textContent = t || ""; st.hidden = !t; };
+  buy.addEventListener("click", async () => {
+    if (!on || buy.disabled) return;
+    if (!sess()) { close(); signIn().then(() => { paintAcct(); openStarter(); }).catch((e) => toast((e && e.message) || T("Sign-in failed."))); return; }
+    buy.disabled = true;
+    const done = await arclShop.pay("starter", "", say).catch(() => false);
+    if (done) { close(); return; } // the gifts arrive through the shop's answer (applyOwn)
+    buy.disabled = false;
+  });
+  setTimeout(() => (on ? buy : el.querySelector(".wp-st-x")).focus(), 40);
 }
 // the plaza screen: the island of the day or a coin, from the shop (GET ?world=plaza)
 let plazaNow = null;
@@ -2959,6 +3042,8 @@ hubEl.addEventListener("click", (e) => {
 hubEl.addEventListener("keydown", (e) => { if (e.key === "Escape" && !hubEl.hidden) { e.stopPropagation(); closeHub(); } });
 $("wp-more-btn").addEventListener("click", (e) => { e.stopPropagation(); if (hubEl.hidden) openHub(); else closeHub(); });
 $("wp-shop-btn").addEventListener("click", () => { closeAll(); arclShop.openShop(); });
+$("wp-starter-btn").addEventListener("click", () => { closeAll(); openStarter(); });
+{ const l = document.querySelector("#wp-starter-btn .wp-st-l"); if (l) l.textContent = T("Starter"); }
 $("wp-bag-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("inv"); });
 $("wp-log-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("log"); });
 // the dock (bottom left): Character, Bag, Craft (the Forge), Build (your island's builder)
