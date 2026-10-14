@@ -3591,7 +3591,7 @@ html:not(.wp-pcphone) .wp-joyrest{bottom:calc(max(12px,env(safe-area-inset-botto
 /* on a phone: Shop, Map and Menu up top (the rest live in the menu and the dock); no stage chip */
 @media (pointer:coarse){
   body.wp .wp-hud #wp-photo-btn,body.wp .wp-hud #wp-log-btn,body.wp .wp-hud #wp-vil-btn,body.wp .wp-hud #wp-inbox-btn,body.wp .wp-hud #wp-music-btn,body.wp .wp-hud #wp-help-btn,body.wp .wp-hud #wp-set-btn{display:none!important}
-  body.wp .wp-hud #wp-map-btn,body.wp .wp-hud #wp-more-btn{display:flex!important}
+  body.wp .wp-hud #wp-more-btn{display:flex!important}
   body.wp .wp-hud .wp-stage{display:none}
 }
 /* a narrower PC: the tiles keep their icons, the names go */
@@ -3822,7 +3822,7 @@ body.wp .wp-hud .wp-quests li i,body.wp .wp-hud .wp-quests li.cur::after{display
 body.wp .wp-hud .wp-quests li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.wp .wp-hud .wp-quests li small{margin-left:5.60px;font:800 14.00px/1 var(--hud-font);color:#fff}
 body.wp .wp-hud #wp-photo-btn,body.wp .wp-hud #wp-log-btn,body.wp .wp-hud #wp-vil-btn,body.wp .wp-hud #wp-inbox-btn,body.wp .wp-hud #wp-music-btn,body.wp .wp-hud #wp-help-btn,body.wp .wp-hud #wp-set-btn{display:none!important}
-body.wp .wp-hud #wp-map-btn,body.wp .wp-hud #wp-more-btn{display:flex!important}
+body.wp .wp-hud #wp-more-btn{display:flex!important}
 body.wp .wp-hud .wp-hud-btns{gap:1.12px;padding-top:47.04px}
 body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)::before{display:none!important}
 body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)>*{position:static}
@@ -3980,3 +3980,6 @@ body.wp .wp-hud .wp-hud-btns>.wp-btn#wp-starter-btn:not(.wp-wallet)>span.wp-st-l
 .wp-st-buy:focus-visible,.wp-st-x:focus-visible{outline:2px solid #ffc861;outline-offset:2px}
 html.wp-pcphone .wp-st-card{zoom:1.6;width:min(460px,calc((100vw - 24px) / 1.6));max-height:calc((100svh - 32px) / 1.6)}
 @media (prefers-reduced-motion:reduce){.wp-st{animation:none}}
+
+/* b415: no Map tile in the HUD (the minimap opens the map, and M / the map icon on the minimap still do) */
+body.wp .wp-hud #wp-map-btn{display:none!important}
