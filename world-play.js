@@ -2355,7 +2355,8 @@ function tutorialStep(done) {
   }
   const h = $("wp-hint");
   if (P.tut >= TUT.length) { h.hidden = true; return; }
-  h.innerHTML = `<small>${esc(T("Getting started"))} ${P.tut + 1}/${TUT.length}</small> ${esc(T(TUT[P.tut]))}`; h.hidden = false; h.classList.remove("on"); void h.offsetWidth; h.classList.add("on");
+  // b419: the "Getting started" banner isn't shown (it covered the HUD at the top); the steps still count and pay XP
+  h.hidden = true;
   // the training fight: a weak scammer shows up a few steps away
   // (tried again until the scammer robots have loaded: on a slow connection they come a little after the town)
   const train = () => { if (P.tut !== 3 || mode !== "hub" || !combat || combat.state().mobs.length) return; if (!combat.spawnNear(6, { lv: 1, free: true })) setTimeout(train, 1500); };
