@@ -10183,6 +10183,7 @@
     "Play with a game controller. K dodges: a quick dash nothing can hit.": "可以用游戏手柄玩。K 是闪避：短暂冲刺，期间不会被击中。",
     "ARC Bots": "ARC 机器人",
     "Classic characters": "经典角色",
+    "Custom characters": "自定义角色",
     "Default Hero": "默认英雄",
     "Assistant": "助理",
     "Medic": "医疗兵",

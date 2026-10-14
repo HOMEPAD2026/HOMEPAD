@@ -39,6 +39,7 @@ const WINDOW = 120e3;
 export const GATE_MIN = 1000000n;
 const ARCIRCLE_TOKEN = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
 const CHARS = new Set(["bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c), ..."arc|neo|luna|kai|zen|rex|pixi|orbit|shadow|spark|mint|cici|byte|skye|ruby|titan|echo|nix|blaze|aqua|terra|volt|nova|frost|circa".split("|").map((c) => "arc-" + c), ..."knight|mage|rogue|rogue-hooded|ranger|barbarian".split("|").map((c) => "kk-" + c)]); // arc-…: the ARC Bots (world-arcbots.js)
+const CUSTOM_CHAR = /^custom-[a-z0-9-]{1,9}$/; // your own characters (world-kit.js CUSTOM_CHARS); a client without the file shows the hover bot
 
 export const loginMessage = (wallet, issued) =>
   `ARCIRCLE World — sign in\n\nWallet: ${lc(wallet)}\nIssued: ${issued}\n\nThis only proves the wallet is yours. It costs nothing and moves nothing.`;
@@ -76,7 +77,7 @@ export function cleanSave(d) {
   const xp = Math.max(0, Math.min(XP_MAX, Math.floor(o.xpv === XP_VERSION ? Number(o.xp) || 0 : xpFromOld(o.xp))));
   const name = String(o.name || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").replace(/\[\s*g\s*m\s*\]/gi, "").trim().slice(0, 16); // [GM] comes from the wallet, never the name
   return {
-    xp, xpv: XP_VERSION, name, char: CHARS.has(o.char) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
+    xp, xpv: XP_VERSION, name, char: CHARS.has(o.char) || CUSTOM_CHAR.test(String(o.char || "")) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
     visited: ids(o.visited, /^[a-z0-9-]{1,24}$/, 40), beaten: ids(o.beaten, /^[a-z0-9-]{1,24}$/, 20),
     cards: ids(o.cards, /^c\d{1,2}$/, 40), quests: ids(o.quests, /^[a-z0-9-]{1,24}$/, 60), badges: ids(o.badges, /^[a-z0-9-]{1,24}$/, 40),
     daily: o.daily && typeof o.daily === "object" ? { day: String(o.daily.day || "").slice(0, 10), done: ids(o.daily.done, /^[a-z0-9-]{1,24}$/, 10), streak: Math.max(0, Math.min(3650, Math.floor(Number(o.daily.streak) || 0))) } : null,

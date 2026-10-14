@@ -2405,9 +2405,9 @@ const KK_NAME = { "kk-knight": "Knight", "kk-mage": "Mage", "kk-rogue": "Rogue",
 let pickChar = P.char || "arc-arc";
 function openMake() {
   // the ARC Bots first (each with its name and role), then the classic characters
-  const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.startsWith("kk-") ? T(KK_NAME[id] || id) : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/arcircle-mark-sm.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : ""}</button>`; };
+  const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.startsWith("kk-") ? T(KK_NAME[id] || id) : id.startsWith("custom-") ? id.slice(7).replace(/-/g, " ") : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/arcircle-mark-sm.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : ""}</button>`; };
   const sec = (h, ids) => (ids.length ? `<p class="wp-make-sec">${esc(T(h))}</p>` + ids.map(cell).join("") : "");
-  $("wp-make-grid").innerHTML = sec("ARC Bots", K.CHARACTERS.filter((id) => id.startsWith("arc-"))) + sec("Adventurers", K.CHARACTERS.filter((id) => id.startsWith("kk-"))) + sec("Classic characters", K.CHARACTERS.filter((id) => !id.startsWith("arc-") && !id.startsWith("kk-")));
+  $("wp-make-grid").innerHTML = sec("ARC Bots", K.CHARACTERS.filter((id) => id.startsWith("arc-"))) + sec("Adventurers", K.CHARACTERS.filter((id) => id.startsWith("kk-"))) + sec("Classic characters", K.CHARACTERS.filter((id) => !id.startsWith("arc-") && !id.startsWith("kk-") && !K.CUSTOM_CHARS.includes(id))) + sec("Custom characters", K.CUSTOM_CHARS);
   $("wp-make-name").value = P.name || "";
   make.hidden = false; frozen = true; keys.clear(); paintPrompt();
   camYaw = facing;
