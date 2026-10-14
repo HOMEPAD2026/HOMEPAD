@@ -106,6 +106,7 @@
 <link rel="preload" as="fetch" crossorigin href="/models/world/scifi-props.glb?v=1791968702">
 <link rel="preload" as="fetch" crossorigin href="/models/world/kenney-city.glb?v=1791968702">
 <link rel="preload" as="image" crossorigin href="/models/world/planet-surface.jpg?v=1791968702">
+<link rel="preload" as="image" href="/images/load/key-01-bg.webp" fetchpriority="high">
 <script>(function () { try { var c = (JSON.parse(localStorage.getItem("arc.world") || "null") || {}).char, k = document.querySelector('link[href*="world-play.js"]'); if (k && /^(male|female)-[a-f]$/.test(c || "")) { var l = document.createElement("link"); l.rel = "preload"; l.as = "fetch"; l.crossOrigin = "anonymous"; l.href = "/models/world/chars/character-" + c + ".glb" + k.href.slice(k.href.indexOf("?")); document.head.appendChild(l); } } catch (e) { /* the game loads it anyway */ } })();</script>
 </head>
 <body class="wp">
@@ -113,7 +114,40 @@
 
 <div class="wp-veil" id="wp-veil" aria-hidden="true"></div>
 <button type="button" class="wp-intro-skip" id="wp-intro-skip" data-no-i18n data-w="Skip">Skip</button>
-<div class="wp-loading" id="wp-loading"><img src="/images/arcircle-mark-sm.png" alt="" width="68" height="40"><span>Building the planet…</span><i class="wp-loadbar"><b id="wp-loadbar"></b></i><em class="wp-loadpct" id="wp-loadpct" aria-hidden="true"></em><small class="wp-loadtip" id="wp-loadtip" data-no-i18n></small></div>
+<div class="wp-loading" id="wp-loading"><div class="wp-keyart" id="wp-keyart" aria-hidden="true"><b class="on run" style="background-image:url(/images/load/key-01-bg.webp)"></b><b></b></div><img src="/images/arcircle-mark-sm.png" alt="" width="68" height="40"><span>Building the planet…</span><i class="wp-loadbar"><b id="wp-loadbar"></b></i><em class="wp-loadpct" id="wp-loadpct" aria-hidden="true"></em><small class="wp-loadtip" id="wp-loadtip" data-no-i18n></small></div>
+<style>
+/* the loading screen's key art (environments from the concept sheets: images/load/, tools/concept-art.py). Each of the
+   two cross-fading layers: a tiny pre-blurred dark copy stretched over the screen, and the sharp picture centred at no
+   more than ~1.3x its own size (the cards are 632 px: bigger turns to mush), its edge faded out. The layers drift
+   slowly (transform only, none with reduced motion); a dark-blue veil keeps the words readable. z-index -1: under
+   everything in the box, over its blue background (the fallback). */
+.wp-loading .wp-keyart{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.wp-keyart b{position:absolute;inset:0;background:#06142e center/cover no-repeat;opacity:0;transition:opacity 1.8s ease;will-change:transform,opacity}
+.wp-keyart b::before{content:"";position:absolute;left:50%;top:47%;width:min(100%,820px,130vh);aspect-ratio:632/468;transform:translate(-50%,-50%);background:var(--k,none) center/100% 100% no-repeat;-webkit-mask:radial-gradient(closest-side,#000 66%,transparent);mask:radial-gradient(closest-side,#000 66%,transparent)}
+.wp-keyart b.on{opacity:1}
+.wp-keyart b.run{animation:wpKen 20s ease-out both}
+.wp-keyart b.run.alt{animation-name:wpKen2}
+.wp-keyart::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,10,26,.7),rgba(6,20,52,.3) 30%,rgba(6,20,52,.4) 62%,rgba(3,8,20,.9)),radial-gradient(42% 30% at 50% 52%,rgba(4,12,32,.5),rgba(4,12,32,0))}
+@keyframes wpKen{from{transform:scale(1)}to{transform:scale(1.08) translate3d(-1%,-.6%,0)}}
+@keyframes wpKen2{from{transform:scale(1.08) translate3d(1%,-.6%,0)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.wp-keyart b.run{animation:none}}
+</style>
+<script>
+// the key art: another picture every 7 s, each fetched before it shows (the first one's backdrop is preloaded in the
+// head; its sharp picture joins once it's in). The layer fading out keeps drifting: only "on" leaves it.
+(function () { try {
+  var box = document.getElementById("wp-keyart"), L = box.children, cur = 0, n = 0, KEYS = ["01", "08", "12", "17", "22"];
+  var get = function (k, done) { var u = "/images/load/key-" + k, im = new Image(); im.onload = function () { done("url(" + u + ".webp)", "url(" + u + "-bg.webp)"); }; im.src = u + ".webp"; };
+  get("01", function (u) { if (n === 0) L[0].style.setProperty("--k", u); });
+  var t = setInterval(function () {
+    if (!document.body.contains(box)) return clearInterval(t);
+    get(KEYS[(n + 1) % KEYS.length], function (u, bg) {
+      var nx = L[1 - cur]; nx.style.setProperty("--k", u); nx.style.backgroundImage = bg; nx.classList.remove("run"); nx.classList.toggle("alt", n % 2 === 0); void nx.offsetWidth;
+      nx.classList.add("run", "on"); L[cur].classList.remove("on"); cur = 1 - cur; n++;
+    });
+  }, 7000);
+} catch (e) { /* the plain blue screen */ } })();
+</script>
 <script>
 // while the planet builds: a safety tip every few seconds (each scammer in the game is a real scam)
 (function () { try {
