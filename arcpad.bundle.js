@@ -1,4 +1,4 @@
-/* arcpad.bundle.js — built by tools/build-bundles.mjs from: i18n-boot.js, arc-solwallet.js, config-arc.js, abis.js, arc-shared.js, arc-fmt.js, arc-lazy.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-token.js, arcircle-tab.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-argus.js, arc-pons.js, arc-arcpad-rh.js, arc-quantum.js, arc-pump.js, arc-chartev.js, arcpad-v6.js, arcpad-v7.js, arcpad-v7-coin.js, arc-tour.js, arc-social.js, arc-burnvote-chip.js, arc-uxfx.js, arc-cmdk.js, arc-nav.js, arc-connect.js, arc-v9.js, arc-v10.js, arc-v12.js, arc-feel.js, arc-chrome.js, arc-a11y.js, arc-txring.js, arc-glyph.js, arc-arcia-fab.js, arc-tglink.js, i18n.js. Do not edit; edit the sources. src:6ae52332f6cd3073 */
+/* arcpad.bundle.js — built by tools/build-bundles.mjs from: i18n-boot.js, arc-solwallet.js, config-arc.js, abis.js, arc-shared.js, arc-fmt.js, arc-lazy.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-token.js, arcircle-tab.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-argus.js, arc-pons.js, arc-arcpad-rh.js, arc-quantum.js, arc-pump.js, arc-chartev.js, arcpad-v6.js, arcpad-v7.js, arcpad-v7-coin.js, arc-tour.js, arc-social.js, arc-burnvote-chip.js, arc-uxfx.js, arc-cmdk.js, arc-nav.js, arc-connect.js, arc-v9.js, arc-v10.js, arc-v12.js, arc-feel.js, arc-chrome.js, arc-a11y.js, arc-txring.js, arc-glyph.js, arc-arcia-fab.js, arc-tglink.js, i18n.js. Do not edit; edit the sources. src:2e6d43e7565c5fa1 */
 /* ---- i18n-boot.js ---- */
 // i18n-boot.js — first thing in every bundle: if the visitor reads Korean or Chinese, start
 // downloading that dictionary (i18n-ko.js / i18n-zh.js) right away, while the rest of the page's
@@ -1470,6 +1470,8 @@ renderHeader();
     var idle = window.requestIdleCallback || function (f) { return setTimeout(f, 2500); };
     window.addEventListener("load", function () {
       if (navigator.connection && (navigator.connection.saveData || /2g/.test(navigator.connection.effectiveType || ""))) return;
+      // phones and tablets: the 671 KB (gz) prefetch costs metered data and battery for a tab most never open
+      try { if (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 900) return; } catch (e) { /* keep the prefetch */ }
       idle(function () {
         if (st) return;
         var l = document.createElement("link");
