@@ -10679,6 +10679,18 @@
     "climb / descend": "오르기 / 내려오기",
     "switch ride": "탈것 바꾸기",
     "get off": "내리기",
+    // world: dodge button, salvage undo / confirm, item card, empty states
+    "Tap again to confirm": "한 번 더 누르면 진행돼요",
+    "Salvaged {x} · +{n} scrap": "{x} 분해 · 고철 +{n}",
+    "Salvaged {k} pieces · +{n} scrap": "장비 {k}개 분해 · 고철 +{n}",
+    "That scrap is spent already": "그 고철은 이미 썼어요",
+    "Put back: {n} scrap returned": "되돌렸어요: 고철 {n}개 반납",
+    "vs. nothing worn": "착용 중인 장비 없음과 비교",
+    "Go hunting": "사냥하러 가기",
+    "Open Forge": "대장간 열기",
+    "Your bag is empty. Scammers in the hunting grounds drop gear.": "가방이 비었어요. 사냥터의 사기꾼들이 장비를 떨어뜨려요.",
+    "You're wearing no gear. The Forge sells some, or equip a piece from your bag.": "착용한 장비가 없어요. 대장간에서 사거나 가방에서 장착해 보세요.",
+    "Dodge": "회피",
   };
 
 

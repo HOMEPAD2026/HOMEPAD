@@ -227,3 +227,66 @@ html.wp-less body.wp :is(.wp-tst,.wp-dock,.wp-feed,.wp-keys,.wp-shop-btn,.wp-sta
 /* the boss bar sat low on the left, under the joystick ring: upright it goes above the ring, sideways (no room above it) to the top centre */
 html.wp-pcphone .wc-boss{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 612px)}
 html.wp-pcphone.wp-land .wc-boss{top:86px;bottom:auto;left:50%;transform:translateX(-50%);width:min(560px,calc(100vw - 520px));min-width:300px}
+/* ---------------- dodge (phones): beside attack; the ring round it refills as the cooldown runs out ----------------
+   (!important sizes: arc-v10.css still has an old 40px .wc-dodge rule) world-combat.js writes the ring's stroke-dashoffset only when its 24-step value changes, never per frame */
+.wc-dodge{display:none}
+.wc-bar.coarse .wc-dodge{position:absolute;right:calc(126 * var(--u));bottom:calc(100 * var(--u));width:calc(56 * var(--u))!important;height:calc(56 * var(--u))!important;display:grid;place-items:center;padding:0;appearance:none;border-radius:50%;cursor:pointer;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;
+  border:calc(3 * var(--u)) solid #0c1534;background:radial-gradient(circle at 35% 30%,var(--ui-teal-1),var(--ui-teal-2) 55%,var(--ui-teal-3));
+  box-shadow:0 calc(4 * var(--u)) 0 0 rgba(0,0,0,.3),0 calc(4 * var(--u)) 0 calc(3 * var(--u)) #0c1534,inset 0 calc(-4 * var(--u)) 0 rgba(0,0,0,.18),inset 0 calc(3 * var(--u)) 0 rgba(255,255,255,.35);transition:transform .12s,filter .2s}
+.wc-bar.coarse .wc-dodge i{display:grid;place-items:center}
+.wc-bar.coarse .wc-dodge i svg{width:calc(26 * var(--u))!important;height:calc(26 * var(--u))!important;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 0 rgba(3,42,36,.7))}
+.wc-dodge .wc-ring{position:absolute;inset:calc(-7 * var(--u));width:calc(100% + 14 * var(--u))!important;height:calc(100% + 14 * var(--u))!important;transform:rotate(-90deg);pointer-events:none;overflow:visible}
+.wc-dodge .wc-ring circle{fill:none;stroke:#9ff8e8;stroke-width:3;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:0;opacity:0;transition:opacity .15s}
+.wc-dodge.cooling{filter:saturate(.45) brightness(.82)}
+.wc-dodge.cooling .wc-ring circle{opacity:1}
+.wc-dodge.press{animation:wcPress .22s ease}
+.wc-dodge .wc-key{display:none}
+
+/* ---------------- low HP: the health potion pulses; none left, a "Forge" chip over the empty bottle (above it, the
+   run / board / emote row leaves no room) ---------------- */
+.wc-pot.hp.nudge{animation:wcNudge .9s ease-in-out infinite}
+.wc-pot.hp.nudge::after{content:"";position:absolute;inset:-6px;border-radius:inherit;border:2px solid #ff8a9a;pointer-events:none;animation:wcNudgeR .9s ease-out infinite}
+@keyframes wcNudge{0%,100%{transform:scale(1)}50%{transform:scale(1.13)}}
+@keyframes wcNudgeR{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.35);opacity:0}}
+.wc-forgechip{position:absolute;left:-8px;top:50%;transform:translateY(-50%);z-index:1;padding:3px 10px;appearance:none;border-radius:999px;cursor:pointer;pointer-events:auto;white-space:nowrap;
+  border:1px solid color-mix(in srgb,var(--ui-gold-1) 70%,#fff);color:var(--ui-gold-ink);font:800 12px var(--f-ui);
+  background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0) 52%),linear-gradient(180deg,var(--ui-gold-1),var(--ui-gold-2));box-shadow:0 2px 0 var(--ui-gold-3),0 0 12px rgba(255,178,31,.45)}
+.wc-forgechip[hidden]{display:none}
+.wc-pots{position:relative}
+.wc-bar.coarse .wc-forgechip{left:calc(-8 * var(--u));padding:calc(4 * var(--u)) calc(10 * var(--u));font-size:calc(13 * var(--u))}
+@media (prefers-reduced-motion:reduce){.wc-pot.hp.nudge,.wc-pot.hp.nudge::after,.wc-dodge.press{animation:none}.wc-pot.hp.nudge::after{opacity:1}}
+
+/* ---------------- the item card: what it does against what you wear; Salvage / Sell asking twice ---------------- */
+.wr-stats li i.up,.wr-stats li i.down{font-style:normal;font-weight:800}
+.wr-vs{margin:-2px 0 4px;font-size:11.5px;color:var(--ui-ink-3)}
+.wr-d-h .wr-d-x{display:none}
+body.wp .wr-acts button.ask{border-color:#ffd27a;color:#2a1600;background:linear-gradient(180deg,#ffe680,#ffb21f);box-shadow:0 0 0 2px rgba(255,210,122,.35),0 2px 0 var(--ui-gold-3)}
+/* empty bag, nothing picked, nothing worn: an item picture, a line, one thing to do */
+.wr-emptybox{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;text-align:center}
+.wr-emptybox p{margin:0;max-width:34ch;font-size:13px;color:var(--ui-ink-2)}
+.wr-emptybox .wi-art{filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));opacity:.92}
+.wr-emptybox button{appearance:none;height:36px;padding:0 16px;border-radius:10px;border:1px solid var(--ui-edge-soft);background:linear-gradient(180deg,#183676,#0e2152);color:#eaf3ff;font:800 13px var(--f-ui);cursor:pointer}
+.wr-emptybox button.go{border-color:color-mix(in srgb,var(--ui-blue-1) 70%,#fff);background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 52%),linear-gradient(180deg,var(--ui-blue-1),var(--ui-blue-2));box-shadow:0 3px 0 var(--ui-blue-3)}
+.wr-emptybox button.gold{border-color:color-mix(in srgb,var(--ui-gold-1) 70%,#fff);color:var(--ui-gold-ink);background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0) 52%),linear-gradient(180deg,var(--ui-gold-1),var(--ui-gold-2));box-shadow:0 3px 0 var(--ui-gold-3)}
+.wr-detail.empty{padding:6px}
+/* the 6-second "Undo" after a salvage */
+.wr-undo{position:fixed;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 12px);z-index:46;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 24px);padding:8px 8px 8px 16px;border-radius:999px;transform:translateX(-50%);
+  background:var(--ui-panel-solid,#0b1d49);border:1px solid var(--ui-edge-soft);box-shadow:0 10px 30px rgba(0,4,20,.55);font:700 13px var(--f-ui);color:#eaf3ff;animation:wrUndoIn .2s ease-out}
+.wr-undo[hidden]{display:none}
+.wr-undo span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wr-undo button{flex:none;appearance:none;height:32px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--ui-gold-1) 70%,#fff);color:var(--ui-gold-ink);font:800 13px var(--f-ui);cursor:pointer;background:linear-gradient(180deg,var(--ui-gold-1),var(--ui-gold-2))}
+@keyframes wrUndoIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+html.wp-pcphone .wr-undo{zoom:1.9}
+@media (prefers-reduced-motion:reduce){.wr-undo{animation:none}}
+
+/* ---------------- phones: a picked piece docks to the bottom of the panel as a sheet (world-rpg.js puts it after the
+   scrolling body); the card is a flex column, so the body gives up the room. Actions come right under the name ---------------- */
+.wr-dock{flex:none;display:flex;min-height:0;max-height:50svh;margin:10px -6px 0;padding-bottom:env(safe-area-inset-bottom);border-radius:16px 16px 12px 12px;box-shadow:0 -10px 28px rgba(0,4,20,.55)}
+html.wp-pcphone .wr-dock{max-height:calc((100svh - 40px) / 1.38 * .5)}
+.wr-dock .wr-detail{flex:1;display:flex;flex-direction:column;min-height:0;margin:0;overflow:auto;overscroll-behavior:contain;background:var(--ui-panel-solid,#0b1d49)}
+.wr-dock .wr-detail>*{order:4}
+.wr-dock .wr-d-h{order:0}.wr-dock .wr-stats{order:1}.wr-dock .wr-vs{order:2}.wr-dock .wr-acts{order:3;margin-top:4px;margin-bottom:8px}
+.wr-dock .wr-w3d{display:none}
+.wr-dock .wr-d-x{display:grid;place-items:center;margin-left:auto;flex:none;width:36px;height:36px;padding:0;appearance:none;border-radius:50%;border:1.5px solid var(--ui-edge-soft);background:#0e2152;color:#dff0ff;cursor:pointer}
+.wr-dock .wr-d-x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;filter:none}
+.wr-dock .wr-d-h>div{min-width:0}
