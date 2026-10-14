@@ -887,7 +887,10 @@ export function makePaths() {
 // the ARC Bots (world-arcbots.js, ARCIRCLE World's own characters) first, then the hover bot and the Kenney characters
 // KayKit Adventurers (CC0, kaylousberg.com): six heroes on one rig, their moves in one shared file (kk-anims.glb)
 export const KK_CHARS = ["knight", "mage", "rogue", "rogue-hooded", "ranger", "barbarian"].map((c) => "kk-" + c);
-export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c), ...KK_CHARS];
+// your own characters (Tripo3D or any rigged GLB; models/world/chars/CUSTOM.md): add "custom-<name>" here (at most 9
+// letters after "custom-": the save keeps 16) once character-<id>.glb (tools/optimize-char.mjs) and <id>.webp are in
+export const CUSTOM_CHARS = [];
+export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c), ...KK_CHARS, ...CUSTOM_CHARS];
 export { ARCBOT_IDS };
 export const arcNight = (k) => ARC.setNight(k);
 export const arcTick = (dt, org) => ARC.tickNight && ARC.tickNight(dt, org);
@@ -978,6 +981,7 @@ export async function makeCharacter(id, ver = "", outfit = null) {
     charCache.set(id, src);
   }
   if (id.startsWith("kk-")) return makeKK(id, src, ver);
+  if (CUSTOM_CHARS.includes(id)) return makeCustom(src);
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
@@ -1042,6 +1046,77 @@ async function makeKK(id, src, ver) {
     obj, mixer, play, height: 2.1, kk: true, bones: BONES, busy: () => !!oneShot,
     mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.62, 0], armor: [0, 0.18, 0], armorR: 0.5, necklace: [0, 0.32, 0.26] },
     attack(kind = 0, heavy = false) { const pair = KK_ATK[kind] || KK_ATK[0]; play(pair[heavy ? 1 : 0], { once: true, fade: 0.06, speed: kind === 1 ? 1.25 : 1.6 }); },
+    setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
+    update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
+  };
+}
+
+// your own characters (CUSTOM_CHARS; Tripo3D, Mixamo, anything rigged): their clips go by whatever the tool called
+// them ("Walk", "Armature|Run", "mixamo.com"), so each of the game's names takes the first clip whose name has one of
+// its words; a looping name with no clip of its own (sit, fall, …) runs the idle, a one-shot without one just doesn't
+// play, and a file with no clips at all stands in its bind pose. Nothing here throws on an odd file.
+const CU_AS = { idle: [/idle|stand|breath/], walk: [/walk/], sprint: [/sprint|run|jog/, "walk"], jump: [/jump|leap|hop/], fall: [/fall|in.?air|float/],
+  sit: [/sit/], drive: [/drive|ride|sit/], lie: [/lie|lying|lay|sleep/], die: [/die|death|dead|dying|defeat|knock/], hit: [/hit|damage|hurt|impact|react|stagger/],
+  dodge: [/dodge|roll|evade|dash/], block: [/block|guard|defen/], attack: [/attack|slash|punch|kick|strike|swing|melee|stab|combo/], cast: [/cast|spell|magic|summon/, "attack"],
+  shoot: [/shoot|bow|throw|fire|aim/, "attack"], "emote-yes": [/wave|greet|hello|nod|yes|salute/], "emote-no": [/shake|refuse|disagree|(^|_)no(_|$)/],
+  celebrate: [/dance|cheer|victory|celebrat|win|clap|happy/], cheer: [/cheer|clap|victory|celebrat|dance/, "celebrate"], fidget: [/fidget|look|bored|idle.?(b|2|02)$/],
+  "pick-up": [/pick|gather|loot|collect/], "interact-right": [/interact|use|press|push|open|grab/, "pick-up"], spawn: [/spawn|appear|rise/],
+  mine: [/mine|mining|pickax/, "attack"], chop: [/chop|axe/, "attack"], hammer: [/hammer|smith/, "attack"], dig: [/dig|shovel/, "attack"], fish: [/fish/], reel: [/reel/, "fish"], catch: [/catch/, "pick-up"] };
+const CU_SIDE = /back|left|right|strafe|turn|start|end|stop/; // "Walk_Back", "Run_Start": the plain one first
+const cuNorm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+// root motion off: Tripo / Mixamo clips walk the hips (or the armature) away from the origin, and the game moves the
+// player itself; so on the top of the rig a position track keeps only its up axis (the bob), the rest stays at frame 0
+const cuClips = new WeakMap();
+function cuClipsOf(src) {
+  let out = cuClips.get(src); if (out) return out;
+  const sc = src.scene, roots = new Set(), up = new THREE.Vector3(), q = new THREE.Quaternion(); sc.updateMatrixWorld(true);
+  sc.traverse((o) => { if (!o.isBone || (o.parent && o.parent.isBone)) return; roots.add(o); for (let p = o.parent; p && p !== sc; p = p.parent) roots.add(p); o.children.forEach((c) => { if (c.isBone && /hip|pelvis/i.test(c.name)) roots.add(c); }); });
+  out = (src.animations || []).map((c) => { const clip = c.clone(); clip.tracks.forEach((t) => {
+    if (!t.name.endsWith(".position") || t.getValueSize() !== 3) return;
+    const nn = THREE.PropertyBinding.parseTrackName(t.name).nodeName; let node = null; roots.forEach((r) => { if (!node && (r.name === nn || r.uuid === nn)) node = r; }); if (!node) return;
+    if (node.parent) node.parent.getWorldQuaternion(q).invert(); else q.identity(); up.set(0, 1, 0).applyQuaternion(q); // world up in the node's own frame (a Z-up armature turns it)
+    const a = [Math.abs(up.x), Math.abs(up.y), Math.abs(up.z)], k = a.indexOf(Math.max(...a)), v = t.values;
+    for (let i = 3; i < v.length; i += 3) for (let j = 0; j < 3; j++) if (j !== k) v[i + j] = v[j];
+  }); return clip; });
+  cuClips.set(src, out); return out;
+}
+function makeCustom(src) {
+  const inner = SkeletonUtils.clone(src.scene);
+  const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
+  const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
+  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); toonAll(inner); if (charHook) charHook(inner, false);
+  const crown = new THREE.Group(); crown.position.y = 2.45; crown.name = "crown";
+  const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
+  r1.position.x = -0.1; r2.position.x = 0.1; r2.rotation.x = Math.PI / 2; crown.add(r1, r2); obj.add(crown);
+  // each game name's clips, best first (the plain "Walk" before "Walk_Back", then the shorter name)
+  const clips = cuClipsOf(src), nm = (c) => String(c.name || "").replace(/^.*\|/, "").toLowerCase().replace(/[^a-z0-9]+/g, "_"), lists = {};
+  for (const [n, [re]] of Object.entries(CU_AS)) lists[n] = clips.filter((c) => re.test(nm(c))).sort((a, b) => CU_SIDE.test(nm(a)) - CU_SIDE.test(nm(b)) || nm(a).length - nm(b).length);
+  if (!lists.idle.length && clips.length) lists.idle = [clips.find((c) => !Object.values(lists).some((l) => l.includes(c))) || clips[0]]; // no "idle": a clip nothing else took, else the first
+  const pick = (n, seen = 0) => { const l = lists[n], d = CU_AS[n]; return (l && l[0]) || (d && d[1] && seen < 3 ? pick(d[1], seen + 1) : null); };
+  const mixer = new THREE.AnimationMixer(inner), acts = new Map();
+  const act = (c) => { if (!c) return null; if (!acts.has(c)) acts.set(c, mixer.clipAction(c)); return acts.get(c); };
+  let cur = null, oneShot = null;
+  const run = (a, { once = false, fade = 0.18, speed = 1, hold = false } = {}) => {
+    if (!a) return null;
+    if (!once && cur === a && !oneShot) return a;
+    a.reset(); a.timeScale = speed; a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once && hold;
+    if (cur && cur !== a) cur.crossFadeTo(a, fade, false);
+    a.play(); cur = a;
+    if (once) { oneShot = a; const done = (e) => { if (e.action === a) { mixer.removeEventListener("finished", done); oneShot = null; if (!a.clampWhenFinished) { const i = act(pick("idle")); if (i && i !== a && cur === a) { i.reset().play(); a.crossFadeTo(i, 0.2, false); cur = i; } } } }; mixer.addEventListener("finished", done); }
+    return a;
+  };
+  const play = (name, o = {}) => run(act(pick(name) || (o.once ? null : pick("idle"))), { ...o, hold: name === "die" || name === "lie" });
+  play("idle");
+  // the gear's bones, found by name whatever the rig calls them (hand_r, RightHand, mixamorigRightHand, …); one not
+  // found leaves that slot empty (world-rpg.js dress skips a missing bone)
+  const bs = []; inner.traverse((o) => { if (o.isBone && !/(end|top|nub|tip)$/.test(cuNorm(o.name))) bs.push(o); });
+  const bone = (...res) => { for (const re of res) { const b = bs.find((x) => re.test(cuNorm(x.name))); if (b) return b.name; } return undefined; };
+  const bones = { "arm-right": bone(/righthand$/, /handr$/, /rhand$/, /handright$/, /rightwrist$/, /wristr$/), "arm-left": bone(/lefthand$/, /handl$/, /lhand$/, /handleft$/, /leftwrist$/, /wristl$/),
+    head: bone(/head$/), torso: bone(/spine2$/, /upperchest$/, /chest$/, /spine02$/, /spine1$/, /spine$/) };
+  return {
+    obj, mixer, play, height: 2.1, kk: true, custom: true, bones, busy: () => !!oneShot, // kk: swings with its own clips, wears only the weapon and shield
+    mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.3, 0], armor: [0, 0.1, 0], armorR: 0.45, necklace: [0, 0.2, 0.2] },
+    attack(kind = 0, heavy = false) { const l = kind === 4 ? lists.cast : kind === 2 || kind === 3 ? lists.shoot : null, all = l && l.length ? l : lists.attack; if (all.length) run(act(all[heavy ? all.length - 1 : 0]), { once: true, fade: 0.06, speed: kind === 1 ? 1.1 : 1.4 }); },
     setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
     update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
   };

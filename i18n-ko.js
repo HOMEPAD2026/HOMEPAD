@@ -10013,6 +10013,7 @@
     "Play with a game controller. K dodges: a quick dash nothing can hit.": "게임 컨트롤러로 플레이할 수 있어요. K는 회피: 아무것도 맞지 않는 짧은 대시.",
     "ARC Bots": "ARC 봇",
     "Classic characters": "클래식 캐릭터",
+    "Custom characters": "커스텀 캐릭터",
     "Default Hero": "기본 영웅",
     "Assistant": "어시스턴트",
     "Medic": "메딕",
