@@ -143,7 +143,7 @@ export function createLife(ctx) {
   let actFor = null;
   act.addEventListener("click", () => doAct());
   addEventListener("keydown", (e) => {
-    if (e.repeat || e.target.closest("input,textarea,[contenteditable]")) return;
+    if (e.repeat || e.target.closest("input,textarea,[contenteditable],.wp-hub")) return; // not while typing, or filtering the Menu
     if (e.key === "g" || e.key === "G") { if (fishing) reel(); else doAct(); }
     else if (fishing && e.key === " ") { e.preventDefault(); e.stopImmediatePropagation(); reel(); }
   }, true);

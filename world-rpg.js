@@ -32,9 +32,9 @@ export const iconSvg = (slot, color) => `<svg viewBox="0 0 24 24" aria-hidden="t
 /// ctx: { T, lang, esc, toast, P, save(), level(), post(b), sess(), Snd, freeze(on), avatar(), onStats(s), arclRefresh(), arclBal() }
 export function createRpg(ctx) {
   const { esc, P } = ctx;
-  const LW = { ko: { Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", Cancel: "취소", power: "전투력", Wardrobe: "옷장", Slot: "부위", Skills: "스킬", Fuse: "합성", Worn: "착용 중",  Sell: "판매",  Weapon: "무기", Shield: "방패", Armor: "갑옷", Helmet: "투구", Ring: "반지", Boots: "신발", Necklace: "목걸이", Attack: "공격력", Defense: "방어력", Critical: "치명타", Speed: "이동속도", Common: "일반", Uncommon: "고급", Rare: "희귀", Epic: "영웅", Legendary: "전설", Equip: "장착", Unequip: "해제", Enhance: "강화", Salvage: "분해", Sort: "정렬", Character: "캐릭터", Bag: "가방", Scrap: "고철", Forge: "대장간", Supplies: "보급품", Buy: "구매", Level: "레벨", Sets: "세트", Gear: "장비", Accessories: "장신구" },
-    zh: { Lock: "锁定", Unlock: "解锁", Locked: "已锁定", Cancel: "取消", power: "战力", Wardrobe: "衣橱", Slot: "部位", Skills: "技能", Fuse: "合成", Worn: "已穿戴",  Sell: "出售",  Weapon: "武器", Shield: "盾牌", Armor: "铠甲", Helmet: "头盔", Ring: "戒指", Boots: "靴子", Necklace: "项链", Attack: "攻击", Defense: "防御", Critical: "暴击", Speed: "移速", Common: "普通", Uncommon: "优秀", Rare: "稀有", Epic: "史诗", Legendary: "传说", Equip: "装备", Unequip: "卸下", Enhance: "强化", Salvage: "分解", Sort: "整理", Character: "角色", Bag: "背包", Scrap: "废料", Forge: "铁匠铺", Supplies: "补给", Buy: "购买", Level: "等级", Sets: "套装", Gear: "装备", Accessories: "饰品" },
-    tr: { Lock: "Kilitle", Unlock: "Kilidi aç", Locked: "Kilitli", Cancel: "İptal", power: "güç", Wardrobe: "Gardırop", Slot: "Slot", Skills: "Beceriler", Fuse: "Birleştir", Worn: "Kuşanıldı", Sell: "Sat", Weapon: "Silah", Shield: "Kalkan", Armor: "Zırh", Helmet: "Miğfer", Ring: "Yüzük", Boots: "Botlar", Necklace: "Kolye", Attack: "Saldırı", Defense: "Savunma", Critical: "Kritik", Speed: "Hız", Common: "Sıradan", Uncommon: "Az bulunur", Rare: "Nadir", Epic: "Epik", Legendary: "Efsanevi", Equip: "Kuşan", Unequip: "Çıkar", Enhance: "Güçlendir", Salvage: "Parçala", Sort: "Sırala", Character: "Karakter", Bag: "Çanta", Scrap: "Hurda", Forge: "Demirhane", Supplies: "Erzak", Buy: "Al", Level: "Seviye", Sets: "Setler", Gear: "Ekipman", Accessories: "Aksesuarlar" } }[ctx.lang] || {};
+  const LW = { ko: { Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", Cancel: "취소", power: "전투력", Wardrobe: "옷장", Slot: "부위", Skills: "스킬", Fuse: "합성", Worn: "착용 중",  Sell: "판매",  Weapon: "무기", Shield: "방패", Armor: "갑옷", Helmet: "투구", Ring: "반지", Boots: "신발", Necklace: "목걸이", Attack: "공격력", Defense: "방어력", Critical: "치명타", Speed: "이동속도", Common: "일반", Uncommon: "고급", Rare: "희귀", Epic: "영웅", Legendary: "전설", Equip: "장착", Unequip: "해제", Enhance: "강화", Salvage: "분해", Sort: "정렬", Character: "캐릭터", Bag: "가방", Scrap: "고철", Forge: "대장간", Supplies: "보급품", Buy: "구매", Level: "레벨", Sets: "세트", Gear: "장비", Accessories: "장신구", Upgrade: "더 강함" },
+    zh: { Lock: "锁定", Unlock: "解锁", Locked: "已锁定", Cancel: "取消", power: "战力", Wardrobe: "衣橱", Slot: "部位", Skills: "技能", Fuse: "合成", Worn: "已穿戴",  Sell: "出售",  Weapon: "武器", Shield: "盾牌", Armor: "铠甲", Helmet: "头盔", Ring: "戒指", Boots: "靴子", Necklace: "项链", Attack: "攻击", Defense: "防御", Critical: "暴击", Speed: "移速", Common: "普通", Uncommon: "优秀", Rare: "稀有", Epic: "史诗", Legendary: "传说", Equip: "装备", Unequip: "卸下", Enhance: "强化", Salvage: "分解", Sort: "整理", Character: "角色", Bag: "背包", Scrap: "废料", Forge: "铁匠铺", Supplies: "补给", Buy: "购买", Level: "等级", Sets: "套装", Gear: "装备", Accessories: "饰品", Upgrade: "更强" },
+    tr: { Lock: "Kilitle", Unlock: "Kilidi aç", Locked: "Kilitli", Cancel: "İptal", power: "güç", Wardrobe: "Gardırop", Slot: "Slot", Skills: "Beceriler", Fuse: "Birleştir", Worn: "Kuşanıldı", Sell: "Sat", Weapon: "Silah", Shield: "Kalkan", Armor: "Zırh", Helmet: "Miğfer", Ring: "Yüzük", Boots: "Botlar", Necklace: "Kolye", Attack: "Saldırı", Defense: "Savunma", Critical: "Kritik", Speed: "Hız", Common: "Sıradan", Uncommon: "Az bulunur", Rare: "Nadir", Epic: "Epik", Legendary: "Efsanevi", Equip: "Kuşan", Unequip: "Çıkar", Enhance: "Güçlendir", Salvage: "Parçala", Sort: "Sırala", Character: "Karakter", Bag: "Çanta", Scrap: "Hurda", Forge: "Demirhane", Supplies: "Erzak", Buy: "Al", Level: "Seviye", Sets: "Setler", Gear: "Ekipman", Accessories: "Aksesuarlar", Upgrade: "Daha güçlü" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const R = () => {
     if (!P.rpg || typeof P.rpg !== "object") P.rpg = {};
@@ -43,9 +43,10 @@ export function createRpg(ctx) {
     return r;
   };
   R();
+  let upK = "", upS = new Set(), upNow = upS; // ups() below
   let cache = null, bagAsk = 0, storeView = false; // bagAsk: 1 = asking to confirm a bigger bag, or a status line while it's paid for
   const stats = () => (cache = cache || statsOf(ctx.level(), R().eq, ctx.extraStats ? ctx.extraStats() : null));
-  const changed = (why) => { cache = null; ctx.save(); ctx.onStats(stats()); if (open) paint(); dress(); if (why) ctx.toast(why); };
+  const changed = (why) => { cache = null; upK = ""; ctx.save(); ctx.onStats(stats()); if (open) paint(); dress(); if (why) ctx.toast(why); };
 
   // ---------------- items ----------------
   function addItem(it, quiet) {
@@ -93,6 +94,15 @@ export function createRpg(ctx) {
   // Equip best: for every slot, wear the piece from the bag that makes the character strongest (set bonuses count),
   // only pieces your level allows and never in place of a locked piece; a few passes so a set that only pays off
   // together still wins. planBest() works it out, the bag shows the plan, equipBest() puts it on.
+  // bag pieces that would raise power if worn in their slot alone (green arrow on the tile, a dot on the Character
+  // button); worked out again only when the bag, the gear or the level changes
+  function ups() {
+    const r = R(), lv = ctx.level(), key = lv + "|" + SLOTS.map((s) => (r.eq[s] ? r.eq[s].id + (r.eq[s].p || 0) + (r.eq[s].lk ? "l" : "") + durOf(r.eq[s]) : "")).join() + "|" + r.bag.map((x) => x.id + (x.p || 0) + "." + durOf(x)).join();
+    if (key === upK) return upS; upK = key; upS = new Set();
+    const ex = ctx.extraStats ? ctx.extraStats() : null, base = powerOf(statsOf(lv, r.eq, ex));
+    for (const it of r.bag) { const p = parseBase(it.b); if (!p || TIERS[p.tier].lv > lv || isBroken(it) || (r.eq[p.slot] && r.eq[p.slot].lk)) continue; if (powerOf(statsOf(lv, { ...r.eq, [p.slot]: it }, ex)) > base + 0.01) upS.add(it.id); }
+    return upS;
+  }
   function planBest() {
     const r = R(), lv = ctx.level(), ex = ctx.extraStats ? ctx.extraStats() : null, eq = { ...r.eq };
     const s0 = statsOf(lv, eq, ex); let cur = powerOf(s0); const before = cur, put = new Set();
@@ -362,7 +372,7 @@ export function createRpg(ctx) {
   const durBar = (it, mini) => { const m = durMax(it); if (!m) return ""; const v = durOf(it), pc = Math.round((100 * v) / m);
     return mini ? (v < m ? `<i class="wr-du${v === 0 ? " brk" : pc < WEAR_WARN * 100 ? " low" : ""}" style="--du:${pc}%" aria-label="${esc(T("Durability"))} ${pc}%"></i>${v === 0 ? `<em class="wr-brk">${esc(T("Broken"))}</em>` : ""}` : "")
       : `<p class="wr-dura${v === 0 ? " brk" : pc < WEAR_WARN * 100 ? " low" : ""}"><span>${esc(T("Durability"))}</span><i style="--du:${pc}%"></i><b>${v} / ${m}</b>${v === 0 ? `<em class="wr-brk">${esc(T("Broken"))}</em>` : ""}</p>`; };
-  const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${pic(it)}${it.p ? `<b>+${it.p}</b>` : ""}${it.tm ? `<em class="wr-tm" aria-label="${esc(T("Temper {n} of {m}", { n: it.tm, m: 5 }))}">${"✦".repeat(it.tm)}</em>` : ""}<small>${it.lv}</small>${durBar(it, true)}${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>` : "";
+  const tile = (it, attrs = "") => { if (!it) return ""; const pb = parseBase(it.b), gate = pb && (TIERS[pb.tier].lv > ctx.level() || isBroken(it)); return `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}${gate ? " gate" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${pic(it)}${upNow.has(it.id) ? `<i class="wr-up" aria-label="${esc(T("Upgrade"))}"></i>` : ""}${it.p ? `<b>+${it.p}</b>` : ""}${it.tm ? `<em class="wr-tm" aria-label="${esc(T("Temper {n} of {m}", { n: it.tm, m: 5 }))}">${"✦".repeat(it.tm)}</em>` : ""}<small>${it.lv}</small>${durBar(it, true)}${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>`; };
   const statLine = (k, v, d) => `<li><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "+" : "−"}${Math.abs(Math.round(d * 10) / 10)}${k === "crit" || k === "spd" ? "%" : ""}</i>` : ""}</li>`;
   const emptyBox = (pic, line, btn) => `<div class="wr-emptybox">${art(pic, 52)}<p>${esc(line)}</p>${btn || ""}</div>`;
   const huntBtn = () => (ctx.goHunt ? `<button type="button" class="go" data-hunt>${esc(T("Go hunting"))}</button>` : "");
@@ -513,7 +523,7 @@ export function createRpg(ctx) {
   }
   let paintKey = "";
   function paint() {
-    if (!open) return;
+    if (!open) return; upNow = ups();
     const bd = el.querySelector(".wr-body"), key = view + forgeTab + invPane + storeView, sy = bd && !opening && key === paintKey ? bd.scrollTop : 0; paintKey = key;
     el.innerHTML = `<div class="wr-card${opening ? " opening" : ""}"><div class="wr-head"><span class="wr-ico">${view === "log" ? '<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>' : view === "forge" ? '<svg viewBox="0 0 24 24"><path d="M3 9h13l5-3v4l-5 2H9v3l3 2H6l3-2v-3H3z"/></svg>' : iconSvg("armor", "#9fe6ff")}</span><div><h2>${esc(view === "forge" ? T("Forge") : view === "log" ? T("Adventure log") : T("Character"))}</h2><p>${esc(view === "forge" ? T("Gear and supplies for ARCL. Enhance with scrap.") : view === "log" ? T("Daily hunts, the season, achievements, companions, the scam codex and top hunters. L opens it.") : T("Your gear, your stats and your bag. I opens and closes it."))}</p></div>
       <nav class="wr-switch"><button type="button" data-view="inv" aria-pressed="${view === "inv"}">${esc(T("Character"))}</button><button type="button" data-view="forge" aria-pressed="${view === "forge"}">${esc(T("Forge"))}</button>${log ? `<button type="button" data-view="log" aria-pressed="${view === "log"}">${esc(T("Adventure log"))}${log.pending() ? `<i class="wr-dot">${log.pending()}</i>` : ""}</button>` : ""}</nav>
@@ -692,7 +702,7 @@ export function createRpg(ctx) {
   el.addEventListener("keydown", (e) => { e.stopPropagation(); const k = e.key.toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
 
   return {
-    stats, swing, tickSwing, addItem, wear, repair: repairPiece, applyRepair, freshN: () => fresh.size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),
+    stats, swing, tickSwing, addItem, wear, repair: repairPiece, applyRepair, freshN: () => fresh.size, upN: () => ups().size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),
     potions: () => ({ hp: R().hp, sp: R().sp, recall: R().recall }), useRecall: () => { const r = R(); if (!(r.recall > 0)) return false; r.recall--; ctx.save(); return true; },
     /// "Bigger bag" purchases (worldOwn.bag): the bag's size follows them
     setBagPlus: (n) => { const b = Math.min(BAG_MAX, BAG_BASE + BAG_STEP * Math.max(0, Math.floor(Number(n) || 0))); if (b !== BAG) { BAG = b; if (open) paint(); } }, bagSize: () => BAG,
