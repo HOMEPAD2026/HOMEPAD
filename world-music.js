@@ -59,10 +59,12 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
   const unlocked = () => !!ctx && ctx.state === "running" && (!(on() && vol > 0) || (cur && !cur.a.paused));
   /// where you are ("calm", "hunt", "boss"): the playlist plays the same everywhere, so this only keeps the old call working
   function set() {}
-  /// a boss fell: the music dips for a moment, then comes back
-  function victory() {
-    if (!ctx || !cur) return; const c = cur; fadeTo(c, 0.25, 0.3); clearTimeout(dipT); dipT = setTimeout(() => { if (cur === c) fadeTo(c, 1, 2); }, 2600);
+  /// the music dips to depth for secs (under a fanfare or a knockout), then comes back
+  function duck(depth = 0.25, secs = 2.6) {
+    if (!ctx || !cur) return; const c = cur; fadeTo(c, depth, 0.25); clearTimeout(dipT); dipT = setTimeout(() => { if (cur === c && !c.done) fadeTo(c, 1, 1.5); }, secs * 1000);
   }
+  /// a boss fell: the music dips for a moment, then comes back
+  const victory = () => duck(0.25, 2.6);
   /// the volume (0…1); off (Sound off, the music button, or a volume of 0) pauses the track instead of playing it silent
   function setVolume(k) {
     vol = Math.max(0, Math.min(1, k)); if (!master) return;
@@ -80,5 +82,5 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
   }
   /// skip to another track
   function skip() { if (cur) { cur.done = true; } playNext(); }
-  return { start, unlock, unlocked, set, victory, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
+  return { start, unlock, unlocked, set, victory, duck, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
 }

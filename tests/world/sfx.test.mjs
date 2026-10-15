@@ -10,7 +10,7 @@ for (const k of Object.keys(Snd)) { if (typeof Snd[k] !== "function" || ["settin
 check(!threw, "every sound is a no-op before the first tap" + (threw ? " (" + threw + ")" : ""));
 for (const k of ["pick", "win", "coin", "chest", "place", "pop", "paint", "bad", "board", "enter", "level", "jump", "land", "step", "dash", "swing", "impact", "cast", "hurt", "siren", "roar", "warn", "charge", "charged", "heart", "thunder", "rocket", "fire", "whale", "shutter"])
   check(typeof Snd[k] === "function", `the old ${k}() is still there`);
-for (const k of ["tap", "tab", "open", "close", "equip", "buy", "salvage", "quest", "drop", "hitFx", "kill"]) check(typeof Snd[k] === "function", `${k}() exists`);
+for (const k of ["tap", "tab", "open", "close", "equip", "buy", "salvage", "quest", "drop", "hitFx", "kill", "zap", "tick", "hit", "ko", "up"]) check(typeof Snd[k] === "function", `${k}() exists`);
 check(stepOk(12.5, true) && !stepOk(6.5, true) && !stepOk(12.5, false) && !stepOk(undefined, true), "footsteps only while running, and only when on");
 check(RUN > 6.5 && RUN < 12.5, "the running line sits between walking and running speed");
 check(stepsDefault(false) === true && stepsDefault(true) === false, "footsteps on with a mouse, off on a phone by default");

@@ -87,7 +87,7 @@ export function createRace(ctx) {
     if (!ctx.inHub()) { stop(T("Race stopped")); return; }
     const now = performance.now();
     if (state === "count") {
-      if (now - tick >= 1000) { tick = now; count--; if (count > 0) { hud.innerHTML = `<b>${count}</b>`; (ctx.Snd.tick || ctx.Snd.pick || (() => {}))(); } else { state = "go"; t0 = now; ctx.Snd.dash && ctx.Snd.dash(); paintRings(); } }
+      if (now - tick >= 1000) { tick = now; count--; if (count > 0) { hud.innerHTML = `<b>${count}</b>`; (ctx.Snd.tick || ctx.Snd.pick || (() => {}))(count === 1); } else { state = "go"; t0 = now; ctx.Snd.dash && ctx.Snd.dash(); paintRings(); } }
       return;
     }
     if (!ctx.boarding()) { stop(T("Race stopped: the hoverboard is off")); return; }
