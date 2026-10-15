@@ -9195,6 +9195,7 @@
     "Signing in saves your character and progress to your wallet, so you can carry on from any device. It's a free signature: it costs nothing and moves nothing.": "Giriş yapmak karakterini ve ilerlemeni cüzdanına kaydeder, böylece her cihazdan devam edebilirsin. Bu ücretsiz bir imza: maliyeti yok ve hiçbir şeyi transfer etmez.",
     "Sign in with wallet": "Cüzdanla giriş yap",
     "Play as a guest": "Misafir olarak oyna",
+    "Playing as a guest? Everything you have done so far comes with you.": "Misafir olarak mı oynuyorsun? Şimdiye kadarki tüm ilerlemen seninle gelir.",
     "Take photo": "Fotoğraf çek",
     "Exit photo mode": "Fotoğraf modundan çık",
     "Your photo": "Fotoğrafın",
