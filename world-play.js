@@ -2051,10 +2051,10 @@ function bakeMiniMap() {
     cam2.position.set(0, 300, 0); cam2.up.set(0, 0, -1); cam2.lookAt(0, 0, 0);
     const pos = planet.position.clone(), off = [];
     planet.traverse((o) => { if (o.visible && (o.isSprite || o.isPoints || o.name === "grass" || o.name === "ambient" || o.name === "particles" || o.name === "smoke" || o.name === "combat" || o.name === "ghosts" || o.name === "clouds" || o.name === "airship")) { o.visible = false; off.push(o); } });
-    const skyWas = sky.visible, cloudsWas = clouds.visible; sky.visible = false; clouds.visible = false; const fog = st.scene.fog; st.scene.fog = null; const bg = st.scene.background; st.scene.background = new THREE.Color(0x0b1a14);
+    const skyWas = sky.visible, cloudsWas = clouds.visible; sky.visible = false; clouds.visible = false; const fog = st.scene.fog, fogD = fog && fog.density; if (fog) fog.density = 0; /* b442: density 0, not fog = null: taking the fog away rebuilt every material's shader (seconds of stalls 6 s into the game) */ const bg = st.scene.background; st.scene.background = new THREE.Color(0x0b1a14);
     planet.position.set(0, 0, 0); planet.updateMatrixWorld(true);
     const prev = r.getRenderTarget(); r.setRenderTarget(rt); r.clear(); r.render(st.scene, cam2); r.setRenderTarget(prev);
-    planet.position.copy(pos); planet.updateMatrixWorld(true); off.forEach((o) => { o.visible = true; }); sky.visible = skyWas; clouds.visible = cloudsWas; st.scene.fog = fog; st.scene.background = bg;
+    planet.position.copy(pos); planet.updateMatrixWorld(true); off.forEach((o) => { o.visible = true; }); sky.visible = skyWas; clouds.visible = cloudsWas; if (fog) fog.density = fogD; st.scene.background = bg;
     const px = new Uint8Array(N * N * 4); r.readRenderTargetPixels(rt, 0, 0, N, N, px); rt.dispose();
     const cv = document.createElement("canvas"); cv.width = cv.height = N; const g = cv.getContext("2d"), img = g.createImageData(N, N);
     for (let y = 0; y < N; y++) img.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4); // the picture comes bottom row first
@@ -3781,8 +3781,11 @@ async function dive() {
 }
 
 // ---------------- start ----------------
-dailyState(); makeMeadow(); dayNight(); worldReady = true; if (st.quality.coarse) setTimeout(trimCasters, 9000); // phones: little things stop casting sun shadows
-setTimeout(() => { const go = () => { if (mode === "hub") farCull.all(bakeMiniMap); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else go(); }, 6000); /* the minimap's ground, once the town is up, when the page is idle */ farCull.prep(); /* (b420: what's far fades: its shaders made before this compile, not a second copy later) */ try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
+dailyState(); makeMeadow(); dayNight(); worldReady = true; if (st.quality.coarse) trimCasters(); // phones: little things stop casting sun shadows
+// b442: the minimap's ground drawn behind the loading screen (it was 6 s after it lifted, on the plaza: the world drawn
+// once more from above and read back, a stall). If the town wasn't in yet, once more when it is.
+const bakeNow = () => { if (mode === "hub") farCull.all(bakeMiniMap); };
+if (town.length) bakeNow(); else setTimeout(() => { if (window.requestIdleCallback) requestIdleCallback(bakeNow, { timeout: 4000 }); else bakeNow(); }, 6000);
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
 if (sess()) setTimeout(() => village.load(), 3500); // your village level and blessing
@@ -3791,6 +3794,10 @@ if (sess()) setTimeout(() => village.load(), 3500); // your village level and bl
 // already dived down to the robot, the camera only comes down the last stretch to land behind you
 await setAvatar(P.char || "arc-arc");
 farCull.prep(); // (again for what came in since: the fade's shaders made before warm compiles everything)
+// b442: the scammers and every effect readied behind the loading screen too (combat.warm: copy, prepare and draw each
+// model once out of sight). It used to start 4 s after the screen lifted and go on every 0.9 s: the first minute on
+// the plaza stuttered. At most 6 s here; anything left (packs that load later) the warm loop below still does.
+if (combat && combat.warm) { const w0 = performance.now(); try { while (performance.now() - w0 < 6000 && await combat.warm(st, 6)); } catch { /* the loop below tries again */ } }
 await st.warm(4000); // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
 const landing = dive();
 // b440: what arrives after loading (a zone's props, the Game Village, an island, a pet) is compiled in the background as
