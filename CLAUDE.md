@@ -124,3 +124,6 @@ Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as 
 - Game text: wrap it in TW("…") and put short words and game-only lines in WORDS (world-play.js, ko/zh/tr); sentences
   shared with the site go in i18n-ko/zh/tr.js. T() reads only the site dictionaries, so a word that lives only in
   WORDS shows in English through T(). tests/world/i18n.test.mjs fails on any new untranslated T/TW string.
+- `node --check` missed a broken line in an ES module twice: after editing world-*.js, the proof is a clean
+  `node tools/build-world.mjs` (it now puts /w/ back untouched when a build fails, and exits 1) plus loading the page.
+- Don't end an edit's inserted text with a `//` comment on a one-line statement: it swallows the rest of the line.

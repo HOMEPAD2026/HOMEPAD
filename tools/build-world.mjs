@@ -88,17 +88,25 @@ let gens = []; try { gens = JSON.parse(fs.readFileSync(GENS, "utf8")).filter((g)
 const old = new Map(); // chunk name → bytes, everything that was in the folder before this build
 try { for (const f of fs.readdirSync(OUT)) if (/^c-[A-Z0-9]+\.js$/.test(f)) old.set(f, fs.readFileSync(path.join(OUT, f))); } catch { /* no folder yet */ }
 if (!gens.length && old.size) gens = [{ files: [...old.keys()].sort() }]; // a folder from before generations were kept counts as one
+const prev = new Map(); // every file in /w/ before this build (entry, stamps, chunks): what a failed build puts back
+try { for (const f of fs.readdirSync(OUT)) prev.set(f, fs.readFileSync(path.join(OUT, f))); } catch { /* no folder yet */ }
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT);
 const threeExternal = {
   name: "three-external",
   setup(b) { b.onResolve({ filter: /three-0\.186\.1\.module\.min\.js$/ }, () => ({ path: THREE_URL, external: true })); },
 };
-const res = await esbuild.build({
+// a failed build must not leave /w/ empty (the live page would have nothing to load): the old chunks are already in
+// memory (old) and come back below; on an error, put them back and stop
+let res;
+try { res = await esbuild.build({
   absWorkingDir: ROOT, entryPoints: ["world-play.js"], outdir: OUT, bundle: true, splitting: true, format: "esm",
   minify: true, target: ["es2022"], sourcemap: false, entryNames: "[name]", chunkNames: "c-[hash]", metafile: true,
   legalComments: "eof", plugins: [threeExternal], logLevel: "warning",
-});
+}); } catch (err) {
+  for (const [f, bytes] of prev) fs.writeFileSync(path.join(OUT, f), bytes);
+  console.error("world build FAILED — /w/ chunks put back; fix the error above and build again"); process.exit(1);
+}
 // what to preload: the chunks the entry needs at start (static imports) and the game's chunk (world-all.js)
 const outs = res.metafile.outputs, rel = (p) => path.relative(OUT, path.join(ROOT, p));
 const entry = Object.keys(outs).find((k) => outs[k].entryPoint === "world-play.js");

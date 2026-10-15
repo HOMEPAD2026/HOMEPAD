@@ -513,6 +513,8 @@ const pad = new THREE.Group(); { const ring = new THREE.Mesh(new THREE.TorusGeom
 K.placeOn(pad, K.dirOf(7, 90)); planet.add(pad);
 // AC Defense moved to the Game Village (world-gamevillage.js): a clearing west of the plaza where the mini-games live,
 // each in its own building; walk up to the AC Defense tower's door to play. The square in the middle is the arena
+// the wind in the tree crowns (world-kit.js sway): still on low quality and with reduced motion
+if (!lowGfx && !reduce && K.wind) st.on((dt) => { K.wind.value += dt; });
 const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx }); gv.clear(groundG);
 st.on((dt, t) => { gv.tick(dt, t, -planet.position.x, -planet.position.z); });
 planet.traverse((o) => { if (o.isMesh && o.material && o.material.transparent) o.castShadow = false; });

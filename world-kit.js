@@ -365,11 +365,29 @@ export function makePlanet({ map = "" } = {}) {
   scatter(g, 160);
   return g;
 }
+// the wind: tree crowns lean and sway a little (a vertex nudge by height, phased by each instance's place). One shared
+// uniform; world-play.js advances it, or leaves it at 0 (still) on low quality and with reduced motion
+export const wind = { value: 0 };
+export function sway(mat, k = 0.08) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uWind = wind;
+    sh.vertexShader = "uniform float uWind;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+      #ifdef USE_INSTANCING
+        vec3 swIp = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+      #else
+        vec3 swIp = vec3(0.0);
+      #endif
+      float swK = sin(uWind * 1.6 + swIp.x * 0.35 + swIp.z * 0.27) * ${k.toFixed(3)} * max(0.0, position.y - 0.6);
+      transformed.x += swK; transformed.z += swK * 0.6;`);
+  };
+  mat.customProgramCacheKey = () => "sway" + k;
+  return mat;
+}
 // crystals and trees where nothing else stands — instanced (one draw per kind) so phones keep up
 function scatter(g, n, maxTheta = 180) {
   const crystal = new THREE.ConeGeometry(0.45, 1.8, 5), trunk = new THREE.CylinderGeometry(0.12, 0.16, 0.8, 6), crown = new THREE.IcosahedronGeometry(0.75, 0);
   crystal.translate(0, 0.7, 0); trunk.translate(0, 0.4, 0); crown.translate(0, 1.15, 0);
-  const crysMats = [glow(C.cyan, 1.2), glow(C.green, 1.1), glow(C.blue, 1.2)], trunkMat = solid(0x3a2c22), crownMats = [solid(0x1f6b55, { flat: true }), solid(0x23806a, { flat: true }), solid(0x2a5e7a, { flat: true })];
+  const crysMats = [glow(C.cyan, 1.2), glow(C.green, 1.1), glow(C.blue, 1.2)], trunkMat = solid(0x3a2c22), crownMats = [solid(0x1f6b55, { flat: true }), solid(0x23806a, { flat: true }), solid(0x2a5e7a, { flat: true })].map((m) => sway(m));
   const rr = rand(7), spots = { crys: [[], [], []], tree: [[], [], []] }, o = new THREE.Object3D();
   for (let i = 0; i < n; i++) {
     const th = 14 + rr() * (maxTheta - 14), ph = rr() * 360;

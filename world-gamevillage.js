@@ -19,7 +19,14 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
   // the clearing, its glowing edge and the square in the middle
   const ground = new THREE.Mesh(new THREE.CircleGeometry(V.r, 64), new THREE.MeshStandardMaterial({ color: 0x8fd18a, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; root.add(ground);
-  const square = new THREE.Mesh(new THREE.CircleGeometry(V.arenaR + 1.5, 48), new THREE.MeshStandardMaterial({ color: 0xd9d2c4, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+  // the square: pale stone in hexagons with a soft blue-glass seam (one canvas texture, repeated; the AC Defense floor's look)
+  const hexTex = (() => { if (typeof document === "undefined") return null; const w = 128, h = Math.round(w * Math.sqrt(3)), c = document.createElement("canvas"); c.width = w * 3; c.height = h; const g = c.getContext("2d");
+    g.fillStyle = "#cfd6df"; g.fillRect(0, 0, c.width, c.height);
+    const hex = (cx, cy, r) => { g.beginPath(); for (let k = 0; k < 6; k++) { const a = (Math.PI / 3) * k; g.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); } g.closePath(); };
+    for (let col = -1; col <= 4; col++) for (let row = -1; row <= 2; row++) { const x = col * (w * 0.75), y = row * h + (col % 2 ? h / 2 : 0);
+      hex(x, y, w / 2 - 3); g.fillStyle = (col + row) % 3 ? "#d9dee6" : "#c8d2de"; g.fill(); g.lineWidth = 5; g.strokeStyle = "rgba(90,190,255,0.55)"; g.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3 * (c.width / c.height)) /* square tiles: the canvas is wider than tall */; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; })();
+  const square = new THREE.Mesh(new THREE.CircleGeometry(V.arenaR + 1.5, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, map: hexTex, roughness: 0.7, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
   square.rotation.x = -Math.PI / 2; square.position.y = 0.04; square.receiveShadow = true; root.add(square);
   const edge = new THREE.Mesh(new THREE.TorusGeometry(V.r, 0.12, 6, 128), glow(0xb48cff, 1.4)); edge.rotation.x = Math.PI / 2; edge.position.y = 0.08; root.add(edge);
   const inner = new THREE.Mesh(new THREE.TorusGeometry(V.arenaR + 1.5, 0.08, 6, 96), glow(0x38d8ff, 1.2)); inner.rotation.x = Math.PI / 2; inner.position.y = 0.07; root.add(inner);
