@@ -57,6 +57,8 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
   }
   const can = () => !!ac && !!S.sound && !hidden() && V.n < MAXV;
   const gap = (k, ms) => { const t = now(); if (t - (gaps[k] || -1e9) < ms) return false; gaps[k] = t; return true; };
+  // the music dips under a fanfare (world-music.js duck)
+  const duck = (d, secs) => { try { const m = music(); m && m.duck && m.duck(d, secs); } catch { /* no music */ } };
   function voice(src) { const v = V; v.n++; src.onended = () => { v.n--; }; if (!quiet) lastAt = now(); }
   // one note: an attack, an exponential fall, an optional glide (to) and low-pass (lp)
   function tone(f, dur, { type = "sine", v = 0.18, to = 0, at = 0, a = 0.012, lp = 0 } = {}) {
@@ -132,9 +134,9 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     bad: () => { if (!gap("bad", 150)) return; tone(196, 0.09, { type: "square", v: 0.04, lp: 1600 }); tone(185, 0.13, { type: "square", v: 0.04, at: 0.11, lp: 1600 }); },
     // ---- progress ----
     pick: () => { if (now() < (hush.pick || 0)) return; tone(880, 0.12, { v: 0.12 }); tone(1320, 0.18, { v: 0.1, at: 0.08 }); },
-    quest: () => { hush.pick = now() + 500; [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.18, { type: "triangle", v: 0.08, at: i * 0.08 })); tone(1568, 0.55, { v: 0.045, at: 0.34 }); tone(1976, 0.55, { v: 0.035, at: 0.34 }); noise(0.4, 0.015, 7000, { type: "highpass", at: 0.34, a: 0.05 }); },
+    quest: () => { hush.pick = now() + 500; duck(0.4, 1.6); [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.18, { type: "triangle", v: 0.08, at: i * 0.08 })); tone(1568, 0.55, { v: 0.045, at: 0.34 }); tone(1976, 0.55, { v: 0.035, at: 0.34 }); noise(0.4, 0.015, 7000, { type: "highpass", at: 0.34, a: 0.05 }); },
     // da-da-da-daaa: a brassy line (a filtered saw over a triangle) and a sparkle at the top
-    level: () => { hush.pick = now() + 600;
+    level: () => { hush.pick = now() + 600; duck(0.4, 1.6);
       [[523, 0, 0.1], [523, 0.11, 0.1], [523, 0.22, 0.1], [784, 0.33, 0.7]].forEach(([f, at, d]) => { tone(f, d, { type: "sawtooth", v: 0.045, at, lp: 2400 }); tone(f, d, { type: "triangle", v: 0.06, at }); });
       tone(659, 0.7, { type: "triangle", v: 0.04, at: 0.33 }); tone(1047, 0.7, { v: 0.035, at: 0.33 }); noise(0.6, 0.02, 8000, { type: "highpass", at: 0.36, a: 0.08 }); },
     drop: (r) => gap("drop", 60) && shimmer(r),
@@ -176,7 +178,7 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     paint: () => tone(900, 0.09, { to: 1300, v: 0.07 }),
     coin: () => gap("coin", 40) && [1046, 1318, 1568].forEach((f, i) => tone(f, 0.12, { type: "triangle", v: 0.09, at: i * 0.06 })),
     // a chest opens; r (its rarity) adds the drop's shimmer from Rare up
-    chest: (r) => { noise(0.25, 0.1, 700); [523, 784, 1046].forEach((f, i) => tone(f, 0.2, { v: 0.1, at: 0.2 + i * 0.08 })); if (r >= 2) setTimeout(() => shimmer(r, 0.8), 300); },
+    chest: (r) => { if (r >= 3) duck(0.45, 1.4); noise(0.25, 0.1, 700); [523, 784, 1046].forEach((f, i) => tone(f, 0.2, { v: 0.1, at: 0.2 + i * 0.08 })); if (r >= 2) setTimeout(() => shimmer(r, 0.8), 300); },
     siren: () => [0, 0.32, 0.64].forEach((at) => tone(660, 0.28, { type: "sawtooth", to: 440, v: 0.05, at })),
     dash: () => noise(0.16, 0.08, 3200), thunder: () => { noise(2.6, 0.2, 110); noise(1.2, 0.08, 420); },
     heart: () => { tone(70, 0.09, { v: 0.12 }); tone(62, 0.09, { v: 0.1, at: 0.16 }); },
@@ -186,6 +188,13 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     charged: () => { noise(0.35, 0.16, 900); tone(140, 0.4, { type: "sawtooth", to: 50, v: 0.07 }); tone(880, 0.25, { type: "triangle", to: 1320, v: 0.05 }); },
     roar: () => { tone(110, 0.9, { type: "sawtooth", to: 55, v: 0.08 }); noise(0.7, 0.12, 400); },
     warn: () => tone(520, 0.16, { type: "square", v: 0.03, to: 480 }),
+    // an AC Defense tower's arc, a countdown click (last: the brighter 1; go: a chord), a gather node struck
+    zap: () => { if (!gap("zap", 80)) return; tone(900 + Math.random() * 500, 0.07, { type: "sawtooth", to: 2400, v: 0.025, lp: 5000, a: 0.002 }); noise(0.06, 0.04, 4500, { type: "highpass" }); },
+    tick: (last, go) => { if (!gap("tick", 200)) return; tone(last ? 1320 : 990, 0.06, { type: "triangle", v: 0.08, a: 0.002 }); noise(0.025, 0.05, 2800, { q: 4 }); if (go) [523, 659, 784].forEach((f) => tone(f, 0.3, { type: "triangle", v: 0.05 })); },
+    hit: () => { if (!gap("hit", 60)) return; tone(160, 0.08, { type: "triangle", to: 90, v: 0.07 }); noise(0.05, 0.08, 900, { type: "lowpass" }); },
+    // knocked out: a falling minor line, a thud and a whoosh while the music dips; back up: a rising run
+    ko: () => { hush.pick = now() + 1500; duck(0.3, 2.5); [440, 349, 294].forEach((f, i) => tone(f, 0.35, { type: "sawtooth", v: 0.05, at: i * 0.16, lp: 1400, to: f * 0.94 })); tone(70, 0.5, { to: 38, v: 0.13, at: 0.05 }); noise(0.45, 0.08, 1200, { to: 300, a: 0.04 }); },
+    up: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, { type: "triangle", v: 0.07, at: i * 0.06 })),
     // ---- Settings: Sound effects (volume) and Footsteps, under Music ----
     settings(T = (s) => s) {
       const mus = document.getElementById("wp-set-music"), row = mus && mus.closest(".wp-set-row"); if (!row || document.getElementById("wp-set-sfx")) return;

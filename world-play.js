@@ -101,6 +101,10 @@ const writeLocal = () => { clearTimeout(lsT); lsT = 0; try { localStorage.setIte
 const save = () => { if (!lsT) lsT = setTimeout(writeLocal, 1500); clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 6000); };
 addEventListener("pagehide", () => { if (lsT) writeLocal(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && lsT) writeLocal(); });
+// a network poller that skips its ticks while the tab is hidden and runs once (staggered) when it comes back
+const pollers = [];
+const every = (ms, fn) => { const p = { fn, due: false }; pollers.push(p); setInterval(() => { if (document.hidden) { p.due = true; return; } fn(); }, ms); };
+document.addEventListener("visibilitychange", () => { if (document.hidden) return; let k = 0; for (const p of pollers) if (p.due) { p.due = false; setTimeout(p.fn, 300 * k++); } });
 const saveSet = () => { try { localStorage.setItem(SETS, JSON.stringify(S)); } catch { /* private window */ } };
 // the level from XP on a rising curve (world-rpg-data.js); a save from the old 100-a-level curve is converted once,
 // keeping its level
@@ -896,16 +900,19 @@ const partyWs = () => { const p = partyUI(); return p ? p.others() : []; };
 const inParty = (w) => { const p = partyUI(); return !!p && p.inParty(w); };
 const partyNear = (r = 30) => { const party = partyWs(); if (!party.length || !ghosts || mode !== "hub") return false; const me0 = here(new THREE.Vector3()); return ghosts.named().some((g) => inParty(g.wallet) && Math.hypot(g.x - me0.x, g.z - me0.z) < r); };
 const partyEl = document.createElement("div"); partyEl.className = "wp-party"; partyEl.id = "wp-party"; partyEl.hidden = true; partyEl.setAttribute("data-no-i18n", ""); partyEl.setAttribute("aria-label", T("Party")); (document.querySelector(".wp-hud-l") || document.body).appendChild(partyEl); // under the quest list
+let partyNames = null, partyHtml = ""; // the names read once; the strip rewritten only when its HTML changes
 function paintParty() {
+  if (document.hidden) return;
   const party = partyWs();
-  if (!party.length || mode !== "hub") { partyEl.hidden = true; return; }
-  const me0 = here(new THREE.Vector3()), seen = ghosts ? ghosts.named() : [], names = (() => { try { return JSON.parse(localStorage.getItem(PARTY + ".n") || "{}"); } catch { return {}; } })();
-  partyEl.hidden = false;
-  partyEl.innerHTML = `<b>${esc(T("Party"))}${partyNear() ? ` <em>${esc(T("+15% XP"))}</em>` : ""}</b>` + party.map((w) => { const g = seen.find((x) => String(x.wallet).toLowerCase() === w), nm = (g && g.name) || names[w] || partyUI().nameOf(w) || w.slice(0, 6) + "…";
-    if (g) { names[w] = g.name; }
+  if (!party.length || mode !== "hub") { partyEl.hidden = true; partyHtml = ""; return; }
+  const me0 = here(new THREE.Vector3()), seen = ghosts ? ghosts.named() : [], names = partyNames || (partyNames = (() => { try { return JSON.parse(localStorage.getItem(PARTY + ".n") || "{}"); } catch { return {}; } })());
+  partyEl.hidden = false; let named = false;
+  const html = `<b>${esc(T("Party"))}${partyNear() ? ` <em>${esc(T("+15% XP"))}</em>` : ""}</b>` + party.map((w) => { const g = seen.find((x) => String(x.wallet).toLowerCase() === w), nm = (g && g.name) || names[w] || partyUI().nameOf(w) || w.slice(0, 6) + "…";
+    if (g && names[w] !== g.name) { names[w] = g.name; named = true; }
     const d = g ? Math.round(Math.hypot(g.x - me0.x, g.z - me0.z)) : null, zn = g && g.zn ? (RPG.ZONES.find((z) => z.id === g.zn) || {}).name : "";
     return `<div class="${g ? "" : "away"}"><span>${esc(nm)}${g ? ` <small>Lv ${g.lv}</small>` : ""}</span>${g && g.h != null ? `<i><u style="width:${g.h}%"></u></i>` : ""}<small>${g ? (d < 30 ? esc(T("{n} m away", { n: d })) : zn ? esc(zn) : esc(T("{n} m away", { n: d }))) : esc(T("Not in the world"))}</small></div>`; }).join("");
-  try { localStorage.setItem(PARTY + ".n", JSON.stringify(names)); } catch { /* private */ }
+  if (html !== partyHtml) { partyHtml = html; partyEl.innerHTML = html; }
+  if (named) try { localStorage.setItem(PARTY + ".n", JSON.stringify(names)); } catch { /* private */ }
 }
 { const c = document.createElement("div"); c.className = "wp-together"; c.id = "wp-together"; c.hidden = true; c.setAttribute("role", "status"); c.textContent = T("With a friend · +10% XP"); document.body.appendChild(c); }
 { const w = (new URLSearchParams(location.search).get("with") || "").toLowerCase(); if (/^[0-9a-z]{7}$/.test(w) && w !== myTag && P.pal !== w) { P.pal = w; save(); setTimeout(() => toast(T("You joined a friend's invite. Find them in town: near each other you both get +10% XP.")), 4000); } }
@@ -1402,7 +1409,7 @@ async function refreshPlaza() {
     g.fillText(isle || coin ? T("Walk up and press E to visit") : T("The most-liked island this week goes up here next week"), 24, h - 28);
   });
 }
-setInterval(refreshPlaza, 60000);
+every(60000, refreshPlaza);
 function islandLines() {
   const out = [];
   if (arcStats && arcStats.change24h != null) out.push(T("$ARCIRCLE is {p} today", { p: (arcStats.change24h >= 0 ? "+" : "") + arcStats.change24h.toFixed(1) + "%" }));
@@ -1686,7 +1693,7 @@ function launchRocket() {
   rockets.push(K.rocketLaunch(planet, lp.position.clone()));
   lp.getWorldPosition(tmp); if (tmp.distanceTo(at) < 45) { Snd.rocket(); shake = 0.6; }
 }
-setInterval(() => refreshCoins(false), 45000);
+every(45000, () => refreshCoins(false));
 
 // ---------------- $ARCIRCLE: the Exchange board, the Burn Furnace, the whale, the weather (/api/social?token=arcircle) ----------------
 let lastBurnTs = 0, lastBig = "", whale = null, mood = "";
@@ -1761,7 +1768,7 @@ function swimWhale() {
     if (k >= 1) { off(); st.scene.remove(whale); whale = null; }
   });
 }
-setInterval(refreshArc, 60000);
+every(60000, refreshArc);
 
 // ---------------- the Quantum Lab: launches in superposition, read from QuantumPad on Arc ----------------
 const rpc = (calls) => Promise.all(calls.map((c) => rpcRead("eth_call", [c, "latest"]).catch(() => null))); // one read each, with the fallbacks
@@ -1796,7 +1803,7 @@ function tickQuantum(t) {
     o.position.x = Math.cos(t * 0.4 + i * 1.57) * 2.4; o.position.z = Math.sin(t * 0.4 + i * 1.57) * 2.4;
   });
 }
-setInterval(refreshQuantum, 30000);
+every(30000, refreshQuantum);
 
 // ---------------- quests, daily goals and badges ----------------
 const isleN = (k) => (P.isle && P.isle[k]) || 0;
@@ -2344,7 +2351,7 @@ function paintCrown() {
 }
 $("wp-wallet").addEventListener("click", () => { if (AC && !addr()) AC.connect().then(() => { refreshPurse(true); refreshCoins(); paintAcct(); }).catch(() => {}); else if (AC) refreshPurse(true); });
 if (AC && AC.on) AC.on(() => { refreshPurse(true); refreshCoins(); paintAcct(); });
-setInterval(() => refreshPurse(false), 30000);
+setInterval(() => { if (!document.hidden) refreshPurse(false); }, 30000); // (the return below catches it up)
 // back from a swap or a launch in another tab: read the purse again (at most every 5 seconds)
 let purseBack = 0; document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - purseBack > 5000) { purseBack = Date.now(); refreshPurse(true); } });
 
@@ -2863,8 +2870,8 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   down: (on, where) => {
     if (on && boarding) setBoard(false);
     frozen = on; keys.clear(); paintPrompt();
-    if (on) { if (avatar) avatar.play("die", { once: true }); return; }
-    setTimeout(() => vfx.rise(here()), 60);
+    if (on) { if (avatar) avatar.play("die", { once: true }); try { Snd.ko && Snd.ko(); } catch { /* no sound */ } return; }
+    setTimeout(() => vfx.rise(here()), 60); try { Snd.up && Snd.up(); } catch { /* no sound */ }
     if (where === "plaza") { const veil = $("wp-veil"); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 380); } planet.position.copy(HOME); hop = 0; vy = 0; grounded = true; facing = Math.PI; camYaw = 0; }
     if (avatar) avatar.play("idle");
   },
@@ -3071,7 +3078,7 @@ async function refreshDrops() {
     if (list.length) dropsSeen = list[list.length - 1].at;
   } catch { /* the feed waits */ }
 }
-setInterval(refreshDrops, 60000); setTimeout(refreshDrops, 8000);
+every(60000, refreshDrops); setTimeout(refreshDrops, 8000);
 // repeatable ARCL (street fights, coins): the server keeps the daily limit and the gap between claims
 function arclClaimRepeat(kind, extra, from) { arclShop.claim(kind, extra, from); }
 $("wp-help-btn").addEventListener("click", () => openHelp());
@@ -3126,7 +3133,7 @@ $("wp-bag-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show(
 $("wp-log-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("log"); });
 // the dock (bottom left): Character, Bag, Craft (the Forge), Build (your island's builder)
 // red dots on the dock: new pieces in the bag, new stamps on your island
-setInterval(() => { const b = $("wp-dk-bag"), i = $("wp-dk-build"); if (b) b.dataset.dot = rpg && rpg.freshN && rpg.freshN() ? "1" : ""; if (i) i.dataset.dot = island.bookNew && island.bookNew() ? "1" : ""; }, 2000);
+setInterval(() => { const b = $("wp-dk-bag"), i = $("wp-dk-build"); if (b) { const v = rpg && rpg.freshN && rpg.freshN() ? "1" : ""; if (b.dataset.dot !== v) b.dataset.dot = v; } if (i) { const v = island.bookNew && island.bookNew() ? "1" : ""; if (i.dataset.dot !== v) i.dataset.dot = v; } }, 2000);
 $("wp-dk-char").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("inv"); });
 $("wp-dk-bag").addEventListener("click", () => { closeAll(); if (rpg) { rpg.show("inv"); setTimeout(() => { const b = document.querySelector("#wr-inv .wr-bag, #wr-inv .wr-cells"); if (b) b.scrollIntoView({ block: "nearest" }); }, 60); } });
 $("wp-dk-craft").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("forge"); });
@@ -3615,7 +3622,7 @@ else { tutorialStep(-1); maybeGuide(); }
 refreshPlaza();
 // a shared island link (/play?isle=0x…): straight to that island once you're in
 // news while you play (friends online, stamps on your island) and, once after an update, what's new
-setTimeout(() => island.news((h, c) => feed(h, c)), 5000); setInterval(() => { if (mode === "hub") island.news((h, c) => feed(h, c)); }, 300000);
+setTimeout(() => island.news((h, c) => feed(h, c)), 5000); every(300000, () => { if (mode === "hub") island.news((h, c) => feed(h, c)); });
 maybeNew();
 setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }

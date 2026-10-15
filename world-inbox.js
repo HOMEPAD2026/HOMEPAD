@@ -103,6 +103,6 @@ export function createInbox(ctx) {
     return true;
   }
 
-  poll(true); setInterval(() => poll(false), 20e3);
+  poll(true); setInterval(() => { if (!document.hidden) poll(false); }, 20e3); document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(false); }); // (poll keeps its own 60 s gap)
   return { poll, paintDot, show, hide, isOpen: () => open, sendOptions, send };
 }
