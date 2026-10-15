@@ -22,6 +22,7 @@
 // and the last one. Progress is self-reported by the game, so it's for play (character, XP, quests), never rewards.
 // Firestore: worldIsland/<wallet> · worldIslandLikes/<wallet> { n } · worldLikes/<target>_<wallet> · worldStamps/<wallet> { list }
 //            worldStampSeen/<target>_<wallet>_<day> · worldLot/<coin> · worldStats/islands { top, recent }
+// AC Defense, the plaza tower-defence game: api/_world-defense.mjs.
 // Notes, the weekly island contest, friends' cards, wanderers and the raid boss: api/_world-social.mjs.
 // Local chat, the friends graph (requests, blocks) and private chat: api/_world-chat.mjs.
 // Bounties, party quests, the village rankings (week / month / all time) and their prizes: api/_world-rank.mjs.
@@ -33,6 +34,7 @@ import { makeChat } from "./_world-chat.mjs";
 import { makeCrew } from "./_world-crew.mjs";
 import { makeRank, RANK_MIN_LV } from "./_world-rank.mjs";
 import { makeVillage, isGM } from "./_world-village.mjs";
+import { makeDefense } from "./_world-defense.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -214,6 +216,7 @@ export function make(deps) {
   const crew = makeCrew({ ...deps, json, now, signer, isoWeek: shop.isoWeek, levelOfSave });
   const rank = makeRank({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit, award: shop.award });
   village = makeVillage({ ...deps, json, now, signer, isoWeek: shop.isoWeek, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n) });
+  const defense = makeDefense({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -449,7 +452,7 @@ export function make(deps) {
       if (w === "island") return island(url.searchParams.get("wallet"), url.searchParams.has("fresh"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
-      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await chat.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)) || (await village.read(w, url)) || (await rank.read(w, url)); if (r) return r;
+      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await chat.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)) || (await village.read(w, url)) || (await rank.read(w, url)) || (await defense.read(w, url)); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -470,7 +473,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

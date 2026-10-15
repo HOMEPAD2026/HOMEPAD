@@ -116,7 +116,7 @@ export function createVfx(ctx) {
   // an effect that plays once: tick(k, t) with k going 0 → 1 over life seconds, then it's removed
   function once(parent, at, life, build) {
     if (reduce) return null;
-    const g = new THREE.Group(); if (at) g.position.copy(at); parent.add(g);
+    const g = new THREE.Group(); g.name = "vfx"; if (at) g.position.copy(at); parent.add(g); // (named: the AC Defense arena keeps these when it hides the town)
     const parts = build(g) || {};
     const e = { g, life, t: 0, tick: parts.tick, parent }; live.push(e); return e;
   }
@@ -131,7 +131,7 @@ export function createVfx(ctx) {
     const P = pools[key] || (pools[key] = { free: [], busy: 0 }); cap = lite() ? Math.max(1, cap >> 1) : cap;
     let e = P.free.pop();
     if (!e && P.busy >= cap) { const i = live.findIndex((x) => x.key === key); if (i >= 0) { e = live[i]; live.splice(i, 1); P.busy--; } }
-    if (!e) { const g = new THREE.Group(); parent.add(g); e = { g, key, parent, at: new THREE.Vector3(), o: {} }; const parts = build(g, e) || {}; e.tick = parts.tick; e.start = parts.start; }
+    if (!e) { const g = new THREE.Group(); g.name = "vfx"; parent.add(g); e = { g, key, parent, at: new THREE.Vector3(), o: {} }; const parts = build(g, e) || {}; e.tick = parts.tick; e.start = parts.start; }
     e.life = life; e.t = 0; e.o = o; if (at) e.at.copy(at); else e.at.set(0, 0, 0); e.g.position.copy(e.at); e.g.visible = true;
     if (e.start) e.start(); if (e.tick) e.tick(0, 0);
     P.busy++; live.push(e); return e;

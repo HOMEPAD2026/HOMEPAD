@@ -253,7 +253,9 @@ export function createCombat(ctx) {
     const lv = Math.max(1, o.lv || 1), rank = o.rank || "", st = mobStats(lv, rank);
     // the far grounds hit harder (their pow): more HP, attack and defence, and a little more XP for it
     const pow = (o.zone && o.zone.pow) || 1; if (pow !== 1 && !o.raid) { st.hp = Math.round(st.hp * pow); st.atk = Math.round(st.atk * pow); st.def = Math.round(st.def * (1 + (pow - 1) * 0.6)); st.xp = Math.round(st.xp * (1 + (pow - 1) * 0.5)); }
+    if (o.def != null) st.def = o.def; // AC Defense: its Defense is the wave's own
     if (o.raid) { st.hp = o.max; st.atk = Math.round(st.atk * 0.85); } // the shared weekly raid keeps a little gentler bite
+    if (o.hp) st.hp = Math.max(1, Math.round(o.hp)); // AC Defense: its HP is the wave's own
     const g = new THREE.Group(); g.position.copy(p);
     const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
     const sc = skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow;
@@ -273,7 +275,7 @@ export function createCombat(ctx) {
     if (rank) { const rr = new THREE.Mesh(geoOf("ring" + !!bs, () => new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48)), rank === "boss" ? ringBoss : ringElite); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
     if (VX && rank && !o.raid) VX.summon(p, rank === "boss");
-    const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: baseY, glow: skin ? 0.05 : 0.18 };
+    const m = { tgt: o.tgt || null, spd: o.spd || 1, g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: baseY, glow: skin ? 0.05 : 0.18 };
     // a golden scammer: rare, runs from you, gone in 25 seconds; five times the XP and a better chest
     // an elite comes with an element: frost, blazing or toxic — its own colour, motes round it and a name to match
     if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
@@ -300,6 +302,7 @@ export function createCombat(ctx) {
     if (m.slow === 0) { const shR = Math.round(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6) * 10) / 10; const shell = new THREE.Mesh(geoOf("shell" + shR, () => new THREE.IcosahedronGeometry(shR, 0)), shellMat); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
     if (bs && o.raid) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); }
+    else if (bs && o.tgt) { bossBar(m); ctx.shake(0.4); Snd.siren && Snd.siren(); }
     else if (bs) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); else ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); }
     return m;
   }
@@ -312,7 +315,7 @@ export function createCombat(ctx) {
     if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
     m.leanT = kind === "heavy" ? 0.42 : 0.3; m.leanL = m.leanT; m.leanX = tmp.x; m.leanZ = tmp.z; // it rocks back away from the blow
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
-    if (!m.raid) tryStep(m, tmp, kb);
+    if (!m.raid && !m.tgt) tryStep(m, tmp, kb); // (a defence scammer holds its line)
     if (kind === "ice") { const deep = brOf("ice") === "a"; m.slow = deep ? 5 : 3; if (deep) { m.stun = Math.max(m.stun, m.rank === "boss" ? 0.2 : 0.6); m.statue = true; } }
     if (kind === "shock") m.stun = (m.rank === "boss" ? 0.4 : 1.2) * (brOf("shock") === "b" ? 2 : 1);
     if (kind === "shock" && VX) VX.impact(m.g.position.clone().setY(m.y + 0.6), "shock");
@@ -364,6 +367,7 @@ export function createCombat(ctx) {
     if (VX && VX.burst) VX.burst(fxV.copy(p).setY(0), m.rank === "boss" ? 0xff4d6d : m.rank === "elite" || m.rare ? 0xffc861 : 0xffe08a, m.rank === "boss" ? 2.2 : m.rank === "elite" ? 1.4 : 1);
     if (ctx.parts) ctx.parts.emit({ at: p, kind: "glow", n: m.rank === "boss" ? 36 : 14, speed: 2.4, up: 2.4, spread: 0.8, size: 0.32, life: 1.1, grav: -3.5, drag: 1.4, color: 0xfff2c8, color2: 0xffc861, jitter: 0.6 });
     if (m.rank === "boss" && ctx.slowmo) { ctx.slowmo(700); ctx.punch && ctx.punch(); } // the boss goes down in slow motion
+    if (m.tgt) { if (m.rank === "boss") hideBossBar(); if (m.tgt.dead) m.tgt.dead(m); return; } // AC Defense: no XP, drops or ARCL claims; the arena pays in scrap
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
@@ -415,7 +419,7 @@ export function createCombat(ctx) {
       if (!m.raid) m.bar.visible = !far;
       if (m.dead) { m.dead += dt; if (m.e && m.e.dis && !ctx.reduce) { m.e.dis.value = Math.min(1, m.dead / 0.45); if (m.e.outlines) m.e.outlines.forEach((o) => { o.visible = false; }); m.g.position.y += dt * 0.8; if (m.dead > 0.5) { m.e.dis.value = 0; retire(m, i); } } else { m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); } continue; } // breaks up into data cubes
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
-      if (d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
+      if (!m.tgt && d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
       m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt); tickTrail(m, dt);
       if (m.burn > 0) { m.burn -= dt; m.burnT = (m.burnT || 0) - dt; if (m.burnT <= 0) { m.burnT = 0.5; m.hp -= m.burnD; label(m); puff(m.g.position.clone().setY(m.y + 0.3), 0xff7a2a, { n: 3, speed: 1, size: 0.5, life: 0.4, grav: -3 }); if (m.raid) { ctx.raidHit && ctx.raidHit(m.burnD); m.hp = Math.max(1, m.hp); } if (m.rank === "boss") bossBar(m); if (m.hp <= 0) { kill(m); continue; } } }
       if (m.shell) { m.shell.visible = m.slow > 0; m.shell.material = m.statue && m.stun > 0 ? shellStatueMat : shellMat; }
@@ -435,6 +439,7 @@ export function createCombat(ctx) {
       if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) { if (m.cast) endCast(m); m.wu = 0; continue; }
+      if (m.tgt) { tgtAI(m, dt, t, i); continue; } // AC Defense: it walks to its target and ignores you
       // it notices you: a "!" pops over its head (the pooled floating text), once until you've got well away again
       if (!m.seen && d < 15 && m.rank !== "boss" && !far) { m.seen = true; if (alertT <= 0) { alertT = 0.2; ctx.float("!", tmpA.copy(m.g.position).setY((m.y || 0) + 2.3), "#ffd23a", true); } }
       else if (m.seen && d > 20) m.seen = false;
@@ -472,6 +477,18 @@ export function createCombat(ctx) {
       }
     }
     hurtT = Math.max(0, hurtT - dt); alertT -= dt;
+  }
+  // AC Defense (world-defense.js): a scammer that walks to a target point (the Core) instead of the player, stops to hit
+  // whatever stands in its way (tgt.wall: a Barrier), and hits the target when it arrives. tgt: { x, z, r, hit(m, goal), wall(pos), dead(m) }
+  function tgtAI(m, dt, t, i) {
+    const T0 = m.tgt, p = m.g.position, w = T0.wall && T0.wall(p), goal = w || T0, dx = goal.x - p.x, dz = goal.z - p.z, d = Math.hypot(dx, dz) || 1;
+    const reach = goal.r + (m.rank === "boss" ? 1.4 : 0.35); m.g.rotation.y = Math.atan2(dx, dz);
+    if (d > reach) {
+      const sp = m.spec.speed * m.spd * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1), k = sp * dt / d; stepV.set(dx * k, 0, dz * k);
+      tmp2.copy(p).add(stepV); if (!ctx.blocked(tmp2)) p.copy(tmp2); else { tmp2.copy(p).add(stepV.set(-dz * k, 0, dx * k)); if (!ctx.blocked(tmp2)) p.copy(tmp2); } // round the fountain's stone
+      p.y = m.rank === "boss" ? Math.abs(Math.sin(t * 2)) * 0.3 : Math.abs(Math.sin(t * 6 + i)) * 0.12; m.wu = 0; return;
+    }
+    if ((m.atkT = (m.atkT || 0) - dt) <= 0) { m.atkT = m.rank === "boss" ? 1.3 : 1.0; m.e.play("Attack", { once: true, fade: 0.05 }); ring(p, 0xff2d4d, { r0: 0.3, r1: 1.2, life: 0.25, y: 0.07 }); goal.hit(m, goal); }
   }
   // the raid's phases (world-social.js): 2 calls a swarm now and then, 3 adds a shield that soaks most of a hit,
   // 4 drops red circles around you — step out before they burst
@@ -1267,13 +1284,13 @@ export function createCombat(ctx) {
   paintVit();
 
   // ---------------- the loop ----------------
-  let buffPaint = 0, placeT = 0, zoneT = 0;
+  let buffPaint = 0, placeT = 0, zoneT = 0, defOn = false;
   function place() { bar.style.bottom = ""; } // the buttons share one corner layout with the move buttons (arc-v10.css v25)
   function spawnTick(dt) {
     const kit = ctx.kit(); if (!kit || !kit.enemies || !kit.enemies.EyeDrone) return; // the robots are still loading
     ctx.here(me);
     const z = zone;
-    if (resting()) return; // resting after a knockout: no scammers come for you
+    if (resting() || defOn) return; // resting after a knockout, or in the AC Defense arena: no scammers come for you
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
       if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) {
@@ -1432,5 +1449,10 @@ export function createCombat(ctx) {
       m.hp = 0; label(m); kill(m);
     },
     dropNear(item) { ctx.here(me); dropChest(me.clone().add(new V3(2, 0, 0)), item); },
+    // AC Defense (world-defense.js): the arena clears the street scammers, spawns walkers to the Core, and hits them with its towers
+    defense: {
+      on(v) { defOn = !!v; for (let i = mobs.length - 1; i >= 0; i--) if (v ? !mobs[i].tgt : mobs[i].tgt) { if (mobs[i].rank === "boss") hideBossBar(); retire(mobs[i], i); } },
+      spawn: (o) => spawnMob(o), list: () => mobs.filter((m) => m.tgt && !m.dead), hit: (m, raw, from) => hit(m, raw, from, "pet", false),
+    },
   };
 }
