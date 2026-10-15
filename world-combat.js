@@ -773,12 +773,16 @@ export function createCombat(ctx) {
   let lockT = null, lockMark = null;
   const lockAlive = () => !!(lockT && !lockT.dead && mobs.includes(lockT) && lockT.g.position.distanceTo(tmp3.copy(me).setY(lockT.g.position.y)) < 22);
   const tmp3 = new V3();
+  // the cycle keeps one order (nearest first when it starts) so Tab walks the pack instead of hopping as you move
+  let lockList = [];
+  const lockOk = (m) => !m.dead && mobs.includes(m) && m.g.position.distanceTo(tmp3.copy(me).setY(m.g.position.y)) < 16;
   function lockOn() {
     ctx.here(me);
-    const list = mobs.filter((m) => !m.dead && m.g.position.distanceTo(tmp3.copy(me).setY(m.g.position.y)) < 16).sort((a, b) => a.g.position.distanceToSquared(me) - b.g.position.distanceToSquared(me));
-    if (!list.length) { lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
-    const i = lockAlive() ? list.indexOf(lockT) : -1;
-    lockT = i < 0 ? list[0] : i + 1 < list.length ? list[i + 1] : null; // past the last one: the lock lets go
+    if (!(lockAlive() && lockList.includes(lockT))) lockList = mobs.filter(lockOk).sort((a, b) => a.g.position.distanceToSquared(me) - b.g.position.distanceToSquared(me));
+    else lockList = lockList.filter((m) => m === lockT || lockOk(m));
+    if (!lockList.length) { lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
+    const i = lockAlive() ? lockList.indexOf(lockT) : -1;
+    lockT = i < 0 ? lockList[0] : i + 1 < lockList.length ? lockList[i + 1] : null; // past the last one: the lock lets go
     paintLock(); Snd.pop && Snd.pop();
   }
   function faceLock() { if (!lockAlive() || !ctx.faceTo) return; ctx.here(me); ctx.faceTo(Math.atan2(lockT.g.position.x - me.x, lockT.g.position.z - me.z)); }
@@ -795,7 +799,10 @@ export function createCombat(ctx) {
   }
   function tickLock(dt) {
     if (!lockT) return;
-    if (!lockAlive()) { lockT = null; paintLock(); return; }
+    if (!lockAlive()) { // a kill hands the lock to the nearest of the same pack; out of reach just lets go
+      let nx = null; if (lockT.dead) { ctx.here(me); let bd = 1e9; for (const m of lockList) if (m !== lockT && lockOk(m)) { const d = m.g.position.distanceToSquared(me); if (d < bd) { bd = d; nx = m; } } }
+      lockT = nx; paintLock(); if (!nx) return;
+    }
     const big = lockT.rank === "boss" ? 2.6 : lockT.rank === "elite" ? 1.4 : 1;
     lockMark.position.copy(lockT.g.position).setY(0.09); lockMark.scale.setScalar(big * (1 + Math.sin(performance.now() / 160) * 0.04)); lockMark.rotation.y += dt * 1.6;
   }
@@ -1388,6 +1395,7 @@ export function createCombat(ctx) {
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, mobsRaw: () => mobs,
     /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
+    locked: () => lockAlive(),
     bossNear: (r = 40) => { ctx.here(me); return mobs.some((m) => !m.dead && m.rank === "boss" && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < r); },
     dangerNear: (r = 24) => { ctx.here(me); return mobs.some((m) => !m.dead && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < (m.rank === "boss" ? r : 14)); }, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z, cast: m.cast ? m.cast.kind : m.dash ? "dash" : m.rush ? "rush" : m.wind ? "wind" : "", rage: !!m.rage, rare: !!m.rare })), mshots: mshots.length, charging: chg.on, items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
     spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd);

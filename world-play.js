@@ -733,7 +733,7 @@ const keys = new Set();
 let hubEl = null; // the menu (built further down)
 let inboxDot = 0; // mail waiting (world-inbox.js): a dot on the Menu tile
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
-let camDist = coarse ? 1.12 : 1, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock
+let camDist = coarse ? 1.12 : 1, camGoal = camDist, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
 /* a window is on screen (the Forge, the wardrobe, a shop…): Esc closes it rather than swapping it for the menu */
 const dialogUp = () => [...document.querySelectorAll('[role="dialog"]')].some((d) => d !== hubEl && !d.hidden && d.getClientRects().length > 0 && getComputedStyle(d).visibility !== "hidden");
@@ -801,12 +801,12 @@ cv.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "touch" && joy && e.pointerId !== joy.id && Math.hypot(joy.dx, joy.dy) < 0.2 && Math.hypot(e.clientX - joy.cx, e.clientY - joy.cy) < innerWidth * 0.42) {
     touches.set(joy.id, { x: joy.cx, y: joy.cy }); joy = null; joyEl.classList.remove("on"); knob.style.transform = "";
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); const [a, b] = [...touches.values()];
-    pinch = { d: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), cd: camDist, live: false }; look = null; return;
+    pinch = { d: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), cd: camGoal, live: false }; look = null; return;
   }
   const willJoy = !photo && (e.pointerType !== "mouse" || mouseStick) && e.clientX < innerWidth * 0.5 && !joy;
   if (e.pointerType === "touch" && !willJoy) {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (touches.size === 2) { const [a, b] = [...touches.values()]; if (Math.hypot(a.x - b.x, a.y - b.y) < innerWidth * 0.42) { pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camDist, live: false }; look = null; return; } touches.delete(e.pointerId); }
+    if (touches.size === 2) { const [a, b] = [...touches.values()]; if (Math.hypot(a.x - b.x, a.y - b.y) < innerWidth * 0.42) { pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camGoal, live: false }; look = null; return; } touches.delete(e.pointerId); }
   }
   if (!photo && (e.pointerType !== "mouse" || mouseStick) && e.clientX < innerWidth * 0.5 && !joy) {
     joy = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0 };
@@ -818,8 +818,8 @@ cv.addEventListener("pointermove", (e) => {
   if (pinch && touches.size === 2) {
     const [a, b] = [...touches.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
     if (!pinch.live && Math.abs(d - pinch.d) < 18) return; // a dead zone: fingers resting still don't zoom
-    if (!pinch.live) { pinch.live = true; pinch.d = d; pinch.cd = camDist; }
-    camDist = THREE.MathUtils.clamp(pinch.cd * pinch.d / Math.max(20, d), 0.6, mode === "island" ? 2.6 : 1.9); return;
+    if (!pinch.live) { pinch.live = true; pinch.d = d; pinch.cd = camGoal; }
+    camGoal = THREE.MathUtils.clamp(pinch.cd * pinch.d / Math.max(20, d), 0.6, mode === "island" ? 3 : 1.9); return;
   }
   if (e.pointerType === "mouse" && mode === "island") { hoverXY = { x: e.clientX, y: e.clientY }; if (!look) island.hover(e.clientX, e.clientY); }
   if (joy && e.pointerId === joy.id) {
@@ -842,7 +842,7 @@ const lift = (e) => {
   if (look && e.pointerId === look.id) look = null;
 };
 cv.addEventListener("pointerup", lift); cv.addEventListener("pointercancel", lift);
-cv.addEventListener("wheel", (e) => { camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.0012, 0.6, mode === "island" ? 2.6 : 1.9); }, { passive: true });
+cv.addEventListener("wheel", (e) => { camGoal = THREE.MathUtils.clamp(camGoal + e.deltaY * 0.0012, 0.6, mode === "island" ? 3 : 1.9); }, { passive: true });
 // the jump button: pressed jumps, let go early cuts the jump short (a keyboard click on it is a full jump)
 { const jb = $("wp-act-jump"), up = () => { jumpDown = false; };
   jb.addEventListener("pointerdown", (e) => { try { jb.setPointerCapture(e.pointerId); } catch { /* fine */ } jumpDown = true; jump(); });
@@ -1120,7 +1120,7 @@ function step(dt) {
       if (into > 0) { tmp2.copy(dir).addScaledVector(nrm, -into); if (tmp2.lengthSq() > 0.02) { tmp2.normalize(); if (tryMove(tmp2, sp * dt * Math.sqrt(1 - into * into))) sp *= 0.2; } else sp *= 0.2; }
     }
     facing = angLerp(facing, Math.atan2(dir.x, dir.z), 1 - Math.exp(-12 * dt));
-    if (!look && performance.now() - lastLook > 1400 && y > 0.3) camYaw = angLerp(camYaw, facing - Math.PI, dt * 0.9);
+    if (!look && performance.now() - lastLook > 1400 && y > 0.3 && !(combat && combat.locked())) camYaw = angLerp(camYaw, facing - Math.PI, dt * 0.9);
     stepT -= dt * sp; if (grounded && stepT < 0 && !boarding) { Snd.step(sp); stepT = 2.6; if (sp > 10) dust(2); const zz = combat && combat.zone(), soft = zz && { peaks: 0xa9bcd4, dunes: 0xa8824e, canyon: 0x8a4a32 }[zz.id]; if (soft && tracks) { here(tmp2); tracks.step(tmp2.x, tmp2.z, facing, soft); } } // prints in snow and sand
     walked += sp * dt; if (walked > 4) tutorialStep(0);
     dailyDist(sp * dt);
@@ -2778,7 +2778,7 @@ st.on((dt) => { if (mode === "hub") live.tick(dt); });
 st.on((dt) => parts.tick(dt));
 combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
-  kit: () => kit, here: (v) => here(v), facing: () => facing, faceTo: (a) => { facing = a; }, afterimage: () => afterimage(), critFlash: () => critFlash(), avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
+  kit: () => kit, here: (v) => here(v), facing: () => facing, faceTo: (a) => { facing = angLerp(facing, a, 0.5); }, afterimage: () => afterimage(), critFlash: () => critFlash(), avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); if (avatar && avatar.kk && grounded) avatar.play("dodge", { once: true, speed: 1.4, fade: 0.05 }); },
@@ -3275,7 +3275,12 @@ function camCollide(target) {
   for (const g of [...ghosted.keys()]) if (!hits.has(g)) ghost(g, false);
   hits.forEach((g) => ghost(g, true));
   // a little pull-in only when something is right behind the head
-  camFit = THREE.MathUtils.lerp(camFit, 1, 0.08);
+  let fit = 1;
+  if (mode === "island" && !island.building()) { // player-built walls: march the grid (no mesh raycasts) and pull in before the first solid cell
+    const px = -planet.position.x, pz = -planet.position.z, n = Math.ceil(len / 0.5);
+    for (let i = 1; i <= n; i++) { const k = i / n; if (island.solidAt(px + target.x * k, head.y + (target.y - head.y) * k, pz + target.z * k)) { fit = Math.max(0.2, (i - 1.6) / n); break; } }
+  }
+  camFit = fit < camFit ? fit : THREE.MathUtils.lerp(camFit, fit, 0.08);
 }
 
 // ---------------- frame rate watch: drop quality once if the device can't keep up ----------------
@@ -3455,6 +3460,7 @@ st.on((dt0, t) => {
   watchFps(dt);
   if (introOn) return; // the dive drives the camera
   // camera: behind and above the player, orbiting with camYaw / camPitch, wider when running; build mode sits higher
+  camDist += (camGoal - camDist) * (1 - Math.exp(-dt0 * 10)); // zoom eases toward where the wheel/pinch put it
   const bz = mode === "island" && island.building() ? 1.55 : 1;
   base.set(0, 5.2 + camPitch * 6, 9.6).multiplyScalar(camDist * camZoom * bz * (1 - Math.sin(Math.min(1, punch) * Math.PI) * 0.07)).applyAxisAngle(Y, camYaw);
   camPos.copy(base).add(at); camPos.y += (hop - at.y) * 0.6;
@@ -3463,7 +3469,8 @@ st.on((dt0, t) => {
   if (camKick.lengthSq() > 1e-6) { camPos.add(camKick); camKick.multiplyScalar(Math.exp(-dt0 * 14)); }
   if (shake > 0 && reduce) shake = 0;
   // shake: a smooth rattle that dies away (not a new random jump every frame)
-  if (shake > 0) { shake = Math.max(0, shake - dt); shakeT += dt; const a = shake * 0.6; camPos.x += (Math.sin(shakeT * 47) + Math.sin(shakeT * 83) * 0.5) * a; camPos.y += (Math.sin(shakeT * 61 + 1.3) + Math.sin(shakeT * 97) * 0.5) * a; }
+  if (shake > 0) { shake = Math.max(0, shake - dt0); shakeT += dt0; // real time: hit-stop doesn't stretch it
+    const a = shake * 0.6; camPos.x += (Math.sin(shakeT * 47) + Math.sin(shakeT * 83) * 0.5) * a; camPos.y += (Math.sin(shakeT * 61 + 1.3) + Math.sin(shakeT * 97) * 0.5) * a; }
   if (mode === "hub") camPos.y = Math.max(camPos.y, 0.6); // never under the ground
   camLook.set(-Math.sin(camYaw) * 2.6, 1.4 + (hop - at.y) * 0.5, -Math.cos(camYaw) * 2.6).add(at);
   const landing = performance.now() < landUntil;
@@ -3552,7 +3559,7 @@ window.arcWorld = {
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
   coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, robots: () => !!(kit && kit.enemies && kit.enemies.EyeDrone), quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
   // for screenshots and tests: point the camera, ride the board
-  cam: (o = {}) => { if (o.yaw != null) camYaw = o.yaw; if (o.pitch != null) camPitch = o.pitch; if (o.dist != null) camDist = o.dist; if (o.facing != null) facing = o.facing; }, board: (on) => setBoard(!!on), gain: (n) => gain(n, ""), holdXp: (on) => { xpHeld = !!on; },
+  cam: (o = {}) => { if (o.yaw != null) camYaw = o.yaw; if (o.pitch != null) camPitch = o.pitch; if (o.dist != null) camDist = camGoal = o.dist; if (o.facing != null) facing = o.facing; }, board: (on) => setBoard(!!on), gain: (n) => gain(n, ""), holdXp: (on) => { xpHeld = !!on; },
   fighters: () => fighters.map((g) => ({ id: g.userData.spec.id, live: !!g.userData.live })),
   // for tests and the art audit: what the last frame drew (draw calls, triangles) and what's in GPU memory
   perf: () => ({ calls: st.renderer.info.render.calls, triangles: st.renderer.info.render.triangles, geometries: st.renderer.info.memory.geometries, textures: st.renderer.info.memory.textures, pixelRatio: st.renderer.getPixelRatio(), avatar: P.char || "" }),
