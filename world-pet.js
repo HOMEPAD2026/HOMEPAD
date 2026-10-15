@@ -16,7 +16,7 @@ const HEIGHT = { giraffe: 1.55, elephant: 1.2, lion: 0.95, tiger: 0.95, polar: 1
 const rarityVar = (r) => `var(--rar-${r})`;
 
 /// ctx: { THREE, K, planet, here(v), facing(), combat(), reduce, coarse, low, ver, legacy (createPet's), T, esc, rpg(), ach(),
-///        save(), toast(), Snd, buy() → Promise<bool>, repaint(), onMods(m) }
+///        save(), toast(), Snd, buy() → Promise<bool>, repaint(), onMods(m), shadow(r, k) (a contact shadow mesh) }
 export function createPets(ctx) {
   const { THREE, K, planet, here, facing, T, esc, reduce, legacy } = ctx;
   const lite = !!(ctx.coarse || ctx.low); // a phone or the low setting: no name plate over the pet
@@ -54,7 +54,7 @@ export function createPets(ctx) {
   function unmount() {
     tok++; if (mixer) mixer.stopAllAction(); mixer = null; acts = {}; curAct = null;
     if (plate) { plate.material.map && plate.material.map.dispose(); plate.material.dispose(); plate = null; plateKey = ""; }
-    if (h) { root.remove(h); h = null; body = null; } curId = "";
+    if (h) { const cs = h.userData.cs; if (cs) { cs.geometry.dispose(); cs.material.dispose(); } root.remove(h); h = null; body = null; } curId = "";
   }
   async function mount(id) {
     const sp = PET_BY[id], t = ++tok; unmount(); tok = t;
@@ -64,6 +64,7 @@ export function createPets(ctx) {
     o.position.set(-c.x, -b.min.y, -c.z); o.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
     body = new THREE.Group(); body.add(o); body.scale.setScalar((HEIGHT[id] || 0.85) / Math.max(0.01, sz.y));
     h = new THREE.Group(); h.add(body); h.userData.h = (HEIGHT[id] || 0.85);
+    if (ctx.shadow) { const r = Math.max(0.3, Math.min(0.9, Math.max(sz.x, sz.z) * body.scale.x * 0.6)); h.userData.cs = ctx.shadow(r, 0.4); if (h.userData.cs) h.add(h.userData.cs); } // grounded: pets cast no real shadow
     here(me); h.position.set(me.x, me.y, me.z); root.add(h); curId = id;
     mixer = new THREE.AnimationMixer(body);
     for (const n of ["idle", "walk", "run", "eat", "dance", "gesture-positive"]) { const clip = p.clips.find((k) => k.name === sp.m + "/" + n); if (clip) { const a = mixer.clipAction(clip); if (n === "eat" || n === "gesture-positive") { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } acts[n] = a; } }

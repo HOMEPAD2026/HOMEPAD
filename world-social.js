@@ -274,7 +274,8 @@ export function createGhosts(ctx) {
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), mat); head.position.y = 1.55;
     const halo = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.55, 28), new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide })); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.04;
     const tag = K.label(ctx.T("Lv {n}", { n: lv }), { accent: "#" + new THREE.Color(tint).getHexString(), size: 0.42 }); tag.position.y = 2.3; tag.material.opacity = 0.75; tag.userData.lvTag = true;
-    g.add(body, head, halo, tag); g.userData = { body, head, mat };
+    const cs = ctx.shadow ? ctx.shadow(0.75, 0.4) : null; if (cs) { cs.material.opacity = 0; g.add(cs); } // a soft shadow under them: they stand, not float
+    g.add(body, head, halo, tag); g.userData = { body, head, mat, cs };
     return g;
   }
   // the real character for a wanderer (world-kit.js makeCharacter, the same model they play), up to MAXCH of them;
@@ -348,13 +349,14 @@ export function createGhosts(ctx) {
         if (w.hop > 0) { w.hop = Math.max(0, w.hop - dt * 1.6); w.g.position.y = Math.sin((1 - w.hop) * Math.PI) * 0.6; } else w.g.position.y = 0;
         w.fade = w.gone ? Math.max(0, w.fade - dt) : Math.min(1, w.fade + dt);
         w.g.userData.mat.opacity = 0.45 * w.fade;
+        { const cs = w.g.userData.cs; if (cs) { cs.material.opacity = 0.4 * w.fade; cs.position.y = 0.045 - w.g.position.y; } } // stays on the ground through a hop
         if (w.ch) {
           // grows in as it arrives and shrinks away as it leaves; walks while it drifts, idles when it stands (near you only)
           const sc = 0.2 + 0.8 * w.fade; w.ch.obj.scale.setScalar(sc); w.ch.obj.visible = w.fade > 0.02;
           if (ctx.here) { ctx.here(tmp); const far = Math.hypot(tmp.x - w.g.position.x, tmp.z - w.g.position.z) > 70;
             if (!far) { const want = w.hop > 0 ? "emote-yes" : d > 0.05 && d < 25 ? "walk" : "idle"; if (want !== w.anim && w.ch.play && !(w.ch.busy && w.ch.busy())) { w.anim = want; w.ch.play(want, want === "emote-yes" ? { once: true } : { speed: 0.8 }); } w.ch.update(dt, t, d > 0.05 ? 0.3 : 0, 0); } }
         }
-        if (w.gone && w.fade <= 0) { arrive(w.g, true); if (w.ch) { freeCh(w.ch); w.ch = null; chars--; } else if (w.loadingCh) w.loadingCh = false; root.remove(w.g); list.delete(k); }
+        if (w.gone && w.fade <= 0) { arrive(w.g, true); if (w.ch) { freeCh(w.ch); w.ch = null; chars--; } else if (w.loadingCh) w.loadingCh = false; root.remove(w.g); const cs = w.g.userData.cs; if (cs) { cs.geometry.dispose(); cs.material.dispose(); } list.delete(k); }
       }
     },
   };
