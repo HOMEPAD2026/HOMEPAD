@@ -26,7 +26,7 @@
 // Local chat, the friends graph (requests, blocks) and private chat: api/_world-chat.mjs.
 // Firestore: worldStats/main { visitors, players } · worldCounted/<wallet> (counted once in players) · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
-import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize } from "./_world-shop.mjs";
+import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize, DUR_MAX, durOf } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
 import { makeChat } from "./_world-chat.mjs";
 import { makeCrew } from "./_world-crew.mjs";
@@ -54,7 +54,9 @@ const cleanItem = (x) => (x && typeof x === "object" && /^[a-z0-9]{4,10}$/.test(
       // a weapon's chosen kind (world-gear3d.js: 0 swords … 4 staff) and a piece's lock
       ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.k) && x.k >= 0 && x.k <= 4 ? { k: x.k } : {}), ...(x.lk ? { lk: 1 } : {}),
       // a weapon's temper stage (world-life.js workbench): 1–5
-      ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.tm) && x.tm >= 1 && x.tm <= 5 ? { tm: x.tm } : {}) } : null);
+      ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.tm) && x.tm >= 1 && x.tm <= 5 ? { tm: x.tm } : {}),
+      // durability left on an Epic or Legendary piece (absent = full; 0 = broken); world-rpg-data.js DUR_MAX
+      ...(DUR_MAX[Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0)))] && Number.isInteger(x.du) && x.du >= 0 && x.du < DUR_MAX[Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0)))] ? { du: x.du } : {}) } : null);
 // a weapon's kind when none was chosen: settled by its id (world-gear3d.js weaponKind, the same hash)
 export const idKind = (id) => { let h = 7; for (const ch of String(id || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 5; };
 const num = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
@@ -316,6 +318,18 @@ export function make(deps) {
         const o = await shop.own(s.wallet), left = (o.rekinds || 0) - (o.rekindsUsed || 0);
         if (left >= now_.length) await setDoc(`worldOwn/${s.wallet}`, { ...o, rekindsUsed: (o.rekindsUsed || 0) + now_.length });
         else for (const it of now_) it.k = before.get(it.id);
+      }
+    }
+    // durability (world-rpg-data.js): wearing down is the game's own business, but a piece that is MORE whole than the last
+    // save had it needs a repair credit (worldOwn.repairIds: a $ARCIRCLE payment or a free repair at the island), one per
+    // piece, used up here; without one the piece keeps its old durability
+    if (old && old.rpg && data.rpg) {
+      const before = new Map(); for (const it of [...Object.values(old.rpg.eq || {}), ...(old.rpg.bag || []), ...(old.rpg.store || [])]) if (it && DUR_MAX[it.r]) before.set(it.id, durOf(it));
+      const up = [...Object.values(data.rpg.eq || {}), ...data.rpg.bag, ...(data.rpg.store || [])].filter((it) => it && DUR_MAX[it.r] && before.has(it.id) && durOf(it) > before.get(it.id));
+      if (up.length) {
+        const o = await shop.own(s.wallet), ids = Array.isArray(o.repairIds) ? o.repairIds : [], used = [];
+        for (const it of up) { if (ids.includes(it.id) && !used.includes(it.id)) used.push(it.id); else if (before.get(it.id) >= DUR_MAX[it.r]) delete it.du; else it.du = before.get(it.id); }
+        if (used.length) await setDoc(`worldOwn/${s.wallet}`, { ...o, repairIds: ids.filter((x) => !used.includes(x)) });
       }
     }
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its

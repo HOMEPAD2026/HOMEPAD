@@ -355,6 +355,7 @@ export function createCombat(ctx) {
   }
   function kill(m) {
     m.dead = 0.001; Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
+    if (rpg.wear) rpg.wear("kill"); // Epic and Legendary weapons wear out: 1 a knock-out (world-rpg.js)
     const p = m.g.position.clone().setY(m.y + 0.4);
     if (VX) VX.shatter(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), { big: m.rank === "boss" ? 2 : m.rank === "elite" ? 1.4 : 1, coins: m.rank === "boss" ? 8 : 3, where: (v) => ctx.here(v) });
     shards(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), m.rank === "boss" ? 40 : 16, m.rank === "boss" ? 10 : 7); flash(p, 0xffffff, m.rank === "boss" ? 8 : 2.6, 0.25); puff(p, 0xffc861, { n: m.rank === "boss" ? 40 : 12, speed: 5, size: 0.3, life: 0.8, grav: 6 });
@@ -1163,6 +1164,7 @@ export function createCombat(ctx) {
   function damage(n) {
     if (resting() || down) return;
     ghostHp = Math.max(ghostHp, hp); hp = Math.max(0, hp - n); calmT = 4; paintVit();
+    if (rpg.wear) rpg.wear("hurt"); // worn armor, helmet, shield and boots wear out, 1 per 3 s of taking damage
     vit.classList.remove("hit"); requestAnimationFrame(() => vit.classList.add("hit"));
     ctx.float("-" + n, tmp2.copy(me).setY(2.6), "#ff5f73", n > maxHp() * 0.2);
     ctx.buzz && ctx.buzz(n > maxHp() * 0.2 ? 60 : 25);

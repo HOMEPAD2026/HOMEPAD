@@ -326,3 +326,22 @@ body.wp .wp-pc .wp-cbt-bag{background:linear-gradient(180deg,#fff,color-mix(in s
 @keyframes wpPcSpin{to{transform:rotate(360deg)}}
 @keyframes wpPcPop{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){body.wp .wp-pc-rays,body.wp .wp-pc-art{animation:none}}
+/* durability (Epic and Legendary gear) and the Magic Forge tab: bars keep the piece's rarity colour, red when low or broken */
+body.wp .wr-tile .wr-du{position:absolute;left:5px;right:5px;bottom:3px;height:4px;border-radius:3px;background:rgba(0,0,0,.55);overflow:hidden;pointer-events:none}
+body.wp .wr-tile .wr-du::before,body.wp .wr-dura i::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--du,100%);border-radius:inherit;background:var(--rc,#b48cff)}
+body.wp .wr-tile .wr-du.low::before,body.wp .wr-dura.low i::before{background:#ff9f43}
+body.wp .wr-tile .wr-du.brk::before,body.wp .wr-dura.brk i::before{background:#ff4d6d}
+body.wp .wr-tile .wr-brk{position:absolute;top:3px;right:3px;padding:1px 4px;border-radius:6px;background:#ff4d6d;color:#fff;font:700 9px/1.2 system-ui,sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:.04em;pointer-events:none}
+body.wp .wr-tile:has(.wr-du.brk) img,body.wp .wr-tile:has(.wr-du.brk) svg{filter:grayscale(.85) brightness(.7)}
+body.wp .wr-dura{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+body.wp .wr-dura span{opacity:.75}
+body.wp .wr-dura i{position:relative;flex:1;height:6px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden}
+body.wp .wr-dura b{font-variant-numeric:tabular-nums}
+body.wp .wr-dura .wr-brk{padding:1px 6px;border-radius:6px;background:#ff4d6d;color:#fff;font:700 10px/1.3 system-ui,sans-serif;font-style:normal;text-transform:uppercase}
+body.wp .wr-reps{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+body.wp .wr-rep{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:start;padding:10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--rc) 55%,transparent);background:rgba(8,14,24,.55)}
+body.wp .wr-rep .wr-tile{width:64px;height:64px;pointer-events:none}
+body.wp .wr-rep h4{margin:0;font-size:14px;color:var(--rc)}
+body.wp .wr-rep small{opacity:.75}
+body.wp .wr-rep .wr-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+body.wp .wr-rep.brk{border-color:#ff4d6d}
