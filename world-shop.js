@@ -143,7 +143,7 @@ export function createShop(ctx) {
       inflight.add(x.tx);
       try {
         const r = await post({ action: "world-pay-confirm", ...s, quote: x.quote, tx: x.tx });
-        if (r.status === 202) continue;
+        if (r.status === 202 || r.status === 429 || r.status >= 500) continue; // not confirmed yet, or a server hiccup: keep it
         unpend(x.tx);
         if (!r.ok) { refresh(); continue; } // 409: already granted (the answer was lost) — sync what we own
         own = r.j.own; ctx.onOwn(own); ctx.onBought(x.item); Snd.win();
@@ -339,7 +339,7 @@ export function createShop(ctx) {
       for (let i = 0; i < 40; i++) {
         await new Promise((r) => setTimeout(r, i ? 3000 : 1500));
         const r = await post({ action: "world-pay-confirm", ...s, quote: q.j.quote, tx });
-        if (r.status === 202) continue;
+        if (r.status === 202 || r.status === 429 || r.status >= 500) continue; // not confirmed yet, or a server hiccup: keep it pending
         unpend(tx);
         if (!r.ok) { status(r.j.error || T("Couldn't confirm the payment")); return; }
         own = r.j.own; ctx.onOwn(own); status(""); payAnim(q.j.tokens); if (card) bought(id, card); return true;
