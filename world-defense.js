@@ -33,6 +33,9 @@ export function createDefense(ctx) {
   let on = false, phase = "idle", wave = 1, cleared = 0, kills = 0, scrap = 0, coreHp = CORE_HP, timer = 0, queue = [], cur = null, wt = 0, acc = 0, flash = 0;
   let lost = false, run = null, t0 = 0, lastStart = 0, seed = (Math.random() * 4294967296) >>> 0, offline = false, result = null, sel = -1, hurtSnd = 0;
   const towers = new Array(ARENA.pads).fill(null), hidden = [];
+  // where the arena stands (ctx.origin: the Game Village clearing; the plaza when absent). Meshes sit in root at O;
+  // the game logic (pads, towers, the Core, spawns) works in planet coordinates, so it adds O
+  const O = ctx.origin || { x: 0, z: 0 };
   let root = null, dome = null, geo = null, ui = null, padEls = [], padBtns = [], gates = [];
 
   // ---------------- the arena: what stays, what goes ----------------
@@ -45,14 +48,14 @@ export function createDefense(ctx) {
   const mat = (c, e = 1, o = {}) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: e, roughness: 0.45, metalness: 0.2, ...o });
   const add = (m) => { geo.push(m.geometry); return m; };
   function build() {
-    geo = []; root = new THREE.Group(); root.name = "defense"; planet.add(root);
+    geo = []; root = new THREE.Group(); root.name = "defense"; root.position.set(O.x, 0, O.z); planet.add(root);
     const baseM = new THREE.MeshStandardMaterial({ color: 0x25324a, roughness: 0.6, metalness: 0.4 });
     // the pads
     for (let i = 0; i < ARENA.pads; i++) {
       const p = padAt(i), g = new THREE.Group(); g.position.set(p.x, 0.05, p.z);
       const ring = add(new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.07, 8, 32), mat(0x35d8d0, 1.6))); ring.rotation.x = Math.PI / 2;
       const disc = add(new THREE.Mesh(new THREE.CircleGeometry(0.9, 28), new THREE.MeshBasicMaterial({ color: 0x35d8d0, transparent: true, opacity: 0.16, depthWrite: false }))); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.02;
-      g.add(ring, disc); g.userData = { ring, disc }; root.add(g); padEls[i] = { g, x: p.x, z: p.z };
+      g.add(ring, disc); g.userData = { ring, disc }; root.add(g); padEls[i] = { g, x: p.x + O.x, z: p.z + O.z };
     }
     // the four gates at the plaza's edge, facing the Core
     for (let i = 0; i < 4; i++) {
@@ -65,6 +68,8 @@ export function createDefense(ctx) {
     // the wall of light at the plaza's edge, and the Core's dome (it flashes when hit)
     const wall = add(new THREE.Mesh(new THREE.CylinderGeometry(ARENA.r + 0.5, ARENA.r + 0.5, 1.1, 64, 1, true), new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }))); wall.position.y = 0.55; root.add(wall);
     dome = add(new THREE.Mesh(new THREE.SphereGeometry(ARENA.coreR, 28, 14, 0, TAU, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }))); root.add(dome);
+    // away from the plaza there's no fountain to defend: a crystal Core stands in the middle
+    if (ctx.origin) { const cm = mat(0x38d8ff, 1.4), c = add(new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 0), cm)); c.position.y = 2.2; c.scale.y = 1.6; const base = add(new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2, 0.6, 8), baseM)); base.position.y = 0.3; root.add(c, base); root.userData.core = c; }
     root.userData.baseM = baseM;
   }
   function teardown() {
@@ -127,17 +132,17 @@ export function createDefense(ctx) {
     tw.hp -= (6 + wave * 1.5) * (m.rank === "boss" ? 4 : 1); paintPad(tw.i);
     if (tw.hp <= 0) { clearTower(tw.i); ctx.toast(T("The Barrier broke")); if (parts) parts.burst(tmpA.set(tw.x, 1, tw.z), 0x35d8d0, { n: 18 }); Snd.pop && Snd.pop(); }
   }
-  const wall = (p) => { const pr = Math.hypot(p.x, p.z); for (const tw of towers) { if (!tw || tw.id !== "barrier") continue; if (Math.hypot(p.x - tw.x, p.z - tw.z) < 1.9 && pr > Math.hypot(tw.x, tw.z) - 0.2) return tw.goal; } return null; };
+  const wall = (p) => { const pr = Math.hypot(p.x - O.x, p.z - O.z); for (const tw of towers) { if (!tw || tw.id !== "barrier") continue; if (Math.hypot(p.x - tw.x, p.z - tw.z) < 1.9 && pr > Math.hypot(tw.x - O.x, tw.z - O.z) - 0.2) return tw.goal; } return null; };
   function coreHit(n) {
     coreHp = Math.max(0, coreHp - n); flash = 1; paintHud();
     if (Snd.hurt && performance.now() - hurtSnd > 400) { hurtSnd = performance.now(); Snd.hurt(); }
     if (coreHp <= 0 && phase !== "over") lost = true; // ended from the loop (this runs inside the scammers' own update)
   }
-  const TGT = { x: 0, z: 0, r: ARENA.coreR, hit: (m) => coreHit(m.rank === "boss" ? cur.bossDmg : cur.coreDmg), wall, dead: () => { kills++; scrap += killScrap(cur ? cur.w : 1); paintHud(); } };
+  const TGT = { x: O.x, z: O.z, r: ARENA.coreR, hit: (m) => coreHit(m.rank === "boss" ? cur.bossDmg : cur.coreDmg), wall, dead: () => { kills++; scrap += killScrap(cur ? cur.w : 1); paintHud(); } };
 
   // ---------------- the run ----------------
   function spawn(e) {
-    const g = gateAt(e.g), lat = (Math.random() - 0.5) * 1.6, p = new V3(g.x - Math.sin(g.a) * lat, 0, g.z + Math.cos(g.a) * lat), bi = Math.max(0, cur.w / 5 - 1) % BOSSES.length;
+    const g = gateAt(e.g), lat = (Math.random() - 0.5) * 1.6, p = new V3(O.x + g.x - Math.sin(g.a) * lat, 0, O.z + g.z + Math.cos(g.a) * lat), bi = Math.max(0, cur.w / 5 - 1) % BOSSES.length;
     const o = { type: e.t, lv: cur.w, at: p, hp: e.boss ? cur.bossHp : cur.hp, def: cur.def, spd: cur.spd * (e.boss ? 0.8 : 1), tgt: TGT };
     if (e.boss) { o.rank = "boss"; o.boss = BOSSES[bi | 0]; }
     return combat.defense.spawn(o);
@@ -159,7 +164,7 @@ export function createDefense(ctx) {
     if (on) return;
     on = true; phase = "build"; wave = 1; cleared = 0; kills = 0; scrap = START_SCRAP; coreHp = CORE_HP; timer = BUILD_S; result = null; run = null; offline = false; sel = -1; towers.fill(null);
     t0 = Date.now(); lastStart = 0; lost = false; seed = (Math.random() * 4294967296) >>> 0;
-    hideWorld(); build(); combat.defense.on(true); ctx.setArena(ARENA.r - 0.4); ctx.place(0, 8.6); mountUi(); paintHud(); paintPads();
+    hideWorld(); build(); combat.defense.on(true); ctx.setArena(ARENA.r - 0.4); ctx.place(O.x, O.z + 8.6); mountUi(); paintHud(); paintPads();
     const s = ctx.sess();
     if (s) { try { const r = await ctx.post({ action: "world-defense-start", ...s }); if (r.ok && r.j && r.j.runId) { run = r.j; seed = r.j.seed >>> 0; t0 = Date.now(); } else offline = true; } catch { offline = true; } } else offline = true;
     if (!on) return; if (phase === "build") paintHud();
@@ -179,7 +184,7 @@ export function createDefense(ctx) {
   }
   function exit() {
     if (!on) return;
-    on = false; phase = "idle"; combat.defense.on(false); showWorld(); teardown(); unmountUi(); ctx.setArena(0); ctx.place(1.2, 7.6); if (ctx.leave) ctx.leave();
+    on = false; phase = "idle"; combat.defense.on(false); showWorld(); teardown(); unmountUi(); ctx.setArena(0); if (ctx.exit) ctx.exit(); else ctx.place(1.2, 7.6); if (ctx.leave) ctx.leave();
   }
   async function quit() { if (!on) return; if (phase === "over") { exit(); return; } finish(true); }
 
@@ -273,6 +278,7 @@ export function createDefense(ctx) {
   function tick(dt, t) {
     if (!on) return;
     project();
+    if (root && root.userData.core) root.userData.core.rotation.y += dt * 0.8;
     for (const tw of towers) { if (!tw) continue; const top = tw.mesh.userData.top, au = tw.mesh.userData.aura;
       if (tw.id === "frost") { top.rotation.y += dt * 1.2; if (au) au.material.opacity = 0.25 + Math.sin(t * 3) * 0.1; }
       else if (tw.id === "flame") top.scale.set(1 + Math.sin(t * 17) * 0.08, 1 + Math.sin(t * 23) * 0.12, 1 + Math.sin(t * 17) * 0.08);
