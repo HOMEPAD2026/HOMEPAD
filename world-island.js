@@ -83,7 +83,8 @@ export function createIsland(ctx) {
   const fixedMat = (m) => { let c = fixedMats.get(m.uuid); if (!c) fixedMats.set(m.uuid, (c = fixedPatch(m.clone()))); return c; };
   function modelParts(pack, name, maxH) {
     const src = furnPacks[pack] && furnPacks[pack].models.get(name); if (!src) return null;
-    const bx = new THREE.Box3().setFromObject(src), sz = bx.getSize(new V3()), c = bx.getCenter(new V3()), k = Math.min(0.92 / Math.max(0.01, sz.x, sz.z), maxH / Math.max(0.01, sz.y));
+    // 1.5× the cell (players: a bed or a chair looked like a toy next to the character); it may reach over its neighbours
+    const FS = 1.5, bx = new THREE.Box3().setFromObject(src), sz = bx.getSize(new V3()), c = bx.getCenter(new V3()), k = Math.min(0.92 * FS / Math.max(0.01, sz.x, sz.z), maxH * FS / Math.max(0.01, sz.y));
     const base = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -bx.min.y, -c.z)), by = new Map();
     src.traverse((o) => { if (!o.isMesh) return; const m = Array.isArray(o.material) ? o.material[0] : o.material; if (!by.has(m)) by.set(m, []); by.get(m).push(o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(base, o.matrixWorld))); });
     return [...by].map(([m, gs]) => [fixedMat(m), gs]);
@@ -233,6 +234,8 @@ export function createIsland(ctx) {
     }
     function write(m, i, b, lift = 0, sq = 1) {
       const [cx, cz] = center(b.x, b.z);
+      // furniture on a thin floor (a plate, a tile) sits on its top instead of a whole cell up — it used to look like it floated
+      if (TYPES[b.t].cat === 11 && b.y > 0) { const u = occ.get(key(b.x, b.y - 1, b.z)); if (u && TYPES[u.t].top < 1) lift += TYPES[u.t].top - 1; }
       dummy.position.set(cx, b.y + lift, cz); dummy.rotation.set(0, -b.r * Math.PI / 2, 0);
       if (sq <= 0) dummy.scale.setScalar(0.0001); else dummy.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
       dummy.updateMatrix();
