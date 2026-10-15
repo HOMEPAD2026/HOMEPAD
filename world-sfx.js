@@ -58,7 +58,7 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
   const can = () => !!ac && !!S.sound && !hidden() && V.n < MAXV;
   const gap = (k, ms) => { const t = now(); if (t - (gaps[k] || -1e9) < ms) return false; gaps[k] = t; return true; };
   // the music dips under a fanfare (world-music.js duck)
-  const duck = (d, secs) => { try { const m = music(); m && m.duck && m.duck(d, secs); } catch { /* no music */ } };
+  const duck = (d, secs) => { if (!ac || !S.sound || hidden()) return; try { const m = music(); m && m.duck && m.duck(d, secs); } catch { /* no music */ } };
   function voice(src) { const v = V; v.n++; src.onended = () => { v.n--; }; if (!quiet) lastAt = now(); }
   // one note: an attack, an exponential fall, an optional glide (to) and low-pass (lp)
   function tone(f, dur, { type = "sine", v = 0.18, to = 0, at = 0, a = 0.012, lp = 0 } = {}) {
