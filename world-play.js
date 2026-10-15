@@ -2888,7 +2888,7 @@ quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
   petActive: () => (pet ? pet.active() : ""), petTitle: (id) => (pet ? pet.title(id) : id), petLv: (id) => (pet ? pet.level(id) : 1),
   petHTML: () => (pet ? pet.html() : ""), petClick: (b) => (pet ? pet.click(b) : false),
   shareCard: (o) => shareCard(o),
-  bountyReady: () => { const p = partyUI(), f = p && p.full && p.full(); if (!f) return 0; return (f.bounties || []).filter((b) => b.done && !b.claimed).length + (f.party && f.party.done && !f.party.claimed && f.party.mine >= f.party.min ? 1 : 0); }, // the Log dot counts ready bounties too
+  bountyReady: () => { const p = partyUI(), f = p && p.full && p.full(); if (!f || (f.next && f.next <= Date.now())) return 0; return (f.bounties || []).filter((b) => b.done && !b.claimed).length + (f.party && f.party.done && !f.party.claimed && f.party.mine >= f.party.min ? 1 : 0); }, // the Log dot counts ready bounties too
   bountyHTML: () => (partyUI() ? partyUI().bountyHTML() : ""), bountyLoad: () => partyUI() && partyUI().loadFull(), bountyClick: (b) => !!partyUI() && partyUI().click(b),
 });
 rpg.setLog(quests);
