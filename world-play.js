@@ -801,6 +801,7 @@ addEventListener("blur", () => { keys.clear(); jumpDown = false; });
 const joyEl = $("wp-joy"), knob = joyEl.querySelector("i");
 let downAt = null, hoverXY = null, pinch = null;
 const JOYMAX = document.documentElement.classList.contains("wp-pcphone") ? 118 : 56;
+const TOUCHK = JOYMAX / 56; // the phone layout is scaled down ~0.4, so tap slop and the pinch dead zone grow with it
 // the phone frame on a computer (b416): the mouse works the stick like a thumb (press on the left half and drag)
 const mouseStick = window.__arcFrame === "mobile";
 const touches = new Map(); // non-stick touches: two of them pinch to zoom
@@ -830,7 +831,7 @@ cv.addEventListener("pointermove", (e) => {
   if (touches.has(e.pointerId)) { touches.get(e.pointerId).x = e.clientX; touches.get(e.pointerId).y = e.clientY; }
   if (pinch && touches.size === 2) {
     const [a, b] = [...touches.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
-    if (!pinch.live && Math.abs(d - pinch.d) < 18) return; // a dead zone: fingers resting still don't zoom
+    if (!pinch.live && Math.abs(d - pinch.d) < 18 * TOUCHK) return; // a dead zone: fingers resting still don't zoom
     if (!pinch.live) { pinch.live = true; pinch.d = d; pinch.cd = camGoal; }
     camGoal = THREE.MathUtils.clamp(pinch.cd * pinch.d / Math.max(20, d), 0.6, mode === "island" ? 3 : 1.9); return;
   }
@@ -849,7 +850,7 @@ cv.addEventListener("pointermove", (e) => {
 const lift = (e) => {
   touches.delete(e.pointerId); if (touches.size < 2) pinch = null;
   // a short tap without a drag is a build action on your island
-  if (e.type === "pointerup" && downAt && downAt.id === e.pointerId && mode === "island" && island.building() && !frozen && e.timeStamp - downAt.t < 450 && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 9) island.tap(e);
+  if (e.type === "pointerup" && downAt && downAt.id === e.pointerId && mode === "island" && island.building() && !frozen && e.timeStamp - downAt.t < 450 && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 9 * TOUCHK) island.tap(e);
   downAt = null;
   if (joy && e.pointerId === joy.id) { joy = null; joyEl.classList.remove("on"); }
   if (look && e.pointerId === look.id) look = null;
@@ -1861,16 +1862,23 @@ function paintQuests() {
   const open = shown.filter((q) => !P.quests.includes(q.id));
   $("wp-quests-n").textContent = `${shown.length - open.length}/${shown.length}`;
   const doneRow = justDone && performance.now() - justDone.at < 3000 ? `<li class="done-now"><i></i><span>${esc(justDone.t)}</span></li>` : "";
-  $("wp-quests-l").innerHTML = doneRow + (open.slice(0, 3).map((q, i) => `<li${i === 0 ? ' class="cur"' : ""}><i></i><span>${esc(T(q.t))}</span>${i === 0 ? '<em class="wp-qdist" data-no-i18n></em>' : ""}${q.xp ? `<small>+${q.xp} XP</small>` : ""}</li>`).join("") || `<li class="done"><span>${esc(T("All quests done. More soon."))}</span></li>`);
+  $("wp-quests-l").innerHTML = doneRow + (open.slice(0, 3).map((q, i) => `<li${i === 0 ? ` class="cur" role="button" tabindex="0" data-q="${q.id}"` : ""}><i></i><span>${esc(T(q.t))}</span>${i === 0 ? '<em class="wp-qdist" data-no-i18n></em>' : ""}${q.xp ? `<small>+${q.xp} XP</small>` : ""}</li>`).join("") || `<li class="done"><span>${esc(T("All quests done. More soon."))}</span></li>`);
   if (doneRow) setTimeout(paintQuests, 3100);
   const cur = open[0], tg = cur && cur.target();
   if (tg !== questTarget) { if (beacon.parent) beacon.parent.remove(beacon); questTarget = tg; if (tg) tg.add(beacon); }
 }
 // the quest card's title folds the card; the book button beside it opens the Adventure log (one tap used to do both)
 $("wp-quests-log").addEventListener("click", () => { closeAll(); if (rpg && quests) rpg.show("log"); });
+// the current quest row: tap to ping its marker, or (for "Connect your wallet", which has no place) to open sign-in
+const questAct = (e) => {
+  const li = e.target.closest("li.cur"); if (!li || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return; if (e.type === "keydown") e.preventDefault();
+  if (li.dataset.q === "wallet" && !addr()) { if (auth.hidden && !frozen) openAuth(); return; }
+  if (questTarget && !qm.hidden) { qm.classList.remove("ping"); void qm.offsetWidth; qm.classList.add("ping"); setTimeout(() => qm.classList.remove("ping"), 900); }
+};
+$("wp-quests-l").addEventListener("click", questAct); $("wp-quests-l").addEventListener("keydown", questAct);
 $("wp-quests-h").addEventListener("click", (e) => { const q = $("wp-quests"); const o = q.classList.toggle("closed"); e.currentTarget.setAttribute("aria-expanded", String(!o)); try { localStorage.setItem("arc.world.qopen", o ? "0" : "1"); } catch { /* private */ } });
-// on a phone the quest list starts folded to its title (tap to open); the choice is remembered
-(() => { let open = null; try { open = localStorage.getItem("arc.world.qopen"); } catch { /* private */ } if (open === "0" || (open === null && coarse)) { $("wp-quests").classList.add("closed"); $("wp-quests-h").setAttribute("aria-expanded", "false"); } })();
+// on a phone the quest list starts folded to its title once "Getting started" is done (tap to open); the choice is remembered
+(() => { let open = null; try { open = localStorage.getItem("arc.world.qopen"); } catch { /* private */ } if (open === "0" || (open === null && coarse && (P.tut | 0) >= 7)) { /* 7 = TUT.length (declared further down): a newcomer keeps the list open */ $("wp-quests").classList.add("closed"); $("wp-quests-h").setAttribute("aria-expanded", "false"); } })();
 // daily goals (Seoul day): open two shops, jump ten times, walk 300 m — all three keep the streak going
 const seoulDay = (d = new Date()) => new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
 const DAILY = [{ id: "shops", t: "Open 2 shops", n: 2 }, { id: "jumps", t: "Jump 10 times", n: 10 }, { id: "walk", t: "Walk 300 m", n: 300 }];
@@ -2373,6 +2381,7 @@ function paintHud() {
 const TUT = ["Move with W A S D, or the stick on the left", "Jump with Space, or the arrow button", "Follow the gold light to the Launchpad",
   "Knock out the training scammer: J, or the red button", "Open your character: I, or the bag button", "Open the Adventure log: L — today's chest is there", "Visit your own island through the green gate"];
 const TUT_XP = [0, 0, 0, 25, 15, 15, 30];
+let tutT = 0;
 function tutorialStep(done) {
   // steps can be done in any order (jumping before walking counts); the hint shows the first one not done yet
   if (done >= 0) {
@@ -2381,12 +2390,13 @@ function tutorialStep(done) {
     let n = 0; while (n < TUT.length && P.tutBits & (1 << n)) n++;
     if (n === P.tut) { save(); return; }
     P.tut = n; save();
-    if (n >= TUT.length) { checkQuests(); setTimeout(() => { toast(T("You know your way around. Have fun out there!")); burst(0x39ff88); }, 600); }
+    if (n >= TUT.length) { checkQuests(); setTimeout(() => { toast(T("You know your way around. Have fun out there!")); burst(0x39ff88); }, 600); if (!P.tutAgain) askSave(8); }
   }
   const h = $("wp-hint");
   if (P.tut >= TUT.length) { h.hidden = true; return; }
-  // b419: the "Getting started" banner isn't shown (it covered the HUD at the top); the steps still count and pay XP
-  h.hidden = true;
+  // b419 hid the top banner (it covered the HUD); now a small chip near the bottom that fades after 8 s
+  h.innerHTML = `<small>${P.tut + 1}/${TUT.length}</small>${esc(T(TUT[P.tut]))}`; h.hidden = false; h.classList.remove("on"); void h.offsetWidth; h.classList.add("on");
+  clearTimeout(tutT); tutT = setTimeout(() => { h.hidden = true; }, 8000);
   // the training fight: a weak scammer shows up a few steps away
   // (tried again until the scammer robots have loaded: on a slow connection they come a little after the town)
   const train = () => { if (P.tut !== 3 || mode !== "hub" || !combat || combat.state().mobs.length) return; if (!combat.spawnNear(6, { lv: 1, free: true })) setTimeout(train, 1500); };
@@ -2398,6 +2408,13 @@ function openAuth() {
   auth.hidden = false; frozen = true; $("wp-auth-err").hidden = true;
   paintAuthCount();
   setTimeout(() => $("wp-auth-go").focus({ preventScroll: true }), 60);
+}
+// a guest who finished "Getting started" is asked once to save to their wallet (their progress comes with them);
+// waits for a quiet moment in town, gives up after a few tries
+function askSave(tries) {
+  if (sess() || P.saveAsk || tries <= 0) return;
+  if (!auth.hidden || frozen || mode !== "hub") { setTimeout(() => askSave(tries - 1), 5000); return; }
+  setTimeout(() => { if (sess() || P.saveAsk || !auth.hidden || frozen || mode !== "hub") return askSave(tries - 1); P.saveAsk = 1; save(); openAuth(); }, 2600);
 }
 function closeAuth() { auth.hidden = true; frozen = false; P.authSeen = true; save(); paintAcct(); if (!P.char) openMake(); else { setAvatar(P.char); tutorialStep(-1); maybeGuide(); } }
 $("wp-auth-go").addEventListener("click", async (e) => {
@@ -3442,6 +3459,14 @@ const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), base = new TH
 let animState = "", npcT = 0, introOn = false, landUntil = 0, hoverT = 0, idleT = 0, idleNext = 7, turnNow = 0, afk = false, afkYaw = 0;
 // any input at all (a mouse move too) wakes you from sitting idle; the pad's sticks count through lastInput
 let actAt = performance.now(); for (const ev of ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"]) addEventListener(ev, () => { actAt = performance.now(); }, { passive: true, capture: true });
+// phones: keep the screen awake while playing (long fishing waits, Defense waves); let it sleep after 5 idle minutes
+let wl = null, wlAsk = false;
+const wlGet = async () => { if (wl || wlAsk || document.hidden) return; wlAsk = true; try { wl = await navigator.wakeLock.request("screen"); wl.addEventListener("release", () => { wl = null; }); } catch { wl = null; } wlAsk = false; };
+if (coarse && navigator.wakeLock) {
+  addEventListener("pointerdown", wlGet, { passive: true });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && performance.now() - actAt < 300000) wlGet(); });
+  setInterval(() => { if (wl && performance.now() - actAt > 300000) { wl.release().catch(() => {}); wl = null; } }, 30000);
+}
 // stepping into the portal: drawn in (smaller, spinning, toward its middle), the screen fills with light and the view
 // widens, then off to the platform (0.6 s); a tap or a key goes straight there. Back from it (bfcache), all is undone
 const PULL_MS = 620; let pull = null;

@@ -36,7 +36,7 @@
     var el = document.createElement("div"); el.className = "wp-shell";
     el.innerHTML = '<div class="wp-shell-bar" role="toolbar" aria-label="' + T.bar + '"><div class="wp-shell-seg">' +
       ["full", "window", "mobile"].map(function (v) { return '<button type="button" data-view="' + v + '" aria-pressed="' + (v === V) + '" title="' + T[v] + '" aria-label="' + T[v] + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[v] + "</svg></button>"; }).join("") +
-      '</div></div><div class="wp-shell-stage"><div class="wp-shell-box' + (V === "mobile" ? " phone" : "") + '"><iframe title="ARCIRCLE World" allow="fullscreen; autoplay; clipboard-write; web-share"></iframe></div></div>';
+      '</div></div><div class="wp-shell-stage"><div class="wp-shell-box' + (V === "mobile" ? " phone" : "") + '"><iframe title="ARCIRCLE World" allow="fullscreen; autoplay; clipboard-write; web-share; screen-wake-lock"></iframe></div></div>';
     document.body.appendChild(el);
     var fr = el.querySelector("iframe"), box = el.querySelector(".wp-shell-box");
     function fit() {

@@ -8925,6 +8925,7 @@
     "Signing in saves your character and progress to your wallet, so you can carry on from any device. It's a free signature: it costs nothing and moves nothing.": "로그인하면 캐릭터와 진행 상황이 지갑에 저장돼 어느 기기에서든 이어 할 수 있어요. 무료 서명이라 비용도 없고 아무것도 옮겨지지 않아요.",
     "Sign in with wallet": "지갑으로 로그인",
     "Play as a guest": "게스트로 플레이",
+    "Playing as a guest? Everything you have done so far comes with you.": "게스트로 플레이 중인가요? 지금까지의 진행 상황이 그대로 옮겨져요.",
     "Take photo": "사진 찍기",
     "Exit photo mode": "사진 모드 끝내기",
     "Your photo": "내 사진",

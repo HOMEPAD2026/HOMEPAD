@@ -331,7 +331,7 @@ body.wp .wr-tile .wr-du{position:absolute;left:5px;right:5px;bottom:3px;height:4
 body.wp .wr-tile .wr-du::before,body.wp .wr-dura i::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--du,100%);border-radius:inherit;background:var(--rc,#b48cff)}
 body.wp .wr-tile .wr-du.low::before,body.wp .wr-dura.low i::before{background:#ff9f43}
 body.wp .wr-tile .wr-du.brk::before,body.wp .wr-dura.brk i::before{background:#ff4d6d}
-body.wp .wr-tile .wr-brk{position:absolute;top:3px;right:3px;padding:1px 4px;border-radius:6px;background:#ff4d6d;color:#fff;font:700 9px/1.2 system-ui,sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:.04em;pointer-events:none}
+body.wp .wr-tile .wr-brk{position:absolute;top:3px;right:3px;padding:1px 4px;border-radius:6px;background:#ff4d6d;color:#fff;font:700 10px/1.2 system-ui,sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:.04em;pointer-events:none}
 body.wp .wr-tile:has(.wr-du.brk) img,body.wp .wr-tile:has(.wr-du.brk) svg{filter:grayscale(.85) brightness(.7)}
 body.wp .wr-dura{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
 body.wp .wr-dura span{opacity:.75}

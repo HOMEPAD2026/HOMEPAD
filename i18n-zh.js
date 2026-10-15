@@ -9095,6 +9095,7 @@
     "Signing in saves your character and progress to your wallet, so you can carry on from any device. It's a free signature: it costs nothing and moves nothing.": "登录后，角色和进度会保存到你的钱包，任何设备都能继续。这只是免费签名：不花钱，也不转移任何资产。",
     "Sign in with wallet": "用钱包登录",
     "Play as a guest": "以访客身份游玩",
+    "Playing as a guest? Everything you have done so far comes with you.": "正以访客身份游玩？到目前为止的进度都会一起保留。",
     "Take photo": "拍照",
     "Exit photo mode": "退出拍照模式",
     "Your photo": "你的照片",

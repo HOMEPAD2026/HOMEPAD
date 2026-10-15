@@ -1251,7 +1251,10 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wp-quests.closed ol{display:none}
 .wp-quests li{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;line-height:1.35;color:rgba(222,233,244,.7)}
 .wp-quests li i{flex:none;width:10px;height:10px;margin-top:3px;border-radius:3px;border:1.5px solid rgba(255,255,255,.35)}
-.wp-quests li.cur{color:#fff}
+.wp-quests li.cur{color:#fff;cursor:pointer}
+.wp-quests li.cur:focus-visible{outline:2px solid #ffc861;outline-offset:2px;border-radius:6px}
+.wp-qmark.ping svg{animation:wpPing .45s 2}
+@keyframes wpPing{50%{scale:1.6}}
 .wp-quests li.cur i{border-color:#ffc861;background:rgba(255,200,97,.25);box-shadow:0 0 8px rgba(255,200,97,.5)}
 .wp-quests li span{flex:1}
 .wp-quests li small{font:600 10.5px var(--f-num);color:#ffc861;white-space:nowrap}
@@ -1325,7 +1328,7 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wp-qmark[hidden]{display:none}
 .wp-qmark svg{width:22px;height:22px;fill:#ffc861;filter:drop-shadow(0 0 6px rgba(255,200,97,.7));transition:transform .15s}
 .wp-qmark b{padding:2px 7px;border-radius:999px;background:rgba(10,14,22,.8);font:700 11px var(--f-num);color:#ffc861}
-.wp-hint{position:fixed;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 58px);z-index:21;transform:translateX(-50%);padding:9px 16px;border-radius:999px;background:rgba(10,14,22,.86);border:1px solid rgba(53,216,208,.45);font:600 13.5px var(--f-ui);color:#e6fbf8;white-space:nowrap;pointer-events:none}
+.wp-hint{position:fixed;left:50%;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 34px);z-index:21;translate:-50% 0;padding:9px 16px;border-radius:999px;background:rgba(10,14,22,.86);border:1px solid rgba(53,216,208,.45);font:600 13.5px var(--f-ui);color:#e6fbf8;white-space:nowrap;pointer-events:none}
 .wp-hint[hidden]{display:none}
 .wp-hint.on{animation:wpRise .35s cubic-bezier(.2,1.2,.4,1)}
 .wp-flycard{position:fixed;left:0;top:0;z-index:47;width:22px;height:28px;margin:-14px 0 0 -11px;border-radius:5px;background:linear-gradient(160deg,#ffe7a8,#ffc861);box-shadow:0 0 16px rgba(255,200,97,.8);transition:transform .6s cubic-bezier(.5,0,.3,1),opacity .6s;pointer-events:none}
@@ -1341,6 +1344,7 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wp-auth-err[hidden],.wp-auth-count[hidden]{display:none}
 .wp-auth-card .wp-cta{width:100%;margin-top:8px}
 .wp-auth-guest{margin-top:12px;font-size:13.5px}
+.wp-auth-keep{margin:6px 0 0!important;font-size:12.5px!important;color:#8fe9df!important}
 .wp-auth-count{margin:12px 0 0!important;font-size:12px!important;color:rgba(222,233,244,.55)!important}
 body.wp-photo .wp-hud,body.wp-photo .wp-feed,body.wp-photo .wp-prompt,body.wp-photo .wp-acts,body.wp-photo .wp-keys,body.wp-photo .wp-qmark,body.wp-photo .wp-hint,body.wp-photo .wp-toast{display:none!important}
 .wp-photo-bar{position:fixed;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 8px);z-index:30;transform:translateX(-50%);display:flex;gap:8px}
@@ -1371,7 +1375,7 @@ body.wp-photo .wp-hud,body.wp-photo .wp-feed,body.wp-photo .wp-prompt,body.wp-ph
   .wp-hint{top:auto;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 70px);font-size:12px;white-space:normal;max-width:80vw;text-align:center}
   .wp-online{height:24px;font-size:11px}
 }
-@media (prefers-reduced-motion:reduce){.wp-hint.on,.wp-online i,.wp-cards.bump{animation:none}.wp-flycard{transition:none}}
+@media (prefers-reduced-motion:reduce){.wp-qmark.ping svg{animation:none;scale:1.3}.wp-hint.on,.wp-online i,.wp-cards.bump{animation:none}.wp-flycard{transition:none}}
 
 /* ---- v16: the dive, My Island, build mode (world-island.js) ---- */
 .wp-veil{position:fixed;inset:0;z-index:45;pointer-events:none;opacity:0;transition:opacity .45s ease;background:radial-gradient(circle at 50% 58%,#fff 0%,#eef6fb 38%,#bfe0f2 100%)}
@@ -2355,6 +2359,7 @@ html.wp-pcphone .wc-bosscard{top:30%}
 .wp-hint small{margin-right:8px;padding:2px 8px;border-radius:999px;background:rgba(53,216,208,.18);color:#8fe9df;font:800 11.5px var(--f-ui)}
 html.wp-pcphone .wp-hint{font-size:24px;padding:14px 26px}
 html.wp-pcphone .wp-hint small{font-size:20px}
+@media (pointer:coarse){html.wp-pcphone .wp-hint{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 300px);white-space:normal;max-width:70vw;text-align:center}} /* above the dock and the stick */
 .wc-banner.danger{--zc:#ff4d6d!important}
 .wc-banner.danger em{color:#ff8fa0}
 .wc-dead-tip{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(255,200,97,.1);border:1px solid rgba(255,200,97,.35);font-size:13px;line-height:1.45;color:#ffe2a8;text-align:left}
@@ -3308,7 +3313,7 @@ html.wp-pcphone .wp-lvup-st{font-size:20px}
 body.wc-fight .wp-quests ol{display:none}
 body.wc-fight .wp-quests{opacity:.75}
 /* b387: Settings → Larger text (the HUD and the windows a size up) and colour-blind friendly colours */
-html.wp-big .wp-hud,html.wp-big .wr-card,html.wp-big .wa-sheet,html.wp-big .wp-mapsheet .wp-card,html.wp-big .wp-feed,html.wp-big .wp-toast,html.wp-big .wc-dead-card,html.wp-big .wp-quests,html.wp-big .wc-boss{zoom:1.15}
+html.wp-big .wp-hud,html.wp-big .wr-card,html.wp-big .wa-sheet,html.wp-big .wp-mapsheet .wp-card,html.wp-big .wp-feed,html.wp-big .wp-toast,html.wp-big .wc-dead-card,html.wp-big .wp-quests,html.wp-big .wc-boss,html.wp-big .wi-sheet .wi-card,html.wp-big .wd-res .wd-card,html.wp-big .wp-cbt-card{zoom:1.15}
 html.wp-cb .wc-v.hp span{color:#ffae5a}
 html.wp-cb .wc-v.hp i b{background:linear-gradient(180deg,#ffc27a,#ff8a1e)}
 html.wp-cb .wc-boss u{background:linear-gradient(90deg,#ff8a1e,#ffc861)}
@@ -4035,6 +4040,12 @@ body.wp .wp-hud .wp-hud-btns>.wp-btn#wp-starter-btn:not(.wp-wallet)>span.wp-st-l
 .wp-st-buy:disabled{cursor:default;filter:saturate(.3) brightness(.75)}
 .wp-st-buy:focus-visible,.wp-st-x:focus-visible{outline:2px solid #ffc861;outline-offset:2px}
 html.wp-pcphone .wp-st-card{zoom:1.6;width:min(460px,calc((100vw - 24px) / 1.6));max-height:calc((100svh - 32px) / 1.6)}
+/* first-run (maker, sign-in, guide), Map and Settings at a phone's reading size; the shop sheet only zooms its header (the page inside is its own iframe) */
+html.wp-pcphone .wp-make-card,html.wp-pcphone .wp-auth-card{zoom:1.6;width:min(440px,calc((100vw - 24px) / 1.6));max-height:calc((100svh - 32px) / 1.6);overflow:auto}
+html.wp-pcphone .wp-guide-card{zoom:1.5;width:min(760px,calc((100vw - 24px) / 1.5));max-height:calc((100svh - 32px) / 1.5)}
+html.wp-pcphone #wp-mapsheet .wp-card,html.wp-pcphone #wp-setsheet .wp-card{zoom:1.6;width:min(460px,calc((100vw - 24px) / 1.6));max-height:calc((100svh - 32px) / 1.6);overflow:auto}
+html.wp-pcphone .wp-sheet>.wp-sheet-head{zoom:1.5}
+html.wp-pcphone .wp-make-name input{font-size:16px}
 @media (prefers-reduced-motion:reduce){.wp-st{animation:none}}
 
 /* b415: no Map tile in the HUD (the minimap opens the map, and M / the map icon on the minimap still do) */
