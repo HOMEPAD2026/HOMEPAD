@@ -3129,7 +3129,9 @@ $("wp-log-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show(
 setInterval(() => { const b = $("wp-dk-bag"), i = $("wp-dk-build"); if (b) b.dataset.dot = rpg && rpg.freshN && rpg.freshN() ? "1" : ""; if (i) i.dataset.dot = island.bookNew && island.bookNew() ? "1" : ""; }, 2000);
 $("wp-dk-char").addEventListener("click", () => { closeAll(); if (rpg) { rpg.pane("gear"); rpg.show("inv"); } });
 $("wp-dk-bag").addEventListener("click", () => { closeAll(); if (rpg) { rpg.pane("bag"); rpg.show("inv"); setTimeout(() => { const b = document.querySelector("#wr-inv .wr-bag, #wr-inv .wr-cells"); if (b) b.scrollIntoView({ block: "nearest" }); }, 60); } });
-$("wp-dk-pet").addEventListener("click", () => { closeAll(); if (quests && rpg) { quests.setTab("pets"); rpg.show("log"); } });
+// the Pets button wears a NEW badge until it's opened once
+try { if (localStorage.getItem("arc.world.petSeen")) $("wp-dk-pet-new").hidden = true; } catch { /* private mode */ }
+$("wp-dk-pet").addEventListener("click", () => { $("wp-dk-pet-new").hidden = true; try { localStorage.setItem("arc.world.petSeen", "1"); } catch { /* private mode */ } closeAll(); if (quests && rpg) { quests.setTab("pets"); rpg.show("log"); } });
 $("wp-dk-craft").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("forge"); });
 $("wp-dk-build").addEventListener("click", async () => {
   closeAll();

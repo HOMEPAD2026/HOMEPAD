@@ -387,3 +387,9 @@ body.wp .wr-rep.brk{border-color:#ff4d6d}
 @media (prefers-reduced-motion:reduce){.wi-like.pop svg{animation:none}}
 /* the dodge button is gone from the touch pad (K still dodges on a keyboard) */
 .wc-bar.coarse .wc-dodge{display:none!important}
+/* NEW badge on the Pets dock button (hidden once opened) */
+body.wp .wp-dk>.wp-dk-new{position:absolute!important;top:-6px;right:-8px;z-index:2;padding:2px 6px;border-radius:999px;background:linear-gradient(180deg,#ff6b8a,#e8264f);border:1.5px solid #fff;color:#fff;font:900 10px/1.2 var(--hud-font,var(--f-ui));letter-spacing:.04em;box-shadow:0 2px 6px rgba(0,0,0,.45),0 0 10px rgba(255,80,120,.6);pointer-events:none;animation:wpDkNew 1.6s ease-in-out infinite}
+body.wp .wp-dk>.wp-dk-new[hidden]{display:none}
+@keyframes wpDkNew{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){body.wp .wp-dk>.wp-dk-new{animation:none}}
+html.wp-less body.wp .wp-dk>.wp-dk-new{animation:none}
