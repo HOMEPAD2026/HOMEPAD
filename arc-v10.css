@@ -995,6 +995,8 @@ html[data-v12stk]:not([data-v12stk="lock"]) body>.stk-actbar{display:none!import
 .q-in:focus-within{border-color:var(--q-v)}
 .q-in input{flex:1;min-width:0;border:0;background:none;color:var(--ink);font:700 1.5rem var(--f-ui);padding:8px 0;outline:none}
 .q-in span{color:var(--ink-dim);font-weight:700}
+/* a11y: a real 2px focus ring on the amount / search fields that drop their outline (same cyan as .wp-btn) */
+.sw-box:has(.sw-amt:focus-visible),.pp-in:has(input:focus-visible),.q-in:has(input:focus-visible),.swx-q:focus-visible,.swx-to input:focus-visible{box-shadow:0 0 0 2px #35d8d0}
 .q-act .q-chips{margin-top:8px}
 .q-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .q-btns .bp-btn-primary{min-width:160px}

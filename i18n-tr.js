@@ -8930,6 +8930,7 @@
     "How it will work": "Nasıl çalışacak",
     "ARCIRCLE Perps guide": "ARCIRCLE Perps rehberi",
     "CirclePad · Round #5 is live": "CirclePad · Tur #5 canlı",
+    "Round #5 · Launch on Robinhood Chain": "Tur #5 · Robinhood Chain'de başlat", "Round #5 · live": "Tur #5 · canlı", "The Launch Drop": "Launch Drop",
     "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "Tur #5 canlı: ArcPad · Robinhood Chain'de başlat — her coin'in 4%'ü veARCIRCLE'a · Tur #3 + #4: $ARCIA airdrop, fayda güncellemesinden sonra",
     "Launch on Robinhood Chain →": "Robinhood Chain'de başlat →",
     "Community-funded launches · Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "Topluluk destekli lansmanlar · Tur #5 canlı: ArcPad · Robinhood Chain'de başlat — her coin'in 4%'ü veARCIRCLE'a · Tur #3 + #4: $ARCIA airdrop, fayda güncellemesinden sonra",
