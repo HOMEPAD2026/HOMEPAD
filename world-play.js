@@ -1593,7 +1593,7 @@ async function openDefense() {
     defenseOn = true; near = null; paintPrompt(); await defense.start();
     if (!defense.active()) throw new Error("start: the arena didn't open");
   } catch (e) { // never fail silently: say why (short), put everything back, and let the next tap try again
-    console.warn("defense", e); defenseOn = false; arenaR = 0; near = null; paintPrompt();
+    console.warn("defense", e); if (diag && diag.err) diag.err("acd: " + String((e && e.message) || e), "openDefense"); defenseOn = false; arenaR = 0; near = null; paintPrompt();
     try { if (defense && defense.active()) defense.reset(); } catch { /* already reset */ }
     const why = String((e && e.message) || e);
     if (why.startsWith("load:") && staleReload()) return; // the page predates a deploy and its chunk is gone: the new page takes over
@@ -1615,7 +1615,7 @@ async function openJump() {
     }
     jumpOn = true; near = null; paintPrompt(); jumpRace.start();
   } catch (e) {
-    console.warn("jump", e); jumpOn = false; arenaR = 0; near = null; paintPrompt();
+    console.warn("jump", e); if (diag && diag.err) diag.err("jump: " + String((e && e.message) || e), "openJump"); jumpOn = false; arenaR = 0; near = null; paintPrompt();
     const why = String((e && e.message) || e);
     if (why.startsWith("load:") && staleReload()) return;
     toast(TW("Coin Jump couldn't start") + " — " + esc(why.slice(0, 80)));
