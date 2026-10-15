@@ -14,7 +14,7 @@ export const WORLD_PHASE = { phase: "obt", epoch: 2 }; // b409: the open beta (f
 // collections that are not progress and stay the same in every epoch: payments, counts, presence, crews, coin lots,
 // health counters, the CBT reward records
 const KEEP = new Set(["worldPayQuote", "worldPayTx", "worldPlayers", "worldCounted", "worldVisitors", "worldVisit", "worldSeen", "worldOnline",
-  "worldDiag", "worldDiagMsg", "worldCrew", "worldCrewCode", "worldCrewOf", "worldCrewTag", "worldArclNotify", "worldLot", "worldCbt", "worldCbtClaim"]);
+  "worldDiag", "worldDiagMsg", "worldCrew", "worldCrewCode", "worldCrewOf", "worldCrewTag", "worldFriend", "worldDm", "worldDmBox", "worldPres", "worldArclNotify", "worldLot", "worldCbt", "worldCbtClaim"]);
 // worldStats documents that stay: the visit counts, the paid plaza slots, the Forge and shop sales counters
 const KEEP_STATS = new Set(["main", "plaza", "forge", "shop"]);
 

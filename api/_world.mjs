@@ -22,11 +22,13 @@
 // and the last one. Progress is self-reported by the game, so it's for play (character, XP, quests), never rewards.
 // Firestore: worldIsland/<wallet> · worldIslandLikes/<wallet> { n } · worldLikes/<target>_<wallet> · worldStamps/<wallet> { list }
 //            worldStampSeen/<target>_<wallet>_<day> · worldLot/<coin> · worldStats/islands { top, recent }
-// Notes, the weekly island contest, friends, wanderers and the raid boss: api/_world-social.mjs.
+// Notes, the weekly island contest, friends' cards, wanderers and the raid boss: api/_world-social.mjs.
+// Local chat, the friends graph (requests, blocks) and private chat: api/_world-chat.mjs.
 // Firestore: worldStats/main { visitors, players } · worldCounted/<wallet> (counted once in players) · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
+import { makeChat } from "./_world-chat.mjs";
 import { makeCrew } from "./_world-crew.mjs";
 import { makeVillage, isGM } from "./_world-village.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
@@ -178,7 +180,10 @@ export function make(deps) {
       // where you are, for the wanderers others see; signed in (and not hidden in Settings), with your name and level
       let who = null;
       if (b.g && b.s && typeof b.s === "object") { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) { const cr = await crew.crewOf(v.wallet).catch(() => null); who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet, ...(cr && cr.tag && !cr.closed ? { tag: cr.tag } : {}), ...(isGM(v.wallet) ? { gm: 1 } : {}) }; } } }
+      // the line they said last, for the bubble over them: signed in only, and filtered again here
+      if (b.g && typeof b.g === "object") b.g = { ...b.g, m: who && typeof b.g.m === "string" ? chat.bubble(b.g.m) : "" };
       if (b.g) await social.ghostPing(id, b.g, who).catch(() => {});
+      if (who && b.pr) await chat.presence(who).catch(() => {}); // the friends list's green dot (the game sends this about every 3 minutes)
     }
     return json(200, { ok: true, ...(await stats()) });
   }
@@ -201,6 +206,7 @@ export function make(deps) {
     adminCache = { set, at: now() }; return set;
   }
   const social = makeSocial({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
+  const chat = makeChat({ ...deps, json, now, signer });
   const crew = makeCrew({ ...deps, json, now, signer, isoWeek: shop.isoWeek, levelOfSave });
   village = makeVillage({ ...deps, json, now, signer, isoWeek: shop.isoWeek, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n) });
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
@@ -423,7 +429,7 @@ export function make(deps) {
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
-      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)) || (await village.read(w, url)); if (r) return r;
+      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await chat.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)) || (await village.read(w, url)); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -444,7 +450,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

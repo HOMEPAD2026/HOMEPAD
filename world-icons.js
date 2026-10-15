@@ -37,6 +37,7 @@ const P = {
   person: '<circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/>',
   crew: '<circle cx="9" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M3.5 19c.7-3.4 2.9-5 5.5-5s4.8 1.6 5.5 5M14 14.3c.8-.2 1.6-.3 2.5-.3 2.2 0 4 1.3 4.5 4"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  chat: '<path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/>',
   sword: '<path d="M14.5 4H20v5.5L10 19.5 4.5 14z"/><path d="M7 16.5l-3 3M5.5 13l5.5 5.5"/>',
 };
 /// an icon as inline SVG (decorative: hidden from screen readers; the button's text names it)

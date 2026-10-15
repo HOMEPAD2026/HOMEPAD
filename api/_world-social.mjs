@@ -4,7 +4,7 @@
 //   POST { action: "world-stamp-hide", …signature, at }   the island's owner hides (or shows again) one note
 //   GET  ?world=island-week                               { week, top: [{ wallet, name, n, likes }] }  likes this week
 //   GET  ?world=friends&wallets=0x…,…                     { friends: { wallet: { name, lv, seen, isle, likes } } }
-//   GET  ?world=ghosts                                    { ghosts: [{ t, x, z, c, lv, s?, sa?, p?, h?, zn? }] }  (h: HP %, zn: the ground; signed-in only, for parties)  last 2 minutes (s: a fixed line said in the last minute; p: the tag of the friend who invited them)
+//   GET  ?world=ghosts                                    { ghosts: [{ t, x, z, c, lv, s?, m?, sa?, p?, h?, zn? }] }  (h: HP %, zn: the ground; signed-in only, for parties)  last 2 minutes (s: a fixed line said in the last minute; m: the last chat line of a signed-in player, 80 characters, filtered; p: the tag of the friend who invited them)
 //   GET  ?world=raid&wallet=0x…?                          { week, hp, max, down, top, mine, claimed, players, fellAt, next }
 //   GET  ?world=raid-history                              { weeks: [{ week, players, max, dmg, fell, hours }] }  last 8
 //   POST { action: "world-raid-hit", …signature, dmg }    damage dealt in the last 5 s, capped at 60 × saved level
@@ -38,14 +38,15 @@ export const raidMax = (players) => (players > 0 ? Math.max(200000, Math.min(200
 export const nextWeekAt = (t) => { const k = t + 9 * 3600e3, d = new Date(k), dow = (d.getUTCDay() + 6) % 7, day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); return day0 + (7 - dow) * 864e5 - 9 * 3600e3; };
 const CHARS = /^(bot|male-[a-f]|female-[a-f]|arc-(arc|neo|luna|kai|zen|rex|pixi|orbit|shadow|spark|mint|cici|byte|skye|ruby|titan|echo|nix|blaze|aqua|terra|volt|nova|frost|circa)|kk-(knight|mage|rogue|rogue-hooded|ranger|barbarian)|custom-[a-z0-9-]{1,9})$/; // arc-…: the ARC Bots (world-arcbots.js)
 
+/// text that carries a link, an address, a long number or a way to take the talk elsewhere (notes, chat)
+export const blocked = (t) => /:\/\/|www\.|@\w|\b[a-z0-9-]{2,}\s*(\.|dot)\s*(com|net|org|io|xyz|app|gg|me|co|ly|link|site|top|info|fi|finance|so|to|cc|ai|sh|tv)\b/i.test(t)
+  || /0x[0-9a-f]{6,}/i.test(t) || /[1-9A-HJ-NP-Za-km-z]{30,}/.test(t) || /\d[\d\s-]{7,}\d/.test(t)
+  || /\b(t\.me|discord\.gg|telegram|whatsapp|dm me|seed phrase|private key|recovery phrase)\b/i.test(t);
 /// a guestbook note: "" when there's none, null when it can't be posted (a link, an address, a long number)
-export function cleanNote(s) {
-  const t = String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f<>"'`\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, NOTE_MAX);
+export function cleanNote(s, max = NOTE_MAX) {
+  const t = String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f<>"'`\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
   if (!t) return "";
-  if (/:\/\/|www\.|@\w|\b[a-z0-9-]{2,}\s*(\.|dot)\s*(com|net|org|io|xyz|app|gg|me|co|ly|link|site|top|info|fi|finance|so|to|cc|ai|sh|tv)\b/i.test(t)) return null;
-  if (/0x[0-9a-f]{6,}/i.test(t) || /[1-9A-HJ-NP-Za-km-z]{30,}/.test(t) || /\d[\d\s-]{7,}\d/.test(t)) return null;
-  if (/\b(t\.me|discord\.gg|telegram|whatsapp|dm me|seed phrase|private key|recovery phrase)\b/i.test(t)) return null;
-  return t;
+  return blocked(t) ? null : t;
 }
 // a wanderer's tag: a short hash of the browser's id, so the game can skip its own and nothing traces back
 export const tagOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h.toString(36).padStart(7, "0").slice(-7); };
@@ -232,11 +233,11 @@ export function makeSocial(deps) {
     // eight small documents per 2-minute window, picked by the tag, so pings from many players don't queue on one
     const at = now(), key = `worldGhosts/${Math.floor(at / GHOST_LIFE)}_${parseInt(t, 36) % GHOST_SHARDS}`, cur = (await one(key)) || { list: [] };
     // a line from the fixed list (0–7, shown for a minute; there's no free text to moderate) and a friend's tag from an invite link
-    const s = Number.isInteger(g.s) && g.s >= 0 && g.s < 8 ? g.s : null, p = /^[0-9a-z]{7}$/.test(String(g.p || "")) ? g.p : "";
+    const s = Number.isInteger(g.s) && g.s >= 0 && g.s < 8 ? g.s : null, m = who && typeof g.m === "string" ? g.m.slice(0, 80) : "", p = /^[0-9a-z]{7}$/.test(String(g.p || "")) ? g.p : "";
     // for a hunting party: HP as a percentage and the ground you're in (shown to the friends who put you in theirs)
     const h = Number.isInteger(g.h) && g.h >= 0 && g.h <= 100 ? g.h : null, zn = /^[a-z]{3,8}$/.test(String(g.zn || "")) ? g.zn : "";
     const old = (cur.list || []).find((y) => y.t === t) || {};
-    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w, ...(who.tag ? { cr: who.tag } : {}), ...(who.gm ? { gm: 1 } : {}) } : {}) };
+    const e = { t, x, z, c, lv, at, ...(s != null || m ? { ...(s != null ? { s } : {}), ...(m ? { m } : {}), sa: at } : old.sa && at - old.sa < 60e3 ? { ...(old.s != null ? { s: old.s } : {}), ...(old.m ? { m: old.m } : {}), sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w, ...(who.tag ? { cr: who.tag } : {}), ...(who.gm ? { gm: 1 } : {}) } : {}) };
     const list = [e, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
     await setDoc(key, { list });
   }
@@ -245,7 +246,7 @@ export function makeSocial(deps) {
     for (const win of [w, w - 1]) for (let i = 0; i < GHOST_SHARDS; i++) keys.push(`worldGhosts/${win}_${i}`);
     const d = await getDocs(keys), seen = new Map();
     for (const k of keys) for (const y of ((d[k] || {}).list || [])) if (at - y.at < GHOST_LIFE && (!seen.has(y.t) || seen.get(y.t).at < y.at)) seen.set(y.t, y);
-    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, sa, p, n, l, w, h, zn }) => ({ t, x, z, c, lv, ...(sa && at - sa < 60e3 ? { s, sa } : {}), ...(p ? { p } : {}), ...(n ? { n, l, w } : {}), ...(h != null && n ? { h } : {}), ...(zn && n ? { zn } : {}) })) }, "public, max-age=10");
+    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, m, sa, p, n, l, w, h, zn }) => ({ t, x, z, c, lv, ...(sa && at - sa < 60e3 ? { ...(s != null ? { s } : {}), ...(m ? { m } : {}), sa } : {}), ...(p ? { p } : {}), ...(n ? { n, l, w } : {}), ...(h != null && n ? { h } : {}), ...(zn && n ? { zn } : {}) })) }, "public, max-age=10");
   }
 
   // ---- the weekly raid boss ----

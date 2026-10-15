@@ -3339,6 +3339,46 @@ html.wp-pcphone .wr-store-t button{height:48px;font-size:18px;padding:0 18px}htm
 .wp-crew-toph{margin:16px 0 6px;font:800 14px var(--f-ui)}
 @media (max-width:560px){.wp-crew-forms{grid-template-columns:1fr}}
 html.wp-pcphone .wp-crewsheet .wp-card{zoom:1.35}
+/* Chat and friends (world-chat.js): local lines, friends, private messages. The panel follows the visible screen
+   (--vvh / --vvt from visualViewport) so the keyboard never covers the line being written; inputs are 16px (no iOS zoom). */
+.wp-chat-btn{position:relative}
+.wp-chat-btn[data-dot]:not([data-dot=""])::after{content:attr(data-dot);position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ff4d6d;color:#fff;font:800 10px/16px var(--f-ui);text-align:center}
+body.wp .wp-hud .wp-hud-btns>.wp-chat-btn[data-dot]:not([data-dot=""])::after{content:attr(data-dot);width:auto;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font:800 11px/14px var(--f-ui)}
+.wp-chatsheet{inset:auto;left:0;right:0;top:var(--vvt,0);height:var(--vvh,100svh);overscroll-behavior:contain}
+.wp-chatsheet .wp-card{display:flex;flex-direction:column;width:min(480px,calc(100vw - 20px));height:min(620px,calc(100% - 20px));max-height:none;padding:14px;overflow:hidden}
+.wp-chatsheet .wp-card h2{font-size:20px;margin:0}
+.wp-chat-tabs{display:flex;gap:6px;margin:10px 0 6px}
+.wp-chat-tabs button{flex:1;position:relative;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#c9d6e3;font:700 13px var(--f-ui);cursor:pointer}
+.wp-chat-tabs button[aria-selected="true"]{background:linear-gradient(180deg,rgba(47,134,255,.35),rgba(46,224,122,.25));border-color:rgba(120,196,255,.5);color:#fff}
+.wp-chat-tabs b{display:inline-grid;place-items:center;min-width:17px;height:17px;margin-left:6px;padding:0 4px;border-radius:9px;background:#ff4d6d;color:#fff;font:800 10px var(--f-ui)}
+.wp-chat-sub{display:flex;align-items:center;gap:8px;min-height:22px;margin:0 2px 6px;font-size:12.5px;color:#9fb3c6}
+.wp-chat-sub:empty{display:none}.wp-chat-sub b{font:800 14px var(--f-ui);color:#eef3f7}.wp-chat-sub span{flex:1;font-weight:700;color:#cfe0ee}.wp-chat-sub .wp-btn{height:30px;padding:0 10px}
+.wp-chat-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:2px 2px 6px}
+.wp-chat-body h3{margin:12px 0 6px}.wp-chat-body h3:first-child{margin-top:2px}
+.wp-chat-note{margin:14px 6px;text-align:center;font-size:13px;color:#9fb3c6;line-height:1.5}
+.wp-chat-log,.wp-chat-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.wp-chat-m{padding:7px 10px;border-radius:12px;background:rgba(255,255,255,.045);overflow-wrap:anywhere}
+.wp-chat-m.mine{background:rgba(47,134,255,.16)}
+.wp-chat-m>div{display:flex;align-items:baseline;gap:8px}.wp-chat-m time{margin-left:auto;font-size:11px;color:#7f93a6}
+.wp-chat-m p{margin:2px 0 0;font-size:14px;line-height:1.4;color:#eef3f7}
+.wp-chat-n{appearance:none;border:0;background:none;padding:0;color:#9ff3ff;font:800 13px var(--f-ui);cursor:pointer;text-align:left}
+.wp-chat-m.mine .wp-chat-n{color:#cfe3ff;cursor:default}.wp-chat-n small{font-weight:600;color:#8fa3b6}
+.wp-chat-act{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px;width:100%}
+.wp-chat-act .wp-btn{height:32px;padding:0 12px;font-size:12.5px}
+.wp-chat-tag{align-self:center;font-size:12px;color:#7dffb0}
+.wp-chat-list li{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04)}
+.wp-chat-who{flex:1;min-width:0;display:flex;align-items:baseline;gap:6px}.wp-chat-who small,.wp-chat-dm small{color:#8fa3b6;font-size:12px}
+.wp-chat-list .wp-btn{height:32px;padding:0 12px;font-size:12.5px}.wp-chat-list .wp-cta{margin:0;height:32px;padding:0 14px;font-size:12.5px}
+.wp-chat-list .wp-more{padding:0 10px}
+.wp-chat-dm{flex:1;display:flex;align-items:baseline;gap:8px;appearance:none;border:0;background:none;color:#eef3f7;font:700 14px var(--f-ui);text-align:left;cursor:pointer;min-height:34px}
+.wp-chat-un{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#ff4d6d;color:#fff;font:800 11px/20px var(--f-ui);text-align:center}
+.wp-chat-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#4a5a6a}.wp-chat-dot.on{background:#39ff88;box-shadow:0 0 8px rgba(57,255,136,.7)}
+.wp-chat-send{display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
+.wp-chat-send[hidden]{display:none}
+.wp-chat-send input{flex:1;min-width:0;height:44px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(4,8,14,.7);color:#eef3f7;font:600 16px var(--f-ui)}
+.wp-chat-send .wp-cta{margin:0;height:44px}
+@media (max-width:560px){.wp-chatsheet{place-items:end center}.wp-chatsheet .wp-card{width:100vw;height:min(100%,640px);border-radius:20px 20px 0 0;padding-bottom:max(12px,env(safe-area-inset-bottom))}}
+html.wp-pcphone .wp-chatsheet .wp-card{zoom:1.9}
 /* ARCIA's favour of the day */
 .wp-arciaq{position:fixed;inset:0;z-index:46;display:grid;place-items:end center;padding-bottom:calc(140px + env(safe-area-inset-bottom));background:rgba(2,4,8,.25)}
 .wp-arciaq-card{width:min(440px,calc(100vw - 32px));padding:16px 18px;border-radius:18px;background:rgba(18,10,24,.9);border:1px solid rgba(255,122,217,.45);box-shadow:0 12px 40px rgba(0,0,0,.4);animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
@@ -3590,7 +3630,7 @@ html:not(.wp-pcphone) .wp-joyrest .u{margin-top:-72px}html:not(.wp-pcphone) .wp-
 html:not(.wp-pcphone) .wp-joyrest{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 110px)}
 /* on a phone: Shop, Map and Menu up top (the rest live in the menu and the dock); no stage chip */
 @media (pointer:coarse){
-  body.wp .wp-hud #wp-photo-btn,body.wp .wp-hud #wp-log-btn,body.wp .wp-hud #wp-vil-btn,body.wp .wp-hud #wp-inbox-btn,body.wp .wp-hud #wp-music-btn,body.wp .wp-hud #wp-help-btn,body.wp .wp-hud #wp-set-btn{display:none!important}
+  body.wp .wp-hud #wp-photo-btn,body.wp .wp-hud #wp-log-btn,body.wp .wp-hud #wp-vil-btn,body.wp .wp-hud #wp-inbox-btn,body.wp .wp-hud #wp-chat-btn,body.wp .wp-hud #wp-music-btn,body.wp .wp-hud #wp-help-btn,body.wp .wp-hud #wp-set-btn{display:none!important}
   body.wp .wp-hud #wp-more-btn{display:flex!important}
   body.wp .wp-hud .wp-stage{display:none}
 }
@@ -3821,7 +3861,7 @@ body.wp .wp-hud .wp-quests li.cur,body.wp .wp-hud .wp-quests li.done-now,body.wp
 body.wp .wp-hud .wp-quests li i,body.wp .wp-hud .wp-quests li.cur::after{display:none!important}
 body.wp .wp-hud .wp-quests li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.wp .wp-hud .wp-quests li small{margin-left:5.60px;font:800 14.00px/1 var(--hud-font);color:#fff}
-body.wp .wp-hud #wp-photo-btn,body.wp .wp-hud #wp-log-btn,body.wp .wp-hud #wp-vil-btn,body.wp .wp-hud #wp-inbox-btn,body.wp .wp-hud #wp-music-btn,body.wp .wp-hud #wp-help-btn,body.wp .wp-hud #wp-set-btn{display:none!important}
+body.wp .wp-hud #wp-photo-btn,body.wp .wp-hud #wp-log-btn,body.wp .wp-hud #wp-vil-btn,body.wp .wp-hud #wp-inbox-btn,body.wp .wp-hud #wp-chat-btn,body.wp .wp-hud #wp-music-btn,body.wp .wp-hud #wp-help-btn,body.wp .wp-hud #wp-set-btn{display:none!important}
 body.wp .wp-hud #wp-more-btn{display:flex!important}
 body.wp .wp-hud .wp-hud-btns{gap:1.12px;padding-top:47.04px}
 body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)::before{display:none!important}
