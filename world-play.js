@@ -2890,7 +2890,7 @@ quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
 rpg.setLog(quests);
 // the pets (world-pet.js): eggs from the server, one animal walking with you; the three older companions are drawn by QST.createPet
 pet = PET.createPets({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat: () => combat, reduce, coarse: st.quality.coarse, low: lowGfx, ver: VER, legacy: QST.createPet({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat, reduce }), T, esc, rpg: () => rpg, ach: () => { const x = rpg.data().x; return (x && x.ach) || []; }, save: () => save(), toast, Snd,
-  buy: () => arclShop.pay("petegg"), repaint: () => rpg.repaint(),
+  buy: (onStatus) => arclShop.pay("petegg", "", onStatus), repaint: () => rpg.repaint(),
   onMods: (m, stats) => { petXpPct = m.xp; petLuck = m.luck; if (stats && rpg) rpg.refresh(); } });
 pet.sync(); if (ownNow) pet.mirror(ownNow); setNameTag();
 // the weekly raid boss and the wanderers (world-social.js)
