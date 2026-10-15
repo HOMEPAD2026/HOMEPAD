@@ -760,9 +760,9 @@ addEventListener("keydown", (e) => {
   if (k === "i" && rpg) { closeAll(); rpg.show("inv"); return; }
   if (k === "l" && rpg && quests) { closeAll(); rpg.show("log"); return; }
   if (k === "h") { openHelp(); return; }
-  // the dock's keys: B bag, C forge, N pets (B stays the island's build key there), U build
+  // the dock's keys: B bag, C forge, N pets, U build, in town only (B stays the island's build key there; U on a visited island would leave it)
   if (mode === "hub" && !e.repeat && (k === "b" || k === "c" || k === "n")) { if (k === "n") { if (quests && rpg) { closeAll(); quests.setTab("pets"); rpg.show("log"); } } else { const d = $(k === "b" ? "wp-dk-bag" : "wp-dk-craft"); if (d) d.click(); } return; }
-  if (k === "u" && !e.repeat) { const d = $("wp-dk-build"); if (d) d.click(); return; }
+  if (k === "u" && !e.repeat && mode === "hub") { const d = $("wp-dk-build"); if (d) d.click(); return; }
   if (combat && mode === "hub" && combat.keyDown(k, e.repeat)) { e.preventDefault(); return; }
   if (k === "f") { setBoard(!boarding); return; }
   if (k === "1") { emote("emote-yes"); return; }
