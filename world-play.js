@@ -1585,7 +1585,7 @@ async function openDefense() {
       defense = M.createDefense({ THREE, planet, st, T: TW, lang: LANG, esc, toast, Snd, vfx, parts, combat, coarse, low: lowGfx, reduce, keep: [gv.root] /* the Game Village stays (its square is the arena); the town hides */, origin: gv.center, sess, post,
         cinema: (ms) => defenseCinema(gv.center, ms), shake: (n) => { if (!reduce) shake = Math.max(shake, n); },
         place: (x, z) => standAt(x, z, gv.center),
-        setArena: (r) => { arenaR = r; }, exit: () => { const e = gv.exitOf("defense"); standAt(e.x, e.z, gv.center); }, refresh: () => refreshPurse(true), enter: () => { defenseOn = true; near = null; paintPrompt(); }, leave: () => { defenseOn = false; near = null; paintPrompt(); } });
+        setArena: (r) => { arenaR = r; }, exit: () => { const e = gv.exitOf("defense"); standAt(e.x, e.z, gv.center); }, refresh: () => refreshPurse(true), level: () => level(), enter: () => { defenseOn = true; near = null; paintPrompt(); }, leave: () => { defenseOn = false; near = null; paintPrompt(); } });
     }
     defenseOn = true; near = null; paintPrompt(); await defense.start();
   } catch (e) { console.warn("defense", e); defenseOn = false; arenaR = 0; } finally { defenseBusy = false; }

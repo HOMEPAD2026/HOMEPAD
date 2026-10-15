@@ -18,7 +18,7 @@
 const BOSS_EVERY = 5, MIN_WAVE_S = 20, PER_WAVE = 5, DAY_ARCL = 150, DAY_RUNS = 3, TOP_N = 20, RUN_TTL = 6 * 3600e3;
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const rng = (a) => () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-export const waveCount = (seed, w) => 5 + Math.floor(w * 1.7) + Math.floor(rng(((seed >>> 0) ^ Math.imul(w, 0x9e3779b1)) >>> 0)() * 3) + (w % BOSS_EVERY === 0 ? 1 : 0);
+export const waveCount = (seed, w) => 9 + Math.floor(w * 2.8) + Math.floor(rng(((seed >>> 0) ^ Math.imul(w, 0x9e3779b1)) >>> 0)() * 3) + (w % BOSS_EVERY === 0 ? 1 : 0);
 export const spawnedThrough = (seed, w) => { let n = 0; for (let i = 1; i <= w; i++) n += waveCount(seed, i); return n; };
 export const DEFENSE = { BOSS_EVERY, MIN_WAVE_S, PER_WAVE, DAY_ARCL, DAY_RUNS };
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);

@@ -4,7 +4,7 @@
 // proves the two agree).
 export const ARENA = { r: 10.5, padR: 6.9, pads: 8, gateR: 10.2, coreR: 4.6 }; // the plaza's radius is 11; the Core is the fountain
 export const BUILD_S = 30, BREAK_S = 15, BOSS_EVERY = 5, MAX_TOWERS = 8, CORE_HP = 40, START_SCRAP = 140, MIN_WAVE_S = 20;
-export const CAP = { coarse: 12, desk: 20 }; // scammers alive at once (a phone, a desktop)
+export const CAP = { coarse: 14, desk: 24 }; // scammers alive at once (a phone, a desktop)
 // towers: cost in scrap (never ARCL), then per level (1–3) its numbers. Upgrades cost UP[lvl-1] × cost; a sale gives half of everything paid.
 export const TOWERS = {
   shock: { name: "Shock", cost: 60, color: 0xb48cff, range: 8.2, dmg: [18, 28, 42], cd: [0.9, 0.8, 0.7], hops: [2, 3, 4], note: "Chain zap" },
@@ -25,7 +25,8 @@ export const gateAt = (i) => { const a = (Math.PI / 4) + (i * Math.PI) / 2; retu
 export const rng = (a) => () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 const waveRng = (seed, w) => rng(((seed >>> 0) ^ Math.imul(w, 0x9e3779b1)) >>> 0);
 /// how many scammers wave w sends (the boss counts): the part the server repeats
-export const waveCount = (seed, w) => 5 + Math.floor(w * 1.7) + Math.floor(waveRng(seed, w)() * 3) + (w % BOSS_EVERY === 0 ? 1 : 0);
+// (a crowd to mow down: more scammers a wave, each one a little easier than you — see world-defense.js spawn)
+export const waveCount = (seed, w) => 9 + Math.floor(w * 2.8) + Math.floor(waveRng(seed, w)() * 3) + (w % BOSS_EVERY === 0 ? 1 : 0);
 export const isBoss = (w) => w > 0 && w % BOSS_EVERY === 0;
 export const spawnedThrough = (seed, w) => { let n = 0; for (let i = 1; i <= w; i++) n += waveCount(seed, i); return n; };
 /// the wave's scammers: { t: type, g: gate (0–3), at: seconds after the wave starts, boss } plus its stats (they grow with w)

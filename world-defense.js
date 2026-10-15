@@ -12,6 +12,7 @@
 //          cinema(ms) (the entry fly-down, optional), shake(n) (camera rattle, optional) }
 import { ARENA, BUILD_S, BREAK_S, MAX_TOWERS, CORE_HP, START_SCRAP, CAP, TOWERS, TOWER_IDS, upCost, refund, padAt, gateAt, waveOf, killScrap, clearScrap, isBoss } from "./world-defense-data.js";
 import { createDefenseArt } from "./world-defense-art.js";
+import { mobStats } from "./world-rpg-data.js";
 
 const LW = {
   ko: { "AC Defense": "AC 디펜스", Core: "코어", Wave: "웨이브", Build: "건설", Break: "휴식", Fight: "전투", Scrap: "고철", "Start wave": "웨이브 시작", Quit: "그만두기", Shock: "전격", Frost: "냉기", Flame: "화염", Barrier: "방벽", "Chain zap": "연쇄 번개", "Slow aura": "감속 오라", "Burn over time": "지속 화상", "Blocks a lane": "길 막기", Upgrade: "강화", Sell: "판매", Close: "닫기", Level: "레벨", Max: "최대",
@@ -129,7 +130,7 @@ export function createDefense(ctx) {
         tw.cd = Math.max(0, tw.cd - dt); const a = near(tw.x, tw.z, d.range, list); if (!a) continue;
         art.aim(tw.mesh, a.g.position.x, a.g.position.z); if (tw.cd > 0) continue;
         tw.cd = d.cd[l]; u.fire(); seen.length = 0; seen.push(a); zo.color = d.color;
-        let from = muzzleAt(tw, hop[0], 1.7), to = hop[1], m = a, k = d.dmg[l];
+        let from = muzzleAt(tw, hop[0], 1.7), to = hop[1], m = a, k = d.dmg[l] * tK;
         for (let h = 0; h <= d.hops[l] && m; h++) {
           to.set(m.g.position.x, (m.y || 0.6) + 0.5, m.g.position.z); bolt(from, to); combat.defense.hit(m, k + m.def * 0.5, from); m.stun = Math.max(m.stun, 0.25);
           const sw = from; from = to; to = sw; k *= 0.8; m = near(m.g.position.x, m.g.position.z, 3.4, list, seen); if (m) seen.push(m);
@@ -137,14 +138,14 @@ export function createDefense(ctx) {
         Snd.zap && Snd.zap();
       } else if (tw.id === "frost") {
         const r = d.r[l], hit = tw.acc + dt >= 1; tw.acc = hit ? 0 : tw.acc + dt; let any = false;
-        for (const m of list) { const dx = m.g.position.x - tw.x, dz = m.g.position.z - tw.z; if (dx * dx + dz * dz > r * r) continue; any = true; m.slow = Math.max(m.slow, 0.35); if (hit) combat.defense.hit(m, d.dmg[l] + m.def * 0.5, tmpA.set(tw.x, 0, tw.z)); }
+        for (const m of list) { const dx = m.g.position.x - tw.x, dz = m.g.position.z - tw.z; if (dx * dx + dz * dz > r * r) continue; any = true; m.slow = Math.max(m.slow, 0.35); if (hit) combat.defense.hit(m, d.dmg[l] * tK + m.def * 0.5, tmpA.set(tw.x, 0, tw.z)); }
         if (hit && any) u.fire();
       } else if (tw.id === "flame") {
         tw.cd = Math.max(0, tw.cd - dt); const a = near(tw.x, tw.z, d.range, list); if (!a) continue;
         art.aim(tw.mesh, a.g.position.x, a.g.position.z); if (tw.cd > 0) continue;
         seen.length = 0; seen.push(a); for (let n = 1; n < d.n[l]; n++) { const m = near(tw.x, tw.z, d.range, list, seen); if (!m) break; seen.push(m); }
         tw.cd = d.cd[l]; u.fire();
-        for (const m of seen) { m.burn = 2.6; m.burnD = d.dmg[l]; if (VX && VX.impact) VX.impact(tmpB.set(m.g.position.x, (m.y || 0.6) + 0.4, m.g.position.z), "fire"); }
+        for (const m of seen) { m.burn = 2.6; m.burnD = d.dmg[l] * tK; if (VX && VX.impact) VX.impact(tmpB.set(m.g.position.x, (m.y || 0.6) + 0.4, m.g.position.z), "fire"); }
         if (parts && !RM && !LOW) { muzzleAt(tw, tmpA, 1.6); parts.emit(flameO); }
       }
     }
@@ -165,14 +166,19 @@ export function createDefense(ctx) {
   const TGT = { x: O.x, z: O.z, r: ARENA.coreR, hit: (m) => coreHit(m.rank === "boss" ? cur.bossDmg : cur.coreDmg, m), wall, dead: () => { kills++; scrap += killScrap(cur ? cur.w : 1); paintHud(); } };
 
   // ---------------- the run ----------------
+  const foeLv = () => { const pl = Math.max(1, (ctx.level && ctx.level()) || 1); return Math.max(1, Math.min(pl, pl - 5 + Math.floor((cur ? cur.w : 1) / 3))); };
+  let tK = 1; // tower damage against the current crowd's level
   function spawn(e) {
     const g = gateAt(e.g), lat = (Math.random() - 0.5) * 1.6, p = new V3(O.x + g.x - Math.sin(g.a) * lat, 0, O.z + g.z + Math.cos(g.a) * lat), bi = Math.max(0, cur.w / 5 - 1) % BOSSES.length;
-    const o = { type: e.t, lv: cur.w, at: p, hp: e.boss ? cur.bossHp : cur.hp, def: cur.def, spd: cur.spd * (e.boss ? 0.8 : 1), tgt: TGT };
+    // scammers come at your level, a few below it (they climb a level every 3 waves, up to yours): easy to knock out, many of them;
+    // the waves still harden (count, speed, the wave's own HP floor) and the towers hit harder against higher-level crowds (tK)
+    const L = foeLv(), ms = mobStats(L), grow = 1 + cur.w * 0.03, hp = Math.round(Math.max(cur.hp * 0.6, ms.hp * 0.35 * grow));
+    const o = { type: e.t, lv: L, at: p, hp: e.boss ? hp * 10 : hp, def: Math.max(cur.def, Math.round(ms.def * 0.5)), spd: cur.spd * (e.boss ? 0.8 : 1), tgt: TGT };
     if (e.boss) { o.rank = "boss"; o.boss = BOSS_L[bi | 0]; }
     return combat.defense.spawn(o);
   }
   function startWave() {
-    cur = waveOf(seed, wave); queue = cur.list.slice(); wt = 0; acc = 0.1; phase = "wave"; lastStart = Date.now(); sel = -1; paintMenu();
+    cur = waveOf(seed, wave); tK = 1 + (foeLv() - 1) * 0.04; queue = cur.list.slice(); wt = 0; acc = 0.1; phase = "wave"; lastStart = Date.now(); sel = -1; paintMenu();
     if (combat.defense.setTint) combat.defense.setTint(cur.w); // the walkers' glow climbs with the wave (mint → cyan → violet → red)
     banner(T("Wave {n}", { n: cur.w }), cur.boss ? T("Boss wave!") : T("Defend the Core"), cur.boss ? "boss" : "");
     if (cur.boss) { if (!RM && ctx.shake) ctx.shake(0.3); } // (the siren plays when the boss walker spawns)
