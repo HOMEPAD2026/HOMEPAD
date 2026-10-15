@@ -77,8 +77,17 @@ if (stamp() === want && fs.existsSync(path.join(OUT, "world-play.js")) && !proce
   process.exit(0);
 }
 
-// a clean folder (only ever ROOT/w)
+// a clean folder (only ever ROOT/w) — the last builds' chunks come back after the build, see KEEP_GENS
 if (path.basename(OUT) !== "w" || path.dirname(OUT) !== ROOT) throw new Error("refusing to clear " + OUT);
+// Chunks are named by their content and a deploy replaces the whole folder. A page opened before a deploy still asks
+// for the chunk names it was built with (AC Defense, the 3D preview and the add-ons load on demand), and a name that
+// is gone is a 404: the feature never opens until the page is reloaded. So the chunks of the last KEEP_GENS builds
+// stay in /w/ next to the new ones (w/.gens.json lists the generations, newest first): a page survives that many deploys.
+const KEEP_GENS = 3, GENS = path.join(OUT, ".gens.json");
+let gens = []; try { gens = JSON.parse(fs.readFileSync(GENS, "utf8")).filter((g) => g && Array.isArray(g.files)); } catch { /* first build that keeps generations */ }
+const old = new Map(); // chunk name → bytes, everything that was in the folder before this build
+try { for (const f of fs.readdirSync(OUT)) if (/^c-[A-Z0-9]+\.js$/.test(f)) old.set(f, fs.readFileSync(path.join(OUT, f))); } catch { /* no folder yet */ }
+if (!gens.length && old.size) gens = [{ files: [...old.keys()].sort() }]; // a folder from before generations were kept counts as one
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT);
 const threeExternal = {
@@ -100,6 +109,13 @@ if (allChunk) { pre.add(rel(allChunk)); for (const im of outs[allChunk].imports)
 const preloads = [...pre].filter((f) => f.endsWith(".js"));
 fs.writeFileSync(path.join(OUT, ".preload.json"), JSON.stringify(preloads));
 fs.writeFileSync(STAMP, want + "\n");
+// the generations: this build first (unless it's the same set as the last one), then the kept older ones, restored
+const chunks = Object.keys(outs).map((k) => path.basename(k)).filter((f) => /^c-[A-Z0-9]+\.js$/.test(f)).sort();
+if (!(gens.length && JSON.stringify(gens[0].files) === JSON.stringify(chunks))) gens = [{ files: chunks }, ...gens];
+gens = gens.slice(0, KEEP_GENS);
+let kept = 0;
+for (const g of gens.slice(1)) for (const f of g.files) { const p = path.join(OUT, f); if (!fs.existsSync(p) && old.has(f)) { fs.writeFileSync(p, old.get(f)); kept++; } }
+fs.writeFileSync(GENS, JSON.stringify(gens));
 writePlay(true, preloads);
 let total = 0; for (const k of Object.keys(outs)) if (k.endsWith(".js")) total += outs[k].bytes;
-console.log(`world build: ${Object.keys(outs).filter((k) => k.endsWith(".js")).length} files, ${(total / 1024).toFixed(0)} KB (preload ${preloads.length + 1})`);
+console.log(`world build: ${Object.keys(outs).filter((k) => k.endsWith(".js")).length} files, ${(total / 1024).toFixed(0)} KB (preload ${preloads.length + 1}, ${kept} older chunks kept for pages opened before this deploy)`);
