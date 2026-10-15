@@ -118,7 +118,8 @@ r = await W.read(new URL("http://x/api/social?world=plaza")); check(r.body.isle 
     r = await W.handle({ action: "world-gift", ...them, to: A, kind: "heart", n: 1 }); check(r.status === 403, "a level-1 player can't send hearts");
     r = await W.handle({ action: "world-gift", ...me, to: B, kind: "heart", n: 2 }); check(r.status === 400, "a heart is one");
     r = await W.handle({ action: "world-gifts-take", ...them }); check(r.body.gifts.length === 1 && r.body.gifts[0].kind === "heart" && r.body.gifts[0].arcl === 100, "the friend sees the heart and its ARCL");
-    r = await W.handle({ action: "world-claim", ...them, kind: "heart" }); check(r.status === 400, "hearts can't be claimed"); }
+    r = await W.handle({ action: "world-claim", ...them, kind: "heart" }); check(r.status === 400, "hearts can't be claimed");
+    r = await rd("hearts"); check(r.body.days[0].sent === 1 && r.body.days[0].senders === 1 && r.body.days[0].top[0].n === 1, "the hearts view counts today's hearts and who took them"); }
   // guestbook replies
   r = await W.handle({ action: "world-stamp-reply", ...me, at, r: 2 }); check(r.status === 200 && r.body.stamps.find((x) => x.at === at).r === 2, "the owner answers a stamp");
   r = await W.handle({ action: "world-stamp-reply", ...them, at, r: 1 }); check(r.status === 404, "only on your own island");

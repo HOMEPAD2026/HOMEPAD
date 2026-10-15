@@ -140,7 +140,7 @@ export function makeSocial(deps) {
       const inn = ((await one(`worldHeartIn/${to}_${day}`)) || {}).n || 0;
       if (inn >= HEARTS_IN) return json(429, { error: "they've had 5 hearts today — try tomorrow" });
       if (!(await commit([{ create: `worldHeartOut/${s.wallet}_${day}`, data: { to, at: now() } }])).ok) return json(429, { error: "one heart a day — more tomorrow" });
-      await commit([{ inc: `worldHeartIn/${to}_${day}`, fields: { n: 1 } }]);
+      await commit([{ inc: `worldHeartIn/${to}_${day}`, fields: { n: 1 } }, { inc: `worldHeartDay/${day}`, fields: { n: 1, [`in_${to}`]: 1, [`out_${s.wallet}`]: 1 } }]);
       const got = deps.credit ? await deps.credit(to, "heart", HEART_ARCL) : 0;
       const key = `worldGifts/${to}`, cur = (await one(key)) || { list: [] };
       const g = { id: now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), from: s.wallet, name: String((d[`worldSave/${s.wallet}`] || {}).name || "").slice(0, 16), kind, n: 1, arcl: got, at: now() };
@@ -159,6 +159,14 @@ export function makeSocial(deps) {
     const key = `worldGifts/${s.wallet}`, cur = (await one(key)) || { list: [] }, list = cur.list || [];
     if (list.length) await setDoc(key, { list: [] });
     return json(200, { ok: true, gifts: list });
+  }
+  // hearts at a glance (for spotting a farm: many level-5 wallets all sending to one): today and yesterday, the total
+  // and the wallets that took the most, shortened
+  async function heartsView() {
+    const days = [0, 1].map((i) => seoulDay(now() - i * 864e5)), d = await getDocs(days.map((x) => `worldHeartDay/${x}`));
+    const out = days.map((day) => { const r = d[`worldHeartDay/${day}`] || {}; const top = Object.entries(r).filter(([k]) => k.startsWith("in_")).map(([k, n]) => ({ w: k.slice(3, 9) + "…" + k.slice(-4), n })).sort((a, b) => b.n - a.n).slice(0, 15);
+      return { day, sent: r.n || 0, senders: Object.keys(r).filter((k) => k.startsWith("out_")).length, top }; });
+    return json(200, { days: out }, "no-store");
   }
   async function giftsCount(w) { return json(200, { n: isAddr(w) ? (((await one(`worldGifts/${w}`)) || {}).list || []).length : 0 }, "no-store"); }
 
@@ -337,6 +345,7 @@ export function makeSocial(deps) {
       if (view === "fish-top") return recordTop("fish");
       if (view === "boss-top") return recordTop("boss");
       if (view === "gifts") return giftsCount(lc(url.searchParams.get("wallet")));
+      if (view === "hearts") return heartsView();
       if (view === "raid") { const w = lc(url.searchParams.get("wallet")); return json(200, pub(await raidState(isAddr(w) ? w : "")), isAddr(w) ? "no-store" : "public, max-age=10"); }
       return null;
     },

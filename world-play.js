@@ -2460,7 +2460,7 @@ function tutorialStep(done) {
     let n = 0; while (n < TUT.length && P.tutBits & (1 << n)) n++;
     if (n === P.tut) { save(); return; }
     P.tut = n; save();
-    if (n >= TUT.length) { checkQuests(); setTimeout(() => { toast(T("You know your way around. Have fun out there!")); burst(0x39ff88); }, 600); if (!P.tutAgain) askSave(8); }
+    if (n >= TUT.length) { checkQuests(); setTimeout(() => { toast(T("You know your way around. Have fun out there!")); burst(0x39ff88); }, 600); if (!P.tutAgain) askSave(8); if (!P.tutAgain) setTimeout(() => { if (!frozen && mode === "hub") maybeNew(); }, 9000); } // a new player sees what's new once, after the tutorial
   }
   const h = $("wp-hint");
   if (P.tut >= TUT.length) { h.hidden = true; return; }
