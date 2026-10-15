@@ -251,7 +251,7 @@ export function createIsland(ctx) {
     // a sea of clouds below and a few around
     const sea = new THREE.Mesh(new THREE.CircleGeometry(160, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, fog: true, depthWrite: false }));
     sea.rotation.x = -Math.PI / 2; sea.position.y = -16; land.add(sea); land.userData.sea = sea;
-    const cl = K.makeClouds(14, { spread: 80, y: -13 }); cl.userData.mat.emissiveIntensity = 0.55; cl.userData.mat.flatShading = false; land.add(cl); land.userData.clouds = cl;
+    const cl = K.makeClouds(14, { spread: 80, y: -32 }); cl.userData.mat.emissiveIntensity = 0.55; cl.userData.mat.flatShading = false; land.add(cl); land.userData.clouds = cl;
     // the way back: a portal at the front edge, facing the island
     exit = K.makePortal(T("Back to the world")); exit.position.set(-N / 2 - 1.2, 0, N / 2 - 1.5); exit.rotation.y = Math.PI / 2; exit.scale.setScalar(0.8); land.add(exit);
   }
@@ -853,6 +853,7 @@ export function createIsland(ctx) {
     if (on) { setGhost(); if (!thumbsDone) renderThumbs().then(paintBuild); }
     document.body.classList.toggle("wi-building", on);
     topMat && topMat.color.set(on ? 0x6cbd6f : 0x5fae62);
+    if (land.userData.clouds) land.userData.clouds.visible = !on; // puffs drifting through the build view
     gridTex.needsUpdate = true; paintBuild();
     if (on) toast(ctx.coarse ? T("Build mode: tap to place, drag to look") : T("Build mode: click to place, right-click to remove, R to rotate"));
   }
@@ -1005,13 +1006,14 @@ export function createIsland(ctx) {
   }
 
   return {
-    TYPES, enter, leave, floorAt, blocked, keyDown, tap, hover, makeStatic, stats, setOwned, setTheme, setVillage, useItem, centre: () => centre,
+    TYPES, enter, leave, floorAt, blocked, solidAt: (x, y, z) => { const b = occ.get(key(Math.floor(x - ISLE.x + N / 2), Math.floor(y), Math.floor(z - ISLE.z + N / 2))); return !!b && TYPES[b.t].solid; }, // the camera's wall check (world coords)
+    keyDown, tap, hover, makeStatic, stats, setOwned, setTheme, setVillage, useItem, centre: () => centre,
     active: () => active, building: () => building, readOnly: () => readOnly, kind: () => kind,
     title: () => (readOnly && visitInfo ? T("{name}'s island", { name: visitInfo.name }) : kind === "lot" ? "$" + lotCoin.symbol : T("My Island")),
     near(consider) { consider(exit, "isle-exit", {}, 2.6); if (centre) { centre.userData.radius = 2.2 * centre.scale.x; consider(centre, "village", { level: centreLevel(), mine: !readOnly }, 1.4); } residents.forEach((r) => consider(r.g, "resident", { res: r }, 1.8)); },
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
     mini(put) { put(exit, "#35d8d0", 6); if (centre) put(centre, "#ffc861", 8); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
-    showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); tickCentre(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
+    showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); tickCentre(dt, t); styler.tick(dt, t); if (land.userData.clouds && !building) land.userData.clouds.userData.update(dt); },
     openIsles, tour, visitFriend, friendCount: () => FR().length, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };
