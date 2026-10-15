@@ -11088,6 +11088,17 @@
     "Payments, security or partnerships:": "Ödemeler, güvenlik veya iş birlikleri:",
     "Something private, like a payment? Email us with the transaction hash — never a recovery phrase:": "Ödeme gibi özel bir konu mu? İşlem hash'iyle bize e-posta at — kurtarma ifadeni asla gönderme:",
     "Contact:": "İletişim:",
+    "Place 4 roof pieces": "4 çatı parçası yerleştir",
+    "Add a door and 2 windows: a resident moves in": "Bir kapı ve 2 pencere ekle: bir sakin taşınır",
+    "Place 2 lights": "2 ışık yerleştir",
+    "Place 3 pieces of furniture": "3 mobilya yerleştir",
+    "Buy an island item in the ARCL Shop and place it": "ARCL Dükkanı'ndan bir ada eşyası al ve yerleştir",
+    "Grow your village centre to level 2": "Köy merkezini 2. seviyeye çıkar",
+    "Visit another island and like it": "Başka bir adayı ziyaret et ve beğen",
+    "Share your island link: a free pet egg": "Ada bağlantını paylaş: ücretsiz evcil hayvan yumurtası",
+    "Village centre: level 2": "Köy merkezi: 2. seviye",
+    "Island tutorial: a free pet egg": "Ada eğitimi: ücretsiz evcil hayvan yumurtası",
+    "once, after the whole chain": "tüm zincirden sonra bir kez",
   };
   var PATTERNS = [
     [/^Burn (.+) \$ARCIRCLE for (\d+) votes?\?$/, "$2 oy için $1 $ARCIRCLE yakmak istiyor musun?"],
