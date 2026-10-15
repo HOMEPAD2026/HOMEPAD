@@ -388,6 +388,8 @@ export function createRpg(ctx) {
   // phones: a picked piece docks to the bottom of the panel (under its scrolling body, not at the end of the bag, where
   // it landed off-screen); the page's own layout, so no fixed layer over the game. Nothing picked: the hint stays inline
   const docked = () => document.documentElement.classList.contains("wp-pcphone") || matchMedia("(pointer: coarse) and (max-width: 860px)").matches;
+  // picking a worn piece keeps you on the Gear pane (its details open in the dock)
+  const isWorn = (id) => Object.values(R().eq || {}).some((x) => x && x.id === id);
   const picked = () => (view === "inv" ? !plan && sel && findItem(sel) : view === "forge" && forgeTab === "sell" ? sel && R().bag.find((x) => x.id === sel) : view === "forge" && forgeTab === "enhance" ? sel && findItem(sel) : null) || null;
   const inDetail = (it) => (it && docked() ? "" : detail(it));
   const findItem = (id) => R().bag.find((x) => x.id === id) || R().store.find((x) => x.id === id) || Object.values(R().eq).find((x) => x && x.id === id) || null;
@@ -637,7 +639,7 @@ export function createRpg(ctx) {
     if (d.fslot != null) { fuseSlot = d.fslot; paint(); return; }
     if (b.hasAttribute("data-fusego")) { const sl = el.querySelector(".wr-fuse-slots"); if (fuseSlot && (R().scrap || 0) < FUSE_PICK_SCRAP) { fuse(); return; } if (sl && !sl.classList.contains("fusing")) { sl.classList.add("fusing"); ctx.Snd.chest && ctx.Snd.chest(); setTimeout(fuse, 700); } else if (!sl) fuse(); return; }
     if (d.br) { setBranch(d.br); return; }
-    if (d.pick) { plan = null; sel = sel === d.pick ? null : d.pick; if (sel && view === "inv") invPane = "bag"; paint(); return; }
+    if (d.pick) { plan = null; sel = sel === d.pick ? null : d.pick; if (sel && view === "inv" && !isWorn(sel)) invPane = "bag"; paint(); return; }
     if (d.equip) { equip(d.equip); return; }
     if (d.repair) { repairPiece(d.repair, false); return; }
     if (d.repairfree) { repairPiece(d.repairfree, true); return; }

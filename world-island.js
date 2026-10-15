@@ -713,11 +713,20 @@ export function createIsland(ctx) {
     const n0 = unb64(j.data)[1] || ISLAND_N;
     return { list: decode(j.data, n0), N: n0, theme: j.theme || "" };
   }
+  let liking = false;
   async function like() {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to like islands")); return; }
-    const r = await post({ action: "world-like", ...s, target: visitInfo.wallet });
-    if (r.ok) { visitInfo.likes = r.j.likes ?? visitInfo.likes + 1; paintVisit(); Snd.win(); confetti(new V3(0, 3, N / 2 - 2)); if (ctx.onLiked) ctx.onLiked(); }
-    else toast(r.j.error || T("Couldn't like it right now"));
+    if (liking) return; liking = true;
+    // count it straight away (pop + sound), then settle with the server's number or roll back
+    const vi = visitInfo, before = vi.likes || 0, btn = $("wi-like");
+    vi.likes = before + 1; paintVisit(); Snd.win(); confetti(new V3(0, 3, N / 2 - 2));
+    if (btn) { btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop"); }
+    try {
+      const r = await post({ action: "world-like", ...s, target: vi.wallet });
+      if (r.ok) { vi.likes = r.j.likes ?? vi.likes; if (ctx.onLiked) ctx.onLiked(); }
+      else { vi.likes = before; toast(r.j.error || T("Couldn't like it right now")); }
+    } catch { vi.likes = before; toast(T("Couldn't like it right now")); }
+    liking = false; if (visitInfo === vi) paintVisit();
   }
   async function stamp(k) {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to leave a stamp")); return; }
