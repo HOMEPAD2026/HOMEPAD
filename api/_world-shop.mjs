@@ -527,6 +527,8 @@ export function makeShop(deps) {
     const w = s.wallet, id = String(b.id || "").toLowerCase();
     if (b.base !== true) return json(400, { error: "free repairs are at your own island" });
     const t = await savedItem(w, id); if (!t || !DUR_MAX[t.r]) return json(400, { error: "that piece can't be repaired (only Epic and Legendary gear wears out, and it has to be saved: try again in a moment)" });
+    // only a piece the server has seen worn: a free repair can't be banked on a whole piece for later
+    if (!(Number.isInteger(t.du) && t.du < DUR_MAX[t.r])) return json(400, { error: "that piece isn't worn yet (save first if it just wore down)" });
     const day = seoulDay(now()), key = `worldRepairDay/${w}_${day}`, used = ((await one(key)) || {}).n || 0;
     const o = await own(w);
     if ((o.repairIds || []).includes(id)) return json(200, { ok: true, left: Math.max(0, REPAIR_FREE_DAY - used), own: o, already: true });

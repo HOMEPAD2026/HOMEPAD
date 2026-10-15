@@ -116,6 +116,7 @@ r = await save([item("wpn001", "weapon-3", 3, 7), item("arm001", "armor-4", 4, 0
   const v = (await W.read(new URL("http://x/?world=repair&wallet=" + me))).body; check(v.left === 0, "the day's count is readable");
   await save([item("wpn001", "weapon-3", 3), item("aaa1", "armor-3", 3), item("aaa2", "helm-3", 3), item("aaa3", "boots-3", 3, 5), item("aaa4", "shield-3", 3, 5)]);
   check(find("wpn001").du === undefined && find("aaa2").du === undefined && find("aaa3").du === 5, "free credits repair the pieces they were given for");
-  T += 864e5; r = await free("aaa3"); check(r.status === 200 && r.body.left === 2, "the next Seoul day: 3 free again"); }
+  T += 864e5; r = await free("aaa3"); check(r.status === 200 && r.body.left === 2, "the next Seoul day: 3 free again");
+  r = await free("aaa2"); check(r.status === 400 && /isn't worn/.test(r.body.error), "a whole piece can't bank a free repair for later"); }
 
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);
