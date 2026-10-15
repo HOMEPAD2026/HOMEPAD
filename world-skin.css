@@ -361,17 +361,54 @@ body.wp .wr-rep.brk{border-color:#ff4d6d}
 .wd-row .wp-btn{height:32px;padding:0 12px;font-size:12px}.wd-go{background:linear-gradient(180deg,var(--ui-gold-1,#ffe680),var(--ui-gold-2,#ffb21f))!important;color:var(--ui-gold-ink,#3a2200)!important;border-color:var(--ui-gold-3,#a8620a)!important}
 .wd-go:disabled{opacity:.5}
 .wd-pads{position:absolute;inset:0;overflow:hidden}
-.wd-pad{position:absolute;left:0;top:0;width:46px;height:46px;border-radius:50%;border:2px solid var(--c,#35d8d0);background:rgba(8,20,48,.72);color:#fff;font:800 20px var(--f-ui,system-ui);display:grid;place-items:center;line-height:1;padding:0;cursor:pointer;box-shadow:0 0 14px color-mix(in srgb,var(--c,#35d8d0) 55%,transparent);touch-action:manipulation}
+.wd-pad{position:absolute;left:0;top:0;width:52px;height:52px;border-radius:50%;border:2px solid var(--c,#4dffb0);background:rgba(8,20,48,.72);color:#fff;font:800 20px var(--f-ui,system-ui);display:grid;place-items:center;line-height:1;padding:0;cursor:pointer;box-shadow:0 0 14px color-mix(in srgb,var(--c,#4dffb0) 55%,transparent);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.wd-pad:not(.on){width:64px;height:64px;border-color:transparent;background:transparent;box-shadow:none}/* an empty pad: the 3D socket shows the plus; the button is just a big touch target */
+.wd-pad:not(.on) span{opacity:0}.wd-pad:not(.on):focus-visible{border-color:#ffc861;outline:none}
 .wd-pad b{font-size:16px}.wd-pad small{position:absolute;right:-3px;bottom:-3px;min-width:16px;height:16px;border-radius:8px;background:#ffd23a;color:#3a2200;font:800 10px/16px var(--f-ui,system-ui)}
-.wd-pad.hurt{border-color:#ff4d6d}
-.wd-menu{position:absolute;left:50%;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 150px);transform:translateX(-50%);width:min(340px,calc(100vw - 32px));padding:12px;border-radius:var(--ui-r-l,18px);background:var(--ui-panel,#0b1d49);border:1px solid var(--ui-edge-soft,rgba(96,184,255,.58));box-shadow:var(--ui-glow);pointer-events:auto}
-.wd-menu[hidden],.wd-res[hidden]{display:none}
-.wd-menu h4{margin:0 0 4px;font-size:15px}.wd-menu h4 small{font-weight:600;color:var(--ui-ink-2,#a9c4ec);margin-left:6px}.wd-menu p{margin:0 0 8px;font-size:12px;color:var(--ui-ink-2,#a9c4ec)}
-.wd-buy{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
-.wd-menu button{appearance:none;border:1px solid var(--ui-edge-dim,rgba(98,160,255,.22));border-radius:var(--ui-r-s,9px);background:linear-gradient(180deg,#14306a,#0c1f4a);color:#fff;font:700 13px var(--f-ui,system-ui);padding:8px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:38px}
-.wd-menu button:disabled{opacity:.45;cursor:default}.wd-menu button i{font-style:normal;color:var(--ui-cyan,#38d8ff)}
-.wd-buy button{flex-direction:column;gap:1px;border-color:color-mix(in srgb,var(--c) 70%,transparent)}.wd-buy button span{font-weight:500;font-size:11px;color:var(--ui-ink-2,#a9c4ec)}
-.wd-menu>div:last-child{display:flex;gap:6px;flex-wrap:wrap}.wd-menu>div:last-child button{flex:1}
+.wd-pad.hurt{border-color:#ff4d6d;box-shadow:0 0 16px rgba(255,77,109,.7)}
+/* the radial tower menu: its origin follows the pad (translate set by the game), buttons sit on a ring round it */
+.wd-menu{position:absolute;left:0;top:0;width:0;height:0;z-index:3;pointer-events:none}
+.wd-menu[hidden],.wd-res[hidden]{display:none}.wd-res{z-index:4}
+.wd-rb{position:absolute;left:0;top:0;width:60px;height:60px;margin:-30px 0 0 -30px;transform:translate(var(--x,0),var(--y,0));border-radius:50%;border:2px solid var(--c,#38d8ff);background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--c,#38d8ff) 40%,#0b1d49),#071330 75%);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 18px color-mix(in srgb,var(--c,#38d8ff) 55%,transparent),inset 0 1px 0 rgba(255,255,255,.3);animation:wdPop .26s cubic-bezier(.2,1.5,.4,1) both;transition:filter .15s,box-shadow .15s}
+.wd-rb svg{width:26px;height:26px;fill:currentColor;margin-top:-6px;filter:drop-shadow(0 0 6px var(--c,#38d8ff))}
+.wd-rb i{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);min-width:30px;padding:0 6px;border-radius:9px;background:linear-gradient(180deg,#ffe08a,#ffc861);color:#3a2200;font:800 11px/17px var(--f-ui,system-ui);font-style:normal;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.wd-rb:hover,.wd-rb:focus-visible,.wd-rb.pick{outline:none;box-shadow:0 0 0 3px #ffc861,0 0 26px color-mix(in srgb,var(--c,#38d8ff) 75%,transparent)}
+.wd-rb.no{filter:grayscale(.85) brightness(.75)}.wd-rb.no i{background:#7a8599;color:#101828}
+.wd-rb.x{width:46px;height:46px;margin:-23px 0 0 -23px;--c:#7f9cc8;font:700 24px/1 var(--f-ui,system-ui);background:rgba(8,20,48,.85)}
+.wd-rb.max{display:grid;place-items:center;font:900 12px var(--f-ui,system-ui);color:#ffc861;cursor:default;letter-spacing:.06em;text-transform:uppercase}
+.wd-rcap{position:absolute;left:0;top:calc(var(--r,70px) + 42px);transform:translateX(-50%);display:grid;justify-items:center;gap:1px;width:max-content;max-width:min(280px,calc(100vw - 24px));padding:7px 12px;border-radius:12px;background:rgba(7,19,48,.88);border:1px solid rgba(56,216,255,.35);box-shadow:0 6px 22px rgba(0,0,0,.45);text-align:center;font-size:12px;color:var(--ui-ink-2,#a9c4ec)}
+.wd-rcap:empty{display:none}.wd-rcap b{font-size:14px;color:#fff}.wd-rcap small{color:#ffc861;font-weight:700}
+@keyframes wdPop{from{transform:translate(0,0) scale(.3);opacity:0}}
+/* the HUD: a wave's progress, the Core bar rattles when hit, the scrap a cleared wave adds */
+.wd-prog{position:relative;height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}.wd-prog[hidden]{display:none}
+.wd-prog q{display:block;height:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#4dffb0,#38d8ff 60%,#b48cff);box-shadow:0 0 10px rgba(56,216,255,.6);transition:transform .25s}
+.wd-core.hit{animation:wdHit .38s ease-out}.wd-core.hit q{filter:brightness(1.6)}
+@keyframes wdHit{20%{transform:translateX(-5px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.wd-gain{font-size:13px;font-weight:800;color:#4dffb0;opacity:0;text-shadow:0 0 8px rgba(77,255,176,.7)}.wd-gain.in{animation:wdGain 1.4s ease-out}
+@keyframes wdGain{0%{opacity:0;transform:translateY(6px)}15%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+/* the banner: WAVE n, BOSS, wave cleared */
+.wd-ban{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;white-space:nowrap;z-index:2}
+.wd-ban[hidden]{display:none}
+.wd-ban b{display:block;font:900 clamp(40px,11vw,86px)/1 var(--f-ui,system-ui);letter-spacing:.04em;text-transform:uppercase;color:#f2fbff;text-shadow:0 0 18px #38d8ff,0 0 44px rgba(56,216,255,.55),0 4px 0 #0b3a7a}
+.wd-ban small{display:block;margin-bottom:6px;font:800 14px var(--f-ui,system-ui);letter-spacing:.22em;text-transform:uppercase;color:#4dffb0;text-shadow:0 0 10px rgba(77,255,176,.6)}
+.wd-ban.boss b{color:#ffe3e8;text-shadow:0 0 18px #ff4d6d,0 0 48px rgba(255,77,109,.7),0 4px 0 #6a0a1e}.wd-ban.boss small{color:#ffc861}
+.wd-ban.clear b{color:#eafff5;text-shadow:0 0 18px #4dffb0,0 0 44px rgba(77,255,176,.55),0 4px 0 #0a5a3a}
+.wd-ban.intro b{font-size:clamp(30px,8vw,60px)}
+.wd-ban.in{animation:wdBan 1.7s cubic-bezier(.2,1,.3,1) both}.wd-ban.boss.in{animation-duration:2.4s}
+@keyframes wdBan{0%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.96)}}
+.wd-ban.boss.in b{animation:wdBoss .4s ease-in-out 3}
+@keyframes wdBoss{50%{transform:scale(1.06);filter:brightness(1.4)}}
+/* the result card: stars (5 / 10 / 15 waves) and a crown on a new weekly best */
+.wd-stars{display:flex;justify-content:center;gap:6px;margin:8px 0 0}
+.wd-stars svg{width:36px;height:36px;fill:rgba(255,255,255,.12)}
+.wd-stars .on svg{fill:#ffc861;filter:drop-shadow(0 0 8px rgba(255,200,97,.75))}
+.wd-stars .on{display:inline-block;animation:wdStar .5s cubic-bezier(.2,1.6,.4,1) both}.wd-stars .on:nth-child(2){animation-delay:.18s}.wd-stars .on:nth-child(3){animation-delay:.36s}
+@keyframes wdStar{from{transform:scale(0) rotate(-40deg);opacity:0}}
+.wd-crown{display:inline-flex;align-items:center;gap:6px;margin:2px auto 4px;padding:4px 12px;border-radius:999px;background:rgba(255,200,97,.16);border:1px solid rgba(255,200,97,.55);color:#ffc861;font:800 13px var(--f-ui,system-ui);box-shadow:0 0 18px rgba(255,200,97,.3)}
+.wd-crown svg{width:20px;height:20px;fill:#ffc861}
+/* reduced motion: text only, nothing moves */
+.wd-rm .wd-rb,.wd-rm .wd-ban.in,.wd-rm .wd-ban.boss.in b,.wd-rm .wd-core.hit,.wd-rm .wd-stars .on,.wd-rm .wd-prog q{animation:none;transition:none}.wd-rm .wd-gain.in{animation:none;opacity:1}
+@media (prefers-reduced-motion:reduce){.wd-rb,.wd-ban.in,.wd-ban.boss.in b,.wd-core.hit,.wd-stars .on{animation:none}.wd-gain.in{animation:none;opacity:1}}
 .wd-res{position:absolute;inset:0;display:grid;place-items:center;background:rgba(2,8,24,.62);pointer-events:auto;padding:16px}
 .wd-card{width:min(360px,100%);padding:18px;border-radius:var(--ui-r-l,18px);background:var(--ui-panel,#0b1d49);border:1px solid var(--ui-edge-soft,rgba(96,184,255,.58));box-shadow:var(--ui-glow);text-align:center}
 .wd-card small{color:var(--ui-cyan,#38d8ff);font-weight:800;letter-spacing:.06em}.wd-card h3{margin:4px 0 0;font-size:18px}.wd-big{font:900 56px/1.1 var(--f-ui,system-ui);color:#ffd23a}
@@ -381,7 +418,6 @@ body.wp .wr-rep.brk{border-color:#ff4d6d}
 .wd-btns{display:flex;gap:8px;justify-content:center;margin-top:10px}.wd-cta{background:linear-gradient(180deg,var(--ui-gold-1,#ffe680),var(--ui-gold-2,#ffb21f))!important;color:var(--ui-gold-ink,#3a2200)!important}
 .wd-boss .wd-hud{top:calc(max(10px,env(safe-area-inset-top)) + 100px)}
 @media (max-width:760px){.wd-hud{top:calc(max(10px,env(safe-area-inset-top)) + 112px)}.wd-boss .wd-hud{top:calc(max(10px,env(safe-area-inset-top)) + 160px)}}
-@media (max-width:520px){.wd-menu{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 200px)}}
 /* island like: instant pop on tap */
 .wi-like.pop svg{animation:wiLikePop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes wiLikePop{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
@@ -397,3 +433,11 @@ html.wp-less body.wp .wp-dk>.wp-dk-new{animation:none}
 body.wp #wp-dock{overflow:visible!important}
 /* the Adventure log: when the daily hunts and the weekly bounties start over (amber in the last 6 hours if something waits) */
 .wq-reset{opacity:.8}small.wq-reset{display:block;margin-top:4px}.wq-reset.soon{color:#ffc861;opacity:1}
+/* AC Defense on the phone layout: the HUD card sits under the vitals and the minimap instead of over the top-right buttons */
+/* (the phone layout is a 980px-wide page shown at ~0.4×, and the game HUD zooms 1.42×: the AC Defense UI does the same) */
+html.wp-pcphone .wd-hud{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) + 232px)}
+html.wp-pcphone .wd-boss .wd-hud{top:calc(max(10px,env(safe-area-inset-top)) + 262px)}
+html.wp-pcphone :is(.wd-ban,.wd-res){zoom:1.42}
+html.wp-pcphone .wd-pads>*,html.wp-pcphone .wd-menu{scale:1.42}
+/* in the AC Defense arena the quest card steps aside (the defense HUD takes its place on phones) */
+body:has(.wd-hud:not([hidden])) .wp-quests{display:none}

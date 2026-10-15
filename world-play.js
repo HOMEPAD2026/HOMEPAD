@@ -1582,12 +1582,22 @@ async function openDefense() {
     if (!defense) {
       toast(TW("Getting ready"));
       const M = await import("./world-defense.js");
-      defense = M.createDefense({ THREE, planet, st, T: TW, lang: LANG, esc, toast, Snd, vfx, parts, combat, coarse, reduce, keep: [gv.root] /* the Game Village stays (its square is the arena); the town hides */, origin: gv.center, sess, post,
+      defense = M.createDefense({ THREE, planet, st, T: TW, lang: LANG, esc, toast, Snd, vfx, parts, combat, coarse, low: lowGfx, reduce, keep: [gv.root] /* the Game Village stays (its square is the arena); the town hides */, origin: gv.center, sess, post,
+        cinema: (ms) => defenseCinema(gv.center, ms), shake: (n) => { if (!reduce) shake = Math.max(shake, n); },
         place: (x, z) => standAt(x, z, gv.center),
-        setArena: (r) => { arenaR = r; }, exit: () => { const e = gv.exitOf("defense"); standAt(e.x, e.z, gv.center); }, refresh: () => refreshPurse(true), leave: () => { defenseOn = false; near = null; paintPrompt(); } });
+        setArena: (r) => { arenaR = r; }, exit: () => { const e = gv.exitOf("defense"); standAt(e.x, e.z, gv.center); }, refresh: () => refreshPurse(true), enter: () => { defenseOn = true; near = null; paintPrompt(); }, leave: () => { defenseOn = false; near = null; paintPrompt(); } });
     }
     defenseOn = true; near = null; paintPrompt(); await defense.start();
   } catch (e) { console.warn("defense", e); defenseOn = false; arenaR = 0; } finally { defenseBusy = false; }
+}
+// AC Defense's entry: the camera starts high over the arena and eases down to its place behind the player (the landing's
+// slow follow, landUntil); any key or tap skips to the quick follow. Nothing with reduced motion
+function defenseCinema(c, ms = 2000) {
+  if (reduce || introOn) return;
+  const x = c.x + planet.position.x, z = c.z + planet.position.z, t = performance.now();
+  cam.position.set(x, 24, z + 7); camLookS.set(x, 0, z); lookInit = true; cam.lookAt(camLookS); landUntil = t + ms;
+  const skip = () => { if (performance.now() - t > 120) { landUntil = 0; off(); } }, off = () => { removeEventListener("keydown", skip, true); removeEventListener("pointerdown", skip, true); };
+  addEventListener("keydown", skip, true); addEventListener("pointerdown", skip, true); setTimeout(off, ms + 50);
 }
 function enter(n) {
   if (n.kind === "isle") { goIsland({}); return; }
