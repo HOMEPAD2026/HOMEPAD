@@ -344,6 +344,9 @@ export function createShop(ctx) {
         const r = await post({ action: what === "rest" ? "world-ko-rest" : "world-ko", ...s }); return r.ok ? r.j : null;
       } catch { return null; }
     },
+    /// the Magic Forge's free repairs (3 a day, at your own island): the server counts them and hands back a credit for the piece
+    repairFree: async (id) => { const sv = sess(); if (!sv) return { error: T("Sign in with your wallet first") }; const r = await post({ action: "world-repair-free", ...sv, id, base: true }).catch(() => ({ ok: false, j: {} })); if (r.ok && r.j.own) { own = r.j.own; ctx.onOwn(own); } return r.ok ? r.j : { error: r.j.error || T("Couldn't repair that") }; },
+    repairLeft: async () => { const sv = sess(); if (!sv) return null; try { const r = await fetch("/api/social?world=repair&wallet=" + sv.wallet, { cache: "no-store" }); return r.ok ? (await r.json()).left : null; } catch { return null; } },
     arcl: () => arcl, own: () => own, open: () => !sheet.hidden || !daily.hidden, fly: (n, from) => flyCoins(n, from),
   };
 }

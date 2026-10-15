@@ -30,6 +30,21 @@ export const temperOf = (it) => Math.max(0, Math.min(TEMPER_MAX, Math.floor(Numb
 /// what stage n (1–5) costs
 export const temperCost = (n) => ({ ore: 4 * n, crystal: 3 * n, wood: 2 * n, scrap: 20 * n });
 
+// durability (Epic and Legendary only, r >= 3): `du` on the item is what is left; absent = full, so older saves need no
+// migration. A weapon loses 1 per knock-out, the shield, armor, helmet and boots 1 per 3 s of taking damage
+// (world-rpg.js wear). At 0 the piece is BROKEN: it comes off, gives no stats and can't be worn until it is repaired
+// at the Magic Forge (the Forge panel's tab), for $ARCIRCLE only; at your own island 3 repairs a day are free.
+// api/_world-shop.mjs mirrors DUR_MAX, REPAIR_PRICE and REPAIR_FREE_DAY (the server keeps them).
+export const DUR_MAX = { 3: 300, 4: 500 };
+/// $ARCIRCLE per repair, by rarity (the one place to change it; the server's REPAIR_PRICE must agree)
+export const REPAIR_PRICE = { 3: 500, 4: 1500 };
+export const REPAIR_FREE_DAY = 3, WEAR_WARN = 0.2, WEAR_HURT_MS = 3000;
+export const WEAR_KILL = ["weapon"], WEAR_HURT = ["shield", "armor", "helm", "boots"];
+export const durMax = (it) => DUR_MAX[it && it.r] || 0;
+/// what is left of a piece, or null when it doesn't wear (Common to Rare)
+export const durOf = (it) => { const m = durMax(it); return m ? (it.du == null ? m : Math.max(0, Math.min(m, Math.floor(Number(it.du)) || 0))) : null; };
+export const isBroken = (it) => durOf(it) === 0;
+
 /// what one piece gives: { atk, def, hp, sp, crit, spd } — from its slot, level, rarity and enhancement
 export function itemStats(it) {
   const p = parseBase(it && it.b); if (!p) return {};
@@ -56,7 +71,7 @@ export function statsOf(level, eq, extra) {
   const s = { atk: 6 + level * 2, def: 2 + level, hp: 100 + (level - 1) * 12, sp: 100 + (level - 1) * 8, crit: 5, spd: 0 };
   const sets = {};
   for (const slot of SLOTS) {
-    const it = eq && eq[slot]; if (!it) continue;
+    const it = eq && eq[slot]; if (!it || isBroken(it)) continue; // a broken piece gives nothing
     const g = itemStats(it); for (const k in g) s[k] = (s[k] || 0) + g[k];
     const p = parseBase(it.b); if (p) sets[p.tier] = (sets[p.tier] || 0) + 1;
   }

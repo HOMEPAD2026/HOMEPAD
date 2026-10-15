@@ -4,7 +4,7 @@
 // Saved with the rest of your progress (P.rpg → world-save, checked for shape in api/_world.mjs). Gear dropped by
 // scammers turns into scrap, or sells back to the Forge through the server (by rarity, capped per day, each piece
 // once); the Forge sells for ARCL through the server too.
-import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, ARCL_DAY_CAP, mwBand, mwPrice, mwId, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, skillLevel, bonusLine } from "./world-rpg-data.js";
+import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, ARCL_DAY_CAP, mwBand, mwPrice, mwId, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, skillLevel, bonusLine, DUR_MAX, REPAIR_PRICE, REPAIR_FREE_DAY, WEAR_WARN, WEAR_HURT_MS, WEAR_KILL, WEAR_HURT, durMax, durOf, isBroken } from "./world-rpg-data.js";
 export * from "./world-rpg-data.js";
 import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade, weaponThumb, gearThumb, gearModel3d } from "./world-gear3d.js";
 import { art } from "./world-itemart.js";
@@ -83,6 +83,7 @@ export function createRpg(ctx) {
   function equip(id) {
     const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return;
     const it = r.bag[i], p = parseBase(it.b); if (!p) return;
+    if (isBroken(it)) { ctx.toast(T("Broken — repair at the Magic Forge")); ctx.Snd.bad && ctx.Snd.bad(); return; }
     if (TIERS[p.tier].lv > ctx.level()) { ctx.toast(T("Needs level {n}", { n: TIERS[p.tier].lv })); ctx.Snd.bad && ctx.Snd.bad(); return; }
     r.bag.splice(i, 1); if (r.eq[p.slot]) r.bag.splice(i, 0, r.eq[p.slot]); r.eq[p.slot] = it;
     ctx.Snd.equip ? ctx.Snd.equip() : ctx.Snd.place && ctx.Snd.place(); changed();
@@ -101,7 +102,7 @@ export function createRpg(ctx) {
         if (r.eq[slot] && r.eq[slot].lk) continue;
         let best = null, bp = cur;
         for (const it of r.bag) {
-          const p = parseBase(it.b); if (!p || p.slot !== slot || TIERS[p.tier].lv > lv || put.has(it.id)) continue;
+          const p = parseBase(it.b); if (!p || p.slot !== slot || TIERS[p.tier].lv > lv || put.has(it.id) || isBroken(it)) continue;
           const v = powerOf(statsOf(lv, { ...eq, [slot]: it }, ex)); if (v > bp + 0.01) { bp = v; best = it; }
         }
         if (best) { if (eq[slot]) put.delete(eq[slot].id); eq[slot] = best; put.add(best.id); cur = bp; moved = true; }
@@ -118,7 +119,7 @@ export function createRpg(ctx) {
   function wearSet(n) {
     const want = sets()[n]; if (!want) { ctx.toast(T("Save what you wear as set {n} first", { n: n + 1 })); return; }
     const r = R(); let moved = 0, gone = 0;
-    for (const [slot, id] of Object.entries(want)) { if (r.eq[slot] && r.eq[slot].id === id) continue; const i = r.bag.findIndex((x) => x.id === id); if (i < 0) { gone++; continue; } const it = r.bag[i], p = parseBase(it.b); if (!p || TIERS[p.tier].lv > ctx.level()) continue; r.bag.splice(i, 1); if (r.eq[slot]) r.bag.splice(i, 0, r.eq[slot]); r.eq[slot] = it; moved++; }
+    for (const [slot, id] of Object.entries(want)) { if (r.eq[slot] && r.eq[slot].id === id) continue; const i = r.bag.findIndex((x) => x.id === id); if (i < 0) { gone++; continue; } const it = r.bag[i], p = parseBase(it.b); if (!p || TIERS[p.tier].lv > ctx.level() || isBroken(it)) continue; r.bag.splice(i, 1); if (r.eq[slot]) r.bag.splice(i, 0, r.eq[slot]); r.eq[slot] = it; moved++; }
     if (moved) { ctx.Snd.place && ctx.Snd.place(); changed(T("Gear set {n} on", { n: n + 1 }) + (gone ? " · " + T("{k} pieces are gone", { k: gone }) : "")); } else ctx.toast(gone ? T("{k} pieces are gone", { k: gone }) : T("You're already wearing set {n}", { n: n + 1 }));
   }
   function equipBest(now) {
@@ -159,6 +160,45 @@ export function createRpg(ctx) {
   }
   function lock(id) { const it = findItem(id); if (!it) return; it.lk = it.lk ? 0 : 1; if (!it.lk) delete it.lk; changed(it.lk ? T("Locked: {x}", { x: itemName(it) }) : T("Unlocked: {x}", { x: itemName(it) })); }
   function unequip(slot) { const r = R(); if (!r.eq[slot]) return; if (r.bag.length >= BAG) { ctx.toast(T("Your bag is full")); return; } r.bag.push(r.eq[slot]); delete r.eq[slot]; changed(); }
+  // ---- durability (Epic and Legendary): the light path. Wear only touches the field and the stats cache; the normal
+  // debounced save carries it (no repaint, no 3D rebuild) unless a piece breaks. world-combat.js calls wear("kill") on a
+  // knock-out and wear("hurt") when you take damage. A piece that reaches 0 goes to the bag; with the bag full it stays
+  // worn but broken (statsOf gives nothing for it, and it shows as broken) until you make room or repair it.
+  const wearAt = {};
+  function wear(kind, t = Date.now()) {
+    const r = R(), slots = kind === "kill" ? WEAR_KILL : kind === "hurt" ? WEAR_HURT : []; let dirty = false;
+    for (const sl of slots) {
+      const it = r.eq[sl], m = durMax(it); if (!it || !m || isBroken(it)) continue;
+      if (kind === "hurt") { if (t - (wearAt[sl] || 0) < WEAR_HURT_MS) continue; wearAt[sl] = t; }
+      const was = durOf(it), n = was - 1; it.du = n; dirty = true;
+      if (n === 0) {
+        cache = null; plan = null; const put = r.bag.length < BAG; if (put) { r.bag.push(it); delete r.eq[sl]; }
+        ctx.Snd.bad && ctx.Snd.bad();
+        changed(put ? T("{x} broke and went to your bag. Repair it at the Magic Forge.", { x: itemName(it) }) : T("{x} broke. Your bag is full, so it gives nothing until it's repaired.", { x: itemName(it) }));
+        continue;
+      }
+      if (was / m >= WEAR_WARN && n / m < WEAR_WARN) ctx.toast(T("{x} is wearing out ({n}% left). Repair it at the Magic Forge.", { x: itemName(it), n: Math.round((100 * n) / m) }));
+    }
+    if (dirty) ctx.save();
+  }
+  // a repair that's paid for (worldOwn.repairIds, from a $ARCIRCLE payment or a free one): the piece is whole again; the
+  // next save carries it and the server uses that one credit (api/_world.mjs: a rise in `du` without one is undone)
+  const repairCredit = (id) => { const o = ctx.own ? ctx.own() : null; return !!(o && (o.repairIds || []).includes(id)); };
+  let repairSt = "", repairBusy = "", freeLeft = null;
+  function applyRepair(it) {
+    delete it.du; const o = ctx.own && ctx.own(); if (o && o.repairIds) o.repairIds = o.repairIds.filter((x) => x !== it.id);
+    repairSt = ""; repairBusy = ""; cache = null; ctx.Snd.equip && ctx.Snd.equip(); changed(T("Repaired: {x}", { x: itemName(it) })); ctx.save();
+  }
+  async function repairPiece(id, free) {
+    const it = findItem(id); if (!it || !(durMax(it) && durOf(it) < durMax(it)) || repairBusy) return;
+    if (repairCredit(id)) { applyRepair(it); return; }
+    repairBusy = id; repairSt = ""; paint();
+    try {
+      if (free) { const j = await ctx.repairFree(id); if (j && j.ok) { freeLeft = j.left; applyRepair(it); } else { repairBusy = ""; repairSt = (j && j.error) || T("Couldn't repair that"); paint(); } return; }
+      const ok = await ctx.repairPay(id, (t) => { repairSt = t; if (open) paint(); });
+      const it2 = findItem(id); if (ok && it2) applyRepair(it2); else { repairBusy = ""; paint(); }
+    } catch { repairBusy = ""; paint(); }
+  }
   function salvage(id) { const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return; if (r.bag[i].lk) { ctx.toast(T("Unlock it first")); return; } const it = r.bag[i], s = scrapOf(it); r.scrap += s; r.bag.splice(i, 1); sel = null; ctx.Snd.salvage && ctx.Snd.salvage(); changed(T("+{n} scrap", { n: s })); undoable([[it, i]], s); }
   function enhance(id) {
     const r = R(), it = r.bag.find((x) => x.id === id) || Object.values(r.eq).find((x) => x && x.id === id); if (!it) return;
@@ -318,7 +358,11 @@ export function createRpg(ctx) {
   // the Forge's cards: the piece drawn in 3D like the bag's (a weapon in the kind you're holding), the line icon as a fallback
   const fart = (sl, tier, color) => { const u = sl === "weapon" ? weaponThumb(weaponKind(R().eq.weapon || null), tier, color) : gearThumb(sl, tier, color); return u ? `<img class="wr-3d" src="${u}" alt="">` : iconSvg(sl, color); };
   const pic = (it) => { const p = parseBase(it.b); if (p) { const u = p.slot === "weapon" ? weaponThumb(weaponKind(it), p.tier, rc(it)) : gearThumb(p.slot, p.tier, rc(it)); if (u) return `<img class="wr-3d" src="${u}" alt="">`; } return iconSvg(p.slot, rc(it)); };
-  const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${pic(it)}${it.p ? `<b>+${it.p}</b>` : ""}${it.tm ? `<em class="wr-tm" aria-label="${esc(T("Temper {n} of {m}", { n: it.tm, m: 5 }))}">${"✦".repeat(it.tm)}</em>` : ""}<small>${it.lv}</small>${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>` : "";
+  // durability: a bar under the piece (Epic and Legendary), its rarity colour; red and a "Broken" badge at 0
+  const durBar = (it, mini) => { const m = durMax(it); if (!m) return ""; const v = durOf(it), pc = Math.round((100 * v) / m);
+    return mini ? (v < m ? `<i class="wr-du${v === 0 ? " brk" : pc < WEAR_WARN * 100 ? " low" : ""}" style="--du:${pc}%" aria-label="${esc(T("Durability"))} ${pc}%"></i>${v === 0 ? `<em class="wr-brk">${esc(T("Broken"))}</em>` : ""}` : "")
+      : `<p class="wr-dura${v === 0 ? " brk" : pc < WEAR_WARN * 100 ? " low" : ""}"><span>${esc(T("Durability"))}</span><i style="--du:${pc}%"></i><b>${v} / ${m}</b>${v === 0 ? `<em class="wr-brk">${esc(T("Broken"))}</em>` : ""}</p>`; };
+  const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${pic(it)}${it.p ? `<b>+${it.p}</b>` : ""}${it.tm ? `<em class="wr-tm" aria-label="${esc(T("Temper {n} of {m}", { n: it.tm, m: 5 }))}">${"✦".repeat(it.tm)}</em>` : ""}<small>${it.lv}</small>${durBar(it, true)}${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>` : "";
   const statLine = (k, v, d) => `<li><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "+" : "−"}${Math.abs(Math.round(d * 10) / 10)}${k === "crit" || k === "spd" ? "%" : ""}</i>` : ""}</li>`;
   const emptyBox = (pic, line, btn) => `<div class="wr-emptybox">${art(pic, 52)}<p>${esc(line)}</p>${btn || ""}</div>`;
   const huntBtn = () => (ctx.goHunt ? `<button type="button" class="go" data-hunt>${esc(T("Go hunting"))}</button>` : "");
@@ -329,13 +373,13 @@ export function createRpg(ctx) {
     const keys = [...new Set([...Object.keys(g), ...Object.keys(c)])];
     const need = TIERS[p.tier].lv;
     return `<div class="wr-detail r${it.r || 0}" style="--rc:${rc(it)}"><div class="wr-w3d" data-w3d="${esc(it.id)}"></div><div class="wr-d-h">${iconSvg(p.slot, rc(it))}<div><h3>${esc(itemName(it))}</h3><small>${esc(T(RARITY[it.r || 0].name))} · ${esc(T(SLOT_NAME[p.slot]))} · ${esc(T("Lv {n}", { n: it.lv }))}</small></div><button type="button" class="wr-d-x" data-unpick aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-      <ul class="wr-stats">${keys.map((k) => statLine(k, g[k] || 0, on ? 0 : (g[k] || 0) - (c[k] || 0))).join("")}</ul>${on ? "" : `<p class="wr-vs">${esc(cur ? T("vs. {x}", { x: itemName(cur) }) : T("vs. nothing worn"))}</p>`}
+      ${durBar(it)}<ul class="wr-stats">${keys.map((k) => statLine(k, g[k] || 0, on ? 0 : (g[k] || 0) - (c[k] || 0))).join("")}</ul>${on ? "" : `<p class="wr-vs">${esc(cur ? T("vs. {x}", { x: itemName(cur) }) : T("vs. nothing worn"))}</p>`}
       ${p.slot === "weapon" ? `<div class="wr-kind"><b>${esc(T(WEAPON_KINDS[weaponKind(it)].name))}</b><span>${esc(T(WEAPON_KINDS[weaponKind(it)].line))}</span>
         <div class="wr-kinds" role="group" aria-label="${esc(T("Weapon kind"))}">${WEAPON_KINDS.map((k, i) => `<button type="button" data-kind="${i}" aria-pressed="${weaponKind(it) === i}">${esc(T(k.name))}</button>`).join("")}</div>
         ${kindAsk && kindAsk.id === it.id ? `<div class="wr-bagask wr-kindask" role="group"><p>${esc(kindAsk.st || (ctx.sess() ? T("Make it a {x} for {n} $ARCIRCLE from your wallet (half is burned, half goes to the treasury). It keeps its stats.", { x: T(WEAPON_KINDS[kindAsk.k].name), n: KIND_COST.toLocaleString("en-US") }) : T("Changing a weapon's kind costs {n} $ARCIRCLE. Sign in with your wallet to pay for it.", { n: KIND_COST.toLocaleString("en-US") })))}</p>${ctx.sess() && ctx.buyRekind ? `<button type="button" class="go" data-kindpay>${esc(T("Pay {n} $ARCIRCLE", { n: KIND_COST.toLocaleString("en-US") }))}</button>` : ""}<button type="button" data-kindno>${esc(T("Keep it"))}</button></div>` : `<small>${esc(T("Change kind: {n} $ARCIRCLE", { n: KIND_COST.toLocaleString("en-US") }))}</small>`}
         <p class="wr-temper"><span>${esc(T("Temper"))}</span><em>${Array.from({ length: 5 }, (_, i) => `<i class="${i < (it.tm || 0) ? "on" : ""}"></i>`).join("")}</em>${it.tm ? `<b>+${it.tm * 4}%</b>` : ""}${ctx.openCraft ? `<button type="button" data-tempergo>${esc(T("Workbench"))}</button>` : ""}</p></div>` : ""}
       <p class="wr-set">${esc(T("{x} set", { x: TIERS[p.tier].set }))}${need > ctx.level() ? ` · <span class="need">${esc(T("Needs level {n}", { n: need }))}</span>` : ""}</p>
-      <div class="wr-acts">${on ? `<button type="button" data-unequip="${p.slot}">${esc(T("Unequip"))}</button>` : `<button type="button" class="go" data-equip="${it.id}" ${need > ctx.level() ? "disabled" : ""}>${esc(T("Equip"))}</button>`}
+      <div class="wr-acts">${on ? `<button type="button" data-unequip="${p.slot}">${esc(T("Unequip"))}</button>` : `<button type="button" class="go" data-equip="${it.id}" ${need > ctx.level() || isBroken(it) ? "disabled" : ""}${isBroken(it) ? ` title="${esc(T("Broken — repair at the Magic Forge"))}"` : ""}>${esc(T("Equip"))}</button>`}${durMax(it) && durOf(it) < durMax(it) && ctx.repairPay ? `<button type="button" data-forge-repair>${esc(T("Magic Forge"))}</button>` : ""}
       <button type="button" data-enhance="${it.id}" ${(it.p || 0) >= 10 ? "disabled" : ""}>${esc(T("Enhance"))} <small>${(it.p || 0) >= 10 ? "MAX" : esc(T("{n} scrap", { n: enhanceCost(it) }))}</small></button>
       ${on ? "" : `<button type="button" data-store="${it.id}">${esc(T("To storage"))}</button>`}
       <button type="button" data-lock="${it.id}" aria-pressed="${!!it.lk}">${esc(it.lk ? T("Unlock") : T("Lock"))}</button>
@@ -435,13 +479,28 @@ export function createRpg(ctx) {
     const why = sl <= 0 ? T("Today's {n} ARCL of sales is used.", { n: sellCap.toLocaleString("en-US") }) : T("Today's {n} ARCL is earned.", { n: cap.toLocaleString("en-US") });
     return { closed, why, when, html: `${closed ? `<div class="wr-sellshut" role="status"><b>${esc(T("Selling is closed until midnight (Seoul time)"))}</b><span>${esc(why)} ${esc(T("The Forge buys again in {t}. Pieces stay in your bag.", { t: when }))}</span></div>` : ""}${bar(T("Sales left today"), sl, sellCap)}${bar(T("ARCL earned today"), today, cap)}` };
   }
+  // the Magic Forge: Epic and Legendary pieces (worn, in the bag, in storage) with their durability. Repairs are paid in
+  // $ARCIRCLE only; on your own island three a day are free (the server counts them: world-repair-free).
+  function repairHTML() {
+    const r = R(), all = [...Object.values(r.eq).filter(Boolean), ...r.bag, ...r.store].filter((it) => durMax(it)).sort((a, b) => durOf(a) / durMax(a) - durOf(b) / durMax(b));
+    const base = ctx.atBase && ctx.atBase(), signed = !!ctx.sess();
+    if (base && freeLeft == null && ctx.repairLeft && !repairBusy) ctx.repairLeft().then((n) => { if (n != null) { freeLeft = n; if (open && view === "forge" && forgeTab === "repair") paint(); } });
+    const rows = all.map((it) => { const p = parseBase(it.b), m = durMax(it), v = durOf(it), full = v >= m, worn = r.eq[p.slot] && r.eq[p.slot].id === it.id, busy = repairBusy === it.id, price = REPAIR_PRICE[it.r] || 0;
+      return `<article class="wr-rep r${it.r || 0}${v === 0 ? " brk" : ""}" style="--rc:${rc(it)}">${tile(it, "tabindex=\"-1\"")}<div class="wr-rep-i"><h4>${esc(itemName(it))}</h4><small>${esc(T(RARITY[it.r || 0].name))} · ${esc(T(SLOT_NAME[p.slot]))}${worn ? " · " + esc(T("Worn")) : ""}</small>${durBar(it)}
+        <div class="wr-acts">${full ? `<small>${esc(T("Like new"))}</small>` : `<button type="button" class="go" data-repair="${it.id}" ${busy || !signed ? "disabled" : ""}>${esc(repairCredit(it.id) ? T("Use paid repair") : T("Repair {n} $ARCIRCLE", { n: price.toLocaleString("en-US") }))}</button>
+        ${base ? `<button type="button" data-repairfree="${it.id}" ${busy || !signed || (freeLeft != null && freeLeft <= 0) ? "disabled" : ""}>${esc(T("Free repair ({n}/{m} left)", { n: freeLeft == null ? "?" : freeLeft, m: REPAIR_FREE_DAY }))}</button>` : ""}`}</div></div></article>`; });
+    return `<p class="wr-note">${esc(T("Epic and Legendary gear wears out: a weapon with each knock-out, armor when you take hits. At 0 a piece breaks and gives nothing until it's repaired. Repairs cost $ARCIRCLE (half is burned, half goes to the treasury)."))} ${esc(base ? T("You're at your own island: {m} repairs a day are free.", { m: REPAIR_FREE_DAY }) : T("At your own island, {m} repairs a day are free.", { m: REPAIR_FREE_DAY }))}</p>
+      ${!signed ? `<p class="wr-note">${esc(T("Sign in with your wallet to repair."))}</p>` : ""}${repairSt ? `<p class="wr-note" role="status">${esc(repairSt)}</p>` : ""}
+      ${rows.length ? `<div class="wr-reps">${rows.join("")}</div>` : emptyBox("chest", T("You have no Epic or Legendary gear yet."), huntBtn())}`;
+  }
   function forgeHTML() {
     const lv = ctx.level(), bal = ctx.arclBal();
-    const tabs = [["gear", "Gear"], ["acc", "Accessories"], ["master", "Masterwork"], ["supplies", "Supplies"], ["sell", "Sell"], ["enhance", "Enhance"], ["fuse", "Fuse"]];
+    const tabs = [["gear", "Gear"], ["acc", "Accessories"], ["master", "Masterwork"], ["supplies", "Supplies"], ["sell", "Sell"], ["enhance", "Enhance"], ["fuse", "Fuse"], ["repair", "Magic Forge"]];
     let body = "";
     if (forgeTab === "supplies") body = `<div class="wr-forge-grid">${Object.entries(FORGE_SUPPLY).map(([id, x]) => `<article class="wr-fcard"><div class="wr-fart sup-${x.kind}">${art(x.kind, 76)}</div><h4>${esc(T(x.name))}</h4>${buyBtn(id, x.arcl, true, "")}</article>`).join("")}</div>`;
     else if (forgeTab === "sell") body = `${sellGate().html}<p class="wr-note">${esc(T("Sell gear from your bag for ARCL: the price goes by rarity and a little up with each +. Up to {n} ARCL of sales a day; worn gear isn't for sale.", { n: SELL_DAY_CAP.toLocaleString("en-US") }))}</p>${R().bag.length ? `<div class="wr-cells enh">${R().bag.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}<span class="wr-price"><img src="/images/arcl-64.png" alt="" width="12" height="12">${sellPrice(it)}</span></div>`).join("")}</div>` : emptyBox("chest", T("Your bag is empty."), huntBtn())}${R().bag.length ? inDetail(sel && R().bag.find((x) => x.id === sel)) : ""}`;
     else if (forgeTab === "fuse") body = fuseHTML();
+    else if (forgeTab === "repair") body = repairHTML();
     else if (forgeTab === "master") body = masterHTML(lv, bal);
     else if (forgeTab === "enhance") { const all = [...Object.values(R().eq).filter(Boolean), ...R().bag]; body = `<p class="wr-note">${esc(T("Enhancing always works: it costs scrap, which you get by salvaging gear. Each + adds 8% to the piece."))} <b>${R().scrap} ${esc(T("Scrap"))}</b></p><div class="wr-cells enh">${all.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}</div>`).join("")}</div>${inDetail(sel && findItem(sel))}`; }
     else {
@@ -580,6 +639,9 @@ export function createRpg(ctx) {
     if (d.br) { setBranch(d.br); return; }
     if (d.pick) { plan = null; sel = sel === d.pick ? null : d.pick; if (sel && view === "inv") invPane = "bag"; paint(); return; }
     if (d.equip) { equip(d.equip); return; }
+    if (d.repair) { repairPiece(d.repair, false); return; }
+    if (d.repairfree) { repairPiece(d.repairfree, true); return; }
+    if (b.hasAttribute("data-forge-repair")) { view = "forge"; forgeTab = "repair"; sel = null; show("forge"); return; }
     if (d.unequip) { unequip(d.unequip); return; }
     if (d.enhance) { enhance(d.enhance); return; }
     if (d.salvage) { const it = findItem(d.salvage); if (it && confirmed(b, "salvage:" + it.id, it)) salvage(d.salvage); return; }
@@ -628,7 +690,7 @@ export function createRpg(ctx) {
   el.addEventListener("keydown", (e) => { e.stopPropagation(); const k = e.key.toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
 
   return {
-    stats, swing, tickSwing, addItem, freshN: () => fresh.size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),
+    stats, swing, tickSwing, addItem, wear, repair: repairPiece, applyRepair, freshN: () => fresh.size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),
     potions: () => ({ hp: R().hp, sp: R().sp, recall: R().recall }), useRecall: () => { const r = R(); if (!(r.recall > 0)) return false; r.recall--; ctx.save(); return true; },
     /// "Bigger bag" purchases (worldOwn.bag): the bag's size follows them
     setBagPlus: (n) => { const b = Math.min(BAG_MAX, BAG_BASE + BAG_STEP * Math.max(0, Math.floor(Number(n) || 0))); if (b !== BAG) { BAG = b; if (open) paint(); } }, bagSize: () => BAG,

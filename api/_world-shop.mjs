@@ -118,9 +118,20 @@ export const CATALOG = [
   // pet eggs (PET below): 3,000 $ARCIRCLE, paid on-chain; the server rolls the pet (rarity, then species)
   { id: "petegg", cat: "pet", name: "Pet egg", line: "Hatches a random companion: Common to Legendary. Every 10th egg is Rare or better; a pet you already have becomes pet XP.", tokens: 3000, usd: null, arcl: null, use: true },
   { id: "bagplus", cat: "game", name: "Bigger bag", line: "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.", tokens: 10000, usd: null, arcl: null, use: true },
+  // the Magic Forge (world-rpg-data.js): repairing one worn-out Epic or Legendary piece, $ARCIRCLE only. The real price is by
+  // the piece's rarity (REPAIR_PRICE), quoted for its item id (the target); paying adds the id to worldOwn.repairIds
+  { id: "repair", cat: "game", name: "Repair", line: "Make one Epic or Legendary piece whole again. The price goes by rarity.", tokens: 500, usd: null, arcl: null, use: true },
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
 ];
 const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
+// ---- durability and the Magic Forge (mirrors world-rpg-data.js DUR_MAX, REPAIR_PRICE, REPAIR_FREE_DAY) ----
+// Only Epic and Legendary pieces (r >= 3) wear; `du` absent = full. The game wears them down; the server only ever lets
+// `du` go DOWN on its own: a rise has to be backed by a repair credit (worldOwn.repairIds, from a payment here or a free
+// repair at the player's island), one credit per piece (api/_world.mjs save).
+export const DUR_MAX = { 3: 300, 4: 500 };
+export const REPAIR_PRICE = { 3: 500, 4: 1500 }; // $ARCIRCLE; change it here and in world-rpg-data.js
+export const REPAIR_FREE_DAY = 3;
+export const durOf = (it) => { const m = DUR_MAX[it && it.r]; return m ? (it.du == null ? m : Math.max(0, Math.min(m, Math.floor(Number(it.du)) || 0))) : null; };
 // ---- the Starter Package, sold by season (b414) ----
 // Each season has its own count: at most `max` buys per wallet, at prices[0], prices[1], prices[2]. A buy gives a
 // random-slot Legendary piece (the tier you can wear at your level, at least Cold Wallet; item level your level, at
@@ -193,6 +204,8 @@ export function makeShop(deps) {
   const one = async (p) => (await getDocs([p]))[p];
 
   async function own(w) { return (await one(`worldOwn/${w}`)) || { items: [], renames: 0, lots: [] }; }
+  // a piece in the player's saved gear (worn, bag or storage), by id
+  async function savedItem(w, id) { const rp = ((await one(`worldSave/${w}`)) || {}).rpg; return rp ? [...Object.values(rp.eq || {}), ...(rp.bag || []), ...(rp.store || [])].find((x) => x && x.id === id) || null : null; }
   async function ledger(w) { return (await one(`worldArcl/${w}`)) || { bal: 0, earned: 0, spent: 0, streak: 0, lastDay: "", got: [], log: [] }; }
   async function note(w, t, k, n) {
     // the ledger's history (the balance itself moves with atomic increments)
@@ -420,6 +433,7 @@ export function makeShop(deps) {
     if (it.id === "bagplus" && bagSize(o) >= BAG_MAX) return `your bag is as big as it gets (${BAG_MAX} slots)`;
     if (it.id === "isleup") { const u = deps.isleNext ? await deps.isleNext(w) : { why: "not available" }; if (u.why) return u.why; }
     if (it.id === "starter") { if (!STARTER.open) return "the Starter Package isn't on sale this season"; if (starterBought(o) >= STARTER.max) return `you've bought the Starter Package ${STARTER.max} times this season`; }
+    if (it.id === "repair") { const t = await savedItem(w, lc(target)); if (!t || !DUR_MAX[t.r]) return "that piece can't be repaired (only Epic and Legendary gear wears out, and it has to be saved: try again in a moment)"; if ((o.repairIds || []).includes(lc(target))) return "this piece already has a repair paid for"; }
     if (it.id === "petegg" && petsOf(o).length >= PET.max) return `you already have ${PET.max} pets`;
     if (it.id === "rename" && !(deps.hasName ? await deps.hasName(w) : true)) return "your first name is free: set it in the character maker";
     if (it.target === "coin" || it.target === "mycoin") {
@@ -459,6 +473,7 @@ export function makeShop(deps) {
     if (it.id === "rename") o.renames = (o.renames || 0) + 1;
     else if (it.id === "revive") { o.revives = (o.revives || 0) + 1; const k = await one(`worldKo/${w}`); if (k && (k.until > at || k.down)) await setDoc(`worldKo/${w}`, { ...k, until: 0, down: 0, paid: (k.paid || 0) + 1 }); }
     else if (it.id === "rekind") o.rekinds = (o.rekinds || 0) + 1; // used up by the save that changes a weapon's kind (api/_world.mjs)
+    else if (it.id === "repair") o.repairIds = [...new Set([...(o.repairIds || []), lc(target)])].slice(-60); // used up by the save that raises that piece's durability (api/_world.mjs)
     else if (it.id === "isleup") o.isleLv = Math.max(o.isleLv || 0, Math.floor(Number(String(target || "").replace(/^lv:/, "")) || 0)); // the level this payment was quoted for
     else if (it.id === "starter") {
       const st0 = o.starter && o.starter.season === STARTER.season ? o.starter : { season: STARTER.season, n: 0, gifts: [] };
@@ -486,6 +501,25 @@ export function makeShop(deps) {
     o.buys = [...(o.buys || []), { id: it.id, via, at }].slice(-40);
     await setDoc(`worldOwn/${w}`, o);
     return o;
+  }
+  // the Magic Forge's free repairs: 3 a day (Seoul time) per wallet, only asked for at the player's own island (the client
+  // says so with base: true; the server just keeps the count). A repair hands out the same credit a payment does.
+  async function repairFree(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const w = s.wallet, id = String(b.id || "").toLowerCase();
+    if (b.base !== true) return json(400, { error: "free repairs are at your own island" });
+    const t = await savedItem(w, id); if (!t || !DUR_MAX[t.r]) return json(400, { error: "that piece can't be repaired (only Epic and Legendary gear wears out, and it has to be saved: try again in a moment)" });
+    const day = seoulDay(now()), key = `worldRepairDay/${w}_${day}`, used = ((await one(key)) || {}).n || 0;
+    const o = await own(w);
+    if ((o.repairIds || []).includes(id)) return json(200, { ok: true, left: Math.max(0, REPAIR_FREE_DAY - used), own: o, already: true });
+    if (used >= REPAIR_FREE_DAY) return json(429, { error: "no free repairs left today", left: 0 });
+    if (!(await commit([{ inc: key, fields: { n: 1 } }])).ok) return json(429, { error: "one moment" });
+    const n = ((await one(key)) || {}).n || 0;
+    if (n > REPAIR_FREE_DAY) return json(429, { error: "no free repairs left today", left: 0 });
+    o.repairIds = [...new Set([...(o.repairIds || []), id])].slice(-60);
+    o.buys = [...(o.buys || []), { id: "repair", via: "free", at: now() }].slice(-40);
+    await setDoc(`worldOwn/${w}`, o);
+    return json(200, { ok: true, left: Math.max(0, REPAIR_FREE_DAY - n), own: o });
   }
   async function spend(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -534,6 +568,7 @@ export function makeShop(deps) {
     let price = 0, wei, target = lc(b.target || "");
     if (it.id === "isleup") { const u = await deps.isleNext(w); wei = BigInt(u.tokens) * 10n ** 18n; target = "lv:" + u.next; } // the price of the next village level
     else if (it.id === "starter") { const n = starterBought(await own(w)); wei = BigInt(STARTER.prices[n]) * 10n ** 18n; target = `${STARTER.season}:${n + 1}`; } // this season's next price
+    else if (it.id === "repair") { wei = BigInt(REPAIR_PRICE[(await savedItem(w, target)).r]) * 10n ** 18n; } // by the piece's rarity (checkBuy found it)
     else if (it.tokens) wei = BigInt(it.tokens) * 10n ** 18n; // a fixed $ARCIRCLE amount (revive)
     else {
       price = deps.arcPrice ? Number(await deps.arcPrice().catch(() => 0)) : 0;
@@ -585,6 +620,7 @@ export function makeShop(deps) {
       if (view === "arcl") return isAddr(w) ? json(200, { ...(await balance(w)), cap: DAYCAP(), today: ((await one(`worldArclDay/${w}_${seoulDay(now())}`)) || {}).n || 0, sold: ((await one(`worldSellDay/${w}_${seoulDay(now())}`)) || {}).n || 0, sellCap: SELLCAP(), earn: EARN, exchange: EXCHANGE, notify: !!(await one(`worldArclNotify/${w}`)) }) : json(400, { error: "wallet must be an address" });
       if (view === "arcl-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/arclWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n }) => ({ w: s, n })) }, "public, max-age=30");
       if (view === "plaza") return json(200, await plaza(), "public, max-age=30");
+      if (view === "repair") return isAddr(w) ? json(200, { left: Math.max(0, REPAIR_FREE_DAY - (((await one(`worldRepairDay/${w}_${seoulDay(now())}`)) || {}).n || 0)), max: REPAIR_FREE_DAY }, "no-store") : json(400, { error: "wallet" });
       if (view === "ko") return isAddr(w) ? json(200, koView(await koOf(w)), "no-store") : json(400, { error: "wallet" });
       if (view === "hunt-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/huntWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n, name }) => ({ w: s, n, name: name || "" })) }, "public, max-age=30");
       if (view === "drops") return json(200, { drops: (((await one("worldStats/drops")) || {}).list || []).filter((x) => now() - x.at < 864e5) }, "public, max-age=20");
@@ -596,6 +632,7 @@ export function makeShop(deps) {
       if (b.action === "world-forge-buy") return forgeBuy(b);
       if (b.action === "world-feed-drop") return feedDrop(b);
       if (b.action === "world-sell") return sell(b);
+      if (b.action === "world-repair-free") return repairFree(b);
       if (b.action === "world-pay-quote") return quote(b);
       if (b.action === "world-pay-confirm") return confirm(b);
       if (b.action === "world-ko") return knockout(b);
