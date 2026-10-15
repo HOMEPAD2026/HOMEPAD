@@ -79,6 +79,7 @@
       '<div class="axf-in">' +
         '<div class="axf-brand"><a href="/" class="axf-logo"><img src="/images/arcircle-mark-sm.webp" alt="" width="40" height="28"><span>ARCIRCLE <em>PAD</em></span></a>' +
           '<p>Two launchpads and one core coin on Circle\'s Arc. Every number on this site is read live from the chain.</p>' +
+          '<a class="axf-mail" href="mailto:contact@arcircle.app">contact@arcircle.app</a>' +
           '<div class="axf-net" id="axf-net"><span class="axf-dot"></span><span class="axf-net-txt">Arc mainnet · checking…</span></div></div>' +
         '<div class="axf-col"><h4>Products</h4><a href="/arc">ArcPad</a><a href="/circle">CirclePad</a><a href="/arcircle">$ARCIRCLE</a><a href="/relay">Relay Launch</a><a href="/reward">Reward</a><a href="/me">My ARCIRCLE</a></div>' +
         '<div class="axf-col"><h4>Resources</h4><a href="/whitepaper">Whitepaper</a><a href="/whitepaper/ko" lang="ko">백서 (한국어)</a><a href="/arc#docs">ArcPad docs</a><a href="/circle#docs">CirclePad docs</a><a href="/start">Get started</a><a href="/stats">Stats</a><a href="/roadmap">Roadmap</a><a href="/brand">Brand kit</a></div>' +

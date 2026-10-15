@@ -180,3 +180,5 @@ body.ax-home .ax-bg{position:absolute;inset:0 0 auto;height:100vh;height:100svh;
 .anav-tab-play i .anav-i{width:24px!important;height:24px!important;color:#fff}
 .anav-tab-play:active i{transform:scale(.94)}
 @media (prefers-reduced-motion:reduce){.anav-play,.anav-tab-play i{transition:none}}
+/* the official email (footer, /support) */
+.axf-mail,.sp-mail a{color:#5fe0ff;font-weight:700;text-decoration:none}.axf-mail{display:inline-block;margin:6px 0 10px;font-size:13px}.sp-mail{margin-top:8px;color:#9fb1c6}

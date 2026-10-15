@@ -34,6 +34,10 @@ ARCIRCLE PAD is a launchpad built on Circle's Arc chain, where gas is paid in US
 
 Everything that moves money is a contract you sign yourself. The site never holds your keys and never sends a transaction for you.
 
+## Official contact
+
+📩 [contact@arcircle.app](mailto:contact@arcircle.app) — payments, security and partnerships. The team will never DM you first or ask for a recovery phrase.
+
 ## Official coins
 
 Only these two coins are official. Anything else using the ARCIRCLE or ARCIA name is not ours.

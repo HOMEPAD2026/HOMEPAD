@@ -87,7 +87,8 @@ export function createSupport(ctx) {
     return `<div class="hc-chat"><div class="hc-log" id="hc-log" aria-live="polite">${msgs.map(bubble).join("")}${busy ? `<div class="hc-msg a typing"><span></span><span></span><span></span></div>` : ""}</div>
       ${chat.length ? "" : `<div class="hc-quick">${QUICK.map((q) => `<button type="button" data-q="${esc(q)}">${esc(T(q))}</button>`).join("")}</div>`}
       <form class="hc-ask" id="hc-ask"><input id="hc-q" maxlength="600" autocomplete="off" placeholder="${esc(T("Describe the problem…"))}" aria-label="${esc(T("Your message"))}"><button type="submit" class="hc-send" ${busy ? "disabled" : ""} aria-label="${esc(T("Send"))}"><svg viewBox="0 0 24 24"><path d="M4 12 20 4l-6 16-3-7z"/></svg></button></form>
-      <p class="hc-safe">${esc(T("ARCIA and the team will never ask for your private key, recovery phrase or password."))}</p></div>`;
+      <p class="hc-safe">${esc(T("ARCIA and the team will never ask for your private key, recovery phrase or password."))}</p>
+      <p class="hc-mail">${esc(T("Payments, security or partnerships:"))} <a href="mailto:contact@arcircle.app" data-no-i18n>contact@arcircle.app</a></p></div>`;
   }
   function bubble(m) {
     if (m.role === "user") return `<div class="hc-msg u">${esc(m.content)}</div>`;
@@ -128,7 +129,8 @@ export function createSupport(ctx) {
       <p class="hc-warn">${esc(T("Reports are public. Never include a private key, a recovery phrase, a password or personal details."))}</p>
       <div class="hc-submit"><span class="hc-pay"><img src="/images/arcl-64.png" alt="" width="20" height="20">${esc(T("{n} ARCL if accepted", { n: rewardOf(k, !!draft.shot) }))}</span>
         <button type="submit" class="hc-go" ${busy ? "disabled" : ""}>${esc(s ? T("Send report") : T("Sign in and send"))}</button></div>
-      <p class="hc-fine">${esc(T("ARCL is in-game points. Rewards are paid when the team accepts a report; duplicates and declined reports get none."))}</p></form>`;
+      <p class="hc-fine">${esc(T("ARCL is in-game points. Rewards are paid when the team accepts a report; duplicates and declined reports get none."))}</p>
+      <p class="hc-mail">${esc(T("Something private, like a payment? Email us with the transaction hash — never a recovery phrase:"))} <a href="mailto:contact@arcircle.app" data-no-i18n>contact@arcircle.app</a></p></form>`;
   }
   function readDraft() { const t = $("#hc-title"), b = $("#hc-body-in"); if (t) draft.title = t.value; if (b) draft.body = b.value; }
   async function send() {
