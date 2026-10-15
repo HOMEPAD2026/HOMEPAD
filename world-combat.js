@@ -78,6 +78,8 @@ export function createCombat(ctx) {
         float head = mix(0.2, 1.15, uK); float along = smoothstep(head - 0.8, head, t) * (1.0 - smoothstep(head, head + 0.05, t));
         float rr = clamp((r - uR.x) / (uR.y - uR.x), 0.0, 1.0); float body = pow(rr, 2.0) * (1.0 - smoothstep(0.9, 1.0, rr)); float core = smoothstep(0.72, 0.95, rr) * (1.0 - smoothstep(0.95, 1.0, rr));
         float al = (body * 0.75 + core) * along * uO; gl_FragColor = vec4(mix(uC, vec3(1.0), core * 0.85) * al, al); }` });
+  // danger areas: amber (and a little stronger) in colour-blind mode, so they don't hang on red alone
+  const warnCB = () => document.documentElement.classList.contains("wp-cb"), warnCol = () => (warnCB() ? 0xffc23a : 0xff2d4d), warnOp = () => (warnCB() ? 0.4 : 0.3);
   const additive = (c, o = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
   const dotTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,.7)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
   const spriteMat = (c, o = 1) => new THREE.SpriteMaterial({ map: dotTex, color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -470,7 +472,7 @@ export function createCombat(ctx) {
       if (m.rank === "boss" && m.raid) {
         m.slam = (m.slam || 6) - dt;
         // a red circle grows on the ground a second before the slam: step out of it
-        if (m.slam <= 1.1 && !m.warned && d < 14) { m.warned = true; const disc = new THREE.Mesh(sgeo(`Circle|${[7, 48]}`, () => new THREE.CircleGeometry(7, 48)), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(m.g.position).setY(0.07); add(disc); fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.28 * k + Math.sin(k * 30) * 0.06; disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); }
+        if (m.slam <= 1.1 && !m.warned && d < 14) { m.warned = true; const disc = new THREE.Mesh(sgeo(`Circle|${[7, 48]}`, () => new THREE.CircleGeometry(7, 48)), additive(warnCol(), warnOp())); disc.rotation.x = -Math.PI / 2; disc.position.copy(m.g.position).setY(0.07); add(disc); fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.28 * k + (ctx.reduce ? 0 : Math.sin(k * 30) * 0.06); disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); }
         if (m.warned && m.slam > 0 && !ctx.reduce) { const k = Math.min(1, 1 - m.slam / 1.1), q = Math.sin(k * Math.PI * 0.5); m.g.scale.set(1 + q * 0.1, 1 - q * 0.2, 1 + q * 0.1); } else if (m.g.scale.y !== 1) m.g.scale.lerp(ONE, 0.35);
         if (m.slam <= 0 && d < 12) { m.slam = m.raid && raidMod === "slam" ? 4 + Math.random() * 1.5 : 7 + Math.random() * 3; m.warned = false; slam(m); }
         else if (m.slam <= 0) { m.slam = 2; m.warned = false; }
@@ -509,7 +511,7 @@ export function createCombat(ctx) {
     if (raidPhase >= 4 && d < 22 && now >= (m.dropAt ??= now + 2000)) {
       m.dropAt = now + (raidMod === "rain" ? 1300 : 2400);
       ctx.here(me); const at = me.clone().add(new V3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 6)).setY(0.08);
-      const disc = new THREE.Mesh(sgeo(`Circle|${[2.2, 32]}`, () => new THREE.CircleGeometry(2.2, 32)), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(at); add(disc);
+      const disc = new THREE.Mesh(sgeo(`Circle|${[2.2, 32]}`, () => new THREE.CircleGeometry(2.2, 32)), additive(warnCol(), warnOp())); disc.rotation.x = -Math.PI / 2; disc.position.copy(at); add(disc);
       fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.15 + 0.35 * k; disc.scale.setScalar(0.4 + 0.6 * Math.min(1, k * 1.5)); } });
       setTimeout(() => { puff(at.clone().setY(0.4), 0xff6a4a, { n: 18, speed: 6, size: 0.5, life: 0.5, grav: 2 }); ring(at, 0xff4d6d, { r0: 0.3, r1: 2.6, life: 0.35, y: 0.1 }); ctx.here(me); if (!down && guardT <= 0 && Math.hypot(me.x - at.x, me.z - at.z) < 2.2 && ctx.hopY() < 0.8) { ctx.hurt(); damage(hitDamage(Math.round(m.atk * 0.8), stats().def)); } }, 1100);
     }
@@ -524,7 +526,7 @@ export function createCombat(ctx) {
   const PATTERNS = ["slam", "cone", "line", "rain"];
   const patsOf = (m) => { const zi = m.zone ? ZONES.indexOf(m.zone) : 0; return PATTERNS.slice(0, zi >= 5 ? 4 : zi >= 3 ? 3 : zi >= 1 ? 2 : 1); };
   const WIND = { slam: 1.1, cone: 0.95, line: 0.85, rain: 1.15 };
-  function warnDisc(at, r, life) { const disc = new THREE.Mesh(sgeo(`Circle|${[r, 40]}`, () => new THREE.CircleGeometry(r, 40)), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(at).setY(0.08); add(disc); fx.push({ o: disc, life, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.3 * k + Math.sin(k * 30) * 0.05; disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); return disc; }
+  function warnDisc(at, r, life) { const disc = new THREE.Mesh(sgeo(`Circle|${[r, 40]}`, () => new THREE.CircleGeometry(r, 40)), additive(warnCol(), warnOp())); disc.rotation.x = -Math.PI / 2; disc.position.copy(at).setY(0.08); add(disc); fx.push({ o: disc, life, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.3 * k + (ctx.reduce ? 0 : Math.sin(k * 30) * 0.05); disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); return disc; }
   function bossAI(m, dt, t, d) {
     if (m.cast) { // winding up: stand still, then strike
       const c = m.cast; c.t += dt;
@@ -546,8 +548,8 @@ export function createCombat(ctx) {
     ctx.here(me); const dir = tmp.copy(me).sub(m.g.position).setY(0).normalize().clone(); m.g.rotation.y = Math.atan2(dir.x, dir.z);
     const c = { kind, t: 0, wind: WIND[kind] * (m.rage ? 0.85 : 1), dir, marks: [] };
     if (kind === "slam") c.marks.push(warnDisc(m.g.position, 7, c.wind));
-    else if (kind === "cone") { const fan = new THREE.Mesh(sgeo(`Circle|${[9.5, 32, -0.62, 1.24]}`, () => new THREE.CircleGeometry(9.5, 32, -0.62, 1.24)), additive(0xff2d4d, 0.3)); fan.rotation.x = -Math.PI / 2; fan.rotation.z = Math.atan2(dir.z, dir.x) * -1; fan.position.copy(m.g.position).setY(0.08); add(fan); fx.push({ o: fan, life: c.wind, t: 0, onTick: (k) => { fan.material.opacity = 0.1 + 0.32 * k + Math.sin(k * 30) * 0.05; } }); }
-    else if (kind === "line") { const L = Math.min(16, Math.round(d + 4)), ln = new THREE.Mesh(sgeo(`Plane|${[2.6, L]}`, () => new THREE.PlaneGeometry(2.6, L)), additive(0xff2d4d, 0.3)); ln.rotation.x = -Math.PI / 2; ln.rotation.z = Math.atan2(dir.x, dir.z); const mid = m.g.position.clone().addScaledVector(dir, L / 2); ln.position.copy(mid).setY(0.08); add(ln); c.L = L; fx.push({ o: ln, life: c.wind, t: 0, onTick: (k) => { ln.material.opacity = 0.1 + 0.32 * k + Math.sin(k * 30) * 0.05; } }); }
+    else if (kind === "cone") { const fan = new THREE.Mesh(sgeo(`Circle|${[9.5, 32, -0.62, 1.24]}`, () => new THREE.CircleGeometry(9.5, 32, -0.62, 1.24)), additive(warnCol(), warnOp())); fan.rotation.x = -Math.PI / 2; fan.rotation.z = Math.atan2(dir.z, dir.x) * -1; fan.position.copy(m.g.position).setY(0.08); add(fan); fx.push({ o: fan, life: c.wind, t: 0, onTick: (k) => { fan.material.opacity = 0.1 + 0.32 * k + (ctx.reduce ? 0 : Math.sin(k * 30) * 0.05); } }); }
+    else if (kind === "line") { const L = Math.min(16, Math.round(d + 4)), ln = new THREE.Mesh(sgeo(`Plane|${[2.6, L]}`, () => new THREE.PlaneGeometry(2.6, L)), additive(warnCol(), warnOp())); ln.rotation.x = -Math.PI / 2; ln.rotation.z = Math.atan2(dir.x, dir.z); const mid = m.g.position.clone().addScaledVector(dir, L / 2); ln.position.copy(mid).setY(0.08); add(ln); c.L = L; fx.push({ o: ln, life: c.wind, t: 0, onTick: (k) => { ln.material.opacity = 0.1 + 0.32 * k + (ctx.reduce ? 0 : Math.sin(k * 30) * 0.05); } }); }
     else if (kind === "rain") { c.spots = []; for (let i = 0; i < (m.rage ? 6 : 4); i++) { const at = i === 0 ? me.clone() : me.clone().add(new V3((Math.random() - 0.5) * 9, 0, (Math.random() - 0.5) * 9)); at.y = 0; c.spots.push(at); warnDisc(at, 2.3, c.wind); } }
     m.cast = c; m.e.play("Attack", { once: true, fade: 0.1 }); Snd.warn && Snd.warn(); if (ctx.hint) ctx.hint("dodge");
     return true;
@@ -742,11 +744,14 @@ export function createCombat(ctx) {
   const wColor = () => { const d = rpg.data && rpg.data(), w = d && d.eq && d.eq.weapon; return new THREE.Color(w ? RARITY[w.r || 0].color : "#38e8ff"); };
   const arcPool = [], arcBack = (o) => { if (arcPool.length < 6) arcPool.push(o); else o.userData.sm.dispose(); };
   const slashArc = () => { const arc = new THREE.Group(), sm = slashMat(0xffffff), blade = new THREE.Mesh(undefined, sm); arc.add(blade); arc.userData.sm = sm; arc.userData.blade = blade; return arc; };
+  // a press a beat early is kept (150 ms) and fires when the cooldown ends, so rhythm taps don't drop combo hits
+  let atkBuf = 0, dodgeBuf = 0;
   function attack() {
-    if (!ctx.active() || cd.attack > 0) return false;
+    if (!ctx.active()) return false;
+    if (cd.attack > 0) { if (!resting()) atkBuf = performance.now(); return false; }
     if (resting()) { if (cd.attack <= 0) { cd.attack = 1.2; restNote(); } return false; }
-    combo = comboT > 0 ? (combo % 3) + 1 : 1; comboT = 0.75;
-    faceLock();
+    atkBuf = 0; combo = comboT > 0 ? (combo % 3) + 1 : 1; comboT = 0.75;
+    faceAssist();
     const heavy = combo === 3, kind = wKind(), ham = kind === 1;
     if (rpg.swing) rpg.swing(heavy);
     ctx.here(me); fwdOf(fwd); if (ctx.onSwing) ctx.onSwing(me.clone(), fwd.clone(), heavy, kind === 1); // a rock, a crystal or a log in front gets the hit too
@@ -777,8 +782,9 @@ export function createCombat(ctx) {
   }
   // dodge: a quick dash where you're looking or moving; you can't be hit during it
   function dodge() {
-    if (!ctx.active() || cd.dodge > 0) return false;
-    cd.dodge = 1.1; guardT = Math.max(guardT, 0.45);
+    if (!ctx.active()) return false;
+    if (cd.dodge > 0) { dodgeBuf = performance.now(); atkBuf = 0; return false; }
+    dodgeBuf = 0; atkBuf = 0; cd.dodge = 1.1; guardT = Math.max(guardT, 0.45);
     if (!ctx.moveDir(tmp)) fwdOf(tmp);
     ctx.dash(tmp, 6.5); Snd.dash ? Snd.dash() : Snd.jump && Snd.jump();
     ctx.here(me);
@@ -804,6 +810,15 @@ export function createCombat(ctx) {
     paintLock(); Snd.pop && Snd.pop();
   }
   function faceLock() { if (!lockAlive() || !ctx.faceTo) return; ctx.here(me); ctx.faceTo(Math.atan2(lockT.g.position.x - me.x, lockT.g.position.z - me.z)); }
+  // no lock: a melee swing turns a little toward a scammer in reach ahead (a ~70 deg cone round the stick or facing)
+  const assistV = new V3();
+  function faceAssist() {
+    if (lockAlive()) return faceLock(); if (!ctx.faceTo || wKind() >= 2) return;
+    ctx.here(me); if (!ctx.moveDir(assistV)) fwdOf(assistV);
+    let best = null, bd = 4.6;
+    for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length() - (m.rank === "boss" ? 2 : 0); if (d < bd && d > 0.05 && tmp.normalize().dot(assistV) > 0.82) { bd = d; best = m; } }
+    if (best) ctx.faceTo(Math.atan2(best.g.position.x - me.x, best.g.position.z - me.z));
+  }
   function paintLock() {
     const on = lockAlive(); if (lockBtn) lockBtn.classList.toggle("on", on);
     if (!on) { if (lockMark) lockMark.visible = false; return; }
@@ -1170,12 +1185,15 @@ export function createCombat(ctx) {
   vit.innerHTML = `<div class="wc-face" aria-hidden="true"><img id="wc-face-img" alt=""><b id="wc-face-lv"></b></div><div class="wc-v hp"><span>HP</span><i><b id="wc-hp-b"></b><u id="wc-hp-g"></u></i><em id="wc-hp-n"></em></div><div class="wc-v sp"><span>SP</span><i><b id="wc-sp-b"></b></i><em id="wc-sp-n"></em></div><div class="wc-v xp"><span>XP</span><i><b id="wc-xp-b"></b></i><em id="wc-xp-n"></em></div>`;
   (document.querySelector(".wp-hud-l") || document.body).insertBefore(vit, document.getElementById("wp-quests"));
   let ghostHp = hp;
+  // the bar nodes, found once (paintVit runs on every hit and regen step); text is only written when it changes
+  const vq = (id) => vit.querySelector("#" + id), VB = { hpB: vq("wc-hp-b"), spB: vq("wc-sp-b"), hpG: vq("wc-hp-g"), hpN: vq("wc-hp-n"), spN: vq("wc-sp-n"), xpB: vq("wc-xp-b"), xpN: vq("wc-xp-n") };
+  const setTx = (el, s) => { if (el.textContent !== s) el.textContent = s; };
   function paintVit() {
     const mh = maxHp(), ms = maxSp(); hp = Math.min(hp, mh); sp = Math.min(sp, ms);
-    vit.querySelector("#wc-hp-b").style.width = (100 * hp / mh) + "%"; vit.querySelector("#wc-sp-b").style.width = (100 * sp / ms) + "%";
-    vit.querySelector("#wc-hp-g").style.width = (100 * Math.max(hp, ghostHp) / mh) + "%";
-    vit.querySelector("#wc-hp-n").textContent = `${Math.ceil(hp)} / ${mh}`; vit.querySelector("#wc-sp-n").textContent = `${Math.floor(sp)} / ${ms}`;
-    const q = ctx.xpProg ? ctx.xpProg() : { into: (ctx.xp ? ctx.xp() : 0) % 100, need: 100 }; vit.querySelector("#wc-xp-b").style.width = Math.min(100, (100 * q.into) / q.need).toFixed(1) + "%"; vit.querySelector("#wc-xp-n").textContent = `${q.into.toLocaleString("en-US")} / ${q.need.toLocaleString("en-US")}`;
+    VB.hpB.style.width = (100 * hp / mh) + "%"; VB.spB.style.width = (100 * sp / ms) + "%";
+    VB.hpG.style.width = (100 * Math.max(hp, ghostHp) / mh) + "%";
+    setTx(VB.hpN, `${Math.ceil(hp)} / ${mh}`); setTx(VB.spN, `${Math.floor(sp)} / ${ms}`);
+    const q = ctx.xpProg ? ctx.xpProg() : { into: (ctx.xp ? ctx.xp() : 0) % 100, need: 100 }; VB.xpB.style.width = Math.min(100, (100 * q.into) / q.need).toFixed(1) + "%"; setTx(VB.xpN, `${q.into.toLocaleString("en-US")} / ${q.need.toLocaleString("en-US")}`);
     vit.classList.toggle("danger", hp / mh < 0.3); nudge(); document.body.classList.toggle("wc-low", hp / mh < 0.3 && !down && ctx.inHub());
   }
   function damage(n) {
@@ -1310,6 +1328,8 @@ export function createCombat(ctx) {
     bar.hidden = !ctx.inHub(); vit.hidden = !ctx.inHub();
     if ((placeT -= dt) <= 0) { placeT = 1; place(); }
     for (const k in cd) cd[k] = Math.max(0, cd[k] - dt);
+    if (dodgeBuf && cd.dodge <= 0) { const ok = performance.now() - dodgeBuf < 150; dodgeBuf = 0; if (ok) dodge(); }
+    if (atkBuf && cd.attack <= 0) { const ok = performance.now() - atkBuf < 150; atkBuf = 0; if (ok) attack(); }
     comboT = Math.max(0, comboT - dt);
     paintCd();
     let changed = false; for (const k in buffs) { if (buffs[k] > 0) { buffs[k] = Math.max(0, buffs[k] - dt); if (!buffs[k]) changed = true; } }
@@ -1414,7 +1434,7 @@ export function createCombat(ctx) {
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, mobsRaw: () => mobs,
     /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
-    locked: () => lockAlive(),
+    locked: () => lockAlive(), lockAt: (out) => (lockAlive() ? out.copy(lockT.g.position) : null),
     bossNear: (r = 40) => { ctx.here(me); return mobs.some((m) => !m.dead && m.rank === "boss" && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < r); },
     dangerNear: (r = 24) => { ctx.here(me); return mobs.some((m) => !m.dead && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < (m.rank === "boss" ? r : 14)); }, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z, cast: m.cast ? m.cast.kind : m.dash ? "dash" : m.rush ? "rush" : m.wind ? "wind" : "", rage: !!m.rage, rare: !!m.rare })), mshots: mshots.length, charging: chg.on, items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
     spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd);

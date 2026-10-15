@@ -742,7 +742,7 @@ let hubEl = null; // the menu (built further down)
 let inboxDot = 0; // mail waiting (world-inbox.js): a dot on the Menu tile
 let chatDot = 0, chatUI = null; // unread messages and friend requests (world-chat.js), and the chat panel
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
-let camDist = coarse ? 1.12 : 1, camGoal = camDist, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock
+let camDist = coarse ? 1.12 : 1, camGoal = camDist, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(), lockV = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock; the locked target
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
 /* a window is on screen (the Forge, the wardrobe, a shop…): Esc closes it rather than swapping it for the menu */
 const dialogUp = () => [...document.querySelectorAll('[role="dialog"]')].some((d) => d !== hubEl && !d.hidden && d.getClientRects().length > 0 && getComputedStyle(d).visibility !== "hidden");
@@ -834,7 +834,7 @@ cv.addEventListener("pointermove", (e) => {
   if (joy && e.pointerId === joy.id) {
     joy.cx = e.clientX; joy.cy = e.clientY;
     let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = JOYMAX;
-    if (m > max) { dx *= max / m; dy *= max / m; }
+    if (m > max) { const k = (m - max) / m; joy.x = Math.min(joy.x + dx * k, innerWidth * 0.5); joy.y += dy * k; joyEl.style.left = joy.x + "px"; joyEl.style.top = joy.y + "px"; dx *= max / m; dy *= max / m; } // past the rim the base follows the thumb (no dead centre to cross on a turn)
     joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx}px,${dy}px)`;
   } else if (look && e.pointerId === look.id) {
     camYaw -= (e.clientX - look.x) * 0.006 * S.sens;
@@ -2796,7 +2796,7 @@ const flt = (text, pos, color, big, weight = 0) => {
     if (f) { f.n += num; f.t = now; f.el.textContent = (big || f.big ? "!" : "") + f.n; if (big && !f.big) { f.big = true; f.el.classList.add("crit"); } replay(f.el, "bump"); clearTimeout(f.k); f.k = setTimeout(() => fltDone(f.el), 950); return; } }
   const el = fltPool.pop() || document.createElement("div"); el.className = "wp-float-n" + (big ? " crit" : ""); el.textContent = text; el.style.color = color || "#fff"; el.style.removeProperty("--fs");
   if (num != null) { const f = { el, n: num, t: now, x, y, color, big: !!big }; floats.push(f); f.k = setTimeout(() => fltDone(el), 950); }
-  el.style.left = ((v.x + 1) / 2 * innerWidth) + "px"; el.style.top = ((1 - v.y) / 2 * innerHeight) + "px";
+  el.style.translate = x.toFixed(1) + "px " + y.toFixed(1) + "px"; // the translate property: no layout, and it adds to the keyframed transform
   if (weight > 0) el.style.setProperty("--fs", (1 + Math.min(1, weight * 3) * 0.75).toFixed(2)); // a bigger share of the scammer's HP, a bigger number
   document.body.appendChild(el); if (num == null) setTimeout(() => fltDone(el), 950);
 };
@@ -3534,6 +3534,8 @@ st.on((dt0, t) => {
   // camera: behind and above the player, orbiting with camYaw / camPitch, wider when running; build mode sits higher
   camDist += (camGoal - camDist) * (1 - Math.exp(-dt0 * 10)); // zoom eases toward where the wheel/pinch put it
   const bz = mode === "island" && island.building() ? 1.55 : 1;
+  // locked on: the camera eases round so the target (and its wind-up ring) stays in view, unless you're steering it
+  if (mode === "hub" && combat && combat.lockAt && !look && !photo && !frozen && performance.now() - lastLook > 700 && combat.lockAt(lockV)) { const dx = lockV.x + planet.position.x - at.x, dz = lockV.z + planet.position.z - at.z; if (dx * dx + dz * dz > 2.25) camYaw = angLerp(camYaw, Math.atan2(dx, dz) + Math.PI, Math.min(1, dt * (reduce ? 1.2 : 3))); }
   base.set(0, 5.2 + camPitch * 6, 9.6).multiplyScalar(camDist * camZoom * bz * (1 - Math.sin(Math.min(1, punch) * Math.PI) * 0.07)).applyAxisAngle(Y, camYaw);
   camPos.copy(base).add(at); camPos.y += (hop - at.y) * 0.6;
   if (!photo && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
