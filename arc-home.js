@@ -119,11 +119,16 @@
     var S = !live && typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_STATUS;
     if (S) {
       if (lbl) lbl.textContent = tr(S.btn);
+      if (btn) btn.setAttribute("href", S.href || "/circle"); // the button goes where the round happens, like the card
       if (dot) dot.hidden = !S.live;
-      var card0 = $(".hm-round"), tag0 = $("[data-hm-round-st]"), go0 = $("[data-hm-round-go]"), rl0 = $("[data-hm-raised-lbl]"), vb0 = $("[data-hm-votes-box]");
-      if (tag0) tag0.textContent = tr(S.line);
+      var card0 = $(".hm-round"), tag0 = $("[data-hm-round-st]"), go0 = $("[data-hm-round-go]"), rl0 = $("[data-hm-raised-lbl]"), vb0 = $("[data-hm-votes-box]"), ln0 = $("[data-hm-round-line]"), h30 = $(".hm-round h3");
+      // short chip in the caps tag, the full status as a readable line under the title
+      var cs = S.chip + " · " + S.sub, ct = tr(cs);
+      if (tag0) tag0.textContent = ct !== cs ? ct : tr(S.chip) + " · " + tr(S.sub);
+      if (ln0) { ln0.textContent = tr(S.line); ln0.hidden = false; }
+      if (h30 && S.title) h30.textContent = tr(S.title);
       if (go0) go0.textContent = tr(S.go);
-      if (rl0) rl0.textContent = RT("Round #{c} raised", n, last.n);
+      if (rl0) rl0.textContent = laterLive ? RT("Round #{c} raised", n, last.n) : tr("Round #1 raised");
       if (vb0) vb0.hidden = true;
       if (card0) { card0.classList.toggle("live", !!S.live); card0.setAttribute("href", S.href || "/circle"); }
       if (laterLive) raisedOf();
@@ -132,7 +137,9 @@
     }
     if (lbl) lbl.textContent = live ? RT("Join CirclePad Round #{n}", n) : !last.started ? RT("CirclePad Round #{n} · Opening soon", n) : RT("CirclePad Round #{n} · Coming soon", n);
     if (dot) dot.hidden = !live;
-    var card = $(".hm-round"), tag = $("[data-hm-round-st]"), go = $("[data-hm-round-go]"), rl = $("[data-hm-raised-lbl]"), vb = $("[data-hm-votes-box]");
+    if (btn) btn.setAttribute("href", "/circle");
+    var card = $(".hm-round"), tag = $("[data-hm-round-st]"), go = $("[data-hm-round-go]"), rl = $("[data-hm-raised-lbl]"), vb = $("[data-hm-votes-box]"), ln = $("[data-hm-round-line]");
+    if (ln) ln.hidden = true;
     if (live && last.n >= 2) {
       if (tag) tag.textContent = RT("CirclePad · Round #{n} live", n);
       if (rl) rl.textContent = RT("Round #{n} raised", n);

@@ -8829,6 +8829,7 @@
     "How it will work": "运作方式（计划）",
     "ARCIRCLE Perps guide": "ARCIRCLE 永续合约指南",
     "CirclePad · Round #5 is live": "CirclePad · 第 5 轮进行中",
+    "Round #5 · Launch on Robinhood Chain": "第 5 轮 · 在 Robinhood Chain 发币", "Round #5 · live": "第 5 轮 · 进行中", "The Launch Drop": "发币空投",
     "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "第 5 轮进行中：在 ArcPad · Robinhood Chain 发币——每个币的 4% 归 veARCIRCLE · 第 3 + 4 轮：$ARCIA 工具升级后空投",
     "Launch on Robinhood Chain →": "在 Robinhood Chain 发币 →",
     "Community-funded launches · Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "社区募资发币 · 第 5 轮进行中：在 ArcPad · Robinhood Chain 发币——每个币的 4% 归 veARCIRCLE · 第 3 + 4 轮：$ARCIA 工具升级后空投",

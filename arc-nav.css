@@ -146,7 +146,6 @@ html.anav-home .ax-hero{min-height:0!important;padding:48px 20px 36px!important}
 html.anav-home .ax-mark{width:clamp(150px,17vw,220px)!important;margin:14px auto 4px!important}
 html.anav-home .ax-title{font-size:clamp(2.2rem,4.4vw,3.4rem)!important;margin-bottom:10px!important}
 html.anav-home .hm-scroll{display:none!important}
-.hm-map-sec{padding-top:8px!important}
 .hm-map-h{font-size:clamp(1.25rem,2vw,1.6rem);font-weight:700;margin:0 0 16px;color:#fff;letter-spacing:-.01em}
 .hm-map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .hm-mapc{border:1px solid rgba(150,175,255,.14);border-radius:var(--r-card);background:linear-gradient(180deg,rgba(14,22,48,.72),rgba(8,12,28,.72));padding:16px 10px 10px}

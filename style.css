@@ -8173,6 +8173,7 @@ a.hm-card:hover{transform:translateY(-3px);border-color:rgba(57,255,136,.4);box-
 .hm-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .hm-tag{display:inline-flex;align-items:center;gap:7px;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9dffc7;}
 .hm-tag i{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;}
+.hm-card .hm-round-line{font-size:.9rem;line-height:1.45;color:var(--ax-dim);text-transform:none;}
 .hm-tag.blue{color:#8cc4ff;}.hm-tag.green{color:#9dffc7;}.hm-tag.teal{color:#8ff5ee;}
 .hm-round.live .hm-tag i{animation:hmBlink 1.4s ease-in-out infinite;}
 .hm-clock{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(255,200,97,.1);color:#ffe2a8;}

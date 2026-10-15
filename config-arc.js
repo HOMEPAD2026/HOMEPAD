@@ -123,7 +123,8 @@ const CONFIG = {
   // 10 Oct 2026: Round #5 is live — ArcPad launches on Robinhood Chain, 4% of every coin to veARCIRCLE automatically
   // (the Launch Drop). Rounds #3 + #4: a snapshot airdrop once $ARCIA's utilities are upgraded.
   CIRCLEPAD_STATUS: {
-    btn: "CirclePad · Round #5 is live",
+    btn: "Round #5 · Launch on Robinhood Chain",
+    title: "The Launch Drop", // the home round card's title (optional)
     line: "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade",
     chip: "Round #5",
     sub: "live",

@@ -106,6 +106,8 @@
   function paintFeed(list, at) {
     const ol = $("rw-feed");
     if (!list || !list.length) { ol.innerHTML = `<li class="rw-feed-empty">${esc(tr("No burns yet."))}</li>`; return; }
+    const lb = q('[data-rb="last"]'), lt = list.reduce((m, x) => Math.max(m, x.ts || 0), 0), la = lt ? ago(lt) : ""; // the newest burn, in the facts row
+    if (lb && la && lb.textContent !== la) lb.textContent = la;
     const fresh = firstFeed ? [] : list.filter((x) => !seenTx.has(x.tx));
     ol.innerHTML = list.slice(0, 18).map((x) => {
       const k = kindOf(x.kind);

@@ -8659,6 +8659,7 @@
     "How it will work": "작동 방식(예정)",
     "ARCIRCLE Perps guide": "ARCIRCLE 무기한 선물 가이드",
     "CirclePad · Round #5 is live": "CirclePad · 라운드 #5 진행 중",
+    "Round #5 · Launch on Robinhood Chain": "라운드 #5 · Robinhood Chain에서 런치", "Round #5 · live": "라운드 #5 · 진행 중", "The Launch Drop": "런치 드롭",
     "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "라운드 #5 진행 중: ArcPad · Robinhood Chain에서 런치 — 모든 코인의 4%를 veARCIRCLE에 · 라운드 #3 + #4: $ARCIA 유틸리티 정비 후 에어드랍",
     "Launch on Robinhood Chain →": "Robinhood Chain에서 런치 →",
     "Community-funded launches · Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "커뮤니티 펀딩 런칭 · 라운드 #5 진행 중: ArcPad · Robinhood Chain에서 런치 — 모든 코인의 4%를 veARCIRCLE에 · 라운드 #3 + #4: $ARCIA 유틸리티 정비 후 에어드랍",
