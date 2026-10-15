@@ -10962,6 +10962,9 @@
     "Your bag is empty. Scammers in the hunting grounds drop gear.": "Çantan boş. Av alanındaki dolandırıcılar ekipman düşürür.",
     "You're wearing no gear. The Forge sells some, or equip a piece from your bag.": "Hiç ekipman kuşanmıyorsun. Demirhane bazılarını satıyor veya çantandan bir parçayı kuşanabilirsin.",
     "Dodge": "Kaçın",
+    "Payments, security or partnerships:": "Ödemeler, güvenlik veya iş birlikleri:",
+    "Something private, like a payment? Email us with the transaction hash — never a recovery phrase:": "Ödeme gibi özel bir konu mu? İşlem hash'iyle bize e-posta at — kurtarma ifadeni asla gönderme:",
+    "Contact:": "İletişim:",
   };
   var PATTERNS = [
     [/^Burn (.+) \$ARCIRCLE for (\d+) votes?\?$/, "$2 oy için $1 $ARCIRCLE yakmak istiyor musun?"],

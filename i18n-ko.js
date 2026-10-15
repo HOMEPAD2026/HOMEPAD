@@ -10691,6 +10691,9 @@
     "Your bag is empty. Scammers in the hunting grounds drop gear.": "가방이 비었어요. 사냥터의 사기꾼들이 장비를 떨어뜨려요.",
     "You're wearing no gear. The Forge sells some, or equip a piece from your bag.": "착용한 장비가 없어요. 대장간에서 사거나 가방에서 장착해 보세요.",
     "Dodge": "회피",
+    "Payments, security or partnerships:": "결제·보안·제휴 문의:",
+    "Something private, like a payment? Email us with the transaction hash — never a recovery phrase:": "결제처럼 공개하기 어려운 문제는 트랜잭션 해시와 함께 메일로 보내 주세요 — 복구 구문은 절대 보내지 마세요:",
+    "Contact:": "문의:",
   };
 
 

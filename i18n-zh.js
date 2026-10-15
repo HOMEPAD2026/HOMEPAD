@@ -10861,6 +10861,9 @@
     "Your bag is empty. Scammers in the hunting grounds drop gear.": "背包是空的。狩猎场里的骗子会掉落装备。",
     "You're wearing no gear. The Forge sells some, or equip a piece from your bag.": "你没有穿戴装备。去铁匠铺购买，或从背包里装备一件。",
     "Dodge": "闪避",
+    "Payments, security or partnerships:": "付款、安全或合作：",
+    "Something private, like a payment? Email us with the transaction hash — never a recovery phrase:": "付款等私密问题？请附上交易哈希发邮件给我们 — 切勿发送助记词：",
+    "Contact:": "联系：",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
