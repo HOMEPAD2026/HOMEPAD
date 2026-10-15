@@ -30,11 +30,12 @@ export const villageLevel = (xp, paid) => { const byXp = xpLevel(xp); return byX
 export const blessing = (L) => ({ xp: Math.min(40, Math.max(0, L - 1) * 2), hp: Math.min(20, Math.max(0, L - 1)) });
 
 // mirrors world-island.js TYPES (index → id) for the score; ids past the list count as plain bricks
-const KIND = ["brick", "plate", "tile", "slope", "stairs", "pillar", "wall", "roof", "peak", "fence", "window", "door", "water", "tree", "bush", "flowers", "grass", "rock", "lamp", "bench", "arch", "roundwin", "glass", "dome", "chimney", "pine", "lantern", "table", "planter", "neon", "crystal", "sign", "flag", "neoncube", "goldbrick", "rings", "rocket", "dish", "crown", "trophy", "keycard", "neonpanel", "holo", "neonsign", "lightpillar", "sand", "coral", "palm", "lighthouse", "hull", "porthole", "antenna", "satdish", "mgrass", "mstone", "mwood", "mmetal", "mglass", "mneon", "mcrystal", "mgold", "mcyber", "marcadia"];
-const LIGHT = new Set(["lamp", "lantern", "neon", "neoncube", "neonpanel", "neonsign", "lightpillar", "holo", "crystal"]);
-const PLANT = new Set(["tree", "bush", "flowers", "grass", "pine", "planter", "palm", "coral"]);
+const KIND = ["brick", "plate", "tile", "slope", "stairs", "pillar", "wall", "roof", "peak", "fence", "window", "door", "water", "tree", "bush", "flowers", "grass", "rock", "lamp", "bench", "arch", "roundwin", "glass", "dome", "chimney", "pine", "lantern", "table", "planter", "neon", "crystal", "sign", "flag", "neoncube", "goldbrick", "rings", "rocket", "dish", "crown", "trophy", "keycard", "neonpanel", "holo", "neonsign", "lightpillar", "sand", "coral", "palm", "lighthouse", "hull", "porthole", "antenna", "satdish", "mgrass", "mstone", "mwood", "mmetal", "mglass", "mneon", "mcrystal", "mgold", "mcyber", "marcadia", "r_gable", "r_hip", "r_cone", "r_cap", "r_awning", "r_tiles", "f_bed", "f_sofa", "f_table", "f_chair", "f_bookcase", "f_tv", "f_rug", "f_floorlamp", "f_plant", "f_wardrobe", "f_frame", "f_counter", "l_lantern", "l_string", "l_torch", "l_floor", "l_ceiling", "d_fence", "d_sign", "d_banner", "d_flag", "d_mailbox", "d_fountain", "d_bench", "d_lamp"];
+const LIGHT = new Set(["lamp", "lantern", "neon", "neoncube", "neonpanel", "neonsign", "lightpillar", "holo", "crystal", "l_lantern", "l_string", "l_torch", "l_floor", "l_ceiling", "d_lamp", "f_floorlamp"]);
+const PLANT = new Set(["tree", "bush", "flowers", "grass", "pine", "planter", "palm", "coral", "f_bed", "f_sofa", "f_table", "f_chair", "f_bookcase", "f_tv", "f_rug", "f_floorlamp", "f_plant", "f_wardrobe", "f_frame", "f_counter"]); // furniture weighs like plants
 const TROPHY = new Set(["rings", "rocket", "dish", "crown", "trophy", "keycard", "goldbrick"]);
-const SHOPK = (id) => KIND.indexOf(id) >= KIND.indexOf("neonpanel");
+const SHOP0 = KIND.indexOf("neonpanel"), SHOP1 = KIND.indexOf("marcadia"); // the shop packs are the run neonpanel…marcadia; kinds appended after it are free
+const SHOPK = (id) => { const i = KIND.indexOf(id); return i >= SHOP0 && i <= SHOP1; };
 /// the design score of a saved build (base64 of [1, N, (x, y, z, kind, rot|colour<<2) × n])
 export function villageScore(data, theme = "") {
   let bin = ""; try { bin = atob(String(data || "")); } catch { return { score: 0, parts: {} }; }

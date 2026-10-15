@@ -20,15 +20,16 @@ export const COLORS = [
   0x2a7a52, 0x35d8d0, 0x4fa8ff, 0x2f86ff, 0x23408e, 0x9b6cff, 0xff7ad9, 0x8a5a36, 0xc89a6a, 0xe9d3a8,
   0x2ee07a, 0x6fd1ff, 0xff4d6d, 0x5b3a8a,
 ];
-const CAT = ["Bricks", "Walls and roofs", "Windows and doors", "Nature", "Lights and decor", "Special", "Neon City", "Ocean", "Space Station", "Materials"];
+const CAT = ["Bricks", "Walls and roofs", "Windows and doors", "Nature", "Lights and decor", "Special", "Neon City", "Ocean", "Space Station", "Materials", "Roofs", "Furniture", "Lights", "Decor"];
 
 export function createIsland(ctx) {
   let HM = HMAX; // 32 on a 64×64 island
   const { THREE, K, st, planet, esc, toast, post, sess, Snd, P, VER } = ctx;
   // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the island
   const LW = {
-    ko: { Guestbook: "방명록", Friends: "친구", Friend: "친구", Show: "보이기", Hide: "숨기기", Arch: "아치", Bench: "벤치", Blueprints: "설계도", Brick: "브릭", Bricks: "브릭", Bush: "덤불", Chimney: "굴뚝", Colour: "색상", Cottage: "오두막", Crystal: "크리스탈", Dome: "돔", Door: "문", Fence: "울타리", Flag: "깃발", Flowers: "꽃", Fountain: "분수", Garden: "정원", Islands: "섬 둘러보기", Mirror: "대칭", Nature: "자연", Paint: "칠하기", Pick: "스포이드", Pillar: "기둥", Pine: "소나무", Planter: "화분", Plate: "플레이트", Popular: "인기", Redo: "다시", Rock: "바위", Rocket: "로켓", Roof: "지붕", Rotate: "회전", Slope: "경사", Special: "특별", Table: "테이블", "Time-lapse": "타임랩스", Tree: "나무", Visit: "방문", Wall: "벽", Water: "물", Window: "창문", Wow: "와우", Build: "건설", Place: "놓기", Remove: "지우기", Undo: "되돌리기", Layer: "층", Tools: "도구", Close: "닫기", Done: "완료", Antenna: "안테나", Coral: "산호", Sand: "모래", Lighthouse: "등대", Porthole: "둥근 창(우주)", Ocean: "바다", Materials: "재질" },
-    zh: { Guestbook: "留言簿", Friends: "好友", Friend: "好友", Show: "显示", Hide: "隐藏", Arch: "拱门", Bench: "长椅", Blueprints: "蓝图", Brick: "积木", Bricks: "积木", Bush: "灌木", Chimney: "烟囱", Colour: "颜色", Cottage: "小屋", Crystal: "水晶", Dome: "穹顶", Door: "门", Fence: "栅栏", Flag: "旗帜", Flowers: "花", Fountain: "喷泉", Garden: "花园", Islands: "岛屿", Mirror: "镜像", Nature: "自然", Paint: "上色", Pick: "取样", Pillar: "柱子", Pine: "松树", Planter: "花盆", Plate: "薄板", Popular: "热门", Redo: "重做", Rock: "岩石", Rocket: "火箭", Roof: "屋顶", Rotate: "旋转", Slope: "斜坡", Special: "特殊", Table: "桌子", "Time-lapse": "延时回放", Tree: "树", Visit: "拜访", Wall: "墙", Water: "水", Window: "窗户", Wow: "哇", Build: "建造", Place: "放置", Remove: "移除", Undo: "撤销", Layer: "楼层", Tools: "工具", Close: "关闭", Done: "完成", Antenna: "天线", Coral: "珊瑚", Sand: "沙地", Lighthouse: "灯塔", Porthole: "舷窗", Ocean: "海洋", Materials: "材质" },
+    ko: { Guestbook: "방명록", Friends: "친구", Friend: "친구", Show: "보이기", Hide: "숨기기", Arch: "아치", Bench: "벤치", Blueprints: "설계도", Brick: "브릭", Bricks: "브릭", Bush: "덤불", Chimney: "굴뚝", Colour: "색상", Cottage: "오두막", Crystal: "크리스탈", Dome: "돔", Door: "문", Fence: "울타리", Flag: "깃발", Flowers: "꽃", Fountain: "분수", Garden: "정원", Islands: "섬 둘러보기", Mirror: "대칭", Nature: "자연", Paint: "칠하기", Pick: "스포이드", Pillar: "기둥", Pine: "소나무", Planter: "화분", Plate: "플레이트", Popular: "인기", Redo: "다시", Rock: "바위", Rocket: "로켓", Roof: "지붕", Rotate: "회전", Slope: "경사", Special: "특별", Table: "테이블", "Time-lapse": "타임랩스", Tree: "나무", Visit: "방문", Wall: "벽", Water: "물", Window: "창문", Wow: "와우", Build: "건설", Place: "놓기", Remove: "지우기", Undo: "되돌리기", Layer: "층", Tools: "도구", Close: "닫기", Done: "완료", Antenna: "안테나", Coral: "산호", Sand: "모래", Lighthouse: "등대", Porthole: "둥근 창(우주)", Ocean: "바다", Materials: "재질", Roofs: "지붕", Furniture: "가구", Lights: "조명", Decor: "장식", "Gable roof": "맞배지붕", "Hip roof": "모임지붕", "Cone roof": "원뿔 지붕", "Flat cap": "평지붕", Awning: "차양", "Roof tiles": "기와 지붕", Bed: "침대", Sofa: "소파", "Dining table": "식탁", Chair: "의자", Bookcase: "책장", TV: "TV", Rug: "러그", "Floor lamp": "스탠드", "Potted plant": "화분 식물", Wardrobe: "옷장", "Picture frame": "액자", "Kitchen counter": "주방 조리대", "Hanging lantern": "매달린 등", "String lights": "전구 줄", Torch: "횃불", "Floor light": "바닥 조명", "Ceiling light": "천장 조명", "Picket fence": "말뚝 울타리", Signpost: "이정표", Banner: "배너", Flagpole: "깃대", Mailbox: "우체통", "Small fountain": "작은 분수", "Park bench": "공원 벤치", "Lamp post": "가로등 기둥" },
+    zh: { Guestbook: "留言簿", Friends: "好友", Friend: "好友", Show: "显示", Hide: "隐藏", Arch: "拱门", Bench: "长椅", Blueprints: "蓝图", Brick: "积木", Bricks: "积木", Bush: "灌木", Chimney: "烟囱", Colour: "颜色", Cottage: "小屋", Crystal: "水晶", Dome: "穹顶", Door: "门", Fence: "栅栏", Flag: "旗帜", Flowers: "花", Fountain: "喷泉", Garden: "花园", Islands: "岛屿", Mirror: "镜像", Nature: "自然", Paint: "上色", Pick: "取样", Pillar: "柱子", Pine: "松树", Planter: "花盆", Plate: "薄板", Popular: "热门", Redo: "重做", Rock: "岩石", Rocket: "火箭", Roof: "屋顶", Rotate: "旋转", Slope: "斜坡", Special: "特殊", Table: "桌子", "Time-lapse": "延时回放", Tree: "树", Visit: "拜访", Wall: "墙", Water: "水", Window: "窗户", Wow: "哇", Build: "建造", Place: "放置", Remove: "移除", Undo: "撤销", Layer: "楼层", Tools: "工具", Close: "关闭", Done: "完成", Antenna: "天线", Coral: "珊瑚", Sand: "沙地", Lighthouse: "灯塔", Porthole: "舷窗", Ocean: "海洋", Materials: "材质", Roofs: "屋顶", Furniture: "家具", Lights: "灯光", Decor: "装饰", "Gable roof": "人字屋顶", "Hip roof": "四坡屋顶", "Cone roof": "圆锥屋顶", "Flat cap": "平屋顶", Awning: "遮阳篷", "Roof tiles": "瓦片屋顶", Bed: "床", Sofa: "沙发", "Dining table": "餐桌", Chair: "椅子", Bookcase: "书柜", TV: "电视", Rug: "地毯", "Floor lamp": "落地灯", "Potted plant": "盆栽", Wardrobe: "衣柜", "Picture frame": "相框", "Kitchen counter": "厨房台面", "Hanging lantern": "吊灯笼", "String lights": "灯串", Torch: "火把", "Floor light": "地灯", "Ceiling light": "吸顶灯", "Picket fence": "尖桩栅栏", Signpost: "路牌", Banner: "横幅", Flagpole: "旗杆", Mailbox: "邮箱", "Small fountain": "小喷泉", "Park bench": "公园长椅", "Lamp post": "路灯杆" },
+    tr: { Roofs: "Çatılar", Furniture: "Mobilya", Lights: "Işıklar", Decor: "Dekor", "Gable roof": "Beşik çatı", "Hip roof": "Kırma çatı", "Cone roof": "Konik çatı", "Flat cap": "Düz çatı", Awning: "Tente", "Roof tiles": "Kiremit çatı", Bed: "Yatak", Sofa: "Kanepe", "Dining table": "Yemek masası", Chair: "Sandalye", Bookcase: "Kitaplık", TV: "TV", Rug: "Halı", "Floor lamp": "Lambader", "Potted plant": "Saksı bitkisi", Wardrobe: "Gardırop", "Picture frame": "Resim çerçevesi", "Kitchen counter": "Mutfak tezgâhı", "Hanging lantern": "Asma fener", "String lights": "Işık zinciri", Torch: "Meşale", "Floor light": "Yer lambası", "Ceiling light": "Tavan lambası", "Picket fence": "Tahta çit", Signpost: "Yön tabelası", Banner: "Pankart", Flagpole: "Bayrak direği", Mailbox: "Posta kutusu", "Small fountain": "Küçük çeşme", "Park bench": "Park bankı", "Lamp post": "Sokak lambası direği" },
   }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const $ = (id) => document.getElementById(id);
@@ -76,6 +77,21 @@ export function createIsland(ctx) {
     [[0, 0, -a], [0, 0, a], [-a, 0, 0], [a, 0, 0]].forEach(([x, , z], i) => { const w = x ? t : 0.98 + t, d = z ? t : 0.98 + t; out[i] = box(w, t, d, x, t / 2, z); out[i + 4] = box(w, t, d, x, 0.98 - t / 2, z); });
     [[-a, -a], [a, -a], [-a, a], [a, a]].forEach(([x, z], i) => { out[8 + i] = box(t, 0.98, t, x, 0.49, z); });
     return which ? which.map((i) => out[i]) : out; };
+
+  // furniture comes from the GLB packs (preloaded when the build bar opens): a model's meshes merged into one geometry fitted to a cell, in a fixed (untinted) material; a plain stand-in until the pack is in
+  const FP = ["kk-furniture", "kenney-furniture"], furnPacks = {}, fixedMats = new Map();
+  const fixedMat = (m) => { let c = fixedMats.get(m.uuid); if (!c) fixedMats.set(m.uuid, (c = fixedPatch(m.clone()))); return c; };
+  function modelParts(pack, name, maxH) {
+    const src = furnPacks[pack] && furnPacks[pack].models.get(name); if (!src) return null;
+    const bx = new THREE.Box3().setFromObject(src), sz = bx.getSize(new V3()), c = bx.getCenter(new V3()), k = Math.min(0.92 / Math.max(0.01, sz.x, sz.z), maxH / Math.max(0.01, sz.y));
+    const base = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -bx.min.y, -c.z)), by = new Map();
+    src.traverse((o) => { if (!o.isMesh) return; const m = Array.isArray(o.material) ? o.material[0] : o.material; if (!by.has(m)) by.set(m, []); by.get(m).push(o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(base, o.matrixWorld))); });
+    return [...by].map(([m, gs]) => [fixedMat(m), gs]);
+  }
+  const furn = (pack, name, maxH, fb) => () => modelParts(pack, name, maxH) || fb();
+  const seg = (ax, ay, bx, by, t = 0.015, z = 0) => { const g = box(Math.hypot(bx - ax, by - ay), t, t, 0, 0, 0); g.rotateZ(Math.atan2(by - ay, bx - ax)); g.translate((ax + bx) / 2, (ay + by) / 2, z); return g; };
+  // a roof slope stepped like four rows of tiles
+  const sawtooth = () => { const P = (t) => [-0.55 + 1.04 * t, 0.06 + 0.92 * t], pts = [[-0.55, 0], [0.49, 0], P(1)]; for (let k = 4; k >= 1; k--) { const B = P((k - 1) / 4); pts.push(B); if (k > 1) pts.push([B[0], B[1] - 0.07]); } return pts; };
 
   // kind: { id, name, cat, top (how high you stand on it), solid, tall (cells), lv | req, color (default), parts }
   // parts(): [[materialKey, [geometries]], …] — "paint" parts take the brick colour
@@ -145,9 +161,45 @@ export function createIsland(ctx) {
     { id: "mgold", name: "Gold block", cat: 9, top: 1, pack: "brick-gold", color: 7, parts: () => [["mGoldB", [RB(0.98, 0.98, 0.98, 0.05)]]] },
     { id: "mcyber", name: "Cyber brick", cat: 9, top: 1, pack: "brick-cyber", color: 3, parts: () => [["mCyber", [RB(0.98, 0.98, 0.98, 0.05)]], ["mGlowB", edges(0.03, [0, 1, 2, 3])]] },
     { id: "marcadia", name: "Arcadia brick", cat: 9, top: 1, pack: "brick-arcadia", color: 0, parts: () => [["mMarble", [RB(0.96, 0.96, 0.96, 0.04, 0.48)]], ["mGoldTrim", edges(0.06)], ["leaf", [ico(0.12, -0.44, 0.9, 0.44, 0), ico(0.1, -0.47, 0.7, 0.47, 0), ico(0.11, -0.4, 0.5, 0.49, 0), ico(0.1, 0.44, 0.95, -0.46, 0)]]] },
+    // appended: roofs, furniture (GLB packs), lights (emissive; they feed the indoor point lights), decor
+    { id: "r_gable", name: "Gable roof", cat: 10, top: 0.6, color: 5, parts: () => [["paint", [prism([[-0.56, 0], [0.56, 0], [0, 0.64]], 1.0)]]] },
+    { id: "r_hip", name: "Hip roof", cat: 10, top: 0.6, color: 5, parts: () => { const g = new THREE.ConeGeometry(0.72, 0.62, 4); g.rotateY(Math.PI / 4); g.translate(0, 0.31, 0); return [["paint", [g]]]; } },
+    { id: "r_cone", name: "Cone roof", cat: 10, top: 0.6, color: 13, parts: () => { const g = new THREE.ConeGeometry(0.62, 0.9, 14); g.translate(0, 0.51, 0); return [["paint", [g, cyl(0.64, 0.64, 0.06, 14)]]]; } },
+    { id: "r_cap", name: "Flat cap", cat: 10, top: 0.24, color: 2, parts: () => [["paint", [RB(1.02, 0.14, 1.02, 0.03, 0.07), RB(0.84, 0.1, 0.84, 0.03, 0.19)]]] },
+    { id: "r_awning", name: "Awning", cat: 10, top: 0, solid: false, color: 5, parts: () => { const a = box(0.98, 0.06, 0.64, 0, 0, 0); a.rotateX(0.4); a.translate(0, 0.86, 0.18); return [["paint", [a]], ["white", [box(0.98, 0.12, 0.04, 0, 0.66, 0.49)]]]; } },
+    { id: "r_tiles", name: "Roof tiles", cat: 10, top: 0.55, color: 17, parts: () => [["paint", [prism(sawtooth())]]] },
+    { id: "f_bed", name: "Bed", cat: 11, top: 0, solid: false, color: 12, parts: furn("kk-furniture", "bed_double_A", 0.96, () => [["wood", [RB(0.9, 0.2, 0.96, 0.03, 0.1)]], ["white", [RB(0.84, 0.14, 0.7, 0.04, 0.27, 0.1), RB(0.6, 0.1, 0.2, 0.04, 0.4, -0.32)]]]) },
+    { id: "f_sofa", name: "Sofa", cat: 11, top: 0, solid: false, color: 13, parts: furn("kk-furniture", "couch_pillows", 0.96, () => [["dark", [RB(0.94, 0.3, 0.6, 0.05, 0.15, 0.12)]], ["pink", [RB(0.94, 0.56, 0.2, 0.05, 0.4, -0.34)]]]) },
+    { id: "f_table", name: "Dining table", cat: 11, top: 0, solid: false, color: 18, parts: furn("kk-furniture", "table_medium", 0.96, () => [["wood", [RB(0.92, 0.07, 0.92, 0.02, 0.62), box(0.08, 0.6, 0.08, -0.38, 0.3, -0.38), box(0.08, 0.6, 0.08, 0.38, 0.3, -0.38), box(0.08, 0.6, 0.08, -0.38, 0.3, 0.38), box(0.08, 0.6, 0.08, 0.38, 0.3, 0.38)]]]) },
+    { id: "f_chair", name: "Chair", cat: 11, top: 0, solid: false, color: 17, parts: furn("kk-furniture", "chair_A", 0.96, () => [["wood", [box(0.5, 0.06, 0.5, 0, 0.4, 0), box(0.5, 0.5, 0.06, 0, 0.7, -0.22), box(0.06, 0.4, 0.06, -0.2, 0.2, 0.2), box(0.06, 0.4, 0.06, 0.2, 0.2, 0.2)]]]) },
+    { id: "f_bookcase", name: "Bookcase", cat: 11, top: 0, solid: false, tall: 2, color: 17, parts: furn("kenney-furniture", "bookcaseOpen", 1.9, () => [["wood", [RB(0.8, 1.7, 0.36, 0.03, 0.85, -0.28)]], ["pink", [box(0.6, 0.2, 0.2, 0, 0.5, -0.28), box(0.6, 0.2, 0.2, 0, 1.0, -0.28)]]]) },
+    { id: "f_tv", name: "TV", cat: 11, top: 0, solid: false, color: 3, parts: furn("kenney-furniture", "televisionModern", 0.96, () => [["dark", [box(0.84, 0.5, 0.06, 0, 0.55, 0), box(0.3, 0.3, 0.06, 0, 0.15, 0)]], ["glass", [plane(0.76, 0.42, 0, 0.55, 0.04)]]]) },
+    { id: "f_rug", name: "Rug", cat: 11, top: 0, solid: false, color: 5, parts: furn("kk-furniture", "rug_rectangle_stripes_A", 0.1, () => [["pink", [RB(0.92, 0.03, 0.92, 0.01)]], ["white", [RB(0.7, 0.035, 0.7, 0.01)]]]) },
+    { id: "f_floorlamp", name: "Floor lamp", cat: 11, top: 0, solid: false, tall: 2, color: 7, parts: furn("kk-furniture", "lamp_standing", 1.9, () => [["dark", [cyl(0.2, 0.22, 0.05, 10), cyl(0.025, 0.025, 1.3, 6, 0, 0.7)]], ["warm", [cyl(0.2, 0.28, 0.32, 10, 0, 1.45)]]]) },
+    { id: "f_plant", name: "Potted plant", cat: 11, top: 0, solid: false, color: 9, parts: furn("kenney-furniture", "pottedPlant", 0.96, () => [["wood", [cyl(0.2, 0.15, 0.3, 8)]], ["leaf", [ico(0.3, 0, 0.58, 0), ico(0.2, 0.15, 0.8, 0.05)]]]) },
+    { id: "f_wardrobe", name: "Wardrobe", cat: 11, top: 0, solid: false, tall: 2, color: 17, parts: furn("kk-furniture", "cabinet_medium_decorated", 1.9, () => [["wood", [RB(0.86, 1.8, 0.5, 0.03, 0.9, -0.2)]], ["dark", [box(0.03, 0.5, 0.03, -0.05, 0.9, 0.07), box(0.03, 0.5, 0.03, 0.05, 0.9, 0.07)]]]) },
+    { id: "f_frame", name: "Picture frame", cat: 11, top: 0, solid: false, color: 7, parts: furn("kk-furniture", "pictureframe_standing_A", 0.96, () => [["gold", [box(0.6, 0.5, 0.05, 0, 0.35, 0.05)]], ["glass", [plane(0.5, 0.4, 0, 0.35, 0.08)]]]) },
+    { id: "f_counter", name: "Kitchen counter", cat: 11, top: 0, solid: false, color: 1, parts: furn("kk-furniture", "shelf_B_large_decorated", 0.96, () => [["wood", [RB(0.94, 0.7, 0.7, 0.03, 0.35, -0.1)]], ["white", [RB(0.98, 0.07, 0.76, 0.02, 0.74, -0.1)]]]) },
+    { id: "l_lantern", name: "Hanging lantern", cat: 12, top: 0, solid: false, color: 3, parts: () => [["dark", [cyl(0.015, 0.015, 0.34, 4, 0, 0.8)]], ["warm", [box(0.2, 0.28, 0.2, 0, 0.5, 0)]], ["paint", [box(0.28, 0.05, 0.28, 0, 0.66, 0), box(0.26, 0.04, 0.26, 0, 0.34, 0)]]] },
+    { id: "l_string", name: "String lights", cat: 12, top: 0, solid: false, color: 3, parts: () => { const xs = [-0.49, -0.4, -0.2, 0, 0.2, 0.4, 0.49], y = (x) => 0.95 - 0.14 * (1 - (x / 0.5) ** 2); return [["dark", xs.slice(1).map((x, i) => seg(xs[i], y(xs[i]), x, y(x), 0.015, -0.3))], ["warm", xs.slice(1, -1).map((x) => ico(0.055, x, y(x) - 0.06, -0.3, 0))]]; } },
+    { id: "l_torch", name: "Torch", cat: 12, top: 0, solid: false, color: 17, parts: () => { const f = new THREE.ConeGeometry(0.1, 0.28, 6); f.translate(0, 0.9, 0); return [["wood", [cyl(0.04, 0.05, 0.7, 6, 0, 0.35)]], ["paint", [cyl(0.1, 0.06, 0.14, 8, 0, 0.72)]], ["warm", [f]]]; } },
+    { id: "l_floor", name: "Floor light", cat: 12, top: 0, solid: false, color: 3, parts: () => [["dark", [cyl(0.3, 0.32, 0.06, 14)]], ["warm", [cyl(0.24, 0.24, 0.04, 14, 0, 0.08)]]] },
+    { id: "l_ceiling", name: "Ceiling light", cat: 12, top: 0, solid: false, color: 0, parts: () => [["paint", [cyl(0.3, 0.3, 0.04, 14, 0, 0.96)]], ["warm", [cyl(0.24, 0.26, 0.05, 14, 0, 0.91)]]] },
+    { id: "d_fence", name: "Picket fence", cat: 13, top: 0.8, color: 0, parts: () => { const xs = [-0.4, -0.2, 0, 0.2, 0.4], pk = (x) => { const g = new THREE.ConeGeometry(0.07, 0.12, 4); g.rotateY(Math.PI / 4); g.translate(x, 0.82, 0); return g; }; return [["paint", [...xs.map((x) => box(0.1, 0.76, 0.05, x, 0.38, 0)), ...xs.map(pk), box(0.98, 0.07, 0.05, 0, 0.55, -0.05), box(0.98, 0.07, 0.05, 0, 0.22, -0.05)]]]; } },
+    { id: "d_sign", name: "Signpost", cat: 13, top: 0, solid: false, color: 17, parts: () => { const a = box(0.6, 0.18, 0.05, 0.05, 0.88, 0.04), b = box(0.55, 0.16, 0.05, -0.05, 0.66, -0.04); a.rotateY(0.15); b.rotateY(-0.2); return [["wood", [cyl(0.05, 0.06, 1.0, 6)]], ["paint", [a, b]]]; } },
+    { id: "d_banner", name: "Banner", cat: 13, top: 0, solid: false, tall: 2, color: 5, parts: () => { const d = box(0.4, 0.4, 0.03, 0, 0, 0); d.rotateZ(Math.PI / 4); d.translate(0, 0.7, 0); const rod = cyl(0.03, 0.03, 0.9, 6, 0, 0, 0); rod.rotateZ(Math.PI / 2); rod.translate(0, 1.9, 0); return [["dark", [rod]], ["paint", [box(0.56, 0.9, 0.03, 0, 1.4, 0), d]], ["gold", [ico(0.07, 0, 1.5, 0.03, 0)]]]; } },
+    { id: "d_flag", name: "Flagpole", cat: 13, top: 0, solid: false, tall: 2, color: 4, parts: () => [["paint", [cyl(0.2, 0.24, 0.12, 10), box(0.6, 0.36, 0.03, 0.33, 1.68, 0)]], ["white", [cyl(0.03, 0.04, 1.85, 6, 0, 1.0)]], ["gold", [ico(0.06, 0, 1.96, 0, 1)]]] },
+    { id: "d_mailbox", name: "Mailbox", cat: 13, top: 0, solid: false, color: 13, parts: () => { const c = new THREE.CylinderGeometry(0.15, 0.15, 0.5, 10); c.rotateX(Math.PI / 2); c.translate(0, 0.82, 0); return [["wood", [cyl(0.04, 0.05, 0.7, 6)]], ["paint", [c, box(0.3, 0.14, 0.5, 0, 0.74, 0)]], ["yellow", [box(0.03, 0.2, 0.08, 0.17, 0.95, 0.1)]]]; } },
+    { id: "d_fountain", name: "Small fountain", cat: 13, top: 0.3, color: 1, parts: () => [["white", [cyl(0.46, 0.5, 0.28, 16), cyl(0.07, 0.1, 0.55, 8, 0, 0.5), cyl(0.2, 0.1, 0.1, 12, 0, 0.78)]], ["water", [cyl(0.4, 0.4, 0.03, 16, 0, 0.27), cyl(0.15, 0.15, 0.03, 12, 0, 0.84), ico(0.05, 0, 0.95, 0, 0)]]] },
+    { id: "d_bench", name: "Park bench", cat: 13, top: 0, solid: false, color: 17, parts: () => [["paint", [...[0, 1, 2].map((i) => box(0.94, 0.05, 0.1, 0, 0.42, -0.1 + i * 0.11)), ...[0, 1].map((i) => box(0.94, 0.1, 0.04, 0, 0.62 + i * 0.14, -0.22))]], ["dark", [box(0.06, 0.42, 0.4, -0.42, 0.21, 0), box(0.06, 0.42, 0.4, 0.42, 0.21, 0), box(0.06, 0.2, 0.34, -0.42, 0.52, 0), box(0.06, 0.2, 0.34, 0.42, 0.52, 0)]]] },
+    { id: "d_lamp", name: "Lamp post", cat: 13, top: 0, solid: false, tall: 2, color: 3, parts: () => [["dark", [cyl(0.14, 0.18, 0.2, 8), cyl(0.04, 0.06, 1.7, 6), box(0.4, 0.04, 0.04, 0.18, 1.78, 0)]], ["warm", [ico(0.13, 0.36, 1.68, 0, 1)]], ["paint", [cyl(0.17, 0.08, 0.08, 8, 0.36, 1.84)]]] },
   ];
   const TI = Object.fromEntries(TYPES.map((t, i) => [t.id, i]));
-  TYPES.forEach((t) => { t.solid = t.solid !== false; t.tall = t.tall || 1; t.name = T(t.name); });
+  const ROOFS = new Set(["roof", "peak", "dome", "r_gable", "r_hip", "r_cone", "r_cap", "r_awning", "r_tiles"]), WINDOWS = new Set(["window", "roundwin", "porthole"]);
+  const LIGHTS = new Set(["lamp", "lantern", "neon", "crystal", "neoncube", "l_lantern", "l_string", "l_torch", "l_floor", "l_ceiling", "d_lamp", "f_floorlamp"]);
+  // where the glow comes from, up a piece (the indoor point lights go to these)
+  const LH = { lamp: 1.8, lantern: 0.3, lightpillar: 1.1, l_lantern: 0.5, l_string: 0.85, l_torch: 1, l_floor: 0.2, l_ceiling: 0.85, d_lamp: 1.7, f_floorlamp: 1.5 };
+  TYPES.forEach((t) => { t.lh = LH[t.id]; t.solid = t.solid !== false; t.tall = t.tall || 1; t.name = T(t.name); });
   const REQ = { slayer: "Beat all six scammers", launcher: "Launch a coin on ArcPad", phisher: "Beat The Phisher", holder: "Hold $ARCIRCLE", streak7: "Keep a 7-day streak", collector: "Collect all 12 key cards" };
   const unlocked = (t) => (t.pack ? ctx.owns(t.pack) : t.req ? (t.req === "phisher" ? P.beaten.includes("phisher") : P.badges.includes(t.req)) : ctx.level() >= (t.lv || 1));
   const lockText = (t) => (t.pack ? T("In the ARCL Shop") : t.req ? T(REQ[t.req]) : T("Reach level {n}", { n: t.lv }));
@@ -159,7 +211,7 @@ export function createIsland(ctx) {
     const flat = (list) => list.map((g) => { const x = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(x.attributes)) if (!["position", "normal", "uv"].includes(a)) x.deleteAttribute(a); return x; });
     const merged = parts.map(([, list]) => mergeGeometries(flat(list), false));
     const geo = merged.length === 1 ? merged[0] : mergeGeometries(merged, true);
-    const mats = parts.map(([m]) => M[m]);
+    const mats = parts.map(([m]) => (typeof m === "string" ? M[m] : m));
     k = { geo, mat: mats.length === 1 ? mats[0] : mats };
     geoCache.set(i, k); return k;
   }
@@ -398,7 +450,7 @@ export function createIsland(ctx) {
 
   // ---------------- editing, with undo ----------------
   const undo = [], redo = [];
-  const mirrorRot = (t, r) => (["slope", "roof", "stairs", "door", "window", "roundwin", "wall", "neon", "sign", "bench", "flag"].includes(TYPES[t].id) ? (4 - r) % 4 : r);
+  const mirrorRot = (t, r) => (["slope", "roof", "stairs", "door", "window", "roundwin", "wall", "neon", "sign", "bench", "flag", "r_awning", "f_bed", "f_sofa", "f_chair", "f_bookcase", "f_tv", "f_wardrobe", "f_counter", "d_sign", "d_banner", "d_mailbox", "d_bench"].includes(TYPES[t].id) ? (4 - r) % 4 : r);
   function apply(op, rec = true) {
     const touched = new Set();
     (op.del || []).forEach((b) => { const i = bricks.indexOf(b); if (i < 0) return; bricks.splice(i, 1); dropIndex(b); touched.add(b.t); });
@@ -413,7 +465,7 @@ export function createIsland(ctx) {
   function doRedo() { const op = redo.pop(); if (!op) return; apply(op, false); undo.push(op); Snd.place(); }
   let lastDoors = 0;
   function changed() {
-    saveSoon(); paintHud();
+    saveSoon(); paintHud(); keepHidden();
     const doors = bricks.filter((b) => TYPES[b.t].id === "door").length;
     if (doors !== lastDoors) { const more = doors > lastDoors; lastDoors = doors; syncResidents(more); }
     ctx.onStats(stats());
@@ -421,10 +473,75 @@ export function createIsland(ctx) {
   function stats() {
     const ids = bricks.map((b) => TYPES[b.t].id);
     const nature = ids.filter((i) => ["tree", "pine", "bush", "flowers", "grass", "planter", "water"].includes(i)).length;
-    const light = ids.filter((i) => ["lamp", "lantern", "neon", "crystal", "neoncube"].includes(i)).length;
+    const light = ids.filter((i) => LIGHTS.has(i)).length;
     const beauty = Math.min(999, nature * 2 + light * 2 + new Set(ids).size * 5 + new Set(bricks.map((b) => b.c)).size * 2);
-    return { bricks: bricks.length, residents: Math.min(8, ids.filter((i) => i === "door").length), beauty };
+    // roof/door/window/light/furniture counts: the quests read these keys off P.isle
+    return { bricks: bricks.length, residents: Math.min(8, ids.filter((i) => i === "door").length), beauty, roof: ids.filter((i) => ROOFS.has(i)).length, door: ids.filter((i) => i === "door").length, window: ids.filter((i) => WINDOWS.has(i)).length, light, furniture: bricks.filter((b) => TYPES[b.t].cat === 11).length };
   }
+
+  // ---------------- furniture packs: loaded once the build bar opens (or an island with furniture comes in) ----------------
+  let furnP = null;
+  function ensureFurn() {
+    if (furnP) return furnP;
+    return (furnP = Promise.all(FP.map((n) => K.loadPack(`/models/world/packs/${n}.glb`, VER).then((p) => (furnPacks[n] = p)).catch(() => null))).then(() => {
+      if (!FP.some((n) => furnPacks[n])) return;
+      const ks = []; TYPES.forEach((t, i) => { if (t.cat !== 11) return; ks.push(i); const k = geoCache.get(i); if (k) { k.geo.dispose(); geoCache.delete(i); } }); // the stand-ins give way to the models
+      if (active && bricks.some((b) => TYPES[b.t].cat === 11)) { set.clear(); set.sync(bricks); keepHidden(); }
+      if (building) setGhost();
+      if (thumbsDone || thumbsBusy) renderThumbs(ks).then(() => { paintBuild(); if (!$("wi-pal").hidden) paintPal(); });
+    }));
+  }
+
+  // ---------------- indoors: under a roof the pieces overhead hide, the light comes up, the nearest lamps glow ----------------
+  // a grid test five times a second (no raycasts); the lights are pooled (2 on phones) and live in the island group, so they only cost anything here
+  const hidden = new Set(), IR = 6, GL = 9;
+  const amb = new THREE.AmbientLight(0xffffff, 0), pool = Array.from({ length: ctx.coarse ? 2 : 4 }, () => { const l = new THREE.PointLight(0xffc27a, 0, 7, 2); l.userData = { b: null, on: false }; return l; });
+  root.add(amb, ...pool);
+  let indoor = false, inK = 0, inT = 0;
+  const hero = () => local(new V3(-planet.position.x, ctx.feet(), -planet.position.z));
+  // 2+ solid cells over the head, and walls within 3 cells on 3+ sides (a doorway may be open)
+  function isIndoors(p) {
+    const [cx, cz] = cellOf(p.x, p.z), fy = Math.floor(p.y + 0.05), yh = fy + 2, a = cols.get(ckey(cx, cz)); if (!a) return false;
+    let over = 0; for (const b of a) { const t = TYPES[b.t]; if (t.solid && b.y + t.tall > yh) over += b.y + t.tall - Math.max(b.y, yh); }
+    if (over < 2) return false;
+    let walls = 0;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) scan: for (let d = 1; d <= 3; d++) for (let y = fy; y <= fy + 1; y++) { const w = occ.get(key(cx + dx * d, y, cz + dz * d)); if (w && TYPES[w.t].solid) { walls++; break scan; } }
+    return walls >= 3;
+  }
+  const hide = (b, on) => { if (on) hidden.add(b); else hidden.delete(b); set.pose(b, 0, on ? 0 : 1); };
+  // after a re-sync the hidden ones were drawn again: hide them once more (the deleted ones drop out)
+  function keepHidden() { hidden.forEach((b) => { if (occ.get(key(b.x, b.y, b.z)) === b) set.pose(b, 0, 0); else hidden.delete(b); }); inT = 0; }
+  function resetIndoor() { hidden.clear(); indoor = false; inK = 0; inT = 0; amb.intensity = 0; pool.forEach((l) => { l.intensity = 0; l.userData.b = null; l.userData.on = false; }); }
+  function refreshIndoor() {
+    const p = hero(), now = !lapse && isIndoors(p), want = new Set(), near = [];
+    if (now) {
+      const [cx, cz] = cellOf(p.x, p.z), yh = Math.floor(p.y + 0.05) + 2;
+      for (let dx = -IR; dx <= IR; dx++) for (let dz = -IR; dz <= IR; dz++) {
+        if (dx * dx + dz * dz > IR * IR) continue;
+        const a = cols.get(ckey(cx + dx, cz + dz)); if (!a) continue;
+        for (const b of a) { if (b.y >= yh && b.i != null) want.add(b); const lh = TYPES[b.t].lh; if (lh != null) near.push([(b.x - cx) ** 2 + (b.z - cz) ** 2 + (b.y + lh - p.y - 1) ** 2, b]); }
+      }
+    }
+    if (lapse) hidden.clear(); // the time-lapse redrew everything
+    for (const b of [...hidden]) if (!want.has(b)) hide(b, false);
+    for (const b of want) if (!hidden.has(b)) hide(b, true);
+    indoor = now;
+    near.sort((u, v) => u[0] - v[0]);
+    const pick2 = near.slice(0, pool.length).map((x) => x[1]);
+    pool.forEach((l) => { if (!pick2.includes(l.userData.b)) { l.userData.b = null; l.userData.on = false; } });
+    pick2.forEach((b) => {
+      if (pool.some((l) => l.userData.b === b)) return;
+      const l = pool.find((x) => !x.userData.b) || pool.find((x) => x.intensity < 0.2); if (!l) return;
+      const [cx, cz] = set.center(b.x, b.z); l.position.set(cx, b.y + TYPES[b.t].lh, cz); l.userData.b = b; l.userData.on = true;
+    });
+  }
+  st.on((dt) => {
+    if (!active) return;
+    if ((inT -= dt) <= 0) { inT = 0.2; refreshIndoor(); }
+    const f = Math.min(1, dt * 5); inK += ((indoor ? 1 : 0) - inK) * f;
+    amb.intensity = inK * st.hemi.intensity * 0.4; // ~40% more fill than the day/night light gives
+    for (const l of pool) l.intensity += ((l.userData.on ? GL : 0) - l.intensity) * f;
+  });
 
   // ---------------- building: tools, the ghost, picking cells ----------------
   let building = false, tool = "place", rot = 0, color = -1, mirror = false, layer = -1;
@@ -465,7 +582,7 @@ export function createIsland(ctx) {
     let n = [0, 0, 0];
     for (let i = 0; i < 240; i++) {
       if (y < 0) { if (x >= 0 && z >= 0 && x < N && z < N) return { place: [x, 0, z], hit: null, ground: true }; return null; }
-      if (y < HM + 2) { const b = occ.get(key(x, y, z)); if (b) { const p = [x - n[0], y - n[1], z - n[2]]; return { place: p, hit: b, normal: n }; } }
+      if (y < HM + 2) { const b = occ.get(key(x, y, z)); if (b && !hidden.has(b)) { const p = [x - n[0], y - n[1], z - n[2]]; return { place: p, hit: b, normal: n }; } }
       if (tx < ty && tx < tz) { x += sx; tx += tdx; n = [sx, 0, 0]; } else if (ty < tz) { y += sy; ty += tdy; n = [0, sy, 0]; } else { z += sz; tz += tdz; n = [0, 0, sz]; }
       if (y > HM + 30 && sy > 0) return null;
     }
@@ -722,7 +839,8 @@ export function createIsland(ctx) {
     } catch (e) { toast(e.message || T("Couldn't load that island")); return false; }
     if (n2 !== N) { N = n2; set.clear(); set = brickSet(brickRoot, N); buildLand(); }
     HM = N === 64 ? 32 : HMAX;
-    bricks = list; index(); set.clear(); set = brickSet(brickRoot, N); set.sync(bricks);
+    bricks = list; index(); set.clear(); set = brickSet(brickRoot, N); set.sync(bricks); resetIndoor();
+    if (bricks.some((b) => TYPES[b.t].cat === 11)) ensureFurn();
     undo.length = 0; redo.length = 0; anims.length = 0;
     cRect = null; placeCentre(centreLevel(), false);
     residents.splice(0).forEach((r) => root.remove(r.g)); lastDoors = bricks.filter((b) => TYPES[b.t].id === "door").length; syncResidents(false);
@@ -739,7 +857,7 @@ export function createIsland(ctx) {
   function leave() {
     if (!active) return;
     if (!readOnly) { clearTimeout(saveT); try { if (bricks.length || localStorage.getItem(LKEY())) localStorage.setItem(LKEY(), JSON.stringify({ d: encode(bricks, N), at: Date.now() })); } catch { /* private */ } cloudSave(); }
-    setBuild(false); active = false; root.visible = false; pending = null; lapse = null; ctx.skyTheme(""); dropCentre(); cRect = null;
+    setBuild(false); resetIndoor(); active = false; root.visible = false; pending = null; lapse = null; ctx.skyTheme(""); dropCentre(); cRect = null;
     document.body.classList.remove("wi-on", "wi-visit", "wi-lapse"); closeSheets();
   }
 
@@ -817,25 +935,27 @@ export function createIsland(ctx) {
     $("wi-colors").innerHTML = COLORS.map((c, i) => `<button type="button" data-col="${i}" aria-pressed="${i === curColor()}" style="--c:${hexc(i)}" aria-label="${esc(T("Colour {n}", { n: i + 1 }))}"></button>`).join("");
   }
   const thumbs = []; let thumbsDone = false, thumbsBusy = null;
-  function renderThumbs() {
-    if (thumbsBusy) return thumbsBusy;
-    thumbsBusy = (async () => {
+  // all the kinds, or `only` (the furniture again once its pack is in)
+  function renderThumbs(only) {
+    if (thumbsBusy && !only) return thumbsBusy;
+    const run = async () => {
       let r = null;
       try {
         r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); r.setSize(96, 96); r.outputColorSpace = THREE.SRGBColorSpace;
         const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0x445566, 2.4)); const dl = new THREE.DirectionalLight(0xffffff, 1.8); dl.position.set(3, 5, 4); sc.add(dl);
         const cm = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-        for (let i = 0; i < TYPES.length; i++) {
+        let n = 0;
+        for (const i of only || TYPES.keys()) {
           const k = kindGeo(i), m = new THREE.InstancedMesh(k.geo, k.mat, 1); m.setMatrixAt(0, new THREE.Matrix4()); m.setColorAt(0, col.setHex(COLORS[TYPES[i].color]));
           const h = TYPES[i].tall; sc.add(m); cm.position.set(2.2, 1.6 + h * 0.8, 3.0).multiplyScalar(0.8 + h * 0.35); cm.lookAt(0, h * 0.45, 0);
           r.render(sc, cm); thumbs[i] = r.domElement.toDataURL("image/png"); sc.remove(m); m.dispose();
-          if (i % 6 === 5) await new Promise((res) => setTimeout(res, 0));
+          if (++n % 6 === 0) await new Promise((res) => setTimeout(res, 0));
         }
       } catch { /* no thumbnails, names still show */ }
       if (r) { r.dispose(); r.forceContextLoss(); }
       thumbsDone = true;
-    })();
-    return thumbsBusy;
+    };
+    return (thumbsBusy = thumbsBusy ? thumbsBusy.then(run) : run());
   }
   function paintVisit() {
     if (!visitInfo) return;
@@ -850,7 +970,7 @@ export function createIsland(ctx) {
   function setBuild(on) {
     if (on && readOnly) return;
     building = on; ghostRoot.visible = false; aim = null;
-    if (on) { setGhost(); if (!thumbsDone) renderThumbs().then(paintBuild); }
+    if (on) { ensureFurn(); setGhost(); if (!thumbsDone) renderThumbs().then(paintBuild); }
     document.body.classList.toggle("wi-building", on);
     topMat && topMat.color.set(on ? 0x6cbd6f : 0x5fae62);
     gridTex.needsUpdate = true; paintBuild();
