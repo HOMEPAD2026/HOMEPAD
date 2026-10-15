@@ -21,26 +21,62 @@ export function createJumpRace(ctx) {
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), zero = new THREE.Vector3(0, 0, 0);
   // the course: platform i sits on a widening spiral, RISE higher than the last; the top one is the crown
   const platAt = (i) => { const a = i * 0.62, r = 5.2 + (i % 2) * 0.6 + i * 0.12; return { x: O.x + Math.cos(a) * r, z: O.z + Math.sin(a) * r, y: 0.6 + i * RISE, r: i === N - 1 ? 1.9 : 1.35 }; };
+  // b441: the course's meshes and materials are made once and kept between runs (each run used to make and then
+  // dispose them, so every start compiled their shaders again: a stall right as the run began). ctx.warm compiles them
+  // the first time, before the run is shown.
+  let made = false, top, rim, inset, flags, beam, mark, markRing;
   function build() {
-    root = new THREE.Group(); root.name = "jumprace"; planet.add(root);
-    const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.1, flatShading: true, ...o });
-    const glow = (c, k) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
-    plats = Array.from({ length: N }, (_, i) => platAt(i));
-    const top = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 0.35, 10), std(0x9ad4ff), N), rim = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.07, 6, 28), glow(0x38d8ff, 1.4), N);
-    const cols = new THREE.Color();
-    plats.forEach((p, i) => {
-      top.setMatrixAt(i, m4.compose(v.set(p.x, p.y - 0.18, p.z), q.identity(), new THREE.Vector3(p.r, 1, p.r)));
-      top.setColorAt(i, cols.set(i === N - 1 ? 0xffd23a : (i + 1) % CHECK === 0 ? 0x7dff9a : 0x9ad4ff));
-      e.set(Math.PI / 2, 0, 0); q.setFromEuler(e); rim.setMatrixAt(i, m4.compose(v.set(p.x, p.y + 0.01, p.z), q, new THREE.Vector3(p.r, p.r, 1)));
-    });
-    top.receiveShadow = true; top.castShadow = !ctx.low; root.add(top, rim);
-    coinMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.32, 0.32, 0.08, 16), glow(0xffc861, 1.1), N - 1); root.add(coinMesh);
+    if (!made) {
+      made = true; root = new THREE.Group(); root.name = "jumprace";
+      const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.15, flatShading: true, ...o });
+      const glow = (c, k, o = {}) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4, ...o });
+      plats = Array.from({ length: N }, (_, i) => platAt(i));
+      // a hex pad: a pale body, a glowing plate set into its top, a light ring round its edge
+      top = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 0.82, 0.42, 6), std(0xffffff), N);
+      inset = new THREE.InstancedMesh(new THREE.CircleGeometry(0.8, 6), glow(0xffffff, 0.55, { transparent: true, opacity: 0.9 }), N);
+      rim = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.06, 6, 6), glow(0x38d8ff, 1.5), N);
+      const cols = new THREE.Color(), icol = new THREE.Color(), ex = new THREE.Euler();
+      plats.forEach((p, i) => {
+        const ck = (i + 1) % CHECK === 0, last = i === N - 1, rot = i * 0.4;
+        q.setFromEuler(ex.set(0, rot, 0)); top.setMatrixAt(i, m4.compose(v.set(p.x, p.y - 0.21, p.z), q, new THREE.Vector3(p.r, 1, p.r)));
+        top.setColorAt(i, cols.set(last ? 0xffe27a : ck ? 0xb8ffd0 : 0xd4ecff));
+        q.setFromEuler(ex.set(-Math.PI / 2, 0, rot + Math.PI / 6)); inset.setMatrixAt(i, m4.compose(v.set(p.x, p.y + 0.005, p.z), q, new THREE.Vector3(p.r, p.r, 1)));
+        inset.setColorAt(i, icol.set(last ? 0xffc23a : ck ? 0x4dff88 : 0x5ab8ff));
+        q.setFromEuler(ex.set(Math.PI / 2, 0, rot + Math.PI / 6)); rim.setMatrixAt(i, m4.compose(v.set(p.x, p.y + 0.01, p.z), q, new THREE.Vector3(p.r * 1.0, p.r * 1.0, 1)));
+        rim.setColorAt(i, icol.set(last ? 0xffd23a : ck ? 0x39ff88 : 0x38d8ff));
+      });
+      top.receiveShadow = true; top.castShadow = !ctx.low; root.add(top, inset, rim);
+      // a flag on every checkpoint pad
+      const cks = plats.map((p, i) => [p, i]).filter(([, i]) => (i + 1) % CHECK === 0 && i < N - 1);
+      flags = new THREE.Group();
+      const poleG = new THREE.CylinderGeometry(0.04, 0.04, 1.6, 6), flagG = new THREE.PlaneGeometry(0.7, 0.42), poleM = std(0xe8eef4), flagM = glow(0x39ff88, 0.9, { side: THREE.DoubleSide, flatShading: false });
+      for (const [p] of cks) { const a = Math.atan2(p.z - O.z, p.x - O.x), fx = p.x + Math.cos(a) * p.r * 0.7, fz = p.z + Math.sin(a) * p.r * 0.7;
+        const pole = new THREE.Mesh(poleG, poleM); pole.position.set(fx, p.y + 0.8, fz); const fl = new THREE.Mesh(flagG, flagM); fl.position.set(fx + 0.36, p.y + 1.38, fz); flags.add(pole, fl); }
+      root.add(flags);
+      // the coins: gold, a little metal, spinning over each pad
+      coinMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.34, 0.34, 0.09, 18), glow(0xffc23a, 0.45, { metalness: 0.55, roughness: 0.3 }), N - 1); root.add(coinMesh);
+      crown = new THREE.Group(); const cp = plats[N - 1]; crown.position.set(cp.x, cp.y + 1.3, cp.z); crown.scale.setScalar(1.35);
+      const cm = glow(0xffd23a, 1.2, { metalness: 0.5, roughness: 0.3 });
+      crown.add(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.35, 10, 1, true), cm));
+      for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2, sp = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.38, 5), cm); sp.position.set(Math.cos(a) * 0.5, 0.35, Math.sin(a) * 0.5); crown.add(sp);
+        const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), glow(0xff4d8d, 1.5)); gem.position.set(Math.cos(a) * 0.53, 0.02, Math.sin(a) * 0.53); crown.add(gem); }
+      root.add(crown);
+      // the goal: a soft beam of light over the crown, seen from the foot of the climb
+      beam = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.4, 14, 20, 1, true), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+        vertexShader: "varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+        fragmentShader: "varying float vY; void main(){ gl_FragColor = vec4(1.0, 0.82, 0.3, (1.0 - vY) * 0.35); }" }));
+      beam.position.set(cp.x, cp.y + 7.2, cp.z); root.add(beam);
+      // where you'll land: a soft shadow on whatever is under your feet, and a ring that tightens as you come down
+      const mc = document.createElement("canvas"); mc.width = mc.height = 64; const mg = mc.getContext("2d"), gr = mg.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, "rgba(0,0,0,0.55)"); gr.addColorStop(0.6, "rgba(0,0,0,0.3)"); gr.addColorStop(1, "rgba(0,0,0,0)"); mg.fillStyle = gr; mg.fillRect(0, 0, 64, 64);
+      mark = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(mc), transparent: true, depthWrite: false })); mark.rotation.x = -Math.PI / 2; mark.renderOrder = 3;
+      markRing = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.5, 32), new THREE.MeshBasicMaterial({ color: 0x8ff0ff, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false })); markRing.rotation.x = -Math.PI / 2; markRing.renderOrder = 3;
+      root.add(mark, markRing);
+    }
+    planet.add(root);
     got = new Array(N - 1).fill(false);
-    crown = new THREE.Group(); const cp = plats[N - 1]; crown.position.set(cp.x, cp.y + 1.2, cp.z);
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.35, 10, 1, true), glow(0xffd23a, 1.3)); crown.add(band);
-    for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2, s = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 5), glow(0xffd23a, 1.3)); s.position.set(Math.cos(a) * 0.5, 0.33, Math.sin(a) * 0.5); crown.add(s); }
-    root.add(crown);
     paintCoins(0);
+    if (ctx.warm) try { ctx.warm(); } catch { /* compiled on first sight instead */ }
   }
   function paintCoins(t) {
     if (!coinMesh) return;
@@ -50,11 +86,7 @@ export function createJumpRace(ctx) {
     }
     coinMesh.instanceMatrix.needsUpdate = true;
   }
-  function teardown() {
-    if (!root) return; planet.remove(root);
-    root.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); const m = o.material; (Array.isArray(m) ? m : [m]).forEach((x) => x.dispose()); } });
-    root = null; coinMesh = null; crown = null; plats = [];
-  }
+  function teardown() { if (root) planet.remove(root); } // kept for the next run (see build)
   // the world steps aside like in AC Defense: everything but the Game Village (ctx.keep) and the always-on layers
   const KEEP = /^(ground|particles|smoke|pet|grass|clouds|ambient|vfx|decor)$/;
   function hideWorld() { hidden = []; for (const c of planet.children) if (c.visible && c !== root && !KEEP.test(c.name || "") && !(ctx.keep || []).includes(c) && !c.isLight) { c.visible = false; hidden.push(c); } }
@@ -101,10 +133,13 @@ export function createJumpRace(ctx) {
   function tick(dt, t) {
     if (!on || !root) return;
     spinT += dt; paintCoins(spinT); if (crown) crown.rotation.y += dt * 1.2;
-    if (phase !== "run") return;
+    if (phase !== "run") { if (mark) mark.visible = markRing.visible = false; return; }
     timer -= dt; paintHud();
     const me = ctx.pos();
-    for (let i = 0; i < N - 1; i++) { if (got[i]) continue; const p = plats[i], dx = me.x - p.x, dz = me.z - p.z, dy = me.y + 0.9 - (p.y + 0.85); if (dx * dx + dz * dz < 1.1 && Math.abs(dy) < 1.2) { got[i] = true; if (ctx.Snd && ctx.Snd.coin) ctx.Snd.coin(); } }
+    { const fy = floorAt(me.x, me.z, me.y), h = Math.max(0, me.y - fy), k = Math.max(0.35, 1 - h / 6); // the landing marker
+      mark.visible = markRing.visible = true; mark.position.set(me.x, fy + 0.03, me.z); markRing.position.set(me.x, fy + 0.035, me.z);
+      mark.scale.setScalar(0.6 + k * 0.5); mark.material.opacity = k; markRing.scale.setScalar(0.6 + Math.min(1.6, h * 0.35)); markRing.material.opacity = h > 0.2 ? 0.85 : 0; }
+    for (let i = 0; i < N - 1; i++) { if (got[i]) continue; const p = plats[i], dx = me.x - p.x, dz = me.z - p.z, dy = me.y + 0.9 - (p.y + 0.85); if (dx * dx + dz * dz < 1.1 && Math.abs(dy) < 1.2) { got[i] = true; if (ctx.Snd && ctx.Snd.coin) ctx.Snd.coin(); if (ctx.vfx && ctx.vfx.collect && !ctx.reduce) ctx.vfx.collect(new THREE.Vector3(p.x, p.y + 0.85, p.z)); } }
     // the highest platform stood on; every CHECK-th is a checkpoint
     for (let i = plats.length - 1; i > reached; i--) { const p = plats[i], dx = me.x - p.x, dz = me.z - p.z; if (Math.abs(me.y - p.y) < 0.15 && dx * dx + dz * dz <= p.r * p.r) { if (ckOf(i) > ckOf(reached) && i < N - 1) ctx.toast(T("Checkpoint")); reached = i; break; } }
     if (reached === N - 1) { finish(true); return; }

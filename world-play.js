@@ -494,7 +494,7 @@ function setWet(on) {
   setTimeout(() => { try { nightK = -1; dayNight(); } catch { /* not set up yet: dayNight runs at the start anyway */ } }, 0); // the grass darkens a touch
 }
 const spins = [];
-let mixLod = 0; const mixV = new THREE.Vector3(); // the animation LOD below (the loop)
+let mixLod = 0; const mixV = new THREE.Vector3(), camFr = new THREE.Frustum(), camFrM = new THREE.Matrix4(), camSph = new THREE.Sphere(new THREE.Vector3(), 2.5); // the animation LOD below (the loop)
 const shops = K.SHOPS.map((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); planet.add(g); K.shadowy(g); spins.push(...g.userData.spin); return g; });
 shops.forEach((g) => { const cs = LOOK.contactShadow((g.userData.radius || 3) + 2.2, 0.38); cs.position.x = g.position.x; cs.position.z = g.position.z; planet.add(cs); });
 const shopG = (id) => shops.find((g) => g.userData.spec.id === id);
@@ -1628,7 +1628,7 @@ async function openJump() {
       let M; try { M = await import("./world-jumprace.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       jumpRace = M.createJumpRace({ THREE, planet, T: TW, lang: LANG, esc, toast, Snd, vfx, reduce, low: lowGfx, coarse, origin: gv.center, keep: [gv.root],
         pos: () => ({ x: -planet.position.x, y: hop, z: -planet.position.z }), place: (x, z) => standAt(x, z, gv.center), lift: (y) => { hop = y; at.y = y; vy = 0; grounded = true; },
-        setArena: (r) => { arenaR = r; }, leave: () => { jumpOn = false; near = null; paintPrompt(); const e = gv.exitOf("jump"); standAt(e.x, e.z, gv.center); } });
+        warm: () => st.warm(2500), setArena: (r) => { arenaR = r; }, leave: () => { jumpOn = false; near = null; paintPrompt(); const e = gv.exitOf("jump"); standAt(e.x, e.z, gv.center); } });
       st.on((dt, t) => { if (jumpRace) jumpRace.tick(dt, t); });
     }
     jumpOn = true; near = null; paintPrompt(); jumpRace.start();
@@ -3696,8 +3696,9 @@ st.on((dt0, t) => {
   scamCheck(dt);
   // animation LOD (b404): what's beyond 26 m of the camera steps its animation every third frame (the time adds up,
   // so it keeps its pace), what's near steps every frame
-  { const cp = st.camera.position; mixLod = (mixLod + 1) % 3;
-    for (const m of mixers) { const o = m.getRoot && m.getRoot(); if (o && o.getWorldPosition) { o.getWorldPosition(mixV); if (mixV.distanceToSquared(cp) > 676) { m._acc = (m._acc || 0) + dt; if (mixLod) continue; m.update(m._acc); m._acc = 0; continue; } } m.update(dt + (m._acc || 0)); m._acc = 0; } }
+  // b441: off screen (or hidden) every 6th frame, past 60 m every 8th
+  { const cp = st.camera.position; mixLod = (mixLod + 1) % 24; camFr.setFromProjectionMatrix(camFrM.multiplyMatrices(st.camera.projectionMatrix, st.camera.matrixWorldInverse));
+    for (const m of mixers) { const o = m.getRoot && m.getRoot(); if (o && o.getWorldPosition) { o.getWorldPosition(mixV); const d2 = mixV.distanceToSquared(cp); camSph.center.copy(mixV); const every = d2 > 3600 ? 8 : !camFr.intersectsSphere(camSph) ? 6 : d2 > 676 ? 3 : 1; if (every > 1) { m._acc = (m._acc || 0) + dt; if (mixLod % every) continue; m.update(Math.min(m._acc, 0.5)); m._acc = 0; continue; } } m.update(dt + (m._acc || 0)); m._acc = 0; } }
   fadeLabels(dt);
   pickCards();
   lockedCheck(dt);

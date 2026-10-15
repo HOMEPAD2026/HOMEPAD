@@ -189,13 +189,17 @@ export function createCombat(ctx) {
     return sp;
   }
   const AFFIX = [{ id: "frost", name: "Frost {x}", color: "#7fe0ff", p: 0xbff2ff }, { id: "blaze", name: "Blazing {x}", color: "#ff8a3c", p: 0xffa040 }, { id: "venom", name: "Toxic {x}", color: "#9aff5a", p: 0x9aff5a }];
-  const tmpA = new V3();
+  const tmpA = new V3(); let lblBudget = 4;
   const label = (m) => { const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail < k) m.trail = k; m.bar.userData.draw(m.lv, (m.rank === "boss" ? m.bossName : m.rare ? T("Golden {x}", { x: T(m.spec.name) }) : m.affix ? T(m.affix.name, { x: T(m.spec.name) }) : T(m.spec.name)), k, m.rank === "boss" ? "#ff8fa0" : m.rank === "elite" || m.rare ? "#ffd27a" : lvColor(m.lv), m.rank, m.trail); };
   // the pale tail: holds for a moment after a hit, then slides down to the HP (redrawn at most 20 times a second)
   function tickTrail(m, dt) {
     const k = Math.max(0, m.hp / m.max); if (m.trail == null || m.trail <= k + 0.002) return;
     if ((m.trailHold = (m.trailHold || 0) - dt) > 0) return;
-    m.trail = Math.max(k, m.trail - dt * 0.8); m.trailT = (m.trailT || 0) - dt; if (m.trailT <= 0 || m.trail <= k) { m.trailT = 0.05; label(m); }
+    // b441: each redraw re-uploads the bar's canvas to the GPU; a few per frame at most (two on a slow phone), 10 a second there
+    const nt = Math.max(k, m.trail - dt * 0.8); m.trailT = (m.trailT || 0) - dt;
+    if (m.trailT > 0 && nt > k) { m.trail = nt; return; }
+    if (lblBudget <= 0) return; // tried again next frame
+    lblBudget--; m.trail = nt; m.trailT = lowQ() ? 0.1 : 0.05; label(m);
   }
   /// a scammer: { type, lv, rank ("" | "elite" | "boss"), at (V3), zone, boss: zone.boss spec }
   // scammers are kept for reuse (a few per model) instead of copied afresh each time: a copy of a skinned model and
@@ -437,13 +441,13 @@ export function createCombat(ctx) {
     }
   }
   function tickMobs(dt, t) {
-    ctx.here(me); tickLock(dt);
+    ctx.here(me); tickLock(dt); lblBudget = lowQ() ? 2 : 4;
     const st = stats();
     for (let i = mobs.length - 1; i >= 0; i--) {
       const m = mobs[i];
       // far away (30 m+): the animation steps every third frame and the HP bar is hidden
       const far = m.rank !== "boss" && !m.dead && Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) > 30;
-      if (far) { m.acc = (m.acc || 0) + dt; if ((m.fc = (m.fc || 0) + 1) % 3 === 0) { m.e.mixer.update(m.acc); m.acc = 0; } } else { m.e.mixer.update(dt + (m.acc || 0)); m.acc = 0; }
+      if (far) { m.acc = (m.acc || 0) + dt; const ev = Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) > 40 ? 6 : 3; if ((m.fc = (m.fc || 0) + 1) % ev === 0) { m.e.mixer.update(Math.min(m.acc, 0.5)); m.acc = 0; } } /* b441: past 40 m every 6th frame */ else { m.e.mixer.update(dt + (m.acc || 0)); m.acc = 0; }
       if (!m.raid) m.bar.visible = !far && !(m.tgt && m.hp >= m.max);
       if (m.dead) { m.dead += dt; if (m.e && m.e.dis && !ctx.reduce) { m.e.dis.value = Math.min(1, m.dead / 0.45); if (m.e.outlines) m.e.outlines.forEach((o) => { o.visible = false; }); m.g.position.y += dt * 0.8; if (m.dead > 0.5) { m.e.dis.value = 0; retire(m, i); } } else { m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); } continue; } // breaks up into data cubes
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();

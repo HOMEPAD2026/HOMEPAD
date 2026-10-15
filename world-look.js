@@ -151,21 +151,24 @@ export function waterLook(mat) {
 // ---------------- wind: the top of a plant sways more than its foot; neighbours move a little out of step ----------------
 // local: the phase also follows each vertex's own x/z, so many plants merged into one mesh still sway out of step
 export function windLook(mat, { amp = 0.12, h = 1, local = false } = {}) {
-  const prev = mat.onBeforeCompile;
+  const prev = mat.onBeforeCompile, own = { amp: { value: amp }, h: { value: Math.max(0.01, h) } };
+  const prevKey = Object.prototype.hasOwnProperty.call(mat, "customProgramCacheKey") ? mat.customProgramCacheKey.bind(mat) : () => (prev ? String(prev).length : ""); // an earlier patch keeps its own key
+  // b441: the strength and height are uniforms, not numbers written into the shader: every plant shares one program
+  // per variant (was one per plant model height, dozens of programs each compiled on first sight)
   mat.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
-    sh.uniforms.lkT = time;
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float lkT;").replace("#include <begin_vertex>", `#include <begin_vertex>
+    sh.uniforms.lkT = time; sh.uniforms.lkWA = own.amp; sh.uniforms.lkWH = own.h;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float lkT, lkWA, lkWH;").replace("#include <begin_vertex>", `#include <begin_vertex>
       { vec4 wp0 = modelMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 #ifdef USE_INSTANCING
         wp0 = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 #endif
-        float up = clamp(position.y / ${h.toFixed(2)}, 0.0, 1.5); up *= up;
+        float up = clamp(position.y / lkWH, 0.0, 1.5); up *= up;
         float ph = wp0.x * 0.37 + wp0.z * 0.29${local ? " + position.x * 0.9 + position.z * 0.7" : ""};
         float s = sin(lkT * 1.7 + ph) * 0.7 + sin(lkT * 3.1 + ph * 1.7) * 0.3;
-        transformed.x += s * ${amp.toFixed(3)} * up; transformed.z += cos(lkT * 1.3 + ph) * ${(amp * 0.6).toFixed(3)} * up; }`);
+        transformed.x += s * lkWA * up; transformed.z += cos(lkT * 1.3 + ph) * lkWA * 0.6 * up; }`);
   };
-  mat.customProgramCacheKey = () => "wind" + amp + h + (local ? "l" : "");
+  mat.customProgramCacheKey = () => prevKey() + "|wind2" + (local ? "l" : "");
   mat.needsUpdate = true;
   return mat;
 }
