@@ -3793,6 +3793,8 @@ if (sess()) setTimeout(() => village.load(), 3500); // your village level and bl
 // start of the dive (never the town first and then a jump back out to space), and from the home gate, which has
 // already dived down to the robot, the camera only comes down the last stretch to land behind you
 await setAvatar(P.char || "arc-arc");
+// b443: the town's set dressing (trees, lamps, the districts' props) is placed before the screen lifts, up to 8 s
+if (decorOn && decor && decor.townReady) await Promise.race([decor.townReady, new Promise((r) => setTimeout(r, 8000))]);
 farCull.prep(); // (again for what came in since: the fade's shaders made before warm compiles everything)
 // b442: the scammers and every effect readied behind the loading screen too (combat.warm: copy, prepare and draw each
 // model once out of sight). It used to start 4 s after the screen lifted and go on every 0.9 s: the first minute on

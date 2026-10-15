@@ -285,15 +285,19 @@ export function createDecor(ctx) {
   }
 
   // ---------------- loading, in stages ----------------
-  let started = false;
+  let started = false, townDone = null; const townReady = new Promise((r) => { townDone = r; });
   async function start() {
     if (started) return; started = true;
+    try {
     await load("kk-weapons"); ctx.onWeapons && ctx.onWeapons();
     await Promise.all(["kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "q-nature", "q-props"].map(load)); dressTown();
     await Promise.all(["kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-furniture", "kenney-furniture"].map(load)); dressDistricts();
+    } finally { townDone(); } // b443: the loading screen waits for this (the town dressed behind it, not on the plaza)
+    // the hunting grounds' one extra pack downloads while you're still in town, so walking up to a ground only dresses it
+    setTimeout(() => { const go = () => load("kenney-survival"); if (globalThis.requestIdleCallback) requestIdleCallback(go, { timeout: 20000 }); else go(); }, 15000);
     await load("kenney-pets"); addCritters();
     await Promise.all(["k-suburban", "k-commercial"].map(load)); dressNeighbourhoods();
     setInterval(nearZones, 3000); nearZones();
   }
-  return { root, start, solids: () => solids, tick: (dt) => tickCritters(dt), gear, ready: (n) => !!packs[n], debug: () => ({ packs: Object.keys(packs), critters: critters.length, solids: solids.length, zones: [...dressed], homes }) };
+  return { root, start, townReady, solids: () => solids, tick: (dt) => tickCritters(dt), gear, ready: (n) => !!packs[n], debug: () => ({ packs: Object.keys(packs), critters: critters.length, solids: solids.length, zones: [...dressed], homes }) };
 }
