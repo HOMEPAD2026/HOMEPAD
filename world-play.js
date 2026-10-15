@@ -3527,6 +3527,11 @@ let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false, liteFx = 
 // down a step after two slow 4-second spells in a row (under 38 fps), back up only after 20 s of 58+, and never
 // within 20 s of the last change (at most twice up a session, so it can't see-saw)
 let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0;
+// b441: AC Defense and Coin Jump on a phone: half the grass (its blades are in random order, so it thins evenly) and
+// a quicker dynamic resolution while the game is on; all back on leaving
+let gameOn = false;
+st.on(() => { let on = false; try { on = !!(defenseOn || jumpOn); } catch { return; } if (on === gameOn) return; gameOn = on; dynBad = 0;
+  try { if (coarse && grass && grass.mesh) { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = on ? Math.round(g.userData.full * 0.5) : g.userData.full; } } catch { /* no grass */ } });
 function dynRes(dt) {
   if (S.quality !== "auto" || degraded || photo || navigator.webdriver || !st.scale) return;
   dynAcc += dt; dynN++; if (performance.now() - dynT0 < 4000 || dynAcc < 1.5) return;
@@ -3534,8 +3539,8 @@ function dynRes(dt) {
   // b411: slow means under 80% of the limit on a phone (48 of 60: phones sat at 40–50 and never eased off) and 70% on
   // a computer; it was 63% for both
   const capF = S.fpsCap || 60; dynBad = fps < capF * (st.quality.coarse ? 0.8 : 0.7) ? dynBad + 1 : 0; dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
-  if (now - dynLast < 20000) return;
-  if (dynBad >= 2 && dynK > 0.6) { dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
+  if (now - dynLast < (gameOn ? 8000 : 20000)) return;
+  if (dynBad >= (gameOn ? 1 : 2) && dynK > 0.6) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
 }
 function watchFps(dt) {
