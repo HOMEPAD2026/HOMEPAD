@@ -393,3 +393,4 @@ body.wp .wp-dk>.wp-dk-new[hidden]{display:none}
 @keyframes wpDkNew{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 @media (prefers-reduced-motion:reduce){body.wp .wp-dk>.wp-dk-new{animation:none}}
 html.wp-less body.wp .wp-dk>.wp-dk-new{animation:none}
+body.wp #wp-dock{overflow:visible!important}
