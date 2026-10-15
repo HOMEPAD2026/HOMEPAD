@@ -28,7 +28,7 @@
 // Bounties, party quests, the village rankings (week / month / all time) and their prizes: api/_world-rank.mjs.
 // Firestore: worldStats/main { visitors, players } · worldCounted/<wallet> (counted once in players) · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
-import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize, DUR_MAX, durOf } from "./_world-shop.mjs";
+import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize, DUR_MAX, durOf, weekendK } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
 import { makeChat } from "./_world-chat.mjs";
 import { makeCrew } from "./_world-crew.mjs";
@@ -340,7 +340,7 @@ export function make(deps) {
     }
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
     // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.
-    const boostK = (Number((await shop.own(s.wallet).catch(() => ({}))).xpBoostUntil) || 0) > now() ? 2 : 1;
+    const boostK = ((Number((await shop.own(s.wallet).catch(() => ({}))).xpBoostUntil) || 0) > now() ? 2 : 1) * weekendK(now()); // the Starter's 2× and the weekend's 2× stack
     // GM wallets (the team's own testing) aren't paced
     const g = isGM(s.wallet) ? { xp: data.xp, gain: 0, cut: 0, bank: old && old.xb != null ? old.xb : 0, dayKey: "" } : await xpGuard(s.wallet, old, data.xp, boostK);
     data.xp = g.xp;

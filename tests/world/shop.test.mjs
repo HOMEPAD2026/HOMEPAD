@@ -19,7 +19,8 @@ const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFini
 const w = ethers.Wallet.createRandom(), me = w.address.toLowerCase();
 const COIN = "0x" + "c".repeat(40);
 let bal = 0n, receipts = {};
-const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, dayCap: () => caps.day, sellCap: () => caps.sell,
+const wk = { k: 1 }; // the weekend 2× is pinned off here (the clock starts on a Sunday) and switched on for its own checks
+const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, weekendK: () => wk.k, dayCap: () => caps.day, sellCap: () => caps.sell,
   launchRecord: async (c) => (c === COIN ? { creator: me, symbol: "CCC" } : null),
   tokenBalance: async () => bal, arcPrice: async () => 0.002, receipt: async (h) => receipts[h] || null });
 const issued = new Date(T).toISOString(), sig = await w.signMessage(loginMessage(w.address, issued)), S = { wallet: w.address, issued, signature: sig };
@@ -190,5 +191,9 @@ r = await W.handle({ action: "world-sell", ...S5, item: { id: "lgcy01", b: "boot
   check([20, 50, 100].every((lv) => [3, 4].every((rr) => [0, 5, 10].every((pp) => G.mwPrice(lv, rr, pp) === SH.mwPrice(lv, rr, pp)))) && G.mwBand(57) === SH.mwBand(57) && G.SELL_DAY_CAP === REAL_SELL && G.ARCL_DAY_CAP === REAL_CAP, "the game and the server agree on the prices and limits");
   const v = (await W.read(new URL("http://x/?world=arcl&wallet=" + m8))).body; check(v.cap === 30000 && v.sellCap === 1500 && v.sold === 0, "the view says both limits and today's sales");
 }
+// weekend 2×: Saturday and Sunday in Seoul; the factor function and a doubled street reward
+{ const { weekendK } = await import("../../api/_world-shop.mjs");
+  check(weekendK(Date.parse("2026-10-17T03:00:00Z")) === 2 && weekendK(Date.parse("2026-10-16T03:00:00Z")) === 1, "Saturday doubles, Friday doesn't");
+  check(weekendK(Date.parse("2026-10-18T14:59:00Z")) === 2 && weekendK(Date.parse("2026-10-18T15:01:00Z")) === 1, "Sunday 23:59 Seoul still doubles, Monday 00:01 doesn't"); }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

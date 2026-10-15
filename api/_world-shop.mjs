@@ -36,6 +36,11 @@ export const ARCIRCLE = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
 export const FEE_BURN = "0x7f53f5014bc2cfe52ed8fb9370f2bcd497b93034"; // ArcircleFeeBurn on Arc: burnBps 5000, treasury 0xa066…02F8
 export const DAILY_CAP = 30000; // b383: from 300; each activity keeps its own daily limit (EARN) underneath it
 export const QUOTE_MS = 10 * 60e3;
+// weekend 2× (Saturday and Sunday, Seoul time): play rewards pay double and the XP allowance doubles (api/_world.mjs);
+// the daily ARCL cap and each activity's daily count stay the same
+export const weekendK = (t) => { const d = new Date(t + 9 * 3600e3).getUTCDay(); return d === 0 || d === 6 ? 2 : 1; };
+const WEEKEND_KINDS = new Set(["street", "pickup", "hunt", "boss", "daily"]);
+const wkOf = (kind) => WEEKEND_KINDS.has(kind) || kind.startsWith("stage:");
 // the exchange: nothing is decided yet — the page shows these as "not set"
 export const EXCHANGE = { open: false, rate: null, minClaim: null, startsAt: null, budget: null };
 
@@ -240,6 +245,7 @@ export function makeShop(deps) {
     return { bal: b.bal || 0, earned: b.earned || 0, spent: b.spent || 0, streak: L.streak || 0, lastDay: L.lastDay || "", got: L.got || [], log: (L.log || []).slice(-30).reverse() };
   }
   // credit n ARCL for kind, inside today's cap; returns the amount credited
+  const wkK = (kind, t) => (wkOf(kind) ? (deps.weekendK ? deps.weekendK(t) : weekendK(t)) : 1); // (tests pin the weekend)
   async function credit(w, kind, n) {
     const day = seoulDay(now()), dk = `worldArclDay/${w}_${day}`;
     const today = ((await one(dk)) || {}).n || 0;
@@ -378,7 +384,7 @@ export function makeShop(deps) {
       const ck = `worldArclRep/${w}_${kind}_${day}`, c = ((await one(ck)) || {}).n || 0;
       if (c >= e.repeat.max) return json(200, { ok: true, kind, credited: 0, capped: true, ...(await balance(w)) });
       await commit([{ inc: ck, fields: { n: 1 } }]);
-      const got = await credit(w, kind, n);
+      const got = await credit(w, kind, n * wkK(kind, now()));
       if (kind === "street" || kind === "hunt" || kind === "boss") await huntPoint(w, kind === "street" ? 1 : kind === "boss" ? 10 : [0, 0, 2, 3, 4][Math.max(2, Math.min(4, Math.floor(Number(b.tier) || 2)))]).catch(() => {});
       return json(200, { ok: true, kind, credited: got, capped: got < n, left: e.repeat.max - c - 1, ...(await balance(w)) });
     }
@@ -391,7 +397,7 @@ export function makeShop(deps) {
       const streak = L.lastDay === y || shielded ? (L.streak || 0) + 1 : 1;
       await setDoc(`worldArcl/${w}`, { ...L, streak, lastDay: day, ...(shielded ? { shieldWk: wk } : {}), bal: undefined, earned: undefined, spent: undefined });
       n = 20 + Math.min(30, 5 * (streak - 1));
-      const got = await credit(w, kind, n);
+      const got = await credit(w, kind, n * wkK(kind, now()));
       const egg = streak % 7 === 0 ? await freeEgg(w, "daily:" + day).catch(() => null) : null; // day 7 of the calendar: a pet egg
       return json(200, { ok: true, kind, credited: got, streak, ...(shielded ? { shielded: true } : {}), ...(egg && egg.ok ? { petegg: true, own: egg.own } : {}), ...(await balance(w)) });
     }
