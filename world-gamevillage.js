@@ -3,10 +3,10 @@
 // is one more entry (ready: true gives it a door you can walk up to; the rest stand as "Coming soon" plots).
 // Cheap until you come near: the ground, the gate and the sign load with the town; the buildings are made the first
 // time you're within BUILD_AT and hidden again past HIDE_AT.
-export const VILLAGE = { x: -90, z: -15, r: 32, plotR: 21, arenaR: 10.5 };
+export const VILLAGE = { x: -105, z: -5, r: 32, plotR: 21, arenaR: 10.5 };
 export const GAMES = [
-  { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, ready: true },
   { id: "soon1" }, { id: "soon2" }, { id: "soon3" }, { id: "soon4" }, { id: "soon5" },
+  { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, ready: true }, // the middle plot: straight ahead as you come through the gate
   { id: "soon6" }, { id: "soon7" }, { id: "soon8" }, { id: "soon9" }, { id: "soon10" },
 ];
 const BUILD_AT = 75, HIDE_AT = 95;
@@ -30,7 +30,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
   // plots go round the square, leaving the gate's side open
   const slots = GAMES.length, a0 = toPlaza + 0.5, span = Math.PI * 2 - 1.0;
   const plotAt = (i) => { const a = a0 + (span * i) / (slots - 1); return { x: Math.sin(a) * V.plotR, z: Math.cos(a) * V.plotR, a }; };
-  const doors = [], spins = [];
+  const doors = [], spins = [], solids = []; // solids: the game buildings you can't walk through
   let built = null;
   function towerOf(gm) { // AC Defense: a round stone keep with a neon crown and a door facing the square
     const g = new THREE.Group(), stone = std(0x8d97a8), dark = std(0x4a5366), neon = glow(gm.color, 2.2);
@@ -60,16 +60,23 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
       const p = plotAt(i), g = gm.ready ? towerOf(gm) : soonOf();
       g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); // the front faces the square
       g.traverse((o) => { if (o.isMesh) o.castShadow = !low; });
-      built.add(g);
+      built.add(g); if (gm.ready) { g.userData.radius = 3.6; solids.push(g); }
       if (gm.ready) { const d = new THREE.Group(); d.position.set(p.x - Math.sin(p.a) * 4.6, 0, p.z - Math.cos(p.a) * 4.6); d.userData = { radius: 1.2, game: gm.id }; built.add(d); doors.push(d); }
       else { // one "Coming soon" sign texture, shared by every empty plot
-        soonTag = soonTag || K.label(T("Coming soon"), { accent: "#ffc861", size: 0.6 });
+        soonTag = soonTag || K.label(T("Coming soon"), { accent: "#ffc861", size: 0.85 });
         const s = soonTag.clone(); s.position.set(p.x, 3.4, p.z); built.add(s);
       }
     });
   }
   return {
-    root, doors, center: { x: V.x, z: V.z }, arenaR: V.arenaR,
+    root, doors, solids, center: { x: V.x, z: V.z }, arenaR: V.arenaR,
+    /// keep the clearing clear: hide the scattered trees, crystals and hills (instanced) that fall inside it
+    clear(group) {
+      const m = new THREE.Matrix4(), v = new THREE.Vector3(), zero = new THREE.Matrix4().makeScale(0, 0, 0); planet.updateMatrixWorld(true);
+      group.traverse((o) => { if (!o.isInstancedMesh) return; let n = 0;
+        for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, m); v.setFromMatrixPosition(m).applyMatrix4(o.matrixWorld).sub(planet.position); if (Math.hypot(v.x - V.x, v.z - V.z) < V.r + 2) { o.setMatrixAt(i, zero); n++; } }
+        if (n) { o.instanceMatrix.needsUpdate = true; if (o.computeBoundingSphere) o.computeBoundingSphere(); } });
+    },
     /// where to stand when you come out of a game: in front of its door, facing the square
     exitOf(id) { const i = GAMES.findIndex((g) => g.id === id), p = plotAt(Math.max(0, i)); return { x: V.x + p.x - Math.sin(p.a) * 6.5, z: V.z + p.z - Math.cos(p.a) * 6.5 }; },
     /// the player's planet position: build the buildings when near, hide them when far
