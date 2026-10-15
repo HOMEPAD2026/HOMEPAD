@@ -385,3 +385,5 @@ body.wp .wr-rep.brk{border-color:#ff4d6d}
 .wi-like.pop svg{animation:wiLikePop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes wiLikePop{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.wi-like.pop svg{animation:none}}
+/* the dodge button is gone from the touch pad (K still dodges on a keyboard) */
+.wc-bar.coarse .wc-dodge{display:none!important}

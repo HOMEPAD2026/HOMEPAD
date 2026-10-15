@@ -701,6 +701,6 @@ export function createRpg(ctx) {
     setSkill: (id) => { R().sk = id; ctx.save(); },
     // the 7th day's chest: a Rare (or, one time in four, an Epic) piece at your level
     giftPiece: (lv, rr) => { const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)], tier = Math.max(0, Math.min(4, TIERS.filter((t) => t.lv <= lv).length - 1)); const it = { id: rid(), b: baseId(slot, tier), r: rr != null ? rr : Math.random() < 0.25 ? 3 : 2, lv: Math.max(1, Math.min(60, lv)), p: 0 }; return addItem(it, true) ? it : null; },
-    setLog: (q) => { log = q; }, forgeTab: (t) => { forgeTab = t; seeTab(t); }, repaint: () => paint(), view: () => view,
+    setLog: (q) => { log = q; }, forgeTab: (t) => { forgeTab = t; seeTab(t); }, pane: (k) => { invPane = k === "bag" ? "bag" : "gear"; storeView = false; }, repaint: () => paint(), view: () => view,
   };
 }
