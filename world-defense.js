@@ -195,7 +195,10 @@ export function createDefense(ctx) {
   // a wave can't start earlier than the server would believe (20 s a wave cleared): the earliest moment for wave w
   const earliest = (w) => t0 + (w - 1) * 21000 + 15000;
   const canGo = () => Date.now() >= earliest(wave) && (wave === 1 || Date.now() - lastStart >= 21000);
-  async function begin() {
+  // a start that throws puts everything back (otherwise "on" stayed true and every later tap did nothing)
+  async function begin() { try { await begin0(); } catch (e) { reset(); throw e; } }
+  function reset() { gen++; if (!on) return; on = false; phase = "idle"; try { combat.defense.on(false); if (combat.defense.onBoss) combat.defense.onBoss(null); } catch { /* combat gone */ } try { showWorld(); teardown(); unmountUi(); } catch { /* half built */ } ctx.setArena(0); }
+  async function begin0() {
     if (on) return;
     on = true; phase = "build"; wave = 1; cleared = 0; kills = 0; scrap = START_SCRAP; shownScrap = scrap; coreHp = CORE_HP; timer = BUILD_S; result = null; run = null; offline = false; sel = -1; pick = ""; towers.fill(null);
     t0 = Date.now(); lastStart = 0; lost = false; seed = (Math.random() * 4294967296) >>> 0; mobs = []; aliveN = 0; resReady = true;
@@ -411,5 +414,5 @@ export function createDefense(ctx) {
   }
   st.on((dt, t) => { try { tick(dt, t); } catch (e) { console.warn("defense", e); } });
 
-  return { start: begin, quit, active: () => on, tick };
+  return { start: begin, quit, reset, active: () => on, tick };
 }

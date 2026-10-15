@@ -99,3 +99,16 @@ Stay tuned for what's coming next.
 
 $ARCIRCLE #ARCIRCLE #Arc #GameFi #PlayToEarn #Web3Gaming
 ```
+
+## Before saying a game change is done (checklist)
+
+The owner tests on a real Android phone (Samsung Internet), signed in with a wallet, at high level. Headless desktop
+Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as finished:
+
+- Run every tests/world/*.test.mjs, then rebuild (bump-cache.sh + tools/build-bundles.mjs) and load play.html.
+- Screenshot the change on the phone layout (390x844, touch: the 980px-wide `wp-pcphone` page) and on desktop.
+- Walk the whole flow, not one frame: enter → play → leave → enter again (twice). Check the HUD isn't covered by the
+  minimap, wallet/purse row, quest card or joystick.
+- Think through the paths the test can't take: signed in (server calls), level 90+, a second run in the same session,
+  a failed dynamic import or start. Nothing may fail silently: show a short error toast and reset state.
+- Say plainly what was and wasn't verified (e.g. "not checked signed-in on a real phone").
