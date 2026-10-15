@@ -3631,7 +3631,7 @@ body.wp .wp-hud .wp-mini-n{bottom:-12px}
 /* the dock's keys, on a keyboard only */
 .wp-dk>kbd.wp-dk-k{position:absolute;top:4px;left:5px;z-index:2;font:700 9px/1.3 var(--f-ui);font-style:normal;color:rgba(222,233,244,.75);border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:0 3px;background:rgba(4,8,20,.45);pointer-events:none}
 @media (pointer:coarse){.wp-dk>kbd.wp-dk-k{display:none}}html.wp-pcphone .wp-dk>kbd.wp-dk-k{display:none}
-body.wp-photo .wp-dock,body.wp-intro .wp-dock,body.wi-on .wp-dock,body.wp-photo .wp-joyrest,body.wp-intro .wp-joyrest,body.wi-on .wp-joyrest{display:none!important}
+body.wp-photo .wp-dock,body.wp-intro .wp-dock,body.wi-on .wp-dock,body.wp-photo .wp-joyrest,body.wp-intro .wp-joyrest,body.wi-building .wp-joyrest{display:none!important}
 /* the stick at rest (phones): where your thumb goes; it moves to wherever you touch */
 .wp-joyrest{display:none}
 @media (pointer:coarse){
