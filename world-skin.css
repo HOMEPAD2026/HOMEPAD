@@ -458,3 +458,8 @@ html.wp-pcphone .wj-hud{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) + 
 body:has(.wj-hud) .wp-quests,html.wp-pcphone body:has(.wj-hud) .wp-mini{display:none}
 /* (stronger than the HUD skin's own .wp-quests rules) a Game Village game takes the quest card's place */
 body.wp:has(.wj-hud) .wp-quests,body.wp:has(.wd-hud:not([hidden])) .wp-quests{display:none!important}
+
+/* every Game Village game's top bar carries data-game-hud: on the phone layout it zooms like the HUD, and while it's up
+   the quest card and the minimap step aside (a new game only adds the attribute) */
+html.wp-pcphone [data-game-hud]{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) + 232px)}
+body.wp:has([data-game-hud]:not([hidden])) .wp-quests,html.wp-pcphone body:has([data-game-hud]:not([hidden])) .wp-mini{display:none!important}

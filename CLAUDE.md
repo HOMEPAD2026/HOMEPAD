@@ -116,3 +116,8 @@ Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as 
   gone. /w/ keeps the last 3 builds' chunks (tools/build-world.mjs, w/.gens.json) and world-play.js reloads itself
   once when a lazy chunk fails (staleReload) — never remove either. When testing, also simulate "page opened, then a
   new build landed" (block or delete the lazy chunk) and walk the recovery.
+- After the owner deploys, check production through the Vercel MCP tools (this container can't reach arcircle.app
+  directly): `list_deployments` (project homepad-arc-deploy) shows which commit is live, and
+  `web_fetch_vercel_url https://www.arcircle.app/api/social?world=diag` shows real devices' errors and frame rates.
+- A new Game Village game: put `data-game-hud` on its top bar (world-skin.css then zooms it on phones and hides the
+  quest card and minimap while it's up) and follow AC Defense / Coin Jump for the fail-safe start and leave.

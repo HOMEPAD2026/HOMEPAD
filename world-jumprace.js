@@ -63,7 +63,7 @@ export function createJumpRace(ctx) {
   // ---------------- the HUD and the result card ----------------
   function mountUi() {
     ui = document.createElement("div"); ui.className = "wj-ui"; ui.setAttribute("data-no-i18n", "");
-    ui.innerHTML = `<div class="wj-hud"><b>${esc(T("Coin Jump"))}</b><span class="wj-c"></span><span class="wj-t"></span><button type="button" data-wj="quit">${esc(T("Quit"))}</button></div><div class="wj-res" hidden></div>`;
+    ui.innerHTML = `<div class="wj-hud" data-game-hud><b>${esc(T("Coin Jump"))}</b><span class="wj-c"></span><span class="wj-t"></span><button type="button" data-wj="quit">${esc(T("Quit"))}</button></div><div class="wj-res" hidden></div>`;
     ui.addEventListener("click", (ev) => { const b = ev.target.closest("[data-wj]"); if (!b) return; const k = b.dataset.wj; if (k === "quit") finish(false); else if (k === "again") { exit(); start(); } else if (k === "leave") exit(); });
     document.body.appendChild(ui);
   }

@@ -242,7 +242,7 @@ export function createDefense(ctx) {
   const tx = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
   function mountUi() {
     ui = document.createElement("div"); ui.className = "wd" + (RM ? " wd-rm" : "") + (CO ? " wd-co" : ""); ui.setAttribute("data-no-i18n", "");
-    ui.innerHTML = `<div class="wd-hud"><div class="wd-top"><b class="wd-wave"></b><span class="wd-ph"></span><span class="wd-scrap"></span><span class="wd-gain" aria-hidden="true"></span></div>
+    ui.innerHTML = `<div class="wd-hud" data-game-hud><div class="wd-top"><b class="wd-wave"></b><span class="wd-ph"></span><span class="wd-scrap"></span><span class="wd-gain" aria-hidden="true"></span></div>
       <div class="wd-core" title="${esc(T("Core"))}"><i><q></q></i><em></em></div>
       <div class="wd-prog" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100"><q></q></div>
       <div class="wd-row"><span class="wd-towers"></span><button type="button" class="wp-btn wd-go">${esc(T("Start wave"))}</button><button type="button" class="wp-btn wd-quit"></button></div></div>
