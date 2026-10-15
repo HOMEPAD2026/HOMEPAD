@@ -750,6 +750,7 @@ let hubEl = null; // the menu (built further down)
 let inboxDot = 0; // mail waiting (world-inbox.js): a dot on the Menu tile
 let chatDot = 0, chatUI = null; // unread messages and friend requests (world-chat.js), and the chat panel
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
+let inK = 0; // 0 outside … 1 indoors (the overhead indoor camera)
 let camDist = coarse ? 1.12 : 1, camGoal = camDist, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(), lockV = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock; the locked target
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
 /* a window is on screen (the Forge, the wardrobe, a shop…): Esc closes it rather than swapping it for the menu */
@@ -3707,11 +3708,15 @@ st.on((dt0, t) => {
   // camera: behind and above the player, orbiting with camYaw / camPitch, wider when running; build mode sits higher
   camDist += (camGoal - camDist) * (1 - Math.exp(-dt0 * 10)); // zoom eases toward where the wheel/pinch put it
   const bz = mode === "island" && island.building() ? 1.55 : 1;
+  // indoors on an island (the roof overhead already hides): the camera rises over the walls and looks down into the room,
+  // instead of being pushed right behind the character by the walls (players: "my character fills the screen inside")
+  inK += ((mode === "island" && !island.building() && island.indoor && island.indoor() ? 1 : 0) - inK) * (1 - Math.exp(-dt0 * 4));
   // locked on: the camera eases round so the target (and its wind-up ring) stays in view, unless you're steering it
   if (mode === "hub" && combat && combat.lockAt && !look && !photo && !frozen && performance.now() - lastLook > 700 && combat.lockAt(lockV)) { const dx = lockV.x + planet.position.x - at.x, dz = lockV.z + planet.position.z - at.z; if (dx * dx + dz * dz > 2.25) camYaw = angLerp(camYaw, Math.atan2(dx, dz) + Math.PI, Math.min(1, dt * (reduce ? 1.2 : 3))); }
-  base.set(0, 5.2 + camPitch * 6, 9.6).multiplyScalar(camDist * camZoom * bz * (1 - Math.sin(Math.min(1, punch) * Math.PI) * 0.07)).applyAxisAngle(Y, camYaw);
+  base.set(0, 5.2 + camPitch * 6 + inK * 7, 9.6 * (1 - inK * 0.5)).multiplyScalar(camDist * camZoom * bz * (1 - Math.sin(Math.min(1, punch) * Math.PI) * 0.07)).applyAxisAngle(Y, camYaw);
   camPos.copy(base).add(at); camPos.y += (hop - at.y) * 0.6;
-  if (!photo && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
+  if (!photo && inK < 0.5 && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
+  else if (inK >= 0.5) camFit += (1 - camFit) * 0.1; // over the walls nothing is in the way: the pulled-in distance lets go
   camPos.sub(at).multiplyScalar(photo ? 1 : camFit).add(at);
   if (camKick.lengthSq() > 1e-6) { camPos.add(camKick); camKick.multiplyScalar(Math.exp(-dt0 * 14)); }
   if (shake > 0 && reduce) shake = 0;

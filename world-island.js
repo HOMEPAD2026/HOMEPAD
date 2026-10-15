@@ -499,11 +499,11 @@ export function createIsland(ctx) {
   root.add(amb, ...pool);
   let indoor = false, inK = 0, inT = 0;
   const hero = () => local(new V3(-planet.position.x, ctx.feet(), -planet.position.z));
-  // 2+ solid cells over the head, and walls within 3 cells on 3+ sides (a doorway may be open)
+  // a solid roof over the head (one layer is enough), and walls within 3 cells on 3+ sides (a doorway may be open)
   function isIndoors(p) {
     const [cx, cz] = cellOf(p.x, p.z), fy = Math.floor(p.y + 0.05), yh = fy + 2, a = cols.get(ckey(cx, cz)); if (!a) return false;
     let over = 0; for (const b of a) { const t = TYPES[b.t]; if (t.solid && b.y + t.tall > yh) over += b.y + t.tall - Math.max(b.y, yh); }
-    if (over < 2) return false;
+    if (over < 1) return false; // one layer of roof is enough (it used to need two, so most homes never counted as indoors)
     let walls = 0;
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) scan: for (let d = 1; d <= 3; d++) for (let y = fy; y <= fy + 1; y++) { const w = occ.get(key(cx + dx * d, y, cz + dz * d)); if (w && TYPES[w.t].solid) { walls++; break scan; } }
     return walls >= 3;
@@ -1150,7 +1150,7 @@ export function createIsland(ctx) {
   }
 
   return {
-    TYPES, enter, leave, floorAt, blocked, solidAt: (x, y, z) => { const b = occ.get(key(Math.floor(x - ISLE.x + N / 2), Math.floor(y), Math.floor(z - ISLE.z + N / 2))); return !!b && TYPES[b.t].solid; }, // the camera's wall check (world coords)
+    TYPES, enter, leave, floorAt, blocked, indoor: () => indoor, solidAt: (x, y, z) => { const b = occ.get(key(Math.floor(x - ISLE.x + N / 2), Math.floor(y), Math.floor(z - ISLE.z + N / 2))); return !!b && TYPES[b.t].solid; }, // the camera's wall check (world coords)
     keyDown, tap, hover, makeStatic, stats, setOwned, setTheme, setVillage, useItem, centre: () => centre,
     active: () => active, building: () => building, readOnly: () => readOnly, kind: () => kind,
     title: () => (readOnly && visitInfo ? T("{name}'s island", { name: visitInfo.name }) : kind === "lot" ? "$" + lotCoin.symbol : T("My Island")),
