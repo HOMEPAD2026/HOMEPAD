@@ -4,7 +4,7 @@
 // Saved inside the character (P.rpg.x), so it travels with world-save.
 import { miniDrone } from "./world-gear3d.js";
 import { art } from "./world-itemart.js";
-import { TITLE_BONUS, bonusLine, PETS, petLevel, petNext, xpEvent, ZONES, WEEKDAY_ZONE, WEEKDAY_FAR } from "./world-rpg-data.js";
+import { TITLE_BONUS, bonusLine, petLevel, xpEvent, ZONES, WEEKDAY_ZONE, WEEKDAY_FAR } from "./world-rpg-data.js";
 import { seasonOf, SEASON_PTS, SEASON_TIERS, tierOf, quizFor, QUIZ_XP } from "./world-season.js";
 const NEWK = "arc.world.newTabs";
 const seenTabs = () => { try { return JSON.parse(localStorage.getItem(NEWK) || "[]"); } catch { return []; } };
@@ -194,12 +194,12 @@ export function createQuests(ctx) {
   }
 
   // ---------------- companions ----------------
-  const ownedPets = () => { const x = X(); return PETS.filter((p) => x.ach.includes(p.need)); };
-  const activePet = () => { const x = X(), own = ownedPets(); if (!own.length) return ""; if (x.pet === "none") return ""; return (own.find((p) => p.id === x.pet) || own[0]).id; };
+  // the pets themselves (eggs, the list, the 3D animal) live in world-pet.js; this keeps the knock-out XP and the tab
+  const activePet = () => (ctx.petActive ? ctx.petActive() : "");
   function petFeed() {
-    const id = activePet(); if (!id) return; const x = X(), before = petLevel(x.petXp[id] || 0);
+    const id = activePet(); if (!id) return; const x = X(), lvOf = ctx.petLv || ((i) => petLevel(x.petXp[i] || 0)), before = lvOf(id); // (the level counts what duplicates gave too)
     x.petXp[id] = (x.petXp[id] || 0) + 1;
-    const lv = petLevel(x.petXp[id]); if (lv > before) { ctx.toast(T("{x} grew to level {n}", { x: T(PETS.find((p) => p.id === id).name), n: lv })); ctx.onPet && ctx.onPet(); }
+    const lv = lvOf(id); if (lv > before) { ctx.toast(T("{x} grew to level {n}", { x: ctx.petTitle ? ctx.petTitle(id) : id, n: lv })); ctx.onPet && ctx.onPet(); }
   }
 
   // ---------------- rankings: players (the directory and who's on now), levels, codex, hunters, raid, race ----------------
@@ -254,10 +254,7 @@ export function createQuests(ctx) {
         ${x.stitle ? `<p class="wq-stitle">${esc(T("Your season title"))}: <button type="button" data-title="season" aria-pressed="${x.title === "season"}">${esc(x.title === "season" ? T("Worn") : T("Wear"))} “${esc(T("Season Star"))}”</button></p>` : ""}
         <div class="wq-recap">${x.ss.pts ? `<button type="button" class="wp-btn" data-srecap="cur">${esc(T("Share my season"))}</button>` : ""}${x.ssPrev ? `<p>${esc(T("Season {n}: {p} points, tier {t}", { n: x.ssPrev.id, p: x.ssPrev.pts.toLocaleString("en-US"), t: tierOf(x.ssPrev.pts) }))} <button type="button" class="wp-link" data-srecap="prev">${esc(T("Share its card"))}</button></p>` : ""}</div>`;
     }
-    else if (tab === "pets") {
-      const own = ownedPets(), act = activePet();
-      body = `<p class="wr-note">${esc(T("Companions come with achievements and grow with every scammer knocked out while they're with you."))}</p><div class="wq-pets">${PETS.map((p) => { const has = own.includes(p), xp = x.petXp[p.id] || 0, lv = petLevel(xp), nx = petNext(lv), prev = lv > 1 ? petNext(lv - 1) : 0, a = ACH.find((y) => y.id === p.need); return `<article class="wq-pet p-${p.id}${has ? "" : " locked"}${act === p.id ? " on" : ""}"><span class="wq-pet-art" aria-hidden="true">${ctx.petThumb && ctx.petThumb(p.id) ? `<img src="${ctx.petThumb(p.id)}" alt="">` : ""}</span><div><b>${esc(T(p.name))}${has ? ` <small>${esc(T("Lv {n}", { n: lv }))}</small>` : ""}</b><small>${esc(T(p.line))}</small>${has ? `<span class="wq-petname"><input data-petname="${p.id}" maxlength="12" value="${esc(petName(p.id))}" placeholder="${esc(T("Give it a name"))}" autocomplete="off" spellcheck="false"><button type="button" data-petsave="${p.id}">${esc(T("Save"))}</button></span>` : ""}${has && lv < 10 ? `<small class="wq-petnext">${esc(lv < 5 ? T("New look at level 5") : T("Golden at level 10"))}</small>` : ""}${has ? (nx ? bar(xp - prev, nx - prev) : `<small class="max">${esc(T("Fully grown"))}</small>`) : `<small class="need">${esc(T("Comes with “{x}”", { x: T(a ? a.name : "") }))}</small>`}</div>${has ? `<button type="button" data-pet="${p.id}" aria-pressed="${act === p.id}">${esc(act === p.id ? T("With you") : T("Bring"))}</button>` : ""}</article>`; }).join("")}</div>${act ? `<p class="wq-petoff"><button type="button" data-pet="none">${esc(T("Leave companions at home"))}</button></p>` : ""}`;
-    }
+    else if (tab === "pets") body = ctx.petHTML ? ctx.petHTML() : "";
     else if (tab === "codex") {
       const beaten = (ctx.P && ctx.P.beaten) || [], all = [...CODEX_STORY, ...CODEX], got = all.filter((c) => (c.story ? beaten.includes(c.story) : x.seen[c.id])).length;
       const page = (c) => { const n = c.story ? (beaten.includes(c.story) ? 1 : 0) : x.seen[c.id] || 0; return `<article class="${n ? "" : "locked"}${c.story ? " story" : ""}"><h4>${esc(n ? T(c.name) : "???")}</h4><p>${esc(n ? T(c.line) : c.story ? T("Beat this scammer on the planet to open its page.") : T("Knock one out to learn how this scam works."))}</p>${n && c.beat ? `<p class="wq-beat"><b>${esc(T("How to beat it"))}</b> ${esc(T(c.beat))}</p>` : ""}<small>${n ? esc(c.story ? T("Beaten on the planet") : T("Knocked out {n}", { n })) : ""}</small></article>`; };
@@ -286,8 +283,7 @@ export function createQuests(ctx) {
     // the season's card: points, tier and what they came from
     if (b.dataset.srecap) { const x = X(), s = b.dataset.srecap === "prev" ? x.ssPrev : x.ss; if (s && ctx.shareCard) { const k = s.k || {}, t = tierOf(s.pts); ctx.shareCard({ head: T("Season {n}", { n: s.id }), title: T("{p} points · tier {t}", { p: s.pts.toLocaleString("en-US"), t }), line: t >= SEASON_TIERS.length ? T("Every tier of the season road, done.") : T("{n} of {m} tiers on the season road", { n: t, m: SEASON_TIERS.length }), stats: [[T("Knock-outs"), (k.kill || 0).toLocaleString("en-US")], [T("Bosses"), k.boss || 0], [T("Raids"), k.raid || 0], [T("Quiz days"), k.quiz || 0]] }); } return false; }
     if (b.dataset.qz != null) { answer(+b.dataset.qz); return true; }
-    if (b.dataset.petsave) { const x = X(), inp = b.parentElement.querySelector("input"), v = String((inp && inp.value) || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 12); x.petName = { ...(x.petName || {}), [b.dataset.petsave]: v }; ctx.save(); ctx.onPet && ctx.onPet(); ctx.toast(v ? T("Your companion is called {x}", { x: v }) : T("Name cleared")); return true; }
-    if (b.dataset.pet) { const x = X(); x.pet = b.dataset.pet === x.pet && b.dataset.pet !== "none" ? x.pet : b.dataset.pet; ctx.save(); ctx.onPet && ctx.onPet(); return true; }
+    if (b.dataset.pt) return ctx.petClick ? ctx.petClick(b) : false;
     if (b.dataset.ashare) { const a = ACH.find((y) => y.id === b.dataset.ashare); if (a && ctx.shareCard) ctx.shareCard({ head: T("Achievement"), title: T(a.name), line: T(a.line), badge: T(a.title), icon: a.id }); return false; }
     if (b.dataset.title) { const x = X(); x.title = x.title === b.dataset.title ? "" : b.dataset.title; ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); ctx.onTitle && ctx.onTitle(); return true; }
     return false;
@@ -295,18 +291,16 @@ export function createQuests(ctx) {
   const title = () => { const x = X(); if (x.title === "season" && x.stitle) return T("Season Star"); const a = ACH.find((y) => y.id === x.title); return a ? T(a.title) : ""; };
   const titleBonus = () => { const x = X(); return (x.title === "season" ? (x.stitle ? TITLE_BONUS.season : null) : x.ach.includes(x.title) ? TITLE_BONUS[x.title] : null) || null; };
   const hasPet = () => !!activePet();
-  const petName = (id) => { const x = X(); return ((x.petName || {})[id] || "").slice(0, 12); };
-  const pet = () => { const id = activePet(); return id ? { id, lv: petLevel(X().petXp[id] || 0), name: petName(id) } : null; };
   const seasonPending = () => { const x = X(); return SEASON_TIERS.filter((t, i) => x.ss.pts >= t.pts && !x.ss.got.includes(i)).length; };
   const pending = () => { const x = X(); return todays().filter((q) => !x.d.done.includes(q.id) && (x.d.p[q.id] || 0) >= q.n).length + seasonPending(); };
-  return { on, html, click, title, titleBonus, titleOf, hasPet, pet, pending, bump, setTab: (t) => { tab = t; }, setRank: (k) => { rk = k; top = null; race = null; recs = null; loadTop().then(() => ctx.repaint && ctx.repaint()); }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
+  return { on, html, click, title, titleBonus, titleOf, hasPet, pending, bump, setTab: (t) => { tab = t; }, setRank: (k) => { rk = k; top = null; race = null; recs = null; loadTop().then(() => ctx.repaint && ctx.repaint()); }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
 }
 
 /// the companions (world-rpg-data.js PETS): the drone floats by your shoulder and zaps the nearest scammer, the cat
 /// trots at your heels and pulls street items in from farther, the Arc wisp circles you and mends a little HP.
 /// Each grows with the knock-outs it sees (level 1–10): a stronger zap, a wider pull, a bigger mend.
 export function createPet({ THREE, K, planet, here, facing, combat, reduce }) {
-  const root = new THREE.Group(); planet.add(root);
+  const root = new THREE.Group(); root.name = "pet"; planet.add(root); // named so world-play.js farCull leaves it alone
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, ...o });
   // the drone
   const drone = new THREE.Group();

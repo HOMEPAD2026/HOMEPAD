@@ -71,12 +71,12 @@ export function createRpg(ctx) {
     chance: { "": 0.033, elite: 0.06, boss: 0.1 },
     odds: { "": [70, 22, 6.5, 1.5, 0], elite: [55, 30, 11, 4, 0], boss: [35, 35, 20, 8, 2] },
   };
-  function rollDrop(lv, rank) {
+  function rollDrop(lv, rank, luck = ctx.dropLuck ? ctx.dropLuck() : 0) { // luck (a pet, 0–0.3): the grade roll leans toward the rarer end
     const k = rank === "boss" || rank === "elite" ? rank : "";
     if (Math.random() >= DROP.chance[k]) return null;
     const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)];
     const tier = Math.max(0, Math.min(4, TIERS.filter((t) => t.lv <= lv).length - 1));
-    const odds = DROP.odds[k]; let roll = Math.random() * 100, r = 0;
+    const odds = DROP.odds[k]; let roll = Math.random() * 100, r = 0; if (luck > 0) roll += (100 - roll) * Math.min(0.5, luck);
     while (r < odds.length - 1 && roll >= odds[r]) { roll -= odds[r]; r++; }
     return { id: rid(), b: baseId(slot, tier), r, lv: Math.max(1, Math.min(100, lv)), p: 0 };
   }

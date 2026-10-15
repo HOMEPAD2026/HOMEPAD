@@ -199,5 +199,40 @@ export const PETS = [
   { id: "cat", name: "Cat", need: "b1", line: "Pulls street items to you from farther away" },
   { id: "wisp", name: "Arc Wisp", need: "zones", line: "Mends a little of your HP every few seconds" },
 ];
+// ---- pets from eggs (b422; the server rolls them: api/_world-shop.mjs PET, which has the same ids and rarities) ----
+// 27 species, each with a fixed rarity (0 Common … 4 Legendary) and one ability. The three companions above are
+// species too (their achievement still opens them). m: the model in kenney-pets.glb, animals only.
+//   speed: +% move · collector: auto-pick radius (m) for street items and chests · luck: better gear drops ·
+//   vigour: +% max HP and a little regen · scholar: +% XP · guard: zaps scammers (mode "zap") or mends you ("heal")
+export const PET_SPECIES = [
+  { id: "bunny", r: 0, ab: "speed", name: "Bunny", m: "animal-bunny" }, { id: "chick", r: 0, ab: "scholar", name: "Chick", m: "animal-chick" },
+  { id: "pig", r: 0, ab: "collector", name: "Piglet", m: "animal-pig" }, { id: "cow", r: 0, ab: "vigour", name: "Cow", m: "animal-cow" },
+  { id: "hog", r: 0, ab: "luck", name: "Hog", m: "animal-hog" }, { id: "beaver", r: 0, ab: "collector", name: "Beaver", m: "animal-beaver" },
+  { id: "caterpillar", r: 0, ab: "scholar", name: "Caterpillar", m: "animal-caterpillar" }, { id: "crab", r: 0, ab: "guard", mode: "zap", name: "Crab", m: "animal-crab" },
+  { id: "deer", r: 1, ab: "speed", name: "Deer", m: "animal-deer" }, { id: "dog", r: 1, ab: "guard", mode: "zap", name: "Dog", m: "animal-dog" },
+  { id: "kitten", r: 1, ab: "luck", name: "Kitten", m: "animal-cat" }, { id: "bee", r: 1, ab: "collector", name: "Bee", m: "animal-bee" },
+  { id: "fish", r: 1, ab: "scholar", name: "Fish", m: "animal-fish" }, { id: "penguin", r: 1, ab: "vigour", name: "Penguin", m: "animal-penguin" },
+  { id: "koala", r: 1, ab: "vigour", name: "Koala", m: "animal-koala" },
+  { id: "fox", r: 2, ab: "speed", name: "Fox", m: "animal-fox" }, { id: "monkey", r: 2, ab: "collector", name: "Monkey", m: "animal-monkey" },
+  { id: "parrot", r: 2, ab: "scholar", name: "Parrot", m: "animal-parrot" }, { id: "panda", r: 2, ab: "vigour", name: "Panda", m: "animal-panda" },
+  { id: "drone", r: 2, ab: "guard", mode: "zap", name: "Drone", need: "k10" }, { id: "cat", r: 2, ab: "collector", name: "Cat", need: "b1" },
+  { id: "tiger", r: 3, ab: "guard", mode: "zap", name: "Tiger", m: "animal-tiger" }, { id: "lion", r: 3, ab: "speed", name: "Lion", m: "animal-lion" },
+  { id: "polar", r: 3, ab: "luck", name: "Polar Bear", m: "animal-polar" }, { id: "wisp", r: 3, ab: "guard", mode: "heal", name: "Arc Wisp", need: "zones" },
+  { id: "elephant", r: 4, ab: "vigour", name: "Elephant", m: "animal-elephant" }, { id: "giraffe", r: 4, ab: "collector", name: "Giraffe", m: "animal-giraffe" },
+];
+export const PET_BY = Object.fromEntries(PET_SPECIES.map((p) => [p.id, p]));
+export const PET_RARITY = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
+export const PET_AB = {
+  speed: { name: "Swift", line: "Move {v}% faster" }, collector: { name: "Collector", line: "Picks up items and chests within {v} m" },
+  luck: { name: "Lucky", line: "Better gear drops (+{v}% luck)" }, vigour: { name: "Sturdy", line: "+{v}% max HP and a little regen" },
+  scholar: { name: "Scholar", line: "+{v}% XP from everything" },
+};
+export const PET_VAL = { speed: [3, 5, 8, 12, 15], collector: [4, 6, 8, 10, 12], luck: [5, 8, 12, 18, 25], vigour: [3, 5, 8, 12, 15], scholar: [3, 5, 8, 12, 15], guard: [1, 1.15, 1.35, 1.6, 2] };
+/// what the pet's ability is worth at pet level lv (1–10): the rarity's number at level 10, 60% of it at level 1
+/// (the collector's radius starts at 75%); guard is a multiplier on the zap or the mend
+export const petPower = (sp, lv) => {
+  const t = (Math.max(1, Math.min(10, lv)) - 1) / 9, base = PET_VAL[sp.ab][sp.r], v = sp.ab === "guard" ? base * (0.85 + 0.15 * t) : base * ((sp.ab === "collector" ? 0.75 : 0.6) + (sp.ab === "collector" ? 0.25 : 0.4) * t);
+  return Math.round(v * 10) / 10;
+};
 export const petLevel = (xp) => Math.min(10, 1 + Math.floor(Math.sqrt(Math.max(0, Number(xp) || 0) / 15)));
 export const petNext = (lv) => (lv >= 10 ? null : lv * lv * 15);

@@ -46,11 +46,10 @@ r = await claim(W, "vill2"); check(r.status === 400, "99 village XP: not level 2
 db.set(`worldIsland/${me}`, { n: 5, res: 0, vxp: 100 });
 r = await claim(W, "vill2"); check(r.status === 200 && r.body.credited === 50, "100 village XP: level 2 pays 50 ARCL");
 r = await claim(W, "vill2"); check(r.status === 409, "village level 2 pays once");
-r = await claim(W, "vquest9"); check(r.status === 503, "free egg: not used up while the grant isn't connected");
-W = mkW({ grantFreeEgg: async (wal, from) => { eggs.push([wal, from]); return { ok: true }; } });
 db.delete(`worldIsland/${me}`);
-r = await claim(W, "vquest9"); check(r.status === 400 && !eggs.length, "free egg: needs a saved island");
+r = await claim(W, "vquest9"); check(r.status === 400, "free egg: needs a saved island");
 db.set(`worldIsland/${me}`, { n: 5, res: 0, vxp: 0 });
-r = await claim(W, "vquest9"); check(r.status === 200 && r.body.egg === 1 && eggs.length === 1 && eggs[0][0] === me, "free egg: granted once");
-r = await claim(W, "vquest9"); check(r.status === 409 && eggs.length === 1, "free egg: not twice");
+const pets = () => ((db.get(`worldOwn/${me}`) || {}).pets || {}).list || [];
+r = await claim(W, "vquest9"); check(r.status === 200 && r.body.egg === 1 && pets().length === 1, "free egg: granted once (a pet in worldOwn)");
+r = await claim(W, "vquest9"); check(r.status === 409 && pets().length === 1, "free egg: not twice");
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);

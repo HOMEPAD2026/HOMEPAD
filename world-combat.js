@@ -393,13 +393,13 @@ export function createCombat(ctx) {
     drops.push({ g, item, t: 0, beam, lid });
   }
   function tickDrops(dt, t) {
-    ctx.here(me);
+    ctx.here(me); const reach = Math.max(1.5, ctx.petPull ? ctx.petPull() : 0); // a collector pet picks chests up from farther
     for (let i = drops.length - 1; i >= 0; i--) {
       const d = drops[i]; d.t += dt; const bu = d.beam.material.uniforms; bu.uO.value = (d.item.r >= 3 ? 0.75 : d.item.r >= 2 ? 0.55 : 0.32) + Math.sin(t * 4) * 0.08; bu.uT.value = t; d.lid.rotation.y = Math.sin(t * 2) * 0.1;
       const dist = Math.hypot(d.g.position.x - me.x, d.g.position.z - me.z);
-      if (dist < 1.5 || d.t > 120 || dist > 60) {
+      if (dist < reach || d.t > 120 || dist > 60) {
         root.remove(d.g); drops.splice(i, 1); d.lid.material.dispose(); d.beam.material.dispose();
-        if (dist < 1.5) { const ok = rpg.addItem(d.item); Snd.chest && Snd.chest(d.item.r); ring(d.g.position, new THREE.Color(RARITY[d.item.r].color).getHex(), { r0: 0.3, r1: 2.4, life: 0.4 }); if (ok) ctx.float(rpg.itemName(d.item), d.g.position.clone().setY(2.4), RARITY[d.item.r].color, d.item.r >= 3); ctx.onLoot && ctx.onLoot(d.item); }
+        if (dist < reach) { const ok = rpg.addItem(d.item); Snd.chest && Snd.chest(d.item.r); ring(d.g.position, new THREE.Color(RARITY[d.item.r].color).getHex(), { r0: 0.3, r1: 2.4, life: 0.4 }); if (ok) ctx.float(rpg.itemName(d.item), d.g.position.clone().setY(2.4), RARITY[d.item.r].color, d.item.r >= 3); ctx.onLoot && ctx.onLoot(d.item); }
       }
     }
   }

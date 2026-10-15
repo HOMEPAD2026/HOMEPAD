@@ -115,6 +115,8 @@ export const CATALOG = [
   { id: "rechar", cat: "game", name: "Character change", line: "Pick another character and a new name.", tokens: 10000, usd: null, arcl: null, use: true },
   // the season's Starter Package (STARTER below): a fixed $ARCIRCLE price that rises with each of your three buys
   { id: "starter", cat: "starter", name: "Starter Package", line: "1 random Legendary item, 2× EXP for 24 hours and 100 healing potions.", tokens: 30000, usd: null, arcl: null, use: true },
+  // pet eggs (PET below): 3,000 $ARCIRCLE, paid on-chain; the server rolls the pet (rarity, then species)
+  { id: "petegg", cat: "pet", name: "Pet egg", line: "Hatches a random companion: Common to Legendary. Every 10th egg is Rare or better; a pet you already have becomes pet XP.", tokens: 3000, usd: null, arcl: null, use: true },
   { id: "bagplus", cat: "game", name: "Bigger bag", line: "Eight more bag slots, for good. Buy it again for eight more, up to 120 slots.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
 ];
@@ -127,6 +129,32 @@ const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
 // open: false stops sales and keeps what was bought.
 export const STARTER = { season: "S1", name: "Season 1", open: true, max: 3, prices: [30000, 40000, 50000], boostHours: 24, potions: 100, tierLv: [1, 5, 10, 15, 20] };
 export const starterBought = (o) => (o && o.starter && o.starter.season === STARTER.season ? o.starter.n || 0 : 0);
+// ---- pets (b422): eggs rolled here, kept in worldOwn.pets ----
+// Odds by rarity (Common … Legendary, %), a Rare-or-better egg guaranteed at the 10th without one (a counter kept here),
+// a pet you already own becomes pet XP (dupXp by rarity), at most `max` kept. Each species has a fixed rarity: the roll
+// picks the rarity, then a species of it. SPECIES mirrors world-rpg-data.js PET_SPECIES (ids and rarities; the test
+// checks they agree). worldOwn.pets = { list: [{ s, x }], n: eggs opened, pity: eggs since a Rare+, fresh: [{ gid, s, r, dup, xp }] }
+// where x is the XP from duplicates (the game adds the knock-out XP it counts itself); `fresh` waits for the reveal card.
+export const PET = {
+  price: 3000, max: 30, pityAt: 10, odds: [60, 25, 10, 4, 1], dupXp: [40, 80, 160, 320, 640], xpCap: 5000,
+  species: [["bunny", "chick", "pig", "cow", "hog", "beaver", "caterpillar", "crab"], ["deer", "dog", "kitten", "bee", "fish", "penguin", "koala"], ["fox", "monkey", "parrot", "panda", "drone", "cat"], ["tiger", "lion", "polar", "wisp"], ["elephant", "giraffe"]],
+};
+const PET_RARITY = Object.fromEntries(PET.species.flatMap((l, r) => l.map((id) => [id, r])));
+export const petRarityOf = (id) => PET_RARITY[id];
+const cryptoRnd = () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
+/// one egg: { r, s, pity } from the pity count so far (rnd: () => [0,1), crypto-random unless a test passes its own)
+export function petRoll(pity, rnd = cryptoRnd) {
+  let r = 0;
+  const lo = (pity || 0) + 1 >= PET.pityAt ? 2 : 0, tot = PET.odds.slice(lo).reduce((a, b) => a + b, 0);
+  let x = rnd() * tot; for (r = lo; r < PET.odds.length - 1 && x >= PET.odds[r]; r++) x -= PET.odds[r];
+  const list = PET.species[r], s = list[Math.min(list.length - 1, Math.floor(rnd() * list.length))];
+  return { r, s, pity: r >= 2 ? 0 : (pity || 0) + 1 };
+}
+/// where a free egg may come from over world-arcl-claim { kind: "petegg-free", source }: [pattern, check(w, source)].
+/// Day 7 of the check-in is given by the check-in itself. The quest agent adds its quest here: e.g.
+/// [/^quest:[a-z0-9-]+$/, async (w, src) => <the quest is really done>]
+export const FREE_EGG_SOURCES = [];
+export const petsOf = (o) => (o && o.pets && Array.isArray(o.pets.list) ? o.pets.list : []);
 const STARTER_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"];
 // the Forge (world-rpg.js): gear for ARCL, tiers 0–3 (Legendary only drops from bosses), and supplies.
 // Mirrors world-rpg-data.js (SLOTS, TIERS, FORGE_PRICE, FORGE_SUPPLY).
@@ -300,6 +328,13 @@ export function makeShop(deps) {
   async function claim(b) {
     const s = signer(b); if (s.err) return s.err;
     const w = s.wallet, kind = String(b.kind || ""), e = EARN_BY[kind];
+    if (kind === "petegg-free") {
+      // only sources the server can vouch for: the quest agent adds its quest to FREE_EGG_SOURCES
+      const src = String(b.source || ""), chk = FREE_EGG_SOURCES.find(([re]) => re.test(src));
+      if (!chk || !(await chk[1](w, src))) return json(400, { error: "that isn't a source of a free egg" });
+      const r = await freeEgg(w, src);
+      return r.ok ? json(200, { ok: true, kind, credited: 0, card: r.card, own: r.own }) : r.already ? json(409, { error: "already taken" }) : json(400, { error: r.error });
+    }
     if (!e) return json(400, { error: "unknown kind" });
     if (kind === "stamp") return json(400, { error: "stamps are credited when you leave one" });
     if (kind === "sell") return json(400, { error: "sell gear at the Forge" });
@@ -332,7 +367,8 @@ export function makeShop(deps) {
       await setDoc(`worldArcl/${w}`, { ...L, streak, lastDay: day, bal: undefined, earned: undefined, spent: undefined });
       n = 20 + Math.min(30, 5 * (streak - 1));
       const got = await credit(w, kind, n);
-      return json(200, { ok: true, kind, credited: got, streak, ...(await balance(w)) });
+      const egg = streak % 7 === 0 ? await freeEgg(w, "daily:" + day).catch(() => null) : null; // day 7 of the calendar: a pet egg
+      return json(200, { ok: true, kind, credited: got, streak, ...(egg && egg.ok ? { petegg: true, own: egg.own } : {}), ...(await balance(w)) });
     }
     if (kind.startsWith("stage:")) {
       const id = kind.slice(6);
@@ -354,7 +390,6 @@ export function makeShop(deps) {
     } else if (kind === "vquest9") {
       const isl = await one(`worldIsland/${w}`); // the chain's steps are played in the browser; the server asks for a saved island at least
       if (!(isl && isl.n > 0)) return json(400, { error: "build on your island first" });
-      if (!deps.grantFreeEgg) return json(503, { error: "the egg isn't ready yet, try again later" }); // not used up while the grant isn't connected
       if (!(await onceOk(w, kind))) return json(409, { error: "already collected" });
       const egg = await grantFreeEgg(w, "vquest9");
       return json(200, { ok: true, kind, credited: 0, egg: egg && egg.ok ? 1 : 0, ...(await balance(w)) });
@@ -366,10 +401,8 @@ export function makeShop(deps) {
     const got = await credit(w, kind, n);
     return json(200, { ok: true, kind, credited: got, capped: got < n, ...(await balance(w)) });
   }
-  /// STUB, MERGE: connect this to the pet agent's free-egg grant ("petegg-free", next to CATALOG / grant for "petegg"),
-  /// then drop the `deps.grantFreeEgg` guard in claim() ("vquest9") and pass nothing from api/_world.mjs. Until then
-  /// claim() answers 503 without using up the once-only mark, so nobody loses the egg.
-  async function grantFreeEgg(w, src) { return deps.grantFreeEgg ? deps.grantFreeEgg(w, src) : { ok: false, stub: true }; }
+  // the island chain's last step (share your island): one free egg, marked once per wallet by freeEgg()
+  async function grantFreeEgg(w, src) { const r = await freeEgg(w, "quest:" + src); return r && !r.error && !r.already ? { ok: true, ...r } : { ok: false, ...r }; }
   // a stamp left on someone else's island (api/_world.mjs calls this after the stamp is saved)
   async function stampCredit(w) {
     const day = seoulDay(now());
@@ -387,6 +420,7 @@ export function makeShop(deps) {
     if (it.id === "bagplus" && bagSize(o) >= BAG_MAX) return `your bag is as big as it gets (${BAG_MAX} slots)`;
     if (it.id === "isleup") { const u = deps.isleNext ? await deps.isleNext(w) : { why: "not available" }; if (u.why) return u.why; }
     if (it.id === "starter") { if (!STARTER.open) return "the Starter Package isn't on sale this season"; if (starterBought(o) >= STARTER.max) return `you've bought the Starter Package ${STARTER.max} times this season`; }
+    if (it.id === "petegg" && petsOf(o).length >= PET.max) return `you already have ${PET.max} pets`;
     if (it.id === "rename" && !(deps.hasName ? await deps.hasName(w) : true)) return "your first name is free: set it in the character maker";
     if (it.target === "coin" || it.target === "mycoin") {
       const coin = lc(target); if (!isAddr(coin)) return "pick a coin";
@@ -396,6 +430,29 @@ export function makeShop(deps) {
       if (it.id === "lot13" && (o.lots || []).includes(coin)) return "this lot is already premium";
     }
     return null;
+  }
+  // one egg into o.pets (in place): the roll, the pity count, a duplicate's XP, the card the game shows once
+  function hatch(o, at, rnd) {
+    const P = o.pets = o.pets && Array.isArray(o.pets.list) ? o.pets : { list: [], n: 0, pity: 0, fresh: [] };
+    const k = petRoll(P.pity, rnd), have = P.list.find((x) => x.s === k.s);
+    let xp = 0;
+    if (have) { xp = PET.dupXp[k.r]; have.x = Math.min(PET.xpCap, (have.x || 0) + xp); }
+    else if (P.list.length < PET.max) P.list.push({ s: k.s, x: 0 });
+    P.pity = k.pity; P.n = (P.n || 0) + 1;
+    P.fresh = [...(P.fresh || []), { gid: rid().slice(0, 10), s: k.s, r: k.r, dup: !!have, xp, at }].slice(-5);
+    return P.fresh[P.fresh.length - 1];
+  }
+  /// a free egg, once per source id ("daily:<day>", "quest:<id>"…): the marker is created first, so asking twice gives one.
+  /// The quest agent calls this (or world-arcl-claim kind "petegg-free" once its source is allowed in FREE_EGG_SOURCES).
+  async function freeEgg(w, source, rnd) {
+    const id = String(source || "").replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 40);
+    if (!id) return { error: "no source" };
+    if (petsOf(await own(w)).length >= PET.max) return { error: `you already have ${PET.max} pets` };
+    if (!(await commit([{ create: `worldPetFree/${w}_${id}`, data: { at: now() } }])).ok) return { already: true };
+    const o = await own(w), card = hatch(o, now(), rnd);
+    o.buys = [...(o.buys || []), { id: "petegg", via: "free:" + id, at: now() }].slice(-40);
+    await setDoc(`worldOwn/${w}`, o);
+    return { ok: true, card, own: o };
   }
   async function grant(w, it, target, via) {
     const o = await own(w), at = now();
@@ -412,6 +469,7 @@ export function makeShop(deps) {
       o.starter = { season: STARTER.season, n: (st0.n || 0) + 1, gifts: [...(st0.gifts || []), gift].slice(-STARTER.max) };
       o.xpBoostUntil = Math.max(at, Number(o.xpBoostUntil) || 0) + STARTER.boostHours * 3600e3;
     }
+    else if (it.id === "petegg") hatch(o, at);
     else if (it.id === "rechar") o.rechars = (o.rechars || 0) + 1; // used up by the save that changes the character or name
     else if (it.id === "bagplus") o.bag = Math.min((BAG_MAX - BAG_BASE) / BAG_STEP, Math.max(0, Math.floor(Number(o.bag) || 0)) + 1);
     else if (it.id === "lot13") o.lots = [...new Set([...(o.lots || []), lc(target)])];
@@ -516,7 +574,7 @@ export function makeShop(deps) {
   }
 
   return {
-    stampCredit, own, plaza, koOf, rewardArcl, credit, award, isoWeek,
+    stampCredit, own, plaza, freeEgg, koOf, rewardArcl, credit, award, isoWeek,
     owns: async (w, id) => ((await own(w)).items || []).includes(id),
     lotPremium: async (w, coin) => ((await own(w)).lots || []).includes(lc(coin)),
     renames: async (w) => (await own(w)).renames || 0,
