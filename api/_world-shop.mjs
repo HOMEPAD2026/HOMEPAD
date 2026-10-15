@@ -57,6 +57,7 @@ export const EARN = [
   { kind: "hunt", n: 8, label: "Knock out a scammer in a hunting ground", more: "5–12 by its level, up to 100 a day", repeat: { max: 100, gap: 10 } },
   { kind: "sell", n: 0, label: "Sell gear at the Forge", more: "6–260 by rarity, up to 1,500 a day" },
   { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 30 a day", repeat: { max: 30, gap: 240 } },
+  { kind: "defense", n: 0, label: "AC Defense: waves cleared", more: "5 a wave, up to 150 a day, 3 runs a day", repeat: { max: 3, gap: 60 } }, // paid by the run's end (api/_world-defense.mjs), never claimed
   { kind: "raid", n: 40, label: "Help bring down the weekly raid boss", more: "once a week, after it falls", weekly: true },
 ];
 const EARN_BY = Object.fromEntries(EARN.map((e) => [e.kind, e]));
@@ -339,6 +340,7 @@ export function makeShop(deps) {
     if (kind === "stamp") return json(400, { error: "stamps are credited when you leave one" });
     if (kind === "sell") return json(400, { error: "sell gear at the Forge" });
     if (kind === "raid") return json(400, { error: "the raid's reward is claimed at the raid" });
+    if (kind === "defense") return json(400, { error: "AC Defense pays when a run ends" });
     let n = e.n;
     if (e.repeat && /^(street|hunt|boss|pickup)$/.test(kind)) { const k = await koOf(w); if (k.until > now() || k.down) return json(423, { error: "resting after a knockout", until: k.until }); }
     if (e.repeat) {
