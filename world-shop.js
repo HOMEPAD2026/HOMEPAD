@@ -17,6 +17,7 @@ const CATS = [["island", "Island", "Choose a style for your island.", "icon-isla
 const artOf = (id) => "/images/shop/" + (id.startsWith("style-") ? "isle-" + id.slice(6) : id.startsWith("brick-") || id.startsWith("pack-") || id.startsWith("isle") ? id : id.startsWith("plate-") || id.startsWith("trail-") || id === "rename" ? "style-" + id : "plaza-" + id) + ".webp";
 const usableId = (id) => /^(plate|trail|style)-/.test(id);
 const QKEY = "arc.world.arclq";
+const PKEY = "arc.world.payq"; // $ARCIRCLE payments sent but not confirmed yet: finished on the next load
 
 // The exchange screen, shared with the /arcl page. d: GET ?world=arcl (or null for a guest), top: GET ?world=arcl-top
 export function exchangeHTML(d, top, { T, esc, signedIn }) {
@@ -126,6 +127,30 @@ export function createShop(ctx) {
     if (!sess()) return;
     const q = queue(); setQueue([]);
     for (const x of q) { const { kind, ...extra } = x; await claim(kind, extra); }
+    resumePending();
+  }
+
+  // ---------------- $ARCIRCLE payments sent but not confirmed yet: kept, and finished on their own ----------------
+  const pend = () => { try { return JSON.parse(localStorage.getItem(PKEY) || "[]"); } catch { return []; } };
+  const setPend = (q) => { try { localStorage.setItem(PKEY, JSON.stringify(q.slice(-10))); } catch { /* private */ } };
+  const unpend = (tx) => setPend(pend().filter((x) => x.tx !== tx));
+  const inflight = new Set();
+  async function resumePending() {
+    const s = sess(); if (!s) return;
+    for (const x of pend()) {
+      if (x.wallet !== s.wallet || inflight.has(x.tx)) continue;
+      if (Date.now() - x.at > 45 * 60e3) { unpend(x.tx); continue; } // the server keeps a quote 40 minutes
+      inflight.add(x.tx);
+      try {
+        const r = await post({ action: "world-pay-confirm", ...s, quote: x.quote, tx: x.tx });
+        if (r.status === 202 || r.status === 429 || r.status >= 500) continue; // not confirmed yet, or a server hiccup: keep it
+        unpend(x.tx);
+        if (!r.ok) { refresh(); continue; } // 409: already granted (the answer was lost) — sync what we own
+        own = r.j.own; ctx.onOwn(own); ctx.onBought(x.item); Snd.win();
+        const it = ((cat && cat.items) || []).find((y) => y.id === x.item);
+        toast(T("Your purchase arrived: {x}", { x: it ? T(it.name) : x.item }));
+      } catch { /* offline: try again next time */ } finally { inflight.delete(x.tx); }
+    }
   }
 
   // ---------------- the daily check-in ----------------
@@ -223,7 +248,7 @@ export function createShop(ctx) {
   }
 
   async function openShop(t) {
-    view = "shop"; if (t) tab = t; sheet.hidden = false; ctx.freeze(true);
+    view = "shop"; if (t) tab = t; sheet.hidden = false; ctx.freeze(true); resumePending();
     sheet.innerHTML = `<div class="wa-card wa-shop"><div class="wa-shop-head" id="wa-shop-head"></div><nav class="wa-tabs" id="wa-tabs" role="tablist"></nav><div class="wa-body" id="wa-body"><p class="wa-empty">${esc(T("Loading…"))}</p></div>
       <div class="wa-shop-foot"><span>${esc(T("Pay with ARCL, or with $ARCIRCLE: half of every $ARCIRCLE payment is burned, half goes to the treasury."))}</span><button type="button" class="wp-link" data-ex>${esc(T("ARCL Exchange"))}</button></div></div>`;
     if (!cat) await refresh();
@@ -280,36 +305,49 @@ export function createShop(ctx) {
       bought(id, card);
     } finally { busy = false; }
   }
+  // a wallet's error, in plain words (never raw RPC text)
+  const nice = (err) => { const m = String((err && err.message) || ""); return err && (err.code === 4001 || /reject|denied|cancel/i.test(m)) ? T("You cancelled it in your wallet. Nothing was sent.") : /insufficient funds|gas/i.test(m) ? T("Not enough USDC for the network fee.") : /chain|network/i.test(m) ? T("Switch your wallet to the Arc network and try again.") : /timeout|timed out/i.test(m) ? T("Your wallet didn't answer — try again.") : T("Payment failed."); };
   async function payArc(id, target, card, onStatus) {
     if (!card && !sess()) { toast(T("Sign in with your wallet first")); return false; }
     if (needSignIn()) return;
     const s = sess(), AC = ctx.AC;
-    if (!AC) { toast(T("Wallet connect isn't available here.")); return; }
-    busy = true;
     const status = (t) => { if (!card) { if (t) (onStatus || toast)(t); return; } let el = card.querySelector(".wa-status"); if (!el) { el = document.createElement("p"); el.className = "wa-status"; card.appendChild(el); } el.textContent = t; };
+    if (!AC) { status(T("Wallet connect isn't available here.")); return; }
+    busy = true;
+    let tx = null;
     try {
       if (!AC.live || !AC.live()) await AC.connect();
-      if (lc(ctx.addr()) !== s.wallet) { toast(T("Switch your wallet to the one you signed in with ({w})", { w: s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) })); return; }
+      if (lc(ctx.addr()) !== s.wallet) { status(T("Switch your wallet to the one you signed in with ({w})", { w: s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) })); return; }
       status(T("Getting the price…"));
       const q = await post({ action: "world-pay-quote", ...s, item: id, target });
-      if (!q.ok) { status(""); toast(q.j.error || T("Couldn't price that")); return; }
-      status(T("Confirm sending {n} $ARCIRCLE in your wallet. Half is burned, half goes to the treasury.", { n: fmt(q.j.tokens) }));
+      if (!q.ok) { status(q.j.error || T("Couldn't price that")); return; }
       const prov = await AC.provider();
-      try { await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_HEX }] }); } catch { /* the wallet will say if it's on another chain */ }
+      try { await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_HEX }] }); } catch (e) {
+        if (e && e.code === 4001) throw e;
+        if (e && (e.code === 4902 || /unrecognized|not added/i.test(e.message || ""))) { const C = (typeof CONFIG !== "undefined" ? CONFIG : window.CONFIG) || {}; await prov.request({ method: "wallet_addEthereumChain", params: [{ chainId: ARC_HEX, chainName: C.CHAIN_NAME || "Arc", rpcUrls: [C.RPC_URL || "https://rpc.mainnet.arc.io"], blockExplorerUrls: [C.BLOCK_EXPLORER || "https://arc.etherscan.io"], nativeCurrency: C.NATIVE_CURRENCY || { name: "USDC", symbol: "USDC", decimals: 18 } }] }); }
+      }
+      // enough $ARCIRCLE? read through the wallet's own node; if the read fails, go on (the wallet still checks)
+      let have = null;
+      try { have = BigInt(await prov.request({ method: "eth_call", params: [{ to: q.j.token, data: "0x70a08231" + pad(ctx.addr()) }, "latest"] })); } catch { /* fail open */ }
+      if (have !== null && have < BigInt(q.j.amount)) { status(T("You need {n} $ARCIRCLE; you have {m}.", { n: fmt(q.j.tokens), m: fmt(Number(have / 10n ** 14n) / 1e4) })); Snd.bad(); return; }
+      status(T("Confirm sending {n} $ARCIRCLE in your wallet. Half is burned, half goes to the treasury.", { n: fmt(q.j.tokens) }));
       const data = "0xa9059cbb" + pad(q.j.to) + pad(BigInt(q.j.amount).toString(16));
-      const tx = await prov.request({ method: "eth_sendTransaction", params: [{ from: ctx.addr(), to: q.j.token, data }] });
+      tx = await prov.request({ method: "eth_sendTransaction", params: [{ from: ctx.addr(), to: q.j.token, data }] });
+      // kept until the server answers, so a closed tab or a slow block still ends in the item (resumePending)
+      setPend([...pend().filter((x) => x.tx !== tx), { quote: q.j.quote, tx, item: id, target, wallet: s.wallet, at: Date.now() }]); inflight.add(tx);
       status(T("Sent. Waiting for the transaction to confirm…"));
       for (let i = 0; i < 40; i++) {
         await new Promise((r) => setTimeout(r, i ? 3000 : 1500));
         const r = await post({ action: "world-pay-confirm", ...s, quote: q.j.quote, tx });
-        if (r.status === 202) continue;
+        if (r.status === 202 || r.status === 429 || r.status >= 500) continue; // not confirmed yet, or a server hiccup: keep it pending
+        unpend(tx);
         if (!r.ok) { status(r.j.error || T("Couldn't confirm the payment")); return; }
         own = r.j.own; ctx.onOwn(own); status(""); payAnim(q.j.tokens); if (card) bought(id, card); return true;
       }
-      status(T("Still waiting. It'll be added when it confirms: open the shop again in a minute."));
+      status(T("Still waiting. We'll finish it for you when it confirms, even after a reload."));
     } catch (err) {
-      status(err && (err.code === 4001 || /reject|denied|cancel/i.test(err.message || "")) ? T("You cancelled it in your wallet. Nothing was sent.") : (err && err.message) || T("Payment failed."));
-    } finally { busy = false; }
+      status(tx ? T("Still waiting. We'll finish it for you when it confirms, even after a reload.") : nice(err));
+    } finally { busy = false; if (tx) inflight.delete(tx); }
   }
   function bought(id, card) {
     Snd.win(); ctx.onBought(id);
@@ -333,7 +371,7 @@ export function createShop(ctx) {
   function delta(n, d = {}) { if (!arcl) return; arcl = { ...arcl, bal: Math.max(0, (arcl.bal || 0) + n), today: Math.max(0, (arcl.today || 0) + (d.today || 0)), sold: Math.max(0, (arcl.sold || 0) + (d.sold || 0)) }; paintChip(true); }
   return {
     apply, delta,
-    refresh, claim, flushQueue, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
+    refresh, claim, flushQueue, resumePending, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
     pay: async (id, target = "", onStatus = null) => !!(await payArc(id, target, null, onStatus)), // the game's own purchases (a revive)
     /// knocked out (world-combat.js): "down" records it and says whether today's free get-up is left; "rest" starts the
     /// 24-hour rest; "view" reads the state. null when signed out or offline (the game then keeps its own count).

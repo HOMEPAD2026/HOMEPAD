@@ -21,7 +21,7 @@ export function createPets(ctx) {
   const { THREE, K, planet, here, facing, T, esc, reduce, legacy } = ctx;
   const lite = !!(ctx.coarse || ctx.low); // a phone or the low setting: no name plate over the pet
   const root = new THREE.Group(); root.name = "pet"; planet.add(root); // named: world-play.js farCull leaves it alone
-  let server = { list: [], n: 0, pity: 0, fresh: [] }, M = { id: "", spd: 0, hp: 0, regen: 0, xp: 0, luck: 0, pull: 0, guard: 0 }, eggBusy = false;
+  let server = { list: [], n: 0, pity: 0, fresh: [] }, M = { id: "", spd: 0, hp: 0, regen: 0, xp: 0, luck: 0, pull: 0, guard: 0 }, eggBusy = false, eggNote = ""; // eggNote: the payment's status line under the egg
 
   // ---------------- what you have ----------------
   const R = () => (ctx.rpg ? ctx.rpg() : null);
@@ -152,7 +152,7 @@ export function createPets(ctx) {
     const own = owned(), act = active();
     fill(PET_SPECIES.map((p) => p.id));
     const left = Math.max(1, 10 - (server.pity || 0));
-    const egg = `<div class="wq-egg"><span class="wq-egg-art" aria-hidden="true"></span><div><b>${esc(T("Pet egg"))}</b><small>${esc(T("Hatches a random companion, Common to Legendary. Duplicates turn into pet XP."))}</small><small class="wq-egg-pity">${esc(left <= 1 ? T("The next egg is Rare or better!") : T("A Rare or better pet within {n} eggs, guaranteed.", { n: left }))}${server.n ? " · " + esc(T("Eggs opened: {n}", { n: server.n })) : ""}</small></div><button type="button" class="wq-egg-go" data-pt="egg"${eggBusy ? " disabled" : ""}>${esc(eggBusy ? T("Waiting for your wallet…") : T("Summon egg"))}<small>${esc(fmtN(EGG_PRICE))} $ARCIRCLE</small></button></div>`;
+    const egg = `<div class="wq-egg"><span class="wq-egg-art" aria-hidden="true"></span><div><b>${esc(T("Pet egg"))}</b><small>${esc(T("Hatches a random companion, Common to Legendary. Duplicates turn into pet XP."))}</small><small class="wq-egg-pity">${esc(left <= 1 ? T("The next egg is Rare or better!") : T("A Rare or better pet within {n} eggs, guaranteed.", { n: left }))}${server.n ? " · " + esc(T("Eggs opened: {n}", { n: server.n })) : ""}</small></div><button type="button" class="wq-egg-go" data-pt="egg"${eggBusy ? " disabled" : ""}>${esc(eggBusy ? T("Waiting for your wallet…") : T("Summon egg"))}<small>${esc(fmtN(EGG_PRICE))} $ARCIRCLE</small></button>${eggNote ? `<p class="wa-status" role="status">${esc(eggNote)}</p>` : ""}</div>`;
     const rows = [...own].sort((a, b) => b.r - a.r || lvOf(b.id) - lvOf(a.id)).map((p) => {
       const xp = xpOf(p.id), lv = petLevel(xp), nx = petNext(lv), prev = lv > 1 ? petNext(lv - 1) : 0;
       return `<article class="wq-pet r${p.r} p-${p.id}${act === p.id ? " on" : ""}" style="--rc:${rarityVar(p.r)}"><span class="wq-pet-art" aria-hidden="true">${pic(p.id)}</span><div><b>${esc(nameOf(p.id) || titleOf(p.id))} <small>${esc(T("Lv {n}", { n: lv }))}</small></b><small class="wq-prar">${esc(T(PET_RARITY[p.r]))} · ${esc(abName(p))}${nameOf(p.id) ? " · " + esc(titleOf(p.id)) : ""}</small><small>${esc(abText(p, lv))}</small><span class="wq-petname"><input data-petname="${p.id}" maxlength="12" value="${esc(nameOf(p.id))}" placeholder="${esc(T("Give it a name"))}" autocomplete="off" spellcheck="false"><button type="button" data-pt="save:${p.id}">${esc(T("Save"))}</button></span>${lv < 10 ? `<small class="wq-petnext">${esc(T("Stronger every level, up to level 10"))}</small>` : ""}${nx ? bar(xp - prev, nx - prev) : `<small class="max">${esc(T("Fully grown"))}</small>`}</div><button type="button" data-pt="bring:${p.id}" aria-pressed="${act === p.id}">${esc(act === p.id ? T("With you") : T("Bring"))}</button></article>`;
@@ -166,7 +166,8 @@ export function createPets(ctx) {
   async function buyEgg() {
     if (eggBusy || !ctx.buy) return;
     eggBusy = true; ctx.repaint();
-    try { await ctx.buy(); } finally { eggBusy = false; ctx.repaint(); }
+    eggNote = "";
+    try { if (await ctx.buy((t) => { eggNote = t || ""; ctx.repaint(); })) eggNote = ""; } finally { eggBusy = false; ctx.repaint(); }
   }
   function click(b) {
     const a = String(b.dataset.pt || ""), x = X(); if (!a || !x) return false;

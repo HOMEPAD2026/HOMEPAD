@@ -302,6 +302,7 @@ body.wp .wq-egg-art{width:40px;height:50px;justify-self:center;border-radius:50%
 body.wp .wq-egg-go{appearance:none;display:grid;gap:1px;min-width:104px;padding:7px 14px;border-radius:12px;border:0;cursor:pointer;font:800 13.5px var(--f-ui);color:#1a1204;background:linear-gradient(180deg,#ffe08f,#ffc861);box-shadow:0 2px 0 #b57a10,0 6px 14px rgba(0,0,0,.3)}
 body.wp .wq-egg-go small{font:700 11px var(--f-ui);color:#6b4a08}
 body.wp .wq-egg-go:disabled{opacity:.6;cursor:default}
+body.wp .wq-egg>.wa-status{grid-column:1/-1;margin:0}
 body.wp .wq-pet[style*="--rc"]{border-color:color-mix(in srgb,var(--rc) 55%,transparent)}
 body.wp .wq-pet[style*="--rc"].on{background:color-mix(in srgb,var(--rc) 10%,transparent);box-shadow:inset 3px 0 0 var(--rc)}
 body.wp .wq-pet[style*="--rc"] .wq-pet-art{border-color:var(--rc);background:radial-gradient(circle,color-mix(in srgb,var(--rc) 30%,transparent),rgba(10,20,45,.6))}
