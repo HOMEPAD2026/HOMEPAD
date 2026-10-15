@@ -221,9 +221,26 @@ export function createCombat(ctx) {
   const shellMat = new THREE.MeshStandardMaterial({ color: 0xbfefff, transparent: true, opacity: 0.45, roughness: 0.05, metalness: 0.1, flatShading: true });
   const shellStatueMat = shellMat.clone(); shellStatueMat.opacity = 0.85;
   const geoCache = new Map(), geoOf = (k, make) => { let g = geoCache.get(k); if (!g) { g = make(); geoCache.set(k, g); } return g; };
+  // its toon rim colour is a uniform owned by each copy's material: grabbed when it compiles, so a spawn can recolour it
+  // (AC Defense wave tint, a boss's colour) and the next normal spawn sets it back (rimC: the wanted colour)
+  const RIM0 = 0xff9a8a;
+  function rimHook(mt) { const pb = mt.onBeforeCompile; mt.onBeforeCompile = function (sh, r) { pb.call(this, sh, r); const u = sh.uniforms.uRim; if (u && u.value && u.value.setHex) { mt.userData.rimU = u; if (mt.userData.rimC != null) u.value.setHex(mt.userData.rimC); } }; }
+  function setRim(e, c) { e.obj.traverse((x) => { if (!x.isMesh || x.userData.outline || !x.material || Array.isArray(x.material)) return; const u = x.material.userData; u.rimC = c; if (u.rimU) u.rimU.value.setHex(c); }); }
+  // AC Defense look (world-defense.js): a wave tint (mint → cyan → violet → red as the waves climb), set once a wave and
+  // put on each walker at spawn only; a boss's outline takes its own colour (one material per colour, shared)
+  let dTint = 0x4dffb0, dGlow = 0.25, bossCb = null;
+  const TINTS = [[1, 0x4dffb0], [5, 0x38d8ff], [10, 0xb48cff], [15, 0xff4d6d]], tcA = new THREE.Color(), tcB = new THREE.Color();
+  function setTint(w) {
+    w = Math.max(1, +w || 1); let i = 0; while (i < TINTS.length - 2 && w >= TINTS[i + 1][0]) i++;
+    const [w0, c0] = TINTS[i], [w1, c1] = TINTS[i + 1], k = Math.max(0, Math.min(1, (w - w0) / (w1 - w0)));
+    dTint = tcA.setHex(c0).lerp(tcB.setHex(c1), k).getHex(); dGlow = 0.22 + 0.28 * Math.min(1, (w - 1) / 14); return dTint;
+  }
+  const olMats = new Map();
+  const olMat = (src, c) => { let m = olMats.get(c); if (!m) { m = src.clone(); m.color.setHex(c).multiplyScalar(1.6); m.onBeforeCompile = src.onBeforeCompile; m.customProgramCacheKey = src.customProgramCacheKey; olMats.set(c, m); } return m; }; // same shader as the dark rim: only its colour differs
+  const lowQ = () => !!ctx.low || !!(ctx.lite && ctx.lite());
   // a scammer's own materials (the toon look, the dissolve), made once per copy; the copy then goes round the pool
   function prepEnemy(e) {
-    e.obj.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (K.toonLook) K.toonLook(x.material, { rim: 0xff9a8a }); if (K.dissolveLook) K.dissolveLook(x.material, e.dis || (e.dis = { value: 0 })); } });
+    e.obj.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (K.toonLook) K.toonLook(x.material, { rim: 0xff9a8a }); if (K.dissolveLook) K.dissolveLook(x.material, e.dis || (e.dis = { value: 0 })); rimHook(x.material); } });
     if (K.outlineAll && !ctx.coarse && !(ctx.lite && ctx.lite())) e.outlines = K.outlineAll(e.obj, { color: 0x1a0a14, t: 0.03 });
     e.own = true;
   }
@@ -260,7 +277,7 @@ export function createCombat(ctx) {
     if (o.hp) st.hp = Math.max(1, Math.round(o.hp)); // AC Defense: its HP is the wave's own
     const g = new THREE.Group(); g.position.copy(p);
     const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
-    const sc = skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow;
+    const sc = (skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow) * (bs && o.tgt ? 1.18 : 1); // an AC Defense boss stands a size up
     const baseY = skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
     e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);
@@ -271,8 +288,9 @@ export function createCombat(ctx) {
     e.obj.traverse((x) => { if (!x.isMesh || !x.material || Array.isArray(x.material) || x.userData.outline) return; const mt = x.material; if (!mt.userData.g0) mt.userData.g0 = { t: mt.transparent, o: mt.opacity, e: mt.emissive ? mt.emissive.getHex() : 0, ei: mt.emissiveIntensity };
       const want = ghost ? [true, 0.6] : [mt.userData.g0.t, mt.userData.g0.o]; if (mt.transparent !== want[0]) { mt.transparent = want[0]; mt.needsUpdate = true; } mt.opacity = want[1]; mt.depthWrite = !ghost;
       if (mt.emissive && !mt.userData.glow) { if (ghost) { mt.emissive.set(0x9ec8ff); mt.emissiveIntensity = 0.45; } else { mt.emissive.setHex(mt.userData.g0.e); mt.emissiveIntensity = mt.userData.g0.ei; } } });
-    (e.outlines || []).forEach((ol) => { ol.visible = !ghost; });
-    const ub = unitBox(e), bb = new THREE.Box3(new V3(0, ub.min.y * sc + baseY, 0), new V3(0, ub.max.y * sc + baseY, 0)); const bar = hpBar(bs ? 3.2 : rank === "elite" ? 2.1 : 1.7); bar.position.y = bb.max.y + (bs ? 0.9 : 0.5); g.add(bar);
+    (e.outlines || []).forEach((ol) => { ol.visible = !ghost; if (!ol.userData.m0) ol.userData.m0 = ol.material; ol.material = bs && o.tgt ? olMat(ol.userData.m0, bs.tint) : ol.userData.m0; });
+    const dT = o.tgt ? (o.tint != null ? o.tint : dTint) : 0; if (e.own) setRim(e, o.tgt ? (bs ? bs.tint : dT) : RIM0);
+    const ub = unitBox(e), bb = new THREE.Box3(new V3(0, ub.min.y * sc + baseY, 0), new V3(0, ub.max.y * sc + baseY, 0)); const bar = hpBar(bs ? 3.2 : rank === "elite" ? 2.1 : 1.7); bar.position.y = bb.max.y + (bs ? 0.9 : 0.5); g.add(bar); if (o.tgt) bar.visible = false; // a defence walker's bar shows once it's hurt
     const sh = new THREE.Mesh(geoOf("sh" + !!bs, () => new THREE.CircleGeometry(bs ? 2.6 : 0.7, 24)), shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.04; g.add(sh);
     if (rank) { const rr = new THREE.Mesh(geoOf("ring" + !!bs, () => new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48)), rank === "boss" ? ringBoss : ringElite); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
@@ -290,6 +308,7 @@ export function createCombat(ctx) {
       m.crown = crown; m.aura = aura;
     }
     m.em = []; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) m.em.push(x.material); });
+    if (o.tgt) { m.dT = dT; m.bT = bs ? bs.tint : 0; m.glow = bs ? 0.55 : dGlow; for (const mt of m.em) { mt.emissive.setHex(bs ? m.bT : dT); mt.emissiveIntensity = m.glow; } } // AC Defense: the wave's tint (tickMobs keeps it)
     m.sc = sc; m.ph = Math.random() * TAU; m.ghost = ghost;
     // ranks read at a glance: a small gold crown over an elite, a red one and a faint red haze round a boss
     if ((rank === "elite" || (rank === "boss" && !o.raid)) && !ctx.lite?.()) {
@@ -304,14 +323,14 @@ export function createCombat(ctx) {
     if (m.slow === 0) { const shR = Math.round(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6) * 10) / 10; const shell = new THREE.Mesh(geoOf("shell" + shR, () => new THREE.IcosahedronGeometry(shR, 0)), shellMat); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
     if (bs && o.raid) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); }
-    else if (bs && o.tgt) { bossBar(m); ctx.shake(0.4); Snd.siren && Snd.siren(); }
+    else if (bs && o.tgt) { bossBar(m); ctx.shake(0.4); Snd.siren && Snd.siren(); if (bossCb) try { bossCb(m); } catch { /* the arena's intro is extra */ } }
     else if (bs) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); else ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); }
     return m;
   }
   function hit(m, raw, from, kind, crit) {
     if (m.dead) return;
     const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1)));
-    if (m.trail == null || m.trailHold <= 0) m.trail = Math.max(0, m.hp / m.max); m.trailHold = 0.4; m.hp -= dmg; m.hitT = 0.18; label(m); if (m.rank === "boss") bossBar(m);
+    if (m.trail == null || m.trailHold <= 0) m.trail = Math.max(0, m.hp / m.max); m.trailHold = 0.4; m.hp -= dmg; m.hitT = 0.18; if (m.tgt) m.lbl = 1; else label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
     if (kind !== "pet") { if (ctx.hitstop) ctx.hitstop(kind === "heavy" ? 85 : kind === "meteor" ? 70 : crit ? 70 : 38); if (ctx.kickCam) ctx.kickCam(tmp, kind === "heavy" ? 0.16 : crit ? 0.12 : 0.06); }
     if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
@@ -362,6 +381,13 @@ export function createCombat(ctx) {
     m.dead = 0.001; Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
     if (rpg.wear) rpg.wear("kill"); // Epic and Legendary weapons wear out: 1 a knock-out (world-rpg.js)
     const p = m.g.position.clone().setY(m.y + 0.4);
+    if (m.tgt) { // AC Defense: a wave drops many at once, so a lighter knock-out: its cubes and a little scrap pop (no shards, no shake but a boss's)
+      const boss = m.rank === "boss", q = lowQ() ? 0.25 : ctx.coarse ? 0.5 : 1, c = boss ? m.bT || 0xff4d6d : m.dT || 0xff7a9a;
+      if (VX) VX.shatter(p, c, { big: boss ? 2 : 1, coins: boss ? 8 : q < 1 ? 1 : 2 });
+      if (ctx.parts) ctx.parts.emit({ at: p, kind: "glow", n: Math.max(2, Math.round((boss ? 30 : 10) * q)), speed: 3, up: 3.6, spread: 0.5, size: 0.24, life: 0.75, grav: 8, drag: 0.5, color: 0xffe08a, color2: 0xffc861, jitter: 0.3 }); // scrap: gold bits hop up and drop
+      if (boss) { if (!ctx.reduce) flash(p, 0xffffff, 8, 0.25); ctx.shake(0.6); if (VX && VX.burst) VX.burst(fxV.copy(p).setY(0), c, 2.2); if (ctx.slowmo && !ctx.reduce) ctx.slowmo(700); hideBossBar(); }
+      if (m.tgt.dead) m.tgt.dead(m); return; // no XP, drops or ARCL claims; the arena pays in scrap
+    }
     if (VX) VX.shatter(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), { big: m.rank === "boss" ? 2 : m.rank === "elite" ? 1.4 : 1, coins: m.rank === "boss" ? 8 : 3, where: (v) => ctx.here(v) });
     shards(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), m.rank === "boss" ? 40 : 16, m.rank === "boss" ? 10 : 7); flash(p, 0xffffff, m.rank === "boss" ? 8 : 2.6, 0.25); puff(p, 0xffc861, { n: m.rank === "boss" ? 40 : 12, speed: 5, size: 0.3, life: 0.8, grav: 6 });
     ctx.shake(m.rank === "boss" ? 0.6 : 0.18);
@@ -418,11 +444,13 @@ export function createCombat(ctx) {
       // far away (30 m+): the animation steps every third frame and the HP bar is hidden
       const far = m.rank !== "boss" && !m.dead && Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) > 30;
       if (far) { m.acc = (m.acc || 0) + dt; if ((m.fc = (m.fc || 0) + 1) % 3 === 0) { m.e.mixer.update(m.acc); m.acc = 0; } } else { m.e.mixer.update(dt + (m.acc || 0)); m.acc = 0; }
-      if (!m.raid) m.bar.visible = !far;
+      if (!m.raid) m.bar.visible = !far && !(m.tgt && m.hp >= m.max);
       if (m.dead) { m.dead += dt; if (m.e && m.e.dis && !ctx.reduce) { m.e.dis.value = Math.min(1, m.dead / 0.45); if (m.e.outlines) m.e.outlines.forEach((o) => { o.visible = false; }); m.g.position.y += dt * 0.8; if (m.dead > 0.5) { m.e.dis.value = 0; retire(m, i); } } else { m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); } continue; } // breaks up into data cubes
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
       if (!m.tgt && d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
-      m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt); tickTrail(m, dt);
+      m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
+      if (m.tgt) { m.lblT = (m.lblT || 0) - dt; if (m.lbl && m.lblT <= 0) { const lo = lowQ(); m.lbl = 0; m.lblT = lo ? 0.25 : 0.1; if (lo) m.trail = Math.max(0, m.hp / m.max); label(m); } } // a defence walker's bar redraws at most 10 (low: 4) times a second
+      if (!(m.tgt && lowQ())) tickTrail(m, dt);
       if (m.burn > 0) { m.burn -= dt; m.burnT = (m.burnT || 0) - dt; if (m.burnT <= 0) { m.burnT = 0.5; m.hp -= m.burnD; label(m); puff(m.g.position.clone().setY(m.y + 0.3), 0xff7a2a, { n: 3, speed: 1, size: 0.5, life: 0.4, grav: -3 }); if (m.raid) { ctx.raidHit && ctx.raidHit(m.burnD); m.hp = Math.max(1, m.hp); } if (m.rank === "boss") bossBar(m); if (m.hp <= 0) { kill(m); continue; } } }
       if (m.shell) { m.shell.visible = m.slow > 0; m.shell.material = m.statue && m.stun > 0 ? shellStatueMat : shellMat; }
       if (m.statue && m.stun <= 0) { m.statue = false; shards(m.g.position.clone().setY(m.y + 0.5), 0xcff6ff, 16, 6); Snd.pop && Snd.pop(); } // the ice statue shatters
@@ -438,7 +466,7 @@ export function createCombat(ctx) {
         m.afT = 0.28; const a = m.affix.id; tmpA.copy(m.g.position).setY((m.y || 0.6) + 0.5);
         ctx.parts.emit(a === "venom" ? { at: tmpA, kind: "smoke", n: 1, speed: 0.6, up: 1, size: 0.5, life: 1.1, grav: -0.6, color: m.affix.p, jitter: 0.6 } : { at: tmpA, kind: "glow", n: 2, speed: 0.8, up: a === "blaze" ? 1.4 : 0.3, size: 0.22, life: 0.9, grav: a === "blaze" ? -2.5 : 0.8, color: m.affix.p, jitter: 0.7 });
       }
-      if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone.boss.tint) : m.spec.color); } // the materials that light up, listed once at spawn
+      if (!far || m.hitT > 0 || m.burn > 0) for (const mt of m.em || []) { mt.emissiveIntensity = m.hitT > 0.1 ? (m.tgt && ctx.reduce ? 1.1 : 2.2) : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.rage ? 0.5 + Math.sin(t * 6) * 0.25 : m.glow; mt.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? (m.rage ? 0xff2d4d : m.zone ? m.zone.boss.tint : m.bT || 0xff4d6d) : m.dT || m.spec.color); } // the materials that light up, listed once at spawn
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) { if (m.cast) endCast(m); m.wu = 0; continue; }
       if (m.tgt) { tgtAI(m, dt, t, i); continue; } // AC Defense: it walks to its target and ignores you
@@ -1473,6 +1501,8 @@ export function createCombat(ctx) {
     defense: {
       on(v) { defOn = !!v; for (let i = mobs.length - 1; i >= 0; i--) if (v ? !mobs[i].tgt : mobs[i].tgt) { if (mobs[i].rank === "boss") hideBossBar(); retire(mobs[i], i); } },
       spawn: (o) => spawnMob(o), list: () => mobs.filter((m) => m.tgt && !m.dead), hit: (m, raw, from) => hit(m, raw, from, "pet", false),
+      setTint, // setTint(wave) → the tint hex the next walkers spawn with (mint → cyan → violet → red); spawn({ tint }) overrides one
+      onBoss(cb) { bossCb = typeof cb === "function" ? cb : null; }, // cb(m) when a boss walker spawns (spawn returns it too)
     },
   };
 }
