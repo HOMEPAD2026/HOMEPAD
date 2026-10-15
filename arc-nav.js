@@ -5,7 +5,7 @@
 //   · a second row with the pages of the menu you're in (desktop), or the page's own tabs (CirclePad)
 //   · phones: Home · Trade · Earn · ARCIA · Tools at the bottom; each opens a sheet with its pages
 // It replaces the old top switcher, the two bottom bars and ArcPad's long sidebar (arc-nav.css hides them).
-// Plain script, no dependencies; labels in English, Korean and Chinese (follows the page's language).
+// Plain script, no dependencies; labels in English, Korean, Chinese and Turkish (follows the page's language).
 // Inside ARCIRCLE World (/play opens a shop's page in an iframe) the world is the chrome: hide the site's own.
 try {
   if (window.top !== window.self && /^\/play\b/.test(window.top.location.pathname)) {
@@ -62,8 +62,25 @@ try {
       "The core coin": "核心代币", "ARCIA's coin": "ARCIA 的代币", "Everything on ARCIRCLE PAD": "ARCIRCLE PAD 一览",
       "Launch, buy and sell on Arc": "在 Arc 上发币和交易", "Stake, burn and get rewarded": "质押、销毁、获得奖励", "Arc's AI idol and her crew": "Arc 的 AI 偶像和她的伙伴", "Free tools for any Arc token": "适用于任何 Arc 代币的免费工具",
     },
+    tr: {
+      "ARCIRCLE Wallet": "ARCIRCLE Cüzdan", Trade: "İşlem", Earn: "Kazan", Tools: "Araçlar", More: "Daha fazla", Home: "Ana sayfa", Wallet: "Cüzdan", Search: "Ara", Language: "Dil", Close: "Kapat", Menu: "Menü",
+      Explore: "Keşfet", "Every coin on ArcPad, live": "ArcPad'deki tüm coinler, canlı", Launch: "Başlat", "Launch a coin with a real pool": "Gerçek havuzlu bir coin başlat", "Quantum Launch": "Quantum Launch", "One price for everyone, no snipers": "Herkese aynı fiyat, sniper yok", "Game World": "Oyun Dünyası", "Walk ARCIRCLE World as a robot": "Robot olup ARCIRCLE World'de dolaş",
+      Orders: "Emirler", "Limit, stop and DCA orders": "Limit, stop ve DCA emirleri", Predict: "Tahmin", "Call UP or DOWN, up to $5": "YUKARI mı AŞAĞI mı, en fazla $5",
+      Portfolio: "Portföy", "What your wallet holds": "Cüzdanında neler var", "Fund a launch together": "Bir lansmanı birlikte fonla",
+      Creators: "Yaratıcılar", "Relay Launch": "Relay Launch", "Getting started": "Başlarken",
+      Staking: "Staking", "Lock $ARCIRCLE for veARCIRCLE": "$ARCIRCLE kilitle, veARCIRCLE al", "Stake $ARCIA, earn $ARCIA": "$ARCIA stake et, $ARCIA kazan",
+      "NFT Vault": "NFT Vault", "Fees buy NFTs for holders": "Ücretler sahipler için NFT alır", Reward: "Ödül", "The $ARCIRCLE burn engine": "$ARCIRCLE yakım motoru",
+      "Builder Mine": "Builder Mine", Airdrops: "Airdroplar", "Every reward and where it stands": "Tüm ödüller ve son durumları", "Dig coins with 1 USDC": "1 USDC ile coin kaz", Stats: "İstatistikler", "Invite friends": "Arkadaşlarını davet et", "My profile": "Profilim",
+      "Her stage, Arc's AI idol": "Arc'ın AI idolünün sahnesi", "Her cat and his buyback": "Kedisi ve geri alımı", "ARCIA trades new coins in public": "ARCIA yeni coinleri herkesin önünde alıp satar",
+      "Paste a token, get her safety call": "Token yapıştır, güvenlik kararını al", "AI agents hire each other in USDC": "AI ajanları birbirini USDC ile tutar", "Talk to ARCIA": "ARCIA ile konuş",
+      Scanner: "Tarayıcı", "Safety-scan any token": "Her tokeni güvenlik için tara", Locker: "Kilit", "Lock tokens or LP": "Token veya LP kilitle", Bridge: "Köprü", "Move coins between chains": "Coinleri zincirler arasında taşı",
+      Multisender: "Çoklu gönderim", "Send to many wallets at once": "Birçok cüzdana tek seferde gönder", Snapshot: "Snapshot", "Holder lists for airdrops": "Airdrop için sahip listeleri",
+      Liquidity: "Likidite", "Add and manage pool liquidity": "Havuz likiditesi ekle ve yönet", Docs: "Dokümanlar", "What's new": "Yenilikler", Whitepaper: "Whitepaper", Roadmap: "Yol haritası", Brand: "Marka",
+      "The core coin": "Çekirdek coin", "ARCIA's coin": "ARCIA'nın coini", "Everything on ARCIRCLE PAD": "ARCIRCLE PAD'de her şey",
+      "Launch, buy and sell on Arc": "Arc'ta başlat, al ve sat", "Stake, burn and get rewarded": "Stake et, yak, ödül kazan", "Arc's AI idol and her crew": "Arc'ın AI idolü ve ekibi", "Free tools for any Arc token": "Her Arc tokeni için ücretsiz araçlar",
+    },
   };
-  var lang = function () { var l = (H.getAttribute("lang") || "").slice(0, 2); if (l !== "ko" && l !== "zh") { try { l = localStorage.getItem("arcircle.lang") || l; } catch (e) { /* private mode */ } } return l === "ko" || l === "zh" ? l : "en"; };
+  var lang = function () { var l = (H.getAttribute("lang") || "").slice(0, 2); if (l !== "ko" && l !== "zh" && l !== "tr") { try { l = localStorage.getItem("arcircle.lang") || l; } catch (e) { /* private mode */ } } return l === "ko" || l === "zh" || l === "tr" ? l : "en"; };
   var t = function (s) { var d = TR[lang()]; return (d && d[s]) || s; };
   var esc = function (x) { return String(x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var svg = function (k, cls) { return '<svg class="' + (cls || "anav-i") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[k] || "") + "</svg>"; };
@@ -147,7 +164,7 @@ try {
   }
 
   var root, tabs, sheet, strip, openG = null, lastFocus = null, hoverT = 0;
-  var LANGS = [["en", "English"], ["ko", "한국어"], ["zh", "中文"]];
+  var LANGS = [["en", "English"], ["ko", "한국어"], ["zh", "中文"], ["tr", "Türkçe"]];
 
   function build() {
     var here = where();

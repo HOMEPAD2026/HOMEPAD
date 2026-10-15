@@ -1,7 +1,7 @@
-// i18n.js — English / Korean / Simplified Chinese for every ARCIRCLE PAD page.
+// i18n.js — English / Korean / Simplified Chinese / Turkish for every ARCIRCLE PAD page.
 //
-// The pages are written in English; this file swaps visible text for Korean
-// or Chinese in place, and swaps it back. It works on text nodes and a few attributes
+// The pages are written in English; this file swaps visible text for Korean,
+// Chinese or Turkish in place, and swaps it back. It works on text nodes and a few attributes
 // (placeholder / title / aria-label), matching the exact English string or a
 // pattern for strings with live numbers in them. A MutationObserver catches
 // everything the page scripts render later (statuses, cards, tickers), so no
@@ -11,7 +11,7 @@
 // Choice is remembered per visitor (localStorage "arcircle.lang"); the first
 // visit follows the browser language.
 //
-// The dictionaries live in i18n-ko.js and i18n-zh.js and are loaded only for the language in use
+// The dictionaries live in i18n-ko.js, i18n-zh.js and i18n-tr.js and are loaded only for the language in use
 // (i18n-boot.js, first in every bundle, starts that download as early as it can). Until one
 // arrives the page stays in English; then everything is translated in one pass and "arc:lang"
 // fires so scripts that render their own text repaint.
@@ -36,19 +36,19 @@
     s.onerror = function () { busy[l] = false; };
     (document.head || document.documentElement).appendChild(s);
   }
-  var LANGS = ["en", "ko", "zh"];
-  var LABEL = { en: "EN", ko: "한", zh: "中" };
-  var ARIA = { en: "English", ko: "한국어", zh: "简体中文" };
+  var LANGS = ["en", "ko", "zh", "tr"];
+  var LABEL = { en: "EN", ko: "한", zh: "中", tr: "TR" };
+  var ARIA = { en: "English", ko: "한국어", zh: "简体中文", tr: "Türkçe" };
   // The whitepaper has its own English and Korean editions — no Chinese one.
   var noZh = /^\/whitepaper/.test(location.pathname);
   var lang = "en";
   try {
     var nav = (navigator.language || "").toLowerCase();
-    lang = localStorage.getItem(KEY) || (nav.indexOf("ko") === 0 ? "ko" : nav.indexOf("zh") === 0 ? "zh" : "en");
+    lang = localStorage.getItem(KEY) || (nav.indexOf("ko") === 0 ? "ko" : nav.indexOf("zh") === 0 ? "zh" : nav.indexOf("tr") === 0 ? "tr" : "en");
   } catch (e) { /* default en */ }
-  // ?lang=ko|zh|en in the address (used by the /ko/coin/ and /zh/coin/
+  // ?lang=ko|zh|tr|en in the address (used by the /ko/coin/, /zh/coin/ and /tr/coin/
   // pages' "Trade" links) picks the language and remembers it.
-  var qLang = /[?&]lang=(en|ko|zh)(?:&|$)/.exec(location.search);
+  var qLang = /[?&]lang=(en|ko|zh|tr)(?:&|$)/.exec(location.search);
   if (qLang) { lang = qLang[1]; try { localStorage.setItem(KEY, lang); } catch (e) { /* fine */ } }
   if (LANGS.indexOf(lang) < 0 || (noZh && lang === "zh")) lang = "en";
 
@@ -136,6 +136,7 @@
     de.lang = lang === "zh" ? "zh-CN" : lang;
     de.classList.toggle("lang-ko", lang === "ko");
     de.classList.toggle("lang-zh", lang === "zh");
+    de.classList.toggle("lang-tr", lang === "tr");
     if (lang !== "en" && !adopt(lang)) need(lang); // translated when it arrives (_ready)
     paused = true;
     restoreAll();
@@ -188,7 +189,7 @@
     observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
   }
   window.arcI18n = { set: function (l) { setLang(l, true); }, get: function () { return lang; }, translate: function (s, l) { return translate(s, l); },
-    // i18n-ko.js / i18n-zh.js call this when they arrive
+    // i18n-ko.js / i18n-zh.js / i18n-tr.js call this when they arrive
     _ready: function (l) { adopt(l); if (started && l === lang) setLang(lang, false); } };
   need(lang);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);

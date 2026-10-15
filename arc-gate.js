@@ -18,8 +18,9 @@
   var T = {
     ko: { h: "두 개의 세계, 하나의 지갑", p: "같은 코인, 같은 USDC와 $ARCIRCLE. 들어가는 길만 두 갈래예요.", g: "게임 월드", gb: "행성으로 뛰어들어 걸어 다녀요", gs: "상점에서 진짜 코인을 런칭하고 거래하고, 나만의 섬을 짓고, 스캐머를 물리쳐요.", f: "플랫폼 월드", fb: "ARCIRCLE PAD 전체", fs: "지금의 사이트 그대로, 모든 도구가 한 곳에.", hint: "드래그해서 둘러보기", beta: "베타 · $ARCIRCLE 100만 개 보유 지갑", skip: "사이트로 바로 가기", world: "World", on: "{n}명 접속 중", vis: "누적 방문 {n}명", cont: "{name}(으)로 계속하기" },
     zh: { h: "两个世界，一个钱包", p: "同样的币，同样的 USDC 和 $ARCIRCLE，两条入口。", g: "游戏世界", gb: "跃入星球，自由漫步", gs: "在商店里发行真实代币、交易，搭建自己的岛屿，并击败骗子。", f: "平台世界", fb: "完整的 ARCIRCLE PAD", fs: "保持现在的网站，所有工具一页可达。", hint: "拖动查看四周", beta: "公测 · 持有 100 万 $ARCIRCLE 的钱包", skip: "直接进入网站", world: "World", on: "{n} 人在线", vis: "累计访问 {n} 人", cont: "以 {name} 继续" },
+    tr: { h: "İki dünya, tek cüzdan", p: "Aynı coinler, aynı USDC ve $ARCIRCLE. Giriş yolu iki tane.", g: "Oyun Dünyası", gb: "Dal ve dünyada yürü", gs: "Dükkanlarda gerçek coinler başlat, alım satım yap, kendi adanı kur, dolandırıcıları alt et.", f: "Platform Dünyası", fb: "Tam ARCIRCLE PAD", fs: "Site olduğu gibi, tüm araçlar tek yerde.", hint: "Etrafa bakmak için sürükle", beta: "Beta · 1M $ARCIRCLE tutan cüzdanlar", skip: "Siteye geç", world: "World", on: "{n} kişi çevrimiçi", vis: "Şimdiye kadar {n} ziyaretçi", cont: "{name} olarak devam et" },
     en: { h: "Two worlds. One wallet.", p: "The same coins, the same USDC and $ARCIRCLE. Two ways in.", g: "Game World", gb: "Dive in and walk the world", gs: "Launch real coins and trade in the shops, build your own island, beat the scammers.", f: "Platform World", fb: "The full ARCIRCLE PAD", fs: "The site as it is, every tool in one place.", hint: "Drag to look around", beta: "Beta · wallets holding 1M $ARCIRCLE", skip: "Skip to the site", world: "World", on: "{n} online now", vis: "{n} visitors so far", cont: "Continue as {name}" },
-  }[lang === "ko" || lang === "zh" ? lang : "en"];
+  }[lang === "ko" || lang === "zh" || lang === "tr" ? lang : "en"];
 
   // a saved character on this browser turns the Game World door into "Continue as <name>"
   var saved = null;
@@ -30,8 +31,8 @@
   // the beta's label follows world-lock.js PHASE: the holder beta, between the betas, the open beta
   function betaLabel() {
     var ph = window.arcWorldLock && window.arcWorldLock.phase;
-    if (ph === "closed") return { ko: "CBT 종료 · OBT 곧 오픈", zh: "CBT 已结束 · OBT 即将开启" }[lang] || "CBT closed · Open beta soon";
-    if (ph === "obt") return { ko: "오픈 베타 · 누구나 입장", zh: "公开测试 · 所有人可进入" }[lang] || "Open beta · everyone welcome";
+    if (ph === "closed") return { ko: "CBT 종료 · OBT 곧 오픈", zh: "CBT 已结束 · OBT 即将开启", tr: "CBT bitti · OBT yakında" }[lang] || "CBT closed · Open beta soon";
+    if (ph === "obt") return { ko: "오픈 베타 · 누구나 입장", zh: "公开测试 · 所有人可进入", tr: "Açık beta · herkes hoş geldi" }[lang] || "Open beta · everyone welcome";
     return T.beta;
   }
   el.className = "wg"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wg-h");
@@ -72,7 +73,7 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !gone) close(); });
 
   // who's in the world now and how many have visited (api/_world.mjs); hidden until there's a number to show
-  var fmt = function (n) { try { return Number(n).toLocaleString(lang === "zh" ? "zh-CN" : lang === "ko" ? "ko-KR" : "en-US"); } catch (e) { return String(n); } };
+  var fmt = function (n) { try { return Number(n).toLocaleString(lang === "zh" ? "zh-CN" : lang === "ko" ? "ko-KR" : lang === "tr" ? "tr-TR" : "en-US"); } catch (e) { return String(n); } };
   // opening the site counts as a visit (the same browser at most once per 10 minutes; api/_world.mjs)
   var vid = ""; try { vid = localStorage.getItem("arc.world.vid") || ""; if (!/^[a-z0-9]{20}$/.test(vid)) { vid = Array.from(crypto.getRandomValues(new Uint8Array(20)), function (b) { return "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]; }).join(""); localStorage.setItem("arc.world.vid", vid); } } catch (e) { vid = ""; }
   var statsReq = vid ? fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "world-ping", id: vid, visit: true, gate: true }) }).then(function (r) { return r.ok ? r : fetch("/api/social?world=stats"); }) : fetch("/api/social?world=stats");

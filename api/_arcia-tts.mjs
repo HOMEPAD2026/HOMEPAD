@@ -42,7 +42,7 @@ export async function speak(text, lang, fetchImpl = fetch) {
     r = await fetchImpl(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_64`, {
       method: "POST", signal: AbortSignal.timeout(15000),
       headers: { "xi-api-key": env("ELEVENLABS_API_KEY"), "content-type": "application/json", accept: "audio/mpeg" },
-      body: JSON.stringify({ text: t, model_id: env("ELEVENLABS_MODEL") || "eleven_flash_v2_5", ...(["ko", "zh", "en"].includes(lang) && /flash|turbo/.test(env("ELEVENLABS_MODEL") || "eleven_flash_v2_5") ? { language_code: lang } : {}),
+      body: JSON.stringify({ text: t, model_id: env("ELEVENLABS_MODEL") || "eleven_flash_v2_5", ...(["ko", "zh", "en", "tr"].includes(lang) && /flash|turbo/.test(env("ELEVENLABS_MODEL") || "eleven_flash_v2_5") ? { language_code: lang } : {}),
         voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true } }),
     });
   } else {

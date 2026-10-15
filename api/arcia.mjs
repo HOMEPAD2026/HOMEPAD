@@ -538,7 +538,7 @@ export async function POST(req) {
   const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
   let body;
   try { body = await req.json(); } catch (e) { return json({ error: "Bad JSON" }, 400); }
-  const lang = ["en", "ko", "zh"].includes(body && body.lang) ? body.lang : "en";
+  const lang = ["en", "ko", "zh", "tr"].includes(body && body.lang) ? body.lang : "en";
   if (body && body.action === "letter") { try { return await postLetter(body, ip, lang); } catch (e) { console.error("arcia letter", String(e.message || e)); return json({ error: "The letter got lost on the way~ try again♡" }, 502); } }
   if (body && body.action === "intent") { try { return await walletIntent(body, ip); } catch (e) { return json({ intent: null, error: "couldn't read that right now" }, 502); } }
   if (body && body.action === "wreport") { try { return await walletReport(body, ip, lang); } catch (e) { return json({ text: null }, 502); } }
