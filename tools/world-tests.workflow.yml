@@ -28,7 +28,7 @@ jobs:
         run: node tests/world/game.test.mjs
       - name: World API
         run: |
-          for f in tests/world/shop.test.mjs tests/world/social.test.mjs tests/world/support.test.mjs tests/world/world-api.test.mjs tests/world/phase.test.mjs tests/world/starter.test.mjs tests/world/pet.test.mjs tests/world/quests.test.mjs tests/world/chat.test.mjs tests/world/rank.test.mjs tests/world/contract.test.mjs tests/world/durability.test.mjs tests/world/defense.test.mjs; do
+          for f in tests/world/shop.test.mjs tests/world/social.test.mjs tests/world/support.test.mjs tests/world/world-api.test.mjs tests/world/phase.test.mjs tests/world/starter.test.mjs tests/world/pet.test.mjs tests/world/quests.test.mjs tests/world/chat.test.mjs tests/world/rank.test.mjs tests/world/contract.test.mjs tests/world/durability.test.mjs tests/world/defense.test.mjs tests/world/i18n.test.mjs; do
             echo "== $f"; node "$f" | grep -v '^PASS' ; test "${PIPESTATUS[0]}" -eq 0
           done
       - name: Site checks

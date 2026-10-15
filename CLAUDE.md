@@ -121,3 +121,6 @@ Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as 
   `web_fetch_vercel_url https://www.arcircle.app/api/social?world=diag` shows real devices' errors and frame rates.
 - A new Game Village game: put `data-game-hud` on its top bar (world-skin.css then zooms it on phones and hides the
   quest card and minimap while it's up) and follow AC Defense / Coin Jump for the fail-safe start and leave.
+- Game text: wrap it in TW("…") and put short words and game-only lines in WORDS (world-play.js, ko/zh/tr); sentences
+  shared with the site go in i18n-ko/zh/tr.js. T() reads only the site dictionaries, so a word that lives only in
+  WORDS shows in English through T(). tests/world/i18n.test.mjs fails on any new untranslated T/TW string.
