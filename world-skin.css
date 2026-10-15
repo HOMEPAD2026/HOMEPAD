@@ -463,3 +463,5 @@ body.wp:has(.wj-hud) .wp-quests,body.wp:has(.wd-hud:not([hidden])) .wp-quests{di
    the quest card and the minimap step aside (a new game only adds the attribute) */
 html.wp-pcphone [data-game-hud]{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) + 232px)}
 body.wp:has([data-game-hud]:not([hidden])) .wp-quests,html.wp-pcphone body:has([data-game-hud]:not([hidden])) .wp-mini{display:none!important}
+/* phones: the online chip (and the village chip) ride up beside the wallet's purse instead of taking a row of their own */
+html.wp-pcphone body.wp .wp-hud .wp-purse:not([hidden]) + .wp-rrow{margin-top:calc(-53.2px - 6.72px + 10px);margin-right:calc(212.8px + 6.72px)}
