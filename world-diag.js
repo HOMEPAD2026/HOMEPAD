@@ -22,7 +22,7 @@ export function gpuFamily(name) {
   if (/nvidia|geforce|rtx|gtx/.test(g)) return "nvidia"; if (/radeon|amd/.test(g)) return "amd"; if (/intel/.test(g)) return "intel";
   if (/swiftshader|llvmpipe|software/.test(g)) return "soft"; return "other";
 }
-export function createDiag({ post, renderer, quality = "", coarse = false, active = () => true, tier = "", cap = () => 60 }) {
+export function createDiag({ post, renderer, quality = "", coarse = false, active = () => true, tier = "", cap = () => 60, where = () => "", busy = () => false }) {
   const off = (() => { try { return new URLSearchParams(location.search).has("nodiag") || navigator.webdriver; } catch { return true; } })();
   const gpu = (() => { try { const gl = renderer.getContext(), x = gl.getExtension("WEBGL_debug_renderer_info"); return String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 80); } catch { return ""; } })();
   const dev = coarse ? "phone" : "pc", sent = new Set();
@@ -38,8 +38,25 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
   // frame times in ms (a gap over a second is a pause, not a frame); sent after 60 s of play, then every 180 s
   const fam = gpuFamily(gpu), tr = tier === "high" ? "h" : tier === "low" ? "l" : "u";
   let ft = [], prev = 0, play = 0, nextAt = 60e3, frames = 0;
+  // b441: hitches. A frame over 100 ms is counted with where you were (hub / zone / isle / def / jump) and its likely
+  // cause: a shader built in that frame, textures or geometry uploaded, a place change or a fight starting in the last
+  // 1.5 s, else "other" (garbage collection, layout, the browser). Sent in batches, at most once a minute.
+  let hit = {}, hitN = 0, hitAt = 0, lastW = "", wAt = 0, lastB = false, bAt = 0, info0 = null;
+  const word = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "x";
+  function hitch(d, now) {
+    const i = renderer.info, pr = (i.programs || []).length, m = i.memory;
+    let cause = "other";
+    if (info0) { if (pr > info0.p) cause = "shader"; else if (m.textures > info0.t) cause = "tex"; else if (m.geometries > info0.g + 10) cause = "geo"; else if (now - wAt < 1500) cause = "move"; else if (now - bAt < 1500) cause = "fight"; }
+    const band = d < 200 ? 0 : d < 500 ? 1 : 2, k = `${word(lastW)}_${cause}_${band}`;
+    if (hitN < 60) { hit[k] = (hit[k] || 0) + 1; hitN++; }
+    if (now - hitAt > 60e3 && Object.keys(hit).length) { hitAt = now; send({ kind: "hitch", dev, q: quality, h: hit }); hit = {}; hitN = 0; }
+  }
   function frameSample() {
     const now = performance.now(), d = prev ? now - prev : 0; prev = now;
+    let w = ""; try { w = where(); } catch { w = "load"; } if (w !== lastW) { lastW = w; wAt = now; }
+    let b = false; try { b = !!busy(); } catch { b = false; } if (b && !lastB) bAt = now; lastB = b;
+    if (d > 100 && d <= 3000) hitch(d, now);
+    { const i = renderer.info; info0 = { p: (i.programs || []).length, t: i.memory.textures, g: i.memory.geometries }; }
     if (!d || d > 1000) return;
     play += d; if (ft.length < 24000) ft.push(d);
     if (play < nextAt || frames >= 6 || ft.length < 120) return;

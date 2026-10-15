@@ -143,6 +143,12 @@ export function make(deps) {
       await commit([{ inc: day, fields: { [`f50_${k}_${p50}`]: 1, [`f10_${k}_${p10}`]: 1, [`fam_${dev}_${fam}_${p50}`]: 1, [`cap_${dev}_${cap}`]: 1, [`dpr_${dev}_${String(dpr).replace(".", "p")}`]: 1 } }]).catch(() => {});
       return json(200, { ok: true });
     }
+    if (b.kind === "hitch") { // b441: long frames by place, cause and length (world-diag.js)
+      const f = {}; let n = 0;
+      for (const [k, v] of Object.entries(b.h && typeof b.h === "object" ? b.h : {})) { if (n >= 24 || !/^[a-z0-9]{1,8}_(shader|tex|geo|move|fight|other)_[012]$/.test(k)) continue; f[`hit_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; }
+      if (n) await commit([{ inc: day, fields: f }]).catch(() => {});
+      return json(200, { ok: true });
+    }
     if (b.kind === "mem") { await commit([{ inc: day, fields: { [`mem_${dev}_${q}`]: 1 } }]).catch(() => {}); return json(200, { ok: true }); }
     if (b.kind === "err") {
       const msg = String(b.msg || "").slice(0, 180); if (!msg) return json(400, { error: "empty" });
@@ -166,7 +172,10 @@ export function make(deps) {
       const g = (fr[m[1] + ":" + m[2]] = fr[m[1] + ":" + m[2]] || [0, 0, 0, 0, 0, 0, 0, 0]); g[+m[3]] += v;
     }
     const frames = Object.entries(fr).map(([k, c]) => { const n = c.reduce((a, b) => a + b, 0); let s = 0, med = 0; for (let i = 0; i < 8; i++) { s += c[i]; if (s * 2 >= n) { med = i; break; } } const [kind, who] = k.split(":"); return { kind: kind === "f50" ? "typical" : kind === "f10" ? "slowest10" : "family", who, n, median: BANDS[med], bands: Object.fromEntries(c.map((v, i) => [BANDS[i], v]).filter((e) => e[1])) }; }).sort((a, b) => b.n - a.n);
-    return json(200, { days: out, frames, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
+    // hitches: totals over the three days, most first (dev_place_cause_band; band 0 = 100–200 ms, 1 = 200–500, 2 = 500+)
+    const hc = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) if (key.startsWith("hit_")) hc[key.slice(4)] = (hc[key.slice(4)] || 0) + v;
+    const hitches = Object.entries(hc).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([k, n]) => { const [dev, where, cause, band] = k.split("_"); return { dev, where, cause, ms: ["100-200", "200-500", "500+"][+band] || band, n }; });
+    return json(200, { days: out, frames, hitches, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
   }
   async function ping(b) {
     const id = String(b.id || "");

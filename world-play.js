@@ -464,8 +464,8 @@ const clouds = K.makeClouds(); planet.add(clouds);
 // mountains on the horizon, birds, butterflies and fish (world-ambient.js; nothing but the mountains on Low)
 const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn() }); let ambNight = 0; // ambNight: set by dayNight
 // anonymous health counters (world-diag.js): script errors, the frame rate band, a GPU memory climb
-const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || 60, active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
-st.on((dt) => diag.tick(dt));
+const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || 60, where: () => (defenseOn ? "def" : jumpOn ? "jump" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : "hub"), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+st.on((dt) => { try { diag.tick(dt); } catch { /* health counters must never stop the game */ } });
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
 planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
 const lamps = K.makeLamps(); planet.add(lamps);
