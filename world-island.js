@@ -600,7 +600,7 @@ export function createIsland(ctx) {
   async function like() {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to like islands")); return; }
     const r = await post({ action: "world-like", ...s, target: visitInfo.wallet });
-    if (r.ok) { visitInfo.likes = r.j.likes ?? visitInfo.likes + 1; paintVisit(); Snd.win(); confetti(new V3(0, 3, N / 2 - 2)); }
+    if (r.ok) { visitInfo.likes = r.j.likes ?? visitInfo.likes + 1; paintVisit(); Snd.win(); confetti(new V3(0, 3, N / 2 - 2)); if (ctx.onLiked) ctx.onLiked(); }
     else toast(r.j.error || T("Couldn't like it right now"));
   }
   async function stamp(k) {
@@ -962,7 +962,7 @@ export function createIsland(ctx) {
     if (b.id === "wi-book-btn") { openBook(); return; }
     if (b.dataset.hide) { hideNote(b.dataset.hide); return; }
     if (b.dataset.reply) { replyNote(b.dataset.reply); return; }
-    if (b.id === "wi-link") { const u = myLink(); if (!u) { toast(T("Sign in with your wallet to share your island")); return; } try { await navigator.clipboard.writeText(u); toast(T("Island link copied. Anyone who opens it lands on your island.")); } catch { $("wi-visit-in").value = u; toast(T("Here's your link: copy it from the box")); } return; }
+    if (b.id === "wi-link") { const u = myLink(); if (!u) { toast(T("Sign in with your wallet to share your island")); return; } try { await navigator.clipboard.writeText(u); toast(T("Island link copied. Anyone who opens it lands on your island.")); if (ctx.onShared) ctx.onShared(); } catch { $("wi-visit-in").value = u; toast(T("Here's your link: copy it from the box")); } return; }
     if (b.dataset.wal) { closeSheets(); ctx.goIsland({ visit: b.dataset.wal }); return; }
     if (b.id === "wi-like") { like(); return; }
     if (b.dataset.st != null) { stamp(+b.dataset.st); return; }

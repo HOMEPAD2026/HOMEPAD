@@ -1210,6 +1210,8 @@ const island = IS.createIsland({
   // a saved island and its likes earn ARCL (the server checks the saved island)
   makeCentre: (L) => VILL.makeCentre(THREE, K, L), onVillage: (v) => setVillage(v),
   onSaved: (x) => { [[20, "isle20"], [100, "isle100"], [300, "isle300"]].forEach(([n, k]) => { if (x.bricks >= n) arclClaim(k); }); [[1, "res1"], [5, "res5"]].forEach(([n, k]) => { if (x.residents >= n) arclClaim(k); }); },
+  onLiked: () => { if (!P.vq || !P.vq.like) { P.vq = { ...P.vq, like: 1 }; save(); checkQuests(); } }, // a like given to another island (quest "visit-like")
+  onShared: () => { if (!P.vq || !P.vq.share) { P.vq = { ...P.vq, share: 1 }; save(); checkQuests(); } }, // the island link was copied (quest "share-isle")
   onLikes: (n) => { [[1, "liked1"], [10, "liked10"], [50, "liked50"]].forEach(([m, k]) => { if (n >= m) arclClaim(k); }); },
   onArcl: (n) => { if (n > 0) { arclShop.refresh().then(() => toast(T("+{n} ARCL · {why}", { n, why: T("Leave a stamp on someone's island") }))); Snd.coin(); } },
 });
@@ -1242,7 +1244,7 @@ const arclShop = SHOP.createShop({
     save(); setNameTag(); paintTrail();
   },
   buildWith: (id) => buildWith(id),
-  onBought: (id) => { if (/^(brick|pack|style)-|^isle(48|64)$/.test(id)) setTimeout(() => afterBuy(id), 700); if (id === "feature-isle" || id === "billboard") refreshPlaza(); if (id.startsWith("plate-") || id.startsWith("trail-")) arclShop.close(); if (avatar) avatar.play("emote-yes", { once: true }); burst(0x4fd6ff); },
+  onBought: (id) => { if (/^(brick|pack|style)-|^isle(48|64)$/.test(id)) { setTimeout(() => afterBuy(id), 700); if (!P.vq || P.vq.buy == null) { P.vq = { ...P.vq, buy: isleN("bricks") }; save(); } checkQuests(); } if (id === "feature-isle" || id === "billboard") refreshPlaza(); if (id.startsWith("plate-") || id.startsWith("trail-")) arclShop.close(); if (avatar) avatar.play("emote-yes", { once: true }); burst(0x4fd6ff); },
   furnace: () => { const f = shopG("reward"); if (f) f.userData.boost = 1; },
 });
 // ---------------- your village (world-village.js, api/_world-village.mjs): level, score, blessing, weekly contest ----------------
@@ -1766,6 +1768,8 @@ function tickQuantum(t) {
 setInterval(refreshQuantum, 30000);
 
 // ---------------- quests, daily goals and badges ----------------
+const isleN = (k) => (P.isle && P.isle[k]) || 0;
+function tutDone() { try { return P.tut >= TUT.length; } catch { return false; } } // TUT is declared further down
 const QUESTS = [
   { id: "launchpad", t: "Visit the Launchpad", xp: 15, done: () => P.visited.includes("launch"), target: () => shopG("launch") },
   { id: "wallet", t: "Connect your wallet", xp: 20, done: () => !!addr(), target: () => null },
@@ -1775,6 +1779,15 @@ const QUESTS = [
   { id: "coincity", t: "Visit a coin in Coin City", xp: 15, done: () => P.visited.includes("coin"), target: () => coinBuildings[0] || null },
   { id: "arcia", t: "Talk to ARCIA", xp: 15, done: () => P.visited.includes("npc"), target: () => npc },
   { id: "build20", t: "Place 20 bricks on your island", xp: 20, done: () => ((P.isle && P.isle.bricks) || 0) >= 20, target: () => isleGate },
+  // the island tutorial chain: opens once "Getting started" is done, one step after another (the counts per kind come from the island's stats)
+  { id: "roof4", t: "Place 4 roof pieces", xp: 20, gate: tutDone, done: () => isleN("roof") >= 4, target: () => isleGate },
+  { id: "doorwin", t: "Add a door and 2 windows: a resident moves in", xp: 25, gate: tutDone, done: () => isleN("door") >= 1 && isleN("window") >= 2, target: () => isleGate },
+  { id: "light2", t: "Place 2 lights", xp: 20, gate: tutDone, done: () => isleN("light") >= 2, target: () => isleGate },
+  { id: "furn3", t: "Place 3 pieces of furniture", xp: 25, gate: tutDone, done: () => isleN("furniture") >= 3, target: () => isleGate },
+  { id: "shop1", t: "Buy an island item in the ARCL Shop and place it", xp: 30, gate: tutDone, done: () => !!P.vq && P.vq.buy != null && isleN("bricks") > P.vq.buy, target: () => isleGate },
+  { id: "vill2", t: "Grow your village centre to level 2", xp: 40, gate: tutDone, done: () => !!P.vill && P.vill.level >= 2, target: () => isleGate },
+  { id: "visit-like", t: "Visit another island and like it", xp: 30, gate: tutDone, done: () => P.visited.includes("isle-visit") && !!P.vq && !!P.vq.like, target: () => isleGate },
+  { id: "share-isle", t: "Share your island link: a free pet egg", xp: 50, gate: tutDone, done: () => !!P.vq && !!P.vq.share, target: () => isleGate },
   { id: "resident", t: "Build a door: welcome your first resident", xp: 25, done: () => ((P.isle && P.isle.residents) || 0) >= 1, target: () => isleGate },
   { id: "isle-visit", t: "Visit another player's island", xp: 15, done: () => P.visited.includes("isle-visit"), target: () => isleGate },
   { id: "furnace", t: "Visit the Burn Furnace", xp: 15, done: () => P.visited.includes("reward"), target: () => shopG("reward") },
@@ -1803,12 +1816,15 @@ function nearestOf(list) { let b = null, bd = Infinity; list.forEach((g) => { g.
 const beacon = K.makeBeacon(K.C.gold, 22); spins.push(beacon.userData.spin);
 let questTarget = null, justDone = null;
 function checkQuests() {
-  QUESTS.forEach((q) => { if (!P.quests.includes(q.id) && q.done()) { P.quests.push(q.id); save(); justDone = { t: T(q.t), at: performance.now() }; Snd.quest(); feed(T("Quest done: {q}", { q: `<b>${esc(T(q.t))}</b>` }), "#ffc861"); if (q.xp) gain(q.xp, T(q.t)); else Snd.win(); } });
+  QUESTS.forEach((q) => { if (!P.quests.includes(q.id) && (!q.gate || q.gate()) && q.done()) { P.quests.push(q.id); save(); justDone = { t: T(q.t), at: performance.now() }; Snd.quest(); feed(T("Quest done: {q}", { q: `<b>${esc(T(q.t))}</b>` }), "#ffc861"); if (q.xp) gain(q.xp, T(q.t)); else Snd.win(); } });
+  if (P.quests.includes("vill2")) arclClaim("vill2");
+  if (P.quests.includes("share-isle")) arclClaim("vquest9");
   badges(); paintQuests();
 }
 function paintQuests() {
-  const open = QUESTS.filter((q) => !P.quests.includes(q.id));
-  $("wp-quests-n").textContent = `${QUESTS.length - open.length}/${QUESTS.length}`;
+  const shown = QUESTS.filter((q) => !q.gate || q.gate() || P.quests.includes(q.id)); // a gated step stays hidden until its gate opens
+  const open = shown.filter((q) => !P.quests.includes(q.id));
+  $("wp-quests-n").textContent = `${shown.length - open.length}/${shown.length}`;
   const doneRow = justDone && performance.now() - justDone.at < 3000 ? `<li class="done-now"><i></i><span>${esc(justDone.t)}</span></li>` : "";
   $("wp-quests-l").innerHTML = doneRow + (open.slice(0, 3).map((q, i) => `<li${i === 0 ? ' class="cur"' : ""}><i></i><span>${esc(T(q.t))}</span>${i === 0 ? '<em class="wp-qdist" data-no-i18n></em>' : ""}${q.xp ? `<small>+${q.xp} XP</small>` : ""}</li>`).join("") || `<li class="done"><span>${esc(T("All quests done. More soon."))}</span></li>`);
   if (doneRow) setTimeout(paintQuests, 3100);
@@ -2326,7 +2342,7 @@ function tutorialStep(done) {
     let n = 0; while (n < TUT.length && P.tutBits & (1 << n)) n++;
     if (n === P.tut) { save(); return; }
     P.tut = n; save();
-    if (n >= TUT.length) { setTimeout(() => { toast(T("You know your way around. Have fun out there!")); burst(0x39ff88); }, 600); }
+    if (n >= TUT.length) { checkQuests(); setTimeout(() => { toast(T("You know your way around. Have fun out there!")); burst(0x39ff88); }, 600); }
   }
   const h = $("wp-hint");
   if (P.tut >= TUT.length) { h.hidden = true; return; }
