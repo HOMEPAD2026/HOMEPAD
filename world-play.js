@@ -2254,7 +2254,7 @@ function levelUp(n, from) {
   const grew = (() => { try { const a = RPG.statsOf(from || n - 1, rpg.data().eq), b = RPG.statsOf(n, rpg.data().eq); return [["atk", "Attack"], ["def", "Defense"], ["hp", "Max HP"], ["sp", "Max SP"]].map(([k, l]) => [T(l), b[k] - a[k]]).filter(([, d]) => d > 0); } catch { return []; } })();
   if (avatar && avatar.face) avatar.face("star", 2.4); // star eyes
   // a level-up card across the middle of the screen: the new level, rays behind it, what it opened
-  { const el = document.createElement("div"); el.className = "wp-lvup"; el.setAttribute("role", "status"); el.setAttribute("data-no-i18n", "");
+  { const el = document.createElement("div"); el.className = "wp-lvup"; el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite"); el.setAttribute("data-no-i18n", "");
     const opens = []; if (n === 10) opens.push(T("The rover")); if (n === 30) opens.push(T("The jetpack")); const z = RPG.ZONES.find((x) => x.lv[0] === n); if (z) opens.push(z.name);
     el.innerHTML = `<i class="wp-lvup-rays" aria-hidden="true"></i><small>${esc(T("Level up"))}</small><b>${n}</b>${opens.length ? `<span>${esc(opens.join(" · "))}</span>` : ""}${grew.length ? `<ul class="wp-lvup-st">${grew.map(([l, d], i) => `<li style="--i:${i}">${esc(l)} <em>+${d}</em></li>`).join("")}</ul>` : ""}`;
     document.body.appendChild(el); setTimeout(() => el.classList.add("out"), reduce ? 1600 : 2200); setTimeout(() => el.remove(), reduce ? 1900 : 2700); }
@@ -2266,9 +2266,6 @@ function levelUp(n, from) {
   if (!reduce) { const lb = K.label(T("Lv {n}", { n }), { accent: "#ffc861", color: "#ffd27a", size: 0.8 }); lb.position.y = 3.4; player.add(lb); const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 1700; lb.position.y = 3.4 + k * 1.6; lb.material.opacity = Math.min(1, (1 - k) * 2.5); if (k >= 1) { off(); player.remove(lb); lb.material.map && lb.material.map.dispose(); lb.material.dispose(); } }); }
   if (rpg) { const was = RPG.statsOf(from || n - 1, rpg.data().eq); rpg.onLevel(); if (combat) combat.onLevel(n, was); } else if (combat) combat.onLevel(n);
   if (quests) quests.on.level();
-  const el = $("wp-levelup"); $("wp-levelup-n").textContent = String(n);
-  el.hidden = false; el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
-  setTimeout(() => { el.hidden = true; }, 1900);
   // a new hunting ground opens at this level: a beam of light rises over its gate and the camera turns to it
   const opened = RPG.ZONES.find((z) => z.lv[0] > (from || n - 1) && z.lv[0] <= n && z.lv[0] > 1);
   if (opened && mode === "hub") setTimeout(() => gateReveal(opened), 2200);
@@ -2353,10 +2350,16 @@ setInterval(() => refreshPurse(false), 30000);
 let purseBack = 0; document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - purseBack > 5000) { purseBack = Date.now(); refreshPurse(true); } });
 
 // ---------------- HUD ----------------
+let hudLv = 0, xpLvT = 0; // the level the XP bar last showed, and its level-up refill timer
 function paintHud() {
   $("wp-lv").querySelector("b").textContent = "Lv " + level();
   const fl = $("wc-face-lv"); if (fl) fl.textContent = String(level());
-  const xq = RPG.xpProgress(P.xp); $("wp-xpfill").style.width = Math.min(100, (100 * xq.into) / xq.need).toFixed(1) + "%";
+  const xq = RPG.xpProgress(P.xp), xf = $("wp-xpfill"), L = level();
+  if (hudLv && L > hudLv && !reduce) { // a level-up: fill to the top and flash, then start again from empty
+    clearTimeout(xpLvT); xf.style.width = "100%"; xf.classList.add("lvflash");
+    xpLvT = setTimeout(() => { xpLvT = 0; xf.style.transition = "none"; xf.style.width = "0"; void xf.offsetWidth; xf.style.transition = ""; xf.classList.remove("lvflash"); const q = RPG.xpProgress(P.xp); xf.style.width = Math.min(100, (100 * q.into) / q.need).toFixed(1) + "%"; }, 650);
+  } else if (!xpLvT) xf.style.width = Math.min(100, (100 * xq.into) / xq.need).toFixed(1) + "%";
+  hudLv = L;
   $("wp-lv").title = `${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")} XP`; $("wp-lv-xp").textContent = `${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")}`;
   $("wp-cards").querySelector("b").textContent = `${P.cards.length}/${K.CARDS.length}`;
   const next = K.SCAMMERS.find((s) => !P.beaten.includes(s.id));
@@ -2891,6 +2894,7 @@ quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
   petActive: () => (pet ? pet.active() : ""), petTitle: (id) => (pet ? pet.title(id) : id), petLv: (id) => (pet ? pet.level(id) : 1),
   petHTML: () => (pet ? pet.html() : ""), petClick: (b) => (pet ? pet.click(b) : false),
   shareCard: (o) => shareCard(o),
+  bountyReady: () => { const p = partyUI(), f = p && p.full && p.full(); if (!f || (f.next && f.next <= Date.now())) return 0; return (f.bounties || []).filter((b) => b.done && !b.claimed).length + (f.party && f.party.done && !f.party.claimed && f.party.mine >= f.party.min ? 1 : 0); }, // the Log dot counts ready bounties too
   bountyHTML: () => (partyUI() ? partyUI().bountyHTML() : ""), bountyLoad: () => partyUI() && partyUI().loadFull(), bountyClick: (b) => !!partyUI() && partyUI().click(b),
 });
 rpg.setLog(quests);
@@ -2958,7 +2962,7 @@ function chatArea() {
 chatUI = CHAT.createChat({ T, esc, toast, post, sess, Snd, area: chatArea, bubble: (txt) => sayBubble(txt.length > 34 ? txt.slice(0, 33) + "…" : txt, 7000),
   following: () => ((P.rpg && P.rpg.x && P.rpg.x.friends) || []).map((f) => ({ w: lc(f.w), n: f.n })), openProfile: (w) => openProfile(w),
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, onUnread: (n) => { chatDot = n; paintMenuDot(); },
-  onSay: () => { if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } }, onParty: () => { paintParty(); if (rpg && rpg.isOpen()) rpg.repaint(); } });
+  onSay: () => { if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } }, onParty: () => { paintParty(); if (rpg && rpg.isOpen()) rpg.repaint(); if (quests) paintBagDot(); } });
 // ---------------- set dressing from the free model packs (world-decor.js) ----------------
 decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
 st.on((dt) => decor.tick(dt));
@@ -3665,6 +3669,7 @@ refreshPlaza();
 setTimeout(() => island.news((h, c) => feed(h, c)), 5000); setInterval(() => { if (mode === "hub") island.news((h, c) => feed(h, c)); }, 300000);
 maybeNew();
 setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
+setTimeout(async () => { const p = partyUI(), f = p && await p.loadFull(); if (f) quests.bountyNotice((h, c) => feed(esc(h), c), f); }, 12000); // one bounty read: the Log dot, and Sunday's reminder
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {

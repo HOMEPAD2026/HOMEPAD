@@ -1105,6 +1105,8 @@ body.wp{margin:0;height:100svh;overflow:hidden;background:#04060a;color:#eef3f7;
 .wp-lv b{font-family:var(--f-num);font-weight:700}
 .wp-xpbar{width:56px;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
 .wp-xpbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3f9bff,#35d8d0,#39ff88);transition:width .6s cubic-bezier(.2,.9,.3,1)}
+.wp-xpbar i.lvflash{animation:wpXpFlash .5s ease-out .45s}
+@keyframes wpXpFlash{50%{filter:brightness(2.2);box-shadow:0 0 12px #7ff6ff}}
 .wp-stage{color:#ffb3c0;border-color:rgba(255,77,109,.35)}
 .wp-hud-r{display:flex;gap:8px;flex-shrink:0}
 .wp-btn{appearance:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:999px;background:rgba(10,14,22,.78);border:1px solid rgba(255,255,255,.14);color:#eef3f7;font:600 13px var(--f-ui);text-decoration:none;cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:border-color .15s,background .15s}
@@ -1179,7 +1181,7 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 
   .wp-purse{top:calc(max(14px,env(safe-area-inset-top)) + 44px)}
   .wp-prompt{bottom:calc(max(18px,env(safe-area-inset-bottom)) + 8px)}
 }
-@media (prefers-reduced-motion:reduce){.wp-sheet,.wp-toast,.wp-xpbar i{transition:none}.wp-prompt button,.wp-loading img{animation:none}}
+@media (prefers-reduced-motion:reduce){.wp-sheet,.wp-toast,.wp-xpbar i{transition:none}.wp-prompt button,.wp-loading img,.wp-xpbar i.lvflash{animation:none}}
 
 /* a shop's page opened inside the world: the world is the chrome */
 html.in-world .anav,html.in-world .anav-tabs,html.in-world .anav-sheet,html.in-world footer.axf,html.in-world .ax-dock,html.in-world .ax-quick,html.in-world #arcia-fab,html.in-world .aa-fab,html.in-world .v10-fab{display:none!important}
@@ -1324,12 +1326,6 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wp-hint{position:fixed;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 58px);z-index:21;transform:translateX(-50%);padding:9px 16px;border-radius:999px;background:rgba(10,14,22,.86);border:1px solid rgba(53,216,208,.45);font:600 13.5px var(--f-ui);color:#e6fbf8;white-space:nowrap;pointer-events:none}
 .wp-hint[hidden]{display:none}
 .wp-hint.on{animation:wpRise .35s cubic-bezier(.2,1.2,.4,1)}
-.wp-levelup{position:fixed;left:50%;top:38%;z-index:46;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);pointer-events:none}
-.wp-levelup[hidden]{display:none}
-.wp-levelup span{font:700 14px var(--f-ui);color:#c8ffde}
-.wp-levelup b{display:grid;place-items:center;width:96px;height:96px;margin-top:8px;border-radius:50%;font:800 44px var(--f-num);color:#04121a;background:conic-gradient(from 0deg,#3f9bff,#35d8d0,#39ff88,#3f9bff);box-shadow:0 0 50px rgba(57,255,136,.5)}
-.wp-levelup.on{animation:wpLvl 1.9s cubic-bezier(.2,1.1,.3,1) forwards}
-@keyframes wpLvl{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(.96)}}
 .wp-flycard{position:fixed;left:0;top:0;z-index:47;width:22px;height:28px;margin:-14px 0 0 -11px;border-radius:5px;background:linear-gradient(160deg,#ffe7a8,#ffc861);box-shadow:0 0 16px rgba(255,200,97,.8);transition:transform .6s cubic-bezier(.5,0,.3,1),opacity .6s;pointer-events:none}
 .wp-cards.bump{animation:wpBump .4s ease}
 @keyframes wpBump{40%{transform:scale(1.18)}}
@@ -1373,7 +1369,7 @@ body.wp-photo .wp-hud,body.wp-photo .wp-feed,body.wp-photo .wp-prompt,body.wp-ph
   .wp-hint{top:auto;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 70px);font-size:12px;white-space:normal;max-width:80vw;text-align:center}
   .wp-online{height:24px;font-size:11px}
 }
-@media (prefers-reduced-motion:reduce){.wp-levelup.on,.wp-hint.on,.wp-online i,.wp-cards.bump{animation:none}.wp-flycard{transition:none}}
+@media (prefers-reduced-motion:reduce){.wp-hint.on,.wp-online i,.wp-cards.bump{animation:none}.wp-flycard{transition:none}}
 
 /* ---- v16: the dive, My Island, build mode (world-island.js) ---- */
 .wp-veil{position:fixed;inset:0;z-index:45;pointer-events:none;opacity:0;transition:opacity .45s ease;background:radial-gradient(circle at 50% 58%,#fff 0%,#eef6fb 38%,#bfe0f2 100%)}

@@ -394,3 +394,5 @@ body.wp .wp-dk>.wp-dk-new[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){body.wp .wp-dk>.wp-dk-new{animation:none}}
 html.wp-less body.wp .wp-dk>.wp-dk-new{animation:none}
 body.wp #wp-dock{overflow:visible!important}
+/* the Adventure log: when the daily hunts and the weekly bounties start over (amber in the last 6 hours if something waits) */
+.wq-reset{opacity:.8}small.wq-reset{display:block;margin-top:4px}.wq-reset.soon{color:#ffc861;opacity:1}

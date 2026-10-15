@@ -81,6 +81,7 @@ export function createParty(ctx) {
     return false;
   }
 
+  const leftTxt = (ms) => { const m = Math.max(0, Math.floor(ms / 6e4)); return m >= 1440 ? T("{d}d {h}h", { d: Math.floor(m / 1440), h: Math.floor(m / 60) % 24 }) : T("{h}h {m}m", { h: Math.floor(m / 60), m: m % 60 }); }; // time to the Monday reset
   // ---- the Adventure log's Daily tab: this week's bounties, the party quest and a village prize ----
   function bountyHTML() {
     if (!me()) return "";
@@ -91,7 +92,7 @@ export function createParty(ctx) {
     const p = full.party;
     if (p) b.push(row(T("Party quest"), T("{n} knock-outs together · +{a} ARCL each (add {m} yourself)", { n: p.goal, a: p.arcl, m: p.min }), p.total, p.goal, p.claimed ? check : `<button type="button" data-pa="claim" ${p.done && p.mine >= p.min ? "" : "disabled"}>${esc(T("Claim"))}</button>`, p.claimed ? "done" : p.done ? "ready" : ""));
     const prizes = (full.wins || []).filter((x) => x.rank).map((x) => `<li class="${x.claimed ? "done" : "ready"}"><div><b>${esc(x.p === "week" ? T("Top village last week: #{n}", { n: x.rank }) : T("Top village last month: #{n}", { n: x.rank }))}</b><small>${esc(T("+{n} ARCL", { n: x.prize }))}</small></div><span></span>${x.claimed ? check : `<button type="button" data-vk="${x.p}:${esc(x.key)}">${esc(T("Claim"))}</button>`}</li>`);
-    return `<h4 class="wq-codex-sec">${esc(T("Bounties"))}</h4><p class="wr-note">${esc(T("Weekly goals, counted by the server from your knock-outs in the streets and hunting grounds. They start over every Monday (Seoul time)."))}${p ? "" : ` ${esc(T("A party quest starts when you start a party in Chat → Friends."))}`}</p><ul class="wq-list">${b.join("")}${prizes.join("")}</ul>`;
+    return `<h4 class="wq-codex-sec">${esc(T("Bounties"))}</h4><p class="wr-note">${esc(T("Weekly goals, counted by the server from your knock-outs in the streets and hunting grounds. They start over every Monday (Seoul time)."))}${full.next > Date.now() ? ` <small class="wq-reset${full.next - Date.now() < 6 * 36e5 && (full.bounties.some((x) => x.done && !x.claimed) || (p && p.done && !p.claimed)) ? " soon" : ""}">${esc(T("Resets Monday · {t}", { t: leftTxt(full.next - Date.now()) }))}</small>` : ""}${p ? "" : ` ${esc(T("A party quest starts when you start a party in Chat → Friends."))}`}</p><ul class="wq-list">${b.join("")}${prizes.join("")}</ul>`;
   }
 
   setInterval(() => { if (!document.hidden && me()) refresh(); }, POLL);
