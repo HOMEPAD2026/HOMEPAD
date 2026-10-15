@@ -5,8 +5,8 @@
 // time you're within BUILD_AT and hidden again past HIDE_AT.
 export const VILLAGE = { x: -105, z: -5, r: 32, plotR: 21, arenaR: 10.5 };
 export const GAMES = [
-  { id: "soon1" }, { id: "soon2" }, { id: "soon3" }, { id: "soon4" }, { id: "soon5" },
-  { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, ready: true }, // the middle plot: straight ahead as you come through the gate
+  { id: "soon1" }, { id: "soon2" }, { id: "soon3" }, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "soon5" },
+  { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, sub: "Tower defence · walk in to play", ready: true }, // the middle plot: straight ahead as you come through the gate
   { id: "soon6" }, { id: "soon7" }, { id: "soon8" }, { id: "soon9" }, { id: "soon10" },
 ];
 const BUILD_AT = 75, HIDE_AT = 95;
@@ -38,13 +38,13 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     const top = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.1, 1, 12), dark); top.position.y = 8.5; g.add(top);
     for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2, m = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1, 0.6), stone); m.position.set(Math.sin(a) * 3.3, 9.4, Math.cos(a) * 3.3); m.rotation.y = a; g.add(m); }
     const ring = new THREE.Mesh(new THREE.TorusGeometry(3.15, 0.12, 6, 48), neon); ring.rotation.x = Math.PI / 2; ring.position.y = 7.3; g.add(ring);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.6, 3.4, 12), std(0xc0392b)); roof.position.y = 11.4; g.add(roof);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.6, 3.4, 12), std(gm.roof || 0xc0392b)); roof.position.y = 11.4; g.add(roof);
     const flag = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.05), neon); flag.position.set(0.6, 13.5, 0); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2, 6), dark); pole.position.y = 13.3; g.add(flag, pole);
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.3), std(0x2a1d14)); door.position.set(0, 1.4, 3.25); g.add(door);
     const arch = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.14, 6, 24, Math.PI), neon); arch.position.set(0, 2.8, 3.3); g.add(arch);
     const mat = new THREE.Mesh(new THREE.CircleGeometry(1.3, 24), new THREE.MeshBasicMaterial({ color: gm.color, transparent: true, opacity: 0.25, depthWrite: false })); mat.rotation.x = -Math.PI / 2; mat.position.set(0, 0.06, 4.6); g.add(mat);
     if (!low) spins.push((dt, t) => { ring.rotation.z = t * 0.6; flag.rotation.y = Math.sin(t * 2) * 0.3; mat.material.opacity = 0.2 + Math.sin(t * 3) * 0.08; });
-    const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T("Tower defence · walk in to play") }); tag.position.y = 15.6; g.add(tag);
+    const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 15.6; g.add(tag);
     return g;
   }
   function soonOf() { // an empty plot: a fenced pad and a sign

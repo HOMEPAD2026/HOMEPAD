@@ -446,3 +446,15 @@ html.wp-pcphone body:has(.wd-hud:not([hidden])) .wp-mini{display:none}
 html.wp-pcphone .wd-hud{position:fixed;z-index:31}
 /* What's new: the newest three, the rest folded */
 .wp-new-more{margin:-6px 0 14px}.wp-new-more summary{cursor:pointer;padding:8px 4px;font:700 13px var(--f-ui);color:#9fc4ff;list-style:none}.wp-new-more summary::-webkit-details-marker{display:none}.wp-new-more summary:after{content:" ▾"}.wp-new-more[open] summary:after{content:" ▴"}.wp-new-more ul{margin:4px 0 0}
+/* Coin Jump (world-jumprace.js): the run's HUD and the result card */
+.wj-hud{position:fixed;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);z-index:31;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:14px;background:var(--ui-well,rgba(8,18,44,.85));border:1px solid rgba(120,196,255,.35);box-shadow:0 10px 30px rgba(0,0,0,.4);font:700 14px var(--f-ui);color:#eef3f7;white-space:nowrap}
+.wj-hud b{color:#ffc861;font-weight:900}.wj-t.low{color:#ff7a7a}
+.wj-hud button,.wj-btns button{appearance:none;height:32px;padding:0 12px;border-radius:10px;border:1px solid rgba(120,196,255,.4);background:rgba(20,40,90,.8);color:#fff;font:800 13px var(--f-ui);cursor:pointer}
+.wj-res{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(2,6,18,.45)}
+.wj-card{width:min(340px,calc(100vw - 32px));padding:20px;border-radius:20px;text-align:center;background:linear-gradient(170deg,#12295a,#081530);border:1px solid rgba(255,200,97,.45);box-shadow:0 30px 60px rgba(0,0,0,.5);color:#eef3f7;font-family:var(--f-ui)}
+.wj-card small{color:#ffc861;font-weight:800;letter-spacing:.1em}.wj-card h3{margin:6px 0 4px;font-size:20px}.wj-big{font:900 52px var(--f-num,var(--f-ui));color:#ffd23a;line-height:1.1}
+.wj-card p{margin:4px 0;color:#b9cbe6;font-size:14px}.wj-btns{display:flex;gap:8px;justify-content:center;margin-top:12px}.wj-btns .go{background:linear-gradient(180deg,#ffd23a,#ff9f43);color:#1a1200;border:0}
+html.wp-pcphone .wj-hud{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) + 232px)}html.wp-pcphone .wj-res{zoom:1.42}
+body:has(.wj-hud) .wp-quests,html.wp-pcphone body:has(.wj-hud) .wp-mini{display:none}
+/* (stronger than the HUD skin's own .wp-quests rules) a Game Village game takes the quest card's place */
+body.wp:has(.wj-hud) .wp-quests,body.wp:has(.wd-hud:not([hidden])) .wp-quests{display:none!important}
