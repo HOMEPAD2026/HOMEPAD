@@ -441,3 +441,6 @@ html.wp-pcphone :is(.wd-ban,.wd-res){zoom:1.42}
 html.wp-pcphone .wd-pads>*,html.wp-pcphone .wd-menu{scale:1.42}
 /* in the AC Defense arena the quest card steps aside (the defense HUD takes its place on phones) */
 body:has(.wd-hud:not([hidden])) .wp-quests{display:none}
+/* phones: in the arena the minimap steps aside too, so the wave card has the full width (it used to sit under it) */
+html.wp-pcphone body:has(.wd-hud:not([hidden])) .wp-mini{display:none}
+html.wp-pcphone .wd-hud{position:fixed;z-index:31}
