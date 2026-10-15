@@ -298,10 +298,10 @@ async function cloudSave() {
 let stats = null, visitSent = false;
 async function ping() {
   if (document.hidden) return;
-  let g; try { if (mode === "hub" && !introOn) { const v = here(new THREE.Vector3()); g = { x: Math.round(v.x * 10) / 10, z: Math.round(v.z * 10) / 10, c: P.char || "bot", lv: level() }; if (combat) { const vt = combat.vitals(), zz = combat.zone(); g.h = Math.max(0, Math.min(100, Math.round((100 * vt.hp) / (vt.max || 1)))); if (zz) g.zn = zz.id; } if (said && !said.sent && Date.now() - said.at < 60e3) { g.s = said.s; said.sent = true; } if (P.pal) g.p = P.pal; } } catch { /* not ready yet */ }
+  let g; try { if (mode === "hub" && !introOn) { const v = here(new THREE.Vector3()); g = { x: Math.round(v.x * 10) / 10, z: Math.round(v.z * 10) / 10, c: P.char || "bot", lv: level() }; if (combat) { const vt = combat.vitals(), zz = combat.zone(); g.h = Math.max(0, Math.min(100, Math.round((100 * vt.hp) / (vt.max || 1)))); if (zz) g.zn = zz.id; } if (said && !said.sent && Date.now() - said.at < 60e3) { g.s = said.s; said.sent = true; } if (P.pal) g.p = P.pal; const cm = chatUI && chatUI.pending(); if (cm) g.m = cm; } } catch { /* not ready yet */ }
   // signed in and not hidden (Settings): the sign-in goes along, so others see your name and level over your figure
   const se = g && S.showName !== false ? sess() : null;
-  try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent, ...(g ? { g } : {}), ...(se ? { s: se } : {}) }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
+  try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent, ...(g ? { g } : {}), ...(se ? { s: se } : {}), ...(se && chatUI && chatUI.presenceDue() ? { pr: 1 } : {}) }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
 }
 function paintAuthCount() {
   const c = $("wp-auth-count"); if (!stats || !stats.players) { c.hidden = true; return; }
@@ -732,6 +732,7 @@ if (kit) await dressWorld(kit); else kitP.then((k) => { if (k) { kit = k; dressW
 const keys = new Set();
 let hubEl = null; // the menu (built further down)
 let inboxDot = 0; // mail waiting (world-inbox.js): a dot on the Menu tile
+let chatDot = 0, chatUI = null; // unread messages and friend requests (world-chat.js), and the chat panel
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
 let camDist = coarse ? 1.12 : 1, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
@@ -863,12 +864,14 @@ wheel.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-e]"); wheel.hidden = true; if (b) emote(b.dataset.e);
 });
 let said = null, sayBub = null, sayPingAt = 0;
+function sayBubble(txt, ms = 4500) {
+  if (sayBub) { player.remove(sayBub); sayBub.material.map && sayBub.material.map.dispose(); }
+  sayBub = K.label(txt, { accent: "#9fffd0", size: 0.5 }); sayBub.position.y = 2.75; player.add(sayBub); const mine = sayBub;
+  setTimeout(() => { if (sayBub === mine) { player.remove(mine); sayBub = null; } }, ms);
+}
 function say(i) {
   if (!SAY[i]) return;
-  if (sayBub) { player.remove(sayBub); sayBub.material.map && sayBub.material.map.dispose(); }
-  const txt = SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i]);
-  sayBub = K.label(txt, { accent: "#9fffd0", size: 0.5 }); sayBub.position.y = 2.75; player.add(sayBub); const mine = sayBub;
-  setTimeout(() => { if (sayBub === mine) { player.remove(mine); sayBub = null; } }, 4500);
+  sayBubble(SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i]));
   if (avatar && grounded) avatar.play("emote-yes", { once: true });
   said = { s: i, at: Date.now(), sent: false };
   if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } // others see it with the next ping at the latest
@@ -1399,12 +1402,14 @@ function islandLines() {
   out.push(T("Scan a token before you buy it."), T("I love this island."));
   return out;
 }
+let isleArea = ""; // whose island you are on (world-chat.js: an island is a chat area)
 async function goIsland(opt) {
   if (!opt || (!opt.visit && !opt.lot)) tutorialStep(6);
   closeAll();
   const veil = $("wp-veil"); veil.style.opacity = "1"; await sleep(reduce ? 0 : 260);
   if (mode === "island") island.leave();
   const ok = await island.enter(opt);
+  if (ok) isleArea = opt.visit ? lc(opt.visit) : opt.lot ? lc(opt.lot.token) : (sess() ? lc(sess().wallet) : "");
   if (!ok) { if (mode === "island") leaveIsland(); }
   else if (opt.visit && !P.visited.includes("isle-visit")) { P.visited.push("isle-visit"); save(); checkQuests(); }
   near = null; paintPrompt(); veil.style.opacity = "0";
@@ -2722,7 +2727,7 @@ if (brandA) {
   document.addEventListener("pointerdown", (e) => { if (!brandM.hidden && !brandM.contains(e.target) && !brandA.contains(e.target)) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); } });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !brandM.hidden) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); brandA.focus(); } });
 }
-function closeAll() { try { if (!brandM.hidden) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); } } catch { /* fine */ } try { village.hide(); crewUI.hide(); } catch { /* not built yet */ } closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
+function closeAll() { try { if (!brandM.hidden) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); } } catch { /* fine */ } try { village.hide(); crewUI.hide(); chatUI && chatUI.hide(); } catch { /* not built yet */ } closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
 // ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
 const help = HELP.createSupport({
   T, lang: LANG, esc, toast, where: mode === "island" ? "island" : "game",
@@ -2886,6 +2891,18 @@ function goNear(x, z) {
 }
 const inbox = INBOX.createInbox({ onDot: (n) => { inboxDot = n; paintMenuDot(); }, T: TW, esc, post, sess, toast, Snd, rpg: () => rpg, island, ghosts: () => ghosts, goIsland: (o) => goIsland(o), goNear,
   openProfile: (w) => openProfile(w), inHub: () => mode === "hub", bookNew: () => island.bookNew(), save: () => save(), onPots: () => combat && combat.potsCheck() });
+// chat (world-chat.js): local lines in the area you stand in, friends and private messages
+// the area: an island, a hunting ground, or the nearest district of the town
+function chatArea() {
+  if (mode === "island") return /^0x[0-9a-f]{40}$/.test(isleArea) ? { id: "i-" + isleArea, name: island.title() } : null;
+  const zz = combat && combat.zone(); if (zz && /^[a-z0-9]{2,12}$/.test(zz.id)) return { id: "z-" + zz.id, name: T(zz.name || zz.id) };
+  let bd = Infinity, best = null; K.DISTRICTS.forEach((d) => { const v = K.spot(d.theta, d.phi).add(planet.position), dd = v.length(); if (dd < bd) { bd = dd; best = d; } });
+  return best && /^[a-z0-9]{2,12}$/.test(best.id) ? { id: "h-" + best.id, name: best.name } : { id: "h-town", name: T("Town") };
+}
+chatUI = CHAT.createChat({ T, esc, toast, post, sess, Snd, area: chatArea, bubble: (txt) => sayBubble(txt.length > 34 ? txt.slice(0, 33) + "…" : txt, 7000),
+  following: () => ((P.rpg && P.rpg.x && P.rpg.x.friends) || []).map((f) => ({ w: lc(f.w), n: f.n })), openProfile: (w) => openProfile(w),
+  freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, onUnread: (n) => { chatDot = n; paintMenuDot(); },
+  onSay: () => { if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } } });
 // ---------------- set dressing from the free model packs (world-decor.js) ----------------
 decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
 st.on((dt) => decor.tick(dt));
@@ -2982,7 +2999,7 @@ async function shareCard(o) {
 }
 function paintBagDot() { const b = $("wp-log-btn"); if (b) b.dataset.dot = quests.pending() ? String(quests.pending()) : ""; paintMenuDot(); } // rewards waiting: on the Log button, where they are
 // the Menu tile's red dot: mail or rewards waiting (on a phone the bell and the Log button live in the menu)
-function paintMenuDot() { const m = $("wp-more-btn"); if (m) m.dataset.dot = inboxDot || (quests && quests.pending && quests.pending()) ? "1" : ""; }
+function paintMenuDot() { const m = $("wp-more-btn"); if (m) m.dataset.dot = inboxDot || chatDot || (quests && quests.pending && quests.pending()) ? "1" : ""; }
 setInterval(paintBagDot, 4000);
 // a recall scroll: straight back to the plaza
 function recallHome() {
@@ -3013,13 +3030,13 @@ $("wp-help-btn").addEventListener("click", () => openHelp());
 const HUB = [
   ["You", [["inv", "bag", "Character and bag", "I"], ["crew", "crew", "Crew", ""], ["wardrobe", "shirt", "Wardrobe", ""], ["make", "person", "Change character", ""]]],
   ["Adventure", [["daily", "check", "Daily hunts", "L"], ["ach", "trophy", "Achievements", ""], ["season", "season", "Season", ""], ["codex", "codex", "Codex", ""], ["pets", "paw", "Pets", ""], ["rank", "chart", "Rankings", ""]]],
-  ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "Island", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""]]],
+  ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "Island", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""], ["chat", "chat", "Chat and friends", ""]]],
   ["More", [["photo", "photo", "Photo mode", "P"], ["emote", "wave", "Emotes", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["music", "music", "Music on / off", ""], ["set", "gear", "Settings", ""]]],
 ];
 hubEl = document.createElement("div"); hubEl.className = "wp-hub"; hubEl.hidden = true; hubEl.setAttribute("role", "dialog"); hubEl.setAttribute("aria-modal", "true"); hubEl.setAttribute("data-no-i18n", "");
 document.body.appendChild(hubEl);
 function paintHub() {
-  const isArc = String(P.char || "arc-arc").startsWith("arc-"), dot = { daily: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])') };
+  const isArc = String(P.char || "arc-arc").startsWith("arc-"), dot = { daily: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])'), chat: chatDot > 0 };
   hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}</h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>` +
     HUB.map(([g, items]) => `<section><h3>${esc(T(g))}</h3><div class="wp-hub-grid">${items.filter(([id]) => id !== "wardrobe" || isArc).filter(([id]) => id !== "island" || mode === "hub").map(([id, ic, label, key]) =>
       `<button type="button" data-hub="${id}">${ICONS.icon(ic, 26)}<span>${esc(T(label))}</span>${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}</button>`).join("")}</div></section>`).join("") + `</div>`;
@@ -3041,6 +3058,7 @@ hubEl.addEventListener("click", (e) => {
   else if (id === "island") island.openIsles(island.friendCount() ? "friends" : "top"); // b406: your island, your friends' and everyone's, to pick from
   else if (id === "village") village.show();
   else if (id === "inbox") inbox.show();
+  else if (id === "chat") chatUI.show();
   else if (id === "photo") setPhoto(true);
   else if (id === "emote") openWheel();
   else if (id === "guide") openGuide();
