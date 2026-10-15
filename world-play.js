@@ -881,24 +881,21 @@ function say(i) {
 // play together: a link with your wanderer tag; whoever opens it sees you as a friend (and you them), and near each other you both get +10% XP
 const myTag = SOC.tagOf(vid);
 const together = () => !!(ghosts && ghosts.palNear && ghosts.palNear(20));
-// a hunting party: up to three friends you pick (on their profile card). Their figures show their HP and where they
-// are; with one of them within 30 m, knock-outs give +15% XP (instead of the +10% for a friend nearby)
-const PARTY = "arc.world.party", isWallet = (a) => /^0x[0-9a-f]{40}$/.test(String(a || ""));
-let party = (() => { try { return JSON.parse(localStorage.getItem(PARTY) || "[]").map((a) => String(a).toLowerCase()).filter(isWallet).slice(0, 3); } catch { return []; } })();
-const inParty = (w) => party.includes(String(w || "").toLowerCase());
-function partyToggle(w) {
-  w = String(w || "").toLowerCase(); if (!isWallet(w)) return;
-  if (inParty(w)) party = party.filter((x) => x !== w);
-  else { if (!island.isFriend(w)) { toast(T("Add them as a friend first")); return; } if (party.length >= 3) { toast(T("A party is you and three friends")); return; } party = [...party, w]; }
-  try { localStorage.setItem(PARTY, JSON.stringify(party)); } catch { /* private */ } paintParty();
-}
-const partyNear = (r = 30) => { if (!party.length || !ghosts || mode !== "hub") return false; const me0 = here(new THREE.Vector3()); return ghosts.named().some((g) => inParty(g.wallet) && Math.hypot(g.x - me0.x, g.z - me0.z) < r); };
+// a hunting party: you and up to three friends, kept by the server (world-party.js, api/_world-rank.mjs: the leader invites
+// friends from the chat's Friends tab or their profile card). Their figures show their HP and where they are; with one
+// of them within 30 m, knock-outs give +15% XP (instead of the +10% for a friend nearby)
+const PARTY = "arc.world.party";
+const partyUI = () => chatUI && chatUI.party;
+const partyWs = () => { const p = partyUI(); return p ? p.others() : []; };
+const inParty = (w) => { const p = partyUI(); return !!p && p.inParty(w); };
+const partyNear = (r = 30) => { const party = partyWs(); if (!party.length || !ghosts || mode !== "hub") return false; const me0 = here(new THREE.Vector3()); return ghosts.named().some((g) => inParty(g.wallet) && Math.hypot(g.x - me0.x, g.z - me0.z) < r); };
 const partyEl = document.createElement("div"); partyEl.className = "wp-party"; partyEl.id = "wp-party"; partyEl.hidden = true; partyEl.setAttribute("data-no-i18n", ""); partyEl.setAttribute("aria-label", T("Party")); (document.querySelector(".wp-hud-l") || document.body).appendChild(partyEl); // under the quest list
 function paintParty() {
+  const party = partyWs();
   if (!party.length || mode !== "hub") { partyEl.hidden = true; return; }
   const me0 = here(new THREE.Vector3()), seen = ghosts ? ghosts.named() : [], names = (() => { try { return JSON.parse(localStorage.getItem(PARTY + ".n") || "{}"); } catch { return {}; } })();
   partyEl.hidden = false;
-  partyEl.innerHTML = `<b>${esc(T("Party"))}${partyNear() ? ` <em>${esc(T("+15% XP"))}</em>` : ""}</b>` + party.map((w) => { const g = seen.find((x) => String(x.wallet).toLowerCase() === w), nm = (g && g.name) || names[w] || w.slice(0, 6) + "…";
+  partyEl.innerHTML = `<b>${esc(T("Party"))}${partyNear() ? ` <em>${esc(T("+15% XP"))}</em>` : ""}</b>` + party.map((w) => { const g = seen.find((x) => String(x.wallet).toLowerCase() === w), nm = (g && g.name) || names[w] || partyUI().nameOf(w) || w.slice(0, 6) + "…";
     if (g) { names[w] = g.name; }
     const d = g ? Math.round(Math.hypot(g.x - me0.x, g.z - me0.z)) : null, zn = g && g.zn ? (RPG.ZONES.find((z) => z.id === g.zn) || {}).name : "";
     return `<div class="${g ? "" : "away"}"><span>${esc(nm)}${g ? ` <small>Lv ${g.lv}</small>` : ""}</span>${g && g.h != null ? `<i><u style="width:${g.h}%"></u></i>` : ""}<small>${g ? (d < 30 ? esc(T("{n} m away", { n: d })) : zn ? esc(zn) : esc(T("{n} m away", { n: d }))) : esc(T("Not in the world"))}</small></div>`; }).join("");
@@ -2861,6 +2858,7 @@ quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
   petActive: () => (pet ? pet.active() : ""), petTitle: (id) => (pet ? pet.title(id) : id), petLv: (id) => (pet ? pet.level(id) : 1),
   petHTML: () => (pet ? pet.html() : ""), petClick: (b) => (pet ? pet.click(b) : false),
   shareCard: (o) => shareCard(o),
+  bountyHTML: () => (partyUI() ? partyUI().bountyHTML() : ""), bountyLoad: () => partyUI() && partyUI().loadFull(), bountyClick: (b) => !!partyUI() && partyUI().click(b),
 });
 rpg.setLog(quests);
 // the pets (world-pet.js): eggs from the server, one animal walking with you; the three older companions are drawn by QST.createPet
@@ -2927,7 +2925,7 @@ function chatArea() {
 chatUI = CHAT.createChat({ T, esc, toast, post, sess, Snd, area: chatArea, bubble: (txt) => sayBubble(txt.length > 34 ? txt.slice(0, 33) + "…" : txt, 7000),
   following: () => ((P.rpg && P.rpg.x && P.rpg.x.friends) || []).map((f) => ({ w: lc(f.w), n: f.n })), openProfile: (w) => openProfile(w),
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, onUnread: (n) => { chatDot = n; paintMenuDot(); },
-  onSay: () => { if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } } });
+  onSay: () => { if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } }, onParty: () => { paintParty(); if (rpg && rpg.isOpen()) rpg.repaint(); } });
 // ---------------- set dressing from the free model packs (world-decor.js) ----------------
 decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
 st.on((dt) => decor.tick(dt));
@@ -2998,7 +2996,7 @@ async function openProfile(w) {
       <h2>${VILL.isGM(w) ? '<b class="wv-gmtag">[GM]</b> ' : ""}${fr && fr.cr ? `<span class="wp-crew-tag sm">${esc(fr.cr)}</span>` : ""}${esc(name)}</h2>${quests.titleOf(wornT) ? `<p class="wp-prof-title">${esc(quests.titleOf(wornT))}</p>` : ""}
       <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / ${QST.CODEX.length + QST.CODEX_STORY.length}</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div>${fr && fr.village && fr.village.score ? `<div><dt>${esc(T("Village score"))}</dt><dd>${fr.village.score.toLocaleString("en-US")}</dd></div>` : ""}<div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
       ${showcase(fr, wornT)}
-      <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${me || !isFr ? "" : `<button type="button" class="wp-btn" data-pparty aria-pressed="${inParty(w)}">${esc(inParty(w) ? T("In your party") : T("Add to party"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
+      <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${me || !sess() ? "" : `<button type="button" class="wp-btn" data-pparty aria-pressed="${inParty(w)}" ${inParty(w) ? "disabled" : ""}>${esc(inParty(w) ? T("In your party") : T("Add to party"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
       ${me || !sess() ? "" : `<div class="wp-prof-gift"><span>${esc(T("Send a gift"))}</span>${inbox.sendOptions().map((g) => `<button type="button" class="wp-btn" data-pgift="${g.kind}:${g.n}" ${g.can ? "" : "disabled"}>${esc(g.label)}</button>`).join("")}</div>`}</div>`;
     if (char && !thumbCache[char]) renderThumbsFor([char]).then(() => { if (el.isConnected) paint(fr); });
   };
@@ -3013,8 +3011,8 @@ async function openProfile(w) {
     if (e.target.closest("[data-pvisit]")) { close(); rpg.hide(); goIsland({ visit: w }); return; }
     if (e.target.closest("[data-pgo]")) { const g = ghosts && ghosts.named().find((x) => x.wallet === w); if (g) { close(); rpg.hide(); goNear(g.x, g.z); } return; }
     const gb = e.target.closest("[data-pgift]"); if (gb) { const [k, n] = gb.dataset.pgift.split(":"); gb.disabled = true; inbox.send(w, k, Number(n)).then(() => { if (el.isConnected) paint(fr); }); return; }
-    if (e.target.closest("[data-pfriend]")) { island.toggleFriend(w, row.name || (fr && fr.name) || ""); if (!island.isFriend(w) && inParty(w)) partyToggle(w); paint(fr); }
-    if (e.target.closest("[data-pparty]")) { partyToggle(w); paint(fr); }
+    if (e.target.closest("[data-pfriend]")) { island.toggleFriend(w, row.name || (fr && fr.name) || ""); paint(fr); }
+    if (e.target.closest("[data-pparty]")) { const pu = partyUI(); if (pu) pu.invite(w).then(() => { if (el.isConnected) paint(fr); }); }
   });
 }
 // a card to share (an achievement): the photo sheet shows it with save / share / post

@@ -26,12 +26,16 @@
 //            worldRaidIn/<week>_<wallet> · worldRaidFell/<week> { at } · worldGhosts/<2-min window>_<shard 0–7> { list }
 //            worldRaidGap/<week>_<wallet>_<slot> · worldRaidClaim/<week>_<wallet>
 //            worldStats/players { list, n } · worldGifts/<wallet> { list } · worldGiftDay/<wallet>_<day> { n } · worldStats/race_<week> { top }
-import { isGM } from "./_world-village.mjs";
+import { isGM, xpLevel } from "./_world-village.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 export const RAID_HP = 500000, RAID_ARCL = 40, RAID_MIN = 600, RAID_GAP = 5;
 export const NOTE_MAX = 60;
+/// the popular-village lists: this week's, this month's (Seoul) and all-time top 20, one small document each
+export const VTOP = 20;
+export const monthOf = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 7);
+export const topKey = (p, key) => (p === "week" ? `worldStats/islandWeek_${key}` : p === "month" ? `worldStats/islandMonth_${key}` : "worldStats/islandAll");
 /// the raid's HP: 25,000 for each raider who came last week, between 200,000 and 2,000,000 (500,000 with no history)
 export const raidMax = (players) => (players > 0 ? Math.max(200000, Math.min(2000000, Math.round((players * 25000) / 50000) * 50000)) : RAID_HP);
 /// the next Monday 00:00 in Seoul (when a new raid boss comes)
@@ -82,13 +86,18 @@ export function makeSocial(deps) {
   const now = () => deps.now();
   const one = async (p) => (await getDocs([p]))[p];
 
-  // ---- the weekly island contest: likes given this week ----
+  // ---- the island contest: likes given this week, this month and ever (the caller counts only likes from players of level 3+) ----
+  // One increment for the three counters, one read of them and their lists, one write each: the lists are kept up to date
+  // here, so showing them never scans anything.
   async function weekLike(target, isl) {
-    const wk = isoWeek(now()), mk = `worldIslandWeek/${wk}_${target}`;
-    await commit([{ inc: mk, fields: { n: 1 } }]);
-    const mine = ((await one(mk)) || {}).n || 1, key = `worldStats/islandWeek_${wk}`, cur = (await one(key)) || { top: [] };
-    const top = [{ wallet: target, name: (isl && isl.name) || "", n: (isl && isl.n) || 0, likes: mine }, ...(cur.top || []).filter((x) => x.wallet !== target)].sort((a, b) => b.likes - a.likes).slice(0, 12);
-    await setDoc(key, { top });
+    const wk = isoWeek(now()), mo = monthOf(now()), ctr = [`worldIslandWeek/${wk}_${target}`, `worldIslandMonth/${mo}_${target}`, `worldIslandAll/${target}`], keys = [topKey("week", wk), topKey("month", mo), topKey("all")];
+    await commit(ctr.map((k) => ({ inc: k, fields: { n: 1 } })));
+    const d = await getDocs([...ctr, ...keys]);
+    await Promise.all(keys.map((key, i) => {
+      const likes = (d[ctr[i]] || {}).n || 1, cur = d[key] || { top: [] };
+      const top = [...(cur.top || []).filter((x) => x.wallet !== target), { wallet: target, name: (isl && isl.name) || "", n: (isl && isl.n) || 0, likes, level: xpLevel((isl && isl.vxp) || 0), score: (isl && isl.vscore) || 0 }].sort((a, b) => b.likes - a.likes).slice(0, VTOP);
+      return setDoc(key, { top });
+    }));
   }
   async function islandWeek() {
     const wk = isoWeek(now());

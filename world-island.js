@@ -693,7 +693,7 @@ export function createIsland(ctx) {
     const me = sess();
     try {
       if (kind === "lot") { const r = await fetch("/api/social?world=lots&coins=" + lotCoin.token); if (r.ok) { const j = await r.json(); const d = j.lots && j.lots[lotCoin.token]; if (d && (!local || (d.at || 0) > (local.at || 0))) list = decode(d.data, N); } }
-      else if (me) { const r = await fetch("/api/social?world=island&wallet=" + me.wallet); if (r.ok) { const j = await r.json(); if (j.data && (!local || (j.at || 0) > (local.at || 0))) list = decode(j.data, N); if (j.likes) ctx.onLikes(j.likes); } }
+      else if (me) { const r = await fetch("/api/social?world=island&fresh=1&wallet=" + me.wallet); if (r.ok) { const j = await r.json(); if (j.data && (!local || (j.at || 0) > (local.at || 0))) list = decode(j.data, N); if (j.likes) ctx.onLikes(j.likes); } }
     } catch { /* keep this browser's copy */ }
     return list;
   }
@@ -742,7 +742,7 @@ export function createIsland(ctx) {
   async function openBook() {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to see your guestbook")); return; }
     openSheet("wi-book"); $("wi-book-list").innerHTML = `<li class="wi-empty">${esc(T("Loading…"))}</li>`;
-    try { const r = await fetch("/api/social?world=island&wallet=" + s.wallet); book = r.ok ? ((await r.json()).stamps || []) : []; } catch { book = []; }
+    try { const r = await fetch("/api/social?world=island&fresh=1&wallet=" + s.wallet); book = r.ok ? ((await r.json()).stamps || []) : []; } catch { book = []; }
     const top = Math.max(0, ...book.map((x) => x.at || 0)); try { localStorage.setItem(BOOK, String(top)); } catch { /* private */ } bookNew = 0; paintBookDot();
     paintBook();
   }
@@ -760,7 +760,7 @@ export function createIsland(ctx) {
     }
     const s = sess(); if (!s) return;
     try {
-      const r = await fetch("/api/social?world=island&wallet=" + s.wallet), j = r.ok ? await r.json() : {};
+      const r = await fetch("/api/social?world=island&fresh=1&wallet=" + s.wallet), j = r.ok ? await r.json() : {};
       let seen = 0; try { seen = Number(localStorage.getItem(BOOK) || 0); } catch { /* private */ }
       bookNew = (j.stamps || []).filter((x) => (x.at || 0) > seen).length; paintBookDot();
       if (bookNew && bookNew !== lastNew) { lastNew = bookNew; say(bookNew === 1 ? T("A new stamp on your island. Open the Guestbook to see it.") : T("{n} new stamps on your island. Open the Guestbook to see them.", { n: bookNew }), "#ffc861"); }
@@ -892,7 +892,8 @@ export function createIsland(ctx) {
     <h3>${esc(T("Share a build"))}</h3><div class="wi-code"><button type="button" class="wp-btn" id="wi-copy">${esc(T("Copy my island as a code"))}</button><input id="wi-code-in" placeholder="ARCBP1.…" spellcheck="false" autocomplete="off"><button type="button" class="wp-btn" id="wi-paste">${esc(T("Use code"))}</button></div></div></div>
   <div class="wi-sheet" id="wi-isles" hidden><div class="wi-card"><header><h2>${esc(T("Islands"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
     <div class="wi-mine-row"><button type="button" class="wp-cta wi-mine" id="wi-go-mine">${esc(T("Go to my island"))}</button><button type="button" class="wp-btn wi-link" id="wi-link">${esc(T("Copy my island link"))}</button><button type="button" class="wp-btn wi-tour" id="wi-tour">${esc(T("Surprise me"))}</button></div>
-    <nav class="wi-cats" id="wi-isle-tabs"><button type="button" data-tab="top" aria-pressed="true">${esc(T("Popular"))}</button><button type="button" data-tab="week" aria-pressed="false">${esc(T("This week"))}</button><button type="button" data-tab="recent" aria-pressed="false">${esc(T("Recently built"))}</button><button type="button" data-tab="friends" aria-pressed="false">${esc(T("Friends"))}</button></nav>
+    <nav class="wi-cats" id="wi-isle-tabs"><button type="button" data-tab="top" aria-pressed="true">${esc(T("Popular"))}</button><button type="button" data-tab="week" aria-pressed="false">${esc(T("This week"))}</button><button type="button" data-tab="recent" aria-pressed="false">${esc(T("Recently built"))}</button><button type="button" data-tab="friends" aria-pressed="false">${esc(T("Friends"))}</button><button type="button" data-tab="villages" aria-pressed="false">${esc(T("Top villages"))}</button></nav>
+    <nav class="wi-cats" id="wi-vtop-tabs" hidden><button type="button" data-vp="week">${esc(T("This week"))}</button><button type="button" data-vp="month">${esc(T("This month"))}</button><button type="button" data-vp="all">${esc(T("All time"))}</button></nav>
     <p class="wi-note" id="wi-isle-note" hidden></p>
     <ul class="wi-isle-list" id="wi-isle-list"></ul>
     <form class="wi-code" id="wi-visit-form"><input id="wi-visit-in" placeholder="${esc(T("Visit a wallet: 0x…"))}" spellcheck="false" autocomplete="off"><button type="submit" class="wp-btn">${esc(T("Visit"))}</button></form></div></div>
@@ -998,12 +999,12 @@ export function createIsland(ctx) {
   }
   let isleTab = "top", isleData = null;
   async function openIsles(tab) {
-    if (tab && /^(top|week|recent|friends)$/.test(tab)) isleTab = tab;
+    if (tab && /^(top|week|recent|friends|villages)$/.test(tab)) isleTab = tab;
     openSheet("wi-isles"); $("wi-isle-list").innerHTML = `<li class="wi-empty">${esc(T("Loading islands…"))}</li>`;
     try { const r = await fetch("/api/social?world=islands"); isleData = r.ok ? await r.json() : null; } catch { isleData = null; }
-    weekData = null; paintIsles(); if (isleTab === "week" || isleTab === "friends") loadTab();
+    weekData = null; paintIsles(); if (isleTab === "week" || isleTab === "friends" || isleTab === "villages") loadTab();
   }
-  let weekData = null, friendData = null;
+  let weekData = null, friendData = null, vp = "week"; const vtop = {}; // the popular-village lists by period, each kept 30 s (the server caches them too)
   // the island tour: a random island you haven't seen on this tour, from the popular, this week's and recently built lists
   const toured = new Set();
   async function tour() {
@@ -1029,12 +1030,22 @@ export function createIsland(ctx) {
   async function loadTab() {
     if (isleTab === "week" && !weekData) { try { const r = await fetch("/api/social?world=island-week"); weekData = r.ok ? await r.json() : { top: [] }; } catch { weekData = { top: [] }; } }
     if (isleTab === "friends") { const ws = FR().map((f) => f.w); friendData = { list: [] }; if (ws.length) { try { const r = await fetch("/api/social?world=friends&wallets=" + ws.join(",")); const j = r.ok ? await r.json() : {}; friendData.list = FR().map((f) => ({ wallet: f.w, saved: f.n, ...((j.friends || {})[f.w] || {}) })); } catch { friendData.list = FR().map((f) => ({ wallet: f.w, saved: f.n })); } } }
+    if (isleTab === "villages" && !(vtop[vp] && Date.now() - vtop[vp].at < 30e3)) { const p = vp; try { const r = await fetch("/api/social?world=village-top&p=" + p); vtop[p] = { ...(r.ok ? await r.json() : { top: [] }), at: Date.now() }; } catch { vtop[p] = { top: [], at: Date.now() }; } }
     paintIsles();
   }
   const ago = (t) => { if (!t) return T("not seen yet"); const m = Math.floor((Date.now() - t) / 60000); return m < 15 ? T("just now") : m < 60 ? T("{n} min ago", { n: m }) : m < 1440 ? T("{n} h ago", { n: Math.floor(m / 60) }) : T("{n} days ago", { n: Math.floor(m / 1440) }); };
   function paintIsles() {
     ui.querySelectorAll("#wi-isle-tabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === isleTab)));
-    const note = $("wi-isle-note"); note.hidden = !(isleTab === "week" || isleTab === "friends");
+    $("wi-vtop-tabs").hidden = isleTab !== "villages"; ui.querySelectorAll("#wi-vtop-tabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vp === vp)));
+    const note = $("wi-isle-note"); note.hidden = !(isleTab === "week" || isleTab === "friends" || isleTab === "villages");
+    if (isleTab === "villages") {
+      const d = vtop[vp], pz = d && d.prizes;
+      note.textContent = vp === "all" ? T("The most-liked villages ever. Only likes from players of level 3 and up count.") : (vp === "week" ? T("The top 3 villages of the week win ARCL: {a}. Only likes from players of level 3 and up count. Winners claim in the Adventure log.", { a: pz ? pz.map((x) => x.toLocaleString("en-US")).join(" / ") : "" }) : T("The top 3 villages of the month win ARCL: {a}. Only likes from players of level 3 and up count. Winners claim in the Adventure log.", { a: pz ? pz.map((x) => x.toLocaleString("en-US")).join(" / ") : "" }));
+      if (!d) { $("wi-isle-list").innerHTML = `<li class="wi-empty">${esc(T("Loading islands…"))}</li>`; return; }
+      const last = d.last && d.last.winners.length ? `<li class="wi-empty">${esc((vp === "week" ? T("Last week's winners: {x}", { x: d.last.winners.map((x) => x.name || "?").join(", ") }) : T("Last month's winners: {x}", { x: d.last.winners.map((x) => x.name || "?").join(", ") })))}</li>` : "";
+      $("wi-isle-list").innerHTML = d.top.length ? d.top.map((x, i) => `<li class="${i < 3 ? "vt p" + (i + 1) : "vt"}"><span class="wi-rank">${i + 1}</span><div><b>${esc(x.name || x.wallet.slice(0, 6) + "…" + x.wallet.slice(-4))}</b><small>♥ ${x.likes || 0} · ${esc(T("Village Lv {n}", { n: x.level || 1 }))} · ${esc(T("{n} score", { n: (x.score || 0).toLocaleString("en-US") }))}</small></div><button type="button" class="wi-visit" data-wal="${esc(x.wallet)}">${esc(T("Visit this island"))}</button></li>`).join("") + last : `<li class="wi-empty">${esc(vp === "all" ? T("No likes yet.") : vp === "week" ? T("No likes yet this week. Visit an island and leave the first.") : T("No likes yet this month. Visit an island and leave the first."))}</li>${last}`;
+      return;
+    }
     if (isleTab === "week") note.textContent = T("This week's contest: the islands with the most new likes since Monday (Seoul time). It starts over every week.");
     if (isleTab === "friends") note.textContent = T("Add friends from their island's visit bar. Their card shows their level, when they last played and their island.");
     if (isleTab === "week" || isleTab === "friends") {
@@ -1075,6 +1086,7 @@ export function createIsland(ctx) {
     if (b.id === "wi-paste") { closeSheets(); startBlueprint(fromCode($("wi-code-in").value), T("Your blueprint")); return; }
     if (b.id === "wi-go-mine") { closeSheets(); ctx.goIsland({}); return; }
     if (b.id === "wi-tour" || b.id === "wi-next") { tour(); return; }
+    if (b.dataset.vp) { vp = b.dataset.vp; paintIsles(); loadTab(); return; }
     if (b.dataset.tab) { isleTab = b.dataset.tab; if (isleTab === "week") weekData = null; paintIsles(); loadTab(); return; }
     if (b.dataset.unfriend) { const list = FR(), i = list.findIndex((f) => f.w === b.dataset.unfriend); if (i >= 0) list.splice(i, 1); ctx.saveP && ctx.saveP(); loadTab(); return; }
     if (b.id === "wi-friend") { if (visitInfo) toggleFriend(visitInfo.wallet, visitInfo.name); return; }

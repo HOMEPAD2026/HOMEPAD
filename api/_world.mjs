@@ -24,12 +24,14 @@
 //            worldStampSeen/<target>_<wallet>_<day> · worldLot/<coin> · worldStats/islands { top, recent }
 // Notes, the weekly island contest, friends' cards, wanderers and the raid boss: api/_world-social.mjs.
 // Local chat, the friends graph (requests, blocks) and private chat: api/_world-chat.mjs.
+// Bounties, party quests, the village rankings (week / month / all time) and their prizes: api/_world-rank.mjs.
 // Firestore: worldStats/main { visitors, players } · worldCounted/<wallet> (counted once in players) · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
 import { makeChat } from "./_world-chat.mjs";
 import { makeCrew } from "./_world-crew.mjs";
+import { makeRank, RANK_MIN_LV } from "./_world-rank.mjs";
 import { makeVillage, isGM } from "./_world-village.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
@@ -208,6 +210,7 @@ export function make(deps) {
   const social = makeSocial({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
   const chat = makeChat({ ...deps, json, now, signer });
   const crew = makeCrew({ ...deps, json, now, signer, isoWeek: shop.isoWeek, levelOfSave });
+  const rank = makeRank({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit, award: shop.award });
   village = makeVillage({ ...deps, json, now, signer, isoWeek: shop.isoWeek, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n) });
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
@@ -351,12 +354,14 @@ export function make(deps) {
     } catch { /* the island itself is saved */ }
     return json(200, { ok: true, at: now(), n: ok.n, village: await village.view(s.wallet) });
   }
-  async function island(wallet) {
+  async function island(wallet, fresh) {
     const w = lc(wallet); if (!isAddr(w)) return json(400, { error: "wallet must be an address" });
     const d = await getDocs([`worldIsland/${w}`, `worldIslandLikes/${w}`, `worldStamps/${w}`]);
     const isl = d[`worldIsland/${w}`];
-    if (!isl) return json(200, { wallet: w, data: null });
-    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, theme: isl.theme || "", likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: pubStamps((d[`worldStamps/${w}`] || {}).list || []), village: await village.view(w) });
+    // a visit may be a minute old (s-maxage 60); your own island is asked with fresh=1 and never cached
+    const cache = fresh ? "no-store" : "public, max-age=15, s-maxage=60";
+    if (!isl) return json(200, { wallet: w, data: null }, cache);
+    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, theme: isl.theme || "", likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: pubStamps((d[`worldStamps/${w}`] || {}).list || []), village: await village.view(w) }, cache);
   }
   async function like(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -373,7 +378,8 @@ export function make(deps) {
       const top = [{ wallet: target, name: isl.name || "", n: isl.n || 0, likes }, ...(L.top || []).filter((x) => x.wallet !== target)].sort((a, c) => (c.likes || 0) - (a.likes || 0)).slice(0, 12);
       await setDoc("worldStats/islands", { top, recent: L.recent || [] });
     } catch { /* the like counts anyway */ }
-    await social.weekLike(target, isl).catch(() => {});
+    // only a like from a player of level 3+ counts for the rankings (the like itself is recorded either way)
+    if (levelOfSave((await getDocs([`worldSave/${s.wallet}`]))[`worldSave/${s.wallet}`]) >= RANK_MIN_LV) await social.weekLike(target, isl).catch(() => {});
     return json(200, { ok: true, likes });
   }
   async function stamp(b) {
@@ -426,10 +432,10 @@ export function make(deps) {
       }
       if (w === "phase") { if (!on()) return json(200, { phase: PH.phase, epoch: PH.epoch, top: [] }); return phaseView(); }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
-      if (w === "island") return island(url.searchParams.get("wallet"));
+      if (w === "island") return island(url.searchParams.get("wallet"), url.searchParams.has("fresh"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
-      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await chat.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)) || (await village.read(w, url)); if (r) return r;
+      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await chat.read(w, url)) || (await support.read(w, url)) || (await crew.read(w, url)) || (await village.read(w, url)) || (await rank.read(w, url)); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -450,7 +456,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };
