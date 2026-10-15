@@ -656,6 +656,8 @@ const floorU = []; st.on((dt) => { for (const u of floorU) u.uFt.value += dt; })
 
 // ---- the kit models (Kenney + Quaternius, CC0) ----
 let kit = await Promise.race([kitP, new Promise((r) => setTimeout(() => r(null), 12000))]);
+// b443: the far grounds' creatures load once you walk 60 m out of the plaza, or 90 s in
+{ const t0 = performance.now(), mt = setInterval(() => { const k = kit; if (!k || !k.loadMonsters) return; if (Math.hypot(planet.position.x, planet.position.z) > 60 || performance.now() - t0 > 90000) { clearInterval(mt); k.loadMonsters(); } }, 2000); }
 loadbar(0.75);
 async function dressWorld(kit) {
   if (!kit) return;

@@ -801,10 +801,12 @@ export function loadKit(ver = "") {
     // the scammers are drawn in code now (world-gear3d.js villainize): no robot file to download
     kit.enemiesReady = Promise.resolve().then(() => { villainize(kit); return kit; }).catch((err) => { console.warn("world robots:", err); return kit; });
     // the creatures the far hunting grounds dress their scammers as (Quaternius, CC0); clips come named "Bat/Run" and so on
-    kit.monstersReady = kit.enemiesReady.then(() => loadPack("/models/world/packs/q-monsters.glb", ver)).then((p) => {
+    // b443: on request (world-play.js: once you head out of town, or 90 s in), not at start: 2.1 MB that only the far
+    // grounds use, which competed with the town's packs and was readied on the plaza
+    kit.loadMonsters = () => kit.monstersReady || (kit.monstersReady = kit.enemiesReady.then(() => loadPack("/models/world/packs/q-monsters.glb", ver)).then((p) => {
       for (const [n, node] of p.models) kit.enemies[n] = { scene: node, clips: p.clips.filter((c) => c.name.startsWith(n + "/")).map((c) => { const x = c.clone(); x.name = c.name.slice(n.length + 1); return x; }) };
       return kit;
-    }).catch((err) => { console.warn("world monsters:", err); return kit; });
+    }).catch((err) => { console.warn("world monsters:", err); return kit; }));
     return kit;
   });
   return kitP;

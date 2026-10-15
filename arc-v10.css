@@ -1713,11 +1713,14 @@ html{--acts-w:0px}
   /* the island bar on a phone: left of the buttons at a phone's size, the title on top and the actions in a grid
      (one row of five ran off both ends of the bar) */
   html.wp-pcphone #wi>.wi-bar{left:16px;right:calc(var(--acts-w) + 12px);transform:none;width:auto;max-width:none;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;border-radius:24px}
+  /* b443: on a phone the island bar sits up top, under the quest card and left of the minimap, in one row: at the bottom it covered the
+     fixed joystick's ring (left) and had no room beside the action buttons (right) */
+  html.wp-pcphone #wi>.wi-bar,html.wp-pcphone body.wi-building #wi>.wi-bar{top:345px;bottom:auto;left:16px;right:250px}
   html.wp-pcphone #wi>.wi-bar .wi-title{justify-content:flex-start;gap:4px 14px;white-space:normal}
   html.wp-pcphone #wi>.wi-bar .wi-title b{font-size:26px}
   html.wp-pcphone #wi>.wi-bar .wi-title span{flex-wrap:wrap;gap:4px 14px;font-size:19px}
   html.wp-pcphone #wi>.wi-bar .wi-title small{flex-basis:100%;font-size:18px}
-  html.wp-pcphone #wi>.wi-bar .wi-acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  html.wp-pcphone #wi>.wi-bar .wi-acts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
   html.wp-pcphone #wi>.wi-bar .wi-b{height:62px;justify-content:center;padding:0 10px;font-size:20px;border-radius:18px}
   html.wp-pcphone #wi>.wi-bar .wi-b kbd{display:none}
   html.wp-pcphone #wi>.wi-bar #wi-build-btn:not([aria-pressed=true]){background:rgba(126,224,160,.16);border-color:rgba(126,224,160,.55);color:#bfffd8}
