@@ -40,9 +40,11 @@ r = await W.handle({ action: "world-stamp-hide", ...them, at }); check(r.status 
 r = await W.handle({ action: "world-stamp-hide", ...me, at }); check(r.status === 200, "the owner hides it");
 r = await W.read(new URL("http://x/api/social?world=island&wallet=" + A)); check(r.body.stamps[0].h === 1 && !r.body.stamps[0].m, "a hidden note keeps the stamp, not the words");
 r = await W.handle({ action: "world-stamp-hide", ...me, at }); r = await W.read(new URL("http://x/api/social?world=island&wallet=" + A)); check(r.body.stamps[0].m === "Love the tower!", "shown again");
-// weekly contest
+// weekly contest (a like counts for the rankings from a player of level 3+: api/_world-rank.mjs; tests/world/rank.test.mjs)
+db.set("worldSave/" + B, { xp: 300, xpv: 2 });
 r = await W.handle({ action: "world-like", ...them, target: A }); check(r.status === 200, "a like");
 r = await W.read(new URL("http://x/api/social?world=island-week")); check(r.body.top.length === 1 && r.body.top[0].wallet === A && r.body.top[0].likes === 1 && /^\d{4}-W\d\d$/.test(r.body.week), "this week's contest has it");
+db.delete("worldSave/" + B); // (the level-3 liker was only there for the like)
 // friends
 r = await W.read(new URL("http://x/api/social?world=friends&wallets=" + A + "," + B + ",junk")); check(Object.keys(r.body.friends).length === 2 && r.body.friends[A].isle === 1 && r.body.friends[A].likes === 1, "friends' cards");
 // the card's showcase: earned titles, the worn one, the gear on, the crew's tag

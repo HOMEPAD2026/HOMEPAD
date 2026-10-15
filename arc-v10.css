@@ -2538,6 +2538,10 @@ html.wp-pcphone .wr-raid-bar{height:16px}
 .wi-isle-list li.wk .wi-rank{grid-area:r;align-self:center;font:900 15px var(--f-ui);color:rgba(222,233,244,.5);text-align:center}
 .wi-isle-list li.wk b{grid-area:b}.wi-isle-list li.wk small{grid-area:s}
 .wi-isle-list li.p1 .wi-rank{color:#ffc861}.wi-isle-list li.p2 .wi-rank{color:#dfe7ef}.wi-isle-list li.p3 .wi-rank{color:#e09a5f}
+.wi-isle-list li.vt{display:grid;grid-template-columns:30px 1fr auto;align-items:center;column-gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(120,196,255,.14)}
+.wi-isle-list li.vt .wi-rank{font:900 15px var(--f-ui);color:rgba(222,233,244,.5);text-align:center}
+.wi-isle-list li.vt div{display:grid;gap:3px;min-width:0}
+.wi-isle-list li.vt .wi-visit{flex-direction:row;align-items:center;padding:8px 16px;border-radius:999px}
 .wi-isle-list li.fr{display:flex;gap:6px;align-items:stretch}
 .wi-isle-list li.fr>button:first-child{flex:1}
 .wi-isle-list li.fr b em{font-style:normal;font-size:12px;color:#9fffd0;margin-left:6px}

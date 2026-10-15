@@ -6,7 +6,9 @@
 // Muting is this browser's own (a list of wallets); blocking is the server's, and also shuts the DM.
 //
 // ctx: { T, esc, toast, post, sess(), area() → { id, name } | null, bubble(text), following() → [{ w, n }], openProfile(w),
-//        freeze(on), onUnread(n), onSay(), Snd }
+//        freeze(on), onUnread(n), onSay(), onParty(), Snd }
+// The party (world-party.js) lives in the Friends tab: its card on top and an Invite button on each friend; createChat returns it as `party`.
+import { createParty } from "./world-party.js";
 export const CHAT_READY = true;
 const MUTE = "arc.world.chatMute", POLL = 6000, ASK_EVERY = 60e3, PRES_EVERY = 170e3, MAX = 120;
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
@@ -18,6 +20,7 @@ export function createChat(ctx) {
   const $ = (s) => el.querySelector(s);
   let open = false, tab = "local", timer = 0, busy = false;
   let local = { ch: "", list: [] }, fr = null, thread = null, un = { dm: 0, from: {}, q: 0 }, said = null, presAt = 0, pickW = "", pickMode = "", sure = "";
+  const party = createParty({ T, esc, toast, post, sess, Snd: ctx.Snd, onChange: () => { if (open && tab === "friends") paintBody(); if (ctx.onParty) ctx.onParty(); } });
   let mutes = []; try { const m = JSON.parse(localStorage.getItem(MUTE) || "[]"); if (Array.isArray(m)) mutes = m.filter((x) => x && /^0x[0-9a-f]{40}$/.test(x.w)).slice(0, 100); } catch { /* private window */ }
   const saveMutes = () => { try { localStorage.setItem(MUTE, JSON.stringify(mutes)); } catch { /* private window */ } };
   const muted = (w) => mutes.some((x) => x.w === w);
@@ -78,9 +81,9 @@ export function createChat(ctx) {
     if (!fr) return note(T("Loading…"));
     const L = fr.list, by = (s) => L.filter((x) => x.st === s), b = (k, v, txt, cls = "") => `<button type="button" class="wp-btn ${cls}" data-${k}="${esc(v)}">${esc(T(txt))}</button>`;
     const have = new Set(L.map((x) => x.w)), fo = ctx.following().filter((x) => x && x.w && !have.has(String(x.w).toLowerCase()));
-    let h = "";
+    let h = party.card();
     if (by("in").length) h += `<h3>${esc(T("Requests"))}</h3><ul class="wp-chat-list">${by("in").map((x) => frRow(x, b("ok", x.w, "Accept", "wp-cta") + b("no", x.w, "Decline"))).join("")}</ul>`;
-    h += `<h3>${esc(T("Friends"))}</h3>` + (by("friend").length ? `<ul class="wp-chat-list">${by("friend").map((x) => frRow(x, b("dm", x.w, "Message", "wp-cta") + `<button type="button" class="wp-btn wp-more" data-more="${esc(x.w)}" aria-label="${esc(T("More"))}">⋯</button>`
+    h += `<h3>${esc(T("Friends"))}</h3>` + (by("friend").length ? `<ul class="wp-chat-list">${by("friend").map((x) => frRow(x, b("dm", x.w, "Message", "wp-cta") + party.rowBtn(x.w) + `<button type="button" class="wp-btn wp-more" data-more="${esc(x.w)}" aria-label="${esc(T("More"))}">⋯</button>`
       + (pickW === x.w && pickMode === "more" ? `<div class="wp-chat-act">${b("rm", x.w, sure === "rm" + x.w ? "Tap again to remove" : "Remove friend", "wp-danger")}${b("bl", x.w, sure === "bl" + x.w ? "Tap again to block" : "Block", "wp-danger")}</div>` : ""))).join("")}</ul>`
       : note(T("No friends yet. Tap a name in the local chat to add one.")));
     if (by("out").length) h += `<h3>${esc(T("Requests sent"))}</h3><ul class="wp-chat-list">${by("out").map((x) => frRow(x, b("rm", x.w, "Cancel"))).join("")}</ul>`;
@@ -183,8 +186,9 @@ export function createChat(ctx) {
   el.addEventListener("click", async (e) => {
     if (e.target === el || e.target.closest("[data-x]")) { hide(); return; }
     const b = e.target.closest("button"); if (!b) return;
+    if (party.click(b)) return;
     const d = b.dataset, li = b.closest("li[data-w]");
-    if (d.tab) { tab = d.tab; thread = null; pickW = ""; pickMode = ""; sure = ""; $(".wp-chat-send").elements.m.value = ""; paint(); if (tab === "local") loadLocal(); else { if (!fr || tab === "friends") loadFriends(); if (tab === "dms") loadUnread(); } return; }
+    if (d.tab) { tab = d.tab; thread = null; pickW = ""; pickMode = ""; sure = ""; $(".wp-chat-send").elements.m.value = ""; paint(); if (tab === "local") loadLocal(); else { if (!fr || tab === "friends") loadFriends(); if (tab === "friends") party.loadFull(true); if (tab === "dms") loadUnread(); } return; }
     if (b.hasAttribute("data-back")) { thread = null; paint(); loadUnread(); return; }
     if (b.hasAttribute("data-n") && li) { const w = li.dataset.w; if (w === me()) return; const same = pickW === w && pickMode === li.dataset.id; pickW = same ? "" : w; pickMode = same ? "" : li.dataset.id; sure = ""; if (!fr) loadFriends(); paintBody(); return; }
     if (d.prof && ctx.openProfile) { hide(); ctx.openProfile(d.prof); return; }
@@ -217,6 +221,7 @@ export function createChat(ctx) {
     open = true; el.hidden = false; ctx.freeze(true); fit();
     if (w) { tab = "dms"; thread = { w, list: null }; } else if (!ctx.area() && tab === "local") tab = "friends";
     paint(); loadUnread(); if (tab === "local") loadLocal(); else if (tab === "dms" && thread) loadThread(); else loadFriends();
+    if (tab === "friends") party.loadFull();
     clearInterval(timer); timer = setInterval(tick, POLL);
   }
   function hide() { if (!open) return; open = false; el.hidden = true; clearInterval(timer); timer = 0; thread = null; pickW = ""; sure = ""; ctx.freeze(false); const i = el.querySelector("input"); if (i) i.blur(); }
@@ -227,7 +232,7 @@ export function createChat(ctx) {
   badge();
 
   return {
-    show, hide, isOpen: () => open, unread: () => un.dm + un.q,
+    show, hide, isOpen: () => open, unread: () => un.dm + un.q, party,
     /// the last line you said in the last minute, once, for the ping (others see it over your figure)
     pending() { if (said && !said.sent && Date.now() - said.at < 60e3) { said.sent = true; return said.m.slice(0, 80); } return ""; },
     /// true about every 3 minutes: the ping then tells the server you're here (the green dot on your friends' lists)

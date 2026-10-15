@@ -58,6 +58,10 @@ export const EARN = [
   { kind: "sell", n: 0, label: "Sell gear at the Forge", more: "6–260 by rarity, up to 1,500 a day" },
   { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 30 a day", repeat: { max: 30, gap: 240 } },
   { kind: "raid", n: 40, label: "Help bring down the weekly raid boss", more: "once a week, after it falls", weekly: true },
+  // weekly goals and prizes (api/_world-rank.mjs): claimed there, so the amounts are paid by its own constants (n: 0 here)
+  { kind: "bounty", n: 0, label: "Weekly bounty: defeat 100 / 300 / 600 monsters", more: "40 / 100 / 200 once each a week", weekly: true },
+  { kind: "party", n: 0, label: "Party quest: 500 knock-outs together", more: "once a week", weekly: true },
+  { kind: "vwin", n: 0, label: "A top-3 village of the week or month", more: "week 500 / 300 / 150, month 2,000 / 1,000 / 500", weekly: true },
 ];
 const EARN_BY = Object.fromEntries(EARN.map((e) => [e.kind, e]));
 // the scammer stages: the answer that beats each (the game's FIGHTS)
@@ -285,7 +289,7 @@ export function makeShop(deps) {
   // this week's hunters: points only for knock-outs the server counted (the daily caps above bound them)
   async function huntPoint(w, pts) {
     const wk = isoWeek(now()), mk = `worldHuntWeek/${wk}_${w}`;
-    await commit([{ inc: mk, fields: { n: pts } }]);
+    await commit([{ inc: mk, fields: { n: pts, k: 1 } }]); // k: the knock-outs themselves (bounties and party quests, api/_world-rank.mjs)
     const mine = ((await one(mk)) || {}).n || pts, key = `worldStats/huntWeek_${wk}`, cur = (await one(key)) || { top: [] };
     const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16);
     const top = [{ w: short(w), id: w, n: mine, name }, ...(cur.top || []).filter((x) => x.id !== w)].sort((a, b) => b.n - a.n).slice(0, 20);
@@ -352,6 +356,7 @@ export function makeShop(deps) {
     if (kind === "stamp") return json(400, { error: "stamps are credited when you leave one" });
     if (kind === "sell") return json(400, { error: "sell gear at the Forge" });
     if (kind === "raid") return json(400, { error: "the raid's reward is claimed at the raid" });
+    if (kind === "bounty" || kind === "party" || kind === "vwin") return json(400, { error: "claim it in the Adventure log" });
     let n = e.n;
     if (e.repeat && /^(street|hunt|boss|pickup)$/.test(kind)) { const k = await koOf(w); if (k.until > now() || k.down) return json(423, { error: "resting after a knockout", until: k.until }); }
     if (e.repeat) {
