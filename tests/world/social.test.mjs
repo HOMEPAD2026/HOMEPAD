@@ -110,6 +110,15 @@ r = await W.read(new URL("http://x/api/social?world=plaza")); check(r.body.isle 
   r = await rd("gifts&wallet=" + B); check(r.body.n === 5, "five waiting");
   r = await W.handle({ action: "world-gifts-take", ...them }); check(r.status === 200 && r.body.gifts.length === 5 && r.body.gifts[0].name === "kmp" && r.body.gifts[0].kind === "hp", "the receiver collects them, with who sent them");
   r = await W.handle({ action: "world-gifts-take", ...them }); check(r.body.gifts.length === 0, "collected once");
+  // hearts: one a day from a level-5+ player, 100 ARCL to the friend (paid by the server, not claimable)
+  { const bal0 = (db.get(`worldArclBal/${B}`) || {}).bal || 0;
+    r = await W.handle({ action: "world-gift", ...me, to: B, kind: "heart", n: 1 }); check(r.status === 200 && r.body.credited === 100, "a heart pays the friend 100 ARCL");
+    check(((db.get(`worldArclBal/${B}`) || {}).bal || 0) === bal0 + 100, "the friend's balance went up by 100");
+    r = await W.handle({ action: "world-gift", ...me, to: B, kind: "heart", n: 1 }); check(r.status === 429, "one heart a day");
+    r = await W.handle({ action: "world-gift", ...them, to: A, kind: "heart", n: 1 }); check(r.status === 403, "a level-1 player can't send hearts");
+    r = await W.handle({ action: "world-gift", ...me, to: B, kind: "heart", n: 2 }); check(r.status === 400, "a heart is one");
+    r = await W.handle({ action: "world-gifts-take", ...them }); check(r.body.gifts.length === 1 && r.body.gifts[0].kind === "heart" && r.body.gifts[0].arcl === 100, "the friend sees the heart and its ARCL");
+    r = await W.handle({ action: "world-claim", ...them, kind: "heart" }); check(r.status === 400, "hearts can't be claimed"); }
   // guestbook replies
   r = await W.handle({ action: "world-stamp-reply", ...me, at, r: 2 }); check(r.status === 200 && r.body.stamps.find((x) => x.at === at).r === 2, "the owner answers a stamp");
   r = await W.handle({ action: "world-stamp-reply", ...them, at, r: 1 }); check(r.status === 404, "only on your own island");

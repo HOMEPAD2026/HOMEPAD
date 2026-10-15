@@ -1,10 +1,10 @@
 // world-inbox.js — the inbox (the bell next to the bag): gifts other players sent you, new stamps on your island and
 // friends who are playing right now, in one place. Gifts are potions or scrap from another player's own bag, five a
-// day (api/_world-social.mjs); never ARCL.
+// day (api/_world-social.mjs). A heart is the one exception: once a day, and the friend gets 100 ARCL from the server.
 //
 // ctx: { T, esc, post, sess, toast, Snd, rpg(), island, ghosts(), goIsland(o), goNear(x, z), openProfile(w), inHub(),
 //        bookNew() }
-const GIFT_LINE = { hp: ["{n} health potion", "{n} health potions"], sp: ["{n} mana potion", "{n} mana potions"], scrap: ["{n} scrap", "{n} scrap"] };
+const GIFT_LINE = { hp: ["{n} health potion", "{n} health potions"], sp: ["{n} mana potion", "{n} mana potions"], scrap: ["{n} scrap", "{n} scrap"], heart: ["a heart (+100 ARCL)", "a heart (+100 ARCL)"] };
 
 export function createInbox(ctx) {
   const { T, esc } = ctx;
@@ -66,13 +66,14 @@ export function createInbox(ctx) {
     const r = await ctx.post({ action: "world-gifts-take", ...s }).catch(() => ({ ok: false, j: {} }));
     if (!r.ok) { ctx.toast(r.j.error || T("Couldn't open the gifts right now")); return; }
     const list = r.j.gifts || [], rp = ctx.rpg(), d = rp && rp.data();
-    for (const g of list) { if (!d) break; if (g.kind === "scrap") d.scrap = (d.scrap || 0) + g.n; else d[g.kind] = (d[g.kind] || 0) + g.n; }
+    for (const g of list) { if (!d) break; if (g.kind === "heart") continue; if (g.kind === "scrap") d.scrap = (d.scrap || 0) + g.n; else d[g.kind] = (d[g.kind] || 0) + g.n; }
     if (rp && list.length) rp.refresh && rp.refresh();
     ctx.save && ctx.save(); ctx.onPots && ctx.onPots();
     gifts = 0; paintDot(); keep = true;
     if (el) {
       el.querySelector(".wp-inbox-card section").innerHTML = `<h3>${esc(T("Gifts"))}</h3><ul class="wp-inbox-gifts">${list.map((g) => `<li><b>${esc(g.name || g.from.slice(0, 6) + "…")}</b> ${esc(T("sent you {x}", { x: giftText(g) }))}</li>`).join("") || `<li>${esc(T("Nothing was waiting after all."))}</li>`}</ul>`;
     }
+    if (list.some((g) => g.kind === "heart") && ctx.refresh) ctx.refresh(); // the ARCL is already in: show the new balance
     if (list.length) { ctx.Snd.win && ctx.Snd.win(); ctx.toast(list.length === 1 ? T("Gift opened") : T("{n} gifts opened", { n: list.length })); }
   }
   function onClick(e) {
@@ -86,17 +87,18 @@ export function createInbox(ctx) {
   }
 
   // sending: from a player's card, one of a few small gifts out of your own bag
-  const SEND = [{ kind: "hp", n: 1 }, { kind: "sp", n: 1 }, { kind: "scrap", n: 50 }];
+  const SEND = [{ kind: "heart", n: 1 }, { kind: "hp", n: 1 }, { kind: "sp", n: 1 }, { kind: "scrap", n: 50 }];
   function sendOptions() {
     const d = ctx.rpg() && ctx.rpg().data(); if (!d) return [];
-    return SEND.map((g) => ({ ...g, can: g.kind === "scrap" ? (d.scrap || 0) >= g.n : (d[g.kind] || 0) >= g.n, label: giftText(g) }));
+    return SEND.map((g) => ({ ...g, can: g.kind === "heart" ? true : g.kind === "scrap" ? (d.scrap || 0) >= g.n : (d[g.kind] || 0) >= g.n, label: giftText(g) }));
   }
   async function send(to, kind, n) {
     const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return false; }
     const d = ctx.rpg() && ctx.rpg().data(); if (!d) return false;
-    const have = kind === "scrap" ? d.scrap || 0 : d[kind] || 0; if (have < n) { ctx.toast(T("You don't have that many")); return false; }
+    const have = kind === "heart" ? 1 : kind === "scrap" ? d.scrap || 0 : d[kind] || 0; if (have < n) { ctx.toast(T("You don't have that many")); return false; }
     const r = await ctx.post({ action: "world-gift", ...s, to, kind, n }).catch(() => ({ ok: false, j: {} }));
     if (!r.ok) { ctx.toast(r.j.error ? T(r.j.error) : T("Couldn't send that right now")); return false; }
+    if (kind === "heart") { ctx.Snd.win && ctx.Snd.win(); ctx.toast(T("Heart sent — your friend gets 100 ARCL")); return true; }
     if (kind === "scrap") d.scrap -= n; else d[kind] -= n;
     ctx.rpg().refresh && ctx.rpg().refresh(); ctx.save && ctx.save(); ctx.onPots && ctx.onPots();
     ctx.Snd.pick && ctx.Snd.pick(); ctx.toast(T("Sent: {x}", { x: giftText({ kind, n }) }));

@@ -122,7 +122,10 @@ export function makeSocial(deps) {
   }
 
   // ---- gifts between players: potions and scrap only (never ARCL), five a day, the receiver collects them ----
-  const GIFT = { hp: 3, sp: 3, scrap: 100 }, GIFTS_A_DAY = 5;
+  const GIFT = { hp: 3, sp: 3, scrap: 100, heart: 1 }, GIFTS_A_DAY = 5;
+  // a heart: one a day from each player (level 5 and up), 100 ARCL to the friend, who takes at most 5 a day (inside the
+  // daily ARCL cap). New accounts can't farm it: the sender's saved level is checked here, not taken from the game.
+  const HEART_ARCL = 100, HEART_LV = 5, HEARTS_IN = 5;
   const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
   async function gift(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -131,6 +134,19 @@ export function makeSocial(deps) {
     if (!GIFT[kind] || !(n >= 1 && n <= GIFT[kind])) return json(400, { error: "gifts are 1–3 potions or up to 100 scrap" });
     const d = await getDocs([`worldSave/${to}`, `worldSave/${s.wallet}`, `worldGiftDay/${s.wallet}_${seoulDay(now())}`]);
     if (!d[`worldSave/${to}`]) return json(404, { error: "that wallet hasn't played yet" });
+    if (kind === "heart") {
+      const day = seoulDay(now());
+      if (levelOfSave(d[`worldSave/${s.wallet}`]) < HEART_LV) return json(403, { error: `hearts open at level ${HEART_LV}` });
+      const inn = ((await one(`worldHeartIn/${to}_${day}`)) || {}).n || 0;
+      if (inn >= HEARTS_IN) return json(429, { error: "they've had 5 hearts today — try tomorrow" });
+      if (!(await commit([{ create: `worldHeartOut/${s.wallet}_${day}`, data: { to, at: now() } }])).ok) return json(429, { error: "one heart a day — more tomorrow" });
+      await commit([{ inc: `worldHeartIn/${to}_${day}`, fields: { n: 1 } }]);
+      const got = deps.credit ? await deps.credit(to, "heart", HEART_ARCL) : 0;
+      const key = `worldGifts/${to}`, cur = (await one(key)) || { list: [] };
+      const g = { id: now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), from: s.wallet, name: String((d[`worldSave/${s.wallet}`] || {}).name || "").slice(0, 16), kind, n: 1, arcl: got, at: now() };
+      await setDoc(key, { list: [...(cur.list || []), g].slice(-30) });
+      return json(200, { ok: true, gift: g, credited: got });
+    }
     if (((d[`worldGiftDay/${s.wallet}_${seoulDay(now())}`] || {}).n || 0) >= GIFTS_A_DAY) return json(429, { error: "five gifts a day — more tomorrow" });
     await commit([{ inc: `worldGiftDay/${s.wallet}_${seoulDay(now())}`, fields: { n: 1 } }]);
     const key = `worldGifts/${to}`, cur = (await one(key)) || { list: [] };
