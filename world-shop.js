@@ -207,6 +207,7 @@ export function createShop(ctx) {
       return;
     }
     arcl = { ...(arcl || {}), ...r.j, lastDay: seoulDay() }; paintChip(true);
+    if (r.j.shielded) setTimeout(() => toast(T("Streak shield used: you missed a day, but your streak goes on (once a week)")), 1400);
     const day = ((Math.max(1, r.j.streak || 1) - 1) % 7) + 1;
     chest.classList.add("open"); card.classList.add("burst"); Snd.coin && Snd.coin();
     const rc = chest.getBoundingClientRect();

@@ -9663,6 +9663,7 @@
     "Open day {n}: +{a} ARCL and {b}": "{n}일차 열기: +{a} ARCL과 {b}",
     "Miss a day and the streak starts again at day 1. ARCL is the game's points; the exchange isn't open.": "하루라도 빠지면 1일차부터 다시 시작해요. ARCL은 게임 포인트이고 교환은 아직 열리지 않았어요.",
     "Today's chest is already open.": "오늘 상자는 이미 열었어요.",
+    "Streak shield used: you missed a day, but your streak goes on (once a week)": "연속 출석 보호 사용: 하루 빠졌지만 연속 기록이 이어져요 (주 1회)",
     "Couldn't open it. Try again.": "열지 못했어요. 다시 시도해 주세요.",
     "+{n} ARCL": "+{n} ARCL",
     "ARCL: today's limit is already reached": "ARCL: 오늘 한도에 이미 도달했어요",

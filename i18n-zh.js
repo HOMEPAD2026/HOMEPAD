@@ -9833,6 +9833,7 @@
     "Open day {n}: +{a} ARCL and {b}": "打开第 {n} 天：+{a} ARCL 和 {b}",
     "Miss a day and the streak starts again at day 1. ARCL is the game's points; the exchange isn't open.": "漏掉一天，连续天数就从第 1 天重新开始。ARCL 是游戏积分，兑换尚未开放。",
     "Today's chest is already open.": "今天的宝箱已经打开过了。",
+    "Streak shield used: you missed a day, but your streak goes on (once a week)": "已使用连签保护：漏签一天，连签继续（每周一次）",
     "Couldn't open it. Try again.": "无法打开，请重试。",
     "+{n} ARCL": "+{n} ARCL",
     "ARCL: today's limit is already reached": "ARCL：今天的上限已达到",

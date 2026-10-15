@@ -385,12 +385,15 @@ export function makeShop(deps) {
     if (kind === "daily") {
       const day = seoulDay(now()), y = seoulDay(now() - 864e5);
       if (!(await commit([{ create: `worldArclDaily/${w}_${day}`, data: { at: now() } }])).ok) return json(409, { error: "already checked in today" });
-      const L = await ledger(w), streak = L.lastDay === y ? (L.streak || 0) + 1 : 1;
-      await setDoc(`worldArcl/${w}`, { ...L, streak, lastDay: day, bal: undefined, earned: undefined, spent: undefined });
+      // the streak shield: one missed day a week (ISO week) is forgiven — the day before yesterday still counts as yesterday
+      const y2 = seoulDay(now() - 2 * 864e5), wk = isoWeek(now()), L = await ledger(w);
+      const shielded = L.lastDay === y2 && (L.streak || 0) > 0 && L.shieldWk !== wk;
+      const streak = L.lastDay === y || shielded ? (L.streak || 0) + 1 : 1;
+      await setDoc(`worldArcl/${w}`, { ...L, streak, lastDay: day, ...(shielded ? { shieldWk: wk } : {}), bal: undefined, earned: undefined, spent: undefined });
       n = 20 + Math.min(30, 5 * (streak - 1));
       const got = await credit(w, kind, n);
       const egg = streak % 7 === 0 ? await freeEgg(w, "daily:" + day).catch(() => null) : null; // day 7 of the calendar: a pet egg
-      return json(200, { ok: true, kind, credited: got, streak, ...(egg && egg.ok ? { petegg: true, own: egg.own } : {}), ...(await balance(w)) });
+      return json(200, { ok: true, kind, credited: got, streak, ...(shielded ? { shielded: true } : {}), ...(egg && egg.ok ? { petegg: true, own: egg.own } : {}), ...(await balance(w)) });
     }
     if (kind.startsWith("stage:")) {
       const id = kind.slice(6);

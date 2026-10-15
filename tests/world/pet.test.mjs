@@ -98,5 +98,13 @@ check((await W.handle({ action: "world-arcl-spend", ...(await sign()), item: "pe
     if (d === 7) check(r.body.petegg && r.body.streak === 7 && own().pets.n === n0 + 1, "day 7: a free egg comes with the check-in");
   }
   check(eggs === 1 && own().pets.n === n0 + 1, "only that one day"); }
+// the streak shield: one missed day a week keeps the streak; a second miss that week resets it (Mon claim, Wed shielded, Thu, Sat reset)
+{ const day = async () => (await W.handle({ action: "world-arcl-claim", ...(await sign()), kind: "daily" })).body;
+  const sw = () => Math.floor(((T + 9 * 3600e3) / 864e5 + 3) % 7); // Seoul weekday, 0 = Monday
+  T += 24 * 3600e3; while (sw() !== 0) T += 24 * 3600e3;
+  const s0 = (await day()).streak;
+  T += 2 * 24 * 3600e3; let b = await day(); check(b.shielded === true && b.streak === s0 + 1, "a missed day is forgiven: the streak goes on");
+  T += 24 * 3600e3; b = await day(); check(!b.shielded && b.streak === s0 + 2, "the next day counts as usual");
+  T += 2 * 24 * 3600e3; b = await day(); check(!b.shielded && b.streak === 1, "a second miss in the same week: the streak starts over"); }
 console.log(`${ok} pass ${bad} fail`);
 if (bad) process.exit(1);

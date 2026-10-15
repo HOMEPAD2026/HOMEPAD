@@ -9923,6 +9923,7 @@
     "Open day {n}: +{a} ARCL and {b}": "{n}. günü aç: +{a} ARCL ve {b}",
     "Miss a day and the streak starts again at day 1. ARCL is the game's points; the exchange isn't open.": "Bir gün kaçırırsan seri 1. günden yeniden başlar. ARCL oyunun puanıdır; değişim henüz açık değil.",
     "Today's chest is already open.": "Bugünkü sandık zaten açıldı.",
+    "Streak shield used: you missed a day, but your streak goes on (once a week)": "Seri kalkanı kullanıldı: bir gün kaçırdın ama serin devam ediyor (haftada bir)",
     "Couldn't open it. Try again.": "Açılamadı. Tekrar dene.",
     "+{n} ARCL": "+{n} ARCL",
     "ARCL: today's limit is already reached": "ARCL: bugünkü limite zaten ulaşıldı",
