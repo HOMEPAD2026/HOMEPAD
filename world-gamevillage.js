@@ -67,6 +67,38 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
         const s = soonTag.clone(); s.position.set(p.x, 3.4, p.z); built.add(s);
       }
     });
+    decor();
+  }
+  // the festival dress: a stone path from the gate to the square, lamps round the square, bunting from lamp to lamp,
+  // benches between the plots and striped work fences on the empty plots. Every kind is one InstancedMesh (a draw
+  // each), the bunting one merged line of flags; the lamp heads glow by their material (no real lights).
+  function decor() {
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1);
+    const inst = (geo, mat, list) => { if (!list.length) return; const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach(([x, y, z, ry, sx = 1, sy = 1, sz = 1], i) => { e.set(0, ry, 0); q.setFromEuler(e); m.setMatrixAt(i, m4.compose(v.set(x, y, z), q, sc.set(sx, sy, sz))); }); m.castShadow = !low; m.receiveShadow = true; built.add(m); };
+    // the path: flat stones from the gate in to the square's edge
+    const stones = [], dirX = -Math.sin(toPlaza), dirZ = -Math.cos(toPlaza);
+    for (let d = V.r - 1; d > V.arenaR + 2.5; d -= 1.6) for (const off of [-0.9, 0.9]) stones.push([gx + dirX * (V.r - d) + -dirZ * off, 0.06, gz + dirZ * (V.r - d) + dirX * off, toPlaza + (off > 0 ? 0.2 : -0.15), 1, 1, 1]);
+    inst(new THREE.CylinderGeometry(0.7, 0.75, 0.08, 6), std(0xcfc6b4), stones);
+    // lamps round the square (a post and a glowing head), with bunting strung between neighbours
+    const N = low ? 8 : 12, R = V.arenaR + 4, posts = [], heads = [], flags = [];
+    const lamp = (i) => { const a = toPlaza + 0.35 + (i / N) * Math.PI * 2; return [Math.sin(a) * R, Math.cos(a) * R, a]; };
+    for (let i = 0; i < N; i++) { const [x, z, a] = lamp(i); posts.push([x, 1.6, z, a]); heads.push([x, 3.35, z, a]); }
+    inst(new THREE.CylinderGeometry(0.09, 0.13, 3.2, 6), std(0x3a4560), posts);
+    inst(new THREE.SphereGeometry(0.28, 10, 8), glow(0xffd98a, 1.6), heads);
+    const cols = [0xff6a8a, 0xffd23a, 0x38d8ff, 0x7dff9a, 0xb48cff], flagGeo = new THREE.ConeGeometry(0.18, 0.4, 3); flagGeo.rotateX(Math.PI);
+    const flagMats = cols.map((c) => std(c, { flatShading: true })), byCol = cols.map(() => []);
+    for (let i = 0; i < N; i++) { const [x0, z0] = lamp(i), [x1, z1] = lamp((i + 1) % N); for (let k = 1; k < 6; k++) { const t = k / 6, sag = Math.sin(t * Math.PI) * 0.45; byCol[(i * 5 + k) % cols.length].push([x0 + (x1 - x0) * t, 3.05 - sag, z0 + (z1 - z0) * t, Math.atan2(x1 - x0, z1 - z0)]); } }
+    byCol.forEach((l, i) => inst(flagGeo, flagMats[i], l));
+    // benches between the plots, facing the square
+    const benches = [];
+    for (let i = 0; i < GAMES.length - 1; i++) { const p0 = plotAt(i), p1 = plotAt(i + 1), a = (p0.a + p1.a) / 2, r = V.plotR - 0.5; benches.push([Math.sin(a) * r, 0.35, Math.cos(a) * r, a]); }
+    inst(new THREE.BoxGeometry(1.6, 0.14, 0.5), std(0x9a6b42), benches);
+    inst(new THREE.BoxGeometry(1.6, 0.5, 0.1), std(0x9a6b42), benches.map(([x, , z, a]) => [x + Math.sin(a) * 0.22, 0.6, z + Math.cos(a) * 0.22, a]));
+    // work fences on the empty plots: two striped rails in front of each pad
+    const rails = [];
+    GAMES.forEach((gm, i) => { if (gm.ready) return; const p = plotAt(i), fx = p.x - Math.sin(p.a) * 3.4, fz = p.z - Math.cos(p.a) * 3.4, ra = p.a + Math.PI / 2; rails.push([fx, 0.55, fz, ra], [fx, 0.95, fz, ra]); });
+    const stripe = (() => { if (typeof document === "undefined") return null; const c = document.createElement("canvas"); c.width = 64; c.height = 8; const g = c.getContext("2d"); for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? "#1d2333" : "#ffc861"; g.fillRect(k * 8, 0, 8, 8); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+    inst(new THREE.BoxGeometry(2.4, 0.16, 0.08), new THREE.MeshStandardMaterial({ map: stripe, color: stripe ? 0xffffff : 0xffc861, roughness: 0.7 }), rails);
   }
   return {
     root, doors, solids, center: { x: V.x, z: V.z }, arenaR: V.arenaR,

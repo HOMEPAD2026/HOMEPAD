@@ -508,10 +508,12 @@ export function createIsland(ctx) {
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) scan: for (let d = 1; d <= 3; d++) for (let y = fy; y <= fy + 1; y++) { const w = occ.get(key(cx + dx * d, y, cz + dz * d)); if (w && TYPES[w.t].solid) { walls++; break scan; } }
     return walls >= 3;
   }
-  const hide = (b, on) => { if (on) hidden.add(b); else hidden.delete(b); set.pose(b, 0, on ? 0 : 1); };
+  // pieces overhead shrink away (and grow back) over ~0.25 s instead of popping; with reduced motion they switch at once
+  const fading = new Map(); // brick → its scale now (0 hidden … 1 shown)
+  const hide = (b, on) => { if (on) hidden.add(b); else hidden.delete(b); if (ctx.reduce) { fading.delete(b); set.pose(b, 0, on ? 0 : 1); } else if (!fading.has(b)) fading.set(b, on ? 1 : 0); };
   // after a re-sync the hidden ones were drawn again: hide them once more (the deleted ones drop out)
-  function keepHidden() { hidden.forEach((b) => { if (occ.get(key(b.x, b.y, b.z)) === b) set.pose(b, 0, 0); else hidden.delete(b); }); inT = 0; }
-  function resetIndoor() { hidden.clear(); indoor = false; inK = 0; inT = 0; amb.intensity = 0; pool.forEach((l) => { l.intensity = 0; l.userData.b = null; l.userData.on = false; }); }
+  function keepHidden() { fading.clear(); hidden.forEach((b) => { if (occ.get(key(b.x, b.y, b.z)) === b) set.pose(b, 0, 0); else hidden.delete(b); }); inT = 0; }
+  function resetIndoor() { fading.clear(); hidden.clear(); indoor = false; inK = 0; inT = 0; amb.intensity = 0; pool.forEach((l) => { l.intensity = 0; l.userData.b = null; l.userData.on = false; }); }
   function refreshIndoor() {
     const p = hero(), now = !lapse && isIndoors(p), want = new Set(), near = [];
     if (now) {
@@ -541,6 +543,7 @@ export function createIsland(ctx) {
     const f = Math.min(1, dt * 5); inK += ((indoor ? 1 : 0) - inK) * f;
     amb.intensity = inK * st.hemi.intensity * 0.4; // ~40% more fill than the day/night light gives
     for (const l of pool) l.intensity += ((l.userData.on ? GL : 0) - l.intensity) * f;
+    if (fading.size) { const step = dt * 4; for (const [b, k] of fading) { const to = hidden.has(b) ? 0 : 1, n = to > k ? Math.min(1, k + step) : Math.max(0, k - step); if (occ.get(key(b.x, b.y, b.z)) !== b) { fading.delete(b); continue; } set.pose(b, 0, n); if (n === to) fading.delete(b); else fading.set(b, n); } }
   });
 
   // ---------------- building: tools, the ghost, picking cells ----------------

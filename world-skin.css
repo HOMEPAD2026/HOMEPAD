@@ -444,3 +444,5 @@ body:has(.wd-hud:not([hidden])) .wp-quests{display:none}
 /* phones: in the arena the minimap steps aside too, so the wave card has the full width (it used to sit under it) */
 html.wp-pcphone body:has(.wd-hud:not([hidden])) .wp-mini{display:none}
 html.wp-pcphone .wd-hud{position:fixed;z-index:31}
+/* What's new: the newest three, the rest folded */
+.wp-new-more{margin:-6px 0 14px}.wp-new-more summary{cursor:pointer;padding:8px 4px;font:700 13px var(--f-ui);color:#9fc4ff;list-style:none}.wp-new-more summary::-webkit-details-marker{display:none}.wp-new-more summary:after{content:" ▾"}.wp-new-more[open] summary:after{content:" ▴"}.wp-new-more ul{margin:4px 0 0}
