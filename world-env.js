@@ -260,7 +260,7 @@ export function makeSkyDome({ lite = false } = {}) {
         vec3 c = mix(mid, top, smoothstep(0.02, 0.75, h)); c = mix(c, glow, smoothstep(0.3, -0.2, h) * 0.9);
         // the sun's glow round where it stands
         vec3 sd = normalize(uSun); float sa = max(dot(d, sd), 0.0);
-        c += uSunCol * (pow(sa, 8.0) * 0.16 + pow(sa, 200.0) * 0.9) * uCloudK;
+        c += uSunCol * (pow(sa, 8.0) * 0.16 + pow(sa, 200.0) * 0.9) * uCloudK * (1.0 - uNight); // gone at night: the moon takes over
         // the moon at night: a pale disc with a few darker seas, and a soft halo
         if (uNight > 0.01) { vec3 md = normalize(uMoon); float ma = max(dot(d, md), 0.0); float disc = smoothstep(0.99955, 0.99975, ma);
           if (ma > 0.9995) { vec3 mp = d - md * ma; float sea = fbm(mp.xz * 260.0 + 3.0); vec3 moon = vec3(0.93, 0.95, 1.0) * (0.78 + 0.25 * smoothstep(0.35, 0.7, sea));
@@ -273,7 +273,7 @@ export function makeSkyDome({ lite = false } = {}) {
         if (uBaked > 0.5 && h > -0.02) {
           vec2 tuv = vec2(atan(d.z, d.x) / 6.2831853 + uTime * 0.0006, asin(clamp(h, 0.0, 1.0)) / 1.5707963);
           vec4 cf = texture2D(uBake, tuv);
-          vec3 sun = uSunCol * pow(sa, 5.0) * 0.4;
+          vec3 sun = uSunCol * pow(sa, 5.0) * 0.4 * (1.0 - uNight);
           float bank = smoothstep(0.5, 0.53, cf.z) * smoothstep(-0.02, 0.025, h);
           c = mix(c, mix(uCloudShade, uCloudLit, cf.w) + sun, bank * uCloudK);
           float dens = smoothstep(uCover + 0.02, uCover + 0.06, cf.x);
@@ -306,6 +306,7 @@ export function waterMat({ r = 4, color = 0x2aa6c8, deep = 0x0c4a66, foam = 0xea
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uTime: { value: 0 }, uR: { value: r }, uCol: { value: new THREE.Color(color) }, uDeep: { value: new THREE.Color(deep) }, uFoam: { value: new THREE.Color(foam) },
       uSky: { value: new THREE.Color(0xbfe0ff) }, uOp: { value: opacity }, uGlow: { value: glow }, uLight: { value: 1 },
+      uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(0xfff0d0) }, uSpark: { value: 1 },
     }]),
     vertexShader: /* glsl */`
       #include <common>
@@ -318,7 +319,7 @@ export function waterMat({ r = 4, color = 0x2aa6c8, deep = 0x0c4a66, foam = 0xea
     fragmentShader: /* glsl */`
       #include <common>
       #include <fog_pars_fragment>
-      uniform float uTime, uR, uOp, uGlow, uLight; uniform vec3 uCol, uDeep, uFoam, uSky; varying vec2 vL; varying vec3 vW, vN;
+      uniform float uTime, uR, uOp, uGlow, uLight, uSpark; uniform vec3 uCol, uDeep, uFoam, uSky, uSunDir, uSunCol; varying vec2 vL; varying vec3 vW, vN;
       float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float n2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
         return mix(mix(h2(i), h2(i + vec2(1, 0)), u.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), u.x), u.y); }
@@ -335,6 +336,10 @@ export function waterMat({ r = 4, color = 0x2aa6c8, deep = 0x0c4a66, foam = 0xea
         // foam: a broken band hugging the rim that breathes in and out
         float band = smoothstep(0.80 + 0.05 * sin(t * 1.3 + w1 * 6.0), 0.97, d) * (0.55 + 0.45 * n2(vL * 5.0 + t * 0.8));
         c = mix(c, uFoam, clamp(band, 0.0, 1.0) * 0.9);
+        // the sun (or the moon) glinting off the ripples, and a few sparkles that flicker
+        vec3 N = normalize(vN + vec3(w1 - 0.5, 0.0, w2 - 0.5) * 0.35), H = normalize(normalize(uSunDir) + V); float spec = pow(max(dot(N, H), 0.0), 180.0);
+        float sp = step(0.985, n2(vL * 9.0 + t * uSpark * 1.5)) * spec * 6.0;
+        c += uSunCol * (spec * 1.2 + sp) * (1.0 - clamp(band, 0.0, 1.0));
         c *= uLight; c += uCol * uGlow;
         gl_FragColor = vec4(c, mix(uOp, 1.0, band * 0.6));
         #include <tonemapping_fragment>

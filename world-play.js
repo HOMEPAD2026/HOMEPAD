@@ -440,7 +440,7 @@ const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "a
 if (K.setCharHook) K.setCharHook((obj, arc) => { if (!lowGfx) { if (!arc) ENV.unifyPalette(obj); if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); } if (S.quality !== "saver" && ENV.rimLight) ENV.rimLight(obj); });
 // (b420: every preset but Saver has the cumulus now; the dome reads them from a table baked once, cheaper than before)
 const sky = S.quality === "saver" ? K.makeSky() : ENV.makeSkyDome({ lite: st.quality.coarse || lowGfx }); st.scene.add(sky);
-if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); try { sky.userData.bake(st.renderer); } catch (e) { console.warn("sky:", e); } st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
+if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); if (sky.material.uniforms.uMoon) { const mv = sky.material.uniforms.uMoon.value.copy(sunDir); mv.y = Math.min(mv.y, 0.6); mv.normalize(); } /* the moon stands where the night shadows come from */ try { sky.userData.bake(st.renderer); } catch (e) { console.warn("sky:", e); } st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
 // Low has no picture chain (world-post.js), so its vignette is a still layer over the canvas: no pass of its own
 if (postLevel === "low" && S.quality !== "saver") { const v = document.createElement("div"); v.className = "wp-vig"; v.setAttribute("aria-hidden", "true"); v.style.cssText = "position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at 50% 50%,transparent 55%,rgba(12,30,56,.24) 100%)"; cv.after(v); }
 // rolling hills round the edge of the world (world-env.js) in place of the old round blobs
@@ -2899,7 +2899,7 @@ quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
 });
 rpg.setLog(quests);
 // the pets (world-pet.js): eggs from the server, one animal walking with you; the three older companions are drawn by QST.createPet
-pet = PET.createPets({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat: () => combat, reduce, coarse: st.quality.coarse, low: lowGfx, ver: VER, legacy: QST.createPet({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat, reduce }), T, esc, rpg: () => rpg, ach: () => { const x = rpg.data().x; return (x && x.ach) || []; }, save: () => save(), toast, Snd,
+pet = PET.createPets({ THREE, K, planet, shadow: (r, k) => LOOK.contactShadow(r, k), here: (v) => here(v), facing: () => facing, combat: () => combat, reduce, coarse: st.quality.coarse, low: lowGfx, ver: VER, legacy: QST.createPet({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat, reduce }), T, esc, rpg: () => rpg, ach: () => { const x = rpg.data().x; return (x && x.ach) || []; }, save: () => save(), toast, Snd,
   buy: () => arclShop.pay("petegg"), repaint: () => rpg.repaint(),
   onMods: (m, stats) => { petXpPct = m.xp; petLuck = m.luck; if (stats && rpg) rpg.refresh(); } });
 pet.sync(); if (ownNow) pet.mirror(ownNow); setNameTag();
@@ -2936,7 +2936,7 @@ function offerClip(blob) {
 }
 if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the camera like the town's arches
 ghosts = SOC.createGhosts({ THREE, K, planet, T: (s, v) => (s === "Hi!" || s === "Friend" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag,
-  isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
+  shadow: (r, k) => LOOK.contactShadow(r, k), isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
   onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; },
   // other players stand as their own characters (not the see-through capsules) once the model is in
   makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(id, VER).catch(() => null)) });
@@ -2973,13 +2973,14 @@ const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (
 const waterMats = [], reflHide = [parts.glowMesh, parts.smokeMesh], reflU = [];
 if (!lowGfx) {
   const pools = []; fountain.traverse((o) => { if (o.isMesh && o.geometry && o.geometry.type === "CircleGeometry" && o.material && o.material.transparent) { const m = ENV.waterMat({ r: o.geometry.parameters.radius, color: 0x38c8ff, deep: 0x0a5a8a, glow: 0.22, opacity: 0.86 }); o.material = m; waterMats.push(m); pools.push(o); } });
+  for (const m of waterMats) { m.uniforms.uSunDir.value.copy(sunDir); m.uniforms.uSpark.value = reduce ? 0 : 1; }
   // on Ultra the big pool reflects the plaza (redrawn every other frame, without the grass and the particles)
   if (postLevel === "ultra" && !st.quality.coarse && pools.length) { const big = pools.reduce((a, b) => (a.geometry.parameters.radius > b.geometry.parameters.radius ? a : b));
     import("./vendor/three/addons/Reflector.js").then(({ Reflector }) => { const rm = ENV.reflectPool(Reflector, big, st.renderer, reflHide, () => frameNo); reflU.push(rm.material.uniforms); }).catch(() => {}); }
   planet.getObjectByName("life").children.forEach((g) => { if (!/^pond:/.test(g.name)) return; const w = g.children[0]; if (!w || !w.isMesh || !w.material.color) return;
     const hot = g.name === "pond:abyss", c = w.material.color.getHex();
     const m = ENV.waterMat({ r: w.geometry.parameters.radius, color: c, deep: new THREE.Color(c).multiplyScalar(0.4).getHex(), foam: hot ? 0xffd080 : 0xeaffff, glow: hot ? 0.9 : 0.12, opacity: 0.92 });
-    m.polygonOffset = true; m.polygonOffsetFactor = -4; w.material = m; waterMats.push(m); });
+    m.polygonOffset = true; m.polygonOffsetFactor = -4; m.uniforms.uSunDir.value.copy(sunDir); m.uniforms.uSpark.value = reduce ? 0 : 1; w.material = m; waterMats.push(m); });
   st.on((dt) => { for (const m of waterMats) m.uniforms.uTime.value += dt; for (const u of reflU) u.uTime.value += dt; });
 }
 // the meadow (world-env.js): blades round you that sway and lie down where you walk (none on Low / Saver). Built once
@@ -3317,6 +3318,7 @@ function airFor(k, dusk, zz) {
   if (zz) col.lerp(new THREE.Color(zz.fog), 0.6);
   return { fog: 0.0008 + dusk * 0.012 + k * 0.0047 + (AIR_FOG[id] || 0), color: col, rays: (1 - k) * (0.25 + dusk * 0.6) * (/^(abyss|void|depths)$/.test(id) ? 0.3 : 1), heat: id === "abyss" ? 1 : 0, sunColor: st.sun.color };
 }
+const MOONC = new THREE.Color(0x9fb8ff); // moonlight
 const CLOUD = { night: new THREE.Color(0x3a4660), dusk: new THREE.Color(0xffc8a0), shade: new THREE.Color(0xb2cdf2), /* a soft blue underside */ nshade: new THREE.Color(0x141a2a), dshade: new THREE.Color(0xc87a7a) };
 function dayNight() {
   const d = new Date(Date.now() + 9 * 3600e3);
@@ -3332,7 +3334,8 @@ function dayNight() {
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
   // an aurora on one night in three (by the Seoul date), or with ?aurora=1; strongest in the deep of the night
   if (skyU.uAur) { const q = new URLSearchParams(location.search).get("aurora"), d = Math.floor((Date.now() + 9 * 3600e3 - 12 * 3600e3) / 864e5), on = q === "1" || (q !== "0" && d % 3 === 0); skyU.uAur.value = on ? Math.max(0, (k - 0.55) / 0.45) : 0; }
-  st.sun.intensity = 2.15 * (1 - k * 0.62); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
+  st.sun.intensity = 2.15 * (1 - k * 0.62); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun; a cool moonlight at night
+  st.sun.color.lerp(MOONC, k * 0.6);
   st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; if (ENV.rimStrength) ENV.rimStrength.value = 0.16 + k * 0.18; st.renderer.toneMappingExposure = 0.8 + k * 0.22; /* a calmer day: the white plaza was glaring */
   const mist = h >= 5 && h < 8.5 ? Math.sin(((h - 5) / 3.5) * Math.PI) : 0; // early morning: a mist that lifts by half past eight
   if (st.scene.fog) st.scene.fog.density = (st.quality.coarse ? 0.0024 : 0.0016) + k * (st.quality.coarse ? 0.0032 : 0.004) + mist * 0.006; /* b420: a clearer day, far hills keep their colour (phones a little less: their culling at 110 m has no fade); nights as before */ ENV.CLOUD.k.value = Math.max(0, 1 - k * 1.4) * ((() => { try { return mood === "rain"; } catch { return false; } })() ? 1.4 : 1); /* cloud shadows by day, more on a rainy one */ st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
@@ -3356,7 +3359,7 @@ function dayNight() {
   if (grass && lamps.userData.spots) grass.setLamps(lamps.userData.spots, th && th.dark ? 1 : k);
   if (grass) grass.setLight((th && th.dark ? 0.3 : 1 - k * 0.7) * (wet ? 0.82 : 1), k > 0.5 ? 0x5a9a8a : 0x7cc65a);
   for (const u of reflU) u.uLight.value = 1 - k * 0.55;
-  for (const m of waterMats) { m.uniforms.uLight.value = 1 - k * 0.6; m.uniforms.uSky.value.copy(skyU.mid.value).lerp(skyU.glow.value, 0.3); }
+  for (const m of waterMats) { m.uniforms.uLight.value = 1 - k * 0.6; m.uniforms.uSky.value.copy(skyU.mid.value).lerp(skyU.glow.value, 0.3); m.uniforms.uSunCol.value.copy(st.sun.color); }
   aurora.visible = (th && th.aurora) || mood === "aurora";
   fireflies.visible = k > 0.4 && !th; fireflies.material.opacity = Math.min(1, (k - 0.4) * 2) * 0.9;
   // inside a hunting ground the air takes its colour
