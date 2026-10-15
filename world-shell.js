@@ -10,7 +10,7 @@
   var V = window.__arcShell; if (!V) return;
   var lang = (document.documentElement.getAttribute("lang") || "en").slice(0, 2);
   try { lang = localStorage.getItem("arcircle.lang") || lang; } catch (e) { /* private */ }
-  var T = { ko: { full: "전체 화면", window: "창 모드", mobile: "모바일", bar: "화면" }, zh: { full: "全屏", window: "窗口", mobile: "手机", bar: "画面" }, en: { full: "Full screen", window: "Window", mobile: "Mobile", bar: "Screen" } }[lang === "ko" || lang === "zh" ? lang : "en"];
+  var T = { ko: { full: "전체 화면", window: "창 모드", mobile: "모바일", bar: "화면" }, zh: { full: "全屏", window: "窗口", mobile: "手机", bar: "画面" }, tr: { full: "Tam ekran", window: "Pencere", mobile: "Mobil", bar: "Ekran" }, en: { full: "Full screen", window: "Window", mobile: "Mobile", bar: "Screen" } }[lang === "ko" || lang === "zh" || lang === "tr" ? lang : "en"];
   var PHONE_W = 980, PHONE_H = Math.round(980 * 19.5 / 9), BAR = 44;
   // b418: the bar is three small icons in the middle (no logo, no words); the words are their tooltips
   var ICON = {

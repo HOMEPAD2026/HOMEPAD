@@ -34,7 +34,8 @@ export function createSupport(ctx) {
   const { esc } = ctx;
   // single words stay out of the site-wide dictionary: a small map just for the Help Center
   const LW = { ko: { Report: "접수하기", Board: "접수 게시판", Bug: "버그", Improvement: "개선사항", Idea: "아이디어", Title: "제목", Screenshot: "스크린샷", Accepted: "채택됨", Declined: "반려됨", Duplicate: "중복", "Saved.": "저장했어요." },
-    zh: { Report: "提交反馈", Board: "反馈看板", Bug: "Bug", Improvement: "改进建议", Idea: "创意", Title: "标题", Screenshot: "截图", Accepted: "已采纳", Declined: "已驳回", Duplicate: "重复", "Saved.": "已保存。" } }[ctx.lang] || {};
+    zh: { Report: "提交反馈", Board: "反馈看板", Bug: "Bug", Improvement: "改进建议", Idea: "创意", Title: "标题", Screenshot: "截图", Accepted: "已采纳", Declined: "已驳回", Duplicate: "重复", "Saved.": "已保存。" },
+    tr: { Report: "Bildir", Board: "Pano", Bug: "Hata", Improvement: "İyileştirme", Idea: "Fikir", Title: "Başlık", Screenshot: "Ekran görüntüsü", Accepted: "Kabul edildi", Declined: "Reddedildi", Duplicate: "Yinelenen", "Saved.": "Kaydedildi." } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const toast = (m) => (ctx.toast ? ctx.toast(m) : alert(m));
   const post = (body) => fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }));

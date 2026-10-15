@@ -55,7 +55,7 @@ const bossEvery = () => (weekEvent() === "boss" ? 15 : 30) * 60e3; // a boss rus
 export function createCombat(ctx) {
   const { THREE, K, planet, Snd, rpg } = ctx;
   const VX = ctx.vfx || null; // world-vfx.js: the layered light effects on top of the puffs below
-  const LW = { ko: { Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Meteor: "메테오", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Meteor: "陨石", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" } }[ctx.lang] || {};
+  const LW = { ko: { Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Meteor: "메테오", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Meteor: "陨石", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" }, tr: { Spring: "Yay", Shield: "Kalkan", Magnet: "Mıknatıs", Shock: "Şok", Meteor: "Meteor", Attack: "Saldır", Dodge: "Kaçın", Dodged: "Kaçındın!", free: "ücretsiz", Elite: "Elit", Boss: "Boss" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const V3 = THREE.Vector3, UP = new THREE.Vector3(0, 1, 0);
   const root = new THREE.Group(); root.name = "combat"; planet.add(root);

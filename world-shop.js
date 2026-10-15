@@ -47,7 +47,7 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
 export function createShop(ctx) {
   const { esc, toast, post, sess, Snd, P, coarse } = ctx;
   // single words stay out of the site-wide dictionary
-  const LW = { ko: { Close: "닫기",  Items: "아이템",  Island: "섬", Style: "스타일", Plaza: "광장", Later: "나중에", Then: "그다음", Bricks: "브릭" }, zh: { Close: "关闭",  Items: "道具",  Island: "岛屿", Style: "外观", Plaza: "广场", Later: "稍后", Then: "然后", Bricks: "积木" } }[ctx.lang] || {};
+  const LW = { ko: { Close: "닫기",  Items: "아이템",  Island: "섬", Style: "스타일", Plaza: "광장", Later: "나중에", Then: "그다음", Bricks: "브릭" }, zh: { Close: "关闭",  Items: "道具",  Island: "岛屿", Style: "外观", Plaza: "广场", Later: "稍后", Then: "然后", Bricks: "积木" }, tr: { Close: "Kapat", Items: "Eşyalar", Island: "Ada", Style: "Stil", Plaza: "Meydan", Later: "Sonra", Then: "Ardından", Bricks: "Bloklar" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const $ = (id) => document.getElementById(id);
   let arcl = null, cat = null, own = null, top = null, shown = 0;
