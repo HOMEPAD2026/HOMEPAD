@@ -602,7 +602,11 @@ export function makeShop(deps) {
     if (!(await commit([{ create: `worldPayTx/${tx}`, data: { wallet: w, item: q.item, at: now() } }])).ok) return json(409, { error: "this transaction was already used" });
     await setDoc(`worldPayQuote/${b.quote}`, { ...q, used: tx });
     const it = ITEM[q.item];
-    const o = await grant(w, it, q.target, "arcircle");
+    // the tx record is the lock against paying out twice; if the grant itself fails, let it go so a retry can finish
+    let o; try { o = await grant(w, it, q.target, "arcircle"); } catch (e) {
+      await commit([{ del: `worldPayTx/${tx}` }]).catch(() => {}); await setDoc(`worldPayQuote/${b.quote}`, q).catch(() => {});
+      return json(503, { pending: true, error: "your payment arrived but the item couldn't be added yet; try again in a moment" });
+    }
     await commit([{ inc: "worldStats/shop", fields: { paid: 1 } }]).catch(() => {});
     return json(200, { ok: true, item: it.id, own: o, burned: (paid / 2n).toString(), treasury: (paid - paid / 2n).toString() });
   }
