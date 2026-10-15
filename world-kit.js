@@ -1369,11 +1369,15 @@ export function makeHoverboard() {
 export function bubble(text, accent = "#ff7ad9") { const sp = label(text, { accent, size: 0.55 }); sp.position.y = 3.3; return sp; }
 
 // ---------------- model packs (world-decor.js): one GLB per pack, one root node per model ----------------
+const packLoads = new Map(); // one load per file: the decor and the pets share kenney-pets.glb
 export function loadPack(url, ver = "") {
-  return new Promise((res, rej) => {
+  const key = url + ver; if (packLoads.has(key)) return packLoads.get(key);
+  const p = new Promise((res, rej) => {
     const L = gltfLoader();
-    L.load(url + ver, (g) => { const models = new Map(); for (const n of g.scene.children) models.set(n.name, n); g.scene.updateMatrixWorld(true); res({ models, clips: g.animations }); }, undefined, rej);
+    L.load(key, (g) => { const models = new Map(); for (const n of g.scene.children) models.set(n.name, n); g.scene.updateMatrixWorld(true); res({ models, clips: g.animations }); }, undefined, rej);
   });
+  packLoads.set(key, p); p.catch(() => packLoads.delete(key)); // a failed load can be tried again
+  return p;
 }
 export function packClone(p, name) { const src = p && p.models.get(name); return src ? SkeletonUtils.clone(src) : null; }
 /// many copies of one model as instanced meshes (one draw per part): mats place each copy, h sets its height

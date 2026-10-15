@@ -136,7 +136,7 @@ export function createShop(ctx) {
   const DAYS = [
     { bonus: "hp2", line: "2 health potions" }, { bonus: "scrap60", line: "60 scrap" }, { bonus: "mix", line: "2 mana potions and a recall scroll" },
     { bonus: "scrap120", line: "120 scrap" }, { bonus: "xp150", line: "+150 XP" }, { bonus: "pots6", line: "3 health and 3 mana potions" },
-    { bonus: "gear", line: "A gear chest: Rare or Epic" },
+    { bonus: "gear", line: "A gear chest: Rare or Epic, and a pet egg" },
   ];
   const arclFor = (streak) => 20 + Math.min(30, 5 * (Math.max(1, streak) - 1));
   const FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c4.4 0 7-2.9 7-6.8 0-3.8-2.8-6.3-4.2-9.7-.4 2.4-1.6 3.6-2.8 4.3.2-3.5-1.6-6.4-4.4-7.8.4 3.3-2.6 6-2.6 10.8C5 19.1 7.6 22 12 22z"/></svg>';
@@ -189,6 +189,7 @@ export function createShop(ctx) {
     const t = daily.querySelector(`.wd-day[data-d="${day}"]`); if (t) { t.classList.remove("today"); t.classList.add("done", "stamp"); }
     const lines = [{ k: "arcl", text: r.j.credited > 0 ? T("+{n} ARCL", { n: r.j.credited }) : T("ARCL: today's limit is already reached") }];
     try { const got = ctx.dailyBonus ? ctx.dailyBonus(DAYS[day - 1].bonus) : null; if (got) lines.push(...got); } catch { /* the ARCL stands */ }
+    if (r.j.petegg && r.j.own) { own = r.j.own; ctx.onOwn(own); lines.push({ k: "pet", text: T("A free pet egg hatched!") }); } // day 7 (the server rolls it; the game shows the card)
     const ul = $("wd-got");
     for (const [i, x] of lines.entries()) { await wait(i ? 380 : 650); const li = document.createElement("li"); li.className = "wd-g " + (x.k || ""); if (x.color) li.style.setProperty("--rc", x.color); li.textContent = x.text; ul.appendChild(li); requestAnimationFrame(() => li.classList.add("in")); }
     go.disabled = false; go.id = "wa-daily-done"; go.textContent = T("Got it");

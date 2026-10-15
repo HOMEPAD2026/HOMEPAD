@@ -108,6 +108,7 @@ if (P.xpv !== RPG.XP_VERSION) { P.xp = RPG.xpFromOld(P.xp); P.xpv = RPG.XP_VERSI
 let lvMemo = [-1, 1];
 const level = () => { if (lvMemo[0] !== P.xp) lvMemo = [P.xp, RPG.levelOfXp(P.xp)]; return lvMemo[1]; };
 let xpBoostUntil = 0; // the Starter Package's 2× EXP (worldOwn.xpBoostUntil, b414)
+let petXpPct = 0, petLuck = 0; // the pet's Scholar (+% XP) and Lucky (gear drop) numbers, set by world-pet.js through onMods
 let xpHeld = false; // window.arcWorld.holdXp(true): screenshots and tests keep the level where it is
 // the village blessing (world-village.js): +2% XP and +1% max HP for each village level after the first
 const bless = () => { const v = P.vill, s = sess(); return (v && s && v.w === lc(s.wallet) && v.blessing) || { xp: 0, hp: 0 }; };
@@ -115,6 +116,7 @@ function gain(n, why) {
   if (xpHeld) return;
   if (n > 0 && bless().xp) n = Math.round(n * (1 + bless().xp / 100));
   if (n > 0 && xpBoostUntil > Date.now()) n *= 2; // the Starter Package's 2× EXP
+  if (n > 0 && petXpPct) n = Math.round(n * (1 + petXpPct / 100)); // a Scholar pet (the server's XP allowance still caps what is saved)
   const before = level(); P.xp += n; save(); paintHud();
   if (n > 0) xpFloat(n); // a number beside the XP bar; the why (feed lines, quest toasts) is told elsewhere
   if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } else Snd.pick();
@@ -398,7 +400,7 @@ const groundG = K.makeGround(); planet.add(groundG);
 // are skipped — the fog has them mostly hidden anyway, and they were hundreds of draw calls. Anything that needs the
 // whole world (the far-shadow bake, the grass mask, the minimap picture) runs inside farCull.all().
 const farCull = (() => {
-  const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles"]);
+  const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles", "pet"]); // "pet": it moves, so a scan-time box would hide it
   const CONT = ["decor", "life", "zones"], R = st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, box = new THREE.Box3(), sph = new THREE.Sphere();
   // b420: on a computer at Medium / Ultra what's culled dissolves over its last 10 m instead of popping (K.fadeLook)
   const FADE = !st.quality.coarse && (postLevel === "medium" || postLevel === "ultra") && K.fadeLook;
@@ -1287,7 +1289,9 @@ function setVillage(v) {
 }
 const done1 = new Set(); // claims already sent this session
 function arclClaim(kind, extra = {}, from = null) { if (done1.has(kind)) return; done1.add(kind); arclShop.claim(kind, extra, from).then((n) => { if (!n && !sess()) done1.delete(kind); }); }
+let ownNow = null; // the last worldOwn the shop gave (the pets in it are mirrored once the game is up)
 function applyOwn(o) {
+  ownNow = o; if (pet) pet.mirror(o);
   const items = (o && o.items) || [];
   island.setOwned(items, (o && o.lots) || []);
   if (P.style.plate && !items.includes(P.style.plate)) P.style.plate = "";
@@ -2755,7 +2759,8 @@ const flt = (text, pos, color, big, weight = 0) => {
 rpg = RPG.createRpg({
   THREE, T, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd, reduce, scene: () => st.scene,
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar, openProfile: (w) => openProfile(w),
-  extraStats: () => { const t = quests ? quests.titleBonus() : null, h = bless().hp; return h ? { ...(t || {}), hpPct: h } : t; },
+  extraStats: () => { const t = quests ? quests.titleBonus() : null, h = bless().hp, pm = pet ? pet.mods() : null; if (!h && !(pm && (pm.hp || pm.spd))) return t; const o = { ...(t || {}) }; if (h || (pm && pm.hp)) o.hpPct = h + (pm ? pm.hp : 0); if (pm && pm.spd) o.spd = (o.spd || 0) + pm.spd; return o; }, // + a Swift pet's speed and a Sturdy pet's HP
+  dropLuck: () => petLuck,
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
   // "Go hunting" (an empty bag): to the gate of the nearest hunting ground that fits your level, as the map's list does
   goHunt: () => { const lv = level(), me0 = here(), ok = ZN.ZONES.filter((z) => lv >= z.lv[0] && lv <= z.lv[1] + 2), zs = ok.length ? ok : ZN.ZONES.filter((z) => lv >= z.lv[0]).slice(-1), z = zs.sort((a, b) => Math.hypot(a.x - me0.x, a.z - me0.z) - Math.hypot(b.x - me0.x, b.z - me0.z))[0] || ZN.ZONES[0], an = Math.atan2(-z.x, -z.z); flyTo({ position: new THREE.Vector3(z.x + Math.sin(an) * (z.r + 3), 0, z.z + Math.cos(an) * (z.r + 3)), userData: { radius: 0.5 } }); },
@@ -2830,14 +2835,18 @@ quests = QST.createQuests({ isGM: (w) => VILL.isGM(w),
   online: () => (ghosts && ghosts.named ? ghosts.named() : []), openProfile: (w) => openProfile(w),
   dailyDone: () => arclShop.dailyDone(), openDaily: () => { rpg.hide(); arclShop.openDaily(); }, signedIn: () => !!sess(),
   repaint: () => rpg.repaint(), onTitle: () => setNameTag(),
-  onAch: () => { setNameTag(); if (pet) pet.set(quests.pet()); paintBagDot(); },
-  onPet: () => { if (pet) pet.set(quests.pet()); },
-  petThumb: (id) => (pet && pet.portraits ? pet.portraits()[id] || "" : ""),
+  onAch: () => { setNameTag(); if (pet) pet.sync(); paintBagDot(); },
+  onPet: () => { if (pet) pet.sync(); },
+  petActive: () => (pet ? pet.active() : ""), petTitle: (id) => (pet ? pet.title(id) : id), petLv: (id) => (pet ? pet.level(id) : 1),
+  petHTML: () => (pet ? pet.html() : ""), petClick: (b) => (pet ? pet.click(b) : false),
   shareCard: (o) => shareCard(o),
 });
 rpg.setLog(quests);
-pet = QST.createPet({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat, reduce });
-pet.set(quests.pet()); setNameTag();
+// the pets (world-pet.js): eggs from the server, one animal walking with you; the three older companions are drawn by QST.createPet
+pet = PET.createPets({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat: () => combat, reduce, coarse: st.quality.coarse, low: lowGfx, ver: VER, legacy: QST.createPet({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat, reduce }), T, esc, rpg: () => rpg, ach: () => { const x = rpg.data().x; return (x && x.ach) || []; }, save: () => save(), toast, Snd,
+  buy: () => arclShop.pay("petegg"), repaint: () => rpg.repaint(),
+  onMods: (m, stats) => { petXpPct = m.xp; petLuck = m.luck; if (stats && rpg) rpg.refresh(); } });
+pet.sync(); if (ownNow) pet.mirror(ownNow); setNameTag();
 // the weekly raid boss and the wanderers (world-social.js)
 raid = SOC.createRaid({
   THREE, K, planet, T, esc, toast, Snd, here: (v) => here(v), level, sess, post, combat, rpg, quests: () => quests, gain: (n, why) => gain(n, why),
@@ -3545,6 +3554,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
+  applyOwn: (o) => applyOwn(o), // the pets, and a worldOwn to mirror (tests)
   stage: () => st, post: () => fxPost, gshadow: () => gshadow, grass: () => grass, gmask: () => gmask, parts: () => parts, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
