@@ -6,7 +6,7 @@
 // Muting is this browser's own (a list of wallets); blocking is the server's, and also shuts the DM.
 //
 // ctx: { T, esc, toast, post, sess(), area() → { id, name } | null, bubble(text), following() → [{ w, n }], openProfile(w),
-//        freeze(on), onUnread(n), onSay(), onParty(), Snd }
+//        freeze(on), onUnread(n), onSay(), onParty(), Snd, near(w) → a friend stands in town with you, goTo(w) }
 // The party (world-party.js) lives in the Friends tab: its card on top and an Invite button on each friend; createChat returns it as `party`.
 import { createParty } from "./world-party.js";
 export const CHAT_READY = true;
@@ -19,7 +19,7 @@ export function createChat(ctx) {
   const { T, esc, toast, post, sess } = ctx;
   const $ = (s) => el.querySelector(s);
   let open = false, tab = "local", timer = 0, busy = false;
-  let local = { ch: "", list: [] }, fr = null, thread = null, un = { dm: 0, from: {}, q: 0 }, said = null, presAt = 0, pickW = "", pickMode = "", sure = "";
+  let local = { ch: "", list: [] }, fr = null, thread = null, un = { dm: 0, from: {}, q: 0 }, said = null, presAt = 0, pickW = "", pickMode = "", sure = "", seenUn = "";
   const party = createParty({ T, esc, toast, post, sess, Snd: ctx.Snd, onChange: () => { if (open && tab === "friends") paintBody(); if (ctx.onParty) ctx.onParty(); } });
   let mutes = []; try { const m = JSON.parse(localStorage.getItem(MUTE) || "[]"); if (Array.isArray(m)) mutes = m.filter((x) => x && /^0x[0-9a-f]{40}$/.test(x.w)).slice(0, 100); } catch { /* private window */ }
   const saveMutes = () => { try { localStorage.setItem(MUTE, JSON.stringify(mutes)); } catch { /* private window */ } };
@@ -46,6 +46,9 @@ export function createChat(ctx) {
 
   // ---- what's said, where ----
   const nameOf = (w) => { const f = fr && fr.list.find((x) => x.w === w); if (f && f.n) return f.n; const fo = ctx.following().find((x) => x.w === w); return (fo && fo.n) || short(w); };
+  // under a friend's name: when an offline one was last here, or a hop to an online one standing in town with you
+  const ago = (t) => { const m = Math.max(10, Math.round((Date.now() - t) / 60e3)); return m < 60 ? T("{n} min ago", { n: m }) : m < 1440 ? T("{n} h ago", { n: Math.round(m / 60) }) : T("{n} d ago", { n: Math.round(m / 1440) }); };
+  const where = (x) => (!x.on ? (x.seen ? `<small class="wp-chat-seen">${esc(ago(x.seen))}</small>` : "") : ctx.near && ctx.near(x.w) ? `<button type="button" class="wp-btn" data-go="${esc(x.w)}">${esc(T("Go there"))}</button>` : "");
   const dot = (on) => `<i class="wp-chat-dot${on ? " on" : ""}" aria-hidden="true"></i>`;
   const line = (m, mine) => `<li class="wp-chat-m${mine ? " mine" : ""}" data-w="${esc(m.w)}" data-id="${esc(m.id)}"><div><button type="button" class="wp-chat-n" data-n>${m.gm ? '<i class="wv-gmtag">[GM]</i> ' : ""}${esc(m.n || short(m.w))}${m.lv ? `<small> ${esc(T("Lv {n}", { n: m.lv }))}</small>` : ""}</button><time>${hhmm(m.at)}</time></div><p>${esc(m.m)}</p>${pickW === m.w && pickW !== me() && tab === "local" && pickMode === m.id ? acts(m) : ""}</li>`;
   function acts(m) {
@@ -63,7 +66,11 @@ export function createChat(ctx) {
   function sub() {
     const a = ctx.area(), s = $(".wp-chat-sub");
     if (tab === "local") s.innerHTML = `<span>${esc(a ? T("Talking in {x}", { x: a.name }) : T("Chat is for the town and the islands"))}</span><small>${esc(T("Everyone here can read this"))}</small>`;
-    else if (thread) s.innerHTML = `<button type="button" class="wp-btn" data-back>‹ ${esc(T("Back"))}</button><b>${esc(nameOf(thread.w))}</b>${dot(fr && (fr.list.find((x) => x.w === thread.w) || {}).on)}`;
+    else if (thread) s.innerHTML = `<button type="button" class="wp-btn" data-back>‹ ${esc(T("Back"))}</button><b>${esc(nameOf(thread.w))}</b>${dot(fr && (fr.list.find((x) => x.w === thread.w) || {}).on)}`
+      // ⋯ in a thread: report what they sent, or block them (tap again)
+      + `<button type="button" class="wp-btn wp-more" data-tmore aria-label="${esc(T("More"))}">⋯</button>`
+      + (sure === "report:dm" ? WHY.map(([k, l]) => `<button type="button" class="wp-btn" data-why="${k}" data-id="dm">${esc(T(l))}</button>`).join("")
+        : sure === "tmore" || sure === "bl" + thread.w ? `<button type="button" class="wp-btn wp-danger" data-rep="dm">${esc(T("Report"))}</button><button type="button" class="wp-btn wp-danger" data-bl="${esc(thread.w)}">${esc(T(sure === "bl" + thread.w ? "Tap again to block" : "Block player"))}</button>` : "");
     else s.innerHTML = "";
   }
   const note = (t) => `<p class="wp-chat-note">${esc(t)}</p>`;
@@ -74,7 +81,7 @@ export function createChat(ctx) {
   }
   function frRow(x, btns) {
     const nm = x.n || nameOf(x.w);
-    return `<li data-w="${esc(x.w)}">${dot(x.on)}<span class="wp-chat-who">${ctx.openProfile ? `<button type="button" class="wp-chat-n" data-prof="${esc(x.w)}">${esc(nm)}</button>` : `<b>${esc(nm)}</b>`}${x.lv ? `<small>${esc(T("Lv {n}", { n: x.lv }))}</small>` : ""}</span>${btns}</li>`;
+    return `<li data-w="${esc(x.w)}">${dot(x.on)}<span class="wp-chat-who">${ctx.openProfile ? `<button type="button" class="wp-chat-n" data-prof="${esc(x.w)}">${esc(nm)}</button>` : `<b>${esc(nm)}</b>`}${x.lv ? `<small>${esc(T("Lv {n}", { n: x.lv }))}</small>` : ""}${x.st === "friend" ? where(x) : ""}</span>${btns}</li>`;
   }
   function bodyFriends() {
     if (!sess()) return note(T("Sign in with your wallet to make friends and send messages."));
@@ -97,7 +104,7 @@ export function createChat(ctx) {
     if (!fr) return note(T("Loading…"));
     const fl = fr.list.filter((x) => x.st === "friend").sort((a, b) => (un.from[b.w] || 0) - (un.from[a.w] || 0) || b.on - a.on);
     if (!fl.length) return note(T("Private messages are for friends. Add one from the local chat."));
-    return `<ul class="wp-chat-list">${fl.map((x) => `<li data-w="${esc(x.w)}">${dot(x.on)}<button type="button" class="wp-chat-dm" data-dm="${esc(x.w)}"><b>${esc(x.n || nameOf(x.w))}</b>${x.lv ? `<small>${esc(T("Lv {n}", { n: x.lv }))}</small>` : ""}</button>${un.from[x.w] ? `<em class="wp-chat-un">${Math.min(99, un.from[x.w])}</em>` : ""}</li>`).join("")}</ul>`;
+    return `<ul class="wp-chat-list">${fl.map((x) => `<li data-w="${esc(x.w)}">${dot(x.on)}<button type="button" class="wp-chat-dm" data-dm="${esc(x.w)}"><b>${esc(x.n || nameOf(x.w))}</b>${x.lv ? `<small>${esc(T("Lv {n}", { n: x.lv }))}</small>` : ""}${x.on ? "" : where(x)}</button>${x.on ? where(x) : ""}${un.from[x.w] ? `<em class="wp-chat-un">${Math.min(99, un.from[x.w])}</em>` : ""}</li>`).join("")}</ul>`;
   }
   function bodyThread() {
     if (!thread.list) return note(T("Loading…"));
@@ -135,9 +142,18 @@ export function createChat(ctx) {
     if (open) paint();
   }
   async function loadUnread() {
-    const s = sess(); if (!s) { un = { dm: 0, from: {}, q: 0 }; badge(); return; }
+    const s = sess(); if (!s) { un = { dm: 0, from: {}, q: 0 }; seenUn = ""; badge(); return; }
     const r = await post({ action: "world-dm-unread", ...s }).catch(() => null);
-    if (r && r.ok) { un = { dm: r.j.dm || 0, from: r.j.from || {}, q: r.j.q || 0 }; badge(); if (open) { tabs(); if (tab === "dms" && !thread) paintBody(); } }
+    if (r && r.ok) {
+      const prev = un, first = seenUn !== me(); seenUn = me(); un = { dm: r.j.dm || 0, from: r.j.from || {}, q: r.j.q || 0 }; badge();
+      // something new since the last check (not the pile waiting at sign-in): a toast and a soft sound, unless it's on screen already
+      if (!first) {
+        const w = Object.keys(un.from).find((k) => (un.from[k] || 0) > (prev.from[k] || 0) && !(open && tab === "dms" && thread && thread.w === k));
+        const msg = w && !(open && tab === "dms") ? T("New message from {x}", { x: nameOf(w) }) : un.q > prev.q && !(open && tab === "friends") ? T("New friend request") : "";
+        if (msg) { toast(msg); ctx.Snd && ctx.Snd.pick && ctx.Snd.pick(); }
+      }
+      if (open) { tabs(); if (tab === "dms" && !thread) paintBody(); }
+    }
   }
   async function loadThread() {
     const s = sess(); if (!s || !thread) return; const w = thread.w;
@@ -189,8 +205,10 @@ export function createChat(ctx) {
     if (party.click(b)) return;
     const d = b.dataset, li = b.closest("li[data-w]");
     if (d.tab) { tab = d.tab; thread = null; pickW = ""; pickMode = ""; sure = ""; $(".wp-chat-send").elements.m.value = ""; paint(); if (tab === "local") loadLocal(); else { if (!fr || tab === "friends") loadFriends(); if (tab === "friends") party.loadFull(true); if (tab === "dms") loadUnread(); } return; }
-    if (b.hasAttribute("data-back")) { thread = null; paint(); loadUnread(); return; }
+    if (b.hasAttribute("data-back")) { thread = null; sure = ""; paint(); loadUnread(); return; }
+    if (b.hasAttribute("data-tmore")) { sure = sure ? "" : "tmore"; sub(); return; }
     if (b.hasAttribute("data-n") && li) { const w = li.dataset.w; if (w === me()) return; const same = pickW === w && pickMode === li.dataset.id; pickW = same ? "" : w; pickMode = same ? "" : li.dataset.id; sure = ""; if (!fr) loadFriends(); paintBody(); return; }
+    if (d.go && ctx.goTo) { hide(); ctx.goTo(d.go); return; }
     if (d.prof && ctx.openProfile) { hide(); ctx.openProfile(d.prof); return; }
     if (d.ask) { if (await act("world-friend-request", d.ask)) toast(T("Friend request sent")); return; }
     if (d.ok) { if (await act("world-friend-accept", d.ok)) { toast(T("You are friends now")); ctx.Snd && ctx.Snd.win && ctx.Snd.win(); } return; }
@@ -199,15 +217,23 @@ export function createChat(ctx) {
     if (d.more) { pickW = pickW === d.more && pickMode === "more" ? "" : d.more; pickMode = "more"; sure = ""; paintBody(); return; }
     if (d.rm || d.bl) {
       const w = d.rm || d.bl, key = (d.rm ? "rm" : "bl") + w;
-      if (sure !== key && fr && fr.list.find((x) => x.w === w && x.st === "friend")) { sure = key; paintBody(); return; }
+      if (sure !== key && fr && fr.list.find((x) => x.w === w && x.st === "friend")) { sure = key; if (thread) sub(); else paintBody(); return; }
       sure = ""; pickW = ""; pickMode = "";
-      if (d.rm) await act("world-friend-remove", w, "Removed from friends"); else await act("world-friend-block", w, "Blocked");
+      if (d.rm) await act("world-friend-remove", w, "Removed from friends"); else if (await act("world-friend-block", w, "Blocked") && thread && thread.w === w) { thread = null; paint(); } // blocking shuts the DM
       return;
     }
-    if (d.dm) { tab = "dms"; thread = { w: d.dm, list: null }; pickW = ""; paint(); loadThread(); const i = $(".wp-chat-send").elements.m; if (!matchMedia("(pointer: coarse)").matches) i.focus(); return; }
+    if (d.dm) { tab = "dms"; thread = { w: d.dm, list: null }; pickW = ""; sure = ""; paint(); loadThread(); const i = $(".wp-chat-send").elements.m; if (!matchMedia("(pointer: coarse)").matches) i.focus(); return; }
     if (d.mute) { const w = d.mute; if (!muted(w)) { mutes = [{ w, n: String(d.nm || "").slice(0, 16) }, ...mutes].slice(0, 100); saveMutes(); } pickW = ""; paintBody(); toast(T("Muted. You won't see their lines here.")); return; }
     if (d.unmute) { mutes = mutes.filter((x) => x.w !== d.unmute); saveMutes(); paintBody(); return; }
-    if (d.rep) { sure = "report:" + d.rep; paintBody(); return; }
+    if (d.rep) { sure = "report:" + d.rep; if (d.rep === "dm") sub(); else paintBody(); return; }
+    if (d.why && d.id === "dm") {
+      // a DM: the server adds the last few lines of the thread itself
+      const s = sess(), t = thread; if (!s || !t) return; const last = (t.list || []).filter((x) => x.w === t.w).slice(-1)[0];
+      sure = ""; sub();
+      const r = await post({ action: "world-chat-report", ...s, target: t.w, why: d.why, kind: "dm", m: last ? last.m : "" }).catch(() => null);
+      toast(r && r.ok ? T("Reported. Thank you.") : T((r && r.j && r.j.error) || "Couldn't send the report right now"));
+      return;
+    }
     if (d.why) {
       const s = sess(), a = ctx.area(), m = local.list.find((x) => x.id === d.id); if (!s || !m) return;
       sure = ""; pickW = ""; paintBody();
@@ -233,6 +259,8 @@ export function createChat(ctx) {
 
   return {
     show, hide, isOpen: () => open, unread: () => un.dm + un.q, party,
+    /// muted here or blocked: their lines don't float over their figure either
+    hides: (w) => !!w && (muted(w) || !!(fr && fr.list.some((x) => x.w === w && x.st === "blocked"))),
     /// the last line you said in the last minute, once, for the ping (others see it over your figure)
     pending() { if (said && !said.sent && Date.now() - said.at < 60e3) { said.sent = true; return said.m.slice(0, 80); } return ""; },
     /// true about every 3 minutes: the ping then tells the server you're here (the green dot on your friends' lists)

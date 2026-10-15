@@ -2927,7 +2927,7 @@ function offerClip(blob) {
 if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the camera like the town's arches
 ghosts = SOC.createGhosts({ THREE, K, planet, T: (s, v) => (s === "Hi!" || s === "Friend" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag,
   isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
-  onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; },
+  onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; }, hides: (w) => !!(chatUI && chatUI.hides && chatUI.hides(lc(w))), // muted or blocked: no bubble over them
   // other players stand as their own characters (not the see-through capsules) once the model is in
   makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(id, VER).catch(() => null)) });
 // ---------------- the inbox: gifts, new stamps, friends playing now ----------------
@@ -2951,6 +2951,8 @@ function chatArea() {
 }
 chatUI = CHAT.createChat({ T, esc, toast, post, sess, Snd, area: chatArea, bubble: (txt) => sayBubble(txt.length > 34 ? txt.slice(0, 33) + "…" : txt, 7000),
   following: () => ((P.rpg && P.rpg.x && P.rpg.x.friends) || []).map((f) => ({ w: lc(f.w), n: f.n })), openProfile: (w) => openProfile(w),
+  // a friend standing in town with you, and the hop next to them (the profile's Go there)
+  near: (w) => !!(ghosts && mode === "hub" && ghosts.named().some((g) => g.wallet === w)), goTo: (w) => { const g = ghosts && ghosts.named().find((x) => x.wallet === w); if (g) goNear(g.x, g.z); },
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, onUnread: (n) => { chatDot = n; paintMenuDot(); },
   onSay: () => { if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } }, onParty: () => { paintParty(); if (rpg && rpg.isOpen()) rpg.repaint(); } });
 // ---------------- set dressing from the free model packs (world-decor.js) ----------------

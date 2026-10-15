@@ -317,7 +317,7 @@ export function createGhosts(ctx) {
         // a friend from an invite link: a gold ring and a "Friend" plate
         const pal = !!(ctx.isPal && ctx.isPal(x)); if (pal && !w.pal) { w.pal = true; const pl = K.label(ctx.T("Friend"), { accent: "#ffc861", size: 0.42 }); pl.position.y = 2.75; w.g.add(pl); w.plate = pl; const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.78, 32), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; w.g.add(ring); }
         // a line they said in the last minute: a bubble over them, once
-        if (x.sa && x.sa !== w.sa && ctx.sayText) { w.sa = x.sa; const txt = x.m ? (x.m.length > 34 ? x.m.slice(0, 33) + "…" : x.m) : ctx.sayText(x.s); if (txt) { if (w.bub) w.g.remove(w.bub); const b = K.label(txt, { accent: "#9fffd0", size: 0.48 }); b.position.y = 3.2; w.g.add(b); w.bub = b; w.bubT = 6; } }
+        if (x.sa && x.sa !== w.sa && ctx.sayText) { w.sa = x.sa; const txt = ctx.hides && x.w && ctx.hides(x.w) ? "" /* muted or blocked */ : x.m ? (x.m.length > 34 ? x.m.slice(0, 33) + "…" : x.m) : ctx.sayText(x.s); if (txt) { if (w.bub) w.g.remove(w.bub); const b = K.label(txt, { accent: "#9fffd0", size: 0.48 }); b.position.y = 3.2; w.g.add(b); w.bub = b; w.bubT = 6; } }
       }
       for (const [k, w] of list) if (!seen.has(k)) w.gone = true;
     } catch { /* next time */ }
