@@ -156,7 +156,7 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
       comp.addPass(aoPass); depth = () => aoPass.beautyRenderTarget.depthTexture;
     } else { const sp = new ScenePass(scene, cam); comp.addPass(sp); depth = () => sp.depth || rt.depthTexture; }
     const edge = new DepthPass(EdgeShader, depth); edge.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; }; comp.addPass(edge);
-    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); comp.addPass(bl);
+    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); bl.heavy = true; comp.addPass(bl);
     // what the bloom takes in is cleaned first: a pixel that isn't a number (one bad shader result on some phone GPUs)
     // and a pinpoint far brighter than anything should be (a specular glint on a glossy part) spread through the
     // bloom's small mips into big black or white squares. Not-a-number becomes black, and nothing goes above 6.

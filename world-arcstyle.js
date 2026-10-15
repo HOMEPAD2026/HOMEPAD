@@ -319,17 +319,28 @@ export function makeArcFountain() {
   const ra = new THREE.Mesh(tor(2.1, 0.2, 96), new THREE.MeshStandardMaterial({ color: 0x2f86ff, emissive: 0x1d63d6, emissiveIntensity: 1.5, roughness: 0.25, metalness: 0.3 }));
   const rb = new THREE.Mesh(tor(2.1, 0.2, 96), new THREE.MeshStandardMaterial({ color: 0x2ee07a, emissive: 0x17a85a, emissiveIntensity: 1.5, roughness: 0.25, metalness: 0.3 }));
   ra.position.x = -1.05; rb.position.x = 1.05; rb.rotation.x = Math.PI / 2; rings.add(ra, rb); g.add(rings);
-  // water: drops from the top bowl falling into the middle one, and from the middle into the pool (one instanced mesh)
-  const N = 120, drops = new THREE.InstancedMesh(new THREE.SphereGeometry(0.08, 6, 5), new THREE.MeshBasicMaterial({ color: 0xd6f6ff, transparent: true, opacity: 0.85 }), N);
+  // water (b440): a falling sheet over each bowl's lip and a jet on top, streaks scrolling down a lathe (2 + 1 meshes, no
+  // per-frame CPU), and a few splash drops where the sheets land; the old 120 white dots read as snow, not water
+  const stc = document.createElement("canvas"); stc.width = 64; stc.height = 64; const sx = stc.getContext("2d");
+  for (let x = 0; x < 64; x++) { const v = 0.25 + 0.75 * Math.abs(Math.sin(x * 1.7) * Math.cos(x * 0.43)); const gr = sx.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, `rgba(255,255,255,${v * 0.35})`); gr.addColorStop(0.5, `rgba(255,255,255,${v})`); gr.addColorStop(1, `rgba(255,255,255,${v * 0.35})`); sx.fillStyle = gr; sx.fillRect(x, 0, 1, 64); }
+  const stx = new THREE.CanvasTexture(stc); stx.wrapS = stx.wrapT = THREE.RepeatWrapping; stx.repeat.set(10, 1.5); stx.colorSpace = THREE.SRGBColorSpace;
+  const sheetM = new THREE.MeshBasicMaterial({ color: 0xbfefff, map: stx, alphaMap: stx, transparent: true, opacity: 0.75, depthWrite: false, side: THREE.DoubleSide });
+  const lathe = (r0, y0, r1, y1, out) => { const pts = []; for (let i = 0; i <= 10; i++) { const k = i / 10; pts.push(new THREE.Vector2(r0 + (r1 - r0) * Math.pow(k, out), y0 + (y1 - y0) * k * k)); } return new THREE.LatheGeometry(pts, 48); };
+  const sheetA = new THREE.Mesh(lathe(1.02, 3.42, 1.55, 2.1, 0.5), sheetM), sheetB = new THREE.Mesh(lathe(2.05, 2.05, 3.1, 0.34, 0.5), sheetM);
+  sheetA.renderOrder = sheetB.renderOrder = 2; g.add(sheetA, sheetB);
+  const jetX = stx.clone(); jetX.repeat.set(3, 1); jetX.needsUpdate = true;
+  const jetM = new THREE.MeshBasicMaterial({ color: 0xe6fbff, map: jetX, alphaMap: jetX, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide });
+  const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.13, 1.1, 12, 1, true), jetM); jet.position.y = 3.98; jet.renderOrder = 2; g.add(jet);
+  const N = 36, drops = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.8, depthWrite: false }), N);
   drops.frustumCulled = false; g.add(drops);
   const o = new THREE.Object3D();
   g.userData = { radius: 0, pulse: (k) => { ra.material.emissiveIntensity = 1.5 * (1 + k); rb.material.emissiveIntensity = 1.5 * (1 + k); }, spin: [(dt, t) => {
     rings.rotation.y = t * 0.35; ra.rotation.y = Math.sin(t * 0.7) * 0.25; rings.position.y = 16 + Math.sin(t * 1.2) * 0.35;
     water.emissiveIntensity = 0.5 + Math.sin(t * 2) * 0.08; WT.value = t;
-    for (let i = 0; i < N; i++) {
-      const lower = i % 2, a = ((i >> 1) / (N / 2)) * TAU, k = ((t * 0.7 + (i * 0.618) % 1) % 1);
-      const r0 = lower ? 2.0 : 1.0, r1 = lower ? 3.6 : 1.85, y0 = lower ? 2.05 : 3.4, y1 = lower ? 0.35 : 2.08;
-      o.position.set(Math.cos(a) * (r0 + (r1 - r0) * k), y0 + (y1 - y0) * k * k + Math.sin(k * Math.PI) * 0.3, Math.sin(a) * (r0 + (r1 - r0) * k)); o.updateMatrix(); drops.setMatrixAt(i, o.matrix);
+    stx.offset.y = (t * 1.1) % 1; jetX.offset.y = (-t * 1.6) % 1;
+    for (let i = 0; i < N; i++) { // small hops of spray where each sheet meets the water below
+      const lower = i % 2, a = ((i >> 1) / (N / 2)) * TAU + Math.sin(i * 7.1) * 0.2, k = ((t * 1.3 + (i * 0.618) % 1) % 1), r = (lower ? 3.15 : 1.6) + k * 0.35, y0 = lower ? 0.36 : 2.12;
+      o.position.set(Math.cos(a) * r, y0 + Math.sin(k * Math.PI) * 0.28, Math.sin(a) * r); o.scale.setScalar(1 - k * 0.6); o.updateMatrix(); drops.setMatrixAt(i, o.matrix);
     }
     drops.instanceMatrix.needsUpdate = true;
   }] };

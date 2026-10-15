@@ -148,6 +148,7 @@ export function gpuTier() {
   else if (/immortalis|mali-g7\d\d|mali-g6[1-9]\d|mali-g7[1-9]/.test(n)) t = "high";
   else if (/mali|powervr|swiftshader|llvmpipe/.test(n)) t = "low";
   else if (/nvidia|geforce|radeon|amd|intel\(r\) (iris|arc)|apple m\d/.test(n)) t = "high";
+  else if (/intel/.test(n)) t = "low"; // Intel UHD / HD (most office laptops): 15–20 fps at Medium in the field (diag), so Low on Auto
   GPU_TIER = t;
   return t;
 }
@@ -241,7 +242,7 @@ export function makeStage(canvas, opts = {}) {
   if (q.bloom) {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), opts.bloom ?? 0.75, opts.bloomRadius ?? 0.55, opts.bloomThreshold ?? 0.9));
+    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), opts.bloom ?? 0.75, opts.bloomRadius ?? 0.55, opts.bloomThreshold ?? 0.9); bl.heavy = true; composer.addPass(bl);
     composer.addPass(new OutputPass());
   }
   function resize() {
@@ -299,7 +300,11 @@ export function makeStage(canvas, opts = {}) {
     // dynamic resolution: k of the preset's pixel ratio (0.6–1), changed quietly as the frame rate moves
     scale(k) { const r = Math.max(0.5, cap * Math.max(0.6, Math.min(1, k))); if (Math.abs(r - renderer.getPixelRatio()) < 0.02) return false; renderer.setPixelRatio(r); if (composer) composer.setPixelRatio(r); resize(); return true; },
     // slower devices: no bloom, no shadows, fewer pixels
-    degrade() { renderer.setPixelRatio(1); cap = 1; if (composer) { composer.dispose?.(); composer = null; } renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); resize(); },
+    // b440: no shader is rebuilt here (dropping the chain and the shadows recompiled ~200 programs: a 1–3 s freeze right
+    // when the game was already struggling). The chain stays without its bloom; the sun's shadow stays, small and redrawn
+    // every 8th frame (world-play.js reads shadowEvery)
+    degrade() { renderer.setPixelRatio(1); cap = 1; if (composer) { if (composer.passes) composer.passes.forEach((p) => { if (p.heavy) p.enabled = false; }); composer.setPixelRatio && composer.setPixelRatio(1); }
+      if (sun.castShadow) { sun.shadow.mapSize.set(512, 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } renderer.shadowMap.autoUpdate = false; this.shadowEvery = 8; } resize(); },
     // the game's own chain (world-post.js) takes over from the plain bloom composer
     useComposer(c) { if (composer && composer !== c) { try { composer.dispose(); } catch { /* fine */ } } composer = c; this.composer = c; resize(); },
     snap() { if (composer) composer.render(); else renderer.render(scene, camera); return new Promise((res) => canvas.toBlob(res, "image/png")); },
@@ -936,11 +941,21 @@ export function makePaths() {
   for (let ph = 0; ph < 360; ph += 2.4) pts.push([23, ph]);
   SHOPS.forEach((s) => { for (let th = 12.5; th < s.theta - 4.5; th += 2.6) pts.push([th, s.phi]); });
   // pale stone slabs with a soft bevel (ART-SPEC: the plaza's stone), a few in a warmer shade
+  // b440: set into the ground, each its own size, turn and slight tilt, on a bed of darker earth and moss (one more
+  // instanced draw), so they read as a laid path instead of white tiles floating on the grass
   const geo = new RoundedBoxGeometry(1.25, 0.14, 1.25, 2, 0.06);
-  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.02 }), pts.length);
-  { const c = new THREE.Color(); pts.forEach((_, i) => mesh.setColorAt(i, c.set([0xd3dbe3, 0xc9d2db, 0xdde3e8, 0xd8d2c8][i % 4]))); }
+  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.82, metalness: 0.02 }), pts.length);
+  const bed = new THREE.InstancedMesh(new THREE.CircleGeometry(0.74, 9), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), pts.length);
+  const hh = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+  { const c = new THREE.Color(); pts.forEach((_, i) => { mesh.setColorAt(i, c.set([0xc9d0d7, 0xbec7cf, 0xd3d7da, 0xcdc6b8][i % 4]).multiplyScalar(0.94 + hh(i, 1) * 0.1)); bed.setColorAt(i, c.set(hh(i, 2) < 0.5 ? 0x5f8a3c : 0x857a52)); }); }
   const m = new THREE.Matrix4(), o = new THREE.Object3D();
-  pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R + 0.02); o.rotateY((i * 0.7) % 1); o.updateMatrix(); m.copy(o.matrix); mesh.setMatrixAt(i, m); });
+  pts.forEach(([th, ph], i) => {
+    const sw = 0.8 + hh(i, 3) * 0.3, sd = 0.75 + hh(i, 4) * 0.3;
+    placeOn(o, dirOf(th + (hh(i, 5) - 0.5) * 0.35, ph + (hh(i, 6) - 0.5) * 0.35), R - 0.005); o.rotateY(hh(i, 7) * Math.PI);
+    o.updateMatrix(); bed.setMatrixAt(i, m.copy(o.matrix).multiply(new THREE.Matrix4().makeRotationX(-Math.PI / 2)).multiply(new THREE.Matrix4().makeTranslation(0, 0, 0.012)).multiply(new THREE.Matrix4().makeScale(sw, sd, 1)));
+    o.rotateX((hh(i, 8) - 0.5) * 0.07); o.rotateZ((hh(i, 9) - 0.5) * 0.07); o.scale.set(sw, 0.8 + hh(i, 10) * 0.4, sd); o.updateMatrix(); mesh.setMatrixAt(i, o.matrix);
+  });
+  bed.receiveShadow = true; mesh.add(bed); bed.frustumCulled = false;
   mesh.receiveShadow = true;
   return mesh;
 }

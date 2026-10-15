@@ -437,7 +437,7 @@ st.on(() => { try { farCull.tick(); } catch { /* still loading */ } });
 // things that move need it, and they barely move in a 30th of a second)
 let frameNo = 0; const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : 2;
 if (st.renderer.shadowMap.enabled && shadowEvery > 1) st.renderer.shadowMap.autoUpdate = false;
-st.on(() => { frameNo++; if (shadowEvery > 1 && st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = frameNo % shadowEvery === 0; });
+st.on(() => { frameNo++; const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = frameNo % ev === 0; });
 const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir, around: (f) => farCull.all(f) }) : null;
 if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
 // the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
@@ -751,7 +751,7 @@ let inboxDot = 0; // mail waiting (world-inbox.js): a dot on the Menu tile
 let chatDot = 0, chatUI = null; // unread messages and friend requests (world-chat.js), and the chat panel
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
 let inK = 0; // 0 outside … 1 indoors (the overhead indoor camera)
-let camDist = coarse ? 1.12 : 1, camGoal = camDist, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(), lockV = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock; the locked target
+let camDist = coarse ? 1.26 : 1, camGoal = camDist, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(), lockV = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock; the locked target
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
 /* a window is on screen (the Forge, the wardrobe, a shop…): Esc closes it rather than swapping it for the menu */
 const dialogUp = () => [...document.querySelectorAll('[role="dialog"]')].some((d) => d !== hubEl && !d.hidden && d.getClientRects().length > 0 && getComputedStyle(d).visibility !== "hidden");
@@ -3386,7 +3386,7 @@ addEventListener("gamepaddisconnected", () => { if (!(navigator.getGamepads ? [.
 // a blue day sky over the ground, stars and the far planets at night (?hour=21 tries another hour)
 const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x0e4ed2), mid: new THREE.Color(0x2c9af2), glow: new THREE.Color(0x92d8fc) } /* b420: a clear, saturated anime blue, light cyan at the horizon (deeper than it reads: tone mapping pales it) */, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x07102a), glow: new THREE.Color(0x173452) }, DUSK = new THREE.Color(0xf0a070);
 const HALLOW_FOG = new THREE.Color(0x2a1840); // Halloween nights: a violet fog
-const FOG = { day: new THREE.Color(0xb0dcf6), /* a bluer day haze: distance reads as air, not milk (b420: the horizon's light cyan) */ night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
+const FOG = { day: new THREE.Color(0x9ccff5), /* b440: bluer still: where far grass met the haze it read grey-green */ /* a bluer day haze: distance reads as air, not milk (b420: the horizon's light cyan) */ night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
 const hourParam = Number(new URLSearchParams(location.search).get("hour"));
 let nightK = -1, skyOverride = "";
 // island skies from the ARCL Shop
@@ -3787,6 +3787,13 @@ await setAvatar(P.char || "arc-arc");
 farCull.prep(); // (again for what came in since: the fade's shaders made before warm compiles everything)
 await st.warm(4000); // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
 const landing = dive();
+// b440: what arrives after loading (a zone's props, the Game Village, an island, a pet) is compiled in the background as
+// soon as it's in the scene, hidden parts too, so its first appearance on screen doesn't stall on shader building
+{ let seen = -1, busy = false; setInterval(() => {
+  if (busy || document.hidden || frozen) return; let n = 0; st.scene.traverse((o) => { if (o.isMesh || o.isPoints || o.isSprite) n++; });
+  if (n === seen) return; const first = seen < 0; seen = n; if (first) return;
+  busy = true; st.warm(3000).then(() => { busy = false; }, () => { busy = false; });
+}, 2500); }
 $("wp-loading").classList.add("done");
 // weekend 2×: say so once a session, a few seconds in
 if (weekend2x()) setTimeout(() => { if (!introOn) toast(TW("Weekend 2×: double XP and double ARCL from play")); else setTimeout(() => toast(TW("Weekend 2×: double XP and double ARCL from play")), 4000); }, 6000);

@@ -114,7 +114,7 @@ export function groundLook(mat, { low, paths = [] } = {}) {
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 lkW; uniform vec3 uLkOrg;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nlkW = (modelMatrix * vec4(transformed, 1.0)).xyz - uLkOrg;");
     sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 lkW; uniform float uCloud, uCloudT;" + (P.length ? `uniform vec4 uPath[${NP}];` : "") + NOISE).replace("#include <map_fragment>", `#include <map_fragment>
       { vec2 p = lkW.xz; float big = lk_fbm(p * 0.035), mid = lk_fbm(p * 0.14 + 7.3)${low ? "" : ", fine = lk_n(p * 1.7)"};
-        vec3 lush = vec3(0.86, 1.06, 0.84), dry = vec3(1.12, 1.07, 0.82), earth = vec3(1.05, 0.9, 0.72);
+        vec3 lush = vec3(0.8, 1.08, 0.8), dry = vec3(1.16, 1.09, 0.78), earth = vec3(1.06, 0.9, 0.7); /* b440: a touch more contrast between lush and sunlit patches */
         vec3 t = mix(lush, dry, smoothstep(0.42, 0.7, big));
         t = mix(t, earth, smoothstep(0.64, 0.8, mid) * 0.35);
         diffuseColor.rgb *= t${low ? "" : " * (0.94 + 0.12 * fine)"};
