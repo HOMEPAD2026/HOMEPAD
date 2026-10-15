@@ -1281,7 +1281,7 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wp-set-line{grid-template-columns:1fr auto;align-items:center}
 .wp-set-line input{width:20px;height:20px;accent-color:#35d8d0}
 .wp-set-row input[type=range]{accent-color:#35d8d0}
-.wp-seg{display:flex;gap:6px}
+.wp-seg{display:flex;flex-wrap:wrap;gap:6px}/* a long label (Turkish "Pil tasarrufu") drops to a second row on a narrow phone instead of pushing past the card */
 .wp-seg button{appearance:none;flex:1;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#eef3f7;font:600 13px var(--f-ui);cursor:pointer}
 .wp-seg button[aria-pressed="true"]{border-color:#35d8d0;background:rgba(53,216,208,.16)}
 .wp-set-row small{font-weight:500;color:rgba(222,233,244,.6)}
