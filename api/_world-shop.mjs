@@ -25,6 +25,7 @@
 //   POST world-arcl-notify { …signature, on }                     tell me when the exchange opens
 // Firestore: worldArcl/<w> · worldArclOnce/<w>_<kind> · worldArclDay/<w>_<day> · worldArclWeek/<week>_<w> · worldOwn/<w>
 //            worldPayQuote/<id> · worldPayTx/<hash> · worldStats/plaza · worldStats/arclWeek_<week> · worldArclNotify/<w>
+import { xpLevel } from "./_world-village.mjs"; // the village level from its XP
 import { levelOfSave } from "./_world-social.mjs"; // the level from a save, on whichever XP curve it is
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
@@ -46,6 +47,8 @@ export const EARN = [
   { kind: "launch", n: 100, label: "Launch a coin on ArcPad" },
   { kind: "isle20", n: 20, label: "Island: 20 bricks" }, { kind: "isle100", n: 40, label: "Island: 100 bricks" }, { kind: "isle300", n: 80, label: "Island: 300 bricks" },
   { kind: "res1", n: 30, label: "Island: first resident" }, { kind: "res5", n: 60, label: "Island: 5 residents" },
+  { kind: "vill2", n: 50, label: "Village centre: level 2" },
+  { kind: "vquest9", n: 0, label: "Island tutorial: a free pet egg", more: "once, after the whole chain" },
   { kind: "liked1", n: 10, label: "A like from another player" }, { kind: "liked10", n: 40, label: "10 likes" }, { kind: "liked50", n: 120, label: "50 likes" },
   { kind: "stamp", n: 5, label: "Leave a stamp on someone's island", more: "up to 3 a day" },
   // the streets: the server can't watch a fight, so these are small, limited per day and spaced out
@@ -345,6 +348,16 @@ export function makeShop(deps) {
       const isl = await one(`worldIsland/${w}`); const need = Number(kind.replace(/\D/g, ""));
       const have = kind.startsWith("isle") ? (isl && isl.n) || 0 : (isl && isl.res) || 0;
       if (have < need) return json(400, { error: "your saved island isn't there yet" });
+    } else if (kind === "vill2") {
+      const isl = await one(`worldIsland/${w}`); // the village grows with the saved island (api/_world-village.mjs)
+      if (xpLevel((isl && isl.vxp) || 0) < 2) return json(400, { error: "your village centre isn't level 2 yet" });
+    } else if (kind === "vquest9") {
+      const isl = await one(`worldIsland/${w}`); // the chain's steps are played in the browser; the server asks for a saved island at least
+      if (!(isl && isl.n > 0)) return json(400, { error: "build on your island first" });
+      if (!deps.grantFreeEgg) return json(503, { error: "the egg isn't ready yet, try again later" }); // not used up while the grant isn't connected
+      if (!(await onceOk(w, kind))) return json(409, { error: "already collected" });
+      const egg = await grantFreeEgg(w, "vquest9");
+      return json(200, { ok: true, kind, credited: 0, egg: egg && egg.ok ? 1 : 0, ...(await balance(w)) });
     } else if (kind.startsWith("liked")) {
       const likes = ((await one(`worldIslandLikes/${w}`)) || {}).n || 0;
       if (likes < Number(kind.slice(5))) return json(400, { error: "not enough likes yet" });
@@ -353,6 +366,10 @@ export function makeShop(deps) {
     const got = await credit(w, kind, n);
     return json(200, { ok: true, kind, credited: got, capped: got < n, ...(await balance(w)) });
   }
+  /// STUB, MERGE: connect this to the pet agent's free-egg grant ("petegg-free", next to CATALOG / grant for "petegg"),
+  /// then drop the `deps.grantFreeEgg` guard in claim() ("vquest9") and pass nothing from api/_world.mjs. Until then
+  /// claim() answers 503 without using up the once-only mark, so nobody loses the egg.
+  async function grantFreeEgg(w, src) { return deps.grantFreeEgg ? deps.grantFreeEgg(w, src) : { ok: false, stub: true }; }
   // a stamp left on someone else's island (api/_world.mjs calls this after the stamp is saved)
   async function stampCredit(w) {
     const day = seoulDay(now());
