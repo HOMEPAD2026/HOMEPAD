@@ -812,6 +812,15 @@ const TOUCHK = JOYMAX / 56; // the phone layout is scaled down ~0.4, so tap slop
 // the phone frame on a computer (b416): the mouse works the stick like a thumb (press on the left half and drag)
 const mouseStick = window.__arcFrame === "mobile";
 const touches = new Map(); // non-stick touches: two of them pinch to zoom
+// the stick is fixed (players asked): it starts only near its resting ring at the bottom left, the base stays put, and
+// the rest of the screen is free to look around and pinch-zoom with two fingers. The mouse-stick frame keeps the old
+// float-anywhere-on-the-left behaviour
+const joyRest = document.querySelector(".wp-joyrest");
+const restAt = () => { const r = joyRest && joyRest.getBoundingClientRect(); return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2, r: Math.max(r.width * 0.75, JOYMAX * 1.3) } : null; };
+const onStick = (e) => { if (e.pointerType === "mouse") return mouseStick && e.clientX < innerWidth * 0.5; const c = restAt(); return c ? Math.hypot(e.clientX - c.x, e.clientY - c.y) < c.r : e.clientX < innerWidth * 0.5; };
+// let go of everything (a finger lifted where the browser didn't tell us, the app went to the background): the stick
+// used to stay held and the character kept running until another touch
+function dropInput() { joy = null; joyEl.classList.remove("on"); knob.style.transform = ""; look = null; pinch = null; touches.clear(); downAt = null; }
 cv.addEventListener("contextmenu", (e) => { if (mode === "island") e.preventDefault(); });
 cv.addEventListener("pointerdown", (e) => {
   if (frozen && !photo) return;
@@ -819,19 +828,21 @@ cv.addEventListener("pointerdown", (e) => {
   cv.setPointerCapture(e.pointerId);
   // a second finger close to a stick that hasn't moved yet means a pinch; one far away (the right thumb going for the
   // attack button while the left one rests on the stick) is not — that used to zoom the camera in mid-fight
-  if (e.pointerType === "touch" && joy && e.pointerId !== joy.id && Math.hypot(joy.dx, joy.dy) < 0.2 && Math.hypot(e.clientX - joy.cx, e.clientY - joy.cy) < innerWidth * 0.42) {
+  if (e.pointerType === "touch" && joy && !joy.fixed && e.pointerId !== joy.id && Math.hypot(joy.dx, joy.dy) < 0.2 && Math.hypot(e.clientX - joy.cx, e.clientY - joy.cy) < innerWidth * 0.42) {
     touches.set(joy.id, { x: joy.cx, y: joy.cy }); joy = null; joyEl.classList.remove("on"); knob.style.transform = "";
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); const [a, b] = [...touches.values()];
     pinch = { d: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), cd: camGoal, live: false }; look = null; return;
   }
-  const willJoy = !photo && (e.pointerType !== "mouse" || mouseStick) && e.clientX < innerWidth * 0.5 && !joy;
+  const willJoy = !photo && (e.pointerType !== "mouse" || mouseStick) && onStick(e) && !joy;
   if (e.pointerType === "touch" && !willJoy) {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (touches.size === 2) { const [a, b] = [...touches.values()]; if (Math.hypot(a.x - b.x, a.y - b.y) < innerWidth * 0.42) { pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camGoal, live: false }; look = null; return; } touches.delete(e.pointerId); }
+    if (touches.size === 2) { const [a, b] = [...touches.values()]; if (Math.hypot(a.x - b.x, a.y - b.y) < innerWidth * 0.6) { pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camGoal, live: false }; look = null; return; } touches.delete(e.pointerId); }
   }
-  if (!photo && (e.pointerType !== "mouse" || mouseStick) && e.clientX < innerWidth * 0.5 && !joy) {
-    joy = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0 };
-    joyEl.style.left = e.clientX + "px"; joyEl.style.top = e.clientY + "px"; joyEl.classList.add("on"); knob.style.transform = "";
+  if (willJoy) {
+    const c = e.pointerType === "touch" ? restAt() : null, bx = c ? c.x : e.clientX, by = c ? c.y : e.clientY; // touch: the base sits on its ring
+    joy = { id: e.pointerId, x: bx, y: by, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0, fixed: !!c };
+    joyEl.style.left = bx + "px"; joyEl.style.top = by + "px"; joyEl.classList.add("on"); knob.style.transform = "";
+    if (c) { let dx = e.clientX - bx, dy = e.clientY - by; const m = Math.hypot(dx, dy); if (m > JOYMAX) { dx *= JOYMAX / m; dy *= JOYMAX / m; } joy.dx = dx / JOYMAX; joy.dy = dy / JOYMAX; knob.style.transform = `translate(${dx}px,${dy}px)`; }
   } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 cv.addEventListener("pointermove", (e) => {
@@ -846,7 +857,8 @@ cv.addEventListener("pointermove", (e) => {
   if (joy && e.pointerId === joy.id) {
     joy.cx = e.clientX; joy.cy = e.clientY;
     let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = JOYMAX;
-    if (m > max) { const k = (m - max) / m; joy.x = Math.min(joy.x + dx * k, innerWidth * 0.5); joy.y += dy * k; joyEl.style.left = joy.x + "px"; joyEl.style.top = joy.y + "px"; dx *= max / m; dy *= max / m; } // past the rim the base follows the thumb (no dead centre to cross on a turn)
+    if (m > max && joy.fixed) { dx *= max / m; dy *= max / m; } // the fixed base doesn't move: the knob stops at the rim
+    else if (m > max) { const k = (m - max) / m; joy.x = Math.min(joy.x + dx * k, innerWidth * 0.5); joy.y += dy * k; joyEl.style.left = joy.x + "px"; joyEl.style.top = joy.y + "px"; dx *= max / m; dy *= max / m; } // past the rim the base follows the thumb (no dead centre to cross on a turn)
     joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx}px,${dy}px)`;
   } else if (look && e.pointerId === look.id) {
     camYaw -= (e.clientX - look.x) * 0.006 * S.sens;
@@ -862,7 +874,10 @@ const lift = (e) => {
   if (joy && e.pointerId === joy.id) { joy = null; joyEl.classList.remove("on"); }
   if (look && e.pointerId === look.id) look = null;
 };
-cv.addEventListener("pointerup", lift); cv.addEventListener("pointercancel", lift);
+cv.addEventListener("pointerup", lift); cv.addEventListener("pointercancel", lift); cv.addEventListener("lostpointercapture", lift);
+// no finger left on the screen at all, or the page hidden / unfocused: nothing can still be held
+addEventListener("touchend", (e) => { if (!e.touches.length) dropInput(); }, { passive: true }); addEventListener("touchcancel", (e) => { if (!e.touches.length) dropInput(); }, { passive: true });
+addEventListener("blur", dropInput); document.addEventListener("visibilitychange", () => { if (document.hidden) dropInput(); });
 cv.addEventListener("wheel", (e) => { camGoal = THREE.MathUtils.clamp(camGoal + e.deltaY * 0.0012, 0.6, mode === "island" ? 3 : 1.9); }, { passive: true });
 // the jump button: pressed jumps, let go early cuts the jump short (a keyboard click on it is a full jump)
 { const jb = $("wp-act-jump"), up = () => { jumpDown = false; };
@@ -3794,7 +3809,7 @@ window.arcWorld = {
   applyOwn: (o) => applyOwn(o), // the pets, and a worldOwn to mirror (tests)
   stage: () => st, post: () => fxPost, gshadow: () => gshadow, grass: () => grass, gmask: () => gmask, parts: () => parts, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
-  mode: () => mode, gv: () => gv, liftTo: (y) => { hop = y; at.y = y; vy = 0; grounded = true; } /* tests: stand at a height (a Coin Jump platform) */, goGameVillage: () => goGameVillage(), island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
+  mode: () => mode, input: () => ({ joy: joy ? { dx: +joy.dx.toFixed(2), dy: +joy.dy.toFixed(2), fixed: joy.fixed } : null, look: !!look, pinch: !!pinch, touches: touches.size, cam: +camGoal.toFixed(2) }), gv: () => gv, liftTo: (y) => { hop = y; at.y = y; vy = 0; grounded = true; } /* tests: stand at a height (a Coin Jump platform) */, goGameVillage: () => goGameVillage(), island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
   coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, robots: () => !!(kit && kit.enemies && kit.enemies.EyeDrone), quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
