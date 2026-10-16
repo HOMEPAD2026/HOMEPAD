@@ -163,6 +163,26 @@ export function hexFloorLook(mat, { r = 12, cell = 2.3, low = false } = {}) {
   return mat;
 }
 
+// ---------------- b447: stone grain on a painted floor (the plaza): fine grain, worn patches, rougher seams ----------------
+// Over the floor's own texture, in world space so it never stretches: a fine speckle, larger soft wear and a
+// little roughness variation, the same finish as the Game Village's shader tiles.
+export function stoneGrain(mat) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, rr) => {
+    if (prev) prev(sh, rr);
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 sgW;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nsgW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 sgW;" + NOISE)
+      .replace("#include <map_fragment>", `#include <map_fragment>
+      { vec2 p = sgW.xz; float l = dot(diffuseColor.rgb, vec3(0.333));
+        diffuseColor.rgb *= 0.96 + lk_n(p * 7.0) * 0.05 + lk_fbm(p * 0.9) * 0.05;
+        diffuseColor.rgb *= 1.0 - 0.07 * smoothstep(0.58, 0.82, lk_fbm(p * 0.35 + 5.7)) * step(0.6, l); }`) // only the pale stone wears, not the inlays
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n      roughnessFactor = clamp(roughnessFactor + (lk_n(sgW.xz * 1.3) - 0.5) * 0.16, 0.3, 1.0);");
+  };
+  const pk = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => "";
+  mat.customProgramCacheKey = () => pk() + "|sg"; mat.needsUpdate = true;
+  return mat;
+}
+
 // ---------------- b447: contact shade, everywhere (a cheap ambient occlusion where things meet the ground) ----------------
 // Walls, posts, trunks and furniture get darker in their last metre above the ground, so they sit on it instead of
 // floating over it. Written once into three.js's own standard/physical shader (every MeshStandardMaterial and

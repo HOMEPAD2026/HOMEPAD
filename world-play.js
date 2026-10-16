@@ -465,6 +465,7 @@ if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material &&
 const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
 // b447: contact shade on everything that stands on the ground, in every place (world-look.js); not on Low
 if (!lowGfx) try { LOOK.installContactShade(); } catch { /* the plain look */ }
+if (!lowGfx) { const pf = planet.getObjectByName("plaza-floor"); if (pf) LOOK.stoneGrain(pf.material); } // b447: the plaza's stone gets the village floor's grain
 // every character made from here on: the asset packs' palette (not the ARC Bots, drawn in it already) and a dark rim
 // and a cool rim of light (all presets but Saver)
 if (K.setCharHook) K.setCharHook((obj, arc) => { if (!lowGfx) { if (!arc) ENV.unifyPalette(obj); if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); } if (S.quality !== "saver" && ENV.rimLight) ENV.rimLight(obj); });
