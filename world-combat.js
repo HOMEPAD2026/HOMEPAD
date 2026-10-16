@@ -826,7 +826,9 @@ export function createCombat(ctx) {
   }
   // ---- lock-on: Tab (or the target button) picks the nearest scammer within 16 m, again for the next one; your blows
   // and skills turn to it, and a ring turns under it. Gone when it falls, runs out of reach, or the last one is passed.
-  let lockT = null, lockMark = null;
+  // b447 (players asked): the lock stays on until you turn it off. While it's on, a target that falls or gets away hands
+  // over to the nearest scammer in reach, and with none near it waits (the button stays lit) for the next one.
+  let lockT = null, lockMark = null, lockMode = false, lockScan = 0;
   const lockAlive = () => !!(lockT && !lockT.dead && mobs.includes(lockT) && lockT.g.position.distanceTo(tmp3.copy(me).setY(lockT.g.position.y)) < 22);
   const tmp3 = new V3();
   // the cycle keeps one order (nearest first when it starts) so Tab walks the pack instead of hopping as you move
@@ -836,9 +838,10 @@ export function createCombat(ctx) {
     ctx.here(me);
     if (!(lockAlive() && lockList.includes(lockT))) lockList = mobs.filter(lockOk).sort((a, b) => a.g.position.distanceToSquared(me) - b.g.position.distanceToSquared(me));
     else lockList = lockList.filter((m) => m === lockT || lockOk(m));
-    if (!lockList.length) { lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
+    if (!lockList.length) { if (lockMode) { lockMode = false; lockT = null; paintLock(); ctx.toast(T("Lock-on off")); return; } lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
     const i = lockAlive() ? lockList.indexOf(lockT) : -1;
     lockT = i < 0 ? lockList[0] : i + 1 < lockList.length ? lockList[i + 1] : null; // past the last one: the lock lets go
+    lockMode = !!lockT; if (!lockT) ctx.toast(T("Lock-on off"));
     paintLock(); Snd.pop && Snd.pop();
   }
   function faceLock() { if (!lockAlive() || !ctx.faceTo) return; ctx.here(me); ctx.faceTo(Math.atan2(lockT.g.position.x - me.x, lockT.g.position.z - me.z)); }
@@ -852,7 +855,7 @@ export function createCombat(ctx) {
     if (best) ctx.faceTo(Math.atan2(best.g.position.x - me.x, best.g.position.z - me.z));
   }
   function paintLock() {
-    const on = lockAlive(); if (lockBtn) lockBtn.classList.toggle("on", on);
+    const on = lockAlive(); if (lockBtn) lockBtn.classList.toggle("on", on || lockMode);
     if (!on) { if (lockMark) lockMark.visible = false; return; }
     if (!lockMark) {
       lockMark = new THREE.Group(); const mat = additive(0xff6a4d, 0.85); mat.side = THREE.DoubleSide;
@@ -863,10 +866,12 @@ export function createCombat(ctx) {
     lockMark.visible = true;
   }
   function tickLock(dt) {
-    if (!lockT) return;
-    if (!lockAlive()) { // a kill hands the lock to the nearest of the same pack; out of reach just lets go
-      let nx = null; if (lockT.dead) { ctx.here(me); let bd = 1e9; for (const m of lockList) if (m !== lockT && lockOk(m)) { const d = m.g.position.distanceToSquared(me); if (d < bd) { bd = d; nx = m; } } }
-      lockT = nx; paintLock(); if (!nx) return;
+    if (!lockT && !lockMode) return;
+    if (!lockAlive()) { // the lock on: the nearest scammer in reach takes over (checked a few times a second while none is near)
+      if (lockMode && (lockScan -= dt) > 0 && !lockT) return; lockScan = 0.3;
+      let nx = null; ctx.here(me); let bd = 1e9; for (const m of mobs) if (m !== lockT && lockOk(m)) { const d = m.g.position.distanceToSquared(me); if (d < bd) { bd = d; nx = m; } }
+      if (!lockMode && !(lockT && lockT.dead)) nx = null; // (off: only a kill hands it on, as before)
+      lockT = nx; if (nx && !lockList.includes(nx)) lockList.push(nx); paintLock(); if (!nx) return;
     }
     const big = lockT.rank === "boss" ? 2.6 : lockT.rank === "elite" ? 1.4 : 1;
     lockMark.position.copy(lockT.g.position).setY(0.09); lockMark.scale.setScalar(big * (1 + Math.sin(performance.now() / 160) * 0.04)); lockMark.rotation.y += dt * 1.6;

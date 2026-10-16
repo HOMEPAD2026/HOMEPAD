@@ -61,6 +61,7 @@ const GD = {
 export const ZONE_GRADE = {
   spam: { sh: [0, 0.01, 0.02] }, fields: { warm: 0.35, sat: 0.05 }, swamp: { gain: [0.95, 1.03, 0.92], sat: -0.04 }, canyon: { warm: 0.5, con: 0.03 }, depths: { sh: [0.03, 0, 0.05], gain: [1, 0.96, 1.04] },
   peaks: { sat: -0.06, hi: [-0.01, 0.01, 0.04], gain: [0.97, 1, 1.05] }, dunes: { warm: 0.7, sat: 0.06 }, reef: { gain: [0.92, 1.03, 1.05], sh: [0, 0.02, 0.03] },
+  village: { sat: 0.07, warm: 0.15, hi: [0.01, 0.01, 0.025], sh: [0.0, 0.01, 0.025] }, // b447: the Game Village: a touch brighter and more colourful
   wastes: { gain: [1, 1.05, 0.88], sat: -0.06 }, ruins: { sh: [0.03, 0, 0.05], gain: [1, 0.96, 1.04] }, abyss: { gain: [1.08, 0.95, 0.88], con: 0.06 }, void: { sh: [0.04, 0, 0.06], gain: [1.04, 0.94, 1.06], sat: 0.05 },
 };
 const mixA = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);

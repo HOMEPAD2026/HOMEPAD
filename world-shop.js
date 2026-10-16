@@ -233,7 +233,9 @@ export function createShop(ctx) {
     go.disabled = false; go.id = "wa-daily-done"; go.textContent = T("Got it");
     const later = $("wa-daily-x"); if (later) later.remove();
   });
+  // b447: the daily chest no longer pops up by itself (the owner's call); it opens from the Adventure log's Daily tab
   function maybeDaily() {
+    if (!maybeDaily.auto) return;
     const s = sess(); if (!s || !arcl) return;
     if (arcl.lastDay === seoulDay()) return;
     try { if (localStorage.getItem("arc.world.dailyAsk") === seoulDay()) return; localStorage.setItem("arc.world.dailyAsk", seoulDay()); } catch { /* private */ }

@@ -13,6 +13,8 @@ ARCIRCLE World의 대표 캐릭터. 모든 플레이어(나와 다른 플레이�
    ```
    마지막 인자는 남길 클립 이름입니다(Meshy가 붙인 이름). 텍스처는 webp(색·노멀 1024, 금속/거칠기 512), 메시는 meshopt +
    양자화. ARON: 23.4 MB → 1.2 MB. 목표는 2 MB 이하.
+   그다음 텍스처를 KTX2로(GPU 압축, 메모리 약 1/6, 메인 스레드 디코딩 없음): `npm i --no-save ktx2-encoder@0.6` 후
+   `node tools/ktx-hero.mjs <같은 파일> <같은 파일>` (노멀 맵은 512로 줄여 UASTC). ARON: 1.33 MB 그대로, GPU 메모리 약 13 → 2 MB.
 3. **등록**: `world-kit.js` `HEROES`에 한 줄: `"custom-lumi": { name: "LUMI", glow: 1.4 }`.
    id는 `custom-` + 영소문자/숫자 최대 9자 (서버 `api/_world.mjs` `CUSTOM_CHAR`가 이 형식만 저장).
    `glow`: 얼굴의 밝은 시안 부분(눈·화면)이 빛나는 세기. 0이면 발광 없음.

@@ -10716,6 +10716,7 @@
     "up to 30 a day": "günde en fazla 30",
     "Lock on": "Hedefe kilitlen",
     "No scammer close enough to lock on": "Hedefe kilitlenecek kadar yakında dolandırıcı yok",
+    "Lock-on off": "Kilit kapalı",
     "Frost {x}": "Buzlu {x}",
     "Blazing {x}": "Alevli {x}",
     "Toxic {x}": "Zehirli {x}",

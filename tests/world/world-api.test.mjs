@@ -138,9 +138,9 @@ check(cleanSave({ char: "kk-knight" }).char === "kk-knight" && cleanSave({ char:
     check(top && top.where === "def" && top.cause === "shader" && top.ms === "200-500" && top.n === 3 && hs.length === 2 && !/drop|bogus/.test(all), "hitches by place and cause, most first: " + all); }
   { const sh = r.body.shaders || []; check(sh.length === 1 && sh[0].kind === "physical-toon" && sh[0].n === 2 && sh[0].dev === "ph", "the shader kinds behind the hitches: " + JSON.stringify(sh)); }
   // b447: layout / js / resume causes, and which script ran long
-  r = await W.handle({ action: "world-diag", kind: "hitch", dev: "phone", q: "auto", h: { hub_layout_2: 1, hub_js_1: 1, hub_resume_0: 1 }, j: { "wplay-eventlis": 4, "bad key!": 2 } }); check(r.status === 200, "a hitch batch with the new causes is taken");
+  r = await W.handle({ action: "world-diag", kind: "hitch", dev: "phone", q: "auto", h: { hub_layout_2: 1, hub_js_1: 1, hub_resume_0: 1, hub_stall_2: 1, hub_busy_0: 1 }, j: { "wplay-eventlis": 4, "bad key!": 2 } }); check(r.status === 200, "a hitch batch with the new causes is taken");
   r = await W.read(new URL("http://x/?world=diag")); { const all = JSON.stringify(r.body.hitches || []), js = r.body.scripts || [];
-    check(/"cause":"layout"/.test(all) && /"cause":"js"/.test(all) && /"cause":"resume"/.test(all), "layout, js and resume hitches are kept: " + all);
+    check(/"cause":"layout"/.test(all) && /"cause":"js"/.test(all) && /"cause":"resume"/.test(all) && /"cause":"stall"/.test(all) && /"cause":"busy"/.test(all), "layout, js and resume hitches are kept: " + all);
     check(js.length === 1 && js[0].what === "wplay-eventlis" && js[0].n === 4 && js[0].dev === "ph", "the scripts behind the hitches: " + JSON.stringify(js)); }
   // frame-rate bands by chip class (b404): three phones on Adreno 6xx, two typical 55+, one 30-40; the slowest 10% lower
   for (const [p50, p10] of [[7, 4], [7, 3], [4, 1]]) await W.handle({ action: "world-diag", kind: "frames", dev: "phone", q: "auto", tier: "h", fam: "adreno6", cap: 60, dpr: 1.5, p50, p10 });
@@ -167,5 +167,17 @@ check(cleanSave({ char: "kk-knight" }).char === "kk-knight" && cleanSave({ char:
   sv = db.get("worldSave/" + a); check(sv.char === "kk-mage" && sv.name === "Bria" && sv.rpg.eq.weapon.k === 2, "once used, the next change needs paying again");
   T += 9000; await W.handle({ action: "world-save", ...M, data: { xp: 50, xpv: 2, name: "Bria", char: "kk-mage", rpg: { eq: { weapon: { id: "wpn002", b: "weapon-1", r: 1, lv: 5, p: 0, k: 4 } }, bag: [], store: [] } } });
   check(db.get("worldSave/" + a).rpg.eq.weapon.k === 4, "a new weapon (from the Forge) comes in any kind"); }
+// b447: the hero's colour: the first pick is free, a later change is a Character change, and a save without one (an
+// older page) keeps it without using anything up
+{ const v = ethers.Wallet.createRandom(), a = v.address.toLowerCase(); T += 60000; const iss = new Date(T).toISOString(), sg = await v.signMessage(loginMessage(v.address, iss)), M = { wallet: v.address, issued: iss, signature: sg };
+  const sv0 = (d) => W.handle({ action: "world-save", ...M, data: { xp: 50, xpv: 2, name: "Ari", char: "custom-aron", ...d } });
+  r = await sv0({}); check(r.status === 200 && db.get("worldSave/" + a).char === "custom-aron", "ARON saves");
+  T += 9000; await sv0({ tint: 3 }); check(db.get("worldSave/" + a).tint === 3, "the first colour is free");
+  T += 9000; await sv0({}); check(db.get("worldSave/" + a).tint === 3, "a save without a colour keeps it");
+  T += 9000; await sv0({ tint: 5 }); check(db.get("worldSave/" + a).tint === 3, "a later colour change without paying: the old one stays");
+  db.set("worldOwn/" + a, { items: [], rechars: 1 });
+  T += 9000; await sv0({}); check((db.get("worldOwn/" + a).recharsUsed || 0) === 0, "a save without a colour uses nothing up");
+  T += 9000; await sv0({ tint: 5 }); check(db.get("worldSave/" + a).tint === 5 && db.get("worldOwn/" + a).recharsUsed === 1, "a paid change sets the new colour");
+  T += 9000; await sv0({ tint: 99 }); check(db.get("worldSave/" + a).tint === 5, "a colour out of range is dropped (the old one stays)"); }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

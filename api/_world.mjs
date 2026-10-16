@@ -86,7 +86,7 @@ export function cleanSave(d) {
   const xp = Math.max(0, Math.min(XP_MAX, Math.floor(o.xpv === XP_VERSION ? Number(o.xp) || 0 : xpFromOld(o.xp))));
   const name = String(o.name || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").replace(/\[\s*g\s*m\s*\]/gi, "").trim().slice(0, 16); // [GM] comes from the wallet, never the name
   return {
-    xp, xpv: XP_VERSION, name, char: CHARS.has(o.char) || CUSTOM_CHAR.test(String(o.char || "")) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
+    xp, xpv: XP_VERSION, name, char: CHARS.has(o.char) || CUSTOM_CHAR.test(String(o.char || "")) ? o.char : "", ...(Number.isInteger(o.tint) && o.tint >= 0 && o.tint < 8 ? { tint: o.tint } : {}), /* b447: the hero's colour (0 = its own blue) */ ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
     visited: ids(o.visited, /^[a-z0-9-]{1,24}$/, 40), beaten: ids(o.beaten, /^[a-z0-9-]{1,24}$/, 20),
     cards: ids(o.cards, /^c\d{1,2}$/, 40), quests: ids(o.quests, /^[a-z0-9-]{1,24}$/, 60), badges: ids(o.badges, /^[a-z0-9-]{1,24}$/, 40),
     daily: o.daily && typeof o.daily === "object" ? { day: String(o.daily.day || "").slice(0, 10), done: ids(o.daily.done, /^[a-z0-9-]{1,24}$/, 10), streak: Math.max(0, Math.min(3650, Math.floor(Number(o.daily.streak) || 0))) } : null,
@@ -146,7 +146,7 @@ export function make(deps) {
     }
     if (b.kind === "hitch") { // b441: long frames by place, cause and length (world-diag.js)
       const f = {}; let n = 0;
-      for (const [k, v] of Object.entries(b.h && typeof b.h === "object" ? b.h : {})) { if (n >= 24 || !/^[a-z0-9]{1,8}_(shader|tex|geo|move|fight|layout|js|resume|other)_[012]$/.test(k)) continue; f[`hit_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; }
+      for (const [k, v] of Object.entries(b.h && typeof b.h === "object" ? b.h : {})) { if (n >= 24 || !/^[a-z0-9]{1,8}_(shader|tex|geo|move|fight|layout|js|resume|busy|stall|other)_[012]$/.test(k)) continue; f[`hit_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; }
       for (const [k, v] of Object.entries(b.s && typeof b.s === "object" ? b.s : {})) { if (n >= 36 || !/^[a-z0-9-]{1,24}$/.test(k)) continue; f[`hsh_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; } // which shaders were built
       for (const [k, v] of Object.entries(b.j && typeof b.j === "object" ? b.j : {})) { if (n >= 44 || !/^[a-z0-9-]{1,24}$/.test(k)) continue; f[`hjs_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; } // b447: which script ran long (file-what)
       if (n) await commit([{ inc: day, fields: f }]).catch(() => {});
@@ -324,12 +324,13 @@ export function make(deps) {
     if (data.rpg && data.rpg.bag.length > BAG_BASE) data.rpg.bag = data.rpg.bag.slice(0, bagSize(await shop.own(s.wallet)));
     // changing the character or the name (once they're set) takes a Character change (10,000 $ARCIRCLE); a name-only
     // change can also use an old ARCL Name change. Without one, the old character and name stay.
-    const charCh = !!(old && old.char && data.char && data.char !== old.char), nameCh = !!(old && old.name && data.name && data.name !== old.name);
+    if (old && old.tint != null && data.tint == null) data.tint = old.tint; // b447: a save without a colour (an older page) keeps the one it has
+    const charCh = !!(old && old.char && ((data.char && data.char !== old.char) || (old.tint != null && data.tint !== old.tint))), nameCh /* a colour change counts as a character change (b447) */ = !!(old && old.name && data.name && data.name !== old.name);
     if (charCh || nameCh) {
       const o = await shop.own(s.wallet);
       if ((o.rechars || 0) > (o.recharsUsed || 0)) await setDoc(`worldOwn/${s.wallet}`, { ...o, recharsUsed: (o.recharsUsed || 0) + 1 });
       else if (!charCh && (o.renames || 0) > (o.renamesUsed || 0)) await setDoc(`worldOwn/${s.wallet}`, { ...o, renamesUsed: (o.renamesUsed || 0) + 1 });
-      else { data.char = old.char; data.name = old.name; }
+      else { data.char = old.char; data.name = old.name; if (old.tint != null) data.tint = old.tint; else delete data.tint; }
     }
     // a weapon's kind (k) changed on a piece the last save already had takes a Weapon kind change (5,000 $ARCIRCLE)
     // each; without enough of them, those pieces keep their old kind

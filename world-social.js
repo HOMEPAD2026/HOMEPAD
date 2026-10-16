@@ -292,10 +292,11 @@ export function createGhosts(ctx) {
       const u = w.g.userData; u.body.visible = u.head.visible = false;
       ch.obj.traverse((o) => { if (o.name === "crown") o.visible = false; }); // the crown is the player's own
       if (ch.setCrown) ch.setCrown(0x9ff3ff, 0x9ff3ff);
-      w.g.add(ch.obj); w.ch = ch; w.anim = "";
+      w.g.add(ch.obj); w.ch = ch; w.anim = ""; heroLook(w);
     }).catch(() => { w.loadingCh = false; chars--; });
   }
-  function freeCh(ch) { ch.obj.traverse((o) => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.dispose(); }); if (ch.obj.parent) ch.obj.parent.remove(ch.obj); }
+  function freeCh(ch) { ch.obj.traverse((o) => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.dispose(); }); if (ch.dispose) ch.dispose(); if (ch.obj.parent) ch.obj.parent.remove(ch.obj); }
+  function heroLook(w) { const ch = w.ch; if (!ch || !ch.hero) return; if (ch.setTint) ch.setTint(w.tn || 0); if (ch.setCrown) ch.setCrown(ctx.tierHalo ? ctx.tierHalo(w.tr || 0) : null); }
   let pollAt = 0, palT = 0, palOn = false;
   const rings = [];
   // a ring of light where a wanderer appears (and again where one fades away)
@@ -312,6 +313,7 @@ export function createGhosts(ctx) {
         let w = list.get(x.t);
         if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); arrive(g); dressGhost(w, x.c); }
         w.x = x.x; w.z = x.z; w.at = now;
+        if (w.tn !== (x.tn || 0) || w.tr !== (x.tr || 0)) { w.tn = x.tn || 0; w.tr = x.tr || 0; heroLook(w); } // b447: their hero's colour and halo tier
         // signed in (and not hidden): their name and level on the plate instead of just the level
         // a crew's tag before the name; the GM wears [GM] in gold
         const crew = x.cr ? "[" + String(x.cr).slice(0, 4) + "] " : "", nm = x.n ? `${x.gm ? "[GM] " : ""}${crew}${x.n} · Lv ${x.l || x.lv}` : "";
@@ -355,8 +357,13 @@ export function createGhosts(ctx) {
         if (w.ch) {
           // grows in as it arrives and shrinks away as it leaves; walks while it drifts, idles when it stands (near you only)
           const sc = 0.2 + 0.8 * w.fade; w.ch.obj.scale.setScalar(sc); w.ch.obj.visible = w.fade > 0.02;
-          if (ctx.here) { ctx.here(tmp); const far = Math.hypot(tmp.x - w.g.position.x, tmp.z - w.g.position.z) > 70;
-            if (!far) { const want = w.hop > 0 ? "emote-yes" : d > 0.05 && d < 25 ? "walk" : "idle"; if (want !== w.anim && w.ch.play && !(w.ch.busy && w.ch.busy())) { w.anim = want; w.ch.play(want, want === "emote-yes" ? { once: true } : { speed: 0.8 }); } w.ch.update(dt, t, d > 0.05 ? 0.3 : 0, 0); } }
+          if (ctx.here) { ctx.here(tmp); const dist = Math.hypot(tmp.x - w.g.position.x, tmp.z - w.g.position.z), far = dist > 60;
+            // b447: everyone is the same rigged hero now, so the far ones cost less: past 15 m no shadow, past 25 m the
+            // pose updates every third frame (with the time it missed), past 60 m not drawn at all
+            if (far) w.ch.obj.visible = false;
+            const sh = dist < 15; if (w.chSh !== sh) { w.chSh = sh; w.ch.obj.traverse((o) => { if (o.isMesh) o.castShadow = sh; }); }
+            if (!far) { const want = w.hop > 0 ? "emote-yes" : d > 0.05 && d < 25 ? "walk" : "idle"; if (want !== w.anim && w.ch.play && !(w.ch.busy && w.ch.busy())) { w.anim = want; w.ch.play(want, want === "emote-yes" ? { once: true } : { speed: 0.8 }); }
+              w.chDt = (w.chDt || 0) + dt; if (dist < 25 || (w.chN = ((w.chN || 0) + 1) % 3) === 0) { w.ch.update(w.chDt, t, d > 0.05 ? 0.3 : 0, 0); w.chDt = 0; } } }
         }
         if (w.gone && w.fade <= 0) { arrive(w.g, true); if (w.ch) { freeCh(w.ch); w.ch = null; chars--; } else if (w.loadingCh) w.loadingCh = false; root.remove(w.g); const cs = w.g.userData.cs; if (cs) { cs.geometry.dispose(); cs.material.dispose(); } list.delete(k); }
       }

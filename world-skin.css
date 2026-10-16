@@ -587,3 +587,48 @@ body:has(.wj-hud) .wp-qmini,body.wp:has([data-game-hud]:not([hidden])) .wp-qmini
    online, the raid card) lets the world show through; a tap or hover brings an element back to full */
 body.wp .wp-hud :is(.wp-brand,.wp-lv,.wc-vit,.wp-quests,.wp-qmini,.wp-hud-btns>.wp-btn,.wp-purse,.wp-online,#wp-wallet,.wa-chip,.wp-cards,.wp-stage,.wp-mini),body.wp .wr-raid{opacity:.8;transition:opacity .15s ease}
 body.wp .wp-hud :is(.wp-brand,.wp-lv,.wc-vit,.wp-quests,.wp-qmini,.wp-hud-btns>.wp-btn,.wp-purse,.wp-online,#wp-wallet,.wa-chip,.wp-cards,.wp-stage,.wp-mini):is(:hover,:active,:focus-visible),body.wp .wr-raid:is(:hover,:active,:focus-within){opacity:1}
+
+/* b447: the hero's colour in the character maker: a row of round swatches */
+body.wp .wp-make-tints{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 10px}
+body.wp .wp-make-tints[hidden]{display:none}
+body.wp .wp-make-tints .wp-make-sec{flex-basis:100%;margin:0 0 2px}
+body.wp .wp-make-tints button{appearance:none;width:30px;height:30px;padding:0;border-radius:50%;cursor:pointer;border:2px solid rgba(255,255,255,.35);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),transparent 45%),var(--c);box-shadow:0 2px 0 rgba(0,6,24,.35)}
+body.wp .wp-make-tints button[aria-checked="true"]{border-color:#fff;box-shadow:0 0 0 3px var(--ui-mint-2,#4fe6c8),0 2px 0 rgba(0,6,24,.35)}
+html.wp-pcphone body.wp .wp-make-tints{gap:16px}
+html.wp-pcphone body.wp .wp-make-tints button{width:60px;height:60px;border-width:3px}
+
+/* b447: the maker's hero cards: big, the portrait filling the card, the name under it; the heroes to come locked */
+body.wp .wp-make-grid.heroes{display:flex;flex-wrap:wrap;gap:10px}
+body.wp .wp-make-grid.heroes .wp-make-sec{flex-basis:100%}
+body.wp .wp-make-grid.heroes button{position:relative;width:108px;height:128px;padding:6px 6px 22px;border-radius:16px;display:grid;place-items:center;overflow:hidden}
+body.wp .wp-make-grid.heroes button img{width:96px;height:96px;object-fit:cover;border-radius:12px}
+body.wp .wp-make-grid.heroes button small{position:absolute;left:0;right:0;bottom:5px;font:800 13px/1 var(--f-ui);letter-spacing:.08em;color:#fff;text-align:center}
+body.wp .wp-make-grid.heroes button.soon{opacity:.6;cursor:not-allowed;background:linear-gradient(180deg,rgba(40,70,130,.45),rgba(16,36,80,.45))}
+body.wp .wp-make-grid.heroes button.soon i{font:900 44px/1 var(--f-ui);font-style:normal;color:rgba(200,230,255,.45)}
+body.wp .wp-make-grid.heroes button.soon em{position:absolute;top:6px;right:6px;padding:2px 6px;border-radius:999px;background:rgba(255,201,58,.85);color:#2a1a00;font:800 9.5px/1.2 var(--f-ui);font-style:normal;text-transform:uppercase}
+html.wp-pcphone body.wp .wp-make-grid.heroes{gap:20px}
+html.wp-pcphone body.wp .wp-make-grid.heroes button{width:200px;height:236px;border-radius:26px;padding:10px 10px 40px}
+html.wp-pcphone body.wp .wp-make-grid.heroes button img{width:178px;height:178px;border-radius:20px}
+html.wp-pcphone body.wp .wp-make-grid.heroes button small{font-size:24px;bottom:10px}
+html.wp-pcphone body.wp .wp-make-grid.heroes button.soon i{font-size:80px}
+html.wp-pcphone body.wp .wp-make-grid.heroes button.soon em{font-size:17px;padding:4px 10px;top:10px;right:10px}
+
+/* b447: ARON on the loading screen, floating gently over the mark */
+.wp-loading img.wp-load-hero{width:132px;height:132px;border-radius:50%;object-fit:cover;background:radial-gradient(circle at 50% 40%,rgba(120,214,255,.35),rgba(10,30,80,.0) 70%);filter:drop-shadow(0 8px 18px rgba(0,10,40,.55));animation:wpHeroBob 2.6s ease-in-out infinite}
+@keyframes wpHeroBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+html.wp-pcphone .wp-loading img.wp-load-hero{width:240px;height:240px}
+@media (prefers-reduced-motion:reduce){.wp-loading img.wp-load-hero{animation:none}}
+html.wp-less .wp-loading img.wp-load-hero{animation:none}
+
+/* b447: small motions. Buttons give a little when pressed (scale, so the transforms that place them stay); a purse
+   number that changes hops */
+body.wp :is(.wp-act,.wp-dk,.wp-hud-btns>.wp-btn,.wc-attack,.wc-pot,.wp-qmini,.wp-hub-grid button,.wp-cta){transition:scale .09s ease-out}
+body.wp :is(.wp-act,.wp-dk,.wp-hud-btns>.wp-btn,.wc-attack,.wc-pot,.wp-qmini,.wp-hub-grid button,.wp-cta):active{scale:.92}
+body.wp .wp-hud .tick{display:inline-block;animation:wpTick .5s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes wpTick{0%{transform:translateY(0)}35%{transform:translateY(-4px);color:#fff7c2}100%{transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){body.wp .wp-hud .tick{animation:none}body.wp :is(.wp-act,.wp-dk,.wp-hud-btns>.wp-btn,.wc-attack,.wc-pot,.wp-qmini,.wp-hub-grid button,.wp-cta):active{scale:1}}
+html.wp-less body.wp .wp-hud .tick{animation:none}
+
+/* b447 (a player's report): AC Defense's upgrade cards sat over the wave bar at the top (both on a phone, where they
+   are zoomed): they open lower, under it */
+.wd-perk{top:36%}

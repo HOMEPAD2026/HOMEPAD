@@ -10624,6 +10624,7 @@
     "up to 30 a day": "每天最多 30 次",
     "Lock on": "锁定",
     "No scammer close enough to lock on": "附近没有可锁定的骗子",
+    "Lock-on off": "锁定已关闭",
     "Frost {x}": "冰霜{x}",
     "Blazing {x}": "烈焰{x}",
     "Toxic {x}": "剧毒{x}",

@@ -540,7 +540,7 @@ export function createRpg(ctx) {
       const wd = el.querySelector("[data-w3d]"), it = wd && findItem(wd.dataset.w3d), pb = it && parseBase(it.b);
       if (it && pb && wd.getClientRects().length) { const m = /* not in a phone's docked sheet, which hides the turning view */ pb.slot === "weapon" ? weapon3d(weaponKind(it), pb.tier, RARITY[it.r || 0].color, ((it.r || 0) >= 3 ? 0.35 : (it.r || 0) >= 2 ? 0.15 : 0) + (Number(it.tm) || 0) * 0.14) : gearModel3d(pb.slot, pb.tier, RARITY[it.r || 0].color); PV.mount(wd, m, { kind: "item", own: true }); return; }
       const av = ctx.avatar(), slot = el.querySelector(".wr-avatar");
-      if (av && !av.bot && slot) { slot.classList.add("has-3d"); PV.mount(slot, PV.figureOf(av.obj), { kind: "figure" }); }
+      if (av && !av.bot && slot) { slot.classList.add("has-3d"); const fig = PV.figureOf(av.obj); if (av.restPose) av.restPose(fig); PV.mount(slot, fig, { kind: "figure" }); } // b447: a hero stands straight in it
     };
     if (PV) go(); else import("./world-preview.js").then((m) => { PV = m; go(); }).catch(() => {});
   }

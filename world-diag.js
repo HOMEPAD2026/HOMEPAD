@@ -22,7 +22,7 @@ export function gpuFamily(name) {
   if (/nvidia|geforce|rtx|gtx/.test(g)) return "nvidia"; if (/radeon|amd/.test(g)) return "amd"; if (/intel/.test(g)) return "intel";
   if (/swiftshader|llvmpipe|software/.test(g)) return "soft"; return "other";
 }
-export function createDiag({ post, renderer, quality = "", coarse = false, active = () => true, tier = "", cap = () => 60, where = () => "", busy = () => false }) {
+export function createDiag({ post, renderer, quality = "", coarse = false, active = () => true, tier = "", cap = () => 60, where = () => "", busy = () => false, work = () => -1 }) {
   const off = (() => { try { return new URLSearchParams(location.search).has("nodiag") || navigator.webdriver; } catch { return true; } })();
   const gpu = (() => { try { const gl = renderer.getContext(), x = gl.getExtension("WEBGL_debug_renderer_info"); return String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 80); } catch { return ""; } })();
   const dev = coarse ? "phone" : "pc", sent = new Set();
@@ -68,12 +68,17 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
         if (Object.keys(hitSh).length < 12 || hitSh[k]) hitSh[k] = (hitSh[k] || 0) + 1; } }
     if (info0) { if (pr > info0.p) cause = "shader"; else if (m.textures > info0.t) cause = "tex"; else if (m.geometries > info0.g + 10) cause = "geo"; else if (now - wAt < 1500) cause = "move"; else if (now - bAt < 1500) cause = "fight"; }
     if (cause === "other" && now - resAt < 2000) cause = "resume";
+    // b447: the last frame's own work (updates + render) against the gap: most of the gap ours is "busy", little of it
+    // ours is a "stall" outside our code (the GPU or its driver finishing, the browser, garbage collection). Phones
+    // without Long Animation Frames (Samsung Internet) only ever said "other".
+    let wk = -1; try { wk = Number(work()); } catch { wk = -1; }
+    const split = (c) => (c === "other" && wk >= 0 ? (wk > d * 0.5 ? "busy" : "stall") : c);
     const w = word(lastW), rec = (c) => { const band = d < 200 ? 0 : d < 500 ? 1 : 2, k = `${w}_${c}_${band}`;
       if (hitN < 60) { hit[k] = (hit[k] || 0) + 1; hitN++; }
       if (now - hitAt > 60e3 && Object.keys(hit).length) { hitAt = now; send({ kind: "hitch", dev, q: quality, h: hit, s: hitSh, j: hitJs }); hit = {}; hitSh = {}; hitJs = {}; hitN = 0; } };
     // the long frame's entry arrives a moment after the frame: look it up then
-    if (cause === "other" && loafOn) setTimeout(() => { let c = "other"; try { c = whyLong(now - d - 20, now); } catch { /* other */ } rec(c); }, 500);
-    else rec(cause);
+    if (cause === "other" && loafOn) setTimeout(() => { let c = "other"; try { c = whyLong(now - d - 20, now); } catch { /* other */ } rec(split(c)); }, 500);
+    else rec(split(cause));
   }
   function frameSample() {
     const now = performance.now(), d = prev ? now - prev : 0; prev = now;
