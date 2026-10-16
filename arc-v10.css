@@ -4099,3 +4099,4 @@ html.wp-pcphone .wp-acts .wp-act-more{--c:#b48cff;--d:#7f55e0}
 html.wp-pcphone .wp-act-more svg circle{fill:#fff!important;stroke:none!important}
 @keyframes wpMore{from{opacity:0;transform:translateY(8px) scale(.9)}}
 body.wi-building .wp-acts .wp-act-more{display:none!important}
+.wp-more-dots{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:900 30px/1 var(--f-ui,system-ui);letter-spacing:1px;text-shadow:0 2px 4px rgba(0,0,0,.35);pointer-events:none;z-index:2}

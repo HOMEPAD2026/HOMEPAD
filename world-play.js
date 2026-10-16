@@ -456,7 +456,7 @@ st.on((dt, t) => { if (K.arcTick) K.arcTick(dt, planet.position); LOOK.lookOrigi
 st.on(() => { try { if (mode !== "hub" || reduce) return; const b = music.level ? music.level() : 0, k = b * (concertOn() ? 0.9 : 0.4); if (K.arcPulse) K.arcPulse(k * 0.6); if (fountain.userData.pulse) fountain.userData.pulse(k); } catch { /* still loading */ } });
 // concert night: Saturdays 20:00–23:00 Seoul time (?concert=1 to try it): the stage lights up and the town pulses harder
 function concertOn() { try { const q = new URLSearchParams(location.search).get("concert"); if (q) return q === "1"; } catch { /* fine */ } const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCDay() === 6 && d.getUTCHours() >= 20 && d.getUTCHours() < 23; }
-{ const blobs = groundG.getObjectByName("blobs"); if (blobs) groundG.remove(blobs); groundG.add(ENV.makeHills()); if (ENV.makeRange) groundG.add(ENV.makeRange()); }
+{ const blobs = groundG.getObjectByName("blobs"); if (blobs) groundG.remove(blobs); groundG.add(ENV.makeHills()); if (ENV.makeRange && !/[?&]norange\b/.test(location.search)) groundG.add(ENV.makeRange()); }
 const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
 const stars = K.makeStars(); st.scene.add(stars);
 const halo = K.makeHalo(0.5); halo.position.set(0, 135, -360); halo.rotation.set(0.32, 0.2, 0); halo.traverse((o) => { if (o.material) o.material.fog = false; }); st.scene.add(halo);
@@ -2773,7 +2773,7 @@ $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; sa
     const emo = $("wp-act-emote"); let slot = null;
     const place = () => { if (!document.documentElement.classList.contains("wp-pcphone") || !emo) return; const was = acts.classList.contains("open"); acts.classList.add("open"); emo.style.bottom = ""; const cs = getComputedStyle(emo); slot = { r: cs.right, b: cs.bottom, h: emo.offsetHeight }; more.style.right = slot.r; more.style.bottom = slot.b; fold(was); }; /* (read while open: a hidden button has no size) */
     const fold = (open) => { acts.classList.toggle("open", open); more.setAttribute("aria-expanded", String(open)); if (emo && slot) emo.style.bottom = open ? `calc(${slot.b} + ${Math.round(slot.h * 1.15)}px)` : ""; };
-    setTimeout(place, 0); addEventListener("resize", () => setTimeout(place, 60));
+    setTimeout(place, 0); addEventListener("orientationchange", () => setTimeout(place, 300)); // (not on resize: reading the layout there fed back into itself)
     more.addEventListener("click", (e) => { e.stopPropagation(); fold(!acts.classList.contains("open")); });
     acts.addEventListener("click", (e) => { if (e.target.closest(".wp-act-board,.wp-act-emote,.wp-act-photo")) setTimeout(() => fold(false), 150); });
     addEventListener("pointerdown", (e) => { if (acts.classList.contains("open") && !e.target.closest("#wp-acts")) fold(false); }, true);
