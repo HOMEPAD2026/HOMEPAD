@@ -429,7 +429,7 @@ export function makeGround({ radius = 330 } = {}) {
   // the plaza: stone, a cyan ring at its edge
   const pr = flatR(11);
   const plaza = new THREE.Mesh(new THREE.CircleGeometry(pr, 96), new THREE.MeshStandardMaterial({ map: ARC.plazaTexture(), roughness: 0.7, metalness: 0.02 }));
-  plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.03; plaza.receiveShadow = true; g.add(plaza);
+  plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.03; plaza.receiveShadow = true; plaza.name = "plaza-floor"; g.add(plaza); // world-play.js adds the stone grain (b447)
 
   const ring = new THREE.Mesh(new THREE.TorusGeometry(pr, 0.07, 8, 128), glow(C.cyan, 1.1)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.06; g.add(ring);
   scatter(g, 260, 175);
