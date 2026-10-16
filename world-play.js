@@ -3198,7 +3198,7 @@ function makeMeadow() {
   if (lowGfx || grass) return;
   gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }, { x: GV.VILLAGE.x, z: GV.VILLAGE.z, r: GV.VILLAGE.arenaR + 2.2 } /* b447: the Game Village square (the blades grew through its tiles) */], paths: WORN_PATHS }));
   const big = S.quality === "ultra" || S.quality === "high"; // 60,000 blades only when asked for (b411)
-  grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 16000 : 32000, size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
+  grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 10000 : 32000, /* b447: phones 10,000 (the blades hadn't drawn on phones since 13 October, a shader that didn't link; the frame rates since were measured without them) */ size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
   planet.add(grass.mesh); reflHide.push(grass.mesh);
   st.on((dt) => { const on = mode === "hub"; grass.mesh.visible = on; if (on) grass.tick(dt, -planet.position.x, -planet.position.z); });
   setTimeout(() => farCull.all(() => gmask.paint()), 20000);
