@@ -242,7 +242,7 @@
     function show() {
       if (!phone() || D.getElementById("v9-install")) return;
       var b = D.createElement("div"); b.id = "v9-install"; b.className = "v9-install"; b.setAttribute("role", "dialog"); b.setAttribute("aria-label", "Install"); b.setAttribute("data-no-i18n", "");
-      b.innerHTML = '<img src="/images/apple-touch-icon.png" alt="" width="40" height="40"><div><b>' + L("Add ARCIRCLE to your home screen", "ARCIRCLE을 홈 화면에 추가", "把 ARCIRCLE 添加到主屏幕") + "</b><small>" +
+      b.innerHTML = '<img src="/images/brand/apple-touch-icon-v2.png" alt="" width="40" height="40"><div><b>' + L("Add ARCIRCLE to your home screen", "ARCIRCLE을 홈 화면에 추가", "把 ARCIRCLE 添加到主屏幕") + "</b><small>" +
         (deferred ? L("Opens like an app, full screen.", "앱처럼 전체 화면으로 열려요.", "像 App 一样全屏打开。") : L("Tap Share, then “Add to Home Screen”.", "공유 버튼 → ‘홈 화면에 추가’를 누르세요.", "点分享,然后“添加到主屏幕”。")) + "</small></div>" +
         (deferred ? '<button type="button" class="bp-btn-primary sm" data-i="go">' + L("Install", "설치", "安装") + "</button>" : "") + '<button type="button" class="v9-x" data-i="off" aria-label="' + L("Close", "닫기", "关闭") + '">×</button>';
       D.body.appendChild(b);

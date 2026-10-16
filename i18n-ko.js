@@ -2547,7 +2547,7 @@
     "Burn-to-vote in CirclePad": "CirclePad에서 소각 투표",
     "Chain ID": "체인 ID",
     "Check a token": "토큰 확인",
-    "Circle green": "Circle 그린",
+    "v2 · New logo": "v2 · 새 로고", "The new ARCIRCLE infinity mark, the ARCIRCLE WORLD banner, colours and type — for memes, banners, videos and community posts. Please keep the mark as it is, and don't use it to suggest a partnership or an official product that isn't ours.": "새 ARCIRCLE 인피니티 마크, ARCIRCLE WORLD 배너, 색상과 서체 — 밈, 배너, 영상, 커뮤니티 게시물에 쓰세요. 마크는 그대로 사용해 주시고, 파트너십이나 저희 것이 아닌 공식 제품처럼 보이게 쓰지 말아 주세요.", "One infinity, blue to green.": "하나의 인피니티, 블루에서 그린으로.", "Logo · PNG": "로고 · PNG", "1220 × 595, transparent": "1220 × 595, 투명 배경", "Logo · WebP": "로고 · WebP", "Avatar · PNG": "아바타 · PNG", "1024 × 1024, for profile pictures": "1024 × 1024, 프로필 사진용", "The banner": "배너", "ARCIRCLE WORLD — Play. Build. Trade. Earn.": "ARCIRCLE WORLD — 플레이. 빌드. 트레이드. 언.", "Banner · JPG": "배너 · JPG", "2172 × 724, full size": "2172 × 724, 원본 크기", "X header · JPG": "X 헤더 · JPG", "1500 × 500, sized for X": "1500 × 500, X 규격", "Banner · WebP": "배너 · WebP", "1600 wide, for the web": "가로 1600, 웹용", "Blue to green, with a violet edge.": "블루에서 그린으로, 바이올렛 테두리.", "Violet": "바이올렛", "Don't use the old two-ring mark in new posts.": "새 게시물에는 예전 두 고리 마크를 쓰지 마세요.", "Circle green": "Circle 그린",
     "CirclePad Round #1 opened": "CirclePad 라운드 #1 오픈",
     "CirclePad airdrop size": "CirclePad 에어드롭 규모",
     "CirclePad position": "CirclePad 포지션",

@@ -115,7 +115,7 @@
   const META = new Map(); // address → { address, symbol, name, decimals, logo }
   function base() {
     META.set(USDC(), { address: USDC(), symbol: "USDC", name: "USD Coin", decimals: 6, logo: "/images/tokens/usdc.svg" });
-    META.set(ARCIRCLE(), { address: ARCIRCLE(), symbol: "ARCIRCLE", name: "ARCIRCLE", decimals: 18, logo: "/images/arcircle-mark-sm.png" });
+    META.set(ARCIRCLE(), { address: ARCIRCLE(), symbol: "ARCIRCLE", name: "ARCIRCLE", decimals: 18, logo: "/images/brand/mark-sm-v2.png" });
   }
   base();
   const launches = () => (typeof ARC !== "undefined" && Array.isArray(ARC.launches) && ARC.launches.length ? ARC.launches : S.snap || []);

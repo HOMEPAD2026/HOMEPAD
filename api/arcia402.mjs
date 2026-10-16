@@ -164,7 +164,7 @@ async function receiptPage(tx) {
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@ARCIRCLEonArc">
 <meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}"><meta name="twitter:image" content="${image}">
 <meta http-equiv="refresh" content="0;url=${target}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#05080e;color:#eaf2ff;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body><p>Opening <a href="${target}">ARCIA's receipt</a>…</p><script>location.replace(${JSON.stringify(target)});</script></body></html>`;
   return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=600" } });

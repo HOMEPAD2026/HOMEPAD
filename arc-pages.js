@@ -242,10 +242,10 @@
 
   // ================= /brand =================
   if (body.classList.contains("pg-brand")) {
-    var COLORS = [["Arc blue", "#4d9fff"], ["Cyan", "#35d8d0"], ["Circle green", "#39ff88"], ["Gold", "#ffc861"], ["Ink", "#eef3f7"], ["Night", "#04060a"]];
+    var COLORS = [["Violet", "#9b5cff"], ["Arc blue", "#2f74ff"], ["Cyan", "#2ee7ff"], ["Circle green", "#36e27a"], ["Gold", "#ffc861"], ["Ink", "#eef3f7"], ["Night", "#050a1e"]]; // brand v2: the infinity mark's colours
     var box = $("#bk-colors");
     box.innerHTML = COLORS.map(function (c) { return '<button type="button" class="bk-sw" data-hex="' + c[1] + '" style="--c:' + c[1] + '"><i></i><b>' + T(c[0]) + '</b><span data-no-i18n>' + c[1] + "</span></button>"; }).join("") +
-      '<div class="bk-grad"><i></i><b>' + T("Gradient") + '</b><span data-no-i18n>#3f9bff → #35d8d0 → #39ff88</span></div>';
+      '<div class="bk-grad"><i></i><b>' + T("Gradient") + '</b><span data-no-i18n>#9b5cff → #2f74ff → #2ee7ff → #36e27a</span></div>';
     box.addEventListener("click", function (e) {
       var b = e.target.closest("[data-hex]");
       if (!b) return;

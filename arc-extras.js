@@ -369,7 +369,7 @@
   }
   function pfRowHtml(x) {
     if (x.core) {
-      return `<a class="pf-row" href="/arc#arcircle"><img class="pf-logo" src="images/arcircle-mark-sm.png" alt="">
+      return `<a class="pf-row" href="/arc#arcircle"><img class="pf-logo" src="images/brand/mark-sm-v2.png" alt="">
         <span class="pf-who"><b>$ARCIRCLE</b><small>Core coin</small></span>
         <span class="pf-amt">${num(x.amt)}</span><span class="pf-val">${usd(x.value)}</span><span class="pf-chg"></span></a>`;
     }

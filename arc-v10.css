@@ -1044,7 +1044,7 @@ html.wg-lock,html.wg-lock body{overflow:hidden}
 .wg-cv:active{cursor:grabbing}
 .wg.wg-live .wg-cv{opacity:1}
 .wg.wg-flat .wg-cv{display:none}
-.wg.wg-flat::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 50% 38%,rgba(63,155,255,.22),transparent 70%),radial-gradient(40% 40% at 62% 44%,rgba(57,255,136,.16),transparent 70%),url(/images/arcircle-mark.webp) center 32%/min(56vw,420px) no-repeat}
+.wg.wg-flat::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 50% 38%,rgba(63,155,255,.22),transparent 70%),radial-gradient(40% 40% at 62% 44%,rgba(57,255,136,.16),transparent 70%),url(/images/brand/mark-v2.webp) center 32%/min(56vw,420px) no-repeat}
 .wg::after{content:"";position:absolute;inset:auto 0 0;height:62%;background:linear-gradient(to top,rgba(4,6,10,.94) 18%,rgba(4,6,10,.55) 60%,transparent);pointer-events:none}
 .wg-top{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:20px clamp(16px,4vw,40px)}
 .wg-brand{display:flex;align-items:center;gap:10px;font-size:15px;letter-spacing:.14em}
@@ -4100,3 +4100,5 @@ html.wp-pcphone .wp-act-more svg circle{fill:#fff!important;stroke:none!importan
 @keyframes wpMore{from{opacity:0;transform:translateY(8px) scale(.9)}}
 body.wi-building .wp-acts .wp-act-more{display:none!important}
 .wp-more-dots{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:900 30px/1 var(--f-ui,system-ui);letter-spacing:1px;text-shadow:0 2px 4px rgba(0,0,0,.35);pointer-events:none;z-index:2}
+/* brand v2: the HUD's mark is the new infinity image (it was a drawn line) */
+body.wp .wp-hud img.wp-logo{object-fit:contain;filter:drop-shadow(0 0 6px rgba(60,170,255,.5))}

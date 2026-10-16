@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/og/og-home.jpg" alt="ARCIRCLE — the community launchpad on Circle's Arc chain" width="720">
+  <img src="images/og/og-home-v2.jpg" alt="ARCIRCLE — the community launchpad on Circle's Arc chain" width="720">
 </p>
 
 <h1 align="center">♾ ARCIRCLE</h1>

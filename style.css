@@ -1644,7 +1644,7 @@ body.ax-page{
   filter:blur(26px);animation:ax-breathe 6s ease-in-out infinite alternate;}
 .ax-mark::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
   background:linear-gradient(110deg,transparent 38%,rgba(210,245,255,.75) 48%,rgba(190,255,220,.55) 52%,transparent 62%) no-repeat;background-size:260% 100%;
-  -webkit-mask:url(images/arcircle-mark-600.webp) center/contain no-repeat;mask:url(images/arcircle-mark-600.webp) center/contain no-repeat;
+  -webkit-mask:url(images/brand/mark-600-v2.webp) center/contain no-repeat;mask:url(images/brand/mark-600-v2.webp) center/contain no-repeat;
   animation:ax-sheen 7.5s cubic-bezier(.45,.05,.35,1) infinite;}
 @keyframes ax-breathe{0%{opacity:.55;transform:scale(.96);filter:blur(26px) hue-rotate(0deg);}100%{opacity:1;transform:scale(1.04);filter:blur(30px) hue-rotate(-18deg);}}
 @keyframes ax-sheen{0%,18%{background-position:120% 0;}62%,100%{background-position:-20% 0;}}
@@ -19048,3 +19048,7 @@ html.tr-on .tr-q{visibility:hidden;}
 
 /* Reduced motion, site-wide: anything that still animates finishes at once (no loops, no smooth scroll). */
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+/* brand kit v2: the banner shown wide above its downloads */
+.bk-banner{margin:0 0 14px;border-radius:16px;overflow:hidden;border:1px solid var(--line,rgba(232,242,229,.14));box-shadow:0 12px 34px rgba(0,0,0,.35)}
+.bk-banner img{display:block;width:100%;height:auto}
+.bk-mark figcaption:only-child{padding-top:14px}

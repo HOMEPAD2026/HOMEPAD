@@ -38,7 +38,7 @@
   el.className = "wg"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wg-h");
   el.innerHTML =
     '<canvas class="wg-cv" aria-hidden="true"></canvas>' +
-    '<div class="wg-top"><span class="wg-brand"><img src="/images/arcircle-mark-sm.png" alt="" width="34" height="20"><b>ARCIRCLE</b><i>' + T.world + '</i></span>' +
+    '<div class="wg-top"><span class="wg-brand"><img src="/images/brand/mark-sm-v2.png" alt="" width="34" height="20"><b>ARCIRCLE</b><i>' + T.world + '</i></span>' +
     '<button type="button" class="wg-skip" data-no-i18n>' + T.skip + "</button></div>" +
     '<div class="wg-main"><h1 id="wg-h" data-no-i18n>' + T.h + '</h1><p data-no-i18n>' + T.p + "</p>" +
     '<div class="wg-doors">' +

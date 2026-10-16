@@ -1266,7 +1266,7 @@
   const notifyOn = () => ls.get(LS.notify) === "1";
   function notify(title, body) {
     toast(title, body);
-    try { if (notifyOn() && "Notification" in window && Notification.permission === "granted" && document.hidden) new Notification(title, { body, icon: "/images/arcircle-mark-sm.png" }); } catch { /* fine */ }
+    try { if (notifyOn() && "Notification" in window && Notification.permission === "granted" && document.hidden) new Notification(title, { body, icon: "/images/brand/mark-sm-v2.png" }); } catch { /* fine */ }
   }
   function toast(title, body, force) {
     if (!notifyOn() && !force) return;
@@ -1313,7 +1313,7 @@
       if (left > 0 && left <= 30 && !S.notified.has(k)) {
         S.notified.add(k);
         toast(`${tr("Bets close in 30 seconds")} · ${m.sym} ${dur(m.duration)}`, `UP ${money(br.up)} · DOWN ${money(br.down)}`, true);
-        try { if ("Notification" in window && Notification.permission === "granted" && document.hidden) new Notification(`${m.sym} ${dur(m.duration)} — ARCIRCLE Predict`, { body: tr("Bets close in 30 seconds"), icon: "/images/arcircle-mark-sm.png" }); } catch { /* fine */ }
+        try { if ("Notification" in window && Notification.permission === "granted" && document.hidden) new Notification(`${m.sym} ${dur(m.duration)} — ARCIRCLE Predict`, { body: tr("Bets close in 30 seconds"), icon: "/images/brand/mark-sm-v2.png" }); } catch { /* fine */ }
       }
     }
   }

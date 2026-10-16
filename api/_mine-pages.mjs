@@ -45,7 +45,7 @@ export async function minePage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#ffc861}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">mine</a>…</p>

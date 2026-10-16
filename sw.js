@@ -4,10 +4,10 @@
 //              older versions of the same file are dropped when a new one is stored
 //   /api/*, wallet and chain traffic, other sites: never touched
 //   push       v4: ARCIRCLE Orders notifications (fills, stops, price alerts), a tap opens the market
-const CACHE = "arc-sw-1";
+const CACHE = "arc-sw-2"; // brand v2: the new icons
 const OFFLINE = "/offline.html";
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll([OFFLINE, "/images/icon-192.png"])).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll([OFFLINE, "/images/brand/icon-192-v2.png"])).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
@@ -45,7 +45,7 @@ self.addEventListener("push", (e) => {
   try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : "" }; }
   const url = typeof d.url === "string" && d.url.startsWith("/") && !d.url.startsWith("//") ? d.url : "/arc#orders";
   e.waitUntil(self.registration.showNotification(String(d.title || "ARCIRCLE Orders").slice(0, 120), {
-    body: String(d.body || "").slice(0, 300), icon: "/images/icon-192.png", badge: "/images/icon-192.png", tag: d.tag ? String(d.tag).slice(0, 80) : undefined, renotify: !!d.tag, data: { url },
+    body: String(d.body || "").slice(0, 300), icon: "/images/brand/icon-192-v2.png", badge: "/images/brand/icon-192-v2.png", tag: d.tag ? String(d.tag).slice(0, 80) : undefined, renotify: !!d.tag, data: { url },
   }));
 });
 self.addEventListener("notificationclick", (e) => {

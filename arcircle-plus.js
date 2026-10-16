@@ -183,7 +183,7 @@
   function addToWallet() {
     const eth = window.ethereum;
     if (!eth || !eth.request) return;
-    eth.request({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: CA, symbol: "ARCIRCLE", decimals: 18, image: location.origin + "/images/arcircle-mark-sm.png" } } })
+    eth.request({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: CA, symbol: "ARCIRCLE", decimals: 18, image: location.origin + "/images/brand/mark-sm-v2.png" } } })
       .then((ok) => { if (ok) qa("[data-ac-add]").forEach((b) => { b.textContent = "✓ " + tr("Added"); }); })
       .catch(() => {});
   }

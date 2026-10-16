@@ -376,7 +376,7 @@ export function createShop(ctx) {
     ctx.furnace();
     if (ctx.reduce) return;
     const el = document.createElement("div"); el.className = "wa-pay-anim"; el.setAttribute("data-no-i18n", "");
-    el.innerHTML = `<img src="/images/arcircle-mark-sm.png" alt=""><div class="wa-split"><span class="burn">${esc(T("{n} burned", { n: fmt(tokens / 2) }))}</span><span class="tre">${esc(T("{n} to the treasury", { n: fmt(tokens / 2) }))}</span></div>`;
+    el.innerHTML = `<img src="/images/brand/mark-sm-v2.png" alt=""><div class="wa-split"><span class="burn">${esc(T("{n} burned", { n: fmt(tokens / 2) }))}</span><span class="tre">${esc(T("{n} to the treasury", { n: fmt(tokens / 2) }))}</span></div>`;
     document.body.appendChild(el); setTimeout(() => el.remove(), 2600);
   }
 

@@ -970,7 +970,7 @@
 
   /// a logo the page already knows: $ARCIRCLE's own, or an ArcPad launch's (Explore's list)
   function localLogo(a) {
-    if (a === ARCIRCLE()) return "/images/arcircle-mark-sm.png";
+    if (a === ARCIRCLE()) return "/images/brand/mark-sm-v2.png";
     const l = !RH() && typeof ARC !== "undefined" && Array.isArray(ARC.launches) ? ARC.launches.find((x) => lc(x.token) === a) : null;
     return l && /^https:\/\//i.test(l.imageUrl || "") ? l.imageUrl : null;
   }
@@ -3157,7 +3157,7 @@
   }
   function notify(title, body) {
     if (!notifyOn() || !("Notification" in window) || Notification.permission !== "granted" || !document.hidden) return;
-    try { new Notification(title, { body, icon: "/images/arcircle-mark-sm.png" }); } catch { /* fine */ }
+    try { new Notification(title, { body, icon: "/images/brand/mark-sm-v2.png" }); } catch { /* fine */ }
   }
 
   // ---------------- phones: the buy / sell sheet ----------------

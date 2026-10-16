@@ -335,7 +335,7 @@ function actDerive() {
     if (price) s.spark.push(price);
     trades.push({ b: r.b, i: r.i, h: r.h, buy, usd, sym: l.symbol, token: l.token, img: l.imageUrl, argus: l.platform === "argus" });
   }
-  for (const c of ACT.curve) trades.push({ b: c.b, i: c.i, h: c.h, buy: c.buy, usd: c.usd, sym: "ARCIRCLE", token: null, img: "images/arcircle-mark-sm.png" });
+  for (const c of ACT.curve) trades.push({ b: c.b, i: c.i, h: c.h, buy: c.buy, usd: c.usd, sym: "ARCIRCLE", token: null, img: "images/brand/mark-sm-v2.png" });
   trades.sort((a, b) => (b.b - a.b) || (b.i - a.i));
   ACT.stats = stats;
   ACT.ticker = trades.slice(0, 24);

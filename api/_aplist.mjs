@@ -143,7 +143,7 @@ export async function creatorPage(url) {
 <meta name="description" content="${esc(desc)}"><meta name="robots" content="noindex,follow">
 <meta property="og:type" content="profile"><meta property="og:site_name" content="ARCIRCLE PAD"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(`${SITE}/creator/${a}`)}"><meta property="og:image" content="${SITE}/api/og"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@ARCIRCLEonArc">
-<meta http-equiv="refresh" content="0;url=${esc(target)}"><link rel="icon" href="/images/favicon-32.png">
+<meta http-equiv="refresh" content="0;url=${esc(target)}"><link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body><p>Opening <a href="${esc(target)}">${esc(title)}</a>…</p><script>location.replace(${JSON.stringify(target)});</script></body></html>`,
   { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=900" } });

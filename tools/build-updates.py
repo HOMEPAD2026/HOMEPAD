@@ -50,7 +50,7 @@ page = f'''<!DOCTYPE html>
 <meta name="description" content="Every update to ARCIRCLE PAD's utilities, newest first.">
 <link rel="canonical" href="https://www.arcircle.app/updates">
 <meta name="theme-color" content="#04060a">
-<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v={ver}">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-v2-32.png?v={ver}">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/arc.min.css?v={ver}">
 <style>

@@ -149,7 +149,7 @@ export function makePredict(over) {
   const logoCache = new Map();
   async function logoOf(token) {
     token = lc(token);
-    if (token === ARCIRCLE) return "/images/arcircle-mark-sm.png";
+    if (token === ARCIRCLE) return "/images/brand/mark-sm-v2.png";
     const h = logoCache.get(token);
     if (h && Date.now() - h.t < 86400e3) return h.v;
     let v = null;

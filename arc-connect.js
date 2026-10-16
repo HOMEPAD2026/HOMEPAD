@@ -156,7 +156,7 @@
       var ad = new m.WagmiAdapter({ projectId: pid, networks: [arc, eth] });
       var modal = m.createAppKit({
         adapters: [ad], networks: [arc, eth], defaultNetwork: arc, allowUnsupportedChain: true, projectId: pid,
-        metadata: { name: "ARCIRCLE", description: "ARCIRCLE on Circle's Arc", url: location.origin, icons: [location.origin + "/images/arcircle-mark-sm.png"] },
+        metadata: { name: "ARCIRCLE", description: "ARCIRCLE on Circle's Arc", url: location.origin, icons: [location.origin + "/images/brand/mark-sm-v2.png"] },
         features: { email: false, socials: false, analytics: false },
         themeMode: "dark", themeVariables: { "--w3m-z-index": 20000, "--w3m-accent": "#35d8d0" },
       });
