@@ -10717,6 +10717,7 @@
     "Lock on": "Hedefe kilitlen",
     "No scammer close enough to lock on": "Hedefe kilitlenecek kadar yakında dolandırıcı yok",
     "Lock-on off": "Kilit kapalı",
+    "Lock-on on: tap again for the next target": "Kilit açık: sonraki hedef için tekrar dokun",
     "Frost {x}": "Buzlu {x}",
     "Blazing {x}": "Alevli {x}",
     "Toxic {x}": "Zehirli {x}",

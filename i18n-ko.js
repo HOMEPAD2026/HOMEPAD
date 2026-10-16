@@ -10455,6 +10455,7 @@
     "Lock on": "락온",
     "No scammer close enough to lock on": "락온할 수 있는 가까운 스캐머가 없어요",
     "Lock-on off": "락온 해제",
+    "Lock-on on: tap again for the next target": "락온 켜짐: 다시 누르면 다음 대상",
     "Frost {x}": "냉기 {x}",
     "Blazing {x}": "화염 {x}",
     "Toxic {x}": "맹독 {x}",

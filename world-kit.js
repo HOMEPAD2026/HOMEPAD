@@ -979,9 +979,9 @@ export const KK_CHARS = ["knight", "mage", "rogue", "rogue-hooded", "ranger", "b
 // Rollback: HERO_ONLY = false (or ?roster=classic to try it) brings every older character back as it was: a save keeps
 // the character it chose, heroOf() only changes what is drawn.
 export const HEROES = {
-  "custom-aron": { name: "ARON", glow: 1.4, glowKey: 0x00e8ff, tintKey: 0x0d3dff, halo: true },
-  "custom-lumi": { name: "LUMI", glow: 0, tintKey: 0xff2d8a }, // no glow: the eyes and the heart are the body's pink, and lighting by hue lit the whole body
-  "custom-nex": { name: "NEX", glow: 1.5, glowKey: 0x00e8ff, tintOn: "glow" }, // a dark suit: the player colour goes on its lights
+  "custom-aron": { name: "ARON", glow: 1.4, glowKey: 0x00e8ff, tintKey: 0x0d3dff, halo: true, fx: 0x38d8ff }, // fx: the colour of its swings
+  "custom-lumi": { name: "LUMI", glow: 0, tintKey: 0xff2d8a, fx: 0xff6fc8 }, // no glow: the eyes and the heart are the body's pink, and lighting by hue lit the whole body
+  "custom-nex": { name: "NEX", glow: 1.5, glowKey: 0x00e8ff, tintOn: "glow", fx: 0x9b6bff }, // a dark suit: the player colour goes on its lights
 };
 export const HERO_IDS = Object.keys(HEROES), HERO_DEFAULT = "custom-aron";
 export const HEROES_SOON = []; // shown locked in the maker until their models arrive (take a name out when it joins HEROES)
@@ -1278,7 +1278,7 @@ function makeCustom(src, spec = null) {
     mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.3, 0], armor: [0, 0.1, 0], armorR: 0.45, necklace: [0, 0.2, 0.2] },
     attack(kind = 0, heavy = false) { const l = kind === 4 ? lists.cast : kind === 2 || kind === 3 ? lists.shoot : null, all = l && l.length ? l : lists.attack; if (all.length) { const c = all[heavy ? all.length - 1 : 0]; run(act(c), { once: true, fade: 0.06, speed: Math.max(kind === 1 ? 1.1 : 1.4, (c.duration || 0) / 0.8) }); } }, // b447: a long clip (ARON's is 3 s) is sped up to land within the game's swing
     setCrown(a, b) { if (hero) { hero.setHalo(a); return; } [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); }, // a hero shows the tier on its own halo
-    setTint: (i) => { if (hero) hero.setTint(i); }, hero: !!hero, dispose: () => { if (hero) hero.dispose(); },
+    setTint: (i) => { if (hero) hero.setTint(i); }, hero: !!hero, fx: spec && spec.fx, dispose: () => { if (hero) hero.dispose(); },
     // a copy (the character window's turning view) stood straight: the idle clip's first frame, not whatever moment of it
     // the live one is in (ARON's idle stretches back halfway through)
     restPose: (root) => { const c = pick("idle"); if (!c || !root) return; const mx = new THREE.AnimationMixer(root); mx.clipAction(c).play(); mx.update(0); mx.stopAllAction(); root.updateMatrixWorld(true); },

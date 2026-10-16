@@ -841,7 +841,7 @@ export function createCombat(ctx) {
     if (!lockList.length) { if (lockMode) { lockMode = false; lockT = null; paintLock(); ctx.toast(T("Lock-on off")); return; } lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
     const i = lockAlive() ? lockList.indexOf(lockT) : -1;
     lockT = i < 0 ? lockList[0] : i + 1 < lockList.length ? lockList[i + 1] : null; // past the last one: the lock lets go
-    lockMode = !!lockT; if (!lockT) ctx.toast(T("Lock-on off"));
+    const was = lockMode; lockMode = !!lockT; if (!lockT) ctx.toast(T("Lock-on off")); else if (!was) ctx.toast(T("Lock-on on: tap again for the next target"));
     paintLock(); Snd.pop && Snd.pop();
   }
   function faceLock() { if (!lockAlive() || !ctx.faceTo) return; ctx.here(me); ctx.faceTo(Math.atan2(lockT.g.position.x - me.x, lockT.g.position.z - me.z)); }

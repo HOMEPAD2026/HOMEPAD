@@ -361,7 +361,7 @@ export function createGhosts(ctx) {
             // b447: everyone is the same rigged hero now, so the far ones cost less: past 15 m no shadow, past 25 m the
             // pose updates every third frame (with the time it missed), past 60 m not drawn at all
             if (far) w.ch.obj.visible = false;
-            const sh = dist < 15; if (w.chSh !== sh) { w.chSh = sh; w.ch.obj.traverse((o) => { if (o.isMesh) o.castShadow = sh; }); }
+            const sh = dist < 15 && ctx.farShadow !== false; if (w.chSh !== sh) /* (none on a phone: b447) */ { w.chSh = sh; w.ch.obj.traverse((o) => { if (o.isMesh) o.castShadow = sh; }); }
             if (!far) { const want = w.hop > 0 ? "emote-yes" : d > 0.05 && d < 25 ? "walk" : "idle"; if (want !== w.anim && w.ch.play && !(w.ch.busy && w.ch.busy())) { w.anim = want; w.ch.play(want, want === "emote-yes" ? { once: true } : { speed: 0.8 }); }
               w.chDt = (w.chDt || 0) + dt; if (dist < 25 || (w.chN = ((w.chN || 0) + 1) % 3) === 0) { w.ch.update(w.chDt, t, d > 0.05 ? 0.3 : 0, 0); w.chDt = 0; } } }
         }

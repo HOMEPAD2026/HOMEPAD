@@ -632,3 +632,13 @@ html.wp-less body.wp .wp-hud .tick{animation:none}
 /* b447 (a player's report): AC Defense's upgrade cards sat over the wave bar at the top (both on a phone, where they
    are zoomed): they open lower, under it */
 .wd-perk{top:36%}
+
+/* b447: the lock-on is a mode now (it stays on): a slow pulsing ring round the button says so */
+body.wp .wc-lockon.on{position:relative}
+body.wp .wc-lockon.on::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(255,106,77,.85);animation:wcLockPulse 1.4s ease-in-out infinite;pointer-events:none}
+@keyframes wcLockPulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:.35;transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){body.wp .wc-lockon.on::after{animation:none}}
+html.wp-less body.wp .wc-lockon.on::after{animation:none}
+/* the dock and the top HUD buttons in the same glass as the menus: the menu's blue panel, its soft cyan edge and
+   a soft drop instead of a glow; icons and sizes unchanged */
+body.wp .wp-dk,body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet){background:var(--ui-panel);border-color:var(--ui-edge-soft);box-shadow:0 0 0 1px rgba(2,10,32,.5),0 6px 16px rgba(0,8,30,.38),inset 0 1px 0 rgba(255,255,255,.18)}

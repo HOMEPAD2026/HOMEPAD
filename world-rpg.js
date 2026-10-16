@@ -277,7 +277,7 @@ export function createRpg(ctx) {
       h.g.updateMatrixWorld(true);
       trail.tips.unshift(h.g.localToWorld(trail.a.copy(h.tip)).clone()); trail.bases.unshift(h.g.localToWorld(trail.b.copy(h.base)).clone());
       if (trail.tips.length > trail.S) { trail.tips.length = trail.S; trail.bases.length = trail.S; }
-      trail.fade = 1; trail.mesh.material.uniforms.uC.value.set(h.kind === 1 || h.heavy ? 0xffc861 : h.color || 0x8fe6ff).multiplyScalar(1.4);
+      trail.fade = 1; const hfx = (ctx.avatar() || {}).fx; trail.mesh.material.uniforms.uC.value.set(h.kind === 1 || h.heavy ? 0xffc861 : hfx || h.color || 0x8fe6ff).multiplyScalar(1.4); // b447: a hero swings in its own colour
     } else trail.fade = Math.max(0, trail.fade - dt * 7);
     trail.mesh.visible = trail.fade > 0 && trail.tips.length > 1;
     if (!trail.mesh.visible) { if (trail.fade <= 0) { trail.tips.length = 0; trail.bases.length = 0; } return; }
@@ -699,7 +699,7 @@ export function createRpg(ctx) {
   el.addEventListener("pointerout", (e) => { if (e.pointerType === "mouse" && e.target.closest("[data-pick]")) hideTip(); });
   el.addEventListener("pointerdown", (e) => { const b = e.target.closest("[data-pick]"); if (!b || e.pointerType === "mouse") return; clearTimeout(tipT); tipT = setTimeout(() => showTip(b), 380); });
   ["pointerup", "pointercancel", "scroll"].forEach((t) => el.addEventListener(t, (e) => { if (e.pointerType !== "mouse") hideTip(); }, true));
-  el.addEventListener("keydown", (e) => { e.stopPropagation(); const k = e.key.toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
+  el.addEventListener("keydown", (e) => { e.stopPropagation(); const k = String(e.key || "").toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
 
   return {
     stats, swing, tickSwing, addItem, wear, repair: repairPiece, applyRepair, freshN: () => fresh.size, upN: () => ups().size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),

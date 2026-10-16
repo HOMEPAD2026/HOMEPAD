@@ -471,7 +471,19 @@ if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material &&
 const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
 // b447: contact shade on everything that stands on the ground, in every place (world-look.js); not on Low
 if (!lowGfx) try { LOOK.installContactShade(); } catch { /* the plain look */ }
-if (!lowGfx) { const pf = planet.getObjectByName("plaza-floor"); if (pf) LOOK.stoneGrain(pf.material); } // b447: the plaza's stone gets the village floor's grain
+if (!lowGfx) { const pf = planet.getObjectByName("plaza-floor"); if (pf) LOOK.stoneGrain(pf.material); }
+// b447: on an Ultra computer the fountain's water mirrors the plaza round it: a small cube view (128 px) from the fountain,
+// redrawn every 30 s one face a frame (six small renders spread out, so no frame stalls); the water hidden while it's
+// drawn. Phones and the lower settings keep the sky's reflection only.
+let mirror = postLevel === "ultra" && !st.quality.coarse ? { find: 0 } : null;
+st.on((dt) => { const M = mirror; if (!M) return; try { if (mode !== "hub") return; } catch { return; /* mode is declared further down (a TDZ before it) */ } const now = performance.now();
+  if (!M.cc) { if (now < M.find) return; M.find = now + 2000; try { const f = planet.getObjectByName("fountain"); if (!f) return; const waters = []; f.traverse((o) => { if (o.isMesh && o.material && o.material.transparent && o.material.roughness <= 0.06) waters.push(o); }); if (!waters.length) { mirror = null; return; }
+    const rt = new THREE.WebGLCubeRenderTarget(128, { type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter }), cc = new THREE.CubeCamera(0.4, 300, rt);
+    cc.position.set(0, 1.4, 0); f.add(cc); const m = waters[0].material; m.envMap = rt.texture; m.envMapIntensity = 1.1; m.needsUpdate = true; Object.assign(M, { rt, cc, waters, face: 0, at: now }); } catch { mirror = null; } return; }
+  if (M.face < 0) { if (now - M.at < 30000) return; M.at = now; M.face = 0; }
+  try { const r = st.renderer, cc = M.cc, i = M.face, prev = r.getRenderTarget(), sh = r.shadowMap.needsUpdate; if (cc.coordinateSystem !== r.coordinateSystem) { cc.coordinateSystem = r.coordinateSystem; cc.updateCoordinateSystem(); }
+    M.waters.forEach((w) => { w.visible = false; }); cc.updateMatrixWorld(true); M.rt.texture.generateMipmaps = i === 5; r.setRenderTarget(M.rt, i); r.render(st.scene, cc.children[i]); r.setRenderTarget(prev); r.shadowMap.needsUpdate = sh;
+    M.waters.forEach((w) => { w.visible = true; }); M.face = i === 5 ? -1 : i + 1; } catch { mirror = null; } }); // b447: the plaza's stone gets the village floor's grain
 // every character made from here on: the asset packs' palette (not the ARC Bots, drawn in it already) and a dark rim
 // and a cool rim of light (all presets but Saver)
 if (K.setCharHook) K.setCharHook((obj, arc, o) => { if (!lowGfx) { if (!arc && !(o && o.pbr)) ENV.unifyPalette(obj); /* a hero keeps its own PBR colours */ if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); } if (S.quality !== "saver" && ENV.rimLight) ENV.rimLight(obj); });
@@ -798,7 +810,7 @@ const MOVE_KEYS = ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arr
 addEventListener("keydown", (e) => {
   if (typing(e)) return;
   if (mode === "island" && !photo && island.keyDown(e)) return;
-  const k = e.key.toLowerCase();
+  const k = String(e.key || "").toLowerCase();
   if (k === "escape") { if (photo) setPhoto(false); else if (hubEl && !hubEl.hidden) closeHub(true); else if (hubEl && !frozen && worldReady && !dialogUp()) openHub(); else closeAll(); return; }
   if (k === "p" && (!frozen || photo)) { setPhoto(!photo); return; }
   if (frozen) return;
@@ -818,7 +830,7 @@ addEventListener("keydown", (e) => {
   if (k === " ") { e.preventDefault(); jumpDown = true; jump(); return; }
   if (MOVE_KEYS.includes(k)) { keys.add(k); e.preventDefault(); }
 });
-addEventListener("keyup", (e) => { keys.delete(e.key.toLowerCase()); if (e.key === " ") jumpDown = false; if (combat) combat.keyUp(e.key.toLowerCase()); });
+addEventListener("keyup", (e) => { keys.delete(String(e.key || "").toLowerCase()); if (e.key === " ") jumpDown = false; if (combat) combat.keyUp(String(e.key || "").toLowerCase()); });
 addEventListener("blur", () => { if (combat) combat.keyUp("j", true); });
 // a game controller (the standard layout): left stick moves (pushed all the way runs), right stick looks, A jumps, X attacks,
 // B dodges, Y casts the skill, LB / RB change it, LT / RT drink health / mana, Start opens the map, View the log, D-pad up the emotes
@@ -3164,7 +3176,7 @@ ghosts = SOC.createGhosts({ THREE, K, planet, compile: (o) => (st.renderer.compi
   shadow: (r, k) => LOOK.contactShadow(r, k), isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
   onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; }, hides: (w) => !!(chatUI && chatUI.hides && chatUI.hides(lc(w))), // muted or blocked: no bubble over them
   // other players stand as their own characters (not the see-through capsules) once the model is in
-  makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(heroOf(id), VER).catch(() => null)), tierHalo: (i) => (K.TIER_HALO ? K.TIER_HALO[i] : null) });
+  makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(heroOf(id), VER).catch(() => null)), farShadow: !coarse, tierHalo: (i) => (K.TIER_HALO ? K.TIER_HALO[i] : null) });
 // ---------------- the inbox: gifts, new stamps, friends playing now ----------------
 // stand next to someone in town (a friend from the inbox, a player's card): a short hop, facing them
 function goNear(x, z) {
@@ -3220,7 +3232,7 @@ function makeMeadow() {
   if (lowGfx || grass) return;
   gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }, { x: GV.VILLAGE.x, z: GV.VILLAGE.z, r: GV.VILLAGE.arenaR + 2.2 } /* b447: the Game Village square (the blades grew through its tiles) */], paths: WORN_PATHS }));
   const big = S.quality === "ultra" || S.quality === "high"; // 60,000 blades only when asked for (b411)
-  grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 10000 : 32000, /* b447: phones 10,000 (the blades hadn't drawn on phones since 13 October, a shader that didn't link; the frame rates since were measured without them) */ size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
+  grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 8000 : 32000, /* b447: phones 8,000 (Adreno 7xx fell to 30–40 fps once the blades were back) (the blades hadn't drawn on phones since 13 October, a shader that didn't link; the frame rates since were measured without them) */ size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
   planet.add(grass.mesh); reflHide.push(grass.mesh);
   st.on((dt) => { const on = mode === "hub"; grass.mesh.visible = on; if (on) grass.tick(dt, -planet.position.x, -planet.position.z); });
   setTimeout(() => farCull.all(() => gmask.paint()), 20000);

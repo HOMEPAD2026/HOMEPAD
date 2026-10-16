@@ -1122,7 +1122,7 @@ export function createIsland(ctx) {
   ui.querySelectorAll(".wi-sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target === s) closeSheets(); }));
   function keyDown(e) {
     if (!active) return false;
-    const k = e.key.toLowerCase();
+    const k = String(e.key || "").toLowerCase();
     if (k === "escape" && ui.querySelector(".wi-sheet:not([hidden])")) { closeSheets(); return true; }
     if (readOnly || lapse) return false;
     if (k === "b") { setBuild(!building); return true; }

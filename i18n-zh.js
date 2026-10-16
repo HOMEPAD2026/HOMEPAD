@@ -10625,6 +10625,7 @@
     "Lock on": "锁定",
     "No scammer close enough to lock on": "附近没有可锁定的骗子",
     "Lock-on off": "锁定已关闭",
+    "Lock-on on: tap again for the next target": "锁定已开启：再按切换下一个目标",
     "Frost {x}": "冰霜{x}",
     "Blazing {x}": "烈焰{x}",
     "Toxic {x}": "剧毒{x}",
