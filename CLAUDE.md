@@ -100,6 +100,18 @@ Stay tuned for what's coming next.
 $ARCIRCLE #ARCIRCLE #Arc #GameFi #PlayToEarn #Web3Gaming
 ```
 
+## After every commit: tweet + reference shots + image prompt
+
+The owner asked for this on every commit (not only when they ask):
+
+- A tweet in the style above, its length matched to the update (a small fix: a few lines; a big feature batch: a long
+  post). Only claim what was built and verified; say what's next.
+- 2–3 real screenshots of the change as reference images (phone layout 390x844 and/or desktop), saved where the owner
+  can open them (scratchpad / SendUserFile), never mock-ups.
+- A ready-to-paste prompt for an image AI to make the promo image from those shots: subject, composition, the
+  ARCIRCLE look (bright stylized 3D, blue glass UI, cyan/mint glow, cute robot hero), exact on-image English text, aspect
+  ratio, and what to avoid (no fake UI, no unreadable text, no other brands).
+
 ## Before saying a game change is done (checklist)
 
 The owner tests on a real Android phone (Samsung Internet), signed in with a wallet, at high level. Headless desktop
