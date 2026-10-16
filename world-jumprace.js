@@ -177,5 +177,5 @@ export function createJumpRace(ctx) {
     if (me.y < 0.05 && ckOf(reached) >= 0) { const ck = plats[ckOf(reached)]; ctx.place(ck.x, ck.z); ctx.lift(ck.y0); ctx.toast(T("Back to the checkpoint")); }
     if (timer <= 0) finish(false);
   }
-  return { start, quit: () => { if (phase === "run") finish(false); else if (on) exit(); }, reset: () => { if (on) exit(); }, active: () => on, floorAt, tick, pads: () => plats.map((p) => ({ x: p.x, y: p.y, z: p.z, kind: p.kind, gone: p.gone })) };
+  return { start, quit: () => { if (phase === "run") finish(false); else if (on) exit(); }, reset: () => { if (on) exit(); }, active: () => on, floorAt, tick, pads: () => plats.map((p) => ({ x: p.x, y: p.y, z: p.z, kind: p.kind, gone: p.gone, fallT: +p.fallT.toFixed(2) })) };
 }

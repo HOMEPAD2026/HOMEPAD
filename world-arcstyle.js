@@ -19,6 +19,7 @@ export const trim = () => mat("trim", () => new THREE.MeshStandardMaterial({ col
 export const glass = () => mat("glass", () => new THREE.MeshStandardMaterial({ color: 0x3f8fe8, roughness: 0.12, metalness: 0.35, emissive: 0x1f6fd6, emissiveIntensity: 0.75 }));
 export const light = (c) => mat("light" + c, () => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.9, roughness: 0.4, toneMapped: true }), { glow: c });
 const shellBase = () => shell(), stoneBase = () => stone();
+const archGlass = () => mat("archGlass", () => new THREE.MeshStandardMaterial({ color: 0x3f8fff, emissive: 0x1d63d6, emissiveIntensity: 0.55, roughness: 0.12, metalness: 0.35 }), { glow: 0x3f8fff });
 const shellOf = (c) => mat("shell" + c, () => new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.06 }), { paint: c });
 const stoneOf = (c) => mat("stone" + c, () => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0.02 }), { paint: c });
 // the districts: a stone and a shape each (world-kit.js passes the shop's district)
@@ -260,6 +261,8 @@ export function makeArcArch(color) {
   for (const s of [-1, 1]) {
     P.push([box(0.9, 0.5, 0.9, 0.12), stone(), { x: s * 2.4, y: 0.25 }], [box(0.62, 4.3, 0.62, 0.18), shell(), { x: s * 2.4, y: 2.6 }], [box(0.08, 3.4, 0.08, 0.03), c, { x: s * (2.4 - 0.32), y: 2.6 }]);
     P.push([new THREE.ConeGeometry(0.34, 0.6, 4), shell(), { x: s * 2.4, y: 5.5, ry: Math.PI / 4 }]);
+    // b444: a strip of blue glass down each pillar (front and back) and a lit edge on the plinth (the concept's glass and light lines)
+    P.push([box(0.4, 2.9, 0.66, 0.04), archGlass(), { x: s * 2.4, y: 2.75 }], [box(0.96, 0.05, 0.96, 0.02), c, { x: s * 2.4, y: 0.53 }]);
   }
   P.push([tor(2.4, 0.3, 64, Math.PI), shell(), { y: 4.4, sz: 1.2 }], [tor(2.4, 0.05, 64, Math.PI), c, { y: 4.4, z: 0.36 }], [tor(2.4, 0.05, 64, Math.PI), c, { y: 4.4, z: -0.36 }]);
   P.push([new THREE.OctahedronGeometry(0.42, 0), c, { y: 6.9, sy: 1.4 }], [cyl(0.3, 0.45, 0.4, 6), shell(), { y: 6.6 }]);
@@ -336,7 +339,8 @@ export function makeArcFountain() {
   const o = new THREE.Object3D();
   g.userData = { radius: 0, pulse: (k) => { ra.material.emissiveIntensity = 1.5 * (1 + k); rb.material.emissiveIntensity = 1.5 * (1 + k); }, spin: [(dt, t) => {
     rings.rotation.y = t * 0.35; ra.rotation.y = Math.sin(t * 0.7) * 0.25; rings.position.y = 16 + Math.sin(t * 1.2) * 0.35;
-    water.emissiveIntensity = 0.5 + Math.sin(t * 2) * 0.08; WT.value = t;
+    water.emissiveIntensity = 0.5 + NIGHT.value * 0.75 + Math.sin(t * 2) * 0.08; WT.value = t; /* b444: at night the pool is the plaza's lantern */
+    sheetM.opacity = 0.75 + NIGHT.value * 0.2; jetM.opacity = 0.8 + NIGHT.value * 0.2;
     stx.offset.y = (t * 1.1) % 1; jetX.offset.y = (-t * 1.6) % 1;
     for (let i = 0; i < N; i++) { // small hops of spray where each sheet meets the water below
       const lower = i % 2, a = ((i >> 1) / (N / 2)) * TAU + Math.sin(i * 7.1) * 0.2, k = ((t * 1.3 + (i * 0.618) % 1) % 1), r = (lower ? 3.15 : 1.6) + k * 0.35, y0 = lower ? 0.36 : 2.12;

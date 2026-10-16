@@ -60,8 +60,44 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     const post = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.6, 0.2), std(0x6b4a2e)); post.position.set(0, 0.8, 2.4); const board = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.8, 0.12), std(0xe8c98a)); board.position.set(0, 1.6, 2.4); g.add(post, board);
     return g;
   }
+  // b444: the leaderboard by the gate: AC Defense's best waves this week (the server's list) and your Coin Jump best
+  // (kept on this device: a jump score can't be checked, so it isn't ranked against others). Drawn when you come near,
+  // refreshed every 2 minutes while you're here.
+  let board = null, boardAt = -1e9;
+  function makeBoard() {
+    if (typeof document === "undefined") return;
+    const cv = document.createElement("canvas"); cv.width = 512; cv.height = 360; const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const g = new THREE.Group(), a = toPlaza + 0.32, r = V.r - 5; g.position.set(Math.sin(a) * r, 0, Math.cos(a) * r); g.rotation.y = a;
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.1), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })); face.position.y = 3.1; g.add(face);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(4.7, 3.4, 0.18), std(0x1b2440)); back.position.set(0, 3.1, -0.11); g.add(back);
+    const rimM = glow(0xb48cff, 1.6); for (const y of [1.39, 4.81]) { const bar = new THREE.Mesh(new THREE.BoxGeometry(4.75, 0.08, 0.22), rimM); bar.position.set(0, y, -0.05); g.add(bar); }
+    for (const x of [-2.05, 2.05]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.5, 8), std(0x4a5366)); post.position.set(x, 0.75, -0.11); g.add(post); }
+    built.add(g); board = { cv, tex, top: null };
+    paintBoard();
+  }
+  function paintBoard() {
+    if (!board) return; const g = board.cv.getContext("2d"), W = 512, H = 360;
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#0f1d44"); bg.addColorStop(1, "#08112a"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#ff8a6a"; g.font = "800 22px Sora, system-ui, sans-serif"; g.fillText(T("AC Defense · this week"), 24, 40);
+    const top = board.top || [];
+    g.font = "600 20px Sora, system-ui, sans-serif";
+    if (!top.length) { g.fillStyle = "#8fa6cc"; g.fillText(board.top ? T("No runs yet — be the first!") : T("Loading…"), 24, 80); }
+    top.slice(0, 5).forEach((x, i) => { const y = 78 + i * 34; g.fillStyle = i === 0 ? "#ffd23a" : i === 1 ? "#dfe8f4" : i === 2 ? "#e8a06a" : "#9fb3d6"; g.fillText(`${i + 1}`, 28, y);
+      g.fillStyle = "#e8f0ff"; const nm = String(x.name || (x.id ? x.id.slice(0, 6) + "…" : "?")).slice(0, 16); g.fillText(nm, 60, y);
+      g.fillStyle = "#38d8ff"; g.textAlign = "right"; g.fillText(T("Wave {n}").replace("{n}", x.w), W - 28, y); g.textAlign = "left"; });
+    g.fillStyle = "rgba(180,140,255,.35)"; g.fillRect(24, 262, W - 48, 2);
+    let best = 0; try { best = Number(localStorage.getItem("arc.world.jumpBest")) || 0; } catch { /* private */ }
+    g.fillStyle = "#ffc861"; g.font = "800 22px Sora, system-ui, sans-serif"; g.fillText(T("Coin Jump · your best"), 24, 300);
+    g.fillStyle = "#ffffff"; g.font = "900 34px Sora, system-ui, sans-serif"; g.fillText(best ? String(best) : "—", 24, 342);
+    board.tex.needsUpdate = true;
+  }
+  function refreshBoard(t) {
+    if (!board || t - boardAt < 120 || typeof fetch === "undefined") return; boardAt = t;
+    fetch("/api/social?world=defense-top").then((r) => (r.ok ? r.json() : null)).then((j) => { if (!board) return; board.top = (j && j.top) || []; paintBoard(); }).catch(() => { if (board) { board.top = board.top || []; paintBoard(); } });
+  }
   function build() {
     built = new THREE.Group(); root.add(built);
+    makeBoard();
     let soonTag = null;
     GAMES.forEach((gm, i) => {
       const p = plotAt(i), g = gm.ready ? towerOf(gm) : soonOf();
@@ -124,6 +160,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
       if (!built && d < BUILD_AT) build();
       if (built) built.visible = d < HIDE_AT;
       if (built && built.visible) for (const f of spins) f(dt, t);
+      if (built && built.visible && d < 60) refreshBoard(t);
     },
   };
 }
