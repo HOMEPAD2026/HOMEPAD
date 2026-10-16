@@ -49,12 +49,18 @@ export function createMine(ctx) {
   let MODELS = null, BACK = null;
   async function loadModels() {
     if (MODELS !== null) return;
-    const ver = ctx.ver || "", L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null; MODELS = [];
+    if (loading) { await Promise.race([loading, new Promise((ok) => setTimeout(ok, 4000))]); return; } // still on its way from the last visit
+    const ver = ctx.ver || "", L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null;
     const one = (f) => (L ? L.loadAsync("models/world/mine/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
     const tex = new Promise((ok, no) => new THREE.TextureLoader().load("models/world/mine/cave-back.webp" + ver, ok, undefined, no));
-    const all = Promise.allSettled([one("rock-copper"), one("rock-silver"), one("rock-gold"), tex]);
-    const res = await Promise.race([all, new Promise((ok) => setTimeout(() => ok(null), 12000))]);
-    if (!res) { console.warn("mine: models slow, drawn rocks"); return; }
+    // a slow phone: after 25 s the drawn rocks stand in, and the models (still loading) take over from the next visit
+    loading = Promise.allSettled([one("rock-copper"), one("rock-silver"), one("rock-gold"), tex]).then(take);
+    await Promise.race([loading, new Promise((ok) => setTimeout(ok, 25000))]);
+    if (MODELS === null) console.warn("mine: models slow, drawn rocks this time");
+  }
+  let loading = null;
+  function take(res) {
+    MODELS = [];
     res.slice(0, 3).forEach((r, t) => {
       if (r.status !== "fulfilled") { console.warn("mine model", t, r.reason); return; }
       const o = r.value, b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = [2.0, 2.2, 2.4][t] / (sz.x || 1);
@@ -66,6 +72,7 @@ export function createMine(ctx) {
       inner.userData.w = sz.x * k; inner.userData.h = sz.y * k; inner.userData.d = sz.z * k; MODELS[t] = inner;
     });
     if (res[3].status === "fulfilled") { BACK = res[3].value; BACK.colorSpace = THREE.SRGBColorSpace; BACK.wrapS = THREE.MirroredRepeatWrapping; BACK.anisotropy = 4; }
+    if (S && !S.withModels && !on) S = null; // the cave was built with the stand-ins: the next visit builds it again with these
   }
 
   // ---------------- the cave ----------------
@@ -177,7 +184,7 @@ export function createMine(ctx) {
     const barBg = new THREE.MeshBasicMaterial({ color: 0x0b0f1c, transparent: true, opacity: 0.75, depthTest: false }), barM = [0, 1, 2].map((t) => new THREE.MeshBasicMaterial({ color: [0xff9a5a, 0xdbe6f5, 0xffd34d][t], depthTest: false }));
     const barG = new THREE.PlaneGeometry(1, 0.16);
     S = { scene, cam, head, lampL, goldL, lanterns, dust, dpos, dsp, dustN, chips, chipS, chipN, get chipI() { return chipI; }, set chipI(v) { chipI = v; }, sparks, spos, scol, sparkS, sparkN, get sparkI() { return sparkI; }, set sparkI(v) { sparkI = v; },
-      body, bodyM, nugG, nugM, glowM, starM, shaftM, crackT, barBg, barM, barG, crysM, zero, rnd, dist: 30 };
+      body, bodyM, nugG, nugM, glowM, starM, shaftM, crackT, barBg, barM, barG, crysM, zero, rnd, dist: 30, withModels: !!(MODELS && MODELS.length) };
   }
 
   // ---------------- rocks ----------------
@@ -460,7 +467,7 @@ export function createMine(ctx) {
     if (!low || (Math.floor(t * 30) % 2 === 0)) { const P = S.dpos; for (let i = 0; i < S.dustN; i++) { P[i * 3 + 1] += S.dsp[i] * dt * 0.25; P[i * 3] += Math.sin(t * 0.3 + i) * dt * 0.08; if (P[i * 3 + 1] > 9) P[i * 3 + 1] = 0; } S.dust.geometry.attributes.position.needsUpdate = true; }
     tickFx(dt);
     // the camera: far and narrow (nearly flat, like a 2D game); wide enough to show 12 m across on a phone held upright
-    const asp = S.cam.aspect || 1, vh = Math.tan((S.cam.fov * Math.PI) / 360), wantW = asp < 1 ? 13 : asp < 1.4 ? 17 : 21, dist = Math.min(64, Math.max(16, (wantW / 2) / (vh * asp)));
+    const asp = S.cam.aspect || 1, vh = Math.tan((S.cam.fov * Math.PI) / 360), wantW = asp < 1 ? 9.5 : asp < 1.4 ? 15 : 21, dist = Math.min(64, Math.max(16, (wantW / 2) / (vh * asp)));
     S.dist += (dist - S.dist) * Math.min(1, dt * 4); const cy = asp < 1 ? 3.4 : 3.9;
     const cx = Math.max(-CAVE + wantW / 2 - 1, Math.min(CAVE - wantW / 2 + 1, px + dir * 1.4)); S.cam.position.x += (cx - S.cam.position.x) * Math.min(1, dt * 3.2);
     if (shake > 0) shake = Math.max(0, shake - dt * 1.6);
@@ -488,7 +495,8 @@ export function createMine(ctx) {
       guest = !ctx.sess();
       const r = await api("world-mine-enter");
       if (!r.ok) { const j = r.j || {}; if (j.coolUntil) toast(T("The mine is resting. It opens again in {t}.", { t: hm(j.coolUntil - Date.now()) })); else toast(T("The mine couldn't open: {e}", { e: String(j.error || r.status).slice(0, 70) })); return false; }
-      if (!S) { await loadModels(); build(); } if (!ui) buildUi();
+      if (S && !S.withModels && MODELS && MODELS.length) { for (const rk of [...rocks.values()]) dropRock(rk); if (hero && hero.obj.parent) hero.obj.parent.remove(hero.obj); S = null; }
+      if (!S) { await loadModels(); build(); if (hero) S.scene.add(hero.obj); } if (!ui) buildUi();
       const j = r.j; run = j; tier = j.tier || 0; k = j.k || 1; today = j.today || 0; cap = j.cap || R.DAY_CAP; takeLeft(j);
       for (const rk of [...rocks.values()]) dropRock(rk); for (const d of j.rocks || []) makeRock(d, false);
       px = -CAVE + 5; dir = 1; swingT = 0; walkTo = null; moveIn = 0; mineHeld = false; keys.clear(); S.cam.position.set(px, 4.3, 30); S.dist = 30;
