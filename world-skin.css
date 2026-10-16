@@ -503,3 +503,59 @@ body:has(.wb-lanes) .wp-joy,body:has(.wb-lanes) .wp-joyrest,body:has(.wb-lanes) 
 .wd-rm .wb-judge.in,.wb-lane.hit{animation-duration:.01s}
 @media (prefers-reduced-motion:reduce){.wb-judge.in,.wb-lane.hit{animation:none;opacity:1}}
 .wd-card .wd-prize{color:#ffd23a;font-weight:800;font-size:13px} /* b447 */
+
+/* ================= b447: the menu look (the owner's concept art): a deep-blue glass panel with a quiet cyan edge,
+   calm blue rows with a › each, one mint primary, white text with room to breathe, less glow. The bright town shows
+   through behind. Layout and order are unchanged; only how things look. ================= */
+:root{
+  --ui-panel:linear-gradient(180deg,rgba(26,62,130,.9) 0%,rgba(15,40,94,.9) 45%,rgba(9,27,68,.93) 100%);
+  --ui-edge-soft:rgba(120,214,255,.42);
+  --ui-glow:0 0 0 1px rgba(2,10,32,.5),0 18px 48px rgba(0,8,30,.42);
+  --ui-r-l:22px;
+  --ui-mint-1:#a6ffe6;--ui-mint-2:#4fe6c8;--ui-mint-3:#1f9c88;--ui-mint-ink:#062a33;
+  --ui-row:linear-gradient(180deg,rgba(46,92,178,.5),rgba(26,60,128,.5));
+  --ui-row-edge:rgba(150,212,255,.22);
+}
+/* the dim behind a menu: lighter, so the world stays bright behind the glass */
+body.wp .wp-hub{background-color:rgba(4,16,40,.42)}
+/* the top light line: thinner and softer */
+body.wp .wr-card::before,body.wp .wp-hub-card::before{opacity:.55}
+/* primaries: mint, dark ink, a soft drop instead of a glow */
+body.wp .wp-cta,body.wp .wr-acts button.go,body.wp .wr-bag-f button.go{--c1:var(--ui-mint-1);--c2:var(--ui-mint-2);--c3:var(--ui-mint-3);--ci:var(--ui-mint-ink);text-shadow:none!important}
+body.wp :is(.wr-acts button.go,.wr-bag-f button.go,.wp-cta,.wr-bag-f button.gold,.wr-buy.ask,.wp-st-buy,.wr-acts .sell){box-shadow:inset 0 -3px 0 color-mix(in srgb,var(--c3) 55%,transparent),0 3px 0 var(--c3),0 6px 14px rgba(0,10,30,.25)!important}
+body.wp .wr-ico{box-shadow:inset 0 -3px 0 rgba(0,20,80,.35),0 2px 0 rgba(0,0,0,.4)}
+
+/* the menu card */
+body.wp .wp-hub-card{padding:24px 24px 20px;border-color:var(--ui-edge-soft)}
+body.wp .wp-hub-h{padding-bottom:12px;margin-bottom:6px;border-bottom:1px solid rgba(150,212,255,.16)}
+body.wp .wp-hub-h h2{letter-spacing:.06em;text-transform:uppercase;text-shadow:0 2px 0 rgba(0,10,40,.45)}
+body.wp .wp-hub section{margin-top:16px}
+body.wp .wp-hub-card section h3{margin:0 0 10px 2px;font:800 11.5px var(--f-ui);letter-spacing:.18em;text-transform:uppercase;color:#8fb8e8}
+body.wp .wp-hub-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+/* rows: icon, name, key, › */
+body.wp .wp-hub-grid button{flex-direction:row;justify-content:flex-start;gap:14px;min-height:58px;padding:12px 16px 12px 14px;border-radius:14px;border:1px solid var(--ui-row-edge);background:var(--ui-row);
+  box-shadow:inset 0 1px 0 rgba(190,230,255,.12),0 2px 0 rgba(0,6,24,.3);color:#fff;font:800 14.5px var(--f-ui);letter-spacing:.02em;text-align:left;transition:background .15s ease,border-color .15s ease,transform .08s ease}
+body.wp .wp-hub-grid button::after{content:"";flex:none;width:8px;height:8px;margin-left:2px;border:solid rgba(225,240,255,.75);border-width:2px 2px 0 0;transform:rotate(45deg)}
+body.wp .wp-hub-grid button:hover{border-color:rgba(140,228,255,.5);background:linear-gradient(180deg,rgba(60,112,204,.6),rgba(34,74,150,.6))}
+body.wp .wp-hub-grid button .wi-ic{flex:none;color:#cfeeff}
+body.wp .wp-hub-grid button span{flex:1;min-width:0}
+body.wp .wp-hub-grid kbd{border-color:rgba(190,225,255,.22);background:rgba(4,16,44,.35);color:rgba(225,240,255,.7)}
+/* the one mint primary: the Game Village (where the games are) */
+body.wp .wp-hub-grid button.pri{border-color:rgba(230,255,248,.7);color:var(--ui-mint-ink);background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 55%),linear-gradient(90deg,var(--ui-mint-1),var(--ui-mint-2) 60%,#7fe9f3);
+  box-shadow:inset 0 -3px 0 rgba(20,120,105,.35),0 3px 0 var(--ui-mint-3),0 6px 16px rgba(10,60,60,.22)}
+body.wp .wp-hub-grid button.pri .wi-ic{color:var(--ui-mint-ink)}
+body.wp .wp-hub-grid button.pri::after{border-color:var(--ui-mint-ink)}
+body.wp .wp-hub-grid button.pri:hover{filter:brightness(1.05);border-color:#fff}
+body.wp .wp-hub-grid button.pri kbd{color:var(--ui-mint-ink);border-color:rgba(6,42,51,.3);background:rgba(255,255,255,.3)}
+/* a narrow screen: two columns of rows */
+@media (max-width:520px){body.wp .wp-hub-grid{grid-template-columns:repeat(2,1fr);gap:8px}body.wp .wp-hub-grid button{flex-direction:row;justify-content:flex-start;text-align:left;min-height:56px;padding:10px 12px;gap:10px;font-size:13px}}
+/* a phone (the 980px page, wp-pcphone): two columns of big rows */
+html.wp-pcphone body.wp .wp-hub-card{padding:40px 40px 34px;border-radius:40px}
+html.wp-pcphone body.wp .wp-hub-grid{grid-template-columns:repeat(2,1fr);gap:18px}
+html.wp-pcphone body.wp .wp-hub-grid button{flex-direction:row;justify-content:flex-start;min-height:104px;padding:20px 26px;gap:22px;border-radius:24px;font-size:28px}
+html.wp-pcphone body.wp .wp-hub-grid button::after{width:14px;height:14px;border-width:3.5px 3.5px 0 0}
+html.wp-pcphone body.wp .wp-hub-grid button .wi-ic{width:46px;height:46px}
+html.wp-pcphone body.wp .wp-hub-card section h3{font-size:20px;margin-bottom:16px}
+html.wp-pcphone body.wp .wp-hub section{margin-top:28px}
+html.wp-pcphone body.wp .wp-hub-x{width:72px;height:72px}
+html.wp-pcphone body.wp .wp-hub-x svg{width:32px;height:32px}

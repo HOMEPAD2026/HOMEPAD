@@ -3300,7 +3300,7 @@ let hubRecent = [], hubQ = ""; try { hubRecent = JSON.parse(localStorage.getItem
 function paintHub() {
   const isArc = String(P.char || "arc-arc").startsWith("arc-"), dot = { log: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])'), chat: chatDot > 0 };
   const ok = ([id]) => (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub"), all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
-  const tile = ([id, ic, label, key]) => `<button type="button" data-hub="${id}">${ICONS.icon(ic, 26)}<span>${esc(TW(label))}</span>${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}</button>`;
+  const tile = ([id, ic, label, key]) => `<button type="button" data-hub="${id}"${id === "defense" ? ' class="pri"' : ""}>${ICONS.icon(ic, 26)}<span>${esc(TW(label))}</span>${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}</button>`;
   hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}<small class="wp-hub-q" aria-live="polite"></small></h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>` +
     (rec.length ? `<section class="wp-hub-recent"><h3>${esc(TW("Recent"))}</h3><div class="wp-hub-grid">${rec.map(tile).join("")}</div></section>` : "") +
     HUB.map(([g, items]) => `<section><h3>${esc(T(g))}</h3><div class="wp-hub-grid">${items.filter(ok).map(tile).join("")}</div></section>`).join("") + `</div>`;
