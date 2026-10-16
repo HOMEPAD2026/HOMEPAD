@@ -4093,8 +4093,8 @@ body.wp .wp-hud #wp-map-btn{display:none!important}
 /* b448: phones: the photo, hoverboard and wave buttons fold behind "⋯" (world-play.js); computers keep them all */
 .wp-act-more{display:none}
 html.wp-pcphone .wp-act-more{display:grid}
-html.wp-pcphone #wp-acts:not(.open) .wp-act-board,html.wp-pcphone #wp-acts:not(.open) .wp-act-emote,html.wp-pcphone #wp-acts:not(.open) .wp-act-photo{display:none}
-html.wp-pcphone #wp-acts.open .wp-act-board,html.wp-pcphone #wp-acts.open .wp-act-emote,html.wp-pcphone #wp-acts.open .wp-act-photo{animation:wpMore .18s ease-out both}
+html.wp-pcphone #wp-acts:not(.open) .wp-act-board,html.wp-pcphone #wp-acts:not(.open) .wp-act-emote,html.wp-pcphone #wp-acts:not(.open) .wp-act-photo,html.wp-pcphone #wp-acts:not(.open) .wp-act-run{display:none}
+html.wp-pcphone #wp-acts.open .wp-act-board,html.wp-pcphone #wp-acts.open .wp-act-emote,html.wp-pcphone #wp-acts.open .wp-act-photo,html.wp-pcphone #wp-acts.open .wp-act-run{animation:wpMore .18s ease-out both}
 html.wp-pcphone .wp-acts .wp-act-more{--c:#b48cff;--d:#7f55e0}
 html.wp-pcphone .wp-act-more svg circle{fill:#fff!important;stroke:none!important}
 @keyframes wpMore{from{opacity:0;transform:translateY(8px) scale(.9)}}
