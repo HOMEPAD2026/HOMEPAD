@@ -435,7 +435,7 @@ const farCull = (() => {
 st.on(() => { try { farCull.tick(); } catch { /* still loading */ } });
 // the frame count, and the sun's shadow map redrawn every other frame below Ultra (the sun stands still; only the
 // things that move need it, and they barely move in a 30th of a second)
-let frameNo = 0; const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : 2;
+let frameNo = 0; const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : st.quality.coarse ? 3 : 2; /* b448: phones every 3rd frame (the sun stands still; the real shadow only covers the area round you) */
 if (st.renderer.shadowMap.enabled && shadowEvery > 1) st.renderer.shadowMap.autoUpdate = false;
 st.on(() => { frameNo++; const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = frameNo % ev === 0; });
 const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir, around: (f) => farCull.all(f) }) : null;
@@ -3114,7 +3114,10 @@ chatUI = CHAT.createChat({ T, esc, toast, post, sess, Snd, area: chatArea, bubbl
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, onUnread: (n) => { chatDot = n; paintMenuDot(); },
   onSay: () => { if (Date.now() - sayPingAt > 15000) { sayPingAt = Date.now(); ping(); } }, onParty: () => { paintParty(); if (rpg && rpg.isOpen()) rpg.repaint(); if (quests) paintBagDot(); } });
 // ---------------- set dressing from the free model packs (world-decor.js) ----------------
-decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
+// b448: compile a list of objects while they're hidden (they're made visible only for the call: compileAsync collects them
+// right away), so each can be shown once its shaders are ready
+const compileHidden = (list) => { if (!st.renderer.compileAsync) return Promise.resolve(); const was = list.map((o) => o.visible); list.forEach((o) => { o.visible = true; }); let ps; try { ps = list.map((o) => st.renderer.compileAsync(o, st.camera, st.scene).catch(() => {})); } finally { list.forEach((o, i) => { o.visible = was[i]; }); } return Promise.race([Promise.all(ps), new Promise((r) => setTimeout(r, 4000))]); };
+decor = DECOR.createDecor({ compile: compileHidden, THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
@@ -3562,7 +3565,7 @@ let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false, liteFx = 
 // dynamic resolution (Auto). A change resizes every render target, which is itself a hitch, so it changes rarely:
 // down a step after two slow 4-second spells in a row (under 38 fps), back up only after 20 s of 58+, and never
 // within 20 s of the last change (at most twice up a session, so it can't see-saw)
-let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0;
+const dynStart = performance.now(); let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0;
 // b441: AC Defense and Coin Jump on a phone: half the grass (its blades are in random order, so it thins evenly) and
 // a quicker dynamic resolution while the game is on; all back on leaving
 let gameOn = false;
@@ -3574,7 +3577,7 @@ function dynRes(dt) {
   const fps = dynN / dynAcc, now = performance.now(); dynAcc = 0; dynN = 0; dynT0 = now;
   // b411: slow means under 80% of the limit on a phone (48 of 60: phones sat at 40–50 and never eased off) and 70% on
   // a computer; it was 63% for both
-  const capF = S.fpsCap || 60; dynBad = fps < capF * (st.quality.coarse ? 0.8 : 0.7) ? dynBad + 1 : 0; dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
+  const capF = S.fpsCap || 60; dynBad = fps < capF * (st.quality.coarse ? (now - dynStart > 600000 ? 0.9 : 0.8) : 0.7) ? dynBad + 1 : 0; /* b448: after 10 minutes a phone is warm: ease off a step earlier */ dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
   if (now - dynLast < (gameOn ? 8000 : 20000)) return;
   if (dynBad >= (gameOn ? 1 : 2) && dynK > 0.6) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }

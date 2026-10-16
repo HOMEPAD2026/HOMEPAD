@@ -99,7 +99,7 @@ const BLADE_VS = /* glsl */`
     pos.xz += bend * y * y * h + vec2(c, s) * (aRnd.w - 0.5) * 0.5 * y * h; // and a lean of its own
     vec3 wp = vec3(p.x, 0.0, p.y) + pos;
     vY = y; vTone = aRnd.w;
-    vLamp = 0.0; if (uLampK > 0.01) for (int i = 0; i < 20; i++) { float dl = length(p - uLamps[i]); vLamp += 1.0 - smoothstep(0.5, 3.6, dl); } // street lamps light the blades round them at night
+    vLamp = 0.0; if (uLampK > 0.01) for (int i = 0; i < LAMPS; i++) { float dl = length(p - uLamps[i]); vLamp += 1.0 - smoothstep(0.5, 3.6, dl); } // street lamps light the blades round them at night
     // the far shade (world-look.js groundShadow): halls and trees darken the blades in their shadow
     vShade = 1.0;
     if (gsOn > 0.5) { vec4 sc = gsM * vec4(p.x, 0.05, p.y, 1.0); vec3 sp = sc.xyz * 0.5 + 0.5;
@@ -150,17 +150,21 @@ export function makeGrass({ count = 40000, size = 64, mask, gshadow = null, medi
     uLamps: { value: Array.from({ length: 20 }, () => new THREE.Vector2(9999, 9999)) }, uLampK: { value: 0 },
     uCloud: CLOUD.k, uCloudT: CLOUD.t,
   };
-  const mat = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]), vertexShader: BLADE_VS, fragmentShader: (mediump ? "precision mediump float;\n" : "") + BLADE_FS, fog: true, side: THREE.DoubleSide, depthWrite: false });
+  // b448: a phone lights its blades from the 6 lamps nearest you (picked twice a second), a computer from all 20
+  const LAMPS = mediump ? 6 : 20;
+  const mat = new THREE.ShaderMaterial({ defines: { LAMPS }, uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]), vertexShader: BLADE_VS, fragmentShader: (mediump ? "precision mediump float;\n" : "") + BLADE_FS, fog: true, side: THREE.DoubleSide, depthWrite: false });
   Object.assign(mat.uniforms, U); // shared objects, so the shadow uniforms stay live
   const mesh = new THREE.Mesh(geo, mat); mesh.name = "grass"; mesh.frustumCulled = false; mesh.renderOrder = 1; mesh.userData.noBake = true;
   const day = new THREE.Color(), night = new THREE.Color(0x0e1a14);
+  let allLamps = [], lampT = 0;
   return {
     mesh, uniforms: U,
     /// px, pz: you, in the world group's coordinates; light: 0 night … 1 day
-    tick(dt, px, pz) { U.uTime.value += dt; U.uCenter.value.set(px, pz); U.uPush.value.x = px; U.uPush.value.y = pz; },
+    tick(dt, px, pz) { U.uTime.value += dt; U.uCenter.value.set(px, pz); U.uPush.value.x = px; U.uPush.value.y = pz;
+      if (LAMPS < 20 && U.uLampK.value > 0.01 && (lampT -= dt) <= 0) { lampT = 0.5; const near = allLamps.slice().sort((a, b) => (a[0] - px) ** 2 + (a[1] - pz) ** 2 - ((b[0] - px) ** 2 + (b[1] - pz) ** 2)); for (let i = 0; i < LAMPS; i++) { const l = near[i]; U.uLamps.value[i].set(l ? l[0] : 9999, l ? l[1] : 9999); } } },
     setLight(k, tint = null) { U.uLight.value = 0.42 + 0.58 * k; if (tint) { day.set(tint); U.uTip.value.copy(day).lerp(night, (1 - k) * 0.45); } },
     setWind(x, z) { U.uWind.value.set(x, z); },
-    setLamps(spots, k) { spots.slice(0, 20).forEach(([x, z], i) => U.uLamps.value[i].set(x, z)); U.uLampK.value = k; },
+    setLamps(spots, k) { allLamps = spots.slice(0, 20); allLamps.forEach(([x, z], i) => U.uLamps.value[i].set(x, z)); U.uLampK.value = k; lampT = 0; },
   };
 }
 

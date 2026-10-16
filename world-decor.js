@@ -238,7 +238,7 @@ export function createDecor(ctx) {
   async function nearZones() {
     if (!ctx.zones) return;
     const p = ctx.here(new THREE.Vector3());
-    for (const zn of ctx.zones) if (!dressed.has(zn.id) && Math.hypot(p.x - zn.x, p.z - zn.z) < zn.r + 45) { await Promise.all(["kenney-survival", "kk-resources", "kenney-nature", "kk-nature", "kenney-space", "kk-tools", "q-props", "q-nature"].map(load)); dressZone(zn); }
+    for (const zn of ctx.zones) if (!dressed.has(zn.id) && Math.hypot(p.x - zn.x, p.z - zn.z) < zn.r + 45) { await Promise.all(["kenney-survival", "kk-resources", "kenney-nature", "kk-nature", "kenney-space", "kk-tools", "q-props", "q-nature"].map(load)); await staged(() => dressZone(zn)); }
   }
 
   // ---------------- critters: a few cube pets wandering the meadows ----------------
@@ -284,6 +284,15 @@ export function createDecor(ctx) {
     return o;
   }
 
+  // b448: what a later stage adds (critters, the neighbourhoods, a hunting ground's props) is compiled hidden and shown
+  // when its shaders are ready, so it doesn't stall the frame it appears in (diag: hub / shader, just after the start)
+  async function staged(fn) {
+    const before = new Set(root.children); fn();
+    const added = root.children.filter((c) => !before.has(c)); if (!added.length || !ctx.compile) return;
+    added.forEach((c) => { c.visible = false; });
+    try { await ctx.compile(added); } catch { /* shown anyway */ }
+    added.forEach((c) => { c.visible = true; });
+  }
   // ---------------- loading, in stages ----------------
   let started = false, townDone = null; const townReady = new Promise((r) => { townDone = r; });
   async function start() {
@@ -295,8 +304,8 @@ export function createDecor(ctx) {
     } finally { townDone(); } // b443: the loading screen waits for this (the town dressed behind it, not on the plaza)
     // the hunting grounds' one extra pack downloads while you're still in town, so walking up to a ground only dresses it
     setTimeout(() => { const go = () => load("kenney-survival"); if (globalThis.requestIdleCallback) requestIdleCallback(go, { timeout: 20000 }); else go(); }, 15000);
-    await load("kenney-pets"); addCritters();
-    await Promise.all(["k-suburban", "k-commercial"].map(load)); dressNeighbourhoods();
+    await load("kenney-pets"); await staged(addCritters);
+    await Promise.all(["k-suburban", "k-commercial"].map(load)); await staged(dressNeighbourhoods);
     setInterval(nearZones, 3000); nearZones();
   }
   return { root, start, townReady, solids: () => solids, tick: (dt) => tickCritters(dt), gear, ready: (n) => !!packs[n], debug: () => ({ packs: Object.keys(packs), critters: critters.length, solids: solids.length, zones: [...dressed], homes }) };

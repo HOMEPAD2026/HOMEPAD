@@ -54,6 +54,45 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 15.6; g.add(tag);
     return g;
   }
+  // b448: each game its own building, so they read from across the square; the door, its arch and the mat are the same
+  function doorOf(g, gm, neon, z = 3.25) {
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.3), std(0x1d1630)); door.position.set(0, 1.4, z); g.add(door);
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.14, 6, 24, Math.PI), neon); arch.position.set(0, 2.8, z + 0.05); g.add(arch);
+    const mat = new THREE.Mesh(new THREE.CircleGeometry(1.3, 24), new THREE.MeshBasicMaterial({ color: gm.color, transparent: true, opacity: 0.25, depthWrite: false })); mat.rotation.x = -Math.PI / 2; mat.position.set(0, 0.06, z + 1.35); g.add(mat);
+    return mat;
+  }
+  function hallOf(gm) { // Beat Stomp: a round hall under a glowing dome, a speaker each side that thumps on the beat
+    const g = new THREE.Group(), wall = std(0x3a2a66), trim = std(0x1d1630), neon = glow(gm.color, 2.2), neon2 = glow(0x38d8ff, 1.8);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.4, 3.6, 16), wall); base.position.y = 1.8; g.add(base);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(3.25, 0.1, 6, 48), neon); band.rotation.x = Math.PI / 2; band.position.y = 3.5; g.add(band);
+    const band2 = new THREE.Mesh(new THREE.TorusGeometry(3.38, 0.08, 6, 48), neon2); band2.rotation.x = Math.PI / 2; band2.position.y = 0.5; g.add(band2);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(3.15, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xc89bff, emissive: 0x7a3cff, emissiveIntensity: 0.55, roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.85 })); dome.position.y = 3.6; g.add(dome);
+    const ribs = []; for (let k = 0; k < 8; k++) { const r = new THREE.Mesh(new THREE.TorusGeometry(3.16, 0.05, 4, 24, Math.PI / 2), neon); r.position.y = 3.6; r.rotation.set(0, (k / 8) * Math.PI * 2, Math.PI / 2); r.rotateY(Math.PI / 2); g.add(r); ribs.push(r); }
+    const note = new THREE.Group(); { const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), neon); head.scale.set(1.25, 0.9, 0.6); const stem = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.5, 0.12), neon); stem.position.set(0.42, 0.75, 0); const flagN = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.14, 0.12), neon); flagN.position.set(0.66, 1.42, 0); flagN.rotation.z = -0.5; note.add(head, stem, flagN); }
+    note.position.y = 7.6; g.add(note);
+    const cones = [];
+    for (const sx of [-1, 1]) { const sp = new THREE.Group(); const box = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.4, 1.1), trim); box.position.y = 1.2; sp.add(box);
+      for (const y of [0.75, 1.75]) { const c = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.07, 6, 20), neon2); c.position.set(0, y, 0.57); sp.add(c); cones.push(c); }
+      sp.position.set(sx * 3.9, 0, 1.6); sp.rotation.y = -sx * 0.35; g.add(sp); }
+    const mat = doorOf(g, gm, neon, 3.25);
+    if (!low) spins.push((dt, t) => { const ph = (t * 2) % 1, k = Math.max(0, 1 - ph * 3); for (const c of cones) c.scale.setScalar(1 + k * 0.18); note.rotation.y = t * 0.8; note.position.y = 7.6 + Math.sin(t * 2) * 0.15; band.material.emissiveIntensity = 1.6 + k * 1.2; mat.material.opacity = 0.2 + k * 0.15; });
+    const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 10.4; g.add(tag);
+    return g;
+  }
+  function coinTowerOf(gm) { // Coin Jump: four giant coins stacked in a spiral, the crown on top
+    const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xffc23a, emissive: 0xb07a10, emissiveIntensity: 0.35, roughness: 0.3, metalness: 0.7 }), rimM = glow(0xffe27a, 1.6), neon = glow(gm.color, 2.0);
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.5, 1, 8), std(0x2a3a66)); plinth.position.y = 0.5; g.add(plinth);
+    const coinG = new THREE.CylinderGeometry(2.3, 2.3, 0.55, 28), edgeG = new THREE.TorusGeometry(2.3, 0.09, 6, 40), coins = [];
+    for (let k = 0; k < 4; k++) { const c = new THREE.Group(); const body = new THREE.Mesh(coinG, gold), rim = new THREE.Mesh(edgeG, rimM); rim.rotation.x = Math.PI / 2; c.add(body, rim);
+      c.position.set(Math.sin(k * 1.9) * 0.5, 1.4 + k * 1.75, Math.cos(k * 1.9) * 0.5 - 0.3); c.rotation.set(0.12 * (k % 2 ? 1 : -1), 0, 0.08 * (k - 1.5)); g.add(c); coins.push(c); }
+    const crown = new THREE.Group(); crown.add(new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 0.5, 12, 1, true), gold));
+    for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2, sp = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.55, 5), gold); sp.position.set(Math.cos(a) * 0.8, 0.5, Math.sin(a) * 0.8); crown.add(sp); }
+    crown.position.y = 8.6; g.add(crown);
+    const mat = doorOf(g, gm, neon, 3.4);
+    if (!low) spins.push((dt, t) => { crown.rotation.y = t * 0.9; coins.forEach((c, i) => { c.position.y = 1.4 + i * 1.75 + Math.sin(t * 1.6 + i) * 0.06; }); mat.material.opacity = 0.2 + Math.sin(t * 3) * 0.08; });
+    const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 11.2; g.add(tag);
+    return g;
+  }
   // b446: a small garden on a plot no game is coming to soon: grass, a low hedge, a tree and flowers (shared parts)
   let GP = null;
   function gardenOf() {
@@ -111,7 +150,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     makeBoard();
     let soonTag = null;
     GAMES.forEach((gm, i) => {
-      const p = plotAt(i), g = gm.ready ? towerOf(gm) : gm.garden ? gardenOf() : soonOf();
+      const p = plotAt(i), g = gm.ready ? (gm.id === "beat" ? hallOf(gm) : gm.id === "jump" ? coinTowerOf(gm) : towerOf(gm)) : gm.garden ? gardenOf() : soonOf();
       g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); // the front faces the square
       g.traverse((o) => { if (o.isMesh) o.castShadow = !low; });
       built.add(g); if (gm.ready) { g.userData.radius = 3.6; solids.push(g); }

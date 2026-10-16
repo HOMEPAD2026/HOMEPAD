@@ -133,6 +133,50 @@ const GradeShader = {
       gl_FragColor = c; }`,
 };
 
+// b448: medium (phones and most computers) in one pass after the bloom: the edges, the air (no shafts), tone mapping and
+// sRGB, the 3D grade and the vignette. Four full-screen passes were four reads and writes of the whole picture, and a
+// phone's GPU is bound by exactly that. Ultra (AO, shafts, SMAA) keeps its separate chain.
+const FinalShader = {
+  uniforms: { ...EdgeShader.uniforms, ...AirShader.uniforms, lut: { value: null }, amount: { value: 1 }, vig: { value: 0.22 }, aspect: { value: 1.6 }, toneMappingExposure: { value: 1 }, edgeOn: { value: 1 }, airOn: { value: 1 } },
+  fragmentShader: `precision highp sampler3D; uniform sampler2D tDiffuse, tDepth; uniform sampler3D lut; uniform vec2 res, sun; uniform vec3 fogCol, sunCol; uniform mat4 invProj, camWorld;
+    uniform float near, far, strength, ink, depthT, fadeNear, fadeFar, thick, fogH, fogK, rays, heat, time, amount, vig, aspect, edgeOn, airOn; varying vec2 vUv;
+    #include <tonemapping_pars_fragment>
+    ${LIN}
+    float luma(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
+    void main(){
+      vec2 uv = vUv;
+      if (airOn > 0.5 && heat > 0.001) uv += vec2(sin(uv.y * 90.0 + time * 4.0), cos(uv.x * 70.0 + time * 3.1)) * 0.0016 * heat * (1.0 - uv.y);
+      vec4 c = texture2D(tDiffuse, uv); float d0 = texture2D(tDepth, uv).r;
+      if (d0 < 0.99999) {
+        if (edgeOn > 0.5) {
+          vec2 px = res * thick; float z0 = lin(d0);
+          float zl = lin(texture2D(tDepth, uv - vec2(px.x, 0.0)).r), zr = lin(texture2D(tDepth, uv + vec2(px.x, 0.0)).r);
+          float zd = lin(texture2D(tDepth, uv - vec2(0.0, px.y)).r), zu = lin(texture2D(tDepth, uv + vec2(0.0, px.y)).r);
+          float e = smoothstep(depthT, depthT * 2.6, abs(zl + zr + zu + zd - 4.0 * z0) / max(z0, 0.5));
+          float l0 = luma(c.rgb), lx = abs(luma(texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb) - l0) + abs(luma(texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb) - l0);
+          e = max(e, smoothstep(0.22, 0.5, lx) * 0.35) * (1.0 - smoothstep(fadeNear, fadeFar, z0));
+          c.rgb = mix(c.rgb, c.rgb * ink, clamp(e * strength, 0.0, 1.0));
+        }
+        if (airOn > 0.5 && fogK > 0.0001) {
+          vec4 vp = invProj * vec4(uv * 2.0 - 1.0, d0 * 2.0 - 1.0, 1.0); vp /= vp.w; vec3 wp = (camWorld * vec4(vp.xyz, 1.0)).xyz;
+          float hf = exp(-max(wp.y, 0.0) / fogH) * (1.0 - exp(-length(vp.xyz) * fogK));
+          c.rgb = mix(c.rgb, fogCol, clamp(hf, 0.0, 0.8));
+        }
+      }
+      #if defined( ACES_FILMIC_TONE_MAPPING )
+        c.rgb = ACESFilmicToneMapping(c.rgb);
+      #elif defined( CUSTOM_TONE_MAPPING )
+        c.rgb = CustomToneMapping(c.rgb);
+      #elif defined( NEUTRAL_TONE_MAPPING )
+        c.rgb = NeutralToneMapping(c.rgb);
+      #endif
+      c = sRGBTransferOETF(c);
+      vec3 s = clamp(c.rgb, 0.0, 1.0); vec3 g = texture(lut, s * (15.0 / 16.0) + 0.5 / 16.0).rgb; c.rgb = mix(c.rgb, g, amount);
+      vec2 dv = (vUv - 0.5) * vec2(aspect, 1.0); c.rgb *= 1.0 - vig * smoothstep(0.35, 1.05, length(dv));
+      gl_FragColor = c;
+    }`,
+};
+
 /// replace the stage's composer with the game's chain; returns controls, or null (low / saver: the plain renderer)
 export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], lite = false } = {}) {
   if (level !== "medium" && level !== "ultra") return null;
@@ -148,6 +192,23 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
   }
   return Promise.resolve(finish(null));
 
+  // b448: medium in one final pass (FinalShader); edge / air / grade are the same pass, so the controls below work as before
+  function finishMerged(depth) {
+    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); bl.heavy = true; comp.addPass(bl);
+    bl.materialHighPassFilter.fragmentShader = bl.materialHighPassFilter.fragmentShader.replace("vec4 texel = texture2D( tDiffuse, vUv );",
+      "vec4 texel = texture2D( tDiffuse, vUv ); if (!(texel.r == texel.r) || !(texel.g == texel.g) || !(texel.b == texel.b)) texel = vec4(0.0, 0.0, 0.0, 1.0); texel.rgb = min(texel.rgb, vec3(6.0));");
+    bl.materialHighPassFilter.needsUpdate = true;
+    const dof = new DepthPass(DofShader, depth); dof.enabled = false; dof.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; }; comp.addPass(dof);
+    const fin = new DepthPass(FinalShader, depth), U = fin.uniforms;
+    const tm = r.toneMapping, D = fin.material.defines;
+    if (tm === THREE.ACESFilmicToneMapping) D.ACES_FILMIC_TONE_MAPPING = ""; else if (tm === THREE.CustomToneMapping) D.CUSTOM_TONE_MAPPING = ""; else if (tm === THREE.NeutralToneMapping) D.NEUTRAL_TONE_MAPPING = "";
+    fin.material.toneMapped = false; fin.material.needsUpdate = true; // tone mapping is done here, once (to the screen three would add its own)
+    fin.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; u.invProj.value.copy(cam.projectionMatrixInverse); u.camWorld.value.copy(cam.matrixWorld); u.toneMappingExposure.value = r.toneMappingExposure; };
+    comp.addPass(fin);
+    const warp = new ShaderPass(WarpShader); warp.enabled = false; comp.addPass(warp);
+    const flag = (k) => ({ uniforms: U, get enabled() { return U[k].value > 0.5; }, set enabled(v) { U[k].value = v ? 1 : 0; } });
+    return controls({ edge: flag("edgeOn"), air: flag("airOn"), grade: { uniforms: U }, dof, warp, fx: () => null });
+  }
   function finish(N8AOPass) {
     if (N8AOPass) {
       aoPass = new N8AOPass(scene, cam, size.x, size.y);
@@ -155,6 +216,7 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
       aoPass.setQualityMode && aoPass.setQualityMode("Low");
       comp.addPass(aoPass); depth = () => aoPass.beautyRenderTarget.depthTexture;
     } else { const sp = new ScenePass(scene, cam); comp.addPass(sp); depth = () => sp.depth || rt.depthTexture; }
+    if (gl2 && !N8AOPass && !/[?&]post=split\b/.test(location.search)) return finishMerged(depth); // ?post=split: the old chain, to compare
     const edge = new DepthPass(EdgeShader, depth); edge.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; }; comp.addPass(edge);
     const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); bl.heavy = true; comp.addPass(bl);
     // what the bloom takes in is cleaned first: a pixel that isn't a number (one bad shader result on some phone GPUs)
@@ -178,7 +240,11 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
       const sz = r.getDrawingBufferSize(new THREE.Vector2()), sm = new SMAAPass(sz.x, sz.y), i = comp.passes.indexOf(fxaa);
       if (i >= 0) { comp.passes.splice(i, 1, sm); fxaa = null; }
     }).catch(() => { /* FXAA stays */ });
-    const fit = () => { const s = r.getDrawingBufferSize(new THREE.Vector2()); if (fxaa) fxaa.uniforms.resolution.value.set(1 / s.x, 1 / s.y); if (grade) grade.uniforms.aspect.value = s.x / Math.max(1, s.y); warp.uniforms.aspect.value = s.x / Math.max(1, s.y); };
+    return controls({ edge, air, grade, dof, warp, fx: () => fxaa });
+  }
+  // the controls the game holds (both chains): sizes, shockwaves, the air, the grade, depth of field
+  function controls({ edge, air, grade, dof, warp, fx }) {
+    const fit = () => { const s = r.getDrawingBufferSize(new THREE.Vector2()); { const fxaa = fx(); if (fxaa) fxaa.uniforms.resolution.value.set(1 / s.x, 1 / s.y); } if (grade) grade.uniforms.aspect.value = s.x / Math.max(1, s.y); warp.uniforms.aspect.value = s.x / Math.max(1, s.y); };
     st.useComposer(comp); fit(); addEventListener("resize", () => setTimeout(fit, 50));
     const sunV = new THREE.Vector3(); let raysWant = 0;
     const waves = [], wv = new THREE.Vector3();

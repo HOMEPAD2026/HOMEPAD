@@ -49,7 +49,8 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
   function init() {
     if (ac || !S.sound) return;
     try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
-    out = chain(ac); nbuf = noiseBuf(ac);
+    out = chain(ac); // b448: the 2-second noise buffer is made a moment later, not inside the first tap or key (it was part of the first step's stall)
+    setTimeout(() => { if (ac && !nbuf) nbuf = noiseBuf(ac); }, 400);
     // a low, soft drone under everything (the town's air)
     const amb = ac.createGain(); amb.gain.value = 0.035; const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 520; amb.connect(lp); lp.connect(out);
     [110, 164.8, 220.4].forEach((f, i) => { const o = ac.createOscillator(); o.type = i === 2 ? "triangle" : "sine"; o.frequency.value = f; o.detune.value = i * 4; o.connect(amb); o.start(); });
@@ -72,7 +73,7 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
   // a burst of filtered noise fading out (type: bandpass / lowpass / highpass; to: the filter sweeps there)
   function noise(dur, v = 0.12, f = 900, { at = 0, type = "bandpass", q = 1, to = 0, a = 0 } = {}) {
     if (!can()) return;
-    const t = ac.currentTime + at, n = ac.createBufferSource(); n.buffer = nbuf; n.loop = dur > 1.8;
+    if (!nbuf) return; const t = ac.currentTime + at, n = ac.createBufferSource(); n.buffer = nbuf; n.loop = dur > 1.8;
     const fl = ac.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.frequency.setValueAtTime(f, t); fl.Q.value = q; if (to) fl.frequency.exponentialRampToValueAtTime(to, t + dur);
     const g = ac.createGain(); g.gain.value = 0; // (the values before the start too: a delayed sound must not jump from the defaults)
     if (a) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + a); } else g.gain.setValueAtTime(v, t);

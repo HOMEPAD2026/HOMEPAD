@@ -39,7 +39,7 @@ export function createBeatStomp(ctx) {
   }
 
   // ---------------- the stage: three pads, their rims, a ring pool, a backdrop arch (made once, kept between songs) ----------------
-  let made = false, pads = [], rims = [], ringPool = [], arch = null, beatLight = null;
+  let made = false, pads = [], rims = [], ringPool = [], arch = null, beatLight = null; const beams = [], spots = [], fans = [];
   function build() {
     if (!made) {
       made = true; root = new THREE.Group(); root.name = "beatstomp";
@@ -53,6 +53,17 @@ export function createBeatStomp(ctx) {
       for (let k = 0; k < 18; k++) { const m = new THREE.Mesh(ringG, glow(0xffffff, 1.8, { transparent: true })); m.rotation.x = Math.PI / 2; m.visible = false; root.add(m); ringPool.push(m); }
       // the backdrop: an arch of light behind the pads that pulses on the beat
       arch = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.16, 8, 48, Math.PI), glow(0xb48cff, 1.4)); arch.position.set(O.x, 0, laneZ - 3.2); root.add(arch);
+      // b448: the stage comes alive: a soft beam over each lane that brightens as a ring comes down it, four spotlights on
+      // the arch that sway and flash on the beat, and a small crowd waving light sticks behind the pads
+      const add = (c, k) => new THREE.ShaderMaterial({ uniforms: { uC: { value: new THREE.Color(c) }, uK: { value: k } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+        vertexShader: "varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+        fragmentShader: "uniform vec3 uC; uniform float uK; varying float vY; void main(){ gl_FragColor = vec4(uC, (1.0 - vY) * uK); }" });
+      const beamG = new THREE.CylinderGeometry(0.85, 0.95, DROP + 0.6, 16, 1, true); beamG.translate(0, (DROP + 0.6) / 2, 0);
+      for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(beamG, add(LANE_C[i], 0.05)); b.position.set(laneX(i), 0.4, laneZ); b.renderOrder = 2; root.add(b); beams.push(b); }
+      const coneG = new THREE.ConeGeometry(1.1, 6.5, 18, 1, true); coneG.translate(0, -3.25, 0);
+      for (let k = 0; k < 4; k++) { const s0 = new THREE.Group(), a = Math.PI * (0.2 + k * 0.2); s0.position.set(O.x + Math.cos(a) * 4.6, Math.sin(a) * 4.6, laneZ - 3.2); const m = new THREE.Mesh(coneG, add([0xff5ad8, 0x38d8ff, 0xffd23a, 0xb48cff][k], 0.16)); m.renderOrder = 2; s0.add(m); root.add(s0); spots.push(s0); }
+      const fanG = new THREE.CapsuleGeometry(0.22, 0.5, 3, 8), stickG = new THREE.CylinderGeometry(0.04, 0.04, 0.6, 5), fanM = new THREE.MeshStandardMaterial({ color: 0x2a3050, roughness: 0.8 });
+      for (let k = 0; k < 8; k++) { const f = new THREE.Group(), x = O.x + (k - 3.5) * 1.15, z = laneZ - 5.2 - (k % 2) * 0.7; const body = new THREE.Mesh(fanG, fanM); body.position.y = 0.5; const st = new THREE.Mesh(stickG, glow(LANE_C[k % 3], 2.4)); st.position.set(0.25, 1.15, 0); st.rotation.z = -0.4; f.add(body, st); f.position.set(x, 0, z); f.userData.ph = k * 0.37; root.add(f); fans.push(f); }
       beatLight = new THREE.Mesh(new THREE.CircleGeometry(4.2, 40), new THREE.MeshBasicMaterial({ color: 0xb48cff, transparent: true, opacity: 0, depthWrite: false })); beatLight.rotation.x = -Math.PI / 2; beatLight.position.set(O.x, 0.06, laneZ); root.add(beatLight);
     }
     planet.add(root);
@@ -180,6 +191,9 @@ export function createBeatStomp(ctx) {
     // the beat: the floor glow and the arch pulse on every beat
     const bp = now / SPB, ph = bp - Math.floor(bp), pulse = now > 0 ? Math.max(0, 1 - ph * 3) : 0;
     beatLight.material.opacity = pulse * 0.22; arch.material.emissiveIntensity = 1.2 + pulse * 1.6;
+    spots.forEach((sp, k) => { sp.rotation.z = Math.sin(now * 0.9 + k) * 0.45; sp.rotation.x = 0.35 + Math.sin(now * 0.7 + k * 2) * 0.2; sp.children[0].material.uniforms.uK.value = 0.1 + pulse * 0.22; });
+    if (!ctx.low) fans.forEach((f) => { const b = Math.max(0, Math.sin((bp + f.userData.ph) * Math.PI)); f.position.y = b * 0.25; f.rotation.z = Math.sin(bp * Math.PI + f.userData.ph) * 0.12; });
+    const near = [0, 0, 0];
     // rings: from DROP high down to the pad, landing at their time; late by more than GOOD is a miss
     let free = 0;
     for (const n of notes) {
@@ -188,8 +202,9 @@ export function createBeatStomp(ctx) {
       if (d < -GOOD) { n.done = true; counts.m++; combo = 0; judge("Miss"); if (n.ring) { n.ring.visible = false; n.ring = null; } paintHud(); continue; }
       if (d > APPROACH) break;
       if (!n.ring) { while (free < ringPool.length && ringPool[free].visible) free++; if (free >= ringPool.length) continue; n.ring = ringPool[free]; n.ring.visible = true; n.ring.material.color.setHex(LANE_C[n.lane]); n.ring.material.emissive.setHex(LANE_C[n.lane]); }
-      const k = Math.max(0, d / APPROACH); n.ring.position.set(laneX(n.lane), 0.45 + k * DROP, laneZ); n.ring.scale.setScalar(1 + k * 0.35); n.ring.material.opacity = 0.35 + (1 - k) * 0.65;
+      const k = Math.max(0, d / APPROACH); near[n.lane] = Math.max(near[n.lane], 1 - k); n.ring.position.set(laneX(n.lane), 0.45 + k * DROP, laneZ); n.ring.scale.setScalar(1 + k * 0.35); n.ring.material.opacity = 0.35 + (1 - k) * 0.65;
     }
+    beams.forEach((b, i) => { const u = b.material.uniforms.uK; u.value += (0.04 + near[i] * 0.22 - u.value) * Math.min(1, dt * 10); });
     if (now > BEATS * SPB + 0.5) finish(false);
   }
   return { start, quit: () => { if (phase === "run") finish(true); else if (on) exit(); }, reset: () => { if (on) exit(); }, active: () => on, tick, debug: () => ({ phase, score, combo, counts: { ...counts }, notes: notes.length, now: on ? +songT().toFixed(2) : 0, next: (notes.find((n) => !n.done) || {}).t, lane: (notes.find((n) => !n.done) || {}).lane }), hit };
