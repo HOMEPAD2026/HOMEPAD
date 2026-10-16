@@ -108,7 +108,7 @@ export function createMine(ctx) {
     // the painted cave (the mine's key art) far behind: lanterns, scaffolds and a blue cavern, mirrored to run the whole
     // length; far enough back that it slides past slower than the floor (parallax)
     if (BACK) { const H = 26, Wd = 220, m = new THREE.Mesh(new THREE.PlaneGeometry(Wd, H), new THREE.MeshBasicMaterial({ map: BACK, color: 0xd6d8e6, fog: false, toneMapped: false }));
-      BACK.repeat.set(Wd / (H * 16 / 9), 1); m.position.set(0, -3.4 + 0.16 * H, -16); scene.add(m); }
+      BACK.repeat.set(Wd / (H * 16 / 9), BACK.isCompressedTexture ? -1 : 1); if (BACK.isCompressedTexture) BACK.offset.y = 1; /* a KTX2 picture isn't flipped on upload: turned the right way up here */ m.position.set(0, -3.4 + 0.16 * H, -16); scene.add(m); }
     // the deep dark behind everything, so the fog has something to fade into
     { const m = new THREE.Mesh(new THREE.PlaneGeometry(W * 3, 80), new THREE.MeshBasicMaterial({ color: 0x05060b, fog: false })); m.position.set(0, 0, -30); scene.add(m); }
     // the cross-sections facing you: the soil under the floor and the rock over the ceiling
@@ -202,12 +202,12 @@ export function createMine(ctx) {
         m.geometry.translate(0, -5, 0); m.position.set(-CAVE + 0.4 + i * 0.7, 5.6 - i * 0.3, -2.2 + i * 0.25); m.rotation.z = 0.62 + i * 0.12; m.userData.ph = i * 1.7; scene.add(m); return m; }); }
     // the floor's front edge: a row of cut stone blocks, like the painting's
     { const n = Math.floor(W / 1.35), m = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, flatShading: true }), n * 2), o = new THREE.Object3D(), c = new THREE.Color();
-      let x = -W / 2, j = 0; while (x < W / 2 && j < n) { const w = 1.0 + rnd() * 0.8; o.position.set(x + w / 2, -0.46, 2.62); o.scale.set(w - 0.08, 0.9 + rnd() * 0.12, 0.55); o.rotation.set((rnd() - 0.5) * 0.05, (rnd() - 0.5) * 0.08, (rnd() - 0.5) * 0.04); o.updateMatrix(); m.setMatrixAt(j, o.matrix); m.setColorAt(j, c.setRGB(0.24 + rnd() * 0.08, 0.2 + rnd() * 0.06, 0.22 + rnd() * 0.06)); x += w; j++; }
-      x = -W / 2 - 0.6; while (x < W / 2 && j < n * 2) { const w = 1.2 + rnd() * 0.9; o.position.set(x + w / 2, -1.42, 2.6); o.scale.set(w - 0.1, 0.95, 0.5); o.rotation.set(0, (rnd() - 0.5) * 0.06, (rnd() - 0.5) * 0.04); o.updateMatrix(); m.setMatrixAt(j, o.matrix); m.setColorAt(j, c.setRGB(0.15 + rnd() * 0.05, 0.12 + rnd() * 0.04, 0.14 + rnd() * 0.04)); x += w; j++; }
+      let x = -W / 2, j = 0; while (x < W / 2 && j < n) { const w = 1.0 + rnd() * 0.8; o.position.set(x + w / 2, -0.46, 2.62); o.scale.set(w - 0.08, 0.9 + rnd() * 0.12, 0.55); o.rotation.set((rnd() - 0.5) * 0.05, (rnd() - 0.5) * 0.08, (rnd() - 0.5) * 0.04); o.updateMatrix(); m.setMatrixAt(j, o.matrix); m.setColorAt(j, c.setRGB(0.2 + rnd() * 0.07, 0.16 + rnd() * 0.05, 0.18 + rnd() * 0.05, THREE.SRGBColorSpace)); x += w; j++; }
+      x = -W / 2 - 0.6; while (x < W / 2 && j < n * 2) { const w = 1.2 + rnd() * 0.9; o.position.set(x + w / 2, -1.42, 2.6); o.scale.set(w - 0.1, 0.95, 0.5); o.rotation.set(0, (rnd() - 0.5) * 0.06, (rnd() - 0.5) * 0.04); o.updateMatrix(); m.setMatrixAt(j, o.matrix); m.setColorAt(j, c.setRGB(0.12 + rnd() * 0.04, 0.1 + rnd() * 0.03, 0.11 + rnd() * 0.03, THREE.SRGBColorSpace)); x += w; j++; }
       m.count = j; scene.add(m); }
     // dark shapes right in front (depth): rocks at the bottom corners and stalactites at the top, between the play spots
     { const sil = new THREE.MeshBasicMaterial({ color: 0x06050a, fog: false }), g1 = new THREE.DodecahedronGeometry(1, 0), g2 = new THREE.ConeGeometry(0.6, 1, 5); g2.translate(0, -0.5, 0);
-      for (let x = -CAVE - 2; x <= CAVE + 2; x += 9 + rnd() * 6) { const r = new THREE.Mesh(g1, sil); r.position.set(x, -1.5, 4.6); r.scale.set(1.6 + rnd(), 1.2 + rnd() * 0.7, 0.8); r.rotation.z = rnd() * 3; scene.add(r);
+      for (let x = -CAVE - 2; x <= CAVE + 2; x += 9 + rnd() * 6) { const r = new THREE.Mesh(g1, sil); r.position.set(x, -2.3, 4.6); r.scale.set(1.2 + rnd() * 0.8, 1 + rnd() * 0.5, 0.8); r.rotation.z = rnd() * 3; scene.add(r);
         if (rich) { const st2 = new THREE.Mesh(g2, sil); st2.position.set(x + 4, 10.4, 4.4); st2.scale.set(1 + rnd(), 1.6 + rnd() * 1.6, 1); scene.add(st2); } } }
     // soft contact shadows: under the hero (and each rock, in makeRock)
     extra.blobM = new THREE.MeshBasicMaterial({ map: radial("rgba(0,0,0,0.7)"), transparent: true, depthWrite: false, opacity: 0.75 });
