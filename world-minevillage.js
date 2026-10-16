@@ -77,7 +77,7 @@ export function makeMineVillage({ THREE, K, planet, T, low = false, look = null,
       const o = g.scene, b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = 13 / (sz.x || 1);
       o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k - 0.6);
       o.traverse((m) => { if (m.isMesh) { m.castShadow = !low; m.receiveShadow = true; if (m.material) cs(m.material); } });
-      hill.add(o); drawn.visible = false; // the lanterns stay lit at the model's tunnel
+      hill.add(o); drawn.visible = false; rails.visible = false; // the model has its own rails; the lanterns stay lit at its tunnel
       lamps.forEach((f) => { f.parent.position.z = sz.z * k / 2 - 0.2; f.parent.position.y = 3.2; f.parent.position.x *= 1.15; hill.add(f.parent); });
     }).catch((e) => console.warn("mine entrance:", e));
     // the tunnel and the hill are solid; the mouth is walked up to (the door)

@@ -113,9 +113,9 @@ export function createMine(ctx) {
       cols.forEach(([c, n], ci) => { const m = new THREE.InstancedMesh(geo, ci === 2 ? new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9, metalness: 0.8, roughness: 0.3 }) : new THREE.MeshStandardMaterial({ color: c, metalness: 0.7, roughness: 0.35 }), n), o = new THREE.Object3D();
         for (let i = 0; i < n; i++) { o.position.set((rnd() - 0.5) * W, -1 - rnd() * 13, 2.75); o.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); o.scale.setScalar(0.6 + rnd() * 1.2); o.updateMatrix(); m.setMatrixAt(i, o.matrix); } scene.add(m); }); }
     // stalactites under the ceiling, a few stalagmites at the back
-    { const g = new THREE.ConeGeometry(0.35, 1, 5); g.translate(0, -0.5, 0); const m = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ color: 0x3a3036, flatShading: true, roughness: 0.9 }), low ? 40 : 80), o = new THREE.Object3D();
-      for (let i = 0; i < m.count; i++) { o.position.set((rnd() - 0.5) * W, 9.1 + rnd() * 0.3, -3 + rnd() * 5.2); o.scale.set(0.6 + rnd() * 0.9, 0.6 + rnd() * 2.4, 0.6 + rnd() * 0.9); o.rotation.y = rnd() * 3; o.updateMatrix(); m.setMatrixAt(i, o.matrix); } scene.add(m);
-      const g2 = new THREE.ConeGeometry(0.45, 1, 5); g2.translate(0, 0.5, 0); const m2 = new THREE.InstancedMesh(g2, m.material, 24);
+    { const g = new THREE.ConeGeometry(0.35, 1, 5); g.translate(0, -0.5, 0); const m = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ color: 0x2a2026, flatShading: true, roughness: 0.9 }), BACK ? 26 : low ? 40 : 80), o = new THREE.Object3D();
+      for (let i = 0; i < m.count; i++) { o.position.set((rnd() - 0.5) * W, 9.3 + rnd() * 0.3, 1.2 + rnd() * 1.2); o.scale.set(0.7 + rnd() * 0.9, 0.5 + rnd() * 1.3, 0.7 + rnd() * 0.9); o.rotation.y = rnd() * 3; o.updateMatrix(); m.setMatrixAt(i, o.matrix); } scene.add(m);
+      const g2 = new THREE.ConeGeometry(0.45, 1, 5); g2.translate(0, 0.5, 0); const m2 = new THREE.InstancedMesh(g2, m.material, BACK ? 0 : 24);
       for (let i = 0; i < m2.count; i++) { o.position.set((rnd() - 0.5) * W, 0, -3.1 + rnd() * 0.6); o.scale.set(0.7 + rnd(), 0.6 + rnd() * 1.6, 0.7 + rnd()); o.updateMatrix(); m2.setMatrixAt(i, o.matrix); } scene.add(m2); }
     // glowing crystals in the wall (the ARCIRCLE mint and cyan), pulsing slowly
     const crysM = [new THREE.MeshStandardMaterial({ color: 0x4fe6c8, emissive: 0x4fe6c8, emissiveIntensity: 1.3, roughness: 0.25, metalness: 0.1, flatShading: true }), new THREE.MeshStandardMaterial({ color: 0x38d8ff, emissive: 0x38d8ff, emissiveIntensity: 1.2, roughness: 0.25, flatShading: true })];
@@ -124,12 +124,12 @@ export function createMine(ctx) {
         for (let i = 0, j = 0; i < n; i++) { const cx = (rnd() - 0.5) * (W - 10), cy = rnd() < 0.6 ? 0.4 + rnd() * 1.6 : 7 + rnd() * 1.6, cz = -3.2; for (let q = 0; q < 3; q++, j++) { o.position.set(cx + (rnd() - 0.5) * 0.6, cy + (rnd() - 0.5) * 0.4, cz + 0.3); o.rotation.set((rnd() - 0.5) * 0.9, rnd() * 3, (rnd() - 0.5) * 1.2); o.scale.setScalar(0.45 + rnd() * 0.7); o.updateMatrix(); m.setMatrixAt(j, o.matrix); } }
         scene.add(m); void mi; }); }
     // timber supports every 8 m, a lantern hanging from each beam, rails along the back of the floor
-    const wood = new THREE.MeshStandardMaterial({ color: 0x7a4e2c, roughness: 0.85, flatShading: true }), woodD = new THREE.MeshStandardMaterial({ color: 0x55341c, roughness: 0.9, flatShading: true });
+    const wood = new THREE.MeshStandardMaterial({ color: 0x8c5a30, roughness: 0.85, flatShading: true }), woodD = new THREE.MeshStandardMaterial({ color: 0x55341c, roughness: 0.9, flatShading: true });
     const iron = new THREE.MeshStandardMaterial({ color: 0x59606c, metalness: 0.7, roughness: 0.4 }), flame = new THREE.MeshStandardMaterial({ color: 0xffb04a, emissive: 0xffa040, emissiveIntensity: 3 });
     const lampGlow = new THREE.SpriteMaterial({ map: radial("rgba(255,170,80,0.9)"), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false });
     const lanterns = [];
     { const postG = new THREE.BoxGeometry(0.42, 8.6, 0.42), beamG = new THREE.BoxGeometry(4.4, 0.5, 0.5), braceG = new THREE.BoxGeometry(0.26, 1.5, 0.26), chainG = new THREE.CylinderGeometry(0.02, 0.02, 0.8, 4), cageG = new THREE.BoxGeometry(0.34, 0.48, 0.34), flameG = new THREE.SphereGeometry(0.13, 8, 6);
-      for (let x = -CAVE + 2; x <= CAVE - 2; x += 8) { const f = new THREE.Group(); f.position.set(x, 0, -2.4);
+      for (let x = -CAVE + 2; x <= CAVE - 2; x += BACK ? 12 : 8) { const f = new THREE.Group(); f.position.set(x, 0, -2.4);
         [-2, 2].forEach((s) => { const p = new THREE.Mesh(postG, wood); p.position.set(s, 4.3, 0); f.add(p); const b = new THREE.Mesh(braceG, woodD); b.position.set(s * 0.72, 7.85, 0.05); b.rotation.z = s * 0.68; f.add(b); });
         const beam = new THREE.Mesh(beamG, woodD); beam.position.set(0, 8.6, 0); f.add(beam);
         const ch = new THREE.Mesh(chainG, iron); ch.position.set(0, 7.95, 0.3); f.add(ch); const cage = new THREE.Mesh(cageG, iron); cage.position.set(0, 7.35, 0.3); f.add(cage); const fl = new THREE.Mesh(flameG, flame); fl.position.copy(cage.position); f.add(fl);
