@@ -496,6 +496,7 @@ html.wp-pcphone .wd-perk{zoom:1.42}
 .wb-card p{margin:4px 0;color:#c9bfe6;font-size:14px}.wb-btns{display:flex;gap:8px;justify-content:center;margin-top:12px}.wb-btns .go{background:linear-gradient(180deg,#ff8ae4,#b44cff);color:#fff;border:0}
 html.wp-pcphone .wb-hud{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) + 232px)}html.wp-pcphone .wb-res,html.wp-pcphone .wb-lanes{zoom:1.42}html.wp-pcphone .wb-judge{zoom:1.42}
 body.wp:has(.wb-hud) .wp-quests{display:none!important}html.wp-pcphone body:has(.wb-hud) .wp-mini{display:none}
-body:has(.wb-lanes) .wp-joy,body:has(.wb-lanes) .wp-joyrest,body:has(.wb-lanes) .wp-acts,body:has(.wb-lanes) .wp-dock{visibility:hidden}
+body:has(.wb-lanes) .wp-joy,body:has(.wb-lanes) .wp-joyrest,body:has(.wb-lanes) .wp-acts,body:has(.wb-lanes) .wp-dock,body:has(.wb-lanes) .wc-bar,body:has(.wb-lanes) .wc-lockon{visibility:hidden!important}
 .wd-rm .wb-judge.in,.wb-lane.hit{animation-duration:.01s}
 @media (prefers-reduced-motion:reduce){.wb-judge.in,.wb-lane.hit{animation:none;opacity:1}}
+.wd-card .wd-prize{color:#ffd23a;font-weight:800;font-size:13px} /* b447 */

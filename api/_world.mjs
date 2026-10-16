@@ -229,7 +229,7 @@ export function make(deps) {
   const crew = makeCrew({ ...deps, json, now, signer, isoWeek: shop.isoWeek, levelOfSave });
   const rank = makeRank({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit, award: shop.award });
   village = makeVillage({ ...deps, json, now, signer, isoWeek: shop.isoWeek, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n) });
-  const defense = makeDefense({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
+  const defense = makeDefense({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit, award: shop.award });
   const jump = makeJump({ ...deps, json, now, signer, credit: shop.credit }); // Coin Jump: the crown pays once a day (api/_world-jump.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the

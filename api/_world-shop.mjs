@@ -63,6 +63,7 @@ export const EARN = [
   { kind: "sell", n: 0, label: "Sell gear at the Forge", more: "6–260 by rarity, up to 1,500 a day" },
   { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 30 a day", repeat: { max: 30, gap: 240 } },
   { kind: "defense", n: 0, label: "AC Defense: waves cleared", more: "5 a wave, up to 150 a day, 3 runs a day", repeat: { max: 3, gap: 60 } }, // paid by the run's end (api/_world-defense.mjs), never claimed
+  { kind: "defweek", n: 0, label: "AC Defense: weekly top 3", more: "10,000 · 5,000 · 2,500 after the week ends", repeat: { max: 1, gap: 0 } }, // paid by api/_world-defense.mjs payLastWeek, never claimed
   { kind: "jump", n: 0, label: "Coin Jump: reach the crown", more: "3,000 once a day", repeat: { max: 1, gap: 0 } }, // paid by the run's end (api/_world-jump.mjs), never claimed
   { kind: "heart", n: 0, label: "A heart from a friend", more: "100 each, up to 5 a day; sent from the friend's side", repeat: { max: 5, gap: 0 } }, // paid when it's sent (api/_world-social.mjs), never claimed
   { kind: "raid", n: 40, label: "Help bring down the weekly raid boss", more: "once a week, after it falls", weekly: true },
@@ -369,6 +370,7 @@ export function makeShop(deps) {
     if (kind === "defense") return json(400, { error: "AC Defense pays when a run ends" });
     if (kind === "heart") return json(400, { error: "hearts pay when a friend sends one" });
     if (kind === "jump") return json(400, { error: "Coin Jump pays when you reach the crown" });
+    if (kind === "defweek") return json(400, { error: "the weekly prizes are paid when the week ends" });
     let n = e.n;
     if (e.repeat && /^(street|hunt|boss|pickup)$/.test(kind)) { const k = await koOf(w); if (k.until > now() || k.down) return json(423, { error: "resting after a knockout", until: k.until }); }
     if (e.repeat) {

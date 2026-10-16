@@ -122,6 +122,22 @@ check(r.status === 200 && r.body.credited === 20 && r.body.capped === true, "the
 // the unknown view / the epoch scope
 r = await W.read(new URL("https://x/api/social?world=defense-nope"));
 check(r.status === 400, "an unknown view is still refused");
+// b447: last week's top three are paid 10,000 / 5,000 / 2,500 once the week is over (each place once)
+{
+  check(JSON.stringify(S0.PRIZES) === "[10000,5000,2500]", "the weekly prizes are 10,000 / 5,000 / 2,500");
+  T += 14 * 864e5; const Wp = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId });
+  const ws = [0, 1, 2, 3].map(() => ethers.Wallet.createRandom()), b = (w) => (db.get(`worldArclBal/${w.address.toLowerCase()}`) || {}).bal || 0;
+  for (const [i, w] of ws.entries()) { const Sx = await sign(w), st = (await Wp.handle({ action: "world-defense-start", ...Sx })).body, waves = 4 - i; T += waves * 21000 + 5000; const Se = await sign(w);
+    await Wp.handle({ action: "world-defense-end", ...Se, runId: st.runId, wave: waves, kills: D.spawnedThrough(st.seed, waves), ms: waves * 21000 }); }
+  const before = ws.map(b);
+  T += 7 * 864e5; const Wn = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId });
+  let rr = await Wn.read(new URL("https://x/api/social?world=defense-top"));
+  const gain = ws.map((w, i) => b(w) - before[i]);
+  check(rr.status === 200 && JSON.stringify(gain) === "[10000,5000,2500,0]" && JSON.stringify(rr.body.prizes) === "[10000,5000,2500]", "the week's top three are paid once it's over: " + JSON.stringify(gain));
+  const Wn2 = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId }); await Wn2.read(new URL("https://x/api/social?world=defense-top"));
+  check(JSON.stringify(ws.map((w, i) => b(w) - before[i])) === "[10000,5000,2500,0]", "a second read (another server) pays nobody twice");
+  const Sc = await sign(ws[0]); rr = await Wn.handle({ action: "world-arcl-claim", ...Sc, kind: "defweek" }); check(rr.status === 400, "the weekly prize can't be claimed by hand");
+}
 const phase = fs.readFileSync(new URL("../../api/_world-phase.mjs", import.meta.url), "utf8");
 check(!/worldDef/.test(phase), "no defense collection is kept across epochs: a fresh start empties the board and the run slots");
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);
