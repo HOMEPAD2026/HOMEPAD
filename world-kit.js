@@ -165,6 +165,10 @@ export function gltfLoader() {
   if (ktx2) L.setKTX2Loader(ktx2);
   return L;
 }
+/// the shared KTX2 loader (a texture on its own, like the mine's painted cave); null where KTX2 isn't set up
+export function ktx2Loader() { gltfLoader(); return ktx2 || null; }
+/// the post chain's parts, for a scene with its own (the mine's bloom, world-mine.js)
+export const POSTFX = { EffectComposer, RenderPass, UnrealBloomPass, OutputPass };
 // the stylized look (b420, the game only; never Saver): patched into three.js's own chunks before anything compiles
 // (the environment map below compiles standard materials, and a program made before the patch would be reused), so
 // every lit material carries it for no extra pass and no extra shader program.
@@ -251,10 +255,10 @@ export function makeStage(canvas, opts = {}) {
     renderer.setSize(w, h, false);
     if (composer) composer.setSize(w, h);
     camera.aspect = w / h; camera.updateProjectionMatrix();
-    if (alt) { alt.cam.aspect = w / h; alt.cam.updateProjectionMatrix(); }
+    if (alt) { alt.cam.aspect = w / h; alt.cam.updateProjectionMatrix(); if (alt.composer) alt.composer.setSize(w, h); }
   }
   // view(): another scene drawn instead of the world (the ARCL mine, world-mine.js); its own updates still run through on()
-  let alt = null;
+  let alt = null, solo = null;
   resize();
   const ro = new ResizeObserver(resize); ro.observe(canvas);
   const updates = new Set();
@@ -269,8 +273,8 @@ export function makeStage(canvas, opts = {}) {
     if (now && lastAt) { const el = now - lastAt; if (el < gap - 2) return; lastAt = el < gap * 3 ? lastAt + gap * Math.max(1, Math.floor(el / gap)) : now; } else lastAt = now || performance.now(); // keeps 45 on a 60 Hz screen at 45, not 30
     if (every > 1 && (++nth % every)) return; // a menu covers the world: draw it a few times a second, not 60
     const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
-    const w0 = performance.now(); updates.forEach((fn) => fn(dt, t));
-    if (alt) renderer.render(alt.scene, alt.cam); else if (composer) composer.render(); else renderer.render(scene, camera);
+    const w0 = performance.now(); if (solo) solo(dt, t); else updates.forEach((fn) => fn(dt, t)); // solo: only that one runs (the town waits behind the mine)
+    if (alt) { if (alt.composer) alt.composer.render(); else renderer.render(alt.scene, alt.cam); } else if (composer) composer.render(); else renderer.render(scene, camera);
     work.last = performance.now() - w0;
   }
   frame();
@@ -289,7 +293,8 @@ export function makeStage(canvas, opts = {}) {
   });
   return {
     fps(n) { gap = 1000 / Math.max(20, Math.min(240, Number(n) || 60)); },
-    view(sc, cam) { alt = sc && cam ? { scene: sc, cam } : null; if (alt) resize(); },
+    view(sc, cam, comp = null) { alt = sc && cam ? { scene: sc, cam, composer: comp } : null; if (alt) resize(); },
+    solo(fn) { solo = typeof fn === "function" ? fn : null; clock.getDelta(); },
     // the first frames without hitches: every material in the scene compiled while the loading screen is up (hidden
     // things too, shown for the moment of the call), the GPU doing it in parallel where it can
     warm(ms = 5000) {

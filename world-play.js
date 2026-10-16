@@ -1706,18 +1706,21 @@ async function openJump() {
 // Its scene is drawn instead of the town (st.view) while you're inside; the town waits, frozen, and you come back out
 // in front of the tunnel. What pays is the server's (api/_world-mine.mjs); a guest mines a demo.
 const restLeft = (t) => { const m = Math.max(1, Math.ceil((t - Date.now()) / 60e3)); return m >= 60 ? Math.floor(m / 60) + "h " + (m % 60) + "m" : m + "m"; };
+// the mine's module, made once (openMine, and the preload when you come near the village)
+let mineMaking = null;
+function ensureMine() { if (mineGame) return Promise.resolve(mineGame); if (mineMaking) return mineMaking; mineMaking = (async () => {
+  let M; try { M = await import("./world-mine.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
+  mineGame = M.createMine({ THREE, K, st, ver: VER, T: TW, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, shop: arclShop,
+        makeHero: () => K.makeCharacter(heroOf(P.char || "arc-arc"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
+        refresh: () => refreshPurse(true),
+        onLeave: () => { const veil = $("wp-veil"); mineOn = false; frozen = false; keys.clear(); const e = mv.exit(); standAt(e.x, e.z, { x: e.x + Math.sin(e.face) * 5, z: e.z + Math.cos(e.face) * 5 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); mineStatus(); } });
+  return mineGame; })().finally(() => { mineMaking = null; }); return mineMaking; }
 async function openMine() {
   if (mineOn || mineBusy || defenseOn || jumpOn || beatOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
   mineBusy = true; closeAll();
   const veil = $("wp-veil");
   try {
-    if (!mineGame) {
-      let M; try { M = await import("./world-mine.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-      mineGame = M.createMine({ THREE, K, st, ver: VER, T: TW, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, shop: arclShop,
-        makeHero: () => K.makeCharacter(heroOf(P.char || "arc-arc"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
-        refresh: () => refreshPurse(true),
-        onLeave: () => { mineOn = false; frozen = false; keys.clear(); const e = mv.exit(); standAt(e.x, e.z, { x: e.x + Math.sin(e.face) * 5, z: e.z + Math.cos(e.face) * 5 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); mineStatus(); } });
-    }
+    await ensureMine();
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
     frozen = true; keys.clear(); near = null; paintPrompt();
     const ok = await mineGame.enter();
@@ -1735,7 +1738,11 @@ async function openMine() {
 let mineAsked = 0;
 function mineStatus() { if (!mineGame) { const s = sess(); if (!s) return; fetch("/api/social?world=mine&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { mineRest = (j && j.coolUntil) || 0; paintPrompt(); }).catch(() => {}); return; }
   mineGame.status().then((j) => { mineRest = (j && j.coolUntil) || 0; paintPrompt(); }).catch(() => {}); }
-st.on(() => { if (mineOn || mode !== "hub") return; const n = performance.now(); if (n - mineAsked < 30000) return; const v = MV.MINE_VILLAGE; if (Math.hypot(-planet.position.x - v.x, -planet.position.z - v.z) > v.r + 6) return; mineAsked = n; mineStatus(); });
+let minePre = false;
+st.on(() => { if (mineOn || mode !== "hub") return; const n = performance.now(); if (n - mineAsked < 30000) return; const v = MV.MINE_VILLAGE, d = Math.hypot(-planet.position.x - v.x, -planet.position.z - v.z);
+  // coming near (45 m): the mine's module, models and shaders get ready in the background, so the tunnel opens at once
+  if (!minePre && d < v.r + 45 && !frozen) { minePre = true; ensureMine().then((g) => g && g.preload && g.preload()).catch((e) => { minePre = false; console.warn("mine preload", e); }); }
+  if (d > v.r + 6) return; mineAsked = n; mineStatus(); });
 // b446: Beat Stomp, the rhythm game (world-beatstomp.js), loaded the first time its door is used
 let beatGame = null, beatOn = false, beatBusy = false;
 async function openBeat() {

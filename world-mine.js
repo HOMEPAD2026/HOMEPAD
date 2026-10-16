@@ -31,9 +31,9 @@ export function createMine(ctx) {
   const low = !!ctx.low, reduce = !!ctx.reduce;
   if (!ctx.art) ctx.art = itemArt;
   let S = null; // the scene, built the first time
-  let broke = 0, on = false, busy = false, guest = false, run = null, tier = 0, k = 1, left = 0, leftAt = 0, today = 0, cap = R.DAY_CAP, haul = 0, golds = 0, ending = false;
+  let kick = 0, zoomT = 0, broke = 0, on = false, busy = false, guest = false, run = null, tier = 0, k = 1, left = 0, leftAt = 0, today = 0, cap = R.DAY_CAP, haul = 0, golds = 0, ending = false;
   let beatT = 0, hero = null, pick = null, px = -24, dir = 1, moveIn = 0, mineHeld = false, swingT = 0, hitDue = -1, freeze = 0, shake = 0, target = null, walkTo = null;
-  const rocks = new Map(); let ui = null, keys = new Set(), offUpd = null;
+  const rocks = new Map(); let ui = null, keys = new Set(), preP = null;
 
   // ---------------- textures, made once on canvases ----------------
   function canvasTex(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
@@ -56,7 +56,9 @@ export function createMine(ctx) {
     if (loading) { await Promise.race([loading, new Promise((ok) => setTimeout(ok, 4000))]); return; } // still on its way from the last visit
     const ver = ctx.ver || "", L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null;
     const one = (f) => (L ? L.loadAsync("models/world/mine/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
-    const tex = new Promise((ok, no) => new THREE.TextureLoader().load("models/world/mine/cave-back.webp" + ver, ok, undefined, no));
+    const webp = () => new Promise((ok, no) => new THREE.TextureLoader().load("models/world/mine/cave-back.webp" + ver, ok, undefined, no));
+    const kx = ctx.K && ctx.K.ktx2Loader ? ctx.K.ktx2Loader() : null; // the painted cave as KTX2: a third of the memory of the webp on the GPU
+    const tex = kx ? kx.loadAsync("models/world/mine/cave-back.ktx2" + ver).catch(() => webp()) : webp();
     // a slow phone: after 25 s the drawn rocks stand in, and the models (still loading) take over from the next visit
     loading = Promise.allSettled([one("rock-copper"), one("rock-silver"), one("rock-gold"), tex]).then(take);
     await Promise.race([loading, new Promise((ok) => setTimeout(ok, 25000))]);
@@ -89,9 +91,10 @@ export function createMine(ctx) {
     const rim = new THREE.DirectionalLight(0x4fe6c8, 0.45); rim.position.set(10, 6, -8); scene.add(rim);
     // a fixed set of point lights (the same count always: no shader rebuilds), moved to the lanterns nearest the camera
     const head = new THREE.PointLight(0xe2ecff, low ? 0 : 9, 9, 2); scene.add(head);
-    const lampL = low ? [] : [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffa04a, 22, 13, 2); scene.add(l); return l; });
+    const lampL = low ? [] : (coarse ? [0] : [0, 1, 2]).map(() => { /* a phone: one lamp light (the floor's light pools do the rest) */ const l = new THREE.PointLight(0xffa04a, 22, 13, 2); scene.add(l); return l; });
     const goldL = new THREE.PointLight(0xffc640, 0, 8, 2); if (!low) scene.add(goldL);
     let sd = 911; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    const extra = {}, coarse = !!ctx.coarse, rich = !low && !coarse; // rich: a computer (bloom, more of everything)
     const noise = (x, y) => Math.sin(x * 0.9 + Math.sin(y * 1.3) * 1.7) * 0.5 + Math.sin(x * 2.3 - y * 1.9) * 0.25 + Math.sin(x * 5.1 + y * 4.7) * 0.12;
     const vc = (geo, f) => { const p = geo.attributes.position, c = new Float32Array(p.count * 3), col = new THREE.Color(); for (let i = 0; i < p.count; i++) { f(p.getX(i), p.getY(i), p.getZ(i), col, i); c[i * 3] = col.r; c[i * 3 + 1] = col.g; c[i * 3 + 2] = col.b; } geo.setAttribute("color", new THREE.BufferAttribute(c, 3)); };
     const vcm = (o = {}) => new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, ...o });
@@ -153,7 +156,7 @@ export function createMine(ctx) {
       const cart = new THREE.Group(); cart.position.set(-CAVE + 3.2, 0, -1.3); const tub = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.9, 1.1), iron); tub.position.y = 0.75; cart.add(tub);
       [-0.6, 0.6].forEach((x) => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x2a2e36, metalness: 0.5 })); w.rotation.x = Math.PI / 2; w.position.set(x, 0.25, 0); cart.add(w); });
       for (let i = 0; i < 9; i++) { const c = i < 1 ? 0xffc94a : i < 3 ? 0xdbe6f5 : 0xd98a52, o = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2 + rnd() * 0.12, 0), new THREE.MeshStandardMaterial({ color: c, metalness: 0.75, roughness: 0.3, emissive: i < 1 ? 0xffa800 : 0x000000, emissiveIntensity: 0.7 })); o.position.set((rnd() - 0.5) * 1.4, 1.25 + rnd() * 0.2, (rnd() - 0.5) * 0.6); cart.add(o); }
-      scene.add(cart); }
+      scene.add(cart); extra.cart = cart; extra.cartWheels = cart.children.filter((c) => c.geometry && c.geometry.type === "CylinderGeometry"); }
     // the end walls (the cave stops here)
     [-1, 1].forEach((s) => { const g = new THREE.BoxGeometry(4, 11, 7), m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x241c22, roughness: 1, flatShading: true })); m.position.set(s * (CAVE + 3.4), 4.5, -0.8); scene.add(m); });
     // dust in the air: drifting motes, brighter in the lamplight
@@ -187,8 +190,49 @@ export function createMine(ctx) {
     const crackT = crackTex(); crackT.repeat.set(0.25, 1);
     const barBg = new THREE.MeshBasicMaterial({ color: 0x0b0f1c, transparent: true, opacity: 0.75, depthTest: false }), barM = [0, 1, 2].map((t) => new THREE.MeshBasicMaterial({ color: [0xff9a5a, 0xdbe6f5, 0xffd34d][t], depthTest: false }));
     const barG = new THREE.PlaneGeometry(1, 0.16);
+    // ---- b2: light, depth and life ----
+    // warm light pools on the floor under each lantern (cheaper and softer than real lights)
+    const poolM = new THREE.MeshBasicMaterial({ map: radial("rgba(255,168,80,0.9)"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0.5 });
+    extra.pools = lanterns.map((l) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 3.4), poolM.clone()); m.rotation.x = -Math.PI / 2; m.position.set(l.x, 0.035, -1.1); m.renderOrder = 1; scene.add(m); return m; });
+    // light rays from the way out on the left, slanting down into the cave
+    { const c = document.createElement("canvas"); c.width = 64; c.height = 256; const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, "rgba(255,236,200,0.9)"); gr.addColorStop(1, "rgba(255,220,170,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 256);
+      const sg = g.createLinearGradient(0, 0, 64, 0); sg.addColorStop(0, "rgba(0,0,0,1)"); sg.addColorStop(0.5, "rgba(0,0,0,0)"); sg.addColorStop(1, "rgba(0,0,0,1)"); g.globalCompositeOperation = "destination-out"; g.fillStyle = sg; g.fillRect(0, 0, 64, 256);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      extra.rays = [0, 1, 2, 3].map((i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.4 + i * 0.5, 10), new THREE.MeshBasicMaterial({ map: t, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0.14 }));
+        m.geometry.translate(0, -5, 0); m.position.set(-CAVE + 0.4 + i * 0.7, 5.6 - i * 0.3, -2.2 + i * 0.25); m.rotation.z = 0.62 + i * 0.12; m.userData.ph = i * 1.7; scene.add(m); return m; }); }
+    // the floor's front edge: a row of cut stone blocks, like the painting's
+    { const n = Math.floor(W / 1.35), m = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, flatShading: true }), n * 2), o = new THREE.Object3D(), c = new THREE.Color();
+      let x = -W / 2, j = 0; while (x < W / 2 && j < n) { const w = 1.0 + rnd() * 0.8; o.position.set(x + w / 2, -0.46, 2.62); o.scale.set(w - 0.08, 0.9 + rnd() * 0.12, 0.55); o.rotation.set((rnd() - 0.5) * 0.05, (rnd() - 0.5) * 0.08, (rnd() - 0.5) * 0.04); o.updateMatrix(); m.setMatrixAt(j, o.matrix); m.setColorAt(j, c.setRGB(0.24 + rnd() * 0.08, 0.2 + rnd() * 0.06, 0.22 + rnd() * 0.06)); x += w; j++; }
+      x = -W / 2 - 0.6; while (x < W / 2 && j < n * 2) { const w = 1.2 + rnd() * 0.9; o.position.set(x + w / 2, -1.42, 2.6); o.scale.set(w - 0.1, 0.95, 0.5); o.rotation.set(0, (rnd() - 0.5) * 0.06, (rnd() - 0.5) * 0.04); o.updateMatrix(); m.setMatrixAt(j, o.matrix); m.setColorAt(j, c.setRGB(0.15 + rnd() * 0.05, 0.12 + rnd() * 0.04, 0.14 + rnd() * 0.04)); x += w; j++; }
+      m.count = j; scene.add(m); }
+    // dark shapes right in front (depth): rocks at the bottom corners and stalactites at the top, between the play spots
+    { const sil = new THREE.MeshBasicMaterial({ color: 0x06050a, fog: false }), g1 = new THREE.DodecahedronGeometry(1, 0), g2 = new THREE.ConeGeometry(0.6, 1, 5); g2.translate(0, -0.5, 0);
+      for (let x = -CAVE - 2; x <= CAVE + 2; x += 9 + rnd() * 6) { const r = new THREE.Mesh(g1, sil); r.position.set(x, -1.5, 4.6); r.scale.set(1.6 + rnd(), 1.2 + rnd() * 0.7, 0.8); r.rotation.z = rnd() * 3; scene.add(r);
+        if (rich) { const st2 = new THREE.Mesh(g2, sil); st2.position.set(x + 4, 10.4, 4.4); st2.scale.set(1 + rnd(), 1.6 + rnd() * 1.6, 1); scene.add(st2); } } }
+    // soft contact shadows: under the hero (and each rock, in makeRock)
+    extra.blobM = new THREE.MeshBasicMaterial({ map: radial("rgba(0,0,0,0.7)"), transparent: true, depthWrite: false, opacity: 0.75 });
+    extra.blob = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.9), extra.blobM); extra.blob.rotation.x = -Math.PI / 2; extra.blob.position.set(0, 0.04, 0.35); scene.add(extra.blob);
+    // life: bats far back, water drips with a splash, the ore cart rolling down the rails now and then
+    { const c = document.createElement("canvas"); c.width = 64; c.height = 32; const g = c.getContext("2d"); g.fillStyle = "#07060c"; g.beginPath(); g.moveTo(32, 14); g.quadraticCurveTo(20, 2, 2, 8); g.quadraticCurveTo(12, 12, 10, 20); g.quadraticCurveTo(20, 14, 26, 22); g.lineTo(32, 18); g.lineTo(38, 22); g.quadraticCurveTo(44, 14, 54, 20); g.quadraticCurveTo(52, 12, 62, 8); g.quadraticCurveTo(44, 2, 32, 14); g.fill(); g.beginPath(); g.arc(32, 16, 4, 0, 7); g.fill();
+      const bm = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, fog: false, color: 0x8890b8 });
+      extra.bats = rich || !low ? [0, 1, 2].map(() => { const sp = new THREE.Sprite(bm); sp.scale.set(0.9, 0.45, 1); sp.position.set(0, -99, -9); sp.userData = { next: 4 + rnd() * 18, live: 0 }; scene.add(sp); return sp; }) : []; }
+    extra.drips = [0, 1, 2, 3].map(() => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial("rgba(190,230,255,1)"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); sp.scale.setScalar(0.16); sp.position.set(0, -99, 0); sp.userData = { next: 1 + rnd() * 6, vy: 0, x: 0, z: 0 }; scene.add(sp); return sp; });
+    // breaking up: rock chunks (one instanced set per kind, in the rock's own material), dust clouds, ore that flies to you, a shockwave
+    extra.chunkG = new THREE.DodecahedronGeometry(0.42, 0);
+    extra.chunks = [0, 1, 2].map((t) => { const mat = (MODELS && MODELS[t] && MODELS[t].userData.mat) || bodyM[t]; const m = new THREE.InstancedMesh(extra.chunkG, mat, 18); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; for (let i = 0; i < 18; i++) m.setMatrixAt(i, zero); scene.add(m); return { m, s: Array.from({ length: 18 }, () => ({ life: 0, p: new THREE.Vector3(), v: new THREE.Vector3(), r: new THREE.Euler(), w: new THREE.Vector3(), k: 1 })), i: 0, dirty: false }; });
+    { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"); for (let i = 0; i < 14; i++) { const x = 34 + Math.random() * 60, y = 34 + Math.random() * 60, r = 18 + Math.random() * 26, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, "rgba(150,130,112,0.5)"); gr.addColorStop(1, "rgba(150,130,112,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      extra.puffs = Array.from({ length: low ? 4 : 8 }, () => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, opacity: 0 })); sp.position.set(0, -99, 0); sp.userData = { life: 0 }; scene.add(sp); return sp; }); extra.puffI = 0; }
+    extra.nugs = [0, 1, 2].map((t) => { const m = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.11, 0), nugM[t], 16); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; for (let i = 0; i < 16; i++) m.setMatrixAt(i, zero); scene.add(m); return { m, s: Array.from({ length: 16 }, () => ({ life: 0, p: new THREE.Vector3(), v: new THREE.Vector3(), age: 0 })), i: 0, dirty: false }; });
+    { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"); const gr = g.createRadialGradient(64, 64, 40, 64, 64, 62); gr.addColorStop(0, "rgba(255,220,120,0)"); gr.addColorStop(0.6, "rgba(255,230,150,0.95)"); gr.addColorStop(1, "rgba(255,200,80,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; extra.wave = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0, fog: false })); extra.wave.position.set(0, -99, 0); extra.wave.userData = { life: 0 }; scene.add(extra.wave); }
+    // the pickaxe's trail through the swing (a short ribbon of glowing points)
+    { const n = 14, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3)); for (let i = 0; i < n; i++) pos[i * 3 + 1] = -99;
+      extra.trail = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.28, map: radial("rgba(255,255,255,1)"), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); extra.trail.frustumCulled = false; extra.trailN = n; extra.trailH = []; scene.add(extra.trail); }
+    // bloom on a computer: the lanterns, the gold and the crystals glow into the air (phones skip it)
+    if (rich && st.quality && st.quality.bloom && ctx.K && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX, comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(scene, cam)); comp.addPass(new P.UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.45, 0.8)); comp.addPass(new P.OutputPass()); extra.comp = comp; } catch (e) { console.warn("mine bloom:", e); } }
     S = { scene, cam, head, lampL, goldL, lanterns, dust, dpos, dsp, dustN, chips, chipS, chipN, get chipI() { return chipI; }, set chipI(v) { chipI = v; }, sparks, spos, scol, sparkS, sparkN, get sparkI() { return sparkI; }, set sparkI(v) { sparkI = v; },
-      body, bodyM, nugG, nugM, glowM, starM, shaftM, crackT, barBg, barM, barG, crysM, zero, rnd, dist: 30, withModels: !!(MODELS && MODELS.length) };
+      body, bodyM, nugG, nugM, glowM, starM, shaftM, crackT, barBg, barM, barG, crysM, zero, rnd, dist: 30, withModels: !!(MODELS && MODELS.length), ...extra };
   }
 
   // ---------------- rocks ----------------
@@ -207,6 +251,7 @@ export function createMine(ctx) {
     const crack = new THREE.Mesh(new THREE.PlaneGeometry(2.2 * sc, 1.6 * sc), new THREE.MeshBasicMaterial({ map: S.crackT.clone(), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 })); crack.material.map.repeat.set(0.25, 1); crack.position.set(0, hgt * 0.45, M ? dep * 0.5 + 0.04 : 1.02 * sc); shape.add(crack);
     const bar = new THREE.Group(), bb = new THREE.Mesh(S.barG, S.barBg), bf = new THREE.Mesh(S.barG, S.barM[t]); bb.scale.set(1.5, 1, 1); bf.scale.set(1.44, 0.62, 1); bf.position.z = 0.01; bar.add(bb, bf); bar.position.set(0, (M ? hgt : 2.05 * sc) + 0.3, 0.6); bar.renderOrder = 5; bb.renderOrder = 5; bf.renderOrder = 6; bar.visible = false; g.add(bar);
     g.position.set(SLOT_X(d.x), 0, -0.55);
+    if (S.blobM) { const sh = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.35, dep * 0.9), S.blobM); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.03; g.add(sh); }
     S.scene.add(g);
     const r = { id: d.id, t, h: d.h, hits: 0, g, shape, nugs, glow, stars, shaft, crack, bar, bf, sc, w, hgt, x: SLOT_X(d.x), born: born ? 0 : 1, shake: 0, breaking: false, gone: false, squash: 0 };
     if (born) { shape.scale.setScalar(0.01); dustPuff(r.x, 0.2, 10, 0x8a7a6a); }
@@ -227,16 +272,57 @@ export function createMine(ctx) {
       s.w.set(Math.random() * 12, Math.random() * 12, Math.random() * 12); s.s = 0.6 + Math.random() * 1.1; }
     if (S.chips.instanceColor) S.chips.instanceColor.needsUpdate = true;
   }
-  function spark(x, y, z, color, n, power = 1, life = 0.5) {
+  function spark(x, y, z, color, n, power = 1, life = 0.5, bias = 0) {
     for (let i = 0; i < n; i++) { const s = S.sparkS[S.sparkI]; S.sparkI = (S.sparkI + 1) % S.sparkN; s.life = s.max = life * (0.6 + Math.random() * 0.8); s.c.set(color);
-      s.p.set(x, y, z + 0.3); const a = Math.random() * Math.PI * 2, sp = (2 + Math.random() * 6) * power; s.v.set(Math.cos(a) * sp, Math.abs(Math.sin(a)) * sp * 0.9 + 1.5, (Math.random() - 0.2) * 2); }
+      s.p.set(x, y, z + 0.3); const a = Math.random() * Math.PI * 2, sp = (2 + Math.random() * 6) * power; s.v.set(Math.cos(a) * sp + bias * sp * 0.8, Math.abs(Math.sin(a)) * sp * 0.9 + 1.5, (Math.random() - 0.2) * 2); } sparkLive = 1.5;
+  }
+  // the rock breaks up: chunks of it tumble out, a dust cloud rolls, the ore inside flies to you; gold sends out a ring
+  function fracture(r) {
+    const C = S.chunks && S.chunks[r.t]; if (!C) return; const n = [5, 6, 7][r.t];
+    for (let i = 0; i < n; i++) { const s = C.s[C.i]; C.i = (C.i + 1) % C.s.length; const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+      s.life = 1.5 + Math.random() * 0.5; s.p.set(r.x + Math.cos(a) * r.w * 0.25, r.hgt * (0.3 + Math.random() * 0.5), -0.4 + Math.random() * 0.6); s.v.set(Math.cos(a) * (2.5 + Math.random() * 3), 4 + Math.random() * 5, Math.random() * 2.2); s.w.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14); s.k = (0.55 + Math.random() * 0.7) * r.sc; }
+    C.dirty = true;
+  }
+  function puff(x, y, k = 1) { const P = S.puffs; if (!P) return; for (let i = 0; i < 2 + Math.round(k); i++) { const sp = P[S.puffI]; S.puffI = (S.puffI + 1) % P.length; sp.position.set(x + (Math.random() - 0.5) * 1.2, y + Math.random() * 0.4, 0.4); sp.userData.life = 1; sp.userData.k = k * (1.4 + Math.random() * 0.8); sp.userData.vx = (Math.random() - 0.5) * 0.8; sp.material.rotation = Math.random() * 6; } }
+  function oreOut(r, n) { const N = S.nugs && S.nugs[r.t]; if (!N) return; for (let i = 0; i < n; i++) { const s = N.s[N.i]; N.i = (N.i + 1) % N.s.length; s.life = 1; s.age = 0; s.p.set(r.x + (Math.random() - 0.5) * r.w * 0.5, r.hgt * 0.6, 0.2); s.v.set((Math.random() - 0.5) * 5, 4 + Math.random() * 4, Math.random() * 1.5); } N.dirty = true; }
+  function ring(x, y, big) { const w = S.wave; if (!w || reduce) return; w.position.set(x, y, 0.6); w.userData.life = 1; w.userData.big = big ? 1 : 0.5; w.material.color.set(big ? 0xffe08a : 0xdbe6f5); }
+  function tickBreak(dt) {
+    for (const C of S.chunks || []) { if (!C.dirty) continue; let any = false;
+      for (let i = 0; i < C.s.length; i++) { const s = C.s[i]; if (s.life <= 0) { C.m.setMatrixAt(i, S.zero); continue; } any = true; s.life -= dt; s.v.y -= 20 * dt; s.p.addScaledVector(s.v, dt);
+        if (s.p.y < 0.2 * s.k) { s.p.y = 0.2 * s.k; s.v.y *= -0.32; s.v.x *= 0.7; s.v.z *= 0.6; s.w.multiplyScalar(0.7); }
+        s.r.x += s.w.x * dt; s.r.y += s.w.y * dt; s.r.z += s.w.z * dt; tmpO.position.copy(s.p); tmpO.rotation.copy(s.r); tmpO.scale.setScalar(s.k * Math.min(1, s.life / 0.4)); tmpO.updateMatrix(); C.m.setMatrixAt(i, tmpO.matrix); }
+      C.m.instanceMatrix.needsUpdate = true; C.dirty = any; }
+    const hx = px, hy = 1.1;
+    for (const N of S.nugs || []) { if (!N.dirty) continue; let any = false;
+      for (let i = 0; i < N.s.length; i++) { const s = N.s[i]; if (s.life <= 0) { N.m.setMatrixAt(i, S.zero); continue; } any = true; s.age += dt;
+        if (s.age < 0.5) { s.v.y -= 16 * dt; s.p.addScaledVector(s.v, dt); if (s.p.y < 0.12) { s.p.y = 0.12; s.v.y *= -0.4; } }
+        else { const k = Math.min(1, (s.age - 0.5) * 3.2); s.p.x += (hx - s.p.x) * Math.min(1, dt * (4 + k * 14)); s.p.y += (hy - s.p.y) * Math.min(1, dt * (4 + k * 14)); s.p.z += (0.4 - s.p.z) * Math.min(1, dt * 8);
+          if (Math.abs(s.p.x - hx) < 0.35 && Math.abs(s.p.y - hy) < 0.35) { s.life = 0; spark(hx, hy, 0.5, 0xfff2b0, 2, 0.3, 0.25); if (Snd.pick) Snd.pick(); } }
+        tmpO.position.copy(s.p); tmpO.rotation.set(s.age * 9, s.age * 7, 0); tmpO.scale.setScalar(s.life > 0 ? 1.4 : 0); tmpO.updateMatrix(); N.m.setMatrixAt(i, tmpO.matrix); }
+      N.m.instanceMatrix.needsUpdate = true; N.dirty = any; }
+    for (const sp of S.puffs || []) { const u = sp.userData; if (u.life <= 0) continue; u.life -= dt / 1.3; sp.position.y += dt * 0.5; sp.position.x += u.vx * dt; sp.scale.setScalar(u.k * (1 + (1 - u.life) * 1.8)); sp.material.opacity = Math.max(0, u.life) * 0.75; if (u.life <= 0) sp.position.y = -99; }
+    const w = S.wave; if (w && w.userData.life > 0) { const u = w.userData; u.life -= dt / 0.65; const e = 1 - u.life; w.scale.setScalar((1 + e * 9) * u.big * 1.4); w.material.opacity = Math.max(0, u.life); if (u.life <= 0) w.position.y = -99; }
+  }
+  // the cave alive: lantern pools flicker with their flames, rays drift, bats cross the dark, water drips, the cart rolls by
+  function tickLife(dt, t) {
+    if (S.pools) S.pools.forEach((m, i) => { const l = S.lanterns[i]; m.material.opacity = 0.42 + Math.sin(t * 9 + l.ph) * 0.05 + Math.sin(t * 23 + l.ph * 2) * 0.03; });
+    if (S.rays) S.rays.forEach((m) => { m.material.opacity = 0.1 + Math.sin(t * 0.5 + m.userData.ph) * 0.05; });
+    for (const b of S.bats || []) { const u = b.userData; if (u.live > 0) { u.live -= dt; b.position.x += u.vx * dt; b.position.y = u.y + Math.sin(t * 3 + u.ph) * 0.6; b.scale.y = 0.45 * (0.45 + Math.abs(Math.sin(t * 16 + u.ph)) * 0.7); if (u.live <= 0) b.position.y = -99; }
+      else if ((u.next -= dt) <= 0) { u.next = 12 + Math.random() * 25; u.live = 9; const L = Math.random() < 0.5; u.vx = (L ? 1 : -1) * (5 + Math.random() * 3); b.position.set(px + (L ? -26 : 26), 0, -9 - Math.random() * 3); u.y = 5 + Math.random() * 3; u.ph = Math.random() * 6; } }
+    for (const d of S.drips || []) { const u = d.userData; if (u.vy) { u.vy -= 14 * dt; d.position.y += u.vy * dt; if (d.position.y <= 0.05) { spark(d.position.x, 0.06, d.position.z, 0x9fdcff, 5, 0.25, 0.45); d.position.y = -99; u.vy = 0; } }
+      else if ((u.next -= dt) <= 0) { u.next = 2.5 + Math.random() * 5; d.position.set(px + (Math.random() - 0.5) * 18, 8.8, -1.5 + Math.random() * 2.5); u.vy = -0.01; } }
+    if (S.cart) { const ph = (t % 70) / 70, a = -CAVE + 3.2, b = CAVE - 3.2; let x = a, v = 0; if (ph < 0.2) { const e = ph / 0.2; x = a + (b - a) * (e * e * (3 - 2 * e)); v = 1; } else if (ph < 0.5) x = b; else if (ph < 0.7) { const e = (ph - 0.5) / 0.2; x = b + (a - b) * (e * e * (3 - 2 * e)); v = -1; }
+      const dx = x - S.cart.position.x; S.cart.position.x = x; if (S.cartWheels) S.cartWheels.forEach((w) => { w.rotation.y -= dx / 0.24; }); void v; }
+    if (S.blob && hero) { S.blob.position.x = px; S.blob.material.opacity = swingT > 0 ? 0.85 : 0.75; }
   }
   function dustPuff(x, y, n, color) { chip(x, y, -0.2, color, Math.min(n, 10), 0.35); spark(x, y + 0.3, 0, 0xc8b8a0, n, 0.35, 0.8); }
+  let sparkLive = 0;
   function tickFx(dt) {
     const o = tmpO, m = tmpM; let any = false;
     for (let i = 0; i < S.chipN; i++) { const s = S.chipS[i]; if (s.life <= 0) continue; any = true; s.life -= dt; s.v.y -= 22 * dt; s.p.addScaledVector(s.v, dt); if (s.p.y < 0.05) { s.p.y = 0.05; s.v.y *= -0.35; s.v.x *= 0.6; s.v.z *= 0.6; }
       s.r.x += s.w.x * dt; s.r.y += s.w.y * dt; s.r.z += s.w.z * dt; o.position.copy(s.p); o.rotation.copy(s.r); o.scale.setScalar(s.life <= 0 ? 0 : s.s * Math.min(1, s.life * 2.5)); o.updateMatrix(); S.chips.setMatrixAt(i, s.life <= 0 ? S.zero : o.matrix); }
     if (any || S.chipsDirty) { S.chips.instanceMatrix.needsUpdate = true; S.chipsDirty = any; }
+    if (sparkLive <= 0) return; sparkLive -= dt; // nothing flying: no buffer uploads
     const P = S.spos, C = S.scol;
     for (let i = 0; i < S.sparkN; i++) { const s = S.sparkS[i]; if (s.life <= 0) { P[i * 3 + 1] = -99; continue; } s.life -= dt; s.v.y -= 9 * dt; s.v.multiplyScalar(1 - dt * 1.5); s.p.addScaledVector(s.v, dt); const k = Math.max(0, s.life / s.max);
       P[i * 3] = s.p.x; P[i * 3 + 1] = s.p.y; P[i * 3 + 2] = s.p.z; C[i * 3] = s.c.r * k; C[i * 3 + 1] = s.c.g * k; C[i * 3 + 2] = s.c.b * k; }
@@ -268,7 +354,7 @@ export function createMine(ctx) {
     const hm = new THREE.MeshStandardMaterial({ color: L.handle, roughness: 0.7 }), mm = new THREE.MeshStandardMaterial({ color: L.head, metalness: tr === 2 ? 0.2 : 0.9, roughness: tr === 2 ? 0.15 : 0.28, emissive: L.em, emissiveIntensity: L.emK, flatShading: tr === 2 });
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.0, 8), hm); handle.position.y = 0.38; g.add(handle);
     const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0x2a1a12, roughness: 0.9 })); grip.position.y = -0.02; g.add(grip);
-    const sock = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.13), mm); sock.position.y = 0.86; g.add(sock);
+    const sock = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.13), mm); sock.position.y = 0.86; g.add(sock); g.userData.head = sock;
     [-1, 1].forEach((s) => { const arm = new THREE.Mesh(new THREE.ConeGeometry(0.065, 0.5, 6), mm); arm.rotation.z = s * (Math.PI / 2 + 0.28); arm.position.set(s * 0.27, 0.8, 0); g.add(arm); });
     if (tr >= 2) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial(tr === 3 ? "rgba(255,200,80,0.9)" : "rgba(180,140,255,0.9)"), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); sp.scale.setScalar(0.9); sp.position.y = 0.84; g.add(sp); }
     if (tr >= 1) { const band = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 12), mm); band.rotation.x = Math.PI / 2; band.position.y = 0.62; g.add(band); }
@@ -291,7 +377,7 @@ export function createMine(ctx) {
   function buildUi() {
     const root = document.createElement("div"); root.id = "wp-mine"; root.className = "wm"; root.hidden = true;
     root.innerHTML = `<div class="wm-vig"></div><div class="wm-flash"></div><div class="wm-pops"></div>
-      <div class="wm-top" data-game-hud>
+      <div class="wm-top" data-game-hud><i class="wm-frame" aria-hidden="true"></i>
         <button type="button" class="wm-leave" aria-label="${esc(T("Leave the mine"))}"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Leave"))}</span></button>
         <div class="wm-time"><i class="wm-gem"></i><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18.4" class="tk"/><circle cx="20" cy="20" r="15" class="bg"/><circle cx="20" cy="20" r="15" class="fg" pathLength="100"/><circle cx="20" cy="5" r="1.9" class="tip"/></svg><b>60:00</b><small>${esc(T("left"))}</small></div>
         <div class="wm-haul"><i class="wm-coin-ic"></i><span><b>0</b><small>${esc(T("ARCL this visit"))}</small></span></div>
@@ -299,8 +385,8 @@ export function createMine(ctx) {
         <button type="button" class="wm-pickbtn"><span class="wm-pick-ic"></span><b>${esc(T("Common"))}</b></button>
       </div>
       <div class="wm-today"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg><span></span></div>
-      <div class="wm-ctl"><button type="button" class="wm-l" aria-label="${esc(T("Left"))}">◀</button><button type="button" class="wm-r" aria-label="${esc(T("Right"))}">▶</button></div>
-      <button type="button" class="wm-go" aria-label="${esc(T("Mine"))}"><span class="wm-go-ic"></span><b>${esc(T("MINE"))}</b></button>
+      <div class="wm-ctl"><button type="button" class="wm-l" aria-label="${esc(T("Left"))}"><svg viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></button><button type="button" class="wm-r" aria-label="${esc(T("Right"))}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
+      <button type="button" class="wm-go" aria-label="${esc(T("Mine"))}"><i class="wm-go-ring" aria-hidden="true"></i><span class="wm-go-ic"></span><b>${esc(T("MINE"))}</b></button>
       <div class="wm-keys">${esc(T("A / D move · Space or J mine · Esc leave"))}</div>
       <div class="wm-sheet" hidden></div>
       <div class="wm-title" hidden><small>${esc(T("ARCIRCLE WORLD"))}</small><b>${esc(T("ARCL MINE"))}</b><span></span></div>`;
@@ -402,7 +488,8 @@ export function createMine(ctx) {
   }
   function shatter(r, j) {
     const x = r.x, y = r.hgt * 0.5, col = ["#c8743a", "#dbe6f5", "#ffc94a"][r.t];
-    chip(x, y, -0.3, 0x5a4a40, 18, 1.1); chip(x, y, -0.3, col, 10 + r.t * 8, 1.2); spark(x, y, 0, col, 14 + r.t * 16, 1 + r.t * 0.3, 0.7);
+    chip(x, y, -0.3, 0x5a4a40, 12, 1.1); chip(x, y, -0.3, col, 8 + r.t * 6, 1.2); spark(x, y, 0, col, 14 + r.t * 16, 1 + r.t * 0.3, 0.7);
+    fracture(r); puff(x, 0.4, 1 + r.t * 0.6);
     shake = Math.max(shake, 0.18 + r.t * 0.12); Snd.crumble && Snd.crumble(r.t);
     const v = j.found || 0, got = j.got || 0; broke++;
     if (!v) { pop(x, 2.2, esc(T("Empty!")), "dud"); Snd.dud && Snd.dud(); dustPuff(x, 0.6, 18, 0x8a7a6a); }
@@ -410,8 +497,8 @@ export function createMine(ctx) {
       haul += guest ? v : got; if (r.t === 2) golds++;
       const capped = j.capped && got < v;
       pop(x, 2.4, `+${fmtN(guest ? v : got)} <small>ARCL</small>${capped ? `<em>${esc(T("daily mine limit"))}</em>` : ""}`, ["cu", "ag", "au big"][r.t]);
-      flyCoins(x, 1.2, [4, 7, 14][r.t], r.t === 2);
-      if (r.t === 2) { Snd.jackpot && Snd.jackpot(); flash("radial-gradient(circle at 50% 55%,rgba(255,214,90,.9),rgba(255,170,40,.25) 60%,transparent)", 1); freeze = reduce ? 0 : 0.35; spark(x, y + 0.6, 0, 0xffe08a, 50, 1.6, 1.2); if (S.goldL) S.goldL.intensity = 40; }
+      flyCoins(x, 1.2, [4, 7, 14][r.t], r.t === 2); oreOut(r, [4, 6, 10][r.t]); if (r.t >= 1) ring(x, r.hgt * 0.55, r.t === 2);
+      if (r.t === 2) { Snd.jackpot && Snd.jackpot(); flash("radial-gradient(circle at 50% 55%,rgba(255,214,90,.9),rgba(255,170,40,.25) 60%,transparent)", 1); freeze = reduce ? 0 : 0.35; zoomT = reduce ? 0 : 1.1; spark(x, y + 0.6, 0, 0xffe08a, 50, 1.6, 1.2); if (S.goldL) S.goldL.intensity = 40; }
       else if (r.t === 1) { flash("radial-gradient(circle at 50% 55%,rgba(220,235,255,.5),transparent 60%)", 0.6); Snd.win && Snd.win(); }
     }
     dropRock(r); paintHud();
@@ -457,7 +544,7 @@ export function createMine(ctx) {
       if (r.shake > 0) { r.shake = Math.max(0, r.shake - dt * 4); r.shape.position.x = Math.sin(t * 90) * r.shake * 0.12; } else r.shape.position.x = 0;
       if (r.squash > 0) { r.squash = Math.max(0, r.squash - dt * 6); if (r.born >= 1) r.shape.scale.set(1 + r.squash * 0.08, 1 - r.squash * 0.1, 1 + r.squash * 0.08); }
       for (const s of r.stars) { const k = Math.max(0, Math.sin(t * 2.6 + s.userData.ph)); s.scale.setScalar(Math.pow(k, 6) * s.userData.k * (r.t === 2 ? 1.1 : 0.7)); s.material.rotation = t * 0.6; }
-      if (r.glow) { r.glow.material.opacity = r.t === 2 ? 0.75 + Math.sin(t * 3 + r.id) * 0.25 : 0.4 + Math.sin(t * 2 + r.id) * 0.15; }
+      if (r.glow) { const tz = r.tension || 0; r.glow.material.opacity = Math.min(1, (r.t === 2 ? 0.75 + Math.sin(t * (3 + tz * 6) + r.id) * 0.25 : 0.4 + Math.sin(t * 2 + r.id) * 0.15) + tz * 0.3); r.glow.scale.setScalar((r.t === 2 ? 4.2 : 2.6) * (1 + tz * 0.55)); }
       if (r.shaft) { r.shaft.material.opacity = 0.55 + Math.sin(t * 1.7 + r.id) * 0.2; }
       r.bar.visible = r === target && r.hits > 0 && !r.breaking; if (r.bar.visible) { const f = Math.max(0, 1 - r.hits / r.h); r.bf.scale.x = 1.44 * Math.max(0.001, f); r.bf.position.x = -0.72 * (1 - f); }
     }
@@ -472,11 +559,17 @@ export function createMine(ctx) {
     S.head.position.set(px + dir * 0.6, 2.6, 2.2);
     // dust drifts up and sideways, wrapping around
     if (!low || (Math.floor(t * 30) % 2 === 0)) { const P = S.dpos; for (let i = 0; i < S.dustN; i++) { P[i * 3 + 1] += S.dsp[i] * dt * 0.25; P[i * 3] += Math.sin(t * 0.3 + i) * dt * 0.08; if (P[i * 3 + 1] > 9) P[i * 3 + 1] = 0; } S.dust.geometry.attributes.position.needsUpdate = true; }
-    tickFx(dt);
+    tickFx(dt); tickBreak(dt); tickLife(dt, t);
+    // the pickaxe's trail: the head's path through the swing, fading
+    if (S.trail && pick && pick.userData.head) { const H = S.trailH, n = S.trailN; if (swingT > 0) { pick.userData.head.getWorldPosition(tmpV); H.unshift([tmpV.x, tmpV.y, tmpV.z + 0.1]); } else if (H.length) H.pop(); if (H.length > n) H.length = n;
+      const P = S.trail.geometry.attributes.position.array, C = S.trail.geometry.attributes.color.array, tc = new THREE.Color([0xbfe6ff, 0x8fc8ff, 0xc8a8ff, 0xffd34d][tier] || 0xbfe6ff);
+      if (H.length || S.trailDirty) { for (let i = 0; i < n; i++) { const h = H[i], f = h ? 1 - i / n : 0; P[i * 3] = h ? h[0] : 0; P[i * 3 + 1] = h ? h[1] : -99; P[i * 3 + 2] = h ? h[2] : 0; C[i * 3] = tc.r * f; C[i * 3 + 1] = tc.g * f; C[i * 3 + 2] = tc.b * f; }
+        S.trail.geometry.attributes.position.needsUpdate = true; S.trail.geometry.attributes.color.needsUpdate = true; S.trailDirty = H.length > 0; } }
     // the camera: far and narrow (nearly flat, like a 2D game); wide enough to show 12 m across on a phone held upright
     const asp = S.cam.aspect || 1, vh = Math.tan((S.cam.fov * Math.PI) / 360), wantW = asp < 1 ? 9.5 : asp < 1.4 ? 15 : 21, dist = Math.min(64, Math.max(16, (wantW / 2) / (vh * asp)));
-    S.dist += (dist - S.dist) * Math.min(1, dt * 4); const cy = asp < 1 ? 3.4 : 3.9;
-    const cx = Math.max(-CAVE + wantW / 2 - 1, Math.min(CAVE - wantW / 2 + 1, px + dir * 1.4)); S.cam.position.x += (cx - S.cam.position.x) * Math.min(1, dt * 3.2);
+    if (zoomT > 0) zoomT = Math.max(0, zoomT - dt); const zk = zoomT > 0 ? 1 - 0.16 * Math.sin(Math.min(1, zoomT / 1.1) * Math.PI) : 1; // a gold break: the camera leans in, then back
+    S.dist += (dist * zk - S.dist) * Math.min(1, dt * (zoomT > 0 ? 7 : 4)); const cy = asp < 1 ? 3.4 : 3.9;
+    const cx = Math.max(-CAVE + wantW / 2 - 1, Math.min(CAVE - wantW / 2 + 1, px + dir * 1.4)); S.cam.position.x += (cx - S.cam.position.x) * Math.min(1, dt * 3.2) + kick; kick *= Math.exp(-dt * 16);
     if (shake > 0) shake = Math.max(0, shake - dt * 1.6);
     const sh = reduce ? 0 : shake * shake * 0.9; S.cam.position.y = cy + 0.9 + (Math.random() - 0.5) * sh; S.cam.position.z = S.dist; S.cam.lookAt(S.cam.position.x + (Math.random() - 0.5) * sh * 0.5, cy, 0);
     S.scene.fog.near = S.dist + 1.5; S.scene.fog.far = S.dist + 28;
@@ -488,7 +581,10 @@ export function createMine(ctx) {
     const r = target; if (!r || r.breaking) return;
     r.hits++; r.shake = 1; r.squash = 1; shake = Math.max(shake, 0.08);
     const x = r.x - Math.sign(r.x - px) * r.w * 0.38, y = 0.4 + Math.random() * r.hgt * 0.5;
-    chip(x, y, 0, [0x6a5a50, 0x5a6070, 0x55463a][r.t], 3 + r.t, 0.6); spark(x, y, 0.2, [0xffd9a0, 0xe8f1ff, 0xffe08a][r.t], 5 + r.t * 3, 0.8, 0.35);
+    const away = -Math.sign(r.x - px) || -dir; // sparks fly back toward you, off the face you hit
+    chip(x, y, 0, [0x6a5a50, 0x5a6070, 0x55463a][r.t], 3 + r.t, 0.6); spark(x, y, 0.2, [0xffd9a0, 0xe8f1ff, 0xffe08a][r.t], 6 + r.t * 3, 0.8, 0.35, away * 0.6);
+    kick = reduce ? 0 : -away * 0.09; if (r.hits % 4 === 0) puff(x, 0.3, 0.4);
+    if (r.t >= 1) { const f = r.hits / r.h; r.tension = f; r.shake = 1 + f * (r.t === 2 ? 1.6 : 0.8); if (r.t === 2 && f > 0.6 && Math.random() < 0.5) spark(r.x, r.hgt * 0.7, 0.3, 0xffe08a, 3, 0.5, 0.6); } // gold builds up: it shakes harder and glows brighter
     Snd.chink && Snd.chink(r.t); freeze = reduce ? 0 : 0.045;
     const f = r.hits / r.h; r.crack.material.opacity = f < 0.25 ? 0 : 0.85; r.crack.material.map.offset.x = f < 0.5 ? 0 : f < 0.8 ? 0.25 : 0.5;
     if (r.nugs.length > 2 && Math.random() < 0.18 + r.t * 0.08) { const nu = r.nugs.pop(); nu.visible = false; chip(r.x, 0.9, 0.2, [0xe08a4a, 0xeef3fb, 0xffd34d][r.t], 2, 0.7); }
@@ -499,6 +595,7 @@ export function createMine(ctx) {
   async function enter() {
     if (on || busy) return false; busy = true; ending = false; haul = 0; golds = 0; broke = 0;
     try {
+      if (preP) await Promise.race([preP, new Promise((ok) => setTimeout(ok, 6000))]); // a preload still running: let it finish first
       guest = !ctx.sess();
       const r = await api("world-mine-enter");
       if (!r.ok) { const j = r.j || {}; if (j.coolUntil) toast(T("The mine is resting. It opens again in {t}.", { t: hm(j.coolUntil - Date.now()) })); else toast(T("The mine couldn't open: {e}", { e: String(j.error || r.status).slice(0, 70) })); return false; }
@@ -509,10 +606,9 @@ export function createMine(ctx) {
       px = -CAVE + 5; dir = 1; swingT = 0; walkTo = null; moveIn = 0; mineHeld = false; keys.clear(); S.cam.position.set(px, 4.3, 30); S.dist = 30;
       await makeHero(); if (hero) { hero.obj.position.x = px; holdPick(); }
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
-      st.view(S.scene, S.cam); on = true; beatT = performance.now();
+      st.view(S.scene, S.cam, S.comp || null); st.solo(tick); on = true; beatT = performance.now(); // the town waits (its updates stop) while you're in
       document.body.classList.add("wp-mining"); ui.root.hidden = false; hideSheet(); paintHud();
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
-      if (!offUpd) offUpd = st.on(tick);
       ui.title.hidden = false; ui.title.querySelector("span").textContent = guest ? T("Demo: nothing you mine is paid. Connect your wallet to earn.") : T("{t} left in the mine · rocks hold 10–10,000 ARCL", { t: mmss(left) });
       ui.title.classList.remove("go"); void ui.title.offsetWidth; ui.title.classList.add("go"); setTimeout(() => { if (ui) ui.title.hidden = true; }, 2600);
       Snd.enter && Snd.enter();
@@ -530,12 +626,19 @@ export function createMine(ctx) {
   function reset() {
     on = false; ending = false; document.body.classList.remove("wp-mining"); if (ui) { ui.root.hidden = true; hideSheet(); }
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); keys.clear(); mineHeld = false; moveIn = 0;
-    try { st.view(null); } catch { /* the world draws again */ }
+    try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
     if (guest) gLeave();
   }
   function finish() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave({ haul, guest }); if (!guest && ctx.refresh) ctx.refresh(); }
   return {
     enter, leave: () => leave(true), active: () => on,
+    /// near the Mining Village (world-play.js): the models, the cave, the hero and its shaders made ahead, a texture a frame,
+    /// so walking in doesn't stall on them
+    preload() { if (!preP && !S && !on) preP = (async () => {
+      try { await loadModels(); if (S || on) return; build(); await makeHero(); if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 4000))]);
+        const texs = new Set(); S.scene.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k of ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap"]) if (m[k]) texs.add(m[k]); });
+        for (const tx of texs) { try { st.renderer.initTexture(tx); } catch { /* uploaded on first draw */ } await new Promise((ok) => setTimeout(ok, 30)); }
+      } catch (e) { console.warn("mine preload:", e); } })(); return preP; },
     /// tests: what's in the cave, and n hits landed on the rock in reach (as if swung)
     debug: () => ({ px, haul, golds, left, tier, guest, target: target && target.id, rocks: [...rocks.values()].map((r) => ({ id: r.id, t: r.t, h: r.h, hits: r.hits, x: r.x })) }),
     spawn: (t = 2, near = true) => { if (!guest || !gRun) return false; gRock(); const x = gRun.rocks[gRun.rocks.length - 1]; if (!x) return false; x.t = t; x.h = R.HITS[t][0]; if (near) { const slot = Math.max(0, Math.min(R.SLOTS - 1, Math.round((px + 26) / 4) + 1)); px = SLOT_X(slot) - 1.5; dir = 1; const other = gRun.rocks.find((y) => y !== x && y.x === slot); if (other) other.x = x.x; x.x = slot; for (const r of [...rocks.values()]) dropRock(r); } syncRocks(gRun.rocks.slice()); for (const r of rocks.values()) { r.born = 1; r.shape.scale.setScalar(1); } return true; }, // a guest's demo rock of kind t (tests and screenshots; nothing is paid)

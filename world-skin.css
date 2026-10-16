@@ -803,3 +803,25 @@ html.wp-pcphone .wm-today{zoom:1.7;top:calc(max(10px,env(safe-area-inset-top)) +
 .wm-time b{font-size:21px;margin-top:6px}
 html:not(.wp-pcphone) .wm-top{top:calc(max(10px,env(safe-area-inset-top)) + 26px)}
 html:not(.wp-pcphone) .wm-today{top:calc(max(10px,env(safe-area-inset-top)) + 106px)}
+/* b4: the bar's glow sits on its own layer (.wm-frame): the filter is drawn once, not again each time the timer or
+   the haul changes (on a phone a filter over a changing box is repainted every update) */
+.wm-top{filter:none}
+.wm-top::before,.wm-top::after{content:none}
+.wm-top>.wm-frame{position:absolute;inset:0;z-index:-1;display:block;height:auto;padding:0;pointer-events:none;filter:drop-shadow(0 0 10px rgba(60,160,255,.55)) drop-shadow(0 10px 18px rgba(0,6,30,.55));will-change:transform}
+.wm-top>.wm-frame::before,.wm-top>.wm-frame::after{content:"";position:absolute;inset:0;clip-path:polygon(var(--cut) 0,calc(100% - var(--cut)) 0,100% 50%,calc(100% - var(--cut)) 100%,var(--cut) 100%,0 50%)}
+.wm-top>.wm-frame::before{background:linear-gradient(90deg,#3ad6ff,#7aa6ff 30%,#46e0ff 55%,#8f7dff 80%,#3ad6ff);top:0;bottom:0;left:0;right:0;width:auto}
+.wm-top>.wm-frame::after{inset:2px;--cut:17px;background:linear-gradient(180deg,rgba(28,58,128,.97),rgba(10,24,66,.97) 55%,rgba(6,14,44,.98)),radial-gradient(120% 140% at 50% -40%,rgba(120,200,255,.35),transparent 60%);background-blend-mode:screen}
+.wm-top>.wm-leave::before,.wm-top>.wm-frame+*::before{display:none}
+/* the controls, in the same angled neon glass: octagon arrow pads, a round MINE button with a glowing double ring */
+.wm-ctl button{position:relative;width:84px;height:84px;border:0;border-radius:0;background:none;box-shadow:none;filter:drop-shadow(0 0 8px rgba(60,160,255,.55)) drop-shadow(0 6px 12px rgba(0,6,30,.5));display:grid;place-items:center}
+.wm-ctl button::before,.wm-ctl button::after{content:"";position:absolute;inset:0;clip-path:polygon(29% 0,71% 0,100% 29%,100% 71%,71% 100%,29% 100%,0 71%,0 29%)}
+.wm-ctl button::before{background:linear-gradient(160deg,#5fe2ff,#6f8cff 50%,#3ad6ff)}
+.wm-ctl button::after{inset:2.5px;background:radial-gradient(120% 120% at 50% 0%,#2a5cc4,#0d2266 60%,#071640)}
+.wm-ctl button svg{position:relative;z-index:1;width:34px;height:34px;fill:none;stroke:#fff;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(120,220,255,.8))}
+.wm-ctl button:active::after{background:radial-gradient(120% 120% at 50% 0%,#3a74e0,#163a9a 60%,#0b2060)}
+.wm-go{width:140px;height:140px;background:radial-gradient(circle at 50% 35%,#2b62d0,#0f2a78 58%,#081a4e);color:#fff;box-shadow:0 0 0 3px #8fe8ff,0 0 0 6px #123a8c,0 0 0 8px #46d8ff,0 0 22px rgba(70,200,255,.85),0 10px 22px rgba(0,8,30,.55),inset 0 6px 14px rgba(150,220,255,.35),inset 0 -8px 16px rgba(0,0,0,.45)}
+.wm-go .wm-go-ring{position:absolute;inset:12px;border-radius:50%;border:2px solid rgba(140,230,255,.55);box-shadow:0 0 10px rgba(80,210,255,.5),inset 0 0 10px rgba(80,210,255,.35);pointer-events:none}
+.wm-go b{color:#fff;letter-spacing:.1em;text-shadow:0 0 8px rgba(120,220,255,.9),0 2px 0 rgba(0,0,0,.4);position:relative}
+.wm-go .wm-go-ic{position:relative;filter:brightness(1.6) drop-shadow(0 0 6px rgba(160,230,255,.9))}
+.wm-go.on{scale:.93;filter:brightness(1.15)}
+.wm-go.on .wm-go-ring{border-color:#bff4ff;box-shadow:0 0 16px rgba(120,230,255,.9),inset 0 0 14px rgba(120,230,255,.6)}
