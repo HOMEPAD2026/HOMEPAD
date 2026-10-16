@@ -368,6 +368,12 @@ const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomT
   onRestored: () => { document.querySelectorAll(".wp-lost").forEach((e) => e.remove()); },
 });
 st.fps(S.fpsCap || 60); // the frame limit (Settings)
+let autoCap = 0; // 30 once a slow phone was moved to an even 30 fps (dynRes, b447); declared here because diag reads it
+// b447: on a phone (unless Ultra was picked), no clear-coat layer: glass, crystals and glossy gear keep their colour and
+// shine but skip the second specular layer, which cost each of them about twice the shading. three.js reads clearcoat
+// when it builds a shader, so this one switch covers every module and every material, made before or after it
+if (st.quality.coarse && !st.quality.ultra) { try { const P = THREE.MeshPhysicalMaterial.prototype, d = Object.getOwnPropertyDescriptor(P, "clearcoat");
+  if (d && d.set) Object.defineProperty(P, "clearcoat", { configurable: true, get() { return 0; }, set(v) { d.set.call(this, v); } }); } catch { /* keep the full look */ } }
 st.scene.background = null;
 const kitP = K.loadKit(VER).catch((e) => { console.warn("world models:", e); return null; });
 // the intro: the round planet seen from space, built before the kit switches to flat ground
@@ -464,7 +470,7 @@ const clouds = K.makeClouds(); planet.add(clouds);
 // mountains on the horizon, birds, butterflies and fish (world-ambient.js; nothing but the mountains on Low)
 const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn() }); let ambNight = 0; // ambNight: set by dayNight
 // anonymous health counters (world-diag.js): script errors, the frame rate band, a GPU memory climb
-const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || 60, where: () => (defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : "hub"), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, where: () => (defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : "hub"), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
 st.on((dt) => { try { diag.tick(dt); } catch { /* health counters must never stop the game */ } });
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
 planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
@@ -2173,6 +2179,12 @@ function paintFootGuide() {
   g.position.set(at.x, 0.09, at.z); g.rotation.y = Math.atan2(-dx, -dz); g.visible = true;
   const t = performance.now() / 1000; footGuide.mats.forEach((m, i) => { m.opacity = reduce ? 0.7 : 0.4 + 0.5 * Math.max(0, Math.sin(t * 4 - i * 0.9)); });
 }
+let qmBot = 0, qmBotAt = -1e9;
+function qmFloor() { // the top of the bottom controls, read once a second (a layout read every frame costs)
+  const now = performance.now(); if (now - qmBotAt < 1000) return qmBot; qmBotAt = now;
+  let t = innerHeight; for (const e of [$("wp-dock"), $("wp-joy"), ...document.querySelectorAll("#wp-acts .wp-act")]) { if (!e) continue; const r = e.getBoundingClientRect(); if (r.height > 0 && r.top < t) t = r.top; }
+  return (qmBot = Math.max(innerHeight * 0.45, t - 34));
+}
 function paintMarker() {
   if (!questTarget || frozen || photo || mode !== "hub") { qm.hidden = true; return; }
   questTarget.getWorldPosition(proj); const dist = proj.distanceTo(at);
@@ -2183,6 +2195,8 @@ function paintMarker() {
   if (behind) { x = W - x; y = H - y; }
   const m = 46, inside = !behind && x > m && x < W - m && y > m + 60 && y < H - m - 60;
   if (!inside) { const cx = W / 2, cy = H / 2, dx = x - cx, dy = y - cy, k = Math.min((W / 2 - m) / Math.abs(dx || 1e-3), (H / 2 - m - 60) / Math.abs(dy || 1e-3)); x = cx + dx * k; y = cy + dy * k; }
+  // nor under the bottom controls (the dock, the joystick, the action buttons): it stays above them
+  if (y > qmFloor()) y = qmFloor();
   // the marker never sits on a panel (the raid card, the minimap, the quests, the boss bar): it steps out beside it
   for (const id of ["wr-raid", "wp-quests", "wc-boss", "wp-mini"]) {
     const e = $(id); if (!e || e.hidden || !e.offsetParent) continue; const r = (id === "wp-mini" ? e.parentElement : e).getBoundingClientRect(), p = 28;
@@ -3578,7 +3592,7 @@ let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false, liteFx = 
 // dynamic resolution (Auto). A change resizes every render target, which is itself a hitch, so it changes rarely:
 // down a step after two slow 4-second spells in a row (under 38 fps), back up only after 20 s of 58+, and never
 // within 20 s of the last change (at most twice up a session, so it can't see-saw)
-const dynStart = performance.now(); let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0;
+const dynStart = performance.now(); let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0, capBad = 0;
 // b441: AC Defense and Coin Jump on a phone: half the grass (its blades are in random order, so it thins evenly) and
 // a quicker dynamic resolution while the game is on; all back on leaving
 let gameOn = false;
@@ -3590,7 +3604,9 @@ function dynRes(dt) {
   const fps = dynN / dynAcc, now = performance.now(); dynAcc = 0; dynN = 0; dynT0 = now;
   // b411: slow means under 80% of the limit on a phone (48 of 60: phones sat at 40–50 and never eased off) and 70% on
   // a computer; it was 63% for both
-  const capF = S.fpsCap || 60; dynBad = fps < capF * (st.quality.coarse ? (now - dynStart > 600000 ? 0.9 : 0.8) : 0.7) ? dynBad + 1 : 0; /* b448: after 10 minutes a phone is warm: ease off a step earlier */ dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
+  // b447: a phone already at the fewest pixels and still under 40 fps judders between 30 and 45: an even 30 looks smoother
+  if (st.quality.coarse && !S.fpsCap && !autoCap && dynK <= 0.6 && fps < 40) { if (++capBad >= 2) { autoCap = 30; st.fps(30); } } else capBad = 0;
+  const capF = S.fpsCap || autoCap || 60; dynBad = fps < capF * (st.quality.coarse ? (now - dynStart > 600000 ? 0.9 : 0.8) : 0.7) ? dynBad + 1 : 0; /* b448: after 10 minutes a phone is warm: ease off a step earlier */ dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
   if (now - dynLast < (gameOn ? 8000 : 20000)) return;
   if (dynBad >= (gameOn ? 1 : 2) && dynK > 0.6) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
@@ -3605,7 +3621,7 @@ function watchFps(dt) {
     // still slow after that: fewer sparks and puffs in fights
     if (degraded) { if (fpsN / fpsAcc < 22) { liteFx = true; toast(T("Fewer effects to keep things smooth")); } fpsAcc = 0; fpsN = 0; fpsT0 = performance.now(); return; }
     // slow: first fewer pixels (twice at most), and only then no bloom and no shadows
-    if (fpsN / fpsAcc < (S.fpsCap || 60) * 0.43 && !(st.lighter && st.lighter()) && !(st.softer && st.softer())) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); }
+    if (fpsN / fpsAcc < (S.fpsCap || autoCap || 60) * 0.43 && !(st.lighter && st.lighter()) && !(st.softer && st.softer())) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); }
     fpsAcc = 0; fpsN = 0; fpsT0 = performance.now();
   }
 }

@@ -137,6 +137,11 @@ check(cleanSave({ char: "kk-knight" }).char === "kk-knight" && cleanSave({ char:
   r = await W.read(new URL("http://x/?world=diag")); { const hs = r.body.hitches || [], top = hs[0], all = JSON.stringify(hs);
     check(top && top.where === "def" && top.cause === "shader" && top.ms === "200-500" && top.n === 3 && hs.length === 2 && !/drop|bogus/.test(all), "hitches by place and cause, most first: " + all); }
   { const sh = r.body.shaders || []; check(sh.length === 1 && sh[0].kind === "physical-toon" && sh[0].n === 2 && sh[0].dev === "ph", "the shader kinds behind the hitches: " + JSON.stringify(sh)); }
+  // b447: layout / js / resume causes, and which script ran long
+  r = await W.handle({ action: "world-diag", kind: "hitch", dev: "phone", q: "auto", h: { hub_layout_2: 1, hub_js_1: 1, hub_resume_0: 1 }, j: { "wplay-eventlis": 4, "bad key!": 2 } }); check(r.status === 200, "a hitch batch with the new causes is taken");
+  r = await W.read(new URL("http://x/?world=diag")); { const all = JSON.stringify(r.body.hitches || []), js = r.body.scripts || [];
+    check(/"cause":"layout"/.test(all) && /"cause":"js"/.test(all) && /"cause":"resume"/.test(all), "layout, js and resume hitches are kept: " + all);
+    check(js.length === 1 && js[0].what === "wplay-eventlis" && js[0].n === 4 && js[0].dev === "ph", "the scripts behind the hitches: " + JSON.stringify(js)); }
   // frame-rate bands by chip class (b404): three phones on Adreno 6xx, two typical 55+, one 30-40; the slowest 10% lower
   for (const [p50, p10] of [[7, 4], [7, 3], [4, 1]]) await W.handle({ action: "world-diag", kind: "frames", dev: "phone", q: "auto", tier: "h", fam: "adreno6", cap: 60, dpr: 1.5, p50, p10 });
   r = await W.handle({ action: "world-diag", kind: "frames", dev: "phone", q: "auto", tier: "x; drop", fam: "../../etc", cap: 999, dpr: 99, p50: 99, p10: -5 }); check(r.status === 200, "odd values are clamped, not stored as given");

@@ -146,8 +146,9 @@ export function make(deps) {
     }
     if (b.kind === "hitch") { // b441: long frames by place, cause and length (world-diag.js)
       const f = {}; let n = 0;
-      for (const [k, v] of Object.entries(b.h && typeof b.h === "object" ? b.h : {})) { if (n >= 24 || !/^[a-z0-9]{1,8}_(shader|tex|geo|move|fight|other)_[012]$/.test(k)) continue; f[`hit_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; }
+      for (const [k, v] of Object.entries(b.h && typeof b.h === "object" ? b.h : {})) { if (n >= 24 || !/^[a-z0-9]{1,8}_(shader|tex|geo|move|fight|layout|js|resume|other)_[012]$/.test(k)) continue; f[`hit_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; }
       for (const [k, v] of Object.entries(b.s && typeof b.s === "object" ? b.s : {})) { if (n >= 36 || !/^[a-z0-9-]{1,24}$/.test(k)) continue; f[`hsh_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; } // which shaders were built
+      for (const [k, v] of Object.entries(b.j && typeof b.j === "object" ? b.j : {})) { if (n >= 44 || !/^[a-z0-9-]{1,24}$/.test(k)) continue; f[`hjs_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; } // b447: which script ran long (file-what)
       if (n) await commit([{ inc: day, fields: f }]).catch(() => {});
       return json(200, { ok: true });
     }
@@ -179,7 +180,9 @@ export function make(deps) {
     const hitches = Object.entries(hc).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([k, n]) => { const [dev, where, cause, band] = k.split("_"); return { dev, where, cause, ms: ["100-200", "200-500", "500+"][+band] || band, n }; });
     const sc = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) if (key.startsWith("hsh_")) sc[key.slice(4)] = (sc[key.slice(4)] || 0) + v;
     const shaders = Object.entries(sc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, n]) => { const i = k.indexOf("_"); return { dev: k.slice(0, i), kind: k.slice(i + 1), n }; });
-    return json(200, { days: out, frames, hitches, shaders, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
+    const jc = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) if (key.startsWith("hjs_")) jc[key.slice(4)] = (jc[key.slice(4)] || 0) + v;
+    const scripts = Object.entries(jc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, n]) => { const i = k.indexOf("_"); return { dev: k.slice(0, i), what: k.slice(i + 1), n }; });
+    return json(200, { days: out, frames, hitches, shaders, scripts, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
   }
   async function ping(b) {
     const id = String(b.id || "");

@@ -5,6 +5,9 @@
    Cheap by design: the game draws underneath, so no backdrop-filter, every glow is a static box-shadow, and the only
    motion (the legendary shine) moves a pseudo-element with transform/opacity, off under prefers-reduced-motion.
    Every colour comes from the tokens below: change the look here. */
+/* phones lay the game out on a 980px page (wp-pcphone): without this, Chrome and Samsung Internet "boost" the text
+   of wide blocks (the quest line, dialogs) so it runs past its card and over the minimap */
+html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%}
 
 :root{
   /* panels */

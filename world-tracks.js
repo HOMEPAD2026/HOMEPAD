@@ -19,11 +19,13 @@ export function createTracks({ THREE, planet, reduce = false }) {
     o.position.set(PX[next], 0.035, PZ[next]); o.rotation.set(0, facing, 0); o.scale.setScalar(1); o.updateMatrix(); prints.setMatrixAt(next, o.matrix);
     prints.setColorAt(next, col.set(tint)); born[next] = performance.now() / 1000; next = (next + 1) % N; prints.instanceMatrix.needsUpdate = true; prints.instanceColor.needsUpdate = true;
   }
-  // ---- leaves: little bent quads spinning down round a point that follows you ----
-  const L = 60, lg = new THREE.PlaneGeometry(0.16, 0.12, 2, 1); { const p = lg.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, Math.abs(p.getX(i)) * 0.4); lg.computeVertexNormals(); }
-  const lm = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8 });
+  // ---- leaves: little leaf shapes (pointed at both ends, folded along the middle vein) spinning down round you ----
+  // (they were bent squares, which read as flying litter)
+  const L = 42, lg = (() => { const sh = new THREE.Shape(); sh.moveTo(0, -0.11); sh.bezierCurveTo(0.09, -0.06, 0.08, 0.06, 0, 0.12); sh.bezierCurveTo(-0.08, 0.06, -0.09, -0.06, 0, -0.11);
+    const g = new THREE.ShapeGeometry(sh, 4); const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, Math.abs(p.getX(i)) * 0.55); g.computeVertexNormals(); return g; })();
+  const lm = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.7, emissive: 0x3a1a00, emissiveIntensity: 0.35 }); // a touch of warmth so a leaf in shade stays a leaf, not a dark chip
   const leaves = new THREE.InstancedMesh(lg, lm, L); leaves.frustumCulled = false; leaves.visible = false; leaves.instanceMatrix.setUsage(THREE.DynamicDrawUsage); planet.add(leaves);
-  const LC = [0xd8562a, 0xe8a23a, 0xc0392b, 0xf2c14e, 0x9a4a2a], lp = Array.from({ length: L }, () => ({ x: 0, y: -1, z: 0, s: Math.random() * 6, v: 0.6 + Math.random() * 0.6 }));
+  const LC = [0xff7a3a, 0xffb347, 0xe8503a, 0xffd25a, 0xf08a2a], lp = Array.from({ length: L }, () => ({ x: 0, y: -1, z: 0, s: Math.random() * 6, v: 0.6 + Math.random() * 0.6 }));
   lp.forEach((p, i) => leaves.setColorAt(i, col.set(LC[i % LC.length])));
   const autumn = (() => { try { const q = new URLSearchParams(location.search).get("leaves"); if (q) return q === "1"; } catch { /* fine */ } const m = new Date(Date.now() + 9 * 3600e3).getUTCMonth() + 1; return m === 10 || m === 11; })();
   return {

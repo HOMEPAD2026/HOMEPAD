@@ -42,6 +42,23 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
   // cause: a shader built in that frame, textures or geometry uploaded, a place change or a fight starting in the last
   // 1.5 s, else "other" (garbage collection, layout, the browser). Sent in batches, at most once a minute.
   let hitSh = {}, hit = {}, hitN = 0, hitAt = 0, lastW = "", wAt = 0, lastB = false, bAt = 0, info0 = null;
+  // b447: an "other" frame is looked up in the browser's Long Animation Frames (Chrome 123+, recent Samsung Internet):
+  // "layout" when style and layout took most of it, "js" when one script did (which file and how it was called goes in
+  // hitJs), "resume" in the 2 s after the tab comes back. Without the API it stays "other".
+  let hitJs = {}, loaf = [], resAt = 0; const loafOn = (() => { try { return PerformanceObserver.supportedEntryTypes.includes("long-animation-frame"); } catch { return false; } })();
+  if (loafOn) try { new PerformanceObserver((l) => { loaf.push(...l.getEntries()); if (loaf.length > 24) loaf = loaf.slice(-24); }).observe({ type: "long-animation-frame" }); } catch { /* no lookup */ }
+  try { document.addEventListener("visibilitychange", () => { if (!document.hidden) resAt = performance.now(); }); } catch { /* fine */ }
+  const fileOf = (u) => word(String(u || "").split("/").pop().split("?")[0].replace(/\.m?js$/, "").replace(/^world-/, "w")).slice(0, 10);
+  function whyLong(t0, t1) {
+    let e = null; for (const x of loaf) if (x.startTime < t1 && x.startTime + x.duration > t0 && (!e || x.duration > e.duration)) e = x;
+    if (!e) return "other";
+    if ((e.styleAndLayoutDuration || 0) > e.duration * 0.4) return "layout";
+    let top = null; for (const sc of e.scripts || []) if (!top || sc.duration > top.duration) top = sc;
+    if (!top || top.duration < e.duration * 0.3) return "other";
+    const k = `${fileOf(top.sourceURL) || "x"}-${word(top.invokerType).slice(0, 8)}`.slice(0, 24);
+    if (Object.keys(hitJs).length < 12 || hitJs[k]) hitJs[k] = (hitJs[k] || 0) + 1;
+    return "js";
+  }
   const word = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "x";
   function hitch(d, now) {
     const i = renderer.info, pr = (i.programs || []).length, m = i.memory;
@@ -50,9 +67,13 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
       for (const pg of (i.programs || []).slice(info0.p, info0.p + 6)) { const ck = String(pg.cacheKey || "").split(","), ty = word(ck[0]), pt = (ck[ck.length - 1] || "").split("|").slice(1).map(word).filter(Boolean).join("-").slice(0, 14), k = (ty + (pt ? "-" + pt : "")).slice(0, 24);
         if (Object.keys(hitSh).length < 12 || hitSh[k]) hitSh[k] = (hitSh[k] || 0) + 1; } }
     if (info0) { if (pr > info0.p) cause = "shader"; else if (m.textures > info0.t) cause = "tex"; else if (m.geometries > info0.g + 10) cause = "geo"; else if (now - wAt < 1500) cause = "move"; else if (now - bAt < 1500) cause = "fight"; }
-    const band = d < 200 ? 0 : d < 500 ? 1 : 2, k = `${word(lastW)}_${cause}_${band}`;
-    if (hitN < 60) { hit[k] = (hit[k] || 0) + 1; hitN++; }
-    if (now - hitAt > 60e3 && Object.keys(hit).length) { hitAt = now; send({ kind: "hitch", dev, q: quality, h: hit, s: hitSh }); hit = {}; hitSh = {}; hitN = 0; }
+    if (cause === "other" && now - resAt < 2000) cause = "resume";
+    const w = word(lastW), rec = (c) => { const band = d < 200 ? 0 : d < 500 ? 1 : 2, k = `${w}_${c}_${band}`;
+      if (hitN < 60) { hit[k] = (hit[k] || 0) + 1; hitN++; }
+      if (now - hitAt > 60e3 && Object.keys(hit).length) { hitAt = now; send({ kind: "hitch", dev, q: quality, h: hit, s: hitSh, j: hitJs }); hit = {}; hitSh = {}; hitJs = {}; hitN = 0; } };
+    // the long frame's entry arrives a moment after the frame: look it up then
+    if (cause === "other" && loafOn) setTimeout(() => { let c = "other"; try { c = whyLong(now - d - 20, now); } catch { /* other */ } rec(c); }, 500);
+    else rec(cause);
   }
   function frameSample() {
     const now = performance.now(), d = prev ? now - prev : 0; prev = now;
