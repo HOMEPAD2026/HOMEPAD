@@ -479,7 +479,7 @@ export function createMine(ctx) {
     const sh = reduce ? 0 : shake * shake * 0.9; S.cam.position.y = cy + 0.9 + (Math.random() - 0.5) * sh; S.cam.position.z = S.dist; S.cam.lookAt(S.cam.position.x + (Math.random() - 0.5) * sh * 0.5, cy, 0);
     S.scene.fog.near = S.dist + 1.5; S.scene.fog.far = S.dist + 28;
     // the clock: a beat to the server now and then; time up ends the visit
-    if (!ending) { beatT -= dt; if (beatT <= 0) { beatT = 15; beat(); } if (left - (performance.now() - leftAt) <= 0) timeUp(); }
+    if (!ending) { const now = performance.now(); if (now - beatT >= 12000) { beatT = now; beat(); } if (left - (now - leftAt) <= 0) timeUp(); } // the beat on the real clock (a slow frame rate stretches game time)
     if (Math.floor(t * 4) !== Math.floor((t - dt) * 4)) paintHud();
   }
   function landHit() {
@@ -507,7 +507,7 @@ export function createMine(ctx) {
       px = -CAVE + 5; dir = 1; swingT = 0; walkTo = null; moveIn = 0; mineHeld = false; keys.clear(); S.cam.position.set(px, 4.3, 30); S.dist = 30;
       await makeHero(); if (hero) { hero.obj.position.x = px; holdPick(); }
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
-      st.view(S.scene, S.cam); on = true; beatT = 15;
+      st.view(S.scene, S.cam); on = true; beatT = performance.now();
       document.body.classList.add("wp-mining"); ui.root.hidden = false; hideSheet(); paintHud();
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
       if (!offUpd) offUpd = st.on(tick);
