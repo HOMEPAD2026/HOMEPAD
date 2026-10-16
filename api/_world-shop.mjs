@@ -64,6 +64,7 @@ export const EARN = [
   { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 30 a day", repeat: { max: 30, gap: 240 } },
   { kind: "defense", n: 0, label: "AC Defense: waves cleared", more: "5 a wave, up to 150 a day, 3 runs a day", repeat: { max: 3, gap: 60 } }, // paid by the run's end (api/_world-defense.mjs), never claimed
   { kind: "defweek", n: 0, label: "AC Defense: weekly top 3", more: "10,000 · 5,000 · 2,500 after the week ends", repeat: { max: 1, gap: 0 } }, // paid by api/_world-defense.mjs payLastWeek, never claimed
+  { kind: "mine", n: 0, label: "ARCL Mine: break copper, silver and gold rocks", more: "10–10,000 a rock, up to 40,000 a day (its own limit)" }, // paid by api/_world-mine.mjs on each break, never claimed
   { kind: "jump", n: 0, label: "Coin Jump: reach the crown", more: "3,000 once a day", repeat: { max: 1, gap: 0 } }, // paid by the run's end (api/_world-jump.mjs), never claimed
   { kind: "heart", n: 0, label: "A heart from a friend", more: "100 each, up to 5 a day; sent from the friend's side", repeat: { max: 5, gap: 0 } }, // paid when it's sent (api/_world-social.mjs), never claimed
   { kind: "raid", n: 40, label: "Help bring down the weekly raid boss", more: "once a week, after it falls", weekly: true },
@@ -122,6 +123,10 @@ export const CATALOG = [
   { id: "feature-isle", cat: "plaza", name: "Island of the day", line: "Your island on the plaza screen for 24 hours, with a Visit button.", usd: 5, arcl: null, use: true, hours: 24 },
   { id: "billboard", cat: "plaza", name: "Plaza billboard", line: "An ArcPad coin on the plaza billboard for 6 hours.", usd: 3, arcl: null, use: true, hours: 6, target: "coin" },
   // not on the shelves: bought from the game itself
+  // the ARCL Mine's pickaxes (api/_world-mine.mjs TIERS): fewer hits a rock, rocks found faster; the Common one is free
+  { id: "pick1", cat: "mine", name: "Advanced Pickaxe", line: "A steel pickaxe: a quarter fewer hits a rock, and rocks turn up faster.", tokens: 3000, usd: null, arcl: null },
+  { id: "pick2", cat: "mine", name: "Rare Pickaxe", line: "A crystal-edged pickaxe: almost half the hits, and rocks turn up much faster.", tokens: 8000, usd: null, arcl: null },
+  { id: "pick3", cat: "mine", name: "Legendary Pickaxe", line: "A golden pickaxe: 60% fewer hits, and the most rocks an hour.", tokens: 20000, usd: null, arcl: null },
   { id: "revive", cat: "game", name: "Revive", line: "Get back up where you fell, with full HP and SP (and end a 24-hour rest).", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "rekind", cat: "game", name: "Weapon kind change", line: "Turn one weapon into another kind (dual swords, hammer, blaster, bow or staff). It keeps its stats.", tokens: 5000, usd: null, arcl: null, use: true },
   { id: "isleup", cat: "game", name: "Village upgrade", line: "Your village's next level, from level 5 on (its XP has to be there first).", tokens: 1000, usd: null, arcl: null, use: true },
@@ -370,6 +375,7 @@ export function makeShop(deps) {
     if (kind === "defense") return json(400, { error: "AC Defense pays when a run ends" });
     if (kind === "heart") return json(400, { error: "hearts pay when a friend sends one" });
     if (kind === "jump") return json(400, { error: "Coin Jump pays when you reach the crown" });
+    if (kind === "mine") return json(400, { error: "the mine pays when a rock breaks" });
     if (kind === "defweek") return json(400, { error: "the weekly prizes are paid when the week ends" });
     let n = e.n;
     if (e.repeat && /^(street|hunt|boss|pickup)$/.test(kind)) { const k = await koOf(w); if (k.until > now() || k.down) return json(423, { error: "resting after a knockout", until: k.until }); }

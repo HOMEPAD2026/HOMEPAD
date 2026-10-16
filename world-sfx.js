@@ -196,6 +196,15 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     // knocked out: a falling minor line, a thud and a whoosh while the music dips; back up: a rising run
     ko: () => { hush.pick = now() + 1500; duck(0.3, 2.5); [440, 349, 294].forEach((f, i) => tone(f, 0.35, { type: "sawtooth", v: 0.05, at: i * 0.16, lp: 1400, to: f * 0.94 })); tone(70, 0.5, { to: 38, v: 0.13, at: 0.05 }); noise(0.45, 0.08, 1200, { to: 300, a: 0.04 }); },
     up: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, { type: "triangle", v: 0.07, at: i * 0.06 })),
+    // ---- the ARCL mine (world-mine.js) ----
+    // the pick bites the rock: a stony crack and a short metal ring, higher for silver and gold (t 0–2)
+    chink: (t = 0) => { if (!gap("chink", 50)) return; noise(0.07, 0.16, 1500 + t * 500, { q: 2.5 }); tone(170, 0.07, { type: "triangle", to: 85, v: 0.07 }); tone([1900, 2600, 3100][t] || 1900, 0.16, { v: 0.03 + t * 0.008, a: 0.002, to: ([1900, 2600, 3100][t] || 1900) * 0.97 }); },
+    // the rock gives way: rubble, a thump; gold adds a bright run
+    crumble: (t = 0) => { for (let i = 0; i < 6; i++) noise(0.06 + Math.random() * 0.05, 0.12, 250 + Math.random() * 700, { at: i * 0.04, type: "lowpass", q: 0.8 }); tone(75, 0.3, { to: 40, v: 0.13 }); if (t >= 1) [1568, 2093, 2637].slice(0, t + 1).forEach((f, i) => tone(f, 0.16, { type: "triangle", v: 0.05, at: 0.12 + i * 0.06 })); },
+    // nothing inside: a hollow puff and a little falling "wah"
+    dud: () => { noise(0.25, 0.08, 600, { type: "lowpass", to: 200 }); tone(330, 0.32, { type: "triangle", to: 220, v: 0.05, at: 0.08 }); },
+    // gold: the music dips, a deep hit and a long, rising sparkle
+    jackpot: () => { hush.pick = now() + 1800; duck(0.3, 2.4); tone(65, 0.8, { to: 40, v: 0.14 }); [784, 988, 1175, 1568, 1976, 2349].forEach((f, i) => tone(f, 0.32, { type: "triangle", v: 0.07, at: 0.12 + i * 0.07 })); noise(1.2, 0.035, 7000, { type: "highpass", at: 0.2, a: 0.1 }); shimmer(4, 0.9); },
     // ---- Settings: Sound effects (volume) and Footsteps, under Music ----
     settings(T = (s) => s) {
       const mus = document.getElementById("wp-set-music"), row = mus && mus.closest(".wp-set-row"); if (!row || document.getElementById("wp-set-sfx")) return;

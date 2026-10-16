@@ -251,7 +251,10 @@ export function makeStage(canvas, opts = {}) {
     renderer.setSize(w, h, false);
     if (composer) composer.setSize(w, h);
     camera.aspect = w / h; camera.updateProjectionMatrix();
+    if (alt) { alt.cam.aspect = w / h; alt.cam.updateProjectionMatrix(); }
   }
+  // view(): another scene drawn instead of the world (the ARCL mine, world-mine.js); its own updates still run through on()
+  let alt = null;
   resize();
   const ro = new ResizeObserver(resize); ro.observe(canvas);
   const updates = new Set();
@@ -267,7 +270,7 @@ export function makeStage(canvas, opts = {}) {
     if (every > 1 && (++nth % every)) return; // a menu covers the world: draw it a few times a second, not 60
     const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
     const w0 = performance.now(); updates.forEach((fn) => fn(dt, t));
-    if (composer) composer.render(); else renderer.render(scene, camera);
+    if (alt) renderer.render(alt.scene, alt.cam); else if (composer) composer.render(); else renderer.render(scene, camera);
     work.last = performance.now() - w0;
   }
   frame();
@@ -286,6 +289,7 @@ export function makeStage(canvas, opts = {}) {
   });
   return {
     fps(n) { gap = 1000 / Math.max(20, Math.min(240, Number(n) || 60)); },
+    view(sc, cam) { alt = sc && cam ? { scene: sc, cam } : null; if (alt) resize(); },
     // the first frames without hitches: every material in the scene compiled while the loading screen is up (hidden
     // things too, shown for the moment of the call), the GPU doing it in parallel where it can
     warm(ms = 5000) {

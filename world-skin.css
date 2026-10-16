@@ -642,3 +642,99 @@ html.wp-less body.wp .wc-lockon.on::after{animation:none}
 /* the dock and the top HUD buttons in the same glass as the menus: the menu's blue panel, its soft cyan edge and
    a soft drop instead of a glow; icons and sizes unchanged */
 body.wp .wp-dk,body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet){background:var(--ui-panel);border-color:var(--ui-edge-soft);box-shadow:0 0 0 1px rgba(2,10,32,.5),0 6px 16px rgba(0,8,30,.38),inset 0 1px 0 rgba(255,255,255,.18)}
+/* ================= the ARCL Mine (world-mine.js) =================
+   The cave is the game's own scene (the town's HUD steps aside: body.wp-mining). On top: one blue-glass bar (leave,
+   the hour's ring, the haul, the pickaxe), the day's total under it, glass arrows bottom-left, a big mint MINE button
+   bottom-right. Numbers float up from the rocks; the haul's coins fly to the counter. */
+body.wp-mining :is(.wp-keys,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act),body.wp-mining [class^="wc-"]:not(.wc-dead){display:none!important}
+.wm{position:fixed;inset:0;z-index:40;pointer-events:none;font-family:var(--hud-font,var(--f-ui));color:#fff;-webkit-user-select:none;user-select:none;touch-action:none}
+.wm[hidden]{display:none}
+.wm>*{pointer-events:auto}
+.wm .wm-vig,.wm .wm-flash,.wm .wm-pops{pointer-events:none;position:absolute;inset:0}
+.wm .wm-vig{background:radial-gradient(120% 85% at 50% 48%,transparent 52%,rgba(2,3,10,.55) 82%,rgba(2,3,10,.85) 100%)}
+.wm .wm-flash{opacity:0;mix-blend-mode:screen}
+.wm-top{position:absolute;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 8px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:22px;
+  background:var(--ui-panel,linear-gradient(180deg,rgba(26,62,130,.9),rgba(9,27,68,.93)));border:1.5px solid var(--ui-edge-soft,rgba(120,214,255,.42));box-shadow:0 0 0 1px rgba(2,10,32,.5),0 10px 28px rgba(0,8,30,.45),inset 0 1px 0 rgba(255,255,255,.16);white-space:nowrap}
+html.wp-pcphone .wm-top{top:calc(max(10px,env(safe-area-inset-top)) + 40px)}
+.wm-top button{appearance:none;border:0;cursor:pointer;color:#fff;font:800 14px/1 var(--hud-font,var(--f-ui))}
+.wm-leave{display:flex;align-items:center;gap:4px;height:40px;padding:0 14px 0 10px;border-radius:14px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.wm-leave span{font-size:22px;line-height:0;margin-top:-2px}
+.wm-time{position:relative;display:grid;place-items:center;width:58px;height:58px}
+.wm-time svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.wm-time circle{fill:none;stroke-width:3.4}
+.wm-time .bg{stroke:rgba(255,255,255,.14)}
+.wm-time .fg{stroke:var(--ui-mint-2,#4fe6c8);stroke-linecap:round;stroke-dasharray:97.4;transition:stroke-dashoffset .5s linear}
+.wm.late .wm-time .fg{stroke:#ffb347}
+.wm-time b{font:900 15px/1 var(--hud-font,var(--f-ui));font-variant-numeric:tabular-nums;margin-top:6px}
+.wm-time small{font:700 9px/1 var(--hud-font,var(--f-ui));opacity:.7;margin-top:-14px}
+.wm-haul{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:7px;align-items:center;padding:4px 12px 4px 8px;border-radius:14px;background:rgba(0,10,30,.32)}
+.wm-haul .wm-coin-ic{grid-row:1/3;display:grid;place-items:center}
+.wm-haul b{font:900 22px/1 var(--hud-font,var(--f-ui));color:#ffd34d;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(90,50,0,.45)}
+.wm-haul small{font:700 10px/1.2 var(--hud-font,var(--f-ui));opacity:.75}
+.wm-haul.bump b{animation:wmBump .42s cubic-bezier(.3,1.6,.5,1)}
+@keyframes wmBump{0%{transform:scale(1)}40%{transform:scale(1.28)}100%{transform:scale(1)}}
+.wm-pickbtn{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px 0 8px;border-radius:14px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.wm-pickbtn[data-tier="1"]{box-shadow:inset 0 0 0 1.5px #8fc2ff}.wm-pickbtn[data-tier="2"]{box-shadow:inset 0 0 0 1.5px #b48cff}.wm-pickbtn[data-tier="3"]{box-shadow:inset 0 0 0 1.5px #ffd34d,0 0 14px rgba(255,200,60,.35)}
+.wm-today{position:absolute;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 92px);transform:translateX(-50%);padding:5px 12px;border-radius:999px;background:rgba(4,10,28,.55);font:700 12px/1.2 var(--hud-font,var(--f-ui));color:rgba(235,244,255,.85);pointer-events:none;white-space:nowrap}
+html.wp-pcphone .wm-today{top:calc(max(10px,env(safe-area-inset-top)) + 148px)}
+.wm-today.demo{color:#ffe08a;background:rgba(60,40,0,.5)}
+.wm-ctl{position:absolute;left:calc(18px + env(safe-area-inset-left));bottom:calc(22px + env(safe-area-inset-bottom));display:flex;gap:12px}
+.wm-ctl button,.wm-go{appearance:none;border:0;cursor:pointer;color:#fff;touch-action:none}
+.wm-ctl button{width:78px;height:78px;border-radius:24px;font-size:28px;background:var(--ui-panel,rgba(15,40,94,.9));border:1.5px solid var(--ui-edge-soft,rgba(120,214,255,.42));box-shadow:0 6px 16px rgba(0,8,30,.4),inset 0 1px 0 rgba(255,255,255,.18)}
+.wm-ctl button:active{scale:.92;filter:brightness(1.2)}
+.wm-go{position:absolute;right:calc(22px + env(safe-area-inset-right));bottom:calc(22px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;display:grid;place-items:center;align-content:center;gap:2px;
+  background:radial-gradient(circle at 50% 30%,#d6fff3,var(--ui-mint-1,#a6ffe6) 30%,var(--ui-mint-2,#4fe6c8) 70%,#2bb8a0);color:var(--ui-mint-ink,#062a33);
+  box-shadow:inset 0 -6px 0 rgba(20,120,105,.4),0 6px 0 var(--ui-mint-3,#1f9c88),0 12px 26px rgba(0,30,30,.45);transition:scale .08s}
+.wm-go b{font:900 15px/1 var(--hud-font,var(--f-ui));letter-spacing:.06em}
+.wm-go .wm-go-ic{display:grid;place-items:center}
+.wm-go.on{scale:.93;filter:brightness(1.08)}
+.wm-keys{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);font:600 12px/1 var(--hud-font,var(--f-ui));color:rgba(230,240,255,.55);pointer-events:none;white-space:nowrap}
+@media (pointer:coarse){.wm-keys{display:none}}html.wp-pcphone .wm-keys{display:none}
+html.wp-pcphone .wm-ctl{zoom:2.1}html.wp-pcphone .wm-go{zoom:2.1}html.wp-pcphone .wm-top{zoom:1.9}html.wp-pcphone .wm-today{zoom:1.9}
+/* numbers and words floating up from a rock */
+.wm-pop{position:absolute;transform:translate(-50%,-50%);font:900 28px/1 var(--hud-font,var(--f-ui));white-space:nowrap;text-align:center;pointer-events:none;animation:wmPop 1.5s cubic-bezier(.2,.8,.3,1) forwards;
+  text-shadow:0 3px 0 rgba(0,0,0,.35),0 0 18px rgba(0,0,0,.35)}
+.wm-pop small{font-size:.5em;margin-left:3px;opacity:.85}
+.wm-pop em{display:block;font:800 12px/1.3 var(--hud-font,var(--f-ui));font-style:normal;color:#ffe2a8;margin-top:2px}
+.wm-pop.cu{color:#ffb27a}.wm-pop.ag{color:#eef5ff;font-size:34px;text-shadow:0 3px 0 rgba(40,60,90,.5),0 0 18px rgba(200,225,255,.7)}
+.wm-pop.au{color:#ffe066;font-size:56px;animation:wmPopBig 2.6s cubic-bezier(.2,.8,.3,1) forwards;text-shadow:0 4px 0 #a86400,0 0 24px rgba(255,200,60,.95),0 0 60px rgba(255,170,30,.6)}
+.wm-pop.dud{color:#c9c2b8;font-size:24px;animation:wmDud 1.5s ease-out forwards}
+html.wp-pcphone .wm-pop{font-size:56px}html.wp-pcphone .wm-pop.ag{font-size:68px}html.wp-pcphone .wm-pop.au{font-size:108px}html.wp-pcphone .wm-pop.dud{font-size:48px}html.wp-pcphone .wm-pop em{font-size:24px}
+@keyframes wmPop{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.15)}30%{transform:translate(-50%,-70%) scale(1)}100%{opacity:0;transform:translate(-50%,-170%) scale(1)}}
+@keyframes wmPopBig{0%{opacity:0;transform:translate(-50%,-30%) scale(.3) rotate(-6deg)}12%{opacity:1;transform:translate(-50%,-70%) scale(1.35) rotate(3deg)}24%{transform:translate(-50%,-80%) scale(1) rotate(0)}80%{opacity:1;transform:translate(-50%,-110%) scale(1)}100%{opacity:0;transform:translate(-50%,-150%) scale(.95)}}
+@keyframes wmDud{0%{opacity:0;transform:translate(-50%,-40%) scale(.8)}20%{opacity:1;transform:translate(-50%,-60%) scale(1.05) rotate(-4deg)}35%{transform:translate(-50%,-60%) rotate(4deg)}50%{transform:translate(-50%,-62%) rotate(0)}100%{opacity:0;transform:translate(-50%,-90%)}}
+.wm-coin{position:fixed;z-index:41;width:20px;height:20px;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,#fff7d0,#ffd34d 45%,#d99a10);box-shadow:0 0 8px rgba(255,200,60,.8)}
+.wm-coin.gold{width:26px;height:26px;box-shadow:0 0 14px rgba(255,210,80,1)}
+html.wp-pcphone .wm-coin{width:40px;height:40px}html.wp-pcphone .wm-coin.gold{width:52px;height:52px}
+/* the sheet (pickaxes, a visit's end) and the title card */
+.wm-sheet{position:absolute;inset:0;display:grid;place-items:center;background:rgba(2,6,18,.55);z-index:2}
+.wm-sheet[hidden]{display:none}
+.wm-sheet-in{width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 60px);overflow:auto;padding:18px;border-radius:var(--ui-r-l,22px);background:var(--ui-panel,rgba(15,40,94,.95));border:1.5px solid var(--ui-edge-soft,rgba(120,214,255,.42));box-shadow:var(--ui-glow,0 18px 48px rgba(0,8,30,.42))}
+html.wp-pcphone .wm-sheet-in{zoom:1.9;width:min(440px,calc(100vw / 1.9 - 24px))}
+.wm-sheet-in h3{margin:0 0 6px;font:900 20px/1.2 var(--hud-font,var(--f-ui))}
+.wm-sheet-in p{margin:0 0 12px;font:600 13px/1.45 var(--hud-font,var(--f-ui));color:rgba(230,240,255,.82)}
+.wm-sheet-in p.wm-odds{font-size:12px;color:rgba(230,240,255,.65);margin-top:10px}
+.wm-pc{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px;margin:0 0 8px;border-radius:16px;background:var(--ui-row,rgba(46,92,178,.5));border:1px solid var(--ui-row-edge,rgba(150,212,255,.22))}
+.wm-pc.held{border-color:var(--ui-mint-2,#4fe6c8);box-shadow:0 0 0 2px rgba(79,230,200,.35)}
+.wm-pc.t1 .wm-pc-art{filter:hue-rotate(160deg) saturate(1.4)}.wm-pc.t2 .wm-pc-art{filter:hue-rotate(230deg) saturate(1.8) drop-shadow(0 0 6px rgba(180,140,255,.8))}.wm-pc.t3 .wm-pc-art{filter:sepia(1) saturate(3.5) hue-rotate(5deg) brightness(1.15) drop-shadow(0 0 8px rgba(255,200,60,.9))}
+.wm-pc-txt b{display:block;font:800 15px/1.2 var(--hud-font,var(--f-ui))}
+.wm-pc-txt small{font:600 12px/1.3 var(--hud-font,var(--f-ui));color:rgba(230,240,255,.72)}
+.wm-pc-act em{font:800 12px/1 var(--hud-font,var(--f-ui));font-style:normal;color:var(--ui-mint-1,#a6ffe6)}
+.wm-buy,.wm-close{appearance:none;border:0;cursor:pointer;border-radius:12px;font:900 13px/1 var(--hud-font,var(--f-ui))}
+.wm-buy{padding:10px 12px;color:var(--ui-mint-ink,#062a33);background:linear-gradient(180deg,var(--ui-mint-1,#a6ffe6),var(--ui-mint-2,#4fe6c8));box-shadow:0 3px 0 var(--ui-mint-3,#1f9c88)}
+.wm-buy:disabled{opacity:.6}
+.wm-close{display:block;width:100%;margin-top:6px;padding:13px;color:#fff;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.wm-sum{text-align:center}
+.wm-sum-n{display:grid;justify-items:center;gap:4px;margin:10px 0 12px}
+.wm-sum-n b{font:900 46px/1 var(--hud-font,var(--f-ui));color:#ffd34d;text-shadow:0 3px 0 #a86400,0 0 24px rgba(255,200,60,.6)}
+.wm-sum-n small{font:700 12px/1 var(--hud-font,var(--f-ui));opacity:.75}
+.wm-gold-n{color:#ffe08a!important}
+.wm-title{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:6px;pointer-events:none;text-align:center}
+.wm-title[hidden]{display:none}
+.wm-title small{font:800 13px/1 var(--hud-font,var(--f-ui));letter-spacing:.3em;color:var(--ui-mint-1,#a6ffe6);opacity:.85}
+.wm-title b{font:900 58px/1 var(--hud-font,var(--f-ui));letter-spacing:.06em;color:#ffe08a;text-shadow:0 4px 0 #8a5200,0 0 30px rgba(255,190,60,.7)}
+.wm-title span{font:700 14px/1.4 var(--hud-font,var(--f-ui));color:rgba(235,244,255,.85);max-width:80vw}
+html.wp-pcphone .wm-title{zoom:1.7}
+.wm-title.go{animation:wmTitle 2.6s ease-out forwards}
+@keyframes wmTitle{0%{opacity:0;transform:translate(-50%,-40%) scale(.92)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-56%)}}
+@media (prefers-reduced-motion:reduce){.wm-pop,.wm-title.go,.wm-haul.bump b{animation-duration:.01s}}
