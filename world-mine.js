@@ -16,6 +16,10 @@ export const MINE_RULES = {
   TIERS: [{ id: "", name: "Common", k: 1, every: 20500, tokens: 0 }, { id: "pick1", name: "Advanced", k: 0.75, every: 16400, tokens: 3000 }, { id: "pick2", name: "Rare", k: 0.55, every: 13400, tokens: 8000 }, { id: "pick3", name: "Legendary", k: 0.4, every: 11000, tokens: 20000 }],
   DAY_CAP: 40000,
 };
+// a little mine cart heaped with gold and silver (the rocks-broken counter)
+const CART = `<svg viewBox="0 0 48 40" width="44" height="37"><path d="M10 14 L24 6 L31 11 L38 9 L41 15 Z" fill="#ffd34d" stroke="#a86400" stroke-width="1.2"/><path d="M16 11l5-4 4 4z" fill="#fff4c2"/><path d="M30 12l5-2 3 4z" fill="#dbe6f5" stroke="#7a8aa8" stroke-width=".8"/>
+  <path d="M5 14h38l-4 16H9z" fill="#7a4a24" stroke="#3a200c" stroke-width="1.6"/><path d="M8 19h32M9 24h30" stroke="#5a3418" stroke-width="1.4"/><rect x="4" y="12.5" width="40" height="3" rx="1" fill="#9aa6b8"/>
+  <circle cx="14" cy="33" r="4" fill="#2a2e36" stroke="#9aa6b8" stroke-width="1.6"/><circle cx="34" cy="33" r="4" fill="#2a2e36" stroke="#9aa6b8" stroke-width="1.6"/></svg>`;
 const R = MINE_RULES, KIND = ["Copper", "Silver", "Gold"], KCOL = ["#ff9a5a", "#dbe6f5", "#ffd34d"];
 const SLOT_X = (i) => -26 + i * 4, CAVE = 30, SWING = 0.56, IMPACT = 0.2, REACH = 2.0, SPEED = 5.2;
 const fmtN = (n) => Math.round(n).toLocaleString("en-US");
@@ -27,7 +31,7 @@ export function createMine(ctx) {
   const low = !!ctx.low, reduce = !!ctx.reduce;
   if (!ctx.art) ctx.art = itemArt;
   let S = null; // the scene, built the first time
-  let on = false, busy = false, guest = false, run = null, tier = 0, k = 1, left = 0, leftAt = 0, today = 0, cap = R.DAY_CAP, haul = 0, golds = 0, ending = false;
+  let broke = 0, on = false, busy = false, guest = false, run = null, tier = 0, k = 1, left = 0, leftAt = 0, today = 0, cap = R.DAY_CAP, haul = 0, golds = 0, ending = false;
   let beatT = 0, hero = null, pick = null, px = -24, dir = 1, moveIn = 0, mineHeld = false, swingT = 0, hitDue = -1, freeze = 0, shake = 0, target = null, walkTo = null;
   const rocks = new Map(); let ui = null, keys = new Set(), offUpd = null;
 
@@ -288,12 +292,13 @@ export function createMine(ctx) {
     const root = document.createElement("div"); root.id = "wp-mine"; root.className = "wm"; root.hidden = true;
     root.innerHTML = `<div class="wm-vig"></div><div class="wm-flash"></div><div class="wm-pops"></div>
       <div class="wm-top" data-game-hud>
-        <button type="button" class="wm-leave" aria-label="${esc(T("Leave the mine"))}"><span>‹</span>${esc(T("Leave"))}</button>
-        <div class="wm-time"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" class="bg"/><circle cx="18" cy="18" r="15.5" class="fg"/></svg><b>60:00</b><small>${esc(T("left"))}</small></div>
-        <div class="wm-haul"><i class="wm-coin-ic"></i><b>0</b><small>${esc(T("ARCL this visit"))}</small></div>
+        <button type="button" class="wm-leave" aria-label="${esc(T("Leave the mine"))}"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Leave"))}</span></button>
+        <div class="wm-time"><i class="wm-gem"></i><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" class="bg"/><circle cx="18" cy="18" r="15.5" class="fg"/></svg><b>60:00</b><small>${esc(T("left"))}</small></div>
+        <div class="wm-haul"><i class="wm-coin-ic"></i><span><b>0</b><small>${esc(T("ARCL this visit"))}</small></span></div>
+        <div class="wm-rocks"><i class="wm-cart-ic"></i><span><small>${esc(T("Rocks"))}</small><b>×0</b></span></div>
         <button type="button" class="wm-pickbtn"><span class="wm-pick-ic"></span><b>${esc(T("Common"))}</b></button>
       </div>
-      <div class="wm-today"></div>
+      <div class="wm-today"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg><span></span></div>
       <div class="wm-ctl"><button type="button" class="wm-l" aria-label="${esc(T("Left"))}">◀</button><button type="button" class="wm-r" aria-label="${esc(T("Right"))}">▶</button></div>
       <button type="button" class="wm-go" aria-label="${esc(T("Mine"))}"><span class="wm-go-ic"></span><b>${esc(T("MINE"))}</b></button>
       <div class="wm-keys">${esc(T("A / D move · Space or J mine · Esc leave"))}</div>
@@ -301,7 +306,7 @@ export function createMine(ctx) {
       <div class="wm-title" hidden><small>${esc(T("ARCIRCLE WORLD"))}</small><b>${esc(T("ARCL MINE"))}</b><span></span></div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    ui = { root, pops: q(".wm-pops"), flash: q(".wm-flash"), time: q(".wm-time b"), ring: q(".wm-time .fg"), haul: q(".wm-haul"), haulN: q(".wm-haul b"), pickB: q(".wm-pickbtn"), pickN: q(".wm-pickbtn b"), today: q(".wm-today"), sheet: q(".wm-sheet"), title: q(".wm-title"), go: q(".wm-go") };
+    ui = { root, pops: q(".wm-pops"), flash: q(".wm-flash"), time: q(".wm-time b"), ring: q(".wm-time .fg"), haul: q(".wm-haul"), haulN: q(".wm-haul b"), pickB: q(".wm-pickbtn"), pickN: q(".wm-pickbtn b"), today: q(".wm-today span"), todayBox: q(".wm-today"), rocksN: q(".wm-rocks b"), sheet: q(".wm-sheet"), title: q(".wm-title"), go: q(".wm-go") };
     q(".wm-leave").addEventListener("click", () => leave(false));
     ui.pickB.addEventListener("click", () => openPicks());
     const hold = (el, on, off) => { el.addEventListener("pointerdown", (e) => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch { /* fine */ } on(); }); ["pointerup", "pointercancel", "lostpointercapture"].forEach((ev) => el.addEventListener(ev, off)); };
@@ -309,14 +314,14 @@ export function createMine(ctx) {
     hold(q(".wm-r"), () => { moveIn = 1; walkTo = null; }, () => { if (moveIn > 0) moveIn = 0; });
     hold(ui.go, () => { mineHeld = true; ui.go.classList.add("on"); }, () => { mineHeld = false; ui.go.classList.remove("on"); });
     root.querySelector(".wm-pick-ic").innerHTML = ctx.art ? ctx.art("pickaxe", 26) : "⛏"; root.querySelector(".wm-go-ic").innerHTML = ctx.art ? ctx.art("pickaxe", 44) : "⛏";
-    root.querySelector(".wm-coin-ic").innerHTML = ctx.art ? ctx.art("coin", 24) : "";
+    root.querySelector(".wm-coin-ic").innerHTML = ctx.art ? ctx.art("coin", 40) : ""; root.querySelector(".wm-cart-ic").innerHTML = CART;
   }
   function paintHud() {
     if (!ui) return; const l = Math.max(0, left - (performance.now() - leftAt));
     ui.time.textContent = mmss(l); ui.ring.style.strokeDashoffset = String(97.4 * (1 - l / R.SESSION_MS)); ui.root.classList.toggle("late", l < 5 * 60e3);
     ui.haulN.textContent = fmtN(haul); ui.pickN.textContent = T(R.TIERS[tier].name); ui.pickB.dataset.tier = String(tier);
     ui.today.innerHTML = guest ? esc(T("Demo: connect your wallet to earn ARCL here")) : esc(T("Today {n} / {m} ARCL", { n: fmtN(today), m: fmtN(cap) }));
-    ui.today.classList.toggle("demo", guest);
+    ui.todayBox.classList.toggle("demo", guest); ui.rocksN.textContent = "×" + broke;
   }
   function hideSheet() { if (ui) { ui.sheet.hidden = true; ui.sheet.innerHTML = ""; } }
   // the pickaxes: what each does, what it costs, the one you hold
@@ -397,7 +402,7 @@ export function createMine(ctx) {
     const x = r.x, y = r.hgt * 0.5, col = ["#c8743a", "#dbe6f5", "#ffc94a"][r.t];
     chip(x, y, -0.3, 0x5a4a40, 18, 1.1); chip(x, y, -0.3, col, 10 + r.t * 8, 1.2); spark(x, y, 0, col, 14 + r.t * 16, 1 + r.t * 0.3, 0.7);
     shake = Math.max(shake, 0.18 + r.t * 0.12); Snd.crumble && Snd.crumble(r.t);
-    const v = j.found || 0, got = j.got || 0;
+    const v = j.found || 0, got = j.got || 0; broke++;
     if (!v) { pop(x, 2.2, esc(T("Empty!")), "dud"); Snd.dud && Snd.dud(); dustPuff(x, 0.6, 18, 0x8a7a6a); }
     else {
       haul += guest ? v : got; if (r.t === 2) golds++;
@@ -490,7 +495,7 @@ export function createMine(ctx) {
 
   // ---------------- in and out ----------------
   async function enter() {
-    if (on || busy) return false; busy = true; ending = false; haul = 0; golds = 0;
+    if (on || busy) return false; busy = true; ending = false; haul = 0; golds = 0; broke = 0;
     try {
       guest = !ctx.sess();
       const r = await api("world-mine-enter");

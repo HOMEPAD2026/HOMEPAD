@@ -738,3 +738,45 @@ html.wp-pcphone .wm-title{zoom:1.7}
 .wm-title.go{animation:wmTitle 2.6s ease-out forwards}
 @keyframes wmTitle{0%{opacity:0;transform:translate(-50%,-40%) scale(.92)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-56%)}}
 @media (prefers-reduced-motion:reduce){.wm-pop,.wm-title.go,.wm-haul.bump b{animation-duration:.01s}}
+/* the mine's top bar, b2 (the owner's reference): one angled bar of deep-blue glass with a bright cyan edge, a round
+   metal medallion for the hour in the middle of its left half, then the haul (a big coin, the number in gold), the
+   rocks broken (a cart of ore), the pickaxe; the day's total in a small angled tag under it. The edge is two layers
+   with the same cut (the bright one 2px larger), so the glow follows the angles. */
+.wm-top{--cut:18px;gap:0;padding:0 22px;height:64px;border:0;border-radius:0;background:none;box-shadow:none;filter:drop-shadow(0 0 10px rgba(60,160,255,.55)) drop-shadow(0 10px 18px rgba(0,6,30,.55));isolation:isolate}
+.wm-top::before,.wm-top::after{content:"";position:absolute;inset:0;z-index:-1;clip-path:polygon(var(--cut) 0,calc(100% - var(--cut)) 0,100% 50%,calc(100% - var(--cut)) 100%,var(--cut) 100%,0 50%)}
+.wm-top::before{background:linear-gradient(90deg,#3ad6ff,#7aa6ff 30%,#46e0ff 55%,#8f7dff 80%,#3ad6ff)}
+.wm-top::after{inset:2px;--cut:17px;background:linear-gradient(180deg,rgba(28,58,128,.97),rgba(10,24,66,.97) 55%,rgba(6,14,44,.98)),radial-gradient(120% 140% at 50% -40%,rgba(120,200,255,.35),transparent 60%);background-blend-mode:screen}
+.wm-top>*{position:relative;display:flex;align-items:center;height:64px;padding:0 14px}
+.wm-top>*+*::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1.5px;background:linear-gradient(180deg,transparent,rgba(120,210,255,.7),transparent)}
+.wm-top>.wm-time::before,.wm-top>.wm-time+*::before{display:none}
+.wm-leave{gap:6px;height:44px!important;margin:10px 4px 10px 0;padding:0 16px 0 10px!important;border-radius:0;background:linear-gradient(180deg,#2c5ec4,#163c94);clip-path:polygon(12px 0,100% 0,calc(100% - 8px) 100%,0 100%,0 50%);box-shadow:none;font:900 16px/1 var(--hud-font,var(--f-ui))!important}
+.wm-leave svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+.wm-leave:hover{filter:brightness(1.15)}
+.wm-time{width:86px;height:86px!important;margin:-11px 6px;padding:0!important;border-radius:50%;display:grid!important;place-items:center;
+  background:radial-gradient(circle at 50% 38%,#1f4fae,#0b1e56 62%,#06113a);box-shadow:0 0 0 3px #9fd4ff,0 0 0 5px #1b3f8f,0 0 0 6.5px #5fc8ff,0 0 18px rgba(80,190,255,.85),inset 0 4px 10px rgba(160,220,255,.35),inset 0 -6px 12px rgba(0,0,0,.45)}
+.wm-time svg{inset:7px;width:auto;height:auto}
+.wm-time circle{stroke-width:3}
+.wm-time .bg{stroke:rgba(140,190,255,.2)}
+.wm-time .fg{stroke:#4ff0ff;filter:drop-shadow(0 0 3px #4ff0ff)}
+.wm.late .wm-time .fg{stroke:#ffb347;filter:drop-shadow(0 0 3px #ffb347)}
+.wm-time b{font:900 20px/1 var(--hud-font,var(--f-ui));margin-top:4px;text-shadow:0 2px 0 rgba(0,0,0,.4)}
+.wm-time small{margin-top:-22px;font-size:10px;letter-spacing:.06em;color:#9fe6ff;opacity:1}
+.wm-gem{position:absolute;left:50%;top:-9px;width:18px;height:18px;transform:translateX(-50%) rotate(45deg);background:linear-gradient(135deg,#e8fbff,#5fd8ff 45%,#2a6cff);box-shadow:0 0 8px #6fe0ff,0 0 0 2px #0b1e56;border-radius:3px;z-index:2}
+.wm-haul{display:flex!important;gap:10px;background:none!important;border-radius:0;padding:0 18px 0 14px!important}
+.wm-haul .wm-coin-ic{display:grid;place-items:center;filter:drop-shadow(0 0 8px rgba(255,200,60,.7))}
+.wm-haul span,.wm-rocks span{display:grid;line-height:1}
+.wm-haul b{font:900 28px/1 var(--hud-font,var(--f-ui));color:#ffd84d;text-shadow:0 2px 0 #8a5200,0 0 12px rgba(255,200,60,.55)}
+.wm-haul small,.wm-rocks small{font:800 11px/1.25 var(--hud-font,var(--f-ui));letter-spacing:.04em;color:#dbe9ff;opacity:.9;text-transform:uppercase}
+.wm-rocks{gap:8px}
+.wm-rocks .wm-cart-ic{display:grid;place-items:center;filter:drop-shadow(0 0 6px rgba(120,210,255,.6))}
+.wm-rocks b{font:900 22px/1 var(--hud-font,var(--f-ui));color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.4)}
+.wm-pickbtn{height:44px!important;margin:10px 0 10px 6px;padding:0 16px 0 10px!important;border-radius:0!important;clip-path:polygon(8px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,8px 100%,0 50%);background:linear-gradient(180deg,#2c5ec4,#163c94)!important;box-shadow:none!important;font:900 15px/1 var(--hud-font,var(--f-ui))!important}
+.wm-pickbtn[data-tier="1"]{background:linear-gradient(180deg,#3d7fe0,#1d4aa8)!important}.wm-pickbtn[data-tier="2"]{background:linear-gradient(180deg,#8a5cf0,#4a2aa8)!important}.wm-pickbtn[data-tier="3"]{background:linear-gradient(180deg,#f0b02a,#a8640a)!important}
+.wm-today{top:calc(max(10px,env(safe-area-inset-top)) + 84px);display:flex;align-items:center;gap:8px;padding:7px 20px;border-radius:0;font:800 14px/1 var(--hud-font,var(--f-ui));color:#fff;
+  background:linear-gradient(180deg,rgba(32,70,150,.96),rgba(10,26,72,.96));clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%);filter:drop-shadow(0 0 6px rgba(60,160,255,.7))}
+.wm-today svg{width:17px;height:17px;fill:none;stroke:#7fe6ff;stroke-width:2.4;stroke-linecap:round}
+.wm-today.demo{color:#ffe08a;background:linear-gradient(180deg,rgba(96,66,10,.95),rgba(50,32,4,.95))}
+.wm-today.demo svg{stroke:#ffe08a}
+html.wp-pcphone .wm-top{zoom:1.35;top:calc(max(10px,env(safe-area-inset-top)) + 56px)}
+html.wp-pcphone .wm-today{zoom:1.7;top:calc(max(10px,env(safe-area-inset-top)) + 106px)}
+@media (max-width:560px){html:not(.wp-pcphone) .wm-top{zoom:.62}html:not(.wp-pcphone) .wm-today{zoom:.8;top:calc(max(10px,env(safe-area-inset-top)) + 70px)}}
