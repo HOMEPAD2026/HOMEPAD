@@ -41,15 +41,18 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
   // b441: hitches. A frame over 100 ms is counted with where you were (hub / zone / isle / def / jump) and its likely
   // cause: a shader built in that frame, textures or geometry uploaded, a place change or a fight starting in the last
   // 1.5 s, else "other" (garbage collection, layout, the browser). Sent in batches, at most once a minute.
-  let hit = {}, hitN = 0, hitAt = 0, lastW = "", wAt = 0, lastB = false, bAt = 0, info0 = null;
+  let hitSh = {}, hit = {}, hitN = 0, hitAt = 0, lastW = "", wAt = 0, lastB = false, bAt = 0, info0 = null;
   const word = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "x";
   function hitch(d, now) {
     const i = renderer.info, pr = (i.programs || []).length, m = i.memory;
     let cause = "other";
+    if (info0 && pr > info0.p) { // b445: which kinds of shader were built (the shader type and its patches: fade, toon, wind2…)
+      for (const pg of (i.programs || []).slice(info0.p, info0.p + 6)) { const ck = String(pg.cacheKey || "").split(","), ty = word(ck[0]), pt = (ck[ck.length - 1] || "").split("|").slice(1).map(word).filter(Boolean).join("-").slice(0, 14), k = (ty + (pt ? "-" + pt : "")).slice(0, 24);
+        if (Object.keys(hitSh).length < 12 || hitSh[k]) hitSh[k] = (hitSh[k] || 0) + 1; } }
     if (info0) { if (pr > info0.p) cause = "shader"; else if (m.textures > info0.t) cause = "tex"; else if (m.geometries > info0.g + 10) cause = "geo"; else if (now - wAt < 1500) cause = "move"; else if (now - bAt < 1500) cause = "fight"; }
     const band = d < 200 ? 0 : d < 500 ? 1 : 2, k = `${word(lastW)}_${cause}_${band}`;
     if (hitN < 60) { hit[k] = (hit[k] || 0) + 1; hitN++; }
-    if (now - hitAt > 60e3 && Object.keys(hit).length) { hitAt = now; send({ kind: "hitch", dev, q: quality, h: hit }); hit = {}; hitN = 0; }
+    if (now - hitAt > 60e3 && Object.keys(hit).length) { hitAt = now; send({ kind: "hitch", dev, q: quality, h: hit, s: hitSh }); hit = {}; hitSh = {}; hitN = 0; }
   }
   function frameSample() {
     const now = performance.now(), d = prev ? now - prev : 0; prev = now;

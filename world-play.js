@@ -1631,7 +1631,7 @@ async function openJump() {
       let M; try { M = await import("./world-jumprace.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       jumpRace = M.createJumpRace({ THREE, planet, T: TW, lang: LANG, esc, toast, Snd, vfx, reduce, low: lowGfx, coarse, origin: gv.center, keep: [gv.root],
         pos: () => ({ x: -planet.position.x, y: hop, z: -planet.position.z }), place: (x, z) => standAt(x, z, gv.center), lift: (y) => { hop = y; at.y = y; vy = 0; grounded = true; },
-        warm: () => st.warm(2500), boost: (v) => { vy = v; grounded = false; jumpHeld = false; }, setArena: (r) => { arenaR = r; }, leave: () => { jumpOn = false; near = null; paintPrompt(); const e = gv.exitOf("jump"); standAt(e.x, e.z, gv.center); } });
+        warm: () => st.warm(2500), sess, post, refresh: () => refreshPurse(true), boost: (v) => { vy = v; grounded = false; jumpHeld = false; }, setArena: (r) => { arenaR = r; }, leave: () => { jumpOn = false; near = null; paintPrompt(); const e = gv.exitOf("jump"); standAt(e.x, e.z, gv.center); } });
       st.on((dt, t) => { if (jumpRace) jumpRace.tick(dt, t); });
     }
     jumpOn = true; near = null; paintPrompt(); jumpRace.start();

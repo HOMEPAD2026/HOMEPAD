@@ -83,8 +83,8 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     g.font = "600 20px Sora, system-ui, sans-serif";
     if (!top.length) { g.fillStyle = "#8fa6cc"; g.fillText(board.top ? T("No runs yet — be the first!") : T("Loading…"), 24, 80); }
     top.slice(0, 5).forEach((x, i) => { const y = 78 + i * 34; g.fillStyle = i === 0 ? "#ffd23a" : i === 1 ? "#dfe8f4" : i === 2 ? "#e8a06a" : "#9fb3d6"; g.fillText(`${i + 1}`, 28, y);
-      g.fillStyle = "#e8f0ff"; const nm = String(x.name || (x.id ? x.id.slice(0, 6) + "…" : "?")).slice(0, 16); g.fillText(nm, 60, y);
-      g.fillStyle = "#38d8ff"; g.textAlign = "right"; g.fillText(T("Wave {n}").replace("{n}", x.w), W - 28, y); g.textAlign = "left"; });
+      g.fillStyle = "#e8f0ff"; const nm = String(x.name || x.w || "?").slice(0, 16); /* the server sends w (a short wallet), n (the wave), kills, name */ g.fillText(nm, 60, y);
+      g.fillStyle = "#38d8ff"; g.textAlign = "right"; g.fillText(T("Wave {n}").replace("{n}", x.n), W - 28, y); g.textAlign = "left"; });
     g.fillStyle = "rgba(180,140,255,.35)"; g.fillRect(24, 262, W - 48, 2);
     let best = 0; try { best = Number(localStorage.getItem("arc.world.jumpBest")) || 0; } catch { /* private */ }
     g.fillStyle = "#ffc861"; g.font = "800 22px Sora, system-ui, sans-serif"; g.fillText(T("Coin Jump · your best"), 24, 300);

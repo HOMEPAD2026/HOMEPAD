@@ -3,21 +3,22 @@
 // and reach the crown at the top. Every 6th platform is a checkpoint: fall to the ground and you're put back on the
 // last one you reached. The player's own jump does the climbing — world-play.js asks floorAt() for the ground under
 // the feet while a run is on (the same hook the island's bricks use). A run only keeps a personal best (this device);
-// it pays nothing.
+// b445: reaching the crown pays 3,000 ARCL once a day to a signed-in wallet (api/_world-jump.mjs checks the run on the
+// server's clock); a guest's run keeps only its best.
 //
 // ctx: { THREE, planet, T, esc, toast, Snd, vfx, reduce, low, coarse, origin {x,z}, keep: [objects that stay],
 //        pos() → {x, y, z} planet-local feet, place(x, z), lift(y), setArena(r), leave() }
 const N = 24, RISE = 0.8, TIME = 90, CHECK = 6, BEST = "arc.world.jumpBest";
 const LW = {
-  ko: { "Coin Jump": "코인 점프", Coins: "코인", Time: "시간", Quit: "그만두기", "Climb to the crown!": "왕관까지 올라가세요!", "Checkpoint": "체크포인트", "Back to the checkpoint": "체크포인트로 돌아가요", "You reached the crown!": "왕관에 도착했어요!", "Time's up": "시간 종료", "New best!": "최고 기록!", Best: "최고", "Play again": "다시 하기", Leave: "나가기", "Crown bonus": "왕관 보너스", Score: "점수" },
-  zh: { "Coin Jump": "金币跳跃", Coins: "金币", Time: "时间", Quit: "退出", "Climb to the crown!": "爬到王冠处！", "Checkpoint": "检查点", "Back to the checkpoint": "回到检查点", "You reached the crown!": "你到达了王冠！", "Time's up": "时间到", "New best!": "新纪录！", Best: "最佳", "Play again": "再玩一次", Leave: "离开", "Crown bonus": "王冠奖励", Score: "分数" },
-  tr: { "Coin Jump": "Para Zıplama", Coins: "Paralar", Time: "Süre", Quit: "Çık", "Climb to the crown!": "Taca kadar tırman!", "Checkpoint": "Kontrol noktası", "Back to the checkpoint": "Kontrol noktasına dönüyorsun", "You reached the crown!": "Taca ulaştın!", "Time's up": "Süre doldu", "New best!": "Yeni rekor!", Best: "En iyi", "Play again": "Tekrar oyna", Leave: "Ayrıl", "Crown bonus": "Taç bonusu", Score: "Puan" },
+  ko: { "+{n} ARCL for the crown": "왕관 보상 +{n} ARCL", "Today's crown reward is already yours": "오늘 왕관 보상은 이미 받았어요", "Sign in with a wallet to earn 3,000 ARCL a day for the crown": "지갑으로 로그인하면 왕관에 도달할 때 하루 3,000 ARCL을 받아요", "Sending your crown…": "왕관 기록 보내는 중…", "The reward couldn't be sent — try again later": "보상을 보내지 못했어요 — 잠시 후 다시 해 보세요", "Reach the crown: 3,000 ARCL once a day": "왕관 도달: 하루 1회 3,000 ARCL", "Coin Jump": "코인 점프", Coins: "코인", Time: "시간", Quit: "그만두기", "Climb to the crown!": "왕관까지 올라가세요!", "Checkpoint": "체크포인트", "Back to the checkpoint": "체크포인트로 돌아가요", "You reached the crown!": "왕관에 도착했어요!", "Time's up": "시간 종료", "New best!": "최고 기록!", Best: "최고", "Play again": "다시 하기", Leave: "나가기", "Crown bonus": "왕관 보너스", Score: "점수" },
+  zh: { "+{n} ARCL for the crown": "王冠奖励 +{n} ARCL", "Today's crown reward is already yours": "今天的王冠奖励已领取", "Sign in with a wallet to earn 3,000 ARCL a day for the crown": "用钱包登录，每天到达王冠可得 3,000 ARCL", "Sending your crown…": "正在提交王冠记录…", "The reward couldn't be sent — try again later": "奖励发送失败——请稍后再试", "Reach the crown: 3,000 ARCL once a day": "到达王冠：每天一次 3,000 ARCL", "Coin Jump": "金币跳跃", Coins: "金币", Time: "时间", Quit: "退出", "Climb to the crown!": "爬到王冠处！", "Checkpoint": "检查点", "Back to the checkpoint": "回到检查点", "You reached the crown!": "你到达了王冠！", "Time's up": "时间到", "New best!": "新纪录！", Best: "最佳", "Play again": "再玩一次", Leave: "离开", "Crown bonus": "王冠奖励", Score: "分数" },
+  tr: { "+{n} ARCL for the crown": "Taç ödülü +{n} ARCL", "Today's crown reward is already yours": "Bugünün taç ödülünü zaten aldın", "Sign in with a wallet to earn 3,000 ARCL a day for the crown": "Cüzdanla giriş yap, taca ulaşınca günde 3.000 ARCL kazan", "Sending your crown…": "Taç kaydın gönderiliyor…", "The reward couldn't be sent — try again later": "Ödül gönderilemedi — sonra tekrar dene", "Reach the crown: 3,000 ARCL once a day": "Taca ulaş: günde bir kez 3.000 ARCL", "Coin Jump": "Para Zıplama", Coins: "Paralar", Time: "Süre", Quit: "Çık", "Climb to the crown!": "Taca kadar tırman!", "Checkpoint": "Kontrol noktası", "Back to the checkpoint": "Kontrol noktasına dönüyorsun", "You reached the crown!": "Taca ulaştın!", "Time's up": "Süre doldu", "New best!": "Yeni rekor!", Best: "En iyi", "Play again": "Tekrar oyna", Leave: "Ayrıl", "Crown bonus": "Taç bonusu", Score: "Puan" },
 };
 
 export function createJumpRace(ctx) {
   const { THREE, planet, esc } = ctx, L = LW[ctx.lang] || {}, T = (s, v) => (L[s] != null ? L[s] : ctx.T(s, v));
   const O = ctx.origin || { x: 0, z: 0 };
-  let on = false, root = null, ui = null, plats = [], coinMesh = null, crown = null, got = null, reached = 0, timer = 0, phase = "idle", hidden = [], spinT = 0;
+  let run = null, runP = null, t0 = 0; let on = false, root = null, ui = null, plats = [], coinMesh = null, crown = null, got = null, reached = 0, timer = 0, phase = "idle", hidden = [], spinT = 0;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), zero = new THREE.Vector3(0, 0, 0);
   // the course: platform i sits on a widening spiral, RISE higher than the last; the top one is the crown
   // b444: a new course every day (the Seoul date): the spiral's step and lean change, and some pads bob up and down,
@@ -136,6 +137,17 @@ export function createJumpRace(ctx) {
     if (c !== last.c) { last.c = c; ui.querySelector(".wj-c").textContent = `${T("Coins")} ${c}/${N - 1}`; }
     if (t !== last.t) { last.t = t; const el = ui.querySelector(".wj-t"); el.textContent = `${T("Time")} ${t}s`; el.classList.toggle("low", t <= 10); }
   }
+  async function sendEnd(crowned) {
+    const ss = ctx.sess ? ctx.sess() : null; if (!ss || !ctx.post) return;
+    const paint = (txt, good) => { const el = ui && ui.querySelector(".wj-pay"); if (el) { el.textContent = txt; el.classList.toggle("good", !!good); } };
+    try {
+      const rr = await runP; if (!rr) { if (crowned) paint(T("The reward couldn't be sent — try again later")); return; }
+      const res = await ctx.post({ action: "world-jump-end", ...ss, runId: rr.runId, crowned: !!crowned, ms: Math.round((TIME - Math.max(0, timer)) * 1000) });
+      if (!crowned) return;
+      if (res && res.ok && res.j) { if (res.j.credited > 0) { paint(T("+{n} ARCL for the crown").replace("{n}", res.j.credited.toLocaleString()), true); if (ctx.refresh) ctx.refresh(); } else paint(T("Today's crown reward is already yours")); }
+      else paint(T("The reward couldn't be sent — try again later"));
+    } catch { if (crowned) paint(T("The reward couldn't be sent — try again later")); }
+  }
   function finish(crowned) {
     if (phase !== "run") return; phase = "over";
     const coins = got.filter(Boolean).length, score = coins * 10 + (crowned ? 100 + Math.max(0, Math.floor(timer)) * 2 : 0);
@@ -144,14 +156,16 @@ export function createJumpRace(ctx) {
     if (crowned && ctx.vfx && ctx.vfx.levelUp && !ctx.reduce) ctx.vfx.levelUp();
     const snd = ctx.Snd && (crowned ? ctx.Snd.win : ctx.Snd.coin); if (snd) snd();
     const r = ui.querySelector(".wj-res"); r.hidden = false;
-    r.innerHTML = `<div class="wj-card"><small>${esc(T("Coin Jump"))}</small><h3>${esc(crowned ? T("You reached the crown!") : T("Time's up"))}</h3><div class="wj-big">${score}</div><p>${esc(T("Coins"))} ${coins}/${N - 1}${crowned ? ` · ${esc(T("Crown bonus"))}` : ""}</p><p>${esc(nb ? T("New best!") : `${T("Best")}: ${Math.max(best, score)}`)}</p><div class="wj-btns"><button type="button" class="go" data-wj="again">${esc(T("Play again"))}</button><button type="button" data-wj="leave">${esc(T("Leave"))}</button></div></div>`;
+    r.innerHTML = `<div class="wj-card"><small>${esc(T("Coin Jump"))}</small><h3>${esc(crowned ? T("You reached the crown!") : T("Time's up"))}</h3><div class="wj-big">${score}</div><p>${esc(T("Coins"))} ${coins}/${N - 1}${crowned ? ` · ${esc(T("Crown bonus"))}` : ""}</p><p>${esc(nb ? T("New best!") : `${T("Best")}: ${Math.max(best, score)}`)}</p>${crowned ? `<p class="wj-pay">${esc(ctx.sess && ctx.sess() ? T("Sending your crown…") : T("Sign in with a wallet to earn 3,000 ARCL a day for the crown"))}</p>` : ""}<div class="wj-btns"><button type="button" class="go" data-wj="again">${esc(T("Play again"))}</button><button type="button" data-wj="leave">${esc(T("Leave"))}</button></div></div>`;
+    sendEnd(crowned);
   }
   function exit() {
     on = false; phase = "idle"; showWorld(); teardown(); if (ui) { ui.remove(); ui = null; } ctx.setArena(0); if (ctx.leave) ctx.leave();
   }
   function start() {
     if (on) return; on = true; phase = "run"; timer = TIME; reached = 0; last.c = last.t = -1;
-    try { hideWorld(); build(); mountUi(); ctx.setArena(15); const p = plats[0]; ctx.place(p.x + 2.2, p.z); paintHud(); ctx.toast(T("Climb to the crown!")); }
+    run = null; t0 = Date.now(); const ss = ctx.sess ? ctx.sess() : null; runP = ss && ctx.post ? ctx.post({ action: "world-jump-start", ...ss }).then((r) => { if (r && r.ok && r.j && r.j.runId) run = r.j; return run; }).catch(() => null) : Promise.resolve(null);
+    try { hideWorld(); build(); mountUi(); ctx.setArena(15); const p = plats[0]; ctx.place(p.x + 2.2, p.z); paintHud(); ctx.toast(T("Climb to the crown!")); if (ctx.sess && ctx.sess()) setTimeout(() => { if (on && phase === "run") ctx.toast(T("Reach the crown: 3,000 ARCL once a day")); }, 2200); }
     catch (err) { exit(); throw err; }
   }
   // the ground under the feet: the platform below (its top within a small step of the feet), else the square

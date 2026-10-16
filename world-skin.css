@@ -477,3 +477,4 @@ html.wp-pcphone body.wp .wp-hud .wp-purse:not([hidden]) + .wp-rrow{margin-top:ca
 html.wp-pcphone .wd-perk{zoom:1.42}
 @keyframes wdPerk{from{opacity:0;transform:translateX(-50%) scale(.9)}}
 .wd-rm .wd-perk{animation:none}
+.wj-card .wj-pay{color:#9fe6c8;font-weight:700}.wj-card .wj-pay.good{color:#ffd23a;font-size:16px;font-weight:900} /* b445: the crown reward line */
