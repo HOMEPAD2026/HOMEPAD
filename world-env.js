@@ -112,7 +112,7 @@ const BLADE_VS = /* glsl */`
 const BLADE_FS = /* glsl */`
   #include <common>
   #include <fog_pars_fragment>
-  uniform vec3 uRoot, uTip, uDry, uSun; uniform float uLight, uLampK;
+  uniform vec3 uRoot, uTip, uDry, uSun; uniform float uLight; uniform highp float uLampK; /* highp: the vertex shader reads it too, and a phone's mediump blade colour must not change its precision (the program failed to link) */
   varying float vY, vShade, vTone, vFlower, vLamp;
   void main() {
     vec3 tip = mix(uTip, uDry, smoothstep(0.8, 1.0, vTone) * 0.35);
