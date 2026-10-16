@@ -536,7 +536,9 @@ K.placeOn(pad, K.dirOf(7, 90)); planet.add(pad);
 // each in its own building; walk up to the AC Defense tower's door to play. The square in the middle is the arena
 // the wind in the tree crowns (world-kit.js sway): still on low quality and with reduced motion
 if (!lowGfx && !reduce && K.wind) st.on((dt) => { K.wind.value += dt; });
-const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx }); gv.clear(groundG);
+// b447 (village remaster): the looks the village takes; Low keeps the plain ones (flat tiles, still water, no contact shade)
+const gvLook = { hexFloor: (m, r) => LOOK.hexFloorLook(m, { r, low: lowGfx }), pond: (m) => LOOK.pondLook(m, { low: lowGfx }), contact: lowGfx ? null : (m) => LOOK.contactShade(m) };
+const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook }); gv.clear(groundG);
 // b447: the clearing was one flat pale green: now the town ground's patches, fine grain and drifting cloud shade, and the baked town shade
 { const gg = gv.root.getObjectByName("gv-ground"); if (gg) { LOOK.groundLook(gg.material, { low: lowGfx }); if (gshadow) gshadow.receive(gg.material); } }
 st.on((dt, t) => { gv.tick(dt, t, -planet.position.x, -planet.position.z); });

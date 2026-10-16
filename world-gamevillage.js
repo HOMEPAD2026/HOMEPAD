@@ -5,31 +5,35 @@
 // time you're within BUILD_AT and hidden again past HIDE_AT.
 export const VILLAGE = { x: -105, z: -5, r: 32, plotR: 21, arenaR: 10.5 };
 export const GAMES = [
-  { id: "soon1", garden: true }, { id: "soon2", garden: true }, { id: "beat", name: "BEAT STOMP", color: 0xff5ad8, roof: 0x7a3cff, sub: "Rhythm game · walk in to play", ready: true } /* b446 */, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "soon5" },
+  { id: "soon1", garden: true }, { id: "soon2", garden: true, pond: true /* b447: a pond garden */ }, { id: "beat", name: "BEAT STOMP", color: 0xff5ad8, roof: 0x7a3cff, sub: "Rhythm game · walk in to play", ready: true } /* b446 */, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "soon5" },
   { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, sub: "Tower defence · walk in to play", ready: true }, // the middle plot: straight ahead as you come through the gate
   { id: "soon6" }, { id: "soon7" }, { id: "soon8", garden: true }, { id: "soon9", garden: true }, { id: "soon10", garden: true }, // b446: five plots are small gardens, not building sites
 ];
 const BUILD_AT = 75, HIDE_AT = 95;
 
-export function makeGameVillage({ THREE, K, planet, T, low = false }) {
+export function makeGameVillage({ THREE, K, planet, T, low = false, look = null }) {
+  // look (b447, world-look.js via world-play.js): contact shade on what stands on the ground, the shader stone floor, the pond
+  const cs = (m) => (look && look.contact ? look.contact(m) : m);
   const V = VILLAGE, root = new THREE.Group(); root.name = "gamevillage"; root.position.set(V.x, 0, V.z); planet.add(root);
-  const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, flatShading: true, ...o });
+  const std = (c, o = {}) => cs(new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, flatShading: true, ...o }));
   const glow = (c, k = 1.8) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
   const hex = (c) => "#" + new THREE.Color(c).getHexString();
   // the clearing, its glowing edge and the square in the middle
   const ground = new THREE.Mesh(new THREE.CircleGeometry(V.r, 64), new THREE.MeshStandardMaterial({ color: 0x86cc79, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; ground.name = "gv-ground"; root.add(ground); // world-play.js gives it the town ground's look (b447)
   // the square: pale stone in hexagons with a soft blue-glass seam (one canvas texture, repeated; the AC Defense floor's look)
-  const hexTex = (() => { if (typeof document === "undefined") return null; const w = 128, h = Math.round(w * Math.sqrt(3)), c = document.createElement("canvas"); c.width = w * 3; c.height = h; const g = c.getContext("2d");
+  const hexTex = () => { if (typeof document === "undefined") return null; const w = 128, h = Math.round(w * Math.sqrt(3)), c = document.createElement("canvas"); c.width = w * 3; c.height = h; const g = c.getContext("2d");
     g.fillStyle = "#cfd6df"; g.fillRect(0, 0, c.width, c.height);
     const hex = (cx, cy, r) => { g.beginPath(); for (let k = 0; k < 6; k++) { const a = (Math.PI / 3) * k; g.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); } g.closePath(); };
     for (let col = -1; col <= 4; col++) for (let row = -1; row <= 2; row++) { const x = col * (w * 0.75), y = row * h + (col % 2 ? h / 2 : 0);
       hex(x, y, w / 2 - 3); g.fillStyle = (col + row) % 3 ? "#d9dee6" : "#c8d2de"; g.fill(); g.lineWidth = 5; g.strokeStyle = "rgba(90,190,255,0.55)"; g.stroke(); }
-    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3 * (c.width / c.height)) /* square tiles: the canvas is wider than tall */; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; })();
-  const square = new THREE.Mesh(new THREE.CircleGeometry(V.arenaR + 1.5, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, map: hexTex, roughness: 0.7, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3 * (c.width / c.height)) /* square tiles: the canvas is wider than tall */; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }; // only without the shader floor
+  const sqMat = look && look.hexFloor ? look.hexFloor(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }), V.arenaR + 1.5) // b447: drawn in the shader
+    : new THREE.MeshStandardMaterial({ color: 0xffffff, map: hexTex(), roughness: 0.7, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+  const square = new THREE.Mesh(new THREE.CircleGeometry(V.arenaR + 1.5, 64), sqMat);
   square.rotation.x = -Math.PI / 2; square.position.y = 0.04; square.receiveShadow = true; root.add(square);
-  const edge = new THREE.Mesh(new THREE.TorusGeometry(V.r, 0.12, 6, 128), glow(0xb48cff, 1.4)); edge.rotation.x = Math.PI / 2; edge.position.y = 0.08; root.add(edge);
-  const inner = new THREE.Mesh(new THREE.TorusGeometry(V.arenaR + 1.5, 0.08, 6, 96), glow(0x38d8ff, 1.2)); inner.rotation.x = Math.PI / 2; inner.position.y = 0.07; root.add(inner);
+  const edge = new THREE.Mesh(new THREE.TorusGeometry(V.r, 0.12, 6, 128), glow(0xb48cff, 0.9)); // b447: softer (less bloom) edge.rotation.x = Math.PI / 2; edge.position.y = 0.08; root.add(edge);
+  const inner = new THREE.Mesh(new THREE.TorusGeometry(V.arenaR + 1.5, 0.08, 6, 96), glow(0x38d8ff, 0.8)); inner.rotation.x = Math.PI / 2; inner.position.y = 0.07; root.add(inner);
   // the gate faces the plaza, with the village's name over it
   const toPlaza = Math.atan2(-V.x, -V.z), gx = Math.sin(toPlaza) * V.r, gz = Math.cos(toPlaza) * V.r;
   const gate = K.makeArch(0xb48cff); gate.scale.setScalar(1.35); gate.position.set(gx, 0, gz); gate.rotation.y = toPlaza; root.add(gate);
@@ -95,13 +99,21 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
   }
   // b446: a small garden on a plot no game is coming to soon: grass, a low hedge, a tree and flowers (shared parts)
   let GP = null, gardenN = 0;
-  function gardenOf() {
+  function gardenOf(gm = {}) {
     if (!GP) GP = { disc: new THREE.CircleGeometry(3, 24), grass: std(0x7fcf6a, { flatShading: false }), hedge: new THREE.TorusGeometry(2.8, 0.32, 6, 20), hedgeM: std(0x3f9a4e), trunk: new THREE.CylinderGeometry(0.16, 0.22, 1.2, 6), trunkM: std(0x7a5236), crown: new THREE.IcosahedronGeometry(1.1, 0), crownM: std(0x4fbf63), flower: new THREE.IcosahedronGeometry(0.2, 0), fl: [0xff7ab8, 0xffd23a, 0xffffff, 0x8fb8ff].map((c) => std(c)) };
     const g = new THREE.Group(), d = new THREE.Mesh(GP.disc, GP.grass); d.rotation.x = -Math.PI / 2; d.position.y = 0.07; g.add(d);
+    if (gm.pond) { // b447: a little pond in the hedge ring: deep teal in the middle, foam at the edge, lily pads and stones
+      const wm = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.08, metalness: 0, transparent: true, opacity: 0.94, depthWrite: false });
+      const w = new THREE.Mesh(new THREE.CircleGeometry(2.25, 40), look && look.pond ? look.pond(wm) : wm); w.rotation.x = -Math.PI / 2; w.position.y = 0.1; w.renderOrder = 2; g.add(w);
+      const padG = new THREE.CircleGeometry(0.26, 10, 0.4, Math.PI * 2 - 0.4); padG.rotateX(-Math.PI / 2); const padM = std(0x4fbf63, { flatShading: false });
+      [[0.9, 0.5, 0], [-0.7, 0.9, 1.4], [0.3, -1.1, 2.7], [-1.2, -0.4, 4]].forEach(([x, z, r]) => { const pd = new THREE.Mesh(padG, padM); pd.position.set(x, 0.12, z); pd.rotation.y = r; g.add(pd); });
+      const stG = new THREE.DodecahedronGeometry(0.28, 0), stM = std(0xc9ccd4);
+      for (let k = 0; k < 9; k++) { const a = (k / 9) * Math.PI * 2 + 0.2, st = new THREE.Mesh(stG, stM); st.position.set(Math.sin(a) * 2.35, 0.08, Math.cos(a) * 2.35); st.scale.set(1, 0.45, 0.8 + (k % 3) * 0.2); st.rotation.y = a; g.add(st); }
+    }
     const h = new THREE.Mesh(GP.hedge, GP.hedgeM); h.rotation.x = Math.PI / 2; h.position.y = 0.25; h.scale.z = 1.6; g.add(h);
     // b447: the town's own round tree (a soft cloud of leaves that sways), not one faceted ball; a blossom or a maple now and then
-    gardenN++; const tr = K.makeTrees ? K.makeTrees([new THREE.Matrix4().makeScale(1.15, 1.15, 1.15)], { pine: 0, blossom: gardenN % 3 === 1 ? 1 : 0, maple: gardenN % 3 === 2 ? 1 : 0, seed: gardenN }) : null;
-    if (tr) g.add(tr); else { const t = new THREE.Mesh(GP.trunk, GP.trunkM); t.position.y = 0.6; const c = new THREE.Mesh(GP.crown, GP.crownM); c.position.y = 1.8; g.add(t, c); }
+    gardenN++; const tr = gm.pond ? null : K.makeTrees ? K.makeTrees([new THREE.Matrix4().makeScale(1.15, 1.15, 1.15)], { pine: 0, blossom: gardenN % 3 === 1 ? 1 : 0, maple: gardenN % 3 === 2 ? 1 : 0, seed: gardenN }) : null;
+    if (tr) g.add(tr); else if (!gm.pond) { const t = new THREE.Mesh(GP.trunk, GP.trunkM); t.position.y = 0.6; const c = new THREE.Mesh(GP.crown, GP.crownM); c.position.y = 1.8; g.add(t, c); }
     for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.3, f = new THREE.Mesh(GP.flower, GP.fl[k % 4]); f.position.set(Math.sin(a) * 1.9, 0.22, Math.cos(a) * 1.9); g.add(f); }
     return g;
   }
@@ -152,7 +164,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     makeBoard();
     let soonTag = null;
     GAMES.forEach((gm, i) => {
-      const p = plotAt(i), g = gm.ready ? (gm.id === "beat" ? hallOf(gm) : gm.id === "jump" ? coinTowerOf(gm) : towerOf(gm)) : gm.garden ? gardenOf() : soonOf();
+      const p = plotAt(i), g = gm.ready ? (gm.id === "beat" ? hallOf(gm) : gm.id === "jump" ? coinTowerOf(gm) : towerOf(gm)) : gm.garden ? gardenOf(gm) : soonOf();
       g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); // the front faces the square
       g.traverse((o) => { if (o.isMesh) o.castShadow = !low; });
       built.add(g); if (gm.ready) { g.userData.radius = 3.6; solids.push(g); }

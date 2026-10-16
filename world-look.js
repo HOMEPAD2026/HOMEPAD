@@ -127,6 +127,95 @@ export function groundLook(mat, { low, paths = [] } = {}) {
   mat.needsUpdate = true;
 }
 
+// ---------------- b447 (village remaster): a stone floor of hexagons drawn in the shader ----------------
+// Each tile its own pale stone tone and a touch of grain, a bevel that catches the light on one side and falls into
+// shade on the other, a dark grout line with a faint blue-glass seam, and a little wear. Drawn from the mesh's uv
+// (a CircleGeometry: uv 0…1 over its diameter), so it stays sharp at any distance where a canvas texture blurred.
+// r: the disc's radius, cell: a tile's width in metres; low: flat tiles and seams only.
+export function hexFloorLook(mat, { r = 12, cell = 2.3, low = false } = {}) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, rr) => {
+    if (prev) prev(sh, rr);
+    sh.uniforms.hxR = { value: r }; sh.uniforms.hxCell = { value: cell };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 hxUv;").replace("#include <uv_vertex>", "#include <uv_vertex>\nhxUv = uv;"); // its own uv (works with or without a map)
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec2 hxUv; uniform float hxR, hxCell;" + NOISE + `
+      float hx_d(vec2 p){ p = abs(p); return max(dot(p, vec2(0.8660254, 0.5)), p.y); } // 0.5 at a tile's edge (cell = 1)
+      vec4 hx_cell(vec2 p){ const vec2 s = vec2(1.7320508, 1.0); vec4 c = floor(vec4(p, p - vec2(0.8660254, 0.5)) / s.xyxy) + 0.5;
+        vec4 h = vec4(p - c.xy * s, p - (c.zw + 0.5) * s); return dot(h.xy, h.xy) < dot(h.zw, h.zw) ? vec4(h.xy, c.xy) : vec4(h.zw, c.zw + 0.5); }
+      float hx_h(vec2 i){ return fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); }`)
+      .replace("#include <map_fragment>", `#include <map_fragment>
+      { vec2 p = (hxUv - 0.5) * 2.0 * hxR / hxCell; vec4 c = hx_cell(p); float e = hx_d(c.xy), id = hx_h(c.zw);
+        vec3 stone = mix(vec3(0.80, 0.84, 0.89), vec3(0.88, 0.90, 0.93), id); stone = mix(stone, vec3(0.76, 0.81, 0.88), step(0.82, id));
+        float grout = smoothstep(0.455, 0.49, e);
+        ${low ? "" : `float grain = lk_n(p * 9.0 + id * 31.0) * 0.06 + lk_fbm(p * 1.3) * 0.08;
+        stone *= 0.95 + grain;
+        float bev = smoothstep(0.36, 0.455, e) * (1.0 - grout); vec2 nd = normalize(c.xy + 1e-4);
+        stone *= 1.0 + bev * dot(nd, vec2(-0.55, 0.83)) * 0.16 - bev * 0.05; // lit toward the sun's side, shaded away
+        stone *= 1.0 - 0.06 * smoothstep(0.55, 0.8, lk_fbm(p * 0.45 + 3.1)); // worn, slightly darker patches`}
+        vec3 seam = mix(vec3(0.42, 0.50, 0.60), vec3(0.45, 0.78, 1.0), 0.35);
+        diffuseColor.rgb = mix(stone, seam, grout * 0.85);
+        diffuseColor.rgb *= 1.0 - 0.07 * smoothstep(0.82, 1.0, length(hxUv - 0.5) * 2.0); } // a soft rim where it meets the grass`)
+      .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
+      { vec2 p = (hxUv - 0.5) * 2.0 * hxR / hxCell; vec4 c = hx_cell(p); roughnessFactor = mix(0.62, 0.8, hx_h(c.zw)); roughnessFactor = mix(roughnessFactor, 0.95, smoothstep(0.455, 0.49, hx_d(c.xy))); }`);
+  };
+  const pk = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => "";
+  mat.customProgramCacheKey = () => pk() + "|hex" + (low ? "l" : ""); mat.needsUpdate = true;
+  return mat;
+}
+
+// ---------------- b447: contact shade (a cheap ambient occlusion where things meet the ground) ----------------
+// Everything gets darker in its last metre or so above the ground and a touch brighter on top, so buildings, benches
+// and posts sit on the ground instead of floating over it. World height from the vertex (instancing included).
+// k: how dark at the ground (0…1), h: over how many metres it fades.
+export function contactShade(mat, { k = 0.32, h = 1.3 } = {}) {
+  if (!mat || mat.userData.cshade || !(mat.isMeshStandardMaterial || mat.isMeshLambertMaterial || mat.isMeshPhongMaterial)) return mat;
+  mat.userData.cshade = true;
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, rr) => {
+    if (prev) prev(sh, rr);
+    sh.uniforms.csK = { value: k }; sh.uniforms.csH = { value: h };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float csY;").replace("#include <project_vertex>", `#include <project_vertex>
+      { vec4 cw = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          cw = instanceMatrix * cw;
+        #endif
+        csY = (modelMatrix * cw).y; }`);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float csY; uniform float csK, csH;")
+      .replace("#include <map_fragment>", "#include <map_fragment>\n      diffuseColor.rgb *= mix(1.0 - csK, 1.0, smoothstep(0.0, csH, csY));");
+  };
+  const pk = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => "";
+  mat.customProgramCacheKey = () => pk() + "|cs"; mat.needsUpdate = true;
+  return mat;
+}
+
+// ---------------- b447: a small pond: deeper toward the middle, ripples, a foam line at the edge ----------------
+// For a CircleGeometry (uv over its diameter). The colour runs from shallow mint at the edge to deep teal in the middle;
+// the ripples bend the normal (the sky catches them), and a thin, slowly moving foam line runs round the rim.
+export function pondLook(mat, { low = false } = {}) {
+  const FOAM = low ? "" : `float fo = smoothstep(0.86, 0.93, rr) * (1.0 - smoothstep(0.96, 1.0, rr));
+        fo *= 0.55 + 0.45 * lk_n(vec2(atan(pdUv.y - 0.5, pdUv.x - 0.5) * 6.0 + lkT * 0.6, lkT * 0.3));
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.99, 1.0), fo * 0.8);`;
+  const RIPPLE = `{ vec2 p = lkW.xz * 2.2; float e = 0.05; vec2 m = vec2(lkT * 0.3, lkT * 0.2);
+        float h0 = lk_fbm(p + m), hx = lk_fbm(p + vec2(e, 0.0) + m), hz = lk_fbm(p + vec2(0.0, e) + m);
+        normal = normalize(normal + (viewMatrix * vec4(-(hx - h0) / e * 0.1, 0.0, -(hz - h0) / e * 0.1, 0.0)).xyz); }`;
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.lkT = time;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 pdUv; varying vec3 lkW;").replace("#include <uv_vertex>", "#include <uv_vertex>\npdUv = uv;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nlkW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    let f = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float lkT; varying vec2 pdUv; varying vec3 lkW;" + NOISE)
+      .replace("#include <map_fragment>", `#include <map_fragment>
+      { float rr = length(pdUv - 0.5) * 2.0; float depth = 1.0 - smoothstep(0.15, 0.95, rr);
+        diffuseColor.rgb = mix(vec3(0.42, 0.86, 0.80), vec3(0.06, 0.34, 0.46), depth);
+        ${FOAM} }`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+      { float fr = pow(1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0), 3.0); totalEmissiveRadiance += vec3(0.55, 0.85, 1.0) * fr * 0.35; }`);
+    if (!low) f = f.replace("#include <normal_fragment_maps>", "#include <normal_fragment_maps>\n      " + RIPPLE);
+    sh.fragmentShader = f;
+  };
+  mat.customProgramCacheKey = () => "pond" + (low ? "l" : ""); mat.needsUpdate = true;
+  return mat;
+}
+
 // ---------------- water: moving ripples bend the normal, the edge and the crests catch the sky ----------------
 export function waterLook(mat) {
   mat.onBeforeCompile = (sh) => {
