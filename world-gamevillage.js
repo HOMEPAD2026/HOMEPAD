@@ -117,28 +117,28 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     if (typeof document === "undefined") return;
     const cv = document.createElement("canvas"); cv.width = 512; cv.height = 360; const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
     const g = new THREE.Group(), a = toPlaza + 0.32, r = V.r - 5; g.position.set(Math.sin(a) * r, 0, Math.cos(a) * r); g.rotation.y = a;
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.1), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })); face.position.y = 3.1; g.add(face);
-    const back = new THREE.Mesh(new THREE.BoxGeometry(4.7, 3.4, 0.18), std(0x1b2440)); back.position.set(0, 3.1, -0.11); g.add(back);
-    const rimM = glow(0xb48cff, 1.6); for (const y of [1.39, 4.81]) { const bar = new THREE.Mesh(new THREE.BoxGeometry(4.75, 0.08, 0.22), rimM); bar.position.set(0, y, -0.05); g.add(bar); }
-    for (const x of [-2.05, 2.05]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.5, 8), std(0x4a5366)); post.position.set(x, 0.75, -0.11); g.add(post); }
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 3.8), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })); face.position.y = 3.4; g.add(face);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(5.7, 4.1, 0.18), std(0x1b2440)); back.position.set(0, 3.4, -0.11); g.add(back);
+    const rimM = glow(0xb48cff, 1.6); for (const y of [1.35, 5.45]) { const bar = new THREE.Mesh(new THREE.BoxGeometry(5.75, 0.08, 0.22), rimM); bar.position.set(0, y, -0.05); g.add(bar); }
+    for (const x of [-2.5, 2.5]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.5, 8), std(0x4a5366)); post.position.set(x, 0.75, -0.11); g.add(post); }
     built.add(g); board = { cv, tex, top: null };
     paintBoard();
   }
-  function paintBoard() {
+  function paintBoard() { // b448: bigger type (phones), the top three, the prizes, your Coin Jump and Beat Stomp bests
     if (!board) return; const g = board.cv.getContext("2d"), W = 512, H = 360;
     const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#0f1d44"); bg.addColorStop(1, "#08112a"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    g.fillStyle = "#ff8a6a"; g.font = "800 22px Sora, system-ui, sans-serif"; g.fillText(T("AC Defense · this week"), 24, 40);
-    const top = board.top || [];
-    g.font = "600 20px Sora, system-ui, sans-serif";
-    if (!top.length) { g.fillStyle = "#8fa6cc"; g.fillText(board.top ? T("No runs yet — be the first!") : T("Loading…"), 24, 80); }
-    top.slice(0, 5).forEach((x, i) => { const y = 74 + i * 32; g.fillStyle = i === 0 ? "#ffd23a" : i === 1 ? "#dfe8f4" : i === 2 ? "#e8a06a" : "#9fb3d6"; g.fillText(`${i + 1}`, 28, y);
-      g.fillStyle = "#e8f0ff"; const nm = String(x.name || x.w || "?").slice(0, 16); /* the server sends w (a short wallet), n (the wave), kills, name */ g.fillText(nm, 60, y);
-      g.fillStyle = "#38d8ff"; g.textAlign = "right"; g.fillText(T("Wave {n}").replace("{n}", x.n), W - 28, y); g.textAlign = "left"; });
-    g.fillStyle = "#ffd23a"; g.font = "700 16px Sora, system-ui, sans-serif"; g.fillText(T("Weekly prizes: 10,000 · 5,000 · 2,500 ARCL"), 24, 248); // b447: paid to the top three when the week ends
-    g.fillStyle = "rgba(180,140,255,.35)"; g.fillRect(24, 262, W - 48, 2);
-    let best = 0; try { best = Number(localStorage.getItem("arc.world.jumpBest")) || 0; } catch { /* private */ }
-    g.fillStyle = "#ffc861"; g.font = "800 22px Sora, system-ui, sans-serif"; g.fillText(T("Coin Jump · your best"), 24, 300);
-    g.fillStyle = "#ffffff"; g.font = "900 34px Sora, system-ui, sans-serif"; g.fillText(best ? String(best) : "—", 24, 342);
+    g.fillStyle = "#ff8a6a"; g.font = "800 26px Sora, system-ui, sans-serif"; g.fillText(T("AC Defense · this week"), 22, 38);
+    const top = board.top || []; g.font = "700 26px Sora, system-ui, sans-serif";
+    if (!top.length) { g.fillStyle = "#8fa6cc"; g.font = "600 22px Sora, system-ui, sans-serif"; g.fillText(board.top ? T("No runs yet — be the first!") : T("Loading…"), 22, 84); }
+    top.slice(0, 3).forEach((x, i) => { const y = 80 + i * 38; g.fillStyle = ["#ffd23a", "#dfe8f4", "#e8a06a"][i]; g.fillText(`${i + 1}`, 24, y);
+      g.fillStyle = "#e8f0ff"; g.fillText(String(x.name || x.w || "?").slice(0, 14), 58, y);
+      g.fillStyle = "#38d8ff"; g.textAlign = "right"; g.fillText(T("Wave {n}").replace("{n}", x.n), W - 22, y); g.textAlign = "left"; });
+    g.fillStyle = "#ffd23a"; g.font = "700 18px Sora, system-ui, sans-serif"; g.fillText(T("Weekly prizes: 10,000 · 5,000 · 2,500 ARCL"), 22, 208);
+    g.fillStyle = "rgba(180,140,255,.35)"; g.fillRect(22, 224, W - 44, 2);
+    const best = (k) => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
+    [["arc.world.jumpBest", T("Coin Jump · your best"), "#ffc861"], ["arc.world.beatBest", T("Beat Stomp · your best"), "#ff8ae4"]].forEach(([k, label, c], i) => {
+      const y = 268 + i * 52; g.fillStyle = c; g.font = "800 22px Sora, system-ui, sans-serif"; g.fillText(label, 22, y);
+      const v = best(k); g.fillStyle = "#ffffff"; g.font = "900 30px Sora, system-ui, sans-serif"; g.textAlign = "right"; g.fillText(v ? v.toLocaleString() : "—", W - 22, y + 4); g.textAlign = "left"; });
     board.tex.needsUpdate = true;
   }
   function refreshBoard(t) {

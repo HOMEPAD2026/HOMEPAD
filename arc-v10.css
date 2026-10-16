@@ -4089,3 +4089,13 @@ body.wp .wp-hud #wp-map-btn{display:none!important}
 .wa-ex-today li{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#cfe0f6}.wa-ex-today li b{color:#ffd23a}
 .wa-ex-cap{height:6px;margin:10px 0 4px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}.wa-ex-cap i{display:block;height:100%;background:linear-gradient(90deg,#38d8ff,#4dffb0)}
 .wa-ex-today small{color:#8fa6cc;font-size:11px}
+
+/* b448: phones: the photo, hoverboard and wave buttons fold behind "⋯" (world-play.js); computers keep them all */
+.wp-act-more{display:none}
+html.wp-pcphone .wp-act-more{display:grid}
+html.wp-pcphone #wp-acts:not(.open) .wp-act-board,html.wp-pcphone #wp-acts:not(.open) .wp-act-emote,html.wp-pcphone #wp-acts:not(.open) .wp-act-photo{display:none}
+html.wp-pcphone #wp-acts.open .wp-act-board,html.wp-pcphone #wp-acts.open .wp-act-emote,html.wp-pcphone #wp-acts.open .wp-act-photo{animation:wpMore .18s ease-out both}
+html.wp-pcphone .wp-acts .wp-act-more{--c:#b48cff;--d:#7f55e0}
+html.wp-pcphone .wp-act-more svg circle{fill:#fff!important;stroke:none!important}
+@keyframes wpMore{from{opacity:0;transform:translateY(8px) scale(.9)}}
+body.wi-building .wp-acts .wp-act-more{display:none!important}

@@ -181,6 +181,16 @@ export function heightAt(x, z, inner = 228, outer = 420) {
   const k = Math.min(1, (d - inner) / (outer - inner)), rise = k * k * (3 - 2 * k);
   return rise * (10 + fbm(x * 0.012, z * 0.012) * 46) + Math.max(0, fbm(x * 0.03 + 9, z * 0.03) - 0.45) * 14 * rise;
 }
+/// b448: a far range past the hills: 24 soft blue-grey peaks (one instanced draw) that fade into the fog, so the horizon
+/// has depth instead of ending at the hills' rim
+export function makeRange({ r0 = 480, r1 = 580, n = 24 } = {}) {
+  const m = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 7, 1), new THREE.MeshStandardMaterial({ color: 0x7f9bb4, roughness: 1, flatShading: true }), n);
+  const o = new THREE.Object3D(); let s = 11; const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + r() * 0.2, d = r0 + r() * (r1 - r0), h = 70 + r() * 90, w = 60 + r() * 50;
+    o.position.set(Math.cos(a) * d, h / 2 - 8, Math.sin(a) * d); o.scale.set(w, h, w * (0.8 + r() * 0.4)); o.rotation.y = r() * Math.PI; o.updateMatrix(); m.setMatrixAt(i, o.matrix); }
+  m.name = "range"; m.userData.noBake = true; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false;
+  return m;
+}
 export function makeHills({ inner = 228, outer = 430, rings = 44, segs = 220 } = {}) {
   const pos = [], col = [], idx = [];
   const grass = new THREE.Color(0x4f8a4a), earth = new THREE.Color(0x8a7050), rock = new THREE.Color(0x9a9a92), far = new THREE.Color(0x5f8a8a), c = new THREE.Color();

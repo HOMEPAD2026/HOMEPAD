@@ -13,6 +13,7 @@
 import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
 import { createShowcase } from "./world-showcase.js";
+import { groundLook } from "./world-look.js";
 
 export const ISLAND_N = 36, LOT_N = 9, HMAX = 24, MAX_BRICKS = 12000;
 export const COLORS = [
@@ -289,12 +290,15 @@ export function createIsland(ctx) {
   const ghostRoot = new THREE.Group(); root.add(ghostRoot);
   const fxRoot = new THREE.Group(); root.add(fxRoot);
   const gridTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 64, 64); g.strokeStyle = "rgba(0,0,0,.16)"; g.lineWidth = 2; g.strokeRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; })();
-  let topMat = null, exit = null;
+  // b448: the grid lines are strong only while building; otherwise a faint guide on grass that varies like the town's
+  const faintTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, 64, 64); g.strokeStyle = "rgba(0,0,0,.05)"; g.lineWidth = 2; g.strokeRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  let topMat = null, exit = null, gridMap = null, faintMap = null;
   function buildLand() {
     land.clear();
     const W = N + 6;
-    topMat = new THREE.MeshStandardMaterial({ color: 0x5fae62, roughness: 0.95, map: gridTex.clone() });
-    topMat.map.repeat.set(W, W); topMat.map.offset.set(0, 0); topMat.map.needsUpdate = true;
+    gridMap = gridTex.clone(); faintMap = faintTex.clone(); for (const m of [gridMap, faintMap]) { m.repeat.set(W, W); m.offset.set(0, 0); m.needsUpdate = true; }
+    topMat = new THREE.MeshStandardMaterial({ color: 0x5fae62, roughness: 0.95, map: faintMap }); // (setBuild swaps in the strong grid)
+    groundLook(topMat, { low: !!ctx.coarse }); // lush and sunlit patches and drifting cloud shade, like the town's ground
     const sideMat = new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 });
     const top = new THREE.Mesh(new THREE.BoxGeometry(W, 1, W), [sideMat, sideMat, topMat, sideMat, sideMat, sideMat]);
     top.position.y = -0.5; top.receiveShadow = true; land.add(top);
@@ -989,6 +993,7 @@ export function createIsland(ctx) {
     if (on) { ensureFurn(); setGhost(); if (!thumbsDone) renderThumbs().then(paintBuild); }
     document.body.classList.toggle("wi-building", on);
     topMat && topMat.color.set(on ? 0x6cbd6f : 0x5fae62);
+    if (topMat && gridMap) topMat.map = on ? gridMap : faintMap;
     if (land.userData.clouds) land.userData.clouds.visible = !on; // puffs drifting through the build view
     gridTex.needsUpdate = true; paintBuild();
     if (on) toast(ctx.coarse ? T("Build mode: tap to place, drag to look") : T("Build mode: click to place, right-click to remove, R to rotate"));
