@@ -559,3 +559,31 @@ html.wp-pcphone body.wp .wp-hub-card section h3{font-size:20px;margin-bottom:16p
 html.wp-pcphone body.wp .wp-hub section{margin-top:28px}
 html.wp-pcphone body.wp .wp-hub-x{width:72px;height:72px}
 html.wp-pcphone body.wp .wp-hub-x svg{width:32px;height:32px}
+
+/* b447: folded, the quest list was a grid and its one row grew to the full quest text, so the words ran out of the
+   card and over the minimap; it stays a block (the row then trims with …) */
+body.wp .wp-hud .wp-quests.closed ol{display:block}
+body.wp .wp-hud .wp-quests li{min-width:0;max-width:100%;box-sizing:border-box}
+
+/* b447: the quest card folds to a round icon (the ‹ on its edge) and opens again from the icon */
+body.wp .wp-hud .wp-quests.mini{display:none!important}
+body.wp .wp-quests-fold{appearance:none;position:absolute;right:-30px;top:8px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border-radius:50%;cursor:pointer;
+  border:1.5px solid rgba(120,214,255,.5);background:rgba(8,24,62,.78);color:#dff2ff;box-shadow:0 2px 6px rgba(0,8,30,.35)}
+body.wp .wp-quests-fold svg,body.wp .wp-qmini svg{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+body.wp .wp-quests-fold svg{width:16px;height:16px}
+body.wp .wp-qmini{appearance:none;position:relative;display:grid;place-items:center;width:52px;height:52px;margin-top:6px;padding:0;border-radius:50%;cursor:pointer;
+  border:1.5px solid rgba(120,214,255,.55);background:radial-gradient(circle at 50% 30%,rgba(40,86,170,.85),rgba(10,28,72,.85) 75%);color:#ffd27a;box-shadow:inset 0 1px 0 rgba(190,230,255,.2),0 3px 8px rgba(0,8,30,.35)}
+body.wp .wp-qmini[hidden]{display:none}
+body.wp .wp-qmini svg{width:26px;height:26px}
+body.wp .wp-qmini b{position:absolute;right:-12px;bottom:-6px;min-width:34px;padding:2px 6px;border-radius:999px;background:#0b1d49;border:1px solid rgba(255,201,58,.6);font:800 11px/1.2 var(--hud-font,var(--f-num));color:#ffc93a;text-align:center}
+html.wp-pcphone body.wp .wp-qmini{width:76px;height:76px;margin-top:8px}
+html.wp-pcphone body.wp .wp-qmini svg{width:38px;height:38px}
+html.wp-pcphone body.wp .wp-qmini b{right:-20px;bottom:-8px;min-width:52px;font-size:17px;padding:3px 8px}
+html.wp-pcphone body.wp .wp-quests-fold{right:-46px;top:6px;width:40px;height:40px}
+html.wp-pcphone body.wp .wp-quests-fold svg{width:22px;height:22px}
+body:has(.wj-hud) .wp-qmini,body.wp:has([data-game-hud]:not([hidden])) .wp-qmini,body.wp:has(.wb-hud) .wp-qmini{display:none!important}
+
+/* b447: the top half of the screen (brand, level, health, quests, the buttons, the minimap, purse, wallet, who's
+   online, the raid card) lets the world show through; a tap or hover brings an element back to full */
+body.wp .wp-hud :is(.wp-brand,.wp-lv,.wc-vit,.wp-quests,.wp-qmini,.wp-hud-btns>.wp-btn,.wp-purse,.wp-online,#wp-wallet,.wa-chip,.wp-cards,.wp-stage,.wp-mini),body.wp .wr-raid{opacity:.8;transition:opacity .15s ease}
+body.wp .wp-hud :is(.wp-brand,.wp-lv,.wc-vit,.wp-quests,.wp-qmini,.wp-hud-btns>.wp-btn,.wp-purse,.wp-online,#wp-wallet,.wa-chip,.wp-cards,.wp-stage,.wp-mini):is(:hover,:active,:focus-visible),body.wp .wr-raid:is(:hover,:active,:focus-within){opacity:1}
