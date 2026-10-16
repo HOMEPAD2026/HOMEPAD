@@ -811,7 +811,7 @@ addEventListener("blur", () => { keys.clear(); jumpDown = false; });
 const joyEl = $("wp-joy"), knob = joyEl.querySelector("i");
 let downAt = null, hoverXY = null, pinch = null;
 const JOYMAX = document.documentElement.classList.contains("wp-pcphone") ? 118 : 56;
-const TOUCHK = JOYMAX / 56; // the phone layout is scaled down ~0.4, so tap slop and the pinch dead zone grow with it
+let joyMax = JOYMAX, joyK = 1; const TOUCHK = JOYMAX / 56; // the phone layout is scaled down ~0.4, so tap slop and the pinch dead zone grow with it
 // the phone frame on a computer (b416): the mouse works the stick like a thumb (press on the left half and drag)
 const mouseStick = window.__arcFrame === "mobile";
 const touches = new Map(); // non-stick touches: two of them pinch to zoom
@@ -845,7 +845,7 @@ cv.addEventListener("pointerdown", (e) => {
     const c = e.pointerType === "touch" ? restAt() : null, bx = c ? c.x : e.clientX, by = c ? c.y : e.clientY; // touch: the base sits on its ring
     joy = { id: e.pointerId, x: bx, y: by, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0, fixed: !!c };
     joyEl.style.left = bx + "px"; joyEl.style.top = by + "px"; joyEl.classList.add("on"); knob.style.transform = "";
-    if (c) { let dx = e.clientX - bx, dy = e.clientY - by; const m = Math.hypot(dx, dy); if (m > JOYMAX) { dx *= JOYMAX / m; dy *= JOYMAX / m; } joy.dx = dx / JOYMAX; joy.dy = dy / JOYMAX; knob.style.transform = `translate(${dx}px,${dy}px)`; }
+    if (c) { let dx = e.clientX - bx, dy = e.clientY - by; const m = Math.hypot(dx, dy); if (m > joyMax) { dx *= joyMax / m; dy *= joyMax / m; } joy.dx = dx / joyMax; joy.dy = dy / joyMax; knob.style.transform = `translate(${dx / joyK}px,${dy / joyK}px)`; }
   } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 cv.addEventListener("pointermove", (e) => {
@@ -859,10 +859,10 @@ cv.addEventListener("pointermove", (e) => {
   if (e.pointerType === "mouse" && mode === "island") { hoverXY = { x: e.clientX, y: e.clientY }; if (!look) island.hover(e.clientX, e.clientY); }
   if (joy && e.pointerId === joy.id) {
     joy.cx = e.clientX; joy.cy = e.clientY;
-    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = JOYMAX;
+    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = joyMax;
     if (m > max && joy.fixed) { dx *= max / m; dy *= max / m; } // the fixed base doesn't move: the knob stops at the rim
     else if (m > max) { const k = (m - max) / m; joy.x = Math.min(joy.x + dx * k, innerWidth * 0.5); joy.y += dy * k; joyEl.style.left = joy.x + "px"; joyEl.style.top = joy.y + "px"; dx *= max / m; dy *= max / m; } // past the rim the base follows the thumb (no dead centre to cross on a turn)
-    joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx}px,${dy}px)`;
+    joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx / joyK}px,${dy / joyK}px)`;
   } else if (look && e.pointerId === look.id) {
     camYaw -= (e.clientX - look.x) * 0.006 * S.sens;
     camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - look.y) * 0.004 * S.sens, -0.3, mode === "island" && island.building() ? 1.4 : 0.75);
@@ -1126,10 +1126,11 @@ function step(dt) {
     // a big fall (impact over 12) lands heavy: more dust, a harder shake, the world slows for a beat; the rest as before
     if (hop <= floor) { const impact = -vy, heavy = impact > 12; hop = floor; vy = 0; jumpHeld = false; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(impact); dust(heavy ? 16 : 6, heavy ? 1 : 0); shake = Math.max(shake, heavy ? 0.22 : 0.12); if (heavy && !reduce) slowUntil = Math.max(slowUntil, performance.now() + 150); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } }
   }
+  else if (jumpOn && hop > floor + 0.05 && hop - floor < 0.25) hop = floor; // b444: a Coin Jump pad going down carries you (no fall-and-land every frame)
   else if (hop > floor + 0.05) { grounded = false; vy = 0; coyoteAt = performance.now(); } // walked off an edge
   else if (floor > hop) hop = floor;
   player.position.y = hop;
-  { const cs = meShadow; if (cs) { const up = Math.max(0, hop - floor); cs.position.y = floor - hop + 0.05; cs.material.opacity = 0.5 * Math.max(0, 1 - up / 3); cs.scale.setScalar(1 + up * 0.15); cs.visible = mode === "hub" || mode === "island"; } } // the spot stays on the floor as you jump, fainter higher up
+  { const cs = meShadow; if (cs) { const up = Math.max(0, hop - floor); cs.position.y = floor - hop + 0.05; cs.material.opacity = 0.5 * Math.max(0.3, 1 - up / 6); cs.scale.setScalar(1 + Math.min(up, 6) * 0.12); cs.visible = (mode === "hub" || mode === "island") && !jumpOn; } /* b443: it stays on the ground (faint) up to any height, so you see where you'll land; Coin Jump has its own marker */ } // the spot stays on the floor as you jump, fainter higher up
   at.y = THREE.MathUtils.lerp(at.y, jetOn() ? hop * 0.75 : floor, grounded ? 0.2 : 0.04);
   if (frozen) { speedNow = THREE.MathUtils.lerp(speedNow, 0, 0.2); return; }
   if (flying) { stepTeleport(); speedNow = 0; return; }
@@ -1630,7 +1631,7 @@ async function openJump() {
       let M; try { M = await import("./world-jumprace.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       jumpRace = M.createJumpRace({ THREE, planet, T: TW, lang: LANG, esc, toast, Snd, vfx, reduce, low: lowGfx, coarse, origin: gv.center, keep: [gv.root],
         pos: () => ({ x: -planet.position.x, y: hop, z: -planet.position.z }), place: (x, z) => standAt(x, z, gv.center), lift: (y) => { hop = y; at.y = y; vy = 0; grounded = true; },
-        warm: () => st.warm(2500), setArena: (r) => { arenaR = r; }, leave: () => { jumpOn = false; near = null; paintPrompt(); const e = gv.exitOf("jump"); standAt(e.x, e.z, gv.center); } });
+        warm: () => st.warm(2500), boost: (v) => { vy = v; grounded = false; jumpHeld = false; }, setArena: (r) => { arenaR = r; }, leave: () => { jumpOn = false; near = null; paintPrompt(); const e = gv.exitOf("jump"); standAt(e.x, e.z, gv.center); } });
       st.on((dt, t) => { if (jumpRace) jumpRace.tick(dt, t); });
     }
     jumpOn = true; near = null; paintPrompt(); jumpRace.start();
@@ -2630,7 +2631,7 @@ function openSet() {
   setEl.querySelectorAll("#wp-set-cap button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.cap) === (S.fpsCap || 60))));
   setEl.querySelectorAll("#wp-set-lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
   $("wp-set-q-note").textContent = qNote(S.quality === "high" ? "ultra" : S.quality);
-  $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false; $("wp-set-big").checked = !!S.big; $("wp-set-cb").checked = !!S.cb;
+  $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-joyk").value = String([0.85, 1, 1.2].includes(+S.joyK) ? +S.joyK : 1); $("wp-set-joyup").value = +S.joyUp || 0; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false; $("wp-set-big").checked = !!S.big; $("wp-set-cb").checked = !!S.cb;
   const d = dailyState(), c = d.c, val = { shops: c.shops.length, jumps: c.jumps, walk: Math.round(c.walk) };
   $("wp-daily").innerHTML = DAILY.map((g) => `<li class="${d.done.includes(g.id) ? "ok" : ""}"><i></i><span>${esc(T(g.t))}</span><small data-no-i18n>${Math.min(val[g.id], g.n)}/${g.n}</small></li>`).join("") + `<li class="streak"><span>${esc(T("Streak: {n} days", { n: d.streak || 0 }))}</span></li>`;
   $("wp-badges").innerHTML = BADGES.map((b) => `<li class="${P.badges.includes(b.id) ? "ok" : ""}" title="${esc(T(b.t))}"><b>${esc(T(b.title))}</b><small>${esc(T(b.t))}</small></li>`).join("");
@@ -2737,6 +2738,12 @@ $("wp-set-cb").addEventListener("change", (e) => { S.cb = !!e.target.checked; sa
 $("wp-set-tut").addEventListener("click", () => { P.tut = 0; P.tutBits = 0; P.tutAgain = true; save(); closeSet(); tutorialStep(-1); setTimeout(openGuide, 300); });
 $("wp-set-motion").addEventListener("change", (e) => { S.motion = e.target.checked ? "less" : ""; saveSet(); $("wp-set-q-note").innerHTML = `${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`; });
 $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; saveSet(); });
+// b443: the fixed joystick's size and height (phones): CSS variables on <html>; restAt() reads the ring's real box, and
+// the knob's reach grows with the ring
+const joyApply = () => { const k = [0.85, 1, 1.2].includes(+S.joyK) ? +S.joyK : 1, up = Math.max(0, Math.min(240, +S.joyUp || 0)); document.documentElement.style.setProperty("--joy-k", k); document.documentElement.style.setProperty("--joy-up", up + "px"); joyMax = JOYMAX * k; joyK = k; };
+$("wp-set-joyk").addEventListener("change", (e) => { S.joyK = +e.target.value; saveSet(); joyApply(); });
+$("wp-set-joyup").addEventListener("input", (e) => { S.joyUp = +e.target.value; saveSet(); joyApply(); });
+joyApply();
 $("wp-set-char").addEventListener("click", () => { closeSet(); openMake(); });
 let resetArm = 0;
 $("wp-set-reset").addEventListener("click", (e) => {
@@ -3838,7 +3845,7 @@ window.arcWorld = {
   applyOwn: (o) => applyOwn(o), // the pets, and a worldOwn to mirror (tests)
   stage: () => st, post: () => fxPost, gshadow: () => gshadow, grass: () => grass, gmask: () => gmask, parts: () => parts, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
-  mode: () => mode, input: () => ({ joy: joy ? { dx: +joy.dx.toFixed(2), dy: +joy.dy.toFixed(2), fixed: joy.fixed } : null, look: !!look, pinch: !!pinch, touches: touches.size, cam: +camGoal.toFixed(2) }), gv: () => gv, liftTo: (y) => { hop = y; at.y = y; vy = 0; grounded = true; } /* tests: stand at a height (a Coin Jump platform) */, goGameVillage: () => goGameVillage(), island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
+  jump: () => jumpRace, mode: () => mode, input: () => ({ joy: joy ? { dx: +joy.dx.toFixed(2), dy: +joy.dy.toFixed(2), fixed: joy.fixed } : null, look: !!look, pinch: !!pinch, touches: touches.size, cam: +camGoal.toFixed(2) }), gv: () => gv, liftTo: (y) => { hop = y; at.y = y; vy = 0; grounded = true; } /* tests: stand at a height (a Coin Jump platform) */, goGameVillage: () => goGameVillage(), island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
   coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, robots: () => !!(kit && kit.enemies && kit.enemies.EyeDrone), quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),

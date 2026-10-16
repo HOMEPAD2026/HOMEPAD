@@ -15,15 +15,15 @@ import { createDefenseArt } from "./world-defense-art.js";
 import { mobStats } from "./world-rpg-data.js";
 
 const LW = {
-  ko: { "AC Defense": "AC 디펜스", Core: "코어", Wave: "웨이브", Build: "건설", Break: "휴식", Fight: "전투", Scrap: "고철", "Start wave": "웨이브 시작", Quit: "그만두기", Shock: "전격", Frost: "냉기", Flame: "화염", Barrier: "방벽", "Chain zap": "연쇄 번개", "Slow aura": "감속 오라", "Burn over time": "지속 화상", "Blocks a lane": "길 막기", Upgrade: "강화", Sell: "판매", Close: "닫기", Level: "레벨", Max: "최대",
+  ko: { "Pick an upgrade": "강화를 고르세요", "Overcharge": "과충전", "Towers hit 15% harder": "타워 피해 +15%", "Long range": "장거리", "Towers reach 12% further": "타워 사거리 +12%", "Scrap magnet": "고철 자석", "25% more scrap from kills": "처치 고철 +25%", "Core patch": "코어 수리", "The Core heals 30%": "코어 체력 30% 회복", "AC Defense": "AC 디펜스", Core: "코어", Wave: "웨이브", Build: "건설", Break: "휴식", Fight: "전투", Scrap: "고철", "Start wave": "웨이브 시작", Quit: "그만두기", Shock: "전격", Frost: "냉기", Flame: "화염", Barrier: "방벽", "Chain zap": "연쇄 번개", "Slow aura": "감속 오라", "Burn over time": "지속 화상", "Blocks a lane": "길 막기", Upgrade: "강화", Sell: "판매", Close: "닫기", Level: "레벨", Max: "최대",
     "Place a tower": "타워 설치", "Boss wave!": "보스 웨이브!", "Wave {n} cleared": "웨이브 {n} 클리어", "The Core fell": "코어가 무너졌어요", "Waves cleared": "클리어한 웨이브", "Knock-outs": "처치", "ARCL earned": "획득 ARCL", "Weekly rank": "주간 순위", "Play again": "다시 하기", Exit: "나가기", "Sign in to earn ARCL": "로그인하면 ARCL을 받아요", "No more rewarded runs today": "오늘은 보상 한도에 도달했어요",
     "All eight pads are taken": "패드 8개가 모두 찼어요", "Not enough scrap": "고철이 부족해요", "The Barrier broke": "방벽이 부서졌어요", "Defend the Core": "코어를 지켜라", "Rewards aren't available right now": "지금은 보상을 받을 수 없어요", "Getting ready": "준비 중", "Best this week": "이번 주 최고", "waves": "웨이브", "Core under attack": "코어 공격받는 중", "Quit the run?": "그만둘까요?", "Keep going": "계속하기", "Next wave in {n} s": "다음 웨이브 {n}초", "Towers {a}/{b}": "타워 {a}/{b}", "Tap a pad to build": "패드를 눌러 건설",
     "Wave {n}": "웨이브 {n}", Boss: "보스", "Enemies left {n}": "남은 적 {n}", "New weekly best!": "이번 주 신기록!", "{n} of 3 stars": "별 3개 중 {n}개", "Range {n} m": "범위 {n}m", "Tap again to build": "한 번 더 누르면 건설", "Tap a tower to see its range": "타워를 눌러 범위 보기", "Wave cleared!": "웨이브 클리어!", "The Spam King": "스팸 킹", "The Free Mint": "프리 민트", "The Honeypot Queen": "허니팟 퀸" },
-  zh: { "AC Defense": "AC 防御", Core: "核心", Wave: "波次", Build: "建造", Break: "休息", Fight: "战斗", Scrap: "废料", "Start wave": "开始波次", Quit: "退出", Shock: "电击", Frost: "冰霜", Flame: "火焰", Barrier: "屏障", "Chain zap": "连锁闪电", "Slow aura": "减速光环", "Burn over time": "持续灼烧", "Blocks a lane": "封锁通道", Upgrade: "升级", Sell: "出售", Close: "关闭", Level: "等级", Max: "满级",
+  zh: { "Pick an upgrade": "选择一个强化", "Overcharge": "过载", "Towers hit 15% harder": "塔伤害 +15%", "Long range": "远程", "Towers reach 12% further": "塔射程 +12%", "Scrap magnet": "废料磁铁", "25% more scrap from kills": "击杀废料 +25%", "Core patch": "核心修补", "The Core heals 30%": "核心恢复 30%", "AC Defense": "AC 防御", Core: "核心", Wave: "波次", Build: "建造", Break: "休息", Fight: "战斗", Scrap: "废料", "Start wave": "开始波次", Quit: "退出", Shock: "电击", Frost: "冰霜", Flame: "火焰", Barrier: "屏障", "Chain zap": "连锁闪电", "Slow aura": "减速光环", "Burn over time": "持续灼烧", "Blocks a lane": "封锁通道", Upgrade: "升级", Sell: "出售", Close: "关闭", Level: "等级", Max: "满级",
     "Place a tower": "放置塔", "Boss wave!": "首领波次！", "Wave {n} cleared": "第 {n} 波已清除", "The Core fell": "核心被攻破", "Waves cleared": "清除波次", "Knock-outs": "击败", "ARCL earned": "获得 ARCL", "Weekly rank": "本周排名", "Play again": "再来一次", Exit: "离开", "Sign in to earn ARCL": "登录后可获得 ARCL", "No more rewarded runs today": "今天的奖励次数已用完",
     "All eight pads are taken": "八个平台都已占用", "Not enough scrap": "废料不足", "The Barrier broke": "屏障被摧毁", "Defend the Core": "守护核心", "Rewards aren't available right now": "暂时无法领取奖励", "Getting ready": "准备中", "Best this week": "本周最佳", "waves": "波", "Core under attack": "核心遭到攻击", "Quit the run?": "要退出吗？", "Keep going": "继续", "Next wave in {n} s": "{n} 秒后下一波", "Towers {a}/{b}": "塔 {a}/{b}", "Tap a pad to build": "点击平台来建造",
     "Wave {n}": "第 {n} 波", Boss: "首领", "Enemies left {n}": "剩余敌人 {n}", "New weekly best!": "本周新纪录！", "{n} of 3 stars": "3 星中的 {n} 星", "Range {n} m": "范围 {n} 米", "Tap again to build": "再点一下即可建造", "Tap a tower to see its range": "点击塔查看范围", "Wave cleared!": "波次已清除！", "The Spam King": "垃圾邮件之王", "The Free Mint": "免费铸造", "The Honeypot Queen": "蜜罐女王" },
-  tr: { "AC Defense": "AC Savunma", Core: "Çekirdek", Wave: "Dalga", Build: "İnşa", Break: "Mola", Fight: "Savaş", Scrap: "Hurda", "Start wave": "Dalgayı başlat", Quit: "Çık", Shock: "Şok", Frost: "Buz", Flame: "Alev", Barrier: "Bariyer", "Chain zap": "Zincir şimşek", "Slow aura": "Yavaşlatma aurası", "Burn over time": "Süregelen yanık", "Blocks a lane": "Yolu tıkar", Upgrade: "Yükselt", Sell: "Sat", Close: "Kapat", Level: "Seviye", Max: "Maks",
+  tr: { "Pick an upgrade": "Bir geliştirme seç", "Overcharge": "Aşırı yük", "Towers hit 15% harder": "Kuleler %15 daha sert vurur", "Long range": "Uzun menzil", "Towers reach 12% further": "Kule menzili %12 artar", "Scrap magnet": "Hurda mıknatısı", "25% more scrap from kills": "Öldürmelerden %25 daha fazla hurda", "Core patch": "Çekirdek yaması", "The Core heals 30%": "Çekirdek %30 iyileşir", "AC Defense": "AC Savunma", Core: "Çekirdek", Wave: "Dalga", Build: "İnşa", Break: "Mola", Fight: "Savaş", Scrap: "Hurda", "Start wave": "Dalgayı başlat", Quit: "Çık", Shock: "Şok", Frost: "Buz", Flame: "Alev", Barrier: "Bariyer", "Chain zap": "Zincir şimşek", "Slow aura": "Yavaşlatma aurası", "Burn over time": "Süregelen yanık", "Blocks a lane": "Yolu tıkar", Upgrade: "Yükselt", Sell: "Sat", Close: "Kapat", Level: "Seviye", Max: "Maks",
     "Place a tower": "Kule yerleştir", "Boss wave!": "Patron dalgası!", "Wave {n} cleared": "{n}. dalga temizlendi", "The Core fell": "Çekirdek düştü", "Waves cleared": "Temizlenen dalga", "Knock-outs": "Yenilen", "ARCL earned": "Kazanılan ARCL", "Weekly rank": "Haftalık sıra", "Play again": "Tekrar oyna", Exit: "Çıkış", "Sign in to earn ARCL": "ARCL için giriş yap", "No more rewarded runs today": "Bugünkü ödüllü oyun hakkı doldu",
     "All eight pads are taken": "Sekiz platformun hepsi dolu", "Not enough scrap": "Yeterli hurda yok", "The Barrier broke": "Bariyer kırıldı", "Defend the Core": "Çekirdeği koru", "Rewards aren't available right now": "Ödüller şu an alınamıyor", "Getting ready": "Hazırlanıyor", "Best this week": "Bu haftanın en iyisi", "waves": "dalga", "Core under attack": "Çekirdek saldırı altında", "Quit the run?": "Bırakılsın mı?", "Keep going": "Devam et", "Next wave in {n} s": "Sonraki dalga {n} sn", "Towers {a}/{b}": "Kule {a}/{b}", "Tap a pad to build": "Kurmak için bir platforma dokun",
     "Wave {n}": "{n}. Dalga", Boss: "Patron", "Enemies left {n}": "Kalan düşman {n}", "New weekly best!": "Haftanın yeni rekoru!", "{n} of 3 stars": "3 yıldızdan {n}", "Range {n} m": "Menzil {n} m", "Tap again to build": "Kurmak için tekrar dokun", "Tap a tower to see its range": "Menzili görmek için bir kuleye dokun", "Wave cleared!": "Dalga temizlendi!", "The Spam King": "Spam Kralı", "The Free Mint": "Bedava Mint", "The Honeypot Queen": "Bal Tuzağı Kraliçesi" },
@@ -127,7 +127,7 @@ export function createDefense(ctx) {
     for (const tw of towers) {
       if (!tw || tw.id === "barrier") continue; const d = TOWERS[tw.id], l = tw.lvl - 1, u = tw.mesh.userData;
       if (tw.id === "shock") {
-        tw.cd = Math.max(0, tw.cd - dt); const a = near(tw.x, tw.z, d.range, list); if (!a) continue;
+        tw.cd = Math.max(0, tw.cd - dt); const a = near(tw.x, tw.z, d.range * perks.rng, list); if (!a) continue;
         art.aim(tw.mesh, a.g.position.x, a.g.position.z); if (tw.cd > 0) continue;
         tw.cd = d.cd[l]; u.fire(); seen.length = 0; seen.push(a); zo.color = d.color;
         let from = muzzleAt(tw, hop[0], 1.7), to = hop[1], m = a, k = d.dmg[l] * tK;
@@ -137,13 +137,13 @@ export function createDefense(ctx) {
         }
         Snd.zap && Snd.zap();
       } else if (tw.id === "frost") {
-        const r = d.r[l], hit = tw.acc + dt >= 1; tw.acc = hit ? 0 : tw.acc + dt; let any = false;
+        const r = d.r[l] * perks.rng, hit = tw.acc + dt >= 1; tw.acc = hit ? 0 : tw.acc + dt; let any = false;
         for (const m of list) { const dx = m.g.position.x - tw.x, dz = m.g.position.z - tw.z; if (dx * dx + dz * dz > r * r) continue; any = true; m.slow = Math.max(m.slow, 0.35); if (hit) combat.defense.hit(m, d.dmg[l] * tK + m.def * 0.5, tmpA.set(tw.x, 0, tw.z)); }
         if (hit && any) u.fire();
       } else if (tw.id === "flame") {
-        tw.cd = Math.max(0, tw.cd - dt); const a = near(tw.x, tw.z, d.range, list); if (!a) continue;
+        tw.cd = Math.max(0, tw.cd - dt); const a = near(tw.x, tw.z, d.range * perks.rng, list); if (!a) continue;
         art.aim(tw.mesh, a.g.position.x, a.g.position.z); if (tw.cd > 0) continue;
-        seen.length = 0; seen.push(a); for (let n = 1; n < d.n[l]; n++) { const m = near(tw.x, tw.z, d.range, list, seen); if (!m) break; seen.push(m); }
+        seen.length = 0; seen.push(a); for (let n = 1; n < d.n[l]; n++) { const m = near(tw.x, tw.z, d.range * perks.rng, list, seen); if (!m) break; seen.push(m); }
         tw.cd = d.cd[l]; u.fire();
         for (const m of seen) { m.burn = 2.6; m.burnD = d.dmg[l] * tK; if (VX && VX.impact) VX.impact(tmpB.set(m.g.position.x, (m.y || 0.6) + 0.4, m.g.position.z), "fire"); }
         if (parts && !RM && !LOW) { muzzleAt(tw, tmpA, 1.6); parts.emit(flameO); }
@@ -163,11 +163,26 @@ export function createDefense(ctx) {
     paintHud();
     if (coreHp <= 0 && phase !== "over") lost = true; // ended from the loop (this runs inside the scammers' own update)
   }
-  const TGT = { x: O.x, z: O.z, r: ARENA.coreR, hit: (m) => coreHit(m.rank === "boss" ? cur.bossDmg : cur.coreDmg, m), wall, dead: () => { kills++; scrap += killScrap(cur ? cur.w : 1); paintHud(); } };
+  const TGT = { x: O.x, z: O.z, r: ARENA.coreR, hit: (m) => coreHit(m.rank === "boss" ? cur.bossDmg : cur.coreDmg, m), wall, dead: () => { kills++; scrap += Math.round(killScrap(cur ? cur.w : 1) * perks.scrap); paintHud(); } };
 
   // ---------------- the run ----------------
   const foeLv = () => { const pl = Math.max(1, (ctx.level && ctx.level()) || 1); return Math.max(1, Math.min(pl, pl - 5 + Math.floor((cur ? cur.w : 1) / 3))); };
   let tK = 1; // tower damage against the current crowd's level
+  // b444: every third wave cleared, pick one of three upgrades for the rest of the run
+  let perks = { dmg: 1, rng: 1, scrap: 1 };
+  const PERKS = [
+    { id: "dmg", name: "Overcharge", d: "Towers hit 15% harder", go: () => { perks.dmg *= 1.15; } },
+    { id: "rng", name: "Long range", d: "Towers reach 12% further", go: () => { perks.rng *= 1.12; } },
+    { id: "scrap", name: "Scrap magnet", d: "25% more scrap from kills", go: () => { perks.scrap *= 1.25; } },
+    { id: "core", name: "Core patch", d: "The Core heals 30%", go: () => { coreHp = Math.min(CORE_HP, coreHp + Math.round(CORE_HP * 0.3)); if (art) art.setCore(coreHp / CORE_HP, false); } },
+  ];
+  function offerPerks() {
+    if (!ui) return; let box = ui.querySelector(".wd-perk"); if (!box) { box = document.createElement("div"); box.className = "wd-perk"; ui.appendChild(box); }
+    const pool = PERKS.filter((p) => p.id !== "core" || coreHp < CORE_HP), pick3 = []; while (pick3.length < 3 && pool.length) pick3.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    box.innerHTML = `<small>${esc(T("Pick an upgrade"))}</small><div>${pick3.map((p) => `<button type="button" data-perk="${p.id}"><b>${esc(T(p.name))}</b><span>${esc(T(p.d))}</span></button>`).join("")}</div>`;
+    box.hidden = false;
+  }
+  const hidePerks = () => { const box = ui && ui.querySelector(".wd-perk"); if (box) box.hidden = true; };
   function spawn(e) {
     const g = gateAt(e.g), lat = (Math.random() - 0.5) * 1.6, p = new V3(O.x + g.x - Math.sin(g.a) * lat, 0, O.z + g.z + Math.cos(g.a) * lat), bi = Math.max(0, cur.w / 5 - 1) % BOSSES.length;
     // scammers come at your level, a few below it (they climb a level every 3 waves, up to yours): easy to knock out, many of them;
@@ -178,7 +193,7 @@ export function createDefense(ctx) {
     return combat.defense.spawn(o);
   }
   function startWave() {
-    cur = waveOf(seed, wave); tK = 1 + (foeLv() - 1) * 0.04; queue = cur.list.slice(); wt = 0; acc = 0.1; phase = "wave"; lastStart = Date.now(); sel = -1; paintMenu();
+    cur = waveOf(seed, wave); tK = (1 + (foeLv() - 1) * 0.04) * perks.dmg; hidePerks(); queue = cur.list.slice(); wt = 0; acc = 0.1; phase = "wave"; lastStart = Date.now(); sel = -1; paintMenu();
     if (combat.defense.setTint) combat.defense.setTint(cur.w); // the walkers' glow climbs with the wave (mint → cyan → violet → red)
     banner(T("Wave {n}", { n: cur.w }), cur.boss ? T("Boss wave!") : T("Defend the Core"), cur.boss ? "boss" : "");
     if (cur.boss) { if (!RM && ctx.shake) ctx.shake(0.3); } // (the siren plays when the boss walker spawns)
@@ -188,6 +203,7 @@ export function createDefense(ctx) {
     const gain = clearScrap(cur.w); cleared = cur.w; scrap += gain; wave = cur.w + 1; phase = "break"; timer = BREAK_S;
     for (const tw of towers) if (tw && tw.id === "barrier") { tw.hp = TOWERS.barrier.hp[tw.lvl - 1]; if (tw.mesh.userData.setHp) tw.mesh.userData.setHp(1); paintPad(tw.i); }
     banner(T("Wave cleared!"), T("Wave {n} cleared", { n: cleared }), "clear"); Snd.coin && Snd.coin();
+    if (cleared % 3 === 0) later(offerPerks, 1200);
     if (!RM && sweepM) sweepT = 0; // a ring of light runs out over the floor
     if (els.gain) { els.gain.textContent = "+" + gain; els.gain.classList.remove("in"); void els.gain.offsetWidth; els.gain.classList.add("in"); later(() => els.gain && els.gain.classList.remove("in"), 1500); }
     paintHud(); paintPads();
@@ -200,7 +216,7 @@ export function createDefense(ctx) {
   function reset() { gen++; if (!on) return; on = false; phase = "idle"; try { combat.defense.on(false); if (combat.defense.onBoss) combat.defense.onBoss(null); } catch { /* combat gone */ } try { showWorld(); teardown(); unmountUi(); } catch { /* half built */ } ctx.setArena(0); }
   async function begin0() {
     if (on) return;
-    on = true; phase = "build"; wave = 1; cleared = 0; kills = 0; scrap = START_SCRAP; shownScrap = scrap; coreHp = CORE_HP; timer = BUILD_S; result = null; run = null; offline = false; sel = -1; pick = ""; towers.fill(null);
+    on = true; phase = "build"; perks = { dmg: 1, rng: 1, scrap: 1 }; hidePerks(); wave = 1; cleared = 0; kills = 0; scrap = START_SCRAP; shownScrap = scrap; coreHp = CORE_HP; timer = BUILD_S; result = null; run = null; offline = false; sel = -1; pick = ""; towers.fill(null);
     t0 = Date.now(); lastStart = 0; lost = false; seed = (Math.random() * 4294967296) >>> 0; mobs = []; aliveN = 0; resReady = true;
     hideWorld(); build(); combat.defense.on(true); if (combat.defense.onBoss) combat.defense.onBoss((m) => banner(m.bossName || T("Boss"), T("Boss"), "boss"));
     ctx.setArena(ARENA.r - 0.4); ctx.place(O.x, O.z + 8.6); mountUi(); art.setCore(1); paintHud(); paintPads();
@@ -258,6 +274,7 @@ export function createDefense(ctx) {
   function unmountUi() { removeEventListener("keydown", onKey, true); if (ui) ui.remove(); ui = null; els = {}; padBtns = []; }
   function onKey(e) { if (!on || !ui) return; if (e.key === "Escape" && sel >= 0) { e.stopPropagation(); sel = -1; paintMenu(); paintPads(); } }
   function onClick(e) {
+    { const pk = e.target.closest("[data-perk]"); if (pk) { const p = PERKS.find((x) => x.id === pk.dataset.perk); if (p && phase === "break") { p.go(); hidePerks(); banner(T(p.name), T(p.d), "clear"); Snd.coin && Snd.coin(); paintHud(); } return; } }
     const b = e.target.closest("button"); if (!b) { if (sel >= 0 && !e.target.closest(".wd-menu")) { sel = -1; paintMenu(); paintPads(); } return; }
     if (b.classList.contains("wd-pad")) { sel = sel === +b.dataset.i ? -1 : +b.dataset.i; pick = ""; paintMenu(); paintPads(); return; }
     if (b.classList.contains("wd-go")) { if ((phase === "build" || phase === "break") && canGo()) startWave(); return; }

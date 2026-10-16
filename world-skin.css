@@ -465,3 +465,15 @@ html.wp-pcphone [data-game-hud]{zoom:1.42;top:calc(max(10px,env(safe-area-inset-
 body.wp:has([data-game-hud]:not([hidden])) .wp-quests,html.wp-pcphone body:has([data-game-hud]:not([hidden])) .wp-mini{display:none!important}
 /* phones: the online chip (and the village chip) ride up beside the wallet's purse instead of taking a row of their own */
 html.wp-pcphone body.wp .wp-hud .wp-purse:not([hidden]) + .wp-rrow{margin-top:calc(-53.2px - 6.72px + 10px);margin-right:calc(212.8px + 6.72px)}
+
+/* b444: AC Defense — an upgrade to pick every third wave (world-defense.js offerPerks) */
+.wd-perk{position:absolute;left:50%;top:22%;transform:translateX(-50%);z-index:5;width:min(560px,calc(100% - 24px));padding:12px;border-radius:var(--ui-r-l,18px);background:var(--ui-panel,#0b1d49);border:1px solid var(--ui-edge-soft,rgba(96,184,255,.58));box-shadow:var(--ui-glow);pointer-events:auto;text-align:center;animation:wdPerk .35s cubic-bezier(.2,1.4,.4,1) both}
+.wd-perk[hidden]{display:none}
+.wd-perk small{color:var(--ui-cyan,#38d8ff);font-weight:800;letter-spacing:.06em}
+.wd-perk>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.wd-perk button{display:grid;gap:4px;padding:10px 8px;border-radius:var(--ui-r-m,12px);background:var(--ui-well,rgba(6,19,52,.8));border:1px solid rgba(255,200,97,.45);color:inherit;cursor:pointer;font:inherit}
+.wd-perk button:hover,.wd-perk button:focus-visible{border-color:#ffc861;box-shadow:0 0 0 2px rgba(255,200,97,.35)}
+.wd-perk b{color:#ffd27a;font-size:15px}.wd-perk span{font-size:12px;color:var(--ui-ink-2,#a9c4ec)}
+html.wp-pcphone .wd-perk{zoom:1.42}
+@keyframes wdPerk{from{opacity:0;transform:translateX(-50%) scale(.9)}}
+.wd-rm .wd-perk{animation:none}
