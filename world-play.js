@@ -463,6 +463,8 @@ const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st
 if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
 // the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
 const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
+// b447: contact shade on everything that stands on the ground, in every place (world-look.js); not on Low
+if (!lowGfx) try { LOOK.installContactShade(); } catch { /* the plain look */ }
 // every character made from here on: the asset packs' palette (not the ARC Bots, drawn in it already) and a dark rim
 // and a cool rim of light (all presets but Saver)
 if (K.setCharHook) K.setCharHook((obj, arc) => { if (!lowGfx) { if (!arc) ENV.unifyPalette(obj); if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); } if (S.quality !== "saver" && ENV.rimLight) ENV.rimLight(obj); });
@@ -537,7 +539,7 @@ K.placeOn(pad, K.dirOf(7, 90)); planet.add(pad);
 // the wind in the tree crowns (world-kit.js sway): still on low quality and with reduced motion
 if (!lowGfx && !reduce && K.wind) st.on((dt) => { K.wind.value += dt; });
 // b447 (village remaster): the looks the village takes; Low keeps the plain ones (flat tiles, still water, no contact shade)
-const gvLook = { hexFloor: (m, r) => LOOK.hexFloorLook(m, { r, low: lowGfx }), pond: (m) => LOOK.pondLook(m, { low: lowGfx }), contact: lowGfx ? null : (m) => LOOK.contactShade(m) };
+const gvLook = { hexFloor: (m, r) => LOOK.hexFloorLook(m, { r, low: lowGfx }), pond: (m) => LOOK.pondLook(m, { low: lowGfx }) }; // (contact shade is everywhere now: installContactShade)
 const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook }); gv.clear(groundG);
 // b447: the clearing was one flat pale green: now the town ground's patches, fine grain and drifting cloud shade, and the baked town shade
 { const gg = gv.root.getObjectByName("gv-ground"); if (gg) { LOOK.groundLook(gg.material, { low: lowGfx }); if (gshadow) gshadow.receive(gg.material); } }

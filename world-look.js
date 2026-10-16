@@ -163,29 +163,31 @@ export function hexFloorLook(mat, { r = 12, cell = 2.3, low = false } = {}) {
   return mat;
 }
 
-// ---------------- b447: contact shade (a cheap ambient occlusion where things meet the ground) ----------------
-// Everything gets darker in its last metre or so above the ground and a touch brighter on top, so buildings, benches
-// and posts sit on the ground instead of floating over it. World height from the vertex (instancing included).
-// k: how dark at the ground (0…1), h: over how many metres it fades.
-export function contactShade(mat, { k = 0.32, h = 1.3 } = {}) {
-  if (!mat || mat.userData.cshade || !(mat.isMeshStandardMaterial || mat.isMeshLambertMaterial || mat.isMeshPhongMaterial)) return mat;
-  mat.userData.cshade = true;
-  const prev = mat.onBeforeCompile;
-  mat.onBeforeCompile = (sh, rr) => {
-    if (prev) prev(sh, rr);
-    sh.uniforms.csK = { value: k }; sh.uniforms.csH = { value: h };
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float csY;").replace("#include <project_vertex>", `#include <project_vertex>
-      { vec4 cw = vec4(transformed, 1.0);
-        #ifdef USE_INSTANCING
-          cw = instanceMatrix * cw;
-        #endif
-        csY = (modelMatrix * cw).y; }`);
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float csY; uniform float csK, csH;")
-      .replace("#include <map_fragment>", "#include <map_fragment>\n      diffuseColor.rgb *= mix(1.0 - csK, 1.0, smoothstep(0.0, csH, csY));");
-  };
-  const pk = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => "";
-  mat.customProgramCacheKey = () => pk() + "|cs"; mat.needsUpdate = true;
-  return mat;
+// ---------------- b447: contact shade, everywhere (a cheap ambient occlusion where things meet the ground) ----------------
+// Walls, posts, trunks and furniture get darker in their last metre above the ground, so they sit on it instead of
+// floating over it. Written once into three.js's own standard/physical shader (every MeshStandardMaterial and
+// MeshPhysicalMaterial in the game, made before or after), so it adds no shader programs and no per-material work.
+// Only faces that look sideways (the ground and floors facing up stay as they are); skinned characters are left out.
+// Call before the first frame is drawn; k: how dark at the ground, h: over how many metres it fades.
+export function installContactShade({ k = 0.28, h = 1.2 } = {}) {
+  const L = THREE.ShaderLib; if (!L || !L.standard || /csA/.test(L.standard.vertexShader)) return false;
+  const V = `#include <project_vertex>
+  #ifdef USE_SKINNING
+    csA = 0.0;
+  #else
+    { vec4 cw = vec4(transformed, 1.0);
+      #ifdef USE_INSTANCING
+        cw = instanceMatrix * cw;
+      #endif
+      cw = modelMatrix * cw; vec3 wn = normalize((vec4(transformedNormal, 0.0) * viewMatrix).xyz);
+      csA = (1.0 - smoothstep(0.0, ${h.toFixed(2)}, cw.y)) * (1.0 - smoothstep(0.55, 0.9, wn.y)); }
+  #endif`;
+  const F = `#include <map_fragment>
+  diffuseColor.rgb *= 1.0 - ${k.toFixed(3)} * csA;`;
+  for (const id of ["standard", "physical"]) { const S = L[id]; if (!S || /csA/.test(S.vertexShader)) continue;
+    S.vertexShader = S.vertexShader.replace("#include <common>", "#include <common>\nvarying float csA;").replace("#include <project_vertex>", V);
+    S.fragmentShader = S.fragmentShader.replace("#include <common>", "#include <common>\nvarying float csA;").replace("#include <map_fragment>", F); }
+  return true;
 }
 
 // ---------------- b447: a small pond: deeper toward the middle, ripples, a foam line at the edge ----------------
