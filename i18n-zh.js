@@ -2717,7 +2717,7 @@
     "Burn-to-vote in CirclePad": "在 CirclePad 燃烧投票",
     "Chain ID": "链 ID",
     "Check a token": "检查代币",
-    "Circle green": "Circle 绿",
+    "v2 · New logo": "v2 · 新标志", "The new ARCIRCLE infinity mark, the ARCIRCLE WORLD banner, colours and type — for memes, banners, videos and community posts. Please keep the mark as it is, and don't use it to suggest a partnership or an official product that isn't ours.": "全新的 ARCIRCLE 无限标志、ARCIRCLE WORLD 横幅、颜色和字体 —— 用于表情包、横幅、视频和社区帖子。请保持标志原样，不要用它暗示合作关系或非我们的官方产品。", "One infinity, blue to green.": "一个无限，从蓝到绿。", "Logo · PNG": "标志 · PNG", "1220 × 595, transparent": "1220 × 595，透明背景", "Logo · WebP": "标志 · WebP", "Avatar · PNG": "头像 · PNG", "1024 × 1024, for profile pictures": "1024 × 1024，用作头像", "The banner": "横幅", "ARCIRCLE WORLD — Play. Build. Trade. Earn.": "ARCIRCLE WORLD — 玩。建。交易。赚。", "Banner · JPG": "横幅 · JPG", "2172 × 724, full size": "2172 × 724，原尺寸", "X header · JPG": "X 头图 · JPG", "1500 × 500, sized for X": "1500 × 500，适配 X", "Banner · WebP": "横幅 · WebP", "1600 wide, for the web": "宽 1600，用于网页", "Blue to green, with a violet edge.": "从蓝到绿，带一抹紫边。", "Violet": "紫", "Don't use the old two-ring mark in new posts.": "新帖子请不要再用旧的双环标志。", "Circle green": "Circle 绿",
     "CirclePad Round #1 opened": "CirclePad 第 1 轮开启",
     "CirclePad airdrop size": "CirclePad 空投规模",
     "CirclePad position": "CirclePad 仓位",

@@ -19048,3 +19048,7 @@ html.tr-on .tr-q{visibility:hidden;}
 
 /* Reduced motion, site-wide: anything that still animates finishes at once (no loops, no smooth scroll). */
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+/* brand kit v2: the banner shown wide above its downloads */
+.bk-banner{margin:0 0 14px;border-radius:16px;overflow:hidden;border:1px solid var(--line,rgba(232,242,229,.14));box-shadow:0 12px 34px rgba(0,0,0,.35)}
+.bk-banner img{display:block;width:100%;height:auto}
+.bk-mark figcaption:only-child{padding-top:14px}
