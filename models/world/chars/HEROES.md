@@ -9,7 +9,7 @@ ARCIRCLE World의 대표 캐릭터. 모든 플레이어(나와 다른 플레이�
    Meshy는 애니메이션마다 모델·텍스처를 통째로 다시 넣으므로, 모든 동작이 들어 있는 파일 하나만 쓰면 됩니다.
 2. **압축** (최초 1회 `npm i --no-save @gltf-transform/core@4 @gltf-transform/functions@4 @gltf-transform/extensions@4 meshoptimizer sharp`):
    ```
-   node tools/pack-hero.mjs lumi_all.glb models/world/chars/character-custom-lumi.glb Idle_03,Walking,Running,Jump_Run
+   node tools/pack-hero.mjs Lumi_death.glb models/world/chars/character-custom-lumi.glb Idle_02,walking_2,Running,Attack,Regular_Jump,Fall_Dead_from_Abdominal_Injury   (the re-rigged LUMI, 62 bones: its last export carries every clip)
    ```
    마지막 인자는 남길 클립 이름입니다(Meshy가 붙인 이름). 텍스처는 webp(색·노멀 1024, 금속/거칠기 512), 메시는 meshopt +
    양자화. ARON: 23.4 MB → 1.2 MB. 목표는 2 MB 이하.
