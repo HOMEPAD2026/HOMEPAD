@@ -780,3 +780,26 @@ html.wp-pcphone .wm-title{zoom:1.7}
 html.wp-pcphone .wm-top{zoom:1.35;top:calc(max(10px,env(safe-area-inset-top)) + 56px)}
 html.wp-pcphone .wm-today{zoom:1.7;top:calc(max(10px,env(safe-area-inset-top)) + 106px)}
 @media (max-width:560px){html:not(.wp-pcphone) .wm-top{zoom:.62}html:not(.wp-pcphone) .wm-today{zoom:.8;top:calc(max(10px,env(safe-area-inset-top)) + 70px)}}
+/* the hour, b3: a clean medallion — the time large in the middle, "left" small under it, a ring that empties
+   clockwise from the top with a bright tip on its end, sixty tick marks around the rim; the last 5 minutes turn amber
+   and the tip pulses */
+.wm-time{display:flex!important;flex-direction:column;justify-content:center;align-items:center;gap:2px;width:92px;height:92px!important;margin:-14px 6px}
+.wm-time svg{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);transform:none;overflow:visible}
+.wm-time circle{fill:none}
+.wm-time .tk{stroke:rgba(170,215,255,.55);stroke-width:1.6;stroke-dasharray:.45 1.47;stroke-linecap:butt}
+.wm-time .bg{stroke:rgba(10,24,70,.9);stroke-width:4.2}
+.wm-time .fg{stroke:#45eaff;stroke-width:3.2;stroke-linecap:round;stroke-dasharray:100;transform:rotate(-90deg);transform-origin:20px 20px;filter:drop-shadow(0 0 2px #45eaff);transition:stroke-dashoffset .9s linear}
+.wm-time .tip{fill:#eaffff;stroke:none;filter:drop-shadow(0 0 2.5px #8ff6ff) drop-shadow(0 0 4px #45eaff)}
+.wm-time b{position:relative;margin:4px 0 0;font:900 23px/1 var(--hud-font,var(--f-ui));font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:#fff;text-shadow:0 0 10px rgba(90,220,255,.55),0 2px 0 rgba(0,0,0,.45)}
+.wm-time small{position:relative;margin:0;font:800 9px/1 var(--hud-font,var(--f-ui));letter-spacing:.16em;text-transform:uppercase;color:#8fe4ff;opacity:.95}
+.wm.late .wm-time .fg{stroke:#ffb347;filter:drop-shadow(0 0 2px #ffb347)}
+.wm.late .wm-time .tip{fill:#fff1d6;filter:drop-shadow(0 0 3px #ffb347);animation:wmTip 1s ease-in-out infinite}
+.wm.late .wm-time b{color:#ffe2b0;text-shadow:0 0 10px rgba(255,170,60,.6),0 2px 0 rgba(0,0,0,.45)}
+.wm.late .wm-time small{color:#ffcf8a}
+@keyframes wmTip{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.wm.late .wm-time .tip{animation:none}}
+.wm-time{width:104px;height:104px!important;margin:-20px 6px}
+.wm-time svg{inset:5px;width:calc(100% - 10px);height:calc(100% - 10px)}
+.wm-time b{font-size:21px;margin-top:6px}
+html:not(.wp-pcphone) .wm-top{top:calc(max(10px,env(safe-area-inset-top)) + 26px)}
+html:not(.wp-pcphone) .wm-today{top:calc(max(10px,env(safe-area-inset-top)) + 106px)}

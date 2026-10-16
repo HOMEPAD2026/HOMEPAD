@@ -293,7 +293,7 @@ export function createMine(ctx) {
     root.innerHTML = `<div class="wm-vig"></div><div class="wm-flash"></div><div class="wm-pops"></div>
       <div class="wm-top" data-game-hud>
         <button type="button" class="wm-leave" aria-label="${esc(T("Leave the mine"))}"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Leave"))}</span></button>
-        <div class="wm-time"><i class="wm-gem"></i><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" class="bg"/><circle cx="18" cy="18" r="15.5" class="fg"/></svg><b>60:00</b><small>${esc(T("left"))}</small></div>
+        <div class="wm-time"><i class="wm-gem"></i><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18.4" class="tk"/><circle cx="20" cy="20" r="15" class="bg"/><circle cx="20" cy="20" r="15" class="fg" pathLength="100"/><circle cx="20" cy="5" r="1.9" class="tip"/></svg><b>60:00</b><small>${esc(T("left"))}</small></div>
         <div class="wm-haul"><i class="wm-coin-ic"></i><span><b>0</b><small>${esc(T("ARCL this visit"))}</small></span></div>
         <div class="wm-rocks"><i class="wm-cart-ic"></i><span><small>${esc(T("Rocks"))}</small><b>×0</b></span></div>
         <button type="button" class="wm-pickbtn"><span class="wm-pick-ic"></span><b>${esc(T("Common"))}</b></button>
@@ -306,7 +306,7 @@ export function createMine(ctx) {
       <div class="wm-title" hidden><small>${esc(T("ARCIRCLE WORLD"))}</small><b>${esc(T("ARCL MINE"))}</b><span></span></div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    ui = { root, pops: q(".wm-pops"), flash: q(".wm-flash"), time: q(".wm-time b"), ring: q(".wm-time .fg"), haul: q(".wm-haul"), haulN: q(".wm-haul b"), pickB: q(".wm-pickbtn"), pickN: q(".wm-pickbtn b"), today: q(".wm-today span"), todayBox: q(".wm-today"), rocksN: q(".wm-rocks b"), sheet: q(".wm-sheet"), title: q(".wm-title"), go: q(".wm-go") };
+    ui = { root, pops: q(".wm-pops"), flash: q(".wm-flash"), time: q(".wm-time b"), ring: q(".wm-time .fg"), tip: q(".wm-time .tip"), haul: q(".wm-haul"), haulN: q(".wm-haul b"), pickB: q(".wm-pickbtn"), pickN: q(".wm-pickbtn b"), today: q(".wm-today span"), todayBox: q(".wm-today"), rocksN: q(".wm-rocks b"), sheet: q(".wm-sheet"), title: q(".wm-title"), go: q(".wm-go") };
     q(".wm-leave").addEventListener("click", () => leave(false));
     ui.pickB.addEventListener("click", () => openPicks());
     const hold = (el, on, off) => { el.addEventListener("pointerdown", (e) => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch { /* fine */ } on(); }); ["pointerup", "pointercancel", "lostpointercapture"].forEach((ev) => el.addEventListener(ev, off)); };
@@ -318,7 +318,9 @@ export function createMine(ctx) {
   }
   function paintHud() {
     if (!ui) return; const l = Math.max(0, left - (performance.now() - leftAt));
-    ui.time.textContent = mmss(l); ui.ring.style.strokeDashoffset = String(97.4 * (1 - l / R.SESSION_MS)); ui.root.classList.toggle("late", l < 5 * 60e3);
+    ui.time.textContent = mmss(l); const f = Math.max(0, Math.min(1, l / R.SESSION_MS)), a = f * Math.PI * 2; // the arc runs clockwise from the top to what's left; the bright tip rides its end
+    ui.ring.style.strokeDashoffset = String(100 * (1 - f)); ui.tip.setAttribute("cx", (20 + Math.sin(a) * 15).toFixed(2)); ui.tip.setAttribute("cy", (20 - Math.cos(a) * 15).toFixed(2));
+    ui.root.classList.toggle("late", l < 5 * 60e3);
     ui.haulN.textContent = fmtN(haul); ui.pickN.textContent = T(R.TIERS[tier].name); ui.pickB.dataset.tier = String(tier);
     ui.today.innerHTML = guest ? esc(T("Demo: connect your wallet to earn ARCL here")) : esc(T("Today {n} / {m} ARCL", { n: fmtN(today), m: fmtN(cap) }));
     ui.todayBox.classList.toggle("demo", guest); ui.rocksN.textContent = "×" + broke;
