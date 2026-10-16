@@ -284,7 +284,9 @@ export function createGhosts(ctx) {
   function dressGhost(w, c) {
     if (!ctx.makeChar || chars >= MAXCH || !c) return;
     chars++; w.loadingCh = true;
-    ctx.makeChar(String(c)).then((ch) => {
+    // b446: its shaders are compiled in the background before it's shown (the capsule stands in meanwhile): a new player
+    // walking into view was a compile stall on the plaza (diag: hub / shader)
+    ctx.makeChar(String(c)).then((ch) => (ch && ch.obj && ctx.compile ? ctx.compile(ch.obj).then(() => ch, () => ch) : ch)).then((ch) => {
       w.loadingCh = false;
       if (!ch || w.gone || !w.g.parent) { chars--; if (ch && ch.obj) freeCh(ch); return; }
       const u = w.g.userData; u.body.visible = u.head.visible = false;

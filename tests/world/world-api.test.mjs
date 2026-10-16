@@ -10,7 +10,7 @@ const store = {
   commit: async (ws) => { for (const w of ws) { if (w.create) { if (db.has(w.create)) return { ok: false, conflict: true }; db.set(w.create, w.data); } else if (w.inc) { const d = db.get(w.inc) || {}; for (const [k, n] of Object.entries(w.fields)) d[k] = (d[k] || 0) + n; db.set(w.inc, d); } } return { ok: true }; },
 };
 const json = (status, body) => ({ status, body });
-let T = Date.now();
+let T = Math.floor(Date.now() / 600000) * 600000 + 30000; // 30 s into a 10-minute block: the 2-minute online window can't roll over mid-test (it did under load)
 const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && new Date(t).toISOString() === iso && T - t <= max; };
 const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, launchRecord: async (c) => (c === "0x" + "c".repeat(40) ? { creator: w.address.toLowerCase() } : null) });
 let r = await W.handle({ action: "world-ping", id: "abcdefabcdef12" });
@@ -71,7 +71,7 @@ check(checkBuild(isle, 36, 6000) && checkBuild(isle, 36, 6000).n === 2, "a 2-bri
 check(!checkBuild(build(36, [[40, 0, 1, 0, 0]]), 36, 6000), "a brick off the grid: refused");
 check(!checkBuild(build(9, [[1, 0, 1, 0, 0]]), 36, 6000), "a lot posing as an island: refused");
 check(!checkBuild("not base64!", 36, 6000), "garbage: refused");
-T = Date.now(); const iss2 = new Date(T).toISOString(), sig2 = await w.signMessage(loginMessage(w.address, iss2));
+T += 1000; const iss2 = new Date(T).toISOString(), sig2 = await w.signMessage(loginMessage(w.address, iss2));
 const me = { wallet: w.address, issued: iss2, signature: sig2 };
 r = await W.handle({ action: "world-island-save", ...me, data: isle, name: "kmp<b>", n: 2, res: 0 });
 check(r.status === 200 && r.body.n === 2, "island saved");

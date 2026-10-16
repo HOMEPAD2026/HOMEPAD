@@ -3056,7 +3056,7 @@ function offerClip(blob) {
   document.body.appendChild(c); setTimeout(() => { if (c.isConnected) c.remove(); }, 60000);
 }
 if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the camera like the town's arches
-ghosts = SOC.createGhosts({ THREE, K, planet, T: (s, v) => (s === "Hi!" || s === "Friend" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag,
+ghosts = SOC.createGhosts({ THREE, K, planet, compile: (o) => (st.renderer.compileAsync ? st.renderer.compileAsync(o, st.camera, st.scene) : Promise.resolve()), T: (s, v) => (s === "Hi!" || s === "Friend" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag,
   shadow: (r, k) => LOOK.contactShadow(r, k), isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
   onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; }, hides: (w) => !!(chatUI && chatUI.hides && chatUI.hides(lc(w))), // muted or blocked: no bubble over them
   // other players stand as their own characters (not the see-through capsules) once the model is in
