@@ -154,6 +154,7 @@ export function createJumpRace(ctx) {
     let best = 0; try { best = Number(localStorage.getItem(BEST)) || 0; } catch { /* private */ }
     const nb = score > best; if (nb) try { localStorage.setItem(BEST, String(score)); } catch { /* private */ }
     if (crowned && ctx.vfx && ctx.vfx.levelUp && !ctx.reduce) ctx.vfx.levelUp();
+    if (crowned && ctx.onCrown) try { ctx.onCrown(); } catch { /* the quest log is optional */ }
     const snd = ctx.Snd && (crowned ? ctx.Snd.win : ctx.Snd.coin); if (snd) snd();
     const r = ui.querySelector(".wj-res"); r.hidden = false;
     r.innerHTML = `<div class="wj-card"><small>${esc(T("Coin Jump"))}</small><h3>${esc(crowned ? T("You reached the crown!") : T("Time's up"))}</h3><div class="wj-big">${score}</div><p>${esc(T("Coins"))} ${coins}/${N - 1}${crowned ? ` · ${esc(T("Crown bonus"))}` : ""}</p><p>${esc(nb ? T("New best!") : `${T("Best")}: ${Math.max(best, score)}`)}</p>${crowned ? `<p class="wj-pay">${esc(ctx.sess && ctx.sess() ? T("Sending your crown…") : T("Sign in with a wallet to earn 3,000 ARCL a day for the crown"))}</p>` : ""}<div class="wj-btns"><button type="button" class="go" data-wj="again">${esc(T("Play again"))}</button><button type="button" data-wj="leave">${esc(T("Leave"))}</button></div></div>`;

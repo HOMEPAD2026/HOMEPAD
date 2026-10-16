@@ -204,6 +204,7 @@ export function createDefense(ctx) {
     for (const tw of towers) if (tw && tw.id === "barrier") { tw.hp = TOWERS.barrier.hp[tw.lvl - 1]; if (tw.mesh.userData.setHp) tw.mesh.userData.setHp(1); paintPad(tw.i); }
     banner(T("Wave cleared!"), T("Wave {n} cleared", { n: cleared }), "clear"); Snd.coin && Snd.coin();
     if (cleared % 3 === 0) later(offerPerks, 1200);
+    if (ctx.onWave) try { ctx.onWave(); } catch { /* the quest log is optional */ }
     if (!RM && sweepM) sweepT = 0; // a ring of light runs out over the floor
     if (els.gain) { els.gain.textContent = "+" + gain; els.gain.classList.remove("in"); void els.gain.offsetWidth; els.gain.classList.add("in"); later(() => els.gain && els.gain.classList.remove("in"), 1500); }
     paintHud(); paintPads();

@@ -14,7 +14,7 @@ const nb = (k) => (isNewTab(k) ? '<i class="nb">NEW</i>' : "");
 const seoulDay = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const hash = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h; };
 
-// daily hunts: three a day, the same three for everyone
+// daily hunts: three a day, the same three for everyone, and one from the Game Village (VILLAGE_DAILY)
 const DAILY = [
   { id: "kill10", name: "Knock out 10 scammers", ev: "kill", n: 10, xp: 60, scrap: 30 },
   { id: "kill25", name: "Knock out 25 scammers", ev: "kill", n: 25, xp: 120, scrap: 60 },
@@ -24,6 +24,12 @@ const DAILY = [
   { id: "rare1", name: "Find a Rare or better", ev: "rare", n: 1, xp: 100, scrap: 50 },
   { id: "skill15", name: "Cast 15 skills", ev: "skill", n: 15, xp: 70, scrap: 30 },
   { id: "zones2", name: "Hunt in 2 different grounds", ev: "zone", n: 2, xp: 90, scrap: 40 },
+];
+// b446: a fourth daily from the Game Village, one a day (the same for everyone)
+const VILLAGE_DAILY = [
+  { id: "vjump", name: "Reach the Coin Jump crown", ev: "jumpcrown", n: 1, xp: 150, scrap: 60 },
+  { id: "vdef5", name: "Clear 5 waves in AC Defense", ev: "defwave", n: 5, xp: 150, scrap: 60 },
+  { id: "vbeat", name: "Finish a Beat Stomp song", ev: "beatsong", n: 1, xp: 150, scrap: 60 },
 ];
 // achievements: each one gives a title to wear under your name
 export const ACH = [
@@ -97,7 +103,7 @@ export function createQuests(ctx) {
     x.petXp = x.petXp || {};
     return x;
   };
-  const todays = (day = seoulDay()) => { const h = hash(day); const pick = []; for (let i = 0; pick.length < 3 && i < 30; i++) { const q = DAILY[(h >> (i * 3)) % DAILY.length]; if (!pick.includes(q)) pick.push(q); } return pick; };
+  const todays = (day = seoulDay()) => { const h = hash(day); const pick = []; for (let i = 0; pick.length < 3 && i < 30; i++) { const q = DAILY[(h >> (i * 3)) % DAILY.length]; if (!pick.includes(q)) pick.push(q); } pick.push(VILLAGE_DAILY[(h >>> 7) % VILLAGE_DAILY.length]); return pick; };
   let tab = "daily", top = null;
 
   function seasonAdd(kind, n = 1) {

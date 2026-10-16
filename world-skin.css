@@ -478,3 +478,24 @@ html.wp-pcphone .wd-perk{zoom:1.42}
 @keyframes wdPerk{from{opacity:0;transform:translateX(-50%) scale(.9)}}
 .wd-rm .wd-perk{animation:none}
 .wj-card .wj-pay{color:#9fe6c8;font-weight:700}.wj-card .wj-pay.good{color:#ffd23a;font-size:16px;font-weight:900} /* b445: the crown reward line */
+/* b446: Beat Stomp (world-beatstomp.js): the HUD like Coin Jump's, three big lane buttons at the bottom, the judgement */
+.wb-hud{position:fixed;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);z-index:31;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:14px;background:var(--ui-well,rgba(8,18,44,.85));border:1px solid rgba(255,90,216,.4);box-shadow:0 10px 30px rgba(0,0,0,.35);color:#eef3f7;font:700 14px var(--f-ui);white-space:nowrap}
+.wb-hud b{color:#ff8ae4;font-weight:900}.wb-c{color:#ffd23a;min-width:5.5em}
+.wb-hud button,.wb-btns button{appearance:none;height:32px;padding:0 12px;border-radius:10px;border:1px solid rgba(120,196,255,.4);background:rgba(20,40,90,.8);color:#fff;font:800 13px var(--f-ui);cursor:pointer}
+.wb-lanes{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:31;display:flex;gap:14px}
+.wb-lane{appearance:none;width:84px;height:84px;border-radius:50%;border:3px solid rgba(255,255,255,.55);color:#fff;font:900 28px var(--f-ui);cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;box-shadow:0 8px 20px rgba(0,0,0,.35),inset 0 -6px 0 rgba(0,0,0,.18)}
+.wb-lane.l0{background:radial-gradient(circle at 40% 30%,#8ff0ff,#1fa8d8)}.wb-lane.l1{background:radial-gradient(circle at 40% 30%,#ffb0f0,#d43aaf)}.wb-lane.l2{background:radial-gradient(circle at 40% 30%,#ffe89a,#e0a812)}
+.wb-lane.hit{animation:wbHit .18s ease-out}
+@keyframes wbHit{50%{transform:scale(.9);filter:brightness(1.35)}}
+.wb-judge{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:31;font:900 34px var(--f-ui);letter-spacing:.04em;opacity:0;pointer-events:none;text-shadow:0 4px 18px rgba(0,0,0,.45)}
+.wb-judge.in{animation:wbJudge .55s ease-out forwards}.wb-judge.perfect{color:#ffd23a}.wb-judge.good{color:#8ff0ff}.wb-judge.miss{color:#ff7a7a}
+@keyframes wbJudge{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-70%) scale(1)}}
+.wb-res{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(2,6,18,.45)}.wb-res[hidden]{display:none}
+.wb-card{width:min(340px,calc(100vw - 32px));padding:20px;border-radius:20px;text-align:center;background:linear-gradient(170deg,#2a1257,#0b1230);border:1px solid rgba(255,90,216,.45);box-shadow:0 30px 60px rgba(0,0,0,.5);color:#eef3f7;font-family:var(--f-ui)}
+.wb-card small{color:#ff8ae4;font-weight:800;letter-spacing:.1em}.wb-card h3{margin:6px 0 4px;font-size:20px}.wb-big{font:900 52px var(--f-num,var(--f-ui));color:#ffd23a;line-height:1.1}
+.wb-card p{margin:4px 0;color:#c9bfe6;font-size:14px}.wb-btns{display:flex;gap:8px;justify-content:center;margin-top:12px}.wb-btns .go{background:linear-gradient(180deg,#ff8ae4,#b44cff);color:#fff;border:0}
+html.wp-pcphone .wb-hud{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) + 232px)}html.wp-pcphone .wb-res,html.wp-pcphone .wb-lanes{zoom:1.42}html.wp-pcphone .wb-judge{zoom:1.42}
+body.wp:has(.wb-hud) .wp-quests{display:none!important}html.wp-pcphone body:has(.wb-hud) .wp-mini{display:none}
+body:has(.wb-lanes) .wp-joy,body:has(.wb-lanes) .wp-joyrest,body:has(.wb-lanes) .wp-acts,body:has(.wb-lanes) .wp-dock{visibility:hidden}
+.wd-rm .wb-judge.in,.wb-lane.hit{animation-duration:.01s}
+@media (prefers-reduced-motion:reduce){.wb-judge.in,.wb-lane.hit{animation:none;opacity:1}}

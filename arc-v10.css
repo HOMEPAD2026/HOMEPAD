@@ -4082,3 +4082,10 @@ body.wp .wp-hud #wp-map-btn{display:none!important}
   /* ArcPad's hero intro: three lines on phones, not two */
   #bp-panel-home .bp-hero.v6-hero .bp-hero-copy p{-webkit-line-clamp:3}
 }
+
+/* b446: the exchange screen's "Earned today" (world-shop.js todayHTML) */
+.wa-ex-today{margin:12px 0;padding:12px 14px;border-radius:14px;background:rgba(6,19,52,.6);border:1px solid rgba(96,184,255,.35)}
+.wa-ex-today h3{margin:0 0 6px;font-size:15px}.wa-ex-today ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.wa-ex-today li{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#cfe0f6}.wa-ex-today li b{color:#ffd23a}
+.wa-ex-cap{height:6px;margin:10px 0 4px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}.wa-ex-cap i{display:block;height:100%;background:linear-gradient(90deg,#38d8ff,#4dffb0)}
+.wa-ex-today small{color:#8fa6cc;font-size:11px}

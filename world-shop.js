@@ -19,6 +19,17 @@ const usableId = (id) => /^(plate|trail|style)-/.test(id);
 const QKEY = "arc.world.arclq";
 const PKEY = "arc.world.payq"; // $ARCIRCLE payments sent but not confirmed yet: finished on the next load
 
+// b446: what today's ARCL came from (the Seoul day), by activity, with the day's cap as a bar
+const seoulDayOf = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+function todayHTML(d, label, T, esc) {
+  if (!d || !d.log) return "";
+  const day = seoulDayOf(Date.now()), by = new Map();
+  for (const x of d.log) if (x.t === "earn" && x.n > 0 && seoulDayOf(x.at) === day) { const k = label(x.k); by.set(k, (by.get(k) || 0) + x.n); }
+  if (!by.size) return "";
+  const rows = [...by.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `<li><span>${esc(k)}</span><b>+${fmt(n)}</b></li>`).join("");
+  const k = d.cap ? Math.min(1, (d.today || 0) / d.cap) : 0;
+  return `<section class="wa-ex-today"><h3>${esc(T("Earned today"))}</h3><ul>${rows}</ul><div class="wa-ex-cap"><i style="width:${(k * 100).toFixed(1)}%"></i></div><small>${esc(T("Today {n} / {cap}", { n: fmt(d.today || 0), cap: fmt(d.cap || 0) }))}</small></section>`;
+}
 // The exchange screen, shared with the /arcl page. d: GET ?world=arcl (or null for a guest), top: GET ?world=arcl-top
 export function exchangeHTML(d, top, { T, esc, signedIn }) {
   const ex = (d && d.exchange) || {};
@@ -37,6 +48,7 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
   <p class="wa-ex-note">${esc(T("ARCL is in-game points. It can't be exchanged for $ARCIRCLE yet. An exchange is being prepared; the rate and the start date will be announced once they're decided."))}</p>
   <ol class="wa-ex-steps"><li class="done"><b>${esc(T("Now"))}</b>${esc(T("Earn ARCL by playing and spend it in the ARCL Shop."))}</li><li><b>${esc(T("Next"))}</b>${esc(T("The exchange rate and rules are announced."))}</li><li><b>${esc(T("Then"))}</b>${esc(T("The exchange opens here."))}</li></ol>
   ${signedIn ? `<label class="wa-ex-notify"><input type="checkbox" id="wa-notify" ${d && d.notify ? "checked" : ""}> ${esc(T("Tell me when the exchange opens"))}</label>` : ""}
+  ${todayHTML(d, label, T, esc)}
   <h3>${esc(T("How to earn ARCL"))}</h3>
   <ul class="wa-earn">${earn.map((e) => `<li class="${got.has(e.kind) ? "ok" : ""}"><i></i><span>${esc(T(e.label))}${e.more ? `<small>${esc(T(e.more))}</small>` : ""}</span><b>${e.n ? "+" + e.n : ""}</b></li>`).join("") || `<li class="wa-empty">${esc(T("Sign in with your wallet to see your progress."))}</li>`}</ul>
   <div class="wa-ex-two">

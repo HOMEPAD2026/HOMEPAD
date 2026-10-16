@@ -5,9 +5,9 @@
 // time you're within BUILD_AT and hidden again past HIDE_AT.
 export const VILLAGE = { x: -105, z: -5, r: 32, plotR: 21, arenaR: 10.5 };
 export const GAMES = [
-  { id: "soon1" }, { id: "soon2" }, { id: "soon3" }, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "soon5" },
+  { id: "soon1", garden: true }, { id: "soon2", garden: true }, { id: "beat", name: "BEAT STOMP", color: 0xff5ad8, roof: 0x7a3cff, sub: "Rhythm game · walk in to play", ready: true } /* b446 */, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "soon5" },
   { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, sub: "Tower defence · walk in to play", ready: true }, // the middle plot: straight ahead as you come through the gate
-  { id: "soon6" }, { id: "soon7" }, { id: "soon8" }, { id: "soon9" }, { id: "soon10" },
+  { id: "soon6" }, { id: "soon7" }, { id: "soon8", garden: true }, { id: "soon9", garden: true }, { id: "soon10", garden: true }, // b446: five plots are small gardens, not building sites
 ];
 const BUILD_AT = 75, HIDE_AT = 95;
 
@@ -52,6 +52,16 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     const mat = new THREE.Mesh(new THREE.CircleGeometry(1.3, 24), new THREE.MeshBasicMaterial({ color: gm.color, transparent: true, opacity: 0.25, depthWrite: false })); mat.rotation.x = -Math.PI / 2; mat.position.set(0, 0.06, 4.6); g.add(mat);
     if (!low) spins.push((dt, t) => { ring.rotation.z = t * 0.6; flag.rotation.y = Math.sin(t * 2) * 0.3; mat.material.opacity = 0.2 + Math.sin(t * 3) * 0.08; });
     const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 15.6; g.add(tag);
+    return g;
+  }
+  // b446: a small garden on a plot no game is coming to soon: grass, a low hedge, a tree and flowers (shared parts)
+  let GP = null;
+  function gardenOf() {
+    if (!GP) GP = { disc: new THREE.CircleGeometry(3, 24), grass: std(0x7fcf6a, { flatShading: false }), hedge: new THREE.TorusGeometry(2.8, 0.32, 6, 20), hedgeM: std(0x3f9a4e), trunk: new THREE.CylinderGeometry(0.16, 0.22, 1.2, 6), trunkM: std(0x7a5236), crown: new THREE.IcosahedronGeometry(1.1, 0), crownM: std(0x4fbf63), flower: new THREE.IcosahedronGeometry(0.2, 0), fl: [0xff7ab8, 0xffd23a, 0xffffff, 0x8fb8ff].map((c) => std(c)) };
+    const g = new THREE.Group(), d = new THREE.Mesh(GP.disc, GP.grass); d.rotation.x = -Math.PI / 2; d.position.y = 0.07; g.add(d);
+    const h = new THREE.Mesh(GP.hedge, GP.hedgeM); h.rotation.x = Math.PI / 2; h.position.y = 0.25; h.scale.z = 1.6; g.add(h);
+    const t = new THREE.Mesh(GP.trunk, GP.trunkM); t.position.y = 0.6; const c = new THREE.Mesh(GP.crown, GP.crownM); c.position.y = 1.8; g.add(t, c);
+    for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.3, f = new THREE.Mesh(GP.flower, GP.fl[k % 4]); f.position.set(Math.sin(a) * 1.9, 0.22, Math.cos(a) * 1.9); g.add(f); }
     return g;
   }
   function soonOf() { // an empty plot: a fenced pad and a sign
@@ -100,12 +110,12 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     makeBoard();
     let soonTag = null;
     GAMES.forEach((gm, i) => {
-      const p = plotAt(i), g = gm.ready ? towerOf(gm) : soonOf();
+      const p = plotAt(i), g = gm.ready ? towerOf(gm) : gm.garden ? gardenOf() : soonOf();
       g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); // the front faces the square
       g.traverse((o) => { if (o.isMesh) o.castShadow = !low; });
       built.add(g); if (gm.ready) { g.userData.radius = 3.6; solids.push(g); }
       if (gm.ready) { const d = new THREE.Group(); d.position.set(p.x - Math.sin(p.a) * 4.6, 0, p.z - Math.cos(p.a) * 4.6); d.userData = { radius: 1.2, game: gm.id }; built.add(d); doors.push(d); }
-      else { // one "Coming soon" sign texture, shared by every empty plot
+      else if (!gm.garden) { // one "Coming soon" sign texture, shared by every empty plot
         soonTag = soonTag || K.label(T("Coming soon"), { accent: "#ffc861", size: 0.85 });
         const s = soonTag.clone(); s.position.set(p.x, 3.4, p.z); built.add(s);
       }
@@ -139,7 +149,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     inst(new THREE.BoxGeometry(1.6, 0.5, 0.1), std(0x9a6b42), benches.map(([x, , z, a]) => [x + Math.sin(a) * 0.22, 0.6, z + Math.cos(a) * 0.22, a]));
     // work fences on the empty plots: two striped rails in front of each pad
     const rails = [];
-    GAMES.forEach((gm, i) => { if (gm.ready) return; const p = plotAt(i), fx = p.x - Math.sin(p.a) * 3.4, fz = p.z - Math.cos(p.a) * 3.4, ra = p.a + Math.PI / 2; rails.push([fx, 0.55, fz, ra], [fx, 0.95, fz, ra]); });
+    GAMES.forEach((gm, i) => { if (gm.ready || gm.garden) return; const p = plotAt(i), fx = p.x - Math.sin(p.a) * 3.4, fz = p.z - Math.cos(p.a) * 3.4, ra = p.a + Math.PI / 2; rails.push([fx, 0.55, fz, ra], [fx, 0.95, fz, ra]); });
     const stripe = (() => { if (typeof document === "undefined") return null; const c = document.createElement("canvas"); c.width = 64; c.height = 8; const g = c.getContext("2d"); for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? "#1d2333" : "#ffc861"; g.fillRect(k * 8, 0, 8, 8); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
     inst(new THREE.BoxGeometry(2.4, 0.16, 0.08), new THREE.MeshStandardMaterial({ map: stripe, color: stripe ? 0xffffff : 0xffc861, roughness: 0.7 }), rails);
   }
