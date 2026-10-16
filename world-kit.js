@@ -969,7 +969,18 @@ export function makePaths() {
 export const KK_CHARS = ["knight", "mage", "rogue", "rogue-hooded", "ranger", "barbarian"].map((c) => "kk-" + c);
 // your own characters (Tripo3D or any rigged GLB; models/world/chars/CUSTOM.md): add "custom-<name>" here (at most 9
 // letters after "custom-": the save keeps 16) once character-<id>.glb (tools/optimize-char.mjs) and <id>.webp are in
-export const CUSTOM_CHARS = [];
+// ---------------- heroes: ARCIRCLE World's own characters (Meshy models packed by tools/pack-hero.mjs) ----------------
+// HEROES is the roster the character maker shows, and every player (you and everyone you meet) is drawn as one of them.
+// ARON first; LUMI and NEX join by adding character-custom-<id>.glb and <id>.webp to models/world/chars and an entry
+// here (models/world/chars/HEROES.md). Each keeps its own textures and PBR material (no toon pass, no palette pull);
+// glow: how brightly the light parts of the face (the bright cyan of the eyes and screen) shine.
+// Rollback: HERO_ONLY = false (or ?roster=classic to try it) brings every older character back as it was: a save keeps
+// the character it chose, heroOf() only changes what is drawn.
+export const HEROES = { "custom-aron": { name: "ARON", glow: 1.4 } /* , "custom-lumi": { name: "LUMI", glow: 1.4 }, "custom-nex": { name: "NEX", glow: 1.4 } */ };
+export const HERO_IDS = Object.keys(HEROES), HERO_DEFAULT = "custom-aron";
+export const HERO_ONLY = (() => { try { return !/[?&]roster=classic\b/.test(location.search); } catch { return true; } })();
+export const heroOf = (id) => (HERO_ONLY && !HEROES[id] ? HERO_DEFAULT : id); // what a player with this saved character is drawn as
+export const CUSTOM_CHARS = [...HERO_IDS];
 export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c), ...KK_CHARS, ...CUSTOM_CHARS];
 export { ARCBOT_IDS };
 export const arcNight = (k) => ARC.setNight(k);
@@ -1075,7 +1086,7 @@ export async function makeCharacter(id, ver = "", outfit = null) {
     charCache.set(id, src);
   }
   if (id.startsWith("kk-")) return makeKK(id, src, ver);
-  if (CUSTOM_CHARS.includes(id)) return makeCustom(src);
+  if (CUSTOM_CHARS.includes(id)) return makeCustom(src, HEROES[id] || null);
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
@@ -1151,7 +1162,7 @@ async function makeKK(id, src, ver) {
 // them ("Walk", "Armature|Run", "mixamo.com"), so each of the game's names takes the first clip whose name has one of
 // its words; a looping name with no clip of its own (sit, fall, …) runs the idle, a one-shot without one just doesn't
 // play, and a file with no clips at all stands in its bind pose. Nothing here throws on an odd file.
-const CU_AS = { idle: [/idle|stand|breath/], walk: [/walk/], sprint: [/sprint|run|jog/, "walk"], jump: [/jump|leap|hop/], fall: [/fall|in.?air|float/],
+const CU_AS = { idle: [/idle|stand|breath/], walk: [/walk/], sprint: [/sprint|run|jog/, "walk"], jump: [/jump|leap|hop/], fall: [/fall|in.?air|float/, "jump"] /* b447: no fall clip: the jump carries on */,
   sit: [/sit/], drive: [/drive|ride|sit/], lie: [/lie|lying|lay|sleep/], die: [/die|death|dead|dying|defeat|knock/], hit: [/hit|damage|hurt|impact|react|stagger/],
   dodge: [/dodge|roll|evade|dash/], block: [/block|guard|defen/], attack: [/attack|slash|punch|kick|strike|swing|melee|stab|combo/], cast: [/cast|spell|magic|summon/, "attack"],
   shoot: [/shoot|bow|throw|fire|aim/, "attack"], "emote-yes": [/wave|greet|hello|nod|yes|salute/], "emote-no": [/shake|refuse|disagree|(^|_)no(_|$)/],
@@ -1176,14 +1187,27 @@ function cuClipsOf(src) {
   }); return clip; });
   cuClips.set(src, out); return out;
 }
-function makeCustom(src) {
+// a hero's material: its own PBR textures as they are, one side drawn (the mesh is closed), and the light parts of the
+// face shining: bright, saturated cyan in the colour map (the eyes, the screen, the trim lights) glows; the blue panels
+// (less green) and white shell (more red) don't. Patched once per material (clones share it).
+const heroLit = new WeakSet();
+function heroMaterials(root, spec) {
+  const k = Number(spec.glow ?? 1.4).toFixed(2);
+  root.traverse((x) => { if (!x.isMesh || !x.material) return; for (const m of [].concat(x.material)) {
+    if (heroLit.has(m) || !m.isMeshStandardMaterial) continue; heroLit.add(m); m.side = THREE.FrontSide;
+    const prev = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (prev) prev(sh, r);
+      sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+        { vec3 hc = diffuseColor.rgb; float hg = smoothstep(0.42, 0.7, hc.g) * smoothstep(0.55, 0.85, hc.b) * (1.0 - smoothstep(0.1, 0.28, hc.r)); totalEmissiveRadiance += hc * hg * ${k}; }`); };
+    const pk = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => ""; m.customProgramCacheKey = () => pk() + "|hero" + k; m.needsUpdate = true; } });
+}
+function makeCustom(src, spec = null) {
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
-  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); toonAll(inner); if (charHook) charHook(inner, false);
+  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); if (spec) heroMaterials(inner, spec); else toonAll(inner); if (charHook) charHook(inner, false, spec ? { pbr: true } : null);
   const crown = new THREE.Group(); crown.position.y = 2.45; crown.name = "crown";
   const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
-  r1.position.x = -0.1; r2.position.x = 0.1; r2.rotation.x = Math.PI / 2; crown.add(r1, r2); obj.add(crown);
+  r1.position.x = -0.1; r2.position.x = 0.1; r2.rotation.x = Math.PI / 2; crown.add(r1, r2); obj.add(crown); if (spec) crown.visible = false; // b447: a hero wears its own halo (the two rings would sit on top of it)
   // each game name's clips, best first (the plain "Walk" before "Walk_Back", then the shorter name)
   const clips = cuClipsOf(src), nm = (c) => String(c.name || "").replace(/^.*\|/, "").toLowerCase().replace(/[^a-z0-9]+/g, "_"), lists = {};
   for (const [n, [re]] of Object.entries(CU_AS)) lists[n] = clips.filter((c) => re.test(nm(c))).sort((a, b) => CU_SIDE.test(nm(a)) - CU_SIDE.test(nm(b)) || nm(a).length - nm(b).length);
@@ -1213,7 +1237,7 @@ function makeCustom(src) {
   return {
     obj, mixer, play, height: 2.1, kk: true, custom: true, bones, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt, // kk: swings with its own clips, wears only the weapon and shield
     mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.3, 0], armor: [0, 0.1, 0], armorR: 0.45, necklace: [0, 0.2, 0.2] },
-    attack(kind = 0, heavy = false) { const l = kind === 4 ? lists.cast : kind === 2 || kind === 3 ? lists.shoot : null, all = l && l.length ? l : lists.attack; if (all.length) run(act(all[heavy ? all.length - 1 : 0]), { once: true, fade: 0.06, speed: kind === 1 ? 1.1 : 1.4 }); },
+    attack(kind = 0, heavy = false) { const l = kind === 4 ? lists.cast : kind === 2 || kind === 3 ? lists.shoot : null, all = l && l.length ? l : lists.attack; if (all.length) { const c = all[heavy ? all.length - 1 : 0]; run(act(c), { once: true, fade: 0.06, speed: Math.max(kind === 1 ? 1.1 : 1.4, (c.duration || 0) / 0.8) }); } }, // b447: a long clip (ARON's is 3 s) is sped up to land within the game's swing
     setCrown(a, b) { [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
     update(dt, t) { mixer.update(dt); fx.tick(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
   };

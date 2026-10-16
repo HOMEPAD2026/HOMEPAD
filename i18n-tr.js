@@ -10311,7 +10311,7 @@
     "Play with a game controller. K dodges: a quick dash nothing can hit.": "Oyun kumandasıyla oynayabilirsin. K ile kaçınırsın: hiçbir şeyin vuramayacağı hızlı bir atılış.",
     "ARC Bots": "ARC Bot'lar",
     "Classic characters": "Klasik karakterler",
-    "Custom characters": "Özel karakterler",
+    "Custom characters": "Özel karakterler", "Heroes": "Kahramanlar",
     "Default Hero": "Varsayılan kahraman",
     "Assistant": "Asistan",
     "Medic": "Medik",

@@ -465,7 +465,7 @@ if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material &&
 const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
 // every character made from here on: the asset packs' palette (not the ARC Bots, drawn in it already) and a dark rim
 // and a cool rim of light (all presets but Saver)
-if (K.setCharHook) K.setCharHook((obj, arc) => { if (!lowGfx) { if (!arc) ENV.unifyPalette(obj); if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); } if (S.quality !== "saver" && ENV.rimLight) ENV.rimLight(obj); });
+if (K.setCharHook) K.setCharHook((obj, arc, o) => { if (!lowGfx) { if (!arc && !(o && o.pbr)) ENV.unifyPalette(obj); /* a hero keeps its own PBR colours */ if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); } if (S.quality !== "saver" && ENV.rimLight) ENV.rimLight(obj); });
 // (b420: every preset but Saver has the cumulus now; the dome reads them from a table baked once, cheaper than before)
 const sky = S.quality === "saver" ? K.makeSky() : ENV.makeSkyDome({ lite: st.quality.coarse || lowGfx }); st.scene.add(sky);
 if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); if (sky.material.uniforms.uMoon) { const mv = sky.material.uniforms.uMoon.value.copy(sunDir); mv.y = Math.min(mv.y, 0.6); mv.normalize(); } /* the moon stands where the night shadows come from */ try { sky.userData.bake(st.renderer); } catch (e) { console.warn("sky:", e); } st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
@@ -584,10 +584,12 @@ function switchRide() {
 function showRide() { board.visible = boarding && ride === "board"; rover.visible = boarding && ride === "rover"; jet.visible = boarding && ride === "jet"; if (avatar) avatar.obj.position.y = !boarding || ride === "jet" ? 0 : ride === "rover" ? 0.84 : 0.45; }
 addEventListener("keydown", (e) => { if (!worldReady) return; /* still loading */ if ((e.key === "v" || e.key === "V") && !e.repeat && !e.target.closest("input,textarea,[contenteditable]") && mode === "hub") switchRide(); });
 let avatar = null, nameTag = null;
+// b447: every player is drawn as a hero (world-kit.js HEROES: ARON for now); the save keeps the character it chose
+const heroOf = (id) => (K.heroOf ? K.heroOf(id) : id);
 // the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
 function paintFace() { const imgs = [$("wc-face-img"), $("wp-lv-face")].filter(Boolean), id = P.char || "arc-arc"; if (!imgs.length) return; const put = () => imgs.forEach((img) => { img.src = thumbCache[id]; }); if (thumbCache[id]) { put(); return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) put(); }); }
 async function setAvatar(id) {
-  const a = await K.makeCharacter(id, VER, P.outfit || null).catch(() => K.makeCharacter("bot"));
+  const a = await K.makeCharacter(heroOf(id), VER, P.outfit || null).catch(() => K.makeCharacter("bot"));
   setTimeout(paintFace, 300);
   if (avatar) player.remove(avatar.obj);
   headYaw = 0; avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = !boarding || ride === "jet" ? 0 : ride === "rover" ? 0.84 : 0.45;
@@ -2606,12 +2608,12 @@ $("wp-set-acct").addEventListener("click", async (e) => {
 });
 const make = $("wp-make");
 const KK_NAME = { "kk-knight": "Knight", "kk-mage": "Mage", "kk-rogue": "Rogue", "kk-rogue-hooded": "Hooded Rogue", "kk-ranger": "Ranger", "kk-barbarian": "Barbarian" };
-let pickChar = P.char || "arc-arc";
+let pickChar = heroOf(P.char || "arc-arc");
 function openMake() {
   // the ARC Bots first (each with its name and role), then the classic characters
-  const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.startsWith("kk-") ? T(KK_NAME[id] || id) : id.startsWith("custom-") ? id.slice(7).replace(/-/g, " ") : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/arcircle-mark-sm.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : ""}</button>`; };
+  const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.startsWith("kk-") ? T(KK_NAME[id] || id) : K.HEROES && K.HEROES[id] ? K.HEROES[id].name : id.startsWith("custom-") ? id.slice(7).replace(/-/g, " ") : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/arcircle-mark-sm.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : K.HEROES && K.HEROES[id] ? `<small>${esc(K.HEROES[id].name)}</small>` : ""}</button>`; };
   const sec = (h, ids) => (ids.length ? `<p class="wp-make-sec">${esc(T(h))}</p>` + ids.map(cell).join("") : "");
-  $("wp-make-grid").innerHTML = sec("ARC Bots", K.CHARACTERS.filter((id) => id.startsWith("arc-"))) + sec("Adventurers", K.CHARACTERS.filter((id) => id.startsWith("kk-"))) + sec("Classic characters", K.CHARACTERS.filter((id) => !id.startsWith("arc-") && !id.startsWith("kk-") && !K.CUSTOM_CHARS.includes(id))) + sec("Custom characters", K.CUSTOM_CHARS);
+  $("wp-make-grid").innerHTML = K.HERO_ONLY ? sec("Heroes", K.HERO_IDS) : sec("ARC Bots", K.CHARACTERS.filter((id) => id.startsWith("arc-"))) + sec("Adventurers", K.CHARACTERS.filter((id) => id.startsWith("kk-"))) + sec("Classic characters", K.CHARACTERS.filter((id) => !id.startsWith("arc-") && !id.startsWith("kk-") && !K.CUSTOM_CHARS.includes(id))) + sec("Custom characters", K.CUSTOM_CHARS);
   $("wp-make-name").value = P.name || "";
   make.hidden = false; frozen = true; keys.clear(); paintPrompt();
   camYaw = facing;
@@ -2633,7 +2635,7 @@ function renderThumbsFor(ids) {
       const cm = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
       for (const id of todo) {
         if (thumbCache[id]) continue;
-        const c = await K.makeCharacter(id, VER).catch(() => null); if (!c) continue;
+        const c = await K.makeCharacter(heroOf(id), VER).catch(() => null); if (!c) continue; // (a player's portrait shows the hero they're drawn as)
         // an ARC Bot's portrait is closer (its face is the point) and without the crown
         const crown = c.arc ? c.obj.getObjectByName("crown") : null; if (crown) crown.visible = false;
         if (c.arc) { cm.position.set(0.5, 1.5, 3.7); cm.lookAt(0, 1.2, 0); c.obj.rotation.y = 0.25; } else { cm.position.set(0, 1.5, 5.2); cm.lookAt(0, 1.15, 0); }
@@ -2667,6 +2669,7 @@ function finishMake(ch, nm) {
 }
 $("wp-make-go").addEventListener("click", () => {
   const nm = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player");
+  if (P.char && heroOf(P.char) === pickChar) pickChar = P.char; // b447: the hero you're already drawn as: your saved character stays (no Character change)
   const charCh = !!(P.char && P.guideSeen && pickChar !== P.char), nameCh = !!(P.name && P.guideSeen && nm !== P.name);
   if (!charCh && !nameCh) { finishMake(pickChar, nm); return; }
   const o = arclShop.own() || {};
@@ -3139,7 +3142,7 @@ ghosts = SOC.createGhosts({ THREE, K, planet, compile: (o) => (st.renderer.compi
   shadow: (r, k) => LOOK.contactShadow(r, k), isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
   onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; }, hides: (w) => !!(chatUI && chatUI.hides && chatUI.hides(lc(w))), // muted or blocked: no bubble over them
   // other players stand as their own characters (not the see-through capsules) once the model is in
-  makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(id, VER).catch(() => null)) });
+  makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(heroOf(id), VER).catch(() => null)) });
 // ---------------- the inbox: gifts, new stamps, friends playing now ----------------
 // stand next to someone in town (a friend from the inbox, a player's card): a short hop, facing them
 function goNear(x, z) {
@@ -3306,7 +3309,7 @@ document.body.appendChild(hubEl);
 // the Menu remembers the last 4 tiles you opened (a Recent row on top); on a keyboard, typing filters the tiles and Enter opens the first
 let hubRecent = [], hubQ = ""; try { hubRecent = JSON.parse(localStorage.getItem("arc.world.hubRecent") || "[]").filter((x) => typeof x === "string").slice(0, 4); } catch { /* none kept */ }
 function paintHub() {
-  const isArc = String(P.char || "arc-arc").startsWith("arc-"), dot = { log: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])'), chat: chatDot > 0 };
+  const isArc = String(heroOf(P.char || "arc-arc")).startsWith("arc-"), /* b447: the wardrobe dresses ARC Bots only */ dot = { log: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])'), chat: chatDot > 0 };
   const ok = ([id]) => (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub"), all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
   const tile = ([id, ic, label, key]) => `<button type="button" data-hub="${id}"${id === "defense" ? ' class="pri"' : ""}>${ICONS.icon(ic, 26)}<span>${esc(TW(label))}</span>${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}</button>`;
   hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}<small class="wp-hub-q" aria-live="polite"></small></h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>` +
