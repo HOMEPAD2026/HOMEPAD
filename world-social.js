@@ -400,7 +400,7 @@ export async function drawCard({ head, title, line, badge, name, lv, icon = "", 
   const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#06121c"); bg.addColorStop(1, "#0a2a22"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
   rings(g, 930, 300, 230, 0.2);
   g.fillStyle = "rgba(57,255,136,.10)"; g.beginPath(); g.arc(930, 300, 150, 0, TAU); g.fill();
-  const logo = await loadImg("/images/arcircle-mark-sm.png"); if (logo) g.drawImage(logo, 72, 64, 87, 51);
+  const logo = await loadImg("/images/brand/mark-sm-v2.png"); if (logo) g.drawImage(logo, 72, 64, 87, 51);
   g.fillStyle = "#9fb3c4"; g.font = font(700, 28); g.textBaseline = "alphabetic"; g.fillText("ARCIRCLE World", 176, 100);
   g.fillStyle = "#39ff88"; g.font = font(800, 30); g.fillText(head || "", 72, 222);
   g.fillStyle = "#eef3f7"; fitText(g, title || "", 720, 800, 76, 40); g.fillText(title || "", 72, 306);
@@ -437,7 +437,7 @@ export async function frameShot(blob, { name, lv, where, filter = "", sticker = 
   if (!frame) return new Promise((ok) => cv.toBlob((b) => ok(b || blob), "image/png"));
   const bg = g.createLinearGradient(0, H, W, H + bar); bg.addColorStop(0, "#06121c"); bg.addColorStop(1, "#0a2a22"); g.fillStyle = bg; g.fillRect(0, H, W, bar);
   g.fillStyle = "#39ff88"; g.fillRect(0, H, W, Math.max(2, Math.round(bar * 0.04)));
-  const logo = await loadImg("/images/arcircle-mark-sm.png"), lh = Math.round(bar * 0.46);
+  const logo = await loadImg("/images/brand/mark-sm-v2.png"), lh = Math.round(bar * 0.46);
   let x = Math.round(bar * 0.4); if (logo) { g.drawImage(logo, x, H + (bar - lh) / 2, lh * 58 / 34, lh); x += lh * 58 / 34 + bar * 0.25; }
   g.textBaseline = "middle"; g.fillStyle = "#eef3f7"; g.font = font(800, Math.round(bar * 0.3)); g.fillText("ARCIRCLE World", x, H + bar / 2);
   x += g.measureText("ARCIRCLE World").width + bar * 0.35;

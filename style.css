@@ -1644,7 +1644,7 @@ body.ax-page{
   filter:blur(26px);animation:ax-breathe 6s ease-in-out infinite alternate;}
 .ax-mark::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
   background:linear-gradient(110deg,transparent 38%,rgba(210,245,255,.75) 48%,rgba(190,255,220,.55) 52%,transparent 62%) no-repeat;background-size:260% 100%;
-  -webkit-mask:url(images/arcircle-mark-600.webp) center/contain no-repeat;mask:url(images/arcircle-mark-600.webp) center/contain no-repeat;
+  -webkit-mask:url(images/brand/mark-600-v2.webp) center/contain no-repeat;mask:url(images/brand/mark-600-v2.webp) center/contain no-repeat;
   animation:ax-sheen 7.5s cubic-bezier(.45,.05,.35,1) infinite;}
 @keyframes ax-breathe{0%{opacity:.55;transform:scale(.96);filter:blur(26px) hue-rotate(0deg);}100%{opacity:1;transform:scale(1.04);filter:blur(30px) hue-rotate(-18deg);}}
 @keyframes ax-sheen{0%,18%{background-position:120% 0;}62%,100%{background-position:-20% 0;}}

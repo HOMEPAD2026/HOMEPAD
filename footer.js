@@ -62,7 +62,7 @@ function renderSiteFooter() {
         <div class="ft-top">
           <div class="ft-brand">
             <div class="ft-brand-row">
-              <img class="ft-avatar" src="images/apple-touch-icon.png" alt="" width="44" height="44">
+              <img class="ft-avatar" src="images/brand/apple-touch-icon-v2.png" alt="" width="44" height="44">
               <div class="ft-wordmark">HOMEPAD <span class="ft-by">by $HOME</span></div>
             </div>
             <p class="ft-desc">Permissionless token launchpad on Robinhood Chain. Every launch pays rent, and rent goes home — a share of every trade fee buys back $HOME.</p>

@@ -1269,13 +1269,13 @@ export function createCombat(ctx) {
     koFree = !!k.free;
     if (k.free) {
       dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p>
-        <button type="button" class="wc-revive free" id="wc-revive"><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("Free: today's one free revive")}</small></span></button>
+        <button type="button" class="wc-revive free" id="wc-revive"><img src="/images/brand/mark-sm-v2.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("Free: today's one free revive")}</small></span></button>
         <button type="button" class="wc-respawn" id="wc-respawn"><b>${T("Respawn on the plaza")}</b><small>${T("free")}</small></button>
         <p class="wc-dead-tip">${tipAfterKO()}</p>
         <p class="wc-dead-note" id="wc-dead-note">${T("After this one, a knockout today means a revive for 10,000 $ARCIRCLE or a 24-hour rest.")}</p></div>`;
     } else {
       dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("Today's free revive is used. Pick either one:")}</p>
-        <button type="button" class="wc-revive paid" id="wc-revive"${ctx.signedIn && !ctx.signedIn() ? " disabled" : ""}><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
+        <button type="button" class="wc-revive paid" id="wc-revive"${ctx.signedIn && !ctx.signedIn() ? " disabled" : ""}><img src="/images/brand/mark-sm-v2.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
         <button type="button" class="wc-respawn" id="wc-rest"><b>${T("Rest for 24 hours")}</b><small>${T("Back on the plaza. You can walk, build and shop, but not fight, until it ends")}</small></button>
         <p class="wc-dead-tip">${tipAfterKO()}</p>
         <p class="wc-dead-note" id="wc-dead-note">${ctx.signedIn && !ctx.signedIn() ? T("Sign in with your wallet to revive with $ARCIRCLE.") : T("Reviving sends $ARCIRCLE from your own wallet; you confirm it there.")}</p></div>`;
@@ -1302,7 +1302,7 @@ export function createCombat(ctx) {
     if (resting() && !restEl) {
       restEl = document.createElement("button"); restEl.type = "button"; restEl.className = "wc-rest"; restEl.id = "wc-rest-chip"; restEl.setAttribute("data-no-i18n", "");
       restEl.addEventListener("click", () => { if (!resting() || down) return; koFree = false; dead.innerHTML = `<div class="wc-dead-card"><h2>${T("Resting")}</h2><p>${T("You can fight again in {t}.", { t: left(restUntil - Date.now()) })}</p>
-        <button type="button" class="wc-revive paid" id="wc-revive"${ctx.signedIn && !ctx.signedIn() ? " disabled" : ""}><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive now")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
+        <button type="button" class="wc-revive paid" id="wc-revive"${ctx.signedIn && !ctx.signedIn() ? " disabled" : ""}><img src="/images/brand/mark-sm-v2.png" alt="" width="28" height="19"><span><b>${T("Revive now")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
         <button type="button" class="wc-respawn" id="wc-keep"><b>${T("Keep resting")}</b></button>
         <p class="wc-dead-note" id="wc-dead-note">${T("Reviving sends $ARCIRCLE from your own wallet; you confirm it there.")}</p></div>`; dead.hidden = false; });
       vit.after(restEl);

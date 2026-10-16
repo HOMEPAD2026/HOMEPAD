@@ -108,7 +108,7 @@ function sharePage(url, coin) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">${esc(title)}</a>…</p>
@@ -278,7 +278,7 @@ ${alternates}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@ARCIRCLEonArc">
 <meta name="theme-color" content="#050805">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
 <style>
@@ -318,7 +318,7 @@ ol{margin:0;padding-left:20px;color:#cfdac9}
 .langs{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin:-18px 0 22px;font-size:.76rem;color:var(--dim)}.langs b{color:var(--ink);font-weight:700}.langs a{color:var(--dim)}
 </style>
 </head><body><div class="w">
-<header class="top"><a class="brand" href="/"><img src="/images/arcircle-mark-sm.png" alt="" width="36" height="25">ARCIRCLE PAD</a>
+<header class="top"><a class="brand" href="/"><img src="/images/brand/mark-sm-v2.png" alt="" width="36" height="25">ARCIRCLE PAD</a>
 <nav class="crumb"><a href="/arc${lq}">ArcPad</a> / <a href="/arc${lq}#explore">${t.explore}</a> / $${esc(sym)}</nav></header>
 <nav class="langs" aria-label="Language">${switcher}</nav>
 <main>
@@ -401,7 +401,7 @@ async function roundPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">CirclePad</a>…</p>
@@ -460,7 +460,7 @@ async function scanPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#4d9fff}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">Token Scanner</a>…</p>
@@ -502,7 +502,7 @@ async function dropPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">airdrop receipt</a>…</p>
@@ -545,7 +545,7 @@ async function snapPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#b58bff}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">snapshot</a>…</p>
@@ -587,7 +587,7 @@ async function lplockPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39d0ff}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">liquidity lock</a>…</p>
@@ -628,7 +628,7 @@ async function bridgePage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#ffc861}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">Bridge</a>…</p>
@@ -671,7 +671,7 @@ async function lockPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">lock</a>…</p>
@@ -711,7 +711,7 @@ async function veaPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07060a;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#ff8bd8}</style>
 </head><body>
 <p><a href="${esc(target)}">${esc(title)}</a></p>
@@ -792,7 +792,7 @@ async function stakePage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#b58bff}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">ARCIRCLE Staking</a>…</p>
@@ -829,7 +829,7 @@ function ordFillPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#4dd4ff}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">ARCIRCLE Orders</a>…</p>
@@ -866,7 +866,7 @@ function predictMePage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">ARCIRCLE Predict</a>…</p>
@@ -912,7 +912,7 @@ async function predictPage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">ARCIRCLE Predict</a>…</p>
@@ -961,7 +961,7 @@ async function votePage(url) {
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
 <meta http-equiv="refresh" content="0;url=${esc(target)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39d0ff}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">CirclePad governance</a>…</p>
@@ -1033,7 +1033,7 @@ async function reportPage(url) {
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
-<link rel="icon" href="/images/favicon-32.png">
+<link rel="icon" href="/images/brand/favicon-v2-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#040605;--panel:#0c110e;--line:rgba(255,255,255,.1);--ink:#fff;--dim:#8b958e;--g:#39ff88;--o:#ff8a4c;--y:#ffd166}

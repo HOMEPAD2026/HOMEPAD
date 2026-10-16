@@ -668,7 +668,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { clearInterval(flashT); document.title = baseTitle; } });
   function notify(title, body, tag) {
     flashTitle(title);
-    try { if (canNotify() && Notification.permission === "granted" && document.hidden) new Notification(title, { body, tag, icon: "/images/favicon-32.png" }); } catch { /* mobile browsers without the constructor */ }
+    try { if (canNotify() && Notification.permission === "granted" && document.hidden) new Notification(title, { body, tag, icon: "/images/brand/favicon-v2-32.png" }); } catch { /* mobile browsers without the constructor */ }
     if (typeof window.arcHaptic === "function") window.arcHaptic("milestone");
   }
   // one alert per step per transfer, remembered with the transfer itself

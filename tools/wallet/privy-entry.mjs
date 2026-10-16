@@ -54,7 +54,7 @@ export function mount(appId) {
     appId,
     config: {
       loginMethods: ["email", "google", "apple", "twitter"],
-      appearance: { theme: "dark", accentColor: "#1fe0a6", logo: "https://www.arcircle.app/images/apple-touch-icon.png", landingHeader: "ARCIRCLE Wallet", showWalletLoginFirst: false, walletChainType: "ethereum-only" },
+      appearance: { theme: "dark", accentColor: "#1fe0a6", logo: "https://www.arcircle.app/images/brand/apple-touch-icon-v2.png", landingHeader: "ARCIRCLE Wallet", showWalletLoginFirst: false, walletChainType: "ethereum-only" },
       embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" }, showWalletUIs: true },
       defaultChain: ARC,
       supportedChains: [ARC, RH],

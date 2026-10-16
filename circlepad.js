@@ -1995,7 +1995,7 @@ initCirclepadGovernance();
   countdown.insertAdjacentElement("afterend", box);
   let last = null;
   function ping(title, body) {
-    try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body, icon: "/images/favicon-32.png" }); } catch { /* not supported */ }
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body, icon: "/images/brand/favicon-v2-32.png" }); } catch { /* not supported */ }
     if (navigator.vibrate) { try { navigator.vibrate([40, 60, 40]); } catch { /* fine */ } }
     const t = document.title; let n = 0;
     const iv = setInterval(() => { document.title = n++ % 2 ? t : `● ${title}`; if (n > 12) { clearInterval(iv); document.title = t; } }, 900);

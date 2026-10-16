@@ -192,7 +192,7 @@ export function nextTier(ve) {
 const logoCache = new Map();
 async function logoOf(token) {
   token = lc(token);
-  if (token === ARCIRCLE) return "/images/arcircle-mark-sm.png";
+  if (token === ARCIRCLE) return "/images/brand/mark-sm-v2.png";
   if (!CFG.logos) return null;
   const h = logoCache.get(token);
   if (h && Date.now() - h.t < 86400e3) return h.v;

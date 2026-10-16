@@ -66,14 +66,14 @@
       el.className = "wl"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wl-h");
       var closed = PHASE === "closed";
       el.innerHTML = closed ? '<div class="wl-gcard wl-pass wl-closed" data-no-i18n>' +
-        '<div class="wl-top"><div class="wl-rings" aria-hidden="true"><i></i><i></i><i></i></div><img src="/images/arcircle-mark-sm.png" alt="" width="58" height="34"><span class="wl-tag">' + C.tag + '</span></div>' +
+        '<div class="wl-top"><div class="wl-rings" aria-hidden="true"><i></i><i></i><i></i></div><img src="/images/brand/mark-sm-v2.png" alt="" width="58" height="34"><span class="wl-tag">' + C.tag + '</span></div>' +
         '<h2 id="wl-h">' + C.h + '</h2><p class="wl-lead">' + C.p + '</p>' +
         '<dl class="wl-req"><div><dt>' + C.r1 + '</dt><dd>' + C.r1v + '</dd></div><div><dt>' + C.r2 + '</dt><dd>' + C.r2v + '</dd></div><div><dt>' + C.r3 + '</dt><dd>' + C.r3v + '</dd></div></dl>' +
         '<p class="wl-bad" role="alert" hidden></p>' +
         '<div class="wl-gact"><a class="wl-go wl-back" href="' + (o.cancelHref || "#") + '">' + C.back + '</a><button type="button" class="wl-gm">' + C.gm + '</button></div>' +
         '</div>' :
         '<div class="wl-gcard wl-pass" data-no-i18n>' +
-        '<div class="wl-top"><div class="wl-rings" aria-hidden="true"><i></i><i></i><i></i></div><img src="/images/arcircle-mark-sm.png" alt="" width="58" height="34"><span class="wl-tag">' + T.tag + '</span></div>' +
+        '<div class="wl-top"><div class="wl-rings" aria-hidden="true"><i></i><i></i><i></i></div><img src="/images/brand/mark-sm-v2.png" alt="" width="58" height="34"><span class="wl-tag">' + T.tag + '</span></div>' +
         '<h2 id="wl-h">' + T.h + '</h2><p class="wl-lead">' + T.p + '</p>' +
         '<dl class="wl-req"><div><dt>' + T.req + '</dt><dd>' + T.reqv + '</dd></div><div><dt>' + T.platl + '</dt><dd class="wl-dev"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="14" height="10" rx="1.6"/><path d="M6 17.5h7"/><rect x="17.5" y="8" width="5" height="10" rx="1.2"/></svg>' + T.plat + '</dd></div></dl>' +
         '<div class="wl-meter" hidden><div class="wl-mrow"><span>' + T.have + ' <b class="wl-have">0</b></span><span>' + T.needw + ' <b>' + fmt(NEED) + '</b></span></div><i class="wl-bar"><b></b></i></div>' +

@@ -212,7 +212,7 @@
   const launches = () => (!RH() && typeof ARC !== "undefined" && ARC.launches) || [];
   function logoOf(a) {
     a = lc(a);
-    if (a === ARCIRCLE) return "images/arcircle-mark-sm.png";
+    if (a === ARCIRCLE) return "images/brand/mark-sm-v2.png";
     const l = launches().find((x) => lc(x.token) === a);
     return l && (/^https?:\/\//i.test(l.imageUrl || "") || /^data:image\//i.test(l.imageUrl || "")) ? l.imageUrl : "";
   }

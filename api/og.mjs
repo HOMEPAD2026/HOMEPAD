@@ -107,7 +107,7 @@ export async function GET(req) {
   const url = new URL(req.url);
   const addr = url.searchParams.get("addr") || "";
   const justLaunched = url.searchParams.get("kind") === "launch"; // Telegram launch announcements
-  const markP = fetchImage(`${SITE}/images/arcircle-mark-sm.png`);
+  const markP = fetchImage(`${SITE}/images/brand/mark-sm-v2.png`);
   const fontsP = Promise.all([400, 700, 800].map(async (weight) => {
     try {
       const r = await fetch(`${SITE}/fonts/sora-latin-${weight}-normal.woff`);

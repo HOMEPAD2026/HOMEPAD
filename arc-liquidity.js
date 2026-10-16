@@ -388,7 +388,7 @@
   function alertFlip(w, inRange) {
     const msg = `$${w.s} / ${w.q} #${w.id} — ${tr(inRange ? "back in range, earning again" : "left its price range and stopped earning fees")}`;
     toast(msg, inRange ? "ok" : "info");
-    try { if (window.Notification && Notification.permission === "granted" && document.hidden) new Notification("ARCIRCLE PAD · Liquidity", { body: msg, icon: "/images/icon-192.png", tag: "alq-" + w.id }); } catch { /* blocked */ }
+    try { if (window.Notification && Notification.permission === "granted" && document.hidden) new Notification("ARCIRCLE PAD · Liquidity", { body: msg, icon: "/images/brand/icon-192-v2.png", tag: "alq-" + w.id }); } catch { /* blocked */ }
   }
   // positions on screen: compare right after a load
   function noteWatch() {

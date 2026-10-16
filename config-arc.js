@@ -16,7 +16,7 @@ const CONFIG = {
   // What wallets show on their connect / approve screens (WalletConnect).
   APP_NAME: "ARCIRCLE PAD",
   APP_DESCRIPTION: "ArcPad and CirclePad — launch coins on Circle's Arc, paired in USDC.",
-  APP_ICON: "/images/apple-touch-icon.png",
+  APP_ICON: "/images/brand/apple-touch-icon-v2.png",
   RPC_URL: "https://rpc.mainnet.arc.io",
   // Read-only fallbacks, used only when RPC_URL stops answering. These are
   // the keyless mainnet endpoints listed in Arc's own docs

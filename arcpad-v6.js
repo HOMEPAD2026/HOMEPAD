@@ -157,7 +157,7 @@
       if (p.at - now <= 60 && p.at - now > -300 && !p.__told) { p.__told = true; notify(`$${p.symbol} ${tr("launches in a minute")}`, p.name); toast(`$${p.symbol} ${tr("launches in a minute")}`); }
     }
   }
-  function notify(title, body) { try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body, icon: "/images/arcircle-mark-sm.png" }); } catch { /* not allowed */ } }
+  function notify(title, body) { try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body, icon: "/images/brand/mark-sm-v2.png" }); } catch { /* not allowed */ } }
   function homeFrame() {
     const home = $("bp-panel-home"); if (!home || $("v6-koth")) return;
     // the hero gets shorter, so the King of the Hill and what's trending sit in the first screen

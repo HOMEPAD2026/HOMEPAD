@@ -114,7 +114,7 @@
       const supply = await withRetry(() => new ethers.Contract(m.address, TOK_ABI, rp()).totalSupply()).catch(() => 0n);
       const l = launchOf(m.address);
       const logo = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl) ? l.imageUrl
-        : (ch === "rh" ? lc(addr) === RH_ARCIRCLE : ARCIRCLE && lc(addr) === ARCIRCLE) ? "images/arcircle-mark-sm.png" : "";
+        : (ch === "rh" ? lc(addr) === RH_ARCIRCLE : ARCIRCLE && lc(addr) === ARCIRCLE) ? "images/brand/mark-sm-v2.png" : "";
       return { ...m, supply, logo, creator: l ? lc(l.creator) : null, arcpad: !!l };
     })();
     p.catch(() => metaCache.delete(k));
@@ -568,7 +568,7 @@
     const st = $("lkr-dash-stats");
     st.innerHTML = cells.map(([k, v, sub]) => `<div><small>${esc(k)}</small><b data-no-i18n data-v="${esc(v)}">${esc(v)}</b>${sub ? `<em>${esc(sub)}</em>` : ""}</div>`).join("");
     if (typeof window.arcCountUp === "function" && !reduce) st.querySelectorAll("b").forEach((b) => { const n = Number(b.dataset.v); if (Number.isFinite(n) && n > 0) window.arcCountUp(b, n, (x) => String(Math.round(x))); });
-    const logo = (m) => { const l = launchOf(m.address); const ok = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl); return avatar(ok ? { logo: l.imageUrl } : (RH() ? lc(m.address) === RH_ARCIRCLE : ARCIRCLE && lc(m.address) === ARCIRCLE) ? { logo: "images/arcircle-mark-sm.png" } : { symbol: m.symbol }, m.address); };
+    const logo = (m) => { const l = launchOf(m.address); const ok = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl); return avatar(ok ? { logo: l.imageUrl } : (RH() ? lc(m.address) === RH_ARCIRCLE : ARCIRCLE && lc(m.address) === ARCIRCLE) ? { logo: "images/brand/mark-sm-v2.png" } : { symbol: m.symbol }, m.address); };
     const pc = (p) => (p == null ? "" : `${(p >= 10 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(3)).replace(/\.?0+$/, "")}%`);
     const t = now();
     $("lkr-dash-top").innerHTML = d.top.length ? `<div class="lkr-rank">${d.top.map((x, i) => `<button type="button" class="lkr-rank-row" data-lkr-find="${esc(x.token.address)}" style="--i:${i};--w:${Math.max(2, Math.min(100, x.pctOfSupply || 0))}%">

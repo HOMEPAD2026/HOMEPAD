@@ -77,7 +77,7 @@
     f.className = "axf";
     f.innerHTML =
       '<div class="axf-in">' +
-        '<div class="axf-brand"><a href="/" class="axf-logo"><img src="/images/arcircle-mark-sm.webp" alt="" width="40" height="28"><span>ARCIRCLE <em>PAD</em></span></a>' +
+        '<div class="axf-brand"><a href="/" class="axf-logo"><img src="/images/brand/mark-sm-v2.webp" alt="" width="40" height="28"><span>ARCIRCLE <em>PAD</em></span></a>' +
           '<p>Two launchpads and one core coin on Circle\'s Arc. Every number on this site is read live from the chain.</p>' +
           '<a class="axf-mail" href="mailto:contact@arcircle.app">contact@arcircle.app</a>' +
           '<div class="axf-net" id="axf-net"><span class="axf-dot"></span><span class="axf-net-txt">Arc mainnet · checking…</span></div></div>' +

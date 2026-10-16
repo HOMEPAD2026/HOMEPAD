@@ -70,7 +70,7 @@
   function hide() { pop.hidden = true; owner = null; sel = -1; }
   function row(it, k) {
     const l = it.l;
-    const logo = it.core ? `<img src="images/arcircle-mark-sm.png" alt="">`
+    const logo = it.core ? `<img src="images/brand/mark-sm-v2.png" alt="">`
       : l && safeImg(l.imageUrl) ? `<img src="${esc(l.imageUrl)}" alt="">`
       : `<span class="srch-ph" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(it.t) : ""}">${esc(((l && l.symbol) || "?").slice(0, 1).toUpperCase())}</span>`;
     const sym = it.core ? "$ARCIRCLE" : l ? `$${esc(l.symbol)}` : `${it.t.slice(0, 6)}…${it.t.slice(-4)}`;

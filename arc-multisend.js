@@ -369,7 +369,7 @@
     if (info.native) return `<span class="ams-logo ams-eth" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5l6 9.7-6 3.6-6-3.6z"/><path d="M12 17.1l6-3.6-6 8-6-8z" opacity=".7"/></svg></span>`;
     const l = launchOf(info.address);
     const oft = lc(CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT);
-    const logo = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl) ? l.imageUrl : lc(info.address) === ARCIRCLE || (onRh() && oft && lc(info.address) === oft) ? "images/arcircle-mark-sm.png" : "";
+    const logo = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl) ? l.imageUrl : lc(info.address) === ARCIRCLE || (onRh() && oft && lc(info.address) === oft) ? "images/brand/mark-sm-v2.png" : "";
     if (logo) return `<img class="ams-logo" src="${esc(logo)}" alt="">`;
     const bg = typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(info.address) : "";
     return `<span class="ams-logo ph" style="${bg}">${esc(String(info.symbol || "?").replace(/^\$/, "").slice(0, 1).toUpperCase())}</span>`;

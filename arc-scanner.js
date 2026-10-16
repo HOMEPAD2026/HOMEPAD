@@ -598,7 +598,7 @@
     const c = cur.c, res = cur.res, m = res.market;
     const logo = (m && m.image) || (cur.x.arcpad && /^(https:\/\/|data:image\/)/.test(cur.x.arcpad.imageUrl || "") && cur.x.arcpad.imageUrl)
       || (launchOf(cur.addr) && /^(https:\/\/|data:image\/)/.test(launchOf(cur.addr).imageUrl || "") && launchOf(cur.addr).imageUrl)
-      || (lc(cur.addr) === (RH() ? RH_ARCIRCLE : ARCIRCLE) ? "images/arcircle-mark-sm.png" : "");
+      || (lc(cur.addr) === (RH() ? RH_ARCIRCLE : ARCIRCLE) ? "images/brand/mark-sm-v2.png" : "");
     const idHtml = `${logo ? `<img class="asc-logo" src="${esc(logo)}" alt="">` : `<span class="asc-logo ph" style="--h:${hueOf(cur.addr)}">${esc(String(c.symbol || "?").charAt(0).toUpperCase())}</span>`}
       <div class="asc-id-txt">
         <h2 data-no-i18n>${esc(c.name || "Unnamed")} <span>$${esc(c.symbol || "?")}</span></h2>
@@ -1169,7 +1169,7 @@
       if (alerts.length) {
         const msg = `$${w.s}: ${alerts.join(", ")}`;
         toast(msg);
-        try { if ("Notification" in window && Notification.permission === "granted") new Notification(tr("Token Scanner alert"), { body: msg, tag: "asc-" + w.a, icon: "/images/favicon-32.png" }); } catch { /* fine */ }
+        try { if ("Notification" in window && Notification.permission === "granted") new Notification(tr("Token Scanner alert"), { body: msg, tag: "asc-" + w.a, icon: "/images/brand/favicon-v2-32.png" }); } catch { /* fine */ }
         w.alert = { msg, at: Date.now() };
       }
       w.snap = s; changed = true;
