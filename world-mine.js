@@ -83,6 +83,7 @@ export function createMine(ctx) {
 
   // ---------------- the cave ----------------
   function build() {
+    const extra = {}, coarse = !!ctx.coarse, rich = !low && !coarse; // rich: a computer (bloom, more of everything)
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0x05060b);
     const cam = new THREE.PerspectiveCamera(30, 1, 1, 200); scene.fog = new THREE.Fog(0x070910, 40, 90);
     const hemi = new THREE.HemisphereLight(0x7d86e0, 0x3a2416, low ? 1.1 : 0.8); scene.add(hemi);
@@ -94,7 +95,6 @@ export function createMine(ctx) {
     const lampL = low ? [] : (coarse ? [0] : [0, 1, 2]).map(() => { /* a phone: one lamp light (the floor's light pools do the rest) */ const l = new THREE.PointLight(0xffa04a, 22, 13, 2); scene.add(l); return l; });
     const goldL = new THREE.PointLight(0xffc640, 0, 8, 2); if (!low) scene.add(goldL);
     let sd = 911; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
-    const extra = {}, coarse = !!ctx.coarse, rich = !low && !coarse; // rich: a computer (bloom, more of everything)
     const noise = (x, y) => Math.sin(x * 0.9 + Math.sin(y * 1.3) * 1.7) * 0.5 + Math.sin(x * 2.3 - y * 1.9) * 0.25 + Math.sin(x * 5.1 + y * 4.7) * 0.12;
     const vc = (geo, f) => { const p = geo.attributes.position, c = new Float32Array(p.count * 3), col = new THREE.Color(); for (let i = 0; i < p.count; i++) { f(p.getX(i), p.getY(i), p.getZ(i), col, i); c[i * 3] = col.r; c[i * 3 + 1] = col.g; c[i * 3 + 2] = col.b; } geo.setAttribute("color", new THREE.BufferAttribute(c, 3)); };
     const vcm = (o = {}) => new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, ...o });
