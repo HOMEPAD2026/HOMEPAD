@@ -17,8 +17,8 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
   const glow = (c, k = 1.8) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
   const hex = (c) => "#" + new THREE.Color(c).getHexString();
   // the clearing, its glowing edge and the square in the middle
-  const ground = new THREE.Mesh(new THREE.CircleGeometry(V.r, 64), new THREE.MeshStandardMaterial({ color: 0x8fd18a, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; root.add(ground);
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(V.r, 64), new THREE.MeshStandardMaterial({ color: 0x86cc79, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; ground.name = "gv-ground"; root.add(ground); // world-play.js gives it the town ground's look (b447)
   // the square: pale stone in hexagons with a soft blue-glass seam (one canvas texture, repeated; the AC Defense floor's look)
   const hexTex = (() => { if (typeof document === "undefined") return null; const w = 128, h = Math.round(w * Math.sqrt(3)), c = document.createElement("canvas"); c.width = w * 3; c.height = h; const g = c.getContext("2d");
     g.fillStyle = "#cfd6df"; g.fillRect(0, 0, c.width, c.height);
@@ -94,12 +94,14 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     return g;
   }
   // b446: a small garden on a plot no game is coming to soon: grass, a low hedge, a tree and flowers (shared parts)
-  let GP = null;
+  let GP = null, gardenN = 0;
   function gardenOf() {
     if (!GP) GP = { disc: new THREE.CircleGeometry(3, 24), grass: std(0x7fcf6a, { flatShading: false }), hedge: new THREE.TorusGeometry(2.8, 0.32, 6, 20), hedgeM: std(0x3f9a4e), trunk: new THREE.CylinderGeometry(0.16, 0.22, 1.2, 6), trunkM: std(0x7a5236), crown: new THREE.IcosahedronGeometry(1.1, 0), crownM: std(0x4fbf63), flower: new THREE.IcosahedronGeometry(0.2, 0), fl: [0xff7ab8, 0xffd23a, 0xffffff, 0x8fb8ff].map((c) => std(c)) };
     const g = new THREE.Group(), d = new THREE.Mesh(GP.disc, GP.grass); d.rotation.x = -Math.PI / 2; d.position.y = 0.07; g.add(d);
     const h = new THREE.Mesh(GP.hedge, GP.hedgeM); h.rotation.x = Math.PI / 2; h.position.y = 0.25; h.scale.z = 1.6; g.add(h);
-    const t = new THREE.Mesh(GP.trunk, GP.trunkM); t.position.y = 0.6; const c = new THREE.Mesh(GP.crown, GP.crownM); c.position.y = 1.8; g.add(t, c);
+    // b447: the town's own round tree (a soft cloud of leaves that sways), not one faceted ball; a blossom or a maple now and then
+    gardenN++; const tr = K.makeTrees ? K.makeTrees([new THREE.Matrix4().makeScale(1.15, 1.15, 1.15)], { pine: 0, blossom: gardenN % 3 === 1 ? 1 : 0, maple: gardenN % 3 === 2 ? 1 : 0, seed: gardenN }) : null;
+    if (tr) g.add(tr); else { const t = new THREE.Mesh(GP.trunk, GP.trunkM); t.position.y = 0.6; const c = new THREE.Mesh(GP.crown, GP.crownM); c.position.y = 1.8; g.add(t, c); }
     for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.3, f = new THREE.Mesh(GP.flower, GP.fl[k % 4]); f.position.set(Math.sin(a) * 1.9, 0.22, Math.cos(a) * 1.9); g.add(f); }
     return g;
   }
@@ -167,7 +169,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
   // each), the bunting one merged line of flags; the lamp heads glow by their material (no real lights).
   function decor() {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1);
-    const inst = (geo, mat, list) => { if (!list.length) return; const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach(([x, y, z, ry, sx = 1, sy = 1, sz = 1], i) => { e.set(0, ry, 0); q.setFromEuler(e); m.setMatrixAt(i, m4.compose(v.set(x, y, z), q, sc.set(sx, sy, sz))); }); m.castShadow = !low; m.receiveShadow = true; built.add(m); };
+    const inst = (geo, mat, list) => { if (!list.length) return; const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach(([x, y, z, ry, sx = 1, sy = 1, sz = 1], i) => { e.set(0, ry, 0); q.setFromEuler(e); m.setMatrixAt(i, m4.compose(v.set(x, y, z), q, sc.set(sx, sy, sz))); }); m.castShadow = !low; m.receiveShadow = true; built.add(m); return m; };
     // the path: flat stones from the gate in to the square's edge
     const stones = [], dirX = -Math.sin(toPlaza), dirZ = -Math.cos(toPlaza);
     for (let d = V.r - 1; d > V.arenaR + 2.5; d -= 1.6) for (const off of [-0.9, 0.9]) stones.push([gx + dirX * (V.r - d) + -dirZ * off, 0.06, gz + dirZ * (V.r - d) + dirX * off, toPlaza + (off > 0 ? 0.2 : -0.15), 1, 1, 1]);
@@ -192,6 +194,19 @@ export function makeGameVillage({ THREE, K, planet, T, low = false }) {
     GAMES.forEach((gm, i) => { if (gm.ready || gm.garden) return; const p = plotAt(i), fx = p.x - Math.sin(p.a) * 3.4, fz = p.z - Math.cos(p.a) * 3.4, ra = p.a + Math.PI / 2; rails.push([fx, 0.55, fz, ra], [fx, 0.95, fz, ra]); });
     const stripe = (() => { if (typeof document === "undefined") return null; const c = document.createElement("canvas"); c.width = 64; c.height = 8; const g = c.getContext("2d"); for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? "#1d2333" : "#ffc861"; g.fillRect(k * 8, 0, 8, 8); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
     inst(new THREE.BoxGeometry(2.4, 0.16, 0.08), new THREE.MeshStandardMaterial({ map: stripe, color: stripe ? 0xffffff : 0xffc861, roughness: 0.7 }), rails);
+    // b447: life in the clearing: grass tufts, little flower clumps and flat stones, in a ring inside the plots and a
+    // ring outside them, kept off the gate's path and the walks to each door (the same every visit: a seeded scatter)
+    { let sd = 447; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      const plotA = GAMES.map((_, i) => plotAt(i).a), dA = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+      const spot = (inner) => { for (let k = 0; k < 12; k++) { const a = rnd() * Math.PI * 2, r = inner ? 12.6 + rnd() * 2.6 : 26 + rnd() * 5; if (dA(a, toPlaza) < 0.3) continue; if (plotA.some((pa) => dA(a, pa) < (inner ? 0.14 : 0.2))) continue; return [Math.sin(a) * r, Math.cos(a) * r]; } return null; };
+      const tufts = [], stones = [], fl = [[], [], [], []], flC = [0xff8ab0, 0xffe066, 0xffffff, 0xb48cff];
+      for (let i = 0; i < (low ? 50 : 110); i++) { const p = spot(i % 3 === 0); if (!p) continue; const h = 0.7 + rnd() * 0.6; for (let b = 0; b < 3; b++) tufts.push([p[0] + (rnd() - 0.5) * 0.3, 0.2 * h, p[1] + (rnd() - 0.5) * 0.3, rnd() * 6.3, 1, h, 1]); }
+      for (let i = 0; i < (low ? 16 : 36); i++) { const p = spot(i % 2 === 0); if (!p) continue; const c = fl[i % 4]; for (let b = 0; b < 4; b++) c.push([p[0] + (rnd() - 0.5) * 0.6, 0.22 + rnd() * 0.08, p[1] + (rnd() - 0.5) * 0.6, 0]); }
+      for (let i = 0; i < (low ? 10 : 22); i++) { const p = spot(i % 2 === 1); if (!p) continue; const k = 0.6 + rnd() * 0.8; stones.push([p[0], 0.05, p[1], rnd() * 6.3, k, 0.35 * k, k * (0.7 + rnd() * 0.5)]); }
+      const tg = new THREE.ConeGeometry(0.07, 0.42, 3); tg.translate(0, 0.0, 0);
+      const t = inst(tg, std(0x5fb84f), tufts); if (t) t.castShadow = false;
+      const fg = new THREE.IcosahedronGeometry(0.09, 0); fl.forEach((l, i) => { const m = inst(fg, std(flC[i], { emissive: flC[i], emissiveIntensity: 0.15 }), l); if (m) m.castShadow = false; });
+      const sm = inst(new THREE.DodecahedronGeometry(0.32, 0), std(0xc9ccd4), stones); if (sm) sm.castShadow = false; }
   }
   return {
     root, doors, solids, center: { x: V.x, z: V.z }, arenaR: V.arenaR,

@@ -443,7 +443,22 @@ st.on(() => { try { farCull.tick(); } catch { /* still loading */ } });
 // things that move need it, and they barely move in a 30th of a second)
 let frameNo = 0; const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : st.quality.coarse ? 3 : 2; /* b448: phones every 3rd frame (the sun stands still; the real shadow only covers the area round you) */
 if (st.renderer.shadowMap.enabled && shadowEvery > 1) st.renderer.shadowMap.autoUpdate = false;
-st.on(() => { frameNo++; const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = frameNo % ev === 0; });
+// b447: a phone still slow at the fewest pixels stops drawing the live shadow (one less pass over the town each
+// time it updated): the baked town shade (gshadow) then reaches right up to you, and a soft spot sits under your feet.
+// The light keeps its shadow on (switching it off rebuilds every shader); its map is just drawn empty once.
+let liveShOff = 0, footSpot = null;
+function bakedShadows() {
+  if (liveShOff || !gshadow || !st.sun || !st.sun.castShadow || !st.renderer.shadowMap.enabled) return false;
+  liveShOff = 1; planet.traverse((o) => { if (o.isMesh) o.castShadow = false; }); if (player) player.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+  gshadow.uniforms.gsNear.value = 0;
+  try { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, "rgba(0,0,0,0.5)"); g.addColorStop(0.6, "rgba(0,0,0,0.25)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    const geo = new THREE.PlaneGeometry(1.3, 1.3); geo.rotateX(-Math.PI / 2);
+    footSpot = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, toneMapped: false })); footSpot.renderOrder = 1; st.scene.add(footSpot);
+    if (compileHidden) compileHidden([footSpot]); } catch { /* no spot */ }
+  return true;
+}
+st.on(() => { if (!footSpot) return; footSpot.visible = mode === "hub" && player.visible; if (footSpot.visible) { footSpot.position.set(player.position.x, 0.04, player.position.z); footSpot.scale.setScalar(1 / (1 + Math.max(0, hop) * 0.35)); } });
+st.on(() => { frameNo++; if (liveShOff) { if (st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = liveShOff === 1 || !st.sun.shadow.map; liveShOff = 2; return; } const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = frameNo % ev === 0; });
 const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir, around: (f) => farCull.all(f) }) : null;
 if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
 // the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
@@ -522,6 +537,8 @@ K.placeOn(pad, K.dirOf(7, 90)); planet.add(pad);
 // the wind in the tree crowns (world-kit.js sway): still on low quality and with reduced motion
 if (!lowGfx && !reduce && K.wind) st.on((dt) => { K.wind.value += dt; });
 const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx }); gv.clear(groundG);
+// b447: the clearing was one flat pale green: now the town ground's patches, fine grain and drifting cloud shade, and the baked town shade
+{ const gg = gv.root.getObjectByName("gv-ground"); if (gg) { LOOK.groundLook(gg.material, { low: lowGfx }); if (gshadow) gshadow.receive(gg.material); } }
 st.on((dt, t) => { gv.tick(dt, t, -planet.position.x, -planet.position.z); });
 planet.traverse((o) => { if (o.isMesh && o.material && o.material.transparent) o.castShadow = false; });
 const glowLight = new THREE.PointLight(0x35d8d0, 5, 7, 2); glowLight.position.set(0, 0.5, 0); st.scene.add(glowLight);
@@ -3168,7 +3185,7 @@ if (!lowGfx) {
 let grass = null, gmask = null;
 function makeMeadow() {
   if (lowGfx || grass) return;
-  gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }], paths: WORN_PATHS }));
+  gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }, { x: GV.VILLAGE.x, z: GV.VILLAGE.z, r: GV.VILLAGE.arenaR + 2.2 } /* b447: the Game Village square (the blades grew through its tiles) */], paths: WORN_PATHS }));
   const big = S.quality === "ultra" || S.quality === "high"; // 60,000 blades only when asked for (b411)
   grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 16000 : 32000, size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
   planet.add(grass.mesh); reflHide.push(grass.mesh);
@@ -3605,7 +3622,8 @@ function dynRes(dt) {
   // b411: slow means under 80% of the limit on a phone (48 of 60: phones sat at 40–50 and never eased off) and 70% on
   // a computer; it was 63% for both
   // b447: a phone already at the fewest pixels and still under 40 fps judders between 30 and 45: an even 30 looks smoother
-  if (st.quality.coarse && !S.fpsCap && !autoCap && dynK <= 0.6 && fps < 40) { if (++capBad >= 2) { autoCap = 30; st.fps(30); } } else capBad = 0;
+  if (st.quality.coarse && dynK <= 0.6 && fps < (S.fpsCap || 60) * 0.8 && !liveShOff && now - dynLast > 20000 && bakedShadows()) { dynLast = now; dynBad = 0; return; } // b447: then the live shadow goes
+  if (st.quality.coarse && !S.fpsCap && !autoCap && liveShOff && dynK <= 0.6 && fps < 40) { if (++capBad >= 2) { autoCap = 30; st.fps(30); } } else capBad = 0;
   const capF = S.fpsCap || autoCap || 60; dynBad = fps < capF * (st.quality.coarse ? (now - dynStart > 600000 ? 0.9 : 0.8) : 0.7) ? dynBad + 1 : 0; /* b448: after 10 minutes a phone is warm: ease off a step earlier */ dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
   if (now - dynLast < (gameOn ? 8000 : 20000)) return;
   if (dynBad >= (gameOn ? 1 : 2) && dynK > 0.6) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
@@ -3903,7 +3921,7 @@ arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.h
 window.arcWorld = {
   applyOwn: (o) => applyOwn(o), // the pets, and a worldOwn to mirror (tests)
   stage: () => st, post: () => fxPost, gshadow: () => gshadow, grass: () => grass, gmask: () => gmask, parts: () => parts, music: () => music, vfx: () => vfx, life: () => life, air: () => air, showcase: () => island.showcase(), ride: () => ride, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
-  level: () => level(), purse: (f) => refreshPurse(f),
+  level: () => level(), purse: (f) => refreshPurse(f), bakedShadows: () => bakedShadows(), // b447: the slow-phone shadow step, for tests
   jump: () => jumpRace, beat: () => beatGame, mode: () => mode, input: () => ({ joy: joy ? { dx: +joy.dx.toFixed(2), dy: +joy.dy.toFixed(2), fixed: joy.fixed } : null, look: !!look, pinch: !!pinch, touches: touches.size, cam: +camGoal.toFixed(2) }), gv: () => gv, liftTo: (y) => { hop = y; at.y = y; vy = 0; grounded = true; } /* tests: stand at a height (a Coin Jump platform) */, goGameVillage: () => goGameVillage(), island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),

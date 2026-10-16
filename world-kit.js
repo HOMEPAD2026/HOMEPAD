@@ -22,6 +22,7 @@ import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 import { villainize } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
+export const makeTrees = (...a) => ARC.makeTrees(...a); // the town's round, wind-swayed trees (the Game Village gardens use them, b447)
 
 // compiled shaders are kept (b413). three.js deletes a shader program when the last material using it is disposed, so
 // an effect that made a material, played, and disposed it (a spark, a ring, a beam, a summon) compiled its shader again
