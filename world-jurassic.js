@@ -5,7 +5,7 @@
 // the hero walking it, and the gate home. Dinosaurs arrive with their GLB files (models/world/jurassic, the doc's list).
 // It draws its own scene through the stage's view() while the town waits behind it, like the ARCL Mine.
 import { makeJurTrees } from "./world-jurtrees.js";
-import { createSurvival, CAMP } from "./world-jursurv.js";
+import { createSurvival, CAMPS, CAMP_R } from "./world-jursurv.js";
 export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { x: 0, z: 66 }, LAKE: { x: 55, z: -35, r: 34 } };
 
 export function createJurassic(ctx) {
@@ -126,8 +126,9 @@ export function createJurassic(ctx) {
   // ---------------- the dinosaurs you can hunt (world-jursurv.js swings at them; the server says how many hits) ----------
   // Each is a target: id, kind (the server's), hr (its reach), alive, hurt(), die(), revive(). They bite back: a bite is
   // a share of your max HP (the town's knock-out rules then, world-combat.js). Round the gate and your camp you're safe.
-  let clock = 0;
-  const safeHere = () => downNow || Math.hypot(px - J.SPAWN.x, pz - J.SPAWN.z) < 26;
+  let clock = 0, sel = null;
+  const selectFoe = (o) => { sel = o; if (surv) surv.select(o); };
+  const safeHere = () => downNow || Math.hypot(px - J.SPAWN.x, pz - J.SPAWN.z) < 26 || CAMPS.some(([cx, cz]) => Math.hypot(px - cx, pz - cz) < CAMP_R + 2);
   function dinoize(o, kind, id, hr, popY, home) {
     Object.assign(o, { id, kind, hr, popY, alive: true, angry: 0, biteAt: 0, cool: 0, home });
     o.hurt = () => { o.angry = clock + 12; o.R.once("hit", 1.2); };
@@ -136,15 +137,27 @@ export function createJurassic(ctx) {
     return o;
   }
   // a bite (or a claw, a tail, a horn) lands a moment into its attack clip, if you're still in reach
+  // an attack: it lunges at you as the clip starts (no more standing still to bite), the hit lands a moment in
   function attack(o, clipName, share, reach, cool) {
     if (clock < o.cool || o.R.one) return; if (!o.R.once(clipName, 1.15)) o.R.once("attack", 1.15);
-    o.cool = clock + cool; o.biteAt = clock + 0.38; o.biteK = share; o.biteR = reach;
+    o.cool = clock + cool; o.biteAt = clock + 0.36; o.biteK = share; o.biteR = reach; o.lungeT = 0.34; o.lungeV = Math.max(7, (o.run || 6) * 1.35);
+    if (!sel || !sel.alive) selectFoe(o);
   }
+  // during the lunge it's thrown forward at you (and steered on), stopping at your feet
+  function lunge(o, dt) {
+    if (!(o.lungeT > 0)) return; o.lungeT -= dt; const d = Math.hypot(px - o.x, pz - o.z); if (d < (o.hr || 1.5) * 0.9) { o.lungeT = 0; return; }
+    steer(o, px, pz, dt, 8); o.sp = Math.max(o.sp, o.lungeV);
+  }
+  // the hit: your HP (a share of your max), you're knocked back and the screen shakes; a raptor then backs off and
+  // circles before it comes in again
   function bites(o) {
     if (!o.biteAt || clock < o.biteAt) return; o.biteAt = 0; if (downNow || !o.alive) return;
-    if (Math.hypot(px - o.x, pz - o.z) > o.biteR + 0.9) return;
+    const dx = px - o.x, dz = pz - o.z, d = Math.hypot(dx, dz); if (d > o.biteR + 0.9) return;
     const v = ctx.vitals ? ctx.vitals() : null, n = Math.max(1, Math.round(((v && v.max) || 120) * o.biteK));
-    if (ctx.hurt) ctx.hurt(n); if (Snd.bite) Snd.bite(); shakeT = 0.25;
+    if (ctx.hurt) ctx.hurt(n); if (Snd.bite) Snd.bite(); shakeT = 0.3 + o.biteK;
+    const k = (o.kind === "titan" || o.kind === "trike" ? 9 : o.kind === "spino" || o.kind === "alpha" ? 7 : 5) / Math.max(0.5, d); kbX = dx * k; kbZ = dz * k; kbT = 0.18;
+    if (hero && hero.hurt) try { hero.hurt(); } catch { /* no flash */ }
+    o.retreatUntil = clock + 0.7 + Math.random() * 0.7; o.side = Math.random() < 0.5 ? -1 : 1;
   }
   // after death: lying there a few seconds, then gone until it's back
   function deadTick(o, dt) { if (o.alive) return false; mixUp(o, o.mixer, dt, o.x, o.z); if (clock - o.deadT > 6) o.g.visible = false; return true; }
@@ -174,14 +187,15 @@ export function createJurassic(ctx) {
       if (r.state !== "chase" && !safe && (d < r.aggro || (r.angry > clock && d < 30))) { r.state = "chase"; if (Snd.growl && d < 40) Snd.growl(r.kind === "claw" ? 1 : 0); }
       else if (r.state === "chase" && (safe || d > 30 || home > 60)) { r.state = "back"; r.tx = r.hx; r.tz = r.hz; }
       r.lookAt = null;
-      if (r.state === "chase") { const da = steer(r, px, pz, dt, 6); r.lookAt = da; want = d > 2.2 ? r.run : 0; if (d < 2.6 + (r.kind === "claw" ? 0.6 : 0)) attack(r, r.kind === "claw" ? ["attack_bite", "attack_claw", "attack_leap", "attack_tail"][Math.floor(Math.random() * 4)] : "attack", r.bite, 3, 1.5); }
+      if (r.state === "chase" && clock < (r.retreatUntil || 0)) { const a = Math.atan2(r.x - px, r.z - pz) + r.side * 0.9; steer(r, px + Math.sin(a) * 6, pz + Math.cos(a) * 6, dt, 6); want = r.run * 0.6; }
+      else if (r.state === "chase") { const da = steer(r, px, pz, dt, 6); r.lookAt = da; want = d > 2.2 ? r.run : 0; if (d < 2.6 + (r.kind === "claw" ? 0.6 : 0)) attack(r, r.kind === "claw" ? ["attack_bite", "attack_claw", "attack_leap", "attack_tail"][Math.floor(Math.random() * 4)] : "attack", r.bite, 3, 1.5); }
       else if (r.state === "stare" || (r.state === "walk" && d < 22)) { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.lookAt = da; }
       if (r.state === "idle") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 6 + Math.random() * 18; r.tx = r.hx + Math.cos(a) * rr; r.tz = r.hz + Math.sin(a) * rr; r.state = "walk"; } }
       if (r.state === "walk" || r.state === "back") {
         const ed = Math.hypot(r.tx - r.x, r.tz - r.z);
         if (ed < 1.2) { r.state = "idle"; r.wait = 2 + Math.random() * 4; } else { want = r.state === "back" ? 5 : 2.6; steer(r, r.tx, r.tz, dt, 4); }
       }
-      r.sp += (want - r.sp) * Math.min(1, dt * 4);
+      r.sp += (want - r.sp) * Math.min(1, dt * 4); lunge(r, dt);
       if (r.sp > 0.05) { const nx = r.x + Math.sin(r.face) * r.sp * dt, nz = r.z + Math.cos(r.face) * r.sp * dt;
         if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 5 && Math.hypot(nx - J.SPAWN.x, nz - J.SPAWN.z) > 20) { r.x = nx; r.z = nz; } else if (r.state !== "chase") { r.state = "idle"; r.wait = 1; r.sp = 0; } }
       bites(r);
@@ -319,7 +333,7 @@ export function createJurassic(ctx) {
     } else { A.a += dt * 0.07; tx = ALPHA_HOME.x + Math.cos(A.a) * 22; tz = ALPHA_HOME.z + Math.sin(A.a) * 14; want = 2.2; }
     { const la = Math.atan2(dx, dz) - A.face; A.lookAt = A.state === "stalk" ? Math.atan2(Math.sin(la), Math.cos(la)) : null; }
     const ex = tx - A.x, ez = tz - A.z, ed = Math.hypot(ex, ez) || 1, a = Math.atan2(ex, ez); let da = a - A.face; da = Math.atan2(Math.sin(da), Math.cos(da)); A.face += da * Math.min(1, dt * 3);
-    A.sp += (want - A.sp) * Math.min(1, dt * 2);
+    A.sp += (want - A.sp) * Math.min(1, dt * 2); lunge(A, dt);
     const nx = A.x + Math.sin(A.face) * A.sp * dt, nz = A.z + Math.cos(A.face) * A.sp * dt;
     if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { A.x = nx; A.z = nz; } else A.orbit = -A.orbit;
     A.g.position.set(A.x, height(A.x, A.z), A.z); A.g.rotation.y = A.face;
@@ -348,7 +362,7 @@ export function createJurassic(ctx) {
     else if (P.state === "hunt") { const da = steer(P, px, pz, dt, 3); P.lookAt = da; want = d > 3 ? 7 : 0; if (d < 4.4) attack(P, ["attack_bite", "attack_claw", "attack_tail"][Math.floor(Math.random() * 3)], 0.15, 4.4, 2.2); }
     else { steer(P, J.LAKE.x, J.LAKE.z, dt, 2); want = 4; if (inWater && Math.hypot(P.x - J.LAKE.x, P.z - J.LAKE.z) < J.LAKE.r * 0.7) { P.state = "swim"; P.a = Math.atan2(P.z - J.LAKE.z, P.x - J.LAKE.x); } }
     if (P.state !== "hunt") P.lookAt = null;
-    P.sp += (want - P.sp) * Math.min(1, dt * 2);
+    P.sp += (want - P.sp) * Math.min(1, dt * 2); lunge(P, dt);
     const nx = P.x + Math.sin(P.face) * P.sp * dt, nz = P.z + Math.cos(P.face) * P.sp * dt;
     if (Math.hypot(nx - J.LAKE.x, nz - J.LAKE.z) < J.LAKE.r + 24 && Math.hypot(nx - J.SPAWN.x, nz - J.SPAWN.z) > 22) { P.x = nx; P.z = nz; }
     bites(P);
@@ -378,7 +392,7 @@ export function createJurassic(ctx) {
       if (d < 6.5) attack(A, Math.abs(da) > 1.6 ? "attack_tail" : d < 4.5 ? "attack_stomp" : "attack_charge", 0.12, 6, 2.8); }
     else if (A.state === "graze") { A.wait -= dt; if (A.wait <= 0) { const a = Math.random() * 6.283, rr = 5 + Math.random() * 18; A.tx = TITAN_HOME.x + Math.cos(a) * rr; A.tz = TITAN_HOME.z + Math.sin(a) * rr; A.state = "amble"; } }
     if (A.state === "amble") { if (Math.hypot(A.tx - A.x, A.tz - A.z) < 1.5) { A.state = "graze"; A.wait = 5 + Math.random() * 6; } else { steer(A, A.tx, A.tz, dt, 1.2); want = 1.3; } }
-    A.sp += (want - A.sp) * Math.min(1, dt * 2);
+    A.sp += (want - A.sp) * Math.min(1, dt * 2); lunge(A, dt);
     if (A.sp > 0.05) { const nx = A.x + Math.sin(A.face) * A.sp * dt, nz = A.z + Math.cos(A.face) * A.sp * dt; if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 10 && Math.hypot(nx - J.SPAWN.x, nz - J.SPAWN.z) > 22) { A.x = nx; A.z = nz; } }
     bites(A);
     A.g.position.set(A.x, height(A.x, A.z), A.z); A.g.rotation.y = A.face;
@@ -407,7 +421,7 @@ export function createJurassic(ctx) {
       else if (r.state === "graze") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 4 + Math.random() * 16; r.tx = TRIKE_HOME.x + Math.cos(a) * rr; r.tz = TRIKE_HOME.z + Math.sin(a) * rr; r.state = "amble"; } }
       if (r.state === "amble") { const ex = r.tx - r.x, ez = r.tz - r.z, ed = Math.hypot(ex, ez);
         if (ed < 1.5) { r.state = "graze"; r.wait = 4 + Math.random() * 6; } else { want = 1.4; const a = Math.atan2(ex, ez); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 1.5); } }
-      r.sp += (want - r.sp) * Math.min(1, dt * 2);
+      r.sp += (want - r.sp) * Math.min(1, dt * 2); lunge(r, dt);
       if (r.sp > 0.05) { const nx = r.x + Math.sin(r.face) * r.sp * dt, nz = r.z + Math.cos(r.face) * r.sp * dt; if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { r.x = nx; r.z = nz; } else { r.state = "graze"; r.wait = 2; } }
       r.g.position.set(r.x, height(r.x, r.z), r.z); r.g.rotation.y = r.face;
       // guarding: a horn toss at you now and then; otherwise its walk at the pace it ambles, its idle while it grazes
@@ -659,6 +673,7 @@ export function createJurassic(ctx) {
 
     // the gate home: the same stone gate as in town (world-jurgate.js)
     const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
+    if (gate.userData.tag) gate.userData.tag.visible = false; // (its words floated over the HUD; the way home is the button by the gate)
     seed = 71; makeRaptors(scene, rnd); makeHerd(scene); makeAlpha(scene); makeTrikes(scene); makeSentinel(scene); makeSpino(scene); if (spino) spino.lod = lodMeshes(spino.g); makeTitan(scene); if (titan) titan.lod = lodMeshes(titan.g);
     raptors.forEach((r) => { r.lod = lodMeshes(r.g); }); herd.forEach((h) => { h.lod = lodMeshes(h.g); }); trikes.forEach((r) => { r.lod = lodMeshes(r.g); }); if (alpha) alpha.lod = lodMeshes(alpha.g);
     if (shadows) { const cast = (g) => g && g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); raptors.forEach((r) => cast(r.g)); herd.forEach((h) => cast(h.g)); trikes.forEach((r) => cast(r.g)); if (alpha) cast(alpha.g); if (sentinel) cast(sentinel.g); if (spino) cast(spino.g); if (titan) cast(titan.g); cast(gate); }
@@ -669,10 +684,10 @@ export function createJurassic(ctx) {
     const grass = MODELS && MODELS.ground ? makeGrass(scene) : null, air = makeAir(scene);
     S = { scene, cam, gate, sun, shadows, comp, wU, grass, air, trees, spin: gate.userData.spin || [] };
     // your camp's ground is kept clear (what grew there is gone)
-    for (let i = nodes.length - 1; i >= 0; i--) if (Math.hypot(nodes[i].x - CAMP.x, nodes[i].z - CAMP.z) < 9.5) { nodes[i].hide(); nodes.splice(i, 1); }
+    for (let i = nodes.length - 1; i >= 0; i--) if (CAMPS.some(([cx, cz]) => Math.hypot(nodes[i].x - cx, nodes[i].z - cz) < CAMP_R + 0.8)) { nodes[i].hide(); nodes.splice(i, 1); }
     // gathering, hunting, the pack and the camp (world-jursurv.js)
     try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
-      faceTo: (a) => { face = a; }, swingAnim: () => { try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamp(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
+      faceTo: (a) => { face = a; }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
   }
 
@@ -691,11 +706,15 @@ export function createJurassic(ctx) {
     root.innerHTML = `<div class="wz-top" data-game-hud><button type="button" class="wz-leave"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Village"))}</span></button>
         <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div>
         <button type="button" class="wz-packbtn"><span aria-hidden="true">🎒</span><b>${esc(T("Pack"))}</b><kbd>P</kbd></button></div>
+      <button type="button" class="wz-buildbtn" hidden><span aria-hidden="true">🔨</span><b>${esc(T("Build"))}</b></button>
+      <div class="wz-build wz-pack" hidden role="dialog"><div class="wz-pack-in"></div></div>
+      <div class="wz-ghost" hidden><button type="button" data-g="turn">⟳ <span>${esc(T("Turn"))}</span></button><button type="button" data-g="place" class="go">✓ <span>${esc(T("Place"))}</span></button><button type="button" data-g="down" hidden>🗑 <span>${esc(T("Take down"))}</span></button><button type="button" data-g="x">✕</button></div>
       <section class="wz-goal" aria-live="polite"><small>${esc(T("Jurassic goals"))}</small><b class="wz-goal-t"></b><i class="wz-goal-bar"><i></i></i></section>
       <button type="button" class="wz-act" hidden></button>
-      <button type="button" class="wz-home" hidden>${esc(T("Back to the village"))}</button>
+      <button type="button" class="wz-home" hidden><span class="wz-home-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h11v-9"/><path d="M10 19v-5h4v5"/></svg></span><span class="wz-home-t"><b>${esc(T("Back to the village"))}</b><small>ARCIRCLE WORLD</small></span></button>
       <div class="wz-keys">${esc(T("WASD move · Shift run · Space jump · J chop / mine · E use · Esc leave"))}</div>
       <div class="wz-pops" aria-hidden="true"></div>
+      <div class="wz-foe" hidden aria-live="polite"></div>
       <div class="wz-pack" hidden role="dialog"><div class="wz-pack-in"></div></div>
       <div class="wz-title" hidden><small>ARCIRCLE WORLD</small><b>JURASSIC WORLD</b><span>${esc(T("Primeval Plains"))}</span></div>`;
     document.body.appendChild(root);
@@ -706,14 +725,27 @@ export function createJurassic(ctx) {
     ui.act.addEventListener("click", () => use());
     if (surv) surv.bind(root);
   }
-  const kd = (e) => { if (!on) return; if (e.target && e.target.closest && e.target.closest("input,textarea")) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (surv && surv.packOpen()) surv.togglePack(false); else leave(); return; } if (e.key.toLowerCase() === "p" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (surv) surv.togglePack(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (nearGate) leave(); else use(); } else if ((k === "j" || k === "f") && !e.repeat) { e.preventDefault(); e.stopPropagation(); act("attack"); } if (k === " " && !e.repeat) jumpQ = true; };
+  const kd = (e) => { if (!on) return; if (e.target && e.target.closest && e.target.closest("input,textarea")) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (surv && surv.cancelGhost()) return; if (surv && surv.packOpen()) surv.togglePack(false); else leave(); return; } if (e.key.toLowerCase() === "r" && surv && surv.ghost()) { e.preventDefault(); e.stopPropagation(); surv.turnGhost(); return; } if (e.key.toLowerCase() === "p" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (surv) surv.togglePack(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (nearGate) leave(); else use(); } else if ((k === "j" || k === "f") && !e.repeat) { e.preventDefault(); e.stopPropagation(); act("attack"); } if (k === " " && !e.repeat) jumpQ = true; };
   const ku = (e) => { keys.delete(e.key.toLowerCase()); };
 
+  // a tap on a dinosaur selects it (the ring under it, its card on the left); the nearest on screen within a thumb's reach
+  let tapAt = null; const tv = new THREE.Vector3();
+  const tapDown = (e) => { tapAt = { x: e.clientX, y: e.clientY, t: performance.now() }; };
+  function tapUp(e) {
+    if (!tapAt || !on || !S) return; const moved = Math.hypot(e.clientX - tapAt.x, e.clientY - tapAt.y), quick = performance.now() - tapAt.t < 450; tapAt = null; if (moved > 14 || !quick) return;
+    const r = st.renderer.domElement.getBoundingClientRect(); let best = null, bd = Math.max(48, r.width * 0.07);
+    for (const o of [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])]) {
+      if (!o.alive || !o.g.visible || Math.hypot(o.x - px, o.z - pz) > 60) continue;
+      tv.set(o.x, (o.y ?? height(o.x, o.z)) + (o.R.h || 2) * 0.5, o.z).project(S.cam); if (tv.z > 1) continue;
+      const sx = r.left + (tv.x + 1) / 2 * r.width, sy = r.top + (1 - tv.y) / 2 * r.height, d = Math.hypot(sx - e.clientX, sy - e.clientY) - (o.hr || 1.5) * 8;
+      if (d < bd) { bd = d; best = o; } }
+    if (best) { selectFoe(best); if (Snd.tap) Snd.tap(); }
+  }
   // ---------------- a frame ----------------
   let animNow = "";
   // the town's clip names (world-kit CU_AS / KK_AS): idle, walk, sprint, jump, fall; the walk keeps pace with the feet
   const anim = (n, sp) => { if (!hero || !hero.play) return; if (n === animNow) { if (sp && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) if (a.isRunning() && a.getEffectiveWeight() > 0.5) a.timeScale = sp; return; } animNow = n; hero.play(n, { speed: sp || 1, fade: 0.2 }); };
-  let frames = 0, stepD = 0, birdT = 4, camReach = 1;
+  let frames = 0, stepD = 0, birdT = 4, camReach = 1, velX = 0, velZ = 0, turnS = 0, pyS = null, kbT = 0, kbX = 0, kbZ = 0;
   function tick(dt, t) {
     if (!S) return; dt = Math.min(dt, 0.05); frames++;
     const inp = ctx.input ? ctx.input() : null; if (inp) { camYaw = inp.yaw; camPitch = inp.pitch; camGoal = inp.zoom; }
@@ -722,29 +754,38 @@ export function createJurassic(ctx) {
     if (keys.has("a") || keys.has("arrowleft")) ix -= 1; if (keys.has("d") || keys.has("arrowright")) ix += 1;
     if (keys.has("w") || keys.has("arrowup")) iz -= 1; if (keys.has("s") || keys.has("arrowdown")) iz += 1;
     const il = Math.min(1.4, Math.hypot(ix, iz)), run = keys.has("shift") || (inp && inp.run) || (inp && inp.joy && Math.hypot(inp.joy.dx, inp.joy.dy) > 0.95);
-    const target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) : 0; speed += (target - speed) * Math.min(1, dt * 8);
-    if (il > 0.08) {
-      // the stick is read from the camera: up is away from it
+    // moving: a velocity that speeds up and slows down (no stopping dead), the body turning toward where it's going,
+    // slower wading in the lake (you can go anywhere but the ridges at the edge)
+    const wet = height(px, pz) < WATER_Y - 0.25, target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) * (wet ? 0.55 : 1) : 0;
+    let wx = 0, wz = 0;
+    if (il > 0.08) { // the stick is read from the camera: up is away from it
       const fx = Math.sin(camYaw + Math.PI), fz = Math.cos(camYaw + Math.PI), rx = -fz, rz = fx;
-      const mx = (fx * -iz + rx * ix) / il, mz = (fz * -iz + rz * ix) / il;
-      const want = Math.atan2(mx, mz); let d = want - face; d = Math.atan2(Math.sin(d), Math.cos(d)); face += d * Math.min(1, dt * 10);
-      const nx = px + mx * speed * dt, nz = pz + mz * speed * dt;
-      if (Math.hypot(nx, nz) < J.EDGE && height(nx, nz) > WATER_Y - 0.6) { px = nx; pz = nz; }
+      wx = (fx * -iz + rx * ix) / il * target; wz = (fz * -iz + rz * ix) / il * target; }
+    const acc = 1 - Math.exp(-dt * (target > speed ? 7 : 9)); velX += (wx - velX) * acc; velZ += (wz - velZ) * acc; speed = Math.hypot(velX, velZ);
+    if (speed > 0.25) { const want = Math.atan2(velX, velZ); let d = want - face; d = Math.atan2(Math.sin(d), Math.cos(d)); const turn = d * Math.min(1, dt * 9); face += turn; turnS += (turn / Math.max(dt, 1e-3) - turnS) * Math.min(1, dt * 6); } else turnS *= 0.9;
+    if (kbT > 0) { kbT -= dt; velX += kbX * dt * 9; velZ += kbZ * dt * 9; }
+    if (speed > 0.02 || kbT > 0) {
+      const nx = px + velX * dt, nz = pz + velZ * dt;
+      if (Math.hypot(nx, nz) < J.EDGE) { px = nx; pz = nz; } else { velX *= 0.3; velZ *= 0.3; }
       if (surv) [px, pz] = surv.collide(px, pz);
-      // footsteps, paced to the ground covered
-      stepD += speed * dt; if (grounded && stepD > (speed > 9 ? 2.2 : 1.6)) { stepD = 0; if (Snd.step) Snd.step(speed > 9 ? 12 : 6); }
+      // footsteps, paced to the ground covered (a splash in the water)
+      stepD += speed * dt; if (grounded && stepD > (speed > 9 ? 2.2 : 1.6)) { stepD = 0; if (Snd.step) Snd.step(wet ? 3 : speed > 9 ? 12 : 6); }
     }
-    const py = height(px, pz);
+    const gy = Math.max(height(px, pz), WATER_Y - 1.05); pyS = pyS == null || Math.abs(gy - pyS) > 3 ? gy : pyS + (gy - pyS) * Math.min(1, dt * 14); const py = pyS;
     // the jump: the town's numbers (9 m/s up, 24 m/s² down)
     if (jumpQ) { jumpQ = false; if (grounded) { vy = 9; grounded = false; animNow = "jump"; if (hero && hero.play) hero.play("jump", { once: true, fade: 0.08 }); } }
     if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= 0) { hop = 0; vy = 0; grounded = true; animNow = ""; if (hero && hero.land) hero.land(0.5); } }
     if (hero) {
-      hero.obj.position.set(px, py + hop, pz); hero.obj.rotation.y = face;
+      hero.obj.position.set(px, py + hop, pz); hero.obj.rotation.order = "YXZ"; hero.obj.rotation.y = face;
+      // a lean into the turn and a little forward when running hard
+      hero.obj.rotation.z = THREE.MathUtils.clamp(-turnS * 0.035 * Math.min(1, speed / 6), -0.16, 0.16); hero.obj.rotation.x = THREE.MathUtils.clamp(speed / 12.5 * 0.07, 0, 0.08);
       if (hero.bot) hero.update(dt, t, Math.min(1, speed / 8), 0);
       else {
         if (hero.update) hero.update(dt, t);
         if (!grounded) { if (vy < 0 && !(hero.busy && hero.busy())) anim("fall"); }
-        else if (!(hero.busy && hero.busy()) || speed > 0.6) anim(speed > 9 ? "sprint" : speed > 0.6 ? "walk" : "idle", speed > 9 ? 1 : speed > 0.6 ? Math.max(0.8, speed / 6.5) : 1);
+        else if (!(hero.busy && hero.busy()) || speed > 0.6) anim(speed > 9 ? "sprint" : speed > 0.6 ? "walk" : "idle", speed > 9 ? Math.max(0.85, speed / 12.5) : speed > 0.6 ? Math.max(0.8, speed / 6.5) : 1);
+        // ARON's idle (Idle_03) leans back in a big stretch from 0.7 s to 2.2 s: standing still plays only its calm part
+        if (animNow === "idle" && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) { const c = a.getClip(); if (a.isRunning() && /idle_03/i.test(c.name) && c.duration > 3.5 && a.time < 2.5) a.time = 2.5; }
       }
     }
     // the camera, as in town (world-play.js): 5.2 m up (more as you look down) and 9.6 m back, times the zoom; it looks
@@ -780,12 +821,19 @@ export function createJurassic(ctx) {
     try {
       if (!S) { await loadModels(); build(); } if (!ui) buildUi();
       await makeHero(); animNow = "";
-      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 1; camInit = false; downNow = false; if (ctx.setView) ctx.setView({ yaw: 0, pitch: 0.05, zoom: camGoal }); speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
+      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 1; camInit = false; downNow = false; velX = velZ = 0; pyS = null; kbT = 0; if (ctx.setView) ctx.setView({ yaw: 0, pitch: 0.05, zoom: camGoal }); speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
       st.view(S.scene, S.cam, S.comp || null); st.solo(tick); on = true;
       document.body.classList.add("wp-jurassic"); ui.root.hidden = false;
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
+      st.renderer.domElement.addEventListener("pointerdown", tapDown); st.renderer.domElement.addEventListener("pointerup", tapUp);
       if (surv) surv.load();
+      // the first visit: a short tour of what's new here (after the title)
+      const tour = (n) => { if (!on || !ctx.coach) return; if (document.querySelector(".wp-coach")) { if (n < 30) setTimeout(() => tour(n + 1), 2000); return; } ctx.coach("arc.guide.jur", [
+        { at: ".wz-goal", t: T("Your goal"), p: T("Your next step is here. Follow it from the first wood to the Alpha Raptor.") },
+        { at: ".wz-packbtn", t: T("Your pack"), p: T("What you've gathered, your tools, food, and everything you can make.") },
+        { at: ".wc-attack", t: T("Chop, mine and hunt"), p: T("Walk up to a tree, rock or fern and tap here to chop, mine and gather. Dinosaurs bite back, so keep an eye on your HP!") },
+        { at: "#wp-clean", t: T("Hide the buttons"), p: T("Tap this tab to hide the screen's buttons and see more of the world. Tap it again to bring them back.") }]); }; setTimeout(() => tour(0), 3400);
       ui.title.hidden = false; ui.title.classList.remove("go"); void ui.title.offsetWidth; ui.title.classList.add("go"); setTimeout(() => { if (ui) ui.title.hidden = true; }, 3000);
       return true;
     } catch (e) {
@@ -796,6 +844,7 @@ export function createJurassic(ctx) {
     if (surv && surv.packOpen()) surv.togglePack(false);
     on = false; document.body.classList.remove("wp-jurassic"); if (ui) ui.root.hidden = true;
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); keys.clear();
+    st.renderer.domElement.removeEventListener("pointerdown", tapDown); st.renderer.domElement.removeEventListener("pointerup", tapUp); selectFoe(null);
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
@@ -808,10 +857,10 @@ export function createJurassic(ctx) {
   // knocked out (the town's rules: world-combat.js — today's free get-up, then $ARCIRCLE or a rest): the hero lies down;
   // getting up "here" stays, "plaza" means the gate
   function down(isDown, where) {
-    downNow = !!isDown; speed = 0;
+    downNow = !!isDown; speed = 0; velX = velZ = 0;
     if (isDown) { if (hero && hero.play) { animNow = "die"; hero.play("die", { once: true, hold: true }); } return; }
     if (where === "plaza") { px = J.SPAWN.x; pz = J.SPAWN.z; camInit = false; }
     animNow = ""; if (hero && hero.play) hero.play("idle");
   }
-  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), nodes: nodes.length }), surv: () => surv, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
+  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), nodes: nodes.length }), surv: () => surv, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
 }

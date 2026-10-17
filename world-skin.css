@@ -634,7 +634,7 @@ html.wp-less body.wp .wp-hud .tick{animation:none}
 .wd-perk{top:36%}
 
 /* b447: the lock-on is a mode now (it stays on): a slow pulsing ring round the button says so */
-body.wp .wc-lockon.on{position:relative}
+/* (the lock-on button is already absolutely placed: a "relative" here moved it under the attack button when on) */
 body.wp .wc-lockon.on::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(255,106,77,.85);animation:wcLockPulse 1.4s ease-in-out infinite;pointer-events:none}
 @keyframes wcLockPulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:.35;transform:scale(1.08)}}
 @media (prefers-reduced-motion:reduce){body.wp .wc-lockon.on::after{animation:none}}
@@ -649,7 +649,7 @@ body.wp .wp-dk,body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet){background:v
 body.wp-mining :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act),body.wp-mining [class^="wc-"]:not(.wc-dead){display:none!important}
 /* Jurassic World keeps the town's HUD (the same game): profile and HP, wallet, the top buttons, the dock, the stick, jump and
    run, the attack button and potions; it drops what belongs to the town (its map, quests, prompts, rides, raids, fights) */
-body.wp-jurassic :is(.wp-keys,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act,#wp-act-photo,#wp-act-board,#wp-act-emote,#wp-act-more,.wp-feed),body.wp-jurassic :is(.wc-boss,.wc-zone,.wc-banner,.wc-edge,.wc-lockon,.wc-slot,.wc-buffs){display:none!important}
+body.wp-jurassic :is(#wp-stage,.wp-keys,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act,#wp-act-photo,#wp-act-board,#wp-act-emote,#wp-act-more,.wp-feed),body.wp-jurassic :is(.wc-boss,.wc-zone,.wc-banner,.wc-edge,.wc-lockon,.wc-slot,.wc-buffs){display:none!important}
 body.wp-jurassic .wp-brand{visibility:hidden} /* the Village chip takes its place; the space is kept so the HUD under it stays put */
 .wm{position:fixed;inset:0;z-index:40;pointer-events:none;font-family:var(--hud-font,var(--f-ui));color:#fff;-webkit-user-select:none;user-select:none;touch-action:none}
 .wm[hidden]{display:none}
@@ -902,7 +902,11 @@ body.wp #wp-gift-btn[hidden]{display:none!important}
 .wz-stick{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(159,230,255,.45);background:rgba(7,12,26,.3);opacity:0;pointer-events:none;transition:opacity .15s}
 .wz-stick.on{opacity:1}
 .wz-stick i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#bff7ff,#2f86ff);box-shadow:0 0 16px rgba(47,134,255,.6)}
-.wz-home{position:absolute;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 70px);transform:translateX(-50%);height:50px;padding:0 24px;border:0;border-radius:16px;background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f;font:900 15px var(--f-ui);box-shadow:0 10px 30px rgba(46,224,122,.3);cursor:pointer}
+.wz-home{position:absolute;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 120px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;height:58px;padding:0 20px 0 8px;border:0;border-radius:20px;background:linear-gradient(180deg,rgba(14,30,62,.94),rgba(6,12,28,.94)) padding-box,linear-gradient(90deg,#35b8ff,#2ee07a) border-box;border:2px solid transparent;color:#eef3f7;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.4),0 0 24px rgba(53,184,255,.35);animation:wzHome 2.2s ease-in-out infinite;pointer-events:auto}
+.wz-home .wz-home-ic{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:radial-gradient(circle at 40% 35%,#9ff2ff,#2f86ff 70%);box-shadow:0 0 16px rgba(53,184,255,.7)}.wz-home .wz-home-ic svg{width:24px;height:24px;fill:none;stroke:#04121f;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.wz-home .wz-home-t{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}.wz-home .wz-home-t b{font:900 15px var(--f-ui);color:#fff}.wz-home .wz-home-t small{font:800 10.5px var(--f-ui);letter-spacing:.06em;color:#7dffc8}
+.wz-home:active{transform:translateX(-50%) scale(.96)}
+@keyframes wzHome{50%{box-shadow:0 10px 30px rgba(0,0,0,.4),0 0 36px rgba(46,224,122,.55)}}
 .wz-home[hidden]{display:none}
 .wz-keys{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);padding:6px 12px;border-radius:10px;background:rgba(7,12,26,.55);font:700 12px var(--f-ui);color:#cfe0f5;white-space:nowrap;pointer-events:none}
 @media (pointer:coarse){.wz-keys{display:none}}
@@ -913,7 +917,7 @@ body.wp #wp-gift-btn[hidden]{display:none!important}
 .wz-title span{display:block;margin-top:6px;font:800 15px var(--f-ui);color:#7dffc8}
 .wz-title.go{animation:wzTitle 3s ease forwards}
 @keyframes wzTitle{0%{opacity:0;transform:translate(-50%,-40%)}15%,75%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-56%)}}
-html.wp-pcphone .wz .wz-top[data-game-hud]{zoom:1.6;top:max(10px,env(safe-area-inset-top));right:auto;max-width:calc((100vw - 24px) / 1.6)}html.wp-pcphone .wz-home{zoom:1.6}
+html.wp-pcphone .wz .wz-top[data-game-hud]{zoom:1.6;top:max(10px,env(safe-area-inset-top));right:auto;max-width:calc((100vw - 24px) / 1.6)}html.wp-pcphone .wz-home{zoom:1.6;bottom:192px}
 html.wp-pcphone .wz-stick{transform:scale(1.6)}
 .wz-jump{position:absolute;right:max(22px,env(safe-area-inset-right));bottom:calc(max(22px,env(safe-area-inset-bottom)) + 10px);width:78px;height:78px;border-radius:50%;border:2px solid rgba(159,230,255,.6);background:radial-gradient(circle at 40% 35%,#6fe7ff,#2f86ff);box-shadow:0 0 22px rgba(47,134,255,.55),0 8px 22px rgba(0,0,0,.35);display:grid;place-items:center;cursor:pointer;touch-action:none}
 .wz-jump svg{width:36px;height:36px;fill:none;stroke:#04121f;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
@@ -972,5 +976,50 @@ body.wp.wp-clean :is(.wp-hud-r,.wp-quests,.wp-qmini,.wp-mini,.wp-feed,.wp-dock,.
 .wz-recipes button:disabled{background:rgba(255,255,255,.12);color:#8fa3bd;cursor:default}
 .wz-eat{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#ff9a5a,#ffd36b)}.wz-eat small{font:800 11px var(--f-ui);opacity:.8}
 html.wp-pcphone .wz-act,html.wp-pcphone .wz-goal,html.wp-pcphone .wz-pack-in,html.wp-pcphone .wz-pop{zoom:1.6}
-html.wp-pcphone .wz-goal{top:208px}html.wp-pcphone .wz-act{bottom:130px}
+html.wp-pcphone .wz-act{bottom:130px}
 .wz-home{pointer-events:auto}
+/* the first-time tour (world-play.js coach): a ring round the button, a bubble beside it */
+.wp-coach-ring{position:fixed;z-index:60;border-radius:16px;border:3px solid #7dffc8;box-shadow:0 0 0 9999px rgba(3,8,16,.45),0 0 22px rgba(125,255,200,.8);pointer-events:none;animation:wpCoach 1.4s ease-in-out infinite;transition:left .25s,top .25s,width .25s,height .25s}
+@keyframes wpCoach{50%{box-shadow:0 0 0 9999px rgba(3,8,16,.45),0 0 34px rgba(125,255,200,1)}}
+.wp-coach{position:fixed;z-index:61;width:min(280px,calc(100vw - 32px));padding:12px 14px;border-radius:16px;border:1.5px solid rgba(125,255,200,.6);background:linear-gradient(180deg,rgba(12,24,52,.97),rgba(7,12,26,.97));color:#eef3f7;font-family:var(--f-ui);box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.wp-coach small{display:block;font:800 10px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:#7dffc8}
+.wp-coach b{display:block;margin:4px 0 4px;font:900 16px var(--f-ui)}.wp-coach p{margin:0 0 10px;font:600 13px/1.4 var(--f-ui);color:#cfe0f5}
+.wp-coach div{display:flex;justify-content:flex-end;gap:8px}
+.wp-coach button{height:34px;padding:0 14px;border-radius:10px;border:0;font:900 13px var(--f-ui);cursor:pointer}
+.wp-coach-next{background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f}.wp-coach-skip{background:rgba(255,255,255,.1);color:#cfe0f5}
+html.wp-pcphone .wp-coach{zoom:1.6}
+/* the selected dinosaur's card (the town's boss bar look), under the goal card */
+.wz-foe{position:absolute;left:12px;top:320px;width:250px;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"n s" "b b" "e e";align-items:baseline;gap:3px 10px;padding:9px 12px 10px;border-radius:14px;border:1.5px solid rgba(255,77,109,.55);background:linear-gradient(180deg,rgba(40,8,18,.88),rgba(16,4,10,.88));pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.wz-foe[hidden]{display:none}
+.wz-foe b{grid-area:n;font:900 15px var(--f-ui);color:#ff8fa0}.wz-foe small{grid-area:s;justify-self:end;font:800 11px var(--f-ui);color:rgba(255,220,225,.8)}
+.wz-foe i{grid-area:b;display:block;height:10px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+.wz-foe u{display:block;height:100%;background:linear-gradient(90deg,#ff4d6d,#ff9a4a);transition:width .2s ease}
+.wz-foe em{grid-area:e;justify-self:end;font:800 11px var(--f-ui);font-style:normal;color:rgba(255,220,225,.8)}
+.wz-foe.boss{border-color:rgba(255,182,72,.7)}.wz-foe.boss b{color:#ffcf7a}
+.wz-pop.dmg{font-size:22px;color:#ff8fa0}
+html.wp-pcphone .wz-foe{zoom:1.6}
+/* building at your camp: the Build button (only inside it), the pieces list, the ghost's bar */
+.wz-buildbtn{pointer-events:auto;position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 262px);display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 12px;border-radius:18px;background:linear-gradient(180deg,rgba(52,36,12,.94),rgba(26,16,7,.94)) padding-box,linear-gradient(90deg,#ffb648,#ffe066) border-box;border:2px solid transparent;color:#ffe6b0;font:900 15px var(--f-ui);cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.4),0 0 20px rgba(255,182,72,.35)}
+.wz-buildbtn[hidden]{display:none}.wz-buildbtn span{font-size:22px}
+.wz-ghost{pointer-events:auto;position:absolute;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 120px);transform:translateX(-50%);display:flex;gap:8px;padding:8px;border-radius:18px;background:rgba(7,12,26,.88);border:1.5px solid rgba(125,255,200,.5)}
+.wz-ghost[hidden]{display:none}
+.wz-ghost button{height:44px;min-width:44px;padding:0 14px;border-radius:12px;border:0;background:rgba(255,255,255,.1);color:#eef3f7;font:900 14px var(--f-ui);cursor:pointer}.wz-ghost button[hidden]{display:none}
+.wz-ghost button.go{background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f}.wz-ghost button:disabled{opacity:.4}
+html.wp-pcphone .wz-buildbtn,html.wp-pcphone .wz-ghost{zoom:1.6}html.wp-pcphone .wz-buildbtn{bottom:218px}html.wp-pcphone .wz-ghost{bottom:192px}
+body.wp.wp-clean .wz-buildbtn{display:none!important}
+/* tips on the way in (world-play.js showTips): three at random, a glass card in the middle */
+.wp-tips{position:fixed;inset:0;z-index:62;display:grid;place-items:center;padding:16px;background:rgba(3,8,18,.5);opacity:0;transition:opacity .25s}
+.wp-tips.on{opacity:1}.wp-tips.out{opacity:0}
+.wp-tips-in{width:min(420px,100%);padding:18px 18px 16px;border-radius:22px;background:linear-gradient(180deg,rgba(16,30,64,.97),rgba(7,12,28,.97)) padding-box,linear-gradient(135deg,#35b8ff,#2ee07a 60%,#ffe066) border-box;border:2px solid transparent;color:#eef3f7;font-family:var(--hud-font,var(--f-ui));box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 40px rgba(53,184,255,.18);transform:translateY(12px) scale(.97);transition:transform .3s cubic-bezier(.2,.8,.3,1)}
+.wp-tips.on .wp-tips-in{transform:none}
+.wp-tips header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.wp-tips-ic{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;font-size:24px;background:radial-gradient(circle at 40% 35%,#fff3b0,#ffb648 75%);box-shadow:0 0 18px rgba(255,182,72,.55)}
+.wp-tips header small{display:block;font:800 10px var(--f-ui);letter-spacing:.2em;color:#7dffc8}
+.wp-tips header b{display:block;font:900 21px/1.1 var(--f-display,var(--f-ui));color:#fff;letter-spacing:.01em}
+.wp-tips ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wp-tips li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08)}
+.wp-tips li>span{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:11px;font-size:19px;background:rgba(53,184,255,.16)}
+.wp-tips li b{display:block;font:900 14px var(--f-ui);color:#9fe8ff}.wp-tips li p{margin:2px 0 0;font:600 12.5px/1.4 var(--f-ui);color:#d6e4f5}
+.wp-tips-go{display:block;width:100%;height:48px;margin-top:14px;border:0;border-radius:14px;background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f;font:900 16px var(--f-ui);cursor:pointer;box-shadow:0 8px 22px rgba(46,224,122,.3)}
+.wp-tips-go:active{transform:scale(.98)}
+html.wp-pcphone .wp-tips-in{zoom:1.6}

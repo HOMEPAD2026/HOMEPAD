@@ -6,7 +6,9 @@
 // The land's things come as nodes: { id, kind (the server's: tree, palm, ancient, fern, bush, log, rock), x, z, cr (the
 // trunk's radius you bump into, 0 for none), hr (how far from its middle you can reach it), hide(), show() }. The dinosaurs
 // come as targets through hooks.dinos(): { id, kind (raptor, trike, alpha, spino), x, z, hr, alive, hurt(), die(), revive() }.
-export const CAMP = { x: -16, z: 46 };
+// the 20 camp spots round the gate (api/_world-jur.mjs JUR.CAMPS): kept clear of trees and rocks, safe from dinosaurs
+export const CAMPS = [[17, 67], [30, 47], [25, 25], [5, 12], [-17, 17], [-30, 37], [-25, 59], [0, 92], [35, 77], [50, 38], [-4, -8], [-35, 7], [-50, 46], [-35, 77], [12, 111], [35, 103], [54, 87], [66, 66], [68, 24], [-18, -26]];
+export const CAMP_R = 9;
 const ICON = { wood: "🪵", hardwood: "🌳", stone: "🪨", flint: "🔺", clay: "🟤", fiber: "🌾", berries: "🫐", amber: "🟠", hide: "🟫", bone: "🦴", meat: "🥩", cooked: "🍖", torch: "🔥", rope: "🪢", fang: "🦷", cu: "🟧", ag: "⬜", au: "🟨" };
 const MAT_N = { wood: "Wood", hardwood: "Hardwood", stone: "Stone", flint: "Flint", clay: "Clay", fiber: "Fiber", berries: "Berries", amber: "Amber", hide: "Hide", bone: "Bone", meat: "Raw meat", cooked: "Cooked meat", torch: "Torch", rope: "Rope", fang: "Fang", cu: "Copper ore", ag: "Silver ore", au: "Gold ore" };
 const NODE_N = { tree: "Tree", palm: "Palm", ancient: "Ancient tree", fern: "Fern", bush: "Bush", log: "Log", rock: "Rock", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
@@ -14,6 +16,8 @@ const VERB = { tree: "Chop", palm: "Chop", ancient: "Chop", fern: "Gather", bush
 // XP for each one (× what a scammer of your level gives, 6 + 3·level): the work counts towards your level
 const XP_K = { tree: 1, palm: 0.8, ancient: 5, fern: 0.25, bush: 0.25, log: 0.6, rock: 1.4, raptor: 3, trike: 6, alpha: 20, spino: 12, titan: 25, claw: 4.5 };
 const FOOD = { berries: 12, meat: 25, cooked: 45 };
+// the dinosaurs' card (like a boss bar in town): level, HP (shown; the server counts the hits), about how many hits
+const FOE = { raptor: { lv: 8, hp: 900, n: 12 }, claw: { lv: 14, hp: 1700, n: 21 }, trike: { lv: 18, hp: 2800, n: 28 }, alpha: { lv: 30, hp: 7000, n: 70, boss: 1 }, spino: { lv: 26, hp: 5200, n: 51 }, titan: { lv: 35, hp: 9000, n: 80, boss: 1 } };
 const ORE = ["cu", "ag", "au"];
 
 export function createSurvival(H) {
@@ -24,8 +28,8 @@ export function createSurvival(H) {
   for (const n of nodes) { const k = key(n.x, n.z); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(n); }
   const near = (x, z, fn) => { const cx = Math.floor(x / GC), cz = Math.floor(z / GC); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const l = grid.get(cx + i + "," + (cz + j)); if (l) for (const n of l) fn(n); } };
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  let inv = null, ore = {}, plot = [], felled = {}, recipes = {}, signedOut = false, loaded = false;
-  let tgt = null, work = null, busy = false, ui = null, campG = null, fireF = null;
+  let inv = null, ore = {}, felled = {}, recipes = {}, pieceDefs = {}, camps = { list: [], free: 20 }, home = -1, campFull = false, signedOut = false, loaded = false;
+  let tgt = null, work = null, busy = false, ui = null;
 
   // ---------------- the server ----------------
   async function api(action, extra = {}) {
@@ -36,7 +40,10 @@ export function createSurvival(H) {
     const s = ctx.sess && ctx.sess(); signedOut = !s; if (!s) { paint(); return; }
     try {
       const r = await fetch("/api/social?world=jur&wallet=" + s.wallet, { cache: "no-store" }); const j = r.ok ? await r.json() : null;
-      if (j && j.ok) { inv = j.inv; ore = j.ore || {}; felled = j.felled || {}; recipes = j.recipes || {}; plot = j.plot || []; loaded = true; applyFelled(); drawCamp(); }
+      if (j && j.ok) { inv = j.inv; ore = j.ore || {}; felled = j.felled || {}; recipes = j.recipes || {}; pieceDefs = j.pieces || {}; camps = j.camps || camps; home = j.home ?? -1; loaded = true; applyFelled();
+        // your camp spot: the first free one round the gate; when all 20 are taken you join someone's (from the pack)
+        if (home < 0 && !campFull) { const r2 = await api("world-jur-camp", { op: "claim" }); if (r2.ok) { home = r2.j.home; camps = r2.j.camps; } else if (r2.j && r2.j.full) { campFull = true; if (r2.j.camps) camps = r2.j.camps; } }
+        drawCamps(); }
     } catch { /* the pack shows as empty until the next try */ }
     paint();
   }
@@ -48,7 +55,10 @@ export function createSurvival(H) {
   }
 
   // ---------------- what's in reach ----------------
+  let sel = null, selT = 0, ring = null;
+  function select(o) { if (o && !FOE[o.kind]) return; sel = o; selT = 0; paintFoe(); }
   function pick(px, pz, face) {
+    if (sel && sel.alive && Math.hypot(sel.x - px, sel.z - pz) < sel.hr + 1.9) return sel;
     let best = null, bs = 1e9;
     const consider = (o, alive) => { if (!alive) return; const dx = o.x - px, dz = o.z - pz, d = Math.hypot(dx, dz), reach = o.hr + 1.7; if (d > reach) return;
       let da = Math.atan2(dx, dz) - face; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da))); const sc = d - o.hr + da * 1.4; if (sc < bs) { bs = sc; best = o; } };
@@ -72,6 +82,8 @@ export function createSurvival(H) {
     if (signedOut) { toast(T("Sign in to gather")); return true; }
     if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else { toast(T("Couldn't gather: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); work = null; } }); }
     work.hits++;
+    if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3));
+      o.hpNow = Math.max(work.need && work.hits >= work.need ? 0 : 1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, "-" + dmg.toLocaleString("en-US"), "dmg", 0.4); paintFoe(); }
     const k = o.kind; if (k === "rock") (Snd.chink || Snd.hit || (() => {}))(0); else if (k === "raptor" || k === "trike" || k === "alpha" || k === "spino" || k === "titan" || k === "claw") { (Snd.hitFx || Snd.hit || (() => {}))(0); if (o.hurt) o.hurt(); } else if (k === "fern" || k === "bush") (Snd.pick || (() => {}))(); else (Snd.chop || Snd.hit || (() => {}))();
     if (o.shake) o.shake();
     chips(o);
@@ -85,7 +97,7 @@ export function createSurvival(H) {
     if (!r || !r.ok) { toast(T("Couldn't gather: {e}", { e: String((r && r.j && r.j.error) || "").slice(0, 60) })); paint(); return; }
     const j = r.j, o = w.o; inv = j.inv; if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
     const isDino = o.kind === "raptor" || o.kind === "trike" || o.kind === "alpha" || o.kind === "spino" || o.kind === "titan" || o.kind === "claw";
-    if (isDino) { o.die(); (Snd.kill || (() => {}))(); } else { o.down = true; o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
+    if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else { o.down = true; o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
     const parts = Object.entries(j.loot || {}).filter(([m]) => m !== "ore").map(([m, n]) => `${ICON[m] || ""}+${n}`);
     if (j.loot && j.loot.ore) for (const [m, n] of Object.entries(j.loot.ore)) parts.push(`${ICON[m]}+${n}`);
     pop(o, parts.join(" ") || T("Nothing this time"), "loot");
@@ -97,13 +109,15 @@ export function createSurvival(H) {
   // ---------------- making and eating ----------------
   const have = (m) => (ORE.includes(m) ? ore[m] || 0 : (inv && inv.mat[m]) || 0);
   const canMake = (R) => Object.entries(R.need).every(([m, n]) => have(m) >= n);
-  const atOk = (R) => !R.at || (R.at === "bench" ? inv && inv.stations.bench === "placed" : plot.some((p) => p.k === "campfire"));
-  const owned = (R) => (R.tool && inv && (inv.tools[R.tool[0]] | 0) >= R.tool[1]) || (R.station && inv && inv.stations[R.station]);
+  const homeCamp = () => camps.list.find((c) => c.slot === home) || null;
+  const campHas = (k) => { const c = homeCamp(); return !!(c && c.pieces.some((p) => p.k === k)); };
+  const atOk = (R) => !R.at || (R.at === "bench" ? campHas("bench") : campHas("campfire"));
+  const owned = (R) => !!(R.tool && inv && (inv.tools[R.tool[0]] | 0) >= R.tool[1]);
   async function make(id) {
     if (busy) return; busy = true; const R = recipes[id];
     const r = await api("world-jur-craft", { recipe: id }); busy = false;
     if (!r.ok) { toast(T("Couldn't make it: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
-    inv = r.j.inv; if (r.j.ore) ore = r.j.ore; if (r.j.plot) { plot = r.j.plot; drawCamp(); }
+    inv = r.j.inv; if (r.j.ore) ore = r.j.ore;
     (Snd.equip || Snd.buy || (() => {}))(); toast(T("Made: {x}", { x: T(R ? R.name : id) })); paint(); paintPack();
   }
   async function eat(f) {
@@ -113,52 +127,101 @@ export function createSurvival(H) {
     inv = r.j.inv; if (ctx.heal) ctx.heal((FOOD[f] || 10) / 100); (Snd.pick || (() => {}))(); paint(); paintPack();
   }
 
-  // ---------------- the camp: your plot by the gate; the workbench and the campfire stand there once made ----------------
-  const campSolid = [];
-  function drawCamp() {
+  // ---------------- the camps: a ring of stones and a sign for each one taken, what's built there ----------------
+  const campSolid = []; let campGs = [], fires = [];
+  const MAT = {};
+  const mat = (k, c, o = {}) => MAT[k] || (MAT[k] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, ...o }));
+  const flameM = () => MAT.flame || (MAT.flame = new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  const box = (w, h, d, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); return o; };
+  // one built piece as a mesh (its collider radius in userData.r; flames to flicker in userData.fire)
+  function pieceMesh(k) {
+    const g = new THREE.Group(), wood = mat("wood", 0x8a5a32), dark = mat("dark", 0x5a3a20, { roughness: 0.95 }), stone = mat("stone", 0x77736b, { roughness: 1, flatShading: true }), thatch = mat("thatch", 0xb8935a, { roughness: 1, flatShading: true });
+    g.userData.r = 0.6;
+    if (k === "bench") { g.add(box(2.2, 0.16, 1.1, wood, 0, 0.95)); for (const [x, z] of [[-0.95, -0.45], [0.95, -0.45], [-0.95, 0.45], [0.95, 0.45]]) g.add(box(0.14, 0.9, 0.14, dark, x, 0.45, z)); g.add(box(0.7, 0.04, 0.2, mat("steel", 0x9aa3ad, { metalness: 0.7, roughness: 0.35 }), 0.4, 1.06, 0.1)); g.userData.r = 1.1; }
+    else if (k === "campfire") { const sg = new THREE.DodecahedronGeometry(0.2, 0); for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2, o = new THREE.Mesh(sg, stone); o.position.set(Math.cos(a) * 0.62, 0.1, Math.sin(a) * 0.62); g.add(o); }
+      for (let i = 0; i < 3; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.95, 6), dark); l.rotation.z = Math.PI / 2; l.rotation.y = i * 1.05; l.position.y = 0.14; g.add(l); }
+      const f1 = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.9, 8, 1, true), flameM()); f1.position.y = 0.55; g.add(f1); g.userData.fire = f1; g.userData.r = 0.75; }
+    else if (k === "hut") { g.add(box(4.2, 0.2, 4.2, dark, 0, 0.1)); const W = 4, H0 = 2.3;
+      g.add(box(W, H0, 0.18, wood, 0, H0 / 2, -W / 2)); g.add(box(0.18, H0, W, wood, -W / 2, H0 / 2, 0)); g.add(box(0.18, H0, W, wood, W / 2, H0 / 2, 0));
+      g.add(box(1.4, H0, 0.18, wood, -1.3, H0 / 2, W / 2)); g.add(box(1.4, H0, 0.18, wood, 1.3, H0 / 2, W / 2)); g.add(box(1.2, 0.5, 0.18, wood, 0, H0 - 0.25, W / 2));
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(3.6, 1.9, 4), thatch); roof.rotation.y = Math.PI / 4; roof.position.y = H0 + 0.95; g.add(roof); g.userData.r = 2.3; }
+    else if (k === "bed") { g.add(box(1.1, 0.35, 2.1, wood, 0, 0.18)); g.add(box(1, 0.16, 1.9, mat("hide", 0xa0703f), 0, 0.42)); g.add(box(0.8, 0.14, 0.4, mat("fur", 0xd9c39a), 0, 0.55, -0.7)); g.userData.r = 0.9; }
+    else if (k === "chest") { g.add(box(1, 0.6, 0.62, wood, 0, 0.3)); g.add(box(1.04, 0.16, 0.66, dark, 0, 0.66)); g.add(box(0.14, 0.18, 0.06, mat("brass", 0xd8b04a, { metalness: 0.6, roughness: 0.4 }), 0, 0.5, 0.33)); g.userData.r = 0.6; }
+    else if (k === "fence") { for (const x of [-0.95, 0, 0.95]) g.add(box(0.14, 1.1, 0.14, dark, x, 0.55)); g.add(box(2, 0.1, 0.08, wood, 0, 0.75)); g.add(box(2, 0.1, 0.08, wood, 0, 0.4)); g.userData.r = 0.5; }
+    else if (k === "wall") { g.add(box(2, 2.2, 0.2, wood, 0, 1.1)); g.userData.r = 0.6; }
+    else if (k === "floor") { g.add(box(2, 0.12, 2, dark, 0, 0.06)); g.userData.r = 0; }
+    else if (k === "torchpost") { g.add(box(0.14, 1.6, 0.14, dark, 0, 0.8)); const f = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.4, 7, 1, true), flameM()); f.position.y = 1.78; g.add(f); g.userData.fire = f; g.userData.r = 0.3; }
+    else return null;
+    return g;
+  }
+  function drawCamps() {
     if (!H.scene) return;
-    if (!campG) {
-      campG = new THREE.Group(); campG.position.set(CAMP.x, H.height(CAMP.x, CAMP.z), CAMP.z); H.scene.add(campG);
-      // the plot's edge: a ring of little stones and a sign
-      const st = new THREE.MeshStandardMaterial({ color: 0x8a857a, roughness: 1, flatShading: true }), sg = new THREE.DodecahedronGeometry(0.22, 0);
-      const ring = new THREE.InstancedMesh(sg, st, 40); const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), s3 = new THREE.Vector3();
-      for (let i = 0; i < 40; i++) { const a = (i / 40) * Math.PI * 2, x = Math.cos(a) * 9, z = Math.sin(a) * 9; v.set(x, H.height(CAMP.x + x, CAMP.z + z) - campG.position.y + 0.05, z); s3.setScalar(0.7 + ((i * 37) % 10) / 15); q.setFromEuler(new THREE.Euler(i, i * 2, 0)); ring.setMatrixAt(i, m4.compose(v, q, s3)); }
-      ring.instanceMatrix.needsUpdate = true; ring.receiveShadow = true; campG.add(ring);
-      if (ctx.K && ctx.K.label) { const tag = ctx.K.label(T("Your camp"), { accent: "#39ff88", size: 0.8 }); tag.position.set(0, 3.2, -8.6); campG.add(tag); }
+    for (const g of campGs) H.scene.remove(g); campGs = []; campSolid.length = 0; fires = [];
+    const sg = new THREE.DodecahedronGeometry(0.22, 0), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), s3 = new THREE.Vector3();
+    for (const c of camps.list) {
+      const g = new THREE.Group(), y0 = H.height(c.x, c.z); g.position.set(c.x, y0, c.z); H.scene.add(g); campGs.push(g);
+      const ring = new THREE.InstancedMesh(sg, mat("stone", 0x77736b, { roughness: 1, flatShading: true }), 36);
+      for (let i = 0; i < 36; i++) { const a = (i / 36) * Math.PI * 2, x = Math.cos(a) * CAMP_R, z = Math.sin(a) * CAMP_R; v.set(x, H.height(c.x + x, c.z + z) - y0 + 0.05, z); s3.setScalar(0.7 + ((i * 37) % 10) / 15); q.setFromEuler(new THREE.Euler(i, i * 2, 0)); ring.setMatrixAt(i, m4.compose(v, q, s3)); }
+      ring.instanceMatrix.needsUpdate = true; ring.receiveShadow = true; g.add(ring);
+      const mine = c.slot === home;
+      if (ctx.K && ctx.K.label) { const tag = ctx.K.label(mine ? T("Your camp") : T("{w}'s camp", { w: c.owner }), { accent: mine ? "#39ff88" : "#9fd0ff", size: 0.5, sub: c.members > 1 ? T("{n} living here", { n: c.members }) : "" }); tag.position.set(0, 2.2, -CAMP_R + 0.4); g.add(tag); }
+      for (const p of c.pieces) { const o = pieceMesh(p.k); if (!o) continue; o.position.set(p.x, H.height(c.x + p.x, c.z + p.z) - y0, p.z); o.rotation.y = (p.r || 0) * Math.PI / 2;
+        o.traverse((m) => { if (m.isMesh && !m.material.blending) { m.castShadow = !!H.shadows; m.receiveShadow = true; } }); g.add(o);
+        if (o.userData.fire) fires.push(o.userData.fire); if (o.userData.r) campSolid.push({ x: c.x + p.x, z: c.z + p.z, r: o.userData.r }); }
     }
-    for (const c of campG.children.filter((o) => o.userData.piece)) campG.remove(c);
-    campSolid.length = 0; fireF = null;
-    const wood = new THREE.MeshStandardMaterial({ color: 0x8a5a32, roughness: 0.9 }), dark = new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.95 });
-    for (const p of plot) {
-      const g = new THREE.Group(); g.userData.piece = p.k; g.position.set(p.x, 0, p.z); g.rotation.y = (p.r || 0) * Math.PI / 2;
-      if (p.k === "bench") {
-        const top = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.16, 1.1), wood); top.position.y = 0.95; g.add(top);
-        for (const [x, z] of [[-0.95, -0.45], [0.95, -0.45], [-0.95, 0.45], [0.95, 0.45]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.9, 0.14), dark); l.position.set(x, 0.45, z); g.add(l); }
-        const saw = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.2), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, metalness: 0.7, roughness: 0.35 })); saw.position.set(0.4, 1.06, 0.1); saw.rotation.y = 0.4; g.add(saw);
-        campSolid.push({ x: CAMP.x + p.x, z: CAMP.z + p.z, r: 1.1 });
-      } else if (p.k === "campfire") {
-        const sg = new THREE.DodecahedronGeometry(0.2, 0), sm = new THREE.MeshStandardMaterial({ color: 0x77736b, roughness: 1, flatShading: true });
-        for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2, s = new THREE.Mesh(sg, sm); s.position.set(Math.cos(a) * 0.62, 0.1, Math.sin(a) * 0.62); g.add(s); }
-        for (let i = 0; i < 3; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.95, 6), dark); l.rotation.z = Math.PI / 2; l.rotation.y = i * 1.05; l.position.y = 0.14; g.add(l); }
-        // the flame: two glowing cones that flicker (no light of its own: a new light remakes every shader in the land)
-        const fm = new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
-        const f1 = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.9, 8, 1, true), fm); f1.position.y = 0.55; const f2 = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.6, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); f2.position.y = 0.45;
-        g.add(f1, f2); fireF = [f1, f2];
-        campSolid.push({ x: CAMP.x + p.x, z: CAMP.z + p.z, r: 0.75 });
-      } else continue;
-      g.traverse((m) => { if (m.isMesh && !m.material.blending) { m.castShadow = !!H.shadows; m.receiveShadow = true; } });
-      campG.add(g);
-    }
+  }
+  // building: in your camp a Build button; pick a piece, a see-through ghost of it stands in front of you on the
+  // camp's 1 m grid (green where it can go), turn it, place it (the server takes the materials)
+  let ghost = null, ghostK = "", ghostR = 0, ghostAt = null;
+  const inHome = (px, pz) => { const c = homeCamp(); return c && Math.hypot(px - c.x, pz - c.z) < CAMP_R + 1.5 ? c : null; };
+  function startGhost(k) {
+    endGhost(); const o = pieceMesh(k); if (!o) return; ghostK = k; ghostR = 0;
+    const gm = new THREE.MeshBasicMaterial({ color: 0x7dffc8, transparent: true, opacity: 0.45, depthWrite: false });
+    o.traverse((m) => { if (m.isMesh) m.material = gm; }); o.userData.gm = gm; ghost = o; H.scene.add(o);
+    if (ui) { ui.ghostBar.hidden = false; ui.build.hidden = true; } paint();
+  }
+  function endGhost() { if (ghost) H.scene.remove(ghost); ghost = null; ghostK = ""; ghostAt = null; if (ui) ui.ghostBar.hidden = true; }
+  function tickGhost(px, pz, face) {
+    if (!ghost) return; const c = inHome(px, pz); if (!c) { endGhost(); return; }
+    const off = 1.6 + (ghost.userData.r || 0.6) * 1.3; let gx = Math.round(px + Math.sin(face) * off - c.x), gz = Math.round(pz + Math.cos(face) * off - c.z); const d = Math.hypot(gx, gz); if (d > CAMP_R) { gx = Math.round(gx / d * CAMP_R); gz = Math.round(gz / d * CAMP_R); }
+    const taken = c.pieces.some((p) => p.x === gx && p.z === gz), def = pieceDefs[ghostK], ok = !taken && def && canMake(def) && !(def.station && c.pieces.some((p) => p.k === ghostK));
+    ghostAt = { gx, gz, ok, taken, c }; ghost.position.set(c.x + gx, H.height(c.x + gx, c.z + gz) + 0.02, c.z + gz); ghost.rotation.y = ghostR * Math.PI / 2;
+    ghost.userData.gm.color.setHex(ok ? 0x7dffc8 : 0xff6b7d);
+    if (ui) { ui.ghostBar.querySelector('[data-g="place"]').disabled = !ok; ui.ghostBar.querySelector('[data-g="down"]').hidden = !taken; }
+  }
+  async function ghostDo(op) {
+    if (!ghostAt || busy) return; const { gx, gz, c } = ghostAt; busy = true;
+    const r = await api("world-jur-build", { op, piece: { k: op === "remove" ? (c.pieces.find((p) => p.x === gx && p.z === gz) || {}).k : ghostK, x: gx, z: gz, r: ghostR } }); busy = false;
+    if (!r.ok) { toast(T("Couldn't build: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
+    inv = r.j.inv; const cc = camps.list.find((x) => x.slot === r.j.slot); if (cc) cc.pieces = r.j.plot; drawCamps();
+    (Snd.place || Snd.equip || (() => {}))(); if (op === "place") { toast(T("Built: {x}", { x: T((pieceDefs[ghostK] || {}).name || ghostK) })); if (pieceDefs[ghostK] && pieceDefs[ghostK].station) endGhost(); }
+    paint(); paintPack();
+  }
+  function paintBuild() {
+    if (!ui || ui.build.hidden) return;
+    const c = homeCamp(), chip = (m, need) => `<span class="wz-chip${have(m) < need ? " short" : ""}">${ICON[m] || ""}<b>${Math.min(have(m), need)}/${need}</b></span>`;
+    const rows = Object.entries(pieceDefs).map(([k, P]) => { const one = P.station && c && c.pieces.some((p) => p.k === k), ok = canMake(P) && !one;
+      return `<li class="${ok ? "ok" : ""}${one ? " own" : ""}"><div><b>${esc(T(P.name || k))}</b><p>${Object.entries(P.need).map(([m, n]) => chip(m, n)).join("")}</p></div><button type="button" data-build="${esc(k)}" ${ok ? "" : "disabled"}>${esc(one ? T("Built") : T("Build"))}</button></li>`; }).join("");
+    ui.build.querySelector(".wz-pack-in").innerHTML = `<header><b>${esc(T("Build at your camp"))}</b><small>${c ? esc(T("{n} living here", { n: c.members })) : ""}</small><button type="button" class="wz-pack-x" aria-label="${esc(T("Close"))}">✕</button></header><ul class="wz-recipes">${rows}</ul>`;
+  }
+  async function join(slot) {
+    if (busy) return; busy = true; const r = await api("world-jur-camp", { op: "join", slot }); busy = false;
+    if (!r.ok) { toast(T("Couldn't join: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
+    home = r.j.home; camps = r.j.camps; campFull = false; drawCamps(); toast(T("You live at {w}'s camp now", { w: (homeCamp() || {}).owner || "" })); paint(); paintPack();
   }
 
   // ---------------- the HUD bits: the prompt, the goal card, the pack ----------------
   function bind(root) {
     const q = (s) => root.querySelector(s);
-    ui = { root, act: q(".wz-act"), goal: q(".wz-goal"), goalT: q(".wz-goal-t"), goalBar: q(".wz-goal-bar i"), packBtn: q(".wz-packbtn"), pack: q(".wz-pack"), pops: q(".wz-pops") };
+    ui = { root, act: q(".wz-act"), goal: q(".wz-goal"), goalT: q(".wz-goal-t"), goalBar: q(".wz-goal-bar i"), packBtn: q(".wz-packbtn"), pack: q(".wz-pack:not(.wz-build)"), pops: q(".wz-pops"), foe: q(".wz-foe") };
+    ui.buildBtn = q(".wz-buildbtn"); ui.build = q(".wz-build"); ui.ghostBar = q(".wz-ghost");
+    ui.buildBtn.addEventListener("click", () => { endGhost(); ui.build.hidden = !ui.build.hidden; if (!ui.build.hidden) { ui.pack.hidden = true; paintBuild(); } (Snd.tab || (() => {}))(); });
+    ui.build.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.build) startGhost(b.dataset.build); else if (b.classList.contains("wz-pack-x")) ui.build.hidden = true; });
+    ui.ghostBar.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const g = b.dataset.g; if (g === "turn") ghostR = (ghostR + 1) % 4; else if (g === "place") ghostDo("place"); else if (g === "down") ghostDo("remove"); else endGhost(); });
     ui.packBtn.addEventListener("click", () => togglePack());
     ui.pack.addEventListener("click", (e) => {
       const b = e.target.closest("button"); if (!b) return;
-      if (b.dataset.make) make(b.dataset.make); else if (b.dataset.eat) eat(b.dataset.eat); else if (b.classList.contains("wz-pack-x")) togglePack(false);
+      if (b.dataset.make) make(b.dataset.make); else if (b.dataset.eat) eat(b.dataset.eat); else if (b.dataset.join) join(Number(b.dataset.join)); else if (b.classList.contains("wz-pack-x")) togglePack(false);
     });
   }
   function togglePack(open) { if (!ui) return; const o = open != null ? open : ui.pack.hidden; ui.pack.hidden = !o; if (o) { paintPack(); load().then(paintPack); } (Snd.tab || (() => {}))(); }
@@ -166,11 +229,12 @@ export function createSurvival(H) {
   function goal() {
     if (signedOut) return [T("Sign in to gather"), 0];
     if (!inv) return [T("Loading your pack…"), 0];
-    const m = inv.mat, tl = inv.tools, stn = inv.stations, wood = m.wood || 0;
+    const m = inv.mat, tl = inv.tools, wood = m.wood || 0;
+    if (campFull && home < 0) return [T("Every camp spot is taken — join someone's camp from your pack"), 0];
     if ((tl.axe | 0) < 1) { if (wood < 3 || (m.stone || 0) < 2 || (m.fiber || 0) < 2) return [T("Gather wood, stone and fiber for a stone axe"), Math.min(1, (Math.min(wood, 3) + Math.min(m.stone || 0, 2) + Math.min(m.fiber || 0, 2)) / 7)]; return [T("Open your pack and make a stone axe"), 0.9]; }
-    if (stn.bench !== "placed") return [T("Make a workbench: {a}/20 wood · {b}/10 stone", { a: Math.min(20, wood), b: Math.min(10, m.stone || 0) }), Math.min(1, (Math.min(20, wood) + Math.min(10, m.stone || 0)) / 30)];
+    if (!campHas("bench")) return [T("Build a workbench at your camp: {a}/20 wood · {b}/10 stone", { a: Math.min(20, wood), b: Math.min(10, m.stone || 0) }), Math.min(1, (Math.min(20, wood) + Math.min(10, m.stone || 0)) / 30)];
     if ((tl.spear | 0) < 1) return [T("Make a spear at the workbench (flint from rocks)"), Math.min(1, ((m.flint || 0) / 3 + Math.min(1, wood / 6)) / 2)];
-    if (stn.fire !== "placed") return [T("Make a campfire for your camp"), Math.min(1, (Math.min(6, wood) + Math.min(8, m.stone || 0)) / 14)];
+    if (!campHas("campfire")) return [T("Build a campfire at your camp"), Math.min(1, (Math.min(6, wood) + Math.min(8, m.stone || 0)) / 14)];
     if (!(m.meat || 0) && !(m.cooked || 0) && !(m.hide || 0)) return [T("Hunt a raptor with your spear"), 0];
     if (!(m.cooked || 0)) return [T("Cook meat at your campfire"), 0.5];
     if ((tl.axe | 0) < 2) return [T("Make a copper axe (copper ore from rocks and the ARCL Mine)"), Math.min(1, (ore.cu || 0) / 8)];
@@ -186,6 +250,32 @@ export function createSurvival(H) {
     if (html !== lastAct) { lastAct = html; ui.act.innerHTML = html; ui.act.hidden = !html; }
     const [g, k] = goal(), gs = g + "|" + k.toFixed(2);
     if (gs !== lastGoal) { lastGoal = gs; ui.goalT.textContent = g; ui.goalBar.style.width = Math.round(k * 100) + "%"; ui.goal.hidden = false; }
+    placeGoal();
+  }
+  // the selected dinosaur's card: name, level, HP; it sits under the goal card
+  let foeKey = "";
+  function paintFoe() {
+    if (!ui || !ui.foe) return; const o = sel; if (!o) { if (!ui.foe.hidden) ui.foe.hidden = true; foeKey = ""; return; }
+    const F = FOE[o.kind], hp = Math.max(0, Math.round(o.hpNow ?? F.hp)), k = hp / F.hp, key = o.id + "|" + hp;
+    if (key === foeKey) return; foeKey = key;
+    ui.foe.innerHTML = `<b>${esc(T(NODE_N[o.kind] || o.kind))}</b><small>${F.boss ? esc(T("Boss")) + " · " : ""}Lv ${F.lv}</small><i><u style="width:${(100 * k).toFixed(1)}%"></u></i><em>${hp.toLocaleString("en-US")} / ${F.hp.toLocaleString("en-US")}</em>`;
+    ui.foe.classList.toggle("boss", !!F.boss); ui.foe.hidden = false;
+    const g = ui.goal.getBoundingClientRect(), z = parseFloat(getComputedStyle(ui.foe).zoom) || 1; if (g.height) { ui.foe.style.top = Math.round((g.bottom + 8) / z) + "px"; ui.foe.style.left = Math.round(g.left / z) + "px"; }
+  }
+  // a ring on the ground under it
+  function tickRing(t) {
+    if (!H.scene) return;
+    if (!ring) { ring = new THREE.Mesh(new THREE.RingGeometry(0.82, 1, 48), new THREE.MeshBasicMaterial({ color: 0xff4d6d, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 2; H.scene.add(ring); }
+    ring.visible = !!(sel && sel.alive); if (!ring.visible) return;
+    const r = (sel.hr || 1.5) * 1.25 * (1 + Math.sin(t * 5) * 0.05); ring.scale.set(r, r, r); ring.position.set(sel.x, H.height(sel.x, sel.z) + 0.08, sel.z); ring.material.color.setHex(FOE[sel.kind].boss ? 0xffb648 : 0xff4d6d);
+  }
+  // the goal card sits just under the HP card, wherever the town's HUD puts it on this screen (it covered it on phones)
+  let goalAt = "";
+  function placeGoal() {
+    const v = document.querySelector(".wp-hud-l .wc-vit") || document.querySelector(".wc-vit"); if (!v) return;
+    const r = v.getBoundingClientRect(); if (!r.height) return;
+    const z = parseFloat(getComputedStyle(ui.goal).zoom) || 1, at = Math.round((r.bottom + 8) / z) + "," + Math.round(r.left / z);
+    if (at === goalAt) return; goalAt = at; const [t, l] = at.split(","); ui.goal.style.top = t + "px"; ui.goal.style.left = l + "px";
   }
   function paintPack() {
     if (!ui || ui.pack.hidden) return;
@@ -201,6 +291,7 @@ export function createSurvival(H) {
     ui.pack.querySelector(".wz-pack-in").innerHTML = `
       <header><b>${esc(T("Pack"))}</b><small>${inv ? esc(T("Gathering today: {a} / {b}", { a: inv.got || 0, b: inv.cap || 6000 })) : ""}</small><button type="button" class="wz-pack-x" aria-label="${esc(T("Close"))}">✕</button></header>
       ${signedOut ? `<p class="wz-empty">${esc(T("Sign in to gather"))}</p>` : ""}
+      ${campFull && home < 0 ? `<h4>${esc(T("Join a camp"))}</h4><ul class="wz-recipes">${camps.list.map((c) => `<li class="${c.members < 5 ? "ok" : ""}"><div><b>${esc(T("{w}'s camp", { w: c.owner }))}</b><small>${c.members}/5</small></div><button type="button" data-join="${c.slot}" ${c.members < 5 ? "" : "disabled"}>${esc(T("Join"))}</button></li>`).join("")}</ul>` : ""}
       <h4>${esc(T("Tools"))}</h4><p class="wz-tools"><span>🪓 ${esc(T(AXE[tl.axe | 0] || AXE[0]))}</span><span>🔱 ${esc(T((tl.spear | 0) ? "Spear" : "No spear"))}</span></p>
       <h4>${esc(T("Materials"))}</h4><p class="wz-mats">${mats.length || ores.length ? mats.map(([m, n]) => chip(m, n)).join("") + ores.map((m) => chip(m, ore[m])).join("") : `<span class="wz-empty">${esc(T("Nothing yet: chop trees, pick ferns, mine rocks"))}</span>`}</p>
       ${food ? `<h4>${esc(T("Food"))}</h4><p class="wz-food">${food}</p>` : ""}
@@ -228,9 +319,14 @@ export function createSurvival(H) {
   function tick(dt, t, px, pz, face) {
     if ((pickT += dt) > 0.12) { pickT = 0; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; } paint(); }
     if ((feltT += dt) > 5) { feltT = 0; applyFelled(); }
+    // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
+    if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }
+    if (H.dinos && (pickT === 0)) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }
+    tickRing(t);
     for (let i = flying.length - 1; i >= 0; i--) { const f = flying[i]; f.t -= dt; f.vy -= 14 * dt; f.c.position.x += f.vx * dt; f.c.position.y += f.vy * dt; f.c.position.z += f.vz * dt; f.c.rotation.x += dt * 9; f.c.rotation.y += dt * 7;
       if (f.t <= 0) { H.scene.remove(f.c); flying.splice(i, 1); } }
-    if (fireF) { const k = 0.85 + Math.sin(t * 17) * 0.08 + Math.sin(t * 29) * 0.06; fireF[0].scale.set(1, k, 1); fireF[1].scale.set(1, 1.6 - k * 0.6, 1); fireF[0].rotation.y = t * 1.3; }
+    for (const f of fires) { const k = 0.85 + Math.sin(t * 17 + f.id) * 0.08 + Math.sin(t * 29 + f.id) * 0.06; f.scale.set(1, k, 1); f.rotation.y = t * 1.3; }
+    tickGhost(px, pz, face); const inC = !!inHome(px, pz); if (ui && ui.buildBtn.hidden === inC) { ui.buildBtn.hidden = !inC; if (!inC) { ui.build.hidden = true; endGhost(); } }
   }
-  return { load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamp, debug: () => ({ loaded, signedOut, inv, ore, plot, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
+  return { select, selected: () => sel, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
 }

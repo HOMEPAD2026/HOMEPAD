@@ -40,18 +40,30 @@ let v = await view(gm); check(v.ok && v.felled["tree-broadleaf0:1"] > T && v.rec
 // rocks: stone, and ore in the mine's pockets
 let cu = 0; for (let i = 0; i < 12; i++) { r = await fell(gm, "rock:" + i, "rock"); if (r.body.loot.ore) cu += r.body.loot.ore.cu || 0; }
 v = await view(gm); check(v.inv.mat.stone >= 36 && (v.ore.cu || 0) === cu, "rocks: stone in the pack, ore in the mine's pockets (" + cu + " copper)");
-r = await call(gm, "world-jur-craft", { recipe: "spear" }); check(r.status === 400, "a spear needs the workbench first");
+r = await call(gm, "world-jur-craft", { recipe: "spear" }); check(r.status === 400, "a spear needs a workbench first");
 for (let i = 0; i < 6; i++) { await fell(gm, "fern1:" + i, "fern"); await fell(gm, "tree-araucaria0:" + i, "tree"); }
 r = await call(gm, "world-jur-craft", { recipe: "axe1" }); check(r.status === 200 && r.body.inv.tools.axe === 1, "a stone axe");
 r = await call(gm, "world-jur-craft", { recipe: "axe1" }); check(r.status === 409, "not twice");
 r = await call(gm, "world-jur-start", { node: "tree-broadleaf0:9", kind: "tree" }); check(r.body.need < need * 0.7 + 2, "the axe: fewer swings (" + r.body.need + ")");
 for (let i = 10; i < 16; i++) await fell(gm, "tree-broadleaf0:" + i, "tree");
-r = await call(gm, "world-jur-craft", { recipe: "bench" }); check(r.status === 200 && r.body.inv.stations.bench === "placed" && r.body.plot.some((p) => p.k === "bench"), "the workbench stands at your camp straight away");
-r = await call(gm, "world-jur-craft", { recipe: "bench" }); check(r.status === 409, "one workbench");
-r = await call(gm, "world-jur-craft", { recipe: "fire" }); check(r.status === 200 && r.body.plot.some((p) => p.k === "campfire"), "a campfire at the camp");
+r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 2, z: 0 } }); check(r.status === 400, "no camp yet: nothing to build on");
+r = await call(gm, "world-jur-camp", { op: "claim" }); check(r.status === 200 && r.body.home === 0 && r.body.camps.list[0].mine, "the first player gets the first camp spot");
+r = await call(gm, "world-jur-camp", { op: "claim" }); check(r.status === 200 && r.body.home === 0, "claiming again keeps the same spot");
+r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 20, z: 0 } }); check(r.status === 400, "nothing outside the camp");
+r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 2, z: 0 } }); check(r.status === 200 && r.body.plot.some((p) => p.k === "bench"), "a workbench built at the camp");
+r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: -2, z: 3 } }); check(r.status === 409, "one workbench a camp");
+r = await call(gm, "world-jur-build", { op: "place", piece: { k: "campfire", x: -3, z: 1 } }); check(r.status === 200, "a campfire at the camp");
+// 20 spots: then there's no spot left, and a newcomer joins someone's camp
+const ws = []; for (let i = 0; i < 19; i++) { const x = ethers.Wallet.createRandom(); GM_WALLETS.push(x.address.toLowerCase()); ws.push(x); r = await call(x, "world-jur-camp", { op: "claim" }); }
+check(r.status === 200 && r.body.home === 19 && r.body.camps.free === 0, "twenty camps, all taken");
+const late = ethers.Wallet.createRandom(); GM_WALLETS.push(late.address.toLowerCase());
+r = await call(late, "world-jur-camp", { op: "claim" }); check(r.status === 409 && r.body.full, "the 21st: no spot of their own");
+r = await call(late, "world-jur-camp", { op: "join", slot: 0 }); check(r.status === 200 && r.body.home === 0 && r.body.camps.list[0].members === 2, "they join a camp and live there");
+r = await call(late, "world-jur-build", { op: "remove", piece: { k: "bench", x: 2, z: 0 } }); check(r.status === 403, "a guest can't take down the owner's workbench");
 // hunting: a raptor, then cooking its meat at the fire and eating it
 r = await fell(gm, "raptor:0", "raptor"); check(r.status === 200 && r.body.loot.meat >= 2 && r.body.loot.hide >= 2, "a raptor hunted: meat, hide, bone");
 r = await call(gm, "world-jur-craft", { recipe: "cook" }); check(r.status === 200 && r.body.inv.mat.cooked === 1, "meat cooked at the campfire");
+r = await call(gm, "world-jur-craft", { recipe: "spear" }); check(r.status === 200 && r.body.inv.tools.spear === 1, "a spear at the workbench");
 r = await call(gm, "world-jur-eat", { food: "cooked" }); check(r.status === 200 && r.body.fed === JUR.FOOD.cooked && r.body.inv.mat.cooked === 0, "eaten");
 r = await call(gm, "world-jur-eat", { food: "cooked" }); check(r.status === 400, "none left to eat");
 r = await fell(gm, "titan:0", "titan"); check(r.status === 200 && r.body.loot.hide >= 8, "the Thornback Titan can be hunted");
