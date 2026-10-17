@@ -35,10 +35,10 @@ export function createJurassic(ctx) {
     if (MODELS) return;
     const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null, ver = ctx.ver || "";
     const one = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
-    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm")]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
+    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient")]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
     MODELS = {};
     if (!res) { console.warn("jurassic: models slow, drawn stand-ins this time"); return; }
-    ["rock", "ruins", "palm"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
+    ["rock", "ruins", "palm", "ancient"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
   }
   // one mesh of a model, ready to instance: its geometry and material, and the matrix that stands it on the ground with
   // its widest side 1 m (the instances then scale it in metres)
@@ -97,13 +97,13 @@ export function createJurassic(ctx) {
     // ancient giants: a tall trunk and a flat, wide crown
     const tg = new THREE.CylinderGeometry(0.35, 0.6, 9, 7); tg.translate(0, 4.5, 0);
     const cg = new THREE.IcosahedronGeometry(3.4, 1); cg.scale(1.3, 0.55, 1.3); cg.translate(0, 9.6, 0);
-    seed = 11; scatter(tg, trunkM, TREES, 14, 170, [0.8, 1.6]); seed = 11; scatter(cg, leafM, TREES, 14, 170, [0.8, 1.6]);
+    seed = 11; scatter(tg, trunkM, TREES, 24, 170, [0.8, 1.6]); seed = 11; scatter(cg, leafM, TREES, 24, 170, [0.8, 1.6]);
     // conifers in the back, nearer the ridges
     const kg = new THREE.ConeGeometry(2.2, 8, 7); kg.translate(0, 5, 0);
     seed = 23; scatter(kg, leaf2, low ? 90 : 170, 30, 205, [0.9, 1.8]);
     // ferns: low clumps of three tilted leaves
-    const fern = new THREE.ConeGeometry(0.5, 1.6, 4, 1, true); fern.translate(0, 0.6, 0);
-    seed = 31; scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5d8c33, roughness: 0.9, side: THREE.DoubleSide, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
+    const fern = new THREE.IcosahedronGeometry(0.62, 0); fern.scale(1, 0.42, 1); fern.translate(0, 0.16, 0);
+    seed = 31; scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5f9636, roughness: 0.9, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
     // grass tufts: thin blades in small clumps, thickest around the gate where the camera looks down
     const tuft = new THREE.ConeGeometry(0.035, 0.42, 3, 1, true); tuft.translate(0, 0.19, 0);
     seed = 37; scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x5f8f35, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
@@ -117,6 +117,13 @@ export function createJurassic(ctx) {
       for (let i = 0; i < n * 3 && k < n; i++) { const a = rnd() * Math.PI * 2, r = J.LAKE.r + 6 + rnd() * 10, x = J.LAKE.x + Math.cos(a) * r, z = J.LAKE.z + Math.sin(a) * r, y = height(x, z);
         if (y < WATER_Y + 0.3) continue; const w = 4 + rnd() * 2.5; q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.9 + rnd() * 0.25), w); p3.set(x, y - 0.1, z); m4.compose(p3, q, sc).multiply(palm.base); im.setMatrixAt(k++, m4); }
       im.count = k; im.instanceMatrix.needsUpdate = true; scene.add(im); }
+    // the ancient giants (the model is ~17K triangles): a few landmarks along the view from the gate; the forest behind
+    // them stays the light drawn trees
+    const anc = unit(MODELS && MODELS.ancient);
+    if (anc) { const spots = [[-24, 14, 13], [24, 18, 11], [-58, -40, 16], [12, -72, 18], [-92, 8, 15], [92, 34, 14], [-34, -128, 17], [44, -138, 16]].slice(0, low || coarse ? 5 : 8);
+      const im = new THREE.InstancedMesh(anc.geo, anc.mat, spots.length); seed = 61;
+      spots.forEach(([x, z, w], i) => { q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.95 + rnd() * 0.2), w); p3.set(x, height(x, z) - 0.3, z); m4.compose(p3, q, sc).multiply(anc.base); im.setMatrixAt(i, m4); });
+      im.instanceMatrix.needsUpdate = true; scene.add(im); }
     // the old ruins: a great gate on the far shore of the lake, and two smaller ones along the plain
     const ruin = unit(MODELS && MODELS.ruins);
     if (ruin) [[J.LAKE.x + 8, J.LAKE.z - J.LAKE.r - 16, 14, 0.4], [-48, -20, 8, -0.9], [-20, -110, 10, 0.2]].forEach(([x, z, w, ry]) => {
