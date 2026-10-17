@@ -4,6 +4,7 @@
 // This first step is the Primeval Plains on their own: rolling ground, a lake, forest and ferns, far ridges in the haze,
 // the hero walking it, and the gate home. Dinosaurs arrive with their GLB files (models/world/jurassic, the doc's list).
 // It draws its own scene through the stage's view() while the town waits behind it, like the ARCL Mine.
+import { makeJurTrees } from "./world-jurtrees.js";
 export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { x: 0, z: 66 }, LAKE: { x: 55, z: -35, r: 34 } };
 
 export function createJurassic(ctx) {
@@ -472,10 +473,16 @@ export function createJurassic(ctx) {
     // ancient giants: a tall trunk and a flat, wide crown
     const tg = new THREE.CylinderGeometry(0.35, 0.6, 9, 7); tg.translate(0, 4.5, 0);
     const cg = new THREE.IcosahedronGeometry(3.4, 1); cg.scale(1.3, 0.55, 1.3); cg.translate(0, 9.6, 0);
-    seed = 11; scatter(tg, trunkM, TREES, 24, 170, [0.8, 1.6]); seed = 11; scatter(cg, leafM, TREES, 24, 170, [0.8, 1.6]);
+    // where a kind stands, as plain matrices (the cells then add each model's footing)
+    const mats = (n, minGate, maxR, size, sink = 0) => { const out = []; for (let i = 0; i < n; i++) { const s0 = spotFor(minGate, maxR); if (!s0) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s0.x, s0.y - sink * z, s0.z); out.push(new THREE.Matrix4().compose(p3, q, sc)); } return out; };
+    // the drawn trees (world-jurtrees.js): araucarias, broadleaf giants, tree ferns and cycads, two shapes of each, in cells
+    let trees = null; try { trees = makeJurTrees(THREE, { low }); } catch (e) { console.warn("jurassic trees", e); }
+    if (trees) { const I4 = new THREE.Matrix4(), PLAN = { araucaria: [low ? 40 : coarse ? 60 : 100, 30, 205, [0.85, 1.25]], broadleaf: [low ? 40 : coarse ? 60 : 95, 24, 175, [0.8, 1.2]], fern: [low ? 50 : coarse ? 80 : 140, 8, 165, [0.8, 1.3]], cycad: [low ? 50 : coarse ? 80 : 130, 6, 170, [0.8, 1.4]] };
+      seed = 11; for (const [k, [n, gate0, maxR, size]] of Object.entries(PLAN)) trees.KINDS[k].forEach((geo) => cellsOf(scene, "tree-" + k, { geo, mat: trees.mats, base: I4 }, null, mats(Math.round(n / 2), gate0, maxR, size), { shadow: true, nearD: 999, maxD: 330 })); }
+    else { seed = 11; scatter(tg, trunkM, TREES, 24, 170, [0.8, 1.6]); seed = 11; scatter(cg, leafM, TREES, 24, 170, [0.8, 1.6]); }
     // conifers in the back, nearer the ridges
     const kg = new THREE.ConeGeometry(2.2, 8, 7); kg.translate(0, 5, 0);
-    seed = 23; scatter(kg, leaf2, low ? 90 : 170, 30, 205, [0.9, 1.8]);
+    seed = 23; if (!trees) scatter(kg, leaf2, low ? 90 : 170, 30, 205, [0.9, 1.8]);
     // ferns: low clumps of three tilted leaves
     const fern = new THREE.IcosahedronGeometry(0.62, 0); fern.scale(1, 0.42, 1); fern.translate(0, 0.16, 0);
     seed = 31; if (!(MODELS && MODELS["fern-01"])) scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5f9636, roughness: 0.9, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
@@ -483,8 +490,6 @@ export function createJurassic(ctx) {
     const tuft = new THREE.ConeGeometry(0.035, 0.42, 3, 1, true); tuft.translate(0, 0.19, 0);
     seed = 37; if (!MODELS || !MODELS.ground) scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x5f8f35, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
     // boulders
-    // where a kind stands, as plain matrices (the cells then add each model's footing)
-    const mats = (n, minGate, maxR, size, sink = 0) => { const out = []; for (let i = 0; i < n; i++) { const s0 = spotFor(minGate, maxR); if (!s0) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s0.x, s0.y - sink * z, s0.z); out.push(new THREE.Matrix4().compose(p3, q, sc)); } return out; };
     const NEAR_D = coarse ? 50 : 70;
     const rock = unit(MODELS && MODELS.rock);
     if (rock) { seed = 41; cellsOf(scene, "rock", rock, farOf(rock, MODELS.rock1), mats(low ? 40 : 70, 10, 190, [1.4, 4.2], 0.12), { shadow: true, nearD: NEAR_D }); }
@@ -525,7 +530,7 @@ export function createJurassic(ctx) {
     let comp = null;
     if (!low && st.quality && st.quality.bloom && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX; comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(scene, cam)); const bl = new P.UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.4, 0.92); bl.heavy = true; comp.addPass(bl); comp.addPass(new P.OutputPass()); } catch (e) { console.warn("jurassic bloom", e); comp = null; } }
     const grass = MODELS && MODELS.ground ? makeGrass(scene) : null, air = makeAir(scene);
-    S = { scene, cam, gate, sun, shadows, comp, wU, grass, air, spin: gate.userData.spin || [] };
+    S = { scene, cam, gate, sun, shadows, comp, wU, grass, air, trees, spin: gate.userData.spin || [] };
     tickCells(0, true);
   }
 
@@ -624,7 +629,7 @@ export function createJurassic(ctx) {
     if (S.shadows) { S.sun.target.position.set(px, py, pz); S.sun.position.set(px - 60, py + 80, pz + 40); }
     tickCells(dt);
     for (const f of S.spin) f(dt, t);
-    S.wU.uT.value = t; if (S.grass) S.grass.tick(t); S.air.tick(dt, t);
+    S.wU.uT.value = t; if (S.grass) S.grass.tick(t); S.air.tick(dt, t); if (S.trees) S.trees.tick(t);
     tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
   }
