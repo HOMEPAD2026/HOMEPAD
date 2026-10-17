@@ -1046,9 +1046,12 @@ html.wp-pcphone .wz-hpb{transform:translate(-50%,-100%) scale(1.5);transform-ori
 .wz-top .wz-leave,.wz-top .wz-name{display:none}
 /* the dock: Character · Craft · Pets · Exchange (the Bag lives in Character now; B still opens it) */
 body.wp #wp-dk-bag{display:none!important}
-body.wp .wp-dk.wp-dk-gold{background:linear-gradient(180deg,#ffe08a,#f2b232)!important;border:1.5px solid #fff1b8!important;box-shadow:0 4px 18px rgba(242,178,50,.45),inset 0 1px 0 rgba(255,255,255,.6)!important;animation:wpShopGlow 3.2s ease-in-out infinite}
-body.wp .wp-dk.wp-dk-gold span{color:#2a1a00!important;text-shadow:none!important;font-weight:900}
-body.wp .wp-dk.wp-dk-gold:hover{filter:brightness(1.07)}
+body.wp #wp-dk-swap{background:url("/images/hud/dk-gold.webp?v=1") center/100% 100% no-repeat!important;filter:drop-shadow(0 0 8px rgba(255,182,58,.45));animation:wpSwapGlow 3.2s ease-in-out infinite}
+body.wp #wp-dk-swap::after{content:"";position:absolute;left:50%;top:7.5px;width:46px;height:46px;transform:translateX(-50%);background:url("/images/hud/dk-swap.webp?v=1") center/100% 100% no-repeat;pointer-events:none}
+body.wp #wp-dk-swap span{color:#ffe08a;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,182,58,.6))}
+@keyframes wpSwapGlow{50%{filter:drop-shadow(0 0 14px rgba(255,200,80,.7))}}
+@media (prefers-reduced-motion:reduce){body.wp #wp-dk-swap{animation:none}}html.wp-less body.wp #wp-dk-swap{animation:none}
 
 /* the Exchange window (world-swap.js): dark glass, gold for $ARCL, the blue-to-mint of $ARCIRCLE */
 .wx{position:fixed;inset:0;z-index:64;display:grid;place-items:center;padding:16px;background:rgba(3,7,18,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);font-family:var(--hud-font,var(--f-ui));color:#eef3f7}
