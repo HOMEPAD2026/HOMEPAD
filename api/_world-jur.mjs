@@ -27,6 +27,9 @@ export const JUR = {
     raptor: { tool: "spear", hits: [10, 14], loot: { hide: [2, 3], bone: [1, 2], meat: [2, 3] }, regrow: 30 * 60e3 },
     trike: { tool: "spear", hits: [24, 32], loot: { hide: [4, 6], bone: [2, 4], meat: [5, 8] }, regrow: 60 * 60e3 },
     alpha: { tool: "spear", hits: [60, 80], loot: { hide: [6, 8], bone: [4, 6], meat: [6, 9], amber: [1, 2], fang: [1, 1] }, regrow: 6 * 3600e3 },
+    spino: { tool: "spear", hits: [44, 58], loot: { hide: [5, 7], bone: [3, 5], meat: [6, 9], fang: [0, 1] }, regrow: 2 * 3600e3 },
+    claw: { tool: "spear", hits: [18, 24], loot: { hide: [3, 4], bone: [2, 3], meat: [3, 4], fang: [0, 1] }, regrow: 45 * 60e3 },
+    titan: { tool: "spear", hits: [70, 90], loot: { hide: [8, 11], bone: [6, 8], meat: [8, 12], amber: [1, 3] }, regrow: 6 * 3600e3 },
   },
   SPEAR: [2.2, 1],
   // the axe: bare hands are slow; a stone axe, then copper, then iron
@@ -36,12 +39,15 @@ export const JUR = {
     axe1: { name: "Stone axe", need: { wood: 3, stone: 2, fiber: 2 }, tool: ["axe", 1] },
     torch: { name: "Torch", need: { wood: 2, fiber: 1 }, give: { torch: 1 } },
     bench: { name: "Workbench", need: { wood: 20, stone: 10 }, station: "bench" },
+    fire: { name: "Campfire", need: { wood: 6, stone: 8 }, station: "fire" },
     axe2: { name: "Copper axe", need: { wood: 5, cu: 8 }, at: "bench", tool: ["axe", 2] },
     spear: { name: "Spear", need: { wood: 6, flint: 3, fiber: 2 }, at: "bench", tool: ["spear", 1] },
     rope: { name: "Rope", need: { fiber: 6 }, give: { rope: 1 } },
     axe3: { name: "Iron-hard axe", need: { hardwood: 4, ag: 6, rope: 1 }, at: "bench", tool: ["axe", 3] },
     cook: { name: "Cooked meat", need: { meat: 1, wood: 1 }, at: "fire", give: { cooked: 1 } },
   },
+  // a station made here stands at your camp straight away (this spot on your plot); building moves it later
+  CAMP_AT: { bench: { k: "bench", x: 3, y: 0, z: 0, r: 0 }, fire: { k: "campfire", x: -3, y: 0, z: 1, r: 0 } },
   // building pieces on your plot (1 m grid, rotations 0–3): cost each; the bench and the fire are placed like pieces
   PIECES: {
     floor: { need: { wood: 4 } }, wall: { need: { wood: 6 } }, door: { need: { wood: 8, fiber: 2 } }, roof: { need: { wood: 5, fiber: 2 } },
@@ -112,16 +118,21 @@ export function makeJur(deps) {
     const S = await signed(b); if (S.err) return S.err;
     const w = S.w, R = JUR.RECIPES[String(b.recipe || "")]; if (!R) return json(400, { error: "which recipe?" });
     const inv = await invOf(w), oreNow = deps.mine ? (await deps.mine.oreOf(w)).inv : {};
-    if (R.at === "bench" && inv.stations.bench !== "placed") return json(400, { error: "build a workbench on your plot first" });
-    if (R.at === "fire" && !(await plotOf(w)).some((p) => p.k === "campfire")) return json(400, { error: "build a campfire on your plot first" });
+    if (R.at === "bench" && inv.stations.bench !== "placed") return json(400, { error: "make a workbench first" });
+    if (R.at === "fire" && !(await plotOf(w)).some((p) => p.k === "campfire")) return json(400, { error: "make a campfire first" });
     if (R.tool && (inv.tools[R.tool[0]] | 0) >= R.tool[1]) return json(409, { error: "you have this one or better" });
+    if (R.station && inv.stations[R.station]) return json(409, { error: "you have one already" });
     if (!hasAll(inv, R.need, oreNow)) return json(400, { error: "not enough materials", need: R.need });
     const P = await pay(w, inv, R.need); if (P.err) return P.err;
     if (R.tool) inv.tools[R.tool[0]] = R.tool[1];
     if (R.give) for (const [k, n] of Object.entries(R.give)) inv.mat[k] = (inv.mat[k] || 0) + n;
-    if (R.station) inv.stations[R.station] = "ready"; // a station to place on your plot (the build menu places it)
+    let plot = null;
+    if (R.station) { // it stands at your camp straight away
+      inv.stations[R.station] = "placed"; plot = await plotOf(w); const at = JUR.CAMP_AT[R.station];
+      if (at && !plot.some((p) => p.k === at.k)) { plot.push({ ...at }); await setDoc(`worldJurPlot/${w}`, { pieces: plot }); }
+    }
     await setDoc(`worldJurInv/${w}`, inv);
-    return json(200, { ok: true, inv: pub(inv), ore: P.ore || oreNow });
+    return json(200, { ok: true, inv: pub(inv), ore: P.ore || oreNow, ...(plot ? { plot } : {}) });
   }
   // the plot: pieces on a 1 m grid round your camp (x, z in −PLOT_R…PLOT_R, y levels 0–3, rotation 0–3)
   async function build(b) {

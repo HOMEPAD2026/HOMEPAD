@@ -5,13 +5,15 @@
 // the hero walking it, and the gate home. Dinosaurs arrive with their GLB files (models/world/jurassic, the doc's list).
 // It draws its own scene through the stage's view() while the town waits behind it, like the ARCL Mine.
 import { makeJurTrees } from "./world-jurtrees.js";
+import { createSurvival, CAMP } from "./world-jursurv.js";
 export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { x: 0, z: 66 }, LAKE: { x: 55, z: -35, r: 34 } };
 
 export function createJurassic(ctx) {
   const { THREE, st, T, esc, toast } = ctx;
   const low = !!ctx.low, reduce = !!ctx.reduce, coarse = !!ctx.coarse;
   const J = JURASSIC;
-  let S = null, ui = null, hero = null, on = false, busy = false;
+  const Snd = ctx.Snd || {}; let shakeT = 0;
+  let S = null, ui = null, hero = null, on = false, busy = false, surv = null;
   let downNow = false, hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
   const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 }, pinch = { a: -1, b: -1, d: 0, pts: new Map() };
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), camLookS = new THREE.Vector3();
@@ -39,7 +41,7 @@ export function createJurassic(ctx) {
     const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null, ver = ctx.ver || "";
     const get = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver) : Promise.reject(new Error("no loader")));
     // [key, file, whole gltf (rigged, with its clips) or just the scene]
-    const LIST = [["rock", "rock-boulder"], ["ruins", "ruins-gate"], ["palm", "tree-palm"], ["ancient", "tree-ancient"], ["raptor8", "dino-raptor-8", 1], ["trike8", "dino-triceratops-8", 1], ["brachio8", "dino-brachio-8", 1], ["alpha8", "boss-alpha-raptor-8", 1],
+    const LIST = [["rock", "rock-boulder"], ["ruins", "ruins-gate"], ["palm", "tree-palm"], ["ancient", "tree-ancient"], ["raptor8", "dino-raptor-8", 1], ["trike8", "dino-triceratops-8", 1], ["brachio8", "dino-brachio-8", 1], ["alpha8", "boss-alpha-raptor-8", 1], ["spino", "dino-spino", 1], ["titan", "dino-titan", 1], ["bird", "dino-bird", 1], ["claw", "dino-claw", 1],
       ["rock1", "rock-boulder-lod1"], ["ruins1", "ruins-gate-lod1"], ["palm1", "tree-palm-lod1"], ["ancient1", "tree-ancient-lod1"], ...NATURE.map((n) => [n, "nature/" + n])];
     const res = await Promise.race([Promise.allSettled(LIST.map(([, f, whole]) => get(f).then((g) => (whole ? g : g.scene)))), new Promise((ok) => setTimeout(() => ok(null), 20000))]);
     MODELS = {};
@@ -93,15 +95,21 @@ export function createJurassic(ctx) {
   // ---------------- cells: the heavy props in 80 m squares, so what's behind the camera isn't drawn and what's far
   // is the light model. Each square holds an InstancedMesh per kind (near and far); every quarter second the squares
   // pick by their distance to the hero.
-  const CELL = 80, cells = [];
+  const CELL = 80, cells = [], nodes = [];
+  // opts.node: what the server calls it (tree, rock …): each instance becomes a node you can chop or mine (world-jursurv.js),
+  // id = name:index (the land is the same every visit), cr × its size = the trunk you bump into, hr × its size = its reach
   function cellsOf(scene, kind, near, far, mats, opts = {}) {
     const by = new Map();
-    for (const m of mats) { const e = m.elements, cx = Math.floor(e[12] / CELL), cz = Math.floor(e[14] / CELL), k = cx + "," + cz; if (!by.has(k)) by.set(k, { cx, cz, list: [] }); by.get(k).list.push(m); }
+    mats.forEach((m, gi) => { const e = m.elements, cx = Math.floor(e[12] / CELL), cz = Math.floor(e[14] / CELL), k = cx + "," + cz; if (!by.has(k)) by.set(k, { cx, cz, list: [] }); by.get(k).list.push({ m, gi }); });
+    const Z = new THREE.Matrix4().makeScale(0, 0, 0);
     for (const { cx, cz, list } of by.values()) {
-      const mk = (u, mat) => { const im = new THREE.InstancedMesh(u.geo, mat, list.length); list.forEach((m, i) => im.setMatrixAt(i, m.clone().multiply(u.base))); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); im.computeBoundingBox && im.computeBoundingBox(); scene.add(im); return im; };
+      const mk = (u, mat) => { const im = new THREE.InstancedMesh(u.geo, mat, list.length); list.forEach(({ m }, i) => im.setMatrixAt(i, m.clone().multiply(u.base))); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); im.computeBoundingBox && im.computeBoundingBox(); scene.add(im); return im; };
       const n = mk(near, near.mat); n.castShadow = !!opts.shadow; n.receiveShadow = !!opts.shadow;
       const f = far ? mk(far, near.mat) : null; if (f) f.visible = false;
       cells.push({ kind, x: (cx + 0.5) * CELL, z: (cz + 0.5) * CELL, near: n, far: f, nearD: opts.nearD || 70, maxD: opts.maxD || 330 });
+      if (opts.node) list.forEach(({ m, gi }, i) => { const e = m.elements, sz = Math.hypot(e[0], e[1], e[2]), keep = [[n, m.clone().multiply(near.base)], ...(f ? [[f, m.clone().multiply(far.base)]] : [])];
+        const set = (on) => { for (const [im, mm] of keep) { im.setMatrixAt(i, on ? mm : Z); im.instanceMatrix.needsUpdate = true; } };
+        nodes.push({ id: kind + ":" + gi, kind: opts.node, x: e[12], z: e[14], cr: (opts.cr || 0) * sz, hr: Math.max(0.5, (opts.hr || 0.4) * sz), popY: opts.popY ? opts.popY * sz : 2.2, hide: () => set(false), show: () => set(true) }); });
     }
   }
   let cellT = 0;
@@ -115,37 +123,69 @@ export function createJurassic(ctx) {
 
   function canvasTex(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
+  // ---------------- the dinosaurs you can hunt (world-jursurv.js swings at them; the server says how many hits) ----------
+  // Each is a target: id, kind (the server's), hr (its reach), alive, hurt(), die(), revive(). They bite back: a bite is
+  // a share of your max HP (the town's knock-out rules then, world-combat.js). Round the gate and your camp you're safe.
+  let clock = 0;
+  const safeHere = () => downNow || Math.hypot(px - J.SPAWN.x, pz - J.SPAWN.z) < 26;
+  function dinoize(o, kind, id, hr, popY, home) {
+    Object.assign(o, { id, kind, hr, popY, alive: true, angry: 0, biteAt: 0, cool: 0, home });
+    o.hurt = () => { o.angry = clock + 12; o.R.once("hit", 1.2); };
+    o.die = (silent) => { if (!o.alive) return; o.alive = false; o.diedAt = Date.now(); o.deadT = clock - (silent ? 99 : 0); o.sp = 0; o.R.die(); if (!silent && Snd.growl) Snd.growl(kind === "raptor" ? 0 : 1); };
+    o.revive = () => { o.alive = true; o.angry = 0; o.x = home.x; o.z = home.z; o.sp = 0; o.state = "idle"; o.wait = 2; o.R.revive(); o.g.visible = true; };
+    return o;
+  }
+  // a bite (or a claw, a tail, a horn) lands a moment into its attack clip, if you're still in reach
+  function attack(o, clipName, share, reach, cool) {
+    if (clock < o.cool || o.R.one) return; if (!o.R.once(clipName, 1.15)) o.R.once("attack", 1.15);
+    o.cool = clock + cool; o.biteAt = clock + 0.38; o.biteK = share; o.biteR = reach;
+  }
+  function bites(o) {
+    if (!o.biteAt || clock < o.biteAt) return; o.biteAt = 0; if (downNow || !o.alive) return;
+    if (Math.hypot(px - o.x, pz - o.z) > o.biteR + 0.9) return;
+    const v = ctx.vitals ? ctx.vitals() : null, n = Math.max(1, Math.round(((v && v.max) || 120) * o.biteK));
+    if (ctx.hurt) ctx.hurt(n); if (Snd.bite) Snd.bite(); shakeT = 0.25;
+  }
+  // after death: lying there a few seconds, then gone until it's back
+  function deadTick(o, dt) { if (o.alive) return false; mixUp(o, o.mixer, dt, o.x, o.z); if (clock - o.deadT > 6) o.g.visible = false; return true; }
+  const steer = (o, tx, tz, dt, turn) => { const a = Math.atan2(tx - o.x, tz - o.z); let da = a - o.face; da = Math.atan2(Math.sin(da), Math.cos(da)); o.face += da * Math.min(1, dt * turn); return da; };
+
   // ---------------- the raptors (the owner's 8-clip prototype: Idle, Walk, Run, Roar, two attacks, Hit, Death) ----------
-  // They wander their part of the plain, stop and stare at you inside 14 m (a roar now and then) and run off within 7 m.
-  // (No fighting yet: that comes with the server's say on damage and drops.)
+  // They wander their part of the plain; come within 15 m (outside the safe ground by the gate) and they come for you,
+  // faster than you walk, slower than you run; within 2.4 m they bite. They give up past 30 m or far from home.
   const raptors = [];
   function makeRaptors(scene, rnd) {
     if (!(MODELS && MODELS.raptor8 && MODELS.raptor8.animations && ctx.K.skelClone)) return;
     {
       const homes = [[-40, -10], [-55, -70], [20, -95], [95, -10], [-95, -40], [60, 40]].slice(0, low || coarse ? 4 : 6);
-      homes.forEach(([hx, hz]) => { const R = rig(MODELS.raptor8, 3.8 + rnd() * 0.8); scene.add(R.g); R.loop("idle");
-        raptors.push({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx + (rnd() - 0.5) * 10, z: hz + (rnd() - 0.5) * 10, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, state: "idle", roarAt: 0 }); });
+      homes.forEach(([hx, hz], i) => { const R = rig(MODELS.raptor8, 3.8 + rnd() * 0.8); scene.add(R.g); R.loop("idle");
+        raptors.push(dinoize({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx + (rnd() - 0.5) * 10, z: hz + (rnd() - 0.5) * 10, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, state: "idle", roarAt: 0, run: 8.2, bite: 0.07, aggro: 15 }, "raptor", "raptor:" + i, 1.3, 2, { x: hx, z: hz })); });
     }
+    // the Clawstriders (the owner's Meshy Clawstrider: bite, claw, leap and tail attacks): a pack of three in the east
+    // woods, bigger and quicker than the raptors (you outrun them only flat out), hitting harder
+    if (MODELS.claw && MODELS.claw.animations) [[128, -52], [134, -44], [122, -40]].slice(0, low ? 2 : 3).forEach(([hx, hz], i) => { const R = rig(MODELS.claw, 5 + rnd() * 0.6); scene.add(R.g); R.loop("idle");
+      raptors.push(dinoize({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx, z: hz, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: 1 + rnd() * 3, state: "idle", roarAt: 0, run: 10.5, bite: 0.09, aggro: 18 }, "claw", "claw:" + i, 1.6, 2.4, { x: hx, z: hz })); });
   }
   function tickRaptors(dt, t) {
     for (const r of raptors) {
-      const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz);
+      if (deadTick(r, dt)) continue;
+      const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz), home = Math.hypot(r.x - r.hx, r.z - r.hz), safe = safeHere();
       let want = 0;
-      if (d < 7) { r.state = "flee"; r.tx = r.x - dx / d * 18; r.tz = r.z - dz / d * 18; }
-      else if (d < 14 && r.state !== "flee") { r.state = "stare"; }
-      else if (r.state === "stare" || (r.state === "flee" && d > 22)) { r.state = "idle"; r.wait = 1 + Math.random() * 2; }
-      r.lookAt = null; if (r.state === "stare" || (r.state === "walk" && d < 22)) { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); if (r.state === "stare") r.face += da * Math.min(1, dt * 3); r.lookAt = da; }
-      else if (r.state === "idle") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 6 + Math.random() * 18; r.tx = r.hx + Math.cos(a) * rr; r.tz = r.hz + Math.sin(a) * rr; r.state = "walk"; } }
-      if (r.state === "walk" || r.state === "flee") {
-        const ex = r.tx - r.x, ez = r.tz - r.z, ed = Math.hypot(ex, ez);
-        if (ed < 1.2) { r.state = "idle"; r.wait = 2 + Math.random() * 4; }
-        else { want = r.state === "flee" ? 9 : 2.6; const a = Math.atan2(ex, ez); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 4); }
+      if (r.state !== "chase" && !safe && (d < r.aggro || (r.angry > clock && d < 30))) { r.state = "chase"; if (Snd.growl && d < 40) Snd.growl(r.kind === "claw" ? 1 : 0); }
+      else if (r.state === "chase" && (safe || d > 30 || home > 60)) { r.state = "back"; r.tx = r.hx; r.tz = r.hz; }
+      r.lookAt = null;
+      if (r.state === "chase") { const da = steer(r, px, pz, dt, 6); r.lookAt = da; want = d > 2.2 ? r.run : 0; if (d < 2.6 + (r.kind === "claw" ? 0.6 : 0)) attack(r, r.kind === "claw" ? ["attack_bite", "attack_claw", "attack_leap", "attack_tail"][Math.floor(Math.random() * 4)] : "attack", r.bite, 3, 1.5); }
+      else if (r.state === "stare" || (r.state === "walk" && d < 22)) { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.lookAt = da; }
+      if (r.state === "idle") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 6 + Math.random() * 18; r.tx = r.hx + Math.cos(a) * rr; r.tz = r.hz + Math.sin(a) * rr; r.state = "walk"; } }
+      if (r.state === "walk" || r.state === "back") {
+        const ed = Math.hypot(r.tx - r.x, r.tz - r.z);
+        if (ed < 1.2) { r.state = "idle"; r.wait = 2 + Math.random() * 4; } else { want = r.state === "back" ? 5 : 2.6; steer(r, r.tx, r.tz, dt, 4); }
       }
       r.sp += (want - r.sp) * Math.min(1, dt * 4);
       if (r.sp > 0.05) { const nx = r.x + Math.sin(r.face) * r.sp * dt, nz = r.z + Math.cos(r.face) * r.sp * dt;
-        if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 5) { r.x = nx; r.z = nz; } else { r.state = "idle"; r.wait = 1; r.sp = 0; } }
-      // its own walk and run, paced to the ground it covers; staring, a roar now and then
-      if (r.state === "stare" && t > r.roarAt) { if (r.R.once("roar", 0.8)) r.roarAt = t + 5 + Math.random() * 4; }
+        if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 5 && Math.hypot(nx - J.SPAWN.x, nz - J.SPAWN.z) > 20) { r.x = nx; r.z = nz; } else if (r.state !== "chase") { r.state = "idle"; r.wait = 1; r.sp = 0; } }
+      bites(r);
+      if (r.state === "chase" && t > r.roarAt && d > 6) { if (r.R.once("roar", 1)) r.roarAt = t + 7 + Math.random() * 5; }
       r.R.loop(r.sp > 5 ? "run" : r.sp > 0.4 ? "walk" : "idle", r.sp > 5 ? Math.max(0.7, r.sp / 8) : r.sp > 0.4 ? Math.max(0.6, r.sp / 2.6) : 1);
       r.g.position.set(r.x, height(r.x, r.z), r.z); r.g.rotation.y = r.face; mixUp(r, r.mixer, dt, r.x, r.z);
     }
@@ -187,12 +227,15 @@ export function createJurassic(ctx) {
     const bone = (n) => { let b = null; o.traverse((x) => { if (!b && x.isBone && x.name.toLowerCase() === n) b = x; }); return b; };
     R.bones = { head: bone("head"), chest: bone("chest"), tail: ["tailstart", "tail1", "tail2", "tail3"].map(bone).filter(Boolean) };
     R.has = (n) => !!clip(n);
-    R.loop = (n, speed = 1) => { if (R.one) { R.loopName = n; R.loopSpeed = speed; return; } const c = clip(n); if (!c) return; const a = mixer.clipAction(c); a.timeScale = speed; if (R.cur === a) return;
+    R.loop = (n, speed = 1) => { if (R.dead) return; if (R.one) { R.loopName = n; R.loopSpeed = speed; return; } const c = clip(n); if (!c) return; const a = mixer.clipAction(c); a.timeScale = speed; if (R.cur === a) return;
       a.reset().setLoop(THREE.LoopRepeat, Infinity).play(); if (R.cur) R.cur.crossFadeTo(a, 0.25, false); R.cur = a; R.loopName = n; R.loopSpeed = speed; };
-    R.once = (n, speed = 1) => { const c = clip(n); if (!c || R.one) return false; const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = speed; a.play(); if (R.cur) R.cur.crossFadeTo(a, 0.15, false); R.one = a; R.cur = a; R.oneLeft = c.duration / Math.max(0.05, speed) - 0.2; return true; };
+    R.once = (n, speed = 1) => { const c = clip(n); if (!c || R.one || R.dead) return false; const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = speed; a.play(); if (R.cur) R.cur.crossFadeTo(a, 0.15, false); R.one = a; R.cur = a; R.oneLeft = c.duration / Math.max(0.05, speed) - 0.2; return true; };
     // the one-shot ends by its own clock (not the mixer's "finished" event, which a far creature's stepped mixer can miss)
     R.step = (dt) => { if (!R.one || (R.oneLeft -= dt) > 0) return; const done = R.one; R.one = null; const c = clip(R.loopName || "idle"); if (!c) return;
       const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopRepeat, Infinity); a.timeScale = R.loopSpeed || 1; a.play(); done.crossFadeTo(a, 0.25, false); R.cur = a; };
+    // hunted down: its death clip, held on the last frame; up again (where it lives) when it's back
+    R.die = () => { R.dead = true; R.one = null; const c = clip("death"); if (!c) return; const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.timeScale = 1; a.play(); if (R.cur && R.cur !== a) R.cur.crossFadeTo(a, 0.15, false); R.cur = a; };
+    R.revive = () => { R.dead = false; R.one = null; mixer.stopAllAction(); R.cur = null; R.loop("idle"); };
     return R;
   }
   // after the clip: the head (and a little of the chest) turned toward what it's looking at, the tail swinging out behind a
@@ -261,17 +304,18 @@ export function createJurassic(ctx) {
     const gl = MODELS && MODELS.alpha8; if (!gl || !ctx.K.skelClone || !gl.animations) return;
     const R = rig(gl, 6.5); scene.add(R.g); R.loop("idle");
     const tag = ctx.K.label(T("Alpha Raptor"), { accent: "#ff4d6d", color: "#ffd2d9", size: 0.9, sub: T("Boss · Lv 10") }); tag.position.y = R.h + 1.4; R.g.add(tag);
-    alpha = { g: R.g, R, mixer: R.mixer, x: ALPHA_HOME.x, z: ALPHA_HOME.z, face: 0, a: 0, state: "patrol", sp: 2.2, orbit: 1, feintAt: 0 };
+    alpha = dinoize({ g: R.g, R, mixer: R.mixer, x: ALPHA_HOME.x, z: ALPHA_HOME.z, face: 0, a: 0, state: "patrol", sp: 2.2, orbit: 1, feintAt: 0 }, "alpha", "alpha:0", 2.4, 3.2, ALPHA_HOME);
   }
   function tickAlpha(dt, t = 0) {
-    const A = alpha; if (!A) return;
+    const A = alpha; if (!A || deadTick(A, dt)) return;
     const dx = px - A.x, dz = pz - A.z, d = Math.hypot(dx, dz), home = Math.hypot(A.x - ALPHA_HOME.x, A.z - ALPHA_HOME.z);
-    if (A.state === "patrol" && d < 18) A.state = "stalk"; else if (A.state === "stalk" && (d > 30 || home > 45)) A.state = "patrol";
+    if (A.state === "patrol" && (d < 18 || A.angry > clock) && !safeHere()) { A.state = "stalk"; if (Snd.growl) Snd.growl(1); } else if (A.state === "stalk" && (d > 30 || home > 45 || safeHere())) A.state = "patrol";
     let tx, tz, want;
     if (A.state === "stalk") {
       // toward you until 9 m, then round you, always facing a little in
-      const ang = Math.atan2(A.x - px, A.z - pz) + A.orbit * 0.5;
-      tx = px + Math.sin(ang) * 9; tz = pz + Math.cos(ang) * 9; want = d > 12 ? 5.5 : 3;
+      // it circles at 9 m, and every few seconds (at once, when you've hit it) it closes in to strike
+      const lunge = A.angry > clock || clock % 9 > 5.2, ang = Math.atan2(A.x - px, A.z - pz) + A.orbit * (lunge ? 0.1 : 0.5), rr = lunge ? 2.6 : 9;
+      tx = px + Math.sin(ang) * rr; tz = pz + Math.cos(ang) * rr; want = d > 12 ? 5.5 : lunge ? 6 : 3;
     } else { A.a += dt * 0.07; tx = ALPHA_HOME.x + Math.cos(A.a) * 22; tz = ALPHA_HOME.z + Math.sin(A.a) * 14; want = 2.2; }
     { const la = Math.atan2(dx, dz) - A.face; A.lookAt = A.state === "stalk" ? Math.atan2(Math.sin(la), Math.cos(la)) : null; }
     const ex = tx - A.x, ez = tz - A.z, ed = Math.hypot(ex, ez) || 1, a = Math.atan2(ex, ez); let da = a - A.face; da = Math.atan2(Math.sin(da), Math.cos(da)); A.face += da * Math.min(1, dt * 3);
@@ -279,8 +323,67 @@ export function createJurassic(ctx) {
     const nx = A.x + Math.sin(A.face) * A.sp * dt, nz = A.z + Math.cos(A.face) * A.sp * dt;
     if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { A.x = nx; A.z = nz; } else A.orbit = -A.orbit;
     A.g.position.set(A.x, height(A.x, A.z), A.z); A.g.rotation.y = A.face;
-    if (A.state === "stalk" && d < 12 && t > A.feintAt) { const f = ["attack_claw", "attack_tail", "attack_bite", "attack_leap"][Math.floor(Math.random() * 4)]; if (A.R.once(f, 1)) A.feintAt = t + 4 + Math.random() * 3; }
+    if (A.state === "stalk" && d < 4.6) attack(A, ["attack_claw", "attack_tail", "attack_bite", "attack_leap"][Math.floor(Math.random() * 4)], 0.13, 4.4, 2.4);
+    bites(A);
     A.R.loop(A.sp > 4.5 ? "run" : A.sp > 0.4 ? "walk" : "idle", A.sp > 4.5 ? Math.max(0.7, A.sp / 7) : Math.max(0.6, A.sp / 2.4)); mixUp(A, A.mixer, dt, A.x, A.z);
+  }
+  // ---------------- the Spinosaurus (the owner's Meshy Crimson Sail Spinosaurus: Idle, Walk, Run, three attacks, Swim, Eat,
+  // Roar, Hit, Death): the lake's hunter. It swims slow rounds with its sail above the water; walk the shore within 14 m of
+  // it and it comes out after you (no further than the beach), bites hard, and goes back to the water.
+  let spino = null; const SPINO_LEN = 12;
+  function makeSpino(scene) {
+    const gl = MODELS && MODELS.spino; if (!gl || !ctx.K.skelClone || !gl.animations) return;
+    const R = rig(gl, SPINO_LEN); scene.add(R.g); R.loop("swim");
+    const home = { x: J.LAKE.x, z: J.LAKE.z };
+    spino = dinoize({ g: R.g, R, mixer: R.mixer, x: J.LAKE.x + J.LAKE.r * 0.5, z: J.LAKE.z, face: 0, a: 0, sp: 1.6, state: "swim", noTilt: true }, "spino", "spino:0", 3.4, 4, home);
+    spino.revive = ((rv) => () => { rv(); spino.state = "swim"; spino.a = 0; spino.x = J.LAKE.x + J.LAKE.r * 0.5; spino.z = J.LAKE.z; })(spino.revive);
+  }
+  function tickSpino(dt, t) {
+    const P = spino; if (!P || deadTick(P, dt)) return;
+    const d = Math.hypot(px - P.x, pz - P.z), heroShore = Math.hypot(px - J.LAKE.x, pz - J.LAKE.z) < J.LAKE.r + 16, inWater = height(P.x, P.z) < WATER_Y - 0.4;
+    if (P.state === "swim" && !safeHere() && ((d < 14 && heroShore) || P.angry > clock)) { P.state = "hunt"; if (Snd.growl) Snd.growl(1); if (d < 40) P.R.once("roar", 1); }
+    else if (P.state === "hunt" && (safeHere() || d > 26 || Math.hypot(P.x - J.LAKE.x, P.z - J.LAKE.z) > J.LAKE.r + 22)) P.state = "back";
+    let want = 0;
+    if (P.state === "swim") { P.a += dt * 0.05; const r = J.LAKE.r * 0.5, tx = J.LAKE.x + Math.cos(P.a) * r, tz = J.LAKE.z + Math.sin(P.a) * r * 0.8; steer(P, tx, tz, dt, 1.5); want = 1.6; }
+    else if (P.state === "hunt") { const da = steer(P, px, pz, dt, 3); P.lookAt = da; want = d > 3 ? 7 : 0; if (d < 4.4) attack(P, ["attack_bite", "attack_claw", "attack_tail"][Math.floor(Math.random() * 3)], 0.15, 4.4, 2.2); }
+    else { steer(P, J.LAKE.x, J.LAKE.z, dt, 2); want = 4; if (inWater && Math.hypot(P.x - J.LAKE.x, P.z - J.LAKE.z) < J.LAKE.r * 0.7) { P.state = "swim"; P.a = Math.atan2(P.z - J.LAKE.z, P.x - J.LAKE.x); } }
+    if (P.state !== "hunt") P.lookAt = null;
+    P.sp += (want - P.sp) * Math.min(1, dt * 2);
+    const nx = P.x + Math.sin(P.face) * P.sp * dt, nz = P.z + Math.cos(P.face) * P.sp * dt;
+    if (Math.hypot(nx - J.LAKE.x, nz - J.LAKE.z) < J.LAKE.r + 24 && Math.hypot(nx - J.SPAWN.x, nz - J.SPAWN.z) > 22) { P.x = nx; P.z = nz; }
+    bites(P);
+    // in the water it swims low (the sail and the head above it); on land it walks the ground
+    const gy = height(P.x, P.z), y = gy < WATER_Y - 0.4 ? WATER_Y - 1.6 : gy; P.y = P.y == null ? y : P.y + (y - P.y) * Math.min(1, dt * 3);
+    P.g.position.set(P.x, P.y, P.z); P.g.rotation.y = P.face;
+    P.R.loop(inWater ? "swim" : P.sp > 4.5 ? "run" : P.sp > 0.4 ? "walk" : "idle", inWater ? 0.9 : P.sp > 4.5 ? Math.max(0.7, P.sp / 7) : Math.max(0.6, P.sp / 2.4));
+    mixUp(P, P.mixer, dt, P.x, P.z);
+  }
+  // ---------------- the Thornback Titan (the owner's Meshy Thornback Titan: Idle, Walk, Run, Tail, Charge and Stomp attacks,
+  // Roar, Eat, Hit, Death): a huge armoured grazer keeping the north-west meadow. It leaves you be until you come within
+  // 7 m or hit it; then it swings its spiked tail, stomps and charges, and calms down once you're 22 m away.
+  let titan = null; const TITAN_HOME = { x: -105, z: 55 };
+  function makeTitan(scene) {
+    const gl = MODELS && MODELS.titan; if (!gl || !ctx.K.skelClone || !gl.animations) return;
+    const R = rig(gl, 10); scene.add(R.g); R.loop("idle");
+    const tag = ctx.K.label(T("Thornback Titan"), { accent: "#ffb648", color: "#ffe9c2", size: 0.9, sub: T("Boss · Lv 20") }); tag.position.y = R.h + 1.6; R.g.add(tag);
+    titan = dinoize({ g: R.g, R, mixer: R.mixer, x: TITAN_HOME.x, z: TITAN_HOME.z, face: 0.6, sp: 0, wait: 3, state: "graze", tx: 0, tz: 0 }, "titan", "titan:0", 4, 4.6, TITAN_HOME);
+  }
+  function tickTitan(dt, t) {
+    const A = titan; if (!A || deadTick(A, dt)) return;
+    const d = Math.hypot(px - A.x, pz - A.z);
+    if (A.state !== "rage" && !safeHere() && (d < 7 || A.angry > clock)) { A.state = "rage"; A.angry = Math.max(A.angry, clock + 10); if (Snd.growl) Snd.growl(1); A.R.once("roar", 1); }
+    else if (A.state === "rage" && (d > 22 || safeHere() || (A.angry < clock && d > 9))) { A.state = "graze"; A.wait = 3; }
+    let want = 0; A.lookAt = null;
+    if (A.state === "rage") { const da = steer(A, px, pz, dt, 1.8); A.lookAt = da; want = d > 5 ? (d > 10 ? 6 : 3) : 0;
+      if (d < 6.5) attack(A, Math.abs(da) > 1.6 ? "attack_tail" : d < 4.5 ? "attack_stomp" : "attack_charge", 0.12, 6, 2.8); }
+    else if (A.state === "graze") { A.wait -= dt; if (A.wait <= 0) { const a = Math.random() * 6.283, rr = 5 + Math.random() * 18; A.tx = TITAN_HOME.x + Math.cos(a) * rr; A.tz = TITAN_HOME.z + Math.sin(a) * rr; A.state = "amble"; } }
+    if (A.state === "amble") { if (Math.hypot(A.tx - A.x, A.tz - A.z) < 1.5) { A.state = "graze"; A.wait = 5 + Math.random() * 6; } else { steer(A, A.tx, A.tz, dt, 1.2); want = 1.3; } }
+    A.sp += (want - A.sp) * Math.min(1, dt * 2);
+    if (A.sp > 0.05) { const nx = A.x + Math.sin(A.face) * A.sp * dt, nz = A.z + Math.cos(A.face) * A.sp * dt; if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 10 && Math.hypot(nx - J.SPAWN.x, nz - J.SPAWN.z) > 22) { A.x = nx; A.z = nz; } }
+    bites(A);
+    A.g.position.set(A.x, height(A.x, A.z), A.z); A.g.rotation.y = A.face;
+    A.R.loop(A.sp > 4 ? "run" : A.sp > 0.3 ? "walk" : A.state === "graze" ? "eat" : "idle", A.sp > 4 ? Math.max(0.7, A.sp / 6) : A.sp > 0.3 ? Math.max(0.6, A.sp / 1.3) : 1);
+    mixUp(A, A.mixer, dt, A.x, A.z);
   }
   // ---------------- the triceratops (the owner's Meshy Blazing Triceratops, rigged, with its walk): a small herd grazing
   // east of the lake. They amble from patch to patch; come within 9 m and the nearest turns its horns to you and stands.
@@ -289,13 +392,17 @@ export function createJurassic(ctx) {
     if (!(MODELS && MODELS.trike8 && MODELS.trike8.animations && ctx.K.skelClone)) return;
     { const n = low || coarse ? 2 : 3;
       for (let i = 0; i < n; i++) { const R = rig(MODELS.trike8, 6.4 + i * 0.6); scene.add(R.g); R.loop("idle");
-        trikes.push({ g: R.g, R, mixer: R.mixer, x: TRIKE_HOME.x + i * 7 - 7, z: TRIKE_HOME.z + (i % 2) * 6, face: Math.PI * 0.6, tx: 0, tz: 0, sp: 0, wait: 2 + i * 2, state: "graze", hornAt: 0 }); }
+        trikes.push(dinoize({ g: R.g, R, mixer: R.mixer, x: TRIKE_HOME.x + i * 7 - 7, z: TRIKE_HOME.z + (i % 2) * 6, face: Math.PI * 0.6, tx: 0, tz: 0, sp: 0, wait: 2 + i * 2, state: "graze", hornAt: 0 }, "trike", "trike:" + i, 2.6, 2.8, { x: TRIKE_HOME.x + i * 7 - 7, z: TRIKE_HOME.z })); }
     }
   }
   function tickTrikes(dt, t = 0) {
     for (const r of trikes) {
+      if (deadTick(r, dt)) continue;
       const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz); let want = 0;
-      if (d < 9) r.state = "guard"; else if (r.state === "guard" && d > 14) { r.state = "graze"; r.wait = 2; }
+      // hit one and it charges you (horns first); otherwise it stands its ground when you come close
+      if (r.angry > clock && !safeHere()) { if (r.state !== "charge" && Snd.growl) Snd.growl(1); r.state = "charge"; } else if (r.state === "charge") { r.state = "graze"; r.wait = 2; }
+      if (r.state === "charge") { steer(r, px, pz, dt, 2.5); want = d > 2.8 ? 6.5 : 0; if (d < 3.6) attack(r, "attack_horn", 0.1, 3.6, 2.6); }
+      else if (d < 9) r.state = "guard"; else if (r.state === "guard" && d > 14) { r.state = "graze"; r.wait = 2; }
       r.lookAt = null; if (r.state === "guard" || d < 18) { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); if (r.state === "guard") r.face += da * Math.min(1, dt * 2); r.lookAt = da; }
       else if (r.state === "graze") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 4 + Math.random() * 16; r.tx = TRIKE_HOME.x + Math.cos(a) * rr; r.tz = TRIKE_HOME.z + Math.sin(a) * rr; r.state = "amble"; } }
       if (r.state === "amble") { const ex = r.tx - r.x, ez = r.tz - r.z, ed = Math.hypot(ex, ez);
@@ -304,7 +411,8 @@ export function createJurassic(ctx) {
       if (r.sp > 0.05) { const nx = r.x + Math.sin(r.face) * r.sp * dt, nz = r.z + Math.cos(r.face) * r.sp * dt; if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { r.x = nx; r.z = nz; } else { r.state = "graze"; r.wait = 2; } }
       r.g.position.set(r.x, height(r.x, r.z), r.z); r.g.rotation.y = r.face;
       // guarding: a horn toss at you now and then; otherwise its walk at the pace it ambles, its idle while it grazes
-      if (r.state === "guard" && t > r.hornAt) { if (r.R.once("attack_horn", 1)) r.hornAt = t + 3.5 + Math.random() * 2; }
+      if (r.state === "guard" && t > r.hornAt) { if (d < 3.4) attack(r, "attack_horn", 0.1, 3.4, 2.6); else if (r.R.once("attack_horn", 1)) r.hornAt = t + 3.5 + Math.random() * 2; }
+      bites(r);
       r.R.loop(r.sp > 0.3 ? "walk" : "idle", r.sp > 0.3 ? Math.max(0.6, r.sp / 1.4) : 1); mixUp(r, r.mixer, dt, r.x, r.z);
     }
   }
@@ -382,7 +490,24 @@ export function createJurassic(ctx) {
     // pterosaurs: dark silhouettes with beating wings, wheeling high over the plain
     const wing = new THREE.BufferGeometry(); wing.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0.6, 0, 0, -0.6, 2.4, 0.1, -0.2], 3)); wing.computeVertexNormals();
     const wm = new THREE.MeshBasicMaterial({ color: 0x2a2620, side: THREE.DoubleSide }), birds = [];
-    for (let i = 0; i < (low ? 3 : 6); i++) { const b = new THREE.Group(), L = new THREE.Mesh(wing, wm), Rw = new THREE.Mesh(wing, wm); Rw.scale.x = -1; const body = new THREE.Mesh(new THREE.ConeGeometry(0.25, 2.2, 5), wm); body.rotation.x = Math.PI / 2; b.add(L, Rw, body); b.scale.setScalar(2 + r() * 1.5); scene.add(b);
+    // the owner's Jurassic bird (rigged: Fly, Glide, Takeoff, Land …): a flock wheeling over the plain, flapping as it
+    // climbs, gliding as it comes down, banking into its turns; now and then one swoops low over the lake
+    const flock = []; const BG = MODELS && MODELS.bird;
+    if (BG && BG.animations && ctx.K.skelClone) for (let i = 0; i < (low ? 3 : coarse ? 5 : 8); i++) {
+      const R = rig(BG, 3.2 + r() * 1.6); R.g.rotation.order = "YXZ"; scene.add(R.g); R.loop("fly", 1);
+      flock.push({ g: R.g, R, mixer: R.mixer, c: [(r() - 0.5) * 180, (r() - 0.5) * 180], rad: 30 + r() * 55, h: 38 + r() * 34, a: r() * 6.28, sp: (0.16 + r() * 0.1) * (r() < 0.5 ? 1 : -1), ph: r() * 6, roll: 0, y: 60, noTilt: true, swoop: 0 });
+    }
+    if (flock.length) out.tick.push((dt, t) => { for (const B of flock) {
+      B.a += dt * B.sp; if (B.swoop <= 0 && Math.random() < dt * 0.01) B.swoop = 1;
+      const x = B.c[0] + Math.cos(B.a) * B.rad, z = B.c[1] + Math.sin(B.a) * B.rad;
+      let y = B.h + Math.sin(t * 0.23 + B.ph) * 10; if (B.swoop > 0) { B.swoop -= dt * 0.08; y = Math.max(height(x, z) + 9, y - Math.sin(Math.PI * Math.max(0, B.swoop)) * (B.h - 10)); }
+      const vy = (y - B.y) / Math.max(dt, 1e-3); B.y = y;
+      const tx = -Math.sin(B.a) * Math.sign(B.sp), tz = Math.cos(B.a) * Math.sign(B.sp); // along the circle
+      B.g.position.set(x, y, z); B.g.rotation.y = Math.atan2(tx, tz);
+      B.roll += ((Math.sign(B.sp) * 0.45) - B.roll) * Math.min(1, dt * 2); B.g.rotation.z = B.roll; B.g.rotation.x = Math.max(-0.3, Math.min(0.3, -vy * 0.05));
+      B.R.loop(vy > -0.4 ? "fly" : "glide", 1); mixUp(B, B.mixer, dt, x, z);
+    } });
+    for (let i = 0; i < (flock.length ? 0 : low ? 3 : 6); i++) { const b = new THREE.Group(), L = new THREE.Mesh(wing, wm), Rw = new THREE.Mesh(wing, wm); Rw.scale.x = -1; const body = new THREE.Mesh(new THREE.ConeGeometry(0.25, 2.2, 5), wm); body.rotation.x = Math.PI / 2; b.add(L, Rw, body); b.scale.setScalar(2 + r() * 1.5); scene.add(b);
       birds.push({ b, L, Rw, c: [(r() - 0.5) * 200, (r() - 0.5) * 200], rad: 40 + r() * 60, h: 60 + r() * 40, a: r() * 6.28, sp: 0.12 + r() * 0.08, ph: r() * 6 }); }
     out.tick.push((dt, t) => { for (const B of birds) { B.a += dt * B.sp; const x = B.c[0] + Math.cos(B.a) * B.rad, z = B.c[1] + Math.sin(B.a) * B.rad; B.b.position.set(x, B.h + Math.sin(t * 0.4 + B.ph) * 4, z); B.b.rotation.y = -B.a; const f = Math.sin(t * 5 + B.ph) * 0.55; B.L.rotation.z = f; B.Rw.rotation.z = -f; } });
     // the waterfall: a cliff of the owner's boulders at the lake's far edge, falling water (streaks scrolling down) and mist
@@ -482,7 +607,8 @@ export function createJurassic(ctx) {
     // the drawn trees (world-jurtrees.js): araucarias, broadleaf giants, tree ferns and cycads, two shapes of each, in cells
     let trees = null; try { trees = makeJurTrees(THREE, { low }); } catch (e) { console.warn("jurassic trees", e); }
     if (trees) { const I4 = new THREE.Matrix4(), PLAN = { araucaria: [low ? 40 : coarse ? 60 : 100, 30, 205, [0.85, 1.25]], broadleaf: [low ? 40 : coarse ? 60 : 95, 24, 175, [0.8, 1.2]], fern: [low ? 50 : coarse ? 80 : 140, 8, 165, [0.8, 1.3]], cycad: [low ? 50 : coarse ? 80 : 130, 6, 170, [0.8, 1.4]] };
-      seed = 11; for (const [k, [n, gate0, maxR, size]] of Object.entries(PLAN)) trees.KINDS[k].forEach((geo) => cellsOf(scene, "tree-" + k, { geo, mat: trees.mats, base: I4 }, null, mats(Math.round(n / 2), gate0, maxR, size), { shadow: true, nearD: 999, maxD: 330 })); }
+      seed = 11; for (const [k, [n, gate0, maxR, size]] of Object.entries(PLAN)) { const TK = { araucaria: ["tree", 0.5], broadleaf: ["tree", 0.75], fern: ["palm", 0.24], cycad: ["palm", 0.42] }[k];
+      trees.KINDS[k].forEach((geo, vi) => cellsOf(scene, "tree-" + k + vi, { geo, mat: trees.mats, base: I4 }, null, mats(Math.round(n / 2), gate0, maxR, size), { shadow: true, nearD: 999, maxD: 330, node: TK[0], cr: TK[1], hr: TK[1] + 0.2, popY: 3 })); } }
     else { seed = 11; scatter(tg, trunkM, TREES, 24, 170, [0.8, 1.6]); seed = 11; scatter(cg, leafM, TREES, 24, 170, [0.8, 1.6]); }
     // conifers in the back, nearer the ridges
     const kg = new THREE.ConeGeometry(2.2, 8, 7); kg.translate(0, 5, 0);
@@ -496,14 +622,14 @@ export function createJurassic(ctx) {
     // boulders
     const NEAR_D = coarse ? 50 : 70;
     const rock = unit(MODELS && MODELS.rock);
-    if (rock) { seed = 41; cellsOf(scene, "rock", rock, farOf(rock, MODELS.rock1), mats(low ? 40 : 70, 10, 190, [1.4, 4.2], 0.12), { shadow: true, nearD: NEAR_D }); }
+    if (rock) { seed = 41; cellsOf(scene, "rock", rock, farOf(rock, MODELS.rock1), mats(low ? 40 : 70, 10, 190, [1.4, 4.2], 0.12), { shadow: true, nearD: NEAR_D, node: "rock", cr: 0.4, hr: 0.45, popY: 0.9 }); }
     else { const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1); seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25); }
     // palms round the lake's shore (the model is ~8.6K triangles, so a ring of them, not a forest)
     const palm = unit(MODELS && MODELS.palm);
     if (palm) { const n = low || coarse ? 14 : 26, list = []; seed = 53;
       for (let i = 0; i < n * 3 && list.length < n; i++) { const a = rnd() * Math.PI * 2, r = J.LAKE.r + 6 + rnd() * 10, x = J.LAKE.x + Math.cos(a) * r, z = J.LAKE.z + Math.sin(a) * r, y = height(x, z);
         if (y < WATER_Y + 0.3) continue; const w = 4 + rnd() * 2.5; q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.9 + rnd() * 0.25), w); p3.set(x, y - 0.1, z); list.push(new THREE.Matrix4().compose(p3, q, sc)); }
-      cellsOf(scene, "palm", palm, farOf(palm, MODELS.palm1), list, { shadow: true, nearD: NEAR_D }); }
+      cellsOf(scene, "palm", palm, farOf(palm, MODELS.palm1), list, { shadow: true, nearD: NEAR_D, node: "palm", cr: 0.06, hr: 0.1, popY: 0.6 }); }
     // the ancient giants (the model is ~17K triangles): a few landmarks along the view from the gate; the forest behind
     // them stays the light drawn trees
     const anc = unit(MODELS && MODELS.ancient);
@@ -513,7 +639,7 @@ export function createJurassic(ctx) {
         if (Math.hypot(x - J.LAKE.x, z - J.LAKE.z) < J.LAKE.r + 14 || (Math.abs(x) < 16 && z > 20) || height(x, z) < WATER_Y + 0.5) continue;
         if (spots.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 26)) continue; spots.push([x, z, 12 + rnd() * 7]); }
       seed = 61; const list = spots.map(([x, z, w]) => { q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.95 + rnd() * 0.2), w); p3.set(x, height(x, z) - 0.3, z); return new THREE.Matrix4().compose(p3, q, sc); });
-      cellsOf(scene, "ancient", anc, farOf(anc, MODELS.ancient1), list, { shadow: true, nearD: NEAR_D + 20 }); }
+      cellsOf(scene, "ancient", anc, farOf(anc, MODELS.ancient1), list, { shadow: true, nearD: NEAR_D + 20, node: "ancient", cr: 0.12, hr: 0.15, popY: 0.3 }); }
     // the old ruins: a great gate on the far shore of the lake, and two smaller ones along the plain
     const ruin = unit(MODELS && MODELS.ruins);
     if (ruin) cellsOf(scene, "ruins", ruin, farOf(ruin, MODELS.ruins1), [[J.LAKE.x + 8, J.LAKE.z - J.LAKE.r - 16, 14, 0.4], [-48, -20, 8, -0.9], [-20, -110, 10, 0.2]].map(([x, z, w, ry]) =>
@@ -527,20 +653,26 @@ export function createJurassic(ctx) {
     for (const [kind, [n, size]] of Object.entries(NAT)) for (let v = 1; v <= 3; v++) {
       const o = MODELS && MODELS[kind + "-0" + v]; if (!o) continue;
       const u = unit(o); if (!u) continue; if (!u.geo.attributes.normal) u.geo.computeVertexNormals();
-      cellsOf(scene, kind, { ...u, mat: natMat }, null, mats(Math.round(n / 3), 4, 175, size, kind === "log" ? 0.08 : 0), { shadow: kind === "log", nearD: 999, maxD: coarse ? 55 : 80 });
+      const NK = { fern: "fern", bush: "bush", log: "log" }[kind];
+      cellsOf(scene, kind + v, { ...u, mat: natMat }, null, mats(Math.round(n / 3), 4, 175, size, kind === "log" ? 0.08 : 0), { shadow: kind === "log", nearD: 999, maxD: coarse ? 55 : 80, ...(NK ? { node: NK, hr: 0.35, popY: 0.8 } : {}) });
     }
 
     // the gate home: the same stone gate as in town (world-jurgate.js)
     const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
-    seed = 71; makeRaptors(scene, rnd); makeHerd(scene); makeAlpha(scene); makeTrikes(scene); makeSentinel(scene);
+    seed = 71; makeRaptors(scene, rnd); makeHerd(scene); makeAlpha(scene); makeTrikes(scene); makeSentinel(scene); makeSpino(scene); if (spino) spino.lod = lodMeshes(spino.g); makeTitan(scene); if (titan) titan.lod = lodMeshes(titan.g);
     raptors.forEach((r) => { r.lod = lodMeshes(r.g); }); herd.forEach((h) => { h.lod = lodMeshes(h.g); }); trikes.forEach((r) => { r.lod = lodMeshes(r.g); }); if (alpha) alpha.lod = lodMeshes(alpha.g);
-    if (shadows) { const cast = (g) => g && g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); raptors.forEach((r) => cast(r.g)); herd.forEach((h) => cast(h.g)); trikes.forEach((r) => cast(r.g)); if (alpha) cast(alpha.g); if (sentinel) cast(sentinel.g); cast(gate); }
+    if (shadows) { const cast = (g) => g && g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); raptors.forEach((r) => cast(r.g)); herd.forEach((h) => cast(h.g)); trikes.forEach((r) => cast(r.g)); if (alpha) cast(alpha.g); if (sentinel) cast(sentinel.g); if (spino) cast(spino.g); if (titan) cast(titan.g); cast(gate); }
     // a soft glow on the light (the town's bloom, gentler), where the device has bloom on
     let comp = null;
     // no bloom chain of its own: next to the town's post chain it drew a blank screen (a second round; the sky, fog and
     // grading carry the look)
     const grass = MODELS && MODELS.ground ? makeGrass(scene) : null, air = makeAir(scene);
     S = { scene, cam, gate, sun, shadows, comp, wU, grass, air, trees, spin: gate.userData.spin || [] };
+    // your camp's ground is kept clear (what grew there is gone)
+    for (let i = nodes.length - 1; i >= 0; i--) if (Math.hypot(nodes[i].x - CAMP.x, nodes[i].z - CAMP.z) < 9.5) { nodes[i].hide(); nodes.splice(i, 1); }
+    // gathering, hunting, the pack and the camp (world-jursurv.js)
+    try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
+      faceTo: (a) => { face = a; }, swingAnim: () => { try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamp(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
   }
 
@@ -557,11 +689,14 @@ export function createJurassic(ctx) {
   function buildUi() {
     const root = document.createElement("div"); root.id = "wp-jur"; root.className = "wz"; root.hidden = true;
     root.innerHTML = `<div class="wz-top" data-game-hud><button type="button" class="wz-leave"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Village"))}</span></button>
-        <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div></div>
+        <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div>
+        <button type="button" class="wz-packbtn"><span aria-hidden="true">🎒</span><b>${esc(T("Pack"))}</b><kbd>P</kbd></button></div>
       <section class="wz-goal" aria-live="polite"><small>${esc(T("Jurassic goals"))}</small><b class="wz-goal-t"></b><i class="wz-goal-bar"><i></i></i></section>
       <button type="button" class="wz-act" hidden></button>
       <button type="button" class="wz-home" hidden>${esc(T("Back to the village"))}</button>
       <div class="wz-keys">${esc(T("WASD move · Shift run · Space jump · J chop / mine · E use · Esc leave"))}</div>
+      <div class="wz-pops" aria-hidden="true"></div>
+      <div class="wz-pack" hidden role="dialog"><div class="wz-pack-in"></div></div>
       <div class="wz-title" hidden><small>ARCIRCLE WORLD</small><b>JURASSIC WORLD</b><span>${esc(T("Primeval Plains"))}</span></div>`;
     document.body.appendChild(root);
     const q = (s2) => root.querySelector(s2);
@@ -569,15 +704,16 @@ export function createJurassic(ctx) {
     q(".wz-leave").addEventListener("click", () => leave());
     ui.home.addEventListener("click", () => leave());
     ui.act.addEventListener("click", () => use());
+    if (surv) surv.bind(root);
   }
-  const kd = (e) => { if (!on) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); leave(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (nearGate) leave(); else use(); } else if ((k === "j" || k === "f") && !e.repeat) { e.preventDefault(); e.stopPropagation(); act("attack"); } if (k === " " && !e.repeat) jumpQ = true; };
+  const kd = (e) => { if (!on) return; if (e.target && e.target.closest && e.target.closest("input,textarea")) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (surv && surv.packOpen()) surv.togglePack(false); else leave(); return; } if (e.key.toLowerCase() === "p" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (surv) surv.togglePack(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (nearGate) leave(); else use(); } else if ((k === "j" || k === "f") && !e.repeat) { e.preventDefault(); e.stopPropagation(); act("attack"); } if (k === " " && !e.repeat) jumpQ = true; };
   const ku = (e) => { keys.delete(e.key.toLowerCase()); };
 
   // ---------------- a frame ----------------
   let animNow = "";
   // the town's clip names (world-kit CU_AS / KK_AS): idle, walk, sprint, jump, fall; the walk keeps pace with the feet
   const anim = (n, sp) => { if (!hero || !hero.play) return; if (n === animNow) { if (sp && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) if (a.isRunning() && a.getEffectiveWeight() > 0.5) a.timeScale = sp; return; } animNow = n; hero.play(n, { speed: sp || 1, fade: 0.2 }); };
-  let frames = 0;
+  let frames = 0, stepD = 0, birdT = 4, camReach = 1;
   function tick(dt, t) {
     if (!S) return; dt = Math.min(dt, 0.05); frames++;
     const inp = ctx.input ? ctx.input() : null; if (inp) { camYaw = inp.yaw; camPitch = inp.pitch; camGoal = inp.zoom; }
@@ -594,6 +730,9 @@ export function createJurassic(ctx) {
       const want = Math.atan2(mx, mz); let d = want - face; d = Math.atan2(Math.sin(d), Math.cos(d)); face += d * Math.min(1, dt * 10);
       const nx = px + mx * speed * dt, nz = pz + mz * speed * dt;
       if (Math.hypot(nx, nz) < J.EDGE && height(nx, nz) > WATER_Y - 0.6) { px = nx; pz = nz; }
+      if (surv) [px, pz] = surv.collide(px, pz);
+      // footsteps, paced to the ground covered
+      stepD += speed * dt; if (grounded && stepD > (speed > 9 ? 2.2 : 1.6)) { stepD = 0; if (Snd.step) Snd.step(speed > 9 ? 12 : 6); }
     }
     const py = height(px, pz);
     // the jump: the town's numbers (9 m/s up, 24 m/s² down)
@@ -612,18 +751,26 @@ export function createJurassic(ctx) {
     // 2.6 m ahead of the hero and follows a touch behind; running widens the view
     camDist += (camGoal - camDist) * (1 - Math.exp(-dt * 10));
     const bh = (5.2 + camPitch * 6) * camDist, bk = 9.6 * camDist;
-    camPos.set(px + Math.sin(camYaw) * bk, py + bh + hop * 0.6, pz + Math.cos(camYaw) * bk);
+    // a hill between the hero and the camera pulls the camera in (it was sinking into the slope behind, all grass)
+    let reach = 1; for (let i = 1; i <= 6; i++) { const k = i / 6, gx = px + Math.sin(camYaw) * bk * k, gz = pz + Math.cos(camYaw) * bk * k, ly = py + 1.4 + (bh - 1.4) * k;
+      if (height(gx, gz) + 0.9 > ly) { reach = Math.max(0.3, (i - 1) / 6); break; } }
+    camReach += (reach - camReach) * (1 - Math.exp(-dt * (reach < camReach ? 12 : 3)));
+    camPos.set(px + Math.sin(camYaw) * bk * camReach, py + 1.4 + (bh - 1.4) * camReach + hop * 0.6, pz + Math.cos(camYaw) * bk * camReach);
     camPos.y = Math.max(camPos.y, Math.max(height(camPos.x, camPos.z), WATER_Y) + 0.6);
     camLook.set(px - Math.sin(camYaw) * 2.6, py + 1.4 + hop * 0.5, pz - Math.cos(camYaw) * 2.6);
     if (!camInit) { S.cam.position.copy(camPos); camLookS.copy(camLook); camInit = true; }
     S.cam.position.lerp(camPos, 1 - Math.exp(-dt * 10)); camLookS.lerp(camLook, 1 - Math.exp(-dt * 14)); S.cam.lookAt(camLookS);
+    if (shakeT > 0 && !reduce) { shakeT -= dt; S.cam.position.x += (Math.random() - 0.5) * shakeT * 0.8; S.cam.position.y += (Math.random() - 0.5) * shakeT * 0.8; }
     const fov = 55 + THREE.MathUtils.smoothstep(speed, 2, 22) * 11; if (Math.abs(S.cam.fov - fov) > 0.05) { S.cam.fov += (fov - S.cam.fov) * (1 - Math.exp(-dt * (fov > S.cam.fov ? 6 : 3))); S.cam.updateProjectionMatrix(); }
     // the sun's shadow box follows the hero
     if (S.shadows) { S.sun.target.position.set(px, py, pz); S.sun.position.set(px - 60, py + 80, pz + 40); }
     tickCells(dt);
     for (const f of S.spin) f(dt, t);
     S.wU.uT.value = t; if (S.grass) S.grass.tick(t); S.air.tick(dt, t); if (S.trees) S.trees.tick(t);
-    tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t);
+    clock = t; tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t); tickSpino(dt, t); tickTitan(dt, t);
+    if (surv) surv.tick(dt, t, px, pz, face);
+    // birds somewhere in the trees now and then
+    if ((birdT -= dt) < 0) { birdT = 3 + Math.random() * 7; if (Snd.bird) Snd.bird(); }
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
   }
 
@@ -638,6 +785,7 @@ export function createJurassic(ctx) {
       st.view(S.scene, S.cam, S.comp || null); st.solo(tick); on = true;
       document.body.classList.add("wp-jurassic"); ui.root.hidden = false;
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
+      if (surv) surv.load();
       ui.title.hidden = false; ui.title.classList.remove("go"); void ui.title.offsetWidth; ui.title.classList.add("go"); setTimeout(() => { if (ui) ui.title.hidden = true; }, 3000);
       return true;
     } catch (e) {
@@ -645,6 +793,7 @@ export function createJurassic(ctx) {
     } finally { busy = false; }
   }
   function reset() {
+    if (surv && surv.packOpen()) surv.togglePack(false);
     on = false; document.body.classList.remove("wp-jurassic"); if (ui) ui.root.hidden = true;
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); keys.clear();
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
@@ -653,8 +802,8 @@ export function createJurassic(ctx) {
   // the attack button (the town's, routed here by world-play): chop the tree, mine the rock, or hit what's in reach
   // the swing (chopping and mining come next, judged by the server); E at the gate goes home
   let swingT = 0;
-  function swing() { const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
-  function use() { if (nearGate) leave(); }
+  function swing() { if (surv) { surv.swing(px, pz, face); return; } const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
+  function use() { if (nearGate) leave(); else if (!downNow) swing(); }
   function act(a) { if (!on || downNow) return true; if (a === "attack") swing(); return true; }
   // knocked out (the town's rules: world-combat.js — today's free get-up, then $ARCIRCLE or a rest): the hero lies down;
   // getting up "here" stays, "plaza" means the gate
@@ -664,5 +813,5 @@ export function createJurassic(ctx) {
     if (where === "plaza") { px = J.SPAWN.x; pz = J.SPAWN.z; camInit = false; }
     animNow = ""; if (hero && hero.play) hero.play("idle");
   }
-  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state) }), walk: (x, z, yaw) => { px = x; pz = z; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
+  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), nodes: nodes.length }), surv: () => surv, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
 }

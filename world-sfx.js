@@ -198,6 +198,12 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     up: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, { type: "triangle", v: 0.07, at: i * 0.06 })),
     // ---- the ARCL mine (world-mine.js) ----
     // the pick bites the rock: a stony crack and a short metal ring, higher for silver and gold (t 0–2)
+    // Jurassic World: an axe in wood, a tree coming down, a bird far off, a dinosaur's growl and its bite
+    chop: () => { if (!gap("chop", 60)) return; noise(0.07, 0.15, 520, { q: 1.6 }); tone(210, 0.09, { type: "triangle", to: 120, v: 0.08 }); tone(140, 0.12, { to: 80, v: 0.06, at: 0.01 }); },
+    timber: () => { for (let i = 0; i < 9; i++) noise(0.05 + Math.random() * 0.06, 0.09, 300 + Math.random() * 900, { at: 0.05 + i * 0.07, type: "bandpass", q: 2 }); noise(0.5, 0.16, 180, { at: 0.75, type: "lowpass" }); tone(60, 0.5, { to: 32, v: 0.16, at: 0.75 }); },
+    bird: () => { if (!gap("bird", 900)) return; const f = 2400 + Math.random() * 1600, n = 2 + Math.floor(Math.random() * 3); for (let i = 0; i < n; i++) tone(f * (1 + (i % 2) * 0.12), 0.09, { v: 0.018, to: f * 1.25, at: i * 0.13, a: 0.005 }); },
+    growl: (big = 0) => { if (!gap("growl", 400)) return; tone(big ? 70 : 120, 0.7 + big * 0.5, { type: "sawtooth", to: big ? 38 : 70, v: 0.06 + big * 0.03, lp: 700 }); noise(0.6 + big * 0.4, 0.08 + big * 0.05, big ? 260 : 420, { type: "lowpass", a: 0.08 }); },
+    bite: () => { if (!gap("bite", 120)) return; noise(0.06, 0.18, 1400, { q: 1.2 }); tone(190, 0.1, { type: "square", to: 90, v: 0.05 }); },
     chink: (t = 0) => { if (!gap("chink", 50)) return; noise(0.07, 0.16, 1500 + t * 500, { q: 2.5 }); tone(170, 0.07, { type: "triangle", to: 85, v: 0.07 }); tone([1900, 2600, 3100][t] || 1900, 0.16, { v: 0.03 + t * 0.008, a: 0.002, to: ([1900, 2600, 3100][t] || 1900) * 0.97 }); },
     // the rock gives way: rubble, a thump; gold adds a bright run
     crumble: (t = 0) => { for (let i = 0; i < 6; i++) noise(0.06 + Math.random() * 0.05, 0.12, 250 + Math.random() * 700, { at: i * 0.04, type: "lowpass", q: 0.8 }); tone(75, 0.3, { to: 40, v: 0.13 }); if (t >= 1) [1568, 2093, 2637].slice(0, t + 1).forEach((f, i) => tone(f, 0.16, { type: "triangle", v: 0.05, at: 0.12 + i * 0.06 })); },

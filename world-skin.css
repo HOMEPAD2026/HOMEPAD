@@ -650,8 +650,6 @@ body.wp-mining :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests
 /* Jurassic World keeps the town's HUD (the same game): profile and HP, wallet, the top buttons, the dock, the stick, jump and
    run, the attack button and potions; it drops what belongs to the town (its map, quests, prompts, rides, raids, fights) */
 body.wp-jurassic :is(.wp-keys,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act,#wp-act-photo,#wp-act-board,#wp-act-emote,#wp-act-more,.wp-feed),body.wp-jurassic :is(.wc-boss,.wc-zone,.wc-banner,.wc-edge,.wc-lockon,.wc-slot,.wc-buffs){display:none!important}
-/* the goal card waits for gathering (it showed as a bare caption over the corner) */
-.wz-goal{display:none!important}
 body.wp-jurassic .wp-brand{visibility:hidden} /* the Village chip takes its place; the space is kept so the HUD under it stays put */
 .wm{position:fixed;inset:0;z-index:40;pointer-events:none;font-family:var(--hud-font,var(--f-ui));color:#fff;-webkit-user-select:none;user-select:none;touch-action:none}
 .wm[hidden]{display:none}
@@ -892,7 +890,7 @@ body.wp #wp-gift-btn[hidden]{display:none!important}
 .wp-wk .wp-st-buy:disabled{opacity:.6;cursor:default;background:linear-gradient(90deg,#8aa3c7,#b8c9e2)}
 .wp-wk .wp-st-status{margin:0 0 10px;font-size:12.5px;color:#ff9fae}
 /* Jurassic World (world-jurassic.js, the GM preview): its own blue-glass bar, a thumb stick, the way home */
-.wz{position:fixed;inset:0;z-index:40;touch-action:none;font-family:var(--f-ui);color:#eef3f7;user-select:none;-webkit-user-select:none}
+.wz{position:fixed;inset:0;z-index:40;pointer-events:none;touch-action:none;font-family:var(--f-ui);color:#eef3f7;user-select:none;-webkit-user-select:none}
 .wz[hidden]{display:none}
 .wz-top{position:absolute;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;pointer-events:none}
 .wz-leave{pointer-events:auto;display:flex;align-items:center;gap:6px;height:42px;padding:0 14px 0 10px;border-radius:14px;border:1.5px solid rgba(90,170,255,.55);background:linear-gradient(180deg,rgba(12,24,52,.86),rgba(7,12,26,.86));color:#dfe8f5;font:800 14px var(--f-ui);cursor:pointer}
@@ -931,3 +929,48 @@ body.wp-clean .wp-clean-tab svg{transform:rotate(180deg)}
 body:not(.wp) .wp-clean-tab,body.wp-mining .wp-clean-tab,body.wp-intro .wp-clean-tab{display:none}
 html.wp-pcphone .wp-clean-tab{zoom:1.6}
 body.wp.wp-clean :is(.wp-hud-r,.wp-quests,.wp-qmini,.wp-mini,.wp-feed,.wp-dock,.wp-chips,.wp-brand,#wp-act-photo,#wp-act-board,#wp-act-emote,#wp-act-more,.wp-keys,.wc-buffs,.wc-lockon,.wz-top,.wz-goal){display:none!important}
+
+/* Jurassic survival (world-jursurv.js): the pack button, what's in reach, the goal card, the pack, the numbers floating up */
+.wz-packbtn{pointer-events:auto;display:flex;align-items:center;gap:6px;height:42px;padding:0 12px;border-radius:14px;border:1.5px solid rgba(255,200,90,.6);background:linear-gradient(180deg,rgba(52,36,12,.88),rgba(26,16,7,.88));color:#ffe6b0;font:800 14px var(--f-ui);cursor:pointer}
+.wz-packbtn span{font-size:18px}.wz-packbtn kbd{font:800 10px var(--f-ui);padding:1px 5px;border-radius:5px;background:rgba(255,255,255,.14);color:#ffe6b0}
+@media (pointer:coarse){.wz-packbtn kbd{display:none}}
+.wz-act{pointer-events:auto;position:absolute;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 44px);transform:translateX(-50%);display:flex;align-items:center;gap:8px;min-width:150px;padding:9px 16px 13px;border-radius:16px;border:1.5px solid rgba(125,255,200,.6);background:linear-gradient(180deg,rgba(10,34,30,.9),rgba(6,16,18,.9));color:#eafff6;font:700 14px var(--f-ui);cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.35)}
+.wz-act[hidden]{display:none}
+.wz-act kbd{font:900 11px var(--f-ui);padding:2px 6px;border-radius:6px;background:#7dffc8;color:#04121f}
+.wz-act b{font:900 15px var(--f-ui);color:#7dffc8}.wz-act span{color:#d6e9f5}
+@media (pointer:coarse){.wz-act kbd{display:none}}
+.wz-act-bar{position:absolute;left:14px;right:14px;bottom:5px;height:4px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}
+.wz-act-bar i{display:block;height:100%;background:linear-gradient(90deg,#2ee07a,#ffe066);transition:width .15s}
+.wz-goal{position:absolute;left:12px;top:232px;width:250px;padding:9px 12px 12px;border-radius:14px;border:1.5px solid rgba(46,224,122,.4);background:linear-gradient(180deg,rgba(12,24,52,.84),rgba(7,12,26,.84));pointer-events:none}
+.wz-goal[hidden]{display:none}
+.wz-goal small{display:block;font:800 10px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:#7dffc8}
+.wz-goal b{display:block;margin:3px 0 7px;font:800 13px/1.3 var(--f-ui);color:#eef3f7}
+.wz-goal-bar{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+.wz-goal-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2f86ff,#2ee07a);transition:width .4s}
+.wz-pops{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.wz-pop{position:absolute;transform:translate(-50%,-50%);font:900 20px/1 var(--f-ui);color:#fff;white-space:nowrap;text-shadow:0 2px 0 rgba(0,0,0,.45),0 0 14px rgba(0,0,0,.4);animation:wzPop 1.6s cubic-bezier(.2,.8,.3,1) forwards}
+.wz-pop.xp{font-size:17px;color:#7dffb4}
+@keyframes wzPop{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.08)}100%{opacity:0;transform:translate(-50%,-190%) scale(1)}}
+.wz-pack{pointer-events:auto;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,8,16,.45);touch-action:auto}
+.wz-pack[hidden]{display:none}
+.wz-pack-in{width:min(440px,calc(100vw - 24px));max-height:min(82vh,640px);overflow:auto;padding:14px 16px 16px;border-radius:18px;border:1.5px solid rgba(90,170,255,.55);background:linear-gradient(180deg,rgba(12,24,52,.96),rgba(7,12,26,.96));box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.wz-pack-in header{display:flex;align-items:center;gap:10px}.wz-pack-in header b{font:900 20px var(--f-display,var(--f-ui));color:#ffe6b0}
+.wz-pack-in header small{flex:1;font:700 11px var(--f-ui);color:#a9c6ef}
+.wz-pack-x{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:800 15px var(--f-ui);cursor:pointer}
+.wz-pack-in h4{margin:14px 0 6px;font:800 11px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:#7dffc8}
+.wz-pack-in p{margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.wz-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:9px;background:rgba(255,255,255,.08);font:700 13px var(--f-ui)}
+.wz-chip b{font:800 12px var(--f-ui);color:#eef3f7}.wz-chip.short b{color:#ff9aa8}
+.wz-tools span{padding:5px 9px;border-radius:9px;background:rgba(255,200,90,.1);font:700 13px var(--f-ui);color:#ffe6b0}
+.wz-empty{font:600 12px var(--f-ui);color:#a9c6ef}
+.wz-recipes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.wz-recipes li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.wz-recipes li>div{flex:1;min-width:0}.wz-recipes li b{font:800 14px var(--f-ui)}.wz-recipes li small{margin-left:6px;font:700 11px var(--f-ui);color:#ffcf7a}
+.wz-recipes li p{margin-top:5px}
+.wz-recipes li.ok{border-color:rgba(46,224,122,.55)}.wz-recipes li.own{opacity:.55}
+.wz-recipes button,.wz-eat{flex:none;height:34px;padding:0 14px;border:0;border-radius:10px;background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f;font:900 13px var(--f-ui);cursor:pointer}
+.wz-recipes button:disabled{background:rgba(255,255,255,.12);color:#8fa3bd;cursor:default}
+.wz-eat{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#ff9a5a,#ffd36b)}.wz-eat small{font:800 11px var(--f-ui);opacity:.8}
+html.wp-pcphone .wz-act,html.wp-pcphone .wz-goal,html.wp-pcphone .wz-pack-in,html.wp-pcphone .wz-pop{zoom:1.6}
+html.wp-pcphone .wz-goal{top:208px}html.wp-pcphone .wz-act{bottom:130px}
+.wz-home{pointer-events:auto}
