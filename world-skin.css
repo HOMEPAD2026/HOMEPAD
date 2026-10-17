@@ -646,7 +646,7 @@ body.wp .wp-dk,body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet){background:v
    The cave is the game's own scene (the town's HUD steps aside: body.wp-mining). On top: one blue-glass bar (leave,
    the hour's ring, the haul, the pickaxe), the day's total under it, glass arrows bottom-left, a big mint MINE button
    bottom-right. Numbers float up from the rocks; the haul's coins fly to the counter. */
-body.wp-mining :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act),body.wp-mining [class^="wc-"]:not(.wc-dead){display:none!important}
+body:is(.wp-mining,.wp-jurassic) :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act),body:is(.wp-mining,.wp-jurassic) [class^="wc-"]:not(.wc-dead){display:none!important}
 .wm{position:fixed;inset:0;z-index:40;pointer-events:none;font-family:var(--hud-font,var(--f-ui));color:#fff;-webkit-user-select:none;user-select:none;touch-action:none}
 .wm[hidden]{display:none}
 .wm>*{pointer-events:auto}
@@ -884,3 +884,29 @@ body.wp #wp-gift-btn[hidden]{display:none!important}
 .wp-wk-pick{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 8c4-4 12-4 16 0-5-2-11-2-16 0z' fill='%235dffd0'/%3E%3Cpath d='M12 6l-1 15h2z' fill='%23c98a4a'/%3E%3C/svg%3E")}
 .wp-wk .wp-st-buy:disabled{opacity:.6;cursor:default;background:linear-gradient(90deg,#8aa3c7,#b8c9e2)}
 .wp-wk .wp-st-status{margin:0 0 10px;font-size:12.5px;color:#ff9fae}
+/* Jurassic World (world-jurassic.js, the GM preview): its own blue-glass bar, a thumb stick, the way home */
+.wj{position:fixed;inset:0;z-index:40;touch-action:none;font-family:var(--f-ui);color:#eef3f7;user-select:none;-webkit-user-select:none}
+.wj[hidden]{display:none}
+.wj-top{position:absolute;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:center;gap:12px;pointer-events:none}
+.wj-leave{pointer-events:auto;display:flex;align-items:center;gap:6px;height:42px;padding:0 14px 0 10px;border-radius:14px;border:1.5px solid rgba(90,170,255,.55);background:linear-gradient(180deg,rgba(12,24,52,.86),rgba(7,12,26,.86));color:#dfe8f5;font:800 14px var(--f-ui);cursor:pointer}
+.wj-leave svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.wj-name{display:flex;flex-direction:column;padding:6px 14px;border-radius:14px;background:linear-gradient(180deg,rgba(12,24,52,.78),rgba(7,12,26,.78));border:1.5px solid rgba(46,224,122,.45)}
+.wj-name b{font:900 16px/1.1 var(--f-display,var(--f-ui));color:#7dffc8;letter-spacing:.01em}
+.wj-name small{font:700 11px var(--f-ui);color:#a9c6ef}
+.wj-note{position:absolute;top:calc(max(10px,env(safe-area-inset-top)) + 54px);left:12px;max-width:min(360px,calc(100% - 24px));padding:7px 11px;border-radius:12px;background:rgba(7,12,26,.62);font:600 12px/1.35 var(--f-ui);color:#cfe0f5;pointer-events:none}
+.wj-stick{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(159,230,255,.45);background:rgba(7,12,26,.3);opacity:0;pointer-events:none;transition:opacity .15s}
+.wj-stick.on{opacity:1}
+.wj-stick i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#bff7ff,#2f86ff);box-shadow:0 0 16px rgba(47,134,255,.6)}
+.wj-home{position:absolute;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 70px);transform:translateX(-50%);height:50px;padding:0 24px;border:0;border-radius:16px;background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f;font:900 15px var(--f-ui);box-shadow:0 10px 30px rgba(46,224,122,.3);cursor:pointer}
+.wj-home[hidden]{display:none}
+.wj-keys{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);padding:6px 12px;border-radius:10px;background:rgba(7,12,26,.55);font:700 12px var(--f-ui);color:#cfe0f5;white-space:nowrap;pointer-events:none}
+@media (pointer:coarse){.wj-keys{display:none}}
+.wj-title{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;text-shadow:0 4px 24px rgba(0,0,0,.55)}
+.wj-title[hidden]{display:none}
+.wj-title small{display:block;font:800 13px var(--f-ui);letter-spacing:.3em;color:#bfe6ff}
+.wj-title b{display:block;font:900 clamp(34px,8vw,64px)/1 var(--f-display,var(--f-ui));color:#fff;letter-spacing:.04em}
+.wj-title span{display:block;margin-top:6px;font:800 15px var(--f-ui);color:#7dffc8}
+.wj-title.go{animation:wjTitle 3s ease forwards}
+@keyframes wjTitle{0%{opacity:0;transform:translate(-50%,-40%)}15%,75%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-56%)}}
+html.wp-pcphone .wj-top,html.wp-pcphone .wj-note,html.wp-pcphone .wj-home{zoom:1.6}
+html.wp-pcphone .wj-stick{transform:scale(1.6)}
