@@ -105,6 +105,13 @@ export function createJurassic(ctx) {
       r.U.uT.value = t + r.t0; r.U.uPh.value = r.ph; r.U.uStride.value = stride; r.U.uLook.value += (look - r.U.uLook.value) * Math.min(1, dt * 3);
     }
   }
+  // a rigged copy turned so its head looks down +z (Meshy's rigs face their own way): the hips-to-head line in the bind pose
+  function faceZ(o) {
+    o.updateMatrixWorld(true); let hip = null, head = null; o.traverse((b) => { if (!b.isBone) return; const n = b.name.toLowerCase(); if (!hip && /hips|pelvis|root/.test(n)) hip = b; if (/^head$|head(?!end)/.test(n) && !head) head = b; });
+    if (!hip || !head) return o;
+    const a = new THREE.Vector3(), c = new THREE.Vector3(); hip.getWorldPosition(a); head.getWorldPosition(c);
+    const yaw = Math.atan2(c.x - a.x, c.z - a.z), w = new THREE.Group(); w.add(o); w.rotation.y = -yaw; w.updateMatrixWorld(true); return w;
+  }
   // ---------------- the brachiosaurs (the owner's Meshy Brachiosaurus, rigged, with its walk): a small herd walking a
   // slow loop beyond the lake, 13 m tall, so the plain feels as big as it is. Not for fighting: they're the view.
   const herd = [];
@@ -112,7 +119,7 @@ export function createJurassic(ctx) {
     const gl = MODELS && MODELS.brachio; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
     const n = low || coarse ? 2 : 3;
     for (let i = 0; i < n; i++) {
-      const o = ctx.K.skelClone(gl.scene); o.updateMatrixWorld(true);
+      const o0 = ctx.K.skelClone(gl.scene), o = faceZ(o0); o.updateMatrixWorld(true);
       const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = (13 + i * 1.2) / (sz.y || 1);
       const inner = new THREE.Group(); o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k); inner.add(o);
       o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; }); // (a skinned mesh's bounds are its bind pose)
@@ -135,7 +142,7 @@ export function createJurassic(ctx) {
   let alpha = null; const ALPHA_HOME = { x: -20, z: -100 };
   function makeAlpha(scene) {
     const gl = MODELS && MODELS.alpha; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
-    const o = ctx.K.skelClone(gl.scene); o.updateMatrixWorld(true);
+    const o0 = ctx.K.skelClone(gl.scene), o = faceZ(o0); o.updateMatrixWorld(true);
     const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = 6.5 / (Math.max(sz.x, sz.z) || 1);
     o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k);
     o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
@@ -168,7 +175,7 @@ export function createJurassic(ctx) {
     const gl = MODELS && MODELS.trike; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
     const n = low || coarse ? 2 : 3;
     for (let i = 0; i < n; i++) {
-      const o = ctx.K.skelClone(gl.scene); o.updateMatrixWorld(true);
+      const o0 = ctx.K.skelClone(gl.scene), o = faceZ(o0); o.updateMatrixWorld(true);
       const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = (6.4 + i * 0.6) / (Math.max(sz.x, sz.z) || 1);
       o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k); o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
       const g = new THREE.Group(); g.add(o); scene.add(g);
