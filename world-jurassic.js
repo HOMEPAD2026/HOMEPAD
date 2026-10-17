@@ -91,10 +91,8 @@ export function createJurassic(ctx) {
     const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1);
     seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25);
 
-    // the gate home: the town's portal, framed by two old stones
-    const gate = ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
-    const stoneM = new THREE.MeshStandardMaterial({ color: 0x8b8578, roughness: 1, flatShading: true });
-    [-2.6, 2.6].forEach((dx) => { const s = new THREE.Mesh(new THREE.BoxGeometry(0.9, 4.4, 0.9), stoneM); s.position.set(J.GATE.x + dx, gate.position.y + 2.1, J.GATE.z); s.rotation.y = dx * 0.04; scene.add(s); });
+    // the gate home: the same stone gate as in town (world-jurgate.js)
+    const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
     S = { scene, cam, gate, spin: gate.userData.spin || [] };
   }
 

@@ -24,7 +24,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules (world-all.js): one file in the build, side by side from the source folder
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX, PET, CHAT, GV, MV] = (await import("./world-all.js")).default;
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX, PET, CHAT, GV, MV, JG] = (await import("./world-all.js")).default;
 const { THREE } = K;
 // height fog: the fog settles low and thins with height, so the ground fades into the distance while hills, the
 // mountains and tall buildings keep their outline (it used to wash the whole horizon white). Patched into three.js's
@@ -547,13 +547,7 @@ const portal = K.makePortal(T("Platform World")); K.placeOn(portal, K.dirOf(K.PO
 // the way to the islands
 // the Jurassic Portal (world-jurassic.js): an old stone gate with a swirl of ARCIRCLE blue and mint; GM wallets go in,
 // everyone else reads "Coming soon"
-const jurGate = (() => {
-  const g = K.makePortal(TW("Jurassic World")), stone = new THREE.MeshStandardMaterial({ color: 0x8b8578, roughness: 1, flatShading: true }), moss = new THREE.MeshStandardMaterial({ color: 0x4f7a2c, roughness: 1, flatShading: true });
-  [-2.15, 2.15].forEach((dx) => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.75, 4.1, 0.75), stone); p.position.set(dx, 2.05, 0); g.add(p); const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42, 0), moss); m.position.set(dx, 4.15, 0.05); m.scale.set(1.3, 0.6, 1.2); g.add(m); });
-  const lin = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.6, 0.85), stone); lin.position.set(0, 4.35, 0); lin.rotation.z = 0.025; g.add(lin);
-  const tag = g.children.find((c) => c.isSprite || (c.userData && c.userData.label)); if (tag) tag.position.y = 5.5;
-  g.userData.radius = 1.8; return g;
-})();
+const jurGate = JG.makeJurassicGate(THREE, K, TW("Jurassic World"), { low: lowGfx });
 K.placeOn(jurGate, K.dirOf(K.spreadTheta(14), 205)); planet.add(jurGate); spins.push(...jurGate.userData.spin);
 const isleGate = K.makePortal(T("My Island")); K.placeOn(isleGate, K.dirOf(K.spreadTheta(14), 140)); planet.add(isleGate); spins.push(...isleGate.userData.spin);
 isleGate.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.transparent) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0x7ee0a0), 0.5); o.material.emissive.lerp(new THREE.Color(0x7ee0a0), 0.5); } });
@@ -1788,7 +1782,7 @@ async function openJurassic() {
   try {
     if (!jurGame) {
       let M; try { M = await import("./world-jurassic.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-      jurGame = M.createJurassic({ THREE, K, st, T: TW, esc, toast, reduce, low: lowGfx, coarse,
+      jurGame = M.createJurassic({ THREE, K, st, makeGate: (n) => JG.makeJurassicGate(THREE, K, n, { low: lowGfx }), T: TW, esc, toast, reduce, low: lowGfx, coarse,
         makeHero: () => K.makeCharacter(heroOf(P.char || "arc-arc"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         onLeave: () => { jurOn = false; frozen = false; keys.clear(); const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 4, g.z - g.z / d * 4, { x: 0, z: 0 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
