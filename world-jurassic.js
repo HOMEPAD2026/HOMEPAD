@@ -44,6 +44,35 @@ export function createJurassic(ctx) {
     MODELS = {};
     if (!res) { console.warn("jurassic: models slow, drawn stand-ins this time"); return; }
     LIST.forEach(([k], i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
+    // the ground's layers and the lake's ripples (tools/gen-terrain-tex.mjs), the sky light (Poly Haven's "park", CC0, via @pmndrs/assets)
+    const TL = new THREE.TextureLoader(), tex = (f, srgb) => new Promise((ok) => TL.load("models/world/jurassic/" + f + ver, (t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = coarse ? 4 : 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; ok(t); }, undefined, () => ok(null)));
+    const T6 = await Promise.race([Promise.all([tex("ground/grass.webp", 1), tex("ground/forest.webp", 1), tex("ground/dirt.webp", 1), tex("ground/sand.webp", 1), tex("ground/rock.webp", 1), tex("ground/normal.webp"), tex("ground/water-normal.webp"), tex("env/sky-park.webp", 1)]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
+    if (T6 && T6.slice(0, 5).every(Boolean)) MODELS.ground = { grass: T6[0], forest: T6[1], dirt: T6[2], sand: T6[3], rock: T6[4], normal: T6[5] };
+    if (T6 && T6[6]) MODELS.waterN = T6[6]; if (T6 && T6[7]) { T6[7].mapping = THREE.EquirectangularReflectionMapping; T6[7].wrapS = T6[7].wrapT = THREE.ClampToEdgeWrapping; MODELS.skyEnv = T6[7]; }
+  }
+  // the ground's material: five layers by the weights in its "splat" attribute (grass, forest floor, dirt, sand) and rock
+  // by slope (side-on, so cliffs don't stretch), each at two scales against tiling, the shared bumps as a normal; wet
+  // sand at the water's edge. The vertex colour stays as a gentle tint over it.
+  function groundMat(G) {
+    const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
+    m.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, { tG: { value: G.grass }, tF: { value: G.forest }, tD: { value: G.dirt }, tS: { value: G.sand }, tR: { value: G.rock }, tN: { value: G.normal }, wY: { value: WATER_Y } });
+      sh.vertexShader = "attribute vec4 splat; varying vec4 vSplat; varying vec3 vWP; varying vec3 vWN;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vSplat = splat; vWP = (modelMatrix * vec4(position, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * normal);");
+      sh.fragmentShader = "uniform sampler2D tG, tF, tD, tS, tR, tN; uniform float wY; varying vec4 vSplat; varying vec3 vWP; varying vec3 vWN;\n" +
+        "vec3 two(sampler2D t, vec2 a, vec2 b) { return mix(texture2D(t, a).rgb, texture2D(t, b).rgb, 0.38); }\n" +
+        sh.fragmentShader.replace("#include <map_fragment>", `
+          vec2 uA = vWP.xz * 0.21, uB = mat2(0.8, -0.6, 0.6, 0.8) * vWP.xz * 0.047;
+          vec4 w = max(vSplat, 0.0); w /= max(0.001, w.x + w.y + w.z + w.w);
+          vec3 col = two(tG, uA, uB) * w.x + two(tF, uA, uB) * w.y + two(tD, uA, uB) * w.z + two(tS, uA, uB) * w.w;
+          vec3 an = abs(vWN); an /= (an.x + an.y + an.z);
+          vec3 rock = texture2D(tR, vWP.zy * 0.12).rgb * an.x + texture2D(tR, vWP.xz * 0.12).rgb * an.y + texture2D(tR, vWP.xy * 0.12).rgb * an.z;
+          float rw = smoothstep(0.26, 0.48, 1.0 - vWN.y);
+          col = mix(col, rock, rw);
+          col *= mix(1.0, 0.62, smoothstep(wY + 0.7, wY + 0.05, vWP.y)); // wet at the water's edge
+          diffuseColor.rgb *= col * 1.55;`).replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+          { vec3 nm = texture2D(tN, vWP.xz * 0.21).xyz * 2.0 - 1.0; normal = normalize(normal + (viewMatrix * vec4(nm.x, 0.0, nm.y, 0.0)).xyz * 0.55); }`).replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, 0.35, smoothstep(wY + 0.7, wY + 0.05, vWP.y));");
+    };
+    m.customProgramCacheKey = () => "jur-ground"; return m;
   }
   // one mesh of a model, ready to instance: its geometry and material, and the matrix that stands it on the ground with
   // its widest side 1 m (the instances then scale it in metres)
@@ -157,14 +186,16 @@ export function createJurassic(ctx) {
     R.has = (n) => !!clip(n);
     R.loop = (n, speed = 1) => { if (R.one) { R.loopName = n; R.loopSpeed = speed; return; } const c = clip(n); if (!c) return; const a = mixer.clipAction(c); a.timeScale = speed; if (R.cur === a) return;
       a.reset().setLoop(THREE.LoopRepeat, Infinity).play(); if (R.cur) R.cur.crossFadeTo(a, 0.25, false); R.cur = a; R.loopName = n; R.loopSpeed = speed; };
-    R.once = (n, speed = 1) => { const c = clip(n); if (!c || R.one) return false; const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = speed; a.play(); if (R.cur) R.cur.crossFadeTo(a, 0.15, false); R.one = a; R.cur = a; return true; };
-    mixer.addEventListener("finished", (e) => { if (e.action !== R.one) return; R.one = null; const back = R.loopName || "idle"; const c = clip(back); if (c) { const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopRepeat, Infinity).play(); e.action.crossFadeTo(a, 0.25, false); a.timeScale = R.loopSpeed || 1; R.cur = a; } });
+    R.once = (n, speed = 1) => { const c = clip(n); if (!c || R.one) return false; const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = speed; a.play(); if (R.cur) R.cur.crossFadeTo(a, 0.15, false); R.one = a; R.cur = a; R.oneLeft = c.duration / Math.max(0.05, speed) - 0.2; return true; };
+    // the one-shot ends by its own clock (not the mixer's "finished" event, which a far creature's stepped mixer can miss)
+    R.step = (dt) => { if (!R.one || (R.oneLeft -= dt) > 0) return; const done = R.one; R.one = null; const c = clip(R.loopName || "idle"); if (!c) return;
+      const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopRepeat, Infinity); a.timeScale = R.loopSpeed || 1; a.play(); done.crossFadeTo(a, 0.25, false); R.cur = a; };
     return R;
   }
   // a far creature's clip is stepped less often (every 3rd frame past 45 m, every 8th past 140 m) and it isn't drawn past 260 m
   function mixUp(o, mixer, dt, x, z) {
     const d = Math.hypot(x - px, z - pz); if (o.g) o.g.visible = d < 260; setLod(o, d); o.acc = (o.acc || 0) + dt; o.n = (o.n || 0) + 1;
-    const every = d > 140 ? 8 : d > 45 ? 3 : 1; if (o.n % every) return; if (d < 260) mixer.update(o.acc); o.acc = 0;
+    const every = d > 140 ? 8 : d > 45 ? 3 : 1; if (o.n % every) return; if (o.R) o.R.step(o.acc); if (d < 260) mixer.update(o.acc); o.acc = 0;
   }
   // ---------------- the sentinel (the owner's Meshy Raptor Roar, rigged, its roar): one raptor on a boulder by the lake,
   // in sight of the gate. It stands watching; come within 32 m and it turns to you and roars, again every few seconds.
@@ -259,6 +290,41 @@ export function createJurassic(ctx) {
       r.R.loop(r.sp > 0.3 ? "walk" : "idle", r.sp > 0.3 ? Math.max(0.6, r.sp / 1.4) : 1); mixUp(r, r.mixer, dt, r.x, r.z);
     }
   }
+  // ---------------- the grass: crossed cards of drawn blades in a window that follows the hero (thick near, thinning to
+  // its edge), swaying in the wind on the GPU; nothing on sand, water, steep ground or the gate's step
+  function makeGrass(scene) {
+    const cv = document.createElement("canvas"); cv.width = 128; cv.height = 128; const g = cv.getContext("2d"); let sd = 13; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 34; i++) { const x = 6 + r() * 116, h = 56 + r() * 70, lean = (r() - 0.5) * 30, wd = 1.6 + r() * 2.2, gr = g.createLinearGradient(0, 128, 0, 128 - h);
+      gr.addColorStop(0, "#5a8432"); gr.addColorStop(0.45, r() < 0.5 ? "#79a844" : "#6a9c3c"); gr.addColorStop(1, r() < 0.35 ? "#c4cf78" : "#a2c45e");
+      g.fillStyle = gr; g.beginPath(); g.moveTo(x - wd, 128); g.quadraticCurveTo(x + lean * 0.4, 128 - h * 0.55, x + lean, 128 - h); g.quadraticCurveTo(x + lean * 0.4 + wd * 0.3, 128 - h * 0.5, x + wd, 128); g.fill(); }
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const geo = new THREE.BufferGeometry(), P = [], UV = [], I = [];
+    [0, Math.PI / 2].forEach((a, k) => { const c = Math.cos(a) * 0.42, s2 = Math.sin(a) * 0.42, o = k * 4; P.push(-c, 0, -s2, c, 0, s2, c, 0.62, s2, -c, 0.62, -s2); UV.push(0, 0, 1, 0, 1, 1, 0, 1); I.push(o, o + 1, o + 2, o, o + 2, o + 3); });
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(UV, 2)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(new Array(24).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3)); geo.setIndex(I);
+    const U = { uT: { value: 0 } }, mat = new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.9, metalness: 0 });
+    mat.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U); sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+      { float h = uv.y * uv.y; vec2 ip = vec2(instanceMatrix[3][0], instanceMatrix[3][2]);
+        float w = sin(uT * 1.6 + ip.x * 0.31 + ip.y * 0.23) * 0.16 + sin(uT * 3.3 + ip.x * 1.7 - ip.y * 0.9) * 0.05;
+        transformed.x += w * h; transformed.z += w * 0.55 * h; }`); };
+    mat.customProgramCacheKey = () => "jur-grass";
+    const STEP = low ? 1.7 : coarse ? 1.35 : 1.1, W = low ? 30 : coarse ? 44 : 64, im = new THREE.InstancedMesh(geo, mat, W * W);
+    im.receiveShadow = true; im.frustumCulled = false; scene.add(im);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), R = W * STEP * 0.5;
+    const h01 = (a, b, k) => { const v = Math.sin(a * 127.1 + b * 311.7 + k * 74.7) * 43758.5453; return v - Math.floor(v); };
+    let lx = 1e9, lz = 1e9;
+    function fill() {
+      const cx = Math.floor(px / STEP), cz = Math.floor(pz / STEP); if (Math.abs(cx - lx) < 3 && Math.abs(cz - lz) < 3) return; lx = cx; lz = cz; let k = 0; // re-laid every 3 cells walked (not every step: a phone's frame)
+      for (let iz = 0; iz < W; iz++) for (let ix = 0; ix < W; ix++) {
+        const gx = cx + ix - (W >> 1), gz = cz + iz - (W >> 1), x = (gx + h01(gx, gz, 1)) * STEP, z = (gz + h01(gx, gz, 2)) * STEP, y = height(x, z);
+        const dEdge = Math.hypot(x - px, z - pz) / R, slope = Math.abs(height(x + 1, z) - y) + Math.abs(height(x, z + 1) - y);
+        let s0 = (0.75 + h01(gx, gz, 3) * 0.7) * (1 - THREE.MathUtils.smoothstep(dEdge, 0.7, 1));
+        if (y < WATER_Y + 0.7 || slope > 0.55 || Math.hypot(x - J.GATE.x, z - J.GATE.z) < 6 || fbm(x * 0.06, z * 0.06) > 0.72) s0 = 0;
+        q.setFromAxisAngle(up, h01(gx, gz, 4) * 6.283); sc.set(s0, s0 * (0.8 + h01(gx, gz, 5) * 0.6), s0); p3.set(x, y - 0.05, z); im.setMatrixAt(k++, m4.compose(p3, q, sc));
+      }
+      im.instanceMatrix.needsUpdate = true;
+    }
+    return { tick(t) { U.uT.value = t; fill(); } };
+  }
   function build() {
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(55, 1, 0.3, 900);
@@ -274,9 +340,12 @@ export function createJurassic(ctx) {
     if (shadows) { sun.castShadow = true; const R = coarse ? 30 : 42, sc0 = sun.shadow.camera; sc0.left = -R; sc0.right = R; sc0.top = R; sc0.bottom = -R; sc0.near = 1; sc0.far = 420;
       sun.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.05; sc0.updateProjectionMatrix(); }
     // the sky as the light the models reflect (the Meshy materials are PBR: without it they look flat, like plastic)
-    try { const pm = new THREE.PMREMGenerator(st.renderer), es = new THREE.Scene(); es.add(sky.clone());
-      const sunBall = new THREE.Mesh(new THREE.SphereGeometry(40, 16, 8), new THREE.MeshBasicMaterial({ color: 0xfff1d0 })); sunBall.position.copy(sun.position).normalize().multiplyScalar(700); es.add(sunBall);
-      const rt = pm.fromScene(es, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.55; pm.dispose(); } catch (e) { console.warn("jurassic env", e); }
+    try {
+      const pm = new THREE.PMREMGenerator(st.renderer);
+      if (MODELS && MODELS.skyEnv) { scene.environment = pm.fromEquirectangular(MODELS.skyEnv).texture; scene.environmentIntensity = 0.7; }
+      else { const es = new THREE.Scene(); es.add(sky.clone()); const sunBall = new THREE.Mesh(new THREE.SphereGeometry(40, 16, 8), new THREE.MeshBasicMaterial({ color: 0xfff1d0 })); sunBall.position.copy(sun.position).normalize().multiplyScalar(700); es.add(sunBall); scene.environment = pm.fromScene(es, 0.04).texture; scene.environmentIntensity = 0.55; }
+      pm.dispose();
+    } catch (e) { console.warn("jurassic env", e); }
 
     // terrain, coloured by height and slope (grass, darker forest floor, dirt, sand at the water, rock on the ridges)
     const N = low ? 110 : 170, geo = new THREE.PlaneGeometry(J.SIZE, J.SIZE, N, N); geo.rotateX(-Math.PI / 2);
@@ -290,16 +359,38 @@ export function createJurassic(ctx) {
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
     geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const G = MODELS && MODELS.ground;
+    if (G) {
+      // the layers' weights: grass on the plain, forest floor in patches (where the trees stand thickest), dirt on slopes
+      // and worn paths, sand down to the water; the tint becomes a gentle light/dark variation
+      const spl = new Float32Array(pos.count * 4);
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), z = pos.getZ(i), y = pos.getY(i), slope = 1 - nrm.getY(i), n1 = fbm(x * 0.018 + 3, z * 0.018 - 7), n2 = fbm(x * 0.06, z * 0.06);
+        const sand = 1 - THREE.MathUtils.smoothstep(y, WATER_Y + 0.15, WATER_Y + 0.85), dirt = Math.min(1, Math.max(0, (slope - 0.08) * 6) + Math.max(0, n2 - 0.66) * 3), forest = Math.max(0, n1 - 0.48) * 3.2;
+        spl.set([Math.max(0.05, 1 - forest - dirt - sand), forest * (1 - sand), dirt * (1 - sand), sand * 3], i * 4);
+        const t = 0.92 + fbm(x * 0.03, z * 0.03) * 0.16; col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = t;
+      }
+      geo.setAttribute("splat", new THREE.BufferAttribute(spl, 4)); geo.attributes.color.needsUpdate = true;
+    }
     const detail = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#d8d8d8"; g.fillRect(0, 0, w, h); let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
       for (let i = 0; i < 2600; i++) { const v = 150 + Math.floor(r() * 105); g.fillStyle = `rgb(${v},${v},${v})`; const x = r() * w, y = r() * h; g.fillRect(x, y, 1 + r() * 2, 2 + r() * 5); }
       for (let i = 0; i < 40; i++) { const v = 120 + Math.floor(r() * 60); g.fillStyle = `rgba(${v},${v},${v},0.35)`; g.beginPath(); g.arc(r() * w, r() * h, 6 + r() * 18, 0, 6.283); g.fill(); } });
     detail.wrapS = detail.wrapT = THREE.RepeatWrapping; detail.repeat.set(J.SIZE / 6, J.SIZE / 6); detail.anisotropy = 4;
     const uv = geo.attributes.uv; // (the plane's uv runs 0–1 across the land; the repeat tiles it every 6 m)
-    const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.96, metalness: 0 })); void uv; ground.receiveShadow = true; scene.add(ground);
+    const ground = new THREE.Mesh(geo, G ? groundMat(G) : new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.96, metalness: 0 })); void uv; ground.receiveShadow = true; scene.add(ground);
 
     // the lake
-    const water = new THREE.Mesh(new THREE.CircleGeometry(J.LAKE.r + 12, 64), new THREE.MeshStandardMaterial({ color: 0x2f6f78, roughness: 0.12, metalness: 0.2, transparent: true, opacity: 0.86 }));
-    water.rotation.x = -Math.PI / 2; water.position.set(J.LAKE.x, WATER_Y, J.LAKE.z); scene.add(water);
+    const wMat = new THREE.MeshStandardMaterial({ color: 0x24626a, roughness: 0.05, metalness: 0.05, transparent: true, opacity: 0.9, envMapIntensity: 1.3 });
+    const wU = { uT: { value: 0 }, tW: { value: MODELS && MODELS.waterN }, cL: { value: new THREE.Vector2(J.LAKE.x, J.LAKE.z) }, rL: { value: J.LAKE.r + 12 } };
+    if (wU.tW.value) { wMat.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, wU);
+      sh.vertexShader = "varying vec3 vWP;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vWP = (modelMatrix * vec4(position, 1.0)).xyz;");
+      sh.fragmentShader = "uniform float uT, rL; uniform sampler2D tW; uniform vec2 cL; varying vec3 vWP;\n" + sh.fragmentShader.replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+        { vec3 a = texture2D(tW, vWP.xz * 0.045 + vec2(uT * 0.012, uT * 0.008)).xyz * 2.0 - 1.0, b = texture2D(tW, vWP.xz * 0.11 - vec2(uT * 0.017, -uT * 0.011)).xyz * 2.0 - 1.0; vec2 d = (a.xy + b.xy) * 0.5;
+          normal = normalize(normal + (viewMatrix * vec4(d.x, 0.0, d.y, 0.0)).xyz * 0.55); }`).replace("#include <color_fragment>", `#include <color_fragment>
+        { float r = length(vWP.xz - cL) / rL; diffuseColor.rgb = mix(vec3(0.07, 0.24, 0.27), diffuseColor.rgb * 1.25, smoothstep(0.35, 0.95, r)); diffuseColor.a *= mix(0.97, 0.7, smoothstep(0.6, 1.0, r)); }`); };
+      wMat.customProgramCacheKey = () => "jur-water"; }
+    const water = new THREE.Mesh(new THREE.CircleGeometry(J.LAKE.r + 12, 64), wMat);
+    water.rotation.x = -Math.PI / 2; water.position.set(J.LAKE.x, WATER_Y, J.LAKE.z); water.receiveShadow = true; scene.add(water);
 
     // where things grow: on the plain, out of the water, off the gate's clearing and the steep ridges
     let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -323,7 +414,7 @@ export function createJurassic(ctx) {
     seed = 31; if (!(MODELS && MODELS["fern-01"])) scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5f9636, roughness: 0.9, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
     // grass tufts: thin blades in small clumps, thickest around the gate where the camera looks down
     const tuft = new THREE.ConeGeometry(0.035, 0.42, 3, 1, true); tuft.translate(0, 0.19, 0);
-    seed = 37; scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x5f8f35, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
+    seed = 37; if (!MODELS || !MODELS.ground) scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x5f8f35, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
     // boulders
     // where a kind stands, as plain matrices (the cells then add each model's footing)
     const mats = (n, minGate, maxR, size, sink = 0) => { const out = []; for (let i = 0; i < n; i++) { const s0 = spotFor(minGate, maxR); if (!s0) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s0.x, s0.y - sink * z, s0.z); out.push(new THREE.Matrix4().compose(p3, q, sc)); } return out; };
@@ -366,7 +457,8 @@ export function createJurassic(ctx) {
     // a soft glow on the light (the town's bloom, gentler), where the device has bloom on
     let comp = null;
     if (!low && st.quality && st.quality.bloom && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX; comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(scene, cam)); const bl = new P.UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.4, 0.92); bl.heavy = true; comp.addPass(bl); comp.addPass(new P.OutputPass()); } catch (e) { console.warn("jurassic bloom", e); comp = null; } }
-    S = { scene, cam, gate, sun, shadows, comp, spin: gate.userData.spin || [] };
+    const grass = MODELS && MODELS.ground ? makeGrass(scene) : null;
+    S = { scene, cam, gate, sun, shadows, comp, wU, grass, spin: gate.userData.spin || [] };
     tickCells(0, true);
   }
 
@@ -465,6 +557,7 @@ export function createJurassic(ctx) {
     if (S.shadows) { S.sun.target.position.set(px, py, pz); S.sun.position.set(px - 60, py + 80, pz + 40); }
     tickCells(dt);
     for (const f of S.spin) f(dt, t);
+    S.wU.uT.value = t; if (S.grass) S.grass.tick(t);
     tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
   }
@@ -492,5 +585,5 @@ export function createJurassic(ctx) {
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  return { enter, leave, active: () => on, jump: () => { jumpQ = true; }, debug: () => ({ px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state) }), walk: (x, z) => { px = x; pz = z; } };
+  return { enter, leave, active: () => on, jump: () => { jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state) }), walk: (x, z) => { px = x; pz = z; } };
 }
