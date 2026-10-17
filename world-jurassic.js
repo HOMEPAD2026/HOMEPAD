@@ -697,13 +697,14 @@ export function createJurassic(ctx) {
   }
 
   // ---------------- day and night, rain ----------------
-  // One clock for everyone (the real time): a 20-minute day: 12 of daylight, a 2-minute dusk, 4 of night, a 2-minute
-  // dawn. Rain comes and goes in 5-minute spells (about one in four). At night the raptors range farther and a camp
-  // is only safe with a campfire burning; the sky, the light and the fog follow.
-  const DAY_S = 1200;
+  // One clock for everyone (the real time, Seoul's): day and night take turns every 6 hours, four changes a day:
+  // day 06:00–12:00, night 12:00–18:00, day 18:00–24:00, night 00:00–06:00 (each ends in a 15-minute dusk or dawn).
+  // Rain comes and goes in 5-minute spells (about one in four). At night the raptors range farther and a camp is
+  // only safe with a campfire burning; the sky, the light and the fog follow.
+  const DAY_S = 12 * 3600, TR = 900 / DAY_S, ORIGIN = 21 * 3600; // (a 12-hour turn: phase 0 is 06:00 / 18:00 in Seoul, 21:00 / 09:00 UTC)
   let phOver = null, rainOver = null; // (tests: a time of day and rain on demand)
-  const dayPhase = () => phOver ?? ((Date.now() / 1000) % DAY_S) / DAY_S;
-  const lightOf = (ph) => ph < 0.6 ? 1 : ph < 0.7 ? 1 - (ph - 0.6) / 0.1 : ph < 0.9 ? 0 : (ph - 0.9) / 0.1;
+  const dayPhase = () => phOver ?? ((((Date.now() / 1000 - ORIGIN) % DAY_S) + DAY_S) % DAY_S) / DAY_S;
+  const lightOf = (ph) => ph < 0.5 - TR ? 1 : ph < 0.5 ? (0.5 - ph) / TR : ph < 1 - TR ? 0 : (ph - (1 - TR)) / TR;
   const rainOf = (ms) => { const b = Math.floor(ms / 300000), h = Math.sin(b * 91.7 + 13.1) * 43758.5; return h - Math.floor(h) < 0.25; };
   let night = false, rainK = 0, wasNight = null, clockT = 0, stars = null, rain = null, rainOn = false;
   const cDay = new THREE.Color(), cNight = new THREE.Color(0x0e1626), cDusk = new THREE.Color(0xff9a5a), cMoon = new THREE.Color(0x9fb4ff), cSun = new THREE.Color(0xffecd0), cTmp = new THREE.Color(), cRain = new THREE.Color(0x7d8a92);
@@ -722,7 +723,7 @@ export function createJurassic(ctx) {
   function tickSky(dt) {
     if (!S || !stars) return;
     const ph = dayPhase(), k0 = lightOf(ph), wet = rainOver ?? rainOf(Date.now()); rainK += ((wet ? 1 : 0) - rainK) * Math.min(1, dt * 0.3);
-    const k = k0 * (1 - rainK * 0.35), dusk = Math.max(0, 1 - Math.abs(ph - 0.65) / 0.06) + Math.max(0, 1 - Math.abs(ph - 0.95) / 0.06);
+    const k = k0 * (1 - rainK * 0.35), dusk = Math.max(0, 1 - Math.abs(ph - (0.5 - TR / 2)) / TR) + Math.max(0, 1 - Math.abs(ph - (1 - TR / 2)) / TR);
     night = k0 < 0.25;
     // the sun by day (warm, low and orange at dusk and dawn), a pale moon at night
     S.sun.intensity = 0.35 + 2.35 * k; S.sun.color.copy(cMoon).lerp(cSun, k0).lerp(cDusk, Math.min(1, dusk) * 0.55);
@@ -739,9 +740,10 @@ export function createJurassic(ctx) {
     // nightfall: once, a word of warning
     if (night !== wasNight) { if (wasNight !== null && on) toast(night ? T("Night falls: raptors hunt farther. A campfire keeps your camp safe.") : T("The sun is up. The plains are calmer.")); wasNight = night; }
     if (performance.now() > clockT && ui && ui.clock) { clockT = performance.now() + 1000;
-      const left = ph < 0.6 ? (0.6 - ph) : ph < 0.7 ? (0.7 - ph) : ph < 0.9 ? (0.9 - ph) : (1 - ph), mm = Math.floor(left * DAY_S / 60), ss = Math.floor(left * DAY_S) % 60;
-      const nm = ph < 0.6 ? "Day" : ph < 0.7 ? "Dusk" : ph < 0.9 ? "Night" : "Dawn", ic = ph < 0.6 ? (wet ? "🌧️" : "☀️") : ph < 0.7 ? "🌇" : ph < 0.9 ? "🌙" : "🌅";
-      ui.clock.innerHTML = `<span aria-hidden="true">${ic}</span><b>${esc(T(nm))}</b><small>${mm}:${String(ss).padStart(2, "0")}</small>`; ui.clock.classList.toggle("night", night); }
+      const P = ph < 0.5 - TR ? 0 : ph < 0.5 ? 1 : ph < 1 - TR ? 2 : 3, end = [0.5 - TR, 0.5, 1 - TR, 1][P], left = Math.max(0, end - ph) * DAY_S, hh = Math.floor(left / 3600), mm = Math.floor(left / 60) % 60, ss = Math.floor(left) % 60;
+      const tm = hh ? `${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}` : `${mm}:${String(ss).padStart(2, "0")}`;
+      const nm = ["Day", "Dusk", "Night", "Dawn"][P], ic = P === 0 ? (wet ? "🌧️" : "☀️") : P === 1 ? "🌇" : P === 2 ? "🌙" : "🌅";
+      ui.clock.innerHTML = `<span aria-hidden="true">${ic}</span><b>${esc(T(nm))}</b><small>${tm}</small>`; ui.clock.classList.toggle("night", night); }
   }
 
   async function makeHero() {
