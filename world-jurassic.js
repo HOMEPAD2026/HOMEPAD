@@ -35,10 +35,10 @@ export function createJurassic(ctx) {
     if (MODELS) return;
     const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null, ver = ctx.ver || "";
     const one = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
-    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient"), one("dino-raptor"), L ? L.loadAsync("models/world/jurassic/dino-brachio.glb" + ver) : Promise.reject(new Error("no loader"))]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
+    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient"), one("dino-raptor"), L ? L.loadAsync("models/world/jurassic/dino-brachio.glb" + ver) : Promise.reject(new Error("no loader")), L ? L.loadAsync("models/world/jurassic/boss-alpha-raptor.glb" + ver) : Promise.reject(new Error("no loader"))]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
     MODELS = {};
     if (!res) { console.warn("jurassic: models slow, drawn stand-ins this time"); return; }
-    ["rock", "ruins", "palm", "ancient", "raptor", "brachio"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
+    ["rock", "ruins", "palm", "ancient", "raptor", "brachio", "alpha"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
   }
   // one mesh of a model, ready to instance: its geometry and material, and the matrix that stands it on the ground with
   // its widest side 1 m (the instances then scale it in metres)
@@ -129,6 +129,38 @@ export function createJurassic(ctx) {
       h.g.position.set(x, height(x, z) - 0.2, z); h.g.rotation.y = Math.atan2(tx, tz); h.mixer.update(dt);
     }
   }
+  // ---------------- the Alpha Raptor (the owner's Meshy boss, rigged, with its walk): the plain's first boss, keeping the
+  // ruins in the south as its ground. It walks its round; come within 18 m and it stalks you, circling at 9 m; go 30 m
+  // away and it goes back. (Its fight, three phases and drops, comes with its attack clips and the server's say on damage.)
+  let alpha = null; const ALPHA_HOME = { x: -20, z: -100 };
+  function makeAlpha(scene) {
+    const gl = MODELS && MODELS.alpha; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
+    const o = ctx.K.skelClone(gl.scene); o.updateMatrixWorld(true);
+    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = 6.5 / (Math.max(sz.x, sz.z) || 1);
+    o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k);
+    o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
+    const g = new THREE.Group(); g.add(o); scene.add(g);
+    const tag = ctx.K.label(T("Alpha Raptor"), { accent: "#ff4d6d", color: "#ffd2d9", size: 0.9, sub: T("Boss · Lv 10") }); tag.position.y = sz.y * k + 1.4; g.add(tag);
+    const mixer = new THREE.AnimationMixer(o), act = mixer.clipAction(gl.animations[0]); act.play();
+    alpha = { g, mixer, act, x: ALPHA_HOME.x, z: ALPHA_HOME.z, face: 0, a: 0, state: "patrol", sp: 2.2, orbit: 1 };
+  }
+  function tickAlpha(dt) {
+    const A = alpha; if (!A) return;
+    const dx = px - A.x, dz = pz - A.z, d = Math.hypot(dx, dz), home = Math.hypot(A.x - ALPHA_HOME.x, A.z - ALPHA_HOME.z);
+    if (A.state === "patrol" && d < 18) A.state = "stalk"; else if (A.state === "stalk" && (d > 30 || home > 45)) A.state = "patrol";
+    let tx, tz, want;
+    if (A.state === "stalk") {
+      // toward you until 9 m, then round you, always facing a little in
+      const ang = Math.atan2(A.x - px, A.z - pz) + A.orbit * 0.5;
+      tx = px + Math.sin(ang) * 9; tz = pz + Math.cos(ang) * 9; want = d > 12 ? 5.5 : 3;
+    } else { A.a += dt * 0.07; tx = ALPHA_HOME.x + Math.cos(A.a) * 22; tz = ALPHA_HOME.z + Math.sin(A.a) * 14; want = 2.2; }
+    const ex = tx - A.x, ez = tz - A.z, ed = Math.hypot(ex, ez) || 1, a = Math.atan2(ex, ez); let da = a - A.face; da = Math.atan2(Math.sin(da), Math.cos(da)); A.face += da * Math.min(1, dt * 3);
+    A.sp += (want - A.sp) * Math.min(1, dt * 2);
+    const nx = A.x + Math.sin(A.face) * A.sp * dt, nz = A.z + Math.cos(A.face) * A.sp * dt;
+    if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { A.x = nx; A.z = nz; } else A.orbit = -A.orbit;
+    A.g.position.set(A.x, height(A.x, A.z), A.z); A.g.rotation.y = A.face;
+    A.act.timeScale = 0.6 + A.sp / 4; A.mixer.update(dt);
+  }
   function build() {
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(55, 1, 0.3, 900);
@@ -211,7 +243,7 @@ export function createJurassic(ctx) {
 
     // the gate home: the same stone gate as in town (world-jurgate.js)
     const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
-    seed = 71; makeRaptors(scene, rnd); makeHerd(scene);
+    seed = 71; makeRaptors(scene, rnd); makeHerd(scene); makeAlpha(scene);
     S = { scene, cam, gate, spin: gate.userData.spin || [] };
   }
 
@@ -280,7 +312,7 @@ export function createJurassic(ctx) {
     let cx = px + Math.sin(camYaw) * ch, cz = pz + Math.cos(camYaw) * ch; const gy = Math.max(height(cx, cz), WATER_Y) + 0.8;
     S.cam.position.set(cx, Math.max(cy, gy), cz); S.cam.lookAt(px, py + 1.7, pz);
     for (const f of S.spin) f(dt, t);
-    tickRaptors(dt, t); tickHerd(dt);
+    tickRaptors(dt, t); tickHerd(dt); tickAlpha(dt);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
   }
 
@@ -307,5 +339,5 @@ export function createJurassic(ctx) {
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  return { enter, leave, active: () => on, debug: () => ({ px, pz, speed, nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })) }), walk: (x, z) => { px = x; pz = z; } };
+  return { enter, leave, active: () => on, debug: () => ({ px, pz, speed, nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length }), walk: (x, z) => { px = x; pz = z; } };
 }
