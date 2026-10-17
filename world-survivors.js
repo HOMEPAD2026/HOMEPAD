@@ -212,7 +212,9 @@ export function createSurvivors(ctx) {
       let sd = 31; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
       for (let i = 0; i < 18; i++) { const a = r() * 6.283, d = 10 + r() * 28, x = Math.cos(a) * d, z = Math.sin(a) * d, s = (2 + r() * 3) * k; const mg = g.createRadialGradient(X(x), X(z), 0, X(x), X(z), s); mg.addColorStop(0, "rgba(60,110,40,.45)"); mg.addColorStop(1, "rgba(60,110,40,0)"); g.fillStyle = mg; g.fillRect(X(x) - s, X(z) - s, s * 2, s * 2); }
     });
-    const lm = new THREE.Mesh(new THREE.CircleGeometry(LM, 64), new THREE.MeshBasicMaterial({ map: lmTex, transparent: true, depthWrite: false })); lm.rotation.x = -Math.PI / 2; lm.position.y = 0.02; scene.add(lm);
+    // (drawn into the floor's own shader, not as a second see-through layer over the whole screen)
+    floorM.onBeforeCompile = (sh) => { sh.uniforms.uLm = { value: lmTex }; sh.vertexShader = "varying vec2 vLmUv;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vLmUv = uv;");
+      sh.fragmentShader = "uniform sampler2D uLm; varying vec2 vLmUv;\n" + sh.fragmentShader.replace("#include <map_fragment>", "#include <map_fragment>\n vec4 lmC = texture2D(uLm, vLmUv); diffuseColor.rgb = mix(diffuseColor.rgb, lmC.rgb, lmC.a);"); };
     // lava cracks: a few glowing scars on the floor (additive, they pulse)
     const crackTex = canvasTex(256, 256, (g, w) => { let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647); g.lineCap = "round";
       for (let b = 0; b < 7; b++) { let x = w / 2, y = w / 2; const a0 = r() * 6.283; g.beginPath(); g.moveTo(x, y); for (let q = 0; q < 8; q++) { const a = a0 + (r() - 0.5) * 1.2; x += Math.cos(a) * 14; y += Math.sin(a) * 14; g.lineTo(x, y); }
@@ -420,7 +422,8 @@ export function createSurvivors(ctx) {
     geo.setAttribute("position", new THREE.BufferAttribute(base, 3)); geo.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(V * 3), 3));
     const src = meshes[0] && meshes[0].material, map = src && src.map ? src.map : null;
     if (map && !map.userData.swatch) { map.userData.swatch = 1; map.minFilter = map.magFilter = THREE.NearestFilter; map.generateMipmaps = false; map.needsUpdate = true; } // a palette of swatches: mipmaps would blend neighbours into mud
-    const mat = new THREE.MeshStandardMaterial({ map, color: map ? 0xffffff : (src && src.color ? src.color.getHex() : 0xcccccc), roughness: 0.62, metalness: 0.0 });
+    const MatT = phone() || ctx.low ? THREE.MeshLambertMaterial : THREE.MeshStandardMaterial; // phones: Lambert (cheaper a pixel), PCs the PBR one
+    const mat = new MatT({ map, color: map ? 0xffffff : (src && src.color ? src.color.getHex() : 0xcccccc), ...(MatT === THREE.MeshStandardMaterial ? { roughness: 0.62, metalness: 0.0 } : {}) });
     // the shader: the vertex's place and normal from the texture (two frames, blended), a squash when hit, a rim light
     // that keeps them readable in a crowd, a white flash when hit, and a burning dissolve when knocked out
     mat.onBeforeCompile = (sh) => {
@@ -434,7 +437,7 @@ export function createSurvivors(ctx) {
         .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n float svN = fract(sin(dot(floor(vOp * 14.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453); if (vDis > 0.0 && svN < vDis) discard;")
         .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(1.0, 0.92, 0.85) * vFlash;\n float svR = 1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0); totalEmissiveRadiance += vec3(0.35, 0.75, 1.0) * pow(svR, 3.0) * 0.55;\n if (vDis > 0.0 && svN < vDis + 0.12) totalEmissiveRadiance += vec3(3.0, 1.3, 0.3);");
     };
-    mat.customProgramCacheKey = () => "vat2";
+    mat.customProgramCacheKey = () => "vat3";
     return { id, geo, mat, tex, R, V, spec, mesh: null };
   }
   function meshOf(kd) {
@@ -602,7 +605,7 @@ export function createSurvivors(ctx) {
       if (seen.length) snd("zap", 90); }
     if (lvOf("orb")) { const n = W("orb", "n") + (R.evo.inferno ? 2 : 0), rad = W("orb", "rad") * stat.area() * (R.evo.inferno ? 1.25 : 1), sz = 0.42 * stat.area() * (R.evo.inferno ? 1.6 : 1); R.orbA += dt * (2.6 + (R.evo.inferno ? 0.6 : 0));
       for (let i = 0; i < n; i++) { const a = R.orbA + (i / n) * Math.PI * 2, x = R.x + Math.cos(a) * rad, z = R.z + Math.sin(a) * rad;
-        glow(x, 1, z, sz * 3, 0xff7a2a, 0, PULSE | ONE); glow(x, 1, z, sz * 1.4, 0xffe0a0, 0, ONE); if (Q && lastStep) glow(x, 1, z, sz * 1.6, 0xff6a20, 0.3, SHRINK, 0.6);
+        glow(x, 1, z, sz * (Q > 1 ? 3 : 2.2), 0xff7a2a, 0, PULSE | ONE); glow(x, 1, z, sz * 1.4, 0xffe0a0, 0, ONE); if (Q && lastStep) glow(x, 1, z, sz * 1.6, 0xff6a20, 0.3, SHRINK, 0.6);
         near(x, z, sz + 0.4, (m) => { if (R.t - m.oT < 0.45) return; m.oT = R.t; hitMon(m, W("orb", "dmg") * (R.evo.inferno ? 1.8 : 1), "orb", { kb: 3, fx: R.x, fz: R.z }); sparks(m.x, 1, m.z, 0xffa040, 3, 3); }); } }
     if (lvOf("blade")) { const n = W("blade", "n") + (R.evo.eclipse ? 2 : 0), rad = W("blade", "rad") * stat.area(), len = 1.1 * stat.area() * (R.evo.eclipse ? 1.4 : 1); R.bladeA -= dt * 3.4;
       for (let i = 0; i < n; i++) { const a = R.bladeA + (i / n) * Math.PI * 2, x = R.x + Math.cos(a) * rad, z = R.z + Math.sin(a) * rad, tx = -Math.sin(a) * len, tz = Math.cos(a) * len;
@@ -613,7 +616,7 @@ export function createSurvivors(ctx) {
       for (let i = 0; i < n; i++) { const a = base + (i - (n - 1) / 2) * 0.5; beam(R.x, 1, R.z, R.x + Math.sin(a) * len, 1, R.z + Math.cos(a) * len, 0.08, 0xff5ad8, 0.2, 0, 0.9); later(0.18, "laser", a, len, w); }
       snd("charged", 120); }
     if (lvOf("nova") && cdReady("nova", W("nova", "cd"))) {
-      const r = W("nova", "rad") * stat.area(); ring(R.x, R.z, 0.6, r, 0x8ff0ff, 0.45, EASE); ring(R.x, R.z, 0.3, r * 0.8, 0xffffff, 0.3, EASE, 0.6); disc(R.x, R.z, r, 0x38d8ff, 0.3, 0, 0.35); if (Q) for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; glow(R.x + Math.cos(a) * r * 0.5, 0.4, R.z + Math.sin(a) * r * 0.5, 0.8, 0xbfe8ff, 0.4, GROW, 0.4); }
+      const r = W("nova", "rad") * stat.area(); ring(R.x, R.z, 0.6, r, 0x8ff0ff, 0.45, EASE); ring(R.x, R.z, 0.3, r * 0.8, 0xffffff, 0.3, EASE, 0.6); disc(R.x, R.z, r, 0x38d8ff, 0.3, 0, 0.35); if (Q > 1) for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; glow(R.x + Math.cos(a) * r * 0.5, 0.4, R.z + Math.sin(a) * r * 0.5, 0.8, 0xbfe8ff, 0.4, GROW, 0.4); }
       for (const m of mons) { if (m.st === "die") continue; if ((m.x - R.x) ** 2 + (m.z - R.z) ** 2 < (r + m.r) ** 2) hitMon(m, W("nova", "dmg"), "nova", { kb: 9 }); } snd("impact", 100); }
     if (lvOf("meteor") && cdReady("meteor", W("meteor", "cd"))) {
       const n = W("meteor", "n") + ex, r = 2.4 * stat.area(); seen.length = 0;
@@ -699,24 +702,29 @@ export function createSurvivors(ctx) {
   function choose(i) { if (mode !== "cards" || !cards || !cards[i]) return; take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
 
   // ---------------- the loop ----------------
-  let camK = 1, shakeK = 0, slowMo = 0, timeK = 1, camInit = false, acc = 0, lastNow = 0, frameMs = 16, qT = 0, qGood = 0;
+  let jsMs = 0, camK = 1, shakeK = 0, slowMo = 0, timeK = 1, camInit = false, acc = 0, lastNow = 0, frameMs = 16, qT = 0, qGood = 0;
   const camP = new THREE.Vector3(), camL = new THREE.Vector3(), keys = new Set(), joy = { on: false, id: -1, x0: 0, y0: 0, dx: 0, dy: 0 };
   function tick(dt0, t) {
     const now = performance.now(), real = lastNow ? Math.min(0.25, (now - lastNow) / 1000) : dt0; lastNow = now;
-    adapt(real);
+    adapt(real); const js0 = performance.now();
     let simDt = 0;
     if (mode === "play" && R && !R.over) {
       acc += real; let n = 0;
-      const steps = Math.min(8, Math.floor(acc / STEP));
-      while (acc >= STEP && n < 8) { acc -= STEP; n++; lastStep = n >= steps; if (R.stop > 0) { R.stop -= STEP; continue; } if (slowMo > 0) { slowMo -= STEP; timeK = 0.3; } else timeK = 1; const d = STEP * timeK; step(d); simDt += d; if (mode !== "play" || !R || R.over) break; }
-      if (n >= 8) acc = 0; lastStep = true; stepped = n > 0;
+      // at most 4 steps a frame: a frame that took too long doesn't make the next one longer still (below 15 fps the
+      // game slows a little instead of spiralling)
+      const steps = Math.min(4, Math.floor(acc / STEP));
+      while (acc >= STEP && n < 4) { acc -= STEP; n++; lastStep = n >= steps; if (R.stop > 0) { R.stop -= STEP; continue; } if (slowMo > 0) { slowMo -= STEP; timeK = 0.3; } else timeK = 1; const d = STEP * timeK; step(d); simDt += d; if (mode !== "play" || !R || R.over) break; }
+      if (n >= 4) acc = 0; lastStep = true; stepped = n > 0;
     } else { acc = 0; stepped = mode !== "pause" && mode !== "cards"; }
     const vis = mode === "play" ? simDt : mode === "over" || mode === "count" ? real : 0;
     if (mode === "over" && R) for (let i = mons.length - 1; i >= 0; i--) { const m = mons[i]; m.flash = Math.max(0, m.flash - real * 5); if (m.st === "die") { m.at += real; if (m.at > m.kd.R.die.dur + 0.45) { monFree.push(m); mons[i] = mons[mons.length - 1]; mons.pop(); } } } // the fallen finish fading behind the result
     if (R) drawMons(vis, t);
     drawFx(vis);
     if (hero) { hero.obj.position.set(R ? R.x : 0, 0, R ? R.z : 0); const mv = mode === "play" && R && Math.hypot(R.vx, R.vz) > 0.3;
-      if (hero.play && !(hero.busy && hero.busy())) hero.play(mode === "over" && R && R.hp <= 0 ? "die" : mv ? "run" : "idle", { speed: mv ? 1.1 : 1 });
+      // the heroes' clips are "walk" and "sprint" (world-kit CU_AS; there is no "run": asking for it fell back to idle)
+      const v = R ? Math.hypot(R.vx, R.vz) : 0, want = mode === "over" && R && R.hp <= 0 ? "die" : !mv ? "idle" : v > 9 ? "sprint" : "walk";
+      if (hero.play && !(hero.busy && hero.busy())) hero.play(want, { speed: want === "walk" ? Math.max(0.8, v / 5.6) : 1 });
+      const inner = hero.obj.children[0]; if (inner && !hero.bot) inner.rotation.x += ((mv ? Math.min(1, v / 12) * 0.14 : 0) - inner.rotation.x) * 0.15; // lean into the run
       if (mode !== "pause" && mode !== "cards") hero.update(real, t, mv ? 1 : 0, 0);
       if (mode === "lobby") hero.obj.rotation.y += real * 0.7; else if (R) hero.obj.rotation.y += Math.atan2(Math.sin(R.face - hero.obj.rotation.y), Math.cos(R.face - hero.obj.rotation.y)) * Math.min(1, real * 14); }
     if (FX) { FX.heroShadow.position.set(R ? R.x : 0, 0.03, R ? R.z : 0); FX.magnet.position.set(R ? R.x : 0, 0.05, R ? R.z : 0); const mg = R ? stat.magnet() : 2.2; FX.magnet.scale.set(mg, 1, mg); FX.magnet.visible = mode === "play";
@@ -724,14 +732,14 @@ export function createSurvivors(ctx) {
     S.flames.scale.set(1, 1 + Math.sin(t * 9) * 0.08, 1); S.runeM.rotation.z = t * 0.05; S.cracks.material.opacity = 0.7 + Math.sin(t * 2.2) * 0.3;
     if (Q) { const p = S.ep; for (let i = 0; i < p.length; i += 3) { p[i + 1] += real * (0.6 + (i % 7) * 0.12); p[i] += Math.sin(t + i) * real * 0.2; if (p[i + 1] > 14) p[i + 1] = 0; } S.embers.geometry.attributes.position.needsUpdate = true; } S.embers.visible = Q > 0;
     sky(R ? R.t : 0);
-    camera(real); paintHud(t); paintArrows();
+    camera(real); paintHud(t); paintArrows(); jsMs += (performance.now() - js0 - jsMs) * 0.1;
   }
   // quality follows the frame time: slower than ~42 fps for 2 s → one step down; faster than ~58 for 8 s → one up
   function adapt(real) {
     frameMs += (real * 1000 - frameMs) * 0.05; if (mode !== "play") return; qT += real; if (qT < 2) return; qT = 0;
     if (frameMs > 24 && Q > 0) { Q--; qGood = 0; applyQ(); } else if (frameMs < 17.5 && Q < Qmax) { if ((qGood += 2) >= 8) { Q++; qGood = 0; applyQ(); } } else qGood = 0;
   }
-  function applyQ() { try { const pr = [Math.min(prOrig, 1), Math.min(prOrig, 1.3), prOrig][Q]; if (st.renderer.getPixelRatio() !== pr) st.renderer.setPixelRatio(pr); } catch { /* keeps its resolution */ } }
+  function applyQ() { try { const pr = [Math.min(prOrig, 0.85), Math.min(prOrig, 1.1), Math.min(prOrig, 1.5)][Q]; if (st.renderer.getPixelRatio() !== pr) st.renderer.setPixelRatio(pr); } catch { /* keeps its resolution */ } }
   function camera(dt) {
     const o = phone() || S.cam.aspect < 0.8 ? CAM_PHONE : CAM_PC, lobby = mode === "lobby"; let x = R ? R.x : 0, z = R ? R.z : 0;
     if (R && R.focus) { R.focus.t -= dt; const k = Math.min(1, R.focus.t > 0.4 ? 1 : R.focus.t / 0.4); x += (R.focus.x - x) * k * 0.7; z += (R.focus.z - z) * k * 0.7; if (R.focus.t <= 0) R.focus = null; }
@@ -1019,7 +1027,7 @@ export function createSurvivors(ctx) {
     /// near the Game Village: the monsters' file fetched ahead (the bake waits for the visit)
     prefetch: () => { try { fetch("models/world/survivors/monsters.glb?v=" + (ctx.ver || "1")).catch(() => {}); } catch { /* fetched on the visit */ } },
     /// tests: the run's numbers, and a few levers
-    debug: () => (R ? { mode, q: Q, fms: Math.round(frameMs), t: R.t, hp: R.hp, lv: R.lv, xp: R.xp, kills: R.kills, bosses: R.bosses, mons: mons.length, alive: mons.filter((m) => m.st !== "die").length, gems: gems.length, fx: FX ? FX.glow.n + FX.beam.n : 0, w: { ...R.w }, p: { ...R.p }, boss: R.boss && R.boss.id, x: R.x, z: R.z } : { mode }),
+    debug: () => (R ? { mode, q: Q, fms: Math.round(frameMs), js: +jsMs.toFixed(2), anim: hero && hero.mixer ? (hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join(",")) : "", t: R.t, hp: R.hp, lv: R.lv, xp: R.xp, kills: R.kills, bosses: R.bosses, mons: mons.length, alive: mons.filter((m) => m.st !== "die").length, gems: gems.length, fx: FX ? FX.glow.n + FX.beam.n : 0, w: { ...R.w }, p: { ...R.p }, boss: R.boss && R.boss.id, x: R.x, z: R.z } : { mode }),
     start: () => startRun(), skip: (s) => { if (!R) return; R.t += s; R.eliteT = 0; }, choose: (i) => choose(i), give: (k, id, n = 1) => { if (!R) return; for (let i = 0; i < n; i++) take({ k, id }); }, hurt: (n) => { if (R) { R.hurtT = 0; R.shield = 0; hurtHero(n); } }, xp: (n) => { if (R) addGem(R.x, R.z, n); }, boss: (i) => { if (R) spawnBoss(i); }, killAll: () => { if (R) for (const m of mons) if (m.st !== "die") kill(m); }, mode: () => mode, cam: (k) => { camK = k; }, quality: (q) => { Qmax = Q = q; applyQ(); },
     line: (ids, st0) => { if (!R) return; clearPools(); R.still = true; R.spawnT = 1e9; R.eliteT = 1e9; R.bossNext = 9; R.w = {}; R.swarmAt = []; ids.forEach((id, i) => { const m = spawn(id, (i - (ids.length - 1) / 2) * 2.2, -3); if (m) { m.face = 0; m.born = 1; if (st0) { m.st = st0; m.at = 0; } } }); },
     chest: () => { if (R) dropChest(R.x + 3, R.z); },
