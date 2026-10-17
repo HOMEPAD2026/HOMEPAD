@@ -865,6 +865,7 @@ html:not(.wp-pcphone) .wm-today{top:calc(max(10px,env(safe-area-inset-top)) + 10
 .wm-board li.me{box-shadow:inset 0 0 0 2px var(--ui-mint-2,#4fe6c8)}
 .wm-board li.wm-loading{display:block;text-align:center;opacity:.7}
 .wm-pop.ore{font-size:20px;color:#fff;animation-duration:1.3s}html.wp-pcphone .wm-pop.ore{font-size:40px}
+.wm-pop.xp{font-size:20px;color:#7dffb4;animation-duration:1.4s;text-shadow:0 2px 0 rgba(0,40,20,.5),0 0 14px rgba(57,255,136,.6)}html.wp-pcphone .wm-pop.xp{font-size:40px}
 .wm-pop.gem{font-size:46px;animation:wmPopBig 2.6s cubic-bezier(.2,.8,.3,1) forwards}.wm-pop.gem.sap{color:#8fb8ff;text-shadow:0 0 24px #4f8dff}.wm-pop.gem.ruby{color:#ff8fa8;text-shadow:0 0 24px #ff4d6d}.wm-pop.gem.dia{color:#e8fbff;text-shadow:0 0 30px #9ff3ff,0 0 60px #fff}
 html.wp-pcphone .wm-pop.gem{font-size:88px}
 /* the welcome week (b5): the HUD gift button (a dot when today's gift waits) and its seven days */

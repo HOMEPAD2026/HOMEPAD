@@ -22,6 +22,9 @@ const CART = `<svg viewBox="0 0 48 40" width="44" height="37"><path d="M10 14 L2
   <circle cx="14" cy="33" r="4" fill="#2a2e36" stroke="#9aa6b8" stroke-width="1.6"/><circle cx="34" cy="33" r="4" fill="#2a2e36" stroke="#9aa6b8" stroke-width="1.6"/></svg>`;
 const R = MINE_RULES, KIND = ["Copper", "Silver", "Gold"], KCOL = ["#ff9a5a", "#dbe6f5", "#ffd34d"];
 const SLOT_X = (i) => -26 + i * 4, CAVE = 30, SWING = 0.56, IMPACT = 0.2, REACH = 2.0, SPEED = 5.2;
+// XP for a broken rock: what a scammer of your level gives (6 + 3·level), more for the rarer, longer rocks; an empty one
+// still pays a little for the work. Per second of swinging it's about what hunting pays, a little under.
+export const rockXp = (lv, t, empty) => Math.round((6 + 3 * Math.max(1, lv | 0)) * (empty ? 1 : [1.5, 3, 6][t] || 1.5));
 const fmtN = (n) => Math.round(n).toLocaleString("en-US");
 const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
 const hm = (ms) => { const m = Math.max(1, Math.ceil(ms / 60e3)); return m >= 60 ? Math.floor(m / 60) + "h " + (m % 60) + "m" : m + "m"; };
@@ -556,6 +559,9 @@ export function createMine(ctx) {
       if (r.t === 2) { Snd.jackpot && Snd.jackpot(); flash("radial-gradient(circle at 50% 55%,rgba(255,214,90,.9),rgba(255,170,40,.25) 60%,transparent)", 1); freeze = reduce ? 0 : 0.35; zoomT = reduce ? 0 : 1.1; spark(x, y + 0.6, 0, 0xffe08a, 50, 1.6, 1.2); if (S.goldL) S.goldL.intensity = 40; }
       else if (r.t === 1) { flash("radial-gradient(circle at 50% 55%,rgba(220,235,255,.5),transparent 60%)", 0.6); Snd.win && Snd.win(); }
     }
+    // XP for every rock (an empty one too): the time in the mine counts towards your level, like a fight does
+    const xp = rockXp(ctx.level ? ctx.level() : 1, r.t, !v);
+    if (xp && ctx.gain) { try { ctx.gain(xp, T("Mining")); setTimeout(() => pop(x, v ? 3.4 : 3, `+${fmtN(xp)} <small>XP</small>`, "xp"), v ? 420 : 200); } catch { /* the level waits */ } }
     dropRock(r); paintHud();
   }
   function timeUp() { if (ending) return; ending = true; mineHeld = false; moveIn = 0; summary(T("Your hour in the mine is up")); }
