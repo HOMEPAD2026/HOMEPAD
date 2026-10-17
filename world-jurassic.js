@@ -28,6 +28,26 @@ export function createJurassic(ctx) {
   }
   const WATER_Y = -2.4;
 
+  // ---------------- the models (Meshy, packed by tools/pack-prop.mjs; models/world/jurassic): a mossy boulder and the
+  // ruins gate. Loaded before the first visit; when they fail or are slow, the drawn stand-ins are used.
+  let MODELS = null;
+  async function loadModels() {
+    if (MODELS) return;
+    const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null, ver = ctx.ver || "";
+    const one = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
+    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm")]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
+    MODELS = {};
+    if (!res) { console.warn("jurassic: models slow, drawn stand-ins this time"); return; }
+    ["rock", "ruins", "palm"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
+  }
+  // one mesh of a model, ready to instance: its geometry and material, and the matrix that stands it on the ground with
+  // its widest side 1 m (the instances then scale it in metres)
+  function unit(o) {
+    if (!o) return null; let mesh = null; o.updateMatrixWorld(true); o.traverse((m) => { if (!mesh && m.isMesh) mesh = m; }); if (!mesh) return null;
+    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = 1 / Math.max(sz.x, sz.z, 1e-6);
+    const base = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-(b.min.x + sz.x / 2), -b.min.y, -(b.min.z + sz.z / 2))).multiply(mesh.matrixWorld);
+    return { geo: mesh.geometry, mat: mesh.material, base, h: sz.y * k };
+  }
   function canvasTex(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
   function build() {
@@ -69,8 +89,8 @@ export function createJurassic(ctx) {
     const spotFor = (minGate, maxR) => { for (let k = 0; k < 30; k++) { const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * maxR, x = Math.cos(a) * r, z = Math.sin(a) * r, y = height(x, z);
       if (y < WATER_Y + 0.6 || Math.hypot(x - J.GATE.x, z - J.GATE.z) < minGate) continue; return { x, y, z }; } return null; };
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-    const scatter = (geom, mat, n, minGate, maxR, size, sink = 0) => { const im = new THREE.InstancedMesh(geom, mat, n); let k = 0;
-      for (let i = 0; i < n; i++) { const s = spotFor(minGate, maxR); if (!s) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s.x, s.y - sink * z, s.z); m4.compose(p3, q, sc); im.setMatrixAt(k++, m4); }
+    const scatter = (geom, mat, n, minGate, maxR, size, sink = 0, base = null) => { const im = new THREE.InstancedMesh(geom, mat, n); let k = 0;
+      for (let i = 0; i < n; i++) { const s = spotFor(minGate, maxR); if (!s) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s.x, s.y - sink * z, s.z); m4.compose(p3, q, sc); if (base) m4.multiply(base); im.setMatrixAt(k++, m4); }
       im.count = k; im.instanceMatrix.needsUpdate = true; scene.add(im); return im; };
     const trunkM = new THREE.MeshStandardMaterial({ color: 0x5a4330, roughness: 1 }), leafM = new THREE.MeshStandardMaterial({ color: 0x3f6a2a, roughness: 0.9, flatShading: true }), leaf2 = new THREE.MeshStandardMaterial({ color: 0x2f5a26, roughness: 0.9, flatShading: true });
     const TREES = low ? 140 : 260;
@@ -88,8 +108,20 @@ export function createJurassic(ctx) {
     const tuft = new THREE.ConeGeometry(0.035, 0.42, 3, 1, true); tuft.translate(0, 0.19, 0);
     seed = 37; scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x5f8f35, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
     // boulders
-    const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1);
-    seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25);
+    const rock = unit(MODELS && MODELS.rock);
+    if (rock) { seed = 41; scatter(rock.geo, rock.mat, low ? 40 : 70, 10, 190, [1.4, 4.2], 0.12, rock.base); }
+    else { const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1); seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25); }
+    // palms round the lake's shore (the model is ~8.6K triangles, so a ring of them, not a forest)
+    const palm = unit(MODELS && MODELS.palm);
+    if (palm) { const n = low || coarse ? 12 : 22, im = new THREE.InstancedMesh(palm.geo, palm.mat, n); let k = 0; seed = 53;
+      for (let i = 0; i < n * 3 && k < n; i++) { const a = rnd() * Math.PI * 2, r = J.LAKE.r + 6 + rnd() * 10, x = J.LAKE.x + Math.cos(a) * r, z = J.LAKE.z + Math.sin(a) * r, y = height(x, z);
+        if (y < WATER_Y + 0.3) continue; const w = 4 + rnd() * 2.5; q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.9 + rnd() * 0.25), w); p3.set(x, y - 0.1, z); m4.compose(p3, q, sc).multiply(palm.base); im.setMatrixAt(k++, m4); }
+      im.count = k; im.instanceMatrix.needsUpdate = true; scene.add(im); }
+    // the old ruins: a great gate on the far shore of the lake, and two smaller ones along the plain
+    const ruin = unit(MODELS && MODELS.ruins);
+    if (ruin) [[J.LAKE.x + 8, J.LAKE.z - J.LAKE.r - 16, 14, 0.4], [-48, -20, 8, -0.9], [-20, -110, 10, 0.2]].forEach(([x, z, w, ry]) => {
+      const m = new THREE.Mesh(ruin.geo, ruin.mat); m.matrixAutoUpdate = false;
+      m.matrix.compose(new THREE.Vector3(x, height(x, z) - 0.25, z), new THREE.Quaternion().setFromAxisAngle(up, ry), new THREE.Vector3(w, w, w)).multiply(ruin.base); scene.add(m); });
 
     // the gate home: the same stone gate as in town (world-jurgate.js)
     const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
@@ -168,7 +200,7 @@ export function createJurassic(ctx) {
   async function enter() {
     if (on || busy) return false; busy = true;
     try {
-      if (!S) build(); if (!ui) buildUi();
+      if (!S) { await loadModels(); build(); } if (!ui) buildUi();
       await makeHero(); animNow = "";
       px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.3; camDist = coarse ? 10 : 9; speed = 0; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }

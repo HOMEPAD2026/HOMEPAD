@@ -46,7 +46,7 @@ export function makeJurassicGate(THREE, K, name, { low = false } = {}) {
         float sw = n(vec2(a * 2.0 + r * 6.0 - t * 1.4, r * 5.0 - t * 0.6)) * 0.6 + n(vec2(a * 5.0 - r * 9.0 + t, r * 11.0)) * 0.4;
         float vein = smoothstep(0.62, 0.7, sw) * 0.9;
         vec3 c = mix(vec3(0.05, 0.25, 0.75), vec3(0.2, 0.75, 1.0), sw) + vec3(0.6, 0.95, 1.0) * vein + vec3(0.4, 0.9, 1.0) * smoothstep(0.7, 1.0, r) * 0.9;
-        gl_FragColor = vec4(c, (0.78 + vein * 0.2) * smoothstep(1.0, 0.94, r)); }` }));
+        gl_FragColor = vec4(c * 0.62, (0.82 + vein * 0.15) * smoothstep(1.0, 0.94, r)); }` }));
   veil.position.set(0, CY, 0.02); g.add(veil);
   const glow = new THREE.PointLight(0x35b8ff, 6, 9, 2); glow.position.set(0, CY, 1.4); if (!low) g.add(glow);
   const tag = K.label(name, { accent: "#2ee07a", size: 0.9 }); tag.position.y = CY + RR + 1.6; g.add(tag);
