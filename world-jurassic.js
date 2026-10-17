@@ -4,15 +4,16 @@
 // This first step is the Primeval Plains on their own: rolling ground, a lake, forest and ferns, far ridges in the haze,
 // the hero walking it, and the gate home. Dinosaurs arrive with their GLB files (models/world/jurassic, the doc's list).
 // It draws its own scene through the stage's view() while the town waits behind it, like the ARCL Mine.
-export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 40 }, GATE: { x: 0, z: 52 }, LAKE: { x: 55, z: -35, r: 34 } };
+export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { x: 0, z: 66 }, LAKE: { x: 55, z: -35, r: 34 } };
 
 export function createJurassic(ctx) {
   const { THREE, st, T, esc, toast } = ctx;
   const low = !!ctx.low, reduce = !!ctx.reduce, coarse = !!ctx.coarse;
   const J = JURASSIC;
   let S = null, ui = null, hero = null, on = false, busy = false;
-  let hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.2, camDist = 9, speed = 0, nearGate = false, introT = 0;
-  const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 };
+  let hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
+  const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 }, pinch = { a: -1, b: -1, d: 0, pts: new Map() };
+  const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), camLookS = new THREE.Vector3();
 
   // ---------------- the ground: smooth value noise, a basin around the gate, the lake, ridges toward the edge ----------------
   const hash = (x, z) => { const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -31,14 +32,18 @@ export function createJurassic(ctx) {
   // ---------------- the models (Meshy, packed by tools/pack-prop.mjs; models/world/jurassic): a mossy boulder and the
   // ruins gate. Loaded before the first visit; when they fail or are slow, the drawn stand-ins are used.
   let MODELS = null;
+  const NATURE = ["fern-01", "fern-02", "fern-03", "bush-01", "bush-02", "bush-03", "flowers-01", "flowers-02", "flowers-03", "log-01", "log-02", "log-03"];
   async function loadModels() {
     if (MODELS) return;
     const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null, ver = ctx.ver || "";
-    const one = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
-    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient"), one("dino-raptor"), L ? L.loadAsync("models/world/jurassic/dino-brachio.glb" + ver) : Promise.reject(new Error("no loader")), L ? L.loadAsync("models/world/jurassic/boss-alpha-raptor.glb" + ver) : Promise.reject(new Error("no loader")), L ? L.loadAsync("models/world/jurassic/dino-triceratops.glb" + ver) : Promise.reject(new Error("no loader"))]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
+    const get = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver) : Promise.reject(new Error("no loader")));
+    // [key, file, whole gltf (rigged, with its clips) or just the scene]
+    const LIST = [["rock", "rock-boulder"], ["ruins", "ruins-gate"], ["palm", "tree-palm"], ["ancient", "tree-ancient"], ["raptor8", "dino-raptor-8", 1], ["trike8", "dino-triceratops-8", 1], ["brachio8", "dino-brachio-8", 1], ["alpha8", "boss-alpha-raptor-8", 1],
+      ["rock1", "rock-boulder-lod1"], ["ruins1", "ruins-gate-lod1"], ["palm1", "tree-palm-lod1"], ["ancient1", "tree-ancient-lod1"], ...NATURE.map((n) => [n, "nature/" + n])];
+    const res = await Promise.race([Promise.allSettled(LIST.map(([, f, whole]) => get(f).then((g) => (whole ? g : g.scene)))), new Promise((ok) => setTimeout(() => ok(null), 20000))]);
     MODELS = {};
     if (!res) { console.warn("jurassic: models slow, drawn stand-ins this time"); return; }
-    ["rock", "ruins", "palm", "ancient", "raptor", "brachio", "alpha", "trike"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
+    LIST.forEach(([k], i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
   }
   // one mesh of a model, ready to instance: its geometry and material, and the matrix that stands it on the ground with
   // its widest side 1 m (the instances then scale it in metres)
@@ -46,50 +51,60 @@ export function createJurassic(ctx) {
     if (!o) return null; let mesh = null; o.updateMatrixWorld(true); o.traverse((m) => { if (!mesh && m.isMesh) mesh = m; }); if (!mesh) return null;
     const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = 1 / Math.max(sz.x, sz.z, 1e-6);
     const base = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-(b.min.x + sz.x / 2), -b.min.y, -(b.min.z + sz.z / 2))).multiply(mesh.matrixWorld);
-    return { geo: mesh.geometry, mat: mesh.material, base, h: sz.y * k };
+    const foot = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-(b.min.x + sz.x / 2), -b.min.y, -(b.min.z + sz.z / 2)));
+    return { geo: mesh.geometry, mat: mesh.material, base, foot, h: sz.y * k };
   }
+  // the far model of one (models/world/jurassic/*-lod1: a tenth of the triangles, tools/lod-cluster.mjs) on the same footing
+  function farOf(u, o) {
+    if (!u || !o) return null; let mesh = null; o.updateMatrixWorld(true); o.traverse((m) => { if (!mesh && m.isMesh) mesh = m; }); if (!mesh) return null;
+    if (!mesh.geometry.attributes.normal) mesh.geometry.computeVertexNormals();
+    return { geo: mesh.geometry, base: u.foot.clone().multiply(mesh.matrixWorld) };
+  }
+  // ---------------- cells: the heavy props in 80 m squares, so what's behind the camera isn't drawn and what's far
+  // is the light model. Each square holds an InstancedMesh per kind (near and far); every quarter second the squares
+  // pick by their distance to the hero.
+  const CELL = 80, cells = [];
+  function cellsOf(scene, kind, near, far, mats, opts = {}) {
+    const by = new Map();
+    for (const m of mats) { const e = m.elements, cx = Math.floor(e[12] / CELL), cz = Math.floor(e[14] / CELL), k = cx + "," + cz; if (!by.has(k)) by.set(k, { cx, cz, list: [] }); by.get(k).list.push(m); }
+    for (const { cx, cz, list } of by.values()) {
+      const mk = (u, mat) => { const im = new THREE.InstancedMesh(u.geo, mat, list.length); list.forEach((m, i) => im.setMatrixAt(i, m.clone().multiply(u.base))); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); im.computeBoundingBox && im.computeBoundingBox(); scene.add(im); return im; };
+      const n = mk(near, near.mat); n.castShadow = !!opts.shadow; n.receiveShadow = !!opts.shadow;
+      const f = far ? mk(far, near.mat) : null; if (f) f.visible = false;
+      cells.push({ kind, x: (cx + 0.5) * CELL, z: (cz + 0.5) * CELL, near: n, far: f, nearD: opts.nearD || 70, maxD: opts.maxD || 330 });
+    }
+  }
+  let cellT = 0;
+  function tickCells(dt, force) {
+    if (!force && (cellT += dt) < 0.25) return; cellT = 0;
+    for (const c of cells) {
+      const d = Math.max(0, Math.hypot(c.x - px, c.z - pz) - CELL * 0.71), shown = d < c.maxD, nearOn = !c.far || d < c.nearD;
+      c.near.visible = shown && nearOn; if (c.far) c.far.visible = shown && !nearOn;
+    }
+  }
+
   function canvasTex(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
-  // ---------------- the raptors (the owner's Meshy Jungle Velociraptor: a still model, no skeleton yet) ----------------
-  // Until a rigged one arrives they move by the vertex shader: the tail sways, the head looks round, the chest breathes and
-  // the legs step in turn while walking. What they do: wander their part of the plain, stop and stare at you inside
-  // 14 m, and run off when you come within 7 m. (No fighting yet: that comes with the rigged model and the server.)
+  // ---------------- the raptors (the owner's 8-clip prototype: Idle, Walk, Run, Roar, two attacks, Hit, Death) ----------
+  // They wander their part of the plain, stop and stare at you inside 14 m (a roar now and then) and run off within 7 m.
+  // (No fighting yet: that comes with the server's say on damage and drops.)
   const raptors = [];
-  function raptorMat(src, bb) {
-    const m = src.clone(), U = { uT: { value: 0 }, uPh: { value: 0 }, uStride: { value: 0 }, uLook: { value: 0 } };
-    const L = bb.max.z - bb.min.z;
-    m.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U);
-      sh.vertexShader = "uniform float uT, uPh, uStride, uLook;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
-        float ru = (transformed.z - (${bb.min.z.toFixed(4)})) / ${L.toFixed(4)}, rv = (transformed.y - (${bb.min.y.toFixed(4)})) / ${(bb.max.y - bb.min.y).toFixed(4)}, rl = ${L.toFixed(4)};
-        float tw = smoothstep(0.45, 0.0, ru); transformed.x += sin(uT * 2.4 - ru * 7.0) * tw * tw * (0.07 + uStride * 0.05) * rl;
-        float hw = smoothstep(0.7, 1.0, ru); transformed.x += (uLook + sin(uT * 0.7) * 0.25) * hw * 0.07 * rl; transformed.y += sin(uT * 1.4) * hw * 0.012 * rl;
-        float bw = smoothstep(0.3, 0.5, ru) * smoothstep(0.78, 0.58, ru) * smoothstep(0.3, 0.7, rv); transformed.y += sin(uT * 2.0) * bw * 0.006 * rl;
-        float lw = smoothstep(0.42, 0.04, rv) * smoothstep(0.32, 0.44, ru) * smoothstep(0.74, 0.62, ru);
-        float ph = uPh + (transformed.x > ${((bb.min.x + bb.max.x) / 2).toFixed(4)} ? 0.0 : 3.14159);
-        transformed.z += sin(ph) * lw * uStride * 0.1 * rl; transformed.y += max(0.0, cos(ph)) * lw * uStride * 0.035 * rl;`); };
-    m.customProgramCacheKey = () => "raptor"; m.userData.U = U; return m;
-  }
   function makeRaptors(scene, rnd) {
-    const o = MODELS && MODELS.raptor; if (!o) return; let mesh = null; o.updateMatrixWorld(true); o.traverse((x) => { if (!mesh && x.isMesh) mesh = x; }); if (!mesh) return;
-    mesh.geometry.computeBoundingBox(); const bb = mesh.geometry.boundingBox;
-    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3());
-    const homes = [[-40, -10], [-55, -70], [20, -95], [95, -10], [-95, -40], [60, 40]].slice(0, low || coarse ? 4 : 6);
-    homes.forEach(([hx, hz], i) => {
-      const LEN = 3.6 + rnd() * 0.8, k = LEN / sz.z, g = new THREE.Group(), inner = mesh.clone(); inner.material = raptorMat(mesh.material, bb);
-      inner.matrixAutoUpdate = false; inner.matrix.copy(new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-(b.min.x + sz.x / 2), -b.min.y, -(b.min.z + sz.z / 2))).multiply(mesh.matrixWorld));
-      g.add(inner); scene.add(g);
-      const r = { g, U: inner.material.userData.U, hx, hz, x: hx + (rnd() - 0.5) * 10, z: hz + (rnd() - 0.5) * 10, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, ph: rnd() * 6, t0: rnd() * 10, state: "idle" };
-      raptors.push(r);
-    });
+    if (!(MODELS && MODELS.raptor8 && MODELS.raptor8.animations && ctx.K.skelClone)) return;
+    {
+      const homes = [[-40, -10], [-55, -70], [20, -95], [95, -10], [-95, -40], [60, 40]].slice(0, low || coarse ? 4 : 6);
+      homes.forEach(([hx, hz]) => { const R = rig(MODELS.raptor8, 3.8 + rnd() * 0.8); scene.add(R.g); R.loop("idle");
+        raptors.push({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx + (rnd() - 0.5) * 10, z: hz + (rnd() - 0.5) * 10, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, state: "idle", roarAt: 0 }); });
+    }
   }
   function tickRaptors(dt, t) {
     for (const r of raptors) {
       const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz);
-      let want = 0, look = 0;
+      let want = 0;
       if (d < 7) { r.state = "flee"; r.tx = r.x - dx / d * 18; r.tz = r.z - dz / d * 18; }
       else if (d < 14 && r.state !== "flee") { r.state = "stare"; }
       else if (r.state === "stare" || (r.state === "flee" && d > 22)) { r.state = "idle"; r.wait = 1 + Math.random() * 2; }
-      if (r.state === "stare") { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 3); look = Math.max(-1, Math.min(1, da * 2)); }
+      if (r.state === "stare") { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 3); }
       else if (r.state === "idle") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 6 + Math.random() * 18; r.tx = r.hx + Math.cos(a) * rr; r.tz = r.hz + Math.sin(a) * rr; r.state = "walk"; } }
       if (r.state === "walk" || r.state === "flee") {
         const ex = r.tx - r.x, ez = r.tz - r.z, ed = Math.hypot(ex, ez);
@@ -99,10 +114,10 @@ export function createJurassic(ctx) {
       r.sp += (want - r.sp) * Math.min(1, dt * 4);
       if (r.sp > 0.05) { const nx = r.x + Math.sin(r.face) * r.sp * dt, nz = r.z + Math.cos(r.face) * r.sp * dt;
         if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 5) { r.x = nx; r.z = nz; } else { r.state = "idle"; r.wait = 1; r.sp = 0; } }
-      r.ph += dt * r.sp * 2.6; const stride = Math.min(1, r.sp / 3);
-      const y = height(r.x, r.z); r.g.position.set(r.x, y + Math.abs(Math.sin(r.ph)) * 0.06 * stride, r.z); r.g.rotation.y = r.face;
-      r.g.rotation.x = -Math.sin(r.ph * 2) * 0.015 * stride; // a little pitch with each step
-      r.U.uT.value = t + r.t0; r.U.uPh.value = r.ph; r.U.uStride.value = stride; r.U.uLook.value += (look - r.U.uLook.value) * Math.min(1, dt * 3);
+      // its own walk and run, paced to the ground it covers; staring, a roar now and then
+      if (r.state === "stare" && t > r.roarAt) { if (r.R.once("roar", 0.8)) r.roarAt = t + 5 + Math.random() * 4; }
+      r.R.loop(r.sp > 5 ? "run" : r.sp > 0.4 ? "walk" : "idle", r.sp > 5 ? Math.max(0.7, r.sp / 8) : r.sp > 0.4 ? Math.max(0.6, r.sp / 2.6) : 1);
+      r.g.position.set(r.x, height(r.x, r.z), r.z); r.g.rotation.y = r.face; mixUp(r, r.mixer, dt, r.x, r.z);
     }
   }
   // a rigged copy turned so its head looks down +z (Meshy's rigs face their own way): the hips-to-head line in the bind pose
@@ -112,28 +127,82 @@ export function createJurassic(ctx) {
     const a = new THREE.Vector3(), c = new THREE.Vector3(); hip.getWorldPosition(a); head.getWorldPosition(c);
     const yaw = Math.atan2(c.x - a.x, c.z - a.z), w = new THREE.Group(); w.add(o); w.rotation.y = -yaw; w.updateMatrixWorld(true); return w;
   }
+  // a creature's far model: the same vertices (and skin) with about a tenth of the triangles, by vertex clustering
+  // (as tools/lod-cluster.mjs does for the props), made once per model; the mesh swaps to it past FAR_D
+  const FAR_D = coarse ? 40 : 60, farGeo = new WeakMap();
+  function lowOf(geo, ratio = 0.12) {
+    if (farGeo.has(geo)) return farGeo.get(geo);
+    const P = geo.attributes.position, I = geo.index ? geo.index.array : null; if (!I) { farGeo.set(geo, geo); return geo; }
+    const n = P.count, bb = new THREE.Box3().setFromBufferAttribute(P), lo3 = bb.min, sz = bb.getSize(new THREE.Vector3()), target = I.length * ratio;
+    const cluster = (g) => { const cell = new Map(), rep = new Uint32Array(n);
+      for (let v = 0; v < n; v++) { const k = (Math.min(g - 1, Math.floor((P.getX(v) - lo3.x) / (sz.x || 1) * g)) * g + Math.min(g - 1, Math.floor((P.getY(v) - lo3.y) / (sz.y || 1) * g))) * g + Math.min(g - 1, Math.floor((P.getZ(v) - lo3.z) / (sz.z || 1) * g)); let r = cell.get(k); if (r === undefined) { r = v; cell.set(k, v); } rep[v] = r; }
+      const out = []; for (let t = 0; t < I.length; t += 3) { const a = rep[I[t]], b = rep[I[t + 1]], c = rep[I[t + 2]]; if (a !== b && b !== c && a !== c) out.push(a, b, c); } return out; };
+    let lo = 6, hi = 80, best = null; for (let it = 0; it < 7 && lo <= hi; it++) { const g = (lo + hi) >> 1, r = cluster(g); if (r.length <= target) { best = r; lo = g + 1; } else hi = g - 1; }
+    const f = new THREE.BufferGeometry(); for (const k of Object.keys(geo.attributes)) f.setAttribute(k, geo.attributes[k]); f.setIndex(best || cluster(6)); f.boundingSphere = geo.boundingSphere; f.boundingBox = geo.boundingBox;
+    farGeo.set(geo, f); return f;
+  }
+  function lodMeshes(g) { const list = []; g.traverse((m) => { if (m.isMesh && m.geometry) list.push({ m, near: m.geometry, far: lowOf(m.geometry) }); }); return list; }
+  function setLod(o, d) { const far = d > FAR_D; if (o.lodFar === far) return; o.lodFar = far; for (const x of o.lod || []) x.m.geometry = far ? x.far : x.near; }
+  // a rigged copy with named clips (the owner's 8-clip prototypes: Idle, Walk, Run, attacks, Hit, Death, Roar …): turned
+  // head first, LEN m long, its clips crossfaded by name; a one-shot (a roar, a horn toss) goes back to the loop it broke
+  function rig(gl, LEN, H = 0) {
+    const o0 = ctx.K.skelClone(gl.scene), o = faceZ(o0); o.updateMatrixWorld(true);
+    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = H ? H / (sz.y || 1) : LEN / (Math.max(sz.x, sz.z) || 1);
+    o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k); o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
+    const g = new THREE.Group(); g.add(o);
+    const mixer = new THREE.AnimationMixer(o), byName = {};
+    for (const c of gl.animations) byName[c.name.replace(/^.*\|/, "").toLowerCase()] = c;
+    const clip = (n) => byName[n] || Object.entries(byName).find(([k2]) => k2.startsWith(n))?.[1] || null;
+    const R = { g, mixer, cur: null, loopName: "", one: null, h: sz.y * k };
+    R.has = (n) => !!clip(n);
+    R.loop = (n, speed = 1) => { if (R.one) { R.loopName = n; R.loopSpeed = speed; return; } const c = clip(n); if (!c) return; const a = mixer.clipAction(c); a.timeScale = speed; if (R.cur === a) return;
+      a.reset().setLoop(THREE.LoopRepeat, Infinity).play(); if (R.cur) R.cur.crossFadeTo(a, 0.25, false); R.cur = a; R.loopName = n; R.loopSpeed = speed; };
+    R.once = (n, speed = 1) => { const c = clip(n); if (!c || R.one) return false; const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = speed; a.play(); if (R.cur) R.cur.crossFadeTo(a, 0.15, false); R.one = a; R.cur = a; return true; };
+    mixer.addEventListener("finished", (e) => { if (e.action !== R.one) return; R.one = null; const back = R.loopName || "idle"; const c = clip(back); if (c) { const a = mixer.clipAction(c); a.reset().setLoop(THREE.LoopRepeat, Infinity).play(); e.action.crossFadeTo(a, 0.25, false); a.timeScale = R.loopSpeed || 1; R.cur = a; } });
+    return R;
+  }
+  // a far creature's clip is stepped less often (every 3rd frame past 45 m, every 8th past 140 m) and it isn't drawn past 260 m
+  function mixUp(o, mixer, dt, x, z) {
+    const d = Math.hypot(x - px, z - pz); if (o.g) o.g.visible = d < 260; setLod(o, d); o.acc = (o.acc || 0) + dt; o.n = (o.n || 0) + 1;
+    const every = d > 140 ? 8 : d > 45 ? 3 : 1; if (o.n % every) return; if (d < 260) mixer.update(o.acc); o.acc = 0;
+  }
+  // ---------------- the sentinel (the owner's Meshy Raptor Roar, rigged, its roar): one raptor on a boulder by the lake,
+  // in sight of the gate. It stands watching; come within 32 m and it turns to you and roars, again every few seconds.
+  let sentinel = null; const SENT = { x: 26, z: -2 };
+  function makeSentinel(scene) {
+    const gl = MODELS && MODELS.raptor8; if (!gl || !ctx.K.skelClone || !gl.animations) return;
+    const R = rig(gl, 4.6); scene.add(R.g); R.loop("idle");
+    // its rock: the owner's boulder when it's there
+    const rk = unit(MODELS.rock); let top = 0;
+    if (rk) { const m = new THREE.Mesh(rk.geo, rk.mat); m.matrixAutoUpdate = false; const w = 6; top = rk.h * w * 0.82; m.matrix.compose(new THREE.Vector3(SENT.x, height(SENT.x, SENT.z) - 0.3, SENT.z), new THREE.Quaternion(), new THREE.Vector3(w, w, w)).multiply(rk.base); m.castShadow = m.receiveShadow = true; scene.add(m); }
+    R.g.position.set(SENT.x, height(SENT.x, SENT.z) + top - 0.3, SENT.z);
+    sentinel = { g: R.g, R, mixer: R.mixer, face: Math.PI * 0.7, next: 0, lod: lodMeshes(R.g) };
+  }
+  function tickSentinel(dt, t) {
+    const R = sentinel; if (!R) return;
+    const dx = px - SENT.x, dz = pz - SENT.z, d = Math.hypot(dx, dz);
+    if (d < 32) { const a = Math.atan2(dx, dz); let da = a - R.face; da = Math.atan2(Math.sin(da), Math.cos(da)); R.face += da * Math.min(1, dt * 2.5);
+      if (t > R.next && Math.abs(da) < 0.4 && R.R.once("roar", 0.7)) R.next = t + 6 + Math.random() * 3; }
+    R.g.rotation.y = R.face; mixUp(R, R.mixer, dt, SENT.x, SENT.z);
+  }
   // ---------------- the brachiosaurs (the owner's Meshy Brachiosaurus, rigged, with its walk): a small herd walking a
   // slow loop beyond the lake, 13 m tall, so the plain feels as big as it is. Not for fighting: they're the view.
   const herd = [];
   function makeHerd(scene) {
-    const gl = MODELS && MODELS.brachio; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
+    const gl = MODELS && MODELS.brachio8; if (!gl || !ctx.K.skelClone || !gl.animations) return;
     const n = low || coarse ? 2 : 3;
-    for (let i = 0; i < n; i++) {
-      const o0 = ctx.K.skelClone(gl.scene), o = faceZ(o0); o.updateMatrixWorld(true);
-      const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = (13 + i * 1.2) / (sz.y || 1);
-      const inner = new THREE.Group(); o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k); inner.add(o);
-      o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; }); // (a skinned mesh's bounds are its bind pose)
-      const g = new THREE.Group(); g.add(inner); scene.add(g);
-      const mixer = new THREE.AnimationMixer(o), act = mixer.clipAction(gl.animations[0]); act.play(); act.time = i * 0.37;
-      herd.push({ g, mixer, a: i * 0.5, r: 58 + i * 7, sp: 1.5 });
-    }
+    for (let i = 0; i < n; i++) { const R = rig(gl, 1, 13 + i * 1.2); scene.add(R.g); R.loop("walk", 0.8); herd.push({ g: R.g, R, mixer: R.mixer, a: i * 0.5, r: 58 + i * 7, sp: 1.5, stopAt: 20 + i * 9, stopFor: 0 }); }
   }
   const HERD = { x: 40, z: -120 };
-  function tickHerd(dt) {
+  function tickHerd(dt, t = 0) {
     for (const h of herd) {
+      // walking its loop; every half a minute or so it stops to eat for a while (and roars now and then)
+      if (h.stopFor > 0) { h.stopFor -= dt; h.sp += (0 - h.sp) * Math.min(1, dt * 1.5); if (h.stopFor <= 0) h.stopAt = t + 25 + Math.random() * 20; }
+      else { h.sp += (1.5 - h.sp) * Math.min(1, dt); if (t > h.stopAt) { h.stopFor = 7 + Math.random() * 5; if (Math.random() < 0.35) h.R.once("roar", 0.9); } }
+      h.R.loop(h.stopFor > 0 && h.sp < 0.4 ? "eat" : "walk", h.stopFor > 0 ? 1 : Math.max(0.5, h.sp / 1.8));
       h.a += (h.sp / h.r) * dt; const x = HERD.x + Math.cos(h.a) * h.r, z = HERD.z + Math.sin(h.a) * h.r * 0.6;
       const tx = -Math.sin(h.a) * h.r, tz = Math.cos(h.a) * h.r * 0.6; // the way it walks (the loop's tangent)
-      h.g.position.set(x, height(x, z) - 0.2, z); h.g.rotation.y = Math.atan2(tx, tz); h.mixer.update(dt);
+      h.g.position.set(x, height(x, z) - 0.2, z); h.g.rotation.y = Math.atan2(tx, tz); mixUp(h, h.mixer, dt, x, z);
     }
   }
   // ---------------- the Alpha Raptor (the owner's Meshy boss, rigged, with its walk): the plain's first boss, keeping the
@@ -141,17 +210,12 @@ export function createJurassic(ctx) {
   // away and it goes back. (Its fight, three phases and drops, comes with its attack clips and the server's say on damage.)
   let alpha = null; const ALPHA_HOME = { x: -20, z: -100 };
   function makeAlpha(scene) {
-    const gl = MODELS && MODELS.alpha; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
-    const o0 = ctx.K.skelClone(gl.scene), o = faceZ(o0); o.updateMatrixWorld(true);
-    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = 6.5 / (Math.max(sz.x, sz.z) || 1);
-    o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k);
-    o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
-    const g = new THREE.Group(); g.add(o); scene.add(g);
-    const tag = ctx.K.label(T("Alpha Raptor"), { accent: "#ff4d6d", color: "#ffd2d9", size: 0.9, sub: T("Boss · Lv 10") }); tag.position.y = sz.y * k + 1.4; g.add(tag);
-    const mixer = new THREE.AnimationMixer(o), act = mixer.clipAction(gl.animations[0]); act.play();
-    alpha = { g, mixer, act, x: ALPHA_HOME.x, z: ALPHA_HOME.z, face: 0, a: 0, state: "patrol", sp: 2.2, orbit: 1 };
+    const gl = MODELS && MODELS.alpha8; if (!gl || !ctx.K.skelClone || !gl.animations) return;
+    const R = rig(gl, 6.5); scene.add(R.g); R.loop("idle");
+    const tag = ctx.K.label(T("Alpha Raptor"), { accent: "#ff4d6d", color: "#ffd2d9", size: 0.9, sub: T("Boss · Lv 10") }); tag.position.y = R.h + 1.4; R.g.add(tag);
+    alpha = { g: R.g, R, mixer: R.mixer, x: ALPHA_HOME.x, z: ALPHA_HOME.z, face: 0, a: 0, state: "patrol", sp: 2.2, orbit: 1, feintAt: 0 };
   }
-  function tickAlpha(dt) {
+  function tickAlpha(dt, t = 0) {
     const A = alpha; if (!A) return;
     const dx = px - A.x, dz = pz - A.z, d = Math.hypot(dx, dz), home = Math.hypot(A.x - ALPHA_HOME.x, A.z - ALPHA_HOME.z);
     if (A.state === "patrol" && d < 18) A.state = "stalk"; else if (A.state === "stalk" && (d > 30 || home > 45)) A.state = "patrol";
@@ -166,24 +230,20 @@ export function createJurassic(ctx) {
     const nx = A.x + Math.sin(A.face) * A.sp * dt, nz = A.z + Math.cos(A.face) * A.sp * dt;
     if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { A.x = nx; A.z = nz; } else A.orbit = -A.orbit;
     A.g.position.set(A.x, height(A.x, A.z), A.z); A.g.rotation.y = A.face;
-    A.act.timeScale = 0.6 + A.sp / 4; A.mixer.update(dt);
+    if (A.state === "stalk" && d < 12 && t > A.feintAt) { const f = ["attack_claw", "attack_tail", "attack_bite", "attack_leap"][Math.floor(Math.random() * 4)]; if (A.R.once(f, 1)) A.feintAt = t + 4 + Math.random() * 3; }
+    A.R.loop(A.sp > 4.5 ? "run" : A.sp > 0.4 ? "walk" : "idle", A.sp > 4.5 ? Math.max(0.7, A.sp / 7) : Math.max(0.6, A.sp / 2.4)); mixUp(A, A.mixer, dt, A.x, A.z);
   }
   // ---------------- the triceratops (the owner's Meshy Blazing Triceratops, rigged, with its walk): a small herd grazing
   // east of the lake. They amble from patch to patch; come within 9 m and the nearest turns its horns to you and stands.
   const trikes = []; const TRIKE_HOME = { x: 105, z: 5 };
   function makeTrikes(scene) {
-    const gl = MODELS && MODELS.trike; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
-    const n = low || coarse ? 2 : 3;
-    for (let i = 0; i < n; i++) {
-      const o0 = ctx.K.skelClone(gl.scene), o = faceZ(o0); o.updateMatrixWorld(true);
-      const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = (6.4 + i * 0.6) / (Math.max(sz.x, sz.z) || 1);
-      o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k); o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
-      const g = new THREE.Group(); g.add(o); scene.add(g);
-      const mixer = new THREE.AnimationMixer(o), act = mixer.clipAction(gl.animations[0]); act.play(); act.time = i * 0.3;
-      trikes.push({ g, mixer, act, x: TRIKE_HOME.x + i * 7 - 7, z: TRIKE_HOME.z + (i % 2) * 6, face: Math.PI * 0.6, tx: 0, tz: 0, sp: 0, wait: 2 + i * 2, state: "graze" });
+    if (!(MODELS && MODELS.trike8 && MODELS.trike8.animations && ctx.K.skelClone)) return;
+    { const n = low || coarse ? 2 : 3;
+      for (let i = 0; i < n; i++) { const R = rig(MODELS.trike8, 6.4 + i * 0.6); scene.add(R.g); R.loop("idle");
+        trikes.push({ g: R.g, R, mixer: R.mixer, x: TRIKE_HOME.x + i * 7 - 7, z: TRIKE_HOME.z + (i % 2) * 6, face: Math.PI * 0.6, tx: 0, tz: 0, sp: 0, wait: 2 + i * 2, state: "graze", hornAt: 0 }); }
     }
   }
-  function tickTrikes(dt) {
+  function tickTrikes(dt, t = 0) {
     for (const r of trikes) {
       const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz); let want = 0;
       if (d < 9) r.state = "guard"; else if (r.state === "guard" && d > 14) { r.state = "graze"; r.wait = 2; }
@@ -194,8 +254,9 @@ export function createJurassic(ctx) {
       r.sp += (want - r.sp) * Math.min(1, dt * 2);
       if (r.sp > 0.05) { const nx = r.x + Math.sin(r.face) * r.sp * dt, nz = r.z + Math.cos(r.face) * r.sp * dt; if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { r.x = nx; r.z = nz; } else { r.state = "graze"; r.wait = 2; } }
       r.g.position.set(r.x, height(r.x, r.z), r.z); r.g.rotation.y = r.face;
-      r.act.timeScale = r.sp > 0.1 ? 0.5 + r.sp / 2.5 : 0.12; // standing: the walk barely moves (a shuffle while it grazes)
-      r.mixer.update(dt);
+      // guarding: a horn toss at you now and then; otherwise its walk at the pace it ambles, its idle while it grazes
+      if (r.state === "guard" && t > r.hornAt) { if (r.R.once("attack_horn", 1)) r.hornAt = t + 3.5 + Math.random() * 2; }
+      r.R.loop(r.sp > 0.3 ? "walk" : "idle", r.sp > 0.3 ? Math.max(0.6, r.sp / 1.4) : 1); mixUp(r, r.mixer, dt, r.x, r.z);
     }
   }
   function build() {
@@ -206,8 +267,16 @@ export function createJurassic(ctx) {
     const sky = new THREE.Mesh(new THREE.SphereGeometry(800, 32, 16), new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false, depthWrite: false,
       map: canvasTex(8, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#3f86d6"); gr.addColorStop(0.38, "#8fc0e8"); gr.addColorStop(0.5, "#e9e2c8"); gr.addColorStop(0.56, "#c9d6c4"); gr.addColorStop(1, "#9fb39a"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }) }));
     scene.add(sky);
-    scene.add(new THREE.HemisphereLight(0xdfeeff, 0x4a5a32, 1.1));
-    const sun = new THREE.DirectionalLight(0xfff0d6, 2.4); sun.position.set(-120, 160, 80); scene.add(sun, sun.target);
+    scene.add(new THREE.HemisphereLight(0xdfeeff, 0x4a5a32, 0.75));
+    const sun = new THREE.DirectionalLight(0xffecd0, 2.7); sun.position.set(-120, 160, 80); scene.add(sun, sun.target);
+    // the sun's shadow follows the hero (a box round them), when the device draws shadows at all
+    const shadows = !!(st.renderer.shadowMap && st.renderer.shadowMap.enabled && st.renderer.shadowMap.autoUpdate !== false) && !low;
+    if (shadows) { sun.castShadow = true; const R = coarse ? 30 : 42, sc0 = sun.shadow.camera; sc0.left = -R; sc0.right = R; sc0.top = R; sc0.bottom = -R; sc0.near = 1; sc0.far = 420;
+      sun.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.05; sc0.updateProjectionMatrix(); }
+    // the sky as the light the models reflect (the Meshy materials are PBR: without it they look flat, like plastic)
+    try { const pm = new THREE.PMREMGenerator(st.renderer), es = new THREE.Scene(); es.add(sky.clone());
+      const sunBall = new THREE.Mesh(new THREE.SphereGeometry(40, 16, 8), new THREE.MeshBasicMaterial({ color: 0xfff1d0 })); sunBall.position.copy(sun.position).normalize().multiplyScalar(700); es.add(sunBall);
+      const rt = pm.fromScene(es, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.55; pm.dispose(); } catch (e) { console.warn("jurassic env", e); }
 
     // terrain, coloured by height and slope (grass, darker forest floor, dirt, sand at the water, rock on the ridges)
     const N = low ? 110 : 170, geo = new THREE.PlaneGeometry(J.SIZE, J.SIZE, N, N); geo.rotateX(-Math.PI / 2);
@@ -226,7 +295,7 @@ export function createJurassic(ctx) {
       for (let i = 0; i < 40; i++) { const v = 120 + Math.floor(r() * 60); g.fillStyle = `rgba(${v},${v},${v},0.35)`; g.beginPath(); g.arc(r() * w, r() * h, 6 + r() * 18, 0, 6.283); g.fill(); } });
     detail.wrapS = detail.wrapT = THREE.RepeatWrapping; detail.repeat.set(J.SIZE / 6, J.SIZE / 6); detail.anisotropy = 4;
     const uv = geo.attributes.uv; // (the plane's uv runs 0–1 across the land; the repeat tiles it every 6 m)
-    const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.96, metalness: 0 })); void uv; scene.add(ground);
+    const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.96, metalness: 0 })); void uv; ground.receiveShadow = true; scene.add(ground);
 
     // the lake
     const water = new THREE.Mesh(new THREE.CircleGeometry(J.LAKE.r + 12, 64), new THREE.MeshStandardMaterial({ color: 0x2f6f78, roughness: 0.12, metalness: 0.2, transparent: true, opacity: 0.86 }));
@@ -251,43 +320,60 @@ export function createJurassic(ctx) {
     seed = 23; scatter(kg, leaf2, low ? 90 : 170, 30, 205, [0.9, 1.8]);
     // ferns: low clumps of three tilted leaves
     const fern = new THREE.IcosahedronGeometry(0.62, 0); fern.scale(1, 0.42, 1); fern.translate(0, 0.16, 0);
-    seed = 31; scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5f9636, roughness: 0.9, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
+    seed = 31; if (!(MODELS && MODELS["fern-01"])) scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5f9636, roughness: 0.9, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
     // grass tufts: thin blades in small clumps, thickest around the gate where the camera looks down
     const tuft = new THREE.ConeGeometry(0.035, 0.42, 3, 1, true); tuft.translate(0, 0.19, 0);
     seed = 37; scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x5f8f35, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
     // boulders
+    // where a kind stands, as plain matrices (the cells then add each model's footing)
+    const mats = (n, minGate, maxR, size, sink = 0) => { const out = []; for (let i = 0; i < n; i++) { const s0 = spotFor(minGate, maxR); if (!s0) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s0.x, s0.y - sink * z, s0.z); out.push(new THREE.Matrix4().compose(p3, q, sc)); } return out; };
+    const NEAR_D = coarse ? 50 : 70;
     const rock = unit(MODELS && MODELS.rock);
-    if (rock) { seed = 41; scatter(rock.geo, rock.mat, low ? 40 : 70, 10, 190, [1.4, 4.2], 0.12, rock.base); }
+    if (rock) { seed = 41; cellsOf(scene, "rock", rock, farOf(rock, MODELS.rock1), mats(low ? 40 : 70, 10, 190, [1.4, 4.2], 0.12), { shadow: true, nearD: NEAR_D }); }
     else { const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1); seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25); }
     // palms round the lake's shore (the model is ~8.6K triangles, so a ring of them, not a forest)
     const palm = unit(MODELS && MODELS.palm);
-    if (palm) { const n = low || coarse ? 12 : 22, im = new THREE.InstancedMesh(palm.geo, palm.mat, n); let k = 0; seed = 53;
-      for (let i = 0; i < n * 3 && k < n; i++) { const a = rnd() * Math.PI * 2, r = J.LAKE.r + 6 + rnd() * 10, x = J.LAKE.x + Math.cos(a) * r, z = J.LAKE.z + Math.sin(a) * r, y = height(x, z);
-        if (y < WATER_Y + 0.3) continue; const w = 4 + rnd() * 2.5; q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.9 + rnd() * 0.25), w); p3.set(x, y - 0.1, z); m4.compose(p3, q, sc).multiply(palm.base); im.setMatrixAt(k++, m4); }
-      im.count = k; im.instanceMatrix.needsUpdate = true; scene.add(im); }
+    if (palm) { const n = low || coarse ? 14 : 26, list = []; seed = 53;
+      for (let i = 0; i < n * 3 && list.length < n; i++) { const a = rnd() * Math.PI * 2, r = J.LAKE.r + 6 + rnd() * 10, x = J.LAKE.x + Math.cos(a) * r, z = J.LAKE.z + Math.sin(a) * r, y = height(x, z);
+        if (y < WATER_Y + 0.3) continue; const w = 4 + rnd() * 2.5; q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.9 + rnd() * 0.25), w); p3.set(x, y - 0.1, z); list.push(new THREE.Matrix4().compose(p3, q, sc)); }
+      cellsOf(scene, "palm", palm, farOf(palm, MODELS.palm1), list, { shadow: true, nearD: NEAR_D }); }
     // the ancient giants (the model is ~17K triangles): a few landmarks along the view from the gate; the forest behind
     // them stays the light drawn trees
     const anc = unit(MODELS && MODELS.ancient);
     if (anc) { const spots = [[-24, 14, 13], [24, 18, 11], [-58, -40, 16], [12, -72, 18], [-92, 8, 15], [92, 34, 14], [-34, -128, 17], [44, -138, 16]].slice(0, low || coarse ? 5 : 8);
-      const im = new THREE.InstancedMesh(anc.geo, anc.mat, spots.length); seed = 61;
-      spots.forEach(([x, z, w], i) => { q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.95 + rnd() * 0.2), w); p3.set(x, height(x, z) - 0.3, z); m4.compose(p3, q, sc).multiply(anc.base); im.setMatrixAt(i, m4); });
-      im.instanceMatrix.needsUpdate = true; scene.add(im); }
+      seed = 61; const list = spots.map(([x, z, w]) => { q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.95 + rnd() * 0.2), w); p3.set(x, height(x, z) - 0.3, z); return new THREE.Matrix4().compose(p3, q, sc); });
+      cellsOf(scene, "ancient", anc, farOf(anc, MODELS.ancient1), list, { shadow: true, nearD: NEAR_D + 20 }); }
     // the old ruins: a great gate on the far shore of the lake, and two smaller ones along the plain
     const ruin = unit(MODELS && MODELS.ruins);
-    if (ruin) [[J.LAKE.x + 8, J.LAKE.z - J.LAKE.r - 16, 14, 0.4], [-48, -20, 8, -0.9], [-20, -110, 10, 0.2]].forEach(([x, z, w, ry]) => {
-      const m = new THREE.Mesh(ruin.geo, ruin.mat); m.matrixAutoUpdate = false;
-      m.matrix.compose(new THREE.Vector3(x, height(x, z) - 0.25, z), new THREE.Quaternion().setFromAxisAngle(up, ry), new THREE.Vector3(w, w, w)).multiply(ruin.base); scene.add(m); });
+    if (ruin) cellsOf(scene, "ruins", ruin, farOf(ruin, MODELS.ruins1), [[J.LAKE.x + 8, J.LAKE.z - J.LAKE.r - 16, 14, 0.4], [-48, -20, 8, -0.9], [-20, -110, 10, 0.2]].map(([x, z, w, ry]) =>
+      new THREE.Matrix4().compose(new THREE.Vector3(x, height(x, z) - 0.25, z), new THREE.Quaternion().setFromAxisAngle(up, ry), new THREE.Vector3(w, w, w))), { shadow: true, nearD: NEAR_D + 20 });
+    // the owner's nature props (ferns, bushes, flowers, logs: vertex-coloured, joined to one mesh each): thick round the
+    // gate, the paths and the lake; in 80 m cells, drawn only near (they're the ground's detail, not the view)
+    const natMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
+    const NAT = { fern: [low ? 70 : coarse ? 110 : 190, [1.2, 2.4]], bush: [low ? 45 : coarse ? 70 : 120, [1.4, 2.8]], flowers: [low ? 50 : coarse ? 80 : 140, [0.5, 1.0]], log: [low ? 10 : 18, [2.6, 4.6]] };
+    seed = 83;
+    for (const [kind, [n, size]] of Object.entries(NAT)) for (let v = 1; v <= 3; v++) {
+      const o = MODELS && MODELS[kind + "-0" + v]; if (!o) continue;
+      const u = unit(o); if (!u) continue; if (!u.geo.attributes.normal) u.geo.computeVertexNormals();
+      cellsOf(scene, kind, { ...u, mat: natMat }, null, mats(Math.round(n / 3), 4, 175, size, kind === "log" ? 0.08 : 0), { shadow: kind === "log", nearD: 999, maxD: coarse ? 55 : 80 });
+    }
 
     // the gate home: the same stone gate as in town (world-jurgate.js)
     const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
-    seed = 71; makeRaptors(scene, rnd); makeHerd(scene); makeAlpha(scene); makeTrikes(scene);
-    S = { scene, cam, gate, spin: gate.userData.spin || [] };
+    seed = 71; makeRaptors(scene, rnd); makeHerd(scene); makeAlpha(scene); makeTrikes(scene); makeSentinel(scene);
+    raptors.forEach((r) => { r.lod = lodMeshes(r.g); }); herd.forEach((h) => { h.lod = lodMeshes(h.g); }); trikes.forEach((r) => { r.lod = lodMeshes(r.g); }); if (alpha) alpha.lod = lodMeshes(alpha.g);
+    if (shadows) { const cast = (g) => g && g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); raptors.forEach((r) => cast(r.g)); herd.forEach((h) => cast(h.g)); trikes.forEach((r) => cast(r.g)); if (alpha) cast(alpha.g); if (sentinel) cast(sentinel.g); cast(gate); }
+    // a soft glow on the light (the town's bloom, gentler), where the device has bloom on
+    let comp = null;
+    if (!low && st.quality && st.quality.bloom && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX; comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(scene, cam)); const bl = new P.UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.4, 0.92); bl.heavy = true; comp.addPass(bl); comp.addPass(new P.OutputPass()); } catch (e) { console.warn("jurassic bloom", e); comp = null; } }
+    S = { scene, cam, gate, sun, shadows, comp, spin: gate.userData.spin || [] };
+    tickCells(0, true);
   }
 
   async function makeHero() {
-    if (hero) { S.scene.add(hero.obj); return; }
+    if (hero) { S.scene.add(hero.obj); if (S.shadows) hero.obj.traverse((m) => { if (m.isMesh) m.castShadow = true; }); return; }
     try { hero = await ctx.makeHero(); } catch { hero = null; }
-    if (hero) S.scene.add(hero.obj);
+    if (hero) { S.scene.add(hero.obj); if (S.shadows) hero.obj.traverse((m) => { if (m.isMesh) m.castShadow = true; }); }
   }
 
   // ---------------- the HUD: leave, the title, a stick and the way home ----------------
@@ -312,15 +398,22 @@ export function createJurassic(ctx) {
       if (e.target.closest("button")) return;
       if (e.pointerType !== "mouse" && e.clientX < innerWidth * 0.45 && stick.id < 0) { stick.id = e.pointerId; stick.ox = e.clientX; stick.oy = e.clientY; stick.x = stick.y = 0; ui.stick.style.left = e.clientX + "px"; ui.stick.style.top = e.clientY + "px"; ui.stick.classList.add("on"); }
       else if (look.id < 0) { look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY; }
+      else if (e.pointerType !== "mouse" && pinch.a < 0) { pinch.a = look.id; pinch.b = e.pointerId; }
+      pinch.pts.set(e.pointerId, [e.clientX, e.clientY]); if (pinch.a >= 0 && pinch.pts.has(pinch.a) && pinch.pts.has(pinch.b)) { const [a, b] = [pinch.pts.get(pinch.a), pinch.pts.get(pinch.b)]; pinch.d = Math.hypot(a[0] - b[0], a[1] - b[1]); }
       try { root.setPointerCapture(e.pointerId); } catch { /* fine */ }
     });
     root.addEventListener("pointermove", (e) => {
       if (e.pointerId === stick.id) { const dx = e.clientX - stick.ox, dy = e.clientY - stick.oy, l = Math.hypot(dx, dy), m = Math.min(1, l / 55); stick.x = l ? dx / l * m : 0; stick.y = l ? dy / l * m : 0; ui.knob.style.transform = `translate(${stick.x * 34}px,${stick.y * 34}px)`; }
-      else if (e.pointerId === look.id) { camYaw -= (e.clientX - look.x) * 0.006; camPitch = Math.max(-0.05, Math.min(0.9, camPitch + (e.clientY - look.y) * 0.004)); look.x = e.clientX; look.y = e.clientY; }
+      if (pinch.pts.has(e.pointerId)) pinch.pts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pinch.a >= 0 && (e.pointerId === pinch.a || e.pointerId === pinch.b) && pinch.pts.has(pinch.a) && pinch.pts.has(pinch.b)) {
+        // two fingers: pinch zooms (the town's 0.6–1.9)
+        const [a, b] = [pinch.pts.get(pinch.a), pinch.pts.get(pinch.b)], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch.d > 0) camGoal = Math.max(0.6, Math.min(1.9, camGoal * pinch.d / Math.max(1, d))); pinch.d = d; return;
+      }
+      if (e.pointerId === look.id) { camYaw -= (e.clientX - look.x) * 0.006; camPitch = Math.max(-0.3, Math.min(0.75, camPitch + (e.clientY - look.y) * 0.004)); look.x = e.clientX; look.y = e.clientY; }
     });
-    const up = (e) => { if (e.pointerId === stick.id) { stick.id = -1; stick.x = stick.y = 0; ui.knob.style.transform = ""; ui.stick.classList.remove("on"); } if (e.pointerId === look.id) look.id = -1; };
+    const up = (e) => { pinch.pts.delete(e.pointerId); if (e.pointerId === pinch.a || e.pointerId === pinch.b) { pinch.a = pinch.b = -1; pinch.d = 0; } if (e.pointerId === stick.id) { stick.id = -1; stick.x = stick.y = 0; ui.knob.style.transform = ""; ui.stick.classList.remove("on"); } if (e.pointerId === look.id) look.id = -1; };
     root.addEventListener("pointerup", up); root.addEventListener("pointercancel", up);
-    root.addEventListener("wheel", (e) => { camDist = Math.max(5, Math.min(18, camDist + Math.sign(e.deltaY) * 0.8)); }, { passive: true });
+    root.addEventListener("wheel", (e) => { camGoal = Math.max(0.6, Math.min(1.9, camGoal * (e.deltaY > 0 ? 1.1 : 0.91))); }, { passive: true });
   }
   const kd = (e) => { if (!on) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); leave(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && nearGate) { e.preventDefault(); e.stopPropagation(); leave(); } if (k === " " && !e.repeat) jumpQ = true; };
   const ku = (e) => { keys.delete(e.key.toLowerCase()); };
@@ -358,12 +451,21 @@ export function createJurassic(ctx) {
         else if (!(hero.busy && hero.busy()) || speed > 0.6) anim(speed > 9 ? "sprint" : speed > 0.6 ? "walk" : "idle", speed > 9 ? 1 : speed > 0.6 ? Math.max(0.8, speed / 6.5) : 1);
       }
     }
-    // the camera: low behind the hero, so the trees (and later the dinosaurs) stand tall
-    const cy = py + 1.6 + Math.sin(camPitch) * camDist, ch = Math.cos(camPitch) * camDist;
-    let cx = px + Math.sin(camYaw) * ch, cz = pz + Math.cos(camYaw) * ch; const gy = Math.max(height(cx, cz), WATER_Y) + 0.8;
-    S.cam.position.set(cx, Math.max(cy, gy) + hop * 0.5, cz); S.cam.lookAt(px, py + 1.7 + hop * 0.6, pz);
+    // the camera, as in town (world-play.js): 5.2 m up (more as you look down) and 9.6 m back, times the zoom; it looks
+    // 2.6 m ahead of the hero and follows a touch behind; running widens the view
+    camDist += (camGoal - camDist) * (1 - Math.exp(-dt * 10));
+    const bh = (5.2 + camPitch * 6) * camDist, bk = 9.6 * camDist;
+    camPos.set(px + Math.sin(camYaw) * bk, py + bh + hop * 0.6, pz + Math.cos(camYaw) * bk);
+    camPos.y = Math.max(camPos.y, Math.max(height(camPos.x, camPos.z), WATER_Y) + 0.6);
+    camLook.set(px - Math.sin(camYaw) * 2.6, py + 1.4 + hop * 0.5, pz - Math.cos(camYaw) * 2.6);
+    if (!camInit) { S.cam.position.copy(camPos); camLookS.copy(camLook); camInit = true; }
+    S.cam.position.lerp(camPos, 1 - Math.exp(-dt * 10)); camLookS.lerp(camLook, 1 - Math.exp(-dt * 14)); S.cam.lookAt(camLookS);
+    const fov = 55 + THREE.MathUtils.smoothstep(speed, 2, 22) * 11; if (Math.abs(S.cam.fov - fov) > 0.05) { S.cam.fov += (fov - S.cam.fov) * (1 - Math.exp(-dt * (fov > S.cam.fov ? 6 : 3))); S.cam.updateProjectionMatrix(); }
+    // the sun's shadow box follows the hero
+    if (S.shadows) { S.sun.target.position.set(px, py, pz); S.sun.position.set(px - 60, py + 80, pz + 40); }
+    tickCells(dt);
     for (const f of S.spin) f(dt, t);
-    tickRaptors(dt, t); tickHerd(dt); tickAlpha(dt); tickTrikes(dt);
+    tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
   }
 
@@ -373,9 +475,9 @@ export function createJurassic(ctx) {
     try {
       if (!S) { await loadModels(); build(); } if (!ui) buildUi();
       await makeHero(); animNow = "";
-      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.3; camDist = coarse ? 10 : 9; speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
+      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 1; camInit = false; speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
-      st.view(S.scene, S.cam, null); st.solo(tick); on = true;
+      st.view(S.scene, S.cam, S.comp || null); st.solo(tick); on = true;
       document.body.classList.add("wp-jurassic"); ui.root.hidden = false;
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
       ui.title.hidden = false; ui.title.classList.remove("go"); void ui.title.offsetWidth; ui.title.classList.add("go"); setTimeout(() => { if (ui) ui.title.hidden = true; }, 3000);
@@ -390,5 +492,5 @@ export function createJurassic(ctx) {
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  return { enter, leave, active: () => on, jump: () => { jumpQ = true; }, debug: () => ({ px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, trikes: trikes.map((r) => r.state) }), walk: (x, z) => { px = x; pz = z; } };
+  return { enter, leave, active: () => on, jump: () => { jumpQ = true; }, debug: () => ({ px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state) }), walk: (x, z) => { px = x; pz = z; } };
 }
