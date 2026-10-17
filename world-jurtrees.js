@@ -116,7 +116,7 @@ export function makeJurTrees(THREE, { low = false } = {}) {
   // ---- the materials: bark, and the foliage (wind on the GPU)
   const U = { uT: { value: 0 } };
   const barkM = new THREE.MeshStandardMaterial({ map: bark, roughness: 1, metalness: 0 });
-  const leafM = new THREE.MeshStandardMaterial({ map: atlas, alphaMap, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.82, metalness: 0 });
+  const leafM = new THREE.MeshStandardMaterial({ map: atlas, alphaMap, alphaTest: 0.3, side: THREE.DoubleSide, roughness: 0.82, metalness: 0 });
   leafM.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U); sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
     { vec2 ip = vec2(instanceMatrix[3][0], instanceMatrix[3][2]); float k = max(0.0, position.y - 1.0) * 0.012 + length(position.xz) * 0.02;
       transformed.x += sin(uT * 1.3 + ip.x * 0.21 + position.y * 0.4) * k; transformed.z += cos(uT * 1.1 + ip.y * 0.19 + position.x * 0.5) * k * 0.7; }`); };
