@@ -1833,7 +1833,7 @@ async function openSurvivors() {
   try {
     if (!survGame) {
       let M; try { M = await import("./world-survivors.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-      survGame = M.createSurvivors({ THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
+      survGame = M.createSurvivors({ THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, quality: S.quality || "auto", fam: diag.fam || "", fps: (n) => st.fps(n || S.fpsCap || autoCap || 60), fpsSet: () => !!S.fpsCap, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }), addSupply: (k, n) => { const ok = !!(rpg && rpg.addSupply && rpg.addSupply(k, n)); try { if (ok && combat && combat.paintPots) combat.paintPots(); } catch { /* shown on the next repaint */ } return ok; },
         onLeave: () => { survOn = false; frozen = false; keys.clear(); const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }

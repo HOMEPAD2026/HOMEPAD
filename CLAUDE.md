@@ -139,3 +139,18 @@ Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as 
 - `node --check` missed a broken line in an ES module twice: after editing world-*.js, the proof is a clean
   `node tools/build-world.mjs` (it now puts /w/ back untouched when a build fails, and exits 1) plus loading the page.
 - Don't end an edit's inserted text with a `//` comment on a one-line statement: it swallows the rest of the line.
+
+## Characters' animations (a mistake that shipped once — don't repeat it)
+
+The heroes (ARON, LUMI, NEX: `K.makeCharacter` → world-kit.js `makeCustom`) play clips by the names in world-kit.js
+`CU_AS`: `idle`, `walk`, `sprint`, `jump`, `fall`, `sit`, `lie`, `die`, `hit`, `dodge`, `block`, `attack`, `cast`,
+`shoot`, `emote-yes`, `emote-no`. There is **no `run`**: `play("run")` silently falls back to `idle`, and the hero slides
+around standing (SURVIVORS ARENA shipped like that). Before using a clip name anywhere new:
+
+- Use only a `CU_AS` key. Moving = `walk` with `speed` scaled to the move speed (the town: `max(0.8, speed / 6.5)`),
+  fast = `sprint`. Copy how world-play.js drives the town avatar (`want = … "sprint" : … "walk" : … "idle"`).
+- Call `hero.update(dt, t)` every frame, and don't call `play()` while `hero.busy()` (a one-shot is playing).
+- Prove it in the browser test for **all three heroes**: read the running clip while moving
+  (`hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)`)
+  and check it is a walk/sprint clip, not idle. A screenshot of a hero standing still proves nothing.
+- The same goes for any rig (dinosaurs, monsters, pets): list the file's clip names first, and map them on purpose.

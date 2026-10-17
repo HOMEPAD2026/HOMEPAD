@@ -55,7 +55,7 @@ export function makeSurvivors(deps) {
     if (bosses > SURV.BOSS_AT.filter((x) => secs >= x).length) return json(400, { error: "a boss before its time" });
     const clear = b.clear === true && secs >= SURV.RUN_S;
     // the end counts once (a repeated request is refused, a lost reply can't be paid twice)
-    if (!(await commit([{ create: `worldSurvEnd/${run.runId}`, data: { at: t, wallet: w, secs, kills, bosses, clear, diff: run.diff } }])).ok) return json(409, { error: "that run has ended" });
+    if (!(await commit([{ create: `worldSurvEnd/${run.runId}`, data: { at: t, wallet: w, secs, kills, bosses, clear, diff: run.diff, hero: String(b.hero || "").slice(0, 16), lv: Math.max(0, Math.min(200, Math.floor(Number(b.lv) || 0))), how: /^(dead|win|time|quit)$/.test(String(b.how)) ? b.how : "" } }])).ok) return json(409, { error: "that run has ended" });
     const amt0 = survReward({ secs, kills, bosses, diff: run.diff, clear }), day = seoulDay(t);
     const rank = await board(w, secs, kills).catch(() => null);
     if (amt0 <= 0) return json(200, { ok: true, credited: 0, runsLeft: await left(w, day), why: "none", rank });

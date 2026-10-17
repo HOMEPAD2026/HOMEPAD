@@ -20,9 +20,9 @@ export const worldXp = ({ secs, kills, bosses, diff }) => Math.floor((Math.max(0
 
 // the heroes: the world's own three, each with a small edge and its first weapon
 export const HEROES = [
-  { id: "custom-aron", name: "ARON", perk: "Attack +10%", w: "blaster", dmg: 1.1, area: 1, speed: 1, color: "#38d8ff" },
-  { id: "custom-lumi", name: "LUMI", perk: "Area +15%", w: "orb", dmg: 1, area: 1.15, speed: 1, color: "#ff6fc8" },
-  { id: "custom-nex", name: "NEX", perk: "Move speed +12%", w: "laser", dmg: 1, area: 1, speed: 1.12, color: "#9b6bff" },
+  { id: "custom-aron", name: "ARON", perk: "Attack +10%", w: "blaster", dmg: 1.1, area: 1, speed: 1, color: "#38d8ff", skill: "overdrive", sname: "Overdrive", sline: "12 lasers all around, then double fire rate", scd: 20 },
+  { id: "custom-lumi", name: "LUMI", perk: "Area +15%", w: "orb", dmg: 1, area: 1.15, speed: 1, color: "#ff6fc8", skill: "bloom", sname: "Bloom", sline: "Heal 30% and slow the crowd", scd: 22 },
+  { id: "custom-nex", name: "NEX", perk: "Move speed +12%", w: "laser", dmg: 1, area: 1, speed: 1.12, color: "#9b6bff", skill: "blink", sname: "Blink", sline: "Teleport through them with a blast", scd: 14 },
 ];
 
 // the monsters (Quaternius Ultimate Monsters, CC0; models/world/survivors/monsters.glb): h height, fly hover height,
@@ -59,7 +59,7 @@ export function poolAt(s) {
   if (m < 10.5) return [["orc", 2], ["ghost", 2], ["glub", 3], ["ninja", 2]];
   return [["orc", 3], ["ghost", 2], ["glub", 3], ["ninja", 2], ["mush", 1]];
 }
-export const eliteAt = (s) => (s < 150 ? null : s < 300 ? "spiky" : s < 420 ? "mushx" : s < 600 ? "skull" : "yeti");
+export const eliteAt = (s) => (s < 45 ? null : s < 300 ? "spiky" : s < 420 ? "mushx" : s < 600 ? "skull" : "yeti");
 /// how many should be about at second s (before the device's cap): a slow climb, then a crowd
 export const crowdAt = (s) => Math.round(10 + s * 0.13 + Math.max(0, s - 360) * 0.06);
 /// a monster's health at second s: tougher every minute
@@ -132,3 +132,14 @@ export const EVOS = [
 ];
 export const SLOTS = 6, MAX_LV = 5;
 export const maxLv = (id) => (PASSIVES[id] && PASSIVES[id].max) || MAX_LV;
+
+// the arenas: one a day (the Seoul date), each its own floor, cracks, crystals, rail and sky
+export const THEMES = {
+  desert: { name: "Desert Colosseum", tile: [18, 2, -18], base: 120, seam: "rgba(80,190,255,.55)", crack: ["rgba(255,120,40,.5)", "rgba(255,220,120,.95)"], crystal: [0x7fe8ff, 0x2a9cff], band: 0x38d8ff,
+    sky: [[0x2a4f8a, 0xd8ecff, 0x5a4a6e], [0x3a3f7a, 0xffe0c8, 0x5a3a5e], [0x4a2a5e, 0xffb89a, 0x4a2a4e], [0x141c48, 0x9ab8ff, 0x2a2a4e], [0x3a0a1a, 0xffa0a0, 0x4a1a2a]] },
+  ice: { name: "Frost Temple", tile: [-14, 4, 26], base: 150, seam: "rgba(200,240,255,.7)", crack: ["rgba(80,200,255,.5)", "rgba(220,250,255,.95)"], crystal: [0xbff6ff, 0x5ad8ff], band: 0x8ff0ff,
+    sky: [[0x3a6aa8, 0xe8f6ff, 0x5a6a8e], [0x4a5a9a, 0xfff0e8, 0x5a5a7e], [0x3a3a7e, 0xd8c8ff, 0x3a3a6e], [0x0e1a44, 0xa8c8ff, 0x22305e], [0x2a0a3a, 0xff9ab8, 0x3a1a4a]] },
+  neon: { name: "Neon Grid", tile: [-30, -28, 0], base: 70, seam: "rgba(255,90,216,.75)", crack: ["rgba(57,255,136,.45)", "rgba(200,255,220,.95)"], crystal: [0xff8ae4, 0xff2dbf], band: 0xff5ad8,
+    sky: [[0x1a1450, 0xc8b8ff, 0x3a2a6e], [0x241460, 0xffb8f0, 0x3a2060], [0x1a0a48, 0xd890ff, 0x2a1450], [0x080a2a, 0x8aa8ff, 0x1a1a40], [0x2a0820, 0xff80b0, 0x3a0a2a]] },
+};
+export const themeToday = (t = Date.now()) => ["desert", "ice", "neon"][Math.floor((t + 9 * 3600e3) / 864e5) % 3];

@@ -1300,3 +1300,16 @@ html.wp-pcphone .sv [data-game-hud]{zoom:1;top:calc(max(8px,env(safe-area-inset-
 .sv-dmg p b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sv-dmg p i{height:7px;border-radius:4px;width:var(--w);background:linear-gradient(90deg,#2f86ff,#8ff0ff);box-shadow:0 0 8px rgba(56,184,255,.5)}
 .sv-dmg p span{color:#bcd2f0;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+/* SURVIVORS ARENA, round three: the hero's skill button (above Dash, the hero's colour, glows when ready), the
+   lobby's skill line and today's arena */
+.sv-skill{position:absolute;right:30px;bottom:calc(env(safe-area-inset-bottom) + 142px);width:66px;height:66px;border-radius:50%;display:grid;place-items:center;align-content:center;gap:1px;overflow:hidden;
+  background:radial-gradient(circle at 40% 30%,color-mix(in srgb,var(--c,#38d8ff) 70%,#fff),var(--c,#38d8ff) 55%,color-mix(in srgb,var(--c,#38d8ff) 50%,#000));box-shadow:0 0 0 3px rgba(255,255,255,.45),0 8px 16px rgba(0,0,0,.4)}
+.sv-skill.ready{animation:sv-ready 1.4s ease-in-out infinite}
+@keyframes sv-ready{50%{box-shadow:0 0 0 3px #fff,0 0 22px var(--c,#38d8ff),0 8px 16px rgba(0,0,0,.4)}}
+.sv-skill-ic{position:relative;display:grid;place-items:center}
+.sv-skill b{position:relative;font:900 8.5px/1 var(--hud-font,var(--f-ui));letter-spacing:.2px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.sv-skill.cool{filter:saturate(.6)}
+.sv.menu .sv-skill{display:none}
+.sv-heroes small.sk{color:#ffd86a;font-weight:800}
+.sv-skline{font-size:12.5px!important;color:#ffd86a!important;margin-top:-2px!important}
+.sv-theme{font-size:12px!important;color:#8fd8ff!important;letter-spacing:.4px}

@@ -17,7 +17,7 @@
 //
 // ctx: { THREE, K, st, ver, T, lang, esc, toast, Snd, reduce, low, coarse, sess, post, refresh, gain(n, why),
 //        makeHero(id) → character, addSupply(kind, n), onLeave() }
-import { RULES, reward, worldXp, HEROES, MON, BOSSES, poolAt, eliteAt, crowdAt, hpK, needXp, WEAPONS, PASSIVES, EVOS, SLOTS, MAX_LV, maxLv } from "./world-survivors-data.js";
+import { RULES, reward, worldXp, HEROES, MON, BOSSES, poolAt, eliteAt, crowdAt, hpK, needXp, WEAPONS, PASSIVES, EVOS, SLOTS, MAX_LV, maxLv, THEMES, themeToday } from "./world-survivors-data.js";
 
 const ARENA_R = 46, CAM_PC = [0, 15.5, 10.5], CAM_PHONE = [0, 22, 14.5], HERO_R = 0.45, DASH_CD = 2.4, DASH_T = 0.2;
 const ROLES = [["move", 10, true], ["atk", 8, false], ["die", 8, false]]; // baked frames a clip
@@ -127,6 +127,8 @@ const LW2 = {
     Damage: "Hasar", "This week": "Bu hafta", "No runs yet — be the first!": "Henüz kayıt yok — ilk sen ol!", "Week rank #{n}": "Haftalık sıra #{n}", "Chest loot": "Sandık ganimeti", "HP potion": "HP iksiri", Scrap: "Hurda", "Revived!": "Dirildin!", "Shield up": "Kalkan", RARE: "NADİR", EPIC: "EPİK",
     "Your weapons fire by themselves": "Silahların kendiliğinden ateş eder", "Grab the blue gems to level up": "Seviye için mavi mücevherleri topla", "Dash through danger": "Tehlikeden atılarak kaç", "This run couldn't be checked, so it isn't paid": "Bu oyun doğrulanamadı, ödül verilmedi", "Couldn't reach the server — try again later": "Sunucuya ulaşılamadı — sonra tekrar dene", "Swarm!": "Sürü!", "Stampede!": "Hücum!" },
 };
+const LW3 = {"ko": {"Enraged!": "분노!", "SP potion": "SP 물약", "Skill": "스킬", "Overdrive": "오버드라이브", "Bloom": "블룸", "Blink": "블링크", "12 lasers all around, then double fire rate": "사방으로 레이저 12발, 이후 공격 속도 2배", "Heal 30% and slow the crowd": "HP 30% 회복, 주변 몬스터 둔화", "Teleport through them with a blast": "폭발과 함께 순간이동", "Today's arena: {x}": "오늘의 아레나: {x}", "Desert Colosseum": "사막 콜로세움", "Frost Temple": "얼음 신전", "Neon Grid": "네온 그리드", "WASD move · Space dash · Q skill · Esc pause": "WASD 이동 · Space 대시 · Q 스킬 · Esc 일시정지"}, "zh": {"Enraged!": "狂暴！", "SP potion": "SP 药水", "Skill": "技能", "Overdrive": "超载", "Bloom": "绽放", "Blink": "闪现", "12 lasers all around, then double fire rate": "向四周发射 12 道激光，之后射速翻倍", "Heal 30% and slow the crowd": "恢复 30% HP 并减速怪群", "Teleport through them with a blast": "伴随爆炸瞬移穿过", "Today's arena: {x}": "今日竞技场：{x}", "Desert Colosseum": "沙漠斗兽场", "Frost Temple": "冰霜神殿", "Neon Grid": "霓虹网格", "WASD move · Space dash · Q skill · Esc pause": "WASD 移动 · 空格 冲刺 · Q 技能 · Esc 暂停"}, "tr": {"Enraged!": "Öfkelendi!", "SP potion": "SP iksiri", "Skill": "Yetenek", "Overdrive": "Aşırı Yük", "Bloom": "Çiçeklenme", "Blink": "Işınlanma", "12 lasers all around, then double fire rate": "Her yöne 12 lazer, sonra iki kat atış hızı", "Heal 30% and slow the crowd": "%30 iyileş ve kalabalığı yavaşlat", "Teleport through them with a blast": "Bir patlamayla aralarından ışınlan", "Today's arena: {x}": "Bugünün arenası: {x}", "Desert Colosseum": "Çöl Kolezyumu", "Frost Temple": "Buz Tapınağı", "Neon Grid": "Neon Izgara", "WASD move · Space dash · Q skill · Esc pause": "WASD hareket · Space atıl · Q yetenek · Esc duraklat"}}; // the third batch: boss rage, hero skills, the arenas
+for (const l of Object.keys(LW3)) Object.assign(LW2[l], LW3[l]);
 for (const l of Object.keys(LW2)) Object.assign(LW[l], LW2[l]);
 Object.assign(ICON, {
   ice: `<path d="M13 2v22M4 7l18 12M22 7 4 19" stroke="#bff6ff" stroke-width="2.6" stroke-linecap="round"/><circle cx="13" cy="13" r="3.5" fill="#7fe8ff"/>`,
@@ -190,15 +192,7 @@ export function createSurvivors(ctx) {
     const hemi = new THREE.HemisphereLight(SKY[0].hs, SKY[0].hg, SKY[0].hk); scene.add(hemi);
     const sun = new THREE.DirectionalLight(SKY[0].sun, SKY[0].sk); sun.position.set(14, 30, 10); scene.add(sun);
     // the floor: sandstone flags with blue-glass seams
-    const tile = canvasTex(512, 512, (g, w) => {
-      g.fillStyle = "#6f6a7e"; g.fillRect(0, 0, w, w); let sd = 7; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
-      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const off = y % 2 ? 64 : 0, px = x * 128 + off, py = y * 128, c = 120 + Math.floor(r() * 26);
-        for (const dx of [0, -512]) { g.fillStyle = `rgb(${c + 18},${c + 2},${c - 18})`; g.fillRect(px + dx + 4, py + 4, 120, 120);
-          g.fillStyle = "rgba(255,255,255,.08)"; g.fillRect(px + dx + 4, py + 4, 120, 6); g.fillStyle = "rgba(0,0,0,.12)"; g.fillRect(px + dx + 4, py + 118, 120, 6);
-          for (let k = 0; k < 14; k++) { g.fillStyle = `rgba(70,50,30,${0.05 + r() * 0.08})`; g.beginPath(); g.arc(px + dx + 10 + r() * 108, py + 10 + r() * 108, 2 + r() * 5, 0, 7); g.fill(); }
-          if (r() < 0.3) { g.strokeStyle = "rgba(40,28,18,.35)"; g.lineWidth = 2; g.beginPath(); let cx = px + dx + 20 + r() * 80, cy = py + 20 + r() * 80; g.moveTo(cx, cy); for (let q = 0; q < 5; q++) { cx += (r() - 0.5) * 40; cy += (r() - 0.5) * 40; g.lineTo(cx, cy); } g.stroke(); } } }
-      g.strokeStyle = "rgba(80,190,255,.55)"; g.lineWidth = 3; for (let y = 0; y <= 4; y++) { g.beginPath(); g.moveTo(0, y * 128 + 2); g.lineTo(w, y * 128 + 2); g.stroke(); }
-      for (let y = 0; y < 4; y++) for (let x = 0; x <= 4; x++) { const px = x * 128 + (y % 2 ? 64 : 0) + 2; g.beginPath(); g.moveTo(px, y * 128); g.lineTo(px, y * 128 + 128); g.stroke(); } });
+    const tile = tileTex(THEMES[themeToday()]);
     tile.wrapS = tile.wrapT = THREE.RepeatWrapping; tile.repeat.set(26, 26); tile.anisotropy = 4;
     const floorM = new THREE.MeshStandardMaterial({ map: tile, roughness: 0.92, metalness: 0 });
     const floor = new THREE.Mesh(new THREE.CircleGeometry(ARENA_R + 18, 96), floorM); floor.rotation.x = -Math.PI / 2; scene.add(floor);
@@ -216,11 +210,9 @@ export function createSurvivors(ctx) {
     floorM.onBeforeCompile = (sh) => { sh.uniforms.uLm = { value: lmTex }; sh.vertexShader = "varying vec2 vLmUv;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vLmUv = uv;");
       sh.fragmentShader = "uniform sampler2D uLm; varying vec2 vLmUv;\n" + sh.fragmentShader.replace("#include <map_fragment>", "#include <map_fragment>\n vec4 lmC = texture2D(uLm, vLmUv); diffuseColor.rgb = mix(diffuseColor.rgb, lmC.rgb, lmC.a);"); };
     // lava cracks: a few glowing scars on the floor (additive, they pulse)
-    const crackTex = canvasTex(256, 256, (g, w) => { let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647); g.lineCap = "round";
-      for (let b = 0; b < 7; b++) { let x = w / 2, y = w / 2; const a0 = r() * 6.283; g.beginPath(); g.moveTo(x, y); for (let q = 0; q < 8; q++) { const a = a0 + (r() - 0.5) * 1.2; x += Math.cos(a) * 14; y += Math.sin(a) * 14; g.lineTo(x, y); }
-        g.strokeStyle = "rgba(255,120,40,.5)"; g.lineWidth = 9; g.stroke(); g.strokeStyle = "rgba(255,220,120,.95)"; g.lineWidth = 3; g.stroke(); } });
+    const crackTex = crackTexOf(THEMES[themeToday()]);
     const cracks = new THREE.InstancedMesh(new THREE.PlaneGeometry(6, 6).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }), 9);
-    for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.283 + 0.4, d = 18 + (i % 3) * 7; cracks.setMatrixAt(i, m4.compose(vv.set(Math.cos(a) * d, 0.035, Math.sin(a) * d), qq.setFromEuler(ee.set(0, i * 1.7, 0)), ss.set(1 + (i % 2) * 0.4, 1, 1 + (i % 2) * 0.4))); }
+    const crackPos = []; for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.283 + 0.4, d = 18 + (i % 3) * 7; crackPos.push([Math.cos(a) * d, Math.sin(a) * d]); cracks.setMatrixAt(i, m4.compose(vv.set(Math.cos(a) * d, 0.035, Math.sin(a) * d), qq.setFromEuler(ee.set(0, i * 1.7, 0)), ss.set(1 + (i % 2) * 0.4, 1, 1 + (i % 2) * 0.4))); }
     scene.add(cracks);
     const rune = canvasTex(512, 512, (g, w) => { const c = w / 2; g.translate(c, c); g.strokeStyle = "rgba(90,200,255,.85)"; g.lineWidth = 6; g.beginPath(); g.arc(0, 0, 236, 0, 7); g.stroke(); g.lineWidth = 3; g.beginPath(); g.arc(0, 0, 210, 0, 7); g.stroke();
       g.beginPath(); g.arc(0, 0, 120, 0, 7); g.stroke(); for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; g.beginPath(); g.moveTo(Math.cos(a) * 120, Math.sin(a) * 120); g.lineTo(Math.cos(a + 2.1) * 120, Math.sin(a + 2.1) * 120); g.stroke(); }
@@ -256,7 +248,8 @@ export function createSurvivors(ctx) {
     // crystals and rubble on the floor (looks only)
     { let sd = 99; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647); const cr = [], rb = [];
       for (let i = 0; i < 46; i++) { const a = r() * 6.283, d = 9 + r() * (ARENA_R - 11); (i % 3 ? rb : cr).push([Math.cos(a) * d, Math.sin(a) * d, r() * 6.3, 0.5 + r() * 0.9]); }
-      const crM = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.5, 0), new THREE.MeshStandardMaterial({ color: 0x7fe8ff, emissive: 0x2a9cff, emissiveIntensity: 0.9, roughness: 0.2, flatShading: true }), cr.length);
+      crystalM = new THREE.MeshStandardMaterial({ color: 0x7fe8ff, emissive: 0x2a9cff, emissiveIntensity: 0.9, roughness: 0.2, flatShading: true });
+      const crM = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.5, 0), crystalM || new THREE.MeshStandardMaterial({ color: 0x7fe8ff, emissive: 0x2a9cff, emissiveIntensity: 0.9, roughness: 0.2, flatShading: true }), cr.length);
       cr.forEach(([x, z, ry, k], i) => crM.setMatrixAt(i, m4.compose(vv.set(x, 0.45 * k, z), qq.setFromEuler(ee.set(0.2, ry, 0.15)), ss.set(k * 0.7, k * 1.5, k * 0.7))));
       const rbM = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.45, 0), new THREE.MeshStandardMaterial({ color: 0x9a8a78, roughness: 0.95, flatShading: true }), rb.length);
       rb.forEach(([x, z, ry, k], i) => rbM.setMatrixAt(i, m4.compose(vv.set(x, 0.12 * k, z), qq.setFromEuler(ee.set(0, ry, 0)), ss.set(k, k * 0.5, k * 0.9))));
@@ -269,8 +262,31 @@ export function createSurvivors(ctx) {
     // the stars
     const stars = new THREE.BufferGeometry(), spp = []; for (let i = 0; i < 500; i++) { const a = Math.random() * 6.283, el = 0.15 + Math.random() * 1.2, d = 150; spp.push(Math.cos(a) * Math.cos(el) * d, Math.sin(el) * d, Math.sin(a) * Math.cos(el) * d); }
     stars.setAttribute("position", new THREE.Float32BufferAttribute(spp, 3)); const starM = new THREE.PointsMaterial({ color: 0xcfe6ff, size: 0.7, fog: false, transparent: true, opacity: 0 }); scene.add(new THREE.Points(stars, starM));
-    S = { scene, cam, flames, fires, runeM, cracks, hemi, sun, floorM, embers, ep, starM };
+    S = { scene, cam, flames, fires, runeM, cracks, crackPos, hemi, sun, floorM, embers, ep, starM, band, band2, theme: "" };
+    applyTheme(themeToday());
     makeFx();
+  }
+  let crystalM = null;
+  function tileTex(th) { const t = canvasTex(512, 512, (g, w) => {
+      g.fillStyle = "#6f6a7e"; g.fillRect(0, 0, w, w); let sd = 7; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const off = y % 2 ? 64 : 0, px = x * 128 + off, py = y * 128, c = th.base + Math.floor(r() * 26);
+        for (const dx of [0, -512]) { g.fillStyle = `rgb(${c + th.tile[0]},${c + th.tile[1]},${c + th.tile[2]})`; g.fillRect(px + dx + 4, py + 4, 120, 120);
+          g.fillStyle = "rgba(255,255,255,.08)"; g.fillRect(px + dx + 4, py + 4, 120, 6); g.fillStyle = "rgba(0,0,0,.12)"; g.fillRect(px + dx + 4, py + 118, 120, 6);
+          for (let k = 0; k < 14; k++) { g.fillStyle = `rgba(70,50,30,${0.05 + r() * 0.08})`; g.beginPath(); g.arc(px + dx + 10 + r() * 108, py + 10 + r() * 108, 2 + r() * 5, 0, 7); g.fill(); }
+          if (r() < 0.3) { g.strokeStyle = "rgba(40,28,18,.35)"; g.lineWidth = 2; g.beginPath(); let cx = px + dx + 20 + r() * 80, cy = py + 20 + r() * 80; g.moveTo(cx, cy); for (let q = 0; q < 5; q++) { cx += (r() - 0.5) * 40; cy += (r() - 0.5) * 40; g.lineTo(cx, cy); } g.stroke(); } } }
+      g.strokeStyle = th.seam; g.lineWidth = 3; for (let y = 0; y <= 4; y++) { g.beginPath(); g.moveTo(0, y * 128 + 2); g.lineTo(w, y * 128 + 2); g.stroke(); }
+      for (let y = 0; y < 4; y++) for (let x = 0; x <= 4; x++) { const px = x * 128 + (y % 2 ? 64 : 0) + 2; g.beginPath(); g.moveTo(px, y * 128); g.lineTo(px, y * 128 + 128); g.stroke(); } });
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26, 26); t.anisotropy = 4; return t; }
+  function crackTexOf(th) { return canvasTex(256, 256, (g, w) => { let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647); g.lineCap = "round";
+      for (let b = 0; b < 7; b++) { let x = w / 2, y = w / 2; const a0 = r() * 6.283; g.beginPath(); g.moveTo(x, y); for (let q = 0; q < 8; q++) { const a = a0 + (r() - 0.5) * 1.2; x += Math.cos(a) * 14; y += Math.sin(a) * 14; g.lineTo(x, y); }
+        g.strokeStyle = th.crack[0]; g.lineWidth = 9; g.stroke(); g.strokeStyle = th.crack[1]; g.lineWidth = 3; g.stroke(); } }); }
+  /// today's arena: its floor, its cracks, its crystals, its rail and its sky
+  function applyTheme(id) {
+    if (!S || S.theme === id) return; const th = THEMES[id] || THEMES.desert, first = !S.theme; S.theme = id;
+    if (!first) { const old = S.floorM.map; S.floorM.map = tileTex(th); S.floorM.needsUpdate = true; if (old) old.dispose(); const oc = S.cracks.material.map; S.cracks.material.map = crackTexOf(th); S.cracks.material.needsUpdate = true; if (oc) oc.dispose(); }
+    if (crystalM) { crystalM.color.set(th.crystal[0]); crystalM.emissive.set(th.crystal[1]); }
+    S.band.material.color.set(th.band); S.band2.material.color.set(th.band);
+    th.sky.forEach((k, i) => { if (SKY[i]) { SKY[i].bg = k[0]; SKY[i].hs = k[1]; SKY[i].hg = k[2]; } });
   }
   // the sky for second t (lerped between the SKY keys)
   function sky(t) {
@@ -326,6 +342,8 @@ export function createSurvivors(ctx) {
     FX.chest = (() => { const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xffc23a, emissive: 0xb07a10, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.7 }), wood = new THREE.MeshStandardMaterial({ color: 0x7a3cff, roughness: 0.5, emissive: 0x3a1a99, emissiveIntensity: 0.5 });
       const b = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.8), wood); b.position.y = 0.35; const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.2, 12, 1, false, 0, Math.PI), wood); lid.rotation.z = Math.PI / 2; lid.position.y = 0.7;
       const bandM = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.84), gold); bandM.position.y = 0.55; const lock = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.1), gold); lock.position.set(0, 0.55, 0.42); g.add(b, lid, bandM, lock); g.visible = false; S.scene.add(g); return g; })();
+    FX.crate = (() => { const t = canvasTex(64, 64, (g, w) => { g.fillStyle = "#8a5a32"; g.fillRect(0, 0, w, w); g.strokeStyle = "#5a3418"; g.lineWidth = 4; g.strokeRect(3, 3, w - 6, w - 6); g.beginPath(); g.moveTo(4, 4); g.lineTo(w - 4, w - 4); g.moveTo(w - 4, 4); g.lineTo(4, w - 4); g.stroke(); g.fillStyle = "#ffc23a"; g.fillRect(0, w / 2 - 4, w, 8); });
+      const m = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), new THREE.MeshStandardMaterial({ map: t, roughness: 0.8, emissive: 0x3a2a10, emissiveIntensity: 0.4 }), 4); m.count = 0; m.frustumCulled = false; S.scene.add(m); return m; })();
     FX.heroShadow = new THREE.Mesh(flat(new THREE.PlaneGeometry(1.6, 1.6)), new THREE.MeshBasicMaterial({ map: shT, transparent: true, depthWrite: false })); FX.heroShadow.position.y = 0.03; S.scene.add(FX.heroShadow);
     FX.magnet = new THREE.Mesh(flat(new THREE.PlaneGeometry(2, 2)), new THREE.MeshBasicMaterial({ map: ringT, color: 0x8ff0ff, transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); FX.magnet.position.y = 0.05; S.scene.add(FX.magnet);
     FX.shieldM = new THREE.Mesh(new THREE.SphereGeometry(1.1, 20, 14), new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); FX.shieldM.visible = false; S.scene.add(FX.shieldM);
@@ -378,13 +396,23 @@ export function createSurvivors(ctx) {
     packP = (async () => {
       const loader = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null; if (!loader) throw new Error("no model loader");
       const g = await loader.loadAsync("models/world/survivors/monsters.glb?v=" + (ctx.ver || "1"));
+      // the baked frames are kept on this device (IndexedDB), so only the first visit after an update bakes them (1–2 s
+      // on a phone); the models' file still comes for its colours
+      const key = "vat-" + (ctx.ver || "1") + "-" + ROLES.map((r) => r[1]).join(""), cache = await idbGet(key).catch(() => null), fresh = {};
       const out = {}; let n = 0;
-      for (const id of Object.keys(MON)) { const root = g.scene.getObjectByName(id); if (!root) continue; out[id] = bake(id, root, g.animations.filter((a) => a.name.startsWith(id + ":")), MON[id]); if (++n % 2 === 0) await new Promise((ok) => setTimeout(ok, 0)); }
+      for (const id of Object.keys(MON)) { const root = g.scene.getObjectByName(id); if (!root) continue; let src = null; root.traverse((o) => { if (!src && o.isMesh) src = o.material; });
+        let d = cache && cache[id]; if (!d) { d = bakeData(root, g.animations.filter((a) => a.name.startsWith(id + ":")), MON[id]); fresh[id] = d; if (++n % 2 === 0) await new Promise((ok) => setTimeout(ok, 0)); }
+        out[id] = makeKind(id, d, src, MON[id]); }
+      if (Object.keys(fresh).length) idbPut(key, { ...(cache || {}), ...fresh }).catch(() => {});
       pack = out; return out;
     })().catch((e) => { packP = null; throw e; });
     return packP;
   }
-  function bake(id, root, clips, spec) {
+  // a small key/value store on this device (one object store); fails quietly (private windows, old browsers)
+  const idb = () => new Promise((ok, no) => { try { const r = indexedDB.open("arc-surv", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
+  async function idbGet(k) { const db = await idb(); return new Promise((ok, no) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => ok(q.result || null); q.onerror = () => no(q.error); }); }
+  async function idbPut(k, v) { const db = await idb(); await new Promise((ok, no) => { const tx = db.transaction("kv", "readwrite"), st0 = tx.objectStore("kv"); st0.clear(); st0.put(v, k); tx.oncomplete = ok; tx.onerror = () => no(tx.error); }); }
+  function bakeData(root, clips, spec) {
     const parent = root.parent; if (parent) parent.remove(root); root.position.set(0, 0, 0); root.updateMatrixWorld(true);
     const meshes = []; root.traverse((o) => { if (o.isMesh) meshes.push(o); });
     const offs = []; let V = 0; for (const m of meshes) { offs.push(V); V += m.geometry.attributes.position.count; }
@@ -416,11 +444,16 @@ export function createSurvivors(ctx) {
         let nx = nn[j * 3], ny = nn[j * 3 + 1], nz = nn[j * 3 + 2]; const s = Math.abs(nx) + Math.abs(ny) + Math.abs(nz) || 1; nx /= s; ny /= s; nz /= s;
         if (nz < 0) { const ox = (1 - Math.abs(ny)) * (nx >= 0 ? 1 : -1), oy = (1 - Math.abs(nx)) * (ny >= 0 ? 1 : -1); nx = ox; ny = oy; }
         data[t + 3] = Math.round((nx * 0.5 + 0.5) * 4095) * 4096 + Math.round((ny * 0.5 + 0.5) * 4095); } }
+    return { data, W, H, idx: new Uint32Array(idx), uv, R, V };
+  }
+  /// a kind from its baked frames: the texture, the geometry, the material (and on a PC the outline)
+  function makeKind(id, d, src, spec) {
+    const { data, W, H, idx, uv, R, V } = d;
     const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.FloatType); tex.minFilter = tex.magFilter = THREE.NearestFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
-    const geo = new THREE.BufferGeometry(); geo.setIndex(idx); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    const geo = new THREE.BufferGeometry(); geo.setIndex(new THREE.BufferAttribute(idx, 1)); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
     const base = new Float32Array(V * 3); for (let j = 0; j < V; j++) { base[j * 3] = data[j * 4]; base[j * 3 + 1] = data[j * 4 + 1]; base[j * 3 + 2] = data[j * 4 + 2]; }
     geo.setAttribute("position", new THREE.BufferAttribute(base, 3)); geo.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(V * 3), 3));
-    const src = meshes[0] && meshes[0].material, map = src && src.map ? src.map : null;
+    const map = src && src.map ? src.map : null;
     if (map && !map.userData.swatch) { map.userData.swatch = 1; map.minFilter = map.magFilter = THREE.NearestFilter; map.generateMipmaps = false; map.needsUpdate = true; } // a palette of swatches: mipmaps would blend neighbours into mud
     const MatT = phone() || ctx.low ? THREE.MeshLambertMaterial : THREE.MeshStandardMaterial; // phones: Lambert (cheaper a pixel), PCs the PBR one
     const mat = new MatT({ map, color: map ? 0xffffff : (src && src.color ? src.color.getHex() : 0xcccccc), ...(MatT === THREE.MeshStandardMaterial ? { roughness: 0.62, metalness: 0.0 } : {}) });
@@ -428,24 +461,36 @@ export function createSurvivors(ctx) {
     // that keeps them readable in a crowd, a white flash when hit, and a burning dissolve when knocked out
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.uVat = { value: tex }; sh.uniforms.uV = { value: V }; sh.uniforms.uH = { value: spec.h };
-      sh.vertexShader = "uniform highp sampler2D uVat; uniform int uV; uniform float uH; attribute vec4 aAnim; attribute vec2 aFx; varying float vFlash; varying float vDis; varying vec3 vOp;\n" +
+      sh.vertexShader = "uniform highp sampler2D uVat; uniform int uV; uniform float uH; attribute vec4 aAnim; attribute vec2 aFx; varying float vFlash; varying float vDis; varying float vRage; varying vec3 vOp;\n" +
         "vec4 vatAt(int f){ int i = f * uV + gl_VertexID; return texelFetch(uVat, ivec2(i % 1024, i / 1024), 0); }\n" +
         "vec3 octN(float w){ float a = floor(w / 4096.0); float b = w - a * 4096.0; vec2 p = vec2(a, b) / 4095.0 * 2.0 - 1.0; vec3 n = vec3(p, 1.0 - abs(p.x) - abs(p.y)); float t = max(-n.z, 0.0); n.x += n.x >= 0.0 ? -t : t; n.y += n.y >= 0.0 ? -t : t; return normalize(n); }\n" + sh.vertexShader;
       sh.vertexShader = sh.vertexShader.replace("#include <beginnormal_vertex>", "vec4 vA = vatAt(int(aAnim.x)); vec4 vB = vatAt(int(aAnim.y)); vec3 objectNormal = normalize(mix(octN(vA.w), octN(vB.w), aAnim.z));")
-        .replace("#include <begin_vertex>", "vec3 transformed = mix(vA.xyz, vB.xyz, aAnim.z); float sq = aAnim.w * 0.18; transformed.y *= 1.0 - sq; transformed.xz *= 1.0 + sq * 0.6; vFlash = aAnim.w; vDis = aFx.x; vOp = transformed / uH;");
-      sh.fragmentShader = "varying float vFlash; varying float vDis; varying vec3 vOp;\n" + sh.fragmentShader
+        .replace("#include <begin_vertex>", "vec3 transformed = mix(vA.xyz, vB.xyz, aAnim.z); float sq = aAnim.w * 0.18; transformed.y *= 1.0 - sq; transformed.xz *= 1.0 + sq * 0.6; vFlash = aAnim.w; vDis = aFx.x; vRage = aFx.y; vOp = transformed / uH;");
+      sh.fragmentShader = "varying float vFlash; varying float vDis; varying float vRage; varying vec3 vOp;\n" + sh.fragmentShader
         .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n float svN = fract(sin(dot(floor(vOp * 14.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453); if (vDis > 0.0 && svN < vDis) discard;")
-        .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(1.0, 0.92, 0.85) * vFlash;\n float svR = 1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0); totalEmissiveRadiance += vec3(0.35, 0.75, 1.0) * pow(svR, 3.0) * 0.55;\n if (vDis > 0.0 && svN < vDis + 0.12) totalEmissiveRadiance += vec3(3.0, 1.3, 0.3);");
+        .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(1.0, 0.92, 0.85) * vFlash;\n float svR = 1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0); totalEmissiveRadiance += vec3(0.35, 0.75, 1.0) * pow(svR, 3.0) * 0.55;\n if (vDis > 0.0 && svN < vDis + 0.12) totalEmissiveRadiance += vec3(3.0, 1.3, 0.3);\n totalEmissiveRadiance += vec3(1.0, 0.08, 0.04) * vRage * (0.35 + 0.25 * svR);");
     };
-    mat.customProgramCacheKey = () => "vat3";
-    return { id, geo, mat, tex, R, V, spec, mesh: null };
+    mat.customProgramCacheKey = () => "vat4";
+    // the outline (PCs at full quality): the same frames pushed out along the normal, drawn back faces only, dark
+    let line = null;
+    if (!phone() && !ctx.low) { line = new THREE.MeshBasicMaterial({ color: 0x140a24, side: THREE.BackSide });
+      line.onBeforeCompile = (sh) => { sh.uniforms.uVat = { value: tex }; sh.uniforms.uV = { value: V }; sh.uniforms.uO = { value: 0.022 * spec.h + 0.012 };
+        sh.vertexShader = "uniform highp sampler2D uVat; uniform int uV; uniform float uO; attribute vec4 aAnim; attribute vec2 aFx; varying float vDis; varying vec3 vOp;\n" +
+          "vec4 vatAt(int f){ int i = f * uV + gl_VertexID; return texelFetch(uVat, ivec2(i % 1024, i / 1024), 0); }\n" +
+          "vec3 octN(float w){ float a = floor(w / 4096.0); float b = w - a * 4096.0; vec2 p = vec2(a, b) / 4095.0 * 2.0 - 1.0; vec3 n = vec3(p, 1.0 - abs(p.x) - abs(p.y)); float t = max(-n.z, 0.0); n.x += n.x >= 0.0 ? -t : t; n.y += n.y >= 0.0 ? -t : t; return normalize(n); }\n" + sh.vertexShader.replace("#include <begin_vertex>",
+          "vec4 vA = vatAt(int(aAnim.x)); vec4 vB = vatAt(int(aAnim.y)); vec3 transformed = mix(vA.xyz, vB.xyz, aAnim.z) + normalize(mix(octN(vA.w), octN(vB.w), aAnim.z)) * uO; vDis = aFx.x; vOp = transformed / " + spec.h.toFixed(2) + ";");
+        sh.fragmentShader = "varying float vDis; varying vec3 vOp;\n" + sh.fragmentShader.replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n float svN = fract(sin(dot(floor(vOp * 14.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453); if (vDis > 0.0) discard;"); };
+      line.customProgramCacheKey = () => "vatline"; }
+    return { id, geo, mat, line, tex, R, V, spec, mesh: null, edge: null };
   }
   function meshOf(kd) {
     if (kd.mesh) return kd.mesh; const n = kd.spec.boss ? 2 : kd.spec.elite ? 16 : 200;
     const m = new THREE.InstancedMesh(kd.geo, kd.mat, n); m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     const a = new THREE.InstancedBufferAttribute(new Float32Array(n * 4), 4); a.setUsage(THREE.DynamicDrawUsage); kd.geo.setAttribute("aAnim", a); kd.anim = a;
     const b = new THREE.InstancedBufferAttribute(new Float32Array(n * 2), 2); b.setUsage(THREE.DynamicDrawUsage); kd.geo.setAttribute("aFx", b); kd.fx = b;
-    S.scene.add(m); kd.mesh = m; return m;
+    S.scene.add(m); kd.mesh = m;
+    if (kd.line) { const e = new THREE.InstancedMesh(kd.geo, kd.line, n); e.instanceMatrix = m.instanceMatrix; e.count = 0; e.frustumCulled = false; S.scene.add(e); kd.edge = e; } // shares the instances' places
+    return m;
   }
   const fr = [0, 0, 0];
   function frameOf(kd, role, t) { const r = kd.R[role]; let f = (t / r.dur) * (r.loop ? r.n : r.n - 1); if (r.loop) { f %= r.n; if (f < 0) f += r.n; const a = Math.floor(f); fr[0] = r.f0 + a; fr[1] = r.f0 + ((a + 1) % r.n); fr[2] = f - a; return fr; }
@@ -461,13 +506,13 @@ export function createSurvivors(ctx) {
     const h = HEROES[pick.hero] || HEROES[0], d = RULES.DIFF[pick.diff] || RULES.DIFF.normal;
     clearPools();
     R = { t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
-      w: {}, p: {}, evo: {}, cds: {}, orbA: 0, bladeA: 0, spawnT: 0, eliteT: 60, swarmAt: [120, 240, 300, 420, 480, 600, 660], dashT: 0, dashCd: 0, hurtT: 0, vampN: 0, pendingLv: 0, pendingChest: 0, bonusDmg: 1, chest: null, said: {},
-      streak: 0, streakT: 0, shield: 0, shieldT: 0, revived: false, infT: 25, dmgBy: {}, loot: { hp: 0, scrap: 0 }, stop: 0, focus: null, drones: [] };
+      w: {}, p: {}, evo: {}, cds: {}, orbA: 0, bladeA: 0, spawnT: 0, eliteT: 45, swarmAt: [30, 120, 240, 300, 420, 480, 600, 660], dashT: 0, dashCd: 0, hurtT: 0, vampN: 0, pendingLv: 0, pendingChest: 0, bonusDmg: 1, chest: null, said: {},
+      streak: 0, streakT: 0, shield: 0, shieldT: 0, revived: false, infT: 25, dmgBy: {}, loot: { hp: 0, sp: 0, scrap: 0 }, stop: 0, focus: null, drones: [], skillCd: 6, overT: 0, crates: [], crateT: 20, lavaT: 90 };
     R.w[h.w] = 1;
   }
   function clearPools() {
     while (mons.length) monFree.push(mons.pop()); while (gems.length) gemFree.push(gems.pop()); while (shots.length) shotFree.push(shots.pop()); while (foes.length) foeFree.push(foes.pop()); while (zones.length) zoneFree.push(zones.pop()); events.length = 0;
-    if (FX) { for (const k of ["glow", "beam", "ring", "disc", "decal"]) FX[k].n = 0; for (const n of FX.nums) n.on = false; FX.chest.visible = false; FX.shadow.count = 0; FX.gem.count = 0; FX.shieldM.visible = false; }
+    if (FX) { for (const k of ["glow", "beam", "ring", "disc", "decal"]) FX[k].n = 0; for (const n of FX.nums) n.on = false; FX.chest.visible = false; FX.shadow.count = 0; FX.gem.count = 0; FX.shieldM.visible = false; if (FX.crate) FX.crate.count = 0; }
     if (pack) for (const id in pack) if (pack[id].mesh) pack[id].mesh.count = 0;
   }
   /// later, on the game's own clock (paused with it): a boss's slam, a meteor's landing
@@ -494,7 +539,7 @@ export function createSurvivors(ctx) {
     const hp = sp.hp * (sp.boss ? 1 : hpK(R.t)) * R.D.hp * (o && o.hpK ? o.hpK : 1), m = take2(monFree);
     m.id = id; m.kd = kd; m.uid = ++uid; m.x = x; m.z = z; m.vx = 0; m.vz = 0; m.hp = hp; m.hpMax = hp; m.r = sp.r; m.sp = sp.sp * (o && o.spK ? o.spK : 1) * (0.9 + Math.random() * 0.2); m.dmg = sp.dmg * R.D.dmg; m.xp = sp.xp; m.fly = sp.fly || 0;
     m.boss = !!sp.boss; m.elite = !!sp.elite; m.st = "move"; m.at = Math.random() * 2; m.face = Math.atan2(R.x - x, R.z - z); m.flash = 0; m.atkCd = 0.5 + Math.random() * 0.5; m.slow = 0; m.born = 0; m.bob = Math.random() * 6;
-    m.dir = o && o.dir ? o.dir : null; m.bt = 0; m.bn = 0; m.charge = null; m.oT = -9; m.bT = -9; m.zT = -9; m.dis = 0;
+    m.dir = o && o.dir ? o.dir : null; m.bt = 0; m.bn = 0; m.charge = null; m.rage = false; m.oT = -9; m.bT = -9; m.zT = -9; m.dis = 0;
     mons.push(m); meshOf(kd); if (Q && !m.boss) ring(x, z, 0.2, m.r * 2, m.elite ? 0xff5ad8 : 0xb48cff, 0.5, EASE, 0.8); return m;
   }
   function spawnRing() {
@@ -532,26 +577,38 @@ export function createSurvivors(ctx) {
     if (m.elite) { for (let k = 0; k < 3; k++) addGem(m.x + (Math.random() - 0.5) * 2, m.z + (Math.random() - 0.5) * 2, 2); if (Math.random() < 0.35 + 0.1 * pv("lucky")) dropChest(m.x, m.z); }
     if (pv("vamp") && ++R.vampN >= [14, 12, 10, 8, 6][pv("vamp") - 1]) { R.vampN = 0; heal(2 + pv("vamp")); }
     if (pv("streak")) { R.streak = Math.min(25, R.streak + 1); R.streakT = 1.2; }
-    if (m.boss) { R.bosses++; R.boss = null; dropChest(m.x, m.z); snd("win"); shakeK = 1.2; flashUi("boss"); slowMo = 1.0; R.stop = 0.12; sparks(m.x, 2, m.z, 0xffd23a, 40, 9); ring(m.x, m.z, 1, 12, 0xffd23a, 0.9, EASE); decal(m.x, m.z, 5);
+    if (m.boss) { R.bosses++; R.boss = null; dropChest(m.x, m.z, true); snd("win"); shakeK = 1.2; flashUi("boss"); slowMo = 1.0; R.stop = 0.12; sparks(m.x, 2, m.z, 0xffd23a, 40, 9); ring(m.x, m.z, 1, 12, 0xffd23a, 0.9, EASE); decal(m.x, m.z, 5);
       if (m.id === "titan") { R.clear = true; later(1.6, "win"); } paintBoss(); }
     else snd("pop", 70);
   }
   function decal(x, z, r) { return fx("decal", x, 0.03, z, r, 0xffffff, 4, HOLD, 0.45); }
   function heal(n) { R.hp = Math.min(R.hpMax, R.hp + n); }
-  function dropChest(x, z) { if (R.chest) { R.pendingChest++; return; } R.chest = { x, z, t: 0 }; FX.chest.visible = true; FX.chest.position.set(x, 0, z); }
+  function dropChest(x, z, boss) { if (R.chest) { R.pendingChest++; return; } R.chest = { x, z, t: 0, boss: !!boss }; FX.chest.visible = true; FX.chest.position.set(x, 0, z); FX.chest.children[1].rotation.x = 0; }
 
   // the bosses: a warning, then an attack
   function bossTick(m, dt) {
     m.bt -= dt;
+    if (!m.rage && m.hp < m.hpMax * 0.5) { m.rage = true; m.sp *= 1.25; m.bt = Math.min(m.bt, 1.2); banner(T("Enraged!"), T(MON[m.id].boss)); ring(m.x, m.z, 1, 10, 0xff2a2a, 0.8, EASE); shakeK = Math.max(shakeK, 0.6); snd("roar"); }
     if (m.charge) { const c = m.charge; c.t += dt; if (c.t > c.wait) { const step = 22 * dt; m.x += c.dx * step; m.z += c.dz * step; c.go += step; if (Q) glow(m.x, 1, m.z, m.r * 1.6, 0xff5a3a, 0.25, SHRINK, 0.5); if (Math.hypot(R.x - m.x, R.z - m.z) < m.r + HERO_R + 0.3) hurtHero(m.dmg * 1.2); if (c.go >= c.len || Math.hypot(m.x, m.z) > ARENA_R - 2) { m.charge = null; shakeK = Math.max(shakeK, 0.4); } } return true; }
     if (m.bt > 0) return false;
-    const kinds = m.id === "king" ? ["slam", "summon", "slam"] : m.id === "golem" ? ["charge", "slam", "volley"] : m.id === "dragon" ? ["volley", "charge", "volley", "slam"] : ["slam", "charge", "volley", "summon", "slam"];
-    const kind = kinds[(m.bn = m.bn + 1) % kinds.length]; m.bt = m.id === "titan" ? 2.6 : 3.6; m.st = "atk"; m.at = 0;
+    // each boss its own mix: the Mushroom King's spores, Goleling's thrown rocks, the dragon's fire breath, the Titan's
+    // sweeping beam and a rain of meteors; enraged (under half health) it attacks a third faster
+    const kinds = m.id === "king" ? ["slam", "spores", "summon", "spores"] : m.id === "golem" ? ["rocks", "charge", "slam", "rocks", "volley"] : m.id === "dragon" ? ["breath", "volley", "charge", "breath", "slam"] : ["sweep", "rain", "charge", "volley", "summon", "slam"];
+    const kind = kinds[(m.bn = m.bn + 1) % kinds.length]; m.bt = (m.id === "titan" ? 2.8 : 3.6) * (m.rage ? 0.68 : 1); m.st = "atk"; m.at = 0;
     if (kind === "slam") { const r = m.id === "titan" ? 5.5 : 4, x = R.x, z = R.z; disc(x, z, r, 0xff3a3a, 1.1, HOLD, 0.6); ring(x, z, 0.3, r, 0xff6a4a, 1.1, EASE); later(1.1, "slam", x, z, r, m.dmg * 1.4); }
     else if (kind === "charge") { const dx = R.x - m.x, dz = R.z - m.z, l = Math.hypot(dx, dz) || 1, len = Math.min(18, l + 6);
       m.charge = { dx: dx / l, dz: dz / l, len, go: 0, t: 0, wait: 0.9 }; m.face = Math.atan2(dx, dz);
       beam(m.x, 0.07, m.z, m.x + (dx / l) * len, 0.07, m.z + (dz / l) * len, m.r * 2.2, 0xff3a3a, 1.0, FLAT | HOLD, 0.7); snd("warn"); }
     else if (kind === "volley") { const n = m.id === "titan" ? 18 : 12; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + Math.random() * 0.2, f = take2(foeFree); f.x = m.x; f.z = m.z; f.vx = Math.cos(a) * 6.5; f.vz = Math.sin(a) * 6.5; f.t = 0; f.dmg = m.dmg * 0.6; foes.push(f); } snd("cast"); }
+    else if (kind === "spores") { const n = m.rage ? 7 : 5; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, d = i ? 2 + Math.random() * 5 : 0, x = R.x + Math.cos(a) * d, z = R.z + Math.sin(a) * d; ring(x, z, 2.2, 2.2, 0x7aff5a, 0.9, HOLD | SPIN, 0.9); disc(x, z, 2.2, 0x2a6a1a, 0.9, HOLD, 0.5); later(0.9, "spore", x, z, 2.2, m.dmg * 0.45); } snd("cast"); }
+    else if (kind === "rocks") { const n = m.rage ? 5 : 3; for (let i = 0; i < n; i++) { const x = R.x + (i ? (Math.random() - 0.5) * 7 : 0), z = R.z + (i ? (Math.random() - 0.5) * 7 : 0), w8 = 1.1 + i * 0.15;
+        disc(x, z, 2.4, 0xff6a3a, w8, HOLD, 0.6); ring(x, z, 0.3, 2.4, 0xffa060, w8, EASE); const g = glow(0, 0, 0, 1.4, 0xb08a6a, w8, FALL); if (g) { g.x2 = m.x; g.y2 = 6; g.z2 = m.z; g.vx = x; g.vz = z; } later(w8, "slam", x, z, 2.4, m.dmg * 1.1); } snd("swing"); }
+    else if (kind === "breath") { const a = Math.atan2(R.x - m.x, R.z - m.z), len = 12; m.face = a; for (let k = -3; k <= 3; k++) { const b = a + k * 0.17; beam(m.x, 0.07, m.z, m.x + Math.sin(b) * len, 0.07, m.z + Math.cos(b) * len, 0.6, 0xff3a3a, 0.9, FLAT | HOLD, 0.5); }
+      for (let k = 0; k < 7; k++) later(0.9 + k * 0.18, "breath", m, a, len, m.dmg * 0.55); snd("warn"); }
+    else if (kind === "sweep") { const a0 = Math.atan2(R.x - m.x, R.z - m.z) - 1.2, len = 20; for (let k = 0; k <= 8; k++) { const b = a0 + (k / 8) * 2.4; beam(m.x, 0.07, m.z, m.x + Math.sin(b) * len, 0.07, m.z + Math.cos(b) * len, 0.35, 0xff2a5a, 0.8, FLAT | HOLD, 0.35); }
+      for (let k = 0; k <= 16; k++) later(0.8 + k * 0.1, "sweep", m, a0 + (k / 16) * 2.4, len, m.dmg * 0.8); snd("charge"); }
+    else if (kind === "rain") { for (let i = 0; i < (m.rage ? 12 : 8); i++) { const x = R.x + (Math.random() - 0.5) * 12, z = R.z + (Math.random() - 0.5) * 12, w8 = 0.9 + i * 0.15; disc(x, z, 2.2, 0xff3a3a, w8, HOLD, 0.55); ring(x, z, 0.3, 2.2, 0xff8a5a, w8, EASE);
+        const g = glow(0, 0, 0, 1.3, 0xff7a3a, w8, FALL | PULSE); if (g) { g.x2 = x - 4; g.y2 = 14; g.z2 = z - 3; g.vx = x; g.vz = z; } later(w8, "slam", x, z, 2.2, m.dmg * 0.9); } snd("siren"); }
     else if (kind === "summon") { const id = m.id === "king" ? "mush" : poolAt(R.t)[0][0]; for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; spawn(id, m.x + Math.cos(a) * 3, m.z + Math.sin(a) * 3); } snd("growl"); }
     return false;
   }
@@ -565,7 +622,7 @@ export function createSurvivors(ctx) {
 
   // ---------------- the hero ----------------
   function hurtHero(n) {
-    if (R.over || R.dashT > 0 || R.hurtT > 0 || mode !== "play") return;
+    if (R.over || R.dashT > 0 || R.hurtT > 0 || mode !== "play" || R.god) return;
     if (R.shield) { R.shield = 0; R.shieldT = 15; R.hurtT = 0.4; const r = 4 + pv("shield") * 0.4; ring(R.x, R.z, 0.5, r, 0x8ff0ff, 0.45, EASE); for (const m of mons) if (m.st !== "die" && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < r * r) hitMon(m, 20 * pv("shield"), "shield", { kb: 8 }); snd("impact"); return; }
     const d = n * stat.armor(); R.hp -= d; R.hurtT = 0.35; flashUi("hurt"); snd("hurt", 120); if (hero && hero.hurt) try { hero.hurt(); } catch { /* fine */ }
     num(R.x, 2.3, R.z, d, 0xff4d6d, true); shakeK = Math.max(shakeK, 0.2);
@@ -595,7 +652,7 @@ export function createSurvivors(ctx) {
   function bolt(x, z, a, sp, life, dmg, pierce, src, c) { const s = take2(shotFree); s.x = x; s.z = z; s.vx = Math.sin(a) * sp; s.vz = Math.cos(a) * sp; s.t = 0; s.life = life; s.dmg = dmg; s.pierce = pierce; s.src = src; s.c = c; s.h0 = 0; s.h1 = 0; s.h2 = 0; shots.push(s); }
   function weapons(dt) {
     dtNow = dt; const ex = stat.extra();
-    if (lvOf("blaster") && cdReady("blaster", W("blaster", "cd") / stat.rate() * (R.evo.star ? 0.7 : 1))) {
+    if (lvOf("blaster") && cdReady("blaster", W("blaster", "cd") / stat.rate() * (R.evo.star ? 0.7 : 1) * (R.overT > 0 ? 0.5 : 1))) {
       const tgt = nearest(13 * stat.reach()); if (tgt) { const n = W("blaster", "n") + ex + (R.evo.star ? 3 : 0), base = Math.atan2(tgt.x - R.x, tgt.z - R.z);
         for (let i = 0; i < n; i++) bolt(R.x, R.z, base + (i - (n - 1) / 2) * (R.evo.star ? 0.22 : 0.12), 19 * stat.rate(), 0.9 * stat.reach(), W("blaster", "dmg") * (R.evo.star ? 1.4 : 1), W("blaster", "pierce") + (R.evo.star ? 3 : 0), "blaster", R.evo.star ? 0xfff07a : 0x38d8ff);
         glow(R.x + Math.sin(base) * 0.6, 1, R.z + Math.cos(base) * 0.6, 0.9, 0x8ff0ff, 0.1); snd("zap", 90); } }
@@ -611,7 +668,7 @@ export function createSurvivors(ctx) {
       for (let i = 0; i < n; i++) { const a = R.bladeA + (i / n) * Math.PI * 2, x = R.x + Math.cos(a) * rad, z = R.z + Math.sin(a) * rad, tx = -Math.sin(a) * len, tz = Math.cos(a) * len;
         beam(x - tx, 0.9, z - tz, x + tx, 0.9, z + tz, 0.55, R.evo.eclipse ? 0xffd23a : 0x9b6bff, 0, ONE); beam(x - tx * 0.8, 0.9, z - tz * 0.8, x + tx * 0.8, 0.9, z + tz * 0.8, 0.18, 0xffffff, 0, ONE);
         near(x, z, len, (m) => { if (R.t - m.bT < 0.4) return; m.bT = R.t; hitMon(m, W("blade", "dmg") * (R.evo.eclipse ? 1.5 : 1), "blade", { kb: 2 }); }); } }
-    if (lvOf("laser") && cdReady("laser", W("laser", "cd") / stat.rate())) {
+    if (lvOf("laser") && cdReady("laser", W("laser", "cd") / stat.rate() * (R.overT > 0 ? 0.5 : 1))) {
       const tgt = nearest(16 * stat.reach()), base = tgt ? Math.atan2(tgt.x - R.x, tgt.z - R.z) : R.face, n = W("laser", "n") + ex, len = 16 * stat.reach(), w = 0.55 * stat.area();
       for (let i = 0; i < n; i++) { const a = base + (i - (n - 1) / 2) * 0.5; beam(R.x, 1, R.z, R.x + Math.sin(a) * len, 1, R.z + Math.cos(a) * len, 0.08, 0xff5ad8, 0.2, 0, 0.9); later(0.18, "laser", a, len, w); }
       snd("charged", 120); }
@@ -645,11 +702,13 @@ export function createSurvivors(ctx) {
   function zone(kind, x, z, r, life, dmg, tick) { const o = take2(zoneFree); o.kind = kind; o.x = x; o.z = z; o.r = r; o.t = 0; o.life = life; o.dmg = dmg; o.tick = tick; o.next = 0; zones.push(o);
     if (kind === "ice") { disc(x, z, r, 0x7fe8ff, life, HOLD, 0.45); ring(x, z, 0.4, r, 0xe8fbff, 0.5, EASE); }
     else if (kind === "poison") { disc(x, z, r, 0x3fdc5b, life, HOLD, 0.5); ring(x, z, r, r, 0x8fff7a, life, HOLD | SPIN, 0.5); }
+    else if (kind === "spore") { disc(x, z, r, 0x3a8a1a, life, HOLD, 0.55); ring(x, z, r, r, 0x9aff6a, life, HOLD | SPIN, 0.6); }
     else { disc(x, z, r, 0x2a0a4a, life, HOLD, 0.9); ring(x, z, r, r * 0.3, 0xb48cff, life, 0, 0.9); } }
   function zones1(dt) {
     for (let i = zones.length - 1; i >= 0; i--) { const o = zones[i]; o.t += dt;
       if (o.kind === "hole") { near(o.x, o.z, o.r * 1.4, (m) => { if (m.boss) return; const dx = o.x - m.x, dz = o.z - m.z, l = Math.hypot(dx, dz) || 1; m.vx += (dx / l) * 18 * dt; m.vz += (dz / l) * 18 * dt; }); if (Q) glow(o.x, 0.6, o.z, o.r * 0.6, 0x7a3cff, 0, PULSE | ONE, 0.5);
         if (o.t >= o.life) { ring(o.x, o.z, 0.4, o.r * 1.3, 0xb48cff, 0.4, EASE); sparks(o.x, 0.8, o.z, 0xb48cff, 14, 7); near(o.x, o.z, o.r * 1.3, (m) => hitMon(m, o.dmg, "hole", { kb: 7, fx: o.x, fz: o.z })); shakeK = Math.max(shakeK, 0.3); } }
+      else if (o.kind === "spore") { if (o.t >= o.next) { o.next = o.t + o.tick; if (Math.hypot(R.x - o.x, R.z - o.z) < o.r) hurtHero(o.dmg); if (Q) for (let k = 0; k < 3; k++) { const g = glow(o.x + (Math.random() - 0.5) * o.r * 1.6, 0.4, o.z + (Math.random() - 0.5) * o.r * 1.6, 0.7, 0x8aff5a, 0.8, GROW, 0.5); if (g) g.vy = 0.8; } } }
       else if (o.t >= o.next) { o.next = o.t + o.tick; near(o.x, o.z, o.r, (m) => hitMon(m, o.dmg, o.kind, o.kind === "ice" ? { slow: R.evo.zero ? 2.5 : 1.5 } : null));
         if (o.kind === "ice" && Q) for (let k = 0; k < 4; k++) { const g = glow(o.x + (Math.random() - 0.5) * o.r * 1.6, 3, o.z + (Math.random() - 0.5) * o.r * 1.6, 0.25, 0xe8fbff, 0.5); if (g) g.vy = -6; } }
       if (o.t >= o.life) { zoneFree.push(o); zones.splice(i, 1); } }
@@ -662,7 +721,16 @@ export function createSurvivors(ctx) {
       near(e.a, e.b, r, (m) => hitMon(m, W("meteor", "dmg"), "meteor", { kb: 5, fx: e.a, fz: e.b })); snd("impact", 80); }
     else if (e.kind === "laser") { const a = e.a, len = e.b, w = e.c, dx = Math.sin(a), dz = Math.cos(a), x2 = R.x + dx * len, z2 = R.z + dz * len;
       beam(R.x, 1, R.z, x2, 1, z2, w * 2.2, 0xff3ad0, 0.32, PULSE, 0.9); beam(R.x, 1, R.z, x2, 1, z2, w * 0.7, 0xffe0fa, 0.26); glow(R.x + dx * 0.7, 1, R.z + dz * 0.7, 1.4, 0xff9af0, 0.25, GROW);
-      for (const m of mons) { if (m.st === "die") continue; const ox = m.x - R.x, oz = m.z - R.z, along = ox * dx + oz * dz; if (along < 0 || along > len) continue; if (Math.abs(ox * dz - oz * dx) < w + m.r) { hitMon(m, W("laser", "dmg"), "laser"); if (Q) glow(m.x, 1, m.z, 0.8, 0xff9af0, 0.2, GROW); } } }
+      for (const m of mons) { if (m.st === "die") continue; const ox = m.x - R.x, oz = m.z - R.z, along = ox * dx + oz * dz; if (along < 0 || along > len) continue; if (Math.abs(ox * dz - oz * dx) < w + m.r) { hitMon(m, e.d != null ? e.d : W("laser", "dmg"), e.d != null ? "skill" : "laser"); if (Q) glow(m.x, 1, m.z, 0.8, 0xff9af0, 0.2, GROW); } } }
+    else if (e.kind === "spore") zone("spore", e.a, e.b, e.c, 4, e.d, 0.5);
+    else if (e.kind === "breath") { const m = e.a; if (!m || m.st === "die" || m.hp <= 0) return; const a = e.b, len = e.c;
+      for (let k = 0; k < 6; k++) { const d = 1.5 + Math.random() * len, b = a + (Math.random() - 0.5) * 0.9; glow(m.x + Math.sin(b) * d, 1 + Math.random(), m.z + Math.cos(b) * d, 1.6 + d * 0.12, k % 2 ? 0xff7a2a : 0xffd06a, 0.35, GROW, 0.8); }
+      const dx = R.x - m.x, dz = R.z - m.z, dd = Math.hypot(dx, dz), da = Math.abs(Math.atan2(Math.sin(Math.atan2(dx, dz) - a), Math.cos(Math.atan2(dx, dz) - a))); if (dd < len && da < 0.55) hurtHero(e.d); }
+    else if (e.kind === "sweep") { const m = e.a; if (!m || m.st === "die" || m.hp <= 0) return; const a = e.b, len = e.c, x2 = m.x + Math.sin(a) * len, z2 = m.z + Math.cos(a) * len;
+      beam(m.x, 1.2, m.z, x2, 1.2, z2, 1.0, 0xff2a5a, 0.14, PULSE); beam(m.x, 1.2, m.z, x2, 1.2, z2, 0.3, 0xffe0e8, 0.12); glow(x2, 0.5, z2, 1.6, 0xff5a7a, 0.2, GROW);
+      const ox = R.x - m.x, oz = R.z - m.z, along = ox * Math.sin(a) + oz * Math.cos(a); if (along > 0 && along < len && Math.abs(ox * Math.cos(a) - oz * Math.sin(a)) < 0.9) hurtHero(e.d); }
+    else if (e.kind === "lava") { glow(e.a, 0.8, e.b, 5, 0xff7a2a, 0.5, GROW, 0.9); sparks(e.a, 0.4, e.b, 0xffb050, 16, 7); ring(e.a, e.b, 0.5, 3, 0xffd08a, 0.4, EASE); decal(e.a, e.b, 2.2); if (Math.hypot(R.x - e.a, R.z - e.b) < 2.6) hurtHero(14 * R.D.dmg); snd("impact", 80); }
+    else if (e.kind === "chest") { if (R && FX.chest.visible) { FX.chest.visible = false; FX.chest.children[1].rotation.x = 0; } if (mode === "open") showCards(true, e.a); }
     else if (e.kind === "win") { if (on && R && !R.over) endRun("win"); }
   }
 
@@ -692,9 +760,11 @@ export function createSurvivors(ctx) {
     return `<button type="button" class="sv-card r-${rar}" data-i="${i}" style="--d:${i * 0.07}s"><span class="sv-card-ic">${icon(ic, 40)}</span><span class="sv-card-t"><b>${esc(T(name))}</b>${line ? `<small>${esc(T(line))}</small>` : ""}${pips ? `<span class="sv-pips">${pips}</span>` : ""}</span>${tag ? `<em>${esc(tag)}</em>` : ""}<kbd>${i + 1}</kbd></button>`;
   }
   let cards = null;
-  function showCards(chest) {
-    const list = offer(chest); cards = list; mode = "cards"; keys.clear(); joy.on = false; paintJoy();
-    let loot = ""; if (chest) { const hp = 1, sc = 10 + Math.floor(Math.random() * 21); R.loot.hp += hp; R.loot.scrap += sc; loot = `<p class="sv-loot">${icon("heal", 16)} ${esc(T("HP potion"))} +${hp} · ${esc(T("Scrap"))} +${sc}</p>`; }
+  function showCards(chest, gold) {
+    const list = offer(chest); cards = list; mode = "cards"; keys.clear(); joy.on = false; paintJoy(); opening = null;
+    // a chest's loot goes to your bag when the run ends: a boss's holds more
+    let loot = ""; if (chest) { const hp = gold ? 2 : 1, sp = gold ? 1 : 0, sc = gold ? 30 + Math.floor(Math.random() * 31) : 10 + Math.floor(Math.random() * 21); R.loot.hp += hp; R.loot.sp += sp; R.loot.scrap += sc;
+      loot = `<p class="sv-loot">${icon("heal", 16)} ${esc(T("HP potion"))} +${hp}${sp ? ` · ${esc(T("SP potion"))} +${sp}` : ""} · ${esc(T("Scrap"))} +${sc}</p>`; }
     ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}</h3>${loot}<div class="sv-cards-l">${list.map(cardHtml).join("")}</div></div>`;
     ui.cards.hidden = false; snd(chest ? "chest" : "level");
     ui.cards.querySelectorAll(".sv-card").forEach((b) => b.addEventListener("click", () => choose(Number(b.dataset.i))));
@@ -702,7 +772,7 @@ export function createSurvivors(ctx) {
   function choose(i) { if (mode !== "cards" || !cards || !cards[i]) return; take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
 
   // ---------------- the loop ----------------
-  let jsMs = 0, camK = 1, shakeK = 0, slowMo = 0, timeK = 1, camInit = false, acc = 0, lastNow = 0, frameMs = 16, qT = 0, qGood = 0;
+  let maxSteps = 4, opening = null, fps30 = false, jsMs = 0, camK = 1, shakeK = 0, slowMo = 0, timeK = 1, camInit = false, acc = 0, lastNow = 0, frameMs = 16, qT = 0, qGood = 0;
   const camP = new THREE.Vector3(), camL = new THREE.Vector3(), keys = new Set(), joy = { on: false, id: -1, x0: 0, y0: 0, dx: 0, dy: 0 };
   function tick(dt0, t) {
     const now = performance.now(), real = lastNow ? Math.min(0.25, (now - lastNow) / 1000) : dt0; lastNow = now;
@@ -712,11 +782,12 @@ export function createSurvivors(ctx) {
       acc += real; let n = 0;
       // at most 4 steps a frame: a frame that took too long doesn't make the next one longer still (below 15 fps the
       // game slows a little instead of spiralling)
-      const steps = Math.min(4, Math.floor(acc / STEP));
-      while (acc >= STEP && n < 4) { acc -= STEP; n++; lastStep = n >= steps; if (R.stop > 0) { R.stop -= STEP; continue; } if (slowMo > 0) { slowMo -= STEP; timeK = 0.3; } else timeK = 1; const d = STEP * timeK; step(d); simDt += d; if (mode !== "play" || !R || R.over) break; }
-      if (n >= 4) acc = 0; lastStep = true; stepped = n > 0;
+      const steps = Math.min(maxSteps, Math.floor(acc / STEP));
+      while (acc >= STEP && n < maxSteps) { acc -= STEP; n++; lastStep = n >= steps; if (R.stop > 0) { R.stop -= STEP; continue; } if (slowMo > 0) { slowMo -= STEP; timeK = 0.3; } else timeK = 1; const d = STEP * timeK; step(d); simDt += d; if (mode !== "play" || !R || R.over) break; }
+      if (n >= maxSteps) acc = 0; lastStep = true; stepped = n > 0;
     } else { acc = 0; stepped = mode !== "pause" && mode !== "cards"; }
-    const vis = mode === "play" ? simDt : mode === "over" || mode === "count" ? real : 0;
+    const vis = mode === "play" ? simDt : mode === "over" || mode === "count" || mode === "open" ? real : 0;
+    if (opening && FX) { opening.t += real; const k = Math.min(1, opening.t / 0.45); FX.chest.children[1].rotation.x = -k * 1.9; FX.chest.position.y = 0.2 + k * 0.25; }
     if (mode === "over" && R) for (let i = mons.length - 1; i >= 0; i--) { const m = mons[i]; m.flash = Math.max(0, m.flash - real * 5); if (m.st === "die") { m.at += real; if (m.at > m.kd.R.die.dur + 0.45) { monFree.push(m); mons[i] = mons[mons.length - 1]; mons.pop(); } } } // the fallen finish fading behind the result
     if (R) drawMons(vis, t);
     drawFx(vis);
@@ -735,11 +806,27 @@ export function createSurvivors(ctx) {
     camera(real); paintHud(t); paintArrows(); jsMs += (performance.now() - js0 - jsMs) * 0.1;
   }
   // quality follows the frame time: slower than ~42 fps for 2 s → one step down; faster than ~58 for 8 s → one up
+  // quality follows the frame time against the frame limit (30 on phones, 60 on PCs): 40% slower than the limit for
+  // 2 s → one step down; at the limit for 8 s → one up (never above the town's own quality setting)
+  let capMs = 1000 / 60;
   function adapt(real) {
-    frameMs += (real * 1000 - frameMs) * 0.05; if (mode !== "play") return; qT += real; if (qT < 2) return; qT = 0;
-    if (frameMs > 24 && Q > 0) { Q--; qGood = 0; applyQ(); } else if (frameMs < 17.5 && Q < Qmax) { if ((qGood += 2) >= 8) { Q++; qGood = 0; applyQ(); } } else qGood = 0;
+    frameMs += (real * 1000 - frameMs) * 0.05; if (mode !== "play") return; sample(real); qT += real; if (qT < 2) return; qT = 0;
+    if (frameMs > capMs * 1.4 && Q > 0) { Q--; qGood = 0; applyQ(); } else if (frameMs < capMs * 1.08 && Q < Qmax) { if ((qGood += 2) >= 8) { Q++; qGood = 0; applyQ(); } } else qGood = 0;
   }
-  function applyQ() { try { const pr = [Math.min(prOrig, 0.85), Math.min(prOrig, 1.1), Math.min(prOrig, 1.5)][Q]; if (st.renderer.getPixelRatio() !== pr) st.renderer.setPixelRatio(pr); } catch { /* keeps its resolution */ } }
+  function applyQ() {
+    try { const pr = [Math.min(prOrig, 0.8), Math.min(prOrig, 1.0), Math.min(prOrig, 1.5)][Q]; if (st.renderer.getPixelRatio() !== pr) st.renderer.setPixelRatio(pr); } catch { /* keeps its resolution */ }
+    if (on) try { st.view(S.scene, S.cam, Q === 2 && S.comp ? S.comp : null); } catch { /* drawn plain */ }
+  }
+  // the run's frames for the device health board (api: world-diag kind "surv"): after 60 s of play, then every 3 minutes,
+  // the typical frame rate and the slowest tenth in bands, with the quality step, the chip family and the crowd's size
+  const fpsBand = (f) => (f < 15 ? 0 : f < 20 ? 1 : f < 25 ? 2 : f < 30 ? 3 : f < 40 ? 4 : f < 50 ? 5 : f < 55 ? 6 : 7);
+  let ft = [], ftPlay = 0, ftNext = 60, ftSent = 0;
+  function sample(real) {
+    if (real <= 0 || real > 1 || document.hidden) return; ft.push(real * 1000); ftPlay += real; if (ftPlay < ftNext || ftSent >= 6 || ft.length < 120 || !ctx.post) return;
+    ftSent++; ftNext = ftPlay + 180; const a = ft.sort((x, y) => x - y); ft = [];
+    const alive = mons.length, crowd = alive < 40 ? 0 : alive < 90 ? 1 : alive < 150 ? 2 : 3;
+    try { if (!/[?&]nodiag\b/.test(location.search) && !navigator.webdriver) ctx.post({ action: "world-diag", kind: "surv", dev: ctx.coarse ? "phone" : "pc", q: String(ctx.quality || "auto"), sq: Q, fam: ctx.fam || "other", p50: fpsBand(1000 / a[Math.floor(a.length * 0.5)]), p10: fpsBand(1000 / a[Math.min(a.length - 1, Math.floor(a.length * 0.9))]), crowd }).catch(() => {}); } catch { /* the health board waits */ }
+  }
   function camera(dt) {
     const o = phone() || S.cam.aspect < 0.8 ? CAM_PHONE : CAM_PC, lobby = mode === "lobby"; let x = R ? R.x : 0, z = R ? R.z : 0;
     if (R && R.focus) { R.focus.t -= dt; const k = Math.min(1, R.focus.t > 0.4 ? 1 : R.focus.t / 0.4); x += (R.focus.x - x) * k * 0.7; z += (R.focus.z - z) * k * 0.7; if (R.focus.t <= 0) R.focus = null; }
@@ -752,7 +839,9 @@ export function createSurvivors(ctx) {
     S.cam.lookAt(camL); const asp = innerWidth / Math.max(1, innerHeight); if (Math.abs(S.cam.aspect - asp) > 0.001) { S.cam.aspect = asp; S.cam.updateProjectionMatrix(); }
     S.cam.updateMatrixWorld(); m4.multiplyMatrices(S.cam.projectionMatrix, S.cam.matrixWorldInverse); frustum.setFromProjectionMatrix(m4);
   }
-  function step(dt) {
+  let stepN = 0;
+  function step(dtS) {
+    const dt = dtS; stepN++;
     R.t += dt;
     for (let i = events.length - 1; i >= 0; i--) if (events[i].at <= R.t) { const e = events[i]; events.splice(i, 1); runEvent(e); if (!R || R.over) return; }
     // move
@@ -775,8 +864,10 @@ export function createSurvivors(ctx) {
     if (R.t >= RULES.END_S) { endRun("time"); return; }
     // the grid (cell lists reused frame to frame)
     for (const l of cells) l.length = 0; for (const m of mons) { if (m.st === "die") continue; const k = key(m.x, m.z); let l = grid.get(k); if (!l) { grid.set(k, (l = [])); cells.push(l); } l.push(m); }
-    // monsters
+    // monsters (the far ones, off the screen's edge, think every other step with twice the time: about half the work)
     for (const m of mons) {
+      const far = !m.boss && Math.abs(R.x - m.x) + Math.abs(R.z - m.z) > 30; if (far && ((m.uid + stepN) & 1)) { m.at += dtS; continue; }
+      const dt = far ? dtS * 2 : dtS;
       if (m.st === "die") { m.at += dt; continue; }
       m.flash = Math.max(0, m.flash - dt * 5); m.slow = Math.max(0, m.slow - dt); m.born = Math.min(1, m.born + dt * 2.5);
       const dx = R.x - m.x, dz = R.z - m.z, d = Math.hypot(dx, dz) || 0.001;
@@ -810,6 +901,17 @@ export function createSurvivors(ctx) {
     zones1(dt);
     weapons(dt);
     if (!R || R.over) return;
+    R.skillCd -= dt; if (R.overT > 0) R.overT -= dt;
+    // crates: one turns up near you now and then; walk into it for a heal, a magnet or a bomb
+    if ((R.crateT -= dt) <= 0 && R.crates.length < 2) { R.crateT = 22; const a = Math.random() * 6.283, d = 8 + Math.random() * 5; let x = R.x + Math.cos(a) * d, z = R.z + Math.sin(a) * d; const rr2 = Math.hypot(x, z); if (rr2 > ARENA_R - 3) { x *= (ARENA_R - 3) / rr2; z *= (ARENA_R - 3) / rr2; }
+      R.crates.push({ x, z, kind: ["heal", "magnet", "bomb"][Math.floor(Math.random() * 3)], t: 0 }); ring(x, z, 0.3, 1.6, 0xffd23a, 0.5, EASE); }
+    for (let i = R.crates.length - 1; i >= 0; i--) { const c = R.crates[i]; c.t += dt; if (Math.hypot(R.x - c.x, R.z - c.z) > 1.3) continue; R.crates.splice(i, 1); sparks(c.x, 0.8, c.z, 0xd8a060, 12, 5);
+      if (c.kind === "heal") { heal(25); num(R.x, 2.4, R.z, 25, 0x5aff8a, true); ring(R.x, R.z, 0.3, 2.5, 0x5aff8a, 0.5, EASE); snd("heart"); }
+      else if (c.kind === "magnet") { for (const g of gems) g.pull = true; ring(R.x, R.z, 0.5, 14, 0x8ff0ff, 0.7, EASE); snd("coin"); }
+      else { ring(c.x, c.z, 0.5, 8, 0xffb03a, 0.5, EASE); disc(c.x, c.z, 8, 0xff7a2a, 0.3, 0, 0.5); glow(c.x, 1, c.z, 7, 0xffa040, 0.35, GROW, 0.7); shakeK = Math.max(shakeK, 0.7); for (const m of mons) if (m.st !== "die" && (m.x - c.x) ** 2 + (m.z - c.z) ** 2 < 64) hitMon(m, 150, "crate", { kb: 9, fx: c.x, fz: c.z }); snd("impact"); } }
+    // the lava cracks flare up after 1:30: the three nearest glow red, then burst
+    if (R.t > 90 && (R.lavaT -= dt) <= 0) { R.lavaT = 24 - Math.min(10, R.t / 60); const near3 = S.crackPos.slice().sort((p, q) => (p[0] - R.x) ** 2 + (p[1] - R.z) ** 2 - ((q[0] - R.x) ** 2 + (q[1] - R.z) ** 2)).slice(0, 3);
+      for (const [x, z] of near3) { disc(x, z, 2.6, 0xff4a1a, 1.4, HOLD, 0.6); ring(x, z, 0.4, 2.6, 0xff8a3a, 1.4, EASE); later(1.4, "lava", x, z); } }
     // gems
     const mg = stat.magnet(), gk = 1 + 0.1 * pv("gold");
     for (let i = gems.length - 1; i >= 0; i--) { const g = gems[i]; g.t += dt; const dx = R.x - g.x, dz = R.z - g.z, d = Math.hypot(dx, dz);
@@ -817,29 +919,34 @@ export function createSurvivors(ctx) {
       if (d < 0.6) { R.xp += g.v * gk; gemFree.push(g); gems[i] = gems[gems.length - 1]; gems.pop(); snd("pick", 60); while (R.xp >= R.need) { R.xp -= R.need; R.lv++; R.need = needXp(R.lv); R.pendingLv++; } } }
     if (gems.length > 800) { gems[1].v += gems[0].v; gemFree.push(gems[0]); gems[0] = gems[gems.length - 1]; gems.pop(); }
     if (R.chest) { R.chest.t += dt; FX.chest.rotation.y = R.chest.t * 1.5; FX.chest.position.y = 0.2 + Math.sin(R.chest.t * 3) * 0.12; if (Q && Math.random() < dt * 10) glow(R.chest.x + (Math.random() - 0.5), 1 + Math.random(), R.chest.z + (Math.random() - 0.5), 0.3, 0xffd23a, 0.5, SHRINK);
-      if (Math.hypot(R.x - R.chest.x, R.z - R.chest.z) < 1.4) { sparks(R.chest.x, 1, R.chest.z, 0xffd23a, 20, 6); ring(R.chest.x, R.chest.z, 0.3, 4, 0xffd23a, 0.5, EASE); R.chest = null; FX.chest.visible = false; showCards(true); if (R.pendingChest > 0) { R.pendingChest--; edgePoint(6); dropChest(ep.x, ep.z); } return; } }
+      if (Math.hypot(R.x - R.chest.x, R.z - R.chest.z) < 1.4) { const c = R.chest, gold = c.boss, col0 = gold ? 0xffd23a : 0x8fd8ff; R.chest = null; mode = "open"; opening = { t: 0, x: c.x, z: c.z };
+        beam(c.x, 0.2, c.z, c.x, 9, c.z, 2.4, col0, 1.0, PULSE, 0.9); beam(c.x, 0.2, c.z, c.x, 9, c.z, 0.7, 0xffffff, 0.9); ring(c.x, c.z, 0.3, 4, col0, 0.6, EASE); sparks(c.x, 1, c.z, col0, 24, 6); snd("chest");
+        setTimeout(() => { if (on && mode === "open") runEvent({ kind: "chest", a: gold }); }, 750); if (R.pendingChest > 0) { R.pendingChest--; edgePoint(6); dropChest(ep.x, ep.z); } return; } }
     if (R.pendingLv > 0 && mode === "play") { R.pendingLv--; ring(R.x, R.z, 0.3, 4, 0x8ff0ff, 0.5, EASE); showCards(false); }
   }
   // the crowd onto its meshes (only what the camera sees), and the soft shadows under all of them
   function drawMons(dt, t) {
-    for (const id in pack) { const kd = pack[id]; if (kd.mesh) kd.mesh.count = 0; }
+    for (const id in pack) { const kd = pack[id]; if (kd.mesh) kd.mesh.count = 0; if (kd.edge) kd.edge.count = 0; }
     let sh = 0;
     for (const m of mons) {
       const kd = m.kd, mesh = kd.mesh; if (!mesh) continue;
       sph.center.set(m.x, MON[m.id].h * 0.5 + m.fly, m.z); sph.radius = MON[m.id].h; if (!frustum.intersectsSphere(sph)) continue;
       const i = mesh.count; if (i >= mesh.instanceMatrix.count) continue;
       const role = m.st === "die" ? "die" : m.st === "atk" ? "atk" : "move", animT = role === "move" ? m.at * m.sp * 0.42 * kd.R.move.dur : m.at * (role === "die" ? 1.3 : 1.2);
-      const f = frameOf(kd, role, animT); kd.anim.setXYZW(i, f[0], f[1], f[2], m.st === "die" ? 0 : m.flash * 0.8);
-      if (m.st === "die") m.dis = Math.min(1.1, Math.max(0, (m.at - kd.R.die.dur * 0.5) / 0.55)); kd.fx.setXY(i, m.dis, 0);
+      const f = frameOf(kd, role, animT); kd.anim.setXYZW(i, f[0], f[1], f[2], m.st === "die" ? 0 : m.flash * (m.boss ? 0.28 : m.elite ? 0.5 : 0.8)); // (a boss under fire every frame would stay white)
+      if (m.st === "die") m.dis = Math.min(1.1, Math.max(0, (m.at - kd.R.die.dur * 0.5) / 0.55)); kd.fx.setXY(i, m.dis, m.rage ? 1 : 0);
       const s = m.born < 1 ? 0.5 + m.born * 0.5 : 1, y = (m.fly ? m.fly + Math.sin(t * 3 + m.bob) * 0.15 : 0) - (1 - Math.min(1, m.born * 1.4)) * MON[m.id].h * 0.6;
       qq.setFromEuler(ee.set(0, m.face, 0)); mesh.setMatrixAt(i, m4.compose(vv.set(m.x, y, m.z), qq, ss.set(s, s, s))); mesh.count = i + 1;
       if (sh < FX.shadow.instanceMatrix.count && m.st !== "die") { const r = m.r * 1.5 * (m.fly ? 0.8 : 1); FX.shadow.setMatrixAt(sh++, m4.compose(vv.set(m.x, 0.025, m.z), qq.identity(), ss.set(r, 1, r))); }
     }
-    for (const id in pack) { const kd = pack[id]; if (kd.mesh) { kd.mesh.instanceMatrix.needsUpdate = true; kd.anim.needsUpdate = true; kd.fx.needsUpdate = true; } }
+    for (const id in pack) { const kd = pack[id]; if (kd.edge) kd.edge.count = Q === 2 ? kd.mesh.count : 0; if (kd.mesh) { kd.mesh.instanceMatrix.needsUpdate = true; kd.anim.needsUpdate = true; kd.fx.needsUpdate = true; } }
     FX.shadow.count = sh; FX.shadow.instanceMatrix.needsUpdate = true;
     const gm = FX.gem; let n = 0; for (const g of gems) { if (n >= gm.instanceMatrix.count) break; const s = g.v >= 10 ? 1.9 : g.v >= 3 ? 1.4 : 1; qq.setFromEuler(ee.set(0, t * 2 + g.x, 0)); gm.setMatrixAt(n, m4.compose(vv.set(g.x, 0.4 + Math.sin(t * 4 + g.z) * 0.08, g.z), qq, ss.set(s, s, s))); gm.setColorAt(n, col.set(g.v >= 10 ? 0xff5ad8 : g.v >= 3 ? 0x39ff88 : 0x38b8ff)); n++;
       if (g.pull && Q && (n & 3) === 0) glow(g.x, 0.4, g.z, 0.35, g.v >= 3 ? 0x39ff88 : 0x38b8ff, 0.2, SHRINK, 0.7); }
     gm.count = n; gm.instanceMatrix.needsUpdate = true; if (gm.instanceColor) gm.instanceColor.needsUpdate = true;
+    const cm = FX.crate; let c = 0; for (const k of R.crates) { if (c >= 4) break; qq.setFromEuler(ee.set(0, t * 0.8 + c, 0)); cm.setMatrixAt(c++, m4.compose(vv.set(k.x, 0.45 + Math.sin(t * 2.5 + c) * 0.08, k.z), qq, ss.set(1, 1, 1)));
+      if (Q && (Math.floor(t * 20) % 6 === c)) glow(k.x, 1.2, k.z, 0.4, k.kind === "heal" ? 0x5aff8a : k.kind === "magnet" ? 0x8ff0ff : 0xffb03a, 0.4, SHRINK, 0.8); }
+    cm.count = c; cm.instanceMatrix.needsUpdate = true;
   }
 
   // ---------------- the HUD ----------------
@@ -860,8 +967,9 @@ export function createSurvivors(ctx) {
       <i class="sv-arrow boss" hidden></i><i class="sv-arrow chest" hidden></i>
       <div class="sv-xp"><i></i><b>Lv 1</b></div>
       <div class="sv-joy" aria-hidden="true"><i></i></div>
+      <button type="button" class="sv-skill" aria-label="${esc(T("Skill"))}"><span class="sv-skill-ic"></span><b></b><i class="sv-dash-cd"></i></button>
       <button type="button" class="sv-dash" aria-label="${esc(T("Dash"))}"><svg viewBox="0 0 24 24"><path d="M4 12h10M10 6l6 6-6 6M18 5v14"/></svg><b>${esc(T("Dash"))}</b><i class="sv-dash-cd"></i></button>
-      <div class="sv-keys">${esc(T("WASD move · Space dash · Esc pause"))}</div>
+      <div class="sv-keys">${esc(T("WASD move · Space dash · Q skill · Esc pause"))}</div>
       <div class="sv-banner" hidden><small></small><b></b></div>
       <div class="sv-hint" hidden></div>
       <div class="sv-cards" hidden></div>
@@ -873,6 +981,7 @@ export function createSurvivors(ctx) {
       aBoss: q(".sv-arrow.boss"), aChest: q(".sv-arrow.chest"), streak: q(".sv-streak"), streakN: q(".sv-streak b"), hint: q(".sv-hint") };
     q(".sv-pause").addEventListener("click", () => pause());
     ui.dash.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); dash(); });
+    ui.skill = q(".sv-skill"); ui.skillCd = q(".sv-skill .sv-dash-cd"); ui.skill.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); skill(); });
     root.addEventListener("pointerdown", (e) => { if (mode !== "play" || joy.on || e.target.closest("button,.sv-cards,.sv-sheet")) return; e.preventDefault(); const k = scaleK(); joy.on = true; joy.id = e.pointerId; joy.x0 = e.clientX / k; joy.y0 = e.clientY / k; joy.dx = joy.dy = 0; try { root.setPointerCapture(e.pointerId); } catch { /* fine */ } paintJoy(); });
     root.addEventListener("pointermove", (e) => { if (!joy.on || e.pointerId !== joy.id) return; const k = scaleK(), mx = 46; let dx = e.clientX / k - joy.x0, dy = e.clientY / k - joy.y0; const l = Math.hypot(dx, dy); if (l > mx) { dx *= mx / l; dy *= mx / l; } joy.dx = dx / mx; joy.dy = dy / mx; paintJoy(); });
     const up = (e) => { if (e.pointerId !== joy.id) return; joy.on = false; joy.dx = joy.dy = 0; paintJoy(); };
@@ -880,6 +989,17 @@ export function createSurvivors(ctx) {
     addEventListener("resize", fit); fit();
   }
   function paintJoy() { if (!ui) return; ui.joy.classList.toggle("on", joy.on); if (joy.on) { ui.joy.style.left = joy.x0 + "px"; ui.joy.style.top = joy.y0 + "px"; ui.knob.style.transform = `translate(${joy.dx * 46}px,${joy.dy * 46}px)`; } else { ui.joy.style.left = ""; ui.joy.style.top = ""; ui.knob.style.transform = ""; } }
+  function skill() {
+    if (mode !== "play" || !R || R.skillCd > 0) return; const h = R.hero; R.skillCd = h.scd; snd("jackpot");
+    if (h.skill === "overdrive") { for (let k = 0; k < 12; k++) later(k * 0.02, "laser", (k / 12) * Math.PI * 2, 15 * stat.reach(), 0.7 * stat.area(), 60); R.overT = 4; ring(R.x, R.z, 0.5, 5, 0x38d8ff, 0.5, EASE); }
+    else if (h.skill === "bloom") { heal(R.hpMax * 0.3); num(R.x, 2.4, R.z, R.hpMax * 0.3, 0x5aff8a, true); const r = 6 * stat.area(); ring(R.x, R.z, 0.5, r, 0xff6fc8, 0.6, EASE); disc(R.x, R.z, r, 0xff8ad8, 0.6, 0, 0.45);
+      for (let k = 0; k < 14; k++) { const a = Math.random() * 6.283, d = Math.random() * r; const g = glow(R.x + Math.cos(a) * d, 0.3, R.z + Math.sin(a) * d, 0.6, k % 2 ? 0xff8ad8 : 0xffffff, 1.0, SHRINK); if (g) g.vy = 1.5; }
+      for (const m of mons) if (m.st !== "die" && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < r * r) hitMon(m, 40, "skill", { slow: 3, kb: 6 }); }
+    else { let ix = R.vx, iz = R.vz; const l = Math.hypot(ix, iz); if (l < 0.5) { ix = Math.sin(R.face); iz = Math.cos(R.face); } else { ix /= l; iz /= l; }
+      const x0 = R.x, z0 = R.z; let x1 = R.x + ix * 7, z1 = R.z + iz * 7; const rr = Math.hypot(x1, z1); if (rr > ARENA_R - 1) { x1 *= (ARENA_R - 1) / rr; z1 *= (ARENA_R - 1) / rr; }
+      beam(x0, 1, z0, x1, 1, z1, 1.2, 0x9b6bff, 0.4, 0, 0.9); beam(x0, 1, z0, x1, 1, z1, 0.35, 0xffffff, 0.3); R.x = x1; R.z = z1; R.hurtT = 0.6; camInit = true;
+      for (const [x, z] of [[x0, z0], [x1, z1]]) { ring(x, z, 0.3, 3.5, 0xb48cff, 0.4, EASE); for (const m of mons) if (m.st !== "die" && (m.x - x) ** 2 + (m.z - z) ** 2 < 12.25) hitMon(m, 50, "skill", { kb: 8, fx: x, fz: z }); } }
+  }
   function dash() { if (mode !== "play" || !R || R.dashCd > 0) return; R.dashT = DASH_T; R.dashCd = DASH_CD; snd("dash"); ring(R.x, R.z, 0.3, 2.2, 0xbff6ff, 0.3, EASE, 0.7); }
   let lastHud = 0;
   function paintHud(t) {
@@ -887,6 +1007,7 @@ export function createSurvivors(ctx) {
     ui.hp.style.transform = `scaleX(${Math.max(0, R.hp / R.hpMax).toFixed(3)})`; ui.hpN.textContent = String(Math.ceil(R.hp)); ui.root.classList.toggle("low", R.hp / R.hpMax < 0.3);
     ui.time.textContent = mmss(R.t); ui.kills.textContent = fmt(R.kills); ui.xp.style.transform = `scaleX(${Math.min(1, R.xp / R.need).toFixed(3)})`; ui.lv.textContent = T("Lv {n}", { n: R.lv });
     ui.dashCd.style.transform = `scaleY(${Math.max(0, R.dashCd / DASH_CD).toFixed(3)})`; ui.dash.classList.toggle("cool", R.dashCd > 0);
+    ui.skillCd.style.transform = `scaleY(${Math.max(0, R.skillCd / R.hero.scd).toFixed(3)})`; ui.skill.classList.toggle("cool", R.skillCd > 0); ui.skill.classList.toggle("ready", R.skillCd <= 0);
     if (R.boss) ui.bossI.style.transform = `scaleX(${Math.max(0, R.boss.hp / R.boss.hpMax).toFixed(3)})`;
     const sk = pv("streak") && R.streak >= 3; ui.streak.hidden = !sk; if (sk) ui.streakN.textContent = "×" + R.streak;
   }
@@ -915,9 +1036,10 @@ export function createSurvivors(ctx) {
     if (s) jobs.push(fetch("/api/social?world=surv&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { status = j; }).catch(() => {})); await Promise.all(jobs); }
   const boardHtml = () => { const top = (board && board.top) || []; return `<div class="sv-board"><h4>${esc(T("This week"))}</h4>${top.length ? `<ol>${top.slice(0, 5).map((x, i) => `<li><em>${i + 1}</em><b>${esc(String(x.name || x.w || "?").slice(0, 14))}</b><span>${mmss(x.secs)} · ${fmt(x.kills)}</span></li>`).join("")}</ol>` : `<p>${esc(T("No runs yet — be the first!"))}</p>`}</div>`; };
   function lobby() {
-    mode = "lobby"; camInit = false; const signed = !!(ctx.sess && ctx.sess()), d = RULES.DIFF[pick.diff]; if (S) sky(0);
-    ui.sheet.innerHTML = `<div class="sv-lobby"><small>ARCIRCLE WORLD</small><h2>${esc(T("SURVIVORS ARENA"))}</h2><p>${esc(T("Survive 12 minutes. Beat 4 bosses."))}</p>
-      <h4>${esc(T("Choose your hero"))}</h4><div class="sv-heroes">${HEROES.map((h, i) => `<button type="button" data-h="${i}" class="${i === pick.hero ? "on" : ""}" style="--c:${h.color}"><img src="models/world/chars/${h.id}.webp?v=1" alt="" loading="lazy"><b>${esc(h.name)}</b><small>${esc(T(h.perk))}</small><span>${icon(h.w, 18)}</span></button>`).join("")}</div>
+    mode = "lobby"; camInit = false; applyTheme(themeToday()); const signed = !!(ctx.sess && ctx.sess()), d = RULES.DIFF[pick.diff]; if (S) sky(0);
+    ui.sheet.innerHTML = `<div class="sv-lobby"><small>ARCIRCLE WORLD</small><h2>${esc(T("SURVIVORS ARENA"))}</h2><p>${esc(T("Survive 12 minutes. Beat 4 bosses."))}</p><p class="sv-theme">${esc(T("Today's arena: {x}", { x: T(THEMES[themeToday()].name) }))}</p>
+      <h4>${esc(T("Choose your hero"))}</h4><div class="sv-heroes">${HEROES.map((h, i) => `<button type="button" data-h="${i}" class="${i === pick.hero ? "on" : ""}" style="--c:${h.color}"><img src="models/world/chars/${h.id}.webp?v=1" alt="" loading="lazy"><b>${esc(h.name)}</b><small>${esc(T(h.perk))}</small><small class="sk">${esc(T(h.sname))}</small><span>${icon(h.w, 18)}</span></button>`).join("")}</div>
+      <p class="sv-skline">${esc(T(HEROES[pick.hero].sname))}: ${esc(T(HEROES[pick.hero].sline))}</p>
       <h4>${esc(T("Difficulty"))}</h4><div class="sv-diff">${Object.keys(RULES.DIFF).map((k) => `<button type="button" data-d="${k}" class="${k === pick.diff ? "on" : ""}"><b>${esc(T(k[0].toUpperCase() + k.slice(1)))}</b><small>×${RULES.DIFF[k].k}</small></button>`).join("")}</div>
       <div class="sv-pay">${signed ? `<b>${esc(T("Up to {n} ARCL a run · first 3 runs a day", { n: fmt(d.cap) }))}</b>${status ? `<small>${esc(T("Today: {n} / {m} ARCL", { n: fmt(status.today || 0), m: fmt(status.cap || RULES.DAY_ARCL) }))} · ${esc(T("Paid runs left today: {n}", { n: status.runsLeft ?? RULES.DAY_RUNS }))}</small>` : ""}` : `<b>${esc(T("Sign in with a wallet to earn ARCL here"))}</b>`}</div>
       ${boardHtml()}
@@ -933,12 +1055,19 @@ export function createSurvivors(ctx) {
     if (heroId === id && hero) return; const want = id; heroId = id;
     const p = (heroP = ctx.makeHero(id).catch(() => null)); const c = await p; if (heroP !== p || heroId !== want) return;
     if (!c) { ctx.toast(T("The arena couldn't load: {e}", { e: "hero" })); return; }
+    if (phone() || ctx.low) lighten(c.obj); // a phone draws the hero with one simple light term (its PBR shader was the town's most common phone hitch)
     if (hero && hero.obj.parent) hero.obj.parent.remove(hero.obj); hero = c; hero.obj.position.set(R ? R.x : 0, 0, R ? R.z : 0); S.scene.add(hero.obj);
+    try { if (st.renderer.compileAsync && on) await st.renderer.compileAsync(S.scene, S.cam); } catch { /* compiled on its first frame */ }
   }
+  function lighten(obj) { obj.traverse((o) => { if (!o.isMesh || !o.material) return; const one = (m) => { if (!m || !(m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)) return m;
+    const l = new THREE.MeshLambertMaterial({ map: m.map, color: m.color, emissive: m.emissive, emissiveMap: m.emissiveMap, emissiveIntensity: m.emissiveIntensity, transparent: m.transparent, opacity: m.opacity, alphaTest: m.alphaTest, side: m.side });
+    l.name = m.name; return l; }; o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material); }); }
   let runP = null;
   async function startRun() {
     if (mode !== "lobby") return; ui.sheet.hidden = true; ui.root.classList.remove("menu"); ui.top.hidden = false;
     await setHero(HEROES[pick.hero].id); newRun(); paintSlots(); paintBoss(); camInit = false; if (hero) hero.obj.rotation.y = 0;
+    if (hero && hero.mixer && hero.play) { hero.mixer.stopAllAction(); hero.play("walk", { fade: 0 }); hero.play("idle", { fade: 0 }); hero.mixer.update(0); } // the last run's fall doesn't carry over
+    { const h = HEROES[pick.hero]; ui.skill.querySelector(".sv-skill-ic").innerHTML = icon(h.skill === "overdrive" ? "laser" : h.skill === "bloom" ? "recov" : "speed", 26); ui.skill.querySelector("b").textContent = T(h.sname); ui.skill.style.setProperty("--c", h.color); }
     const ss = ctx.sess && ctx.sess();
     runP = ss && ctx.post ? ctx.post({ action: "world-surv-start", ...ss, diff: pick.diff }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j : null)).catch(() => null) : Promise.resolve(null);
     mode = "count"; banner(T("3 · 2 · 1 · GO!"), T(HEROES[pick.hero].name)); snd("enter"); ring(0, 0, 0.5, 6, 0x39ff88, 1.2, EASE);
@@ -955,12 +1084,12 @@ export function createSurvivors(ctx) {
     if (how === "dead" && R.t < RULES.RUN_S) R.clear = false;
     const secs = Math.floor(R.t), out = { secs, kills: R.kills, bosses: R.bosses, diff: R.diff, clear: R.clear && secs >= RULES.RUN_S };
     const xp = worldXp(out); if (ctx.gain && xp > 0) try { ctx.gain(xp, "survivors"); } catch { /* the run still ends */ }
-    if (ctx.addSupply) { try { if (R.loot.hp) ctx.addSupply("hp", R.loot.hp); if (R.loot.scrap) ctx.addSupply("scrap", R.loot.scrap); } catch { /* the run still ends */ } }
+    if (ctx.addSupply) { try { if (R.loot.hp) ctx.addSupply("hp", R.loot.hp); if (R.loot.scrap) ctx.addSupply("scrap", R.loot.scrap); if (R.loot.sp) ctx.addSupply("sp", R.loot.sp); } catch { /* the run still ends */ } }
     const title = how === "win" ? T("VICTORY") : how === "dead" ? T("YOU FELL") : how === "time" ? T("TIME UP") : T("Run ended");
     snd(how === "win" ? "win" : how === "dead" ? "ko" : "tap");
     const dmg = Object.entries(R.dmgBy).filter(([k]) => WEAPONS[k]).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmg.length ? dmg[0][1] : 1;
     const dmgHtml = dmg.length ? `<div class="sv-dmg"><small>${esc(T("Damage"))}</small>${dmg.map(([k, v]) => { const e = EVOS.find((x) => x.from === k && R.evo[x.id]); return `<p>${icon(e ? e.id : k, 18)}<b>${esc(T(e ? e.name : WEAPONS[k].name))}</b><i style="--w:${Math.max(4, (v / top) * 100).toFixed(0)}%"></i><span>${fmt(v)}</span></p>`; }).join("")}</div>` : "";
-    const loot = R.loot.hp || R.loot.scrap ? `<p class="sv-loot">${esc(T("Chest loot"))}: ${esc(T("HP potion"))} +${R.loot.hp} · ${esc(T("Scrap"))} +${R.loot.scrap}</p>` : "";
+    const loot = R.loot.hp || R.loot.scrap ? `<p class="sv-loot">${esc(T("Chest loot"))}: ${esc(T("HP potion"))} +${R.loot.hp}${R.loot.sp ? ` · ${esc(T("SP potion"))} +${R.loot.sp}` : ""} · ${esc(T("Scrap"))} +${R.loot.scrap}</p>` : "";
     const signed = !!(ctx.sess && ctx.sess());
     await new Promise((ok) => setTimeout(ok, how === "dead" ? 1300 : 600)); if (!on) return;
     ui.sheet.innerHTML = `<div class="sv-res ${how}"><small>${esc(T("SURVIVORS ARENA"))}</small><h2>${esc(title)}</h2>
@@ -976,7 +1105,7 @@ export function createSurvivors(ctx) {
     const box = ui.sheet.querySelector(".sv-arcl"), say = (b, s) => { if (!box.isConnected) return; box.querySelector("b").textContent = b; box.querySelector("small").textContent = s; };
     let res = null;
     try { const rr = await Promise.race([runP, new Promise((ok) => setTimeout(() => ok(null), 6000))]); if (!rr || !rr.runId) throw new Error("net");
-      res = await ctx.post({ action: "world-surv-end", ...ctx.sess(), runId: rr.runId, secs, kills: R.kills, bosses: R.bosses, clear: out.clear, ms: Math.round(R.t * 1000) }); } catch { res = null; }
+      res = await ctx.post({ action: "world-surv-end", ...ctx.sess(), runId: rr.runId, secs, kills: R.kills, bosses: R.bosses, clear: out.clear, ms: Math.round(R.t * 1000), hero: R.hero.name, lv: R.lv, how }); } catch { res = null; }
     if (!res) { say("—", T("Couldn't reach the server — try again later")); return; }
     const j = res.j || {}; if (!res.ok) { say("—", res.status === 400 || res.status === 409 ? T("This run couldn't be checked, so it isn't paid") : T("The reward couldn't be sent — try again later")); return; }
     if (j.credited > 0) { box.classList.add("paid"); countUp(box.querySelector("b"), j.credited, (v) => T("+{n} ARCL", { n: fmt(v) }), 1100); snd("coin"); if (ctx.refresh) ctx.refresh(); }
@@ -991,7 +1120,7 @@ export function createSurvivors(ctx) {
     e.stopImmediatePropagation(); if (["w", "a", "s", "d", "arrowleft", "arrowright", "arrowup", "arrowdown", " ", "escape", "1", "2", "3"].includes(k)) e.preventDefault();
     if (k === "escape") { if (mode === "play") pause(); else if (mode === "pause") resume(); else if (mode === "lobby") leave(); return; }
     if (mode === "cards" && ["1", "2", "3"].includes(k)) { choose(Number(k) - 1); return; }
-    if (k === " ") { dash(); return; } keys.add(k); };
+    if (k === " ") { dash(); return; } if (k === "q" || k === "e" || k === "shift") { skill(); return; } keys.add(k); };
   const ku = (e) => { if (!on) return; keys.delete(String(e.key || "").toLowerCase()); e.stopImmediatePropagation(); };
   const onHide = () => { if (document.hidden && mode === "play") pause(); }; // a call, the home button: the run waits
 
@@ -1006,8 +1135,11 @@ export function createSurvivors(ctx) {
       await Promise.all([loadPack(), setHero(HEROES[pick.hero].id), readStatus()]);
       for (const id in pack) meshOf(pack[id]);
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 3000))]); } catch { /* compiled on the first frame */ }
-      prOrig = st.renderer.getPixelRatio(); Qmax = ctx.low ? 0 : phone() ? 1 : 2; Q = Qmax; applyQ();
-      st.view(S.scene, S.cam, null); st.solo(tick); on = true; lastNow = 0;
+      // the town's own setting decides the ceiling: Saver / Low → the lightest; Auto → phones 1, PCs 2
+      prOrig = st.renderer.getPixelRatio(); Qmax = ctx.low || /^(saver|low)$/.test(String(ctx.quality)) ? 0 : phone() ? 1 : 2; Q = Qmax;
+      fps30 = phone() && !(ctx.fpsSet && ctx.fpsSet()); capMs = fps30 ? 1000 / 30 : 1000 / 60; if (fps30 && ctx.fps) ctx.fps(30); // phones: an even 30 (steadier than 25–40, and cooler)
+      if (!S.comp && !phone() && !ctx.low && ctx.K && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX, comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(S.scene, S.cam)); comp.addPass(new P.UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.55, 0.35, 0.9)); comp.addPass(new P.OutputPass()); S.comp = comp; } catch (e) { console.warn("surv bloom:", e); } }
+      on = true; applyQ(); st.solo(tick); lastNow = 0;
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true); document.addEventListener("visibilitychange", onHide);
       R = null; lobby(); return true;
     } catch (e) {
@@ -1018,6 +1150,7 @@ export function createSurvivors(ctx) {
     on = false; mode = "off"; document.body.classList.remove("wp-surv"); if (ui) { ui.root.hidden = true; ui.sheet.hidden = true; ui.cards.hidden = true; }
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); document.removeEventListener("visibilitychange", onHide); keys.clear(); joy.on = false;
     try { if (prOrig && st.renderer.getPixelRatio() !== prOrig) st.renderer.setPixelRatio(prOrig); } catch { /* the town sets its own */ }
+    if (fps30 && ctx.fps) try { ctx.fps(); } catch { /* the town's limit comes back with its settings */ } fps30 = false;
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
     if (R || mons.length) clearRun();
   }
@@ -1030,6 +1163,6 @@ export function createSurvivors(ctx) {
     debug: () => (R ? { mode, q: Q, fms: Math.round(frameMs), js: +jsMs.toFixed(2), anim: hero && hero.mixer ? (hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join(",")) : "", t: R.t, hp: R.hp, lv: R.lv, xp: R.xp, kills: R.kills, bosses: R.bosses, mons: mons.length, alive: mons.filter((m) => m.st !== "die").length, gems: gems.length, fx: FX ? FX.glow.n + FX.beam.n : 0, w: { ...R.w }, p: { ...R.p }, boss: R.boss && R.boss.id, x: R.x, z: R.z } : { mode }),
     start: () => startRun(), skip: (s) => { if (!R) return; R.t += s; R.eliteT = 0; }, choose: (i) => choose(i), give: (k, id, n = 1) => { if (!R) return; for (let i = 0; i < n; i++) take({ k, id }); }, hurt: (n) => { if (R) { R.hurtT = 0; R.shield = 0; hurtHero(n); } }, xp: (n) => { if (R) addGem(R.x, R.z, n); }, boss: (i) => { if (R) spawnBoss(i); }, killAll: () => { if (R) for (const m of mons) if (m.st !== "die") kill(m); }, mode: () => mode, cam: (k) => { camK = k; }, quality: (q) => { Qmax = Q = q; applyQ(); },
     line: (ids, st0) => { if (!R) return; clearPools(); R.still = true; R.spawnT = 1e9; R.eliteT = 1e9; R.bossNext = 9; R.w = {}; R.swarmAt = []; ids.forEach((id, i) => { const m = spawn(id, (i - (ids.length - 1) / 2) * 2.2, -3); if (m) { m.face = 0; m.born = 1; if (st0) { m.st = st0; m.at = 0; } } }); },
-    chest: () => { if (R) dropChest(R.x + 3, R.z); },
+    chest: () => { if (R) dropChest(R.x + 1, R.z, true); }, steps: (n) => { maxSteps = n; }, god: (on) => { if (R) R.god = !!on; }, // (tests: a slow test browser can let the game run at its true speed)
   };
 }
