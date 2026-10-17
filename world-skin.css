@@ -1059,7 +1059,7 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 .wx-in{width:min(440px,100%);max-height:min(88vh,760px);display:flex;flex-direction:column;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,#101c40,#070c20) padding-box,linear-gradient(135deg,#ffd36b,#f2a91f 30%,#35b8ff 70%,#2ee07a) border-box;border:2px solid transparent;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 50px rgba(242,178,50,.15);transform:translateY(14px) scale(.97);opacity:0;transition:transform .32s cubic-bezier(.2,.8,.3,1),opacity .25s}
 .wx.on .wx-in{transform:none;opacity:1}
 .wx-hd{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;background:radial-gradient(120% 140% at 0% 0%,rgba(255,200,61,.18),transparent 60%),radial-gradient(120% 140% at 100% 0%,rgba(53,184,255,.16),transparent 60%)}
-.wx-logos{display:flex;flex:none}.wx-logos svg{width:40px;height:40px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4))}.wx-logos svg+svg{margin-left:-12px}
+.wx-logos{display:flex;flex:none}.wx-logos :is(svg,img){width:40px;height:40px;border-radius:50%;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4))}.wx-logos>*+*{margin-left:-12px}
 .wx-hd div{flex:1;min-width:0}.wx-hd b{display:block;font:900 22px/1.05 var(--f-display,var(--f-ui));letter-spacing:.01em;background:linear-gradient(90deg,#ffe08a,#fff 45%,#9fe8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .wx-hd small{display:block;margin-top:3px;font:800 11px var(--f-ui);letter-spacing:.14em;color:#a9c6ef}
 .wx-x{flex:none;width:36px;height:36px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font:800 15px var(--f-ui);cursor:pointer}
@@ -1076,7 +1076,7 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 .wx-bal{text-transform:none!important;letter-spacing:0!important;display:flex;align-items:center;gap:6px}.wx-bal b{color:#eef3f7;font:800 12px var(--f-ui)}
 .wx-max{height:22px;padding:0 8px;border-radius:7px;border:1px solid rgba(255,211,107,.6);background:rgba(255,211,107,.12);color:#ffd36b;font:900 10px var(--f-ui);cursor:pointer}
 .wx-tok{display:flex;align-items:center;gap:8px;flex:none;padding:6px 12px 6px 6px;border-radius:999px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1)}
-.wx-tok svg{width:30px;height:30px}.wx-tok b{font:900 15px var(--f-ui)}
+.wx-tok :is(svg,img){width:30px;height:30px;border-radius:50%}.wx-tok b{font:900 15px var(--f-ui)}
 .wx-amt{flex:1;min-width:0;width:100%;border:0;background:none;outline:none;text-align:right;color:#fff;font:900 28px/1 var(--f-ui);font-variant-numeric:tabular-nums}
 .wx-amt::placeholder{color:rgba(255,255,255,.25)}
 .wx-est{font:800 14px var(--f-ui);color:#7dffc8}
@@ -1096,7 +1096,7 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 .wx-how p{margin:0;font:600 11.5px/1.45 var(--f-ui);color:#93a8c7}
 .wx-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .wx-list li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}
-.wx-pair{display:flex;flex:none}.wx-pair svg{width:26px;height:26px}.wx-pair svg+svg{margin-left:-8px}
+.wx-pair{display:flex;flex:none}.wx-pair :is(svg,img){width:26px;height:26px;border-radius:50%}.wx-pair>*+*{margin-left:-8px}
 .wx-li{flex:1;min-width:0}.wx-li b{display:block;font:800 13px var(--f-ui)}.wx-li small{display:block;margin-top:2px;font:600 11px var(--f-ui);color:#a9c6ef}.wx-li small b{display:inline;color:#7dffc8}
 .wx-li code{font:700 11px ui-monospace,Menlo,monospace;color:#cfe0f5}
 .wx-st{flex:none;padding:4px 9px;border-radius:999px;font:900 10.5px var(--f-ui);letter-spacing:.03em}
@@ -1108,3 +1108,5 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 .wx-gmf button{flex:1;height:34px;border:0;border-radius:10px;font:900 12px var(--f-ui);cursor:pointer}.wx-gmf .ok{background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f}.wx-gmf .no{background:rgba(255,77,109,.18);color:#ff9aa8}
 .wx-empty{margin:24px 0;text-align:center;font:700 13px var(--f-ui);color:#93a8c7}
 html.wp-pcphone .wx-in{zoom:1.6;max-height:calc(88vh / 1.6)}
+
+.wx-ic{display:block;object-fit:cover;background:#020814;box-shadow:0 0 10px rgba(53,184,255,.45)}

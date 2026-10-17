@@ -3,7 +3,7 @@
 // team compares both markets and settles each request by hand for now. Your requests and their state are listed;
 // the team (a GM wallet) gets a third tab with the queue to settle or turn down. Loaded the first time it's opened.
 const ICON = {
-  arcl: '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="wxG1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1b0"/><stop offset=".55" stop-color="#ffc83d"/><stop offset="1" stop-color="#d98a12"/></linearGradient></defs><circle cx="20" cy="20" r="18" fill="url(#wxG1)" stroke="#a86400" stroke-width="2"/><circle cx="20" cy="20" r="13" fill="none" stroke="#fff6cf" stroke-opacity=".7" stroke-width="1.5"/><path d="M13.5 27 20 11l6.5 16M15.8 22h8.4" fill="none" stroke="#6b3b00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  arcl: '<img class="wx-ic" src="/images/arcl-logo.webp?v=1" alt="" aria-hidden="true" draggable="false">', // the $ARCL logo (the owner's)
   arc: '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="wxG2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b2a6b"/><stop offset="1" stop-color="#070d2a"/></linearGradient><linearGradient id="wxG3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#35b8ff"/><stop offset=".5" stop-color="#8a7bff"/><stop offset="1" stop-color="#2ee07a"/></linearGradient></defs><circle cx="20" cy="20" r="18" fill="url(#wxG2)" stroke="#35b8ff" stroke-opacity=".7" stroke-width="2"/><path d="M8.5 20c0-3.3 2.6-6 5.9-6 4.6 0 6.6 12 11.2 12 3.3 0 5.9-2.7 5.9-6s-2.6-6-5.9-6c-4.6 0-6.6 12-11.2 12-3.3 0-5.9-2.7-5.9-6z" fill="none" stroke="url(#wxG3)" stroke-width="3.4" stroke-linecap="round"/></svg>',
 };
 const NAME = { arcl: "$ARCL", arc: "$ARCIRCLE" };
