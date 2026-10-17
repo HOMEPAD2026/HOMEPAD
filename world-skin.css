@@ -646,7 +646,13 @@ body.wp .wp-dk,body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet){background:v
    The cave is the game's own scene (the town's HUD steps aside: body.wp-mining). On top: one blue-glass bar (leave,
    the hour's ring, the haul, the pickaxe), the day's total under it, glass arrows bottom-left, a big mint MINE button
    bottom-right. Numbers float up from the rocks; the haul's coins fly to the counter. */
-body:is(.wp-mining,.wp-jurassic) :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act),body:is(.wp-mining,.wp-jurassic) [class^="wc-"]:not(.wc-dead){display:none!important}
+body.wp-mining :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act),body.wp-mining [class^="wc-"]:not(.wc-dead){display:none!important}
+/* Jurassic World keeps the town's HUD (the same game): profile and HP, wallet, the top buttons, the dock, the stick, jump and
+   run, the attack button and potions; it drops what belongs to the town (its map, quests, prompts, rides, raids, fights) */
+body.wp-jurassic :is(.wp-keys,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-photo-bar,.wr-others,.wr-raid,.wr-phase,.wr-credits,.wl-act,#wp-act-photo,#wp-act-board,#wp-act-emote,#wp-act-more,.wp-feed),body.wp-jurassic :is(.wc-boss,.wc-zone,.wc-banner,.wc-edge,.wc-lockon,.wc-slot,.wc-buffs){display:none!important}
+/* the goal card waits for gathering (it showed as a bare caption over the corner) */
+.wz-goal{display:none!important}
+body.wp-jurassic .wp-brand{visibility:hidden} /* the Village chip takes its place; the space is kept so the HUD under it stays put */
 .wm{position:fixed;inset:0;z-index:40;pointer-events:none;font-family:var(--hud-font,var(--f-ui));color:#fff;-webkit-user-select:none;user-select:none;touch-action:none}
 .wm[hidden]{display:none}
 .wm>*{pointer-events:auto}
@@ -915,3 +921,12 @@ html.wp-pcphone .wz-stick{transform:scale(1.6)}
 .wz-jump:active{transform:scale(.94)}
 @media (pointer:fine){.wz-jump{width:58px;height:58px;bottom:56px}.wz-jump svg{width:26px;height:26px}}
 html.wp-pcphone .wz-jump{zoom:1.6}
+
+/* the right edge's tab (both worlds): one tap hides the screen's buttons, leaving what you play with (HP, the stick,
+   jump and run, attack and potions, prompts); tap again and they're back */
+.wp-clean-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:45;width:30px;height:66px;border:1.5px solid rgba(90,170,255,.5);border-right:0;border-radius:14px 0 0 14px;background:linear-gradient(180deg,rgba(12,24,52,.82),rgba(7,12,26,.82));color:#bfe6ff;display:grid;place-items:center;cursor:pointer;padding:0}
+.wp-clean-tab svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+body.wp-clean .wp-clean-tab svg{transform:rotate(180deg)}
+body:not(.wp) .wp-clean-tab,body.wp-mining .wp-clean-tab,body.wp-intro .wp-clean-tab{display:none}
+html.wp-pcphone .wp-clean-tab{zoom:1.6}
+body.wp.wp-clean :is(.wp-hud-r,.wp-quests,.wp-qmini,.wp-mini,.wp-feed,.wp-dock,.wp-chips,.wp-brand,#wp-act-photo,#wp-act-board,#wp-act-emote,#wp-act-more,.wp-keys,.wc-buffs,.wc-lockon,.wz-top,.wz-goal){display:none!important}

@@ -50,6 +50,6 @@ export function makeJurassicGate(THREE, K, name, { low = false } = {}) {
   veil.position.set(0, CY, 0.02); g.add(veil);
   const glow = new THREE.PointLight(0x35b8ff, 6, 9, 2); glow.position.set(0, CY, 1.4); if (!low) g.add(glow);
   const tag = K.label(name, { accent: "#2ee07a", size: 0.9 }); tag.position.y = CY + RR + 1.6; g.add(tag);
-  g.userData = { spin: [(dt, t) => { uni.t.value = t; }], radius: 2.2, tag };
+  g.userData = { spin: [(dt, t) => { uni.t.value = t; }], radius: 2.2, tag, glow: low ? null : glow };
   return g;
 }

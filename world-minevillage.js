@@ -8,6 +8,9 @@ const BUILD_AT = 80, HIDE_AT = 100;
 export function makeMineVillage({ THREE, K, planet, T, low = false, look = null, ver = "", compile = null }) {
   const cs = (m) => (look && look.contact ? look.contact(m) : m);
   const V = MINE_VILLAGE, root = new THREE.Group(); root.name = "minevillage"; root.position.set(V.x, 0, V.z); planet.add(root);
+  // the cart's light lives on the planet from the start, dark until the cart is built: a light coming and going (with the
+  // cart, or hidden with a far-culled group) changes the light count, and every lit shader in town is made again
+  const cartGlow = low ? null : new THREE.PointLight(0xffc861, 0, 6, 2); if (cartGlow) { cartGlow.position.set(V.x, 1.8, V.z); planet.add(cartGlow); }
   const std = (c, o = {}) => cs(new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true, ...o }));
   const glow = (c, k = 1.8) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
   let sd = 731; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
@@ -62,7 +65,7 @@ export function makeMineVillage({ THREE, K, planet, T, low = false, look = null,
     [[-0.6, -0.65], [0.6, -0.65], [-0.6, 0.65], [0.6, 0.65]].forEach(([x, z]) => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.12, 12), std(0x2a2e36, { metalness: 0.5 })); w.rotation.z = Math.PI / 2; w.position.set(x * 1.05, 0.24, z); cart.add(w); });
     const oreC = [0xffc861, 0xffc861, 0xd9e4f0, 0xd98a52, 0xd98a52, 0xd98a52];
     for (let i = 0; i < 16; i++) { const c = oreC[i % oreC.length], o = new THREE.Mesh(new THREE.DodecahedronGeometry(0.17 + rnd() * 0.12, 0), c === 0xffc861 ? glow(c, 1.4) : std(c, { metalness: 0.7, roughness: 0.35 })); o.position.set((rnd() - 0.5) * 1.1, 1.18 + rnd() * 0.32, (rnd() - 0.5) * 1.5); o.rotation.set(rnd() * 3, rnd() * 3, 0); cart.add(o); }
-    const cartGlow = new THREE.PointLight(0xffc861, low ? 0 : 6, 6, 2); cartGlow.position.set(0, 1.8, 0); if (!low) cart.add(cartGlow);
+    if (cartGlow) { cartGlow.position.set(0, 1.8, 0); cart.add(cartGlow); built.updateMatrixWorld(true); planet.attach(cartGlow); cartGlow.intensity = 6; }
     // ore piles, crates and barrels along the clearing's edge, a pickaxe leaning on a crate
     const crate = new THREE.BoxGeometry(1, 1, 1), barrel = new THREE.CylinderGeometry(0.45, 0.45, 1, 12);
     const spot = (a, r) => [Math.sin(a) * r, Math.cos(a) * r];
@@ -106,7 +109,7 @@ export function makeMineVillage({ THREE, K, planet, T, low = false, look = null,
     tick(dt, t, px, pz) {
       const d = Math.hypot(px - V.x, pz - V.z);
       if (!built && d < BUILD_AT) { build(); if (compile) Promise.resolve().then(() => compile(built)).catch(() => {}); } // b5: its shaders made in the background as it appears (they were a hitch on the way in)
-      if (built) built.visible = d < HIDE_AT;
+      if (built) { built.visible = d < HIDE_AT; if (cartGlow) cartGlow.intensity = built.visible ? 6 : 0; }
       if (built && built.visible) for (const f of spins) f(dt, t);
     },
   };

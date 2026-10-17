@@ -1163,6 +1163,7 @@ export function createCombat(ctx) {
     if (id === "lockon") { lockOn(); return; }
     if (id === "forge") { rpg.forgeTab("supplies"); rpg.show("forge"); return; } // out of health potions at low HP: straight to the Forge's supplies
     if (id === "dodge") dodge();
+    else if (id === "attack" && ctx.alt && ctx.alt("attack")) { /* another world's action (world-play: Jurassic World) */ }
     else if (id === "attack") { attack(); chargeStart(); try { b.setPointerCapture(e.pointerId); } catch { /* not capturable */ } } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
     b.classList.remove("press"); requestAnimationFrame(() => b.classList.add("press")); // b413: no forced layout on every tap
   });
@@ -1265,16 +1266,20 @@ export function createCombat(ctx) {
   let restUntil = 0, koFree = false, restEl = null;
   const resting = () => restUntil > Date.now();
   const left = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? T("{h} h {m} min", { h, m }) : T("{m} min", { m: Math.max(1, m) }); };
+  // who knocked you out (ctx.koWhy: Jurassic World says a dinosaur, and you respawn at its gate, not the plaza)
+  const koHead = () => (ctx.koWhy && ctx.koWhy() === "dino" ? T("Knocked out!") : T("You got scammed!"));
+  const koLine = () => (ctx.koWhy && ctx.koWhy() === "dino" ? T("A dinosaur knocked you out.") : T("The street scammers knocked you out."));
+  const koBack = () => (ctx.koWhy && ctx.koWhy() === "dino" ? T("Respawn at the gate") : T("Respawn on the plaza"));
   function koCard(k) {
     koFree = !!k.free;
     if (k.free) {
-      dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p>
+      dead.innerHTML = `<div class="wc-dead-card"><h2>${koHead()}</h2><p>${koLine()}</p>
         <button type="button" class="wc-revive free" id="wc-revive"><img src="/images/brand/mark-sm-v2.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("Free: today's one free revive")}</small></span></button>
-        <button type="button" class="wc-respawn" id="wc-respawn"><b>${T("Respawn on the plaza")}</b><small>${T("free")}</small></button>
+        <button type="button" class="wc-respawn" id="wc-respawn"><b>${koBack()}</b><small>${T("free")}</small></button>
         <p class="wc-dead-tip">${tipAfterKO()}</p>
         <p class="wc-dead-note" id="wc-dead-note">${T("After this one, a knockout today means a revive for 10,000 $ARCIRCLE or a 24-hour rest.")}</p></div>`;
     } else {
-      dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("Today's free revive is used. Pick either one:")}</p>
+      dead.innerHTML = `<div class="wc-dead-card"><h2>${koHead()}</h2><p>${T("Today's free revive is used. Pick either one:")}</p>
         <button type="button" class="wc-revive paid" id="wc-revive"${ctx.signedIn && !ctx.signedIn() ? " disabled" : ""}><img src="/images/brand/mark-sm-v2.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
         <button type="button" class="wc-respawn" id="wc-rest"><b>${T("Rest for 24 hours")}</b><small>${T("Back on the plaza. You can walk, build and shop, but not fight, until it ends")}</small></button>
         <p class="wc-dead-tip">${tipAfterKO()}</p>
@@ -1284,7 +1289,7 @@ export function createCombat(ctx) {
   async function goDown() {
     if (down) return; down = true; ctx.down(true); document.body.classList.remove("wc-low"); nudge();
     for (const m of mobs) if (!m.dead && m.rank !== "boss") { m.dead = 0.001; puff(m.g.position.clone().setY(0.6), 0xff4d6d, { n: 8, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
-    dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p></div>`;
+    dead.innerHTML = `<div class="wc-dead-card"><h2>${koHead()}</h2><p>${koLine()}</p></div>`;
     const shown = new Promise((r) => setTimeout(() => { dead.hidden = false; r(); }, 900));
     let k = ctx.ko ? await ctx.ko("down") : null;
     if (!k) { const l = koLocal(); k = l.used < 1 ? { free: true } : { free: false }; koLocalSet(k.free ? { used: l.used + 1, until: 0, down: false } : { used: l.used, until: 0, down: true }); }

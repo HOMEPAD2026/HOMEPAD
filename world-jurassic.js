@@ -12,7 +12,7 @@ export function createJurassic(ctx) {
   const low = !!ctx.low, reduce = !!ctx.reduce, coarse = !!ctx.coarse;
   const J = JURASSIC;
   let S = null, ui = null, hero = null, on = false, busy = false;
-  let hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
+  let downNow = false, hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
   const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 }, pinch = { a: -1, b: -1, d: 0, pts: new Map() };
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), camLookS = new THREE.Vector3();
 
@@ -507,7 +507,11 @@ export function createJurassic(ctx) {
     // the ancient giants (the model is ~17K triangles): a few landmarks along the view from the gate; the forest behind
     // them stays the light drawn trees
     const anc = unit(MODELS && MODELS.ancient);
-    if (anc) { const spots = [[-24, 14, 13], [24, 18, 11], [-58, -40, 16], [12, -72, 18], [-92, 8, 15], [92, 34, 14], [-34, -128, 17], [44, -138, 16]].slice(0, low || coarse ? 5 : 8);
+    if (anc) { const spots = [[-24, 14, 13], [24, 18, 11], [-58, -40, 16], [12, -72, 18], [-92, 8, 15], [92, 34, 14], [-34, -128, 17], [44, -138, 16]], want = low ? 12 : coarse ? 16 : 26;
+      // more of them all over the plain and the forest's edge: kept off the lake, the path from the gate and each other
+      seed = 67; for (let i = 0; i < want * 12 && spots.length < want; i++) { const a = rnd() * Math.PI * 2, r = 30 + rnd() * (J.EDGE - 50), x = Math.cos(a) * r, z = Math.sin(a) * r;
+        if (Math.hypot(x - J.LAKE.x, z - J.LAKE.z) < J.LAKE.r + 14 || (Math.abs(x) < 16 && z > 20) || height(x, z) < WATER_Y + 0.5) continue;
+        if (spots.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 26)) continue; spots.push([x, z, 12 + rnd() * 7]); }
       seed = 61; const list = spots.map(([x, z, w]) => { q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w * (0.95 + rnd() * 0.2), w); p3.set(x, height(x, z) - 0.3, z); return new THREE.Matrix4().compose(p3, q, sc); });
       cellsOf(scene, "ancient", anc, farOf(anc, MODELS.ancient1), list, { shadow: true, nearD: NEAR_D + 20 }); }
     // the old ruins: a great gate on the far shore of the lake, and two smaller ones along the plain
@@ -533,7 +537,8 @@ export function createJurassic(ctx) {
     if (shadows) { const cast = (g) => g && g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); raptors.forEach((r) => cast(r.g)); herd.forEach((h) => cast(h.g)); trikes.forEach((r) => cast(r.g)); if (alpha) cast(alpha.g); if (sentinel) cast(sentinel.g); cast(gate); }
     // a soft glow on the light (the town's bloom, gentler), where the device has bloom on
     let comp = null;
-    if (!low && st.quality && st.quality.bloom && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX; comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(scene, cam)); const bl = new P.UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.4, 0.92); bl.heavy = true; comp.addPass(bl); comp.addPass(new P.OutputPass()); } catch (e) { console.warn("jurassic bloom", e); comp = null; } }
+    // no bloom chain of its own: next to the town's post chain it drew a blank screen (a second round; the sky, fog and
+    // grading carry the look)
     const grass = MODELS && MODELS.ground ? makeGrass(scene) : null, air = makeAir(scene);
     S = { scene, cam, gate, sun, shadows, comp, wU, grass, air, trees, spin: gate.userData.spin || [] };
     tickCells(0, true);
@@ -546,45 +551,26 @@ export function createJurassic(ctx) {
   }
 
   // ---------------- the HUD: leave, the title, a stick and the way home ----------------
+  // the HUD: the town's own (world-play.js keeps it up in Jurassic World: profile and HP, wallet, the dock, the stick, jump,
+  // run, attack); this adds only what's Jurassic: a chip with the way back, the goal card, the prompt, the title. The layer
+  // lets touches through to the game (the town's stick and look read them)
   function buildUi() {
     const root = document.createElement("div"); root.id = "wp-jur"; root.className = "wz"; root.hidden = true;
     root.innerHTML = `<div class="wz-top" data-game-hud><button type="button" class="wz-leave"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Village"))}</span></button>
-        <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div>
-        <div class="wz-note">${esc(T("A first look at the land. More dinosaurs, hunting and rewards come next."))}</div></div>
-      <div class="wz-stick" aria-hidden="true"><i></i></div>
-      <button type="button" class="wz-jump" aria-label="${esc(T("Jump"))}"><svg viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6"/></svg></button>
+        <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div></div>
+      <section class="wz-goal" aria-live="polite"><small>${esc(T("Jurassic goals"))}</small><b class="wz-goal-t"></b><i class="wz-goal-bar"><i></i></i></section>
+      <button type="button" class="wz-act" hidden></button>
       <button type="button" class="wz-home" hidden>${esc(T("Back to the village"))}</button>
-      <div class="wz-keys">${esc(T("WASD move · Shift run · Space jump · drag to look · Esc leave"))}</div>
+      <div class="wz-keys">${esc(T("WASD move · Shift run · Space jump · J chop / mine · E use · Esc leave"))}</div>
       <div class="wz-title" hidden><small>ARCIRCLE WORLD</small><b>JURASSIC WORLD</b><span>${esc(T("Primeval Plains"))}</span></div>`;
     document.body.appendChild(root);
-    const q = (s) => root.querySelector(s);
-    ui = { root, stick: q(".wz-stick"), knob: q(".wz-stick i"), home: q(".wz-home"), title: q(".wz-title") };
+    const q = (s2) => root.querySelector(s2);
+    ui = { root, home: q(".wz-home"), title: q(".wz-title"), act: q(".wz-act"), goal: q(".wz-goal-t"), goalBar: q(".wz-goal-bar i") };
     q(".wz-leave").addEventListener("click", () => leave());
     ui.home.addEventListener("click", () => leave());
-    q(".wz-jump").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); jumpQ = true; });
-    // touch: the left half moves (a stick where the thumb lands), the rest of the screen looks around
-    root.addEventListener("pointerdown", (e) => {
-      if (e.target.closest("button")) return;
-      if (e.pointerType !== "mouse" && e.clientX < innerWidth * 0.45 && stick.id < 0) { stick.id = e.pointerId; stick.ox = e.clientX; stick.oy = e.clientY; stick.x = stick.y = 0; ui.stick.style.left = e.clientX + "px"; ui.stick.style.top = e.clientY + "px"; ui.stick.classList.add("on"); }
-      else if (look.id < 0) { look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY; }
-      else if (e.pointerType !== "mouse" && pinch.a < 0) { pinch.a = look.id; pinch.b = e.pointerId; }
-      pinch.pts.set(e.pointerId, [e.clientX, e.clientY]); if (pinch.a >= 0 && pinch.pts.has(pinch.a) && pinch.pts.has(pinch.b)) { const [a, b] = [pinch.pts.get(pinch.a), pinch.pts.get(pinch.b)]; pinch.d = Math.hypot(a[0] - b[0], a[1] - b[1]); }
-      try { root.setPointerCapture(e.pointerId); } catch { /* fine */ }
-    });
-    root.addEventListener("pointermove", (e) => {
-      if (e.pointerId === stick.id) { const dx = e.clientX - stick.ox, dy = e.clientY - stick.oy, l = Math.hypot(dx, dy), m = Math.min(1, l / 55); stick.x = l ? dx / l * m : 0; stick.y = l ? dy / l * m : 0; ui.knob.style.transform = `translate(${stick.x * 34}px,${stick.y * 34}px)`; }
-      if (pinch.pts.has(e.pointerId)) pinch.pts.set(e.pointerId, [e.clientX, e.clientY]);
-      if (pinch.a >= 0 && (e.pointerId === pinch.a || e.pointerId === pinch.b) && pinch.pts.has(pinch.a) && pinch.pts.has(pinch.b)) {
-        // two fingers: pinch zooms (the town's 0.6–1.9)
-        const [a, b] = [pinch.pts.get(pinch.a), pinch.pts.get(pinch.b)], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch.d > 0) camGoal = Math.max(0.6, Math.min(1.9, camGoal * pinch.d / Math.max(1, d))); pinch.d = d; return;
-      }
-      if (e.pointerId === look.id) { camYaw -= (e.clientX - look.x) * 0.006; camPitch = Math.max(-0.3, Math.min(0.75, camPitch + (e.clientY - look.y) * 0.004)); look.x = e.clientX; look.y = e.clientY; }
-    });
-    const up = (e) => { pinch.pts.delete(e.pointerId); if (e.pointerId === pinch.a || e.pointerId === pinch.b) { pinch.a = pinch.b = -1; pinch.d = 0; } if (e.pointerId === stick.id) { stick.id = -1; stick.x = stick.y = 0; ui.knob.style.transform = ""; ui.stick.classList.remove("on"); } if (e.pointerId === look.id) look.id = -1; };
-    root.addEventListener("pointerup", up); root.addEventListener("pointercancel", up);
-    root.addEventListener("wheel", (e) => { camGoal = Math.max(0.6, Math.min(1.9, camGoal * (e.deltaY > 0 ? 1.1 : 0.91))); }, { passive: true });
+    ui.act.addEventListener("click", () => use());
   }
-  const kd = (e) => { if (!on) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); leave(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && nearGate) { e.preventDefault(); e.stopPropagation(); leave(); } if (k === " " && !e.repeat) jumpQ = true; };
+  const kd = (e) => { if (!on) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); leave(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && !e.repeat) { e.preventDefault(); e.stopPropagation(); if (nearGate) leave(); else use(); } else if ((k === "j" || k === "f") && !e.repeat) { e.preventDefault(); e.stopPropagation(); act("attack"); } if (k === " " && !e.repeat) jumpQ = true; };
   const ku = (e) => { keys.delete(e.key.toLowerCase()); };
 
   // ---------------- a frame ----------------
@@ -594,10 +580,12 @@ export function createJurassic(ctx) {
   let frames = 0;
   function tick(dt, t) {
     if (!S) return; dt = Math.min(dt, 0.05); frames++;
-    let ix = stick.x, iz = stick.y;
+    const inp = ctx.input ? ctx.input() : null; if (inp) { camYaw = inp.yaw; camPitch = inp.pitch; camGoal = inp.zoom; }
+    let ix = (inp && inp.joy ? inp.joy.dx : 0) + (inp ? inp.gx || 0 : 0), iz = (inp && inp.joy ? inp.joy.dy : 0) - (inp ? inp.gy || 0 : 0);
+    if (downNow) { ix = iz = 0; }
     if (keys.has("a") || keys.has("arrowleft")) ix -= 1; if (keys.has("d") || keys.has("arrowright")) ix += 1;
     if (keys.has("w") || keys.has("arrowup")) iz -= 1; if (keys.has("s") || keys.has("arrowdown")) iz += 1;
-    const il = Math.hypot(ix, iz), run = keys.has("shift") || il > 0.92 && stick.id >= 0;
+    const il = Math.min(1.4, Math.hypot(ix, iz)), run = keys.has("shift") || (inp && inp.run) || (inp && inp.joy && Math.hypot(inp.joy.dx, inp.joy.dy) > 0.95);
     const target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) : 0; speed += (target - speed) * Math.min(1, dt * 8);
     if (il > 0.08) {
       // the stick is read from the camera: up is away from it
@@ -645,7 +633,7 @@ export function createJurassic(ctx) {
     try {
       if (!S) { await loadModels(); build(); } if (!ui) buildUi();
       await makeHero(); animNow = "";
-      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 1; camInit = false; speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
+      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 1; camInit = false; downNow = false; if (ctx.setView) ctx.setView({ yaw: 0, pitch: 0.05, zoom: camGoal }); speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
       st.view(S.scene, S.cam, S.comp || null); st.solo(tick); on = true;
       document.body.classList.add("wp-jurassic"); ui.root.hidden = false;
@@ -658,9 +646,23 @@ export function createJurassic(ctx) {
   }
   function reset() {
     on = false; document.body.classList.remove("wp-jurassic"); if (ui) ui.root.hidden = true;
-    removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); keys.clear(); stick.id = look.id = -1; stick.x = stick.y = 0;
+    removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); keys.clear();
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  return { enter, leave, active: () => on, jump: () => { jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state) }), walk: (x, z, yaw) => { px = x; pz = z; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
+  // the attack button (the town's, routed here by world-play): chop the tree, mine the rock, or hit what's in reach
+  // the swing (chopping and mining come next, judged by the server); E at the gate goes home
+  let swingT = 0;
+  function swing() { const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
+  function use() { if (nearGate) leave(); }
+  function act(a) { if (!on || downNow) return true; if (a === "attack") swing(); return true; }
+  // knocked out (the town's rules: world-combat.js — today's free get-up, then $ARCIRCLE or a rest): the hero lies down;
+  // getting up "here" stays, "plaza" means the gate
+  function down(isDown, where) {
+    downNow = !!isDown; speed = 0;
+    if (isDown) { if (hero && hero.play) { animNow = "die"; hero.play("die", { once: true, hold: true }); } return; }
+    if (where === "plaza") { px = J.SPAWN.x; pz = J.SPAWN.z; camInit = false; }
+    animNow = ""; if (hero && hero.play) hero.play("idle");
+  }
+  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state) }), walk: (x, z, yaw) => { px = x; pz = z; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
 }

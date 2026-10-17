@@ -223,8 +223,13 @@ export function makeMine(deps) {
   /// the welcome week's Advanced pickaxe for 7 days (api/_world-welcome.mjs)
   async function trial(w, ms) { const inv = await invOf(w); inv.trialUntil = Math.max(inv.trialUntil || 0, now()) + ms; await setDoc(`worldMineInv/${w}`, inv); return inv.trialUntil; }
 
+  /// for Jurassic World (api/_world-jur.mjs): the same ore pockets and pickaxe, read and added to
+  async function addOre(w, ore) { const inv = await invOf(w); for (const k of ["cu", "ag", "au"]) inv[k] = (inv[k] || 0) + Math.max(0, Math.floor(ore[k] || 0)); await setDoc(`worldMineInv/${w}`, inv); return pubInv(inv); }
+  async function oreOf(w) { const inv = await invOf(w), t = await tierOf(w, inv); return { inv: pubInv(inv), tier: t, k: (TIERS[t] || TIERS[0]).k * modOf(inv.lv || 0, false) }; }
+  async function takeOre(w, need) { const inv = await invOf(w); for (const k of ["cu", "ag", "au"]) if ((need[k] || 0) > (inv[k] || 0)) return null; for (const k of ["cu", "ag", "au"]) inv[k] -= need[k] || 0; await setDoc(`worldMineInv/${w}`, inv); return pubInv(inv); }
+
   return {
-    view, trial,
+    view, trial, addOre, oreOf, takeOre,
     async handle(b) {
       if (b.action === "world-mine-enter") return enter(b);
       if (b.action === "world-mine-beat") return beat(b);
