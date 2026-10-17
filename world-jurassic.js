@@ -24,7 +24,7 @@ export function createJurassic(ctx) {
   function height(x, z) {
     let h = (fbm(x * 0.012, z * 0.012) - 0.5) * 14 + (fbm(x * 0.05 + 9, z * 0.05 - 3) - 0.5) * 2.2;
     const dg = Math.hypot(x - J.GATE.x, z - J.GATE.z); h *= Math.min(1, Math.max(0.15, (dg - 8) / 30)); // a gentle clearing around the gate
-    const dl = Math.hypot(x - J.LAKE.x, z - J.LAKE.z); if (dl < J.LAKE.r + 14) h -= Math.max(0, 1 - dl / (J.LAKE.r + 14)) ** 1.6 * 9; // the lake's bowl
+    const dl = Math.hypot(x - J.LAKE.x, z - J.LAKE.z); if (dl < J.LAKE.r + 9) h -= Math.max(0, 1 - dl / (J.LAKE.r + 9)) ** 0.9 * 7; // the lake's bowl
     const r = Math.hypot(x, z); if (r > 150) h += ((r - 150) / 80) ** 2 * 26 * (0.6 + fbm(x * 0.02, z * 0.02)); // the ridges that close the plain
     return h;
   }
@@ -311,19 +311,23 @@ export function createJurassic(ctx) {
   // ---------------- the grass: crossed cards of drawn blades in a window that follows the hero (thick near, thinning to
   // its edge), swaying in the wind on the GPU; nothing on sand, water, steep ground or the gate's step
   function makeGrass(scene) {
-    const cv = document.createElement("canvas"); cv.width = 128; cv.height = 128; const g = cv.getContext("2d"); let sd = 13; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    const draw = (mono) => { const cv = document.createElement("canvas"); cv.width = 128; cv.height = 128; const g = cv.getContext("2d"); let sd = 13; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    g.fillStyle = mono ? "#000" : "#6a9c3c"; g.fillRect(0, 0, 128, 128);
     for (let i = 0; i < 34; i++) { const x = 6 + r() * 116, h = 56 + r() * 70, lean = (r() - 0.5) * 30, wd = 1.6 + r() * 2.2, gr = g.createLinearGradient(0, 128, 0, 128 - h);
       gr.addColorStop(0, "#5a8432"); gr.addColorStop(0.45, r() < 0.5 ? "#79a844" : "#6a9c3c"); gr.addColorStop(1, r() < 0.35 ? "#c4cf78" : "#a2c45e");
-      g.fillStyle = gr; g.beginPath(); g.moveTo(x - wd, 128); g.quadraticCurveTo(x + lean * 0.4, 128 - h * 0.55, x + lean, 128 - h); g.quadraticCurveTo(x + lean * 0.4 + wd * 0.3, 128 - h * 0.5, x + wd, 128); g.fill(); }
-    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      g.fillStyle = mono ? "#fff" : gr; g.beginPath(); g.moveTo(x - wd, 128); g.quadraticCurveTo(x + lean * 0.4, 128 - h * 0.55, x + lean, 128 - h); g.quadraticCurveTo(x + lean * 0.4 + wd * 0.3, 128 - h * 0.5, x + wd, 128); g.fill(); }
+    return cv; };
+    // colour on an opaque grass-green ground and a separate white-on-black alpha (no black bleeding into the blades)
+    const tex = new THREE.CanvasTexture(draw(false)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; const atex = new THREE.CanvasTexture(draw(true));
     const geo = new THREE.BufferGeometry(), P = [], UV = [], I = [];
     [0, Math.PI / 2].forEach((a, k) => { const c = Math.cos(a) * 0.42, s2 = Math.sin(a) * 0.42, o = k * 4; P.push(-c, 0, -s2, c, 0, s2, c, 0.62, s2, -c, 0.62, -s2); UV.push(0, 0, 1, 0, 1, 1, 0, 1); I.push(o, o + 1, o + 2, o, o + 2, o + 3); });
     geo.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(UV, 2)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(new Array(24).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3)); geo.setIndex(I);
-    const U = { uT: { value: 0 } }, mat = new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.9, metalness: 0 });
+    const U = { uT: { value: 0 } }, mat = new THREE.MeshStandardMaterial({ map: tex, alphaMap: atex, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.9, metalness: 0 });
     mat.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U); sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
       { float h = uv.y * uv.y; vec2 ip = vec2(instanceMatrix[3][0], instanceMatrix[3][2]);
         float w = sin(uT * 1.6 + ip.x * 0.31 + ip.y * 0.23) * 0.16 + sin(uT * 3.3 + ip.x * 1.7 - ip.y * 0.9) * 0.05;
-        transformed.x += w * h; transformed.z += w * 0.55 * h; }`); };
+        transformed.x += w * h; transformed.z += w * 0.55 * h; }`);
+      sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize(vNormal);"); }; // (both faces lit as the front)
     mat.customProgramCacheKey = () => "jur-grass";
     const STEP = low ? 1.7 : coarse ? 1.35 : 1.1, W = low ? 30 : coarse ? 44 : 64, im = new THREE.InstancedMesh(geo, mat, W * W);
     im.receiveShadow = true; im.frustumCulled = false; scene.add(im);
@@ -434,7 +438,7 @@ export function createJurassic(ctx) {
       const spl = new Float32Array(pos.count * 4);
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i), z = pos.getZ(i), y = pos.getY(i), slope = 1 - nrm.getY(i), n1 = fbm(x * 0.018 + 3, z * 0.018 - 7), n2 = fbm(x * 0.06, z * 0.06);
-        const sand = 1 - THREE.MathUtils.smoothstep(y, WATER_Y + 0.15, WATER_Y + 0.85), dirt = Math.min(1, Math.max(0, (slope - 0.08) * 6) + Math.max(0, n2 - 0.66) * 3), forest = Math.max(0, n1 - 0.48) * 3.2;
+        const sand = 1 - THREE.MathUtils.smoothstep(y, WATER_Y + 0.05, WATER_Y + 0.5), dirt = Math.min(1, Math.max(0, (slope - 0.08) * 6) + Math.max(0, n2 - 0.66) * 3), forest = Math.max(0, n1 - 0.48) * 3.2;
         spl.set([Math.max(0.05, 1 - forest - dirt - sand), forest * (1 - sand), dirt * (1 - sand), sand * 3], i * 4);
         const t = 0.92 + fbm(x * 0.03, z * 0.03) * 0.16; col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = t;
       }
@@ -513,6 +517,7 @@ export function createJurassic(ctx) {
     // the owner's nature props (ferns, bushes, flowers, logs: vertex-coloured, joined to one mesh each): thick round the
     // gate, the paths and the lake; in 80 m cells, drawn only near (they're the ground's detail, not the view)
     const natMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
+    natMat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize(vNormal);"); };
     const NAT = { fern: [low ? 70 : coarse ? 110 : 190, [1.2, 2.4]], bush: [low ? 45 : coarse ? 70 : 120, [1.4, 2.8]], flowers: [low ? 50 : coarse ? 80 : 140, [0.5, 1.0]], log: [low ? 10 : 18, [2.6, 4.6]] };
     seed = 83;
     for (const [kind, [n, size]] of Object.entries(NAT)) for (let v = 1; v <= 3; v++) {

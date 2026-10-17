@@ -13,33 +13,42 @@ export function makeJurTrees(THREE, { low = false } = {}) {
   for (let i = 0; i < 70; i++) { const x = r() * 128, w = 1 + r() * 3; bg.fillStyle = r() < 0.5 ? "rgba(40,28,18,0.75)" : "rgba(130,108,84,0.45)"; bg.beginPath(); bg.moveTo(x, 0); for (let y = 0; y <= 256; y += 16) bg.lineTo(x + Math.sin(y * 0.05 + i) * 3, y); bg.lineTo(x + w, 256); bg.lineTo(x + w, 0); bg.fill(); }
   for (let i = 0; i < 6; i++) { const x = r() * 128, y = r() * 256, g2 = bg.createRadialGradient(x, y, 0, x, y, 7); g2.addColorStop(0, "rgba(30,20,12,0.9)"); g2.addColorStop(1, "rgba(30,20,12,0)"); bg.fillStyle = g2; bg.fillRect(x - 8, y - 8, 16, 16); }
   const bark = new THREE.CanvasTexture(bc); bark.colorSpace = THREE.SRGBColorSpace; bark.wrapS = bark.wrapT = THREE.RepeatWrapping; bark.anisotropy = 4;
+  // ---- the foliage atlas (2×2, each 256²): needle spray, broad leaf cluster, fern frond, cycad frond. Drawn twice from the
+  // same seed: in colour on an opaque leaf-green ground (so the mipmaps don't bleed black into the edges), and in white on
+  // black as the alpha map
+  function drawAtlas(g, mono) {
+    sd = 777; const leafCol = (k) => (mono ? "#fff" : ["#2f5a24", "#3d6e2c", "#4f8434", "#5f9a3c", "#7aae4a"][Math.min(4, Math.floor(k * 5))]), C = (c) => (mono ? "#fff" : c);
+    g.fillStyle = mono ? "#000" : "#3f6e2c"; g.fillRect(0, 0, 512, 512);
   // ---- the foliage atlas (2×2, each 256²): needle spray, broad leaf cluster, fern frond, cycad frond
-  const A = canvas(512, 512), g = A.getContext("2d");
-  const leafCol = (k) => ["#2f5a24", "#3d6e2c", "#4f8434", "#5f9a3c", "#7aae4a"][Math.min(4, Math.floor(k * 5))];
+  
   // needle spray (top left): a twig with fans of needles, denser and darker toward the base
   g.save(); g.translate(0, 0); g.lineCap = "round";
   for (let s = 0; s < 3; s++) { const y0 = 128 + (s - 1) * 52, len = 230;
-    g.strokeStyle = "#4a3a26"; g.lineWidth = 3; g.beginPath(); g.moveTo(8, y0); g.quadraticCurveTo(128, y0 + 10, 8 + len, y0 + 24); g.stroke();
-    for (let t = 0; t < 1; t += 0.018) { const x = 8 + len * t, y = y0 + 10 * t + 14 * t * t; for (const side of [-1, 1]) { g.strokeStyle = leafCol(0.2 + r() * 0.6); g.lineWidth = 1.6; const L = 26 * (1 - t * 0.5); g.beginPath(); g.moveTo(x, y); g.lineTo(x + L * 0.45, y + side * L); g.stroke(); } } }
+    g.strokeStyle = C("#4a3a26"); g.lineWidth = 3; g.beginPath(); g.moveTo(8, y0); g.quadraticCurveTo(128, y0 + 10, 8 + len, y0 + 24); g.stroke();
+    for (let t = 0; t < 1; t += 0.018) { const x = 8 + len * t, y = y0 + 10 * t + 14 * t * t; for (const side of [-1, 1]) { g.strokeStyle = leafCol(0.2 + r() * 0.6); g.lineWidth = 3.4; const L = 30 * (1 - t * 0.45); g.beginPath(); g.moveTo(x, y); g.lineTo(x + L * 0.45, y + side * L); g.stroke(); } }
+    g.fillStyle = leafCol(0.3); g.beginPath(); g.moveTo(8, y0 - 14); g.quadraticCurveTo(128, y0 - 6, 8 + len, y0 + 20); g.quadraticCurveTo(128, y0 + 30, 8, y0 + 14); g.fill(); }
   g.restore();
   // broad leaves (top right): many overlapping ovate leaves with a midrib and a bright edge
   g.save(); g.translate(256, 0);
   for (let i = 0; i < 70; i++) { const x = 30 + r() * 196, y = 30 + r() * 196, a = r() * 6.28, L = 20 + r() * 22, k = r();
-    g.save(); g.translate(x, y); g.rotate(a); const gr = g.createLinearGradient(-L, 0, L, 0); gr.addColorStop(0, leafCol(k * 0.6)); gr.addColorStop(1, leafCol(0.4 + k * 0.6)); g.fillStyle = gr;
-    g.beginPath(); g.moveTo(-L, 0); g.quadraticCurveTo(0, -L * 0.45, L, 0); g.quadraticCurveTo(0, L * 0.45, -L, 0); g.fill(); g.strokeStyle = "rgba(220,240,170,0.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(-L, 0); g.lineTo(L, 0); g.stroke(); g.restore(); }
+    g.save(); g.translate(x, y); g.rotate(a); const gr = g.createLinearGradient(-L, 0, L, 0); if (mono) g.fillStyle = "#fff"; else { gr.addColorStop(0, leafCol(k * 0.6)); gr.addColorStop(1, leafCol(0.4 + k * 0.6)); g.fillStyle = gr; }
+    g.beginPath(); g.moveTo(-L, 0); g.quadraticCurveTo(0, -L * 0.45, L, 0); g.quadraticCurveTo(0, L * 0.45, -L, 0); g.fill(); g.strokeStyle = mono ? "#fff" : "rgba(220,240,170,0.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(-L, 0); g.lineTo(L, 0); g.stroke(); g.restore(); }
   g.restore();
   // fern frond (bottom left): a curved rachis with paired leaflets, tapering to the tip
   g.save(); g.translate(0, 256);
-  for (let f = 0; f < 2; f++) { const yb = 70 + f * 110; g.strokeStyle = "#5a6a2a"; g.lineWidth = 3; g.beginPath(); g.moveTo(6, yb); g.quadraticCurveTo(128, yb - 20, 250, yb + 8); g.stroke();
+  for (let f = 0; f < 2; f++) { const yb = 70 + f * 110; g.strokeStyle = C("#5a6a2a"); g.lineWidth = 3; g.beginPath(); g.moveTo(6, yb); g.quadraticCurveTo(128, yb - 20, 250, yb + 8); g.stroke();
     for (let t = 0.03; t < 0.98; t += 0.028) { const x = 6 + 244 * t, y = yb - 20 * Math.sin(t * Math.PI) * 1.0 + 8 * t, L = 34 * Math.sin(Math.PI * Math.min(1, t * 1.15)) + 4;
       for (const side of [-1, 1]) { g.fillStyle = leafCol(0.35 + r() * 0.5); g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 4, y + side * L * 0.6, x + 9, y + side * L); g.quadraticCurveTo(x + 2, y + side * L * 0.5, x, y); g.fill(); } } }
   g.restore();
   // cycad frond (bottom right): stiff and dark, narrow leaflets in a herringbone
   g.save(); g.translate(256, 256);
-  for (let f = 0; f < 2; f++) { const yb = 70 + f * 110; g.strokeStyle = "#4a4a22"; g.lineWidth = 4; g.beginPath(); g.moveTo(6, yb); g.lineTo(250, yb - 6); g.stroke();
+  for (let f = 0; f < 2; f++) { const yb = 70 + f * 110; g.strokeStyle = C("#4a4a22"); g.lineWidth = 4; g.beginPath(); g.moveTo(6, yb); g.lineTo(250, yb - 6); g.stroke();
     for (let t = 0.04; t < 0.97; t += 0.024) { const x = 6 + 244 * t, y = yb - 6 * t, L = 40 * (1 - t * 0.6);
       for (const side of [-1, 1]) { g.strokeStyle = leafCol(0.1 + r() * 0.35); g.lineWidth = 3.2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + L * 0.55, y + side * L); g.stroke(); } } }
   g.restore();
+  }
+  const A = canvas(512, 512), AM = canvas(512, 512); drawAtlas(A.getContext("2d"), false); drawAtlas(AM.getContext("2d"), true);
+  const alphaMap = new THREE.CanvasTexture(AM); alphaMap.anisotropy = 4;
   const atlas = new THREE.CanvasTexture(A); atlas.colorSpace = THREE.SRGBColorSpace; atlas.anisotropy = 4;
   const RECT = { needle: [0, 0.5, 0.5, 1], broad: [0.5, 0.5, 1, 1], fern: [0, 0, 0.5, 0.5], cycad: [0.5, 0, 1, 0.5] }; // u0 v0 u1 v1 (v up)
 
@@ -71,7 +80,11 @@ export function makeJurTrees(THREE, { low = false } = {}) {
   function araucaria() {
     const H = 15 + r() * 4, bark0 = [trunk(H, 0.5, 0.14, 0.15)], leaves = [];
     for (let y = H * 0.38; y < H - 0.6; y += 1.25) { const k = 1 - (y - H * 0.38) / (H * 0.62), n = 5 + Math.floor(r() * 2), L = 1.4 + k * 3.2, off = r() * 6.28;
-      for (let i = 0; i < n; i++) { const a = off + (i / n) * 6.283; leaves.push(place(crossed(L, 1.1 + k * 0.6, RECT.needle, 0.22), 0, y, 0, 0.12, a, 0)); } }
+      for (let i = 0; i < n; i++) { const a = off + (i / n) * 6.283;
+        leaves.push(place(crossed(L, 1.1 + k * 0.6, RECT.needle, 0.22), 0, y, 0, 0.5 + r() * 0.4, a, 0));
+        // a tuft at the branch's end, cards every way (so it reads as foliage from below and from the side)
+        const ex = Math.cos(a) * L * 0.9, ez = -Math.sin(a) * L * 0.9, ey = y - 0.22 * L * 0.8;
+        for (let j = 0; j < (low ? 2 : 3); j++) { const c = card(1.3 + k, 0.9 + k * 0.4, RECT.needle, 0.1, 1); c.translate(-(0.65 + k * 0.5), 0, 0); leaves.push(place(c, ex, ey, ez, r() * 3, r() * 6.28, (r() - 0.5) * 2)); } } }
     leaves.push(place(crossed(1.6, 1.2, RECT.needle, -0.2), 0, H - 0.4, 0, 0, 0, Math.PI / 2.4), place(crossed(1.4, 1, RECT.needle, -0.2), 0, H - 0.4, 0, 0, 2, Math.PI / 2.4));
     return kind(bark0, leaves, H * 0.7);
   }
@@ -88,24 +101,27 @@ export function makeJurTrees(THREE, { low = false } = {}) {
   // tree fern: a slim curving trunk, a crown of arching fronds
   function treeFern() {
     const H = 3.5 + r() * 2.5, bark0 = [trunk(H, 0.24, 0.16, 0.35, 6)], leaves = [], n = 9 + Math.floor(r() * 3);
-    for (let i = 0; i < n; i++) { const a = (i / n) * 6.283 + r() * 0.3; leaves.push(place(card(3.2 + r() * 0.8, 1.2, RECT.fern, 0.38), Math.sin(H * 0.3) * 0.35, H, 0, 0, a, 0.45)); }
+    // each frond rolled on its length (alternately), so the crown reads from the side and from far away, not as edges
+    for (let i = 0; i < n; i++) { const a = (i / n) * 6.283 + r() * 0.3, L = 3.2 + r() * 0.8, f = card(L, 1.25, RECT.fern, 0.38); f.rotateX((i % 2 ? 1 : -1) * (0.55 + r() * 0.35));
+      leaves.push(place(f, Math.sin(H * 0.3) * 0.35, H, 0, 0, a, 0.45)); }
     return kind(bark0, leaves, H);
   }
   // cycad: a short stout trunk, a stiff rosette of fronds reaching up and out
   function cycad() {
     const H = 0.9 + r() * 0.8, bark0 = [trunk(H, 0.42, 0.34, 0.05, 8)], leaves = [], n = 12 + Math.floor(r() * 4);
-    for (let i = 0; i < n; i++) { const a = (i / n) * 6.283 + r() * 0.2; leaves.push(place(card(1.9 + r() * 0.5, 0.9, RECT.cycad, 0.12), 0, H, 0, 0, a, 0.55 + r() * 0.35)); }
+    for (let i = 0; i < n; i++) { const a = (i / n) * 6.283 + r() * 0.2, f = card(1.9 + r() * 0.5, 0.95, RECT.cycad, 0.12); f.rotateX((i % 2 ? 1 : -1) * 0.6); leaves.push(place(f, 0, H, 0, 0, a, 0.55 + r() * 0.35)); }
     return kind(bark0, leaves, H + 0.6);
   }
 
   // ---- the materials: bark, and the foliage (wind on the GPU)
   const U = { uT: { value: 0 } };
   const barkM = new THREE.MeshStandardMaterial({ map: bark, roughness: 1, metalness: 0 });
-  const leafM = new THREE.MeshStandardMaterial({ map: atlas, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.82, metalness: 0 });
+  const leafM = new THREE.MeshStandardMaterial({ map: atlas, alphaMap, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.82, metalness: 0 });
   leafM.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U); sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
     { vec2 ip = vec2(instanceMatrix[3][0], instanceMatrix[3][2]); float k = max(0.0, position.y - 1.0) * 0.012 + length(position.xz) * 0.02;
       transformed.x += sin(uT * 1.3 + ip.x * 0.21 + position.y * 0.4) * k; transformed.z += cos(uT * 1.1 + ip.y * 0.19 + position.x * 0.5) * k * 0.7; }`); };
   leafM.customProgramCacheKey = () => "jur-leaf";
+  const prev = leafM.onBeforeCompile; leafM.onBeforeCompile = (sh, rr) => { prev(sh, rr); sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize(vNormal);"); };
   const mats = [barkM, leafM];
   const KINDS = { araucaria: [araucaria(), araucaria()], broadleaf: [broadleaf(), broadleaf()], fern: [treeFern(), treeFern()], cycad: [cycad(), cycad()] };
   return { KINDS, mats, tick: (t) => { U.uT.value = t; }, atlas };
