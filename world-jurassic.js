@@ -53,7 +53,12 @@ export function createJurassic(ctx) {
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
     geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-    const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0 })); scene.add(ground);
+    const detail = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#d8d8d8"; g.fillRect(0, 0, w, h); let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 2600; i++) { const v = 150 + Math.floor(r() * 105); g.fillStyle = `rgb(${v},${v},${v})`; const x = r() * w, y = r() * h; g.fillRect(x, y, 1 + r() * 2, 2 + r() * 5); }
+      for (let i = 0; i < 40; i++) { const v = 120 + Math.floor(r() * 60); g.fillStyle = `rgba(${v},${v},${v},0.35)`; g.beginPath(); g.arc(r() * w, r() * h, 6 + r() * 18, 0, 6.283); g.fill(); } });
+    detail.wrapS = detail.wrapT = THREE.RepeatWrapping; detail.repeat.set(J.SIZE / 6, J.SIZE / 6); detail.anisotropy = 4;
+    const uv = geo.attributes.uv; // (the plane's uv runs 0–1 across the land; the repeat tiles it every 6 m)
+    const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.96, metalness: 0 })); void uv; scene.add(ground);
 
     // the lake
     const water = new THREE.Mesh(new THREE.CircleGeometry(J.LAKE.r + 12, 64), new THREE.MeshStandardMaterial({ color: 0x2f6f78, roughness: 0.12, metalness: 0.2, transparent: true, opacity: 0.86 }));
@@ -79,6 +84,9 @@ export function createJurassic(ctx) {
     // ferns: low clumps of three tilted leaves
     const fern = new THREE.ConeGeometry(0.5, 1.6, 4, 1, true); fern.translate(0, 0.6, 0);
     seed = 31; scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5d8c33, roughness: 0.9, side: THREE.DoubleSide, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
+    // grass tufts: thin blades in small clumps, thickest around the gate where the camera looks down
+    const tuft = new THREE.ConeGeometry(0.08, 0.7, 3, 1, true); tuft.translate(0, 0.32, 0);
+    seed = 37; scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x7aa846, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
     // boulders
     const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1);
     seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25);
@@ -98,18 +106,18 @@ export function createJurassic(ctx) {
 
   // ---------------- the HUD: leave, the title, a stick and the way home ----------------
   function buildUi() {
-    const root = document.createElement("div"); root.id = "wp-jur"; root.className = "wj"; root.hidden = true;
-    root.innerHTML = `<div class="wj-top" data-game-hud><button type="button" class="wj-leave"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Village"))}</span></button>
-        <div class="wj-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div></div>
-      <div class="wj-note">${esc(T("A first look at the land: the dinosaurs move in with their models."))}</div>
-      <div class="wj-stick" aria-hidden="true"><i></i></div>
-      <button type="button" class="wj-home" hidden>${esc(T("Back to the village"))}</button>
-      <div class="wj-keys">${esc(T("WASD move · Shift run · drag to look · Esc leave"))}</div>
-      <div class="wj-title" hidden><small>ARCIRCLE WORLD</small><b>JURASSIC WORLD</b><span>${esc(T("Primeval Plains"))}</span></div>`;
+    const root = document.createElement("div"); root.id = "wp-jur"; root.className = "wz"; root.hidden = true;
+    root.innerHTML = `<div class="wz-top" data-game-hud><button type="button" class="wz-leave"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Village"))}</span></button>
+        <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div>
+        <div class="wz-note">${esc(T("A first look at the land: the dinosaurs move in with their models."))}</div></div>
+      <div class="wz-stick" aria-hidden="true"><i></i></div>
+      <button type="button" class="wz-home" hidden>${esc(T("Back to the village"))}</button>
+      <div class="wz-keys">${esc(T("WASD move · Shift run · drag to look · Esc leave"))}</div>
+      <div class="wz-title" hidden><small>ARCIRCLE WORLD</small><b>JURASSIC WORLD</b><span>${esc(T("Primeval Plains"))}</span></div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    ui = { root, stick: q(".wj-stick"), knob: q(".wj-stick i"), home: q(".wj-home"), title: q(".wj-title") };
-    q(".wj-leave").addEventListener("click", () => leave());
+    ui = { root, stick: q(".wz-stick"), knob: q(".wz-stick i"), home: q(".wz-home"), title: q(".wz-title") };
+    q(".wz-leave").addEventListener("click", () => leave());
     ui.home.addEventListener("click", () => leave());
     // touch: the left half moves (a stick where the thumb lands), the rest of the screen looks around
     root.addEventListener("pointerdown", (e) => {
@@ -132,8 +140,9 @@ export function createJurassic(ctx) {
   // ---------------- a frame ----------------
   let animNow = "";
   const anim = (n, sp) => { if (!hero || !hero.play || n === animNow) return; animNow = n; hero.play(n, { speed: sp || 1, fade: 0.2 }); };
+  let frames = 0;
   function tick(dt, t) {
-    if (!S) return; dt = Math.min(dt, 0.05);
+    if (!S) return; dt = Math.min(dt, 0.05); frames++;
     let ix = stick.x, iz = stick.y;
     if (keys.has("a") || keys.has("arrowleft")) ix -= 1; if (keys.has("d") || keys.has("arrowright")) ix += 1;
     if (keys.has("w") || keys.has("arrowup")) iz -= 1; if (keys.has("s") || keys.has("arrowdown")) iz += 1;
@@ -151,7 +160,7 @@ export function createJurassic(ctx) {
     if (hero) { hero.obj.position.set(px, py, pz); hero.obj.rotation.y = face; anim(speed > 6 ? "run" : speed > 0.6 ? "walk" : "idle", speed > 6 ? 1.1 : 1); if (hero.update) hero.update(dt, t, Math.min(1, speed / 8), 0); }
     // the camera: low behind the hero, so the trees (and later the dinosaurs) stand tall
     const cy = py + 1.6 + Math.sin(camPitch) * camDist, ch = Math.cos(camPitch) * camDist;
-    let cx = px + Math.sin(camYaw) * ch, cz = pz + Math.cos(camYaw) * ch; const gy = height(cx, cz) + 0.8;
+    let cx = px + Math.sin(camYaw) * ch, cz = pz + Math.cos(camYaw) * ch; const gy = Math.max(height(cx, cz), WATER_Y) + 0.8;
     S.cam.position.set(cx, Math.max(cy, gy), cz); S.cam.lookAt(px, py + 1.7, pz);
     for (const f of S.spin) f(dt, t);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
@@ -163,7 +172,7 @@ export function createJurassic(ctx) {
     try {
       if (!S) build(); if (!ui) buildUi();
       await makeHero(); animNow = "";
-      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.18; camDist = coarse ? 10 : 9; speed = 0; nearGate = false; ui.home.hidden = true; keys.clear();
+      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.3; camDist = coarse ? 10 : 9; speed = 0; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
       st.view(S.scene, S.cam, null); st.solo(tick); on = true;
       document.body.classList.add("wp-jurassic"); ui.root.hidden = false;
@@ -180,5 +189,5 @@ export function createJurassic(ctx) {
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  return { enter, leave, active: () => on, debug: () => ({ px, pz, speed, nearGate, h: height(px, pz) }), walk: (x, z) => { px = x; pz = z; } };
+  return { enter, leave, active: () => on, debug: () => ({ px, pz, speed, nearGate, h: height(px, pz), frames, keys: [...keys] }), walk: (x, z) => { px = x; pz = z; } };
 }
