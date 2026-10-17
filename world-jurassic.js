@@ -49,7 +49,7 @@ export function createJurassic(ctx) {
     geo.computeVertexNormals(); const nrm = geo.attributes.normal;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i), y = pos.getY(i), slope = 1 - nrm.getY(i), n = fbm(x * 0.08, z * 0.08);
-      c.copy(G1).lerp(G2, n); if (slope > 0.12) c.lerp(DIRT, Math.min(1, (slope - 0.12) * 4)); if (y > 14) c.lerp(ROCK, Math.min(1, (y - 14) / 10)); if (y < WATER_Y + 1.2) c.lerp(SAND, Math.min(1, (WATER_Y + 1.2 - y) / 1.2));
+      c.copy(G1).lerp(G2, n); if (slope > 0.12) c.lerp(DIRT, Math.min(1, (slope - 0.12) * 4)); if (y > 14) c.lerp(ROCK, Math.min(1, (y - 14) / 10)); if (y < WATER_Y + 0.5) c.lerp(SAND, Math.min(1, (WATER_Y + 0.5 - y) / 0.5));
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
     geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
@@ -85,8 +85,8 @@ export function createJurassic(ctx) {
     const fern = new THREE.ConeGeometry(0.5, 1.6, 4, 1, true); fern.translate(0, 0.6, 0);
     seed = 31; scatter(fern, new THREE.MeshStandardMaterial({ color: 0x5d8c33, roughness: 0.9, side: THREE.DoubleSide, flatShading: true }), low ? 500 : coarse ? 900 : 1600, 6, 160, [0.7, 1.5]);
     // grass tufts: thin blades in small clumps, thickest around the gate where the camera looks down
-    const tuft = new THREE.ConeGeometry(0.08, 0.7, 3, 1, true); tuft.translate(0, 0.32, 0);
-    seed = 37; scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x7aa846, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
+    const tuft = new THREE.ConeGeometry(0.035, 0.42, 3, 1, true); tuft.translate(0, 0.19, 0);
+    seed = 37; scatter(tuft, new THREE.MeshStandardMaterial({ color: 0x5f8f35, roughness: 1, side: THREE.DoubleSide }), low ? 1500 : coarse ? 3000 : 5000, 2.5, 70, [0.8, 1.6]);
     // boulders
     const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1);
     seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25);
