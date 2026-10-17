@@ -8,3 +8,9 @@ kpop-5.mp3  "Neon Run" (K-pop) by sounovamusic (Pixabay #473070)
 kpop-6.mp3  "K-pop" by kulakovka (Pixabay #308509)
 
 Source: pixabay.com, under the Pixabay Content License. Re-encoded to 128 kbps MP3 for streaming.
+
+Jurassic World (played while you're in Jurassic World), supplied by the ARCIRCLE owner:
+jurassic-1.mp3  "Cretaceous Dawn"
+jurassic-2.mp3  "Sauropod Spotting"
+jurassic-3.mp3  "Lost Frontier"
+Re-encoded to 128 kbps MP3 for streaming.

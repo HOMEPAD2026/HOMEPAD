@@ -7,7 +7,9 @@
 // Each track is streamed by an <audio> element through a gain node (iOS ignores <audio>.volume, a gain node works).
 export const PLAYLIST = ["kpop-1", "kpop-2", "kpop-3", "kpop-4", "kpop-5", "kpop-6"];
 /// what each track is (audio/music/CREDITS.txt): shown on the stage's screen while it plays
-export const TITLES = { "kpop-1": ["Epic K-pop Music", "ribhavagrawal"], "kpop-2": ["Tell Me", "kontraa"], "kpop-3": ["Modern K-pop", "kulakovka"], "kpop-4": ["Han River Nights", "ultrafi"], "kpop-5": ["Neon Run", "sounovamusic"], "kpop-6": ["K-pop", "kulakovka"] };
+/// Jurassic World's own three tracks (the owner's), played the same way while you're there
+export const JURASSIC = ["jurassic-1", "jurassic-2", "jurassic-3"];
+export const TITLES = { "jurassic-1": ["Cretaceous Dawn", "ARCIRCLE"], "jurassic-2": ["Sauropod Spotting", "ARCIRCLE"], "jurassic-3": ["Lost Frontier", "ARCIRCLE"], "kpop-1": ["Epic K-pop Music", "ribhavagrawal"], "kpop-2": ["Tell Me", "kontraa"], "kpop-3": ["Modern K-pop", "kulakovka"], "kpop-4": ["Han River Nights", "ultrafi"], "kpop-5": ["Neon Run", "sounovamusic"], "kpop-6": ["K-pop", "kulakovka"] };
 const FADE = 2.5;
 
 export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, on = () => true, list = PLAYLIST, rnd = Math.random } = {}) {
@@ -80,7 +82,13 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
     slow += (b - slow) * 0.05; const hit = Math.max(0, Math.min(1, (b - slow) * 5 + b * 0.35));
     beat = Math.max(hit, beat * 0.88); return beat;
   }
+  /// another playlist (Jurassic World's, then the town's again): a fresh shuffle, and the track playing now cross-fades
+  /// into the new list's first one (nothing changes when it's the list already playing)
+  function setList(l) {
+    if (!l || !l.length || l.join() === list.join()) return; list = l.slice(); order = []; last = ""; failed = 0;
+    if (started && on() && vol > 0) { if (cur) cur.done = true; playNext(); }
+  }
   /// skip to another track
   function skip() { if (cur) { cur.done = true; } playNext(); }
-  return { start, unlock, unlocked, set, victory, duck, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
+  return { start, unlock, unlocked, set, setList, victory, duck, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
 }

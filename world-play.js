@@ -1787,12 +1787,12 @@ async function openJurassic() {
       let M; try { M = await import("./world-jurassic.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       jurGame = M.createJurassic({ input: () => ({ joy: joy ? { dx: joy.dx, dy: joy.dy } : null, run: runToggle || gpad.run, gx: gpad.x, gy: gpad.y, yaw: camYaw, pitch: camPitch, zoom: camGoal }), setView: (v) => { if (v.yaw != null) camYaw = v.yaw; if (v.pitch != null) camPitch = v.pitch; if (v.zoom != null) camGoal = camDist = v.zoom; }, hurt: (n) => (combat ? combat.hurtMe(n) : null), vitals: () => (combat ? combat.vitals() : null), THREE, K, st, ver: VER, makeGate: (n) => JG.makeJurassicGate(THREE, K, n, { low: lowGfx }), T: TW, esc, toast, reduce, low: lowGfx, coarse,
         makeHero: () => K.makeCharacter(heroOf(P.char || "arc-arc"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
-        onLeave: () => { jurOn = false; frozen = false; keys.clear(); const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 4, g.z - g.z / d * 4, { x: 0, z: 0 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
+        onLeave: () => { jurOn = false; frozen = false; try { music.setList(MUS.PLAYLIST); } catch { /* fine */ } keys.clear(); const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 4, g.z - g.z / d * 4, { x: 0, z: 0 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
     frozen = true; keys.clear(); near = null; paintPrompt();
     const ok = await jurGame.enter();
-    if (ok) jurOn = true; else frozen = false;
+    if (ok) { jurOn = true; try { music.setList(MUS.JURASSIC); } catch { /* the town's music plays on */ } } else frozen = false;
     if (veil) veil.style.opacity = "0";
   } catch (e) {
     console.warn("jurassic", e); if (diag && diag.err) diag.err("jurassic: " + String((e && e.message) || e), "openJurassic"); jurOn = false; frozen = false; near = null; paintPrompt(); if (veil) veil.style.opacity = "0";
