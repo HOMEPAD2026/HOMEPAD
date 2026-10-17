@@ -75,7 +75,7 @@ export function createJurassic(ctx) {
     const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3());
     const homes = [[-40, -10], [-55, -70], [20, -95], [95, -10], [-95, -40], [60, 40]].slice(0, low || coarse ? 4 : 6);
     homes.forEach(([hx, hz], i) => {
-      const LEN = 2.3 + rnd() * 0.6, k = LEN / sz.z, g = new THREE.Group(), inner = mesh.clone(); inner.material = raptorMat(mesh.material, bb);
+      const LEN = 3.6 + rnd() * 0.8, k = LEN / sz.z, g = new THREE.Group(), inner = mesh.clone(); inner.material = raptorMat(mesh.material, bb);
       inner.matrixAutoUpdate = false; inner.matrix.copy(new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-(b.min.x + sz.x / 2), -b.min.y, -(b.min.z + sz.z / 2))).multiply(mesh.matrixWorld));
       g.add(inner); scene.add(g);
       const r = { g, U: inner.material.userData.U, hx, hz, x: hx + (rnd() - 0.5) * 10, z: hz + (rnd() - 0.5) * 10, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, ph: rnd() * 6, t0: rnd() * 10, state: "idle" };
