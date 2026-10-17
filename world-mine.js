@@ -108,7 +108,7 @@ export function createMine(ctx) {
     // the painted cave (the mine's key art) far behind: lanterns, scaffolds and a blue cavern, mirrored to run the whole
     // length; far enough back that it slides past slower than the floor (parallax)
     if (BACK) { const H = 40, Wd = 220, tileW = H * 16 / 9, /* b5: bigger, one whole picture across the cave, its mirrored seams behind the end walls */ m = new THREE.Mesh(new THREE.PlaneGeometry(Wd, H), new THREE.MeshBasicMaterial({ map: BACK, color: 0xd6d8e6, fog: false, toneMapped: false }));
-      BACK.repeat.set(Wd / tileW, BACK.isCompressedTexture ? -1 : 1); BACK.offset.x = -(((Wd / 2 - tileW / 2) / tileW) % 1); if (BACK.isCompressedTexture) BACK.offset.y = 1; /* a KTX2 picture isn't flipped on upload: turned the right way up here */ m.position.set(0, -3.4 + 0.16 * H, -16); scene.add(m); }
+      extra.backM = m.material; BACK.repeat.set(Wd / tileW, BACK.isCompressedTexture ? -1 : 1); BACK.offset.x = -(((Wd / 2 - tileW / 2) / tileW) % 1); if (BACK.isCompressedTexture) BACK.offset.y = 1; /* a KTX2 picture isn't flipped on upload: turned the right way up here */ m.position.set(0, -3.4 + 0.16 * H, -16); scene.add(m); }
     // the deep dark behind everything, so the fog has something to fade into
     { const m = new THREE.Mesh(new THREE.PlaneGeometry(W * 3, 80), new THREE.MeshBasicMaterial({ color: 0x05060b, fog: false })); m.position.set(0, 0, -30); scene.add(m); }
     // the cross-sections facing you: the soil under the floor and the rock over the ceiling
@@ -232,7 +232,7 @@ export function createMine(ctx) {
     // bloom on a computer: the lanterns, the gold and the crystals glow into the air (phones skip it)
     if (rich && st.quality && st.quality.bloom && ctx.K && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX, comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(scene, cam)); comp.addPass(new P.UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.45, 0.8)); comp.addPass(new P.OutputPass()); extra.comp = comp; } catch (e) { console.warn("mine bloom:", e); } }
     S = { scene, cam, head, lampL, goldL, lanterns, dust, dpos, dsp, dustN, chips, chipS, chipN, get chipI() { return chipI; }, set chipI(v) { chipI = v; }, sparks, spos, scol, sparkS, sparkN, get sparkI() { return sparkI; }, set sparkI(v) { sparkI = v; },
-      body, bodyM, nugG, nugM, glowM, starM, shaftM, crackT, barBg, barM, barG, crysM, zero, rnd, dist: 30, withModels: !!(MODELS && MODELS.length), ...extra };
+      body, bodyM, nugG, nugM, glowM, starM, shaftM, crackT, barBg, barM, barG, crysM, zero, rnd, dist: 30, withModels: !!(MODELS && MODELS.length), hemiL: hemi, ...extra };
   }
 
   // ---------------- rocks ----------------
@@ -408,31 +408,84 @@ export function createMine(ctx) {
     ui.ring.style.strokeDashoffset = String(100 * (1 - f)); ui.tip.setAttribute("cx", (20 + Math.sin(a) * 15).toFixed(2)); ui.tip.setAttribute("cy", (20 - Math.cos(a) * 15).toFixed(2));
     ui.root.classList.toggle("late", l < 5 * 60e3);
     ui.haulN.textContent = fmtN(haul); ui.pickN.textContent = T(R.TIERS[tier].name); ui.pickB.dataset.tier = String(tier);
-    ui.today.innerHTML = guest ? esc(T("Demo: connect your wallet to earn ARCL here")) : esc(T("Today {n} / {m} ARCL", { n: fmtN(today), m: fmtN(cap) }));
+    ui.today.innerHTML = (guest ? esc(T("Demo: connect your wallet to earn ARCL here")) : esc(T("Today {n} / {m} ARCL", { n: fmtN(today), m: fmtN(cap) }))) + (rush ? ` <b class="wm-rush">${esc(T("Gold Rush"))}</b>` : "") + (deep ? ` <b class="wm-deepb">${esc(T("Deep mine"))}</b>` : "");
     ui.todayBox.classList.toggle("demo", guest); ui.rocksN.textContent = "×" + broke;
   }
   function hideSheet() { if (ui) { ui.sheet.hidden = true; ui.sheet.innerHTML = ""; } }
   // the pickaxes: what each does, what it costs, the one you hold
-  function openPicks() {
-    if (!ui) return; const owns = (id) => !id || (ctx.shop && ctx.shop.owns && ctx.shop.owns(id));
-    const card = (t, i) => { const have = owns(t.id), held = i === tier, cut = Math.round((1 - t.k) * 100), faster = Math.round((R.TIERS[0].every / t.every - 1) * 100);
-      return `<div class="wm-pc t${i}${held ? " held" : ""}"><div class="wm-pc-art">${ctx.art ? ctx.art("pickaxe", 40) : "⛏"}</div><div class="wm-pc-txt"><b>${esc(T(t.name + " Pickaxe"))}</b>
-        <small>${i ? esc(T("{n}% fewer hits a rock", { n: cut })) + " · " + esc(T("rocks {n}% faster", { n: faster })) : esc(T("Copper in 10–20 hits"))}</small></div>
-        <div class="wm-pc-act">${held ? `<em>${esc(T("In hand"))}</em>` : have ? `<em>${esc(T("Owned"))}</em>` : `<button type="button" class="wm-buy" data-id="${t.id}">${fmtN(t.tokens)} $ARCIRCLE</button>`}</div></div>`; };
-    ui.sheet.innerHTML = `<div class="wm-sheet-in"><h3>${esc(T("Pickaxes"))}</h3><p>${esc(T("A better pickaxe breaks rocks in fewer hits, and more rocks turn up in your hour. You always mine with the best one you own."))}</p>
-      ${R.TIERS.map(card).join("")}<p class="wm-odds">${esc(T("Copper 10–100 · Silver 100–1,000 · Gold 1,000–10,000 ARCL. About 1 rock in 5 is empty. Gold is rare, and a full 10,000 far rarer."))}</p>
-      <button type="button" class="wm-close">${esc(T("Close"))}</button></div>`;
+  // the mine's sheet, three tabs (b5): the pickaxes (buy, upgrade, the deep mine), your ore (the smelter, the gem codex),
+  // and the week's board. Opened from the HUD's pickaxe button, or by the miner in the village (openShop)
+  let sheetTab = "picks", inv = null, deepOk = false, rush = false, deep = false, hold = 0;
+  const ORE_N = ["Copper", "Silver", "Gold"], ORE_K = ["cu", "ag", "au"], GEM_N = { sap: "Sapphire", ruby: "Ruby", dia: "Diamond" }, GEM_C = { sap: "#4f8dff", ruby: "#ff4d6d", dia: "#bff4ff" };
+  const oreIc = (k, n = 18) => `<i class="wm-ore ${k}" style="width:${n}px;height:${n}px"></i>`;
+  async function refreshView() { const s = ctx.sess(); if (!s) return null; try { const r = await fetch("/api/social?world=mine&board=1&wallet=" + s.wallet, { cache: "no-store" }); if (!r.ok) return null; const j = await r.json(); inv = j.inv || inv; deepOk = !!j.deepOk; rush = !!j.rush; hold = j.hold || 0; return j; } catch { return null; } }
+  function openPicks(tab) { openSheet(tab || "picks"); }
+  async function openSheet(tab) {
+    if (!ui) return; sheetTab = tab || sheetTab; const owns = (id) => !id || (ctx.shop && ctx.shop.owns && ctx.shop.owns(id));
+    const tabs = `<div class="wm-tabs">${[["picks", "Pickaxes"], ["ores", "Ores"], ["board", "This week"]].map(([k, n]) => `<button type="button" data-tab="${k}"${k === sheetTab ? ' class="on"' : ""}>${esc(T(n))}</button>`).join("")}</div>`;
+    let body = "";
+    if (sheetTab === "picks") {
+      const card = (t, i) => { const have = owns(t.id), held = i === tier, cut = Math.round((1 - t.k) * 100), faster = Math.round((R.TIERS[0].every / t.every - 1) * 100);
+        return `<div class="wm-pc t${i}${held ? " held" : ""}"><div class="wm-pc-art">${ctx.art ? ctx.art("pickaxe", 40) : "⛏"}</div><div class="wm-pc-txt"><b>${esc(T(t.name + " Pickaxe"))}</b>
+          <small>${i ? esc(T("{n}% fewer hits a rock", { n: cut })) + " · " + esc(T("rocks {n}% faster", { n: faster })) : esc(T("Copper in 10–20 hits"))}</small></div>
+          <div class="wm-pc-act">${held ? `<em>${esc(T("In hand"))}</em>` : have ? `<em>${esc(T("Owned"))}</em>` : `<button type="button" class="wm-buy" data-id="${t.id}">${fmtN(t.tokens)} $ARCIRCLE</button>`}</div></div>`; };
+      const lv = inv ? inv.lv || 0 : 0, nx = inv && inv.next, cost = nx ? [nx.cu ? `${oreIc("cu")}${nx.cu}` : "", nx.ag ? `${oreIc("ag")}${nx.ag}` : "", nx.au ? `${oreIc("au")}${nx.au}` : "", `${fmtN(nx.arcl)} ARCL`].filter(Boolean).join(" ") : "";
+      const can = nx && inv && ["cu", "ag", "au"].every((k) => (nx[k] || 0) <= (inv[k] || 0));
+      body = `<p>${esc(T("A better pickaxe breaks rocks in fewer hits, and more rocks turn up in your hour. You always mine with the best one you own."))}</p>${R.TIERS.map(card).join("")}
+        <div class="wm-upg"><div><b>${esc(T("Upgrade"))} <span class="wm-lv">+${lv}</span></b><small>${esc(T("Each level: 4% fewer hits a rock, up to +10"))}</small></div>
+          ${guest ? `<em>${esc(T("Sign in with your wallet first"))}</em>` : !inv ? `<em>${esc(T("Loading…"))}</em>` : nx ? `<button type="button" class="wm-up"${can ? "" : " disabled"}>${esc(T("+1 for"))} ${cost}</button>` : `<em>${esc(T("+10, the most"))}</em>`}</div>
+        ${inv && inv.trialUntil > Date.now() ? `<p class="wm-trial">${esc(T("Advanced Pickaxe trial: {t} left", { t: hm(inv.trialUntil - Date.now()) }))}</p>` : ""}
+        ${deepOk ? `<button type="button" class="wm-deep">${esc(deep ? T("Back to the mine") : T("Go down to the deep mine (Lv 90+): tougher rocks, more gold"))}</button>` : ""}
+        <p class="wm-odds">${esc(T("Copper 10–100 · Silver 100–1,000 · Gold 1,000–10,000 ARCL. About 1 rock in 5 is empty. Gold is rare, and a full 10,000 far rarer."))}</p>`;
+    } else if (sheetTab === "ores") {
+      if (guest || !inv) body = `<p>${esc(T("Ore pieces and gems are kept for signed-in miners. Connect your wallet to collect them."))}</p>`;
+      else body = `<p>${esc(T("Every rock that isn't empty gives ore pieces. Use them to upgrade your pickaxe, or smelt them into scrap for your gear."))}</p>
+        <div class="wm-ores">${ORE_K.map((k, i) => { const m = { cu: [10, 15], ag: [5, 40], au: [1, 60] }[k]; return `<div class="wm-oreb ${k}">${oreIc(k, 30)}<b>${fmtN(inv[k] || 0)}</b><span>${esc(T(ORE_N[i]))}</span><button type="button" class="wm-smelt" data-ore="${k}"${(inv[k] || 0) < m[0] ? " disabled" : ""}>${esc(T("Smelt {a} → {b} scrap", { a: m[0], b: m[1] }))}</button></div>`; }).join("")}</div>
+        <h4>${esc(T("Gem codex"))}</h4><div class="wm-gems">${Object.keys(GEM_N).map((g) => { const n = (inv.gems && inv.gems[g]) || 0; return `<div class="wm-gem-c${n ? " got" : ""}" style="--g:${GEM_C[g]}"><i></i><b>${n ? esc(T(GEM_N[g])) : "???"}</b><span>×${n}</span></div>`; }).join("")}</div>
+        <p class="wm-odds">${esc(T("Rocks broken: copper {a} · silver {b} · gold {c}", { a: fmtN(inv.found.cu || 0), b: fmtN(inv.found.ag || 0), c: fmtN(inv.found.au || 0) }))}</p>`;
+    } else {
+      body = `<p>${esc(T("ARCL mined this week (Monday to Sunday). The board resets each week."))}</p><ol class="wm-board"><li class="wm-loading">${esc(T("Loading…"))}</li></ol>`;
+    }
+    ui.sheet.innerHTML = `<div class="wm-sheet-in"><h3>${esc(T("The ARCL Mine"))}${rush ? ` <span class="wm-rush">${esc(T("Gold Rush"))}</span>` : ""}</h3>${tabs}${body}<button type="button" class="wm-close">${esc(T("Close"))}</button></div>`;
     ui.sheet.hidden = false; Snd.open && Snd.open();
-    ui.sheet.querySelector(".wm-close").addEventListener("click", hideSheet);
-    ui.sheet.querySelectorAll(".wm-buy").forEach((b) => b.addEventListener("click", async () => {
+    const q = (sel) => ui.sheet.querySelectorAll(sel);
+    ui.sheet.querySelector(".wm-close").addEventListener("click", () => { hideSheet(); if (shopOnly) closeShop(); });
+    q("[data-tab]").forEach((b) => b.addEventListener("click", () => openSheet(b.dataset.tab)));
+    q(".wm-buy").forEach((b) => b.addEventListener("click", async () => {
       if (guest || !ctx.sess()) { toast(T("Sign in with your wallet first")); return; }
       if (!ctx.shop || !ctx.shop.pay) { toast(T("Couldn't price that")); return; }
       b.disabled = true; b.textContent = T("Check your wallet…");
       let okBuy = false; try { okBuy = await ctx.shop.pay(b.dataset.id, "", (m) => toast(m)); } catch (e) { toast(String((e && e.message) || e).slice(0, 90)); }
-      if (okBuy) { Snd.buy && Snd.buy(); toast(T("Your new pickaxe is in your hands.")); await rejoin(); }
-      openPicks();
+      if (okBuy) { Snd.buy && Snd.buy(); toast(T("Your new pickaxe is in your hands.")); if (on) await rejoin(); }
+      openSheet("picks");
     }));
+    q(".wm-up").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true; const r = await api("world-mine-upgrade");
+      if (r.ok && r.j.inv) { inv = r.j.inv; Snd.level && Snd.level(); toast(T("Pickaxe +{n}: 4% fewer hits a rock", { n: inv.lv })); if (on) await rejoin(); if (ctx.refresh) ctx.refresh(); }
+      else toast((r.j && r.j.error) || T("try again"));
+      openSheet("picks");
+    }));
+    q(".wm-smelt").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true; const r = await api("world-mine-smelt", { ore: b.dataset.ore, times: 50 });
+      if (r.ok && r.j.supply) { inv = r.j.inv || inv; const okS = ctx.addSupply ? ctx.addSupply(r.j.supply.kind, r.j.supply.n) : false; Snd.salvage && Snd.salvage(); toast(T("+{n} scrap for your gear", { n: fmtN(r.j.supply.n) }) + (okS ? "" : "")); }
+      else toast((r.j && r.j.error) || T("try again"));
+      openSheet("ores");
+    }));
+    q(".wm-deep").forEach((b) => b.addEventListener("click", async () => { hideSheet(); if (!on) return; deep = !deep; const ok2 = await rejoin({ deep }); if (!ok2) { deep = !deep; toast(T("The deep mine opens at level 90")); } else { for (const rk of [...rocks.values()]) dropRock(rk); syncRocks(run.rocks); tintCave(); toast(deep ? T("The deep mine: tougher rocks, more gold") : T("Back in the mine")); } }));
+    if (sheetTab === "board") {
+      const j = await refreshView(), ol = ui.sheet.querySelector(".wm-board"); if (!ol) return; const me = ctx.sess() && ctx.sess().wallet;
+      const top = (j && j.board) || []; ol.innerHTML = top.length ? top.map((x, i) => `<li class="${x.id === me ? "me" : ""}"><em>${i + 1}</em><b>${esc(x.name || x.w)}</b><span>${fmtN(x.n)} ARCL</span></li>`).join("") : `<li class="wm-loading">${esc(T("No one has mined this week yet"))}</li>`;
+    }
   }
+  // the miner in the village opens the same sheet without going in (the HUD around it stays hidden)
+  let shopOnly = false;
+  async function openShop(tab) {
+    if (on) { openSheet(tab); return; } if (!ui) buildUi(); guest = !ctx.sess(); await refreshView();
+    shopOnly = true; ui.root.hidden = false; ui.root.classList.add("shop-only"); openSheet(tab || "picks");
+  }
+  function closeShop() { shopOnly = false; if (ui && !on) { ui.root.hidden = true; ui.root.classList.remove("shop-only"); } if (ctx.onShopClose) ctx.onShopClose(); }
+  // the deep mine's cave: a colder, darker light
+  function tintCave() { if (!S) return; const d = deep; S.scene.fog.color.set(d ? 0x05040e : 0x070910); S.scene.background.set(d ? 0x030209 : 0x05060b); if (S.hemiL) S.hemiL.color.set(d ? 0x6a58d8 : 0x7d86e0); if (S.backM) S.backM.color.set(d ? 0x9a8ad8 : 0xd6d8e6); }
   function summary(why) {
     if (!ui) return; ui.sheet.innerHTML = `<div class="wm-sheet-in wm-sum"><h3>${esc(why)}</h3><div class="wm-sum-n"><i class="wm-coin-ic">${ctx.art ? ctx.art("coin", 30) : ""}</i><b>${fmtN(haul)}</b><small>${esc(guest ? T("ARCL (demo, not paid)") : T("ARCL this visit"))}</small></div>
       ${golds ? `<p class="wm-gold-n">${esc(T("Gold rocks broken: {n}", { n: golds }))}</p>` : ""}<button type="button" class="wm-close">${esc(T("Back to the village"))}</button></div>`;
@@ -469,8 +522,8 @@ export function createMine(ctx) {
     try { return await ctx.post({ action, ...s, ...extra }); } catch (e) { return { ok: false, status: 0, j: { error: String((e && e.message) || e) } }; }
   }
   function takeLeft(j) { if (j && Number.isFinite(j.left)) { left = j.left; leftAt = performance.now(); } }
-  async function rejoin() { // a fresh visit id (a pickaxe bought, or the server ended the last one): the time so far still counts
-    const r = await api("world-mine-enter"); if (!r.ok) return false; const j = r.j; run = j; tier = j.tier || 0; k = j.k || 1; today = j.today || 0; cap = j.cap || cap; takeLeft(j); syncRocks(j.rocks); holdPick(); paintHud(); return true;
+  async function rejoin(o = {}) { // a fresh visit id (a pickaxe bought, the deep mine, or the server ended the last one): the time so far still counts
+    const r = await api("world-mine-enter", deep || o.deep ? { deep: o.deep != null ? o.deep : deep } : {}); if (!r.ok) return false; const j = r.j; run = j; tier = j.tier || 0; k = j.k || 1; today = j.today || 0; cap = j.cap || cap; if (j.inv) inv = j.inv; rush = !!j.rush; hold = j.hold || 0; takeLeft(j); syncRocks(j.rocks); holdPick(); paintHud(); return true;
   }
   async function beat() {
     const r = await api("world-mine-beat", { runId: run && run.runId });
@@ -497,7 +550,9 @@ export function createMine(ctx) {
       haul += guest ? v : got; if (r.t === 2) golds++;
       const capped = j.capped && got < v;
       pop(x, 2.4, `+${fmtN(guest ? v : got)} <small>ARCL</small>${capped ? `<em>${esc(T("daily mine limit"))}</em>` : ""}`, ["cu", "ag", "au big"][r.t]);
-      flyCoins(x, 1.2, [4, 7, 14][r.t], r.t === 2); oreOut(r, [4, 6, 10][r.t]); if (r.t >= 1) ring(x, r.hgt * 0.55, r.t === 2);
+      flyCoins(x, 1.2, [4, 7, 14][r.t], r.t === 2); oreOut(r, [4, 6, 10][r.t]);
+      if (j.ore) { const parts = ORE_K.filter((q) => j.ore[q] > 0).map((q) => `${oreIc(q, 16)}+${j.ore[q]}`); if (parts.length) setTimeout(() => pop(x, 1.5, parts.join(" "), "ore"), 280); if (inv) { ORE_K.forEach((q) => { inv[q] = (inv[q] || 0) + (j.ore[q] || 0); }); } }
+      if (j.gem) { const g = j.gem; if (inv && inv.gems) inv.gems[g] = (inv.gems[g] || 0) + 1; setTimeout(() => { pop(x, 3.1, `${esc(T(GEM_N[g] + "!"))}<em>${esc(T("A gem for your codex"))}</em>`, "gem " + g); Snd.jackpot && Snd.jackpot(); flash(`radial-gradient(circle at 50% 50%,${GEM_C[g]}aa,transparent 60%)`, 0.8); }, 650); } if (r.t >= 1) ring(x, r.hgt * 0.55, r.t === 2);
       if (r.t === 2) { Snd.jackpot && Snd.jackpot(); flash("radial-gradient(circle at 50% 55%,rgba(255,214,90,.9),rgba(255,170,40,.25) 60%,transparent)", 1); freeze = reduce ? 0 : 0.35; zoomT = reduce ? 0 : 1.1; spark(x, y + 0.6, 0, 0xffe08a, 50, 1.6, 1.2); if (S.goldL) S.goldL.intensity = 40; }
       else if (r.t === 1) { flash("radial-gradient(circle at 50% 55%,rgba(220,235,255,.5),transparent 60%)", 0.6); Snd.win && Snd.win(); }
     }
@@ -593,7 +648,7 @@ export function createMine(ctx) {
 
   // ---------------- in and out ----------------
   async function enter() {
-    if (on || busy) return false; busy = true; ending = false; haul = 0; golds = 0; broke = 0;
+    if (on || busy) return false; if (shopOnly) { hideSheet(); closeShop(); } busy = true; ending = false; haul = 0; golds = 0; broke = 0;
     try {
       if (preP) await Promise.race([preP, new Promise((ok) => setTimeout(ok, 6000))]); // a preload still running: let it finish first
       guest = !ctx.sess();
@@ -601,7 +656,7 @@ export function createMine(ctx) {
       if (!r.ok) { const j = r.j || {}; if (j.coolUntil) toast(T("The mine is resting. It opens again in {t}.", { t: hm(j.coolUntil - Date.now()) })); else toast(T("The mine couldn't open: {e}", { e: String(j.error || r.status).slice(0, 70) })); return false; }
       if (S && !S.withModels && MODELS && MODELS.length) { for (const rk of [...rocks.values()]) dropRock(rk); if (hero && hero.obj.parent) hero.obj.parent.remove(hero.obj); S = null; }
       if (!S) { await loadModels(); build(); if (hero) S.scene.add(hero.obj); } if (!ui) buildUi();
-      const j = r.j; run = j; tier = j.tier || 0; k = j.k || 1; today = j.today || 0; cap = j.cap || R.DAY_CAP; takeLeft(j);
+      const j = r.j; run = j; tier = j.tier || 0; k = j.k || 1; today = j.today || 0; cap = j.cap || R.DAY_CAP; takeLeft(j); if (j.inv) inv = j.inv; rush = !!j.rush; hold = j.hold || 0; deep = false; tintCave(); if (!guest) refreshView().then(() => paintHud());
       for (const rk of [...rocks.values()]) dropRock(rk); for (const d of j.rocks || []) makeRock(d, false);
       px = -CAVE + 5; dir = 1; swingT = 0; walkTo = null; moveIn = 0; mineHeld = false; keys.clear(); S.cam.position.set(px, 4.3, 30); S.dist = 30;
       await makeHero(); if (hero) { hero.obj.position.x = px; holdPick(); }
@@ -631,7 +686,7 @@ export function createMine(ctx) {
   }
   function finish() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave({ haul, guest }); if (!guest && ctx.refresh) ctx.refresh(); }
   return {
-    enter, leave: () => leave(true), active: () => on,
+    enter, leave: () => leave(true), active: () => on, openShop,
     /// near the Mining Village (world-play.js): the models, the cave, the hero and its shaders made ahead, a texture a frame,
     /// so walking in doesn't stall on them
     preload() { if (!preP && !S && !on) preP = (async () => {

@@ -345,9 +345,23 @@ Object.assign(PAGES, { site: "the ARCIRCLE PAD home page", circlepad: "CirclePad
 const SITE_PAGES = { site: "", arcircle: "arcircle", circlepad: "circlepad", reward: "reward", me: "me", stats: "stats", roadmap: "roadmap", start: "start", brand: "brand", whitepaper: "whitepaper", stage: "arcia", wallet: "wallet", arcat: "arcat" };
 // the help desk (/support and the Help button in the game): ARCIA is the first line
 const SUPPORT_BRIEF = `Right now you are ARCIRCLE's 24/7 help desk, the first line of support. The official email is contact@arcircle.app (payments, security, partnerships): give it when something needs the team privately, and remind them to include the tx hash and never a recovery phrase. Be calm and practical (keep your warmth, fewer emoji). Find out what went wrong and walk the user through a fix step by step from your facts: which page or building, what to click, what to check in their wallet. Never ask for or accept a private key, a recovery phrase or a password, never send them to another site to "verify" or "sync" a wallet, and warn them if someone asked for one. Never promise refunds, compensation or reward amounts. If you can't solve it — something is broken (a bug), a payment or transaction you can't explain, a missing balance, or they suggest an improvement or an idea — say you'll pass it to the team, ask for the details that would help (what they did, what they expected, what happened, the page, their device), suggest attaching a screenshot, and end your reply with the exact line [REPORT:bug], [REPORT:improve] or [REPORT:idea] so the app opens the report form. Only add that line when a report is the next step.`;
+// ARCIRCLE World's "What should I do next?" (world-support.js): the player's state, a few numbers and quest titles
+function gameContext(g) {
+  if (!g || typeof g !== "object") return "";
+  const n = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0))), str = (v) => String(v || "").replace(/[\u0000-\u001f<>]/g, "").slice(0, 80);
+  const quests = Array.isArray(g.quests) ? g.quests.slice(0, 3).map(str).filter(Boolean) : [];
+  const facts = [`level ${n(g.lv, 999)}`, g.signedIn ? "signed in with a wallet" : "playing as a guest (not signed in)", `starter quests ${n(g.questsDone, 99)}/${n(g.questsAll, 99)} done`,
+    quests.length ? `next quests: ${quests.join("; ")}` : "", `${n(g.potions, 99999)} healing potions`,
+    g.welcome ? (g.welcome.ready ? `today's Welcome Week gift (day ${n(g.welcome.n, 7) + 1}) is waiting — the gift button up top` : `Welcome Week: ${n(g.welcome.n, 7)}/7 gifts taken`) : "",
+    n(g.mineRestMin, 9999) ? `the ARCL Mine is resting for ${n(g.mineRestMin, 9999)} more minutes` : "the ARCL Mine (Mining Village) is open to them",
+    g.starterBoost ? "2× EXP from the Starter Package is on" : ""].filter(Boolean);
+  return `They are playing ARCIRCLE World right now: ${facts.join(", ")}.`;
+}
+const GUIDE_BRIEF = `They tapped "What should I do next?" in ARCIRCLE World. Answer as their in-game guide: 2 or 3 short numbered steps picked for their level and state (a waiting gift or open quest first; the ARCL Mine when it's open; hunting, the Game Village, pets, their island or village otherwise; sign in with a wallet to keep progress and earn ARCL when they're a guest). Say where to go or what to tap. No links, no reward promises, under 90 words.`;
 function pageContext(p) {
   if (!p || typeof p !== "object") return "";
   const tab = String(p.tab || "").toLowerCase();
+  if (tab === "world") return gameContext(p.game);
   if (!PAGES[tab]) return "";
   const token = isAddr(p.token) ? String(p.token).toLowerCase() : "";
   const where = SITE_PAGES[tab] ? `arcircle.app/${SITE_PAGES[tab]}` : `arcircle.app/arc#${tab}`;
@@ -565,7 +579,7 @@ export async function POST(req) {
   const L = await liveFor(url.origin, wallet);
   const me = L && L.me ? L.me : null;
   const drops = await dropsContext(url.origin, q, wallet).catch(() => "");
-  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, body.support ? SUPPORT_BRIEF : "", pageContext(body.page), fanContext(name, me), drops,
+  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, body.support ? SUPPORT_BRIEF : "", body.guide ? GUIDE_BRIEF : "", pageContext(body.page), fanContext(name, me), drops,
     vt ? `This fan holds veARCIA (${VE_TIERS[vt][0]} tier) — they staked $ARCIA with you; thank them warmly when it fits (once, not every reply).` : "",
     "When one page on arcircle.app answers the question, end your reply with that page's link on its own line (just one, only a real page from your facts)."].filter(Boolean).join("\n");
   const pub = L ? { ...L, me: undefined } : null;

@@ -33,10 +33,10 @@ export async function shrinkImage(src) {
 export function createSupport(ctx) {
   const { esc } = ctx;
   // single words stay out of the site-wide dictionary: a small map just for the Help Center
-  const LW = { ko: { Report: "접수하기", Board: "접수 게시판", Bug: "버그", Improvement: "개선사항", Idea: "아이디어", Title: "제목", Screenshot: "스크린샷", Accepted: "채택됨", Declined: "반려됨", Duplicate: "중복", "Saved.": "저장했어요." },
-    zh: { Report: "提交反馈", Board: "反馈看板", Bug: "Bug", Improvement: "改进建议", Idea: "创意", Title: "标题", Screenshot: "截图", Accepted: "已采纳", Declined: "已驳回", Duplicate: "重复", "Saved.": "已保存。" },
-    tr: { Report: "Bildir", Board: "Pano", Bug: "Hata", Improvement: "İyileştirme", Idea: "Fikir", Title: "Başlık", Screenshot: "Ekran görüntüsü", Accepted: "Kabul edildi", Declined: "Reddedildi", Duplicate: "Yinelenen", "Saved.": "Kaydedildi." } }[ctx.lang] || {};
-  const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
+  const LW = { ko: { "Today's Welcome Week gift is waiting: tap Gifts up top.": "오늘의 웰컴 위크 선물이 기다려요: 위의 선물 버튼을 눌러 보세요.", "Next quest: {q}": "다음 퀘스트: {q}", "The ARCL Mine in the Mining Village is open: mine copper, silver and gold.": "광산 마을의 ARCL 광산이 열려 있어요: 동, 은, 금을 캐 보세요.", "Sign in with your wallet to keep your progress and earn ARCL.": "지갑으로 로그인하면 진행 상황이 저장되고 ARCL을 벌 수 있어요.", "What should I do next?": "이제 뭘 하면 좋을까?", Report: "접수하기", Board: "접수 게시판", Bug: "버그", Improvement: "개선사항", Idea: "아이디어", Title: "제목", Screenshot: "스크린샷", Accepted: "채택됨", Declined: "반려됨", Duplicate: "중복", "Saved.": "저장했어요." },
+    zh: { "Today's Welcome Week gift is waiting: tap Gifts up top.": "今天的欢迎周礼物在等你：点击上方的礼物按钮。", "Next quest: {q}": "下一个任务：{q}", "The ARCL Mine in the Mining Village is open: mine copper, silver and gold.": "矿镇的ARCL矿场已开放：去挖铜、银和金吧。", "Sign in with your wallet to keep your progress and earn ARCL.": "用钱包登录即可保存进度并赚取ARCL。", "What should I do next?": "接下来该做什么？", Report: "提交反馈", Board: "反馈看板", Bug: "Bug", Improvement: "改进建议", Idea: "创意", Title: "标题", Screenshot: "截图", Accepted: "已采纳", Declined: "已驳回", Duplicate: "重复", "Saved.": "已保存。" },
+    tr: { "Today's Welcome Week gift is waiting: tap Gifts up top.": "Bugünün Hoş Geldin Haftası hediyesi seni bekliyor: yukarıdaki Hediyeler'e dokun.", "Next quest: {q}": "Sıradaki görev: {q}", "The ARCL Mine in the Mining Village is open: mine copper, silver and gold.": "Maden Köyü'ndeki ARCL Madeni açık: bakır, gümüş ve altın kaz.", "Sign in with your wallet to keep your progress and earn ARCL.": "İlerlemeni korumak ve ARCL kazanmak için cüzdanınla giriş yap.", "What should I do next?": "Şimdi ne yapmalıyım?", Report: "Bildir", Board: "Pano", Bug: "Hata", Improvement: "İyileştirme", Idea: "Fikir", Title: "Başlık", Screenshot: "Ekran görüntüsü", Accepted: "Kabul edildi", Declined: "Reddedildi", Duplicate: "Yinelenen", "Saved.": "Kaydedildi." } }[ctx.lang] || {};
+  const T = (s, v) => (LW[s] != null ? (v ? LW[s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : LW[s]) : ctx.T(s, v));
   const toast = (m) => (ctx.toast ? ctx.toast(m) : alert(m));
   const post = (body) => fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }));
   const sheet = !ctx.mount;
@@ -81,7 +81,7 @@ export function createSupport(ctx) {
   }
 
   // ---------------- Ask ARCIA ----------------
-  const QUICK = ["My wallet won't connect", "A transaction failed", "I lost my game progress", "How do I earn ARCL?", "I found a bug"];
+  const GUIDE_Q = "What should I do next?"; const QUICK = [...(ctx.gameState ? [GUIDE_Q] : []), "My wallet won't connect", "A transaction failed", "I lost my game progress", "How do I earn ARCL?", "I found a bug"];
   function askHTML() {
     const msgs = chat.length ? chat : [{ role: "assistant", first: true, content: T("Hi, I'm ARCIA. Tell me what's going on and I'll help you fix it. If I can't, I'll pass it to the team for you.") }];
     return `<div class="hc-chat"><div class="hc-log" id="hc-log" aria-live="polite">${msgs.map(bubble).join("")}${busy ? `<div class="hc-msg a typing"><span></span><span></span><span></span></div>` : ""}</div>
@@ -96,16 +96,19 @@ export function createSupport(ctx) {
     const html = esc(txt).replace(/(https:\/\/(?:www\.)?arcircle\.app\/[^\s<]*)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
     return `<div class="hc-msg a"><img src="/images/arcia-avatar-96.jpg" alt="" width="28" height="28"><div><p>${html}</p>${m.first ? "" : rep ? `<button type="button" class="hc-escalate" data-esc="${rep[1]}">${esc(T("Send this to the team"))}</button>` : `<button type="button" class="hc-notyet" data-esc="">${esc(T("Not solved? Report it"))}</button>`}</div></div>`;
   }
-  async function ask(q) {
+  async function ask(q, guide) {
     q = String(q || "").trim(); if (!q || busy) return;
+    guide = guide || q === GUIDE_Q || q === T(GUIDE_Q);
+    let game; try { game = ctx.gameState ? ctx.gameState() : undefined; } catch { game = undefined; }
     chat.push({ role: "user", content: q }); busy = true; paint();
     let reply = "";
     try {
       const s = sessGet();
-      const r = await fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages: chat.slice(-10), lang: ctx.lang || "en", support: true, wallet: s ? s.wallet : undefined, page: { tab: "support" } }) });
+      const r = await fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages: chat.slice(-10), lang: ctx.lang || "en", support: !guide, guide: !!guide, wallet: s ? s.wallet : undefined, page: game ? { tab: "world", game } : { tab: "support" } }) });
       const j = await r.json().catch(() => ({})); reply = j.reply || j.error || "";
     } catch { /* offline */ }
     busy = false;
+    if (!reply && guide && game) reply = [game.welcome && game.welcome.ready ? T("Today's Welcome Week gift is waiting: tap Gifts up top.") : "", game.quests && game.quests[0] ? T("Next quest: {q}", { q: ctx.T(game.quests[0]) }) : "", !game.mineRestMin ? T("The ARCL Mine in the Mining Village is open: mine copper, silver and gold.") : "", !game.signedIn ? T("Sign in with your wallet to keep your progress and earn ARCL.") : ""].filter(Boolean).map((x, i) => `${i + 1}. ${x}`).join("\n");
     chat.push({ role: "assistant", content: reply || T("I can't reach my notes right now. You can still send this to the team: tap Report.") + " [REPORT:bug]" });
     if (tab === "ask") paint();
   }
@@ -221,5 +224,5 @@ export function createSupport(ctx) {
   function openSheet(t) { if (t) tab = t; open = null; if (sheet) { root.hidden = false; if (ctx.freeze) ctx.freeze(true); } shell(); setTimeout(() => { const i = $("#hc-q"); if (i && tab === "ask" && !("ontouchstart" in window)) i.focus(); }, 60); }
   function close() { if (!sheet || root.hidden) return; root.hidden = true; if (ctx.freeze) ctx.freeze(false); }
   if (!sheet) shell();
-  return { open: openSheet, close, isOpen: () => sheet && !root.hidden, setTab };
+  return { open: openSheet, close, isOpen: () => sheet && !root.hidden, setTab, guide: () => { openSheet("ask"); ask(T(GUIDE_Q), true); } };
 }

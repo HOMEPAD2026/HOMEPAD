@@ -23,6 +23,9 @@ export function makeMineVillage({ THREE, K, planet, T, low = false, look = null,
   const away = toPlaza + Math.PI, hx = Math.sin(away) * (V.r - 7), hz = Math.cos(away) * (V.r - 7);
   const door = new THREE.Group(); door.position.set(hx + Math.sin(toPlaza) * 6.2, 0, hz + Math.cos(toPlaza) * 6.2); door.userData.game = "mine"; door.userData.radius = 1.6; root.add(door);
   const solids = [];
+  // the miner (b5): a robot in a hard hat beside the tunnel; talk to him for pickaxes, ore and the week's board
+  const minerSpot = new THREE.Group(); minerSpot.position.set(hx + Math.sin(toPlaza) * 7.2 + Math.cos(toPlaza) * 4.6, 0, hz + Math.cos(toPlaza) * 7.2 - Math.sin(toPlaza) * 4.6); minerSpot.userData.game = "miner"; minerSpot.userData.radius = 1.2; root.add(minerSpot);
+  let miner = null;
   let built = null; const spins = [];
   function build() {
     built = new THREE.Group(); built.name = "mv-built"; root.add(built);
@@ -80,11 +83,17 @@ export function makeMineVillage({ THREE, K, planet, T, low = false, look = null,
       hill.add(o); drawn.visible = false; rails.visible = false; // the model has its own rails; the lanterns stay lit at its tunnel
       lamps.forEach((f) => { f.parent.position.z = sz.z * k / 2 - 0.2; f.parent.position.y = 3.2; f.parent.position.x *= 1.15; hill.add(f.parent); });
     }).catch((e) => console.warn("mine entrance:", e));
-    // the tunnel and the hill are solid; the mouth is walked up to (the door)
+    // the miner: the ARC robot, a yellow hard hat with a lamp, a pickaxe over the shoulder, a name over him
+    if (K.makeCharacter) K.makeCharacter("bot").then((c) => { if (!c) return; miner = c; c.obj.rotation.y = toPlaza - 0.5; minerSpot.add(c.obj);
+      const hat = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), std(0xffc23a, { flatShading: false, roughness: 0.4 })); hat.position.y = (c.height || 2.3) - 0.05; const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.05, 20), std(0xe0a020)); brim.position.y = hat.position.y; const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), glow(0xfff0b0, 3)); lamp.position.set(0, hat.position.y + 0.2, 0.38);
+      const pk = new THREE.Group(); const hd = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.2, 8), std(0x8a5a32)); hd.position.y = 0.6; const hh = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.9, 6), std(0x9aa4b4, { metalness: 0.7, roughness: 0.3 })); hh.rotation.z = Math.PI / 2; hh.position.y = 1.15; pk.add(hd, hh); pk.position.set(0.5, 0.9, -0.1); pk.rotation.z = 0.5;
+      minerSpot.add(hat, brim, lamp, pk);
+      const tag = K.label(T("Miner"), { accent: "#ffc23a", size: 0.55, sub: T("Pickaxes · ore · this week") }); tag.position.y = (c.height || 2.3) + 1.1; minerSpot.add(tag);
+      spins.push((dt, t) => { if (miner && miner.update) miner.update(dt, t, 0, 0); }); }).catch(() => {});
     const hb = new THREE.Group(); hb.position.set(hx, 0, hz); hb.userData.radius = 5.4; root.add(hb); solids.push(hb);
   }
   return {
-    root, solids, doors: [door], door, center: { x: V.x, z: V.z },
+    root, solids, doors: [door, minerSpot], door, minerSpot, center: { x: V.x, z: V.z },
     /// keep the clearing clear: hide the scattered trees, crystals and hills (instanced) that fall inside it
     clear(group) {
       const m = new THREE.Matrix4(), v = new THREE.Vector3(), zero = new THREE.Matrix4().makeScale(0, 0, 0); planet.updateMatrixWorld(true);
