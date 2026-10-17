@@ -39,6 +39,7 @@ import { makeJump } from "./_world-jump.mjs";
 import { makeMine } from "./_world-mine.mjs";
 import { makeWelcome } from "./_world-welcome.mjs";
 import { makeJur } from "./_world-jur.mjs";
+import { makeSwap } from "./_world-swap.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -248,7 +249,8 @@ export function make(deps) {
   const mine = makeMine({ ...deps, json, now, signer, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), holdTier, isoWeek: shop.isoWeek,
     level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // the ARCL Mine: each broken rock pays (api/_world-mine.mjs)
   const welcome = makeWelcome({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), award: (w, k, n) => shop.award(w, k, n), freeEgg: (w, src) => shop.freeEgg(w, src), trial: (w, ms) => mine.trial(w, ms) }); // the welcome week (api/_world-welcome.mjs)
-  const jur = makeJur({ ...deps, json, now, signer, isGM, mine }); // Jurassic World's gathering, crafting and plot (api/_world-jur.mjs; GM only for now)
+  const jur = makeJur({ ...deps, json, now, signer, isGM, mine }); // Jurassic World's gathering, crafting and camps (api/_world-jur.mjs)
+  const swap = makeSwap({ ...deps, json, now, signer, isGM }); // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -482,6 +484,7 @@ export function make(deps) {
       }
       if (w === "phase") { if (!on()) return json(200, { phase: PH.phase, epoch: PH.epoch, top: [] }); return phaseView(); }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
+      if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }
       if (w === "mine") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return mine.view(lc(a), url.searchParams.has("board")); }
@@ -509,7 +512,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };
