@@ -11,7 +11,7 @@ export const GAMES = [
 ];
 const BUILD_AT = 75, HIDE_AT = 95;
 
-export function makeGameVillage({ THREE, K, planet, T, low = false, look = null }) {
+export function makeGameVillage({ THREE, K, planet, T, low = false, look = null, compile = null }) {
   // look (b447, world-look.js via world-play.js): contact shade on what stands on the ground, the shader stone floor, the pond
   const cs = (m) => (look && look.contact ? look.contact(m) : m);
   const V = VILLAGE, root = new THREE.Group(); root.name = "gamevillage"; root.position.set(V.x, 0, V.z); planet.add(root);
@@ -234,7 +234,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null 
     /// the player's planet position: build the buildings when near, hide them when far
     tick(dt, t, px, pz) {
       const d = Math.hypot(px - V.x, pz - V.z);
-      if (!built && d < BUILD_AT) build();
+      if (!built && d < BUILD_AT) { build(); if (compile) Promise.resolve().then(() => compile(built)).catch(() => {}); } // b5: its shaders made in the background as it appears (they were a hitch on the way in)
       if (built) built.visible = d < HIDE_AT;
       if (built && built.visible) for (const f of spins) f(dt, t);
       if (built && built.visible && d < 60) refreshBoard(t);

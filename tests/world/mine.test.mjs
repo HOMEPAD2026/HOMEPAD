@@ -4,7 +4,7 @@
 import { ethers } from "ethers";
 const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
-const { MINE, rockValue, rockType, rockHits } = await import("../../api/_world-mine.mjs");
+const { MINE, rockValue, rockType, rockHits, oddsFor, isWeekend, sessionOf, modOf } = await import("../../api/_world-mine.mjs");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
 const store = {
@@ -17,7 +17,8 @@ let T = Date.parse("2026-10-16T03:00:00Z");
 const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && T - t <= max && T - t >= -60e3; };
 let n = 0; const randomId = () => (0x1000000 + ++n * 7919).toString(16).padStart(8, "0") + "deadbeefcafe0000";
 let seed = 12345; const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId, random });
+const HOLD = new Map(); // wallet → $ARCIRCLE (tokens), for the holder tier
+const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId, random, tokenBalance: async (_t, w) => (BigInt(HOLD.get(w) || 0) * 10n ** 18n).toString() });
 const sign = async (w) => { const issued = new Date(T).toISOString(); return { wallet: w.address, issued, signature: await w.signMessage(loginMessage(w.address, issued)) }; };
 const bal = (w) => ((db.get(`worldArclBal/${w.address.toLowerCase()}`) || {}).bal) || 0;
 const call = async (w, action, extra = {}) => W.handle({ action, ...(await sign(w)), ...extra });
@@ -97,4 +98,29 @@ async function hour(w) {
 // ---- the claim route can't pay mine ARCL ----
 r = await call(w1, "world-arcl-claim", { kind: "mine" }); check(r.status === 400, "mine ARCL can't be claimed directly");
 
+// ---- b5: ore pieces, gems, upgrades, the smelter, holders, the deep mine, Gold Rush, the weekly board ----
+check(isWeekend(Date.parse("2026-10-17T03:00:00Z")) && !isWeekend(Date.parse("2026-10-16T03:00:00Z")) && sessionOf(Date.parse("2026-10-18T03:00:00Z")) === MINE.SESSION_MS + 30 * 60e3, "Saturday and Sunday (Seoul) are Gold Rush: 90 minutes in the mine");
+{ const o = oddsFor(false, true), d = oddsFor(true, false); check(Math.abs(o[2] - 0.0225) < 1e-9 && Math.abs(o[0] + o[1] + o[2] - 1) < 1e-9, "Gold Rush: gold ×1.5"); check(d[2] === 0.025 && d[1] === 0.11, "the deep mine: gold 2.5%, silver 11%"); }
+check(Math.abs(modOf(10, false) - 0.6) < 1e-9 && Math.abs(modOf(0, true) - 1.3) < 1e-9, "+10 is 40% fewer hits; the deep mine 30% more");
+{ T = Date.parse("2026-10-21T03:00:00Z"); // a Wednesday
+  const w = ethers.Wallet.createRandom(), a = w.address.toLowerCase(); HOLD.set(a, 2_000_000);
+  let e = (await call(w, "world-mine-enter")).body; check(e.cap === MINE.DAY_CAP + 20000 && e.hold === 3, "a 1M+ holder: the mine's daily limit +20,000 (" + e.cap + ")");
+  let r = await call(w, "world-mine-enter", { deep: true }); check(r.status === 403, "the deep mine: level 90 first");
+  // break rocks until some ore is in
+  let ores = 0, gotOre = false;
+  for (let k = 0; k < 40 && !gotOre; k++) { const b = (await call(w, "world-mine-beat", { runId: e.runId })).body; const x = (b.rocks || e.rocks)[0]; if (!x) { T += 21000; continue; } T += x.h * MINE.SWING_MS + 200; const br = (await call(w, "world-mine-break", { runId: e.runId, rock: x.id })).body; if (br.ore && br.ore.cu + br.ore.ag + br.ore.au > 0) { gotOre = true; ores = br.ore.cu + br.ore.ag + br.ore.au; } }
+  const inv = db.get(`worldMineInv/${a}`) || {}; check(gotOre && inv.cu + inv.ag + inv.au >= ores, "a rock that isn't empty gives ore pieces: " + JSON.stringify({ cu: inv.cu, ag: inv.ag, au: inv.au }));
+  // the upgrade: not enough → refused; enough pieces and ARCL → +1, paid once
+  db.set(`worldMineInv/${a}`, { ...inv, cu: 5 }); r = await call(w, "world-mine-upgrade"); check(r.status === 400, "an upgrade needs its pieces");
+  db.set(`worldMineInv/${a}`, { ...inv, cu: 25 }); db.set(`worldArclBal/${a}`, { bal: 1000 }); r = await call(w, "world-mine-upgrade");
+  check(r.status === 200 && r.body.inv.lv === 1 && r.body.inv.cu === 5 && db.get(`worldArclBal/${a}`).bal === 800, "+1: 20 copper and 200 ARCL");
+  r = await call(w, "world-mine-enter"); check(Math.abs(r.body.k - 0.96) < 1e-9, "the next visit's rocks need 4% fewer hits");
+  // the smelter
+  db.set(`worldMineInv/${a}`, { ...db.get(`worldMineInv/${a}`), ag: 12 }); r = await call(w, "world-mine-smelt", { ore: "ag", times: 5 });
+  check(r.status === 200 && r.body.supply.kind === "scrap" && r.body.supply.n === 80 && r.body.inv.ag === 2, "the smelter: 5 silver → 40 scrap, as many times as there's ore (" + JSON.stringify(r.body.supply) + ")");
+  // the weekly board
+  const v = (await W.read(new URL("https://x/api/social?world=mine&board=1&wallet=" + a))).body, wk = [...db.keys()].find((k) => k.startsWith("worldMineWk/") && k.endsWith("_" + a));
+  check(Array.isArray(v.board) && v.board.length > 0 && v.board.length <= 20 && wk && db.get(wk).n > 0 && v.inv && v.inv.lv === 1, "the weekly board (top 20) and your own week total; the view carries your ore and pickaxe");
+  // the deep mine at level 90 (a save at that level)
+  db.set(`worldSave/${a}`, { xpv: 999, xp: 0 }); }
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

@@ -703,6 +703,8 @@ export function createRpg(ctx) {
 
   return {
     stats, swing, tickSwing, addItem, wear, repair: repairPiece, applyRepair, freshN: () => fresh.size, upN: () => ups().size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),
+    /// supplies the server handed out (the mine's smelter, the welcome week): potions, scrap or recall scrolls into the save
+    addSupply: (kind, n) => { if (!/^(hp|sp|recall|scrap)$/.test(String(kind)) || !(n > 0)) return false; R()[kind] = (R()[kind] || 0) + Math.floor(n); ctx.save(); return true; },
     potions: () => ({ hp: R().hp, sp: R().sp, recall: R().recall }), useRecall: () => { const r = R(); if (!(r.recall > 0)) return false; r.recall--; ctx.save(); return true; },
     /// "Bigger bag" purchases (worldOwn.bag): the bag's size follows them
     setBagPlus: (n) => { const b = Math.min(BAG_MAX, BAG_BASE + BAG_STEP * Math.max(0, Math.floor(Number(n) || 0))); if (b !== BAG) { BAG = b; if (open) paint(); } }, bagSize: () => BAG,

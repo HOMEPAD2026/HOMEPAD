@@ -235,7 +235,16 @@ export function make(deps) {
   village = makeVillage({ ...deps, json, now, signer, isoWeek: shop.isoWeek, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n) });
   const defense = makeDefense({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit, award: shop.award });
   const jump = makeJump({ ...deps, json, now, signer, credit: shop.credit }); // Coin Jump: the crown pays once a day (api/_world-jump.mjs)
-  const mine = makeMine({ ...deps, json, now, signer, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n) }); // the ARCL Mine: each broken rock pays (api/_world-mine.mjs)
+  // the mine's holder tier ($ARCIRCLE on Arc, the halo's tiers: any / 100K / 1M), read at most every 10 minutes a wallet
+  const holdCache = new Map();
+  async function holdTier(w) {
+    const c = holdCache.get(w); if (c && now() - c.at < 600e3) return c.t;
+    let t = 0; try { if (deps.tokenBalance) { const n = Number(BigInt(await deps.tokenBalance(ARCIRCLE_TOKEN, w)) / 10n ** 18n); t = n >= 1e6 ? 3 : n >= 1e5 ? 2 : n > 0 ? 1 : 0; } } catch { t = c ? c.t : 0; }
+    holdCache.set(w, { t, at: now() }); if (holdCache.size > 5000) holdCache.clear(); return t;
+  }
+  const saveOf = async (w) => (await getDocs([`worldSave/${w}`]))[`worldSave/${w}`];
+  const mine = makeMine({ ...deps, json, now, signer, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), holdTier, isoWeek: shop.isoWeek,
+    level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // the ARCL Mine: each broken rock pays (api/_world-mine.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -469,7 +478,7 @@ export function make(deps) {
       }
       if (w === "phase") { if (!on()) return json(200, { phase: PH.phase, epoch: PH.epoch, top: [] }); return phaseView(); }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
-      if (w === "mine") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return mine.view(lc(a)); }
+      if (w === "mine") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return mine.view(lc(a), url.searchParams.has("board")); }
       if (w === "island") return island(url.searchParams.get("wallet"), url.searchParams.has("fresh"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));

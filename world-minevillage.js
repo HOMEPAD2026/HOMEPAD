@@ -5,7 +5,7 @@
 export const MINE_VILLAGE = { x: 83, z: -106, r: 22 };
 const BUILD_AT = 80, HIDE_AT = 100;
 
-export function makeMineVillage({ THREE, K, planet, T, low = false, look = null, ver = "" }) {
+export function makeMineVillage({ THREE, K, planet, T, low = false, look = null, ver = "", compile = null }) {
   const cs = (m) => (look && look.contact ? look.contact(m) : m);
   const V = MINE_VILLAGE, root = new THREE.Group(); root.name = "minevillage"; root.position.set(V.x, 0, V.z); planet.add(root);
   const std = (c, o = {}) => cs(new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true, ...o }));
@@ -96,7 +96,7 @@ export function makeMineVillage({ THREE, K, planet, T, low = false, look = null,
     exit() { return { x: V.x + door.position.x + Math.sin(toPlaza) * 3.2, z: V.z + door.position.z + Math.cos(toPlaza) * 3.2, face: toPlaza + Math.PI }; }, // facing the tunnel: the camera stays out of the hill
     tick(dt, t, px, pz) {
       const d = Math.hypot(px - V.x, pz - V.z);
-      if (!built && d < BUILD_AT) build();
+      if (!built && d < BUILD_AT) { build(); if (compile) Promise.resolve().then(() => compile(built)).catch(() => {}); } // b5: its shaders made in the background as it appears (they were a hitch on the way in)
       if (built) built.visible = d < HIDE_AT;
       if (built && built.visible) for (const f of spins) f(dt, t);
     },

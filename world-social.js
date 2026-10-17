@@ -357,13 +357,13 @@ export function createGhosts(ctx) {
         if (w.ch) {
           // grows in as it arrives and shrinks away as it leaves; walks while it drifts, idles when it stands (near you only)
           const sc = 0.2 + 0.8 * w.fade; w.ch.obj.scale.setScalar(sc); w.ch.obj.visible = w.fade > 0.02;
-          if (ctx.here) { ctx.here(tmp); const dist = Math.hypot(tmp.x - w.g.position.x, tmp.z - w.g.position.z), far = dist > 60;
+          if (ctx.here) { ctx.here(tmp); const dist = Math.hypot(tmp.x - w.g.position.x, tmp.z - w.g.position.z), far = dist > (ctx.lite ? 38 : 60); /* b5: battery saver: other players past 38 m are left out */
             // b447: everyone is the same rigged hero now, so the far ones cost less: past 15 m no shadow, past 25 m the
             // pose updates every third frame (with the time it missed), past 60 m not drawn at all
             if (far) w.ch.obj.visible = false;
             const sh = dist < 15 && ctx.farShadow !== false; if (w.chSh !== sh) /* (none on a phone: b447) */ { w.chSh = sh; w.ch.obj.traverse((o) => { if (o.isMesh) o.castShadow = sh; }); }
             if (!far) { const want = w.hop > 0 ? "emote-yes" : d > 0.05 && d < 25 ? "walk" : "idle"; if (want !== w.anim && w.ch.play && !(w.ch.busy && w.ch.busy())) { w.anim = want; w.ch.play(want, want === "emote-yes" ? { once: true } : { speed: 0.8 }); }
-              w.chDt = (w.chDt || 0) + dt; if (dist < 25 || (w.chN = ((w.chN || 0) + 1) % 3) === 0) { w.ch.update(w.chDt, t, d > 0.05 ? 0.3 : 0, 0); w.chDt = 0; } } }
+              w.chDt = (w.chDt || 0) + dt; if (dist < (ctx.lite ? 12 : 25) || (w.chN = ((w.chN || 0) + 1) % (ctx.lite ? 4 : 3)) === 0) { w.ch.update(w.chDt, t, d > 0.05 ? 0.3 : 0, 0); w.chDt = 0; } } }
         }
         if (w.gone && w.fade <= 0) { arrive(w.g, true); if (w.ch) { freeCh(w.ch); w.ch = null; chars--; } else if (w.loadingCh) w.loadingCh = false; root.remove(w.g); const cs = w.g.userData.cs; if (cs) { cs.geometry.dispose(); cs.material.dispose(); } list.delete(k); }
       }

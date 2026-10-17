@@ -417,7 +417,7 @@ const groundG = K.makeGround(); planet.add(groundG);
 // whole world (the far-shadow bake, the grass mask, the minimap picture) runs inside farCull.all().
 const farCull = (() => {
   const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles", "pet"]); // "pet": it moves, so a scan-time box would hide it
-  const CONT = ["decor", "life", "zones"], R = st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, box = new THREE.Box3(), sph = new THREE.Sphere();
+  const CONT = ["decor", "life", "zones"], R = S.quality === "saver" ? 75 : st.quality.coarse && lowGfx ? 90 : st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, /* b5: battery saver and Low phones draw less far (the fog hides it) */ box = new THREE.Box3(), sph = new THREE.Sphere();
   // b420: on a computer at Medium / Ultra what's culled dissolves over its last 10 m instead of popping (K.fadeLook)
   const FADE = !st.quality.coarse && (postLevel === "medium" || postLevel === "ultra") && K.fadeLook;
   let list = [], at = 0, scanAt = -1e9, hidden = new Set(), sig = "";
@@ -561,12 +561,12 @@ K.placeOn(pad, K.dirOf(7, 90)); planet.add(pad);
 if (!lowGfx && !reduce && K.wind) st.on((dt) => { K.wind.value += dt; });
 // b447 (village remaster): the looks the village takes; Low keeps the plain ones (flat tiles, still water, no contact shade)
 const gvLook = { hexFloor: (m, r) => LOOK.hexFloorLook(m, { r, low: lowGfx }), pond: (m) => LOOK.pondLook(m, { low: lowGfx }) }; // (contact shade is everywhere now: installContactShade)
-const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook }); gv.clear(groundG);
+const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook, compile: (o) => { try { return compileHidden([o]); } catch { return null; } } }); gv.clear(groundG);
 // b447: the clearing was one flat pale green: now the town ground's patches, fine grain and drifting cloud shade, and the baked town shade
 { const gg = gv.root.getObjectByName("gv-ground"); if (gg) { LOOK.groundLook(gg.material, { low: lowGfx }); if (gshadow) gshadow.receive(gg.material); } }
 st.on((dt, t) => { gv.tick(dt, t, -planet.position.x, -planet.position.z); });
 // the Mining Village (world-minevillage.js): the ARCL Mine's tunnel in a clearing south-east of the plaza
-const mv = MV.makeMineVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook, ver: VER }); mv.clear(groundG);
+const mv = MV.makeMineVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook, ver: VER, compile: (o) => { try { return compileHidden([o]); } catch { return null; } } }); mv.clear(groundG);
 { const mg = mv.root.getObjectByName("mv-ground"); if (mg) { LOOK.groundLook(mg.material, { low: lowGfx }); mg.material.color.set(0xd8b98a); if (gshadow) gshadow.receive(mg.material); } }
 st.on((dt, t) => { mv.tick(dt, t, -planet.position.x, -planet.position.z); });
 planet.traverse((o) => { if (o.isMesh && o.material && o.material.transparent) o.castShadow = false; });
@@ -3229,7 +3229,7 @@ ghosts = SOC.createGhosts({ THREE, K, planet, compile: (o) => (st.renderer.compi
   shadow: (r, k) => LOOK.contactShadow(r, k), isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
   onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; }, hides: (w) => !!(chatUI && chatUI.hides && chatUI.hides(lc(w))), // muted or blocked: no bubble over them
   // other players stand as their own characters (not the see-through capsules) once the model is in
-  makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(heroOf(id), VER).catch(() => null)), farShadow: !coarse, tierHalo: (i) => (K.TIER_HALO ? K.TIER_HALO[i] : null) });
+  makeChar: (id) => (lowGfx ? Promise.resolve(null) : K.makeCharacter(heroOf(id), VER).catch(() => null)), farShadow: !coarse, lite: S.quality === "saver" || (coarse && lowGfx), tierHalo: (i) => (K.TIER_HALO ? K.TIER_HALO[i] : null) });
 // ---------------- the inbox: gifts, new stamps, friends playing now ----------------
 // stand next to someone in town (a friend from the inbox, a player's card): a short hop, facing them
 function goNear(x, z) {

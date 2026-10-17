@@ -107,8 +107,8 @@ export function createMine(ctx) {
       const m = new THREE.Mesh(g, vcm()); m.position.set(0, 4.5, -3.6); if (!BACK) scene.add(m); }
     // the painted cave (the mine's key art) far behind: lanterns, scaffolds and a blue cavern, mirrored to run the whole
     // length; far enough back that it slides past slower than the floor (parallax)
-    if (BACK) { const H = 26, Wd = 220, m = new THREE.Mesh(new THREE.PlaneGeometry(Wd, H), new THREE.MeshBasicMaterial({ map: BACK, color: 0xd6d8e6, fog: false, toneMapped: false }));
-      BACK.repeat.set(Wd / (H * 16 / 9), BACK.isCompressedTexture ? -1 : 1); if (BACK.isCompressedTexture) BACK.offset.y = 1; /* a KTX2 picture isn't flipped on upload: turned the right way up here */ m.position.set(0, -3.4 + 0.16 * H, -16); scene.add(m); }
+    if (BACK) { const H = 40, Wd = 220, tileW = H * 16 / 9, /* b5: bigger, one whole picture across the cave, its mirrored seams behind the end walls */ m = new THREE.Mesh(new THREE.PlaneGeometry(Wd, H), new THREE.MeshBasicMaterial({ map: BACK, color: 0xd6d8e6, fog: false, toneMapped: false }));
+      BACK.repeat.set(Wd / tileW, BACK.isCompressedTexture ? -1 : 1); BACK.offset.x = -(((Wd / 2 - tileW / 2) / tileW) % 1); if (BACK.isCompressedTexture) BACK.offset.y = 1; /* a KTX2 picture isn't flipped on upload: turned the right way up here */ m.position.set(0, -3.4 + 0.16 * H, -16); scene.add(m); }
     // the deep dark behind everything, so the fog has something to fade into
     { const m = new THREE.Mesh(new THREE.PlaneGeometry(W * 3, 80), new THREE.MeshBasicMaterial({ color: 0x05060b, fog: false })); m.position.set(0, 0, -30); scene.add(m); }
     // the cross-sections facing you: the soil under the floor and the rock over the ceiling
