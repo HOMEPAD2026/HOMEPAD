@@ -69,6 +69,8 @@ export function createSurvival(H) {
   // the trunks, boulders and the camp's pieces: pushed back out of them
   function collide(x, z) {
     const R = 0.45; near(x, z, (n) => { if (!n.cr || n.down) return; const dx = x - n.x, dz = z - n.z, d = Math.hypot(dx, dz), m = n.cr + R; if (d < m && d > 1e-4) { x = n.x + dx / d * m; z = n.z + dz / d * m; } });
+    // the dinosaurs' bodies too (you walked into them)
+    if (H.dinos) for (const o of H.dinos()) { if (!o.alive) continue; const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz), m = o.hr * 0.85 + R; if (d < m && d > 1e-4) { x = o.x + dx / d * m; z = o.z + dz / d * m; } }
     for (const c of campSolid) { const dx = x - c.x, dz = z - c.z, d = Math.hypot(dx, dz), m = c.r + R; if (d < m && d > 1e-4) { x = c.x + dx / d * m; z = c.z + dz / d * m; } }
     return [x, z];
   }
@@ -184,7 +186,8 @@ export function createSurvival(H) {
   function tickGhost(px, pz, face) {
     if (!ghost) return; const c = inHome(px, pz); if (!c) { endGhost(); return; }
     const off = 1.6 + (ghost.userData.r || 0.6) * 1.3; let gx = Math.round(px + Math.sin(face) * off - c.x), gz = Math.round(pz + Math.cos(face) * off - c.z); const d = Math.hypot(gx, gz); if (d > CAMP_R) { gx = Math.round(gx / d * CAMP_R); gz = Math.round(gz / d * CAMP_R); }
-    const taken = c.pieces.some((p) => p.x === gx && p.z === gz), def = pieceDefs[ghostK], ok = !taken && def && canMake(def) && !(def.station && c.pieces.some((p) => p.k === ghostK));
+    const RAD = { hut: 2.2, bench: 1.1, campfire: 0.8, bed: 1, chest: 0.6, fence: 0.7, wall: 0.7, floor: 0, torchpost: 0.3 }, rr = RAD[ghostK] ?? 0.6;
+    const taken = c.pieces.some((p) => p.x === gx && p.z === gz), crowded = !!rr && c.pieces.some((p) => (RAD[p.k] ?? 0.6) && Math.hypot(p.x - gx, p.z - gz) < (rr + (RAD[p.k] ?? 0.6)) * 0.8), def = pieceDefs[ghostK], ok = !taken && !crowded && def && canMake(def) && !(def.station && c.pieces.some((p) => p.k === ghostK));
     ghostAt = { gx, gz, ok, taken, c }; ghost.position.set(c.x + gx, H.height(c.x + gx, c.z + gz) + 0.02, c.z + gz); ghost.rotation.y = ghostR * Math.PI / 2;
     ghost.userData.gm.color.setHex(ok ? 0x7dffc8 : 0xff6b7d);
     if (ui) { ui.ghostBar.querySelector('[data-g="place"]').disabled = !ok; ui.ghostBar.querySelector('[data-g="down"]').hidden = !taken; }

@@ -52,6 +52,7 @@ r = await call(gm, "world-jur-camp", { op: "claim" }); check(r.status === 200 &&
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 20, z: 0 } }); check(r.status === 400, "nothing outside the camp");
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 2, z: 0 } }); check(r.status === 200 && r.body.plot.some((p) => p.k === "bench"), "a workbench built at the camp");
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: -2, z: 3 } }); check(r.status === 409, "one workbench a camp");
+r = await call(gm, "world-jur-build", { op: "place", piece: { k: "campfire", x: 3, z: 1 } }); check(r.status === 409, "not on top of the workbench");
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "campfire", x: -3, z: 1 } }); check(r.status === 200, "a campfire at the camp");
 // 20 spots: then there's no spot left, and a newcomer joins someone's camp
 const ws = []; for (let i = 0; i < 19; i++) { const x = ethers.Wallet.createRandom(); GM_WALLETS.push(x.address.toLowerCase()); ws.push(x); r = await call(x, "world-jur-camp", { op: "claim" }); }

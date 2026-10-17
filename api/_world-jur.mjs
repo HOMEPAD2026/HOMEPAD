@@ -178,7 +178,9 @@ export function makeJur(deps) {
       return json(200, { ok: true, plot: pieces, slot: hp.slot, inv: pub(inv) });
     }
     if (op !== "place") return json(400, { error: "place or remove" });
-    if (at >= 0) return json(409, { error: "something's there" });
+    // the room each piece takes: no two overlapping (a floor can go under the rest)
+    const RAD = { hut: 2.2, bench: 1.1, campfire: 0.8, bed: 1, chest: 0.6, fence: 0.7, wall: 0.7, floor: 0, torchpost: 0.3 }, rr = RAD[pc.k] ?? 0.6;
+    if (at >= 0 || (rr && pieces.some((p) => (RAD[p.k] ?? 0.6) && Math.hypot(p.x - x, p.z - z) < (rr + (RAD[p.k] ?? 0.6)) * 0.8))) return json(409, { error: "something's there" });
     if (pieces.length >= JUR.PLOT_MAX) return json(400, { error: "the camp is full" });
     if (P.station && pieces.some((p) => p.k === pc.k)) return json(409, { error: "the camp has one already" });
     if (!hasAll(inv, P.need, {})) return json(400, { error: "not enough materials", need: P.need });

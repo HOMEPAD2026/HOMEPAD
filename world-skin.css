@@ -955,7 +955,7 @@ body.wp.wp-clean :is(.wp-hud-r,.wp-quests,.wp-qmini,.wp-mini,.wp-feed,.wp-dock,.
 .wz-pop{position:absolute;transform:translate(-50%,-50%);font:900 20px/1 var(--f-ui);color:#fff;white-space:nowrap;text-shadow:0 2px 0 rgba(0,0,0,.45),0 0 14px rgba(0,0,0,.4);animation:wzPop 1.6s cubic-bezier(.2,.8,.3,1) forwards}
 .wz-pop.xp{font-size:17px;color:#7dffb4}
 @keyframes wzPop{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.08)}100%{opacity:0;transform:translate(-50%,-190%) scale(1)}}
-.wz-pack{pointer-events:auto;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,8,16,.45);touch-action:auto}
+.wz-pack{pointer-events:auto;position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(3,8,16,.45);touch-action:auto}
 .wz-pack[hidden]{display:none}
 .wz-pack-in{width:min(440px,calc(100vw - 24px));max-height:min(82vh,640px);overflow:auto;padding:14px 16px 16px;border-radius:18px;border:1.5px solid rgba(90,170,255,.55);background:linear-gradient(180deg,rgba(12,24,52,.96),rgba(7,12,26,.96));box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .wz-pack-in header{display:flex;align-items:center;gap:10px}.wz-pack-in header b{font:900 20px var(--f-display,var(--f-ui));color:#ffe6b0}
@@ -975,7 +975,7 @@ body.wp.wp-clean :is(.wp-hud-r,.wp-quests,.wp-qmini,.wp-mini,.wp-feed,.wp-dock,.
 .wz-recipes button,.wz-eat{flex:none;height:34px;padding:0 14px;border:0;border-radius:10px;background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f;font:900 13px var(--f-ui);cursor:pointer}
 .wz-recipes button:disabled{background:rgba(255,255,255,.12);color:#8fa3bd;cursor:default}
 .wz-eat{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#ff9a5a,#ffd36b)}.wz-eat small{font:800 11px var(--f-ui);opacity:.8}
-html.wp-pcphone .wz-act,html.wp-pcphone .wz-goal,html.wp-pcphone .wz-pack-in,html.wp-pcphone .wz-pop{zoom:1.6}
+html.wp-pcphone .wz-act,html.wp-pcphone .wz-goal,html.wp-pcphone .wz-pack-in,html.wp-pcphone .wz-pop{zoom:1.6}html.wp-pcphone .wz-pack-in{max-height:calc(76vh / 1.6)}
 html.wp-pcphone .wz-act{bottom:130px}
 .wz-home{pointer-events:auto}
 /* the first-time tour (world-play.js coach): a ring round the button, a bubble beside it */
@@ -999,13 +999,13 @@ html.wp-pcphone .wp-coach{zoom:1.6}
 .wz-pop.dmg{font-size:22px;color:#ff8fa0}
 html.wp-pcphone .wz-foe{zoom:1.6}
 /* building at your camp: the Build button (only inside it), the pieces list, the ghost's bar */
-.wz-buildbtn{pointer-events:auto;position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 262px);display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 12px;border-radius:18px;background:linear-gradient(180deg,rgba(52,36,12,.94),rgba(26,16,7,.94)) padding-box,linear-gradient(90deg,#ffb648,#ffe066) border-box;border:2px solid transparent;color:#ffe6b0;font:900 15px var(--f-ui);cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.4),0 0 20px rgba(255,182,72,.35)}
+.wz-buildbtn{pointer-events:auto;position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 300px);display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 12px;border-radius:18px;background:linear-gradient(180deg,rgba(52,36,12,.94),rgba(26,16,7,.94)) padding-box,linear-gradient(90deg,#ffb648,#ffe066) border-box;border:2px solid transparent;color:#ffe6b0;font:900 15px var(--f-ui);cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.4),0 0 20px rgba(255,182,72,.35)}
 .wz-buildbtn[hidden]{display:none}.wz-buildbtn span{font-size:22px}
 .wz-ghost{pointer-events:auto;position:absolute;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 120px);transform:translateX(-50%);display:flex;gap:8px;padding:8px;border-radius:18px;background:rgba(7,12,26,.88);border:1.5px solid rgba(125,255,200,.5)}
 .wz-ghost[hidden]{display:none}
 .wz-ghost button{height:44px;min-width:44px;padding:0 14px;border-radius:12px;border:0;background:rgba(255,255,255,.1);color:#eef3f7;font:900 14px var(--f-ui);cursor:pointer}.wz-ghost button[hidden]{display:none}
 .wz-ghost button.go{background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f}.wz-ghost button:disabled{opacity:.4}
-html.wp-pcphone .wz-buildbtn,html.wp-pcphone .wz-ghost{zoom:1.6}html.wp-pcphone .wz-buildbtn{bottom:218px}html.wp-pcphone .wz-ghost{bottom:192px}
+html.wp-pcphone .wz-buildbtn,html.wp-pcphone .wz-ghost{zoom:1.6}html.wp-pcphone .wz-buildbtn{bottom:262px}html.wp-pcphone .wz-ghost{bottom:192px}
 body.wp.wp-clean .wz-buildbtn{display:none!important}
 /* tips on the way in (world-play.js showTips): three at random, a glass card in the middle */
 .wp-tips{position:fixed;inset:0;z-index:62;display:grid;place-items:center;padding:16px;background:rgba(3,8,18,.5);opacity:0;transition:opacity .25s}
@@ -1023,3 +1023,11 @@ body.wp.wp-clean .wz-buildbtn{display:none!important}
 .wp-tips-go{display:block;width:100%;height:48px;margin-top:14px;border:0;border-radius:14px;background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f;font:900 16px var(--f-ui);cursor:pointer;box-shadow:0 8px 22px rgba(46,224,122,.3)}
 .wp-tips-go:active{transform:scale(.98)}
 html.wp-pcphone .wp-tips-in{zoom:1.6}
+/* the Jurassic basics card: the same card in the jungle's colours */
+.wp-tips.jur .wp-tips-in{background:linear-gradient(180deg,rgba(14,40,30,.97),rgba(6,16,12,.97)) padding-box,linear-gradient(135deg,#2ee07a,#ffe066 55%,#ff9a4a) border-box}
+.wp-tips.jur .wp-tips-ic{background:radial-gradient(circle at 40% 35%,#d9ffb0,#2ee07a 75%);box-shadow:0 0 18px rgba(46,224,122,.55)}
+.wp-tips.jur li>span{background:rgba(46,224,122,.16)}.wp-tips.jur li b{color:#b6ffd6}
+.wp-tips.jur ol{counter-reset:jt}.wp-tips.jur li{position:relative}
+.wp-tips.jur li::after{counter-increment:jt;content:counter(jt);position:absolute;right:10px;top:8px;font:900 11px var(--f-ui);color:rgba(182,255,214,.45)}
+.wp-tips.jur .wp-tips-go{background:linear-gradient(90deg,#2ee07a,#ffe066);color:#06210f}
+.wz-pack-in header{position:sticky;top:-14px;z-index:1;margin:-14px -16px 4px;padding:14px 16px 10px;background:linear-gradient(180deg,rgba(12,24,52,1),rgba(12,24,52,.96));border-radius:18px 18px 0 0}

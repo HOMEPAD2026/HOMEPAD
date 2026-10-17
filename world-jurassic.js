@@ -145,7 +145,7 @@ export function createJurassic(ctx) {
   }
   // during the lunge it's thrown forward at you (and steered on), stopping at your feet
   function lunge(o, dt) {
-    if (!(o.lungeT > 0)) return; o.lungeT -= dt; const d = Math.hypot(px - o.x, pz - o.z); if (d < (o.hr || 1.5) * 0.9) { o.lungeT = 0; return; }
+    if (!(o.lungeT > 0)) return; o.lungeT -= dt; const d = Math.hypot(px - o.x, pz - o.z); if (d < (o.hr || 1.5) + 0.9) { o.lungeT = 0; return; }
     steer(o, px, pz, dt, 8); o.sp = Math.max(o.sp, o.lungeV);
   }
   // the hit: your HP (a share of your max), you're knocked back and the screen shakes; a raptor then backs off and
@@ -177,7 +177,7 @@ export function createJurassic(ctx) {
     // the Clawstriders (the owner's Meshy Clawstrider: bite, claw, leap and tail attacks): a pack of three in the east
     // woods, bigger and quicker than the raptors (you outrun them only flat out), hitting harder
     if (MODELS.claw && MODELS.claw.animations) [[128, -52], [134, -44], [122, -40]].slice(0, low ? 2 : 3).forEach(([hx, hz], i) => { const R = rig(MODELS.claw, 5 + rnd() * 0.6); scene.add(R.g); R.loop("idle");
-      raptors.push(dinoize({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx, z: hz, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: 1 + rnd() * 3, state: "idle", roarAt: 0, run: 10.5, bite: 0.09, aggro: 18 }, "claw", "claw:" + i, 1.6, 2.4, { x: hx, z: hz })); });
+      raptors.push(dinoize({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx, z: hz, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: 1 + rnd() * 3, state: "idle", roarAt: 0, run: 10.5, bite: 0.09, aggro: 18, noLook: true }, "claw", "claw:" + i, 1.6, 2.4, { x: hx, z: hz })); });
   }
   function tickRaptors(dt, t) {
     for (const r of raptors) {
@@ -188,7 +188,7 @@ export function createJurassic(ctx) {
       else if (r.state === "chase" && (safe || d > 30 || home > 60)) { r.state = "back"; r.tx = r.hx; r.tz = r.hz; }
       r.lookAt = null;
       if (r.state === "chase" && clock < (r.retreatUntil || 0)) { const a = Math.atan2(r.x - px, r.z - pz) + r.side * 0.9; steer(r, px + Math.sin(a) * 6, pz + Math.cos(a) * 6, dt, 6); want = r.run * 0.6; }
-      else if (r.state === "chase") { const da = steer(r, px, pz, dt, 6); r.lookAt = da; want = d > 2.2 ? r.run : 0; if (d < 2.6 + (r.kind === "claw" ? 0.6 : 0)) attack(r, r.kind === "claw" ? ["attack_bite", "attack_claw", "attack_leap", "attack_tail"][Math.floor(Math.random() * 4)] : "attack", r.bite, 3, 1.5); }
+      else if (r.state === "chase") { const da = steer(r, px, pz, dt, 6); r.lookAt = da; want = d > r.hr + 1.1 ? r.run : 0; if (d < r.hr + 1.6) attack(r, r.kind === "claw" ? ["attack_bite", "attack_claw", "attack_leap", "attack_tail"][Math.floor(Math.random() * 4)] : "attack", r.bite, 3, 1.5); }
       else if (r.state === "stare" || (r.state === "walk" && d < 22)) { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.lookAt = da; }
       if (r.state === "idle") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 6 + Math.random() * 18; r.tx = r.hx + Math.cos(a) * rr; r.tz = r.hz + Math.sin(a) * rr; r.state = "walk"; } }
       if (r.state === "walk" || r.state === "back") {
@@ -257,7 +257,7 @@ export function createJurassic(ctx) {
   const qA = new THREE.Quaternion(), qB = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);
   function yawBone(b, ang) { if (!b || !b.parent || Math.abs(ang) < 1e-4) return; b.parent.getWorldQuaternion(qB); b.getWorldQuaternion(qA); qA.premultiply(new THREE.Quaternion().setFromAxisAngle(Y, ang)); b.quaternion.copy(qB.invert().multiply(qA)); }
   function poseUp(o, dt) {
-    const B = o.R && o.R.bones; if (!B) return;
+    const B = o.R && o.R.bones; if (!B || o.noLook) return; // (a rig whose bones turn on other axes twisted its head: no look for it)
     o.lookW = (o.lookW || 0) + ((o.lookAt != null ? 1 : 0) - (o.lookW || 0)) * Math.min(1, dt * 3); const ly = Math.max(-0.9, Math.min(0.9, o.lookAt || 0)); o.lookS = (o.lookS || 0) + (ly - (o.lookS || 0)) * Math.min(1, dt * 4);
     if (o.lookW > 0.01) { yawBone(B.chest, o.lookS * 0.3 * o.lookW); yawBone(B.head, o.lookS * 0.55 * o.lookW); }
     let tr = (o.face - (o.prevFace ?? o.face)); tr = Math.atan2(Math.sin(tr), Math.cos(tr)) / Math.max(dt, 1e-3); o.prevFace = o.face;
@@ -349,7 +349,7 @@ export function createJurassic(ctx) {
     const gl = MODELS && MODELS.spino; if (!gl || !ctx.K.skelClone || !gl.animations) return;
     const R = rig(gl, SPINO_LEN); scene.add(R.g); R.loop("swim");
     const home = { x: J.LAKE.x, z: J.LAKE.z };
-    spino = dinoize({ g: R.g, R, mixer: R.mixer, x: J.LAKE.x + J.LAKE.r * 0.5, z: J.LAKE.z, face: 0, a: 0, sp: 1.6, state: "swim", noTilt: true }, "spino", "spino:0", 3.4, 4, home);
+    spino = dinoize({ g: R.g, R, mixer: R.mixer, x: J.LAKE.x + J.LAKE.r * 0.5, z: J.LAKE.z, face: 0, a: 0, sp: 1.6, state: "swim", noTilt: true, noLook: true }, "spino", "spino:0", 3.4, 4, home);
     spino.revive = ((rv) => () => { rv(); spino.state = "swim"; spino.a = 0; spino.x = J.LAKE.x + J.LAKE.r * 0.5; spino.z = J.LAKE.z; })(spino.revive);
   }
   function tickSpino(dt, t) {
@@ -380,7 +380,7 @@ export function createJurassic(ctx) {
     const gl = MODELS && MODELS.titan; if (!gl || !ctx.K.skelClone || !gl.animations) return;
     const R = rig(gl, 10); scene.add(R.g); R.loop("idle");
     const tag = ctx.K.label(T("Thornback Titan"), { accent: "#ffb648", color: "#ffe9c2", size: 0.9, sub: T("Boss · Lv 20") }); tag.position.y = R.h + 1.6; R.g.add(tag);
-    titan = dinoize({ g: R.g, R, mixer: R.mixer, x: TITAN_HOME.x, z: TITAN_HOME.z, face: 0.6, sp: 0, wait: 3, state: "graze", tx: 0, tz: 0 }, "titan", "titan:0", 4, 4.6, TITAN_HOME);
+    titan = dinoize({ g: R.g, R, mixer: R.mixer, x: TITAN_HOME.x, z: TITAN_HOME.z, face: 0.6, sp: 0, wait: 3, state: "graze", tx: 0, tz: 0, noLook: true }, "titan", "titan:0", 4, 4.6, TITAN_HOME);
   }
   function tickTitan(dt, t) {
     const A = titan; if (!A || deadTick(A, dt)) return;
@@ -598,7 +598,7 @@ export function createJurassic(ctx) {
       sh.fragmentShader = "uniform float uT, rL; uniform sampler2D tW; uniform vec2 cL; varying vec3 vWP;\n" + sh.fragmentShader.replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
         { vec3 a = texture2D(tW, vWP.xz * 0.045 + vec2(uT * 0.012, uT * 0.008)).xyz * 2.0 - 1.0, b = texture2D(tW, vWP.xz * 0.11 - vec2(uT * 0.017, -uT * 0.011)).xyz * 2.0 - 1.0; vec2 d = (a.xy + b.xy) * 0.5;
           normal = normalize(normal + (viewMatrix * vec4(d.x, 0.0, d.y, 0.0)).xyz * 0.55); }`).replace("#include <color_fragment>", `#include <color_fragment>
-        { float r = length(vWP.xz - cL) / rL; diffuseColor.rgb = mix(vec3(0.07, 0.24, 0.27), diffuseColor.rgb * 1.25, smoothstep(0.35, 0.95, r)); diffuseColor.a *= mix(0.97, 0.7, smoothstep(0.6, 1.0, r)); }`); };
+        { float r = length(vWP.xz - cL) / rL; diffuseColor.rgb = mix(vec3(0.07, 0.24, 0.27), vec3(0.16, 0.5, 0.52), smoothstep(0.35, 0.95, r)); diffuseColor.a *= mix(0.97, 0.86, smoothstep(0.6, 1.0, r)); }`); };
       wMat.customProgramCacheKey = () => "jur-water"; }
     const water = new THREE.Mesh(new THREE.CircleGeometry(J.LAKE.r + 12, 64), wMat);
     water.rotation.x = -Math.PI / 2; water.position.set(J.LAKE.x, WATER_Y, J.LAKE.z); water.receiveShadow = true; scene.add(water);
@@ -810,6 +810,10 @@ export function createJurassic(ctx) {
     S.wU.uT.value = t; if (S.grass) S.grass.tick(t); S.air.tick(dt, t); if (S.trees) S.trees.tick(t);
     clock = t; tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t); tickSpino(dt, t); tickTitan(dt, t);
     if (surv) surv.tick(dt, t, px, pz, face);
+    // wading: rings spreading on the water round you (so the shallows read as water)
+    { const wetNow = height(px, pz) < WATER_Y - 0.1; if (!S.rip) { const m = new THREE.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0, depthWrite: false });
+        S.rip = [0, 1, 2].map((i) => { const r = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 40), m.clone()); r.rotation.x = -Math.PI / 2; r.visible = false; S.scene.add(r); return r; }); }
+      S.rip.forEach((r, i) => { r.visible = wetNow; if (!wetNow) return; const k = ((t * (speed > 1 ? 0.9 : 0.45)) + i / 3) % 1; r.position.set(px, WATER_Y + 0.03, pz); r.scale.setScalar(0.5 + k * (speed > 1 ? 2.6 : 1.6)); r.material.opacity = (1 - k) * 0.55; }); }
     // birds somewhere in the trees now and then
     if ((birdT -= dt) < 0) { birdT = 3 + Math.random() * 7; if (Snd.bird) Snd.bird(); }
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
@@ -829,7 +833,15 @@ export function createJurassic(ctx) {
       st.renderer.domElement.addEventListener("pointerdown", tapDown); st.renderer.domElement.addEventListener("pointerup", tapUp);
       if (surv) surv.load();
       // the first visit: a short tour of what's new here (after the title)
-      const tour = (n) => { if (!on || !ctx.coach) return; if (document.querySelector(".wp-coach")) { if (n < 30) setTimeout(() => tour(n + 1), 2000); return; } ctx.coach("arc.guide.jur", [
+      // the first three days after your first visit: the basics, as a card each time you come in (after the title)
+      let firstAt = 0; try { firstAt = Number(localStorage.getItem("arc.jur.first")) || 0; if (!firstAt) { firstAt = Date.now(); localStorage.setItem("arc.jur.first", String(firstAt)); } } catch { firstAt = Date.now(); }
+      if (Date.now() - firstAt < 3 * 864e5 && ctx.tips) setTimeout(() => { if (on) ctx.tips([
+        ["🗡️", "Your weapons stay in town", "Your ARCIRCLE World weapons don't work here. You start with bare hands, and everything you use, you make."],
+        ["🪵", "Gather first", "Chop trees for wood, mine rocks for stone and flint, pick ferns and bushes for fiber. Walk up and tap attack."],
+        ["🔨", "Build a workbench", "In your camp tap Build and make a workbench (20 wood, 10 stone). Then make an axe and a spear from your pack."],
+        ["🦖", "Mind the dinosaurs", "They bite back. Your camp and the gate are safe. Tap a dinosaur to see its level and HP."]],
+        { kicker: "JURASSIC WORLD", title: T("How survival works"), icon: "🦖", cls: "jur", go: T("Got it, let's survive"), day: "jur" }); }, 3100);
+      const tour = (n) => { if (!on || !ctx.coach) return; if (document.querySelector(".wp-coach") || document.querySelector(".wp-tips")) { if (n < 30) setTimeout(() => tour(n + 1), 2000); return; } ctx.coach("arc.guide.jur", [
         { at: ".wz-goal", t: T("Your goal"), p: T("Your next step is here. Follow it from the first wood to the Alpha Raptor.") },
         { at: ".wz-packbtn", t: T("Your pack"), p: T("What you've gathered, your tools, food, and everything you can make.") },
         { at: ".wc-attack", t: T("Chop, mine and hunt"), p: T("Walk up to a tree, rock or fern and tap here to chop, mine and gather. Dinosaurs bite back, so keep an eye on your HP!") },
