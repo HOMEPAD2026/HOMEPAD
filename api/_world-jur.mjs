@@ -1,5 +1,5 @@
 // api/_world-jur.mjs — Jurassic World's survival (world-jurassic.js): gathering, crafting and building on your own plot.
-// GM wallets only until the owner opens it (isGM). What you gather is decided here: how many swings a tree or rock
+// Open to every signed-in wallet (it was GM-only before launch). What you gather is decided here: how many swings a tree or rock
 // takes (by your tool), when it can break (no faster than real swings), what it drops, when it grows back; a day's
 // gathering has a cap (bots). Ore from Jurassic rocks goes into the ARCL Mine's pockets (worldMineInv: one ore bag for
 // both worlds), and the mine's pickaxe (tier and +level) is the one you mine with here. No ARCL is paid here (yet).
@@ -12,7 +12,7 @@
 //   POST { action: "world-jur-build", …signature, op, piece }    → { plot, inv }          (place / remove at your camp)
 //   POST { action: "world-jur-eat",   …signature, food }         → { inv, fed }
 //
-// Firestore: worldJurInv/<wallet> { mat, tools, stations, felled, work, day, got } · worldJurPlot/<wallet> { pieces }
+// Firestore: worldJurInv/<wallet> { mat, tools, felled, work, day, got, home } · worldJurPlot/<owner> { pieces } · worldJurCamp/<slot> { w, members }
 export const JUR = {
   HIT_MS: 430, SLACK: 0.7, DAY_CAP: 6000, FELLED_MAX: 500, PLOT_MAX: 160, PLOT_R: 9,
   // per kind: swings (low–high, then × the tool's factor), what drops (low–high), how long until it's back
@@ -73,13 +73,19 @@ export function makeJur(deps) {
   // the plot's pieces as the page needs them (compact)
   async function plotOf(w) { const p = (await one(`worldJurPlot/${w}`)) || {}; return Array.isArray(p.pieces) ? p.pieces : []; }
   const gm = (w) => !!(deps.isGM && deps.isGM(w));
-  async function signed(b) { const s = signer(b); if (s.err) return { err: s.err }; if (!gm(s.wallet)) return { err: json(403, { error: "Jurassic World is coming soon" }) }; return { w: s.wallet }; }
+  async function signed(b) { const s = signer(b); if (s.err) return { err: s.err }; return { w: s.wallet }; } // (open to every signed-in wallet)
   const idOk = (id) => typeof id === "string" && /^[a-z0-9:_.-]{3,48}$/i.test(id);
   const between = ([a, b]) => a + Math.floor(rnd() * (b - a + 1));
   const prune = (felled, t) => { const out = {}; const live = Object.entries(felled).filter(([, u]) => u > t).sort((a, b) => b[1] - a[1]).slice(0, JUR.FELLED_MAX); for (const [k, u] of live) out[k] = u; return out; };
 
-  // the camps' registry: owners[slot] = wallet, members[slot] = [wallets living there besides the owner]
-  const campsDoc = async () => { const d = (await one("worldJurCamps/all")) || {}; return { owners: Array.isArray(d.owners) ? d.owners : [], members: d.members && typeof d.members === "object" ? d.members : {} }; };
+  // the camps' registry: one doc a spot, worldJurCamp/<slot> { w, members } — made with an atomic create, so two players
+  // claiming at the same moment can't both get one spot (the first version kept them all in worldJurCamps/all: read too)
+  const campsDoc = async () => {
+    const ks = JUR.CAMPS.map((_, i) => `worldJurCamp/${i}`), d = await getDocs([...ks, "worldJurCamps/all"]), old = d["worldJurCamps/all"] || {};
+    const owners = [], members = {};
+    JUR.CAMPS.forEach((_, i) => { const c = d[ks[i]]; if (c && c.w) { owners[i] = c.w; members[i] = Array.isArray(c.members) ? c.members : []; } else if (Array.isArray(old.owners) && old.owners[i]) { owners[i] = old.owners[i]; members[i] = (old.members && old.members[i]) || []; } });
+    return { owners, members };
+  };
   const homeOf = (inv, C) => { const h = inv.home; return Number.isInteger(h) && h >= 0 && h < JUR.CAMPS.length && C.owners[h] ? h : -1; };
   const shortW = (w) => (w ? w.slice(0, 6) + "…" + w.slice(-4) : "");
   async function campsView(w) {
@@ -95,14 +101,15 @@ export function makeJur(deps) {
     const w = S.w, op = String(b.op || ""), inv = await invOf(w), C = await campsDoc();
     if (homeOf(inv, C) >= 0) return json(200, { ok: true, home: homeOf(inv, C), camps: await campsView(w) });
     if (op === "claim") {
-      const i = JUR.CAMPS.findIndex((_, k) => !C.owners[k]); if (i < 0) return json(409, { error: "every camp spot is taken — join someone's camp", full: true, camps: await campsView(w) });
-      C.owners[i] = w; inv.home = i; await setDoc("worldJurCamps/all", C); await setDoc(`worldJurInv/${w}`, inv);
-      return json(200, { ok: true, home: i, camps: await campsView(w) });
+      for (let i = 0; i < JUR.CAMPS.length; i++) { if (C.owners[i]) continue;
+        if (!(await deps.commit([{ create: `worldJurCamp/${i}`, data: { w, members: [], at: now() } }])).ok) continue; // taken a moment ago: the next one
+        inv.home = i; await setDoc(`worldJurInv/${w}`, inv); return json(200, { ok: true, home: i, camps: await campsView(w) }); }
+      return json(409, { error: "every camp spot is taken — join someone's camp", full: true, camps: await campsView(w) });
     }
     if (op === "join") {
       const i = Math.round(Number(b.slot)); if (!C.owners[i]) return json(400, { error: "nobody camps there" });
       const m = C.members[i] || []; if (1 + m.length >= JUR.CAMP_MEMBERS) return json(409, { error: "that camp is full" });
-      C.members[i] = [...m, w]; inv.home = i; await setDoc("worldJurCamps/all", C); await setDoc(`worldJurInv/${w}`, inv);
+      await setDoc(`worldJurCamp/${i}`, { w: C.owners[i], members: [...m, w], at: now() }); inv.home = i; await setDoc(`worldJurInv/${w}`, inv);
       return json(200, { ok: true, home: i, camps: await campsView(w) });
     }
     return json(400, { error: "claim or join" });

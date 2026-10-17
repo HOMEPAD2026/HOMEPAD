@@ -1,5 +1,5 @@
-// world-jurassic.js — Jurassic World (P0, the GM preview): a separate prehistoric land behind the Jurassic Portal in
-// town (world-play.js). Only GM wallets come in for now; everyone else sees "Coming soon" at the portal.
+// world-jurassic.js — Jurassic World: a separate prehistoric land behind the Jurassic Portal in town (world-play.js),
+// open to everyone (guests look round; gathering, crafting and a camp need a signed-in wallet).
 // The plan (ARCIRCLE WORLD JURASSIC design doc v1.0): six biomes, realistic dinosaurs, hunting, crafting, eggs, raids.
 // This first step is the Primeval Plains on their own: rolling ground, a lake, forest and ferns, far ridges in the haze,
 // the hero walking it, and the gate home. Dinosaurs arrive with their GLB files (models/world/jurassic, the doc's list).
@@ -31,6 +31,8 @@ export function createJurassic(ctx) {
     return h;
   }
   const WATER_Y = -2.4;
+  // the lake's water (the low hollows elsewhere are dry sand: you run on them as on grass)
+  const inLake = (x, z) => Math.hypot(x - J.LAKE.x, z - J.LAKE.z) < J.LAKE.r + 11;
 
   // ---------------- the models (Meshy, packed by tools/pack-prop.mjs; models/world/jurassic): a mossy boulder and the
   // ruins gate. Loaded before the first visit; when they fail or are slow, the drawn stand-ins are used.
@@ -128,7 +130,8 @@ export function createJurassic(ctx) {
   // a share of your max HP (the town's knock-out rules then, world-combat.js). Round the gate and your camp you're safe.
   let clock = 0, sel = null;
   const selectFoe = (o) => { sel = o; if (surv) surv.select(o); };
-  const safeHere = () => downNow || Math.hypot(px - J.SPAWN.x, pz - J.SPAWN.z) < 26 || CAMPS.some(([cx, cz]) => Math.hypot(px - cx, pz - cz) < CAMP_R + 2);
+  // safe: by the gate always; in a camp by day, or at night when that camp has a campfire
+  const safeHere = () => downNow || Math.hypot(px - J.SPAWN.x, pz - J.SPAWN.z) < 26 || CAMPS.some(([cx, cz], i) => Math.hypot(px - cx, pz - cz) < CAMP_R + 2 && (!night || (surv && surv.campFire(i))));
   function dinoize(o, kind, id, hr, popY, home) {
     Object.assign(o, { id, kind, hr, popY, alive: true, angry: 0, biteAt: 0, cool: 0, home });
     o.hurt = () => { o.angry = clock + 12; o.R.once("hit", 1.2); };
@@ -184,8 +187,8 @@ export function createJurassic(ctx) {
       if (deadTick(r, dt)) continue;
       const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz), home = Math.hypot(r.x - r.hx, r.z - r.hz), safe = safeHere();
       let want = 0;
-      if (r.state !== "chase" && !safe && (d < r.aggro || (r.angry > clock && d < 30))) { r.state = "chase"; if (Snd.growl && d < 40) Snd.growl(r.kind === "claw" ? 1 : 0); }
-      else if (r.state === "chase" && (safe || d > 30 || home > 60)) { r.state = "back"; r.tx = r.hx; r.tz = r.hz; }
+      if (r.state !== "chase" && !safe && (d < r.aggro * (night ? 1.7 : 1) || (r.angry > clock && d < 30))) { r.state = "chase"; if (Snd.growl && d < 40) Snd.growl(r.kind === "claw" ? 1 : 0); }
+      else if (r.state === "chase" && (safe || d > (night ? 42 : 30) || home > (night ? 90 : 60))) { r.state = "back"; r.tx = r.hx; r.tz = r.hz; }
       r.lookAt = null;
       if (r.state === "chase" && clock < (r.retreatUntil || 0)) { const a = Math.atan2(r.x - px, r.z - pz) + r.side * 0.9; steer(r, px + Math.sin(a) * 6, pz + Math.cos(a) * 6, dt, 6); want = r.run * 0.6; }
       else if (r.state === "chase") { const da = steer(r, px, pz, dt, 6); r.lookAt = da; want = d > r.hr + 1.1 ? r.run : 0; if (d < r.hr + 1.6) attack(r, r.kind === "claw" ? ["attack_bite", "attack_claw", "attack_leap", "attack_tail"][Math.floor(Math.random() * 4)] : "attack", r.bite, 3, 1.5); }
@@ -496,6 +499,7 @@ export function createJurassic(ctx) {
     const ct = new THREE.CanvasTexture(ccv); ct.colorSpace = THREE.SRGBColorSpace; const clouds = [];
     for (let i = 0; i < (low ? 5 : 9); i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, depthWrite: false, fog: false, opacity: 0.8 })); sp.scale.set(150 + r() * 120, 60 + r() * 40, 1); sp.position.set((r() - 0.5) * 700, 150 + r() * 60, (r() - 0.5) * 700); scene.add(sp); clouds.push(sp); }
     out.tick.push((dt) => { for (const c of clouds) { c.position.x += dt * 2.2; if (c.position.x > 380) c.position.x = -380; } });
+    out.tint = [mtn.material, ...clouds.map((c) => c.material)]; // (unlit: day and night tint them, see tickSky)
     // pollen and dust in the light round the camera
     if (!low) { const NP = coarse ? 160 : 320, pg = new THREE.BufferGeometry(), pp = new Float32Array(NP * 3); for (let i = 0; i < NP; i++) pp.set([(r() - 0.5) * 40, r() * 10, (r() - 0.5) * 40], i * 3); pg.setAttribute("position", new THREE.BufferAttribute(pp, 3));
       const dcv = document.createElement("canvas"); dcv.width = dcv.height = 32; const dg = dcv.getContext("2d"), dgr = dg.createRadialGradient(16, 16, 0, 16, 16, 16); dgr.addColorStop(0, "rgba(255,248,210,1)"); dgr.addColorStop(1, "rgba(255,248,210,0)"); dg.fillStyle = dgr; dg.fillRect(0, 0, 32, 32);
@@ -544,7 +548,7 @@ export function createJurassic(ctx) {
     const sky = new THREE.Mesh(new THREE.SphereGeometry(800, 32, 16), new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false, depthWrite: false,
       map: canvasTex(8, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#3f86d6"); gr.addColorStop(0.38, "#8fc0e8"); gr.addColorStop(0.5, "#e9e2c8"); gr.addColorStop(0.56, "#c9d6c4"); gr.addColorStop(1, "#9fb39a"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }) }));
     scene.add(sky);
-    scene.add(new THREE.HemisphereLight(0xdfeeff, 0x4a5a32, 0.75));
+    const hemi = new THREE.HemisphereLight(0xdfeeff, 0x4a5a32, 0.75); scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffecd0, 2.7); sun.position.set(-120, 160, 80); scene.add(sun, sun.target);
     // the sun's shadow follows the hero (a box round them), when the device draws shadows at all
     const shadows = !!(st.renderer.shadowMap && st.renderer.shadowMap.enabled && st.renderer.shadowMap.autoUpdate !== false) && !low;
@@ -682,13 +686,62 @@ export function createJurassic(ctx) {
     // no bloom chain of its own: next to the town's post chain it drew a blank screen (a second round; the sky, fog and
     // grading carry the look)
     const grass = MODELS && MODELS.ground ? makeGrass(scene) : null, air = makeAir(scene);
-    S = { scene, cam, gate, sun, shadows, comp, wU, grass, air, trees, spin: gate.userData.spin || [] };
+    S = { scene, cam, gate, sun, hemi, sky, HAZE, shadows, comp, wU, grass, air, trees, spin: gate.userData.spin || [] };
+    makeWeather(scene);
     // your camp's ground is kept clear (what grew there is gone)
     for (let i = nodes.length - 1; i >= 0; i--) if (CAMPS.some(([cx, cz]) => Math.hypot(nodes[i].x - cx, nodes[i].z - cz) < CAMP_R + 0.8)) { nodes[i].hide(); nodes.splice(i, 1); }
     // gathering, hunting, the pack and the camp (world-jursurv.js)
     try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
       faceTo: (a) => { face = a; }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
+  }
+
+  // ---------------- day and night, rain ----------------
+  // One clock for everyone (the real time): a 20-minute day: 12 of daylight, a 2-minute dusk, 4 of night, a 2-minute
+  // dawn. Rain comes and goes in 5-minute spells (about one in four). At night the raptors range farther and a camp
+  // is only safe with a campfire burning; the sky, the light and the fog follow.
+  const DAY_S = 1200;
+  let phOver = null, rainOver = null; // (tests: a time of day and rain on demand)
+  const dayPhase = () => phOver ?? ((Date.now() / 1000) % DAY_S) / DAY_S;
+  const lightOf = (ph) => ph < 0.6 ? 1 : ph < 0.7 ? 1 - (ph - 0.6) / 0.1 : ph < 0.9 ? 0 : (ph - 0.9) / 0.1;
+  const rainOf = (ms) => { const b = Math.floor(ms / 300000), h = Math.sin(b * 91.7 + 13.1) * 43758.5; return h - Math.floor(h) < 0.25; };
+  let night = false, rainK = 0, wasNight = null, clockT = 0, stars = null, rain = null, rainOn = false;
+  const cDay = new THREE.Color(), cNight = new THREE.Color(0x0e1626), cDusk = new THREE.Color(0xff9a5a), cMoon = new THREE.Color(0x9fb4ff), cSun = new THREE.Color(0xffecd0), cTmp = new THREE.Color(), cRain = new THREE.Color(0x7d8a92);
+  function makeWeather(scene) {
+    // stars: points on the sky, seen at night
+    const N = low ? 350 : 900, g = new THREE.BufferGeometry(), p = new Float32Array(N * 3); let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < N; i++) { const a = r() * 6.283, y = 0.15 + r() * 0.85, rr = Math.sqrt(1 - y * y); p.set([Math.cos(a) * rr * 700, y * 700, Math.sin(a) * rr * 700], i * 3); }
+    g.setAttribute("position", new THREE.BufferAttribute(p, 3));
+    stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: coarse ? 2.2 : 1.6, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false, fog: false })); stars.renderOrder = -1; scene.add(stars);
+    // rain: streaks falling in a box round the camera
+    const R = low ? 350 : coarse ? 600 : 1100, rg = new THREE.BufferGeometry(), rp = new Float32Array(R * 6);
+    for (let i = 0; i < R; i++) { const x = (r() - 0.5) * 50, y = r() * 26, z = (r() - 0.5) * 50; rp.set([x, y, z, x + 0.05, y - 0.9, z + 0.02], i * 6); }
+    rg.setAttribute("position", new THREE.BufferAttribute(rp, 3));
+    rain = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0xb8c8dc, transparent: true, opacity: 0, depthWrite: false })); rain.frustumCulled = false; rain.visible = false; scene.add(rain);
+  }
+  function tickSky(dt) {
+    if (!S || !stars) return;
+    const ph = dayPhase(), k0 = lightOf(ph), wet = rainOver ?? rainOf(Date.now()); rainK += ((wet ? 1 : 0) - rainK) * Math.min(1, dt * 0.3);
+    const k = k0 * (1 - rainK * 0.35), dusk = Math.max(0, 1 - Math.abs(ph - 0.65) / 0.06) + Math.max(0, 1 - Math.abs(ph - 0.95) / 0.06);
+    night = k0 < 0.25;
+    // the sun by day (warm, low and orange at dusk and dawn), a pale moon at night
+    S.sun.intensity = 0.35 + 2.35 * k; S.sun.color.copy(cMoon).lerp(cSun, k0).lerp(cDusk, Math.min(1, dusk) * 0.55);
+    S.hemi.intensity = 0.22 + 0.53 * k; S.scene.environmentIntensity = 0.18 + 0.52 * k;
+    cDay.setHex(S.HAZE); cTmp.copy(cNight).lerp(cDay, k).lerp(cRain, rainK * 0.45 * k0); if (dusk > 0) cTmp.lerp(cDusk, Math.min(1, dusk) * 0.18);
+    S.scene.fog.color.copy(cTmp); S.scene.background.copy(cTmp); S.scene.fog.density = (low ? 0.0075 : 0.0055) * (1 + rainK * 0.8 + (1 - k0) * 0.25);
+    const skyK = 0.16 + 0.84 * k; S.sky.material.color.setRGB(skyK * (1 - rainK * 0.3), skyK * (1 - rainK * 0.25), skyK * (1 - rainK * 0.15) + (1 - k0) * 0.08);
+    if (S.air.tint) for (const m of S.air.tint) m.color.setScalar(0.25 + 0.75 * k);
+    stars.material.opacity = Math.max(0, 1 - k0 * 1.6) * (1 - rainK) * 0.95; stars.position.copy(S.cam.position);
+    // the rain round the camera, falling
+    rain.visible = rainK > 0.03; if (rain.visible) { rain.material.opacity = 0.45 * rainK; rain.position.set(S.cam.position.x, S.cam.position.y - 6, S.cam.position.z);
+      const a = rain.geometry.attributes.position, A = a.array; for (let i = 0; i < A.length; i += 6) { let y = A[i + 1] - dt * 22; if (y < 0) y += 26; A[i + 1] = y; A[i + 4] = y - 0.9; } a.needsUpdate = true; }
+    if (wet !== rainOn) { rainOn = wet; if (wet && on) toast(T("It's starting to rain")); }
+    // nightfall: once, a word of warning
+    if (night !== wasNight) { if (wasNight !== null && on) toast(night ? T("Night falls: raptors hunt farther. A campfire keeps your camp safe.") : T("The sun is up. The plains are calmer.")); wasNight = night; }
+    if (performance.now() > clockT && ui && ui.clock) { clockT = performance.now() + 1000;
+      const left = ph < 0.6 ? (0.6 - ph) : ph < 0.7 ? (0.7 - ph) : ph < 0.9 ? (0.9 - ph) : (1 - ph), mm = Math.floor(left * DAY_S / 60), ss = Math.floor(left * DAY_S) % 60;
+      const nm = ph < 0.6 ? "Day" : ph < 0.7 ? "Dusk" : ph < 0.9 ? "Night" : "Dawn", ic = ph < 0.6 ? (wet ? "🌧️" : "☀️") : ph < 0.7 ? "🌇" : ph < 0.9 ? "🌙" : "🌅";
+      ui.clock.innerHTML = `<span aria-hidden="true">${ic}</span><b>${esc(T(nm))}</b><small>${mm}:${String(ss).padStart(2, "0")}</small>`; ui.clock.classList.toggle("night", night); }
   }
 
   async function makeHero() {
@@ -704,7 +757,8 @@ export function createJurassic(ctx) {
   function buildUi() {
     const root = document.createElement("div"); root.id = "wp-jur"; root.className = "wz"; root.hidden = true;
     root.innerHTML = `<div class="wz-top" data-game-hud><button type="button" class="wz-leave"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Village"))}</span></button>
-        <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div>
+        <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains"))}</small></div>
+        <div class="wz-clock" aria-live="off"></div>
         <button type="button" class="wz-packbtn"><span aria-hidden="true">🎒</span><b>${esc(T("Pack"))}</b><kbd>P</kbd></button></div>
       <button type="button" class="wz-buildbtn" hidden><span aria-hidden="true">🔨</span><b>${esc(T("Build"))}</b></button>
       <div class="wz-build wz-pack" hidden role="dialog"><div class="wz-pack-in"></div></div>
@@ -719,7 +773,7 @@ export function createJurassic(ctx) {
       <div class="wz-title" hidden><small>ARCIRCLE WORLD</small><b>JURASSIC WORLD</b><span>${esc(T("Primeval Plains"))}</span></div>`;
     document.body.appendChild(root);
     const q = (s2) => root.querySelector(s2);
-    ui = { root, home: q(".wz-home"), title: q(".wz-title"), act: q(".wz-act"), goal: q(".wz-goal-t"), goalBar: q(".wz-goal-bar i") };
+    ui = { root, clock: q(".wz-clock"), home: q(".wz-home"), title: q(".wz-title"), act: q(".wz-act"), goal: q(".wz-goal-t"), goalBar: q(".wz-goal-bar i") };
     q(".wz-leave").addEventListener("click", () => leave());
     ui.home.addEventListener("click", () => leave());
     ui.act.addEventListener("click", () => use());
@@ -756,7 +810,7 @@ export function createJurassic(ctx) {
     const il = Math.min(1.4, Math.hypot(ix, iz)), run = keys.has("shift") || (inp && inp.run) || (inp && inp.joy && Math.hypot(inp.joy.dx, inp.joy.dy) > 0.95);
     // moving: a velocity that speeds up and slows down (no stopping dead), the body turning toward where it's going,
     // slower wading in the lake (you can go anywhere but the ridges at the edge)
-    const wet = height(px, pz) < WATER_Y - 0.25, target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) * (wet ? 0.55 : 1) : 0;
+    const wet = inLake(px, pz) && height(px, pz) < WATER_Y - 0.25, target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) * (wet ? 0.55 : 1) : 0;
     let wx = 0, wz = 0;
     if (il > 0.08) { // the stick is read from the camera: up is away from it
       const fx = Math.sin(camYaw + Math.PI), fz = Math.cos(camYaw + Math.PI), rx = -fz, rz = fx;
@@ -771,7 +825,7 @@ export function createJurassic(ctx) {
       // footsteps, paced to the ground covered (a splash in the water)
       stepD += speed * dt; if (grounded && stepD > (speed > 9 ? 2.2 : 1.6)) { stepD = 0; if (Snd.step) Snd.step(wet ? 3 : speed > 9 ? 12 : 6); }
     }
-    const gy = Math.max(height(px, pz), WATER_Y - 1.05); pyS = pyS == null || Math.abs(gy - pyS) > 3 ? gy : pyS + (gy - pyS) * Math.min(1, dt * 14); const py = pyS;
+    const gy = inLake(px, pz) ? Math.max(height(px, pz), WATER_Y - 1.05) : height(px, pz); pyS = pyS == null || Math.abs(gy - pyS) > 3 ? gy : pyS + (gy - pyS) * Math.min(1, dt * 14); const py = pyS;
     // the jump: the town's numbers (9 m/s up, 24 m/s² down)
     if (jumpQ) { jumpQ = false; if (grounded) { vy = 9; grounded = false; animNow = "jump"; if (hero && hero.play) hero.play("jump", { once: true, fade: 0.08 }); } }
     if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= 0) { hop = 0; vy = 0; grounded = true; animNow = ""; if (hero && hero.land) hero.land(0.5); } }
@@ -807,11 +861,11 @@ export function createJurassic(ctx) {
     if (S.shadows) { S.sun.target.position.set(px, py, pz); S.sun.position.set(px - 60, py + 80, pz + 40); }
     tickCells(dt);
     for (const f of S.spin) f(dt, t);
-    S.wU.uT.value = t; if (S.grass) S.grass.tick(t); S.air.tick(dt, t); if (S.trees) S.trees.tick(t);
+    tickSky(dt); S.wU.uT.value = t; if (S.grass) S.grass.tick(t); S.air.tick(dt, t); if (S.trees) S.trees.tick(t);
     clock = t; tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t); tickSpino(dt, t); tickTitan(dt, t);
     if (surv) surv.tick(dt, t, px, pz, face);
     // wading: rings spreading on the water round you (so the shallows read as water)
-    { const wetNow = height(px, pz) < WATER_Y - 0.1; if (!S.rip) { const m = new THREE.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0, depthWrite: false });
+    { const wetNow = inLake(px, pz) && height(px, pz) < WATER_Y - 0.1; if (!S.rip) { const m = new THREE.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0, depthWrite: false });
         S.rip = [0, 1, 2].map((i) => { const r = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 40), m.clone()); r.rotation.x = -Math.PI / 2; r.visible = false; S.scene.add(r); return r; }); }
       S.rip.forEach((r, i) => { r.visible = wetNow; if (!wetNow) return; const k = ((t * (speed > 1 ? 0.9 : 0.45)) + i / 3) % 1; r.position.set(px, WATER_Y + 0.03, pz); r.scale.setScalar(0.5 + k * (speed > 1 ? 2.6 : 1.6)); r.material.opacity = (1 - k) * 0.55; }); }
     // birds somewhere in the trees now and then
@@ -864,7 +918,7 @@ export function createJurassic(ctx) {
   // the swing (chopping and mining come next, judged by the server); E at the gate goes home
   let swingT = 0;
   function swing() { if (surv) { surv.swing(px, pz, face); return; } const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
-  function use() { if (nearGate) leave(); else if (!downNow) swing(); }
+  function use() { if (nearGate) leave(); else if (downNow) return; else if (surv && surv.bedNear() && !(surv.target && surv.target())) surv.rest(); else swing(); }
   function act(a) { if (!on || downNow) return true; if (a === "attack") swing(); return true; }
   // knocked out (the town's rules: world-combat.js — today's free get-up, then $ARCIRCLE or a rest): the hero lies down;
   // getting up "here" stays, "plaza" means the gate
@@ -874,5 +928,5 @@ export function createJurassic(ctx) {
     if (where === "plaza") { px = J.SPAWN.x; pz = J.SPAWN.z; camInit = false; }
     animNow = ""; if (hero && hero.play) hero.play("idle");
   }
-  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), nodes: nodes.length }), surv: () => surv, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
+  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), nodes: nodes.length }), sky: (ph, wet) => { phOver = ph; rainOver = wet; }, skyNow: () => ({ night, rainK: +rainK.toFixed(2), ph: +dayPhase().toFixed(3) }), surv: () => surv, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
 }

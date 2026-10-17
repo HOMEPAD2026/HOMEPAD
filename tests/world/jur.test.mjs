@@ -27,7 +27,8 @@ const view = async (w) => (await W.read(new URL("https://x/api/social?world=jur&
 const fell = async (w, node, kind) => { const s = await call(w, "world-jur-start", { node, kind }); if (s.status !== 200) return s; T += s.body.need * JUR.HIT_MS; return call(w, "world-jur-break", { node }); };
 
 const gm = ethers.Wallet.createRandom(), other = ethers.Wallet.createRandom(); GM_WALLETS.push(gm.address.toLowerCase());
-let r = await call(other, "world-jur-start", { node: "tree-broadleaf0:1", kind: "tree" }); check(r.status === 403, "not a GM: Jurassic World is coming soon");
+let r = await W.handle({ action: "world-jur-start", node: "tree-broadleaf0:1", kind: "tree" }); check(r.status >= 400 && r.status < 500, "no signature: nothing to gather");
+r = await call(other, "world-jur-start", { node: "tree-broadleaf0:5", kind: "tree" }); check(r.status === 200, "open to everyone: any signed-in wallet can gather");
 r = await call(gm, "world-jur-start", { node: "tree-broadleaf0:1", kind: "dragon" }); check(r.status === 400, "an unknown kind is refused");
 r = await call(gm, "world-jur-start", { node: "tree-broadleaf0:1", kind: "tree" }); const need = r.body.need;
 check(r.status === 200 && need >= Math.round(JUR.NODES.tree.hits[0] * JUR.AXE[0]), "bare hands: a tree takes " + need + " swings");
@@ -48,6 +49,8 @@ r = await call(gm, "world-jur-start", { node: "tree-broadleaf0:9", kind: "tree" 
 for (let i = 10; i < 16; i++) await fell(gm, "tree-broadleaf0:" + i, "tree");
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 2, z: 0 } }); check(r.status === 400, "no camp yet: nothing to build on");
 r = await call(gm, "world-jur-camp", { op: "claim" }); check(r.status === 200 && r.body.home === 0 && r.body.camps.list[0].mine, "the first player gets the first camp spot");
+{ const a = ethers.Wallet.createRandom(), b = ethers.Wallet.createRandom(); const [ra, rb] = await Promise.all([call(a, "world-jur-camp", { op: "claim" }), call(b, "world-jur-camp", { op: "claim" })]);
+  check(ra.status === 200 && rb.status === 200 && ra.body.home !== rb.body.home, "two claiming at once get two different spots (" + ra.body.home + ", " + rb.body.home + ")"); }
 r = await call(gm, "world-jur-camp", { op: "claim" }); check(r.status === 200 && r.body.home === 0, "claiming again keeps the same spot");
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 20, z: 0 } }); check(r.status === 400, "nothing outside the camp");
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: 2, z: 0 } }); check(r.status === 200 && r.body.plot.some((p) => p.k === "bench"), "a workbench built at the camp");
@@ -55,7 +58,7 @@ r = await call(gm, "world-jur-build", { op: "place", piece: { k: "bench", x: -2,
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "campfire", x: 3, z: 1 } }); check(r.status === 409, "not on top of the workbench");
 r = await call(gm, "world-jur-build", { op: "place", piece: { k: "campfire", x: -3, z: 1 } }); check(r.status === 200, "a campfire at the camp");
 // 20 spots: then there's no spot left, and a newcomer joins someone's camp
-const ws = []; for (let i = 0; i < 19; i++) { const x = ethers.Wallet.createRandom(); GM_WALLETS.push(x.address.toLowerCase()); ws.push(x); r = await call(x, "world-jur-camp", { op: "claim" }); }
+const ws = []; for (let i = 0; i < 17; i++) { const x = ethers.Wallet.createRandom(); GM_WALLETS.push(x.address.toLowerCase()); ws.push(x); r = await call(x, "world-jur-camp", { op: "claim" }); }
 check(r.status === 200 && r.body.home === 19 && r.body.camps.free === 0, "twenty camps, all taken");
 const late = ethers.Wallet.createRandom(); GM_WALLETS.push(late.address.toLowerCase());
 r = await call(late, "world-jur-camp", { op: "claim" }); check(r.status === 409 && r.body.full, "the 21st: no spot of their own");

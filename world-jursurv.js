@@ -1,7 +1,7 @@
 // world-jursurv.js — Jurassic World's survival on the page (world-jurassic.js hands it the land): what you can chop, mine,
 // pick and hunt in reach, the swings, the server's say on each one (api/_world-jur.mjs: how many swings, the drop, when
 // it grows back), your pack and what you can make from it, your camp (the workbench and the campfire stand there), the
-// goal card, the numbers floating up, and the trunks and boulders you can't walk through. GM only for now, no ARCL.
+// goal card, the numbers floating up, and the trunks and boulders you can't walk through. No ARCL is paid here (yet).
 //
 // The land's things come as nodes: { id, kind (the server's: tree, palm, ancient, fern, bush, log, rock), x, z, cr (the
 // trunk's radius you bump into, 0 for none), hr (how far from its middle you can reach it), hide(), show() }. The dinosaurs
@@ -207,6 +207,16 @@ export function createSurvival(H) {
       return `<li class="${ok ? "ok" : ""}${one ? " own" : ""}"><div><b>${esc(T(P.name || k))}</b><p>${Object.entries(P.need).map(([m, n]) => chip(m, n)).join("")}</p></div><button type="button" data-build="${esc(k)}" ${ok ? "" : "disabled"}>${esc(one ? T("Built") : T("Build"))}</button></li>`; }).join("");
     ui.build.querySelector(".wz-pack-in").innerHTML = `<header><b>${esc(T("Build at your camp"))}</b><small>${c ? esc(T("{n} living here", { n: c.members })) : ""}</small><button type="button" class="wz-pack-x" aria-label="${esc(T("Close"))}">✕</button></header><ul class="wz-recipes">${rows}</ul>`;
   }
+  // a camp's campfire (at night only a camp with one is safe from raids)
+  const campFire = (slot) => { const c = camps.list.find((x) => x.slot === slot); return !!(c && c.pieces.some((p) => p.k === "campfire")); };
+  // your camp's bed: stand by it and rest (HP back to full), once a minute
+  let bedNear = false, restAt = 0;
+  function nearBed(px, pz) { const c = homeCamp(); if (!c) return false; return c.pieces.some((p) => p.k === "bed" && Math.hypot(c.x + p.x - px, c.z + p.z - pz) < 2.2); }
+  function rest() {
+    if (!bedNear) return false; const now = performance.now(); if (now - restAt < 60000) { toast(T("You can rest again in {s} s", { s: Math.ceil((60000 - (now - restAt)) / 1000) })); return true; }
+    const v = ctx.vitals && ctx.vitals(); if (v && v.hp >= v.max) { toast(T("You're already rested")); return true; }
+    restAt = now; if (ctx.heal) ctx.heal(1); (Snd.heart || Snd.pick || (() => {}))(); toast(T("Rested: HP full")); return true;
+  }
   async function join(slot) {
     if (busy) return; busy = true; const r = await api("world-jur-camp", { op: "join", slot }); busy = false;
     if (!r.ok) { toast(T("Couldn't join: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
@@ -250,7 +260,8 @@ export function createSurvival(H) {
     let html = "";
     if (o) { const w = work && work.o === o ? work : null, need = w && w.need, n = w ? Math.min(w.hits, need || w.hits) : 0;
       html = `<kbd>J</kbd><b>${esc(T(VERB[o.kind] || "Use"))}</b><span>${esc(T(NODE_N[o.kind] || o.kind))}</span>${w ? `<i class="wz-act-bar"><i style="width:${need ? Math.round(100 * n / need) : 8}%"></i></i>` : ""}`; }
-    if (html !== lastAct) { lastAct = html; ui.act.innerHTML = html; ui.act.hidden = !html; }
+    if (!o && bedNear) html = `<kbd>E</kbd><b>${esc(T("Rest"))}</b><span>${esc(T("Bed"))}</span>`;
+    if (html !== lastAct) { lastAct = html; ui.act.innerHTML = html; ui.act.hidden = !html; ui.act.dataset.rest = !o && bedNear ? "1" : ""; }
     const [g, k] = goal(), gs = g + "|" + k.toFixed(2);
     if (gs !== lastGoal) { lastGoal = gs; ui.goalT.textContent = g; ui.goalBar.style.width = Math.round(k * 100) + "%"; ui.goal.hidden = false; }
     placeGoal();
@@ -264,6 +275,20 @@ export function createSurvival(H) {
     ui.foe.innerHTML = `<b>${esc(T(NODE_N[o.kind] || o.kind))}</b><small>${F.boss ? esc(T("Boss")) + " · " : ""}Lv ${F.lv}</small><i><u style="width:${(100 * k).toFixed(1)}%"></u></i><em>${hp.toLocaleString("en-US")} / ${F.hp.toLocaleString("en-US")}</em>`;
     ui.foe.classList.toggle("boss", !!F.boss); ui.foe.hidden = false;
     const g = ui.goal.getBoundingClientRect(), z = parseFloat(getComputedStyle(ui.foe).zoom) || 1; if (g.height) { ui.foe.style.top = Math.round((g.bottom + 8) / z) + "px"; ui.foe.style.left = Math.round(g.left / z) + "px"; }
+  }
+  // name and HP over the dinosaurs that matter right now: the one you picked, ones you've hit, ones coming for you
+  const bars = new Map(); const bv = new THREE.Vector3();
+  function tickBars(px, pz) {
+    if (!ui || !H.cam || !H.dinos) return; const seen = new Set();
+    for (const o of H.dinos()) {
+      const F = FOE[o.kind]; if (!F || !o.alive || !o.g || !o.g.visible) continue; const d = Math.hypot(o.x - px, o.z - pz);
+      if (d > 38 || !(o === sel || o.hpNow != null || o.state === "chase" || o.state === "stalk" || o.state === "hunt" || o.state === "rage" || o.state === "charge")) continue;
+      bv.set(o.x, (o.y ?? H.height(o.x, o.z)) + (o.R && o.R.h ? o.R.h : 2) + 0.6, o.z).project(H.cam); if (bv.z > 1 || Math.abs(bv.x) > 1.1 || Math.abs(bv.y) > 1.1) continue;
+      let el = bars.get(o); if (!el) { el = document.createElement("div"); el.className = "wz-hpb" + (F.boss ? " boss" : ""); el.innerHTML = `<small>${esc(T(NODE_N[o.kind] || o.kind))} · Lv ${F.lv}</small><i><u></u></i>`; ui.pops.appendChild(el); bars.set(o, el); }
+      seen.add(o); el.style.left = ((bv.x + 1) / 2 * 100).toFixed(2) + "%"; el.style.top = ((1 - bv.y) / 2 * 100).toFixed(2) + "%"; el.classList.toggle("sel", o === sel);
+      const k = Math.max(0, (o.hpNow ?? F.hp) / F.hp); el.querySelector("u").style.width = (k * 100).toFixed(1) + "%";
+    }
+    for (const [o, el] of bars) if (!seen.has(o)) { el.remove(); bars.delete(o); }
   }
   // a ring on the ground under it
   function tickRing(t) {
@@ -325,11 +350,12 @@ export function createSurvival(H) {
     // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
     if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }
     if (H.dinos && (pickT === 0)) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }
-    tickRing(t);
+    tickRing(t); if (pickT === 0) bedNear = nearBed(px, pz);
+    tickBars(px, pz);
     for (let i = flying.length - 1; i >= 0; i--) { const f = flying[i]; f.t -= dt; f.vy -= 14 * dt; f.c.position.x += f.vx * dt; f.c.position.y += f.vy * dt; f.c.position.z += f.vz * dt; f.c.rotation.x += dt * 9; f.c.rotation.y += dt * 7;
       if (f.t <= 0) { H.scene.remove(f.c); flying.splice(i, 1); } }
     for (const f of fires) { const k = 0.85 + Math.sin(t * 17 + f.id) * 0.08 + Math.sin(t * 29 + f.id) * 0.06; f.scale.set(1, k, 1); f.rotation.y = t * 1.3; }
     tickGhost(px, pz, face); const inC = !!inHome(px, pz); if (ui && ui.buildBtn.hidden === inC) { ui.buildBtn.hidden = !inC; if (!inC) { ui.build.hidden = true; endGhost(); } }
   }
-  return { select, selected: () => sel, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
+  return { select, selected: () => sel, campFire, rest, bedNear: () => bedNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
 }

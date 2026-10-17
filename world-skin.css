@@ -975,7 +975,7 @@ body.wp.wp-clean :is(.wp-hud-r,.wp-quests,.wp-qmini,.wp-mini,.wp-feed,.wp-dock,.
 .wz-recipes button,.wz-eat{flex:none;height:34px;padding:0 14px;border:0;border-radius:10px;background:linear-gradient(90deg,#2f86ff,#2ee07a);color:#04121f;font:900 13px var(--f-ui);cursor:pointer}
 .wz-recipes button:disabled{background:rgba(255,255,255,.12);color:#8fa3bd;cursor:default}
 .wz-eat{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#ff9a5a,#ffd36b)}.wz-eat small{font:800 11px var(--f-ui);opacity:.8}
-html.wp-pcphone .wz-act,html.wp-pcphone .wz-goal,html.wp-pcphone .wz-pack-in,html.wp-pcphone .wz-pop{zoom:1.6}html.wp-pcphone .wz-pack-in{max-height:calc(76vh / 1.6)}
+html.wp-pcphone .wz-act,html.wp-pcphone .wz-goal,html.wp-pcphone .wz-pack-in{zoom:1.6}html.wp-pcphone .wz-pop{font-size:32px}html.wp-pcphone .wz-pop.xp{font-size:27px}html.wp-pcphone .wz-pop.dmg{font-size:34px}html.wp-pcphone .wz-pack-in{max-height:calc(76vh / 1.6)}
 html.wp-pcphone .wz-act{bottom:130px}
 .wz-home{pointer-events:auto}
 /* the first-time tour (world-play.js coach): a ring round the button, a bubble beside it */
@@ -1031,3 +1031,13 @@ html.wp-pcphone .wp-tips-in{zoom:1.6}
 .wp-tips.jur li::after{counter-increment:jt;content:counter(jt);position:absolute;right:10px;top:8px;font:900 11px var(--f-ui);color:rgba(182,255,214,.45)}
 .wp-tips.jur .wp-tips-go{background:linear-gradient(90deg,#2ee07a,#ffe066);color:#06210f}
 .wz-pack-in header{position:sticky;top:-14px;z-index:1;margin:-14px -16px 4px;padding:14px 16px 10px;background:linear-gradient(180deg,rgba(12,24,52,1),rgba(12,24,52,.96));border-radius:18px 18px 0 0}
+/* the clock in Jurassic World's top bar, and the bars over the dinosaurs */
+.wz-clock{display:flex;align-items:center;gap:6px;height:42px;padding:0 12px;border-radius:14px;background:linear-gradient(180deg,rgba(12,24,52,.82),rgba(7,12,26,.82));border:1.5px solid rgba(255,224,102,.5);font:800 13px var(--f-ui);color:#ffe9a8}
+.wz-clock:empty{display:none}.wz-clock span{font-size:17px}.wz-clock small{font:800 11px var(--f-ui);color:#cfe0f5;opacity:.85}
+.wz-clock.night{border-color:rgba(159,180,255,.6);color:#c8d6ff}
+.wz-hpb{position:absolute;transform:translate(-50%,-100%);width:96px;pointer-events:none;text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.wz-hpb small{display:block;margin-bottom:2px;font:900 10px var(--f-ui);color:#ffe0e5;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.wz-hpb i{display:block;height:6px;border-radius:4px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);overflow:hidden}
+.wz-hpb u{display:block;height:100%;background:linear-gradient(90deg,#ff4d6d,#ff9a4a);transition:width .2s}
+.wz-hpb.boss small{color:#ffd78a}.wz-hpb.boss i{border-color:rgba(255,182,72,.6)}.wz-hpb.sel i{border-color:#fff}
+html.wp-pcphone .wz-hpb{transform:translate(-50%,-100%) scale(1.5);transform-origin:50% 100%}
