@@ -35,10 +35,10 @@ export function createJurassic(ctx) {
     if (MODELS) return;
     const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null, ver = ctx.ver || "";
     const one = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
-    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient"), one("dino-raptor")]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
+    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient"), one("dino-raptor"), L ? L.loadAsync("models/world/jurassic/dino-brachio.glb" + ver) : Promise.reject(new Error("no loader"))]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
     MODELS = {};
     if (!res) { console.warn("jurassic: models slow, drawn stand-ins this time"); return; }
-    ["rock", "ruins", "palm", "ancient", "raptor"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
+    ["rock", "ruins", "palm", "ancient", "raptor", "brachio"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
   }
   // one mesh of a model, ready to instance: its geometry and material, and the matrix that stands it on the ground with
   // its widest side 1 m (the instances then scale it in metres)
@@ -103,6 +103,30 @@ export function createJurassic(ctx) {
       const y = height(r.x, r.z); r.g.position.set(r.x, y + Math.abs(Math.sin(r.ph)) * 0.06 * stride, r.z); r.g.rotation.y = r.face;
       r.g.rotation.x = -Math.sin(r.ph * 2) * 0.015 * stride; // a little pitch with each step
       r.U.uT.value = t + r.t0; r.U.uPh.value = r.ph; r.U.uStride.value = stride; r.U.uLook.value += (look - r.U.uLook.value) * Math.min(1, dt * 3);
+    }
+  }
+  // ---------------- the brachiosaurs (the owner's Meshy Brachiosaurus, rigged, with its walk): a small herd walking a
+  // slow loop beyond the lake, 13 m tall, so the plain feels as big as it is. Not for fighting: they're the view.
+  const herd = [];
+  function makeHerd(scene) {
+    const gl = MODELS && MODELS.brachio; if (!gl || !ctx.K.skelClone || !gl.animations || !gl.animations.length) return;
+    const n = low || coarse ? 2 : 3;
+    for (let i = 0; i < n; i++) {
+      const o = ctx.K.skelClone(gl.scene); o.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = (13 + i * 1.2) / (sz.y || 1);
+      const inner = new THREE.Group(); o.scale.multiplyScalar(k); o.position.set(-(b.min.x + sz.x / 2) * k, -b.min.y * k, -(b.min.z + sz.z / 2) * k); inner.add(o);
+      o.traverse((m) => { if (m.isMesh) m.frustumCulled = false; }); // (a skinned mesh's bounds are its bind pose)
+      const g = new THREE.Group(); g.add(inner); scene.add(g);
+      const mixer = new THREE.AnimationMixer(o), act = mixer.clipAction(gl.animations[0]); act.play(); act.time = i * 0.37;
+      herd.push({ g, mixer, a: i * 0.5, r: 58 + i * 7, sp: 1.5 });
+    }
+  }
+  const HERD = { x: 40, z: -120 };
+  function tickHerd(dt) {
+    for (const h of herd) {
+      h.a += (h.sp / h.r) * dt; const x = HERD.x + Math.cos(h.a) * h.r, z = HERD.z + Math.sin(h.a) * h.r * 0.6;
+      const tx = -Math.sin(h.a) * h.r, tz = Math.cos(h.a) * h.r * 0.6; // the way it walks (the loop's tangent)
+      h.g.position.set(x, height(x, z) - 0.2, z); h.g.rotation.y = Math.atan2(tx, tz); h.mixer.update(dt);
     }
   }
   function build() {
@@ -187,7 +211,7 @@ export function createJurassic(ctx) {
 
     // the gate home: the same stone gate as in town (world-jurgate.js)
     const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
-    seed = 71; makeRaptors(scene, rnd);
+    seed = 71; makeRaptors(scene, rnd); makeHerd(scene);
     S = { scene, cam, gate, spin: gate.userData.spin || [] };
   }
 
@@ -256,7 +280,7 @@ export function createJurassic(ctx) {
     let cx = px + Math.sin(camYaw) * ch, cz = pz + Math.cos(camYaw) * ch; const gy = Math.max(height(cx, cz), WATER_Y) + 0.8;
     S.cam.position.set(cx, Math.max(cy, gy), cz); S.cam.lookAt(px, py + 1.7, pz);
     for (const f of S.spin) f(dt, t);
-    tickRaptors(dt, t);
+    tickRaptors(dt, t); tickHerd(dt);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
   }
 
