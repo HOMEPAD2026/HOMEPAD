@@ -35,10 +35,10 @@ export function createJurassic(ctx) {
     if (MODELS) return;
     const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null, ver = ctx.ver || "";
     const one = (f) => (L ? L.loadAsync("models/world/jurassic/" + f + ".glb" + ver).then((g) => g.scene) : Promise.reject(new Error("no loader")));
-    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient")]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
+    const res = await Promise.race([Promise.allSettled([one("rock-boulder"), one("ruins-gate"), one("tree-palm"), one("tree-ancient"), one("dino-raptor")]), new Promise((ok) => setTimeout(() => ok(null), 15000))]);
     MODELS = {};
     if (!res) { console.warn("jurassic: models slow, drawn stand-ins this time"); return; }
-    ["rock", "ruins", "palm", "ancient"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
+    ["rock", "ruins", "palm", "ancient", "raptor"].forEach((k, i) => { if (res[i].status === "fulfilled") MODELS[k] = res[i].value; else console.warn("jurassic model", k, res[i].reason); });
   }
   // one mesh of a model, ready to instance: its geometry and material, and the matrix that stands it on the ground with
   // its widest side 1 m (the instances then scale it in metres)
@@ -50,6 +50,61 @@ export function createJurassic(ctx) {
   }
   function canvasTex(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
+  // ---------------- the raptors (the owner's Meshy Jungle Velociraptor: a still model, no skeleton yet) ----------------
+  // Until a rigged one arrives they move by the vertex shader: the tail sways, the head looks round, the chest breathes and
+  // the legs step in turn while walking. What they do: wander their part of the plain, stop and stare at you inside
+  // 14 m, and run off when you come within 7 m. (No fighting yet: that comes with the rigged model and the server.)
+  const raptors = [];
+  function raptorMat(src, bb) {
+    const m = src.clone(), U = { uT: { value: 0 }, uPh: { value: 0 }, uStride: { value: 0 }, uLook: { value: 0 } };
+    const L = bb.max.z - bb.min.z;
+    m.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U);
+      sh.vertexShader = "uniform float uT, uPh, uStride, uLook;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+        float ru = (transformed.z - (${bb.min.z.toFixed(4)})) / ${L.toFixed(4)}, rv = (transformed.y - (${bb.min.y.toFixed(4)})) / ${(bb.max.y - bb.min.y).toFixed(4)}, rl = ${L.toFixed(4)};
+        float tw = smoothstep(0.45, 0.0, ru); transformed.x += sin(uT * 2.4 - ru * 7.0) * tw * tw * (0.07 + uStride * 0.05) * rl;
+        float hw = smoothstep(0.7, 1.0, ru); transformed.x += (uLook + sin(uT * 0.7) * 0.25) * hw * 0.07 * rl; transformed.y += sin(uT * 1.4) * hw * 0.012 * rl;
+        float bw = smoothstep(0.3, 0.5, ru) * smoothstep(0.78, 0.58, ru) * smoothstep(0.3, 0.7, rv); transformed.y += sin(uT * 2.0) * bw * 0.006 * rl;
+        float lw = smoothstep(0.42, 0.04, rv) * smoothstep(0.32, 0.44, ru) * smoothstep(0.74, 0.62, ru);
+        float ph = uPh + (transformed.x > ${((bb.min.x + bb.max.x) / 2).toFixed(4)} ? 0.0 : 3.14159);
+        transformed.z += sin(ph) * lw * uStride * 0.1 * rl; transformed.y += max(0.0, cos(ph)) * lw * uStride * 0.035 * rl;`); };
+    m.customProgramCacheKey = () => "raptor"; m.userData.U = U; return m;
+  }
+  function makeRaptors(scene, rnd) {
+    const o = MODELS && MODELS.raptor; if (!o) return; let mesh = null; o.updateMatrixWorld(true); o.traverse((x) => { if (!mesh && x.isMesh) mesh = x; }); if (!mesh) return;
+    mesh.geometry.computeBoundingBox(); const bb = mesh.geometry.boundingBox;
+    const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3());
+    const homes = [[-40, -10], [-55, -70], [20, -95], [95, -10], [-95, -40], [60, 40]].slice(0, low || coarse ? 4 : 6);
+    homes.forEach(([hx, hz], i) => {
+      const LEN = 2.3 + rnd() * 0.6, k = LEN / sz.z, g = new THREE.Group(), inner = mesh.clone(); inner.material = raptorMat(mesh.material, bb);
+      inner.matrixAutoUpdate = false; inner.matrix.copy(new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-(b.min.x + sz.x / 2), -b.min.y, -(b.min.z + sz.z / 2))).multiply(mesh.matrixWorld));
+      g.add(inner); scene.add(g);
+      const r = { g, U: inner.material.userData.U, hx, hz, x: hx + (rnd() - 0.5) * 10, z: hz + (rnd() - 0.5) * 10, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, ph: rnd() * 6, t0: rnd() * 10, state: "idle" };
+      raptors.push(r);
+    });
+  }
+  function tickRaptors(dt, t) {
+    for (const r of raptors) {
+      const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz);
+      let want = 0, look = 0;
+      if (d < 7) { r.state = "flee"; r.tx = r.x - dx / d * 18; r.tz = r.z - dz / d * 18; }
+      else if (d < 14 && r.state !== "flee") { r.state = "stare"; }
+      else if (r.state === "stare" || (r.state === "flee" && d > 22)) { r.state = "idle"; r.wait = 1 + Math.random() * 2; }
+      if (r.state === "stare") { const a = Math.atan2(dx, dz); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 3); look = Math.max(-1, Math.min(1, da * 2)); }
+      else if (r.state === "idle") { r.wait -= dt; if (r.wait <= 0) { const a = Math.random() * 6.283, rr = 6 + Math.random() * 18; r.tx = r.hx + Math.cos(a) * rr; r.tz = r.hz + Math.sin(a) * rr; r.state = "walk"; } }
+      if (r.state === "walk" || r.state === "flee") {
+        const ex = r.tx - r.x, ez = r.tz - r.z, ed = Math.hypot(ex, ez);
+        if (ed < 1.2) { r.state = "idle"; r.wait = 2 + Math.random() * 4; }
+        else { want = r.state === "flee" ? 9 : 2.6; const a = Math.atan2(ex, ez); let da = a - r.face; da = Math.atan2(Math.sin(da), Math.cos(da)); r.face += da * Math.min(1, dt * 4); }
+      }
+      r.sp += (want - r.sp) * Math.min(1, dt * 4);
+      if (r.sp > 0.05) { const nx = r.x + Math.sin(r.face) * r.sp * dt, nz = r.z + Math.cos(r.face) * r.sp * dt;
+        if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 5) { r.x = nx; r.z = nz; } else { r.state = "idle"; r.wait = 1; r.sp = 0; } }
+      r.ph += dt * r.sp * 2.6; const stride = Math.min(1, r.sp / 3);
+      const y = height(r.x, r.z); r.g.position.set(r.x, y + Math.abs(Math.sin(r.ph)) * 0.06 * stride, r.z); r.g.rotation.y = r.face;
+      r.g.rotation.x = -Math.sin(r.ph * 2) * 0.015 * stride; // a little pitch with each step
+      r.U.uT.value = t + r.t0; r.U.uPh.value = r.ph; r.U.uStride.value = stride; r.U.uLook.value += (look - r.U.uLook.value) * Math.min(1, dt * 3);
+    }
+  }
   function build() {
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(55, 1, 0.3, 900);
@@ -132,6 +187,7 @@ export function createJurassic(ctx) {
 
     // the gate home: the same stone gate as in town (world-jurgate.js)
     const gate = ctx.makeGate ? ctx.makeGate(T("Back to the village")) : ctx.K.makePortal(T("Back to the village")); gate.position.set(J.GATE.x, height(J.GATE.x, J.GATE.z), J.GATE.z); gate.rotation.y = 0; scene.add(gate);
+    seed = 71; makeRaptors(scene, rnd);
     S = { scene, cam, gate, spin: gate.userData.spin || [] };
   }
 
@@ -146,7 +202,7 @@ export function createJurassic(ctx) {
     const root = document.createElement("div"); root.id = "wp-jur"; root.className = "wz"; root.hidden = true;
     root.innerHTML = `<div class="wz-top" data-game-hud><button type="button" class="wz-leave"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg><span>${esc(T("Village"))}</span></button>
         <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div>
-        <div class="wz-note">${esc(T("A first look at the land: the dinosaurs move in with their models."))}</div></div>
+        <div class="wz-note">${esc(T("A first look at the land. More dinosaurs, hunting and rewards come next."))}</div></div>
       <div class="wz-stick" aria-hidden="true"><i></i></div>
       <button type="button" class="wz-home" hidden>${esc(T("Back to the village"))}</button>
       <div class="wz-keys">${esc(T("WASD move · Shift run · drag to look · Esc leave"))}</div>
@@ -200,6 +256,7 @@ export function createJurassic(ctx) {
     let cx = px + Math.sin(camYaw) * ch, cz = pz + Math.cos(camYaw) * ch; const gy = Math.max(height(cx, cz), WATER_Y) + 0.8;
     S.cam.position.set(cx, Math.max(cy, gy), cz); S.cam.lookAt(px, py + 1.7, pz);
     for (const f of S.spin) f(dt, t);
+    tickRaptors(dt, t);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
   }
 
@@ -226,5 +283,5 @@ export function createJurassic(ctx) {
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  return { enter, leave, active: () => on, debug: () => ({ px, pz, speed, nearGate, h: height(px, pz), frames, keys: [...keys] }), walk: (x, z) => { px = x; pz = z; } };
+  return { enter, leave, active: () => on, debug: () => ({ px, pz, speed, nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })) }), walk: (x, z) => { px = x; pz = z; } };
 }
