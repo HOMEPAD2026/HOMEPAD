@@ -1777,6 +1777,7 @@ function ensureMine() { if (mineGame) return Promise.resolve(mineGame); if (mine
 // the gate is shut to everyone else: a short note, nothing loaded. (The land has no rewards yet; when it does, the server
 // checks the GM wallet too.)
 const jurAllowed = () => true; // open to everyone (guests walk and look; gathering, crafting and a camp need a signed-in wallet)
+setInterval(() => { if (jurOn && !frozen) { frozen = true; keys.clear(); } }, 250); // in Jurassic World the town stays frozen (a window closing there unfroze it)
 async function openJurassic() {
   if (jurOn || jurBusy || mineOn || defenseOn || jumpOn || beatOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
   if (!jurAllowed()) { toast(TW("Jurassic World is coming soon. The portal opens to everyone at launch.")); if (avatar && grounded) avatar.play("emote-no", { once: true }); return; }
@@ -3492,9 +3493,10 @@ hubEl = document.createElement("div"); hubEl.className = "wp-hub"; hubEl.hidden 
 document.body.appendChild(hubEl);
 // the Menu remembers the last 4 tiles you opened (a Recent row on top); on a keyboard, typing filters the tiles and Enter opens the first
 let hubRecent = [], hubQ = ""; try { hubRecent = JSON.parse(localStorage.getItem("arc.world.hubRecent") || "[]").filter((x) => typeof x === "string").slice(0, 4); } catch { /* none kept */ }
+const JUR_OFF = new Set(["map", "island", "village", "defense", "make"]);
 function paintHub() {
   const isArc = String(heroOf(P.char || "arc-arc")).startsWith("arc-"), /* b447: the wardrobe dresses ARC Bots only */ dot = { log: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])'), chat: chatDot > 0 };
-  const ok = ([id]) => (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub"), all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
+  const ok = ([id]) => (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub") && !(jurOn && JUR_OFF.has(id)) /* (in Jurassic World the tiles that move you round town wait) */, all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
   const tile = ([id, ic, label, key]) => `<button type="button" data-hub="${id}"${id === "defense" ? ' class="pri"' : ""}>${ICONS.icon(ic, 26)}<span>${esc(TW(label))}</span>${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}</button>`;
   hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}<small class="wp-hub-q" aria-live="polite"></small></h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>` +
     (rec.length ? `<section class="wp-hub-recent"><h3>${esc(TW("Recent"))}</h3><div class="wp-hub-grid">${rec.map(tile).join("")}</div></section>` : "") +
@@ -3509,7 +3511,7 @@ function hubFilter() {
 }
 const moreBtn = $("wp-more-btn");
 function hubShown() { hubEl.hidden = false; frozen = true; keys.clear(); paintPrompt(); moreBtn.setAttribute("aria-expanded", "true"); const f = hubEl.querySelector("[data-hub]"); if (f && !coarse) f.focus(); }
-function openHub() { if (frozen && hubEl.hidden) return; closeAll(); hubQ = ""; paintHub(); hubShown(); }
+function openHub() { if (frozen && hubEl.hidden && !jurOn) return; /* (Jurassic World keeps the town frozen; its Menu still opens) */ closeAll(); hubQ = ""; paintHub(); hubShown(); }
 // ret: Esc or the X put focus back on the Menu button (a tile that opens a window leaves it to that window)
 function closeHub(ret) { if (!hubEl || hubEl.hidden) return; const had = hubEl.contains(document.activeElement); if (had) document.activeElement.blur(); /* a hidden tile keeps no focus (it would swallow the next Esc) */ hubEl.hidden = true; frozen = false; moreBtn.setAttribute("aria-expanded", "false"); if (ret && had && !coarse) moreBtn.focus({ preventScroll: true }); }
 // Menu → Recent messages: the last 30 toasts, newest first; bag lines open the bag
@@ -4102,7 +4104,9 @@ function coach(key, steps) {
   if (!live.length || document.querySelector(".wp-coach")) return false;
   const ring = document.createElement("div"), tip = document.createElement("div"); ring.className = "wp-coach-ring"; tip.className = "wp-coach"; tip.setAttribute("role", "dialog");
   document.body.append(ring, tip); let i = 0;
-  const done = () => { ring.remove(); tip.remove(); removeEventListener("resize", place); try { localStorage.setItem(key, "1"); if (live.some((x) => x.at === "#wp-clean")) localStorage.setItem("arc.guide.clean", "1"); } catch { /* private */ } };
+  const onEsc = (e) => { if (e.key === "Escape" && !(hubEl && !hubEl.hidden)) { /* (the Menu over it closes first) */ e.preventDefault(); e.stopImmediatePropagation(); done(); } };
+  addEventListener("keydown", onEsc, true);
+  const done = () => { ring.remove(); tip.remove(); removeEventListener("resize", place); removeEventListener("keydown", onEsc, true); try { localStorage.setItem(key, "1"); if (live.some((x) => x.at === "#wp-clean")) localStorage.setItem("arc.guide.clean", "1"); } catch { /* private */ } };
   function place() {
     const S0 = live[i], e = document.querySelector(S0.at); if (!e) { done(); return; } const r = e.getBoundingClientRect(), pad = 6;
     Object.assign(ring.style, { left: r.left - pad + "px", top: r.top - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px" });
