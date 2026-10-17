@@ -6,7 +6,7 @@ const root = new URL("../../", import.meta.url).pathname;
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const read = (f) => fs.readFileSync(root + f, "utf8");
 const client = fs.readdirSync(root).filter((f) => /^world-.*\.js$/.test(f)).map(read).join("\n");
-const server = ["api/_world.mjs", "api/_world-shop.mjs", "api/_world-social.mjs", "api/_world-support.mjs", "api/_world-crew.mjs", "api/_world-village.mjs", "api/_world-chat.mjs", "api/_world-rank.mjs", "api/_world-defense.mjs", "api/_world-jump.mjs", "api/_world-welcome.mjs"].map(read).join("\n");
+const server = ["api/_world.mjs", "api/_world-shop.mjs", "api/_world-social.mjs", "api/_world-support.mjs", "api/_world-crew.mjs", "api/_world-village.mjs", "api/_world-chat.mjs", "api/_world-rank.mjs", "api/_world-defense.mjs", "api/_world-jump.mjs", "api/_world-welcome.mjs", "api/_world-survivors.mjs"].map(read).join("\n");
 const social = read("api/social.mjs");
 const views = [...new Set([...client.matchAll(/api\/social\?world=([a-z0-9-]+)/g)].map((m) => m[1]))];
 const actions = [...new Set([...client.matchAll(/action: "(world-[a-z0-9-]+)"/g)].map((m) => m[1]))];

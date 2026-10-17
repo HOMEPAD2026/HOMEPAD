@@ -71,5 +71,5 @@ const { cleanSave } = await import("../../api/_world.mjs");
 check(cleanSave({ name: "[GM] Park" }).name === "Park" && cleanSave({ name: "[ g m ]x" }).name === "x", "a name can't carry [GM] (it comes from the wallet)");
 // b446: every ready game keeps its plot (a // comment once swallowed Coin Jump's entry from the list)
 { const G = (await import("../../world-gamevillage.js")).GAMES, ready = G.filter((g) => g.ready).map((g) => g.id).sort().join(",");
-  check(ready === "beat,defense,jump" && G.length === 11, "the Game Village lists its three games on eleven plots: " + ready); }
+  check(ready === "beat,defense,jump,surv" && G.length === 11, "the Game Village lists its four games on eleven plots: " + ready); }
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);
