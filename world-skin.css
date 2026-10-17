@@ -1041,3 +1041,6 @@ html.wp-pcphone .wp-tips-in{zoom:1.6}
 .wz-hpb u{display:block;height:100%;background:linear-gradient(90deg,#ff4d6d,#ff9a4a);transition:width .2s}
 .wz-hpb.boss small{color:#ffd78a}.wz-hpb.boss i{border-color:rgba(255,182,72,.6)}.wz-hpb.sel i{border-color:#fff}
 html.wp-pcphone .wz-hpb{transform:translate(-50%,-100%) scale(1.5);transform-origin:50% 100%}
+/* Jurassic World's top bar: just the clock and the pack (the Village button and the name chip took the room; the
+   way home is the button by the gate, or Esc) */
+.wz-top .wz-leave,.wz-top .wz-name{display:none}
