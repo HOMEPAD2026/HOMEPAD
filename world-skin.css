@@ -910,3 +910,8 @@ body.wp #wp-gift-btn[hidden]{display:none!important}
 @keyframes wzTitle{0%{opacity:0;transform:translate(-50%,-40%)}15%,75%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-56%)}}
 html.wp-pcphone .wz .wz-top[data-game-hud]{zoom:1.6;top:max(10px,env(safe-area-inset-top));right:auto;max-width:calc((100vw - 24px) / 1.6)}html.wp-pcphone .wz-home{zoom:1.6}
 html.wp-pcphone .wz-stick{transform:scale(1.6)}
+.wz-jump{position:absolute;right:max(22px,env(safe-area-inset-right));bottom:calc(max(22px,env(safe-area-inset-bottom)) + 10px);width:78px;height:78px;border-radius:50%;border:2px solid rgba(159,230,255,.6);background:radial-gradient(circle at 40% 35%,#6fe7ff,#2f86ff);box-shadow:0 0 22px rgba(47,134,255,.55),0 8px 22px rgba(0,0,0,.35);display:grid;place-items:center;cursor:pointer;touch-action:none}
+.wz-jump svg{width:36px;height:36px;fill:none;stroke:#04121f;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.wz-jump:active{transform:scale(.94)}
+@media (pointer:fine){.wz-jump{width:58px;height:58px;bottom:56px}.wz-jump svg{width:26px;height:26px}}
+html.wp-pcphone .wz-jump{zoom:1.6}

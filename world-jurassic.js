@@ -11,7 +11,7 @@ export function createJurassic(ctx) {
   const low = !!ctx.low, reduce = !!ctx.reduce, coarse = !!ctx.coarse;
   const J = JURASSIC;
   let S = null, ui = null, hero = null, on = false, busy = false;
-  let px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.2, camDist = 9, speed = 0, nearGate = false, introT = 0;
+  let hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.2, camDist = 9, speed = 0, nearGate = false, introT = 0;
   const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 };
 
   // ---------------- the ground: smooth value noise, a basin around the gate, the lake, ridges toward the edge ----------------
@@ -297,14 +297,16 @@ export function createJurassic(ctx) {
         <div class="wz-name"><b>${esc(T("Jurassic World"))}</b><small>${esc(T("Primeval Plains · GM preview"))}</small></div>
         <div class="wz-note">${esc(T("A first look at the land. More dinosaurs, hunting and rewards come next."))}</div></div>
       <div class="wz-stick" aria-hidden="true"><i></i></div>
+      <button type="button" class="wz-jump" aria-label="${esc(T("Jump"))}"><svg viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6"/></svg></button>
       <button type="button" class="wz-home" hidden>${esc(T("Back to the village"))}</button>
-      <div class="wz-keys">${esc(T("WASD move · Shift run · drag to look · Esc leave"))}</div>
+      <div class="wz-keys">${esc(T("WASD move · Shift run · Space jump · drag to look · Esc leave"))}</div>
       <div class="wz-title" hidden><small>ARCIRCLE WORLD</small><b>JURASSIC WORLD</b><span>${esc(T("Primeval Plains"))}</span></div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
     ui = { root, stick: q(".wz-stick"), knob: q(".wz-stick i"), home: q(".wz-home"), title: q(".wz-title") };
     q(".wz-leave").addEventListener("click", () => leave());
     ui.home.addEventListener("click", () => leave());
+    q(".wz-jump").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); jumpQ = true; });
     // touch: the left half moves (a stick where the thumb lands), the rest of the screen looks around
     root.addEventListener("pointerdown", (e) => {
       if (e.target.closest("button")) return;
@@ -320,12 +322,13 @@ export function createJurassic(ctx) {
     root.addEventListener("pointerup", up); root.addEventListener("pointercancel", up);
     root.addEventListener("wheel", (e) => { camDist = Math.max(5, Math.min(18, camDist + Math.sign(e.deltaY) * 0.8)); }, { passive: true });
   }
-  const kd = (e) => { if (!on) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); leave(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && nearGate) { e.preventDefault(); e.stopPropagation(); leave(); } };
+  const kd = (e) => { if (!on) return; if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); leave(); return; } const k = e.key.toLowerCase(); if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift", " "].includes(k)) { keys.add(k); e.preventDefault(); e.stopPropagation(); } else if (k === "e" && nearGate) { e.preventDefault(); e.stopPropagation(); leave(); } if (k === " " && !e.repeat) jumpQ = true; };
   const ku = (e) => { keys.delete(e.key.toLowerCase()); };
 
   // ---------------- a frame ----------------
   let animNow = "";
-  const anim = (n, sp) => { if (!hero || !hero.play || n === animNow) return; animNow = n; hero.play(n, { speed: sp || 1, fade: 0.2 }); };
+  // the town's clip names (world-kit CU_AS / KK_AS): idle, walk, sprint, jump, fall; the walk keeps pace with the feet
+  const anim = (n, sp) => { if (!hero || !hero.play) return; if (n === animNow) { if (sp && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) if (a.isRunning() && a.getEffectiveWeight() > 0.5) a.timeScale = sp; return; } animNow = n; hero.play(n, { speed: sp || 1, fade: 0.2 }); };
   let frames = 0;
   function tick(dt, t) {
     if (!S) return; dt = Math.min(dt, 0.05); frames++;
@@ -333,7 +336,7 @@ export function createJurassic(ctx) {
     if (keys.has("a") || keys.has("arrowleft")) ix -= 1; if (keys.has("d") || keys.has("arrowright")) ix += 1;
     if (keys.has("w") || keys.has("arrowup")) iz -= 1; if (keys.has("s") || keys.has("arrowdown")) iz += 1;
     const il = Math.hypot(ix, iz), run = keys.has("shift") || il > 0.92 && stick.id >= 0;
-    const target = il > 0.08 ? (run ? 9 : 4.6) * Math.min(1, il) : 0; speed += (target - speed) * Math.min(1, dt * 8);
+    const target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) : 0; speed += (target - speed) * Math.min(1, dt * 8);
     if (il > 0.08) {
       // the stick is read from the camera: up is away from it
       const fx = Math.sin(camYaw + Math.PI), fz = Math.cos(camYaw + Math.PI), rx = -fz, rz = fx;
@@ -343,11 +346,22 @@ export function createJurassic(ctx) {
       if (Math.hypot(nx, nz) < J.EDGE && height(nx, nz) > WATER_Y - 0.6) { px = nx; pz = nz; }
     }
     const py = height(px, pz);
-    if (hero) { hero.obj.position.set(px, py, pz); hero.obj.rotation.y = face; anim(speed > 6 ? "run" : speed > 0.6 ? "walk" : "idle", speed > 6 ? 1.1 : 1); if (hero.update) hero.update(dt, t, Math.min(1, speed / 8), 0); }
+    // the jump: the town's numbers (9 m/s up, 24 m/s² down)
+    if (jumpQ) { jumpQ = false; if (grounded) { vy = 9; grounded = false; animNow = "jump"; if (hero && hero.play) hero.play("jump", { once: true, fade: 0.08 }); } }
+    if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= 0) { hop = 0; vy = 0; grounded = true; animNow = ""; if (hero && hero.land) hero.land(0.5); } }
+    if (hero) {
+      hero.obj.position.set(px, py + hop, pz); hero.obj.rotation.y = face;
+      if (hero.bot) hero.update(dt, t, Math.min(1, speed / 8), 0);
+      else {
+        if (hero.update) hero.update(dt, t);
+        if (!grounded) { if (vy < 0 && !(hero.busy && hero.busy())) anim("fall"); }
+        else if (!(hero.busy && hero.busy()) || speed > 0.6) anim(speed > 9 ? "sprint" : speed > 0.6 ? "walk" : "idle", speed > 9 ? 1 : speed > 0.6 ? Math.max(0.8, speed / 6.5) : 1);
+      }
+    }
     // the camera: low behind the hero, so the trees (and later the dinosaurs) stand tall
     const cy = py + 1.6 + Math.sin(camPitch) * camDist, ch = Math.cos(camPitch) * camDist;
     let cx = px + Math.sin(camYaw) * ch, cz = pz + Math.cos(camYaw) * ch; const gy = Math.max(height(cx, cz), WATER_Y) + 0.8;
-    S.cam.position.set(cx, Math.max(cy, gy), cz); S.cam.lookAt(px, py + 1.7, pz);
+    S.cam.position.set(cx, Math.max(cy, gy) + hop * 0.5, cz); S.cam.lookAt(px, py + 1.7 + hop * 0.6, pz);
     for (const f of S.spin) f(dt, t);
     tickRaptors(dt, t); tickHerd(dt); tickAlpha(dt); tickTrikes(dt);
     const g = Math.hypot(px - J.GATE.x, pz - J.GATE.z) < 4.2; if (g !== nearGate) { nearGate = g; ui.home.hidden = !g; }
@@ -359,7 +373,7 @@ export function createJurassic(ctx) {
     try {
       if (!S) { await loadModels(); build(); } if (!ui) buildUi();
       await makeHero(); animNow = "";
-      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.3; camDist = coarse ? 10 : 9; speed = 0; nearGate = false; ui.home.hidden = true; keys.clear();
+      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.3; camDist = coarse ? 10 : 9; speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
       st.view(S.scene, S.cam, null); st.solo(tick); on = true;
       document.body.classList.add("wp-jurassic"); ui.root.hidden = false;
@@ -376,5 +390,5 @@ export function createJurassic(ctx) {
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  return { enter, leave, active: () => on, debug: () => ({ px, pz, speed, nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, trikes: trikes.map((r) => r.state) }), walk: (x, z) => { px = x; pz = z; } };
+  return { enter, leave, active: () => on, jump: () => { jumpQ = true; }, debug: () => ({ px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, trikes: trikes.map((r) => r.state) }), walk: (x, z) => { px = x; pz = z; } };
 }
