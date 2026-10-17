@@ -252,7 +252,7 @@ export function make(deps) {
   const welcome = makeWelcome({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), award: (w, k, n) => shop.award(w, k, n), freeEgg: (w, src) => shop.freeEgg(w, src), trial: (w, ms) => mine.trial(w, ms) }); // the welcome week (api/_world-welcome.mjs)
   const jur = makeJur({ ...deps, json, now, signer, isGM, mine }); // Jurassic World's gathering, crafting and camps (api/_world-jur.mjs)
   const swap = makeSwap({ ...deps, json, now, signer, isGM });
-  const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
+  const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -486,7 +486,7 @@ export function make(deps) {
       }
       if (w === "phase") { if (!on()) return json(200, { phase: PH.phase, epoch: PH.epoch, top: [] }); return phaseView(); }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
-      if (w === "surv") return surv.read(w, url);
+      if (w === "surv" || w === "surv-top") return surv.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }

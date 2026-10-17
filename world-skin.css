@@ -1251,3 +1251,52 @@ html.wp-pcphone .sv [data-game-hud]{zoom:1;top:calc(max(8px,env(safe-area-inset-
 .sv-arcl b{font:900 22px/1 var(--hud-font,var(--f-ui));color:#ffd86a;justify-self:start}
 .sv-arcl small{grid-column:2;font:700 11px/1.25 var(--hud-font,var(--f-ui));color:#e8d8a8;justify-self:start;text-align:left}
 .sv-wxp b{font:900 22px/1 var(--hud-font,var(--f-ui));color:#9ff6ff}.sv-wxp small{font:700 11px/1 var(--hud-font,var(--f-ui));color:#8fb8e8}
+/* SURVIVORS ARENA, round two: rarity cards that flip in, the boss's striped entrance, edge arrows, the kill streak,
+   the first-run hints, the week's board in the lobby, the damage table on the result */
+.sv-card{animation:sv-flip .38s cubic-bezier(.2,.9,.3,1.2) both;animation-delay:var(--d,0s);transform-origin:50% 50%}
+@keyframes sv-flip{0%{opacity:0;transform:perspective(600px) rotateY(80deg) scale(.9)}100%{opacity:1;transform:none}}
+.sv-card.r-w{box-shadow:0 0 0 1.5px rgba(96,184,255,.7),0 0 18px rgba(47,134,255,.35),0 10px 24px rgba(0,4,20,.5)}
+.sv-card.r-p{box-shadow:0 0 0 1.5px rgba(80,230,160,.65),0 0 18px rgba(40,200,120,.3),0 10px 24px rgba(0,4,20,.5)}
+.sv-card.r-fx{background:linear-gradient(180deg,#2a1260,#160838)!important;box-shadow:0 0 0 1.5px #b48cff,0 0 22px rgba(155,107,255,.5),0 10px 24px rgba(0,4,20,.5)}
+.sv-card.r-evo{background:linear-gradient(180deg,#5a3400,#2a1400)!important;box-shadow:0 0 0 2px #ffd23a,0 0 28px rgba(255,200,40,.65)}
+.sv-card.r-evo::after{content:"";position:absolute;inset:0;border-radius:18px;background:linear-gradient(110deg,transparent 30%,rgba(255,240,180,.35) 50%,transparent 70%);background-size:250% 100%;animation:sv-shine 1.8s linear infinite;pointer-events:none}
+@keyframes sv-shine{0%{background-position:120% 0}100%{background-position:-120% 0}}
+.sv-card.r-w em{background:linear-gradient(180deg,#5ad8ff,#2f86ff)}.sv-card.r-p em{background:linear-gradient(180deg,#6af0a8,#1fae6b)}.sv-card.r-fx em{background:linear-gradient(180deg,#d0a8ff,#7a3cff)}.sv-card.r-evo em{background:linear-gradient(180deg,#ffe27a,#ff9a1a);color:#3a1a00}
+.sv-pips{display:flex;gap:4px;margin-top:2px}.sv-pips i{width:14px;height:5px;border-radius:3px;background:rgba(255,255,255,.14)}.sv-pips i.on{background:#8ff0ff}.sv-pips i.nx{background:#ffd23a;animation:sv-low .8s ease-in-out infinite}
+.sv-cards-in.chest>small{color:#ffd23a}
+.sv-loot{margin:0;display:flex;align-items:center;justify-content:center;gap:6px;font:800 13px/1.2 var(--hud-font,var(--f-ui));color:#ffd86a}
+.sv-stripes{position:absolute;left:0;right:0;top:30%;height:84px;opacity:0;pointer-events:none;background:repeating-linear-gradient(-45deg,rgba(255,40,70,.5) 0 18px,rgba(20,0,10,.5) 18px 36px);box-shadow:0 0 30px rgba(255,40,70,.6)}
+.sv.boss-in .sv-stripes{animation:sv-stripe 2.4s ease-out both}
+@keyframes sv-stripe{0%{opacity:0;transform:scaleY(.2)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+.sv.boss-in .sv-banner b{background:linear-gradient(180deg,#fff,#ffb0bf 55%,#ff3d5a);-webkit-background-clip:text;background-clip:text}
+.sv-arrow{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;will-change:transform}
+.sv-arrow[hidden]{display:none}
+.sv-arrow::before{content:"";position:absolute;left:-30px;top:-13px;width:0;height:0;border-left:26px solid #ff3d5a;border-top:13px solid transparent;border-bottom:13px solid transparent;filter:drop-shadow(0 0 8px rgba(255,60,90,.9))}
+.sv-arrow.chest::before{border-left-color:#ffd23a;filter:drop-shadow(0 0 8px rgba(255,210,58,.9))}
+.sv-arrow::after{content:"";position:absolute;left:-52px;top:-9px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,#fff,#ff3d5a)}
+.sv-arrow.chest::after{background:radial-gradient(circle,#fff,#ffd23a)}
+.sv-streak{position:absolute;right:12px;top:calc(max(8px,env(safe-area-inset-top)) + 66px);display:grid;justify-items:end;pointer-events:none}
+.sv-streak[hidden]{display:none}
+.sv-streak b{font:900 26px/1 var(--hud-font,var(--f-ui));color:#ffb03a;text-shadow:0 0 12px rgba(255,140,40,.8),0 2px 0 #4a1a00}
+.sv-streak small{font:800 10px/1 var(--hud-font,var(--f-ui));letter-spacing:1.2px;text-transform:uppercase;color:#ffd0a0}
+.sv-boss:not([hidden]) ~ .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 100px)}
+.sv-hint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 150px);transform:translateX(-50%);display:grid;gap:6px;width:min(320px,calc(100% - 40px));pointer-events:none}
+.sv-hint[hidden]{display:none}
+.sv-hint p{margin:0;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:rgba(8,22,60,.82);box-shadow:inset 0 0 0 1px rgba(110,190,255,.4);font:800 13.5px/1.2 var(--hud-font,var(--f-ui))}
+.sv-hint.go p{animation:sv-in .35s ease-out both}.sv-hint.go p:nth-child(2){animation-delay:.25s}.sv-hint.go p:nth-child(3){animation-delay:.5s}
+.sv-gem-ic{width:14px;height:14px;transform:rotate(45deg);background:linear-gradient(135deg,#bff6ff,#38b8ff);box-shadow:0 0 8px #38b8ff;flex:none;margin:0 2px}
+.sv-slots span.fx{box-shadow:inset 0 0 0 1px rgba(190,150,255,.5)}.sv-slots span.fx b{background:#7a3cff}
+.sv-board{text-align:left;padding:8px 12px;border-radius:14px;background:rgba(0,10,34,.45)}
+.sv-board h4{margin:0 0 6px!important}
+.sv-board ol{margin:0;padding:0;list-style:none;display:grid;gap:3px}
+.sv-board li{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;font:700 12.5px/1.2 var(--hud-font,var(--f-ui))}
+.sv-board li em{font-style:normal;font-weight:900;color:#8fd8ff}.sv-board li:nth-child(1) em{color:#ffd23a}.sv-board li:nth-child(2) em{color:#dfe8f4}.sv-board li:nth-child(3) em{color:#e8a06a}
+.sv-board li span{color:#9fb8e0;font-variant-numeric:tabular-nums}
+.sv-board p{margin:0;font:600 12.5px/1.3 var(--hud-font,var(--f-ui));color:#9fb8e0}
+.sv-lobby .sv-ws{gap:5px}
+.sv-dmg{display:grid;gap:4px;text-align:left;padding:8px 10px;border-radius:14px;background:rgba(0,10,34,.45)}
+.sv-dmg>small{font:800 11px/1 var(--hud-font,var(--f-ui));letter-spacing:1.4px;text-transform:uppercase;color:#8fb8e8}
+.sv-dmg p{margin:0;display:grid;grid-template-columns:20px 96px 1fr auto;gap:7px;align-items:center;font:700 12px/1 var(--hud-font,var(--f-ui))}
+.sv-dmg p b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-dmg p i{height:7px;border-radius:4px;width:var(--w);background:linear-gradient(90deg,#2f86ff,#8ff0ff);box-shadow:0 0 8px rgba(56,184,255,.5)}
+.sv-dmg p span{color:#bcd2f0;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}

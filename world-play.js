@@ -1834,7 +1834,7 @@ async function openSurvivors() {
     if (!survGame) {
       let M; try { M = await import("./world-survivors.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       survGame = M.createSurvivors({ THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
-        makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
+        makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }), addSupply: (k, n) => { const ok = !!(rpg && rpg.addSupply && rpg.addSupply(k, n)); try { if (ok && combat && combat.paintPots) combat.paintPots(); } catch { /* shown on the next repaint */ } return ok; },
         onLeave: () => { survOn = false; frozen = false; keys.clear(); const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
@@ -1850,6 +1850,10 @@ async function openSurvivors() {
     toast(TW(why.startsWith("load:") ? "Survivors Arena couldn't load. Refresh the page and try again." : "Survivors Arena couldn't start") + " — " + esc(why.slice(0, 80)));
   } finally { survBusy = false; }
 }
+// near the Game Village: the arena's game and its monsters' file fetched ahead, so the first visit doesn't wait on them
+let survPre = false;
+st.on(() => { if (survPre || mode !== "hub") return; const d = Math.hypot(-planet.position.x - gv.center.x, -planet.position.z - gv.center.z); if (d > 70) return; survPre = true;
+  import("./world-survivors.js").catch(() => {}); fetch("models/world/survivors/monsters.glb?v=" + VER).catch(() => {}); });
 // when the mine opens again (the tunnel's prompt says so); read when you come near and after a visit
 let mineAsked = 0;
 function mineStatus() { if (!mineGame) { const s = sess(); if (!s) return; fetch("/api/social?world=mine&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { mineRest = (j && j.coolUntil) || 0; paintPrompt(); }).catch(() => {}); return; }

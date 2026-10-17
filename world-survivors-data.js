@@ -6,7 +6,7 @@ export const RULES = {
   END_S: 900,
   BOSS_AT: [180, 360, 540, 720],
   DIFF: { easy: { k: 0.7, cap: 2100, hp: 0.75, dmg: 0.7, rate: 0.85 }, normal: { k: 1, cap: 3000, hp: 1, dmg: 1, rate: 1 }, hard: { k: 1.5, cap: 5000, hp: 1.45, dmg: 1.35, rate: 1.2 } },
-  DAY_RUNS: 3, DAY_ARCL: 10000, MAX_KPS: 6, // paid runs a day, the game's own ARCL a day, the most knock-outs a second a run can claim
+  DAY_RUNS: 3, DAY_ARCL: 10000, MAX_KPS: 10, // paid runs a day, the game's own ARCL a day, the most knock-outs a second a run can claim
 };
 /// what a finished run pays (the server computes the same, never trusting a client's number): minutes survived, every 10
 /// knock-outs, and — only for a run that lived to 12:00 — 300 a boss and 800 for surviving; times the difficulty, capped
@@ -67,20 +67,33 @@ export const hpK = (s) => 1 + s / 150 + Math.max(0, s - 480) / 200;
 /// the run's own level: XP for the next one
 export const needXp = (lv) => Math.round(5 + lv * 3 + lv * lv * 0.16);
 
-// the cards: 6 weapons and 12 passives, 5 levels each. lv(n) says what level n gives (shown on the card)
+// the cards (36): 12 weapons, 12 stats and 12 special effects, 5 levels each (Infinity Core: 1). lv[n] says what level
+// n+1 gives (shown on the card). 6 weapon slots, 6 passive slots (stats and specials share them)
 export const WEAPONS = {
-  blaster: { name: "Energy Blaster", line: "Fires at the nearest monster", dmg: [10, 13, 16, 20, 26], cd: [0.72, 0.66, 0.6, 0.55, 0.5], n: [1, 1, 2, 2, 3], pierce: [0, 1, 1, 2, 2],
+  blaster: { name: "Energy Blaster", dmg: [10, 13, 16, 20, 26], cd: [0.72, 0.66, 0.6, 0.55, 0.5], n: [1, 1, 2, 2, 3], pierce: [0, 1, 1, 2, 2],
     lv: ["Shoots the nearest monster", "+30% damage, pierces 1", "+1 shot", "+25% damage, pierces 2", "+1 shot, +30% damage"] },
-  chain: { name: "Lightning Chain", line: "Lightning that jumps between monsters", dmg: [14, 18, 22, 28, 36], cd: [2.4, 2.2, 2.0, 1.8, 1.6], n: [3, 4, 5, 6, 8],
+  chain: { name: "Lightning Chain", dmg: [14, 18, 22, 28, 36], cd: [2.4, 2.2, 2.0, 1.8, 1.6], n: [3, 4, 5, 6, 8],
     lv: ["Strikes 3 monsters", "Jumps to 4", "Jumps to 5, faster", "Jumps to 6", "Jumps to 8, +30% damage"] },
-  orb: { name: "Fire Orb", line: "Fireballs that circle you", dmg: [9, 11, 14, 17, 22], n: [1, 2, 2, 3, 4], rad: [2.4, 2.5, 2.7, 2.8, 3.0],
+  orb: { name: "Fire Orb", dmg: [9, 11, 14, 17, 22], n: [1, 2, 2, 3, 4], rad: [2.4, 2.5, 2.7, 2.8, 3.0],
     lv: ["1 fireball circles you", "+1 fireball", "Wider, +25% damage", "+1 fireball", "+1 fireball, +30% damage"] },
-  laser: { name: "Laser Beam", line: "A beam through every monster in a line", dmg: [26, 32, 40, 50, 64], cd: [3.0, 2.8, 2.6, 2.4, 2.1], n: [1, 1, 2, 2, 3],
+  laser: { name: "Laser Beam", dmg: [26, 32, 40, 50, 64], cd: [3.0, 2.8, 2.6, 2.4, 2.1], n: [1, 1, 2, 2, 3],
     lv: ["A beam through the crowd", "+25% damage", "+1 beam", "+25% damage, faster", "+1 beam, +30% damage"] },
-  nova: { name: "Thunder Nova", line: "A blast all around you", dmg: [18, 24, 30, 38, 48], cd: [4.4, 4.1, 3.8, 3.4, 3.0], rad: [3.6, 4.0, 4.4, 5.0, 5.6],
+  nova: { name: "Thunder Nova", dmg: [18, 24, 30, 38, 48], cd: [4.4, 4.1, 3.8, 3.4, 3.0], rad: [3.6, 4.0, 4.4, 5.0, 5.6],
     lv: ["A blast that pushes back", "+30% damage", "Bigger, faster", "+25% damage, bigger", "Biggest, +25% damage"] },
-  meteor: { name: "Meteor", line: "Rocks fall on the crowd", dmg: [44, 56, 70, 86, 106], cd: [4.0, 3.7, 3.4, 3.1, 2.8], n: [1, 2, 2, 3, 4],
+  meteor: { name: "Meteor", dmg: [44, 56, 70, 86, 106], cd: [4.0, 3.7, 3.4, 3.1, 2.8], n: [1, 2, 2, 3, 4],
     lv: ["A meteor on a monster", "+1 meteor", "+25% damage, faster", "+1 meteor", "+1 meteor, +25% damage"] },
+  ice: { name: "Ice Storm", dmg: [8, 10, 13, 16, 20], cd: [4.2, 4.0, 3.7, 3.4, 3.0], rad: [3.0, 3.3, 3.6, 4.0, 4.5],
+    lv: ["A freezing storm that slows", "+25% damage", "Bigger, faster", "+25% damage", "Biggest, slows longer"] },
+  blade: { name: "Shadow Blade", dmg: [12, 15, 18, 22, 28], n: [2, 2, 3, 3, 4], rad: [3.6, 3.9, 4.1, 4.3, 4.6],
+    lv: ["2 blades spin wide around you", "+25% damage", "+1 blade", "Wider, +20% damage", "+1 blade, +25% damage"] },
+  poison: { name: "Poison Field", dmg: [5, 6, 8, 10, 13], cd: [3.4, 3.2, 3.0, 2.8, 2.5], rad: [2.2, 2.5, 2.8, 3.1, 3.5],
+    lv: ["Leaves a poison pool", "+25% damage", "Bigger pools", "+25% damage, more often", "Biggest, +30% damage"] },
+  drone: { name: "Drone Squad", dmg: [7, 9, 11, 13, 16], cd: [0.9, 0.85, 0.8, 0.75, 0.7], n: [1, 2, 2, 3, 3],
+    lv: ["A drone shoots for you", "+1 drone", "+25% damage", "+1 drone", "Faster, +25% damage"] },
+  sword: { name: "Energy Sword", dmg: [22, 28, 34, 42, 54], cd: [1.4, 1.3, 1.2, 1.1, 1.0], rad: [2.6, 2.8, 3.0, 3.2, 3.5],
+    lv: ["Slashes in front of you", "+25% damage", "Wider, faster", "+25% damage", "Slashes both ways"] },
+  hole: { name: "Black Hole", dmg: [20, 26, 32, 40, 52], cd: [7.0, 6.5, 6.0, 5.5, 5.0], rad: [3.4, 3.7, 4.0, 4.4, 5.0],
+    lv: ["Pulls monsters in, then bursts", "+25% damage", "Stronger pull", "+25% damage, more often", "Biggest, +30% damage"] },
 };
 export const PASSIVES = {
   power: { name: "Power Boost", line: "+10% damage a level" },
@@ -88,18 +101,34 @@ export const PASSIVES = {
   heavy: { name: "Heavy Impact", line: "+10% area a level" },
   range: { name: "Long Range", line: "+12% reach a level" },
   crit: { name: "Critical Eye", line: "+6% critical hits a level" },
+  critp: { name: "Critical Power", line: "+25% critical damage a level" },
   speed: { name: "Speed Boots", line: "+7% move speed a level" },
   armor: { name: "Armor Plate", line: "-7% damage taken a level" },
   vital: { name: "Vital Core", line: "+20 max HP a level" },
   recov: { name: "Recovery", line: "+0.4 HP a second a level" },
   magnet: { name: "XP Magnet", line: "+40% pickup range a level" },
   cool: { name: "Cooldown Core", line: "-6% cooldowns a level" },
-  vamp: { name: "Vampire", line: "Heal on knock-outs" },
+  vamp: { name: "Vampire", line: "Heal on knock-outs", fx: true },
+  streak: { name: "Chain Kill", line: "Quick knock-outs build up damage", fx: true },
+  frost: { name: "Freeze Aura", line: "Monsters near you slow down", fx: true },
+  boom: { name: "Explosive Rounds", line: "Shots burst on hit", fx: true },
+  revive: { name: "Revive", line: "Get up once at half HP", fx: true, max: 1 },
+  double: { name: "Double Shot", line: "+1 shot for shooting weapons", fx: true, max: 2 },
+  gold: { name: "Gold Hunter", line: "+10% XP from gems a level", fx: true },
+  slayer: { name: "Boss Slayer", line: "+15% damage to bosses and elites", fx: true },
+  shield: { name: "Shield Burst", line: "A shield that blocks a hit and blasts", fx: true },
+  lucky: { name: "Lucky Drop", line: "More chests and big gems", fx: true },
+  berserk: { name: "Berserker", line: "More damage when HP is low", fx: true },
+  infinity: { name: "Infinity Core", line: "A huge blast every 25 seconds", fx: true, max: 1 },
 };
-// evolutions: a weapon at level 5 and its passive at level 5 → a stronger weapon (offered as a card, or in a chest)
+// evolutions: a weapon at level 5 and its partner at its top level → a stronger weapon (offered as a card, first in a chest)
 export const EVOS = [
   { id: "thunder", from: "chain", with: "cool", name: "Infinity Thunder", line: "Endless lightning: 14 jumps, twice as often" },
   { id: "star", from: "blaster", with: "rapid", name: "Star Blaster", line: "A fan of piercing stars" },
   { id: "inferno", from: "orb", with: "heavy", name: "Inferno Ring", line: "Six great fireballs" },
+  { id: "zero", from: "ice", with: "frost", name: "Absolute Zero", line: "Storms that freeze the crowd still" },
+  { id: "legion", from: "drone", with: "double", name: "Drone Legion", line: "Five drones with twin guns" },
+  { id: "eclipse", from: "blade", with: "critp", name: "Eclipse Blades", line: "Six blades that crit hard" },
 ];
 export const SLOTS = 6, MAX_LV = 5;
+export const maxLv = (id) => (PASSIVES[id] && PASSIVES[id].max) || MAX_LV;

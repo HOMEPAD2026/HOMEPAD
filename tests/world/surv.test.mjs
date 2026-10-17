@@ -59,6 +59,8 @@ T += 24 * 3600e3; r = await call(p1, "world-surv-start", { diff: "easy" }); cons
 r = await call(p1, "world-surv-end", { runId: run5.runId, secs: 125, kills: 40, bosses: 0, ms: 125e3 }); check(r.status === 200 && r.body.credited === Math.floor((200 + 80) * 0.7), "a new day pays again (easy ×0.7)");
 const v = await W.read(new URL("http://x/api/social?world=surv&wallet=" + p1.address.toLowerCase()));
 check(v && v.status === 200 && v.body.runsLeft === 2 && v.body.today === 196, "the day's view: 2 paid runs left, 196 ARCL today");
+const top = await W.read(new URL("http://x/api/social?world=surv-top"));
+check(top && top.status === 200 && top.body.top.length === 2 && top.body.top[0].secs === 750 && !("id" in top.body.top[0]), "the week's board: the longest run first, wallets shortened");
 // the claim route refuses this kind
 r = await call(p1, "world-arcl-claim", { kind: "surv" }); check(r.status === 400, "Survivors ARCL can't be claimed");
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);
