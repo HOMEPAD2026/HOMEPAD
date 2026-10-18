@@ -694,7 +694,7 @@ export function createJurassic(ctx) {
     for (let i = nodes.length - 1; i >= 0; i--) if (CAMPS.some(([cx, cz]) => Math.hypot(nodes[i].x - cx, nodes[i].z - cz) < CAMP_R + 0.8)) { nodes[i].hide(); nodes.splice(i, 1); }
     // gathering, hunting, the pack and the camp (world-jursurv.js)
     try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
-      buddyOut: () => !!(dino && dino.out()), onBuddy: (b, k) => { if (dino) dino.onBuddy(b, k); },
+      buddyOut: () => !!(dino && dino.out()), onBuddy: (b, k, n) => { if (dino) dino.onBuddy(b, k, n); },
       faceTo: (a) => { face = a; }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
   }
@@ -815,7 +815,7 @@ export function createJurassic(ctx) {
     const il = Math.min(1.4, Math.hypot(ix, iz)), run = keys.has("shift") || (inp && inp.run) || (inp && inp.joy && Math.hypot(inp.joy.dx, inp.joy.dy) > 0.95);
     // moving: a velocity that speeds up and slows down (no stopping dead), the body turning toward where it's going,
     // slower wading in the lake (you can go anywhere but the ridges at the edge)
-    const wet = inLake(px, pz) && height(px, pz) < WATER_Y - 0.25, target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) * (wet ? 0.55 : 1) : 0;
+    const rideNow = !!(dino && dino.riding()), wet = inLake(px, pz) && height(px, pz) < WATER_Y - 0.25, target = il > 0.08 ? (run ? 12.5 : 6.5) * Math.min(1, il) * (wet ? 0.55 : 1) * (rideNow ? 1.6 : 1) : 0;
     let wx = 0, wz = 0;
     if (il > 0.08) { // the stick is read from the camera: up is away from it
       const fx = Math.sin(camYaw + Math.PI), fz = Math.cos(camYaw + Math.PI), rx = -fz, rz = fx;
@@ -832,16 +832,17 @@ export function createJurassic(ctx) {
     }
     const gy = inLake(px, pz) ? Math.max(height(px, pz), WATER_Y - 1.05) : height(px, pz); pyS = pyS == null || Math.abs(gy - pyS) > 3 ? gy : pyS + (gy - pyS) * Math.min(1, dt * 14); const py = pyS;
     // the jump: the town's numbers (9 m/s up, 24 m/s² down)
-    if (jumpQ) { jumpQ = false; if (grounded) { vy = 9; grounded = false; animNow = "jump"; if (hero && hero.play) hero.play("jump", { once: true, fade: 0.08 }); } }
+    if (jumpQ) { jumpQ = false; if (grounded && !rideNow) { vy = 9; grounded = false; animNow = "jump"; if (hero && hero.play) hero.play("jump", { once: true, fade: 0.08 }); } }
     if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= 0) { hop = 0; vy = 0; grounded = true; animNow = ""; if (hero && hero.land) hero.land(0.5); } }
     if (hero) {
-      hero.obj.position.set(px, py + hop, pz); hero.obj.rotation.order = "YXZ"; hero.obj.rotation.y = face;
+      hero.obj.position.set(px, py + hop + (rideNow ? dino.saddle() : 0), pz); hero.obj.rotation.order = "YXZ"; hero.obj.rotation.y = face;
       // a lean into the turn and a little forward when running hard
       hero.obj.rotation.z = THREE.MathUtils.clamp(-turnS * 0.035 * Math.min(1, speed / 6), -0.16, 0.16); hero.obj.rotation.x = THREE.MathUtils.clamp(speed / 12.5 * 0.07, 0, 0.08);
       if (hero.bot) hero.update(dt, t, Math.min(1, speed / 8), 0);
       else {
         if (hero.update) hero.update(dt, t);
         if (!grounded) { if (vy < 0 && !(hero.busy && hero.busy())) anim("fall"); }
+        else if (rideNow) anim("idle"); // (on its back the dinosaur does the walking: the heroes have no sit clip, so their calm idle)
         else if (!(hero.busy && hero.busy()) || speed > 0.6) anim(speed > 9 ? "sprint" : speed > 0.6 ? "walk" : "idle", speed > 9 ? Math.max(0.85, speed / 12.5) : speed > 0.6 ? Math.max(0.8, speed / 6.5) : 1);
         // ARON's idle (Idle_03) leans back in a big stretch from 0.7 s to 2.2 s: standing still plays only its calm part
         if (animNow === "idle" && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) { const c = a.getClip(); if (a.isRunning() && /idle_03/i.test(c.name) && c.duration > 3.5 && a.time < 2.5) a.time = 2.5; }
@@ -893,7 +894,7 @@ export function createJurassic(ctx) {
       st.renderer.domElement.addEventListener("pointerdown", tapDown); st.renderer.domElement.addEventListener("pointerup", tapUp);
       if (surv) surv.load();
       // DINO SOULMATE (world-dino.js): the eggs, the Hatchery, your companion
-      if (!dino && surv) try { dino = createDino({ THREE, K: ctx.K, T, esc, toast, ctx, scene: S.scene, cam: S.cam, height, rig, model: () => MODELS && MODELS.raptor8, me: () => ({ x: px, z: pz, face, down: downNow }), camYaw: () => camYaw,
+      if (!dino && surv) try { dino = createDino({ THREE, K: ctx.K, T, esc, toast, ctx, scene: S.scene, cam: S.cam, height, rig, model: (sp) => MODELS && (sp === "trike" && MODELS.trike8 ? MODELS.trike8 : MODELS.raptor8), renderer: () => st.renderer, me: () => ({ x: px, z: pz, face, down: downNow, speed }), camYaw: () => camYaw,
         foes: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])], sel: () => sel, working: () => surv.working(), hurtFoe: surv.hurtFoe, pop: surv.pop, setInv: surv.setInv, root: ui.root,
         homeCamp: () => surv.homeSpot(), setView: (v) => { if (ctx.setView) ctx.setView(v); }, clock: () => clock, confetti: ctx.confetti }); } catch (e) { console.warn("dino", e); dino = null; }
       if (dino) try { dino.start(); } catch (e) { console.warn("dino", e); toast(esc(T("The Hatchery didn't open — try again later."))); dino = null; }
@@ -929,7 +930,7 @@ export function createJurassic(ctx) {
   // the attack button (the town's, routed here by world-play): chop the tree, mine the rock, or hit what's in reach
   // the swing (chopping and mining come next, judged by the server); E at the gate goes home
   let swingT = 0;
-  function swing() { if (surv) { surv.swing(px, pz, face); return; } const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
+  function swing() { if (dino && dino.riding()) dino.ride(false); if (surv) { surv.swing(px, pz, face); return; } const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
   function use() { if (nearGate) leave(); else if (downNow) return; else if (dino && dino.tryPick()) return; else if (surv && surv.bedNear() && !(surv.target && surv.target())) surv.rest(); else swing(); }
   function act(a) { if (!on || downNow) return true; if (a === "attack") swing(); return true; }
   // knocked out (the town's rules: world-combat.js — today's free get-up, then $ARCIRCLE or a rest): the hero lies down;

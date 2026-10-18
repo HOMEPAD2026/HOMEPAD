@@ -129,9 +129,9 @@ export function makeJur(deps) {
     let k = 1; if (N.tool === "axe") k = JUR.AXE[Math.max(0, Math.min(3, inv.tools.axe | 0))]; else if (N.tool === "pick") k = deps.mine ? (await deps.mine.oreOf(w)).k : 1; else if (N.tool === "spear") k = JUR.SPEAR[Math.max(0, Math.min(1, inv.tools.spear | 0))];
     // a dinosaur companion out with you (world-dino.js) takes its share of a hunt's swings (api/_world-dino.mjs)
     const share = b.buddy && N.tool === "spear" && deps.dino ? await deps.dino.assist(w).catch(() => 0) : 0;
-    const need = Math.max(1, Math.round(between(N.hits) * k * (1 - share)));
-    inv.work = { node, kind, need, at: t, buddy: share > 0 }; await setDoc(`worldJurInv/${w}`, inv);
-    return json(200, { ok: true, need, at: t });
+    const raw = between(N.hits) * k, need = Math.max(1, Math.round(raw * (1 - share))), saved = share > 0 ? Math.max(0, Math.round(raw) - need) : 0;
+    inv.work = { node, kind, need, at: t, buddy: share > 0, saved }; await setDoc(`worldJurInv/${w}`, inv);
+    return json(200, { ok: true, need, at: t, saved });
   }
   // the node breaks: only after its swings could have been made; the drop goes in your pack (ore in the mine's pockets)
   async function brk(b) {
@@ -148,7 +148,7 @@ export function makeJur(deps) {
     await setDoc(`worldJurInv/${w}`, inv);
     // the companion's experience: a hunt it helped with, or a little for gathering with it out
     let buddy = null; if (deps.dino && (W.buddy || b.buddy)) buddy = await (N.tool === "spear" && W.buddy ? deps.dino.hunt(w, W.kind) : deps.dino.gather(w)).catch(() => null);
-    return json(200, { ok: true, loot, ore, inv: pub(inv), regrowAt: t + N.regrow, buddy });
+    return json(200, { ok: true, loot, ore, inv: pub(inv), regrowAt: t + N.regrow, buddy, saved: (buddy && W.saved) || 0 });
   }
   /// materials taken from a pack for something else (the dinosaur egg's care, its food): { ok, inv } or { err }
   async function take(w, need) {

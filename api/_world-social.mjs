@@ -271,7 +271,9 @@ export function makeSocial(deps) {
     const tn = Number.isInteger(g.tn) && g.tn > 0 && g.tn < 8 ? g.tn : 0, tr = Number.isInteger(g.tr) && g.tr > 0 && g.tr < 4 ? g.tr : 0; // b447: the hero's colour and the holder tier its halo shows
     const h = Number.isInteger(g.h) && g.h >= 0 && g.h <= 100 ? g.h : null, zn = /^[a-z]{3,8}$/.test(String(g.zn || "")) ? g.zn : "";
     const old = (cur.list || []).find((y) => y.t === t) || {};
-    const e = { t, x, z, c, lv, at, ...(tn ? { tn } : {}), ...(tr ? { tr } : {}), ...(s != null || m ? { ...(s != null ? { s } : {}), ...(m ? { m } : {}), sa: at } : old.sa && at - old.sa < 60e3 ? { ...(old.s != null ? { s: old.s } : {}), ...(old.m ? { m: old.m } : {}), sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w, ...(who.tag ? { cr: who.tag } : {}), ...(who.gm ? { gm: 1 } : {}) } : {}) };
+    // a dinosaur companion walking with them (its look only, from the companion the server keeps; read again every 10 minutes)
+    let dn = "", dnAt = 0; if (who && who.w && g.dn === 1 && deps.dinoLook) { if (old.dn && at - (old.dnAt || 0) < 600e3) { dn = old.dn; dnAt = old.dnAt; } else { dn = (await deps.dinoLook(who.w).catch(() => "")) || ""; dnAt = at; } }
+    const e = { t, x, z, c, lv, at, ...(tn ? { tn } : {}), ...(tr ? { tr } : {}), ...(s != null || m ? { ...(s != null ? { s } : {}), ...(m ? { m } : {}), sa: at } : old.sa && at - old.sa < 60e3 ? { ...(old.s != null ? { s: old.s } : {}), ...(old.m ? { m: old.m } : {}), sa: old.sa } : {}), ...(p ? { p } : {}), ...(h != null ? { h } : {}), ...(zn ? { zn } : {}), ...(dn ? { dn, dnAt } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w, ...(who.tag ? { cr: who.tag } : {}), ...(who.gm ? { gm: 1 } : {}) } : {}) };
     const list = [e, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
     await setDoc(key, { list });
   }
@@ -280,7 +282,7 @@ export function makeSocial(deps) {
     for (const win of [w, w - 1]) for (let i = 0; i < GHOST_SHARDS; i++) keys.push(`worldGhosts/${win}_${i}`);
     const d = await getDocs(keys), seen = new Map();
     for (const k of keys) for (const y of ((d[k] || {}).list || [])) if (at - y.at < GHOST_LIFE && (!seen.has(y.t) || seen.get(y.t).at < y.at)) seen.set(y.t, y);
-    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, m, sa, p, n, l, w, h, zn, tn, tr }) => ({ t, x, z, c, lv, ...(tn ? { tn } : {}), ...(tr ? { tr } : {}), ...(sa && at - sa < 60e3 ? { ...(s != null ? { s } : {}), ...(m ? { m } : {}), sa } : {}), ...(p ? { p } : {}), ...(n ? { n, l, w } : {}), ...(h != null && n ? { h } : {}), ...(zn && n ? { zn } : {}) })) }, "public, max-age=10");
+    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, m, sa, p, n, l, w, h, zn, tn, tr, dn }) => ({ t, x, z, c, lv, ...(tn ? { tn } : {}), ...(tr ? { tr } : {}), ...(sa && at - sa < 60e3 ? { ...(s != null ? { s } : {}), ...(m ? { m } : {}), sa } : {}), ...(p ? { p } : {}), ...(n ? { n, l, w } : {}), ...(h != null && n ? { h } : {}), ...(zn && n ? { zn } : {}), ...(dn && n ? { dn } : {}) })) }, "public, max-age=10");
   }
 
   // ---- the weekly raid boss ----

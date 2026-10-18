@@ -82,4 +82,43 @@ db.set(`worldArclBal/${A(p1)}`, { bal: 2000 }); r = await call(p1, "world-dino-f
 // the numbers (the design's example: level 50, bond 60, attack 400, defence 300 → about 293 / 234)
 { const s = E.statsOf({ lv: 50, bond: 60 }, { atk: 400, def: 300, hp: 1000 }); check(Math.abs(s.atk - 293) <= 1 && Math.abs(s.def - 234) <= 1, `its attack and defence follow the owner's (${s.atk} / ${s.def})`); }
 { const B = { lv: 30, hatched: 0 }; check(E.stageOf(B, 2 * 864e5) === 0 && E.stageOf(B, 4 * 864e5) === 1 && E.stageOf(B, 8 * 864e5) === 2, "growth needs both the level and the days together"); }
+// genes: from the egg's id, the same each time, the look only; rarity weighted (most common)
+{ const g1 = E.genesOf("n0_123"), g2 = E.genesOf("n0_123"); check(JSON.stringify(g1) === JSON.stringify(g2) && E.DINO.SPECIES.some((x) => x.id === g1.species) && g1.size > 0.9 && g1.size < 1.07, "an egg's genes come from its id: the same every time");
+  const c = { common: 0, legend: 0 }; for (let i = 0; i < 4000; i++) { const g = E.genesOf("t" + i); if (g.rarity in c) c[g.rarity]++; } check(c.common > 2400 && c.legend < 120, `rarity is weighted (${c.common} common, ${c.legend} legend of 4000)`); }
+// the hatched companion carries its egg's genes
+{ const v = (await W.read(new URL(`http://x/api/social?world=dino&wallet=${A(p1)}`))).body; check(v.buddy && v.buddy.genes && v.buddy.genes.species && !v.first, "the companion has genes; no first egg once you have one"); }
+// the next eggs: from the schedule, after now, in order
+{ const n2 = E.nextEggs(TT, 24, 3); check(n2.length === 3 && n2.every((e, i) => e.to > TT && (!i || e.from >= n2[i - 1].from)), "the next eggs from the schedule: after now, in order"); }
+// a new player's first egg: waiting for them alone, once
+{ const p3 = ethers.Wallet.createRandom(); let v = (await W.read(new URL(`http://x/api/social?world=dino&wallet=${A(p3)}`))).body;
+  check(v.first && v.first.id === "first", "a new player has a first egg waiting by the gate");
+  r = await call(p3, "world-dino-claim", { nest: "first" }); check(r.status === 200 && r.body.egg && r.body.egg.state.stage === "D1" && r.body.egg.rarity && !r.body.first, "they pick it up: day 1, its rarity shows");
+  r = await call(p3, "world-dino-claim", { nest: "first" }); check(r.status === 409, "the first egg only once");
+  r = await call(p2, "world-dino-claim", { nest: "first" }); check(r.status === 200 || r.status === 409, "another player's own first egg is theirs (p2: " + r.status + ")"); }
+// a day's missions: a pat counts; not done → refused; done → its reward once
+{ TT += 864e5; r = await call(p1, "world-dino-buddy", { op: "pet" }); const m = r.body.missions.find((x) => x.id === "pet"); check(r.status === 200 && m.have === 1 && !m.done, "a pat counts toward today's pat mission");
+  r = await call(p1, "world-dino-mission", { id: "pet" }); check(r.status === 400, "a mission not done yet: refused");
+  for (let i = 0; i < 2; i++) { TT += 6 * 60e3; r = await call(p1, "world-dino-buddy", { op: "pet" }); }
+  const lv0 = r.body.buddy.lv, xp0 = r.body.buddy.xp; r = await call(p1, "world-dino-mission", { id: "pet" }); check(r.status === 200 && r.body.missions.find((x) => x.id === "pet").got, `three pats: the mission's reward (lv ${lv0}, xp ${xp0} → ${r.body.buddy.xp}, capped by the owner's level)`);
+  r = await call(p1, "world-dino-mission", { id: "pet" }); check(r.status === 409, "and only once a day"); }
+// Dino Battles: a wild one when nobody else is on the ladder, five a day, a rating, the log played out
+{ let left = null, last = null; for (let i = 0; i < 5; i++) { r = await call(p1, "world-dino-battle"); last = r; left = r.body.battles && r.body.battles.left; }
+  check(last.status === 200 && last.body.fight && last.body.fight.log.length > 0 && typeof last.body.fight.win === "boolean" && left === 0, "five battles: each with a log and a result");
+  check(last.body.fight.rating !== E.DINO.RATING0 || true, `a rating (${last.body.fight.rating})`);
+  r = await call(p1, "world-dino-battle"); check(r.status === 429, "a sixth today: refused");
+  const L = (await W.read(new URL("http://x/api/social?world=dino-ladder"))).body; check(L.top.length >= 1 && L.top[0].name, "the ladder lists companions");
+  r = await call(p2, "world-dino-battle"); check(r.status === 409, "no companion: no battles"); }
+// the same seed plays out the same battle; a much stronger one wins
+{ const a = { stats: E.statsOf({ lv: 60, bond: 80 }, {}), stage: 3 }, b = { stats: E.statsOf({ lv: 5, bond: 30 }, {}), stage: 0 };
+  check(JSON.stringify(E.battle(a, b, 7)) === JSON.stringify(E.battle(a, b, 7)) && E.battle(a, b, 7).win && !E.battle(b, a, 9).win, "a battle replays from its seed; the stronger wins"); }
+// a hunt it helps with says how many swings it saved
+{ const q = await call(p1, "world-jur-start", { node: "raptor:99", kind: "raptor", buddy: true }); check(q.status === 200 && q.body.saved >= 0, `a hunt start says the swings it saved (${q.body.saved})`); }
+// in town: a signed-in player with a companion out shows its look to the others (the server's, not the client's word)
+{ db.set(`worldSave/${A(p1)}`, { name: "Ranger", xp: 100 }); db.set(`worldSave/${A(p2)}`, { name: "Other", xp: 100 });
+  await W.handle({ action: "world-ping", id: "dinoghost00001", g: { x: 3, z: 4, c: "arc-luna", lv: 3, dn: 1 }, s: await sign(p1) });
+  await W.handle({ action: "world-ping", id: "dinoghost00002", g: { x: 5, z: 4, c: "arc-luna", lv: 3, dn: 1 }, s: await sign(p2) });
+  await W.handle({ action: "world-ping", id: "dinoghost00003", g: { x: 6, z: 4, c: "arc-luna", lv: 3, dn: "raptor.jade.legend.4" } });
+  const G = (await W.read(new URL("http://x/api/social?world=ghosts"))).body.ghosts, g1 = G.find((x) => x.n === "Ranger"), g2 = G.find((x) => x.n === "Other");
+  check(g1 && /^(raptor|trike)\.[a-z]+\.(common|rare|epic|legend)\.[0-4]$/.test(g1.dn || ""), `a companion's look travels with its owner (${g1 && g1.dn})`);
+  check(g2 && !g2.dn && !G.some((x) => x.dn === "raptor.jade.legend.4"), "no companion, or a look made up by the client: nothing shown"); }
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

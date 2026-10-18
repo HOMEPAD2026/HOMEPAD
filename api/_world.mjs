@@ -246,7 +246,7 @@ export function make(deps) {
     try { const o = deps.ownerOf ? await deps.ownerOf(FEE_BURN) : null; if (o && o.length >= 66) set.add("0x" + o.slice(-40).toLowerCase()); } catch { /* the env list still works */ }
     adminCache = { set, at: now() }; return set;
   }
-  const social = makeSocial({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
+  const social = makeSocial({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit, dinoLook: (w) => (dino ? dino.look(w) : "") });
   const chat = makeChat({ ...deps, json, now, signer });
   const crew = makeCrew({ ...deps, json, now, signer, isoWeek: shop.isoWeek, levelOfSave });
   const rank = makeRank({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit, award: shop.award });
@@ -509,7 +509,7 @@ export function make(deps) {
       if (w === "surv" || w === "surv-top") return surv.read(w, url);
       if (w === "rings" || w === "rings-top") return rings.read(w, url);
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest") return poker.read(w, url);
-      if (w === "dino" || w === "dino-nests") return dino.read(w, url);
+      if (w === "dino" || w === "dino-nests" || w === "dino-ladder") return dino.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }

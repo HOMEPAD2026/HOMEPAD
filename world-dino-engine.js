@@ -23,8 +23,60 @@ export const DINO = {
   // dino treats for ARCL (a convenience: they feed like meat, nothing more)
   FOOD: [{ id: "f1", arcl: 300, n: 3 }, { id: "f2", arcl: 900, n: 10 }], FOOD_DAY: 20,
   DOWN_MS: 60e3,
+  // your first egg: waiting for you alone at a nest by the gate (a new player's first one, so no one starts empty-handed)
+  FIRST: { id: "first", x: -10, z: 28 },
+  // what an egg carries (from its id, so the server and the game read the same): the species, its colours, its eyes,
+  // how rare it is — the look only, never strength
+  SPECIES: [{ id: "raptor", w: 82 }, { id: "trike", w: 18 }],
+  PALS: [{ id: "jade", c: 0xa8e8bc }, { id: "sand", c: 0xf0d8a8 }, { id: "ember", c: 0xf0a888 }, { id: "storm", c: 0xb0c4e8 }, { id: "violet", c: 0xd2b4f0 }, { id: "ash", c: 0xd8d8d0 }, { id: "moss", c: 0xc4d890 }, { id: "frost", c: 0xe4f6ff }],
+  EYES: [{ id: "amber", c: 0xffb43c }, { id: "ice", c: 0x6cf0ff }, { id: "ruby", c: 0xff4d6d }, { id: "gold", c: 0xffe066 }],
+  RARITY: [{ id: "common", w: 70 }, { id: "rare", w: 22 }, { id: "epic", w: 7 }, { id: "legend", w: 1 }],
+  // a day's companion missions (Seoul days): small rewards for doing things together
+  MISSIONS: [{ id: "hunt", n: 5, xp: 60, bond: 3 }, { id: "pet", n: 3, xp: 20, bond: 2 }, { id: "rest", n: 1, treat: 1 }, { id: "battle", n: 3, xp: 40, bond: 2 }],
+  // Dino Battles: your companion against another player's (theirs plays itself); a few a day, a rating, no ARCL for winning
+  BATTLES_DAY: 5, RATING0: 1000, BATTLE_XP: 25,
+  RIDE_STAGE: 3, // an adult carries you
 };
 const H = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+/// a number from a string (the egg's id → its genes)
+const HS = (str) => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+const pickW = (list, x) => { const tot = list.reduce((a, o) => a + o.w, 0); let r = x * tot; for (const o of list) { if ((r -= o.w) < 0) return o.id; } return list[list.length - 1].id; };
+/// an egg's genes, from its id: { species, pal, eye, rarity, size } (the look only)
+export function genesOf(id) {
+  const h = HS(String(id || "egg")), f = (k) => H(h & 0x7fffffff, k);
+  return { species: pickW(DINO.SPECIES, f(1)), pal: DINO.PALS[Math.floor(f(2) * DINO.PALS.length)].id, eye: DINO.EYES[Math.floor(f(3) * DINO.EYES.length)].id, rarity: pickW(DINO.RARITY, f(4)), size: +(0.94 + f(5) * 0.12).toFixed(3) };
+}
+/// the next eggs to come out after t (from the schedule, looking ahead up to `hours`): [{ nest, from, to, x, z }]
+export function nextEggs(t, hours = 12, n = 3) {
+  const out = [], s0 = Math.floor(t / DINO.SLOT);
+  for (let k = s0; k < s0 + hours * 2 && out.length < n; k++) DINO.NESTS.forEach((ne, i) => {
+    if (out.length >= n || H(k, i + 1) >= DINO.CHANCE) return; const from = k * DINO.SLOT + Math.floor(H(k, i + 101) * (DINO.SLOT - DINO.LIVE));
+    if (from + DINO.LIVE > t) out.push({ nest: ne.id, from, to: from + DINO.LIVE, x: ne.x, z: ne.z });
+  });
+  return out.sort((a, b) => a.from - b.from);
+}
+/// a day's missions as they stand: [{ id, n, have, done, got }]
+export function missionsOf(m, day) { const d = m && m.day === day ? m : { day, c: {}, got: [] }; return DINO.MISSIONS.map((x) => ({ ...x, have: Math.min(x.n, d.c[x.id] || 0), done: (d.c[x.id] || 0) >= x.n, got: d.got.includes(x.id) })); }
+/// one more toward a mission (the record, changed)
+export function bumpMission(m, id, day) { const d = m && m.day === day ? m : { day, c: {}, got: [] }; return { ...d, c: { ...d.c, [id]: (d.c[id] || 0) + 1 } }; }
+/// a Dino Battle, played out from a seed: a = { stats, stage, name }, b the same → { win, log: [{ s: 0|1, m, d, hp: [a, b] }], hp }
+export function battle(a, b, seed) {
+  let r = seed >>> 0; const rnd = () => { r = (Math.imul(r ^ (r >>> 15), 2246822507) + 0x9e3779b9) >>> 0; return r / 4294967296; };
+  const F = [a, b].map((x) => ({ ...x, hp: x.stats.hp, atk: x.stats.atk, def: x.stats.def, used: {} })), log = [];
+  let who = a.stats.atk + rnd() * 20 >= b.stats.atk + rnd() * 20 ? 0 : 1;
+  for (let turn = 0; turn < 40 && F[0].hp > 0 && F[1].hp > 0; turn++) {
+    const me = F[who], foe = F[1 - who]; let m = turn % 2 ? "claw" : "bite", k = 1, hits = 1;
+    if (me.stage >= 4 && !me.used.fang && me.hp < me.stats.hp * 0.5) { m = "fang"; k = 0.8; hits = 3; me.used.fang = 1; }
+    else if (me.stage >= 3 && !me.used.roar && turn >= 2) { m = "roar"; me.used.roar = 1; foe.atk = Math.round(foe.atk * 0.85); }
+    else if (me.stage >= 2 && turn % 3 === 2) { m = "dash"; k = 1.4; }
+    let d = 0; if (m !== "roar") for (let i = 0; i < hits; i++) d += Math.max(1, Math.round(me.atk * k * (0.9 + rnd() * 0.2) - foe.def * 0.5));
+    foe.hp = Math.max(0, foe.hp - d); log.push({ s: who, m, d, hp: [F[0].hp, F[1].hp] }); who = 1 - who;
+  }
+  const win = F[1].hp <= 0 ? true : F[0].hp <= 0 ? false : F[0].hp / F[0].stats.hp >= F[1].hp / F[1].stats.hp;
+  return { win, log, hp: [F[0].hp, F[1].hp] };
+}
+/// a rating after a battle (Elo, k 24; only yours moves: theirs plays itself)
+export const rated = (ra, rb, win) => Math.round(ra + 24 * ((win ? 1 : 0) - 1 / (1 + 10 ** ((rb - ra) / 400))));
 /// the eggs out in the nests at time t (before claims): [{ nest, slot, from, to, x, z }]
 export function eggsAt(t) {
   const out = [], s = Math.floor(t / DINO.SLOT);
