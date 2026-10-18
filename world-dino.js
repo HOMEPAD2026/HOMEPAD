@@ -9,10 +9,10 @@
 // H: { THREE, K, T, esc, toast, ctx, scene, cam, height, rig(gl, LEN), model(), me() → { x, z, face, down }, camYaw(),
 //      foes() (the dinosaurs), sel(), working() (what you're hitting), hurtFoe(o, dmg), pop(o, html, cls), root, camps(),
 //      homeCamp() → { x, z } | null, setView(v), clock() }
-import { DINO, eggState, eggVitals, statsOf, stageOf, xpNeed, daysWith, genesOf, nextEggs } from "./world-dino-engine.js";
+import { DINO, eggState, eggVitals, statsOf, stageOf, xpNeed, daysWith, genesOf, nextEggs, gradeK } from "./world-dino-engine.js";
 
 const STAGE_N = ["Hatchling", "Juvenile", "Young", "Adult", "Awakened"];
-const RAR = { common: { c: 0x5ff0d0, css: "#5ff0d0", n: "Common" }, rare: { c: 0x4da6ff, css: "#4da6ff", n: "Rare" }, epic: { c: 0xb46cff, css: "#b46cff", n: "Epic" }, legend: { c: 0xffc23c, css: "#ffc23c", n: "Legendary" } };
+const RAR = { common: { c: 0xbfd6cf, css: "#bfd6cf", n: "Common" }, advanced: { c: 0x5ff0a0, css: "#5ff0a0", n: "Advanced" }, rare: { c: 0x4da6ff, css: "#4da6ff", n: "Rare" }, epic: { c: 0xb46cff, css: "#b46cff", n: "Epic" }, legend: { c: 0xffc23c, css: "#ffc23c", n: "Legendary" } };
 // each species' clips (its file's names, lowercased: raptor Roar_Original · Attack_Bite · Attack_Claw; trike Charge · Attack_Horn)
 const CLIP = { raptor: { a: "attack_bite", b: "attack_claw", roar: "roar", n: "Velociraptor" }, trike: { a: "attack_horn", b: "attack_horn", roar: "charge", n: "Triceratops" } };
 const SKILL_CD = { bite: 2, dash: 8, roar: 20, fang: 45 };
@@ -33,7 +33,7 @@ export function createDino(H) {
   const signed = () => !!(ctx.sess && ctx.sess());
   let pref = { mode: "follow", out: true }; try { pref = { ...pref, ...JSON.parse(localStorage.getItem(SAVE) || "{}") }; } catch { /* defaults */ }
   const savePref = () => { try { localStorage.setItem(SAVE, JSON.stringify(pref)); } catch { /* this visit */ } };
-  let riding = false, D = null, off = 0, nests = [], ui = null, B = null, tab = "egg", warned = {}, nextNests = 0, nextState = 0, busy = false;
+  let selEgg = "", riding = false, D = null, off = 0, nests = [], ui = null, B = null, tab = "egg", warned = {}, nextNests = 0, nextState = 0, busy = false;
   const now = () => Date.now() + off; // (the server's clock, as last heard)
 
   // ---------------- the server ----------------
@@ -50,7 +50,7 @@ export function createDino(H) {
   async function load() { await Promise.all([loadNests(), loadState()]); }
   function afterState(prev) {
     try { localStorage.setItem("arc.dino.egg", D && D.egg ? "1" : ""); } catch { /* fine */ }
-    if (prev && prev.egg && D && !D.egg && !D.buddy && D.lost) toast(`🥀 <b>${esc(T("Your egg didn't make it."))}</b> ${esc(T("A day's care was missed. You can look for a new egg."))}`);
+    if (prev && !prev.lost && D && D.lost) toast(`🥀 <b>${esc(T("Your egg didn't make it."))}</b> ${esc(T("A day's care was missed. You can look for a new egg."))}`);
     ensureBuddy(); syncEggs(); paint();
     if (D && D.first && !D.egg && !D.buddy && !warned.first) { warned.first = 1; toast(`🥚 <b>${esc(T("Your first egg is waiting by the gate!"))}</b> ${esc(T("Follow the golden light — only you can see it."))}`); }
   }
@@ -61,7 +61,7 @@ export function createDino(H) {
   const eggObjs = new Map(); let EG = null;
   const rarOf = (e) => (e.first ? "common" : genesOf(e.nest + "_" + e.slot).rarity);
   /// the eggs to draw: the nests' (unclaimed, still out) and your first egg if it's waiting for you
-  const allEggs = () => [...nests.filter((e) => e.to > now()), ...(D && D.first && !D.egg && !D.buddy ? [{ nest: "first", x: D.first.x, z: D.first.z, to: 9e15, first: true }] : [])];
+  const allEggs = () => [...nests.filter((e) => e.to > now()), ...(D && D.first && !(D.eggs || []).length && !(D.dinos || []).length ? [{ nest: "first", x: D.first.x, z: D.first.z, to: 9e15, first: true }] : [])];
   function eggParts() {
     if (EG) return EG; const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
     const gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, "#ffffff"); gr.addColorStop(1, "#dfe9e4"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
@@ -107,7 +107,7 @@ export function createDino(H) {
   const roar = () => { if (B && B.R.once(clip("roar"), 1.4)) B.R.oneLeft = Math.min(B.R.oneLeft, 2.2); };
   /// its colours: the egg's palette, a glow for the rarer ones (and the awakened)
   function dress(R, G, k) {
-    const pal = (DINO.PALS.find((x) => x.id === G.pal) || DINO.PALS[0]).c, rc = RAR[G.rarity] || RAR.common, glow = { common: 0, rare: 0.08, epic: 0.16, legend: 0.26 }[G.rarity] + (k === 4 ? 0.2 : 0);
+    const pal = (DINO.PALS.find((x) => x.id === G.pal) || DINO.PALS[0]).c, rc = RAR[G.rarity] || RAR.common, glow = ({ common: 0, advanced: 0.05, rare: 0.1, epic: 0.18, legend: 0.28 }[G.rarity] || 0) + (k === 4 ? 0.2 : 0);
     R.g.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); if (m.material.color) m.material.color.multiply(new THREE.Color(pal)); if (glow > 0) { m.material.emissive = new THREE.Color(rc.c); m.material.emissiveIntensity = glow; } m.castShadow = true; } });
   }
   /// a picture of it (the real model, drawn once into an image for the panel); null until it can be drawn
@@ -132,7 +132,7 @@ export function createDino(H) {
   function ensureBuddy() {
     const want = !!(D && D.buddy && pref.out && H.model && H.model(spNow()));
     if (!want) { if (B) { H.scene.remove(B.g); B = null; } return; }
-    const k = stageNow(), G = genesNow(), sig = k + G.species + G.pal; if (B && B.sig === sig) { B.tag && setTag(); return; } if (B) H.scene.remove(B.g);
+    const k = stageNow(), G = genesNow(), sig = (D.active || "") + k + G.species + G.pal + G.rarity; if (B && B.sig === sig) { B.tag && setTag(); return; } if (B) H.scene.remove(B.g);
     const rc = RAR[G.rarity] || RAR.common, R = H.rig(H.model(spNow()), 4.6 * DINO.STAGES[k].size * (G.size || 1)); dress(R, G, k);
     // a soft ring at its feet, so it can be found among the ferns and at night
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.75, 1, 40), new THREE.MeshBasicMaterial({ color: rc.c, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
@@ -246,7 +246,7 @@ export function createDino(H) {
   function paint() {
     if (!ui) return; const b = D && D.buddy;
     ui.btn.innerHTML = b ? `<span aria-hidden="true">🦖</span><b>${esc(b.name)}</b>` : `<span aria-hidden="true">🥚</span><b>${esc(T("Hatchery"))}</b>`;
-    const st = D && D.egg && D.egg.state; ui.btn.classList.toggle("due", !!(st && st.open)); ui.btn.classList.toggle("ready", !!(st && st.stage === "READY"));
+    const sts = ((D && D.eggs) || []).map((x) => x.state || eggState(x, now())); ui.btn.classList.toggle("due", sts.some((st) => st.open && /^D/.test(st.stage))); ui.btn.classList.toggle("ready", sts.some((st) => st.stage === "READY"));
     paintCard(); if (!ui.panel.hidden) paintPanel();
   }
   function paintCard() {
@@ -273,9 +273,15 @@ export function createDino(H) {
   function command(k) { pref.mode = k; savePref(); snd("tap"); paintCard(); if (B) H.pop(B, T({ follow: "Following!", guard: "On guard!", attack: "Attack!", stay: "Staying." }[k]), "buddy-sk"); }
   const bar = (n, v, max, cls = "") => `<div class="wz-dbar ${cls}"><span>${esc(n)}</span><i><u style="width:${Math.max(0, Math.min(100, (v / max) * 100)).toFixed(1)}%"></u></i><b>${typeof v === "number" && !Number.isInteger(v) ? v.toFixed(1) : fmt(v)}${max === 100 ? "" : ""}</b></div>`;
   function ring(k, label, sub) { const r = 54, c = 2 * Math.PI * r; return `<div class="wz-ring"><svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="${r}" class="bg"/><circle cx="64" cy="64" r="${r}" class="fg" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - Math.max(0, Math.min(1, k)))).toFixed(1)}"/></svg><div><b>${label}</b><small>${sub}</small></div></div>`; }
+  /// the egg the Hatchery shows: the one picked from the row, else the server's pick (the one whose care opens soonest)
+  const eggNow = () => (D && D.eggs && D.eggs.find((x) => x.id === selEgg)) || (D && D.egg) || null;
+  function eggRow() {
+    const es = (D && D.eggs) || []; if (es.length < 2) return ""; const cur = eggNow();
+    return `<div class="wz-deggs">${es.map((x, i) => { const st = x.state || eggState(x, now()), due = st.open && /^D/.test(st.stage), rd = st.stage === "READY"; return `<button type="button" data-egg="${esc(x.id)}" class="${cur && cur.id === x.id ? "on" : ""} r-${x.rarity || "common"}"><i>🥚</i><b>${esc(T(RAR[x.rarity || "common"].n))}</b><small>${rd ? "🐣" : due ? "⏰" : T("Day {d}", { d: Math.min(3, st.day || 1) })}</small></button>`; }).join("")}</div>`;
+  }
   function eggHtml() {
-    const e = D && D.egg, t = now();
-    if (!e && D && D.buddy) return `<div class="wz-dnone"><div class="wz-dbig">${pic()}</div><b>${esc(T("{name} is your companion", { name: D.buddy.name }))}</b><p>${esc(T("One companion per account, for good. The eggs out on the plains are for new tamers."))}</p></div>`;
+    const e = eggNow(), t = now();
+    if (!e && D && D.buddy) return `<div class="wz-dnone"><div class="wz-dbig">🥚</div><b>${esc(T("No egg being cared for"))}</b><p>${esc(T("Raise more dinosaurs: pick up eggs at the nests (one a day, up to {n} at once). Higher grades are rarer.", { n: (D.max && D.max.eggs) || DINO.MAX_EGGS }))}</p></div>${D.canClaim ? forecast(t) : `<p class="wz-dnote">${esc(T("You've picked up today's egg — more tomorrow."))}</p>`}`;
     if (!e) {
       const mem = (D && D.memorial) || [];
       return `<div class="wz-dnone"><div class="wz-dbig">🥚</div><b>${esc(T("No egg yet"))}</b><p>${esc(T("Rare eggs appear at the nests on the plains — look for a light in the sky. The first to reach one gets it; you can raise one egg at a time."))}</p><p class="wz-dnote">${esc(T("Eggs out right now: {n}", { n: nests.filter((x) => x.to > t).length }))}</p>${!signed() ? `<p class="wz-dnote warn">${esc(T("Sign in with a wallet to raise a dinosaur"))}</p>` : ""}</div>
@@ -291,7 +297,7 @@ export function createDino(H) {
     const c = s.cares || {}, can = s.open && /^D/.test(s.stage);
     const care = (k2, ic, n, cost) => `<button type="button" class="wz-dcare${c[k2] ? " done" : ""}" data-care="${k2}" ${!can || c[k2] ? "disabled" : ""}><span>${c[k2] ? "✓" : ic}</span><b>${esc(T(n))}</b><small>${esc(cost)}</small></button>`;
     const nDone = (e.done || []).length, dayBar = `<div class="wz-dday"><b>${esc(s.stage === "READY" || s.stage === "WAIT" ? T("Hatching") : T("Day {d}", { d: day }))}</b><i><u style="width:${((nDone / 3) * 100).toFixed(0)}%"></u></i><small>${nDone} / 3</small></div>`;
-    return `${dayBar}${ring(k, s.stage === "READY" ? "🐣" : `${Math.min(72, Math.floor((t - e.found) / 36e5))}h`, "/ 72h")}<p class="wz-dhead">${esc(head)}</p>${warn}
+    return `${eggRow()}<p class="wz-dgrade r-${e.rarity || "common"}">${esc(T("{g} egg", { g: T(RAR[e.rarity || "common"].n) }))}</p>${dayBar}${ring(k, s.stage === "READY" ? "🐣" : `${Math.min(72, Math.floor((t - e.found) / 36e5))}h`, "/ 72h")}<p class="wz-dhead">${esc(head)}</p>${warn}
       <div class="wz-dsteps">${[1, 2, 3].map((d) => `<i class="${(e.done || []).length >= d ? "on" : d === s.day ? "now" : ""}">${(e.done || []).length >= d ? "✓" : d}</i>`).join("<b></b>")}<i class="${s.stage === "READY" ? "now" : ""}">🐣</i></div>
       <div class="wz-dvit">${bar(T("Temperature") + " °C", v.temp, 40, v.temp >= 35 && v.temp <= 38 ? "ok" : "low")}${bar(T("Water"), v.water, 100)}${bar(T("Food"), v.food, 100)}${bar(T("Health"), v.health, 100, v.health < 50 ? "low" : "ok")}</div>
       ${s.stage === "READY" ? `<div class="wz-dhatch"><input data-name maxlength="14" placeholder="${esc(T("Name your companion"))}"><button type="button" class="go" data-a="hatch">🐣 ${esc(T("Hatch"))}</button></div>` : `<div class="wz-dcares">${care("warm", "🔥", "Warm", "🪵×2")}${care("water", "💧", "Water", T("free"))}${care("feed", "🍖", "Feed", T("treat · meat · 2 berries"))}</div>`}
@@ -315,16 +321,27 @@ export function createDino(H) {
     const t = now(), k = stageOf(b, t), st = statsNow(), next = DINO.STAGES[k + 1];
     const G = genesNow(), pc = "#" + ((DINO.PALS.find((x) => x.id === G.pal) || DINO.PALS[0]).c).toString(16).padStart(6, "0");
     return `<div class="wz-dbud"><div class="wz-dav s${k} r-${G.rarity}">${pic()}</div><div><input class="wz-dname" data-rename value="${esc(b.name)}" maxlength="14"><small>${esc(T(STAGE_N[k]))} · Lv ${b.lv}${b.lv >= Math.min(DINO.LV_MAX, (ctx.level ? ctx.level() : 1) + DINO.LV_OVER) ? " · " + esc(T("max for your level")) : ""}</small></div></div>
-      <div class="wz-dgenes"><span>${esc(T(CLIP[spNow()].n))}</span><span><i style="background:${pc}"></i>${esc(T(cap(G.pal)))}</span><span>👁 ${esc(T(cap(G.eye)))}</span><span class="r-${G.rarity}">${esc(T(RAR[G.rarity].n))}</span></div>
+      <div class="wz-dgenes"><span class="r-${G.rarity}">${esc(T("Grade: {g}", { g: T(RAR[G.rarity].n) }))} · ×${gradeK(G).toFixed(2)}</span><span>${esc(T(CLIP[spNow()].n))}</span><span><i style="background:${pc}"></i>${esc(T(cap(G.pal)))}</span><span>👁 ${esc(T(cap(G.eye)))}</span><span class="r-${G.rarity}">${esc(T(RAR[G.rarity].n))}</span></div>
       ${bar("XP", b.xp, xpNeed(b.lv))}${bar(T("Bond"), b.bond, 100, "bond")}
       <div class="wz-dstats"><span>⚔️ <b>${fmt(st.atk)}</b><small>${esc(T("Attack"))}</small></span><span>🛡️ <b>${fmt(st.def)}</b><small>${esc(T("Defence"))}</small></span><span>❤️ <b>${fmt(st.hp)}</b><small>HP</small></span><span>📅 <b>${daysWith(b, t)}</b><small>${esc(T("days"))}</small></span><span>🦴 <b>${fmt(b.hunts || 0)}</b><small>${esc(T("hunts"))}</small></span></div>
       <h4>${esc(T("Skills"))}</h4><div class="wz-dskills">${SKILLS.map(([ic, n, at]) => `<span class="${k >= at ? "on" : ""}"><i>${ic}</i><b>${esc(T(n))}</b><small>${k >= at ? esc(T("Ready")) : esc(T("From {s}", { s: T(STAGE_N[at]) }))}</small></span>`).join("")}</div>
       ${next ? `<p class="wz-dnote">${esc(T("Next: {s} at Lv {l} and {d} days together", { s: T(STAGE_N[k + 1]), l: next.lv, d: next.days }))}</p>` : `<p class="wz-dnote gold">${esc(T("Fully awakened."))}</p>`}
       <div class="wz-dacts"><button type="button" data-op="feed">🍖 <b>${esc(T("Feed"))}</b><small>+${DINO.BOND.feed} ${esc(T("bond"))}</small></button><button type="button" data-op="pet">✋ <b>${esc(T("Pet"))}</b><small>+${DINO.BOND.pet}</small></button><button type="button" data-op="rest" ${H.homeCamp() && Math.hypot(H.me().x - H.homeCamp().x, H.me().z - H.homeCamp().z) < 12 ? "" : "disabled"}>🏕️ <b>${esc(T("Rest"))}</b><small>${esc(T("at your camp"))}</small></button><button type="button" data-a="look">👀 <b>${esc(T("Look"))}</b></button></div>
       <div class="wz-dcmd">${CMDS.map(([c, ic, n]) => `<button type="button" data-cmd="${c}" class="${pref.mode === c ? "on" : ""}">${ic} ${esc(T(n))}</button>`).join("")}</div>
+      ${dinosHtml()}
       ${missionsHtml()}
       <button type="button" class="wz-dout" data-a="out">${pref.out ? "💤 " + esc(T("Let it rest (hide)")) : "🦖 " + esc(T("Call it out"))}</button>
       <p class="wz-dnote">${esc(T("Bond: feeding +5, 10 hunts together +5, a boss +8, a pat +2, a rest +3 — up to 15 a day."))}</p>`;
+  }
+  /// your dinosaurs: which one is out with you (it follows, hunts, battles, is ridden), the others resting at camp
+  function dinosHtml() {
+    const ds = (D && D.dinos) || []; if (ds.length < 2) return "";
+    return `<h4>${esc(T("My dinosaurs ({n})", { n: ds.length }))}</h4><ul class="wz-dlist">${ds.map((x) => { const g = x.genes || {}, on = x.id === D.active, u = thumb(g, x.stage || 0);
+      return `<li class="${on ? "on" : ""} r-${g.rarity || "common"}"><span class="wz-dav r-${g.rarity || "common"}">${u ? `<img class="wz-dpic" src="${u}" alt="">` : g.species === "trike" ? "🦕" : "🦖"}</span><div><b>${esc(x.name)}</b><small>${esc(T(RAR[g.rarity || "common"].n))} · Lv ${x.lv} · ${esc(T(STAGE_N[x.stage || 0]))}</small></div>${on ? `<em>${esc(T("Out with you"))}</em>` : `<button type="button" data-active="${esc(x.id)}">${esc(T("Take it out"))}</button>`}</li>`; }).join("")}</ul>`;
+  }
+  async function setActive(id) {
+    if (busy) return; busy = true; const r = await api("world-dino-active", { id }); busy = false;
+    if (!r.ok) { toast(errOf(r)); snd("bad"); return; } riding = false; took(r.j); snd("growl", 0); toast(`🦖 <b>${esc(T("{name} is out with you", { name: D.buddy.name }))}</b>`); paintPanel();
   }
   const MIS_N = { hunt: "Hunt together {n} times", pet: "Pat it {n} times", rest: "Rest at your camp", battle: "Fight {n} Dino Battles" };
   function missionsHtml() {
@@ -371,6 +388,8 @@ export function createDino(H) {
   function codexHtml() {
     const b = D && D.buddy, k = b ? stageOf(b, now()) : -1;
     return `<p class="wz-dnote">${esc(T("Velociraptor — how it grows"))}</p><div class="wz-dstrip"><span class="${D && (D.egg || D.buddy) ? "on" : ""}"><i>🥚</i><b>${esc(T("Egg"))}</b><small>${esc(T("3 days"))}</small></span>${DINO.STAGES.map((s, i) => `<em>›</em><span class="${i <= k ? "on" : ""}${i === k ? " now" : ""}"><i style="font-size:${16 + i * 4}px">🦖</i><b>${esc(T(STAGE_N[i]))}</b><small>Lv ${s.lv}</small></span>`).join("")}</div><ul class="wz-codex">${DINO.STAGES.map((s, i) => `<li class="${i <= k ? "on" : ""}"><i style="font-size:${18 + i * 7}px">🦖</i><b>${esc(T(STAGE_N[i]))}</b><small>Lv ${s.lv}+ · ${esc(T("{d} days", { d: s.days }))} · ×${s.size}</small><em>${esc(T(["Follows you everywhere", "Learns to bite", "Dashes in", "Roars to protect you", "Infinity Fang"][i]))}</em></li>`).join("")}</ul>
+      <h4>${esc(T("Egg grades"))}</h4><ul class="wz-dgrades">${DINO.RARITY.map((x) => `<li class="r-${x.id}"><b>${esc(T(RAR[x.id].n))}</b><small>${x.w}%</small><em>×${DINO.GRADE[x.id][0].toFixed(2)}–${DINO.GRADE[x.id][1].toFixed(2)}</em></li>`).join("")}</ul>
+      <p class="wz-dnote">${esc(T("A higher grade is always stronger at the same level and bond; within a grade each egg rolls a little differently."))}</p>
       <h4>${esc(T("Coming next"))}</h4><ul class="wz-droad"><li><b>🏟️ ${esc(T("Live PvP arena"))}</b><small>${esc(T("Real-time battles and tournaments with your companion — a later update. Dino Battles (the Battles tab) are open now."))}</small></li><li><b>💎 ${esc(T("Ownership on Arc"))}</b><small>${esc(T("Eggs and companions you own on-chain — planned for a later phase. Until then your companion stays with your account."))}</small></li></ul>`;
   }
   function shopHtml() { return `<p class="wz-dnote">${esc(T("Dino treats feed an egg or your companion like raw meat. A convenience only — they add no strength."))}</p><div class="wz-dshop">${DINO.FOOD.map((p) => `<button type="button" data-food="${p.id}"><b>🍬 ×${p.n}</b><em>${fmt(p.arcl)} ARCL</em></button>`).join("")}</div><p class="wz-dnote">${esc(T("You have {n} treats · up to {m} a day", { n: (D && D.treats) || 0, m: DINO.FOOD_DAY }))}</p>`; }
@@ -394,26 +413,28 @@ export function createDino(H) {
     if (b.dataset.a === "look") return look();
     if (b.dataset.a === "notify") { try { Notification.requestPermission().then(() => paintPanel()); } catch { /* not this browser */ } return; }
     if (b.dataset.mission) return claimMission(b.dataset.mission);
+    if (b.dataset.active) return setActive(b.dataset.active);
+    if (b.dataset.egg) { selEgg = b.dataset.egg; snd("tab"); paintPanel(); return; }
   }
   async function doCare(k) {
-    if (busy) return; busy = true; const r = await api("world-dino-care", { kind: k }); busy = false;
+    if (busy) return; busy = true; const eg = eggNow(), r = await api("world-dino-care", { kind: k, ...(eg ? { egg: eg.id } : {}) }); busy = false;
     if (!r.ok) { toast(errOf(r)); snd("bad"); if (r.j && r.j.lost) loadState(); return; }
     const done0 = (D && D.egg && D.egg.done ? D.egg.done.length : 0); took(r.j); snd(k === "water" ? "pick" : "equip");
     if (D.egg && (D.egg.done || []).length > done0) { toast(`💚 <b>${esc(T("Day {d} done!", { d: D.egg.done.length }))}</b> ${esc(D.egg.done.length < 3 ? T("Come back in 20–28 hours for the next day's care.") : T("It hatches 72 hours after you found it."))}`); snd("level"); }
   }
   async function hatch() {
-    if (busy) return; const name = (ui.body.querySelector("[data-name]") || {}).value || ""; busy = true; const r = await api("world-dino-hatch", { name }); busy = false;
+    if (busy) return; const name = (ui.body.querySelector("[data-name]") || {}).value || "", eg = eggNow(); busy = true; const r = await api("world-dino-hatch", { name, ...(eg ? { egg: eg.id } : {}) }); busy = false;
     if (!r.ok) { toast(errOf(r)); snd("bad"); return; }
-    took(r.j); tab = "buddy"; closePanel(); snd("level"); if (H.confetti) H.confetti(); born(D.buddy.name);
-    toast(`🐣 <b>${esc(T("{name} hatched!", { name: D.buddy.name }))}</b> ${esc(T("Your companion for good. It follows you, hunts with you and grows up."))}`);
+    const nb = r.j.born || D.buddy; selEgg = ""; took(r.j); tab = "buddy"; closePanel(); snd("level"); if (H.confetti) H.confetti(); born(nb ? nb.name : "", nb);
+    toast(`🐣 <b>${esc(T("{name} hatched!", { name: (r.j.born || D.buddy || {}).name || "" }))}</b> ${esc(T("Your companion for good. It follows you, hunts with you and grows up."))}`);
   }
   /// the hatch: a moment on the screen (tap it away, or it goes in 5 s), and the companion stepping out beside you
   /// the hatch: the egg in front of you shakes harder and harder, cracks, its shell flies apart, and out it steps —
   /// then the moment on the screen (tap it away, or it goes in 5 s). By the wall clock, so a slow frame can't stall it.
   let HA = null;
-  function born(name) {
+  function born(name, nb) {
     if (!ui) return; const me = H.me(), x = me.x + Math.sin(me.face) * 2.6, z = me.z + Math.cos(me.face) * 2.6, y = H.height(x, z);
-    const rar = (genesNow() || {}).rarity || "common", egg = eggMesh(rar); egg.position.set(x, y + 0.85, z); H.scene.add(egg);
+    const rar = (nb && nb.genes && nb.genes.rarity) || (genesNow() || {}).rarity || "common", egg = eggMesh(rar); egg.position.set(x, y + 0.85, z); H.scene.add(egg);
     if (B) { B.x = x; B.z = z; B.face = me.face + Math.PI; B.g.visible = false; }
     HA = { t0: performance.now(), egg, x, y, z, rar, name, parts: [], cracked: false }; snd("tap");
   }
@@ -457,20 +478,21 @@ export function createDino(H) {
     if (T0 > nextNests) { nextNests = T0 + 60e3; loadNests(); } if (T0 > nextState && signed()) { nextState = T0 + 120e3; loadState(); }
     const me = H.me(); let near = null, nd = 1e9, far = null, fd = 1e9;
     for (const [, o] of eggObjs) { if (o.e.to <= now()) continue; o.egg.rotation.y = t * 0.6; o.egg.position.y = 0.85 + Math.sin(t * 2) * 0.06; o.beam.material.opacity = 0.16 + Math.sin(t * 1.7) * 0.06; const d = Math.hypot(o.e.x - me.x, o.e.z - me.z); if (d < nd) { nd = d; near = o.e; } if (d < fd) { fd = d; far = o.e; } }
-    const free = !(D && (D.buddy || D.egg)), can = free && near && nd < 3.2 && !me.down; ui.pick.hidden = !can; ui.pickE = can ? near : null; // (one egg or one companion: with either, eggs are only to look at)
+    const free = !!(D && D.canClaim), can = free && near && nd < 3.2 && !me.down; ui.pick.hidden = !can; ui.pickE = can ? near : null; // (one egg or one companion: with either, eggs are only to look at)
     // the arrow at the top: to the nearest egg out; with none out (and no egg or companion yet), to where the next one comes
     let aim = free && far && fd < 260 && fd >= 3.2 ? far : null, label = aim ? (aim.first ? T("Your first egg · {d} m", { d: Math.round(fd) }) : T("An egg is out · {d} m", { d: Math.round(fd) })) : "";
-    if (!far && D && !D.egg && !D.buddy && signed() && T0 > (ui.nextAt || 0)) { ui.nextAt = T0 + 5000; ui.next = nextEggs(now(), 12, 1)[0] || null; }
+    if (!far && D && D.canClaim && signed() && T0 > (ui.nextAt || 0)) { ui.nextAt = T0 + 5000; ui.next = nextEggs(now(), 12, 1)[0] || null; }
     if (!aim && free && !far && D && ui.next) { aim = ui.next; label = T("Next egg in {t} · {d} m", { t: dur(aim.from - now()), d: Math.round(Math.hypot(aim.x - me.x, aim.z - me.z)) }); }
     ui.chip.hidden = !aim; ui.chip.classList.toggle("soon", !!(aim && !far)); ui.chip.classList.toggle("first", !!(aim && aim.first));
     if (aim) { const a = Math.atan2(aim.x - me.x, aim.z - me.z), rel = a - (H.camYaw() + Math.PI); ui.chip.querySelector("i").style.transform = `rotate(${(-rel * 180) / Math.PI - 90}deg)`; ui.chip.querySelector("span").textContent = label; }
     if (B && ui.sk && (t * 4) % 1 < dt * 4) paintSkill();
     tickBuddy(dt, t); tickHatch(); if (B && (t * 4) % 1 < dt * 4) paintCard();
     // the reminders: today's care open, or closing soon
-    if (T0 - lastWarn > 30e3 && D && D.egg) { lastWarn = T0; const s = eggState(D.egg, now()), key = (D.egg.done || []).length;
-      if (s.open && /^D/.test(s.stage)) { const left = s.closesAt - now(); const lvl = left < 3600e3 ? "1h" : left < 4 * 3600e3 ? "4h" : "open";
-        if (warned[key] !== lvl) { warned[key] = lvl; toast(lvl === "open" ? `🥚 ${esc(T("Your egg's care is open today."))}` : `${lvl === "1h" ? "⚠️" : "⏰"} <b>${esc(T("Your egg needs care within {t}!", { t: dur(left) }))}</b>`); notify("🥚 DINO SOULMATE", lvl === "open" ? T("Your egg's care is open today.") : T("Your egg needs care within {t}!", { t: dur(left) })); paint(); } }
-      else if (s.stage === "READY" && warned.ready !== 1) { warned.ready = 1; toast(`🐣 <b>${esc(T("Your egg is ready to hatch!"))}</b>`); notify("🐣 DINO SOULMATE", T("Your egg is ready to hatch!")); paint(); } }
+    if (T0 - lastWarn > 30e3 && D && (D.eggs || []).length) { lastWarn = T0;
+      for (const eg of D.eggs) { const s = eggState(eg, now()), key = eg.id + ":" + (eg.done || []).length;
+        if (s.open && /^D/.test(s.stage)) { const left = s.closesAt - now(); const lvl = left < 3600e3 ? "1h" : left < 4 * 3600e3 ? "4h" : "open";
+          if (warned[key] !== lvl) { warned[key] = lvl; toast(lvl === "open" ? `🥚 ${esc(T("Your egg's care is open today."))}` : `${lvl === "1h" ? "⚠️" : "⏰"} <b>${esc(T("Your egg needs care within {t}!", { t: dur(left) }))}</b>`); notify("🥚 DINO SOULMATE", lvl === "open" ? T("Your egg's care is open today.") : T("Your egg needs care within {t}!", { t: dur(left) })); paint(); } }
+        else if (s.stage === "READY" && warned["r" + eg.id] !== 1) { warned["r" + eg.id] = 1; toast(`🐣 <b>${esc(T("Your egg is ready to hatch!"))}</b>`); notify("🐣 DINO SOULMATE", T("Your egg is ready to hatch!")); paint(); } } }
   }
   function start() { if (!ui) build(); nextNests = nextState = 0; load(); }
   function stop() { riding = false; clearInterval(fightT); if (HA) { H.scene.remove(HA.egg); for (const p of HA.parts) H.scene.remove(p.m); HA = null; if (B) B.g.visible = true; } if (ui) { ui.panel.hidden = true; ui.born.hidden = true; ui.pick.hidden = true; ui.chip.hidden = true; ui.res.hidden = true; } }
@@ -486,6 +508,7 @@ export function createDino(H) {
 
 // ---------------- the words (ko · zh · tr) ----------------
 Object.assign(LW.ko, {
+  "A higher grade is always stronger at the same level and bond; within a grade each egg rolls a little differently.": "같은 레벨과 유대라면 높은 등급이 언제나 더 강해요. 같은 등급 안에서도 알마다 능력치가 조금씩 달라요.", "Advanced": "고급", "Egg grades": "알 등급", "Grade: {g}": "등급: {g}", "My dinosaurs ({n})": "내 공룡 ({n})", "No egg being cared for": "돌보고 있는 알이 없어요", "Out with you": "함께 나와 있음", "Raise more dinosaurs: pick up eggs at the nests (one a day, up to {n} at once). Higher grades are rarer.": "공룡을 더 키워 보세요: 둥지에서 알을 주워요 (하루 1개, 동시에 최대 {n}개). 높은 등급일수록 드물어요.", "Take it out": "데리고 나가기", "You've picked up today's egg — more tomorrow.": "오늘의 알은 이미 주웠어요 — 내일 또 주울 수 있어요.", "{g} egg": "{g} 알", "{name} is out with you": "{name}, 출동!", "Common": "일반",
   "{name} is your companion": "나의 동료, {name}", "One companion per account, for good. The eggs out on the plains are for new tamers.": "동료는 계정당 하나, 영원히. 평원의 알은 새로운 조련사들을 위한 거예요.",
   "Live PvP arena": "실시간 PvP 아레나", "Real-time battles and tournaments with your companion — a later update. Dino Battles (the Battles tab) are open now.": "동료와 함께하는 실시간 배틀과 토너먼트 — 이후 업데이트. 다이노 배틀(배틀 탭)은 지금 열려 있어요.",
   "Ride": "타기", "Get off": "내리기", "Let's go!": "가자!", "You can ride it once it's an Adult (Lv {l}, {d} days)": "성체가 되면 탈 수 있어요 (Lv {l}, {d}일)",
@@ -514,6 +537,7 @@ Object.assign(LW.ko, {
   "{name} hatched!": "{name} 부화!", "{name} is back on its feet!": "{name}, 다시 일어났어요!", "{name} is down — back in 60 s, or at once at your camp.": "{name}, 쓰러졌어요 — 60초 뒤, 또는 캠프에 가면 바로 일어나요.", "{name} reached Lv {n}!": "{name} Lv {n} 달성!",
 });
 Object.assign(LW.zh, {
+  "A higher grade is always stronger at the same level and bond; within a grade each egg rolls a little differently.": "在相同等级和羁绊下，更高的等级总是更强；同一等级内每颗蛋的数值也略有不同。", "Advanced": "高级", "Egg grades": "蛋的等级", "Grade: {g}": "等级：{g}", "My dinosaurs ({n})": "我的恐龙（{n}）", "No egg being cared for": "没有正在照料的蛋", "Out with you": "正在陪伴", "Raise more dinosaurs: pick up eggs at the nests (one a day, up to {n} at once). Higher grades are rarer.": "养更多恐龙：在巢穴捡蛋（每天 1 颗，同时最多 {n} 颗）。等级越高越稀有。", "Take it out": "带它出来", "You've picked up today's egg — more tomorrow.": "今天的蛋已经捡过了 — 明天再来。", "{g} egg": "{g}蛋", "{name} is out with you": "{name} 正在陪伴你", "Common": "普通",
   "{name} is your companion": "{name} 是你的伙伴", "One companion per account, for good. The eggs out on the plains are for new tamers.": "每个账号只有一个伙伴，永远相伴。平原上的蛋留给新的驯兽师。",
   "Live PvP arena": "实时 PvP 竞技场", "Real-time battles and tournaments with your companion — a later update. Dino Battles (the Battles tab) are open now.": "与伙伴一起的实时对战和锦标赛 — 后续更新。恐龙对战（对战标签）现已开放。",
   "Ride": "骑乘", "Get off": "下来", "Let's go!": "出发！", "You can ride it once it's an Adult (Lv {l}, {d} days)": "成年后就能骑乘（Lv {l}，{d} 天）",
@@ -542,6 +566,7 @@ Object.assign(LW.zh, {
   "{name} hatched!": "{name} 孵化了！", "{name} is back on its feet!": "{name} 重新站起来了！", "{name} is down — back in 60 s, or at once at your camp.": "{name} 倒下了 — 60 秒后恢复，或回营地立即恢复。", "{name} reached Lv {n}!": "{name} 达到 Lv {n}！",
 });
 Object.assign(LW.tr, {
+  "A higher grade is always stronger at the same level and bond; within a grade each egg rolls a little differently.": "Aynı seviye ve bağda yüksek derece her zaman daha güçlüdür; bir derecenin içinde her yumurta biraz farklı çıkar.", "Advanced": "Gelişmiş", "Egg grades": "Yumurta dereceleri", "Grade: {g}": "Derece: {g}", "My dinosaurs ({n})": "Dinozorlarım ({n})", "No egg being cared for": "Bakılan yumurta yok", "Out with you": "Seninle", "Raise more dinosaurs: pick up eggs at the nests (one a day, up to {n} at once). Higher grades are rarer.": "Daha fazla dinozor büyüt: yuvalardan yumurta topla (günde bir, aynı anda en fazla {n}). Yüksek dereceler daha nadir.", "Take it out": "Yanına al", "You've picked up today's egg — more tomorrow.": "Bugünün yumurtasını aldın — yarın yine.", "{g} egg": "{g} yumurta", "{name} is out with you": "{name} artık seninle", "Common": "Sıradan",
   "{name} is your companion": "{name} senin yoldaşın", "One companion per account, for good. The eggs out on the plains are for new tamers.": "Hesap başına bir yoldaş, kalıcı olarak. Ovadaki yumurtalar yeni terbiyeciler için.",
   "Live PvP arena": "Canlı PvP arenası", "Real-time battles and tournaments with your companion — a later update. Dino Battles (the Battles tab) are open now.": "Yoldaşınla gerçek zamanlı savaşlar ve turnuvalar — sonraki bir güncelleme. Dino Savaşları (Savaşlar sekmesi) şimdi açık.",
   "Ride": "Bin", "Get off": "İn", "Let's go!": "Hadi!", "You can ride it once it's an Adult (Lv {l}, {d} days)": "Yetişkin olunca binebilirsin (Lv {l}, {d} gün)",

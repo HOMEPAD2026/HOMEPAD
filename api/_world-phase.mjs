@@ -3,13 +3,14 @@
 //   phase "cbt"     the closed beta: wallets holding GATE_MIN $ARCIRCLE may enter (api/_world.mjs gate)
 //   phase "closed"  between the betas: only GM wallets play; everyone else sees "open beta coming soon"
 //   phase "obt"     the open beta: everyone may enter, no $ARCIRCLE needed
+//   phase "live"    the official launch (from 19 October 2026): as the open beta, the same data (epoch 2 carries on)
 //
 // epoch: each fresh start is a new epoch. From epoch 2 the game's progress lives in its own collections
 // (worldSave_e2/…, worldStats/e2_players…), so levels, XP, gear, ARCL, islands and villages start from nothing while
 // the closed beta's data stays where it was (read for the CBT rewards, never changed). What a player paid
 // $ARCIRCLE for carries over: worldOwn falls back to the closed beta's record, minus what was bought with ARCL.
 // The flip to the open beta is two constants here and the same two in world-lock.js: phase "obt", epoch 2.
-export const WORLD_PHASE = { phase: "obt", epoch: 2 }; // b409: the open beta (from 14 October 2026)
+export const WORLD_PHASE = { phase: "live", epoch: 2 }; // b453: the official launch (the open beta was b409, from 14 October 2026)
 
 // collections that are not progress and stay the same in every epoch: payments, counts, presence, crews, coin lots,
 // health counters, the CBT reward records

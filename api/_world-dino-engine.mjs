@@ -26,11 +26,16 @@ export const DINO = {
   // your first egg: waiting for you alone at a nest by the gate (a new player's first one, so no one starts empty-handed)
   FIRST: { id: "first", x: -10, z: 28 },
   // what an egg carries (from its id, so the server and the game read the same): the species, its colours, its eyes,
-  // how rare it is — the look only, never strength
+  // its grade (five, rarer each step; the highest one in a hundred) and a roll within the grade
   SPECIES: [{ id: "raptor", w: 82 }, { id: "trike", w: 18 }],
   PALS: [{ id: "jade", c: 0xa8e8bc }, { id: "sand", c: 0xf0d8a8 }, { id: "ember", c: 0xf0a888 }, { id: "storm", c: 0xb0c4e8 }, { id: "violet", c: 0xd2b4f0 }, { id: "ash", c: 0xd8d8d0 }, { id: "moss", c: 0xc4d890 }, { id: "frost", c: 0xe4f6ff }],
   EYES: [{ id: "amber", c: 0xffb43c }, { id: "ice", c: 0x6cf0ff }, { id: "ruby", c: 0xff4d6d }, { id: "gold", c: 0xffe066 }],
-  RARITY: [{ id: "common", w: 70 }, { id: "rare", w: 22 }, { id: "epic", w: 7 }, { id: "legend", w: 1 }],
+  RARITY: [{ id: "common", w: 60 }, { id: "advanced", w: 25 }, { id: "rare", w: 10 }, { id: "epic", w: 4 }, { id: "legend", w: 1 }],
+  // each grade's strength: its numbers times a factor in the grade's own band, the egg's roll picking where in it. The
+  // bands never overlap, so at the same level and bond a higher grade is always the stronger
+  GRADE: { common: [1.0, 1.06], advanced: [1.1, 1.16], rare: [1.2, 1.26], epic: [1.3, 1.36], legend: [1.42, 1.5] },
+  // how many at once: eggs being cared for, dinosaurs raised
+  MAX_EGGS: 3, MAX_DINOS: 12,
   // a day's companion missions (Seoul days): small rewards for doing things together
   MISSIONS: [{ id: "hunt", n: 5, xp: 60, bond: 3 }, { id: "pet", n: 3, xp: 20, bond: 2 }, { id: "rest", n: 1, treat: 1 }, { id: "battle", n: 3, xp: 40, bond: 2 }],
   // Dino Battles: your companion against another player's (theirs plays itself); a few a day, a rating, no ARCL for winning
@@ -41,10 +46,12 @@ const H = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul
 /// a number from a string (the egg's id → its genes)
 const HS = (str) => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 const pickW = (list, x) => { const tot = list.reduce((a, o) => a + o.w, 0); let r = x * tot; for (const o of list) { if ((r -= o.w) < 0) return o.id; } return list[list.length - 1].id; };
-/// an egg's genes, from its id: { species, pal, eye, rarity, size } (the look only)
-export function genesOf(id) {
+/// an egg's genes, from its id: { species, pal, eye, rarity, size, iv } (iv: its roll within its grade, 0–1); a grade
+/// given (a gift egg's) replaces the rolled one
+export function genesOf(id, rar) {
   const h = HS(String(id || "egg")), f = (k) => H(h & 0x7fffffff, k);
-  return { species: pickW(DINO.SPECIES, f(1)), pal: DINO.PALS[Math.floor(f(2) * DINO.PALS.length)].id, eye: DINO.EYES[Math.floor(f(3) * DINO.EYES.length)].id, rarity: pickW(DINO.RARITY, f(4)), size: +(0.94 + f(5) * 0.12).toFixed(3) };
+  const g = { species: pickW(DINO.SPECIES, f(1)), pal: DINO.PALS[Math.floor(f(2) * DINO.PALS.length)].id, eye: DINO.EYES[Math.floor(f(3) * DINO.EYES.length)].id, rarity: pickW(DINO.RARITY, f(4)), iv: +f(6).toFixed(3), size: +(0.94 + f(5) * 0.12).toFixed(3) };
+  if (rar && DINO.GRADE[rar]) g.rarity = rar; return g;
 }
 /// the next eggs to come out after t (from the schedule, looking ahead up to `hours`): [{ nest, from, to, x, z }]
 export function nextEggs(t, hours = 12, n = 3) {
@@ -121,9 +128,11 @@ export const daysWith = (b, t) => Math.max(0, Math.floor((t - b.hatched) / 864e5
 export function stageOf(b, t) { const d = daysWith(b, t); let k = 0; DINO.STAGES.forEach((s, i) => { if (b.lv >= s.lv && d >= s.days) k = i; }); return k; }
 /// its numbers, from its level and bond and the owner's (A attack, D defence, HP max) — the design's formulas
 export function statsOf(b, own = {}) {
-  const A = own.atk || 0, D = own.def || 0, HP = own.hp || 120, lv = b.lv, bond = b.bond;
-  return { atk: Math.round((20 + 2.2 * lv) * (1 + 0.003 * bond) + 0.35 * A), def: Math.round((12 + 1.8 * lv) * (1 + 0.002 * bond) + 0.4 * D), hp: Math.round(100 + 18 * lv + 0.25 * HP) };
+  const A = own.atk || 0, D = own.def || 0, HP = own.hp || 120, lv = b.lv, bond = b.bond, k = gradeK(b.genes);
+  return { atk: Math.round(((20 + 2.2 * lv) * (1 + 0.003 * bond) + 0.35 * A) * k), def: Math.round(((12 + 1.8 * lv) * (1 + 0.002 * bond) + 0.4 * D) * k), hp: Math.round((100 + 18 * lv + 0.25 * HP) * k) };
 }
+/// its grade's factor: where its roll puts it in its grade's band (no genes: the lowest grade's bottom)
+export function gradeK(g) { const band = DINO.GRADE[(g && g.rarity) || "common"] || DINO.GRADE.common, iv = Math.max(0, Math.min(1, Number(g && g.iv) || 0)); return +(band[0] + (band[1] - band[0]) * iv).toFixed(4); }
 /// how much of a hunt it takes on: its share of the swings (30–55% of the owner's damage, as the design caps it)
 export function assistOf(b) { if (!b) return 0; const c = 0.3 + 0.25 * Math.min(1, (b.lv - 1) / 79); return c / (1 + c); }
 /// experience in, levels up (to the owner's level + LV_OVER, and LV_MAX): the companion, changed

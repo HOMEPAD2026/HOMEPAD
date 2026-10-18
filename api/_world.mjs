@@ -44,6 +44,7 @@ import { makeSurvivors } from "./_world-survivors.mjs";
 import { makeRings } from "./_world-rings.mjs";
 import { makePoker } from "./_world-poker.mjs";
 import { makeDino } from "./_world-dino.mjs";
+import { makeLaunch } from "./_world-launch.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -122,7 +123,7 @@ const pubStamps = (list) => list.slice(-20).map(({ m, h, ...x }) => (h ? { ...x,
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
 
 /// deps: { getDocs, setDoc, commit, storeEnabled, recover, issuedOk, json, launchRecord?, now?, phase? }
-/// phase (api/_world-phase.mjs WORLD_PHASE): { phase: "cbt" | "closed" | "obt", epoch }; without it, the closed beta
+/// phase (api/_world-phase.mjs WORLD_PHASE): { phase: "cbt" | "closed" | "obt" | "live", epoch }; without it, the closed beta
 export function make(deps) {
   const PH = deps.phase && typeof deps.phase === "object" ? deps.phase : { phase: "cbt", epoch: 1 };
   // the store as this epoch sees it (every module gets it); `raw` reads the closed beta's own data for its rewards
@@ -269,6 +270,8 @@ export function make(deps) {
   let dino = null;
   const jur = makeJur({ ...deps, json, now, signer, isGM, mine, dino: { assist: (w) => dino.assist(w), hunt: (w, k) => dino.hunt(w, k), gather: (w) => dino.gather(w) } });
   dino = makeDino({ ...deps, json, now, signer, debit: shop.debit, level: async (w) => levelOfSave(await saveOf(w)), jur: { take: (w, need) => jur.take(w, need) } });
+  // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
+  const launch = makeLaunch({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
   const swap = makeSwap({ ...deps, json, now, signer, isGM });
   const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
@@ -280,7 +283,7 @@ export function make(deps) {
     const s = signer(b); if (s.err) return s.err;
     // between the betas only GM wallets play; in the open beta everyone does, with no balance to hold
     if (PH.phase === "closed") return json(200, { ok: isGM(s.wallet), closed: true, phase: PH.phase, wallet: s.wallet });
-    if (PH.phase === "obt") return json(200, { ok: true, phase: PH.phase, wallet: s.wallet });
+    if (PH.phase === "obt" || PH.phase === "live") return json(200, { ok: true, phase: PH.phase, wallet: s.wallet });
     if (!deps.tokenBalance) return json(503, { error: "the balance check isn't available" });
     let bal; try { bal = BigInt(await deps.tokenBalance(ARCIRCLE_TOKEN, s.wallet)); } catch { return json(502, { error: "couldn't read the balance on Arc — try again in a moment" }); }
     const whole = Number(bal / 10n ** 18n);
@@ -354,6 +357,7 @@ export function make(deps) {
   async function save(b) {
     const s = signer(b); if (s.err) return s.err;
     const key = `worldSave/${s.wallet}`, old = (await getDocs([key]))[key];
+    if (old) await launch.preMark(s.wallet, old).catch(() => {}); // (this account was playing before the launch: its gift needs no level)
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const data = cleanSave(b.data);
     // b417: a save behind the stored one (another device has played on since: a phone at level 30, a computer still
@@ -397,7 +401,8 @@ export function make(deps) {
     }
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
     // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.
-    const boostK = ((Number((await shop.own(s.wallet).catch(() => ({}))).xpBoostUntil) || 0) > now() ? 2 : 1) * weekendK(now()); // the Starter's 2× and the weekend's 2× stack
+    const ownB = (await shop.own(s.wallet).catch(() => ({}))) || {};
+    const boostK = ((Number(ownB.xpBoostUntil) || 0) > now() ? 2 : 1) * ((Number(ownB.xp3Until) || 0) > now() ? 3 : 1) * weekendK(now()); // the Starter's 2×, a launch potion's 3× and the weekend's 2× stack
     // GM wallets (the team's own testing) aren't paced
     const g = isGM(s.wallet) ? { xp: data.xp, gain: 0, cut: 0, bank: old && old.xb != null ? old.xb : 0, dayKey: "" } : await xpGuard(s.wallet, old, data.xp, boostK);
     data.xp = g.xp;
@@ -510,6 +515,7 @@ export function make(deps) {
       if (w === "rings" || w === "rings-top") return rings.read(w, url);
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest") return poker.read(w, url);
       if (w === "dino" || w === "dino-nests" || w === "dino-ladder") return dino.read(w, url);
+      if (w === "launch") return launch.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }
@@ -538,7 +544,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

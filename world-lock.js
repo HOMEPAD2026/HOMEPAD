@@ -7,13 +7,14 @@
 //   "cbt"     the closed beta: the holder pass above
 //   "closed"  between the betas: only GM wallets enter; everyone else sees "open beta coming soon" and the CBT rewards
 //   "obt"     the open beta: everyone enters, no $ARCIRCLE needed. The flip: PHASE "obt", EPOCH 2 here and on the server.
+//   "live"    the official launch: as the open beta (EPOCH 2 carries on)
 //   window.arcWorldLock: { ok() → bool, ask({ cancelHref }) → Promise<bool>, need, phase, epoch }
 (function () {
   "use strict";
-  var PHASE = "obt"; // b409: the open beta
+  var PHASE = "live"; // b453: the official launch (b409: the open beta)
   var EPOCH = 2;
   var GMS = ["0x1250fe3b1de11da51457bca3fc8840f4ab4aeac1"]; // api/_world-village.mjs GM_WALLETS
-  var OPEN = PHASE === "obt";
+  var OPEN = PHASE === "obt" || PHASE === "live";
   var NEED = 1000000;
   var PASS = "arc.world.pass", SESS = "arc.world.sess", HOURS = 12;
   var lc = function (a) { return String(a || "").toLowerCase(); };

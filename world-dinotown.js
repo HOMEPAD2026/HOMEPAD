@@ -7,10 +7,10 @@
 import { DINO } from "./world-dino-engine.js";
 
 const HGT = [0.62, 0.85, 1.05, 1.35, 1.6]; // its height (m) at each stage
-const RAR = { common: 0, rare: 0.08, epic: 0.16, legend: 0.26 };
-const RARC = { common: 0x5ff0d0, rare: 0x4da6ff, epic: 0xb46cff, legend: 0xffc23c };
+const RAR = { common: 0, advanced: 0.05, rare: 0.1, epic: 0.18, legend: 0.28 };
+const RARC = { common: 0xbfd6cf, advanced: 0x5ff0a0, rare: 0x4da6ff, epic: 0xb46cff, legend: 0xffc23c };
 /// a look code, "raptor.jade.rare.2" → { species, pal, rarity, stage }
-export function lookOf(code) { const m = /^(raptor|trike)\.([a-z]{2,8})\.(common|rare|epic|legend)\.([0-4])$/.exec(String(code || "")); return m ? { species: m[1], pal: m[2], rarity: m[3], stage: +m[4] } : null; }
+export function lookOf(code) { const m = /^(raptor|trike)\.([a-z]{2,8})\.(common|advanced|rare|epic|legend)\.([0-4])$/.exec(String(code || "")); return m ? { species: m[1], pal: m[2], rarity: m[3], stage: +m[4] } : null; }
 export const codeOf = (g, stage) => `${g.species === "trike" ? "trike" : "raptor"}.${g.pal}.${g.rarity}.${Math.max(0, Math.min(4, stage | 0))}`;
 
 export function createTownDinos(ctx) {

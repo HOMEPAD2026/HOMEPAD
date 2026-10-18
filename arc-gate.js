@@ -32,6 +32,7 @@
   function betaLabel() {
     var ph = window.arcWorldLock && window.arcWorldLock.phase;
     if (ph === "closed") return { ko: "CBT 종료 · OBT 곧 오픈", zh: "CBT 已结束 · OBT 即将开启", tr: "CBT bitti · OBT yakında" }[lang] || "CBT closed · Open beta soon";
+    if (ph === "live") return { ko: "공식 런칭 · 누구나 입장", zh: "正式上线 · 所有人可进入", tr: "Resmi açılış · herkes hoş geldi" }[lang] || "Official launch · everyone welcome";
     if (ph === "obt") return { ko: "오픈 베타 · 누구나 입장", zh: "公开测试 · 所有人可进入", tr: "Açık beta · herkes hoş geldi" }[lang] || "Open beta · everyone welcome";
     return T.beta;
   }

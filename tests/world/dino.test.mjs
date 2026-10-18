@@ -50,12 +50,13 @@ TT = found + 22 * H; for (const k of ["warm", "water", "feed"]) r = await call(p
 TT = found + 46 * H; for (const k of ["warm", "water", "feed"]) r = await call(p1, "world-dino-care", { kind: k }); check(r.body.egg.done.length === 3 && r.body.egg.state.stage === "WAIT", "day 3 cared for at 46 h: it waits to hatch");
 r = await call(p1, "world-dino-hatch", { name: "Rexy" }); check(r.status === 409 && /72/.test(r.body.error), "before 72 hours: no hatching");
 TT = found + 80 * H; r = await call(p1, "world-dino-hatch", { name: "Blue<b>" }); check(r.status === 200 && r.body.buddy && r.body.buddy.name === "Blueb" && r.body.buddy.lv === 1 && r.body.buddy.bond === E.DINO.BOND0 && !r.body.egg, "past 72 hours: it hatches, named (no markup), level 1, bond 30");
-{ const g = nextEgg(TT + 60e3); TT = g.t + 1000; r = await call(p1, "world-dino-claim", { nest: g.e.nest }); check(r.status === 409 && /companion/.test(r.body.error), "with a companion: no egg"); }
+{ const g = nextEgg(TT + 60e3); TT = g.t + 1000; r = await call(p1, "world-dino-claim", { nest: g.e.nest }); check(r.status === 200 && r.body.eggs.length === 1 && r.body.dinos.length === 1, "with a companion: another egg can be raised too (several dinosaurs an account)");
+  r = await call(p1, "world-dino-claim", { nest: g.e.nest }); check(r.status === 409, "the same egg twice: no"); }
 // a missed window kills the egg and frees the slot
 const p3 = ethers.Wallet.createRandom(); pack(p3, { wood: 10, meat: 3 });
-{ const g = nextEgg(TT); TT = g.t + 1000; await call(p3, "world-dino-claim", { nest: g.e.nest }); const t3 = TT; for (const k of ["warm", "water", "feed"]) await call(p3, "world-dino-care", { kind: k });
+{ const g = nextEgg(TT + 11 * 60e3); TT = g.t + 1000; await call(p3, "world-dino-claim", { nest: g.e.nest }); const t3 = TT; for (const k of ["warm", "water", "feed"]) await call(p3, "world-dino-care", { kind: k });
   TT = t3 + 29 * H; r = await call(p3, "world-dino-care", { kind: "warm" }); const v = await W.read(new URL(`http://x/api/social?world=dino&wallet=${A(p3)}`));
-  check(r.status === 409 && /make it/.test(r.body.error) && v.body.egg === null && v.body.memorial.length === 1, "day 2 missed (29 h): the egg dies, a line in the memorial, the slot free");
+  check(r.status === 409 && /make it/.test(r.body.error) && v.body.egg === null && v.body.memorial.length === 1, `day 2 missed (29 h): the egg dies, a line in the memorial, the slot free (${r.status} ${r.body.error} egg=${!!v.body.egg} mem=${v.body.memorial.length})`);
   const g2 = nextEgg(TT + 60e3); TT = g2.t + 1000; r = await call(p3, "world-dino-claim", { nest: g2.e.nest }); check(r.status === 200 || /a day/.test(r.body.error), "after the loss a new egg can be picked up (one a day)"); }
 { const p4 = ethers.Wallet.createRandom(); const g = nextEgg(TT + 864e5); TT = g.t + 1000; await call(p4, "world-dino-claim", { nest: g.e.nest }); TT += 7 * H; r = await call(p4, "world-dino-care", { kind: "water" }); check(r.status === 409, "day 1 not cared for within 6 hours: the egg dies"); }
 // the companion: bond and its daily cap, a pat's cool-down
@@ -84,7 +85,7 @@ db.set(`worldArclBal/${A(p1)}`, { bal: 2000 }); r = await call(p1, "world-dino-f
 { const B = { lv: 30, hatched: 0 }; check(E.stageOf(B, 2 * 864e5) === 0 && E.stageOf(B, 4 * 864e5) === 1 && E.stageOf(B, 8 * 864e5) === 2, "growth needs both the level and the days together"); }
 // genes: from the egg's id, the same each time, the look only; rarity weighted (most common)
 { const g1 = E.genesOf("n0_123"), g2 = E.genesOf("n0_123"); check(JSON.stringify(g1) === JSON.stringify(g2) && E.DINO.SPECIES.some((x) => x.id === g1.species) && g1.size > 0.9 && g1.size < 1.07, "an egg's genes come from its id: the same every time");
-  const c = { common: 0, legend: 0 }; for (let i = 0; i < 4000; i++) { const g = E.genesOf("t" + i); if (g.rarity in c) c[g.rarity]++; } check(c.common > 2400 && c.legend < 120, `rarity is weighted (${c.common} common, ${c.legend} legend of 4000)`); }
+  const c = { common: 0, legend: 0 }; for (let i = 0; i < 4000; i++) { const g = E.genesOf("t" + i); if (g.rarity in c) c[g.rarity]++; } check(c.common > 2200 && c.common < 2600 && c.legend > 10 && c.legend < 90, `rarity is weighted (${c.common} common, ${c.legend} legend of 4000)`); }
 // the hatched companion carries its egg's genes
 { const v = (await W.read(new URL(`http://x/api/social?world=dino&wallet=${A(p1)}`))).body; check(v.buddy && v.buddy.genes && v.buddy.genes.species && !v.first, "the companion has genes; no first egg once you have one"); }
 // the next eggs: from the schedule, after now, in order
@@ -119,6 +120,24 @@ db.set(`worldArclBal/${A(p1)}`, { bal: 2000 }); r = await call(p1, "world-dino-f
   await W.handle({ action: "world-ping", id: "dinoghost00002", g: { x: 5, z: 4, c: "arc-luna", lv: 3, dn: 1 }, s: await sign(p2) });
   await W.handle({ action: "world-ping", id: "dinoghost00003", g: { x: 6, z: 4, c: "arc-luna", lv: 3, dn: "raptor.jade.legend.4" } });
   const G = (await W.read(new URL("http://x/api/social?world=ghosts"))).body.ghosts, g1 = G.find((x) => x.n === "Ranger"), g2 = G.find((x) => x.n === "Other");
-  check(g1 && /^(raptor|trike)\.[a-z]+\.(common|rare|epic|legend)\.[0-4]$/.test(g1.dn || ""), `a companion's look travels with its owner (${g1 && g1.dn})`);
+  check(g1 && /^(raptor|trike)\.[a-z]+\.(common|advanced|rare|epic|legend)\.[0-4]$/.test(g1.dn || ""), `a companion's look travels with its owner (${g1 && g1.dn})`);
   check(g2 && !g2.dn && !G.some((x) => x.dn === "raptor.jade.legend.4"), "no companion, or a look made up by the client: nothing shown"); }
+// grades: at the same level and bond a higher grade is always stronger, whatever the rolls
+{ const order = ["common", "advanced", "rare", "epic", "legend"]; let okG = true;
+  for (let i = 0; i + 1 < order.length; i++) { const hi = E.statsOf({ lv: 30, bond: 50, genes: { rarity: order[i], iv: 1 } }, {}), lo = E.statsOf({ lv: 30, bond: 50, genes: { rarity: order[i + 1], iv: 0 } }, {}); if (!(lo.atk > hi.atk && lo.def > hi.def && lo.hp > hi.hp)) okG = false; }
+  check(okG, "a higher grade's weakest beats a lower grade's strongest (same level and bond)");
+  const a = E.statsOf({ lv: 30, bond: 50, genes: { rarity: "rare", iv: 0.1 } }, {}), b = E.statsOf({ lv: 30, bond: 50, genes: { rarity: "rare", iv: 0.9 } }, {}); check(b.atk > a.atk, "within a grade, the roll makes each a little different"); }
+// several dinosaurs: a gift egg of a given grade, hatched alongside the first; switch which one is out
+{ const p5 = ethers.Wallet.createRandom(), W5 = A(p5); pack(p5, { wood: 40, meat: 6 });
+  r = await call(p5, "world-dino-claim", { nest: "first" }); const firstId = r.body.egg.id;
+  const dino = W.__dino; void dino;
+  // the launch gift's egg (an Advanced one), straight into the record as the event gives it
+  const D0 = db.get(`worldDino/${W5}`); D0.eggs.push({ id: "launch_" + W5, nest: "gift", found: TT, done: [], cares: {}, rar: "advanced" }); db.set(`worldDino/${W5}`, D0);
+  let v = (await W.read(new URL(`http://x/api/social?world=dino&wallet=${W5}`))).body; check(v.eggs.length === 2 && v.eggs.find((e) => e.id === "launch_" + W5).rarity === "advanced", "two eggs at once; the gift one is Advanced");
+  const t0 = TT; for (const d of [0, 21, 42]) { TT = t0 + d * H; for (const id of [firstId, "launch_" + W5]) for (const k of ["warm", "water", "feed"]) await call(p5, "world-dino-care", { kind: k, egg: id }); }
+  TT = t0 + 80 * H; r = await call(p5, "world-dino-hatch", { name: "One", egg: firstId }); const id1 = r.body.born && r.body.born.id;
+  r = await call(p5, "world-dino-hatch", { name: "Two", egg: "launch_" + W5 }); const id2 = r.body.born && r.body.born.id;
+  check(r.status === 200 && r.body.dinos.length === 2 && r.body.active === id1 && r.body.born.genes.rarity === "advanced", "both hatch: two dinosaurs, the first one out, the second Advanced");
+  r = await call(p5, "world-dino-active", { id: id2 }); check(r.status === 200 && r.body.active === id2 && r.body.buddy.name === "Two", "switch: the other one is out with you");
+  r = await call(p5, "world-dino-active", { id: "nope" }); check(r.status === 404, "no such dinosaur: refused"); }
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);
