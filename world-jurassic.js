@@ -6,6 +6,7 @@
 // It draws its own scene through the stage's view() while the town waits behind it, like the ARCL Mine.
 import { makeJurTrees } from "./world-jurtrees.js";
 import { createSurvival, CAMPS, CAMP_R } from "./world-jursurv.js";
+import { createDino } from "./world-dino.js";
 export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { x: 0, z: 66 }, LAKE: { x: 55, z: -35, r: 34 } };
 
 export function createJurassic(ctx) {
@@ -13,7 +14,7 @@ export function createJurassic(ctx) {
   const low = !!ctx.low, reduce = !!ctx.reduce, coarse = !!ctx.coarse;
   const J = JURASSIC;
   const Snd = ctx.Snd || {}; let shakeT = 0;
-  let S = null, ui = null, hero = null, on = false, busy = false, surv = null;
+  let S = null, ui = null, hero = null, on = false, busy = false, surv = null, dino = null;
   let downNow = false, hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
   const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 }, pinch = { a: -1, b: -1, d: 0, pts: new Map() };
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), camLookS = new THREE.Vector3();
@@ -155,6 +156,7 @@ export function createJurassic(ctx) {
   // circles before it comes in again
   function bites(o) {
     if (!o.biteAt || clock < o.biteAt) return; o.biteAt = 0; if (downNow || !o.alive) return;
+    if (o.vsBuddyUntil > clock && dino && dino.near(o)) { dino.hurt(o.biteK); o.retreatUntil = clock + 0.7 + Math.random() * 0.7; o.side = Math.random() < 0.5 ? -1 : 1; return; }
     const dx = px - o.x, dz = pz - o.z, d = Math.hypot(dx, dz); if (d > o.biteR + 0.9) return;
     const v = ctx.vitals ? ctx.vitals() : null, n = Math.max(1, Math.round(((v && v.max) || 120) * o.biteK));
     if (ctx.hurt) ctx.hurt(n); if (Snd.bite) Snd.bite(); shakeT = 0.3 + o.biteK;
@@ -692,6 +694,7 @@ export function createJurassic(ctx) {
     for (let i = nodes.length - 1; i >= 0; i--) if (CAMPS.some(([cx, cz]) => Math.hypot(nodes[i].x - cx, nodes[i].z - cz) < CAMP_R + 0.8)) { nodes[i].hide(); nodes.splice(i, 1); }
     // gathering, hunting, the pack and the camp (world-jursurv.js)
     try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
+      buddyOut: () => !!(dino && dino.out()), onBuddy: (b, k) => { if (dino) dino.onBuddy(b, k); },
       faceTo: (a) => { face = a; }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
   }
@@ -866,6 +869,7 @@ export function createJurassic(ctx) {
     tickSky(dt); S.wU.uT.value = t; if (S.grass) S.grass.tick(t); S.air.tick(dt, t); if (S.trees) S.trees.tick(t);
     clock = t; tickRaptors(dt, t); tickHerd(dt, t); tickAlpha(dt, t); tickTrikes(dt, t); tickSentinel(dt, t); tickSpino(dt, t); tickTitan(dt, t);
     if (surv) surv.tick(dt, t, px, pz, face);
+    if (dino) try { dino.tick(dt, t); } catch (e) { console.warn("dino", e); dino = null; }
     // wading: rings spreading on the water round you (so the shallows read as water)
     { const wetNow = inLake(px, pz) && height(px, pz) < WATER_Y - 0.1; if (!S.rip) { const m = new THREE.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0, depthWrite: false });
         S.rip = [0, 1, 2].map((i) => { const r = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 40), m.clone()); r.rotation.x = -Math.PI / 2; r.visible = false; S.scene.add(r); return r; }); }
@@ -888,6 +892,11 @@ export function createJurassic(ctx) {
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
       st.renderer.domElement.addEventListener("pointerdown", tapDown); st.renderer.domElement.addEventListener("pointerup", tapUp);
       if (surv) surv.load();
+      // DINO SOULMATE (world-dino.js): the eggs, the Hatchery, your companion
+      if (!dino && surv) try { dino = createDino({ THREE, K: ctx.K, T, esc, toast, ctx, scene: S.scene, cam: S.cam, height, rig, model: () => MODELS && MODELS.raptor8, me: () => ({ x: px, z: pz, face, down: downNow }), camYaw: () => camYaw,
+        foes: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])], sel: () => sel, working: () => surv.working(), hurtFoe: surv.hurtFoe, pop: surv.pop, setInv: surv.setInv, root: ui.root,
+        homeCamp: () => surv.homeSpot(), setView: (v) => { if (ctx.setView) ctx.setView(v); }, clock: () => clock, confetti: ctx.confetti }); } catch (e) { console.warn("dino", e); dino = null; }
+      if (dino) try { dino.start(); } catch (e) { console.warn("dino", e); toast(esc(T("The Hatchery didn't open — try again later."))); dino = null; }
       // the first visit: a short tour of what's new here (after the title)
       // the first three days after your first visit: the basics, as a card each time you come in (after the title)
       let firstAt = 0; try { firstAt = Number(localStorage.getItem("arc.jur.first")) || 0; if (!firstAt) { firstAt = Date.now(); localStorage.setItem("arc.jur.first", String(firstAt)); } } catch { firstAt = Date.now(); }
@@ -910,6 +919,7 @@ export function createJurassic(ctx) {
   }
   function reset() {
     if (surv && surv.packOpen()) surv.togglePack(false);
+    if (dino) try { dino.stop(); } catch { /* the Hatchery is closed anyway */ }
     on = false; document.body.classList.remove("wp-jurassic"); if (ui) ui.root.hidden = true;
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); keys.clear();
     st.renderer.domElement.removeEventListener("pointerdown", tapDown); st.renderer.domElement.removeEventListener("pointerup", tapUp); selectFoe(null);
@@ -920,7 +930,7 @@ export function createJurassic(ctx) {
   // the swing (chopping and mining come next, judged by the server); E at the gate goes home
   let swingT = 0;
   function swing() { if (surv) { surv.swing(px, pz, face); return; } const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
-  function use() { if (nearGate) leave(); else if (downNow) return; else if (surv && surv.bedNear() && !(surv.target && surv.target())) surv.rest(); else swing(); }
+  function use() { if (nearGate) leave(); else if (downNow) return; else if (dino && dino.tryPick()) return; else if (surv && surv.bedNear() && !(surv.target && surv.target())) surv.rest(); else swing(); }
   function act(a) { if (!on || downNow) return true; if (a === "attack") swing(); return true; }
   // knocked out (the town's rules: world-combat.js — today's free get-up, then $ARCIRCLE or a rest): the hero lies down;
   // getting up "here" stays, "plaza" means the gate
@@ -930,5 +940,5 @@ export function createJurassic(ctx) {
     if (where === "plaza") { px = J.SPAWN.x; pz = J.SPAWN.z; camInit = false; }
     animNow = ""; if (hero && hero.play) hero.play("idle");
   }
-  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), nodes: nodes.length }), sky: (ph, wet) => { phOver = ph; rainOver = wet; }, skyNow: () => ({ night, rainK: +rainK.toFixed(2), ph: +dayPhase().toFixed(3) }), surv: () => surv, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
+  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), nodes: nodes.length }), sky: (ph, wet) => { phOver = ph; rainOver = wet; }, skyNow: () => ({ night, rainK: +rainK.toFixed(2), ph: +dayPhase().toFixed(3) }), surv: () => surv, dino: () => dino, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
 }

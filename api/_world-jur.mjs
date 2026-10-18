@@ -60,7 +60,7 @@ export const JUR = {
 const ORE = ["cu", "ag", "au"];
 const MATS = ["wood", "hardwood", "stone", "flint", "clay", "fiber", "berries", "amber", "hide", "bone", "meat", "cooked", "torch", "rope", "fang"];
 
-/// deps: { getDocs, setDoc, commit, json, now, signer(b), isGM(w), random?, mine: { addOre, oreOf, takeOre } }
+/// deps: { getDocs, setDoc, commit, json, now, signer(b), isGM(w), random?, mine: { addOre, oreOf, takeOre }, dino?: { assist, hunt, gather } }
 export function makeJur(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now();
@@ -127,8 +127,10 @@ export function makeJur(deps) {
     const inv = await invOf(w), t = now(); if ((inv.felled[node] || 0) > t) return json(409, { error: "it's not back yet", regrowAt: inv.felled[node] });
     if (inv.work && inv.work.node === node && t - inv.work.at < 10 * 60e3) return json(200, { ok: true, need: inv.work.need, at: inv.work.at });
     let k = 1; if (N.tool === "axe") k = JUR.AXE[Math.max(0, Math.min(3, inv.tools.axe | 0))]; else if (N.tool === "pick") k = deps.mine ? (await deps.mine.oreOf(w)).k : 1; else if (N.tool === "spear") k = JUR.SPEAR[Math.max(0, Math.min(1, inv.tools.spear | 0))];
-    const need = Math.max(1, Math.round(between(N.hits) * k));
-    inv.work = { node, kind, need, at: t }; await setDoc(`worldJurInv/${w}`, inv);
+    // a dinosaur companion out with you (world-dino.js) takes its share of a hunt's swings (api/_world-dino.mjs)
+    const share = b.buddy && N.tool === "spear" && deps.dino ? await deps.dino.assist(w).catch(() => 0) : 0;
+    const need = Math.max(1, Math.round(between(N.hits) * k * (1 - share)));
+    inv.work = { node, kind, need, at: t, buddy: share > 0 }; await setDoc(`worldJurInv/${w}`, inv);
     return json(200, { ok: true, need, at: t });
   }
   // the node breaks: only after its swings could have been made; the drop goes in your pack (ore in the mine's pockets)
@@ -144,7 +146,14 @@ export function makeJur(deps) {
     if (N.ore && deps.mine) { const add = {}; for (const [k, [p, lo, hi]] of Object.entries(N.ore)) if (rnd() < p) add[k] = between([lo, hi]); if (Object.keys(add).length) { ore = await deps.mine.addOre(w, add); loot.ore = add; } }
     inv.felled = prune({ ...inv.felled, [node]: t + N.regrow }, t); inv.work = null;
     await setDoc(`worldJurInv/${w}`, inv);
-    return json(200, { ok: true, loot, ore, inv: pub(inv), regrowAt: t + N.regrow });
+    // the companion's experience: a hunt it helped with, or a little for gathering with it out
+    let buddy = null; if (deps.dino && (W.buddy || b.buddy)) buddy = await (N.tool === "spear" && W.buddy ? deps.dino.hunt(w, W.kind) : deps.dino.gather(w)).catch(() => null);
+    return json(200, { ok: true, loot, ore, inv: pub(inv), regrowAt: t + N.regrow, buddy });
+  }
+  /// materials taken from a pack for something else (the dinosaur egg's care, its food): { ok, inv } or { err }
+  async function take(w, need) {
+    const inv = await invOf(w); if (!Object.entries(need).every(([k, n]) => (inv.mat[k] || 0) >= n)) return { err: "not enough", need };
+    for (const [k, n] of Object.entries(need)) inv.mat[k] -= n; await setDoc(`worldJurInv/${w}`, inv); return { ok: true, inv: pub(inv) };
   }
   const hasAll = (inv, need, ore) => Object.entries(need).every(([k, n]) => (ORE.includes(k) ? (ore && ore[k]) || 0 : inv.mat[k] || 0) >= n);
   async function pay(w, inv, need) {
@@ -204,6 +213,7 @@ export function makeJur(deps) {
     return json(200, { ok: true, inv: pub(inv), fed });
   }
   return {
+    take,
     view,
     async handle(b) {
       if (b.action === "world-jur-start") return start(b);

@@ -154,3 +154,15 @@ around standing (SURVIVORS ARENA shipped like that). Before using a clip name an
   (`hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)`)
   and check it is a walk/sprint clip, not idle. A screenshot of a hero standing still proves nothing.
 - The same goes for any rig (dinosaurs, monsters, pets): list the file's clip names first, and map them on purpose.
+
+## Our 2026 goals (KPIs for December 31, 2026 — the owner's targets, not guarantees)
+
+1. Registered players: 10,000+
+2. Peak concurrent players: 100+
+3. $ARCIRCLE market cap: $5M+
+4. Game releases: 10+ playable games
+5. Partnerships & investment: 3+ signed agreements
+
+The vision behind them: the Roblox of crypto. When planning or writing posts, weigh work by what moves these (new
+players signing up, reasons to play together at the same time, more playable games). Always call them targets, never
+promises.

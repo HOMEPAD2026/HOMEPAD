@@ -82,7 +82,7 @@ export function createSurvival(H) {
     const o = tgt || pick(px, pz, face); if (!o) { H.swingAnim(); return true; }
     H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim();
     if (signedOut) { toast(T("Sign in to gather")); return true; }
-    if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else { toast(T("Couldn't gather: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); work = null; } }); }
+    if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind, buddy: !!(H.buddyOut && H.buddyOut()) }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else { toast(T("Couldn't gather: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); work = null; } }); }
     work.hits++;
     if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3));
       o.hpNow = Math.max(work.need && work.hits >= work.need ? 0 : 1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, "-" + dmg.toLocaleString("en-US"), "dmg", 0.4); paintFoe(); }
@@ -94,10 +94,10 @@ export function createSurvival(H) {
   }
   async function finish(w) {
     if (w.breaking) return; w.breaking = true; await w.started;
-    let r = null; for (let i = 0; i < 4; i++) { r = await api("world-jur-break", { node: w.o.id }); if (r.ok || r.status !== 429 || /full day/.test(String(r.j && r.j.error))) break; await new Promise((ok) => setTimeout(ok, 600)); }
+    let r = null; for (let i = 0; i < 4; i++) { r = await api("world-jur-break", { node: w.o.id, buddy: !!(H.buddyOut && H.buddyOut()) }); if (r.ok || r.status !== 429 || /full day/.test(String(r.j && r.j.error))) break; await new Promise((ok) => setTimeout(ok, 600)); }
     if (work === w) work = null;
     if (!r || !r.ok) { toast(T("Couldn't gather: {e}", { e: String((r && r.j && r.j.error) || "").slice(0, 60) })); paint(); return; }
-    const j = r.j, o = w.o; inv = j.inv; if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
+    const j = r.j, o = w.o; inv = j.inv; if (j.buddy && H.onBuddy) try { H.onBuddy(j.buddy, o.kind); } catch { /* the companion's card waits */ } if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
     const isDino = o.kind === "raptor" || o.kind === "trike" || o.kind === "alpha" || o.kind === "spino" || o.kind === "titan" || o.kind === "claw";
     if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else { o.down = true; o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
     const parts = Object.entries(j.loot || {}).filter(([m]) => m !== "ore").map(([m, n]) => `${ICON[m] || ""}+${n}`);
@@ -357,5 +357,8 @@ export function createSurvival(H) {
     for (const f of fires) { const k = 0.85 + Math.sin(t * 17 + f.id) * 0.08 + Math.sin(t * 29 + f.id) * 0.06; f.scale.set(1, k, 1); f.rotation.y = t * 1.3; }
     tickGhost(px, pz, face); const inC = !!inHome(px, pz); if (ui && ui.buildBtn.hidden === inC) { ui.buildBtn.hidden = !inC; if (!inC) { ui.build.hidden = true; endGhost(); } }
   }
-  return { select, selected: () => sel, campFire, rest, bedNear: () => bedNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
+  /// a dinosaur companion's bite (world-dino.js): off the HP shown (the server's swings still decide the kill)
+  function hurtFoe(o, dmg, cls = "dmg buddy") { const F = FOE[o.kind]; if (!F) return; o.hpNow = Math.max(1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, "-" + dmg.toLocaleString("en-US"), cls, 0.15); if (sel === o) paintFoe(); if (o.hurt) o.hurt(); }
+  const refresh = () => { load().then(() => { paint(); if (ui && !ui.pack.hidden) paintPack(); }); };
+  return { homeSpot: () => { const c = homeCamp(); return c && CAMPS[c.slot] ? { x: CAMPS[c.slot][0], z: CAMPS[c.slot][1] } : null; }, hurtFoe, pop, refresh, working: () => (work && work.o) || null, setInv: (x) => { if (x) { inv = { ...(inv || {}), ...x }; if (ui && !ui.pack.hidden) paintPack(); } }, select, selected: () => sel, campFire, rest, bedNear: () => bedNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
 }
