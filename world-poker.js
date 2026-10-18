@@ -47,7 +47,7 @@ export function createPoker(ctx) {
 
   // ---------------- this device's record (a wallet's comes from the server) ----------------
   function load() {
-    const d = { xp: 0, day: "", xpToday: 0, games: 0, wins: 0, best: -1, back: "blue", felt: "violet", ais: 3, lvl: 1 };
+    const d = { xp: 0, day: "", xpToday: 0, games: 0, wins: 0, best: -1, back: "blue", felt: "violet", ais: 3, lvl: 1, hint: true, buzz: true };
     try { return { ...d, ...JSON.parse(localStorage.getItem(SAVE) || "{}") }; } catch { return d; }
   }
   function save() { try { localStorage.setItem(SAVE, JSON.stringify(prog)); } catch { /* kept for this visit */ } }
@@ -107,7 +107,7 @@ export function createPoker(ctx) {
     const list = []; let left = Math.round(amt);
     for (let k = 0; k < DENOM.length && list.length < 16; k++) while (left >= DENOM[k] && list.length < 16) { list.push(DCOL[k]); left -= DENOM[k]; }
     if (!list.length) list.push(0);
-    list.forEach((ci, n) => { const m = new THREE.Mesh(S.chipGeo, S.chipM[ci]), col = Math.floor(n / 6), h = n % 6; m.position.set((col % 3) * 0.27 - (Math.min(2, Math.floor((list.length - 1) / 6)) * 0.135), 0.022 + h * 0.042, col >= 3 ? 0.24 : 0); m.rotation.y = (n * 1.7) % 6.28; g.add(m); });
+    list.forEach((ci, n) => { const m = new THREE.Mesh(S.chipGeo, S.chipM[ci]), col = Math.floor(n / 6), h = n % 6; m.position.set((col % 3) * 0.37 - (Math.min(2, Math.floor((list.length - 1) / 6)) * 0.185), 0.03 + h * 0.058, col >= 3 ? 0.34 : 0); m.rotation.y = (n * 1.7) % 6.28; g.add(m); });
   }
   function build() {
     const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200);
@@ -160,11 +160,13 @@ export function createPoker(ctx) {
     new THREE.TextureLoader().loadAsync("images/world-arcia-dealer.webp?v=" + (ctx.ver || "1")).then((t) => { t.colorSpace = THREE.SRGBColorSpace; dm.map = t; dm.needsUpdate = true; dlr.visible = true; }).catch((e) => console.warn("poker dealer:", e));
     // her chip tray at the table's edge
     const tray = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 0.42), new THREE.MeshStandardMaterial({ color: 0x0e0718, roughness: 0.3, metalness: 0.6 })); tray.position.set(0, 0.05, -RZ + 0.42); tbl.add(tray);
-    const chipGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.04, 20), chipM = chipMats();
-    for (let k = 0; k < 8; k++) for (let h = 0; h < 5; h++) { const m = new THREE.Mesh(chipGeo, chipM[[3, 5, 4, 2, 1, 6, 7, 0][k]]); m.rotation.z = Math.PI / 2; m.position.set(-0.84 + k * 0.24, 0.17, -RZ + 0.42 - 0.12 + h * 0.06); m.rotation.y = 0; tbl.add(m); }
+    const chipGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.055, 24), chipM = chipMats();
+    for (let k = 0; k < 8; k++) for (let h = 0; h < 5; h++) { const m = new THREE.Mesh(chipGeo, chipM[[3, 5, 4, 2, 1, 6, 7, 0][k]]); m.rotation.z = Math.PI / 2; m.scale.setScalar(0.7); m.position.set(-0.84 + k * 0.24, 0.17, -RZ + 0.42 - 0.12 + h * 0.06); m.rotation.y = 0; tbl.add(m); }
     // the dealer button
-    const [bc, bg] = canvasOf(128, 128); bg.fillStyle = "#fff"; bg.beginPath(); bg.arc(64, 64, 62, 0, Math.PI * 2); bg.fill(); bg.fillStyle = "#151a30"; bg.font = "900 78px sans-serif"; bg.textAlign = "center"; bg.textBaseline = "middle"; bg.fillText("D", 64, 70);
-    const dbtn = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 28), [new THREE.MeshStandardMaterial({ color: 0xe8e8f0, roughness: 0.4 }), new THREE.MeshStandardMaterial({ map: texOf(bc), roughness: 0.4 }), new THREE.MeshStandardMaterial({ color: 0xe8e8f0 })]); dbtn.position.y = 0.04; dbtn.visible = false; scene.add(dbtn);
+    const [bc, bg] = canvasOf(256, 256); bg.fillStyle = "#fff"; bg.beginPath(); bg.arc(128, 128, 126, 0, Math.PI * 2); bg.fill(); bg.strokeStyle = "#ffc83a"; bg.lineWidth = 14; bg.beginPath(); bg.arc(128, 128, 112, 0, Math.PI * 2); bg.stroke();
+    bg.fillStyle = "#151a30"; bg.font = "900 150px sans-serif"; bg.textAlign = "center"; bg.textBaseline = "middle"; bg.fillText("D", 128, 120); bg.font = "900 30px sans-serif"; bg.fillText("DEALER", 128, 206);
+    const dbtn = new THREE.Group(), dEdge = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.07, 32), new THREE.MeshStandardMaterial({ color: 0xe8e8f0, roughness: 0.4 })), dTop = new THREE.Mesh(new THREE.CircleGeometry(0.3, 32), new THREE.MeshStandardMaterial({ map: texOf(bc), roughness: 0.4 }));
+    dEdge.position.y = 0.035; dTop.rotation.x = -Math.PI / 2; dTop.position.y = 0.072; dbtn.add(dEdge, dTop); dbtn.position.y = 0; dbtn.visible = false; scene.add(dbtn);
     // the cards: five for the board, two for each seat; a card is a pair of planes (face, back) laid on the felt
     const cg = new THREE.PlaneGeometry(CW, CH), cards = [];
     for (let k = 0; k < 17; k++) {
@@ -188,10 +190,10 @@ export function createPoker(ctx) {
   const tv = new THREE.Vector3();
   function frame() {
     if (!S) return; const V = view(), cam = S.cam, k = scaleK() * (V.h / innerHeight), lob = mode === "lobby" || mode === "result" || mode === "load";
-    const top = (lob ? 30 : 70) * k, bot = lob ? V.h * 0.6 : (phone() ? 200 : 178) * k;
+    const top = (lob ? 30 : phone() ? 70 : 60) * k, bot = lob ? V.h * 0.6 : (phone() ? 200 : wide() ? 18 : 168) * k; // (wide: your cards and moves sit at the side)
     cam.aspect = V.w / V.h; cam.fov = phone() ? 40 : 34;
     const el = ((lob ? 26 : phone() ? 62 : 52) * Math.PI) / 180, tz = lob ? -RZ * 0.6 : 0.1;
-    const pts = lob ? [[-(RX + 0.6), 0, -RZ * 0.4], [RX + 0.6, 0, -RZ * 0.4], [0, 4.3, -RZ - 0.75], [0, 0, -RZ * 0.1]] : [[-(RX + 0.5), 0, 0], [RX + 0.5, 0, 0], [0, 0, RZ + 0.5], [0, 3.4, -RZ - 0.75], [0, 0, -RZ - 0.5]];
+    const pts = lob ? [[-(RX + 0.6), 0, -RZ * 0.4], [RX + 0.6, 0, -RZ * 0.4], [0, 4.3, -RZ - 0.75], [0, 0, -RZ * 0.1]] : [[-(RX + 0.5), 0, 0], [RX + 0.5, 0, 0], [0, 0, RZ + 0.5], [0, phone() ? 3.4 : 4.1, -RZ - 0.75], [0, 0, -RZ - 0.5]];
     const yT = 1 - (2 * top) / V.h, yB = -1 + (2 * bot) / V.h, band = Math.max(0.25, yT - yB);
     const place = (D) => { cam.position.set(0, D * Math.sin(el), tz + D * Math.cos(el)); cam.lookAt(0, lob ? 1.2 : 0, tz); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); let x = 0, y0 = 9, y1 = -9; for (const p of pts) { tv.set(p[0], p[1], p[2]).project(cam); x = Math.max(x, Math.abs(tv.x)); y0 = Math.min(y0, tv.y); y1 = Math.max(y1, tv.y); } return { x, y0, y1 }; };
     let lo = 3, hi = 60; for (let it = 0; it < 22; it++) { const D = (lo + hi) / 2, r = place(D); if (r.x <= 0.97 && r.y1 - r.y0 <= band) hi = D; else lo = D; }
@@ -200,6 +202,8 @@ export function createPoker(ctx) {
     S.key = [V.w, V.h, mode].join("x");
     S.dlr.parent.lookAt(cam.position.x, S.dlr.parent.position.y + (cam.position.y - S.dlr.parent.position.y) * 0.35, cam.position.z); // (leaning back a little toward the camera)
   }
+  const wide = () => !phone() && innerWidth > innerHeight * 1.25;
+  const boardScale = () => (phone() ? 1.08 : 1.3);
   const slotPos = (d, r) => { const a = (SLOT[d] * Math.PI) / 180; return { x: Math.cos(a) * RX * r, z: Math.sin(a) * RZ * r, a }; };
   function toScreen(x, y, z) { tv.set(x, y, z).project(S.cam); const V = view(), k = scaleK(); return { x: (V.x + ((tv.x + 1) / 2) * V.w) / k, y: (V.y + ((1 - tv.y) / 2) * V.h) / k, behind: tv.z > 1 }; }
 
@@ -215,7 +219,7 @@ export function createPoker(ctx) {
       cd.o.rotation.y = f0.yaw + (yaw - f0.yaw) * e; cd.flip.rotation.y = f0.fl + ((up ? 0 : Math.PI) - f0.fl) * e; cd.o.scale.setScalar(f0.s + (sc - f0.s) * e);
     }, done, delay);
   }
-  function cardFrom(cd, c) { cd.c = c; cd.front.material.map = faceTex(c < 0 ? 0 : c); cd.front.material.emissive.setHex(0); cd.front.material.needsUpdate = true; cd.back.material.map = faceTex(-1); cd.back.material.needsUpdate = true; cd.o.position.set(0, 0.5, -RZ + 0.6); cd.o.rotation.y = 0; cd.flip.rotation.y = Math.PI; cd.o.scale.setScalar(0.8); }
+  function cardFrom(cd, c) { cd.c = c; cd.front.material.map = faceTex(c < 0 ? 0 : c); cd.front.material.emissive.setHex(0); cd.front.material.color.setHex(0xffffff); cd.front.material.needsUpdate = true; cd.back.material.map = faceTex(-1); cd.back.material.needsUpdate = true; cd.o.position.set(0, 0.5, -RZ + 0.6); cd.o.rotation.y = 0; cd.flip.rotation.y = Math.PI; cd.o.scale.setScalar(0.8); }
   function flyChips(from, to, amt, delay = 0) {
     if (!(amt > 0)) return; const g = new THREE.Group(); stackChips(g, Math.min(amt, 6000)); g.visible = true; S.flyG.add(g); g.position.set(from.x, 0.03, from.z);
     tween(0.42, (k) => { const e = ease(k); g.position.set(from.x + (to.x - from.x) * e, 0.03 + Math.sin(k * Math.PI) * 0.3, from.z + (to.z - from.z) * e); }, () => S.flyG.remove(g), delay);
@@ -269,7 +273,7 @@ export function createPoker(ctx) {
   function placeButton(M) {
     const H = M.hand, d = dOfI(M, H.button), p = slotPos(d, 0.74), a = p.a + 0.32;
     S.dbtn.visible = true; const to = { x: Math.cos(a) * RX * 0.74, z: Math.sin(a) * RZ * 0.74 }, f = { x: S.dbtn.position.x, z: S.dbtn.position.z };
-    tween(0.4, (k) => { const e = ease(k); S.dbtn.position.set(f.x + (to.x - f.x) * e, 0.04, f.z + (to.z - f.z) * e); });
+    tween(0.4, (k) => { const e = ease(k); S.dbtn.position.set(f.x + (to.x - f.x) * e, 0, f.z + (to.z - f.z) * e); });
   }
   const holeCard = (i, j) => S.cards[5 + i * 2 + j];
   function holeSpot(M, i, j) { const d = dOfI(M, i), p = slotPos(d, d === 0 ? 0.74 : 0.8), yaw = Math.PI / 2 - p.a, tx = -Math.sin(p.a), tz = Math.cos(p.a); return { x: p.x + tx * (j ? 0.2 : -0.2), z: p.z + tz * (j ? 0.2 : -0.2), yaw: yaw + (j ? -0.12 : 0.12) }; }
@@ -283,7 +287,7 @@ export function createPoker(ctx) {
   }
   function dealBoard(M, upto) {
     const H = M.hand;
-    for (let k = vis.board; k < Math.min(upto, H.board.length); k++) { const cd = S.cards[k], c = H.board[k], n = k - vis.board; cardFrom(cd, c); moveCard(cd, (k - 2) * (CW + 0.08), 0.05, 0, true, 0.38, n * 0.16, 1); setTimeout(() => snd("flip"), n * 160 * fast); }
+    for (let k = vis.board; k < Math.min(upto, H.board.length); k++) { const cd = S.cards[k], c = H.board[k], n = k - vis.board; cardFrom(cd, c); const bs = boardScale(); moveCard(cd, (k - 2) * (CW * bs + 0.08), 0.05, 0, true, 0.38, n * 0.16, bs); setTimeout(() => snd("flip"), n * 160 * fast); }
     vis.board = Math.max(vis.board, Math.min(upto, H.board.length)); paintMine(M);
   }
   function collect(M) {
@@ -339,21 +343,25 @@ export function createPoker(ctx) {
     const won = H.p.map((p, i) => res.net[i] + vis.tot[i]), potAll = vis.tot.reduce((a, b) => a + b, 0);
     stackChips(S.potG, 0);
     won.forEach((w, i) => { if (w > 0) { flyChips({ x: 0, z: -1.3 }, slotPos(dOfI(M, i), 0.9), w, 0.1); vis.badge[i] = { t: "+" + fmt(w), c: "win" }; } });
-    H.p.forEach((p, i) => { vis.stack[i] = p.stack; });
+    // the pot counts down as the winners' stacks count up
+    const from = vis.stack.slice(), to = H.p.map((p) => p.stack); vis.potLeft = potAll;
+    tween(0.95, (k) => { const e = ease(k); vis.potLeft = Math.round(potAll * (1 - e)); vis.stack = from.map((f, i) => Math.round(f + (to[i] - f) * e)); paintSeats(); }, () => { vis.stack = to.slice(); vis.potLeft = 0; paintSeats(); }, 0.25);
     vis.win = new Set(won.map((w, i) => (w > 0 ? i : -1)).filter((i) => i >= 0));
     for (const sh of res.shown) vis.shown[sh.i] = T(sh.name);
     // the winning five, lifted and lit
     const top = res.pots[0] && res.shown.find((x) => x.i === res.pots[0].win[0]);
     if (top && !res.uncontested) {
       const five = new Set(top.five);
-      for (let k = 0; k < 5; k++) { const cd = S.cards[k]; if (five.has(cd.c)) { cd.front.material.emissive.setHex(0x5a3a00); tween(0.25, (q) => { cd.o.position.y = 0.02 + q * 0.12; }); } }
-      for (const sh of res.shown) for (let j = 0; j < 2; j++) if (sh.i !== me && five.has(sh.hole[j]) && vis.win.has(sh.i)) holeCard(sh.i, j).front.material.emissive.setHex(0x5a3a00);
+      // (the rest of the board and the losers' cards go dim, so the winning five stand out)
+      for (let k = 0; k < 5; k++) { const cd = S.cards[k]; if (five.has(cd.c)) { cd.front.material.emissive.setHex(0x1c1200); tween(0.25, (q) => { cd.o.position.y = 0.02 + q * 0.14; }); } else cd.front.material.color.setHex(0x5a5a6e); }
+      for (const sh of res.shown) for (let j = 0; j < 2; j++) if (sh.i !== me) { const m = holeCard(sh.i, j).front.material; if (five.has(sh.hole[j]) && vis.win.has(sh.i)) m.emissive.setHex(0x1c1200); else m.color.setHex(0x5a5a6e); }
+      if (me >= 0) ui.mine.querySelectorAll(".pk-c").forEach((el, j) => el.classList.toggle("dim", !(vis.win.has(me) && five.has(H.p[me].hole[j]))));
       if (me >= 0 && vis.win.has(me)) ui.mine.querySelectorAll(".pk-c").forEach((el, j) => el.classList.toggle("hot", five.has(H.p[me].hole[j])));
     }
     snd("chip", 4);
     const iWon = me >= 0 && vis.win.has(me), wName = H.p[[...vis.win][0]] ? H.p[[...vis.win][0]].name : "", hand = top && !res.uncontested ? T(top.name) : "";
     if (top && top.cat === 9 && !res.uncontested) { banner(`<b>${esc(T("ARCIA JACKPOT!"))}</b><small>${esc(T("ROYAL FLUSH"))} · ${esc(wName)}</small>`, "jackpot"); confetti(60); say(T("A royal flush?! ARCIA JACKPOT! 💙💚")); snd("level"); }
-    else if (iWon) { banner(`<b>${esc(vis.win.size > 1 ? T("SPLIT POT") : T("YOU WIN"))} +${fmt(won[me])}</b>${hand ? `<small>${esc(hand)}</small>` : ""}`, "win"); confetti(potAll >= H.bb * 40 ? 40 : 18); snd("win");
+    else if (iWon) { banner(`<b>${esc(vis.win.size > 1 ? T("SPLIT POT") : T("YOU WIN"))} +${fmt(won[me])}</b>${hand ? `<small>${esc(hand)}</small>` : ""}`, "win"); confetti(potAll >= H.bb * 40 ? 40 : 18); snd("win"); buzz(potAll >= H.bb * 40 ? [40, 50, 90] : [35]);
       say(vis.start[me] < (G ? POKER.START : 0) * 0.4 || vis.start[me] < H.bb * 15 ? T("What a comeback! ♾️") : T("Nice hand~ ♡")); }
     else banner(`<b>${esc(T("{name} wins", { name: wName }))}${vis.win.size > 1 ? " · " + esc(T("SPLIT POT")) : ""}</b><small>${esc(hand || T("Everyone else folded"))}</small>`, "lose");
     if (me >= 0 && !iWon && res.shown.some((x) => x.i === me)) ui.root.querySelector('.pk-seat[data-d="0"]').classList.add("lose");
@@ -366,10 +374,11 @@ export function createPoker(ctx) {
   // ---------------- the HUD over the table ----------------
   function paintAll() { if (!ui || !vis.M) return; paintSeats(); paintMine(vis.M); paintBar(); paintWait(); paintTop(); }
   function paintSeats() {
+    if (mode !== "table") return; // (a count-up finishing under the game-over sheet)
     const M = vis.M, H = M.hand, me0 = M.me >= 0 ? M.me : 0, mp = M.kind === "mp";
     for (let d = 0; d < 6; d++) {
       const el = ui.seats[d], seat = M.seats[(d + me0) % 6], si = (d + me0) % 6, i = H ? H.seatOf.indexOf(si) : -1;
-      if (!seat) { el.hidden = !(mp && d !== 0); el.className = "pk-seat empty"; el.dataset.d = d; el.querySelector(".nm").textContent = T("Open seat"); el.querySelector(".sk").textContent = ""; el.querySelector(".pk-av span").textContent = "+"; el.querySelector(".pk-act").hidden = true; el.querySelector(".pk-shown").hidden = true; el.style.setProperty("--c", "#4a3a7a"); continue; }
+      if (!seat) { el.hidden = !(mp && d !== 0 && !(H && H.street < 4)); el.className = "pk-seat empty"; el.dataset.d = d; el.querySelector(".nm").textContent = T("Open seat"); el.querySelector(".sk").textContent = ""; el.querySelector(".pk-av span").textContent = "+"; el.querySelector(".pk-act").hidden = true; el.querySelector(".pk-shown").hidden = true; el.style.setProperty("--c", "#4a3a7a"); continue; }
       el.hidden = false; el.dataset.d = d;
       const p = i >= 0 ? H.p[i] : null, stk = i >= 0 && vis.stack[i] != null ? vis.stack[i] : seat.stack;
       el.classList.toggle("empty", false); el.classList.toggle("me", d === 0 && M.me >= 0);
@@ -390,6 +399,14 @@ export function createPoker(ctx) {
     let nm = ""; if (hole.length === 2 && hole[0] >= 0) { if (board.length >= 3) nm = T(best([...hole, ...board]).name); else if (rankOf(hole[0]) === rankOf(hole[1])) nm = T("One Pair"); }
     ui.hname.textContent = H.p[me].folded ? T("Folded") : nm;
     ui.eq.textContent = vis.eq && vis.eq[me] != null ? Math.round(vis.eq[me] * 100) + "%" : "";
+    // the hint: how often these cards win against the hands still in (random ones), worked out once a street
+    const live = H.p.filter((p, i) => i !== me && !p.folded && !p.out).length, showStr = prog.hint && H.street < 4 && !H.p[me].folded && hole[0] >= 0 && live > 0 && !vis.eq;
+    ui.str.hidden = !showStr || vis.str == null;
+    if (showStr) {
+      const key = H.handNo + ":" + board.length + ":" + live;
+      if (vis.strKey !== key) { vis.strKey = key; vis.str = null; ui.str.hidden = true; setTimeout(() => { if (vis.strKey !== key || !ui) return; try { vis.str = equity(hole, board, live, ctx.low ? 120 : 220, Math.random); } catch { vis.str = null; } if (vis.M) paintMine(vis.M); }, 30); }
+      else if (vis.str != null) { const e = vis.str, c = e >= 0.6 ? "hi" : e >= 0.35 ? "mid" : "lo"; ui.str.className = "pk-str " + c; ui.str.querySelector("i").style.width = Math.round(e * 100) + "%"; ui.str.querySelector("b").textContent = T(c === "hi" ? "Strong" : c === "mid" ? "Good" : "Weak") + " · ≈" + Math.round(e * 100) + "%"; }
+    }
   }
   const myTurn = (M) => { const H = M && M.hand; return !!(H && H.street < 4 && H.mine >= 0 && H.toAct === H.mine && !Q.length && !latest); };
   function paintBar() {
@@ -434,7 +451,7 @@ export function createPoker(ctx) {
       const p = slotPos(d, d === 3 ? 1.02 : 1.14), s = toScreen(p.x, 0.1, p.z), x = Math.max(58, Math.min(W - 58, s.x));
       el.style.transform = `translate(${x}px, ${s.y}px) translate(-50%, -50%)`;
     }
-    const pt = H && !vis.win ? vis.tot.reduce((a, b) => a + b, 0) : 0; ui.pot.hidden = !pt; if (pt) { const s = toScreen(0, 0.2, -1.3); ui.pot.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -135%)`; ui.potV.textContent = fmt(pt); }
+    const pt = H ? (vis.win ? vis.potLeft || 0 : vis.tot.reduce((a, b) => a + b, 0)) : 0; ui.pot.hidden = !pt; if (pt) { const s = toScreen(0, 0.2, -1.3); ui.pot.style.transform = `translate(${s.x}px, ${s.y}px) translate(-118%, -50%)`; /* (beside the pot's chips: above them is the far seat's bet) */ ui.potV.textContent = fmt(pt); }
     for (let d = 0; d < 6; d++) { const el = ui.betL[d], seatI = H ? H.seatOf.indexOf((d + (M.me >= 0 ? M.me : 0)) % 6) : -1, b = seatI >= 0 ? vis.bet[seatI] : 0; el.hidden = !(b > 0); if (b > 0) { const p = slotPos(d, 0.6), s = toScreen(p.x, 0.1, p.z); el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, 40%)`; el.textContent = fmt(b); } }
     if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.55, -RZ - 0.75); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(70, s.y)}px)`; }
     // the clock
@@ -450,6 +467,7 @@ export function createPoker(ctx) {
   function say(t, ms = 2800) { if (!ui) return; ui.arcia.textContent = t; ui.arcia.hidden = false; ui.arcia.classList.remove("go"); void ui.arcia.offsetWidth; ui.arcia.classList.add("go"); clearTimeout(sayT); sayT = setTimeout(() => { if (ui) ui.arcia.hidden = true; }, ms * Math.max(0.3, fast)); }
   function flash(t, c = "") { const el = document.createElement("div"); el.className = "pk-flash " + c; el.textContent = t; ui.root.appendChild(el); setTimeout(() => el.remove(), 1700); }
   function banner(html, c) { ui.banner.innerHTML = html; ui.banner.className = "pk-banner " + c; ui.banner.hidden = false; void ui.banner.offsetWidth; ui.banner.classList.add("go"); clearTimeout(ui.bannerT); ui.bannerT = setTimeout(() => { if (ui) ui.banner.hidden = true; }, 2900 * Math.max(0.3, fast)); }
+  function buzz(p) { if (!prog.buzz || !ctx.coarse) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch { /* no vibration here */ } }
   function confetti(n) { if (ctx.reduce || !ui) return; const cols = ["#ffd23a", "#5ff0d0", "#b48cff", "#ff6fb5", "#62a8ff"]; for (let k = 0; k < n; k++) { const el = document.createElement("i"); el.className = "pk-conf"; el.style.left = Math.random() * 100 + "%"; el.style.background = cols[k % cols.length]; el.style.animationDelay = Math.random() * 0.5 + "s"; el.style.setProperty("--dx", (Math.random() - 0.5) * 140 + "px"); ui.root.appendChild(el); setTimeout(() => el.remove(), 2600); } }
 
   // ---------------- your moves ----------------
@@ -480,6 +498,8 @@ export function createPoker(ctx) {
   function soloModel() { return { kind: "solo", seats: G.seats, me: 0, hand: G.hand, deadline: 0, stake: { sb: G.hand ? G.hand.sb : 10, bb: G.hand ? G.hand.bb : 20 } }; }
   function soloDeal() {
     const ready = G.slots.filter((s) => G.seats[s].stack > 0);
+    // out of chips with hands still to play: one rebuy a game, if you like
+    if (G.seats[0].stack <= 0 && !G.rebuy && G.hands < POKER.SOLO_HANDS && ready.length >= 1) { G.asking = true; modal(`<p class="pk-say">${esc(T("Out of chips~ ♡ One more go?"))}</p><p>${esc(T("Rebuy {n} chips (once a game)", { n: fmt(POKER.START) }))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="endGame">${esc(T("End the game"))}</button><button type="button" class="pk-btn go" data-a="rebuy">${esc(T("Rebuy"))}</button></div>`, true); return; }
     if (G.seats[0].stack <= 0 || ready.length < 2 || G.hands >= POKER.SOLO_HANDS) return soloOver();
     let b = G.button; for (let k = 1; k <= 6; k++) { const j = (G.button + k) % 6; if (ready.includes(j)) { b = j; break; } } G.button = b;
     const lv = Math.floor(G.hands / 4), sb = 10 * 2 ** lv, bb = sb * 2;
@@ -489,7 +509,7 @@ export function createPoker(ctx) {
     sync(soloModel());
   }
   function soloTick(now) {
-    if (!G || G.over || mode !== "table" || Q.length || latest) return; const H = G.hand; if (!H) return;
+    if (!G || G.over || G.asking || mode !== "table" || Q.length || latest) return; const H = G.hand; if (!H) return;
     if (H.street < 4) {
       if (H.toAct < 0 || H.toAct === H.mine) return;
       if (!G.botAt) { G.botAt = now + (800 + Math.random() * 600) * fast; return; }
@@ -503,14 +523,14 @@ export function createPoker(ctx) {
   }
   async function soloOver() {
     if (!G || G.over) return; G.over = true; mode = "result"; hideTable(); frame();
-    const order = G.slots.map((s) => ({ s, ...G.seats[s] })).sort((a, b) => b.stack - a.stack), place = order.findIndex((x) => x.s === 0) + 1, mine = G.seats[0].stack, won = place === 1 && mine > 0;
+    const order = G.slots.map((s) => ({ s, ...G.seats[s] })).sort((a, b) => b.stack - a.stack), place = order.findIndex((x) => x.s === 0) + 1, mine = G.seats[0].stack, won = place === 1 && mine > 0, spent = POKER.START * (1 + (G.rebuy || 0));
     const lv0 = levelOf(prog.xp).lv, day = seoulDay();
     if (prog.day !== day) { prog.day = day; prog.xpToday = 0; }
     const xpG = Math.max(0, Math.min(POKER.XP_GAME, POKER.XP_DAY - prog.xpToday)); prog.xp += xpG; prog.xpToday += xpG; prog.games++; if (won) prog.wins++; if (G.best > prog.best) prog.best = G.best; save();
     if (ctx.gain) try { ctx.gain(25, "poker"); } catch { /* the game still counts */ }
     sheet(`<div class="pk-res"><h2>${esc(won ? T("YOU WIN THE GAME!") : T("GAME OVER"))}</h2><p class="pk-say">${esc(won ? T("What a game~ You're a natural! ♡") : T("Good game~ ♡ One more?"))}</p>
       <ol class="pk-places">${order.map((x, k) => `<li class="${x.s === 0 ? "me" : ""}"><i>${k + 1}</i><b>${esc(x.name)}</b><span>${fmt(x.stack)}</span></li>`).join("")}</ol>
-      <div class="pk-stats"><span>${esc(T("Hands"))} <b>${G.hands}</b></span><span>${esc(T("Chips"))} <b class="${mine >= POKER.START ? "up" : "down"}">${mine >= POKER.START ? "+" : ""}${fmt(mine - POKER.START)}</b></span><span>${esc(T("Best hand"))} <b>${G.best >= 0 ? esc(T(HANDS[G.best])) : "–"}</b></span></div>
+      <div class="pk-stats"><span>${esc(T("Hands"))} <b>${G.hands}</b></span><span>${esc(T("Chips"))} <b class="${mine >= spent ? "up" : "down"}">${mine >= spent ? "+" : ""}${fmt(mine - spent)}</b></span>${G.rebuy ? `<span>${esc(T("Rebuy used"))}</span>` : ""}<span>${esc(T("Best hand"))} <b>${G.best >= 0 ? esc(T(HANDS[G.best])) : "–"}</b></span></div>
       <div class="pk-pay" data-pay>${signed() ? esc(T("Sending your game…")) : esc(T("Guest play: sign in to count missions and earn ARCL"))}</div>
       <div class="pk-row"><button type="button" class="pk-btn" data-a="lobby">${esc(T("Lounge"))}</button><button type="button" class="pk-btn go" data-a="again">${esc(T("Play again"))}</button></div></div>`);
     snd(won ? "level" : "close");
@@ -556,9 +576,19 @@ export function createPoker(ctx) {
     paintChat(room.chat || []);
     sync(modelOf(room));
   }
+  /// how soon to ask again: sooner when you're next or a computer is thinking (the server moves them on a look), slower
+  /// while it's your own turn (nothing changes until you act) and when the page is hidden
+  function pollGap() {
+    if (document.hidden) return 4000; const H = R && R.room && R.room.hand; if (!H || H.street >= 4) return 1200;
+    const ti = H.toAct, seat = R.room.seats[H.seatOf[ti]];
+    if (H.mine >= 0 && ti === H.mine) return 1500;
+    if (seat && seat.bot) return 950;
+    if (H.mine >= 0 && !H.p[H.mine].folded) { for (let k = 1; k < H.p.length; k++) { const j = (ti + k) % H.p.length, q = H.p[j]; if (!q.folded && !q.out && !q.allin) { if (j === H.mine) return 650; break; } } }
+    return 1200;
+  }
   async function poll(tok) {
     while (R && R.tok === tok && on) {
-      await sleep(document.hidden ? 4000 : 1200);
+      await sleep(pollGap());
       if (!R || R.tok !== tok || !on) break;
       try { const j = await api({ action: "world-poker-view", room: R.id }); if (!R || R.tok !== tok) break; R.fails = 0; ui.root.classList.remove("lost"); syncRoom(j.room); }
       catch (e) {
@@ -644,6 +674,7 @@ export function createPoker(ctx) {
         <div class="pk-stats"><span>${esc(T("Games"))} <b>${fmt(games)}</b></span><span>${esc(T("Win rate"))} <b>${games ? Math.round((wins / games) * 100) : 0}%</b></span><span>${esc(T("Best hand"))} <b>${bst >= 0 ? esc(T(HANDS[bst])) : "–"}</b></span>${status ? `<span>${esc(T("Table hands"))} <b>${fmt(status.hands)}</b></span>` : ""}</div>
         <p class="pk-lbl">${esc(T("Card backs"))}</p><div class="pk-skins">${BACKS.map((b) => `<button type="button" data-back="${b.id}" class="${prog.back === b.id ? "on" : ""}" ${ul < b.lv ? "disabled" : ""} style="--a:${b.a};--b:${b.b}"><i class="sw back"></i><small>${ul < b.lv ? "🔒 Lv " + b.lv : esc(T(b.name))}</small></button>`).join("")}</div>
         <p class="pk-lbl">${esc(T("Table felt"))}</p><div class="pk-skins">${FELTS.map((b) => `<button type="button" data-felt="${b.id}" class="${prog.felt === b.id ? "on" : ""}" ${ul < b.lv ? "disabled" : ""} style="--a:${b.a};--b:${b.b}"><i class="sw felt"></i><small>${ul < b.lv ? "🔒 Lv " + b.lv : esc(T(b.name))}</small></button>`).join("")}</div>
+        <p class="pk-lbl">${esc(T("Settings"))}</p><div class="pk-tog"><button type="button" data-tog="hint" class="${prog.hint ? "on" : ""}">${esc(T("Hand strength hint"))}<b>${esc(prog.hint ? T("On") : T("Off"))}</b></button>${ctx.coarse ? `<button type="button" data-tog="buzz" class="${prog.buzz ? "on" : ""}">${esc(T("Vibration"))}<b>${esc(prog.buzz ? T("On") : T("Off"))}</b></button>` : ""}</div>
         <p class="pk-note">${esc(T("Poker XP: +{a} a finished game (a table game is 10 hands), up to {b} a day", { a: POKER.XP_GAME, b: POKER.XP_DAY }))}</p>`;
     } else {
       pane = `<ol class="pk-rules"><li>${esc(T("Everyone gets two cards; five shared cards come in the middle (3, then 1, then 1)."))}</li><li>${esc(T("Make the best five-card hand from your two and the five shared."))}</li><li>${esc(T("Each round: check, bet, call, raise or fold. The best hand at the end — or the last one left — wins the pot."))}</li></ol>
@@ -669,7 +700,7 @@ export function createPoker(ctx) {
 
   // ---------------- the layer ----------------
   const scaleK = () => (document.documentElement.classList.contains("wp-pcphone") ? innerWidth / 400 : Math.max(1, Math.min(1.25, innerHeight / 860)));
-  function fit() { if (!ui) return; const k = scaleK(); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: innerHeight / k + "px", transform: `scale(${k})` }); if (S) frame(); }
+  function fit() { if (!ui) return; const k = scaleK(); ui.root.classList.toggle("wide", wide()); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: innerHeight / k + "px", transform: `scale(${k})` }); if (S) frame(); }
   function buildUi() {
     const root = document.createElement("div"); root.className = "pk"; root.hidden = true;
     const seat = (d) => `<div class="pk-seat" data-d="${d}" hidden><div class="pk-av"><i class="pk-ring"></i><span></span></div><div class="pk-info"><b class="nm"></b><span class="sk"></span><small class="lv"></small></div><em class="pk-act" hidden></em><strong class="pk-shown" hidden></strong></div>`;
@@ -680,14 +711,14 @@ export function createPoker(ctx) {
       <div class="pk-pot" hidden><small>${esc(T("POT"))}</small><b></b></div>${Array.from({ length: 6 }, () => '<i class="pk-betl" hidden></i>').join("")}
       <div class="pk-arcia" hidden></div><div class="pk-log"></div>
       <div class="pk-wait" hidden><span></span></div>
-      <div class="pk-hand" hidden>${seat(0)}<div class="pk-mine"></div><div class="pk-hinfo"><b class="pk-hname"></b><em class="pk-eq"></em></div></div>
+      <div class="pk-hand" hidden>${seat(0)}<div class="pk-mine"></div><div class="pk-hinfo"><b class="pk-hname"></b><em class="pk-eq"></em><div class="pk-str" hidden><span><i></i></span><b></b></div></div></div>
       <div class="pk-raise" hidden><div class="pk-pre"><button type="button" data-pre="min">${esc(T("Min"))}</button><button type="button" data-pre="0.5">½ ${esc(T("Pot"))}</button><button type="button" data-pre="1">${esc(T("Pot"))}</button><button type="button" data-pre="2">2× ${esc(T("Pot"))}</button></div><div class="pk-sl"><input type="range"><b class="amt"></b></div><div class="pk-row"><button type="button" class="pk-btn" data-a="raiseX">${esc(T("Cancel"))}</button><button type="button" class="pk-btn go" data-a="raiseGo"></button></div></div>
       <div class="pk-bar" hidden><button type="button" class="f" data-a="fold"><b>${esc(T("FOLD"))}</b></button><button type="button" class="c" data-a="call"></button><button type="button" class="r" data-a="raise"></button><button type="button" class="a" data-a="allin"><b>${esc(T("ALL IN"))}</b></button></div>
       <div class="pk-banner" hidden></div><div class="pk-lost">${esc(T("Reconnecting…"))}</div>
       <div class="pk-sheet" hidden></div><div class="pk-modal" hidden></div>`;
     document.body.appendChild(root);
     const q = (x) => root.querySelector(x);
-    ui = { root, top: q(".pk-top"), title: q(".pk-title b"), sub: q(".pk-title small"), replayB: q('[data-a="replay"]'), tools: q(".pk-tools"), chat: q(".pk-chat"), pot: q(".pk-pot"), potV: q(".pk-pot b"), betL: [...root.querySelectorAll(".pk-betl")], arcia: q(".pk-arcia"), log: q(".pk-log"), wait: q(".pk-wait"), hand: q(".pk-hand"), mine: q(".pk-mine"), hname: q(".pk-hname"), eq: q(".pk-eq"), raise: q(".pk-raise"), bar: q(".pk-bar"), banner: q(".pk-banner"), sheet: q(".pk-sheet"), modal: q(".pk-modal"),
+    ui = { root, top: q(".pk-top"), title: q(".pk-title b"), sub: q(".pk-title small"), replayB: q('[data-a="replay"]'), tools: q(".pk-tools"), chat: q(".pk-chat"), pot: q(".pk-pot"), potV: q(".pk-pot b"), betL: [...root.querySelectorAll(".pk-betl")], arcia: q(".pk-arcia"), log: q(".pk-log"), wait: q(".pk-wait"), hand: q(".pk-hand"), mine: q(".pk-mine"), hname: q(".pk-hname"), eq: q(".pk-eq"), str: q(".pk-str"), raise: q(".pk-raise"), bar: q(".pk-bar"), banner: q(".pk-banner"), sheet: q(".pk-sheet"), modal: q(".pk-modal"),
       b: { fold: q('[data-a="fold"]'), call: q('[data-a="call"]'), raise: q('[data-a="raise"]'), allin: q('[data-a="allin"]') } };
     ui.seats = [q('.pk-hand .pk-seat'), ...[1, 2, 3, 4, 5].map((d) => q(`.pk-seats [data-d="${d}"]`))];
     ui.raise.querySelector("input").addEventListener("input", paintRaise);
@@ -699,6 +730,7 @@ export function createPoker(ctx) {
     const b = e.target.closest("button"); if (!b || !on || b.disabled) return; const a = b.dataset.a;
     if (b.dataset.tab) { tab = b.dataset.tab; snd("tab"); paintLobby(); if (tab === "rank" || tab === "play" || tab === "missions") readStatus().then(() => { if (mode === "lobby") paintLobby(); }); return; }
     if (b.dataset.ais) { prog.ais = +b.dataset.ais; save(); snd("tap"); paintLobby(); return; }
+    if (b.dataset.tog) { const k = b.dataset.tog; prog[k] = !prog[k]; save(); snd("tap"); paintLobby(); return; }
     if (b.dataset.lvl) { prog.lvl = +b.dataset.lvl; save(); snd("tap"); paintLobby(); return; }
     if (b.dataset.back) { prog.back = b.dataset.back; save(); for (const [k, t] of cardTex) if (String(k).startsWith("back:")) { t.dispose(); cardTex.delete(k); } if (S) for (const cd of S.cards) { cd.back.material.map = faceTex(-1); cd.back.material.needsUpdate = true; } snd("equip"); paintLobby(); return; }
     if (b.dataset.felt) { prog.felt = b.dataset.felt; save(); if (S) { const old = S.feltM.map; S.feltM.map = texOf(feltCanvas()); S.feltM.needsUpdate = true; if (old) old.dispose(); } snd("equip"); paintLobby(); return; }
@@ -711,6 +743,8 @@ export function createPoker(ctx) {
     else if (a === "menu") { if (mode === "table" && G && !G.over) modal(`<p>${esc(T("Leave this game? It won't count."))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="close">${esc(T("Stay"))}</button><button type="button" class="pk-btn hot" data-a="lobby">${esc(T("Leave"))}</button></div>`); else lobby(); }
     else if (a === "lobby") { closeModal(); lobby(); }
     else if (a === "close") closeModal();
+    else if (a === "rebuy") { if (!G || G.over) return; closeModal(); G.asking = false; G.rebuy = 1; G.seats[0].stack = POKER.START; snd("coin"); flash(T("Rebuy: +{n}", { n: fmt(POKER.START) }), "big"); soloDeal(); }
+    else if (a === "endGame") { closeModal(); if (G) { G.asking = false; soloOver(); } }
     else if (a === "solo") { snd("enter"); soloStart(); }
     else if (a === "again") { snd("enter"); soloStart(); }
     else if (a === "rooms") readStatus().then(() => { if (mode === "lobby") paintLobby(); });
@@ -730,7 +764,7 @@ export function createPoker(ctx) {
   }
   const kd = (e) => {
     if (!on || e.target.matches("input,select,textarea")) return;
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (!ui.modal.hidden) closeModal(); else if (mode === "table" || mode === "result") onClick({ target: ui.root.querySelector('.pk-top [data-a="menu"]') }); else leave(); return; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (G && G.asking) return; if (!ui.modal.hidden) closeModal(); else if (mode === "table" || mode === "result") onClick({ target: ui.root.querySelector('.pk-top [data-a="menu"]') }); else leave(); return; }
     if (mode !== "table" || !myTurn(vis.M)) return; const k = e.key.toLowerCase();
     if (k === "f" && !ui.b.fold.hidden) move({ t: "fold" }); else if (k === "c") ui.b.call.click(); else if (k === "r" && !ui.b.raise.hidden) ui.b.raise.click(); else if (k === "a" && !ui.b.allin.hidden) allinAsk();
   };
@@ -793,3 +827,6 @@ export function createPoker(ctx) {
 Object.assign(LW.ko, {"You": "나", "ALL IN": "올인", "FOLD": "폴드", "CHECK": "체크", "SB": "SB", "BB": "BB", "CALL": "콜", "RAISE": "레이즈", "BET": "벳", "{name}: ALL IN!": "{name}: 올인!", "BIG POT!": "빅 팟!", "Big pot~! ♡": "빅 팟이에요~! ♡", "ALL IN — the board runs out": "올인 — 보드를 끝까지 깔아요", "All in! Here comes the board~": "올인! 보드 나갑니다~", "ARCIA JACKPOT!": "ARCIA 잭팟!", "ROYAL FLUSH": "로열 플러시", "A royal flush?! ARCIA JACKPOT! 💙💚": "로열 플러시?! ARCIA 잭팟! 💙💚", "SPLIT POT": "팟 나눠 갖기", "YOU WIN": "승리", "What a comeback! ♾️": "대역전이에요! ♾️", "Nice hand~ ♡": "멋진 핸드예요~ ♡", "{name} wins": "{name} 승리", "Everyone else folded": "다른 모두가 폴드했어요", "Open seat": "빈자리", "Away": "자리 비움", "Sitting out": "쉬는 중", "Folded": "폴드함", "Your turn~ Call, raise or fold? ♡": "당신 차례예요~ 콜, 레이즈, 아니면 폴드? ♡", "RAISE TO": "레이즈", "Watching · tap Sit down to play": "관전 중 · 앉기를 누르면 참여해요", "You're out of chips at this table": "이 테이블에서 칩을 모두 잃었어요", "Waiting for players… ({n}/6)": "플레이어를 기다리는 중… ({n}/6)", "The next hand starts soon…": "곧 다음 핸드가 시작돼요…", "You're in from the next hand": "다음 핸드부터 참여해요", "Private table": "비공개 테이블", "Table": "테이블", "Solo · {lvl}": "솔로 · {lvl}", "Code {c}": "코드 {c}", "Hand #{n}": "핸드 #{n}", "Hand {n} / {m} · Blinds {b}": "핸드 {n} / {m} · 블라인드 {b}", "That move isn't allowed": "그 액션은 할 수 없어요", "That move didn't go through: {e}": "액션이 전달되지 않았어요: {e}", "Are you sure? ♡ Go all in~?": "정말요? ♡ 올인할까요~?", "Cancel": "취소", "Blinds up: {b}": "블라인드 상승: {b}", "YOU WIN THE GAME!": "게임 승리!", "GAME OVER": "게임 종료", "What a game~ You're a natural! ♡": "대단한 게임이었어요~ 타고났네요! ♡", "Good game~ ♡ One more?": "좋은 게임이었어요~ ♡ 한 판 더?", "Hands": "핸드", "Chips": "칩", "Best hand": "최고 핸드", "Sending your game…": "게임 기록 보내는 중…", "Guest play: sign in to count missions and earn ARCL": "게스트 플레이: 로그인하면 미션이 집계되고 ARCL을 받아요", "Lounge": "라운지", "Play again": "다시 하기", "This game couldn't be counted — try again later": "이 게임은 집계되지 못했어요 — 나중에 다시 해 보세요", "Too quick to count — a game needs at least 20 seconds": "너무 빨라서 집계되지 않아요 — 한 게임은 최소 20초가 필요해요", "poker XP": "포커 경험치", "Today's poker XP is full": "오늘의 포커 경험치를 모두 받았어요", "Solo games today: {n}/{m}": "오늘 솔로 게임: {n}/{m}", "Mission complete!": "미션 완료!", "Two down, one to go~ Today's mission is almost yours! 💙💚": "두 판 끝, 한 판 남았어요~ 오늘 미션이 코앞이에요! 💙💚", "LEVEL UP!": "레벨 업!", "Unlocked: {x}": "잠금 해제: {x}", "Sign in with a wallet to play at the tables": "지갑으로 로그인하면 테이블에서 플레이할 수 있어요", "Private table · code {c} — share it with friends": "비공개 테이블 · 코드 {c} — 친구에게 알려 주세요", "Mission complete: 20 table hands": "미션 완료: 테이블 20핸드", "That table has closed": "그 테이블은 닫혔어요", "Couldn't leave the table cleanly: {e}": "테이블을 제대로 떠나지 못했어요: {e}", "A table code is 6 digits": "테이블 코드는 6자리예요", "Let's play together~ ♡": "같이 놀아요~ ♡", "Play": "플레이", "Missions": "미션", "Ranking": "랭킹", "Profile": "프로필", "How to play": "게임 방법", "SOLO": "솔로", "{n} hands · {c} chips each · blinds rise every 4 hands": "{n}핸드 · 각자 {c}칩 · 4핸드마다 블라인드 상승", "AI players": "AI 플레이어", "Level": "레벨", "PLAY SOLO": "솔로 플레이", "MULTIPLAYER": "멀티플레이", "2–6 players at a real table": "실제 테이블에서 2–6명", "Your chips: {n}": "내 칩: {n}", "free {n} a day": "매일 {n} 무료", "Back to your table": "내 테이블로 돌아가기", "Quick match": "빠른 매칭", "buy-in {n}": "바이인 {n}", "Open tables": "열린 테이블", "{n} people": "{n}명", "playing": "게임 중", "Watch": "관전", "Join": "참가", "No open tables right now — start one with Quick match": "지금은 열린 테이블이 없어요 — 빠른 매칭으로 시작하세요", "Create": "만들기", "6-digit code": "6자리 코드", "Finish 3 solo games": "솔로 게임 3판 완료", "Play 20 table hands": "테이블에서 20핸드 플레이", "Once a day each · never for winning — the chips are play money": "각각 하루 한 번 · 이겨서 받는 보상이 아니에요 — 칩은 게임용이에요", "Sign in with a wallet to earn ARCL from the daily missions": "지갑으로 로그인하면 데일리 미션으로 ARCL을 받아요", "Chips are free every day and can't be bought, sold or turned into ARCL.": "칩은 매일 무료이고, 사거나 팔거나 ARCL로 바꿀 수 없어요.", "This week's most chips won at the tables": "이번 주 테이블에서 가장 많은 칩을 딴 사람", "No one on the board yet this week — be the first!": "이번 주 아직 기록이 없어요 — 첫 주인공이 되세요!", "Games": "게임", "Win rate": "승률", "Table hands": "테이블 핸드", "Card backs": "카드 뒷면", "Table felt": "테이블 펠트", "Poker XP: +{a} a finished game (a table game is 10 hands), up to {b} a day": "포커 경험치: 게임 완료마다 +{a} (테이블은 10핸드가 한 게임), 하루 최대 {b}", "Everyone gets two cards; five shared cards come in the middle (3, then 1, then 1).": "모두 카드 2장을 받고, 가운데에 공용 카드 5장이 깔려요 (3장, 1장, 1장).", "Make the best five-card hand from your two and the five shared.": "내 카드 2장과 공용 카드 5장으로 가장 좋은 5장 조합을 만드세요.", "Each round: check, bet, call, raise or fold. The best hand at the end — or the last one left — wins the pot.": "매 라운드: 체크, 벳, 콜, 레이즈 또는 폴드. 마지막에 가장 좋은 핸드 — 또는 마지막까지 남은 사람이 팟을 가져가요.", "ARCIA POKER LOUNGE": "ARCIA 포커 라운지", "Texas Hold'em with ARCIA · free play chips": "ARCIA와 텍사스 홀덤 · 무료 게임 칩", "Leave the lounge": "라운지 나가기", "Pre-flop": "프리플랍", "Flop": "플랍", "Turn": "턴", "River": "리버", "{name} posts {n}": "{name} 블라인드 {n}", "{name} folds": "{name} 폴드", "{name} checks": "{name} 체크", "{name} calls {n}": "{name} 콜 {n}", "{name} goes all in ({n})": "{name} 올인 ({n})", "{name} raises to {n}": "{name} {n}으로 레이즈", "Your chance {n}%": "내 승률 {n}%", "Result": "결과", "Pot": "팟", "Close": "닫기", "Replay": "리플레이", "+ AI": "+ AI", "Sit down": "앉기", "Leave": "나가기", "POT": "팟", "Min": "최소", "Reconnecting…": "다시 연결하는 중…", "Leave this game? It won't count.": "이 게임을 나갈까요? 기록되지 않아요.", "Stay": "계속하기", "Opening the lounge…": "라운지 여는 중…", "The lounge couldn't open: {e}": "라운지를 열지 못했어요: {e}", "Classic Blue": "클래식 블루", "Mint": "민트", "Gold": "골드", "Infinity": "인피니티", "Lounge Violet": "라운지 바이올렛", "Emerald": "에메랄드", "Midnight Blue": "미드나잇 블루", "Crimson": "크림슨", "Rookie": "루키", "Regular": "단골", "Sharp Player": "날카로운 플레이어", "High Roller": "하이 롤러", "Lounge Star": "라운지 스타", "ARCIA's Favorite": "ARCIA의 최애", "Lounge Legend": "라운지 레전드", "Infinity Ace": "인피니티 에이스", "Beginner": "초보", "Normal": "보통", "Hard": "어려움", "Expert": "전문가", "High Card": "하이 카드", "One Pair": "원 페어", "Two Pair": "투 페어", "Three of a Kind": "트리플", "Straight": "스트레이트", "Flush": "플러시", "Full House": "풀 하우스", "Four of a Kind": "포카드", "Straight Flush": "스트레이트 플러시", "Royal Flush": "로열 플러시", "Nice hand!": "나이스 핸드!", "Good luck!": "행운을 빌어요!", "One more?": "한 판 더?", "Not enough chips for this table": "이 테이블에 앉을 칩이 부족해요", "That table is full": "그 테이블은 꽉 찼어요", "No table with that code": "그 코드의 테이블이 없어요", "Not your turn": "당신 차례가 아니에요", "Network trouble — try again": "네트워크 문제 — 다시 시도해 주세요"});
 Object.assign(LW.zh, {"You": "你", "ALL IN": "全下", "FOLD": "弃牌", "CHECK": "过牌", "SB": "小盲", "BB": "大盲", "CALL": "跟注", "RAISE": "加注", "BET": "下注", "{name}: ALL IN!": "{name}：全下！", "BIG POT!": "大底池！", "Big pot~! ♡": "大底池哦~！♡", "ALL IN — the board runs out": "全下——发完公共牌", "All in! Here comes the board~": "全下！公共牌来啦~", "ARCIA JACKPOT!": "ARCIA 大奖！", "ROYAL FLUSH": "皇家同花顺", "A royal flush?! ARCIA JACKPOT! 💙💚": "皇家同花顺？！ARCIA 大奖！💙💚", "SPLIT POT": "平分底池", "YOU WIN": "你赢了", "What a comeback! ♾️": "大逆转！♾️", "Nice hand~ ♡": "好牌~ ♡", "{name} wins": "{name} 获胜", "Everyone else folded": "其他人都弃牌了", "Open seat": "空座位", "Away": "离开", "Sitting out": "暂离牌局", "Folded": "已弃牌", "Your turn~ Call, raise or fold? ♡": "轮到你啦~ 跟注、加注还是弃牌？♡", "RAISE TO": "加注到", "Watching · tap Sit down to play": "观战中 · 点“入座”加入", "You're out of chips at this table": "你在这张桌上的筹码用完了", "Waiting for players… ({n}/6)": "等待玩家…（{n}/6）", "The next hand starts soon…": "下一手牌马上开始…", "You're in from the next hand": "你将从下一手牌开始参与", "Private table": "私人牌桌", "Table": "牌桌", "Solo · {lvl}": "单人 · {lvl}", "Code {c}": "代码 {c}", "Hand #{n}": "第 {n} 手", "Hand {n} / {m} · Blinds {b}": "第 {n} / {m} 手 · 盲注 {b}", "That move isn't allowed": "不能这样操作", "That move didn't go through: {e}": "操作没有成功：{e}", "Are you sure? ♡ Go all in~?": "确定吗？♡ 要全下吗~？", "Cancel": "取消", "Blinds up: {b}": "盲注上涨：{b}", "YOU WIN THE GAME!": "你赢下了这局！", "GAME OVER": "游戏结束", "What a game~ You're a natural! ♡": "精彩的一局~ 你真有天赋！♡", "Good game~ ♡ One more?": "好局~ ♡ 再来一局？", "Hands": "手数", "Chips": "筹码", "Best hand": "最佳牌型", "Sending your game…": "正在提交本局…", "Guest play: sign in to count missions and earn ARCL": "游客模式：登录后可计入任务并赚取 ARCL", "Lounge": "酒廊", "Play again": "再来一局", "This game couldn't be counted — try again later": "这局未能计入——请稍后再试", "Too quick to count — a game needs at least 20 seconds": "太快了，不计入——一局至少需要 20 秒", "poker XP": "扑克经验", "Today's poker XP is full": "今日扑克经验已满", "Solo games today: {n}/{m}": "今日单人局：{n}/{m}", "Mission complete!": "任务完成！", "Two down, one to go~ Today's mission is almost yours! 💙💚": "两局完成，还差一局~ 今日任务就快到手啦！💙💚", "LEVEL UP!": "升级！", "Unlocked: {x}": "已解锁：{x}", "Sign in with a wallet to play at the tables": "用钱包登录即可上桌对战", "Private table · code {c} — share it with friends": "私人牌桌 · 代码 {c} —— 分享给好友吧", "Mission complete: 20 table hands": "任务完成：牌桌 20 手", "That table has closed": "那张牌桌已关闭", "Couldn't leave the table cleanly: {e}": "未能顺利离桌：{e}", "A table code is 6 digits": "牌桌代码是 6 位数字", "Let's play together~ ♡": "一起玩吧~ ♡", "Play": "开始", "Missions": "任务", "Ranking": "排行", "Profile": "资料", "How to play": "玩法", "SOLO": "单人", "{n} hands · {c} chips each · blinds rise every 4 hands": "{n} 手 · 每人 {c} 筹码 · 每 4 手盲注上涨", "AI players": "AI 玩家", "Level": "难度", "PLAY SOLO": "开始单人局", "MULTIPLAYER": "多人", "2–6 players at a real table": "2–6 人真实牌桌", "Your chips: {n}": "你的筹码：{n}", "free {n} a day": "每天免费 {n}", "Back to your table": "回到你的牌桌", "Quick match": "快速匹配", "buy-in {n}": "买入 {n}", "Open tables": "公开牌桌", "{n} people": "{n} 人", "playing": "进行中", "Watch": "观战", "Join": "加入", "No open tables right now — start one with Quick match": "现在没有公开牌桌——用快速匹配开一桌吧", "Create": "创建", "6-digit code": "6 位代码", "Finish 3 solo games": "完成 3 局单人游戏", "Play 20 table hands": "在牌桌上玩 20 手", "Once a day each · never for winning — the chips are play money": "每项每天一次 · 与输赢无关——筹码只是游戏币", "Sign in with a wallet to earn ARCL from the daily missions": "用钱包登录即可通过每日任务赚取 ARCL", "Chips are free every day and can't be bought, sold or turned into ARCL.": "筹码每天免费，不能购买、出售或兑换成 ARCL。", "This week's most chips won at the tables": "本周牌桌赢得筹码最多", "No one on the board yet this week — be the first!": "本周还没有人上榜——来当第一名吧！", "Games": "局数", "Win rate": "胜率", "Table hands": "牌桌手数", "Card backs": "牌背", "Table felt": "桌布", "Poker XP: +{a} a finished game (a table game is 10 hands), up to {b} a day": "扑克经验：每完成一局 +{a}（牌桌每 10 手算一局），每天最多 {b}", "Everyone gets two cards; five shared cards come in the middle (3, then 1, then 1).": "每人发两张牌；中间依次发出五张公共牌（3 张、1 张、1 张）。", "Make the best five-card hand from your two and the five shared.": "用你的两张和五张公共牌组成最好的五张牌。", "Each round: check, bet, call, raise or fold. The best hand at the end — or the last one left — wins the pot.": "每一轮：过牌、下注、跟注、加注或弃牌。最后牌最大的人——或最后留下的人——赢得底池。", "ARCIA POKER LOUNGE": "ARCIA 扑克酒廊", "Texas Hold'em with ARCIA · free play chips": "和 ARCIA 一起玩德州扑克 · 免费游戏筹码", "Leave the lounge": "离开酒廊", "Pre-flop": "翻牌前", "Flop": "翻牌", "Turn": "转牌", "River": "河牌", "{name} posts {n}": "{name} 下盲注 {n}", "{name} folds": "{name} 弃牌", "{name} checks": "{name} 过牌", "{name} calls {n}": "{name} 跟注 {n}", "{name} goes all in ({n})": "{name} 全下（{n}）", "{name} raises to {n}": "{name} 加注到 {n}", "Your chance {n}%": "你的胜率 {n}%", "Result": "结果", "Pot": "底池", "Close": "关闭", "Replay": "回放", "+ AI": "+ AI", "Sit down": "入座", "Leave": "离开", "POT": "底池", "Min": "最小", "Reconnecting…": "正在重新连接…", "Leave this game? It won't count.": "离开这局吗？不会计入。", "Stay": "留下", "Opening the lounge…": "正在打开酒廊…", "The lounge couldn't open: {e}": "酒廊无法打开：{e}", "Classic Blue": "经典蓝", "Mint": "薄荷", "Gold": "金色", "Infinity": "无限", "Lounge Violet": "酒廊紫", "Emerald": "祖母绿", "Midnight Blue": "午夜蓝", "Crimson": "绯红", "Rookie": "新手", "Regular": "常客", "Sharp Player": "高手", "High Roller": "豪客", "Lounge Star": "酒廊之星", "ARCIA's Favorite": "ARCIA 的最爱", "Lounge Legend": "酒廊传奇", "Infinity Ace": "无限王牌", "Beginner": "新手", "Normal": "普通", "Hard": "困难", "Expert": "专家", "High Card": "高牌", "One Pair": "一对", "Two Pair": "两对", "Three of a Kind": "三条", "Straight": "顺子", "Flush": "同花", "Full House": "葫芦", "Four of a Kind": "四条", "Straight Flush": "同花顺", "Royal Flush": "皇家同花顺", "Nice hand!": "好牌！", "Good luck!": "祝好运！", "One more?": "再来一局？", "Not enough chips for this table": "筹码不够上这张桌", "That table is full": "那张牌桌满了", "No table with that code": "没有这个代码的牌桌", "Not your turn": "还没轮到你", "Network trouble — try again": "网络有问题——请再试一次"});
 Object.assign(LW.tr, {"You": "Sen", "ALL IN": "ALL-IN", "FOLD": "PAS", "CHECK": "KONTROL", "SB": "KB", "BB": "BB", "CALL": "GÖR", "RAISE": "ARTIR", "BET": "BAHİS", "{name}: ALL IN!": "{name}: ALL-IN!", "BIG POT!": "BÜYÜK POT!", "Big pot~! ♡": "Büyük pot~! ♡", "ALL IN — the board runs out": "ALL-IN — masa sonuna kadar açılıyor", "All in! Here comes the board~": "All-in! İşte masa kartları geliyor~", "ARCIA JACKPOT!": "ARCIA JACKPOT!", "ROYAL FLUSH": "FLOŞ ROYAL", "A royal flush?! ARCIA JACKPOT! 💙💚": "Floş royal mı?! ARCIA JACKPOT! 💙💚", "SPLIT POT": "POT BÖLÜNDÜ", "YOU WIN": "KAZANDIN", "What a comeback! ♾️": "Ne geri dönüş! ♾️", "Nice hand~ ♡": "Güzel el~ ♡", "{name} wins": "{name} kazandı", "Everyone else folded": "Diğer herkes pas geçti", "Open seat": "Boş koltuk", "Away": "Uzakta", "Sitting out": "Oyun dışı", "Folded": "Pas geçildi", "Your turn~ Call, raise or fold? ♡": "Sıra sende~ Gör, artır ya da pas? ♡", "RAISE TO": "ARTIR", "Watching · tap Sit down to play": "İzliyorsun · oynamak için Otur'a dokun", "You're out of chips at this table": "Bu masada fişin bitti", "Waiting for players… ({n}/6)": "Oyuncular bekleniyor… ({n}/6)", "The next hand starts soon…": "Sonraki el birazdan başlıyor…", "You're in from the next hand": "Bir sonraki elden itibaren oyundasın", "Private table": "Özel masa", "Table": "Masa", "Solo · {lvl}": "Solo · {lvl}", "Code {c}": "Kod {c}", "Hand #{n}": "El #{n}", "Hand {n} / {m} · Blinds {b}": "El {n} / {m} · Kör bahis {b}", "That move isn't allowed": "Bu hamleye izin yok", "That move didn't go through: {e}": "Hamle iletilemedi: {e}", "Are you sure? ♡ Go all in~?": "Emin misin? ♡ All-in mi~?", "Cancel": "Vazgeç", "Blinds up: {b}": "Kör bahis arttı: {b}", "YOU WIN THE GAME!": "OYUNU KAZANDIN!", "GAME OVER": "OYUN BİTTİ", "What a game~ You're a natural! ♡": "Ne oyundu~ Doğuştan yeteneklisin! ♡", "Good game~ ♡ One more?": "İyi oyundu~ ♡ Bir tane daha?", "Hands": "El", "Chips": "Fiş", "Best hand": "En iyi el", "Sending your game…": "Oyunun gönderiliyor…", "Guest play: sign in to count missions and earn ARCL": "Misafir oyunu: görevlerin sayılması ve ARCL için giriş yap", "Lounge": "Salon", "Play again": "Tekrar oyna", "This game couldn't be counted — try again later": "Bu oyun sayılamadı — sonra tekrar dene", "Too quick to count — a game needs at least 20 seconds": "Sayılmak için çok hızlı — bir oyun en az 20 saniye sürmeli", "poker XP": "poker XP", "Today's poker XP is full": "Bugünün poker XP'si doldu", "Solo games today: {n}/{m}": "Bugünkü solo oyunlar: {n}/{m}", "Mission complete!": "Görev tamam!", "Two down, one to go~ Today's mission is almost yours! 💙💚": "İkisi bitti, biri kaldı~ Bugünün görevi neredeyse senin! 💙💚", "LEVEL UP!": "SEVİYE ATLADIN!", "Unlocked: {x}": "Açıldı: {x}", "Sign in with a wallet to play at the tables": "Masalarda oynamak için cüzdanla giriş yap", "Private table · code {c} — share it with friends": "Özel masa · kod {c} — arkadaşlarınla paylaş", "Mission complete: 20 table hands": "Görev tamam: 20 masa eli", "That table has closed": "O masa kapandı", "Couldn't leave the table cleanly: {e}": "Masadan düzgün ayrılamadın: {e}", "A table code is 6 digits": "Masa kodu 6 hanelidir", "Let's play together~ ♡": "Hadi birlikte oynayalım~ ♡", "Play": "Oyna", "Missions": "Görevler", "Ranking": "Sıralama", "Profile": "Profil", "How to play": "Nasıl oynanır", "SOLO": "SOLO", "{n} hands · {c} chips each · blinds rise every 4 hands": "{n} el · herkese {c} fiş · kör bahis her 4 elde artar", "AI players": "AI oyuncular", "Level": "Seviye", "PLAY SOLO": "SOLO OYNA", "MULTIPLAYER": "ÇOK OYUNCULU", "2–6 players at a real table": "Gerçek masada 2–6 oyuncu", "Your chips: {n}": "Fişlerin: {n}", "free {n} a day": "günde {n} ücretsiz", "Back to your table": "Masana dön", "Quick match": "Hızlı eşleşme", "buy-in {n}": "giriş {n}", "Open tables": "Açık masalar", "{n} people": "{n} kişi", "playing": "oyunda", "Watch": "İzle", "Join": "Katıl", "No open tables right now — start one with Quick match": "Şu an açık masa yok — Hızlı eşleşme ile bir tane başlat", "Create": "Oluştur", "6-digit code": "6 haneli kod", "Finish 3 solo games": "3 solo oyun bitir", "Play 20 table hands": "Masada 20 el oyna", "Once a day each · never for winning — the chips are play money": "Her biri günde bir kez · asla kazanmak için değil — fişler oyun parası", "Sign in with a wallet to earn ARCL from the daily missions": "Günlük görevlerden ARCL kazanmak için cüzdanla giriş yap", "Chips are free every day and can't be bought, sold or turned into ARCL.": "Fişler her gün ücretsizdir; satın alınamaz, satılamaz ve ARCL'ye çevrilemez.", "This week's most chips won at the tables": "Bu hafta masalarda en çok fiş kazananlar", "No one on the board yet this week — be the first!": "Bu hafta tabloda henüz kimse yok — ilk sen ol!", "Games": "Oyunlar", "Win rate": "Kazanma oranı", "Table hands": "Masa elleri", "Card backs": "Kart arkaları", "Table felt": "Masa çuhası", "Poker XP: +{a} a finished game (a table game is 10 hands), up to {b} a day": "Poker XP: biten oyun başına +{a} (masada 10 el bir oyun), günde en fazla {b}", "Everyone gets two cards; five shared cards come in the middle (3, then 1, then 1).": "Herkes iki kart alır; ortaya beş ortak kart gelir (3, sonra 1, sonra 1).", "Make the best five-card hand from your two and the five shared.": "Kendi iki kartın ve beş ortak karttan en iyi beşli eli yap.", "Each round: check, bet, call, raise or fold. The best hand at the end — or the last one left — wins the pot.": "Her turda: kontrol, bahis, gör, artır ya da pas. Sonunda en iyi el — ya da son kalan — potu kazanır.", "ARCIA POKER LOUNGE": "ARCIA POKER SALONU", "Texas Hold'em with ARCIA · free play chips": "ARCIA ile Texas Hold'em · ücretsiz oyun fişleri", "Leave the lounge": "Salondan çık", "Pre-flop": "Flop öncesi", "Flop": "Flop", "Turn": "Turn", "River": "River", "{name} posts {n}": "{name} {n} kör bahis koydu", "{name} folds": "{name} pas geçti", "{name} checks": "{name} kontrol etti", "{name} calls {n}": "{name} {n} gördü", "{name} goes all in ({n})": "{name} all-in ({n})", "{name} raises to {n}": "{name} {n}'e artırdı", "Your chance {n}%": "Şansın %{n}", "Result": "Sonuç", "Pot": "Pot", "Close": "Kapat", "Replay": "Tekrar izle", "+ AI": "+ AI", "Sit down": "Otur", "Leave": "Ayrıl", "POT": "POT", "Min": "En az", "Reconnecting…": "Yeniden bağlanıyor…", "Leave this game? It won't count.": "Bu oyundan çıkılsın mı? Sayılmayacak.", "Stay": "Kal", "Opening the lounge…": "Salon açılıyor…", "The lounge couldn't open: {e}": "Salon açılamadı: {e}", "Classic Blue": "Klasik Mavi", "Mint": "Nane", "Gold": "Altın", "Infinity": "Sonsuzluk", "Lounge Violet": "Salon Moru", "Emerald": "Zümrüt", "Midnight Blue": "Gece Mavisi", "Crimson": "Kızıl", "Rookie": "Çaylak", "Regular": "Müdavim", "Sharp Player": "Keskin Oyuncu", "High Roller": "Büyük Oyuncu", "Lounge Star": "Salon Yıldızı", "ARCIA's Favorite": "ARCIA'nın Gözdesi", "Lounge Legend": "Salon Efsanesi", "Infinity Ace": "Sonsuzluk Ası", "Beginner": "Acemi", "Normal": "Normal", "Hard": "Zor", "Expert": "Uzman", "High Card": "Yüksek Kart", "One Pair": "Bir Çift", "Two Pair": "İki Çift", "Three of a Kind": "Üçlü", "Straight": "Kent", "Flush": "Renk", "Full House": "Full House", "Four of a Kind": "Kare", "Straight Flush": "Renk Kent", "Royal Flush": "Floş Royal", "Nice hand!": "Güzel el!", "Good luck!": "Bol şans!", "One more?": "Bir tane daha?", "Not enough chips for this table": "Bu masa için yeterli fişin yok", "That table is full": "O masa dolu", "No table with that code": "Bu kodla bir masa yok", "Not your turn": "Sıra sende değil", "Network trouble — try again": "Ağ sorunu — tekrar dene"});
+Object.assign(LW.ko, {"Strong": "강함", "Good": "괜찮음", "Weak": "약함", "Settings": "설정", "Hand strength hint": "핸드 강도 힌트", "On": "켜짐", "Off": "꺼짐", "Vibration": "진동", "Out of chips~ ♡ One more go?": "칩이 다 떨어졌어요~ ♡ 한 번 더 해볼까요?", "Rebuy {n} chips (once a game)": "칩 {n}개 리바이 (게임당 1번)", "End the game": "게임 끝내기", "Rebuy": "리바이", "Rebuy: +{n}": "리바이: +{n}", "Rebuy used": "리바이 사용"});
+Object.assign(LW.zh, {"Strong": "强", "Good": "不错", "Weak": "弱", "Settings": "设置", "Hand strength hint": "牌力提示", "On": "开", "Off": "关", "Vibration": "振动", "Out of chips~ ♡ One more go?": "筹码用完啦~ ♡ 再来一次？", "Rebuy {n} chips (once a game)": "重新买入 {n} 筹码（每局一次）", "End the game": "结束本局", "Rebuy": "重新买入", "Rebuy: +{n}": "重新买入：+{n}", "Rebuy used": "已重新买入"});
+Object.assign(LW.tr, {"Strong": "Güçlü", "Good": "İyi", "Weak": "Zayıf", "Settings": "Ayarlar", "Hand strength hint": "El gücü ipucu", "On": "Açık", "Off": "Kapalı", "Vibration": "Titreşim", "Out of chips~ ♡ One more go?": "Fişin bitti~ ♡ Bir şans daha?", "Rebuy {n} chips (once a game)": "{n} fiş yeniden al (oyun başına bir kez)", "End the game": "Oyunu bitir", "Rebuy": "Yeniden al", "Rebuy: +{n}": "Yeniden alım: +{n}", "Rebuy used": "Yeniden alım kullanıldı"});

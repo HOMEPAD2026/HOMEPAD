@@ -1609,3 +1609,16 @@ html.wp-pcphone .pk [data-game-hud]{zoom:1;top:calc(max(8px,env(safe-area-inset-
 .pk-modal .pk-card.arcia .pk-face{width:76px;height:76px}
 .pk-modal h3{margin:0;font:900 16px/1.2 var(--hud-font,var(--f-ui));color:#ffe2a8}
 .pk-rep{width:100%;display:grid;gap:8px;text-align:left}.pk-rep section{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.06)}.pk-rep header{display:flex;align-items:center;flex-wrap:wrap;gap:6px}.pk-rep header b{color:#ffd23a}.pk-rep header em{margin-left:auto;font-style:normal;color:#5ff0d0;font-size:12px}.pk-rep p{margin:3px 0 0;font-size:12px;color:#e8dcff}.pk-rep p.win{color:#ffd23a}
+.pk-c.dim{filter:brightness(.5) saturate(.6)}
+.pk-str{display:grid;gap:4px;min-width:130px}.pk-str[hidden]{display:none}
+.pk-str span{display:block;height:8px;border-radius:5px;background:rgba(0,0,0,.45);overflow:hidden}.pk-str i{display:block;height:100%;border-radius:5px;transition:width .4s}
+.pk-str b{font:800 12px/1 var(--hud-font,var(--f-ui))}
+.pk-str.hi i{background:linear-gradient(90deg,#3fd47a,#5ff0a0)}.pk-str.hi b{color:#5ff0a0}
+.pk-str.mid i{background:linear-gradient(90deg,#ffb23a,#ffd23a)}.pk-str.mid b{color:#ffd23a}
+.pk-str.lo i{background:linear-gradient(90deg,#ff5a7a,#ff8a9a)}.pk-str.lo b{color:#ff8a9a}
+.pk-tog{display:grid;gap:6px}.pk-tog button{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.07);font-size:13px}.pk-tog button b{padding:4px 9px;border-radius:8px;background:rgba(255,255,255,.12);font-size:11px}.pk-tog button.on b{background:#5ff0d0;color:#04302a}
+/* a wide screen: your cards, your seat and your moves in a column at the right, so the table can use the full height */
+.pk.wide .pk-hand{left:auto;right:24px;transform:none;width:340px;bottom:calc(env(safe-area-inset-bottom) + 86px)}
+.pk.wide .pk-bar{left:auto;right:24px;transform:none;width:340px;animation:none}
+.pk.wide .pk-raise{left:auto;right:24px;transform:none;width:340px;bottom:calc(env(safe-area-inset-bottom) + 80px)}
+.pk.wide .pk-log{bottom:24px}
