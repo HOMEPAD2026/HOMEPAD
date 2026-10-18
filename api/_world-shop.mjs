@@ -267,6 +267,15 @@ export function makeShop(deps) {
     await Promise.all([note(w, "earn", kind, amt).catch(() => {}), weekTop(w, wk, amt).catch(() => { /* the credit stands */ })]);
     return amt;
   }
+  /// ARCL spent on what another part of the world sells (the poker lounge's chips): one spend at a time per wallet,
+  /// noted in the ledger. Returns { ok, bal } or { err }
+  async function debit(w, kind, n) {
+    const amt = Math.floor(Number(n) || 0); if (amt <= 0) return { err: "bad amount" };
+    const bal = ((await one(`worldArclBal/${w}`)) || {}).bal || 0; if (bal < amt) return { err: "not enough ARCL" };
+    if (!(await commit([{ create: `worldArclSpend/${w}_${Math.floor(now() / 1500)}`, data: { at: now() } }, { inc: `worldArclBal/${w}`, fields: { bal: -amt, spent: amt } }])).ok) return { err: "one moment" };
+    await note(w, "spend", kind, -amt).catch(() => {});
+    return { ok: true, bal: bal - amt };
+  }
   /// ARCL given by the GM (the village contest's prizes): outside the daily cap, noted in the ledger
   async function award(w, kind, n) {
     const amt = Math.max(0, Math.floor(Number(n) || 0)); if (!amt) return 0;
@@ -651,7 +660,7 @@ export function makeShop(deps) {
   }
 
   return {
-    stampCredit, own, plaza, freeEgg, koOf, rewardArcl, credit, award, isoWeek,
+    stampCredit, own, plaza, freeEgg, koOf, rewardArcl, credit, award, debit, isoWeek,
     owns: async (w, id) => ((await own(w)).items || []).includes(id),
     lotPremium: async (w, coin) => ((await own(w)).lots || []).includes(lc(coin)),
     renames: async (w) => (await own(w)).renames || 0,

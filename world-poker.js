@@ -5,8 +5,9 @@
 // the game runs here with world-poker-engine.js. At the tables (a wallet): 2–6 people and computer players, dealt and
 // timed by the server (api/_world-poker.mjs), which this page asks for the table about once a second.
 // Blackjack against ARCIA plays at the same table (world-blackjack.js).
-// Chips are play money: free every day, never bought with ARCL and never turned into ARCL. The lounge's only ARCL
-// is its daily missions (finish 3 solo games · play 20 table hands · play 30 blackjack hands), which don't depend on winning.
+// Chips (a wallet's, kept by the server): free every day, or bought with ARCL in the chip shop — one way only, chips
+// never turn back into ARCL. The tables and blackjack play them; solo poker is practice. The lounge's ARCL rewards
+// are its daily missions (finish 3 solo games · play 20 table hands · play 30 blackjack hands), never for winning.
 //
 // ctx: { THREE, K, st, ver, T, lang, esc, toast, Snd, reduce, low, coarse, sess, post, quality, name(), refresh(),
 //        gain(n, why), onLeave() }
@@ -566,7 +567,7 @@ export function createPoker(ctx) {
   function levelUp(before) { const now = lvInfo().lv; if (now > before) { banner(`<b>${esc(T("LEVEL UP!"))} Lv ${now}</b><small>${esc(T(titleOf(now)))}</small>`, "jackpot"); const u = [...BACKS, ...FELTS].filter((x) => x.lv > before && x.lv <= now); if (u.length) setTimeout(() => ctx.toast(esc(T("Unlocked: {x}", { x: u.map((x) => T(x.name)).join(", ") }))), 1200); } }
 
   // ---------------- the tables (a wallet): the server deals; this page asks for the table about once a second ----------------
-  const errText = (e) => { const m = String((e && e.message) || e || ""); const known = { "not enough chips for this table": "Not enough chips for this table", "the table is full": "That table is full", "no table with that code": "No table with that code", "not your turn": "Not your turn", "no such table": "That table has closed", network: "Network trouble — try again" }; return T(known[m] || m).slice(0, 80); };
+  const errText = (e) => { const m = String((e && e.message) || e || ""); const known = { "not enough chips for this table": "Not enough chips for this table", "the table is full": "That table is full", "no table with that code": "No table with that code", "not your turn": "Not your turn", "no such table": "That table has closed", network: "Network trouble — try again", "not enough ARCL": "Not enough ARCL", "today's chip limit is reached": "Today's chip limit is reached", "one moment": "One moment…" }; return T(known[m] || m).slice(0, 80); };
   async function api(body) {
     const ss = ctx.sess && ctx.sess(); if (!ss) throw new Error(T("Sign in with a wallet to play at the tables"));
     let r; try { r = await ctx.post({ ...body, ...ss }); } catch { throw new Error("network"); }
@@ -668,13 +669,14 @@ export function createPoker(ctx) {
     const tabs = [["play", T("Play")], ["missions", T("Missions")], ["rank", T("Ranking")], ["profile", T("Profile")], ["rules", T("How to play")]];
     let pane = "";
     if (tab === "play") {
-      pane = `<section class="pk-box solo"><header><b>${esc(T("SOLO"))}</b><small>${esc(T("{n} hands · {c} chips each · blinds rise every 4 hands", { n: POKER.SOLO_HANDS, c: fmt(POKER.START) }))}</small></header>
+      pane = `<section class="pk-box solo"><header><b>${esc(T("SOLO · PRACTICE"))}</b><small>${esc(T("{n} hands · {c} chips each · blinds rise every 4 hands", { n: POKER.SOLO_HANDS, c: fmt(POKER.START) }))}</small></header>
         <div class="pk-opt"><span>${esc(T("AI players"))}</span><div class="pk-seg">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-ais="${n}" class="${prog.ais === n ? "on" : ""}">${n}</button>`).join("")}</div></div>
         <div class="pk-opt"><span>${esc(T("Level"))}</span><div class="pk-seg">${LEVELS.map((l, k) => `<button type="button" data-lvl="${k}" class="${prog.lvl === k ? "on" : ""}">${esc(T(l))}</button>`).join("")}</div></div>
         <button type="button" class="pk-btn go wide" data-a="solo">${esc(T("PLAY SOLO"))}</button></section>
-        <section class="pk-box bjbox"><header><b>${esc(T("BLACKJACK"))}</b><small>${esc(T("vs ARCIA · free {n} chips · blackjack pays 3 to 2", { n: fmt(BJ.START) }))}</small></header><button type="button" class="pk-btn go wide" data-a="bj">${esc(T("PLAY BLACKJACK"))}</button></section>`;
+        <section class="pk-box bjbox"><header><b>${esc(T("BLACKJACK"))}</b><small>${esc(sg ? T("vs ARCIA · your chips · blackjack pays 3 to 2") : T("vs ARCIA · practice chips · blackjack pays 3 to 2"))}</small></header><button type="button" class="pk-btn go wide" data-a="bj">${esc(T("PLAY BLACKJACK"))}</button></section>`;
       if (!sg) pane += `<section class="pk-box mp"><header><b>${esc(T("MULTIPLAYER"))}</b><small>${esc(T("2–6 players at a real table"))}</small></header><p class="pk-note">${esc(T("Sign in with a wallet to play at the tables"))}</p></section>`;
       else pane += `<section class="pk-box mp"><header><b>${esc(T("MULTIPLAYER"))}</b><small>${esc(T("Your chips: {n}", { n: fmt(chips) }))} · ${esc(T("free {n} a day", { n: fmt(POKER.DAY_CHIPS) }))}</small></header>
+        <button type="button" class="pk-btn wide shopb" data-a="shop">🪙 ${esc(T("Chip shop"))} · ${esc(T("buy chips with ARCL"))}</button>
         ${saved ? `<button type="button" class="pk-btn hot wide" data-room="${esc(saved)}">${esc(T("Back to your table"))}</button>` : ""}
         <p class="pk-lbl">${esc(T("Quick match"))}</p><div class="pk-stakes">${POKER.STAKES.map((s) => `<button type="button" data-quick="${s.id}" ${status && chips < s.buy ? "disabled" : ""}><b>${fmt(s.sb)}/${fmt(s.bb)}</b><small>${esc(T("buy-in {n}", { n: fmt(s.buy) }))}</small></button>`).join("")}</div>
         <p class="pk-lbl">${esc(T("Open tables"))} <button type="button" class="pk-mini" data-a="rooms">↻</button></p>
@@ -683,7 +685,7 @@ export function createPoker(ctx) {
     } else if (tab === "missions") {
       const m = status && status.mis ? status.mis : { solo: 0, hands: 0 }, row = (k, have, need, t) => `<li class="${have >= need ? "done" : ""}"><b>${esc(t)}</b><div class="pk-bar2"><i style="width:${Math.min(100, (have / need) * 100)}%"></i></div><span>${Math.min(have, need)}/${need}</span><em>+${fmt(POKER.MISSIONS[k].arcl)} ARCL</em></li>`;
       pane = sg ? `<ul class="pk-mis">${row("solo3", m.solo || 0, 3, T("Finish 3 solo games"))}${row("hands20", m.hands || 0, 20, T("Play 20 table hands"))}${row("bj30", m.bj || 0, 30, T("Play 30 blackjack hands"))}</ul><p class="pk-note">${esc(T("Once a day each · never for winning — the chips are play money"))}</p>` : `<p class="pk-note">${esc(T("Sign in with a wallet to earn ARCL from the daily missions"))}</p><ul class="pk-mis dim">${row("solo3", 0, 3, T("Finish 3 solo games"))}${row("hands20", 0, 20, T("Play 20 table hands"))}${row("bj30", 0, 30, T("Play 30 blackjack hands"))}</ul>`;
-      pane += `<p class="pk-note">${esc(T("Chips are free every day and can't be bought, sold or turned into ARCL."))}</p>`;
+      pane += `<p class="pk-note">${esc(T("Free chips every day, or buy chips with ARCL in the chip shop — chips never turn back into ARCL."))}</p>`;
     } else if (tab === "rank") {
       const rows = (topB && topB.top) || [];
       pane = `<p class="pk-lbl">${esc(T("This week's most chips won at the tables"))}</p><ol class="pk-rank">${rows.length ? rows.map((x, k) => `<li><i>${k + 1}</i><b>${esc(x.name || x.w)}</b><span class="${x.n >= 0 ? "up" : "down"}">${x.n >= 0 ? "+" : ""}${fmt(x.n)}</span></li>`).join("") : `<li class="none">${esc(T("No one on the board yet this week — be the first!"))}</li>`}</ol>`;
@@ -699,11 +701,37 @@ export function createPoker(ctx) {
       pane = `<ol class="pk-rules"><li>${esc(T("Everyone gets two cards; five shared cards come in the middle (3, then 1, then 1)."))}</li><li>${esc(T("Make the best five-card hand from your two and the five shared."))}</li><li>${esc(T("Each round: check, bet, call, raise or fold. The best hand at the end — or the last one left — wins the pot."))}</li></ol>
         <ul class="pk-ranks">${HANDS.slice().reverse().map((h, k) => `<li><b>${k + 1}. ${esc(T(h))}</b><span>${EXAMPLES[k].map((s) => cardHtml(cc(s), "sm")).join("")}</span></li>`).join("")}</ul>`;
     }
-    sheet(`<div class="pk-lobby"><div class="pk-head"><i class="pk-face"></i><div><h2>${esc(T("ARCIA POKER LOUNGE"))}</h2><p>${esc(T("Texas Hold'em with ARCIA · free play chips"))}</p></div><span class="pk-lvchip">Lv ${li.lv}</span></div>
+    sheet(`<div class="pk-lobby"><div class="pk-head"><i class="pk-face"></i><div><h2>${esc(T("ARCIA POKER LOUNGE"))}</h2><p>${esc(T("Texas Hold'em & Blackjack with ARCIA"))}</p></div><span class="pk-lvchip">Lv ${li.lv}</span></div>
       <div class="pk-tabs">${tabs.map(([k, t]) => `<button type="button" data-tab="${k}" class="${k === tab ? "on" : ""}">${esc(t)}</button>`).join("")}</div>
       <div class="pk-pane">${pane}</div>
       <button type="button" class="pk-btn" data-a="leave">${esc(T("Leave the lounge"))}</button></div>`);
   }
+  // ---------------- the chip shop: ARCL → chips, one way ----------------
+  let arclBal = null;
+  async function openShop() {
+    if (!signed()) { ctx.toast(esc(T("Sign in with a wallet to buy chips"))); return; }
+    modal(`<h3>${esc(T("Chip shop"))}</h3><div class="pk-spin"></div>`);
+    const w = String(ctx.sess().wallet || "").toLowerCase();
+    await Promise.all([fetch("/api/social?world=arcl&wallet=" + encodeURIComponent(w), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { arclBal = j ? j.bal || 0 : null; }).catch(() => {}), readStatus()]);
+    if (ui.modal.hidden) return; paintShop();
+  }
+  function paintShop() {
+    const chips = status ? status.chips || 0 : 0;
+    modal(`<h3>${esc(T("Chip shop"))}</h3><p class="pk-shopbal"><span>${esc(T("Your chips"))} <b>${fmt(chips)}</b></span><span>${esc(T("Your ARCL"))} <b>${arclBal == null ? "–" : fmt(arclBal)}</b></span></p>
+      <div class="pk-packs">${POKER.PACKS.map((pk, k) => `<button type="button" data-pack="${pk.id}" ${arclBal != null && arclBal < pk.arcl ? "disabled" : ""}><b>${fmt(pk.chips)}</b><small>${esc(T("chips"))}${k ? ` · +${Math.round((pk.chips / (pk.arcl * 10) - 1) * 100)}%` : ""}</small><em>${fmt(pk.arcl)} ARCL</em></button>`).join("")}</div>
+      <p class="pk-note warn">${esc(T("Chips can't be turned back into ARCL. Buy only what you want to play with."))}</p>
+      <p class="pk-note">${esc(T("Up to {n} ARCL of chips a day · free chips every day too", { n: fmt(POKER.BUY_DAY) }))}</p>
+      <div class="pk-row"><button type="button" class="pk-btn" data-a="close">${esc(T("Close"))}</button></div>`);
+  }
+  function askBuy(id) {
+    const pk = POKER.PACKS.find((x) => x.id === id); if (!pk) return;
+    modal(`<p class="pk-say">${esc(T("Buy {c} chips for {a} ARCL?", { c: fmt(pk.chips), a: fmt(pk.arcl) }))}</p><p class="pk-note warn">${esc(T("Chips can't be turned back into ARCL."))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="shopBack">${esc(T("Cancel"))}</button><button type="button" class="pk-btn go" data-a="buyGo" data-id="${pk.id}">${esc(T("Buy"))}</button></div>`, true);
+  }
+  const buyGo = (id) => guard(async () => {
+    const j = await api({ action: "world-poker-buy", pack: id }); status = j.prog || status; arclBal = j.bal;
+    snd("buy"); ctx.toast(`<b>+${fmt(j.chips)}</b> ${esc(T("chips"))} · −${fmt(POKER.PACKS.find((x) => x.id === id).arcl)} ARCL`); if (ctx.refresh) ctx.refresh();
+    paintShop(); BJK.repaint(); if (mode === "lobby") paintLobby();
+  });
   function replay() {
     const r = vis.replay; if (!r) return;
     const nm = (i) => esc(r.names[i] || "?"), streets = [T("Pre-flop"), T("Flop"), T("Turn"), T("River")], lines = [[], [], [], []];
@@ -754,6 +782,7 @@ export function createPoker(ctx) {
     if (b.dataset.back) { prog.back = b.dataset.back; save(); for (const [k, t] of cardTex) if (String(k).startsWith("back:")) { t.dispose(); cardTex.delete(k); } if (S) for (const cd of S.cards) { cd.back.material.map = faceTex(-1); cd.back.material.needsUpdate = true; } snd("equip"); paintLobby(); return; }
     if (b.dataset.felt) { prog.felt = b.dataset.felt; save(); if (S) { const old = S.feltM.map; S.feltM.map = texOf(feltCanvas()); S.feltM.needsUpdate = true; if (old) old.dispose(); } snd("equip"); paintLobby(); return; }
     if (b.dataset.quick) { quick(b.dataset.quick); return; }
+    if (b.dataset.pack) { snd("tap"); askBuy(b.dataset.pack); return; }
     if (b.dataset.room) { join(b.dataset.room, false); return; }
     if (b.dataset.watch) { join(b.dataset.watch, true); return; }
     if (b.dataset.say) { chatSend(b.dataset.say); return; }
@@ -767,6 +796,9 @@ export function createPoker(ctx) {
     else if (a === "endGame") { closeModal(); if (G) { G.asking = false; soloOver(); } }
     else if (a === "solo") { snd("enter"); soloStart(); }
     else if (a === "bj") { snd("enter"); BJK.start(); }
+    else if (a === "shop") { snd("open"); openShop(); }
+    else if (a === "shopBack") paintShop();
+    else if (a === "buyGo") buyGo(b.dataset.id);
     else if (a === "bjIns" || a === "bjNoIns") BJK.answer(a === "bjIns");
     else if (a === "again") { snd("enter"); soloStart(); }
     else if (a === "rooms") readStatus().then(() => { if (mode === "lobby") paintLobby(); });
@@ -835,7 +867,7 @@ export function createPoker(ctx) {
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
-  const BJK = makeBlackjack({ THREE, T, esc, snd, say, banner, flash, confetti, buzz, tween, ease, moveCard, cardFrom, faceTex, toScreen, stackChips, flyChips, S: () => S, cardAt, ui: () => ui, prog: () => prog, save, ctx, signed, fast: () => fast, scaleK, phone, modal, closeModal, enterTable: toBJ, onProg: (p) => { if (p) status = p; } });
+  const BJK = makeBlackjack({ THREE, T, esc, snd, say, banner, flash, confetti, buzz, tween, ease, moveCard, cardFrom, faceTex, toScreen, stackChips, flyChips, S: () => S, cardAt, ui: () => ui, prog: () => prog, save, ctx, signed, fast: () => fast, scaleK, phone, modal, closeModal, enterTable: toBJ, onProg: (p) => { if (p) status = p; }, chips: () => (status ? status.chips || 0 : 0), shop: () => openShop() });
   return {
     enter, leave, active: () => on,
     /// tests: the table's numbers, and a few levers
@@ -845,7 +877,7 @@ export function createPoker(ctx) {
     /// tests: end the solo game now (the hands so far count)
     finish: () => { if (G && !G.over) { Q.length = 0; latest = null; soloOver(); } },
     /// tests: blackjack
-    bj: (k, ...a) => (k === "start" ? BJK.start() : k === "debug" ? BJK.debug() : k === "chip" ? BJK.chip(...a) : BJK.press(k)),
+    bj: (k, ...a) => (k === "start" ? BJK.start() : k === "debug" ? BJK.debug() : k === "chip" ? BJK.chip(...a) : k === "table" ? BJK.table(...a) : BJK.press(k)),
   };
 }
 
@@ -862,3 +894,6 @@ Object.assign(LW.tr, {"Clear": "Temizle", "Rebet": "Aynı bahis", "DEAL": "DAĞI
 Object.assign(LW.ko, {"Blackjack hands can't be counted right now — the mission waits": "지금은 블랙잭 핸드가 집계되지 않아요 — 미션은 나중에 이어져요"});
 Object.assign(LW.zh, {"Blackjack hands can't be counted right now — the mission waits": "现在无法统计二十一点手数——任务稍后继续"});
 Object.assign(LW.tr, {"Blackjack hands can't be counted right now — the mission waits": "Blackjack elleri şu an sayılamıyor — görev bekliyor"});
+Object.assign(LW.ko, {"Chip shop": "칩 상점", "Blackjack · practice": "블랙잭 · 연습", "Chips {b} · Bet {n}": "칩 {b} · 베팅 {n}", "Sign in with a wallet to play with your chips": "지갑으로 로그인하면 내 칩으로 플레이해요", "Out of chips for this table~ ♡": "이 테이블에 쓸 칩이 부족해요~ ♡", "Your round is still here": "진행 중이던 라운드가 그대로 있어요", "SOLO · PRACTICE": "솔로 · 연습", "vs ARCIA · your chips · blackjack pays 3 to 2": "vs ARCIA · 내 칩 · 블랙잭 3:2 지급", "vs ARCIA · practice chips · blackjack pays 3 to 2": "vs ARCIA · 연습 칩 · 블랙잭 3:2 지급", "buy chips with ARCL": "ARCL로 칩 구매", "Free chips every day, or buy chips with ARCL in the chip shop — chips never turn back into ARCL.": "칩은 매일 무료로 받거나 칩 상점에서 ARCL로 살 수 있어요 — 칩은 ARCL로 되돌릴 수 없어요.", "Texas Hold'em & Blackjack with ARCIA": "ARCIA와 텍사스 홀덤 & 블랙잭", "Sign in with a wallet to buy chips": "지갑으로 로그인하면 칩을 살 수 있어요", "Your chips": "내 칩", "Your ARCL": "내 ARCL", "chips": "칩", "Chips can't be turned back into ARCL. Buy only what you want to play with.": "칩은 ARCL로 되돌릴 수 없어요. 플레이할 만큼만 사세요.", "Up to {n} ARCL of chips a day · free chips every day too": "하루 최대 {n} ARCL어치 · 무료 칩도 매일 지급", "Buy {c} chips for {a} ARCL?": "{a} ARCL로 칩 {c}개를 살까요?", "Chips can't be turned back into ARCL.": "칩은 ARCL로 되돌릴 수 없어요.", "Buy": "구매", "Not enough chips": "칩이 부족해요", "That bet isn't allowed at this table": "이 테이블에서는 그 베팅을 할 수 없어요", "Finish the round first": "먼저 라운드를 끝내 주세요", "One moment…": "잠시만요…", "Not enough ARCL": "ARCL이 부족해요", "Today's chip limit is reached": "오늘의 칩 구매 한도에 도달했어요"});
+Object.assign(LW.zh, {"Chip shop": "筹码商店", "Blackjack · practice": "二十一点 · 练习", "Chips {b} · Bet {n}": "筹码 {b} · 下注 {n}", "Sign in with a wallet to play with your chips": "用钱包登录即可用你的筹码游戏", "Out of chips for this table~ ♡": "筹码不够这张桌啦~ ♡", "Your round is still here": "你的这一局还在", "SOLO · PRACTICE": "单人 · 练习", "vs ARCIA · your chips · blackjack pays 3 to 2": "对战 ARCIA · 你的筹码 · 二十一点 3 赔 2", "vs ARCIA · practice chips · blackjack pays 3 to 2": "对战 ARCIA · 练习筹码 · 二十一点 3 赔 2", "buy chips with ARCL": "用 ARCL 买筹码", "Free chips every day, or buy chips with ARCL in the chip shop — chips never turn back into ARCL.": "每天有免费筹码，也可以在筹码商店用 ARCL 购买——筹码不能换回 ARCL。", "Texas Hold'em & Blackjack with ARCIA": "和 ARCIA 一起玩德州扑克和二十一点", "Sign in with a wallet to buy chips": "用钱包登录即可购买筹码", "Your chips": "你的筹码", "Your ARCL": "你的 ARCL", "chips": "筹码", "Chips can't be turned back into ARCL. Buy only what you want to play with.": "筹码不能换回 ARCL。只买你想玩的数量。", "Up to {n} ARCL of chips a day · free chips every day too": "每天最多 {n} ARCL 的筹码 · 每天也有免费筹码", "Buy {c} chips for {a} ARCL?": "用 {a} ARCL 购买 {c} 筹码？", "Chips can't be turned back into ARCL.": "筹码不能换回 ARCL。", "Buy": "购买", "Not enough chips": "筹码不够", "That bet isn't allowed at this table": "这张桌不允许这个下注", "Finish the round first": "请先完成这一局", "One moment…": "请稍等…", "Not enough ARCL": "ARCL 不够", "Today's chip limit is reached": "今日筹码购买已达上限"});
+Object.assign(LW.tr, {"Chip shop": "Fiş dükkânı", "Blackjack · practice": "Blackjack · pratik", "Chips {b} · Bet {n}": "Fiş {b} · Bahis {n}", "Sign in with a wallet to play with your chips": "Fişlerinle oynamak için cüzdanla giriş yap", "Out of chips for this table~ ♡": "Bu masa için fişin kalmadı~ ♡", "Your round is still here": "Elin hâlâ burada", "SOLO · PRACTICE": "SOLO · PRATİK", "vs ARCIA · your chips · blackjack pays 3 to 2": "ARCIA'ya karşı · senin fişlerin · blackjack 3'e 2 öder", "vs ARCIA · practice chips · blackjack pays 3 to 2": "ARCIA'ya karşı · pratik fişleri · blackjack 3'e 2 öder", "buy chips with ARCL": "ARCL ile fiş al", "Free chips every day, or buy chips with ARCL in the chip shop — chips never turn back into ARCL.": "Her gün ücretsiz fiş, ya da fiş dükkânında ARCL ile fiş al — fişler asla ARCL'ye dönmez.", "Texas Hold'em & Blackjack with ARCIA": "ARCIA ile Texas Hold'em ve Blackjack", "Sign in with a wallet to buy chips": "Fiş almak için cüzdanla giriş yap", "Your chips": "Fişlerin", "Your ARCL": "ARCL'in", "chips": "fiş", "Chips can't be turned back into ARCL. Buy only what you want to play with.": "Fişler ARCL'ye geri çevrilemez. Sadece oynamak istediğin kadar al.", "Up to {n} ARCL of chips a day · free chips every day too": "Günde en fazla {n} ARCL'lik fiş · her gün ücretsiz fiş de var", "Buy {c} chips for {a} ARCL?": "{a} ARCL'ye {c} fiş alınsın mı?", "Chips can't be turned back into ARCL.": "Fişler ARCL'ye geri çevrilemez.", "Buy": "Satın al", "Not enough chips": "Yeterli fiş yok", "That bet isn't allowed at this table": "Bu masada bu bahis yapılamaz", "Finish the round first": "Önce eli bitir", "One moment…": "Bir saniye…", "Not enough ARCL": "Yeterli ARCL yok", "Today's chip limit is reached": "Bugünün fiş sınırı doldu"});

@@ -4,8 +4,8 @@
 // and the solo game runs it in the browser. Nothing here draws, and nothing reads the clock: a seeded shuffle makes
 // the same deck for the same seed everywhere.
 //
-// Chips are play money only: they're never bought with ARCL or turned into ARCL (the lounge's ARCL comes from daily
-// missions that don't depend on winning — see api/_world-poker.mjs).
+// Chips can be bought with ARCL (POKER.PACKS) but never turned back into ARCL; the lounge's ARCL rewards are daily
+// missions that don't depend on winning (see api/_world-poker.mjs).
 //
 // A card is 0–51: rank = c % 13 (0 = 2 … 12 = A), suit = ⌊c / 13⌋ (0 ♠ 1 ♥ 2 ♦ 3 ♣).
 // A hand (newHand) is a plain object that survives JSON: players [{ id, name, stack, bet, total, hole, folded, allin,
@@ -17,6 +17,8 @@ export const POKER = {
   DAY_CHIPS: 20000, XP_GAME: 50, XP_DAY: 500, MP_GAME: 10, // a multiplayer "game" for XP: 10 hands seated
   MISSIONS: { solo3: { need: 3, arcl: 300 }, hands20: { need: 20, arcl: 300 }, bj30: { need: 30, arcl: 300 } }, // outcome-free daily missions (ARCL: the owner's numbers)
   LEVELS: 100,
+  // chips bought with ARCL: one way only (chips never turn back into ARCL); at most BUY_DAY ARCL of chips a day
+  PACKS: [{ id: "p1", arcl: 1000, chips: 10000 }, { id: "p2", arcl: 5000, chips: 55000 }, { id: "p3", arcl: 20000, chips: 240000 }], BUY_DAY: 20000,
 };
 export const RANKS = "23456789TJQKA", SUITS = "♠♥♦♣";
 export const rankOf = (c) => c % 13, suitOf = (c) => Math.floor(c / 13);

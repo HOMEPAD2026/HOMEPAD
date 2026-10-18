@@ -6,12 +6,15 @@
 // The house rules: 6 decks, cut at 75%; blackjack pays 3:2; the dealer peeks for blackjack and stands on soft 17;
 // double on any first two cards (and after a split); split up to 4 hands (split aces take one card each); late
 // surrender (half back); insurance when the dealer shows an ace (pays 2:1).
-// Chips are play money only: never bought with ARCL and never turned into ARCL.
+// Chips can be bought with ARCL but never turned back into ARCL (the lounge's chip shop, api/_world-poker.mjs).
 //
 // A card is 0–51 as in world-poker-engine.js: rank = c % 13 (0 = 2 … 8 = 10, 9 J, 10 Q, 11 K, 12 A), suit = ⌊c / 13⌋.
 // A round (deal) is a plain object that survives JSON: { shoe, ptr, bank, bet, hands: [{ cards, bet, done, doubled,
 // split, res, pay }], cur, dealer, phase ("ins" | "play" | "done"), ins, insPay, log }.
-export const BJ = { DECKS: 6, START: 1000, CHIPS: [10, 25, 50, 100, 250, 500], MIN: 10, MAX: 500, CUT: 0.75, SPLITS: 4, HAND_S: 2.5, XP_HAND: 5 };
+export const BJ = { DECKS: 6, START: 1000, CHIPS: [10, 25, 50, 100, 250, 500], MIN: 10, MAX: 500, CUT: 0.75, SPLITS: 4, HAND_S: 2.5, XP_HAND: 5,
+  // the tables: a bet between min and max; the chip buttons are CHIPS × k
+  TABLES: [{ id: "b1", min: 10, max: 500, k: 1 }, { id: "b2", min: 100, max: 5000, k: 10 }, { id: "b3", min: 1000, max: 50000, k: 100 }] };
+export const tableOf = (id) => BJ.TABLES.find((x) => x.id === id) || BJ.TABLES[0];
 export function rng(seed) { let s = seed | 0; return () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 /// a fresh shoe of DECKS decks, shuffled from the seed
 export function shoe(seed) { const R = rng(seed), d = []; for (let k = 0; k < BJ.DECKS; k++) for (let c = 0; c < 52; c++) d.push(c); for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); const t = d[i]; d[i] = d[j]; d[j] = t; } return d; }
@@ -21,10 +24,10 @@ export function total(cards) { let t = 0, aces = 0; for (const c of cards) { t +
 export const isBJ = (h) => h.cards.length === 2 && !h.split && total(h.cards).t === 21;
 const needShuffle = (s) => !s.shoe || s.ptr > s.shoe.length * BJ.CUT;
 const draw = (s) => s.shoe[s.ptr++];
-/// a new round: the bet comes off the bank, two cards each (the dealer's second face down). The shoe carries over
+/// a new round at a table (BJ.TABLES; the first by default): the bet comes off the bank, two cards each (the dealer's second face down). The shoe carries over
 /// from the last round (a fresh one, from `seed`, once it's past the cut)
-export function deal(prev, { bank, bet, seed }) {
-  bet = Math.floor(Number(bet) || 0); if (bet < BJ.MIN || bet > BJ.MAX || bet > bank) return null;
+export function deal(prev, { bank, bet, seed, table }) {
+  const tb = tableOf(table); bet = Math.floor(Number(bet) || 0); if (bet < tb.min || bet > tb.max || bet > bank) return null;
   const s = { shoe: prev && !needShuffle(prev) ? prev.shoe : shoe(seed), ptr: prev && !needShuffle(prev) ? prev.ptr : 0, bank: bank - bet, bet, hands: [], cur: 0, dealer: [], phase: "play", ins: 0, insPay: 0, log: [], fresh: !prev || needShuffle(prev) };
   const h = { cards: [], bet, done: false, doubled: false, split: false, res: "", pay: 0 }; s.hands.push(h);
   h.cards.push(draw(s)); s.dealer.push(draw(s)); h.cards.push(draw(s)); s.dealer.push(draw(s));

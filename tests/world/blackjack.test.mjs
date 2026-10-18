@@ -1,8 +1,9 @@
 // blackjack.test.mjs — ARCIA POKER LOUNGE's blackjack: the engine (world-blackjack-engine.js) and the server's copy are
 // the same file; totals and soft hands; blackjack 3:2, the dealer's peek and soft 17, doubles, splits (aces take one
 // card), surrender, insurance; the basic strategy plays thousands of rounds with every move legal and every chip
-// accounted for; and the server (api/_world-poker.mjs): hands counted only at a person's pace, the daily mission's
-// ARCL once a day and never for winning. On an in-memory store. Run: node tests/world/blackjack.test.mjs (needs ethers 6)
+// accounted for; and the server (api/_world-poker.mjs): blackjack dealt there against the chips in your record, the
+// hole card hidden, the daily mission's ARCL once a day at a person's pace and never for winning; the chip shop
+// (ARCL → chips, one way, a daily limit, a purchase that can't be lost). On an in-memory store. Run: node tests/world/blackjack.test.mjs (needs ethers 6)
 import fs from "node:fs";
 import { ethers } from "ethers";
 const E = await import("../../world-blackjack-engine.js");
@@ -47,15 +48,38 @@ const sign = async (w) => { const issued = new Date(TT).toISOString(); return { 
 const call = async (w, action, extra = {}) => W.handle({ action, ...(await sign(w)), ...extra });
 const bal = (w) => (db.get(`worldArclBal/${w.address.toLowerCase()}`) || {}).bal || 0;
 const p1 = ethers.Wallet.createRandom();
-let r = await call(p1, "world-bj-start"); let id = r.body.runId; TT += 5e3;
-r = await call(p1, "world-bj-end", { runId: id, hands: 10 }); check(r.status === 400, "ten hands in five seconds: refused");
-r = await call(p1, "world-bj-end", { runId: "nope", hands: 1 }); check(r.status === 409, "an unknown game: refused");
+const prog = (w) => db.get(`worldPokerProg/${w.address.toLowerCase()}`) || {};
+let r = await call(p1, "world-bj-state"); check(r.status === 200 && r.body.round === null && r.body.prog.chips === 20000, "no round yet; today's free chips are the bank");
+r = await call(p1, "world-bj-deal", { table: "b1", bet: 5 }); check(r.status === 400, "a bet under the table's minimum: refused");
+r = await call(p1, "world-bj-deal", { table: "b1", bet: 100000 }); check(r.status === 400 && /chips/.test(r.body.error), "a bet over your chips: refused");
+// thirty-odd rounds by ARCIA's tip, seen the way the browser sees them (the hole card hidden until the end)
+let net = 0, rounds = 0, hid = true, paidAt = -1, credited = 0;
+const playRound = async (gap) => {
+  TT += gap; let q = await call(p1, "world-bj-deal", { table: "b1", bet: 100 }); if (q.status !== 200) return q; rounds++;
+  if (q.body.round.phase !== "done" && q.body.round.dealer[1] !== -1) hid = false;
+  for (let g = 0; g < 30 && q.body.round.phase !== "done"; g++) {
+    if (q.body.round.phase === "ins") q = await call(p1, "world-bj-ins", { take: false });
+    else q = await call(p1, "world-bj-act", { a: { H: "hit", S: "stand", D: "double", P: "split", R: "surrender" }[E.advice(q.body.round)] });
+    if (q.status !== 200) return q;
+  }
+  const v = q.body.round; net += v.hands.reduce((a, h) => a + h.pay - h.bet, 0) + v.insPay - v.ins; credited += q.body.credited || 0; return q;
+};
 const b0 = bal(p1);
-for (let k = 0; k < 2; k++) { r = await call(p1, "world-bj-start"); id = r.body.runId; TT += 40e3; r = await call(p1, "world-bj-end", { runId: id, hands: 12, net: 300, bj: 1 }); }
-check(r.status === 200 && r.body.credited === 0 && r.body.prog.mis.bj === 24 && r.body.prog.bjHands === 24 && r.body.prog.bjBJ === 2 && r.body.xp > 0, "24 hands counted at a person's pace: poker XP, no mission yet");
-const again = await call(p1, "world-bj-end", { runId: id, hands: 12 }); check(again.status === 409, "the same game can't be counted twice");
-r = await call(p1, "world-bj-start"); id = r.body.runId; TT += 40e3; r = await call(p1, "world-bj-end", { runId: id, hands: 10, net: -500 });
-check(r.status === 200 && r.body.credited === 300 && bal(p1) - b0 === 300, "30 hands today: the mission pays 300 ARCL, whatever the chips did");
-r = await call(p1, "world-bj-start"); id = r.body.runId; TT += 40e3; r = await call(p1, "world-bj-end", { runId: id, hands: 10 });
-check(r.status === 200 && r.body.credited === 0 && bal(p1) - b0 === 300, "the mission pays once a day");
+for (let k = 0; k < 40 && (prog(p1).mis || {}).bj < 30; k++) { r = await playRound(4000); if (r.status !== 200) { console.log("round", r.status, JSON.stringify(r.body)); break; } }
+check(hid, "the dealer's hole card stays hidden while you play");
+check(prog(p1).chips === 20000 + net, `the chips in your record follow every round to the chip (${rounds} rounds, ${net >= 0 ? "+" : ""}${net})`);
+check(credited === 300 && bal(p1) - b0 === 300 && prog(p1).mis.bj >= 30, "30 blackjack hands at a person's pace: the mission pays 300 ARCL, whatever the chips did");
+{ const m0 = prog(p1).mis.bj; for (let k = 0; k < 3; k++) await playRound(100); check(prog(p1).mis.bj === m0, "rounds faster than a person plays them don't count toward the mission"); }
+r = await call(p1, "world-bj-deal", { table: "b2", bet: 100 });
+if (r.body.round && r.body.round.phase !== "done") { const again = await call(p1, "world-bj-deal", { table: "b2", bet: 100 }); const st = await call(p1, "world-bj-state");
+  check(again.status === 409 && st.body.round && st.body.round.hands[0].bet === 100, "a round in play waits for you: no second deal, and it's there when you come back"); }
+else check(true, "(a round over at the deal: nothing waits)");
+// the chip shop: ARCL → chips, one way, at most 20,000 ARCL a day
+const p2 = ethers.Wallet.createRandom(), a2 = p2.address.toLowerCase();
+r = await call(p2, "world-poker-buy", { pack: "p1" }); check(r.status === 400 && /ARCL/.test(r.body.error), "no ARCL, no chips");
+db.set(`worldArclBal/${a2}`, { bal: 30000 }); await call(p2, "world-poker-me"); const old = structuredClone(db.get(`worldPokerProg/${a2}`));
+r = await call(p2, "world-poker-buy", { pack: "p1" }); check(r.status === 200 && r.body.prog.chips === 30000 && r.body.bal === 29000 && bal(p2) === 29000, "1,000 ARCL buys 10,000 chips");
+r = await call(p2, "world-poker-buy", { pack: "p3" }); check(r.status === 400 && /limit/.test(r.body.error) && bal(p2) === 29000, "past 20,000 ARCL of chips today: refused, nothing taken");
+db.set(`worldPokerProg/${a2}`, old); r = await call(p2, "world-poker-me"); check(r.body.prog.chips === 30000, "a record written over by an older copy still has the bought chips");
+r = await W.handle({ action: "world-poker-cashout", ...(await sign(p2)) }); check(!r || r.status >= 400, "no way to turn chips into ARCL");
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

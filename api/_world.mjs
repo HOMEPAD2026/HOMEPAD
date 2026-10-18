@@ -265,7 +265,7 @@ export function make(deps) {
   const welcome = makeWelcome({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), award: (w, k, n) => shop.award(w, k, n), freeEgg: (w, src) => shop.freeEgg(w, src), trial: (w, ms) => mine.trial(w, ms) }); // the welcome week (api/_world-welcome.mjs)
   const jur = makeJur({ ...deps, json, now, signer, isGM, mine }); // Jurassic World's gathering, crafting and camps (api/_world-jur.mjs)
   const swap = makeSwap({ ...deps, json, now, signer, isGM });
-  const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: free chips, tables, outcome-free missions (api/_world-poker.mjs)
+  const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
   const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });

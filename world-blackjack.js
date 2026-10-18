@@ -1,23 +1,25 @@
 // world-blackjack.js — blackjack at ARCIA POKER LOUNGE's table (world-poker.js hands it the scene, the cards and the
-// chips): you against ARCIA, who deals from a 6-deck shoe. Free 1,000 chips a session, bets 10–500; hit, stand,
-// double, split, surrender, insurance — the rules and the payouts are world-blackjack-engine.js. Chips are play money.
-// With a wallet, every 10 hands are counted by the server (api/_world-poker.mjs world-bj-end): poker XP and the daily
-// mission "play 30 blackjack hands" (its ARCL never depends on winning). ARCIA's tip (the basic strategy) shows under
-// your hand while the hint is on (Profile → Settings).
+// chips): you against ARCIA, who deals from a 6-deck shoe. Three tables (10–500, 100–5,000, 1,000–50,000); hit, stand,
+// double, split, surrender, insurance — the rules and the payouts are world-blackjack-engine.js.
+// With a wallet the chips are the ones in your lounge record (free daily, or bought with ARCL — one way, they never
+// turn back into ARCL) and ARCIA deals on the server (api/_world-poker.mjs world-bj-*): each move is asked there, and
+// a round left half-played waits for you. The daily mission "play 30 blackjack hands" counts there too; its ARCL
+// never depends on winning. A guest plays practice chips here in the browser (1,000, free refills).
+// ARCIA's tip (the basic strategy) shows while the hint is on (Profile → Settings).
 //
 // api: { THREE, T, esc, snd, say, banner, flash, confetti, buzz, tween, ease, moveCard, cardFrom, faceTex, toScreen,
 //        stackChips, flyChips, S(), cardAt(k), ui(), prog(), save(), ctx, signed(), fast(), scaleK(), modal(html, arcia),
-//        closeModal(), enterTable(), phone(), onProg(prog) }
-import { BJ, deal, insure, act, legal, total, isBJ, advice } from "./world-blackjack-engine.js";
+//        closeModal(), enterTable(), phone(), chips() (your record's chips), onProg(prog), shop() (the chip shop) }
+import { BJ, deal, insure, act, legal, total, isBJ, advice, viewOf, tableOf } from "./world-blackjack-engine.js";
 
 const fmt = (n) => Math.round(n || 0).toLocaleString("en-US");
-const seoulDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-const CHIPC = { 10: "#e8e8f0", 25: "#1fa85a", 50: "#e0283c", 100: "#22222e", 250: "#8a4bff", 500: "#ffc83a" };
+const CHIPC = ["#e8e8f0", "#1fa85a", "#e0283c", "#22222e", "#8a4bff", "#ffc83a"];
 const MOVE = { H: "Hit", S: "Stand", D: "Double", P: "Split", R: "Surrender" };
+const ERR = { "not enough chips": "Not enough chips", "that bet isn't allowed at this table": "That bet isn't allowed at this table", "finish the round first": "Finish the round first", "one moment": "One moment…" };
 
 export function makeBlackjack(api) {
   const { T, esc } = api;
-  let on = false, root = null, B = null, Q = [], qAt = 0, vh = [], vd = [], used = 0, run = null, wasBusy = false;
+  let on = false, root = null, B = null, Q = [], qAt = 0, vh = [], vd = [], used = 0, wasBusy = false;
 
   // ---------------- the steps: each card and each payout has its moment ----------------
   function step(wait, fn) { if (!Q.length && qAt < performance.now()) qAt = performance.now(); Q.push({ wait, fn }); }
@@ -45,26 +47,30 @@ export function makeBlackjack(api) {
   function build() {
     const ui = api.ui(); root = document.createElement("div"); root.className = "bj"; root.hidden = true;
     root.innerHTML = `<div class="bj-vals"></div><div class="bj-tip" hidden></div>
-      <div class="bj-bar"><div class="bj-bet"><div class="bj-chips">${BJ.CHIPS.map((v) => `<button type="button" data-chip="${v}" style="--c:${CHIPC[v]}"><b>${v}</b></button>`).join("")}</div>
+      <div class="bj-bar"><div class="bj-bet"><div class="bj-tables">${BJ.TABLES.map((t) => `<button type="button" data-table="${t.id}">${fmt(t.min)}–${fmt(t.max)}</button>`).join("")}</div>
+        <div class="bj-chips">${BJ.CHIPS.map((v, k) => `<button type="button" data-chip="${k}" style="--c:${CHIPC[k]}"><b></b></button>`).join("")}</div>
         <div class="bj-row"><button type="button" class="bj-b" data-a="clear">${esc(T("Clear"))}</button><button type="button" class="bj-b" data-a="rebet">${esc(T("Rebet"))}</button><button type="button" class="bj-b go" data-a="deal"><b>${esc(T("DEAL"))}</b><small></small></button></div>
-        <button type="button" class="bj-b refill" data-a="refill" hidden>${esc(T("Free refill to {n}", { n: fmt(BJ.START) }))}</button></div>
+        <button type="button" class="bj-b refill" data-a="refill" hidden>${esc(T("Free refill to {n}", { n: fmt(BJ.START) }))}</button><button type="button" class="bj-b refill" data-a="shop" hidden>${esc(T("Chip shop"))}</button></div>
       <div class="bj-play" hidden><button type="button" class="h" data-a="hit"><b>${esc(T("HIT"))}</b></button><button type="button" class="s" data-a="stand"><b>${esc(T("STAND"))}</b></button><button type="button" class="d" data-a="double"><b>${esc(T("DOUBLE"))}</b></button><button type="button" class="p" data-a="split"><b>${esc(T("SPLIT"))}</b></button><button type="button" class="r" data-a="surrender"><b>${esc(T("SURRENDER"))}</b></button></div></div>`;
     ui.root.appendChild(root);
-    root.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || !on || b.disabled) return; if (b.dataset.chip) { addChip(+b.dataset.chip); return; } press(b.dataset.a); });
+    root.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || !on || b.disabled) return; if (b.dataset.chip) { addChip(chipVal(+b.dataset.chip)); return; } if (b.dataset.table) { setTable(b.dataset.table); return; } press(b.dataset.a); });
   }
   const q = (x) => root.querySelector(x);
+  const tb = () => tableOf(B.table), chipVal = (k) => BJ.CHIPS[k] * tb().k;
+  const bank = () => (B.real ? api.chips() : B.bank);
+  function setTable(id) { if (!B || B.wait || busy() || (B.s && B.s.phase !== "done")) return; B.table = tableOf(id).id; const t = tb(); B.bet = Math.min(Math.max(t.min, B.bet), t.max); api.snd("tab"); paint(); }
   function paint() {
-    if (!root || !B) return; const s = B.s, ui = api.ui(), betting = !s || s.phase === "done";
-    ui.title.textContent = T("Blackjack · vs ARCIA"); ui.sub.textContent = T("Bank {b} · Bet {n}", { b: fmt(B.bank), n: fmt(betting ? B.bet : s.hands.reduce((a, h) => a + h.bet, 0)) });
+    if (!root || !B) return; const s = B.s, ui = api.ui(), betting = !s || s.phase === "done", t = tb(), bk = bank();
+    ui.title.textContent = B.real ? T("Blackjack · vs ARCIA") : T("Blackjack · practice"); ui.sub.textContent = T("Chips {b} · Bet {n}", { b: fmt(bk), n: fmt(betting ? B.bet : s.hands.reduce((a, h) => a + h.bet, 0)) });
     const showBet = betting && !busy(), showPlay = s && s.phase === "play" && !busy();
-    q(".bj-bet").hidden = !showBet; q(".bj-play").hidden = !showPlay;
+    q(".bj-bet").hidden = !showBet; q(".bj-play").hidden = !showPlay; root.classList.toggle("wait", !!B.wait);
     if (showBet) {
-      q('[data-a="deal"] small').textContent = fmt(B.bet); q('[data-a="deal"]').disabled = B.bet < BJ.MIN || B.bet > B.bank; q('[data-a="rebet"]').disabled = !B.last || B.last > B.bank; q('[data-a="clear"]').disabled = !B.bet;
-      root.querySelectorAll("[data-chip]").forEach((b) => { b.disabled = B.bet + +b.dataset.chip > Math.min(BJ.MAX, B.bank); });
-      q('[data-a="refill"]').hidden = B.bank >= BJ.MIN;
+      q('[data-a="deal"] small').textContent = fmt(B.bet); q('[data-a="deal"]').disabled = B.wait || B.bet < t.min || B.bet > t.max || B.bet > bk; q('[data-a="rebet"]').disabled = !B.last || B.last > bk || B.last > t.max || B.last < t.min; q('[data-a="clear"]').disabled = !B.bet;
+      root.querySelectorAll("[data-chip]").forEach((b) => { const v = chipVal(+b.dataset.chip); b.querySelector("b").textContent = v >= 1000 ? v / 1000 + "K" : v; b.disabled = B.bet + v > Math.min(t.max, bk); });
+      root.querySelectorAll("[data-table]").forEach((b) => b.classList.toggle("on", b.dataset.table === B.table));
+      q('[data-a="refill"]').hidden = B.real || bk >= BJ.TABLES[0].min; q('[data-a="shop"]').hidden = !B.real || bk >= t.min;
     }
-    if (showPlay) { const L = legal(s); for (const k of ["double", "split", "surrender"]) q(`[data-a="${k}"]`).hidden = !L[k]; }
-    // ARCIA's tip
+    if (showPlay) { const L = legal(s); for (const k of ["double", "split", "surrender"]) q(`[data-a="${k}"]`).hidden = !L[k]; root.querySelectorAll(".bj-play button").forEach((b) => { b.disabled = !!B.wait; }); }
     const tip = q(".bj-tip"), adv = showPlay && api.prog().hint ? advice(s) : ""; tip.hidden = !adv; if (adv) tip.textContent = T("ARCIA's tip: {m} ♡", { m: T(MOVE[adv]) });
     paintVals();
   }
@@ -77,48 +83,77 @@ export function makeBlackjack(api) {
     box.innerHTML = rows.join("");
   }
 
-  // ---------------- a round ----------------
-  function addChip(v) { if (!B || busy() || (B.s && B.s.phase !== "done")) return; if (B.bet + v > Math.min(BJ.MAX, B.bank)) { api.snd("bad"); return; } B.bet += v; api.snd("chip", 1); paint(); }
+  // ---------------- a round: here (practice) or on the server (your chips) ----------------
+  /// one step of the round: { op: "deal" | "act" | "ins", bet, a, take } → the round as you may see it, or null
+  async function step1(o) {
+    if (!B.real) {
+      if (o.op === "deal") { const e = deal(B.eng, { bank: B.bank, bet: o.bet, seed: (Math.random() * 2 ** 31) | 0, table: B.table }); if (!e) return null; B.eng = e; }
+      else if (o.op === "act") { if (!act(B.eng, o.a)) return null; }
+      else if (!insure(B.eng, o.take)) return null;
+      B.bank = B.eng.bank; return viewOf(B.eng);
+    }
+    const ss = api.ctx.sess && api.ctx.sess(); if (!ss) { api.ctx.toast(esc(T("Sign in with a wallet to play with your chips"))); return null; }
+    B.wait = true; paint();
+    let r = null; try { r = await api.ctx.post(o.op === "deal" ? { action: "world-bj-deal", ...ss, table: B.table, bet: o.bet } : o.op === "act" ? { action: "world-bj-act", ...ss, a: o.a } : { action: "world-bj-ins", ...ss, take: !!o.take }); } catch { r = null; }
+    B.wait = false;
+    if (!r || !r.ok || !r.j || !r.j.round) {
+      const e = (r && r.j && r.j.error) || "network"; api.ctx.toast(esc(T(ERR[e] || (e === "network" ? "Network trouble — try again" : e)))); api.snd("bad");
+      if (r && r.j && r.j.round) restore(r.j.round); paint(); return null;
+    }
+    if (r.j.prog) api.onProg(r.j.prog);
+    if (r.j.credited > 0) { api.ctx.toast(`<b>+${fmt(r.j.credited)} ARCL</b> · ${esc(T("Mission complete: 30 blackjack hands"))}`); api.snd("coin"); if (api.ctx.refresh) api.ctx.refresh(); api.confetti(30); }
+    return r.j.round;
+  }
+  function addChip(v) { if (!B || B.wait || busy() || (B.s && B.s.phase !== "done")) return; if (B.bet + v > Math.min(tb().max, bank())) { api.snd("bad"); return; } B.bet += v; api.snd("chip", 1); paint(); }
   function clearTable() { for (const row of vh) for (const cd of row) cd.o.visible = false; for (const cd of vd) cd.o.visible = false; vh = []; vd = []; used = 0; B.betG.forEach((g) => api.stackChips(g, 0)); }
-  function press(a) {
-    if (!B || busy()) return;
-    if (a === "clear") { B.bet = 0; api.snd("tap"); paint(); return; }
-    if (a === "rebet") { if (B.last && B.last <= B.bank) { B.bet = Math.min(B.last, BJ.MAX); api.snd("chip", 2); paint(); } return; }
-    if (a === "refill") { B.bank = BJ.START; B.bet = Math.min(B.bet || 25, B.bank); api.snd("coin"); api.flash(T("Refilled: {n} chips", { n: fmt(BJ.START) }), "big"); paint(); return; }
-    if (a === "deal") return start();
-    const s = B.s; if (!s || s.phase !== "play") return;
-    const h = s.cur, before = s.hands.map((x) => x.cards.length);
-    if (a === "double" || a === "split") { const L = legal(s); if (!L[a]) return; }
-    if (!act(s, a)) { api.snd("bad"); return; }
-    B.bank = s.bank; api.snd(a === "stand" ? "knock" : a === "double" || a === "split" ? "chip" : "tap");
-    if (a === "split") { const moved = vh[h].pop(); vh.splice(h + 1, 0, [moved]); step(0.3, () => layout(0.3)); step(0.3, () => { dealTo(h, s.hands[h].cards[1]); }); step(0.35, () => { dealTo(h + 1, s.hands[h + 1].cards[1]); }); }
-    else s.hands.forEach((x, i) => { for (let k = before[i] || 0; k < x.cards.length; k++) { const c = x.cards[k], hi = i; step(0.35, () => dealTo(hi, c)); } });
-    if (a === "double") step(0.1, () => layout(0.2));
-    if (a === "surrender") step(0.2, () => api.flash(T("Surrendered: half back"), ""));
-    if (s.phase === "done") finish(); else step(0, paint);
+  /// a round in play shown at once (coming back to a round the server kept)
+  function restore(v) {
+    clearTable(); B.s = v; v.hands.forEach((h, i) => { vh[i] = h.cards.map((c) => { const cd = card(c, true); return cd; }); });
+    vd = v.dealer.map((c) => card(c, c >= 0)); layout(0.01);
+    vd.forEach((cd, k) => { if (v.dealer[k] < 0) cd.flip.rotation.y = Math.PI; });
+    if (v.phase === "ins") askIns(v);
     paint();
   }
-  function start() {
-    if (!B || busy()) return; if (B.bet < BJ.MIN || B.bet > B.bank) { api.snd("bad"); return; }
-    const s = deal(B.s, { bank: B.bank, bet: B.bet, seed: (Math.random() * 2 ** 31) | 0 }); if (!s) { api.snd("bad"); return; }
-    B.last = B.bet; B.s = s; B.bank = s.bank; clearTable(); api.closeModal();
-    if (s.fresh && B.rounds) api.flash(T("A fresh shoe"), "");
-    if (s.fresh) api.snd("shuffle");
+  async function press(a) {
+    if (!B || busy() || B.wait) return;
+    if (a === "clear") { B.bet = 0; api.snd("tap"); paint(); return; }
+    if (a === "rebet") { const t = tb(); if (B.last && B.last <= bank() && B.last <= t.max) { B.bet = B.last; api.snd("chip", 2); paint(); } return; }
+    if (a === "refill") { if (B.real) return; B.bank = BJ.START; B.bet = Math.min(Math.max(B.bet, tb().min), B.bank); api.snd("coin"); api.flash(T("Refilled: {n} chips", { n: fmt(BJ.START) }), "big"); paint(); return; }
+    if (a === "shop") { if (api.shop) api.shop(); return; }
+    if (a === "deal") return start();
+    const s0 = B.s; if (!s0 || s0.phase !== "play") return;
+    const L = legal(s0); if (!L || !L[a]) { api.snd("bad"); return; }
+    const h = s0.cur, before = s0.hands.map((x) => x.cards.length), v = await step1({ op: "act", a }); if (!v || !on) return;
+    B.s = v; api.snd(a === "stand" ? "knock" : a === "double" || a === "split" ? "chip" : "tap");
+    if (a === "split") { const moved = vh[h].pop(); vh.splice(h + 1, 0, [moved]); step(0.3, () => layout(0.3)); step(0.3, () => { dealTo(h, v.hands[h].cards[1]); }); step(0.35, () => { dealTo(h + 1, v.hands[h + 1].cards[1]); }); }
+    else v.hands.forEach((x, i) => { for (let k = before[i] || 0; k < x.cards.length; k++) { const c = x.cards[k], hi = i; step(0.35, () => dealTo(hi, c)); } });
+    if (a === "double") step(0.1, () => layout(0.2));
+    if (a === "surrender") step(0.2, () => api.flash(T("Surrendered: half back"), ""));
+    if (v.phase === "done") finish(); else step(0, paint);
+    paint();
+  }
+  async function start() {
+    if (!B || busy() || B.wait) return; const t = tb(); if (B.bet < t.min || B.bet > t.max || B.bet > bank()) { api.snd("bad"); return; }
+    const v = await step1({ op: "deal", bet: B.bet }); if (!v || !on) return;
+    B.last = B.bet; B.s = v; clearTable(); api.closeModal();
+    if (v.fresh && B.rounds) api.flash(T("A fresh shoe"), "");
+    if (v.fresh) api.snd("shuffle");
     B.rounds++;
-    api.stackChips(B.betG[0], s.hands[0].bet); B.betG[0].position.set(0, 0.03, 2.3); api.snd("chip", 2);
-    const h0 = s.hands[0];
-    step(0.28, () => dealTo(0, h0.cards[0])); step(0.28, () => dealD(s.dealer[0], true)); step(0.28, () => dealTo(0, h0.cards[1])); step(0.45, () => dealD(s.dealer[1], false));
-    if (s.phase === "ins") step(0, () => { paint(); api.say(T("Insurance? ♡")); api.modal(`<p class="pk-say">${esc(T("ARCIA shows an ace~ Insurance? ♡"))}</p><p>${esc(T("Costs {n} · pays 2 to 1 if ARCIA has blackjack", { n: fmt(Math.floor(s.bet / 2)) }))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="bjNoIns">${esc(T("No thanks"))}</button><button type="button" class="pk-btn go" data-a="bjIns" ${Math.floor(s.bet / 2) > s.bank ? "disabled" : ""}>${esc(T("Insure"))}</button></div>`, true); });
-    else if (s.phase === "done") finish();
+    api.stackChips(B.betG[0], v.hands[0].bet); B.betG[0].position.set(0, 0.03, 2.3); api.snd("chip", 2);
+    const h0 = v.hands[0];
+    step(0.28, () => dealTo(0, h0.cards[0])); step(0.28, () => dealD(v.dealer[0], true)); step(0.28, () => dealTo(0, h0.cards[1])); step(0.45, () => dealD(v.dealer[1], false));
+    if (v.phase === "ins") step(0, () => askIns(v));
+    else if (v.phase === "done") finish();
     else step(0, () => { paint(); if (isBJ(h0)) api.say(T("Blackjack! ♾️")); });
     paint();
   }
+  function askIns(v) { paint(); api.say(T("Insurance? ♡")); const c = Math.floor(v.hands[0].bet / 2); api.modal(`<p class="pk-say">${esc(T("ARCIA shows an ace~ Insurance? ♡"))}</p><p>${esc(T("Costs {n} · pays 2 to 1 if ARCIA has blackjack", { n: fmt(c) }))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="bjNoIns">${esc(T("No thanks"))}</button><button type="button" class="pk-btn go" data-a="bjIns" ${c > bank() ? "disabled" : ""}>${esc(T("Insure"))}</button></div>`, true); }
   /// insurance answered (from the lounge's modal)
-  function answer(take) {
-    const s = B && B.s; if (!s || s.phase !== "ins") return; api.closeModal();
-    if (!insure(s, take)) { api.snd("bad"); return; }
-    B.bank = s.bank; if (take) api.snd("chip", 1);
-    if (s.phase === "done") finish(); else { step(0.1, paint); if (take) step(0.6, () => api.flash(T("No blackjack — insurance lost"), "")); }
+  async function answer(take) {
+    const s0 = B && B.s; if (!s0 || s0.phase !== "ins" || B.wait) return; api.closeModal();
+    const v = await step1({ op: "ins", take }); if (!v || !on) { if (B && B.s && B.s.phase === "ins") askIns(B.s); return; }
+    B.s = v; if (take) api.snd("chip", 1);
+    if (v.phase === "done") finish(); else { step(0.1, paint); if (take) step(0.6, () => api.flash(T("No blackjack — insurance lost"), "")); }
     paint();
   }
   /// the dealer's turn shown card by card, then every hand paid
@@ -140,9 +175,8 @@ export function makeBlackjack(api) {
       if (h.res === "blackjack") bj++;
     });
     setTimeout(() => { if (!B) return; s.hands.forEach((h, i) => { if (h.pay > 0) api.flyChips(betSpot(i, n), { x: 0, z: 4.6 }, h.pay, 0.02); api.stackChips(B.betG[i], 0); }); api.snd("chip", 3); }, 1400 * api.fast());
-    const net = paid - staked; B.net += net; B.hands += n; B.bj += bj; B.bank = s.bank; B.sinceRun += n;
+    const net = paid - staked; B.net += net; B.hands += n;
     if (net > 0) B.streak++; else if (net < 0) B.streak = 0;
-    B.bestRound = Math.max(B.bestRound, net);
     const word = net > 0 ? `+${fmt(net)}` : net < 0 ? `-${fmt(-net)}` : "±0";
     if (bj) { api.banner(`<b>${esc(T("BLACKJACK!"))}</b><small>${word}</small>`, "jackpot"); api.confetti(36); api.snd("level"); api.buzz([40, 50, 90]); api.say(T("Blackjack! ♾️")); }
     else if (d > 21 && any) { api.banner(`<b>${esc(T("ARCIA BUSTS!"))}</b><small>${word}</small>`, "win"); api.confetti(18); api.snd("win"); api.say(T("Oops~ I busted! ♡")); }
@@ -150,48 +184,26 @@ export function makeBlackjack(api) {
     else if (net === 0) api.banner(`<b>${esc(T("PUSH"))}</b><small>${esc(T("Your bet comes back"))}</small>`, "lose");
     else { api.banner(`<b>${esc(dBJ ? T("ARCIA has blackjack") : T("ARCIA wins"))}</b><small>${word}</small>`, "lose"); if (Math.random() < 0.4) api.say(T("Unlucky~ the next one's yours ♡")); }
     if (s.insPay) api.flash(T("Insurance pays {n}", { n: fmt(s.insPay) }), "big");
-    // this device's record; a wallet's hands go to the server every 10
-    const p = api.prog(), day = seoulDay(); if (p.day !== day) { p.day = day; p.xpToday = 0; }
-    const xp = Math.max(0, Math.min(n * BJ.XP_HAND, 500 - (p.xpToday || 0))); p.xp = (p.xp || 0) + xp; p.xpToday = (p.xpToday || 0) + xp; p.bjHands = (p.bjHands || 0) + n; p.bjBJ = (p.bjBJ || 0) + bj; api.save();
-    if (B.sinceRun >= 10) report(false);
-    if (B.bank < BJ.MIN) step(0.4, () => api.say(T("Out of chips~ Free refill below ♡")));
-  }
-
-  // ---------------- the server's count (a wallet) ----------------
-  function newRun() {
-    const ss = api.ctx.sess && api.ctx.sess();
-    run = ss && api.ctx.post ? api.ctx.post({ action: "world-bj-start", ...ss }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j.runId : null)).catch(() => null) : null;
-    // (a wallet whose hands can't be counted hears it once, rather than finding the mission short later)
-    if (run) run.then((id) => { if (!id && B && !B.warned) { B.warned = true; api.ctx.toast(esc(T("Blackjack hands can't be counted right now — the mission waits"))); } });
-  }
-  async function report(last) {
-    if (!run || !B || B.reporting) return; const r0 = run, hands = Math.min(60, B.sinceRun), net = B.net - B.netRun, bj = B.bj - B.bjRun; if (hands < 1) return;
-    B.reporting = true;
-    const id = await r0; if (!id) { B.reporting = false; if (!last) newRun(); return; }
-    let r = null; try { r = await api.ctx.post({ action: "world-bj-end", ...api.ctx.sess(), runId: id, hands, net, bj }); } catch { r = null; }
-    B.reporting = false;
-    if (r && r.ok && r.j) {
-      if (B) { B.sinceRun -= hands; B.netRun += net; B.bjRun += bj; }
-      if (r.j.credited > 0) { api.ctx.toast(`<b>+${fmt(r.j.credited)} ARCL</b> · ${esc(T("Mission complete: 30 blackjack hands"))}`); api.snd("coin"); if (api.ctx.refresh) api.ctx.refresh(); api.confetti(30); }
-      if (api.onProg) api.onProg(r.j.prog);
-      if (!last) newRun();
-    } else if (r && r.status === 409 && !last) newRun(); // (the run is gone: count from a fresh one; a "too fast" keeps counting on this one)
+    if (!B.real) { const p = api.prog(); p.bjHands = (p.bjHands || 0) + n; p.bjBJ = (p.bjBJ || 0) + bj; api.save(); }
+    if (bank() < tb().min) step(0.4, () => api.say(B.real ? T("Out of chips for this table~ ♡") : T("Out of chips~ Free refill below ♡")));
   }
 
   return {
     active: () => on,
-    start() {
+    async start() {
       if (!root) build(); on = true; root.hidden = false; api.enterTable();
-      const S = api.S(); if (!B) B = { bank: BJ.START, bet: 25, last: 0, s: null, rounds: 0, hands: 0, net: 0, bj: 0, streak: 0, bestRound: 0, sinceRun: 0, netRun: 0, bjRun: 0, betG: [] };
+      const S = api.S(), real = !!api.signed();
+      if (!B || B.real !== real) B = { real, bank: BJ.START, eng: null, table: "b1", bet: 25, last: 0, s: null, rounds: 0, hands: 0, net: 0, streak: 0, wait: false, betG: (B && B.betG) || [] };
       if (!B.betG.length) for (let k = 0; k < BJ.SPLITS; k++) { const g = new api.THREE.Group(); g.visible = false; S.scene.add(g); B.betG.push(g); }
-      B.s = null; clearTable(); Q.length = 0; B.sinceRun = 0; B.netRun = B.net; B.bjRun = B.bj; newRun(); paint(); api.say(T("Place your bet~ ♡"));
+      B.s = null; clearTable(); Q.length = 0; paint(); api.say(T("Place your bet~ ♡"));
+      // a round you left half-played waits on the server
+      if (real) { const ss = api.ctx.sess && api.ctx.sess(); try { const r = await api.ctx.post({ action: "world-bj-state", ...ss }); if (r && r.ok && r.j) { if (r.j.prog) api.onProg(r.j.prog); if (r.j.round && on) { B.table = r.j.round.table || B.table; restore(r.j.round); api.flash(T("Your round is still here"), ""); } } } catch { /* a fresh round */ } paint(); }
     },
-    /// out of blackjack (to the lounge, or the lounge closing): the hands so far go to the server
-    stop() { if (!on) return; on = false; if (root) root.hidden = true; Q.length = 0; if (B) { clearTable(); report(true); B.s = null; } api.closeModal(); },
+    stop() { if (!on) return; on = false; if (root) root.hidden = true; Q.length = 0; if (B) { clearTable(); B.s = null; B.wait = false; } api.closeModal(); },
     tick() { if (!on) return; runQ(performance.now()); const b = busy(); if (b) paintVals(); else if (wasBusy) paint(); wasBusy = b; },
-    answer,
+    answer, repaint: () => { if (on) paint(); },
     /// tests: the round's numbers and a few levers
-    debug: () => ({ on, bank: B ? B.bank : 0, bet: B ? B.bet : 0, phase: B && B.s ? B.s.phase : "bet", hands: B ? B.hands : 0, q: Q.length, cur: B && B.s ? B.s.cur : -1, n: B && B.s ? B.s.hands.length : 0, legal: B && B.s ? legal(B.s) : null, advice: B && B.s && B.s.phase === "play" ? advice(B.s) : "", net: B ? B.net : 0, since: B ? B.sinceRun : 0 }),
-    press, chip: addChip,
+    debug: () => ({ on, real: B ? B.real : false, bank: B ? bank() : 0, bet: B ? B.bet : 0, table: B ? B.table : "", phase: B && B.s ? B.s.phase : "bet", hands: B ? B.hands : 0, q: Q.length, wait: B ? B.wait : false, cur: B && B.s ? B.s.cur : -1, n: B && B.s ? B.s.hands.length : 0, legal: B && B.s ? legal(B.s) : null, advice: B && B.s && B.s.phase === "play" ? advice(B.s) : "", net: B ? B.net : 0 }),
+    press, chip: (v) => addChip(v), table: (id) => setTable(id),
   };
 }
