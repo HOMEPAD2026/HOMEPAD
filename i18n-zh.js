@@ -9364,6 +9364,8 @@
     "Walls and roofs": "墙与屋顶",
     "Windows and doors": "门窗",
     "Welcome 5 residents": "迎接 5 位居民",
+    "Clear INFINITY RINGS level 100": "通关无限之环第 100 关",
+    "INFINITY MASTER": "无限大师",
     "Your blueprint": "我的蓝图",
     "needs bricks you haven't unlocked": "需要尚未解锁的积木",
     "{name} built": "{name} 建成了",

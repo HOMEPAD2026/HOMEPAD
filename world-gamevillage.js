@@ -5,7 +5,7 @@
 // time you're within BUILD_AT and hidden again past HIDE_AT.
 export const VILLAGE = { x: -105, z: -5, r: 32, plotR: 21, arenaR: 10.5 };
 export const GAMES = [
-  { id: "soon1", garden: true }, { id: "soon2", garden: true, pond: true /* b447: a pond garden */ }, { id: "beat", name: "BEAT STOMP", color: 0xff5ad8, roof: 0x7a3cff, sub: "Rhythm game · walk in to play", ready: true } /* b446 */, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "soon5" },
+  { id: "soon1", garden: true }, { id: "soon2", garden: true, pond: true /* b447: a pond garden */ }, { id: "beat", name: "BEAT STOMP", color: 0xff5ad8, roof: 0x7a3cff, sub: "Rhythm game · walk in to play", ready: true } /* b446 */, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "rings", name: "INFINITY RINGS", color: 0x2ee0b0, sub: "Ring puzzle · walk in to play", ready: true } /* the INFINITY PUZZLE HALL (models/world/rings/palace.glb, Meshy) */,
   { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, sub: "Tower defence · walk in to play", ready: true }, // the middle plot: straight ahead as you come through the gate
   { id: "surv", name: "SURVIVORS ARENA", color: 0x39ff88, sub: "Survive 12 minutes · walk in to play", ready: true }, // the arena building (models/world/survivors/arena.glb, Meshy)
   { id: "soon7" }, { id: "soon8", garden: true }, { id: "soon9", garden: true }, { id: "soon10", garden: true }, // b446: five plots are small gardens, not building sites
@@ -117,6 +117,29 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null,
     const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 11; g.add(tag);
     return g;
   }
+  // INFINITY RINGS: the Meshy palace (models/world/rings/palace.glb, loaded when the village is built) on a round
+  // plinth, a big ∞ turning over its roof; until it arrives (or if it can't), a pale hall in its place
+  function palaceOf(gm) {
+    const g = new THREE.Group(), neon = glow(gm.color, 2.0);
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(5.1, 5.4, 0.45, 28), std(0xe6eef8)); plinth.position.y = 0.22; g.add(plinth);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(5.25, 0.1, 6, 72), neon); ring.rotation.x = Math.PI / 2; ring.position.y = 0.47; g.add(ring);
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(6.5, 4.4, 5.5), std(0xdfe8f6)); hall.position.y = 2.65; g.add(hall);
+    const n0 = g.children.length, mat = doorOf(g, gm, neon, 5.1), slab = g.children[n0];
+    // the ∞: two glowing rings side by side, turning slowly (until the palace arrives: it wears its own ∞ on the roof)
+    const inf = new THREE.Group(), im = glow(0x5aa8ff, 1.8), im2 = glow(0x2ee0b0, 1.8);
+    [[-0.78, im], [0.78, im2]].forEach(([x, m]) => { const t = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.17, 10, 40), m); t.position.x = x; inf.add(t); });
+    inf.position.y = 8.4; g.add(inf);
+    const loader = K.gltfLoader ? K.gltfLoader() : null;
+    if (loader) loader.loadAsync("models/world/rings/palace.glb?v=1").then((gl) => {
+      const m = gl.scene, box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3()), k = 9.6 / Math.max(size.x, size.z, 0.01);
+      m.scale.setScalar(k); m.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k + 0.45, -(box.min.z + size.z / 2) * k);
+      m.traverse((o) => { if (o.isMesh) { o.castShadow = !low; o.receiveShadow = true; if (o.material) cs(o.material); } });
+      g.remove(hall); g.add(m); inf.visible = false; if (slab) slab.visible = false; tag.position.y = size.y * k + 1.6; if (compile) Promise.resolve().then(() => compile(m)).catch(() => {});
+    }).catch((e) => console.warn("palace model:", e));
+    if (!low) spins.push((dt, t) => { inf.rotation.y = t * 0.6; mat.material.opacity = 0.2 + Math.sin(t * 3) * 0.08; ring.material.emissiveIntensity = 1.6 + Math.sin(t * 2) * 0.4; });
+    const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 10.2; g.add(tag);
+    return g;
+  }
   // b446: a small garden on a plot no game is coming to soon: grass, a low hedge, a tree and flowers (shared parts)
   let GP = null, gardenN = 0;
   function gardenOf(gm = {}) {
@@ -184,11 +207,11 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null,
     makeBoard();
     let soonTag = null;
     GAMES.forEach((gm, i) => {
-      const p = plotAt(i), g = gm.ready ? (gm.id === "beat" ? hallOf(gm) : gm.id === "jump" ? coinTowerOf(gm) : gm.id === "surv" ? arenaOf(gm) : towerOf(gm)) : gm.garden ? gardenOf(gm) : soonOf();
+      const p = plotAt(i), g = gm.ready ? (gm.id === "beat" ? hallOf(gm) : gm.id === "jump" ? coinTowerOf(gm) : gm.id === "surv" ? arenaOf(gm) : gm.id === "rings" ? palaceOf(gm) : towerOf(gm)) : gm.garden ? gardenOf(gm) : soonOf();
       g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); // the front faces the square
       g.traverse((o) => { if (o.isMesh) o.castShadow = !low; });
-      built.add(g); if (gm.ready) { g.userData.radius = gm.id === "surv" ? 5.3 : 3.6; solids.push(g); }
-      if (gm.ready) { const dd = gm.id === "surv" ? 6.9 : 4.6, d = new THREE.Group(); d.position.set(p.x - Math.sin(p.a) * dd, 0, p.z - Math.cos(p.a) * dd); d.userData = { radius: 1.2, game: gm.id }; built.add(d); doors.push(d); }
+      built.add(g); if (gm.ready) { g.userData.radius = gm.id === "surv" ? 5.3 : gm.id === "rings" ? 5.0 : 3.6; solids.push(g); }
+      if (gm.ready) { const dd = gm.id === "surv" ? 6.9 : gm.id === "rings" ? 6.5 : 4.6, d = new THREE.Group(); d.position.set(p.x - Math.sin(p.a) * dd, 0, p.z - Math.cos(p.a) * dd); d.userData = { radius: 1.2, game: gm.id }; built.add(d); doors.push(d); }
       else if (!gm.garden) { // one "Coming soon" sign texture, shared by every empty plot
         soonTag = soonTag || K.label(T("Coming soon"), { accent: "#ffc861", size: 0.85 });
         const s = soonTag.clone(); s.position.set(p.x, 3.4, p.z); built.add(s);
@@ -250,7 +273,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null,
         if (n) { o.instanceMatrix.needsUpdate = true; if (o.computeBoundingSphere) o.computeBoundingSphere(); } });
     },
     /// where to stand when you come out of a game: in front of its door, facing the square
-    exitOf(id) { const i = GAMES.findIndex((g) => g.id === id), p = plotAt(Math.max(0, i)), d = id === "surv" ? 9 : 6.5; return { x: V.x + p.x - Math.sin(p.a) * d, z: V.z + p.z - Math.cos(p.a) * d }; },
+    exitOf(id) { const i = GAMES.findIndex((g) => g.id === id), p = plotAt(Math.max(0, i)), d = id === "surv" ? 9 : id === "rings" ? 8.6 : 6.5; return { x: V.x + p.x - Math.sin(p.a) * d, z: V.z + p.z - Math.cos(p.a) * d }; },
     /// the player's planet position: build the buildings when near, hide them when far
     tick(dt, t, px, pz) {
       const d = Math.hypot(px - V.x, pz - V.z);

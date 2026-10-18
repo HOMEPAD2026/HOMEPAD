@@ -9194,6 +9194,8 @@
     "Walls and roofs": "벽과 지붕",
     "Windows and doors": "창문과 문",
     "Welcome 5 residents": "주민 5명 맞이하기",
+    "Clear INFINITY RINGS level 100": "인피니티 링 100레벨 클리어",
+    "INFINITY MASTER": "인피니티 마스터",
     "Your blueprint": "내 설계도",
     "needs bricks you haven't unlocked": "아직 잠긴 브릭이 필요해요",
     "{name} built": "{name} 완성",
