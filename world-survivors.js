@@ -526,7 +526,7 @@ export function createSurvivors(ctx) {
     rate: () => 1 + 0.1 * pv("rapid"),
     crit: () => 0.05 + 0.06 * pv("crit"),
     critK: () => 2 + 0.25 * pv("critp") + (R.evo.eclipse ? 0.5 : 0),
-    speed: () => 6.4 * R.hero.speed * (1 + 0.07 * pv("speed")),
+    speed: () => 7 * R.hero.speed * (1 + 0.07 * pv("speed")),
     armor: () => 1 - 0.07 * pv("armor"),
     magnet: () => 2.2 * (1 + 0.4 * pv("magnet")),
     regen: () => 0.4 * pv("recov"),
@@ -794,7 +794,7 @@ export function createSurvivors(ctx) {
     if (hero) { hero.obj.position.set(R ? R.x : 0, 0, R ? R.z : 0); const mv = mode === "play" && R && Math.hypot(R.vx, R.vz) > 0.3;
       // the heroes' clips are "walk" and "sprint" (world-kit CU_AS; there is no "run": asking for it fell back to idle)
       const v = R ? Math.hypot(R.vx, R.vz) : 0, want = mode === "over" && R && R.hp <= 0 ? "die" : !mv ? "idle" : v > 9 ? "sprint" : "walk";
-      if (hero.play && !(hero.busy && hero.busy())) hero.play(want, { speed: want === "walk" ? Math.max(0.8, v / 5.6) : 1 });
+      if (hero.play && !(hero.busy && hero.busy())) hero.play(want, { speed: want === "walk" ? Math.max(0.8, v / 6.1) : 1 });
       const inner = hero.obj.children[0]; if (inner && !hero.bot) inner.rotation.x += ((mv ? Math.min(1, v / 12) * 0.14 : 0) - inner.rotation.x) * 0.15; // lean into the run
       if (mode !== "pause" && mode !== "cards") hero.update(real, t, mv ? 1 : 0, 0);
       if (mode === "lobby") hero.obj.rotation.y += real * 0.7; else if (R) hero.obj.rotation.y += Math.atan2(Math.sin(R.face - hero.obj.rotation.y), Math.cos(R.face - hero.obj.rotation.y)) * Math.min(1, real * 14); }
@@ -848,7 +848,7 @@ export function createSurvivors(ctx) {
     let ix = 0, iz = 0; if (keys.has("a") || keys.has("arrowleft")) ix -= 1; if (keys.has("d") || keys.has("arrowright")) ix += 1; if (keys.has("w") || keys.has("arrowup")) iz -= 1; if (keys.has("s") || keys.has("arrowdown")) iz += 1;
     if (joy.on) { ix = joy.dx; iz = joy.dy; } const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
     R.dashCd -= dt; R.hurtT -= dt; if (R.dashT > 0) R.dashT -= dt; if (R.streakT > 0 && (R.streakT -= dt) <= 0) R.streak = 0;
-    const sp = stat.speed() * (R.dashT > 0 ? 3.4 : 1), a = Math.min(1, dt * (R.dashT > 0 ? 30 : 14));
+    const sp = stat.speed() * (R.dashT > 0 ? 3.4 : 1), a = Math.min(1, dt * (R.dashT > 0 ? 30 : 20));
     R.vx += (ix * sp - R.vx) * a; R.vz += (iz * sp - R.vz) * a; if (R.dashT > 0 && il < 0.1) { R.vx = Math.sin(R.face) * sp; R.vz = Math.cos(R.face) * sp; }
     R.x += R.vx * dt; R.z += R.vz * dt; const rr = Math.hypot(R.x, R.z); if (rr > ARENA_R - 1) { R.x *= (ARENA_R - 1) / rr; R.z *= (ARENA_R - 1) / rr; }
     const moving = Math.hypot(R.vx, R.vz) > 0.5;
@@ -983,7 +983,7 @@ export function createSurvivors(ctx) {
     ui.dash.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); dash(); });
     ui.skill = q(".sv-skill"); ui.skillCd = q(".sv-skill .sv-dash-cd"); ui.skill.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); skill(); });
     root.addEventListener("pointerdown", (e) => { if (mode !== "play" || joy.on || e.target.closest("button,.sv-cards,.sv-sheet")) return; e.preventDefault(); const k = scaleK(); joy.on = true; joy.id = e.pointerId; joy.x0 = e.clientX / k; joy.y0 = e.clientY / k; joy.dx = joy.dy = 0; try { root.setPointerCapture(e.pointerId); } catch { /* fine */ } paintJoy(); });
-    root.addEventListener("pointermove", (e) => { if (!joy.on || e.pointerId !== joy.id) return; const k = scaleK(), mx = 46; let dx = e.clientX / k - joy.x0, dy = e.clientY / k - joy.y0; const l = Math.hypot(dx, dy); if (l > mx) { dx *= mx / l; dy *= mx / l; } joy.dx = dx / mx; joy.dy = dy / mx; paintJoy(); });
+    root.addEventListener("pointermove", (e) => { if (!joy.on || e.pointerId !== joy.id) return; const k = scaleK(), mx = 46; let dx = e.clientX / k - joy.x0, dy = e.clientY / k - joy.y0; const l = Math.hypot(dx, dy); if (l > mx) { dx *= mx / l; dy *= mx / l; } const k2 = l < 1 ? 0 : Math.min(1, Math.max(0, (Math.min(l, mx) / mx - 0.1) / 0.6)) / Math.min(1, Math.min(l, mx) / mx); joy.dx = (dx / mx) * k2; joy.dy = (dy / mx) * k2; paintJoy(); }); // full speed from 70% of the pad's reach, a small dead zone at its middle
     const up = (e) => { if (e.pointerId !== joy.id) return; joy.on = false; joy.dx = joy.dy = 0; paintJoy(); };
     root.addEventListener("pointerup", up); root.addEventListener("pointercancel", up); root.addEventListener("lostpointercapture", up);
     addEventListener("resize", fit); fit();

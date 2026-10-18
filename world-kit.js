@@ -272,7 +272,7 @@ export function makeStage(canvas, opts = {}) {
     if (!running || lost) return;
     raf = requestAnimationFrame(frame);
     if (now && lastAt) { const el = now - lastAt; if (el < gap - 2) return; lastAt = el < gap * 3 ? lastAt + gap * Math.max(1, Math.floor(el / gap)) : now; } else lastAt = now || performance.now(); // keeps 45 on a 60 Hz screen at 45, not 30
-    if (every > 1 && (++nth % every)) return; // a menu covers the world: draw it a few times a second, not 60
+    if (!solo && every > 1 && (++nth % every)) return; // a menu covers the world: draw it a few times a second, not 60 (never a game drawn through solo(): its own frame limit and quality decide)
     const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
     const w0 = performance.now(); if (solo) solo(dt, t); else updates.forEach((fn) => fn(dt, t)); // solo: only that one runs (the town waits behind the mine)
     if (alt) { if (alt.composer) alt.composer.render(); else renderer.render(alt.scene, alt.cam); } else if (composer) composer.render(); else renderer.render(scene, camera);
