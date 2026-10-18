@@ -8,7 +8,8 @@ export const GAMES = [
   { id: "soon1", garden: true }, { id: "soon2", garden: true, pond: true /* b447: a pond garden */ }, { id: "beat", name: "BEAT STOMP", color: 0xff5ad8, roof: 0x7a3cff, sub: "Rhythm game · walk in to play", ready: true } /* b446 */, { id: "jump", name: "COIN JUMP", color: 0xffc861, roof: 0x2f86ff, sub: "Jump to the crown · walk in to play", ready: true }, { id: "rings", name: "INFINITY RINGS", color: 0x2ee0b0, sub: "Ring puzzle · walk in to play", ready: true } /* the INFINITY PUZZLE HALL (models/world/rings/palace.glb, Meshy) */,
   { id: "defense", name: "AC DEFENSE", color: 0xff6a4d, sub: "Tower defence · walk in to play", ready: true }, // the middle plot: straight ahead as you come through the gate
   { id: "surv", name: "SURVIVORS ARENA", color: 0x39ff88, sub: "Survive 12 minutes · walk in to play", ready: true }, // the arena building (models/world/survivors/arena.glb, Meshy)
-  { id: "soon7" }, { id: "soon8", garden: true }, { id: "soon9", garden: true }, { id: "soon10", garden: true }, // b446: five plots are small gardens, not building sites
+  { id: "poker", name: "ARCIA POKER LOUNGE", color: 0xb48cff, sub: "Texas Hold'em · walk in to play", ready: true }, // the lounge (models/world/poker/lounge.glb, Meshy)
+  { id: "soon8", garden: true }, { id: "soon9", garden: true }, { id: "soon10", garden: true }, // b446: five plots are small gardens, not building sites
 ];
 const BUILD_AT = 75, HIDE_AT = 95;
 
@@ -140,6 +141,28 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null,
     const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.9, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 10.2; g.add(tag);
     return g;
   }
+  // ARCIA POKER LOUNGE: the Meshy lounge (models/world/poker/lounge.glb) on a dark round plinth with a violet neon
+  // ring; a plain hall with a big ♠ stands in until it arrives (or if it can't)
+  function loungeOf(gm) {
+    const g = new THREE.Group(), neon = glow(gm.color, 2.0);
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(5.0, 5.3, 0.45, 28), std(0x2a1d48)); plinth.position.y = 0.22; g.add(plinth);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(5.15, 0.1, 6, 72), neon); ring.rotation.x = Math.PI / 2; ring.position.y = 0.47; g.add(ring);
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(6.2, 4.2, 5.4), std(0x3a2a66)); hall.position.y = 2.55; g.add(hall);
+    const n0 = g.children.length, mat = doorOf(g, gm, neon, 5.0), slab = g.children[n0];
+    const spade = new THREE.Group(), sm = glow(0xffc861, 1.6); // ♠ in two spheres and a cone, until the lounge arrives
+    [[-0.42, 0], [0.42, 0]].forEach(([x]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 12), sm); b.position.set(x, 0, 0); spade.add(b); });
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.1, 18), sm); tip.position.y = 0.55; spade.add(tip); spade.position.y = 6.2; g.add(spade);
+    const loader = K.gltfLoader ? K.gltfLoader() : null;
+    if (loader) loader.loadAsync("models/world/poker/lounge.glb?v=1").then((gl) => {
+      const m = gl.scene, box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3()), k = 9.4 / Math.max(size.x, size.z, 0.01);
+      m.scale.setScalar(k); m.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k + 0.45, -(box.min.z + size.z / 2) * k);
+      m.traverse((o) => { if (o.isMesh) { o.castShadow = !low; o.receiveShadow = true; if (o.material) cs(o.material); } });
+      g.remove(hall); g.add(m); spade.visible = false; if (slab) slab.visible = false; tag.position.y = size.y * k + 1.6; if (compile) Promise.resolve().then(() => compile(m)).catch(() => {});
+    }).catch((e) => console.warn("lounge model:", e));
+    if (!low) spins.push((dt, t) => { spade.rotation.y = t * 0.8; mat.material.opacity = 0.2 + Math.sin(t * 3) * 0.08; ring.material.emissiveIntensity = 1.6 + Math.sin(t * 2.2) * 0.4; });
+    const tag = K.label(gm.name, { accent: hex(gm.color), size: 0.85, sub: T(gm.sub || "Walk in to play") }); tag.position.y = 9.6; g.add(tag);
+    return g;
+  }
   // b446: a small garden on a plot no game is coming to soon: grass, a low hedge, a tree and flowers (shared parts)
   let GP = null, gardenN = 0;
   function gardenOf(gm = {}) {
@@ -207,11 +230,11 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null,
     makeBoard();
     let soonTag = null;
     GAMES.forEach((gm, i) => {
-      const p = plotAt(i), g = gm.ready ? (gm.id === "beat" ? hallOf(gm) : gm.id === "jump" ? coinTowerOf(gm) : gm.id === "surv" ? arenaOf(gm) : gm.id === "rings" ? palaceOf(gm) : towerOf(gm)) : gm.garden ? gardenOf(gm) : soonOf();
+      const p = plotAt(i), g = gm.ready ? (gm.id === "beat" ? hallOf(gm) : gm.id === "jump" ? coinTowerOf(gm) : gm.id === "surv" ? arenaOf(gm) : gm.id === "rings" ? palaceOf(gm) : gm.id === "poker" ? loungeOf(gm) : towerOf(gm)) : gm.garden ? gardenOf(gm) : soonOf();
       g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); // the front faces the square
       g.traverse((o) => { if (o.isMesh) o.castShadow = !low; });
-      built.add(g); if (gm.ready) { g.userData.radius = gm.id === "surv" ? 5.3 : gm.id === "rings" ? 5.0 : 3.6; solids.push(g); }
-      if (gm.ready) { const dd = gm.id === "surv" ? 6.9 : gm.id === "rings" ? 6.5 : 4.6, d = new THREE.Group(); d.position.set(p.x - Math.sin(p.a) * dd, 0, p.z - Math.cos(p.a) * dd); d.userData = { radius: 1.2, game: gm.id }; built.add(d); doors.push(d); }
+      built.add(g); if (gm.ready) { g.userData.radius = gm.id === "surv" ? 5.3 : gm.id === "rings" || gm.id === "poker" ? 5.0 : 3.6; solids.push(g); }
+      if (gm.ready) { const dd = gm.id === "surv" ? 6.9 : gm.id === "rings" || gm.id === "poker" ? 6.5 : 4.6, d = new THREE.Group(); d.position.set(p.x - Math.sin(p.a) * dd, 0, p.z - Math.cos(p.a) * dd); d.userData = { radius: 1.2, game: gm.id }; built.add(d); doors.push(d); }
       else if (!gm.garden) { // one "Coming soon" sign texture, shared by every empty plot
         soonTag = soonTag || K.label(T("Coming soon"), { accent: "#ffc861", size: 0.85 });
         const s = soonTag.clone(); s.position.set(p.x, 3.4, p.z); built.add(s);
@@ -273,7 +296,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null,
         if (n) { o.instanceMatrix.needsUpdate = true; if (o.computeBoundingSphere) o.computeBoundingSphere(); } });
     },
     /// where to stand when you come out of a game: in front of its door, facing the square
-    exitOf(id) { const i = GAMES.findIndex((g) => g.id === id), p = plotAt(Math.max(0, i)), d = id === "surv" ? 9 : id === "rings" ? 8.6 : 6.5; return { x: V.x + p.x - Math.sin(p.a) * d, z: V.z + p.z - Math.cos(p.a) * d }; },
+    exitOf(id) { const i = GAMES.findIndex((g) => g.id === id), p = plotAt(Math.max(0, i)), d = id === "surv" ? 9 : id === "rings" || id === "poker" ? 8.6 : 6.5; return { x: V.x + p.x - Math.sin(p.a) * d, z: V.z + p.z - Math.cos(p.a) * d }; },
     /// the player's planet position: build the buildings when near, hide them when far
     tick(dt, t, px, pz) {
       const d = Math.hypot(px - V.x, pz - V.z);

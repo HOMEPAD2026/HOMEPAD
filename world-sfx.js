@@ -130,6 +130,12 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     ring: () => gap("ring", 40) && (tone(1450, 0.035, { type: "triangle", v: 0.06, to: 1180, a: 0.002 }), noise(0.025, 0.035, 5200)),
     clasp: () => gap("clasp", 60) && (tone(2300, 0.05, { type: "square", v: 0.018, to: 1900, a: 0.002, lp: 5000 }), tone(1150, 0.08, { type: "triangle", v: 0.05, at: 0.02 })),
     chain: (k = 0) => { const f = 523.25 * Math.pow(2, (Math.min(k, 9) * 2) / 12); tone(f, 0.16, { type: "triangle", v: 0.08 }); tone(f * 1.5, 0.22, { v: 0.04, at: 0.05 }); if (k >= 2) tone(f * 2, 0.3, { v: 0.025, at: 0.1 }); },
+    // ARCIA POKER LOUNGE: a card slides out (or flips), chips click onto the felt, a knock for a check, the shuffle
+    card: () => gap("card", 45) && noise(0.07, 0.07, 3200, { to: 1400, a: 0.004 }),
+    flip: () => gap("flip", 45) && (noise(0.04, 0.06, 5200, { a: 0.002 }), tone(900, 0.03, { type: "triangle", v: 0.025, to: 700 })),
+    chip: (k = 1) => { if (!gap("chip", 50)) return; for (let i = 0; i < Math.min(4, 1 + k); i++) tone(2600 + Math.random() * 900, 0.03, { type: "triangle", v: 0.05, at: i * 0.045, a: 0.001, to: 2100 }); noise(0.03, 0.04, 6000); },
+    knock: () => gap("knock", 80) && (tone(140, 0.06, { v: 0.12, to: 90 }), noise(0.04, 0.1, 500, { type: "lowpass" }), tone(150, 0.06, { v: 0.1, to: 95, at: 0.11 }), noise(0.04, 0.08, 500, { type: "lowpass", at: 0.11 })),
+    shuffle: () => { for (let i = 0; i < 9; i++) noise(0.03, 0.045, 3000 + Math.random() * 2500, { at: i * 0.04 }); },
     tab: () => { if (!gap("tab", 50)) return; tone(1250, 0.045, { type: "triangle", v: 0.045, a: 0.003 }); tone(1680, 0.05, { type: "triangle", v: 0.03, at: 0.03, a: 0.003 }); },
     open: () => { if (!gap("panel", 120)) return; tone(520, 0.1, { type: "triangle", v: 0.06, to: 780 }); tone(1040, 0.1, { v: 0.025, at: 0.05 }); noise(0.09, 0.02, 2500, { to: 6000, a: 0.03 }); },
     close: () => { if (!gap("panel", 120)) return; tone(760, 0.09, { type: "triangle", v: 0.05, to: 470 }); noise(0.07, 0.015, 3000, { to: 1200 }); },
