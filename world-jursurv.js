@@ -9,6 +9,15 @@
 // the 20 camp spots round the gate (api/_world-jur.mjs JUR.CAMPS): kept clear of trees and rocks, safe from dinosaurs
 export const CAMPS = [[17, 67], [30, 47], [25, 25], [5, 12], [-17, 17], [-30, 37], [-25, 59], [0, 92], [35, 77], [50, 38], [-4, -8], [-35, 7], [-50, 46], [-35, 77], [12, 111], [35, 103], [54, 87], [66, 66], [68, 24], [-18, -26]];
 export const CAMP_R = 9;
+// (the same as api/_world-jur.mjs clash — tests/world/jur.test.mjs checks) the room each piece takes: no two overlapping (a floor can go under the rest); a hut is hollow: a bed, a chest, a torch
+// post or a workbench fits inside it (clear of its walls)
+const RAD = { hut: 2.2, bench: 1.1, campfire: 0.8, bed: 1, chest: 0.6, fence: 0.7, wall: 0.7, floor: 0, torchpost: 0.3 }, INSIDE = { bed: 1, chest: 1, torchpost: 1, bench: 1 };
+function clash(k1, x1, z1, k2, x2, z2) {
+  const r1 = RAD[k1] ?? 0.6, r2 = RAD[k2] ?? 0.6; if (!r1 || !r2) return false; const d = Math.hypot(x1 - x2, z1 - z2);
+  const inHut = (r, dx, dz) => Math.abs(dx) + r * 0.5 <= 1.75 && Math.abs(dz) + r * 0.5 <= 1.75; // (the hut is a 4 m square: clear of its walls)
+  if (k1 === "hut" && INSIDE[k2] && inHut(r2, x2 - x1, z2 - z1)) return false; if (k2 === "hut" && INSIDE[k1] && inHut(r1, x1 - x2, z1 - z2)) return false;
+  return d < (r1 + r2) * 0.8;
+}
 const ICON = { wood: "🪵", hardwood: "🌳", stone: "🪨", flint: "🔺", clay: "🟤", fiber: "🌾", berries: "🫐", amber: "🟠", hide: "🟫", bone: "🦴", meat: "🥩", cooked: "🍖", torch: "🔥", rope: "🪢", fang: "🦷", cu: "🟧", ag: "⬜", au: "🟨" };
 const MAT_N = { wood: "Wood", hardwood: "Hardwood", stone: "Stone", flint: "Flint", clay: "Clay", fiber: "Fiber", berries: "Berries", amber: "Amber", hide: "Hide", bone: "Bone", meat: "Raw meat", cooked: "Cooked meat", torch: "Torch", rope: "Rope", fang: "Fang", cu: "Copper ore", ag: "Silver ore", au: "Gold ore" };
 const NODE_N = { tree: "Tree", palm: "Palm", ancient: "Ancient tree", fern: "Fern", bush: "Bush", log: "Log", rock: "Rock", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
@@ -34,7 +43,7 @@ export function createSurvival(H) {
   // ---------------- the server ----------------
   async function api(action, extra = {}) {
     const s = ctx.sess && ctx.sess(); if (!s) return { ok: false, status: 401, j: { error: T("Sign in to gather") } };
-    try { return await ctx.post({ action, ...s, ...extra }); } catch (e) { return { ok: false, status: 0, j: { error: String((e && e.message) || e) } }; }
+    try { return await ctx.post({ action, ...s, ...extra }); } catch (e) { return { ok: false, status: 0, j: { error: e && e.name === "AbortError" ? T("the connection timed out — try again") : String((e && e.message) || e) } }; }
   }
   async function load() {
     const s = ctx.sess && ctx.sess(); signedOut = !s; if (!s) { paint(); return; }
@@ -116,7 +125,7 @@ export function createSurvival(H) {
   const atOk = (R) => !R.at || (R.at === "bench" ? campHas("bench") : campHas("campfire"));
   const owned = (R) => !!(R.tool && inv && (inv.tools[R.tool[0]] | 0) >= R.tool[1]);
   async function make(id) {
-    if (busy) return; busy = true; const R = recipes[id];
+    if (busy) { toast(T("One moment…")); return; } busy = true; const R = recipes[id];
     const r = await api("world-jur-craft", { recipe: id }); busy = false;
     if (!r.ok) { toast(T("Couldn't make it: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
     inv = r.j.inv; if (r.j.ore) ore = r.j.ore;
@@ -130,7 +139,8 @@ export function createSurvival(H) {
   }
 
   // ---------------- the camps: a ring of stones and a sign for each one taken, what's built there ----------------
-  const campSolid = []; let campGs = [], fires = [];
+  const campSolid = []; let campGs = [], fires = [], huts = [];
+  const inHut = (x, z) => huts.find((h) => Math.hypot(x - h.x, z - h.z) < 1.85) || null;
   const MAT = {};
   const mat = (k, c, o = {}) => MAT[k] || (MAT[k] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, ...o }));
   const flameM = () => MAT.flame || (MAT.flame = new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
@@ -143,10 +153,11 @@ export function createSurvival(H) {
     else if (k === "campfire") { const sg = new THREE.DodecahedronGeometry(0.2, 0); for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2, o = new THREE.Mesh(sg, stone); o.position.set(Math.cos(a) * 0.62, 0.1, Math.sin(a) * 0.62); g.add(o); }
       for (let i = 0; i < 3; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.95, 6), dark); l.rotation.z = Math.PI / 2; l.rotation.y = i * 1.05; l.position.y = 0.14; g.add(l); }
       const f1 = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.9, 8, 1, true), flameM()); f1.position.y = 0.55; g.add(f1); g.userData.fire = f1; g.userData.r = 0.75; }
-    else if (k === "hut") { g.add(box(4.2, 0.2, 4.2, dark, 0, 0.1)); const W = 4, H0 = 2.3;
-      g.add(box(W, H0, 0.18, wood, 0, H0 / 2, -W / 2)); g.add(box(0.18, H0, W, wood, -W / 2, H0 / 2, 0)); g.add(box(0.18, H0, W, wood, W / 2, H0 / 2, 0));
-      g.add(box(1.4, H0, 0.18, wood, -1.3, H0 / 2, W / 2)); g.add(box(1.4, H0, 0.18, wood, 1.3, H0 / 2, W / 2)); g.add(box(1.2, 0.5, 0.18, wood, 0, H0 - 0.25, W / 2));
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(3.6, 1.9, 4), thatch); roof.rotation.y = Math.PI / 4; roof.position.y = H0 + 0.95; g.add(roof); g.userData.r = 2.3; }
+    else if (k === "hut") { const see = (m) => { const c2 = m.clone(); c2.transparent = true; return c2; }, wd = see(wood), th = see(thatch); g.userData.fade = [wd, th];
+      g.add(box(4.2, 0.2, 4.2, dark, 0, 0.1)); const W = 4, H0 = 2.3;
+      g.add(box(W, H0, 0.18, wd, 0, H0 / 2, -W / 2)); g.add(box(0.18, H0, W, wd, -W / 2, H0 / 2, 0)); g.add(box(0.18, H0, W, wd, W / 2, H0 / 2, 0));
+      g.add(box(1.4, H0, 0.18, wd, -1.3, H0 / 2, W / 2)); g.add(box(1.4, H0, 0.18, wd, 1.3, H0 / 2, W / 2)); g.add(box(1.2, 0.5, 0.18, wd, 0, H0 - 0.25, W / 2));
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(3.6, 1.9, 4), th); roof.rotation.y = Math.PI / 4; roof.position.y = H0 + 0.95; g.add(roof); g.userData.r = 2.3; }
     else if (k === "bed") { g.add(box(1.1, 0.35, 2.1, wood, 0, 0.18)); g.add(box(1, 0.16, 1.9, mat("hide", 0xa0703f), 0, 0.42)); g.add(box(0.8, 0.14, 0.4, mat("fur", 0xd9c39a), 0, 0.55, -0.7)); g.userData.r = 0.9; }
     else if (k === "chest") { g.add(box(1, 0.6, 0.62, wood, 0, 0.3)); g.add(box(1.04, 0.16, 0.66, dark, 0, 0.66)); g.add(box(0.14, 0.18, 0.06, mat("brass", 0xd8b04a, { metalness: 0.6, roughness: 0.4 }), 0, 0.5, 0.33)); g.userData.r = 0.6; }
     else if (k === "fence") { for (const x of [-0.95, 0, 0.95]) g.add(box(0.14, 1.1, 0.14, dark, x, 0.55)); g.add(box(2, 0.1, 0.08, wood, 0, 0.75)); g.add(box(2, 0.1, 0.08, wood, 0, 0.4)); g.userData.r = 0.5; }
@@ -158,7 +169,7 @@ export function createSurvival(H) {
   }
   function drawCamps() {
     if (!H.scene) return;
-    for (const g of campGs) H.scene.remove(g); campGs = []; campSolid.length = 0; fires = [];
+    for (const g of campGs) H.scene.remove(g); campGs = []; campSolid.length = 0; fires = []; huts = [];
     const sg = new THREE.DodecahedronGeometry(0.22, 0), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), s3 = new THREE.Vector3();
     for (const c of camps.list) {
       const g = new THREE.Group(), y0 = H.height(c.x, c.z); g.position.set(c.x, y0, c.z); H.scene.add(g); campGs.push(g);
@@ -169,7 +180,11 @@ export function createSurvival(H) {
       if (ctx.K && ctx.K.label) { const tag = ctx.K.label(mine ? T("Your camp") : T("{w}'s camp", { w: c.owner }), { accent: mine ? "#39ff88" : "#9fd0ff", size: 0.5, sub: c.members > 1 ? T("{n} living here", { n: c.members }) : "" }); tag.position.set(0, 2.2, -CAMP_R + 0.4); g.add(tag); }
       for (const p of c.pieces) { const o = pieceMesh(p.k); if (!o) continue; o.position.set(p.x, H.height(c.x + p.x, c.z + p.z) - y0, p.z); o.rotation.y = (p.r || 0) * Math.PI / 2;
         o.traverse((m) => { if (m.isMesh && !m.material.blending) { m.castShadow = !!H.shadows; m.receiveShadow = true; } }); g.add(o);
-        if (o.userData.fire) fires.push(o.userData.fire); if (o.userData.r) campSolid.push({ x: c.x + p.x, z: c.z + p.z, r: o.userData.r }); }
+        if (o.userData.fire) fires.push(o.userData.fire);
+        if (p.k === "hut") { // hollow: its walls stop you, the doorway (the front's middle) lets you in
+          const a = (p.r || 0) * Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a), pts = []; for (let t = -2; t <= 2.001; t += 0.5) { pts.push([t, -2], [-2, t], [2, t]); if (Math.abs(t) > 0.7) pts.push([t, 2]); }
+          for (const [lx, lz] of pts) campSolid.push({ x: c.x + p.x + lx * ca + lz * sa, z: c.z + p.z - lx * sa + lz * ca, r: 0.3 }); huts.push({ x: c.x + p.x, z: c.z + p.z, g: o }); }
+        else if (o.userData.r) campSolid.push({ x: c.x + p.x, z: c.z + p.z, r: o.userData.r }); }
     }
   }
   // building: in your camp a Build button; pick a piece, a see-through ghost of it stands in front of you on the
@@ -185,15 +200,14 @@ export function createSurvival(H) {
   function endGhost() { if (ghost) H.scene.remove(ghost); ghost = null; ghostK = ""; ghostAt = null; if (ui) ui.ghostBar.hidden = true; }
   function tickGhost(px, pz, face) {
     if (!ghost) return; const c = inHome(px, pz); if (!c) { endGhost(); return; }
-    const off = 1.6 + (ghost.userData.r || 0.6) * 1.3; let gx = Math.round(px + Math.sin(face) * off - c.x), gz = Math.round(pz + Math.cos(face) * off - c.z); const d = Math.hypot(gx, gz); if (d > CAMP_R) { gx = Math.round(gx / d * CAMP_R); gz = Math.round(gz / d * CAMP_R); }
-    const RAD = { hut: 2.2, bench: 1.1, campfire: 0.8, bed: 1, chest: 0.6, fence: 0.7, wall: 0.7, floor: 0, torchpost: 0.3 }, rr = RAD[ghostK] ?? 0.6;
-    const taken = c.pieces.some((p) => p.x === gx && p.z === gz), crowded = !!rr && c.pieces.some((p) => (RAD[p.k] ?? 0.6) && Math.hypot(p.x - gx, p.z - gz) < (rr + (RAD[p.k] ?? 0.6)) * 0.8), def = pieceDefs[ghostK], ok = !taken && !crowded && def && canMake(def) && !(def.station && c.pieces.some((p) => p.k === ghostK));
+    const off = inHut(px, pz) ? 0.9 : 1.6 + (ghost.userData.r || 0.6) * 1.3; let gx = Math.round(px + Math.sin(face) * off - c.x), gz = Math.round(pz + Math.cos(face) * off - c.z); const d = Math.hypot(gx, gz); if (d > CAMP_R) { gx = Math.round(gx / d * CAMP_R); gz = Math.round(gz / d * CAMP_R); }
+    const taken = c.pieces.some((p) => p.x === gx && p.z === gz), crowded = c.pieces.some((p) => clash(ghostK, gx, gz, p.k, p.x, p.z)), def = pieceDefs[ghostK], ok = !taken && !crowded && def && canMake(def) && !(def.station && c.pieces.some((p) => p.k === ghostK));
     ghostAt = { gx, gz, ok, taken, c }; ghost.position.set(c.x + gx, H.height(c.x + gx, c.z + gz) + 0.02, c.z + gz); ghost.rotation.y = ghostR * Math.PI / 2;
     ghost.userData.gm.color.setHex(ok ? 0x7dffc8 : 0xff6b7d);
     if (ui) { ui.ghostBar.querySelector('[data-g="place"]').disabled = !ok; ui.ghostBar.querySelector('[data-g="down"]').hidden = !taken; }
   }
   async function ghostDo(op) {
-    if (!ghostAt || busy) return; const { gx, gz, c } = ghostAt; busy = true;
+    if (busy) { toast(T("One moment…")); return; } if (!ghostAt) { toast(T("Move to a free spot in your camp")); return; } const { gx, gz, c } = ghostAt; busy = true;
     const r = await api("world-jur-build", { op, piece: { k: op === "remove" ? (c.pieces.find((p) => p.x === gx && p.z === gz) || {}).k : ghostK, x: gx, z: gz, r: ghostR } }); busy = false;
     if (!r.ok) { toast(T("Couldn't build: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
     inv = r.j.inv; const cc = camps.list.find((x) => x.slot === r.j.slot); if (cc) cc.pieces = r.j.plot; drawCamps();
@@ -210,10 +224,11 @@ export function createSurvival(H) {
   // a camp's campfire (at night only a camp with one is safe from raids)
   const campFire = (slot) => { const c = camps.list.find((x) => x.slot === slot); return !!(c && c.pieces.some((p) => p.k === "campfire")); };
   // your camp's bed: stand by it and rest (HP back to full), once a minute
-  let bedNear = false, restAt = 0;
+  let bedNear = false, restAt = 0, stationNear = "";
+  function nearStation(px, pz) { const c = homeCamp(); if (!c) return ""; const p = c.pieces.find((q) => (q.k === "bench" || q.k === "campfire") && Math.hypot(c.x + q.x - px, c.z + q.z - pz) < 2.4); return p ? p.k : ""; }
   function nearBed(px, pz) { const c = homeCamp(); if (!c) return false; return c.pieces.some((p) => p.k === "bed" && Math.hypot(c.x + p.x - px, c.z + p.z - pz) < 2.2); }
   function rest() {
-    if (!bedNear) return false; const now = performance.now(); if (now - restAt < 60000) { toast(T("You can rest again in {s} s", { s: Math.ceil((60000 - (now - restAt)) / 1000) })); return true; }
+    if (!bedNear) return false; if (H.isNight && H.isNight() && H.sleep) { H.sleep(); if (ctx.heal) ctx.heal(1); return true; } const now = performance.now(); if (now - restAt < 60000) { toast(T("You can rest again in {s} s", { s: Math.ceil((60000 - (now - restAt)) / 1000) })); return true; }
     const v = ctx.vitals && ctx.vitals(); if (v && v.hp >= v.max) { toast(T("You're already rested")); return true; }
     restAt = now; if (ctx.heal) ctx.heal(1); (Snd.heart || Snd.pick || (() => {}))(); toast(T("Rested: HP full")); return true;
   }
@@ -260,7 +275,8 @@ export function createSurvival(H) {
     let html = "";
     if (o) { const w = work && work.o === o ? work : null, need = w && w.need, n = w ? Math.min(w.hits, need || w.hits) : 0;
       html = `<kbd>J</kbd><b>${esc(T(VERB[o.kind] || "Use"))}</b><span>${esc(T(NODE_N[o.kind] || o.kind))}</span>${w ? `<i class="wz-act-bar"><i style="width:${need ? Math.round(100 * n / need) : 8}%"></i></i>` : ""}`; }
-    if (!o && bedNear) html = `<kbd>E</kbd><b>${esc(T("Rest"))}</b><span>${esc(T("Bed"))}</span>`;
+    if (!o && bedNear) html = H.isNight && H.isNight() ? `<kbd>E</kbd><b>${esc(T("Sleep until morning"))}</b><span>${esc(T("Bed"))}</span>` : `<kbd>E</kbd><b>${esc(T("Rest"))}</b><span>${esc(T("Bed"))}</span>`;
+    else if (!o && stationNear) html = `<kbd>E</kbd><b>${esc(T(stationNear === "bench" ? "Craft" : "Cook"))}</b><span>${esc(T(stationNear === "bench" ? "Workbench" : "Campfire"))}</span>`;
     if (html !== lastAct) { lastAct = html; ui.act.innerHTML = html; ui.act.hidden = !html; ui.act.dataset.rest = !o && bedNear ? "1" : ""; }
     const [g, k] = goal(), gs = g + "|" + k.toFixed(2);
     if (gs !== lastGoal) { lastGoal = gs; ui.goalT.textContent = g; ui.goalBar.style.width = Math.round(k * 100) + "%"; ui.goal.hidden = false; }
@@ -350,15 +366,16 @@ export function createSurvival(H) {
     // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
     if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }
     if (H.dinos && (pickT === 0)) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }
-    tickRing(t); if (pickT === 0) bedNear = nearBed(px, pz);
+    tickRing(t); if (pickT === 0) { bedNear = nearBed(px, pz); stationNear = bedNear ? "" : nearStation(px, pz); }
     tickBars(px, pz);
     for (let i = flying.length - 1; i >= 0; i--) { const f = flying[i]; f.t -= dt; f.vy -= 14 * dt; f.c.position.x += f.vx * dt; f.c.position.y += f.vy * dt; f.c.position.z += f.vz * dt; f.c.rotation.x += dt * 9; f.c.rotation.y += dt * 7;
       if (f.t <= 0) { H.scene.remove(f.c); flying.splice(i, 1); } }
     for (const f of fires) { const k = 0.85 + Math.sin(t * 17 + f.id) * 0.08 + Math.sin(t * 29 + f.id) * 0.06; f.scale.set(1, k, 1); f.rotation.y = t * 1.3; }
+    for (const h of huts) { const inside = Math.hypot(px - h.x, pz - h.z) < 2.6; for (const m of h.g.userData.fade || []) { m.opacity += ((inside ? 0.18 : 1) - m.opacity) * Math.min(1, dt * 6); m.depthWrite = m.opacity > 0.9; } }
     tickGhost(px, pz, face); const inC = !!inHome(px, pz); if (ui && ui.buildBtn.hidden === inC) { ui.buildBtn.hidden = !inC; if (!inC) { ui.build.hidden = true; endGhost(); } }
   }
   /// a dinosaur companion's bite (world-dino.js): off the HP shown (the server's swings still decide the kill)
   function hurtFoe(o, dmg, cls = "dmg buddy") { const F = FOE[o.kind]; if (!F) return; o.hpNow = Math.max(1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, "-" + dmg.toLocaleString("en-US"), cls, 0.15); if (sel === o) paintFoe(); if (o.hurt) o.hurt(); }
   const refresh = () => { load().then(() => { paint(); if (ui && !ui.pack.hidden) paintPack(); }); };
-  return { homeSpot: () => { const c = homeCamp(); return c && CAMPS[c.slot] ? { x: CAMPS[c.slot][0], z: CAMPS[c.slot][1] } : null; }, hurtFoe, pop, refresh, working: () => (work && work.o) || null, setInv: (x) => { if (x) { inv = { ...(inv || {}), ...x }; if (ui && !ui.pack.hidden) paintPack(); } }, select, selected: () => sel, campFire, rest, bedNear: () => bedNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
+  return { homeSpot: () => { const c = homeCamp(); return c && CAMPS[c.slot] ? { x: CAMPS[c.slot][0], z: CAMPS[c.slot][1] } : null; }, hurtFoe, pop, refresh, working: () => (work && work.o) || null, setInv: (x) => { if (x) { inv = { ...(inv || {}), ...x }; if (ui && !ui.pack.hidden) paintPack(); } }, select, selected: () => sel, campFire, rest, bedNear: () => bedNear, stationNear: () => stationNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
 }

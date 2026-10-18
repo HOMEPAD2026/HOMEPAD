@@ -694,6 +694,7 @@ export function createJurassic(ctx) {
     for (let i = nodes.length - 1; i >= 0; i--) if (CAMPS.some(([cx, cz]) => Math.hypot(nodes[i].x - cx, nodes[i].z - cz) < CAMP_R + 0.8)) { nodes[i].hide(); nodes.splice(i, 1); }
     // gathering, hunting, the pack and the camp (world-jursurv.js)
     try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
+      isNight: () => night, sleep: () => sleep(),
       buddyOut: () => !!(dino && dino.out()), onBuddy: (b, k, n) => { if (dino) dino.onBuddy(b, k, n); },
       faceTo: (a) => { face = a; }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
@@ -706,7 +707,17 @@ export function createJurassic(ctx) {
   // only safe with a campfire burning; the sky, the light and the fog follow.
   const DAY_S = 12 * 3600, TR = 900 / DAY_S, ORIGIN = 21 * 3600; // (a 12-hour turn: phase 0 is 06:00 / 18:00 in Seoul, 21:00 / 09:00 UTC)
   let phOver = null, rainOver = null; // (tests: a time of day and rain on demand)
-  const dayPhase = () => phOver ?? ((((Date.now() / 1000 - ORIGIN) % DAY_S) + DAY_S) % DAY_S) / DAY_S;
+  const realPhase = () => ((((Date.now() / 1000 - ORIGIN) % DAY_S) + DAY_S) % DAY_S) / DAY_S;
+  // a night slept through in your camp's bed: for you it's morning until the real night is over (kept across a reload)
+  let sleepK = { shift: 0, until: 0 }; try { sleepK = { ...sleepK, ...JSON.parse(localStorage.getItem("arc.jur.sleep") || "{}") }; } catch { /* awake */ }
+  const dayPhase = () => phOver ?? (Date.now() < sleepK.until ? (realPhase() + sleepK.shift) % 1 : realPhase());
+  function sleep() {
+    const ph = phOver ?? realPhase(); if (lightOf(ph) >= 0.25) return false; phOver = null; /* (a test's time of day counts as now) */ const left = 1 - ph; // (night runs to phase 1, the next morning; at dusk it's still ahead)
+    sleepK = { shift: left + 0.02, until: Date.now() + left * DAY_S * 1000 }; try { localStorage.setItem("arc.jur.sleep", JSON.stringify(sleepK)); } catch { /* this visit */ }
+    const v = document.createElement("div"); v.className = "wz-sleep"; v.innerHTML = `<b>💤</b>`; ui.root.appendChild(v); if (Snd.heart) Snd.heart(); requestAnimationFrame(() => { v.style.opacity = "1"; });
+    setTimeout(() => { v.style.opacity = "0"; toast(`☀️ <b>${esc(T("Good morning!"))}</b> ${esc(T("You slept through the night. HP full."))}`); }, 1600); setTimeout(() => v.remove(), 2600);
+    return true;
+  }
   const lightOf = (ph) => ph < 0.5 - TR ? 1 : ph < 0.5 ? (0.5 - ph) / TR : ph < 1 - TR ? 0 : (ph - (1 - TR)) / TR;
   const rainOf = (ms) => { const b = Math.floor(ms / 300000), h = Math.sin(b * 91.7 + 13.1) * 43758.5; return h - Math.floor(h) < 0.25; };
   let night = false, rainK = 0, wasNight = null, clockT = 0, stars = null, rain = null, rainOn = false;
@@ -931,7 +942,7 @@ export function createJurassic(ctx) {
   // the swing (chopping and mining come next, judged by the server); E at the gate goes home
   let swingT = 0;
   function swing() { if (dino && dino.riding()) dino.ride(false); if (surv) { surv.swing(px, pz, face); return; } const t = performance.now(); if (t - swingT < 430 || !hero || !hero.play) return; swingT = t; try { if (hero.attack) hero.attack(0, false); else hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } }
-  function use() { if (nearGate) leave(); else if (downNow) return; else if (dino && dino.tryPick()) return; else if (surv && surv.bedNear() && !(surv.target && surv.target())) surv.rest(); else swing(); }
+  function use() { if (nearGate) leave(); else if (downNow) return; else if (dino && dino.tryPick()) return; else if (surv && surv.bedNear() && !(surv.target && surv.target())) surv.rest(); else if (surv && surv.stationNear && surv.stationNear() && !(surv.target && surv.target())) surv.togglePack(true); else swing(); }
   function act(a) { if (!on || downNow) return true; if (a === "attack") swing(); return true; }
   // knocked out (the town's rules: world-combat.js — today's free get-up, then $ARCIRCLE or a rest): the hero lies down;
   // getting up "here" stays, "plaza" means the gate

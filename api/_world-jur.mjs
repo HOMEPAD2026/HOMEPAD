@@ -57,6 +57,15 @@ export const JUR = {
   },
   FOOD: { berries: 12, meat: 25, cooked: 45 },
 };
+// the room each piece takes: no two overlapping (a floor can go under the rest); a hut is hollow: a bed, a chest, a torch
+// post or a workbench fits inside it (clear of its walls)
+const RAD = { hut: 2.2, bench: 1.1, campfire: 0.8, bed: 1, chest: 0.6, fence: 0.7, wall: 0.7, floor: 0, torchpost: 0.3 }, INSIDE = { bed: 1, chest: 1, torchpost: 1, bench: 1 };
+export function clash(k1, x1, z1, k2, x2, z2) {
+  const r1 = RAD[k1] ?? 0.6, r2 = RAD[k2] ?? 0.6; if (!r1 || !r2) return false; const d = Math.hypot(x1 - x2, z1 - z2);
+  const inHut = (r, dx, dz) => Math.abs(dx) + r * 0.5 <= 1.75 && Math.abs(dz) + r * 0.5 <= 1.75; // (the hut is a 4 m square: clear of its walls)
+  if (k1 === "hut" && INSIDE[k2] && inHut(r2, x2 - x1, z2 - z1)) return false; if (k2 === "hut" && INSIDE[k1] && inHut(r1, x1 - x2, z1 - z2)) return false;
+  return d < (r1 + r2) * 0.8;
+}
 const ORE = ["cu", "ag", "au"];
 const MATS = ["wood", "hardwood", "stone", "flint", "clay", "fiber", "berries", "amber", "hide", "bone", "meat", "cooked", "torch", "rope", "fang"];
 
@@ -195,8 +204,7 @@ export function makeJur(deps) {
     }
     if (op !== "place") return json(400, { error: "place or remove" });
     // the room each piece takes: no two overlapping (a floor can go under the rest)
-    const RAD = { hut: 2.2, bench: 1.1, campfire: 0.8, bed: 1, chest: 0.6, fence: 0.7, wall: 0.7, floor: 0, torchpost: 0.3 }, rr = RAD[pc.k] ?? 0.6;
-    if (at >= 0 || (rr && pieces.some((p) => (RAD[p.k] ?? 0.6) && Math.hypot(p.x - x, p.z - z) < (rr + (RAD[p.k] ?? 0.6)) * 0.8))) return json(409, { error: "something's there" });
+    if (at >= 0 || pieces.some((p) => clash(pc.k, x, z, p.k, p.x, p.z))) return json(409, { error: "something's there" });
     if (pieces.length >= JUR.PLOT_MAX) return json(400, { error: "the camp is full" });
     if (P.station && pieces.some((p) => p.k === pc.k)) return json(409, { error: "the camp has one already" });
     if (!hasAll(inv, P.need, {})) return json(400, { error: "not enough materials", need: P.need });

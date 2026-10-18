@@ -1812,3 +1812,6 @@ body.wp-clean .wp-dinochip,body:not(.wp) .wp-dinochip{display:none!important}
 .wz-buddy{grid-template-areas:"h h" "hp hp" "r r" "sk c"}.wz-bud-ride{grid-area:r}
 .wz-dtabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.wz-dtabs button{height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:800 10.5px/1.1 var(--f-ui);white-space:normal;padding:0 2px}
 .wz-dbig .wz-dpic{width:120px;height:120px;margin:0 auto;font-size:54px}
+/* Jurassic World: sleeping through the night in your camp's bed */
+.wz-sleep{position:absolute;inset:0;z-index:8;display:grid;place-items:center;background:#02040a;opacity:0;transition:opacity .9s ease;pointer-events:auto}
+.wz-sleep b{font-size:64px;animation:wzDue 1.2s ease-in-out infinite}

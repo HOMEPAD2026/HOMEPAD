@@ -474,14 +474,17 @@ export function createMine(ctx) {
       else toast((r.j && r.j.error) || T("try again"));
       openSheet("ores");
     }));
-    q(".wm-deep").forEach((b) => b.addEventListener("click", async () => { hideSheet(); if (!on) return; deep = !deep; const ok2 = await rejoin({ deep }); if (!ok2) { deep = !deep; toast(T("The deep mine opens at level 90")); } else { for (const rk of [...rocks.values()]) dropRock(rk); syncRocks(run.rocks); tintCave(); toast(deep ? T("The deep mine: tougher rocks, more gold") : T("Back in the mine")); } }));
+    q(".wm-deep").forEach((b) => b.addEventListener("click", async () => { hideSheet();
+      // from the miner in town (the shop alone): close it (the town moves again) and go in, straight down to the deep mine
+      if (!on) { closeShop(); deepNext = true; if (ctx.goMine) ctx.goMine(); else deepNext = false; return; }
+      deep = !deep; const ok2 = await rejoin({ deep }); if (!ok2) { deep = !deep; toast(T("The deep mine opens at level 90")); } else { for (const rk of [...rocks.values()]) dropRock(rk); syncRocks(run.rocks); tintCave(); toast(deep ? T("The deep mine: tougher rocks, more gold") : T("Back in the mine")); } }));
     if (sheetTab === "board") {
       const j = await refreshView(), ol = ui.sheet.querySelector(".wm-board"); if (!ol) return; const me = ctx.sess() && ctx.sess().wallet;
       const top = (j && j.board) || []; ol.innerHTML = top.length ? top.map((x, i) => `<li class="${x.id === me ? "me" : ""}"><em>${i + 1}</em><b>${esc(x.name || x.w)}</b><span>${fmtN(x.n)} ARCL</span></li>`).join("") : `<li class="wm-loading">${esc(T("No one has mined this week yet"))}</li>`;
     }
   }
   // the miner in the village opens the same sheet without going in (the HUD around it stays hidden)
-  let shopOnly = false;
+  let shopOnly = false, deepNext = false; // deepNext: the deep mine asked for from the miner, taken on the way in
   async function openShop(tab) {
     if (on) { openSheet(tab); return; } if (!ui) buildUi(); guest = !ctx.sess(); await refreshView();
     shopOnly = true; ui.root.hidden = false; ui.root.classList.add("shop-only"); openSheet(tab || "picks");
@@ -669,6 +672,7 @@ export function createMine(ctx) {
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
       st.view(S.scene, S.cam, S.comp || null); st.solo(tick); on = true; beatT = performance.now(); // the town waits (its updates stop) while you're in
       document.body.classList.add("wp-mining"); ui.root.hidden = false; hideSheet(); paintHud();
+      if (deepNext) { deepNext = false; setTimeout(async () => { if (!on) return; deep = true; const ok2 = await rejoin({ deep }).catch(() => false); if (!ok2) { deep = false; toast(T("The deep mine opens at level 90")); return; } for (const rk of [...rocks.values()]) dropRock(rk); syncRocks(run.rocks); tintCave(); toast(T("The deep mine: tougher rocks, more gold")); }, 400); }
       addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
       ui.title.hidden = false; ui.title.querySelector("span").textContent = guest ? T("Demo: nothing you mine is paid. Connect your wallet to earn.") : T("{t} left in the mine · rocks hold 10–10,000 ARCL", { t: mmss(left) });
       ui.title.classList.remove("go"); void ui.title.offsetWidth; ui.title.classList.add("go"); setTimeout(() => { if (ui) ui.title.hidden = true; }, 2600);

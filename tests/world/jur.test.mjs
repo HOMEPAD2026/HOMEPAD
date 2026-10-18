@@ -1,3 +1,4 @@
+import fs from "node:fs";
 // jur.test.mjs — Jurassic World survival (api/_world-jur.mjs): GM only, swings no faster than real ones, the drop in the
 // pack and ore in the mine's pockets, regrowth, making tools and stations (they stand at your camp), cooking and eating.
 // On an in-memory store. Run: node tests/world/mine.test.mjs (needs ethers 6)
@@ -73,4 +74,9 @@ r = await call(gm, "world-jur-eat", { food: "cooked" }); check(r.status === 400,
 r = await fell(gm, "titan:0", "titan"); check(r.status === 200 && r.body.loot.hide >= 8, "the Thornback Titan can be hunted");
 r = await fell(gm, "claw:0", "claw"); check(r.status === 200 && r.body.loot.meat >= 3, "a Clawstrider can be hunted");
 r = await fell(gm, "spino:0", "spino"); check(r.status === 200 && r.body.loot.hide >= 5, "the Spinosaurus can be hunted");
+// a hut is hollow: a bed or a chest fits inside it, a wall through it doesn't; the game's copy of the rule is the same
+{ const J = await import("../../api/_world-jur.mjs"), src = fs.readFileSync(new URL("../../world-jursurv.js", import.meta.url), "utf8"), srv = fs.readFileSync(new URL("../../api/_world-jur.mjs", import.meta.url), "utf8");
+  const body = (t) => t.slice(t.indexOf("const RAD = {"), t.indexOf("return d < (r1 + r2) * 0.8;")).replace("export ", "");
+  check(body(src) === body(srv), "the game and the server judge a piece's room the same way");
+  check(!J.clash("hut", 0, 0, "bed", 0, -1) && !J.clash("hut", 0, 0, "chest", 1, 1) && J.clash("hut", 0, 0, "wall", 0, 2) && J.clash("hut", 0, 0, "bed", 0, -2) && J.clash("bed", 0, 0, "chest", 0, 1), "inside a hut: a bed and a chest fit, a wall or a bed through its wall doesn't"); }
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
