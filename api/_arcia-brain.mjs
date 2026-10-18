@@ -196,6 +196,7 @@ FACTS AND LIMITS
 - Never give financial advice, price predictions or "buy now" pushes. You may explain how things work. Remind people crypto is risky when they ask about buying or price.
 - Never ask for or accept private keys or seed phrases.
 - Stay on ARCIRCLE PAD, $ARCIRCLE, $ARCIA, Arc and ARCIA. Politely and playfully steer away from unrelated or inappropriate topics.
+- OTHER PROJECTS — never mention them (the owner's rule, 18 Oct 2026): you talk about ARCIRCLE only (ARCIRCLE PAD, ARCIRCLE WORLD, $ARCIRCLE, $ARCIA and their pages). Never name, tag, link, describe or compare any other project, coin, account or team — and that includes the owner's earlier projects: HOME, $HOME, HOMEPAD, $HOMEPAD, @HOMEonRobinhood or any account with HOME in its name. This holds even when the message you answer names or tags them (a reply on X, a quote, a collab pitch): don't repeat the name, don't say the message is "meant for" another account, don't send anyone to another project, and don't say you're "different from" one. Just answer what the person wants in ARCIRCLE terms: a collab or partnership pitch gets one warm line and the team's official channels (Telegram t.me/ARCIRCLEonarc, @ARCIRCLEonArc on X), then something real about ARCIRCLE (ARCIRCLE WORLD's games, ArcPad, staking). If someone asks about HOME or HOMEPAD directly, say kindly that you only talk about ARCIRCLE and point to what's live on arcircle.app. Don't guess what a message "looks like" or who it was for; if it isn't clear, ask what they'd like to know about ARCIRCLE.
 - You have studied the whole site (SITE KNOWLEDGE below). Use it for details — how ArcPad pricing and fees work, every utility, CirclePad, the whitepaper, contracts, risks. When SITE KNOWLEDGE and FACTS disagree, FACTS win; LIVE numbers beat any number written in the text ("at the time of writing" figures are old). The foci bonding-curve appendix describes $ARCIRCLE's retired first launch, not how it trades now.
 - When it helps, end with the one most relevant page, e.g. arcircle.app/circle/round/1 or arcircle.app/arc#locker.
 
@@ -208,7 +209,13 @@ A FEW EXAMPLES OF THE BALANCE (the ideas, not lines to copy)
 
 // Everything on the site, as one block the model reads first (cached by the API between calls).
 export const KB_TEXT = "SITE KNOWLEDGE — every page of arcircle.app, as a visitor sees it today:\n\n" +
-  KB.map((k) => `## ${k.page} — ${k.title} (arcircle.app${k.url})\n${k.text}`).join("\n\n");
+  KB.map((k) => `## ${k.page} — ${k.title} (arcircle.app${k.url})\n${scrub(k.text)}`).join("\n\n");
+// the site's older pages still carry the owner's earlier project names in a few lines; ARCIA never repeats them
+function scrub(t) {
+  return t.replace(/Why USDC and not \$HOME or an ArcPad token\?/g, "Why USDC and not an ArcPad token?").replace(/\(\$HOME, \$HOMEPAD, or any token by address\)/g, "(any token by address)")
+    .replace(/priced in \$HOME, \$HOMEPAD, or any/g, "priced in any").replace(/the \$HOME treasury/g, "the platform treasury").replace(/Unlike HOMEPAD's original curve mode, /g, "")
+    .replace(/HOMEPAD's wallet-connect flow/g, "the site's wallet-connect flow").replace(/whoever runs HOMEPAD/g, "whoever runs the platform").replace(/\$HOMEPAD\b|\$HOME\b|\bHOMEPAD\b|@HOMEonRobinhood/gi, "ARCIRCLE");
+}
 
 import { arciaCoin } from "./_arcia-coin.mjs";
 export { arciaCoin };
@@ -332,7 +339,16 @@ async function callClaude(body, timeoutMs) {
 
 /// One call to Claude with ARCIA's mind loaded (cached). extra: text appended after the live numbers.
 /// Returns the reply text, or null when there's no key or the call fails (callers fall back).
-export async function askClaude({ messages, L, extra = "", maxTokens = 500, timeoutMs = 20000, model = "" }) {
+// the owner's rule: ARCIA never names another project, nor the owner's earlier ones (see OTHER PROJECTS in RULES)
+const OTHER = /@?HOMEonRobinhood|\$HOME(PAD)?\b|\bHOMEPAD\b|\bHOME (project|team|coin|token)\b/i;
+/// a reply that still names one: asked again once with a reminder, and if it still does, the sentences that name it go
+export async function askClaude(o) {
+  const t = await askOnce(o); if (!t || !OTHER.test(t)) return t;
+  const again = await askOnce({ ...o, extra: (o.extra || "") + "\nREMINDER: your reply must not name, tag or point to any other project or account (no HOME, $HOME, HOMEPAD, @HOMEonRobinhood). Talk about ARCIRCLE only." });
+  const u = again && !OTHER.test(again) ? again : (again || t).split(/(?<=[.!?~♡✨])\s+/).filter((x) => !OTHER.test(x)).join(" ").trim();
+  return u || null;
+}
+async function askOnce({ messages, L, extra = "", maxTokens = 500, timeoutMs = 20000, model = "" }) {
   const r = await callClaude(reqBody({ messages, L, extra, maxTokens, model }), timeoutMs);
   if (!r) return null;
   try {
