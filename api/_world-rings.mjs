@@ -11,8 +11,11 @@
 //        difference); each of the day's 3 daily puzzles the same, once a day. At most DAY_ARCL a day from this game,
 //        through the shop's credit (inside its own daily cap). A star that today's limit can't pay stays owed: the
 //        next clear of that level pays it. ARCL kind "rings". Clearing level 100 makes the wallet an INFINITY MASTER.
+//        All three of the day's puzzles at 3 stars: a BONUS once that day (and the streak of such days). A clear faster
+//        than 0.35 s a par move is refused; under 0.7 s a par move it is noted for the team (worldRingsFast).
 //   GET  ?world=rings&wallet=…                                                   → { best, daily, today, cap, master }
-//   GET  ?world=rings-top                                                        → { week, top: [{ w, name, stars }] }
+//   GET  ?world=rings-top                                                        → { week, top: [{ w, name, stars }], day, daily: [3 × [{ w, name, moves, ms }]] }
+//        and today's three daily boards: the fewest moves, then the quickest
 //        the week's most stars won (new stars only: a level's best counts once), one line a wallet
 //
 // Firestore: worldRingsRun/<wallet> · worldRingsEnd/<runId> (once) · worldRingsPay/<wallet>_<level key>_<star> (once)
@@ -51,7 +54,11 @@ export function makeRings(deps) {
     const r = replay(L, b.moves);
     if (!r.ok) return json(400, { error: r.why });
     if (!r.clear) return json(400, { error: "the board isn't clear" });
-    if (t - run.startedAt < 1200 + r.moves * 120) return json(400, { error: "faster than it can be played" });
+    // a person needs time to look and to turn: at least 0.12 s a move and 0.35 s a par move (a clear under twice that
+    // is noted for the team: worldRingsFast/<wallet>_<day>)
+    const took = t - run.startedAt;
+    if (took < 1200 + r.moves * 120 || took < L.par * 350) return json(400, { error: "faster than it can be played" });
+    if (took < L.par * 700) await commit([{ inc: `worldRingsFast/${w}_${seoulDay(t)}`, fields: { n: 1 } }]).catch(() => {});
     if (!(await commit([{ create: `worldRingsEnd/${run.runId}`, data: { at: t, wallet: w, lv: run.lv, moves: r.moves, hammer: r.hammer } }])).ok) return json(409, { error: "that board has ended" });
     const hints = Math.max(0, Math.min(99, Math.floor(Number(b.hints) || 0)));
     const stars = starsOf(L, r.moves, r.hammer, hints), key = keyOf(run.lv), pk = `worldRingsProg/${w}`, day = seoulDay(t), dk = `worldRingsDay/${w}_${day}`;
@@ -66,14 +73,34 @@ export function makeRings(deps) {
       if (got + amt + RINGS.PAY[1] > RINGS.DAY_ARCL) { capped = true; break; }
       if ((await commit([{ create: `worldRingsPay/${w}_${key}_${k}`, data: { at: t, runId: run.runId } }])).ok) amt += RINGS.PAY[1];
     }
+    // the day's three puzzles all at 3 stars: a bonus once that day, and the streak of such days
+    let bonus = 0, streak = (prog.streak && prog.streak.n) || 0;
+    const dm = /^d:(\d{4}-\d\d-\d\d):([0-2])$/.exec(run.lv);
+    if (dm) {
+      const bestD = { ...(prog.best || {}), [key]: Math.max(prev, stars) }, all3 = [0, 1, 2].every((k) => (bestD[`d${dm[1]}_${k}`] || 0) >= 3);
+      if (all3 && got + amt + RINGS.BONUS <= RINGS.DAY_ARCL && (await commit([{ create: `worldRingsPay/${w}_d${dm[1]}_bonus`, data: { at: t } }])).ok) {
+        bonus = RINGS.BONUS; amt += bonus;
+        const yest = new Date(Date.parse(dm[1] + "T00:00:00Z") - 864e5).toISOString().slice(0, 10);
+        streak = prog.streak && prog.streak.last === yest ? (prog.streak.n || 0) + 1 : 1; prog.streak = { last: dm[1], n: streak };
+      }
+      await dailyBoard(w, dm[1], dm[2], r.moves, took).catch(() => {});
+    }
     let credited = 0;
     if (amt > 0 && deps.credit) { credited = await deps.credit(w, "rings", amt); if (credited > 0) await commit([{ inc: dk, fields: { n: credited } }]); }
     const best = Math.max(prev, stars), master = !!prog.master || (run.lv === "100" && stars > 0);
     const mv = { ...(prog.moves || {}) }; if (!mv[key] || r.moves < mv[key]) mv[key] = r.moves;
-    await setDoc(pk, { best: { ...(prog.best || {}), [key]: best }, moves: mv, master, at: t });
+    await setDoc(pk, { best: { ...(prog.best || {}), [key]: best }, moves: mv, master, streak: prog.streak || null, at: t });
     const rank = stars > prev ? await board(w, stars - prev).catch(() => null) : null;
     const why = credited > 0 ? (capped ? "cap" : "") : capped || amt > 0 ? "cap" : "already";
-    return json(200, { ok: true, stars, prev, credited, earned: amt, why, today: got + credited, cap: RINGS.DAY_ARCL, master, rank, moves: r.moves, par: L.par });
+    return json(200, { ok: true, stars, prev, credited, earned: amt, bonus, streak, why, today: got + credited, cap: RINGS.DAY_ARCL, master, rank, moves: r.moves, par: L.par });
+  }
+  /// a daily puzzle's board: the fewest moves, then the quickest; one line a wallet (worldStats/ringsDaily_<day>_<k>)
+  async function dailyBoard(w, day, k, moves, ms) {
+    const key = `worldStats/ringsDaily_${day}_${k}`, cur = await one(key), top0 = (cur && cur.top) || [], mine = top0.find((x) => x.id === w);
+    if (mine && (mine.moves < moves || (mine.moves === moves && mine.ms <= ms))) return;
+    const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16);
+    const top = [{ w: short(w), id: w, moves, ms: Math.round(ms), name }, ...top0.filter((x) => x.id !== w)].sort((a, b) => a.moves - b.moves || a.ms - b.ms).slice(0, TOP_N);
+    await setDoc(key, { top });
   }
   /// the week's board: stars won this week (a level's new stars only), the top TOP_N; returns your place (or null)
   async function board(w, add) {
@@ -88,12 +115,16 @@ export function makeRings(deps) {
 
   return {
     async read(v, url) {
-      if (v === "rings-top") { const wk = week(), d = await one(`worldStats/ringsWeek_${wk}`); return json(200, { week: wk, top: ((d && d.top) || []).map(({ w, name, stars }) => ({ w, name: name || "", stars })) }, "public, max-age=30"); }
+      if (v === "rings-top") {
+        const wk = week(), day = seoulDay(now()), ks = [`worldStats/ringsWeek_${wk}`, ...[0, 1, 2].map((k) => `worldStats/ringsDaily_${day}_${k}`)], d = await getDocs(ks);
+        const daily = [0, 1, 2].map((k) => ((d[ks[k + 1]] && d[ks[k + 1]].top) || []).map(({ w, name, moves, ms }) => ({ w, name: name || "", moves, ms })));
+        return json(200, { week: wk, day, top: ((d[ks[0]] && d[ks[0]].top) || []).map(({ w, name, stars }) => ({ w, name: name || "", stars })), daily }, "public, max-age=30");
+      }
       if (v !== "rings") return null;
       const w = String((url && url.searchParams && url.searchParams.get("wallet")) || "").toLowerCase(), day = seoulDay(now());
       if (!/^0x[0-9a-f]{40}$/.test(w)) return json(200, { best: {}, today: 0, cap: RINGS.DAY_ARCL, master: false, day });
       const d = await getDocs([`worldRingsProg/${w}`, `worldRingsDay/${w}_${day}`]), p = d[`worldRingsProg/${w}`] || {};
-      return json(200, { best: p.best || {}, moves: p.moves || {}, master: !!p.master, today: (d[`worldRingsDay/${w}_${day}`] || {}).n || 0, cap: RINGS.DAY_ARCL, day }, "no-store");
+      return json(200, { best: p.best || {}, moves: p.moves || {}, master: !!p.master, streak: p.streak || null, today: (d[`worldRingsDay/${w}_${day}`] || {}).n || 0, cap: RINGS.DAY_ARCL, day }, "no-store");
     },
     async handle(b) {
       if (b.action === "world-rings-start") return start(b);

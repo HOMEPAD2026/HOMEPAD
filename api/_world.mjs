@@ -164,6 +164,11 @@ export function make(deps) {
       await commit([{ inc: day, fields: { [`sv50_${k}_${band(b.p50)}`]: 1, [`sv10_${k}_${band(b.p10)}`]: 1, [`svfam_${dev}_${fam}_${band(b.p50)}`]: 1, [`svcrowd_${dev}_${crowd}_${band(b.p50)}`]: 1 } }]).catch(() => {});
       return json(200, { ok: true });
     }
+    if (b.kind === "rings") { // INFINITY RINGS' frames (world-rings.js): chip family
+      const band = (v) => Math.max(0, Math.min(7, Math.floor(Number(v) || 0))), fam = /^[a-z0-9]{2,12}$/.test(String(b.fam)) ? b.fam : "other";
+      await commit([{ inc: day, fields: { [`rg50_${dev}_${q}_${band(b.p50)}`]: 1, [`rg10_${dev}_${q}_${band(b.p10)}`]: 1, [`rgfam_${dev}_${fam}_${band(b.p50)}`]: 1 } }]).catch(() => {});
+      return json(200, { ok: true });
+    }
     if (b.kind === "mem") { await commit([{ inc: day, fields: { [`mem_${dev}_${q}`]: 1 } }]).catch(() => {}); return json(200, { ok: true }); }
     if (b.kind === "err") {
       const msg = String(b.msg || "").slice(0, 180); if (!msg) return json(400, { error: "empty" });
@@ -183,10 +188,10 @@ export function make(deps) {
     // half of them reached (the median) — the numbers Auto quality is tuned by
     const BANDS = ["<15", "15-20", "20-25", "25-30", "30-40", "40-50", "50-55", "55+"], fr = {};
     for (const x of out) for (const [key, v] of Object.entries(x.n)) {
-      const m = /^(f50|f10|fam|sv50|sv10|svfam|svcrowd)_(.+)_(\d)$/.exec(key); if (!m) continue;
+      const m = /^(f50|f10|fam|sv50|sv10|svfam|svcrowd|rg50|rg10|rgfam)_(.+)_(\d)$/.exec(key); if (!m) continue;
       const g = (fr[m[1] + ":" + m[2]] = fr[m[1] + ":" + m[2]] || [0, 0, 0, 0, 0, 0, 0, 0]); g[+m[3]] += v;
     }
-    const frames = Object.entries(fr).map(([k, c]) => { const n = c.reduce((a, b) => a + b, 0); let s = 0, med = 0; for (let i = 0; i < 8; i++) { s += c[i]; if (s * 2 >= n) { med = i; break; } } const [kind, who] = k.split(":"); return { kind: ({ f50: "typical", f10: "slowest10", fam: "family", sv50: "surv-typical", sv10: "surv-slowest10", svfam: "surv-family", svcrowd: "surv-crowd" })[kind] || kind, who, n, median: BANDS[med], bands: Object.fromEntries(c.map((v, i) => [BANDS[i], v]).filter((e) => e[1])) }; }).sort((a, b) => b.n - a.n);
+    const frames = Object.entries(fr).map(([k, c]) => { const n = c.reduce((a, b) => a + b, 0); let s = 0, med = 0; for (let i = 0; i < 8; i++) { s += c[i]; if (s * 2 >= n) { med = i; break; } } const [kind, who] = k.split(":"); return { kind: ({ f50: "typical", f10: "slowest10", fam: "family", sv50: "surv-typical", sv10: "surv-slowest10", svfam: "surv-family", svcrowd: "surv-crowd", rg50: "rings-typical", rg10: "rings-slowest10", rgfam: "rings-family" })[kind] || kind, who, n, median: BANDS[med], bands: Object.fromEntries(c.map((v, i) => [BANDS[i], v]).filter((e) => e[1])) }; }).sort((a, b) => b.n - a.n);
     // hitches: totals over the three days, most first (dev_place_cause_band; band 0 = 100–200 ms, 1 = 200–500, 2 = 500+)
     const hc = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) if (key.startsWith("hit_")) hc[key.slice(4)] = (hc[key.slice(4)] || 0) + v;
     const hitches = Object.entries(hc).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([k, n]) => { const [dev, where, cause, band] = k.split("_"); return { dev, where, cause, ms: ["100-200", "200-500", "500+"][+band] || band, n }; });

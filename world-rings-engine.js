@@ -16,7 +16,7 @@
 //   k: 0 normal · 1 lock · 2 energy · 3 gear; key: the ring a lock waits for (-2: all the rings that aren't core);
 //   gear: the pair's number (-1 none); peg: the peg's way (-1 none); c: the colour (0–5)
 // moves (what the server replays): [[ring, +1 | -1], …] (+1 anticlockwise, -1 clockwise), [ring, 0] = the hammer
-export const RINGS = { STEPS: 8, D: 2, NEAR: 2.6, GAP: 64, LEVELS: 100, PAY: [0, 100, 200, 300], DAY_ARCL: 10000, DAILY: 3, HAMMERS: 1, HINTS: 3 };
+export const RINGS = { STEPS: 8, D: 2, NEAR: 2.6, GAP: 64, LEVELS: 100, PAY: [0, 100, 200, 300], BONUS: 300, DAY_ARCL: 10000, DAILY: 3, HAMMERS: 1, HINTS: 3 };
 const S = Math.SQRT1_2;
 export const DIRS = [[1, 0], [S, S], [0, 1], [-S, S], [-1, 0], [-S, -S], [0, -1], [S, -S]];
 const W_MAX = 6.05, H_MAX = 10.05; // the spread of ring centres a phone's portrait screen holds (4 across, 6 down)
@@ -28,13 +28,20 @@ const ccw = (from, to) => (to - from + 8) % 8;
 /// what a level of the campaign (1–100), a daily puzzle or the endless run asks for
 export function specOf(n) {
   const b = (lo, hi) => [lo, hi];
-  if (n <= 10) return { N: [2, 2, 3, 3, 3, 4, 4, 4, 4, 4][n - 1], peg: n <= 2 ? 0 : 0.34, cyc: 0, lock: 0, energy: 0, gear: 0, par: b(n <= 2 ? 1 : 2, 8) };
-  if (n <= 20) return { N: 4 + Math.floor((n - 11) / 4), peg: 0.4, cyc: 0.3, lock: 0, energy: 0, gear: 0, par: b(4, 14) };
+  // 1–20 teach one thing at a time: turning (1–4), a peg (5–7, exactly one), chains of three and four (8–12), then
+  // rings that need an order (13–20: more pegs and a loop or two)
+  if (n <= 4) return { N: [2, 2, 3, 3][n - 1], peg: 0, cyc: 0, lock: 0, energy: 0, gear: 0, par: b(1, 6) };
+  if (n <= 7) return { N: 3, peg: 0, pegs: 1, cyc: 0, lock: 0, energy: 0, gear: 0, par: b(3, 8) };
+  if (n <= 12) return { N: n <= 9 ? 4 : 5, peg: 0.3, cyc: 0, lock: 0, energy: 0, gear: 0, par: b(4, 12) };
+  if (n <= 20) return { N: 5 + Math.floor((n - 13) / 4), peg: 0.45, cyc: n >= 15 ? 0.35 : 0, lock: 0, energy: 0, gear: 0, par: b(6, 16) };
   if (n <= 40) return { N: 6 + Math.floor((n - 21) / 6), peg: 0.45, cyc: 0.3, lock: n < 24 ? 1 : 1 + ((n % 3) === 0 ? 1 : 0), energy: 0, gear: 0, par: b(6, 22) };
   if (n <= 60) return { N: 8 + Math.floor((n - 41) / 5), peg: 0.45, cyc: 0.35, lock: 1 + (n % 2), energy: n < 45 ? 1 : 1 + (n % 3), gear: n >= 46 ? 1 : 0, par: b(8, 32) };
   if (n <= 80) return { N: 10 + Math.floor((n - 61) / 4), peg: 0.5, cyc: 0.4, lock: 2 + (n % 2), energy: 2 + (n % 3), gear: 1 + (n % 2), par: b(10, 44) };
   return { N: Math.min(18, 12 + Math.floor((n - 81) / 3)), peg: 0.5, cyc: 0.45, lock: 2 + (n % 3), energy: 2 + (n % 3), gear: 1 + (n % 3 === 0 ? 1 : 0), par: b(12, 60) };
 }
+
+/// the par a level aims for (the level maker picks, of several boards, the one nearest it): a steady climb
+export const targetPar = (n) => (n <= 10 ? [1, 2, 3, 4, 4, 5, 5, 6, 6, 7][n - 1] : Math.round(7 + (n - 10) * 0.42));
 
 // ---------------- the rules ----------------
 export function stateOf(L) { return { g: L.rings.map((r) => r.g), alive: L.rings.map(() => true), moves: 0, hammer: 0 }; }
@@ -53,12 +60,12 @@ export function settle(L, s) {
   for (;;) { const w = []; for (let i = 0; i < L.rings.length; i++) if (isFree(L, s, i)) w.push(i); if (!w.length) break; for (const i of w) s.alive[i] = false; waves.push(w); }
   return waves;
 }
-const keyDown = (L, s, r) => (r.key === -2 ? L.rings.every((o, j) => o.key === -2 || !s.alive[j]) : r.key < 0 || !s.alive[r.key]);
+const keyDown = (L, s, r) => (r.key === -2 ? L.rings.every((o, j) => (o.tier || 0) >= (r.tier || 0) || !s.alive[j]) : r.key < 0 || !s.alive[r.key]); // -2: every ring of a lower tier has fallen (the boss's stages)
 /// the rings one turn of ring i moves (its gear pair turns with it), or null if it can't turn that way now
 export function turnSet(L, s, i, dir) {
   if (!s.alive[i] || (dir !== 1 && dir !== -1)) return null;
   const r = L.rings[i], set = r.gear >= 0 ? L.gears[r.gear].filter((j) => s.alive[j]) : [i];
-  for (const j of set) { const o = L.rings[j]; if (o.k === 2 && dir !== -1) return null; if (o.k === 1 && !keyDown(L, s, o)) return null; }
+  for (const j of set) { const o = L.rings[j]; if ((o.k === 2 || o.cw) && dir !== -1) return null; if (o.k === 1 && !keyDown(L, s, o)) return null; }
   return set;
 }
 /// one move: turn ring i one step (dir +1 anticlockwise, -1 clockwise), then the falls; returns the waves, or null if not allowed
@@ -100,7 +107,7 @@ function costTo(L, s, j, want) { // moves for ring j to point at want, and the w
   if (r.k === 1 && !keyDown(L, s, r)) return [Infinity, 0];
   const a = cw(s.g[j], want), b = ccw(s.g[j], want);
   const gearEnergy = r.gear >= 0 && L.gears[r.gear].some((o) => s.alive[o] && L.rings[o].k === 2);
-  if (r.k === 2 || gearEnergy) return [a, -1];
+  if (r.k === 2 || r.cw || gearEnergy) return [a, -1];
   return a <= b ? [a, -1] : [b, 1];
 }
 function tryDrop(L, s0, i) { // play out letting ring i fall; returns [copy, the moves] or null
@@ -141,7 +148,7 @@ export function plan(L, s0, tries = 10, seed = 1) {
   }
   return best;
 }
-function exact(L, s0, cap = 60000) { // breadth-first over every board (small boards only); the fewest moves, or null
+function exact(L, s0, cap = 25000) { // breadth-first over every board (small boards only); the fewest moves, or null
   const n = L.rings.length, key = (s) => { let k = 0; for (let i = 0; i < n; i++) k = k * 9 + (s.alive[i] ? s.g[i] + 1 : 0); return k; };
   const seen = new Map([[key(s0), 0]]); let front = [s0], depth = 0;
   while (front.length && seen.size < cap) {
@@ -189,7 +196,7 @@ function dress(R, sp, L, n) { // pegs, kinds, colours and the starting gaps
   for (const l of links) { linkDirs[l[0]].push(l[2]); linkDirs[l[1]].push(l[3]); }
   rings.forEach((r, i) => {
     r.k = r.k || 0; r.key = r.key != null ? r.key : -1; r.gear = -1; r.peg = -1; r.c = r.c != null ? r.c : (i * 5 + n) % 6;
-    if (r.core || R() >= sp.peg) return;
+    if (r.core || (sp.pegs ? i !== rings.length - 1 : R() >= sp.peg)) return; // (pegs: 1 → just the last ring, the tutorial's first peg)
     const ways = []; for (let k = 0; k < 8; k++) {
       if (linkDirs[i].some((d) => Math.min(cw(d, k), ccw(d, k)) < 2)) continue; // not on (or next to) a hook
       const px = r.x + DIRS[k][0] * r.r, py = r.y + DIRS[k][1] * r.r;
@@ -218,10 +225,15 @@ export function level(id) {
   let m, n, seed, boss = false;
   if ((m = /^([1-9]\d?|100)$/.exec(id))) { n = Number(m[1]); seed = n * 7919 + 101; boss = n === 100; }
   else if ((m = /^d:(\d{4})-(\d\d)-(\d\d):([0-2])$/.exec(id))) { n = [32, 56, 86][Number(m[4])]; seed = (Number(m[1]) * 400 + Number(m[2]) * 32 + Number(m[3])) * 31 + Number(m[4]) * 977 + 5; }
-  else if ((m = /^e:([1-9]\d{0,4})$/.exec(id))) { n = 81 + (Number(m[1]) % 19); seed = Number(m[1]) * 104729 + 3; }
+  else if ((m = /^e:([1-9]\d{0,4})$/.exec(id))) { n = 0; seed = Number(m[1]) * 104729 + 3; }
   else return null;
-  const sp = specOf(boss ? 99 : n); let L = null;
-  for (let t = 0; t < 80 && !L; t++) {
+  // the endless run keeps climbing: more rings, more of every kind, a higher par as the boards go by
+  const e = n === 0 ? Number(id.slice(2)) : 0, sp = e ? { ...specOf(90), N: Math.min(18, 12 + Math.floor(e / 6)), lock: 2 + Math.min(3, Math.floor(e / 10)), energy: 2 + Math.min(3, Math.floor(e / 12)), gear: 1 + Math.min(2, Math.floor(e / 15)), par: [12, 90] } : specOf(boss ? 99 : n);
+  const want = boss ? 0 : e ? Math.min(75, 40 + Math.round(e * 0.6)) : targetPar(n);
+  // of the boards that pass, keep the one whose par is nearest the level's target and whose shape fits a phone
+  // (taller than wide, not a thin tower); stop early once one is close enough
+  let L = null, best = Infinity, good = 0;
+  for (let t = 0; t < 90 && !(L && (best <= 0.5 || good >= 14)); t++) {
     const R = rng(seed + t * 15485863), base = boss ? bossPreset() : null, lay = layout(R, boss ? { ...sp, N: 16, cyc: 0 } : sp, base);
     if (!boss && lay.rings.length < sp.N) continue;
     const cand = { rings: lay.rings, links: lay.links, boss };
@@ -229,20 +241,27 @@ export function level(id) {
     if (!finish(cand, id, n)) continue;
     const s = stateOf(cand), p = plan(cand, s, 12, seed + t);
     if (!p) continue;
-    let par = p.length; if (cand.rings.length <= 4) { const e = exact(cand, s); if (e != null) par = Math.min(par, e); }
+    const par = p.length;
     if (par < sp.par[0] || (par > sp.par[1] && t < 70)) continue;
-    cand.par = par; L = cand;
+    cand.par = par; good++;
+    if (boss) { L = cand; break; }
+    const xs = cand.rings.map((r) => r.x), ys = cand.rings.map((r) => r.y), w = Math.max(...xs) - Math.min(...xs) + 2, h = Math.max(...ys) - Math.min(...ys) + 2, ar = h / w;
+    const score = Math.abs(par - want) + (ar > 2.3 ? (ar - 2.3) * 4 : 0) + (ar < 0.75 ? (0.75 - ar) * 4 : 0);
+    if (score < best) { best = score; L = cand; }
   }
+  // the chosen board, if small: the true fewest moves as its par (an exact search; the planner's count otherwise)
+  if (L && L.rings.length <= 5) { const x = exact(L, stateOf(L)); if (x != null) L.par = Math.max(1, Math.min(L.par, x)); }
   if (L) cache.set(id, L);
   if (cache.size > 300) cache.delete(cache.keys().next().value);
   return L;
 }
-// the INFINITY BOSS (level 100): two big core rings crossed in the middle (blue and mint), locked until every small
-// ring around them has fallen; small rings hang off their tops, bottoms and outer sides, and more off those
+// the INFINITY BOSS (level 100), three stages: the outer rings (free to turn); the six guard rings on the core,
+// locked until every outer ring has fallen; then the two big core rings crossed in the middle (blue and mint),
+// locked until the guards are down — and they turn clockwise only
 function bossPreset() {
-  const C = 1.9, h = RINGS.D / 2, a = { x: -h * C, y: 0, r: C, core: true, k: 1, key: -2, c: 1 }, b = { x: h * C, y: 0, r: C, core: true, k: 1, key: -2, c: 3 };
+  const C = 1.9, h = RINGS.D / 2, a = { x: -h * C, y: 0, r: C, core: true, k: 1, key: -2, tier: 2, cw: true, c: 1 }, b = { x: h * C, y: 0, r: C, core: true, k: 1, key: -2, tier: 2, cw: true, c: 3 };
   const rings = [a, b], links = [[0, 1, 0, 4]], dist = h * (C + 1), from = [];
-  for (const [ci, d] of [[0, 2], [0, 4], [0, 6], [1, 2], [1, 0], [1, 6]]) { const o = rings[ci]; rings.push({ x: o.x + DIRS[d][0] * dist, y: o.y + DIRS[d][1] * dist, r: 1 }); links.push([ci, rings.length - 1, d, (d + 4) % 8]); }
+  for (const [ci, d] of [[0, 2], [0, 4], [0, 6], [1, 2], [1, 0], [1, 6]]) { const o = rings[ci]; rings.push({ x: o.x + DIRS[d][0] * dist, y: o.y + DIRS[d][1] * dist, r: 1, k: 1, key: -2, tier: 1, guard: true }); links.push([ci, rings.length - 1, d, (d + 4) % 8]); }
   for (let k = 2; k < 8; k++) from.push(k);
   return { rings, links, grow: 0, from };
 }

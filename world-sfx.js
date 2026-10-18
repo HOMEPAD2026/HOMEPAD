@@ -126,6 +126,10 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     land: (impact) => impact >= 12 ? (tone(82, 0.2, { to: 44, v: 0.14 }), noise(0.16, 0.12, 380, { type: "lowpass" })) : impact < 6 ? (noise(0.06, 0.2, 600, { type: "lowpass" }), tone(120, 0.06, { to: 80, v: 0.04 })) : (noise(0.09, 0.25, 520, { type: "lowpass" }), tone(110, 0.08, { to: 70, v: 0.06 })),
     // ---- UI ----
     tap: () => gap("tap", 50) && tone(1750, 0.04, { type: "triangle", v: 0.09, to: 1400, a: 0.002 }),
+    // INFINITY RINGS: a ring clicks a step round, a clasp snaps open, a chain of falls climbs a scale (k = the wave)
+    ring: () => gap("ring", 40) && (tone(1450, 0.035, { type: "triangle", v: 0.06, to: 1180, a: 0.002 }), noise(0.025, 0.035, 5200)),
+    clasp: () => gap("clasp", 60) && (tone(2300, 0.05, { type: "square", v: 0.018, to: 1900, a: 0.002, lp: 5000 }), tone(1150, 0.08, { type: "triangle", v: 0.05, at: 0.02 })),
+    chain: (k = 0) => { const f = 523.25 * Math.pow(2, (Math.min(k, 9) * 2) / 12); tone(f, 0.16, { type: "triangle", v: 0.08 }); tone(f * 1.5, 0.22, { v: 0.04, at: 0.05 }); if (k >= 2) tone(f * 2, 0.3, { v: 0.025, at: 0.1 }); },
     tab: () => { if (!gap("tab", 50)) return; tone(1250, 0.045, { type: "triangle", v: 0.045, a: 0.003 }); tone(1680, 0.05, { type: "triangle", v: 0.03, at: 0.03, a: 0.003 }); },
     open: () => { if (!gap("panel", 120)) return; tone(520, 0.1, { type: "triangle", v: 0.06, to: 780 }); tone(1040, 0.1, { v: 0.025, at: 0.05 }); noise(0.09, 0.02, 2500, { to: 6000, a: 0.03 }); },
     close: () => { if (!gap("panel", 120)) return; tone(760, 0.09, { type: "triangle", v: 0.05, to: 470 }); noise(0.07, 0.015, 3000, { to: 1200 }); },

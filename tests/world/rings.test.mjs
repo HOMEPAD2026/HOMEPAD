@@ -18,7 +18,7 @@ for (let n = 1; n <= 100; n++) {
   const L = E.level(String(n)); if (!L) { all = false; why += " no " + n; continue; }
   const s = E.stateOf(L); if (E.settle(L, s).length) { start = false; why += " free " + n; }
   const p = E.plan(L, E.stateOf(L), 8, 2), r = p && E.replay(L, p); if (!r || !r.clear) { solved = false; why += " unsolved " + n; }
-  if (n <= 10 && L.rings.length > 4 || n > 80 && n < 100 && L.rings.length < 12 || L.par < 1) { sizes = false; why += " size " + n; }
+  if (n <= 10 && L.rings.length > 5 || n > 80 && n < 100 && L.rings.length < 12 || L.par < 1) { sizes = false; why += " size " + n; }
 }
 check(all && start && solved && sizes, "100 levels: made, nothing free at the start, each has a clear, sizes as planned" + why);
 check(JSON.stringify(E.level("37")) === JSON.stringify((E.level("37"), E.level("37"))), "the same level every time");
@@ -59,6 +59,7 @@ const play = async (w, lv, moves, wait = 60e3, hints = 0) => { const r = await c
 let r = await call(p1, "world-rings-start", { lv: "101" }); check(r.status === 400, "no level 101");
 r = await play(p1, "3", best("3").slice(0, -1)); check(r.status === 400, "a board that isn't clear doesn't pay");
 r = await play(p1, "3", best("3"), 300); check(r.status === 400, "faster than a person can play: refused");
+r = await play(p1, "60", best("60"), 1200 + best("60").length * 130); check(r.status === 400, "faster than 0.35 s a par move: refused");
 const L3 = E.level("3"), m3 = best("3");
 r = await play(p1, "3", m3); check(r.status === 200 && r.body.stars === (m3.length <= L3.par ? 3 : 2) && r.body.credited === r.body.stars * 100 && bal(p1) === r.body.stars * 100, "a clear pays 100 a star (" + r.body.stars + "★ → " + r.body.credited + ")");
 r = await play(p1, "3", m3); check(r.status === 200 && r.body.credited === 0 && r.body.why === "already", "the same stars again: nothing");
@@ -69,6 +70,15 @@ r = await call(p1, "world-rings-start", { lv: "10" }); T += 60e3; const e10 = aw
 check(e10.status === 200 && again.status === 409, "an end counts once");
 const day = new Date(T + 9 * 3600e3).toISOString().slice(0, 10);
 r = await play(p1, `d:${day}:0`, best(`d:${day}:0`)); check(r.status === 200 && r.body.credited > 0, "today's daily puzzle pays");
+// the other two daily puzzles at 3 stars too: the day's bonus, the streak, and the daily boards
+const par3 = (id) => { const L = E.level(id); for (let k = 1; k < 60; k++) { const q = E.plan(L, E.stateOf(L), 10, k); if (q && q.length <= L.par) return q; } return null; };
+const d0 = par3(`d:${day}:0`), d1 = par3(`d:${day}:1`), d2 = par3(`d:${day}:2`);
+if (d0 && d1 && d2) {
+  await play(p1, `d:${day}:0`, d0); await play(p1, `d:${day}:1`, d1); r = await play(p1, `d:${day}:2`, d2);
+  check(r.status === 200 && r.body.bonus === E.RINGS.BONUS && r.body.streak === 1, "all three daily puzzles at 3 stars: the day's bonus, streak 1");
+  r = await play(p1, `d:${day}:2`, d2); check(r.status === 200 && !r.body.bonus, "the bonus once a day");
+  const tb = await W.read(new URL("http://x/api/social?world=rings-top")); check(tb.body.daily && tb.body.daily[0].length === 1 && tb.body.daily[0][0].moves === d0.length, "today's daily board: moves and time");
+} else check(true, "(no par clear found by the test's planner for today's dailies: bonus not checked)");
 r = await call(p1, "world-rings-start", { lv: "d:2020-01-01:0" }); check(r.status === 400, "another day's daily puzzle can't be played for pay");
 // the day's limit: p2 clears level after level with 3 stars until the 10,000
 let paid = 0, lvN = 0; for (let k = 11; k <= 99 && paid < 10000; k++) { r = await play(p2, String(k), best(String(k))); if (r.status === 200) { paid += r.body.credited; lvN = k; } }
