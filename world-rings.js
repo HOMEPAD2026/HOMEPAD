@@ -54,6 +54,9 @@ const TIPS = { first: "Turn a ring until its gap faces the ring it's hooked on. 
 export function createRings(ctx) {
   const { THREE, st, esc } = ctx, L0 = LW[ctx.lang] || {}, T = (s, v) => { const x = L0[s] != null ? L0[s] : null; return x != null ? x.replace(/\{(\w+)\}/g, (_, k) => (v && v[k] != null ? v[k] : "")) : ctx.T(s, v); };
   const snd = (k) => { try { const f = ctx.Snd && ctx.Snd[k]; if (f) f.call(ctx.Snd); } catch { /* silent */ } };
+  // the drawing's real size (the canvas, not the window: on the phone layout they differ, and a camera set to the window's
+  // shape would squash every ring into an oval)
+  const view = () => { const c = st.renderer.domElement, r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width || innerWidth, h: r.height || innerHeight }; };
   const phone = () => document.documentElement.classList.contains("wp-pcphone") || (innerWidth < 700 && innerHeight > innerWidth);
   const phys = !ctx.low && !phone();
   let on = false, busy = false, mode = "off", S = null, ui = null, prOrig = 0;
@@ -72,7 +75,7 @@ export function createRings(ctx) {
 
   // ---------------- the scene ----------------
   function build() {
-    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 200);
+    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(26, innerWidth / innerHeight, 0.1, 200);
     // its own reflections: a dark room with a few soft boxes (white above, blue and warm at the sides, mint below), so
     // the candy rings shine and the gold clasps look like gold
     try {
@@ -216,11 +219,11 @@ export function createRings(ctx) {
   }
   // ---------------- the camera: the board fills the room between the top bar and the bottom bar ----------------
   function frame() {
-    const cam = S.cam, H = innerHeight, k = scaleK(), top = (phone() ? 128 : 112) * k, bot = (phone() ? 150 : 140) * k, fh = Math.max(0.35, 1 - (top + bot) / H);
-    cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
+    const V = view(), cam = S.cam, H = V.h, k = scaleK() * (V.h / innerHeight), top = (phone() ? 128 : 112) * k, bot = (phone() ? 150 : 140) * k, fh = Math.max(0.35, 1 - (top + bot) / H);
+    cam.aspect = V.w / V.h; cam.updateProjectionMatrix();
     const tan = Math.tan((cam.fov * Math.PI) / 360), extra = L && L.boss ? 0.9 : 0.3;
     const d = Math.max((S.h + extra) / fh / (2 * tan), (S.w + extra) / 0.97 / (2 * tan * cam.aspect), 7);
-    const vis = 2 * d * tan, ndc = (bot - top) / H, shift = (ndc * vis) / 2, tilt = 0.1;
+    const vis = 2 * d * tan, ndc = (bot - top) / H, shift = (ndc * vis) / 2, tilt = 0; // straight on: a ring is a true circle
     cam.position.set(S.cx, S.cy - shift - d * Math.sin(tilt), d * Math.cos(tilt)); cam.lookAt(S.cx, S.cy - shift, 0);
   }
 
@@ -330,7 +333,7 @@ export function createRings(ctx) {
 
   // ---------------- input ----------------
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), hitP = new THREE.Vector3();
-  function boardAt(e) { ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, S.cam); return ray.ray.intersectPlane(plane, hitP) ? { x: hitP.x, y: hitP.y } : null; }
+  function boardAt(e) { const V = view(); ndc.set(((e.clientX - V.x) / V.w) * 2 - 1, -((e.clientY - V.y) / V.h) * 2 + 1); ray.setFromCamera(ndc, S.cam); return ray.ray.intersectPlane(plane, hitP) ? { x: hitP.x, y: hitP.y } : null; }
   function ringAt(p) {
     let best = -1, bs = Infinity;
     L.rings.forEach((r, i) => { if (!s.alive[i]) return; const d = Math.hypot(p.x - r.x, p.y - r.y); if (d > r.r + 0.5) return; const sc = d < r.r * 0.55 ? 0.3 + d * 0.1 : Math.abs(d - r.r); if (sc < bs) { bs = sc; best = i; } });
@@ -481,7 +484,7 @@ export function createRings(ctx) {
   return {
     enter, leave, active: () => on,
     /// tests: the board's numbers, and a few levers
-    debug: () => ({ mode, lv: lvId, moves: s ? s.moves : 0, par: L ? L.par : 0, alive: s ? s.alive.filter(Boolean).length : 0, n: L ? L.rings.length : 0, fms: Math.round(frameMs), stars: L && s ? starsOf(L, s.moves, s.hammer, hintsUsed) : 0, hints: hintsUsed, falling: rings.filter((r) => r.fall).length, queued: falls.length, bt: +boardT.toFixed(2), free: L && s ? L.rings.map((r, i) => isFree(L, s, i)).filter(Boolean).length : 0 }),
+    debug: () => ({ mode, lv: lvId, moves: s ? s.moves : 0, par: L ? L.par : 0, alive: s ? s.alive.filter(Boolean).length : 0, n: L ? L.rings.length : 0, fms: Math.round(frameMs), stars: L && s ? starsOf(L, s.moves, s.hammer, hintsUsed) : 0, hints: hintsUsed, falling: rings.filter((r) => r.fall).length, queued: falls.length, bt: +boardT.toFixed(2), round: L && S ? (() => { const V = view(), r = L.rings[0], P = (x, y) => { const v = new THREE.Vector3(x, y, 0).project(S.cam); return [((v.x + 1) / 2) * V.w, ((1 - v.y) / 2) * V.h]; }; const a = P(r.x - r.r, r.y), b = P(r.x + r.r, r.y), c = P(r.x, r.y - r.r), d = P(r.x, r.y + r.r); return +((b[0] - a[0]) / (c[1] - d[1])).toFixed(3); })() : 0, cv: (() => { const V = view(); return [Math.round(V.w), Math.round(V.h), innerWidth, innerHeight].join("x"); })(), free: L && s ? L.rings.map((r, i) => isFree(L, s, i)).filter(Boolean).length : 0 }),
     start: (id) => startBoard(String(id)), move: (i, d) => doMove(i, d), menu: () => lobby(), tab: (k) => { tab = k; lobby(); },
     solve: async (gap = 120) => { const { plan } = await import("./world-rings-engine.js"); const p = plan(L, s, 10, 2) || []; for (const m of p) { if (mode !== "play") break; doMove(m[0], m[1]); await new Promise((ok) => setTimeout(ok, gap)); } return p.length; },
     unlockAll: () => { for (let i = 1; i <= 99; i++) prog.best["c" + i] = prog.best["c" + i] || 1; save(); },
