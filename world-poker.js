@@ -4,12 +4,15 @@
 // Solo: you and 1–5 computer players (Beginner … Expert), 1,500 chips each, 12 hands, blinds rising every 4 hands —
 // the game runs here with world-poker-engine.js. At the tables (a wallet): 2–6 people and computer players, dealt and
 // timed by the server (api/_world-poker.mjs), which this page asks for the table about once a second.
+// Blackjack against ARCIA plays at the same table (world-blackjack.js).
 // Chips are play money: free every day, never bought with ARCL and never turned into ARCL. The lounge's only ARCL
-// is its two daily missions (finish 3 solo games · play 20 table hands), which don't depend on winning.
+// is its daily missions (finish 3 solo games · play 20 table hands · play 30 blackjack hands), which don't depend on winning.
 //
 // ctx: { THREE, K, st, ver, T, lang, esc, toast, Snd, reduce, low, coarse, sess, post, quality, name(), refresh(),
 //        gain(n, why), onLeave() }
 import { POKER, HANDS, LEVELS, newHand, act, legal, pot, botMove, best, equity, RANKS, SUITS, rankOf, suitOf } from "./world-poker-engine.js";
+import { BJ } from "./world-blackjack-engine.js";
+import { makeBlackjack } from "./world-blackjack.js";
 
 const SAVE = "arc.world.poker", ROOMK = "arc.world.poker.room", fmt = (n) => Math.round(n || 0).toLocaleString("en-US");
 const seoulDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
@@ -59,18 +62,26 @@ export function createPoker(ctx) {
   // ---------------- the scene ----------------
   function canvasOf(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")]; }
   function texOf(c) { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
-  function feltCanvas() {
+  function feltCanvas(kind = feltKind) {
     const f = FELTS.find((x) => x.id === prog.felt) || FELTS[0], n = ctx.low ? 512 : 1024, [c, g] = canvasOf(n, n);
     const gr = g.createRadialGradient(n / 2, n / 2, n * 0.04, n / 2, n / 2, n * 0.52); gr.addColorStop(0, f.a); gr.addColorStop(1, f.b); g.fillStyle = gr; g.fillRect(0, 0, n, n);
     const img = g.getImageData(0, 0, n, n), d = img.data; for (let i = 0; i < d.length; i += 4) { const k = (Math.random() - 0.5) * 12; d[i] += k; d[i + 1] += k; d[i + 2] += k; } g.putImageData(img, 0, 0);
     // the betting line, gold inside the rim (a circle on the canvas is the table's oval)
     g.strokeStyle = "rgba(255,214,130,.55)"; g.lineWidth = n * 0.006; g.beginPath(); g.arc(n / 2, n / 2, n * 0.37, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = "rgba(255,214,130,.22)"; g.lineWidth = n * 0.003; g.beginPath(); g.arc(n / 2, n / 2, n * 0.47, 0, Math.PI * 2); g.stroke();
+    if (kind === "bj") { // blackjack's felt: the house rules across the middle, a betting spot before you
+      g.save(); g.translate(n / 2, n * 0.5); g.scale(1, RX / RZ); g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "rgba(255,226,160,.42)";
+      g.font = `900 ${Math.round(n * 0.05)}px sans-serif`; g.fillText("BLACKJACK PAYS 3 TO 2", 0, 0); g.font = `800 ${Math.round(n * 0.024)}px sans-serif`; g.fillStyle = "rgba(255,226,160,.3)";
+      g.fillText("DEALER STANDS ON SOFT 17  ·  INSURANCE PAYS 2 TO 1", 0, n * 0.045); g.restore();
+      return c;
+    }
     // the lounge's name and the ∞, squeezed so they read round on the oval
     g.save(); g.translate(n / 2, n * 0.69); g.scale(1, RX / RZ); g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "rgba(255,226,160,.30)";
     g.font = `900 ${Math.round(n * 0.046)}px sans-serif`; g.fillText("ARCIA POKER LOUNGE", 0, 0); g.font = `900 ${Math.round(n * 0.085)}px sans-serif`; g.fillText("∞", 0, -n * 0.075); g.restore();
     return c;
   }
+  let feltKind = "poker";
+  function setFelt(kind) { if (!S || feltKind === kind) return; feltKind = kind; const old = S.feltM.map; S.feltM.map = texOf(feltCanvas()); S.feltM.needsUpdate = true; if (old) old.dispose(); }
   const cardTex = new Map();
   function faceTex(c) {
     const key = c < 0 ? "back:" + prog.back : c; if (cardTex.has(key)) return cardTex.get(key);
@@ -169,11 +180,7 @@ export function createPoker(ctx) {
     dEdge.position.y = 0.035; dTop.rotation.x = -Math.PI / 2; dTop.position.y = 0.072; dbtn.add(dEdge, dTop); dbtn.position.y = 0; dbtn.visible = false; scene.add(dbtn);
     // the cards: five for the board, two for each seat; a card is a pair of planes (face, back) laid on the felt
     const cg = new THREE.PlaneGeometry(CW, CH), cards = [];
-    for (let k = 0; k < 17; k++) {
-      const o = new THREE.Group(), lay = new THREE.Group(), flip = new THREE.Group(); lay.rotation.x = -Math.PI / 2; o.add(lay); lay.add(flip);
-      const front = new THREE.Mesh(cg, new THREE.MeshStandardMaterial({ map: faceTex(0), roughness: 0.45, alphaTest: 0.5, emissive: 0x000000 })), back = new THREE.Mesh(cg, new THREE.MeshStandardMaterial({ map: faceTex(-1), roughness: 0.45, alphaTest: 0.5 }));
-      back.rotation.y = Math.PI; flip.add(front, back); o.visible = false; scene.add(o); cards.push({ o, flip, front, back, c: -2 });
-    }
+    S0.cg = cg; S0.scene = scene; for (let k = 0; k < 17; k++) cards.push(newCard());
     const bets = Array.from({ length: 6 }, () => { const g = new THREE.Group(); g.visible = false; scene.add(g); return g; }), potG = new THREE.Group(); potG.position.set(0, 0.03, -1.3); scene.add(potG);
     const flyG = new THREE.Group(); scene.add(flyG);
     Object.assign(S0, { scene, cam, feltM, deal, dlr, halo, dbtn, cards, bets, potG, flyG, chipGeo, chipM, dot, ace: null, comp: null, p9: 0, key: "" });
@@ -185,6 +192,15 @@ export function createPoker(ctx) {
     }).catch((e) => console.warn("poker ace:", e));
   }
   const S0 = {};
+  /// one more card for the pool (blackjack's splits can want more than poker's 17)
+  function newCard() {
+    const o = new THREE.Group(), lay = new THREE.Group(), flip = new THREE.Group(); lay.rotation.x = -Math.PI / 2; o.add(lay); lay.add(flip);
+    const front = new THREE.Mesh(S0.cg, new THREE.MeshStandardMaterial({ map: faceTex(0), roughness: 0.45, alphaTest: 0.5, emissive: 0x000000 })), back = new THREE.Mesh(S0.cg, new THREE.MeshStandardMaterial({ map: faceTex(-1), roughness: 0.45, alphaTest: 0.5 }));
+    back.rotation.y = Math.PI; flip.add(front, back); o.visible = false; S0.scene.add(o); return { o, flip, front, back, c: -2 };
+  }
+  /// a card's white: a touch darker under the desktop glow (bloom turned big white cards into plain light)
+  const cardWhite = () => (S0.comp ? 0xcfcbc4 : 0xffffff);
+  const cardAt = (k) => { while (S.cards.length <= k) S.cards.push(newCard()); return S.cards[k]; };
 
   // ---------------- the camera: the table fills the room between the top bar and your cards ----------------
   const tv = new THREE.Vector3();
@@ -219,7 +235,7 @@ export function createPoker(ctx) {
       cd.o.rotation.y = f0.yaw + (yaw - f0.yaw) * e; cd.flip.rotation.y = f0.fl + ((up ? 0 : Math.PI) - f0.fl) * e; cd.o.scale.setScalar(f0.s + (sc - f0.s) * e);
     }, done, delay);
   }
-  function cardFrom(cd, c) { cd.c = c; cd.front.material.map = faceTex(c < 0 ? 0 : c); cd.front.material.emissive.setHex(0); cd.front.material.color.setHex(0xffffff); cd.front.material.needsUpdate = true; cd.back.material.map = faceTex(-1); cd.back.material.needsUpdate = true; cd.o.position.set(0, 0.5, -RZ + 0.6); cd.o.rotation.y = 0; cd.flip.rotation.y = Math.PI; cd.o.scale.setScalar(0.8); }
+  function cardFrom(cd, c) { cd.c = c; cd.front.material.map = faceTex(c < 0 ? 0 : c); cd.front.material.emissive.setHex(0); cd.front.material.color.setHex(cardWhite()); cd.front.material.needsUpdate = true; cd.back.material.map = faceTex(-1); cd.back.material.needsUpdate = true; cd.o.position.set(0, 0.5, -RZ + 0.6); cd.o.rotation.y = 0; cd.flip.rotation.y = Math.PI; cd.o.scale.setScalar(0.8); }
   function flyChips(from, to, amt, delay = 0) {
     if (!(amt > 0)) return; const g = new THREE.Group(); stackChips(g, Math.min(amt, 6000)); g.visible = true; S.flyG.add(g); g.position.set(from.x, 0.03, from.z);
     tween(0.42, (k) => { const e = ease(k); g.position.set(from.x + (to.x - from.x) * e, 0.03 + Math.sin(k * Math.PI) * 0.3, from.z + (to.z - from.z) * e); }, () => S.flyG.remove(g), delay);
@@ -635,10 +651,12 @@ export function createPoker(ctx) {
     if (tab === "rank") jobs.push(fetch("/api/social?world=poker-top").then((r) => (r.ok ? r.json() : null)).then((j) => { topB = j; }).catch(() => {}));
     await Promise.race([Promise.all(jobs), sleep(4000)]);
   }
-  function toTable() { mode = "table"; closeModal(); ui.sheet.hidden = true; ui.root.classList.remove("menu"); ui.top.hidden = false; ui.hand.hidden = false; ui.replayB.disabled = true; if (S && S.ace) S.ace.visible = false; clearTable(); frame(); }
+  function toTable() { if (BJK.active()) BJK.stop(); setFelt("poker"); ui.replayB.hidden = false; mode = "table"; closeModal(); ui.sheet.hidden = true; ui.root.classList.remove("menu"); ui.top.hidden = false; ui.hand.hidden = false; ui.replayB.disabled = true; if (S && S.ace) S.ace.visible = false; clearTable(); frame(); }
   function sheet(html) { ui.sheet.innerHTML = html; ui.sheet.hidden = false; ui.sheet.scrollTop = 0; }
   function hideTable() { ui.root.classList.add("menu"); ui.top.hidden = true; ui.hand.hidden = true; ui.bar.hidden = true; ui.raise.hidden = true; ui.wait.hidden = true; ui.tools.hidden = true; ui.chat.hidden = true; ui.pot.hidden = true; ui.betL.forEach((e) => { e.hidden = true; }); ui.seats.forEach((e) => { e.hidden = true; }); }
+  function toBJ() { mode = "bj"; G = null; closeModal(); hideTable(); ui.root.classList.remove("menu"); ui.sheet.hidden = true; ui.top.hidden = false; ui.replayB.hidden = true; if (S && S.ace) S.ace.visible = false; clearTable(); setFelt("bj"); frame(); }
   function lobby() {
+    if (BJK.active()) BJK.stop(); setFelt("poker");
     mode = "lobby"; G = null; if (R) { leaveTable(); } Q.length = 0; latest = null; vis = blank(); clearTable(); closeModal();
     hideTable();
     if (S && S.ace) S.ace.visible = true; frame(); paintLobby();
@@ -653,7 +671,8 @@ export function createPoker(ctx) {
       pane = `<section class="pk-box solo"><header><b>${esc(T("SOLO"))}</b><small>${esc(T("{n} hands · {c} chips each · blinds rise every 4 hands", { n: POKER.SOLO_HANDS, c: fmt(POKER.START) }))}</small></header>
         <div class="pk-opt"><span>${esc(T("AI players"))}</span><div class="pk-seg">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-ais="${n}" class="${prog.ais === n ? "on" : ""}">${n}</button>`).join("")}</div></div>
         <div class="pk-opt"><span>${esc(T("Level"))}</span><div class="pk-seg">${LEVELS.map((l, k) => `<button type="button" data-lvl="${k}" class="${prog.lvl === k ? "on" : ""}">${esc(T(l))}</button>`).join("")}</div></div>
-        <button type="button" class="pk-btn go wide" data-a="solo">${esc(T("PLAY SOLO"))}</button></section>`;
+        <button type="button" class="pk-btn go wide" data-a="solo">${esc(T("PLAY SOLO"))}</button></section>
+        <section class="pk-box bjbox"><header><b>${esc(T("BLACKJACK"))}</b><small>${esc(T("vs ARCIA · free {n} chips · blackjack pays 3 to 2", { n: fmt(BJ.START) }))}</small></header><button type="button" class="pk-btn go wide" data-a="bj">${esc(T("PLAY BLACKJACK"))}</button></section>`;
       if (!sg) pane += `<section class="pk-box mp"><header><b>${esc(T("MULTIPLAYER"))}</b><small>${esc(T("2–6 players at a real table"))}</small></header><p class="pk-note">${esc(T("Sign in with a wallet to play at the tables"))}</p></section>`;
       else pane += `<section class="pk-box mp"><header><b>${esc(T("MULTIPLAYER"))}</b><small>${esc(T("Your chips: {n}", { n: fmt(chips) }))} · ${esc(T("free {n} a day", { n: fmt(POKER.DAY_CHIPS) }))}</small></header>
         ${saved ? `<button type="button" class="pk-btn hot wide" data-room="${esc(saved)}">${esc(T("Back to your table"))}</button>` : ""}
@@ -663,7 +682,7 @@ export function createPoker(ctx) {
         <p class="pk-lbl">${esc(T("Private table"))}</p><div class="pk-priv"><select data-pstake>${POKER.STAKES.map((s) => `<option value="${s.id}">${fmt(s.sb)}/${fmt(s.bb)}</option>`).join("")}</select><button type="button" class="pk-mini go" data-a="priv">${esc(T("Create"))}</button><input inputmode="numeric" maxlength="6" placeholder="${esc(T("6-digit code"))}" data-code><button type="button" class="pk-mini go" data-a="code">${esc(T("Join"))}</button></div></section>`;
     } else if (tab === "missions") {
       const m = status && status.mis ? status.mis : { solo: 0, hands: 0 }, row = (k, have, need, t) => `<li class="${have >= need ? "done" : ""}"><b>${esc(t)}</b><div class="pk-bar2"><i style="width:${Math.min(100, (have / need) * 100)}%"></i></div><span>${Math.min(have, need)}/${need}</span><em>+${fmt(POKER.MISSIONS[k].arcl)} ARCL</em></li>`;
-      pane = sg ? `<ul class="pk-mis">${row("solo3", m.solo || 0, 3, T("Finish 3 solo games"))}${row("hands20", m.hands || 0, 20, T("Play 20 table hands"))}</ul><p class="pk-note">${esc(T("Once a day each · never for winning — the chips are play money"))}</p>` : `<p class="pk-note">${esc(T("Sign in with a wallet to earn ARCL from the daily missions"))}</p><ul class="pk-mis dim">${row("solo3", 0, 3, T("Finish 3 solo games"))}${row("hands20", 0, 20, T("Play 20 table hands"))}</ul>`;
+      pane = sg ? `<ul class="pk-mis">${row("solo3", m.solo || 0, 3, T("Finish 3 solo games"))}${row("hands20", m.hands || 0, 20, T("Play 20 table hands"))}${row("bj30", m.bj || 0, 30, T("Play 30 blackjack hands"))}</ul><p class="pk-note">${esc(T("Once a day each · never for winning — the chips are play money"))}</p>` : `<p class="pk-note">${esc(T("Sign in with a wallet to earn ARCL from the daily missions"))}</p><ul class="pk-mis dim">${row("solo3", 0, 3, T("Finish 3 solo games"))}${row("hands20", 0, 20, T("Play 20 table hands"))}${row("bj30", 0, 30, T("Play 30 blackjack hands"))}</ul>`;
       pane += `<p class="pk-note">${esc(T("Chips are free every day and can't be bought, sold or turned into ARCL."))}</p>`;
     } else if (tab === "rank") {
       const rows = (topB && topB.top) || [];
@@ -671,7 +690,7 @@ export function createPoker(ctx) {
     } else if (tab === "profile") {
       const games = status ? status.games : prog.games, wins = status ? status.wins : prog.wins, bst = status ? status.best : prog.best, ul = unlockLv();
       pane = `<div class="pk-prof"><b class="pk-lvn">Lv ${li.lv}</b><span>${esc(T(titleOf(li.lv)))}</span><div class="pk-bar2 xp"><i style="width:${li.lv >= POKER.LEVELS ? 100 : (li.into / li.need) * 100}%"></i></div><small>${li.lv >= POKER.LEVELS ? "MAX" : `${fmt(li.into)} / ${fmt(li.need)} XP`}</small></div>
-        <div class="pk-stats"><span>${esc(T("Games"))} <b>${fmt(games)}</b></span><span>${esc(T("Win rate"))} <b>${games ? Math.round((wins / games) * 100) : 0}%</b></span><span>${esc(T("Best hand"))} <b>${bst >= 0 ? esc(T(HANDS[bst])) : "–"}</b></span>${status ? `<span>${esc(T("Table hands"))} <b>${fmt(status.hands)}</b></span>` : ""}</div>
+        <div class="pk-stats"><span>${esc(T("Games"))} <b>${fmt(games)}</b></span><span>${esc(T("Win rate"))} <b>${games ? Math.round((wins / games) * 100) : 0}%</b></span><span>${esc(T("Best hand"))} <b>${bst >= 0 ? esc(T(HANDS[bst])) : "–"}</b></span>${status ? `<span>${esc(T("Table hands"))} <b>${fmt(status.hands)}</b></span>` : ""}<span>${esc(T("Blackjack hands"))} <b>${fmt(status ? status.bjHands : prog.bjHands || 0)}</b></span><span>${esc(T("Blackjacks"))} <b>${fmt(status ? status.bjBJ : prog.bjBJ || 0)}</b></span></div>
         <p class="pk-lbl">${esc(T("Card backs"))}</p><div class="pk-skins">${BACKS.map((b) => `<button type="button" data-back="${b.id}" class="${prog.back === b.id ? "on" : ""}" ${ul < b.lv ? "disabled" : ""} style="--a:${b.a};--b:${b.b}"><i class="sw back"></i><small>${ul < b.lv ? "🔒 Lv " + b.lv : esc(T(b.name))}</small></button>`).join("")}</div>
         <p class="pk-lbl">${esc(T("Table felt"))}</p><div class="pk-skins">${FELTS.map((b) => `<button type="button" data-felt="${b.id}" class="${prog.felt === b.id ? "on" : ""}" ${ul < b.lv ? "disabled" : ""} style="--a:${b.a};--b:${b.b}"><i class="sw felt"></i><small>${ul < b.lv ? "🔒 Lv " + b.lv : esc(T(b.name))}</small></button>`).join("")}</div>
         <p class="pk-lbl">${esc(T("Settings"))}</p><div class="pk-tog"><button type="button" data-tog="hint" class="${prog.hint ? "on" : ""}">${esc(T("Hand strength hint"))}<b>${esc(prog.hint ? T("On") : T("Off"))}</b></button>${ctx.coarse ? `<button type="button" data-tog="buzz" class="${prog.buzz ? "on" : ""}">${esc(T("Vibration"))}<b>${esc(prog.buzz ? T("On") : T("Off"))}</b></button>` : ""}</div>
@@ -740,12 +759,15 @@ export function createPoker(ctx) {
     if (b.dataset.say) { chatSend(b.dataset.say); return; }
     if (b.dataset.pre) { const H = vis.M && vis.M.hand, L = H && legal(H); if (!L || !L.raise) return; const P0 = pot(H) + L.toCall, k = b.dataset.pre, to = k === "min" ? L.raise.min : Math.round((H.curBet + P0 * +k) / H.bb) * H.bb; ui.raise.querySelector("input").value = Math.max(L.raise.min, Math.min(L.raise.max, to)); paintRaise(); snd("tap"); return; }
     if (a === "leave") leave();
+    else if (a === "menu" && mode === "bj") lobby();
     else if (a === "menu") { if (mode === "table" && G && !G.over) modal(`<p>${esc(T("Leave this game? It won't count."))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="close">${esc(T("Stay"))}</button><button type="button" class="pk-btn hot" data-a="lobby">${esc(T("Leave"))}</button></div>`); else lobby(); }
     else if (a === "lobby") { closeModal(); lobby(); }
     else if (a === "close") closeModal();
     else if (a === "rebuy") { if (!G || G.over) return; closeModal(); G.asking = false; G.rebuy = 1; G.seats[0].stack = POKER.START; snd("coin"); flash(T("Rebuy: +{n}", { n: fmt(POKER.START) }), "big"); soloDeal(); }
     else if (a === "endGame") { closeModal(); if (G) { G.asking = false; soloOver(); } }
     else if (a === "solo") { snd("enter"); soloStart(); }
+    else if (a === "bj") { snd("enter"); BJK.start(); }
+    else if (a === "bjIns" || a === "bjNoIns") BJK.answer(a === "bjIns");
     else if (a === "again") { snd("enter"); soloStart(); }
     else if (a === "rooms") readStatus().then(() => { if (mode === "lobby") paintLobby(); });
     else if (a === "priv") createPriv(ui.sheet.querySelector("[data-pstake]").value);
@@ -764,7 +786,8 @@ export function createPoker(ctx) {
   }
   const kd = (e) => {
     if (!on || e.target.matches("input,select,textarea")) return;
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (G && G.asking) return; if (!ui.modal.hidden) closeModal(); else if (mode === "table" || mode === "result") onClick({ target: ui.root.querySelector('.pk-top [data-a="menu"]') }); else leave(); return; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (G && G.asking) return; if (!ui.modal.hidden) closeModal(); else if (mode === "table" || mode === "result" || mode === "bj") onClick({ target: ui.root.querySelector('.pk-top [data-a="menu"]') }); else leave(); return; }
+    if (mode === "bj") { const k = e.key.toLowerCase(), m = { h: "hit", s: "stand", d: "double", p: "split", " ": "deal", enter: "deal" }[k]; if (m) { e.preventDefault(); BJK.press(m); } return; }
     if (mode !== "table" || !myTurn(vis.M)) return; const k = e.key.toLowerCase();
     if (k === "f" && !ui.b.fold.hidden) move({ t: "fold" }); else if (k === "c") ui.b.call.click(); else if (k === "r" && !ui.b.raise.hidden) ui.b.raise.click(); else if (k === "a" && !ui.b.allin.hidden) allinAsk();
   };
@@ -776,7 +799,7 @@ export function createPoker(ctx) {
     if (!S) return;
     if (S.cam.projectionMatrix.elements[9] !== S.p9 || S.key !== [view().w, view().h, mode].join("x")) frame();
     for (let i = TWN.length - 1; i >= 0; i--) { const w = TWN[i]; w.t += dt; if (w.t < 0) continue; const k = Math.min(1, w.t / w.dur); try { w.f(k); } catch { /* a card gone */ } if (k >= 1) { TWN.splice(i, 1); if (w.done) try { w.done(); } catch { /* fine */ } } }
-    runQ(now); soloTick(now);
+    runQ(now); soloTick(now); if (mode === "bj") BJK.tick();
     if (mode === "table") { place(); if (!Q.length && !latest && ui.bar.hidden === myTurn(vis.M) && !actBusy) paintBar(); }
     else if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.9, -RZ - 0.75), W = innerWidth / scaleK(); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(40, s.y)}px)`; }
     S.deal.position.y = -0.15 + Math.sin(t * 1.3) * 0.03; S.halo.material.opacity = 0.45 + Math.sin(t * 0.9) * 0.1;
@@ -794,7 +817,7 @@ export function createPoker(ctx) {
       mode = "load"; prog = load(); await readStatus();
       prOrig = st.renderer.getPixelRatio();
       const pr = Math.min(prOrig, ctx.low || /^(saver|low)$/.test(String(ctx.quality)) ? 1 : phone() ? 1.5 : 1.75); if (pr !== prOrig) st.renderer.setPixelRatio(pr);
-      if (!S.comp && !ctx.low && !phone() && ctx.K && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX, comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(S.scene, S.cam)); comp.addPass(new P.UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.32, 0.4, 0.93)); comp.addPass(new P.OutputPass()); S.comp = comp; } catch (e) { console.warn("poker bloom:", e); } }
+      if (!S.comp && !ctx.low && !phone() && ctx.K && ctx.K.POSTFX) { try { const P = ctx.K.POSTFX, comp = new P.EffectComposer(st.renderer); comp.addPass(new P.RenderPass(S.scene, S.cam)); comp.addPass(new P.UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.32, 0.4, 0.93)); comp.addPass(new P.OutputPass()); S.comp = comp; for (const cd of S.cards) cd.front.material.color.setHex(cardWhite()); } catch (e) { console.warn("poker bloom:", e); } }
       lobby();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), sleep(2500)]); } catch { /* compiled on the first frame */ }
       on = true; st.view(S.scene, S.cam, S.comp); st.solo(tick); lastNow = 0; fit();
@@ -806,12 +829,13 @@ export function createPoker(ctx) {
   }
   function reset() {
     on = false; mode = "off"; document.body.classList.remove("wp-poker"); if (ui) { ui.root.hidden = true; ui.sheet.hidden = true; ui.modal.hidden = true; }
-    if (R) leaveTable(); G = null; Q.length = 0; latest = null; TWN.length = 0; actBusy = false; busy = false;
+    if (BJK.active()) BJK.stop(); if (R) leaveTable(); G = null; Q.length = 0; latest = null; TWN.length = 0; actBusy = false; busy = false;
     removeEventListener("keydown", kd, true);
     try { if (prOrig && st.renderer.getPixelRatio() !== prOrig) st.renderer.setPixelRatio(prOrig); } catch { /* the town sets its own */ }
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
   function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
+  const BJK = makeBlackjack({ THREE, T, esc, snd, say, banner, flash, confetti, buzz, tween, ease, moveCard, cardFrom, faceTex, toScreen, stackChips, flyChips, S: () => S, cardAt, ui: () => ui, prog: () => prog, save, ctx, signed, fast: () => fast, scaleK, phone, modal, closeModal, enterTable: toBJ, onProg: (p) => { if (p) status = p; } });
   return {
     enter, leave, active: () => on,
     /// tests: the table's numbers, and a few levers
@@ -820,6 +844,8 @@ export function createPoker(ctx) {
     quick: (s) => quick(s), code: (c) => joinCode(c), priv: (s) => createPriv(s), replay: () => replay(),
     /// tests: end the solo game now (the hands so far count)
     finish: () => { if (G && !G.over) { Q.length = 0; latest = null; soloOver(); } },
+    /// tests: blackjack
+    bj: (k, ...a) => (k === "start" ? BJK.start() : k === "debug" ? BJK.debug() : k === "chip" ? BJK.chip(...a) : BJK.press(k)),
   };
 }
 
@@ -830,3 +856,9 @@ Object.assign(LW.tr, {"You": "Sen", "ALL IN": "ALL-IN", "FOLD": "PAS", "CHECK": 
 Object.assign(LW.ko, {"Strong": "강함", "Good": "괜찮음", "Weak": "약함", "Settings": "설정", "Hand strength hint": "핸드 강도 힌트", "On": "켜짐", "Off": "꺼짐", "Vibration": "진동", "Out of chips~ ♡ One more go?": "칩이 다 떨어졌어요~ ♡ 한 번 더 해볼까요?", "Rebuy {n} chips (once a game)": "칩 {n}개 리바이 (게임당 1번)", "End the game": "게임 끝내기", "Rebuy": "리바이", "Rebuy: +{n}": "리바이: +{n}", "Rebuy used": "리바이 사용"});
 Object.assign(LW.zh, {"Strong": "强", "Good": "不错", "Weak": "弱", "Settings": "设置", "Hand strength hint": "牌力提示", "On": "开", "Off": "关", "Vibration": "振动", "Out of chips~ ♡ One more go?": "筹码用完啦~ ♡ 再来一次？", "Rebuy {n} chips (once a game)": "重新买入 {n} 筹码（每局一次）", "End the game": "结束本局", "Rebuy": "重新买入", "Rebuy: +{n}": "重新买入：+{n}", "Rebuy used": "已重新买入"});
 Object.assign(LW.tr, {"Strong": "Güçlü", "Good": "İyi", "Weak": "Zayıf", "Settings": "Ayarlar", "Hand strength hint": "El gücü ipucu", "On": "Açık", "Off": "Kapalı", "Vibration": "Titreşim", "Out of chips~ ♡ One more go?": "Fişin bitti~ ♡ Bir şans daha?", "Rebuy {n} chips (once a game)": "{n} fiş yeniden al (oyun başına bir kez)", "End the game": "Oyunu bitir", "Rebuy": "Yeniden al", "Rebuy: +{n}": "Yeniden alım: +{n}", "Rebuy used": "Yeniden alım kullanıldı"});
+Object.assign(LW.ko, {"Clear": "지우기", "Rebet": "같은 베팅", "DEAL": "딜", "Free refill to {n}": "{n}칩 무료 충전", "HIT": "히트", "STAND": "스탠드", "DOUBLE": "더블", "SPLIT": "스플릿", "SURRENDER": "서렌더", "Blackjack · vs ARCIA": "블랙잭 · vs ARCIA", "Bank {b} · Bet {n}": "보유 {b} · 베팅 {n}", "ARCIA's tip: {m} ♡": "ARCIA의 팁: {m} ♡", "BLACKJACK!": "블랙잭!", "WIN": "승리", "PUSH": "무승부", "BUST": "버스트", "LOSE": "패배", "ARCIA": "ARCIA", "Refilled: {n} chips": "충전 완료: {n}칩", "Surrendered: half back": "서렌더: 절반 돌려받음", "A fresh shoe": "새 슈로 교체", "Insurance? ♡": "인슈어런스? ♡", "ARCIA shows an ace~ Insurance? ♡": "ARCIA 카드가 에이스예요~ 인슈어런스 할까요? ♡", "Costs {n} · pays 2 to 1 if ARCIA has blackjack": "비용 {n} · ARCIA가 블랙잭이면 2배 지급", "No thanks": "괜찮아요", "Insure": "인슈어런스", "Blackjack! ♾️": "블랙잭! ♾️", "No blackjack — insurance lost": "블랙잭 아님 — 인슈어런스는 잃었어요", "ARCIA BUSTS!": "ARCIA 버스트!", "Oops~ I busted! ♡": "앗~ 제가 버스트했어요! ♡", "{n} in a row~! You're on fire ♡": "{n}연승~! 불타오르네요 ♡", "Your bet comes back": "베팅금이 돌아와요", "ARCIA has blackjack": "ARCIA 블랙잭", "ARCIA wins": "ARCIA 승리", "Unlucky~ the next one's yours ♡": "아쉬워요~ 다음 판은 당신 거예요 ♡", "Insurance pays {n}": "인슈어런스 지급 {n}", "Out of chips~ Free refill below ♡": "칩이 떨어졌어요~ 아래에서 무료 충전 ♡", "Mission complete: 30 blackjack hands": "미션 완료: 블랙잭 30핸드", "Place your bet~ ♡": "베팅해 주세요~ ♡", "BLACKJACK": "블랙잭", "vs ARCIA · free {n} chips · blackjack pays 3 to 2": "vs ARCIA · 무료 {n}칩 · 블랙잭 3:2 지급", "PLAY BLACKJACK": "블랙잭 플레이", "Play 30 blackjack hands": "블랙잭 30핸드 플레이", "Blackjack hands": "블랙잭 핸드", "Blackjacks": "블랙잭 횟수", "Hit": "히트", "Stand": "스탠드", "Double": "더블", "Split": "스플릿", "Surrender": "서렌더"});
+Object.assign(LW.zh, {"Clear": "清除", "Rebet": "重复下注", "DEAL": "发牌", "Free refill to {n}": "免费补充到 {n}", "HIT": "要牌", "STAND": "停牌", "DOUBLE": "加倍", "SPLIT": "分牌", "SURRENDER": "投降", "Blackjack · vs ARCIA": "二十一点 · 对战 ARCIA", "Bank {b} · Bet {n}": "筹码 {b} · 下注 {n}", "ARCIA's tip: {m} ♡": "ARCIA 的建议：{m} ♡", "BLACKJACK!": "二十一点！", "WIN": "赢", "PUSH": "平局", "BUST": "爆牌", "LOSE": "输", "ARCIA": "ARCIA", "Refilled: {n} chips": "已补充：{n} 筹码", "Surrendered: half back": "投降：退还一半", "A fresh shoe": "换新牌靴", "Insurance? ♡": "要买保险吗？♡", "ARCIA shows an ace~ Insurance? ♡": "ARCIA 明牌是 A~ 要买保险吗？♡", "Costs {n} · pays 2 to 1 if ARCIA has blackjack": "花费 {n} · ARCIA 是二十一点则 2 赔 1", "No thanks": "不用了", "Insure": "买保险", "Blackjack! ♾️": "二十一点！♾️", "No blackjack — insurance lost": "不是二十一点——保险输了", "ARCIA BUSTS!": "ARCIA 爆牌！", "Oops~ I busted! ♡": "哎呀~ 我爆牌了！♡", "{n} in a row~! You're on fire ♡": "连赢 {n} 把~！手感火热 ♡", "Your bet comes back": "下注退回", "ARCIA has blackjack": "ARCIA 是二十一点", "ARCIA wins": "ARCIA 赢了", "Unlucky~ the next one's yours ♡": "可惜~ 下一把是你的 ♡", "Insurance pays {n}": "保险赔付 {n}", "Out of chips~ Free refill below ♡": "筹码用完了~ 下方免费补充 ♡", "Mission complete: 30 blackjack hands": "任务完成：二十一点 30 手", "Place your bet~ ♡": "请下注~ ♡", "BLACKJACK": "二十一点", "vs ARCIA · free {n} chips · blackjack pays 3 to 2": "对战 ARCIA · 免费 {n} 筹码 · 二十一点 3 赔 2", "PLAY BLACKJACK": "开始二十一点", "Play 30 blackjack hands": "玩 30 手二十一点", "Blackjack hands": "二十一点手数", "Blackjacks": "二十一点次数", "Hit": "要牌", "Stand": "停牌", "Double": "加倍", "Split": "分牌", "Surrender": "投降"});
+Object.assign(LW.tr, {"Clear": "Temizle", "Rebet": "Aynı bahis", "DEAL": "DAĞIT", "Free refill to {n}": "{n} fişe ücretsiz doldur", "HIT": "KART", "STAND": "DUR", "DOUBLE": "İKİYE KATLA", "SPLIT": "BÖL", "SURRENDER": "TESLİM", "Blackjack · vs ARCIA": "Blackjack · ARCIA'ya karşı", "Bank {b} · Bet {n}": "Kasa {b} · Bahis {n}", "ARCIA's tip: {m} ♡": "ARCIA'nın ipucu: {m} ♡", "BLACKJACK!": "BLACKJACK!", "WIN": "KAZAN", "PUSH": "BERABERE", "BUST": "BATTI", "LOSE": "KAYBET", "ARCIA": "ARCIA", "Refilled: {n} chips": "Dolduruldu: {n} fiş", "Surrendered: half back": "Teslim: yarısı geri", "A fresh shoe": "Yeni deste kutusu", "Insurance? ♡": "Sigorta? ♡", "ARCIA shows an ace~ Insurance? ♡": "ARCIA'nın açık kartı as~ Sigorta? ♡", "Costs {n} · pays 2 to 1 if ARCIA has blackjack": "Bedeli {n} · ARCIA blackjack yaparsa 2'ye 1 öder", "No thanks": "Hayır, teşekkürler", "Insure": "Sigorta yap", "Blackjack! ♾️": "Blackjack! ♾️", "No blackjack — insurance lost": "Blackjack yok — sigorta kaybedildi", "ARCIA BUSTS!": "ARCIA BATTI!", "Oops~ I busted! ♡": "Eyvah~ Battım! ♡", "{n} in a row~! You're on fire ♡": "Üst üste {n}~! Alev alevsin ♡", "Your bet comes back": "Bahsin geri döner", "ARCIA has blackjack": "ARCIA'da blackjack var", "ARCIA wins": "ARCIA kazandı", "Unlucky~ the next one's yours ♡": "Şanssızlık~ sıradaki senin ♡", "Insurance pays {n}": "Sigorta {n} ödüyor", "Out of chips~ Free refill below ♡": "Fişin bitti~ Aşağıdan ücretsiz doldur ♡", "Mission complete: 30 blackjack hands": "Görev tamam: 30 blackjack eli", "Place your bet~ ♡": "Bahsini koy~ ♡", "BLACKJACK": "BLACKJACK", "vs ARCIA · free {n} chips · blackjack pays 3 to 2": "ARCIA'ya karşı · ücretsiz {n} fiş · blackjack 3'e 2 öder", "PLAY BLACKJACK": "BLACKJACK OYNA", "Play 30 blackjack hands": "30 blackjack eli oyna", "Blackjack hands": "Blackjack elleri", "Blackjacks": "Blackjack sayısı", "Hit": "Kart al", "Stand": "Dur", "Double": "İkiye katla", "Split": "Böl", "Surrender": "Teslim ol"});
+Object.assign(LW.ko, {"Blackjack hands can't be counted right now — the mission waits": "지금은 블랙잭 핸드가 집계되지 않아요 — 미션은 나중에 이어져요"});
+Object.assign(LW.zh, {"Blackjack hands can't be counted right now — the mission waits": "现在无法统计二十一点手数——任务稍后继续"});
+Object.assign(LW.tr, {"Blackjack hands can't be counted right now — the mission waits": "Blackjack elleri şu an sayılamıyor — görev bekliyor"});

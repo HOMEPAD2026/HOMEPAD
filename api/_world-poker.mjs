@@ -14,6 +14,8 @@
 //   POST world-poker-view        { …sig?, room }                → { room }        (and the table moves on: timeouts, computer seats, the next hand)
 //   POST world-poker-bots        { …sig, room, n, lvl }         → { room }        (computer players into empty seats)
 //   POST world-poker-chat        { …sig, room, text }           → { room }
+//   POST world-bj-start          { …sig }                       → { runId }       (blackjack: the game runs in the browser)
+//   POST world-bj-end            { …sig, runId, hands, net, bj } → { xp, credited, prog } (hands counted if they took a person's time)
 //   GET  ?world=poker-rooms → the open public tables · ?world=poker-top → the week's most chips won at the tables
 //
 // A table is one document (worldPokerRoom/<id>) with the hand in it; each change writes the next version together
@@ -22,6 +24,7 @@
 // Firestore: worldPokerProg/<w> · worldPokerRun/<w> · worldPokerEnd/<runId> · worldPokerRoom/<id> · worldPokerSeq/…
 //            worldPokerPay/<w>_<day>_<mission> · worldPokerWeek/<week>_<w> · worldStats/pokerRooms · worldStats/pokerWeek_<week>
 import { POKER, newHand, act, botMove, viewOf, legal, rng, settle } from "./_world-poker-engine.mjs";
+import { BJ } from "./_world-blackjack-engine.mjs";
 
 const RUN_TTL = 3 * 3600e3, SHOW_MS = 4500, BOT_MS = 900, AWAY_KICK = 5 * 60e3, TOP_N = 20;
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -46,15 +49,15 @@ export function makePoker(deps) {
     const day = seoulDay(now());
     if (p.chipDay !== day) { if ((p.chips || 0) < POKER.DAY_CHIPS) p.chips = POKER.DAY_CHIPS; p.chipDay = day; p.fresh = true; } // today's free chips
     if (p.xpDay !== day) { p.xpDay = day; p.xpToday = 0; }
-    if (!p.mis || p.mis.day !== day) p.mis = { day, solo: 0, hands: 0 };
+    if (!p.mis || p.mis.day !== day) p.mis = { day, solo: 0, hands: 0, bj: 0 };
     return p;
   }
   const saveProg = (w, p) => { const { fresh, ...rest } = p; return setDoc(`worldPokerProg/${w}`, rest); };
-  const pub = (p) => ({ chips: p.chips, xp: p.xp, ...levelOf(p.xp), games: p.games || 0, wins: p.wins || 0, best: p.best != null ? p.best : -1, hands: p.hands || 0, mis: p.mis, xpToday: p.xpToday || 0, xpCap: POKER.XP_DAY });
+  const pub = (p) => ({ chips: p.chips, xp: p.xp, ...levelOf(p.xp), games: p.games || 0, wins: p.wins || 0, best: p.best != null ? p.best : -1, hands: p.hands || 0, bjHands: p.bjHands || 0, bjBJ: p.bjBJ || 0, bjBest: p.bjBest || 0, mis: p.mis, xpToday: p.xpToday || 0, xpCap: POKER.XP_DAY });
   function addXp(p, n) { const g = Math.max(0, Math.min(n, POKER.XP_DAY - (p.xpToday || 0))); p.xp = (p.xp || 0) + g; p.xpToday = (p.xpToday || 0) + g; return g; }
   /// a mission reached: paid once that day (a create-only marker), inside the shop's daily cap
   async function mission(w, p, key) {
-    const m = POKER.MISSIONS[key], have = key === "solo3" ? p.mis.solo : p.mis.hands;
+    const m = POKER.MISSIONS[key], have = key === "solo3" ? p.mis.solo : key === "bj30" ? p.mis.bj || 0 : p.mis.hands;
     if (!m || have < m.need) return 0;
     if (!(await commit([{ create: `worldPokerPay/${w}_${p.mis.day}_${key}`, data: { at: now() } }])).ok) return 0;
     return deps.credit ? deps.credit(w, "poker", m.arcl) : 0;
@@ -80,6 +83,23 @@ export function makePoker(deps) {
     const bc = Math.max(-1, Math.min(9, Math.floor(Number(b.best)))); if (Number.isFinite(bc) && bc > (p.best != null ? p.best : -1)) p.best = bc;
     p.mis.solo = (p.mis.solo || 0) + 1;
     const paid = await mission(w, p, "solo3");
+    await saveProg(w, p);
+    return json(200, { ok: true, xp, credited: paid, prog: pub(p) });
+  }
+
+  // ---------------- blackjack: played in the browser against ARCIA; its hands count here in batches ----------------
+  async function bjStart(b) { const s = signer(b); if (s.err) return s.err; const runId = rid(); await setDoc(`worldBjRun/${s.wallet}`, { runId, startedAt: now() }); return json(200, { runId }); }
+  async function bjEnd(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, t = now(), run = await one(`worldBjRun/${w}`);
+    if (!run || run.runId !== String(b.runId || "") || t - run.startedAt > RUN_TTL) return json(409, { error: "that game isn't active" });
+    const hands = Math.floor(Number(b.hands) || 0); if (hands < 1 || hands > 60) return json(400, { error: "bad numbers" });
+    if (t - run.startedAt < hands * BJ.HAND_S * 1000) return json(400, { error: "faster than it can be played" }); // (a hand takes a person at least HAND_S; a short tail at the end counts too)
+    if (!(await commit([{ create: `worldBjEnd/${run.runId}`, data: { at: t, wallet: w, hands } }])).ok) return json(409, { error: "that game has ended" });
+    const p = await prog(w), xp = addXp(p, hands * BJ.XP_HAND);
+    p.bjHands = (p.bjHands || 0) + hands; p.bjBJ = (p.bjBJ || 0) + Math.max(0, Math.min(hands, Math.floor(Number(b.bj) || 0)));
+    const net = Math.floor(Number(b.net) || 0); if (Number.isFinite(net) && net > (p.bjBest || 0)) p.bjBest = Math.min(net, hands * BJ.MAX * 4);
+    p.mis.bj = (p.mis.bj || 0) + hands;
+    const paid = await mission(w, p, "bj30");
     await saveProg(w, p);
     return json(200, { ok: true, xp, credited: paid, prog: pub(p) });
   }
@@ -270,6 +290,8 @@ export function makePoker(deps) {
     async handle(b) {
       switch (b.action) {
         case "world-poker-me": return me(b);
+        case "world-bj-start": return bjStart(b);
+        case "world-bj-end": return bjEnd(b);
         case "world-poker-solo-start": return soloStart(b);
         case "world-poker-solo-end": return soloEnd(b);
         case "world-poker-create": return create(b);

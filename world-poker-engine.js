@@ -15,7 +15,7 @@ export const POKER = {
   MAX: 6, START: 1500, SOLO_HANDS: 12, TURN_S: 20, AWAY_S: 60,
   STAKES: [{ id: "s1", sb: 10, bb: 20, buy: 2000 }, { id: "s2", sb: 50, bb: 100, buy: 10000 }, { id: "s3", sb: 100, bb: 200, buy: 20000 }, { id: "s4", sb: 500, bb: 1000, buy: 100000 }],
   DAY_CHIPS: 20000, XP_GAME: 50, XP_DAY: 500, MP_GAME: 10, // a multiplayer "game" for XP: 10 hands seated
-  MISSIONS: { solo3: { need: 3, arcl: 300 }, hands20: { need: 20, arcl: 300 } }, // outcome-free daily missions (ARCL: the owner's numbers)
+  MISSIONS: { solo3: { need: 3, arcl: 300 }, hands20: { need: 20, arcl: 300 }, bj30: { need: 30, arcl: 300 } }, // outcome-free daily missions (ARCL: the owner's numbers)
   LEVELS: 100,
 };
 export const RANKS = "23456789TJQKA", SUITS = "♠♥♦♣";
