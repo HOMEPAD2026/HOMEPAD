@@ -4353,7 +4353,7 @@ const launchUI = (() => {
     if (!el) { const st = $("wp-starter-btn"); if (!st) return; el = document.createElement("button"); el.type = "button"; el.className = "wp-btn wp-starter-btn wp-launch-btn"; el.setAttribute("aria-haspopup", "dialog"); el.title = TW("Official launch"); st.parentNode.insertBefore(el, st); el.addEventListener("click", () => { closeAll(); openCard(); }); }
     const s = sess(), on = xp3Until > Date.now(), n = (v && v.xp3 && v.xp3.n) || 0, gift = v && v.open && !v.claimed;
     el.hidden = !(v && (gift || n > 0 || on)); if (el.hidden) return;
-    el.innerHTML = gift ? `<span class="wp-st-l">🎁 ${esc(TW("Launch"))}</span>` : on ? `<span class="wp-st-l">🧪 3×</span><b class="wp-st-boost">${Math.ceil((xp3Until - Date.now()) / 60e3)}m</b>` : `<span class="wp-st-l">🧪 ×${n}</span>`;
+    el.innerHTML = gift ? `<span class="wp-st-l">🎁 ${esc(TW("Launch"))}</span>` : on ? `<img class="wp-launch-bi" src="/images/launch/xp3.webp" alt=""><span class="wp-st-l">3×</span><b class="wp-st-boost">${Math.ceil((xp3Until - Date.now()) / 60e3)}m</b>` : `<img class="wp-launch-bi" src="/images/launch/xp3.webp" alt=""><span class="wp-st-l">×${n}</span>`;
     el.classList.toggle("dot", !!(gift && s && v.eligible));
   }
   function openCard() {
@@ -4364,13 +4364,13 @@ const launchUI = (() => {
     box.innerHTML = `<div class="wp-st-card"><button type="button" class="wp-st-x" aria-label="${esc(TW("Close"))}">×</button>
       <div class="wp-launch-head"><img class="wp-launch-logo" src="/images/brand/arcircle-world-logo-256.webp" alt="ARCIRCLE WORLD" width="88" height="88"><small>ARCIRCLE WORLD</small><h2>${esc(TW("We're officially live!"))}</h2><p>${esc(TW("Thank you for building this world with us. A launch gift for every player, this week only."))}</p></div>
       <ul class="wp-st-list">
-        <li><i class="wp-launch-ic">🥚</i><div><b>${esc(TW("An Advanced dinosaur egg"))}</b><small>${esc(TW("Care for it 3 days in Jurassic World's Hatchery, then raise it."))}</small></div></li>
-        <li><i class="wp-launch-ic">🧪</i><div><b>${esc(TW("{n} × 3× EXP potions", { n: g.potions }))}</b><small>${esc(TW("Each one: 3× EXP for {m} minutes. Use them when you like.", { m: g.potionMin }))}</small></div></li>
-        <li><i class="wp-launch-ic">💎</i><div><b>${fmtN(g.arcl)} ARCL</b><small>${esc(TW("Straight into your ARCL balance."))}</small></div></li>
+        <li><img class="wp-launch-ic" src="/images/launch/egg.webp" alt="" width="56" height="56"><div><b>${esc(TW("An Advanced dinosaur egg"))}</b><small>${esc(TW("Care for it 3 days in Jurassic World's Hatchery, then raise it."))}</small></div></li>
+        <li><img class="wp-launch-ic" src="/images/launch/xp3.webp" alt="" width="56" height="56"><div><b>${esc(TW("{n} × 3× EXP potions", { n: g.potions }))}</b><small>${esc(TW("Each one: 3× EXP for {m} minutes. Use them when you like.", { m: g.potionMin }))}</small></div></li>
+        <li><img class="wp-launch-ic" src="/images/launch/arcl.webp" alt="" width="56" height="56"><div><b>${fmtN(g.arcl)} ARCL</b><small>${esc(TW("Straight into your ARCL balance."))}</small></div></li>
       </ul>
       ${status ? `<p class="wp-st-note">${esc(status)}</p>` : ""}
       ${canTake ? `<button type="button" class="wp-st-buy" data-take>🎁 ${esc(TW("Take the launch gift"))}</button>` : ""}
-      ${n > 0 || on ? `<div class="wp-launch-pot"><b>🧪 ×${n}</b><span>${esc(on ? TW("3× EXP on: {t}", { t: leftOf(xp3Until) }) : TW("No potion running"))}</span><button type="button" data-pot ${n > 0 ? "" : "disabled"}>${esc(on ? TW("Add an hour") : TW("Drink one"))}</button></div>` : ""}
+      ${n > 0 || on ? `<div class="wp-launch-pot"><img src="/images/launch/xp3.webp" alt="" width="40" height="40"><b>×${n}</b><span>${esc(on ? TW("3× EXP on: {t}", { t: leftOf(xp3Until) }) : TW("No potion running"))}</span><button type="button" data-pot ${n > 0 ? "" : "disabled"}>${esc(on ? TW("Add an hour") : TW("Drink one"))}</button></div>` : ""}
       <p class="wp-st-note">${esc(TW("One gift per account during the launch week. New accounts: from level {n}.", { n: (v && v.minLv) || 5 }))}</p></div>`;
     document.body.appendChild(box); frozen = true; keys.clear();
     const close = () => { box.remove(); document.removeEventListener("keydown", onKey, true); frozen = false; };

@@ -1842,3 +1842,6 @@ body.wp-clean .wp-dinochip,body:not(.wp) .wp-dinochip{display:none!important}
 .wz-dgrades b{font:900 10.5px var(--f-ui)}.wz-dgrades small{font:900 14px var(--f-ui);color:#fff}.wz-dgrades em{font:700 9.5px var(--f-ui);font-style:normal;color:#93abc8}
 .wp-launch-head{margin:-18px -18px 10px;padding:18px 18px 14px;border-radius:18px 18px 0 0;background:linear-gradient(180deg,rgba(7,12,26,.15),rgba(7,12,26,.92) 78%),url(/images/world-launch-banner.webp) center 82%/cover}
 .wp-launch-logo{display:block;width:88px;height:88px;margin:0 auto 2px;filter:drop-shadow(0 0 18px rgba(95,240,208,.6))}
+img.wp-launch-ic{width:56px;height:56px;background:none;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
+.wp-launch-pot img{flex:none;width:40px;height:40px;object-fit:contain}
+.wp-launch-btn .wp-launch-bi{width:22px;height:22px;object-fit:contain;margin-right:2px;vertical-align:middle}
