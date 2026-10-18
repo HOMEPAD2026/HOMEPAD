@@ -19,6 +19,12 @@ export const POKER = {
   LEVELS: 100,
   // chips bought with ARCL: one way only (chips never turn back into ARCL); at most BUY_DAY ARCL of chips a day
   PACKS: [{ id: "p1", arcl: 1000, chips: 10000 }, { id: "p2", arcl: 5000, chips: 55000 }, { id: "p3", arcl: 20000, chips: 240000 }], BUY_DAY: 20000,
+  // the Opening Festival (7 Seoul days from the first request after it ships): free chips doubled, +50% on a first
+  // chip purchase, a stamp card (10 table or blackjack hands a day; ARCL at 3 / 5 / 7 stamps, the Opening Night card
+  // back at 7), jackpots in chips (a royal flush at a table, three blackjacks in a row), the week's top 3 table winners
+  // (chips, the Champion Gold felt, a title), and a happy hour (20:00–22:00 Seoul) with mission progress ×2.
+  // ARCL only ever for taking part; what depends on the cards pays chips, looks and titles.
+  FEST: { DAYS: 7, CHIPS: 40000, FIRST: 0.5, STAMP: 10, STAMPS: { 3: 500, 5: 1000, 7: 2000 }, ROYAL: 100000, BJ3: 10000, CHAMP: [500000, 300000, 150000], HAPPY: [20, 22] },
 };
 export const RANKS = "23456789TJQKA", SUITS = "♠♥♦♣";
 export const rankOf = (c) => c % 13, suitOf = (c) => Math.floor(c / 13);

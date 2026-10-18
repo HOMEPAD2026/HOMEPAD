@@ -68,6 +68,7 @@ export const EARN = [
   { kind: "mine", n: 0, label: "ARCL Mine: break copper, silver and gold rocks", more: "10–10,000 a rock, up to 40,000 a day (its own limit)" }, // paid by api/_world-mine.mjs on each break, never claimed
   { kind: "surv", n: 0, label: "Survivors Arena: a run's reward", more: "up to 3,000 a run (Hard 5,000), the first 3 runs a day, up to 10,000 a day", repeat: { max: 3, gap: 0 } }, // paid by the run's end (api/_world-survivors.mjs), never claimed
   { kind: "poker", n: 0, label: "ARCIA Poker Lounge: daily missions (finish 3 solo games · play 20 table hands · play 30 blackjack hands)", more: "300 each, once a day; never for winning — the chips are play money", repeat: { max: 3, gap: 0 } }, // paid by api/_world-poker.mjs, never claimed
+  { kind: "poker-fest", n: 0, label: "ARCIA Lounge Opening Festival: the stamp card (10 table or blackjack hands a day)", more: "500 at 3 stamps, 1,000 at 5, 2,000 at 7 — once each; never for winning", repeat: { max: 3, gap: 0 } }, // paid by api/_world-poker.mjs, never claimed
   { kind: "rings", n: 0, label: "INFINITY RINGS: stars on a level or a daily puzzle", more: "100 a new star (100 / 200 / 300 a level), +300 for all three daily puzzles at 3 stars, up to 10,000 a day", repeat: { max: 300, gap: 0 } }, // paid by the board's end (api/_world-rings.mjs), never claimed
   { kind: "jump", n: 0, label: "Coin Jump: reach the crown", more: "3,000 once a day", repeat: { max: 1, gap: 0 } }, // paid by the run's end (api/_world-jump.mjs), never claimed
   { kind: "heart", n: 0, label: "A heart from a friend", more: "100 each, up to 5 a day; sent from the friend's side", repeat: { max: 5, gap: 0 } }, // paid when it's sent (api/_world-social.mjs), never claimed
@@ -388,7 +389,7 @@ export function makeShop(deps) {
     if (kind === "defense") return json(400, { error: "AC Defense pays when a run ends" });
     if (kind === "surv") return json(400, { error: "Survivors Arena pays when a run ends" });
     if (kind === "heart") return json(400, { error: "hearts pay when a friend sends one" });
-    if (kind === "poker") return json(400, { error: "the Poker Lounge pays its missions as you play" });
+    if (kind === "poker" || kind === "poker-fest") return json(400, { error: "the Poker Lounge pays its missions as you play" });
     if (kind === "rings") return json(400, { error: "INFINITY RINGS pays when a board is cleared" });
     if (kind === "jump") return json(400, { error: "Coin Jump pays when you reach the crown" });
     if (kind === "mine") return json(400, { error: "the mine pays when a rock breaks" });

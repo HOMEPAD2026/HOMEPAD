@@ -42,6 +42,7 @@ const store = {
 };
 const json = (status, b) => ({ status, body: b });
 let TT = Date.parse("2026-10-14T03:00:00Z"), n = 0;
+db.set("worldStats/pokerFest", { start: 0, day0: "1970-01-01" }); // (the Opening Festival long over: these are ordinary days; tests/world/pokerfest.test.mjs has the festival)
 const W = make({ ...store, recover: recoverSigner, issuedOk: () => true, json, now: () => TT, randomId: () => "id" + (++n) + "x" });
 const sign = async (w) => { const issued = new Date(TT).toISOString(); return { wallet: w.address, issued, signature: await w.signMessage(loginMessage(w.address, issued)) }; };
 const call = async (w, action, extra = {}) => W.handle({ action, ...(await sign(w)), ...extra });
