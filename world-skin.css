@@ -2206,3 +2206,43 @@ html.wp-pcphone body.wp #wp-dk-craft{display:none!important}
 /* the owner (a real phone): "Rewards" ran past its tile, "Exchange" filled its own edge to edge — both a little smaller */
 body.wp .wp-hud .wp-hud-btns>#wp-rew-btn.wp-btn .wp-bl{font-size:12.6px!important;letter-spacing:-.02em}
 body.wp #wp-dk-swap span{font-size:11.6px;letter-spacing:-.02em}
+/* b-gm: each player's wallet under their row (copy), and a GM's Send reward / Rewards; the GM's send and list sheets */
+.wq-rank li>.wq-pw{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:-2px}
+.wq-pw code{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 12.5px ui-monospace,Menlo,monospace;color:#9fd8ff;padding:5px 8px;border-radius:8px;background:rgba(0,0,0,.28)}
+.wq-pw button{border:1px solid rgba(160,220,255,.28);background:rgba(255,255,255,.06);color:#dff4ff;border-radius:9px;padding:5px 10px;font:700 12.5px var(--f-ui);cursor:pointer;white-space:nowrap}
+.wq-pw button:hover{background:rgba(255,255,255,.12)}
+.wq-pw button.gm{border-color:transparent;background:linear-gradient(135deg,#1f6dff,#22d3b8);color:#fff;box-shadow:0 0 12px rgba(34,211,184,.35)}
+.wp-gmr .wp-st-card{max-width:560px;width:100%}
+.wp-gmr h2{margin:0 0 10px}
+.wp-gmr-b{display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(160,220,255,.3);background:rgba(255,255,255,.07);color:#dff4ff;border-radius:10px;padding:7px 11px;font:700 13px var(--f-ui);cursor:pointer;text-decoration:none;white-space:nowrap}
+.wp-gmr-b:hover{background:rgba(255,255,255,.14)}
+.wp-gmr-who{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.06)}
+.wp-gmr-who b{flex:1 0 100%;font:800 16px var(--f-ui);color:#fff}
+.wp-gmr-who code,.wp-gmr-done code,.wp-gmr-list code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 12.5px ui-monospace,Menlo,monospace;color:#9fd8ff}
+.wp-gmr-bal{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(31,109,255,.22),rgba(34,211,184,.16));color:#cfe3f7}
+.wp-gmr-bal b{font:900 18px var(--f-ui);color:#7ff0ff}
+.wp-gmr-in{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:8px 12px;border-radius:14px;border:1px solid rgba(160,220,255,.25);background:rgba(0,0,0,.3)}
+.wp-gmr-in span{flex:0 0 auto;font:700 13px var(--f-ui);color:#9cc8ea}
+.wp-gmr-in input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#fff;font:800 18px var(--f-ui);text-align:right}
+.wp-gmr-in input[data-note]{font:600 14px var(--f-ui);text-align:left}
+.wp-gmr-in em{font:800 12px var(--f-ui);font-style:normal;color:#7ff0ff}
+.wp-gmr-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 10px}
+.wp-gmr-quick button{border:1px solid rgba(160,220,255,.28);background:rgba(255,255,255,.06);color:#dff4ff;border-radius:10px;padding:8px 0;font:800 13px var(--f-ui);cursor:pointer}
+.wp-gmr-quick button:hover{background:rgba(34,211,184,.2)}
+.wp-gmr .wp-st-status{margin:0 0 8px;font-size:13px;color:#ffd38a}
+.wp-gmr [data-go]{width:100%}
+.wp-gmr-done{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:rgba(95,240,160,.1);border:1px solid rgba(95,240,160,.3);display:grid;gap:8px}
+.wp-gmr-done b{color:#5ff0a0;font:900 15px var(--f-ui)}
+.wp-gmr-done span,.wp-gmr-list li>span{display:flex;flex-wrap:wrap;gap:6px}
+.wp-gmr-total{margin:0 0 8px;color:#cfe3f7}.wp-gmr-total b{color:#7ff0ff}
+.wp-gmr-list{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:52vh;overflow:auto}
+.wp-gmr-list li{display:grid;gap:8px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.06)}
+.wp-gmr-list li>div{display:grid;gap:2px;min-width:0}
+.wp-gmr-list li>div b{color:#fff;font:800 15px var(--f-ui)}.wp-gmr-list li>div small{color:#9cc8ea}
+.wp-gmr-ic{display:block;font-size:34px;line-height:1;margin:0 0 4px;filter:drop-shadow(0 0 12px rgba(34,211,184,.55))}
+/* phones (the 980 px page): the wallet row and the sheets' small buttons read at the rest of the panel's size */
+html.wp-pcphone body.wp .wq-pw{gap:10px;margin-top:4px}
+html.wp-pcphone body.wp .wq-pw code{font-size:24px!important;padding:10px 14px;border-radius:12px}
+html.wp-pcphone body.wp .wq-pw button{font-size:24px!important;padding:10px 18px;border-radius:14px}
+html.wp-pcphone body.wp .wp-gmr .wp-gmr-b{font-size:15px!important;padding:7px 12px}
+html.wp-pcphone body.wp .wp-gmr .wp-gmr-ic{font-size:30px}
