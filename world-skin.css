@@ -2246,36 +2246,79 @@ html.wp-pcphone body.wp .wq-pw code{font-size:24px!important;padding:10px 14px;b
 html.wp-pcphone body.wp .wq-pw button{font-size:24px!important;padding:10px 18px;border-radius:14px}
 html.wp-pcphone body.wp .wp-gmr .wp-gmr-b{font-size:15px!important;padding:7px 12px}
 html.wp-pcphone body.wp .wp-gmr .wp-gmr-ic{font-size:30px}
-/* b-land: ARCIRCLE LAND — the map of the 20 villages (a ring round the town), the list, and a village's card */
-.wp-land .wp-st-card{max-width:720px;width:100%}
-.wp-land.card .wp-st-card{max-width:520px}
-.wla-head{text-align:center;margin-bottom:10px}.wla-head h2{margin:2px 0 4px}.wla-head p{margin:0;color:#cfe3f7;font-size:14px}
-.wla-ic{font-size:38px;display:block;filter:drop-shadow(0 0 12px rgba(53,216,208,.55))}
-.wla-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center}
-.wla-map{width:100%;max-width:300px;height:auto;aspect-ratio:1/1;flex:0 1 300px;display:block}
-.wla-ring{fill:none;stroke:rgba(53,216,208,.35);stroke-width:2;stroke-dasharray:4 5}
-.wla-town{fill:rgba(63,155,255,.14);stroke:rgba(110,200,255,.35)}
-.wla-town-t{fill:#cfe3f7;font:700 12px var(--f-ui);text-anchor:middle}
-.wla-dot{cursor:pointer}.wla-dot circle{fill:#0e2a3a;stroke:#35d8d0;stroke-width:2.2;transition:transform .15s}
-.wla-dot text{fill:#e9fbff;font:800 10px var(--f-ui);text-anchor:middle;pointer-events:none}
-.wla-dot.sold circle{fill:#3a2c0e;stroke:#ffc861}.wla-dot.held circle{stroke:#b48cff;stroke-dasharray:3 2}
-.wla-dot.mine circle{fill:#ffc861}.wla-dot.mine text{fill:#2a1c00}
-.wla-dot:hover circle,.wla-dot.on circle{transform:scale(1.25);filter:drop-shadow(0 0 6px #35d8d0)}
-.wla-sum{display:grid;gap:4px;justify-items:center;min-width:150px}.wla-sum>b{font:900 30px var(--f-ui);color:#7ff0ff}.wla-sum>small{color:#9cc8ea}
-.wla-legend{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;margin:6px 0 0;font-size:12px;color:#cfe3f7}
-.wla-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid #35d8d0}.wla-legend i.held{border-color:#b48cff}.wla-legend i.sold{border-color:#ffc861;background:#3a2c0e}
-.wla-list{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:34vh;overflow:auto}
-.wla-list button{all:unset;box-sizing:border-box;display:grid;gap:2px;width:100%;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(53,216,208,.25);cursor:pointer}
-.wla-list button:hover{background:rgba(53,216,208,.14)}
-.wla-list b{font:900 15px var(--f-ui);color:#fff}.wla-list span{font:700 12.5px var(--f-ui);color:#7ff0ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wla-list em{font:600 11.5px var(--f-ui);font-style:normal;color:#9cc8ea}
-.wla-list li.sold button{border-color:rgba(255,200,97,.35)}.wla-list li.sold span{color:#ffd88a}
-.wla-card-h{display:flex;align-items:center;gap:10px;margin:0 0 10px}.wla-card-h b{font:900 30px var(--f-display,var(--f-ui));color:#fff}
-.wla-st{padding:4px 10px;border-radius:999px;font:800 12px var(--f-ui);background:rgba(53,216,208,.18);color:#7ff0ff}.wla-st.sold{background:rgba(255,200,97,.18);color:#ffd88a}.wla-st.held{background:rgba(180,140,255,.2);color:#d8c4ff}
-.wla-price,.wla-owner{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.06)}
-.wla-price small,.wla-owner small{color:#9cc8ea;flex:0 0 auto}.wla-price b{margin-left:auto;font:900 20px var(--f-ui);color:#ffc861}.wla-owner b{margin-left:auto;color:#fff}.wla-owner code{font:600 12px ui-monospace,Menlo,monospace;color:#9fd8ff}
-.wla-perks{margin:0 0 10px;padding:0 0 0 18px;display:grid;gap:4px;color:#dff4ff;font-size:13.5px}
-.wla-acts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.wla-acts .wp-st-buy{flex:1 1 100%}
-.wla-done{margin:8px 0;padding:10px 12px;border-radius:14px;background:rgba(95,240,160,.1);border:1px solid rgba(95,240,160,.3);display:grid;gap:6px}.wla-done b{color:#5ff0a0}
-.wp-land .wp-st-status{margin:0 0 8px;font-size:13px;color:#ffd38a}
-html.wp-pcphone body.wp .wp-land .wla-list{grid-template-columns:repeat(2,1fr)}
-html.wp-pcphone body.wp .wp-land .wp-gmr-b{font-size:15px!important}
+/* b-land2: ARCIRCLE LAND in the owner's mock-ups — the map (the town on the sea, 20 islands round it, each with its
+   number and a ring for for sale / being bought / sold), the list with each island's picture, and a village's card
+   (the price, the owner, three perks, the island picture, four big buttons, the villages either side) */
+.wp-land .wp-st-card,body.wp .wp-st.wp-land .wp-st-card{max-width:720px;width:100%;backdrop-filter:none!important;background:radial-gradient(120% 60% at 50% 0%,rgba(80,170,255,.32),transparent 60%),linear-gradient(180deg,#0f3a7a,#0a2350 45%,#081a3c);border:1.5px solid rgba(110,200,255,.55);box-shadow:0 0 30px rgba(53,160,255,.35),0 30px 80px rgba(0,0,0,.5)!important;background-color:#0a2350!important}
+body.wp .wp-st.wp-land.card .wp-st-card,.wp-land.card .wp-st-card{max-width:980px}
+.wla-head{position:relative;text-align:center;margin:-6px -8px 8px;padding:6px 60px 4px}
+.wla-palm{position:absolute;top:-18px;height:150px;pointer-events:none}.wla-palm.l{left:-22px}.wla-palm.r{right:-22px}
+.wla-ic{position:relative;font-size:34px;display:block;filter:drop-shadow(0 0 12px rgba(255,210,120,.6))}
+.wla-head h2{position:relative;margin:0 0 4px;font:900 40px/1.05 var(--f-display,var(--f-ui))!important;letter-spacing:.01em;-webkit-text-fill-color:initial;background:none!important;filter:drop-shadow(0 2px 10px rgba(0,40,120,.6))}
+.wla-head h2 span{color:#fff}.wla-head h2 em{font-style:normal;background:linear-gradient(90deg,#35d8d0,#5ff0a0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wla-head p{position:relative;margin:0 auto;max-width:520px;color:#e6f3ff;font-size:15px;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.wla-sea{position:relative;width:100%;aspect-ratio:16/10.5;margin:4px 0 0;border-radius:22px;overflow:hidden;background:radial-gradient(46% 40% at 50% 52%,#1bb0d8 0,#1086c4 40%,#0b5fa6 70%,#08417e 100%);box-shadow:inset 0 0 40px rgba(0,20,60,.5)}
+.wla-sea::before{content:"";position:absolute;inset:0;background:repeating-radial-gradient(circle at 50% 52%,rgba(255,255,255,.07) 0 2px,transparent 2px 26px);opacity:.6}
+.wla-townpic{position:absolute;left:50%;top:52%;width:40%;transform:translate(-50%,-50%);text-align:center}
+.wla-townpic img{width:100%;display:block;filter:drop-shadow(0 8px 18px rgba(0,30,80,.6))}
+.wla-townpic span{position:absolute;left:0;right:0;bottom:-2px;font:900 18px var(--f-ui);color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.wla-isl{all:unset;position:absolute;width:11%;aspect-ratio:122/76;transform:translate(-50%,-50%);cursor:pointer;transition:transform .18s}
+.wla-isl img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 4px 6px rgba(0,30,70,.5))}
+/* the glowing ring at each island's foot: cyan for sale, purple being bought, gold sold */
+.wla-isl::after{content:"";position:absolute;left:4%;right:4%;bottom:2%;height:46%;border-radius:50%;border:2.5px solid #35d8d0;box-shadow:0 0 12px rgba(53,216,208,.8),inset 0 0 8px rgba(53,216,208,.5)}
+.wla-isl.held::after{border-color:#b48cff;box-shadow:0 0 12px rgba(180,140,255,.8)}
+.wla-isl.sold::after,.wla-isl.mine::after{border-color:#ffc861;border-width:3px;box-shadow:0 0 18px rgba(255,200,97,.95),inset 0 0 10px rgba(255,200,97,.6)}
+.wla-isl b{position:absolute;z-index:2;left:50%;top:-12px;transform:translateX(-50%);min-width:26px;height:26px;padding:0 4px;box-sizing:border-box;display:grid;place-items:center;border-radius:50%;background:#0b2a4e;border:2px solid #35d8d0;color:#fff;font:900 13px var(--f-ui);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.wla-isl.held b{border-color:#b48cff}.wla-isl.sold b,.wla-isl.mine b{background:#ffc861;border-color:#fff3c9;color:#2a1c00}
+.wla-isl:hover,.wla-isl.on{transform:translate(-50%,-50%) scale(1.14);z-index:2}
+.wla-isl:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:50%}
+.wla-sum{display:grid;justify-items:center;gap:2px;margin:10px 0 4px}.wla-sum>b{font:900 38px/1 var(--f-ui);background:linear-gradient(180deg,#fff,#7ff0ff);-webkit-background-clip:text;background-clip:text;color:transparent}.wla-sum>small{color:#cfe3f7;font-size:14px}
+.wla-mine{all:unset;box-sizing:border-box;margin:8px 0 2px;padding:12px 30px;min-width:min(380px,90%);text-align:center;border-radius:999px;background:linear-gradient(180deg,#3fa2ff,#1f6dff);color:#fff;font:900 20px var(--f-ui);cursor:pointer;box-shadow:0 4px 0 #ffb547,0 0 22px rgba(63,155,255,.55)}
+.wla-mine i{font-style:normal;margin-left:10px}
+.wla-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;margin:8px 0 0;font-size:14px;color:#e6f3ff}
+.wla-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:3px solid #35d8d0;margin-right:-8px}.wla-legend i.held{border-color:#b48cff}.wla-legend i.sold{border-color:#ffc861}
+.wla-list{list-style:none;margin:12px 0 0;padding:0 4px 0 0;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:38vh;overflow:auto}
+.wla-list button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:6px 12px 6px 6px;border-radius:14px;background:linear-gradient(180deg,rgba(20,50,100,.85),rgba(12,32,70,.85));border:1.5px solid rgba(90,170,255,.4);cursor:pointer}
+.wla-list button:hover{border-color:#35d8d0}
+.wla-list img{width:96px;height:60px;object-fit:contain;flex:0 0 auto}
+.wla-list .t{display:grid;flex:1;min-width:0}.wla-list b{font:900 16px var(--f-ui);color:#fff}.wla-list .t span{font:800 13.5px var(--f-ui);color:#4fe0ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wla-list em{font:600 12.5px var(--f-ui);font-style:normal;color:#cfe3f7}
+.wla-list button>i{font-style:normal;font-size:22px;color:#cfe3f7}
+.wla-list li.sold button{border-color:#ffc861;background:linear-gradient(180deg,rgba(80,62,20,.85),rgba(40,32,14,.85));box-shadow:0 0 14px rgba(255,200,97,.25)}.wla-list li.sold .t span{color:#ffd88a}
+/* the village's card */
+.wla-card{display:grid;grid-template-columns:1fr 1.05fr;gap:18px;align-items:center}
+.wla-card-h{display:flex;align-items:center;gap:14px;margin:0 0 12px}.wla-card-h b{font:900 54px/1 var(--f-display,var(--f-ui));color:#fff;text-shadow:0 0 18px rgba(110,200,255,.6)}
+.wla-st{padding:6px 16px;border-radius:999px;font:900 15px var(--f-ui);background:#35d8d0;color:#032a2a}.wla-st.sold{background:#ffc861;color:#3a2600}.wla-st.held{background:#b48cff;color:#1a0d33}
+.wla-pricebox{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(8,24,56,.6);border:1px solid rgba(110,200,255,.3)}
+.wla-pricebox img{width:52px;height:52px;object-fit:contain;padding:9px 6px;box-sizing:border-box;border-radius:50%;background:radial-gradient(circle,#123f8f,#08245a);border:2px solid rgba(110,200,255,.6);box-shadow:0 0 14px rgba(63,155,255,.6)}
+.wla-pricebox small{display:block;color:#cfe3f7;font-size:13px}.wla-pricebox b{font:900 28px var(--f-ui);color:#ffc861}
+.wla-owner{display:flex;align-items:center;gap:10px;margin:8px 0 0;padding:10px 14px;border-radius:16px;background:rgba(8,24,56,.6);border:1px solid rgba(110,200,255,.3)}
+.wla-owner small{color:#cfe3f7;font-size:13px}.wla-owner .av{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle,#4fe0ff,#1f6dff);color:#fff;font:900 15px var(--f-ui);font-style:normal;box-shadow:0 0 0 2px rgba(255,255,255,.6)}
+.wla-owner b{color:#fff;font:900 17px var(--f-ui)}.wla-owner code{margin-left:auto;font:700 13px ui-monospace,Menlo,monospace;color:#4fe0ff}
+.wla-copy{all:unset;cursor:pointer;color:#cfe3f7;display:grid}.wla-copy svg,.wla-perks svg,.wla-tile svg,.wla-nav svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.wla-perks{list-style:none;margin:10px 0 0;padding:12px 14px;display:grid;gap:12px;border-radius:16px;background:rgba(8,24,56,.6);border:1px solid rgba(110,200,255,.3);color:#e6f3ff;font-size:14.5px}
+.wla-perks li{display:flex;gap:12px;align-items:flex-start}.wla-perks svg{flex:0 0 auto;width:28px;height:28px;color:#4fe0ff}
+.wla-art{position:relative;border-radius:18px;overflow:hidden;min-height:260px;display:grid;place-items:center;background:radial-gradient(70% 60% at 50% 55%,#1aa6d8,#0b4f9a 70%,#08336e)}
+.wla-art img{width:100%;height:100%;object-fit:cover;display:block}
+.wla-art:not(.sold) img{object-fit:contain;width:86%;height:auto;filter:drop-shadow(0 10px 20px rgba(0,30,80,.6))}
+.wla-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:14px 0 0}
+.wla-tile{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:linear-gradient(180deg,rgba(26,60,120,.9),rgba(14,36,80,.9));border:1.5px solid rgba(110,200,255,.4);color:#fff;cursor:pointer;text-decoration:none}
+.wla-tile:hover{border-color:#4fe0ff}.wla-tile svg{width:30px;height:30px;flex:0 0 auto}
+.wla-tile b{display:block;font:900 17px var(--f-ui)}.wla-tile small{display:block;color:#cfe3f7;font-size:12.5px}
+.wla-tile.go,.wla-tile.buy{background:linear-gradient(180deg,#3fa2ff,#1f6dff);border-color:#8fd0ff;box-shadow:0 0 20px rgba(63,155,255,.5)}
+.wla-tile.buy{background:linear-gradient(180deg,#ffd36b,#ffae2b);border-color:#fff1c2;color:#2a1a00}.wla-tile.buy small{color:#5a3a00}
+.wla-tile.off{opacity:.5;cursor:default}
+.wla-nav{display:flex;justify-content:center;gap:12px;margin:14px 0 6px}
+.wla-nav button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:8px;padding:10px 26px;border-radius:999px;background:rgba(12,32,70,.85);border:1.5px solid rgba(110,200,255,.45);color:#fff;font:900 16px var(--f-ui);cursor:pointer}
+.wla-nav button.all{min-width:260px;justify-content:center}.wla-nav button:hover{border-color:#4fe0ff}
+.wla-done{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:rgba(95,240,160,.1);border:1px solid rgba(95,240,160,.3);display:grid;gap:6px}.wla-done b{color:#5ff0a0}
+.wp-land .wp-st-status{margin:10px 0 0;font-size:13px;color:#ffd38a}
+/* phones: the card in one column (the picture on top), the buttons two by two */
+html.wp-pcphone body.wp .wp-land .wla-card{grid-template-columns:1fr}
+html.wp-pcphone body.wp .wp-land .wla-art{order:-1;min-height:170px;max-height:200px}
+html.wp-pcphone body.wp .wp-land .wla-tiles{grid-template-columns:1fr 1fr}
+html.wp-pcphone body.wp .wp-land .wla-nav button{padding:8px 14px}.wla-nav button.all{min-width:0}
+html.wp-pcphone body.wp .wp-land .wla-palm{height:110px}
+html.wp-pcphone body.wp .wp-land .wla-head h2{font-size:32px!important}
+html.wp-pcphone body.wp .wp-land .wla-list img{width:72px;height:46px}
+@media (max-width:640px){.wla-card{grid-template-columns:1fr}.wla-art{order:-1;min-height:170px}.wla-tiles{grid-template-columns:1fr 1fr}}
+html.wp-pcphone body.wp .wp-land .wla-list{grid-template-columns:1fr}

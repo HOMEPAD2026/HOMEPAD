@@ -102,35 +102,57 @@ export function createLand(ctx) {
     return { box, close };
   }
   const statusOf = (v) => (v.status === "sold" ? T("Sold") : v.status === "held" ? (v.heldBy === "you" ? T("Held for you") : T("Being bought")) : T("For sale"));
-  function mapSVG(sel) {
-    const S = 300, k = (S / 2 - 22) / 290;
-    const dots = PLOTS.map(([x, z], i) => { const v = view ? view.villages[i] : null, st = v ? v.status : "open", cx = S / 2 + x * k, cy = S / 2 + z * k;
-      return `<g class="wla-dot ${st}${sel === i + 1 ? " on" : ""}${view && view.mine === i + 1 ? " mine" : ""}" data-v="${i + 1}" transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)})"><circle r="11"/><text y="4">${i + 1}</text></g>`; }).join("");
-    return `<svg class="wla-map" viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(T("Map of the 20 villages"))}"><circle class="wla-ring" cx="${S / 2}" cy="${S / 2}" r="${(270 * k).toFixed(1)}"/><circle class="wla-town" cx="${S / 2}" cy="${S / 2}" r="${(150 * k).toFixed(1)}"/><text class="wla-town-t" x="${S / 2}" y="${S / 2 + 4}">${esc(T("Town"))}</text>${dots}</svg>`;
+  // b-land2 (the owner's mock-ups): the picture of each village (ten island scenes, round the ring twice)
+  const PIC = [1, 6, 3, 7, 4, 8, 5, 9, 10], img = (k) => `/images/land/isle-${String(k).padStart(2, "0")}.webp`;
+  const picOf = (n) => { const v = view && view.villages[n - 1]; return v && v.status === "sold" ? img(2) : img(PIC[(n - 1) % PIC.length]); }; // (the gold house is a sold village's)
+  const ICO = {
+    pin: '<path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+    palm: '<path d="M12 21V9M12 9c-2-3-6-3-8-1M12 9c2-3 6-3 8-1M12 9c-1-3-4-5-7-4M12 9c1-3 4-5 7-4M5 21h14"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', hammer: '<path d="M14 6l4 4M12 8l4 4-8 8-4-4zM14 6l2-2 4 4-2 2"/>',
+    bricks: '<rect x="3" y="5" width="8" height="5" rx="1"/><rect x="13" y="5" width="8" height="5" rx="1"/><rect x="7" y="12" width="10" height="5" rx="1"/>',
+    wallet: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M16 12.5h2M3 9h18"/>', list: '<path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01"/>',
+    coin: '<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/>', copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/>',
+  };
+  const ico = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg>`;
+  function seaHTML(sel) {
+    // the ring as an ellipse on the picture (the town in the middle), each village its island picture, number and status ring
+    const isl = PLOTS.map((_, i) => { const v = view ? view.villages[i] : null, st = v ? v.status : "open", a = ((9 + i * 18) * Math.PI) / 180, L = 50 + Math.sin(a) * 42, Tp = 52 - Math.cos(a) * 40; // (evenly round the ring: the real spots bunch a little)
+      return `<button type="button" class="wla-isl ${st}${sel === i + 1 ? " on" : ""}${view && view.mine === i + 1 ? " mine" : ""}" data-v="${i + 1}" style="left:${L.toFixed(1)}%;top:${Tp.toFixed(1)}%" aria-label="V${String(i + 1).padStart(2, "0")} · ${esc(v ? statusOf(v) : "")}"><img src="${picOf(i + 1)}" alt=""><b>${i + 1}</b></button>`; }).join("");
+    return `<div class="wla-sea" role="group" aria-label="${esc(T("Map of the 20 villages"))}"><div class="wla-townpic"><img src="/images/land/town.webp" alt=""><span>${esc(T("Town"))}</span></div>${isl}</div>`;
   }
   async function open(sel) {
-    const { box } = sheet("map", `<div class="wla-head"><span class="wla-ic" aria-hidden="true">🏝️</span><h2>ARCIRCLE LAND</h2><p>${esc(T("20 villages on the ring around the town. Buy one with $ARCIRCLE and your island stands there for everyone to see."))}</p></div><div class="wla-body"><i class="wp-skel" style="width:70%"></i></div>`);
+    const { box } = sheet("map", `<div class="wla-head"><img class="wla-palm l" src="/images/land/palm-l.webp" alt=""><img class="wla-palm r" src="/images/land/palm-r.webp" alt=""><span class="wla-ic" aria-hidden="true">🏝️</span><h2><span>ARCIRCLE</span> <em>LAND</em></h2><p>${esc(T("20 villages on the ring around the town. Buy one with $ARCIRCLE and your island stands there for everyone to see."))}</p></div><div class="wla-body"><i class="wp-skel" style="width:70%"></i></div>`);
     await refresh();
     const body = box.querySelector(".wla-body"); if (!body) return;
     if (!view) { body.innerHTML = `<p class="wp-st-note">${esc(T("Couldn't load LAND — try again"))}</p>`; return; }
-    body.innerHTML = `<div class="wla-top">${mapSVG(sel)}<div class="wla-sum"><b>${view.sold} / 20</b><small>${esc(T("sold"))}</small>${view.mine ? `<button type="button" class="wp-st-buy" data-v="${view.mine}">${esc(T("My village"))} V${String(view.mine).padStart(2, "0")}</button>` : ""}<p class="wla-legend"><i class="open"></i>${esc(T("For sale"))} <i class="held"></i>${esc(T("Being bought"))} <i class="sold"></i>${esc(T("Sold"))}</p></div></div>
-      <ul class="wla-list">${view.villages.map((v) => `<li class="${v.status}"><button type="button" data-v="${v.n}"><b>${esc(v.id)}</b><span>${v.status === "sold" ? esc(v.name || short(v.owner)) : fmt(v.price) + " $ARCIRCLE"}</span><em>${esc(statusOf(v))}</em></button></li>`).join("")}</ul>`;
+    body.innerHTML = `${seaHTML(sel)}<div class="wla-sum"><b>${view.sold} / 20</b><small>${esc(T("sold"))}</small>${view.mine ? `<button type="button" class="wla-mine" data-v="${view.mine}">${esc(T("My village"))} V${String(view.mine).padStart(2, "0")} <i>›</i></button>` : ""}<p class="wla-legend"><i class="open"></i>${esc(T("For sale"))} <i class="held"></i>${esc(T("Being bought"))} <i class="sold"></i>${esc(T("Sold"))}</p></div>
+      <ul class="wla-list">${view.villages.map((v) => `<li class="${v.status}"><button type="button" data-v="${v.n}"><img src="${picOf(v.n)}" alt=""><span class="t"><b>${esc(v.id)}</b><span>${v.status === "sold" ? esc(v.name || short(v.owner)) : fmt(v.price) + " $ARCIRCLE"}</span><em>${esc(statusOf(v))}</em></span><i>›</i></button></li>`).join("")}</ul>`;
     box.addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (b) detail(Number(b.dataset.v)); });
   }
   function detail(n) {
     const v = view && view.villages[n - 1]; if (!v) return;
     const sold = v.status === "sold", mine = view.mine === n, canBuy = !sold && !view.mine && !(v.status === "held" && v.heldBy !== "you");
-    const { box, close } = sheet("card", `<div class="wla-card-h"><b>${esc(v.id)}</b><span class="wla-st ${v.status}">${esc(statusOf(v))}</span></div>
-      <p class="wla-price"><small>${esc(T("Price"))}</small><b>${fmt(v.price)} $ARCIRCLE</b></p>
-      ${sold ? `<p class="wla-owner"><small>${esc(T("Owner"))}</small><b>${esc(v.name || short(v.owner))}</b><code>${esc(short(v.owner))}</code></p>` : ""}
-      <ul class="wla-perks"><li>${esc(T("Your island (My Island) stands on this village, for everyone in the town to see"))}</li><li>${esc(T("Build bigger: a 64×64 island and up to 20,000 bricks"))}</li><li>${esc(T("One village a wallet. Paid to the ARCIRCLE treasury from your own wallet."))}</li></ul>
-      <p class="wp-st-status" data-st hidden></p>
-      <div class="wla-acts">${canBuy ? `<button type="button" class="wp-st-buy" data-buy>${esc(T("Buy with $ARCIRCLE"))}</button>` : ""}<button type="button" class="wp-gmr-b" data-go>${esc(T("Go there"))}</button>${sold ? `<button type="button" class="wp-gmr-b" data-visit>${esc(T("Visit the island"))}</button>${v.tx ? `<a class="wp-gmr-b" href="${esc(EXP + "/tx/" + v.tx)}" target="_blank" rel="noopener">${esc(T("Explorer"))} ↗</a>` : ""}` : ""}${mine ? `<button type="button" class="wp-gmr-b" data-build>${esc(T("Build my island"))}</button>` : ""}<button type="button" class="wp-gmr-b" data-back>${esc(T("All villages"))}</button></div>
-      <div class="wla-done" data-done hidden></div>
-      <p class="wp-st-note">${esc(view.mine && !mine ? T("You already own a village.") : T("Village production and rewards are planned, not part of buying. Nothing here pays out."))}</p>`);
+    const tile = (k, icon, t, sub, extra = "", tag = "button") => `<${tag} ${tag === "a" ? "" : 'type="button"'} class="wla-tile ${k}" ${extra}>${ico(icon)}<span><b>${esc(t)}</b><small>${esc(sub)}</small></span></${tag}>`;
+    const prev = n > 1 ? n - 1 : 20, next = n < 20 ? n + 1 : 1, id2 = (k) => "V" + String(k).padStart(2, "0");
+    const { box, close } = sheet("card", `<div class="wla-card">
+      <div class="wla-info">
+        <div class="wla-card-h"><b>${esc(v.id)}</b><span class="wla-st ${v.status}">${esc(statusOf(v))}</span></div>
+        <div class="wla-pricebox"><img src="/images/brand/mark-sm-v2.webp" alt=""><span><small>${esc(T("Price"))}</small><b>${fmt(v.price)} $ARCIRCLE</b></span></div>
+        ${sold ? `<div class="wla-owner"><small>${esc(T("Owner"))}</small><i class="av">${esc((v.name || "?").slice(0, 1).toUpperCase())}</i><b>${esc(v.name || short(v.owner))}</b><code>${esc(short(v.owner))}</code><button type="button" class="wla-copy" data-copyw="${esc(v.owner)}" title="${esc(T("Copy"))}">${ico("copy")}</button></div>` : ""}
+        <ul class="wla-perks"><li>${ico("palm")}<span>${esc(T("Your island (My Island) stands on this village, for everyone in the town to see"))}</span></li><li>${ico("bricks")}<span>${esc(T("Build bigger: a 64×64 island and up to 20,000 bricks"))}</span></li><li>${ico("wallet")}<span>${esc(T("One village a wallet. Paid to the ARCIRCLE treasury from your own wallet."))}</span></li></ul>
+      </div>
+      <div class="wla-art ${v.status}"><img src="${sold ? "/images/land/hero.webp" : picOf(n)}" alt=""></div>
+    </div>
+    <p class="wp-st-status" data-st hidden></p>
+    <div class="wla-tiles">${canBuy ? tile("buy", "coin", T("Buy with $ARCIRCLE"), fmt(v.price) + " $ARCIRCLE", "data-buy") : ""}${tile(canBuy ? "" : "go", "pin", T("Go there"), T("Move to this village"), "data-go")}${sold ? tile("", "palm", T("Visit the island"), T("See their island"), "data-visit") + (v.tx ? tile("", "compass", T("Explorer") + " ↗", T("View on explorer"), `href="${esc(EXP + "/tx/" + v.tx)}" target="_blank" rel="noopener"`, "a") : "") + tile(mine ? "" : "off", "hammer", T("Build my island"), mine ? T("Start building") : T("Only the owner"), mine ? "data-build" : "disabled") : ""}</div>
+    <div class="wla-done" data-done hidden></div>
+    <nav class="wla-nav"><button type="button" data-to="${prev}">‹ ${id2(prev)}</button><button type="button" class="all" data-back>${ico("list")} ${esc(T("All villages"))}</button><button type="button" data-to="${next}">${id2(next)} ›</button></nav>
+    <p class="wp-st-note">${esc(view.mine && !mine && !sold ? T("You already own a village.") : T("Village production and rewards are planned, not part of buying. Nothing here pays out."))}</p>`);
     const $b = (q) => box.querySelector(q), st = (t) => { const e = $b("[data-st]"); if (e) { e.hidden = !t; e.textContent = t || ""; } };
     $b("[data-go]").addEventListener("click", () => { close(); goTo(n); });
     $b("[data-back]").addEventListener("click", () => open(n));
+    box.querySelectorAll("[data-to]").forEach((b) => b.addEventListener("click", () => detail(Number(b.dataset.to))));
+    const cw = $b("[data-copyw]"); if (cw) cw.addEventListener("click", async () => { try { await navigator.clipboard.writeText(cw.dataset.copyw); toast(T("Wallet address copied")); } catch { toast(cw.dataset.copyw); } });
     const vb = $b("[data-visit]"); if (vb) vb.addEventListener("click", () => { close(); if (ctx.visit) ctx.visit(v.owner); });
     const bb = $b("[data-build]"); if (bb) bb.addEventListener("click", () => { close(); if (ctx.myIsland) ctx.myIsland(); });
     const buy = $b("[data-buy]"); if (buy) buy.addEventListener("click", () => purchase(n, { box, st, buy }));
