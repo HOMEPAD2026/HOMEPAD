@@ -259,6 +259,8 @@ export function createChat(ctx) {
 
   return {
     show, hide, isOpen: () => open, unread: () => un.dm + un.q, party,
+    /// your friends' wallets (as last loaded): the town waves when one comes close
+    friendWs: () => (fr ? fr.list.filter((x) => x.st === "friend").map((x) => String(x.w).toLowerCase()) : []),
     /// muted here or blocked: their lines don't float over their figure either
     hides: (w) => !!w && (muted(w) || !!(fr && fr.list.some((x) => x.w === w && x.st === "blocked"))),
     /// the last line you said in the last minute, once, for the ping (others see it over your figure)

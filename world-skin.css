@@ -2114,3 +2114,95 @@ html.wp-pcphone body.wp .wp-st-card .wg-title h2{font-size:40px}
 html.wp-pcphone .wg-pay span{font-size:10.5px}html.wp-pcphone .wg-pay b{font-size:12px}
 html.wp-pcphone .wg-head{grid-template-columns:1fr auto}html.wp-pcphone .wg-bubble{display:none}html.wp-pcphone .wg-arc{grid-column:2}
 html.wp-pcphone .wg-count{grid-column:1 / span 2;font-size:13px}
+/* ---------------- b-r2: one type scale for every pop-up, phones read at 12 px and up
+   phones lay the game out on a 980 px page shown ~0.4×, so a pop-up's own zoom decides what a reader sees: one zoom
+   for all (2.0) and three sizes (design px → on a phone ≈ ×0.8): title 28 (22), body 16 (12.7), caption 15 (12) */
+:root{--t-title:28px;--t-body:16px;--t-cap:15px}
+html.wp-pcphone body.wp .wp-st .wp-st-card{zoom:2!important;width:calc((100vw - 132px) / 2)!important;max-height:calc((100svh - 40px) / 2)}
+html.wp-pcphone body.wp .wp-st.wp-games .wp-st-card{width:calc((100vw - 132px) / 2)!important;max-height:calc((100svh - 40px) / 2)}
+html.wp-pcphone body.wp .wp-st.wp-launch2 .wp-st-card{width:calc((100vw - 150px) / 2)!important;max-height:calc((100svh - 60px) / 2)}
+html.wp-pcphone body.wp .wp-st .wp-st-card :is(small,p,.wp-st-note,.wp-st-status,li small,.wg-pay span,.wg-txt small,.wl2-gifts small,.wl2-note,.wp-games-side small,.wp-refer-kids small){font-size:var(--t-cap)!important;line-height:1.3}
+html.wp-pcphone body.wp .wp-st .wp-st-card :is(li b,.wp-st-list b,.wl2-sub,.wl2-pot b,.wp-start-steps b,.wp-games-foot b,.wp-games-side h3){font-size:var(--t-body)!important}
+html.wp-pcphone body.wp .wp-st .wp-st-card :is(button,.wp-games-go){font-size:var(--t-body)}
+html.wp-pcphone body.wp .wp-st .wp-st-card :is(h2,.wp-refer-head h2,.wp-start h2){font-size:var(--t-title)!important}
+html.wp-pcphone body.wp .wp-st-card .wg-title h2{font-size:38px!important}
+/* the game cards: the line under the name stays one line; what it pays, two at most */
+.wg-txt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wg-pay span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html.wp-pcphone .wg-txt b{font-size:17px!important}
+html.wp-pcphone .wg-art em{font-size:12px}
+/* the launch card on a phone: the three gifts as rows (art left, words right) — three narrow columns of 12 px text don't read */
+html.wp-pcphone .wl2-gifts{grid-template-columns:1fr}
+html.wp-pcphone .wl2-gifts li{display:grid;grid-template-columns:42% 1fr;grid-template-rows:auto 1fr;align-items:center}
+html.wp-pcphone .wl2-gifts header{grid-column:2;min-height:0;padding:10px 10px 0}
+html.wp-pcphone .wl2-gifts .wl2-art{grid-column:1;grid-row:1 / span 2}
+html.wp-pcphone .wl2-gifts small{grid-column:2;text-align:left;padding:4px 10px 10px}
+html.wp-pcphone .wl2-claim{font-size:22px;height:58px}
+/* b-r2: desktop too — Gifts, Launch, Starter and Shop fold into the one Rewards button (its list opens under it) */
+body.wp .wp-rew-btn{display:inline-flex!important}
+body.wp :is(#wp-gift-btn,.wp-launch-btn,#wp-starter-btn,#wp-shop-btn){display:none!important}
+/* b-r2: loading placeholders that shimmer (instead of "…") */
+.wp-skel{display:inline-block;height:14px;border-radius:7px;vertical-align:middle;background:linear-gradient(90deg,rgba(160,200,255,.12) 25%,rgba(200,230,255,.32) 50%,rgba(160,200,255,.12) 75%);background-size:300% 100%;animation:skel 1.3s linear infinite}
+@keyframes skel{from{background-position:100% 0}to{background-position:0 0}}
+@media (prefers-reduced-motion:reduce){.wp-skel{animation:none}}
+/* b-r2: the sheet's handle, bigger and brighter (a drag from the top 120 px closes it) */
+html.wp-pcphone body.wp .wp-st .wp-st-card::after{top:7px;width:72px;height:7px;margin-left:-36px;border-radius:4px;background:rgba(220,240,255,.6);box-shadow:0 0 8px rgba(120,200,255,.6)}
+html.wp-pcphone body.wp .wp-st .wp-st-card{padding-top:26px}
+/* b-r2: the game cards come in one after another, their pictures drift slowly, Play has a passing shine; on a desktop
+   a card leans toward the pointer (world-play.js openGames) */
+.wg-grid li{animation:wgIn .5s cubic-bezier(.2,.9,.3,1.15) both;animation-delay:calc(var(--i,0) * 60ms + 120ms)}
+@keyframes wgIn{from{opacity:0;transform:translateY(22px) scale(.96)}}
+.wg-art{overflow:hidden;border-radius:16px 16px 0 0}
+.wg-art img{animation:wgDrift 16s ease-in-out infinite alternate;transform-origin:50% 40%}
+.wg-grid li:nth-child(even) .wg-art img{animation-delay:-8s}
+@keyframes wgDrift{from{transform:scale(1) translateX(0)}to{transform:scale(1.09) translateX(-2.5%)}}
+body.wp .wg-grid button{transition:transform .18s ease-out,box-shadow .18s ease-out;will-change:transform}
+body.wp .wg-grid button.tilt{box-shadow:0 0 24px rgba(56,200,255,.55),0 14px 28px rgba(0,0,0,.4)}
+body.wp .wg-grid .wp-games-go{position:relative;overflow:hidden}
+body.wp .wg-grid .wp-games-go::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent);transform:skewX(-18deg);animation:wgShine 3.2s ease-in-out infinite;animation-delay:calc(var(--i,0) * 0.3s)}
+.wg-grid li{--i:0}
+@keyframes wgShine{0%,60%{left:-60%}85%,100%{left:130%}}
+/* b-r2: the launch card's three gifts flip in one by one */
+.wl2-gifts li{animation:wl2Flip .6s cubic-bezier(.2,.9,.3,1.2) both;transform-origin:50% 50%}
+.wl2-gifts li.g1{animation-delay:.15s}.wl2-gifts li.g2{animation-delay:.33s}.wl2-gifts li.g3{animation-delay:.51s}
+@keyframes wl2Flip{from{opacity:0;transform:perspective(700px) rotateY(80deg) scale(.9)}}
+/* b-r2: coins with a fading trail */
+.wp-coin-trail{filter:blur(1px) drop-shadow(0 0 6px rgba(255,210,80,.6))}
+/* b-r2: the portal in each game's colours (--w1..--w3 from GAME_LIST) */
+.wp-warp i{background:conic-gradient(from 0deg,var(--w1,#38d8ff),var(--w2,#7a4dff),var(--w3,#22d3b8),var(--w1,#38d8ff),var(--w2,#b46cff),var(--w1,#38d8ff))}
+.wp-warp img{box-shadow:0 0 40px var(--w1,rgba(56,200,255,.8)),0 0 0 3px rgba(255,255,255,.6)}
+/* b-r2: gift boxes by kind — the launch gold (as is), the invite pink with hearts, the welcome week's day blue */
+.wp-gift-open.k-invite{background:radial-gradient(circle at 50% 45%,rgba(255,90,170,.5),rgba(20,4,24,.9) 70%)}
+.wp-gift-open.k-invite .wp-go-box{filter:hue-rotate(290deg) saturate(1.3) drop-shadow(0 0 30px rgba(255,110,190,.8))}
+.wp-gift-open.k-invite .wp-go-rays{background:repeating-conic-gradient(from 0deg,rgba(255,150,210,.35) 0 6deg,transparent 6deg 18deg)}
+.wp-gift-open.k-invite .wp-go-in h2{background:linear-gradient(180deg,#fff,#ffb3dd);-webkit-background-clip:text;background-clip:text}
+.wp-gift-open.k-daily{background:radial-gradient(circle at 50% 45%,rgba(40,140,255,.55),rgba(2,8,26,.9) 70%)}
+.wp-gift-open.k-daily .wp-go-box{filter:hue-rotate(180deg) saturate(1.2) drop-shadow(0 0 30px rgba(80,180,255,.8))}
+.wp-gift-open.k-daily .wp-go-rays{background:repeating-conic-gradient(from 0deg,rgba(130,210,255,.35) 0 6deg,transparent 6deg 18deg)}
+.wp-gift-open.k-daily .wp-go-in h2{background:linear-gradient(180deg,#fff,#9fe6ff);-webkit-background-clip:text;background-clip:text}
+.wp-go-hearts{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.wp-go-hearts b{position:absolute;bottom:-40px;font-size:28px;opacity:0;animation:goHeart 3.2s ease-in infinite}
+.wp-gift-open.burst .wp-go-hearts b{opacity:1}
+.wp-go-hearts b:nth-child(1){left:8%;animation-delay:.1s}.wp-go-hearts b:nth-child(2){left:18%;animation-delay:.9s}.wp-go-hearts b:nth-child(3){left:28%;animation-delay:.4s}.wp-go-hearts b:nth-child(4){left:38%;animation-delay:1.4s}.wp-go-hearts b:nth-child(5){left:48%;animation-delay:.6s}
+.wp-go-hearts b:nth-child(6){left:58%;animation-delay:1.1s}.wp-go-hearts b:nth-child(7){left:68%;animation-delay:.2s}.wp-go-hearts b:nth-child(8){left:78%;animation-delay:1.7s}.wp-go-hearts b:nth-child(9){left:86%;animation-delay:.8s}.wp-go-hearts b:nth-child(10){left:94%;animation-delay:1.3s}
+@keyframes goHeart{0%{transform:translateY(0) scale(.6)}100%{transform:translateY(-110vh) scale(1.2) rotate(25deg)}}
+/* b-r2: a dinosaur's picture in the panels isn't still: it breathes and sways a little */
+.wz-dpic{animation:dzBreath 2.6s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes dzBreath{0%,100%{transform:rotate(-1.5deg) scale(1)}50%{transform:rotate(1.5deg) scale(1.03,.985)}}
+@media (prefers-reduced-motion:reduce){.wg-grid li,.wg-art img,.wl2-gifts li,.wp-go-hearts b,.wz-dpic,body.wp .wg-grid .wp-games-go::after{animation:none!important}}
+html.wp-less :is(.wg-grid li,.wg-art img,.wl2-gifts li,.wz-dpic){animation:none!important}
+/* the owner (a real phone): the gift's pictures sat a little left in their cards — centred; the Menu's nine tiles had
+   tiny words — on a phone they stand as icon over word at the Menu's own size */
+.wp-go-in li{display:flex;flex-direction:column;align-items:center;text-align:center}
+.wp-go-in li img{display:block;margin:0 auto}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid{grid-template-columns:repeat(3,1fr);gap:16px}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid button{flex-direction:column;justify-content:center;align-items:center;min-height:150px;padding:16px 8px;gap:10px;text-align:center}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid button span{font:800 26px/1.15 var(--f-ui)}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid button svg{width:54px;height:54px}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid button::after{display:none}
+/* the dock on a phone: Games · Character · Pets · Exchange (Craft moves into the Menu) */
+html.wp-pcphone body.wp #wp-dk-char{display:flex!important}
+html.wp-pcphone body.wp #wp-dk-craft{display:none!important}
+/* the owner (a real phone): "Rewards" ran past its tile, "Exchange" filled its own edge to edge — both a little smaller */
+body.wp .wp-hud .wp-hud-btns>#wp-rew-btn.wp-btn .wp-bl{font-size:12.6px!important;letter-spacing:-.02em}
+body.wp #wp-dk-swap span{font-size:11.6px;letter-spacing:-.02em}
