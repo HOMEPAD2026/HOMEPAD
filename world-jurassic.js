@@ -13,7 +13,7 @@ export function createJurassic(ctx) {
   const { THREE, st, T, esc, toast } = ctx;
   const low = !!ctx.low, reduce = !!ctx.reduce, coarse = !!ctx.coarse;
   const J = JURASSIC;
-  const Snd = ctx.Snd || {}; let shakeT = 0;
+  const Snd = ctx.Snd || {}; let shakeT = 0, stopUntil = 0; // stopUntil: a hit-stop (b-fx2), the world nearly still for a few ms
   let S = null, ui = null, hero = null, on = false, busy = false, surv = null, dino = null;
   let downNow = false, hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
   const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 }, pinch = { a: -1, b: -1, d: 0, pts: new Map() };
@@ -696,7 +696,7 @@ export function createJurassic(ctx) {
     try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
       isNight: () => night, sleep: () => sleep(),
       buddyOut: () => !!(dino && dino.out()), onBuddy: (b, k, n) => { if (dino) dino.onBuddy(b, k, n); },
-      faceTo: (a) => { face = a; }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
+      faceTo: (a) => { face = a; }, hitstop: (ms) => { if (!reduce) stopUntil = performance.now() + ms; }, shake: (n) => { shakeT = Math.max(shakeT, n); }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
   }
 
@@ -817,7 +817,7 @@ export function createJurassic(ctx) {
   const anim = (n, sp) => { if (!hero || !hero.play) return; if (n === animNow) { if (sp && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) if (a.isRunning() && a.getEffectiveWeight() > 0.5) a.timeScale = sp; return; } animNow = n; hero.play(n, { speed: sp || 1, fade: 0.2 }); };
   let frames = 0, stepD = 0, birdT = 4, camReach = 1, velX = 0, velZ = 0, turnS = 0, pyS = null, kbT = 0, kbX = 0, kbZ = 0;
   function tick(dt, t) {
-    if (!S) return; dt = Math.min(dt, 0.05); frames++;
+    if (!S) return; dt = Math.min(dt, 0.05); frames++; if (stopUntil && performance.now() < stopUntil) dt *= 0.06;
     const inp = ctx.input ? ctx.input() : null; if (inp) { camYaw = inp.yaw; camPitch = inp.pitch; camGoal = inp.zoom; }
     let ix = (inp && inp.joy ? inp.joy.dx : 0) + (inp ? inp.gx || 0 : 0), iz = (inp && inp.joy ? inp.joy.dy : 0) - (inp ? inp.gy || 0 : 0);
     if (downNow) { ix = iz = 0; }
@@ -853,7 +853,7 @@ export function createJurassic(ctx) {
       else {
         if (hero.update) hero.update(dt, t);
         if (!grounded) { if (vy < 0 && !(hero.busy && hero.busy())) anim("fall"); }
-        else if (rideNow) anim("idle"); // (on its back the dinosaur does the walking: the heroes have no sit clip, so their calm idle)
+        else if (rideNow) anim("drive"); // (on its back the dinosaur does the walking: the hero sits — the borrowed chair sit, world-kit.js kkBorrow; before it has loaded, the calm idle)
         else if (!(hero.busy && hero.busy()) || speed > 0.6) anim(speed > 9 ? "sprint" : speed > 0.6 ? "walk" : "idle", speed > 9 ? Math.max(0.85, speed / 12.5) : speed > 0.6 ? Math.max(0.8, speed / 6.5) : 1);
         // ARON's idle (Idle_03) leans back in a big stretch from 0.7 s to 2.2 s: standing still plays only its calm part
         if (animNow === "idle" && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) { const c = a.getClip(); if (a.isRunning() && /idle_03/i.test(c.name) && c.duration > 3.5 && a.time < 2.5) a.time = 2.5; }

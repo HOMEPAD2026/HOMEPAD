@@ -1939,3 +1939,91 @@ html.wp-pcphone .wp-games-h h2{font-size:34px}
 .wp-start-steps button{flex:none;border:0;border-radius:12px;padding:8px 12px;background:linear-gradient(90deg,#1f6dff,#38c8ff);color:#fff;font:800 13px var(--f-ui);cursor:pointer}
 body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)>span.wp-gb-ic{top:11px!important;font:29px/1 "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif!important}
 body.wp .wp-hud .wp-hud-btns>.wp-btn.wp-rew-btn{position:relative}
+/* ---------------- b-ui1: one look for every pop-up card (launch, welcome, starter, invite, share, games, getting started)
+   the blue glass of the owner's mock-ups: one header, one primary button, one secondary button, one row, one close */
+body.wp .wp-st-card{--st-edge:rgba(110,200,255,.55);border:1.5px solid var(--st-edge);border-radius:24px;box-shadow:inset 0 1px 0 rgba(170,220,255,.25),0 0 0 1px rgba(2,8,28,.8),0 0 26px rgba(47,134,255,.35),0 30px 80px rgba(0,4,20,.65)}
+body.wp .wp-st-card :is(h2,.wp-st-head h2,.wp-launch-head h2,.wp-refer-head h2){font:900 26px/1.12 var(--f-display,var(--f-ui));letter-spacing:-.01em;background:linear-gradient(180deg,#fff 30%,#9fe6ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(56,200,255,.35))}
+body.wp .wp-st-card :is(.wp-st-head small,.wp-launch-head small){color:#7ff0ff;font:800 12px var(--f-ui);letter-spacing:.06em;text-transform:uppercase}
+body.wp .wp-st-card .wp-st-buy{height:52px;border:1px solid rgba(255,255,255,.45);border-radius:999px;color:#fff;font:900 16px var(--f-ui);letter-spacing:.01em;background:linear-gradient(180deg,#4aa8ff,#1f6dff 55%,#1a56d6);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 22px rgba(56,170,255,.5),0 10px 26px rgba(0,20,80,.45);text-shadow:0 1px 2px rgba(0,20,60,.5)}
+body.wp .wp-st-card .wp-st-buy:not(:disabled):hover{filter:brightness(1.08)}
+body.wp .wp-st-card :is(.wp-share-btns button:not(.wp-st-buy):not([data-x]),.wp-refer-link button,.wp-start-steps button,.wp-games-fr button,.wp-games-side-b,.wp-launch-pot button){border:1px solid rgba(140,210,255,.5);border-radius:999px;background:linear-gradient(180deg,rgba(60,130,230,.45),rgba(20,60,140,.55));color:#fff;font:800 13px var(--f-ui);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+body.wp .wp-st-card :is(.wp-st-list li,.wp-start-steps li,.wp-refer-kids li){border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(120,200,255,.22)}
+body.wp .wp-st-card .wp-st-x{width:36px;height:36px;border:1px solid rgba(160,220,255,.45);background:rgba(10,30,70,.75);color:#fff;box-shadow:0 0 12px rgba(56,200,255,.25);z-index:4}
+body.wp .wp-st-card .wp-st-note{color:rgba(207,227,247,.7)}
+/* the Games list: the pictures keep their shape (the img's own height had stretched them), the close stays in reach */
+.wp-games-grid img{height:auto!important}
+.wp-games .wp-st-x{position:sticky!important;top:0;float:right;margin:-4px -4px 0 8px}
+/* phones: pop-ups rise from the bottom as a sheet (a thumb reaches its buttons; the top bar stays in sight); a handle on
+   top, and a drag down closes it (world-play.js sheetDrag) */
+html.wp-pcphone body.wp .wp-st{place-items:end center;padding:0 0 0;align-content:end}
+html.wp-pcphone body.wp .wp-st .wp-st-card{width:calc(100vw / 1.6)!important;max-width:none!important;max-height:calc(92svh / 1.6);border-radius:26px 26px 0 0;border-bottom:0;padding-top:24px;padding-bottom:calc(18px + env(safe-area-inset-bottom) / 1.6);animation:stUp .34s cubic-bezier(.2,.9,.25,1.12) both}
+html.wp-pcphone body.wp .wp-st.wp-games .wp-st-card{zoom:1.7;width:calc(100vw / 1.7)!important;max-height:calc(94svh / 1.7)}
+html.wp-pcphone body.wp .wp-st .wp-st-card::after{content:"";position:absolute;top:8px;left:50%;width:46px;height:5px;margin-left:-23px;border-radius:3px;background:rgba(200,230,255,.35)}
+html.wp-pcphone body.wp .wp-st.drag .wp-st-card{animation:none;transition:none}
+html.wp-pcphone body.wp .wp-st.out .wp-st-card{transform:translateY(105%)!important;transition:transform .22s ease-in}
+@keyframes stUp{from{transform:translateY(100%)}}
+/* desktop: a soft rise and settle */
+html:not(.wp-pcphone) body.wp .wp-st .wp-st-card{animation:stPop .3s cubic-bezier(.2,.9,.3,1.25) both}
+@keyframes stPop{from{opacity:0;transform:translateY(14px) scale(.96)}}
+@media (prefers-reduced-motion:reduce){body.wp .wp-st .wp-st-card{animation:none!important}}
+html.wp-less body.wp .wp-st .wp-st-card{animation:none!important}
+/* b-ui2: the dock — Games first (its pad icon), Character into the Menu on phones */
+body.wp #wp-dk-games::after{content:"";position:absolute;left:50%;top:13px;width:46px;height:32px;transform:translateX(-50%);background:url("/images/hud/dk-games.webp?v=1") center/100% 100% no-repeat;pointer-events:none}
+html.wp-pcphone body.wp #wp-dk-char{display:none!important}
+/* the Menu: the nine big tiles on top (three a row), the rest smaller under "More" */
+.wp-hub-main .wp-hub-grid{grid-template-columns:repeat(3,1fr)!important;gap:10px}
+.wp-hub-main .wp-hub-grid button{min-height:92px;flex-direction:column;justify-content:center;gap:6px;border-radius:18px;background:linear-gradient(180deg,rgba(70,140,240,.4),rgba(20,50,120,.55));border:1.5px solid rgba(140,210,255,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 14px rgba(56,170,255,.25)}
+.wp-hub-main .wp-hub-grid button svg{width:34px;height:34px;color:#bfeaff;filter:drop-shadow(0 0 6px rgba(56,200,255,.6))}
+.wp-hub-main .wp-hub-grid button span{font:800 14px var(--f-ui)}
+.wp-hub-main .wp-hub-grid button kbd{position:absolute;top:6px;right:8px}
+.wp-hub-main .wp-hub-grid button{position:relative}
+/* b-fx1: coins flying in, the Exchange button's bump, the counting amount */
+.wp-coin{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;z-index:12600;pointer-events:none;filter:drop-shadow(0 0 8px rgba(255,210,80,.8))}
+html.wp-pcphone .wp-coin{width:52px;height:52px;margin:-26px 0 0 -26px}
+.wp-coin-bump{animation:coinBump .42s cubic-bezier(.3,1.8,.5,1)}
+@keyframes coinBump{40%{transform:scale(1.22);filter:brightness(1.5) drop-shadow(0 0 12px #ffd75e)}}
+.wp-coin-n{position:fixed;z-index:12601;transform:translate(-50%,-100%);pointer-events:none;font:900 16px var(--f-ui);color:#ffe27a;text-shadow:0 0 10px rgba(255,190,40,.8),0 2px 3px rgba(0,0,0,.7);white-space:nowrap;animation:coinN 1.9s ease-out both}
+html.wp-pcphone .wp-coin-n{font-size:28px}
+@keyframes coinN{0%{opacity:0;margin-top:6px}12%{opacity:1;margin-top:-4px}80%{opacity:1;margin-top:-14px}100%{opacity:0;margin-top:-24px}}
+/* b-fx1: the gift opening */
+.wp-gift-open{position:fixed;inset:0;z-index:12700;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,rgba(40,90,200,.55),rgba(2,6,20,.88) 70%);font-family:var(--f-ui);color:#fff;animation:wlIn .25s ease}
+.wp-gift-open.bye{opacity:0;transition:opacity .22s ease}
+.wp-go-rays{position:absolute;left:50%;top:45%;width:900px;height:900px;margin:-450px 0 0 -450px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,220,120,.32) 0 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);opacity:0;transform:scale(.4);pointer-events:none}
+.wp-gift-open.burst .wp-go-rays{opacity:1;transform:scale(1);transition:opacity .4s ease,transform .7s cubic-bezier(.2,.9,.3,1.2);animation:goSpin 14s linear infinite}
+@keyframes goSpin{to{rotate:360deg}}
+.wp-go-box{position:absolute;left:50%;top:45%;width:240px;margin:-120px 0 0 -120px;filter:drop-shadow(0 0 30px rgba(255,200,80,.6));animation:goDrop .5s cubic-bezier(.3,1.5,.5,1) both,goShake .5s ease-in-out .55s 2}
+.wp-gift-open.burst .wp-go-box{animation:goPop .35s ease-in forwards}
+@keyframes goDrop{from{transform:translateY(-60vh) scale(.6)}}
+@keyframes goShake{20%{rotate:-8deg}40%{rotate:7deg}60%{rotate:-5deg}80%{rotate:3deg}}
+@keyframes goPop{60%{transform:scale(1.25);filter:brightness(2.2) drop-shadow(0 0 60px #fff)}100%{transform:scale(1.6);opacity:0}}
+.wp-go-in{position:relative;text-align:center;opacity:0;pointer-events:none;max-width:min(560px,92vw)}
+.wp-gift-open.show .wp-go-in{opacity:1;pointer-events:auto;transition:opacity .2s ease}
+.wp-go-in h2{margin:0 0 18px;font:900 30px var(--f-display,var(--f-ui));background:linear-gradient(180deg,#fff,#ffe08f);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px rgba(255,200,80,.6))}
+.wp-go-in ul{list-style:none;margin:0 0 20px;padding:0;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.wp-go-in li{width:132px;padding:12px 8px;border-radius:18px;background:linear-gradient(180deg,rgba(60,120,230,.55),rgba(14,36,90,.8));border:1.5px solid rgba(160,220,255,.6);box-shadow:0 0 22px rgba(56,170,255,.45);opacity:0;transform:translateY(30px) scale(.6)}
+.wp-gift-open.show .wp-go-in li{animation:goItem .5s cubic-bezier(.3,1.6,.5,1) calc(var(--i) * .16s) both}
+@keyframes goItem{from{opacity:0;transform:translateY(30px) scale(.6)}to{opacity:1;transform:none}}
+.wp-go-in li img{width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
+.wp-go-in li b{display:block;margin-top:6px;font:800 13px/1.25 var(--f-ui)}
+.wp-go-in .wp-st-buy{width:min(320px,80vw);height:52px;border:1px solid rgba(255,255,255,.45);border-radius:999px;color:#fff;font:900 16px var(--f-ui);background:linear-gradient(180deg,#4aa8ff,#1f6dff 55%,#1a56d6);box-shadow:0 0 22px rgba(56,170,255,.5);cursor:pointer}
+html.wp-pcphone .wp-go-in{zoom:1.7}html.wp-pcphone .wp-go-box{width:400px;margin:-200px 0 0 -200px}
+.wp-gift-open.now .wp-go-box{display:none}.wp-gift-open.now .wp-go-in li{animation:none;opacity:1;transform:none}
+/* b-fx1: into a game from the Games list — a swirl of the world's colours and the game's picture zooming through it */
+.wp-warp{position:fixed;inset:0;z-index:12650;display:grid;place-items:center;pointer-events:none;background:rgba(2,6,20,.0);animation:warpBg .9s ease forwards}
+.wp-warp i{position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;border-radius:50%;background:conic-gradient(from 0deg,#38d8ff,#7a4dff,#22d3b8,#2f86ff,#b46cff,#38d8ff);-webkit-mask:radial-gradient(circle,transparent 4%,#000 10%,#000 30%,transparent 60%);mask:radial-gradient(circle,transparent 4%,#000 10%,#000 30%,transparent 60%);animation:warpSpin 1.2s cubic-bezier(.5,0,.3,1) forwards;opacity:.9}
+.wp-warp img{position:relative;width:min(420px,70vw);border-radius:22px;box-shadow:0 0 40px rgba(56,200,255,.8),0 0 0 3px rgba(255,255,255,.6);animation:warpImg .9s cubic-bezier(.6,0,.4,1) forwards}
+.wp-warp.out{opacity:0;transition:opacity .45s ease}
+@keyframes warpBg{to{background:rgba(2,6,20,.85)}}
+@keyframes warpSpin{from{transform:scale(.2) rotate(0)}to{transform:scale(1.3) rotate(540deg)}}
+@keyframes warpImg{0%{transform:scale(.6);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(3.2);opacity:0;filter:blur(6px)}}
+/* b-fx1: micro motion — a pressed button glows, a tab's page slides in */
+body.wp :is(.wp-st-buy,.wp-dk,.wp-hub-grid button,.wp-games-grid button,.wp-hud-btns>.wp-btn):active{filter:brightness(1.18) drop-shadow(0 0 10px rgba(80,200,255,.75))}
+body.wp :is([role="tabpanel"]:not([hidden]),.tab-in){animation:tabIn .24s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes tabIn{from{opacity:0;transform:translateX(14px)}}
+@media (prefers-reduced-motion:reduce){body.wp :is([role="tabpanel"],.tab-in){animation:none!important}.wp-warp{display:none}}
+html.wp-less body.wp [role="tabpanel"]{animation:none!important}
+/* b-fx2: a crit in Jurassic World — bigger, gold, with a punch */
+.wz-pop.crit{color:#ffe066;font-size:28px;text-shadow:0 0 14px rgba(255,190,40,.9),0 2px 0 rgba(0,0,0,.5);animation-name:wzPop,wzCrit}
+html.wp-pcphone .wz-pop.crit{font-size:44px}
+@keyframes wzCrit{0%{scale:1.8}25%{scale:1}}
+.pk-gold{position:absolute;left:50%;top:42%;width:18px;height:18px;z-index:6;pointer-events:none;background:radial-gradient(circle,#fff 0 18%,#ffe27a 30%,#ffb52e 55%,transparent 70%);clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);filter:drop-shadow(0 0 6px #ffd23a)}

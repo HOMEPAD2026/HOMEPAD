@@ -379,7 +379,7 @@ export function createPoker(ctx) {
     }
     snd("chip", 4);
     const iWon = me >= 0 && vis.win.has(me), wName = H.p[[...vis.win][0]] ? H.p[[...vis.win][0]].name : "", hand = top && !res.uncontested ? T(top.name) : "";
-    if (top && top.cat === 9 && !res.uncontested) { banner(`<b>${esc(T("ARCIA JACKPOT!"))}</b><small>${esc(T("ROYAL FLUSH"))} · ${esc(wName)}</small>`, "jackpot"); confetti(60); say(T("A royal flush?! ARCIA JACKPOT! 💙💚")); snd("level"); if (top.i === me && me >= 0) royalShare(top.five); }
+    if (top && top.cat === 9 && !res.uncontested) { banner(`<b>${esc(T("ARCIA JACKPOT!"))}</b><small>${esc(T("ROYAL FLUSH"))} · ${esc(wName)}</small>`, "jackpot"); confetti(60); goldBurst(); say(T("A royal flush?! ARCIA JACKPOT! 💙💚")); snd("level"); if (top.i === me && me >= 0) royalShare(top.five); }
     else if (iWon) { banner(`<b>${esc(vis.win.size > 1 ? T("SPLIT POT") : T("YOU WIN"))} +${fmt(won[me])}</b>${hand ? `<small>${esc(hand)}</small>` : ""}`, "win"); confetti(potAll >= H.bb * 40 ? 40 : 18); snd("win"); buzz(potAll >= H.bb * 40 ? [40, 50, 90] : [35]);
       say(vis.start[me] < (G ? POKER.START : 0) * 0.4 || vis.start[me] < H.bb * 15 ? T("What a comeback! ♾️") : T("Nice hand~ ♡")); }
     else banner(`<b>${esc(T("{name} wins", { name: wName }))}${vis.win.size > 1 ? " · " + esc(T("SPLIT POT")) : ""}</b><small>${esc(hand || T("Everyone else folded"))}</small>`, "lose");
@@ -497,6 +497,14 @@ export function createPoker(ctx) {
   function flash(t, c = "") { const el = document.createElement("div"); el.className = "pk-flash " + c; el.textContent = t; ui.root.appendChild(el); setTimeout(() => el.remove(), 1700); }
   function banner(html, c) { ui.banner.innerHTML = html; ui.banner.className = "pk-banner " + c; ui.banner.hidden = false; void ui.banner.offsetWidth; ui.banner.classList.add("go"); clearTimeout(ui.bannerT); ui.bannerT = setTimeout(() => { if (ui) ui.banner.hidden = true; }, 2900 * Math.max(0.3, fast)); }
   function buzz(p) { if (!prog.buzz || !ctx.coarse) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch { /* no vibration here */ } }
+  /// b-fx2: a royal flush — gold sparks burst out from the middle of the table, twice
+  function goldBurst() {
+    if (ctx.reduce || !ui) return;
+    for (let w = 0; w < 2; w++) setTimeout(() => { for (let k = 0; k < 36; k++) { const el = document.createElement("i"); el.className = "pk-gold"; ui.root.appendChild(el);
+      const a = Math.random() * Math.PI * 2, r = 160 + Math.random() * 320, sz = 0.6 + Math.random() * 0.9;
+      el.animate([{ transform: `translate(-50%,-50%) scale(${sz}) rotate(0deg)`, opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(a) * r}px), calc(-50% + ${Math.sin(a) * r * 0.7 + 60}px)) scale(${sz * 0.3}) rotate(${(Math.random() - 0.5) * 720}deg)`, opacity: 0 }],
+        { duration: 1100 + Math.random() * 700, easing: "cubic-bezier(.15,.7,.3,1)", fill: "forwards" }).onfinish = () => el.remove(); } }, w * 520);
+  }
   function confetti(n) { if (ctx.reduce || !ui) return; const cols = ["#ffd23a", "#5ff0d0", "#b48cff", "#ff6fb5", "#62a8ff"]; for (let k = 0; k < n; k++) { const el = document.createElement("i"); el.className = "pk-conf"; el.style.left = Math.random() * 100 + "%"; el.style.background = cols[k % cols.length]; el.style.animationDelay = Math.random() * 0.5 + "s"; el.style.setProperty("--dx", (Math.random() - 0.5) * 140 + "px"); ui.root.appendChild(el); setTimeout(() => el.remove(), 2600); } }
 
   // ---------------- your moves ----------------

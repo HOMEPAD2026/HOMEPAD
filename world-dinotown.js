@@ -45,6 +45,8 @@ export function createTownDinos(ctx) {
     for (const c of gl.animations) by[c.name.replace(/^.*\|/, "").toLowerCase()] = c;
     const clip = (n) => by[n] || Object.entries(by).find(([k2]) => k2.startsWith(n))?.[1] || null;
     const d = { g, mixer, cur: null, n: "", face: 0, len: sz.z * k, play(n, speed = 1) { const c = clip(n); if (!c) return; const a = mixer.clipAction(c); a.timeScale = speed; if (d.n === n) return; a.reset().play(); if (d.cur) d.cur.crossFadeTo(a, 0.25, false); d.cur = a; d.n = n; } };
+    /// a one-off (the roar when you level up): it plays through, then the walk/idle choice takes over again
+    d.once = (n) => { const c = clip(n) || clip("charge") || clip("attack"); if (!c) return; const a = mixer.clipAction(c); a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = 1; a.play(); if (d.cur) d.cur.crossFadeTo(a, 0.2, false); d.cur = a; d.n = "once"; d.oneUntil = performance.now() + Math.min(2200, c.duration * 1000); };
     d.play("idle"); return d;
   }
   function drop(d) { if (d && d.g) root.remove(d.g); }
@@ -56,7 +58,7 @@ export function createTownDinos(ctx) {
     const sp = Math.hypot(d.g.position.x - px, d.g.position.z - pz) / Math.max(1e-3, dt);
     if (sp > 0.35) d.face = Math.atan2(d.g.position.x - px, d.g.position.z - pz);
     d.g.rotation.y += shortest(d.face - d.g.rotation.y) * Math.min(1, dt * 7);
-    if (sp > 3.6) d.play("run", Math.max(0.8, sp / 6)); else if (sp > 0.35) d.play("walk", Math.max(0.6, sp / 1.8)); else d.play("idle");
+    if (d.oneUntil && performance.now() < d.oneUntil) { /* the one-off plays through */ } else if (sp > 3.6) d.play("run", Math.max(0.8, sp / 6)); else if (sp > 0.35) d.play("walk", Math.max(0.6, sp / 1.8)); else d.play("idle");
     if (near) d.mixer.update(dt); else { d.acc = (d.acc || 0) + dt; if ((d.fc = (d.fc || 0) + 1) % 3 === 0) { d.mixer.update(d.acc); d.acc = 0; } }
   }
   let busy = false;
@@ -75,6 +77,8 @@ export function createTownDinos(ctx) {
         if (others.size >= 10) continue; const slot = { code: o.code, x: o.x, z: o.z, d: null }; others.set(o.key, slot); make(look).then((d) => { if (others.get(o.key) !== slot || !d) return drop(d); slot.d = d; d.g.position.set(o.x + 1.2, 0, o.z + 1.2); root.add(d.g); }); }
       for (const [k, o] of others) if (!seen.has(k)) { drop(o.d); others.delete(k); }
     },
+    /// your level up: yours roars (a triceratops has no roar: its charge or attack)
+    react() { if (!mine || !mine.d) return; mine.d.once("roar"); },
     tick(dt) {
       const on = ctx.inHub(); root.visible = on; if (!on) return; here(me); const f = ctx.facing();
       if (mine) follow(mine.d, me.x - Math.sin(f) * 1.6 - Math.cos(f) * 1.2, me.z - Math.cos(f) * 1.6 + Math.sin(f) * 1.2, dt, true);

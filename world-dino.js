@@ -172,6 +172,12 @@ export function createDino(H) {
     // a step back to you if it strays (15 m in a fight unless told to attack; 45 m: it runs to your side)
     if (dist(B, me) > 45) { const a = me.face + SIDE; B.x = me.x + Math.sin(a) * 2.8; B.z = me.z + Math.cos(a) * 2.8; B.tg = null; }
     let tg = pickTarget(me, clock); if (tg && pref.mode !== "attack" && dist(B, me) > 15 && dist(tg, me) > 12) tg = null;
+    // b-fx2: you're down — it drops the fight, runs to you and stands over you (a "!" once); up again, a happy chirp
+    if (me.down) { tg = null; B.force = null; const d = dist(B, me); if (!B.rush) { B.rush = true; H.pop(B, "❗", "buddy-sk"); snd("growl", 0); }
+      if (d > 1.8) { steer(me.x, me.z, dt, 10); B.sp += (13 - B.sp) * Math.min(1, dt * 6); } else B.sp *= 0.8;
+      B.x += Math.sin(B.face) * B.sp * dt; B.z += Math.cos(B.face) * B.sp * dt; if (!R.one) R.loop(B.sp > 7 ? "run" : B.sp > 0.4 ? "walk" : "idle", Math.max(0.8, B.sp / 10));
+      R.step(dt); R.mixer.update(dt); B.g.position.set(B.x, H.height(B.x, B.z), B.z); B.g.rotation.y = B.face; return; }
+    if (B.rush) { B.rush = false; H.pop(B, "💗", "buddy-sk"); }
     // a skill you called (the card's button): its target first, and it goes off as soon as it can
     const F = B.force && B.force.o && B.force.o.alive && t < B.force.until ? B.force : (B.force = null); if (F) tg = F.o; B.tg = tg;
     let want = 0;
@@ -411,7 +417,7 @@ export function createDino(H) {
   }
   async function onPanel(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.dataset.tab) { tab = b.dataset.tab; snd("tab"); if (tab === "battle") loadLadder(); paintPanel(); return; }
+    if (b.dataset.tab) { tab = b.dataset.tab; snd("tab"); if (tab === "battle") loadLadder(); paintPanel(); const pn = ui.body.querySelector(".wz-dpane"); if (pn) pn.classList.add("tab-in"); return; }
     if (b.dataset.a === "fight") return fight();
     if (b.dataset.a === "x") return closePanel();
     if (b.dataset.cmd) { command(b.dataset.cmd); paintPanel(); return; }
@@ -471,6 +477,8 @@ export function createDino(H) {
     const lv0 = D && D.buddy ? D.buddy.lv : 0; took(r.j); snd(op === "pet" ? "pick" : "equip"); if (B) { H.pop(B, op === "pet" ? "💗" : op === "feed" ? "🍖 +" + DINO.BOND.feed : op === "rest" ? "💤" : "✏️", "buddy-sk"); if (op === "pet") roar(); }
     if (D.buddy && D.buddy.lv > lv0 && lv0) levelUp();
   }
+  /// your level up (world-play.js): it roars for you
+  function cheer() { if (!B || B.downUntil || riding) return; roar(); H.pop(B, "🎉", "buddy-sk"); snd("growl", 0); }
   function levelUp() { const b = D.buddy; toast(`⬆️ <b>${esc(T("{name} reached Lv {n}!", { name: b.name, n: b.lv }))}</b>`); snd("level"); ensureBuddy(); setTag(); }
   async function buyFood(id) {
     const p = DINO.FOOD.find((x) => x.id === id); if (!p || busy) return;
@@ -513,7 +521,7 @@ export function createDino(H) {
     /// tests: the numbers and a few levers
     debug: () => ({ egg: D && D.egg ? { ...(D.egg.state || {}), done: (D.egg.done || []).length } : null, buddy: D && D.buddy ? { lv: D.buddy.lv, bond: D.buddy.bond, name: D.buddy.name, stage: stageNow() } : null, out: out(), mode: pref.mode, nests: nests.length, eggs: eggObjs.size, B: B ? { x: +B.x.toFixed(1), z: +B.z.toFixed(1), hp: Math.round(B.hp), max: B.max, down: !!B.downUntil, tg: B.tg ? B.tg.id : null, tgD: B.tg ? +dist(B, B.tg).toFixed(1) : null, tgHp: B.tg ? B.tg.hpNow ?? null : null, clips: B.R.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) } : null }),
     tryPick: () => { if (ui && ui.pickE && !ui.pick.hidden) { pickUp(ui.pickE); return true; } return false; },
-    cmd: command, pick: () => { const e = nests[0]; if (e) return pickUp(e); }, care: doCare, hatchNow: hatch, op: doOp, tab: (k) => { tab = k; paintPanel(); }, close: closePanel, reload: load,
+    cheer, cmd: command, pick: () => { const e = nests[0]; if (e) return pickUp(e); }, care: doCare, hatchNow: hatch, op: doOp, tab: (k) => { tab = k; paintPanel(); }, close: closePanel, reload: load,
   };
 }
 

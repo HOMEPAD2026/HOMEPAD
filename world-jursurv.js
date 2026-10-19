@@ -93,8 +93,10 @@ export function createSurvival(H) {
     if (signedOut) { toast(T("Sign in to gather")); return true; }
     if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind, buddy: !!(H.buddyOut && H.buddyOut()) }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else { toast(T("Couldn't gather: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); work = null; } }); }
     work.hits++;
-    if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3));
-      o.hpNow = Math.max(work.need && work.hits >= work.need ? 0 : 1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, "-" + dmg.toLocaleString("en-US"), "dmg", 0.4); paintFoe(); }
+    if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), crit = Math.random() < 0.15, dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3) * (crit ? 1.6 : 1));
+      // (the hits it takes are the server's count: a crit only shows bigger and shakes harder — b-fx2, the town's feel)
+      o.hpNow = Math.max(work.need && work.hits >= work.need ? 0 : 1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, (crit ? "!" : "-") + dmg.toLocaleString("en-US"), crit ? "dmg crit" : "dmg", 0.4); paintFoe();
+      if (H.hitstop) H.hitstop(crit ? 80 : 40); if (crit && H.shake) H.shake(0.22); }
     const k = o.kind; if (k === "rock") (Snd.chink || Snd.hit || (() => {}))(0); else if (k === "raptor" || k === "trike" || k === "alpha" || k === "spino" || k === "titan" || k === "claw") { (Snd.hitFx || Snd.hit || (() => {}))(0); if (o.hurt) o.hurt(); } else if (k === "fern" || k === "bush") (Snd.pick || (() => {}))(); else (Snd.chop || Snd.hit || (() => {}))();
     if (o.shake) o.shake();
     chips(o);

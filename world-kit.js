@@ -1103,7 +1103,7 @@ export async function makeCharacter(id, ver = "", outfit = null) {
     charCache.set(id, src);
   }
   if (id.startsWith("kk-")) return makeKK(id, src, ver);
-  if (CUSTOM_CHARS.includes(id)) return makeCustom(src, HEROES[id] || null);
+  if (CUSTOM_CHARS.includes(id)) return makeCustom(src, HEROES[id] || null, ver);
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
@@ -1135,13 +1135,74 @@ export async function makeCharacter(id, ver = "", outfit = null) {
 // the KayKit heroes: their clips (one file for all six) under the game's own names, so the rest of the game asks for
 // "walk" or "emote-yes" whichever character you play; attack(kind, heavy) swings with the weapon you hold
 let kkAnimsP = null;
+/// the KayKit moves file: its clips and its bones (one load; the heroes borrow moves from it too, kkBorrow)
+const kkFile = (ver = "") => kkAnimsP || (kkAnimsP = new Promise((res, rej) => gltfLoader().load(`/models/world/chars/kk-anims.glb${ver}`, res, undefined, rej)).catch((e) => { kkAnimsP = null; throw e; }));
+// b-fx3: moves the heroes (ARON, LUMI, NEX: Tripo rigs with six clips each) don't have — sitting, waving, cheering — borrowed
+// from the KayKit file and baked onto their Mixamo bones: for each matched bone, how far its world rotation turns from
+// the idle's first frame is applied to the hero's bone from the hero's own idle; the hips sink as far as the KayKit
+// hips do, scaled to the hero's leg. Sampled at 30 fps into an ordinary clip (the game plays it by its CU_AS name).
+const KK_TO_MIX = { hips: "Hips", spine: "Spine", chest: "Spine2", head: "Head", "upperarm.l": "LeftArm", "lowerarm.l": "LeftForeArm", "wrist.l": "LeftHand", "upperarm.r": "RightArm", "lowerarm.r": "RightForeArm", "wrist.r": "RightHand",
+  "upperleg.l": "LeftUpLeg", "lowerleg.l": "LeftLeg", "foot.l": "LeftFoot", "upperleg.r": "RightUpLeg", "lowerleg.r": "RightLeg", "foot.r": "RightFoot" };
+// (the heroes' heads are big: the KayKit head's turns at 40 %, or a wave twists the whole face away)
+const KK_DAMP = { head: 0.4, chest: 0.85 }, I0 = new THREE.Quaternion();
+const KK_BORROW = { sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle", "emote-yes": "Waving", celebrate: "Cheering" };
+const kkBorrowed = new WeakMap();
+async function kkBorrow(src, idleClip, ver) {
+  if (kkBorrowed.has(src)) return kkBorrowed.get(src);
+  const p = (async () => {
+    const g = await kkFile(ver), kk = SkeletonUtils.clone(g.scene), hero = SkeletonUtils.clone(src.scene);
+    const kkB = {}, hB = {}, flat = (n) => String(n).toLowerCase().replace(/[^a-z0-9]/g, ""); /* (the loader drops the dots: "upperleg.r" is "upperlegr") */ kk.traverse((o) => { const k = Object.keys(KK_TO_MIX).find((x) => flat(x) === flat(o.name)); if (k && !kkB[k]) kkB[k] = o; });
+    const norm = (n) => n.toLowerCase().replace(/^mixamorig[:_]?/, "").replace(/[^a-z0-9]/g, "");
+    hero.traverse((o) => { if (o.isBone) { const k2 = Object.keys(KK_TO_MIX).find((k) => norm(KK_TO_MIX[k]) === norm(o.name)); if (k2 && !hB[k2]) hB[k2] = o; } });
+    if (Object.keys(hB).length < 12 || Object.keys(kkB).length < 12) return {}; // not a Mixamo-shaped rig: nothing borrowed
+    const kIdle = g.animations.find((c) => c.name === "Idle_A"); if (!kIdle || !idleClip) return {};
+    const kMix = new THREE.AnimationMixer(kk), hMix = new THREE.AnimationMixer(hero);
+    // the reference: both standing in their idle's first frame
+    const at = (mix, root, clip, t) => { mix.stopAllAction(); const a = mix.clipAction(clip); a.reset().play(); a.time = t; mix.update(0); root.updateMatrixWorld(true); };
+    at(kMix, kk, kIdle, 0); at(hMix, hero, idleClip, 0);
+    const order = Object.keys(KK_TO_MIX).filter((k) => kkB[k] && hB[k]), wq = (o) => o.getWorldQuaternion(new THREE.Quaternion());
+    const k0 = {}, h0 = {}, hLocal0 = {}; for (const k of order) { k0[k] = wq(kkB[k]); h0[k] = wq(hB[k]); hLocal0[k] = hB[k].quaternion.clone(); }
+    const kHip0 = kkB.hips.getWorldPosition(new THREE.Vector3()), hHip0 = hB.hips.getWorldPosition(new THREE.Vector3()), hHipL0 = hB.hips.position.clone();
+    // each rig's own frame (right: from the left thigh to the right, up: from the hips to the head): a turn read in the
+    // KayKit frame is the same turn in the hero's (the two files needn't face the same way, or stand on the same axes)
+    const basis = (B) => { const P = (k) => B[k].getWorldPosition(new THREE.Vector3()), up = P("head").sub(P("hips")).normalize(), rt = P("upperleg.r").sub(P("upperleg.l"));
+      rt.sub(up.clone().multiplyScalar(rt.dot(up))).normalize(); const fw = new THREE.Vector3().crossVectors(rt, up).normalize(); return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(rt, up, fw)); };
+    const qK = basis(kkB), qH = basis(hB), toH = qH.clone().multiply(qK.clone().invert()), toHi = toH.clone().invert();
+    // the hips keep the hero facing where it faces: their turn round the up axis is dropped (the KayKit wave and cheer
+    // swing the whole body; the hero would end up looking away)
+    const upW = hB.head.getWorldPosition(new THREE.Vector3()).sub(hHip0).normalize();
+    const noTwist = (q, ax) => { const p0 = ax.clone().multiplyScalar(q.x * ax.x + q.y * ax.y + q.z * ax.z), tw = new THREE.Quaternion(p0.x, p0.y, p0.z, q.w); if (tw.lengthSq() < 1e-9) return q; tw.normalize(); return q.multiply(tw.invert()); };
+    const kFoot = kkB["foot.l"] ? kkB["foot.l"].getWorldPosition(new THREE.Vector3()).y : 0, hFoot = hB["foot.l"] ? hB["foot.l"].getWorldPosition(new THREE.Vector3()).y : 0;
+    const ratio = Math.abs(hHip0.y - hFoot) / Math.max(1e-4, Math.abs(kHip0.y - kFoot));
+    const out = {}, d = new THREE.Quaternion(), w = new THREE.Quaternion(), pw = new THREE.Quaternion(), v = new THREE.Vector3();
+    for (const [as, name] of Object.entries(KK_BORROW)) {
+      const c = g.animations.find((x) => x.name === name); if (!c) continue;
+      const n = Math.max(2, Math.round(c.duration * 30) + 1), times = new Float32Array(n), q = {}, hp = new Float32Array(n * 3);
+      for (const k of order) q[k] = new Float32Array(n * 4);
+      for (let i = 0; i < n; i++) {
+        const t = Math.min(c.duration, i / 30); times[i] = t; at(kMix, kk, c, t);
+        for (const k of order) hB[k].quaternion.copy(hLocal0[k]); hB.hips.position.copy(hHipL0); hero.updateMatrixWorld(true);
+        for (const k of order) { // parents first (the order above runs down the body)
+          d.copy(wq(kkB[k])).multiply(k0[k].clone().invert()); d.premultiply(toH).multiply(toHi); if (KK_DAMP[k]) d.slerp(I0, 1 - KK_DAMP[k]); if (k === "hips") noTwist(d, upW); w.copy(d).multiply(h0[k]);
+          const b = hB[k]; b.parent.getWorldQuaternion(pw); b.quaternion.copy(pw.invert().multiply(w)); b.updateMatrixWorld(true); q[k].set([b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w], i * 4);
+        }
+        const kh = kkB.hips.getWorldPosition(v.set(0, 0, 0)); const dy = (kh.y - kHip0.y) * ratio, dz = 0; /* (only the sink: the two rigs needn't face the same way along z) */
+        const want = hHip0.clone().add(new THREE.Vector3(0, dy, dz)), loc = hB.hips.parent.worldToLocal(want); hp.set([loc.x, loc.y, loc.z], i * 3);
+      }
+      const tracks = order.map((k) => new THREE.QuaternionKeyframeTrack(hB[k].name + ".quaternion", times, q[k]));
+      tracks.push(new THREE.VectorKeyframeTrack(hB.hips.name + ".position", times, hp));
+      out[as] = new THREE.AnimationClip("kk_" + name, c.duration, tracks);
+    }
+    return out;
+  })().catch((e) => { console.warn("hero moves", e); return {}; });
+  kkBorrowed.set(src, p); return p;
+}
 const KK_AS = { idle: "Idle_A", walk: "Walking_A", sprint: "Running_A", jump: "Jump_Full_Short", fall: "Jump_Idle", sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle",
   die: "Death_A", "pick-up": "PickUp", "emote-yes": "Waving", "emote-no": "Idle_B", "interact-right": "Interact", celebrate: "Cheering", cheer: "Cheering", fidget: "Idle_B",
   hit: "Hit_A", dodge: "Dodge_Forward", block: "Melee_Block", cast: "Ranged_Magic_Raise", fish: "Fishing_Cast", reel: "Fishing_Reeling", catch: "Fishing_Catch", mine: "Pickaxing", chop: "Chopping", hammer: "Hammering", dig: "Digging", spawn: "Spawn_Ground", lie: "Lie_Idle" };
 const KK_ATK = [["Melee_Dualwield_Attack_Slice", "Melee_1H_Attack_Slice_Horizontal"], ["Melee_2H_Attack_Chop", "Melee_2H_Attack_Spin"], ["Ranged_1H_Shoot", "Ranged_1H_Shoot"], ["Ranged_Bow_Release", "Ranged_Bow_Release"], ["Ranged_Magic_Shoot", "Ranged_Magic_Spellcasting"]];
 async function makeKK(id, src, ver) {
-  if (!kkAnimsP) kkAnimsP = new Promise((res, rej) => gltfLoader().load(`/models/world/chars/kk-anims.glb${ver}`, (g) => res(g.animations), undefined, rej)).catch((e) => { kkAnimsP = null; throw e; });
-  const clips = await kkAnimsP;
+  const clips = (await kkFile(ver)).animations;
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
@@ -1249,7 +1310,7 @@ function heroMaterials(root, spec) {
     dispose() { root.traverse((x) => { if (x.isMesh) [].concat(x.material).forEach((m) => { if (m.userData.hero) m.dispose(); }); }); },
   };
 }
-function makeCustom(src, spec = null) {
+function makeCustom(src, spec = null, ver = "") {
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
@@ -1262,6 +1323,8 @@ function makeCustom(src, spec = null) {
   for (const [n, [re]] of Object.entries(CU_AS)) lists[n] = clips.filter((c) => re.test(nm(c))).sort((a, b) => CU_SIDE.test(nm(a)) - CU_SIDE.test(nm(b)) || nm(a).length - nm(b).length);
   if (!lists.idle.length && clips.length) lists.idle = [clips.find((c) => !Object.values(lists).some((l) => l.includes(c))) || clips[0]]; // no "idle": a clip nothing else took, else the first
   const pick = (n, seen = 0) => { const l = lists[n], d = CU_AS[n]; return (l && l[0]) || (d && d[1] && seen < 3 ? pick(d[1], seen + 1) : null); };
+  // the moves its file lacks (sit, wave, cheer), borrowed when they're ready (kkBorrow); its own clips first
+  kkBorrow(src, lists.idle[0], ver).then((b) => { for (const [n, c] of Object.entries(b)) if (!lists[n] || !lists[n].length) lists[n] = [c]; if (b.celebrate && !(lists.cheer && lists.cheer.length)) lists.cheer = [b.celebrate]; }).catch(() => {});
   const mixer = new THREE.AnimationMixer(inner), acts = new Map();
   const act = (c) => { if (!c) return null; if (!acts.has(c)) acts.set(c, mixer.clipAction(c)); return acts.get(c); };
   let cur = null, oneShot = null;
