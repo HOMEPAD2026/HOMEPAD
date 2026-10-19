@@ -45,6 +45,7 @@ import { makeRings } from "./_world-rings.mjs";
 import { makePoker } from "./_world-poker.mjs";
 import { makeDino } from "./_world-dino.mjs";
 import { makeLaunch } from "./_world-launch.mjs";
+import { makeRefer } from "./_world-refer.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -272,6 +273,8 @@ export function make(deps) {
   dino = makeDino({ ...deps, json, now, signer, debit: shop.debit, level: async (w) => levelOfSave(await saveOf(w)), jur: { take: (w, need) => jur.take(w, need) } });
   // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
   const launch = makeLaunch({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
+  // invite a friend: both rewarded when the friend reaches level 5 (api/_world-refer.mjs)
+  const refer = makeRefer({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
   const swap = makeSwap({ ...deps, json, now, signer, isGM });
   const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
@@ -410,7 +413,10 @@ export function make(deps) {
     if (g.gain > 0) await commit([{ inc: g.dayKey, fields: { n: g.gain } }]).catch(() => {});
     if (g.cut > 0) await commit([{ inc: `worldXpFlag/${s.wallet}`, fields: { n: 1, cut: g.cut } }]).catch(() => {});
     await social.dirUpdate(s.wallet, data).catch(() => {}); // the player directory (Rankings → Players)
-    return json(200, { ok: true, at: now() });
+    // an invited friend reaching level 5: the invite's reward, both sides (checked only around that level)
+    const lvNow = levelOfXp(data.xp); let ref = null;
+    if (lvNow >= 5 && lvNow <= 12) ref = await refer.due(s.wallet).catch(() => null);
+    return json(200, { ok: true, at: now(), ...(ref ? { refer: ref } : {}) });
   }
   // ---- islands ----
   const lists = async () => (await getDocs(["worldStats/islands"]))["worldStats/islands"] || { top: [], recent: [] };
@@ -516,6 +522,7 @@ export function make(deps) {
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest") return poker.read(w, url);
       if (w === "dino" || w === "dino-nests" || w === "dino-ladder") return dino.read(w, url);
       if (w === "launch") return launch.read(w, url);
+      if (w === "refer") return refer.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }
@@ -544,7 +551,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

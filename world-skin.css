@@ -1854,3 +1854,88 @@ img.wp-launch-ic{width:56px;height:56px;background:none;object-fit:contain;filte
 .wz-dgrades .wz-eggimg{width:38px;height:38px;margin-bottom:2px}
 .wz-ring-egg{position:absolute;inset:16px 0 auto;display:flex;justify-content:center}.wz-ring-egg .wz-eggimg{width:64px;height:64px}
 .wz-ring>div.lo{justify-content:flex-end;padding-bottom:20px}.wz-ring>div.lo b{font-size:18px;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+/* share cards (world-share.js) and the invite panel (world-play.js referUI) */
+.wp-share .wp-st-card,.wp-refer .wp-st-card{max-width:640px;width:100%}
+.wp-share h2{margin:0 0 10px;font-size:20px}
+.wp-share-img{display:block;width:100%;height:auto;aspect-ratio:1200/630;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 0 1px rgba(120,200,255,.3)}
+.wp-share-btns{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.wp-share-btns button{flex:1 1 30%;min-height:46px;border-radius:14px;border:1px solid rgba(160,220,255,.3);background:rgba(10,24,52,.85);color:#fff;font:800 15px/1.1 var(--f-ui);cursor:pointer}
+.wp-share-btns button.wp-st-buy,.wp-share-btns [data-x]{flex:2 1 100%;min-height:52px;font-size:18px;background:linear-gradient(90deg,#1f6dff,#38c8ff);border-color:rgba(255,255,255,.5);box-shadow:0 0 22px rgba(56,200,255,.45)}
+.wp-share-btns button:active{transform:translateY(1px)}
+.wp-refer-head{text-align:center;margin-bottom:8px}.wp-refer-head h2{margin:4px 0;font-size:24px}.wp-refer-head p{margin:0;color:#cfe3f7}
+.wp-refer-ic{font-size:40px;display:block;filter:drop-shadow(0 0 12px rgba(255,120,200,.6))}
+.wp-refer-link{display:flex;gap:6px;margin-top:10px}
+.wp-refer-link input{flex:1;min-width:0;border-radius:12px;border:1px solid rgba(160,220,255,.3);background:rgba(0,0,0,.35);color:#bfeaff;padding:10px;font:600 13px var(--f-ui)}
+.wp-refer-link button{border-radius:12px;border:0;padding:0 16px;background:#22d3b8;color:#032;font:800 14px var(--f-ui);cursor:pointer}
+.wp-refer-by{margin:8px 0 0;padding:8px 10px;border-radius:12px;background:rgba(255,120,200,.12);color:#ffd6ef;font-size:13px}
+.wp-refer-h{margin:14px 0 6px;font-size:15px}.wp-refer-h small{color:#9cc8ea;font-weight:600}
+.wp-refer-kids{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:200px;overflow:auto}
+.wp-refer-kids li{position:relative;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.06);overflow:hidden}
+.wp-refer-kids li b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wp-refer-kids li small{color:#9cc8ea}
+.wp-refer-kids li span{font-weight:800;font-size:13px;color:#7ff0ff}.wp-refer-kids li.paid span{color:#5ff0a0}
+.wp-refer-kids li i{position:absolute;left:0;bottom:0;height:3px;width:var(--w);background:linear-gradient(90deg,#1f6dff,#22d3b8)}
+.pk-royal-share{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);z-index:5;padding:12px 22px;border-radius:999px;border:2px solid #ffd75e;background:linear-gradient(90deg,#6a2cff,#b46cff);color:#fff;font:900 17px var(--f-ui);box-shadow:0 0 26px rgba(255,210,80,.6);cursor:pointer;animation:pkRoyal 1.4s ease-in-out infinite}
+@keyframes pkRoyal{50%{box-shadow:0 0 40px rgba(255,210,80,.9)}}
+@media (prefers-reduced-motion:reduce){.pk-royal-share{animation:none}}
+/* b-ob: the 🎮 Games and 🎁 Rewards buttons; on phones the reward buttons and the Shop fold into Rewards */
+.wp-gb-ic{font-size:18px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+.wp-rew-btn{position:relative;display:none!important}
+.wp-rew-dot{position:absolute;top:2px;right:4px;width:12px;height:12px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 0 2px #0b1430,0 0 10px rgba(255,77,109,.8)}
+.wp-rew-dot[hidden]{display:none}
+html.wp-pcphone body.wp .wp-rew-btn{display:inline-flex!important}
+html.wp-pcphone body.wp :is(#wp-gift-btn,.wp-launch-btn,#wp-starter-btn,#wp-shop-btn){display:none!important}
+.wp-rew-pop{position:fixed;z-index:12400;min-width:220px;padding:8px;border-radius:18px;background:rgba(6,16,40,.94);border:1px solid rgba(120,200,255,.35);box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 22px rgba(56,200,255,.25);display:grid;gap:4px;font-family:var(--f-ui)}
+html.wp-pcphone .wp-rew-pop{zoom:1.9}
+.wp-rew-pop button{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;border-radius:12px;background:rgba(255,255,255,.05);color:#fff;font:700 14px var(--f-ui);text-align:left;cursor:pointer}
+.wp-rew-pop button:hover,.wp-rew-pop button:focus-visible{background:rgba(56,200,255,.18)}
+.wp-rew-pop button span{font-size:20px}.wp-rew-pop .wp-rew-dot{position:static;margin-left:auto;flex:none}
+/* the Games list */
+.wp-games .wp-st-card{max-width:1180px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:18px 18px 16px;background:linear-gradient(180deg,rgba(8,22,56,.96),rgba(4,12,34,.96))}
+.wp-games-h{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:0 0 12px}
+.wp-games-h h2{margin:0;font:900 44px/1 var(--f-ui);letter-spacing:.02em;background:linear-gradient(180deg,#fff,#9fe6ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(56,200,255,.55))}
+.wp-games-h p{margin:2px 0 0;font:900 14px var(--f-ui);font-style:italic;color:#fff}.wp-games-h p b{color:#38e1ff}
+.wp-games-h small{color:#cfe3f7;font-size:14px;padding-bottom:4px}
+.wp-games-body{display:grid;grid-template-columns:1fr 260px;gap:14px;align-items:start}
+.wp-games-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.wp-games-grid button{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 0 10px;border-radius:16px;overflow:hidden;border:1.5px solid rgba(120,200,255,.45);background:linear-gradient(180deg,#0c2350,#071534);color:#fff;cursor:pointer;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.wp-games-grid button:hover,.wp-games-grid button:focus-visible{border-color:#38e1ff;box-shadow:0 0 22px rgba(56,200,255,.5)}
+.wp-games-grid img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;-webkit-mask:linear-gradient(180deg,#000 70%,transparent);mask:linear-gradient(180deg,#000 70%,transparent)}
+.wp-games-grid b{margin-top:-18px;font:900 17px/1.1 var(--f-ui);letter-spacing:.02em;text-shadow:0 2px 8px rgba(0,0,0,.8);padding:0 6px}
+.wp-games-grid small{color:#7ff0ff;font:700 12px var(--f-ui);padding:0 6px}
+.wp-games-grid em{font-style:normal;color:#ffd75e;font:700 11.5px/1.25 var(--f-ui);padding:2px 8px 6px;min-height:2.5em}
+.wp-games-go{display:inline-block;padding:7px 22px;border-radius:999px;background:linear-gradient(90deg,#1f6dff,#38c8ff);font:800 14px var(--f-ui);box-shadow:0 0 12px rgba(56,200,255,.45)}
+.wp-games-side{display:grid;gap:10px}
+.wp-games-side section{padding:12px;border-radius:16px;background:rgba(10,26,60,.85);border:1px solid rgba(120,200,255,.3)}
+.wp-games-side h3{margin:0 0 8px;font:900 15px var(--f-ui);display:flex;justify-content:space-between}.wp-games-side h3 small{color:#9cc8ea}
+.wp-games-side small{color:#9cc8ea;font-size:12px}
+.wp-games-day{margin:0 0 6px;font:600 14px var(--f-ui);color:#cfe3f7}.wp-games-day b{font-size:24px;color:#ffd75e}
+.wp-games-bar{display:block;height:8px;border-radius:8px;background:rgba(255,255,255,.1);overflow:hidden;margin-bottom:6px}.wp-games-bar u{display:block;height:100%;background:linear-gradient(90deg,#1f6dff,#22d3b8)}
+.wp-games-wk{margin:8px 0 0;font-size:12.5px;color:#ffd6ef}
+.wp-games-fr{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:6px}
+.wp-games-fr li{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.wp-games-fr li b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-games-fr li b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#3dff9a;margin-right:6px;box-shadow:0 0 6px #3dff9a}
+.wp-games-fr button,.wp-games-side-b{border:1px solid rgba(120,200,255,.5);border-radius:10px;background:rgba(31,109,255,.35);color:#fff;font:800 12px var(--f-ui);padding:6px 10px;cursor:pointer}
+.wp-games-side-b{width:100%;margin-top:8px}
+.wp-games-on{margin:6px 0 0;font-size:12.5px;color:#7ff0ff}
+.wp-games-foot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.wp-games-foot button{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;border:1px solid rgba(120,200,255,.4);background:linear-gradient(90deg,rgba(31,109,255,.35),rgba(10,26,60,.85));color:#fff;text-align:left;cursor:pointer}
+.wp-games-foot span{font-size:30px}.wp-games-foot b{display:block;font:900 15px var(--f-ui)}.wp-games-foot small{color:#cfe3f7;font-size:12.5px}
+html.wp-pcphone .wp-games{padding:8px}
+html.wp-pcphone .wp-games .wp-st-card{zoom:1.7;max-height:calc((100vh - 16px) / 1.7);padding:12px}
+@media (max-width:760px){.wp-games-body{grid-template-columns:1fr}.wp-games-foot{grid-template-columns:1fr}.wp-games-h h2{font-size:34px}}
+html.wp-pcphone .wp-games-body{grid-template-columns:1fr}html.wp-pcphone .wp-games-grid{grid-template-columns:1fr 1fr}html.wp-pcphone .wp-games-foot{grid-template-columns:1fr}
+html.wp-pcphone .wp-games-h h2{font-size:34px}
+/* Getting started */
+.wp-start .wp-st-card{max-width:560px;width:100%}
+.wp-start h2{margin:0;font:900 26px var(--f-ui);background:linear-gradient(180deg,#fff,#9fe6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wp-start-sub{margin:4px 0 12px;color:#cfe3f7}
+.wp-start-steps{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+.wp-start-steps li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(120,200,255,.18)}
+.wp-start-steps li.now{border-color:#38e1ff;background:rgba(31,109,255,.2);box-shadow:0 0 16px rgba(56,200,255,.3)}
+.wp-start-steps li.done{opacity:.72}
+.wp-start-steps i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:900 14px var(--f-ui);font-style:normal;background:linear-gradient(180deg,#2f86ff,#1f5ad8);color:#fff}
+.wp-start-steps li.done i{background:#22d3b8;color:#032}
+.wp-start-ic{font-size:26px;flex:none}.wp-start-steps div{flex:1;min-width:0}.wp-start-steps b{display:block;font:800 15px var(--f-ui)}.wp-start-steps small{color:#9cc8ea;font-size:12.5px}
+.wp-start-steps button{flex:none;border:0;border-radius:12px;padding:8px 12px;background:linear-gradient(90deg,#1f6dff,#38c8ff);color:#fff;font:800 13px var(--f-ui);cursor:pointer}
+body.wp .wp-hud .wp-hud-btns>.wp-btn:not(.wp-wallet)>span.wp-gb-ic{top:11px!important;font:29px/1 "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif!important}
+body.wp .wp-hud .wp-hud-btns>.wp-btn.wp-rew-btn{position:relative}

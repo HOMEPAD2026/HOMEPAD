@@ -114,14 +114,14 @@ export function createDino(H) {
   }
   /// a picture of it (the real model, drawn once into an image for the panel); null until it can be drawn
   const thumbs = {};
-  function thumb(G = genesNow(), k = stageNow(), sp = G.species === "trike" ? "trike" : "raptor") {
-    const key = sp + G.pal + G.rarity + k; if (key in thumbs) return thumbs[key]; thumbs[key] = null;
+  function thumb(G = genesNow(), k = stageNow(), sp = G.species === "trike" ? "trike" : "raptor", S = 256) {
+    const key = sp + G.pal + G.rarity + k + (S === 256 ? "" : "@" + S); if (key in thumbs) return thumbs[key]; thumbs[key] = null;
     try {
       const r = H.renderer && H.renderer(), gl = H.model && H.model(sp); if (!r || !gl) return null;
       const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0x3a4a5a, 2.4)); const dl = new THREE.DirectionalLight(0xffffff, 2.2); dl.position.set(4, 6, 5); sc.add(dl);
       const R = H.rig(gl, 4); dress(R, G, k); R.loop("idle"); R.mixer.update(0.6); sc.add(R.g); R.g.rotation.y = -0.75;
       const h = R.h || 2, cam = new THREE.PerspectiveCamera(30, 1, 0.1, 100); cam.position.set(4.6, h * 0.95, 6.2); cam.lookAt(0, h * 0.45, 0);
-      const S = 256, rt = new THREE.WebGLRenderTarget(S, S); rt.texture.colorSpace = THREE.SRGBColorSpace;
+      const rt = new THREE.WebGLRenderTarget(S, S); rt.texture.colorSpace = THREE.SRGBColorSpace;
       const prev = r.getRenderTarget(), cc = new THREE.Color(), ca = r.getClearAlpha(); r.getClearColor(cc);
       r.setRenderTarget(rt); r.setClearColor(0x000000, 0); r.clear(); r.render(sc, cam); const buf = new Uint8Array(S * S * 4); r.readRenderTargetPixels(rt, 0, 0, S, S, buf);
       r.setRenderTarget(prev); r.setClearColor(cc, ca); rt.dispose();
@@ -328,7 +328,7 @@ export function createDino(H) {
       <div class="wz-dstats"><span>⚔️ <b>${fmt(st.atk)}</b><small>${esc(T("Attack"))}</small></span><span>🛡️ <b>${fmt(st.def)}</b><small>${esc(T("Defence"))}</small></span><span>❤️ <b>${fmt(st.hp)}</b><small>HP</small></span><span>📅 <b>${daysWith(b, t)}</b><small>${esc(T("days"))}</small></span><span>🦴 <b>${fmt(b.hunts || 0)}</b><small>${esc(T("hunts"))}</small></span></div>
       <h4>${esc(T("Skills"))}</h4><div class="wz-dskills">${SKILLS.map(([ic, n, at]) => `<span class="${k >= at ? "on" : ""}"><i>${ic}</i><b>${esc(T(n))}</b><small>${k >= at ? esc(T("Ready")) : esc(T("From {s}", { s: T(STAGE_N[at]) }))}</small></span>`).join("")}</div>
       ${next ? `<p class="wz-dnote">${esc(T("Next: {s} at Lv {l} and {d} days together", { s: T(STAGE_N[k + 1]), l: next.lv, d: next.days }))}</p>` : `<p class="wz-dnote gold">${esc(T("Fully awakened."))}</p>`}
-      <div class="wz-dacts"><button type="button" data-op="feed">🍖 <b>${esc(T("Feed"))}</b><small>+${DINO.BOND.feed} ${esc(T("bond"))}</small></button><button type="button" data-op="pet">✋ <b>${esc(T("Pet"))}</b><small>+${DINO.BOND.pet}</small></button><button type="button" data-op="rest" ${H.homeCamp() && Math.hypot(H.me().x - H.homeCamp().x, H.me().z - H.homeCamp().z) < 12 ? "" : "disabled"}>🏕️ <b>${esc(T("Rest"))}</b><small>${esc(T("at your camp"))}</small></button><button type="button" data-a="look">👀 <b>${esc(T("Look"))}</b></button></div>
+      <div class="wz-dacts"><button type="button" data-op="feed">🍖 <b>${esc(T("Feed"))}</b><small>+${DINO.BOND.feed} ${esc(T("bond"))}</small></button><button type="button" data-op="pet">✋ <b>${esc(T("Pet"))}</b><small>+${DINO.BOND.pet}</small></button><button type="button" data-op="rest" ${H.homeCamp() && Math.hypot(H.me().x - H.homeCamp().x, H.me().z - H.homeCamp().z) < 12 ? "" : "disabled"}>🏕️ <b>${esc(T("Rest"))}</b><small>${esc(T("at your camp"))}</small></button><button type="button" data-a="look">👀 <b>${esc(T("Look"))}</b></button>${ctx.share ? `<button type="button" data-a="share">📸 <b>${esc(T("Share"))}</b><small>${esc(T("a card"))}</small></button>` : ""}</div>
       <div class="wz-dcmd">${CMDS.map(([c, ic, n]) => `<button type="button" data-cmd="${c}" class="${pref.mode === c ? "on" : ""}">${ic} ${esc(T(n))}</button>`).join("")}</div>
       ${dinosHtml()}
       ${missionsHtml()}
@@ -401,6 +401,14 @@ export function createDino(H) {
       <div class="wz-dtabs">${tabs.map(([k, ic, n]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(n))}</button>`).join("")}</div>
       <div class="wz-dpane">${tab === "egg" ? eggHtml() : tab === "buddy" ? buddyHtml() : tab === "battle" ? battleHtml() : tab === "codex" ? codexHtml() : shopHtml()}</div>`;
   }
+  /// your companion's share card (world-share.js through ctx.share): its picture, grade, stage and numbers
+  function shareMine() {
+    const b = D && D.buddy; if (!b || !ctx.share) return; const t = now(), k = stageOf(b, t), st = statsNow(), G = genesNow(), r = RAR[G.rarity] || RAR.common;
+    snd("tap"); ctx.share({ kind: "dino", tag: "DINO SOULMATE · " + T(r.n), title: b.name, sub: `${T(STAGE_N[k])} · Lv ${b.lv} · ${T(CLIP[spNow()].n)}`, accent: r.css, emoji: spNow() === "trike" ? "🦕" : "🦖",
+      art: thumb(G, k, undefined, 512) || thumb() || "/images/dino-egg.webp",
+      badge: T(r.n).toUpperCase(), rows: [[T("Grade"), `${T(r.n)} ×${gradeK(G).toFixed(2)}`, "⭐"], [T("Attack"), fmt(st.atk), "⚔️"], [T("Defence"), fmt(st.def), "🛡️"], ["HP", fmt(st.hp), "❤️"], [T("Days together"), String(daysWith(b, t)), "📅"], [T("Hunts"), fmt(b.hunts || 0), "🦴"]],
+      text: T("Meet {name}, my {g} {s} in ARCIRCLE World! 🦖 Raise yours in Jurassic World.", { name: b.name, g: T(r.n), s: T(CLIP[spNow()].n) }) });
+  }
   async function onPanel(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     if (b.dataset.tab) { tab = b.dataset.tab; snd("tab"); if (tab === "battle") loadLadder(); paintPanel(); return; }
@@ -413,6 +421,7 @@ export function createDino(H) {
     if (b.dataset.food) return buyFood(b.dataset.food);
     if (b.dataset.a === "out") { pref.out = !pref.out; savePref(); ensureBuddy(); paint(); snd("tap"); return; }
     if (b.dataset.a === "look") return look();
+    if (b.dataset.a === "share") return shareMine();
     if (b.dataset.a === "notify") { try { Notification.requestPermission().then(() => paintPanel()); } catch { /* not this browser */ } return; }
     if (b.dataset.mission) return claimMission(b.dataset.mission);
     if (b.dataset.active) return setActive(b.dataset.active);
@@ -596,3 +605,8 @@ Object.assign(LW.tr, {
   "free": "ücretsiz", "hunts": "av", "max for your level": "seviyen için en yüksek", "Network trouble — try again": "Ağ sorunu — tekrar dene", "resting": "dinleniyor", "treat · meat · 2 berries": "ödül · et · 2 böğürtlen", "{d} days": "{d} gün", "{h}h {m}m": "{h}sa {m}dk", "{m}m": "{m}dk",
   "{name} hatched!": "{name} çatladı!", "{name} is back on its feet!": "{name} yeniden ayakta!", "{name} is down — back in 60 s, or at once at your camp.": "{name} yere düştü — 60 sn sonra ya da kampında hemen kalkar.", "{name} reached Lv {n}!": "{name} Lv {n} oldu!",
 });
+
+// share cards (world-share.js)
+Object.assign(LW.ko, {"a card": "카드로", "Grade": "등급", "Days together": "함께한 날", "Hunts": "사냥", "Share": "공유", "Meet {name}, my {g} {s} in ARCIRCLE World! 🦖 Raise yours in Jurassic World.": "ARCIRCLE World의 내 {g} {s}, {name}를 소개해요! 🦖 쥬라기 월드에서 당신의 공룡도 키워 보세요."});
+Object.assign(LW.zh, {"a card": "卡片", "Grade": "品级", "Days together": "相伴天数", "Hunts": "狩猎", "Share": "分享", "Meet {name}, my {g} {s} in ARCIRCLE World! 🦖 Raise yours in Jurassic World.": "来认识 {name}，我在 ARCIRCLE World 的{g}{s}！🦖 去侏罗纪世界养你自己的吧。"});
+Object.assign(LW.tr, {"a card": "kart", "Grade": "Derece", "Days together": "Birlikte gün", "Hunts": "Avlar", "Share": "Paylaş", "Meet {name}, my {g} {s} in ARCIRCLE World! 🦖 Raise yours in Jurassic World.": "ARCIRCLE World'deki {g} {s}'m {name} ile tanış! 🦖 Seninkini Jurassic World'de yetiştir."});

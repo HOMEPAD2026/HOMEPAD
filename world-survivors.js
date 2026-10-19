@@ -1096,11 +1096,17 @@ export function createSurvivors(ctx) {
       <div class="sv-stats"><div><small>${esc(T("Time"))}</small><b data-c="t">00:00</b></div><div><small>${esc(T("Knock-outs"))}</small><b data-c="k">0</b></div><div><small>${esc(T("Bosses"))}</small><b>${R.bosses}/4</b></div><div><small>${esc(T("Level"))}</small><b>${R.lv}</b></div></div>
       ${dmgHtml}${loot}
       <div class="sv-gain"><div class="sv-arcl"><i class="sv-coin"></i><b>${signed ? "…" : "0"}</b><small>${esc(signed ? T("Sending your run…") : T("Guest run: sign in to earn ARCL"))}</small></div><div class="sv-wxp"><b data-c="x">+0</b><small>${esc(T("World XP"))}</small></div></div>
-      <div class="sv-btns"><button type="button" class="go" data-a="again">${esc(T("Play again"))}</button><button type="button" data-a="leave">${esc(T("Leave"))}</button></div></div>`;
+      <div class="sv-btns"><button type="button" class="go" data-a="again">${esc(T("Play again"))}</button>${ctx.share ? `<button type="button" data-a="share">📸 ${esc(T("Share"))}</button>` : ""}<button type="button" data-a="leave">${esc(T("Leave"))}</button></div></div>`;
     ui.sheet.hidden = false; ui.root.classList.add("menu");
     countUp(ui.sheet.querySelector('[data-c="t"]'), secs, mmss); countUp(ui.sheet.querySelector('[data-c="k"]'), R.kills, fmt); countUp(ui.sheet.querySelector('[data-c="x"]'), xp, (v) => "+" + fmt(v));
     ui.sheet.querySelector('[data-a="again"]').addEventListener("click", () => { clearRun(); readStatus().finally(() => { if (on) lobby(); }); });
     ui.sheet.querySelector('[data-a="leave"]').addEventListener("click", () => leave());
+    { const sh = ui.sheet.querySelector('[data-a="share"]'), hero = R.hero, lv = R.lv, bosses = R.bosses, kills = R.kills, best = dmg.length ? T(WEAPONS[dmg[0][0]].name) : "—";
+      // a picture of the arena as it stands (drawn now and read straight away: the canvas keeps no copy)
+      if (sh) sh.addEventListener("click", () => { let shotUrl = ""; try { if (S && S.scene) { st.renderer.render(S.scene, S.cam); shotUrl = st.renderer.domElement.toDataURL("image/jpeg", 0.85); } } catch { shotUrl = ""; }
+        ctx.share({ kind: "surv", tag: "SURVIVORS ARENA", title, sub: `${T(hero.name)} · ${T("Level")} ${lv}`, accent: how === "win" || out.clear ? "#ffc23c" : "#39ff88", emoji: "⚔️", art: shotUrl, cover: true,
+          rows: [[T("Time"), mmss(secs), "⏱️"], [T("Knock-outs"), fmt(kills), "💀"], [T("Bosses"), `${bosses}/4`, "👹"], [T("Level"), String(lv), "⬆️"], [T("Damage"), best, "🔥"]],
+          text: T("I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?", { t: mmss(secs), k: fmt(kills) }) }); }); }
     if (!signed) return;
     const box = ui.sheet.querySelector(".sv-arcl"), say = (b, s) => { if (!box.isConnected) return; box.querySelector("b").textContent = b; box.querySelector("small").textContent = s; };
     let res = null;
@@ -1166,3 +1172,8 @@ export function createSurvivors(ctx) {
     chest: () => { if (R) dropChest(R.x + 1, R.z, true); }, steps: (n) => { maxSteps = n; }, god: (on) => { if (R) R.god = !!on; }, // (tests: a slow test browser can let the game run at its true speed)
   };
 }
+
+// share cards (world-share.js)
+Object.assign(LW.ko, {"Share": "공유", "I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?": "SURVIVORS ARENA에서 {t} 버티고 몬스터 {k}마리를 쓰러뜨렸어요! ⚔️ 이길 수 있나요?"});
+Object.assign(LW.zh, {"Share": "分享", "I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?": "我在 SURVIVORS ARENA 坚持了 {t}，击倒了 {k} 只怪物！⚔️ 你能超越吗？"});
+Object.assign(LW.tr, {"Share": "Paylaş", "I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?": "SURVIVORS ARENA'da {t} hayatta kaldım ve {k} canavar devirdim! ⚔️ Geçebilir misin?"});
