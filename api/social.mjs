@@ -205,7 +205,7 @@ const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDoc
 let V6 = null;
 let WORLD = null;
 const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, queryDocs, storeEnabled, recover: recoverSigner, issuedOk, json, launchRecord, tokenBalance, phase: WORLD_PHASE,
-  arcPrice: async () => (await token.tokenStats(null)).price, receipt: (h) => rpcCall("eth_getTransactionReceipt", [h]), ownerOf: (a) => rpcCall("eth_call", [{ to: a, data: "0x8da5cb5b" }, "latest"]) }));
+  arcPrice: async () => (await token.tokenStats(null)).price, receipt: (h) => rpcCall("eth_getTransactionReceipt", [h]), blockNumber: () => rpcCall("eth_blockNumber", []), ownerOf: (a) => rpcCall("eth_call", [{ to: a, data: "0x8da5cb5b" }, "latest"]) }));
 const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)), veTier: (w) => vearcia.veTierOf(w),
   argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));
 export async function GET(req) {

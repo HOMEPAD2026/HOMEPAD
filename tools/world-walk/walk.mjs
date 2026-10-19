@@ -26,7 +26,7 @@ const NOISE = /favicon|GPU stall|WebGL|swiftshader|Automatic fallback|THREE\.|we
 async function open(dev, { route } = {}) {
   await fetch(H + "/seedsave?lv=6");
   const p = await b.newPage(dev === "phone" ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true } : { viewport: { width: 1280, height: 720 } });
-  await p.addInitScript((S) => { try { localStorage.setItem("arc.world.set", JSON.stringify({ quality: "medium" })); localStorage.setItem("arc.world.sess", S); } catch { /* private */ } }, SJ);
+  await p.addInitScript((S) => { try { localStorage.setItem("arc.world.set", JSON.stringify({ quality: "medium" })); localStorage.setItem("arc.world.sess", S); if (!localStorage.getItem("arc.world.view")) localStorage.setItem("arc.world.view", "full"); } catch { /* private */ } }, SJ); // (the game itself; a computer opens in the window frame by default, checked at the end)
   if (route) await p.route(route.re, route.fn);
   // page errors and server failures (5xx) fail the walk; a 4xx is the API saying no (a cooldown, a game not open) and is listed only
   const errs = [], refusals = []; p.on("pageerror", (e) => errs.push(String(e))); p.on("console", (m) => { if (m.type() === "error" && !NOISE.test(m.text()) && !/Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 200)); });

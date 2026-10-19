@@ -47,6 +47,7 @@ import { makeDino } from "./_world-dino.mjs";
 import { makeLaunch } from "./_world-launch.mjs";
 import { makeRefer } from "./_world-refer.mjs";
 import { makeGmReward } from "./_world-gmreward.mjs";
+import { makeLand, LAND } from "./_world-land.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -110,7 +111,7 @@ export function cleanSave(d) {
 export function checkBuild(data, N, max) {
   const s = String(data || "");
   if (Array.isArray(N)) { for (const n of N) { const r = checkBuild(data, n, max); if (r) return { ...r, N: n }; } return null; }
-  if (!s || s.length > 48000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
+  if (!s || s.length > Math.ceil((2 + 5 * max) / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
   let bin; try { bin = atob(s); } catch { return null; }
   if (bin.length < 2 || bin.charCodeAt(0) !== 1 || bin.charCodeAt(1) !== N || (bin.length - 2) % 5 !== 0) return null;
   const n = (bin.length - 2) / 5;
@@ -278,6 +279,8 @@ export function make(deps) {
   const refer = makeRefer({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
   // the GM's $ARCIRCLE rewards, sent from the GM's own wallet and noted once the chain shows them (api/_world-gmreward.mjs)
   const gmReward = makeGmReward({ ...deps, json, now, signer, isGM, token: ARCIRCLE_TOKEN, nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
+  // ARCIRCLE LAND: the 20 villages bought with $ARCIRCLE (paid to the treasury), the owner's island on their village (api/_world-land.mjs)
+  const land = makeLand({ ...deps, json, now, signer, isGM, token: ARCIRCLE_TOKEN, nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
   const swap = makeSwap({ ...deps, json, now, signer, isGM });
   const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
@@ -426,8 +429,9 @@ export function make(deps) {
   async function islandSave(b) {
     const s = signer(b); if (s.err) return s.err;
     const o = await shop.own(s.wallet), items = o.items || [];
-    const sizes = [36, ...(items.includes("isle48") ? [48] : []), ...(items.includes("isle64") ? [64] : [])];
-    const ok = checkBuild(b.data, sizes, 12000); if (!ok) return json(400, { error: "that island data isn't valid" });
+    const landed = !!(await land.ownerOf(s.wallet).catch(() => 0)); // a LAND owner builds 64×64 and more bricks
+    const sizes = [36, ...(items.includes("isle48") ? [48] : []), ...(items.includes("isle64") || landed ? [64] : [])];
+    const ok = checkBuild(b.data, sizes, landed ? LAND.bricks : 12000); if (!ok) return json(400, { error: "that island data isn't valid" });
     const theme = /^style-[a-z]+$/.test(String(b.theme || "")) && items.includes(b.theme) ? b.theme : "";
     const key = `worldIsland/${s.wallet}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
@@ -527,6 +531,7 @@ export function make(deps) {
       if (w === "launch") return launch.read(w, url);
       if (w === "refer") return refer.read(w, url);
       if (w === "gm-rewards") return gmReward.read(w, url);
+      if (w === "land" || w === "land-refunds") return land.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }
@@ -555,7 +560,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };
