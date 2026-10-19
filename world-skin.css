@@ -1845,3 +1845,12 @@ body.wp-clean .wp-dinochip,body:not(.wp) .wp-dinochip{display:none!important}
 img.wp-launch-ic{width:56px;height:56px;background:none;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
 .wp-launch-pot img{flex:none;width:40px;height:40px;object-fit:contain}
 .wp-launch-btn .wp-launch-bi{width:22px;height:22px;object-fit:contain;margin-right:2px;vertical-align:middle}
+/* the dinosaur egg's picture (world-dino.js EGG): sizes by place, the glow by grade */
+.wz-eggimg{display:inline-block;width:1.4em;height:1.4em;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 0 4px rgba(95,240,208,.55))}
+.wz-eggimg.r-common{filter:drop-shadow(0 0 4px rgba(210,225,220,.6))}.wz-eggimg.r-advanced{filter:drop-shadow(0 0 6px rgba(95,240,160,.8))}.wz-eggimg.r-rare{filter:drop-shadow(0 0 7px rgba(77,166,255,.9))}
+.wz-eggimg.r-epic{filter:drop-shadow(0 0 8px rgba(180,108,255,.95))}.wz-eggimg.r-legend{filter:drop-shadow(0 0 10px rgba(255,194,60,1)) saturate(1.2)}
+.wz-dinobtn .wz-eggimg{width:24px;height:24px}.wz-eggpick .wz-eggimg{width:30px;height:30px}.wz-dtabs .wz-eggimg{width:18px;height:18px}
+.wz-dbig .wz-eggimg{width:120px;height:120px}.wz-deggs .wz-eggimg{width:34px;height:34px}.wz-dstrip .wz-eggimg{width:28px;height:28px}
+.wz-dgrades .wz-eggimg{width:38px;height:38px;margin-bottom:2px}
+.wz-ring-egg{position:absolute;inset:16px 0 auto;display:flex;justify-content:center}.wz-ring-egg .wz-eggimg{width:64px;height:64px}
+.wz-ring>div.lo{justify-content:flex-end;padding-bottom:20px}.wz-ring>div.lo b{font-size:18px;text-shadow:0 1px 4px rgba(0,0,0,.8)}

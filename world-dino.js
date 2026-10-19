@@ -20,6 +20,8 @@ const SK_N = { bite: "Bite", dash: "Dash", roar: "Roar", fang: "Infinity Fang" }
 const SK_IC = { bite: "🦷", dash: "💨", roar: "🔊", fang: "♾️" };
 const CMDS = [["follow", "🐾", "Follow"], ["guard", "🛡️", "Guard"], ["attack", "⚔️", "Attack"], ["stay", "✋", "Stay"]];
 const SAVE = "arc.dino";
+/// the egg's picture (the panel, the buttons): its glow takes the grade's colour (cls: r-<grade>)
+const EGG = (cls = "") => `<img class="wz-eggimg ${cls}" src="/images/dino-egg.webp" alt="" draggable="false">`;
 const SIDE = 1.15; // where it walks: at your right, a little ahead (behind you the camera would only see your back)
 const SKILLS = [["🦷", "Bite", 0], ["💨", "Dash", 2], ["🔊", "Roar", 3], ["♾️", "Infinity Fang", 4]];
 const LW = { ko: {}, zh: {}, tr: {} }; // (filled at the end of the file)
@@ -225,10 +227,10 @@ export function createDino(H) {
   // ---------------- the panel: the Hatchery, your companion, the codex ----------------
   function build() {
     const root = H.root, top = root.querySelector(".wz-top"), pk = root.querySelector(".wz-packbtn");
-    const btn = document.createElement("button"); btn.type = "button"; btn.className = "wz-dinobtn"; btn.innerHTML = `<span aria-hidden="true">🥚</span><b>${esc(T("Hatchery"))}</b>`; top.insertBefore(btn, pk);
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "wz-dinobtn"; btn.innerHTML = `<span aria-hidden="true">${EGG()}</span><b>${esc(T("Hatchery"))}</b>`; top.insertBefore(btn, pk);
     const el = document.createElement("div"); el.innerHTML = `<div class="wz-dino wz-pack" hidden role="dialog"><div class="wz-pack-in"></div></div>
       <div class="wz-buddy" hidden><div class="wz-bud-h"><b class="nm"></b><small class="lv"></small></div><i class="wz-bud-hp"><u></u></i><button type="button" class="wz-bud-ride" data-ride hidden>🐎 <b>${esc(T("Ride"))}</b></button><button type="button" class="wz-bud-sk" data-skill><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" class="bg"/><circle cx="20" cy="20" r="18" class="fg" stroke-dasharray="113.1" stroke-dashoffset="0"/></svg><span></span><small></small></button><div class="wz-bud-c">${CMDS.map(([k, ic, n]) => `<button type="button" data-cmd="${k}" title="${esc(T(n))}"><span>${ic}</span><small>${esc(T(n))}</small></button>`).join("")}</div></div>
-      <button type="button" class="wz-eggpick" hidden><kbd>E</kbd>🥚 <b>${esc(T("Pick up the egg"))}</b></button>
+      <button type="button" class="wz-eggpick" hidden><kbd>E</kbd>${EGG()} <b>${esc(T("Pick up the egg"))}</b></button>
       <div class="wz-hatched" hidden role="status"></div>
       <div class="wz-eggchip" hidden><i>➤</i><span></span></div>
       <div class="wz-budres" hidden aria-live="polite"></div>`;
@@ -245,7 +247,7 @@ export function createDino(H) {
   function closePanel() { if (ui) ui.panel.hidden = true; snd("close"); }
   function paint() {
     if (!ui) return; const b = D && D.buddy;
-    ui.btn.innerHTML = b ? `<span aria-hidden="true">🦖</span><b>${esc(b.name)}</b>` : `<span aria-hidden="true">🥚</span><b>${esc(T("Hatchery"))}</b>`;
+    ui.btn.innerHTML = b ? `<span aria-hidden="true">🦖</span><b>${esc(b.name)}</b>` : `<span aria-hidden="true">${EGG()}</span><b>${esc(T("Hatchery"))}</b>`;
     const sts = ((D && D.eggs) || []).map((x) => x.state || eggState(x, now())); ui.btn.classList.toggle("due", sts.some((st) => st.open && /^D/.test(st.stage))); ui.btn.classList.toggle("ready", sts.some((st) => st.stage === "READY"));
     paintCard(); if (!ui.panel.hidden) paintPanel();
   }
@@ -272,19 +274,19 @@ export function createDino(H) {
   }
   function command(k) { pref.mode = k; savePref(); snd("tap"); paintCard(); if (B) H.pop(B, T({ follow: "Following!", guard: "On guard!", attack: "Attack!", stay: "Staying." }[k]), "buddy-sk"); }
   const bar = (n, v, max, cls = "") => `<div class="wz-dbar ${cls}"><span>${esc(n)}</span><i><u style="width:${Math.max(0, Math.min(100, (v / max) * 100)).toFixed(1)}%"></u></i><b>${typeof v === "number" && !Number.isInteger(v) ? v.toFixed(1) : fmt(v)}${max === 100 ? "" : ""}</b></div>`;
-  function ring(k, label, sub) { const r = 54, c = 2 * Math.PI * r; return `<div class="wz-ring"><svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="${r}" class="bg"/><circle cx="64" cy="64" r="${r}" class="fg" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - Math.max(0, Math.min(1, k)))).toFixed(1)}"/></svg><div><b>${label}</b><small>${sub}</small></div></div>`; }
+  function ring(k, label, sub, img = "") { const r = 54, c = 2 * Math.PI * r; return `<div class="wz-ring"><svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="${r}" class="bg"/><circle cx="64" cy="64" r="${r}" class="fg" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - Math.max(0, Math.min(1, k)))).toFixed(1)}"/></svg>${img ? `<span class="wz-ring-egg">${img}</span>` : ""}<div class="${img ? "lo" : ""}"><b>${label}</b><small>${sub}</small></div></div>`; }
   /// the egg the Hatchery shows: the one picked from the row, else the server's pick (the one whose care opens soonest)
   const eggNow = () => (D && D.eggs && D.eggs.find((x) => x.id === selEgg)) || (D && D.egg) || null;
   function eggRow() {
     const es = (D && D.eggs) || []; if (es.length < 2) return ""; const cur = eggNow();
-    return `<div class="wz-deggs">${es.map((x, i) => { const st = x.state || eggState(x, now()), due = st.open && /^D/.test(st.stage), rd = st.stage === "READY"; return `<button type="button" data-egg="${esc(x.id)}" class="${cur && cur.id === x.id ? "on" : ""} r-${x.rarity || "common"}"><i>🥚</i><b>${esc(T(RAR[x.rarity || "common"].n))}</b><small>${rd ? "🐣" : due ? "⏰" : T("Day {d}", { d: Math.min(3, st.day || 1) })}</small></button>`; }).join("")}</div>`;
+    return `<div class="wz-deggs">${es.map((x, i) => { const st = x.state || eggState(x, now()), due = st.open && /^D/.test(st.stage), rd = st.stage === "READY"; return `<button type="button" data-egg="${esc(x.id)}" class="${cur && cur.id === x.id ? "on" : ""} r-${x.rarity || "common"}"><i>${EGG("r-" + (x.rarity || "common"))}</i><b>${esc(T(RAR[x.rarity || "common"].n))}</b><small>${rd ? "🐣" : due ? "⏰" : T("Day {d}", { d: Math.min(3, st.day || 1) })}</small></button>`; }).join("")}</div>`;
   }
   function eggHtml() {
     const e = eggNow(), t = now();
-    if (!e && D && D.buddy) return `<div class="wz-dnone"><div class="wz-dbig">🥚</div><b>${esc(T("No egg being cared for"))}</b><p>${esc(T("Raise more dinosaurs: pick up eggs at the nests (one a day, up to {n} at once). Higher grades are rarer.", { n: (D.max && D.max.eggs) || DINO.MAX_EGGS }))}</p></div>${D.canClaim ? forecast(t) : `<p class="wz-dnote">${esc(T("You've picked up today's egg — more tomorrow."))}</p>`}`;
+    if (!e && D && D.buddy) return `<div class="wz-dnone"><div class="wz-dbig">${EGG()}</div><b>${esc(T("No egg being cared for"))}</b><p>${esc(T("Raise more dinosaurs: pick up eggs at the nests (one a day, up to {n} at once). Higher grades are rarer.", { n: (D.max && D.max.eggs) || DINO.MAX_EGGS }))}</p></div>${D.canClaim ? forecast(t) : `<p class="wz-dnote">${esc(T("You've picked up today's egg — more tomorrow."))}</p>`}`;
     if (!e) {
       const mem = (D && D.memorial) || [];
-      return `<div class="wz-dnone"><div class="wz-dbig">🥚</div><b>${esc(T("No egg yet"))}</b><p>${esc(T("Rare eggs appear at the nests on the plains — look for a light in the sky. The first to reach one gets it; you can raise one egg at a time."))}</p><p class="wz-dnote">${esc(T("Eggs out right now: {n}", { n: nests.filter((x) => x.to > t).length }))}</p>${!signed() ? `<p class="wz-dnote warn">${esc(T("Sign in with a wallet to raise a dinosaur"))}</p>` : ""}</div>
+      return `<div class="wz-dnone"><div class="wz-dbig">${EGG()}</div><b>${esc(T("No egg yet"))}</b><p>${esc(T("Rare eggs appear at the nests on the plains — look for a light in the sky. The first to reach one gets it; you can raise one egg at a time."))}</p><p class="wz-dnote">${esc(T("Eggs out right now: {n}", { n: nests.filter((x) => x.to > t).length }))}</p>${!signed() ? `<p class="wz-dnote warn">${esc(T("Sign in with a wallet to raise a dinosaur"))}</p>` : ""}</div>
         ${D && D.first ? `<p class="wz-dwarn gold">🥚 ${esc(T("Your first egg is waiting by the gate — only you can see it."))}</p>` : ""}
         ${D && D.buddy ? "" : forecast(t)}${mem.length ? `<h4>${esc(T("In memory"))}</h4><ul class="wz-dmem">${mem.slice().reverse().map((m) => `<li>🥀 ${esc(T("An egg found {d} — lost on day {n}", { d: new Date(m.found).toLocaleDateString(), n: m.day }))}</li>`).join("")}</ul>` : ""}`;
     }
@@ -297,7 +299,7 @@ export function createDino(H) {
     const c = s.cares || {}, can = s.open && /^D/.test(s.stage);
     const care = (k2, ic, n, cost) => `<button type="button" class="wz-dcare${c[k2] ? " done" : ""}" data-care="${k2}" ${!can || c[k2] ? "disabled" : ""}><span>${c[k2] ? "✓" : ic}</span><b>${esc(T(n))}</b><small>${esc(cost)}</small></button>`;
     const nDone = (e.done || []).length, dayBar = `<div class="wz-dday"><b>${esc(s.stage === "READY" || s.stage === "WAIT" ? T("Hatching") : T("Day {d}", { d: day }))}</b><i><u style="width:${((nDone / 3) * 100).toFixed(0)}%"></u></i><small>${nDone} / 3</small></div>`;
-    return `${eggRow()}<p class="wz-dgrade r-${e.rarity || "common"}">${esc(T("{g} egg", { g: T(RAR[e.rarity || "common"].n) }))}</p>${dayBar}${ring(k, s.stage === "READY" ? "🐣" : `${Math.min(72, Math.floor((t - e.found) / 36e5))}h`, "/ 72h")}<p class="wz-dhead">${esc(head)}</p>${warn}
+    return `${eggRow()}<p class="wz-dgrade r-${e.rarity || "common"}">${esc(T("{g} egg", { g: T(RAR[e.rarity || "common"].n) }))}</p>${dayBar}${ring(k, s.stage === "READY" ? "🐣" : `${Math.min(72, Math.floor((t - e.found) / 36e5))}h`, "/ 72h", s.stage === "READY" ? "" : EGG("r-" + (e.rarity || "common")))}<p class="wz-dhead">${esc(head)}</p>${warn}
       <div class="wz-dsteps">${[1, 2, 3].map((d) => `<i class="${(e.done || []).length >= d ? "on" : d === s.day ? "now" : ""}">${(e.done || []).length >= d ? "✓" : d}</i>`).join("<b></b>")}<i class="${s.stage === "READY" ? "now" : ""}">🐣</i></div>
       <div class="wz-dvit">${bar(T("Temperature") + " °C", v.temp, 40, v.temp >= 35 && v.temp <= 38 ? "ok" : "low")}${bar(T("Water"), v.water, 100)}${bar(T("Food"), v.food, 100)}${bar(T("Health"), v.health, 100, v.health < 50 ? "low" : "ok")}</div>
       ${s.stage === "READY" ? `<div class="wz-dhatch"><input data-name maxlength="14" placeholder="${esc(T("Name your companion"))}"><button type="button" class="go" data-a="hatch">🐣 ${esc(T("Hatch"))}</button></div>` : `<div class="wz-dcares">${care("warm", "🔥", "Warm", "🪵×2")}${care("water", "💧", "Water", T("free"))}${care("feed", "🍖", "Feed", T("treat · meat · 2 berries"))}</div>`}
@@ -387,14 +389,14 @@ export function createDino(H) {
   const cap = (x) => String(x || "").charAt(0).toUpperCase() + String(x || "").slice(1);
   function codexHtml() {
     const b = D && D.buddy, k = b ? stageOf(b, now()) : -1;
-    return `<p class="wz-dnote">${esc(T("Velociraptor — how it grows"))}</p><div class="wz-dstrip"><span class="${D && (D.egg || D.buddy) ? "on" : ""}"><i>🥚</i><b>${esc(T("Egg"))}</b><small>${esc(T("3 days"))}</small></span>${DINO.STAGES.map((s, i) => `<em>›</em><span class="${i <= k ? "on" : ""}${i === k ? " now" : ""}"><i style="font-size:${16 + i * 4}px">🦖</i><b>${esc(T(STAGE_N[i]))}</b><small>Lv ${s.lv}</small></span>`).join("")}</div><ul class="wz-codex">${DINO.STAGES.map((s, i) => `<li class="${i <= k ? "on" : ""}"><i style="font-size:${18 + i * 7}px">🦖</i><b>${esc(T(STAGE_N[i]))}</b><small>Lv ${s.lv}+ · ${esc(T("{d} days", { d: s.days }))} · ×${s.size}</small><em>${esc(T(["Follows you everywhere", "Learns to bite", "Dashes in", "Roars to protect you", "Infinity Fang"][i]))}</em></li>`).join("")}</ul>
-      <h4>${esc(T("Egg grades"))}</h4><ul class="wz-dgrades">${DINO.RARITY.map((x) => `<li class="r-${x.id}"><b>${esc(T(RAR[x.id].n))}</b><small>${x.w}%</small><em>×${DINO.GRADE[x.id][0].toFixed(2)}–${DINO.GRADE[x.id][1].toFixed(2)}</em></li>`).join("")}</ul>
+    return `<p class="wz-dnote">${esc(T("Velociraptor — how it grows"))}</p><div class="wz-dstrip"><span class="${D && (D.egg || D.buddy) ? "on" : ""}"><i>${EGG()}</i><b>${esc(T("Egg"))}</b><small>${esc(T("3 days"))}</small></span>${DINO.STAGES.map((s, i) => `<em>›</em><span class="${i <= k ? "on" : ""}${i === k ? " now" : ""}"><i style="font-size:${16 + i * 4}px">🦖</i><b>${esc(T(STAGE_N[i]))}</b><small>Lv ${s.lv}</small></span>`).join("")}</div><ul class="wz-codex">${DINO.STAGES.map((s, i) => `<li class="${i <= k ? "on" : ""}"><i style="font-size:${18 + i * 7}px">🦖</i><b>${esc(T(STAGE_N[i]))}</b><small>Lv ${s.lv}+ · ${esc(T("{d} days", { d: s.days }))} · ×${s.size}</small><em>${esc(T(["Follows you everywhere", "Learns to bite", "Dashes in", "Roars to protect you", "Infinity Fang"][i]))}</em></li>`).join("")}</ul>
+      <h4>${esc(T("Egg grades"))}</h4><ul class="wz-dgrades">${DINO.RARITY.map((x) => `<li class="r-${x.id}">${EGG("r-" + x.id)}<b>${esc(T(RAR[x.id].n))}</b><small>${x.w}%</small><em>×${DINO.GRADE[x.id][0].toFixed(2)}–${DINO.GRADE[x.id][1].toFixed(2)}</em></li>`).join("")}</ul>
       <p class="wz-dnote">${esc(T("A higher grade is always stronger at the same level and bond; within a grade each egg rolls a little differently."))}</p>
       <h4>${esc(T("Coming next"))}</h4><ul class="wz-droad"><li><b>🏟️ ${esc(T("Live PvP arena"))}</b><small>${esc(T("Real-time battles and tournaments with your companion — a later update. Dino Battles (the Battles tab) are open now."))}</small></li><li><b>💎 ${esc(T("Ownership on Arc"))}</b><small>${esc(T("Eggs and companions you own on-chain — planned for a later phase. Until then your companion stays with your account."))}</small></li></ul>`;
   }
   function shopHtml() { return `<p class="wz-dnote">${esc(T("Dino treats feed an egg or your companion like raw meat. A convenience only — they add no strength."))}</p><div class="wz-dshop">${DINO.FOOD.map((p) => `<button type="button" data-food="${p.id}"><b>🍬 ×${p.n}</b><em>${fmt(p.arcl)} ARCL</em></button>`).join("")}</div><p class="wz-dnote">${esc(T("You have {n} treats · up to {m} a day", { n: (D && D.treats) || 0, m: DINO.FOOD_DAY }))}</p>`; }
   function paintPanel() {
-    if (!ui || ui.panel.hidden) return; const tabs = [["egg", "🥚", "Hatchery"], ["buddy", "🦖", "Companion"], ["battle", "⚔️", "Battles"], ["codex", "📖", "Codex"], ["shop", "🍬", "Treats"]];
+    if (!ui || ui.panel.hidden) return; const tabs = [["egg", EGG(), "Hatchery"], ["buddy", "🦖", "Companion"], ["battle", "⚔️", "Battles"], ["codex", "📖", "Codex"], ["shop", "🍬", "Treats"]];
     ui.body.innerHTML = `<header class="wz-pack-h"><b>${esc(T("DINO SOULMATE"))}</b><button type="button" class="wz-pack-x" data-a="x" aria-label="${esc(T("Close"))}">✕</button></header>
       <div class="wz-dtabs">${tabs.map(([k, ic, n]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(n))}</button>`).join("")}</div>
       <div class="wz-dpane">${tab === "egg" ? eggHtml() : tab === "buddy" ? buddyHtml() : tab === "battle" ? battleHtml() : tab === "codex" ? codexHtml() : shopHtml()}</div>`;
