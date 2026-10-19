@@ -2322,3 +2322,8 @@ html.wp-pcphone body.wp .wp-land .wla-head h2{font-size:32px!important}
 html.wp-pcphone body.wp .wp-land .wla-list img{width:72px;height:46px}
 @media (max-width:640px){.wla-card{grid-template-columns:1fr}.wla-art{order:-1;min-height:170px}.wla-tiles{grid-template-columns:1fr 1fr}}
 html.wp-pcphone body.wp .wp-land .wla-list{grid-template-columns:1fr}
+/* b-fit: phones — the Games window in one column, each card the window's width (two ran wider than the window and
+   the sheet scrolled sideways); nothing in a sheet may push it wider than the screen */
+html.wp-pcphone body.wp .wp-st.wp-games .wg-grid{grid-template-columns:1fr!important}
+html.wp-pcphone body.wp .wp-st .wp-st-card{overflow-x:hidden}
+body.wp .wg-grid li,body.wp .wg-grid button{min-width:0;max-width:100%}
