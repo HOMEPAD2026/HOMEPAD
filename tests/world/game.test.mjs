@@ -4,7 +4,7 @@ import { seasonOf, tierOf, SEASON_TIERS, quizFor, QUIZ } from "../../world-seaso
 import { fuseResult, FUSE_MAX_R, xpNeed, xpAt, levelOfXp, xpFromOld, xpProgress, mobStats, itemStats, temperCost, ZONES, pondOf, xpEvent, xpBoost, goldenRush } from "../../world-rpg-data.js";
 import * as SRV from "../../api/_world-social.mjs";
 import { RAID_MODS, raidModOf, raidIcs, phaseOf } from "../../world-social.js";
-import { CODEX, CODEX_STORY } from "../../world-quests.js";
+import { CODEX, CODEX_STORY, dailyHunts } from "../../world-quests.js";
 import { raidMax, nextWeekAt } from "../../api/_world-social.mjs";
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 
@@ -74,5 +74,10 @@ check(ZONES.every((z) => z.boss && z.boss.line && z.boss.line.length < 60), "eve
   check(e.zone === "spam" && e.far === "peaks" && xpBoost("peaks", mon) === 1.5 && xpBoost("reef", mon) === 1 && goldenRush(mon) === 1, "Monday: Spam Alley and Ponzi Peaks");
   check(xpEvent(sat).all && xpBoost("void", sat) === 1.5 && goldenRush(sat) === 3, "the weekend: everywhere, golden scammers three times as often"); }
 
+// the daily hunts: every day gives three different hunts and a village one, never an empty slot (2026-10-20's hash is
+// ≥ 2³¹: a signed shift gave a negative index, an undefined hunt, and the town stuck at 75% for everyone)
+{ let badDay = ""; const t0 = Date.UTC(2026, 0, 1); for (let d = 0; d < 3660 && !badDay; d++) { const day = new Date(t0 + d * 864e5).toISOString().slice(0, 10), h = dailyHunts(day); if (h.length !== 4 || !h.every((q) => q && q.id && q.ev && q.n > 0) || new Set(h.slice(0, 3)).size !== 3) badDay = day; }
+  check(!badDay, "daily hunts: ten years of days, each with 3 different hunts + 1 village hunt" + (badDay ? " (broken: " + badDay + ")" : "")); }
+check(dailyHunts("2026-10-20").length === 4 && dailyHunts("2026-10-20").every(Boolean) && JSON.stringify(dailyHunts("2026-10-19")) === JSON.stringify(dailyHunts("2026-10-19")), "2026-10-20 has real hunts; a day's hunts are the same each time");
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1);

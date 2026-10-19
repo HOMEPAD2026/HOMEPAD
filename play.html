@@ -97,22 +97,22 @@
 <meta name="twitter:image:alt" content="ARCIRCLE WORLD — Play. Build. Battle. Earn. Jurassic World, ARCL Mine, Texas Hold'em, Infinity Rings, Survivors Arena and the Launchpad">
 <meta name="theme-color" content="#04060a">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/brand/favicon-v2-32.png?v=1792406798">
-<link rel="apple-touch-icon" sizes="180x180" href="images/brand/apple-touch-icon-v2.png?v=1792406798">
+<link rel="icon" type="image/png" sizes="32x32" href="images/brand/favicon-v2-32.png?v=1792449357">
+<link rel="apple-touch-icon" sizes="180x180" href="images/brand/apple-touch-icon-v2.png?v=1792449357">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1792406798"></script>
-<script src="i18n-boot.js?v=1792406798"></script>
+<script src="arc-log.js?v=1792449357"></script>
+<script src="i18n-boot.js?v=1792449357"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<script src="/world-shell.js?v=1792406798"></script>
-<script src="/world-lock.js?v=1792406798"></script>
-<link rel="stylesheet" href="/world.min.css?v=1792406798">
+<script src="/world-shell.js?v=1792449357"></script>
+<script src="/world-lock.js?v=1792449357"></script>
+<link rel="stylesheet" href="/world.min.css?v=1792449357">
 <link rel="modulepreload" href="/vendor/three/three-0.186.1.module.min.js">
 <!-- the game's code (tools/build-world.mjs rewrites this block) and the town's models, fetched while the page parses -->
 <!-- world-build -->
-<link rel="modulepreload" href="/w/world-play.js?v=1792406798">
-<link rel="modulepreload" href="/w/c-ZAA2BIOI.js">
+<link rel="modulepreload" href="/w/world-play.js?v=1792449357">
+<link rel="modulepreload" href="/w/c-WFK7LTQG.js">
 <link rel="modulepreload" href="/w/c-UFC2P34X.js">
 <link rel="modulepreload" href="/w/c-HTD7Z7T6.js">
 <link rel="modulepreload" href="/w/c-73CSNOR7.js">
@@ -120,9 +120,9 @@
 <link rel="modulepreload" href="/w/c-E5XUHVXY.js">
 <link rel="modulepreload" href="/w/c-VHNSBD2M.js">
 <!-- /world-build -->
-<link rel="preload" as="fetch" crossorigin href="/models/world/scifi-props.glb?v=1792406798">
-<link rel="preload" as="fetch" crossorigin href="/models/world/kenney-city.glb?v=1792406798">
-<link rel="preload" as="image" crossorigin href="/models/world/planet-surface.jpg?v=1792406798">
+<link rel="preload" as="fetch" crossorigin href="/models/world/scifi-props.glb?v=1792449357">
+<link rel="preload" as="fetch" crossorigin href="/models/world/kenney-city.glb?v=1792449357">
+<link rel="preload" as="image" crossorigin href="/models/world/planet-surface.jpg?v=1792449357">
 <link rel="preload" as="image" href="/images/load/key-01-bg.webp" fetchpriority="high">
 <script>(function () { try { var c = (JSON.parse(localStorage.getItem("arc.world") || "null") || {}).char, k = document.querySelector('link[href*="world-play.js"]'); if (k && /^(male|female)-[a-f]$/.test(c || "")) { var l = document.createElement("link"); l.rel = "preload"; l.as = "fetch"; l.crossOrigin = "anonymous"; l.href = "/models/world/chars/character-" + c + ".glb" + k.href.slice(k.href.indexOf("?")); document.head.appendChild(l); } } catch (e) { /* the game loads it anyway */ } })();</script>
 </head>
@@ -180,6 +180,30 @@
   var t = setInterval(show, 3600); show();
 } catch (e) { /* the bar is enough */ } })();
 </script>
+<script>
+// the loading watchdog: a script error while the town loads, or a bar that stops moving for 40 s, shows a short
+// message and a Reload button instead of a bar that waits forever (2026-10-20: a daily-hunt bug stuck everyone at 75%)
+(function () { try {
+  var l = (localStorage.getItem("arcircle.lang") || document.documentElement.lang || "en").slice(0, 2);
+  var W = { en: ["Loading stopped. Reload to try again.", "Reload"], ko: ["로딩이 멈췄어요. 새로고침해서 다시 시도해 주세요.", "새로고침"], zh: ["加载停止了。请刷新重试。", "刷新"], tr: ["Yükleme durdu. Tekrar denemek için yenile.", "Yenile"] }[l === "ko" || l === "zh" || l === "tr" ? l : "en"];
+  var box = document.getElementById("wp-loading"), bar = document.getElementById("wp-loadbar"), err = 0, last = "", still = 0, shown = false;
+  var done = function () { return !box || box.hidden || !box.isConnected || getComputedStyle(box).display === "none" || (bar && bar.style.width === "100%"); };
+  var show = function () {
+    if (shown || done()) return; shown = true;
+    var d = document.createElement("div"); d.className = "wp-loadfail"; d.setAttribute("role", "alert");
+    d.innerHTML = "<p></p><button type=\"button\"></button>"; d.firstChild.textContent = W[0]; d.lastChild.textContent = W[1];
+    d.lastChild.onclick = function () { location.reload(); }; box.appendChild(d);
+  };
+  var hurt = function () { if (!done()) err = err || Date.now(); };
+  addEventListener("error", hurt); addEventListener("unhandledrejection", hurt);
+  var t = setInterval(function () {
+    if (done()) return clearInterval(t);
+    var w = bar ? bar.style.width : ""; if (w !== last) { last = w; still = 0; } else still++;
+    if ((err && still >= 8) || still >= 40) { show(); clearInterval(t); }
+  }, 1000);
+} catch (e) { /* the bar is enough */ } })();
+</script>
+<style>.wp-loading .wp-loadfail{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 16px;border-radius:14px;background:rgba(8,20,48,.78);border:1px solid rgba(120,220,255,.45);color:#eaf6ff;font:600 14px/1.35 system-ui,sans-serif;text-align:center;max-width:min(320px,86vw)}.wp-loading .wp-loadfail p{margin:0}.wp-loading .wp-loadfail button{min-height:44px;padding:0 22px;border:0;border-radius:12px;background:linear-gradient(#5fe3ff,#2b8cff);color:#04162e;font:800 15px system-ui,sans-serif;cursor:pointer;pointer-events:auto}</style>
 
 <header class="wp-hud">
   <div class="wp-hud-l">
@@ -334,9 +358,9 @@
 <div class="wp-resign" id="wp-resign" hidden role="status"><span>Your sign-in has expired, so progress is only saved in this browser.</span><button type="button" class="wp-cta" data-rgo>Sign in again</button><button type="button" class="wp-btn wp-x" data-rx aria-label="Close">×</button></div>
 
 <noscript><p class="wp-nojs">ARCIRCLE World needs JavaScript. <a href="/?skip">Go to the Platform World</a>.</p></noscript>
-<script src="config-arc.js?v=1792406798"></script>
-<script src="i18n.js?v=1792406798"></script>
-<script src="arc-connect.js?v=1792406798"></script>
-<script type="module" src="/w/world-play.js?v=1792406798"></script>
+<script src="config-arc.js?v=1792449357"></script>
+<script src="i18n.js?v=1792449357"></script>
+<script src="arc-connect.js?v=1792449357"></script>
+<script type="module" src="/w/world-play.js?v=1792449357"></script>
 </body>
 </html>

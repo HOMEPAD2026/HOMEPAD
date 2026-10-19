@@ -31,6 +31,9 @@ const VILLAGE_DAILY = [
   { id: "vdef5", name: "Clear 5 waves in AC Defense", ev: "defwave", n: 5, xp: 150, scrap: 60 },
   { id: "vbeat", name: "Finish a Beat Stomp song", ev: "beatsong", n: 1, xp: 150, scrap: 60 },
 ];
+// today's hunts. hash() is unsigned: shifted with >>> (a >> made the index negative on days whose hash is ≥ 2³¹ —
+// 2026-10-20 handed everyone an undefined hunt, and the town never finished loading)
+export const dailyHunts = (day = seoulDay()) => { const h = hash(day); const pick = []; for (let i = 0; pick.length < 3 && i < 30; i++) { const q = DAILY[(h >>> (i * 3 % 32)) % DAILY.length]; if (q && !pick.includes(q)) pick.push(q); } for (const q of DAILY) if (pick.length < 3 && !pick.includes(q)) pick.push(q); pick.push(VILLAGE_DAILY[(h >>> 7) % VILLAGE_DAILY.length]); return pick; };
 // achievements: each one gives a title to wear under your name
 export const ACH = [
   { id: "k10", name: "First blood", line: "Knock out 10 scammers", ev: "kill", n: 10, title: "Scam Hunter" },
@@ -103,7 +106,7 @@ export function createQuests(ctx) {
     x.petXp = x.petXp || {};
     return x;
   };
-  const todays = (day = seoulDay()) => { const h = hash(day); const pick = []; for (let i = 0; pick.length < 3 && i < 30; i++) { const q = DAILY[(h >> (i * 3)) % DAILY.length]; if (!pick.includes(q)) pick.push(q); } pick.push(VILLAGE_DAILY[(h >>> 7) % VILLAGE_DAILY.length]); return pick; };
+  const todays = dailyHunts;
   let tab = "daily", top = null;
 
   function seasonAdd(kind, n = 1) {
