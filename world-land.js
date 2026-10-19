@@ -76,7 +76,7 @@ export function createLand(ctx) {
         if (sg) { dropIsle(p); const N = sg.userData.N || 36, k = Math.min(1, (PAD_R * 2 - 6) / N); sg.scale.setScalar(k); sg.position.y = 0.36; sg.rotation.y = p.face + Math.PI; p.g.add(sg); p.isle = sg; p.isleFor = p.want;
           if (p.tag) p.tag.position.y = Math.max(9, (sg.userData.h || 0) * k + 4); }
       } else p.isleFor = p.want; // (nothing built yet: the pad stays bare)
-    } catch { /* try again next time you come near */ } finally { p.busy = false; }
+    } catch (e) { console.warn("land island", e); } finally { p.busy = false; } // (tried again next time you come near)
   }
   let tT = 0;
   function tick(dt, t, me) {
@@ -88,12 +88,15 @@ export function createLand(ctx) {
   const promptHTML = (n) => { const v = view && view.villages[n - 1], id = "V" + String(n).padStart(2, "0"); return v && v.status === "sold" ? T("Visit {x}", { x: `<b>${esc(T("{name}'s village", { name: v.name || short(v.owner) }))}</b>` }) : T("See {x}", { x: `<b>ARCIRCLE LAND ${id}</b>` }); };
 
   // ---------------- the sheets ----------------
+  const closeSheets = () => document.querySelectorAll(".wp-st.wp-land").forEach((b) => (b._close ? b._close() : b.remove()));
   function sheet(cls, html) {
     if (ctx.closeAll) ctx.closeAll();
+    closeSheets(); // (one LAND sheet at a time: the card replaces the map, and back)
     const box = document.createElement("div"); box.className = "wp-st wp-land " + cls; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("data-no-i18n", "");
     box.innerHTML = `<div class="wp-st-card"><button type="button" class="wp-st-x" aria-label="${esc(T("Close"))}">×</button>${html}</div>`;
     document.body.appendChild(box); ctx.freeze(true);
     const close = () => { box.remove(); document.removeEventListener("keydown", onKey, true); ctx.freeze(false); };
+    box._close = close;
     const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
     document.addEventListener("keydown", onKey, true); box.querySelector(".wp-st-x").addEventListener("click", close); box.addEventListener("click", (e) => { if (e.target === box) close(); });
     return { box, close };
@@ -102,28 +105,28 @@ export function createLand(ctx) {
   function mapSVG(sel) {
     const S = 300, k = (S / 2 - 22) / 290;
     const dots = PLOTS.map(([x, z], i) => { const v = view ? view.villages[i] : null, st = v ? v.status : "open", cx = S / 2 + x * k, cy = S / 2 + z * k;
-      return `<g class="wl-dot ${st}${sel === i + 1 ? " on" : ""}${view && view.mine === i + 1 ? " mine" : ""}" data-v="${i + 1}" transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)})"><circle r="11"/><text y="4">${i + 1}</text></g>`; }).join("");
-    return `<svg class="wl-map" viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(T("Map of the 20 villages"))}"><circle class="wl-ring" cx="${S / 2}" cy="${S / 2}" r="${(270 * k).toFixed(1)}"/><circle class="wl-town" cx="${S / 2}" cy="${S / 2}" r="${(150 * k).toFixed(1)}"/><text class="wl-town-t" x="${S / 2}" y="${S / 2 + 4}">${esc(T("Town"))}</text>${dots}</svg>`;
+      return `<g class="wla-dot ${st}${sel === i + 1 ? " on" : ""}${view && view.mine === i + 1 ? " mine" : ""}" data-v="${i + 1}" transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)})"><circle r="11"/><text y="4">${i + 1}</text></g>`; }).join("");
+    return `<svg class="wla-map" viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(T("Map of the 20 villages"))}"><circle class="wla-ring" cx="${S / 2}" cy="${S / 2}" r="${(270 * k).toFixed(1)}"/><circle class="wla-town" cx="${S / 2}" cy="${S / 2}" r="${(150 * k).toFixed(1)}"/><text class="wla-town-t" x="${S / 2}" y="${S / 2 + 4}">${esc(T("Town"))}</text>${dots}</svg>`;
   }
   async function open(sel) {
-    const { box } = sheet("map", `<div class="wl-head"><span class="wl-ic" aria-hidden="true">🏝️</span><h2>ARCIRCLE LAND</h2><p>${esc(T("20 villages on the ring around the town. Buy one with $ARCIRCLE and your island stands there for everyone to see."))}</p></div><div class="wl-body"><i class="wp-skel" style="width:70%"></i></div>`);
+    const { box } = sheet("map", `<div class="wla-head"><span class="wla-ic" aria-hidden="true">🏝️</span><h2>ARCIRCLE LAND</h2><p>${esc(T("20 villages on the ring around the town. Buy one with $ARCIRCLE and your island stands there for everyone to see."))}</p></div><div class="wla-body"><i class="wp-skel" style="width:70%"></i></div>`);
     await refresh();
-    const body = box.querySelector(".wl-body"); if (!body) return;
+    const body = box.querySelector(".wla-body"); if (!body) return;
     if (!view) { body.innerHTML = `<p class="wp-st-note">${esc(T("Couldn't load LAND — try again"))}</p>`; return; }
-    body.innerHTML = `<div class="wl-top">${mapSVG(sel)}<div class="wl-sum"><b>${view.sold} / 20</b><small>${esc(T("sold"))}</small>${view.mine ? `<button type="button" class="wp-st-buy" data-v="${view.mine}">${esc(T("My village"))} V${String(view.mine).padStart(2, "0")}</button>` : ""}<p class="wl-legend"><i class="open"></i>${esc(T("For sale"))} <i class="held"></i>${esc(T("Being bought"))} <i class="sold"></i>${esc(T("Sold"))}</p></div></div>
-      <ul class="wl-list">${view.villages.map((v) => `<li class="${v.status}"><button type="button" data-v="${v.n}"><b>${esc(v.id)}</b><span>${v.status === "sold" ? esc(v.name || short(v.owner)) : fmt(v.price) + " $ARCIRCLE"}</span><em>${esc(statusOf(v))}</em></button></li>`).join("")}</ul>`;
+    body.innerHTML = `<div class="wla-top">${mapSVG(sel)}<div class="wla-sum"><b>${view.sold} / 20</b><small>${esc(T("sold"))}</small>${view.mine ? `<button type="button" class="wp-st-buy" data-v="${view.mine}">${esc(T("My village"))} V${String(view.mine).padStart(2, "0")}</button>` : ""}<p class="wla-legend"><i class="open"></i>${esc(T("For sale"))} <i class="held"></i>${esc(T("Being bought"))} <i class="sold"></i>${esc(T("Sold"))}</p></div></div>
+      <ul class="wla-list">${view.villages.map((v) => `<li class="${v.status}"><button type="button" data-v="${v.n}"><b>${esc(v.id)}</b><span>${v.status === "sold" ? esc(v.name || short(v.owner)) : fmt(v.price) + " $ARCIRCLE"}</span><em>${esc(statusOf(v))}</em></button></li>`).join("")}</ul>`;
     box.addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (b) detail(Number(b.dataset.v)); });
   }
   function detail(n) {
     const v = view && view.villages[n - 1]; if (!v) return;
     const sold = v.status === "sold", mine = view.mine === n, canBuy = !sold && !view.mine && !(v.status === "held" && v.heldBy !== "you");
-    const { box, close } = sheet("card", `<div class="wl-card-h"><b>${esc(v.id)}</b><span class="wl-st ${v.status}">${esc(statusOf(v))}</span></div>
-      <p class="wl-price"><small>${esc(T("Price"))}</small><b>${fmt(v.price)} $ARCIRCLE</b></p>
-      ${sold ? `<p class="wl-owner"><small>${esc(T("Owner"))}</small><b>${esc(v.name || short(v.owner))}</b><code>${esc(short(v.owner))}</code></p>` : ""}
-      <ul class="wl-perks"><li>${esc(T("Your island (My Island) stands on this village, for everyone in the town to see"))}</li><li>${esc(T("Build bigger: a 64×64 island and up to 20,000 bricks"))}</li><li>${esc(T("One village a wallet. Paid to the ARCIRCLE treasury from your own wallet."))}</li></ul>
+    const { box, close } = sheet("card", `<div class="wla-card-h"><b>${esc(v.id)}</b><span class="wla-st ${v.status}">${esc(statusOf(v))}</span></div>
+      <p class="wla-price"><small>${esc(T("Price"))}</small><b>${fmt(v.price)} $ARCIRCLE</b></p>
+      ${sold ? `<p class="wla-owner"><small>${esc(T("Owner"))}</small><b>${esc(v.name || short(v.owner))}</b><code>${esc(short(v.owner))}</code></p>` : ""}
+      <ul class="wla-perks"><li>${esc(T("Your island (My Island) stands on this village, for everyone in the town to see"))}</li><li>${esc(T("Build bigger: a 64×64 island and up to 20,000 bricks"))}</li><li>${esc(T("One village a wallet. Paid to the ARCIRCLE treasury from your own wallet."))}</li></ul>
       <p class="wp-st-status" data-st hidden></p>
-      <div class="wl-acts">${canBuy ? `<button type="button" class="wp-st-buy" data-buy>${esc(T("Buy with $ARCIRCLE"))}</button>` : ""}<button type="button" class="wp-gmr-b" data-go>${esc(T("Go there"))}</button>${sold ? `<button type="button" class="wp-gmr-b" data-visit>${esc(T("Visit the island"))}</button>${v.tx ? `<a class="wp-gmr-b" href="${esc(EXP + "/tx/" + v.tx)}" target="_blank" rel="noopener">${esc(T("Explorer"))} ↗</a>` : ""}` : ""}${mine ? `<button type="button" class="wp-gmr-b" data-build>${esc(T("Build my island"))}</button>` : ""}<button type="button" class="wp-gmr-b" data-back>${esc(T("All villages"))}</button></div>
-      <div class="wl-done" data-done hidden></div>
+      <div class="wla-acts">${canBuy ? `<button type="button" class="wp-st-buy" data-buy>${esc(T("Buy with $ARCIRCLE"))}</button>` : ""}<button type="button" class="wp-gmr-b" data-go>${esc(T("Go there"))}</button>${sold ? `<button type="button" class="wp-gmr-b" data-visit>${esc(T("Visit the island"))}</button>${v.tx ? `<a class="wp-gmr-b" href="${esc(EXP + "/tx/" + v.tx)}" target="_blank" rel="noopener">${esc(T("Explorer"))} ↗</a>` : ""}` : ""}${mine ? `<button type="button" class="wp-gmr-b" data-build>${esc(T("Build my island"))}</button>` : ""}<button type="button" class="wp-gmr-b" data-back>${esc(T("All villages"))}</button></div>
+      <div class="wla-done" data-done hidden></div>
       <p class="wp-st-note">${esc(view.mine && !mine ? T("You already own a village.") : T("Village production and rewards are planned, not part of buying. Nothing here pays out."))}</p>`);
     const $b = (q) => box.querySelector(q), st = (t) => { const e = $b("[data-st]"); if (e) { e.hidden = !t; e.textContent = t || ""; } };
     $b("[data-go]").addEventListener("click", () => { close(); goTo(n); });
@@ -132,7 +135,7 @@ export function createLand(ctx) {
     const bb = $b("[data-build]"); if (bb) bb.addEventListener("click", () => { close(); if (ctx.myIsland) ctx.myIsland(); });
     const buy = $b("[data-buy]"); if (buy) buy.addEventListener("click", () => purchase(n, { box, st, buy }));
   }
-  function goTo(n) { const p = plots[n - 1]; if (!p || !ctx.standAt) return; const d = Math.hypot(p.x, p.z) || 1; ctx.standAt(p.x - (p.x / d) * (PAD_R + 4), p.z - (p.z / d) * (PAD_R + 4), { x: p.x, z: p.z }); }
+  function goTo(n) { const p = plots[n - 1]; if (!p || !ctx.standAt) return; const d = Math.hypot(p.x, p.z) || 1; ctx.standAt(p.x - (p.x / d) * (PAD_R - 3), p.z - (p.z / d) * (PAD_R - 3), { x: p.x, z: p.z }); } // (on the pad's town-side edge, facing in)
 
   // ---------------- buying: hold → the wallet's transfer to the treasury → the receipt ----------------
   let busy = false;
@@ -167,5 +170,5 @@ export function createLand(ctx) {
   }
   // a payment that went through but wasn't noted (the page closed while waiting): the next open retries it
   refresh();
-  return { refresh, open, detail, tick, near, promptHTML, goTo, mine: () => (view ? view.mine || 0 : 0), plots: () => plots, view: () => view };
+  return { refresh, open, detail, close: closeSheets, tick, near, promptHTML, goTo, mine: () => (view ? view.mine || 0 : 0), plots: () => plots, view: () => view };
 }
