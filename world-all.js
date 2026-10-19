@@ -41,4 +41,5 @@ import * as CHAT from "./world-chat.js";
 import * as GV from "./world-gamevillage.js";
 import * as MV from "./world-minevillage.js";
 import * as JG from "./world-jurgate.js";
-export default [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX, PET, CHAT, GV, MV, JG];
+import * as LANDM from "./world-land.js";
+export default [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX, PET, CHAT, GV, MV, JG, LANDM];

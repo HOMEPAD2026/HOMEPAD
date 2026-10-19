@@ -12,6 +12,9 @@ export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { 
 export function createJurassic(ctx) {
   const { THREE, st, T, esc, toast } = ctx;
   const low = !!ctx.low, reduce = !!ctx.reduce, coarse = !!ctx.coarse;
+  // b-jur2 (the community: "more trees and rocks, longer grass, more real"): how much more of the land's growth a device
+  // draws — a computer 1.6×, a phone 1.25×, the low setting as before
+  const MORE = low ? 1 : coarse ? 1.25 : 1.6;
   const J = JURASSIC;
   const Snd = ctx.Snd || {}; let shakeT = 0, stopUntil = 0; // stopUntil: a hit-stop (b-fx2), the world nearly still for a few ms
   let S = null, ui = null, hero = null, on = false, busy = false, surv = null, dino = null;
@@ -439,24 +442,27 @@ export function createJurassic(ctx) {
   // its edge), swaying in the wind on the GPU; nothing on sand, water, steep ground or the gate's step
   function makeGrass(scene) {
     const draw = (mono) => { const cv = document.createElement("canvas"); cv.width = 128; cv.height = 128; const g = cv.getContext("2d"); let sd = 13; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
-    g.fillStyle = mono ? "#000" : "#6a9c3c"; g.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 34; i++) { const x = 6 + r() * 116, h = 56 + r() * 70, lean = (r() - 0.5) * 30, wd = 1.6 + r() * 2.2, gr = g.createLinearGradient(0, 128, 0, 128 - h);
-      gr.addColorStop(0, "#5a8432"); gr.addColorStop(0.45, r() < 0.5 ? "#79a844" : "#6a9c3c"); gr.addColorStop(1, r() < 0.35 ? "#c4cf78" : "#a2c45e");
+    g.fillStyle = mono ? "#000" : "#5d8c34"; g.fillRect(0, 0, 128, 128);
+    // b-jur2: more blades, thinner, in more greens; some dry and straw-tipped (a wild meadow, not a lawn)
+    for (let i = 0; i < 52; i++) { const x = 4 + r() * 120, h = 50 + r() * 78, lean = (r() - 0.5) * 34, wd = 1.2 + r() * 1.9, dry = r() < 0.18, gr = g.createLinearGradient(0, 128, 0, 128 - h);
+      gr.addColorStop(0, "#3f6526"); gr.addColorStop(0.45, dry ? "#8fa04c" : r() < 0.5 ? "#6f9e3e" : "#5f9036"); gr.addColorStop(1, dry ? "#d8c98a" : r() < 0.35 ? "#bccb70" : "#93bb55");
       g.fillStyle = mono ? "#fff" : gr; g.beginPath(); g.moveTo(x - wd, 128); g.quadraticCurveTo(x + lean * 0.4, 128 - h * 0.55, x + lean, 128 - h); g.quadraticCurveTo(x + lean * 0.4 + wd * 0.3, 128 - h * 0.5, x + wd, 128); g.fill(); }
     return cv; };
     // colour on an opaque grass-green ground and a separate white-on-black alpha (no black bleeding into the blades)
     const tex = new THREE.CanvasTexture(draw(false)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; const atex = new THREE.CanvasTexture(draw(true));
     const geo = new THREE.BufferGeometry(), P = [], UV = [], I = [];
-    [0, Math.PI / 2].forEach((a, k) => { const c = Math.cos(a) * 0.42, s2 = Math.sin(a) * 0.42, o = k * 4; P.push(-c, 0, -s2, c, 0, s2, c, 0.62, s2, -c, 0.62, -s2); UV.push(0, 0, 1, 0, 1, 1, 0, 1); I.push(o, o + 1, o + 2, o, o + 2, o + 3); });
+    [0, Math.PI / 2].forEach((a, k) => { const c = Math.cos(a) * 0.42, s2 = Math.sin(a) * 0.42, o = k * 4; P.push(-c, 0, -s2, c, 0, s2, c, 0.95, s2, -c, 0.95, -s2); /* b-jur2: half as tall again */ UV.push(0, 0, 1, 0, 1, 1, 0, 1); I.push(o, o + 1, o + 2, o, o + 2, o + 3); });
     geo.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(UV, 2)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(new Array(24).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3)); geo.setIndex(I);
     const U = { uT: { value: 0 } }, mat = new THREE.MeshStandardMaterial({ map: tex, alphaMap: atex, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.9, metalness: 0 });
     mat.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U); sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
       { float h = uv.y * uv.y; vec2 ip = vec2(instanceMatrix[3][0], instanceMatrix[3][2]);
         float w = sin(uT * 1.6 + ip.x * 0.31 + ip.y * 0.23) * 0.16 + sin(uT * 3.3 + ip.x * 1.7 - ip.y * 0.9) * 0.05;
         transformed.x += w * h; transformed.z += w * 0.55 * h; }`);
-      sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize(vNormal);"); }; // (both faces lit as the front)
-    mat.customProgramCacheKey = () => "jur-grass";
-    const STEP = low ? 1.7 : coarse ? 1.35 : 1.1, W = low ? 30 : coarse ? 44 : 64, im = new THREE.InstancedMesh(geo, mat, W * W);
+      sh.vertexShader = "varying float vGh;\n" + sh.vertexShader.replace("#include <uv_vertex>", "#include <uv_vertex>\n vGh = uv.y;");
+      // the roots in the blades' own shade (b-jur2): darker low down, as real grass is
+      sh.fragmentShader = "varying float vGh;\n" + sh.fragmentShader.replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize(vNormal);").replace("#include <color_fragment>", "#include <color_fragment>\n diffuseColor.rgb *= mix(0.5, 1.0, smoothstep(0.0, 0.6, vGh));"); }; // (both faces lit as the front)
+    mat.customProgramCacheKey = () => "jur-grass2";
+    const STEP = low ? 1.6 : coarse ? 1.2 : 0.9, W = low ? 32 : coarse ? 50 : 80, /* b-jur2: denser (a computer 6,400 tufts, a phone 2,500) */ im = new THREE.InstancedMesh(geo, mat, W * W);
     im.receiveShadow = true; im.frustumCulled = false; scene.add(im);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), R = W * STEP * 0.5;
     const h01 = (a, b, k) => { const v = Math.sin(a * 127.1 + b * 311.7 + k * 74.7) * 43758.5453; return v - Math.floor(v); };
@@ -468,7 +474,7 @@ export function createJurassic(ctx) {
         const dEdge = Math.hypot(x - px, z - pz) / R, slope = Math.abs(height(x + 1, z) - y) + Math.abs(height(x, z + 1) - y);
         let s0 = (0.75 + h01(gx, gz, 3) * 0.7) * (1 - THREE.MathUtils.smoothstep(dEdge, 0.7, 1));
         if (y < WATER_Y + 0.7 || slope > 0.55 || Math.hypot(x - J.GATE.x, z - J.GATE.z) < 6 || fbm(x * 0.06, z * 0.06) > 0.72) s0 = 0;
-        q.setFromAxisAngle(up, h01(gx, gz, 4) * 6.283); sc.set(s0, s0 * (0.8 + h01(gx, gz, 5) * 0.6), s0); p3.set(x, y - 0.05, z); im.setMatrixAt(k++, m4.compose(p3, q, sc));
+        q.setFromAxisAngle(up, h01(gx, gz, 4) * 6.283); sc.set(s0, s0 * (0.8 + h01(gx, gz, 5) * 0.75), s0); p3.set(x, y - 0.05, z); im.setMatrixAt(k++, m4.compose(p3, q, sc));
       }
       im.instanceMatrix.needsUpdate = true;
     }
@@ -626,7 +632,7 @@ export function createJurassic(ctx) {
     const mats = (n, minGate, maxR, size, sink = 0) => { const out = []; for (let i = 0; i < n; i++) { const s0 = spotFor(minGate, maxR); if (!s0) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s0.x, s0.y - sink * z, s0.z); out.push(new THREE.Matrix4().compose(p3, q, sc)); } return out; };
     // the drawn trees (world-jurtrees.js): araucarias, broadleaf giants, tree ferns and cycads, two shapes of each, in cells
     let trees = null; try { trees = makeJurTrees(THREE, { low }); } catch (e) { console.warn("jurassic trees", e); }
-    if (trees) { const I4 = new THREE.Matrix4(), PLAN = { araucaria: [low ? 40 : coarse ? 60 : 100, 30, 205, [0.85, 1.25]], broadleaf: [low ? 40 : coarse ? 60 : 95, 24, 175, [0.8, 1.2]], fern: [low ? 50 : coarse ? 80 : 140, 8, 165, [0.8, 1.3]], cycad: [low ? 50 : coarse ? 80 : 130, 6, 170, [0.8, 1.4]] };
+    if (trees) { const I4 = new THREE.Matrix4(), M2 = (n) => Math.round(n * MORE), PLAN = { araucaria: [M2(low ? 40 : coarse ? 60 : 100), 30, 205, [0.85, 1.3]], broadleaf: [M2(low ? 40 : coarse ? 60 : 95), 24, 175, [0.8, 1.25]], fern: [M2(low ? 50 : coarse ? 80 : 140), 8, 165, [0.8, 1.35]], cycad: [M2(low ? 50 : coarse ? 80 : 130), 6, 170, [0.8, 1.45]] };
       seed = 11; for (const [k, [n, gate0, maxR, size]] of Object.entries(PLAN)) { const TK = { araucaria: ["tree", 0.5], broadleaf: ["tree", 0.75], fern: ["palm", 0.24], cycad: ["palm", 0.42] }[k];
       trees.KINDS[k].forEach((geo, vi) => cellsOf(scene, "tree-" + k + vi, { geo, mat: trees.mats, base: I4 }, null, mats(Math.round(n / 2), gate0, maxR, size), { shadow: true, nearD: 999, maxD: 330, node: TK[0], cr: TK[1], hr: TK[1] + 0.2, popY: 3 })); } }
     else { seed = 11; scatter(tg, trunkM, TREES, 24, 170, [0.8, 1.6]); seed = 11; scatter(cg, leafM, TREES, 24, 170, [0.8, 1.6]); }
@@ -642,7 +648,9 @@ export function createJurassic(ctx) {
     // boulders
     const NEAR_D = coarse ? 50 : 70;
     const rock = unit(MODELS && MODELS.rock);
-    if (rock) { seed = 41; cellsOf(scene, "rock", rock, farOf(rock, MODELS.rock1), mats(low ? 40 : 70, 10, 190, [1.4, 4.2], 0.12), { shadow: true, nearD: NEAR_D, node: "rock", cr: 0.4, hr: 0.45, popY: 0.9 }); }
+    if (rock) { seed = 41; cellsOf(scene, "rock", rock, farOf(rock, MODELS.rock1), mats(low ? 40 : coarse ? 95 : 140, 10, 190, [1.4, 4.4], 0.12), { shadow: true, nearD: NEAR_D, node: "rock", cr: 0.4, hr: 0.45, popY: 0.9 });
+      // b-jur2: stones and pebbles in the grass (half sunk), drawn only near: the ground's grain
+      if (!low) { seed = 43; const lite = MODELS.rock1 && farOf(rock, MODELS.rock1); cellsOf(scene, "stone", lite ? { ...lite, mat: rock.mat } : rock, null, mats(coarse ? 110 : 260, 5, 185, [0.25, 0.8], 0.3), { shadow: false, nearD: 999, maxD: coarse ? 45 : 70 }); } }
     else { const rg = new THREE.DodecahedronGeometry(1, 0); rg.scale(1.2, 0.8, 1); seed = 41; scatter(rg, new THREE.MeshStandardMaterial({ color: 0x86827a, roughness: 1, flatShading: true }), low ? 50 : 90, 10, 190, [0.6, 2.4], 0.25); }
     // palms round the lake's shore (the model is ~8.6K triangles, so a ring of them, not a forest)
     const palm = unit(MODELS && MODELS.palm);
@@ -653,7 +661,7 @@ export function createJurassic(ctx) {
     // the ancient giants (the model is ~17K triangles): a few landmarks along the view from the gate; the forest behind
     // them stays the light drawn trees
     const anc = unit(MODELS && MODELS.ancient);
-    if (anc) { const spots = [[-24, 14, 13], [24, 18, 11], [-58, -40, 16], [12, -72, 18], [-92, 8, 15], [92, 34, 14], [-34, -128, 17], [44, -138, 16]], want = low ? 12 : coarse ? 16 : 26;
+    if (anc) { const spots = [[-24, 14, 13], [24, 18, 11], [-58, -40, 16], [12, -72, 18], [-92, 8, 15], [92, 34, 14], [-34, -128, 17], [44, -138, 16]], want = low ? 12 : coarse ? 20 : 34;
       // more of them all over the plain and the forest's edge: kept off the lake, the path from the gate and each other
       seed = 67; for (let i = 0; i < want * 12 && spots.length < want; i++) { const a = rnd() * Math.PI * 2, r = 30 + rnd() * (J.EDGE - 50), x = Math.cos(a) * r, z = Math.sin(a) * r;
         if (Math.hypot(x - J.LAKE.x, z - J.LAKE.z) < J.LAKE.r + 14 || (Math.abs(x) < 16 && z > 20) || height(x, z) < WATER_Y + 0.5) continue;
@@ -668,7 +676,7 @@ export function createJurassic(ctx) {
     // gate, the paths and the lake; in 80 m cells, drawn only near (they're the ground's detail, not the view)
     const natMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
     natMat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize(vNormal);"); };
-    const NAT = { fern: [low ? 70 : coarse ? 110 : 190, [1.2, 2.4]], bush: [low ? 45 : coarse ? 70 : 120, [1.4, 2.8]], flowers: [low ? 50 : coarse ? 80 : 140, [0.5, 1.0]], log: [low ? 10 : 18, [2.6, 4.6]] };
+    const NAT = { fern: [Math.round((low ? 70 : coarse ? 110 : 190) * MORE), [1.2, 2.6]], bush: [Math.round((low ? 45 : coarse ? 70 : 120) * MORE), [1.4, 3.0]], flowers: [Math.round((low ? 50 : coarse ? 80 : 140) * MORE), [0.5, 1.0]], log: [low ? 10 : coarse ? 22 : 30, [2.6, 4.6]] };
     seed = 83;
     for (const [kind, [n, size]] of Object.entries(NAT)) for (let v = 1; v <= 3; v++) {
       const o = MODELS && MODELS[kind + "-0" + v]; if (!o) continue;

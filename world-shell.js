@@ -20,7 +20,7 @@
     tr: { full: "Tam ekran", window: "Pencere", mobile: "Mobil", bar: "Ekran", small: "Küçült", max: "Büyüt", restore: "Eski boyut", leave: "Çık", ask: "ARCIRCLE WORLD'den çıkılsın mı?", stay: "Kal", go: "Çık" },
     en: { full: "Full screen", window: "Window", mobile: "Mobile", bar: "Screen", small: "Smaller", max: "Maximize", restore: "Restore", leave: "Leave", ask: "Leave ARCIRCLE WORLD?", stay: "Stay", go: "Leave" },
   }[lang === "ko" || lang === "zh" || lang === "tr" ? lang : "en"];
-  var PHONE_W = 980, PHONE_H = Math.round(980 * 19.5 / 9), BAR = 44, TB = 40;
+  var PHONE_W = 980, PHONE_H = Math.round(980 * 19.5 / 9), BAR = 44, TB = 40, MIN_H = 720;
   var size = "m"; try { size = localStorage.getItem("arc.world.win") || "m"; } catch (e) { /* private */ }
   if (size !== "s" && size !== "m" && size !== "max") size = "m";
   var ICON = {
@@ -88,7 +88,12 @@
           w = Math.min(size === "s" ? 1200 : 1640, aw); h = w * 9 / 16; if (h > ah) { h = ah; w = h * 16 / 9; }
         }
         w = Math.round(w); h = Math.round(h);
-        fr.style.width = w + "px"; fr.style.height = h + "px"; fr.style.transform = ""; box.style.width = w + "px"; box.style.height = h + TB + "px"; return 1;
+        // the game lays itself out at least MIN_H tall and the window shows it scaled to fit (a laptop at 125% with a
+        // bookmarks bar leaves ~510 px: the HUD and the first screens ran off the edges); it then draws only the pixels
+        // the window shows (the frame's devicePixelRatio follows __arcWinK, play.html)
+        var kk = Math.min(1, h / MIN_H); window.__arcWinK = kk;
+        fr.style.width = Math.round(w / kk) + "px"; fr.style.height = Math.round(h / kk) + "px"; fr.style.transform = kk < 1 ? "scale(" + kk + ")" : "";
+        box.style.width = w + "px"; box.style.height = h + TB + "px"; return 1;
       }
       var aw2 = innerWidth - 32, ah2 = innerHeight - BAR - 16;
       var k = Math.min(ah2 / PHONE_H, aw2 / PHONE_W);

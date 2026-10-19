@@ -15,7 +15,7 @@ import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js"
 import { createShowcase } from "./world-showcase.js";
 import { groundLook } from "./world-look.js";
 
-export const ISLAND_N = 36, LOT_N = 9, HMAX = 24, MAX_BRICKS = 12000;
+export const ISLAND_N = 36, LOT_N = 9, HMAX = 24, MAX_BRICKS = 12000, LAND_BRICKS = 20000; // (an ARCIRCLE LAND owner builds up to LAND_BRICKS)
 export const COLORS = [
   0xf4f1ea, 0xc9ced6, 0x7d8794, 0x2e3440, 0x161a20, 0xe5484d, 0xf2803a, 0xffc861, 0xb6e05a, 0x4caf6a,
   0x2a7a52, 0x35d8d0, 0x4fa8ff, 0x2f86ff, 0x23408e, 0x9b6cff, 0xff7ad9, 0x8a5a36, 0xc89a6a, 0xe9d3a8,
@@ -268,7 +268,7 @@ export function createIsland(ctx) {
     try {
       const u = unb64(s); if (u[0] !== 1) return [];
       const n0 = u[1] || N, out = [], sh = N > n0 && n0 !== 64 ? (N - n0) >> 1 : 0;
-      for (let i = 2; i + 5 <= u.length && out.length < MAX_BRICKS; i += 5) {
+      for (let i = 2; i + 5 <= u.length && out.length < LAND_BRICKS; i += 5) {
         const [x, y, z, t, rc] = u.subarray(i, i + 5), c = rc >> 2;
         if (x >= n0 || z >= n0 || y >= 32 || !TYPES[t] || c >= COLORS.length) continue;
         out.push({ x: x + sh, y, z: z + sh, t, r: rc & 3, c });
@@ -461,7 +461,7 @@ export function createIsland(ctx) {
   function apply(op, rec = true) {
     const touched = new Set();
     (op.del || []).forEach((b) => { const i = bricks.indexOf(b); if (i < 0) return; bricks.splice(i, 1); dropIndex(b); touched.add(b.t); });
-    (op.add || []).forEach((b) => { if (!free(b.x, b.y, b.z, TYPES[b.t].tall) || bricks.length >= MAX_BRICKS) return; bricks.push(b); addIndex(b); touched.add(b.t); });
+    (op.add || []).forEach((b) => { if (!free(b.x, b.y, b.z, TYPES[b.t].tall) || bricks.length >= maxB()) return; bricks.push(b); addIndex(b); touched.add(b.t); });
     (op.paint || []).forEach((p) => { p.b.c = p.to; touched.add(p.b.t); });
     set.sync(bricks, touched);
     if (rec) { undo.push(op); if (undo.length > 200) undo.shift(); redo.length = 0; }
@@ -620,7 +620,7 @@ export function createIsland(ctx) {
     if (t === "place") {
       const ty = TYPES[cur()]; if (!unlocked(ty)) { toast(T("Locked: {why}", { why: lockText(ty) })); Snd.bad(); return; }
       const [x, y, z] = aim.place; if (!free(x, y, z, ty.tall)) { Snd.bad(); return; }
-      if (bricks.length >= MAX_BRICKS) { toast(T("This island is full ({n} bricks)", { n: MAX_BRICKS })); return; }
+      if (bricks.length >= maxB()) { toast(T("This island is full ({n} bricks)", { n: maxB() })); return; }
       const add = [{ x, y, z, t: cur(), r: rot, c: curColor() }];
       if (mirror) { const mx = N - 1 - x; if (mx !== x && free(mx, y, z, ty.tall)) add.push({ x: mx, y, z, t: cur(), r: mirrorRot(cur(), rot), c: curColor() }); }
       apply({ add }); add.forEach((b) => dropIn(b)); Snd.place(); ctx.avatarPlay("interact-right");
@@ -803,6 +803,7 @@ export function createIsland(ctx) {
   // ---------------- what the wallet owns (the ARCL Shop): island size, brick packs, sky ----------------
   let ownedItems = [], ownedLots = [], myTheme = P.isleTheme || "";
   const ownedN = () => (ownedItems.includes("isle64") ? 64 : ownedItems.includes("isle48") ? 48 : ISLAND_N);
+  const maxB = () => (ownedItems.includes("land") ? LAND_BRICKS : MAX_BRICKS);
   function setOwned(items, lots) {
     const before = ownedN(); ownedItems = items || []; ownedLots = lots || [];
     if (active && kind === "home" && !readOnly && ownedN() !== before) { leave(); enter({}).then(() => toast(T("Your island grew to {n}×{n}", { n: N }))); }
