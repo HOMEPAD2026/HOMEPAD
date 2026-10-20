@@ -170,6 +170,11 @@ export function make(deps) {
       await commit([{ inc: day, fields: { [`sv50_${k}_${band(b.p50)}`]: 1, [`sv10_${k}_${band(b.p10)}`]: 1, [`svfam_${dev}_${fam}_${band(b.p50)}`]: 1, [`svcrowd_${dev}_${crowd}_${band(b.p50)}`]: 1 } }]).catch(() => {});
       return json(200, { ok: true });
     }
+    if (b.kind === "site") { // the game site (game.html, gw.js): what people do there — a visit, PLAY FREE pressed (and from which section), the language picked, the trailer's sound — counts only, no ids
+      const ev = ["visit", "play", "lang", "sound", "viewer", "detail", "invite"].includes(b.ev) ? b.ev : "", at = /^[a-z]{2,12}$/.test(String(b.at || "")) ? String(b.at) : "", dev = b.dev === "pc" ? "pc" : "ph";
+      if (ev) await commit([{ inc: day, fields: { [`site_${ev}_${dev}`]: 1, ...(at ? { [`site_${ev}_${at}`]: 1 } : {}) } }]).catch(() => {});
+      return json(200, { ok: true });
+    }
     if (b.kind === "survrun") { // b-svx: a SURVIVORS ARENA run's end (world-survivors.js endRun): how and when it ended, the hero, the weapons and evolutions it had, what knocked it out — for the balance
       const id = (v) => (/^[a-z]{2,12}$/.test(String(v || "")) ? String(v) : ""), how = ["dead", "win", "time", "quit"].includes(b.how) ? b.how : "quit", min = Math.max(0, Math.min(15, Math.floor(Number(b.min) || 0)));
       const f = { [`svend_${how}_${min}`]: 1 }, hero = id(b.hero), by = id(b.by);

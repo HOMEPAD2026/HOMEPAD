@@ -133,6 +133,8 @@ check(cleanSave({ char: "kk-knight" }).char === "kk-knight" && cleanSave({ char:
   check(r.status === 200 && e && e.n === 2 && e.gpu === "Adreno 640" && r.body.days[0].n.fps_ph_auto_2 === 1, "the view shows the counts and the message: " + JSON.stringify(e));
   r = await W.handle({ action: "world-diag", kind: "wallet" }); check(r.status === 400, "nothing else is taken");
   // b-svx: a SURVIVORS ARENA run's end: how and when, hero, weapons, evolutions, what knocked it out (bad ids dropped)
+  r = await W.handle({ action: "world-diag", kind: "site", ev: "play", at: "hero", dev: "phone" }); await W.handle({ action: "world-diag", kind: "site", ev: "nope<x>", dev: "pc" });
+  { const dd = [...db.keys()].find((k) => k.startsWith("worldDiag/")), n = db.get(dd) || {}; check(r.status === 200 && n.site_play_ph === 1 && n.site_play_hero === 1 && !Object.keys(n).some((k) => /nope/.test(k)), "the game site's PLAY FREE is counted (by section), unknown events aren't"); }
   r = await W.handle({ action: "world-diag", kind: "survrun", dev: "phone", how: "dead", min: 4, hero: "aron", w: ["blaster", "orb", "<x>"], evo: ["star"], by: "golem" }); check(r.status === 200, "a Survivors run's end is counted");
   r = await W.read(new URL("http://x/?world=diag")); { const sv = r.body.surv || {}; check(sv.svend && sv.svend.dead_4 === 1 && sv.svw.blaster_dead === 1 && sv.svw.orb_dead === 1 && Object.keys(sv.svw).length === 2 && sv.svevo.star === 1 && sv.svby.golem === 1 && sv.svhero.aron_dead === 1, "the view sums Survivors runs: " + JSON.stringify(sv)); }
   // hitches (b441): place, cause and length; anything else in the batch is dropped

@@ -21,6 +21,71 @@
   var NOTE_D = ["2026-10-20", "2026-10-20", "2026-10-20", "2026-10-20", "2026-10-19", "2026-10-18"];
 
   var EN = {
+    "nav.rank": "Rankings",
+    "nav.media": "Media",
+    "intro.skip": "Skip",
+    "sound.on": "Sound on",
+    "sound.off": "Sound off",
+    "hero.back": "Welcome back, {name} · Lv {lv}",
+    "hero.cont": "Continue as {name}",
+    "tk.live": "LIVE",
+    "tk.rings": "♾️ <b>{name}</b> leads INFINITY RINGS this week · ★{n}",
+    "tk.ta": "⏱️ <b>{name}</b> tops TIME ATTACK · {n} boards",
+    "tk.surv": "⚔️ <b>{name}</b> leads SURVIVORS ARENA · {t}",
+    "tk.poker": "🃏 <b>{name}</b> leads the poker lounge this week",
+    "tk.dino": "🦖 <b>{name}</b> tops the dino ladder · rating {n}",
+    "tk.idle": ["🔥 Weekend 2×: double XP and ARCL every Saturday and Sunday (KST)", "♾️ 200 levels of INFINITY RINGS — ice, portal and timer rings", "⚔️ SURVIVORS ARENA: up to 3,000 ARCL a run", "🏝️ Build your island — LAND owners build up to 64×64", "🦖 Hatch a dinosaur, raise it, ride it", "🃏 Free poker chips every day"],
+    "cd.day": "Daily reset",
+    "cd.week": "Weekly reset",
+    "cd.wkOn": "Weekend 2× ends",
+    "cd.wkOff": "Weekend 2× starts",
+    "cd.d": "d",
+    "rk.k": "Leaderboards",
+    "rk.h": "This week's best",
+    "rk.tabs": ["Rings ★", "Time Attack", "Survivors", "Poker", "Dino ladder"],
+    "rk.none": "No one on this board yet this week — be the first!",
+    "rk.stars": "★ {n}",
+    "rk.boards": "{n} boards",
+    "rk.surv": "{t} · {k} KOs",
+    "rk.poker": "{n} pts",
+    "rk.dino": "Lv {lv} · {n}",
+    "gd.more": "Details",
+    "gd.tips": "Tips",
+    "gd.pay": "Rewards",
+    "nd.share": "Share",
+    "nd.copied": "Link copied",
+    "nd.read": "Read more",
+    "v.load": "Tap to load the 3D hero",
+    "v.h": "Try them in 3D",
+    "v.p": "The same models as in the game. Drag to turn, pick a colour, say hi.",
+    "v.wave": "Wave",
+    "v.play": "Play with this hero",
+    "v.loading": "Loading the hero…",
+    "v.fail": "3D isn't available on this device.",
+    "inv.k": "Invite friends",
+    "inv.h": "Play together",
+    "inv.p": "Share your link. When your friend reaches level 5, you both get the invite reward.",
+    "inv.btn": "Get my invite link",
+    "inv.copy": "Copy",
+    "inv.copied": "Copied!",
+    "inv.signin": "Sign in with your wallet in the game first, then come back — or invite from the game's Menu.",
+    "inv.err": "Couldn't make the link right now — try again in a moment.",
+    "inv.text": "Join me in ARCIRCLE WORLD — one world, countless games!",
+    "md.k": "Media",
+    "md.h": "Trailer, wallpapers & logos",
+    "md.trailer": "Official trailer",
+    "md.wall": "Wallpapers",
+    "md.logo": "Logos & icons",
+    "md.dl": "Download",
+    "walls": ["The world", "Three heroes", "Jurassic World", "Survivors Arena", "Infinity Rings", "ARCIA Poker"],
+    "logos": ["Logo", "App icon", "Jurassic", "Survivors", "Infinity Rings", "Poker"],
+    "st.wait": "Checking the servers…",
+    "st.ok": "All systems normal",
+    "st.down": "The game server isn't answering — try again soon",
+    "pwa.install": "Add to home screen",
+    "sticky.s": "Free · phone & PC",
+    "tips": {"jurassic": ["Press J (or the action button) to chop trees and mine rocks.", "Set up a camp with a bed and a campfire before night — the dark brings danger.", "Your ore bag is shared with the ARCL Mine."], "surv": ["Dash through a crowd when you're cornered.", "The cards show which weapon and passive evolve together — collect the pair.", "The clock pickup freezes the monsters for a moment (bosses keep moving).", "The daily challenge has its own board and pays Arena Coins."], "poker": ["Chips are play money, and there are free chips every day.", "ARCL comes from the three daily missions — never from winning a hand.", "Make a private table and share its code with your friends."], "rings": ["Tap a ring to turn it one step; drag round it to turn either way.", "A ring falls when every hook on it is open — and a fall can free its neighbours.", "A hint caps the board at 2 stars, the hammer at 1.", "Ice cracks on the first turn, portals fall in pairs, timer rings must fall in time."], "mine": ["Upgrade your pickaxe to break the bigger rocks.", "The ore you dig goes into the same bag you use in Jurassic World."], "defense": ["After a wave you pick an upgrade — towers that hit harder or reach further.", "Each wave you hold pays 5 ARCL, up to 150 a day."], "jump": ["Fall? You go back to the last checkpoint, not the start.", "The crown pays 3,000 ARCL once a day (signed in)."], "beat": ["Tap the pad as the ring lands.", "Sound off? Follow the lights."]},
+    "nbody": ["Levels 101–200 bring three new rings: ice (the first turn only cracks it), portals (a pair that falls together) and timers (drop them in time). Level 200 is the RIFT BOSS, and clearing it makes you an INFINITY LEGEND. There's also a themed puzzle every day of the week and TIME ATTACK: as many boards as you can in 60 seconds, on a weekly board. Levels 101–200 pay 50 ARCL a new star for now.", "Reroll, Banish and Skip on the level-up cards, a chest roulette for 1, 3 or 5 upgrades, four pickups (food, magnet, bomb, clock), Arena Coins for six permanent upgrades, six achievements with titles, an evolution collection and a daily challenge with the same seed for everyone. Plus big critical numbers, combo counts and cut-ins.", "The lounge is a room now: your hero walks to ARCIA's table, the cashier bar, the weekly board and the style mirror. Players at the table are drawn as heroes in the chairs — they cheer when they win and shake their heads when they fold.", "Twenty villages on the town's outer ring, bought with $ARCIRCLE and paid to the ARCIRCLE treasury from your own wallet. The owner's island stands on the plot for everyone in town to see, and LAND owners build bigger islands (64×64). LAND doesn't pay out.", "Gather wood, stone and ore, craft at a workbench, and build a camp with huts, beds, a campfire and a chest. Rain and night come round, and the dark brings danger. No ARCL in Jurassic World yet — XP and resources.", "If you had the page open while we updated the game, a game could fail to load. Now the page refreshes itself (twice if it must), and older game files stay online for a week."],
     skip: "Skip to content", play: "Play free",
     "nav.games": "Games", "nav.heroes": "Heroes", "nav.features": "Features", "nav.how": "How to play", "nav.guide": "Guide", "nav.road": "Roadmap", "nav.events": "Events", "nav.news": "News", "nav.policy": "Play policy", "nav.pad": "Platform World",
     "hero.tag": "One world. Countless games.", "hero.sub": "Walk a living 3D planet with your hero, jump into eight games, build your island and earn ARCL along the way.", "hero.on": "playing now", "hero.vis": "visitors so far", "hero.note": "Phone & PC · no download · play first, sign in later",
@@ -71,6 +136,71 @@
     policy: [["🎮", "Fair play", ["One player, one account.", "No bots, scripts, auto-clickers or exploits — rewards earned that way can be withheld.", "Found a bug? Report it instead of using it."]], ["💠", "About rewards", ["ARCL are in-game points for taking part.", "Every game has a daily limit, and amounts can change.", "Nothing is guaranteed, and nothing here is investment advice."]], ["🛡️", "Wallet safety", ["We will never ask for your seed phrase or private key.", "Signing in only signs a log-in message. Payments (like LAND) always open in your own wallet for you to approve.", "Check that you're on arcircle.app."]], ["💬", "Community", ["Be kind in chat and guestbooks.", "No scams, spam, impersonation or hate.", "Players who break the rules can be muted or removed."]]],
   };
   var KO = {
+    "nav.rank": "랭킹",
+    "nav.media": "미디어",
+    "intro.skip": "건너뛰기",
+    "sound.on": "소리 켜기",
+    "sound.off": "소리 끄기",
+    "hero.back": "{name}님, 다시 오셨네요 · Lv {lv}",
+    "hero.cont": "{name}(으)로 계속하기",
+    "tk.live": "LIVE",
+    "tk.rings": "♾️ 이번 주 인피니티 링 1위 <b>{name}</b> · ★{n}",
+    "tk.ta": "⏱️ 타임어택 1위 <b>{name}</b> · 보드 {n}개",
+    "tk.surv": "⚔️ 서바이버 아레나 1위 <b>{name}</b> · {t}",
+    "tk.poker": "🃏 이번 주 포커 라운지 1위 <b>{name}</b>",
+    "tk.dino": "🦖 공룡 배틀 랭킹 1위 <b>{name}</b> · 레이팅 {n}",
+    "tk.idle": ["🔥 주말 2배: 매주 토·일(한국 시간) XP와 ARCL 2배", "♾️ 인피니티 링 200레벨 — 얼음·포털·시간 링", "⚔️ 서바이버 아레나: 한 판 최대 3,000 ARCL", "🏝️ 내 섬 짓기 — LAND 소유자는 64×64까지", "🦖 공룡을 부화시켜 키우고 타 보세요", "🃏 매일 무료 포커 칩"],
+    "cd.day": "일일 초기화",
+    "cd.week": "주간 초기화",
+    "cd.wkOn": "주말 2배 종료까지",
+    "cd.wkOff": "주말 2배 시작까지",
+    "cd.d": "일",
+    "rk.k": "리더보드",
+    "rk.h": "이번 주 최고 기록",
+    "rk.tabs": ["링 ★", "타임어택", "서바이버", "포커", "공룡 랭킹"],
+    "rk.none": "이번 주 기록이 아직 없어요 — 첫 번째가 되어 보세요!",
+    "rk.stars": "★ {n}",
+    "rk.boards": "보드 {n}개",
+    "rk.surv": "{t} · {k}킬",
+    "rk.poker": "{n}점",
+    "rk.dino": "Lv {lv} · {n}",
+    "gd.more": "자세히",
+    "gd.tips": "팁",
+    "gd.pay": "보상",
+    "nd.share": "공유",
+    "nd.copied": "링크를 복사했어요",
+    "nd.read": "더 보기",
+    "v.load": "탭해서 3D 캐릭터 불러오기",
+    "v.h": "3D로 만나 보세요",
+    "v.p": "게임과 똑같은 모델이에요. 드래그로 돌리고, 색을 고르고, 인사해 보세요.",
+    "v.wave": "인사하기",
+    "v.play": "이 캐릭터로 플레이",
+    "v.loading": "캐릭터를 불러오는 중…",
+    "v.fail": "이 기기에서는 3D를 표시할 수 없어요.",
+    "inv.k": "친구 초대",
+    "inv.h": "함께 플레이해요",
+    "inv.p": "내 링크를 공유하세요. 친구가 레벨 5가 되면 둘 다 초대 보상을 받아요.",
+    "inv.btn": "내 초대 링크 받기",
+    "inv.copy": "복사",
+    "inv.copied": "복사했어요!",
+    "inv.signin": "먼저 게임에서 지갑으로 로그인한 뒤 다시 와 주세요 — 또는 게임 메뉴에서 초대할 수 있어요.",
+    "inv.err": "지금은 링크를 만들 수 없어요 — 잠시 후 다시 해 보세요.",
+    "inv.text": "ARCIRCLE WORLD에서 같이 놀아요 — 하나의 세계, 무한한 게임!",
+    "md.k": "미디어",
+    "md.h": "트레일러, 배경화면 & 로고",
+    "md.trailer": "공식 트레일러",
+    "md.wall": "배경화면",
+    "md.logo": "로고 & 아이콘",
+    "md.dl": "다운로드",
+    "walls": ["월드", "세 명의 영웅", "쥬라기 월드", "서바이버 아레나", "인피니티 링", "ARCIA 포커"],
+    "logos": ["로고", "앱 아이콘", "쥬라기", "서바이버", "인피니티 링", "포커"],
+    "st.wait": "서버 상태 확인 중…",
+    "st.ok": "모든 서비스 정상",
+    "st.down": "게임 서버가 응답하지 않아요 — 잠시 후 다시 해 보세요",
+    "pwa.install": "홈 화면에 추가",
+    "sticky.s": "무료 · 폰 & PC",
+    "tips": {"jurassic": ["J(또는 액션 버튼)로 나무를 베고 바위를 캐요.", "밤이 되기 전에 침대와 모닥불이 있는 캠프를 세우세요 — 어둠은 위험해요.", "광석 가방은 ARCL 광산과 공유돼요."], "surv": ["몰리면 대시로 무리를 뚫고 나가세요.", "카드에 함께 진화하는 무기와 패시브가 표시돼요 — 짝을 모으세요.", "시계 아이템은 잠깐 몬스터를 멈춰요 (보스는 계속 움직여요).", "데일리 챌린지는 전용 순위가 있고 아레나 코인을 줘요."], "poker": ["칩은 게임용 돈이고, 매일 무료 칩이 있어요.", "ARCL은 하루 3개 미션에서만 — 이겨서 받는 건 없어요.", "비공개 테이블을 만들고 코드를 친구에게 공유하세요."], "rings": ["링을 탭하면 한 칸, 링을 따라 드래그하면 원하는 방향으로 돌아요.", "링의 모든 고리가 열리면 떨어지고 — 그 낙하가 이웃 링을 풀어 줄 수 있어요.", "힌트를 쓰면 최대 별 2개, 해머를 쓰면 1개예요.", "얼음은 첫 회전에 깨지고, 포털은 쌍으로 떨어지고, 시간 링은 제때 떨어뜨려야 해요."], "mine": ["곡괭이를 업그레이드하면 더 큰 바위를 깰 수 있어요.", "캔 광석은 쥬라기 월드와 같은 가방에 들어가요."], "defense": ["웨이브가 끝나면 업그레이드를 골라요 — 더 세게, 더 멀리 공격하는 타워.", "막아 낸 웨이브마다 5 ARCL, 하루 최대 150."], "jump": ["떨어지면 처음이 아니라 마지막 체크포인트로 돌아가요.", "왕관은 하루 한 번 3,000 ARCL (로그인 시)."], "beat": ["링이 내려앉는 순간 패드를 탭하세요.", "소리가 꺼져 있다면 불빛을 따라가세요."]},
+    "nbody": ["101~200레벨에 새 링 세 가지가 나와요: 얼음(첫 회전은 얼음만 깨져요), 포털(쌍으로 함께 떨어져요), 시간 링(제때 떨어뜨려야 해요). 200레벨은 균열 보스이고, 깨면 INFINITY LEGEND 칭호를 받아요. 요일마다 테마 퍼즐이 있고, 60초 동안 최대한 많은 보드를 깨는 타임어택도 주간 순위와 함께 생겼어요. 101~200레벨은 당분간 새 별마다 50 ARCL이에요.", "레벨업 카드의 새로고침·제외·건너뛰기, 1·3·5개 업그레이드를 고르는 상자 룰렛, 아이템 4종(음식·자석·폭탄·시계), 영구 강화 6종을 위한 아레나 코인, 칭호가 있는 업적 6개, 진화 컬렉션, 모두에게 같은 시드의 데일리 챌린지. 큼직한 크리티컬 숫자, 콤보, 컷인 연출도 더해졌어요.", "라운지가 공간이 됐어요: 내 캐릭터가 ARCIA의 테이블, 캐셔 바, 주간 순위판, 스타일 거울까지 걸어가요. 테이블의 플레이어는 의자에 앉은 캐릭터로 보이고, 이기면 환호하고 폴드하면 고개를 저어요.", "마을 바깥 링의 마을 20곳을 $ARCIRCLE로 살 수 있어요. 결제는 내 지갑에서 ARCIRCLE 트레저리로 직접 해요. 주인의 섬이 그 자리에 세워져 마을의 모두가 볼 수 있고, LAND 소유자는 더 큰 섬(64×64)을 지을 수 있어요. LAND에서 지급되는 보상은 없어요.", "나무·돌·광석을 모으고, 작업대에서 제작하고, 오두막·침대·모닥불·상자가 있는 캠프를 지으세요. 비와 밤이 찾아오고, 어둠은 위험해요. 쥬라기 월드에는 아직 ARCL이 없어요 — XP와 자원만 있어요.", "게임을 업데이트하는 동안 페이지를 열어 두었다면 게임이 열리지 않을 때가 있었어요. 이제 페이지가 스스로 새로고침하고(필요하면 두 번), 이전 게임 파일도 일주일 동안 남겨 둬요."],
     skip: "본문으로 건너뛰기", play: "무료 플레이",
     "nav.games": "게임", "nav.heroes": "캐릭터", "nav.features": "특징", "nav.how": "이용 방법", "nav.guide": "가이드", "nav.road": "로드맵", "nav.events": "이벤트", "nav.news": "새소식", "nav.policy": "이용 정책", "nav.pad": "플랫폼 월드",
     "hero.tag": "하나의 세계, 무한한 게임.", "hero.sub": "내 캐릭터로 살아 있는 3D 행성을 걷고, 8개의 게임에 뛰어들고, 섬을 짓고, 플레이하며 ARCL을 모으세요.", "hero.on": "명 플레이 중", "hero.vis": "누적 방문", "hero.note": "폰 & PC · 설치 없음 · 먼저 플레이, 로그인은 나중에",
@@ -114,6 +244,71 @@
     policy: [["🎮", "공정한 플레이", ["한 사람, 한 계정.", "봇, 스크립트, 오토 클릭, 버그 악용 금지 — 그렇게 얻은 보상은 보류될 수 있어요.", "버그를 찾으면 쓰지 말고 알려 주세요."]], ["💠", "보상에 대해", ["ARCL은 참여에 대한 게임 내 포인트예요.", "게임마다 하루 한도가 있고, 수량은 바뀔 수 있어요.", "어떤 것도 보장되지 않으며, 투자 조언이 아니에요."]], ["🛡️", "지갑 안전", ["시드 문구나 개인키는 절대 묻지 않아요.", "로그인은 로그인 메시지에 서명할 뿐이에요. 결제(LAND 등)는 항상 내 지갑에서 직접 승인해요.", "arcircle.app이 맞는지 확인하세요."]], ["💬", "커뮤니티", ["채팅과 방명록에서 친절하게.", "사기, 스팸, 사칭, 혐오 금지.", "규칙을 어기면 채팅 금지나 퇴장될 수 있어요."]]],
   };
   var ZH = {
+    "nav.rank": "排行",
+    "nav.media": "媒体",
+    "intro.skip": "跳过",
+    "sound.on": "打开声音",
+    "sound.off": "关闭声音",
+    "hero.back": "欢迎回来，{name} · Lv {lv}",
+    "hero.cont": "以 {name} 继续",
+    "tk.live": "LIVE",
+    "tk.rings": "♾️ 本周无限之环第一 <b>{name}</b> · ★{n}",
+    "tk.ta": "⏱️ 限时挑战第一 <b>{name}</b> · {n} 局",
+    "tk.surv": "⚔️ 幸存者竞技场第一 <b>{name}</b> · {t}",
+    "tk.poker": "🃏 本周扑克休息室第一 <b>{name}</b>",
+    "tk.dino": "🦖 恐龙天梯第一 <b>{name}</b> · 积分 {n}",
+    "tk.idle": ["🔥 周末双倍：每周六、周日（韩国时间）经验和 ARCL 翻倍", "♾️ 无限之环 200 关——冰环、传送门环、计时环", "⚔️ 幸存者竞技场：每局最多 3,000 ARCL", "🏝️ 建造你的岛屿——LAND 拥有者可建到 64×64", "🦖 孵化恐龙，养大它，骑上它", "🃏 每天免费扑克筹码"],
+    "cd.day": "每日重置",
+    "cd.week": "每周重置",
+    "cd.wkOn": "周末双倍结束",
+    "cd.wkOff": "周末双倍开始",
+    "cd.d": "天",
+    "rk.k": "排行榜",
+    "rk.h": "本周最佳",
+    "rk.tabs": ["圆环 ★", "限时挑战", "幸存者", "扑克", "恐龙天梯"],
+    "rk.none": "本周榜上还没人——来做第一个吧！",
+    "rk.stars": "★ {n}",
+    "rk.boards": "{n} 局",
+    "rk.surv": "{t} · {k} 击倒",
+    "rk.poker": "{n} 分",
+    "rk.dino": "Lv {lv} · {n}",
+    "gd.more": "详情",
+    "gd.tips": "技巧",
+    "gd.pay": "奖励",
+    "nd.share": "分享",
+    "nd.copied": "链接已复制",
+    "nd.read": "阅读更多",
+    "v.load": "点击载入 3D 角色",
+    "v.h": "3D 看看他们",
+    "v.p": "与游戏中完全相同的模型。拖动旋转，挑选颜色，打个招呼。",
+    "v.wave": "挥手",
+    "v.play": "用这个角色开玩",
+    "v.loading": "正在载入角色…",
+    "v.fail": "此设备无法显示 3D。",
+    "inv.k": "邀请好友",
+    "inv.h": "一起玩",
+    "inv.p": "分享你的链接。好友达到 5 级时，你们都会获得邀请奖励。",
+    "inv.btn": "获取我的邀请链接",
+    "inv.copy": "复制",
+    "inv.copied": "已复制！",
+    "inv.signin": "请先在游戏中用钱包登录，再回到这里——也可以在游戏菜单里邀请。",
+    "inv.err": "暂时无法生成链接——请稍后再试。",
+    "inv.text": "来 ARCIRCLE WORLD 和我一起玩——一个世界，无数游戏！",
+    "md.k": "媒体",
+    "md.h": "预告片、壁纸与标志",
+    "md.trailer": "官方预告片",
+    "md.wall": "壁纸",
+    "md.logo": "标志与图标",
+    "md.dl": "下载",
+    "walls": ["世界", "三位英雄", "侏罗纪世界", "幸存者竞技场", "无限之环", "ARCIA 扑克"],
+    "logos": ["标志", "应用图标", "侏罗纪", "幸存者", "无限之环", "扑克"],
+    "st.wait": "正在检查服务器…",
+    "st.ok": "所有服务正常",
+    "st.down": "游戏服务器暂无响应——请稍后再试",
+    "pwa.install": "添加到主屏幕",
+    "sticky.s": "免费 · 手机和电脑",
+    "tips": {"jurassic": ["按 J（或动作按钮）砍树、采石。", "入夜前搭好有床和篝火的营地——黑夜很危险。", "你的矿石袋与 ARCL 矿场共享。"], "surv": ["被包围时用冲刺穿过怪群。", "卡片会显示哪把武器和哪个被动可以一起进化——凑齐这一对。", "时钟道具会让怪物暂停片刻（首领不受影响）。", "每日挑战有独立排行，奖励竞技场币。"], "poker": ["筹码是游戏币，每天都有免费筹码。", "ARCL 只来自每天 3 个任务——从不因赢牌发放。", "创建私人牌桌，把房间码分享给好友。"], "rings": ["点一下圆环转一格；沿着圆环拖动可任意方向转。", "圆环上的钩子全部打开就会掉落——掉落还能解开相邻的圆环。", "用提示最多 2 星，用锤子最多 1 星。", "冰环第一次转动会碎冰，传送门环成对掉落，计时环必须及时掉落。"], "mine": ["升级镐子才能敲碎更大的岩石。", "挖到的矿石会放进与侏罗纪世界共用的袋子。"], "defense": ["每波结束后挑一个强化——伤害更高或射程更远的塔。", "每守住一波 5 ARCL，每天最多 150。"], "jump": ["掉下去会回到最近的检查点，而不是起点。", "王冠每天一次 3,000 ARCL（登录后）。"], "beat": ["在圆环落下的瞬间点按踏板。", "没开声音？跟着灯光走。"]},
+    "nbody": ["101–200 关带来三种新圆环：冰环（第一次转动只碎冰）、传送门环（成对一起掉落）、计时环（必须及时掉落）。第 200 关是裂隙首领，通关即获得 INFINITY LEGEND 称号。每周每天还有主题谜题，以及限时挑战：60 秒内尽量多通关，进入每周排行。101–200 关目前每颗新星 50 ARCL。", "升级卡的重抽、放逐和跳过，可选 1、3 或 5 个强化的宝箱轮盘，四种道具（食物、磁铁、炸弹、时钟），用于六项永久强化的竞技场币，六个带称号的成就，进化图鉴，以及所有人同一种子的每日挑战。还有大号暴击数字、连击和特写演出。", "休息室现在是一个空间：你的角色可以走到 ARCIA 的牌桌、兑换柜台、每周排行和造型镜前。牌桌上的玩家以角色形象坐在椅子上——赢了会欢呼，弃牌会摇头。", "小镇外环的 20 座村庄，用 $ARCIRCLE 购买，从你自己的钱包直接付款给 ARCIRCLE 金库。拥有者的岛屿会立在地块上供全镇观看，LAND 拥有者还能建造更大的岛屿（64×64）。LAND 不产生收益。", "采集木材、石头和矿石，在工作台制作，搭建有小屋、床、篝火和箱子的营地。雨夜会到来，黑暗充满危险。侏罗纪世界暂无 ARCL——只有经验和资源。", "如果更新游戏时你的页面一直开着，游戏可能无法载入。现在页面会自己刷新（必要时两次），旧的游戏文件也会保留一周。"],
     skip: "跳到内容", play: "免费游玩",
     "nav.games": "游戏", "nav.heroes": "角色", "nav.features": "特色", "nav.how": "玩法", "nav.guide": "指南", "nav.road": "路线图", "nav.events": "活动", "nav.news": "新闻", "nav.policy": "游戏规则", "nav.pad": "平台世界",
     "hero.tag": "一个世界，无数游戏。", "hero.sub": "带着你的角色漫步鲜活的 3D 星球，畅玩八款游戏，建造你的岛屿，边玩边赚 ARCL。", "hero.on": "正在游玩", "hero.vis": "累计访问", "hero.note": "手机 & 电脑 · 无需下载 · 先玩，后登录",
@@ -157,6 +352,71 @@
     policy: [["🎮", "公平游戏", ["一人一个账号。", "禁止机器人、脚本、连点器和漏洞利用——以此获得的奖励可能被扣留。", "发现漏洞请报告，不要利用。"]], ["💠", "关于奖励", ["ARCL 是参与获得的游戏内积分。", "每款游戏都有每日上限，数量可能调整。", "没有任何保证，这里也不是投资建议。"]], ["🛡️", "钱包安全", ["我们绝不会索要你的助记词或私钥。", "登录只会签署一条登录消息。付款（如 LAND）总是在你自己的钱包中由你确认。", "请确认网址是 arcircle.app。"]], ["💬", "社区", ["在聊天和留言板中友善相处。", "禁止诈骗、刷屏、冒充和仇恨言论。", "违反规则的玩家可能被禁言或移除。"]]],
   };
   var TR = {
+    "nav.rank": "Sıralamalar",
+    "nav.media": "Medya",
+    "intro.skip": "Geç",
+    "sound.on": "Sesi aç",
+    "sound.off": "Sesi kapat",
+    "hero.back": "Tekrar hoş geldin, {name} · Lv {lv}",
+    "hero.cont": "{name} olarak devam et",
+    "tk.live": "CANLI",
+    "tk.rings": "♾️ Bu hafta INFINITY RINGS lideri <b>{name}</b> · ★{n}",
+    "tk.ta": "⏱️ ZAMANA KARŞI lideri <b>{name}</b> · {n} tahta",
+    "tk.surv": "⚔️ SURVIVORS ARENA lideri <b>{name}</b> · {t}",
+    "tk.poker": "🃏 Bu hafta poker salonunun lideri <b>{name}</b>",
+    "tk.dino": "🦖 Dinozor sıralamasının lideri <b>{name}</b> · puan {n}",
+    "tk.idle": ["🔥 Hafta sonu 2×: her cumartesi ve pazar (KST) iki kat XP ve ARCL", "♾️ 200 seviyelik INFINITY RINGS — buz, portal ve zamanlayıcı halkaları", "⚔️ SURVIVORS ARENA: tur başına en fazla 3.000 ARCL", "🏝️ Adanı kur — LAND sahipleri 64×64'e kadar", "🦖 Bir dinozor çıkar, büyüt, bin", "🃏 Her gün ücretsiz poker fişi"],
+    "cd.day": "Günlük sıfırlama",
+    "cd.week": "Haftalık sıfırlama",
+    "cd.wkOn": "Hafta sonu 2× bitiyor",
+    "cd.wkOff": "Hafta sonu 2× başlıyor",
+    "cd.d": "g",
+    "rk.k": "Sıralamalar",
+    "rk.h": "Haftanın en iyileri",
+    "rk.tabs": ["Halkalar ★", "Zamana Karşı", "Survivors", "Poker", "Dinozorlar"],
+    "rk.none": "Bu hafta tabloda henüz kimse yok — ilk sen ol!",
+    "rk.stars": "★ {n}",
+    "rk.boards": "{n} tahta",
+    "rk.surv": "{t} · {k} KO",
+    "rk.poker": "{n} puan",
+    "rk.dino": "Lv {lv} · {n}",
+    "gd.more": "Ayrıntılar",
+    "gd.tips": "İpuçları",
+    "gd.pay": "Ödüller",
+    "nd.share": "Paylaş",
+    "nd.copied": "Bağlantı kopyalandı",
+    "nd.read": "Devamını oku",
+    "v.load": "3D kahramanı yüklemek için dokun",
+    "v.h": "Onları 3D dene",
+    "v.p": "Oyundakiyle aynı modeller. Döndürmek için sürükle, bir renk seç, selam ver.",
+    "v.wave": "El salla",
+    "v.play": "Bu kahramanla oyna",
+    "v.loading": "Kahraman yükleniyor…",
+    "v.fail": "Bu cihazda 3D kullanılamıyor.",
+    "inv.k": "Arkadaş davet et",
+    "inv.h": "Birlikte oyna",
+    "inv.p": "Bağlantını paylaş. Arkadaşın 5. seviyeye ulaşınca ikiniz de davet ödülü alırsınız.",
+    "inv.btn": "Davet bağlantımı al",
+    "inv.copy": "Kopyala",
+    "inv.copied": "Kopyalandı!",
+    "inv.signin": "Önce oyunda cüzdanınla giriş yap, sonra buraya dön — ya da oyunun Menüsünden davet et.",
+    "inv.err": "Bağlantı şu an oluşturulamadı — birazdan tekrar dene.",
+    "inv.text": "ARCIRCLE WORLD'de bana katıl — tek dünya, sayısız oyun!",
+    "md.k": "Medya",
+    "md.h": "Fragman, duvar kâğıtları & logolar",
+    "md.trailer": "Resmî fragman",
+    "md.wall": "Duvar kâğıtları",
+    "md.logo": "Logolar & simgeler",
+    "md.dl": "İndir",
+    "walls": ["Dünya", "Üç kahraman", "Jurassic World", "Survivors Arena", "Infinity Rings", "ARCIA Poker"],
+    "logos": ["Logo", "Uygulama simgesi", "Jurassic", "Survivors", "Infinity Rings", "Poker"],
+    "st.wait": "Sunucular kontrol ediliyor…",
+    "st.ok": "Tüm sistemler normal",
+    "st.down": "Oyun sunucusu yanıt vermiyor — birazdan tekrar dene",
+    "pwa.install": "Ana ekrana ekle",
+    "sticky.s": "Ücretsiz · telefon & PC",
+    "tips": {"jurassic": ["Ağaç kesmek ve kaya kazmak için J'ye (ya da eylem düğmesine) bas.", "Geceden önce yatak ve kamp ateşiyle bir kamp kur — karanlık tehlikelidir.", "Maden çantan ARCL Mine ile ortaktır."], "surv": ["Köşeye sıkışınca kalabalığın içinden atıl.", "Kartlar hangi silah ve pasifin birlikte evrimleştiğini gösterir — çifti topla.", "Saat eşyası canavarları bir anlığına dondurur (boss'lar hareket eder).", "Günlük meydan okumanın kendi tablosu var ve Arena Coin verir."], "poker": ["Fişler oyun parasıdır ve her gün ücretsiz fiş var.", "ARCL yalnızca günlük üç görevden gelir — el kazanmaktan asla.", "Özel masa aç ve kodunu arkadaşlarınla paylaş."], "rings": ["Bir adım çevirmek için halkaya dokun; iki yöne çevirmek için etrafında sürükle.", "Tüm kancaları açık olan halka düşer — düşüş komşularını da çözebilir.", "İpucu tahtayı en fazla 2 yıldızla, çekiç 1 yıldızla sınırlar.", "Buz ilk çevrilişte çatlar, portallar çift düşer, zamanlayıcı halkalar zamanında düşmeli."], "mine": ["Daha büyük kayaları kırmak için kazmanı yükselt.", "Kazdığın cevher Jurassic World'de kullandığın çantaya gider."], "defense": ["Bir dalgadan sonra bir geliştirme seçersin — daha sert vuran ya da daha uzağa erişen kuleler.", "Tuttuğun her dalga 5 ARCL, günde en fazla 150."], "jump": ["Düşersen başa değil, son kontrol noktasına dönersin.", "Taç günde bir kez 3.000 ARCL (giriş yapınca)."], "beat": ["Halka indiği anda pede dokun.", "Ses kapalı mı? Işıkları takip et."]},
+    "nbody": ["101–200 seviyeler üç yeni halka getiriyor: buz (ilk çevriliş yalnızca buzu kırar), portal (birlikte düşen bir çift) ve zamanlayıcı (zamanında düşür). 200. seviye YARIK BOSS'tur ve onu geçen INFINITY LEGEND olur. Haftanın her günü temalı bir bulmaca ve ZAMANA KARŞI da var: 60 saniyede olabildiğince çok tahta, haftalık tabloda. 101–200 seviyeler şimdilik yeni yıldız başına 50 ARCL verir.", "Seviye kartlarında Yenile, Sürgün ve Geç; 1, 3 ya da 5 geliştirme için sandık ruleti; dört eşya (yemek, mıknatıs, bomba, saat); altı kalıcı geliştirme için Arena Coin; unvanlı altı başarım; evrim koleksiyonu ve herkese aynı tohumla günlük meydan okuma. Ayrıca büyük kritik sayılar, kombolar ve kesitler.", "Salon artık bir oda: kahramanın ARCIA'nın masasına, kasa barına, haftalık tabloya ve stil aynasına yürür. Masadaki oyuncular sandalyelerde kahraman olarak görünür — kazanınca sevinir, pas geçince başını sallar.", "Kasabanın dış halkasında $ARCIRCLE ile alınan ve kendi cüzdanından ARCIRCLE hazinesine ödenen yirmi köy. Sahibinin adası arsada tüm kasabanın göreceği şekilde durur ve LAND sahipleri daha büyük adalar (64×64) kurabilir. LAND ödeme yapmaz.", "Odun, taş ve cevher topla, tezgâhta üret; kulübe, yatak, kamp ateşi ve sandıklı bir kamp kur. Yağmur ve gece gelir, karanlık tehlikelidir. Jurassic World'de henüz ARCL yok — XP ve kaynaklar.", "Oyunu güncellerken sayfan açıksa bir oyun yüklenemeyebiliyordu. Artık sayfa kendini yeniliyor (gerekirse iki kez) ve eski oyun dosyaları bir hafta çevrimiçi kalıyor."],
     skip: "İçeriğe geç", play: "Ücretsiz oyna",
     "nav.games": "Oyunlar", "nav.heroes": "Kahramanlar", "nav.features": "Özellikler", "nav.how": "Nasıl oynanır", "nav.guide": "Rehber", "nav.road": "Yol haritası", "nav.events": "Etkinlikler", "nav.news": "Haberler", "nav.policy": "Oyun kuralları", "nav.pad": "Platform Dünyası",
     "hero.tag": "Tek dünya. Sayısız oyun.", "hero.sub": "Kahramanınla yaşayan bir 3D gezegende dolaş, sekiz oyuna atla, adanı kur ve oynarken ARCL kazan.", "hero.on": "şu an oynuyor", "hero.vis": "toplam ziyaret", "hero.note": "Telefon & PC · indirme yok · önce oyna, sonra giriş yap",
@@ -208,20 +468,32 @@
   var dateOf = function (d) { var p = d.split("-"); return { y: p[0], m: p[1], d: p[2] }; };
 
   // ---------------- painting the page in the chosen language ----------------
-  var gi = 0, stats = null;
+  var gi = 0, stats = null, boards = null, rk = 0;
+  var KEYART = { jurassic: 1, surv: 1, rings: 1, poker: 1 }; // the owner's key art (images/gw/key-*.webp); the others show their game card
+  var gArt = function (g, small) { return KEYART[g.id] ? "/images/gw/key-" + g.id + (small ? "-416" : "") + ".webp" : "/images/games/" + g.img + ".webp"; };
+  var gIcon = function (g) { return KEYART[g.id] ? "/images/gw/icon-" + g.id + ".webp" : "/images/games/" + g.img + ".webp"; };
+  var VER = (function () { var s = $('script[src*="gw.js"]'), m = s && /[?&]v=(\w+)/.exec(s.getAttribute("src")); return m ? m[1] : "1"; })();
+  var phone = innerWidth < 760;
+  var dev = coarse || phone ? "ph" : "pc";
+  // what people do here, counted by kind only (api/_world.mjs diag kind "site": no ids, no wallets)
+  function diag(ev, at) { try { fetch("/api/social", { method: "POST", keepalive: true, headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "world-diag", kind: "site", ev: ev, at: at || "", dev: dev }) }).catch(function () { /* a count lost */ }); } catch (e) { /* fine */ } }
+  // the h2s come in word by word
+  function words(el) { var s = el.textContent; el.innerHTML = s.split(/\s+/).filter(Boolean).map(function (w, i) { return '<span class="w"><i style="--wi:' + i + '">' + esc(w) + "</i></span>"; }).join(" "); }
   function paint() {
     document.documentElement.lang = lang;
-    $$("[data-i]").forEach(function (el) { var v = t(el.getAttribute("data-i")); if (v != null) el.textContent = v; });
+    $$("[data-i]").forEach(function (el) { var v = t(el.getAttribute("data-i")); if (typeof v !== "string") return; if (/<b>/.test(v)) el.innerHTML = v; else el.textContent = v; if (el.classList.contains("gw-h2") && !reduce) words(el); });
     $(".gw-lang-cur").textContent = lang.toUpperCase();
-    $$(".gw-lang-menu button").forEach(function (b) { b.classList.toggle("on", b.dataset.lang === lang); });
+    $$(".gw-lang-menu button, .gw-foot-lang button").forEach(function (b) { b.classList.toggle("on", b.dataset.lang === lang); });
     var L = D();
-    // news
-    $("#gw-news").innerHTML = L.news.map(function (n, i) { var m = NEWS[i] || {}; return '<a class="gw-news gw-rv" style="--d:' + i + '" href="#notices"><div class="gw-news-img"><img src="' + m.img + '" alt="" loading="lazy">' + (m.b ? '<span class="gw-badge ' + m.b + '">' + esc(n[0]) + "</span>" : "") + '</div><div class="gw-news-b"><span class="gw-meta">' + esc(n[0]) + "<span>" + esc(m.d.replace(/-/g, ". ")) + "</span></span><h3>" + esc(n[1]) + "</h3><p>" + esc(n[2]) + "</p></div></a>"; }).join("");
+    // news (a card opens its story)
+    $("#gw-news").innerHTML = L.news.map(function (n, i) { var m = NEWS[i] || {}; return '<a class="gw-news gw-rv" style="--d:' + i + '" href="#news-' + i + '" data-news="' + i + '"><div class="gw-news-img"><img src="' + m.img + '" alt="" loading="lazy">' + (m.b ? '<span class="gw-badge ' + m.b + '">' + esc(n[0]) + "</span>" : "") + '</div><div class="gw-news-b"><span class="gw-meta">' + esc(n[0]) + "<span>" + esc(m.d.replace(/-/g, ". ")) + "</span></span><h3>" + esc(n[1]) + "</h3><p>" + esc(n[2]) + "</p></div></a>"; }).join("");
     // games
-    $("#gw-gtabs").innerHTML = GAMES.map(function (g, i) { return '<button type="button" role="tab" class="gw-gtab" data-g="' + i + '" aria-selected="' + (i === gi) + '"><img src="/images/games/' + g.img + '.webp" alt="" loading="lazy"><b>' + esc(L.games[g.id][0]) + "</b></button>"; }).join("");
+    $("#gw-gtabs").innerHTML = GAMES.map(function (g, i) { return '<button type="button" role="tab" class="gw-gtab" data-g="' + i + '" aria-selected="' + (i === gi) + '"><img src="' + gIcon(g) + '" alt="" loading="lazy"><b>' + esc(L.games[g.id][0]) + "</b></button>"; }).join("");
     paintGame(false);
     // heroes
     $("#gw-picks").innerHTML = HEROES.map(function (h, i) { var x = L.heroes[h.id]; return '<article class="gw-pick gw-rv" style="--c:' + h.c + ";--d:" + i + '" data-tilt><div class="gw-pick-img"><img src="/images/gw/pick-' + h.id + '.webp" alt="' + esc(x[0]) + '" loading="lazy"></div><div class="gw-pick-b"><span class="gw-pick-t">' + esc(x[1]) + '</span><span class="gw-pick-n">' + esc(x[0]) + "</span><p>" + esc(x[2]) + '</p><dl><dt>' + esc(t("perk")) + "</dt><dd>" + esc(x[3]) + "</dd><dt>" + esc(t("skill")) + "</dt><dd>" + esc(x[4]) + "</dd></dl><small class=\"gw-fine\">" + esc(t("inSurv")) + "</small></div></article>"; }).join("");
+    paintViewer();
+    paintRanks();
     // features, steps, controls, FAQ
     $("#gw-feats").innerHTML = L.feats.map(function (f, i) { return '<div class="gw-feat gw-rv" style="--d:' + (i % 4) + '"><i>' + f[0] + "</i><h3>" + esc(f[1]) + "</h3><p>" + esc(f[2]) + "</p></div>"; }).join("");
     $("#gw-steps").innerHTML = L.steps.map(function (s, i) { return '<li class="gw-step gw-rv" style="--d:' + i + '"><div><h3>' + esc(s[0]) + "</h3><p>" + esc(s[1]) + "</p></div></li>"; }).join("");
@@ -234,31 +506,158 @@
     $("#gw-plan-next").innerHTML = L.next.map(function (s) { return "<li>" + s + "</li>"; }).join("");
     paintKpis();
     // events (Weekend 2× says LIVE on a Saturday or Sunday in Korea)
-    var kst = new Date(Date.now() + 9 * 3600e3).getUTCDay(), weekend = kst === 0 || kst === 6;
-    $("#gw-events").innerHTML = L.events.map(function (e, i) { var c = EV_COL[i % EV_COL.length]; return '<div class="gw-ev gw-rv" style="--a:' + c[0] + ";--b:" + c[1] + ";--d:" + (i % 3) + '">' + (i === 0 && weekend ? '<span class="gw-live-b">' + esc(t("live")) + "</span>" : "") + "<i>" + e[0] + "</i><small>" + esc(e[3]) + "</small><h3>" + esc(e[1]) + "</h3><p>" + esc(e[2]) + "</p></div>"; }).join("");
-    // notices, policy
+    $("#gw-events").innerHTML = L.events.map(function (e, i) { var c = EV_COL[i % EV_COL.length]; return '<div class="gw-ev gw-rv" style="--a:' + c[0] + ";--b:" + c[1] + ";--d:" + (i % 3) + '">' + (i === 0 && weekendNow() ? '<span class="gw-live-b">' + esc(t("live")) + "</span>" : "") + "<i>" + e[0] + "</i><small>" + esc(e[3]) + "</small><h3>" + esc(e[1]) + "</h3><p>" + esc(e[2]) + "</p></div>"; }).join("");
+    // notices, media, policy
     $("#gw-notices").innerHTML = L.notices.map(function (n, i) { var d = dateOf(NOTE_D[i] || NOTE_D[0]); return '<li class="gw-rv" style="--d:' + (i % 3) + '"><time datetime="' + NOTE_D[i] + '"><b>' + d.d + "</b>" + d.y + "." + d.m + "</time><h3>" + esc(n[0]) + "</h3><p>" + esc(n[1]) + "</p></li>"; }).join("");
+    var W = ["/images/gw/hero-poster.jpg", "/images/gw/heroes.webp", "/images/gw/key-jurassic.webp", "/images/gw/key-surv.webp", "/images/gw/key-rings.webp", "/images/gw/key-poker.webp"];
+    $("#gw-walls").innerHTML = t("walls").map(function (n, i) { return '<a class="gw-wall gw-rv" style="--d:' + (i % 3) + '" href="' + W[i] + '" download><img src="' + W[i].replace("heroes.webp", "heroes-800.webp").replace(/key-(\w+)\.webp/, "key-$1-416.webp") + '" alt="" loading="lazy"><span>' + esc(n) + "<em>⬇ " + esc(t("md.dl")) + "</em></span></a>"; }).join("");
+    var LG = ["/images/gw/logo.webp", "/images/gw/icon-app.webp", "/images/gw/icon-jurassic.webp", "/images/gw/icon-surv.webp", "/images/gw/icon-rings.webp", "/images/gw/icon-poker.webp"];
+    $("#gw-logos").innerHTML = t("logos").map(function (n, i) { return '<a class="gw-lg gw-rv" style="--d:' + (i % 3) + '" href="' + LG[i] + '" download><img src="' + (i ? LG[i] : "/images/gw/logo-540.webp") + '" alt="" loading="lazy"><span>' + esc(n) + "</span><small>⬇ " + esc(t("md.dl")) + "</small></a>"; }).join("");
     $("#gw-policy").innerHTML = L.policy.map(function (p, i) { return '<div class="gw-pol gw-rv" style="--d:' + i + '"><h3><span>' + p[0] + "</span>" + esc(p[1]) + "</h3><ul>" + p[2].map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>"; }).join("");
     $$('.gw-drawer-in > a').forEach(function (a, i) { a.style.setProperty("--k", i); });
+    paintBack(); paintTicker(); paintClocks(); paintStatus(); soundLabel();
     reveal(); tilt(); carousel();
   }
+  var bgI = 0;
   function paintGame(anim) {
     var L = D(), g = GAMES[gi], x = L.games[g.id], p = $("#gw-gpanel");
-    p.style.setProperty("--gc", g.c);
-    p.innerHTML = '<div class="gw-gart"><img src="/images/games/' + g.img + '.webp" alt="' + esc(x[0]) + '"><span class="gw-gnum">0' + (gi + 1) + '</span></div><div class="gw-ginfo"><span class="gw-badge" style="background:linear-gradient(135deg,#fff,' + g.c + ')">' + esc(x[1]) + "</span><h3>" + esc(x[0]) + "</h3><p>" + esc(x[2]) + "</p>" + (x[3].length ? '<ul class="gw-gfacts">' + x[3].map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") + '<p class="gw-earn">💠 ' + esc(t("earn")) + " · " + esc(x[4]) + '</p><a class="gw-btn gw-btn-play gw-btn-lg" href="/play">' + esc(t("playG", { g: x[0] })) + "</a></div>";
+    p.style.setProperty("--gc", g.c); $("#games").style.setProperty("--gc", g.c);
+    p.innerHTML = '<i class="gw-gwipe"></i><div class="gw-gart"><img src="' + gArt(g) + '" alt="' + esc(x[0]) + '"><span class="gw-gnum">0' + (gi + 1) + '</span></div><div class="gw-ginfo"><span class="gw-badge" style="background:linear-gradient(135deg,#fff,' + g.c + ')">' + esc(x[1]) + "</span><h3>" + esc(x[0]) + "</h3><p>" + esc(x[2]) + "</p>" + (x[3].length ? '<ul class="gw-gfacts">' + x[3].map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") + '<p class="gw-earn">💠 ' + esc(t("earn")) + " · " + esc(x[4]) + '</p><div class="gw-gbtns"><a class="gw-btn gw-btn-play gw-btn-lg" href="/play" data-at="game">' + esc(t("playG", { g: x[0] })) + '</a><a class="gw-btn gw-btn-ghost gw-btn-lg" href="#game-' + g.id + '" data-game="' + g.id + '">' + esc(t("gd.more")) + "</a></div></div>";
     $$(".gw-gtab").forEach(function (b, i) { b.setAttribute("aria-selected", String(i === gi)); });
+    // the key art behind the section crossfades
+    var imgs = $$(".gw-gbg img"), nx = imgs[bgI ^ 1], cur = imgs[bgI], src = gArt(g, true);
+    if (nx && cur.getAttribute("src") !== src) { nx.onload = function () { nx.classList.add("on"); cur.classList.remove("on"); bgI ^= 1; }; nx.src = src; }
     if (anim && !reduce) { p.classList.remove("swap"); void p.offsetWidth; p.classList.add("swap"); }
-    var tab = $('.gw-gtab[data-g="' + gi + '"]'); if (tab && anim) try { tab.scrollIntoView({ block: "nearest", inline: "center", behavior: reduce ? "auto" : "smooth" }); } catch (e) { /* fine */ }
+    var tab = $('.gw-gtab[data-g="' + gi + '"]'); if (tab && anim) try { var tr = tab.parentNode; tr.scrollTo({ left: tab.offsetLeft - (tr.clientWidth - tab.offsetWidth) / 2, behavior: reduce ? "auto" : "smooth" }); } catch (e) { /* fine */ }
   }
   function paintKpis() {
     var vals = [stats && stats.players != null ? [stats.players, 10000, t("soFar", { n: fmt(stats.players) })] : null, stats && stats.online != null ? [stats.online, 100, t("online", { n: fmt(stats.online) })] : null, [GAMES.length, 10, t("soFar", { n: GAMES.length })], null, null];
     $$("[data-kpi]").forEach(function (el) { var v = vals[Number(el.dataset.kpi)]; el.querySelector("em").textContent = v ? v[2] : t("tbd"); var m = el.querySelector(".gw-meter i"); m.style.width = v ? Math.max(2, Math.min(100, (v[0] / v[1]) * 100)) + "%" : "0%"; if (!v) el.querySelector(".gw-meter").style.opacity = ".3"; });
   }
 
+  // ---------------- welcome back: the hero saved in this browser (the game's own save, arc.world) ----------------
+  var saved = null; try { var P = JSON.parse(localStorage.getItem("arc.world") || "null"); if (P && P.name) saved = { name: String(P.name).slice(0, 20), char: P.char, xp: Number(P.xp) || 0, lv: 0 }; } catch (e) { saved = null; }
+  function paintBack() {
+    var el = $("#gw-back"); if (!saved) return; el.hidden = false;
+    el.textContent = saved.lv ? t("hero.back", { name: saved.name, lv: saved.lv }) : t("hero.cont", { name: saved.name });
+  }
+  if (saved) import("/world-rpg-data.js").then(function (m) { saved.lv = m.levelOfXp(saved.xp); paintBack(); }).catch(function () { /* the name alone */ });
+
+  // ---------------- the live strip: who leads the boards this week, and the clocks ----------------
+  var nm = function (x) { return x.name || (x.w ? String(x.w).slice(0, 6) + "…" : "?"); };
+  var mmss = function (s) { s = Math.max(0, Math.round(Number(s) || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  var BOARDS = [
+    { q: "rings-top", icon: "/images/gw/icon-rings.webp", tk: "tk.rings", v: function (x) { return t("rk.stars", { n: fmt(x.stars) }); }, n: function (x) { return fmt(x.stars); } },
+    { q: "rings-ta", icon: "/images/gw/icon-rings.webp", tk: "tk.ta", v: function (x) { return t("rk.boards", { n: fmt(x.n) }); }, n: function (x) { return fmt(x.n); } },
+    { q: "surv-top", icon: "/images/gw/icon-surv.webp", tk: "tk.surv", v: function (x) { return t("rk.surv", { t: mmss(x.secs), k: fmt(x.kills || 0) }); }, n: function (x) { return mmss(x.secs); } },
+    { q: "poker-top", icon: "/images/gw/icon-poker.webp", tk: "tk.poker", v: function (x) { return t("rk.poker", { n: fmt(x.n) }); }, n: function (x) { return fmt(x.n); } },
+    { q: "dino-ladder", icon: "/images/gw/icon-jurassic.webp", tk: "tk.dino", v: function (x) { return t("rk.dino", { lv: x.lv || 1, n: fmt(x.rating || 0) }); }, n: function (x) { return fmt(x.rating || 0); } },
+  ];
+  function readBoards() {
+    Promise.all(BOARDS.map(function (b) { return fetch("/api/social?world=" + b.q).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && Array.isArray(j.top) ? j.top : null; }).catch(function () { return null; }); }))
+      .then(function (r) { boards = r; paintTicker(); paintRanks(); });
+  }
+  function paintTicker() {
+    var el = $("#gw-tk"), items = [];
+    if (boards) BOARDS.forEach(function (b, i) { var x = boards[i] && boards[i][0]; if (x) items.push(t(b.tk, { name: esc(nm(x)), n: b.n(x), t: mmss(x.secs) })); });
+    items = items.concat(t("tk.idle") || []);
+    var one = items.map(function (s) { return "<span><i>◆</i>" + s + "</span>"; }).join("");
+    el.innerHTML = one + one; // twice, so the run loops without a seam (it slides by half)
+    el.style.setProperty("--tkd", Math.max(30, items.length * 7) + "s");
+  }
+  function paintRanks() {
+    var tabs = t("rk.tabs");
+    $("#gw-rtabs").innerHTML = BOARDS.map(function (b, i) { return '<button type="button" role="tab" data-rk="' + i + '" class="' + (i === rk ? "on" : "") + '" aria-selected="' + (i === rk) + '"><img src="' + b.icon + '" alt="">' + esc(tabs[i]) + "</button>"; }).join("");
+    var list = boards && boards[rk], ol = $("#gw-rlist");
+    if (!boards) { ol.innerHTML = '<li class="none">…</li>'; return; }
+    ol.innerHTML = list && list.length ? list.slice(0, 10).map(function (x, i) { return '<li style="--k:' + i + '"><b>' + esc(nm(x)) + "</b><span>" + esc(BOARDS[rk].v(x)) + "</span></li>"; }).join("") : '<li class="none">' + esc(t("rk.none")) + "</li>";
+  }
+  $("#gw-rtabs").addEventListener("click", function (e) { var b = e.target.closest("[data-rk]"); if (!b) return; rk = Number(b.dataset.rk); paintRanks(); });
+  // the clocks: the daily reset (00:00 KST), the weekly reset (Monday 00:00 KST), the weekend 2× (Sat–Sun KST)
+  var KST = 9 * 3600e3, DAY = 864e5;
+  var kstDay = function () { return new Date(Date.now() + KST).getUTCDay(); };
+  function weekendNow() { var d = kstDay(); return d === 0 || d === 6; }
+  function untilDays(n) { var k = Date.now() + KST; return (Math.floor(k / DAY) + n) * DAY - k; } // to 00:00 KST n days on
+  function dur(ms) { var s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), x = s % 60, p = function (v) { return String(v).padStart(2, "0"); }; return (d ? d + t("cd.d") + " " : "") + p(h) + ":" + p(m) + ":" + p(x); }
+  function paintClocks() {
+    var d = kstDay(), wk = weekendNow(), toMon = (8 - d) % 7 || 7, toSat = (6 - d + 7) % 7 || 7;
+    var C = [[t("cd.day"), untilDays(1), false], [t("cd.week"), untilDays(toMon), false], [wk ? t("cd.wkOn") : t("cd.wkOff"), wk ? untilDays(toMon) : untilDays(toSat), wk]];
+    var el = $("#gw-clocks");
+    if (el.children.length !== 3) el.innerHTML = C.map(function () { return '<div class="gw-clock"><small></small><b></b></div>'; }).join("");
+    C.forEach(function (c, i) { var k = el.children[i]; k.classList.toggle("hot", c[2]); k.firstChild.textContent = c[0]; k.lastChild.textContent = dur(c[1]); });
+  }
+  setInterval(function () { if (!document.hidden) paintClocks(); }, 1000);
+
+  // ---------------- the 3D hero (gw-hero3d.js: the game's own models; loaded only when it's wanted) ----------------
+  var TINT_C = ["#e6f0ff", "#2ee0b0", "#ff6fb5", "#ffc23a", "#9b6bff", "#ff5a5a", "#ff9a3a", "#5ad65a"]; // world-kit.js HERO_TINTS (0 = the hero's own)
+  var vHero = HEROES.some(function (h) { return saved && h.id === saved.char; }) ? saved.char : "aron", vTint = 0, viewer = null, vBusy = false;
+  function paintViewer() {
+    $("#gw-v-heroes").innerHTML = HEROES.map(function (h) { return '<button type="button" data-vh="' + h.id + '" style="--c:' + h.c + '" class="' + (h.id === vHero ? "on" : "") + '">' + esc(D().heroes[h.id][0]) + "</button>"; }).join("");
+    $("#gw-v-tints").innerHTML = TINT_C.map(function (c, i) { return '<button type="button" data-vt="' + i + '" style="--t:' + c + '" class="' + (i === vTint ? "on" : "") + '" aria-label="' + (i + 1) + '"></button>'; }).join("");
+  }
+  function vMsg(s) { var m = $(".gw-v-msg"); m.hidden = !s; m.textContent = s || ""; }
+  function loadViewer() {
+    if (viewer || vBusy) return; vBusy = true; $(".gw-v-load").hidden = true; vMsg(t("v.loading"));
+    import("/gw-hero3d.js?v=" + VER).then(function (m) { return m.mount($(".gw-v-cv"), { ver: "?v=" + VER }); }).then(function (v) { viewer = v; window.__gwHero = v; return v.show(vHero, vTint); }).then(function () { vMsg(""); vBusy = false; diag("viewer"); })
+      .catch(function (e) { console.warn("3D hero:", e); vBusy = false; if (viewer) { try { viewer.dispose(); } catch (x) { /* gone */ } viewer = null; } vMsg(t("v.fail")); });
+  }
+  $(".gw-v-load").addEventListener("click", loadViewer);
+  // on a PC it loads itself once it's on screen; on a phone it waits for a tap (it's a few MB)
+  if (dev === "pc" && "IntersectionObserver" in window) { var vo = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { vo.disconnect(); loadViewer(); } }, { rootMargin: "300px" }); vo.observe($("#gw-viewer")); }
+  $("#gw-viewer").addEventListener("click", function (e) {
+    var h = e.target.closest("[data-vh]"), c = e.target.closest("[data-vt]");
+    if (h) { vHero = h.dataset.vh; paintViewer(); if (viewer) viewer.show(vHero, vTint).catch(function () { vMsg(t("v.fail")); }); else loadViewer(); }
+    if (c) { vTint = Number(c.dataset.vt); paintViewer(); if (viewer) viewer.tint(vTint); }
+    if (e.target.closest('[data-v="wave"]')) { if (viewer) viewer.wave(); else loadViewer(); }
+  });
+
+  // ---------------- details: a game's or a story's sheet (#game-<id>, #news-<n> open it) ----------------
+  var sheet = $("#gw-sheet"), sheetBody = $("#gw-sheet-body"), lastFocus = null;
+  function openSheet(html) { lastFocus = document.activeElement; sheetBody.innerHTML = html; sheet.hidden = false; document.body.style.overflow = "hidden"; $(".gw-sheet-card").scrollTop = 0; try { $(".gw-sheet-x").focus({ preventScroll: true }); } catch (e) { /* fine */ } }
+  function closeSheet() { if (sheet.hidden) return; sheet.hidden = true; document.body.style.overflow = ""; if (/^#(game|news)-/.test(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* fine */ } if (lastFocus && lastFocus.focus) try { lastFocus.focus({ preventScroll: true }); } catch (e) { /* fine */ } }
+  function gameSheet(id) {
+    var g = GAMES.filter(function (x) { return x.id === id; })[0]; if (!g) return false; var x = D().games[id], tips = (t("tips") || {})[id] || [];
+    var gal = [gArt(g), "/images/games/" + g.img + ".webp"].filter(function (s, i, a) { return a.indexOf(s) === i; });
+    openSheet('<div class="gw-sheet-hero"><img src="' + gArt(g) + '" alt=""></div><div class="gw-sheet-in" style="--gc:' + g.c + '"><span class="gw-badge" style="background:linear-gradient(135deg,#fff,' + g.c + ');justify-self:start">' + esc(x[1]) + "</span><h3>" + esc(x[0]) + "</h3><p>" + esc(x[2]) + "</p>" + (x[3].length ? "<ul>" + x[3].map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") + (tips.length ? "<h4>" + esc(t("gd.tips")) + "</h4><ul>" + tips.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") + "<h4>" + esc(t("gd.pay")) + "</h4><p>💠 " + esc(x[4]) + '</p><div class="gw-sheet-gal">' + gal.map(function (s) { return '<img src="' + s + '" alt="" loading="lazy">'; }).join("") + '</div><div class="gw-sheet-acts"><a class="gw-btn gw-btn-play gw-btn-lg" href="/play" data-at="detail">' + esc(t("playG", { g: x[0] })) + "</a></div></div>");
+    diag("detail", "game"); return true;
+  }
+  function newsSheet(i) {
+    var n = D().news[i], m = NEWS[i]; if (!n || !m) return false; var body = (t("nbody") || [])[i] || n[2];
+    openSheet('<div class="gw-sheet-hero"><img src="' + m.img + '" alt=""></div><div class="gw-sheet-in"><span class="gw-meta">' + esc(n[0]) + "<span>" + esc(m.d.replace(/-/g, ". ")) + "</span></span><h3>" + esc(n[1]) + "</h3><p>" + esc(body) + '</p><div class="gw-sheet-acts"><a class="gw-btn gw-btn-play gw-btn-lg" href="/play" data-at="news">' + esc(t("play")) + '</a><button type="button" class="gw-btn gw-btn-ghost gw-btn-lg" data-share="' + i + '">' + esc(t("nd.share")) + "</button></div></div>");
+    diag("detail", "news"); return true;
+  }
+  function route() { var h = location.hash, m = /^#game-(\w+)$/.exec(h), n = /^#news-(\d)$/.exec(h); if (m) return gameSheet(m[1]); if (n) return newsSheet(Number(n[1])); closeSheet(); return false; }
+  addEventListener("hashchange", route);
+  document.addEventListener("click", function (e) {
+    var g = e.target.closest("[data-game]"), n = e.target.closest("[data-news]"), s = e.target.closest("[data-share]");
+    if (g) { e.preventDefault(); try { history.replaceState(null, "", "#game-" + g.dataset.game); } catch (x) { /* fine */ } gameSheet(g.dataset.game); }
+    else if (n) { e.preventDefault(); try { history.replaceState(null, "", "#news-" + n.dataset.news); } catch (x) { /* fine */ } newsSheet(Number(n.dataset.news)); }
+    else if (s) { var url = location.origin + "/game#news-" + s.dataset.share, title = D().news[Number(s.dataset.share)][1];
+      if (navigator.share) navigator.share({ title: title, url: url }).catch(function () { /* closed */ });
+      else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { s.textContent = t("nd.copied"); }).catch(function () { /* fine */ }); }
+    else if (e.target.closest("[data-close]")) closeSheet();
+  });
+
+  // ---------------- invite: your link, made by the game's own invite code (api/_world-refer.mjs) ----------------
+  var invBtn = $("#gw-inv-btn"), invMsg = $("#gw-inv-msg"), invOut = $("#gw-inv-out");
+  var sess = function () { try { var s = JSON.parse(localStorage.getItem("arc.world.sess") || "null"); return s && Date.now() - Date.parse(s.issued) < 23.5 * 3600e3 ? s : null; } catch (e) { return null; } };
+  invBtn.addEventListener("click", function () {
+    var s = sess(); invMsg.textContent = ""; if (!s) { invMsg.textContent = t("inv.signin"); return; }
+    invBtn.disabled = true; var ep = (window.arcWorldLock && window.arcWorldLock.epoch) || 1, b = { action: "world-refer-code", ep: ep };
+    Object.keys(s).forEach(function (k) { b[k] = s[k]; });
+    fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }).then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        invBtn.disabled = false; if (!j || !/^[0-9a-z]{8}$/.test(j.code || "")) { invMsg.textContent = t("inv.err"); return; }
+        var link = location.origin + "/play?ref=" + j.code; invOut.hidden = false; invOut.innerHTML = "<code>" + esc(link) + '</code><button type="button">' + esc(t("inv.copy")) + "</button>";
+        $("button", invOut).onclick = function () { var bt = this; if (navigator.share && coarse) { navigator.share({ title: "ARCIRCLE WORLD", text: t("inv.text"), url: link }).catch(function () { /* closed */ }); return; } (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () { bt.textContent = t("inv.copied"); }).catch(function () { /* select it by hand */ }); };
+        diag("invite");
+      }).catch(function () { invBtn.disabled = false; invMsg.textContent = t("inv.err"); });
+  });
+
   // ---------------- motion: reveal on scroll, the tilt of the hero cards, the carousel ----------------
   var io = "IntersectionObserver" in window ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }); }, { rootMargin: "0px 0px -8% 0px" }) : null;
   function reveal() { $$(".gw-rv:not(.in)").forEach(function (el) { if (io && !reduce) io.observe(el); else el.classList.add("in"); }); }
-  $$(".gw-h2, .gw-kicker, .gw-lead, .gw-gpanel, .gw-controls, .gw-plan, .gw-cta-in").forEach(function (el) { el.classList.add("gw-rv"); });
+  $$(".gw-h2, .gw-kicker, .gw-lead, .gw-gpanel, .gw-controls, .gw-plan, .gw-cta-in, .gw-viewer, .gw-inv, .gw-trailer").forEach(function (el) { el.classList.add("gw-rv"); });
   function tilt() {
     if (reduce || coarse) return;
     $$("[data-tilt]").forEach(function (el) {
@@ -274,37 +673,65 @@
       $$(".gw-arrow", c).forEach(function (b) { b.onclick = function () { var card = tr.firstElementChild; tr.scrollBy({ left: Number(b.dataset.dir) * (card ? card.getBoundingClientRect().width + 18 : 300), behavior: reduce ? "auto" : "smooth" }); }; });
     });
   }
+  // coins float up over the goals the first time they come into view
+  if (!reduce && "IntersectionObserver" in window) { var co = new IntersectionObserver(function (es) { if (!es[0].isIntersecting) return; co.disconnect(); var box = $("#gw-kpis"); box.style.position = "relative";
+    for (var i = 0; i < 14; i++) (function (i) { setTimeout(function () { var c = document.createElement("i"); c.className = "gw-coinfx"; c.style.left = (5 + Math.random() * 90) + "%"; c.style.top = (40 + Math.random() * 55) + "%"; box.appendChild(c); setTimeout(function () { c.remove(); }, 2300); }, i * 110); })(i); }, { threshold: 0.3 }); co.observe($("#gw-kpis")); }
+  // the cursor's glow (a mouse only)
+  if (!reduce && !coarse) { var cur = $(".gw-cursor"); addEventListener("pointermove", function (e) { if (e.pointerType !== "mouse") return; cur.classList.add("on"); cur.style.transform = "translate(" + e.clientX + "px," + e.clientY + "px)"; }, { passive: true }); document.addEventListener("pointerleave", function () { cur.classList.remove("on"); }); }
 
-  // ---------------- the top bar, the phone menu, the language menu ----------------
-  var nav = $("#gw-nav"), drawer = $("#gw-drawer"), burger = $(".gw-burger");
+  // ---------------- the top bar, the phone menu, the language menu, the PLAY bar, parallax ----------------
+  var nav = $("#gw-nav"), drawer = $("#gw-drawer"), burger = $(".gw-burger"), sticky = $("#gw-sticky"), heroSec = $(".gw-hero"), heroIn = $(".gw-hero-in"), ctaSec = $(".gw-cta");
+  sticky.hidden = false;
   function onScroll() { var y = scrollY, h = document.documentElement.scrollHeight - innerHeight; nav.classList.toggle("solid", y > 40); nav.style.setProperty("--p", (h > 0 ? (y / h) * 100 : 0) + "%");
-    var ban = $(".gw-banner img"); if (ban && !reduce) { var r = ban.parentNode.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) ban.style.transform = "scale(1.08) translateY(" + ((r.top / innerHeight) * 30).toFixed(1) + "px)"; } }
+    var hb = heroSec.getBoundingClientRect().bottom, cr = ctaSec.getBoundingClientRect(); sticky.classList.toggle("on", hb < 60 && !(cr.top < innerHeight && cr.bottom > 0));
+    if (reduce) return;
+    if (hb > 0) { heroIn.style.transform = "translateY(" + (y * 0.22).toFixed(1) + "px)"; heroIn.style.opacity = String(Math.max(0, 1 - y / (innerHeight * 0.85))); }
+    var ban = $(".gw-banner img"); if (ban) { var r = ban.parentNode.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) ban.style.transform = "scale(1.08) translateY(" + ((r.top / innerHeight) * 30).toFixed(1) + "px)"; } }
   addEventListener("scroll", onScroll, { passive: true }); onScroll();
   function menu(open) { drawer.hidden = !open; burger.setAttribute("aria-expanded", String(open)); document.body.style.overflow = open ? "hidden" : ""; nav.classList.toggle("solid", open || scrollY > 40); }
   burger.addEventListener("click", function () { menu(drawer.hidden); });
   drawer.addEventListener("click", function (e) { if (e.target.closest("a")) menu(false); });
   var globe = $(".gw-globe"), lm = $(".gw-lang-menu");
+  function setLang(l) { if (!LANGS[l] || l === lang) return; lang = l; try { localStorage.setItem(KEY, lang); } catch (x) { /* this visit only */ } paint(); paintStats(); diag("lang", l); }
   globe.addEventListener("click", function (e) { e.stopPropagation(); lm.hidden = !lm.hidden; globe.setAttribute("aria-expanded", String(!lm.hidden)); });
-  lm.addEventListener("click", function (e) { var b = e.target.closest("button[data-lang]"); if (!b) return; lang = b.dataset.lang; try { localStorage.setItem(KEY, lang); } catch (x) { /* this visit only */ } lm.hidden = true; paint(); paintStats(); });
+  lm.addEventListener("click", function (e) { var b = e.target.closest("button[data-lang]"); if (!b) return; lm.hidden = true; setLang(b.dataset.lang); });
+  $(".gw-foot-lang").addEventListener("click", function (e) { var b = e.target.closest("button[data-lang]"); if (b) setLang(b.dataset.lang); });
   document.addEventListener("click", function () { lm.hidden = true; });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { lm.hidden = true; if (!drawer.hidden) menu(false); } });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { lm.hidden = true; if (!drawer.hidden) menu(false); closeSheet(); } });
   $("#gw-gtabs").addEventListener("click", function (e) { var b = e.target.closest("[data-g]"); if (!b) return; gi = Number(b.dataset.g); paintGame(true); });
   // the game picker turns by itself until you pick one, and by swipe on the art
-  var auto = setInterval(function () { if (document.hidden) return; var p = $("#gw-gpanel"), r = p.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return; gi = (gi + 1) % GAMES.length; paintGame(true); }, 6000);
+  var auto = setInterval(function () { if (document.hidden || !sheet.hidden) return; var p = $("#gw-gpanel"), r = p.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return; gi = (gi + 1) % GAMES.length; paintGame(true); }, 6000);
   $("#gw-gtabs").addEventListener("pointerdown", function () { clearInterval(auto); }, { once: true });
   var sx = null; $("#gw-gpanel").addEventListener("pointerdown", function (e) { sx = e.clientX; clearInterval(auto); });
   $("#gw-gpanel").addEventListener("pointerup", function (e) { if (sx == null) return; var dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 50) { gi = (gi + (dx < 0 ? 1 : GAMES.length - 1)) % GAMES.length; paintGame(true); } });
 
-  // ---------------- the trailer ----------------
+  // ---------------- PLAY: counted by where it was pressed, then the ring opens into the game ----------------
+  var dive = $("#gw-dive");
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest('a[href="/play"]'); if (!a || e.defaultPrevented) return;
+    diag("play", a.dataset.at || "");
+    if (reduce || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+    e.preventDefault(); dive.hidden = false; setTimeout(function () { location.href = "/play"; }, 600);
+  });
+  addEventListener("pageshow", function () { dive.hidden = true; });
+
+  // ---------------- the trailer (portrait on a phone), its sound ----------------
   var saveData = navigator.connection && navigator.connection.saveData;
   function startVideo(v, eager) {
-    if (!v || saveData || reduce) return;
-    var src = innerWidth < 760 ? "/images/gw/hero-480.mp4" : "/images/gw/hero-720.mp4";
+    if (!v) return; v.poster = phone ? "/images/gw/hero-poster-9x16.webp" : "/images/gw/hero-poster.webp";
+    if (saveData || reduce) return;
+    var src = phone ? "/images/gw/hero-9x16.mp4" : "/images/gw/hero-720.mp4";
     var go = function () { if (v.dataset.on) return; v.dataset.on = "1"; v.src = src; v.play().catch(function () { /* the poster stays */ }); };
     if (eager) go(); else if ("IntersectionObserver" in window) { var o = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { go(); o.disconnect(); } }, { rootMargin: "200px" }); o.observe(v); } else go();
   }
-  startVideo($(".gw-hero .gw-video"), true); startVideo($(".gw-cta-video"), false);
-  document.addEventListener("visibilitychange", function () { $$("video[data-on]").forEach(function (v) { if (document.hidden) v.pause(); else v.play().catch(function () { /* fine */ }); }); });
+  var heroV = $(".gw-hero .gw-video"), sndB = $(".gw-sound");
+  startVideo(heroV, true); startVideo($(".gw-cta-video"), false);
+  function soundLabel() { var on = !heroV.muted; sndB.setAttribute("aria-pressed", String(on)); $("span", sndB).textContent = t(on ? "sound.off" : "sound.on"); }
+  sndB.addEventListener("click", function () {
+    if (!heroV.dataset.on) { heroV.dataset.on = "1"; heroV.src = phone ? "/images/gw/hero-9x16.mp4" : "/images/gw/hero-720.mp4"; }
+    heroV.muted = !heroV.muted; heroV.play().catch(function () { heroV.muted = true; soundLabel(); }); soundLabel(); if (!heroV.muted) diag("sound");
+  });
+  document.addEventListener("visibilitychange", function () { $$(".gw-video[data-on]").forEach(function (v) { if (document.hidden) v.pause(); else v.play().catch(function () { /* fine */ }); }); });
 
   // ---------------- sparkles over the trailer ----------------
   (function sparks() {
@@ -317,14 +744,35 @@
       for (var k = 0; k < P.length; k++) { var q = P[k]; q.y -= q.s / 60; if (q.y < -0.02) { q.y = 1.02; q.x = Math.random(); } var a = 0.35 + 0.35 * Math.sin(tt * 2 + q.p); g.beginPath(); g.fillStyle = "rgba(" + q.h + "," + a + ")"; g.shadowColor = "rgba(" + q.h + ",1)"; g.shadowBlur = 8; g.arc(q.x * W + Math.sin(tt + q.p) * 8, q.y * H, q.r, 0, 6.283); g.fill(); } })(0);
   })();
 
-  // ---------------- who's in the world (the gate's numbers) ----------------
-  function countUp(el, to) { if (!el) return; var from = Number(el.dataset.v || 0); el.dataset.v = to; if (reduce || from === to) { el.textContent = fmt(to); return; } var t0 = performance.now(), d = 1100; (function f(n) { var k = Math.min(1, (n - t0) / d), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(Math.round(from + (to - from) * e)); if (k < 1) requestAnimationFrame(f); })(t0); }
-  function paintStats() { if (!stats) return; countUp($('[data-count="online"]'), stats.online || 0); countUp($('[data-count="visitors"]'), stats.visitors || 0); paintKpis(); }
+  // ---------------- the first second: the ∞ comes in (once a visit, not with reduced motion or a deep link) ----------------
+  (function intro() {
+    var el = $("#gw-intro"), seen = false; try { seen = !!sessionStorage.getItem("arc.gw.intro"); sessionStorage.setItem("arc.gw.intro", "1"); } catch (e) { seen = true; }
+    if (seen || reduce || location.hash) return;
+    el.hidden = false; var done = function () { el.hidden = true; }; el.addEventListener("click", done); setTimeout(done, 2150);
+  })();
+
+  // ---------------- add to home screen ----------------
+  var installEv = null, instB = $("#gw-install");
+  addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); installEv = e; instB.hidden = false; });
+  instB.addEventListener("click", function () { if (!installEv) return; installEv.prompt(); installEv.userChoice.finally(function () { installEv = null; instB.hidden = true; }); });
+
+  // ---------------- who's in the world (the gate's numbers), and whether the servers answer ----------------
+  var up = null;
+  function paintStatus() { var el = $("#gw-status"); el.classList.toggle("ok", up === true); el.classList.toggle("down", up === false); $("b", el).textContent = t(up === true ? "st.ok" : up === false ? "st.down" : "st.wait"); }
+  function countUp(el, to) { if (!el) return; var from = Number(el.dataset.v || 0); el.dataset.v = to; if (from !== to && !reduce) { el.classList.remove("gw-tick"); void el.offsetWidth; el.classList.add("gw-tick"); } if (reduce || from === to) { el.textContent = fmt(to); return; } var t0 = performance.now(), d = 1100; (function f(n) { var k = Math.min(1, (n - t0) / d), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(Math.round(from + (to - from) * e)); if (k < 1) requestAnimationFrame(f); })(t0); }
+  function paintStats() {
+    if (!stats) return;
+    // "1 playing now" is only you — the chip shows from two
+    $(".gw-chip-on").hidden = !(stats.online >= 2); $(".gw-chip-vis").hidden = !(stats.visitors > 0);
+    countUp($('[data-count="online"]'), stats.online || 0); countUp($('[data-count="visitors"]'), stats.visitors || 0); paintKpis();
+  }
   function readStats(first) {
     var vid = ""; try { vid = localStorage.getItem("arc.world.vid") || ""; if (!/^[a-z0-9]{20}$/.test(vid)) { vid = Array.from(crypto.getRandomValues(new Uint8Array(20)), function (b) { return "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]; }).join(""); localStorage.setItem("arc.world.vid", vid); } } catch (e) { vid = ""; }
     // opening the site counts as a visit (at most once per 10 minutes a browser, api/_world.mjs), like the gate
     var req = first && vid ? fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "world-ping", id: vid, visit: true, gate: true }) }).then(function (r) { return r.ok ? r : fetch("/api/social?world=stats"); }) : fetch("/api/social?world=stats");
-    req.then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.visitors != null) { stats = j; paintStats(); } }).catch(function () { /* the page works without numbers */ });
+    req.then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { up = !!(j && j.visitors != null); if (up) { stats = j; paintStats(); } paintStatus(); }).catch(function () { up = false; paintStatus(); });
   }
-  paint(); readStats(true); setInterval(function () { if (!document.hidden) readStats(false); }, 30000);
+  paint(); route(); readStats(true); readBoards(); diag("visit");
+  setInterval(function () { if (!document.hidden) readStats(false); }, 30000);
+  setInterval(function () { if (!document.hidden) readBoards(); }, 120000);
 })();

@@ -7,32 +7,39 @@
 <meta name="description" content="ARCIRCLE WORLD: one world, countless games. Walk a 3D planet as ARON, LUMI or NEX, play eight games, build your island and earn ARCL along the way. Free to play on phone and PC.">
 <meta property="og:title" content="ARCIRCLE WORLD — Play Free">
 <meta property="og:description" content="One world. Countless games. Play, build, battle — free on phone and PC.">
-<meta property="og:image" content="https://www.arcircle.app/images/gw/heroes.webp">
+<meta property="og:image" content="https://www.arcircle.app/images/gw/key-world.webp">
 <meta property="og:url" content="https://www.arcircle.app/game">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ARCIRCLE WORLD — Play Free">
-<meta name="twitter:image" content="https://www.arcircle.app/images/gw/heroes.webp">
+<meta name="twitter:image" content="https://www.arcircle.app/images/gw/key-world.webp">
 <meta name="theme-color" content="#050a1a">
+<link rel="manifest" href="/game.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-v2-32.png">
 <link rel="apple-touch-icon" href="/images/brand/apple-touch-icon-v2.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="/images/gw/hero-poster.webp">
-<link rel="stylesheet" href="/gw.css?v=1792506505">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Sora:wght@400;500;600;700;800&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="/images/gw/logo-540.webp">
+<link rel="stylesheet" href="/gw.css?v=1792508024">
 </head>
 <body>
 <a class="gw-skiplink" href="#main" data-i="skip">Skip to content</a>
 
-<!-- the top bar: transparent over the video, solid once you scroll -->
+<!-- the first second: the ∞ comes in with a flash (once a visit; a tap skips it) -->
+<div class="gw-intro" id="gw-intro" hidden><img src="/images/gw/logo-540.webp" alt="" width="536" height="303"><i class="gw-flash"></i><button type="button" class="gw-intro-skip" data-i="intro.skip">Skip</button></div>
+<!-- going into the game: the ring opens and the screen goes white -->
+<div class="gw-dive" id="gw-dive" hidden><i></i></div>
+<i class="gw-cursor" aria-hidden="true"></i>
+
 <header class="gw-nav" id="gw-nav">
   <a class="gw-logo" href="#top" aria-label="ARCIRCLE WORLD">
-    <img src="/images/brand/arcircle-world-logo-256.webp" alt="" width="34" height="34">
+    <img src="/images/gw/icon-app.webp" alt="" width="36" height="36">
     <span><b>ARCIRCLE</b><i>WORLD</i></span>
   </a>
   <nav class="gw-links" aria-label="Sections">
     <a href="#games" data-i="nav.games">Games</a>
     <a href="#heroes" data-i="nav.heroes">Heroes</a>
+    <a href="#rankings" data-i="nav.rank">Rankings</a>
     <a href="#how" data-i="nav.how">How to play</a>
     <a href="#roadmap" data-i="nav.road">Roadmap</a>
     <a href="#events" data-i="nav.events">Events</a>
@@ -49,52 +56,61 @@
         <button type="button" role="menuitem" data-lang="tr">Türkçe</button>
       </div>
     </div>
-    <a class="gw-btn gw-btn-play gw-nav-play" href="/play" data-i="play">Play free</a>
+    <a class="gw-btn gw-btn-play gw-nav-play" href="/play" data-at="nav" data-i="play">Play free</a>
     <button type="button" class="gw-burger" aria-label="Menu" aria-expanded="false"><i></i><i></i><i></i></button>
   </div>
   <i class="gw-progress" aria-hidden="true"></i>
 </header>
 
-<!-- the phone menu (full screen) -->
 <div class="gw-drawer" id="gw-drawer" hidden>
   <div class="gw-drawer-in">
     <a href="#games" data-i="nav.games">Games</a>
     <a href="#heroes" data-i="nav.heroes">Heroes</a>
+    <a href="#rankings" data-i="nav.rank">Rankings</a>
     <a href="#features" data-i="nav.features">Features</a>
     <a href="#how" data-i="nav.how">How to play</a>
     <a href="#guide" data-i="nav.guide">Guide</a>
     <a href="#roadmap" data-i="nav.road">Roadmap</a>
     <a href="#events" data-i="nav.events">Events</a>
     <a href="#news" data-i="nav.news">News</a>
+    <a href="#media" data-i="nav.media">Media</a>
     <a href="#policy" data-i="nav.policy">Play policy</a>
     <a class="gw-out" href="/?skip" data-i="nav.pad">Platform World</a>
-    <a class="gw-btn gw-btn-play" href="/play" data-i="play">Play free</a>
+    <a class="gw-btn gw-btn-play" href="/play" data-at="menu" data-i="play">Play free</a>
   </div>
 </div>
 
 <main id="main">
-<!-- 1. the hero: the trailer, PLAY FREE, who's in the world now -->
+<!-- 1. the hero -->
 <section class="gw-hero" id="top">
-  <video class="gw-video" muted playsinline loop preload="metadata" poster="/images/gw/hero-poster.webp" aria-hidden="true"></video>
+  <video class="gw-video" muted playsinline loop preload="metadata" aria-hidden="true"></video>
   <canvas class="gw-sparks" aria-hidden="true"></canvas>
   <div class="gw-hero-shade" aria-hidden="true"></div>
   <div class="gw-hero-in">
-    <img class="gw-hero-mark" src="/images/brand/arcircle-world-logo-256.webp" alt="" width="96" height="96">
-    <h1 class="gw-title"><span>ARCIRCLE</span><span>WORLD</span></h1>
+    <h1 class="gw-logo-h1"><img src="/images/gw/logo-540.webp" srcset="/images/gw/logo-540.webp 536w, /images/gw/logo.webp 1072w" sizes="(min-width: 760px) 520px, 78vw" alt="ARCIRCLE WORLD" width="536" height="303"></h1>
+    <p class="gw-motto">PLAY · BUILD · BATTLE · EARN</p>
     <p class="gw-tag" data-i="hero.tag">One world. Countless games.</p>
     <p class="gw-sub" data-i="hero.sub">Walk a living 3D planet with your hero, jump into eight games, build your island and earn ARCL along the way.</p>
-    <a class="gw-btn gw-btn-play gw-btn-xl" href="/play"><span data-i="play">Play free</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg></a>
+    <p class="gw-back" id="gw-back" hidden></p>
+    <a class="gw-btn gw-btn-play gw-btn-xl gw-ring" href="/play" data-at="hero"><span class="gw-play-t" data-i="play">Play free</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg></a>
     <div class="gw-live" aria-live="polite">
-      <span class="gw-chip gw-chip-on"><i class="gw-dot"></i><b data-count="online">—</b> <em data-i="hero.on">playing now</em></span>
-      <span class="gw-chip"><b data-count="visitors">—</b> <em data-i="hero.vis">visitors so far</em></span>
+      <span class="gw-chip gw-chip-on" hidden><i class="gw-dot"></i><b data-count="online">—</b> <em data-i="hero.on">playing now</em></span>
+      <span class="gw-chip gw-chip-vis" hidden><b data-count="visitors">—</b> <em data-i="hero.vis">visitors so far</em></span>
     </div>
     <p class="gw-hero-note" data-i="hero.note">Phone &amp; PC · no download · play first, sign in later</p>
   </div>
-  <a class="gw-scroll" href="#news" aria-label="Scroll"><i></i></a>
+  <button type="button" class="gw-sound" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="gw-snd-on" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="gw-snd-off" d="M16 9l5 6M21 9l-5 6"/></svg><span data-i="sound.on">Sound on</span></button>
+  <a class="gw-scroll" href="#ticker" aria-label="Scroll"><i></i></a>
 </section>
 
-<!-- 2. featured news -->
-<section class="gw-sec gw-light" id="news">
+<!-- 2. what's happening: the live ticker and the clocks -->
+<section class="gw-strip" id="ticker">
+  <div class="gw-ticker" aria-live="off"><span class="gw-tk-live" data-i="tk.live">LIVE</span><div class="gw-tk-track"><div class="gw-tk-run" id="gw-tk"></div></div></div>
+  <div class="gw-clocks" id="gw-clocks"></div>
+</section>
+
+<!-- 3. featured news -->
+<section class="gw-sec gw-light gw-cut" id="news">
   <div class="gw-head"><h2 class="gw-h2" data-i="news.h">Featured news</h2><a class="gw-more" href="#notices" data-i="news.all">All notices</a></div>
   <div class="gw-carousel" data-carousel>
     <div class="gw-track" id="gw-news"></div>
@@ -102,36 +118,56 @@
   </div>
 </section>
 
-<!-- 3. the games -->
+<!-- 4. the games: the key art fills the section behind the picker -->
 <section class="gw-sec gw-dark gw-games" id="games">
+  <div class="gw-gbg" aria-hidden="true"><img alt=""><img alt=""></div>
   <p class="gw-kicker" data-i="games.k">Eight games, one world</p>
   <h2 class="gw-h2 gw-big" data-i="games.h">Choose your game</h2>
   <p class="gw-lead" data-i="games.lead">Every game lives in the Game Village. Walk in through its door, or open the Games list — your hero, your wallet and your ARCL come with you.</p>
-  <div class="gw-gtabs" id="gw-gtabs" role="tablist"></div>
+  <div class="gw-gtabs-wrap"><div class="gw-gtabs" id="gw-gtabs" role="tablist"></div></div>
   <div class="gw-gpanel" id="gw-gpanel" aria-live="polite"></div>
   <p class="gw-also" data-i="games.also">Also in town: the hoverboard race, the weekly raid boss, 5 near and 7 far hunting grounds, and ARCIRCLE LAND.</p>
 </section>
 
-<!-- 4. the heroes -->
+<!-- 5. the heroes -->
 <section class="gw-heroes" id="heroes">
   <div class="gw-banner"><img src="/images/gw/heroes.webp" srcset="/images/gw/heroes-800.webp 800w, /images/gw/heroes.webp 1672w" sizes="100vw" alt="LUMI, ARON and NEX — three heroes, your pick" loading="lazy" width="1672" height="941"></div>
   <div class="gw-sec gw-dark gw-heroes-in">
     <p class="gw-kicker" data-i="heroes.k">Characters</p>
-    <h2 class="gw-h2 gw-big" data-i="heroes.h">Three heroes. Your pick.</h2>
+    <h2 class="gw-sr" data-i="heroes.h">Three heroes. Your pick.</h2>
     <p class="gw-lead" data-i="heroes.lead">Pick one, give it your colour and a name. All three grow the same way — level 1 to 100, gear in seven slots — and each brings its own style into SURVIVORS ARENA.</p>
     <div class="gw-picks" id="gw-picks"></div>
+    <!-- the real 3D hero from the game: drag to turn, a colour, a wave -->
+    <div class="gw-viewer" id="gw-viewer">
+      <div class="gw-v-stage"><canvas class="gw-v-cv"></canvas><button type="button" class="gw-v-load" data-i="v.load">Tap to load the 3D hero</button><span class="gw-v-msg" hidden></span></div>
+      <div class="gw-v-ui">
+        <h3 data-i="v.h">Try them in 3D</h3>
+        <p data-i="v.p">The same models as in the game. Drag to turn, pick a colour, say hi.</p>
+        <div class="gw-v-heroes" id="gw-v-heroes"></div>
+        <div class="gw-v-tints" id="gw-v-tints"></div>
+        <div class="gw-v-acts"><button type="button" class="gw-btn gw-btn-ghost" data-v="wave" data-i="v.wave">Wave</button><a class="gw-btn gw-btn-play" href="/play" data-at="viewer" data-i="v.play">Play with this hero</a></div>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- 5. features -->
-<section class="gw-sec gw-light" id="features">
+<!-- 6. rankings -->
+<section class="gw-sec gw-light gw-cut" id="rankings">
+  <p class="gw-kicker" data-i="rk.k">Leaderboards</p>
+  <h2 class="gw-h2 gw-big" data-i="rk.h">This week's best</h2>
+  <div class="gw-rtabs" id="gw-rtabs" role="tablist"></div>
+  <ol class="gw-rlist" id="gw-rlist"></ol>
+</section>
+
+<!-- 7. features -->
+<section class="gw-sec gw-dark" id="features">
   <p class="gw-kicker" data-i="feat.k">Why ARCIRCLE WORLD</p>
   <h2 class="gw-h2 gw-big" data-i="feat.h">Built to play together</h2>
   <div class="gw-feats" id="gw-feats"></div>
 </section>
 
-<!-- 6. how to play -->
-<section class="gw-sec gw-dark" id="how">
+<!-- 8. how to play -->
+<section class="gw-sec gw-light gw-cut" id="how">
   <p class="gw-kicker" data-i="how.k">Start in a minute</p>
   <h2 class="gw-h2 gw-big" data-i="how.h">How to play</h2>
   <ol class="gw-steps" id="gw-steps"></ol>
@@ -139,17 +175,31 @@
     <div class="gw-ctl"><h3 data-i="how.phone">On a phone</h3><ul id="gw-ctl-phone"></ul></div>
     <div class="gw-ctl"><h3 data-i="how.pc">On a PC</h3><ul id="gw-ctl-pc"></ul></div>
   </div>
-  <div class="gw-center"><a class="gw-btn gw-btn-play gw-btn-lg" href="/play" data-i="play">Play free</a></div>
+  <div class="gw-center"><a class="gw-btn gw-btn-play gw-btn-lg" href="/play" data-at="how" data-i="play">Play free</a></div>
 </section>
 
-<!-- 7. guide (FAQ) -->
-<section class="gw-sec gw-light" id="guide">
+<!-- 9. guide -->
+<section class="gw-sec gw-dark" id="guide">
   <p class="gw-kicker" data-i="guide.k">Guide</p>
   <h2 class="gw-h2 gw-big" data-i="guide.h">Good to know</h2>
   <div class="gw-faq" id="gw-faq"></div>
 </section>
 
-<!-- 8. roadmap & goals -->
+<!-- 10. invite -->
+<section class="gw-sec gw-invite" id="invite">
+  <div class="gw-inv">
+    <img src="/images/gw/pick-aron.webp" alt="" loading="lazy" class="gw-inv-art">
+    <div class="gw-inv-b">
+      <p class="gw-kicker" data-i="inv.k">Invite friends</p>
+      <h2 class="gw-h2" data-i="inv.h">Play together</h2>
+      <p data-i="inv.p">Share your link. When your friend reaches level 5, you both get the invite reward.</p>
+      <div class="gw-inv-row"><button type="button" class="gw-btn gw-btn-play" id="gw-inv-btn" data-i="inv.btn">Get my invite link</button><span class="gw-inv-out" id="gw-inv-out" hidden></span></div>
+      <p class="gw-fine" id="gw-inv-msg"></p>
+    </div>
+  </div>
+</section>
+
+<!-- 11. roadmap & goals -->
 <section class="gw-sec gw-dark gw-road" id="roadmap">
   <p class="gw-kicker" data-i="road.k">Plan &amp; goals</p>
   <h2 class="gw-h2 gw-big" data-i="road.h">Where we're going</h2>
@@ -161,53 +211,82 @@
   </div>
 </section>
 
-<!-- 9. events -->
-<section class="gw-sec gw-light" id="events">
+<!-- 12. events -->
+<section class="gw-sec gw-light gw-cut" id="events">
   <p class="gw-kicker" data-i="ev.k">Events</p>
   <h2 class="gw-h2 gw-big" data-i="ev.h">Every day, every week</h2>
   <div class="gw-events" id="gw-events"></div>
 </section>
 
-<!-- 10. notices -->
+<!-- 13. notices -->
 <section class="gw-sec gw-dark" id="notices">
   <p class="gw-kicker" data-i="no.k">Notices</p>
   <h2 class="gw-h2 gw-big" data-i="no.h">Updates &amp; notices</h2>
   <ul class="gw-notices" id="gw-notices"></ul>
 </section>
 
-<!-- 11. play policy -->
-<section class="gw-sec gw-light" id="policy">
+<!-- 14. media -->
+<section class="gw-sec gw-light gw-cut" id="media">
+  <p class="gw-kicker" data-i="md.k">Media</p>
+  <h2 class="gw-h2 gw-big" data-i="md.h">Trailer, wallpapers &amp; logos</h2>
+  <div class="gw-media">
+    <div class="gw-trailer"><video controls playsinline preload="none" poster="/images/gw/hero-poster.webp" src="/images/gw/hero-720.mp4"></video><b data-i="md.trailer">Official trailer</b></div>
+    <h3 class="gw-h3" data-i="md.wall">Wallpapers</h3>
+    <div class="gw-walls" id="gw-walls"></div>
+    <h3 class="gw-h3" data-i="md.logo">Logos &amp; icons</h3>
+    <div class="gw-logos" id="gw-logos"></div>
+  </div>
+</section>
+
+<!-- 15. play policy -->
+<section class="gw-sec gw-dark" id="policy">
   <p class="gw-kicker" data-i="pol.k">Play policy</p>
   <h2 class="gw-h2 gw-big" data-i="pol.h">Fair play, safe wallets</h2>
   <div class="gw-policy" id="gw-policy"></div>
 </section>
 
-<!-- 12. the last call -->
+<!-- 16. the last call -->
 <section class="gw-cta">
   <video class="gw-video gw-cta-video" muted playsinline loop preload="none" aria-hidden="true"></video>
   <div class="gw-hero-shade" aria-hidden="true"></div>
   <div class="gw-cta-in">
+    <img class="gw-cta-logo" src="/images/gw/logo-540.webp" alt="" loading="lazy" width="536" height="303">
     <h2 class="gw-h2 gw-big" data-i="cta.h">Your world is waiting</h2>
     <p data-i="cta.p">Free on phone and PC. Your hero is one tap away.</p>
-    <div class="gw-cta-btns"><a class="gw-btn gw-btn-play gw-btn-xl" href="/play" data-i="play">Play free</a><a class="gw-btn gw-btn-ghost gw-btn-lg" href="/?skip" data-i="cta.pad">Go to Platform World</a></div>
+    <div class="gw-cta-btns"><a class="gw-btn gw-btn-play gw-btn-xl gw-ring" href="/play" data-at="cta" data-i="play">Play free</a><a class="gw-btn gw-btn-ghost gw-btn-lg" href="/?skip" data-i="cta.pad">Go to Platform World</a></div>
   </div>
 </section>
 </main>
 
 <footer class="gw-foot">
   <div class="gw-foot-in">
-    <a class="gw-logo" href="#top"><img src="/images/brand/arcircle-world-logo-256.webp" alt="" width="34" height="34"><span><b>ARCIRCLE</b><i>WORLD</i></span></a>
+    <a class="gw-logo" href="#top"><img src="/images/gw/icon-app.webp" alt="" width="36" height="36"><span><b>ARCIRCLE</b><i>WORLD</i></span></a>
+    <span class="gw-status" id="gw-status"><i></i><b data-i="st.wait">Checking the servers…</b></span>
     <nav class="gw-foot-links">
-      <a href="/play" data-i="play">Play free</a>
-      <a href="/?skip" data-i="nav.pad">Platform World</a>
+      <a href="/play" data-at="foot" data-i="play">Play free</a>
+      <a href="#games" data-i="nav.games">Games</a>
+      <a href="#rankings" data-i="nav.rank">Rankings</a>
+      <a href="#media" data-i="nav.media">Media</a>
       <a href="#policy" data-i="nav.policy">Play policy</a>
-      <a href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">X @ARCIRCLEonArc</a>
-      <a href="https://t.me/ARCIRCLEonarc" target="_blank" rel="noopener">Telegram</a>
+      <a href="/?skip" data-i="nav.pad">Platform World</a>
     </nav>
+    <div class="gw-social">
+      <a href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener" aria-label="X"><svg viewBox="0 0 24 24"><path d="M4 4l16 16M20 4L4 20" /></svg><span>@ARCIRCLEonArc</span></a>
+      <a href="https://t.me/ARCIRCLEonarc" target="_blank" rel="noopener" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21 4L3 11l6 2 2 6 3-4 5 4z"/></svg><span>Telegram</span></a>
+      <button type="button" class="gw-install" id="gw-install" hidden><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg><span data-i="pwa.install">Add to home screen</span></button>
+    </div>
+    <div class="gw-foot-lang"><button type="button" data-lang="en">English</button><button type="button" data-lang="ko">한국어</button><button type="button" data-lang="zh">中文</button><button type="button" data-lang="tr">Türkçe</button></div>
     <p class="gw-fine" data-i="foot.fine">ARCL are in-game points. Rewards are for play and are never guaranteed. Nothing on this page is financial advice.</p>
     <p class="gw-fine">© 2026 ARCIRCLE</p>
   </div>
 </footer>
-<script src="/gw.js?v=1792506505" defer></script>
+
+<!-- the phone's PLAY bar once the hero is out of sight -->
+<div class="gw-sticky" id="gw-sticky" hidden><img src="/images/gw/icon-app.webp" alt="" width="34" height="34"><span><b>ARCIRCLE WORLD</b><small data-i="sticky.s">Free · phone &amp; PC</small></span><a class="gw-btn gw-btn-play" href="/play" data-at="sticky" data-i="play">Play free</a></div>
+
+<!-- a game's or a news item's details -->
+<div class="gw-sheet" id="gw-sheet" hidden role="dialog" aria-modal="true"><div class="gw-sheet-bg" data-close></div><div class="gw-sheet-card"><button type="button" class="gw-sheet-x" data-close aria-label="Close">✕</button><div class="gw-sheet-body" id="gw-sheet-body"></div></div></div>
+<script src="/world-lock.js?v=1792508024" defer></script>
+<script src="/gw.js?v=1792508024" defer></script>
 </body>
 </html>
