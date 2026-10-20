@@ -79,4 +79,49 @@ r = await fell(gm, "spino:0", "spino"); check(r.status === 200 && r.body.loot.hi
   const body = (t) => t.slice(t.indexOf("const RAD = {"), t.indexOf("return d < (r1 + r2) * 0.8;")).replace("export ", "");
   check(body(src) === body(srv), "the game and the server judge a piece's room the same way");
   check(!J.clash("hut", 0, 0, "bed", 0, -1) && !J.clash("hut", 0, 0, "chest", 1, 1) && J.clash("hut", 0, 0, "wall", 0, 2) && J.clash("hut", 0, 0, "bed", 0, -2) && J.clash("bed", 0, 0, "chest", 0, 1), "inside a hut: a bed and a chest fit, a wall or a bed through its wall doesn't"); }
+// b-jx1: the daily missions (gather 60 · make or build 3 · cook 2): 300 ARCL each, once a day, for taking part
+{ const bal = async (w) => (((await W.read(new URL("https://x/api/social?world=arcl&wallet=" + w.address.toLowerCase()))).body) || {}).bal || 0;
+  const p = ethers.Wallet.createRandom(); GM_WALLETS.push(p.address.toLowerCase());
+  let v0 = await view(p); check(Array.isArray(v0.inv.mis) && v0.inv.mis.length === 3 && v0.inv.mis.every((m) => !m.paid && m.n === 0 && m.arcl === 300), "three missions, none done yet");
+  const b0 = await bal(p); let paidAll = [];
+  for (let i = 0; i < 40 && !(paidAll.some((x) => x.key === "gather")); i++) { r = await fell(p, "tree-cycad0:" + i, "tree"); paidAll = paidAll.concat((r.body && r.body.paid) || []); }
+  check(paidAll.some((x) => x.key === "gather" && x.n === 300), "gathering 60 materials pays 300 ARCL once");
+  const b1 = await bal(p); check(b1 - b0 === 300, "the balance rose by 300 (" + b0 + " → " + b1 + ")");
+  r = await fell(p, "tree-cycad0:99", "tree"); check(!((r.body.paid || []).length), "not paid twice the same day");
+  for (let i = 0; i < 4; i++) await fell(p, "fern2:" + i, "fern");
+  let got = []; for (const rc of ["rope", "torch", "rope"]) { r = await call(p, "world-jur-craft", { recipe: rc }); got = got.concat(r.body.paid || []); }
+  check(got.some((x) => x.key === "make" && x.n === 300), "making 3 things pays 300 ARCL");
+  v0 = await view(p); check(v0.inv.mis.find((m) => m.key === "make").paid && !v0.inv.mis.find((m) => m.key === "cook").paid, "the view shows which are paid");
+  r = await fell(gm, "raptor:1", "raptor"); r = await call(gm, "world-jur-craft", { recipe: "cook" });
+  check((r.body.paid || []).some((x) => x.key === "cook"), "cooking 2 meals pays (the day's second meal: one was cooked earlier)");
+  v0 = await view(gm); check(v0.inv.hunted.raptor >= 2 && v0.inv.hunted.titan === 1, "hunts are counted for the goal card " + JSON.stringify(v0.inv.hunted));
+  T += 864e5; v0 = await view(p); check(v0.inv.mis.every((m) => !m.paid && m.n === 0), "a new day: the missions start again"); }
+// b-jx2: the boss hour — one HP for everyone there, swings no faster than real ones, a hunter's share once it falls
+{ const rd = async (q, w) => (await W.read(new URL("https://x/api/social?world=" + q + (w ? "&wallet=" + w.address.toLowerCase() : "")))).body;
+  const base = Date.parse("2026-10-21T02:50:00Z"); T = base; // 11:50 in Seoul: the noon hour is next
+  let b = await rd("jur-boss"); check(!b.on && b.kind === "alpha" && b.start === Date.parse("2026-10-21T03:00:00Z"), "before noon: the next boss hour is the Alpha Raptor's at 12:00 KST");
+  const h1 = ethers.Wallet.createRandom(), h2 = ethers.Wallet.createRandom(), lazy = ethers.Wallet.createRandom();
+  r = await call(h1, "world-jur-boss-hit", { n: 5 }); check(r.status === 409, "no hits outside the hour");
+  T = Date.parse("2026-10-21T03:01:00Z"); b = await rd("jur-boss"); check(b.on && b.hp === JUR.BOSS.hp.alpha && b.hunters === 0, "12:01: it's on, at full HP");
+  r = await call(h1, "world-jur-boss-hit", { n: 500 }); check(r.status === 200 && r.body.mine.n <= JUR.BOSS.post, "no more than a post's worth at once (" + r.body.mine.n + ")");
+  r = await call(h1, "world-jur-boss-hit", { n: 20 }); check(r.body.mine.n <= JUR.BOSS.post + 1, "and no faster than real swings (" + r.body.mine.n + ")");
+  r = await call(lazy, "world-jur-boss-hit", { n: 3 }); check(r.body.hunters === 2, "two hunters on it");
+  for (let i = 0; i < 80 && !r.body.down; i++) { T += JUR.BOSS.post * JUR.HIT_MS; r = await call(i % 2 ? h1 : h2, "world-jur-boss-hit", { n: JUR.BOSS.post }); }
+  check(r.body.down && r.body.hp === 0, "it falls when the hunters' hits add up");
+  const id = r.body.id;
+  r = await call(lazy, "world-jur-boss-claim", { id }); check(r.status === 403, "3 hits isn't enough for a share");
+  r = await call(h2, "world-jur-boss-claim", { id }); check(r.status === 200 && r.body.loot.amber >= 2 && r.body.inv.hunted.alpha === 1, "a hunter's share: amber and the rest, the hunt counted " + JSON.stringify(r.body.loot));
+  r = await call(h2, "world-jur-boss-claim", { id }); check(r.status === 409, "once");
+  T = Date.parse("2026-10-21T11:10:00Z"); b = await rd("jur-boss"); check(b.on && b.kind === "titan", "20:10 KST: the Thornback Titan's hour");
+  const top = await rd("jur-top"); check(top.top.length >= 1 && top.top.some((x) => x.n >= JUR.HUNT_PTS.alpha), "the week's hunters board counts the boss share");
+  // b-jx3: fishing needs a rod and a few seconds; the second land's rock gives obsidian; an obsidian spear
+  const f = ethers.Wallet.createRandom();
+  r = await call(f, "world-jur-start", { node: "fish:1", kind: "fish" }); check(r.status === 400, "no rod: no fishing");
+  for (let i = 0; i < 14; i++) await fell(f, "fern3:" + i, "fern");
+  for (let i = 0; i < 3; i++) await fell(f, "tree-cycad1:" + i, "tree");
+  r = await call(f, "world-jur-craft", { recipe: "rope" }); r = await call(f, "world-jur-craft", { recipe: "rod" }); check(r.status === 200 && r.body.inv.tools.rod === 1, "a fishing rod");
+  r = await call(f, "world-jur-start", { node: "fish:1", kind: "fish" }); T += 1000; const r2 = await call(f, "world-jur-break", { node: "fish:1" }); check(r2.status === 429, "a fish takes a few seconds");
+  T += 5000; r = await call(f, "world-jur-break", { node: "fish:1" }); check(r.status === 200 && r.body.loot.fish >= 1, "a fish caught");
+  r = await fell(f, "obsidian:0", "obsidian"); check(r.status === 200 && r.body.loot.obsidian >= 2, "obsidian from the Ember Basin's rock");
+  check(JUR.RECIPES.spear2.tool[1] === 2 && JUR.SPEAR[2] < JUR.SPEAR[1] && JUR.RECIPES.cloak && JUR.RECIPES.armor, "an obsidian spear (fewer swings), a heat cloak, hide armour"); }
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

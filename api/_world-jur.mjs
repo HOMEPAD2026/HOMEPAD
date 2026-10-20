@@ -2,7 +2,9 @@
 // Open to every signed-in wallet (it was GM-only before launch). What you gather is decided here: how many swings a tree or rock
 // takes (by your tool), when it can break (no faster than real swings), what it drops, when it grows back; a day's
 // gathering has a cap (bots). Ore from Jurassic rocks goes into the ARCL Mine's pockets (worldMineInv: one ore bag for
-// both worlds), and the mine's pickaxe (tier and +level) is the one you mine with here. No ARCL is paid here (yet).
+// both worlds), and the mine's pickaxe (tier and +level) is the one you mine with here. The only ARCL paid here is the
+// three daily missions' (b-jx1: gather 60 materials · make or build 3 things · cook 2 meals, 300 each, once a day): they
+// count taking part, never a win, and each needs the swings and materials it says.
 //
 //   GET  ?world=jur&wallet=0x…                                   → { ok, inv, ore, pick, felled, recipes, plot }
 //   POST { action: "world-jur-start", …signature, node, kind }   → { need, at }          (the first swing at a node)
@@ -11,8 +13,13 @@
 //   POST { action: "world-jur-camp",  …signature, op: claim|join, slot? } → { home, camps }
 //   POST { action: "world-jur-build", …signature, op, piece }    → { plot, inv }          (place / remove at your camp)
 //   POST { action: "world-jur-eat",   …signature, food }         → { inv, fed }
+//   (break, craft and build also answer paid: [{ key, n }] when a daily mission is done and paid)
+//   GET  ?world=jur-boss[&wallet=0x…]                            → { on, id, kind, start, end, max, hp, hunters, down, next, mine? }
+//   POST { action: "world-jur-boss-hit", …signature, n }         → { hp, max, hunters, down, mine }   (b-jx2: the boss hour)
+//   POST { action: "world-jur-boss-claim", …signature, id }      → { loot, inv }                       (a hunter's share, once)
+//   GET  ?world=jur-top                                          → { week, top: [{ w, name, n }] }    (the week's hunters)
 //
-// Firestore: worldJurInv/<wallet> { mat, tools, felled, work, day, got, home } · worldJurPlot/<owner> { pieces } · worldJurCamp/<slot> { w, members }
+// Firestore: worldJurInv/<wallet> { mat, tools, felled, work, day, got, home, mis, hunted } · worldJurPay/<w>_<day>_<key> (a mission paid) · worldJurPlot/<owner> { pieces } · worldJurCamp/<slot> { w, members }
 export const JUR = {
   HIT_MS: 430, SLACK: 0.7, DAY_CAP: 6000, FELLED_MAX: 500, PLOT_MAX: 160, PLOT_R: 9,
   // per kind: swings (low–high, then × the tool's factor), what drops (low–high), how long until it's back
@@ -31,8 +38,15 @@ export const JUR = {
     spino: { tool: "spear", hits: [44, 58], loot: { hide: [5, 7], bone: [3, 5], meat: [6, 9], fang: [0, 1] }, regrow: 2 * 3600e3 },
     claw: { tool: "spear", hits: [18, 24], loot: { hide: [3, 4], bone: [2, 3], meat: [3, 4], fang: [0, 1] }, regrow: 45 * 60e3 },
     titan: { tool: "spear", hits: [70, 90], loot: { hide: [8, 11], bone: [6, 8], meat: [8, 12], amber: [1, 3] }, regrow: 6 * 3600e3 },
+    // b-jx3: the Ember Basin (the second land: hot, a heat cloak keeps you in it) — obsidian rocks and sulfur vents
+    obsidian: { tool: "pick", hits: [12, 16], loot: { obsidian: [2, 4], stone: [1, 2], sulfur: [0, 1] }, regrow: 4 * 3600e3 },
+    vent: { tool: "", hits: [2, 3], loot: { sulfur: [1, 3] }, regrow: 40 * 60e3 },
+    // fishing at the lake (a rod): reeling in is the swings, and a fish takes at least a few seconds (wait)
+    fish: { tool: "rod", hits: [6, 9], loot: { fish: [1, 2] }, regrow: 90e3, wait: 4000 },
   },
-  SPEAR: [1.4, 1],
+  // the hunt points on the week's board (b-jx3): a bigger dinosaur counts for more
+  HUNT_PTS: { raptor: 1, claw: 2, trike: 3, spino: 6, alpha: 10, titan: 12 },
+  SPEAR: [1.4, 1, 0.75],
   // the axe: bare hands are slow; a stone axe, then copper, then iron
   AXE: [2.4, 1, 0.72, 0.5],
   // what you can make, what it costs, where (a workbench must stand on your plot for "bench")
@@ -44,6 +58,13 @@ export const JUR = {
     rope: { name: "Rope", need: { fiber: 6 }, give: { rope: 1 } },
     axe3: { name: "Iron-hard axe", need: { hardwood: 4, ag: 6, rope: 1 }, at: "bench", tool: ["axe", 3] },
     cook: { name: "Cooked meat", need: { meat: 1, wood: 1 }, at: "fire", give: { cooked: 1 } },
+    // b-jx3: the second half
+    rod: { name: "Fishing rod", need: { wood: 4, fiber: 6, rope: 1 }, tool: ["rod", 1] },
+    cookfish: { name: "Grilled fish", need: { fish: 1, wood: 1 }, at: "fire", give: { grilled: 1 } },
+    armor: { name: "Hide armour", need: { hide: 10, bone: 6, rope: 2 }, at: "bench", tool: ["armor", 1] },
+    cloak: { name: "Heat cloak", need: { hide: 6, fiber: 8, bone: 2 }, at: "bench", tool: ["cloak", 1] },
+    spear2: { name: "Obsidian spear", need: { obsidian: 6, hardwood: 2, rope: 1 }, at: "bench", tool: ["spear", 2] },
+    bomb: { name: "Sulfur flare", need: { sulfur: 3, fiber: 2, torch: 1 }, give: { flare: 1 } },
   },
   // the camps: 20 spots round the gate, one per player as they come (the first 20); after that there's no spot of your
   // own, and you join someone's camp (up to CAMP_MEMBERS living there, the owner included) and build there
@@ -55,7 +76,14 @@ export const JUR = {
     hut: { name: "Hut", need: { wood: 40, stone: 12, fiber: 10 } }, bed: { name: "Bed", need: { wood: 15, fiber: 10 } }, chest: { name: "Chest", need: { wood: 12, stone: 2 } },
     fence: { name: "Fence", need: { wood: 3 } }, wall: { name: "Wall", need: { wood: 6 } }, floor: { name: "Floor", need: { wood: 4 } }, torchpost: { name: "Torch post", need: { wood: 3, torch: 1 } },
   },
-  FOOD: { berries: 12, meat: 25, cooked: 45 },
+  FOOD: { berries: 12, meat: 25, cooked: 45, fish: 15, grilled: 40 },
+  // b-jx2: the boss hour — twice a day (Seoul 12:00 and 20:00) for 30 minutes the Alpha Raptor (noon) or the Thornback
+  // Titan (evening) is enraged: one HP for everyone there, each hunter's swings count (no faster than real ones). When it
+  // falls, everyone who struck it 10 times or more takes a hunter's share (materials and amber; no ARCL — it's a win)
+  BOSS: { at: [[12, "alpha"], [20, "titan"]], len: 30 * 60e3, hp: { alpha: 600, titan: 800 }, min: 10, post: 20,
+    share: { alpha: { hide: [5, 7], bone: [4, 6], amber: [2, 3], fang: [1, 2] }, titan: { hide: [7, 9], bone: [5, 7], amber: [3, 4], fang: [1, 2] } } },
+  // the daily missions (b-jx1): taking part, not winning; 300 ARCL each, once a day (Seoul's day), inside the shop's cap
+  MIS: { gather: { need: 60, arcl: 300, name: "Gather 60 materials" }, make: { need: 3, arcl: 300, name: "Make or build 3 things" }, cook: { need: 2, arcl: 300, name: "Cook 2 meals" } },
 };
 // the room each piece takes: no two overlapping (a floor can go under the rest); a hut is hollow: a bed, a chest, a torch
 // post or a workbench fits inside it (clear of its walls)
@@ -67,7 +95,7 @@ export function clash(k1, x1, z1, k2, x2, z2) {
   return d < (r1 + r2) * 0.8;
 }
 const ORE = ["cu", "ag", "au"];
-const MATS = ["wood", "hardwood", "stone", "flint", "clay", "fiber", "berries", "amber", "hide", "bone", "meat", "cooked", "torch", "rope", "fang"];
+const MATS = ["wood", "hardwood", "stone", "flint", "clay", "fiber", "berries", "amber", "hide", "bone", "meat", "cooked", "torch", "rope", "fang", "obsidian", "sulfur", "fish", "grilled", "flare"];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), isGM(w), random?, mine: { addOre, oreOf, takeOre }, dino?: { assist, hunt, gather } }
 export function makeJur(deps) {
@@ -76,9 +104,21 @@ export function makeJur(deps) {
   const rnd = deps.random || (() => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296);
   const one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const fresh = () => ({ mat: Object.fromEntries(MATS.map((k) => [k, 0])), tools: { axe: 0, spear: 0 }, stations: {}, felled: {}, work: null, day: "", got: 0 });
+  const fresh = () => ({ mat: Object.fromEntries(MATS.map((k) => [k, 0])), tools: { axe: 0, spear: 0, rod: 0, armor: 0, cloak: 0 }, stations: {}, felled: {}, work: null, day: "", got: 0 });
   async function invOf(w) { const v = (await one(`worldJurInv/${w}`)) || {}, f = fresh(); return { ...f, ...v, mat: { ...f.mat, ...(v.mat || {}) }, tools: { ...f.tools, ...(v.tools || {}) }, stations: { ...(v.stations || {}) }, felled: { ...(v.felled || {}) } }; }
-  const pub = (inv) => ({ mat: inv.mat, tools: inv.tools, stations: inv.stations, got: inv.day === day(now()) ? inv.got : 0, cap: JUR.DAY_CAP });
+  // today's missions: what counts (the gathering is the day's count already kept), and which are paid
+  const misOf = (inv) => { const d = day(now()); if (!inv.mis || inv.mis.day !== d) inv.mis = { day: d, made: 0, cooked: 0, paid: [] }; if (inv.day !== d) { inv.day = d; inv.got = 0; } return inv.mis; };
+  const misView = (inv) => { const m = misOf(inv), have = { gather: inv.got || 0, make: m.made || 0, cook: m.cooked || 0 };
+    return Object.entries(JUR.MIS).map(([key, M]) => ({ key, name: M.name, need: M.need, n: Math.min(M.need, have[key]), arcl: M.arcl, paid: (m.paid || []).includes(key) })); };
+  const pub = (inv) => ({ mat: inv.mat, tools: inv.tools, stations: inv.stations, got: inv.day === day(now()) ? inv.got : 0, cap: JUR.DAY_CAP, mis: misView(inv), hunted: { ...(inv.hunted || {}) } });
+  /// the missions done and not yet paid: paid now (a create-only marker: once a day each, even from two tabs)
+  async function payMis(w, inv) {
+    const out = []; if (!deps.credit) return out;
+    for (const x of misView(inv)) { if (x.paid || x.n < x.need) continue;
+      if (!(await deps.commit([{ create: `worldJurPay/${w}_${inv.mis.day}_${x.key}`, data: { at: now() } }])).ok) { inv.mis.paid = [...(inv.mis.paid || []), x.key]; continue; }
+      const n = await deps.credit(w, "jur", x.arcl).catch(() => 0); inv.mis.paid = [...(inv.mis.paid || []), x.key]; out.push({ key: x.key, n }); }
+    return out;
+  }
   // the plot's pieces as the page needs them (compact)
   async function plotOf(w) { const p = (await one(`worldJurPlot/${w}`)) || {}; return Array.isArray(p.pieces) ? p.pieces : []; }
   const gm = (w) => !!(deps.isGM && deps.isGM(w));
@@ -135,7 +175,8 @@ export function makeJur(deps) {
     const w = S.w, node = String(b.node || ""), kind = String(b.kind || ""), N = JUR.NODES[kind]; if (!idOk(node) || !N) return json(400, { error: "which one?" });
     const inv = await invOf(w), t = now(); if ((inv.felled[node] || 0) > t) return json(409, { error: "it's not back yet", regrowAt: inv.felled[node] });
     if (inv.work && inv.work.node === node && t - inv.work.at < 10 * 60e3) return json(200, { ok: true, need: inv.work.need, at: inv.work.at });
-    let k = 1; if (N.tool === "axe") k = JUR.AXE[Math.max(0, Math.min(3, inv.tools.axe | 0))]; else if (N.tool === "pick") k = deps.mine ? (await deps.mine.oreOf(w)).k : 1; else if (N.tool === "spear") k = JUR.SPEAR[Math.max(0, Math.min(1, inv.tools.spear | 0))];
+    if (N.tool === "rod" && !(inv.tools.rod | 0)) return json(400, { error: "make a fishing rod first" });
+    let k = 1; if (N.tool === "axe") k = JUR.AXE[Math.max(0, Math.min(3, inv.tools.axe | 0))]; else if (N.tool === "pick") k = deps.mine ? (await deps.mine.oreOf(w)).k : 1; else if (N.tool === "spear") k = JUR.SPEAR[Math.max(0, Math.min(2, inv.tools.spear | 0))];
     // a dinosaur companion out with you (world-dino.js) takes its share of a hunt's swings (api/_world-dino.mjs)
     const share = b.buddy && N.tool === "spear" && deps.dino ? await deps.dino.assist(w).catch(() => 0) : 0;
     const raw = between(N.hits) * k, need = Math.max(1, Math.round(raw * (1 - share))), saved = share > 0 ? Math.max(0, Math.round(raw) - need) : 0;
@@ -147,17 +188,76 @@ export function makeJur(deps) {
     const S = await signed(b); if (S.err) return S.err;
     const w = S.w, node = String(b.node || ""), inv = await invOf(w), t = now(), W = inv.work;
     if (!W || W.node !== node) return json(400, { error: "start on it first" });
-    const N = JUR.NODES[W.kind]; if (t - W.at < Math.max(0, W.need - 1) * JUR.HIT_MS * JUR.SLACK) return json(429, { error: "too fast" });
-    const d = day(t); if (inv.day !== d) { inv.day = d; inv.got = 0; }
+    const N = JUR.NODES[W.kind]; if (t - W.at < Math.max(N.wait || 0, Math.max(0, W.need - 1) * JUR.HIT_MS * JUR.SLACK)) return json(429, { error: "too fast" });
+    misOf(inv);
     if (inv.got >= JUR.DAY_CAP) { inv.work = null; await setDoc(`worldJurInv/${w}`, inv); return json(429, { error: "that's a full day's gathering — rest and come back tomorrow" }); }
     const loot = {}; for (const [m, r] of Object.entries(N.loot)) { const n = between(r); if (n > 0) { loot[m] = n; inv.mat[m] = (inv.mat[m] || 0) + n; inv.got += n; } }
     let ore = null;
     if (N.ore && deps.mine) { const add = {}; for (const [k, [p, lo, hi]] of Object.entries(N.ore)) if (rnd() < p) add[k] = between([lo, hi]); if (Object.keys(add).length) { ore = await deps.mine.addOre(w, add); loot.ore = add; } }
     inv.felled = prune({ ...inv.felled, [node]: t + N.regrow }, t); inv.work = null;
+    if (N.tool === "spear") inv.hunted = { ...(inv.hunted || {}), [W.kind]: ((inv.hunted || {})[W.kind] || 0) + 1 }; // (the goal card's later steps: a triceratops, the bosses)
+    const paid = await payMis(w, inv);
     await setDoc(`worldJurInv/${w}`, inv);
+    if (JUR.HUNT_PTS[W.kind]) await board(w, JUR.HUNT_PTS[W.kind]).catch(() => { /* the hunt stands */ });
     // the companion's experience: a hunt it helped with, or a little for gathering with it out
     let buddy = null; if (deps.dino && (W.buddy || b.buddy)) buddy = await (N.tool === "spear" && W.buddy ? deps.dino.hunt(w, W.kind) : deps.dino.gather(w)).catch(() => null);
-    return json(200, { ok: true, loot, ore, inv: pub(inv), regrowAt: t + N.regrow, buddy, saved: (buddy && W.saved) || 0 });
+    return json(200, { ok: true, loot, ore, inv: pub(inv), regrowAt: t + N.regrow, buddy, saved: (buddy && W.saved) || 0, paid });
+  }
+  // ---------------- the week's hunters (b-jx3): hunt points, the top 20 ----------------
+  const week = () => (deps.isoWeek ? deps.isoWeek(now()) : day(now()).slice(0, 7));
+  async function board(w, pts) {
+    const wk = week(), bk = `worldJurWeek/${wk}_${w}`, key = `worldStats/jurWeek_${wk}`, [mine, cur] = await Promise.all([one(bk), one(key)]);
+    const n = ((mine && mine.n) || 0) + pts; await setDoc(bk, { n });
+    const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16);
+    const top = [{ w: shortW(w), id: w, n, name }, ...(((cur && cur.top) || []).filter((x) => x.id !== w))].sort((a, b) => b.n - a.n).slice(0, 20);
+    await setDoc(key, { top });
+  }
+  // ---------------- the boss hour (b-jx2) ----------------
+  /// the hour at time t: the one running (on) or the next one
+  function bossAt(t) {
+    const B = JUR.BOSS, k = t + 9 * 3600e3, d0 = Math.floor(k / 864e5) * 864e5;
+    for (const off of [-1, 0, 1]) for (const [h, kind] of B.at) { const start = d0 + off * 864e5 + h * 3600e3 - 9 * 3600e3, end = start + B.len;
+      if (t >= start && t < end) return { on: true, id: day(start) + "_" + h, kind, start, end }; }
+    let next = null; for (const off of [0, 1]) for (const [h, kind] of B.at) { const start = d0 + off * 864e5 + h * 3600e3 - 9 * 3600e3; if (start > t && (!next || start < next.start)) next = { on: false, id: day(start) + "_" + h, kind, start, end: start + B.len }; }
+    return next;
+  }
+  async function bossView(w) {
+    const t = now(), b = bossAt(t), max = JUR.BOSS.hp[b.kind];
+    const ks = [`worldJurBoss/${b.id}`, `worldJurBossDown/${b.id}`, ...(w ? [`worldJurBossHit/${b.id}_${w}`, `worldJurBossPaid/${b.id}_${w}`] : [])], d = await getDocs(ks);
+    const B = d[ks[0]] || {}, dealt = B.dealt || 0, down = d[ks[1]] ? d[ks[1]].at : 0, me = w ? d[ks[2]] : null;
+    return { ...b, max, hp: Math.max(0, max - dealt), hunters: B.hunters || 0, down, mine: w ? { n: (me && me.n) || 0, need: JUR.BOSS.min, paid: !!d[ks[3]] } : null, now: t };
+  }
+  async function bossHit(b) {
+    const S = await signed(b); if (S.err) return S.err;
+    const w = S.w, t = now(), B = bossAt(t); if (!B.on) return json(409, { error: "the boss hour isn't on" });
+    const pk = `worldJurBossHit/${B.id}_${w}`, [me, dn] = await Promise.all([one(pk), one(`worldJurBossDown/${B.id}`)]);
+    if (dn) return json(200, { ok: true, ...(await bossView(w)) });
+    // no more swings than the time since your last post allows (and no more than POST at a time)
+    const last = (me && me.last) || t - JUR.BOSS.post * JUR.HIT_MS, can = Math.min(JUR.BOSS.post, Math.floor((t - last) / (JUR.HIT_MS * JUR.SLACK)) + 1);
+    const n = Math.max(0, Math.min(can, Math.floor(Number(b.n) || 0))); if (!n) return json(200, { ok: true, ...(await bossView(w)) });
+    if (!me) { if (!(await deps.commit([{ create: pk, data: { n, last: t } }, { inc: `worldJurBoss/${B.id}`, fields: { dealt: n, hunters: 1 } }])).ok) return json(409, { error: "one moment" }); }
+    else { await setDoc(pk, { n: (me.n || 0) + n, last: t }); await deps.commit([{ inc: `worldJurBoss/${B.id}`, fields: { dealt: n } }]); }
+    const v = await bossView(w); if (v.hp <= 0 && !v.down) { await deps.commit([{ create: `worldJurBossDown/${B.id}`, data: { at: t } }]).catch(() => {}); v.down = t; }
+    return json(200, { ok: true, ...v });
+  }
+  async function bossClaim(b) {
+    const S = await signed(b); if (S.err) return S.err;
+    const w = S.w, id = String(b.id || ""); if (!/^\d{4}-\d{2}-\d{2}_\d{1,2}$/.test(id)) return json(400, { error: "which hour?" });
+    const kind = (JUR.BOSS.at.find(([h]) => String(h) === id.split("_")[1]) || [])[1]; if (!kind) return json(400, { error: "which hour?" });
+    const d = await getDocs([`worldJurBossDown/${id}`, `worldJurBossHit/${id}_${w}`]);
+    if (!d[`worldJurBossDown/${id}`]) return json(409, { error: "it hasn't fallen yet" });
+    const me = d[`worldJurBossHit/${id}_${w}`]; if (!me || (me.n || 0) < JUR.BOSS.min) return json(403, { error: "strike it " + JUR.BOSS.min + " times to share the hunt" });
+    if (!(await deps.commit([{ create: `worldJurBossPaid/${id}_${w}`, data: { at: now() } }])).ok) return json(409, { error: "you took your share already" });
+    const inv = await invOf(w), loot = {}; for (const [m, r] of Object.entries(JUR.BOSS.share[kind])) { const n = between(r); if (n > 0) { loot[m] = n; inv.mat[m] = (inv.mat[m] || 0) + n; } }
+    inv.hunted = { ...(inv.hunted || {}), [kind]: ((inv.hunted || {})[kind] || 0) + 1 };
+    await setDoc(`worldJurInv/${w}`, inv); await board(w, JUR.HUNT_PTS[kind] || 0).catch(() => {});
+    return json(200, { ok: true, loot, inv: pub(inv), kind });
+  }
+  async function read(v, url) {
+    const w = String((url && url.searchParams && url.searchParams.get("wallet")) || "").toLowerCase();
+    if (v === "jur-boss") return json(200, { ok: true, ...(await bossView(/^0x[0-9a-f]{40}$/.test(w) ? w : "")) }, "no-store");
+    if (v === "jur-top") { const wk = week(), d = await one(`worldStats/jurWeek_${wk}`); return json(200, { week: wk, top: ((d && d.top) || []).map(({ w: a, name, n }) => ({ w: a, name: name || "", n })) }, "public, max-age=30"); }
+    return null;
   }
   /// materials taken from a pack for something else (the dinosaur egg's care, its food): { ok, inv } or { err }
   async function take(w, need) {
@@ -183,8 +283,10 @@ export function makeJur(deps) {
     const P = await pay(w, inv, R.need); if (P.err) return P.err;
     if (R.tool) inv.tools[R.tool[0]] = R.tool[1];
     if (R.give) for (const [k, n] of Object.entries(R.give)) inv.mat[k] = (inv.mat[k] || 0) + n;
+    const m = misOf(inv); m.made = (m.made || 0) + 1; if (String(b.recipe) === "cook") m.cooked = (m.cooked || 0) + 1;
+    const paid = await payMis(w, inv);
     await setDoc(`worldJurInv/${w}`, inv);
-    return json(200, { ok: true, inv: pub(inv), ore: P.ore || oreNow });
+    return json(200, { ok: true, inv: pub(inv), ore: P.ore || oreNow, paid });
   }
   // the plot: pieces on a 1 m grid round your camp (x, z in −PLOT_R…PLOT_R, y levels 0–3, rotation 0–3)
   async function build(b) {
@@ -209,8 +311,9 @@ export function makeJur(deps) {
     if (P.station && pieces.some((p) => p.k === pc.k)) return json(409, { error: "the camp has one already" });
     if (!hasAll(inv, P.need, {})) return json(400, { error: "not enough materials", need: P.need });
     for (const [k, n] of Object.entries(P.need)) inv.mat[k] -= n;
-    pieces.push({ k: pc.k, x, z, r, by: w }); await setDoc(`worldJurPlot/${hp.owner}`, { pieces }); await setDoc(`worldJurInv/${w}`, inv);
-    return json(200, { ok: true, plot: pieces, slot: hp.slot, inv: pub(inv) });
+    pieces.push({ k: pc.k, x, z, r, by: w }); const m = misOf(inv); m.made = (m.made || 0) + 1; const paid = await payMis(w, inv);
+    await setDoc(`worldJurPlot/${hp.owner}`, { pieces }); await setDoc(`worldJurInv/${w}`, inv);
+    return json(200, { ok: true, plot: pieces, slot: hp.slot, inv: pub(inv), paid });
   }
   // eating: berries, raw or cooked meat fill the hunger bar (the page keeps the bar; the food comes off the pack here)
   async function eat(b) {
@@ -223,6 +326,7 @@ export function makeJur(deps) {
   return {
     take,
     view,
+    read,
     async handle(b) {
       if (b.action === "world-jur-start") return start(b);
       if (b.action === "world-jur-break") return brk(b);
@@ -230,6 +334,8 @@ export function makeJur(deps) {
       if (b.action === "world-jur-build") return build(b);
       if (b.action === "world-jur-eat") return eat(b);
       if (b.action === "world-jur-camp") return camp(b);
+      if (b.action === "world-jur-boss-hit") return bossHit(b);
+      if (b.action === "world-jur-boss-claim") return bossClaim(b);
       return null;
     },
   };

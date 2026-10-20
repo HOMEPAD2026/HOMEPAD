@@ -787,7 +787,7 @@ export function createJurassic(ctx) {
       <button type="button" class="wz-buildbtn" hidden><span aria-hidden="true">🔨</span><b>${esc(T("Build"))}</b></button>
       <div class="wz-build wz-pack" hidden role="dialog"><div class="wz-pack-in"></div></div>
       <div class="wz-ghost" hidden><button type="button" data-g="turn">⟳ <span>${esc(T("Turn"))}</span></button><button type="button" data-g="place" class="go">✓ <span>${esc(T("Place"))}</span></button><button type="button" data-g="down" hidden>🗑 <span>${esc(T("Take down"))}</span></button><button type="button" data-g="x">✕</button></div>
-      <section class="wz-goal" aria-live="polite"><small>${esc(T("Jurassic goals"))}</small><b class="wz-goal-t"></b><i class="wz-goal-bar"><i></i></i></section>
+      <section class="wz-goal" aria-live="polite" role="button" tabindex="0"><small>${esc(T("Jurassic goals"))}<em class="wz-goal-n"></em></small><b class="wz-goal-t"></b><i class="wz-goal-bar"><i></i></i><p class="wz-goal-mis" hidden></p></section>
       <button type="button" class="wz-act" hidden></button>
       <button type="button" class="wz-home" hidden><span class="wz-home-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h11v-9"/><path d="M10 19v-5h4v5"/></svg></span><span class="wz-home-t"><b>${esc(T("Back to the village"))}</b><small>ARCIRCLE WORLD</small></span></button>
       <div class="wz-keys">${esc(T("WASD move · Shift run · Space jump · J chop / mine · E use · Esc leave"))}</div>

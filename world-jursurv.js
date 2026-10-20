@@ -18,6 +18,28 @@ function clash(k1, x1, z1, k2, x2, z2) {
   if (k1 === "hut" && INSIDE[k2] && inHut(r2, x2 - x1, z2 - z1)) return false; if (k2 === "hut" && INSIDE[k1] && inHut(r1, x1 - x2, z1 - z2)) return false;
   return d < (r1 + r2) * 0.8;
 }
+// b-jx1: drawn icons for the materials (the emoji looked different on every phone); ICON stays for the plain-text spots
+const svg = (b) => `<svg viewBox="0 0 24 24" aria-hidden="true">${b}</svg>`;
+const ore = (a, b) => svg(`<path d="M4 15l3-7 6-3 6 4 1 7-5 4H8z" fill="#5d564c"/><path d="M8 10l4-2 3 3-2 4-4 0z" fill="${a}"/><path d="M14 15l3-1 1 2-2 2z" fill="${b}"/><path d="M9 10.5l2-1" stroke="#fff" stroke-width="1" opacity=".7"/>`);
+const IC = {
+  wood: svg('<rect x="3" y="8" width="16" height="8" rx="4" fill="#9a6232"/><ellipse cx="18" cy="12" rx="3" ry="4" fill="#e3b77a"/><ellipse cx="18" cy="12" rx="1.4" ry="2" fill="none" stroke="#9a6232" stroke-width="1"/><path d="M6 10h8M7 14h7" stroke="#6e4220" stroke-width="1"/>'),
+  hardwood: svg('<rect x="3" y="8" width="16" height="8" rx="4" fill="#5b3a1e"/><ellipse cx="18" cy="12" rx="3" ry="4" fill="#c9893d"/><circle cx="18" cy="12" r="1.2" fill="#ffb648"/><path d="M6 10h8M7 14h7" stroke="#3a2410" stroke-width="1"/>'),
+  stone: svg('<path d="M4 16l2-7 6-4 6 3 2 7-5 4H8z" fill="#8c877d"/><path d="M6 9l6-4 6 3-6 3z" fill="#b3aea3"/><path d="M12 11v9" stroke="#6c675e" stroke-width="1"/>'),
+  flint: svg('<path d="M12 3l7 15-7 3-7-3z" fill="#3d3a44"/><path d="M12 3l3 13-3 5z" fill="#6c6878"/><path d="M11 7l-2 6" stroke="#fff" stroke-width="1" opacity=".6"/>'),
+  clay: svg('<path d="M5 15c0-5 3-8 7-8s7 3 7 8c0 3-3 5-7 5s-7-2-7-5z" fill="#a8643a"/><path d="M8 12c1-2 3-3 5-3" stroke="#d39466" stroke-width="1.5" fill="none" stroke-linecap="round"/>'),
+  fiber: svg('<path d="M12 21C11 14 7 9 4 6M12 21c0-7 1-12 2-17M12 21c1-6 4-10 8-12" stroke="#5fae3a" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M9 21h6" stroke="#c9a65a" stroke-width="2" stroke-linecap="round"/>'),
+  berries: svg('<circle cx="8" cy="14" r="4" fill="#5b3fb0"/><circle cx="15" cy="15" r="4" fill="#7350d8"/><circle cx="12" cy="9" r="3.6" fill="#6447c4"/><path d="M12 6c1-3 4-3 5-2-2 0-3 1-5 2z" fill="#4caf50"/><circle cx="7" cy="13" r="1" fill="#fff" opacity=".6"/>'),
+  amber: svg('<path d="M12 3l6 6-6 12-6-12z" fill="#ff9a1f"/><path d="M12 3l6 6H6z" fill="#ffd27a"/><circle cx="11" cy="12" r="1.3" fill="#7a3d00" opacity=".6"/>'),
+  hide: svg('<path d="M6 5c2 1 4 1 6 0s4-1 6 0c-1 3 1 4 2 6-2 1-2 4-1 8-3 0-5-1-7-1s-4 1-7 1c1-4 1-7-1-8 1-2 3-3 2-6z" fill="#b07a46"/><path d="M8 9c2 2 6 2 8 0" stroke="#8a5a2e" stroke-width="1" fill="none"/>'),
+  bone: svg('<path d="M7 17l10-10" stroke="#f4ecd8" stroke-width="3.4" stroke-linecap="round"/><circle cx="6" cy="16" r="2.3" fill="#f4ecd8"/><circle cx="8" cy="18.5" r="2.3" fill="#f4ecd8"/><circle cx="16" cy="5.5" r="2.3" fill="#f4ecd8"/><circle cx="18.5" cy="8" r="2.3" fill="#f4ecd8"/>'),
+  meat: svg('<path d="M14 4c4 0 6 3 6 6s-3 6-7 6l-3 3-2-2 3-3c0-4 0-10 3-10z" fill="#e0505a"/><path d="M14 7c2 0 3 2 3 3" stroke="#ffb3b8" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M8 17l-3 3" stroke="#f4ecd8" stroke-width="2.6" stroke-linecap="round"/>'),
+  cooked: svg('<path d="M14 4c4 0 6 3 6 6s-3 6-7 6l-3 3-2-2 3-3c0-4 0-10 3-10z" fill="#a8582a"/><path d="M14 7c2 0 3 2 3 3" stroke="#e8a061" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M8 17l-3 3" stroke="#f4ecd8" stroke-width="2.6" stroke-linecap="round"/><path d="M17 2c0 1-1 1-1 2M20 3c0 1-1 1-1 2" stroke="#ccc" stroke-width="1" fill="none"/>'),
+  torch: svg('<path d="M11 11h2l-.5 10h-1z" fill="#8a5a2e"/><path d="M12 2c3 3 4 5 2 8-1 1-3 1-4 0-2-3 0-5 2-8z" fill="#ff9a1f"/><path d="M12 5c1.5 2 2 3 1 5h-2c-1-2 0-3 1-5z" fill="#ffe27a"/>'),
+  rope: svg('<circle cx="12" cy="12" r="7" fill="none" stroke="#c9a65a" stroke-width="3"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="#a8843a" stroke-width="2.4"/><path d="M18 16l3 4" stroke="#c9a65a" stroke-width="2.6" stroke-linecap="round"/>'),
+  fang: svg('<path d="M8 3c5 0 8 3 8 7 0 5-3 9-6 11 1-4 0-7-2-9S6 5 8 3z" fill="#f4ecd8"/><path d="M9 6c2 1 3 3 3 5" stroke="#cfc4a8" stroke-width="1" fill="none"/>'),
+  cu: ore("#ff8a3a", "#ffb27a"), ag: ore("#d8e2ee", "#ffffff"), au: ore("#ffcf3a", "#fff1a8"),
+};
+const ic = (m) => (IC[m] ? `<i class="wz-ic">${IC[m]}</i>` : ICON[m] || "");
 const ICON = { wood: "🪵", hardwood: "🌳", stone: "🪨", flint: "🔺", clay: "🟤", fiber: "🌾", berries: "🫐", amber: "🟠", hide: "🟫", bone: "🦴", meat: "🥩", cooked: "🍖", torch: "🔥", rope: "🪢", fang: "🦷", cu: "🟧", ag: "⬜", au: "🟨" };
 const MAT_N = { wood: "Wood", hardwood: "Hardwood", stone: "Stone", flint: "Flint", clay: "Clay", fiber: "Fiber", berries: "Berries", amber: "Amber", hide: "Hide", bone: "Bone", meat: "Raw meat", cooked: "Cooked meat", torch: "Torch", rope: "Rope", fang: "Fang", cu: "Copper ore", ag: "Silver ore", au: "Gold ore" };
 const NODE_N = { tree: "Tree", palm: "Palm", ancient: "Ancient tree", fern: "Fern", bush: "Bush", log: "Log", rock: "Rock", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
@@ -38,12 +60,23 @@ export function createSurvival(H) {
   const near = (x, z, fn) => { const cx = Math.floor(x / GC), cz = Math.floor(z / GC); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const l = grid.get(cx + i + "," + (cz + j)); if (l) for (const n of l) fn(n); } };
   const byId = new Map(nodes.map((n) => [n.id, n]));
   let inv = null, ore = {}, felled = {}, recipes = {}, pieceDefs = {}, camps = { list: [], free: 20 }, home = -1, campFull = false, signedOut = false, loaded = false;
-  let tgt = null, work = null, busy = false, ui = null;
+  let tgt = null, work = null, busy = false, ui = null, packTab = "bag";
+  // b-jx1: a guest tries it first: what they chop or pick is kept here (this visit only) until they sign in
+  const guest = { mat: {}, n: 0, asked: false }, G_NEED = { fern: 1, bush: 1, log: 3, tree: 6, palm: 5, ancient: 12, rock: 6 }, G_LOOT = { fern: { fiber: 2 }, bush: { fiber: 1, berries: 2 }, log: { wood: 2 }, tree: { wood: 3, fiber: 1 }, palm: { wood: 2, fiber: 1 }, ancient: { wood: 6 }, rock: { stone: 3, flint: 1 } };
+  const connect = () => { const b = document.getElementById("wp-wallet"); if (b) b.click(); };
 
   // ---------------- the server ----------------
   async function api(action, extra = {}) {
     const s = ctx.sess && ctx.sess(); if (!s) return { ok: false, status: 401, j: { error: T("Sign in to gather") } };
     try { return await ctx.post({ action, ...s, ...extra }); } catch (e) { return { ok: false, status: 0, j: { error: e && e.name === "AbortError" ? T("the connection timed out — try again") : String((e && e.message) || e) } }; }
+  }
+  // a daily mission done: its ARCL (the server paid it), shown and the purse refreshed
+  const MIS_N = { gather: "Gather 60 materials", make: "Make or build 3 things", cook: "Cook 2 meals" };
+  function paidNote(list) {
+    if (!Array.isArray(list) || !list.length) return;
+    for (const x of list) { if (!x.n) continue; toast(`💠 <b>${esc(T("Daily mission done: {m}", { m: T(MIS_N[x.key] || x.key) }))}</b> +${x.n.toLocaleString("en-US")} ARCL`); }
+    (Snd.coin || Snd.buy || (() => {}))(); if (ctx.refresh) try { ctx.refresh(); } catch { /* the purse catches up */ }
+    if (ui && ui.goal && !ctx.reduce) { ui.goal.classList.remove("paid"); void ui.goal.offsetWidth; ui.goal.classList.add("paid"); }
   }
   async function load() {
     const s = ctx.sess && ctx.sess(); signedOut = !s; if (!s) { paint(); return; }
@@ -90,7 +123,7 @@ export function createSurvival(H) {
     const now = performance.now(); if (now - swingT < 430) return false; swingT = now;
     const o = tgt || pick(px, pz, face); if (!o) { H.swingAnim(); return true; }
     H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim();
-    if (signedOut) { toast(T("Sign in to gather")); return true; }
+    if (signedOut) { guestSwing(o); return true; }
     if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind, buddy: !!(H.buddyOut && H.buddyOut()) }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else { toast(T("Couldn't gather: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); work = null; } }); }
     work.hits++;
     if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), crit = Math.random() < 0.15, dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3) * (crit ? 1.6 : 1));
@@ -103,16 +136,35 @@ export function createSurvival(H) {
     if (work.need && work.hits >= work.need) finish(work);
     paint(); return true;
   }
+  function guestSwing(o) {
+    if (!G_NEED[o.kind]) { toast(T("Sign in to hunt: your spear, your camp and your pack are saved to your wallet")); return; }
+    if (!work || work.o !== o) work = { o, hits: 0, need: G_NEED[o.kind], guest: true };
+    work.hits++; chips(o); const k = o.kind; if (k === "rock") (Snd.chink || Snd.hit || (() => {}))(0); else if (k === "fern" || k === "bush") (Snd.pick || (() => {}))(); else (Snd.chop || Snd.hit || (() => {}))(); if (o.shake) o.shake();
+    if (work.hits < work.need) { paint(); return; }
+    work = null; o.down = true; o.hide(); setTimeout(() => { if (o.down && signedOut) { o.down = false; o.show(); } }, 90000);
+    const L = G_LOOT[k] || {}; for (const [m, n] of Object.entries(L)) { guest.mat[m] = (guest.mat[m] || 0) + n; guest.n += n; }
+    pop(o, Object.entries(L).map(([m, n]) => `${ic(m)}+${n}`).join(" "), "loot"); (Snd.pick || (() => {}))();
+    if (!guest.asked) { guest.asked = true; setTimeout(saveCard, 700); }
+    tgt = null; paint(); if (ui && !ui.pack.hidden) paintPack();
+  }
+  // the first thing a guest gathers: the card that says what signing in keeps
+  function saveCard() {
+    if (!ui || !signedOut || ui.root.querySelector(".wz-save")) return;
+    const c = document.createElement("div"); c.className = "wz-save"; c.setAttribute("role", "dialog");
+    c.innerHTML = `<b>${esc(T("Nice — your first materials!"))}</b><p>${esc(T("Sign in with your wallet to keep what you gather, build a camp and do the daily missions (300 ARCL each)."))}</p><div><button type="button" class="go" data-s="in">${esc(T("Sign in"))}</button><button type="button" data-s="x">${esc(T("Later"))}</button></div>`;
+    c.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.s === "in") connect(); c.remove(); });
+    ui.root.appendChild(c); setTimeout(() => c.remove(), 20000);
+  }
   async function finish(w) {
     if (w.breaking) return; w.breaking = true; await w.started;
     let r = null; for (let i = 0; i < 4; i++) { r = await api("world-jur-break", { node: w.o.id, buddy: !!(H.buddyOut && H.buddyOut()) }); if (r.ok || r.status !== 429 || /full day/.test(String(r.j && r.j.error))) break; await new Promise((ok) => setTimeout(ok, 600)); }
     if (work === w) work = null;
     if (!r || !r.ok) { toast(T("Couldn't gather: {e}", { e: String((r && r.j && r.j.error) || "").slice(0, 60) })); paint(); return; }
-    const j = r.j, o = w.o; inv = j.inv; if (j.buddy && H.onBuddy) try { H.onBuddy(j.buddy, o.kind, j.saved || 0); } catch { /* the companion's card waits */ } if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
+    const j = r.j, o = w.o; inv = j.inv; paidNote(j.paid); if (j.buddy && H.onBuddy) try { H.onBuddy(j.buddy, o.kind, j.saved || 0); } catch { /* the companion's card waits */ } if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
     const isDino = o.kind === "raptor" || o.kind === "trike" || o.kind === "alpha" || o.kind === "spino" || o.kind === "titan" || o.kind === "claw";
     if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else { o.down = true; o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
-    const parts = Object.entries(j.loot || {}).filter(([m]) => m !== "ore").map(([m, n]) => `${ICON[m] || ""}+${n}`);
-    if (j.loot && j.loot.ore) for (const [m, n] of Object.entries(j.loot.ore)) parts.push(`${ICON[m]}+${n}`);
+    const parts = Object.entries(j.loot || {}).filter(([m]) => m !== "ore").map(([m, n]) => `${ic(m)}+${n}`);
+    if (j.loot && j.loot.ore) for (const [m, n] of Object.entries(j.loot.ore)) parts.push(`${ic(m)}+${n}`);
     pop(o, parts.join(" ") || T("Nothing this time"), "loot");
     const lv = ctx.level ? ctx.level() : 1, xp = Math.round((6 + 3 * lv) * (XP_K[o.kind] || 1));
     if (xp && ctx.gain) { try { ctx.gain(xp, T(NODE_N[o.kind] || "Gathering")); setTimeout(() => pop(o, `+${xp.toLocaleString("en-US")} XP`, "xp", 0.6), 380); } catch { /* the level waits */ } }
@@ -131,7 +183,7 @@ export function createSurvival(H) {
     const r = await api("world-jur-craft", { recipe: id }); busy = false;
     if (!r.ok) { toast(T("Couldn't make it: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
     inv = r.j.inv; if (r.j.ore) ore = r.j.ore;
-    (Snd.equip || Snd.buy || (() => {}))(); toast(T("Made: {x}", { x: T(R ? R.name : id) })); paint(); paintPack();
+    (Snd.equip || Snd.buy || (() => {}))(); toast(T("Made: {x}", { x: T(R ? R.name : id) })); paidNote(r.j.paid); if (H.onMade) try { H.onMade(id, R); } catch { /* the effect is extra */ } paint(); paintPack();
   }
   async function eat(f) {
     if (busy) return; const hp = ctx.vitals && ctx.vitals(); if (hp && hp.hp >= hp.max) { toast(T("You're not hungry")); return; }
@@ -212,13 +264,13 @@ export function createSurvival(H) {
     if (busy) { toast(T("One moment…")); return; } if (!ghostAt) { toast(T("Move to a free spot in your camp")); return; } const { gx, gz, c } = ghostAt; busy = true;
     const r = await api("world-jur-build", { op, piece: { k: op === "remove" ? (c.pieces.find((p) => p.x === gx && p.z === gz) || {}).k : ghostK, x: gx, z: gz, r: ghostR } }); busy = false;
     if (!r.ok) { toast(T("Couldn't build: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
-    inv = r.j.inv; const cc = camps.list.find((x) => x.slot === r.j.slot); if (cc) cc.pieces = r.j.plot; drawCamps();
+    inv = r.j.inv; paidNote(r.j.paid); const cc = camps.list.find((x) => x.slot === r.j.slot); if (cc) cc.pieces = r.j.plot; drawCamps();
     (Snd.place || Snd.equip || (() => {}))(); if (op === "place") { toast(T("Built: {x}", { x: T((pieceDefs[ghostK] || {}).name || ghostK) })); if (pieceDefs[ghostK] && pieceDefs[ghostK].station) endGhost(); }
     paint(); paintPack();
   }
   function paintBuild() {
     if (!ui || ui.build.hidden) return;
-    const c = homeCamp(), chip = (m, need) => `<span class="wz-chip${have(m) < need ? " short" : ""}">${ICON[m] || ""}<b>${Math.min(have(m), need)}/${need}</b></span>`;
+    const c = homeCamp(), chip = (m, need) => `<span class="wz-chip${have(m) < need ? " short" : ""}">${ic(m)}<b>${Math.min(have(m), need)}/${need}</b></span>`;
     const rows = Object.entries(pieceDefs).map(([k, P]) => { const one = P.station && c && c.pieces.some((p) => p.k === k), ok = canMake(P) && !one;
       return `<li class="${ok ? "ok" : ""}${one ? " own" : ""}"><div><b>${esc(T(P.name || k))}</b><p>${Object.entries(P.need).map(([m, n]) => chip(m, n)).join("")}</p></div><button type="button" data-build="${esc(k)}" ${ok ? "" : "disabled"}>${esc(one ? T("Built") : T("Build"))}</button></li>`; }).join("");
     ui.build.querySelector(".wz-pack-in").innerHTML = `<header><b>${esc(T("Build at your camp"))}</b><small>${c ? esc(T("{n} living here", { n: c.members })) : ""}</small><button type="button" class="wz-pack-x" aria-label="${esc(T("Close"))}">✕</button></header><ul class="wz-recipes">${rows}</ul>`;
@@ -243,32 +295,45 @@ export function createSurvival(H) {
   // ---------------- the HUD bits: the prompt, the goal card, the pack ----------------
   function bind(root) {
     const q = (s) => root.querySelector(s);
-    ui = { root, act: q(".wz-act"), goal: q(".wz-goal"), goalT: q(".wz-goal-t"), goalBar: q(".wz-goal-bar i"), packBtn: q(".wz-packbtn"), pack: q(".wz-pack:not(.wz-build)"), pops: q(".wz-pops"), foe: q(".wz-foe") };
+    ui = { root, act: q(".wz-act"), goal: q(".wz-goal"), goalT: q(".wz-goal-t"), goalBar: q(".wz-goal-bar i"), goalN: q(".wz-goal-n"), goalMis: q(".wz-goal-mis"), packBtn: q(".wz-packbtn"), pack: q(".wz-pack:not(.wz-build)"), pops: q(".wz-pops"), foe: q(".wz-foe") };
     ui.buildBtn = q(".wz-buildbtn"); ui.build = q(".wz-build"); ui.ghostBar = q(".wz-ghost");
     ui.buildBtn.addEventListener("click", () => { endGhost(); ui.build.hidden = !ui.build.hidden; if (!ui.build.hidden) { ui.pack.hidden = true; paintBuild(); } (Snd.tab || (() => {}))(); });
     ui.build.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.build) startGhost(b.dataset.build); else if (b.classList.contains("wz-pack-x")) ui.build.hidden = true; });
     ui.ghostBar.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const g = b.dataset.g; if (g === "turn") ghostR = (ghostR + 1) % 4; else if (g === "place") ghostDo("place"); else if (g === "down") ghostDo("remove"); else endGhost(); });
     ui.packBtn.addEventListener("click", () => togglePack());
+    if (ui.goal) ui.goal.addEventListener("click", () => { packTab = signedOut ? "bag" : "mis"; togglePack(true); });
     ui.pack.addEventListener("click", (e) => {
       const b = e.target.closest("button"); if (!b) return;
-      if (b.dataset.make) make(b.dataset.make); else if (b.dataset.eat) eat(b.dataset.eat); else if (b.dataset.join) join(Number(b.dataset.join)); else if (b.classList.contains("wz-pack-x")) togglePack(false);
+      if (b.dataset.tab) { packTab = b.dataset.tab; paintPack(); (Snd.tab || (() => {}))(); }
+      else if (b.dataset.signin != null) { connect(); togglePack(false); }
+      else if (b.dataset.make) make(b.dataset.make); else if (b.dataset.eat) eat(b.dataset.eat); else if (b.dataset.join) join(Number(b.dataset.join)); else if (b.classList.contains("wz-pack-x")) togglePack(false);
     });
   }
   function togglePack(open) { if (!ui) return; const o = open != null ? open : ui.pack.hidden; ui.pack.hidden = !o; if (o) { paintPack(); load().then(paintPack); } (Snd.tab || (() => {}))(); }
   const packOpen = () => !!(ui && !ui.pack.hidden);
+  // the goal card: thirteen steps from the first wood to the Thornback Titan (b-jx1: the second half after the copper axe);
+  // [what to do, how far along (0–1), which step, how many]
+  const STEPS = 13;
   function goal() {
-    if (signedOut) return [T("Sign in to gather"), 0];
-    if (!inv) return [T("Loading your pack…"), 0];
-    const m = inv.mat, tl = inv.tools, wood = m.wood || 0;
-    if (campFull && home < 0) return [T("Every camp spot is taken — join someone's camp from your pack"), 0];
-    if ((tl.axe | 0) < 1) { if (wood < 3 || (m.stone || 0) < 2 || (m.fiber || 0) < 2) return [T("Gather wood, stone and fiber for a stone axe"), Math.min(1, (Math.min(wood, 3) + Math.min(m.stone || 0, 2) + Math.min(m.fiber || 0, 2)) / 7)]; return [T("Open your pack and make a stone axe"), 0.9]; }
-    if (!campHas("bench")) return [T("Build a workbench at your camp: {a}/20 wood · {b}/10 stone", { a: Math.min(20, wood), b: Math.min(10, m.stone || 0) }), Math.min(1, (Math.min(20, wood) + Math.min(10, m.stone || 0)) / 30)];
-    if ((tl.spear | 0) < 1) return [T("Make a spear at the workbench (flint from rocks)"), Math.min(1, ((m.flint || 0) / 3 + Math.min(1, wood / 6)) / 2)];
-    if (!campHas("campfire")) return [T("Build a campfire at your camp"), Math.min(1, (Math.min(6, wood) + Math.min(8, m.stone || 0)) / 14)];
-    if (!(m.meat || 0) && !(m.cooked || 0) && !(m.hide || 0)) return [T("Hunt a raptor with your spear"), 0];
-    if (!(m.cooked || 0)) return [T("Cook meat at your campfire"), 0.5];
-    if ((tl.axe | 0) < 2) return [T("Make a copper axe (copper ore from rocks and the ARCL Mine)"), Math.min(1, (ore.cu || 0) / 8)];
-    return [T("Chop an ancient tree for amber · hunt the Alpha Raptor"), 1];
+    if (signedOut) return guest.n ? [T("Sign in to keep your {n} materials", { n: guest.n }), 1, 0] : [T("Try it: walk to a tree or a fern and tap attack"), 0, 0];
+    if (!inv) return [T("Loading your pack…"), 0, 0];
+    const m = inv.mat, tl = inv.tools, wood = m.wood || 0, hu = inv.hunted || {}, ax = tl.axe | 0;
+    if (campFull && home < 0) return [T("Every camp spot is taken — join someone's camp from your pack"), 0, 1];
+    if (ax < 1) { if (wood < 3 || (m.stone || 0) < 2 || (m.fiber || 0) < 2) return [T("Gather wood, stone and fiber for a stone axe"), Math.min(1, (Math.min(wood, 3) + Math.min(m.stone || 0, 2) + Math.min(m.fiber || 0, 2)) / 7), 1]; return [T("Open your pack and make a stone axe"), 0.9, 1]; }
+    if (!campHas("bench")) return [T("Build a workbench at your camp: {a}/20 wood · {b}/10 stone", { a: Math.min(20, wood), b: Math.min(10, m.stone || 0) }), Math.min(1, (Math.min(20, wood) + Math.min(10, m.stone || 0)) / 30), 2];
+    if ((tl.spear | 0) < 1) return [T("Make a spear at the workbench (flint from rocks)"), Math.min(1, ((m.flint || 0) / 3 + Math.min(1, wood / 6)) / 2), 3];
+    if (!campHas("campfire")) return [T("Build a campfire at your camp"), Math.min(1, (Math.min(6, wood) + Math.min(8, m.stone || 0)) / 14), 4];
+    if (ax < 2) { // (once the copper axe is made, the first half stays done: eating the meal doesn't send you back)
+      if (!hu.raptor && !(m.meat || 0) && !(m.cooked || 0) && !(m.hide || 0)) return [T("Hunt a raptor with your spear"), 0, 5];
+      if (!(m.cooked || 0) && (m.meat || 0)) return [T("Cook meat at your campfire"), 0.5, 6];
+      return [T("Make a copper axe (copper ore from rocks and the ARCL Mine)"), Math.min(1, (ore.cu || 0) / 8), 7]; }
+    if (!campHas("hut")) return [T("Build a hut at your camp: {a}/40 wood · {b}/12 stone · {c}/10 fiber", { a: Math.min(40, wood), b: Math.min(12, m.stone || 0), c: Math.min(10, m.fiber || 0) }), Math.min(1, (Math.min(40, wood) + Math.min(12, m.stone || 0) + Math.min(10, m.fiber || 0)) / 62), 8];
+    if (!campHas("bed")) return [T("Build a bed in your hut — then you can sleep through the night"), Math.min(1, (Math.min(15, wood) + Math.min(10, m.fiber || 0)) / 25), 9];
+    if (ax < 3) return [T("Make an iron-hard axe (hardwood from ancient trees, silver ore, rope)"), Math.min(1, (Math.min(4, m.hardwood || 0) / 4 + Math.min(6, ore.ag || 0) / 6 + Math.min(1, m.rope || 0)) / 3), 10];
+    if (!hu.trike) return [T("Hunt a Triceratops (the herd east of the lake)"), 0, 11];
+    if (!hu.alpha) return [T("Hunt the Alpha Raptor (boss · the ruins in the south)"), 0, 12];
+    if (!hu.titan) return [T("Hunt the Thornback Titan (boss · the north-west meadow)"), 0, 13];
+    return [T("Every goal done — keep up the daily missions"), 1, STEPS + 1];
   }
   let lastAct = "", lastGoal = "";
   function paint() {
@@ -280,8 +345,10 @@ export function createSurvival(H) {
     if (!o && bedNear) html = H.isNight && H.isNight() ? `<kbd>E</kbd><b>${esc(T("Sleep until morning"))}</b><span>${esc(T("Bed"))}</span>` : `<kbd>E</kbd><b>${esc(T("Rest"))}</b><span>${esc(T("Bed"))}</span>`;
     else if (!o && stationNear) html = `<kbd>E</kbd><b>${esc(T(stationNear === "bench" ? "Craft" : "Cook"))}</b><span>${esc(T(stationNear === "bench" ? "Workbench" : "Campfire"))}</span>`;
     if (html !== lastAct) { lastAct = html; ui.act.innerHTML = html; ui.act.hidden = !html; ui.act.dataset.rest = !o && bedNear ? "1" : ""; }
-    const [g, k] = goal(), gs = g + "|" + k.toFixed(2);
-    if (gs !== lastGoal) { lastGoal = gs; ui.goalT.textContent = g; ui.goalBar.style.width = Math.round(k * 100) + "%"; ui.goal.hidden = false; }
+    const [g, k, step] = goal(), mis = inv && Array.isArray(inv.mis) ? inv.mis : [], md = mis.filter((x) => x.paid).length, gs = g + "|" + k.toFixed(2) + "|" + step + "|" + md;
+    if (gs !== lastGoal) { lastGoal = gs; ui.goalT.textContent = g; ui.goalBar.style.width = Math.round(k * 100) + "%"; ui.goal.hidden = false;
+      if (ui.goalN) ui.goalN.textContent = step > 0 ? (step > STEPS ? "✓ " + STEPS + "/" + STEPS : step + "/" + STEPS) : "";
+      if (ui.goalMis) { ui.goalMis.hidden = !mis.length; ui.goalMis.innerHTML = mis.length ? `<span>${esc(T("Daily missions"))}</span>${mis.map((x) => `<i class="${x.paid ? "on" : ""}" style="--k:${(x.n / x.need).toFixed(2)}"></i>`).join("")}<b>${md}/${mis.length}</b>` : ""; } }
     placeGoal();
   }
   // the selected dinosaur's card: name, level, HP; it sits under the goal card
@@ -325,23 +392,36 @@ export function createSurvival(H) {
   }
   function paintPack() {
     if (!ui || ui.pack.hidden) return;
-    const chip = (m, n, need) => `<span class="wz-chip${need != null && have(m) < need ? " short" : ""}" title="${esc(T(MAT_N[m] || m))}">${ICON[m] || ""}<b>${need != null ? `${Math.min(have(m), need)}/${need}` : n}</b></span>`;
-    const mats = inv ? Object.entries(inv.mat).filter(([, n]) => n > 0) : [];
-    const ores = ORE.filter((m) => ore[m] > 0);
+    const chip = (m, n, need) => `<span class="wz-chip${need != null && have(m) < need ? " short" : ""}" title="${esc(T(MAT_N[m] || m))}">${ic(m)}<b>${need != null ? `${Math.min(have(m), need)}/${need}` : n}</b></span>`;
+    const mats = signedOut ? Object.entries(guest.mat).filter(([, n]) => n > 0) : inv ? Object.entries(inv.mat).filter(([, n]) => n > 0) : [];
+    const ores = signedOut ? [] : ORE.filter((m) => ore[m] > 0);
     const tl = inv ? inv.tools : { axe: 0, spear: 0 };
     const AXE = ["Bare hands", "Stone axe", "Copper axe", "Iron-hard axe"];
-    const rec = Object.entries(recipes).map(([id, R]) => { const own = owned(R), ok = canMake(R) && atOk(R) && !own;
-      return `<li class="${ok ? "ok" : ""}${own ? " own" : ""}"><div><b>${esc(T(R.name))}</b>${R.at ? `<small>${esc(T(R.at === "bench" ? "at the workbench" : "at the campfire"))}</small>` : ""}<p>${Object.entries(R.need).map(([m, n]) => chip(m, 0, n)).join("")}</p></div>
-        <button type="button" data-make="${esc(id)}" ${ok ? "" : "disabled"}>${esc(own ? T("Made") : T("Make"))}</button></li>`; }).join("");
-    const food = Object.keys(FOOD).filter((f) => have(f) > 0).map((f) => `<button type="button" class="wz-eat" data-eat="${f}">${ICON[f]} ${esc(T(MAT_N[f]))} ×${have(f)} <small>+${FOOD[f]}% HP</small></button>`).join("");
+    const mis = inv && Array.isArray(inv.mis) ? inv.mis : [], md = mis.filter((x) => x.paid).length;
+    const tabs = [["bag", T("Pack")], ["make", T("Make")], ["mis", T("Missions") + (mis.length ? ` ${md}/${mis.length}` : "")]];
+    if (signedOut && packTab !== "bag") packTab = "bag";
+    let body = "";
+    if (packTab === "make") {
+      const rec = Object.entries(recipes).map(([id, R]) => { const own = owned(R), ok = canMake(R) && atOk(R) && !own;
+        return `<li class="${ok ? "ok" : ""}${own ? " own" : ""}"><div><b>${esc(T(R.name))}</b>${R.at ? `<small>${esc(T(R.at === "bench" ? "at the workbench" : "at the campfire"))}</small>` : ""}<p>${Object.entries(R.need).map(([m, n]) => chip(m, 0, n)).join("")}</p></div>
+          <button type="button" data-make="${esc(id)}" ${ok ? "" : "disabled"}>${esc(own ? T("Made") : T("Make"))}</button></li>`; });
+      // what you can make now first, then what's left, then what you have
+      const order = Object.entries(recipes).map(([id, R], i) => [i, owned(R) ? 2 : canMake(R) && atOk(R) ? 0 : 1]).sort((a, b) => a[1] - b[1] || a[0] - b[0]).map(([i]) => rec[i]);
+      body = `<ul class="wz-recipes">${order.join("")}</ul>`;
+    } else if (packTab === "mis") {
+      body = `<p class="wz-mis-note">${esc(T("Three a day for taking part — never for winning. They start again at midnight (Korea time)."))}</p><ul class="wz-mis">${mis.map((x) => `<li class="${x.paid ? "done" : ""}"><div><b>${esc(T(MIS_N[x.key] || x.name))}</b><i><u style="width:${Math.round(100 * x.n / x.need)}%"></u></i><small>${x.n.toLocaleString("en-US")} / ${x.need.toLocaleString("en-US")}</small></div><em>${x.paid ? "✓ " + esc(T("Paid")) : "+" + x.arcl.toLocaleString("en-US") + " ARCL"}</em></li>`).join("")}</ul>`;
+    } else {
+      const food = Object.keys(FOOD).filter((f) => have(f) > 0).map((f) => `<button type="button" class="wz-eat" data-eat="${f}">${ic(f)} ${esc(T(MAT_N[f]))} ×${have(f)} <small>+${FOOD[f]}% HP</small></button>`).join("");
+      body = `${signedOut ? `<div class="wz-guest"><p>${esc(T(guest.n ? "What you gather now is kept for this visit only. Sign in with your wallet to keep it." : "Chop a tree or pick a fern to try it. Sign in with your wallet to keep what you gather."))}</p><button type="button" data-signin>${esc(T("Sign in"))}</button></div>` : ""}
+        ${campFull && home < 0 ? `<h4>${esc(T("Join a camp"))}</h4><ul class="wz-recipes">${camps.list.map((c) => `<li class="${c.members < 5 ? "ok" : ""}"><div><b>${esc(T("{w}'s camp", { w: c.owner }))}</b><small>${c.members}/5</small></div><button type="button" data-join="${c.slot}" ${c.members < 5 ? "" : "disabled"}>${esc(T("Join"))}</button></li>`).join("")}</ul>` : ""}
+        ${signedOut ? "" : `<h4>${esc(T("Tools"))}</h4><p class="wz-tools"><span>🪓 ${esc(T(AXE[tl.axe | 0] || AXE[0]))}</span><span>🔱 ${esc(T((tl.spear | 0) ? "Spear" : "No spear"))}</span></p>`}
+        <h4>${esc(T("Materials"))}</h4><p class="wz-mats">${mats.length || ores.length ? mats.map(([m, n]) => chip(m, n)).join("") + ores.map((m) => chip(m, ore[m])).join("") : `<span class="wz-empty">${esc(T("Nothing yet: chop trees, pick ferns, mine rocks"))}</span>`}</p>
+        ${food ? `<h4>${esc(T("Food"))}</h4><p class="wz-food">${food}</p>` : ""}`;
+    }
     ui.pack.querySelector(".wz-pack-in").innerHTML = `
-      <header><b>${esc(T("Pack"))}</b><small>${inv ? esc(T("Gathering today: {a} / {b}", { a: inv.got || 0, b: inv.cap || 6000 })) : ""}</small><button type="button" class="wz-pack-x" aria-label="${esc(T("Close"))}">✕</button></header>
-      ${signedOut ? `<p class="wz-empty">${esc(T("Sign in to gather"))}</p>` : ""}
-      ${campFull && home < 0 ? `<h4>${esc(T("Join a camp"))}</h4><ul class="wz-recipes">${camps.list.map((c) => `<li class="${c.members < 5 ? "ok" : ""}"><div><b>${esc(T("{w}'s camp", { w: c.owner }))}</b><small>${c.members}/5</small></div><button type="button" data-join="${c.slot}" ${c.members < 5 ? "" : "disabled"}>${esc(T("Join"))}</button></li>`).join("")}</ul>` : ""}
-      <h4>${esc(T("Tools"))}</h4><p class="wz-tools"><span>🪓 ${esc(T(AXE[tl.axe | 0] || AXE[0]))}</span><span>🔱 ${esc(T((tl.spear | 0) ? "Spear" : "No spear"))}</span></p>
-      <h4>${esc(T("Materials"))}</h4><p class="wz-mats">${mats.length || ores.length ? mats.map(([m, n]) => chip(m, n)).join("") + ores.map((m) => chip(m, ore[m])).join("") : `<span class="wz-empty">${esc(T("Nothing yet: chop trees, pick ferns, mine rocks"))}</span>`}</p>
-      ${food ? `<h4>${esc(T("Food"))}</h4><p class="wz-food">${food}</p>` : ""}
-      <h4>${esc(T("Make"))}</h4><ul class="wz-recipes">${rec}</ul>`;
+      <header><b>${esc(T("Pack"))}</b><small>${inv && !signedOut ? esc(T("Gathering today: {a} / {b}", { a: inv.got || 0, b: inv.cap || 6000 })) : ""}</small><button type="button" class="wz-pack-x" aria-label="${esc(T("Close"))}">✕</button></header>
+      ${signedOut ? "" : `<nav class="wz-tabs">${tabs.map(([k, n]) => `<button type="button" data-tab="${k}" class="${packTab === k ? "on" : ""}">${esc(n)}</button>`).join("")}</nav>`}
+      ${body}`;
   }
   // numbers and loot floating up from where it happened
   const v3 = new THREE.Vector3();
@@ -364,7 +444,7 @@ export function createSurvival(H) {
   let pickT = 0, feltT = 0;
   function tick(dt, t, px, pz, face) {
     if ((pickT += dt) > 0.12) { pickT = 0; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; } paint(); }
-    if ((feltT += dt) > 5) { feltT = 0; applyFelled(); }
+    if ((feltT += dt) > 5) { feltT = 0; applyFelled(); if (signedOut && ctx.sess && ctx.sess()) { guest.mat = {}; guest.n = 0; const sc = ui && ui.root.querySelector(".wz-save"); if (sc) sc.remove(); load().then(() => { toast(T("Signed in: what you gather is saved now")); if (ui && !ui.pack.hidden) paintPack(); }); } }
     // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
     if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }
     if (H.dinos && (pickT === 0)) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }

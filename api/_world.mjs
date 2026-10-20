@@ -287,7 +287,7 @@ export function make(deps) {
   // Jurassic World's gathering, crafting and camps (api/_world-jur.mjs); its dinosaur companion (api/_world-dino.mjs)
   // helps with the hunts and takes its care from the same pack (the two reach each other through these late-bound hooks)
   let dino = null;
-  const jur = makeJur({ ...deps, json, now, signer, isGM, mine, dino: { assist: (w) => dino.assist(w), hunt: (w, k) => dino.hunt(w, k), gather: (w) => dino.gather(w) } });
+  const jur = makeJur({ ...deps, json, now, signer, isGM, mine, credit: shop.credit, isoWeek: shop.isoWeek, dino: { assist: (w) => dino.assist(w), hunt: (w, k) => dino.hunt(w, k), gather: (w) => dino.gather(w) } });
   dino = makeDino({ ...deps, json, now, signer, debit: shop.debit, level: async (w) => levelOfSave(await saveOf(w)), jur: { take: (w, need) => jur.take(w, need) } });
   // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
   const launch = makeLaunch({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
@@ -549,6 +549,7 @@ export function make(deps) {
       if (w === "gm-rewards") return gmReward.read(w, url);
       if (w === "land" || w === "land-refunds") return land.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
+      if (w === "jur-boss" || w === "jur-top") return jur.read(w, url);
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }
       if (w === "mine") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return mine.view(lc(a), url.searchParams.has("board")); }

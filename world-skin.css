@@ -2627,3 +2627,35 @@ body.wp .wg-grid li,body.wp .wg-grid button{min-width:0;max-width:100%}
 .sv-cut b{font:900 30px/1 var(--hud-font,var(--f-ui));letter-spacing:1px;text-transform:uppercase;color:#fff;text-shadow:0 0 14px var(--c),0 2px 0 rgba(0,0,0,.5)}
 @keyframes sv-cut{0%{transform:translateX(-100%) skewX(-12deg);opacity:0}18%{transform:translateX(0) skewX(-12deg);opacity:1}78%{transform:translateX(4%) skewX(-12deg);opacity:1}100%{transform:translateX(110%) skewX(-12deg);opacity:0}}
 .sv-streak.combo b{color:#ffe27a;text-shadow:0 0 12px rgba(255,180,40,.85),0 2px 0 #4a1a00}
+/* b-jx1: Jurassic World — the goal card counts its steps and shows the daily missions (tap: the pack's Missions tab),
+   drawn material icons, the pack's tabs, the missions list, a guest's "keep it" card */
+.wz-goal{pointer-events:auto;cursor:pointer}
+.wz-goal small{display:flex;align-items:center;gap:6px}.wz-goal-n{margin-left:auto;font:800 10px var(--f-ui);font-style:normal;letter-spacing:.04em;color:#cfe3ff;opacity:.85}
+.wz-goal-mis{display:flex;align-items:center;gap:5px;margin:8px 0 0;font:800 10.5px var(--f-ui);color:#ffd27a}
+.wz-goal-mis[hidden]{display:none}.wz-goal-mis span{margin-right:2px;letter-spacing:.04em}
+.wz-goal-mis i{position:relative;width:16px;height:6px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}
+.wz-goal-mis i::after{content:"";position:absolute;inset:0;width:calc(var(--k,0)*100%);background:#ffc23a}.wz-goal-mis i.on::after{width:100%;background:#2ee07a}
+.wz-goal-mis b{margin-left:auto;font:900 11px var(--f-ui);color:#eef3f7}
+.wz-goal.paid{animation:wz-paid .9s ease}
+@keyframes wz-paid{30%{box-shadow:0 0 0 3px #ffc23a,0 0 28px rgba(255,194,58,.7);transform:scale(1.03)}}
+.wz-ic{display:inline-flex;width:18px;height:18px;flex:0 0 18px}.wz-ic svg{width:100%;height:100%}
+.wz-pop .wz-ic{width:20px;height:20px;vertical-align:-4px}
+.wz-tabs{display:flex;gap:6px;margin:12px 0 2px}
+.wz-tabs button{flex:1;padding:8px 6px;border:0;border-radius:10px;background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.1) inset;font:800 13px var(--f-ui);color:#cfe3ff}
+.wz-tabs button.on{background:linear-gradient(180deg,#2f86ff,#1f5fd0);color:#fff;box-shadow:0 4px 12px rgba(47,134,255,.35)}
+.wz-mis-note{margin:12px 0 8px!important;font:600 12px/1.45 var(--f-ui);color:#a9c6ef}
+.wz-mis{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wz-mis li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.wz-mis li>div{flex:1;min-width:0;display:grid;gap:5px}.wz-mis li b{font:800 14px var(--f-ui)}
+.wz-mis li i{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}.wz-mis li i u{display:block;height:100%;background:linear-gradient(90deg,#ffb02e,#ffd27a)}
+.wz-mis li small{font:700 11px var(--f-ui);color:#a9c6ef}
+.wz-mis li em{flex:0 0 auto;font:900 12.5px var(--f-ui);font-style:normal;color:#ffd27a}
+.wz-mis li.done{border-color:rgba(46,224,122,.5)}.wz-mis li.done i u{background:#2ee07a}.wz-mis li.done em{color:#7dffc8}
+.wz-guest{display:grid;gap:8px;margin:12px 0 0;padding:12px;border-radius:12px;background:rgba(255,194,58,.08);border:1px solid rgba(255,194,58,.35)}
+.wz-guest p{display:block!important;font:600 13px/1.45 var(--f-ui);color:#ffe6b0}
+.wz-guest button,.wz-save button{padding:10px 14px;border:0;border-radius:11px;background:rgba(255,255,255,.1);font:800 13px var(--f-ui);color:#fff}
+.wz-guest button,.wz-save button.go{background:linear-gradient(180deg,#2ee07a,#17a85a);color:#04210f}
+.wz-save{pointer-events:auto;position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));z-index:6;transform:translateX(-50%);width:min(340px,calc(100vw - 24px));display:grid;gap:8px;padding:14px 16px;border-radius:16px;border:1.5px solid rgba(46,224,122,.55);background:linear-gradient(180deg,rgba(12,24,52,.95),rgba(7,12,26,.95));box-shadow:0 14px 34px rgba(0,0,0,.5);animation:wz-save-in .4s cubic-bezier(.2,.9,.3,1.2)}
+.wz-save b{font:900 16px var(--f-ui);color:#7dffc8}.wz-save p{margin:0;font:600 13px/1.45 var(--f-ui);color:#e3ecf7}.wz-save div{display:flex;gap:8px}.wz-save div button{flex:1}
+@keyframes wz-save-in{from{opacity:0;transform:translate(-50%,16px) scale(.96)}}
+@media (prefers-reduced-motion:reduce){.wz-goal.paid,.wz-save{animation:none}}
