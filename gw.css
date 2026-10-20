@@ -552,3 +552,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-dark .gw-big .w > i { background: linear-gradient(180deg, #fff 30%, #9ff6ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 /* the game's number sits up top, clear of the key art's own title */
 .gw-gart .gw-gnum { display: none; } /* the key art carries its own title */
+/* white cards keep dark ink wherever they sit (features, guide, policy are on dark sections now) */
+.gw-feat, .gw-faq details, .gw-pol, .gw-news, .gw-rlist li { color: var(--dark-ink); }
+.gw-feat h3, .gw-faq summary, .gw-pol h3, .gw-news h3 { color: var(--dark-ink); }
