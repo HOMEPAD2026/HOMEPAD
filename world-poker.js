@@ -14,15 +14,19 @@
 import { POKER, HANDS, LEVELS, newHand, act, legal, pot, botMove, best, equity, RANKS, SUITS, rankOf, suitOf } from "./world-poker-engine.js";
 import { BJ } from "./world-blackjack-engine.js";
 import { makeBlackjack } from "./world-blackjack.js";
+import { makeLounge } from "./world-poker-room.js";
 
 const SAVE = "arc.world.poker", ROOMK = "arc.world.poker.room", fmt = (n) => Math.round(n || 0).toLocaleString("en-US");
 const seoulDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const BOTS = ["AI ARON", "AI LUMI", "AI NEX", "AI ARC", "AI MINT"];
+const BOT_LOOK = [["custom-aron", 0], ["custom-lumi", 0], ["custom-nex", 0], ["custom-aron", 3], ["custom-lumi", 1]]; // (api/_world-poker.mjs gives the tables' computer players the same)
+const botLook = (name) => { const k = Math.max(0, BOTS.indexOf(name)); return { ch: BOT_LOOK[k][0], tn: BOT_LOOK[k][1] }; };
 const AVC = ["#2f86ff", "#ff6fb5", "#2ee0b0", "#ffd23a", "#a77bff", "#ff8a3d"];
 // the seats round the table, by where they're drawn: 0 is you (the bottom), then clockwise — the order of play
 const SLOT = [90, 150, 210, 270, 330, 30], LAYOUT = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 2, 3, 4], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
 const RX = 3.0, RZ = 3.9, CW = 0.62, CH = 0.87;
+const DZ = -RZ - 2.2, DY = 0.45; // ARCIA stands back from the far end (b-pk3d: a hero sits there now), a little raised
 const BACKS = [{ id: "blue", lv: 1, a: "#1d4fd6", b: "#62a8ff", name: "Classic Blue" }, { id: "mint", lv: 5, a: "#0b7a63", b: "#5ff0d0", name: "Mint" }, { id: "gold", lv: 10, a: "#6b3f00", b: "#ffd23a", name: "Gold" }, { id: "inf", lv: 20, a: "#2a1260", b: "#b48cff", name: "Infinity" }, { id: "night", lv: 1, need: "back:night", a: "#0b1030", b: "#ffd23a", name: "Opening Night" }];
 const FELTS = [{ id: "violet", lv: 1, a: "#6a3cc0", b: "#1e0c44", name: "Lounge Violet" }, { id: "emerald", lv: 3, a: "#169a6e", b: "#04382a", name: "Emerald" }, { id: "navy", lv: 8, a: "#2a62c8", b: "#0a1a48", name: "Midnight Blue" }, { id: "crimson", lv: 15, a: "#b42a4c", b: "#3a0716", name: "Crimson" }, { id: "champ", lv: 1, need: "felt:champ", a: "#e0b040", b: "#4a2c00", name: "Champion Gold" }];
 const TITLES = [[1, "Rookie"], [5, "Regular"], [10, "Sharp Player"], [20, "High Roller"], [35, "Lounge Star"], [50, "ARCIA's Favorite"], [75, "Lounge Legend"], [100, "Infinity Ace"]];
@@ -48,6 +52,7 @@ export function createPoker(ctx) {
   let on = false, busy = false, mode = "off", S = null, ui = null, prOrig = 0, tab = "play", fast = 1;
   let prog = load(), status = null, topB = null, roomsL = null, sayT = 0;
   let G = null, R = null, vis = blank(), Q = [], qAt = 0, latest = null, TWN = [], actBusy = false;
+  let walkUp = false; const wKeys = new Set(), joy = { x: 0, y: 0, id: -1 }; // b-pk3d: walking the room (the lobby with its sheet put away)
 
   // ---------------- this device's record (a wallet's comes from the server) ----------------
   function load() {
@@ -146,7 +151,6 @@ export function createPoker(ctx) {
     // the neon sign over the dealer
     { const [c, g] = canvasOf(1024, 256); g.textAlign = "center"; g.textBaseline = "middle"; g.font = "900 104px sans-serif"; g.shadowColor = "#b48cff"; g.shadowBlur = 34; g.fillStyle = "#f2e8ff"; g.fillText("ARCIA ♾️ POKER", 512, 96); g.font = "800 46px sans-serif"; g.shadowColor = "#ffc861"; g.fillStyle = "#ffe2a8"; g.fillText("— LOUNGE —", 512, 196);
       const m = new THREE.Mesh(new THREE.PlaneGeometry(8, 2), new THREE.MeshBasicMaterial({ map: texOf(c), transparent: true, depthWrite: false, toneMapped: false })); m.position.set(0, 6.9, -RZ - 4.5); scene.add(m); S0.sign = m; }
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x150a2c, roughness: 0.55, metalness: 0.25 })); floor.rotation.x = -Math.PI / 2; floor.position.y = -1.25; scene.add(floor);
     const shade = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshBasicMaterial({ map: dot, color: 0x000000, transparent: true, opacity: 0.75, depthWrite: false })); shade.rotation.x = -Math.PI / 2; shade.position.y = -1.23; shade.scale.set(RX * 1.6, RZ * 1.6, 1); scene.add(shade);
     scene.add(new THREE.HemisphereLight(0xd8c8ff, 0x1a0d30, 0.85));
     const spot = new THREE.SpotLight(0xfff0d8, 70, 30, 0.78, 0.65, 1.4); spot.position.set(0, 10, 1.2); spot.target.position.set(0, 0, 0.2); scene.add(spot, spot.target);
@@ -168,7 +172,7 @@ export function createPoker(ctx) {
     const apron = new THREE.Mesh(new THREE.CylinderGeometry(1, 0.93, 0.62, 72, 1, true), new THREE.MeshStandardMaterial({ color: 0x1a0c30, roughness: 0.5, metalness: 0.2, side: THREE.DoubleSide })); apron.scale.set(RX + 0.42, 1, RZ + 0.42); apron.position.y = -0.33; tbl.add(apron);
     const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.5, 0.95, 32), new THREE.MeshStandardMaterial({ color: 0x120822, roughness: 0.4, metalness: 0.5 })); ped.position.y = -0.8; tbl.add(ped);
     // ARCIA, behind the far end of the table (her picture turns to face the camera, hinged at the waist), a glow behind her
-    const deal = new THREE.Group(); deal.position.set(0, -0.15, -RZ - 0.75); scene.add(deal);
+    const deal = new THREE.Group(); deal.position.set(0, DY, DZ); scene.add(deal);
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: 0x8a5cff, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending })); halo.scale.set(6.5, 6.5, 1); halo.position.set(0, 2.2, -0.6); deal.add(halo);
     const dm = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.05, toneMapped: false, color: 0xf2eeff }); const dlr = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.2), dm); dlr.position.y = 2.1; deal.add(dlr); dlr.visible = false;
     new THREE.TextureLoader().loadAsync("images/world-arcia-dealer.webp?v=" + (ctx.ver || "1")).then((t) => { t.colorSpace = THREE.SRGBColorSpace; dm.map = t; dm.needsUpdate = true; dlr.visible = true; }).catch((e) => console.warn("poker dealer:", e));
@@ -188,6 +192,8 @@ export function createPoker(ctx) {
     const flyG = new THREE.Group(); scene.add(flyG);
     Object.assign(S0, { scene, cam, feltM, deal, dlr, halo, dbtn, cards, bets, potG, flyG, chipGeo, chipM, dot, ace: null, comp: null, p9: 0, key: "" });
     S = S0;
+    // b-pk3d: the room round the table, the chairs and the heroes in them (world-poker-room.js)
+    try { S.lounge = makeLounge({ THREE, K: ctx.K, ver: ctx.ver || "", low: !!ctx.low, coarse: !!ctx.coarse, scene, RX, RZ, slotPos }); } catch (e) { console.warn("poker room:", e); S.lounge = null; }
     const loader = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null;
     if (loader) loader.loadAsync("models/world/poker/ace.glb?v=" + (ctx.ver || "1")).then((g) => {
       const o = g.scene, b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), k = 1.7 / Math.max(sz.x, sz.y, sz.z, 1e-3); o.scale.setScalar(k); o.position.sub(b.getCenter(new THREE.Vector3()).multiplyScalar(k));
@@ -209,16 +215,17 @@ export function createPoker(ctx) {
   const tv = new THREE.Vector3();
   function frame() {
     if (!S) return; const V = view(), cam = S.cam, k = scaleK() * (V.h / innerHeight), lob = mode === "lobby" || mode === "result" || mode === "load";
+    if (walkUp) { cam.aspect = V.w / V.h; cam.fov = phone() ? 56 : 46; cam.updateProjectionMatrix(); cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert(); S.p9 = cam.projectionMatrix.elements[9]; S.key = [V.w, V.h, mode, walkUp].join("x"); return; } // (the camera follows you: tick)
     const top = (lob ? 30 : phone() ? 70 : 60) * k, bot = lob ? V.h * 0.6 : (phone() ? 200 : wide() ? 18 : 168) * k; // (wide: your cards and moves sit at the side)
     cam.aspect = V.w / V.h; cam.fov = phone() ? 40 : 34;
-    const el = ((lob ? 26 : phone() ? 62 : 52) * Math.PI) / 180, tz = lob ? -RZ * 0.6 : 0.1;
-    const pts = lob ? [[-(RX + 0.6), 0, -RZ * 0.4], [RX + 0.6, 0, -RZ * 0.4], [0, 4.3, -RZ - 0.75], [0, 0, -RZ * 0.1]] : [[-(RX + 0.5), 0, 0], [RX + 0.5, 0, 0], [0, 0, RZ + 0.5], [0, phone() ? 3.4 : 4.1, -RZ - 0.75], [0, 0, -RZ - 0.5]];
+    const el = ((lob ? 26 : phone() ? 54 : 46) * Math.PI) / 180, tz = lob ? -RZ * 0.6 : 0.1; // (b-pk3d: lower than before, so the heroes in the chairs show)
+    const pts = lob ? [[-(RX + 0.6), 0, -RZ * 0.4], [RX + 0.6, 0, -RZ * 0.4], [0, 4.3 + DY, DZ], [0, 0, -RZ * 0.1]] : [[-(RX + 0.5), 0, 0], [RX + 0.5, 0, 0], [0, 0, RZ + 0.5], [0, (phone() ? 3.0 : 3.8) + DY, DZ], [0, 0, -RZ - 0.5], [-(RX + 0.7), 1.5, -RZ * 0.62], [RX + 0.7, 1.5, -RZ * 0.62], [-(RX + 0.7), 0.4, RZ * 0.6], [RX + 0.7, 0.4, RZ * 0.6]]; // (and the heroes' heads in the side chairs)
     const yT = 1 - (2 * top) / V.h, yB = -1 + (2 * bot) / V.h, band = Math.max(0.25, yT - yB);
     const place = (D) => { cam.position.set(0, D * Math.sin(el), tz + D * Math.cos(el)); cam.lookAt(0, lob ? 1.2 : 0, tz); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); let x = 0, y0 = 9, y1 = -9; for (const p of pts) { tv.set(p[0], p[1], p[2]).project(cam); x = Math.max(x, Math.abs(tv.x)); y0 = Math.min(y0, tv.y); y1 = Math.max(y1, tv.y); } return { x, y0, y1 }; };
     let lo = 3, hi = 60; for (let it = 0; it < 22; it++) { const D = (lo + hi) / 2, r = place(D); if (r.x <= 0.97 && r.y1 - r.y0 <= band) hi = D; else lo = D; }
     const b = place(hi), s = (yT + yB) / 2 - (b.y0 + b.y1) / 2;
     cam.projectionMatrix.elements[9] = -s; cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert(); S.p9 = -s;
-    S.key = [V.w, V.h, mode].join("x");
+    S.key = [V.w, V.h, mode, walkUp].join("x");
     S.dlr.parent.lookAt(cam.position.x, S.dlr.parent.position.y + (cam.position.y - S.dlr.parent.position.y) * 0.35, cam.position.z); // (leaning back a little toward the camera)
   }
   const wide = () => !phone() && innerWidth > innerHeight * 1.25;
@@ -324,7 +331,7 @@ export function createPoker(ctx) {
     }
     const d = dOfI(M, i), name = H.p[i].name;
     if (e.t === "fold") {
-      vis.badge[i] = { t: T("FOLD"), c: "fold" }; snd("card");
+      vis.badge[i] = { t: T("FOLD"), c: "fold" }; snd("card"); if (S.lounge) S.lounge.react(dOfI(M, i), "fold");
       if (i === me) ui.mine.classList.add("folded");
       else for (let j = 0; j < 2; j++) { const cd = holeCard(i, j); if (cd.o.visible) moveCard(cd, (j - 0.5) * 0.3, -RZ * 0.42, 0.4 * (j - 0.5), false, 0.35, j * 0.05, 0.6, () => { cd.o.visible = false; }); }
     } else if (e.t === "check") { vis.badge[i] = { t: T("CHECK"), c: "check" }; snd("knock"); }
@@ -361,7 +368,7 @@ export function createPoker(ctx) {
     vis.eq = null; vis.badge = {};
     const won = H.p.map((p, i) => res.net[i] + vis.tot[i]), potAll = vis.tot.reduce((a, b) => a + b, 0);
     stackChips(S.potG, 0);
-    won.forEach((w, i) => { if (w > 0) { flyChips({ x: 0, z: -1.3 }, slotPos(dOfI(M, i), 0.9), w, 0.1); vis.badge[i] = { t: "+" + fmt(w), c: "win" }; } });
+    won.forEach((w, i) => { if (w > 0) { flyChips({ x: 0, z: -1.3 }, slotPos(dOfI(M, i), 0.9), w, 0.1); vis.badge[i] = { t: "+" + fmt(w), c: "win" }; if (S.lounge) S.lounge.react(dOfI(M, i), "win"); } });
     // the pot counts down as the winners' stacks count up
     const from = vis.stack.slice(), to = H.p.map((p) => p.stack); vis.potLeft = potAll;
     tween(0.95, (k) => { const e = ease(k); vis.potLeft = Math.round(potAll * (1 - e)); vis.stack = from.map((f, i) => Math.round(f + (to[i] - f) * e)); paintSeats(); }, () => { vis.stack = to.slice(); vis.potLeft = 0; paintSeats(); }, 0.25);
@@ -402,11 +409,14 @@ export function createPoker(ctx) {
   }
   // ---------------- the HUD over the table ----------------
   function paintAll() { if (!ui || !vis.M) return; paintSeats(); paintMine(vis.M); paintBar(); paintWait(); paintTop(); }
+  const myLook = () => (ctx.hero ? ctx.hero() : { ch: "", tn: 0 });
+  const lookOf = (seat, mine) => (mine ? myLook() : seat.bot ? (seat.ch ? { ch: seat.ch, tn: seat.tn || 0 } : botLook(seat.name)) : { ch: seat.ch || "", tn: seat.tn || 0 });
   function paintSeats() {
     if (mode !== "table") return; // (a count-up finishing under the game-over sheet)
     const M = vis.M, H = M.hand, me0 = M.me >= 0 ? M.me : 0, mp = M.kind === "mp";
     for (let d = 0; d < 6; d++) {
       const el = ui.seats[d], seat = M.seats[(d + me0) % 6], si = (d + me0) % 6, i = H ? H.seatOf.indexOf(si) : -1;
+      if (S && S.lounge) S.lounge.seat(d, seat && !(d === 0 && M.me >= 0) ? lookOf(seat, false) : null); // (you aren't drawn in your own chair: your cards are there)
       if (!seat) { el.hidden = !(mp && d !== 0 && !(H && H.street < 4)); el.className = "pk-seat empty"; el.dataset.d = d; el.querySelector(".nm").textContent = T("Open seat"); el.querySelector(".sk").textContent = ""; el.querySelector(".pk-av span").textContent = "+"; el.querySelector(".pk-act").hidden = true; el.querySelector(".pk-shown").hidden = true; el.style.setProperty("--c", "#4a3a7a"); continue; }
       el.hidden = false; el.dataset.d = d;
       const p = i >= 0 ? H.p[i] : null, stk = i >= 0 && vis.stack[i] != null ? vis.stack[i] : seat.stack;
@@ -482,7 +492,7 @@ export function createPoker(ctx) {
     }
     const pt = H ? (vis.win ? vis.potLeft || 0 : vis.tot.reduce((a, b) => a + b, 0)) : 0; ui.pot.hidden = !pt; if (pt) { const s = toScreen(0, 0.2, -1.3); ui.pot.style.transform = `translate(${s.x}px, ${s.y}px) translate(-118%, -50%)`; /* (beside the pot's chips: above them is the far seat's bet) */ ui.potV.textContent = fmt(pt); }
     for (let d = 0; d < 6; d++) { const el = ui.betL[d], seatI = H ? H.seatOf.indexOf((d + (M.me >= 0 ? M.me : 0)) % 6) : -1, b = seatI >= 0 ? vis.bet[seatI] : 0; el.hidden = !(b > 0); if (b > 0) { const p = slotPos(d, 0.6), s = toScreen(p.x, 0.1, p.z); el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, 40%)`; el.textContent = fmt(b); } }
-    if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.55, -RZ - 0.75); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(70, s.y)}px)`; }
+    if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.55 + DY, DZ); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(70, s.y)}px)`; }
     // the clock
     const ti = H && H.street < 4 && !Q.length ? H.toAct : -1;
     for (let d = 0; d < 6; d++) ui.seats[d].classList.remove("turn");
@@ -526,7 +536,7 @@ export function createPoker(ctx) {
   // ---------------- solo: you and the computer players, here in the browser ----------------
   function soloStart() {
     const n = Math.max(1, Math.min(5, prog.ais | 0)), lvl = Math.max(0, Math.min(3, prog.lvl | 0)), slots = LAYOUT[n + 1], seats = Array(6).fill(null);
-    slots.forEach((s, k) => { seats[s] = k === 0 ? { name: meName(), stack: POKER.START, bot: false } : { name: BOTS[k - 1], stack: POKER.START, bot: true, lvl }; });
+    slots.forEach((s, k) => { seats[s] = k === 0 ? { name: meName(), stack: POKER.START, bot: false, ...myLook() } : { name: BOTS[k - 1], stack: POKER.START, bot: true, lvl, ...botLook(BOTS[k - 1]) }; });
     G = { n, lvl, slots, seats, hands: 0, button: slots[Math.floor(Math.random() * slots.length)], best: -1, botAt: 0, nextAt: 0, runP: null, at: Date.now(), over: false };
     const ss = ctx.sess && ctx.sess();
     G.runP = ss && ctx.post ? ctx.post({ action: "world-poker-solo-start", ...ss, lvl }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j.runId : null)).catch(() => null) : Promise.resolve(null);
@@ -590,7 +600,8 @@ export function createPoker(ctx) {
   const errText = (e) => { const m = String((e && e.message) || e || ""); const known = { "not enough chips for this table": "Not enough chips for this table", "the table is full": "That table is full", "no table with that code": "No table with that code", "not your turn": "Not your turn", "no such table": "That table has closed", network: "Network trouble — try again", "not enough ARCL": "Not enough ARCL", "today's chip limit is reached": "Today's chip limit is reached", "one moment": "One moment…" }; return T(known[m] || m).slice(0, 80); };
   async function api(body) {
     const ss = ctx.sess && ctx.sess(); if (!ss) throw new Error(T("Sign in with a wallet to play at the tables"));
-    let r; try { r = await ctx.post({ ...body, ...ss }); } catch { throw new Error("network"); }
+    const look = /^world-poker-(create|join)$/.test(body.action) ? myLook() : {}; // (the hero you're drawn as at the table)
+    let r; try { r = await ctx.post({ ...body, ...look, ...ss }); } catch { throw new Error("network"); }
     if (!r || !r.ok) throw Object.assign(new Error((r && r.j && r.j.error) || "network"), { status: r && r.status });
     return r.j;
   }
@@ -682,15 +693,17 @@ export function createPoker(ctx) {
     if (tab === "rank") jobs.push(fetch("/api/social?world=poker-top").then((r) => (r.ok ? r.json() : null)).then((j) => { topB = j; }).catch(() => {}));
     await Promise.race([Promise.all(jobs), sleep(4000)]);
   }
-  function toTable() { if (BJK.active()) BJK.stop(); setFelt("poker"); ui.replayB.hidden = false; mode = "table"; closeModal(); ui.sheet.hidden = true; ui.root.classList.remove("menu"); ui.top.hidden = false; ui.hand.hidden = false; ui.replayB.disabled = true; if (S && S.ace) S.ace.visible = false; clearTable(); frame(); }
+  function toTable() { walkEnd(); if (BJK.active()) BJK.stop(); setFelt("poker"); ui.replayB.hidden = false; mode = "table"; closeModal(); ui.sheet.hidden = true; ui.root.classList.remove("menu"); ui.top.hidden = false; ui.hand.hidden = false; ui.replayB.disabled = true; if (S && S.ace) S.ace.visible = false; clearTable(); frame(); }
   function sheet(html) { ui.sheet.innerHTML = html; ui.sheet.hidden = false; ui.sheet.scrollTop = 0; }
   function hideTable() { ui.root.classList.add("menu"); ui.top.hidden = true; ui.hand.hidden = true; ui.bar.hidden = true; ui.raise.hidden = true; ui.wait.hidden = true; ui.tools.hidden = true; ui.chat.hidden = true; ui.pot.hidden = true; ui.betL.forEach((e) => { e.hidden = true; }); ui.seats.forEach((e) => { e.hidden = true; }); }
-  function toBJ() { mode = "bj"; G = null; closeModal(); hideTable(); ui.root.classList.remove("menu"); ui.sheet.hidden = true; ui.top.hidden = false; ui.replayB.hidden = true; if (S && S.ace) S.ace.visible = false; clearTable(); setFelt("bj"); frame(); }
+  function toBJ() { walkEnd(); mode = "bj"; G = null; closeModal(); hideTable(); ui.root.classList.remove("menu"); ui.sheet.hidden = true; ui.top.hidden = false; ui.replayB.hidden = true; if (S && S.ace) S.ace.visible = false; clearTable(); setFelt("bj"); frame(); }
   function lobby() {
     if (BJK.active()) BJK.stop(); setFelt("poker");
     mode = "lobby"; G = null; if (R) { leaveTable(); } Q.length = 0; latest = null; vis = blank(); clearTable(); closeModal();
     hideTable();
-    if (S && S.ace) S.ace.visible = true; frame(); paintLobby();
+    if (S && S.ace) S.ace.visible = true;
+    if (S && S.lounge) { for (let d = 0; d < 6; d++) S.lounge.seat(d, d >= 2 && d <= 4 ? botLook(BOTS[d - 2]) : null); walkBegin(lobby.at || [0, 9.6]); lobby.at = null; } // (three AI players wait at the table)
+    frame(); paintLobby();
     if (!lobby.said) { lobby.said = true; say(T("Let's play together~ ♡"), 3200); }
     readStatus().then(() => { if (mode === "lobby") paintLobby(); });
   }
@@ -704,7 +717,65 @@ export function createPoker(ctx) {
       ${full ? `<ul class="pk-festl"><li>🎁 ${esc(T("Free chips doubled: {n} a day", { n: fmt(F.CHIPS) }))}</li>${!me || me.first ? `<li>🪙 ${esc(T("First chip purchase: +50% chips"))}</li>` : ""}<li>⏰ ${esc(T("Happy hour 20:00–22:00 (KST): mission progress ×2"))}</li>
         <li>🃏 ${esc(T("Royal flush at a table: +{a} chips · 3 blackjacks in a row: +{b}", { a: fmt(F.ROYAL), b: fmt(F.BJ3) }))}</li><li>🏆 ${esc(T("This week's top 3 at the tables: {a} / {b} / {c} chips + the Champion Gold felt", { a: fmt(F.CHAMP[0]), b: fmt(F.CHAMP[1]), c: fmt(F.CHAMP[2]) }))}</li></ul>` : ""}</section>`;
   }
+  // ---------------- b-pk3d: walking the lounge ----------------
+  // the lobby is the room: your hero walks it (the stick, WASD / arrows, or a tap on a place's name walks you there),
+  // and the place you stand at offers what it does; "Lounge menu" (or a place's button) brings up the old sheet
+  const PLACES = { table: { n: "ARCIA's table", y: 2.4, go: [["holdem", "Play Hold'em"], ["bj", "Blackjack"]] }, cashier: { n: "Chips & missions", go: [["shop", "Chip shop"], ["missions", "Missions"]] },
+    board: { n: "This week's board", go: [["rank", "Ranking"]] }, style: { n: "Card backs & felts", go: [["profile", "Profile & style"]] }, exit: { n: "Back to town", go: [["leave", "Back to town"]] } };
+  function walkBegin(at) {
+    walkUp = true; if (ui.sheet) ui.sheet.hidden = true; ui.walk.hidden = false; joy.x = joy.y = 0; wKeys.clear(); walkPaint();
+    S.lounge.walkStart(myLook(), at); frame();
+    if (!topB && !walkBegin.asked) { walkBegin.asked = true; fetch("/api/social?world=poker-top").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { topB = j; walkPaint(); } }).catch(() => {}); } // (the week's board on the wall)
+  }
+  function walkEnd() { if (!walkUp && !(S && S.lounge && S.lounge.walking())) { if (ui && ui.walk) ui.walk.hidden = true; return; } walkUp = false; if (ui && ui.walk) ui.walk.hidden = true; joy.x = joy.y = 0; wKeys.clear(); if (S && S.lounge) S.lounge.walkStop(); }
+  /// the old sheet over the room (a place's button, or the menu): walking pauses until it closes
+  function sheetUp(t) { if (t) tab = t; walkUp = false; ui.walk.hidden = true; joy.x = joy.y = 0; wKeys.clear(); frame(); paintLobby(); if (t === "rank" || t === "play" || t === "missions") readStatus().then(() => { if (mode === "lobby" && !walkUp) paintLobby(); }); }
+  function sheetDown() { if (mode !== "lobby" || !S || !S.lounge) return; ui.sheet.hidden = true; walkUp = true; ui.walk.hidden = false; frame(); walkPaint(); }
+  function walkPaint() {
+    if (!ui || !ui.walk) return; ui.walkChips.textContent = status ? fmt(status.chips || 0) : signed() ? "…" : T("practice");
+    if (S && S.lounge && topB && topB.top) S.lounge.setBoard(topB.top);
+  }
+  const wv = new THREE.Vector3();
+  function walkTick(dt) {
+    const L = S.lounge, busyUi = !ui.modal.hidden; let x = joy.x, y = joy.y;
+    if (!busyUi) { if (wKeys.has("ArrowLeft") || wKeys.has("KeyA")) x -= 1; if (wKeys.has("ArrowRight") || wKeys.has("KeyD")) x += 1; if (wKeys.has("ArrowUp") || wKeys.has("KeyW")) y += 1; if (wKeys.has("ArrowDown") || wKeys.has("KeyS")) y -= 1; }
+    const n = Math.hypot(x, y); if (n > 1) { x /= n; y /= n; }
+    L.step(dt, busyUi ? null : { x, y, fast: wKeys.has("ShiftLeft") || wKeys.has("ShiftRight") }); L.camFollow(S.cam, dt);
+    S.dlr.parent.lookAt(S.cam.position.x, S.dlr.parent.position.y + (S.cam.position.y - S.dlr.parent.position.y) * 0.35, S.cam.position.z);
+    // the places' names over them, and what the one you're at offers
+    const W = innerWidth / scaleK(), H = innerHeight / scaleK(), me = L.me();
+    for (const el of ui.walkTags) {
+      const id = el.dataset.go, st = id === "table" ? { x: 0, z: 0, h: 2.4 } : L.stations.find((q) => q.id === id); if (!st) continue;
+      wv.set(st.x, (st.h || 2.4) - 1.25, st.z).project(S.cam); const on = wv.z < 1 && Math.abs(wv.x) < 1.1 && Math.abs(wv.y) < 1.1;
+      el.hidden = !on; if (!on) continue; const V = view(), k = scaleK(), sx = (V.x + ((wv.x + 1) / 2) * V.w) / k, sy = (V.y + ((1 - wv.y) / 2) * V.h) / k;
+      el.style.transform = `translate(${Math.max(60, Math.min(W - 60, sx))}px, ${Math.max(70, Math.min(H - 150, sy))}px) translate(-50%, -100%)`;
+      el.classList.toggle("far", Math.hypot(me.x - st.x, me.z - st.z) > 16);
+    }
+    const nr = L.near(), key = nr ? nr.id : "";
+    if (ui.walkGo.dataset.k !== key) {
+      ui.walkGo.dataset.k = key; const P = nr && PLACES[nr.id];
+      ui.walkGo.hidden = !P; if (P) ui.walkGo.innerHTML = `<small>${esc(T(P.n))}</small><div>${P.go.map(([a, t], i) => `<button type="button" data-w="${a}" class="${i ? "" : "go"}">${esc(T(t))}</button>`).join("")}</div>`;
+      if (P) snd("tap");
+    }
+  }
+  function walkAct(a) {
+    if (a === "holdem") sheetUp("play");
+    else if (a === "bj") { snd("enter"); BJK.start(); }
+    else if (a === "shop") { snd("open"); openShop(); }
+    else if (a === "leave") leave();
+    else sheetUp(a);
+  }
+  function joyDown(e) { if (!walkUp) return; e.preventDefault(); joy.id = e.pointerId; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* fine */ } joyMove(e); }
+  function joyMove(e) {
+    if (e.pointerId !== joy.id) return; const r = ui.joy.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, R0 = r.width / 2;
+    let dx = (e.clientX - cx) / R0, dy = (e.clientY - cy) / R0; const n = Math.hypot(dx, dy); if (n > 1) { dx /= n; dy /= n; }
+    joy.x = dx; joy.y = -dy; ui.joyK.style.transform = `translate(${dx * 36}px, ${dy * 36}px)`;
+  }
+  function joyUp(e) { if (e.pointerId !== joy.id) return; joy.id = -1; joy.x = joy.y = 0; ui.joyK.style.transform = ""; }
+  const wkd = (e) => { if (!on || !walkUp || e.target.matches("input,select,textarea")) return; if (/^(Arrow|Key[WASD]$|Shift)/.test(e.code)) { wKeys.add(e.code); if (e.code.startsWith("Arrow")) e.preventDefault(); } else if (e.code === "KeyE" || e.code === "Enter") { const b = ui.walkGo.querySelector("button.go"); if (b && !ui.walkGo.hidden) { e.preventDefault(); b.click(); } } };
+  const wku = (e) => { wKeys.delete(e.code); };
   function paintLobby() {
+    if (walkUp) { walkPaint(); return; } // (walking the room: the sheet stays away until it's asked for)
     const sg = signed(), li = lvInfo(), chips = status ? status.chips : 0, saved = (() => { try { return localStorage.getItem(ROOMK) || ""; } catch { return ""; } })();
     const tabs = [["play", T("Play")], ["missions", T("Missions")], ["rank", T("Ranking")], ["profile", T("Profile")], ["rules", T("How to play")]];
     let pane = "";
@@ -743,7 +814,7 @@ export function createPoker(ctx) {
       pane = `<ol class="pk-rules"><li>${esc(T("Everyone gets two cards; five shared cards come in the middle (3, then 1, then 1)."))}</li><li>${esc(T("Make the best five-card hand from your two and the five shared."))}</li><li>${esc(T("Each round: check, bet, call, raise or fold. The best hand at the end — or the last one left — wins the pot."))}</li></ol>
         <ul class="pk-ranks">${HANDS.slice().reverse().map((h, k) => `<li><b>${k + 1}. ${esc(T(h))}</b><span>${EXAMPLES[k].map((s) => cardHtml(cc(s), "sm")).join("")}</span></li>`).join("")}</ul>`;
     }
-    sheet(`<div class="pk-lobby"><div class="pk-head"><i class="pk-face"></i><div><h2>${esc(T("ARCIA POKER LOUNGE"))}</h2><p>${esc(T("Texas Hold'em & Blackjack with ARCIA"))}</p></div><span class="pk-lvchip">Lv ${li.lv}</span></div>
+    sheet(`<div class="pk-lobby">${S && S.lounge ? `<button type="button" class="pk-shx" data-a="shx" aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : ""}<div class="pk-head"><i class="pk-face"></i><div><h2>${esc(T("ARCIA POKER LOUNGE"))}</h2><p>${esc(T("Texas Hold'em & Blackjack with ARCIA"))}</p></div><span class="pk-lvchip">Lv ${li.lv}</span></div>
       <div class="pk-tabs">${tabs.map(([k, t]) => `<button type="button" data-tab="${k}" class="${k === tab ? "on" : ""}">${esc(t)}</button>`).join("")}</div>
       <div class="pk-pane">${pane}</div>
       <button type="button" class="pk-btn" data-a="leave">${esc(T("Leave the lounge"))}</button></div>`);
@@ -805,12 +876,17 @@ export function createPoker(ctx) {
       <div class="pk-raise" hidden><div class="pk-pre"><button type="button" data-pre="min">${esc(T("Min"))}</button><button type="button" data-pre="0.5">½ ${esc(T("Pot"))}</button><button type="button" data-pre="1">${esc(T("Pot"))}</button><button type="button" data-pre="2">2× ${esc(T("Pot"))}</button></div><div class="pk-sl"><input type="range"><b class="amt"></b></div><div class="pk-row"><button type="button" class="pk-btn" data-a="raiseX">${esc(T("Cancel"))}</button><button type="button" class="pk-btn go" data-a="raiseGo"></button></div></div>
       <div class="pk-bar" hidden><button type="button" class="f" data-a="fold"><b>${esc(T("FOLD"))}</b></button><button type="button" class="c" data-a="call"></button><button type="button" class="r" data-a="raise"></button><button type="button" class="a" data-a="allin"><b>${esc(T("ALL IN"))}</b></button></div>
       <div class="pk-banner" hidden></div><div class="pk-lost">${esc(T("Reconnecting…"))}</div>
+      <div class="pk-walk" hidden><div class="pk-wtop" data-game-hud><button type="button" class="pk-back" data-a="leave" aria-label="${esc(T("Back to town"))}"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pk-wchip"><i>🪙</i><b></b></div><button type="button" class="pk-wmenu" data-a="sheet">☰ ${esc(T("Lounge menu"))}</button></div>
+        ${Object.keys(PLACES).map((id) => `<button type="button" class="pk-wtag" data-go="${id}" hidden>${esc(T(PLACES[id].n))}</button>`).join("")}
+        <div class="pk-wgo" hidden></div><div class="pk-joy" aria-hidden="true"><i></i></div><p class="pk-whint">${esc(T(ctx.coarse ? "Walk with the stick, or tap a sign" : "Walk with WASD or the arrows, or click a sign · E to use"))}</p></div>
       <div class="pk-sheet" hidden></div><div class="pk-modal" hidden></div>`;
     document.body.appendChild(root);
     const q = (x) => root.querySelector(x);
     ui = { root, top: q(".pk-top"), title: q(".pk-title b"), sub: q(".pk-title small"), replayB: q('[data-a="replay"]'), tools: q(".pk-tools"), chat: q(".pk-chat"), pot: q(".pk-pot"), potV: q(".pk-pot b"), betL: [...root.querySelectorAll(".pk-betl")], arcia: q(".pk-arcia"), log: q(".pk-log"), wait: q(".pk-wait"), hand: q(".pk-hand"), mine: q(".pk-mine"), hname: q(".pk-hname"), eq: q(".pk-eq"), str: q(".pk-str"), raise: q(".pk-raise"), bar: q(".pk-bar"), banner: q(".pk-banner"), sheet: q(".pk-sheet"), modal: q(".pk-modal"),
       b: { fold: q('[data-a="fold"]'), call: q('[data-a="call"]'), raise: q('[data-a="raise"]'), allin: q('[data-a="allin"]') } };
     ui.seats = [q('.pk-hand .pk-seat'), ...[1, 2, 3, 4, 5].map((d) => q(`.pk-seats [data-d="${d}"]`))];
+    Object.assign(ui, { walk: q(".pk-walk"), walkChips: q(".pk-wchip b"), walkTags: [...root.querySelectorAll(".pk-wtag")], walkGo: q(".pk-wgo"), joy: q(".pk-joy"), joyK: q(".pk-joy i") });
+    ui.joy.addEventListener("pointerdown", joyDown); ui.joy.addEventListener("pointermove", joyMove); ui.joy.addEventListener("pointerup", joyUp); ui.joy.addEventListener("pointercancel", joyUp);
     ui.raise.querySelector("input").addEventListener("input", paintRaise);
     root.addEventListener("click", onClick);
     root.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("[data-code]")) joinCode(e.target.value.trim()); });
@@ -818,6 +894,10 @@ export function createPoker(ctx) {
   }
   function onClick(e) {
     const b = e.target.closest("button"); if (!b || !on || b.disabled) return; const a = b.dataset.a;
+    if (b.dataset.go && S && S.lounge) { snd("tap"); S.lounge.goTo(b.dataset.go); return; } // (a place's name: walk there)
+    if (b.dataset.w) { walkAct(b.dataset.w); return; }
+    if (a === "sheet") { snd("open"); sheetUp(); return; }
+    if (a === "shx") { snd("tap"); sheetDown(); return; }
     if (b.dataset.tab) { tab = b.dataset.tab; snd("tab"); paintLobby(); if (tab === "rank" || tab === "play" || tab === "missions") readStatus().then(() => { if (mode === "lobby") paintLobby(); }); return; }
     if (b.dataset.ais) { prog.ais = +b.dataset.ais; save(); snd("tap"); paintLobby(); return; }
     if (b.dataset.tog) { const k = b.dataset.tog; prog[k] = !prog[k]; save(); snd("tap"); paintLobby(); return; }
@@ -861,7 +941,7 @@ export function createPoker(ctx) {
   }
   const kd = (e) => {
     if (!on || e.target.matches("input,select,textarea")) return;
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (G && G.asking) return; if (!ui.modal.hidden) closeModal(); else if (mode === "table" || mode === "result" || mode === "bj") onClick({ target: ui.root.querySelector('.pk-top [data-a="menu"]') }); else leave(); return; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (G && G.asking) return; if (!ui.modal.hidden) closeModal(); else if (mode === "table" || mode === "result" || mode === "bj") onClick({ target: ui.root.querySelector('.pk-top [data-a="menu"]') }); else if (mode === "lobby" && !walkUp && S && S.lounge) sheetDown(); else leave(); return; }
     if (mode === "bj") { const k = e.key.toLowerCase(), m = { h: "hit", s: "stand", d: "double", p: "split", " ": "deal", enter: "deal" }[k]; if (m) { e.preventDefault(); BJK.press(m); } return; }
     if (mode !== "table" || !myTurn(vis.M)) return; const k = e.key.toLowerCase();
     if (k === "f" && !ui.b.fold.hidden) move({ t: "fold" }); else if (k === "c") ui.b.call.click(); else if (k === "r" && !ui.b.raise.hidden) ui.b.raise.click(); else if (k === "a" && !ui.b.allin.hidden) allinAsk();
@@ -872,12 +952,13 @@ export function createPoker(ctx) {
   function tick(dt0, t) {
     const now = performance.now(), dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : dt0; lastNow = now; frameMs += (dt * 1000 - frameMs) * 0.05;
     if (!S) return;
-    if (S.cam.projectionMatrix.elements[9] !== S.p9 || S.key !== [view().w, view().h, mode].join("x")) frame();
+    if (S.cam.projectionMatrix.elements[9] !== S.p9 || S.key !== [view().w, view().h, mode, walkUp].join("x")) frame();
     for (let i = TWN.length - 1; i >= 0; i--) { const w = TWN[i]; w.t += dt; if (w.t < 0) continue; const k = Math.min(1, w.t / w.dur); try { w.f(k); } catch { /* a card gone */ } if (k >= 1) { TWN.splice(i, 1); if (w.done) try { w.done(); } catch { /* fine */ } } }
     runQ(now); soloTick(now); if (mode === "bj") BJK.tick();
+    if (S.lounge) { S.lounge.show(mode === "lobby" || mode === "load" ? "lobby" : "table"); S.lounge.tick(dt, t); if (walkUp) walkTick(dt); }
     if (mode === "table") { place(); if (!Q.length && !latest && ui.bar.hidden === myTurn(vis.M) && !actBusy) paintBar(); }
-    else if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.9, -RZ - 0.75), W = innerWidth / scaleK(); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(40, s.y)}px)`; }
-    S.deal.position.y = -0.15 + Math.sin(t * 1.3) * 0.03; S.halo.material.opacity = 0.45 + Math.sin(t * 0.9) * 0.1;
+    else if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.9 + DY, DZ), W = innerWidth / scaleK(); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(40, s.y)}px)`; }
+    S.deal.position.y = DY + Math.sin(t * 1.3) * 0.03; S.halo.material.opacity = 0.45 + Math.sin(t * 0.9) * 0.1;
     if (S.ace) { S.ace.rotation.y = t * 0.7; S.ace.position.y = 1.3 + Math.sin(t * 1.6) * 0.12; }
   }
 
@@ -896,7 +977,7 @@ export function createPoker(ctx) {
       lobby();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), sleep(2500)]); } catch { /* compiled on the first frame */ }
       on = true; st.view(S.scene, S.cam, S.comp); st.solo(tick); lastNow = 0; fit();
-      addEventListener("keydown", kd, true);
+      addEventListener("keydown", kd, true); addEventListener("keydown", wkd); addEventListener("keyup", wku);
       return true;
     } catch (e) {
       console.warn("poker", e); ctx.toast(esc(T("The lounge couldn't open: {e}", { e: String((e && e.message) || e).slice(0, 70) }))); try { reset(); } catch { /* already reset */ } return false;
@@ -905,7 +986,7 @@ export function createPoker(ctx) {
   function reset() {
     on = false; mode = "off"; document.body.classList.remove("wp-poker"); if (ui) { ui.root.hidden = true; ui.sheet.hidden = true; ui.modal.hidden = true; }
     if (BJK.active()) BJK.stop(); if (R) leaveTable(); G = null; Q.length = 0; latest = null; TWN.length = 0; actBusy = false; busy = false;
-    removeEventListener("keydown", kd, true);
+    removeEventListener("keydown", kd, true); removeEventListener("keydown", wkd); removeEventListener("keyup", wku); walkEnd();
     try { if (prOrig && st.renderer.getPixelRatio() !== prOrig) st.renderer.setPixelRatio(prOrig); } catch { /* the town sets its own */ }
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
@@ -917,6 +998,8 @@ export function createPoker(ctx) {
     debug: () => { const M = vis.M, H = M && M.hand; return { mode, kind: M ? M.kind : "", hand: H ? H.handNo : 0, street: H ? H.street : -1, board: vis.board, turn: myTurn(M), legal: H && myTurn(M) ? legal(H) : null, q: Q.length, me: M ? M.me : -1, seats: M ? M.seats.filter(Boolean).length : 0, stack: H && H.mine >= 0 ? vis.stack[H.mine] : null, hands: G ? G.hands : 0, over: G ? G.over : false, room: R ? R.id : "", fms: Math.round(frameMs), result: !!(H && H.result), shown: Object.keys(vis.shown).length, cards: S ? S.cards.filter((c) => c.o.visible).length : 0 }; },
     solo: (n, lvl) => { if (n) prog.ais = n; if (lvl != null) prog.lvl = lvl; soloStart(); }, move: (t, to) => move({ t, to }), tab: (k) => { tab = k; paintLobby(); }, menu: () => lobby(), fast: (k) => { fast = k; },
     quick: (s) => quick(s), code: (c) => joinCode(c), priv: (s) => createPriv(s), replay: () => replay(),
+    /// tests: the room's heroes (who sits where, their clips, which way they face; you walking)
+    room: () => (S && S.lounge ? S.lounge.debug() : null), roomBones: (d) => (S && S.lounge ? S.lounge.bones(d) : null),
     /// tests: end the solo game now (the hands so far count)
     finish: () => { if (G && !G.over) { Q.length = 0; latest = null; soloOver(); } },
     /// tests: blackjack
@@ -948,3 +1031,7 @@ Object.assign(LW.tr, {"First purchase bonus: +{c} chips": "İlk alım bonusu: +{
 Object.assign(LW.ko, {"Share your royal flush": "로열 플러시 공유하기", "Hand": "핸드", "Cards": "카드", "Player": "플레이어", "Odds": "확률", "I hit a ROYAL FLUSH at ARCIA POKER LOUNGE! 🃏 {c}": "ARCIA POKER LOUNGE에서 로열 플러시가 떴어요! 🃏 {c}"});
 Object.assign(LW.zh, {"Share your royal flush": "分享你的皇家同花顺", "Hand": "牌型", "Cards": "牌", "Player": "玩家", "Odds": "概率", "I hit a ROYAL FLUSH at ARCIA POKER LOUNGE! 🃏 {c}": "我在 ARCIA POKER LOUNGE 打出了皇家同花顺！🃏 {c}"});
 Object.assign(LW.tr, {"Share your royal flush": "Royal flush'ını paylaş", "Hand": "El", "Cards": "Kartlar", "Player": "Oyuncu", "Odds": "Olasılık", "I hit a ROYAL FLUSH at ARCIA POKER LOUNGE! 🃏 {c}": "ARCIA POKER LOUNGE'da ROYAL FLUSH yaptım! 🃏 {c}"});
+// b-pk3d: walking the lounge
+Object.assign(LW.ko, {"ARCIA's table": "ARCIA의 테이블", "Play Hold'em": "홀덤 하기", "Blackjack": "블랙잭", "Chips & missions": "칩 & 미션", "This week's board": "이번 주 순위판", "Card backs & felts": "카드 뒷면 & 테이블 천", "Profile & style": "프로필 & 스타일", "Back to town": "마을로 돌아가기", "Lounge menu": "라운지 메뉴", "Walk with the stick, or tap a sign": "스틱으로 걷거나, 표지판을 눌러 이동해요", "Walk with WASD or the arrows, or click a sign · E to use": "WASD나 방향키로 걷거나, 표지판을 클릭해요 · E로 사용", "practice": "연습"});
+Object.assign(LW.zh, {"ARCIA's table": "ARCIA 的牌桌", "Play Hold'em": "玩德州扑克", "Blackjack": "二十一点", "Chips & missions": "筹码与任务", "This week's board": "本周排行榜", "Card backs & felts": "牌背与桌布", "Profile & style": "资料与风格", "Back to town": "返回小镇", "Lounge menu": "休息室菜单", "Walk with the stick, or tap a sign": "用摇杆行走，或点击指示牌前往", "Walk with WASD or the arrows, or click a sign · E to use": "用 WASD 或方向键行走，或点击指示牌 · 按 E 使用", "practice": "练习"});
+Object.assign(LW.tr, {"ARCIA's table": "ARCIA'nın masası", "Play Hold'em": "Hold'em oyna", "Blackjack": "Blackjack", "Chips & missions": "Fişler ve görevler", "This week's board": "Bu haftanın tablosu", "Card backs & felts": "Kart arkaları ve çuhalar", "Profile & style": "Profil ve stil", "Back to town": "Kasabaya dön", "Lounge menu": "Salon menüsü", "Walk with the stick, or tap a sign": "Çubukla yürü ya da bir tabelaya dokun", "Walk with WASD or the arrows, or click a sign · E to use": "WASD ya da oklarla yürü veya bir tabelaya tıkla · kullanmak için E", "practice": "pratik"});

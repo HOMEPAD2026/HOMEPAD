@@ -1941,7 +1941,7 @@ async function openPoker() {
   try {
     if (!pokerGame) {
       let M; try { M = await import("./world-poker.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-      pokerGame = M.createPoker({ THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", name: () => P.name || "", refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
+      pokerGame = M.createPoker({ THREE, K, st, ver: VER, hero: () => ({ ch: heroOf(P.char || "custom-aron"), tn: P.tint || 0 }), T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", name: () => P.name || "", refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         onLeave: () => { pokerOn = false; frozen = false; keys.clear(); const e = gv.exitOf("poker"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }

@@ -40,6 +40,10 @@ const RUN_TTL = 3 * 3600e3, SHOW_MS = 4500, BOT_MS = 900, AWAY_KICK = 5 * 60e3, 
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 const BOTS = ["AI ARON", "AI LUMI", "AI NEX", "AI ARC", "AI MINT"];
+// the hero a seat is drawn as at the table (world-poker.js seats them in 3D): the player's own (ch, tn: their colour), a
+// computer player's from its name. Only a shape is checked; the page draws anything it doesn't know as the default hero
+const lookOf = (b) => ({ ch: /^custom-[a-z]{2,10}$/.test(String((b && b.ch) || "")) ? String(b.ch) : "", tn: Math.max(0, Math.min(7, Number(b && b.tn) | 0)) });
+const BOT_LOOK = [["custom-aron", 0], ["custom-lumi", 0], ["custom-nex", 0], ["custom-aron", 3], ["custom-lumi", 1]];
 /// the poker level from poker XP: 100 XP a level to 10, then 150 / 200 / 250 / 300 (world-poker.js shows the same)
 export function levelOf(xp) { let lv = 1, need = 100, left = Math.max(0, xp | 0); while (lv < POKER.LEVELS) { need = lv <= 10 ? 100 : lv <= 25 ? 150 : lv <= 50 ? 200 : lv <= 75 ? 250 : 300; if (left < need) break; left -= need; lv++; } return { lv, into: left, need }; }
 
@@ -292,7 +296,7 @@ export function makePoker(deps) {
   function view(R, w) {
     const me = w ? seatOf(R, w) : -1, H = R.hand, hi = H && me >= 0 ? H.seatOf.indexOf(me) : -1;
     return { id: R.id, code: R.priv ? R.code : "", priv: !!R.priv, stake: R.stake, v: R.v, me, deadline: R.deadline || 0, now: now(),
-      seats: R.seats.map((x) => (x ? { name: x.name, stack: x.stack, bot: !!x.bot, lvl: x.lvl || 0, away: !x.bot && now() - (x.last || 0) > POKER.AWAY_S * 1000, sit: (x.miss || 0) >= 2 } : null)),
+      seats: R.seats.map((x) => (x ? { name: x.name, stack: x.stack, bot: !!x.bot, lvl: x.lvl || 0, ch: x.ch || "", tn: x.tn || 0, away: !x.bot && now() - (x.last || 0) > POKER.AWAY_S * 1000, sit: (x.miss || 0) >= 2 } : null)),
       hand: H ? { ...viewOf(H, hi), seatOf: H.seatOf, mine: hi } : null, last: R.last || null, chat: (R.chat || []).slice(-20), paid: me >= 0 && R.seats[me] ? R.seats[me].paid || 0 : 0, news: me >= 0 && R.seats[me] ? R.seats[me].news || [] : [] };
   }
   const name16 = async (w) => (((await one(`worldSave/${w}`)) || {}).name || short(w)).slice(0, 16);
@@ -302,7 +306,7 @@ export function makePoker(deps) {
     if ((p.chips || 0) < st.buy) return json(400, { error: "not enough chips for this table", chips: p.chips });
     const id = rid(), code = b.priv ? String(randInt() >>> 0).slice(-6).padStart(6, "0") : "";
     const R = { id, code, priv: !!b.priv, stake: st.id, seats: Array(POKER.MAX).fill(null), hand: null, handNo: 0, button: null, v: 0, chat: [], made: now() };
-    p.chips -= st.buy; R.seats[0] = { w, name: await name16(w), stack: st.buy, last: now() };
+    p.chips -= st.buy; R.seats[0] = { w, name: await name16(w), stack: st.buy, last: now(), ...lookOf(b) };
     await saveProg(w, p); await save(R);
     if (R.priv) await setDoc(`worldPokerCode/${code}`, { id, at: now() });
     await listRooms(roomRow(R)).catch(() => {});
@@ -313,10 +317,10 @@ export function makePoker(deps) {
     let id = String(b.room || ""); if (!id && b.code) { const c = await one(`worldPokerCode/${String(b.code).replace(/\D/g, "").slice(0, 6)}`); if (!c) return json(404, { error: "no table with that code" }); id = c.id; }
     const nm = await name16(w);
     const r = await mutate(id, async (R) => {
-      if (seatOf(R, w) >= 0) { R.seats[seatOf(R, w)].last = now(); return { ok: true }; }
+      if (seatOf(R, w) >= 0) { Object.assign(R.seats[seatOf(R, w)], { last: now() }, b.ch ? lookOf(b) : {}); return { ok: true }; }
       const free = R.seats.findIndex((x) => !x); if (free < 0) return { err: json(409, { error: "the table is full" }) };
       const st = stakeOf(R.stake), p = await prog(w); if ((p.chips || 0) < st.buy) return { err: json(400, { error: "not enough chips for this table", chips: p.chips }) };
-      p.chips -= st.buy; await saveProg(w, p); R.seats[free] = { w, name: nm, stack: st.buy, last: now() }; return { ok: true };
+      p.chips -= st.buy; await saveProg(w, p); R.seats[free] = { w, name: nm, stack: st.buy, last: now(), ...lookOf(b) }; return { ok: true };
     });
     if (r.err) return r.err;
     await listRooms(roomRow(r.R)).catch(() => {});
@@ -364,7 +368,7 @@ export function makePoker(deps) {
     const r = await mutate(String(b.room || ""), async (R) => {
       if (seatOf(R, w) < 0) return { err: json(403, { error: "sit at the table first" }) };
       let added = 0; const st = stakeOf(R.stake);
-      for (let i = 0; i < R.seats.length && added < n; i++) if (!R.seats[i]) { R.seats[i] = { name: BOTS[(i + added) % BOTS.length], stack: st.buy, bot: true, lvl }; added++; }
+      for (let i = 0; i < R.seats.length && added < n; i++) if (!R.seats[i]) { { const k = (i + added) % BOTS.length; R.seats[i] = { name: BOTS[k], stack: st.buy, bot: true, lvl, ch: BOT_LOOK[k][0], tn: BOT_LOOK[k][1] }; } added++; }
       if (!added) return { same: true };
       await step(R); return { ok: true };
     });

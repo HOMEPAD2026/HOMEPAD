@@ -56,8 +56,9 @@ for (let g = 0; g < 3; g++) { r = await call(p1, "world-poker-solo-start", { lvl
 check(r.status === 200 && r.body.prog.mis.solo === 3 && r.body.credited === 300 && bal(p1) === 300 && r.body.prog.games === 3 && r.body.prog.wins === 1, "three finished solo games: 150 poker XP, the mission's 300 ARCL (won or not)");
 r = await call(p1, "world-poker-solo-start", {}); { const id = r.body.runId; TT += 80e3; r = await call(p1, "world-poker-solo-end", { runId: id, hands: 10 }); } check(r.status === 200 && r.body.credited === 0 && bal(p1) === 300, "the mission pays once a day");
 // a table: p1 sits down, adds two computer players; the table deals and plays itself while p1 is away
-r = await call(p1, "world-poker-create", { stake: "s1" }); const room = r.body.room.id; check(r.status === 200 && r.body.room.me === 0 && db.get(`worldPokerProg/${p1.address.toLowerCase()}`).chips === E.POKER.DAY_CHIPS - 2000, "a table: you sit down with the buy-in (2,000 of your chips)");
+r = await call(p1, "world-poker-create", { stake: "s1", ch: "custom-lumi", tn: 2 }); const room = r.body.room.id; check(r.status === 200 && r.body.room.me === 0 && db.get(`worldPokerProg/${p1.address.toLowerCase()}`).chips === E.POKER.DAY_CHIPS - 2000, "a table: you sit down with the buy-in (2,000 of your chips)");
 r = await call(p1, "world-poker-bots", { room, n: 2, lvl: 2 }); check(r.status === 200 && r.body.room.seats.filter(Boolean).length === 3 && r.body.room.hand, "two computer seats; a hand is dealt");
+check(r.body.room.seats[0].ch === "custom-lumi" && r.body.room.seats[0].tn === 2 && r.body.room.seats.filter((x) => x && x.bot).every((x) => /^custom-/.test(x.ch)), "each seat carries the hero it is drawn as (yours, and the computer players' from their names)");
 const v0 = r.body.room; check(v0.hand.p.every((p, k) => (k === v0.hand.mine ? p.hole.every((x) => x >= 0) : p.hole.every((x) => x === -1))), "your view: your own two cards, the others face down");
 // play 25 hands: on our turn call or check, else let time pass (computers think, a missed turn times out)
 let hands0 = 0, legalFail = 0, guard = 0;
@@ -71,7 +72,8 @@ const pr1 = db.get(`worldPokerProg/${p1.address.toLowerCase()}`);
 check(hands0 >= 20 && legalFail === 0 && bal(p1) === 600, `${hands0} table hands, every move accepted, the 20-hand mission paid (ARCL ${bal(p1)})`);
 check(pr1.xp >= 150 + 100, "table XP: 50 for every 10 hands (" + pr1.xp + ")");
 // a second person joins by the table's id, sees no one else's cards; then p1 leaves and gets the stack back
-r = await call(p2, "world-poker-join", { room }); check(r.status === 200 && r.body.room.me >= 0, "a second person sits down");
+r = await call(p2, "world-poker-join", { room, ch: "<b>x</b>", tn: 99 }); check(r.status === 200 && r.body.room.me >= 0, "a second person sits down");
+check(r.body.room.seats[r.body.room.me].ch === "" && r.body.room.seats[r.body.room.me].tn === 7, "a hero name that isn't one is dropped (drawn as the default), the colour kept in range");
 const before = db.get(`worldPokerProg/${p1.address.toLowerCase()}`).chips, roomDoc = db.get(`worldPokerRoom/${room}`), stack = roomDoc.seats[0] ? roomDoc.seats[0].stack : 0;
 r = await call(p1, "world-poker-leave", { room }); for (let k = 0; k < 12; k++) { TT += 1000; await call(p2, "world-poker-view", { room }); }
 const after = db.get(`worldPokerProg/${p1.address.toLowerCase()}`).chips, seated = (db.get(`worldPokerRoom/${room}`).seats || []).some((x) => x && x.w === p1.address.toLowerCase());
