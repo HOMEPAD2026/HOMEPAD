@@ -9466,6 +9466,7 @@
     "Windows and doors": "Pencereler ve kapılar",
     "Welcome 5 residents": "5 sakin ağırla",
     "Clear INFINITY RINGS level 100": "INFINITY RINGS 100. seviyeyi bitir",
+    "Clear INFINITY RINGS level 200": "INFINITY RINGS 200. seviyeyi bitir",
     "INFINITY MASTER": "INFINITY MASTER",
     "Your blueprint": "Taslağın",
     "needs bricks you haven't unlocked": "kilidini açmadığın brick'ler gerekiyor",

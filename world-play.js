@@ -1904,8 +1904,8 @@ async function openSurvivors() {
 // INFINITY RINGS (world-rings.js): the Game Village's ring puzzle in the palace, loaded the first time its door is used.
 // Its own scene is drawn instead of the town (st.view) while you're in, like SURVIVORS ARENA; you come back out in front
 // of the palace. What pays is the server's (api/_world-rings.mjs). Level 100 cleared: the INFINITY MASTER title.
-let ringsGame = null, ringsOn = false, ringsBusy = false, ringsMaster = false;
-try { ringsMaster = !!JSON.parse(localStorage.getItem("arc.world.rings") || "{}").master; } catch { /* earned again on the next clear */ }
+let ringsGame = null, ringsOn = false, ringsBusy = false, ringsMaster = false, ringsLegend = false;
+try { const j = JSON.parse(localStorage.getItem("arc.world.rings") || "{}"); ringsMaster = !!j.master; ringsLegend = !!j.legend; } catch { /* earned again on the next clear */ }
 async function openRings() {
   if (ringsOn || ringsBusy || pokerOn || pokerBusy || survOn || mineOn || defenseOn || jumpOn || beatOn || jurOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
   ringsBusy = true; closeAll(); document.querySelectorAll(".wp-tips,.wp-coach,.wp-coach-ring").forEach((e) => e.remove()); tipsUp = false;
@@ -1913,8 +1913,9 @@ async function openRings() {
   try {
     if (!ringsGame) {
       let M; try { M = await import("./world-rings.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-      ringsGame = M.createRings({ THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, quality: S.quality || "auto", fam: diag.fam || "", name: () => P.name || "", refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
+      ringsGame = M.createRings({ THREE, K, st, ver: VER, hero: () => ({ ch: heroOf(P.char || "custom-aron"), tn: P.tint || 0 }), share: (c) => bragCard(c), T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, quality: S.quality || "auto", fam: diag.fam || "", name: () => P.name || "", refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         onMaster: () => { ringsMaster = true; badges(); paintAura(); },
+        onLegend: () => { ringsLegend = true; badges(); },
         onLeave: () => { ringsOn = false; frozen = false; keys.clear(); const e = gv.exitOf("rings"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
@@ -2292,6 +2293,7 @@ const BADGES = [
   { id: "builder", t: "Place 200 bricks", title: "Builder", done: () => ((P.isle && P.isle.bricks) || 0) >= 200 },
   { id: "landlord", t: "Welcome 5 residents", title: "Island host", done: () => ((P.isle && P.isle.residents) || 0) >= 5 },
   { id: "infinity-master", t: "Clear INFINITY RINGS level 100", title: "INFINITY MASTER", done: () => ringsMaster },
+  { id: "infinity-legend", t: "Clear INFINITY RINGS level 200", title: "INFINITY LEGEND", done: () => ringsLegend },
 ];
 function badges() {
   let got = false;
@@ -4363,10 +4365,10 @@ if (weekend2x()) setTimeout(() => { if (!introOn) toast(TW("Weekend 2×: double 
 // that very board with their moves to beat; a board that can't be made says so
 try { const q = new URLSearchParams(location.search), id = q.get("rings");
   // (a first visit makes a name and sees the intro first: it waits, up to two minutes, until the town is free)
-  if (id && /^(\d{1,3}|d:\d{4}-\d\d-\d\d:[0-2]|e:\d{1,5})$/.test(id)) landing.then(() => { let tries = 0; const go = async () => {
+  if (id && /^(\d{1,3}|d:\d{4}-\d\d-\d\d:[0-2]|w:\d{4}-\d\d:[0-6]|e:\d{1,5})$/.test(id)) landing.then(() => { let tries = 0; const go = async () => {
     if (mode !== "hub" || introOn || frozen || flying || ringsBusy || document.querySelector("#wp-make:not([hidden]), #wp-guide:not([hidden]), #wp-auth:not([hidden])")) { if (++tries < 120) setTimeout(go, 1000); return; }
     const e = gv.exitOf("rings"); standAt(e.x, e.z, gv.center); await openRings();
-    if (ringsOn && ringsGame && !ringsGame.challenge(id, q.get("vs"), q.get("by"))) toast(TW("That challenge's board couldn't be found"));
+    if (ringsOn && ringsGame && !ringsGame.challenge(id, q.get("vs"), q.get("by"), q.get("w"))) toast(TW("That challenge's board couldn't be found"));
   }; setTimeout(go, 1500); }); } catch { /* a plain visit */ }
 // INFINITY MASTER (INFINITY RINGS level 100): a little ∞ of light circling over the hero
 let aura = null;

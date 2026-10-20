@@ -5,7 +5,7 @@
 // elsewhere it opens X's post window with the words and the link, and the picture is saved to attach.
 //
 // openShare(card, o)
-//   card: { kind: "dino" | "poker" | "surv", tag (the small line over the title), title, sub, rows: [[label, value, icon]],
+//   card: { kind: "dino" | "poker" | "surv" | "rings", tag (the small line over the title), title, sub, rows: [[label, value, icon]],
 //           badge (the grade in the panel's corner), cards (poker: the five, fanned), foot,
 //           art (an image URL or a data URL), emoji (when there's no art), cover (the art fills the panel: a screenshot), accent ("#rrggbb"), text (the post's words) }
 //   o: { T(s, v), esc, toast, link() → the invite link, coarse }
@@ -21,6 +21,7 @@ const THEME = {
   dino: { label: "MY DINOSAUR", rib: ["#1f6dff", "#38c8ff"], glow: "#38c8ff", title: ["#ffffff", "#bfeaff"], felt: ["#1d4f7a", "#1f6a5a", "#173f2c"] },
   poker: { label: "POKER", rib: ["#6a2cff", "#b46cff"], glow: "#ffcf4a", title: ["#fff3b0", "#ffb52e"], felt: ["#3a1466", "#5a1f7a", "#2a0d40"] },
   surv: { label: "SURVIVORS", rib: ["#ff5a1f", "#ffa23a"], glow: "#ff8a3a", title: ["#ffffff", "#ffd9b8"], felt: ["#3a2a6a", "#5a2a3a", "#2a1420"] },
+  rings: { label: "INFINITY RINGS", rib: ["#2f6bff", "#2ee0b0"], glow: "#38d8ff", title: ["#ffffff", "#9ff6ff"], felt: ["#1a2a7a", "#3a1a7a", "#0a1440"] },
 };
 /// a soft copy of a picture over the whole card (drawn small, then large: a blur every browser does)
 function soft(g, img, x, y, w, h, px) {
