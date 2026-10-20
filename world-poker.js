@@ -486,8 +486,8 @@ export function createPoker(ctx) {
     if (!ui || !S || !vis.M) return; const M = vis.M, H = M.hand, W = innerWidth / scaleK();
     for (let d = 0; d < 6; d++) {
       const el = ui.seats[d]; if (el.hidden) continue;
-      if (d === 0) { el.style.transform = ""; continue; } // (yours sits with your cards)
-      const p = slotPos(d, d === 3 ? 1.02 : 1.14), s = toScreen(p.x, 0.1, p.z), x = Math.max(58, Math.min(W - 58, s.x));
+      if (d === 0) { el.style.transform = ""; continue; } // (yours sits with your cards; the far ones come in onto the felt, below the heroes' faces)
+      const p = slotPos(d, d === 3 ? 0.9 : d === 2 || d === 4 ? 0.98 : 1.1), s = toScreen(p.x, 0.1, p.z), x = Math.max(58, Math.min(W - 58, s.x));
       el.style.transform = `translate(${x}px, ${s.y}px) translate(-50%, -50%)`;
     }
     const pt = H ? (vis.win ? vis.potLeft || 0 : vis.tot.reduce((a, b) => a + b, 0)) : 0; ui.pot.hidden = !pt; if (pt) { const s = toScreen(0, 0.2, -1.3); ui.pot.style.transform = `translate(${s.x}px, ${s.y}px) translate(-118%, -50%)`; /* (beside the pot's chips: above them is the far seat's bet) */ ui.potV.textContent = fmt(pt); }
