@@ -194,7 +194,7 @@ export function makeLounge({ THREE, K, ver, low, coarse, scene, RX, RZ, slotPos 
     const key = pick(look).ch + ":" + pick(look).tn, my = ++myWait;
     if (!me || meLook !== key) { give(me); me = null; meLook = key; const h = await heroOf(look); if (my !== myWait || !walking) { give(h); return; } me = h; }
     if (me) { me.obj.visible = true; if (!me.obj.parent) g.add(me.obj); me.obj.position.copy(pos); me.obj.rotation.y = face; me.play("idle"); }
-    camAt.set(pos.x * 0.9, FLOOR + 8.6, Math.min(pos.z + 11.5, 16.2)); camLook.set(pos.x, FLOOR + 2, pos.z - 3);
+    { const want = pos.z + 9, z = Math.min(want, 17.4); camAt.set(pos.x * 0.9, FLOOR + 7 + (want - z) * 0.7, z); camLook.set(pos.x, FLOOR + 2.2, pos.z - 3.5); }
   }
   function walkStop() { walking = false; auto = null; myWait++; if (me) me.obj.visible = false; }
   const ellipseOut = (x, z, m) => (x / (RX + m)) ** 2 + (z / (RZ + m)) ** 2 >= 1;
@@ -252,10 +252,10 @@ export function makeLounge({ THREE, K, ver, low, coarse, scene, RX, RZ, slotPos 
   }
   /// the third-person camera behind and above you, eased
   function camFollow(cam, dt) {
-    const k = Math.min(1, dt * 5), want = pos.z + 11.5, z = Math.min(want, 16.2), lift = (want - z) * 0.9;
-    camAt.lerp(tA.set(pos.x * 0.9, FLOOR + 8.6 + lift, z), k); camLook.lerp(tB.set(pos.x, FLOOR + 2, pos.z - 3), k);
+    const k = Math.min(1, dt * 5), want = pos.z + 9, z = Math.min(want, 17.4), lift = (want - z) * 0.7;
+    camAt.lerp(tA.set(pos.x * 0.9, FLOOR + 7 + lift, z), k); camLook.lerp(tB.set(pos.x, FLOOR + 2.2, pos.z - 3.5), k);
     cam.position.copy(camAt); cam.lookAt(camLook); cam.updateMatrixWorld();
-    if (doorG) doorG.visible = cam.position.z < 16.8; // (from just inside the door it would fill the view)
+    if (doorG) doorG.visible = cam.position.z < 17; // (from just inside the door it would fill the view)
   }
   function tick(dt, t) {
     for (const S of seats) if (S.h) { S.h.update(dt, t); if (!S.h.busy || !S.h.busy()) S.h.play(SIT_CLIP); }
