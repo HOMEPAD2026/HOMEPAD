@@ -535,7 +535,7 @@ export function make(deps) {
       }
       if (w === "phase") { if (!on()) return json(200, { phase: PH.phase, epoch: PH.epoch, top: [] }); return phaseView(); }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
-      if (w === "surv" || w === "surv-top") return surv.read(w, url);
+      if (w === "surv" || w === "surv-top" || w === "surv-daily") return surv.read(w, url);
       if (w === "rings" || w === "rings-top") return rings.read(w, url);
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest") return poker.read(w, url);
       if (w === "dino" || w === "dino-nests" || w === "dino-ladder") return dino.read(w, url);

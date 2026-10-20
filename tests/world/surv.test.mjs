@@ -5,7 +5,7 @@
 import { ethers } from "ethers";
 const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
-const { SURV, survReward } = await import("../../api/_world-survivors.mjs");
+const { SURV, survReward, META, COIN_DAY, DAILY_BONUS, coinsOf, ACH, DAILY_MODS, dailyOf } = await import("../../api/_world-survivors.mjs");
 const D = await import("../../world-survivors-data.js");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
@@ -63,4 +63,27 @@ const top = await W.read(new URL("http://x/api/social?world=surv-top"));
 check(top && top.status === 200 && top.body.top.length === 2 && top.body.top[0].secs === 750 && !("id" in top.body.top[0]), "the week's board: the longest run first, wallets shortened");
 // the claim route refuses this kind
 r = await call(p1, "world-arcl-claim", { kind: "surv" }); check(r.status === 400, "Survivors ARCL can't be claimed");
+// b-svx: what carries over between runs — the copies agree, coins (a day's cap), upgrades, achievements, the daily challenge
+check(Object.keys(META).every((k) => JSON.stringify([META[k].max, META[k].cost]) === JSON.stringify([D.META[k].max, D.META[k].cost])) && Object.keys(META).length === Object.keys(D.META).length && COIN_DAY === D.COIN_DAY && DAILY_BONUS === D.DAILY_BONUS, "the server's upgrades and coin rules match the game's");
+check(JSON.stringify(ACH.map((a) => [a.id, a.coins])) === JSON.stringify(D.ACH.map((a) => [a.id, a.coins])) && JSON.stringify(DAILY_MODS) === JSON.stringify(D.DAILY_MODS.map((m) => m.id)), "the achievements and the daily twists match");
+{ let same = true; for (const t of [T, T + 864e5, T + 5 * 864e5, Date.parse("2027-02-11T20:00:00Z")]) { const a = dailyOf(t), b = D.dailyOf(t); if (a.day !== b.day || a.seed !== b.seed || a.mod !== b.mod) same = false; } check(same, "the daily challenge is the same day, seed and twist on both sides"); }
+for (const [r, want] of [[{ secs: 720, kills: 2000, bosses: 4, clear: true }, 150], [{ secs: 300, kills: 400, bosses: 1 }, 15 + 10 + 10], [{ secs: 300, kills: 400, bosses: 1, daily: true }, 52]]) check(coinsOf(r) === want && D.coinsOf(r) === want, `coins for ${JSON.stringify(r)}: ${want}`);
+{ const p3 = ethers.Wallet.createRandom(), meta = () => db.get(`worldSurvMeta/${p3.address.toLowerCase()}`) || {};
+  let q = await call(p3, "world-surv-start", { diff: "hard" }); T += 760e3;
+  q = await call(p3, "world-surv-end", { runId: q.body.runId, secs: 750, kills: 1200, bosses: 4, clear: true, ms: 750e3, evo: ["star", "thunder", "bogus"] });
+  check(q.status === 200 && q.body.coinsGot === 137 + 100 + 80 + 200 && q.body.newAch.join() === "first,k1000,hard" && q.body.meta.coins === 517, "a hard clear: 137 coins + First Survivor, Crowd Breaker, Arena Master (" + JSON.stringify(q.body.newAch) + ")");
+  check(meta().evo && meta().evo.star && meta().evo.thunder && !meta().evo.bogus, "the evolutions found are kept (an unknown id isn't)");
+  q = await call(p3, "world-surv-up", { key: "atk" }); check(q.status === 200 && q.body.meta.up.atk === 1 && q.body.meta.coins === 467, "an upgrade: Attack Lv 1 for 50 coins");
+  q = await call(p3, "world-surv-up", { key: "nope" }); check(q.status === 400, "no such upgrade");
+  for (let i = 0; i < 4; i++) await call(p3, "world-surv-up", { key: "atk" }); q = await call(p3, "world-surv-up", { key: "atk" }); check(q.status === 400 || q.status === 409, "not enough coins / at the top: refused (" + q.status + ")");
+  // the day's coin cap
+  for (let i = 0; i < 4; i++) { const st = await call(p3, "world-surv-start", { diff: "normal" }); T += 730e3; await call(p3, "world-surv-end", { runId: st.body.runId, secs: 720, kills: 1500, bosses: 4, clear: true, ms: 720e3 }); }
+  check(meta().cn === COIN_DAY, "runs' coins stop at the day's cap (" + meta().cn + ")");
+  // the daily challenge: no ARCL, its own board, the day's first gives the bonus
+  const balBefore = (db.get(`worldArclBal/${p3.address.toLowerCase()}`) || {}).bal || 0;
+  T += 864e5; q = await call(p3, "world-surv-start", { daily: true, diff: "hard" }); check(q.status === 200 && q.body.diff === "normal" && DAILY_MODS.includes(q.body.mod) && q.body.seed > 0, "a challenge run: normal difficulty, the day's twist and seed (" + q.body.mod + ")");
+  T += 320e3; q = await call(p3, "world-surv-end", { runId: q.body.runId, secs: 300, kills: 400, bosses: 1, ms: 300e3 });
+  check(q.status === 200 && q.body.credited === 0 && q.body.why === "daily" && q.body.dailyRank === 1 && q.body.coinsGot === 52 + DAILY_BONUS && ((db.get(`worldArclBal/${p3.address.toLowerCase()}`) || {}).bal || 0) === balBefore, "the challenge pays coins (×1.5 + the day's bonus), no ARCL, and ranks you on the day's board");
+  const dv = await W.read(new URL("http://x/api/social?world=surv-daily")); check(dv.status === 200 && dv.body.top.length === 1 && dv.body.top[0].secs === 300 && !("id" in dv.body.top[0]), "the day's board");
+  const mv = await W.read(new URL("http://x/api/social?world=surv&wallet=" + p3.address.toLowerCase())); check(mv.body.meta && mv.body.meta.dailyDone === true && mv.body.meta.ach.length === 4 && mv.body.meta.ach.includes("boss"), "your view: coins, upgrades, achievements (Boss Slayer by now: 4 + 16 bosses), today's challenge done"); }
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);

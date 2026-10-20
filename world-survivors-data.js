@@ -144,3 +144,38 @@ export const THEMES = {
     sky: [[0x1a1450, 0xc8b8ff, 0x3a2a6e], [0x241460, 0xffb8f0, 0x3a2060], [0x1a0a48, 0xd890ff, 0x2a1450], [0x080a2a, 0x8aa8ff, 0x1a1a40], [0x2a0820, 0xff80b0, 0x3a0a2a]] },
 };
 export const themeToday = (t = Date.now()) => ["desert", "ice", "neon"][Math.floor((t + 9 * 3600e3) / 864e5) % 3];
+
+// ---------------- b-svx: what carries over between runs (the server keeps a copy in api/_world-survivors.mjs; the test checks) ----------------
+// arena coins: earned by every run (not ARCL, never paid out), spent on permanent upgrades. A daily challenge run earns ×1.5.
+export const META = {
+  hp: { name: "Max HP", line: "+10 max HP a level", max: 5, cost: [40, 80, 140, 220, 320] },
+  atk: { name: "Attack", line: "+5% damage a level", max: 5, cost: [50, 100, 170, 260, 380] },
+  spd: { name: "Move Speed", line: "+4% move speed a level", max: 5, cost: [40, 80, 140, 220, 320] },
+  luck: { name: "Lucky", line: "More chests and pickups a level", max: 3, cost: [80, 180, 320] },
+  magnet: { name: "Magnet", line: "+15% pickup range a level", max: 3, cost: [40, 90, 160] },
+  reroll: { name: "Extra Reroll", line: "+1 reroll a run a level", max: 2, cost: [120, 260] },
+};
+export const COIN_DAY = 600; // the most arena coins a day from runs (achievements' coins come on top)
+export const coinsOf = ({ secs, kills, bosses, clear, daily }) => Math.floor(Math.min(150, Math.floor(Math.max(0, secs) / 20) + Math.floor(Math.max(0, kills) / 40) + Math.max(0, bosses) * 10 + (clear ? 30 : 0)) * (daily ? 1.5 : 1));
+// achievements: each gives coins once and a title to wear in the arena
+export const ACH = [
+  { id: "first", name: "First Survivor", line: "Survive 12 minutes", coins: 100 },
+  { id: "boss", name: "Boss Slayer", line: "Defeat 10 bosses in all", coins: 80 },
+  { id: "k1000", name: "Crowd Breaker", line: "1,000 knock-outs in one run", coins: 80 },
+  { id: "evo", name: "Evolver", line: "Discover 3 evolutions", coins: 80 },
+  { id: "hard", name: "Arena Master", line: "Survive 12 minutes on Hard", coins: 200 },
+  { id: "legend", name: "Legend", line: "Survive 12 minutes on Hard 5 times", coins: 400 },
+];
+// the daily challenge: the same twist and the same card luck for everyone on a Seoul day, its own board
+export const DAILY_MODS = [
+  { id: "swarm", name: "Swarm Day", line: "Twice the crowd, twice the gems" },
+  { id: "glass", name: "Glass Cannon", line: "Half HP, +50% damage" },
+  { id: "speed", name: "Fast Feet", line: "Everyone moves 25% faster" },
+  { id: "elite", name: "Elite Hunt", line: "Elites every 20 seconds" },
+  { id: "lucky", name: "Lucky Day", line: "Every chest rolls ×3 or ×5" },
+];
+export const DAILY_BONUS = 50; // coins for the day's first challenge run
+const dayHash = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h; };
+export const dailyOf = (t = Date.now()) => { const day = new Date(t + 9 * 3600e3).toISOString().slice(0, 10), seed = dayHash("surv:" + day); return { day, seed, mod: DAILY_MODS[seed % DAILY_MODS.length].id }; };
+/// a seeded random for the challenge (the same cards for the same picks)
+export const rng = (seed) => () => { seed = (seed + 0x6d2b79f5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };

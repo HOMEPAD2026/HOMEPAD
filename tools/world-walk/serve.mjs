@@ -1,7 +1,7 @@
 // tools/world-walk/serve.mjs — a local stand-in for the site, for the browser walk (walk.mjs): the repo's files, and
 // /api/social's World calls answered by api/_world.mjs on an in-memory store (the same harness the tests use). A fresh
 // random test wallet signs in each run; its session is written to SESS (default: a temp file) for the walk to use.
-// Seed routes for tests: /seedsave?lv=6 · /seeddinos · /seedbuddy?lv&days&name · /seedarcl · /seedjur · /skew?ms · /skewegg
+// Seed routes for tests: /seedsave?lv=6 · /seedsurv?coins · /seeddinos · /seedbuddy?lv&days&name · /seedarcl · /seedjur · /skew?ms · /skewegg
 //   node tools/world-walk/serve.mjs            (PORT=8858)
 import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.."); process.chdir(ROOT);
@@ -41,6 +41,7 @@ http.createServer(async (req, res) => {
       const bytes = Buffer.alloc(2 + 5 * B.length); bytes[0] = 1; bytes[1] = 36; B.forEach((b, i) => b.forEach((v, k) => { bytes[2 + i * 5 + k] = v; }));
       db.set(`worldIsland/${sess.wallet}`, { data: bytes.toString("base64"), name: "Ranger", n: B.length, at: t, N: 36, theme: "" }); return send({ status: 200, body: { ok: true, bricks: B.length } }); }
     if (u.pathname === "/seedgm") { const t = Date.now() + SKEW, r = (i, n, note) => ({ tx: "0x" + String(i).repeat(64).slice(0, 64), amount: (BigInt(n) * 10n ** 18n).toString(), tokens: n, from: sess.wallet, at: t - i * 864e5, note }); db.set(`worldGmRewards/${sess.wallet}`, { list: [r(1, 50000, "Weekly event winner"), r(2, 10000, "")] }); return send({ status: 200, body: { ok: true } }); }
+    if (u.pathname === "/seedsurv") { for (const k of [...db.keys()]) if (k.startsWith("worldSurvUp/")) db.delete(k); db.set(`worldSurvMeta/${sess.wallet}`, { coins: Number(u.searchParams.get("coins") || 500), up: {}, ach: {}, evo: { star: 1 }, bosses: 0, hardClears: 0, cday: "", cn: 0, dday: "" }); return send({ status: 200, body: { ok: true } }); } // (SURVIVORS ARENA arena coins to spend)
     if (u.pathname === "/seedarcl") { db.set(`worldArclBal/${sess.wallet}`, { bal: 250000, earned: 250000 }); return send({ status: 200, body: { ok: true } }); }
     if (u.pathname === "/seedjur") { const k = `worldJurInv/${sess.wallet}`, v = db.get(k) || {}; v.mat = { ...(v.mat || {}), wood: 60, stone: 40, flint: 6, fiber: 20, meat: 3, berries: 4, hardwood: 5 }; db.set(k, v); return send({ status: 200, body: { ok: true } }); }
     if (u.pathname === "/api/social") {

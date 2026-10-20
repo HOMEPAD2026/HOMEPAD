@@ -17,7 +17,7 @@
 //
 // ctx: { THREE, K, st, ver, T, lang, esc, toast, Snd, reduce, low, coarse, sess, post, refresh, gain(n, why),
 //        makeHero(id) → character, addSupply(kind, n), onLeave() }
-import { RULES, reward, worldXp, HEROES, MON, BOSSES, poolAt, eliteAt, crowdAt, hpK, needXp, WEAPONS, PASSIVES, EVOS, SLOTS, MAX_LV, maxLv, THEMES, themeToday } from "./world-survivors-data.js";
+import { RULES, reward, worldXp, HEROES, MON, BOSSES, poolAt, eliteAt, crowdAt, hpK, needXp, WEAPONS, PASSIVES, EVOS, SLOTS, MAX_LV, maxLv, THEMES, themeToday, META, COIN_DAY, coinsOf, ACH, DAILY_MODS, DAILY_BONUS, dailyOf, rng } from "./world-survivors-data.js";
 
 const ARENA_R = 46, CAM_PC = [0, 15.5, 10.5], CAM_PHONE = [0, 22, 14.5], HERO_R = 0.45, DASH_CD = 2.4, DASH_T = 0.2;
 const ROLES = [["move", 10, true], ["atk", 8, false], ["die", 8, false]]; // baked frames a clip
@@ -506,10 +506,15 @@ export function createSurvivors(ctx) {
   function newRun() {
     const h = HEROES[pick.hero] || HEROES[0], d = RULES.DIFF[pick.diff] || RULES.DIFF.normal;
     clearPools();
-    R = { freeze: 0, chestN: 0, chestLeft: 0, reroll: TOOLS.reroll, banish: TOOLS.banish, skip: TOOLS.skip, ban: {}, banMode: false, t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
+    const UP = metaNow().up || {}, DD = pick.daily ? dailyOf() : null;
+    R = { up: UP, daily: DD, rnd: DD ? rng(DD.seed) : Math.random, freeze: 0, chestN: 0, chestLeft: 0, reroll: TOOLS.reroll, banish: TOOLS.banish, skip: TOOLS.skip, ban: {}, banMode: false, t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
       w: {}, p: {}, evo: {}, cds: {}, orbA: 0, bladeA: 0, spawnT: 0, eliteT: 45, swarmAt: [30, 120, 240, 300, 420, 480, 600, 660], dashT: 0, dashCd: 0, hurtT: 0, vampN: 0, pendingLv: 0, pendingChest: 0, bonusDmg: 1, chest: null, said: {},
       streak: 0, streakT: 0, shield: 0, shieldT: 0, revived: false, infT: 25, dmgBy: {}, loot: { hp: 0, sp: 0, scrap: 0 }, stop: 0, focus: null, drones: [], skillCd: 6, overT: 0, crates: [], crateT: 20, lavaT: 90 };
     R.w[h.w] = 1;
+    // b-svx: the permanent upgrades (arena coins), and the daily challenge's twist
+    R.hpMax += 10 * (UP.hp || 0); R.bonusDmg *= 1 + 0.05 * (UP.atk || 0); R.reroll += UP.reroll || 0;
+    if (DD && DD.mod === "glass") { R.hpMax = Math.round(R.hpMax * 0.5); R.bonusDmg *= 1.5; }
+    R.hp = R.hpMax;
   }
   function clearPools() {
     while (mons.length) monFree.push(mons.pop()); while (gems.length) gemFree.push(gems.pop()); while (shots.length) shotFree.push(shots.pop()); while (foes.length) foeFree.push(foes.pop()); while (zones.length) zoneFree.push(zones.pop()); events.length = 0;
@@ -527,9 +532,9 @@ export function createSurvivors(ctx) {
     rate: () => 1 + 0.1 * pv("rapid"),
     crit: () => 0.05 + 0.06 * pv("crit"),
     critK: () => 2 + 0.25 * pv("critp") + (R.evo.eclipse ? 0.5 : 0),
-    speed: () => 7 * R.hero.speed * (1 + 0.07 * pv("speed")),
+    speed: () => 7 * R.hero.speed * (1 + 0.07 * pv("speed")) * (1 + 0.04 * (R.up.spd || 0)) * (R.daily && R.daily.mod === "speed" ? 1.25 : 1),
     armor: () => 1 - 0.07 * pv("armor"),
-    magnet: () => 2.2 * (1 + 0.4 * pv("magnet")),
+    magnet: () => 2.2 * (1 + 0.4 * pv("magnet")) * (1 + 0.15 * (R.up.magnet || 0)),
     regen: () => 0.4 * pv("recov"),
     extra: () => pv("double"),
   };
@@ -538,13 +543,13 @@ export function createSurvivors(ctx) {
   function spawn(id, x, z, o) {
     const kd = pack[id]; if (!kd) return null; const sp = MON[id];
     const hp = sp.hp * (sp.boss ? 1 : hpK(R.t)) * R.D.hp * (o && o.hpK ? o.hpK : 1), m = take2(monFree);
-    m.id = id; m.kd = kd; m.uid = ++uid; m.x = x; m.z = z; m.vx = 0; m.vz = 0; m.hp = hp; m.hpMax = hp; m.r = sp.r; m.sp = sp.sp * (o && o.spK ? o.spK : 1) * (0.9 + Math.random() * 0.2); m.dmg = sp.dmg * R.D.dmg; m.xp = sp.xp; m.fly = sp.fly || 0;
+    m.id = id; m.kd = kd; m.uid = ++uid; m.x = x; m.z = z; m.vx = 0; m.vz = 0; m.hp = hp; m.hpMax = hp; m.r = sp.r; m.sp = sp.sp * (o && o.spK ? o.spK : 1) * (0.9 + Math.random() * 0.2) * (R.daily && R.daily.mod === "speed" ? 1.25 : 1); m.dmg = sp.dmg * R.D.dmg; m.xp = sp.xp; m.fly = sp.fly || 0;
     m.boss = !!sp.boss; m.elite = !!sp.elite; m.st = "move"; m.at = Math.random() * 2; m.face = Math.atan2(R.x - x, R.z - z); m.flash = 0; m.atkCd = 0.5 + Math.random() * 0.5; m.slow = 0; m.born = 0; m.bob = Math.random() * 6;
     m.dir = o && o.dir ? o.dir : null; m.bt = 0; m.bn = 0; m.charge = null; m.rage = false; m.oT = -9; m.bT = -9; m.zT = -9; m.dis = 0;
     mons.push(m); meshOf(kd); if (Q && !m.boss) ring(x, z, 0.2, m.r * 2, m.elite ? 0xff5ad8 : 0xb48cff, 0.5, EASE, 0.8); return m;
   }
   function spawnRing() {
-    const want = Math.min(CAP(), Math.round(crowdAt(R.t) * R.D.rate * (phone() ? 0.8 : 1)));
+    const want = Math.min(CAP(), Math.round(crowdAt(R.t) * R.D.rate * (phone() ? 0.8 : 1) * (R.daily && R.daily.mod === "swarm" ? 2 : 1)));
     let alive = 0; for (const m of mons) if (m.st !== "die" && !m.boss) alive++;
     if (alive >= want) return;
     const pool = poolAt(R.t), tot = pool.reduce((s, x) => s + x[1], 0), n = Math.min(6, want - alive);
@@ -575,7 +580,7 @@ export function createSurvivors(ctx) {
     m.st = "die"; m.at = 0; m.hp = 0; m.dis = 0; R.kills++;
     sparks(m.x, m.fly + 0.6, m.z, m.elite ? 0xff8ae4 : 0xffd08a, m.elite ? 10 : 4, 4);
     let v = m.xp; if (pv("lucky") && Math.random() < 0.04 * pv("lucky")) v *= 5; addGem(m.x, m.z, v);
-    if (m.elite) { for (let k = 0; k < 3; k++) addGem(m.x + (Math.random() - 0.5) * 2, m.z + (Math.random() - 0.5) * 2, 2); if (Math.random() < 0.35 + 0.1 * pv("lucky")) dropChest(m.x, m.z); else if (Math.random() < 0.5) dropPick(m.x + 1, m.z); }
+    if (m.elite) { for (let k = 0; k < 3; k++) addGem(m.x + (Math.random() - 0.5) * 2, m.z + (Math.random() - 0.5) * 2, 2); if (Math.random() < 0.35 + 0.1 * pv("lucky") + 0.06 * (R.up.luck || 0)) dropChest(m.x, m.z); else if (Math.random() < 0.5) dropPick(m.x + 1, m.z); }
     if (pv("vamp") && ++R.vampN >= [14, 12, 10, 8, 6][pv("vamp") - 1]) { R.vampN = 0; heal(2 + pv("vamp")); }
     if (pv("streak")) { R.streak = Math.min(25, R.streak + 1); R.streakT = 1.2; }
     if (m.boss) { R.bosses++; R.boss = null; dropChest(m.x, m.z, true); snd("win"); shakeK = 1.2; flashUi("boss"); slowMo = 1.0; R.stop = 0.12; sparks(m.x, 2, m.z, 0xffd23a, 40, 9); ring(m.x, m.z, 1, 12, 0xffd23a, 0.9, EASE); decal(m.x, m.z, 5);
@@ -748,7 +753,7 @@ export function createSurvivors(ctx) {
     for (const id of Object.keys(WEAPONS)) { const l = lvOf(id); if (l >= MAX_LV || (!l && wN >= SLOTS) || R.ban[id]) continue; out.push({ k: "w", id, w: l ? 3 : 1.6 }); }
     for (const id of Object.keys(PASSIVES)) { const l = pv(id); if (l >= maxLv(id) || (!l && pN >= SLOTS) || R.ban[id]) continue; out.push({ k: "p", id, w: l ? 2.4 : PASSIVES[id].fx ? 0.9 : 1.3 }); }
     const pickN = []; const pool = out.slice();
-    while (pickN.length < 3 && pool.length) { const tot = pool.reduce((s, x) => s + x.w, 0); let r = Math.random() * tot, i = 0; for (; i < pool.length - 1; i++) if ((r -= pool[i].w) <= 0) break; pickN.push(pool.splice(i, 1)[0]); }
+    while (pickN.length < 3 && pool.length) { const tot = pool.reduce((s, x) => s + x.w, 0); let r = R.rnd() * tot, i = 0; for (; i < pool.length - 1; i++) if ((r -= pool[i].w) <= 0) break; pickN.push(pool.splice(i, 1)[0]); }
     if (!pickN.length) pickN.push({ k: "heal" }, { k: "dmg" });
     return pickN;
   }
@@ -782,7 +787,7 @@ export function createSurvivors(ctx) {
   let cardsChest = false, cardsLoot = "";
   // b-svx: a chest rolls how many upgrades it holds (a boss's: 3 or 5; Lucky Drop tips it), then you choose that many
   function chestRoll(gold) {
-    const r = Math.random(), lk = pv("lucky"), n = gold ? (r < 0.6 - lk * 0.05 ? 3 : 5) : r < 0.05 + lk * 0.03 ? 5 : r < 0.3 + lk * 0.06 ? 3 : 1;
+    const r = R.rnd(), lk = pv("lucky") + (R.up.luck || 0), n0 = gold ? (r < 0.6 - lk * 0.05 ? 3 : 5) : r < 0.05 + lk * 0.03 ? 5 : r < 0.3 + lk * 0.06 ? 3 : 1, n = R.daily && R.daily.mod === "lucky" ? Math.max(3, n0) : n0;
     R.chestN = n; R.chestLeft = n;
     ui.cards.innerHTML = `<div class="sv-roul${gold ? " gold" : ""}"><small>${esc(T("A chest!"))}</small><div class="sv-roul-n">${[1, 3, 5].map((k) => `<b data-k="${k}">×${k}</b>`).join("")}</div><p>${esc(T("Upgrades"))}</p></div>`; ui.cards.hidden = false;
     const bs = [...ui.cards.querySelectorAll(".sv-roul-n b")], seq = []; let k = 0; for (let i = 0; i < 9; i++) seq.push(i % 3); seq.push([1, 3, 5].indexOf(n)); 
@@ -894,7 +899,7 @@ export function createSurvivors(ctx) {
     if (R.bossNext < BOSSES.length && R.t >= RULES.BOSS_AT[R.bossNext]) { spawnBoss(R.bossNext); R.bossNext++; }
     if (R.t >= RULES.RUN_S && !R.said.s12) { R.said.s12 = 1; R.clear = true; banner(T("Survived 12 minutes!"), ""); snd("win"); }
     if (R.swarmAt.length && R.t >= R.swarmAt[0]) { R.swarmAt.shift(); swarm(R.swarmAt.length); }
-    if ((R.eliteT -= dt) <= 0) { R.eliteT = 38 - Math.min(18, R.t / 40); const id = eliteAt(R.t); if (id) { edgePoint(); spawn(id, ep.x, ep.z); } }
+    if ((R.eliteT -= dt) <= 0) { R.eliteT = R.daily && R.daily.mod === "elite" ? 20 : 38 - Math.min(18, R.t / 40); const id = eliteAt(R.t); if (id) { edgePoint(); spawn(id, ep.x, ep.z); } }
     if ((R.spawnT -= dt) <= 0) { R.spawnT = 0.35; spawnRing(); }
     if (R.t >= RULES.END_S) { endRun("time"); return; }
     // the grid (cell lists reused frame to frame)
@@ -939,7 +944,7 @@ export function createSurvivors(ctx) {
     if (!R || R.over) return;
     R.skillCd -= dt; if (R.overT > 0) R.overT -= dt;
     // crates: one turns up near you now and then; walk into it for a heal, a magnet or a bomb
-    if ((R.crateT -= dt) <= 0 && R.crates.length < 2) { R.crateT = 22; const a = Math.random() * 6.283, d = 8 + Math.random() * 5; let x = R.x + Math.cos(a) * d, z = R.z + Math.sin(a) * d; const rr2 = Math.hypot(x, z); if (rr2 > ARENA_R - 3) { x *= (ARENA_R - 3) / rr2; z *= (ARENA_R - 3) / rr2; }
+    if ((R.crateT -= dt) <= 0 && R.crates.length < 2) { R.crateT = 22 - 3 * (R.up.luck || 0); const a = Math.random() * 6.283, d = 8 + Math.random() * 5; let x = R.x + Math.cos(a) * d, z = R.z + Math.sin(a) * d; const rr2 = Math.hypot(x, z); if (rr2 > ARENA_R - 3) { x *= (ARENA_R - 3) / rr2; z *= (ARENA_R - 3) / rr2; }
       R.crates.push({ x, z, kind: PICK[Math.floor(Math.random() * PICK.length)], t: 0 }); ring(x, z, 0.3, 1.6, PICK_C[R.crates[R.crates.length - 1].kind], 0.5, EASE); }
     if (R.freeze > 0) R.freeze -= dt;
     for (let i = R.crates.length - 1; i >= 0; i--) { const c = R.crates[i]; c.t += dt; if (Q && Math.random() < dt * 5) glow(c.x + (Math.random() - 0.5) * 0.8, 0.9 + Math.random() * 0.6, c.z + (Math.random() - 0.5) * 0.8, 0.5, PICK_C[c.kind], 0.5, SHRINK, 0.7); // (each kind its own glow)
@@ -1070,8 +1075,47 @@ export function createSurvivors(ctx) {
     ui.hint.hidden = false; ui.hint.classList.remove("go"); void ui.hint.offsetWidth; ui.hint.classList.add("go"); setTimeout(() => { if (ui) ui.hint.hidden = true; }, 6500); }
 
   // ---------------- the lobby, the pause, the result ----------------
-  let status = null, board = null;
-  async function readStatus() { const s = ctx.sess && ctx.sess(); status = null; const jobs = [fetch("/api/social?world=surv-top").then((r) => (r.ok ? r.json() : null)).then((j) => { board = j; }).catch(() => {})];
+  let status = null, board = null, daily = null;
+  // b-svx: what carries over between runs — the server's for a wallet (status.meta), this device's for a guest
+  const MK = "arc.surv.meta", blankMeta = () => ({ coins: 0, up: {}, ach: {}, evo: {}, bosses: 0, hardClears: 0, cday: "", cn: 0, dday: "" });
+  const localMeta = () => { try { return { ...blankMeta(), ...(JSON.parse(localStorage.getItem(MK) || "null") || {}) }; } catch { return blankMeta(); } };
+  const saveLocal = (m) => { try { localStorage.setItem(MK, JSON.stringify(m)); } catch { /* this visit only */ } };
+  const signedIn = () => !!(ctx.sess && ctx.sess());
+  function metaNow() { if (signedIn()) { const m = status && status.meta; return m ? { coins: m.coins || 0, up: m.up || {}, ach: Object.fromEntries((m.ach || []).map((a) => [a, 1])), evo: Object.fromEntries((m.evo || []).map((e) => [e, 1])), dailyDone: !!m.dailyDone } : { coins: 0, up: {}, ach: {}, evo: {} }; } const L = localMeta(); return { ...L, dailyDone: L.dday === dailyOf().day }; }
+  /// a guest's run end, worked out here the way the server does it for a wallet
+  function metaLocalEnd(r) {
+    const m = localMeta(), day = dailyOf().day; if (m.cday !== day) { m.cday = day; m.cn = 0; }
+    let got = Math.max(0, Math.min(coinsOf(r), COIN_DAY - m.cn)); m.cn += got; if (r.daily && m.dday !== day) { m.dday = day; got += DAILY_BONUS; }
+    for (const e of r.evo || []) if (EVOS.some((x) => x.id === e)) m.evo[e] = 1; m.bosses += r.bosses; if (r.clear && r.diff === "hard") m.hardClears++;
+    const reach = { first: r.clear, boss: m.bosses >= 10, k1000: r.kills >= 1000, evo: Object.keys(m.evo).length >= 3, hard: r.clear && r.diff === "hard", legend: m.hardClears >= 5 }, fresh = [];
+    for (const a of ACH) if (reach[a.id] && !m.ach[a.id]) { m.ach[a.id] = Date.now(); got += a.coins; fresh.push(a.id); }
+    m.coins += got; saveLocal(m); return { got, fresh };
+  }
+  /// the result's coins strip and any new achievement
+  function metaShow(got, fresh) {
+    const el = ui && ui.sheet.querySelector(".sv-coins"); if (!el) return; el.hidden = false;
+    el.innerHTML = `<p class="sv-coin-l"><i class="sv-acoin"></i><b>+${fmt(got)}</b><small>${esc(T("Arena coins"))} · ${esc(T("total {n}", { n: fmt(metaNow().coins) }))}</small></p>${fresh.map((id) => { const a = ACH.find((x) => x.id === id); return a ? `<p class="sv-ach-new">🏆 <b>${esc(T(a.name))}</b><small>${esc(T("New title"))} · +${a.coins}</small></p>` : ""; }).join("")}`;
+    if (fresh.length) snd("jackpot");
+  }
+  // the three panels the lobby opens: upgrades, achievements, the evolution collection
+  function panel(kind) {
+    const M = metaNow(); let body = "";
+    if (kind === "up") body = `<p class="sv-coins-have"><i class="sv-acoin"></i><b>${fmt(M.coins)}</b> ${esc(T("Arena coins"))}</p><p class="sv-pnote">${esc(T("Every run earns arena coins (not ARCL). They make every run stronger."))}</p><div class="sv-ups">${Object.entries(META).map(([k, d]) => { const lv = M.up[k] || 0, top = lv >= d.max, cost = top ? 0 : d.cost[lv];
+      return `<div class="sv-up"><span class="ic">${icon(k === "hp" ? "vital" : k === "atk" ? "power" : k === "spd" ? "speed" : k === "luck" ? "lucky" : k === "magnet" ? "magnet" : "cool", 26)}</span><b>${esc(T(d.name))}</b><small>${esc(T(d.line))}</small><span class="sv-pips">${Array.from({ length: d.max }, (_, i) => `<i class="${i < lv ? "on" : ""}"></i>`).join("")}</span><button type="button" data-buy="${k}" ${top || M.coins < cost ? "disabled" : ""}>${top ? esc(T("MAX")) : `<i class="sv-acoin"></i>${fmt(cost)}`}</button></div>`; }).join("")}</div>`;
+    else if (kind === "ach") body = `<div class="sv-achs">${ACH.map((a) => `<div class="sv-ach${M.ach[a.id] ? " on" : ""}"><span>🏆</span><b>${esc(T(a.name))}</b><small>${esc(T(a.line))}</small><em>${M.ach[a.id] ? esc(T("Done")) : "+" + a.coins}</em></div>`).join("")}</div>`;
+    else body = `<p class="sv-pnote">${esc(T("A weapon at Lv 5 and its partner at its top level evolve. Found: {n}/{m}", { n: Object.keys(M.evo).length, m: EVOS.length }))}</p><div class="sv-col">${EVOS.map((e) => M.evo[e.id] ? `<div class="on">${icon(e.id, 30)}<b>${esc(T(e.name))}</b><small>${icon(e.from, 14)} + ${icon(e.with, 14)}</small></div>` : `<div><i>?</i><b>???</b><small>${icon(e.from, 14)} + ?</small></div>`).join("")}</div>`;
+    const title = kind === "up" ? T("Permanent upgrades") : kind === "ach" ? T("Achievements & titles") : T("Evolution collection");
+    ui.sheet.innerHTML = `<div class="sv-lobby small sv-panel"><h3>${esc(title)}</h3>${body}${!signedIn() ? `<p class="sv-pnote">${esc(T("Guest: kept on this device. Sign in to keep it with your wallet."))}</p>` : ""}<div class="sv-btns one"><button type="button" data-a="back">${esc(T("Back"))}</button></div></div>`;
+    ui.sheet.querySelector('[data-a="back"]').addEventListener("click", () => lobby());
+    ui.sheet.querySelectorAll("[data-buy]").forEach((b) => b.addEventListener("click", () => buy(b.dataset.buy)));
+  }
+  async function buy(k) {
+    const d = META[k]; if (!d) return;
+    if (!signedIn()) { const m = localMeta(), lv = m.up[k] || 0; if (lv >= d.max || m.coins < d.cost[lv]) return; m.coins -= d.cost[lv]; m.up[k] = lv + 1; saveLocal(m); snd("equip"); panel("up"); return; }
+    try { const r = await ctx.post({ action: "world-surv-up", ...ctx.sess(), key: k }); if (r && r.ok && r.j && r.j.meta) { status = { ...(status || {}), meta: r.j.meta }; snd("equip"); } else ctx.toast(esc((r && r.j && r.j.error) || T("Couldn't buy that — try again"))); } catch { ctx.toast(esc(T("Couldn't buy that — try again"))); }
+    panel("up");
+  }
+  async function readStatus() { const s = ctx.sess && ctx.sess(); status = null; const jobs = [fetch("/api/social?world=surv-top").then((r) => (r.ok ? r.json() : null)).then((j) => { board = j; }).catch(() => {}), fetch("/api/social?world=surv-daily").then((r) => (r.ok ? r.json() : null)).then((j) => { daily = j; }).catch(() => {})];
     if (s) jobs.push(fetch("/api/social?world=surv&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { status = j; }).catch(() => {})); await Promise.all(jobs); }
   const boardHtml = () => { const top = (board && board.top) || []; return `<div class="sv-board"><h4>${esc(T("This week"))}</h4>${top.length ? `<ol>${top.slice(0, 5).map((x, i) => `<li><em>${i + 1}</em><b>${esc(String(x.name || x.w || "?").slice(0, 14))}</b><span>${mmss(x.secs)} · ${fmt(x.kills)}</span></li>`).join("")}</ol>` : `<p>${esc(T("No runs yet — be the first!"))}</p>`}</div>`; };
   function lobby() {
@@ -1079,16 +1123,23 @@ export function createSurvivors(ctx) {
     ui.sheet.innerHTML = `<div class="sv-lobby"><small>ARCIRCLE WORLD</small><h2>${esc(T("SURVIVORS ARENA"))}</h2><p>${esc(T("Survive 12 minutes. Beat 4 bosses."))}</p><p class="sv-theme">${esc(T("Today's arena: {x}", { x: T(THEMES[themeToday()].name) }))}</p>
       <h4>${esc(T("Choose your hero"))}</h4><div class="sv-heroes">${HEROES.map((h, i) => `<button type="button" data-h="${i}" class="${i === pick.hero ? "on" : ""}" style="--c:${h.color}"><img src="models/world/chars/${h.id}.webp?v=1" alt="" loading="lazy"><b>${esc(h.name)}</b><small>${esc(T(h.perk))}</small><small class="sk">${esc(T(h.sname))}</small><span>${icon(h.w, 18)}</span></button>`).join("")}</div>
       <p class="sv-skline">${esc(T(HEROES[pick.hero].sname))}: ${esc(T(HEROES[pick.hero].sline))}</p>
-      <h4>${esc(T("Difficulty"))}</h4><div class="sv-diff">${Object.keys(RULES.DIFF).map((k) => `<button type="button" data-d="${k}" class="${k === pick.diff ? "on" : ""}"><b>${esc(T(k[0].toUpperCase() + k.slice(1)))}</b><small>×${RULES.DIFF[k].k}</small></button>`).join("")}</div>
+      <h4>${esc(T("Difficulty"))}</h4><div class="sv-diff${pick.daily ? " off" : ""}">${Object.keys(RULES.DIFF).map((k) => `<button type="button" data-d="${k}" class="${k === pick.diff ? "on" : ""}"><b>${esc(T(k[0].toUpperCase() + k.slice(1)))}</b><small>×${RULES.DIFF[k].k}</small></button>`).join("")}</div>
       <div class="sv-pay">${signed ? `<b>${esc(T("Up to {n} ARCL a run · first 3 runs a day", { n: fmt(d.cap) }))}</b>${status ? `<small>${esc(T("Today: {n} / {m} ARCL", { n: fmt(status.today || 0), m: fmt(status.cap || RULES.DAY_ARCL) }))} · ${esc(T("Paid runs left today: {n}", { n: status.runsLeft ?? RULES.DAY_RUNS }))}</small>` : ""}` : `<b>${esc(T("Sign in with a wallet to earn ARCL here"))}</b>`}</div>
       ${boardHtml()}
-      <div class="sv-btns"><button type="button" class="go" data-a="start">${esc(T("Start"))}</button><button type="button" data-a="leave">${esc(T("Leave"))}</button></div></div>`;
+      ${dailyHtml()}
+      <div class="sv-meta"><button type="button" data-p="up"><span>⬆</span>${esc(T("Upgrades"))}<small><i class="sv-acoin"></i>${fmt(metaNow().coins)}</small></button><button type="button" data-p="ach"><span>🏆</span>${esc(T("Achievements"))}<small>${Object.keys(metaNow().ach).length}/${ACH.length}</small></button><button type="button" data-p="col"><span>📖</span>${esc(T("Collection"))}<small>${Object.keys(metaNow().evo).length}/${EVOS.length}</small></button></div>
+      <div class="sv-btns"><button type="button" class="go" data-a="start">${esc(pick.daily ? T("Start the challenge") : T("Start"))}</button><button type="button" data-a="leave">${esc(T("Leave"))}</button></div></div>`;
     ui.sheet.hidden = false; ui.top.hidden = true; ui.root.classList.add("menu");
     ui.sheet.querySelectorAll("[data-h]").forEach((b) => b.addEventListener("click", () => { pick.hero = Number(b.dataset.h); savePick(); snd("tab"); lobby(); setHero(HEROES[pick.hero].id); }));
     ui.sheet.querySelectorAll("[data-d]").forEach((b) => b.addEventListener("click", () => { pick.diff = b.dataset.d; savePick(); snd("tab"); lobby(); }));
     ui.sheet.querySelector('[data-a="start"]').addEventListener("click", () => startRun());
+    ui.sheet.querySelectorAll("[data-p]").forEach((b) => b.addEventListener("click", () => { snd("tab"); panel(b.dataset.p); }));
+    { const dt = ui.sheet.querySelector("[data-daily]"); if (dt) dt.addEventListener("click", () => { pick.daily = !pick.daily; savePick(); snd("tab"); lobby(); }); }
     ui.sheet.querySelector('[data-a="leave"]').addEventListener("click", () => leave());
   }
+  // the daily challenge: today's twist, its board's top three, on or off for the next run
+  function dailyHtml() { const dd = dailyOf(), m = DAILY_MODS.find((x) => x.id === dd.mod), top = (daily && daily.day === dd.day && daily.top) || [], done = metaNow().dailyDone;
+    return `<button type="button" class="sv-daily${pick.daily ? " on" : ""}" data-daily aria-pressed="${!!pick.daily}"><span class="cal">📅</span><span class="t"><b>${esc(T("Daily challenge"))} · ${esc(T(m.name))}</b><small>${esc(T(m.line))} · ${esc(T("same cards for everyone today · coins only"))}${done ? "" : " · +" + DAILY_BONUS}</small>${top.length ? `<small class="top">${top.slice(0, 3).map((x, i) => `${["🥇", "🥈", "🥉"][i]} ${esc(String(x.name || x.w).slice(0, 10))} ${mmss(x.secs)}`).join("  ")}</small>` : ""}</span><em>${pick.daily ? "✓" : esc(T("Play"))}</em></button>`; }
   const savePick = () => { try { localStorage.setItem("arc.surv.pick", JSON.stringify(pick)); } catch { /* this visit only */ } };
   async function setHero(id) {
     if (heroId === id && hero) return; const want = id; heroId = id;
@@ -1108,7 +1159,7 @@ export function createSurvivors(ctx) {
     if (hero && hero.mixer && hero.play) { hero.mixer.stopAllAction(); hero.play("walk", { fade: 0 }); hero.play("idle", { fade: 0 }); hero.mixer.update(0); } // the last run's fall doesn't carry over
     { const h = HEROES[pick.hero]; ui.skill.querySelector(".sv-skill-ic").innerHTML = icon(h.skill === "overdrive" ? "laser" : h.skill === "bloom" ? "recov" : "speed", 26); ui.skill.querySelector("b").textContent = T(h.sname); ui.skill.style.setProperty("--c", h.color); }
     const ss = ctx.sess && ctx.sess();
-    runP = ss && ctx.post ? ctx.post({ action: "world-surv-start", ...ss, diff: pick.diff }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j : null)).catch(() => null) : Promise.resolve(null);
+    runP = ss && ctx.post ? ctx.post({ action: "world-surv-start", ...ss, diff: pick.daily ? "normal" : pick.diff, daily: !!pick.daily }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j : null)).catch(() => null) : Promise.resolve(null);
     mode = "count"; banner(T("3 · 2 · 1 · GO!"), T(HEROES[pick.hero].name)); snd("enter"); ring(0, 0, 0.5, 6, 0x39ff88, 1.2, EASE);
     setTimeout(() => { if (on && mode === "count") { mode = "play"; lastNow = 0; for (let i = 0; i < 6; i++) { edgePoint(); spawn("blob", ep.x, ep.z); } hints(); } }, 1500);
   }
@@ -1145,7 +1196,7 @@ export function createSurvivors(ctx) {
     await new Promise((ok) => setTimeout(ok, how === "dead" ? 1300 : 600)); if (!on) return;
     ui.sheet.innerHTML = `<div class="sv-res ${how}"><small>${esc(T("SURVIVORS ARENA"))}</small><h2>${esc(title)}</h2>
       <div class="sv-stats"><div><small>${esc(T("Time"))}</small><b data-c="t">00:00</b></div><div><small>${esc(T("Knock-outs"))}</small><b data-c="k">0</b></div><div><small>${esc(T("Bosses"))}</small><b>${R.bosses}/4</b></div><div><small>${esc(T("Level"))}</small><b>${R.lv}</b></div></div>
-      ${how === "dead" ? koHtml() : ""}${dmgHtml}${loot}
+      ${how === "dead" ? koHtml() : ""}${dmgHtml}${loot}<div class="sv-coins" hidden></div>
       <div class="sv-gain"><div class="sv-arcl"><i class="sv-coin"></i><b>${signed ? "…" : "0"}</b><small>${esc(signed ? T("Sending your run…") : T("Guest run: sign in to earn ARCL"))}</small></div><div class="sv-wxp"><b data-c="x">+0</b><small>${esc(T("World XP"))}</small></div></div>
       <div class="sv-btns"><button type="button" class="go" data-a="again">${esc(T("Play again"))}</button>${ctx.share ? `<button type="button" data-a="share">📸 ${esc(T("Share"))}</button>` : ""}<button type="button" data-a="leave">${esc(T("Leave"))}</button></div></div>`;
     ui.sheet.hidden = false; ui.root.classList.add("menu");
@@ -1158,13 +1209,15 @@ export function createSurvivors(ctx) {
         ctx.share({ kind: "surv", tag: "SURVIVORS ARENA", title, sub: `${T(hero.name)} · ${T("Level")} ${lv}`, accent: how === "win" || out.clear ? "#ffc23c" : "#39ff88", emoji: "⚔️", art: shotUrl, cover: true,
           rows: [[T("Time"), mmss(secs), "⏱️"], [T("Knock-outs"), fmt(kills), "💀"], [T("Bosses"), `${bosses}/4`, "👹"], [T("Level"), String(lv), "⬆️"], [T("Damage"), best, "🔥"]],
           text: T("I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?", { t: mmss(secs), k: fmt(kills) }) }); }); }
-    if (!signed) return;
+    if (!signed) { const L = metaLocalEnd({ secs, kills: R.kills, bosses: R.bosses, clear: out.clear, diff: R.diff, daily: !!R.daily, evo: Object.keys(R.evo) }); metaShow(L.got, L.fresh); return; }
     const box = ui.sheet.querySelector(".sv-arcl"), say = (b, s) => { if (!box.isConnected) return; box.querySelector("b").textContent = b; box.querySelector("small").textContent = s; };
     let res = null;
     try { const rr = await Promise.race([runP, new Promise((ok) => setTimeout(() => ok(null), 6000))]); if (!rr || !rr.runId) throw new Error("net");
-      res = await ctx.post({ action: "world-surv-end", ...ctx.sess(), runId: rr.runId, secs, kills: R.kills, bosses: R.bosses, clear: out.clear, ms: Math.round(R.t * 1000), hero: R.hero.name, lv: R.lv, how }); } catch { res = null; }
+      res = await ctx.post({ action: "world-surv-end", ...ctx.sess(), runId: rr.runId, secs, kills: R.kills, bosses: R.bosses, clear: out.clear, ms: Math.round(R.t * 1000), hero: R.hero.name, lv: R.lv, how, evo: Object.keys(R.evo) }); } catch { res = null; }
     if (!res) { say("—", T("Couldn't reach the server — try again later")); return; }
-    const j = res.j || {}; if (!res.ok) { say("—", res.status === 400 || res.status === 409 ? T("This run couldn't be checked, so it isn't paid") : T("The reward couldn't be sent — try again later")); return; }
+    const j = res.j || {}; if (res.ok && j.meta) { status = { ...(status || {}), meta: j.meta }; metaShow(j.coinsGot || 0, j.newAch || []); }
+    if (res.ok && j.why === "daily") { box.querySelector("b").textContent = "—"; box.querySelector("small").textContent = T("Daily challenge: coins only") + (j.dailyRank ? " · " + T("Today's rank #{n}", { n: j.dailyRank }) : ""); return; }
+    if (!res.ok) { say("—", res.status === 400 || res.status === 409 ? T("This run couldn't be checked, so it isn't paid") : T("The reward couldn't be sent — try again later")); return; }
     if (j.credited > 0) { box.classList.add("paid"); countUp(box.querySelector("b"), j.credited, (v) => T("+{n} ARCL", { n: fmt(v) }), 1100); snd("coin"); if (ctx.refresh) ctx.refresh(); }
     else box.querySelector("b").textContent = "0";
     const why = j.credited > 0 ? (j.runsLeft != null ? T("Paid runs left today: {n}", { n: j.runsLeft }) : "") : j.why === "runs" ? T("Today's 3 paid runs are used — XP only now") : j.why === "cap" ? T("Today's ARCL limit is reached") : T("No ARCL this run");
@@ -1241,3 +1294,7 @@ Object.assign(LW.tr, {"Reroll": "Yeniden çek", "Banish": "Çıkar", "Skip": "Ge
 Object.assign(LW.ko, {"Food!": "음식!", "+25 HP": "HP +25", "Magnet!": "자석!", "Every gem comes to you": "모든 보석이 끌려와요", "Bomb!": "폭탄!", "Everything nearby is blasted": "주변을 모두 날려버려요", "Clock!": "시계!", "Monsters stop for 5 seconds": "몬스터가 5초 동안 멈춰요", "Upgrades": "업그레이드"});
 Object.assign(LW.zh, {"Food!": "食物！", "+25 HP": "HP +25", "Magnet!": "磁铁！", "Every gem comes to you": "所有宝石都飞向你", "Bomb!": "炸弹！", "Everything nearby is blasted": "附近的一切都被炸飞", "Clock!": "时钟！", "Monsters stop for 5 seconds": "怪物停止 5 秒", "Upgrades": "升级"});
 Object.assign(LW.tr, {"Food!": "Yemek!", "+25 HP": "+25 HP", "Magnet!": "Mıknatıs!", "Every gem comes to you": "Bütün taşlar sana gelir", "Bomb!": "Bomba!", "Everything nearby is blasted": "Yakındaki her şey patlar", "Clock!": "Saat!", "Monsters stop for 5 seconds": "Canavarlar 5 saniye durur", "Upgrades": "Yükseltme"});
+// b-svx: upgrades, achievements, the collection, the daily challenge
+Object.assign(LW.ko, {"Arena coins": "아레나 코인", "total {n}": "총 {n}", "New title": "새 칭호", "Every run earns arena coins (not ARCL). They make every run stronger.": "매 판 아레나 코인을 얻어요(ARCL이 아니에요). 코인으로 다음 판이 더 강해져요.", "MAX": "MAX", "Done": "완료", "A weapon at Lv 5 and its partner at its top level evolve. Found: {n}/{m}": "Lv 5 무기와 짝 패시브가 최대 레벨이면 진화해요. 발견: {n}/{m}", "Permanent upgrades": "영구 강화", "Achievements & titles": "업적 & 칭호", "Evolution collection": "진화 도감", "Guest: kept on this device. Sign in to keep it with your wallet.": "게스트: 이 기기에만 저장돼요. 로그인하면 지갑에 보관돼요.", "Back": "뒤로", "Couldn't buy that — try again": "구매하지 못했어요 — 다시 시도해 주세요", "Upgrades": "강화", "Achievements": "업적", "Collection": "도감", "Start the challenge": "챌린지 시작", "Daily challenge": "일일 챌린지", "same cards for everyone today · coins only": "오늘은 모두 같은 카드 · 코인만 지급", "Play": "참가", "Daily challenge: coins only": "일일 챌린지: 코인만 지급", "Today's rank #{n}": "오늘 순위 #{n}", "Max HP": "최대 HP", "+10 max HP a level": "레벨마다 최대 HP +10", "Attack": "공격력", "+5% damage a level": "레벨마다 피해 +5%", "Move Speed": "이동 속도", "+4% move speed a level": "레벨마다 이동 속도 +4%", "Lucky": "행운", "More chests and pickups a level": "레벨마다 상자와 아이템 증가", "Magnet": "자석", "+15% pickup range a level": "레벨마다 획득 범위 +15%", "Extra Reroll": "추가 다시 뽑기", "+1 reroll a run a level": "레벨마다 판당 다시 뽑기 +1", "First Survivor": "첫 생존자", "Survive 12 minutes": "12분 생존", "Boss Slayer": "보스 슬레이어", "Defeat 10 bosses in all": "보스 총 10마리 처치", "Crowd Breaker": "군단 파괴자", "1,000 knock-outs in one run": "한 판에 1,000마리 처치", "Evolver": "진화의 달인", "Discover 3 evolutions": "진화 3종 발견", "Arena Master": "아레나 마스터", "Survive 12 minutes on Hard": "어려움에서 12분 생존", "Legend": "레전드", "Survive 12 minutes on Hard 5 times": "어려움에서 12분 생존 5회", "Swarm Day": "스웜 데이", "Twice the crowd, twice the gems": "몬스터 2배, 보석 2배", "Glass Cannon": "유리 대포", "Half HP, +50% damage": "HP 절반, 피해 +50%", "Fast Feet": "빠른 발", "Everyone moves 25% faster": "모두 25% 더 빠르게", "Elite Hunt": "정예 사냥", "Elites every 20 seconds": "20초마다 정예 등장", "Lucky Day": "행운의 날", "Every chest rolls ×3 or ×5": "모든 상자가 ×3 또는 ×5"});
+Object.assign(LW.zh, {"Arena coins": "竞技场币", "total {n}": "共 {n}", "New title": "新称号", "Every run earns arena coins (not ARCL). They make every run stronger.": "每局都能获得竞技场币（不是 ARCL），让以后的每一局更强。", "MAX": "MAX", "Done": "完成", "A weapon at Lv 5 and its partner at its top level evolve. Found: {n}/{m}": "Lv 5 武器与搭档满级即可进化。已发现：{n}/{m}", "Permanent upgrades": "永久强化", "Achievements & titles": "成就与称号", "Evolution collection": "进化图鉴", "Guest: kept on this device. Sign in to keep it with your wallet.": "游客：只保存在本设备。登录后会随钱包保存。", "Back": "返回", "Couldn't buy that — try again": "购买失败——请重试", "Upgrades": "强化", "Achievements": "成就", "Collection": "图鉴", "Start the challenge": "开始挑战", "Daily challenge": "每日挑战", "same cards for everyone today · coins only": "今天大家的卡牌相同 · 只给竞技场币", "Play": "参加", "Daily challenge: coins only": "每日挑战：只给竞技场币", "Today's rank #{n}": "今日排名 #{n}", "Max HP": "最大 HP", "+10 max HP a level": "每级最大 HP +10", "Attack": "攻击", "+5% damage a level": "每级伤害 +5%", "Move Speed": "移动速度", "+4% move speed a level": "每级移速 +4%", "Lucky": "幸运", "More chests and pickups a level": "每级更多宝箱和道具", "Magnet": "磁铁", "+15% pickup range a level": "每级拾取范围 +15%", "Extra Reroll": "额外重抽", "+1 reroll a run a level": "每级每局重抽 +1", "First Survivor": "首位幸存者", "Survive 12 minutes": "存活 12 分钟", "Boss Slayer": "首领杀手", "Defeat 10 bosses in all": "累计击败 10 个首领", "Crowd Breaker": "破阵者", "1,000 knock-outs in one run": "一局击倒 1,000 只", "Evolver": "进化者", "Discover 3 evolutions": "发现 3 种进化", "Arena Master": "竞技场大师", "Survive 12 minutes on Hard": "困难模式存活 12 分钟", "Legend": "传奇", "Survive 12 minutes on Hard 5 times": "困难模式存活 12 分钟 5 次", "Swarm Day": "虫群日", "Twice the crowd, twice the gems": "怪物翻倍，宝石翻倍", "Glass Cannon": "玻璃大炮", "Half HP, +50% damage": "HP 减半，伤害 +50%", "Fast Feet": "疾步", "Everyone moves 25% faster": "所有人移速 +25%", "Elite Hunt": "精英狩猎", "Elites every 20 seconds": "每 20 秒出现精英", "Lucky Day": "幸运日", "Every chest rolls ×3 or ×5": "每个宝箱都是 ×3 或 ×5"});
+Object.assign(LW.tr, {"Arena coins": "Arena jetonu", "total {n}": "toplam {n}", "New title": "Yeni unvan", "Every run earns arena coins (not ARCL). They make every run stronger.": "Her tur arena jetonu kazandırır (ARCL değil). Sonraki turları güçlendirir.", "MAX": "MAKS", "Done": "Tamam", "A weapon at Lv 5 and its partner at its top level evolve. Found: {n}/{m}": "Sv 5 silah ve eşi en üst seviyede evrimleşir. Bulunan: {n}/{m}", "Permanent upgrades": "Kalıcı geliştirmeler", "Achievements & titles": "Başarımlar ve unvanlar", "Evolution collection": "Evrim koleksiyonu", "Guest: kept on this device. Sign in to keep it with your wallet.": "Misafir: bu cihazda saklanır. Cüzdanınla saklamak için giriş yap.", "Back": "Geri", "Couldn't buy that — try again": "Satın alınamadı — tekrar dene", "Upgrades": "Geliştirme", "Achievements": "Başarımlar", "Collection": "Koleksiyon", "Start the challenge": "Meydan okumayı başlat", "Daily challenge": "Günlük meydan okuma", "same cards for everyone today · coins only": "bugün herkese aynı kartlar · sadece jeton", "Play": "Oyna", "Daily challenge: coins only": "Günlük meydan okuma: sadece jeton", "Today's rank #{n}": "Bugünkü sıra #{n}", "Max HP": "Maks HP", "+10 max HP a level": "Seviye başına +10 maks HP", "Attack": "Saldırı", "+5% damage a level": "Seviye başına +%5 hasar", "Move Speed": "Hareket hızı", "+4% move speed a level": "Seviye başına +%4 hız", "Lucky": "Şans", "More chests and pickups a level": "Seviye başına daha çok sandık ve eşya", "Magnet": "Mıknatıs", "+15% pickup range a level": "Seviye başına +%15 toplama alanı", "Extra Reroll": "Ek yeniden çekme", "+1 reroll a run a level": "Seviye başına turda +1 yeniden çekme", "First Survivor": "İlk Hayatta Kalan", "Survive 12 minutes": "12 dakika hayatta kal", "Boss Slayer": "Boss Avcısı", "Defeat 10 bosses in all": "Toplam 10 boss yen", "Crowd Breaker": "Kalabalık Kırıcı", "1,000 knock-outs in one run": "Bir turda 1.000 devirme", "Evolver": "Evrimci", "Discover 3 evolutions": "3 evrim keşfet", "Arena Master": "Arena Ustası", "Survive 12 minutes on Hard": "Zor'da 12 dakika hayatta kal", "Legend": "Efsane", "Survive 12 minutes on Hard 5 times": "Zor'da 5 kez 12 dakika hayatta kal", "Swarm Day": "Sürü Günü", "Twice the crowd, twice the gems": "İki kat kalabalık, iki kat taş", "Glass Cannon": "Cam Top", "Half HP, +50% damage": "Yarım HP, +%50 hasar", "Fast Feet": "Hızlı Ayaklar", "Everyone moves 25% faster": "Herkes %25 daha hızlı", "Elite Hunt": "Seçkin Avı", "Elites every 20 seconds": "Her 20 saniyede seçkinler", "Lucky Day": "Şanslı Gün", "Every chest rolls ×3 or ×5": "Her sandık ×3 ya da ×5"});
