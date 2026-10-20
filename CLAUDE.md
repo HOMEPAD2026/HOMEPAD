@@ -169,3 +169,33 @@ around standing (SURVIVORS ARENA shipped like that). Before using a clip name an
 The vision behind them: the Roblox of crypto. When planning or writing posts, weigh work by what moves these (new
 players signing up, reasons to play together at the same time, more playable games). Always call them targets, never
 promises.
+
+## What's built in ARCIRCLE World (status map — keep it current)
+
+The owner asked me to know, at a glance, how far each game and system has got, so I can recommend what to do next.
+**Update this table in the same commit whenever a feature lands or changes stage** (and fix it whenever it's found
+wrong: on 2026-10-20 an old task list still called the poker lounge and Jurassic survival "not started"; both had shipped).
+Stages: **Live** (in the Games list / town, server-checked, tested) · **Partial** (playable, a named piece missing) ·
+**Planned** (designed or asked for, not built). File names are where to start reading.
+
+| Area | Stage | What's there | What's missing / next candidates |
+|---|---|---|---|
+| Town & RPG (world-play.js, world-combat.js, world-rpg*.js, world-zones*.js) | Live | open planet, 3 heroes (ARON/LUMI/NEX), Lv 1–100, 5 near + 7 far hunting grounds, gear in 7 slots, forge/enhance/fuse/repair, potions, weekly raid boss, hoverboard race | — |
+| Quests & seasons (world-quests.js, world-season.js) | Live | island tutorial chain, 3+1 daily hunts, achievements & titles, scammer codex, 28-day season tiers, daily scam quiz | season 2 theme / battle-pass-style track |
+| Social (world-chat.js, world-crew.js, world-party.js, world-social.js, world-inbox.js) | Live | local chat, friends + 1:1, crews (tag, invite code), hunting party + weekly bounties, guestbook, weekly island contest, inbox gifts | crew HQ / crew-vs-crew board |
+| My Island & village (world-island.js, world-village.js, world-style.js, world-showcase.js) | Live | brick builder 36×36 (LAND owners 64×64, 20,000 bricks), styles, village score/level, showcase terrace | — |
+| ARCIRCLE LAND (world-land.js, api/_world-land.mjs) | Live (v1) | 20 villages on the outer ring, buy with $ARCIRCLE to the treasury, owner's island on the plot, refunds list | production/staking (deferred by the owner), decorating + visits |
+| Pets & dinos (world-pet.js, world-dino*.js, world-dinotown.js) | Live | pet eggs; DINO SOULMATE: wild eggs, 72 h care, hatch, genes/rarity, companion fights, riding (adult), battle ladder, companion in town | real-time 1:1 dino battles / tournaments |
+| Jurassic World (world-jurassic.js, world-jursurv.js, api/_world-jur.mjs) | Live, no ARCL | separate land, 6 biomes, realistic dinos, gather (chop/mine/pick), craft at a workbench, camps (20 spots) with huts/beds/campfire/chest, eat, day/night, rain, night danger, hunting | ARCL rewards ("not yet"), HUD unify + hide button (JS1), more survival goals |
+| SURVIVORS ARENA (world-survivors*.js) | Live | 12-min survival, 3 heroes, weapons/passives/36 cards, bosses w/ phase 2, VAT monsters, ARCL ≤3,000/run, 3 paid runs/day | — |
+| ARCIA POKER LOUNGE (world-poker*.js, world-blackjack*.js, api/_world-poker.mjs) | Live | solo Hold'em vs 4 AI levels, server-dealt tables (2–6, bots, private code, chat), blackjack vs ARCIA, free daily chips + ARCL→chips one way, 3 daily ARCL missions (never for winning), Opening Festival, weekly top, levels/cosmetics, royal-flush share | players drawn as 3D heroes at the seats (now avatar discs), scheduled Sit & Go tournaments, spectating |
+| INFINITY RINGS (world-rings*.js) | Live | ring puzzles, 5-chapter map, tutorial 1–20, daily boards, 100 ARCL a new star, friend challenges | — |
+| ARCL MINE (world-mine.js, world-minevillage.js) | Live | side-on cave, ores, pickaxe tiers, 10–10,000 ARCL a rock; ore bag shared with Jurassic | — |
+| AC DEFENSE / COIN JUMP / BEAT STOMP | Live | tower defence (5 ARCL a wave, ≤150/day) · climb to the crown (3,000 ARCL once a day) · rhythm (XP only) | — |
+| Economy (world-shop.js, world-swap.js, api/_world-shop.mjs) | Live | ARCL points, daily check-in, shop, Exchange ARCL ⇄ $ARCIRCLE by request, launch gift, welcome week, GM rewards | — |
+| Growth (api/_world-refer.mjs, world-share.js) | Live | invite link (both rewarded at the friend's Lv 5), 1200×630 share cards | a longer invite quest chain |
+| First minutes (world-play.js openMake/askSave/openStart) | Live | play first (b-fm1): character maker → controls → walk/jump/Launchpad → training scammer; the wallet is offered after that first knock-out ("Save your progress") and on the "Your first 5 minutes" card | load time on slow phones; measure drop-off per step |
+| Platform & ops (world-diag.js, world-shell.js, tools/world-walk) | Live | diag counters (?world=diag), PC window mode, stale-chunk reload, loading watchdog, 4 languages (en/ko/zh/tr) | — |
+
+Game count for the KPI: 8 in the Games list (Jurassic, Survivors, Poker+Blackjack, Rings, Mine, Defense, Coin Jump,
+Beat Stomp), plus the hoverboard race in town.
