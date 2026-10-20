@@ -128,8 +128,10 @@ Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as 
   a failed dynamic import or start. Nothing may fail silently: show a short error toast and reset state.
 - Say plainly what was and wasn't verified (e.g. "not checked signed-in on a real phone").
 - A deploy replaces /w/ and its content-hashed chunks: a page opened before the deploy asks for chunk names that are
-  gone. /w/ keeps the last 3 builds' chunks (tools/build-world.mjs, w/.gens.json) and world-play.js reloads itself
-  once when a lazy chunk fails (staleReload) — never remove either. When testing, also simulate "page opened, then a
+  gone. /w/ keeps every build's chunks from the last 7 days, at least the last 3 builds (tools/build-world.mjs,
+  w/.gens.json: by time, because several local builds between two deploys once pushed the live build out and the
+  owner's open page couldn't start Survivors), and world-play.js reloads itself when a lazy chunk fails (staleReload:
+  once, then once more past the cache with ?fresh=) — never remove either. When testing, also simulate "page opened, then a
   new build landed" (block or delete the lazy chunk) and walk the recovery.
 - After the owner deploys, check production through the Vercel MCP tools (this container can't reach arcircle.app
   directly): `list_deployments` (project homepad-arc-deploy) shows which commit is live, and

@@ -81,9 +81,11 @@ if (stamp() === want && fs.existsSync(path.join(OUT, "world-play.js")) && !proce
 if (path.basename(OUT) !== "w" || path.dirname(OUT) !== ROOT) throw new Error("refusing to clear " + OUT);
 // Chunks are named by their content and a deploy replaces the whole folder. A page opened before a deploy still asks
 // for the chunk names it was built with (AC Defense, the 3D preview and the add-ons load on demand), and a name that
-// is gone is a 404: the feature never opens until the page is reloaded. So the chunks of the last KEEP_GENS builds
-// stay in /w/ next to the new ones (w/.gens.json lists the generations, newest first): a page survives that many deploys.
-const KEEP_GENS = 3, GENS = path.join(OUT, ".gens.json");
+// is gone is a 404: the feature never opens until the page is reloaded. So older builds' chunks stay in /w/ next to the
+// new ones (w/.gens.json lists the generations, newest first, each with the time it was built): always the last
+// KEEP_GENS builds, and every build of the last KEEP_DAYS days (at most MAX_GENS). By time, not by count: several builds
+// between two deploys (2026-10-20) once pushed the live build's chunks out, and pages opened before the deploy broke.
+const KEEP_GENS = 3, KEEP_DAYS = 7, MAX_GENS = 40, GENS = path.join(OUT, ".gens.json");
 let gens = []; try { gens = JSON.parse(fs.readFileSync(GENS, "utf8")).filter((g) => g && Array.isArray(g.files)); } catch { /* first build that keeps generations */ }
 const old = new Map(); // chunk name → bytes, everything that was in the folder before this build
 try { for (const f of fs.readdirSync(OUT)) if (/^c-[A-Z0-9]+\.js$/.test(f)) old.set(f, fs.readFileSync(path.join(OUT, f))); } catch { /* no folder yet */ }
@@ -119,8 +121,10 @@ fs.writeFileSync(path.join(OUT, ".preload.json"), JSON.stringify(preloads));
 fs.writeFileSync(STAMP, want + "\n");
 // the generations: this build first (unless it's the same set as the last one), then the kept older ones, restored
 const chunks = Object.keys(outs).map((k) => path.basename(k)).filter((f) => /^c-[A-Z0-9]+\.js$/.test(f)).sort();
-if (!(gens.length && JSON.stringify(gens[0].files) === JSON.stringify(chunks))) gens = [{ files: chunks }, ...gens];
-gens = gens.slice(0, KEEP_GENS);
+const nowMs = Date.now();
+if (!(gens.length && JSON.stringify(gens[0].files) === JSON.stringify(chunks))) gens = [{ files: chunks, at: nowMs }, ...gens];
+gens = gens.map((g) => (g.at ? g : { ...g, at: nowMs })) // (a generation from before times were kept: from now)
+  .filter((g, i) => i < KEEP_GENS || nowMs - g.at < KEEP_DAYS * 864e5).slice(0, MAX_GENS);
 let kept = 0;
 for (const g of gens.slice(1)) for (const f of g.files) { const p = path.join(OUT, f); if (!fs.existsSync(p) && old.has(f)) { fs.writeFileSync(p, old.get(f)); kept++; } }
 fs.writeFileSync(GENS, JSON.stringify(gens));

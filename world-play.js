@@ -2001,12 +2001,22 @@ async function openBeat() {
 const RESUME = "arc.world.resume", RELOADED = "arc.world.reloadAt";
 function staleReload() {
   let last = 0; try { last = Number(sessionStorage.getItem(RELOADED)) || 0; } catch { /* private window */ }
-  if (Date.now() - last < 120e3) return false;
+  if (Date.now() - last < 120e3) {
+    // it reloaded a moment ago and still asks for an old chunk: the browser gave back a cached copy of the page. Once
+    // more, with a fresh address no cache has seen (the ?fresh= comes off the address again when the page loads)
+    let fr = 0; try { fr = Number(sessionStorage.getItem("arc.world.freshAt")) || 0; sessionStorage.setItem("arc.world.freshAt", String(Date.now())); } catch { return false; }
+    if (Date.now() - fr < 300e3) return false; // (once in five minutes: after that the toast says to refresh)
+    try { writeLocal(); } catch { /* best effort */ }
+    toast(TW("New version — updating…")); setTimeout(() => { const u = new URL(location.href); u.searchParams.set("fresh", Date.now().toString(36)); location.replace(u.toString()); }, 900);
+    return true;
+  }
   try { sessionStorage.setItem(RELOADED, String(Date.now())); sessionStorage.setItem(RESUME, "gv"); } catch { return false; }
   try { writeLocal(); } catch { /* best effort */ }
   toast(TW("New version — updating…")); setTimeout(() => location.reload(), 900);
   return true;
 }
+// the address after a fresh reload (staleReload): the ?fresh= mark comes off
+try { const u = new URL(location.href); if (u.searchParams.has("fresh")) { u.searchParams.delete("fresh"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); } } catch { /* the mark stays, harmless */ }
 // AC Defense's entry: the camera starts high over the arena and eases down to its place behind the player (the landing's
 // slow follow, landUntil); any key or tap skips to the quick follow. Nothing with reduced motion
 function defenseCinema(c, ms = 2000) {
