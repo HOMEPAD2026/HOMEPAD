@@ -555,3 +555,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* white cards keep dark ink wherever they sit (features, guide, policy are on dark sections now) */
 .gw-feat, .gw-faq details, .gw-pol, .gw-news, .gw-rlist li { color: var(--dark-ink); }
 .gw-feat h3, .gw-faq summary, .gw-pol h3, .gw-news h3 { color: var(--dark-ink); }
+/* the footer: the $ARCIRCLE contract and ARCL's status */
+.gw-tok { display: grid; gap: 10px; width: 100%; max-width: 560px; }
+.gw-ca { display: grid; gap: 8px; justify-items: center; padding: 14px 14px 12px; border-radius: 16px; background: rgba(120, 200, 255, .06); box-shadow: 0 0 0 1px rgba(120, 200, 255, .18) inset; }
+.gw-ca small { font: 800 11px/1 var(--ui); letter-spacing: 1.5px; text-transform: uppercase; color: var(--cy); }
+.gw-ca-row { display: flex; align-items: center; gap: 8px; max-width: 100%; }
+.gw-ca code { min-width: 0; overflow-wrap: anywhere; font: 600 13px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; color: #e6f2ff; text-align: center; }
+.gw-ca button { flex: 0 0 auto; padding: 8px 12px; border: 0; border-radius: 10px; background: var(--cy); color: #04182a; font: 800 12px/1 var(--ui); }
+.gw-ca a { font: 700 12.5px/1 var(--ui); color: #9fdcff; text-decoration: underline; text-underline-offset: 3px; }
+.gw-arcl { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0; font: 600 13px/1.4 var(--ui); color: #c9d8f2; text-align: center; }
+.gw-arcl b { padding: 4px 9px; border-radius: 8px; background: rgba(255, 210, 58, .14); box-shadow: 0 0 0 1px rgba(255, 210, 58, .45) inset; color: #ffd23a; font: 900 11px/1 var(--ui); letter-spacing: 1px; }
