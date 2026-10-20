@@ -2512,3 +2512,12 @@ body.wp .wg-grid li,body.wp .wg-grid button{min-width:0;max-width:100%}
 .sv-lobby:not(.small){max-height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .sv-lobby:not(.small) .sv-btns{position:sticky;bottom:-16px;margin:0 -16px -18px;padding:10px 16px 16px;background:linear-gradient(180deg,rgba(8,18,52,0),rgba(8,18,52,.96) 30%);z-index:2}
 .sv-sheet{align-items:end}
+/* b-svx: the cut-in (a skill, an evolution) and the combo count */
+.sv-cut{position:absolute;left:0;right:0;top:38%;height:96px;display:flex;align-items:center;gap:14px;padding:0 24px;pointer-events:none;z-index:6;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--c) 55%,#081040) 18%,color-mix(in srgb,var(--c) 40%,#081040) 82%,transparent);box-shadow:0 0 30px color-mix(in srgb,var(--c) 50%,transparent);animation:sv-cut 1.1s cubic-bezier(.2,.8,.3,1) both}
+.sv-cut .pic{display:grid;place-items:center;width:84px;height:84px;margin-left:12%;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.12);box-shadow:0 0 0 2px #fff,0 0 18px var(--c)}
+.sv-cut .pic img{width:100%;height:100%;object-fit:cover}
+.sv-cut .tx{display:grid;gap:4px}.sv-cut small{font:900 13px/1 var(--hud-font,var(--f-ui));letter-spacing:2px;text-transform:uppercase;color:#fff;opacity:.85}
+.sv-cut b{font:900 30px/1 var(--hud-font,var(--f-ui));letter-spacing:1px;text-transform:uppercase;color:#fff;text-shadow:0 0 14px var(--c),0 2px 0 rgba(0,0,0,.5)}
+@keyframes sv-cut{0%{transform:translateX(-100%) skewX(-12deg);opacity:0}18%{transform:translateX(0) skewX(-12deg);opacity:1}78%{transform:translateX(4%) skewX(-12deg);opacity:1}100%{transform:translateX(110%) skewX(-12deg);opacity:0}}
+.sv-streak.combo b{color:#ffe27a;text-shadow:0 0 12px rgba(255,180,40,.85),0 2px 0 #4a1a00}
