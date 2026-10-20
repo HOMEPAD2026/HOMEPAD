@@ -132,6 +132,9 @@ check(cleanSave({ char: "kk-knight" }).char === "kk-knight" && cleanSave({ char:
   r = await W.read(new URL("http://x/?world=diag")); const e = r.body.errors[0];
   check(r.status === 200 && e && e.n === 2 && e.gpu === "Adreno 640" && r.body.days[0].n.fps_ph_auto_2 === 1, "the view shows the counts and the message: " + JSON.stringify(e));
   r = await W.handle({ action: "world-diag", kind: "wallet" }); check(r.status === 400, "nothing else is taken");
+  // b-svx: a SURVIVORS ARENA run's end: how and when, hero, weapons, evolutions, what knocked it out (bad ids dropped)
+  r = await W.handle({ action: "world-diag", kind: "survrun", dev: "phone", how: "dead", min: 4, hero: "aron", w: ["blaster", "orb", "<x>"], evo: ["star"], by: "golem" }); check(r.status === 200, "a Survivors run's end is counted");
+  r = await W.read(new URL("http://x/?world=diag")); { const sv = r.body.surv || {}; check(sv.svend && sv.svend.dead_4 === 1 && sv.svw.blaster_dead === 1 && sv.svw.orb_dead === 1 && Object.keys(sv.svw).length === 2 && sv.svevo.star === 1 && sv.svby.golem === 1 && sv.svhero.aron_dead === 1, "the view sums Survivors runs: " + JSON.stringify(sv)); }
   // hitches (b441): place, cause and length; anything else in the batch is dropped
   r = await W.handle({ action: "world-diag", kind: "hitch", dev: "phone", q: "auto", h: { def_shader_1: 3, hub_other_0: 2, "x;drop_shader_1": 5, hub_bogus_0: 1 }, s: { "physical-toon": 2, "bad key!": 9 } }); check(r.status === 200, "a hitch batch is taken");
   r = await W.read(new URL("http://x/?world=diag")); { const hs = r.body.hitches || [], top = hs[0], all = JSON.stringify(hs);

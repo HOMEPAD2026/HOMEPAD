@@ -170,6 +170,15 @@ export function make(deps) {
       await commit([{ inc: day, fields: { [`sv50_${k}_${band(b.p50)}`]: 1, [`sv10_${k}_${band(b.p10)}`]: 1, [`svfam_${dev}_${fam}_${band(b.p50)}`]: 1, [`svcrowd_${dev}_${crowd}_${band(b.p50)}`]: 1 } }]).catch(() => {});
       return json(200, { ok: true });
     }
+    if (b.kind === "survrun") { // b-svx: a SURVIVORS ARENA run's end (world-survivors.js endRun): how and when it ended, the hero, the weapons and evolutions it had, what knocked it out — for the balance
+      const id = (v) => (/^[a-z]{2,12}$/.test(String(v || "")) ? String(v) : ""), how = ["dead", "win", "time", "quit"].includes(b.how) ? b.how : "quit", min = Math.max(0, Math.min(15, Math.floor(Number(b.min) || 0)));
+      const f = { [`svend_${how}_${min}`]: 1 }, hero = id(b.hero), by = id(b.by);
+      if (hero) f[`svhero_${hero}_${how}`] = 1; if (by && how === "dead") f[`svby_${by}`] = 1;
+      for (const w of (Array.isArray(b.w) ? b.w : []).slice(0, 6)) if (id(w)) f[`svw_${id(w)}_${how}`] = 1;
+      for (const e of (Array.isArray(b.evo) ? b.evo : []).slice(0, 6)) if (id(e)) f[`svevo_${id(e)}`] = 1;
+      await commit([{ inc: day, fields: f }]).catch(() => {});
+      return json(200, { ok: true });
+    }
     if (b.kind === "rings") { // INFINITY RINGS' frames (world-rings.js): chip family
       const band = (v) => Math.max(0, Math.min(7, Math.floor(Number(v) || 0))), fam = /^[a-z0-9]{2,12}$/.test(String(b.fam)) ? b.fam : "other";
       await commit([{ inc: day, fields: { [`rg50_${dev}_${q}_${band(b.p50)}`]: 1, [`rg10_${dev}_${q}_${band(b.p10)}`]: 1, [`rgfam_${dev}_${fam}_${band(b.p50)}`]: 1 } }]).catch(() => {});
@@ -205,7 +214,9 @@ export function make(deps) {
     const shaders = Object.entries(sc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, n]) => { const i = k.indexOf("_"); return { dev: k.slice(0, i), kind: k.slice(i + 1), n }; });
     const jc = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) if (key.startsWith("hjs_")) jc[key.slice(4)] = (jc[key.slice(4)] || 0) + v;
     const scripts = Object.entries(jc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, n]) => { const i = k.indexOf("_"); return { dev: k.slice(0, i), what: k.slice(i + 1), n }; });
-    return json(200, { days: out, frames, hitches, shaders, scripts, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
+    // b-svx: SURVIVORS ARENA runs over the three days: ends by minute, weapons by how their runs ended, evolutions, what knocked runs out, heroes
+    const sv = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) { const m = /^(svend|svhero|svby|svw|svevo)_(.+)$/.exec(key); if (m) { const g = (sv[m[1]] = sv[m[1]] || {}); g[m[2]] = (g[m[2]] || 0) + v; } }
+    return json(200, { days: out, frames, hitches, shaders, scripts, surv: sv, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
   }
   async function ping(b) {
     const id = String(b.id || "");

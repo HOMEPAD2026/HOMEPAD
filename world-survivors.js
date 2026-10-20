@@ -505,7 +505,7 @@ export function createSurvivors(ctx) {
   function newRun() {
     const h = HEROES[pick.hero] || HEROES[0], d = RULES.DIFF[pick.diff] || RULES.DIFF.normal;
     clearPools();
-    R = { t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
+    R = { reroll: 2, banish: 2, ban: {}, banMode: false, t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
       w: {}, p: {}, evo: {}, cds: {}, orbA: 0, bladeA: 0, spawnT: 0, eliteT: 45, swarmAt: [30, 120, 240, 300, 420, 480, 600, 660], dashT: 0, dashCd: 0, hurtT: 0, vampN: 0, pendingLv: 0, pendingChest: 0, bonusDmg: 1, chest: null, said: {},
       streak: 0, streakT: 0, shield: 0, shieldT: 0, revived: false, infT: 25, dmgBy: {}, loot: { hp: 0, sp: 0, scrap: 0 }, stop: 0, focus: null, drones: [], skillCd: 6, overT: 0, crates: [], crateT: 20, lavaT: 90 };
     R.w[h.w] = 1;
@@ -589,7 +589,7 @@ export function createSurvivors(ctx) {
   function bossTick(m, dt) {
     m.bt -= dt;
     if (!m.rage && m.hp < m.hpMax * 0.5) { m.rage = true; m.sp *= 1.25; m.bt = Math.min(m.bt, 1.2); banner(T("Enraged!"), T(MON[m.id].boss)); ring(m.x, m.z, 1, 10, 0xff2a2a, 0.8, EASE); shakeK = Math.max(shakeK, 0.6); snd("roar"); }
-    if (m.charge) { const c = m.charge; c.t += dt; if (c.t > c.wait) { const step = 22 * dt; m.x += c.dx * step; m.z += c.dz * step; c.go += step; if (Q) glow(m.x, 1, m.z, m.r * 1.6, 0xff5a3a, 0.25, SHRINK, 0.5); if (Math.hypot(R.x - m.x, R.z - m.z) < m.r + HERO_R + 0.3) hurtHero(m.dmg * 1.2); if (c.go >= c.len || Math.hypot(m.x, m.z) > ARENA_R - 2) { m.charge = null; shakeK = Math.max(shakeK, 0.4); } } return true; }
+    if (m.charge) { const c = m.charge; c.t += dt; if (c.t > c.wait) { const step = 22 * dt; m.x += c.dx * step; m.z += c.dz * step; c.go += step; if (Q) glow(m.x, 1, m.z, m.r * 1.6, 0xff5a3a, 0.25, SHRINK, 0.5); if (Math.hypot(R.x - m.x, R.z - m.z) < m.r + HERO_R + 0.3) hurtHero(m.dmg * 1.2, m.id + ":charge"); if (c.go >= c.len || Math.hypot(m.x, m.z) > ARENA_R - 2) { m.charge = null; shakeK = Math.max(shakeK, 0.4); } } return true; }
     if (m.bt > 0) return false;
     // each boss its own mix: the Mushroom King's spores, Goleling's thrown rocks, the dragon's fire breath, the Titan's
     // sweeping beam and a rain of meteors; enraged (under half health) it attacks a third faster
@@ -621,8 +621,9 @@ export function createSurvivors(ctx) {
   }
 
   // ---------------- the hero ----------------
-  function hurtHero(n) {
+  function hurtHero(n, by) {
     if (R.over || R.dashT > 0 || R.hurtT > 0 || mode !== "play" || R.god) return;
+    if (by) R.lastBy = { by: String(by), boss: R.boss ? R.boss.id : "", t: R.t }; // (b-svx: the result says what knocked you out)
     if (R.shield) { R.shield = 0; R.shieldT = 15; R.hurtT = 0.4; const r = 4 + pv("shield") * 0.4; ring(R.x, R.z, 0.5, r, 0x8ff0ff, 0.45, EASE); for (const m of mons) if (m.st !== "die" && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < r * r) hitMon(m, 20 * pv("shield"), "shield", { kb: 8 }); snd("impact"); return; }
     const d = n * stat.armor(); R.hp -= d; R.hurtT = 0.35; flashUi("hurt"); snd("hurt", 120); if (hero && hero.hurt) try { hero.hurt(); } catch { /* fine */ }
     num(R.x, 2.3, R.z, d, 0xff4d6d, true); shakeK = Math.max(shakeK, 0.2);
@@ -708,7 +709,7 @@ export function createSurvivors(ctx) {
     for (let i = zones.length - 1; i >= 0; i--) { const o = zones[i]; o.t += dt;
       if (o.kind === "hole") { near(o.x, o.z, o.r * 1.4, (m) => { if (m.boss) return; const dx = o.x - m.x, dz = o.z - m.z, l = Math.hypot(dx, dz) || 1; m.vx += (dx / l) * 18 * dt; m.vz += (dz / l) * 18 * dt; }); if (Q) glow(o.x, 0.6, o.z, o.r * 0.6, 0x7a3cff, 0, PULSE | ONE, 0.5);
         if (o.t >= o.life) { ring(o.x, o.z, 0.4, o.r * 1.3, 0xb48cff, 0.4, EASE); sparks(o.x, 0.8, o.z, 0xb48cff, 14, 7); near(o.x, o.z, o.r * 1.3, (m) => hitMon(m, o.dmg, "hole", { kb: 7, fx: o.x, fz: o.z })); shakeK = Math.max(shakeK, 0.3); } }
-      else if (o.kind === "spore") { if (o.t >= o.next) { o.next = o.t + o.tick; if (Math.hypot(R.x - o.x, R.z - o.z) < o.r) hurtHero(o.dmg); if (Q) for (let k = 0; k < 3; k++) { const g = glow(o.x + (Math.random() - 0.5) * o.r * 1.6, 0.4, o.z + (Math.random() - 0.5) * o.r * 1.6, 0.7, 0x8aff5a, 0.8, GROW, 0.5); if (g) g.vy = 0.8; } } }
+      else if (o.kind === "spore") { if (o.t >= o.next) { o.next = o.t + o.tick; if (Math.hypot(R.x - o.x, R.z - o.z) < o.r) hurtHero(o.dmg, "spore"); if (Q) for (let k = 0; k < 3; k++) { const g = glow(o.x + (Math.random() - 0.5) * o.r * 1.6, 0.4, o.z + (Math.random() - 0.5) * o.r * 1.6, 0.7, 0x8aff5a, 0.8, GROW, 0.5); if (g) g.vy = 0.8; } } }
       else if (o.t >= o.next) { o.next = o.t + o.tick; near(o.x, o.z, o.r, (m) => hitMon(m, o.dmg, o.kind, o.kind === "ice" ? { slow: R.evo.zero ? 2.5 : 1.5 } : null));
         if (o.kind === "ice" && Q) for (let k = 0; k < 4; k++) { const g = glow(o.x + (Math.random() - 0.5) * o.r * 1.6, 3, o.z + (Math.random() - 0.5) * o.r * 1.6, 0.25, 0xe8fbff, 0.5); if (g) g.vy = -6; } }
       if (o.t >= o.life) { zoneFree.push(o); zones.splice(i, 1); } }
@@ -716,7 +717,7 @@ export function createSurvivors(ctx) {
   function zap(ax, ay, az, bx, by, bz, c) { let px = ax, py = ay, pz = az; for (let k = 1; k <= 4; k++) { const t = k / 4, qx = k === 4 ? bx : ax + (bx - ax) * t + (Math.random() - 0.5) * 0.9, qy = k === 4 ? by : ay + (by - ay) * t + (Math.random() - 0.5) * 0.5, qz = k === 4 ? bz : az + (bz - az) * t + (Math.random() - 0.5) * 0.9;
     beam(px, py, pz, qx, qy, qz, 0.5, c, 0.22); beam(px, py, pz, qx, qy, qz, 0.14, 0xffffff, 0.18); px = qx; py = qy; pz = qz; } }
   function runEvent(e) {
-    if (e.kind === "slam") { ring(e.a, e.b, e.c * 0.6, e.c * 1.15, 0xffd08a, 0.4, EASE); sparks(e.a, 0.3, e.b, 0xffb070, 14, 7); decal(e.a, e.b, e.c * 0.7); shakeK = Math.max(shakeK, 0.7); snd("impact"); if (Math.hypot(R.x - e.a, R.z - e.b) < e.c) hurtHero(e.d); }
+    if (e.kind === "slam") { ring(e.a, e.b, e.c * 0.6, e.c * 1.15, 0xffd08a, 0.4, EASE); sparks(e.a, 0.3, e.b, 0xffb070, 14, 7); decal(e.a, e.b, e.c * 0.7); shakeK = Math.max(shakeK, 0.7); snd("impact"); if (Math.hypot(R.x - e.a, R.z - e.b) < e.c) hurtHero(e.d, e.kind); }
     else if (e.kind === "meteor") { const r = e.c; ring(e.a, e.b, 0.5, r * 1.2, 0xffd08a, 0.4, EASE); disc(e.a, e.b, r, 0xff7a3c, 0.3, 0, 0.6); glow(e.a, 0.8, e.b, r * 2.2, 0xff9a4a, 0.3, GROW, 0.8); sparks(e.a, 0.4, e.b, 0xffb070, 10, 6); decal(e.a, e.b, r * 0.8); shakeK = Math.max(shakeK, 0.25);
       near(e.a, e.b, r, (m) => hitMon(m, W("meteor", "dmg"), "meteor", { kb: 5, fx: e.a, fz: e.b })); snd("impact", 80); }
     else if (e.kind === "laser") { const a = e.a, len = e.b, w = e.c, dx = Math.sin(a), dz = Math.cos(a), x2 = R.x + dx * len, z2 = R.z + dz * len;
@@ -725,11 +726,11 @@ export function createSurvivors(ctx) {
     else if (e.kind === "spore") zone("spore", e.a, e.b, e.c, 4, e.d, 0.5);
     else if (e.kind === "breath") { const m = e.a; if (!m || m.st === "die" || m.hp <= 0) return; const a = e.b, len = e.c;
       for (let k = 0; k < 6; k++) { const d = 1.5 + Math.random() * len, b = a + (Math.random() - 0.5) * 0.9; glow(m.x + Math.sin(b) * d, 1 + Math.random(), m.z + Math.cos(b) * d, 1.6 + d * 0.12, k % 2 ? 0xff7a2a : 0xffd06a, 0.35, GROW, 0.8); }
-      const dx = R.x - m.x, dz = R.z - m.z, dd = Math.hypot(dx, dz), da = Math.abs(Math.atan2(Math.sin(Math.atan2(dx, dz) - a), Math.cos(Math.atan2(dx, dz) - a))); if (dd < len && da < 0.55) hurtHero(e.d); }
+      const dx = R.x - m.x, dz = R.z - m.z, dd = Math.hypot(dx, dz), da = Math.abs(Math.atan2(Math.sin(Math.atan2(dx, dz) - a), Math.cos(Math.atan2(dx, dz) - a))); if (dd < len && da < 0.55) hurtHero(e.d, e.kind); }
     else if (e.kind === "sweep") { const m = e.a; if (!m || m.st === "die" || m.hp <= 0) return; const a = e.b, len = e.c, x2 = m.x + Math.sin(a) * len, z2 = m.z + Math.cos(a) * len;
       beam(m.x, 1.2, m.z, x2, 1.2, z2, 1.0, 0xff2a5a, 0.14, PULSE); beam(m.x, 1.2, m.z, x2, 1.2, z2, 0.3, 0xffe0e8, 0.12); glow(x2, 0.5, z2, 1.6, 0xff5a7a, 0.2, GROW);
-      const ox = R.x - m.x, oz = R.z - m.z, along = ox * Math.sin(a) + oz * Math.cos(a); if (along > 0 && along < len && Math.abs(ox * Math.cos(a) - oz * Math.sin(a)) < 0.9) hurtHero(e.d); }
-    else if (e.kind === "lava") { glow(e.a, 0.8, e.b, 5, 0xff7a2a, 0.5, GROW, 0.9); sparks(e.a, 0.4, e.b, 0xffb050, 16, 7); ring(e.a, e.b, 0.5, 3, 0xffd08a, 0.4, EASE); decal(e.a, e.b, 2.2); if (Math.hypot(R.x - e.a, R.z - e.b) < 2.6) hurtHero(14 * R.D.dmg); snd("impact", 80); }
+      const ox = R.x - m.x, oz = R.z - m.z, along = ox * Math.sin(a) + oz * Math.cos(a); if (along > 0 && along < len && Math.abs(ox * Math.cos(a) - oz * Math.sin(a)) < 0.9) hurtHero(e.d, e.kind); }
+    else if (e.kind === "lava") { glow(e.a, 0.8, e.b, 5, 0xff7a2a, 0.5, GROW, 0.9); sparks(e.a, 0.4, e.b, 0xffb050, 16, 7); ring(e.a, e.b, 0.5, 3, 0xffd08a, 0.4, EASE); decal(e.a, e.b, 2.2); if (Math.hypot(R.x - e.a, R.z - e.b) < 2.6) hurtHero(14 * R.D.dmg, "lava"); snd("impact", 80); }
     else if (e.kind === "chest") { if (R && FX.chest.visible) { FX.chest.visible = false; FX.chest.children[1].rotation.x = 0; } if (mode === "open") showCards(true, e.a); }
     else if (e.kind === "win") { if (on && R && !R.over) endRun("win"); }
   }
@@ -738,8 +739,8 @@ export function createSurvivors(ctx) {
   function offer(chest) {
     const out = [], wN = Object.keys(R.w).length, pN = Object.keys(R.p).length;
     for (const e of EVOS) if (!R.evo[e.id] && lvOf(e.from) >= MAX_LV && pv(e.with) >= maxLv(e.with)) out.push({ k: "evo", id: e.id, w: chest ? 100 : 6 });
-    for (const id of Object.keys(WEAPONS)) { const l = lvOf(id); if (l >= MAX_LV || (!l && wN >= SLOTS)) continue; out.push({ k: "w", id, w: l ? 3 : 1.6 }); }
-    for (const id of Object.keys(PASSIVES)) { const l = pv(id); if (l >= maxLv(id) || (!l && pN >= SLOTS)) continue; out.push({ k: "p", id, w: l ? 2.4 : PASSIVES[id].fx ? 0.9 : 1.3 }); }
+    for (const id of Object.keys(WEAPONS)) { const l = lvOf(id); if (l >= MAX_LV || (!l && wN >= SLOTS) || R.ban[id]) continue; out.push({ k: "w", id, w: l ? 3 : 1.6 }); }
+    for (const id of Object.keys(PASSIVES)) { const l = pv(id); if (l >= maxLv(id) || (!l && pN >= SLOTS) || R.ban[id]) continue; out.push({ k: "p", id, w: l ? 2.4 : PASSIVES[id].fx ? 0.9 : 1.3 }); }
     const pickN = []; const pool = out.slice();
     while (pickN.length < 3 && pool.length) { const tot = pool.reduce((s, x) => s + x.w, 0); let r = Math.random() * tot, i = 0; for (; i < pool.length - 1; i++) if ((r -= pool[i].w) <= 0) break; pickN.push(pool.splice(i, 1)[0]); }
     if (!pickN.length) pickN.push({ k: "heal" }, { k: "dmg" });
@@ -756,8 +757,11 @@ export function createSurvivors(ctx) {
     else if (c.k === "p") { const p = PASSIVES[c.id], l = pv(c.id); ic = c.id; name = p.name; line = p.line; tag = l ? T("Lv {n}", { n: l + 1 }) : T("NEW"); }
     else if (c.k === "evo") { const e = EVOS.find((x) => x.id === c.id); ic = e.id; name = e.name; line = e.line; tag = T("EVOLVE"); }
     else if (c.k === "heal") { ic = "heal"; name = "Heal 30% HP"; line = ""; tag = ""; } else { ic = "dmg"; name = "+10% damage for this run"; line = ""; tag = ""; }
+    // b-svx: which evolution this card leads to (a weapon: its partner; a passive: the weapon it evolves)
+    const evo = c.k === "w" ? EVOS.find((e) => e.from === c.id) : c.k === "p" ? EVOS.find((e) => e.with === c.id) : null;
+    const evoLine = evo && !R.evo[evo.id] ? `<span class="sv-evo-h">${icon(evo.id, 14)}${esc(c.k === "w" ? T("Evolves with {x}", { x: T(PASSIVES[evo.with].name) }) : T("Evolves {x}", { x: T(WEAPONS[evo.from].name) }))}</span>` : "";
     const rar = c.k === "heal" || c.k === "dmg" ? "p" : RARITY(c), pips = c.k === "w" || c.k === "p" ? Array.from({ length: c.k === "w" ? MAX_LV : maxLv(c.id) }, (_, k) => `<i class="${k < (c.k === "w" ? lvOf(c.id) : pv(c.id)) ? "on" : k === (c.k === "w" ? lvOf(c.id) : pv(c.id)) ? "nx" : ""}"></i>`).join("") : "";
-    return `<button type="button" class="sv-card r-${rar}" data-i="${i}" style="--d:${i * 0.07}s"><span class="sv-card-ic">${icon(ic, 40)}</span><span class="sv-card-t"><b>${esc(T(name))}</b>${line ? `<small>${esc(T(line))}</small>` : ""}${pips ? `<span class="sv-pips">${pips}</span>` : ""}</span>${tag ? `<em>${esc(tag)}</em>` : ""}<kbd>${i + 1}</kbd></button>`;
+    return `<button type="button" class="sv-card r-${rar}" data-i="${i}" style="--d:${i * 0.07}s"><span class="sv-card-ic">${icon(ic, 40)}</span><span class="sv-card-t"><b>${esc(T(name))}</b>${line ? `<small>${esc(T(line))}</small>` : ""}${pips ? `<span class="sv-pips">${pips}</span>` : ""}${evoLine}</span>${tag ? `<em>${esc(tag)}</em>` : ""}<kbd>${i + 1}</kbd></button>`;
   }
   let cards = null;
   function showCards(chest, gold) {
@@ -765,11 +769,26 @@ export function createSurvivors(ctx) {
     // a chest's loot goes to your bag when the run ends: a boss's holds more
     let loot = ""; if (chest) { const hp = gold ? 2 : 1, sp = gold ? 1 : 0, sc = gold ? 30 + Math.floor(Math.random() * 31) : 10 + Math.floor(Math.random() * 21); R.loot.hp += hp; R.loot.sp += sp; R.loot.scrap += sc;
       loot = `<p class="sv-loot">${icon("heal", 16)} ${esc(T("HP potion"))} +${hp}${sp ? ` · ${esc(T("SP potion"))} +${sp}` : ""} · ${esc(T("Scrap"))} +${sc}</p>`; }
-    ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}</h3>${loot}<div class="sv-cards-l">${list.map(cardHtml).join("")}</div></div>`;
+    paintCards(chest, loot);
     ui.cards.hidden = false; snd(chest ? "chest" : "level");
-    ui.cards.querySelectorAll(".sv-card").forEach((b) => b.addEventListener("click", () => choose(Number(b.dataset.i))));
   }
-  function choose(i) { if (mode !== "cards" || !cards || !cards[i]) return; take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
+  // b-svx: the cards, and under level-up cards the tools: draw again (2 a run), take a card out of this run (2), or skip (a little HP)
+  let cardsChest = false, cardsLoot = "";
+  function paintCards(chest, loot) {
+    cardsChest = !!chest; cardsLoot = loot || ""; const tools = chest || !cards.some((c) => c.k === "w" || c.k === "p") ? "" : `<div class="sv-ctools${R.banMode ? " ban" : ""}"><button type="button" data-t="reroll" ${R.reroll ? "" : "disabled"}>🔄 ${esc(T("Reroll"))} <b>${R.reroll}</b></button><button type="button" data-t="banish" ${R.banish ? "" : "disabled"} aria-pressed="${R.banMode}">✕ ${esc(T("Banish"))} <b>${R.banish}</b></button><button type="button" data-t="skip">${esc(T("Skip"))}</button></div>${R.banMode ? `<p class="sv-ban-h">${esc(T("Tap a card to take it out of this run"))}</p>` : ""}`;
+    ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}${R.banMode ? " banning" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}</h3>${cardsLoot}<div class="sv-cards-l">${cards.map(cardHtml).join("")}</div>${tools}</div>`;
+    ui.cards.querySelectorAll(".sv-card").forEach((b) => b.addEventListener("click", () => choose(Number(b.dataset.i))));
+    ui.cards.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => cardTool(b.dataset.t)));
+  }
+  function cardTool(t) {
+    if (mode !== "cards" || !cards || cardsChest) return;
+    if (t === "reroll" && R.reroll > 0) { R.reroll--; R.banMode = false; cards = offer(false); snd("tab"); paintCards(false, ""); }
+    else if (t === "banish" && R.banish > 0) { R.banMode = !R.banMode; snd("tap"); paintCards(false, ""); }
+    else if (t === "skip") { R.banMode = false; heal(R.hpMax * 0.1); cards = null; ui.cards.hidden = true; mode = "play"; snd("tap"); keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
+  }
+  function choose(i) {
+    if (mode === "cards" && cards && cards[i] && R.banMode && !cardsChest) { const c = cards[i]; if (c.k === "w" || c.k === "p") { R.ban[c.id] = 1; R.banish--; R.banMode = false; snd("impact"); const rest = offer(false).filter((x) => !cards.some((y, j) => j !== i && y.k === x.k && y.id === x.id)); cards[i] = rest[0] || { k: "heal" }; paintCards(false, ""); } return; }
+    if (mode !== "cards" || !cards || !cards[i]) return; take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
 
   // ---------------- the loop ----------------
   let maxSteps = 4, opening = null, fps30 = false, jsMs = 0, camK = 1, shakeK = 0, slowMo = 0, timeK = 1, camInit = false, acc = 0, lastNow = 0, frameMs = 16, qT = 0, qGood = 0;
@@ -882,7 +901,7 @@ export function createSurvivors(ctx) {
       for (let i = cx - 1; i <= cx + 1; i++) for (let j = cz - 1; j <= cz + 1; j++) { const l = grid.get(((i + 64) << 8) | (j + 64)); if (!l) continue;
         for (const o of l) { if (o === m) continue; const ox = m.x - o.x, oz = m.z - o.z, od = ox * ox + oz * oz, rs = m.r + o.r; if (od < rs * rs && od > 1e-6) { const s = Math.sqrt(od), push = (rs - s) * 0.5 * (o.boss ? 1.6 : m.boss ? 0.1 : 1); m.x += (ox / s) * push; m.z += (oz / s) * push; } } }
       m.atkCd -= dt; m.at += dt;
-      if (d < m.r + HERO_R + 0.35 && m.atkCd <= 0) { m.atkCd = 0.9; if (!m.boss) { m.st = "atk"; m.at = 0; } hurtHero(m.dmg); }
+      if (d < m.r + HERO_R + 0.35 && m.atkCd <= 0) { m.atkCd = 0.9; if (!m.boss) { m.st = "atk"; m.at = 0; } hurtHero(m.dmg, m.id); }
       if (m.st === "atk" && m.at > m.kd.R.atk.dur) { m.st = "move"; m.at = 0; }
       if (m.elite && Q) ring(m.x, m.z, m.r * 1.4, m.r * 1.4, 0xff5ad8, 0, SPIN | ONE, 0.6);
       const r2 = Math.hypot(m.x, m.z); if (r2 > ARENA_R - 0.5) { m.x *= (ARENA_R - 0.5) / r2; m.z *= (ARENA_R - 0.5) / r2; }
@@ -895,7 +914,7 @@ export function createSurvivors(ctx) {
       if (gone) { shotFree.push(s); shots[i] = shots[shots.length - 1]; shots.pop(); continue; }
       const sp = Math.hypot(s.vx, s.vz) || 1; beam(s.x - (s.vx / sp) * 0.9, 1, s.z - (s.vz / sp) * 0.9, s.x, 1, s.z, s.c === 0xfff07a ? 0.42 : 0.3, s.c, 0, ONE); glow(s.x, 1, s.z, s.c === 0xfff07a ? 0.6 : 0.42, 0xffffff, 0, ONE); }
     for (let i = foes.length - 1; i >= 0; i--) { const s = foes[i]; s.t += dt; s.x += s.vx * dt; s.z += s.vz * dt; let gone = s.t > 4 || Math.hypot(s.x, s.z) > ARENA_R;
-      if (!gone && Math.hypot(s.x - R.x, s.z - R.z) < 0.6) { hurtHero(s.dmg); gone = true; }
+      if (!gone && Math.hypot(s.x - R.x, s.z - R.z) < 0.6) { hurtHero(s.dmg, "shot"); gone = true; }
       if (gone) { foeFree.push(s); foes[i] = foes[foes.length - 1]; foes.pop(); continue; }
       glow(s.x, 1, s.z, 1.1, 0xff4a1a, 0, PULSE | ONE); glow(s.x, 1, s.z, 0.45, 0xffe0a0, 0, ONE); }
     zones1(dt);
@@ -1074,16 +1093,28 @@ export function createSurvivors(ctx) {
     setTimeout(() => { if (on && mode === "count") { mode = "play"; lastNow = 0; for (let i = 0; i < 6; i++) { edgePoint(); spawn("blob", ep.x, ep.z); } hints(); } }, 1500);
   }
   function pause() { if (mode !== "play") return; mode = "pause"; keys.clear(); joy.on = false; paintJoy();
-    ui.sheet.innerHTML = `<div class="sv-lobby small"><h3>${esc(T("Paused"))}</h3><div class="sv-ws">${slotsHtml()}</div><p>${esc(T("Quit now? Boss bonuses are paid only if you reach 12:00."))}</p><div class="sv-btns"><button type="button" class="go" data-a="go">${esc(T("Resume"))}</button><button type="button" data-a="quit">${esc(T("Quit the run"))}</button></div></div>`;
+    ui.sheet.innerHTML = `<div class="sv-lobby small"><h3>${esc(T("Paused"))}</h3><div class="sv-ws">${slotsHtml()}</div>${evoBook()}<p>${esc(T("Quit now? Boss bonuses are paid only if you reach 12:00."))}</p><div class="sv-btns"><button type="button" class="go" data-a="go">${esc(T("Resume"))}</button><button type="button" data-a="quit">${esc(T("Quit the run"))}</button></div></div>`;
     ui.sheet.hidden = false; ui.sheet.querySelector('[data-a="go"]').addEventListener("click", resume); ui.sheet.querySelector('[data-a="quit"]').addEventListener("click", () => { ui.sheet.hidden = true; mode = "play"; endRun("quit"); }); }
   function resume() { ui.sheet.hidden = true; mode = "play"; lastNow = 0; }
+  // b-svx: the six evolutions — weapon at Lv 5 + its partner at its top level — yours lit, the ones you're building toward marked
+  const evoBook = () => `<div class="sv-evob"><small>${esc(T("Evolutions"))}</small>${EVOS.map((e) => { const have = R && R.evo[e.id], near = R && (lvOf(e.from) || pv(e.with)); return `<p class="${have ? "on" : near ? "near" : ""}">${icon(e.from, 16)}<i>+</i>${icon(e.with, 16)}<i>→</i>${icon(e.id, 18)}<b>${esc(T(e.name))}</b></p>`; }).join("")}</div>`;
   const slotsHtml = () => Object.keys(R.w).map((id) => { const e = EVOS.find((x) => x.from === id && R.evo[x.id]); return `<span>${icon(e ? e.id : id, 22)}<b>${e ? "★" : R.w[id]}</b></span>`; }).join("") + Object.keys(R.p).map((id) => `<span class="p">${icon(id, 20)}<b>${R.p[id]}</b></span>`).join("");
   function countUp(el, to, fmtF, ms = 900) { if (reduce || !el) { if (el) el.textContent = fmtF(to); return; } const t0 = performance.now(); const f = () => { const k = Math.min(1, (performance.now() - t0) / ms), e = 1 - (1 - k) ** 3; el.textContent = fmtF(to * e); if (k < 1 && el.isConnected) requestAnimationFrame(f); }; f(); }
+  // b-svx: what knocked you out (the last hit before the fall) and a tip for it
+  const KO_N = { blob: "a Blob", pink: "a Pinky", mush: "a Mushroom", bee: "a Bee", ninja: "a Ninja", orc: "an Orc", ghost: "a Ghost", glub: "a Glub", spiky: "a Spiky elite", mushx: "a Big Mushroom", skull: "a Skull elite", yeti: "a Yeti elite" };
+  const KO_P = { slam: "a ground slam", breath: "a fire breath", sweep: "a sweeping strike", laser: "a laser", meteor: "a falling meteor", lava: "lava", spore: "poison spores", charge: "a charge", shot: "a shot" };
+  function koHtml() {
+    const L = R && R.lastBy; if (!L) return ""; const [id, pat] = L.by.split(":"), boss = MON[id] && MON[id].boss ? id : !MON[id] && L.boss ? L.boss : "";
+    const what = boss && MON[boss] ? (pat || !MON[id] ? T("{b}'s {p}", { b: T(MON[boss].boss), p: T(KO_P[pat || id] || "attack") }) : T(MON[boss].boss)) : KO_N[id] ? T(KO_N[id]) : T(KO_P[id] || "the crowd");
+    const tip = boss ? T("Watch the red marks on the ground: dash out before they land.") : R.t < 240 ? T("Keep moving and grab the gems: early levels come quickly.") : T("Area weapons like Thunder Nova and Ice Storm clear a crowd.");
+    return `<div class="sv-ko"><b>${esc(T("Knocked out by {x} at {t}", { x: what, t: mmss(L.t) }))}</b><small>💡 ${esc(tip)}</small></div>`;
+  }
   async function endRun(how) {
     if (!R || R.over) return; R.over = true; mode = "over"; keys.clear(); joy.on = false; paintJoy(); ui.cards.hidden = true; cards = null;
     if (how === "dead" && R.t < RULES.RUN_S) R.clear = false;
     const secs = Math.floor(R.t), out = { secs, kills: R.kills, bosses: R.bosses, diff: R.diff, clear: R.clear && secs >= RULES.RUN_S };
     const xp = worldXp(out); if (ctx.gain && xp > 0) try { ctx.gain(xp, "survivors"); } catch { /* the run still ends */ }
+    try { if (!/[?&]nodiag\b/.test(location.search) && !navigator.webdriver && ctx.post) ctx.post({ action: "world-diag", kind: "survrun", how, min: Math.min(15, Math.floor(R.t / 60)), hero: R.hero.id.replace("custom-", ""), diff: R.diff, w: Object.keys(R.w).slice(0, 6), evo: Object.keys(R.evo || {}).slice(0, 6), by: R.lastBy ? R.lastBy.by.split(":")[0] : "", lv: R.lv }).catch(() => {}); } catch { /* health counters never stop the game */ }
     if (ctx.addSupply) { try { if (R.loot.hp) ctx.addSupply("hp", R.loot.hp); if (R.loot.scrap) ctx.addSupply("scrap", R.loot.scrap); if (R.loot.sp) ctx.addSupply("sp", R.loot.sp); } catch { /* the run still ends */ } }
     const title = how === "win" ? T("VICTORY") : how === "dead" ? T("YOU FELL") : how === "time" ? T("TIME UP") : T("Run ended");
     snd(how === "win" ? "win" : how === "dead" ? "ko" : "tap");
@@ -1094,7 +1125,7 @@ export function createSurvivors(ctx) {
     await new Promise((ok) => setTimeout(ok, how === "dead" ? 1300 : 600)); if (!on) return;
     ui.sheet.innerHTML = `<div class="sv-res ${how}"><small>${esc(T("SURVIVORS ARENA"))}</small><h2>${esc(title)}</h2>
       <div class="sv-stats"><div><small>${esc(T("Time"))}</small><b data-c="t">00:00</b></div><div><small>${esc(T("Knock-outs"))}</small><b data-c="k">0</b></div><div><small>${esc(T("Bosses"))}</small><b>${R.bosses}/4</b></div><div><small>${esc(T("Level"))}</small><b>${R.lv}</b></div></div>
-      ${dmgHtml}${loot}
+      ${how === "dead" ? koHtml() : ""}${dmgHtml}${loot}
       <div class="sv-gain"><div class="sv-arcl"><i class="sv-coin"></i><b>${signed ? "…" : "0"}</b><small>${esc(signed ? T("Sending your run…") : T("Guest run: sign in to earn ARCL"))}</small></div><div class="sv-wxp"><b data-c="x">+0</b><small>${esc(T("World XP"))}</small></div></div>
       <div class="sv-btns"><button type="button" class="go" data-a="again">${esc(T("Play again"))}</button>${ctx.share ? `<button type="button" data-a="share">📸 ${esc(T("Share"))}</button>` : ""}<button type="button" data-a="leave">${esc(T("Leave"))}</button></div></div>`;
     ui.sheet.hidden = false; ui.root.classList.add("menu");
@@ -1126,6 +1157,7 @@ export function createSurvivors(ctx) {
     e.stopImmediatePropagation(); if (["w", "a", "s", "d", "arrowleft", "arrowright", "arrowup", "arrowdown", " ", "escape", "1", "2", "3"].includes(k)) e.preventDefault();
     if (k === "escape") { if (mode === "play") pause(); else if (mode === "pause") resume(); else if (mode === "lobby") leave(); return; }
     if (mode === "cards" && ["1", "2", "3"].includes(k)) { choose(Number(k) - 1); return; }
+    if (mode === "cards" && (k === "r" || k === "b")) { cardTool(k === "r" ? "reroll" : "banish"); return; }
     if (k === " ") { dash(); return; } if (k === "q" || k === "e" || k === "shift") { skill(); return; } keys.add(k); };
   const ku = (e) => { if (!on) return; keys.delete(String(e.key || "").toLowerCase()); e.stopImmediatePropagation(); };
   const onHide = () => { if (document.hidden && mode === "play") pause(); }; // a call, the home button: the run waits
@@ -1177,3 +1209,11 @@ export function createSurvivors(ctx) {
 Object.assign(LW.ko, {"Share": "공유", "I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?": "SURVIVORS ARENA에서 {t} 버티고 몬스터 {k}마리를 쓰러뜨렸어요! ⚔️ 이길 수 있나요?"});
 Object.assign(LW.zh, {"Share": "分享", "I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?": "我在 SURVIVORS ARENA 坚持了 {t}，击倒了 {k} 只怪物！⚔️ 你能超越吗？"});
 Object.assign(LW.tr, {"Share": "Paylaş", "I survived {t} and knocked out {k} monsters in SURVIVORS ARENA! ⚔️ Can you beat it?": "SURVIVORS ARENA'da {t} hayatta kaldım ve {k} canavar devirdim! ⚔️ Geçebilir misin?"});
+// b-svx: what knocked you out
+Object.assign(LW.ko, {"a Blob": "블롭", "a Pinky": "핑키", "a Mushroom": "버섯", "a Bee": "벌", "a Ninja": "닌자", "an Orc": "오크", "a Ghost": "유령", "a Glub": "글럽", "a Spiky elite": "정예 스파이키", "a Big Mushroom": "거대 버섯", "a Skull elite": "정예 해골", "a Yeti elite": "정예 예티", "a ground slam": "내려찍기", "a fire breath": "화염 숨결", "a sweeping strike": "휩쓸기", "a laser": "레이저", "a falling meteor": "떨어지는 메테오", "lava": "용암", "poison spores": "독 포자", "a charge": "돌진", "a shot": "탄환", "attack": "공격", "the crowd": "몬스터 무리", "{b}'s {p}": "{b}의 {p}", "Knocked out by {x} at {t}": "{t}에 {x}에게 쓰러졌어요", "Watch the red marks on the ground: dash out before they land.": "바닥의 빨간 표시를 보고, 떨어지기 전에 대시로 빠져나오세요.", "Keep moving and grab the gems: early levels come quickly.": "계속 움직이며 보석을 모으세요. 초반 레벨은 금방 올라요.", "Area weapons like Thunder Nova and Ice Storm clear a crowd.": "썬더 노바, 아이스 스톰 같은 범위 무기가 몬스터 무리를 정리해 줘요."});
+Object.assign(LW.zh, {"a Blob": "史莱姆", "a Pinky": "粉粉", "a Mushroom": "蘑菇", "a Bee": "蜜蜂", "a Ninja": "忍者", "an Orc": "兽人", "a Ghost": "幽灵", "a Glub": "咕噜", "a Spiky elite": "精英刺球", "a Big Mushroom": "巨型蘑菇", "a Skull elite": "精英骷髅", "a Yeti elite": "精英雪人", "a ground slam": "重击地面", "a fire breath": "火焰吐息", "a sweeping strike": "横扫", "a laser": "激光", "a falling meteor": "坠落的陨石", "lava": "岩浆", "poison spores": "毒孢子", "a charge": "冲撞", "a shot": "子弹", "attack": "攻击", "the crowd": "怪物群", "{b}'s {p}": "{b}的{p}", "Knocked out by {x} at {t}": "在 {t} 被{x}击倒", "Watch the red marks on the ground: dash out before they land.": "注意地上的红色标记：在落下前冲刺离开。", "Keep moving and grab the gems: early levels come quickly.": "保持移动并收集宝石：前期升级很快。", "Area weapons like Thunder Nova and Ice Storm clear a crowd.": "雷霆新星、冰风暴等范围武器能清理怪物群。"});
+Object.assign(LW.tr, {"a Blob": "bir Blob", "a Pinky": "bir Pinky", "a Mushroom": "bir Mantar", "a Bee": "bir Arı", "a Ninja": "bir Ninja", "an Orc": "bir Ork", "a Ghost": "bir Hayalet", "a Glub": "bir Glub", "a Spiky elite": "seçkin bir Dikenli", "a Big Mushroom": "Dev bir Mantar", "a Skull elite": "seçkin bir Kafatası", "a Yeti elite": "seçkin bir Yeti", "a ground slam": "yere vuruş", "a fire breath": "ateş nefesi", "a sweeping strike": "süpürme darbesi", "a laser": "lazer", "a falling meteor": "düşen meteor", "lava": "lav", "poison spores": "zehirli sporlar", "a charge": "hücum", "a shot": "atış", "attack": "saldırı", "the crowd": "kalabalık", "{b}'s {p}": "{b} — {p}", "Knocked out by {x} at {t}": "{t} anında {x} seni yere serdi", "Watch the red marks on the ground: dash out before they land.": "Yerdeki kırmızı işaretlere dikkat: inmeden önce atılarak çık.", "Keep moving and grab the gems: early levels come quickly.": "Hareket et ve taşları topla: ilk seviyeler hızlı gelir.", "Area weapons like Thunder Nova and Ice Storm clear a crowd.": "Thunder Nova ve Ice Storm gibi alan silahları kalabalığı temizler."});
+// b-svx: card tools and the evolution book
+Object.assign(LW.ko, {"Reroll": "다시 뽑기", "Banish": "제외", "Skip": "건너뛰기", "Tap a card to take it out of this run": "이번 판에서 뺄 카드를 누르세요", "Evolves with {x}": "{x}와 함께 진화", "Evolves {x}": "{x} 진화", "Evolutions": "진화"});
+Object.assign(LW.zh, {"Reroll": "重抽", "Banish": "移除", "Skip": "跳过", "Tap a card to take it out of this run": "点击一张卡，本局不再出现", "Evolves with {x}": "配合{x}可进化", "Evolves {x}": "可进化{x}", "Evolutions": "进化"});
+Object.assign(LW.tr, {"Reroll": "Yeniden çek", "Banish": "Çıkar", "Skip": "Geç", "Tap a card to take it out of this run": "Bu turdan çıkarmak için bir karta dokun", "Evolves with {x}": "{x} ile evrimleşir", "Evolves {x}": "{x} evrimleştirir", "Evolutions": "Evrimler"});

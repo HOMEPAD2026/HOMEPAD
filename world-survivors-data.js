@@ -61,11 +61,12 @@ export function poolAt(s) {
 }
 export const eliteAt = (s) => (s < 45 ? null : s < 300 ? "spiky" : s < 420 ? "mushx" : s < 600 ? "skull" : "yeti");
 /// how many should be about at second s (before the device's cap): a slow climb, then a crowd
-export const crowdAt = (s) => Math.round(10 + s * 0.13 + Math.max(0, s - 360) * 0.06);
+export const crowdAt = (s) => Math.round(10 + s * 0.13 + Math.max(0, s - 360) * 0.06 + Math.max(0, 6 - s / 20)); // (b-svx: a few more in the first 2 minutes)
 /// a monster's health at second s: tougher every minute
 export const hpK = (s) => 1 + s / 150 + Math.max(0, s - 480) / 200;
 /// the run's own level: XP for the next one
-export const needXp = (lv) => Math.round(5 + lv * 3 + lv * lv * 0.16);
+// (b-svx: the first five levels come quicker, three cards in about the first minute; from 6 on as before)
+export const needXp = (lv) => Math.round(lv < 6 ? 3 + lv * 2.6 : 5 + lv * 3 + lv * lv * 0.16);
 
 // the cards (36): 12 weapons, 12 stats and 12 special effects, 5 levels each (Infinity Core: 1). lv[n] says what level
 // n+1 gives (shown on the card). 6 weapon slots, 6 passive slots (stats and specials share them)
