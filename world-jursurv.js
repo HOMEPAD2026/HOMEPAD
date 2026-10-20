@@ -38,15 +38,22 @@ const IC = {
   rope: svg('<circle cx="12" cy="12" r="7" fill="none" stroke="#c9a65a" stroke-width="3"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="#a8843a" stroke-width="2.4"/><path d="M18 16l3 4" stroke="#c9a65a" stroke-width="2.6" stroke-linecap="round"/>'),
   fang: svg('<path d="M8 3c5 0 8 3 8 7 0 5-3 9-6 11 1-4 0-7-2-9S6 5 8 3z" fill="#f4ecd8"/><path d="M9 6c2 1 3 3 3 5" stroke="#cfc4a8" stroke-width="1" fill="none"/>'),
   cu: ore("#ff8a3a", "#ffb27a"), ag: ore("#d8e2ee", "#ffffff"), au: ore("#ffcf3a", "#fff1a8"),
+  obsidian: svg('<path d="M12 2l7 7-3 12H8L5 9z" fill="#1c1822"/><path d="M12 2l3 8-3 11-4-12z" fill="#3a3046"/><path d="M11 6l-2 5" stroke="#b8a8ff" stroke-width="1" opacity=".7"/>'),
+  sulfur: svg('<path d="M5 17l3-8 5-3 5 4 1 6-5 3H9z" fill="#e8d13a"/><path d="M8 11l4-3 3 3-3 3z" fill="#fff27a"/>'),
+  fish: svg('<path d="M3 12c4-5 10-6 14 0-4 6-10 5-14 0z" fill="#5aa8d8"/><path d="M17 12l4-4v8z" fill="#3a88b8"/><circle cx="7" cy="11" r="1" fill="#fff"/>'),
+  grilled: svg('<path d="M3 12c4-5 10-6 14 0-4 6-10 5-14 0z" fill="#b8742e"/><path d="M17 12l4-4v8z" fill="#8a5a22"/><path d="M8 9l2 6M11 8l2 7" stroke="#5a3a12" stroke-width="1.2"/>'),
+  flare: svg('<rect x="10" y="9" width="4" height="12" rx="1" fill="#c83a3a"/><path d="M12 2c2 2 3 4 1 7h-2c-2-3-1-5 1-7z" fill="#ffe27a"/>'),
 };
 const ic = (m) => (IC[m] ? `<i class="wz-ic">${IC[m]}</i>` : ICON[m] || "");
-const ICON = { wood: "🪵", hardwood: "🌳", stone: "🪨", flint: "🔺", clay: "🟤", fiber: "🌾", berries: "🫐", amber: "🟠", hide: "🟫", bone: "🦴", meat: "🥩", cooked: "🍖", torch: "🔥", rope: "🪢", fang: "🦷", cu: "🟧", ag: "⬜", au: "🟨" };
-const MAT_N = { wood: "Wood", hardwood: "Hardwood", stone: "Stone", flint: "Flint", clay: "Clay", fiber: "Fiber", berries: "Berries", amber: "Amber", hide: "Hide", bone: "Bone", meat: "Raw meat", cooked: "Cooked meat", torch: "Torch", rope: "Rope", fang: "Fang", cu: "Copper ore", ag: "Silver ore", au: "Gold ore" };
-const NODE_N = { tree: "Tree", palm: "Palm", ancient: "Ancient tree", fern: "Fern", bush: "Bush", log: "Log", rock: "Rock", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
-const VERB = { tree: "Chop", palm: "Chop", ancient: "Chop", fern: "Gather", bush: "Gather", log: "Chop", rock: "Mine", raptor: "Hunt", trike: "Hunt", alpha: "Hunt", spino: "Hunt", titan: "Hunt", claw: "Hunt" };
+const ICON = { obsidian: "⬛", sulfur: "🟡", fish: "🐟", grilled: "🍢", flare: "🧨", wood: "🪵", hardwood: "🌳", stone: "🪨", flint: "🔺", clay: "🟤", fiber: "🌾", berries: "🫐", amber: "🟠", hide: "🟫", bone: "🦴", meat: "🥩", cooked: "🍖", torch: "🔥", rope: "🪢", fang: "🦷", cu: "🟧", ag: "⬜", au: "🟨" };
+const MAT_N = { obsidian: "Obsidian", sulfur: "Sulfur", fish: "Fish", grilled: "Grilled fish", flare: "Sulfur flare", wood: "Wood", hardwood: "Hardwood", stone: "Stone", flint: "Flint", clay: "Clay", fiber: "Fiber", berries: "Berries", amber: "Amber", hide: "Hide", bone: "Bone", meat: "Raw meat", cooked: "Cooked meat", torch: "Torch", rope: "Rope", fang: "Fang", cu: "Copper ore", ag: "Silver ore", au: "Gold ore" };
+const NODE_N = { obsidian: "Obsidian", vent: "Sulfur vent", fish: "Fishing spot", tree: "Tree", palm: "Palm", ancient: "Ancient tree", fern: "Fern", bush: "Bush", log: "Log", rock: "Rock", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
+const VERB = { obsidian: "Mine", vent: "Gather", fish: "Fish", tree: "Chop", palm: "Chop", ancient: "Chop", fern: "Gather", bush: "Gather", log: "Chop", rock: "Mine", raptor: "Hunt", trike: "Hunt", alpha: "Hunt", spino: "Hunt", titan: "Hunt", claw: "Hunt" };
 // XP for each one (× what a scammer of your level gives, 6 + 3·level): the work counts towards your level
-const XP_K = { tree: 1, palm: 0.8, ancient: 5, fern: 0.25, bush: 0.25, log: 0.6, rock: 1.4, raptor: 3, trike: 6, alpha: 20, spino: 12, titan: 25, claw: 4.5 };
-const FOOD = { berries: 12, meat: 25, cooked: 45 };
+const XP_K = { obsidian: 2.4, vent: 0.8, fish: 0.9, tree: 1, palm: 0.8, ancient: 5, fern: 0.25, bush: 0.25, log: 0.6, rock: 1.4, raptor: 3, trike: 6, alpha: 20, spino: 12, titan: 25, claw: 4.5 };
+const FOOD = { berries: 12, meat: 25, cooked: 45, fish: 15, grilled: 40 };
+// where each one lives (the codex)
+const WHERE = { raptor: "The plain, in small packs", claw: "The east woods, a pack of three", trike: "A herd east of the lake", spino: "In the lake", alpha: "The ruins in the south (boss)", titan: "The north-west meadow (boss)" };
 // the dinosaurs' card (like a boss bar in town): level, HP (shown; the server counts the hits), about how many hits
 const FOE = { raptor: { lv: 8, hp: 900, n: 12 }, claw: { lv: 14, hp: 1700, n: 21 }, trike: { lv: 18, hp: 2800, n: 28 }, alpha: { lv: 30, hp: 7000, n: 70, boss: 1 }, spino: { lv: 26, hp: 5200, n: 51 }, titan: { lv: 35, hp: 9000, n: 80, boss: 1 } };
 const ORE = ["cu", "ag", "au"];
@@ -60,7 +67,9 @@ export function createSurvival(H) {
   const near = (x, z, fn) => { const cx = Math.floor(x / GC), cz = Math.floor(z / GC); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const l = grid.get(cx + i + "," + (cz + j)); if (l) for (const n of l) fn(n); } };
   const byId = new Map(nodes.map((n) => [n.id, n]));
   let inv = null, ore = {}, felled = {}, recipes = {}, pieceDefs = {}, camps = { list: [], free: 20 }, home = -1, campFull = false, signedOut = false, loaded = false;
-  let tgt = null, work = null, busy = false, ui = null, packTab = "bag";
+  let tgt = null, work = null, busy = false, ui = null, packTab = "bag", board = null, boardAt = 0;
+  // the dinosaurs you've seen (the codex: a silhouette until you've seen one, its count once you've hunted it)
+  const seenK = new Set((() => { try { return JSON.parse(localStorage.getItem("arc.jur.seen") || "[]"); } catch { return []; } })());
   // b-jx1: a guest tries it first: what they chop or pick is kept here (this visit only) until they sign in
   const guest = { mat: {}, n: 0, asked: false }, G_NEED = { fern: 1, bush: 1, log: 3, tree: 6, palm: 5, ancient: 12, rock: 6 }, G_LOOT = { fern: { fiber: 2 }, bush: { fiber: 1, berries: 2 }, log: { wood: 2 }, tree: { wood: 3, fiber: 1 }, palm: { wood: 2, fiber: 1 }, ancient: { wood: 6 }, rock: { stone: 3, flint: 1 } };
   const connect = () => { const b = document.getElementById("wp-wallet"); if (b) b.click(); };
@@ -93,11 +102,11 @@ export function createSurvival(H) {
   function applyFelled() {
     const t = Date.now();
     for (const n of nodes) { const down = (felled[n.id] || 0) > t; if (down !== !!n.down) { n.down = down; if (down) n.hide(); else n.show(); } }
-    if (H.dinos) for (const d of H.dinos()) { const dead = (felled[d.id] || 0) > t; if (dead && d.alive) d.die(true); else if (!dead && !d.alive && d.diedAt && t - d.diedAt > 3000) d.revive(); }
+    if (H.dinos) for (const d of H.dinos()) { if (d.shared) continue; /* (the boss hour's boss is everyone's: its own felled time doesn't count) */ const dead = (felled[d.id] || 0) > t; if (dead && d.alive) d.die(true); else if (!dead && !d.alive && d.diedAt && t - d.diedAt > 3000) d.revive(); }
   }
 
   // ---------------- what's in reach ----------------
-  let sel = null, selT = 0, ring = null;
+  let sel = null, selT = 0, ring = null; const fishSpots = new Map();
   function select(o) { if (o && !FOE[o.kind]) return; sel = o; selT = 0; paintFoe(); }
   function pick(px, pz, face) {
     if (sel && sel.alive && Math.hypot(sel.x - px, sel.z - pz) < sel.hr + 1.9) return sel;
@@ -105,6 +114,8 @@ export function createSurvival(H) {
     const consider = (o, alive) => { if (!alive) return; const dx = o.x - px, dz = o.z - pz, d = Math.hypot(dx, dz), reach = o.hr + 1.7; if (d > reach) return;
       let da = Math.atan2(dx, dz) - face; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da))); const sc = d - o.hr + da * 1.4; if (sc < bs) { bs = sc; best = o; } };
     near(px, pz, (n) => consider(n, !n.down));
+    // the lake's edge, with a rod: a fishing spot in front of you (b-jx3)
+    if (H.fishSpot && inv && (inv.tools.rod | 0)) { const f = H.fishSpot(px, pz, face); if (f) { const o = fishSpots.get(f.id) || Object.assign(f, { hide() {}, show() {} }); Object.assign(o, { x: f.x, z: f.z }); fishSpots.set(f.id, o); if (!((felled[o.id] || 0) > Date.now())) consider(o, true); } }
     if (H.dinos) for (const d of H.dinos()) consider(d, d.alive);
     return best;
   }
@@ -124,6 +135,8 @@ export function createSurvival(H) {
     const o = tgt || pick(px, pz, face); if (!o) { H.swingAnim(); return true; }
     H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim();
     if (signedOut) { guestSwing(o); return true; }
+    // the boss hour: the enraged boss's one HP for everyone (world-jurx.js posts the swings)
+    if (H.boss && H.boss.owns(o)) { if (sel !== o) select(o); H.boss.hit(o); const F = FOE[o.kind], crit = Math.random() < 0.15; pop(o, (crit ? "!" : "-") + Math.round(F.hp / 60 * (crit ? 1.6 : 1)).toLocaleString("en-US"), crit ? "dmg crit" : "dmg", 0.4); paintFoe(); if (H.hitstop) H.hitstop(crit ? 80 : 40); if (o.hurt) o.hurt(); (Snd.hitFx || Snd.hit || (() => {}))(0); chips(o); return true; }
     if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind, buddy: !!(H.buddyOut && H.buddyOut()) }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else { toast(T("Couldn't gather: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); work = null; } }); }
     work.hits++;
     if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), crit = Math.random() < 0.15, dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3) * (crit ? 1.6 : 1));
@@ -160,9 +173,11 @@ export function createSurvival(H) {
     let r = null; for (let i = 0; i < 4; i++) { r = await api("world-jur-break", { node: w.o.id, buddy: !!(H.buddyOut && H.buddyOut()) }); if (r.ok || r.status !== 429 || /full day/.test(String(r.j && r.j.error))) break; await new Promise((ok) => setTimeout(ok, 600)); }
     if (work === w) work = null;
     if (!r || !r.ok) { toast(T("Couldn't gather: {e}", { e: String((r && r.j && r.j.error) || "").slice(0, 60) })); paint(); return; }
-    const j = r.j, o = w.o; inv = j.inv; paidNote(j.paid); if (j.buddy && H.onBuddy) try { H.onBuddy(j.buddy, o.kind, j.saved || 0); } catch { /* the companion's card waits */ } if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
+    const before = (inv && inv.hunted && inv.hunted[w.o.kind]) || 0, j = r.j, o = w.o; inv = j.inv; paidNote(j.paid);
+    if (FOE[o.kind] && !before && inv.hunted && inv.hunted[o.kind] && H.onFirstHunt) try { H.onFirstHunt(o.kind, T(NODE_N[o.kind] || o.kind)); } catch { /* the cut-in is extra */ }
+    if (H.onBreak) try { H.onBreak(o); } catch { /* the effect is extra */ } if (j.buddy && H.onBuddy) try { H.onBuddy(j.buddy, o.kind, j.saved || 0); } catch { /* the companion's card waits */ } if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
     const isDino = o.kind === "raptor" || o.kind === "trike" || o.kind === "alpha" || o.kind === "spino" || o.kind === "titan" || o.kind === "claw";
-    if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else { o.down = true; o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
+    if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else if (o.kind === "fish") { (Snd.pick || (() => {}))(); } else { o.down = true; if (o.fall) o.fall(); else o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
     const parts = Object.entries(j.loot || {}).filter(([m]) => m !== "ore").map(([m, n]) => `${ic(m)}+${n}`);
     if (j.loot && j.loot.ore) for (const [m, n] of Object.entries(j.loot.ore)) parts.push(`${ic(m)}+${n}`);
     pop(o, parts.join(" ") || T("Nothing this time"), "loot");
@@ -367,6 +382,7 @@ export function createSurvival(H) {
     if (!ui || !H.cam || !H.dinos) return; const seen = new Set();
     for (const o of H.dinos()) {
       const F = FOE[o.kind]; if (!F || !o.alive || !o.g || !o.g.visible) continue; const d = Math.hypot(o.x - px, o.z - pz);
+      if (d < 30 && !seenK.has(o.kind)) { seenK.add(o.kind); try { localStorage.setItem("arc.jur.seen", JSON.stringify([...seenK])); } catch { /* this visit */ } }
       if (d > 38 || !(o === sel || o.hpNow != null || o.state === "chase" || o.state === "stalk" || o.state === "hunt" || o.state === "rage" || o.state === "charge")) continue;
       bv.set(o.x, (o.y ?? H.height(o.x, o.z)) + (o.R && o.R.h ? o.R.h : 2) + 0.6, o.z).project(H.cam); if (bv.z > 1 || Math.abs(bv.x) > 1.1 || Math.abs(bv.y) > 1.1) continue;
       let el = bars.get(o); if (!el) { el = document.createElement("div"); el.className = "wz-hpb" + (F.boss ? " boss" : ""); el.innerHTML = `<small>${esc(T(NODE_N[o.kind] || o.kind))} · Lv ${F.lv}</small><i><u></u></i>`; ui.pops.appendChild(el); bars.set(o, el); }
@@ -398,7 +414,7 @@ export function createSurvival(H) {
     const tl = inv ? inv.tools : { axe: 0, spear: 0 };
     const AXE = ["Bare hands", "Stone axe", "Copper axe", "Iron-hard axe"];
     const mis = inv && Array.isArray(inv.mis) ? inv.mis : [], md = mis.filter((x) => x.paid).length;
-    const tabs = [["bag", T("Pack")], ["make", T("Make")], ["mis", T("Missions") + (mis.length ? ` ${md}/${mis.length}` : "")]];
+    const tabs = [["bag", T("Pack")], ["make", T("Make")], ["mis", T("Missions") + (mis.length ? ` ${md}/${mis.length}` : "")], ["dex", T("Codex")]];
     if (signedOut && packTab !== "bag") packTab = "bag";
     let body = "";
     if (packTab === "make") {
@@ -408,13 +424,19 @@ export function createSurvival(H) {
       // what you can make now first, then what's left, then what you have
       const order = Object.entries(recipes).map(([id, R], i) => [i, owned(R) ? 2 : canMake(R) && atOk(R) ? 0 : 1]).sort((a, b) => a[1] - b[1] || a[0] - b[0]).map(([i]) => rec[i]);
       body = `<ul class="wz-recipes">${order.join("")}</ul>`;
+    } else if (packTab === "dex") {
+      const hu = (inv && inv.hunted) || {};
+      body = `<ul class="wz-dex">${Object.entries(FOE).map(([k, F]) => { const n = hu[k] || 0, seen = n > 0 || seenK.has(k); return `<li class="${n ? "got" : seen ? "seen" : ""}"><i>${n ? "🦖" : seen ? "👁️" : "❔"}</i><div><b>${esc(seen ? T(NODE_N[k]) : "???")}</b><small>${F.boss ? esc(T("Boss")) + " · " : ""}Lv ${F.lv} · HP ${F.hp.toLocaleString("en-US")}</small><small>${esc(T(WHERE[k] || ""))}</small></div><em>${n ? "×" + n : ""}</em></li>`; }).join("")}</ul>
+        <h4>${esc(T("This week's hunters"))}</h4><ol class="wz-board">${board ? (board.length ? board.slice(0, 10).map((x) => `<li><b>${esc(x.name || x.w)}</b><span>${x.n.toLocaleString("en-US")} ${esc(T("pts"))}</span></li>`).join("") : `<li class="none">${esc(T("No hunts yet this week — be the first!"))}</li>`) : `<li class="none">…</li>`}</ol>
+        <p class="wz-mis-note">${esc(T("Points: raptor 1 · clawstrider 2 · triceratops 3 · spinosaurus 6 · Alpha Raptor 10 · Thornback Titan 12. No prizes — just the glory."))}</p>`;
+      if (!boardAt || Date.now() - boardAt > 60000) { boardAt = Date.now(); fetch("/api/social?world=jur-top").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { board = j.top || []; if (packTab === "dex") paintPack(); } }).catch(() => {}); }
     } else if (packTab === "mis") {
       body = `<p class="wz-mis-note">${esc(T("Three a day for taking part — never for winning. They start again at midnight (Korea time)."))}</p><ul class="wz-mis">${mis.map((x) => `<li class="${x.paid ? "done" : ""}"><div><b>${esc(T(MIS_N[x.key] || x.name))}</b><i><u style="width:${Math.round(100 * x.n / x.need)}%"></u></i><small>${x.n.toLocaleString("en-US")} / ${x.need.toLocaleString("en-US")}</small></div><em>${x.paid ? "✓ " + esc(T("Paid")) : "+" + x.arcl.toLocaleString("en-US") + " ARCL"}</em></li>`).join("")}</ul>`;
     } else {
       const food = Object.keys(FOOD).filter((f) => have(f) > 0).map((f) => `<button type="button" class="wz-eat" data-eat="${f}">${ic(f)} ${esc(T(MAT_N[f]))} ×${have(f)} <small>+${FOOD[f]}% HP</small></button>`).join("");
       body = `${signedOut ? `<div class="wz-guest"><p>${esc(T(guest.n ? "What you gather now is kept for this visit only. Sign in with your wallet to keep it." : "Chop a tree or pick a fern to try it. Sign in with your wallet to keep what you gather."))}</p><button type="button" data-signin>${esc(T("Sign in"))}</button></div>` : ""}
         ${campFull && home < 0 ? `<h4>${esc(T("Join a camp"))}</h4><ul class="wz-recipes">${camps.list.map((c) => `<li class="${c.members < 5 ? "ok" : ""}"><div><b>${esc(T("{w}'s camp", { w: c.owner }))}</b><small>${c.members}/5</small></div><button type="button" data-join="${c.slot}" ${c.members < 5 ? "" : "disabled"}>${esc(T("Join"))}</button></li>`).join("")}</ul>` : ""}
-        ${signedOut ? "" : `<h4>${esc(T("Tools"))}</h4><p class="wz-tools"><span>🪓 ${esc(T(AXE[tl.axe | 0] || AXE[0]))}</span><span>🔱 ${esc(T((tl.spear | 0) ? "Spear" : "No spear"))}</span></p>`}
+        ${signedOut ? "" : `<h4>${esc(T("Tools"))}</h4><p class="wz-tools"><span>🪓 ${esc(T(AXE[tl.axe | 0] || AXE[0]))}</span><span>🔱 ${esc(T(["No spear", "Spear", "Obsidian spear"][tl.spear | 0] || "Spear"))}</span>${tl.rod ? `<span>🎣 ${esc(T("Fishing rod"))}</span>` : ""}${tl.armor ? `<span>🛡️ ${esc(T("Hide armour"))}</span>` : ""}${tl.cloak ? `<span>🧥 ${esc(T("Heat cloak"))}</span>` : ""}</p>`}
         <h4>${esc(T("Materials"))}</h4><p class="wz-mats">${mats.length || ores.length ? mats.map(([m, n]) => chip(m, n)).join("") + ores.map((m) => chip(m, ore[m])).join("") : `<span class="wz-empty">${esc(T("Nothing yet: chop trees, pick ferns, mine rocks"))}</span>`}</p>
         ${food ? `<h4>${esc(T("Food"))}</h4><p class="wz-food">${food}</p>` : ""}`;
     }
@@ -459,5 +481,6 @@ export function createSurvival(H) {
   /// a dinosaur companion's bite (world-dino.js): off the HP shown (the server's swings still decide the kill)
   function hurtFoe(o, dmg, cls = "dmg buddy") { const F = FOE[o.kind]; if (!F) return; o.hpNow = Math.max(1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, "-" + dmg.toLocaleString("en-US"), cls, 0.15); if (sel === o) paintFoe(); if (o.hurt) o.hurt(); }
   const refresh = () => { load().then(() => { paint(); if (ui && !ui.pack.hidden) paintPack(); }); };
-  return { homeSpot: () => { const c = homeCamp(); return c && CAMPS[c.slot] ? { x: CAMPS[c.slot][0], z: CAMPS[c.slot][1] } : null; }, hurtFoe, pop, refresh, working: () => (work && work.o) || null, setInv: (x) => { if (x) { inv = { ...(inv || {}), ...x }; if (ui && !ui.pack.hidden) paintPack(); } }, select, selected: () => sel, campFire, rest, bedNear: () => bedNear, stationNear: () => stationNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
+  const post = (action, extra) => api(action, extra);
+  return { FOE, ic, post, tools: () => (inv ? inv.tools : {}), homeFire: () => campFire(home), campList: () => camps.list.map((c) => ({ x: c.x, z: c.z, mine: c.slot === home })), fires: () => fires, homeSpot: () => { const c = homeCamp(); return c && CAMPS[c.slot] ? { x: CAMPS[c.slot][0], z: CAMPS[c.slot][1] } : null; }, hurtFoe, pop, refresh, working: () => (work && work.o) || null, setInv: (x) => { if (x) { inv = { ...(inv || {}), ...x }; if (ui && !ui.pack.hidden) paintPack(); } }, select, selected: () => sel, campFire, rest, bedNear: () => bedNear, stationNear: () => stationNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
 }
