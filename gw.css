@@ -547,3 +547,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-sheet-in .gw-meta span { margin-left: 8px; color: var(--mute); }
 .gw-tk-run > span { display: inline-block; }
 .gw-hero-in { will-change: transform, opacity; }
+/* a split title keeps its gradient letters (background-clip on the parent doesn't reach the moving words) */
+.gw-dark .gw-big:has(.w) { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: #fff; }
+.gw-dark .gw-big .w > i { background: linear-gradient(180deg, #fff 30%, #9ff6ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* the game's number sits up top, clear of the key art's own title */
+.gw-gart .gw-gnum { display: none; } /* the key art carries its own title */

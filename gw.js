@@ -536,7 +536,7 @@
   }
 
   // ---------------- welcome back: the hero saved in this browser (the game's own save, arc.world) ----------------
-  var saved = null; try { var P = JSON.parse(localStorage.getItem("arc.world") || "null"); if (P && P.name) saved = { name: String(P.name).slice(0, 20), char: P.char, xp: Number(P.xp) || 0, lv: 0 }; } catch (e) { saved = null; }
+  var saved = null; try { var P = JSON.parse(localStorage.getItem("arc.world") || "null"); if (P && P.name) saved = { name: String(P.name).slice(0, 20), char: P.char, tint: P.tint | 0, xp: Number(P.xp) || 0, lv: 0 }; } catch (e) { saved = null; }
   function paintBack() {
     var el = $("#gw-back"); if (!saved) return; el.hidden = false;
     el.textContent = saved.lv ? t("hero.back", { name: saved.name, lv: saved.lv }) : t("hero.cont", { name: saved.name });
@@ -590,7 +590,7 @@
 
   // ---------------- the 3D hero (gw-hero3d.js: the game's own models; loaded only when it's wanted) ----------------
   var TINT_C = ["#e6f0ff", "#2ee0b0", "#ff6fb5", "#ffc23a", "#9b6bff", "#ff5a5a", "#ff9a3a", "#5ad65a"]; // world-kit.js HERO_TINTS (0 = the hero's own)
-  var vHero = HEROES.some(function (h) { return saved && h.id === saved.char; }) ? saved.char : "aron", vTint = 0, viewer = null, vBusy = false;
+  var savedId = saved && String(saved.char || "").replace(/^custom-/, ""), vHero = HEROES.some(function (h) { return h.id === savedId; }) ? savedId : "aron", vTint = saved ? saved.tint || 0 : 0, viewer = null, vBusy = false;
   function paintViewer() {
     $("#gw-v-heroes").innerHTML = HEROES.map(function (h) { return '<button type="button" data-vh="' + h.id + '" style="--c:' + h.c + '" class="' + (h.id === vHero ? "on" : "") + '">' + esc(D().heroes[h.id][0]) + "</button>"; }).join("");
     $("#gw-v-tints").innerHTML = TINT_C.map(function (c, i) { return '<button type="button" data-vt="' + i + '" style="--t:' + c + '" class="' + (i === vTint ? "on" : "") + '" aria-label="' + (i + 1) + '"></button>'; }).join("");
@@ -683,7 +683,7 @@
   var nav = $("#gw-nav"), drawer = $("#gw-drawer"), burger = $(".gw-burger"), sticky = $("#gw-sticky"), heroSec = $(".gw-hero"), heroIn = $(".gw-hero-in"), ctaSec = $(".gw-cta");
   sticky.hidden = false;
   function onScroll() { var y = scrollY, h = document.documentElement.scrollHeight - innerHeight; nav.classList.toggle("solid", y > 40); nav.style.setProperty("--p", (h > 0 ? (y / h) * 100 : 0) + "%");
-    var hb = heroSec.getBoundingClientRect().bottom, cr = ctaSec.getBoundingClientRect(); sticky.classList.toggle("on", hb < 60 && !(cr.top < innerHeight && cr.bottom > 0));
+    var hb = heroSec.getBoundingClientRect().bottom, cr = ctaSec.getBoundingClientRect(); sticky.classList.toggle("on", hb < 120 && !(cr.top < innerHeight && cr.bottom > 0));
     if (reduce) return;
     if (hb > 0) { heroIn.style.transform = "translateY(" + (y * 0.22).toFixed(1) + "px)"; heroIn.style.opacity = String(Math.max(0, 1 - y / (innerHeight * 0.85))); }
     var ban = $(".gw-banner img"); if (ban) { var r = ban.parentNode.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) ban.style.transform = "scale(1.08) translateY(" + ((r.top / innerHeight) * 30).toFixed(1) + "px)"; } }

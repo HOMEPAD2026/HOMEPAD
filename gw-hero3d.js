@@ -37,7 +37,8 @@ export async function mount(canvas, o = {}) {
   requestAnimationFrame(frame);
   async function show(id, tint) {
     if (!cache[id]) {
-      const h = await K.makeCharacter(id, o.ver || ""); h.obj.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
+      const h = await K.makeCharacter("custom-" + id, o.ver || ""); // the game's ids: custom-aron / custom-lumi / custom-nex (world-kit.js HEROES)
+      if (!h.mixer || h.bot) throw new Error("no hero model for " + id); h.obj.traverse((m) => { if (m.isMesh) m.frustumCulled = false; });
       const b = new THREE.Box3().setFromObject(h.obj), sz = b.getSize(new THREE.Vector3()); h.size = sz; h.base = b.min.y; cache[id] = h;
     }
     if (hero) scene.remove(hero.obj);
