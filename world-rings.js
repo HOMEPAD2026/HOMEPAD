@@ -173,7 +173,8 @@ export function createRings(ctx) {
   // the crystals at the sides of the view, a little below the middle, behind the board (where the view's edge is at that depth)
   function placeSide() {
     if (!S || !S.side || !S.camGoal) return; const cam = S.cam, z = -6, dist = S.camGoal.z - z, vh = 2 * dist * Math.tan((cam.fov * Math.PI) / 360), vw = vh * cam.aspect;
-    for (const c of S.side.children) { const u = c.userData; c.position.set(S.camGoal.x + u.sd * (vw / 2 - 0.6 - u.o * 0.4), S.camGoal.y - vh * 0.18 + u.o * 0.8, z); c.scale.setScalar(u.k * Math.max(1.6, vh * 0.09)); c.rotation.z = -u.sd * 0.12; }
+    const off = Math.min(vw / 2 - 0.9, Math.max(S.w / 2 + 3, vw * 0.3)); // (by the board on a wide screen, at the edges on a phone)
+    for (const c of S.side.children) { const u = c.userData; c.position.set(S.camGoal.x + u.sd * (off - u.o * 0.4), S.camGoal.y - vh * 0.18 + u.o * 0.8, z); c.scale.setScalar(u.k * Math.max(1.6, vh * 0.09)); c.rotation.z = -u.sd * 0.12; }
   }
   function tintHall(c) { if (!S) return; const k = CH_SKY[c] || CH_SKY[0]; S.sky.material.uniforms.uA.value.setHex(k[0]); S.sky.material.uniforms.uB.value.setHex(k[1]); if (S.side) S.side.traverse((m) => { if (m.isMesh && m.material && m.material.emissive) m.material.emissive.setHex(k[0]); }); }
   // you, in the lobby: your own hero standing by the title, waving (the same hero as in town)
@@ -307,7 +308,7 @@ export function createRings(ctx) {
         keyLines = new THREE.LineSegments(g, new THREE.LineDashedMaterial({ vertexColors: true, dashSize: 0.18, gapSize: 0.14, transparent: true, opacity: 0.55, depthTest: false })); keyLines.computeLineDistances(); keyLines.renderOrder = 4; S.boardG.add(keyLines); } }
     // a boss: the INFINITY core's ∞ between its two big rings
     if (S.infCore) { S.boardG.remove(S.infCore); S.infCore = null; }
-    if (L.boss) { const cs = L.rings.filter((r) => r.core); if (cs.length === 2) { const sp = new THREE.Sprite(infMat()); sp.position.set((cs[0].x + cs[1].x) / 2, (cs[0].y + cs[1].y) / 2, 0.5); sp.scale.set(2.6, 1.3, 1); sp.renderOrder = 3; sp.material.opacity = 0.5; S.boardG.add(sp); S.infCore = sp; } }
+    if (L.boss) { const cs = L.rings.filter((r) => r.core); if (cs.length === 2) { const sp = new THREE.Sprite(infMat()); sp.position.set((cs[0].x + cs[1].x) / 2, (cs[0].y + cs[1].y) / 2, 0.9); sp.scale.set(4.2, 2.1, 1); sp.renderOrder = 8; sp.material.depthTest = false; sp.material.opacity = 0.7; S.boardG.add(sp); S.infCore = sp; } }
     tintHall(/^\d+$/.test(lvId) ? chOf(Number(lvId)) : /^w:/.test(lvId) ? 5 : /^t:/.test(lvId) ? 7 : /^d:/.test(lvId) ? 1 : 4);
     layoutDeco(); paintXray();
   }
@@ -783,11 +784,11 @@ export function createRings(ctx) {
     // the first level's hand: it taps the first ring until you do
     if (ui && ui.hand && L && rings[0]) { const r = L.rings[0]; tv.set(r.x + r.r * 0.7, r.y - r.r * 0.7, 0.4).project(S.cam); const V = view(), k = scaleK(); ui.hand.style.transform = `translate(${(V.x + ((tv.x + 1) / 2) * V.w) / k}px, ${(V.y + ((1 - tv.y) / 2) * V.h) / k}px)`; }
     if (mode === "play") { playT += dt; sample(dt); }
-    if (S.deco) S.deco.visible = mode === "lobby" || mode === "done"; if (S.portal) S.portal.visible = mode === "lobby"; // (on a clear: the ∞ alone over the card)
+    if (S.deco) S.deco.visible = mode === "lobby" || mode === "done"; if (S.portal) S.portal.visible = mode === "lobby"; if (S.inf && S.finale == null) S.inf.visible = mode === "done"; // (the lobby has the title; a clear: the ∞ alone over the card)
     S.sky.material.uniforms.uT.value = t; if (S.side) S.side.children.forEach((c, k) => { c.rotation.y = t * 0.25 + k; });
     if (S.hero) { if (mode === "lobby") { S.hero.update(dtR, t); heroPlace(); } else if (S.hero.obj.visible) S.hero.obj.visible = false; }
     // the boss's ∞ core: brighter with each stage, a flinch with every ring that falls
-    if (S.infCore && S.infCore.visible) { if (S.infHit > 0) S.infHit = Math.max(0, S.infHit - dt); const k = 1 + Math.sin(t * 3) * 0.05 + (S.infHit || 0) * 0.6; S.infCore.material.opacity = Math.min(1, 0.4 + stage * 0.25 + (S.infHit || 0)); S.infCore.scale.set(2.6 * k, 1.3 * k, 1); S.infCore.position.x = (S.infCore.userData.x0 != null ? S.infCore.userData.x0 : (S.infCore.userData.x0 = S.infCore.position.x)) + (S.infHit ? (Math.random() - 0.5) * 0.12 : 0); }
+    if (S.infCore && S.infCore.visible) { if (S.infHit > 0) S.infHit = Math.max(0, S.infHit - dt); const k = 1 + Math.sin(t * 3) * 0.05 + (S.infHit || 0) * 0.6; S.infCore.material.opacity = Math.min(1, 0.65 + stage * 0.15 + (S.infHit || 0)); S.infCore.scale.set(4.2 * k, 2.1 * k, 1); S.infCore.position.x = (S.infCore.userData.x0 != null ? S.infCore.userData.x0 : (S.infCore.userData.x0 = S.infCore.position.x)) + (S.infHit ? (Math.random() - 0.5) * 0.12 : 0); }
     // the hint's arrow over its ring
     if (ui && ui.arrowT > 0 && L && ui.arrowRing >= 0 && s.alive[ui.arrowRing]) { ui.arrowT -= dt; const r = L.rings[ui.arrowRing]; tv.set(r.x, r.y + r.r + 0.35, 0.4).project(S.cam); const k = scaleK(); ui.arrow.style.transform = `translate(${((tv.x + 1) / 2) * innerWidth / k}px, ${((1 - tv.y) / 2) * innerHeight / k}px) translate(-50%, -100%)`; ui.arrow.hidden = false; }
     else if (ui) ui.arrow.hidden = true;
