@@ -231,8 +231,10 @@ export function makeShop(deps) {
   // a piece in the player's saved gear (worn, bag or storage), by id
   async function savedItem(w, id) { const rp = ((await one(`worldSave/${w}`)) || {}).rpg; return rp ? [...Object.values(rp.eq || {}), ...(rp.bag || []), ...(rp.store || [])].find((x) => x && x.id === id) || null : null; }
   async function ledger(w) { return (await one(`worldArcl/${w}`)) || { bal: 0, earned: 0, spent: 0, streak: 0, lastDay: "", got: [], log: [] }; }
-  async function note(w, t, k, n) {
-    // the ledger's history (the balance itself moves with atomic increments)
+  async function note(w, t, k, n, o = {}) {
+    // the ledger's history (the balance itself moves with atomic increments); b-ec1: and the full ledger
+    // (api/_world-ledger.mjs): the movement for good, and for a spend the buckets it came out of
+    if (deps.ledger) { try { const b = t === "spend" && !o.parts ? await deps.ledger.afterSpend(w, Math.abs(n)) : o.parts; await deps.ledger.record(w, t, k, n, { b, ref: o.ref }); } catch { /* the movement stands; its record is best effort */ } }
     const L = await ledger(w);
     const log = [...(L.log || []), { t, k, n, at: now() }].slice(-40);
     const got = t === "earn" && !k.startsWith("daily") && k !== "stamp" && !(EARN_BY[k] && (EARN_BY[k].repeat || EARN_BY[k].weekly)) && !k.startsWith("support:") && !(L.got || []).includes(k) ? [...(L.got || []), k] : L.got || [];
@@ -662,6 +664,7 @@ export function makeShop(deps) {
   }
 
   return {
+    note, balance,
     stampCredit, own, plaza, freeEgg, koOf, rewardArcl, credit, award, debit, isoWeek,
     owns: async (w, id) => ((await own(w)).items || []).includes(id),
     lotPremium: async (w, coin) => ((await own(w)).lots || []).includes(lc(coin)),

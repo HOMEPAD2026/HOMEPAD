@@ -43,6 +43,8 @@ export function makeSwap(deps) {
       const next = [id, ...ids]; await setDoc(path, { ids: keep ? next.slice(0, keep) : next }); const chk = (await one(path)) || {}; if ((chk.ids || []).includes(id)) return; }
   }
 
+  // a held amount going back: into the buckets it came out of (b-ec1)
+  const back = (r) => (deps.ledger && r.parts ? deps.ledger.bucketOps(r.w, r.parts, +1) : []);
   async function view(w) {
     const [arcl, arc, mine] = await Promise.all([arclOf(w), arcOf(w), one(`worldSwapMine/${w}`)]);
     const reqs = await listOf(((mine && mine.ids) || []).slice(0, SWAP.KEEP));
@@ -61,6 +63,7 @@ export function makeSwap(deps) {
       const a = await arclOf(w); if (a.bal < amount) return json(400, { error: "not enough ARCL" });
       // held in the same write as a lock (two at once can't both spend the same balance)
       if (!(await commit([{ create: `worldSwapLock/${w}_${Math.floor(t / 3000)}`, data: { at: t } }, { inc: `worldArclBal/${w}`, fields: { bal: -amount, held: amount } }])).ok) return json(429, { error: "one moment" });
+      if (deps.ledger) try { rec.parts = await deps.ledger.afterSpend(w, amount); await deps.ledger.record(w, "hold", "swap", -amount, { b: rec.parts, ref: id }); } catch { /* recorded best effort */ }
     } else {
       const tx = lc(b.tx); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "paste the transaction hash of your transfer to the exchange desk" });
       const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null;
@@ -82,7 +85,8 @@ export function makeSwap(deps) {
     if (r.status !== "pending") return json(409, { error: "it's not waiting any more" });
     if (r.dir !== "arcl2arc") return json(400, { error: "a $ARCIRCLE transfer can't be taken back here: the team will return it" });
     if (!(await commit([{ create: `worldSwapEnd/${r.id}`, data: { at: now(), by: "cancel" } }])).ok) return json(409, { error: "it's being settled" });
-    await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }]);
+    await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }, ...back(r)]);
+    if (deps.ledger) deps.ledger.record(r.w, "unhold", "swap-cancel", r.amount, { b: r.parts, ref: r.id }).catch(() => {});
     const next = { ...r, status: "cancelled", doneAt: now() }; await setDoc(`worldSwap/${r.id}`, next);
     return json(200, { ok: true, request: pub(next) });
   }
@@ -102,13 +106,13 @@ export function makeSwap(deps) {
     if (op === "done") {
       const give = Math.floor(Number(b.give)); if (!(give > 0)) { await commit([{ del: `worldSwapEnd/${r.id}` }]).catch(() => {}); return json(400, { error: "how much was given?" }); }
       if (r.dir === "arcl2arc") { const gmTx = lc(b.gmTx); if (gmTx && !/^0x[0-9a-f]{64}$/.test(gmTx)) { await commit([{ del: `worldSwapEnd/${r.id}` }]).catch(() => {}); return json(400, { error: "that isn't a transaction hash" }); }
-        await commit([{ inc: `worldArclBal/${r.w}`, fields: { held: -r.amount, spent: r.amount } }]); r.gmTx = gmTx; }
-      else await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: give, earned: give } }]);
+        await commit([{ inc: `worldArclBal/${r.w}`, fields: { held: -r.amount, spent: r.amount } }]); r.gmTx = gmTx; if (deps.ledger) deps.ledger.record(r.w, "settle", "swap-sold", -r.amount, { ref: r.id + (gmTx ? " " + gmTx : "") }).catch(() => {}); }
+      else { await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: give, earned: give } }, ...(deps.ledger ? deps.ledger.intoOps(r.w, "purchased", give) : [])]); if (deps.ledger) deps.ledger.record(r.w, "earn", "swap-buy", give, { b: { purchased: give }, ref: r.id }).catch(() => {}); } // (bought with $ARCIRCLE: PURCHASED ARCL)
       const next = { ...r, status: "done", give, note, doneAt: now(), by: s.wallet }; await setDoc(`worldSwap/${r.id}`, next);
       return json(200, { ok: true, request: { ...pub(next), w: r.w } });
     }
     if (op === "reject") {
-      if (r.dir === "arcl2arc") await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }]);
+      if (r.dir === "arcl2arc") { await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }, ...back(r)]); if (deps.ledger) deps.ledger.record(r.w, "unhold", "swap-reject", r.amount, { b: r.parts, ref: r.id }).catch(() => {}); }
       const next = { ...r, status: "rejected", reason: note || "turned down", doneAt: now(), by: s.wallet }; await setDoc(`worldSwap/${r.id}`, next);
       return json(200, { ok: true, request: { ...pub(next), w: r.w } });
     }

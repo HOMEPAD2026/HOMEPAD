@@ -14,6 +14,7 @@ const DE = await import("../../api/_world-dino-engine.mjs");
 const store = {
   getDocs: async (ps) => Object.fromEntries(ps.map((p) => [p, db.has(p) ? structuredClone(db.get(p)) : null])),
   setDoc: async (p, d) => { db.set(p, JSON.parse(JSON.stringify(d))); },
+  queryDocs: async (col, field, value, limit = 500) => [...db.entries()].filter(([k, d]) => k.startsWith(col + "/") && d && d[field] === value).slice(0, limit).map(([k, d]) => ({ id: k.slice(col.length + 1), ...d })),
   commit: async (ws) => { for (const x of ws) { if (x.create && db.has(x.create)) return { ok: false, conflict: true }; } for (const x of ws) { if (x.create) db.set(x.create, x.data); else if (x.inc) { const d = db.get(x.inc) || {}; for (const [k, n] of Object.entries(x.fields)) d[k] = (d[k] || 0) + n; db.set(x.inc, d); } else if (x.set) db.set(x.set, x.data); else if (x.del) db.delete(x.del); } return { ok: true }; },
   listDocs: async () => [], query: async () => [],
 };

@@ -48,6 +48,8 @@ import { makeLaunch } from "./_world-launch.mjs";
 import { makeRefer } from "./_world-refer.mjs";
 import { makeGmReward } from "./_world-gmreward.mjs";
 import { makeLand, LAND } from "./_world-land.mjs";
+import { makeLedger } from "./_world-ledger.mjs";
+import { makeMarket } from "./_world-market.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -257,7 +259,8 @@ export function make(deps) {
     return { wallet };
   }
   let village = null; // made below (it reads the shop's ownership; the shop asks it about Village upgrades)
-  const shop = makeShop({ ...deps, json, now, signer, isleNext: (w) => village.nextUp(w), hasName: async (w) => !!(((await getDocs([`worldSave/${w}`]))[`worldSave/${w}`] || {}).name) });
+  const ledger = makeLedger({ ...deps, now }); // b-ec1: every ARCL movement written down, the balance split by where it came from
+  const shop = makeShop({ ...deps, json, now, signer, ledger, isleNext: (w) => village.nextUp(w), hasName: async (w) => !!(((await getDocs([`worldSave/${w}`]))[`worldSave/${w}`] || {}).name) });
   // the help desk's reviewers: SUPPORT_ADMINS (comma-separated wallets) and the owner of ArcircleFeeBurn
   let adminCache = null;
   async function admins() {
@@ -281,7 +284,7 @@ export function make(deps) {
     holdCache.set(w, { t, at: now() }); if (holdCache.size > 5000) holdCache.clear(); return t;
   }
   const saveOf = async (w) => (await getDocs([`worldSave/${w}`]))[`worldSave/${w}`];
-  const mine = makeMine({ ...deps, json, now, signer, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), holdTier, isoWeek: shop.isoWeek,
+  const mine = makeMine({ ...deps, json, now, signer, ledger, own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), holdTier, isoWeek: shop.isoWeek,
     level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // the ARCL Mine: each broken rock pays (api/_world-mine.mjs)
   const welcome = makeWelcome({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), award: (w, k, n) => shop.award(w, k, n), freeEgg: (w, src) => shop.freeEgg(w, src), trial: (w, ms) => mine.trial(w, ms) }); // the welcome week (api/_world-welcome.mjs)
   // Jurassic World's gathering, crafting and camps (api/_world-jur.mjs); its dinosaur companion (api/_world-dino.mjs)
@@ -297,7 +300,9 @@ export function make(deps) {
   const gmReward = makeGmReward({ ...deps, json, now, signer, isGM, token: ARCIRCLE_TOKEN, nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
   // ARCIRCLE LAND: the 20 villages bought with $ARCIRCLE (paid to the treasury), the owner's island on their village (api/_world-land.mjs)
   const land = makeLand({ ...deps, json, now, signer, isGM, token: ARCIRCLE_TOKEN, nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
-  const swap = makeSwap({ ...deps, json, now, signer, isGM });
+  const swap = makeSwap({ ...deps, json, now, signer, isGM, ledger });
+  // b-ec2/3: the Creator Market (blueprints for ARCL, 80/20, 14 days on hold) and the Creator Exchange (GM-signed, verified on Arc)
+  const market = makeMarket({ ...deps, json, now, signer, isGM, ledger, note: (w, t, k, n, o) => shop.note(w, t, k, n, o), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
   const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
   const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
@@ -550,6 +555,7 @@ export function make(deps) {
       if (w === "land" || w === "land-refunds") return land.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur-boss" || w === "jur-top") return jur.read(w, url);
+      if (w === "market" || w === "market-me" || w === "arcl-tx") return market.read(w, url);
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }
       if (w === "mine") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return mine.view(lc(a), url.searchParams.has("board")); }
@@ -577,7 +583,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

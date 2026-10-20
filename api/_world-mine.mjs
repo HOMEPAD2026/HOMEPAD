@@ -208,6 +208,7 @@ export function makeMine(deps) {
     const bal = ((await one(`worldArclBal/${w}`)) || {}).bal || 0; if (bal < c.arcl) return json(400, { error: "not enough ARCL", need: c });
     if (!(await commit([{ create: `worldMineUpg/${w}_${inv.lv + 1}`, data: { at: now() } }, { inc: `worldArclBal/${w}`, fields: { bal: -c.arcl, spent: c.arcl } }])).ok) return json(409, { error: "that upgrade is already done" });
     for (const k of ["cu", "ag", "au"]) inv[k] -= c[k] || 0; inv.lv += 1; await setDoc(`worldMineInv/${w}`, inv);
+    if (deps.ledger) try { const b = await deps.ledger.afterSpend(w, c.arcl); await deps.ledger.record(w, "spend", "mine-upgrade", -c.arcl, { b }); } catch { /* recorded best effort */ }
     return json(200, { ok: true, inv: pubInv(inv), arcl: bal - c.arcl });
   }
   // the smelter: ore pieces into scrap (the game adds the scrap to the save, as with the Forge)
