@@ -160,6 +160,19 @@ around standing (SURVIVORS ARENA shipped like that). Before using a clip name an
   and check it is a walk/sprint clip, not idle. A screenshot of a hero standing still proves nothing.
 - The same goes for any rig (dinosaurs, monsters, pets): list the file's clip names first, and map them on purpose.
 
+## The owner's standing decisions (2026-10-21) — follow them, don't reopen them
+
+- **Regulation and legal matters are the owner's.** Don't raise, assess or comment on regulatory/legal questions (gambling,
+  e-money, securities, game-law, KYC …) in reviews, plans or code comments, now or later. Build what's asked.
+- **ARCL ⇄ $ARCIRCLE exchange stays open for every ARCL** (by request, settled by a GM — api/_world-swap.mjs).
+- **Creator earnings (the hybrid economy):** only the share a buyer paid with PURCHASED ARCL (ARCL bought through the
+  exchange) becomes the creator's exchangeable CREATOR_AVAILABLE; what was paid with PLAY / PROMO ARCL goes to a
+  creator balance that spends in the game but isn't settled. 80 % creator / 20 % platform, 14 days pending (proposals).
+- **Settlements are signed by a GM's own wallet**; the server only records and verifies the tx on Arc. The server never
+  holds a private key.
+- **Daily caps will keep rising** — keep them as constants in one place per game, not scattered.
+- **Record more:** every ARCL movement goes into the ledger (worldArclTx, kept in full), not only the last-30 log.
+
 ## Our 2026 goals (KPIs for December 31, 2026 — the owner's targets, not guarantees)
 
 1. Registered players: 10,000+
