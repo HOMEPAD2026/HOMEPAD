@@ -506,7 +506,7 @@ export function createSurvivors(ctx) {
   function newRun() {
     const h = HEROES[pick.hero] || HEROES[0], d = RULES.DIFF[pick.diff] || RULES.DIFF.normal;
     clearPools();
-    R = { reroll: TOOLS.reroll, banish: TOOLS.banish, skip: TOOLS.skip, ban: {}, banMode: false, t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
+    R = { freeze: 0, chestN: 0, chestLeft: 0, reroll: TOOLS.reroll, banish: TOOLS.banish, skip: TOOLS.skip, ban: {}, banMode: false, t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
       w: {}, p: {}, evo: {}, cds: {}, orbA: 0, bladeA: 0, spawnT: 0, eliteT: 45, swarmAt: [30, 120, 240, 300, 420, 480, 600, 660], dashT: 0, dashCd: 0, hurtT: 0, vampN: 0, pendingLv: 0, pendingChest: 0, bonusDmg: 1, chest: null, said: {},
       streak: 0, streakT: 0, shield: 0, shieldT: 0, revived: false, infT: 25, dmgBy: {}, loot: { hp: 0, sp: 0, scrap: 0 }, stop: 0, focus: null, drones: [], skillCd: 6, overT: 0, crates: [], crateT: 20, lavaT: 90 };
     R.w[h.w] = 1;
@@ -575,7 +575,7 @@ export function createSurvivors(ctx) {
     m.st = "die"; m.at = 0; m.hp = 0; m.dis = 0; R.kills++;
     sparks(m.x, m.fly + 0.6, m.z, m.elite ? 0xff8ae4 : 0xffd08a, m.elite ? 10 : 4, 4);
     let v = m.xp; if (pv("lucky") && Math.random() < 0.04 * pv("lucky")) v *= 5; addGem(m.x, m.z, v);
-    if (m.elite) { for (let k = 0; k < 3; k++) addGem(m.x + (Math.random() - 0.5) * 2, m.z + (Math.random() - 0.5) * 2, 2); if (Math.random() < 0.35 + 0.1 * pv("lucky")) dropChest(m.x, m.z); }
+    if (m.elite) { for (let k = 0; k < 3; k++) addGem(m.x + (Math.random() - 0.5) * 2, m.z + (Math.random() - 0.5) * 2, 2); if (Math.random() < 0.35 + 0.1 * pv("lucky")) dropChest(m.x, m.z); else if (Math.random() < 0.5) dropPick(m.x + 1, m.z); }
     if (pv("vamp") && ++R.vampN >= [14, 12, 10, 8, 6][pv("vamp") - 1]) { R.vampN = 0; heal(2 + pv("vamp")); }
     if (pv("streak")) { R.streak = Math.min(25, R.streak + 1); R.streakT = 1.2; }
     if (m.boss) { R.bosses++; R.boss = null; dropChest(m.x, m.z, true); snd("win"); shakeK = 1.2; flashUi("boss"); slowMo = 1.0; R.stop = 0.12; sparks(m.x, 2, m.z, 0xffd23a, 40, 9); ring(m.x, m.z, 1, 12, 0xffd23a, 0.9, EASE); decal(m.x, m.z, 5);
@@ -584,6 +584,11 @@ export function createSurvivors(ctx) {
   }
   function decal(x, z, r) { return fx("decal", x, 0.03, z, r, 0xffffff, 4, HOLD, 0.45); }
   function heal(n) { R.hp = Math.min(R.hpMax, R.hp + n); }
+  // b-svx: what you can pick up — food (+25 HP), a magnet (every gem), a bomb (a blast round it), a clock (5 s of stopped monsters)
+  const PICK = ["heal", "magnet", "bomb", "clock"], PICK_C = { heal: 0x5aff8a, magnet: 0x8ff0ff, bomb: 0xffa040, clock: 0xb48cff };
+  const PICK_T = { heal: ["Food!", "+25 HP"], magnet: ["Magnet!", "Every gem comes to you"], bomb: ["Bomb!", "Everything nearby is blasted"], clock: ["Clock!", "Monsters stop for 5 seconds"] };
+  function pickBanner(k) { const b = PICK_T[k]; if (b) banner(T(b[0]), T(b[1])); }
+  function dropPick(x, z, kind) { if (R.crates.length >= 4) return; R.crates.push({ x, z, kind: kind || PICK[Math.floor(Math.random() * PICK.length)], t: 0 }); ring(x, z, 0.3, 1.6, 0xffd23a, 0.5, EASE); }
   function dropChest(x, z, boss) { if (R.chest) { R.pendingChest++; return; } R.chest = { x, z, t: 0, boss: !!boss }; FX.chest.visible = true; FX.chest.position.set(x, 0, z); FX.chest.children[1].rotation.x = 0; }
 
   // the bosses: a warning, then an attack
@@ -732,7 +737,7 @@ export function createSurvivors(ctx) {
       beam(m.x, 1.2, m.z, x2, 1.2, z2, 1.0, 0xff2a5a, 0.14, PULSE); beam(m.x, 1.2, m.z, x2, 1.2, z2, 0.3, 0xffe0e8, 0.12); glow(x2, 0.5, z2, 1.6, 0xff5a7a, 0.2, GROW);
       const ox = R.x - m.x, oz = R.z - m.z, along = ox * Math.sin(a) + oz * Math.cos(a); if (along > 0 && along < len && Math.abs(ox * Math.cos(a) - oz * Math.sin(a)) < 0.9) hurtHero(e.d, e.kind); }
     else if (e.kind === "lava") { glow(e.a, 0.8, e.b, 5, 0xff7a2a, 0.5, GROW, 0.9); sparks(e.a, 0.4, e.b, 0xffb050, 16, 7); ring(e.a, e.b, 0.5, 3, 0xffd08a, 0.4, EASE); decal(e.a, e.b, 2.2); if (Math.hypot(R.x - e.a, R.z - e.b) < 2.6) hurtHero(14 * R.D.dmg, "lava"); snd("impact", 80); }
-    else if (e.kind === "chest") { if (R && FX.chest.visible) { FX.chest.visible = false; FX.chest.children[1].rotation.x = 0; } if (mode === "open") showCards(true, e.a); }
+    else if (e.kind === "chest") { if (R && FX.chest.visible) { FX.chest.visible = false; FX.chest.children[1].rotation.x = 0; } if (mode === "open") chestRoll(e.a); }
     else if (e.kind === "win") { if (on && R && !R.over) endRun("win"); }
   }
 
@@ -775,9 +780,18 @@ export function createSurvivors(ctx) {
   }
   // b-svx: the cards, and under level-up cards the tools: draw again (2 a run), take a card out of this run (2), or skip (a little HP)
   let cardsChest = false, cardsLoot = "";
+  // b-svx: a chest rolls how many upgrades it holds (a boss's: 3 or 5; Lucky Drop tips it), then you choose that many
+  function chestRoll(gold) {
+    const r = Math.random(), lk = pv("lucky"), n = gold ? (r < 0.6 - lk * 0.05 ? 3 : 5) : r < 0.05 + lk * 0.03 ? 5 : r < 0.3 + lk * 0.06 ? 3 : 1;
+    R.chestN = n; R.chestLeft = n;
+    ui.cards.innerHTML = `<div class="sv-roul${gold ? " gold" : ""}"><small>${esc(T("A chest!"))}</small><div class="sv-roul-n">${[1, 3, 5].map((k) => `<b data-k="${k}">×${k}</b>`).join("")}</div><p>${esc(T("Upgrades"))}</p></div>`; ui.cards.hidden = false;
+    const bs = [...ui.cards.querySelectorAll(".sv-roul-n b")], seq = []; let k = 0; for (let i = 0; i < 9; i++) seq.push(i % 3); seq.push([1, 3, 5].indexOf(n)); 
+    const step = () => { if (!on || mode !== "open") return; bs.forEach((b, j) => b.classList.toggle("on", j === seq[k])); snd("tap"); if (++k < seq.length) setTimeout(step, 70 + k * 18); else { bs[seq[k - 1]].classList.add("won"); snd(n >= 3 ? "jackpot" : "chest"); setTimeout(() => { if (on && mode === "open") showCards(true, gold); }, 650); } };
+    step();
+  }
   function paintCards(chest, loot) {
     cardsChest = !!chest; cardsLoot = loot || ""; const tools = chest || !cards.some((c) => c.k === "w" || c.k === "p") ? "" : `<div class="sv-ctools${R.banMode ? " ban" : ""}"><button type="button" data-t="reroll" ${R.reroll ? "" : "disabled"}><i>⟳</i><span>${esc(T("Reroll"))}<b>${R.reroll}/${TOOLS.reroll}</b></span></button><button type="button" data-t="banish" ${R.banish ? "" : "disabled"} aria-pressed="${R.banMode}"><i>✕</i><span>${esc(T("Banish"))}<b>${R.banish}/${TOOLS.banish}</b></span></button><button type="button" data-t="skip" ${R.skip ? "" : "disabled"}><i>»</i><span>${esc(T("Skip"))}<b>${R.skip}/${TOOLS.skip}</b></span></button></div>${R.banMode ? `<p class="sv-ban-h">${esc(T("Tap a card to take it out of this run"))}</p>` : ""}`;
-    ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}${R.banMode ? " banning" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}</h3>${cardsLoot}<div class="sv-cards-l">${cards.map(cardHtml).join("")}</div>${tools}</div>`;
+    ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}${R.banMode ? " banning" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}${chest && R.chestN > 1 ? ` <i class="sv-cn">${R.chestN - R.chestLeft + 1}/${R.chestN}</i>` : ""}</h3>${cardsLoot}<div class="sv-cards-l">${cards.map(cardHtml).join("")}</div>${tools}</div>`;
     ui.cards.querySelectorAll(".sv-card").forEach((b) => b.addEventListener("click", () => choose(Number(b.dataset.i))));
     ui.cards.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => cardTool(b.dataset.t)));
   }
@@ -789,7 +803,8 @@ export function createSurvivors(ctx) {
   }
   function choose(i) {
     if (mode === "cards" && cards && cards[i] && R.banMode && !cardsChest) { const c = cards[i]; if (c.k === "w" || c.k === "p") { R.ban[c.id] = 1; R.banish--; R.banMode = false; snd("impact"); const rest = offer(false).filter((x) => !cards.some((y, j) => j !== i && y.k === x.k && y.id === x.id)); cards[i] = rest[0] || { k: "heal" }; paintCards(false, ""); } return; }
-    if (mode !== "cards" || !cards || !cards[i]) return; take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
+    if (mode !== "cards" || !cards || !cards[i]) return;
+    if (cardsChest && R.chestLeft > 1) { take(cards[i]); R.chestLeft--; cards = offer(true); paintCards(true, ""); return; } /* (the chest's next pick) */ take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
 
   // ---------------- the loop ----------------
   let maxSteps = 4, opening = null, fps30 = false, jsMs = 0, camK = 1, shakeK = 0, slowMo = 0, timeK = 1, camInit = false, acc = 0, lastNow = 0, frameMs = 16, qT = 0, qGood = 0;
@@ -892,6 +907,7 @@ export function createSurvivors(ctx) {
       m.flash = Math.max(0, m.flash - dt * 5); m.slow = Math.max(0, m.slow - dt); m.born = Math.min(1, m.born + dt * 2.5);
       const dx = R.x - m.x, dz = R.z - m.z, d = Math.hypot(dx, dz) || 0.001;
       if (R.still) { m.at += dt; continue; }
+      if (R.freeze > 0 && !m.boss) continue; // (a clock: they stand still, and their walk stops too)
       if (m.boss && bossTick(m, dt)) { m.at += dt; continue; }
       const spd = m.sp * (m.slow > 0 ? (R.evo.zero && m.slow > 1 ? 0.1 : 0.5) : 1) * (m.st === "atk" ? 0.25 : 1);
       if (m.dir) { m.x += m.dir.x * spd * dt; m.z += m.dir.z * spd * dt; if (Math.hypot(m.x, m.z) > ARENA_R - 1 || d > 30) m.dir = null; }
@@ -924,10 +940,13 @@ export function createSurvivors(ctx) {
     R.skillCd -= dt; if (R.overT > 0) R.overT -= dt;
     // crates: one turns up near you now and then; walk into it for a heal, a magnet or a bomb
     if ((R.crateT -= dt) <= 0 && R.crates.length < 2) { R.crateT = 22; const a = Math.random() * 6.283, d = 8 + Math.random() * 5; let x = R.x + Math.cos(a) * d, z = R.z + Math.sin(a) * d; const rr2 = Math.hypot(x, z); if (rr2 > ARENA_R - 3) { x *= (ARENA_R - 3) / rr2; z *= (ARENA_R - 3) / rr2; }
-      R.crates.push({ x, z, kind: ["heal", "magnet", "bomb"][Math.floor(Math.random() * 3)], t: 0 }); ring(x, z, 0.3, 1.6, 0xffd23a, 0.5, EASE); }
-    for (let i = R.crates.length - 1; i >= 0; i--) { const c = R.crates[i]; c.t += dt; if (Math.hypot(R.x - c.x, R.z - c.z) > 1.3) continue; R.crates.splice(i, 1); sparks(c.x, 0.8, c.z, 0xd8a060, 12, 5);
+      R.crates.push({ x, z, kind: PICK[Math.floor(Math.random() * PICK.length)], t: 0 }); ring(x, z, 0.3, 1.6, PICK_C[R.crates[R.crates.length - 1].kind], 0.5, EASE); }
+    if (R.freeze > 0) R.freeze -= dt;
+    for (let i = R.crates.length - 1; i >= 0; i--) { const c = R.crates[i]; c.t += dt; if (Q && Math.random() < dt * 5) glow(c.x + (Math.random() - 0.5) * 0.8, 0.9 + Math.random() * 0.6, c.z + (Math.random() - 0.5) * 0.8, 0.5, PICK_C[c.kind], 0.5, SHRINK, 0.7); // (each kind its own glow)
+      if (Math.hypot(R.x - c.x, R.z - c.z) > 1.3) continue; R.crates.splice(i, 1); sparks(c.x, 0.8, c.z, PICK_C[c.kind], 14, 5); pickBanner(c.kind);
       if (c.kind === "heal") { heal(25); num(R.x, 2.4, R.z, 25, 0x5aff8a, true); ring(R.x, R.z, 0.3, 2.5, 0x5aff8a, 0.5, EASE); snd("heart"); }
       else if (c.kind === "magnet") { for (const g of gems) g.pull = true; ring(R.x, R.z, 0.5, 14, 0x8ff0ff, 0.7, EASE); snd("coin"); }
+      else if (c.kind === "clock") { R.freeze = 5; ring(R.x, R.z, 0.5, 18, 0xb48cff, 0.9, EASE); disc(R.x, R.z, 16, 0x9b6bff, 0.6, 0, 0.25); ui.root.classList.add("frozen"); setTimeout(() => { if (ui) ui.root.classList.remove("frozen"); }, 5000); snd("level"); }
       else { ring(c.x, c.z, 0.5, 8, 0xffb03a, 0.5, EASE); disc(c.x, c.z, 8, 0xff7a2a, 0.3, 0, 0.5); glow(c.x, 1, c.z, 7, 0xffa040, 0.35, GROW, 0.7); shakeK = Math.max(shakeK, 0.7); for (const m of mons) if (m.st !== "die" && (m.x - c.x) ** 2 + (m.z - c.z) ** 2 < 64) hitMon(m, 150, "crate", { kb: 9, fx: c.x, fz: c.z }); snd("impact"); } }
     // the lava cracks flare up after 1:30: the three nearest glow red, then burst
     if (R.t > 90 && (R.lavaT -= dt) <= 0) { R.lavaT = 24 - Math.min(10, R.t / 60); const near3 = S.crackPos.slice().sort((p, q) => (p[0] - R.x) ** 2 + (p[1] - R.z) ** 2 - ((q[0] - R.x) ** 2 + (q[1] - R.z) ** 2)).slice(0, 3);
@@ -1202,7 +1221,7 @@ export function createSurvivors(ctx) {
     debug: () => (R ? { mode, q: Q, fms: Math.round(frameMs), js: +jsMs.toFixed(2), anim: hero && hero.mixer ? (hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join(",")) : "", t: R.t, hp: R.hp, lv: R.lv, xp: R.xp, kills: R.kills, bosses: R.bosses, mons: mons.length, alive: mons.filter((m) => m.st !== "die").length, gems: gems.length, fx: FX ? FX.glow.n + FX.beam.n : 0, w: { ...R.w }, p: { ...R.p }, boss: R.boss && R.boss.id, x: R.x, z: R.z } : { mode }),
     start: () => startRun(), skip: (s) => { if (!R) return; R.t += s; R.eliteT = 0; }, choose: (i) => choose(i), give: (k, id, n = 1) => { if (!R) return; for (let i = 0; i < n; i++) take({ k, id }); }, hurt: (n) => { if (R) { R.hurtT = 0; R.shield = 0; hurtHero(n); } }, xp: (n) => { if (R) addGem(R.x, R.z, n); }, boss: (i) => { if (R) spawnBoss(i); }, killAll: () => { if (R) for (const m of mons) if (m.st !== "die") kill(m); }, mode: () => mode, cam: (k) => { camK = k; }, quality: (q) => { Qmax = Q = q; applyQ(); },
     line: (ids, st0) => { if (!R) return; clearPools(); R.still = true; R.spawnT = 1e9; R.eliteT = 1e9; R.bossNext = 9; R.w = {}; R.swarmAt = []; ids.forEach((id, i) => { const m = spawn(id, (i - (ids.length - 1) / 2) * 2.2, -3); if (m) { m.face = 0; m.born = 1; if (st0) { m.st = st0; m.at = 0; } } }); },
-    chest: () => { if (R) dropChest(R.x + 1, R.z, true); }, steps: (n) => { maxSteps = n; }, god: (on) => { if (R) R.god = !!on; }, // (tests: a slow test browser can let the game run at its true speed)
+    chest: () => { if (R) dropChest(R.x + 1, R.z, true); }, pick: (k) => { if (R) dropPick(R.x + 0.4, R.z, k); }, freeze: () => (R ? R.freeze : 0), chestN: () => (R ? [R.chestN, R.chestLeft] : null), steps: (n) => { maxSteps = n; }, god: (on) => { if (R) R.god = !!on; }, // (tests: a slow test browser can let the game run at its true speed)
   };
 }
 
@@ -1218,3 +1237,7 @@ Object.assign(LW.tr, {"a Blob": "bir Blob", "a Pinky": "bir Pinky", "a Mushroom"
 Object.assign(LW.ko, {"Reroll": "다시 뽑기", "Banish": "제외", "Skip": "건너뛰기", "Tap a card to take it out of this run": "이번 판에서 뺄 카드를 누르세요", "Evolves with {x}": "{x}와 함께 진화", "Evolves {x}": "{x} 진화", "Evolutions": "진화"});
 Object.assign(LW.zh, {"Reroll": "重抽", "Banish": "移除", "Skip": "跳过", "Tap a card to take it out of this run": "点击一张卡，本局不再出现", "Evolves with {x}": "配合{x}可进化", "Evolves {x}": "可进化{x}", "Evolutions": "进化"});
 Object.assign(LW.tr, {"Reroll": "Yeniden çek", "Banish": "Çıkar", "Skip": "Geç", "Tap a card to take it out of this run": "Bu turdan çıkarmak için bir karta dokun", "Evolves with {x}": "{x} ile evrimleşir", "Evolves {x}": "{x} evrimleştirir", "Evolutions": "Evrimler"});
+// b-svx: pickups and the chest's roulette
+Object.assign(LW.ko, {"Food!": "음식!", "+25 HP": "HP +25", "Magnet!": "자석!", "Every gem comes to you": "모든 보석이 끌려와요", "Bomb!": "폭탄!", "Everything nearby is blasted": "주변을 모두 날려버려요", "Clock!": "시계!", "Monsters stop for 5 seconds": "몬스터가 5초 동안 멈춰요", "Upgrades": "업그레이드"});
+Object.assign(LW.zh, {"Food!": "食物！", "+25 HP": "HP +25", "Magnet!": "磁铁！", "Every gem comes to you": "所有宝石都飞向你", "Bomb!": "炸弹！", "Everything nearby is blasted": "附近的一切都被炸飞", "Clock!": "时钟！", "Monsters stop for 5 seconds": "怪物停止 5 秒", "Upgrades": "升级"});
+Object.assign(LW.tr, {"Food!": "Yemek!", "+25 HP": "+25 HP", "Magnet!": "Mıknatıs!", "Every gem comes to you": "Bütün taşlar sana gelir", "Bomb!": "Bomba!", "Everything nearby is blasted": "Yakındaki her şey patlar", "Clock!": "Saat!", "Monsters stop for 5 seconds": "Canavarlar 5 saniye durur", "Upgrades": "Yükseltme"});

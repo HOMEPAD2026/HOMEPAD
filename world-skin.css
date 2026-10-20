@@ -2464,3 +2464,14 @@ body.wp .wg-grid li,body.wp .wg-grid button{min-width:0;max-width:100%}
   html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-evo-h{justify-content:center}
   html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-card em{right:50%;transform:translateX(50%)}
   html:not(.wp-pcphone) .sv-cards-in>small{font-size:34px}}
+/* b-svx: the chest's roulette (×1 · ×3 · ×5), the pick counter, a clock's frozen tint */
+.sv-roul{display:grid;justify-items:center;gap:12px;padding:22px 20px;border-radius:26px;background:linear-gradient(180deg,rgba(40,26,8,.7),rgba(10,10,30,.8));box-shadow:0 0 0 2px #8fd8ff,0 0 30px rgba(80,180,255,.45);animation:sv-in .25s ease-out}
+.sv-roul.gold{box-shadow:0 0 0 2px #ffd23a,0 0 34px rgba(255,200,40,.55)}
+.sv-roul>small{font:900 26px/1 var(--hud-font,var(--f-ui));background:linear-gradient(180deg,#fff6c8,#ffd23a 50%,#ff9a1a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 rgba(80,30,0,.9))}
+.sv-roul-n{display:flex;gap:12px}
+.sv-roul-n b{display:grid;place-items:center;width:78px;height:78px;border-radius:20px;background:linear-gradient(180deg,#1a2a66,#0b1640);box-shadow:inset 0 0 0 1.5px rgba(150,210,255,.4);font:900 28px/1 var(--hud-font,var(--f-ui));color:#cfe0f8;transition:transform .08s}
+.sv-roul-n b.on{transform:scale(1.08);color:#fff;background:linear-gradient(180deg,#4a7aff,#1f3ab8);box-shadow:0 0 0 2px #bff6ff,0 0 18px rgba(80,180,255,.7)}
+.sv-roul-n b.won{transform:scale(1.18);color:#3a1a00;background:linear-gradient(180deg,#fff0a0,#ffc23a);box-shadow:0 0 0 3px #fff,0 0 30px rgba(255,200,40,.9);animation:sv-ready 0.8s ease-in-out infinite}
+.sv-roul p{margin:0;font:800 14px/1 var(--hud-font,var(--f-ui));color:#ffd86a;letter-spacing:1.5px;text-transform:uppercase}
+.sv-cn{font-style:normal;font-size:.55em;vertical-align:middle;padding:3px 9px;border-radius:10px;background:#ffd23a;color:#3a1a00;-webkit-text-fill-color:#3a1a00}
+.sv.frozen .sv-vig{background:radial-gradient(130% 90% at 50% 46%,rgba(150,120,255,.08) 50%,rgba(90,60,220,.4) 85%,rgba(40,20,120,.7) 100%)}
