@@ -502,10 +502,11 @@ export function createSurvivors(ctx) {
   const grid = new Map(), cells = [], CELL = 2.5;
   const key = (x, z) => ((Math.floor(x / CELL) + 64) << 8) | (Math.floor(z / CELL) + 64);
   const take2 = (free) => free.pop() || {};
+  const TOOLS = { reroll: 3, banish: 2, skip: 1 }; // b-svx: card tools a run (the owner's update art: Reroll 3, Banish 2, Skip 1)
   function newRun() {
     const h = HEROES[pick.hero] || HEROES[0], d = RULES.DIFF[pick.diff] || RULES.DIFF.normal;
     clearPools();
-    R = { reroll: 2, banish: 2, ban: {}, banMode: false, t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
+    R = { reroll: TOOLS.reroll, banish: TOOLS.banish, skip: TOOLS.skip, ban: {}, banMode: false, t: 0, hero: h, diff: pick.diff, D: d, x: 0, z: 0, vx: 0, vz: 0, face: 0, hp: 100, hpMax: 100, lv: 1, xp: 0, need: needXp(1), kills: 0, bosses: 0, bossNext: 0, boss: null, clear: false, over: false,
       w: {}, p: {}, evo: {}, cds: {}, orbA: 0, bladeA: 0, spawnT: 0, eliteT: 45, swarmAt: [30, 120, 240, 300, 420, 480, 600, 660], dashT: 0, dashCd: 0, hurtT: 0, vampN: 0, pendingLv: 0, pendingChest: 0, bonusDmg: 1, chest: null, said: {},
       streak: 0, streakT: 0, shield: 0, shieldT: 0, revived: false, infT: 25, dmgBy: {}, loot: { hp: 0, sp: 0, scrap: 0 }, stop: 0, focus: null, drones: [], skillCd: 6, overT: 0, crates: [], crateT: 20, lavaT: 90 };
     R.w[h.w] = 1;
@@ -775,7 +776,7 @@ export function createSurvivors(ctx) {
   // b-svx: the cards, and under level-up cards the tools: draw again (2 a run), take a card out of this run (2), or skip (a little HP)
   let cardsChest = false, cardsLoot = "";
   function paintCards(chest, loot) {
-    cardsChest = !!chest; cardsLoot = loot || ""; const tools = chest || !cards.some((c) => c.k === "w" || c.k === "p") ? "" : `<div class="sv-ctools${R.banMode ? " ban" : ""}"><button type="button" data-t="reroll" ${R.reroll ? "" : "disabled"}>🔄 ${esc(T("Reroll"))} <b>${R.reroll}</b></button><button type="button" data-t="banish" ${R.banish ? "" : "disabled"} aria-pressed="${R.banMode}">✕ ${esc(T("Banish"))} <b>${R.banish}</b></button><button type="button" data-t="skip">${esc(T("Skip"))}</button></div>${R.banMode ? `<p class="sv-ban-h">${esc(T("Tap a card to take it out of this run"))}</p>` : ""}`;
+    cardsChest = !!chest; cardsLoot = loot || ""; const tools = chest || !cards.some((c) => c.k === "w" || c.k === "p") ? "" : `<div class="sv-ctools${R.banMode ? " ban" : ""}"><button type="button" data-t="reroll" ${R.reroll ? "" : "disabled"}><i>⟳</i><span>${esc(T("Reroll"))}<b>${R.reroll}/${TOOLS.reroll}</b></span></button><button type="button" data-t="banish" ${R.banish ? "" : "disabled"} aria-pressed="${R.banMode}"><i>✕</i><span>${esc(T("Banish"))}<b>${R.banish}/${TOOLS.banish}</b></span></button><button type="button" data-t="skip" ${R.skip ? "" : "disabled"}><i>»</i><span>${esc(T("Skip"))}<b>${R.skip}/${TOOLS.skip}</b></span></button></div>${R.banMode ? `<p class="sv-ban-h">${esc(T("Tap a card to take it out of this run"))}</p>` : ""}`;
     ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}${R.banMode ? " banning" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}</h3>${cardsLoot}<div class="sv-cards-l">${cards.map(cardHtml).join("")}</div>${tools}</div>`;
     ui.cards.querySelectorAll(".sv-card").forEach((b) => b.addEventListener("click", () => choose(Number(b.dataset.i))));
     ui.cards.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => cardTool(b.dataset.t)));
@@ -784,7 +785,7 @@ export function createSurvivors(ctx) {
     if (mode !== "cards" || !cards || cardsChest) return;
     if (t === "reroll" && R.reroll > 0) { R.reroll--; R.banMode = false; cards = offer(false); snd("tab"); paintCards(false, ""); }
     else if (t === "banish" && R.banish > 0) { R.banMode = !R.banMode; snd("tap"); paintCards(false, ""); }
-    else if (t === "skip") { R.banMode = false; heal(R.hpMax * 0.1); cards = null; ui.cards.hidden = true; mode = "play"; snd("tap"); keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
+    else if (t === "skip" && R.skip > 0) { R.skip--; R.banMode = false; heal(R.hpMax * 0.1); cards = null; ui.cards.hidden = true; mode = "play"; snd("tap"); keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
   }
   function choose(i) {
     if (mode === "cards" && cards && cards[i] && R.banMode && !cardsChest) { const c = cards[i]; if (c.k === "w" || c.k === "p") { R.ban[c.id] = 1; R.banish--; R.banMode = false; snd("impact"); const rest = offer(false).filter((x) => !cards.some((y, j) => j !== i && y.k === x.k && y.id === x.id)); cards[i] = rest[0] || { k: "heal" }; paintCards(false, ""); } return; }

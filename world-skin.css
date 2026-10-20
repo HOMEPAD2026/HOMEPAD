@@ -2446,3 +2446,21 @@ body.wp .wg-grid li,body.wp .wg-grid button{min-width:0;max-width:100%}
 .sv-evob p b{margin-left:4px}
 .sv-evob p.near{opacity:.85}.sv-evob p.on{opacity:1;color:#ffd86a}
 .sv:has(.sv-cards:not([hidden])) .sv-hint{display:none}
+/* b-svx (the official update art): coloured tools with left/total counts; wide screens show the three cards side by side, tall, gold-rimmed */
+.sv-ctools button{display:flex!important;align-items:center;justify-content:center;gap:8px;height:54px;border-radius:16px}
+.sv-ctools button i{font-style:normal;font-size:20px;line-height:1}
+.sv-ctools button span{display:grid;justify-items:start;gap:2px;font:900 14px/1 var(--hud-font,var(--f-ui))}
+.sv-ctools button span b{all:unset;font:800 11px/1 var(--hud-font,var(--f-ui));opacity:.85}
+.sv-ctools button[data-t="reroll"]{background:linear-gradient(180deg,#4aa8ff,#1f5ce0)!important;box-shadow:0 0 0 1.5px #bfe4ff,0 0 14px rgba(56,150,255,.45)}
+.sv-ctools button[data-t="banish"]{background:linear-gradient(180deg,#ff5a7a,#c41e4a)!important;box-shadow:0 0 0 1.5px #ffc0cc,0 0 14px rgba(255,60,100,.45)}
+.sv-ctools button[data-t="banish"][aria-pressed="true"]{box-shadow:0 0 0 3px #fff,0 0 20px rgba(255,60,100,.8)}
+.sv-ctools button[data-t="skip"]{background:linear-gradient(180deg,#a070ff,#6a2ae0)!important;box-shadow:0 0 0 1.5px #dccaff,0 0 14px rgba(140,90,255,.45);color:#fff!important}
+.sv-ctools button:disabled{filter:grayscale(.7) brightness(.7)}
+@media (min-width:900px) and (orientation:landscape){html:not(.wp-pcphone) .sv-cards-in:not(.chest){width:min(760px,100%)}
+  html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-cards-l{grid-template-columns:repeat(3,1fr)}
+  html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-card{grid-template-columns:1fr;justify-items:center;text-align:center;min-height:230px;padding:26px 14px 16px!important;align-content:start;background:linear-gradient(180deg,#1a2a66,#0b1640)!important;box-shadow:0 0 0 2px #ffd23a,0 0 26px rgba(255,200,40,.45),0 12px 26px rgba(0,4,20,.55)!important}
+  html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-card-ic{width:84px;height:84px}
+  html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-card-t{justify-items:center}
+  html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-evo-h{justify-content:center}
+  html:not(.wp-pcphone) .sv-cards-in:not(.chest) .sv-card em{right:50%;transform:translateX(50%)}
+  html:not(.wp-pcphone) .sv-cards-in>small{font-size:34px}}
