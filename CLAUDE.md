@@ -11,7 +11,7 @@ When the owner asks for a tweet (트윗글), write it in English, in the voice o
 - Moderate emoji use — headers and a few accents, not every line.
 - Be honest about the state of things: say what is built and tested, what is being polished next, and when
   rewards or costs are deliberately conservative (and that rewards will expand). Never promise guaranteed earnings.
-- Close with `♾️ ARCIRCLE WORLD — Play. Build. Battle. Earn.`, then `🌐 https://arcircle.app/play`,
+- Close with `♾️ ARCIRCLE WORLD — Play. Build. Battle. Earn.`, then `🌐 https://www.arcircle.app/game` (the owner asked for this link on 2026-10-20, not /play),
   then `$ARCIRCLE #ARCIRCLE #Arc #GameFi #PlayToEarn #Web3Gaming`.
 - Length: as long as the owner asks (long posts are fine; they post with X Premium).
 
@@ -95,7 +95,7 @@ Stay tuned for what's coming next.
 
 ♾️ ARCIRCLE WORLD — Play. Build. Battle. Earn.
 
-🌐 https://arcircle.app/play
+🌐 https://www.arcircle.app/game
 
 $ARCIRCLE #ARCIRCLE #Arc #GameFi #PlayToEarn #Web3Gaming
 ```
