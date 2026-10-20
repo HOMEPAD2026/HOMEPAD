@@ -1,5 +1,6 @@
 // arc-gate.js — the front door of arcircle.app: a 3D ARCIRCLE World and two ways in.
-//   Game World      → /play, the planet you walk as a robot (world-play.js)
+//   Game World      → /game, the game's own site (game.html: the trailer, PLAY FREE, the games, the heroes …)
+//   Skip (top right) → /play, straight into the game
 //   Platform World  → the site as it is (this overlay goes away)
 // Game World's door follows world-lock.js PHASE (the closed beta asked for a holder wallet; the open beta doesn't). Shown once per browser session on the home page. ?gate shows it again; ?skip or automation skips it.
 // The 3D scene (world-gate.js + world-kit.js + three.js) loads only here, after the overlay is up.
@@ -16,10 +17,10 @@
   var lang = (H.getAttribute("lang") || "en").slice(0, 2);
   try { lang = localStorage.getItem("arcircle.lang") || lang; } catch (e) { /* private */ }
   var T = {
-    ko: { h: "두 개의 세계, 하나의 지갑", p: "같은 코인, 같은 USDC와 $ARCIRCLE. 들어가는 길만 두 갈래예요.", g: "게임 월드", gb: "행성으로 뛰어들어 걸어 다녀요", gs: "상점에서 진짜 코인을 런칭하고 거래하고, 나만의 섬을 짓고, 스캐머를 물리쳐요.", f: "플랫폼 월드", fb: "ARCIRCLE PAD 전체", fs: "지금의 사이트 그대로, 모든 도구가 한 곳에.", hint: "드래그해서 둘러보기", beta: "베타 · $ARCIRCLE 100만 개 보유 지갑", skip: "사이트로 바로 가기", world: "World", on: "{n}명 접속 중", vis: "누적 방문 {n}명", cont: "{name}(으)로 계속하기" },
-    zh: { h: "两个世界，一个钱包", p: "同样的币，同样的 USDC 和 $ARCIRCLE，两条入口。", g: "游戏世界", gb: "跃入星球，自由漫步", gs: "在商店里发行真实代币、交易，搭建自己的岛屿，并击败骗子。", f: "平台世界", fb: "完整的 ARCIRCLE PAD", fs: "保持现在的网站，所有工具一页可达。", hint: "拖动查看四周", beta: "公测 · 持有 100 万 $ARCIRCLE 的钱包", skip: "直接进入网站", world: "World", on: "{n} 人在线", vis: "累计访问 {n} 人", cont: "以 {name} 继续" },
-    tr: { h: "İki dünya, tek cüzdan", p: "Aynı coinler, aynı USDC ve $ARCIRCLE. Giriş yolu iki tane.", g: "Oyun Dünyası", gb: "Dal ve dünyada yürü", gs: "Dükkanlarda gerçek coinler başlat, alım satım yap, kendi adanı kur, dolandırıcıları alt et.", f: "Platform Dünyası", fb: "Tam ARCIRCLE PAD", fs: "Site olduğu gibi, tüm araçlar tek yerde.", hint: "Etrafa bakmak için sürükle", beta: "Beta · 1M $ARCIRCLE tutan cüzdanlar", skip: "Siteye geç", world: "World", on: "{n} kişi çevrimiçi", vis: "Şimdiye kadar {n} ziyaretçi", cont: "{name} olarak devam et" },
-    en: { h: "Two worlds. One wallet.", p: "The same coins, the same USDC and $ARCIRCLE. Two ways in.", g: "Game World", gb: "Dive in and walk the world", gs: "Launch real coins and trade in the shops, build your own island, beat the scammers.", f: "Platform World", fb: "The full ARCIRCLE PAD", fs: "The site as it is, every tool in one place.", hint: "Drag to look around", beta: "Beta · wallets holding 1M $ARCIRCLE", skip: "Skip to the site", world: "World", on: "{n} online now", vis: "{n} visitors so far", cont: "Continue as {name}" },
+    ko: { h: "두 개의 세계, 하나의 지갑", p: "같은 코인, 같은 USDC와 $ARCIRCLE. 들어가는 길만 두 갈래예요.", g: "게임 월드", gb: "게임 월드 둘러보기", gs: "상점에서 진짜 코인을 런칭하고 거래하고, 나만의 섬을 짓고, 스캐머를 물리쳐요.", f: "플랫폼 월드", fb: "ARCIRCLE PAD 전체", fs: "지금의 사이트 그대로, 모든 도구가 한 곳에.", hint: "드래그해서 둘러보기", beta: "베타 · $ARCIRCLE 100만 개 보유 지갑", skip: "게임 바로 시작 ▶", world: "World", on: "{n}명 접속 중", vis: "누적 방문 {n}명", cont: "{name}님, 다시 오셨네요" },
+    zh: { h: "两个世界，一个钱包", p: "同样的币，同样的 USDC 和 $ARCIRCLE，两条入口。", g: "游戏世界", gb: "探索游戏世界", gs: "在商店里发行真实代币、交易，搭建自己的岛屿，并击败骗子。", f: "平台世界", fb: "完整的 ARCIRCLE PAD", fs: "保持现在的网站，所有工具一页可达。", hint: "拖动查看四周", beta: "公测 · 持有 100 万 $ARCIRCLE 的钱包", skip: "直接开始游戏 ▶", world: "World", on: "{n} 人在线", vis: "累计访问 {n} 人", cont: "欢迎回来，{name}" },
+    tr: { h: "İki dünya, tek cüzdan", p: "Aynı coinler, aynı USDC ve $ARCIRCLE. Giriş yolu iki tane.", g: "Oyun Dünyası", gb: "Oyun Dünyası'nı keşfet", gs: "Dükkanlarda gerçek coinler başlat, alım satım yap, kendi adanı kur, dolandırıcıları alt et.", f: "Platform Dünyası", fb: "Tam ARCIRCLE PAD", fs: "Site olduğu gibi, tüm araçlar tek yerde.", hint: "Etrafa bakmak için sürükle", beta: "Beta · 1M $ARCIRCLE tutan cüzdanlar", skip: "Oyuna geç ▶", world: "World", on: "{n} kişi çevrimiçi", vis: "Şimdiye kadar {n} ziyaretçi", cont: "Tekrar hoş geldin, {name}" },
+    en: { h: "Two worlds. One wallet.", p: "The same coins, the same USDC and $ARCIRCLE. Two ways in.", g: "Game World", gb: "Explore the Game World", gs: "Launch real coins and trade in the shops, build your own island, beat the scammers.", f: "Platform World", fb: "The full ARCIRCLE PAD", fs: "The site as it is, every tool in one place.", hint: "Drag to look around", beta: "Beta · wallets holding 1M $ARCIRCLE", skip: "Skip to the game ▶", world: "World", on: "{n} online now", vis: "{n} visitors so far", cont: "Welcome back, {name}" },
   }[lang === "ko" || lang === "zh" || lang === "tr" ? lang : "en"];
 
   // a saved character on this browser turns the Game World door into "Continue as <name>"
@@ -43,7 +44,7 @@
     '<button type="button" class="wg-skip" data-no-i18n>' + T.skip + "</button></div>" +
     '<div class="wg-main"><h1 id="wg-h" data-no-i18n>' + T.h + '</h1><p data-no-i18n>' + T.p + "</p>" +
     '<div class="wg-doors">' +
-    '<a class="wg-door wg-game" href="/play" data-no-i18n><span class="wg-k">' + T.g + ' <em class="wg-beta">' + betaLabel() + "</em></span><b>" + gb + "</b><small>" + T.gs + '</small><span class="wg-stats" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>' +
+    '<a class="wg-door wg-game" href="/game" data-no-i18n><span class="wg-k">' + T.g + ' <em class="wg-beta">' + betaLabel() + "</em></span><b>" + gb + "</b><small>" + T.gs + '</small><span class="wg-stats" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>' +
     '<button type="button" class="wg-door wg-plat" data-no-i18n><span class="wg-k">' + T.f + "</span><b>" + T.fb + "</b><small>" + T.fs + '</small><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' +
     '</div><p class="wg-hint" data-no-i18n>' + T.hint + "</p></div>";
   (document.body || H).appendChild(el);
@@ -57,19 +58,18 @@
     setTimeout(function () { if (scene) try { scene.dispose(); } catch (e) { /* gone */ } el.remove(); }, reduce ? 0 : 650);
   }
   el.querySelector(".wg-plat").addEventListener("click", close);
-  el.querySelector(".wg-skip").addEventListener("click", close);
+  // the skip goes straight into the game (the owner's call, 2026-10-20: the Game World door now opens the game's site)
+  el.querySelector(".wg-skip").addEventListener("click", function () {
+    mark(); var go = function () { location.href = "/play"; };
+    var L = window.arcWorldLock; if (L && !L.ok()) L.ask().then(function (v) { if (v) go(); }); else go();
+  });
   el.querySelector(".wg-game").addEventListener("click", function (e) {
     e.preventDefault();
-    var go = function () {
-      mark();
-      if (!scene || reduce) { location.href = "/play"; return; }
-      el.classList.add("wg-diving");
-      try { sessionStorage.setItem("arc.gate.dove", String(Date.now())); } catch (e) { /* private */ } // /play lands without a second dive
-      scene.dive().then(function () { location.href = "/play"; });
-    };
-    // Game World's door (world-lock.js): open to everyone in the open beta
-    var L = window.arcWorldLock;
-    if (L && !L.ok()) L.ask().then(function (v) { if (v) go(); }); else go();
+    // to the game's site (game.html); its PLAY FREE opens the game
+    mark();
+    if (!scene || reduce) { location.href = "/game"; return; }
+    el.classList.add("wg-diving");
+    scene.dive().then(function () { location.href = "/game"; });
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !gone) close(); });
 
