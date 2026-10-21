@@ -2756,3 +2756,4 @@ html.wp-pcphone .wz-bossbar{zoom:1.42;width:380px;top:auto;bottom:calc(max(10px,
 @keyframes wz-vig-low{0%,100%{box-shadow:inset 0 0 90px 14px rgba(255,40,70,.35)}50%{box-shadow:inset 0 0 140px 34px rgba(255,40,70,.6)}}
 @media (prefers-reduced-motion:reduce){.wz-vig.hit,.wz-vig.low{animation:none}.wz-vig.low{box-shadow:inset 0 0 90px 14px rgba(255,40,70,.4)}}
 .wz-pop.hurt{color:#ff5470;font-size:24px}html.wp-pcphone .wz-pop.hurt{font-size:34px}
+body:has(#wc-dead:not([hidden])) .wz-pops{visibility:hidden} /* (the dinosaurs' floating names stayed over the knock-out window) */

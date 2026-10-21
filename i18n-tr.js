@@ -9807,6 +9807,7 @@
     "+{n} scrap": "+{n} hurda",
     "Knocked out!": "Bayıldın!",
     "A dinosaur knocked you out.": "Bir dinozor seni bayılttı.",
+    "A {d} knocked you out.": "{d} seni yere serdi.",
     "Respawn at the gate": "Kapıda yeniden doğ",
     "Show or hide the screen buttons": "Ekran düğmelerini göster ya da gizle",
     "Already +10": "Zaten +10",

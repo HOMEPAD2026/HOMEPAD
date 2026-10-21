@@ -9547,6 +9547,7 @@
     "+{n} scrap": "고철 +{n}",
     "Knocked out!": "기절했어요!",
     "A dinosaur knocked you out.": "공룡에게 쓰러졌어요.",
+    "A {d} knocked you out.": "{d}에게 쓰러졌어요.",
     "Respawn at the gate": "게이트에서 다시 시작",
     "Show or hide the screen buttons": "화면 버튼 숨기기/보이기",
     "Already +10": "이미 +10이에요",

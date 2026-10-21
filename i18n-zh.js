@@ -9717,6 +9717,7 @@
     "+{n} scrap": "废料 +{n}",
     "Knocked out!": "被击倒了！",
     "A dinosaur knocked you out.": "你被恐龙击倒了。",
+    "A {d} knocked you out.": "被{d}击倒了。",
     "Respawn at the gate": "在传送门复活",
     "Show or hide the screen buttons": "显示或隐藏屏幕按钮",
     "Already +10": "已经 +10 了",

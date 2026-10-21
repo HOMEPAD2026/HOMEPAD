@@ -3396,7 +3396,7 @@ const tracks = TRK.createTracks({ THREE, planet, reduce });
 st.on((dt) => { if (mode !== "hub") return; here(tmp3t); tracks.tick(dt, tmp3t.x, tmp3t.z, !(combat && combat.zone())); });
 st.on((dt) => { if (mode === "hub") live.tick(dt); });
 st.on((dt) => parts.tick(dt));
-combat = FIGHT.createCombat({ alt: (a) => (jurOn && jurGame ? jurGame.act(a) : false), koWhy: () => (jurOn ? "dino" : ""), vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
+combat = FIGHT.createCombat({ alt: (a) => (jurOn && jurGame ? jurGame.act(a) : false), koWhy: () => (jurOn ? "dino" : ""), koBy: () => { try { return jurOn && jurGame && jurGame.koBy ? jurGame.koBy() : ""; } catch { return ""; } }, vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
   kit: () => kit, here: (v) => here(v), facing: () => facing, faceTo: (a) => { facing = angLerp(facing, a, 0.5); }, afterimage: () => afterimage(), critFlash: () => critFlash(), avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),

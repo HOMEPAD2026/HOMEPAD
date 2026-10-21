@@ -1268,7 +1268,7 @@ export function createCombat(ctx) {
   const left = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? T("{h} h {m} min", { h, m }) : T("{m} min", { m: Math.max(1, m) }); };
   // who knocked you out (ctx.koWhy: Jurassic World says a dinosaur, and you respawn at its gate, not the plaza)
   const koHead = () => (ctx.koWhy && ctx.koWhy() === "dino" ? T("Knocked out!") : T("You got scammed!"));
-  const koLine = () => (ctx.koWhy && ctx.koWhy() === "dino" ? T("A dinosaur knocked you out.") : T("The street scammers knocked you out."));
+  const koLine = () => { if (!(ctx.koWhy && ctx.koWhy() === "dino")) return T("The street scammers knocked you out."); const by = ctx.koBy ? ctx.koBy() : ""; return by ? T("A {d} knocked you out.", { d: by }) : T("A dinosaur knocked you out."); }; // (which one, when Jurassic World knows: b-jx6)
   const koBack = () => (ctx.koWhy && ctx.koWhy() === "dino" ? T("Respawn at the gate") : T("Respawn on the plaza"));
   function koCard(k) {
     koFree = !!k.free;
