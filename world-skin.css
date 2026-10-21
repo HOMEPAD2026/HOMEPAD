@@ -2739,7 +2739,7 @@ body.wp .wp-hud .wp-qfull{position:absolute;left:6px;right:6px;top:calc(100% + 4
 body.wp .wp-hud .wp-qfull small{display:block;margin-top:4px;color:#ffc93a;font:800 12px/1 var(--f-ui)}
 body.wp .wp-hud .wp-qfull[hidden]{display:none}
 /* b-jx5: the boss hour's shared HP, a big bar at the top (world-jurx.js paintBar) */
-.wz-bossbar{position:absolute;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 54px);transform:translateX(-50%);z-index:6;width:min(460px,calc(100vw - 24px));padding:8px 12px 7px;border-radius:14px;background:rgba(20,6,14,.78);box-shadow:0 0 0 1.5px rgba(255,106,138,.7) inset,0 8px 24px rgba(0,0,0,.45);color:#fff;pointer-events:none;font:700 12px/1.25 var(--f-ui)}
+.wz-bossbar{position:absolute;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 104px);transform:translateX(-50%);z-index:6;width:min(460px,calc(100vw - 24px));padding:8px 12px 7px;border-radius:14px;background:rgba(20,6,14,.78);box-shadow:0 0 0 1.5px rgba(255,106,138,.7) inset,0 8px 24px rgba(0,0,0,.45);color:#fff;pointer-events:none;font:700 12px/1.25 var(--f-ui)}
 .wz-bossbar[hidden]{display:none}
 .wz-bossbar .wz-bb-t,.wz-bossbar .wz-bb-s{display:flex;justify-content:space-between;gap:8px}
 .wz-bossbar .wz-bb-t b{font:900 14px/1.2 var(--f-ui);letter-spacing:.3px}
@@ -2747,4 +2747,4 @@ body.wp .wp-hud .wp-qfull[hidden]{display:none}
 .wz-bossbar i{display:block;height:12px;margin:6px 0 4px;border-radius:6px;background:rgba(255,255,255,.14);overflow:hidden}
 .wz-bossbar i u{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#ff3b5c,#ffb648);transition:width .5s}
 .wz-bossbar.down{box-shadow:0 0 0 1.5px rgba(255,210,58,.8) inset,0 8px 24px rgba(0,0,0,.45)}
-html.wp-pcphone .wz-bossbar{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) / 1.42 + 40px)}
+html.wp-pcphone .wz-bossbar{zoom:1.42;width:380px;top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom)) / 1.42 + 350px)} /* (on a phone the top row is full: above the action buttons, between the joystick and attack) */
