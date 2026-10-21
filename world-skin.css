@@ -2689,6 +2689,7 @@ body.wp-clean .wz-map:not(.big){display:none}
 .wmk{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(3,8,20,.62);backdrop-filter:blur(4px)}
 .wmk[hidden]{display:none}
 .wmk-in{width:min(560px,calc(100vw - 20px));max-height:min(88vh,760px);display:flex;flex-direction:column;border-radius:20px;border:1.5px solid rgba(90,170,255,.55);background:linear-gradient(180deg,#0f2257,#070f2c);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden;color:#eef3f7;transform:translateY(14px) scale(.98);opacity:0;transition:transform .28s cubic-bezier(.2,.9,.3,1.2),opacity .2s}
+html.wp-pcphone .wmk{align-items:flex-end}html.wp-pcphone .wmk-in{zoom:1.85;width:calc(100vw / 1.85);max-height:calc(100svh / 1.85 * .88);border-radius:20px 20px 0 0;padding-bottom:env(safe-area-inset-bottom)}
 .wmk.on .wmk-in{transform:none;opacity:1}
 .wmk-hd{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}.wmk-logo{font-size:28px}.wmk-hd div{flex:1;display:grid}.wmk-hd b{font:900 20px var(--f-display,var(--f-ui));color:#ffe6b0}.wmk-hd small{font:700 12px var(--f-ui);color:#a9c6ef}
 .wmk-x{width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;font:700 16px var(--f-ui)}
