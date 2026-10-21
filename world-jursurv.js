@@ -465,12 +465,12 @@ export function createSurvival(H) {
   // ---------------- a frame ----------------
   let pickT = 0, feltT = 0;
   function tick(dt, t, px, pz, face) {
-    if ((pickT += dt) > 0.12) { pickT = 0; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; } paint(); }
+    const pnow = performance.now(), picked = pnow - pickT > 120; if (picked) { pickT = pnow; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; } paint(); } // (by the wall clock: on a slow phone the capped dt took seconds to add up)
     if ((feltT += dt) > 5) { feltT = 0; applyFelled(); if (signedOut && ctx.sess && ctx.sess()) { guest.mat = {}; guest.n = 0; const sc = ui && ui.root.querySelector(".wz-save"); if (sc) sc.remove(); load().then(() => { toast(T("Signed in: what you gather is saved now")); if (ui && !ui.pack.hidden) paintPack(); }); } }
     // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
     if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }
-    if (H.dinos && (pickT === 0)) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }
-    tickRing(t); if (pickT === 0) { bedNear = nearBed(px, pz); stationNear = bedNear ? "" : nearStation(px, pz); }
+    if (H.dinos && picked) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }
+    tickRing(t); if (picked) { bedNear = nearBed(px, pz); stationNear = bedNear ? "" : nearStation(px, pz); }
     tickBars(px, pz);
     for (let i = flying.length - 1; i >= 0; i--) { const f = flying[i]; f.t -= dt; f.vy -= 14 * dt; f.c.position.x += f.vx * dt; f.c.position.y += f.vy * dt; f.c.position.z += f.vz * dt; f.c.rotation.x += dt * 9; f.c.rotation.y += dt * 7;
       if (f.t <= 0) { H.scene.remove(f.c); flying.splice(i, 1); } }
