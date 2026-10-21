@@ -2748,3 +2748,11 @@ body.wp .wp-hud .wp-qfull[hidden]{display:none}
 .wz-bossbar i u{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#ff3b5c,#ffb648);transition:width .5s}
 .wz-bossbar.down{box-shadow:0 0 0 1.5px rgba(255,210,58,.8) inset,0 8px 24px rgba(0,0,0,.45)}
 html.wp-pcphone .wz-bossbar{zoom:1.42;width:380px;top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom)) / 1.42 + 350px)} /* (on a phone the top row is full: above the action buttons, between the joystick and attack) */
+/* b-jx6: a bite flashes the screen's edges red; low HP pulses them (world-jurassic.js edge) */
+.wz-vig{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;box-shadow:inset 0 0 0 0 rgba(255,40,70,0);transition:opacity .3s}
+.wz-vig.hit{animation:wz-vig-hit .55s ease-out}
+.wz-vig.low{opacity:1;animation:wz-vig-low 1.1s ease-in-out infinite}
+@keyframes wz-vig-hit{0%{opacity:1;box-shadow:inset 0 0 120px 30px rgba(255,40,70,.6)}100%{opacity:0;box-shadow:inset 0 0 60px 0 rgba(255,40,70,0)}}
+@keyframes wz-vig-low{0%,100%{box-shadow:inset 0 0 90px 14px rgba(255,40,70,.35)}50%{box-shadow:inset 0 0 140px 34px rgba(255,40,70,.6)}}
+@media (prefers-reduced-motion:reduce){.wz-vig.hit,.wz-vig.low{animation:none}.wz-vig.low{box-shadow:inset 0 0 90px 14px rgba(255,40,70,.4)}}
+.wz-pop.hurt{color:#ff5470;font-size:24px}html.wp-pcphone .wz-pop.hurt{font-size:34px}

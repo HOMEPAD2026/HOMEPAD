@@ -179,12 +179,31 @@ export function createJurassic(ctx) {
   }
   // the hit: your HP (a share of your max), you're knocked back and the screen shakes; a raptor then backs off and
   // circles before it comes in again
+  // b-jx6: fights you can read (a player on a MacBook: "the character is very small … I don't understand what is
+  // happening and ultimately I die") — the camera moves in while you fight, a slash shows each swing, a bite shows its
+  // damage on you and flashes the screen's edges, low HP says what to do, and a knock-out says what did it
+  let lastBite = { at: -99, kind: "" }, combatK = 1, lowWarnAt = -99, slash = null, slashT = 0, vig = null;
+  const DINO_N = { raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
+  function edge(cls) { if (!ui || !ui.root) return; if (!vig) { vig = document.createElement("i"); vig.className = "wz-vig"; vig.setAttribute("aria-hidden", "true"); ui.root.appendChild(vig); } if (cls === "hit") { vig.classList.remove("hit"); void vig.offsetWidth; vig.classList.add("hit"); } else vig.classList.toggle("low", !!cls); }
+  function slashFx() {
+    if (!S || reduce) return;
+    if (!slash) { const g = new THREE.RingGeometry(0.9, 1.55, 28, 1, -Math.PI * 0.42, Math.PI * 0.84); slash = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x9ff4ff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })); slash.rotation.x = -Math.PI / 2; slash.renderOrder = 5; S.scene.add(slash); }
+    slashT = 0.22; slash.visible = true;
+  }
+  function tickSlash(dt) {
+    if (!slash || slashT <= 0) { if (slash) slash.visible = false; return; }
+    slashT -= dt; const k = 1 - Math.max(0, slashT) / 0.22, y = (pyS ?? height(px, pz)) + 1.05;
+    slash.position.set(px + Math.sin(face) * 0.55, y, pz + Math.cos(face) * 0.55); slash.rotation.z = face - Math.PI / 2 + (k - 0.5) * 0.9;
+    const sc = 0.85 + k * 0.5; slash.scale.set(sc, sc, sc); slash.material.opacity = Math.sin(k * Math.PI) * 0.85;
+  }
   function bites(o) {
     if (!o.biteAt || clock < o.biteAt) return; o.biteAt = 0; if (downNow || !o.alive) return;
     if (o.vsBuddyUntil > clock && dino && dino.near(o)) { dino.hurt(o.biteK); o.retreatUntil = clock + 0.7 + Math.random() * 0.7; o.side = Math.random() < 0.5 ? -1 : 1; return; }
     const dx = px - o.x, dz = pz - o.z, d = Math.hypot(dx, dz); if (d > o.biteR + 0.9) return;
     const v = ctx.vitals ? ctx.vitals() : null, arm = surv && surv.tools && surv.tools().armor ? 0.75 : 1, n = Math.max(1, Math.round(((v && v.max) || 120) * o.biteK * arm)); // (hide armour: a quarter less, b-jx3)
     if (ctx.hurt) ctx.hurt(n); if (Snd.bite) Snd.bite(); shakeT = 0.3 + o.biteK;
+    lastBite = { at: clock, kind: o.kind }; edge("hit"); if (surv && surv.pop) surv.pop({ x: px, z: pz, popY: 2.4 }, "-" + n, "hurt", 0.1);
+    if (v && v.max && v.hp - n <= v.max * 0.35 && clock - lowWarnAt > 20) { lowWarnAt = clock; toast(`❤️ <b>${esc(T("Low HP!"))}</b> ${esc(T("Drink a potion (the red bottle), or run: the gate and a camp with a fire are safe."))}`); }
     const k = (o.kind === "titan" || o.kind === "trike" ? 9 : o.kind === "spino" || o.kind === "alpha" ? 7 : 5) / Math.max(0.5, d); kbX = dx * k; kbZ = dz * k; kbT = 0.18;
     if (hero && hero.hurt) try { hero.hurt(); } catch { /* no flash */ }
     o.retreatUntil = clock + 0.7 + Math.random() * 0.7; o.side = Math.random() < 0.5 ? -1 : 1;
@@ -740,7 +759,7 @@ export function createJurassic(ctx) {
       boss: { owns: (o) => !!(jx && jx.owns(o)), hit: (o) => { if (jx) jx.hit(o); } }, fishSpot, onMade: (id, R) => { if (jx) jx.made(id, R); }, onFirstHunt: (k, n) => { if (jx) jx.firstHunt(k, n); }, onBreak: (o) => { if (jx && (o.kind === "rock" || o.kind === "obsidian")) jx.shatter(o); },
       isNight: () => night, sleep: () => sleep(),
       buddyOut: () => !!(dino && dino.out()), onBuddy: (b, k, n) => { if (dino) dino.onBuddy(b, k, n); },
-      faceTo: (a) => { face = a; }, hitstop: (ms) => { if (!reduce) stopUntil = performance.now() + ms; }, shake: (n) => { shakeT = Math.max(shakeT, n); }, swingAnim: () => { animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
+      faceTo: (a) => { face = a; }, hitstop: (ms) => { if (!reduce) stopUntil = performance.now() + ms; }, shake: (n) => { shakeT = Math.max(shakeT, n); }, swingAnim: () => { slashFx(); animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
   }
 
@@ -905,7 +924,11 @@ export function createJurassic(ctx) {
     }
     // the camera, as in town (world-play.js): 5.2 m up (more as you look down) and 9.6 m back, times the zoom; it looks
     // 2.6 m ahead of the hero and follows a touch behind; running widens the view
-    camDist += (camGoal - camDist) * (1 - Math.exp(-dt * 10));
+    const fight = clock - lastBite.at < 5 || !!(surv && surv.fighting && surv.fighting(px, pz));
+    combatK += ((fight ? (coarse ? 0.86 : 0.78) : 1) - combatK) * (1 - Math.exp(-dt * 2.2));
+    { const v0 = ctx.vitals ? ctx.vitals() : null; edge(v0 && v0.max && !downNow && v0.hp > 0 && v0.hp <= v0.max * 0.35 ? "low" : ""); }
+    tickSlash(dt);
+    camDist += (camGoal * combatK - camDist) * (1 - Math.exp(-dt * 10));
     const bh = (5.2 + camPitch * 6) * camDist, bk = 9.6 * camDist;
     // a hill between the hero and the camera pulls the camera in (it was sinking into the slope behind, all grass)
     let reach = 1; for (let i = 1; i <= 6; i++) { const k = i / 6, gx = px + Math.sin(camYaw) * bk * k, gz = pz + Math.cos(camYaw) * bk * k, ly = py + 1.4 + (bh - 1.4) * k;
@@ -950,7 +973,7 @@ export function createJurassic(ctx) {
         for (const o of [titan, spino, alpha, ...trikes, ...raptors]) if (o && o.R) o.R.onRoar = () => { if (jx) jx.roar(o); };
         if (sentinel) sentinel.R.onRoar = () => { if (jx) jx.roar({ x: SENT.x, z: SENT.z, R: sentinel.R }); }; } catch (e) { console.warn("jurx", e); jx = null; }
       await makeHero(); animNow = "";
-      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 1; camInit = false; downNow = false; velX = velZ = 0; pyS = null; kbT = 0; if (ctx.setView) ctx.setView({ yaw: 0, pitch: 0.05, zoom: camGoal }); speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
+      px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 0.88; camInit = false; downNow = false; velX = velZ = 0; pyS = null; kbT = 0; if (ctx.setView) ctx.setView({ yaw: 0, pitch: 0.05, zoom: camGoal }); speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
       st.view(S.scene, S.cam, S.comp || null); st.solo(tick); on = true;
       document.body.classList.add("wp-jurassic"); ui.root.hidden = false;
@@ -1002,9 +1025,11 @@ export function createJurassic(ctx) {
   // getting up "here" stays, "plaza" means the gate
   function down(isDown, where) {
     downNow = !!isDown; speed = 0; velX = velZ = 0;
-    if (isDown) { if (hero && hero.play) { animNow = "die"; hero.play("die", { once: true, hold: true }); } return; }
+    if (isDown) { if (hero && hero.play) { animNow = "die"; hero.play("die", { once: true, hold: true }); }
+      if (clock - lastBite.at < 8 && DINO_N[lastBite.kind]) toast(`💥 <b>${esc(T("Knocked out by a {d}", { d: T(DINO_N[lastBite.kind]) }))}</b> ${esc(T("Tip: make a spear and hide armour at your workbench, and fight near your campfire — dinosaurs don't follow you in."))}`);
+      edge(""); return; }
     if (where === "plaza") { px = J.SPAWN.x; pz = J.SPAWN.z; camInit = false; }
     animNow = ""; if (hero && hero.play) hero.play("idle");
   }
-  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), jx: jx && jx.debug(), nodes: nodes.length }), sky: (ph, wet) => { phOver = ph; rainOver = wet; }, skyNow: () => ({ night, rainK: +rainK.toFixed(2), ph: +dayPhase().toFixed(3) }), surv: () => surv, dino: () => dino, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
+  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), jx: jx && jx.debug(), nodes: nodes.length, fight: { combatK: +combatK.toFixed(2), camDist: +camDist.toFixed(2), slash: !!(slash && slash.visible), vig: vig ? vig.className : "", lastBite: lastBite.kind } }), sky: (ph, wet) => { phOver = ph; rainOver = wet; }, skyNow: () => ({ night, rainK: +rainK.toFixed(2), ph: +dayPhase().toFixed(3) }), surv: () => surv, dino: () => dino, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
 }
