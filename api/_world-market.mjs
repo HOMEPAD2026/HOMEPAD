@@ -91,7 +91,7 @@ export function makeMarket(deps) {
     const C = (await one(`worldMktCreator/${it.creator}`)) || {}; await setDoc(`worldMktCreator/${it.creator}`, { ...C, pending: [...(C.pending || []), sk], soldN: (C.soldN || 0) + 1, gross: (C.gross || 0) + it.price });
     await push(`worldMktInv/${w}`, it.id);
     if (deps.note) await deps.note(w, "spend", "market:" + it.id, -it.price, { parts, ref: it.creator }).catch(() => {});
-    if (L) await L.record("platform", "earn", "market-cut", platform, { ref: sk }).catch(() => {});
+    if (L) await L.record("platform", "fee", "market-cut", platform, { ref: sk }).catch(() => {});
     return json(200, { ok: true, owned: it.id, code: it.code, title: it.title, bal: v.bal - it.price });
   }
   // a creator's sales past their hold: into the balance (cavail and cplay), each once (a create marker)

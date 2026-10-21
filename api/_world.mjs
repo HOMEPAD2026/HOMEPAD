@@ -50,6 +50,7 @@ import { makeGmReward } from "./_world-gmreward.mjs";
 import { makeLand, LAND } from "./_world-land.mjs";
 import { makeLedger } from "./_world-ledger.mjs";
 import { makeMarket } from "./_world-market.mjs";
+import { makeCoins } from "./_world-coins.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -303,6 +304,7 @@ export function make(deps) {
   const swap = makeSwap({ ...deps, json, now, signer, isGM, ledger });
   // b-ec2/3: the Creator Market (blueprints for ARCL, 80/20, 14 days on hold) and the Creator Exchange (GM-signed, verified on Arc)
   const market = makeMarket({ ...deps, json, now, signer, isGM, ledger, note: (w, t, k, n, o) => shop.note(w, t, k, n, o), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
+  const coins = makeCoins({ ...deps, json, now, ledger }); // the coins page's public totals (coins.html)
   const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
   const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
@@ -556,6 +558,7 @@ export function make(deps) {
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur-boss" || w === "jur-top") return jur.read(w, url);
       if (w === "market" || w === "market-me" || w === "arcl-tx") return market.read(w, url);
+      if (w === "coins") return coins.read(w);
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
       if (w === "welcome") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return welcome.view(lc(a)); }
       if (w === "mine") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return mine.view(lc(a), url.searchParams.has("board")); }

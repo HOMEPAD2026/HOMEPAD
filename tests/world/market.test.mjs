@@ -93,4 +93,13 @@ T += 5000; r = await call(creator, "world-settle-ask", { amount: 30000 }); const
 r = await call(gm, "world-econ-admin", { op: "reject", id: sid2, note: "check" }); check(r.status === 200 && bkt(creator).cavail === 35000 && bal(creator) === 75000, "turned down: the ARCL back to settleable");
 // any spend is in the ledger with its buckets
 L = await read("arcl-tx&wallet=" + lw(buyer2)); check(L.list.some((x) => x.t === "spend" && x.k === "market:" + id && x.b && x.b.purchased === 50000), "a market purchase is in the ledger, from PURCHASED");
+// the coins page's public totals (api/_world-coins.mjs)
+{ db.set("worldLand/3", { owner: lw(buyer), price: 200000 }); db.set("worldStats/shop", { paid: 2, arcPaid: 900, arcBurned: 450 });
+  const C = await read("coins");
+  check(C.swap.bought.n === 1 && C.swap.bought.arc === 120000 && C.swap.bought.arcl === 120000, "coins: the Exchange's $ARCIRCLE → ARCL total");
+  check(C.arcl.all.sales >= 120000 && C.arcl.all.platform > 0 && C.arcl.all.spent > 0 && C.arcl.all.settled >= 40000, "coins: ARCL earned / spent / market sales / settled from the ledger");
+  check(C.arcl.days.length === 30 && C.arcl.since && Object.keys(C.arcl.spend).some((k) => k === "market"), "coins: 30 days, the ledger's first day, spends by kind");
+  check(C.shop.burned === 450 && C.land.sold === 1 && C.land.arc === 200000 && C.market.listings >= 1, "coins: $ARCIRCLE paid in the game (half burned), LAND sold");
+  check(!JSON.stringify(C).includes(lw(buyer)), "coins: no wallet in the public numbers");
+  check(!Object.keys(C.arcl.earn).some((k) => /market_cut/.test(k)), "coins: the platform's 20% is a fee, not ARCL earned"); }
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

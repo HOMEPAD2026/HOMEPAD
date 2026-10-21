@@ -651,7 +651,7 @@ export function makeShop(deps) {
       await commit([{ del: `worldPayTx/${tx}` }]).catch(() => {}); await setDoc(`worldPayQuote/${b.quote}`, q).catch(() => {});
       return json(503, { pending: true, error: "your payment arrived but the item couldn't be added yet; try again in a moment" });
     }
-    await commit([{ inc: "worldStats/shop", fields: { paid: 1 } }]).catch(() => {});
+    const arcTok = Number(paid / 10n ** 12n) / 1e6; await commit([{ inc: "worldStats/shop", fields: { paid: 1, arcPaid: arcTok, arcBurned: arcTok / 2 } }]).catch(() => {}); // (the coins page: $ARCIRCLE paid in the game, half of it burned)
     return json(200, { ok: true, item: it.id, own: o, burned: (paid / 2n).toString(), treasury: (paid - paid / 2n).toString() });
   }
   async function plaza() {

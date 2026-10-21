@@ -65,6 +65,10 @@
       "destination": "/game.html"
     },
     {
+      "source": "/coins",
+      "destination": "/coins.html"
+    },
+    {
       "source": "/cnPONS",
       "destination": "/cnPONS.html"
     },

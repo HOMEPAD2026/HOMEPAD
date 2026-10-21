@@ -13,6 +13,7 @@
 //   worldStats/econ         all-time counters { earned, spent, sales, platform, settled … }
 //   worldStats/econ_<day>   the day's counters by direction and kind
 //
+// t "fee": the platform's cut of a sale — counted on its own, never as ARCL earned for play.
 // A spend takes PLAY first, then cplay, purchased and cavail last (the settleable stays as long as it can); a market
 // purchase takes PURCHASED first (that's what pays a creator something settleable).
 export const BUCKETS = ["purchased", "cplay", "cavail"];

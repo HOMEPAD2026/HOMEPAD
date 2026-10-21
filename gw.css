@@ -566,3 +566,4 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-arcl { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0; font: 600 13px/1.4 var(--ui); color: #c9d8f2; text-align: center; }
 .gw-arcl b { padding: 4px 9px; border-radius: 8px; background: rgba(255, 210, 58, .14); box-shadow: 0 0 0 1px rgba(255, 210, 58, .45) inset; color: #ffd23a; font: 900 11px/1 var(--ui); letter-spacing: 1px; }
 .gw-arcl .gw-fee { flex-basis: 100%; max-width: 640px; margin: 2px auto 0; font: 600 12px/1.5 var(--ui); color: #ffcf8a; }
+.gw-arcl .gw-coins-link { flex-basis: 100%; color: var(--cy); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
