@@ -393,7 +393,7 @@ export function createRpg(ctx) {
       <button type="button" data-enhance="${it.id}" ${(it.p || 0) >= 10 ? "disabled" : ""}>${esc(T("Enhance"))} <small>${(it.p || 0) >= 10 ? "MAX" : esc(T("{n} scrap", { n: enhanceCost(it) }))}</small></button>
       ${on ? "" : `<button type="button" data-store="${it.id}">${esc(T("To storage"))}</button>`}
       <button type="button" data-lock="${it.id}" aria-pressed="${!!it.lk}">${esc(it.lk ? T("Unlock") : T("Lock"))}</button>
-      ${on ? "" : `<button type="button" class="sell" data-sell="${it.id}" ${it.lk || (view === "forge" && forgeTab === "sell" && sellGate().closed) ? "disabled" : ""}><img src="/images/arcl-64.png" alt="" width="16" height="16">${esc(view === "forge" && forgeTab === "sell" && sellGate().closed ? T("Sold out today") : T("Sell"))} <small>+${sellPrice(it)}</small></button><button type="button" class="warn" data-salvage="${it.id}" ${it.lk ? "disabled" : ""}>${esc(T("Salvage"))} <small>+${scrapOf(it)}</small></button>`}</div></div>`;
+      ${on ? "" : `<button type="button" class="sell" data-sell="${it.id}" ${it.lk || (view === "forge" && forgeTab === "sell" && sellGate().closed) ? "disabled" : ""}><img src="/images/arcl2-64.png" alt="" width="16" height="16">${esc(view === "forge" && forgeTab === "sell" && sellGate().closed ? T("Sold out today") : T("Sell"))} <small>+${sellPrice(it)}</small></button><button type="button" class="warn" data-salvage="${it.id}" ${it.lk ? "disabled" : ""}>${esc(T("Salvage"))} <small>+${scrapOf(it)}</small></button>`}</div></div>`;
   }
   // phones: a picked piece docks to the bottom of the panel (under its scrolling body, not at the end of the bag, where
   // it landed off-screen); the page's own layout, so no fixed layer over the game. Nothing picked: the hint stays inline
@@ -465,7 +465,7 @@ export function createRpg(ctx) {
   function buyBtn(id, price, ok, why) {
     if (!ok) return `<button type="button" class="wr-buy" disabled>${esc(why)}</button>`;
     const bal = ctx.arclBal(), short = bal < price;
-    return `<button type="button" class="wr-buy${askBuy === id ? " ask" : ""}${short ? " short" : ""}" data-buy="${id}" data-price="${price}"><img src="/images/arcl-64.png" alt="" width="18" height="18">${askBuy === id ? esc(T("Buy for {n}?", { n: price.toLocaleString("en-US") })) : price.toLocaleString("en-US")}</button>`;
+    return `<button type="button" class="wr-buy${askBuy === id ? " ask" : ""}${short ? " short" : ""}" data-buy="${id}" data-price="${price}"><img src="/images/arcl2-64.png" alt="" width="18" height="18">${askBuy === id ? esc(T("Buy for {n}?", { n: price.toLocaleString("en-US") })) : price.toLocaleString("en-US")}</button>`;
   }
   // the Masterwork bench: Arc-set pieces made at your level band, Epic or Legendary, plain, +5 or +10
   let mwR = 4, mwP = 0;
@@ -510,7 +510,7 @@ export function createRpg(ctx) {
     const tabs = [["gear", "Gear"], ["acc", "Accessories"], ["master", "Masterwork"], ["supplies", "Supplies"], ["sell", "Sell"], ["enhance", "Enhance"], ["fuse", "Fuse"], ["repair", "Magic Forge"]];
     let body = "";
     if (forgeTab === "supplies") body = `<div class="wr-forge-grid">${Object.entries(FORGE_SUPPLY).map(([id, x]) => `<article class="wr-fcard"><div class="wr-fart sup-${x.kind}">${art(x.kind, 76)}</div><h4>${esc(T(x.name))}</h4>${buyBtn(id, x.arcl, true, "")}</article>`).join("")}</div>`;
-    else if (forgeTab === "sell") body = `${sellGate().html}<p class="wr-note">${esc(T("Sell gear from your bag for ARCL: the price goes by rarity and a little up with each +. Up to {n} ARCL of sales a day; worn gear isn't for sale.", { n: SELL_DAY_CAP.toLocaleString("en-US") }))}</p>${R().bag.length ? `<div class="wr-cells enh">${R().bag.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}<span class="wr-price"><img src="/images/arcl-64.png" alt="" width="12" height="12">${sellPrice(it)}</span></div>`).join("")}</div>` : emptyBox("chest", T("Your bag is empty."), huntBtn())}${R().bag.length ? inDetail(sel && R().bag.find((x) => x.id === sel)) : ""}`;
+    else if (forgeTab === "sell") body = `${sellGate().html}<p class="wr-note">${esc(T("Sell gear from your bag for ARCL: the price goes by rarity and a little up with each +. Up to {n} ARCL of sales a day; worn gear isn't for sale.", { n: SELL_DAY_CAP.toLocaleString("en-US") }))}</p>${R().bag.length ? `<div class="wr-cells enh">${R().bag.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}<span class="wr-price"><img src="/images/arcl2-64.png" alt="" width="12" height="12">${sellPrice(it)}</span></div>`).join("")}</div>` : emptyBox("chest", T("Your bag is empty."), huntBtn())}${R().bag.length ? inDetail(sel && R().bag.find((x) => x.id === sel)) : ""}`;
     else if (forgeTab === "fuse") body = fuseHTML();
     else if (forgeTab === "repair") body = repairHTML();
     else if (forgeTab === "master") body = masterHTML(lv, bal);
@@ -519,7 +519,7 @@ export function createRpg(ctx) {
       const slots = forgeTab === "gear" ? ["weapon", "shield", "armor", "helm"] : ["ring", "boots", "necklace"];
       body = `<div class="wr-forge-grid">${slots.flatMap((sl) => [0, 1, 2, 3, 4].map((t) => { const it = { b: baseId(sl, t), r: t, lv: TIERS[t].lv, p: 0 }, g = itemStats(it), ok = lv >= TIERS[t].lv; return `<article class="wr-fcard r${t}${ok ? "" : " locked"}" style="--rc:${rc(it)}"><div class="wr-fart">${fart(sl, parseBase(it.b).tier, rc(it))}</div><h4>${esc(BASES[sl][t])}</h4><small>${esc(T(RARITY[t].name))} · ${esc(T("Lv {n}", { n: TIERS[t].lv }))}</small><p>${Object.entries(g).map(([k, v]) => `${esc(T(STAT_NAME[k]))} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(" · ")}</p>${buyBtn(forgeId(sl, t), FORGE_PRICE[t], ok, T("Needs level {n}", { n: TIERS[t].lv }))}</article>`; })).join("")}</div><p class="wr-note">${esc(T("The Arc set (Legendary) is forged from level 20. Stronger pieces made at your own level are on the Masterwork bench."))}</p>`;
     }
-    return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}${id === "fuse" && isNewTab("fuse") ? '<i class="nb">NEW</i>' : ""}</button>`).join("")}<span class="wa-bal"><img src="/images/arcl-64.png" alt="" width="24" height="24"><b>${Math.round(bal).toLocaleString("en-US")}</b></span></nav>${body}`;
+    return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}${id === "fuse" && isNewTab("fuse") ? '<i class="nb">NEW</i>' : ""}</button>`).join("")}<span class="wa-bal"><img src="/images/arcl2-64.png" alt="" width="24" height="24"><b>${Math.round(bal).toLocaleString("en-US")}</b></span></nav>${body}`;
   }
   let paintKey = "";
   function paint() {

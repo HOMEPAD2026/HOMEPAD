@@ -39,7 +39,7 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
   const log = ((d && d.log) || []).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString())}</td><td>${esc(x.t === "earn" ? label(x.k) : String(x.k).startsWith("forge:") ? T("Forge: {x}", { x: x.k.slice(6) }) : T("Bought: {x}", { x: x.k }))}</td><td class="${x.n >= 0 ? "up" : "down"}">${x.n >= 0 ? "+" : ""}${fmt(x.n)}</td></tr>`).join("");
   return `
   <div class="wa-ex-grid">
-    <section class="wa-ex-bal"><img src="/images/arcl-128.png" alt="" width="64" height="64"><div><small>${esc(T("Your ARCL"))}</small><b>${d ? fmt(d.bal) : "—"}</b>
+    <section class="wa-ex-bal"><img src="/images/arcl2-128.png" alt="" width="64" height="64"><div><small>${esc(T("Your ARCL"))}</small><b>${d ? fmt(d.bal) : "—"}</b>
       <span>${d ? esc(T("Today {n} / {cap}", { n: fmt(d.today), cap: fmt(d.cap) })) : esc(T("Sign in with your wallet to keep ARCL"))}</span></div></section>
     <section class="wa-ex-rate"><small>${esc(T("Exchange rate"))}</small><b>${ex.rate ? esc(String(ex.rate)) : esc(T("Not set yet"))}</b>
       <div class="wa-ex-lock"><label><span>${esc(T("ARCL to exchange"))}</span><input disabled placeholder="0"></label><span class="wa-ex-arrow">→</span><label><span>$ARCIRCLE</span><input disabled placeholder="—"></label></div>
@@ -69,7 +69,7 @@ export function createShop(ctx) {
   // ---------------- the HUD counter ----------------
   const chip = document.createElement("button");
   chip.type = "button"; chip.className = "wp-chip wa-chip"; chip.id = "wa-chip"; chip.title = "ARCL"; chip.setAttribute("data-no-i18n", "");
-  chip.innerHTML = `<img src="/images/arcl-64.png" alt="" width="18" height="18"><b id="wa-chip-n">0</b><small>ARCL</small><u class="wa-chip-day" aria-hidden="true"><i id="wa-chip-day"></i></u>`;
+  chip.innerHTML = `<img src="/images/arcl2-64.png" alt="" width="18" height="18"><b id="wa-chip-n">0</b><small>ARCL</small><u class="wa-chip-day" aria-hidden="true"><i id="wa-chip-day"></i></u>`;
   const chips = document.querySelector(".wp-chips"); if (chips) chips.insertBefore(chip, chips.children[1] || null);
   chip.addEventListener("click", () => openExchange());
   function paintChip(roll) {
@@ -105,7 +105,7 @@ export function createShop(ctx) {
     if (ctx.reduce) return;
     const r = chip.getBoundingClientRect(), x0 = from ? from.x : innerWidth / 2, y0 = from ? from.y : innerHeight / 2;
     for (let i = 0; i < Math.min(8, 2 + Math.floor(n / 15)); i++) {
-      const img = document.createElement("img"); img.src = "/images/arcl-64.png"; img.className = "wa-fly"; img.alt = "";
+      const img = document.createElement("img"); img.src = "/images/arcl2-64.png"; img.className = "wa-fly"; img.alt = "";
       img.style.transform = `translate(${x0 + (Math.random() - 0.5) * 60}px,${y0 + (Math.random() - 0.5) * 40}px) scale(1.2)`; document.body.appendChild(img);
       setTimeout(() => { img.style.transform = `translate(${r.left + 6}px,${r.top + 4}px) scale(.45)`; img.style.opacity = "0.4"; }, 40 + i * 70);
       setTimeout(() => img.remove(), 900 + i * 70);
@@ -187,7 +187,7 @@ export function createShop(ctx) {
     const tile = (i) => {
       const d = i + 1, st = d < day || (d === day && done) ? "done" : d === day ? "today" : "next";
       return `<li class="wd-day ${st}${d === 7 ? " big" : ""}" data-d="${d}"><span class="wd-n">${esc(T("Day {n}", { n: d }))}</span>
-        <span class="wd-ico"><img src="/images/arcl-64.png" alt="" width="34" height="34"><i class="wd-b ${BICON[DAYS[i].bonus]}"></i></span>
+        <span class="wd-ico"><img src="/images/arcl2-64.png" alt="" width="34" height="34"><i class="wd-b ${BICON[DAYS[i].bonus]}"></i></span>
         <b>+${arclFor(start + i)}</b><small>${esc(T(DAYS[i].line))}</small>
         <em class="wd-stamp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></svg></em></li>`;
     };
@@ -196,7 +196,7 @@ export function createShop(ctx) {
       <div class="wd-head"><span class="wd-flame${next > 1 ? " hot" : ""}">${FLAME}<b>${next}</b></span>
         <div><h2>${esc(T("Daily reward"))}</h2><p>${esc(done ? T("Today's chest is open. Come back tomorrow for day {n}.", { n: (day % 7) + 1 }) : next > 1 ? T("{n}-day streak — keep it going.", { n: next }) : T("Open a chest every day; the seventh holds gear."))}</p></div></div>
       <ol class="wd-days">${DAYS.map((_, i) => tile(i)).join("")}</ol>
-      <div class="wd-stage"><div class="wa-chest wd-chest${day === 7 ? " gold" : ""}" id="wa-chest"><span class="wa-chest-lid"></span><span class="wa-chest-box"></span><img src="/images/arcl-128.png" alt="" class="wa-chest-coin"></div><ul class="wd-got" id="wd-got"></ul></div>
+      <div class="wd-stage"><div class="wa-chest wd-chest${day === 7 ? " gold" : ""}" id="wa-chest"><span class="wa-chest-lid"></span><span class="wa-chest-box"></span><img src="/images/arcl2-128.png" alt="" class="wa-chest-coin"></div><ul class="wd-got" id="wd-got"></ul></div>
       ${done ? `<button type="button" class="wp-cta" id="wa-daily-x2">${esc(T("Close"))}</button>` : `<button type="button" class="wp-cta wd-go" id="wa-daily-go">${esc(T("Open day {n}: +{a} ARCL and {b}", { n: day, a: arclFor(next), b: T(DAYS[day - 1].line) }))}</button><button type="button" class="wp-link" id="wa-daily-x">${esc(T("Later"))}</button>`}
       <p class="wd-note">${esc(T("Miss a day and the streak starts again at day 1. ARCL is the game's points; the exchange isn't open."))}</p></div>`;
     daily.hidden = false; ctx.freeze(true);
@@ -249,7 +249,7 @@ export function createShop(ctx) {
   let view = "", tab = "island", busy = false;
   const close = () => { if (sheet.hidden) return; sheet.hidden = true; ctx.freeze(false); };
   sheet.addEventListener("click", (e) => { if (e.target === sheet || e.target.closest("[data-x]")) close(); });
-  const head = (title, sub) => `<div class="wa-shop-head"><img class="wa-shop-ico round" src="/images/arcl-128.png" alt="" width="60" height="60"><div class="wa-shop-title"><h2>${esc(title)}</h2><p>${esc(sub)}</p></div><button type="button" class="wa-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`;
+  const head = (title, sub) => `<div class="wa-shop-head"><img class="wa-shop-ico round" src="/images/arcl2-128.png" alt="" width="60" height="60"><div class="wa-shop-title"><h2>${esc(title)}</h2><p>${esc(sub)}</p></div><button type="button" class="wa-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`;
 
   async function openExchange() {
     view = "ex"; sheet.hidden = false; ctx.freeze(true);
@@ -273,7 +273,7 @@ export function createShop(ctx) {
     if (view !== "shop" || sheet.hidden) return;
     const c = CATS.find((x) => x[0] === tab) || CATS[0];
     $("wa-shop-head").innerHTML = `<img class="wa-shop-ico" src="/images/shop/${c[3]}.webp" alt="" width="72" height="66"><div class="wa-shop-title"><h2>${esc(T(c[1]))}</h2><p>${esc(T(c[2]))}</p></div>
-      <span class="wa-bal" title="ARCL"><img src="/images/arcl-64.png" alt="" width="28" height="28"><b>${fmt(arcl ? arcl.bal : 0)}</b></span><button type="button" class="wa-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+      <span class="wa-bal" title="ARCL"><img src="/images/arcl2-64.png" alt="" width="28" height="28"><b>${fmt(arcl ? arcl.bal : 0)}</b></span><button type="button" class="wa-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
     $("wa-tabs").innerHTML = CATS.map(([id, name]) => `<button type="button" role="tab" data-tab="${id}" aria-selected="${id === tab}" aria-pressed="${id === tab}">${esc(T(name))}</button>`).join("");
     if (!cat) { $("wa-body").innerHTML = `<p class="wa-empty">${esc(T("The shop opens once cloud saving is switched on."))}</p>`; return; }
     const items = (cat.items || []).filter((x) => x.cat === tab);
@@ -285,7 +285,7 @@ export function createShop(ctx) {
     const using = usable && ctx.using(it.id);
     const pickCoin = it.target === "coin" || it.target === "mycoin";
     const coins = pickCoin ? (it.target === "mycoin" ? ctx.myCoins() : ctx.coins()) : [];
-    const arclBtn = it.arcl != null ? `<button type="button" class="wa-pay-arcl" data-arcl="${it.id}" aria-label="${esc(T("Buy for {n} ARCL", { n: fmt(it.arcl) }))}"><img src="/images/arcl-64.png" alt="" width="22" height="22">${fmt(it.arcl)}</button>` : `<span class="wa-pay-only">${esc(T("$ARCIRCLE only"))}</span>`;
+    const arclBtn = it.arcl != null ? `<button type="button" class="wa-pay-arcl" data-arcl="${it.id}" aria-label="${esc(T("Buy for {n} ARCL", { n: fmt(it.arcl) }))}"><img src="/images/arcl2-64.png" alt="" width="22" height="22">${fmt(it.arcl)}</button>` : `<span class="wa-pay-only">${esc(T("$ARCIRCLE only"))}</span>`;
     const buy = have && !it.use ? (usable ? `<button type="button" class="wa-use" data-use="${it.id}" aria-pressed="${using}">${esc(using ? T("In use") : T("Use"))}</button>` : /^(brick|pack)-|^isle(48|64)$/.test(it.id) && ctx.buildWith ? `<button type="button" class="wa-use" data-build="${it.id}">${esc(T("Build with it"))}</button>` : `<span class="wa-owned">${esc(T("Owned"))}</span>`)
       : locked ? `<span class="wa-need">${esc(T("Needs the 48×48 expansion"))}</span>`
       : (pickCoin && !coins.length) ? `<span class="wa-need">${esc(it.target === "mycoin" ? T("Launch a coin on ArcPad first") : T("No coins to show yet"))}</span>`

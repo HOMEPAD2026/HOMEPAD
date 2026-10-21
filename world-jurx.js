@@ -181,6 +181,6 @@ export function createJurX(X) {
       if ((bossT += dt) > 1) { bossT = 0; paintChip(); }
     },
     stop() { endRaid(false); },
-    debug: () => ({ boss, raid: raid && { w: raid.w, alive: raid.list.filter((o) => o.alive).length }, queued, sent }),
+    debug: () => { const o = bossObj(); return { boss, raid: raid && { w: raid.w, alive: raid.list.filter((o) => o.alive).length }, queued, sent, own: o ? { shared: o.shared === boss, alive: !!o.alive, owns: owns(o) } : null, signed: !!(ctx.sess && ctx.sess()), campT: +campT.toFixed(1), raidDone }; },
   };
 }

@@ -496,7 +496,7 @@ export function createRings(ctx) {
     if (ctx.gain && xp > 0) try { ctx.gain(xp, "rings"); } catch { /* the clear still counts */ }
     celebrate(stars); snd("win");
     const sheet = ui.sheet, signed = paying(lvId), better = prevMoves && s.moves < prevMoves ? prevMoves - s.moves : 0;
-    const coin = `<img src="/images/arcl-64.png" alt="" width="34" height="34">`, conf = Array.from({ length: 26 }, (_, k) => `<i style="--x:${(k * 37) % 100}%;--d:${(k % 7) * 0.12}s;--h:${(k * 47) % 360}"></i>`).join("");
+    const coin = `<img src="/images/arcl2-64.png" alt="" width="34" height="34">`, conf = Array.from({ length: 26 }, (_, k) => `<i style="--x:${(k * 37) % 100}%;--d:${(k % 7) * 0.12}s;--h:${(k * 47) % 360}"></i>`).join("");
     sheet.innerHTML = `<div class="ir-done"><div class="ir-confetti">${conf}</div><h3>${esc(T("CLEAR!"))}</h3><div class="ir-stars">${[1, 2, 3].map((k) => `<i class="${k <= stars ? "on" : ""}" style="animation-delay:${0.15 + k * 0.22}s">★</i>`).join("")}</div>
       <p class="ir-sum">${esc(T("Moves {n}", { n: s.moves }))} · ${esc(T("Par {n}", { n: L.par }))}${newBest && was ? ` · <b>${esc(T("New best!"))}</b>` : ""}${better ? ` · <b>${esc(T("{n} fewer moves!", { n: better }))}</b>` : ""}</p>
       <div class="ir-pay${signed ? "" : " plain"}">${signed ? `<div class="ir-payl">${coin}<b>${esc(T("Sending your clear…"))}</b></div>` : `<div class="ir-payl"><b>${endless || weekly ? esc(T("XP only")) : esc(T("Guest play: sign in to earn ARCL"))}</b></div>`}<div class="ir-xpl"><i>XP</i><b>+${xp} ${esc(T("World XP"))}</b></div>${wkBonus ? `<div class="ir-xpl"><i>💡</i><b>${esc(T("The whole week: +5 hints"))}</b></div>` : ""}</div>
@@ -515,7 +515,7 @@ export function createRings(ctx) {
     if (!j) { pl0.innerHTML = `<b>${esc(T("The reward couldn't be sent — try again later"))}</b>`; return; }
     if (status) { status.today = j.today; status.best = { ...(status.best || {}), [key]: Math.max(j.stars, (status.best || {})[key] || 0) }; if (j.master) status.master = true; }
     const pl = box.querySelector(".ir-payl") || box;
-    if (j.credited > 0) { box.classList.add("paid"); pl.innerHTML = `<img src="/images/arcl-64.png" alt="" width="34" height="34"><b>${esc(T("+{n} ARCL", { n: fmt(j.credited) }))}</b>${j.bonus ? `<small>${esc(T("All three daily puzzles at 3 stars: +{n} bonus", { n: fmt(j.bonus) }))}${j.streak > 1 ? " · " + esc(T("{n}-day streak!", { n: j.streak })) : ""}</small>` : ""}`; snd("coin"); if (ctx.refresh) ctx.refresh(); }
+    if (j.credited > 0) { box.classList.add("paid"); pl.innerHTML = `<img src="/images/arcl2-64.png" alt="" width="34" height="34"><b>${esc(T("+{n} ARCL", { n: fmt(j.credited) }))}</b>${j.bonus ? `<small>${esc(T("All three daily puzzles at 3 stars: +{n} bonus", { n: fmt(j.bonus) }))}${j.streak > 1 ? " · " + esc(T("{n}-day streak!", { n: j.streak })) : ""}</small>` : ""}`; snd("coin"); if (ctx.refresh) ctx.refresh(); }
     else pl.innerHTML = `<b>${esc(j.why === "cap" ? T("Today's ARCL limit is reached — these stars pay on your next clear") : T("Stars already paid on this board"))}</b>`;
     if (j.master && ctx.onMaster) try { ctx.onMaster(); } catch { /* fine */ }
     if (j.legend && ctx.onLegend) try { ctx.onLegend(); } catch { /* fine */ }

@@ -1054,7 +1054,7 @@ export function createCombat(ctx) {
 
   // ---------------- street items ----------------
   const pickW = ITEMS.reduce((a, b) => a + b.w, 0);
-  const coinTex = new THREE.TextureLoader().load("/images/arcl-128.png"); coinTex.colorSpace = THREE.SRGBColorSpace;
+  const coinTex = new THREE.TextureLoader().load("/images/arcl2-128.png"); coinTex.colorSpace = THREE.SRGBColorSpace;
   // a street item that's picked up or left behind frees its shapes and materials (they used to pile up over a long hunt)
   const freeItem = (g) => g.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
   function itemMesh(it) {

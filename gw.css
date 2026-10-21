@@ -532,7 +532,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-tick { animation: gw-tick .5s var(--ease); }
 @keyframes gw-tick { 30% { transform: translateY(-4px) scale(1.12); color: #9ff6ff; } }
 /* coins float up over the goals when they come into view */
-.gw-coinfx { position: absolute; z-index: 2; width: 26px; height: 26px; pointer-events: none; background: url("/images/arcl-64.png") center / contain no-repeat; animation: gw-coin 2.2s ease-out forwards; }
+.gw-coinfx { position: absolute; z-index: 2; width: 26px; height: 26px; pointer-events: none; background: url("/images/arcl2-64.png") center / contain no-repeat; animation: gw-coin 2.2s ease-out forwards; }
 @keyframes gw-coin { 0% { opacity: 0; transform: translateY(20px) scale(.6); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-160px) rotate(220deg) scale(1); } }
 
 /* other languages: a display face that has the letters */

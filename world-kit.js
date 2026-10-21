@@ -622,7 +622,7 @@ export function makeShop(spec) {
   switch (spec.shape) {
     case "arcl": {
       // the ARCL coin, its logo on both faces, turning slowly
-      const tex = new THREE.TextureLoader().load("/images/arcl-256.webp"); tex.colorSpace = THREE.SRGBColorSpace;
+      const tex = new THREE.TextureLoader().load("/images/arcl2-256.webp"); tex.colorSpace = THREE.SRGBColorSpace;
       const face = new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false });
       const rim = glossy(0x2f86ff, { emissive: 0x1d63d6, emissiveIntensity: 1.1 });
       const coin = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.2, 48), [rim, face, face]); coin.rotation.x = Math.PI / 2; coin.position.y = 1.4;

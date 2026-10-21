@@ -1168,6 +1168,7 @@ export function createIsland(ctx) {
     mini(put) { put(exit, "#35d8d0", 6); if (centre) put(centre, "#ffc861", 8); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
     showcase: () => show, tick(dt, t) { if (!active) return; if (show) show.tick(dt, t); tickAnims(); tickLapse(); tickResidents(dt, t); tickCentre(dt, t); styler.tick(dt, t); if (land.userData.clouds && !building) land.userData.clouds.userData.update(dt); },
     openIsles, tour, visitFriend, friendCount: () => FR().length, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
+    myCode: () => toCode(bricks), buildCode: (code, name) => { closeSheets(); startBlueprint(fromCode(code), name); }, // b-ec5: the Creator Market sells and builds blueprints
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };
 }
