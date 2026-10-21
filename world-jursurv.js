@@ -130,14 +130,24 @@ export function createSurvival(H) {
 
   // ---------------- a swing ----------------
   let swingT = 0;
+  // b-jx5: the server said no — say why once (not at every swing), wait a moment before asking again, and put the
+  // dinosaur's bar back (the swings weren't counted); one that isn't back yet goes away until it is
+  let refusedAt = {};
+  function refused(o, r) {
+    const j = r.j || {}, t = performance.now(); work = null; o.hpNow = null; o.hpAt = t; if (sel === o) paintFoe();
+    if (j.regrowAt) { felled[o.id] = j.regrowAt; applyFelled(); }
+    if (t - (refusedAt[o.id] || 0) > 8000) { refusedAt[o.id] = t; const e = String(j.error || ""); toast(r.status === 401 || /sign/i.test(e) ? T("Your sign-in ran out — sign in again and your swings count") : j.regrowAt ? T("Not back yet: it returns in {m} min", { m: Math.max(1, Math.ceil((j.regrowAt - Date.now()) / 60000)) }) : T("Couldn't gather: {e}", { e: e.slice(0, 60) })); }
+    refusedAt["wait:" + o.id] = t + 4000;
+  }
   function swing(px, pz, face) {
     const now = performance.now(); if (now - swingT < 430) return false; swingT = now;
     const o = tgt || pick(px, pz, face); if (!o) { H.swingAnim(); return true; }
+    if ((refusedAt["wait:" + o.id] || 0) > now && !(H.boss && H.boss.owns(o))) { H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim(); return true; }
     H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim();
     if (signedOut) { guestSwing(o); return true; }
     // the boss hour: the enraged boss's one HP for everyone (world-jurx.js posts the swings)
     if (H.boss && H.boss.owns(o)) { if (sel !== o) select(o); H.boss.hit(o); const F = FOE[o.kind], crit = Math.random() < 0.15; pop(o, (crit ? "!" : "-") + Math.round(F.hp / 60 * (crit ? 1.6 : 1)).toLocaleString("en-US"), crit ? "dmg crit" : "dmg", 0.4); paintFoe(); if (H.hitstop) H.hitstop(crit ? 80 : 40); if (o.hurt) o.hurt(); (Snd.hitFx || Snd.hit || (() => {}))(0); chips(o); return true; }
-    if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind, buddy: !!(H.buddyOut && H.buddyOut()) }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else { toast(T("Couldn't gather: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); work = null; } }); }
+    if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind, buddy: !!(H.buddyOut && H.buddyOut()) }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else refused(o, r); }); }
     work.hits++;
     if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), crit = Math.random() < 0.15, dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3) * (crit ? 1.6 : 1));
       // (the hits it takes are the server's count: a crit only shows bigger and shakes harder — b-fx2, the town's feel)
@@ -465,7 +475,7 @@ export function createSurvival(H) {
   // ---------------- a frame ----------------
   let pickT = 0, feltT = 0;
   function tick(dt, t, px, pz, face) {
-    const pnow = performance.now(), picked = pnow - pickT > 120; if (picked) { pickT = pnow; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; } paint(); } // (by the wall clock: on a slow phone the capped dt took seconds to add up)
+    const pnow = performance.now(), picked = pnow - pickT > 120; if (picked) { pickT = pnow; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; if (o && FOE[o.kind] && sel !== o) select(o); } paint(); } // (by the wall clock: on a slow phone the capped dt took seconds to add up)
     if ((feltT += dt) > 5) { feltT = 0; applyFelled(); if (signedOut && ctx.sess && ctx.sess()) { guest.mat = {}; guest.n = 0; const sc = ui && ui.root.querySelector(".wz-save"); if (sc) sc.remove(); load().then(() => { toast(T("Signed in: what you gather is saved now")); if (ui && !ui.pack.hidden) paintPack(); }); } }
     // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
     if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }

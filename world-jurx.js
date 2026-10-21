@@ -92,7 +92,20 @@ export function createJurX(X) {
     if (!boss) { chip.hidden = true; return; } chip.hidden = false;
     const left = Math.max(0, (boss.on ? boss.end : boss.start) - (boss.now + (Date.now() - boss.at))), mm = Math.floor(left / 60000), hh = Math.floor(mm / 60);
     chip.classList.toggle("on", !!boss.on && !boss.down);
+    paintBar(left);
     chip.innerHTML = boss.on ? (boss.down ? `<b>🏆</b><span>${esc(T("Boss down"))}</span>` : `<b>🔥 ${esc(T("LIVE"))}</b><span>${Math.round(100 * boss.hp / boss.max)}% · ${boss.hunters} ${esc(T("hunters"))}</span>`) : `<b>⏰</b><span>${esc(T("Boss"))} ${hh ? hh + "h " : ""}${mm % 60}m</span>`;
+  }
+
+  // b-jx5: the boss hour's shared HP as a big bar at the top (players asked how to see the fight's progress: the chip
+  // alone was too small) — name, HP left, hunters, time left; "BOSS DOWN" once it falls, gone outside the hour
+  let bar = null;
+  function paintBar(left) {
+    if (!bar) { bar = document.createElement("div"); bar.className = "wz-bossbar"; bar.setAttribute("role", "status"); bar.hidden = true; (X.root || document.body).appendChild(bar); }
+    if (!boss || !boss.on) { bar.hidden = true; return; }
+    const k = boss.down ? 0 : Math.max(0, Math.min(1, boss.hp / (boss.max || 1))), name = T(boss.kind === "titan" ? "Thornback Titan" : "Alpha Raptor"), mm = Math.floor(left / 60000), mine = boss.mine || {};
+    bar.classList.toggle("down", !!boss.down); bar.hidden = false;
+    bar.innerHTML = `<div class="wz-bb-t"><b>${boss.down ? "🏆 " + esc(T("BOSS DOWN")) : "🔥 " + esc(name)}</b><span>${esc(T("{n} hunters", { n: boss.hunters || 0 }))} · ${mm}m</span></div><i><u style="width:${(100 * k).toFixed(1)}%"></u></i>` +
+      `<div class="wz-bb-s"><span>${Math.round(100 * k)}%</span><span>${esc(T("Your hits: {n} / {m} for a share", { n: mine.n || 0, m: mine.need || 10 }))}</span></div>`;
   }
 
   // ---------------- night raids at your camp ----------------

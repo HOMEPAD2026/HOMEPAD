@@ -2731,3 +2731,20 @@ html.wp-pcphone .wmk{align-items:flex-end}html.wp-pcphone .wmk-in{zoom:1.85;widt
 .wmk-days{display:flex;gap:6px;overflow-x:auto;margin-top:6px}.wmk-days span{flex:0 0 auto;display:grid;gap:1px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.05);font:700 11px var(--f-ui)}.wmk-days b{color:#7dffc8}.wmk-days em{font-style:normal;color:#ff9aa8}
 @media (max-width:520px){.wmk{align-items:flex-end}.wmk-in{width:100vw;max-height:92vh;border-radius:20px 20px 0 0}}
 @media (prefers-reduced-motion:reduce){.wmk-in{transition:none}}
+/* b-qt: a long quest title wraps to two lines (it was cut to one with "…"); a tap on the current quest shows all of it */
+body.wp .wp-hud .wp-quests li span{white-space:normal;overflow:hidden;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow-wrap:anywhere}
+body.wp .wp-hud .wp-quests li.cur.long span{font-size:12.4px;line-height:1.08}
+/* the whole title, in its own panel under the card (the card is a fixed picture: it can't grow) */
+body.wp .wp-hud .wp-qfull{position:absolute;left:6px;right:6px;top:calc(100% + 4px);z-index:3;padding:9px 12px;border-radius:12px;background:rgba(6,14,36,.92);box-shadow:0 0 0 1px rgba(120,190,255,.45) inset,0 8px 20px rgba(0,0,0,.45);color:#fff;font:700 13px/1.4 var(--f-ui);text-align:left;cursor:pointer}
+body.wp .wp-hud .wp-qfull small{display:block;margin-top:4px;color:#ffc93a;font:800 12px/1 var(--f-ui)}
+body.wp .wp-hud .wp-qfull[hidden]{display:none}
+/* b-jx5: the boss hour's shared HP, a big bar at the top (world-jurx.js paintBar) */
+.wz-bossbar{position:absolute;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 54px);transform:translateX(-50%);z-index:6;width:min(460px,calc(100vw - 24px));padding:8px 12px 7px;border-radius:14px;background:rgba(20,6,14,.78);box-shadow:0 0 0 1.5px rgba(255,106,138,.7) inset,0 8px 24px rgba(0,0,0,.45);color:#fff;pointer-events:none;font:700 12px/1.25 var(--f-ui)}
+.wz-bossbar[hidden]{display:none}
+.wz-bossbar .wz-bb-t,.wz-bossbar .wz-bb-s{display:flex;justify-content:space-between;gap:8px}
+.wz-bossbar .wz-bb-t b{font:900 14px/1.2 var(--f-ui);letter-spacing:.3px}
+.wz-bossbar .wz-bb-t span,.wz-bossbar .wz-bb-s span{color:#ffd0da;font-size:11.5px}
+.wz-bossbar i{display:block;height:12px;margin:6px 0 4px;border-radius:6px;background:rgba(255,255,255,.14);overflow:hidden}
+.wz-bossbar i u{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#ff3b5c,#ffb648);transition:width .5s}
+.wz-bossbar.down{box-shadow:0 0 0 1.5px rgba(255,210,58,.8) inset,0 8px 24px rgba(0,0,0,.45)}
+html.wp-pcphone .wz-bossbar{zoom:1.42;top:calc(max(10px,env(safe-area-inset-top)) / 1.42 + 40px)}
