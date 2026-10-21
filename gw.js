@@ -621,7 +621,7 @@
   }
   function newsSheet(i) {
     var n = D().news[i], m = NEWS[i]; if (!n || !m) return false; var body = (t("nbody") || [])[i] || n[2];
-    openSheet('<div class="gw-sheet-hero"><img src="' + m.img + '" alt=""></div><div class="gw-sheet-in"><span class="gw-meta">' + esc(n[0]) + "<span>" + esc(m.d.replace(/-/g, ". ")) + "</span></span><h3>" + esc(n[1]) + "</h3>" + String(body).split("\n\n").map(function (x) { return "<p>" + esc(x) + "</p>"; }).join("") + '<div class="gw-sheet-acts"><a class="gw-btn gw-btn-play gw-btn-lg" href="/play" data-at="news">' + esc(t("play")) + '</a><button type="button" class="gw-btn gw-btn-ghost gw-btn-lg" data-share="' + i + '">' + esc(t("nd.share")) + "</button></div></div>");
+    openSheet('<div class="gw-sheet-hero"><img src="' + m.img + '" alt=""></div><div class="gw-sheet-in"><span class="gw-meta">' + esc(n[0]) + "<span>" + esc(m.d.replace(/-/g, ". ")) + "</span></span><h3>" + esc(n[1]) + "</h3>" + String(body).split("\n\n").map(function (x) { var h = /^[\uD800-\uDBFF\u2600-\u27BF][^—]{1,60}?\s?—{1,2}\s?/.exec(x); return h ? '<h4 class="gw-shd">' + esc(h[0].replace(/\s?—+\s?$/, "")) + "</h4><p>" + esc(x.slice(h[0].length)) + "</p>" : "<p>" + esc(x) + "</p>"; }).join("") + '<div class="gw-sheet-acts"><a class="gw-btn gw-btn-play gw-btn-lg" href="/play" data-at="news">' + esc(t("play")) + '</a><button type="button" class="gw-btn gw-btn-ghost gw-btn-lg" data-share="' + i + '">' + esc(t("nd.share")) + "</button></div></div>");
     diag("detail", "news"); return true;
   }
   function route() { var h = location.hash, m = /^#game-(\w+)$/.exec(h), n = /^#news-(\d)$/.exec(h); if (m) return gameSheet(m[1]); if (n) return newsSheet(Number(n[1])); closeSheet(); return false; }
