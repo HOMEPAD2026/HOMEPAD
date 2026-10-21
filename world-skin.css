@@ -2724,6 +2724,7 @@ body.wp-clean .wz-map:not(.big){display:none}
 .wmk-row{grid-template-columns:1fr auto}
 .wmk-split{list-style:none;margin:0;padding:10px 12px;border-radius:12px;background:rgba(46,224,122,.06);border:1px solid rgba(46,224,122,.3);display:grid;gap:5px;font:600 12.5px/1.4 var(--f-ui);color:#d6e3fa}.wmk-split b{color:#7dffc8}
 .wmk-note{margin:6px 0 0;font:600 12px/1.45 var(--f-ui);color:#a9c6ef}
+.wmk-fee{padding:8px 10px;border-radius:10px;background:rgba(255,150,60,.1);box-shadow:0 0 0 1px rgba(255,170,80,.35) inset;color:#ffd7a3}
 .wmk-empty{padding:26px 10px;text-align:center}.wmk-empty p{margin:0;font:600 14px/1.5 var(--f-ui);color:#cfe3ff}
 .wmk-load{text-align:center;color:#a9c6ef}
 .wmk-days{display:flex;gap:6px;overflow-x:auto;margin-top:6px}.wmk-days span{flex:0 0 auto;display:grid;gap:1px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.05);font:700 11px var(--f-ui)}.wmk-days b{color:#7dffc8}.wmk-days em{font-style:normal;color:#ff9aa8}

@@ -148,7 +148,7 @@ export function createJurassic(ctx) {
   // a fishing spot (b-jx3): at the lake's edge, facing the water, a point a few metres out (12 spots round the shore)
   function fishSpot(x, z, f) {
     const L = J.LAKE, d = Math.hypot(x - L.x, z - L.z); if (d < L.r - 6 || d > L.r + 10) return null;
-    const fx = x + Math.sin(f) * 3.2, fz = z + Math.cos(f) * 3.2; if (height(fx, fz) > WATER_Y - 0.2) return null;
+    const fx = x + Math.sin(f) * 2.4, fz = z + Math.cos(f) * 2.4; /* (within reach: a swing reaches hr + 1.7 = 3.1 m) */ if (height(fx, fz) > WATER_Y - 0.2) return null;
     const k = Math.round(((Math.atan2(z - L.z, x - L.x) + Math.PI) / (2 * Math.PI)) * 12) % 12; return { id: "fish:" + k, kind: "fish", x: fx, z: fz, hr: 1.4, popY: 1.2 };
   }
   // night raiders (b-jx2): raptors from the pool, sent at your camp; gone again when the raid ends

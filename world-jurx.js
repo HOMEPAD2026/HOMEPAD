@@ -56,7 +56,7 @@ export function createJurX(X) {
   }
 
   // ---------------- the boss hour ----------------
-  let boss = null, bossT = 0, sent = 0, queued = 0, postT = 0, claimed = {}, lastOn = false, bossBusy = false;
+  let wallT = 0, boss = null, bossT = 0, sent = 0, queued = 0, postT = 0, claimed = {}, lastOn = false, bossBusy = false;
   const bossObj = () => (boss && boss.on ? X.boss(boss.kind) : null);
   async function readBoss() {
     const s = ctx.sess && ctx.sess();
@@ -98,7 +98,7 @@ export function createJurX(X) {
   // ---------------- night raids at your camp ----------------
   let raid = null, raidDone = "", campT = 0;
   const nightKey = () => { const d = new Date(Date.now() + 9 * 3600e3); return d.toISOString().slice(0, 10).replace(/-/g, "") + (d.getUTCHours() < 6 ? "a" : "b"); };
-  function tickRaid(dt) {
+  function tickRaid(dt, rdt = dt) {
     const s = ctx.sess && ctx.sess(); if (!s) return; const home = X.homeSpot(), { px, pz, down } = me();
     if (raid) {
       const alive = raid.list.filter((o) => o.alive);
@@ -109,7 +109,7 @@ export function createJurX(X) {
       return;
     }
     if (!home || !X.isNight() || raidDone === nightKey() || !X.campFire()) { campT = 0; return; }
-    if (Math.hypot(px - home.x, pz - home.z) < X.CAMP_R) { if ((campT += dt) > 20) startRaid(home); } else campT = 0;
+    if (Math.hypot(px - home.x, pz - home.z) < X.CAMP_R) { if ((campT += rdt) > 20) startRaid(home); } else campT = 0;
   }
   function startRaid(home) {
     raid = { key: nightKey(), waves: [2, 3, 3], w: 0, spawned: 0, n: 0, list: [], next: 2, home }; raidDone = raid.key; X.setRaid(true);
@@ -174,11 +174,14 @@ export function createJurX(X) {
     raidOn: () => !!raid,
     start() { readBoss(); },
     tick(dt, t) {
+      // the server's timers by the wall clock: the frame's dt is capped (and slowed by hit-stop), so on a slow phone
+      // the swings were never posted and the camp's 20 s never came
+      const nowT = performance.now(), rdt = Math.min(5, Math.max(0, (nowT - (wallT || nowT)) / 1000)); wallT = nowT;
       for (const f of tickers) f(dt, t);
-      tickHeat(dt); tickRaid(dt); ambient(dt, t); tickFx(dt); drawMap(false);
-      if ((pollT += dt) > (boss && boss.on ? 5 : 30)) { pollT = 0; readBoss(); }
-      if ((postT += dt) > 2) { postT = 0; flush(); }
-      if ((bossT += dt) > 1) { bossT = 0; paintChip(); }
+      tickHeat(dt); tickRaid(dt, rdt); ambient(dt, t); tickFx(dt); drawMap(false);
+      if ((pollT += rdt) > (boss && boss.on ? 5 : 30)) { pollT = 0; readBoss(); }
+      if ((postT += rdt) > 2) { postT = 0; flush(); }
+      if ((bossT += rdt) > 1) { bossT = 0; paintChip(); }
     },
     stop() { endRaid(false); },
     debug: () => { const o = bossObj(); return { boss, raid: raid && { w: raid.w, alive: raid.list.filter((o) => o.alive).length }, queued, sent, own: o ? { shared: o.shared === boss, alive: !!o.alive, owns: owns(o) } : null, signed: !!(ctx.sess && ctx.sess()), campT: +campT.toFixed(1), raidDone }; },
