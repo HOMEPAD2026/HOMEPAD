@@ -92,6 +92,8 @@ export function createMarket(ctx) {
     const b = e.target.closest("button"); if (!b || busy) return;
     if (b.dataset.tab) { tab = b.dataset.tab; (Snd.tab || (() => {}))(); paint(); if (tab === "team") loadAdmin(); else { await load(true); paint(); } return; }
     if (b.dataset.sort) { sort = b.dataset.sort; items = null; paint(); await load(); paint(); return; }
+    // a purchase takes a second tap (the button says the price, then "Tap again to buy")
+    if (b.dataset.buy && !b.classList.contains("sure")) { el.querySelectorAll(".wmk-buy.sure").forEach((x) => { x.classList.remove("sure"); x.innerHTML = x.dataset.was; }); b.dataset.was = b.innerHTML; b.classList.add("sure"); b.textContent = T("Tap again to buy"); setTimeout(() => { if (b.isConnected && b.classList.contains("sure")) { b.classList.remove("sure"); b.innerHTML = b.dataset.was; } }, 3500); return; }
     busy = true; try {
       if (b.dataset.buy) { const r = await api("world-market-buy", { id: b.dataset.buy, expectedPrice: Number(b.dataset.price) });
         if (!r.ok) toast(T("Couldn't buy it: {e}", { e: String((r.j && r.j.error) || "").slice(0, 80) })); else { (Snd.coin || Snd.buy || (() => {}))(); toast(`🏗️ <b>${esc(T("It's yours: {t}", { t: r.j.title }))}</b> ${esc(T("Find it under Mine and build it on your island."))}`); if (ctx.refresh) ctx.refresh(); await load(true); paint(); } }
