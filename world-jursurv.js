@@ -478,6 +478,8 @@ export function createSurvival(H) {
     const pnow = performance.now(), picked = pnow - pickT > 120; if (picked) { pickT = pnow; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; if (o && FOE[o.kind] && sel !== o) select(o); } paint(); } // (by the wall clock: on a slow phone the capped dt took seconds to add up)
     if ((feltT += dt) > 5) { feltT = 0; applyFelled(); if (signedOut && ctx.sess && ctx.sess()) { guest.mat = {}; guest.n = 0; const sc = ui && ui.root.querySelector(".wz-save"); if (sc) sc.remove(); load().then(() => { toast(T("Signed in: what you gather is saved now")); if (ui && !ui.pack.hidden) paintPack(); }); } }
     // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
+    // b-jx5: the card comes up as you close in (12 m), not only once you're in reach — the boss hour's boss first
+    if (!sel && picked && H.dinos) { let best = null, bd = 12; for (const d of H.dinos()) { if (!d.alive || !FOE[d.kind]) continue; const dd = Math.hypot(d.x - px, d.z - pz) - (d.hr || 1) - (d.shared ? 8 : 0); if (dd < bd) { bd = dd; best = d; } } if (best) select(best); }
     if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }
     if (H.dinos && picked) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }
     tickRing(t); if (picked) { bedNear = nearBed(px, pz); stationNear = bedNear ? "" : nearStation(px, pz); }
