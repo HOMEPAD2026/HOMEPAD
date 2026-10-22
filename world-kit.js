@@ -76,6 +76,10 @@ export const PORTAL = { id: "platform", name: "Platform World", theta: 14, phi: 
 // AGENT DIMENSION's Citadel (world-play.js agentGate): east (95°: its walk passes beside the windmill and the Exchange, not into them), 78 m out, between Airdrop Fields and Honeypot Swamp
 // (the town's solids, the hunting grounds, Coin City's lots and the roads out were scanned for 26 m of open ground);
 // its ground is kept clear of trees and crystals (scatter)
+// the Partner Village (world-play.js partnerVillage): our official partners' buildings, its first the KAIRO Tower (the
+// KAIRO Finance Hub, 2026-10-22). South-south-east, 78 m out at 150° — the widest open ground at that distance (about
+// 19 m clear all round), across the plaza from the Citadel.
+export const PARTNER_VILLAGE = { theta: 103.7, phi: 150, clear: 20, r: 15, h: 13 };
 export const AGENT_GATE = { theta: 103.7, phi: 95, clear: 18, h: 20, r: 12 }; // (theta past SPREAD.max: not spread, so 103.7° is 78 m out)
 // The town spread out from the plaza (b403): in the flat world everything between the plaza's edge (12°) and 60° moves
 // out along its own spoke by SPREAD.k (and SPREAD.c degrees more), so the halls, Coin City and the houses stand apart instead of crowding round
@@ -414,7 +418,7 @@ function scatter(g, n, maxTheta = 180) {
   for (let i = 0; i < n; i++) {
     const th = 14 + rr() * (maxTheta - 14), ph = rr() * 360;
     if (SHOPS.some((s) => angDist(th, ph, s.theta, s.phi) < 9) || TOWN.some((t) => angDist(th, ph, t[1], t[2]) < 5)) continue;
-    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || angDist(th, ph, AGENT_GATE.theta, AGENT_GATE.phi) < AGENT_GATE.clear || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
+    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || angDist(th, ph, AGENT_GATE.theta, AGENT_GATE.phi) < AGENT_GATE.clear || angDist(th, ph, PARTNER_VILLAGE.theta, PARTNER_VILLAGE.phi) < PARTNER_VILLAGE.clear || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
     placeOn(o, dirOf(th, ph), R - 0.05); o.rotateY(rr() * 6.28); o.scale.setScalar(0.8 + rr() * 0.7);
     if (rr() < 0.45) o.rotateZ((rr() - 0.5) * 0.4);
     o.updateMatrix(); (rr() < 0.45 ? spots.crys : spots.tree)[i % 3].push(o.matrix.clone());

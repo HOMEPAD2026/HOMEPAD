@@ -2998,3 +2998,26 @@ html.wp-pcphone .wag-birth>div{zoom:1.5}
 .wag-vrule{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.wag-vrule select,.wag-vrule .wag-vrtok{grid-column:1/-1}.wag-vrule input,.wag-vrule select{margin:0}.wag-vrule .wag-go{grid-column:1/-1;margin-top:2px}
 @media (max-width:760px),(pointer:coarse){.wag-vnums{grid-template-columns:repeat(2,1fr)}.wag-lims{grid-template-columns:1fr 1fr}.wag-main .wag-tabs button span{display:none}}
 @media (prefers-reduced-motion:reduce){.wag-birth,.wag-birth img,.wag-birth>div::before,.wag-birth>div>*,.wag-brief,.wag-sug,.wag-run.done .wag-ring{animation:none!important}.wag-birth img{opacity:1}}
+
+/* the Partner Village's windows (world-partner.js): the KAIRO Finance Hub */
+.wpt{position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:rgba(2,8,14,.6);backdrop-filter:blur(3px)}.wpt[hidden]{display:none}
+.wpt-card{--ac:#38e1d6;width:min(720px,calc(100vw - 24px));max-height:min(820px,calc(100vh - 28px));overflow:auto;border-radius:22px;border:1.5px solid color-mix(in srgb,var(--ac) 60%,transparent);background:linear-gradient(180deg,#07141b,#040a10);box-shadow:0 0 0 1px rgba(255,255,255,.04),0 0 40px color-mix(in srgb,var(--ac) 25%,transparent),0 30px 80px rgba(0,0,0,.6);color:#e8fffd;outline:none}
+.wpt-hero{position:relative;aspect-ratio:3/1;overflow:hidden;border-bottom:1px solid color-mix(in srgb,var(--ac) 40%,transparent)}.wpt-hero img{display:block;width:100%;height:100%;object-fit:cover}
+.wpt-tag{position:absolute;left:14px;top:12px;padding:5px 12px;border-radius:999px;background:rgba(2,10,14,.7);border:1px solid var(--ac);color:#dffffb;font:800 12px var(--f-ui);letter-spacing:.04em}
+.wpt-x{position:absolute;right:12px;top:10px;width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(2,10,14,.6);color:#fff;font:400 24px/1 var(--f-ui);cursor:pointer}
+.wpt-body{padding:16px 18px 18px}
+.wpt-head{display:flex;gap:14px;align-items:center}.wpt-mark{flex:none;width:58px;height:58px;padding:10px;border-radius:16px;background:linear-gradient(160deg,#0f2a30,#06141a);border:1.5px solid var(--ac);box-shadow:0 0 18px color-mix(in srgb,var(--ac) 40%,transparent)}
+.wpt-head small{color:var(--ac);font:900 11px var(--f-ui);letter-spacing:.14em}.wpt-head h2{margin:2px 0;font:900 28px/1.1 var(--f-ui)}.wpt-head p{margin:0;color:#a9c9c6;font-size:13.5px}
+.wpt-tools{display:grid;gap:8px;margin-top:14px}
+.wpt-tool{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--ac) 40%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--ac) 12%,transparent),rgba(255,255,255,.02));color:#fff;text-align:left;cursor:pointer;transition:transform .12s,border-color .12s}
+.wpt-tool:hover,.wpt-tool:focus-visible{border-color:var(--ac);transform:translateY(-1px)}.wpt-tool:active{transform:scale(.99)}
+.wpt-tool i{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:rgba(56,225,214,.14);font-style:normal;font-size:22px}
+.wpt-tool span{flex:1;min-width:0}.wpt-tool b{display:block;font:900 17px var(--f-ui)}.wpt-tool small{display:block;color:#a9c9c6;font-size:12.5px;line-height:1.4}.wpt-tool em{font-style:normal;color:var(--ac);font:900 18px var(--f-ui)}
+.wpt-addr{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)}.wpt-addr span{flex:1;min-width:0}.wpt-addr small{display:block;color:#8fb3b0;font:700 11.5px var(--f-ui)}
+.wpt-addr code{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dffffb;font:700 13px ui-monospace,Menlo,monospace}.wpt-addr button{flex:none;height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--ac);background:color-mix(in srgb,var(--ac) 18%,transparent);color:#fff;font:800 13px var(--f-ui);cursor:pointer}
+.wpt-note{margin:12px 0 0;color:#8fb3b0;font-size:12px;line-height:1.5}
+.wpt-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.wpt-links button{height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#dffffb;font:700 12.5px var(--f-ui);cursor:pointer}
+.wpt-more{margin-top:12px;padding:10px 12px;border-radius:12px;border:1px dashed color-mix(in srgb,var(--ac) 50%,transparent);color:#cfeeea;font-size:13px}
+@media (max-width:760px),(pointer:coarse){.wpt{place-items:end center}.wpt-card{width:100vw;max-height:90vh;border-radius:22px 22px 0 0;padding-bottom:env(safe-area-inset-bottom)}.wpt-head h2{font-size:23px}}
+html.wp-pcphone .wpt-card{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(90vh / 1.5)}
+@media (prefers-reduced-motion:reduce){.wpt-tool{transition:none}}
