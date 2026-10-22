@@ -5,7 +5,7 @@
 import { ethers } from "ethers";
 const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
-const { SURV, survReward, META, COIN_DAY, DAILY_BONUS, coinsOf, ACH, DAILY_MODS, dailyOf } = await import("../../api/_world-survivors.mjs");
+const { SURV, survReward, survRewardOf, META, COIN_DAY, DAILY_BONUS, coinsOf, ACH, DAILY_MODS, dailyOf } = await import("../../api/_world-survivors.mjs");
 const D = await import("../../world-survivors-data.js");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
@@ -86,4 +86,18 @@ for (const [r, want] of [[{ secs: 720, kills: 2000, bosses: 4, clear: true }, 15
   check(q.status === 200 && q.body.credited === 0 && q.body.why === "daily" && q.body.dailyRank === 1 && q.body.coinsGot === 52 + DAILY_BONUS && ((db.get(`worldArclBal/${p3.address.toLowerCase()}`) || {}).bal || 0) === balBefore, "the challenge pays coins (×1.5 + the day's bonus), no ARCL, and ranks you on the day's board");
   const dv = await W.read(new URL("http://x/api/social?world=surv-daily")); check(dv.status === 200 && dv.body.top.length === 1 && dv.body.top[0].secs === 300 && !("id" in dv.body.top[0]), "the day's board");
   const mv = await W.read(new URL("http://x/api/social?world=surv&wallet=" + p3.address.toLowerCase())); check(mv.body.meta && mv.body.meta.dailyDone === true && mv.body.meta.ach.length === 4 && mv.body.meta.ach.includes("boss"), "your view: coins, upgrades, achievements (Boss Slayer by now: 4 + 16 bosses), today's challenge done"); }
+// b-sv7: the quick run (6 minutes, twice the pace, half the pay) and the endless run (past the Titan: its own board, no more ARCL)
+check(survRewardOf({ secs: 360, kills: 1300, bosses: 4, diff: "normal", clear: true, mode: "quick" }) === 1500 && survRewardOf({ secs: 900, kills: 3000, bosses: 4, diff: "normal", clear: true, mode: "endless" }) === 3000, "quick pays half a classic run; endless pays its first 12 minutes");
+check(JSON.stringify(SURV.MODES) === JSON.stringify(D.RULES.MODES), "the modes match the game's");
+{ T += 864e5; const p4 = ethers.Wallet.createRandom();
+  let q = await call(p4, "world-surv-start", { diff: "normal", mode: "quick" }); check(q.body.mode === "quick", "a quick run starts");
+  T += 200e3; let e = await call(p4, "world-surv-end", { runId: q.body.runId, secs: 190, kills: 400, bosses: 3, ms: 190e3 }); check(e.status === 400, "quick: a third boss before 4:30 is refused");
+  e = await call(p4, "world-surv-end", { runId: q.body.runId, secs: 190, kills: 400, bosses: 2, ms: 190e3 }); check(e.status === 200 && e.body.mode === "quick" && e.body.credited === Math.floor(survReward({ secs: 380, kills: 400, bosses: 2, diff: "normal", clear: false }) / 2), "quick: 3:10 pays half of a 6:20 classic");
+  q = await call(p4, "world-surv-start", { diff: "normal", mode: "quick" }); T += 400e3; e = await call(p4, "world-surv-end", { runId: q.body.runId, secs: 365, kills: 1300, bosses: 4, clear: true, ms: 365e3 });
+  check(e.status === 200 && e.body.credited === 1500, "quick: cleared at 6:00 with all four bosses: 1,500 ARCL");
+  q = await call(p4, "world-surv-start", { diff: "normal", mode: "endless", daily: false }); check(q.body.mode === "endless", "an endless run starts");
+  T += 1300e3; e = await call(p4, "world-surv-end", { runId: q.body.runId, secs: 1280, kills: 6000, bosses: 4, clear: true, ms: 1280e3 });
+  check(e.status === 200 && e.body.endlessRank === 1 && e.body.credited === Math.min(3000, 10000 - 1500 - Math.floor(survReward({ secs: 380, kills: 400, bosses: 2, diff: "normal", clear: false }) / 2)), "endless to 21:20: ranked on the endless board, paid like a 12-minute run");
+  const ev = await W.read(new URL("http://x/api/social?world=surv-endless")); check(ev.status === 200 && ev.body.top[0].secs === 1280 && !("id" in ev.body.top[0]), "the endless board");
+  q = await call(p4, "world-surv-start", { diff: "normal", mode: "endless", daily: true }); check(q.body.mode === "classic", "the daily challenge is always classic"); }
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);

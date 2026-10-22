@@ -7,9 +7,18 @@ export const RULES = {
   BOSS_AT: [180, 360, 540, 720],
   DIFF: { easy: { k: 0.7, cap: 2100, hp: 0.75, dmg: 0.7, rate: 0.85 }, normal: { k: 1, cap: 3000, hp: 1, dmg: 1, rate: 1 }, hard: { k: 1.5, cap: 5000, hp: 1.45, dmg: 1.35, rate: 1.2 } },
   DAY_RUNS: 3, DAY_ARCL: 10000, MAX_KPS: 10, // paid runs a day, the game's own ARCL a day, the most knock-outs a second a run can claim
+  // b-sv7: classic 12:00; quick 6:00 (the same waves at twice the pace, half the pay); endless (classic, then on past the
+  // Titan: what's past 12:00 pays no ARCL, it counts on its own board). The server keeps a copy (api/_world-survivors.mjs SURV.MODES).
+  MODES: { classic: { run: 720, boss: [180, 360, 540, 720], pay: 1 }, quick: { run: 360, boss: [90, 180, 270, 360], pay: 0.5 }, endless: { run: 720, boss: [180, 360, 540, 720], pay: 1, endless: true } },
+  ENDLESS_S: 2400, // an endless run ends at 40:00 (the server keeps a run 45 minutes)
 };
 /// what a finished run pays (the server computes the same, never trusting a client's number): minutes survived, every 10
 /// knock-outs, and — only for a run that lived to 12:00 — 300 a boss and 800 for surviving; times the difficulty, capped
+/// a quick run pays as a classic run twice its length would, halved; an endless run pays only its first 12 minutes
+export function rewardOf({ secs, kills, bosses, diff, clear, mode }) {
+  if (mode === "quick") return Math.floor(reward({ secs: Math.min(secs, 360) * 2, kills, bosses, diff, clear }) / 2);
+  return reward({ secs: Math.min(secs, 720), kills, bosses, diff, clear });
+}
 export function reward({ secs, kills, bosses, diff, clear }) {
   const d = RULES.DIFF[diff] || RULES.DIFF.normal, mins = Math.floor(Math.max(0, secs) / 60);
   const base = Math.min(1200, mins * 100) + Math.min(800, Math.floor(Math.max(0, kills) / 10) * 20) + (clear ? Math.max(0, bosses) * 300 + 800 : 0);

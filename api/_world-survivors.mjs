@@ -16,8 +16,13 @@
 // Firestore: worldSurvRun/<wallet> · worldSurvEnd/<runId> (once) · worldSurvSlot/<wallet>_<day>_<1–3> (a paid run)
 //            worldSurvDay/<wallet>_<day> { n: ARCL today } · worldSurvBest/<week>_<wallet> · worldStats/survWeek_<week>
 // All of it is progress, so each fresh start (epoch) begins empty: none of these is in _world-phase.mjs's KEEP.
+// b-sv7: two more ways to run — QUICK (6 minutes, the same waves at twice the pace: the bosses at 1:30/3:00/4:30/6:00,
+// half the pay) and ENDLESS (the classic run that goes on after the Titan: what's past 12:00 pays no ARCL, it counts on
+// its own weekly board, worldStats/survEndless_<week>)
+//   GET  ?world=surv-endless → { week, top: [{ w, name, secs, kills }] }
 export const SURV = {
   RUN_S: 720, BOSS_AT: [180, 360, 540, 720], DAY_RUNS: 3, DAY_ARCL: 10000, MAX_KPS: 10,
+  MODES: { classic: { run: 720, boss: [180, 360, 540, 720], pay: 1 }, quick: { run: 360, boss: [90, 180, 270, 360], pay: 0.5 }, endless: { run: 720, boss: [180, 360, 540, 720], pay: 1, endless: true } },
   DIFF: { easy: { k: 0.7, cap: 2100 }, normal: { k: 1, cap: 3000 }, hard: { k: 1.5, cap: 5000 } },
 };
 // b-svx: what carries over between runs — arena coins (not ARCL: never paid out, never bought) for permanent
@@ -38,6 +43,11 @@ export const dailyOf = (t) => { const day = new Date(t + 9 * 3600e3).toISOString
 const RUN_TTL = 45 * 60e3, TOP_N = 20;
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+/// a quick run pays as a classic run twice its length would, halved; an endless run pays only its first 12 minutes
+export function survRewardOf({ secs, kills, bosses, diff, clear, mode }) {
+  if (mode === "quick") return Math.floor(survReward({ secs: Math.min(secs, 360) * 2, kills, bosses, diff, clear }) / 2);
+  return survReward({ secs: Math.min(secs, 720), kills, bosses, diff, clear });
+}
 export function survReward({ secs, kills, bosses, diff, clear }) {
   const d = SURV.DIFF[diff] || SURV.DIFF.normal, mins = Math.floor(Math.max(0, secs) / 60);
   const base = Math.min(1200, mins * 100) + Math.min(800, Math.floor(Math.max(0, kills) / 10) * 20) + (clear ? Math.max(0, bosses) * 300 + 800 : 0);
@@ -54,8 +64,9 @@ export function makeSurvivors(deps) {
   async function start(b) {
     const s = signer(b); if (s.err) return s.err;
     const daily = b.daily === true, diff = daily ? "normal" : SURV.DIFF[b.diff] ? b.diff : "normal", runId = rid(), startedAt = now(), dd = daily ? dailyOf(startedAt) : null;
-    await setDoc(`worldSurvRun/${s.wallet}`, { runId, startedAt, diff, ...(dd ? { daily: dd.day } : {}) });
-    return json(200, { runId, startedAt, diff, ...(dd ? { daily: dd.day, mod: dd.mod, seed: dd.seed } : {}) });
+    const mode = !daily && SURV.MODES[b.mode] ? b.mode : "classic"; // (the daily challenge is always a classic run)
+    await setDoc(`worldSurvRun/${s.wallet}`, { runId, startedAt, diff, mode, ...(dd ? { daily: dd.day } : {}) });
+    return json(200, { runId, startedAt, diff, mode, ...(dd ? { daily: dd.day, mod: dd.mod, seed: dd.seed } : {}) });
   }
 
   async function end(b) {
@@ -67,22 +78,25 @@ export function makeSurvivors(deps) {
     const ms = t - run.startedAt; // the server's clock, not the game's
     if (secs * 1000 > ms + 5000 || msIn > ms + 5000) return json(400, { error: "the run is longer than it has been going" });
     if (kills > secs * SURV.MAX_KPS + 30) return json(400, { error: "more knock-outs than could come" });
-    if (bosses > SURV.BOSS_AT.filter((x) => secs >= x).length) return json(400, { error: "a boss before its time" });
-    const clear = b.clear === true && secs >= SURV.RUN_S;
+    const mode = SURV.MODES[run.mode] ? run.mode : "classic", MD = SURV.MODES[mode];
+    if (!MD.endless && secs > MD.run + 300) return json(400, { error: "the run is longer than its mode" });
+    if (bosses > MD.boss.filter((x) => secs >= x).length) return json(400, { error: "a boss before its time" });
+    const clear = b.clear === true && secs >= MD.run;
     // the end counts once (a repeated request is refused, a lost reply can't be paid twice)
     if (!(await commit([{ create: `worldSurvEnd/${run.runId}`, data: { at: t, wallet: w, secs, kills, bosses, clear, diff: run.diff, hero: String(b.hero || "").slice(0, 16), lv: Math.max(0, Math.min(200, Math.floor(Number(b.lv) || 0))), how: /^(dead|win|time|quit)$/.test(String(b.how)) ? b.how : "" } }])).ok) return json(409, { error: "that run has ended" });
     const day = seoulDay(t), M = await metaEnd(w, { secs, kills, bosses, clear, diff: run.diff, daily: !!run.daily, evo: b.evo, day }).catch(() => ({}));
     if (run.daily) { const dRank = run.daily === day ? await dailyBoard(w, day, secs, kills).catch(() => null) : null; return json(200, { ok: true, credited: 0, runsLeft: await left(w, day), why: "daily", dailyRank: dRank, ...M }); }
-    const amt0 = survReward({ secs, kills, bosses, diff: run.diff, clear });
-    const rank = await board(w, secs, kills).catch(() => null);
-    if (amt0 <= 0) return json(200, { ok: true, credited: 0, runsLeft: await left(w, day), why: "none", rank, ...M });
+    const amt0 = survRewardOf({ secs, kills, bosses, diff: run.diff, clear, mode });
+    const rank = mode === "quick" ? null : await board(w, MD.endless ? Math.min(secs, 900) : secs, kills).catch(() => null), endlessRank = MD.endless && clear && secs > 720 ? await endlessBoard(w, secs, kills).catch(() => null) : null;
+    const extra = { mode, ...(endlessRank ? { endlessRank } : {}) };
+    if (amt0 <= 0) return json(200, { ok: true, credited: 0, runsLeft: await left(w, day), why: "none", rank, ...M, ...extra });
     // a paying run takes one of the day's slots (create-only markers, so two ends at once can't both take the last)
     let slot = 0; for (let k = 1; k <= SURV.DAY_RUNS && !slot; k++) if ((await commit([{ create: `worldSurvSlot/${w}_${day}_${k}`, data: { at: t, runId: run.runId } }])).ok) slot = k;
-    if (!slot) return json(200, { ok: true, credited: 0, runsLeft: 0, why: "runs", rank, ...M });
+    if (!slot) return json(200, { ok: true, credited: 0, runsLeft: 0, why: "runs", rank, ...M, ...extra });
     const dk = `worldSurvDay/${w}_${day}`, got = ((await one(dk)) || {}).n || 0, amt = Math.max(0, Math.min(amt0, SURV.DAY_ARCL - got));
     let credited = 0;
     if (amt > 0 && deps.credit) { credited = await deps.credit(w, "surv", amt); if (credited > 0) await commit([{ inc: dk, fields: { n: credited } }]); }
-    return json(200, { ok: true, credited, runsLeft: SURV.DAY_RUNS - slot, why: credited > 0 ? "" : "cap", earned: amt0, rank, ...M });
+    return json(200, { ok: true, credited, runsLeft: SURV.DAY_RUNS - slot, why: credited > 0 ? "" : "cap", earned: amt0, rank, ...M, ...extra });
   }
   // the run's coins (inside the day's COIN_DAY), the evolutions it found, the achievements it reached
   const metaOf = (m) => ({ coins: 0, up: {}, ach: {}, evo: {}, bosses: 0, hardClears: 0, cday: "", cn: 0, dday: "", ...(m || {}) });
@@ -129,11 +143,21 @@ export function makeSurvivors(deps) {
     }
     const i = top.findIndex((x) => x.id === w); return i < 0 ? null : i + 1;
   }
+  /// the endless board: the week's longest runs past the Titan (one line a wallet)
+  async function endlessBoard(w, secs, kills) {
+    const key = `worldStats/survEndless_${week()}`, cur = await one(key); let top = (cur && cur.top) || [];
+    const was = top.find((x) => x.id === w); if (!was || secs > was.secs || (secs === was.secs && kills > was.kills)) {
+      const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16);
+      top = [{ w: short(w), id: w, secs, kills, name }, ...top.filter((x) => x.id !== w)].sort((a, b) => b.secs - a.secs || b.kills - a.kills).slice(0, TOP_N); await setDoc(key, { top });
+    }
+    const i = top.findIndex((x) => x.id === w); return i < 0 ? null : i + 1;
+  }
   async function left(w, day) { const d = await getDocs([1, 2, 3].map((k) => `worldSurvSlot/${w}_${day}_${k}`)); return SURV.DAY_RUNS - Object.values(d).filter(Boolean).length; }
 
   return {
     async read(v, url) {
       if (v === "surv-top") { const wk = week(), d = await one(`worldStats/survWeek_${wk}`); return json(200, { week: wk, top: ((d && d.top) || []).map(({ w, name, secs, kills }) => ({ w, name: name || "", secs, kills })) }, "public, max-age=30"); }
+      if (v === "surv-endless") { const wk = week(), d = await one(`worldStats/survEndless_${wk}`); return json(200, { week: wk, top: ((d && d.top) || []).map(({ w, name, secs, kills }) => ({ w, name: name || "", secs, kills })) }, "public, max-age=30"); }
       if (v === "surv-daily") { const dd = dailyOf(now()), d = await one(`worldStats/survDaily_${dd.day}`); return json(200, { day: dd.day, mod: dd.mod, top: ((d && d.top) || []).map(({ w, name, secs, kills }) => ({ w, name: name || "", secs, kills })) }, "public, max-age=30"); }
       if (v !== "surv") return null;
       const w = String((url && url.searchParams && url.searchParams.get("wallet")) || "").toLowerCase();
