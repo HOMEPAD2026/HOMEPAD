@@ -5,7 +5,7 @@
 // Loaded by world-play.js a few seconds after the town starts; a guest sees the Lab and is asked to sign in to create.
 //
 // ctx: { THREE, K, planet, here(v), facing(), ver, inHub(), calm(), T, esc, toast, sess(), post(body), signIn(), purse(), coarse, reduce, burst? }
-const PORTRAIT = (k) => `/images/agents/${k}-400.webp`;
+const PORTRAIT = (k) => `/images/agents/${k}-400.webp`, BIG = (k) => `/images/agents/${k}-800.webp`;
 const ICON = { aurora: "💛", orion: "♾️", vex: "🔻" };
 const MAT = { wood: "🪵", stone: "🪨", fiber: "🌿", berries: "🫐", hide: "🟫", bone: "🦴", meat: "🍖", fang: "🦷", cu: "🟠", ag: "⚪" };
 const MAT_N = { wood: "wood", stone: "stone", fiber: "fiber", berries: "berries", hide: "hide", bone: "bone", meat: "meat", fang: "fang", cu: "copper ore", ag: "silver ore" };
@@ -16,6 +16,11 @@ const DOES = {
   aurora: ["Gathers wood and stone for your camp (+25%)", "Keeps you company and keeps track of things", "Later: watches your wallet and reminds you of claims"],
   orion: ["Mines ore while you're away (+25%)", "Plans your next step with you", "Later: drafts token launches you approve in your wallet"],
   vex: ["Scouts and hunts in Jurassic (+25%)", "Spots scams and tricks with you", "Later: token safety reports with a public track record"],
+};
+const DESC = {
+  aurora: "A kind AI agent who supports, coordinates and helps your journey in ARCIRCLE WORLD.",
+  orion: "A calm AI agent who plans, operates and finds the next step for your journey in ARCIRCLE WORLD.",
+  vex: "A sharp AI agent who scouts, tracks and finds what others miss in ARCIRCLE WORLD.",
 };
 const ASK = ["What should I do next?", "Tell me about yourself", "Any tips for Jurassic World?"];
 
@@ -91,33 +96,50 @@ export function createAgentDim(ctx) {
     return el;
   }
   function open(t) {
-    shell(); if (t) tab = t; report = null; el.hidden = false; paint(); if (Date.now() - last > 15e3) look();
+    shell(); if (t) tab = t; report = null; view = ""; el.hidden = false; paint(); if (Date.now() - last > 15e3) look();
     if (A() && body && body.play && !body.busy()) try { body.play("emote-yes", { once: true }); } catch { /* no clip */ }
   }
   function close() { if (el) el.hidden = true; paintChip(); }
   const shown = () => !!(el && !el.hidden);
 
+  // the window (the owner's mock-up, 2026-10-22): the agent's art on the left — big, its line in script, arrows and the
+  // three to look through — and on the right its name, ID, class and words, the tabs and the card; stacked on a phone
+  const K3 = ["aurora", "orion", "vex"];
+  let view = "";
+  function showcase(k, mine) {
+    const C = K.AGENTS[k];
+    return `<aside class="wag-show ${k}" style="--ac:${C.color}"><small class="wag-dim">${esc(T("AGENT DIMENSION"))}</small>
+      <div class="wag-stage"><img class="wag-big" src="${BIG(k)}" alt="${esc(C.name)}"><i class="wag-script">${esc(T(LINE[k]))} ♡</i>${mine === false ? `<b class="wag-peek">${esc(C.name)}</b>` : ""}</div>
+      <button type="button" class="wag-nav prev" data-nav="-1" aria-label="‹">‹</button><button type="button" class="wag-nav next" data-nav="1" aria-label="›">›</button>
+      <div class="wag-ped" aria-hidden="true"></div>
+      <div class="wag-thumbs">${K3.map((x) => `<button type="button" data-view="${x}" class="${x === k ? "on" : ""} ${x}" style="--ac:${K.AGENTS[x].color}" aria-label="${esc(K.AGENTS[x].name)}"><img src="${PORTRAIT(x)}" alt=""></button>`).join("")}</div></aside>`;
+  }
   function paint() {
     const a = A();
     if (!a) return paintLab();
-    const C = K.AGENTS[a.kind], tabs = [["talk", "Talk"], ["jobs", "Errands"], ["me", "Agent"]];
-    const head = `<div class="wag-h" style="--ac:${C.color}"><img src="${PORTRAIT(a.kind)}" alt="" class="wag-pic"><div><small>${esc(T("AGENT DIMENSION"))} · ${esc(C.name)}</small><h2>${esc(a.name)} <b class="wag-lv">${esc(T("Lv {n}", { n: a.lv }))}</b></h2><p>${a.id ? `<b class="wag-at">@${esc(a.id)}</b> · ` : ""}${esc(T(ROLE[a.kind]))}</p></div><button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></div>`;
-    const tb = `<nav class="wag-tabs">${tabs.map(([id, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}">${esc(T(l))}${id === "jobs" && backs().length ? ' <i class="wag-dot"></i>' : ""}</button>`).join("")}</nav>`;
-    el.innerHTML = `<div class="wag-card ${a.kind}">${head}${tb}<div class="wag-body">${report ? paintReport(a) : tab === "talk" ? paintTalk(a) : tab === "jobs" ? paintJobs(a) : paintMe(a)}</div></div>`;
+    if (!view) view = a.kind;
+    const C = K.AGENTS[a.kind], tabs = [["talk", "💬", "Talk"], ["jobs", "📋", "Errands"], ["me", "🤖", "Agent"]];
+    const head = `<header class="wag-h"><div class="wag-nm"><h2>${esc(a.name)}</h2><b class="wag-lv">${esc(T("Lv {n}", { n: a.lv }))}</b></div>
+      ${a.id ? `<p class="wag-at">@${esc(a.id)}</p>` : ""}<p class="wag-role">${esc(T(ROLE[a.kind]))}</p><q class="wag-quote">${esc(T(LINE[a.kind]))}</q><i class="wag-heart" aria-hidden="true">${ICON[a.kind]}</i>
+      <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>`;
+    const tb = `<nav class="wag-tabs">${tabs.map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}${id === "jobs" && backs().length ? ' <i class="wag-dot"></i>' : ""}</button>`).join("")}</nav>`;
+    el.innerHTML = `<div class="wag-card ${a.kind}" style="--ac:${C.color}">${showcase(view, view === a.kind ? undefined : false)}<section class="wag-main">${head}${tb}<div class="wag-body">${report ? paintReport(a) : tab === "talk" ? paintTalk(a) : tab === "jobs" ? paintJobs(a) : paintMe(a)}</div></section></div>`;
     const log = el.querySelector(".wag-log"); if (log) log.scrollTop = log.scrollHeight;
     const inp = el.querySelector(".wag-in"); if (inp && !ctx.coarse) inp.focus({ preventScroll: true });
   }
   function paintLab() {
-    const K3 = ["aurora", "orion", "vex"], signed = !!wallet();
-    const card = (k) => `<button type="button" class="wag-pick ${k}${pick === k ? " on" : ""}" data-pick="${k}" style="--ac:${K.AGENTS[k].color}"><img src="${PORTRAIT(k)}" alt=""><b>${ICON[k]} ${esc(K.AGENTS[k].name)}</b><small>${esc(T(ROLE[k]))}</small><i>“${esc(T(LINE[k]))}”</i></button>`;
+    const signed = !!wallet(), k = pick || "aurora", C = K.AGENTS[k];
     const form = pick ? `<div class="wag-form"><ul class="wag-does">${DOES[pick].map((d) => `<li>${esc(T(d))}</li>`).join("")}</ul>
       <label>${esc(T("Agent ID"))}<span class="wag-idrow"><b>@</b><input class="wag-id" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(T("e.g. nova_01"))}"></span><small class="wag-idst"></small></label>
       <label>${esc(T("Name"))}<input class="wag-name" maxlength="14" value="${esc(K.AGENTS[pick].name)}"></label>
       <label>${esc(T("Personality"))}<input class="wag-persona" maxlength="160" placeholder="${esc(T("e.g. cheerful, loves dinosaurs"))}"></label>
       <div class="wag-presets">${PRESETS.map((p) => `<button type="button" data-preset="${esc(T(p))}">${esc(T(p))}</button>`).join("")}</div>
-      <button type="button" class="wag-go" data-create>${signed ? esc(T("Create my agent — free")) : esc(T("Sign in to create your agent"))}</button><p class="wag-fine">${esc(T("Your agent can't move your funds: anything on-chain will always ask your own wallet first."))}</p></div>` : `<p class="wag-fine">${esc(T("Pick one of the three to see what it does."))}</p>`;
-    el.innerHTML = `<div class="wag-card lab"><div class="wag-h lab"><div><small>${esc(T("AGENT DIMENSION"))}</small><h2>${esc(T("Genesis Lab"))}</h2><p>${esc(T("Create your Agent. Give it a Purpose."))}</p></div><button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></div>
-      <div class="wag-body">${st && st.prelaunch !== false ? `<div class="wag-event"><b>🎉 ${esc(T("Pre-launch event"))}</b><span>${esc(T("Create your AI agent for free before AGENT DIMENSION officially opens. After the opening, creating an agent will cost."))}</span></div>` : ""}<div class="wag-picks">${K3.map(card).join("")}</div>${form}</div></div>`;
+      <button type="button" class="wag-go" data-create>${signed ? esc(T("Create my agent — free")) : esc(T("Sign in to create your agent"))}</button><p class="wag-fine">${esc(T("Your agent can't move your funds: anything on-chain will always ask your own wallet first."))}</p></div>`
+      : `<div class="wag-picks">${K3.map((x) => `<button type="button" class="wag-pick ${x}" data-pick="${x}" style="--ac:${K.AGENTS[x].color}"><img src="${PORTRAIT(x)}" alt=""><b>${ICON[x]} ${esc(K.AGENTS[x].name)}</b><small>${esc(T(ROLE[x]))}</small></button>`).join("")}</div><p class="wag-fine">${esc(T("Pick one of the three to see what it does."))}</p>`;
+    el.innerHTML = `<div class="wag-card lab ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("Genesis Lab"))} · ${esc(T("Create your Agent. Give it a Purpose."))}</small>
+      <div class="wag-nm"><h2>${esc(C.name)}</h2>${ICON[k] ? `<b class="wag-lv">${ICON[k]}</b>` : ""}</div><p class="wag-role">${esc(T(ROLE[k]))}</p><q class="wag-quote">${esc(T(LINE[k]))}</q>
+      <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+      <div class="wag-body">${st && st.prelaunch !== false ? `<div class="wag-event"><b>🎉 ${esc(T("Pre-launch event"))}</b><span>${esc(T("Create your AI agent for free before AGENT DIMENSION officially opens. After the opening, creating an agent will cost."))}</span></div>` : ""}${form}</div></section></div>`;
   }
   function paintTalk(a) {
     const lines = (a.log || []).flatMap((m) => [`<p class="me">${esc(m.q)}</p>`, `<p class="it">${esc(m.a)}</p>`]);
@@ -147,12 +169,13 @@ export function createAgentDim(ctx) {
       <h3>${esc(T("Coming next to AGENT DIMENSION"))}</h3><ul class="wag-does soon"><li>${esc(T("Agent Academy: skills and new looks as it levels"))}</li><li>${esc(T("Agent Arena: weekly agent battles"))}</li><li>${esc(T("Web3 tools: token reports, wallet watch, launch drafts — every on-chain step approved in your own wallet"))}</li></ul></div>`;
   }
   function paintReport(a) {
-    const r = report;
-    return `<div class="wag-rep"><img src="${PORTRAIT(a.kind)}" alt=""><h3>${esc(T("{n} is back!", { n: a.name }))}</h3><p class="wag-loot">${lootLine(r.loot) || esc(T("Nothing this time"))}</p>
-      ${r.best ? `<p class="wag-best">✨ ${esc(T("{n}'s specialty: a quarter more", { n: a.name }))}</p>` : ""}<p>+${r.xp} XP${r.up ? ` · <b>${esc(T("Level up! Lv {n}", { n: r.lv }))}</b>` : ""}</p>
-      <p class="wag-fine">${esc(r.job === "mine" ? T("The ore is in your ARCL Mine bag.") : T("The materials are in your Jurassic pack."))}</p><button type="button" class="wag-go" data-ok>${esc(T("Great!"))}</button></div>`;
+    const r = report, chips = Object.entries(r.loot || {}).map(([k, n]) => `<span>${MAT[k] || "•"} ${n} ${esc(T(MAT_N[k] || k))}</span>`).join("");
+    return `<div class="wag-rep"><h3>${esc(T("{n} is back!", { n: a.name }))}</h3><p class="wag-desc">${esc(T(DESC[a.kind]))}</p>
+      <div class="wag-chips">${chips || `<span>${esc(T("Nothing this time"))}</span>`}</div>
+      ${r.best ? `<p class="wag-best">» ${esc(T("{n}'s specialty: a quarter more", { n: a.name }))}</p>` : ""}
+      <div class="wag-xpbox"><b>⭐ +${r.xp} XP${r.up ? ` · ${esc(T("Level up! Lv {n}", { n: r.lv }))}` : ""}</b><small>${esc(r.job === "mine" ? T("The ore is in your ARCL Mine bag.") : T("The materials are in your Jurassic pack."))}</small></div></div>
+      <button type="button" class="wag-go" data-ok>${esc(T("Great!"))}</button>`;
   }
-
   // the agent ID: lowercase letters, numbers and _, 3–16; checked as you type (the server has the last word)
   const ID_RE = /^[a-z0-9_]{3,16}$/, idNorm = (x) => String(x || "").trim().toLowerCase().replace(/^@/, "");
   let idT = 0, idSeq = 0;
@@ -214,6 +237,7 @@ export function createAgentDim(ctx) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     if (b.dataset.tab) { tab = b.dataset.tab; report = null; return paint(); }
     if (b.dataset.pick) { pick = b.dataset.pick; return paint(); }
+    if (b.dataset.view || b.dataset.nav) { const cur = A() ? view || A().kind : pick || "aurora", nx = b.dataset.view || K3[(K3.indexOf(cur) + Number(b.dataset.nav) + 3) % 3]; if (A()) view = nx; else pick = nx; return paint(); }
     if (b.dataset.preset) { const p = el.querySelector(".wag-persona"); if (p) p.value = b.dataset.preset; return; }
     if (b.hasAttribute("data-create")) return create();
     if (b.hasAttribute("data-send")) return send();
