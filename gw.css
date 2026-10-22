@@ -457,6 +457,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-wall { position: relative; display: block; border-radius: 16px; overflow: hidden; background: #0b1633; box-shadow: 0 10px 26px rgba(11, 22, 51, .14); }
 .gw-wall img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; transition: transform .5s var(--ease); }
 .gw-wall:hover img { transform: scale(1.06); }
+.gw-wall.wide { grid-column: 1 / -1; } /* the 3:1 banner: the whole row, its own shape */
+.gw-wall.wide img { aspect-ratio: 3 / 1; }
 .gw-wall span { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 12px 10px; background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .75)); color: #fff; font: 700 13px/1.2 var(--ui); display: flex; justify-content: space-between; }
 .gw-logos { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .gw-lg { display: grid; justify-items: center; gap: 8px; padding: 16px 10px 14px; border-radius: 16px; background: #0b1633; color: #fff; font: 700 12.5px/1.2 var(--ui); box-shadow: 0 10px 24px rgba(11, 22, 51, .14); transition: transform .25s var(--ease); }
