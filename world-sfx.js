@@ -227,6 +227,20 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     reel: (k = 0) => { if (!gap("reel", 55)) return; tone(2200 + k * 600, 0.02, { type: "square", v: 0.016, lp: 5000, a: 0.001 }); noise(0.02, 0.03, 4000); },
     // a ping to the people round you: here (bright), help (urgent), gather (warm)
     ping: (k = "here") => { if (!gap("ping", 150)) return; if (k === "help") { tone(880, 0.12, { type: "square", v: 0.03, lp: 3000 }); tone(660, 0.16, { type: "square", v: 0.03, at: 0.13, lp: 3000 }); } else if (k === "gather") { [523, 659, 784].forEach((f, i) => tone(f, 0.2, { type: "triangle", v: 0.05, at: i * 0.07 })); } else { tone(1318, 0.1, { type: "triangle", v: 0.06 }); tone(1760, 0.16, { v: 0.04, at: 0.08 }); } },
+    // SURVIVORS ARENA (b-sv7): a voice for each weapon, the gem run's rising notes, a heartbeat when you're low, the boss's drum
+    svShot: () => { if (!gap("svShot", 90)) return; tone(1250 + Math.random() * 250, 0.05, { type: "square", to: 620, v: 0.012, lp: 4200, a: 0.002 }); },
+    svOrb: () => { if (!gap("svOrb", 260)) return; tone(330, 0.12, { type: "triangle", to: 520, v: 0.02 }); noise(0.06, 0.03, 1600, { q: 2 }); },
+    svBlade: () => { if (!gap("svBlade", 220)) return; noise(0.12, 0.045, 2600, { to: 900, q: 0.8, a: 0.01 }); },
+    svDrone: () => { if (!gap("svDrone", 130)) return; tone(2300 + Math.random() * 300, 0.03, { type: "square", v: 0.008, lp: 6000, a: 0.001 }); },
+    svLaser: () => { if (!gap("svLaser", 260)) return; tone(220, 0.3, { type: "sawtooth", to: 1100, v: 0.025, lp: 3200, a: 0.02 }); noise(0.25, 0.03, 3000, { type: "highpass", at: 0.05 }); },
+    svMeteor: () => { if (!gap("svMeteor", 300)) return; noise(0.55, 0.06, 900, { to: 160, type: "lowpass", a: 0.05 }); tone(64, 0.32, { to: 34, v: 0.13, at: 0.62 }); noise(0.2, 0.1, 400, { type: "lowpass", at: 0.62 }); },
+    svIce: () => { if (!gap("svIce", 300)) return; for (let i = 0; i < 5; i++) tone(2600 + Math.random() * 1800, 0.05, { v: 0.012, at: i * 0.035, to: 1800 }); noise(0.12, 0.03, 6000, { type: "highpass" }); },
+    svPoison: () => { if (!gap("svPoison", 420)) return; for (let i = 0; i < 3; i++) tone(260 + Math.random() * 220, 0.06, { type: "sine", to: 520, v: 0.03, at: i * 0.07 }); },
+    svHole: () => { if (!gap("svHole", 600)) return; tone(58, 0.9, { to: 38, v: 0.09, a: 0.08 }); tone(116, 0.7, { type: "triangle", to: 70, v: 0.025, a: 0.1 }); },
+    svGem: (k = 0) => { if (!gap("svGem", 40)) return; const f = 1050 * Math.pow(2, Math.min(24, k) / 12); tone(f, 0.05, { v: 0.022, to: f * 1.12, a: 0.002 }); },
+    svCombo: (n = 50) => { const top = n >= 250 ? 4 : n >= 100 ? 3 : 2; [784, 988, 1175, 1568, 1976].slice(0, top + 1).forEach((f, i) => tone(f, 0.12, { v: 0.035, at: i * 0.055 })); },
+    svHeart: () => { if (!gap("svHeart", 700)) return; tone(58, 0.11, { v: 0.14 }); tone(52, 0.12, { v: 0.11, at: 0.17 }); },
+    svDrum: (hard = 0) => { if (!gap("svDrum", 300)) return; tone(hard ? 62 : 74, 0.22, { to: 38, v: hard ? 0.12 : 0.07 }); noise(0.08, hard ? 0.07 : 0.04, 500, { type: "lowpass" }); },
     // a perfect dodge: a whoosh and a bright chime
     perfect: () => { noise(0.22, 0.1, 900, { to: 5000, a: 0.03 }); tone(2093, 0.4, { v: 0.04, at: 0.05 }); tone(3136, 0.3, { v: 0.025, at: 0.09 }); },
     // the boss hour is coming: a low horn, twice

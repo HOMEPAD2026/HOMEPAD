@@ -1162,7 +1162,7 @@ const KK_TO_MIX = { hips: "Hips", spine: "Spine", chest: "Spine2", head: "Head",
   "upperleg.l": "LeftUpLeg", "lowerleg.l": "LeftLeg", "foot.l": "LeftFoot", "upperleg.r": "RightUpLeg", "lowerleg.r": "RightLeg", "foot.r": "RightFoot" };
 // (the heroes' heads are big: the KayKit head's turns at 40 %, or a wave twists the whole face away)
 const KK_DAMP = { head: 0.4, chest: 0.85 }, I0 = new THREE.Quaternion();
-const KK_BORROW = { sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle", "emote-yes": "Waving", celebrate: "Cheering" };
+const KK_BORROW = { sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle", "emote-yes": "Waving", celebrate: "Cheering", dodge: "Dodge_Forward", hit: "Hit_A" }; // (only where a hero has none of its own: b-sv7 SURVIVORS' dash plays dodge)
 const kkBorrowed = new WeakMap();
 async function kkBorrow(src, idleClip, ver, map = KK_BORROW) {
   if (kkBorrowed.has(src)) return kkBorrowed.get(src);

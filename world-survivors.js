@@ -575,6 +575,12 @@ export function createSurvivors(ctx) {
     if (crit && (m.boss || d > 60)) R.stop = Math.max(R.stop, 0.045);
     if (m.hp <= 0) kill(m); return true;
   }
+  /// b-sv7: too many gems on the floor: the far ones fold into bigger ones (fewer to draw, and a bigger gem is a better find)
+  function mergeGems() {
+    const far = gems.filter((g) => !g.pull && (g.x - R.x) ** 2 + (g.z - R.z) ** 2 > 64); far.sort((a, b) => a.x - b.x);
+    for (let i = 0; i < far.length; i++) { const a = far[i]; if (!a.v) continue; for (let j = i + 1; j < far.length && far[j].x - a.x < 1.6; j++) { const b = far[j]; if (!b.v || Math.abs(b.z - a.z) > 1.6) continue; a.v += b.v; b.v = 0; } }
+    for (let i = gems.length - 1; i >= 0; i--) if (!gems[i].v) { gemFree.push(gems[i]); gems[i] = gems[gems.length - 1]; gems.pop(); }
+  }
   function addGem(x, z, v) { const g = take2(gemFree); g.x = x; g.z = z; g.v = v; g.t = 0; g.pull = false; gems.push(g); }
   function kill(m) {
     m.st = "die"; m.at = 0; m.hp = 0; m.dis = 0; R.kills++;
@@ -583,7 +589,7 @@ export function createSurvivors(ctx) {
     if (m.elite) { for (let k = 0; k < 3; k++) addGem(m.x + (Math.random() - 0.5) * 2, m.z + (Math.random() - 0.5) * 2, 2); if (Math.random() < 0.35 + 0.1 * pv("lucky") + 0.06 * (R.up.luck || 0)) dropChest(m.x, m.z); else if (Math.random() < 0.5) dropPick(m.x + 1, m.z); }
     if (pv("vamp") && ++R.vampN >= [14, 12, 10, 8, 6][pv("vamp") - 1]) { R.vampN = 0; heal(2 + pv("vamp")); }
     if (Q && (R.kills & 1)) ring(m.x, m.z, 0.2, m.elite ? 2.2 : 1.1, m.elite ? 0xff8ae4 : 0xffd08a, 0.28, EASE, 0.6); // (b-svx)
-    R.combo = (R.comboT > 0 ? R.combo : 0) + 1; R.comboT = 1.6; if (R.combo === 50 || R.combo === 100 || R.combo % 250 === 0) { ring(R.x, R.z, 0.4, 6, 0xffb03a, 0.5, EASE); snd("coin"); }
+    R.combo = (R.comboT > 0 ? R.combo : 0) + 1; R.comboT = 1.6; if (R.combo === 50 || R.combo === 100 || R.combo % 250 === 0) { ring(R.x, R.z, 0.4, 6, 0xffb03a, 0.5, EASE); try { if (Snd && Snd.svCombo) Snd.svCombo(R.combo); } catch { /* quiet */ } }
     if (pv("streak")) { R.streak = Math.min(25, R.streak + 1); R.streakT = 1.2; }
     if (m.boss) { R.bosses++; R.boss = null; dropChest(m.x, m.z, true); snd("win"); shakeK = 1.2; flashUi("boss"); slowMo = 1.0; R.stop = 0.12; sparks(m.x, 2, m.z, 0xffd23a, 40, 9); ring(m.x, m.z, 1, 12, 0xffd23a, 0.9, EASE); decal(m.x, m.z, 5);
       if (m.id === "titan") { R.clear = true; later(1.6, "win"); } paintBoss(); }
@@ -641,7 +647,7 @@ export function createSurvivors(ctx) {
     const d = n * stat.armor(); R.hp -= d; R.hurtT = 0.35; flashUi("hurt"); snd("hurt", 120); if (hero && hero.hurt) try { hero.hurt(); } catch { /* fine */ }
     num(R.x, 2.3, R.z, d, 0xff4d6d, true); shakeK = Math.max(shakeK, 0.2);
     if (R.hp <= 0) {
-      if (pv("revive") && !R.revived) { R.revived = true; R.hp = R.hpMax * 0.5; R.hurtT = 2; banner(T("Revived!"), ""); snd("level"); ring(R.x, R.z, 0.5, 8, 0xffd23a, 0.7, EASE); for (const m of mons) if (m.st !== "die" && !m.boss && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < 64) hitMon(m, 999, "revive", { kb: 10 }); return; }
+      if (pv("revive") && !R.revived) { R.revived = true; R.hp = R.hpMax * 0.5; R.hurtT = 2; banner(T("Revived!"), ""); snd("level"); heroOnce("emote-yes", 1.2); ring(R.x, R.z, 0.5, 8, 0xffd23a, 0.7, EASE); for (const m of mons) if (m.st !== "die" && !m.boss && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < 64) hitMon(m, 999, "revive", { kb: 10 }); return; }
       R.hp = 0; endRun("dead");
     }
   }
@@ -669,7 +675,7 @@ export function createSurvivors(ctx) {
     if (lvOf("blaster") && cdReady("blaster", W("blaster", "cd") / stat.rate() * (R.evo.star ? 0.7 : 1) * (R.overT > 0 ? 0.5 : 1))) {
       const tgt = nearest(13 * stat.reach()); if (tgt) { const n = W("blaster", "n") + ex + (R.evo.star ? 3 : 0), base = Math.atan2(tgt.x - R.x, tgt.z - R.z);
         for (let i = 0; i < n; i++) bolt(R.x, R.z, base + (i - (n - 1) / 2) * (R.evo.star ? 0.22 : 0.12), 19 * stat.rate(), 0.9 * stat.reach(), W("blaster", "dmg") * (R.evo.star ? 1.4 : 1), W("blaster", "pierce") + (R.evo.star ? 3 : 0), "blaster", R.evo.star ? 0xfff07a : 0x38d8ff);
-        glow(R.x + Math.sin(base) * 0.6, 1, R.z + Math.cos(base) * 0.6, 0.9, 0x8ff0ff, 0.1); snd("zap", 90); } }
+        glow(R.x + Math.sin(base) * 0.6, 1, R.z + Math.cos(base) * 0.6, 0.9, 0x8ff0ff, 0.1); snd("svShot"); } }
     if (lvOf("chain") && cdReady("chain", W("chain", "cd") * (R.evo.thunder ? 0.5 : 1))) {
       let fx0 = R.x, fy0 = 1.2, fz0 = R.z, n = W("chain", "n") + (R.evo.thunder ? 6 : 0); seen.length = 0; let tgt = nearest(9 * stat.reach());
       while (tgt && n-- > 0) { seen.push(tgt); const ty = tgt.fly + 0.8; zap(fx0, fy0, fz0, tgt.x, ty, tgt.z, R.evo.thunder ? 0xffd23a : 0x8ff0ff); glow(tgt.x, ty, tgt.z, 1.4, R.evo.thunder ? 0xffd23a : 0x8ff0ff, 0.25, GROW); hitMon(tgt, W("chain", "dmg") * (R.evo.thunder ? 1.6 : 1), "chain"); fx0 = tgt.x; fy0 = ty; fz0 = tgt.z; tgt = nearestTo(fx0, fz0, 6 * stat.reach(), seen); }
@@ -677,15 +683,16 @@ export function createSurvivors(ctx) {
     if (lvOf("orb")) { const n = W("orb", "n") + (R.evo.inferno ? 2 : 0), rad = W("orb", "rad") * stat.area() * (R.evo.inferno ? 1.25 : 1), sz = 0.42 * stat.area() * (R.evo.inferno ? 1.6 : 1); R.orbA += dt * (2.6 + (R.evo.inferno ? 0.6 : 0));
       for (let i = 0; i < n; i++) { const a = R.orbA + (i / n) * Math.PI * 2, x = R.x + Math.cos(a) * rad, z = R.z + Math.sin(a) * rad;
         glow(x, 1, z, sz * (Q > 1 ? 3 : 2.2), 0xff7a2a, 0, PULSE | ONE); glow(x, 1, z, sz * 1.4, 0xffe0a0, 0, ONE); if (Q && lastStep) glow(x, 1, z, sz * 1.6, 0xff6a20, 0.3, SHRINK, 0.6);
-        near(x, z, sz + 0.4, (m) => { if (R.t - m.oT < 0.45) return; m.oT = R.t; hitMon(m, W("orb", "dmg") * (R.evo.inferno ? 1.8 : 1), "orb", { kb: 3, fx: R.x, fz: R.z }); sparks(m.x, 1, m.z, 0xffa040, 3, 3); }); } }
+        near(x, z, sz + 0.4, (m) => { if (R.t - m.oT < 0.45) return; m.oT = R.t; hitMon(m, W("orb", "dmg") * (R.evo.inferno ? 1.8 : 1), "orb", { kb: 3, fx: R.x, fz: R.z }); sparks(m.x, 1, m.z, 0xffa040, 3, 3); snd("svOrb"); }); } }
     if (lvOf("blade")) { const n = W("blade", "n") + (R.evo.eclipse ? 2 : 0), rad = W("blade", "rad") * stat.area(), len = 1.1 * stat.area() * (R.evo.eclipse ? 1.4 : 1); R.bladeA -= dt * 3.4;
       for (let i = 0; i < n; i++) { const a = R.bladeA + (i / n) * Math.PI * 2, x = R.x + Math.cos(a) * rad, z = R.z + Math.sin(a) * rad, tx = -Math.sin(a) * len, tz = Math.cos(a) * len;
         beam(x - tx, 0.9, z - tz, x + tx, 0.9, z + tz, 0.55, R.evo.eclipse ? 0xffd23a : 0x9b6bff, 0, ONE); beam(x - tx * 0.8, 0.9, z - tz * 0.8, x + tx * 0.8, 0.9, z + tz * 0.8, 0.18, 0xffffff, 0, ONE);
-        near(x, z, len, (m) => { if (R.t - m.bT < 0.4) return; m.bT = R.t; hitMon(m, W("blade", "dmg") * (R.evo.eclipse ? 1.5 : 1), "blade", { kb: 2 }); }); } }
+        near(x, z, len, (m) => { if (R.t - m.bT < 0.4) return; m.bT = R.t; hitMon(m, W("blade", "dmg") * (R.evo.eclipse ? 1.5 : 1), "blade", { kb: 2 }); snd("svBlade"); });
+        if (Q > 1 && lastStep) beam(x - tx * 0.7, 0.9, z - tz * 0.7, x + tx * 0.7, 0.9, z + tz * 0.7, 0.4, R.evo.eclipse ? 0xffe08a : 0xc0a0ff, 0.16, 0, 0.45); } } // (b-sv7: an afterimage behind each blade)
     if (lvOf("laser") && cdReady("laser", W("laser", "cd") / stat.rate() * (R.overT > 0 ? 0.5 : 1))) {
       const tgt = nearest(16 * stat.reach()), base = tgt ? Math.atan2(tgt.x - R.x, tgt.z - R.z) : R.face, n = W("laser", "n") + ex, len = 16 * stat.reach(), w = 0.55 * stat.area();
       for (let i = 0; i < n; i++) { const a = base + (i - (n - 1) / 2) * 0.5; beam(R.x, 1, R.z, R.x + Math.sin(a) * len, 1, R.z + Math.cos(a) * len, 0.08, 0xff5ad8, 0.2, 0, 0.9); later(0.18, "laser", a, len, w); }
-      snd("charged", 120); }
+      snd("svLaser"); }
     if (lvOf("nova") && cdReady("nova", W("nova", "cd"))) {
       const r = W("nova", "rad") * stat.area(); ring(R.x, R.z, 0.6, r, 0x8ff0ff, 0.45, EASE); ring(R.x, R.z, 0.3, r * 0.8, 0xffffff, 0.3, EASE, 0.6); disc(R.x, R.z, r, 0x38d8ff, 0.3, 0, 0.35); if (Q > 1) for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; glow(R.x + Math.cos(a) * r * 0.5, 0.4, R.z + Math.sin(a) * r * 0.5, 0.8, 0xbfe8ff, 0.4, GROW, 0.4); }
       for (const m of mons) { if (m.st === "die") continue; if ((m.x - R.x) ** 2 + (m.z - R.z) ** 2 < (r + m.r) ** 2) hitMon(m, W("nova", "dmg"), "nova", { kb: 9 }); } snd("impact", 100); }
@@ -694,10 +701,10 @@ export function createSurvivors(ctx) {
       for (let i = 0; i < n; i++) { const tgt = nearestTo(R.x + (Math.random() - 0.5) * 10, R.z + (Math.random() - 0.5) * 10, 14 * stat.reach(), seen); const x = tgt ? tgt.x : R.x + (Math.random() - 0.5) * 12, z = tgt ? tgt.z : R.z + (Math.random() - 0.5) * 12; if (tgt) seen.push(tgt);
         ring(x, z, r, r, 0xff7a3c, 0.7, SPIN, 0.8); const g = glow(0, 12, 0, 1.6 * stat.area(), 0xff8a3a, 0.7, FALL | PULSE); if (g) { g.x2 = x - 4; g.y2 = 12; g.z2 = z - 3; g.vx = x; g.vz = z; }
         const tr = glow(0, 12, 0, 0.9 * stat.area(), 0xffe0a0, 0.7, FALL); if (tr) { tr.x2 = x - 4; tr.y2 = 12; tr.z2 = z - 3; tr.vx = x; tr.vz = z; }
-        later(0.7, "meteor", x, z, r); } }
-    if (lvOf("ice") && cdReady("ice", W("ice", "cd"))) { const tgt = nearest(12 * stat.reach()); const x = tgt ? tgt.x : R.x, z = tgt ? tgt.z : R.z; zone("ice", x, z, W("ice", "rad") * stat.area() * (R.evo.zero ? 1.3 : 1), 1.8, W("ice", "dmg"), 0.3); snd("cast", 150); }
-    if (lvOf("poison") && cdReady("poison", W("poison", "cd"))) zone("poison", R.x, R.z, W("poison", "rad") * stat.area(), 3.2, W("poison", "dmg"), 0.45);
-    if (lvOf("hole") && cdReady("hole", W("hole", "cd"))) { const tgt = nearest(12 * stat.reach()); if (tgt) { zone("hole", tgt.x, tgt.z, W("hole", "rad") * stat.area(), 2.0, W("hole", "dmg"), 0); snd("charge", 200); } }
+        later(0.7, "meteor", x, z, r); } snd("svMeteor"); }
+    if (lvOf("ice") && cdReady("ice", W("ice", "cd"))) { const tgt = nearest(12 * stat.reach()); const x = tgt ? tgt.x : R.x, z = tgt ? tgt.z : R.z; zone("ice", x, z, W("ice", "rad") * stat.area() * (R.evo.zero ? 1.3 : 1), 1.8, W("ice", "dmg"), 0.3); snd("svIce"); }
+    if (lvOf("poison") && cdReady("poison", W("poison", "cd"))) { zone("poison", R.x, R.z, W("poison", "rad") * stat.area(), 3.2, W("poison", "dmg"), 0.45); snd("svPoison"); }
+    if (lvOf("hole") && cdReady("hole", W("hole", "cd"))) { const tgt = nearest(12 * stat.reach()); if (tgt) { zone("hole", tgt.x, tgt.z, W("hole", "rad") * stat.area(), 2.0, W("hole", "dmg"), 0); snd("svHole"); } }
     if (lvOf("sword") && cdReady("sword", W("sword", "cd") / stat.rate())) {
       const r = W("sword", "rad") * stat.area(), dirs = lvOf("sword") >= 5 ? [R.face, R.face + Math.PI] : [R.face];
       for (const f0 of dirs) { for (let k = -3; k <= 3; k++) { const a = f0 + k * 0.32; beam(R.x + Math.sin(a) * 0.8, 0.9, R.z + Math.cos(a) * 0.8, R.x + Math.sin(a) * r, 0.9, R.z + Math.cos(a) * r, 0.5, k ? 0x8ff0ff : 0xffffff, 0.18, FLAT, 0.8); }
@@ -707,7 +714,7 @@ export function createSurvivors(ctx) {
       const n = W("drone", "n") + (R.evo.legion ? 2 : 0); while (R.drones.length < n) R.drones.push({ cd: Math.random() }); R.drones.length = Math.min(R.drones.length, n);
       R.drones.forEach((d, i) => { const a = R.t * 1.6 + (i / n) * Math.PI * 2, x = R.x + Math.cos(a) * 1.6, z = R.z + Math.sin(a) * 1.6, y = 2.1 + Math.sin(R.t * 4 + i) * 0.15;
         glow(x, y, z, 1.1, 0x38d8ff, 0, ONE); glow(x, y, z, 0.45, 0xffffff, 0, ONE); ring(x, z, 0.35, 0.35, 0x38d8ff, 0, ONE, 0.5); d.cd -= dt;
-        if (d.cd <= 0) { d.cd = W("drone", "cd") * stat.cd(); const tgt = nearestTo(x, z, 12 * stat.reach()); if (tgt) { const b = Math.atan2(tgt.x - x, tgt.z - z), k = 1 + (R.evo.legion ? 1 : 0) + Math.min(1, ex); for (let j = 0; j < k; j++) bolt(x, z, b + (j - (k - 1) / 2) * 0.1, 17, 0.8, W("drone", "dmg"), 0, "drone", 0x7dff9a); } } }); }
+        if (d.cd <= 0) { d.cd = W("drone", "cd") * stat.cd(); const tgt = nearestTo(x, z, 12 * stat.reach()); if (tgt) { snd("svDrone"); const b = Math.atan2(tgt.x - x, tgt.z - z), k = 1 + (R.evo.legion ? 1 : 0) + Math.min(1, ex); for (let j = 0; j < k; j++) bolt(x, z, b + (j - (k - 1) / 2) * 0.1, 17, 0.8, W("drone", "dmg"), 0, "drone", 0x7dff9a); } } }); }
     if (pv("infinity") && (R.infT -= dt) <= 0) { R.infT = 25; const r = 9 * stat.area(); ring(R.x, R.z, 1, r, 0x39ff88, 0.7, EASE); ring(R.x, R.z, 0.5, r * 0.7, 0xffffff, 0.5, EASE, 0.7); disc(R.x, R.z, r, 0x39ff88, 0.4, 0, 0.4); shakeK = 0.8;
       for (const m of mons) if (m.st !== "die" && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < r * r) hitMon(m, 140, "infinity", { kb: 10 }); snd("jackpot"); }
     if (pv("shield") && !R.shield && (R.shieldT -= dt) <= 0) { R.shield = 1; snd("equip", 200); }
@@ -720,7 +727,8 @@ export function createSurvivors(ctx) {
     else { disc(x, z, r, 0x2a0a4a, life, HOLD, 0.9); ring(x, z, r, r * 0.3, 0xb48cff, life, 0, 0.9); } }
   function zones1(dt) {
     for (let i = zones.length - 1; i >= 0; i--) { const o = zones[i]; o.t += dt;
-      if (o.kind === "hole") { near(o.x, o.z, o.r * 1.4, (m) => { if (m.boss) return; const dx = o.x - m.x, dz = o.z - m.z, l = Math.hypot(dx, dz) || 1; m.vx += (dx / l) * 18 * dt; m.vz += (dz / l) * 18 * dt; }); if (Q) glow(o.x, 0.6, o.z, o.r * 0.6, 0x7a3cff, 0, PULSE | ONE, 0.5);
+      if (o.kind === "hole") { for (const g of gems) { const dx = o.x - g.x, dz = o.z - g.z, d = Math.hypot(dx, dz); if (d < o.r * 2 && d > 0.3) { const k = Math.min(d, 7 * dt); g.x += (dx / d) * k; g.z += (dz / d) * k; } } // (b-sv7: the hole drinks the gems too; they spill out where it closes)
+        near(o.x, o.z, o.r * 1.4, (m) => { if (m.boss) return; const dx = o.x - m.x, dz = o.z - m.z, l = Math.hypot(dx, dz) || 1; m.vx += (dx / l) * 18 * dt; m.vz += (dz / l) * 18 * dt; }); if (Q) glow(o.x, 0.6, o.z, o.r * 0.6, 0x7a3cff, 0, PULSE | ONE, 0.5);
         if (o.t >= o.life) { ring(o.x, o.z, 0.4, o.r * 1.3, 0xb48cff, 0.4, EASE); sparks(o.x, 0.8, o.z, 0xb48cff, 14, 7); near(o.x, o.z, o.r * 1.3, (m) => hitMon(m, o.dmg, "hole", { kb: 7, fx: o.x, fz: o.z })); shakeK = Math.max(shakeK, 0.3); } }
       else if (o.kind === "spore") { if (o.t >= o.next) { o.next = o.t + o.tick; if (Math.hypot(R.x - o.x, R.z - o.z) < o.r) hurtHero(o.dmg, "spore"); if (Q) for (let k = 0; k < 3; k++) { const g = glow(o.x + (Math.random() - 0.5) * o.r * 1.6, 0.4, o.z + (Math.random() - 0.5) * o.r * 1.6, 0.7, 0x8aff5a, 0.8, GROW, 0.5); if (g) g.vy = 0.8; } } }
       else if (o.t >= o.next) { o.next = o.t + o.tick; near(o.x, o.z, o.r, (m) => hitMon(m, o.dmg, o.kind, o.kind === "ice" ? { slow: R.evo.zero ? 2.5 : 1.5 } : null));
@@ -734,6 +742,7 @@ export function createSurvivors(ctx) {
     else if (e.kind === "meteor") { const r = e.c; ring(e.a, e.b, 0.5, r * 1.2, 0xffd08a, 0.4, EASE); disc(e.a, e.b, r, 0xff7a3c, 0.3, 0, 0.6); glow(e.a, 0.8, e.b, r * 2.2, 0xff9a4a, 0.3, GROW, 0.8); sparks(e.a, 0.4, e.b, 0xffb070, 10, 6); decal(e.a, e.b, r * 0.8); shakeK = Math.max(shakeK, 0.25);
       near(e.a, e.b, r, (m) => hitMon(m, W("meteor", "dmg"), "meteor", { kb: 5, fx: e.a, fz: e.b })); snd("impact", 80); }
     else if (e.kind === "laser") { const a = e.a, len = e.b, w = e.c, dx = Math.sin(a), dz = Math.cos(a), x2 = R.x + dx * len, z2 = R.z + dz * len;
+      if (Q) beam(R.x + dx, 0.05, R.z + dz, x2, 0.05, z2, w * 1.4, 0x3a0a2a, 1.6, FLAT | HOLD, 0.35); // (b-sv7: the scorched line it leaves)
       beam(R.x, 1, R.z, x2, 1, z2, w * 2.2, 0xff3ad0, 0.32, PULSE, 0.9); beam(R.x, 1, R.z, x2, 1, z2, w * 0.7, 0xffe0fa, 0.26); glow(R.x + dx * 0.7, 1, R.z + dz * 0.7, 1.4, 0xff9af0, 0.25, GROW);
       for (const m of mons) { if (m.st === "die") continue; const ox = m.x - R.x, oz = m.z - R.z, along = ox * dx + oz * dz; if (along < 0 || along > len) continue; if (Math.abs(ox * dz - oz * dx) < w + m.r) { hitMon(m, e.d != null ? e.d : W("laser", "dmg"), e.d != null ? "skill" : "laser"); if (Q) glow(m.x, 1, m.z, 0.8, 0xff9af0, 0.2, GROW); } } }
     else if (e.kind === "spore") zone("spore", e.a, e.b, e.c, 4, e.d, 0.5);
@@ -764,6 +773,14 @@ export function createSurvivors(ctx) {
     else if (c.k === "evo") { R.evo[c.id] = 1; const e = EVOS.find((x) => x.id === c.id); slowMo = 1.2; if (FX) { ring(R.x, R.z, 0.4, 9, 0xffd23a, 0.9, EASE); sparks(R.x, 1.4, R.z, 0xffd23a, 30, 8); beam(R.x, 0, R.z, R.x, 10, R.z, 2.2, 0xffd23a, 0.9, PULSE, 0.9); } shakeK = Math.max(shakeK, 0.5); if (e) cutIn(icon(e.id, 64), T(e.name), T("EVOLVED!"), "#ffd23a"); } else if (c.k === "heal") heal(R.hpMax * 0.3); else if (c.k === "dmg") R.bonusDmg *= 1.1;
     snd(c.k === "evo" ? "jackpot" : "equip"); paintSlots(); if (FX) { ring(R.x, R.z, 0.3, 3, c.k === "evo" ? 0xffd23a : 0x8ff0ff, 0.5, EASE); sparks(R.x, 1.2, R.z, c.k === "evo" ? 0xffd23a : 0x8ff0ff, 12, 4); }
   }
+  /// b-sv7: a one-shot clip (CU_AS names only: dodge, emote-yes …), never over another one-shot
+  function heroOnce(clip, speed = 1) { try { if (hero && hero.play && !(hero.busy && hero.busy())) hero.play(clip, { once: true, speed }); } catch { /* no clip */ } }
+  /// would taking this card make an evolution ready? (the weapon at its top level and its partner passive full)
+  function evoNext(c) {
+    if (c.k === "w") { const e = EVOS.find((x) => x.from === c.id); return !!(e && !R.evo[e.id] && lvOf(c.id) + 1 >= MAX_LV && pv(e.with) >= maxLv(e.with)); }
+    if (c.k === "p") { const e = EVOS.find((x) => x.with === c.id); return !!(e && !R.evo[e.id] && pv(c.id) + 1 >= maxLv(c.id) && lvOf(e.from) >= MAX_LV); }
+    return false;
+  }
   function cardHtml(c, i) {
     let ic, name, line, tag;
     if (c.k === "w") { const w = WEAPONS[c.id], l = lvOf(c.id); ic = c.id; name = w.name; line = w.lv[l]; tag = l ? T("Lv {n}", { n: l + 1 }) : T("NEW"); }
@@ -774,7 +791,8 @@ export function createSurvivors(ctx) {
     const evo = c.k === "w" ? EVOS.find((e) => e.from === c.id) : c.k === "p" ? EVOS.find((e) => e.with === c.id) : null;
     const evoLine = evo && !R.evo[evo.id] ? `<span class="sv-evo-h">${icon(evo.id, 14)}${esc(c.k === "w" ? T("Evolves with {x}", { x: T(PASSIVES[evo.with].name) }) : T("Evolves {x}", { x: T(WEAPONS[evo.from].name) }))}</span>` : "";
     const rar = c.k === "heal" || c.k === "dmg" ? "p" : RARITY(c), pips = c.k === "w" || c.k === "p" ? Array.from({ length: c.k === "w" ? MAX_LV : maxLv(c.id) }, (_, k) => `<i class="${k < (c.k === "w" ? lvOf(c.id) : pv(c.id)) ? "on" : k === (c.k === "w" ? lvOf(c.id) : pv(c.id)) ? "nx" : ""}"></i>`).join("") : "";
-    return `<button type="button" class="sv-card r-${rar}" data-i="${i}" style="--d:${i * 0.07}s"><span class="sv-card-ic">${icon(ic, 40)}</span><span class="sv-card-t"><b>${esc(T(name))}</b>${line ? `<small>${esc(T(line))}</small>` : ""}${pips ? `<span class="sv-pips">${pips}</span>` : ""}${evoLine}</span>${tag ? `<em>${esc(tag)}</em>` : ""}<kbd>${i + 1}</kbd></button>`;
+    const nx = evoNext(c);
+    return `<button type="button" class="sv-card r-${rar}${nx ? " evo-next" : ""}" data-i="${i}" style="--d:${i * 0.07}s">${nx ? `<i class="sv-evo-next">✦ ${esc(T("Evolution ready next!"))}</i>` : ""}<span class="sv-card-ic">${icon(ic, 40)}</span><span class="sv-card-t"><b>${esc(T(name))}</b>${line ? `<small>${esc(T(line))}</small>` : ""}${pips ? `<span class="sv-pips">${pips}</span>` : ""}${evoLine}</span>${tag ? `<em>${esc(tag)}</em>` : ""}<kbd>${i + 1}</kbd></button>`;
   }
   let cards = null;
   function showCards(chest, gold) {
@@ -786,11 +804,18 @@ export function createSurvivors(ctx) {
     ui.cards.hidden = false; snd(chest ? "chest" : "level");
   }
   // b-svx: the cards, and under level-up cards the tools: draw again (2 a run), take a card out of this run (2), or skip (a little HP)
-  let cardsChest = false, cardsLoot = "";
+  let cardsChest = false, cardsLoot = "", cardsAt = 0;
+  /// b-sv7: the weapons and passives you carry, with their levels, so a card can be weighed against them
+  function ownRow() {
+    const w = Object.keys(R.w), p = Object.keys(R.p); if (!w.length && !p.length) return "";
+    const it = (id, l, max, evo) => `<span class="${evo ? "evo" : ""}${l >= max ? " max" : ""}">${icon(evo || id, 22)}<b>${evo ? "★" : l >= max ? "MAX" : l}</b></span>`;
+    return `<div class="sv-own"><div>${w.map((id) => { const e = EVOS.find((x) => x.from === id && R.evo[x.id]); return it(id, lvOf(id), MAX_LV, e && e.id); }).join("")}</div><div>${p.map((id) => it(id, pv(id), maxLv(id))).join("")}</div></div>`;
+  }
   // b-svx: a chest rolls how many upgrades it holds (a boss's: 3 or 5; Lucky Drop tips it), then you choose that many
   function chestRoll(gold) {
     const r = R.rnd(), lk = pv("lucky") + (R.up.luck || 0), n0 = gold ? (r < 0.6 - lk * 0.05 ? 3 : 5) : r < 0.05 + lk * 0.03 ? 5 : r < 0.3 + lk * 0.06 ? 3 : 1, n = R.daily && R.daily.mod === "lucky" ? Math.max(3, n0) : n0;
     R.chestN = n; R.chestLeft = n;
+    if (FX && R.chest0) { const c = n >= 5 ? 0xffd23a : n >= 3 ? 0x38b8ff : 0xffffff; beam(R.chest0.x, 0, R.chest0.z, R.chest0.x, 14, R.chest0.z, n >= 5 ? 2.6 : 1.8, c, 1.4, PULSE, 0.85); ring(R.chest0.x, R.chest0.z, 0.5, n >= 5 ? 6 : 4, c, 0.8, EASE); } // (b-sv7)
     ui.cards.innerHTML = `<div class="sv-roul${gold ? " gold" : ""}"><small>${esc(T("A chest!"))}</small><div class="sv-roul-n">${[1, 3, 5].map((k) => `<b data-k="${k}">×${k}</b>`).join("")}</div><p>${esc(T("Upgrades"))}</p></div>`; ui.cards.hidden = false;
     const bs = [...ui.cards.querySelectorAll(".sv-roul-n b")], seq = []; let k = 0; for (let i = 0; i < 9; i++) seq.push(i % 3); seq.push([1, 3, 5].indexOf(n)); 
     const step = () => { if (!on || mode !== "open") return; bs.forEach((b, j) => b.classList.toggle("on", j === seq[k])); snd("tap"); if (++k < seq.length) setTimeout(step, 70 + k * 18); else { bs[seq[k - 1]].classList.add("won"); snd(n >= 3 ? "jackpot" : "chest"); setTimeout(() => { if (on && mode === "open") showCards(true, gold); }, 650); } };
@@ -798,7 +823,7 @@ export function createSurvivors(ctx) {
   }
   function paintCards(chest, loot) {
     cardsChest = !!chest; cardsLoot = loot || ""; const tools = chest || !cards.some((c) => c.k === "w" || c.k === "p") ? "" : `<div class="sv-ctools${R.banMode ? " ban" : ""}"><button type="button" data-t="reroll" ${R.reroll ? "" : "disabled"}><i>⟳</i><span>${esc(T("Reroll"))}<b>${R.reroll}/${TOOLS.reroll}</b></span></button><button type="button" data-t="banish" ${R.banish ? "" : "disabled"} aria-pressed="${R.banMode}"><i>✕</i><span>${esc(T("Banish"))}<b>${R.banish}/${TOOLS.banish}</b></span></button><button type="button" data-t="skip" ${R.skip ? "" : "disabled"}><i>»</i><span>${esc(T("Skip"))}<b>${R.skip}/${TOOLS.skip}</b></span></button></div>${R.banMode ? `<p class="sv-ban-h">${esc(T("Tap a card to take it out of this run"))}</p>` : ""}`;
-    ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}${R.banMode ? " banning" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}${chest && R.chestN > 1 ? ` <i class="sv-cn">${R.chestN - R.chestLeft + 1}/${R.chestN}</i>` : ""}</h3>${cardsLoot}<div class="sv-cards-l">${cards.map(cardHtml).join("")}</div>${tools}</div>`;
+    ui.cards.innerHTML = `<div class="sv-cards-in${chest ? " chest" : ""}${R.banMode ? " banning" : ""}"><small>${esc(chest ? T("A chest!") : T("LEVEL UP!"))}</small><h3>${esc(chest ? T("Choose one") : T("Lv {n}", { n: R.lv }))}${chest && R.chestN > 1 ? ` <i class="sv-cn">${R.chestN - R.chestLeft + 1}/${R.chestN}</i>` : ""}</h3>${cardsLoot}<div class="sv-cards-l">${cards.map(cardHtml).join("")}</div>${tools}${ownRow()}</div>`; cardsAt = performance.now();
     ui.cards.querySelectorAll(".sv-card").forEach((b) => b.addEventListener("click", () => choose(Number(b.dataset.i))));
     ui.cards.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => cardTool(b.dataset.t)));
   }
@@ -811,7 +836,8 @@ export function createSurvivors(ctx) {
   function choose(i) {
     if (mode === "cards" && cards && cards[i] && R.banMode && !cardsChest) { const c = cards[i]; if (c.k === "w" || c.k === "p") { R.ban[c.id] = 1; R.banish--; R.banMode = false; snd("impact"); const rest = offer(false).filter((x) => !cards.some((y, j) => j !== i && y.k === x.k && y.id === x.id)); cards[i] = rest[0] || { k: "heal" }; paintCards(false, ""); } return; }
     if (mode !== "cards" || !cards || !cards[i]) return;
-    if (cardsChest && R.chestLeft > 1) { take(cards[i]); R.chestLeft--; cards = offer(true); paintCards(true, ""); return; } /* (the chest's next pick) */ take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
+    if (performance.now() - cardsAt < 400) return; // (b-sv7: a tap that was meant for the joystick)
+    if (cardsChest && R.chestLeft > 1) { take(cards[i]); R.chestLeft--; cards = offer(true); paintCards(true, ""); return; } /* (the chest's next pick) */ take(cards[i]); cards = null; ui.cards.hidden = true; mode = "play"; keys.clear(); joy.on = false; paintJoy(); heroOnce("emote-yes", 1.6); if (R.pendingLv > 0) { R.pendingLv--; setTimeout(() => { if (mode === "play") showCards(false); }, 140); } }
 
   // ---------------- the loop ----------------
   let maxSteps = 4, opening = null, fps30 = false, jsMs = 0, camK = 1, shakeK = 0, slowMo = 0, timeK = 1, camInit = false, acc = 0, lastNow = 0, frameMs = 16, qT = 0, qGood = 0;
@@ -889,6 +915,10 @@ export function createSurvivors(ctx) {
     // move
     let ix = 0, iz = 0; if (keys.has("a") || keys.has("arrowleft")) ix -= 1; if (keys.has("d") || keys.has("arrowright")) ix += 1; if (keys.has("w") || keys.has("arrowup")) iz -= 1; if (keys.has("s") || keys.has("arrowdown")) iz += 1;
     if (joy.on) { ix = joy.dx; iz = joy.dy; } const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
+    if (R.gemT > 0) R.gemT -= dt;
+    if (R.hp > 0 && R.hp < R.hpMax * 0.25) { snd("svHeart"); if (ui && !ui.root.classList.contains("low")) ui.root.classList.add("low"); } else if (ui && ui.root.classList.contains("low")) ui.root.classList.remove("low");
+    if (R.boss && (R.drumT = (R.drumT || 0) - dt) <= 0) { R.drumT = R.boss.rage ? 0.42 : 0.62; R.drumN = (R.drumN || 0) + 1; try { if (Snd && Snd.svDrum) Snd.svDrum(R.drumN % 4 === 0 ? 1 : 0); } catch { /* quiet */ } }
+    if (gems.length > 220 && (R.mergeT = (R.mergeT || 0) - dt) <= 0) { R.mergeT = 1; mergeGems(); }
     R.dashCd -= dt; R.hurtT -= dt; if (R.comboT > 0 && (R.comboT -= dt) <= 0) R.combo = 0; if (R.dashT > 0) R.dashT -= dt; if (R.streakT > 0 && (R.streakT -= dt) <= 0) R.streak = 0;
     const sp = stat.speed() * (R.dashT > 0 ? 3.4 : 1), a = Math.min(1, dt * (R.dashT > 0 ? 30 : 20));
     R.vx += (ix * sp - R.vx) * a; R.vz += (iz * sp - R.vz) * a; if (R.dashT > 0 && il < 0.1) { R.vx = Math.sin(R.face) * sp; R.vz = Math.cos(R.face) * sp; }
@@ -962,10 +992,10 @@ export function createSurvivors(ctx) {
     const mg = stat.magnet(), gk = 1 + 0.1 * pv("gold");
     for (let i = gems.length - 1; i >= 0; i--) { const g = gems[i]; g.t += dt; const dx = R.x - g.x, dz = R.z - g.z, d = Math.hypot(dx, dz);
       if (g.pull || d < mg) { g.pull = true; const s = Math.min(d, (8 + g.t * 6) * dt); g.x += (dx / (d || 1)) * s; g.z += (dz / (d || 1)) * s; }
-      if (d < 0.6) { R.xp += g.v * gk; gemFree.push(g); gems[i] = gems[gems.length - 1]; gems.pop(); snd("pick", 60); while (R.xp >= R.need) { R.xp -= R.need; R.lv++; R.need = needXp(R.lv); R.pendingLv++; } } }
+      if (d < 0.6) { R.xp += g.v * gk; gemFree.push(g); gems[i] = gems[gems.length - 1]; gems.pop(); R.gemRun = (R.gemT > 0 ? (R.gemRun || 0) : 0) + 1; R.gemT = 0.6; try { if (Snd && Snd.svGem && !reduce) Snd.svGem(R.gemRun); } catch { /* quiet */ } while (R.xp >= R.need) { R.xp -= R.need; R.lv++; R.need = needXp(R.lv); R.pendingLv++; } } }
     if (gems.length > 800) { gems[1].v += gems[0].v; gemFree.push(gems[0]); gems[0] = gems[gems.length - 1]; gems.pop(); }
     if (R.chest) { R.chest.t += dt; FX.chest.rotation.y = R.chest.t * 1.5; FX.chest.position.y = 0.2 + Math.sin(R.chest.t * 3) * 0.12; if (Q && Math.random() < dt * 10) glow(R.chest.x + (Math.random() - 0.5), 1 + Math.random(), R.chest.z + (Math.random() - 0.5), 0.3, 0xffd23a, 0.5, SHRINK);
-      if (Math.hypot(R.x - R.chest.x, R.z - R.chest.z) < 1.4) { const c = R.chest, gold = c.boss, col0 = gold ? 0xffd23a : 0x8fd8ff; R.chest = null; mode = "open"; opening = { t: 0, x: c.x, z: c.z };
+      if (Math.hypot(R.x - R.chest.x, R.z - R.chest.z) < 1.4) { const c = R.chest, gold = c.boss, col0 = gold ? 0xffd23a : 0x8fd8ff; R.chest = null; R.chest0 = { x: c.x, z: c.z }; mode = "open"; opening = { t: 0, x: c.x, z: c.z };
         beam(c.x, 0.2, c.z, c.x, 9, c.z, 2.4, col0, 1.0, PULSE, 0.9); beam(c.x, 0.2, c.z, c.x, 9, c.z, 0.7, 0xffffff, 0.9); ring(c.x, c.z, 0.3, 4, col0, 0.6, EASE); sparks(c.x, 1, c.z, col0, 24, 6); snd("chest");
         setTimeout(() => { if (on && mode === "open") runEvent({ kind: "chest", a: gold }); }, 750); if (R.pendingChest > 0) { R.pendingChest--; edgePoint(6); dropChest(ep.x, ep.z); } return; } }
     if (R.pendingLv > 0 && mode === "play") { R.pendingLv--; ring(R.x, R.z, 0.3, 4, 0x8ff0ff, 0.5, EASE); beam(R.x, 0, R.z, R.x, 9, R.z, 1.6, 0x8ff0ff, 0.7, PULSE, 0.8); beam(R.x, 0, R.z, R.x, 9, R.z, 0.5, 0xffffff, 0.6); showCards(false); }
@@ -1046,7 +1076,7 @@ export function createSurvivors(ctx) {
       beam(x0, 1, z0, x1, 1, z1, 1.2, 0x9b6bff, 0.4, 0, 0.9); beam(x0, 1, z0, x1, 1, z1, 0.35, 0xffffff, 0.3); R.x = x1; R.z = z1; R.hurtT = 0.6; camInit = true;
       for (const [x, z] of [[x0, z0], [x1, z1]]) { ring(x, z, 0.3, 3.5, 0xb48cff, 0.4, EASE); for (const m of mons) if (m.st !== "die" && (m.x - x) ** 2 + (m.z - z) ** 2 < 12.25) hitMon(m, 50, "skill", { kb: 8, fx: x, fz: z }); } }
   }
-  function dash() { if (mode !== "play" || !R || R.dashCd > 0) return; R.dashT = DASH_T; R.dashCd = DASH_CD; snd("dash"); ring(R.x, R.z, 0.3, 2.2, 0xbff6ff, 0.3, EASE, 0.7); }
+  function dash() { if (mode !== "play" || !R || R.dashCd > 0) return; R.dashT = DASH_T; R.dashCd = DASH_CD; snd("dash"); heroOnce("dodge", 1.4); ring(R.x, R.z, 0.3, 2.2, 0xbff6ff, 0.3, EASE, 0.7); }
   let lastHud = 0;
   function paintHud(t) {
     if (!ui || !R || t - lastHud < 0.1) return; lastHud = t;
@@ -1279,6 +1309,7 @@ export function createSurvivors(ctx) {
     debug: () => (R ? { mode, q: Q, fms: Math.round(frameMs), js: +jsMs.toFixed(2), anim: hero && hero.mixer ? (hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join(",")) : "", t: R.t, hp: R.hp, lv: R.lv, xp: R.xp, kills: R.kills, bosses: R.bosses, mons: mons.length, alive: mons.filter((m) => m.st !== "die").length, gems: gems.length, fx: FX ? FX.glow.n + FX.beam.n : 0, w: { ...R.w }, p: { ...R.p }, boss: R.boss && R.boss.id, x: R.x, z: R.z } : { mode }),
     start: () => startRun(), skip: (s) => { if (!R) return; R.t += s; R.eliteT = 0; }, choose: (i) => choose(i), give: (k, id, n = 1) => { if (!R) return; for (let i = 0; i < n; i++) take({ k, id }); }, hurt: (n) => { if (R) { R.hurtT = 0; R.shield = 0; hurtHero(n); } }, xp: (n) => { if (R) addGem(R.x, R.z, n); }, boss: (i) => { if (R) spawnBoss(i); }, killAll: () => { if (R) for (const m of mons) if (m.st !== "die") kill(m); }, mode: () => mode, cam: (k) => { camK = k; }, quality: (q) => { Qmax = Q = q; applyQ(); },
     line: (ids, st0) => { if (!R) return; clearPools(); R.still = true; R.spawnT = 1e9; R.eliteT = 1e9; R.bossNext = 9; R.w = {}; R.swarmAt = []; ids.forEach((id, i) => { const m = spawn(id, (i - (ids.length - 1) / 2) * 2.2, -3); if (m) { m.face = 0; m.born = 1; if (st0) { m.st = st0; m.at = 0; } } }); },
+    hero: async (i) => { pick.hero = i; await setHero(HEROES[i].id); return HEROES[i].id; }, // (tests: each hero in the run)
     chest: () => { if (R) dropChest(R.x + 1, R.z, true); }, pick: (k) => { if (R) dropPick(R.x + 0.4, R.z, k); }, freeze: () => (R ? R.freeze : 0), chestN: () => (R ? [R.chestN, R.chestLeft] : null), steps: (n) => { maxSteps = n; }, god: (on) => { if (R) R.god = !!on; }, // (tests: a slow test browser can let the game run at its true speed)
   };
 }
@@ -1307,3 +1338,7 @@ Object.assign(LW.tr, {"Arena coins": "Arena jetonu", "total {n}": "toplam {n}", 
 Object.assign(LW.ko, {"Combo": "콤보", "EVOLVED!": "진화!"});
 Object.assign(LW.zh, {"Combo": "连击", "EVOLVED!": "进化！"});
 Object.assign(LW.tr, {"Combo": "Kombo", "EVOLVED!": "EVRİMLEŞTİ!"});
+// b-sv7
+Object.assign(LW.ko, {"Evolution ready next!": "다음에 진화 가능!"});
+Object.assign(LW.zh, {"Evolution ready next!": "下次即可进化！"});
+Object.assign(LW.tr, {"Evolution ready next!": "Sonraki seçimde evrim!"});
