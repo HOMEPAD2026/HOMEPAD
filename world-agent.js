@@ -80,8 +80,8 @@ export function createAgentDim(ctx) {
   function paintChip() {
     if (!chip) { chip = document.createElement("button"); chip.type = "button"; chip.className = "wag-chip"; chip.hidden = true; document.body.appendChild(chip); chip.addEventListener("click", () => open(backs().length ? "jobs" : undefined)); }
     const a = A(), calm = ctx.calm(); let txt = "", k = "";
-    if (!a) { txt = "🤖 " + T("Meet your AI agent"); k = "new"; }
-    else if (backs().length) { txt = `${ICON[a.kind]} ${T("{n} is back! See what it brought", { n: a.name })}`; k = "back"; }
+    if (!a) { chip.hidden = true; return; } // no agent yet: no chip (the owner's call, 2026-10-23): the Citadel and Menu → AI Agent lead to the Genesis Lab
+    if (backs().length) { txt = `${ICON[a.kind]} ${T("{n} is back! See what it brought", { n: a.name })}`; k = "back"; }
     else if (away()) { const j = a.jobs.filter((x) => Date.now() < x.end).sort((p, q) => p.end - q.end)[0]; txt = `${ICON[a.kind]} ${a.name} · ${T(st.jobs[j.job] ? st.jobs[j.job].name : j.job)} · ${left(j.end - Date.now())}`; k = "away"; }
     else { txt = `${ICON[a.kind]} ${T("Talk to {n}", { n: a.name })}`; k = "here"; }
     chip.hidden = !calm; chip.textContent = txt; chip.className = "wag-chip " + k + " " + (a ? a.kind : "");
