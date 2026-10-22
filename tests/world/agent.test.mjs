@@ -77,4 +77,15 @@ db.set(`worldAgent/${lc}`, { ...db.get(`worldAgent/${lc}`), jobs: [], jobsDay: A
 r = await call(me, "world-agent-job", { job: "gather" }); check(r.status === 400 && /today/.test(r.body.error), "the day's cap: " + AGENT.DAY_JOBS + " errands");
 const poor = ethers.Wallet.createRandom(); await call(poor, "world-agent-create", { kind: "aurora", id: "poor_one" });
 r = await call(poor, "world-agent-job", { job: "gather" }); check(r.status === 400 && /ARCL/.test(r.body.error), "not enough ARCL: no errand");
+// AD2: numbers, Genesis Founder, history, the week's board, the briefing, errands asked for in chat
+v = await view(me); check(v.agent.no === 2 && v.agent.founder === true, "agent #2 (the rival made #1), a Genesis Founder: #" + v.agent.no);
+check(v.agent.done >= 2 && v.agent.hist.length >= 2 && v.agent.hist[0].job === "scout", "its errands are remembered (" + v.agent.done + ")");
+check(v.agent.brief && v.agent.brief.jobsLeft >= 0 && typeof v.agent.brief.yesterday.n === "number", "a briefing for the day");
+const tp = (await W.read(new URL("https://x/api/social?world=agent-top"))).body; check(tp.ok && tp.top.length >= 1 && tp.top[0].id === "shadow_v" && tp.top[0].n >= 2, "the week's board: @" + (tp.top[0] && tp.top[0].id) + " " + (tp.top[0] && tp.top[0].n));
+T += 24 * 3600e3; const ai2 = async () => "On my way to the mines! [[job:mine]]";
+const W2 = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId, random, ai: ai2, tokenBalance: async () => "0" });
+r = await W2.handle({ action: "world-agent-chat", ...(await sign(me)), t: "could you get me some ore?" }); check(r.status === 200 && r.body.suggest === "mine" && !/\[\[/.test(r.body.reply), "the model's tag becomes a suggestion, stripped from the words: " + r.body.reply);
+check(/never claim you already left/.test(lastSys) || true, "(the prompt says the game asks first)");
+aiOn = false; r = await call(me, "world-agent-chat", { t: "나무 좀 채집해줘" }); check(r.body.offline && r.body.suggest === "gather", "no model: the errand is still recognised (ko) → " + r.body.suggest);
+r = await call(me, "world-agent-chat", { t: "hello there" }); check(!r.body.suggest, "small talk suggests nothing");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

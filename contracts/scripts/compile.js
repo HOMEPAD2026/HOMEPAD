@@ -41,7 +41,9 @@ function importCallback(importPath) {
   return { error: `File not found: ${importPath}` };
 }
 
-const solFiles = findSolFiles(CONTRACTS_DIR);
+// ONLY=AgentDimension,ArciaAgent compiles just those files (plus mocks/ and test-imports/): much faster than all of them
+const ONLY = (process.env.ONLY || "").split(",").filter(Boolean);
+const solFiles = findSolFiles(CONTRACTS_DIR).filter((f) => !ONLY.length || /[\\/](mocks|test-imports)[\\/]/.test(f) || ONLY.includes(path.basename(f, ".sol")));
 const sources = {};
 for (const f of solFiles) {
   const rel = "contracts/" + path.relative(CONTRACTS_DIR, f).replace(/\\/g, "/");
