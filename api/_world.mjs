@@ -39,6 +39,7 @@ import { makeJump } from "./_world-jump.mjs";
 import { makeMine } from "./_world-mine.mjs";
 import { makeWelcome } from "./_world-welcome.mjs";
 import { makeJur } from "./_world-jur.mjs";
+import { makeAgentDim } from "./_world-agent.mjs";
 import { makeSwap } from "./_world-swap.mjs";
 import { makeSurvivors } from "./_world-survivors.mjs";
 import { makeRings } from "./_world-rings.mjs";
@@ -293,6 +294,9 @@ export function make(deps) {
   let dino = null;
   const jur = makeJur({ ...deps, json, now, signer, isGM, mine, credit: shop.credit, isoWeek: shop.isoWeek, dino: { assist: (w) => dino.assist(w), hunt: (w, k) => dino.hunt(w, k), gather: (w) => dino.gather(w) } });
   dino = makeDino({ ...deps, json, now, signer, debit: shop.debit, level: async (w) => levelOfSave(await saveOf(w)), jur: { take: (w, need) => jur.take(w, need) } });
+  // AGENT DIMENSION: your agent, its chat and its errands (api/_world-agent.mjs)
+  const agentDim = makeAgentDim({ ...deps, json, now, signer, debit: shop.debit, jur: { give: (w, m) => jur.give(w, m) }, mine: { addOre: (w, o) => mine.addOre(w, o) },
+    level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
   // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
   const launch = makeLaunch({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
   // invite a friend: both rewarded when the friend reaches level 5 (api/_world-refer.mjs)
@@ -557,6 +561,8 @@ export function make(deps) {
       if (w === "land" || w === "land-refunds") return land.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
       if (w === "jur-boss" || w === "jur-top" || w === "jur-camp") return jur.read(w, url);
+      if (w === "agent-id") return agentDim.idFree(url.searchParams.get("id"));
+      if (w === "agent") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return agentDim.view(lc(a)); }
       if (w === "market" || w === "market-me" || w === "arcl-tx") return market.read(w, url);
       if (w === "coins") return coins.read(w);
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }
@@ -586,7 +592,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

@@ -310,6 +310,11 @@ export function makeJur(deps) {
     const inv = await invOf(w); if (!Object.entries(need).every(([k, n]) => (inv.mat[k] || 0) >= n)) return { err: "not enough", need };
     for (const [k, n] of Object.entries(need)) inv.mat[k] -= n; await setDoc(`worldJurInv/${w}`, inv); return { ok: true, inv: pub(inv) };
   }
+  /// materials brought in from outside (an agent's errand, api/_world-agent.mjs): only the kinds the pack knows
+  async function give(w, got) {
+    const inv = await invOf(w); for (const [k, n] of Object.entries(got || {})) if (MATS.includes(k) && n > 0) inv.mat[k] = (inv.mat[k] || 0) + Math.floor(n);
+    await setDoc(`worldJurInv/${w}`, inv); return { ok: true, inv: pub(inv) };
+  }
   const hasAll = (inv, need, ore) => Object.entries(need).every(([k, n]) => (ORE.includes(k) ? (ore && ore[k]) || 0 : inv.mat[k] || 0) >= n);
   async function pay(w, inv, need) {
     const oreNeed = Object.fromEntries(Object.entries(need).filter(([k]) => ORE.includes(k)));
@@ -439,7 +444,7 @@ export function makeJur(deps) {
     return json(200, { ok: true, arcl: n });
   }
   return {
-    take,
+    take, give,
     view,
     read,
     async handle(b) {

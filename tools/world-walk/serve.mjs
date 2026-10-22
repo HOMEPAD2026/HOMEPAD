@@ -1,7 +1,7 @@
 // tools/world-walk/serve.mjs — a local stand-in for the site, for the browser walk (walk.mjs): the repo's files, and
 // /api/social's World calls answered by api/_world.mjs on an in-memory store (the same harness the tests use). A fresh
 // random test wallet signs in each run; its session is written to SESS (default: a temp file) for the walk to use.
-// Seed routes for tests: /seedsave?lv=6 · /seedsurv?coins · /seeddinos · /seedbuddy?lv&days&name · /seedarcl · /seedmkt?n · /seedjur[?full=1&cloak=0] · /skew?ms · /skewegg
+// Seed routes for tests: /seedsave?lv=6 · /seedsurv?coins · /seeddinos · /seedbuddy?lv&days&name · /seedarcl · /seedagent · /seedmkt?n · /seedjur[?full=1&cloak=0] · /skew?ms · /skewegg
 //   node tools/world-walk/serve.mjs            (PORT=8858)
 import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.."); process.chdir(ROOT);
@@ -49,6 +49,7 @@ http.createServer(async (req, res) => {
         db.set(`worldMktItem/${id}`, { id, creator: w, name: ["Builder Kim", "Mira", "Tomo"][i % 3], title: ["Blue cottage", "Watch tower", "Sky garden"][i % 3], code, price: [1500, 4200, 9000][i % 3], bricks: 24, sold: i * 3, at: t - i * 6e4, status: "live" });
         db.set(`worldMktCreator/${w}`, { items: [id] }); ids.push(id); }
       const ix = db.get("worldStats/mktIndex") || {}; db.set("worldStats/mktIndex", { ids: [...ids, ...(ix.ids || [])] }); return send({ status: 200, body: { ok: true, ids } }); }
+    if (u.pathname === "/seedagent") { db.delete(`worldAgent/${sess.wallet}`); return send({ status: 200, body: { ok: true } }); } // AGENT DIMENSION: start without an agent
     if (u.pathname === "/seedarcl") { db.set(`worldArclBal/${sess.wallet}`, { bal: 250000, earned: 250000 }); return send({ status: 200, body: { ok: true } }); }
     if (u.pathname === "/seedjur") { const k = `worldJurInv/${sess.wallet}`, v = db.get(k) || {}; v.mat = { ...(v.mat || {}), wood: 60, stone: 40, flint: 6, fiber: 20, meat: 3, berries: 4, hardwood: 5 }; if (u.searchParams.get("full")) { v.tools = { axe: 2, spear: 1, rod: 1, armor: 1, cloak: Number(u.searchParams.get("cloak") ?? 1) }; v.mat = { ...v.mat, wood: 200, stone: 80, fiber: 60, hide: 20, bone: 12, rope: 4, torch: 3, bola: 3, berries: 20, reed: 10, antidote: 1 }; } db.set(k, v); return send({ status: 200, body: { ok: true } }); }
     if (u.pathname === "/api/social") {

@@ -73,6 +73,8 @@ export const SHOPS = [
     line: "Weapons, armour and accessories for ARCL. Bring scrap to enhance your gear." },
 ];
 export const PORTAL = { id: "platform", name: "Platform World", theta: 14, phi: 265 };
+// AGENT DIMENSION's Citadel (world-play.js agentGate): its ground is kept clear of trees and crystals (scatter)
+export const AGENT_GATE = { theta: 21.8, phi: 327, clear: 8 };
 // The town spread out from the plaza (b403): in the flat world everything between the plaza's edge (12°) and 60° moves
 // out along its own spoke by SPREAD.k (and SPREAD.c degrees more), so the halls, Coin City and the houses stand apart instead of crowding round
 // the spawn point. Bearings stay; what lies past 60° (the far countryside, the hunting grounds) doesn't move.
@@ -410,7 +412,7 @@ function scatter(g, n, maxTheta = 180) {
   for (let i = 0; i < n; i++) {
     const th = 14 + rr() * (maxTheta - 14), ph = rr() * 360;
     if (SHOPS.some((s) => angDist(th, ph, s.theta, s.phi) < 9) || TOWN.some((t) => angDist(th, ph, t[1], t[2]) < 5)) continue;
-    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
+    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || angDist(th, ph, AGENT_GATE.theta, AGENT_GATE.phi) < AGENT_GATE.clear || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
     placeOn(o, dirOf(th, ph), R - 0.05); o.rotateY(rr() * 6.28); o.scale.setScalar(0.8 + rr() * 0.7);
     if (rr() < 0.45) o.rotateZ((rr() - 0.5) * 0.4);
     o.updateMatrix(); (rr() < 0.45 ? spots.crys : spots.tree)[i % 3].push(o.matrix.clone());
@@ -1087,6 +1089,19 @@ function reacts(obj) {
   };
 }
 const charCache = new Map();
+// ---------------- AGENT DIMENSION: the three agents (Meshy, packed by tools/pack-hero.mjs into models/world/agents) ----------------
+export const AGENTS = {
+  aurora: { name: "AURORA", glow: 0, fx: 0xffc94a, agent: true, color: "#ffc94a" }, // Haloheart Automaton: caretaker & coordinator
+  orion: { name: "ORION", glow: 0, fx: 0x46b4ff, agent: true, color: "#46b4ff" }, // Aurelia Prime: strategist & operator
+  vex: { name: "VEX", glow: 0, fx: 0xb15cff, agent: true, color: "#b15cff" }, // Void Neon Knight: analyst & hunter
+};
+const agentSrc = new Map();
+export async function makeAgent(kind, ver = "") {
+  const spec = AGENTS[kind]; if (!spec) throw new Error("no agent " + kind);
+  let src = agentSrc.get(kind);
+  if (!src) { src = await new Promise((res, rej) => gltfLoader().load(`/models/world/agents/agent-${kind}.glb${ver}`, res, undefined, rej)); agentSrc.set(kind, src); }
+  return makeCustom(src, spec, ver);
+}
 export async function makeCharacter(id, ver = "", outfit = null) {
   const ab = arcbotOf(id);
   if (ab) { const b = makeArcBot(THREE, withOutfit(ab, outfit)); shadowy(b.obj, true, false); toonAll(b.obj); if (charHook) charHook(b.obj, true); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
@@ -1147,7 +1162,7 @@ const KK_TO_MIX = { hips: "Hips", spine: "Spine", chest: "Spine2", head: "Head",
 const KK_DAMP = { head: 0.4, chest: 0.85 }, I0 = new THREE.Quaternion();
 const KK_BORROW = { sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle", "emote-yes": "Waving", celebrate: "Cheering" };
 const kkBorrowed = new WeakMap();
-async function kkBorrow(src, idleClip, ver) {
+async function kkBorrow(src, idleClip, ver, map = KK_BORROW) {
   if (kkBorrowed.has(src)) return kkBorrowed.get(src);
   const p = (async () => {
     const g = await kkFile(ver), kk = SkeletonUtils.clone(g.scene), hero = SkeletonUtils.clone(src.scene);
@@ -1175,7 +1190,7 @@ async function kkBorrow(src, idleClip, ver) {
     const kFoot = kkB["foot.l"] ? kkB["foot.l"].getWorldPosition(new THREE.Vector3()).y : 0, hFoot = hB["foot.l"] ? hB["foot.l"].getWorldPosition(new THREE.Vector3()).y : 0;
     const ratio = Math.abs(hHip0.y - hFoot) / Math.max(1e-4, Math.abs(kHip0.y - kFoot));
     const out = {}, d = new THREE.Quaternion(), w = new THREE.Quaternion(), pw = new THREE.Quaternion(), v = new THREE.Vector3();
-    for (const [as, name] of Object.entries(KK_BORROW)) {
+    for (const [as, name] of Object.entries(map)) {
       const c = g.animations.find((x) => x.name === name); if (!c) continue;
       const n = Math.max(2, Math.round(c.duration * 30) + 1), times = new Float32Array(n), q = {}, hp = new Float32Array(n * 3);
       for (const k of order) q[k] = new Float32Array(n * 4);
@@ -1196,6 +1211,21 @@ async function kkBorrow(src, idleClip, ver) {
     return out;
   })().catch((e) => { console.warn("hero moves", e); return {}; });
   kkBorrowed.set(src, p); return p;
+}
+// AGENT DIMENSION's agents (Meshy files with only Walking and Running): every other move comes from the KayKit file
+const KK_AGENT = { ...KK_BORROW, idle: "Idle_A", jump: "Jump_Full_Short", attack: "Melee_1H_Attack_Slice_Horizontal", hit: "Hit_A", die: "Death_A", cast: "Ranged_Magic_Raise",
+  shoot: "Ranged_Magic_Shoot", dodge: "Dodge_Forward", block: "Melee_Block", "emote-no": "Idle_B", lie: "Lie_Idle", "pick-up": "PickUp", mine: "Pickaxing", chop: "Chopping", dig: "Digging" };
+/// a standing pose from a walk: each bone's turn averaged over the cycle (the legs and arms swing either side of it)
+function restFromWalk(walk) {
+  const tracks = walk.tracks.map((t) => {
+    const n = t.getValueSize(), k = t.times.length, v = t.values, out = new Float32Array(n);
+    if (t.name.endsWith(".quaternion")) { const a = new THREE.Quaternion().fromArray(v, 0), q = new THREE.Quaternion(); let x = 0, y = 0, z = 0, w = 0;
+      for (let i = 0; i < k; i++) { q.fromArray(v, i * 4); const sg = q.dot(a) < 0 ? -1 : 1; x += q.x * sg; y += q.y * sg; z += q.z * sg; w += q.w * sg; }
+      new THREE.Quaternion(x, y, z, w).normalize().toArray(out); }
+    else for (let i = 0; i < k; i++) for (let c = 0; c < n; c++) out[c] += v[i * n + c] / k;
+    const T = t.constructor; return new T(t.name, [0, 1], [...out, ...out]);
+  });
+  return new THREE.AnimationClip("rest_pose", 1, tracks);
 }
 const KK_AS = { idle: "Idle_A", walk: "Walking_A", sprint: "Running_A", jump: "Jump_Full_Short", fall: "Jump_Idle", sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle",
   die: "Death_A", "pick-up": "PickUp", "emote-yes": "Waving", "emote-no": "Idle_B", "interact-right": "Interact", celebrate: "Cheering", cheer: "Cheering", fidget: "Idle_B",
@@ -1321,10 +1351,12 @@ function makeCustom(src, spec = null, ver = "") {
   // each game name's clips, best first (the plain "Walk" before "Walk_Back", then the shorter name)
   const clips = cuClipsOf(src), nm = (c) => String(c.name || "").replace(/^.*\|/, "").toLowerCase().replace(/[^a-z0-9]+/g, "_"), lists = {};
   for (const [n, [re]] of Object.entries(CU_AS)) lists[n] = clips.filter((c) => re.test(nm(c))).sort((a, b) => CU_SIDE.test(nm(a)) - CU_SIDE.test(nm(b)) || nm(a).length - nm(b).length);
+  const rest = spec && spec.agent && !lists.idle.length && lists.walk.length ? restFromWalk(lists.walk[0]) : null; if (rest) lists.idle = [rest]; // an agent: stands still until its idle is borrowed
   if (!lists.idle.length && clips.length) lists.idle = [clips.find((c) => !Object.values(lists).some((l) => l.includes(c))) || clips[0]]; // no "idle": a clip nothing else took, else the first
   const pick = (n, seen = 0) => { const l = lists[n], d = CU_AS[n]; return (l && l[0]) || (d && d[1] && seen < 3 ? pick(d[1], seen + 1) : null); };
   // the moves its file lacks (sit, wave, cheer), borrowed when they're ready (kkBorrow); its own clips first
-  kkBorrow(src, lists.idle[0], ver).then((b) => { for (const [n, c] of Object.entries(b)) if (!lists[n] || !lists[n].length) lists[n] = [c]; if (b.celebrate && !(lists.cheer && lists.cheer.length)) lists.cheer = [b.celebrate]; }).catch(() => {});
+  kkBorrow(src, lists.idle[0], ver, rest ? KK_AGENT : KK_BORROW).then((b) => { for (const [n, c] of Object.entries(b)) if (!lists[n] || !lists[n].length || (n === "idle" && lists.idle[0] === rest)) lists[n] = [c]; if (b.celebrate && !(lists.cheer && lists.cheer.length)) lists.cheer = [b.celebrate];
+    if (rest && b.idle && cur && cur.getClip() === rest && !oneShot) run(act(b.idle)); }).catch(() => {});
   const mixer = new THREE.AnimationMixer(inner), acts = new Map();
   const act = (c) => { if (!c) return null; if (!acts.has(c)) acts.set(c, mixer.clipAction(c)); return acts.get(c); };
   let cur = null, oneShot = null;

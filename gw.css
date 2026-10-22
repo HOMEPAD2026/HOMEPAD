@@ -478,6 +478,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-sheet-x { position: sticky; top: 12px; float: right; margin: 12px 12px 0 0; z-index: 2; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .5); color: #fff; font: 700 16px/1 var(--ui); }
 .gw-sheet-hero { position: relative; aspect-ratio: 16 / 9; overflow: hidden; overflow: clip; } /* clip, not hidden: hidden made it a box that steps around the floated close button (52px short, and its top cut) */
 .gw-sheet-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gw-sheet-hero.wide { aspect-ratio: 3 / 1; } /* a 3:1 banner shown whole, not cropped to 16:9 */
 .gw-sheet-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, #0c1d4c); }
 .gw-sheet-in { display: grid; gap: 12px; padding: 4px 22px 26px; }
 .gw-sheet-in h3 { margin: 0; font: italic 900 clamp(28px, 7vw, 40px)/1 var(--disp); }
@@ -571,3 +572,4 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-arcl b { padding: 4px 9px; border-radius: 8px; background: rgba(255, 210, 58, .14); box-shadow: 0 0 0 1px rgba(255, 210, 58, .45) inset; color: #ffd23a; font: 900 11px/1 var(--ui); letter-spacing: 1px; }
 .gw-arcl .gw-fee { flex-basis: 100%; max-width: 640px; margin: 2px auto 0; font: 600 12px/1.5 var(--ui); color: #ffcf8a; }
 .gw-arcl .gw-coins-link { flex-basis: 100%; color: var(--cy); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.gw-sheet-hero.wide::after { background: linear-gradient(180deg, transparent 78%, #0c1d4c); }
