@@ -73,8 +73,10 @@ export const SHOPS = [
     line: "Weapons, armour and accessories for ARCL. Bring scrap to enhance your gear." },
 ];
 export const PORTAL = { id: "platform", name: "Platform World", theta: 14, phi: 265 };
-// AGENT DIMENSION's Citadel (world-play.js agentGate): its ground is kept clear of trees and crystals (scatter)
-export const AGENT_GATE = { theta: 21.8, phi: 327, clear: 8 };
+// AGENT DIMENSION's Citadel (world-play.js agentGate): east (95°: its walk passes beside the windmill and the Exchange, not into them), 78 m out, between Airdrop Fields and Honeypot Swamp
+// (the town's solids, the hunting grounds, Coin City's lots and the roads out were scanned for 26 m of open ground);
+// its ground is kept clear of trees and crystals (scatter)
+export const AGENT_GATE = { theta: 103.7, phi: 95, clear: 18, h: 20, r: 12 }; // (theta past SPREAD.max: not spread, so 103.7° is 78 m out)
 // The town spread out from the plaza (b403): in the flat world everything between the plaza's edge (12°) and 60° moves
 // out along its own spoke by SPREAD.k (and SPREAD.c degrees more), so the halls, Coin City and the houses stand apart instead of crowding round
 // the spawn point. Bearings stay; what lies past 60° (the far countryside, the hunting grounds) doesn't move.

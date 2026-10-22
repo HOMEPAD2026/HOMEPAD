@@ -449,6 +449,9 @@ st.on((dt) => { if (fxPost) fxPost.tick(dt, sunDir); });
 // worn paths from the plaza out to each hunting ground's gate (the ground shows packed earth, the grass leaves them bare)
 const WORN_PATHS = RPG.ZONES.filter((z) => Math.hypot(z.x, z.z) < 260).map((z) => { const d = Math.hypot(z.x, z.z), ux = z.x / d, uz = z.z / d, a = K.flatR ? K.flatR(11) + 1 : 16; return [ux * a, uz * a, ux * (d - z.r + 0.5), uz * (d - z.r + 0.5)]; });
 { const v = MV.MINE_VILLAGE, d = Math.hypot(v.x, v.z), a = K.flatR ? K.flatR(11) + 1 : 16; WORN_PATHS.push([v.x / d * a, v.z / d * a, v.x / d * (d - v.r + 0.5), v.z / d * (d - v.r + 0.5)]); } // the walk out to the Mining Village
+// AGENT DIMENSION's Citadel: where it stands on the flat ground, and the walk out to its door
+const AGW = (() => { const g = K.AGENT_GATE, d = K.flatR ? K.flatR(g.theta) : 78, a = THREE.MathUtils.degToRad(g.phi); return { x: d * Math.sin(a), z: -d * Math.cos(a), d, r: g.r }; })();
+{ const a = K.flatR ? K.flatR(11) + 1 : 16, ux = AGW.x / AGW.d, uz = AGW.z / AGW.d; WORN_PATHS.push([ux * a, uz * a, ux * (AGW.d - AGW.r + 1), uz * (AGW.d - AGW.r + 1)]); }
 const groundG = K.makeGround(); planet.add(groundG);
 { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) LOOK.groundLook(gm.material, { low: S.quality === "low" || S.quality === "saver", paths: WORN_PATHS }); }
 // far shadows (world-look.js): halls, trees and the grounds' props shade the ground past the real shadow's reach
@@ -591,21 +594,31 @@ K.placeOn(jurGate, K.dirOf(K.spreadTheta(14), 205)); planet.add(jurGate); spins.
 // the gate's light hangs on the planet itself: inside the gate it went out whenever far culling hid the gate, and a light
 // coming and going makes every lit shader in town again (on a phone a blank, half-drawn screen near the portal)
 if (jurGate.userData.glow) { planet.updateMatrixWorld(true); planet.attach(jurGate.userData.glow); }
-// AGENT DIMENSION's gate: the Nexus Infinity Citadel (the owner's model, models/world/agents/citadel.glb), on the open
-// ground at 327° between ARCIA Studio and the Launch District (172° put it on the Locker; the town's solids were scanned
-// for a clear 7 m), facing the plaza; its sign and a beam show from the fountain at once,
-// the building follows when its file is in. Walk up to it: the agent window (world-agent.js) opens.
-const agentGate = new THREE.Group(); agentGate.name = "agent-gate"; agentGate.userData.radius = 5.4;
+// AGENT DIMENSION's gate: the Nexus Infinity Citadel (the owner's model, models/world/agents/citadel.glb), 20 m tall, due
+// east beyond the Exchange (K.AGENT_GATE: open ground, off every road out), facing the plaza. Seen from afar: a sign
+// board over it that always faces you and isn't fogged (the town's name labels fade out past 42 m), a 70 m beam, a worn
+// path to its door and a mark on the minimap. Walk up to it: the agent window (world-agent.js) opens.
+const agentGate = new THREE.Group(); agentGate.name = "agent-gate"; agentGate.userData.radius = K.AGENT_GATE.r;
 K.placeOn(agentGate, K.dirOf(K.spreadTheta(K.AGENT_GATE.theta), K.AGENT_GATE.phi)); planet.add(agentGate);
-{ const pad = new THREE.Mesh(new THREE.CylinderGeometry(6.4, 6.8, 0.25, 48), new THREE.MeshStandardMaterial({ color: 0x14203a, metalness: 0.6, roughness: 0.35, emissive: 0x0a2a55, emissiveIntensity: 0.6 })); pad.position.y = 0.12; agentGate.add(pad);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(6.55, 0.08, 8, 96), new THREE.MeshBasicMaterial({ color: 0x5fd3ff, toneMapped: false })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.26; agentGate.add(rim);
-  const sign = K.label(TW("AGENT DIMENSION"), { accent: "#5fd3ff", size: 1.15, sub: TW("Pre-launch · free AI agent") }); sign.position.set(0, 9, 3.5); agentGate.add(sign); agentGate.userData.sign = sign;
-  const beam = K.makeBeacon ? K.makeBeacon(0x5fd3ff, 26) : null; if (beam) { agentGate.add(beam); spins.push(beam.userData.spin); }
-  spins.push((dt, t) => { rim.material.color.setHSL(0.55 + Math.sin(t * 0.8) * 0.04, 1, 0.6); sign.position.y = 9 + Math.sin(t * 1.3) * 0.15; }); }
+{ const R0 = K.AGENT_GATE.r + 1.5, H = K.AGENT_GATE.h;
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(R0, R0 + 0.5, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x14203a, metalness: 0.6, roughness: 0.35, emissive: 0x0a2a55, emissiveIntensity: 0.6 })); pad.position.y = 0.15; agentGate.add(pad);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(R0 + 0.15, 0.12, 8, 128), new THREE.MeshBasicMaterial({ color: 0x5fd3ff, toneMapped: false })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.32; agentGate.add(rim);
+  // the sign: a board drawn once (its words in the player's language), turned to the camera as it's drawn
+  const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 288; const g = cv.getContext("2d");
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  const bg = g.createLinearGradient(0, 0, 0, 288); bg.addColorStop(0, "rgba(10,24,56,.92)"); bg.addColorStop(1, "rgba(4,10,28,.92)"); rr(8, 8, 1008, 272, 44); g.fillStyle = bg; g.fill();
+  g.lineWidth = 8; const bd = g.createLinearGradient(0, 0, 1024, 0); bd.addColorStop(0, "#ffc94a"); bd.addColorStop(0.5, "#5fd3ff"); bd.addColorStop(1, "#b15cff"); g.strokeStyle = bd; g.stroke();
+  g.textAlign = "center"; g.textBaseline = "middle"; g.shadowColor = "#5fd3ff"; g.shadowBlur = 24; g.fillStyle = "#ffffff"; g.font = "900 118px Sora, 'Segoe UI', sans-serif"; g.fillText("AGENT DIMENSION", 512, 118, 960);
+  g.shadowBlur = 0; g.fillStyle = "#ffe066"; g.font = "800 54px Sora, 'Segoe UI', sans-serif"; g.fillText(TW("Pre-launch · free AI agent"), 512, 222, 940);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(18, 5.06), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false })); board.position.set(0, H * 0.7, 8); board.renderOrder = 11; agentGate.add(board); agentGate.userData.sign = board;
+  const qp = new THREE.Quaternion(); board.onBeforeRender = (r, sc, cam) => { agentGate.getWorldQuaternion(qp); board.quaternion.copy(qp.invert().multiply(cam.quaternion)); board.updateMatrixWorld(); };
+  const beam = K.makeBeacon ? K.makeBeacon(0x5fd3ff, 70) : null; if (beam) { agentGate.add(beam); spins.push(beam.userData.spin); }
+  spins.push((dt, t) => { rim.material.color.setHSL(0.55 + Math.sin(t * 0.8) * 0.04, 1, 0.6); board.position.y = H * 0.7 + Math.sin(t * 1.3) * 0.25; }); }
 setTimeout(() => { try { K.gltfLoader().load(`/models/world/agents/citadel.glb${VER}`, (g) => {
-  const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = 10 / (sz.y || 1);
-  o.scale.setScalar(k); o.position.set(-(box.min.x + sz.x / 2) * k, 0.2 - box.min.y * k, -(box.min.z + sz.z / 2) * k);
-  o.traverse((m) => { if (m.isMesh) { m.castShadow = !lowGfx; m.receiveShadow = false; } }); agentGate.add(o); agentGate.userData.model = o; if (labels) labels.dirty = true;
+  const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = K.AGENT_GATE.h / (sz.y || 1);
+  o.scale.setScalar(k); o.position.set(-(box.min.x + sz.x / 2) * k, 0.3 - box.min.y * k, -(box.min.z + sz.z / 2) * k);
+  o.traverse((m) => { if (m.isMesh) { m.castShadow = !lowGfx; m.receiveShadow = false; } }); agentGate.add(o); agentGate.userData.model = o; if (labels) labels.dirty = true; farCull.rescan(); if (gshadow) gshadow.rebakeSoon();
 }, undefined, (e) => console.warn("citadel", e)); } catch (e) { console.warn("citadel", e); } }, 3500);
 const isleGate = K.makePortal(T("My Island")); K.placeOn(isleGate, K.dirOf(K.spreadTheta(14), 140)); planet.add(isleGate); spins.push(...isleGate.userData.spin);
 isleGate.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.transparent) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0x7ee0a0), 0.5); o.material.emissive.lerp(new THREE.Color(0x7ee0a0), 0.5); } });
@@ -1657,7 +1670,7 @@ function nearest() {
   gv.doors.forEach((d) => { if (d.userData.game === "defense") consider(d, "defense", {}, 2.4); else if (d.userData.game === "jump") consider(d, "jump", {}, 2.4); else if (d.userData.game === "beat") consider(d, "beat", {}, 2.4); else if (d.userData.game === "surv") consider(d, "surv", {}, 2.6); else if (d.userData.game === "rings") consider(d, "rings", {}, 2.6); else if (d.userData.game === "poker") consider(d, "poker", {}, 2.6); });
   consider(isleGate, "isle", {}, 2.4);
   consider(jurGate, "jurassic", {}, 2.6);
-  consider(agentGate, "agentdim", {}, 2.8);
+  consider(agentGate, "agentdim", {}, 3.2);
   if (plazaNow && (plazaNow.isle || plazaNow.coin)) consider(screen, "screen", {}, 2.6);
   shops.forEach((g) => consider(g, "shop", { spec: g.userData.spec }, 2.8));
   coinBuildings.forEach((g) => consider(g, "coin", { coin: g.userData.coin }, 2.4));
@@ -2541,6 +2554,7 @@ function drawMini() {
     if (race) { put(race.pad, "#2f86ff", 5); const rt = race.target(); if (rt) { const q = put(rt, "", 0); mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(q.px, q.py, 9, 0, 6.283); mg.stroke(); } }
     shops.forEach((g) => put(g, hex(g.userData.spec.color), 9, g.userData.spec.name[0]));
     put(mv.door, "#ffc23a", 9, "⛏"); // the ARCL Mine's tunnel
+    put(agentGate, "#5fd3ff", 10, "∞"); // AGENT DIMENSION's Citadel
     fighters.forEach((g) => put(g, g.userData.live ? "#ff4d6d" : "rgba(255,77,109,.45)", g.userData.live ? 6 : 4));
   }
   if (questTarget && mode === "hub") { const p = put(questTarget, "", 0); if (p) { mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(p.px, p.py, 12, 0, 6.283); mg.stroke(); } }
@@ -3587,7 +3601,7 @@ if (!lowGfx) {
 let grass = null, gmask = null;
 function makeMeadow() {
   if (lowGfx || grass) return;
-  gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }, { x: GV.VILLAGE.x, z: GV.VILLAGE.z, r: GV.VILLAGE.arenaR + 2.2 } /* b447: the Game Village square (the blades grew through its tiles) */, { x: MV.MINE_VILLAGE.x, z: MV.MINE_VILLAGE.z, r: MV.MINE_VILLAGE.r + 1 } /* the Mining Village clearing */], paths: WORN_PATHS }));
+  gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }, { x: GV.VILLAGE.x, z: GV.VILLAGE.z, r: GV.VILLAGE.arenaR + 2.2 } /* b447: the Game Village square (the blades grew through its tiles) */, { x: MV.MINE_VILLAGE.x, z: MV.MINE_VILLAGE.z, r: MV.MINE_VILLAGE.r + 1 } /* the Mining Village clearing */, { x: AGW.x, z: AGW.z, r: AGW.r + 2.5 } /* AGENT DIMENSION's Citadel */], paths: WORN_PATHS }));
   const big = S.quality === "ultra" || S.quality === "high"; // 60,000 blades only when asked for (b411)
   grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 8000 : 32000, /* b447: phones 8,000 (Adreno 7xx fell to 30–40 fps once the blades were back) (the blades hadn't drawn on phones since 13 October, a shader that didn't link; the frame rates since were measured without them) */ size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
   planet.add(grass.mesh); reflHide.push(grass.mesh);
@@ -4918,7 +4932,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { snd: Snd, agent: () => agentDim, openAgent: () => openAgent(), agentGate: (k = 9) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { snd: Snd, agent: () => agentDim, openAgent: () => openAgent(), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),
