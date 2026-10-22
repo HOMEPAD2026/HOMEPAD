@@ -119,7 +119,7 @@ export function createAgentDim(ctx) {
       b.obj.position.set(me.x + Math.cos(f) * 1.8, 0, me.z - Math.sin(f) * 1.8); root.add(b.obj); body = b; bodyKind = want; face = f;
       const C = K.AGENTS[want]; tag = K.label(a.name, { accent: C.color, size: 0.5, sub: a.id ? "@" + a.id : T(ROLE[want]) }); tag.position.y = 2.75; b.obj.add(tag);
       const how = arrive || (firstLook ? "" : "light"); arrive = "";
-      if (how) { b.obj.scale.setScalar(0.01); grow = { t: 0, dur: how === "birth" ? 1.6 : 0.7, to: 1 }; fx.beam(b.obj.position.x, b.obj.position.z, C.color, how === "birth" ? 2.6 : 1.2, how === "birth" ? 26 : 9); fx.ring(b.obj.position.x, b.obj.position.z, C.color, how === "birth" ? 4.5 : 2.4); }
+      if (how) { b.obj.scale.setScalar(0.01); const g = (grow = { t: 0, dur: how === "birth" ? 1.6 : 0.7, to: 1 }); setTimeout(() => { if (grow === g) { grow = null; b.obj.scale.setScalar(1); } }, 2500); fx.beam(b.obj.position.x, b.obj.position.z, C.color, how === "birth" ? 2.6 : 1.2, how === "birth" ? 26 : 9); fx.ring(b.obj.position.x, b.obj.position.z, C.color, how === "birth" ? 4.5 : 2.4); }
       if (lvUp) { const X = b.obj.position.x, Z = b.obj.position.z; setTimeout(() => { fx.ring(X, Z, "#ffd75e", 5); fx.beam(X, Z, "#ffd75e", 1.6, 14); bubble(T("Level up! Lv {n}", { n: lvUp }), 3500); lvUp = 0; }, 800); }
       if (b.play) setTimeout(() => { try { if (body === b && !b.busy() && moving < 0.4) b.play("emote-yes", { once: true, speed: 1.5 }); } catch { /* no clip */ } }, how === "birth" ? 1700 : 600);
     } catch (e) { console.warn("agent", e); } finally { busy = false; firstLook = false; }
@@ -127,7 +127,8 @@ export function createAgentDim(ctx) {
   /// it leaves on an errand: steps into light and fades, then the town is without it until it's back
   function depart(done) {
     if (!body) { done(); return; } const C = K.AGENTS[bodyKind] || { color: "#5fd3ff" };
-    fx.beam(body.obj.position.x, body.obj.position.z, C.color, 1.1, 10); grow = { t: 0, dur: 0.6, to: 0, done };
+    fx.beam(body.obj.position.x, body.obj.position.z, C.color, 1.1, 10); const g = (grow = { t: 0, dur: 0.6, to: 0, done });
+    setTimeout(() => { if (grow === g) { grow = null; done(); } }, 1500); // the town not drawing (another game, a slow phone): it still leaves
   }
   let grow = null, moving = 0, trailT = 0;
   const shortest = (x) => Math.atan2(Math.sin(x), Math.cos(x));
