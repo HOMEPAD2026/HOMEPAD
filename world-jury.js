@@ -196,7 +196,8 @@ export function createJurY(Y) {
   }
   function tickCamp() {
     const w = performance.now(); if (w - campW < 1000 || !Y.surv || !Y.surv.campAt) return; campW = w; const { px, pz } = me(), c = Y.surv.campAt(px, pz);
-    if (c && !c.mine && !visited.has(c.slot)) { visited.add(c.slot); showCamp(c); }
+    // (once per stay: walk out of it and back in later, and its card comes again)
+    if (c && !c.mine && !visited.has(c.slot)) { visited.add(c.slot); showCamp(c); } else if (!c) visited.clear();
   }
   // b-jy5: the top row stacks itself — the boss bar, the boss call and the MVP card move down past whatever else is up
   // there on this screen (the egg chip, the dinosaur's card, the clock row), instead of covering it
