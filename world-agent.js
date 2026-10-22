@@ -13,7 +13,7 @@
 // ≤ 100 USDC, the fee in $ARCIRCLE, money only back to their own wallet; each vault step is signed in their wallet).
 //
 // ctx: { THREE, K, planet, here(v), facing(), ver, inHub(), calm(), T, esc, toast, sess(), post(body), signIn(), purse(), coarse, reduce, low, burst?, share?, tx?(to, data), arcircle? }
-const PORTRAIT = (k) => `/images/agents/${k}-400.webp`, BIG = (k) => `/images/agents/${k}-800.webp`;
+const PORTRAIT = (k) => `/images/agents/${k}-400.webp?v=2`, BIG = (k) => `/images/agents/${k}-800.webp?v=2`; // ?v=2: the see-through portraits (2026-10-22) — a phone kept the old ones with a black box
 const ICON = { aurora: "💛", orion: "♾️", vex: "🔻" };
 const MAT = { wood: "🪵", stone: "🪨", fiber: "🌿", berries: "🫐", hide: "🟫", bone: "🦴", meat: "🍖", fang: "🦷", cu: "🟠", ag: "⚪" };
 const MAT_N = { wood: "wood", stone: "stone", fiber: "fiber", berries: "berries", hide: "hide", bone: "bone", meat: "meat", fang: "fang", cu: "copper ore", ag: "silver ore" };
