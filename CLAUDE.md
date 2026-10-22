@@ -195,7 +195,7 @@ Stages: **Live** (in the Games list / town, server-checked, tested) · **Partial
 
 | Area | Stage | What's there | What's missing / next candidates |
 |---|---|---|---|
-| Town & RPG (world-play.js, world-combat.js, world-rpg*.js, world-zones*.js) | Live | open planet, 3 heroes (ARON/LUMI/NEX), Lv 1–100, 5 near + 7 far hunting grounds, gear in 7 slots, forge/enhance/fuse/repair, potions, weekly raid boss, hoverboard race | — |
+| Town & RPG (world-play.js, world-combat.js, world-rpg*.js, world-zones*.js) | Live | open planet, 3 heroes (ARON/LUMI/NEX), Lv 1–500, 5 near + 7 far hunting grounds, gear in 7 slots, forge/enhance/fuse/repair, potions, weekly raid boss, hoverboard race | — |
 | Quests & seasons (world-quests.js, world-season.js) | Live | island tutorial chain, 3+1 daily hunts, achievements & titles, scammer codex, 28-day season tiers, daily scam quiz | season 2 theme / battle-pass-style track |
 | Social (world-chat.js, world-crew.js, world-party.js, world-social.js, world-inbox.js) | Live | local chat, friends + 1:1, crews (tag, invite code), hunting party + weekly bounties, guestbook, weekly island contest, inbox gifts | crew HQ / crew-vs-crew board |
 | My Island & village (world-island.js, world-village.js, world-style.js, world-showcase.js) | Live | brick builder 36×36 (LAND owners 64×64, 20,000 bricks), styles, village score/level, showcase terrace | — |

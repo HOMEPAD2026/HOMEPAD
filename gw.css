@@ -204,6 +204,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-feat:hover { transform: translateY(-5px); box-shadow: 0 24px 46px rgba(11, 22, 51, .16); }
 .gw-feat::before { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, var(--fc, rgba(56, 216, 255, .22)), transparent 70%); }
 .gw-feat i { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; font-size: 26px; font-style: normal; background: linear-gradient(135deg, #e6fbff, #d8fff2); box-shadow: 0 0 0 1px #c7eef7 inset; }
+.gw-feat i img { width: 44px; height: 44px; object-fit: contain; }
 .gw-feat h3 { margin: 14px 0 6px; font: 800 18px/1.25 var(--ui); }
 .gw-feat p { margin: 0; font-size: 14.5px; color: var(--dark-mute); }
 
