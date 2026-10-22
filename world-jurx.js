@@ -49,7 +49,7 @@ export function createJurX(X) {
   function tickHeat(dt) {
     const { px, pz, down } = me(); if (down) return; const inside = inBasin(px, pz);
     if (inside !== wasIn) { wasIn = inside; if (inside) toast(X.tools().cloak ? `🔥 <b>${esc(T("Ember Basin"))}</b> ${esc(T("Your heat cloak keeps the heat off."))}` : `🔥 <b>${esc(T("Too hot!"))}</b> ${esc(T("Without a heat cloak the basin burns you. Make one at the workbench."))}`); }
-    if (!inside || (heatT += dt) < 1) return; heatT = 0;
+    if (!inside || (heatT += dt) < 1) return; heatT = 0; // (dt here is the wall clock's: tick passes rdt)
     const lava = pools.some((p) => Math.hypot(px - p.x, pz - p.z) < p.r * 0.92), v = ctx.vitals ? ctx.vitals() : null, max = (v && v.max) || 120;
     if (lava) { if (ctx.hurt) ctx.hurt(Math.max(1, Math.round(max * 0.18))); if (X.shake) X.shake(0.25); if (performance.now() - heatSaid > 4000) { heatSaid = performance.now(); toast(`🌋 ${esc(T("Lava! Get out of it"))}`); } }
     else if (!X.tools().cloak && ctx.hurt) ctx.hurt(Math.max(1, Math.round(max * 0.03)));
@@ -74,7 +74,7 @@ export function createJurX(X) {
     claimed[id] = true; const r = await X.post("world-jur-boss-claim", { id });
     if (!r.ok) { claimed[id] = false; return; }
     const parts = Object.entries(r.j.loot || {}).map(([m, n]) => `${X.ic(m)}+${n}`).join(" ");
-    toast(`🏆 <b>${esc(T("The boss fell! Your hunter's share:"))}</b> ${parts}`); cutin("🏆", T("BOSS DOWN"), T(boss && boss.kind === "titan" ? "Thornback Titan" : "Alpha Raptor"));
+    toast(`🏆 <b>${esc(T("The boss fell! Your hunter's share:"))}</b> ${parts}${r.j.arcl ? ` · <b>+${Number(r.j.arcl).toLocaleString("en-US")} ARCL</b>` : ""}`); if (r.j.arcl && ctx.refresh) try { ctx.refresh(); } catch { /* the purse catches up */ } cutin("🏆", T("BOSS DOWN"), T(boss && boss.kind === "titan" ? "Thornback Titan" : "Alpha Raptor"));
     if (X.setInv) X.setInv(r.j.inv);
   }
   /// a swing at the enraged boss: counted here, posted every 2 s (the server allows no more than real swings)
@@ -128,7 +128,9 @@ export function createJurX(X) {
     raid = { key: nightKey(), waves: [2, 3, 3], w: 0, spawned: 0, n: 0, list: [], next: 2, home }; raidDone = raid.key; X.setRaid(true);
     toast(`🌙 <b>${esc(T("Raiders at your camp!"))}</b> ${esc(T("Raptors are coming in three waves — defend your fire."))}`); (Snd.growl || (() => {}))(0); cutin("🌙", T("NIGHT RAID"), T("Defend your camp"));
   }
-  function endRaid(won) { if (!raid) return; for (const o of raid.list) X.removeRaider(o); X.setRaid(false); raid = null; if (won) { toast(`🔥 <b>${esc(T("Camp defended!"))}</b> ${esc(T("The raptors are gone for tonight."))}`); cutin("🛡️", T("CAMP DEFENDED"), T("Three waves held off")); } }
+  function endRaid(won) { if (!raid) return; const key = raid.key; for (const o of raid.list) X.removeRaider(o); X.setRaid(false); raid = null; if (won) { toast(`🔥 <b>${esc(T("Camp defended!"))}</b> ${esc(T("The raptors are gone for tonight."))}`); cutin("🛡️", T("CAMP DEFENDED"), T("Three waves held off"));
+      // b-jy4: holding all three waves pays a little ARCL, once a night (the server counts the raiders you hunted)
+      setTimeout(async () => { const r = await X.post("world-jur-raid-claim", { key }); if (r.ok && r.j.arcl) { toast(`💠 <b>+${Number(r.j.arcl).toLocaleString("en-US")} ARCL</b> ${esc(T("for holding the night raid"))}`); if (ctx.refresh) try { ctx.refresh(); } catch { /* later */ } } }, 1500); } }
 
   // ---------------- the minimap ----------------
   const mm = document.createElement("canvas"); mm.className = "wz-map"; const MS = coarse ? 104 : 132, dpr = Math.min(2, devicePixelRatio || 1); mm.width = mm.height = MS * dpr; mm.style.width = mm.style.height = MS + "px"; (X.root || document.body).appendChild(mm);
@@ -140,10 +142,20 @@ export function createJurX(X) {
     g.clearRect(0, 0, W, W); g.save(); g.beginPath(); g.arc(W / 2, W / 2, W / 2 - 1, 0, 6.283); g.clip();
     g.fillStyle = "rgba(34,58,30,.92)"; g.fillRect(0, 0, W, W);
     const ring = (x, z, r, c, fill = true) => { const [a, b] = to(x, z); g.beginPath(); g.arc(a, b, Math.max(1.5, r * k), 0, 6.283); if (fill) { g.fillStyle = c; g.fill(); } else { g.strokeStyle = c; g.lineWidth = 2 * dpr; g.stroke(); } };
-    ring(0, 0, J.EDGE, "rgba(120,110,90,.5)", false); ring(J.LAKE.x, J.LAKE.z, J.LAKE.r + 10, "rgba(40,120,150,.95)"); ring(B.x, B.z, B.r, "rgba(150,50,20,.95)"); for (const p of pools) ring(p.x, p.z, p.r, "#ffb040");
+    ring(0, 0, J.EDGE, "rgba(120,110,90,.5)", false); ring(J.LAKE.x, J.LAKE.z, J.LAKE.r + 10, "rgba(40,120,150,.95)"); if (J.MIRE) ring(J.MIRE.x, J.MIRE.z, J.MIRE.r, "rgba(70,96,36,.95)");
+    if (X.fossils) for (const f of X.fossils()) ring(f.x, f.z, big ? 2.6 : 2, "#efe4c8");
+    if (wxNow && wxNow.on && wxNow.kind === "meteor" && X.meteorSpots) for (const f of X.meteorSpots()) if (!f.down) ring(f.x, f.z, big ? 3 : 2.4, "#ffb050"); ring(B.x, B.z, B.r, "rgba(150,50,20,.95)"); for (const p of pools) ring(p.x, p.z, p.r, "#ffb040");
     for (const c of X.camps()) ring(c.x, c.z, X.CAMP_R, c.mine ? "rgba(57,255,136,.7)" : "rgba(200,220,255,.35)");
     ring(J.GATE.x, J.GATE.z, 4, "#ffffff");
-    for (const o of X.dinos()) { if (!o.alive) continue; const isBoss = o.kind === "alpha" || o.kind === "titan"; if (!isBoss && Math.hypot(o.x - px, o.z - pz) > 70) continue; ring(o.x, o.z, isBoss ? 5 : 2.4, isBoss ? (o.shared ? "#ff3b5c" : "#ffb648") : "rgba(255,90,90,.8)"); }
+    // b-jy3: the other hunters here (cyan dots), and pings pulsing where they were put
+    if (X.peers) for (const q of X.peers()) ring(q.x, q.z, big ? 3 : 2.2, "#9ff3ff");
+    if (X.pingsNow) for (const q of X.pingsNow()) { const [a, b2] = to(q.x, q.z); g.strokeStyle = q.k === 2 ? "#ffb648" : q.k === 3 ? "#5ff0d0" : "#ff5a5a"; g.lineWidth = 2.5 * dpr; g.beginPath(); g.arc(a, b2, (6 + (performance.now() / 70) % 10) * dpr, 0, 6.283); g.stroke(); }
+    for (const o of X.dinos()) { if (!o.alive) continue; const isBoss = o.kind === "alpha" || o.kind === "titan"; if (!isBoss && Math.hypot(o.x - px, o.z - pz) > 70) continue;
+      const c = isBoss ? (o.shared ? "#ff3b5c" : "#ffb648") : "rgba(255,90,90,.8)", [a, b2] = to(o.x, o.z), dc = Math.hypot(a - W / 2, b2 - W / 2), rim = W / 2 - 9 * dpr;
+      // b-jy1: a boss off the map's edge is an arrow on its rim (pulsing while it's enraged), so you know which way
+      if (isBoss && dc > rim) { const an = Math.atan2(b2 - W / 2, a - W / 2), ex = W / 2 + Math.cos(an) * rim, ey = W / 2 + Math.sin(an) * rim, s0 = (o.shared ? 7 + Math.sin(performance.now() / 160) * 1.5 : 6) * dpr;
+        g.save(); g.translate(ex, ey); g.rotate(an); g.fillStyle = c; g.beginPath(); g.moveTo(s0, 0); g.lineTo(-s0 * 0.7, s0 * 0.75); g.lineTo(-s0 * 0.7, -s0 * 0.75); g.closePath(); g.fill(); g.restore(); continue; }
+      ring(o.x, o.z, isBoss ? 5 : 2.4, c); if (isBoss && o.shared) { g.strokeStyle = c; g.lineWidth = 2 * dpr; g.beginPath(); g.arc(a, b2, (8 + (performance.now() / 90) % 8) * dpr, 0, 6.283); g.stroke(); } }
     const [mx, my] = to(px, pz); g.save(); g.translate(mx, my); g.rotate(-face + Math.PI); g.fillStyle = "#39d8ff"; g.beginPath(); g.moveTo(0, -7 * dpr); g.lineTo(5 * dpr, 6 * dpr); g.lineTo(0, 3 * dpr); g.lineTo(-5 * dpr, 6 * dpr); g.closePath(); g.fill(); g.restore();
     g.restore(); g.strokeStyle = "rgba(160,220,255,.6)"; g.lineWidth = 2 * dpr; g.beginPath(); g.arc(W / 2, W / 2, W / 2 - 1.5 * dpr, 0, 6.283); g.stroke();
   }
@@ -153,8 +165,20 @@ export function createJurX(X) {
   const sprite = (c, x, y, z, s, life, o = {}) => { if (reduce) return; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: c, transparent: true, depthWrite: false, blending: o.add === false ? THREE.NormalBlending : THREE.AdditiveBlending, opacity: o.a ?? 0.9 })); sp.position.set(x, y, z); sp.scale.setScalar(s); scene.add(sp); fx.push({ sp, life, t: 0, grow: o.grow ?? 1.5, vy: o.vy || 0, a: o.a ?? 0.9 }); };
   const ringFx = (x, z, r, c, life = 0.6) => { if (reduce) return; const m = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 40), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, height(x, z) + 0.1, z); m.scale.setScalar(r * 0.3); scene.add(m); fx.push({ ring: m, life, t: 0, r }); };
   /// a big dinosaur's foot comes down: dust, and the ground shakes a little when you're close
-  function step(o) { const { px, pz } = me(), d = Math.hypot(o.x - px, o.z - pz); if (d > 40) return; const L = (o.R && o.R.L) || 6; for (let i = 0; i < 2; i++) sprite(0xb8a888, o.x + (Math.random() - 0.5) * L * 0.4, height(o.x, o.z) + 0.4, o.z + (Math.random() - 0.5) * L * 0.4, L * 0.22, 0.9, { add: false, a: 0.45, vy: 0.6, grow: 2.2 }); if (X.shake && d < 30) X.shake(0.05 + 0.12 * (1 - d / 30) * Math.min(1, L / 10)); }
-  function roar(o) { const { px, pz } = me(), d = Math.hypot(o.x - px, o.z - pz); if (d > 45) return; ringFx(o.x, o.z, (o.R && o.R.L) || 6, 0xffd27a, 0.8); ringFx(o.x, o.z, ((o.R && o.R.L) || 6) * 0.6, 0xffffff, 0.5); if (X.shake) X.shake(0.2 * (1 - d / 45) + 0.05); if (X.hitstop && d < 25) X.hitstop(90); }
+  // b-jy6: a big one leaves its footprints behind (they fade), and the water you stand in trembles as it comes
+  const prints = []; let printM = null;
+  function footprint(o, L) {
+    if (reduce || low || L < 7) return; if (!printM) printM = new THREE.MeshBasicMaterial({ color: 0x2a2116, transparent: true, opacity: 0.38, depthWrite: false });
+    const m = new THREE.Mesh(new THREE.CircleGeometry(L * 0.07, 10), printM.clone()); m.scale.set(1, 1.5, 1); m.rotation.x = -Math.PI / 2; m.rotation.z = -(o.face || 0);
+    const side = (o.printSide = -(o.printSide || 1)) * L * 0.09; m.position.set(o.x + Math.cos(o.face || 0) * side, height(o.x, o.z) + 0.05, o.z - Math.sin(o.face || 0) * side); scene.add(m); prints.push({ m, t: 0 });
+    if (prints.length > 40) { const p = prints.shift(); scene.remove(p.m); p.m.geometry.dispose(); p.m.material.dispose(); }
+  }
+  tickers.push((dt) => { for (let i = prints.length - 1; i >= 0; i--) { const p = prints[i]; p.t += dt; if (p.t > 16) p.m.material.opacity = Math.max(0, 0.38 * (1 - (p.t - 16) / 6)); if (p.t > 22) { scene.remove(p.m); p.m.geometry.dispose(); p.m.material.dispose(); prints.splice(i, 1); } } });
+  function step(o) { const { px, pz } = me(), d = Math.hypot(o.x - px, o.z - pz); if (d > 40) return; const L = (o.R && o.R.L) || 6; if (Snd.stomp && d < 34) Snd.stomp(Math.min(1, L / 12) * (1 - d / 40)); footprint(o, L);
+    if (L >= 8 && d < 38 && X.wet && X.wet()) for (let i = 0; i < 2; i++) ringFx(px + (Math.random() - 0.5) * 2.5, pz + (Math.random() - 0.5) * 2.5, 0.9 + i * 0.6, 0xdff6ff, 0.6); for (let i = 0; i < 2; i++) sprite(0xb8a888, o.x + (Math.random() - 0.5) * L * 0.4, height(o.x, o.z) + 0.4, o.z + (Math.random() - 0.5) * L * 0.4, L * 0.22, 0.9, { add: false, a: 0.45, vy: 0.6, grow: 2.2 }); if (X.shake && d < 30) X.shake(0.05 + 0.12 * (1 - d / 30) * Math.min(1, L / 10)); }
+  function roar(o) { const { px, pz } = me(), d = Math.hypot(o.x - px, o.z - pz); if (d > 45) return; if (Snd.roar && d < 40 && ((o.R && o.R.L) || 6) > 7) Snd.roar(); ringFx(o.x, o.z, (o.R && o.R.L) || 6, 0xffd27a, 0.8); ringFx(o.x, o.z, ((o.R && o.R.L) || 6) * 0.6, 0xffffff, 0.5); if (X.shake) X.shake(0.2 * (1 - d / 45) + 0.05); if (X.hitstop && d < 25) X.hitstop(90); }
+  /// a pick's sparks off rock (b-jy4)
+  function spark(x, y, z) { sprite(0xffc070, x, y, z, 0.22, 0.45, { vy: 2.4 + Math.random() * 1.5, grow: 0.3 }); }
   function tele(o) { ringFx(o.x, o.z, (o.hr || 1.5) * 2.2, 0xff3b5c, 0.45); if (X.pop) X.pop(o, "!", "warn", 0.5); }
   /// a tree comes down: dust where it lands
   function felled(o) { for (let i = 0; i < 6; i++) sprite(0xc8b898, o.x + (Math.random() - 0.5) * 3, height(o.x, o.z) + 0.5, o.z + (Math.random() - 0.5) * 3, 1.6, 1.2, { add: false, a: 0.4, vy: 0.4, grow: 2.4 }); }
@@ -178,12 +202,40 @@ export function createJurX(X) {
     if (!X.root) return; const c = document.createElement("div"); c.className = "wz-cut"; c.innerHTML = `<i>${icon}</i><b>${esc(big)}</b><small>${esc(small || "")}</small>`; X.root.appendChild(c);
     setTimeout(() => c.classList.add("out"), 1500); setTimeout(() => c.remove(), 2100);
   }
-  const made = (id, R) => cutin("🔨", T("MADE"), T((R && R.name) || id));
+  // b-jy6: what you made rises over you in its tier's light (a column and a shimmer), then the cut-in
+  const TIER = { spear2: 4, armor: 3, cloak: 3, axe3: 3, axe2: 2, rod: 2, spear: 2, bomb: 2 }, TIER_C = [0xbfd8ff, 0xbfd8ff, 0x5ff0d0, 0x5aa8ff, 0xc47bff];
+  const made = (id, R) => { const r = TIER[id] || 1, { px, pz } = me(), y = height(px, pz);
+    if (r >= 2) { sprite(TIER_C[r], px, y + 2.2, pz, 2.6, 1.4, { vy: 1.4, grow: 1.6, a: 0.85 }); for (let i = 0; i < 6; i++) sprite(TIER_C[r], px + (Math.random() - 0.5) * 1.2, y + 0.4, pz + (Math.random() - 0.5) * 1.2, 0.3, 1.2, { vy: 2.6 + Math.random() * 2, grow: 0.4 }); ringFx(px, pz, 2.4, TIER_C[r], 0.7); }
+    if (Snd.drop) Snd.drop(Math.min(4, r)); cutin(r >= 3 ? "✨" : "🔨", T("MADE"), T((R && R.name) || id)); };
   const firstHunt = (kind, name) => { cutin("🦖", T("FIRST HUNT"), name); (Snd.kill || (() => {}))(); };
 
+  // ---------------- b-jy7: the weather events (api/_world-jur.mjs weatherAt: the same clock) ----------------
+  // every two hours from 00:30 Seoul time, eight minutes: a storm (lightning, the raptors restless) or a meteor shower
+  // (glowing stones come down onto the plain: mine them before it ends). A word five minutes before and as it starts.
+  const WX = { EVERY: 2 * 3600e3, AT: 30 * 60e3, LEN: 8 * 60e3 };
+  const weatherAt = (t) => { const k = t + 9 * 3600e3 - WX.AT, slot = Math.floor(k / WX.EVERY), into = k - slot * WX.EVERY; return { kind: slot % 2 ? "meteor" : "storm", on: into < WX.LEN, start: slot * WX.EVERY - 9 * 3600e3 + WX.AT, slot, left: WX.LEN - into, next: (slot + 1) * WX.EVERY - 9 * 3600e3 + WX.AT }; };
+  let wxNow = null, wxSaid = new Set(), boltT = 3, wxChip = null, falls = [];
+  const now2 = () => Date.now() + (X.skew ? X.skew() : 0);
+  function tickWeather(rdt) {
+    const t = now2(), w = weatherAt(t), nextKind = (w.slot + 1) % 2 ? "meteor" : "storm", toNext = w.next - t;
+    if (!w.on && toNext < 5 * 60e3 && !wxSaid.has(w.slot + 1 + ":soon")) { wxSaid.add(w.slot + 1 + ":soon"); toast(nextKind === "meteor" ? `☄️ <b>${esc(T("A meteor shower in 5 minutes"))}</b> ${esc(T("Glowing stones will fall on the plain — mine them for gold and silver."))}` : `⛈️ <b>${esc(T("A storm in 5 minutes"))}</b> ${esc(T("The raptors get restless in the thunder."))}`); }
+    const was = wxNow && wxNow.on ? wxNow.kind : "", is = w.on ? w.kind : ""; wxNow = w;
+    if (is !== was) { if (X.setWeather) X.setWeather(is); if (is && !wxSaid.has(w.slot + ":on")) { wxSaid.add(w.slot + ":on"); cutin(is === "meteor" ? "☄️" : "⛈️", T(is === "meteor" ? "METEOR SHOWER" : "STORM"), T(is === "meteor" ? "Mine the fallen stars" : "Stay near your fire")); if (is === "meteor") startFalls(); } }
+    if (is === "storm" && !reduce && (boltT -= rdt) <= 0) { boltT = 4 + Math.random() * 7; if (X.bolt) X.bolt(); if (Snd.thunder) setTimeout(() => Snd.thunder(), 300 + Math.random() * 900); }
+    if (!wxChip && X.root) { wxChip = document.createElement("div"); wxChip.className = "wz-wx"; wxChip.setAttribute("aria-live", "off"); (X.root.querySelector(".wz-top") || X.root).appendChild(wxChip); }
+    if (wxChip) { const mm = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}`; wxChip.hidden = !(w.on || toNext < 10 * 60e3); wxChip.innerHTML = w.on ? `<b>${w.kind === "meteor" ? "☄️" : "⛈️"}</b><span>${esc(T(w.kind === "meteor" ? "Meteor shower" : "Storm"))} ${mm(w.left)}</span>` : `<b>${nextKind === "meteor" ? "☄️" : "⛈️"}</b><span>${mm(toNext)}</span>`; wxChip.classList.toggle("on", !!w.on); }
+  }
+  // the shower: a streak falls onto each stone's spot (a few seconds apart), a flash and a ring where it lands
+  function startFalls() { const list = X.meteorSpots ? X.meteorSpots() : []; list.forEach((p, i) => falls.push({ p, t: -i * 0.9 - Math.random() * 0.5 })); }
+  function tickFalls(dt) {
+    for (let i = falls.length - 1; i >= 0; i--) { const f = falls[i]; f.t += dt; if (f.t < 0) continue; const k = Math.min(1, f.t / 1.1), y0 = height(f.p.x, f.p.z);
+      const x = f.p.x + (1 - k) * 40, y = y0 + (1 - k) * 70, z = f.p.z - (1 - k) * 20; sprite(0xffb050, x, y, z, 1.6, 0.35, { grow: 0.5 }); sprite(0xff6a20, x + 1.2, y + 2, z - 0.6, 1.1, 0.5, { grow: 0.4 });
+      if (k >= 1) { falls.splice(i, 1); ringFx(f.p.x, f.p.z, 6, 0xffb050, 0.8); ringFx(f.p.x, f.p.z, 3, 0xffffff, 0.5); sprite(0xffd080, f.p.x, y0 + 1, f.p.z, 6, 0.6, { grow: 2 }); const { px, pz } = me(); const d = Math.hypot(f.p.x - px, f.p.z - pz); if (d < 60 && X.shake) X.shake(0.25 * (1 - d / 60)); if (Snd.crumble && d < 50) Snd.crumble(1); if (f.p.show) f.p.show(); } }
+  }
   let pollT = 0;
   return {
-    inBasin, pools, owns, hit, step, roar, tele, felled, shatter, made, firstHunt, cutin,
+    weatherNow: () => (wxNow && wxNow.on ? wxNow.kind : ""), weatherAt,
+    inBasin, pools, owns, hit, spark, bossNow: () => (boss && boss.on && !boss.down ? bossObj() : null), bossState: () => boss, step, roar, tele, felled, shatter, made, firstHunt, cutin,
     raidOn: () => !!raid,
     start() { readBoss(); },
     tick(dt, t) {
@@ -191,12 +243,14 @@ export function createJurX(X) {
       // the swings were never posted and the camp's 20 s never came
       const nowT = performance.now(), rdt = Math.min(5, Math.max(0, (nowT - (wallT || nowT)) / 1000)); wallT = nowT;
       for (const f of tickers) f(dt, t);
-      tickHeat(dt); tickRaid(dt, rdt); ambient(dt, t); tickFx(dt); drawMap(false);
+      tickHeat(rdt); tickRaid(dt, rdt); ambient(dt, t); tickFx(dt); drawMap(false); tickWeather(rdt); tickFalls(dt);
       if ((pollT += rdt) > (boss && boss.on ? 5 : 30)) { pollT = 0; readBoss(); }
       if ((postT += rdt) > 2) { postT = 0; flush(); }
       if ((bossT += rdt) > 1) { bossT = 0; paintChip(); }
     },
     stop() { endRaid(false); },
+    /// tests: the boss hour's state as the server would say it (merged), painted at once
+    debugBoss(patch) { boss = { ...(boss || {}), ...patch, at: Date.now() }; paintChip(); },
     debug: () => { const o = bossObj(); return { boss, raid: raid && { w: raid.w, alive: raid.list.filter((o) => o.alive).length }, queued, sent, own: o ? { shared: o.shared === boss, alive: !!o.alive, owns: owns(o) } : null, signed: !!(ctx.sess && ctx.sess()), campT: +campT.toFixed(1), raidDone }; },
   };
 }

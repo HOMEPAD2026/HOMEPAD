@@ -45,17 +45,17 @@ const IC = {
   flare: svg('<rect x="10" y="9" width="4" height="12" rx="1" fill="#c83a3a"/><path d="M12 2c2 2 3 4 1 7h-2c-2-3-1-5 1-7z" fill="#ffe27a"/>'),
 };
 const ic = (m) => (IC[m] ? `<i class="wz-ic">${IC[m]}</i>` : ICON[m] || "");
-const ICON = { obsidian: "⬛", sulfur: "🟡", fish: "🐟", grilled: "🍢", flare: "🧨", wood: "🪵", hardwood: "🌳", stone: "🪨", flint: "🔺", clay: "🟤", fiber: "🌾", berries: "🫐", amber: "🟠", hide: "🟫", bone: "🦴", meat: "🥩", cooked: "🍖", torch: "🔥", rope: "🪢", fang: "🦷", cu: "🟧", ag: "⬜", au: "🟨" };
-const MAT_N = { obsidian: "Obsidian", sulfur: "Sulfur", fish: "Fish", grilled: "Grilled fish", flare: "Sulfur flare", wood: "Wood", hardwood: "Hardwood", stone: "Stone", flint: "Flint", clay: "Clay", fiber: "Fiber", berries: "Berries", amber: "Amber", hide: "Hide", bone: "Bone", meat: "Raw meat", cooked: "Cooked meat", torch: "Torch", rope: "Rope", fang: "Fang", cu: "Copper ore", ag: "Silver ore", au: "Gold ore" };
-const NODE_N = { obsidian: "Obsidian", vent: "Sulfur vent", fish: "Fishing spot", tree: "Tree", palm: "Palm", ancient: "Ancient tree", fern: "Fern", bush: "Bush", log: "Log", rock: "Rock", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
-const VERB = { obsidian: "Mine", vent: "Gather", fish: "Fish", tree: "Chop", palm: "Chop", ancient: "Chop", fern: "Gather", bush: "Gather", log: "Chop", rock: "Mine", raptor: "Hunt", trike: "Hunt", alpha: "Hunt", spino: "Hunt", titan: "Hunt", claw: "Hunt" };
+const ICON = { reed: "🎋", venom: "🧪", fossil: "🦴", bola: "🪢", antidote: "💊", obsidian: "⬛", sulfur: "🟡", fish: "🐟", grilled: "🍢", flare: "🧨", wood: "🪵", hardwood: "🌳", stone: "🪨", flint: "🔺", clay: "🟤", fiber: "🌾", berries: "🫐", amber: "🟠", hide: "🟫", bone: "🦴", meat: "🥩", cooked: "🍖", torch: "🔥", rope: "🪢", fang: "🦷", cu: "🟧", ag: "⬜", au: "🟨" };
+const MAT_N = { reed: "Reed", venom: "Venom", fossil: "Fossil", bola: "Bola", antidote: "Antidote", obsidian: "Obsidian", sulfur: "Sulfur", fish: "Fish", grilled: "Grilled fish", flare: "Sulfur flare", wood: "Wood", hardwood: "Hardwood", stone: "Stone", flint: "Flint", clay: "Clay", fiber: "Fiber", berries: "Berries", amber: "Amber", hide: "Hide", bone: "Bone", meat: "Raw meat", cooked: "Cooked meat", torch: "Torch", rope: "Rope", fang: "Fang", cu: "Copper ore", ag: "Silver ore", au: "Gold ore" };
+const NODE_N = { reed: "Reeds", mire: "Mud", fossil: "Fossil", meteor: "Meteorite", stalker: "Bog Stalker", obsidian: "Obsidian", vent: "Sulfur vent", fish: "Fishing spot", tree: "Tree", palm: "Palm", ancient: "Ancient tree", fern: "Fern", bush: "Bush", log: "Log", rock: "Rock", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
+const VERB = { reed: "Gather", mire: "Gather", fossil: "Dig", meteor: "Mine", stalker: "Hunt", obsidian: "Mine", vent: "Gather", fish: "Fish", tree: "Chop", palm: "Chop", ancient: "Chop", fern: "Gather", bush: "Gather", log: "Chop", rock: "Mine", raptor: "Hunt", trike: "Hunt", alpha: "Hunt", spino: "Hunt", titan: "Hunt", claw: "Hunt" };
 // XP for each one (× what a scammer of your level gives, 6 + 3·level): the work counts towards your level
-const XP_K = { obsidian: 2.4, vent: 0.8, fish: 0.9, tree: 1, palm: 0.8, ancient: 5, fern: 0.25, bush: 0.25, log: 0.6, rock: 1.4, raptor: 3, trike: 6, alpha: 20, spino: 12, titan: 25, claw: 4.5 };
-const FOOD = { berries: 12, meat: 25, cooked: 45, fish: 15, grilled: 40 };
+const XP_K = { reed: 0.4, mire: 0.6, fossil: 3, meteor: 3.5, stalker: 7, obsidian: 2.4, vent: 0.8, fish: 0.9, tree: 1, palm: 0.8, ancient: 5, fern: 0.25, bush: 0.25, log: 0.6, rock: 1.4, raptor: 3, trike: 6, alpha: 20, spino: 12, titan: 25, claw: 4.5 };
+const FOOD = { berries: 12, meat: 25, cooked: 45, fish: 15, grilled: 40, antidote: 30 };
 // where each one lives (the codex)
-const WHERE = { raptor: "The plain, in small packs", claw: "The east woods, a pack of three", trike: "A herd east of the lake", spino: "In the lake", alpha: "The ruins in the south (boss)", titan: "The north-west meadow (boss)" };
+const WHERE = { stalker: "The Whispering Mire, in the west", raptor: "The plain, in small packs", claw: "The east woods, a pack of three", trike: "A herd east of the lake", spino: "In the lake", alpha: "The ruins in the south (boss)", titan: "The north-west meadow (boss)" };
 // the dinosaurs' card (like a boss bar in town): level, HP (shown; the server counts the hits), about how many hits
-const FOE = { raptor: { lv: 8, hp: 900, n: 12 }, claw: { lv: 14, hp: 1700, n: 21 }, trike: { lv: 18, hp: 2800, n: 28 }, alpha: { lv: 30, hp: 7000, n: 70, boss: 1 }, spino: { lv: 26, hp: 5200, n: 51 }, titan: { lv: 35, hp: 9000, n: 80, boss: 1 } };
+const FOE = { stalker: { lv: 22, hp: 3600, n: 32 }, raptor: { lv: 8, hp: 900, n: 12 }, claw: { lv: 14, hp: 1700, n: 21 }, trike: { lv: 18, hp: 2800, n: 28 }, alpha: { lv: 30, hp: 7000, n: 70, boss: 1 }, spino: { lv: 26, hp: 5200, n: 51 }, titan: { lv: 35, hp: 9000, n: 80, boss: 1 } };
 const ORE = ["cu", "ag", "au"];
 
 export function createSurvival(H) {
@@ -67,11 +67,11 @@ export function createSurvival(H) {
   const near = (x, z, fn) => { const cx = Math.floor(x / GC), cz = Math.floor(z / GC); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const l = grid.get(cx + i + "," + (cz + j)); if (l) for (const n of l) fn(n); } };
   const byId = new Map(nodes.map((n) => [n.id, n]));
   let inv = null, ore = {}, felled = {}, recipes = {}, pieceDefs = {}, camps = { list: [], free: 20 }, home = -1, campFull = false, signedOut = false, loaded = false;
-  let tgt = null, work = null, busy = false, ui = null, packTab = "bag", board = null, boardAt = 0;
+  let tgt = null, work = null, busy = false, ui = null, packTab = "bag", board = null, boardAt = 0, crews = [], campTop = [];
   // the dinosaurs you've seen (the codex: a silhouette until you've seen one, its count once you've hunted it)
   const seenK = new Set((() => { try { return JSON.parse(localStorage.getItem("arc.jur.seen") || "[]"); } catch { return []; } })());
   // b-jx1: a guest tries it first: what they chop or pick is kept here (this visit only) until they sign in
-  const guest = { mat: {}, n: 0, asked: false }, G_NEED = { fern: 1, bush: 1, log: 3, tree: 6, palm: 5, ancient: 12, rock: 6 }, G_LOOT = { fern: { fiber: 2 }, bush: { fiber: 1, berries: 2 }, log: { wood: 2 }, tree: { wood: 3, fiber: 1 }, palm: { wood: 2, fiber: 1 }, ancient: { wood: 6 }, rock: { stone: 3, flint: 1 } };
+  const guest = { mat: {}, n: 0, asked: false }, G_NEED = { fern: 1, bush: 1, reed: 2, log: 3, tree: 6, palm: 5, ancient: 12, rock: 6 }, G_LOOT = { reed: { reed: 2 }, fern: { fiber: 2 }, bush: { fiber: 1, berries: 2 }, log: { wood: 2 }, tree: { wood: 3, fiber: 1 }, palm: { wood: 2, fiber: 1 }, ancient: { wood: 6 }, rock: { stone: 3, flint: 1 } };
   const connect = () => { const b = document.getElementById("wp-wallet"); if (b) b.click(); };
 
   // ---------------- the server ----------------
@@ -101,7 +101,7 @@ export function createSurvival(H) {
   // what's felled stays down until it grows back (the server's time); what's back stands again
   function applyFelled() {
     const t = Date.now();
-    for (const n of nodes) { const down = (felled[n.id] || 0) > t; if (down !== !!n.down) { n.down = down; if (down) n.hide(); else n.show(); } }
+    for (const n of nodes) { const down = (felled[n.id] || 0) > t || (n.event && !(H.eventOn && H.eventOn(n.event))); if (down !== !!n.down) { n.down = down; if (down) n.hide(); else n.show(); } }
     if (H.dinos) for (const d of H.dinos()) { if (d.shared) continue; /* (the boss hour's boss is everyone's: its own felled time doesn't count) */ const dead = (felled[d.id] || 0) > t; if (dead && d.alive) d.die(true); else if (!dead && !d.alive && d.diedAt && t - d.diedAt > 3000) d.revive(); }
   }
 
@@ -116,7 +116,7 @@ export function createSurvival(H) {
     near(px, pz, (n) => consider(n, !n.down));
     // the lake's edge, with a rod: a fishing spot in front of you (b-jx3)
     if (H.fishSpot && inv && (inv.tools.rod | 0)) { const f = H.fishSpot(px, pz, face); if (f) { const o = fishSpots.get(f.id) || Object.assign(f, { hide() {}, show() {} }); Object.assign(o, { x: f.x, z: f.z }); fishSpots.set(f.id, o); if (!((felled[o.id] || 0) > Date.now())) consider(o, true); } }
-    if (H.dinos) for (const d of H.dinos()) consider(d, d.alive);
+    if (H.dinos) for (const d of H.dinos()) consider(d, d.alive && !d.tamed);
     return best;
   }
   // the trunks, boulders and the camp's pieces: pushed back out of them
@@ -142,16 +142,22 @@ export function createSurvival(H) {
   function swing(px, pz, face) {
     const now = performance.now(); if (now - swingT < 430) return false; swingT = now;
     const o = tgt || pick(px, pz, face); if (!o) { H.swingAnim(); return true; }
-    if ((refusedAt["wait:" + o.id] || 0) > now && !(H.boss && H.boss.owns(o))) { H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim(); return true; }
-    H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim();
+    if ((refusedAt["wait:" + o.id] || 0) > now && !(H.boss && H.boss.owns(o))) { H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim(o); return true; }
+    H.faceTo(Math.atan2(o.x - px, o.z - pz)); H.swingAnim(o);
     if (signedOut) { guestSwing(o); return true; }
     // the boss hour: the enraged boss's one HP for everyone (world-jurx.js posts the swings)
-    if (H.boss && H.boss.owns(o)) { if (sel !== o) select(o); H.boss.hit(o); const F = FOE[o.kind], crit = Math.random() < 0.15; pop(o, (crit ? "!" : "-") + Math.round(F.hp / 60 * (crit ? 1.6 : 1)).toLocaleString("en-US"), crit ? "dmg crit" : "dmg", 0.4); paintFoe(); if (H.hitstop) H.hitstop(crit ? 80 : 40); if (o.hurt) o.hurt(); (Snd.hitFx || Snd.hit || (() => {}))(0); chips(o); return true; }
+    if (H.boss && H.boss.owns(o)) { if (sel !== o) select(o); H.boss.hit(o); (Snd.thrust || (() => {}))(); const F = FOE[o.kind], back = !!(H.behind && H.behind(o)), crit = Math.random() < (back ? 0.45 : 0.15); pop(o, (crit ? "!" : "-") + Math.round(F.hp / 60 * (crit ? 1.6 : 1)).toLocaleString("en-US"), crit ? "dmg crit" : "dmg", 0.4); if (crit && back) pop(o, "💥 " + esc(T("WEAK SPOT")), "weak", 0.9); paintFoe(); if (H.hitstop) H.hitstop(crit ? 80 : 40); if (o.hurt) o.hurt(); (Snd.hitFx || Snd.hit || (() => {}))(0); chips(o); return true; }
     if (!work || work.o !== o) { work = { o, hits: 0, need: 0, started: null, breaking: false }; work.started = api("world-jur-start", { node: o.id, kind: o.kind, buddy: !!(H.buddyOut && H.buddyOut()) }).then((r) => { if (!work || work.o !== o) return; if (r.ok) work.need = r.j.need; else refused(o, r); }); }
     work.hits++;
-    if (FOE[o.kind]) { if (sel !== o) select(o); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), crit = Math.random() < 0.15, dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3) * (crit ? 1.6 : 1));
+    // b-jy6: swings in rhythm on one thing (each within a breath of the last) build a combo: its count, leaves or chips
+    // flying, and a little more XP when it's done (the hits it takes are still the server's)
+    { const gap = now - (work.lastAt || 0); work.combo = gap > 380 && gap < 950 ? (work.combo || 1) + 1 : 1; work.lastAt = now;
+      if (work.combo >= 3 && !FOE[o.kind]) { pop(o, `×${work.combo} ${esc(T("COMBO"))}`, "combo", 0.8); chips(o); if (work.combo % 3 === 0 && H.shake) H.shake(0.06); } }
+    if (o.kind === "fish") fishSwing(o, work);
+    if (o.kind === "fossil") { digOpen(o, work); paint(); return true; }
+    if (FOE[o.kind]) { if (sel !== o) select(o); (Snd.thrust || (() => {}))(); const F = FOE[o.kind], need = work.need || F.n * (inv && (inv.tools.spear | 0) ? 1 : 1.4), back = !!(H.behind && H.behind(o)), crit = Math.random() < (back ? 0.45 : 0.15), dmg = Math.round(F.hp / need * (0.85 + Math.random() * 0.3) * (crit ? 1.6 : 1));
       // (the hits it takes are the server's count: a crit only shows bigger and shakes harder — b-fx2, the town's feel)
-      o.hpNow = Math.max(work.need && work.hits >= work.need ? 0 : 1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, (crit ? "!" : "-") + dmg.toLocaleString("en-US"), crit ? "dmg crit" : "dmg", 0.4); paintFoe();
+      o.hpNow = Math.max(work.need && work.hits >= work.need ? 0 : 1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, (crit ? "!" : "-") + dmg.toLocaleString("en-US"), crit ? "dmg crit" : "dmg", 0.4); if (crit && back) pop(o, "💥 " + esc(T("WEAK SPOT")), "weak", 0.9); paintFoe();
       if (H.hitstop) H.hitstop(crit ? 80 : 40); if (crit && H.shake) H.shake(0.22); }
     const k = o.kind; if (k === "rock") (Snd.chink || Snd.hit || (() => {}))(0); else if (k === "raptor" || k === "trike" || k === "alpha" || k === "spino" || k === "titan" || k === "claw") { (Snd.hitFx || Snd.hit || (() => {}))(0); if (o.hurt) o.hurt(); } else if (k === "fern" || k === "bush") (Snd.pick || (() => {}))(); else (Snd.chop || Snd.hit || (() => {}))();
     if (o.shake) o.shake();
@@ -187,11 +193,13 @@ export function createSurvival(H) {
     if (FOE[o.kind] && !before && inv.hunted && inv.hunted[o.kind] && H.onFirstHunt) try { H.onFirstHunt(o.kind, T(NODE_N[o.kind] || o.kind)); } catch { /* the cut-in is extra */ }
     if (H.onBreak) try { H.onBreak(o); } catch { /* the effect is extra */ } if (j.buddy && H.onBuddy) try { H.onBuddy(j.buddy, o.kind, j.saved || 0); } catch { /* the companion's card waits */ } if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
     const isDino = o.kind === "raptor" || o.kind === "trike" || o.kind === "alpha" || o.kind === "spino" || o.kind === "titan" || o.kind === "claw";
-    if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else if (o.kind === "fish") { (Snd.pick || (() => {}))(); } else { o.down = true; if (o.fall) o.fall(); else o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
+    if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else if (o.kind === "fish") { (Snd.splash || (() => {}))(1); (Snd.pick || (() => {}))(); } else { o.down = true; if (o.fall) o.fall(); else o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
+    gotNow([...Object.keys(j.loot || {}).filter((m) => m !== "ore"), ...Object.keys((j.loot && j.loot.ore) || {})]);
     const parts = Object.entries(j.loot || {}).filter(([m]) => m !== "ore").map(([m, n]) => `${ic(m)}+${n}`);
     if (j.loot && j.loot.ore) for (const [m, n] of Object.entries(j.loot.ore)) parts.push(`${ic(m)}+${n}`);
     pop(o, parts.join(" ") || T("Nothing this time"), "loot");
-    const lv = ctx.level ? ctx.level() : 1, xp = Math.round((6 + 3 * lv) * (XP_K[o.kind] || 1));
+    const lv = ctx.level ? ctx.level() : 1, xp = Math.round((6 + 3 * lv) * (XP_K[o.kind] || 1) * (1 + Math.min(0.5, Math.max(0, (w.combo || 1) - 2) * 0.1)));
+    if (o.kind === "fish") fishCaught(o);
     if (xp && ctx.gain) { try { ctx.gain(xp, T(NODE_N[o.kind] || "Gathering")); setTimeout(() => pop(o, `+${xp.toLocaleString("en-US")} XP`, "xp", 0.6), 380); } catch { /* the level waits */ } }
     tgt = null; paint();
   }
@@ -214,7 +222,7 @@ export function createSurvival(H) {
     if (busy) return; const hp = ctx.vitals && ctx.vitals(); if (hp && hp.hp >= hp.max) { toast(T("You're not hungry")); return; }
     busy = true; const r = await api("world-jur-eat", { food: f }); busy = false;
     if (!r.ok) { toast(T("Couldn't eat: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
-    inv = r.j.inv; if (ctx.heal) ctx.heal((FOOD[f] || 10) / 100); (Snd.pick || (() => {}))(); paint(); paintPack();
+    inv = r.j.inv; if (ctx.heal) ctx.heal((FOOD[f] || 10) / 100); if (f === "antidote" && H.cure) H.cure(); (Snd.pick || (() => {}))(); paint(); paintPack();
   }
 
   // ---------------- the camps: a ring of stones and a sign for each one taken, what's built there ----------------
@@ -327,10 +335,12 @@ export function createSurvival(H) {
     ui.ghostBar.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const g = b.dataset.g; if (g === "turn") ghostR = (ghostR + 1) % 4; else if (g === "place") ghostDo("place"); else if (g === "down") ghostDo("remove"); else endGhost(); });
     ui.packBtn.addEventListener("click", () => togglePack());
     if (ui.goal) ui.goal.addEventListener("click", () => { packTab = signedOut ? "bag" : "mis"; togglePack(true); });
+    ui.pack.addEventListener("change", (e) => { if (e.target && e.target.matches("[data-only]")) { makeOnly = !!e.target.checked; paintPack(); } });
     ui.pack.addEventListener("click", (e) => {
       const b = e.target.closest("button"); if (!b) return;
       if (b.dataset.tab) { packTab = b.dataset.tab; paintPack(); (Snd.tab || (() => {}))(); }
       else if (b.dataset.signin != null) { connect(); togglePack(false); }
+      else if (b.dataset.visit != null) { const c = camps.list.find((x) => String(x.slot) === b.dataset.visit); if (c && H.walk) { togglePack(false); H.walk(c.x + 4, c.z + 4); } }
       else if (b.dataset.make) make(b.dataset.make); else if (b.dataset.eat) eat(b.dataset.eat); else if (b.dataset.join) join(Number(b.dataset.join)); else if (b.classList.contains("wz-pack-x")) togglePack(false);
     });
   }
@@ -361,6 +371,19 @@ export function createSurvival(H) {
     return [T("Every goal done — keep up the daily missions"), 1, STEPS + 1];
   }
   let lastAct = "", lastGoal = "";
+  // b-jy5: one button for what's in front of you — the attack button wears what it'll do (an axe at a tree, a spear at a
+  // dinosaur, a pick at a rock, a rod at the water, a hand at a fern)
+  const CTX_IC = { Chop: "🪓", Mine: "⛏️", Hunt: "🔱", Fish: "🎣", Gather: "🌿" };
+  let ctxNow = "";
+  function ctxIcon(o) {
+    const k = o ? CTX_IC[VERB[o.kind]] || "" : "", b = document.querySelector(".wc-attack"); if (!b || k === ctxNow) return; ctxNow = k;
+    let el = b.querySelector(".wz-ctx"); if (!el) { el = document.createElement("i"); el.className = "wz-ctx"; el.setAttribute("aria-hidden", "true"); b.appendChild(el); }
+    el.textContent = k; el.hidden = !k; b.classList.toggle("wz-has-ctx", !!k);
+  }
+  // what you got lately (the pack lists it first)
+  let recent = {}; try { recent = JSON.parse(localStorage.getItem("arc.jur.recent") || "{}") || {}; } catch { recent = {}; }
+  function gotNow(keys) { const t = Date.now(); for (const k of keys) recent[k] = t; try { localStorage.setItem("arc.jur.recent", JSON.stringify(recent)); } catch { /* this visit */ } }
+  let makeOnly = false;
   function paint() {
     if (!ui) return;
     const o = tgt;
@@ -369,7 +392,8 @@ export function createSurvival(H) {
       html = `<kbd>J</kbd><b>${esc(T(VERB[o.kind] || "Use"))}</b><span>${esc(T(NODE_N[o.kind] || o.kind))}</span>${w ? `<i class="wz-act-bar"><i style="width:${need ? Math.round(100 * n / need) : 8}%"></i></i>` : ""}`; }
     if (!o && bedNear) html = H.isNight && H.isNight() ? `<kbd>E</kbd><b>${esc(T("Sleep until morning"))}</b><span>${esc(T("Bed"))}</span>` : `<kbd>E</kbd><b>${esc(T("Rest"))}</b><span>${esc(T("Bed"))}</span>`;
     else if (!o && stationNear) html = `<kbd>E</kbd><b>${esc(T(stationNear === "bench" ? "Craft" : "Cook"))}</b><span>${esc(T(stationNear === "bench" ? "Workbench" : "Campfire"))}</span>`;
-    if (html !== lastAct) { lastAct = html; ui.act.innerHTML = html; ui.act.hidden = !html; ui.act.dataset.rest = !o && bedNear ? "1" : ""; }
+    if (html !== lastAct) { lastAct = html; ui.act.innerHTML = html; ui.act.hidden = !html; ui.act.dataset.rest = !o && bedNear ? "1" : ""; ctxIcon(o); }
+    { const can = !!(o && TAMEABLE[o.kind] && o.alive && !o.tamed && !signedOut && have("bola") > 0); if (!ui.tame) { ui.tame = document.createElement("button"); ui.tame.type = "button"; ui.tame.className = "wz-tame"; ui.tame.innerHTML = `🪢 <b>${esc(T("Tame"))}</b><small>${esc(T("bola + 3 berries"))}</small>`; ui.root.appendChild(ui.tame); ui.tame.addEventListener("click", () => tameTry(tgt)); } ui.tame.hidden = !can; }
     const [g, k, step] = goal(), mis = inv && Array.isArray(inv.mis) ? inv.mis : [], md = mis.filter((x) => x.paid).length, gs = g + "|" + k.toFixed(2) + "|" + step + "|" + md;
     if (gs !== lastGoal) { lastGoal = gs; ui.goalT.textContent = g; ui.goalBar.style.width = Math.round(k * 100) + "%"; ui.goal.hidden = false;
       if (ui.goalN) ui.goalN.textContent = step > 0 ? (step > STEPS ? "✓ " + STEPS + "/" + STEPS : step + "/" + STEPS) : "";
@@ -419,12 +443,12 @@ export function createSurvival(H) {
   function paintPack() {
     if (!ui || ui.pack.hidden) return;
     const chip = (m, n, need) => `<span class="wz-chip${need != null && have(m) < need ? " short" : ""}" title="${esc(T(MAT_N[m] || m))}">${ic(m)}<b>${need != null ? `${Math.min(have(m), need)}/${need}` : n}</b></span>`;
-    const mats = signedOut ? Object.entries(guest.mat).filter(([, n]) => n > 0) : inv ? Object.entries(inv.mat).filter(([, n]) => n > 0) : [];
+    const mats = (signedOut ? Object.entries(guest.mat).filter(([, n]) => n > 0) : inv ? Object.entries(inv.mat).filter(([, n]) => n > 0) : []).sort((a, b) => (recent[b[0]] || 0) - (recent[a[0]] || 0) || b[1] - a[1]); // (b-jy5: what you got lately first)
     const ores = signedOut ? [] : ORE.filter((m) => ore[m] > 0);
     const tl = inv ? inv.tools : { axe: 0, spear: 0 };
     const AXE = ["Bare hands", "Stone axe", "Copper axe", "Iron-hard axe"];
     const mis = inv && Array.isArray(inv.mis) ? inv.mis : [], md = mis.filter((x) => x.paid).length;
-    const tabs = [["bag", T("Pack")], ["make", T("Make")], ["mis", T("Missions") + (mis.length ? ` ${md}/${mis.length}` : "")], ["dex", T("Codex")]];
+    const tabs = [["bag", T("Pack")], ["make", T("Make")], ["mis", T("Missions") + (mis.length ? ` ${md}/${mis.length}` : "")], ["dex", T("Codex")], ["camps", T("Camps")]];
     if (signedOut && packTab !== "bag") packTab = "bag";
     let body = "";
     if (packTab === "make") {
@@ -432,14 +456,20 @@ export function createSurvival(H) {
         return `<li class="${ok ? "ok" : ""}${own ? " own" : ""}"><div><b>${esc(T(R.name))}</b>${R.at ? `<small>${esc(T(R.at === "bench" ? "at the workbench" : "at the campfire"))}</small>` : ""}<p>${Object.entries(R.need).map(([m, n]) => chip(m, 0, n)).join("")}</p></div>
           <button type="button" data-make="${esc(id)}" ${ok ? "" : "disabled"}>${esc(own ? T("Made") : T("Make"))}</button></li>`; });
       // what you can make now first, then what's left, then what you have
-      const order = Object.entries(recipes).map(([id, R], i) => [i, owned(R) ? 2 : canMake(R) && atOk(R) ? 0 : 1]).sort((a, b) => a[1] - b[1] || a[0] - b[0]).map(([i]) => rec[i]);
-      body = `<ul class="wz-recipes">${order.join("")}</ul>`;
+      const order = Object.entries(recipes).map(([id, R], i) => [i, owned(R) ? 2 : canMake(R) && atOk(R) ? 0 : 1]).filter(([, g]) => !makeOnly || g === 0).sort((a, b) => a[1] - b[1] || a[0] - b[0]).map(([i]) => rec[i]);
+      body = `<label class="wz-only"><input type="checkbox" data-only ${makeOnly ? "checked" : ""}> ${esc(T("Only what I can make now"))}</label><ul class="wz-recipes">${order.join("") || `<li class="none">${esc(T("Nothing to make yet — gather more first"))}</li>`}</ul>`;
     } else if (packTab === "dex") {
       const hu = (inv && inv.hunted) || {};
-      body = `<ul class="wz-dex">${Object.entries(FOE).map(([k, F]) => { const n = hu[k] || 0, seen = n > 0 || seenK.has(k); return `<li class="${n ? "got" : seen ? "seen" : ""}"><i>${n ? "🦖" : seen ? "👁️" : "❔"}</i><div><b>${esc(seen ? T(NODE_N[k]) : "???")}</b><small>${F.boss ? esc(T("Boss")) + " · " : ""}Lv ${F.lv} · HP ${F.hp.toLocaleString("en-US")}</small><small>${esc(T(WHERE[k] || ""))}</small></div><em>${n ? "×" + n : ""}</em></li>`; }).join("")}</ul>
+      body = `<ul class="wz-dex">${Object.entries(FOE).map(([k, F]) => { const n = hu[k] || 0, seen = n > 0 || seenK.has(k), tm = ((inv && inv.tamed) || {})[k] || 0, st = (seen ? 1 : 0) + (n ? 1 : 0) + (n >= 10 || tm ? 1 : 0); return `<li class="${n ? "got" : seen ? "seen" : ""}"><i class="${seen ? "" : "sil"}">${F.boss ? "🦖" : "🦕"}</i><div><b>${esc(seen ? T(NODE_N[k]) : "???")} <span class="wz-stars" title="${esc(T("Seen · hunted · tamed or hunted 10 times"))}">${"★".repeat(st)}${"☆".repeat(3 - st)}</span></b><small>${F.boss ? esc(T("Boss")) + " · " : ""}Lv ${F.lv} · HP ${F.hp.toLocaleString("en-US")}</small><small>${esc(T(WHERE[k] || ""))}</small></div><em>${n ? "×" + n : ""}</em></li>`; }).join("")}</ul>
         <h4>${esc(T("This week's hunters"))}</h4><ol class="wz-board">${board ? (board.length ? board.slice(0, 10).map((x) => `<li><b>${esc(x.name || x.w)}</b><span>${x.n.toLocaleString("en-US")} ${esc(T("pts"))}</span></li>`).join("") : `<li class="none">${esc(T("No hunts yet this week — be the first!"))}</li>`) : `<li class="none">…</li>`}</ol>
+        ${crews.length ? `<h4>${esc(T("Crews this week"))}</h4><ol class="wz-board">${crews.slice(0, 10).map((x) => `<li><b>[${esc(x.tag)}] ${esc(x.name || "")}</b><span>${x.n.toLocaleString("en-US")} ${esc(T("pts"))}</span></li>`).join("")}</ol>` : ""}
         <p class="wz-mis-note">${esc(T("Points: raptor 1 · clawstrider 2 · triceratops 3 · spinosaurus 6 · Alpha Raptor 10 · Thornback Titan 12. No prizes — just the glory."))}</p>`;
-      if (!boardAt || Date.now() - boardAt > 60000) { boardAt = Date.now(); fetch("/api/social?world=jur-top").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { board = j.top || []; if (packTab === "dex") paintPack(); } }).catch(() => {}); }
+      if (!boardAt || Date.now() - boardAt > 60000) { boardAt = Date.now(); fetch("/api/social?world=jur-top").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { board = j.top || []; crews = j.crews || []; campTop = j.camps || []; if (packTab === "dex") paintPack(); } }).catch(() => {}); }
+    } else if (packTab === "camps") {
+      // b-jy7: everyone's camps — visit one (it walks you there), and this week's best (by visitors' likes)
+      const likes = new Map(((campTop || []).map((x) => [x.slot, x.n])));
+      body = `<p class="wz-mis-note">${esc(T("Visit a camp, leave a note and a like. The most-liked camps this week are on top."))}</p><ul class="wz-recipes">${[...camps.list].sort((a, b) => (likes.get(b.slot) || 0) - (likes.get(a.slot) || 0)).map((c) => `<li class="ok"><div><b>${esc(c.mine ? T("Your camp") : T("{w}'s camp", { w: c.owner }))}</b><small>👍 ${likes.get(c.slot) || 0} · ${esc(T("{n} living here", { n: c.members }))}</small></div>${c.mine ? "" : `<button type="button" data-visit="${c.slot}">${esc(T("Visit"))}</button>`}</li>`).join("") || `<li class="none">${esc(T("No camps yet"))}</li>`}</ul>`;
+      if (!boardAt || Date.now() - boardAt > 60000) { boardAt = Date.now(); fetch("/api/social?world=jur-top").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { board = j.top || []; crews = j.crews || []; campTop = j.camps || []; if (packTab === "camps") paintPack(); } }).catch(() => {}); }
     } else if (packTab === "mis") {
       body = `<p class="wz-mis-note">${esc(T("Three a day for taking part — never for winning. They start again at midnight (Korea time)."))}</p><ul class="wz-mis">${mis.map((x) => `<li class="${x.paid ? "done" : ""}"><div><b>${esc(T(MIS_N[x.key] || x.name))}</b><i><u style="width:${Math.round(100 * x.n / x.need)}%"></u></i><small>${x.n.toLocaleString("en-US")} / ${x.need.toLocaleString("en-US")}</small></div><em>${x.paid ? "✓ " + esc(T("Paid")) : "+" + x.arcl.toLocaleString("en-US") + " ARCL"}</em></li>`).join("")}</ul>`;
     } else {
@@ -462,6 +492,60 @@ export function createSurvival(H) {
     const el = document.createElement("div"); el.className = "wz-pop " + (cls || ""); el.innerHTML = html;
     el.style.left = ((v3.x + 1) / 2 * 100).toFixed(2) + "%"; el.style.top = ((1 - v3.y) / 2 * 100).toFixed(2) + "%"; ui.pops.appendChild(el); setTimeout(() => el.remove(), 1700);
   }
+  // b-jy6: fishing — a bobber on the water once you cast; a bite a moment later (it dips, a plink, rings); each swing
+  // reels (a click); the catch jumps out of the water to you
+  let bob = null, bobT = 0, biteAt = 0;
+  function fishSwing(o, w) {
+    if (!H.scene) return;
+    if (!bob) { const g = new THREE.Group(), red = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), new THREE.MeshStandardMaterial({ color: 0xff3040, roughness: 0.5 })), wh = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })); wh.position.y = 0.02; g.add(red, wh); H.scene.add(g); bob = g; }
+    if (w.hits === 1) { bob.visible = true; bob.position.set(o.x, -2.4, o.z); bobT = 0; biteAt = performance.now() + 1400 + Math.random() * 1400; (Snd.splash || (() => {}))(0); }
+    else { (Snd.reel || (() => {}))(w.hits % 3); }
+  }
+  function fishCaught(o) {
+    if (bob) bob.visible = false; if (!H.scene || ctx.reduce) return; const P = H.me ? H.me() : null; if (!P) return;
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshStandardMaterial({ color: 0x9fc8d8, metalness: 0.4, roughness: 0.3 })); f.scale.set(2.2, 0.8, 0.9); H.scene.add(f);
+    const t0 = performance.now(), from = new THREE.Vector3(o.x, -2.4, o.z); (Snd.splash || (() => {}))(1);
+    const fly = () => { const k = Math.min(1, (performance.now() - t0) / 650); f.position.set(from.x + (P.px - from.x) * k, from.y + (H.height(P.px, P.pz) + 1.3 - from.y) * k + Math.sin(k * Math.PI) * 2.4, from.z + (P.pz - from.z) * k); f.rotation.z = k * 9; if (k < 1) requestAnimationFrame(fly); else H.scene.remove(f); }; requestAnimationFrame(fly);
+  }
+  function tickBob(dt) {
+    if (!bob || !bob.visible) return; bobT += dt; const t = performance.now(), bit = biteAt && t > biteAt;
+    if (bit && biteAt > 0) { biteAt = -1; (Snd.plink || (() => {}))(); pop({ x: bob.position.x, z: bob.position.z, popY: 0.2 }, "❗ " + esc(T("A bite! Reel it in")), "warn", 0.2); }
+    bob.position.y = -2.4 + 0.04 + Math.sin(bobT * 3) * 0.03 - (bit ? Math.max(0, Math.sin(bobT * 9)) * 0.12 : 0);
+    if (!(work && work.o && work.o.kind === "fish") && bobT > 2) bob.visible = false;
+  }
+  // b-jy7: the fossil dig — brush the dirt off (drag across the card); when most of the bone shows and its few seconds
+  // have passed, it's yours (the server counts the time and the brushing as the swings)
+  let dig = null;
+  function digOpen(o, w) {
+    if (dig || !ui) return; const c = document.createElement("div"); c.className = "wz-dig"; c.setAttribute("role", "dialog");
+    c.innerHTML = `<b>🦴 ${esc(T("Brush the fossil free"))}</b><small>${esc(T("Drag across the dirt — gently"))}</small><canvas width="300" height="190"></canvas><i><u></u></i><button type="button" data-x>${esc(T("Stop"))}</button>`;
+    ui.root.appendChild(c); const cv = c.querySelector("canvas"), g = cv.getContext("2d"), bar = c.querySelector("u"), t0 = performance.now();
+    // the bone underneath, then the dirt over it (what's brushed away is cut out of the dirt)
+    const bone = document.createElement("canvas"); bone.width = 300; bone.height = 190; { const b = bone.getContext("2d"); b.fillStyle = "#6a5236"; b.fillRect(0, 0, 300, 190); b.strokeStyle = "#efe4c8"; b.lineCap = "round"; b.lineWidth = 9; b.beginPath(); b.moveTo(40, 120); b.lineTo(250, 110); b.stroke(); for (let i = 0; i < 6; i++) { b.beginPath(); b.arc(70 + i * 30, 112, 34 - i * 2, Math.PI * 1.1, Math.PI * 1.9); b.stroke(); } b.fillStyle = "#efe4c8"; b.beginPath(); b.ellipse(262, 98, 24, 16, 0.2, 0, 6.283); b.fill(); }
+    const dirt = document.createElement("canvas"); dirt.width = 300; dirt.height = 190; { const d = dirt.getContext("2d"); d.fillStyle = "#8a6a44"; d.fillRect(0, 0, 300, 190); for (let i = 0; i < 400; i++) { d.fillStyle = `rgba(${90 + Math.random() * 60},${70 + Math.random() * 40},${40 + Math.random() * 30},.8)`; d.fillRect(Math.random() * 300, Math.random() * 190, 2 + Math.random() * 5, 2 + Math.random() * 4); } }
+    const dc = dirt.getContext("2d"); dc.globalCompositeOperation = "destination-out";
+    const draw = () => { g.drawImage(bone, 0, 0); g.drawImage(dirt, 0, 0); };
+    const cleared = () => { const px0 = dc.getImageData(0, 0, 300, 190).data; let n = 0; for (let i = 3; i < px0.length; i += 64) if (px0[i] < 40) n++; return n / (px0.length / 64); };
+    let down = false, last = null, k = 0, sw = 0;
+    const brush = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * 300 / r.width, y = (e.clientY - r.top) * 190 / r.height; dc.beginPath(); dc.lineWidth = 30; dc.lineCap = "round"; dc.moveTo(last ? last[0] : x, last ? last[1] : y); dc.lineTo(x, y); dc.stroke(); last = [x, y]; draw();
+      if (++sw % 6 === 0) { w.hits++; (Snd.pick || (() => {}))(); } };
+    cv.addEventListener("pointerdown", (e) => { down = true; last = null; cv.setPointerCapture(e.pointerId); brush(e); }); cv.addEventListener("pointermove", (e) => { if (down) brush(e); }); cv.addEventListener("pointerup", () => { down = false; k = cleared(); bar.style.width = Math.min(100, Math.round(k / 0.65 * 100)) + "%"; check(); });
+    const check = () => { if (!dig) return; if (k >= 0.65 && performance.now() - t0 > 6500) { close(); finish(w); } else if (k >= 0.65) setTimeout(check, 400); };
+    const close = () => { if (dig) { dig.remove(); dig = null; } };
+    c.querySelector("[data-x]").addEventListener("click", () => { close(); if (work === w) work = null; paint(); });
+    dig = c; draw(); dig.brushAll = () => { dc.fillRect(0, 0, 300, 190); k = 1; draw(); check(); };
+  }
+  // b-jy7: taming — with a bola and 3 berries, a try at the dinosaur in front of you (a raptor, a triceratops, a Bog Stalker)
+  const TAMEABLE = { raptor: 1, trike: 1, stalker: 1 };
+  async function tameTry(o) {
+    if (busy || !o || !TAMEABLE[o.kind]) return; if (have("bola") < 1 || have("berries") < 3) { toast(T("Taming needs a bola (make one from rope and stone) and 3 berries")); return; }
+    busy = true; const r = await api("world-jur-tame", { kind: o.kind }); busy = false;
+    if (!r.ok) { toast(T("Couldn't tame: {e}", { e: String((r.j && r.j.error) || "").slice(0, 60) })); return; }
+    inv = r.j.inv; (Snd.pick || (() => {}))();
+    if (r.j.tamed) { toast(`💚 <b>${esc(T("Tamed!"))}</b> ${esc(T("The {d} walks with you for this visit.", { d: T(NODE_N[o.kind]) }))}`); if (H.onTamed) H.onTamed(o); if (sel === o) { sel = null; paintFoe(); } tgt = null; }
+    else { toast(`💢 ${esc(T("It broke free — try again with another bola"))}`); if (o.hurt) o.hurt(); }
+    paint(); paintPack();
+  }
   // wood chips or stone flying off at each swing
   let chipsM = null; const flying = [];
   function chips(o) {
@@ -476,13 +560,13 @@ export function createSurvival(H) {
   let pickT = 0, feltT = 0;
   function tick(dt, t, px, pz, face) {
     const pnow = performance.now(), picked = pnow - pickT > 120; if (picked) { pickT = pnow; const o = pick(px, pz, face); if (o !== tgt) { tgt = o; if (o && FOE[o.kind] && sel !== o) select(o); } paint(); } // (by the wall clock: on a slow phone the capped dt took seconds to add up)
-    if ((feltT += dt) > 5) { feltT = 0; applyFelled(); if (signedOut && ctx.sess && ctx.sess()) { guest.mat = {}; guest.n = 0; const sc = ui && ui.root.querySelector(".wz-save"); if (sc) sc.remove(); load().then(() => { toast(T("Signed in: what you gather is saved now")); if (ui && !ui.pack.hidden) paintPack(); }); } }
+    if (pnow - feltT > 5000) { feltT = pnow; applyFelled(); if (signedOut && ctx.sess && ctx.sess()) { guest.mat = {}; guest.n = 0; const sc = ui && ui.root.querySelector(".wz-save"); if (sc) sc.remove(); load().then(() => { toast(T("Signed in: what you gather is saved now")); if (ui && !ui.pack.hidden) paintPack(); }); } }
     // the selection lets go when it's down a while, or far away; a dinosaur left alone a while is back to full HP
     // b-jx5: the card comes up as you close in (12 m), not only once you're in reach — the boss hour's boss first
-    if (!sel && picked && H.dinos) { let best = null, bd = 12; for (const d of H.dinos()) { if (!d.alive || !FOE[d.kind]) continue; const dd = Math.hypot(d.x - px, d.z - pz) - (d.hr || 1) - (d.shared ? 8 : 0); if (dd < bd) { bd = dd; best = d; } } if (best) select(best); }
+    if (!sel && picked && H.dinos) { let best = null, bd = 12; for (const d of H.dinos()) { if (!d.alive || !FOE[d.kind] || d.tamed) continue; const dd = Math.hypot(d.x - px, d.z - pz) - (d.hr || 1) - (d.shared ? 8 : 0); if (dd < bd) { bd = dd; best = d; } } if (best) select(best); }
     if (sel) { const far = Math.hypot(sel.x - px, sel.z - pz) > 45; if (!sel.alive) selT += dt; if (far || selT > 2.5) { sel = null; paintFoe(); } }
     if (H.dinos && picked) for (const d of H.dinos()) if (d.hpNow != null && d.alive && performance.now() - (d.hpAt || 0) > 12000 && !(work && work.o === d)) { d.hpNow = null; if (d === sel) paintFoe(); }
-    tickRing(t); if (picked) { bedNear = nearBed(px, pz); stationNear = bedNear ? "" : nearStation(px, pz); }
+    tickBob(dt); tickRing(t); if (picked) { bedNear = nearBed(px, pz); stationNear = bedNear ? "" : nearStation(px, pz); }
     tickBars(px, pz);
     for (let i = flying.length - 1; i >= 0; i--) { const f = flying[i]; f.t -= dt; f.vy -= 14 * dt; f.c.position.x += f.vx * dt; f.c.position.y += f.vy * dt; f.c.position.z += f.vz * dt; f.c.rotation.x += dt * 9; f.c.rotation.y += dt * 7;
       if (f.t <= 0) { H.scene.remove(f.c); flying.splice(i, 1); } }
@@ -494,5 +578,5 @@ export function createSurvival(H) {
   function hurtFoe(o, dmg, cls = "dmg buddy") { const F = FOE[o.kind]; if (!F) return; o.hpNow = Math.max(1, (o.hpNow ?? F.hp) - dmg); o.hpAt = performance.now(); pop(o, "-" + dmg.toLocaleString("en-US"), cls, 0.15); if (sel === o) paintFoe(); if (o.hurt) o.hurt(); }
   const refresh = () => { load().then(() => { paint(); if (ui && !ui.pack.hidden) paintPack(); }); };
   const post = (action, extra) => api(action, extra);
-  return { fighting: (px, pz) => !!(sel && sel.alive && FOE[sel.kind] && Math.hypot(sel.x - px, sel.z - pz) < (sel.hr || 1) + 7 && (work && work.o === sel || (sel.hpNow != null && performance.now() - (sel.hpAt || 0) < 6000))), probe: (x, z, f) => { try { const o = pick(x, z, f); return o ? o.kind + "@" + Math.round(o.x) + "," + Math.round(o.z) : null; } catch (e) { return "ERR " + e.message; } }, FOE, ic, post, tools: () => (inv ? inv.tools : {}), homeFire: () => campFire(home), campList: () => camps.list.map((c) => ({ x: c.x, z: c.z, mine: c.slot === home })), fires: () => fires, homeSpot: () => { const c = homeCamp(); return c && CAMPS[c.slot] ? { x: CAMPS[c.slot][0], z: CAMPS[c.slot][1] } : null; }, hurtFoe, pop, refresh, working: () => (work && work.o) || null, setInv: (x) => { if (x) { inv = { ...(inv || {}), ...x }; if (ui && !ui.pack.hidden) paintPack(); } }, select, selected: () => sel, campFire, rest, bedNear: () => bedNear, stationNear: () => stationNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
+  return { refreshNodes: () => applyFelled(), digDone: () => { if (dig && dig.brushAll) dig.brushAll(); }, digging: () => !!dig, campAt: (x, z) => { const c = camps.list.find((q) => Math.hypot(q.x - x, q.z - z) < CAMP_R); return c ? { ...c } : null; }, goalNow: () => goal(), have: (m) => have(m), openTab: (k) => { packTab = k; togglePack(true); }, fighting: (px, pz) => !!(sel && sel.alive && FOE[sel.kind] && Math.hypot(sel.x - px, sel.z - pz) < (sel.hr || 1) + 7 && (work && work.o === sel || (sel.hpNow != null && performance.now() - (sel.hpAt || 0) < 6000))), probe: (x, z, f) => { try { const o = pick(x, z, f); return o ? o.kind + "@" + Math.round(o.x) + "," + Math.round(o.z) : null; } catch (e) { return "ERR " + e.message; } }, FOE, ic, post, tools: () => (inv ? inv.tools : {}), homeFire: () => campFire(home), campList: () => camps.list.map((c) => ({ x: c.x, z: c.z, mine: c.slot === home })), fires: () => fires, homeSpot: () => { const c = homeCamp(); return c && CAMPS[c.slot] ? { x: CAMPS[c.slot][0], z: CAMPS[c.slot][1] } : null; }, hurtFoe, pop, refresh, working: () => (work && work.o) || null, setInv: (x) => { if (x) { inv = { ...(inv || {}), ...x }; if (ui && !ui.pack.hidden) paintPack(); } }, select, selected: () => sel, campFire, rest, bedNear: () => bedNear, stationNear: () => stationNear, load, tick, swing, collide, bind, togglePack, packOpen, target: () => tgt, use: () => false, drawCamps, ghost: () => !!ghost, turnGhost: () => { if (ghost) ghostR = (ghostR + 1) % 4; }, cancelGhost: () => { const g = !!ghost; endGhost(); return g; }, campSpots: () => CAMPS, debug: () => ({ loaded, signedOut, inv, ore, home, camps, campFull, felled: Object.keys(felled).length, tgt: tgt && tgt.id, work: work && { id: work.o.id, hits: work.hits, need: work.need } }) };
 }

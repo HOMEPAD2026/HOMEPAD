@@ -8,8 +8,12 @@ import { makeJurTrees } from "./world-jurtrees.js";
 import { createSurvival, CAMPS, CAMP_R } from "./world-jursurv.js";
 import { createDino } from "./world-dino.js";
 import { createJurX } from "./world-jurx.js";
+import { createJurY } from "./world-jury.js";
+import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 // BASIN (b-jx3): the Ember Basin, the second land — a volcanic bowl in the south-east with lava at its floor
-export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { x: 0, z: 66 }, LAKE: { x: 55, z: -35, r: 34 }, BASIN: { x: 120, z: -82, r: 30 } };
+// MIRE (b-jy7): the Whispering Mire, the third land — flat, wet ground in the west with poison pools (swamp boots keep
+// you dry), reeds, mud and the Bog Stalker
+export const JURASSIC = { SIZE: 520, EDGE: 230, SPAWN: { x: 0, z: 42 }, GATE: { x: 0, z: 66 }, LAKE: { x: 55, z: -35, r: 34 }, BASIN: { x: 120, z: -82, r: 30 }, MIRE: { x: -100, z: -50, r: 26 }, MIRE_Y: -0.9 };
 
 export function createJurassic(ctx) {
   const { THREE, st, T, esc, toast } = ctx;
@@ -19,7 +23,7 @@ export function createJurassic(ctx) {
   const MORE = low ? 1 : coarse ? 1.25 : 1.6;
   const J = JURASSIC;
   const Snd = ctx.Snd || {}; let shakeT = 0, stopUntil = 0; // stopUntil: a hit-stop (b-fx2), the world nearly still for a few ms
-  let S = null, ui = null, hero = null, on = false, busy = false, surv = null, dino = null, jx = null, raidNow = false;
+  let S = null, ui = null, hero = null, on = false, busy = false, surv = null, dino = null, jx = null, jy = null, raidNow = false;
   let downNow = false, hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
   const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 }, pinch = { a: -1, b: -1, d: 0, pts: new Map() };
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), camLookS = new THREE.Vector3();
@@ -37,9 +41,14 @@ export function createJurassic(ctx) {
     // the Ember Basin: a rim of rock round a bowl that sinks to its lava (b-jx3)
     const u = Math.hypot(x - J.BASIN.x, z - J.BASIN.z) / J.BASIN.r;
     if (u < 1.7) { const keep = Math.min(1, Math.max(0, (u - 1.05) / 0.6)); h = h * keep + (1 - keep) * 2 + 3.4 * Math.max(0, 1 - Math.abs(u - 1.08) / 0.32) - (u < 1 ? 6 * (1 - u * u) : 0) + (u < 1 ? (fbm(x * 0.15, z * 0.15) - 0.5) * 1.6 : 0); }
+    // the Mire (b-jy7): flat, low ground with shallow pools between hummocks
+    const um = Math.hypot(x - J.MIRE.x, z - J.MIRE.z) / J.MIRE.r;
+    if (um < 1.5) { const keep = Math.min(1, Math.max(0, (um - 0.95) / 0.55)); h = h * keep + (1 - keep) * (-0.55 + (fbm(x * 0.09 + 4, z * 0.09 - 2) - 0.5) * 1.8); }
     return h;
   }
   const WATER_Y = -2.4;
+  const inMire = (x, z) => Math.hypot(x - J.MIRE.x, z - J.MIRE.z) < J.MIRE.r * 1.05;
+  const inMireWater = (x, z) => inMire(x, z) && height(x, z) < J.MIRE_Y - 0.05;
   // the lake's water (the low hollows elsewhere are dry sand: you run on them as on grass)
   const inLake = (x, z) => Math.hypot(x - J.LAKE.x, z - J.LAKE.z) < J.LAKE.r + 11;
   const nearBasin = (x, z, k = 1.25) => Math.hypot(x - J.BASIN.x, z - J.BASIN.z) < J.BASIN.r * k;
@@ -104,6 +113,23 @@ export function createJurassic(ctx) {
     if (!mesh.geometry.attributes.normal) mesh.geometry.computeVertexNormals();
     return { geo: mesh.geometry, base: u.foot.clone().multiply(mesh.matrixWorld) };
   }
+  // ---------------- b-jy1: see-through (players: "the trees hide the dinosaur, and me"): the props between the camera
+  // and the hero — and between the camera and the dinosaur you're on — thin out in a dither (and whatever brushes the
+  // lens), so the fight is never behind a trunk. One set of uniforms for every prop material, patched once (their
+  // shadows stay: the depth pass isn't patched).
+  let xOff = false; const XR = { uXA: { value: new THREE.Vector3() }, uXB: { value: new THREE.Vector3() }, uXC: { value: new THREE.Vector4() }, uXR: { value: coarse ? 1.9 : 2.3 }, uXOn: { value: 0 } };
+  function xray(m) {
+    if (!m || m.userData.xr || !m.isMaterial) return; m.userData.xr = 1; const prev = m.onBeforeCompile, key = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : null;
+    m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); Object.assign(sh.uniforms, XR);
+      sh.vertexShader = "varying vec3 vXW;\n" + sh.vertexShader.replace("#include <project_vertex>", "#include <project_vertex>\n#ifdef USE_INSTANCING\n vXW = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;\n#else\n vXW = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#endif");
+      sh.fragmentShader = "uniform vec3 uXA, uXB; uniform vec4 uXC; uniform float uXR, uXOn; varying vec3 vXW;\nfloat jxSeg(vec3 p, vec3 a, vec3 b, out float t) { vec3 ab = b - a; t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-4), 0.0, 1.0); return distance(p, a + ab * t); }\n" +
+        sh.fragmentShader.replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
+        if (uXOn > 0.5) { float t1, t2; float d1 = jxSeg(vXW, uXA, uXB, t1); float f = t1 < 0.93 ? 1.0 - smoothstep(uXR * (0.45 + 0.35 * t1), uXR * (0.8 + 0.4 * t1), d1) : 0.0;
+          if (uXC.w > 0.5) { float d2 = jxSeg(vXW, uXA, uXC.xyz, t2); f = max(f, t2 < 0.95 ? 1.0 - smoothstep(uXR * (0.6 + 0.6 * t2), uXR * (1.1 + 0.8 * t2), d2) : 0.0); }
+          f = max(f, 1.0 - smoothstep(1.2, 2.4, distance(vXW, uXA)));
+          if (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) < f * 0.9) discard; }`); };
+    m.customProgramCacheKey = () => (key ? key() : "") + "|jxr"; m.needsUpdate = true;
+  }
   // ---------------- cells: the heavy props in 80 m squares, so what's behind the camera isn't drawn and what's far
   // is the light model. Each square holds an InstancedMesh per kind (near and far); every quarter second the squares
   // pick by their distance to the hero.
@@ -128,8 +154,9 @@ export function createJurassic(ctx) {
     }
   }
   let cellT = 0;
+  let cellW = 0;
   function tickCells(dt, force) {
-    if (!force && (cellT += dt) < 0.25) return; cellT = 0;
+    const w = performance.now(); if (!force && w - cellW < 250) return; cellW = w; void cellT;
     for (const c of cells) {
       const d = Math.max(0, Math.hypot(c.x - px, c.z - pz) - CELL * 0.71), shown = d < c.maxD, nearOn = !c.far || d < c.nearD;
       c.near.visible = shown && nearOn; if (c.far) c.far.visible = shown && !nearOn;
@@ -158,11 +185,75 @@ export function createJurassic(ctx) {
     o.lod = lodMeshes(o.g); if (S.shadows) R.g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); raptors.push(o); return o;
   }
   function removeRaider(o) { const i = raptors.indexOf(o); if (i >= 0) raptors.splice(i, 1); if (S && o.g) S.scene.remove(o.g); if (sel === o) selectFoe(null); }
+  // ---------------- b-jy4: fights with weight — a hit flashes the dinosaur, a boss below half HP is enraged (red, faster,
+  // a sweep you jump over), a lunge you jump through is a PERFECT dodge, a boss's fall is a slow, turning moment ----------
+  // each dinosaur's own copy of its materials (a clone shares them: one raptor's flash lit them all), made on first use
+  function matsOf(o) { if (o.mats) return o.mats; o.mats = []; o.g.traverse((m) => { if (!m.isMesh || !m.material) return; const list = [].concat(m.material).map((x) => (x.emissive ? x.clone() : x)); m.material = Array.isArray(m.material) ? list : list[0]; for (const x of list) if (x.emissive) o.mats.push({ m: x, c: x.emissive.clone(), k: x.emissiveIntensity }); }); return o.mats; }
+  function tint(o, hex, k) { if (!o.mats && !k) return; for (const e of matsOf(o)) { if (k) { e.m.emissive.setHex(hex); e.m.emissiveIntensity = k; } else { e.m.emissive.copy(e.c); e.m.emissiveIntensity = e.k; } } }
+  function flash(o, hex, k, ms) { if (reduce || !o.g) return; tint(o, hex, k); clearTimeout(o.flashT); o.flashT = setTimeout(() => { if (o.p2) tint(o, 0xb01010, 0.45); else if (o.baseTint) tint(o, ...o.baseTint); else tint(o, 0, 0); }, ms); }
+  let slowUntil = 0, perfectAt = 0, jumpAt = 0, weather = "", boltAt = 0;
+  // b-jy7: poison (a Bog Stalker's bite; the Mire's water without swamp boots): a little HP a second; an antidote cures it
+  let poisonUntil = 0, poisonW = 0, mireSaid = 0;
+  function poisoned(secs) { const t = performance.now(); if (t > poisonUntil) toast(`☠️ <b>${esc(T("Poisoned!"))}</b> ${esc(T("Eat an antidote, or wait it out away from the water."))}`); poisonUntil = Math.max(poisonUntil, t + secs * 1000); edge("hit"); }
+  function tickPoison() {
+    const t = performance.now(), boots = !!(surv && surv.tools && (surv.tools().boots | 0)), wetM = !downNow && inMireWater(px, pz) && hop < 0.2;
+    if (wetM && !boots) { if (t - mireSaid > 12000) { mireSaid = t; toast(`🦠 <b>${esc(T("Poison water!"))}</b> ${esc(T("Swamp boots keep you dry — make them at the workbench."))}`); } poisonUntil = Math.max(poisonUntil, t + 1200); }
+    if (t < poisonUntil && !downNow && t - poisonW > 1000) { poisonW = t; const v = ctx.vitals ? ctx.vitals() : null; if (ctx.hurt) ctx.hurt(Math.max(1, Math.round(((v && v.max) || 120) * 0.02))); if (surv && surv.pop) surv.pop({ x: px, z: pz, popY: 2.4 }, "☠", "hurt", 0.1); }
+  }
+  /// a boss below half its HP: enraged once a life (the boss hour's shared HP counts too)
+  function phase2(o) {
+    if (!o || !o.alive || o.p2 || !surv) return; const F = surv.FOE[o.kind]; if (!F || o.hpNow == null || o.hpNow > F.hp * 0.5) return;
+    o.p2 = true; o.sweepAt = clock + 2.5; tint(o, 0xb01010, 0.45); if (o.R) o.R.once("roar", 1); if (Snd.roar) Snd.roar(); shakeT = Math.max(shakeT, 0.4);
+    if (jx) { jx.cutin("💢", T("ENRAGED"), T(DINO_N[o.kind] || "Boss")); jx.roar(o); }
+  }
+  /// the enraged boss's sweep: a red ring on the ground, then everything in it is hit — unless you're in the air
+  const sweeps = [];
+  function sweep(o, r, share) {
+    if (!S) return; const m = new THREE.Mesh(new THREE.RingGeometry(0.92, 1, 56), new THREE.MeshBasicMaterial({ color: 0xff2040, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(1, 56), new THREE.MeshBasicMaterial({ color: 0xff2040, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    for (const x of [m, fill]) { x.rotation.x = -Math.PI / 2; x.position.set(o.x, height(o.x, o.z) + 0.12, o.z); x.scale.setScalar(r); S.scene.add(x); }
+    sweeps.push({ o, r, share, t: 0, m, fill }); if (Snd.warn) Snd.warn();
+  }
+  function tickSweeps(dt) {
+    for (let i = sweeps.length - 1; i >= 0; i--) { const w = sweeps[i]; w.t += dt; const k = Math.min(1, w.t / 0.95); w.fill.scale.setScalar(w.r * k); w.m.material.opacity = 0.5 + 0.4 * Math.sin(w.t * 20);
+      if (w.t >= 0.95) { S.scene.remove(w.m, w.fill); w.m.geometry.dispose(); w.fill.geometry.dispose(); sweeps.splice(i, 1);
+        if (!w.o.alive || downNow || safeHere()) continue; const d = Math.hypot(px - w.o.x, pz - w.o.z); if (jx) jx.roar(w.o);
+        if (d < w.r) { if (!grounded && hop > 0.35) perfect(); else { const v = ctx.vitals ? ctx.vitals() : null, arm = surv && surv.tools && surv.tools().armor ? 0.75 : 1; hitMe(w.o.kind, Math.max(1, Math.round(((v && v.max) || 120) * w.share * arm)), v); shakeT = 0.5; kbX = (px - w.o.x) / Math.max(1, d) * 12; kbZ = (pz - w.o.z) / Math.max(1, d) * 12; kbT = 0.2; } } } }
+  }
+  /// dodged at the last moment: a word over you, a chime, the world slows for a breath
+  function perfect() {
+    const t = performance.now(); if (t - perfectAt < 1500) return; perfectAt = t; if (Snd.perfect) Snd.perfect(); if (!reduce) slowUntil = t + 260;
+    if (surv && surv.pop) surv.pop({ x: px, z: pz, popY: 2.8 }, "✨ " + esc(T("PERFECT!")), "perfect", 0.1);
+    try { if (hero && hero.play && grounded) hero.play("dodge", { once: true, fade: 0.05 }); } catch { /* no clip */ }
+  }
+  /// a boss falls: the world slows, the camera turns round it, dust, and you cheer
+  function finisher(o) {
+    if (!S) return; const t = performance.now(); if (!reduce) slowUntil = t + 1300; shakeT = Math.max(shakeT, 0.6);
+    if (jx) { jx.roar(o); jx.felled({ x: o.x, z: o.z }); }
+    if (!reduce && ctx.setView) { const from = camYaw, t0 = t; const spin = () => { const k = Math.min(1, (performance.now() - t0) / 1500); ctx.setView({ yaw: from + 0.8 * (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2) }); if (k < 1 && on) requestAnimationFrame(spin); }; requestAnimationFrame(spin); }
+    setTimeout(() => { try { if (hero && hero.play && !downNow) hero.play("emote-yes", { once: true }); } catch { /* no clip */ } }, 900);
+  }
+  /// b-jy7: a tamed dinosaur walks with you (a few metres to the side, behind), never at you; a green ring under it
+  function follow(o, dt) {
+    const side = o.side || 1, fx = px - Math.sin(face) * 3.2 + Math.cos(face) * side * 2.4, fz = pz - Math.cos(face) * 3.2 - Math.sin(face) * side * 2.4, d = Math.hypot(fx - o.x, fz - o.z);
+    if (d > 60) { o.x = fx; o.z = fz; }
+    const want = d > 6 ? Math.min(o.run || 8, 4 + d) : d > 1.2 ? 3 : 0; if (want > 0) steer(o, fx, fz, dt, 4); o.sp += (want - (o.sp || 0)) * Math.min(1, dt * 3);
+    o.x += Math.sin(o.face) * o.sp * dt; o.z += Math.cos(o.face) * o.sp * dt; o.state = "tamed"; o.lookAt = null;
+    o.g.position.set(o.x, height(o.x, o.z), o.z); o.g.rotation.y = o.face;
+    o.R.loop(o.sp > 4.5 ? "run" : o.sp > 0.4 ? "walk" : "idle", o.sp > 4.5 ? Math.max(0.7, o.sp / 7) : Math.max(0.6, o.sp / 2.4)); mixUp(o, o.mixer, dt, o.x, o.z);
+    if (!o.tameRing && S) { const m = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 36), new THREE.MeshBasicMaterial({ color: 0x5ff08a, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide, toneMapped: false })); m.rotation.x = -Math.PI / 2; S.scene.add(m); o.tameRing = m; }
+    if (o.tameRing) { o.tameRing.visible = true; o.tameRing.position.set(o.x, height(o.x, o.z) + 0.08, o.z); o.tameRing.scale.setScalar((o.hr || 1.4) * 1.3); }
+  }
+  function untame() { for (const o of [...raptors, ...trikes]) if (o.tamed) { o.tamed = false; o.state = "back"; o.tx = o.hx ?? (o.home && o.home.x); o.tz = o.hz ?? (o.home && o.home.z); if (o.tameRing) o.tameRing.visible = false; } }
+  /// you're behind it (its back and tail): the weak spot — a crit is likelier there (shown only: the server counts hits)
+  function behind(o) { if (!o) return false; const a = Math.atan2(px - o.x, pz - o.z); let d = a - (o.face || 0); d = Math.atan2(Math.sin(d), Math.cos(d)); return Math.abs(d) > 2.1; }
   function dinoize(o, kind, id, hr, popY, home) {
     Object.assign(o, { id, kind, hr, popY, alive: true, angry: 0, biteAt: 0, cool: 0, home });
-    o.hurt = () => { o.angry = clock + 12; o.R.once("hit", 1.2); };
-    o.die = (silent) => { if (!o.alive) return; o.alive = false; o.diedAt = Date.now(); o.deadT = clock - (silent ? 99 : 0); o.sp = 0; o.R.die(); if (!silent && Snd.growl) Snd.growl(kind === "raptor" ? 0 : 1); };
-    o.revive = () => { o.alive = true; o.angry = 0; o.x = home.x; o.z = home.z; o.sp = 0; o.state = "idle"; o.wait = 2; o.R.revive(); o.g.visible = true; };
+    o.hurt = () => { o.angry = clock + 12; o.R.once("hit", 1.2); flash(o, 0xff5040, 0.9, 120);
+      // b-jy4: a hit pushes a small one back a little (a big one barely moves)
+      const dx = o.x - px, dz = o.z - pz, d = Math.hypot(dx, dz) || 1, L = (o.R && o.R.L) || 4, k = L < 7 ? 0.35 : 0.08; if (d < 8) { o.x += dx / d * k; o.z += dz / d * k; } };
+    o.die = (silent) => { if (!o.alive) return; o.alive = false; o.diedAt = Date.now(); o.deadT = clock - (silent ? 99 : 0); o.sp = 0; o.R.die(); if (!silent && Snd.growl) Snd.growl(kind === "raptor" ? 0 : 1); if (!silent && (kind === "alpha" || kind === "titan")) finisher(o); };
+    o.revive = () => { o.alive = true; o.angry = 0; o.x = home.x; o.z = home.z; o.sp = 0; o.state = "idle"; o.wait = 2; o.R.revive(); o.g.visible = true; o.p2 = false; if (o.baseTint) tint(o, ...o.baseTint); else tint(o, 0, 0); };
     return o;
   }
   // a bite (or a claw, a tail, a horn) lands a moment into its attack clip, if you're still in reach
@@ -183,18 +274,31 @@ export function createJurassic(ctx) {
   // happening and ultimately I die") — the camera moves in while you fight, a slash shows each swing, a bite shows its
   // damage on you and flashes the screen's edges, low HP says what to do, and a knock-out says what did it
   let lastBite = { at: -99, kind: "", wall: 0 }, combatK = 1, lowWarnAt = -1e9, combatWall = 0, slash = null, slashT = 0, vig = null;
-  const DINO_N = { raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
+  const DINO_N = { stalker: "Bog Stalker", raptor: "Raptor", trike: "Triceratops", alpha: "Alpha Raptor", spino: "Spinosaurus", titan: "Thornback Titan", claw: "Clawstrider" };
   function edge(cls) { if (!ui || !ui.root) return; if (!vig) { vig = document.createElement("i"); vig.className = "wz-vig"; vig.setAttribute("aria-hidden", "true"); ui.root.appendChild(vig); } if (cls === "hit") { vig.classList.remove("hit"); void vig.offsetWidth; vig.classList.add("hit"); } else vig.classList.toggle("low", !!cls); }
-  function slashFx() {
+  // b-jy4: the swing's mark by what's swung: a spear's thrust (a long streak ahead; purple for obsidian), an axe's chop
+  // (an arc top to bottom), a pick's sparks on rock, a slash otherwise
+  let slashMode = "slash", thrust = null, chop = null;
+  function slashFx(o) {
     if (!S || reduce) return;
-    if (!slash) { const g = new THREE.RingGeometry(0.9, 1.55, 28, 1, -Math.PI * 0.42, Math.PI * 0.84); slash = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x9ff4ff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })); slash.rotation.x = -Math.PI / 2; slash.renderOrder = 5; S.scene.add(slash); }
-    slashT = 0.22; slash.visible = true;
+    const k = o && o.kind, hunt = !!(k && surv && surv.FOE[k]), tl = (surv && surv.tools && surv.tools()) || {};
+    slashMode = hunt ? "thrust" : k === "tree" || k === "palm" || k === "ancient" || k === "log" ? "chop" : k === "rock" || k === "obsidian" ? "mine" : k === "fish" ? "" : "slash";
+    const add = (geo, col) => { const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); m.renderOrder = 5; m.visible = false; S.scene.add(m); return m; };
+    if (!slash) { slash = add(new THREE.RingGeometry(0.9, 1.55, 28, 1, -Math.PI * 0.42, Math.PI * 0.84), 0x9ff4ff); slash.rotation.x = -Math.PI / 2; }
+    if (!thrust) { const g = new THREE.PlaneGeometry(0.32, 2.8); g.translate(0, 1.6, 0); thrust = add(g, 0x9ff4ff); }
+    if (!chop) chop = add(new THREE.RingGeometry(1.0, 1.45, 24, 1, Math.PI * 0.05, Math.PI * 0.75), 0xffd48a);
+    if (slashMode === "thrust") thrust.material.color.setHex((tl.spear | 0) >= 2 ? 0xc47bff : 0x9ff4ff);
+    if (slashMode === "mine" && jx) { for (let i = 0; i < 6; i++) jx.spark && jx.spark(o.x + (Math.random() - 0.5) * 0.8, height(o.x, o.z) + 0.7 + Math.random() * 0.6, o.z + (Math.random() - 0.5) * 0.8); }
+    slashT = slashMode ? 0.22 : 0; for (const m of [slash, thrust, chop]) m.visible = false;
   }
   function tickSlash(dt) {
-    if (!slash || slashT <= 0) { if (slash) slash.visible = false; return; }
-    slashT -= dt; const k = 1 - Math.max(0, slashT) / 0.22, y = (pyS ?? height(px, pz)) + 1.05;
-    slash.position.set(px + Math.sin(face) * 0.55, y, pz + Math.cos(face) * 0.55); slash.rotation.z = face - Math.PI / 2 + (k - 0.5) * 0.9;
-    const sc = 0.85 + k * 0.5; slash.scale.set(sc, sc, sc); slash.material.opacity = Math.sin(k * Math.PI) * 0.85;
+    if (!slash || slashT <= 0) { for (const m of [slash, thrust, chop]) if (m) m.visible = false; return; }
+    slashT -= dt; const k = 1 - Math.max(0, slashT) / 0.22, y = (pyS ?? height(px, pz)) + 1.05, op = Math.sin(k * Math.PI) * 0.85;
+    if (slashMode === "thrust") { const m = thrust; m.visible = true; m.position.set(px, y, pz); m.rotation.set(-Math.PI / 2, 0, -face + Math.PI, "YXZ"); m.rotation.order = "YXZ"; m.rotation.y = face; m.rotation.x = Math.PI / 2; m.rotation.z = 0; /* (the streak runs ahead: +Z turned by the face) */ m.scale.set(1, 0.35 + k * 0.75, 1); m.material.opacity = op; return; }
+    if (slashMode === "chop") { const m = chop; m.visible = true; m.position.set(px + Math.sin(face) * 0.5, y + 0.15, pz + Math.cos(face) * 0.5); m.rotation.order = "YXZ"; m.rotation.set(0, face + Math.PI / 2, -k * 1.4); m.material.opacity = op; return; }
+    if (slashMode === "mine") return;
+    slash.visible = true; slash.position.set(px + Math.sin(face) * 0.55, y, pz + Math.cos(face) * 0.55); slash.rotation.z = face - Math.PI / 2 + (k - 0.5) * 0.9;
+    const sc = 0.85 + k * 0.5; slash.scale.set(sc, sc, sc); slash.material.opacity = op;
   }
   /// a bite landed on you: the damage, the flash, the low-HP word (the same for every dinosaur and for the raid's)
   function hitMe(kind, n, v = ctx.vitals ? ctx.vitals() : null) {
@@ -205,9 +309,12 @@ export function createJurassic(ctx) {
   function bites(o) {
     if (!o.biteAt || clock < o.biteAt) return; o.biteAt = 0; if (downNow || !o.alive) return;
     if (o.vsBuddyUntil > clock && dino && dino.near(o)) { dino.hurt(o.biteK); o.retreatUntil = clock + 0.7 + Math.random() * 0.7; o.side = Math.random() < 0.5 ? -1 : 1; return; }
-    const dx = px - o.x, dz = pz - o.z, d = Math.hypot(dx, dz); if (d > o.biteR + 0.9) return;
+    const dx = px - o.x, dz = pz - o.z, d = Math.hypot(dx, dz);
+    // b-jy4: jumped as it lunged (or dashed out of reach): no bite, and a PERFECT dodge when it was that close
+    const airborne = !grounded && hop > 0.35, recent = performance.now() - jumpAt < 700;
+    if (d > o.biteR + 0.9 || airborne) { if ((airborne || recent || speed > 9) && d < o.biteR + 3.2) perfect(); return; }
     const v = ctx.vitals ? ctx.vitals() : null, arm = surv && surv.tools && surv.tools().armor ? 0.75 : 1, n = Math.max(1, Math.round(((v && v.max) || 120) * o.biteK * arm)); // (hide armour: a quarter less, b-jx3)
-    hitMe(o.kind, n, v); shakeT = 0.3 + o.biteK;
+    hitMe(o.kind, n, v); shakeT = 0.3 + o.biteK; if (o.poison) poisoned(5);
     const k = (o.kind === "titan" || o.kind === "trike" ? 9 : o.kind === "spino" || o.kind === "alpha" ? 7 : 5) / Math.max(0.5, d); kbX = dx * k; kbZ = dz * k; kbT = 0.18;
     if (hero && hero.hurt) try { hero.hurt(); } catch { /* no flash */ }
     o.retreatUntil = clock + 0.7 + Math.random() * 0.7; o.side = Math.random() < 0.5 ? -1 : 1;
@@ -227,6 +334,10 @@ export function createJurassic(ctx) {
       homes.forEach(([hx, hz], i) => { const R = rig(MODELS.raptor8, 3.8 + rnd() * 0.8); scene.add(R.g); R.loop("idle");
         raptors.push(dinoize({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx + (rnd() - 0.5) * 10, z: hz + (rnd() - 0.5) * 10, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, state: "idle", roarAt: 0, run: 8.2, bite: 0.07, aggro: 15 }, "raptor", "raptor:" + i, 1.3, 2, { x: hx, z: hz })); });
     }
+    // b-jy7: the Bog Stalkers — the Mire's hunters (the raptor's rig, bigger and swamp-green; a poisoned bite)
+    [[J.MIRE.x - 6, J.MIRE.z + 8], [J.MIRE.x + 9, J.MIRE.z - 7]].slice(0, low ? 1 : 2).forEach(([hx, hz], i) => { const R = rig(MODELS.raptor8, 4.7 + rnd() * 0.5); scene.add(R.g); R.loop("idle");
+      const o = dinoize({ g: R.g, R, mixer: R.mixer, hx, hz, x: hx, z: hz, face: rnd() * 6.28, tx: hx, tz: hz, sp: 0, wait: rnd() * 3, state: "idle", roarAt: 0, run: 8.8, bite: 0.08, aggro: 16, poison: true }, "stalker", "stalker:" + i, 1.5, 2.3, { x: hx, z: hz });
+      tint(o, 0x2a5a10, 0.55); o.baseTint = [0x2a5a10, 0.55]; raptors.push(o); });
     // the Clawstriders (the owner's Meshy Clawstrider: bite, claw, leap and tail attacks): a pack of three in the east
     // woods, bigger and quicker than the raptors (you outrun them only flat out), hitting harder
     if (MODELS.claw && MODELS.claw.animations) [[128, -52], [134, -44], [122, -40]].slice(0, low ? 2 : 3).forEach(([hx, hz], i) => { const R = rig(MODELS.claw, 5 + rnd() * 0.6); scene.add(R.g); R.loop("idle");
@@ -238,7 +349,8 @@ export function createJurassic(ctx) {
       const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz), home = Math.hypot(r.x - r.hx, r.z - r.hz), safe = safeHere();
       let want = 0;
       if (r.raid && r.state !== "chase" && !downNow) r.state = "chase"; // (a night raider comes straight for you)
-      if (r.state !== "chase" && !safe && (d < r.aggro * (night ? 1.7 : 1) || (r.angry > clock && d < 30))) { r.state = "chase"; if (Snd.growl && d < 40) Snd.growl(r.kind === "claw" ? 1 : 0); }
+      if (r.tamed) { follow(r, dt); continue; }
+      if (r.state !== "chase" && !safe && (d < r.aggro * (night ? 1.7 : 1) * (weather === "storm" ? 1.4 : 1) || (r.angry > clock && d < 30))) { r.state = "chase"; if (Snd.growl && d < 40) Snd.growl(r.kind === "claw" ? 1 : 0); }
       else if (r.state === "chase" && !r.raid && (safe || d > (night ? 42 : 30) || home > (night ? 90 : 60))) { r.state = "back"; r.tx = r.hx; r.tz = r.hz; }
       r.lookAt = null;
       if (r.state === "chase" && clock < (r.retreatUntil || 0)) { const a = Math.atan2(r.x - px, r.z - pz) + r.side * 0.9; steer(r, px + Math.sin(a) * 6, pz + Math.cos(a) * 6, dt, 6); want = r.run * 0.6; }
@@ -372,10 +484,10 @@ export function createJurassic(ctx) {
     const gl = MODELS && MODELS.alpha8; if (!gl || !ctx.K.skelClone || !gl.animations) return;
     const R = rig(gl, 6.5); scene.add(R.g); R.loop("idle");
     const tag = ctx.K.label(T("Alpha Raptor"), { accent: "#ff4d6d", color: "#ffd2d9", size: 0.9, sub: T("Boss · Lv 10") }); tag.position.y = R.h + 1.4; R.g.add(tag);
-    alpha = dinoize({ g: R.g, R, mixer: R.mixer, x: ALPHA_HOME.x, z: ALPHA_HOME.z, face: 0, a: 0, state: "patrol", sp: 2.2, orbit: 1, feintAt: 0 }, "alpha", "alpha:0", 2.4, 3.2, ALPHA_HOME);
+    alpha = dinoize({ g: R.g, R, mixer: R.mixer, x: ALPHA_HOME.x, z: ALPHA_HOME.z, face: 0, a: 0, state: "patrol", sp: 2.2, orbit: 1, feintAt: 0 }, "alpha", "alpha:0", 2.4, 3.2, ALPHA_HOME); alpha.tag = tag;
   }
   function tickAlpha(dt, t = 0) {
-    const A = alpha; if (!A || deadTick(A, dt)) return;
+    const A = alpha; if (!A || deadTick(A, dt)) return; phase2(A); // (b-jy4: below half HP — enraged, whatever it's doing)
     const dx = px - A.x, dz = pz - A.z, d = Math.hypot(dx, dz), home = Math.hypot(A.x - ALPHA_HOME.x, A.z - ALPHA_HOME.z);
     if (A.state === "patrol" && (d < 18 || A.angry > clock) && !safeHere()) { A.state = "stalk"; if (Snd.growl) Snd.growl(1); } else if (A.state === "stalk" && (d > 30 || home > 45 || safeHere())) A.state = "patrol";
     let tx, tz, want;
@@ -387,11 +499,12 @@ export function createJurassic(ctx) {
     } else { A.a += dt * 0.07; tx = ALPHA_HOME.x + Math.cos(A.a) * 22; tz = ALPHA_HOME.z + Math.sin(A.a) * 14; want = 2.2; }
     { const la = Math.atan2(dx, dz) - A.face; A.lookAt = A.state === "stalk" ? Math.atan2(Math.sin(la), Math.cos(la)) : null; }
     const ex = tx - A.x, ez = tz - A.z, ed = Math.hypot(ex, ez) || 1, a = Math.atan2(ex, ez); let da = a - A.face; da = Math.atan2(Math.sin(da), Math.cos(da)); A.face += da * Math.min(1, dt * 3);
-    A.sp += (want - A.sp) * Math.min(1, dt * 2); lunge(A, dt);
+    A.sp += ((A.p2 ? want * 1.25 : want) - A.sp) * Math.min(1, dt * 2); lunge(A, dt);
     const nx = A.x + Math.sin(A.face) * A.sp * dt, nz = A.z + Math.cos(A.face) * A.sp * dt;
     if (height(nx, nz) > WATER_Y + 0.2 && Math.hypot(nx, nz) < J.EDGE - 8) { A.x = nx; A.z = nz; } else A.orbit = -A.orbit;
     A.g.position.set(A.x, height(A.x, A.z), A.z); A.g.rotation.y = A.face;
-    if (A.state === "stalk" && d < 4.6) attack(A, ["attack_claw", "attack_tail", "attack_bite", "attack_leap"][Math.floor(Math.random() * 4)], 0.13, 4.4, 2.4);
+    if (A.p2 && A.state === "stalk" && d < 9 && clock > (A.sweepAt || 0)) { A.sweepAt = clock + 6.5; sweep(A, 5.5, 0.14); if (A.R) A.R.once("attack_tail", 1.1); }
+    if (A.state === "stalk" && d < 4.6) attack(A, ["attack_claw", "attack_tail", "attack_bite", "attack_leap"][Math.floor(Math.random() * 4)], 0.13, 4.4, A.p2 ? 1.7 : 2.4);
     bites(A);
     A.R.loop(A.sp > 4.5 ? "run" : A.sp > 0.4 ? "walk" : "idle", A.sp > 4.5 ? Math.max(0.7, A.sp / 7) : Math.max(0.6, A.sp / 2.4)); mixUp(A, A.mixer, dt, A.x, A.z);
   }
@@ -434,16 +547,17 @@ export function createJurassic(ctx) {
     const gl = MODELS && MODELS.titan; if (!gl || !ctx.K.skelClone || !gl.animations) return;
     const R = rig(gl, 10); scene.add(R.g); R.loop("idle");
     const tag = ctx.K.label(T("Thornback Titan"), { accent: "#ffb648", color: "#ffe9c2", size: 0.9, sub: T("Boss · Lv 20") }); tag.position.y = R.h + 1.6; R.g.add(tag);
-    titan = dinoize({ g: R.g, R, mixer: R.mixer, x: TITAN_HOME.x, z: TITAN_HOME.z, face: 0.6, sp: 0, wait: 3, state: "graze", tx: 0, tz: 0, noLook: true }, "titan", "titan:0", 4, 4.6, TITAN_HOME);
+    titan = dinoize({ g: R.g, R, mixer: R.mixer, x: TITAN_HOME.x, z: TITAN_HOME.z, face: 0.6, sp: 0, wait: 3, state: "graze", tx: 0, tz: 0, noLook: true }, "titan", "titan:0", 4, 4.6, TITAN_HOME); titan.tag = tag;
   }
   function tickTitan(dt, t) {
-    const A = titan; if (!A || deadTick(A, dt)) return;
+    const A = titan; if (!A || deadTick(A, dt)) return; phase2(A); if (A.p2 && A.state !== "rage" && !safeHere() && Math.hypot(px - A.x, pz - A.z) < 14) { A.state = "rage"; A.angry = Math.max(A.angry, clock + 10); } // (enraged, it comes for you)
     const d = Math.hypot(px - A.x, pz - A.z);
     if (A.state !== "rage" && !safeHere() && (d < 7 || A.angry > clock)) { A.state = "rage"; A.angry = Math.max(A.angry, clock + 10); if (Snd.growl) Snd.growl(1); A.R.once("roar", 1); }
     else if (A.state === "rage" && (d > 22 || safeHere() || (A.angry < clock && d > 9))) { A.state = "graze"; A.wait = 3; }
     let want = 0; A.lookAt = null;
     if (A.state === "rage") { const da = steer(A, px, pz, dt, 1.8); A.lookAt = da; want = d > 5 ? (d > 10 ? 6 : 3) : 0;
-      if (d < 6.5) attack(A, Math.abs(da) > 1.6 ? "attack_tail" : d < 4.5 ? "attack_stomp" : "attack_charge", 0.12, 6, 2.8); }
+      if (A.p2 && d < 10 && clock > (A.sweepAt || 0)) { A.sweepAt = clock + 7; sweep(A, 7.5, 0.16); A.R.once("attack_stomp", 1); }
+      if (d < 6.5) attack(A, Math.abs(da) > 1.6 ? "attack_tail" : d < 4.5 ? "attack_stomp" : "attack_charge", 0.12, 6, A.p2 ? 2 : 2.8); }
     else if (A.state === "graze") { A.wait -= dt; if (A.wait <= 0) { const a = Math.random() * 6.283, rr = 5 + Math.random() * 18; A.tx = TITAN_HOME.x + Math.cos(a) * rr; A.tz = TITAN_HOME.z + Math.sin(a) * rr; A.state = "amble"; } }
     if (A.state === "amble") { if (Math.hypot(A.tx - A.x, A.tz - A.z) < 1.5) { A.state = "graze"; A.wait = 5 + Math.random() * 6; } else { steer(A, A.tx, A.tz, dt, 1.2); want = 1.3; } }
     A.sp += (want - A.sp) * Math.min(1, dt * 2); lunge(A, dt);
@@ -466,6 +580,7 @@ export function createJurassic(ctx) {
   function tickTrikes(dt, t = 0) {
     for (const r of trikes) {
       if (deadTick(r, dt)) continue;
+      if (r.tamed) { follow(r, dt); continue; }
       const dx = px - r.x, dz = pz - r.z, d = Math.hypot(dx, dz); let want = 0;
       // hit one and it charges you (horns first); otherwise it stands its ground when you come close
       if (r.angry > clock && !safeHere()) { if (r.state !== "charge" && Snd.growl) Snd.growl(1); r.state = "charge"; } else if (r.state === "charge") { r.state = "graze"; r.wait = 2; }
@@ -509,7 +624,7 @@ export function createJurassic(ctx) {
       sh.fragmentShader = "varying float vGh;\n" + sh.fragmentShader.replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\n normal = normalize(vNormal);").replace("#include <color_fragment>", "#include <color_fragment>\n diffuseColor.rgb *= mix(0.5, 1.0, smoothstep(0.0, 0.6, vGh));"); }; // (both faces lit as the front)
     mat.customProgramCacheKey = () => "jur-grass2";
     const STEP = low ? 1.6 : coarse ? 1.2 : 0.9, W = low ? 32 : coarse ? 50 : 80, /* b-jur2: denser (a computer 6,400 tufts, a phone 2,500) */ im = new THREE.InstancedMesh(geo, mat, W * W);
-    im.receiveShadow = true; im.frustumCulled = false; scene.add(im);
+    im.receiveShadow = true; im.frustumCulled = false; im.userData.noXray = true; scene.add(im);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), R = W * STEP * 0.5;
     const h01 = (a, b, k) => { const v = Math.sin(a * 127.1 + b * 311.7 + k * 74.7) * 43758.5453; return v - Math.floor(v); };
     let lx = 1e9, lz = 1e9;
@@ -667,7 +782,7 @@ export function createJurassic(ctx) {
     // where things grow: on the plain, out of the water, off the gate's clearing and the steep ridges
     let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const spotFor = (minGate, maxR) => { for (let k = 0; k < 30; k++) { const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * maxR, x = Math.cos(a) * r, z = Math.sin(a) * r, y = height(x, z);
-      if (y < WATER_Y + 0.6 || Math.hypot(x - J.GATE.x, z - J.GATE.z) < minGate || nearBasin(x, z)) continue; return { x, y, z }; } return null; };
+      if (y < WATER_Y + 0.6 || Math.hypot(x - J.GATE.x, z - J.GATE.z) < minGate || nearBasin(x, z) || (inMire(x, z) && y < J.MIRE_Y + 0.35)) continue; return { x, y, z }; } return null; };
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
     const scatter = (geom, mat, n, minGate, maxR, size, sink = 0, base = null) => { const im = new THREE.InstancedMesh(geom, mat, n); let k = 0;
       for (let i = 0; i < n; i++) { const s = spotFor(minGate, maxR); if (!s) continue; const z = size[0] + rnd() * (size[1] - size[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(z, z * (0.85 + rnd() * 0.3), z); p3.set(s.x, s.y - sink * z, s.z); m4.compose(p3, q, sc); if (base) m4.multiply(base); im.setMatrixAt(k++, m4); }
@@ -710,6 +825,32 @@ export function createJurassic(ctx) {
       cellsOf(scene, "obsidian", og, null, list, { shadow: true, nearD: 999, maxD: 260, node: "obsidian", cr: 0.4, hr: 0.45, popY: 1 });
       const vg = new THREE.ConeGeometry(0.9, 1.1, 8, 1, true); vg.translate(0, 0.45, 0);
       cellsOf(scene, "vent", { geo: vg, mat: new THREE.MeshStandardMaterial({ color: 0xc8b23a, roughness: 0.8, emissive: 0x5a4400, emissiveIntensity: 0.5, side: THREE.DoubleSide }), base: new THREE.Matrix4() }, null, vl, { shadow: false, nearD: 999, maxD: 200, node: "vent", cr: 0, hr: 1.1, popY: 1.6 }); }
+    // b-jy7: the Whispering Mire — its murky water (one sheet over the low ground), reeds, mud; fossil dig sites round the
+    // plain's rim; meteors (hidden until a meteor shower, world-jurx.js)
+    { const M = J.MIRE; seed = 131;
+      const mw = new THREE.Mesh(new THREE.CircleGeometry(M.r * 1.06, 56), new THREE.MeshStandardMaterial({ color: 0x3a4a22, roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86, envMapIntensity: 0.8 }));
+      mw.rotation.x = -Math.PI / 2; mw.position.set(M.x, J.MIRE_Y, M.z); mw.receiveShadow = true; scene.add(mw);
+      const spotIn = (r0, r1, wet) => { for (let k = 0; k < 40; k++) { const a = rnd() * 6.283, r = M.r * (r0 + rnd() * (r1 - r0)), x = M.x + Math.cos(a) * r, z = M.z + Math.sin(a) * r, y = height(x, z); if (wet ? y < J.MIRE_Y + 0.25 : y > J.MIRE_Y + 0.05) return { x, y: Math.max(y, J.MIRE_Y - 0.1), z }; } return null; };
+      const at = (n, r0, r1, wet, sz) => { const out = []; for (let i = 0; i < n; i++) { const p0 = spotIn(r0, r1, wet); if (!p0 || out.some((m) => Math.hypot(m.elements[12] - p0.x, m.elements[14] - p0.z) < 3)) continue; const w = sz[0] + rnd() * (sz[1] - sz[0]); q.setFromAxisAngle(up, rnd() * 6.283); sc.set(w, w, w); p3.set(p0.x, p0.y, p0.z); out.push(new THREE.Matrix4().compose(p3, q, sc)); } return out; };
+      // reeds: a clump of thin stalks with seed heads
+      const rp = []; for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.283 + rnd(), r = 0.15 + rnd() * 0.35, h = 1.3 + rnd() * 0.9, c = new THREE.CylinderGeometry(0.018, 0.03, h, 4); c.translate(Math.cos(a) * r, h / 2, Math.sin(a) * r); rp.push(c); if (i % 2 === 0) { const hd = new THREE.CylinderGeometry(0.05, 0.05, 0.28, 6); hd.translate(Math.cos(a) * r, h + 0.1, Math.sin(a) * r); rp.push(hd); } }
+      const reedG = mergeGeometries(rp.map((g) => g.index ? g.toNonIndexed() : g)); reedG.computeVertexNormals();
+      cellsOf(scene, "reed", { geo: reedG, mat: new THREE.MeshStandardMaterial({ color: 0x8a8a3a, roughness: 0.9 }), base: new THREE.Matrix4() }, null, at(low ? 10 : 18, 0.15, 0.98, true, [0.85, 1.25]), { shadow: false, nearD: 999, maxD: 180, node: "reed", cr: 0, hr: 0.9, popY: 1.8 });
+      const mudG = new THREE.CylinderGeometry(1.1, 1.25, 0.14, 20); mudG.translate(0, 0.04, 0);
+      cellsOf(scene, "mire", { geo: mudG, mat: new THREE.MeshStandardMaterial({ color: 0x4a3a24, roughness: 0.25, metalness: 0.1 }), base: new THREE.Matrix4() }, null, at(low ? 6 : 9, 0.2, 0.9, false, [0.9, 1.3]), { shadow: false, nearD: 999, maxD: 180, node: "mire", cr: 0, hr: 1.2, popY: 1 });
+      // the Mire's sign at its edge (toward the plain)
+      if (ctx.K && ctx.K.label) { const tag = ctx.K.label(T("The Whispering Mire"), { accent: "#9acd32", color: "#e4f5c0", size: 0.9, sub: T("Poison water · swamp boots keep you dry") }); const ax = M.x + M.r * 0.95, az = M.z + M.r * 0.3; tag.position.set(ax, height(ax, az) + 4, az); scene.add(tag); } }
+    { seed = 151; const list = []; // fossils: bone arcs half in the ground, round the plain's rim
+      for (let i = 0; i < 80 && list.length < (low ? 6 : 9); i++) { const a = rnd() * 6.283, r = 118 + rnd() * 28, x = Math.cos(a) * r, z = Math.sin(a) * r; if (nearBasin(x, z) || inMire(x, z) || list.some((m) => Math.hypot(m.elements[12] - x, m.elements[14] - z) < 18)) continue; q.setFromAxisAngle(up, rnd() * 6.283); sc.setScalar(1); p3.set(x, height(x, z) - 0.15, z); list.push(new THREE.Matrix4().compose(p3, q, sc)); }
+      const parts = []; for (let i = 0; i < 4; i++) { const t0 = new THREE.TorusGeometry(0.9 - i * 0.12, 0.07, 6, 12, Math.PI); t0.rotateY(Math.PI / 2); t0.translate(i * 0.32 - 0.5, 0, 0); parts.push(t0.index ? t0.toNonIndexed() : t0); }
+      const spine = new THREE.CylinderGeometry(0.09, 0.07, 1.6, 6); spine.rotateZ(Math.PI / 2); spine.translate(0, 0.85, 0); parts.push(spine.index ? spine.toNonIndexed() : spine); const sk = new THREE.DodecahedronGeometry(0.32, 0); sk.translate(0.95, 0.6, 0); parts.push(sk.index ? sk.toNonIndexed() : sk);
+      const fg = mergeGeometries(parts); fg.computeVertexNormals();
+      cellsOf(scene, "fossil", { geo: fg, mat: new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.7 }), base: new THREE.Matrix4() }, null, list, { shadow: true, nearD: 999, maxD: 220, node: "fossil", cr: 0.3, hr: 1.1, popY: 1.6 }); }
+    { seed = 171; const list = []; // meteors: where a shower's stones come down (hidden until then)
+      for (let i = 0; i < 60 && list.length < 10; i++) { const a = rnd() * 6.283, r = 30 + rnd() * 100, x = Math.cos(a) * r, z = Math.sin(a) * r; if (nearBasin(x, z) || inMire(x, z) || inLake(x, z) || Math.hypot(x - J.GATE.x, z - J.GATE.z) < 20 || list.some((m) => Math.hypot(m.elements[12] - x, m.elements[14] - z) < 14)) continue; q.setFromAxisAngle(up, rnd() * 6.283); sc.setScalar(0.9 + rnd() * 0.5); p3.set(x, height(x, z) - 0.2, z); list.push(new THREE.Matrix4().compose(p3, q, sc)); }
+      const mg = new THREE.DodecahedronGeometry(0.75, 0); mg.translate(0, 0.45, 0);
+      cellsOf(scene, "meteor", { geo: mg, mat: new THREE.MeshStandardMaterial({ color: 0x3a2a26, roughness: 0.5, metalness: 0.3, emissive: 0xff5a10, emissiveIntensity: 0.9 }), base: new THREE.Matrix4() }, null, list, { shadow: false, nearD: 999, maxD: 300, node: "meteor", cr: 0.4, hr: 0.9, popY: 1.2 });
+      for (const n of nodes) if (n.kind === "meteor") { n.event = "meteor"; n.down = true; n.hide(); } }
     // palms round the lake's shore (the model is ~8.6K triangles, so a ring of them, not a forest)
     const palm = unit(MODELS && MODELS.palm);
     if (palm) { const n = low || coarse ? 14 : 26, list = []; seed = 53;
@@ -755,15 +896,17 @@ export function createJurassic(ctx) {
     // grading carry the look)
     const grass = MODELS && MODELS.ground ? makeGrass(scene) : null, air = makeAir(scene);
     S = { scene, cam, gate, sun, hemi, sky, HAZE, shadows, comp, wU, grass, air, trees, spin: gate.userData.spin || [] };
+    // b-jy1: every prop drawn in instances (trees, ferns, rocks, ruins …) can thin out in front of you; not the grass
+    scene.traverse((o) => { if (o.isInstancedMesh && !o.userData.noXray) for (const m of [].concat(o.material)) xray(m); });
     makeWeather(scene);
     // your camp's ground is kept clear (what grew there is gone)
     for (let i = nodes.length - 1; i >= 0; i--) if (CAMPS.some(([cx, cz]) => Math.hypot(nodes[i].x - cx, nodes[i].z - cz) < CAMP_R + 0.8)) { nodes[i].hide(); nodes.splice(i, 1); }
     // gathering, hunting, the pack and the camp (world-jursurv.js)
-    try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
+    try { surv = createSurvival({ THREE, T, esc, toast, ctx, scene, cam, height, shadows, nodes, me: () => ({ px, pz }), eventOn: (k) => !!(jx && jx.weatherNow && jx.weatherNow() === k), cure: () => { poisonUntil = 0; }, walk: (x, z) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; }, onTamed: (o) => { o.tamed = true; o.side = Math.random() < 0.5 ? -1 : 1; o.angry = 0; if (jx) jx.cutin("💚", T("TAMED"), T(DINO_N[o.kind] || "")); if (Snd.level) Snd.level(); }, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
       boss: { owns: (o) => !!(jx && jx.owns(o)), hit: (o) => { if (jx) jx.hit(o); } }, fishSpot, onMade: (id, R) => { if (jx) jx.made(id, R); }, onFirstHunt: (k, n) => { if (jx) jx.firstHunt(k, n); }, onBreak: (o) => { if (jx && (o.kind === "rock" || o.kind === "obsidian")) jx.shatter(o); },
       isNight: () => night, sleep: () => sleep(),
       buddyOut: () => !!(dino && dino.out()), onBuddy: (b, k, n) => { if (dino) dino.onBuddy(b, k, n); },
-      faceTo: (a) => { face = a; }, hitstop: (ms) => { if (!reduce) stopUntil = performance.now() + ms; }, shake: (n) => { shakeT = Math.max(shakeT, n); }, swingAnim: () => { slashFx(); animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
+      faceTo: (a) => { face = a; }, hitstop: (ms) => { if (!reduce) stopUntil = performance.now() + ms; }, shake: (n) => { shakeT = Math.max(shakeT, n); }, behind, swingAnim: (o) => { slashFx(o); animNow = "attack"; try { if (hero && hero.attack) hero.attack(0, false); else if (hero && hero.play) hero.play("attack", { once: true, fade: 0.06, speed: 1.6 }); } catch { /* no clip */ } } }); surv.drawCamps(); } catch (e) { console.warn("jurassic survival", e); surv = null; }
     tickCells(0, true);
   }
 
@@ -808,7 +951,11 @@ export function createJurassic(ctx) {
     night = k0 < 0.25;
     // the sun by day (warm, low and orange at dusk and dawn), a pale moon at night
     S.sun.intensity = 0.35 + 2.35 * k; S.sun.color.copy(cMoon).lerp(cSun, k0).lerp(cDusk, Math.min(1, dusk) * 0.55);
-    S.hemi.intensity = 0.22 + 0.53 * k; S.scene.environmentIntensity = 0.18 + 0.52 * k;
+    // b-jy5: the night was too dark on a phone — a higher floor of sky light, and a warm light round you (a torch's reach)
+    S.hemi.intensity = 0.34 + 0.41 * k; S.scene.environmentIntensity = 0.26 + 0.44 * k;
+    { const bk = Math.max(0, 1 - (performance.now() - boltAt) / 220); if (bk > 0) { S.hemi.intensity += bk * 2.6; S.sun.intensity += bk * 1.5; } } // (b-jy7: a lightning bolt)
+    if (!S.lamp) { S.lamp = new THREE.PointLight(0xffc27a, 0, coarse ? 16 : 20, 1.6); S.scene.add(S.lamp); }
+    S.lamp.intensity = Math.max(0, 1 - k0 * 2.2) * (coarse ? 26 : 30); S.lamp.position.set(px, (pyS ?? height(px, pz)) + 2.6, pz);
     cDay.setHex(S.HAZE); cTmp.copy(cNight).lerp(cDay, k).lerp(cRain, rainK * 0.45 * k0); if (dusk > 0) cTmp.lerp(cDusk, Math.min(1, dusk) * 0.18);
     S.scene.fog.color.copy(cTmp); S.scene.background.copy(cTmp); S.scene.fog.density = (low ? 0.0075 : 0.0055) * (1 + rainK * 0.8 + (1 - k0) * 0.25);
     const skyK = 0.16 + 0.84 * k; S.sky.material.color.setRGB(skyK * (1 - rainK * 0.3), skyK * (1 - rainK * 0.25), skyK * (1 - rainK * 0.15) + (1 - k0) * 0.08);
@@ -882,9 +1029,9 @@ export function createJurassic(ctx) {
   let animNow = "";
   // the town's clip names (world-kit CU_AS / KK_AS): idle, walk, sprint, jump, fall; the walk keeps pace with the feet
   const anim = (n, sp) => { if (!hero || !hero.play) return; if (n === animNow) { if (sp && hero.mixer && hero.mixer._actions) for (const a of hero.mixer._actions) if (a.isRunning() && a.getEffectiveWeight() > 0.5) a.timeScale = sp; return; } animNow = n; hero.play(n, { speed: sp || 1, fade: 0.2 }); };
-  let frames = 0, stepD = 0, birdT = 4, camReach = 1, velX = 0, velZ = 0, turnS = 0, pyS = null, kbT = 0, kbX = 0, kbZ = 0;
+  let sceneW = 0; let frames = 0, stepD = 0, birdT = 4, camReach = 1, velX = 0, velZ = 0, turnS = 0, pyS = null, kbT = 0, kbX = 0, kbZ = 0;
   function tick(dt, t) {
-    if (!S) return; dt = Math.min(dt, 0.05); frames++; if (stopUntil && performance.now() < stopUntil) dt *= 0.06;
+    if (!S) return; dt = Math.min(dt, 0.05); frames++; if (stopUntil && performance.now() < stopUntil) dt *= 0.06; else if (slowUntil && performance.now() < slowUntil) dt *= 0.3;
     const inp = ctx.input ? ctx.input() : null; if (inp) { camYaw = inp.yaw; camPitch = inp.pitch; camGoal = inp.zoom; }
     let ix = (inp && inp.joy ? inp.joy.dx : 0) + (inp ? inp.gx || 0 : 0), iz = (inp && inp.joy ? inp.joy.dy : 0) - (inp ? inp.gy || 0 : 0);
     if (downNow) { ix = iz = 0; }
@@ -910,7 +1057,7 @@ export function createJurassic(ctx) {
     }
     const gy = inLake(px, pz) ? Math.max(height(px, pz), WATER_Y - 1.05) : height(px, pz); pyS = pyS == null || Math.abs(gy - pyS) > 3 ? gy : pyS + (gy - pyS) * Math.min(1, dt * 14); const py = pyS;
     // the jump: the town's numbers (9 m/s up, 24 m/s² down)
-    if (jumpQ) { jumpQ = false; if (grounded && !rideNow) { vy = 9; grounded = false; animNow = "jump"; if (hero && hero.play) hero.play("jump", { once: true, fade: 0.08 }); } }
+    if (jumpQ) { jumpQ = false; if (grounded && !rideNow) { vy = 9; grounded = false; jumpAt = performance.now(); animNow = "jump"; if (hero && hero.play) hero.play("jump", { once: true, fade: 0.08 }); } }
     if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= 0) { hop = 0; vy = 0; grounded = true; animNow = ""; if (hero && hero.land) hero.land(0.5); } }
     if (hero) {
       hero.obj.position.set(px, py + hop + (rideNow ? dino.saddle() : 0), pz); hero.obj.rotation.order = "YXZ"; hero.obj.rotation.y = face;
@@ -933,7 +1080,7 @@ export function createJurassic(ctx) {
     const fight = nowW - (lastBite.wall || 0) < 5000 || !!(surv && surv.fighting && surv.fighting(px, pz));
     combatK += ((fight ? (coarse ? 0.86 : 0.78) : 1) - combatK) * (1 - Math.exp(-rdt * 2.2));
     { const v0 = ctx.vitals ? ctx.vitals() : null; edge(v0 && v0.max && !downNow && v0.hp > 0 && v0.hp <= v0.max * 0.35 ? "low" : ""); }
-    tickSlash(dt);
+    tickSlash(dt); tickSweeps(dt); tickPoison();
     camDist += (camGoal * combatK - camDist) * (1 - Math.exp(-dt * 10));
     const bh = (5.2 + camPitch * 6) * camDist, bk = 9.6 * camDist;
     // a hill between the hero and the camera pulls the camera in (it was sinking into the slope behind, all grass)
@@ -945,6 +1092,11 @@ export function createJurassic(ctx) {
     camLook.set(px - Math.sin(camYaw) * 2.6, py + 1.4 + hop * 0.5, pz - Math.cos(camYaw) * 2.6);
     if (!camInit) { S.cam.position.copy(camPos); camLookS.copy(camLook); camInit = true; }
     S.cam.position.lerp(camPos, 1 - Math.exp(-dt * 10)); camLookS.lerp(camLook, 1 - Math.exp(-dt * 14)); S.cam.lookAt(camLookS);
+    // b-jy1: what the see-through keeps clear (you, the dinosaur you're on, the enraged boss close by); the bosses' tags
+    // only from a way off (close up the card and the HP bar say it — the tag covered the fight)
+    XR.uXA.value.copy(S.cam.position); XR.uXB.value.set(px, py + 1.2 + hop, pz); XR.uXOn.value = downNow || xOff ? 0 : 1;
+    { const f = sel && sel.alive && Math.hypot(sel.x - px, sel.z - pz) < 45 ? sel : jy && jy.focus(); if (f) XR.uXC.value.set(f.x, (f.y ?? height(f.x, f.z)) + ((f.R && f.R.h) || 2) * 0.5, f.z, 1); else XR.uXC.value.w = 0; }
+    for (const b of [alpha, titan]) if (b && b.tag) { const d = Math.hypot(b.x - px, b.z - pz); b.tag.visible = b.alive && d > 16 && d < 110 && sel !== b; }
     if (shakeT > 0 && !reduce) { shakeT -= dt; S.cam.position.x += (Math.random() - 0.5) * shakeT * 0.8; S.cam.position.y += (Math.random() - 0.5) * shakeT * 0.8; }
     const fov = 55 + THREE.MathUtils.smoothstep(speed, 2, 22) * 11; if (Math.abs(S.cam.fov - fov) > 0.05) { S.cam.fov += (fov - S.cam.fov) * (1 - Math.exp(-dt * (fov > S.cam.fov ? 6 : 3))); S.cam.updateProjectionMatrix(); }
     // the sun's shadow box follows the hero
@@ -959,6 +1111,11 @@ export function createJurassic(ctx) {
       // the big ones' footsteps (b-jx4): a step every half a body length walked
       if (jx) for (const o of [titan, spino, alpha, ...trikes]) { if (!o || !o.alive || (o === spino && o.y < WATER_Y - 0.5)) continue; o.stepD = (o.stepD || 0) + (o.sp || 0) * dt; const L = (o.R && o.R.L) || 6; if (o.stepD > L * 0.5) { o.stepD = 0; jx.step(o); } } }
     if (dino) try { dino.tick(dt, t); } catch (e) { console.warn("dino", e); dino = null; }
+    if (jy) try { jy.tick(dt, t); } catch (e) { console.warn("jury", e); jy = null; }
+    // b-jy2: the land's own sound under everything — the raid's beat, the boss hour's drums near the enraged boss, the
+    // basin's boil, the plain by night or by day (checked twice a second, by the wall clock)
+    if (Snd.scene && performance.now() - sceneW > 500) { sceneW = performance.now(); const bn = jx && jx.bossNow ? jx.bossNow() : null;
+      Snd.scene(raidNow ? "raid" : bn && bn.alive && Math.hypot(bn.x - px, bn.z - pz) < 60 ? "jboss" : jx && jx.inBasin(px, pz) ? "basin" : inMire(px, pz) ? "swamp" : night ? "jnight" : "jungle"); }
     // wading: rings spreading on the water round you (so the shallows read as water)
     { const wetNow = inLake(px, pz) && height(px, pz) < WATER_Y - 0.1; if (!S.rip) { const m = new THREE.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0, depthWrite: false });
         S.rip = [0, 1, 2].map((i) => { const r = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 40), m.clone()); r.rotation.x = -Math.PI / 2; r.visible = false; S.scene.add(r); return r; }); }
@@ -975,9 +1132,13 @@ export function createJurassic(ctx) {
       if (!S) { await loadModels(); build(); } if (!ui) buildUi();
       if (!jx && surv) try { jx = createJurX({ THREE, T, esc, toast, ctx, scene: S.scene, height, J, root: ui.root, FOE: surv.FOE, ic: surv.ic, post: surv.post, setInv: surv.setInv, pop: surv.pop, tools: () => surv.tools(), boss: (k) => (k === "alpha" ? alpha : titan),
         me: () => ({ px, pz, face, down: downNow }), isNight: () => night, rainK: () => rainK, homeSpot: () => surv.homeSpot(), campFire: () => surv.homeFire(), camps: () => surv.campList(), CAMP_R, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
-        fires: () => surv.fires(), spawnRaider, removeRaider, setRaid: (v) => { raidNow = !!v; }, shake: (n) => { shakeT = Math.max(shakeT, n); }, hitstop: (ms) => { if (!reduce) stopUntil = performance.now() + ms; } });
+        fires: () => surv.fires(), meteorSpots: () => nodes.filter((n) => n.kind === "meteor"), fossils: () => nodes.filter((n) => n.kind === "fossil" && !n.down), setWeather: (k) => { weather = k; if (k === "storm") rainOver = true; else if (rainOver === true) rainOver = null; if (surv) surv.refreshNodes && surv.refreshNodes(); }, bolt: () => { boltAt = performance.now(); }, skew: () => 0, wet: () => inLake(px, pz) && height(px, pz) < WATER_Y - 0.1, peers: () => (jy ? jy.peers() : []), pingsNow: () => (jy ? jy.pings() : []), spawnRaider, removeRaider, setRaid: (v) => { raidNow = !!v; }, shake: (n) => { shakeT = Math.max(shakeT, n); }, hitstop: (ms) => { if (!reduce) stopUntil = performance.now() + ms; } });
         for (const o of [titan, spino, alpha, ...trikes, ...raptors]) if (o && o.R) o.R.onRoar = () => { if (jx) jx.roar(o); };
         if (sentinel) sentinel.R.onRoar = () => { if (jx) jx.roar({ x: SENT.x, z: SENT.z, R: sentinel.R }); }; } catch (e) { console.warn("jurx", e); jx = null; }
+      if (!jy) try { jy = createJurY({ THREE, T, esc, toast, ctx, root: ui.root, height, cam: () => S && S.cam, me: () => ({ px, pz, face, down: downNow, speed }), surv, nodes: () => nodes, dinos: () => [...raptors, ...trikes, ...(alpha ? [alpha] : []), ...(spino ? [spino] : []), ...(titan ? [titan] : [])],
+        bossNow: () => (jx && jx.bossNow ? jx.bossNow() : null), cutin: (a, b, c) => { if (jx) jx.cutin(a, b, c); }, shake: (n) => { shakeT = Math.max(shakeT, n); }, camYaw: () => camYaw, koBy: () => (DINO_N[lastBite.kind] && performance.now() - (lastBite.wall || 0) < 60000 ? T(DINO_N[lastBite.kind]) : ""),
+        coarse, walk: (x, z) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; }, busy: () => !!(surv && surv.packOpen && surv.packOpen()),
+        scene: S.scene, toast, bossObj: (k) => (k === "titan" ? titan : alpha), bossState: () => (jx && jx.bossState ? jx.bossState() : null), cheer: () => { try { if (hero && hero.play && !downNow) hero.play("emote-yes", { once: true }); } catch { /* no clip */ } } }); } catch (e) { console.warn("jury", e); jy = null; }
       await makeHero(); animNow = "";
       px = J.SPAWN.x; pz = J.SPAWN.z; face = Math.PI; camYaw = 0; camPitch = 0.05; camDist = camGoal = coarse ? 1.7 : 0.88; camInit = false; downNow = false; velX = velZ = 0; pyS = null; kbT = 0; if (ctx.setView) ctx.setView({ yaw: 0, pitch: 0.05, zoom: camGoal }); speed = 0; hop = 0; vy = 0; grounded = true; jumpQ = false; nearGate = false; ui.home.hidden = true; keys.clear();
       try { if (st.renderer.compileAsync) await Promise.race([st.renderer.compileAsync(S.scene, S.cam), new Promise((ok) => setTimeout(ok, 2500))]); } catch { /* compiled on the first frame */ }
@@ -1015,7 +1176,9 @@ export function createJurassic(ctx) {
     if (surv && surv.packOpen()) surv.togglePack(false);
     if (dino) try { dino.stop(); } catch { /* the Hatchery is closed anyway */ }
     if (jx) try { jx.stop(); } catch { /* the raid ends with the visit */ }
-    on = false; document.body.classList.remove("wp-jurassic"); if (ui) ui.root.hidden = true;
+    if (jy) try { jy.stop(); } catch { /* nothing to keep */ }
+    untame();
+    on = false; document.body.classList.remove("wp-jurassic"); if (ui) ui.root.hidden = true; if (Snd.scene) Snd.scene("");
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); keys.clear();
     st.renderer.domElement.removeEventListener("pointerdown", tapDown); st.renderer.domElement.removeEventListener("pointerup", tapUp); selectFoe(null);
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
@@ -1036,6 +1199,7 @@ export function createJurassic(ctx) {
       edge(""); return; }
     if (where === "plaza") { px = J.SPAWN.x; pz = J.SPAWN.z; camInit = false; }
     animNow = ""; if (hero && hero.play) hero.play("idle");
+    if (jy) try { jy.recovered(where); } catch (e) { console.warn("jury", e); }
   }
-  return { probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), jx: jx && jx.debug(), nodes: nodes.length, fight: { combatK: +combatK.toFixed(2), camDist: +camDist.toFixed(2), slash: !!(slash && slash.visible), vig: vig ? vig.className : "", lastBite: lastBite.kind } }), sky: (ph, wet) => { phOver = ph; rainOver = wet; }, koBy: () => (performance.now() - (lastBite.wall || 0) < 10000 && DINO_N[lastBite.kind] ? T(DINO_N[lastBite.kind]) : ""), bitten: (kind, n) => { if (on && !downNow) hitMe(kind || "raptor", Math.max(1, n | 0)); }, skyNow: () => ({ night, rainK: +rainK.toFixed(2), ph: +dayPhase().toFixed(3) }), surv: () => surv, dino: () => dino, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
+  return { goBoss: (k) => { if (jy && on) jy.goBoss(k || (jx && jx.bossState() && jx.bossState().kind) || "alpha"); }, probe: () => S, enter, leave, act, down, active: () => on, jump: () => { if (!downNow) jumpQ = true; }, debug: () => ({ cam: S ? [...S.cam.position.toArray().map((v) => +v.toFixed(2)), +S.cam.fov.toFixed(1), camDist, camPitch] : null, px, pz, speed, hop, grounded, anim: animNow, hero: hero ? (hero.bot ? "bot" : hero.custom ? "custom" : "kk") : null, clips: hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.3).map((a) => a.getClip().name + "@" + a.timeScale.toFixed(2)) : [], nearGate, h: height(px, pz), frames, keys: [...keys], raptors: raptors.map((r) => ({ x: Math.round(r.x), z: Math.round(r.z), s: r.state })), alpha: alpha && { x: Math.round(alpha.x), z: Math.round(alpha.z), s: alpha.state }, herd: herd.length, sentinel: sentinel ? { roaring: !!sentinel.R.one } : null, clipsR: raptors[0] ? raptors.map((r) => r.R.cur && r.R.cur.getClip().name) : null, clipsT: trikes[0] ? trikes.map((r) => r.R.cur && r.R.cur.getClip().name) : null, trikes: trikes.map((r) => r.state), spino: spino && { x: Math.round(spino.x), z: Math.round(spino.z), s: spino.state, alive: spino.alive }, titan: titan && { x: Math.round(titan.x), z: Math.round(titan.z), s: titan.state, alive: titan.alive }, surv: surv && surv.debug(), jx: jx && jx.debug(), jy: jy && jy.debug(), weather, poison: performance.now() < poisonUntil, tamed: [...raptors, ...trikes].filter((o) => o.tamed).map((o) => o.kind), xray: { on: XR.uXOn.value, foe: XR.uXC.value.w, tags: [alpha, titan].map((b) => (b && b.tag ? b.tag.visible : null)) }, nodes: nodes.length, fight: { combatK: +combatK.toFixed(2), camDist: +camDist.toFixed(2), slash: !!((slash && slash.visible) || (thrust && thrust.visible) || (chop && chop.visible) || (slashT > 0 && slashMode === "mine")), slashMode, p2: [alpha, titan].map((b) => !!(b && b.p2)), sweeps: sweeps.length, perfectAt, vig: vig ? vig.className : "", lastBite: lastBite.kind } }), sky: (ph, wet) => { phOver = ph; rainOver = wet; }, bossHp: (k, frac) => { const b = k === "titan" ? titan : alpha; if (b && surv) { b.hpNow = Math.round(surv.FOE[b.kind].hp * frac); b.hpAt = performance.now(); } }, bossDebug: (p) => { if (jx && jx.debugBoss) jx.debugBoss(p); }, xray: (v) => { xOff = !v; }, koBy: () => (performance.now() - (lastBite.wall || 0) < 10000 && DINO_N[lastBite.kind] ? T(DINO_N[lastBite.kind]) : ""), bitten: (kind, n) => { if (on && !downNow) hitMe(kind || "raptor", Math.max(1, n | 0)); }, skyNow: () => ({ night, rainK: +rainK.toFixed(2), ph: +dayPhase().toFixed(3) }), surv: () => surv, dino: () => dino, nodeList: () => nodes.map((n) => ({ id: n.id, kind: n.kind, x: n.x, z: n.z, hr: n.hr, down: !!n.down })), walk: (x, z, yaw) => { px = x; pz = z; velX = velZ = 0; pyS = null; camInit = false; if (yaw != null) { camYaw = yaw; face = yaw + Math.PI; } } };
 }

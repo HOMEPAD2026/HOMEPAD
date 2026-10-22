@@ -2757,3 +2757,91 @@ html.wp-pcphone .wz-bossbar{zoom:1.42;width:380px;top:auto;bottom:calc(max(10px,
 @media (prefers-reduced-motion:reduce){.wz-vig.hit,.wz-vig.low{animation:none}.wz-vig.low{box-shadow:inset 0 0 90px 14px rgba(255,40,70,.4)}}
 .wz-pop.hurt{color:#ff5470;font-size:24px}html.wp-pcphone .wz-pop.hurt{font-size:34px}
 body:has(#wc-dead:not([hidden])) .wz-pops{visibility:hidden} /* (the dinosaurs' floating names stayed over the knock-out window) */
+/* b-jy1: the pointer (world-jury.js): a marker over what to walk to, or an arrow on the screen's edge pointing the way;
+   the boss hour's boss in red. The pack button glows when the goal is to make something */
+.wz-guide{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+.wz-gd{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:3px;transition:left .12s linear,top .12s linear}
+.wz-gd[hidden]{display:none}
+.wz-gd-a{display:block;width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:18px solid #5ff0d0;filter:drop-shadow(0 0 6px rgba(95,240,208,.8));order:0}
+.wz-gd:not(.on) .wz-gd-a{transform-origin:50% 60%}
+.wz-gd.on{transform:translate(-50%,-100%)}
+.wz-gd.on .wz-gd-a{order:2;border-bottom:0;border-top:16px solid #5ff0d0;animation:wz-gd-bob 1s ease-in-out infinite}
+.wz-gd-t{display:grid;justify-items:center;padding:4px 10px 5px;border-radius:12px;background:rgba(6,20,30,.78);box-shadow:0 0 0 1.5px rgba(95,240,208,.65) inset;color:#eafffb;white-space:nowrap}
+.wz-gd-t b{font:800 13px/1.15 var(--f-ui)}.wz-gd-t small{font:700 11px/1.1 var(--f-ui);color:#9fe9da}
+.wz-gd.boss .wz-gd-a{border-bottom-color:#ff3b5c;filter:drop-shadow(0 0 8px rgba(255,59,92,.9))}
+.wz-gd.boss.on .wz-gd-a{border-top-color:#ff3b5c}
+.wz-gd.boss .wz-gd-t{background:rgba(30,6,14,.82);box-shadow:0 0 0 1.5px rgba(255,106,138,.85) inset;color:#fff}.wz-gd.boss .wz-gd-t small{color:#ffc2cf}
+@keyframes wz-gd-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+html.wp-pcphone .wz-gd{zoom:1.45}
+.wz-packbtn.wz-hint{animation:wz-hint 1.2s ease-in-out infinite;border-color:#5ff0d0}
+@keyframes wz-hint{0%,100%{box-shadow:0 0 0 0 rgba(95,240,208,0)}50%{box-shadow:0 0 0 6px rgba(95,240,208,.35),0 0 18px rgba(95,240,208,.6)}}
+/* back on your feet after a knock-out: what you kept, and the way back */
+.wz-back{position:absolute;left:50%;top:30%;transform:translateX(-50%);z-index:9;width:min(380px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:rgba(8,18,40,.92);box-shadow:0 0 0 1.5px rgba(95,240,208,.55) inset,0 16px 40px rgba(0,0,0,.5);color:#eaf6ff;pointer-events:auto;font:600 13px/1.4 var(--f-ui);animation:wz-cut-in .35s cubic-bezier(.2,.9,.3,1.3)}
+.wz-back b{display:block;font:900 17px/1.2 var(--f-ui);margin-bottom:4px}.wz-back p{margin:0 0 10px;color:#c7dcf5}
+.wz-back div{display:flex;flex-wrap:wrap;gap:8px}.wz-back button{flex:1 1 auto;min-height:40px;padding:0 12px;border:0;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font:800 13px var(--f-ui);cursor:pointer}
+.wz-back button[data-b="camp"]{background:linear-gradient(180deg,#37e6b8,#1aa886);color:#04261c}
+html.wp-pcphone .wz-back{zoom:1.42;width:360px;top:24%}
+@media (prefers-reduced-motion:reduce){.wz-gd.on .wz-gd-a,.wz-packbtn.wz-hint,.wz-back{animation:none}}
+/* b-jy3: the ping button and its three words; the boss call; the MVP card (world-jury.js); the town's boss call (world-play.js) */
+.wz-pingbtn{pointer-events:auto;display:flex;align-items:center;gap:6px;height:42px;padding:0 12px;border-radius:14px;border:1.5px solid rgba(95,240,208,.6);background:linear-gradient(180deg,rgba(8,40,40,.88),rgba(4,22,24,.88));color:#d8fff6;font:800 14px var(--f-ui);cursor:pointer}
+.wz-pingbtn span{font-size:17px}
+.wz-pingw{position:absolute;right:max(12px,env(safe-area-inset-right));top:calc(max(10px,env(safe-area-inset-top)) + 58px);z-index:9;display:grid;gap:6px;pointer-events:auto}
+.wz-pingw[hidden]{display:none}
+.wz-pingw button{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:14px;background:rgba(8,18,40,.92);box-shadow:0 0 0 1.5px rgba(95,240,208,.5) inset;color:#fff;font:800 14px var(--f-ui);cursor:pointer;text-align:left}
+.wz-pingw button i{font-style:normal;font-size:19px}
+html.wp-pcphone .wz-pingw{zoom:1.42}
+.wz-call,.wz-mvp{position:absolute;left:50%;transform:translateX(-50%);z-index:9;width:min(400px,calc(100vw - 32px));border-radius:18px;color:#fff;pointer-events:auto;font:600 13px/1.4 var(--f-ui);animation:wz-cut-in .35s cubic-bezier(.2,.9,.3,1.3)}
+.wz-call{top:22%;padding:14px 16px;background:rgba(30,8,14,.93);box-shadow:0 0 0 1.5px rgba(255,106,138,.8) inset,0 16px 40px rgba(0,0,0,.5)}
+.wz-call b{display:block;font:900 16px/1.25 var(--f-ui)}.wz-call p{margin:4px 0 10px;color:#ffd0da}
+.wz-call div{display:flex;gap:8px}.wz-call button{flex:1;min-height:42px;border:0;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font:800 13px var(--f-ui);cursor:pointer}
+.wz-call button[data-c="go"]{background:linear-gradient(180deg,#ff6a8a,#d8304f)}
+.wz-mvp{top:18%;padding:14px 18px 12px;text-align:center;background:linear-gradient(180deg,rgba(40,26,6,.95),rgba(16,10,4,.95));box-shadow:0 0 0 2px rgba(255,210,58,.85) inset,0 0 40px rgba(255,190,60,.35),0 16px 40px rgba(0,0,0,.5);pointer-events:none}
+.wz-mvp small{display:block;font:900 12px var(--f-ui);letter-spacing:.2em;color:#ffd23a}
+.wz-mvp>b{display:block;font:900 22px/1.15 var(--f-display,var(--f-ui));background:linear-gradient(180deg,#fff,#ffd27a);-webkit-background-clip:text;background-clip:text;color:transparent;margin:2px 0 8px}
+.wz-mvp ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.wz-mvp li{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:10px;background:rgba(255,255,255,.07)}
+.wz-mvp li i{font-style:normal;font-size:18px}.wz-mvp li span{flex:1;text-align:left;font-weight:800}.wz-mvp li em{font-style:normal;color:#ffe6a8;font-size:12px}
+.wz-mvp p{margin:8px 0 0;color:#ffe6a8}.wz-mvp p.me{color:#cfe3ff;font-size:12px}
+.wz-mvp.out{opacity:0;transition:opacity .5s}
+html.wp-pcphone .wz-call,html.wp-pcphone .wz-mvp{zoom:1.42;width:370px}
+.wp-bosscall{position:fixed;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 74px);transform:translateX(-50%);z-index:60;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:4px 10px;width:min(440px,calc(100vw - 24px));padding:10px 12px;border-radius:16px;background:rgba(30,8,14,.94);box-shadow:0 0 0 1.5px rgba(255,106,138,.8) inset,0 14px 34px rgba(0,0,0,.45);color:#fff;font:700 13px/1.3 var(--f-ui);animation:wz-cut-in .35s cubic-bezier(.2,.9,.3,1.3)}
+.wp-bosscall b{grid-column:1;font:900 14px/1.25 var(--f-ui)}.wp-bosscall span{grid-column:1;grid-row:2;color:#ffd0da;font-size:12px}
+.wp-bosscall .wp-btn{grid-column:2;grid-row:1/3;min-height:40px;padding:0 14px}
+.wp-bosscall .x{grid-column:3;grid-row:1/3;width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
+html.wp-pcphone .wp-bosscall{zoom:1.42;width:420px}
+@media (prefers-reduced-motion:reduce){.wz-call,.wz-mvp,.wp-bosscall{animation:none}}
+/* b-jy4: a PERFECT dodge over you; WEAK SPOT over a crit from behind */
+.wz-pop.perfect{color:#bff8ff;font-size:24px;font-weight:900;letter-spacing:.06em;text-shadow:0 0 16px rgba(95,240,255,.95),0 2px 0 rgba(0,0,0,.5)}
+.wz-pop.weak{color:#ff9a3c;font-size:16px;font-weight:900;letter-spacing:.05em;text-shadow:0 0 10px rgba(255,120,40,.9),0 2px 0 rgba(0,0,0,.5)}
+html.wp-pcphone .wz-pop.perfect{font-size:34px}html.wp-pcphone .wz-pop.weak{font-size:24px}
+/* b-jy5: the attack button wears what it'll do; the pack's "only what I can make"; the codex's stars and silhouettes */
+.wz-ctx{position:absolute;right:-4px;top:-4px;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:#0b1a33;box-shadow:0 0 0 2px #5ff0d0;font-style:normal;font-size:15px;pointer-events:none}
+.wz-ctx[hidden]{display:none}
+.wz-only{display:flex;align-items:center;gap:8px;margin:10px 0 0;font:700 12.5px var(--f-ui);color:#cfe3ff}
+.wz-recipes li.none{opacity:.7;font:700 12.5px var(--f-ui);padding:10px}
+.wz-stars{margin-left:6px;font-size:12px;letter-spacing:1px;color:#ffd23a}
+.wz-dex li i.sil{filter:brightness(0) drop-shadow(0 0 1px rgba(160,200,255,.6));opacity:.7}
+.wz-dex li.got i{animation:wz-dex-in .6s ease-out}
+@keyframes wz-dex-in{0%{transform:scale(.6);filter:brightness(0)}100%{transform:scale(1);filter:none}}
+/* a wide screen: the minimap a little bigger, the dinosaur's card under it on the right (the left holds your HP and goals) */
+@media (min-width:1200px) and (pointer:fine){.wz-map:not(.big){width:168px!important;height:168px!important}html:not(.wp-pcphone) .wz-foe{left:auto!important;right:12px;top:300px!important}}
+@media (prefers-reduced-motion:reduce){.wz-dex li.got i{animation:none}}
+/* b-jy7: the fossil dig card, the tame button, the weather chip, someone's camp card */
+.wz-dig{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;display:grid;justify-items:center;gap:6px;padding:14px 16px;border-radius:18px;background:rgba(30,22,12,.95);box-shadow:0 0 0 1.5px rgba(239,228,200,.6) inset,0 16px 40px rgba(0,0,0,.55);color:#fff5e0;pointer-events:auto;font:700 13px var(--f-ui)}
+.wz-dig b{font:900 16px var(--f-ui)}.wz-dig small{color:#d8c8a8}
+.wz-dig canvas{width:300px;height:190px;border-radius:12px;touch-action:none;cursor:crosshair}
+.wz-dig i{display:block;width:300px;height:8px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}.wz-dig i u{display:block;height:100%;width:0;background:linear-gradient(90deg,#e8dcc0,#ffd27a);transition:width .2s}
+.wz-dig button{min-height:36px;padding:0 16px;border:0;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font:800 12px var(--f-ui)}
+html.wp-pcphone .wz-dig{zoom:1.5}
+.wz-tame{pointer-events:auto;position:absolute;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 104px);transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:14px;border:1.5px solid rgba(95,240,138,.7);background:rgba(6,32,16,.9);color:#d8ffe4;font:700 13px var(--f-ui);cursor:pointer}
+.wz-tame[hidden]{display:none}.wz-tame small{color:#9fdcb0;font-size:11px}
+html.wp-pcphone .wz-tame{zoom:1.5;bottom:190px}
+.wz-wx{display:flex;align-items:center;gap:6px;height:34px;padding:0 10px;border-radius:12px;background:rgba(8,16,36,.82);box-shadow:0 0 0 1.5px rgba(160,200,255,.4) inset;color:#dfeaff;font:800 12px var(--f-ui);pointer-events:auto}
+.wz-wx[hidden]{display:none}.wz-wx.on{box-shadow:0 0 0 1.5px rgba(255,176,80,.85) inset;color:#ffe2b0}
+.wz-campcard{position:absolute;right:max(12px,env(safe-area-inset-right));top:calc(max(10px,env(safe-area-inset-top)) + 300px);z-index:8;width:min(300px,calc(100vw - 24px));padding:12px 14px;border-radius:16px;background:rgba(8,24,18,.93);box-shadow:0 0 0 1.5px rgba(95,240,138,.55) inset,0 14px 34px rgba(0,0,0,.45);color:#eafff2;pointer-events:auto;font:600 12.5px/1.35 var(--f-ui)}
+.wz-campcard>b{display:block;font:900 15px var(--f-ui);padding-right:26px}.wz-campcard small{color:#a8e0bc}
+.wz-campcard .x{position:absolute;right:8px;top:8px;width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff}
+.wz-campcard ul{list-style:none;margin:8px 0;padding:0;display:grid;gap:4px}.wz-campcard li{padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.06)}.wz-campcard li.none{opacity:.7}
+.wz-campcard .acts,.wz-campcard .notes{display:flex;flex-wrap:wrap;gap:6px}.wz-campcard .notes{margin-top:6px}.wz-campcard .notes[hidden]{display:none}
+.wz-campcard button:not(.x){min-height:34px;padding:0 10px;border:0;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font:800 12px var(--f-ui);cursor:pointer}
+html.wp-pcphone .wz-campcard{zoom:1.42;top:260px}

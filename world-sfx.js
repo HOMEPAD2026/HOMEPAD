@@ -102,9 +102,15 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
       else if (k === "wastes") { if (b % 2 === 0) tone(60, 0.5, { type: "sawtooth", v: 0.012 }); if (Math.random() < 0.25) tone(1800 + Math.random() * 1600, 0.03, { type: "square", v: 0.01 }); }
       else if (k === "ruins") { if (b % 10 === 0) { tone(196, 1.6, { type: "triangle", v: 0.014, to: 185 }); tone(233, 1.6, { type: "triangle", v: 0.01, to: 220, at: 0.4 }); } }
       else if (k === "abyss") { if (b % 4 === 0) tone(38, 1.6, { v: 0.05, to: 32 }); if (Math.random() < 0.35) noise(0.05, 0.03, 2600 + Math.random() * 2000); }
+      // Jurassic World (b-jy2): the plain by day (insects, far calls, leaves), by night (crickets, frogs, an owl), the Ember
+      // Basin (a low boil and pops), and the boss hour's war drums while you're near the enraged boss
+      else if (k === "jungle") { if (b % 9 === 0) noise(2.8, 0.022, 650 + Math.random() * 300); if (Math.random() < 0.12) for (let i = 0; i < 4; i++) tone(4200 + Math.random() * 900, 0.03, { type: "square", v: 0.004, at: i * 0.05, lp: 6000 }); if (Math.random() < 0.03) tone(380 + Math.random() * 120, 0.5, { type: "triangle", v: 0.012, to: 260 }); }
+      else if (k === "jnight") { if (b % 2 === 0) for (let i = 0; i < 3; i++) tone(4600, 0.025, { type: "square", v: 0.005, at: i * 0.06, lp: 7000 }); if (Math.random() < 0.08) tone(210 + Math.random() * 60, 0.16, { to: 150, v: 0.02 }); if (b % 22 === 0) { tone(420, 0.3, { type: "triangle", v: 0.014, to: 380 }); tone(400, 0.45, { type: "triangle", v: 0.012, to: 360, at: 0.4 }); } }
+      else if (k === "basin") { if (b % 3 === 0) tone(42, 1.5, { v: 0.04, to: 36 }); if (Math.random() < 0.3) noise(0.05, 0.03, 900 + Math.random() * 900, { type: "lowpass" }); }
+      else if (k === "jboss") { const s = b % 8; if (s === 0 || s === 3 || s === 5) { tone(64, 0.3, { to: 42, v: 0.14 }); noise(0.06, 0.06, 160, { type: "lowpass" }); } if (s === 6) noise(0.09, 0.05, 2400); if (s % 4 === 2) tone(s === 2 ? 98 : 110, 0.35, { type: "sawtooth", v: 0.018, lp: 900 }); }
       else if (k === "void") { if (b % 6 === 0) [523, 784, 1175].forEach((f, i) => tone(f * (Math.random() < 0.5 ? 1 : 1.5), 1.2, { v: 0.008, at: i * 0.3 })); if (b % 12 === 0) tone(55, 3, { v: 0.03 }); }
       quiet = false;
-    }, k === "raid" ? 250 : 500);
+    }, k === "raid" || k === "jboss" ? 250 : 500);
   }
   // a drop's shimmer: more partials, higher and longer the rarer it is; an Epic sparkles, a Legendary swells under it
   function shimmer(r, k = 1) {
@@ -118,7 +124,7 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     scene, set(on) { S.sound = on; saveSet(); if (on) init(); api.volume(); try { music().refresh(); } catch { /* not set up yet */ } },
     /// the effects volume changed (S.sfx) or Sound went on or off
     volume() { if (out) out.gain.setTargetAtTime(vol(), ac.currentTime, 0.04); },
-    state: () => ({ ctx: ac ? ac.state : "none", voices: V.n, sfx: S.sfx ?? 70, steps: stepsOn() }),
+    state: () => ({ ctx: ac ? ac.state : "none", voices: V.n, sfx: S.sfx ?? 70, steps: stepsOn(), scene: sceneK }),
     // ---- moving ----
     step: (sp) => { if (!stepOk(sp, stepsOn()) || !gap("step", 120)) return; stepAlt = !stepAlt; noise(0.045, 0.1, stepAlt ? 700 : 850, { type: "lowpass", q: 0.7 }); tone(stepAlt ? 95 : 105, 0.06, { v: 0.03, to: 70 }); },
     jump: () => tone(300, 0.22, { type: "triangle", to: 620, v: 0.12 }),
@@ -213,6 +219,18 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     timber: () => { for (let i = 0; i < 9; i++) noise(0.05 + Math.random() * 0.06, 0.09, 300 + Math.random() * 900, { at: 0.05 + i * 0.07, type: "bandpass", q: 2 }); noise(0.5, 0.16, 180, { at: 0.75, type: "lowpass" }); tone(60, 0.5, { to: 32, v: 0.16, at: 0.75 }); },
     bird: () => { if (!gap("bird", 900)) return; const f = 2400 + Math.random() * 1600, n = 2 + Math.floor(Math.random() * 3); for (let i = 0; i < n; i++) tone(f * (1 + (i % 2) * 0.12), 0.09, { v: 0.018, to: f * 1.25, at: i * 0.13, a: 0.005 }); },
     growl: (big = 0) => { if (!gap("growl", 400)) return; tone(big ? 70 : 120, 0.7 + big * 0.5, { type: "sawtooth", to: big ? 38 : 70, v: 0.06 + big * 0.03, lp: 700 }); noise(0.6 + big * 0.4, 0.08 + big * 0.05, big ? 260 : 420, { type: "lowpass", a: 0.08 }); },
+    // b-jy2: a big dinosaur's foot (big 0–1: a raptor's patter to the Titan's quake), a spear's thrust, the water
+    stomp: (big = 0.5) => { if (!gap("stomp", 90)) return; tone(48 + (1 - big) * 30, 0.3 + big * 0.25, { to: 32, v: 0.07 + big * 0.1 }); noise(0.2 + big * 0.2, 0.05 + big * 0.06, 180, { type: "lowpass" }); },
+    thrust: () => { if (!gap("thrust", 120)) return; noise(0.13, 0.12, 1500, { to: 4200, a: 0.02, q: 1.6 }); tone(320, 0.08, { type: "triangle", to: 150, v: 0.04 }); },
+    splash: (big = 0) => { if (!gap("splash", 120)) return; noise(0.25 + big * 0.3, 0.12 + big * 0.06, 1800, { to: 700, a: 0.01 }); for (let i = 0; i < 4; i++) tone(700 + Math.random() * 900, 0.06, { v: 0.02, at: 0.04 + i * 0.05, to: 1500 }); },
+    plink: () => { if (!gap("plink", 200)) return; tone(1400, 0.08, { v: 0.05, to: 900 }); tone(1900, 0.06, { v: 0.03, at: 0.07, to: 1200 }); },
+    reel: (k = 0) => { if (!gap("reel", 55)) return; tone(2200 + k * 600, 0.02, { type: "square", v: 0.016, lp: 5000, a: 0.001 }); noise(0.02, 0.03, 4000); },
+    // a ping to the people round you: here (bright), help (urgent), gather (warm)
+    ping: (k = "here") => { if (!gap("ping", 150)) return; if (k === "help") { tone(880, 0.12, { type: "square", v: 0.03, lp: 3000 }); tone(660, 0.16, { type: "square", v: 0.03, at: 0.13, lp: 3000 }); } else if (k === "gather") { [523, 659, 784].forEach((f, i) => tone(f, 0.2, { type: "triangle", v: 0.05, at: i * 0.07 })); } else { tone(1318, 0.1, { type: "triangle", v: 0.06 }); tone(1760, 0.16, { v: 0.04, at: 0.08 }); } },
+    // a perfect dodge: a whoosh and a bright chime
+    perfect: () => { noise(0.22, 0.1, 900, { to: 5000, a: 0.03 }); tone(2093, 0.4, { v: 0.04, at: 0.05 }); tone(3136, 0.3, { v: 0.025, at: 0.09 }); },
+    // the boss hour is coming: a low horn, twice
+    horn: () => { duck(0.4, 2.4); [0, 0.85].forEach((at) => { tone(110, 0.75, { type: "sawtooth", v: 0.05, at, lp: 700, a: 0.12 }); tone(165, 0.75, { type: "sawtooth", v: 0.03, at, lp: 900, a: 0.12 }); }); },
     bite: () => { if (!gap("bite", 120)) return; noise(0.06, 0.18, 1400, { q: 1.2 }); tone(190, 0.1, { type: "square", to: 90, v: 0.05 }); },
     chink: (t = 0) => { if (!gap("chink", 50)) return; noise(0.07, 0.16, 1500 + t * 500, { q: 2.5 }); tone(170, 0.07, { type: "triangle", to: 85, v: 0.07 }); tone([1900, 2600, 3100][t] || 1900, 0.16, { v: 0.03 + t * 0.008, a: 0.002, to: ([1900, 2600, 3100][t] || 1900) * 0.97 }); },
     // the rock gives way: rubble, a thump; gold adds a bright run

@@ -556,7 +556,7 @@ export function make(deps) {
       if (w === "gm-rewards") return gmReward.read(w, url);
       if (w === "land" || w === "land-refunds") return land.read(w, url);
       if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
-      if (w === "jur-boss" || w === "jur-top") return jur.read(w, url);
+      if (w === "jur-boss" || w === "jur-top" || w === "jur-camp") return jur.read(w, url);
       if (w === "market" || w === "market-me" || w === "arcl-tx") return market.read(w, url);
       if (w === "coins") return coins.read(w);
       if (w === "jur") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return jur.view(lc(a)); }

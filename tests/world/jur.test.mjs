@@ -112,6 +112,9 @@ r = await fell(gm, "spino:0", "spino"); check(r.status === 200 && r.body.loot.hi
   r = await call(lazy, "world-jur-boss-claim", { id }); check(r.status === 403, "3 hits isn't enough for a share");
   r = await call(h2, "world-jur-boss-claim", { id }); check(r.status === 200 && r.body.loot.amber >= 2 && r.body.inv.hunted.alpha === 1, "a hunter's share: amber and the rest, the hunt counted " + JSON.stringify(r.body.loot));
   r = await call(h2, "world-jur-boss-claim", { id }); check(r.status === 409, "once");
+  // b-jy3/4: the MVP card's numbers, who landed the last hit, and a little ARCL for the share (taking part: 10 hits)
+  b = await rd("jur-boss"); check(b.top && b.top.length >= 2 && b.top[0].n >= b.top[1].n && b.by && b.down, "the fallen boss shows its top hunters and the last hit " + JSON.stringify({ top: b.top.slice(0, 2), by: b.by }));
+  r = await call(h1, "world-jur-boss-claim", { id }); check(r.status === 200 && r.body.arcl === JUR.BOSS.arcl.alpha, "a hunter's share pays " + JUR.BOSS.arcl.alpha + " ARCL (" + r.body.arcl + ")");
   T = Date.parse("2026-10-21T11:10:00Z"); b = await rd("jur-boss"); check(b.on && b.kind === "titan", "20:10 KST: the Thornback Titan's hour");
   const top = await rd("jur-top"); check(top.top.length >= 1 && top.top.some((x) => x.n >= JUR.HUNT_PTS.alpha), "the week's hunters board counts the boss share");
   // b-jx3: fishing needs a rod and a few seconds; the second land's rock gives obsidian; an obsidian spear
@@ -124,4 +127,53 @@ r = await fell(gm, "spino:0", "spino"); check(r.status === 200 && r.body.loot.hi
   T += 5000; r = await call(f, "world-jur-break", { node: "fish:1" }); check(r.status === 200 && r.body.loot.fish >= 1, "a fish caught");
   r = await fell(f, "obsidian:0", "obsidian"); check(r.status === 200 && r.body.loot.obsidian >= 2, "obsidian from the Ember Basin's rock");
   check(JUR.RECIPES.spear2.tool[1] === 2 && JUR.SPEAR[2] < JUR.SPEAR[1] && JUR.RECIPES.cloak && JUR.RECIPES.armor, "an obsidian spear (fewer swings), a heat cloak, hide armour"); }
+// b-jy3: who's hunting here — your spot, the others' spots, a ping that lasts a few seconds
+{ const a = ethers.Wallet.createRandom(), c = ethers.Wallet.createRandom();
+  let r = await W.handle({ action: "world-jur-here", x: 1, z: 2 }); check(r.status >= 400, "no signature: not shown");
+  r = await call(a, "world-jur-here", { x: 900, z: 0 }); check(r.status === 400, "off the land: refused");
+  r = await call(a, "world-jur-here", { x: 10, z: 20, f: 1, hp: 80, c: "male-1", lv: 42 }); check(r.status === 200 && Array.isArray(r.body.list) && !r.body.list.some((y) => y.id.startsWith(a.address.slice(0, 6))), "your spot posted (you're not in your own list)");
+  T += 3000; r = await call(c, "world-jur-here", { x: 12, z: 18, pk: 2 }); const seenA = r.body.list.find((y) => y.x === 10 && y.z === 20);
+  check(seenA && seenA.lv === 42 && seenA.hp === 80 && seenA.c === "male-1", "another hunter sees you: spot, level, HP, look");
+  T += 3000; r = await call(a, "world-jur-here", { x: 11, z: 20 }); const pc = r.body.list.find((y) => y.x === 12 && y.z === 18);
+  check(pc && pc.pk === 2 && pc.pa >= 0 && pc.pa < JUR.HERE.PING_MS, "their ping (help) reaches you " + JSON.stringify(pc));
+  T += JUR.HERE.PING_MS + 1000; r = await call(c, "world-jur-here", { x: 12, z: 18 }); T += JUR.HERE.MEMO + 10; r = await call(a, "world-jur-here", { x: 11, z: 20 }); const pc2 = r.body.list.find((y) => y.x === 12 && y.z === 18);
+  check(pc2 && !pc2.pk, "the ping is gone after a few seconds");
+  T += JUR.HERE.LIFE * 2 + 1000; r = await call(a, "world-jur-here", { x: 11, z: 20 }); check(!r.body.list.length, "a hunter who left is gone from the list");
+  // b-jy4: the night raid's ARCL — only with all three waves' raiders hunted, once a night
+  const nk = (() => { const d = new Date(T + 9 * 3600e3); return d.toISOString().slice(0, 10).replace(/-/g, "") + (d.getUTCHours() < 6 ? "a" : "b"); })();
+  r = await call(a, "world-jur-raid-claim", { key: "20200101a" }); check(r.status === 400, "an old night: refused");
+  r = await call(a, "world-jur-raid-claim", { key: nk }); check(r.status === 403, "no raiders hunted: nothing");
+  for (let i = 0; i < JUR.RAID.need; i++) { const x = await fell(a, `raid:${nk}:${i}`, "raptor"); if (x.status !== 200) { check(false, "a raider hunted " + JSON.stringify(x.body)); break; } }
+  r = await call(a, "world-jur-raid-claim", { key: nk }); check(r.status === 200 && r.body.arcl === JUR.RAID.arcl, "three waves held: " + JUR.RAID.arcl + " ARCL (" + r.body.arcl + ")");
+  r = await call(a, "world-jur-raid-claim", { key: nk }); check(r.status === 409, "once a night"); }
+// b-jy7: the Mire, fossils, meteors (only in a shower), taming, camp likes and notes
+{ const { weatherAt, WEATHER } = await import("../../api/_world-jur.mjs"), a = ethers.Wallet.createRandom(), c = ethers.Wallet.createRandom();
+  let r = await fell(a, "reed:0", "reed"); check(r.status === 200 && r.body.loot.reed >= 2, "reeds in the Mire " + JSON.stringify(r.body.loot));
+  r = await fell(a, "mire:0", "mire"); check(r.status === 200 && (r.body.loot.clay || 0) >= 1, "mud: clay");
+  r = await call(a, "world-jur-start", { node: "fossil:0", kind: "fossil" }); T += 2000; let r2 = await call(a, "world-jur-break", { node: "fossil:0" }); check(r2.status === 429, "a fossil takes its few seconds of brushing");
+  T += 8000; r2 = await call(a, "world-jur-break", { node: "fossil:0" }); check(r2.status === 200 && r2.body.loot.fossil === 1, "a fossil dug up");
+  // the weather: a storm and a meteor shower by turns, 8 minutes every 2 hours from 00:30 Seoul
+  const base = Date.parse("2026-10-22T15:30:00Z"); /* 00:30 KST */ const w0 = weatherAt(base), w1 = weatherAt(base + WEATHER.EVERY), w2 = weatherAt(base + WEATHER.LEN + 1000);
+  check(w0.on && w1.on && w0.kind !== w1.kind && !w2.on, "a storm and a meteor shower take turns, eight minutes each " + JSON.stringify([w0.kind, w1.kind, w2.on]));
+  const met = [w0, w1].find((x) => x.kind === "meteor"); T = met.start + 1000; r = await call(a, "world-jur-start", { node: "meteor:1", kind: "meteor" }); check(r.status === 200, "a meteor can be mined while the shower is on");
+  T = met.start + WEATHER.LEN + 5000; r = await call(a, "world-jur-start", { node: "meteor:2", kind: "meteor" }); check(r.status === 409, "and not after it");
+  // taming: a bola and 3 berries a try
+  r = await call(a, "world-jur-tame", { kind: "trike" }); check(r.status === 400, "no bola: no try");
+  for (let i = 0; i < 6; i++) await fell(a, "rock:" + (100 + i), "rock");
+  for (let i = 0; i < 20; i++) await fell(a, "fern9:" + i, "fern");
+  for (let i = 0; i < 8; i++) await fell(a, "bush9:" + i, "bush");
+  r = await call(a, "world-jur-craft", { recipe: "rope" }); r = await call(a, "world-jur-craft", { recipe: "bola" }); check(r.status === 200 && r.body.inv.mat.bola === 1, "a bola " + (r.body.error || ""));
+  r = await call(a, "world-jur-tame", { kind: "titan" }); check(r.status === 400, "a boss can't be tamed");
+  r = await call(a, "world-jur-tame", { kind: "trike" }); check(r.status === 200 && typeof r.body.tamed === "boolean" && r.body.inv.mat.bola === 0, "a try uses the bola and berries (" + (r.body.tamed ? "tamed" : "it broke free") + ")");
+  r = await call(a, "world-jur-tame", { kind: "trike" }); check(r.status === 429 || r.status === 400, "not again at once");
+  // a camp: like it once a week (not your own), a note from the list once a day
+  r = await call(c, "world-jur-camp", { op: "claim" }); const own = r.body.home, slot = Number.isInteger(own) && own >= 0 ? own : (await view(a)).camps.list.find((x) => x.owner).slot;
+  if (Number.isInteger(own) && own >= 0) { r = await call(c, "world-jur-like", { slot }); check(r.status === 400, "not your own camp"); }
+  r = await call(a, "world-jur-like", { slot }); check(r.status === 200 && r.body.likes === 1, "a visitor likes it ");
+  r = await call(a, "world-jur-like", { slot }); check(r.status === 409, "once a week");
+  r = await call(a, "world-jur-note", { slot, t: 9 }); check(r.status === 400, "only a line from the list");
+  r = await call(a, "world-jur-note", { slot, t: 2 }); check(r.status === 200 && r.body.notes[0].t === 2, "a note left");
+  r = await call(a, "world-jur-note", { slot, t: 3 }); check(r.status === 409, "one a day per camp");
+  const ci = (await W.read(new URL("https://x/api/social?world=jur-camp&slot=" + slot))).body; check(ci.likes === 1 && ci.notes.length >= 1 && ci.members >= 1, "the camp's card: likes and notes " + JSON.stringify({ l: ci.likes, n: ci.notes.length }));
+  const tp = (await W.read(new URL("https://x/api/social?world=jur-top"))).body; check(tp.camps && tp.camps.some((x) => x.slot === slot && x.n === 1), "the week's best camps"); }
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
