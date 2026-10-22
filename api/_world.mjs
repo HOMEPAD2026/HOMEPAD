@@ -39,7 +39,7 @@ import { makeJump } from "./_world-jump.mjs";
 import { makeMine } from "./_world-mine.mjs";
 import { makeWelcome } from "./_world-welcome.mjs";
 import { makeJur } from "./_world-jur.mjs";
-import { makeAgentDim } from "./_world-agent.mjs";
+import { makeAgentDim, AGENT } from "./_world-agent.mjs";
 import { makeAgentVault } from "./_world-agentvault.mjs";
 import { makeSwap } from "./_world-swap.mjs";
 import { makeSurvivors } from "./_world-survivors.mjs";
@@ -296,9 +296,9 @@ export function make(deps) {
   const jur = makeJur({ ...deps, json, now, signer, isGM, mine, credit: shop.credit, isoWeek: shop.isoWeek, dino: { assist: (w) => dino.assist(w), hunt: (w, k) => dino.hunt(w, k), gather: (w) => dino.gather(w) } });
   dino = makeDino({ ...deps, json, now, signer, debit: shop.debit, level: async (w) => levelOfSave(await saveOf(w)), jur: { take: (w, need) => jur.take(w, need) } });
   // AGENT DIMENSION: your agent, its chat and its errands (api/_world-agent.mjs)
-  const agentDim = makeAgentDim({ ...deps, json, now, signer, debit: shop.debit, jur: { give: (w, m) => jur.give(w, m) }, mine: { addOre: (w, o) => mine.addOre(w, o) },
+  const agentDim = makeAgentDim({ ...deps, json, now, signer, isGM, debit: shop.debit, jur: { give: (w, m) => jur.give(w, m) }, mine: { addOre: (w, o) => mine.addOre(w, o) },
     level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
-  const agentVault = makeAgentVault({ getDocs: deps.getDocs, setDoc: deps.setDoc, json, now, signer, io: deps.agentVaultIo, sel: deps.agentVaultSel }); // AD3: the agent trades from the player's own vault (api/_world-agentvault.mjs)
+  const agentVault = makeAgentVault({ getDocs: deps.getDocs, setDoc: deps.setDoc, json, now, signer, io: deps.agentVaultIo, sel: deps.agentVaultSel, shut: (w) => !AGENT.OPEN && !isGM(w) }); // AD3: the agent trades from the player's own vault (api/_world-agentvault.mjs)
   // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
   const launch = makeLaunch({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
   // invite a friend: both rewarded when the friend reaches level 5 (api/_world-refer.mjs)

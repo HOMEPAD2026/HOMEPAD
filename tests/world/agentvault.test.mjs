@@ -6,6 +6,7 @@ import { ethers } from "ethers";
 const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
 const { decideRule, cleanRule, VAULT } = await import("../../api/_world-agentvault.mjs");
+const { AGENT } = await import("../../api/_world-agent.mjs");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
 const store = {
@@ -56,6 +57,9 @@ check(decideRule({ kind: "stopLoss", price: 0.6, pct: 10, done: 1 }, { ...S, hol
 check(cleanRule({ kind: "dca", token: TOK, usd: 101, everyH: 2 }) === null && cleanRule({ kind: "dca", token: TOK, usd: 0.5, everyH: 2 }) === null, "a rule over 100 USDC (or under 1) is refused");
 check(cleanRule({ kind: "nope", token: TOK }) === null && cleanRule({ kind: "dca", token: "x", usd: 5, everyH: 2 }) === null, "an unknown kind or a bad token is refused");
 
+// not open yet: a player who isn't a GM can't link a vault or set rules
+{ const r = await call(me, "world-agent-vault-link"); check(r.status === 403 && r.body.closed, "closed: no vault link for a player"); check((await view()).closed === true, "closed: the vault view says so"); }
+AGENT.OPEN = true;
 // linking and saving
 let r = await W.handle({ action: "world-agent-vault-link" }); check(r.status >= 400, "no signature: no link");
 const stranger = ethers.Wallet.createRandom();

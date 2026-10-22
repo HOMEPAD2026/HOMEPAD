@@ -141,7 +141,7 @@ export function createLand(ctx) {
         ${sold ? `<div class="wla-owner"><small>${esc(T("Owner"))}</small><i class="av">${esc((v.name || "?").slice(0, 1).toUpperCase())}</i><b>${esc(v.name || short(v.owner))}</b><code>${esc(short(v.owner))}</code><button type="button" class="wla-copy" data-copyw="${esc(v.owner)}" title="${esc(T("Copy"))}">${ico("copy")}</button></div>` : ""}
         <ul class="wla-perks"><li>${ico("palm")}<span>${esc(T("Your island (My Island) stands on this village, for everyone in the town to see"))}</span></li><li>${ico("bricks")}<span>${esc(T("Build bigger: a 64×64 island and up to 20,000 bricks"))}</span></li><li>${ico("wallet")}<span>${esc(T("One village a wallet. Paid to the ARCIRCLE treasury from your own wallet."))}</span></li></ul>
       </div>
-      <div class="wla-art ${v.status}"><img src="${sold ? "/images/land/hero.webp" : picOf(n)}" alt=""></div>
+      <div class="wla-art ${v.status} pic"><img src="/images/land/hero.webp" alt=""></div>
     </div>
     <p class="wp-st-status" data-st hidden></p>
     <div class="wla-tiles">${canBuy ? tile("buy", "coin", T("Buy with $ARCIRCLE"), fmt(v.price) + " $ARCIRCLE", "data-buy") : ""}${tile(canBuy ? "" : "go", "pin", T("Go there"), T("Move to this village"), "data-go")}${sold ? tile("", "palm", T("Visit the island"), T("See their island"), "data-visit") + (v.tx ? tile("", "compass", T("Explorer") + " ↗", T("View on explorer"), `href="${esc(EXP + "/tx/" + v.tx)}" target="_blank" rel="noopener"`, "a") : "") + tile(mine ? "" : "off", "hammer", T("Build my island"), mine ? T("Start building") : T("Only the owner"), mine ? "data-build" : "disabled") : ""}</div>

@@ -2406,6 +2406,7 @@ body.wp .wp-st.wp-land.card .wp-st-card,.wp-land.card .wp-st-card{max-width:980p
 .wla-art{position:relative;border-radius:18px;overflow:hidden;min-height:260px;display:grid;place-items:center;background:radial-gradient(70% 60% at 50% 55%,#1aa6d8,#0b4f9a 70%,#08336e)}
 .wla-art img{width:100%;height:100%;object-fit:cover;display:block}
 .wla-art:not(.sold) img{object-fit:contain;width:86%;height:auto;filter:drop-shadow(0 10px 20px rgba(0,30,80,.6))}
+.wla-art.pic img{object-fit:cover;width:100%;height:100%;filter:none} /* every village's card: the owner's island art (2026-10-22), like V01 */
 .wla-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:14px 0 0}
 .wla-tile{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:linear-gradient(180deg,rgba(26,60,120,.9),rgba(14,36,80,.9));border:1.5px solid rgba(110,200,255,.4);color:#fff;cursor:pointer;text-decoration:none}
 .wla-tile:hover{border-color:#4fe0ff}.wla-tile svg{width:30px;height:30px;flex:0 0 auto}

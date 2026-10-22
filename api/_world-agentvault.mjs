@@ -87,6 +87,7 @@ export function makeAgentVault(deps) {
 
   async function load(w) { return (await one(`worldAgentVault/${w}`)) || { vault: "", rules: [], on: true, log: [] }; }
   async function view(w) {
+    if (deps.shut && deps.shut(w)) return json(200, { ok: true, closed: true, factory: null, vault: "", rules: [], on: false, log: [], live: false, max: VAULT.MAX_USD, chain: null });
     const d = await load(w), f = VAULT.factory();
     let chainState = null; // the vault's money and limits, read from Arc (null when it can't be read right now)
     if (d.vault && isAddr(f)) { try { await chain(); const r = await io.calls([...["usdcBalance()", "feeBalance()", "maxPerTx()", "dailyCap()", "spendableToday()", "paused()", "agentOn()", "trades()", "totalVolume()"].map((x) => ({ to: d.vault, data: sel(x) })), { to: f, data: sel("tradeFee()") }]);
@@ -171,6 +172,7 @@ export function makeAgentVault(deps) {
   return {
     view, tick,
     async handle(b) {
+      if ((b.action === "world-agent-vault-link" || b.action === "world-agent-rules") && deps.shut) { const s = signer(b); if (s.err) return s.err; if (deps.shut(s.wallet)) return json(403, { error: "AGENT DIMENSION is under construction", closed: true }); }
       if (b.action === "world-agent-vault-link") return link(b);
       if (b.action === "world-agent-rules") return rules(b);
       return null;

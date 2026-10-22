@@ -36,6 +36,8 @@ export const AGENT = {
   // the pre-launch event (the owner's, 2026-10-22): creating an agent is free until the official opening; after it,
   // creating one will cost (the price isn't set yet: PRELAUNCH false and a price here when it is)
   PRELAUNCH: true, CREATE_ARCL: 0,
+  // the owner's call (2026-10-22): not open yet — only GM wallets can use it; everyone else sees "under construction"
+  OPEN: false,
   ID: /^[a-z0-9_]{3,16}$/, ID_RESERVED: /^(admin|gm|arcia|arcircle|official|support|system|mod|moderator|aurora|orion|vex|agent|null|undefined)$/,
   HIST: 20, TOP: 30, BEST_K: 1.25, DAY_JOBS: 6, CHAT_DAY: 20, CHAT_IN: 280, CHAT_OUT: 600, LOG: 12, NAME: 14, PERSONA: 160, LV_MAX: 30,
   SLOTS: (lv) => (lv >= 5 ? 2 : 1),
@@ -83,7 +85,11 @@ export function makeAgentDim(deps) {
   const kinds = () => Object.fromEntries(Object.entries(AGENT.KINDS).map(([k, v]) => [k, { name: v.name, role: v.role, best: v.best }]));
   const jobs = () => Object.fromEntries(Object.entries(AGENT.JOBS).map(([k, v]) => [k, { name: v.name, arcl: v.arcl, min: v.min, xp: v.xp, loot: Object.keys(v.loot) }]));
 
-  async function view(w) { return json(200, { ok: true, agent: pub(await load(w)), kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL }); }
+  const shut = (w) => !AGENT.OPEN && !(deps.isGM && deps.isGM(w));
+  async function view(w) {
+    if (shut(w)) return json(200, { ok: true, closed: true, agent: null, kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL });
+    return json(200, { ok: true, agent: pub(await load(w)), kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL });
+  }
   const idOf = (x) => String(x || "").trim().toLowerCase().replace(/^@/, "");
   const idOk = (id) => AGENT.ID.test(id) && !AGENT.ID_RESERVED.test(id);
   async function idFree(id) { id = idOf(id); if (!idOk(id)) return json(200, { ok: true, id, free: false, bad: true }); return json(200, { ok: true, id, free: !(await one(`worldAgentId/${id}`)) }); }
@@ -207,6 +213,8 @@ export function makeAgentDim(deps) {
   return {
     view, load, idFree, top,
     async handle(b) {
+      if (!String(b.action || "").startsWith("world-agent-") || b.action.startsWith("world-agent-vault") || b.action === "world-agent-rules") return null;
+      { const s = signer(b); if (s.err) return s.err; if (shut(s.wallet)) return json(403, { error: "AGENT DIMENSION is under construction", closed: true }); }
       if (b.action === "world-agent-create") return create(b);
       if (b.action === "world-agent-edit") return edit(b);
       if (b.action === "world-agent-chat") return chat(b);

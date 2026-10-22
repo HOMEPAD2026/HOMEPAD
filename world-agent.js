@@ -192,7 +192,18 @@ export function createAgentDim(ctx) {
       <div class="wag-ped" aria-hidden="true"></div>
       <div class="wag-thumbs">${K3.map((x) => `<button type="button" data-view="${x}" class="${x === k ? "on" : ""} ${x}" style="--ac:${K.AGENTS[x].color}" aria-label="${esc(K.AGENTS[x].name)}"><img src="${PORTRAIT(x)}" alt=""></button>`).join("")}</div></aside>`;
   }
+  // not open yet (the owner's call, 2026-10-22): only GM wallets go in; a guest or a player sees it being built
+  const closed = () => !wallet() || !st || st.closed;
+  function paintBuild() {
+    const k = view && K3.includes(view) ? view : "orion", C = K.AGENTS[k];
+    el.innerHTML = `<div class="wag-card lab build ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("AGENT DIMENSION"))}</small>
+      <div class="wag-nm"><h2>🚧 ${esc(T("Under construction"))}</h2></div><p class="wag-role">${esc(T("AGENT DIMENSION is being built. It opens soon — stay tuned!"))}</p>
+      <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+      <div class="wag-body"><div class="wag-event"><b>🛠️ ${esc(T("Coming soon"))}</b><span>${esc(T("Create your own AI agent — AURORA, ORION or VEX — and let it walk, talk and run errands with you."))}</span></div>
+      <button type="button" class="wag-go" data-x>${esc(T("OK"))}</button></div></section></div>`;
+  }
   function paint() {
+    if (closed()) { if (wallet() && !st) { el.innerHTML = `<div class="wag-card lab"><section class="wag-main"><div class="wag-body"><p class="wag-fine">${esc(T("Loading…"))}</p></div></section></div>`; return; } return paintBuild(); }
     const a = A();
     if (!a) return paintLab();
     if (!view) view = a.kind;
@@ -433,7 +444,7 @@ export function createAgentDim(ctx) {
     if (b.hasAttribute("data-brief")) { briefOn = false; return paint(); }
     if (b.hasAttribute("data-nosug")) { suggest = ""; return paint(); }
     if (b.hasAttribute("data-share")) return shareCard();
-    if (b.dataset.view || b.dataset.nav) { const cur = A() ? view || A().kind : pick || "aurora", nx = b.dataset.view || K3[(K3.indexOf(cur) + Number(b.dataset.nav) + 3) % 3]; if (A()) view = nx; else { if (pick) keepDraft(); pick = nx; draft.name = ""; if (labStep < 2) labStep = 2; } return paint(); }
+    if (b.dataset.view || b.dataset.nav) { const cur = closed() ? view || "orion" : A() ? view || A().kind : pick || "aurora", nx = b.dataset.view || K3[(K3.indexOf(cur) + Number(b.dataset.nav) + 3) % 3]; if (closed()) { view = nx; return paint(); } if (A()) view = nx; else { if (pick) keepDraft(); pick = nx; draft.name = ""; if (labStep < 2) labStep = 2; } return paint(); }
     if (b.dataset.preset) { const p = el.querySelector(".wag-persona"); if (p) p.value = b.dataset.preset; return; }
     if (b.hasAttribute("data-create")) return create();
     if (b.hasAttribute("data-send")) return send();

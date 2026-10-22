@@ -28,7 +28,11 @@ const view = async (w) => (await W.read(new URL("https://x/api/social?world=agen
 const me = ethers.Wallet.createRandom(), lc = me.address.toLowerCase();
 db.set(`worldArclBal/${lc}`, { bal: 1000, earned: 1000, spent: 0 });
 
-let v = await view(me); check(v.ok && v.prelaunch === true && v.agent === null && v.kinds.aurora && v.jobs.mine.arcl === AGENT.JOBS.mine.arcl, "no agent yet; the three kinds and the errands' prices are shown");
+// not open yet (the owner's call): a player who isn't a GM is told it's under construction
+let v = await view(me); check(v.closed === true && v.agent === null, "closed: the view says under construction");
+let r0 = await call(me, "world-agent-create", { kind: "vex", id: "early_v" }); check(r0.status === 403 && r0.body.closed, "closed: a player can't create an agent");
+AGENT.OPEN = true; // the rest runs as if it were open
+v = await view(me); check(v.ok && v.prelaunch === true && v.agent === null && v.kinds.aurora && v.jobs.mine.arcl === AGENT.JOBS.mine.arcl, "no agent yet; the three kinds and the errands' prices are shown");
 let r = await W.handle({ action: "world-agent-create", kind: "aurora" }); check(r.status >= 400 && r.status < 500, "no signature: no agent");
 r = await call(me, "world-agent-create", { kind: "dragon" }); check(r.status === 400, "an unknown kind is refused");
 r = await call(me, "world-agent-create", { kind: "vex", id: "x" }); check(r.status === 400, "an agent ID needs 3–16 letters");
