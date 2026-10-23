@@ -3169,3 +3169,33 @@ html.wp-pcphone .wp-qs-in>small{font-size:22px}html.wp-pcphone .wp-qs-in>b{font-
 html.wp-pcphone .wp-qs-in li{padding:22px;gap:22px;border-radius:26px}html.wp-pcphone .wp-qs-in li>span{flex-basis:84px;height:84px;font-size:44px;border-radius:24px}
 html.wp-pcphone .wp-qs-in li b{font-size:30px}html.wp-pcphone .wp-qs-in li p{font-size:24px}
 html.wp-pcphone .wp-qs-row>*{min-height:84px;font-size:28px}
+/* b-st2: arrival — the first visit's welcome (confetti), a portal's pull flash */
+.wp-welcome{position:fixed;inset:0;z-index:58;pointer-events:none;display:grid;place-content:center;justify-items:center;gap:4px;text-align:center;animation:wpWelIn .5s cubic-bezier(.2,1.4,.4,1) both}
+.wp-welcome>b{font:900 clamp(44px,11vw,96px)/1 var(--f-ui);color:#fff;letter-spacing:.01em;text-shadow:0 4px 0 #1f5fd6,0 0 28px rgba(56,216,255,.9),0 0 60px rgba(46,224,160,.6)}
+.wp-welcome>small{font:900 clamp(14px,3.4vw,24px)/1 var(--f-ui);letter-spacing:.3em;color:#bff4ff;text-shadow:0 0 14px rgba(56,216,255,.9)}
+.wp-welcome i{position:absolute;left:50%;top:42%;width:10px;height:14px;border-radius:2px;animation:wpConf 2.4s cubic-bezier(.15,.7,.4,1) var(--d) both}
+.wp-welcome.out{opacity:0;transition:opacity .6s}
+@keyframes wpWelIn{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes wpConf{0%{transform:translate(-50%,-50%) scale(.4);opacity:1}60%{opacity:1}100%{transform:translate(calc(-50% + var(--x) * 46vw),calc(-50% + var(--y) * 48vh)) rotate(var(--r));opacity:0}}
+.wp-pull{position:fixed;inset:0;z-index:57;pointer-events:none;background:radial-gradient(circle at 50% 55%,#fff 0,var(--c) 18%,transparent 62%);mix-blend-mode:screen;animation:wpPull .7s ease-out forwards}
+@keyframes wpPull{0%{opacity:0;transform:scale(.4)}25%{opacity:.95}100%{opacity:0;transform:scale(2.2)}}
+/* b-st2: the loading screen — the logo on top, the key art sharper (a wider clear middle, a lighter veil), the games'
+   own key art in the turn, the tip as a glass card */
+.wp-loading img.wp-load-logo{position:absolute;left:50%;top:max(22px,env(safe-area-inset-top));transform:translateX(-50%);width:min(268px,58vw);height:auto;animation:none;filter:drop-shadow(0 6px 18px rgba(0,10,40,.6))}
+.wp-loading.has-3d>img.wp-load-logo{display:block}
+.wp-loading .wp-keyart b::before{-webkit-mask:radial-gradient(closest-side,#000 82%,transparent);mask:radial-gradient(closest-side,#000 82%,transparent)}
+.wp-loading .wp-keyart::after{background:linear-gradient(180deg,rgba(4,10,26,.55),rgba(6,20,52,.08) 26%,rgba(6,20,52,.12) 58%,rgba(3,8,20,.88)),radial-gradient(30% 22% at 50% 50%,rgba(4,12,32,.45),rgba(4,12,32,0))}
+.wp-loading .wp-loadtip{display:flex;align-items:center;gap:10px;max-width:min(440px,86vw);min-height:0;margin-top:10px;padding:10px 14px;border-radius:16px;background:rgba(8,22,54,.72);box-shadow:inset 0 0 0 1px rgba(140,220,255,.35),0 8px 22px rgba(0,0,0,.35);font:700 13.5px/1.4 var(--f-ui);color:#eaf6ff;text-align:left;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.wp-loading .wp-loadtip::before{content:"💡";flex:0 0 32px;height:32px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(180deg,#3aa0ff,#1f5fd6);font-size:17px}
+.wp-loading .wp-loadtip:empty{display:none}
+.wp-loading .wp-loadtip,.wp-loading .wp-loadtip.on{opacity:1}.wp-loading .wp-loadtip.on{animation:wpTipIn .45s ease both}
+@keyframes wpTipIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+html.wp-pcphone .wp-loading img.wp-load-logo{width:min(480px,58vw)}
+html.wp-pcphone .wp-loading .wp-loadtip{font-size:26px;padding:18px 24px;border-radius:26px;gap:18px}html.wp-pcphone .wp-loading .wp-loadtip::before{flex-basis:56px;height:56px;font-size:30px;border-radius:16px}
+@media (max-height:620px){.wp-loading img.wp-load-logo{display:none!important}}
+@media (max-aspect-ratio:4/5){.wp-loading .wp-keyart b::before{width:min(165vw,130vh);top:45%}}
+/* b-st2: phones — the brand and the level card share the top row (one row less over the world) */
+html.wp-pcphone .wp-hud-l{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;align-items:center}
+html.wp-pcphone .wp-hud-l>*{grid-column:1/-1}
+html.wp-pcphone .wp-hud-l>.wp-brand{grid-column:1}
+html.wp-pcphone .wp-hud-l>.wp-chips{grid-column:2}

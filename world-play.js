@@ -73,17 +73,17 @@ const WORDS = {
     move: "hareket", jump: "zıpla", run: "koş", enter: "gir", board: "hoverboard", emote: "ifade", photo: "fotoğraf", map: "harita", help: "yardım", "drag to look": "sürükleyerek bak" },
 };
 // b-st1: the first minutes' words
-Object.assign(WORDS.ko, { "Opening the plaza…": "광장을 여는 중…", "Dressing the town…": "마을을 꾸미는 중…", "Waking the scammers…": "스캐머를 깨우는 중…", "Polishing the light…": "빛을 다듬는 중…",
+Object.assign(WORDS.ko, { "Welcome!": "환영해요!", "The fountain's show": "분수 쇼", "on the hour, at the plaza": "매시 정각, 광장에서", "Opening the plaza…": "광장을 여는 중…", "Dressing the town…": "마을을 꾸미는 중…", "Waking the scammers…": "스캐머를 깨우는 중…", "Polishing the light…": "빛을 다듬는 중…",
   "Step through a portal to the Utility Village": "포털을 지나 유틸리티 마을로 가기", "One world, eight games. Pick your hero, a colour and a name — you can change them later.": "하나의 세계, 8개의 게임. 영웅과 색, 이름을 골라요 — 나중에 바꿀 수 있어요.",
   "Move": "이동", "Jump": "점프", "Attack": "공격", "Drag the stick on the left. Push it far to run.": "왼쪽 스틱을 드래그해요. 끝까지 밀면 달려요.", "Tap the big blue arrow.": "큰 파란 화살표를 눌러요.", "Tap the red sword near a scammer.": "스캐머 가까이에서 빨간 검을 눌러요.",
   "W A S D or the arrow keys. Hold Shift to run.": "W A S D 또는 화살표 키. Shift를 누르고 있으면 달려요.", "Space.": "스페이스바.", "J, or click the red sword near a scammer.": "J, 또는 스캐머 가까이에서 빨간 검을 클릭해요.",
   "How to play": "플레이 방법", "Welcome to ARCIRCLE WORLD": "ARCIRCLE WORLD에 오신 걸 환영해요", "Three things to start": "시작할 때 알아둘 세 가지", "All controls": "전체 조작법", "Let's go!": "시작!" });
-Object.assign(WORDS.zh, { "Opening the plaza…": "正在打开广场…", "Dressing the town…": "正在装点小镇…", "Waking the scammers…": "正在唤醒骗子…", "Polishing the light…": "正在打磨光影…",
+Object.assign(WORDS.zh, { "Welcome!": "欢迎！", "The fountain's show": "喷泉表演", "on the hour, at the plaza": "每个整点，在广场", "Opening the plaza…": "正在打开广场…", "Dressing the town…": "正在装点小镇…", "Waking the scammers…": "正在唤醒骗子…", "Polishing the light…": "正在打磨光影…",
   "Step through a portal to the Utility Village": "穿过传送门前往工具村", "One world, eight games. Pick your hero, a colour and a name — you can change them later.": "一个世界，八款游戏。选择你的英雄、颜色和名字——之后还能更改。",
   "Move": "移动", "Jump": "跳跃", "Attack": "攻击", "Drag the stick on the left. Push it far to run.": "拖动左边的摇杆。推到底就会奔跑。", "Tap the big blue arrow.": "点击蓝色大箭头。", "Tap the red sword near a scammer.": "在骗子附近点击红色的剑。",
   "W A S D or the arrow keys. Hold Shift to run.": "W A S D 或方向键。按住 Shift 奔跑。", "Space.": "空格键。", "J, or click the red sword near a scammer.": "J，或在骗子附近点击红色的剑。",
   "How to play": "玩法", "Welcome to ARCIRCLE WORLD": "欢迎来到 ARCIRCLE WORLD", "Three things to start": "开始前的三件事", "All controls": "全部操作", "Let's go!": "出发！" });
-Object.assign(WORDS.tr, { "Opening the plaza…": "Meydan açılıyor…", "Dressing the town…": "Kasaba süsleniyor…", "Waking the scammers…": "Dolandırıcılar uyanıyor…", "Polishing the light…": "Işık parlatılıyor…",
+Object.assign(WORDS.tr, { "Welcome!": "Hoş geldin!", "The fountain's show": "Çeşme gösterisi", "on the hour, at the plaza": "her saat başı, meydanda", "Opening the plaza…": "Meydan açılıyor…", "Dressing the town…": "Kasaba süsleniyor…", "Waking the scammers…": "Dolandırıcılar uyanıyor…", "Polishing the light…": "Işık parlatılıyor…",
   "Step through a portal to the Utility Village": "Bir portaldan Araçlar Köyü'ne geç", "One world, eight games. Pick your hero, a colour and a name — you can change them later.": "Tek dünya, sekiz oyun. Kahramanını, rengini ve adını seç — sonra değiştirebilirsin.",
   "Move": "Hareket", "Jump": "Zıpla", "Attack": "Saldır", "Drag the stick on the left. Push it far to run.": "Soldaki çubuğu sürükle. Sonuna kadar itersen koşarsın.", "Tap the big blue arrow.": "Büyük mavi oka dokun.", "Tap the red sword near a scammer.": "Bir dolandırıcının yanında kırmızı kılıca dokun.",
   "W A S D or the arrow keys. Hold Shift to run.": "W A S D veya ok tuşları. Koşmak için Shift'e basılı tut.", "Space.": "Boşluk tuşu.", "J, or click the red sword near a scammer.": "J, ya da bir dolandırıcının yanında kırmızı kılıca tıkla.",
@@ -1859,6 +1859,7 @@ function landGo(to) {
   if (to === "town") { const p = lands.portals.find((q) => q.userData.to === landNow) || lands.portals[0], v = p.position, d = Math.hypot(v.x, v.z) || 1; standAt(v.x - (v.x / d) * 3.4, v.z - (v.z / d) * 3.4, { x: 0, z: 0 }); }
   else { const a = lands.arrival(to); if (!a) return; standAt(a.x, a.z, a.c); }
   const col = to === "lp" ? 0x39ff88 : to === "ut" ? 0x4f9dff : 0x7fe9ff; vfx.teleport(here(), { color: col, color2: 0x2f86ff }); if (Snd.dash) Snd.dash();
+  pullFlash("#" + col.toString(16).padStart(6, "0")); startSweep(1200); // b-st2: a flash of the portal's colour as it pulls you through, and the camera swings in
   landTick(true); paintPrompt();
 }
 /// which land you're in: its group shown, the quest's arrow through the portals, a title on arrival
@@ -3170,7 +3171,9 @@ async function renderThumbs() {
 $("wp-make-grid").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-c]"); if (!b) return;
   pickChar = b.dataset.c; $("wp-make-grid").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
-  setAvatar(pickChar).then(() => avatar && avatar.play("emote-yes", { once: true }));
+  // b-st2: each hero greets in its own way (ARON nods, LUMI casts, NEX swings: CU_AS clips), in a puff of light
+  const pose = ["emote-yes", "cast", "attack"][[...$("wp-make-grid").querySelectorAll("button[data-c]")].indexOf(b)] || "emote-yes";
+  setAvatar(pickChar).then(() => { if (avatar) avatar.play(pose, { once: true }); try { vfx.collect(here(), 0x7fe9ff); } catch { /* fine */ } });
 });
 // the character maker: the first pick (and first name) is free; changing either later is a Character change,
 // 10,000 $ARCIRCLE from your wallet (half burned, half to the treasury), which the server checks on the next save
@@ -3180,7 +3183,8 @@ function finishMake(ch, nm) {
   setNameTag(); make.hidden = true; frozen = false; camYaw = facing - Math.PI; paintQuests(); tutorialStep(-1); maybeGuide();
   const ask = $("wp-make-ask"); if (ask) ask.remove();
 }
-$("wp-make-tints").addEventListener("click", (e) => { const b = e.target.closest("button[data-t]"); if (!b) return; pickTint = Number(b.dataset.t) || 0; $("wp-make-tints").querySelectorAll("button[data-t]").forEach((x) => x.setAttribute("aria-checked", String(x === b))); if (avatar && avatar.setTint) avatar.setTint(pickTint); });
+$("wp-make-tints").addEventListener("click", (e) => { const b = e.target.closest("button[data-t]"); if (!b) return; pickTint = Number(b.dataset.t) || 0; $("wp-make-tints").querySelectorAll("button[data-t]").forEach((x) => x.setAttribute("aria-checked", String(x === b))); if (avatar && avatar.setTint) avatar.setTint(pickTint);
+  try { const c = (K.HERO_TINTS || [])[pickTint]; vfx.collect(here(), typeof c === "number" ? c : 0x7fe9ff); if (avatar && !(avatar.busy && avatar.busy())) avatar.play("emote-yes", { once: true }); } catch { /* fine */ } }); // b-st2: a shimmer of the new colour
 $("wp-make-go").addEventListener("click", () => {
   const nm = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player");
   if (P.char && heroOf(P.char) === pickChar) pickChar = P.char; // b447: the hero you're already drawn as: your saved character stays (no Character change)
@@ -3292,6 +3296,21 @@ function firstRun(on) {
   if (on) { document.body.classList.add("wp-first"); return; }
   if (!document.body.classList.contains("wp-first")) return;
   document.body.classList.remove("wp-first"); document.body.classList.add("wp-hudin"); setTimeout(() => document.body.classList.remove("wp-hudin"), 2200);
+  startSweep();
+}
+/// b-st2: as you start, the camera swings round from in front of your hero to its place behind (the landing's slow follow)
+function startSweep(ms = 1800) {
+  if (reduce || introOn || mode !== "hub") return;
+  const a = camYaw + Math.PI * 0.62; cam.position.set(at.x - Math.sin(a) * 5.5, at.y + 2.6, at.z - Math.cos(a) * 5.5); landUntil = performance.now() + ms;
+}
+/// b-st2: a portal's pull: the screen flashes its colour from the middle out (CSS, gone in 0.7 s)
+function pullFlash(c) { if (reduce) return; const f = document.createElement("div"); f.className = "wp-pull"; f.style.setProperty("--c", c); f.setAttribute("aria-hidden", "true"); document.body.appendChild(f); setTimeout(() => f.remove(), 800); }
+/// b-st2: the first arrival: a big welcome over the plaza and confetti (DOM, gone in 3 s)
+function welcomeBurst() {
+  if (reduce) return; const w = document.createElement("div"); w.className = "wp-welcome"; w.setAttribute("aria-hidden", "true");
+  const C = ["#38d8ff", "#2ee0a0", "#ffc861", "#ff7ab6", "#9b8cff", "#ffffff"];
+  w.innerHTML = `<b>${esc(TW("Welcome!"))}</b><small>ARCIRCLE WORLD</small>` + Array.from({ length: 46 }, (_, i) => `<i style="--x:${(Math.random() * 2 - 1).toFixed(2)};--y:${(0.4 + Math.random()).toFixed(2)};--r:${Math.round(Math.random() * 720 - 360)}deg;--d:${(Math.random() * 0.3).toFixed(2)}s;background:${C[i % C.length]}"></i>`).join("");
+  document.body.appendChild(w); setTimeout(() => w.classList.add("out"), 2300); setTimeout(() => w.remove(), 3000);
 }
 // b-st1: the first-time guide: three cards (move, jump, attack) for this screen; "All controls" opens the full one
 function quickStart() {
@@ -4648,9 +4667,13 @@ landed = true; actAt = performance.now(); feedQ.splice(0).slice(-4).forEach(([h,
 { const we = RPG.WEEK_EVENTS && RPG.weekEvent ? RPG.WEEK_EVENTS[RPG.weekEvent()] : null; if (we) setTimeout(() => feed(T("This week: {x} — {y}", { x: `<b>${esc(T(we.name))}</b>`, y: esc(T(we.line)) }), "#ffc861"), 2600); } // this week's event
 // b-fm1: a first visit plays first (the character, the controls, the training scammer); the wallet is offered after
 // the first knock-out (askSave) and on the "Your first 5 minutes" card, not before anything has happened
-if (!P.char) openMake();
+// b-st2: you land in a beam of light, and the fountain throws its jets up; a first visit gets a welcome first
+try { vfx.teleport(here(), { color: 0x7fe9ff, color2: 0x2f86ff }); if (fountain.userData.burst) fountain.userData.burst(6); } catch { /* fine without */ }
+if (!P.char) { welcomeBurst(); setTimeout(() => { if (!P.char && make.hidden) openMake(); }, reduce ? 0 : 1500); }
 else { tutorialStep(-1); maybeGuide(); }
 refreshPlaza();
+// b-st2: on the hour the fountain puts on a show (20 s)
+{ let lastHr = -1; every(15000, () => { const d = new Date(); if (d.getMinutes() !== 0 || d.getHours() === lastHr || mode !== "hub") return; lastHr = d.getHours(); try { fountain.userData.burst(20); feed(`⛲ <b>${esc(TW("The fountain's show"))}</b> · ${esc(TW("on the hour, at the plaza"))}`, "#38d8ff"); } catch { /* fine */ } }); }
 // a shared island link (/play?isle=0x…): straight to that island once you're in
 // news while you play (friends online, stamps on your island) and, once after an update, what's new
 setTimeout(() => island.news((h, c) => feed(h, c)), 5000); every(300000, () => { if (mode === "hub") island.news((h, c) => feed(h, c)); });
@@ -5123,7 +5146,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { snd: Snd, pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { snd: Snd, welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),

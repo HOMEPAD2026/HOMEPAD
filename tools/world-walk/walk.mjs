@@ -35,6 +35,7 @@ async function open(dev, { route } = {}) {
   await p.goto(H + "/play.html", { timeout: 180000, waitUntil: "commit" });
   const G = async (f, a) => { for (let i = 0; i < 3; i++) { try { return await p.evaluate(f, a); } catch (e) { if (!/context was destroyed|navigation/i.test(String(e))) throw e; await p.waitForTimeout(1500); } } return null; };
   for (let i = 0; i < 180; i++) { await p.waitForTimeout(1000); if (await p.isVisible("#wp-make-name").catch(() => false)) break; if (await G(() => !!(window.arcWorld && window.arcWorld.jurassic) && !document.body.classList.contains("wp-intro"))) break; }
+  for (let i = 0; i < 8 && !(await p.isVisible("#wp-make-name").catch(() => false)); i++) await p.waitForTimeout(500); // (a first visit's maker opens after the welcome, 1.5 s in)
   if (await p.isVisible("#wp-make-name").catch(() => false)) { await p.fill("#wp-make-name", "Ranger"); await G(() => document.getElementById("wp-make-go").click()); }
   await p.waitForTimeout(12000); // (the seeded save is newer than this browser's: the game takes it and reloads once)
   for (let i = 0; i < 120 && !(await G(() => !!(window.arcWorld && window.arcWorld.jurassic) && !document.body.classList.contains("wp-intro"))); i++) await p.waitForTimeout(1000);

@@ -336,8 +336,19 @@ export function makeArcFountain() {
   const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.13, 1.1, 12, 1, true), jetM); jet.position.y = 3.98; jet.renderOrder = 2; g.add(jet);
   const N = 36, drops = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 5, 4), new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.8, depthWrite: false }), N);
   drops.frustumCulled = false; g.add(drops);
-  const o = new THREE.Object3D();
-  g.userData = { radius: 0, pulse: (k) => { ra.material.emissiveIntensity = 1.5 * (1 + k); rb.material.emissiveIntensity = 1.5 * (1 + k); }, spin: [(dt, t) => {
+  // b-st2: the fountain dances — 12 jets arc in from the rim to the middle bowl, their pattern changing every 12 s
+  // (all together, a wave running round, every other one), higher with the music; burst(sec) sends them tall with a
+  // geyser in the middle (on the hour and when you arrive); rings spread where they land; at night a ring of light
+  // round the pool on the plaza floor
+  const JN = 12, JD = 22, arcs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.055, 6, 4), new THREE.MeshBasicMaterial({ color: 0xc8f2ff, transparent: true, opacity: 0.6, depthWrite: false }), JN * JD); // (each drop stretched along its path: a stream, not dots)
+  arcs.frustumCulled = false; arcs.renderOrder = 2; g.add(arcs);
+  const RN = JN, rip = new THREE.InstancedMesh(new THREE.RingGeometry(0.8, 1, 32), new THREE.MeshBasicMaterial({ color: 0xbff4ff, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide }), RN);
+  rip.frustumCulled = false; g.add(rip);
+  const glowRing = new THREE.Mesh(new THREE.RingGeometry(4.6, 5.6, 96), new THREE.MeshBasicMaterial({ color: 0x46d8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  glowRing.rotation.x = -Math.PI / 2; glowRing.position.y = 0.075; g.add(glowRing);
+  let beat = 0, burstT = 0;
+  const o = new THREE.Object3D(), UP = new THREE.Vector3(0, 1, 0), tg = new THREE.Vector3();
+  g.userData = { radius: 0, burst: (sec = 8) => { burstT = Math.max(burstT, sec); }, bursting: () => burstT > 0, pulse: (k) => { beat = k; ra.material.emissiveIntensity = 1.5 * (1 + k); rb.material.emissiveIntensity = 1.5 * (1 + k); }, spin: [(dt, t) => {
     rings.rotation.y = t * 0.35; ra.rotation.y = Math.sin(t * 0.7) * 0.25; rings.position.y = 16 + Math.sin(t * 1.2) * 0.35;
     water.emissiveIntensity = 0.5 + NIGHT.value * 0.75 + Math.sin(t * 2) * 0.08; WT.value = t; /* b444: at night the pool is the plaza's lantern */
     sheetM.opacity = 0.75 + NIGHT.value * 0.2; jetM.opacity = 0.8 + NIGHT.value * 0.2;
@@ -347,6 +358,21 @@ export function makeArcFountain() {
       o.position.set(Math.cos(a) * r, y0 + Math.sin(k * Math.PI) * 0.28, Math.sin(a) * r); o.scale.setScalar(1 - k * 0.6); o.updateMatrix(); drops.setMatrixAt(i, o.matrix);
     }
     drops.instanceMatrix.needsUpdate = true;
+    burstT = Math.max(0, burstT - dt); const bk = Math.min(1, burstT / 1.5), pat = Math.floor(t / 12) % 3;
+    for (let j = 0; j < JN; j++) {
+      const a = (j / JN) * TAU, ph = pat === 0 ? Math.sin(t * 1.6) : pat === 1 ? Math.sin(t * 2.4 - j * (TAU / JN) * 2) : (j % 2 ? Math.sin(t * 1.8) : -Math.sin(t * 1.8));
+      const h = (0.9 + 0.55 * (ph * 0.5 + 0.5) + beat * 0.6) * (1 + bk * 1.6), ca = Math.cos(a), sa = Math.sin(a);
+      for (let i = 0; i < JD; i++) { // a drop along the arc from the rim (r 3.95, y 0.45) to the lower bowl (r 2.2, y 2.1)
+        const k = ((t * 0.9 + i / JD) % 1), r = 3.95 - k * 1.75, y = 0.45 + k * 1.65 + Math.sin(k * Math.PI) * h;
+        const dy = 1.65 + Math.cos(k * Math.PI) * Math.PI * h; tg.set(-ca * 1.75, dy, -sa * 1.75).normalize(); o.quaternion.setFromUnitVectors(UP, tg);
+        o.position.set(ca * r, y, sa * r); o.scale.set(1 - k * 0.3, 3.2, 1 - k * 0.3); o.updateMatrix(); arcs.setMatrixAt(j * JD + i, o.matrix);
+      }
+      const rk = ((t * 0.6 + j * 0.37) % 1), rr = 3.2 + (j % 3) * 0.25; // a ring spreading on the pool
+      o.position.set(Math.cos(a + 0.26) * rr, 0.34, Math.sin(a + 0.26) * rr); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(0.15 + rk * 0.55); o.updateMatrix(); rip.setMatrixAt(j, o.matrix); o.rotation.set(0, 0, 0); o.quaternion.identity();
+    }
+    arcs.instanceMatrix.needsUpdate = true; rip.instanceMatrix.needsUpdate = true; rip.material.opacity = 0.32 + NIGHT.value * 0.25;
+    jet.scale.set(1 + bk * 0.5, 1 + bk * 2.2 + beat * 0.4, 1 + bk * 0.5); jet.position.y = 3.43 + 0.55 * jet.scale.y; // the top jet leaps on a burst
+    glowRing.material.opacity = NIGHT.value * (0.32 + Math.sin(t * 1.4) * 0.08 + beat * 0.25) + bk * 0.35;
   }] };
   return g;
 }

@@ -84,6 +84,21 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
     const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.06, 6, 64), basic(col, 0.9)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.2; p.add(ring);
     p.userData.setSub = (s) => { if (p.userData.subText === s) return; p.userData.subText = s; if (p.userData.subTag) { p.remove(p.userData.subTag); p.userData.subTag.material.map && p.userData.subTag.material.map.dispose(); p.userData.subTag.material.dispose(); } if (!s) { p.userData.subTag = null; return; } const t = K.label(s, { accent: "#" + col.toString(16).padStart(6, "0"), size: 0.55 }); t.position.y = p.userData.model ? 6.75 : 3.65; p.add(t); p.userData.subTag = t; };
     if (sub) p.userData.setSub(sub);
+    // b-st2: a column of light over it (fading up, added on: it glows without hiding what's behind), motes of light
+    // climbing in it and the ring on the ground breathing — so a portal reads as a portal from across the plaza
+    const cc = new THREE.Color(col), cg = new THREE.CylinderGeometry(1.45, 1.95, 9, 32, 6, true), cp = cg.attributes.position, cl = [];
+    for (let i = 0; i < cp.count; i++) { const k = Math.pow(1 - (cp.getY(i) + 4.5) / 9, 1.6) * 0.55; cl.push(cc.r * k, cc.g * k, cc.b * k); }
+    cg.setAttribute("color", new THREE.Float32BufferAttribute(cl, 3));
+    const colM = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false });
+    const column = new THREE.Mesh(cg, colM); column.position.y = 4.7; column.renderOrder = 3; column.name = "portal-column"; p.add(column);
+    const MN = low ? 0 : 22, mp = new Float32Array(MN * 3), seed = Array.from({ length: MN }, (_, i) => [((i * 2.399) % (Math.PI * 2)), 0.4 + ((i * 0.618) % 1) * 1.3, (i * 0.377) % 1]);
+    const mg = new THREE.BufferGeometry(); mg.setAttribute("position", new THREE.BufferAttribute(mp, 3));
+    const motes = new THREE.Points(mg, new THREE.PointsMaterial({ color: col, size: 0.22, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); motes.frustumCulled = false; if (MN) p.add(motes);
+    spins.push((dt, t) => {
+      colM.opacity = 0.75 + Math.sin(t * 1.7 + col) * 0.2; ring.scale.setScalar(1 + Math.sin(t * 2.2) * 0.04); ring.material.opacity = 0.7 + Math.sin(t * 2.2) * 0.2;
+      for (let i = 0; i < MN; i++) { const [a, r, o] = seed[i], k = (t * 0.22 + o) % 1; mp[i * 3] = Math.cos(a + t * 0.5) * r; mp[i * 3 + 1] = 0.3 + k * 8.5; mp[i * 3 + 2] = Math.sin(a + t * 0.5) * r; }
+      if (MN) mg.attributes.position.needsUpdate = true;
+    });
     return p;
   }
 
@@ -161,6 +176,18 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
     { id: "gv", name: T("Game Village"), col: 0xffc861, phi: 300 },
   ];
   const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id; K.placeOn(p, K.dirOf(21, d.phi)); planet.add(p); return p; });
+  // b-st2: lines of light on the plaza floor from the fountain out to each portal, pulses running outward in its colour
+  const lineU = { value: 0 };
+  portals.forEach((p, i) => {
+    const x = p.position.x, z = p.position.z, d = Math.hypot(x, z); if (d < 9) return; const r0 = 5.8, len = d - r0 - 2.6;
+    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, uniforms: { uT: lineU, uC: { value: new THREE.Color(DEST[i].col) }, uL: { value: len }, uP: { value: i * 0.31 } },
+      vertexShader: "varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: "varying vec2 vU; uniform float uT, uL, uP; uniform vec3 uC; void main(){ float along = vU.y * uL; float pulse = smoothstep(0.0, 0.25, fract(along / 3.0 - uT * 0.45 + uP)) * (1.0 - smoothstep(0.25, 0.6, fract(along / 3.0 - uT * 0.45 + uP))); float edge = 1.0 - abs(vU.x - 0.5) * 2.0; float ends = smoothstep(0.0, 0.08, vU.y) * (1.0 - smoothstep(0.88, 1.0, vU.y)); gl_FragColor = vec4(uC * (0.22 + pulse * 0.9) * edge * ends, 1.0); }" });
+    const g = new THREE.PlaneGeometry(0.42, len); g.rotateX(-Math.PI / 2); g.translate(0, 0, -len / 2); // (along −z, from where it starts)
+    const line = new THREE.Mesh(g, m); line.name = "plaza-line"; line.renderOrder = 1; line.frustumCulled = false;
+    line.position.set((x / d) * r0, 0.075, (z / d) * r0); line.rotation.y = Math.atan2(-x, -z); planet.add(line);
+  });
+  spins.push((dt, t) => { lineU.value = t; });
   // the two villages' portals are the owner's models (models/world/lands, Meshy, packed by tools/pack-prop.mjs): 6.5 m
   // tall, in place of the rings, loaded a few seconds after the town (about 1 MB each)
   const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb" }, MODEL_H = 6.5;

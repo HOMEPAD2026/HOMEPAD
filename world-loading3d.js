@@ -16,11 +16,21 @@ export function loadingScene(THREE, host, { reduce = false } = {}) {
   // the town: little white halls with coloured roofs, each waiting for its step of the loading
   const cols = [0x2f86ff, 0x2ee07a, 0xffc861, 0xff7ad9, 0x35d8d0, 0xb48cff], blds = [], up = new THREE.Vector3(0, 1, 0);
   const body = new THREE.BoxGeometry(0.16, 0.2, 0.16), roof = new THREE.ConeGeometry(0.13, 0.12, 4), white = new THREE.MeshStandardMaterial({ color: 0xeef3f8, roughness: 0.5 });
-  for (let i = 0; i < 26; i++) {
+  for (let i = 1; i < 27; i++) { // (from 1: the top is the plaza's, below)
     const a = i * 2.39996, y = 1 - (i / 25) * 1.6, rr = Math.sqrt(1 - y * y), d = new THREE.Vector3(Math.cos(a) * rr, y * 0.8, Math.sin(a) * rr).normalize();
     const g = new THREE.Group(); const b = new THREE.Mesh(body, white); b.position.y = 0.1; const t = new THREE.Mesh(roof, new THREE.MeshStandardMaterial({ color: cols[i % 6], roughness: 0.4 })); t.position.y = 0.26; t.rotation.y = Math.PI / 4; g.add(b, t);
-    g.position.copy(d).multiplyScalar(1.27); g.quaternion.setFromUnitVectors(up, d); g.scale.setScalar(0.001); world.add(g); blds.push({ g, at: (i + 1) / 27, k: 0 });
+    g.position.copy(d).multiplyScalar(1.27); g.quaternion.setFromUnitVectors(up, d); g.scale.setScalar(0.001); world.add(g); blds.push({ g, at: i / 27, k: 0 });
   }
+  // b-st2: on top, the plaza: the fountain rises as the plaza opens (0.8), then its four portals, one by one
+  { const top = new THREE.Vector3(0, 1, 0), fg = new THREE.Group(), ft = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.06, 20), white);
+    const fw = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.02, 20), new THREE.MeshStandardMaterial({ color: 0x38c8ff, emissive: 0x1a8ad8, emissiveIntensity: 0.9 })); fw.position.y = 0.04;
+    const fp = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.2, 10), white); fp.position.y = 0.13; fg.add(ft, fw, fp);
+    fg.position.copy(top).multiplyScalar(1.27); fg.scale.setScalar(0.001); world.add(fg); blds.push({ g: fg, at: 0.8, k: 0 });
+    [[0x39ff88, 0.84], [0x4f9dff, 0.88], [0x38e1d6, 0.92], [0xffc861, 0.96]].forEach(([c, at], i) => {
+      const a = i * (Math.PI / 2) + 0.4, d = new THREE.Vector3(Math.cos(a) * 0.28, 1, Math.sin(a) * 0.28).normalize(), g = new THREE.Group();
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.016, 6, 24), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.6 })); ring.position.y = 0.09; g.add(ring);
+      g.position.copy(d).multiplyScalar(1.27); g.quaternion.setFromUnitVectors(up, d); g.rotateY(-a); g.scale.setScalar(0.001); world.add(g); blds.push({ g, at, k: 0 });
+    }); }
   // the ARCIRCLE rings
   const glow = (c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.2, roughness: 0.3 });
   const ra = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.035, 8, 96), glow(0x2f86ff)), rb = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.035, 8, 96), glow(0x2ee07a));

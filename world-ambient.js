@@ -51,6 +51,13 @@ export function createAmbient({ THREE, planet, low = false, fountainY = 0.3, bat
     for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(fg, fm); m.position.y = fountainY - 0.05; m.userData = { r: 2.4 + hash(i) * 1.2, ph: i * 1.3, sp: 0.25 + hash(i + 2) * 0.2 }; m.renderOrder = 0; root.add(m); fish.push(m); }
   }
 
+  /* b-st2: fireflies at night, drifting round a spot near you, each blinking on its own beat (added on, so they glow) */
+  const NFF = low ? 0 : 44, ffP = new Float32Array(NFF * 3), ffC = new Float32Array(NFF * 3), ffU = [], ffHome = new THREE.Vector3(); let ffSet = false;
+  const ffG = new THREE.BufferGeometry(); ffG.setAttribute("position", new THREE.BufferAttribute(ffP, 3)); ffG.setAttribute("color", new THREE.BufferAttribute(ffC, 3));
+  const ff = new THREE.Points(ffG, new THREE.PointsMaterial({ size: 0.16, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  ff.frustumCulled = false; ff.visible = false; if (NFF) root.add(ff);
+  for (let i = 0; i < NFF; i++) ffU.push({ ph: hash(i * 4.7) * TAU, r: 2 + hash(i * 1.9) * 12, y: 0.4 + hash(i * 6.1) * 2.2, sp: 0.15 + hash(i * 8.3) * 0.3, bl: 0.6 + hash(i * 2.2) * 1.4 });
+
   const v = new THREE.Vector3(), mB = new THREE.Matrix4(), mW = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3();
   // one wing: the body's place and heading, then the wing's own flap (and a mirror for the right one)
   function place(im, i, p, yaw, s, flap, side) { e.set(0, yaw, 0); q.setFromEuler(e); mB.compose(p, q, sc.set(s * side, s, s)); mW.makeRotationZ(flap * side); im.setMatrixAt(i, mB.multiply(mW)); }
@@ -74,6 +81,14 @@ export function createAmbient({ THREE, planet, low = false, fountainY = 0.3, bat
         const a = t * u.sp + u.ph; v.set(u.home.x + Math.cos(a) * u.rad * 0.4 + Math.sin(a * 2.3) * 0.8, 0.7 + Math.sin(t * 1.7 + u.ph) * 0.35, u.home.z + Math.sin(a * 1.3) * u.rad * 0.4);
         const w = Math.sin(t * 22 + u.ph) * 1.1; place(fL, i, v, -a, 1, w, 1); place(fR, i, v, -a, 1, -w, -1); });
         if (NF) { fL.instanceMatrix.needsUpdate = true; fR.instanceMatrix.needsUpdate = true; } }
+      const ffOn = NFF > 0 && night > 0.55 && !inGround; ff.visible = ffOn;
+      if (ffOn) {
+        if (!ffSet || Math.hypot(ffHome.x - px, ffHome.z - pz) > 16) { ffHome.set(px, 0, pz); ffSet = true; }
+        for (let i = 0; i < NFF; i++) { const u = ffU[i], a = t * u.sp + u.ph, k = Math.max(0, Math.sin(t * u.bl + u.ph * 3)) ** 3 * Math.min(1, (night - 0.55) * 4);
+          ffP[i * 3] = ffHome.x + Math.cos(a) * u.r + Math.sin(a * 2.1) * 0.6; ffP[i * 3 + 1] = u.y + Math.sin(t * 0.8 + u.ph) * 0.3; ffP[i * 3 + 2] = ffHome.z + Math.sin(a * 1.2) * u.r;
+          ffC[i * 3] = 0.85 * k; ffC[i * 3 + 1] = 1.0 * k; ffC[i * 3 + 2] = 0.45 * k; }
+        ffG.attributes.position.needsUpdate = true; ffG.attributes.color.needsUpdate = true;
+      }
       for (const m of fish) { const u = m.userData, a = t * u.sp + u.ph; m.position.x = Math.cos(a) * u.r; m.position.z = Math.sin(a) * u.r; m.rotation.y = -a - Math.PI / 2 + Math.sin(t * 3 + u.ph) * 0.15; }
     },
   };
