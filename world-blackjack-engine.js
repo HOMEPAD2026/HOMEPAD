@@ -10,10 +10,24 @@
 //
 // A card is 0–51 as in world-poker-engine.js: rank = c % 13 (0 = 2 … 8 = 10, 9 J, 10 Q, 11 K, 12 A), suit = ⌊c / 13⌋.
 // A round (deal) is a plain object that survives JSON: { shoe, ptr, bank, bet, hands: [{ cards, bet, done, doubled,
-// split, res, pay }], cur, dealer, phase ("ins" | "play" | "done"), ins, insPay, log }.
+// split, res, pay }], cur, dealer, phase ("ins" | "play" | "done"), ins, insPay, log, side? { pp, t3, ppR, t3R, ppPay, t3Pay } }.
 export const BJ = { DECKS: 6, START: 1000, CHIPS: [10, 25, 50, 100, 250, 500], MIN: 10, MAX: 500, CUT: 0.75, SPLITS: 4, HAND_S: 2.5, XP_HAND: 5,
   // the tables: a bet between min and max; the chip buttons are CHIPS × k
-  TABLES: [{ id: "b1", min: 10, max: 500, k: 1 }, { id: "b2", min: 100, max: 5000, k: 10 }, { id: "b3", min: 1000, max: 50000, k: 100 }] };
+  TABLES: [{ id: "b1", min: 10, max: 500, k: 1 }, { id: "b2", min: 100, max: 5000, k: 10 }, { id: "b3", min: 1000, max: 50000, k: 100 }],
+  // b-pky3: the side bets, settled as the cards land (chips only, like everything here). Perfect Pairs: your first two
+  // cards a pair (mixed colours · the same colour · the same suit). 21+3: your two and ARCIA's up card as a poker hand
+  // (flush · straight · three of a kind · straight flush · suited three of a kind). Each pays its number to 1, and
+  // each is at most the main bet
+  PP: { mixed: 6, colored: 12, perfect: 25 }, T3: { flush: 5, straight: 10, trips: 30, sflush: 40, strips: 100 } };
+/// b-pky3: what the side bets made: { pp: "" | "mixed" | "colored" | "perfect", t3: "" | "flush" | … }
+export function sideOf(two, up) {
+  const rk = (c) => c % 13, su = (c) => Math.floor(c / 13), red = (c) => su(c) === 1 || su(c) === 2;
+  const [a, b] = two, pp = rk(a) !== rk(b) ? "" : su(a) === su(b) ? "perfect" : red(a) === red(b) ? "colored" : "mixed";
+  const cs = [a, b, up], rs = cs.map(rk).sort((x, y) => x - y), flush = cs.every((c) => su(c) === su(a)), trips = rs[0] === rs[2];
+  const straight = !trips && rs[0] !== rs[1] && rs[1] !== rs[2] && (rs[2] - rs[0] === 2 || (rs[2] === 12 && rs[0] === 0 && rs[1] === 1));
+  const t3 = trips && flush ? "strips" : straight && flush ? "sflush" : trips ? "trips" : straight ? "straight" : flush ? "flush" : "";
+  return { pp, t3 };
+}
 export const tableOf = (id) => BJ.TABLES.find((x) => x.id === id) || BJ.TABLES[0];
 export function rng(seed) { let s = seed | 0; return () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 /// a fresh shoe of DECKS decks, shuffled from the seed
@@ -26,12 +40,16 @@ const needShuffle = (s) => !s.shoe || s.ptr > s.shoe.length * BJ.CUT;
 const draw = (s) => s.shoe[s.ptr++];
 /// a new round at a table (BJ.TABLES; the first by default): the bet comes off the bank, two cards each (the dealer's second face down). The shoe carries over
 /// from the last round (a fresh one, from `seed`, once it's past the cut)
-export function deal(prev, { bank, bet, seed, table }) {
+export function deal(prev, { bank, bet, seed, table, side }) {
   const tb = tableOf(table); bet = Math.floor(Number(bet) || 0); if (bet < tb.min || bet > tb.max || bet > bank) return null;
+  const pp = Math.floor(Number(side && side.pp) || 0), t3 = Math.floor(Number(side && side.t3) || 0); // (b-pky3: the side bets, 0 for none)
+  for (const x of [pp, t3]) if (x && (x < tb.min || x > bet)) return null;
+  if (bet + pp + t3 > bank) return null; bank -= pp + t3;
   const s = { shoe: prev && !needShuffle(prev) ? prev.shoe : shoe(seed), ptr: prev && !needShuffle(prev) ? prev.ptr : 0, bank: bank - bet, bet, hands: [], cur: 0, dealer: [], phase: "play", ins: 0, insPay: 0, log: [], fresh: !prev || needShuffle(prev) };
   const h = { cards: [], bet, done: false, doubled: false, split: false, res: "", pay: 0 }; s.hands.push(h);
   h.cards.push(draw(s)); s.dealer.push(draw(s)); h.cards.push(draw(s)); s.dealer.push(draw(s));
   s.log.push({ t: "deal" });
+  if (pp || t3) { const r = sideOf(h.cards, s.dealer[0]), ppPay = pp && r.pp ? pp * (BJ.PP[r.pp] + 1) : 0, t3Pay = t3 && r.t3 ? t3 * (BJ.T3[r.t3] + 1) : 0; s.side = { pp, t3, ppR: pp ? r.pp : "", t3R: t3 ? r.t3 : "", ppPay, t3Pay }; s.bank += ppPay + t3Pay; }
   if (s.dealer[0] % 13 === 12) { s.phase = "ins"; return s; } // (an ace up: insurance first)
   return afterPeek(s);
 }

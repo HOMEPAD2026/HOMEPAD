@@ -33,7 +33,14 @@
 //            worldStats/pokerFest { start, day0 } (the Opening Festival's first day, set by the first request) ·
 //            worldPokerAward/<w> { unlocks, titles, news } (what events give: kept apart from the record, never lost)
 //            worldPokerFest/<w>_<day0>_<stamps> · worldPokerFirst/<w> · worldPokerJack/… · worldPokerChampDone/<week> (once markers)
-import { POKER, newHand, act, botMove, viewOf, legal, rng, settle } from "./_world-poker-engine.mjs";
+// b-pky3: the record's counts and badges (p.st; engine handStats / BADGES) · worldPokerLook/<w>_<id> (a look bought
+//            with chips, once) · worldStats/pokerRule_<day> (the daily rule's board) · worldPokerCrewRooms/<crew> (a crew's
+//            tables) · worldPokerCrewWeek/<week>_<crew> { n } and worldStats/pokerCrewWeek_<week> (the crews' week board)
+//   POST world-poker-look-buy    { …sig, id }                   → { prog }        (a card back or felt for chips: POKER.SHOP)
+//   POST world-poker-crew        { …sig }                       → { crew, rooms, board }  (your crew's tables, and the crews' week)
+//   POST world-poker-create      { …sig, stake, crew: true }    → a crew table: private, only your crew can sit down
+//   GET  ?world=poker-rule → today's rule and its board
+import { POKER, newHand, act, botMove, viewOf, legal, rng, settle, handStats, addStats, badgesOf, ruleOf, STAT_KEYS } from "./_world-poker-engine.mjs";
 import { BJ, deal as bjDealE, act as bjActE, insure as bjInsE, viewOf as bjView, tableOf } from "./_world-blackjack-engine.mjs";
 
 const RUN_TTL = 3 * 3600e3, SHOW_MS = 4500, BOT_MS = 900, AWAY_KICK = 5 * 60e3, TOP_N = 20;
@@ -125,7 +132,7 @@ export function makePoker(deps) {
   const saveProg = (w, p) => { const { fresh, ...rest } = p; return setDoc(`worldPokerProg/${w}`, rest); };
   const pub = (p) => ({ chips: p.chips, xp: p.xp, ...levelOf(p.xp), games: p.games || 0, wins: p.wins || 0, best: p.best != null ? p.best : -1, hands: p.hands || 0, bjHands: p.bjHands || 0, bjBJ: p.bjBJ || 0, bjBest: p.bjBest || 0, mis: p.mis,
     unlocks: (p.award && p.award.unlocks) || [], titles: (p.award && p.award.titles) || [], news: [...(p.news || []), ...((p.award && p.award.news) || [])].sort((a, b) => a.at - b.at).slice(-8),
-    fest: festC.on ? { day: festC.day, days: festC.days, end: festC.end, happy: festC.happy, stamps: p.fest && p.fest.day0 === festC.day0 ? p.fest.stamps : [], first: !p.firstBuy, played: p.mis.played || 0 } : null, xpToday: p.xpToday || 0, xpCap: POKER.XP_DAY });
+    st: p.st || {}, badges: badgesOf(p.st), fest: festC.on ? { day: festC.day, days: festC.days, end: festC.end, happy: festC.happy, stamps: p.fest && p.fest.day0 === festC.day0 ? p.fest.stamps : [], first: !p.firstBuy, played: p.mis.played || 0 } : null, xpToday: p.xpToday || 0, xpCap: POKER.XP_DAY });
   function addXp(p, n) { const g = Math.max(0, Math.min(n, POKER.XP_DAY - (p.xpToday || 0))); p.xp = (p.xp || 0) + g; p.xpToday = (p.xpToday || 0) + g; return g; }
   /// a mission reached: paid once that day (a create-only marker), inside the shop's daily cap
   async function mission(w, p, key) {
@@ -140,7 +147,8 @@ export function makePoker(deps) {
   // ---------------- solo: the game runs in the browser; a finished game counts here ----------------
   async function soloStart(b) {
     const s = signer(b); if (s.err) return s.err; const runId = rid();
-    await setDoc(`worldPokerRun/${s.wallet}`, { runId, startedAt: now(), lvl: Math.max(0, Math.min(3, Math.floor(Number(b.lvl) || 0))) });
+    const rule = b.rule && String(b.rule) === ruleOf(seoulDay(now())).id ? String(b.rule) : ""; // (b-pky3: today's rule, or none)
+    await setDoc(`worldPokerRun/${s.wallet}`, { runId, startedAt: now(), lvl: Math.max(0, Math.min(3, Math.floor(Number(b.lvl) || 0))), rule, tut: !!b.tut });
     return json(200, { runId });
   }
   async function soloEnd(b) {
@@ -154,9 +162,22 @@ export function makePoker(deps) {
     p.games = (p.games || 0) + 1; if (b.won === true) p.wins = (p.wins || 0) + 1;
     const bc = Math.max(-1, Math.min(9, Math.floor(Number(b.best)))); if (Number.isFinite(bc) && bc > (p.best != null ? p.best : -1)) p.best = bc;
     p.mis.solo = (p.mis.solo || 0) + mult();
+    // b-pky3: the game's counts (the browser's; none can be more than the hands played) into your record, and its badges
+    const had = badgesOf(p.st), g = b.st && typeof b.st === "object" ? b.st : {}, add = {};
+    for (const k of STAT_KEYS) add[k] = Math.max(0, Math.min(hands, Math.floor(Number(g[k]) || 0)));
+    add.h = hands; add.big = Math.max(0, Math.min(2000, Math.floor(Number(g.big) || 0))); p.st = addStats(p.st, add);
+    if (run.tut) p.st.tut = 1;
+    let rule = null;
+    if (run.rule && run.rule === ruleOf(seoulDay(t)).id) { // the daily rule: a win counts toward Rule Breaker; the day's board keeps the best finish
+      const chips = Math.max(0, Math.min(POKER.START * 2 * 6 * 2, Math.floor(Number(b.chips) || 0))); if (b.won === true) p.st.rule = (p.st.rule || 0) + 1;
+      const k = `worldStats/pokerRule_${seoulDay(t)}`, cur = ((await one(k)) || {}).top || [], nm = await name16(w), old = cur.find((x) => x.id === w);
+      if (!old || chips > old.n) { const top = [{ id: w, w: short(w), name: nm, n: chips, won: b.won === true }, ...cur.filter((x) => x.id !== w)].sort((a, b2) => b2.n - a.n).slice(0, TOP_N); await setDoc(k, { top }); }
+      rule = { id: run.rule, n: chips };
+    }
+    for (const id of badgesOf(p.st)) if (!had.includes(id)) say(p, "badge", { id });
     const paid = await mission(w, p, "solo3");
     await saveProg(w, p);
-    return json(200, { ok: true, xp, credited: paid, prog: pub(p) });
+    return json(200, { ok: true, xp, credited: paid, rule, prog: pub(p) });
   }
 
   // ---------------- the chip shop: ARCL → chips, one way ----------------
@@ -182,7 +203,7 @@ export function makePoker(deps) {
   async function bjSave(w, R, p) { const v = (R.v || 0) + 1, { fresh, ...rec } = p; const r = await commit([{ create: `worldBjSeq/${w}_${v}`, data: { at: now() } }, { set: bjKey(w), data: { ...R, v } }, { set: `worldPokerProg/${w}`, data: rec }]); if (r.ok) R.v = v; return r.ok; }
   /// a round over: its hands into your record; the mission's count only at a person's pace (HAND_S between rounds)
   function book(R, p) {
-    const s = R.s, t = now(), n = s.hands.length, net = s.hands.reduce((a, h) => a + h.pay - h.bet, 0) + s.insPay - s.ins;
+    const s = R.s, t = now(), n = s.hands.length, sd = s.side || {}, net = s.hands.reduce((a, h) => a + h.pay - h.bet, 0) + s.insPay - s.ins + (sd.ppPay || 0) - (sd.pp || 0) + (sd.t3Pay || 0) - (sd.t3 || 0);
     p.bjHands = (p.bjHands || 0) + n; p.bjBJ = (p.bjBJ || 0) + s.hands.filter((h) => h.res === "blackjack").length; if (net > (p.bjBest || 0)) p.bjBest = net;
     if (t - (R.counted || 0) >= BJ.HAND_S * 1000) { R.counted = t; p.mis.bj = (p.mis.bj || 0) + n * mult(); p.mis.played = (p.mis.played || 0) + n; addXp(p, n * BJ.XP_HAND); }
     // the festival: three rounds in a row with a blackjack pay chips (after the round is saved)
@@ -207,7 +228,7 @@ export function makePoker(deps) {
   }
   const bjDeal = (b) => bjMove(b, (R, p) => {
     if (R.s && R.s.phase !== "done") return json(409, { error: "finish the round first", round: roundOf(R) });
-    const tb = tableOf(String(b.table || "")), s = bjDealE(R.s, { bank: p.chips || 0, bet: b.bet, seed: randInt(), table: tb.id });
+    const tb = tableOf(String(b.table || "")), side = b.side && typeof b.side === "object" ? { pp: b.side.pp, t3: b.side.t3 } : null, s = bjDealE(R.s, { bank: p.chips || 0, bet: b.bet, seed: randInt(), table: tb.id, side }); // (b-pky3: the side bets)
     if (!s) return json(400, { error: (p.chips || 0) < Math.floor(Number(b.bet) || 0) ? "not enough chips" : "that bet isn't allowed at this table" });
     R.s = s; R.table = tb.id; R.at = now(); p.chips = s.bank; return null;
   });
@@ -282,6 +303,7 @@ export function makePoker(deps) {
         const p = await prog(x.w); p.hands = (p.hands || 0) + 1; p.mis.hands = (p.mis.hands || 0) + mult(); p.mis.played = (p.mis.played || 0) + 1;
         if (p.hands % POKER.MP_GAME === 0) { addXp(p, POKER.XP_GAME); p.games = (p.games || 0) + 1; }
         const sh = H.result && H.result.shown.find((y) => y.i === k); if (sh && sh.cat > (p.best != null ? p.best : -1) && H.result.pots.some((pt) => pt.win.includes(k))) p.best = sh.cat;
+        if (!R.tour) { const had = badgesOf(p.st); p.st = addStats(p.st, handStats(H, k)); for (const id of badgesOf(p.st)) if (!had.includes(id)) say(p, "badge", { id }); } // (b-pky3: your counts and badges; a Sit & Go's chips aren't yours)
         if (p.mis.hands >= POKER.MISSIONS.hands20.need) { const got = (await mission(x.w, p, "hands20")) || 0; if (got) x.paid = got; }
         // the festival: a royal flush shown at a table pays chips, a title and a line in everyone's feed (once a hand)
         if (festC.on && sh && sh.cat === 9 && (await commit([{ create: `worldPokerJack/${R.id}_${H.handNo}_${k}`, data: { at: now() } }])).ok) {
@@ -304,11 +326,17 @@ export function makePoker(deps) {
     const [mine, cur] = await Promise.all([one(mk), one(`worldStats/pokerWeek_${wk}`)]), n = (mine && mine.n) || net;
     const top = [{ w: short(w), id: w, n, name: String(name || "").slice(0, 16) }, ...(((cur && cur.top) || []).filter((x) => x.id !== w))].sort((a, b) => b.n - a.n).slice(0, TOP_N);
     await setDoc(`worldStats/pokerWeek_${wk}`, { top });
+    // b-pky3: your crew's week (the sum of its members' table chips won and lost)
+    const c = deps.crewOf ? await deps.crewOf(w).catch(() => null) : null; if (!c || !c.id || c.closed) return;
+    const ck = `worldPokerCrewWeek/${wk}_${c.id}`; await commit([{ inc: ck, fields: { n: net } }]);
+    const [cm, cc] = await Promise.all([one(ck), one(`worldStats/pokerCrewWeek_${wk}`)]);
+    const ctop = [{ id: c.id, tag: c.tag || "", name: String(c.name || "").slice(0, 20), n: (cm && cm.n) || net }, ...(((cc && cc.top) || []).filter((x) => x.id !== c.id))].sort((a, b) => b.n - a.n).slice(0, TOP_N);
+    await setDoc(`worldStats/pokerCrewWeek_${wk}`, { top: ctop });
   }
   /// a person's view of the table
   function view(R, w) {
     const me = w ? seatOf(R, w) : -1, H = R.hand, hi = H && me >= 0 ? H.seatOf.indexOf(me) : -1;
-    return { id: R.id, code: R.priv ? R.code : "", priv: !!R.priv, stake: R.stake, v: R.v, me, deadline: R.deadline || 0, now: now(),
+    return { id: R.id, code: R.priv ? R.code : "", priv: !!R.priv, crew: R.crew ? R.crew.tag || "crew" : "", stake: R.stake, v: R.v, me, deadline: R.deadline || 0, now: now(),
       seats: R.seats.map((x) => (x ? { name: x.name, stack: x.stack, bot: !!x.bot, lvl: x.lvl || 0, ch: x.ch || "", tn: x.tn || 0, away: !x.bot && now() - (x.last || 0) > POKER.AWAY_S * 1000, sit: (x.miss || 0) >= 2 } : null)),
       tour: R.tour ? (() => { const T0 = R.tour, [sb, bb] = sngBlinds((R.handNo || 0) + (H && H.street < 4 ? 0 : 1)), lv = Math.min(SNG.BLINDS.length - 1, Math.floor(Math.max(0, (R.handNo || 1) - 1) / SNG.LV_HANDS));
         const mine = w && T0.places ? T0.places.findIndex((y) => y.w === short(w)) : w ? (() => { const j = T0.out.findIndex((y) => y.id === w); return j >= 0 ? T0.n - j - 1 : -1; })() : -1;
@@ -321,19 +349,22 @@ export function makePoker(deps) {
   async function create(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet, st = stakeOf(String(b.stake || "")), p = await prog(w);
     if ((p.chips || 0) < st.buy) return json(400, { error: "not enough chips for this table", chips: p.chips });
-    const id = rid(), code = b.priv ? String(randInt() >>> 0).slice(-6).padStart(6, "0") : "";
-    const R = { id, code, priv: !!b.priv, stake: st.id, seats: Array(POKER.MAX).fill(null), hand: null, handNo: 0, button: null, v: 0, chat: [], made: now() };
+    const cr = b.crew ? (deps.crewOf ? await deps.crewOf(w).catch(() => null) : null) : null; if (b.crew && (!cr || !cr.id || cr.closed)) return json(400, { error: "you're not in a crew" });
+    const priv = !!(b.priv || cr), id = rid(), code = priv ? String(randInt() >>> 0).slice(-6).padStart(6, "0") : "";
+    const R = { id, code, priv, stake: st.id, seats: Array(POKER.MAX).fill(null), hand: null, handNo: 0, button: null, v: 0, chat: [], made: now(), ...(cr ? { crew: { id: cr.id, tag: cr.tag || "" } } : {}) };
     p.chips -= st.buy; R.seats[0] = { w, name: await name16(w), stack: st.buy, last: now(), ...lookOf(b) };
     await saveProg(w, p); await save(R);
     if (R.priv) await setDoc(`worldPokerCode/${code}`, { id, at: now() });
+    if (cr) { const k = `worldPokerCrewRooms/${cr.id}`, cur = ((await one(k)) || {}).list || []; await setDoc(k, { list: [{ id, stake: st.id, at: now() }, ...cur.filter((x) => now() - x.at < 6 * 3600e3)].slice(0, 12) }); }
     await listRooms(roomRow(R)).catch(() => {});
     return json(200, { ok: true, room: view(R, w) });
   }
   async function join(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet;
     let id = String(b.room || ""); if (!id && b.code) { const c = await one(`worldPokerCode/${String(b.code).replace(/\D/g, "").slice(0, 6)}`); if (!c) return json(404, { error: "no table with that code" }); id = c.id; }
-    const nm = await name16(w);
+    const nm = await name16(w), myCrew = deps.crewOf ? await deps.crewOf(w).catch(() => null) : null;
     const r = await mutate(id, async (R) => {
+      if (R.crew && seatOf(R, w) < 0 && !(myCrew && myCrew.id === R.crew.id)) return { err: json(403, { error: "this is a crew table" }) }; // (b-pky3)
       if (seatOf(R, w) >= 0) { Object.assign(R.seats[seatOf(R, w)], { last: now(), leaving: false, miss: 0 }, b.ch ? lookOf(b) : {}); return { ok: true }; }
       if (R.tour) return { err: json(409, { error: "this Sit & Go has started" }) };
       const free = R.seats.findIndex((x) => !x); if (free < 0) return { err: json(409, { error: "the table is full" }) };
@@ -497,6 +528,28 @@ export function makePoker(deps) {
     const list = [e, ...cur.filter((y) => y.id !== id && t - y.at < HERE.LIFE)].slice(0, HERE.MAX); await setDoc(k, { list });
     return json(200, { ok: true, list: list.filter((y) => y.id !== id).map(({ at, ea, ...y }) => ({ ...y, ago: t - at, ...(ea ? { ea: t - ea } : {}) })), now: t }, "no-store");
   }
+  // ---------------- b-pky3: looks for chips, crew tables, the daily rule ----------------
+  /// a card back or a felt bought with chips (POKER.SHOP): once (a create-only marker), never back into chips
+  async function lookBuy(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, it = POKER.SHOP.find((x) => x.id === String(b.id || ""));
+    if (!it) return json(400, { error: "no such look" });
+    const p = await prog(w); if (((p.award && p.award.unlocks) || []).includes(it.id)) return json(409, { error: "you have it already" });
+    if ((p.chips || 0) < it.chips) return json(400, { error: "not enough chips" });
+    if (!(await commit([{ create: `worldPokerLook/${w}_${it.id.replace(":", "_")}`, data: { at: now(), chips: it.chips } }])).ok) return json(409, { error: "you have it already" });
+    p.chips -= it.chips; await saveProg(w, p);
+    await award(w, (a) => { a.unlocks = [...new Set([...(a.unlocks || []), it.id])]; });
+    return json(200, { ok: true, prog: pub(await prog(w)) });
+  }
+  /// your crew's open tables and the crews' week board
+  async function crewTables(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, wk = week();
+    const c = deps.crewOf ? await deps.crewOf(w).catch(() => null) : null, board = (((await one(`worldStats/pokerCrewWeek_${wk}`)) || {}).top || []).map(({ tag, name, n, id }) => ({ tag, name, n, mine: !!(c && c.id === id) }));
+    if (!c || !c.id || c.closed) return json(200, { ok: true, crew: null, rooms: [], board }, "no-store");
+    const list = ((await one(`worldPokerCrewRooms/${c.id}`)) || {}).list || [], docs = list.length ? await getDocs(list.map((x) => roomKey(x.id))) : {};
+    const rooms = list.map((x) => docs[roomKey(x.id)]).filter((R) => R && R.seats.some((y) => y && !y.bot)).map((R) => ({ id: R.id, stake: R.stake, n: R.seats.filter(Boolean).length, h: humans(R), names: R.seats.filter((y) => y && !y.bot).map((y) => y.name).slice(0, 6) }));
+    return json(200, { ok: true, crew: { tag: c.tag || "", name: c.name || "" }, rooms, board }, "no-store");
+  }
+
   // spectators: a watcher's page sends a token now and then; the table shows how many are watching
   async function watchers(id, vt) {
     const k = `worldPokerWatch/${id}`, t = now(), cur = ((await one(k)) || {}).list || [];
@@ -520,6 +573,7 @@ export function makePoker(deps) {
   return {
     async read(v) {
       if (v === "poker-rooms") { const list = ((await one("worldStats/pokerRooms")) || {}).list || [], t = now(); return json(200, { rooms: list.filter((x) => t - x.at < 10 * 60e3 && !x.priv).map(({ id, stake, n, h, playing }) => ({ id, stake, n, h, playing })) }, "public, max-age=5"); }
+      if (v === "poker-rule") { const day = seoulDay(now()); return json(200, { day, rule: ruleOf(day), top: (((await one(`worldStats/pokerRule_${day}`)) || {}).top || []).map(({ w, name, n, won }) => ({ w, name, n, won })) }, "public, max-age=30"); }
       if (v === "poker-fest") { await festNow(); return json(200, { fest: festC.on ? { day: festC.day, days: festC.days, end: festC.end, happy: festC.happy } : null, now: now() }, "public, max-age=60"); }
       if (v === "poker-top") { await festNow().catch(() => {}); await champions().catch(() => {}); const wk = week(), d = await one(`worldStats/pokerWeek_${wk}`); return json(200, { week: wk, top: ((d && d.top) || []).map(({ w, name, n }) => ({ w, name, n })) }, "public, max-age=30"); }
       return null;
@@ -545,6 +599,8 @@ export function makePoker(deps) {
         case "world-poker-sng-reg": return sngReg(b, true);
         case "world-poker-sng-unreg": return sngReg(b, false);
         case "world-poker-here": return here(b);
+        case "world-poker-look-buy": return lookBuy(b);
+        case "world-poker-crew": return crewTables(b);
         default: return null;
       }
     },

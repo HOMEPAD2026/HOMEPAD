@@ -6,6 +6,7 @@
 // a round left half-played waits for you. The daily mission "play 30 blackjack hands" counts there too; its ARCL
 // never depends on winning. A guest plays practice chips here in the browser (1,000, free refills).
 // ARCIA's tip (the basic strategy) shows while the hint is on (Profile → Settings).
+// b-pky3: two side bets, each the table's least × 5 (at most the bet): Perfect Pairs and 21+3, settled as the cards land.
 //
 // api: { THREE, T, esc, snd, say, banner, flash, confetti, buzz, tween, ease, moveCard, cardFrom, faceTex, toScreen,
 //        stackChips, flyChips, S(), cardAt(k), ui(), prog(), save(), ctx, signed(), fast(), scaleK(), modal(html, arcia),
@@ -15,6 +16,7 @@ import { BJ, deal, insure, act, legal, total, isBJ, advice, viewOf, tableOf } fr
 const fmt = (n) => Math.round(n || 0).toLocaleString("en-US");
 const CHIPC = ["#e8e8f0", "#1fa85a", "#e0283c", "#22222e", "#8a4bff", "#ffc83a"];
 const MOVE = { H: "Hit", S: "Stand", D: "Double", P: "Split", R: "Surrender" };
+const SIDE_N = { mixed: "Mixed pair", colored: "Coloured pair", perfect: "Perfect pair", flush: "Flush", straight: "Straight", trips: "Three of a kind", sflush: "Straight flush", strips: "Suited trips" };
 const ERR = { "not enough chips": "Not enough chips", "that bet isn't allowed at this table": "That bet isn't allowed at this table", "finish the round first": "Finish the round first", "one moment": "One moment…" };
 
 export function makeBlackjack(api) {
@@ -49,15 +51,24 @@ export function makeBlackjack(api) {
     root.innerHTML = `<div class="bj-vals"></div><div class="bj-tip" hidden></div>
       <div class="bj-bar"><div class="bj-bet"><div class="bj-tables">${BJ.TABLES.map((t) => `<button type="button" data-table="${t.id}">${fmt(t.min)}–${fmt(t.max)}</button>`).join("")}</div>
         <div class="bj-chips">${BJ.CHIPS.map((v, k) => `<button type="button" data-chip="${k}" style="--c:${CHIPC[k]}"><b></b></button>`).join("")}</div>
+        <div class="bj-side"><button type="button" data-side="pp"><b>${esc(T("Perfect Pairs"))}</b><small></small></button><button type="button" data-side="t3"><b>21+3</b><small></small></button><button type="button" class="q" data-side="info" aria-label="${esc(T("Side bets"))}">?</button></div>
         <div class="bj-row"><button type="button" class="bj-b" data-a="clear">${esc(T("Clear"))}</button><button type="button" class="bj-b" data-a="rebet">${esc(T("Rebet"))}</button><button type="button" class="bj-b go" data-a="deal"><b>${esc(T("DEAL"))}</b><small></small></button></div>
         <button type="button" class="bj-b refill" data-a="refill" hidden>${esc(T("Free refill to {n}", { n: fmt(BJ.START) }))}</button><button type="button" class="bj-b refill" data-a="shop" hidden>${esc(T("Chip shop"))}</button></div>
       <div class="bj-play" hidden><button type="button" class="h" data-a="hit"><b>${esc(T("HIT"))}</b></button><button type="button" class="s" data-a="stand"><b>${esc(T("STAND"))}</b></button><button type="button" class="d" data-a="double"><b>${esc(T("DOUBLE"))}</b></button><button type="button" class="p" data-a="split"><b>${esc(T("SPLIT"))}</b></button><button type="button" class="r" data-a="surrender"><b>${esc(T("SURRENDER"))}</b></button></div></div>`;
     ui.root.appendChild(root);
-    root.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || !on || b.disabled) return; if (b.dataset.chip) { addChip(chipVal(+b.dataset.chip)); return; } if (b.dataset.table) { setTable(b.dataset.table); return; } press(b.dataset.a); });
+    root.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || !on || b.disabled) return; if (b.dataset.chip) { addChip(chipVal(+b.dataset.chip)); return; } if (b.dataset.side) { sideTap(b.dataset.side); return; } if (b.dataset.table) { setTable(b.dataset.table); return; } press(b.dataset.a); });
   }
   const q = (x) => root.querySelector(x);
   const tb = () => tableOf(B.table), chipVal = (k) => BJ.CHIPS[k] * tb().k;
   const bank = () => (B.real ? api.chips() : B.bank);
+  /// b-pky3: a side bet's amount: the table's least × 5, never more than the bet
+  const sideAmt = () => { const t = tb(); return B.bet >= t.min ? Math.min(B.bet, t.min * 5) : 0; };
+  const sides = () => { const a = sideAmt(); return { pp: B.side && B.side.pp ? a : 0, t3: B.side && B.side.t3 ? a : 0 }; };
+  const sideSum = () => { const x = sides(); return x.pp + x.t3; };
+  function sideTap(k) {
+    if (k === "info") { api.modal(`<h3>${esc(T("Side bets"))}</h3><p class="pk-note">${esc(T("Each is the table's least bet × 5 (at most your bet), paid as the cards land."))}</p><p><b>${esc(T("Perfect Pairs"))}</b> · ${esc(T("your first two cards"))}</p><ul class="bj-pays">${Object.entries(BJ.PP).map(([n, x]) => `<li>${esc(T(SIDE_N[n]))}<b>${x}:1</b></li>`).join("")}</ul><p><b>21+3</b> · ${esc(T("your two + ARCIA's up card"))}</p><ul class="bj-pays">${Object.entries(BJ.T3).map(([n, x]) => `<li>${esc(T(SIDE_N[n]))}<b>${x}:1</b></li>`).join("")}</ul><div class="pk-row"><button type="button" class="pk-btn" data-a="close">${esc(T("Close"))}</button></div>`); return; }
+    if (!B || B.wait || busy() || (B.s && B.s.phase !== "done")) return; B.side = { ...(B.side || {}), [k]: !(B.side && B.side[k]) }; api.snd("tap"); paint();
+  }
   function setTable(id) { if (!B || B.wait || busy() || (B.s && B.s.phase !== "done")) return; B.table = tableOf(id).id; const t = tb(); B.bet = Math.min(Math.max(t.min, B.bet), t.max); api.snd("tab"); paint(); }
   function paint() {
     if (!root || !B) return; const s = B.s, ui = api.ui(), betting = !s || s.phase === "done", t = tb(), bk = bank();
@@ -65,7 +76,8 @@ export function makeBlackjack(api) {
     const showBet = betting && !busy(), showPlay = s && s.phase === "play" && !busy();
     q(".bj-bet").hidden = !showBet; q(".bj-play").hidden = !showPlay; root.classList.toggle("wait", !!B.wait);
     if (showBet) {
-      q('[data-a="deal"] small').textContent = fmt(B.bet); q('[data-a="deal"]').disabled = B.wait || B.bet < t.min || B.bet > t.max || B.bet > bk; q('[data-a="rebet"]').disabled = !B.last || B.last > bk || B.last > t.max || B.last < t.min; q('[data-a="clear"]').disabled = !B.bet;
+      q('[data-a="deal"] small').textContent = fmt(B.bet + sideSum()); q('[data-a="deal"]').disabled = B.wait || B.bet < t.min || B.bet > t.max || B.bet + sideSum() > bk;
+      root.querySelectorAll(".bj-side [data-side]").forEach((b) => { const k = b.dataset.side; if (k === "info") return; const a = sideAmt(); b.classList.toggle("on", !!(B.side && B.side[k])); b.disabled = !a; b.querySelector("small").textContent = a ? fmt(a) : "–"; }); q('[data-a="rebet"]').disabled = !B.last || B.last > bk || B.last > t.max || B.last < t.min; q('[data-a="clear"]').disabled = !B.bet;
       root.querySelectorAll("[data-chip]").forEach((b) => { const v = chipVal(+b.dataset.chip); b.querySelector("b").textContent = v >= 1000 ? v / 1000 + "K" : v; b.disabled = B.bet + v > Math.min(t.max, bk); });
       root.querySelectorAll("[data-table]").forEach((b) => b.classList.toggle("on", b.dataset.table === B.table));
       q('[data-a="refill"]').hidden = B.real || bk >= BJ.TABLES[0].min; q('[data-a="shop"]').hidden = !B.real || bk >= t.min;
@@ -87,14 +99,14 @@ export function makeBlackjack(api) {
   /// one step of the round: { op: "deal" | "act" | "ins", bet, a, take } → the round as you may see it, or null
   async function step1(o) {
     if (!B.real) {
-      if (o.op === "deal") { const e = deal(B.eng, { bank: B.bank, bet: o.bet, seed: (Math.random() * 2 ** 31) | 0, table: B.table }); if (!e) return null; B.eng = e; }
+      if (o.op === "deal") { const e = deal(B.eng, { bank: B.bank, bet: o.bet, seed: (Math.random() * 2 ** 31) | 0, table: B.table, side: o.side }); if (!e) return null; B.eng = e; }
       else if (o.op === "act") { if (!act(B.eng, o.a)) return null; }
       else if (!insure(B.eng, o.take)) return null;
       B.bank = B.eng.bank; return viewOf(B.eng);
     }
     const ss = api.ctx.sess && api.ctx.sess(); if (!ss) { api.ctx.toast(esc(T("Sign in with a wallet to play with your chips"))); return null; }
     B.wait = true; paint();
-    let r = null; try { r = await api.ctx.post(o.op === "deal" ? { action: "world-bj-deal", ...ss, table: B.table, bet: o.bet } : o.op === "act" ? { action: "world-bj-act", ...ss, a: o.a } : { action: "world-bj-ins", ...ss, take: !!o.take }); } catch { r = null; }
+    let r = null; try { r = await api.ctx.post(o.op === "deal" ? { action: "world-bj-deal", ...ss, table: B.table, bet: o.bet, side: o.side } : o.op === "act" ? { action: "world-bj-act", ...ss, a: o.a } : { action: "world-bj-ins", ...ss, take: !!o.take }); } catch { r = null; }
     B.wait = false;
     if (!r || !r.ok || !r.j || !r.j.round) {
       const e = (r && r.j && r.j.error) || "network"; api.ctx.toast(esc(T(ERR[e] || (e === "network" ? "Network trouble — try again" : e)))); api.snd("bad");
@@ -133,8 +145,8 @@ export function makeBlackjack(api) {
     paint();
   }
   async function start() {
-    if (!B || busy() || B.wait) return; const t = tb(); if (B.bet < t.min || B.bet > t.max || B.bet > bank()) { api.snd("bad"); return; }
-    const v = await step1({ op: "deal", bet: B.bet }); if (!v || !on) return;
+    if (!B || busy() || B.wait) return; const t = tb(); if (B.bet < t.min || B.bet > t.max || B.bet + sideSum() > bank()) { api.snd("bad"); return; }
+    const v = await step1({ op: "deal", bet: B.bet, side: sides() }); if (!v || !on) return;
     B.last = B.bet; B.s = v; clearTable(); api.closeModal();
     if (v.fresh && B.rounds) api.flash(T("A fresh shoe"), "");
     if (v.fresh) api.snd("shuffle");
@@ -142,10 +154,20 @@ export function makeBlackjack(api) {
     api.stackChips(B.betG[0], v.hands[0].bet); B.betG[0].position.set(0, 0.03, 2.3); api.snd("chip", 2);
     const h0 = v.hands[0];
     step(0.28, () => dealTo(0, h0.cards[0])); step(0.28, () => dealD(v.dealer[0], true)); step(0.28, () => dealTo(0, h0.cards[1])); step(0.45, () => dealD(v.dealer[1], false));
+    if (v.side) step(0.2, () => sideShow(v.side));
     if (v.phase === "ins") step(0, () => askIns(v));
     else if (v.phase === "done") finish();
     else step(0, () => { paint(); if (isBJ(h0)) api.say(T("Blackjack! ♾️")); });
     paint();
+  }
+  /// b-pky3: what the side bets made
+  function sideShow(sd) {
+    const won = [];
+    if (sd.pp) won.push(sd.ppR ? T("Perfect Pairs: {x}! +{n}", { x: T(SIDE_N[sd.ppR]), n: fmt(sd.ppPay - sd.pp) }) : "");
+    if (sd.t3) won.push(sd.t3R ? T("21+3: {x}! +{n}", { x: T(SIDE_N[sd.t3R]), n: fmt(sd.t3Pay - sd.t3) }) : "");
+    const hit = won.filter(Boolean); B.lastSide = { ...sd };
+    if (hit.length) { api.flash(hit.join(" · "), "big"); api.snd("coin"); if (sd.ppPay + sd.t3Pay >= (sd.pp + sd.t3) * 10) api.confetti(30); }
+    else api.flash(T("Side bets: no luck this time"), "");
   }
   function askIns(v) { paint(); api.say(T("Insurance? ♡")); const c = Math.floor(v.hands[0].bet / 2); api.modal(`<p class="pk-say">${esc(T("ARCIA shows an ace~ Insurance? ♡"))}</p><p>${esc(T("Costs {n} · pays 2 to 1 if ARCIA has blackjack", { n: fmt(c) }))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="bjNoIns">${esc(T("No thanks"))}</button><button type="button" class="pk-btn go" data-a="bjIns" ${c > bank() ? "disabled" : ""}>${esc(T("Insure"))}</button></div>`, true); }
   /// insurance answered (from the lounge's modal)
@@ -193,7 +215,7 @@ export function makeBlackjack(api) {
     async start() {
       if (!root) build(); on = true; root.hidden = false; api.enterTable();
       const S = api.S(), real = !!api.signed();
-      if (!B || B.real !== real) B = { real, bank: BJ.START, eng: null, table: "b1", bet: 25, last: 0, s: null, rounds: 0, hands: 0, net: 0, streak: 0, wait: false, betG: (B && B.betG) || [] };
+      if (!B || B.real !== real) B = { real, bank: BJ.START, eng: null, table: "b1", bet: 25, last: 0, s: null, rounds: 0, hands: 0, net: 0, streak: 0, wait: false, side: { pp: false, t3: false }, betG: (B && B.betG) || [] };
       if (!B.betG.length) for (let k = 0; k < BJ.SPLITS; k++) { const g = new api.THREE.Group(); g.visible = false; S.scene.add(g); B.betG.push(g); }
       B.s = null; clearTable(); Q.length = 0; paint(); api.say(T("Place your bet~ ♡"));
       // a round you left half-played waits on the server

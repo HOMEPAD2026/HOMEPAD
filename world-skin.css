@@ -3101,3 +3101,37 @@ html.wp-pcphone .wpt-card{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(90vh 
 .pk-wseen[hidden]{display:none}
 .pk-bubble.emo{font-size:20px;padding:4px 8px}
 @media (hover:hover) and (pointer:fine){.pk-emo{bottom:40px;right:20px}}
+/* b-pky3: the tutorial and today's rule, badges, recent hands, looks for chips, the result cards, the computers' words, blackjack's side bets */
+.pk-box.tut{background:linear-gradient(180deg,rgba(95,240,208,.18),rgba(20,40,80,.5));box-shadow:inset 0 0 0 1.5px rgba(95,240,208,.6)}
+.pk-box.rule{background:linear-gradient(180deg,rgba(180,140,255,.18),rgba(40,18,90,.5));box-shadow:inset 0 0 0 1.5px rgba(180,140,255,.55)}
+.pk-rank.mini li{padding:6px 9px;font-size:12px}.pk-note.sty{font-size:11px;opacity:.8;text-align:center;margin:0}
+.pk-rulechip{margin:0 auto;padding:6px 12px;border-radius:999px;background:rgba(180,140,255,.22);font:800 12px/1 var(--hud-font,var(--f-ui));color:#e6dcff}
+.pk-badges{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pk-badges div{display:grid;justify-items:center;gap:3px;padding:8px 4px;border-radius:12px;background:rgba(255,255,255,.05);text-align:center;opacity:.6}
+.pk-badges div.on{opacity:1;background:linear-gradient(180deg,rgba(255,210,58,.22),rgba(255,255,255,.04));box-shadow:inset 0 0 0 1.5px rgba(255,210,58,.55)}
+.pk-badges i{font-style:normal;font-size:20px}.pk-badges b{font:900 11px/1.15 var(--hud-font,var(--f-ui));color:#fff}.pk-badges small{font:700 10px/1 var(--hud-font,var(--f-ui));color:#cbb8ff}
+.pk-hist{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.pk-hist button{width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:11px;background:rgba(255,255,255,.06);text-align:left}
+.pk-hist span{display:flex;gap:2px}.pk-hist b{flex:1;font:800 12px/1.2 var(--hud-font,var(--f-ui));color:#fff}.pk-hist em{font:900 12px/1 var(--hud-font,var(--f-ui));font-style:normal;color:#cbb8ff}
+.pk-hist em.up{color:#5ff0a0}.pk-hist em.down{color:#ff8a9a}
+.pk-skins button.shop{position:relative;box-shadow:inset 0 0 0 1.5px rgba(255,210,58,.5)}.pk-skins button.shop em{font:900 10px/1 var(--hud-font,var(--f-ui));font-style:normal;color:#ffd23a}
+.pk-lookp{display:grid;place-items:center;padding:8px}.pk-lookp .sw{display:block;width:64px;height:88px;border-radius:9px;background:linear-gradient(135deg,var(--a),var(--b));box-shadow:inset 0 0 0 4px #fff}.pk-lookp .sw.felt{width:110px;height:74px;border-radius:50%;background:radial-gradient(circle,var(--a),var(--b))}
+.pk-rcards{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pk-rc{display:grid;justify-items:center;align-content:start;gap:5px;padding:10px 4px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03));box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);animation:pkrc .5s cubic-bezier(.2,1.4,.4,1) both}
+.pk-rc:nth-child(2){animation-delay:.12s}.pk-rc:nth-child(3){animation-delay:.24s}
+.pk-rc small{font:800 10px/1 var(--hud-font,var(--f-ui));color:#cbb8ff;text-transform:uppercase;letter-spacing:.04em}
+.pk-rc span{display:flex;gap:1px;flex-wrap:wrap;justify-content:center;min-height:30px;align-items:center}.pk-rc span .pk-c.sm{width:18px;height:26px}
+.pk-rc span.big{font:900 22px/1 var(--hud-font,var(--f-ui));color:#ffe27a}.pk-rc span.big em{font-size:12px;color:#cbb8ff;font-style:normal}
+.pk-rc b{font:900 11px/1.15 var(--hud-font,var(--f-ui));color:#fff}.pk-rc b.up{color:#5ff0a0}.pk-rc b.down{color:#ff8a9a}
+@keyframes pkrc{from{opacity:0;transform:translateY(14px) scale(.9)}to{opacity:1;transform:none}}
+.pk-say2{position:absolute;left:50%;bottom:calc(100% + 26px);transform:translateX(-50%);padding:5px 10px;border-radius:12px;background:#fff;color:#2a1660;font:800 11px/1.1 var(--hud-font,var(--f-ui));font-style:normal;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.35);z-index:3;pointer-events:none}
+.pk-say2::after{content:"";position:absolute;left:50%;top:100%;margin-left:-5px;border:5px solid transparent;border-top-color:#fff}
+.pk-say2[hidden]{display:none}.pk-say2.go{animation:pksay2 .35s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pksay2{from{opacity:0;transform:translate(-50%,6px) scale(.8)}to{opacity:1;transform:translateX(-50%)}}
+.pk-bar button.coach{animation:pkcoach 1s ease-in-out infinite;box-shadow:0 0 0 3px #5ff0d0,0 0 18px rgba(95,240,208,.8)}
+@keyframes pkcoach{50%{transform:translateY(-3px)}}
+.bj-side{display:flex;gap:5px;justify-content:center}.bj-side button{flex:1;display:grid;gap:2px;padding:6px 4px;border-radius:10px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.bj-side button b{font:900 11px/1 var(--hud-font,var(--f-ui));color:#e6dcff}.bj-side button small{font:800 10px/1 var(--hud-font,var(--f-ui));color:#ffd23a}
+.bj-side button.on{background:linear-gradient(180deg,#ffd23a,#e29a1a);box-shadow:0 0 12px rgba(255,210,58,.5)}.bj-side button.on b,.bj-side button.on small{color:#3a2200}
+.bj-side button.q{flex:0 0 34px;font:900 14px/1 var(--hud-font,var(--f-ui));color:#fff}.bj-side button:disabled{opacity:.4}
+.bj-pays{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:3px}.bj-pays li{display:flex;justify-content:space-between;padding:5px 9px;border-radius:8px;background:rgba(255,255,255,.06);font:700 12px/1 var(--hud-font,var(--f-ui))}.bj-pays b{color:#ffd23a}

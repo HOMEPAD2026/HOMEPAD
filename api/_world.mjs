@@ -317,7 +317,7 @@ export function make(deps) {
   // b-ec2/3: the Creator Market (blueprints for ARCL, 80/20, 14 days on hold) and the Creator Exchange (GM-signed, verified on Arc)
   const market = makeMarket({ ...deps, json, now, signer, isGM, ledger, note: (w, t, k, n, o) => shop.note(w, t, k, n, o), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
   const coins = makeCoins({ ...deps, json, now, ledger }); // the coins page's public totals (coins.html)
-  const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
+  const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek, crewOf: crew.crewOf }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
   const pk = makeHalloween({ ...deps, json, now, signer, award: shop.award, level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // the Halloween Pumpkin Kings (api/_world-halloween.mjs)
   const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
@@ -568,7 +568,7 @@ export function make(deps) {
       if (w === "pk") return pk.read(w, url);
       if (w === "surv" || w === "surv-top" || w === "surv-daily" || w === "surv-endless") return surv.read(w, url);
       if (w === "rings" || w === "rings-top" || w === "rings-ta" || w === "rings-chal") return rings.read(w, url);
-      if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest") return poker.read(w, url);
+      if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest" || w === "poker-rule") return poker.read(w, url);
       if (w === "dino" || w === "dino-nests" || w === "dino-ladder") return dino.read(w, url);
       if (w === "launch") return launch.read(w, url);
       if (w === "refer") return refer.read(w, url);

@@ -25,7 +25,25 @@ export const POKER = {
   // (chips, the Champion Gold felt, a title), and a happy hour (20:00–22:00 Seoul) with mission progress ×2.
   // ARCL only ever for taking part; what depends on the cards pays chips, looks and titles.
   FEST: { DAYS: 7, CHIPS: 40000, FIRST: 0.5, STAMP: 10, STAMPS: { 3: 500, 5: 1000, 7: 2000 }, ROYAL: 100000, BJ3: 10000, CHAMP: [500000, 300000, 150000], HAPPY: [20, 22] },
+  // b-pky3: card backs and felts sold for chips (a chip sink; the looks are cosmetic), and the crew tables' stakes
+  SHOP: [{ id: "back:ruby", chips: 5000 }, { id: "back:neon", chips: 15000 }, { id: "back:galaxy", chips: 40000 }, { id: "felt:ocean", chips: 8000 }, { id: "felt:sakura", chips: 20000 }, { id: "felt:royal", chips: 60000 }],
+  RULE_HANDS: 8, // (the daily rule's game)
 };
+// b-pky3: the computer players' styles. NEX pushes (raises more and bigger), LUMI is careful (strong hands, few
+// bluffs), ARON bluffs, MINT calls too much, ARC plays it straight. From Normal up; a Beginner stays loose and passive
+export const STYLES = { calm: { bluff: 0, strong: 0, size: 1, call: 0 }, aggr: { bluff: 0.06, strong: -0.08, size: 1.3, call: -0.02 }, tight: { bluff: -0.03, strong: 0.06, size: 0.9, call: 0.05 }, bluff: { bluff: 0.14, strong: 0, size: 1.15, call: 0.01 }, loose: { bluff: 0.02, strong: 0.02, size: 0.85, call: -0.08 } };
+export const STYLE_OF = { "AI ARON": "bluff", "AI LUMI": "tight", "AI NEX": "aggr", "AI ARC": "calm", "AI MINT": "loose" };
+// b-pky3: the daily rule (one a Seoul day, the same for everyone): a solo game of RULE_HANDS hands with a twist
+export const RULES = [{ id: "double", name: "Double Blinds", blinds: 2 }, { id: "deep", name: "Deep Stacks", start: 3000 }, { id: "turbo", name: "Turbo Blinds", rise: 2 }, { id: "duel", name: "Heads-up vs NEX", ais: 1, lvl: 3, foe: "AI NEX" }, { id: "allstar", name: "All-Star Table", ais: 5, lvl: 2 }];
+export function ruleOf(day) { let h = 7; for (const c of String(day)) h = (h * 31 + c.charCodeAt(0)) | 0; return RULES[Math.abs(h) % RULES.length]; }
+// b-pky3: badges from your record's counts (h hands · vpip money put in by choice before the flop · win pots won ·
+// allin all-ins won · sd showdowns won · steal pots won by a bet no one called · big the biggest pot won, in big
+// blinds · quads / royal hands won with · rule daily-rule games won · tut the tutorial)
+export const BADGES = [{ id: "hands100", k: "h", need: 100, name: "Regular Seat" }, { id: "hands1000", k: "h", need: 1000, name: "Iron Seat" }, { id: "wins50", k: "win", need: 50, name: "Pot Collector" }, { id: "wins500", k: "win", need: 500, name: "Card Shark" },
+  { id: "allin10", k: "allin", need: 10, name: "All-in Hero" }, { id: "steal25", k: "steal", need: 25, name: "Bluff Master" }, { id: "sd100", k: "sd", need: 100, name: "Showdown King" }, { id: "big100", k: "big", need: 100, name: "Big Pot Hunter" },
+  { id: "quads", k: "quads", need: 1, name: "Four of a Kind" }, { id: "royal", k: "royal", need: 1, name: "Royal Flush" }, { id: "rule5", k: "rule", need: 5, name: "Rule Breaker" }, { id: "tut", k: "tut", need: 1, name: "Lounge Student" }];
+export const badgesOf = (st) => BADGES.filter((b) => ((st && st[b.k]) || 0) >= b.need).map((b) => b.id);
+export const STAT_KEYS = ["h", "vpip", "win", "allin", "sd", "steal", "quads", "royal"];
 export const RANKS = "23456789TJQKA", SUITS = "♠♥♦♣";
 export const rankOf = (c) => c % 13, suitOf = (c) => Math.floor(c / 13);
 export const cardName = (c) => RANKS[rankOf(c)] + SUITS[suitOf(c)];
@@ -167,6 +185,16 @@ export function settle(s) {
   s.result = { pots, shown: alive.map((i) => ({ i, hole: P[i].hole, cat: val[i].cat, name: val[i].name, five: val[i].five })), net, uncontested: false };
   return s;
 }
+/// b-pky3: one finished hand from seat i's side, for the record's counts (STAT_KEYS, and big: the pot won in big blinds)
+export function handStats(s, i) {
+  const p = s.p[i], r = s.result; if (!p || !r || p.out) return null;
+  const mine = s.log.filter((e) => e.i === i), got = Math.max(0, r.net[i] + p.total), sh = r.shown.find((x) => x.i === i);
+  return { h: 1, vpip: mine.some((e) => e.st === 0 && (e.t === "call" || e.t === "raise" || e.t === "allin")) ? 1 : 0, win: got > 0 ? 1 : 0, allin: p.allin && got > 0 ? 1 : 0,
+    sd: got > 0 && !r.uncontested ? 1 : 0, steal: got > 0 && r.uncontested && mine.some((e) => e.t === "raise" || e.t === "allin") ? 1 : 0,
+    quads: got > 0 && sh && sh.cat === 7 ? 1 : 0, royal: got > 0 && sh && sh.cat === 9 ? 1 : 0, big: got > 0 ? Math.floor(got / Math.max(1, s.bb)) : 0, got, cat: sh ? sh.cat : -1 };
+}
+/// a hand's counts added to a record's (big: the biggest so far)
+export function addStats(st, x) { st = st || {}; if (!x) return st; for (const k of STAT_KEYS) st[k] = (st[k] || 0) + (x[k] || 0); st.big = Math.max(st.big || 0, x.big || 0); return st; }
 /// what a seat may see: its own cards, everyone's at a showdown; never the deck
 export function viewOf(s, me) {
   const shown = s.result && !s.result.uncontested ? new Set(s.result.shown.map((x) => x.i)) : new Set();
@@ -203,13 +231,14 @@ export function botMove(s, R) {
   const sims = [0, 60, 140, 260][lvl];
   const eq = s.street === 0 || !sims ? Math.min(0.95, preflop(me.hole) * (opp > 2 ? 0.85 : 1) + (s.street ? best([...me.hole, ...s.board]).cat * 0.08 : 0)) : equity(me.hole, s.board, Math.max(1, opp), sims, R);
   const odds = L.toCall / (P0 + L.toCall || 1), r = R();
-  const raiseTo = (k) => { if (!L.raise) return null; const want = Math.round((s.curBet + Math.max(s.bb, (P0 + L.toCall) * k)) / s.bb) * s.bb; const to = Math.max(L.raise.min, Math.min(L.raise.max, want)); return to >= L.raise.max * 0.85 ? { t: "allin" } : { t: "raise", to }; };
+  const ST = STYLES[me.sty || STYLE_OF[me.name] || "calm"] || STYLES.calm, sz = lvl ? ST.size : 1;
+  const raiseTo = (k) => { if (!L.raise) return null; const want = Math.round((s.curBet + Math.max(s.bb, (P0 + L.toCall) * k * sz)) / s.bb) * s.bb; const to = Math.max(L.raise.min, Math.min(L.raise.max, want)); return to >= L.raise.max * 0.85 ? { t: "allin" } : { t: "raise", to }; };
   if (lvl === 0) { // loose and passive
     if (L.raise && r < 0.12) return raiseTo(0.5) || (L.check ? { t: "check" } : { t: "call" });
     if (L.check) return { t: "check" };
     return eq > 0.25 || r < 0.45 ? { t: "call" } : { t: "fold" };
   }
-  const bluff = [0, 0.04, 0.09, 0.12][lvl], strong = [0, 0.72, 0.66, 0.62][lvl], margin = [0, 0.02, 0.05, 0.07][lvl];
+  const bluff = Math.max(0, [0, 0.04, 0.09, 0.12][lvl] + ST.bluff), strong = [0, 0.72, 0.66, 0.62][lvl] + ST.strong, margin = [0, 0.02, 0.05, 0.07][lvl] + ST.call;
   if (eq > strong && L.raise) return raiseTo(eq > 0.85 ? 1 : 0.6);
   if (L.check) { if (L.raise && (eq > strong - 0.1 || r < bluff)) return raiseTo(0.5); return { t: "check" }; }
   if (eq > odds + margin) return { t: "call" };
