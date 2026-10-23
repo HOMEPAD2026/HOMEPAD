@@ -3234,3 +3234,4 @@ html.wp-pcphone .wp-wb button{font-size:24px;padding:16px 28px}
 .wp-loading .wp-keyart b::before{display:none}
 .wp-loading .wp-keyart::after{background:linear-gradient(180deg,rgba(4,10,26,.5),rgba(4,10,26,0) 22%,rgba(4,10,26,0) 48%,rgba(3,8,20,.55) 70%,rgba(3,8,20,.82))}
 .wp-loading::before{display:none}
+.wp-loading>span{padding:5px 14px;border-radius:999px;background:rgba(8,22,54,.66);text-shadow:0 1px 3px rgba(0,0,0,.5)}.wp-loading .wp-loadpct{padding:2px 8px;border-radius:999px;background:rgba(8,22,54,.5);color:#dcefff}
