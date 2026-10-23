@@ -170,7 +170,7 @@ export function createSurvival(H) {
     if (!work || work.o !== o) work = { o, hits: 0, need: G_NEED[o.kind], guest: true };
     work.hits++; chips(o); const k = o.kind; if (k === "rock") (Snd.chink || Snd.hit || (() => {}))(0); else if (k === "fern" || k === "bush") (Snd.pick || (() => {}))(); else (Snd.chop || Snd.hit || (() => {}))(); if (o.shake) o.shake();
     if (work.hits < work.need) { paint(); return; }
-    work = null; o.down = true; o.hide(); setTimeout(() => { if (o.down && signedOut) { o.down = false; o.show(); } }, 90000);
+    work = null; o.down = true; if (o.hide) o.hide(); else if (o.g) o.g.visible = false; setTimeout(() => { if (o.down && signedOut) { o.down = false; o.show(); } }, 90000);
     const L = G_LOOT[k] || {}; for (const [m, n] of Object.entries(L)) { guest.mat[m] = (guest.mat[m] || 0) + n; guest.n += n; }
     pop(o, Object.entries(L).map(([m, n]) => `${ic(m)}+${n}`).join(" "), "loot"); (Snd.pick || (() => {}))();
     if (!guest.asked) { guest.asked = true; setTimeout(saveCard, 700); }
@@ -193,7 +193,7 @@ export function createSurvival(H) {
     if (FOE[o.kind] && !before && inv.hunted && inv.hunted[o.kind] && H.onFirstHunt) try { H.onFirstHunt(o.kind, T(NODE_N[o.kind] || o.kind)); } catch { /* the cut-in is extra */ }
     if (H.onBreak) try { H.onBreak(o); } catch { /* the effect is extra */ } if (j.buddy && H.onBuddy) try { H.onBuddy(j.buddy, o.kind, j.saved || 0); } catch { /* the companion's card waits */ } if (j.ore) ore = j.ore.inv || j.ore; felled[o.id] = j.regrowAt;
     const isDino = o.kind === "raptor" || o.kind === "trike" || o.kind === "alpha" || o.kind === "spino" || o.kind === "titan" || o.kind === "claw";
-    if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else if (o.kind === "fish") { (Snd.splash || (() => {}))(1); (Snd.pick || (() => {}))(); } else { o.down = true; if (o.fall) o.fall(); else o.hide(); if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
+    if (isDino) { o.die(); o.hpNow = 0; paintFoe(); (Snd.kill || (() => {}))(); } else if (o.kind === "fish") { (Snd.splash || (() => {}))(1); (Snd.pick || (() => {}))(); } else { o.down = true; if (o.fall) o.fall(); else if (o.hide) o.hide(); else if (o.g) o.g.visible = false; /* (a node without hide(): kept from throwing — diag b.hide) */ if (o.kind === "tree" || o.kind === "ancient" || o.kind === "palm") (Snd.timber || (() => {}))(); else if (o.kind === "rock") (Snd.crumble || (() => {}))(0); else (Snd.pick || (() => {}))(); }
     gotNow([...Object.keys(j.loot || {}).filter((m) => m !== "ore"), ...Object.keys((j.loot && j.loot.ore) || {})]);
     const parts = Object.entries(j.loot || {}).filter(([m]) => m !== "ore").map(([m, n]) => `${ic(m)}+${n}`);
     if (j.loot && j.loot.ore) for (const [m, n] of Object.entries(j.loot.ore)) parts.push(`${ic(m)}+${n}`);
