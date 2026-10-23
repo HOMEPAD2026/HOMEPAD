@@ -114,7 +114,7 @@ The owner asked for this on every commit (not only when they ask):
 
 - /game's Featured news and Updates & notices (gw.js NEWS + each language's `news`, `nbody`, `notices`, en/ko/zh/tr):
   add every release that players can see, newest first (the owner asked for this on 2026-10-23: "keep reflecting the
-  updates there"). `nbody` lines up with `news` by index, so a new item goes in front of both.
+  updates there"). `nbody` lines up with `news` by index, so a new item goes in front of both; NOTE_D (gw.js) holds each notice's date by its place, so a new notice's date goes in front of NOTE_D too (it was skipped once and every date shifted).
 
 ## Before saying a game change is done (checklist)
 

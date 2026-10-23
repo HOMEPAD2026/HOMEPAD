@@ -225,7 +225,7 @@ export function makeBlackjack(api) {
     tick() { if (!on) return; runQ(performance.now()); const b = busy(); if (b) paintVals(); else if (wasBusy) paint(); wasBusy = b; },
     answer, repaint: () => { if (on) paint(); },
     /// tests: the round's numbers and a few levers
-    debug: () => ({ on, real: B ? B.real : false, bank: B ? bank() : 0, bet: B ? B.bet : 0, table: B ? B.table : "", phase: B && B.s ? B.s.phase : "bet", hands: B ? B.hands : 0, q: Q.length, wait: B ? B.wait : false, cur: B && B.s ? B.s.cur : -1, n: B && B.s ? B.s.hands.length : 0, legal: B && B.s ? legal(B.s) : null, advice: B && B.s && B.s.phase === "play" ? advice(B.s) : "", net: B ? B.net : 0 }),
+    debug: () => ({ on, side: B ? B.side : null, sd: B && B.s ? B.s.side || null : null, real: B ? B.real : false, bank: B ? bank() : 0, bet: B ? B.bet : 0, table: B ? B.table : "", phase: B && B.s ? B.s.phase : "bet", hands: B ? B.hands : 0, q: Q.length, wait: B ? B.wait : false, cur: B && B.s ? B.s.cur : -1, n: B && B.s ? B.s.hands.length : 0, legal: B && B.s ? legal(B.s) : null, advice: B && B.s && B.s.phase === "play" ? advice(B.s) : "", net: B ? B.net : 0 }),
     press, chip: (v) => addChip(v), table: (id) => setTable(id),
   };
 }
