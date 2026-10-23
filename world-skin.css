@@ -3245,3 +3245,6 @@ html.wp-pcphone .wz-map:not(.big){top:252px} /* under the online chip, not over 
    (Jurassic keeps the brand's invisible space, so its own top row stays clear) */
 html.wp-pcphone body:not(.wp-jurassic) .wp-hud-l>.wp-brand{display:none}
 html.wp-pcphone .wp-hud-l{display:flex;flex-direction:column}
+/* phones: the level card, HP/SP and the quest card share one left edge (the owner, 2026-10-23) */
+html.wp-pcphone .wp-hud-l{align-items:flex-start}
+html.wp-pcphone .wp-hud-l>:is(.wp-chips,#wc-vit,#wp-quests){margin-left:0;align-self:flex-start}
