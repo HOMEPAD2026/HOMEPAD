@@ -41,6 +41,22 @@ const cc = (s) => SUITS.indexOf(s.slice(1)) * 13 + RANKS.indexOf(s[0]);
 const cardHtml = (c, cls = "") => (c == null || c < 0 ? `<i class="pk-c bk ${cls}"></i>` : `<i class="pk-c${isRed(c) ? " r" : ""} ${cls}"><b>${rankTxt(c)}</b><u>${SUITS[suitOf(c)]}</u></i>`);
 
 const LW = { ko: {}, zh: {}, tr: {} }; // (filled at the end of the file)
+// b-pky: a solo game's length (hands) and how often its blinds rise; the server takes 1–40 hands
+const LENS = [6, 12, 24], riseOf = (n) => (n <= 6 ? 2 : n >= 24 ? 6 : 4), lenOf = (p) => (LENS.includes(p && p.len) ? p.len : POKER.SOLO_HANDS);
+/// b-pky: what your cards are drawing to (the board not complete): a flush draw, an open-ended or a gutshot straight draw, with its outs
+function drawsOf(hole, board) {
+  if (board.length < 3 || board.length >= 5) return ""; const all = [...hole, ...board], suits = [0, 0, 0, 0]; for (const c of all) suits[suitOf(c)]++;
+  const made = best(all); if (made.cat >= 5) return ""; // (a straight or better made already)
+  const fd = suits.some((n) => n === 4) && hole.some((c) => suits[suitOf(c)] === 4);
+  const rs = new Set(all.map(rankOf)); if (rs.has(12)) rs.add(-1); let oe = false, gs = false; // (rank -1: the ace played low)
+  for (let lo = -1; lo <= 9; lo++) { if ([0, 1, 2, 3].every((k) => rs.has(lo + k)) && lo - 1 >= -1 && lo + 4 <= 12 && !rs.has(lo - 1) && !rs.has(lo + 4)) oe = true; } // four in a row, open at both ends
+  if (!oe) for (let lo = -1; lo <= 8; lo++) if ([0, 1, 2, 3, 4].filter((k) => rs.has(lo + k)).length === 4) gs = true; // four of five with one gap
+  if (fd && (oe || gs)) return "Flush + straight draw · {n} outs:" + (oe ? 15 : 12);
+  if (fd) return "Flush draw · {n} outs:9";
+  if (oe) return "Open-ended straight draw · {n} outs:8";
+  if (gs) return "Gutshot straight draw · {n} outs:4";
+  return "";
+}
 
 export function createPoker(ctx) {
   const { THREE, st, esc } = ctx, L0 = LW[ctx.lang] || {};
@@ -56,7 +72,7 @@ export function createPoker(ctx) {
 
   // ---------------- this device's record (a wallet's comes from the server) ----------------
   function load() {
-    const d = { xp: 0, day: "", xpToday: 0, games: 0, wins: 0, best: -1, back: "blue", felt: "violet", ais: 3, lvl: 1, hint: true, buzz: true };
+    const d = { xp: 0, day: "", xpToday: 0, games: 0, wins: 0, best: -1, back: "blue", felt: "violet", ais: 3, lvl: 1, hint: true, buzz: true, len: 12 };
     try { return { ...d, ...JSON.parse(localStorage.getItem(SAVE) || "{}") }; } catch { return d; }
   }
   function save() { try { localStorage.setItem(SAVE, JSON.stringify(prog)); } catch { /* kept for this visit */ } }
@@ -216,7 +232,7 @@ export function createPoker(ctx) {
   function frame() {
     if (!S) return; const V = view(), cam = S.cam, k = scaleK() * (V.h / innerHeight), lob = mode === "lobby" || mode === "result" || mode === "load";
     if (walkUp) { cam.aspect = V.w / V.h; cam.fov = phone() ? 56 : 46; cam.updateProjectionMatrix(); cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert(); S.p9 = cam.projectionMatrix.elements[9]; S.key = [V.w, V.h, mode, walkUp].join("x"); return; } // (the camera follows you: tick)
-    const top = (lob ? 30 : phone() ? 70 : 60) * k, bot = lob ? V.h * 0.6 : (phone() ? 200 : wide() ? 18 : 168) * k; // (wide: your cards and moves sit at the side)
+    const top = (lob ? 30 : phone() ? 70 : 60) * k, bot = lob ? V.h * 0.6 : (phone() ? 244 : wide() ? 18 : 212) * k; // (b-pky: room for the one-tap bets under your cards) // (wide: your cards and moves sit at the side)
     cam.aspect = V.w / V.h; cam.fov = phone() ? 40 : 34;
     const el = ((lob ? 26 : phone() ? 54 : 46) * Math.PI) / 180, tz = lob ? -RZ * 0.6 : 0.1; // (b-pk3d: lower than before, so the heroes in the chairs show)
     const pts = lob ? [[-(RX + 0.6), 0, -RZ * 0.4], [RX + 0.6, 0, -RZ * 0.4], [0, 4.3 + DY, DZ], [0, 0, -RZ * 0.1]] : [[-(RX + 0.5), 0, 0], [RX + 0.5, 0, 0], [0, 0, RZ + 0.5], [0, (phone() ? 3.0 : 3.8) + DY, DZ], [0, 0, -RZ - 0.5], [-(RX + 0.7), 1.5, -RZ * 0.62], [RX + 0.7, 1.5, -RZ * 0.62], [-(RX + 0.7), 0.4, RZ * 0.6], [RX + 0.7, 0.4, RZ * 0.6]]; // (and the heroes' heads in the side chairs)
@@ -229,7 +245,7 @@ export function createPoker(ctx) {
     S.dlr.parent.lookAt(cam.position.x, S.dlr.parent.position.y + (cam.position.y - S.dlr.parent.position.y) * 0.35, cam.position.z); // (leaning back a little toward the camera)
   }
   const wide = () => !phone() && innerWidth > innerHeight * 1.25;
-  const boardScale = () => (phone() ? 1.08 : 1.3);
+  const boardScale = () => (phone() ? 1.22 : 1.3); // (b-pky: the board a size up on a phone)
   const slotPos = (d, r) => { const a = (SLOT[d] * Math.PI) / 180; return { x: Math.cos(a) * RX * r, z: Math.sin(a) * RZ * r, a }; };
   function toScreen(x, y, z) { tv.set(x, y, z).project(S.cam); const V = view(), k = scaleK(); return { x: (V.x + ((tv.x + 1) / 2) * V.w) / k, y: (V.y + ((1 - tv.y) / 2) * V.h) / k, behind: tv.z > 1 }; }
 
@@ -285,14 +301,14 @@ export function createPoker(ctx) {
     return k + 1 < H.log.length ? k + 1 : -1;
   }
   function newHandVis(M) {
-    const H = M.hand; vis = { ...blank(), M, handNo: H.handNo, replay: vis.replay, turnSaid: vis.turnSaid };
+    const H = M.hand; vis = { ...blank(), M, handNo: H.handNo, replay: vis.replay, turnSaid: vis.turnSaid }; pre = "";
     vis.bet = H.p.map(() => 0); vis.tot = H.p.map(() => 0);
     vis.start = H.p.map((p, i) => (H.result ? p.stack - H.result.net[i] : p.stack + p.total)); vis.stack = vis.start.slice();
     step(0.3, () => { clearTable(); snd("shuffle"); placeButton(M); if (H.handNo === 1 || Math.random() < 0.18) say(T(H.handNo === 1 ? "Let's play together~ ♡" : "Shuffle up and deal~")); });
     step(0.25 + 0.09 * H.p.filter((p) => !p.out).length * 2, () => dealHoles(M));
   }
   function clearTable() {
-    if (!S) return; for (const cd of S.cards) { cd.o.visible = false; cd.c = -2; } for (const g of S.bets) stackChips(g, 0); stackChips(S.potG, 0); S.dbtn.visible = false;
+    drama(false); if (!S) return; for (const cd of S.cards) { cd.o.visible = false; cd.c = -2; } for (const g of S.bets) stackChips(g, 0); stackChips(S.potG, 0); S.dbtn.visible = false;
     if (ui) { ui.mine.innerHTML = ""; ui.mine.className = "pk-mine"; ui.hname.textContent = ""; ui.eq.textContent = ""; ui.root.querySelectorAll(".pk-seat").forEach((e) => e.classList.remove("win", "fold", "allin", "lose")); }
     vis.badge = {}; vis.shown = {}; vis.eq = null; vis.win = null;
   }
@@ -342,7 +358,7 @@ export function createPoker(ctx) {
       vis.badge[i] = { t: lbl + (e.t === "sb" || e.t === "bb" ? "" : " " + fmt(e.a)), c: e.t === "allin" ? "allin" : e.t === "call" ? "call" : e.t === "sb" || e.t === "bb" ? "blind" : "raise" };
       const sp = slotPos(d, 0.92), to = slotPos(d, 0.6); if (add > 0) flyChips(sp, to, add); setTimeout(() => { if (vis.handNo === H.handNo) stackChips(S.bets[d], vis.bet[i]); }, 400 * fast);
       snd("chip", e.t === "raise" || e.t === "allin" ? 3 : 1);
-      if (e.t === "allin" && i !== me) flash(T("{name}: ALL IN!", { name }), "allin");
+      if (e.t === "allin") { if (i !== me) flash(T("{name}: ALL IN!", { name }), "allin"); pulse("allin"); if (S.lounge) S.lounge.react(d, "allin"); if (Math.random() < 0.5) say(T(i === me ? "All in?! So brave~ ♡" : "Ooh, all in~!")); } // b-pky
       if (!vis.big && vis.tot.reduce((a, b) => a + b, 0) >= H.bb * 60) { vis.big = true; flash(T("BIG POT!"), "big"); say(T("Big pot~! ♡")); }
     }
     paintAll();
@@ -351,7 +367,7 @@ export function createPoker(ctx) {
   function reveal(M) {
     const H = M.hand, me = mineI(M); if (!H.result || vis.revealed) return; vis.revealed = true;
     for (const sh of H.result.shown) { if (sh.i === me) continue; for (let j = 0; j < 2; j++) { const cd = holeCard(sh.i, j), sp = holeSpot(M, sh.i, j); cd.c = sh.hole[j]; cd.front.material.map = faceTex(sh.hole[j]); cd.front.material.needsUpdate = true; cd.o.visible = true; moveCard(cd, sp.x, sp.z, sp.yaw, true, 0.4, j * 0.12, 0.92); } }
-    snd("flip"); if (runFrom(H) >= 0 || boardByLog(H) < 5) { flash(T("ALL IN — the board runs out"), "allin"); say(T("All in! Here comes the board~")); showEq(M); }
+    snd("flip"); if (runFrom(H) >= 0 || boardByLog(H) < 5) { flash(T("ALL IN — the board runs out"), "allin"); say(T("All in! Here comes the board~")); showEq(M); drama(true); }
   }
   function showEq(M) { const H = M.hand; if (!H.result) return; const sh = H.result.shown, board = H.board.slice(0, vis.board); vis.eq = {}; const e = eqKnown(sh.map((x) => x.hole), board, ctx.low ? 220 : 400); sh.forEach((x, k) => { vis.eq[x.i] = e[k]; }); paintAll(); }
   function eqKnown(holes, board, n) {
@@ -362,8 +378,13 @@ export function createPoker(ctx) {
     else for (let k = 0; k < n; k++) { const d = rest.slice(); for (let i = 0; i < need; i++) { const j = i + Math.floor(Math.random() * (d.length - i)); const t = d[i]; d[i] = d[j]; d[j] = t; } score([...board, ...d.slice(0, need)]); }
     return win.map((w) => w / Math.max(1, runs));
   }
+  // b-pky: the run-out's tension (a dark edge round the screen, a heartbeat) until the pot is pushed
+  function drama(on) { if (!ui) return; ui.root.classList.toggle("drama", !!on && !ctx.reduce); clearInterval(drama.t); if (on && !ctx.reduce) { const beat = () => { try { if (ctx.Snd && ctx.Snd.svHeart) ctx.Snd.svHeart(); } catch { /* quiet */ } }; beat(); drama.t = setInterval(beat, 900); } }
+  function pulse(kind) { if (!ui || ctx.reduce) return; ui.root.classList.remove("pulse-" + kind); void ui.root.offsetWidth; ui.root.classList.add("pulse-" + kind); setTimeout(() => ui && ui.root.classList.remove("pulse-" + kind), 1300); }
+  /// b-pky: a big hand's name across the screen (a full house or better at the showdown)
+  function cutIn(name, cat) { if (!ui) return; const el = document.createElement("div"); el.className = "pk-cut c" + cat; el.innerHTML = `<i></i><b>${esc(name.toUpperCase())}!</b><i></i>`; ui.root.appendChild(el); setTimeout(() => el.remove(), 2200); snd(cat >= 8 ? "level" : "win"); }
   function onResult(M) {
-    const H = M.hand, res = H.result, me = mineI(M); if (!res) return;
+    const H = M.hand, res = H.result, me = mineI(M); if (!res) return; drama(false);
     collect(M); if (!res.uncontested) { reveal(M); dealBoard(M, 5); }
     vis.eq = null; vis.badge = {};
     const won = H.p.map((p, i) => res.net[i] + vis.tot[i]), potAll = vis.tot.reduce((a, b) => a + b, 0);
@@ -386,6 +407,9 @@ export function createPoker(ctx) {
     }
     snd("chip", 4);
     const iWon = me >= 0 && vis.win.has(me), wName = H.p[[...vis.win][0]] ? H.p[[...vis.win][0]].name : "", hand = top && !res.uncontested ? T(top.name) : "";
+    if (top && !res.uncontested && top.cat >= 6 && top.cat < 9) cutIn(T(top.name), top.cat); // (b-pky: full house, four of a kind, straight flush)
+    if (iWonPot(won, me) && potAll >= H.bb * 40 && !(top && top.cat === 9)) setTimeout(goldBurst, 250); // (a big pot: gold sparks)
+    if (top && !res.uncontested && top.cat <= 1 && potAll >= H.bb * 30 && Math.random() < 0.6) setTimeout(() => say(T("Won with that?! What nerve~ ♡")), 900);
     if (top && top.cat === 9 && !res.uncontested) { banner(`<b>${esc(T("ARCIA JACKPOT!"))}</b><small>${esc(T("ROYAL FLUSH"))} · ${esc(wName)}</small>`, "jackpot"); confetti(60); goldBurst(); say(T("A royal flush?! ARCIA JACKPOT! 💙💚")); snd("level"); if (top.i === me && me >= 0) royalShare(top.five); }
     else if (iWon) { banner(`<b>${esc(vis.win.size > 1 ? T("SPLIT POT") : T("YOU WIN"))} +${fmt(won[me])}</b>${hand ? `<small>${esc(hand)}</small>` : ""}`, "win"); confetti(potAll >= H.bb * 40 ? 40 : 18); snd("win"); buzz(potAll >= H.bb * 40 ? [40, 50, 90] : [35]);
       say(vis.start[me] < (G ? POKER.START : 0) * 0.4 || vis.start[me] < H.bb * 15 ? T("What a comeback! ♾️") : T("Nice hand~ ♡")); }
@@ -397,6 +421,7 @@ export function createPoker(ctx) {
     paintAll(); ui.replayB.disabled = false;
   }
 
+  const iWonPot = (won, me) => me >= 0 && won[me] > 0;
   /// your royal flush: a button to share it (world-share.js through ctx.share), up for 25 seconds
   function royalShare(five) {
     if (!ctx.share || !ui) return; const prev = ui.root.querySelector(".pk-royal-share"); if (prev) prev.remove();
@@ -426,7 +451,9 @@ export function createPoker(ctx) {
       el.style.setProperty("--c", AVC[si % AVC.length]);
       el.querySelector(".nm").textContent = seat.name || "";
       el.querySelector(".sk").textContent = fmt(stk);
-      el.querySelector(".pk-av span").textContent = seat.bot ? "🤖" : (seat.name || "?").replace(/^AI /, "").slice(0, 1).toUpperCase();
+      el.querySelector(".pk-av span").textContent = (seat.name || "?").replace(/^AI /, "").slice(0, 1).toUpperCase();
+      { const lk = lookOf(seat, d === 0 && M.me >= 0), av = el.querySelector(".pk-av"), pic = lk && /^[a-z0-9-]+$/.test(lk.ch || "") ? `models/world/chars/${lk.ch}.webp?v=1` : ""; // b-pky: the hero's face, not a robot emoji
+        if (av.dataset.pic !== pic) { av.dataset.pic = pic; av.classList.toggle("pic", !!pic); av.style.setProperty("--pic", pic ? `url("${pic}")` : "none"); } }
       const b = i >= 0 ? vis.badge[i] : null, ab = el.querySelector(".pk-act"); ab.hidden = !b; if (b) { ab.textContent = b.t; ab.className = "pk-act " + b.c; }
       const sh = el.querySelector(".pk-shown"), eq = vis.eq && i >= 0 && vis.eq[i] != null ? Math.round(vis.eq[i] * 100) + "%" : ""; const txt = eq || (i >= 0 && vis.shown[i]) || ""; sh.hidden = !txt; sh.textContent = txt; sh.classList.toggle("eq", !!eq);
       el.querySelector(".lv").textContent = seat.bot ? T(LEVELS[seat.lvl || 0]) : seat.away ? T("Away") : seat.sit ? T("Sitting out") : "";
@@ -437,6 +464,7 @@ export function createPoker(ctx) {
     const hole = H.p[me].hole, board = H.board.slice(0, vis.board);
     let nm = ""; if (hole.length === 2 && hole[0] >= 0) { if (board.length >= 3) nm = T(best([...hole, ...board]).name); else if (rankOf(hole[0]) === rankOf(hole[1])) nm = T("One Pair"); }
     ui.hname.textContent = H.p[me].folded ? T("Folded") : nm;
+    { const dr = H.p[me].folded || hole[0] < 0 ? "" : drawsOf(hole, board), [t0, n0] = dr.split(":"); ui.hdesc.textContent = dr ? T(t0, { n: n0 }) : ""; ui.hdesc.hidden = !dr; } // b-pky: what you're drawing to
     ui.eq.textContent = vis.eq && vis.eq[me] != null ? Math.round(vis.eq[me] * 100) + "%" : "";
     // the hint: how often these cards win against the hands still in (random ones), worked out once a street
     const live = H.p.filter((p, i) => i !== me && !p.folded && !p.out).length, showStr = prog.hint && H.street < 4 && !H.p[me].folded && hole[0] >= 0 && live > 0 && !vis.eq;
@@ -450,8 +478,10 @@ export function createPoker(ctx) {
   const myTurn = (M) => { const H = M && M.hand; return !!(H && H.street < 4 && H.mine >= 0 && H.toAct === H.mine && !Q.length && !latest); };
   function paintBar() {
     const M = vis.M, turn = mode === "table" && myTurn(M) && !actBusy;
-    ui.bar.hidden = !turn; if (!turn) { ui.raise.hidden = true; return; }
+    ui.bar.hidden = !turn; paintPre(); if (!turn) { ui.raise.hidden = true; ui.qb.hidden = true; return; }
     const H = M.hand, L = legal(H), P0 = pot(H);
+    // b-pky: one-tap bets (½, ⅔, a pot), their amounts under them
+    ui.qb.hidden = !L.raise; if (L.raise) { const seen = new Set(); ui.qb.querySelectorAll("[data-qb]").forEach((b) => { const v = qbTo(H, L, +b.dataset.qb); b.hidden = seen.has(v); seen.add(v); b.querySelector("small").textContent = v >= L.raise.max ? T("ALL IN") : fmt(v); }); } // (two that come to the same amount: one button)
     ui.b.fold.hidden = L.check; ui.b.call.innerHTML = L.check ? `<b>${esc(T("CHECK"))}</b>` : `<b>${esc(T("CALL"))}</b><small>${fmt(L.toCall)}</small>`;
     ui.b.call.classList.toggle("allin", !L.check && L.toCall >= H.p[H.mine].stack);
     ui.b.raise.hidden = !L.raise; ui.b.raise.innerHTML = `<b>${esc(H.curBet > 0 ? T("RAISE") : T("BET"))}</b>`;
@@ -459,6 +489,19 @@ export function createPoker(ctx) {
     if (L.raise) { const r = ui.raise.querySelector("input"); r.min = L.raise.min; r.max = L.raise.max; r.step = Math.max(1, H.bb / 2); if (!(+r.value >= L.raise.min && +r.value <= L.raise.max)) r.value = L.raise.min; paintRaise(); }
     if (vis.turnSaid !== H.handNo && (vis.turnSaid === 0 || H.handNo % 5 === 0)) { vis.turnSaid = H.handNo; say(T("Your turn~ Call, raise or fold? ♡")); }
     void P0;
+  }
+  const qbTo = (H, L, k) => Math.max(L.raise.min, Math.min(L.raise.max, Math.round((H.curBet + (pot(H) + L.toCall) * k) / H.bb) * H.bb));
+  // b-pky: your move picked before your turn (check/fold, call any, check), done the moment it's yours
+  let pre = "";
+  function paintPre() {
+    const M = vis.M, H = M && M.hand, me = M ? mineI(M) : -1, show = mode === "table" && !!H && H.street < 4 && me >= 0 && !H.p[me].folded && !H.p[me].allin && !myTurn(M) && ui.bar.hidden;
+    ui.preact.hidden = !show; if (!show) return;
+    const L = legal(H), owe = Math.max(0, H.curBet - (H.p[me].bet || 0)); if (pre === "ck" && owe > 0) pre = "";
+    ui.preact.querySelectorAll("[data-pa]").forEach((b) => { b.classList.toggle("on", pre === b.dataset.pa); if (b.dataset.pa === "ck") b.hidden = owe > 0; if (b.dataset.pa === "ca") b.innerHTML = owe > 0 ? `${esc(T("Call"))} <small>${fmt(owe)}</small>` : esc(T("Call any")); }); void L;
+  }
+  function preGo() {
+    const M = vis.M; if (!pre || !myTurn(M) || actBusy) return; const H = M.hand, L = legal(H), k = pre; pre = "";
+    if (k === "cf") move(L.check ? { t: "check" } : { t: "fold" }); else if (k === "ca") move(L.check ? { t: "check" } : { t: "call" }); else if (k === "ck" && L.check) move({ t: "check" });
   }
   function paintRaise() {
     const M = vis.M, H = M && M.hand; if (!H || H.street >= 4) return; const r = ui.raise.querySelector("input"), v = Math.round(+r.value), all = v >= +r.max;
@@ -479,7 +522,7 @@ export function createPoker(ctx) {
   function paintTop() {
     const M = vis.M, H = M && M.hand; if (!M) return;
     ui.title.textContent = M.kind === "mp" ? (M.priv ? T("Private table") : T("Table")) + " · " + fmt(M.stake.sb) + "/" + fmt(M.stake.bb) : T("Solo · {lvl}", { lvl: T(LEVELS[G ? G.lvl : 0]) });
-    ui.sub.textContent = M.kind === "mp" ? (M.priv && M.code ? T("Code {c}", { c: M.code }) : T("Hand #{n}", { n: H ? H.handNo : "–" })) : T("Hand {n} / {m} · Blinds {b}", { n: G ? G.hands : 0, m: POKER.SOLO_HANDS, b: H ? fmt(H.sb) + "/" + fmt(H.bb) : "" });
+    ui.sub.textContent = M.kind === "mp" ? (M.priv && M.code ? T("Code {c}", { c: M.code }) : T("Hand #{n}", { n: H ? H.handNo : "–" })) : T("Hand {n} / {m} · Blinds {b}", { n: G ? G.hands : 0, m: G ? G.len : lenOf(prog), b: H ? fmt(H.sb) + "/" + fmt(H.bb) : "" });
   }
   // the seat labels, the pot, the bets and ARCIA's words follow the table on screen; the clock of whoever's turn it is
   function place() {
@@ -492,15 +535,19 @@ export function createPoker(ctx) {
     }
     const pt = H ? (vis.win ? vis.potLeft || 0 : vis.tot.reduce((a, b) => a + b, 0)) : 0; ui.pot.hidden = !pt; if (pt) { const s = toScreen(0, 0.2, -1.3); ui.pot.style.transform = `translate(${s.x}px, ${s.y}px) translate(-118%, -50%)`; /* (beside the pot's chips: above them is the far seat's bet) */ ui.potV.textContent = fmt(pt); }
     for (let d = 0; d < 6; d++) { const el = ui.betL[d], seatI = H ? H.seatOf.indexOf((d + (M.me >= 0 ? M.me : 0)) % 6) : -1, b = seatI >= 0 ? vis.bet[seatI] : 0; el.hidden = !(b > 0); if (b > 0) { const p = slotPos(d, 0.6), s = toScreen(p.x, 0.1, p.z); el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, 40%)`; el.textContent = fmt(b); } }
-    if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.55 + DY, DZ); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(70, s.y)}px)`; }
+    if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.55 + DY, DZ), bw = ui.arcia.offsetWidth || 200; ui.arcia.style.transform = `translate(${Math.max(8, Math.min(W - bw - 8, s.x))}px, ${Math.max(70, s.y)}px)`; } // (b-pky: the whole bubble on the screen)
     // the clock
     const ti = H && H.street < 4 && !Q.length ? H.toAct : -1;
-    for (let d = 0; d < 6; d++) ui.seats[d].classList.remove("turn");
+    for (let d = 0; d < 6; d++) { ui.seats[d].classList.remove("turn", "hurry"); const ts = ui.seats[d].querySelector(".pk-tsec"); if (ts) ts.hidden = true; }
     if (ti >= 0) {
       const d = dOfI(M, ti), el = ui.seats[d]; el.classList.add("turn");
       let f = 1; if (M.kind === "mp" && M.deadline) f = Math.max(0, Math.min(1, (M.deadline - Date.now()) / (POKER.TURN_S * 1000))); else if (G && G.botAt && ti !== H.mine) f = Math.max(0, (G.botAt - performance.now()) / 1400);
       el.style.setProperty("--t", f.toFixed(3));
       if (M.kind === "mp" && ti === H.mine && f < 0.3 && !vis.warned) { vis.warned = true; snd("tap"); }
+      // b-pky: your last 10 seconds counted on your seat, the last 5 in red with a tick and a buzz
+      const left = M.kind === "mp" && M.deadline ? Math.ceil((M.deadline - Date.now()) / 1000) : 99, tsec = el.querySelector(".pk-tsec");
+      if (tsec) { const showS = left <= 10 && left >= 0; tsec.hidden = !showS; if (showS) tsec.textContent = left; el.classList.toggle("hurry", left <= 5 && left >= 0);
+        if (ti === H.mine && left <= 5 && left >= 1 && vis.tickAt !== left) { vis.tickAt = left; snd("tap"); buzz([18]); } }
     }
   }
   function say(t, ms = 2800) { if (!ui) return; ui.arcia.textContent = t; ui.arcia.hidden = false; ui.arcia.classList.remove("go"); void ui.arcia.offsetWidth; ui.arcia.classList.add("go"); clearTimeout(sayT); sayT = setTimeout(() => { if (ui) ui.arcia.hidden = true; }, ms * Math.max(0.3, fast)); }
@@ -537,7 +584,7 @@ export function createPoker(ctx) {
   function soloStart() {
     const n = Math.max(1, Math.min(5, prog.ais | 0)), lvl = Math.max(0, Math.min(3, prog.lvl | 0)), slots = LAYOUT[n + 1], seats = Array(6).fill(null);
     slots.forEach((s, k) => { seats[s] = k === 0 ? { name: meName(), stack: POKER.START, bot: false, ...myLook() } : { name: BOTS[k - 1], stack: POKER.START, bot: true, lvl, ...botLook(BOTS[k - 1]) }; });
-    G = { n, lvl, slots, seats, hands: 0, button: slots[Math.floor(Math.random() * slots.length)], best: -1, botAt: 0, nextAt: 0, runP: null, at: Date.now(), over: false };
+    G = { n, lvl, slots, seats, hands: 0, len: lenOf(prog), button: slots[Math.floor(Math.random() * slots.length)], best: -1, botAt: 0, nextAt: 0, runP: null, at: Date.now(), over: false };
     const ss = ctx.sess && ctx.sess();
     G.runP = ss && ctx.post ? ctx.post({ action: "world-poker-solo-start", ...ss, lvl }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j.runId : null)).catch(() => null) : Promise.resolve(null);
     R = null; toTable(); vis = blank(); soloDeal();
@@ -546,13 +593,13 @@ export function createPoker(ctx) {
   function soloDeal() {
     const ready = G.slots.filter((s) => G.seats[s].stack > 0);
     // out of chips with hands still to play: one rebuy a game, if you like
-    if (G.seats[0].stack <= 0 && !G.rebuy && G.hands < POKER.SOLO_HANDS && ready.length >= 1) { G.asking = true; modal(`<p class="pk-say">${esc(T("Out of chips~ ♡ One more go?"))}</p><p>${esc(T("Rebuy {n} chips (once a game)", { n: fmt(POKER.START) }))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="endGame">${esc(T("End the game"))}</button><button type="button" class="pk-btn go" data-a="rebuy">${esc(T("Rebuy"))}</button></div>`, true); return; }
-    if (G.seats[0].stack <= 0 || ready.length < 2 || G.hands >= POKER.SOLO_HANDS) return soloOver();
+    if (G.seats[0].stack <= 0 && !G.rebuy && G.hands < G.len && ready.length >= 1) { G.asking = true; modal(`<p class="pk-say">${esc(T("Out of chips~ ♡ One more go?"))}</p><p>${esc(T("Rebuy {n} chips (once a game)", { n: fmt(POKER.START) }))}</p><div class="pk-row"><button type="button" class="pk-btn" data-a="endGame">${esc(T("End the game"))}</button><button type="button" class="pk-btn go" data-a="rebuy">${esc(T("Rebuy"))}</button></div>`, true); return; }
+    if (G.seats[0].stack <= 0 || ready.length < 2 || G.hands >= G.len) return soloOver();
     let b = G.button; for (let k = 1; k <= 6; k++) { const j = (G.button + k) % 6; if (ready.includes(j)) { b = j; break; } } G.button = b;
-    const lv = Math.floor(G.hands / 4), sb = 10 * 2 ** lv, bb = sb * 2;
+    const lv = Math.floor(G.hands / riseOf(G.len)), sb = 10 * 2 ** lv, bb = sb * 2; // (b-pky: a short game's blinds rise sooner)
     const H = newHand({ players: ready.map((s) => ({ id: "s" + s, name: G.seats[s].name, stack: G.seats[s].stack, bot: G.seats[s].bot, lvl: G.seats[s].lvl })), button: ready.indexOf(b), sb, bb, seed: (Math.random() * 2 ** 31) | 0, handNo: ++G.hands });
     H.seatOf = ready; H.mine = ready.indexOf(0); G.hand = H; G.botAt = 0; G.nextAt = 0;
-    if (G.hands > 1 && G.hands % 4 === 1) flash(T("Blinds up: {b}", { b: fmt(sb) + "/" + fmt(bb) }), "big");
+    if (G.hands > 1 && G.hands % riseOf(G.len) === 1) flash(T("Blinds up: {b}", { b: fmt(sb) + "/" + fmt(bb) }), "big");
     sync(soloModel());
   }
   function soloTick(now) {
@@ -780,7 +827,8 @@ export function createPoker(ctx) {
     const tabs = [["play", T("Play")], ["missions", T("Missions")], ["rank", T("Ranking")], ["profile", T("Profile")], ["rules", T("How to play")]];
     let pane = "";
     if (tab === "play") {
-      pane = festHtml(true) + `<section class="pk-box solo"><header><b>${esc(T("SOLO · PRACTICE"))}</b><small>${esc(T("{n} hands · {c} chips each · blinds rise every 4 hands", { n: POKER.SOLO_HANDS, c: fmt(POKER.START) }))}</small></header>
+      pane = festHtml(true) + `<section class="pk-box solo"><header><b>${esc(T("SOLO · PRACTICE"))}</b><small>${esc(T("{n} hands · {c} chips each · blinds rise every {k} hands", { n: lenOf(prog), c: fmt(POKER.START), k: riseOf(lenOf(prog)) }))}</small></header>
+        <div class="pk-opt"><span>${esc(T("Game length"))}</span><div class="pk-seg">${LENS.map((n) => `<button type="button" data-len="${n}" class="${lenOf(prog) === n ? "on" : ""}">${esc(n === 6 ? T("Quick {n}", { n }) : n === 24 ? T("Long {n}", { n }) : String(n))}</button>`).join("")}</div></div>
         <div class="pk-opt"><span>${esc(T("AI players"))}</span><div class="pk-seg">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-ais="${n}" class="${prog.ais === n ? "on" : ""}">${n}</button>`).join("")}</div></div>
         <div class="pk-opt"><span>${esc(T("Level"))}</span><div class="pk-seg">${LEVELS.map((l, k) => `<button type="button" data-lvl="${k}" class="${prog.lvl === k ? "on" : ""}">${esc(T(l))}</button>`).join("")}</div></div>
         <button type="button" class="pk-btn go wide" data-a="solo">${esc(T("PLAY SOLO"))}</button></section>
@@ -864,7 +912,7 @@ export function createPoker(ctx) {
   function fit() { if (!ui) return; const k = scaleK(); ui.root.classList.toggle("wide", wide()); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: innerHeight / k + "px", transform: `scale(${k})` }); if (S) frame(); }
   function buildUi() {
     const root = document.createElement("div"); root.className = "pk"; root.hidden = true;
-    const seat = (d) => `<div class="pk-seat" data-d="${d}" hidden><div class="pk-av"><i class="pk-ring"></i><span></span></div><div class="pk-info"><b class="nm"></b><span class="sk"></span><small class="lv"></small></div><em class="pk-act" hidden></em><strong class="pk-shown" hidden></strong></div>`;
+    const seat = (d) => `<div class="pk-seat" data-d="${d}" hidden><div class="pk-av"><i class="pk-ring"></i><span></span></div><div class="pk-info"><b class="nm"></b><span class="sk"></span><small class="lv"></small></div><em class="pk-act" hidden></em><strong class="pk-shown" hidden></strong><b class="pk-tsec" hidden></b></div>`;
     root.innerHTML = `<div class="pk-top" data-game-hud hidden><button type="button" class="pk-back" data-a="menu" aria-label="${esc(T("Lounge"))}"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pk-title"><b></b><small></small></div><button type="button" class="pk-back" data-a="replay" aria-label="${esc(T("Replay"))}" disabled><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg></button></div>
       <div class="pk-tools" hidden><button type="button" data-a="bot">${esc(T("+ AI"))}</button><button type="button" data-a="sit">${esc(T("Sit down"))}</button><button type="button" data-a="chat">💬</button><button type="button" data-a="menu">${esc(T("Leave"))}</button></div>
       <div class="pk-chat" hidden>${Object.keys(EMO).map((k) => `<button type="button" data-say="${k}">${EMO[k]}</button>`).join("")}${PHRASES.map((p) => `<button type="button" data-say="${esc(p)}" class="ph">${esc(T(p))}</button>`).join("")}</div>
@@ -872,8 +920,10 @@ export function createPoker(ctx) {
       <div class="pk-pot" hidden><small>${esc(T("POT"))}</small><b></b></div>${Array.from({ length: 6 }, () => '<i class="pk-betl" hidden></i>').join("")}
       <div class="pk-arcia" hidden></div><div class="pk-log"></div>
       <div class="pk-wait" hidden><span></span></div>
-      <div class="pk-hand" hidden>${seat(0)}<div class="pk-mine"></div><div class="pk-hinfo"><b class="pk-hname"></b><em class="pk-eq"></em><div class="pk-str" hidden><span><i></i></span><b></b></div></div></div>
+      <div class="pk-hand" hidden>${seat(0)}<div class="pk-mine"></div><div class="pk-hinfo"><b class="pk-hname"></b><small class="pk-hdesc"></small><em class="pk-eq"></em><div class="pk-str" hidden><span><i></i></span><b></b></div></div></div>
       <div class="pk-raise" hidden><div class="pk-pre"><button type="button" data-pre="min">${esc(T("Min"))}</button><button type="button" data-pre="0.5">½ ${esc(T("Pot"))}</button><button type="button" data-pre="1">${esc(T("Pot"))}</button><button type="button" data-pre="2">2× ${esc(T("Pot"))}</button></div><div class="pk-sl"><input type="range"><b class="amt"></b></div><div class="pk-row"><button type="button" class="pk-btn" data-a="raiseX">${esc(T("Cancel"))}</button><button type="button" class="pk-btn go" data-a="raiseGo"></button></div></div>
+      <div class="pk-qb" hidden><button type="button" data-qb="0.5"><b>½ ${esc(T("Pot"))}</b><small></small></button><button type="button" data-qb="0.67"><b>⅔ ${esc(T("Pot"))}</b><small></small></button><button type="button" data-qb="1"><b>${esc(T("Pot"))}</b><small></small></button></div>
+      <div class="pk-preact" hidden><small>${esc(T("Before your turn"))}</small><button type="button" data-pa="cf">${esc(T("Check / Fold"))}</button><button type="button" data-pa="ca">${esc(T("Call any"))}</button><button type="button" data-pa="ck">${esc(T("Check"))}</button></div>
       <div class="pk-bar" hidden><button type="button" class="f" data-a="fold"><b>${esc(T("FOLD"))}</b></button><button type="button" class="c" data-a="call"></button><button type="button" class="r" data-a="raise"></button><button type="button" class="a" data-a="allin"><b>${esc(T("ALL IN"))}</b></button></div>
       <div class="pk-banner" hidden></div><div class="pk-lost">${esc(T("Reconnecting…"))}</div>
       <div class="pk-walk" hidden><div class="pk-wtop" data-game-hud><button type="button" class="pk-back" data-a="leave" aria-label="${esc(T("Back to town"))}"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pk-wchip"><i>🪙</i><b></b></div><button type="button" class="pk-wmenu" data-a="sheet">☰ ${esc(T("Lounge menu"))}</button></div>
@@ -882,7 +932,7 @@ export function createPoker(ctx) {
       <div class="pk-sheet" hidden></div><div class="pk-modal" hidden></div>`;
     document.body.appendChild(root);
     const q = (x) => root.querySelector(x);
-    ui = { root, top: q(".pk-top"), title: q(".pk-title b"), sub: q(".pk-title small"), replayB: q('[data-a="replay"]'), tools: q(".pk-tools"), chat: q(".pk-chat"), pot: q(".pk-pot"), potV: q(".pk-pot b"), betL: [...root.querySelectorAll(".pk-betl")], arcia: q(".pk-arcia"), log: q(".pk-log"), wait: q(".pk-wait"), hand: q(".pk-hand"), mine: q(".pk-mine"), hname: q(".pk-hname"), eq: q(".pk-eq"), str: q(".pk-str"), raise: q(".pk-raise"), bar: q(".pk-bar"), banner: q(".pk-banner"), sheet: q(".pk-sheet"), modal: q(".pk-modal"),
+    ui = { root, top: q(".pk-top"), title: q(".pk-title b"), sub: q(".pk-title small"), replayB: q('[data-a="replay"]'), tools: q(".pk-tools"), chat: q(".pk-chat"), pot: q(".pk-pot"), potV: q(".pk-pot b"), betL: [...root.querySelectorAll(".pk-betl")], arcia: q(".pk-arcia"), log: q(".pk-log"), wait: q(".pk-wait"), hand: q(".pk-hand"), mine: q(".pk-mine"), hname: q(".pk-hname"), hdesc: q(".pk-hdesc"), eq: q(".pk-eq"), str: q(".pk-str"), raise: q(".pk-raise"), bar: q(".pk-bar"), qb: q(".pk-qb"), preact: q(".pk-preact"), banner: q(".pk-banner"), sheet: q(".pk-sheet"), modal: q(".pk-modal"),
       b: { fold: q('[data-a="fold"]'), call: q('[data-a="call"]'), raise: q('[data-a="raise"]'), allin: q('[data-a="allin"]') } };
     ui.seats = [q('.pk-hand .pk-seat'), ...[1, 2, 3, 4, 5].map((d) => q(`.pk-seats [data-d="${d}"]`))];
     Object.assign(ui, { walk: q(".pk-walk"), walkChips: q(".pk-wchip b"), walkTags: [...root.querySelectorAll(".pk-wtag")], walkGo: q(".pk-wgo"), joy: q(".pk-joy"), joyK: q(".pk-joy i") });
@@ -909,6 +959,9 @@ export function createPoker(ctx) {
     if (b.dataset.room) { join(b.dataset.room, false); return; }
     if (b.dataset.watch) { join(b.dataset.watch, true); return; }
     if (b.dataset.say) { chatSend(b.dataset.say); return; }
+    if (b.dataset.qb) { const H = vis.M && vis.M.hand, L = H && legal(H); if (!L || !L.raise || !myTurn(vis.M)) return; const v = qbTo(H, L, +b.dataset.qb); snd("tap"); if (v >= L.raise.max) allinAsk(); else move({ t: "raise", to: v }); return; }
+    if (b.dataset.pa) { pre = pre === b.dataset.pa ? "" : b.dataset.pa; snd("tap"); paintPre(); return; }
+    if (b.dataset.len) { prog.len = +b.dataset.len; save(); snd("tap"); paintLobby(); return; }
     if (b.dataset.pre) { const H = vis.M && vis.M.hand, L = H && legal(H); if (!L || !L.raise) return; const P0 = pot(H) + L.toCall, k = b.dataset.pre, to = k === "min" ? L.raise.min : Math.round((H.curBet + P0 * +k) / H.bb) * H.bb; ui.raise.querySelector("input").value = Math.max(L.raise.min, Math.min(L.raise.max, to)); paintRaise(); snd("tap"); return; }
     if (a === "leave") leave();
     else if (a === "menu" && mode === "bj") lobby();
@@ -956,7 +1009,7 @@ export function createPoker(ctx) {
     for (let i = TWN.length - 1; i >= 0; i--) { const w = TWN[i]; w.t += dt; if (w.t < 0) continue; const k = Math.min(1, w.t / w.dur); try { w.f(k); } catch { /* a card gone */ } if (k >= 1) { TWN.splice(i, 1); if (w.done) try { w.done(); } catch { /* fine */ } } }
     runQ(now); soloTick(now); if (mode === "bj") BJK.tick();
     if (S.lounge) { S.lounge.show(mode === "lobby" || mode === "load" ? "lobby" : "table"); S.lounge.tick(dt, t); if (walkUp) walkTick(dt); }
-    if (mode === "table") { place(); if (!Q.length && !latest && ui.bar.hidden === myTurn(vis.M) && !actBusy) paintBar(); }
+    if (mode === "table") { place(); if (!Q.length && !latest && ui.bar.hidden === myTurn(vis.M) && !actBusy) paintBar(); if (pre && myTurn(vis.M)) preGo(); }
     else if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.9 + DY, DZ), W = innerWidth / scaleK(); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(40, s.y)}px)`; }
     S.deal.position.y = DY + Math.sin(t * 1.3) * 0.03; S.halo.material.opacity = 0.45 + Math.sin(t * 0.9) * 0.1;
     if (S.ace) { S.ace.rotation.y = t * 0.7; S.ace.position.y = 1.3 + Math.sin(t * 1.6) * 0.12; }
@@ -1035,3 +1088,7 @@ Object.assign(LW.tr, {"Share your royal flush": "Royal flush'ını paylaş", "Ha
 Object.assign(LW.ko, {"ARCIA's table": "ARCIA의 테이블", "Play Hold'em": "홀덤 하기", "Blackjack": "블랙잭", "Chips & missions": "칩 & 미션", "This week's board": "이번 주 순위판", "Card backs & felts": "카드 뒷면 & 테이블 천", "Profile & style": "프로필 & 스타일", "Back to town": "마을로 돌아가기", "Lounge menu": "라운지 메뉴", "Walk with the stick, or tap a sign": "스틱으로 걷거나, 표지판을 눌러 이동해요", "Walk with WASD or the arrows, or click a sign · E to use": "WASD나 방향키로 걷거나, 표지판을 클릭해요 · E로 사용", "practice": "연습"});
 Object.assign(LW.zh, {"ARCIA's table": "ARCIA 的牌桌", "Play Hold'em": "玩德州扑克", "Blackjack": "二十一点", "Chips & missions": "筹码与任务", "This week's board": "本周排行榜", "Card backs & felts": "牌背与桌布", "Profile & style": "资料与风格", "Back to town": "返回小镇", "Lounge menu": "休息室菜单", "Walk with the stick, or tap a sign": "用摇杆行走，或点击指示牌前往", "Walk with WASD or the arrows, or click a sign · E to use": "用 WASD 或方向键行走，或点击指示牌 · 按 E 使用", "practice": "练习"});
 Object.assign(LW.tr, {"ARCIA's table": "ARCIA'nın masası", "Play Hold'em": "Hold'em oyna", "Blackjack": "Blackjack", "Chips & missions": "Fişler ve görevler", "This week's board": "Bu haftanın tablosu", "Card backs & felts": "Kart arkaları ve çuhalar", "Profile & style": "Profil ve stil", "Back to town": "Kasabaya dön", "Lounge menu": "Salon menüsü", "Walk with the stick, or tap a sign": "Çubukla yürü ya da bir tabelaya dokun", "Walk with WASD or the arrows, or click a sign · E to use": "WASD ya da oklarla yürü veya bir tabelaya tıkla · kullanmak için E", "practice": "pratik"});
+// b-pky: poker batch 1
+Object.assign(LW.ko, {"Before your turn": "내 차례 전에 미리", "Check / Fold": "체크 / 폴드", "Call any": "아무거나 콜", "Call": "콜", "Check": "체크", "Flush + straight draw · {n} outs": "플러시 + 스트레이트 드로우 · 아웃 {n}장", "Flush draw · {n} outs": "플러시 드로우 · 아웃 {n}장", "Open-ended straight draw · {n} outs": "양방향 스트레이트 드로우 · 아웃 {n}장", "Gutshot straight draw · {n} outs": "거트샷 스트레이트 드로우 · 아웃 {n}장", "All in?! So brave~ ♡": "올인?! 용감해요~ ♡", "Ooh, all in~!": "오, 올인이에요~!", "Won with that?! What nerve~ ♡": "그 패로 이겼어요?! 배짱 대단해요~ ♡", "{n} hands · {c} chips each · blinds rise every {k} hands": "{n}핸드 · 각자 칩 {c} · {k}핸드마다 블라인드 상승", "Game length": "게임 길이", "Quick {n}": "짧게 {n}", "Long {n}": "길게 {n}"});
+Object.assign(LW.zh, {"Before your turn": "轮到你之前", "Check / Fold": "过牌 / 弃牌", "Call any": "跟任何注", "Call": "跟注", "Check": "过牌", "Flush + straight draw · {n} outs": "同花 + 顺子听牌 · {n} 张出路", "Flush draw · {n} outs": "同花听牌 · {n} 张出路", "Open-ended straight draw · {n} outs": "两头顺子听牌 · {n} 张出路", "Gutshot straight draw · {n} outs": "卡顺听牌 · {n} 张出路", "All in?! So brave~ ♡": "全下？！好勇敢~ ♡", "Ooh, all in~!": "哇，全下了~！", "Won with that?! What nerve~ ♡": "就靠这手牌赢了？！好胆量~ ♡", "{n} hands · {c} chips each · blinds rise every {k} hands": "{n} 手 · 每人 {c} 筹码 · 每 {k} 手升盲", "Game length": "对局长度", "Quick {n}": "快速 {n}", "Long {n}": "长局 {n}"});
+Object.assign(LW.tr, {"Before your turn": "Sıran gelmeden", "Check / Fold": "Kontrol / Pas", "Call any": "Her bahsi gör", "Call": "Gör", "Check": "Kontrol", "Flush + straight draw · {n} outs": "Floş + kent beklentisi · {n} out", "Flush draw · {n} outs": "Floş beklentisi · {n} out", "Open-ended straight draw · {n} outs": "Açık uçlu kent beklentisi · {n} out", "Gutshot straight draw · {n} outs": "İçten kent beklentisi · {n} out", "All in?! So brave~ ♡": "All-in mi?! Ne cesaret~ ♡", "Ooh, all in~!": "Ooh, all-in~!", "Won with that?! What nerve~ ♡": "Bununla mı kazandın?! Ne cesaret~ ♡", "{n} hands · {c} chips each · blinds rise every {k} hands": "{n} el · herkese {c} fiş · körler her {k} elde artar", "Game length": "Oyun uzunluğu", "Quick {n}": "Kısa {n}", "Long {n}": "Uzun {n}"});

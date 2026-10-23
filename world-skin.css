@@ -3053,3 +3053,37 @@ html.wp-pcphone .wpt-card{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(90vh 
 .wpk-card button{min-width:140px;padding:11px 18px;border:0;border-radius:14px;font:900 15px/1 var(--f-ui);color:#2a1200;background:linear-gradient(180deg,#ffd36a,#ff8a2a);cursor:pointer}
 @keyframes wpkIn{from{transform:scale(.7);opacity:0}}
 @media (prefers-reduced-motion:reduce){.wpk-card{animation:none}}
+/* b-pky: the poker table's new bits — hero faces on the seats, one-tap bets, moves picked early, the last seconds, a draw's line, run-out drama, all-in pulse, big-hand cut-in */
+.pk-av.pic{background:var(--pic) 50% 18%/150% no-repeat,#2a1b4a!important}.pk-av.pic span{opacity:0}
+.pk-tsec{position:absolute;right:-6px;top:-8px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:#1a0d36;color:#5ff0a0;font:900 12px/1 var(--hud-font,var(--f-ui));box-shadow:0 0 0 1.5px currentColor}
+.pk-tsec[hidden]{display:none}
+.pk-seat.hurry .pk-tsec{color:#ff5a7a;animation:pk-hurry .5s ease-in-out infinite alternate}
+.pk-seat.hurry{box-shadow:inset 0 0 0 2px #ff5a7a,0 0 20px rgba(255,90,122,.65)!important}
+.pk-seat.hurry .pk-ring{background:conic-gradient(#ff5a7a calc(var(--t,1) * 360deg),rgba(255,255,255,.12) 0)!important}
+@keyframes pk-hurry{to{transform:scale(1.18)}}
+.pk-qb,.pk-preact{position:absolute;left:50%;transform:translateX(-50%);width:min(440px,calc(100% - 16px));display:flex;gap:6px;pointer-events:auto}
+.pk-qb{bottom:calc(env(safe-area-inset-bottom) + 78px)}
+.pk-preact{bottom:calc(env(safe-area-inset-bottom) + 12px);align-items:center;flex-wrap:wrap;justify-content:center}
+.pk-qb[hidden],.pk-preact[hidden],.pk-preact button[hidden]{display:none}
+.pk-qb button{flex:1;height:40px;border-radius:12px;display:grid;place-content:center;gap:2px;background:linear-gradient(180deg,rgba(255,178,58,.28),rgba(226,115,26,.22));box-shadow:inset 0 0 0 1.5px rgba(255,190,90,.6)}
+.pk-qb b{font:900 12.5px/1 var(--hud-font,var(--f-ui))}.pk-qb small{font:800 11px/1 var(--hud-font,var(--f-ui));opacity:.85}
+.pk-preact small{width:100%;text-align:center;font:800 11px/1 var(--hud-font,var(--f-ui));opacity:.7;margin-bottom:2px}
+.pk-preact button{flex:1;min-width:92px;height:40px;border-radius:12px;background:rgba(20,10,46,.75);box-shadow:inset 0 0 0 1.5px rgba(200,180,255,.35);font:800 12.5px/1.1 var(--hud-font,var(--f-ui))}
+.pk-preact button.on{background:linear-gradient(180deg,#3fd47a,#1a9a52);box-shadow:inset 0 0 0 1.5px #c8ffe0,0 0 12px rgba(63,212,122,.5)}
+.pk-preact button small{width:auto;display:inline;margin:0;opacity:.9}
+.pk.wide .pk-qb,.pk.wide .pk-preact{left:auto;right:24px;transform:none;width:340px}
+.pk.wide .pk-qb{bottom:86px}
+.pk-hdesc{font:800 11.5px/1.2 var(--hud-font,var(--f-ui));color:#9ff6ee}.pk-hdesc[hidden]{display:none}
+.pk.drama::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 140px 30px rgba(0,0,0,.75),inset 0 0 40px rgba(255,60,90,.35);animation:pk-dr 1.8s ease-in-out infinite alternate}
+@keyframes pk-dr{to{box-shadow:inset 0 0 110px 20px rgba(0,0,0,.6),inset 0 0 60px rgba(255,60,90,.5)}}
+.pk.pulse-allin::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 0 6px rgba(255,70,100,.9),inset 0 0 80px rgba(255,70,100,.55);animation:pk-pl 1.2s ease-out forwards}
+@keyframes pk-pl{to{opacity:0}}
+.pk-cut{position:absolute;left:0;right:0;top:38%;display:flex;align-items:center;justify-content:center;gap:14px;pointer-events:none;z-index:6;animation:pk-cut 2.2s cubic-bezier(.2,1.2,.3,1) forwards}
+.pk-cut b{font:900 clamp(30px,8vw,64px)/1 var(--hud-font,var(--f-ui));letter-spacing:1px;color:#fff6d8;text-shadow:0 0 18px #ffc83a,0 0 40px #ff8a1d,0 4px 0 #7a3a00;white-space:nowrap}
+.pk-cut i{flex:1;max-width:220px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,#ffd23a)}.pk-cut i:last-child{background:linear-gradient(90deg,#ffd23a,transparent)}
+.pk-cut.c8 b{color:#e8fbff;text-shadow:0 0 18px #5ff0ff,0 0 44px #2f86ff,0 4px 0 #0a2a6a}
+@keyframes pk-cut{0%{transform:scale(2.2);opacity:0}12%{transform:scale(1);opacity:1}80%{transform:scale(1.04);opacity:1}100%{transform:scale(1.1);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pk-cut,.pk.drama::after,.pk-seat.hurry .pk-tsec{animation:none}}
+.pk:not(.wide) .pk-hand{bottom:calc(env(safe-area-inset-bottom) + 126px)} /* b-pky: your cards a row up: the one-tap bets sit under them */
+.pk-qb button[hidden]{display:none}
+.pk.wide .pk-hand{bottom:calc(env(safe-area-inset-bottom) + 134px)} /* b-pky: PC: the one-tap bets between your cards and your moves */

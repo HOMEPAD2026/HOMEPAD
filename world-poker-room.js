@@ -112,7 +112,7 @@ export function makeLounge({ THREE, K, ver, low, coarse, scene, RX, RZ, slotPos 
     const gr = x.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#1b0d3c"); gr.addColorStop(1, "#0a0620"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
     x.textAlign = "center"; x.textBaseline = "middle"; x.font = "900 64px sans-serif"; x.shadowColor = "#ffc861"; x.shadowBlur = 20; x.fillStyle = "#ffe2a8"; x.fillText("🏆 WEEKLY TOP", W / 2, 70); x.shadowBlur = 0;
     const list = (rows || []).slice(0, 5); x.font = "800 44px sans-serif";
-    if (!list.length) { x.fillStyle = "#cbbcff"; x.fillText("—", W / 2, H / 2); }
+    if (!list.length) { x.fillStyle = "#e6dcff"; x.font = "800 46px sans-serif"; x.fillText("No winners yet this week", W / 2, H / 2 - 30); x.fillStyle = "#ffd23a"; x.font = "900 50px sans-serif"; x.fillText("Be the first! 🏆", W / 2, H / 2 + 50); x.font = "800 44px sans-serif"; } // (b-pky: an empty board asks you to take it)
     list.forEach((r, i) => { const yy = 170 + i * 92; x.textAlign = "left"; x.fillStyle = ["#ffd23a", "#e6ecff", "#ffb27a", "#cbbcff", "#cbbcff"][i]; x.fillText(`${i + 1}  ${String(r.name || "").slice(0, 16)}`, 80, yy); x.textAlign = "right"; x.fillStyle = r.n >= 0 ? "#5ff0d0" : "#ff8aa8"; x.fillText((r.n >= 0 ? "+" : "") + Math.round(r.n || 0).toLocaleString("en-US"), W - 80, yy); });
     boardT.needsUpdate = true;
   }
