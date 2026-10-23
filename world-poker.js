@@ -14,7 +14,7 @@
 import { POKER, HANDS, LEVELS, newHand, act, legal, pot, botMove, best, equity, RANKS, SUITS, rankOf, suitOf } from "./world-poker-engine.js";
 import { BJ } from "./world-blackjack-engine.js";
 import { makeBlackjack } from "./world-blackjack.js";
-import { makeLounge } from "./world-poker-room.js";
+import { makeLounge, EMOTE } from "./world-poker-room.js";
 
 const SAVE = "arc.world.poker", ROOMK = "arc.world.poker.room", fmt = (n) => Math.round(n || 0).toLocaleString("en-US");
 const seoulDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
@@ -66,7 +66,7 @@ export function createPoker(ctx) {
   const phone = () => document.documentElement.classList.contains("wp-pcphone") || (innerWidth < 700 && innerHeight > innerWidth);
   const signed = () => !!(ctx.sess && ctx.sess());
   let on = false, busy = false, mode = "off", S = null, ui = null, prOrig = 0, tab = "play", fast = 1;
-  let prog = load(), status = null, topB = null, roomsL = null, sayT = 0;
+  let prog = load(), status = null, topB = null, roomsL = null, sayT = 0, sngL = null, sngT = 0; // (b-pky2: the Sit & Go card)
   let G = null, R = null, vis = blank(), Q = [], qAt = 0, latest = null, TWN = [], actBusy = false;
   let walkUp = false; const wKeys = new Set(), joy = { x: 0, y: 0, id: -1 }; // b-pk3d: walking the room (the lobby with its sheet put away)
 
@@ -522,7 +522,7 @@ export function createPoker(ctx) {
   function paintTop() {
     const M = vis.M, H = M && M.hand; if (!M) return;
     ui.title.textContent = M.kind === "mp" ? (M.priv ? T("Private table") : T("Table")) + " · " + fmt(M.stake.sb) + "/" + fmt(M.stake.bb) : T("Solo · {lvl}", { lvl: T(LEVELS[G ? G.lvl : 0]) });
-    ui.sub.textContent = M.kind === "mp" ? (M.priv && M.code ? T("Code {c}", { c: M.code }) : T("Hand #{n}", { n: H ? H.handNo : "–" })) : T("Hand {n} / {m} · Blinds {b}", { n: G ? G.hands : 0, m: G ? G.len : lenOf(prog), b: H ? fmt(H.sb) + "/" + fmt(H.bb) : "" });
+    ui.sub.textContent = M.kind === "mp" ? (M.tour ? T("Sit & Go · Level {l} · Blinds {b} · {n} left", { l: M.tour.lv, b: fmt(M.tour.sb) + "/" + fmt(M.tour.bb), n: M.tour.left }) : M.priv && M.code ? T("Code {c}", { c: M.code }) : T("Hand #{n}", { n: H ? H.handNo : "–" })) + (M.watch ? " · 👁 " + M.watch : "") : T("Hand {n} / {m} · Blinds {b}", { n: G ? G.hands : 0, m: G ? G.len : lenOf(prog), b: H ? fmt(H.sb) + "/" + fmt(H.bb) : "" });
   }
   // the seat labels, the pot, the bets and ARCIA's words follow the table on screen; the clock of whoever's turn it is
   function place() {
@@ -644,7 +644,7 @@ export function createPoker(ctx) {
   function levelUp(before) { const now = lvInfo().lv; if (now > before) { banner(`<b>${esc(T("LEVEL UP!"))} Lv ${now}</b><small>${esc(T(titleOf(now)))}</small>`, "jackpot"); const u = [...BACKS, ...FELTS].filter((x) => x.lv > before && x.lv <= now); if (u.length) setTimeout(() => ctx.toast(esc(T("Unlocked: {x}", { x: u.map((x) => T(x.name)).join(", ") }))), 1200); } }
 
   // ---------------- the tables (a wallet): the server deals; this page asks for the table about once a second ----------------
-  const errText = (e) => { const m = String((e && e.message) || e || ""); const known = { "not enough chips for this table": "Not enough chips for this table", "the table is full": "That table is full", "no table with that code": "No table with that code", "not your turn": "Not your turn", "no such table": "That table has closed", network: "Network trouble — try again", "not enough ARCL": "Not enough ARCL", "today's chip limit is reached": "Today's chip limit is reached", "one moment": "One moment…" }; return T(known[m] || m).slice(0, 80); };
+  const errText = (e) => { const m = String((e && e.message) || e || ""); const known = { "not enough chips for the entry": "Not enough chips for the entry", "this Sit & Go is full": "This Sit & Go is full", "this Sit & Go has started": "This Sit & Go has started", "sign-up isn't open yet": "Sign-up isn't open yet", "not enough chips for this table": "Not enough chips for this table", "the table is full": "That table is full", "no table with that code": "No table with that code", "not your turn": "Not your turn", "no such table": "That table has closed", network: "Network trouble — try again", "not enough ARCL": "Not enough ARCL", "today's chip limit is reached": "Today's chip limit is reached", "one moment": "One moment…" }; return T(known[m] || m).slice(0, 80); };
   async function api(body) {
     const ss = ctx.sess && ctx.sess(); if (!ss) throw new Error(T("Sign in with a wallet to play at the tables"));
     const look = /^world-poker-(create|join)$/.test(body.action) ? myLook() : {}; // (the hero you're drawn as at the table)
@@ -653,7 +653,7 @@ export function createPoker(ctx) {
     return r.j;
   }
   const stakeOf = (id) => POKER.STAKES.find((x) => x.id === id) || POKER.STAKES[0];
-  function modelOf(room) { return { kind: "mp", id: room.id, seats: room.seats, me: room.me, hand: room.hand, deadline: room.deadline ? room.deadline - (R ? R.off : 0) : 0, stake: stakeOf(room.stake), code: room.code, priv: room.priv }; }
+  function modelOf(room) { return { kind: "mp", id: room.id, seats: room.seats, me: room.me, hand: room.hand, deadline: room.deadline ? room.deadline - (R ? R.off : 0) : 0, stake: stakeOf(room.stake), code: room.code, priv: room.priv, tour: room.tour || null, watch: room.watch || 0 }; }
   function sitAt(room, o = {}) {
     G = null; R = { id: room.id, tok: {}, off: room.now - Date.now(), auto: !!o.auto, watch: !!o.watch, paid: room.paid || 0, fails: 0, chatN: 0, alone: 0 };
     if (!o.watch) try { localStorage.setItem(ROOMK, room.id); } catch { /* reconnect needs the lobby */ }
@@ -669,7 +669,7 @@ export function createPoker(ctx) {
     const n = room.seats.filter(Boolean).length;
     if (R.auto && room.me >= 0 && n === 1 && !room.hand) { if (!R.alone) R.alone = Date.now(); else if (Date.now() - R.alone > 6000 * fast) { R.auto = false; addBots(2); } } else R.alone = 0;
     paintChat(room.chat || []); news(room.news);
-    sync(modelOf(room));
+    sync(modelOf(room)); sngOver(room);
   }
   /// how soon to ask again: sooner when you're next or a computer is thinking (the server moves them on a look), slower
   /// while it's your own turn (nothing changes until you act) and when the page is hidden
@@ -685,7 +685,7 @@ export function createPoker(ctx) {
     while (R && R.tok === tok && on) {
       await sleep(pollGap());
       if (!R || R.tok !== tok || !on) break;
-      try { const j = await api({ action: "world-poker-view", room: R.id }); if (!R || R.tok !== tok) break; R.fails = 0; ui.root.classList.remove("lost"); syncRoom(j.room); }
+      try { const j = await api({ action: "world-poker-view", room: R.id, ...(R.watch || !R.seated ? { vt: VT } : {}) }); if (!R || R.tok !== tok) break; R.fails = 0; ui.root.classList.remove("lost"); syncRoom(j.room); }
       catch (e) {
         if (e && e.status === 404) { ctx.toast(esc(T("That table has closed"))); try { localStorage.removeItem(ROOMK); } catch { /* fine */ } R = null; lobby(); break; }
         if (R && ++R.fails >= 3) ui.root.classList.add("lost");
@@ -718,8 +718,46 @@ export function createPoker(ctx) {
     for (const m of fresh.slice(-3)) {
       const txt = EMO[m.t] || (PHRASES.includes(m.t) ? T(m.t) : m.t), el = document.createElement("div"); el.className = "pk-msg" + (m.e ? " emo" : ""); el.innerHTML = `<b>${esc(m.n)}</b> ${esc(txt)}`; ui.log.appendChild(el); setTimeout(() => el.remove(), 7000);
       while (ui.log.children.length > 4) ui.log.firstChild.remove();
-      const M = vis.M; if (M) { const si = M.seats.findIndex((s) => s && s.name === m.n); if (si >= 0) { const el2 = ui.seats[dispOf(M, si)], bb = document.createElement("i"); bb.className = "pk-bubble"; bb.textContent = txt; el2.appendChild(bb); setTimeout(() => bb.remove(), 3200); } }
+      const M = vis.M; if (M) { const si = M.seats.findIndex((s) => s && s.name === m.n); if (si >= 0) { const d = dispOf(M, si), el2 = ui.seats[d], bb = document.createElement("i"); bb.className = "pk-bubble" + (m.e ? " emo" : ""); bb.textContent = txt; el2.appendChild(bb); setTimeout(() => bb.remove(), 3200);
+        if (m.e && S && S.lounge) S.lounge.react(d, m.t === ":gg:" || m.t === ":nice:" || m.t === ":heart:" ? "win" : m.t === ":wow:" ? "fold" : "hi"); } } // (b-pky2: the hero in that chair answers the emote)
     }
+  }
+
+  // ---------------- b-pky2: the scheduled Sit & Go (api/_world-poker.mjs SNG) ----------------
+  const EMO_N = { wave: "Wave", cheer: "Cheer", lol: "Laugh", heart: "Love", gg: "Good game", dance: "Dance" };
+  const VT = Math.random().toString(36).slice(2, 12).padEnd(8, "0"); // (a watcher's token: the table counts who's watching)
+  async function sngRead() {
+    try { const r = await ctx.post({ action: "world-poker-sng", ...(signed() ? ctx.sess() : {}) }); if (!r || !r.ok || !r.j) return; const old = sngL; sngL = { ...r.j, off: r.j.now - Date.now() }; sngT = Date.now();
+      // yours has just started: to your seat
+      const mine = sngL.list.find((g) => g.mine && g.state === "play" && g.room), was = old && old.list.find((g) => mine && g.id === mine.id);
+      if (mine && was && was.state === "reg" && mode === "lobby") { ctx.toast(`🏆 <b>${esc(T("Your Sit & Go is starting — to your seat!"))}</b>`); snd("enter"); join(mine.room, false); }
+    } catch { /* the card waits for the next look */ }
+  }
+  const clock = (at) => { try { return new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
+  const inT = (ms) => { const m = Math.max(0, Math.ceil(ms / 60e3)); return m >= 60 ? T("{h}h {m}m", { h: Math.floor(m / 60), m: m % 60 }) : T("{m} min", { m }); };
+  function sngHtml() {
+    const L = sngL; if (!L || !L.list) return `<section class="pk-box sng"><header><b>🏆 ${esc(T("SIT & GO"))}</b><small>${esc(T("Every 2 hours · 6 seats"))}</small></header><p class="pk-note">…</p></section>`;
+    const sg = signed(), t = Date.now() + (L.off || 0), ru = L.rules || {};
+    const rows = L.list.map((g) => {
+      const st = g.state === "reg" ? T("Starts in {t}", { t: inT(g.at - t) }) : g.state === "play" ? T("Playing now") : g.places && g.places[0] ? T("Won by {name}", { name: g.places[0].name }) : T("Finished");
+      const btn = !sg ? "" : g.state === "reg" ? (g.mine ? `<button type="button" class="pk-mini" data-sng-un="${esc(g.id)}">✓ ${esc(T("Signed up"))} · ${esc(T("Cancel"))}</button>` : `<button type="button" class="pk-mini go" data-sng-reg="${esc(g.id)}" ${g.n >= g.max || (L.chips != null && L.chips < g.entry) ? "disabled" : ""}>${esc(T("Sign up"))} · ${fmt(g.entry)}</button>`)
+        : g.state === "play" ? (g.mine ? `<button type="button" class="pk-mini go" data-room="${esc(g.room)}">${esc(T("To your seat"))}</button>` : `<button type="button" class="pk-mini" data-watch="${esc(g.room)}">${esc(T("Watch"))}</button>`) : "";
+      return `<li class="${g.state}${g.mine ? " mine" : ""}"><div><b>${esc(clock(g.at))}</b><small>${esc(st)}</small></div><span class="pk-sngp" title="${esc(g.pay.map((x) => fmt(x)).join(" · "))}">🏆 ${fmt(g.pay[0])}</span><span class="pk-sngn">${g.n}/${g.max}</span>${btn}</li>`;
+    }).join("");
+    return `<section class="pk-box sng"><header><b>🏆 ${esc(T("SIT & GO"))}</b><small>${esc(T("Every 2 hours · 6 seats · {c} tournament chips · blinds up every {k} hands", { c: fmt(ru.start || 1500), k: ru.lvHands || 5 }))}</small></header>
+      <ul class="pk-sngl">${rows}</ul><p class="pk-note">${esc(sg ? T("Entry in chips (back if you cancel before it starts) · computers fill the empty seats · prizes for the top 3 in chips + poker XP · the winner's title") : T("Sign in with a wallet to sign up"))}</p></section>`;
+  }
+  const sngReg = (id, on) => guard(async () => { const j = await api({ action: on ? "world-poker-sng-reg" : "world-poker-sng-unreg", id }); if (status && j.chips != null) status.chips = j.chips; snd(on ? "coin" : "tap"); if (on) ctx.toast(esc(T("Signed up — it starts at {t}", { t: clock(j.sng.at) }))); await sngRead(); if (mode === "lobby") paintLobby(); });
+  /// a Sit & Go ends at your table: the places, your prize
+  function sngOver(room) {
+    const tr = room.tour; if (!tr || !tr.done || !R || R.sngShown === tr.id) return; R.sngShown = tr.id;
+    const P = tr.places || [], mine = tr.mine, prize = mine >= 0 && mine < 3 ? tr.pay[mine] : 0;
+    setTimeout(() => { if (!R || mode !== "table") return;
+      if (mine === 0) { banner(`<b>🏆 ${esc(T("SIT & GO CHAMPION!"))}</b><small>+${fmt(prize)} ${esc(T("Chips"))}</small>`, "jackpot"); confetti(60); goldBurst(); snd("win"); } else if (prize) { snd("coin"); confetti(24); }
+      modal(`<h3>${esc(T("Sit & Go · the places"))}</h3><ol class="pk-places">${P.map((y, k) => `<li class="${k === mine ? "me" : ""}"><i>${k + 1}</i><b>${esc(y.name)}</b><span>${k < 3 ? "+" + fmt(tr.pay[k]) : ""}</span></li>`).join("")}</ol>
+        <p class="pk-note">${esc(mine >= 0 ? (prize ? T("Your place: {n} · +{c} chips and poker XP", { n: mine + 1, c: fmt(prize) }) : T("Your place: {n}", { n: mine + 1 })) : T("Watching"))}</p>
+        <div class="pk-row"><button type="button" class="pk-btn go" data-a="lobby">${esc(T("Lounge"))}</button></div>`, true);
+    }, 1800);
   }
 
   // ---------------- the lounge (lobby) ----------------
@@ -737,6 +775,7 @@ export function createPoker(ctx) {
     const jobs = [fetch("/api/social?world=poker-fest").then((r) => (r.ok ? r.json() : null)).then((j) => { festG = j && j.fest; }).catch(() => {})];
     if (signed()) jobs.push(ctx.post({ action: "world-poker-me", ...ctx.sess() }).then((r) => { if (r && r.ok && r.j) { status = r.j.prog; news(status.news); } }).catch(() => {}));
     if (signed() && tab === "play") jobs.push(fetch("/api/social?world=poker-rooms", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { roomsL = j && j.rooms; }).catch(() => {}));
+    if (tab === "play") jobs.push(sngRead());
     if (tab === "rank") jobs.push(fetch("/api/social?world=poker-top").then((r) => (r.ok ? r.json() : null)).then((j) => { topB = j; }).catch(() => {}));
     await Promise.race([Promise.all(jobs), sleep(4000)]);
   }
@@ -774,7 +813,7 @@ export function createPoker(ctx) {
     S.lounge.walkStart(myLook(), at); frame();
     if (!topB && !walkBegin.asked) { walkBegin.asked = true; fetch("/api/social?world=poker-top").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { topB = j; walkPaint(); } }).catch(() => {}); } // (the week's board on the wall)
   }
-  function walkEnd() { if (!walkUp && !(S && S.lounge && S.lounge.walking())) { if (ui && ui.walk) ui.walk.hidden = true; return; } walkUp = false; if (ui && ui.walk) ui.walk.hidden = true; joy.x = joy.y = 0; wKeys.clear(); if (S && S.lounge) S.lounge.walkStop(); }
+  function walkEnd() { if (!walkUp && !(S && S.lounge && S.lounge.walking())) { if (ui && ui.walk) ui.walk.hidden = true; return; } walkUp = false; if (ui && ui.walk) ui.walk.hidden = true; joy.x = joy.y = 0; wKeys.clear(); if (S && S.lounge) { S.lounge.walkStop(); S.lounge.others([]); } }
   /// the old sheet over the room (a place's button, or the menu): walking pauses until it closes
   function sheetUp(t) { if (t) tab = t; walkUp = false; ui.walk.hidden = true; joy.x = joy.y = 0; wKeys.clear(); frame(); paintLobby(); if (t === "rank" || t === "play" || t === "missions") readStatus().then(() => { if (mode === "lobby" && !walkUp) paintLobby(); }); }
   function sheetDown() { if (mode !== "lobby" || !S || !S.lounge) return; ui.sheet.hidden = true; walkUp = true; ui.walk.hidden = false; frame(); walkPaint(); }
@@ -827,7 +866,7 @@ export function createPoker(ctx) {
     const tabs = [["play", T("Play")], ["missions", T("Missions")], ["rank", T("Ranking")], ["profile", T("Profile")], ["rules", T("How to play")]];
     let pane = "";
     if (tab === "play") {
-      pane = festHtml(true) + `<section class="pk-box solo"><header><b>${esc(T("SOLO · PRACTICE"))}</b><small>${esc(T("{n} hands · {c} chips each · blinds rise every {k} hands", { n: lenOf(prog), c: fmt(POKER.START), k: riseOf(lenOf(prog)) }))}</small></header>
+      pane = festHtml(true) + sngHtml() + `<section class="pk-box solo"><header><b>${esc(T("SOLO · PRACTICE"))}</b><small>${esc(T("{n} hands · {c} chips each · blinds rise every {k} hands", { n: lenOf(prog), c: fmt(POKER.START), k: riseOf(lenOf(prog)) }))}</small></header>
         <div class="pk-opt"><span>${esc(T("Game length"))}</span><div class="pk-seg">${LENS.map((n) => `<button type="button" data-len="${n}" class="${lenOf(prog) === n ? "on" : ""}">${esc(n === 6 ? T("Quick {n}", { n }) : n === 24 ? T("Long {n}", { n }) : String(n))}</button>`).join("")}</div></div>
         <div class="pk-opt"><span>${esc(T("AI players"))}</span><div class="pk-seg">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-ais="${n}" class="${prog.ais === n ? "on" : ""}">${n}</button>`).join("")}</div></div>
         <div class="pk-opt"><span>${esc(T("Level"))}</span><div class="pk-seg">${LEVELS.map((l, k) => `<button type="button" data-lvl="${k}" class="${prog.lvl === k ? "on" : ""}">${esc(T(l))}</button>`).join("")}</div></div>
@@ -928,14 +967,14 @@ export function createPoker(ctx) {
       <div class="pk-banner" hidden></div><div class="pk-lost">${esc(T("Reconnecting…"))}</div>
       <div class="pk-walk" hidden><div class="pk-wtop" data-game-hud><button type="button" class="pk-back" data-a="leave" aria-label="${esc(T("Back to town"))}"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><div class="pk-wchip"><i>🪙</i><b></b></div><button type="button" class="pk-wmenu" data-a="sheet">☰ ${esc(T("Lounge menu"))}</button></div>
         ${Object.keys(PLACES).map((id) => `<button type="button" class="pk-wtag" data-go="${id}" hidden>${esc(T(PLACES[id].n))}</button>`).join("")}
-        <div class="pk-wgo" hidden></div><div class="pk-joy" aria-hidden="true"><i></i></div><p class="pk-whint">${esc(T(ctx.coarse ? "Walk with the stick, or tap a sign" : "Walk with WASD or the arrows, or click a sign · E to use"))}</p></div>
+        <div class="pk-wgo" hidden></div><div class="pk-emo">${Object.entries(EMOTE).map(([k, e]) => `<button type="button" data-emo="${k}" aria-label="${esc(T(EMO_N[k] || k))}">${e[1]}</button>`).join("")}</div><div class="pk-wseen" hidden></div><div class="pk-joy" aria-hidden="true"><i></i></div><p class="pk-whint">${esc(T(ctx.coarse ? "Walk with the stick, or tap a sign" : "Walk with WASD or the arrows, or click a sign · E to use"))}</p></div>
       <div class="pk-sheet" hidden></div><div class="pk-modal" hidden></div>`;
     document.body.appendChild(root);
     const q = (x) => root.querySelector(x);
     ui = { root, top: q(".pk-top"), title: q(".pk-title b"), sub: q(".pk-title small"), replayB: q('[data-a="replay"]'), tools: q(".pk-tools"), chat: q(".pk-chat"), pot: q(".pk-pot"), potV: q(".pk-pot b"), betL: [...root.querySelectorAll(".pk-betl")], arcia: q(".pk-arcia"), log: q(".pk-log"), wait: q(".pk-wait"), hand: q(".pk-hand"), mine: q(".pk-mine"), hname: q(".pk-hname"), hdesc: q(".pk-hdesc"), eq: q(".pk-eq"), str: q(".pk-str"), raise: q(".pk-raise"), bar: q(".pk-bar"), qb: q(".pk-qb"), preact: q(".pk-preact"), banner: q(".pk-banner"), sheet: q(".pk-sheet"), modal: q(".pk-modal"),
       b: { fold: q('[data-a="fold"]'), call: q('[data-a="call"]'), raise: q('[data-a="raise"]'), allin: q('[data-a="allin"]') } };
     ui.seats = [q('.pk-hand .pk-seat'), ...[1, 2, 3, 4, 5].map((d) => q(`.pk-seats [data-d="${d}"]`))];
-    Object.assign(ui, { walk: q(".pk-walk"), walkChips: q(".pk-wchip b"), walkTags: [...root.querySelectorAll(".pk-wtag")], walkGo: q(".pk-wgo"), joy: q(".pk-joy"), joyK: q(".pk-joy i") });
+    Object.assign(ui, { walk: q(".pk-walk"), walkChips: q(".pk-wchip b"), walkTags: [...root.querySelectorAll(".pk-wtag")], walkGo: q(".pk-wgo"), joy: q(".pk-joy"), joyK: q(".pk-joy i"), wseen: q(".pk-wseen") });
     ui.joy.addEventListener("pointerdown", joyDown); ui.joy.addEventListener("pointermove", joyMove); ui.joy.addEventListener("pointerup", joyUp); ui.joy.addEventListener("pointercancel", joyUp);
     ui.raise.querySelector("input").addEventListener("input", paintRaise);
     root.addEventListener("click", onClick);
@@ -957,6 +996,9 @@ export function createPoker(ctx) {
     if (b.dataset.quick) { quick(b.dataset.quick); return; }
     if (b.dataset.pack) { snd("tap"); askBuy(b.dataset.pack); return; }
     if (b.dataset.room) { join(b.dataset.room, false); return; }
+    if (b.dataset.sngReg) { sngReg(b.dataset.sngReg, true); return; }
+    if (b.dataset.emo) { if (S && S.lounge && S.lounge.emote(b.dataset.emo)) { snd("tap"); hereEm = b.dataset.emo; hereT = 0; } return; }
+    if (b.dataset.sngUn) { sngReg(b.dataset.sngUn, false); return; }
     if (b.dataset.watch) { join(b.dataset.watch, true); return; }
     if (b.dataset.say) { chatSend(b.dataset.say); return; }
     if (b.dataset.qb) { const H = vis.M && vis.M.hand, L = H && legal(H); if (!L || !L.raise || !myTurn(vis.M)) return; const v = qbTo(H, L, +b.dataset.qb); snd("tap"); if (v >= L.raise.max) allinAsk(); else move({ t: "raise", to: v }); return; }
@@ -1000,6 +1042,20 @@ export function createPoker(ctx) {
     if (k === "f" && !ui.b.fold.hidden) move({ t: "fold" }); else if (k === "c") ui.b.call.click(); else if (k === "r" && !ui.b.raise.hidden) ui.b.raise.click(); else if (k === "a" && !ui.b.allin.hidden) allinAsk();
   };
 
+  // ---------------- b-pky2: who else is in the lounge (every 3 s while you walk it), the Sit & Go card's clock ----------------
+  let hereT = 0, hereEm = "", hereBusy = false, fakePeers = []; // (fakePeers: the tests' made-up visitors)
+  function lobbyTick() {
+    const t = Date.now();
+    if (walkUp && signed() && !hereBusy && !document.hidden && t - hereT > 3000) {
+      hereT = t; hereBusy = true; const m = S.lounge.me(), em = hereEm; hereEm = "";
+      ctx.post({ action: "world-poker-here", x: m.x, z: m.z, f: m.f, ...myLook(), ...(em ? { em } : {}), ...ctx.sess() }).then((r) => {
+        if (!on || mode !== "lobby" || !walkUp || !r || !r.ok || !r.j) return; S.lounge.others([...(r.j.list || []), ...fakePeers]);
+        const n = (r.j.list || []).length; ui.wseen.hidden = !n; ui.wseen.textContent = n ? T("{n} more in the lounge", { n }) : "";
+      }).catch(() => {}).finally(() => { hereBusy = false; });
+    }
+    if (tab === "play" && t - sngT > 20000 && !document.hidden) { sngT = t; sngRead().then(() => { if (mode === "lobby" && !walkUp && !ui.sheet.hidden && !ui.sheet.contains(document.activeElement)) paintLobby(); }); }
+  }
+
   // ---------------- each frame ----------------
   let lastNow = 0, frameMs = 16;
   function tick(dt0, t) {
@@ -1009,6 +1065,7 @@ export function createPoker(ctx) {
     for (let i = TWN.length - 1; i >= 0; i--) { const w = TWN[i]; w.t += dt; if (w.t < 0) continue; const k = Math.min(1, w.t / w.dur); try { w.f(k); } catch { /* a card gone */ } if (k >= 1) { TWN.splice(i, 1); if (w.done) try { w.done(); } catch { /* fine */ } } }
     runQ(now); soloTick(now); if (mode === "bj") BJK.tick();
     if (S.lounge) { S.lounge.show(mode === "lobby" || mode === "load" ? "lobby" : "table"); S.lounge.tick(dt, t); if (walkUp) walkTick(dt); }
+    if (mode === "lobby") lobbyTick();
     if (mode === "table") { place(); if (!Q.length && !latest && ui.bar.hidden === myTurn(vis.M) && !actBusy) paintBar(); if (pre && myTurn(vis.M)) preGo(); }
     else if (!ui.arcia.hidden) { const s = toScreen(1.1, 3.9 + DY, DZ), W = innerWidth / scaleK(); ui.arcia.style.transform = `translate(${Math.min(W - 120, s.x)}px, ${Math.max(40, s.y)}px)`; }
     S.deal.position.y = DY + Math.sin(t * 1.3) * 0.03; S.halo.material.opacity = 0.45 + Math.sin(t * 0.9) * 0.1;
@@ -1053,6 +1110,9 @@ export function createPoker(ctx) {
     quick: (s) => quick(s), code: (c) => joinCode(c), priv: (s) => createPriv(s), replay: () => replay(),
     /// tests: the room's heroes (who sits where, their clips, which way they face; you walking)
     room: () => (S && S.lounge ? S.lounge.debug() : null), roomBones: (d) => (S && S.lounge ? S.lounge.bones(d) : null),
+    /// tests (b-pky2): others in the lounge, an emote, the Sit & Go card's data and the end card
+    peers: (list) => { if (S && S.lounge) { if (list) { fakePeers = list; S.lounge.others(list); } return S.lounge.peers(); } return null; }, emote: (k) => !!(S && S.lounge && S.lounge.emote(k)),
+    sng: () => sngL, sngRead: () => sngRead().then(() => { if (mode === "lobby") paintLobby(); return sngL; }), sngEnd: (room) => { if (!R) R = { id: room.id, tok: {}, off: 0 }; mode = "table"; sngOver(room); },
     /// tests: end the solo game now (the hands so far count)
     finish: () => { if (G && !G.over) { Q.length = 0; latest = null; soloOver(); } },
     /// tests: blackjack
@@ -1092,3 +1152,7 @@ Object.assign(LW.tr, {"ARCIA's table": "ARCIA'nın masası", "Play Hold'em": "Ho
 Object.assign(LW.ko, {"Before your turn": "내 차례 전에 미리", "Check / Fold": "체크 / 폴드", "Call any": "아무거나 콜", "Call": "콜", "Check": "체크", "Flush + straight draw · {n} outs": "플러시 + 스트레이트 드로우 · 아웃 {n}장", "Flush draw · {n} outs": "플러시 드로우 · 아웃 {n}장", "Open-ended straight draw · {n} outs": "양방향 스트레이트 드로우 · 아웃 {n}장", "Gutshot straight draw · {n} outs": "거트샷 스트레이트 드로우 · 아웃 {n}장", "All in?! So brave~ ♡": "올인?! 용감해요~ ♡", "Ooh, all in~!": "오, 올인이에요~!", "Won with that?! What nerve~ ♡": "그 패로 이겼어요?! 배짱 대단해요~ ♡", "{n} hands · {c} chips each · blinds rise every {k} hands": "{n}핸드 · 각자 칩 {c} · {k}핸드마다 블라인드 상승", "Game length": "게임 길이", "Quick {n}": "짧게 {n}", "Long {n}": "길게 {n}"});
 Object.assign(LW.zh, {"Before your turn": "轮到你之前", "Check / Fold": "过牌 / 弃牌", "Call any": "跟任何注", "Call": "跟注", "Check": "过牌", "Flush + straight draw · {n} outs": "同花 + 顺子听牌 · {n} 张出路", "Flush draw · {n} outs": "同花听牌 · {n} 张出路", "Open-ended straight draw · {n} outs": "两头顺子听牌 · {n} 张出路", "Gutshot straight draw · {n} outs": "卡顺听牌 · {n} 张出路", "All in?! So brave~ ♡": "全下？！好勇敢~ ♡", "Ooh, all in~!": "哇，全下了~！", "Won with that?! What nerve~ ♡": "就靠这手牌赢了？！好胆量~ ♡", "{n} hands · {c} chips each · blinds rise every {k} hands": "{n} 手 · 每人 {c} 筹码 · 每 {k} 手升盲", "Game length": "对局长度", "Quick {n}": "快速 {n}", "Long {n}": "长局 {n}"});
 Object.assign(LW.tr, {"Before your turn": "Sıran gelmeden", "Check / Fold": "Kontrol / Pas", "Call any": "Her bahsi gör", "Call": "Gör", "Check": "Kontrol", "Flush + straight draw · {n} outs": "Floş + kent beklentisi · {n} out", "Flush draw · {n} outs": "Floş beklentisi · {n} out", "Open-ended straight draw · {n} outs": "Açık uçlu kent beklentisi · {n} out", "Gutshot straight draw · {n} outs": "İçten kent beklentisi · {n} out", "All in?! So brave~ ♡": "All-in mi?! Ne cesaret~ ♡", "Ooh, all in~!": "Ooh, all-in~!", "Won with that?! What nerve~ ♡": "Bununla mı kazandın?! Ne cesaret~ ♡", "{n} hands · {c} chips each · blinds rise every {k} hands": "{n} el · herkese {c} fiş · körler her {k} elde artar", "Game length": "Oyun uzunluğu", "Quick {n}": "Kısa {n}", "Long {n}": "Uzun {n}"});
+// b-pky2: the Sit & Go, the lounge's emotes and presence
+Object.assign(LW.ko, {"Sit & Go · Level {l} · Blinds {b} · {n} left": "싯앤고 · 레벨 {l} · 블라인드 {b} · {n}명 남음", "Your Sit & Go is starting — to your seat!": "싯앤고가 시작돼요 — 자리로 가요!", "{h}h {m}m": "{h}시간 {m}분", "{m} min": "{m}분", "SIT & GO": "싯앤고", "Every 2 hours · 6 seats": "2시간마다 · 6석", "Starts in {t}": "{t} 후 시작", "Playing now": "진행 중", "Won by {name}": "우승 {name}", "Finished": "종료", "Signed up": "참가 신청함", "Sign up": "참가 신청", "To your seat": "내 자리로", "Every 2 hours · 6 seats · {c} tournament chips · blinds up every {k} hands": "2시간마다 · 6석 · 토너먼트 칩 {c} · {k}핸드마다 블라인드 상승", "Entry in chips (back if you cancel before it starts) · computers fill the empty seats · prizes for the top 3 in chips + poker XP · the winner's title": "참가비는 칩 (시작 전에 취소하면 돌려받아요) · 빈자리는 컴퓨터가 채워요 · 상위 3명에게 칩 + 포커 경험치 · 우승자 칭호", "Sign in with a wallet to sign up": "지갑으로 로그인하면 참가 신청할 수 있어요", "Signed up — it starts at {t}": "참가 신청 완료 — {t}에 시작해요", "SIT & GO CHAMPION!": "싯앤고 챔피언!", "Sit & Go · the places": "싯앤고 · 최종 순위", "Your place: {n} · +{c} chips and poker XP": "내 순위: {n}위 · +{c}칩과 포커 경험치", "Your place: {n}": "내 순위: {n}위", "Watching": "관전 중", "{n} more in the lounge": "라운지에 {n}명 더 있어요", "Wave": "손 흔들기", "Cheer": "환호", "Laugh": "웃음", "Love": "하트", "Good game": "굿 게임", "Dance": "춤", "Not enough chips for the entry": "참가비 칩이 부족해요", "This Sit & Go is full": "이 싯앤고는 꽉 찼어요", "This Sit & Go has started": "이 싯앤고는 이미 시작했어요", "Sign-up isn't open yet": "아직 참가 신청을 받지 않아요"});
+Object.assign(LW.zh, {"Sit & Go · Level {l} · Blinds {b} · {n} left": "坐满即玩 · 第 {l} 级 · 盲注 {b} · 剩 {n} 人", "Your Sit & Go is starting — to your seat!": "你的坐满即玩开始了——快入座！", "{h}h {m}m": "{h}小时{m}分", "{m} min": "{m} 分钟", "SIT & GO": "坐满即玩", "Every 2 hours · 6 seats": "每 2 小时 · 6 个座位", "Starts in {t}": "{t}后开始", "Playing now": "进行中", "Won by {name}": "冠军 {name}", "Finished": "已结束", "Signed up": "已报名", "Sign up": "报名", "To your seat": "回到座位", "Every 2 hours · 6 seats · {c} tournament chips · blinds up every {k} hands": "每 2 小时 · 6 个座位 · {c} 锦标赛筹码 · 每 {k} 手升盲", "Entry in chips (back if you cancel before it starts) · computers fill the empty seats · prizes for the top 3 in chips + poker XP · the winner's title": "报名费为筹码（开赛前取消会退还）· 空位由电脑补上 · 前三名获得筹码 + 扑克经验 · 冠军称号", "Sign in with a wallet to sign up": "用钱包登录即可报名", "Signed up — it starts at {t}": "报名成功——{t} 开赛", "SIT & GO CHAMPION!": "坐满即玩冠军！", "Sit & Go · the places": "坐满即玩 · 最终名次", "Your place: {n} · +{c} chips and poker XP": "你的名次：第 {n} 名 · +{c} 筹码和扑克经验", "Your place: {n}": "你的名次：第 {n} 名", "Watching": "观战中", "{n} more in the lounge": "酒廊里还有 {n} 人", "Wave": "挥手", "Cheer": "欢呼", "Laugh": "大笑", "Love": "爱心", "Good game": "打得好", "Dance": "跳舞", "Not enough chips for the entry": "报名筹码不足", "This Sit & Go is full": "这场坐满即玩已满", "This Sit & Go has started": "这场坐满即玩已开始", "Sign-up isn't open yet": "还没开放报名"});
+Object.assign(LW.tr, {"Sit & Go · Level {l} · Blinds {b} · {n} left": "Sit & Go · Seviye {l} · Körler {b} · {n} kişi kaldı", "Your Sit & Go is starting — to your seat!": "Sit & Go'n başlıyor — yerine geç!", "{h}h {m}m": "{h}sa {m}dk", "{m} min": "{m} dk", "SIT & GO": "SIT & GO", "Every 2 hours · 6 seats": "Her 2 saatte · 6 koltuk", "Starts in {t}": "{t} sonra başlıyor", "Playing now": "Şu an oynanıyor", "Won by {name}": "Kazanan {name}", "Finished": "Bitti", "Signed up": "Kayıtlısın", "Sign up": "Kaydol", "To your seat": "Yerine geç", "Every 2 hours · 6 seats · {c} tournament chips · blinds up every {k} hands": "Her 2 saatte · 6 koltuk · {c} turnuva fişi · körler her {k} elde artar", "Entry in chips (back if you cancel before it starts) · computers fill the empty seats · prizes for the top 3 in chips + poker XP · the winner's title": "Giriş fişle (başlamadan iptal edersen geri) · boş koltukları bilgisayar doldurur · ilk 3'e fiş + poker XP · kazanana unvan", "Sign in with a wallet to sign up": "Kaydolmak için cüzdanla giriş yap", "Signed up — it starts at {t}": "Kaydoldun — {t}'de başlıyor", "SIT & GO CHAMPION!": "SIT & GO ŞAMPİYONU!", "Sit & Go · the places": "Sit & Go · sıralama", "Your place: {n} · +{c} chips and poker XP": "Sıran: {n} · +{c} fiş ve poker XP", "Your place: {n}": "Sıran: {n}", "Watching": "İzliyorsun", "{n} more in the lounge": "Salonda {n} kişi daha var", "Wave": "El salla", "Cheer": "Tezahürat", "Laugh": "Gül", "Love": "Sevgi", "Good game": "İyi oyun", "Dance": "Dans", "Not enough chips for the entry": "Giriş için yeterli fişin yok", "This Sit & Go is full": "Bu Sit & Go dolu", "This Sit & Go has started": "Bu Sit & Go başladı", "Sign-up isn't open yet": "Kayıt henüz açık değil"});

@@ -44,6 +44,16 @@ const BOTS = ["AI ARON", "AI LUMI", "AI NEX", "AI ARC", "AI MINT"];
 // computer player's from its name. Only a shape is checked; the page draws anything it doesn't know as the default hero
 const lookOf = (b) => ({ ch: /^custom-[a-z]{2,10}$/.test(String((b && b.ch) || "")) ? String(b.ch) : "", tn: Math.max(0, Math.min(7, Number(b && b.tn) | 0)) });
 const BOT_LOOK = [["custom-aron", 0], ["custom-lumi", 0], ["custom-nex", 0], ["custom-aron", 3], ["custom-lumi", 1]];
+// b-pky2: the scheduled Sit & Go — one starts every 2 hours (even UTC hours); sign up any time before it starts (the
+// entry in chips, given back if you change your mind); at the start the computers fill the empty seats; everyone has
+// the same tournament chips (not your chips) and the blinds rise every 5 hands; the last one standing wins. The prizes
+// are chips (the entries plus the house's), poker XP and a title for the winner — never ARCL
+export const SNG = { EVERY: 2 * 3600e3, ENTRY: 1000, HOUSE: 5000, START: 1500, SEATS: 6, LV_HANDS: 5, BOT_LVL: 1,
+  BLINDS: [[10, 20], [20, 40], [30, 60], [50, 100], [75, 150], [100, 200], [150, 300], [200, 400], [300, 600], [500, 1000], [800, 1600], [1200, 2400], [2000, 4000]],
+  PAY: [0.5, 0.3, 0.2], XP: [200, 120, 60], TITLE: "Sit & Go Champion", KEEP: 45 * 60e3 };
+export const sngAt = (t, k = 0) => (Math.floor(t / SNG.EVERY) + 1 + k) * SNG.EVERY; // the k-th start after t
+export const sngBlinds = (handNo) => SNG.BLINDS[Math.min(SNG.BLINDS.length - 1, Math.floor(Math.max(0, handNo - 1) / SNG.LV_HANDS))];
+export function sngPrizes(humans) { const pool = humans * SNG.ENTRY + SNG.HOUSE; return { pool, pay: SNG.PAY.map((f) => Math.floor(pool * f)) }; }
 /// the poker level from poker XP: 100 XP a level to 10, then 150 / 200 / 250 / 300 (world-poker.js shows the same)
 export function levelOf(xp) { let lv = 1, need = 100, left = Math.max(0, xp | 0); while (lv < POKER.LEVELS) { need = lv <= 10 ? 100 : lv <= 25 ? 150 : lv <= 50 ? 200 : lv <= 75 ? 250 : 300; if (left < need) break; left -= need; lv++; } return { lv, into: left, need }; }
 
@@ -213,7 +223,7 @@ export function makePoker(deps) {
     list = list.slice(0, 40); await setDoc(k, { list }); return list;
   }
   const humans = (R) => R.seats.filter((x) => x && !x.bot).length;
-  const roomRow = (R) => ({ id: R.id, stake: R.stake, n: R.seats.filter(Boolean).length, h: humans(R), priv: !!R.priv, at: now(), playing: !!(R.hand && R.hand.street < 4) });
+  const roomRow = (R) => ({ id: R.id, stake: R.stake, n: R.seats.filter(Boolean).length, h: humans(R), priv: !!(R.priv || R.tour), at: now(), playing: !!(R.hand && R.hand.street < 4) });
   /// save the next version: the room and its create-only version marker in one write
   async function save(R) { const v = (R.v || 0) + 1; const r = await commit([{ create: `worldPokerSeq/${R.id}_${v}`, data: { at: now() } }, { set: roomKey(R.id), data: { ...R, v } }]); if (r.ok) R.v = v; return r.ok; }
   /// load, change, save; a clash with another request reloads and tries again (up to 4 times)
@@ -240,17 +250,20 @@ export function makePoker(deps) {
         if (!seat) { act(H, H.toAct, { t: "fold" }); changed = true; continue; }
         if (seat.bot) { if (!rush && t - (R.lastAct || 0) < BOT_MS) break; const m = botMove(H, rng(H.seed ^ (H.log.length * 7919))); if (!act(H, H.toAct, m || { t: "fold" })) act(H, H.toAct, { t: "fold" }); R.lastAct = Math.max((R.lastAct || 0) + BOT_MS, t - BOT_MS * 3); // (a long gap between looks: the computers catch up, one think each)
          R.deadline = t + POKER.TURN_S * 1000; changed = true; continue; }
-        if (seat.leaving || t > (R.deadline || 0)) { const L = legal(H); act(H, H.toAct, L && L.check ? { t: "check" } : { t: "fold" }); if (!seat.leaving) seat.miss = (seat.miss || 0) + 1; R.lastAct = t; R.deadline = t + POKER.TURN_S * 1000; changed = true; continue; }
+        if (seat.leaving || t > (R.deadline || 0) || (R.tour && seat.miss >= 2)) { const L = legal(H); act(H, H.toAct, L && L.check ? { t: "check" } : { t: "fold" }); if (!seat.leaving) seat.miss = (seat.miss || 0) + 1; R.lastAct = t; R.deadline = t + POKER.TURN_S * 1000; changed = true; continue; }
         break;
       }
       if (H && H.street >= 4 && !H.paid) { await payHand(R); changed = true; }
       if (H && H.street >= 4 && !rush && t - (H.endAt || t) < SHOW_MS) break;
       // between hands: the away and the broke stand up; then the next hand if two can play
-      for (let i = 0; i < R.seats.length; i++) { const x = R.seats[i]; if (!x) continue; if (x.leaving || (!x.bot && t - (x.last || 0) > AWAY_KICK) || x.stack <= 0) { await standUp(R, i); changed = true; } }
-      const ready = R.seats.map((x, i) => (x && x.stack > 0 && !(x.miss >= 2) ? i : -1)).filter((i) => i >= 0);
+      if (R.tour) { if (R.tour.done) break; if (sngBust(R)) changed = true; }
+      else for (let i = 0; i < R.seats.length; i++) { const x = R.seats[i]; if (!x) continue; if (x.leaving || (!x.bot && t - (x.last || 0) > AWAY_KICK) || x.stack <= 0) { await standUp(R, i); changed = true; } }
+      const ready = R.seats.map((x, i) => (x && x.stack > 0 && (R.tour || !(x.miss >= 2)) ? i : -1)).filter((i) => i >= 0);
+      if (R.tour && (ready.length < 2 || !R.seats.some((x) => x && !x.bot && x.stack > 0))) { await sngEnd(R); changed = true; break; } // (the last one standing, or only computers left: they're ranked by their stacks)
       if (ready.length < 2 || !humans(R)) { if (R.hand) { R.hand = null; changed = true; } break; }
       R.button = nextSeat(R, R.button == null ? -1 : R.button, ready);
-      const players = ready.map((i) => ({ id: R.seats[i].w || "bot" + i, name: R.seats[i].name, stack: R.seats[i].stack, bot: !!R.seats[i].bot, lvl: R.seats[i].lvl || 0 })), st = stakeOf(R.stake);
+      const players = ready.map((i) => ({ id: R.seats[i].w || "bot" + i, name: R.seats[i].name, stack: R.seats[i].stack, bot: !!R.seats[i].bot, lvl: R.seats[i].lvl || 0 })), st = R.tour ? (([sb, bb]) => ({ sb, bb }))(sngBlinds((R.handNo || 0) + 1)) : stakeOf(R.stake);
+      if (R.tour) R.tour.pre = Object.fromEntries(ready.map((i) => [i, R.seats[i].stack])); // (who had more going in: two out in one hand are placed by it)
       const hand = newHand({ players, button: ready.indexOf(R.button), sb: st.sb, bb: st.bb, seed: randInt(), handNo: (R.handNo || 0) + 1 });
       hand.seatOf = ready; R.handNo = hand.handNo; R.hand = hand; R.deadline = t + POKER.TURN_S * 1000; R.lastAct = t; changed = true;
       if (hand.street >= 4) { hand.endAt = t; }
@@ -278,7 +291,7 @@ export function makePoker(deps) {
         }
         await stamp(x.w, p).catch(() => {});
         await saveProg(x.w, p); x.news = (p.news || []).slice(-4);
-        const net = (H.result && H.result.net[k]) || 0; if (net) await board(x.w, x.name, net);
+        const net = (H.result && H.result.net[k]) || 0; if (net && !R.tour) await board(x.w, x.name, net); // (tournament chips aren't yours: not on the week's board)
       } catch { /* the hand still counts on the table */ }
     }
   }
@@ -297,6 +310,10 @@ export function makePoker(deps) {
     const me = w ? seatOf(R, w) : -1, H = R.hand, hi = H && me >= 0 ? H.seatOf.indexOf(me) : -1;
     return { id: R.id, code: R.priv ? R.code : "", priv: !!R.priv, stake: R.stake, v: R.v, me, deadline: R.deadline || 0, now: now(),
       seats: R.seats.map((x) => (x ? { name: x.name, stack: x.stack, bot: !!x.bot, lvl: x.lvl || 0, ch: x.ch || "", tn: x.tn || 0, away: !x.bot && now() - (x.last || 0) > POKER.AWAY_S * 1000, sit: (x.miss || 0) >= 2 } : null)),
+      tour: R.tour ? (() => { const T0 = R.tour, [sb, bb] = sngBlinds((R.handNo || 0) + (H && H.street < 4 ? 0 : 1)), lv = Math.min(SNG.BLINDS.length - 1, Math.floor(Math.max(0, (R.handNo || 1) - 1) / SNG.LV_HANDS));
+        const mine = w && T0.places ? T0.places.findIndex((y) => y.w === short(w)) : w ? (() => { const j = T0.out.findIndex((y) => y.id === w); return j >= 0 ? T0.n - j - 1 : -1; })() : -1;
+        return { id: String(T0.id), lv: lv + 1, sb, bb, next: SNG.LV_HANDS - (Math.max(0, (R.handNo || 1) - 1) % SNG.LV_HANDS), left: R.seats.filter((x) => x && x.stack > 0).length, n: T0.n, pool: T0.pool, pay: T0.pay, done: !!T0.done, places: T0.places || null, mine }; })() : null,
+      watch: R.watchN || 0,
       hand: H ? { ...viewOf(H, hi), seatOf: H.seatOf, mine: hi } : null, last: R.last || null, chat: (R.chat || []).slice(-20), paid: me >= 0 && R.seats[me] ? R.seats[me].paid || 0 : 0, news: me >= 0 && R.seats[me] ? R.seats[me].news || [] : [] };
   }
   const name16 = async (w) => (((await one(`worldSave/${w}`)) || {}).name || short(w)).slice(0, 16);
@@ -317,7 +334,8 @@ export function makePoker(deps) {
     let id = String(b.room || ""); if (!id && b.code) { const c = await one(`worldPokerCode/${String(b.code).replace(/\D/g, "").slice(0, 6)}`); if (!c) return json(404, { error: "no table with that code" }); id = c.id; }
     const nm = await name16(w);
     const r = await mutate(id, async (R) => {
-      if (seatOf(R, w) >= 0) { Object.assign(R.seats[seatOf(R, w)], { last: now() }, b.ch ? lookOf(b) : {}); return { ok: true }; }
+      if (seatOf(R, w) >= 0) { Object.assign(R.seats[seatOf(R, w)], { last: now(), leaving: false, miss: 0 }, b.ch ? lookOf(b) : {}); return { ok: true }; }
+      if (R.tour) return { err: json(409, { error: "this Sit & Go has started" }) };
       const free = R.seats.findIndex((x) => !x); if (free < 0) return { err: json(409, { error: "the table is full" }) };
       const st = stakeOf(R.stake), p = await prog(w); if ((p.chips || 0) < st.buy) return { err: json(400, { error: "not enough chips for this table", chips: p.chips }) };
       p.chips -= st.buy; await saveProg(w, p); R.seats[free] = { w, name: nm, stack: st.buy, last: now(), ...lookOf(b) }; return { ok: true };
@@ -333,6 +351,7 @@ export function makePoker(deps) {
       const H = R.hand, k = H && H.street < 4 ? H.seatOf.indexOf(i) : -1;
       if (k >= 0 && !H.p[k].folded) { if (H.toAct === k) act(H, k, { t: "fold" }); else H.p[k].folded = true; R.seats[i].leaving = true; if (H.street < 4 && H.p.filter((p) => !p.folded && !p.out).length === 1) settle(H); return { ok: true }; } // (the last one in wins the pot)
       if (k >= 0) { R.seats[i].leaving = true; return { ok: true }; }
+      if (R.tour) { R.seats[i].leaving = true; return { ok: true }; } // (a Sit & Go seat stays: it folds until you come back or the blinds take it)
       await standUp(R, i); return { ok: true };
     });
     if (r.err) return r.err;
@@ -361,12 +380,14 @@ export function makePoker(deps) {
       return ch || touched ? { ok: true } : { same: true };
     });
     if (r.err) return r.err;
+    if (!w || seatOf(r.R, w) < 0) r.R.watchN = await watchers(r.R.id, String(b.vt || "")).catch(() => 0); else r.R.watchN = ((await one(`worldPokerWatch/${r.R.id}`)) || { list: [] }).list.filter((y) => now() - y.at < 30e3).length;
     return json(200, { ok: true, room: view(r.R, w) }, "no-store");
   }
   async function bots(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet, n = Math.max(1, Math.min(5, Math.floor(Number(b.n) || 1))), lvl = Math.max(0, Math.min(3, Math.floor(Number(b.lvl) || 1)));
     const r = await mutate(String(b.room || ""), async (R) => {
       if (seatOf(R, w) < 0) return { err: json(403, { error: "sit at the table first" }) };
+      if (R.tour) return { err: json(409, { error: "not at a Sit & Go" }) };
       let added = 0; const st = stakeOf(R.stake);
       for (let i = 0; i < R.seats.length && added < n; i++) if (!R.seats[i]) { { const k = (i + added) % BOTS.length; R.seats[i] = { name: BOTS[k], stack: st.buy, bot: true, lvl, ch: BOT_LOOK[k][0], tn: BOT_LOOK[k][1] }; } added++; }
       if (!added) return { same: true };
@@ -376,6 +397,114 @@ export function makePoker(deps) {
     await listRooms(roomRow(r.R)).catch(() => {});
     return json(200, { ok: true, room: view(r.R, w) });
   }
+  // ---------------- b-pky2: the scheduled Sit & Go ----------------
+  const sngKey = (id) => `worldPokerSng/${id}`;
+  /// a Sit & Go's record: { id, at, reg: [{ w, name, ch, tn }], room, done, places }; each change writes the next version
+  /// with a create-only marker, like a table, so two sign-ups at once can't drop one
+  async function sngMutate(id, fn) {
+    for (let k = 0; k < 4; k++) {
+      const G = (await one(sngKey(id))) || { id, at: Number(id), reg: [], room: "", done: false, v: 0 };
+      const res = await fn(G); if (res && res.err) return res; if (res && res.same) return { G };
+      const v = (G.v || 0) + 1, r = await commit([{ create: `worldPokerSngSeq/${id}_${v}`, data: { at: now() } }, { set: sngKey(id), data: { ...G, v } }]);
+      if (r.ok) { G.v = v; return { G, res }; }
+    }
+    return { err: json(409, { error: "busy — try again" }) };
+  }
+  /// between hands: who ran out of chips is out, the smaller stack going in first (their place counted from the bottom)
+  function sngBust(R) {
+    const T0 = R.tour, pre = T0.pre || {}; const gone = [];
+    R.seats.forEach((x, i) => { if (x && x.stack <= 0) gone.push(i); });
+    if (!gone.length) return false;
+    gone.sort((a, b) => (pre[a] || 0) - (pre[b] || 0));
+    for (const i of gone) { const x = R.seats[i]; T0.out.push({ name: x.name, w: x.w ? short(x.w) : "", id: x.w || "", bot: !!x.bot, ch: x.ch || "", tn: x.tn || 0 }); R.seats[i] = null; }
+    return true;
+  }
+  /// the end: places from the top (the last ones standing by their stacks, then the ones out, last out first), the
+  /// prizes to the people in the top 3 (each paid once: a create-only marker), XP, the winner's title
+  async function sngEnd(R) {
+    const T0 = R.tour; if (T0.done) return; T0.done = true; R.hand = null;
+    const left = R.seats.map((x, i) => (x ? { x, i } : null)).filter(Boolean).sort((a, b) => b.x.stack - a.x.stack)
+      .map(({ x }) => ({ name: x.name, w: x.w ? short(x.w) : "", id: x.w || "", bot: !!x.bot, ch: x.ch || "", tn: x.tn || 0 }));
+    const places = [...left, ...T0.out.slice().reverse()]; T0.places = places.map(({ id, ...y }) => y); T0.endAt = now();
+    for (let r = 0; r < places.length && r < SNG.PAY.length; r++) {
+      const y = places[r]; if (y.bot || !y.id) continue; const prize = T0.pay[r] || 0;
+      if (!(await commit([{ create: `worldPokerSngPay/${T0.id}_${y.id}`, data: { at: now(), r: r + 1, prize } }])).ok) continue;
+      try {
+        if (prize) await addChips(y.id, prize);
+        const p = await prog(y.id); const xp = addXp(p, SNG.XP[r] || 0); p.sngWins = (p.sngWins || 0) + (r === 0 ? 1 : 0); p.sngTop3 = (p.sngTop3 || 0) + 1;
+        say(p, "sng", { r: r + 1, c: prize, xp }); await saveProg(y.id, p);
+        if (r === 0) await award(y.id, (a) => { a.titles = [...new Set([...(a.titles || []), SNG.TITLE])]; });
+      } catch { /* the place stands; the record catches up next time */ }
+    }
+    await sngMutate(String(T0.id), (G) => { G.done = true; G.places = T0.places; return { ok: true }; }).catch(() => {});
+  }
+  /// a Sit & Go whose time has come: the people signed up sit down with the tournament chips, the computers fill the rest
+  async function sngStart(id) {
+    const G = await one(sngKey(id)); if (!G || G.room || G.done || now() < G.at) return G;
+    const reg = (G.reg || []).slice(0, SNG.SEATS);
+    if (!reg.length) { const r = await sngMutate(id, (g) => { if (g.room || g.done) return { same: true }; g.done = true; g.places = []; return { ok: true }; }); return r.G || G; }
+    const rid0 = `sng${id}`, { pool, pay } = sngPrizes(reg.length);
+    const seats = Array(POKER.MAX).fill(null); reg.forEach((y, i) => { seats[i] = { w: y.w, name: y.name, stack: SNG.START, last: 0, ch: y.ch || "", tn: y.tn || 0 }; });
+    for (let i = reg.length, k = 0; i < SNG.SEATS; i++, k++) seats[i] = { name: BOTS[k % BOTS.length], stack: SNG.START, bot: true, lvl: SNG.BOT_LVL, ch: BOT_LOOK[k % BOTS.length][0], tn: BOT_LOOK[k % BOTS.length][1] };
+    const R = { id: rid0, code: "", priv: false, stake: "s1", seats, hand: null, handNo: 0, button: null, v: 0, chat: [], made: now(),
+      tour: { id, at: G.at, n: reg.length + (SNG.SEATS - reg.length), humans: reg.length, pool, pay, out: [], pre: {}, done: false } };
+    await save(R); // (the room's first version marker is create-only: of two starts at once, one table)
+    await sngMutate(id, (g) => { if (g.room) return { same: true }; g.room = rid0; return { ok: true }; });
+    return { ...G, room: rid0 };
+  }
+  const sngIdle = (R) => !!(R.tour && !R.tour.done && R.seats.every((x) => !x || x.bot || x.stack <= 0 || x.leaving || x.miss >= 2));
+  const sngPub = (G, w) => { const reg = G.reg || [], room = G.room || "", { pool, pay } = sngPrizes(Math.max(1, reg.length));
+    return { id: String(G.id), at: G.at, n: reg.length, max: SNG.SEATS, names: reg.map((y) => y.name), entry: SNG.ENTRY, pool, pay, room, done: !!G.done, places: G.places || null, mine: !!(w && reg.some((y) => y.w === w)), state: G.done ? "done" : room ? "play" : "reg" }; };
+  /// the lobby's Sit & Go card: the one playing or just finished (if any), and the next two
+  async function sngList(b) {
+    let w = ""; if (b.wallet) { const s = signer(b); if (s.err) return s.err; w = s.wallet; }
+    const t = now(), prev = sngAt(t, -1), ids = [prev, sngAt(t, 0), sngAt(t, 1)].map(String);
+    let d = await getDocs(ids.map(sngKey));
+    if (d[sngKey(ids[0])] && !d[sngKey(ids[0])].room && !d[sngKey(ids[0])].done) { await sngStart(ids[0]).catch(() => {}); d = await getDocs(ids.map(sngKey)); }
+    // a Sit & Go table moves when someone looks: the lobby's look moves it too (and when no one in it is still playing,
+    // the computers finish it at once), so the places are paid even if everyone left
+    for (const id of ids.slice(0, 2)) { const g = d[sngKey(id)]; if (g && g.room && !g.done) await mutate(g.room, async (R) => ((await step(R, sngIdle(R))) ? { ok: true } : { same: true })).catch(() => {}); }
+    const list = ids.map((id) => sngPub(d[sngKey(id)] || { id, at: Number(id), reg: [] }, w)).filter((g, i) => i > 0 || (g.n && (g.state !== "done" || t - g.at < SNG.KEEP)));
+    let chips = null; if (w) chips = (await prog(w)).chips;
+    return json(200, { ok: true, now: t, list, chips, rules: { entry: SNG.ENTRY, house: SNG.HOUSE, start: SNG.START, lvHands: SNG.LV_HANDS, pay: SNG.PAY, xp: SNG.XP } }, "no-store");
+  }
+  async function sngReg(b, on) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, id = String(b.id || ""), t = now();
+    if (!/^\d{10,15}$/.test(id) || Number(id) % SNG.EVERY) return json(400, { error: "no such Sit & Go" });
+    if (Number(id) <= t) return json(409, { error: "this Sit & Go has started" });
+    if (Number(id) > sngAt(t, 1)) return json(400, { error: "sign-up isn't open yet" });
+    const p = await prog(w); if (on && (p.chips || 0) < SNG.ENTRY) return json(400, { error: "not enough chips for the entry", chips: p.chips });
+    const nm = await name16(w), look = lookOf(b);
+    const r = await sngMutate(id, (G) => {
+      const has = (G.reg || []).some((y) => y.w === w);
+      if (on) { if (has) return { same: true }; if ((G.reg || []).length >= SNG.SEATS) return { err: json(409, { error: "this Sit & Go is full" }) }; G.reg = [...(G.reg || []), { w, name: nm, ...look }]; return { paid: true }; }
+      if (!has) return { same: true }; G.reg = G.reg.filter((y) => y.w !== w); return { back: true };
+    });
+    if (r.err) return r.err;
+    if (r.res && r.res.paid) { p.chips -= SNG.ENTRY; await saveProg(w, p); }
+    if (r.res && r.res.back) { p.chips = (p.chips || 0) + SNG.ENTRY; await saveProg(w, p); }
+    return json(200, { ok: true, sng: sngPub(r.G, w), chips: p.chips });
+  }
+
+  // ---------------- b-pky2: who's walking the lounge, and their emotes ----------------
+  const HERE = { LIFE: 20e3, MAX: 12, R: 30, EMO: new Set(["wave", "cheer", "lol", "heart", "gg", "dance"]) };
+  async function here(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, t = now();
+    const x = Math.round(Number(b.x) * 10) / 10, z = Math.round(Number(b.z) * 10) / 10; if (!Number.isFinite(x) || !Number.isFinite(z) || Math.hypot(x, z) > HERE.R) return json(400, { error: "where?" });
+    const k = "worldStats/pokerHere", cur = ((await one(k)) || {}).list || [], id = short(w), old = cur.find((y) => y.id === id) || {};
+    const em = HERE.EMO.has(String(b.em || "")) ? String(b.em) : "";
+    const e = { id, n: await name16(w), ...lookOf(b), x, z, f: Math.round((Number(b.f) || 0) * 100) / 100, at: t, ...(em ? { em, ea: t } : old.ea && t - old.ea < 4000 ? { em: old.em, ea: old.ea } : {}) };
+    const list = [e, ...cur.filter((y) => y.id !== id && t - y.at < HERE.LIFE)].slice(0, HERE.MAX); await setDoc(k, { list });
+    return json(200, { ok: true, list: list.filter((y) => y.id !== id).map(({ at, ea, ...y }) => ({ ...y, ago: t - at, ...(ea ? { ea: t - ea } : {}) })), now: t }, "no-store");
+  }
+  // spectators: a watcher's page sends a token now and then; the table shows how many are watching
+  async function watchers(id, vt) {
+    const k = `worldPokerWatch/${id}`, t = now(), cur = ((await one(k)) || {}).list || [];
+    let list = cur.filter((y) => t - y.at < 30e3);
+    if (vt && /^[a-z0-9]{6,16}$/.test(vt)) { const old = list.find((y) => y.t === vt); if (!old || t - old.at > 10e3) { list = [{ t: vt, at: t }, ...list.filter((y) => y.t !== vt)].slice(0, 50); await setDoc(k, { list }); } }
+    return list.length;
+  }
+
   const EMOTES = new Set([":gg:", ":nice:", ":wow:", ":lol:", ":gl:", ":heart:"]);
   async function chat(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet;
@@ -412,6 +541,10 @@ export function makePoker(deps) {
         case "world-poker-view": return doView(b);
         case "world-poker-bots": return bots(b);
         case "world-poker-chat": return chat(b);
+        case "world-poker-sng": return sngList(b);
+        case "world-poker-sng-reg": return sngReg(b, true);
+        case "world-poker-sng-unreg": return sngReg(b, false);
+        case "world-poker-here": return here(b);
         default: return null;
       }
     },

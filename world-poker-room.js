@@ -9,7 +9,10 @@
 //
 // makeLounge({ THREE, K, ver, low, coarse, scene, RX, RZ, slotPos })
 //   → { stations, seat(d, look), react(d, kind), walkStart(look, at), walkStop(), step(dt, inp), tick(dt, t, cam),
-//       camFollow(cam, dt), me(), goTo(id), near(), setBoard(rows), debug() }
+//       camFollow(cam, dt), me(), goTo(id), near(), setBoard(rows), debug(),
+//       others(list) (b-pky2: who else walks the lounge, from world-poker-here), emote(kind) (your hero's), EMOTE }
+// b-pky2: the lounge's emotes: the clip (a CU_AS key) and the mark over the hero's head
+export const EMOTE = { wave: ["emote-yes", "👋"], cheer: ["cheer", "🎉"], lol: ["celebrate", "😂"], heart: ["emote-yes", "💖"], gg: ["cheer", "GG"], dance: ["celebrate", "💃"] };
 export const HS = 1.55; // the heroes' scale here: the table is a lounge table, the heroes the town's height
 const FLOOR = -1.25, WALL_R = 19, WALK_R = 15.2;
 
@@ -257,9 +260,42 @@ export function makeLounge({ THREE, K, ver, low, coarse, scene, RX, RZ, slotPos 
     cam.position.copy(camAt); cam.lookAt(camLook); cam.updateMatrixWorld();
     if (doorG) doorG.visible = cam.position.z < 17; // (from just inside the door it would fill the view)
   }
+  // ---------------- b-pky2: the others walking the lounge, name tags, emotes ----------------
+  const tagOf = (text, emo) => { const [c, x] = cv(emo ? 128 : 256, emo ? 128 : 64); if (emo) { x.font = "86px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#fff"; x.fillText(text, 64, 70); }
+    else { x.fillStyle = "rgba(12,6,32,.78)"; x.beginPath(); if (x.roundRect) x.roundRect(8, 10, 240, 44, 22); else x.rect(8, 10, 240, 44); x.fill(); x.font = "800 26px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#e9dcff"; x.fillText(String(text).slice(0, 16), 128, 33); }
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(c), transparent: true, depthWrite: false, toneMapped: false })); sp.scale.set(emo ? 0.9 : 1.9, emo ? 0.9 : 0.48, 1); sp.renderOrder = 5; return sp; };
+  const pops = []; // the marks floating up over a head: { sp, t }
+  function pop(obj, mark) { const sp = tagOf(mark, true); sp.position.set(obj.position.x, FLOOR + 3.9, obj.position.z); g.add(sp); pops.push({ sp, t: 0 }); }
+  /// your hero's emote (its clip, the mark over you); world-poker.js sends it with your spot
+  function emote(kind) { const e = EMOTE[kind]; if (!e || !me) return false; me.play(e[0], { once: true }); pop(me.obj, e[1]); return true; }
+  const peers = new Map(); // id → { h, tag, x, z, tx, tz, f, ea, seen, wait }
+  function others(list) {
+    const t = performance.now(), ids = new Set();
+    for (const y of list || []) {
+      if (!y || !y.id || ids.size >= 8) continue; ids.add(y.id);
+      let P = peers.get(y.id);
+      if (!P) { P = { x: y.x, z: y.z, tx: y.x, tz: y.z, f: y.f || 0, h: null, tag: null, ea: -1, wait: true, key: "" }; peers.set(y.id, P); }
+      P.tx = y.x; P.tz = y.z; P.f = y.f || 0; P.seen = t;
+      const key = pick(y).ch + ":" + pick(y).tn;
+      if (P.key !== key && !low) { P.key = key; P.wait = true; const old = P.h; P.h = null; give(old); heroOf(y).then((h) => { if (!h) return; if (!peers.has(y.id) || peers.get(y.id) !== P || P.key !== key) { give(h); return; } P.h = h; P.wait = false; h.obj.position.set(P.x, FLOOR, P.z); h.obj.rotation.y = P.f; h.play("idle"); }); }
+      if (!P.tag) { P.tag = tagOf(y.n || "?"); g.add(P.tag); }
+      // a new emote: under 4 seconds old and not the one already played
+      if (y.em && y.ea != null && y.ea < 4000) { const at = t - y.ea; if (Math.abs(at - P.ea) > 1500) { P.ea = at; const e = EMOTE[y.em]; if (e) { if (P.h && (!P.h.busy || !P.h.busy())) P.h.play(e[0], { once: true }); pop(P.h ? P.h.obj : P.tag, e[1]); } } }
+    }
+    for (const [id, P] of peers) if (!ids.has(id)) { give(P.h); if (P.tag) { g.remove(P.tag); P.tag.material.map.dispose(); P.tag.material.dispose(); } peers.delete(id); }
+  }
   function tick(dt, t) {
     for (const S of seats) if (S.h) { S.h.update(dt, t); if (!S.h.busy || !S.h.busy()) S.h.play(SIT_CLIP); }
     if (me && me.obj.visible) me.update(dt, t);
+    for (const P of peers.values()) {
+      const dx = P.tx - P.x, dz = P.tz - P.z, d = Math.hypot(dx, dz), sp = d > 14 ? d : Math.min(d, dt * (d > 3 ? 9 : 6.5)); // (far behind: it jumps; a way off: it runs; else it walks)
+      if (d > 0.01) { P.x += (dx / d) * sp; P.z += (dz / d) * sp; }
+      if (P.h) { P.h.obj.position.set(P.x, FLOOR, P.z); let da = (d > 0.15 ? Math.atan2(dx, dz) : P.f) - P.h.obj.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); P.h.obj.rotation.y += da * Math.min(1, dt * 8);
+        const clip = d > 3 ? "sprint" : d > 0.15 ? "walk" : "idle";
+        if (!P.h.busy || !P.h.busy()) P.h.play(clip, { speed: clip === "walk" ? Math.max(0.8, 6.5 / 5.6) : 1 }); P.h.update(dt, t); }
+      if (P.tag) P.tag.position.set(P.x, FLOOR + 3.3, P.z);
+    }
+    for (let i = pops.length - 1; i >= 0; i--) { const q = pops[i]; q.t += dt; q.sp.position.y += dt * 0.6; q.sp.material.opacity = Math.max(0, 1 - Math.max(0, q.t - 1.6) / 0.8); if (q.t > 2.4) { g.remove(q.sp); q.sp.material.map.dispose(); q.sp.material.dispose(); pops.splice(i, 1); } }
   }
   function facing(h, d) {
     if (!h) return null; const a = new THREE.Vector3(), b = new THREE.Vector3(); let na = 0, nb = 0; h.obj.updateMatrixWorld(true);
@@ -269,7 +305,8 @@ export function makeLounge({ THREE, K, ver, low, coarse, scene, RX, RZ, slotPos 
   return {
     show: (kind) => { ceil.visible = kind !== "table"; },
     stations, seat, react, walkStart, walkStop, step, near, camFollow, tick, goTo, setBoard, walking: () => walking,
-    me: () => ({ x: pos.x, z: pos.z }),
+    me: () => ({ x: pos.x, z: pos.z, f: face }), others, emote,
+    peers: () => [...peers.entries()].map(([id, P]) => ({ id, x: P.x, z: P.z, ch: P.h ? P.h.ch : "", clips: P.h && P.h.mixer && P.h.mixer._actions ? P.h.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [] })),
     /// tests: does a seated hero face the table? its knees (in front of its hips when it sits) against the way to the middle: > 0 yes
     facing: (d) => facing(seats[d].h, d),
     bones: (d) => { const h = seats[d].h, n = []; if (h) h.obj.traverse((o) => { if (o.isBone) n.push(o.name); }); return n; },

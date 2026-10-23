@@ -3087,3 +3087,17 @@ html.wp-pcphone .wpt-card{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(90vh 
 .pk:not(.wide) .pk-hand{bottom:calc(env(safe-area-inset-bottom) + 126px)} /* b-pky: your cards a row up: the one-tap bets sit under them */
 .pk-qb button[hidden]{display:none}
 .pk.wide .pk-hand{bottom:calc(env(safe-area-inset-bottom) + 134px)} /* b-pky: PC: the one-tap bets between your cards and your moves */
+/* b-pky2: the Sit & Go card, the lounge's emotes, who else is here */
+.pk-box.sng{background:linear-gradient(180deg,rgba(255,196,64,.16),rgba(40,18,90,.55));box-shadow:inset 0 0 0 1.5px rgba(255,205,100,.55)}
+.pk-sngl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pk-sngl li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.28);font:700 12px/1.2 var(--hud-font,var(--f-ui))}
+.pk-sngl li>div{display:grid;gap:2px;min-width:64px}.pk-sngl li>div b{font:900 15px/1 var(--hud-font,var(--f-ui));color:#ffe2a8}.pk-sngl li>div small{color:#cbb8ff;font-size:11px}
+.pk-sngl .pk-sngp{flex:1;min-width:0;color:#ffd23a;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pk-sngl .pk-sngn{color:#e9dcff;font-weight:900}
+.pk-sngl li.mine{box-shadow:inset 0 0 0 1.5px #5ff0d0}.pk-sngl li.play>div small{color:#5ff0a0}.pk-sngl li.done{opacity:.75}
+.pk-emo{position:absolute;right:calc(env(safe-area-inset-right) + 12px);bottom:calc(env(safe-area-inset-bottom) + 40px);display:grid;gap:7px;pointer-events:auto}
+.pk-emo button{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:rgba(10,4,30,.66);box-shadow:inset 0 0 0 1.5px rgba(190,150,255,.5);font:900 19px/1 var(--hud-font,var(--f-ui));color:#ffe2a8;transition:transform .12s}
+.pk-emo button:active{transform:scale(.88)}
+.pk-wseen{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 62px);transform:translateX(-50%);padding:5px 12px;border-radius:12px;background:rgba(10,4,30,.62);box-shadow:inset 0 0 0 1px rgba(95,240,208,.5);font:800 11.5px/1 var(--hud-font,var(--f-ui));color:#bff7ea;pointer-events:none}
+.pk-wseen[hidden]{display:none}
+.pk-bubble.emo{font-size:20px;padding:4px 8px}
+@media (hover:hover) and (pointer:fine){.pk-emo{bottom:40px;right:20px}}
