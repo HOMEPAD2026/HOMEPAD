@@ -3135,3 +3135,7 @@ html.wp-pcphone .wpt-card{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(90vh 
 .bj-side button.on{background:linear-gradient(180deg,#ffd23a,#e29a1a);box-shadow:0 0 12px rgba(255,210,58,.5)}.bj-side button.on b,.bj-side button.on small{color:#3a2200}
 .bj-side button.q{flex:0 0 34px;font:900 14px/1 var(--hud-font,var(--f-ui));color:#fff}.bj-side button:disabled{opacity:.4}
 .bj-pays{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:3px}.bj-pays li{display:flex;justify-content:space-between;padding:5px 9px;border-radius:8px;background:rgba(255,255,255,.06);font:700 12px/1 var(--hud-font,var(--f-ui))}.bj-pays b{color:#ffd23a}
+/* the lounge's sheet: its one row is the sheet's own height, so the menu's max-height (a share of it) holds and
+   the tabs' pane scrolls inside; without it a long menu (b-pky3 added boxes) ran off the bottom of a phone */
+.pk-sheet{grid-template-rows:minmax(0,1fr)}
+.pk-lobby{max-height:min(86%,calc(100% - 8px))}
