@@ -1032,7 +1032,7 @@ export function createSurvivors(ctx) {
 
   // ---------------- the HUD ----------------
   const scaleK = () => (document.documentElement.classList.contains("wp-pcphone") ? innerWidth / 400 : Math.max(1, Math.min(1.25, innerHeight / 860)));
-  function fit() { if (!ui) return; const k = scaleK(); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: innerHeight / k + "px", transform: `scale(${k})` }); }
+  function fit() { if (!ui) return; const k = scaleK(); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: (window.__arcVH ? window.__arcVH() : innerHeight) / k + "px", transform: `scale(${k})` }); }
   function buildUi() {
     const root = document.createElement("div"); root.className = "sv"; root.hidden = true;
     root.innerHTML = `<div class="sv-vig"></div><div class="sv-hurt"></div><div class="sv-stripes" aria-hidden="true"></div>
@@ -1095,7 +1095,7 @@ export function createSurvivors(ctx) {
   }
   // arrows at the screen's edge toward a boss or a chest you can't see
   function paintArrows() {
-    if (!ui) return; const k = scaleK(), W0 = innerWidth / k, H0 = innerHeight / k;
+    if (!ui) return; const k = scaleK(), W0 = innerWidth / k, H0 = (window.__arcVH ? window.__arcVH() : innerHeight) / k;
     const one = (el, x, z, show) => { if (!show) { el.hidden = true; return; } vA.set(x, 1, z).project(S.cam); const inside = Math.abs(vA.x) < 0.92 && Math.abs(vA.y) < 0.9 && vA.z < 1; if (inside) { el.hidden = true; return; }
       let ax = vA.x, ay = vA.y; if (vA.z > 1) { ax = -ax; ay = -ay; } const m = Math.max(Math.abs(ax) / 0.86, Math.abs(ay) / 0.78) || 1; ax /= m; ay /= m;
       el.hidden = false; el.style.transform = `translate(${((ax * 0.5 + 0.5) * W0).toFixed(0)}px,${((-ay * 0.5 + 0.5) * H0).toFixed(0)}px) rotate(${Math.atan2(-ay, ax).toFixed(2)}rad)`; };

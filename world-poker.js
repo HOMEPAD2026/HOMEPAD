@@ -1069,7 +1069,7 @@ export function createPoker(ctx) {
 
   // ---------------- the layer ----------------
   const scaleK = () => (document.documentElement.classList.contains("wp-pcphone") ? innerWidth / 400 : Math.max(1, Math.min(1.25, innerHeight / 860)));
-  function fit() { if (!ui) return; const k = scaleK(); ui.root.classList.toggle("wide", wide()); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: innerHeight / k + "px", transform: `scale(${k})` }); if (S) frame(); }
+  function fit() { if (!ui) return; const k = scaleK(); ui.root.classList.toggle("wide", wide()); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: (window.__arcVH ? window.__arcVH() : innerHeight) / k + "px", transform: `scale(${k})` }); if (S) frame(); }
   function buildUi() {
     const root = document.createElement("div"); root.className = "pk"; root.hidden = true;
     const seat = (d) => `<div class="pk-seat" data-d="${d}" hidden><div class="pk-av"><i class="pk-ring"></i><span></span></div><div class="pk-info"><b class="nm"></b><span class="sk"></span><small class="lv"></small></div><em class="pk-act" hidden></em><strong class="pk-shown" hidden></strong><b class="pk-tsec" hidden></b><i class="pk-say2" hidden></i></div>`;

@@ -668,7 +668,7 @@ export function createRings(ctx) {
 
   // ---------------- the layer ----------------
   const scaleK = () => (document.documentElement.classList.contains("wp-pcphone") ? innerWidth / 400 : Math.max(1, Math.min(1.25, innerHeight / 860)));
-  function fit() { if (!ui) return; const k = scaleK(); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: innerHeight / k + "px", transform: `scale(${k})` }); if (S && L) frame(); }
+  function fit() { if (!ui) return; const k = scaleK(); Object.assign(ui.root.style, { width: innerWidth / k + "px", height: (window.__arcVH ? window.__arcVH() : innerHeight) / k + "px", transform: `scale(${k})` }); if (S && L) frame(); }
   const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
   function buildUi() {
     const root = document.createElement("div"); root.className = "ir"; root.hidden = true;
