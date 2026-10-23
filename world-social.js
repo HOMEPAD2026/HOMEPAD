@@ -309,7 +309,7 @@ export function createGhosts(ctx) {
       const r = await fetch("/api/social?world=ghosts"); if (!r.ok) return;
       const now = Date.now(), seen = new Set();
       for (const x of (await r.json()).ghosts || []) {
-        if (x.t === ctx.myTag || Math.hypot(x.x, x.z) > 150) continue; seen.add(x.t);
+        if (x.t === ctx.myTag || (ctx.okAt ? !ctx.okAt(x.x, x.z) : Math.hypot(x.x, x.z) > 150)) continue; // (b-lpv: the town, or a land past it) seen.add(x.t);
         let w = list.get(x.t);
         if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); arrive(g); dressGhost(w, x.c); }
         w.x = x.x; w.z = x.z; w.at = now;

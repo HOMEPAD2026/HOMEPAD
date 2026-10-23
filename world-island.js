@@ -803,7 +803,7 @@ export function createIsland(ctx) {
   // ---------------- what the wallet owns (the ARCL Shop): island size, brick packs, sky ----------------
   let ownedItems = [], ownedLots = [], myTheme = P.isleTheme || "";
   const ownedN = () => (ownedItems.includes("isle64") ? 64 : ownedItems.includes("isle48") ? 48 : ISLAND_N);
-  const maxB = () => (ownedItems.includes("land") ? LAND_BRICKS : MAX_BRICKS);
+  const maxB = () => (kind === "lot" && lotCoin && lotCoin.max ? lotCoin.max : kind === "lot" ? 1200 : ownedItems.includes("land") ? LAND_BRICKS : MAX_BRICKS); // (b-lpv: a coin's lot, its tier's limit)
   function setOwned(items, lots) {
     const before = ownedN(); ownedItems = items || []; ownedLots = lots || [];
     if (active && kind === "home" && !readOnly && ownedN() !== before) { leave(); enter({}).then(() => toast(T("Your island grew to {n}×{n}", { n: N }))); }
@@ -854,7 +854,7 @@ export function createIsland(ctx) {
     let list, n2, theme = "";
     try {
       if (opt.visit) { const v = await loadVisit(opt.visit); list = v.list; n2 = v.N; theme = v.theme; }
-      else if (opt.lot) { n2 = ownedLots.includes(String(opt.lot.token).toLowerCase()) ? 13 : LOT_N; list = await loadOwn(n2); }
+      else if (opt.lot) { n2 = opt.lot.N > 13 ? opt.lot.N : ownedLots.includes(String(opt.lot.token).toLowerCase()) ? 13 : LOT_N; list = await loadOwn(n2); } // (b-lpv: the Launchpad Village's lot, its tier's size; an old 9×9 build comes in centred)
       else { n2 = ownedN(); list = await loadOwn(n2); theme = myTheme; }
     } catch (e) { toast(e.message || T("Couldn't load that island")); return false; }
     if (n2 !== N) { N = n2; set.clear(); set = brickSet(brickRoot, N); buildLand(); }

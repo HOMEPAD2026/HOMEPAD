@@ -9156,6 +9156,7 @@
     "Open the Scanner Tower": "打开扫描塔",
     "Beat The Phisher in the Dark Market": "在暗市击败钓鱼者",
     "Visit a coin in Coin City": "访问币城里的一枚币",
+    "Visit a coin in the Launchpad Village": "访问发射台村里的一枚币",
     "Talk to ARCIA": "与 ARCIA 交谈",
     "Visit the Burn Furnace": "访问销毁熔炉",
     "Hold some $ARCIRCLE": "持有一些 $ARCIRCLE",

@@ -955,10 +955,10 @@ export function makeSky() {
 }
 
 // stepping stones: a ring path through the shops and a spoke from the plaza to each door
-export function makePaths() {
+export function makePaths(spokes = SHOPS, ring = 23) { // b-lpv: the town's spokes lead to its portals now; the shops' ring and spokes went with them to the Utility Village
   const pts = [];
-  for (let ph = 0; ph < 360; ph += 2.4) pts.push([23, ph]);
-  SHOPS.forEach((s) => { for (let th = 12.5; th < s.theta - 4.5; th += 2.6) pts.push([th, s.phi]); });
+  if (ring) for (let ph = 0; ph < 360; ph += 2.4) pts.push([ring, ph]);
+  spokes.forEach((s) => { for (let th = 12.5; th < s.theta - 4.5; th += 2.6) pts.push([th, s.phi]); });
   // pale stone slabs with a soft bevel (ART-SPEC: the plaza's stone), a few in a warmer shade
   // b440: set into the ground, each its own size, turn and slight tilt, on a bed of darker earth and moss (one more
   // instanced draw), so they read as a laid path instead of white tiles floating on the grass
@@ -1433,9 +1433,9 @@ export function makeBeacon(color = C.cyan, h = 18) {
 }
 
 // district names, floating over each district
-export function makeDistrictSigns() {
+export function makeDistrictSigns(ids = null) { // ids: only these districts (b-lpv: the utilities' in their village, the Dark Market's in town)
   const g = new THREE.Group();
-  DISTRICTS.forEach((d) => {
+  DISTRICTS.forEach((d) => { if (ids && !ids.includes(d.id)) return;
     const col = "#" + d.color.toString(16).padStart(6, "0");
     const sp = label(d.name, { accent: col, color: col, size: 1.15 }); sp.material.opacity = 0.9;
     const o = new THREE.Group(); placeOn(o, dirOf(d.theta, d.phi), R); sp.position.y = d.id === "dark" ? 9 : 10.5; o.add(sp); g.add(o);
@@ -1477,9 +1477,9 @@ export function makeBoard(w = 3.2, h = 1.6) {
   return g;
 }
 // each district's ground takes its colour (a thin cap on the sphere)
-export function makeDistrictTints() {
+export function makeDistrictTints(ids = null) {
   const g = new THREE.Group();
-  DISTRICTS.forEach((d) => {
+  DISTRICTS.forEach((d) => { if (ids && !ids.includes(d.id)) return;
     const cap = d.id === "dark" ? 16 : d.id === "coins" ? 13 : 11;
     const mat = new THREE.MeshBasicMaterial({ color: d.color, transparent: true, opacity: d.id === "dark" ? 0.2 : 0.09, depthWrite: false });
     const th = d.id === "coins" ? 48 : d.id === "dark" ? 72 : d.theta - 9;

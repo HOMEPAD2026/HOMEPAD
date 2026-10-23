@@ -8986,6 +8986,7 @@
     "Open the Scanner Tower": "Scanner Tower 열기",
     "Beat The Phisher in the Dark Market": "다크 마켓의 피셔 물리치기",
     "Visit a coin in Coin City": "Coin City의 코인 방문하기",
+    "Visit a coin in the Launchpad Village": "런치패드 마을의 코인 방문하기",
     "Talk to ARCIA": "ARCIA와 대화하기",
     "Visit the Burn Furnace": "소각로 방문하기",
     "Hold some $ARCIRCLE": "$ARCIRCLE 보유하기",

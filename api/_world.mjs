@@ -11,7 +11,8 @@
 //   POST { action: "world-like", …signature, target }        one like per wallet per island, for good
 //   POST { action: "world-stamp", …signature, target, k, msg? }  a preset stamp and an optional 60-character note
 //                                                             (no links or addresses; api/_world-social.mjs), one a day per island
-//   POST { action: "world-lot-save", …signature, coin, data }  a coin's Coin City lot (9×9), its creator only
+//   POST { action: "world-lot-save", …signature, coin, data }  a coin's lot (b-lpv: by tier, 16/24/36/48; the old 9×9 / 13×13 too), its creator only
+//   POST { action: "world-lot-tier", coin }                    { tier, N, max } the lot's size now (the biggest it has reached)
 //   GET  ?world=island&wallet=0x…   { data, name, n, at, likes, stamps }
 //   GET  ?world=islands             { top, recent }  (worldStats/islands, kept up to date on save and like)
 //   GET  ?world=lots&coins=0x…,…    { lots: { coin: { data, at } } }
@@ -54,6 +55,7 @@ import { makeLand, LAND } from "./_world-land.mjs";
 import { makeLedger } from "./_world-ledger.mjs";
 import { makeMarket } from "./_world-market.mjs";
 import { makeCoins } from "./_world-coins.mjs";
+import { makeLots, LOT_TIERS } from "./_world-lots.mjs";
 import { scopeStore, cbtItems, CBT_REWARD } from "./_world-phase.mjs";
 import { makeSocial, cleanNote, XP_VERSION, XP_MAX, xpFromOld, levelOfSave, levelOfXp, xpAt, xpPerMin, xpBankCap, XP_RULES } from "./_world-social.mjs";
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -266,6 +268,7 @@ export function make(deps) {
   }
   let village = null; // made below (it reads the shop's ownership; the shop asks it about Village upgrades)
   const ledger = makeLedger({ ...deps, now }); // b-ec1: every ARCL movement written down, the balance split by where it came from
+  const lotsM = makeLots({ getDocs, setDoc, now, coinMcap: deps.coinMcap }); // b-lpv: the Launchpad Village's lot tiers
   const shop = makeShop({ ...deps, json, now, signer, ledger, isleNext: (w) => village.nextUp(w), hasName: async (w) => !!(((await getDocs([`worldSave/${w}`]))[`worldSave/${w}`] || {}).name) });
   // the help desk's reviewers: SUPPORT_ADMINS (comma-separated wallets) and the owner of ArcircleFeeBurn
   let adminCache = null;
@@ -525,22 +528,27 @@ export function make(deps) {
   async function lotSave(b) {
     const s = signer(b); if (s.err) return s.err;
     const coin = lc(b.coin); if (!isAddr(coin)) return json(400, { error: "coin must be an address" });
-    const ok = checkBuild(b.data, [9, 13], 1200); if (!ok) return json(400, { error: "that lot data isn't valid" });
+    // b-lpv: the Launchpad Village's lot sizes by tier (api/_world-lots.mjs), and the old Coin City ones (9, 13) still accepted
+    const ok = checkBuild(b.data, [9, 13], 1200) || checkBuild(b.data, LOT_TIERS.map((x) => x.N), LOT_TIERS[LOT_TIERS.length - 1].max); if (!ok) return json(400, { error: "that lot data isn't valid" });
     const rec = deps.launchRecord ? await deps.launchRecord(coin) : null;
     if (!rec) return json(404, { error: "not an ArcPad coin" });
     if (lc(rec.creator) !== s.wallet) return json(403, { error: "only the wallet that launched this coin can build its lot" });
     if (ok.N === 13 && !(await shop.lotPremium(s.wallet, coin))) return json(403, { error: "a 13×13 lot is the premium lot" });
+    if (ok.N > 13) { const t = await lotsM.tierOf(coin), T0 = LOT_TIERS[t], k = LOT_TIERS.findIndex((x) => x.N === ok.N);
+      if (k > t) return json(403, { error: "this coin's lot isn't that big yet", tier: t, N: T0.N });
+      if (ok.n > LOT_TIERS[k].max) return json(400, { error: "too many bricks for this lot", max: LOT_TIERS[k].max }); }
     const key = `worldLot/${coin}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     await setDoc(key, { data: String(b.data), n: ok.n, at: now(), by: s.wallet, N: ok.N });
     return json(200, { ok: true, at: now() });
   }
   async function lots(coins) {
-    const list = [...new Set(String(coins || "").split(",").map(lc).filter(isAddr))].slice(0, 24);
-    const d = await getDocs(list.map((c) => `worldLot/${c}`)), out = {};
-    for (const c of list) { const x = d[`worldLot/${c}`]; if (x && x.data) out[c] = { data: x.data, at: x.at || 0, N: x.N || 9 }; }
-    return json(200, { lots: out });
+    const list = [...new Set(String(coins || "").split(",").map(lc).filter(isAddr))].slice(0, 60);
+    const d = await getDocs([...list.map((c) => `worldLot/${c}`), ...list.map((c) => `worldLotTier/${c}`)]), out = {}, tiers = {};
+    for (const c of list) { const x = d[`worldLot/${c}`]; if (x && x.data) out[c] = { data: x.data, at: x.at || 0, N: x.N || 9 }; const t = d[`worldLotTier/${c}`]; if (t && t.t) tiers[c] = t.t | 0; }
+    return json(200, { lots: out, tiers }); // (tiers: the biggest a lot has grown to, when that's above Starter)
   }
+  async function lotTier(b) { const coin = lc(b.coin); if (!isAddr(coin)) return json(400, { error: "coin must be an address" }); const t = await lotsM.tierOf(coin); return json(200, { ok: true, tier: t, N: LOT_TIERS[t].N, max: LOT_TIERS[t].max }); }
   return {
     stats,
     // GET ?world=…
@@ -602,6 +610,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
+      if (b.action === "world-lot-tier") return lotTier(b);
       const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await pk.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },

@@ -26,6 +26,7 @@
 //            worldRaidIn/<week>_<wallet> · worldRaidFell/<week> { at } · worldGhosts/<2-min window>_<shard 0–7> { list }
 //            worldRaidGap/<week>_<wallet>_<slot> · worldRaidClaim/<week>_<wallet>
 //            worldStats/players { list, n } · worldGifts/<wallet> { list } · worldGiftDay/<wallet>_<day> { n } · worldStats/race_<week> { top }
+import { inWorld } from "./_world-lots.mjs";
 import { isGM, xpLevel } from "./_world-village.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
@@ -261,7 +262,7 @@ export function makeSocial(deps) {
   async function ghostPing(id, g, who = null) {
     if (!g || typeof g !== "object") return;
     const x = Math.round(Number(g.x) * 10) / 10, z = Math.round(Number(g.z) * 10) / 10;
-    if (!Number.isFinite(x) || !Number.isFinite(z) || Math.hypot(x, z) > 150) return;
+    if (!Number.isFinite(x) || !Number.isFinite(z) || !inWorld(x, z)) return; // (the town, or a land past it: b-lpv)
     const t = tagOf(id), c = CHARS.test(String(g.c || "")) ? g.c : "bot", lv = Math.max(1, Math.min(99, Math.floor(Number(g.lv) || 1)));
     // eight small documents per 2-minute window, picked by the tag, so pings from many players don't queue on one
     const at = now(), key = `worldGhosts/${Math.floor(at / GHOST_LIFE)}_${parseInt(t, 36) % GHOST_SHARDS}`, cur = (await one(key)) || { list: [] };

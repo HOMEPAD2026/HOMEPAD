@@ -9257,6 +9257,7 @@
     "Open the Scanner Tower": "Scanner Tower'ı aç",
     "Beat The Phisher in the Dark Market": "Dark Market'te Oltacı'yı yen",
     "Visit a coin in Coin City": "Coin City'de bir coin'i ziyaret et",
+    "Visit a coin in the Launchpad Village": "Launchpad Köyü'nde bir coin'i ziyaret et",
     "Talk to ARCIA": "ARCIA ile konuş",
     "Visit the Burn Furnace": "Yakım Fırını'nı ziyaret et",
     "Hold some $ARCIRCLE": "Biraz $ARCIRCLE tut",
