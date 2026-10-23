@@ -1,7 +1,7 @@
 // world-play.js — ARCIRCLE World (/play): an open little planet you walk as your own character. Every shop opens
 // the real tool, Coin City is built from the real ArcPad coins, a rocket leaves the Launchpad when one launches, the
 // Burn Furnace flares on a real $ARCIRCLE burn, the Exchange board shows the live price, the Quantum Lab shows the
-// launches in superposition, and the sky follows Seoul's clock and the market's mood.
+// launches in superposition, and the sky follows US Eastern time (day and night) and the market's mood.
 //
 // It opens in space on the round planet and dives through the clouds onto flat ground: the same districts, unrolled
 // around the plaza. How it moves: the player stays at the origin and the world slides under them (so the shadow box,
@@ -3972,7 +3972,7 @@ setInterval(() => {
 }, 250);
 addEventListener("gamepaddisconnected", () => { if (!(navigator.getGamepads ? [...navigator.getGamepads()] : []).some((g) => g && g.connected)) toast(T("Controller disconnected")); });
 
-// ---------------- day and night (Seoul time) ----------------
+// ---------------- day and night (US Eastern time, etHour) ----------------
 // a blue day sky over the ground, stars and the far planets at night (?hour=21 tries another hour)
 const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x0e4ed2), mid: new THREE.Color(0x2c9af2), glow: new THREE.Color(0x92d8fc) } /* b420: a clear, saturated anime blue, light cyan at the horizon (deeper than it reads: tone mapping pales it) */, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x07102a), glow: new THREE.Color(0x173452) }, DUSK = new THREE.Color(0xf0a070);
 const HALLOW_FOG = new THREE.Color(0x2a1840); // Halloween nights: a violet fog
@@ -4027,9 +4027,14 @@ function airFor(k, dusk, zz) {
 }
 const MOONC = new THREE.Color(0x9fb8ff); // moonlight
 const CLOUD = { night: new THREE.Color(0x3a4660), dusk: new THREE.Color(0xffc8a0), shade: new THREE.Color(0xb2cdf2), /* a soft blue underside */ nshade: new THREE.Color(0x141a2a), dshade: new THREE.Color(0xc87a7a) };
+// the town's clock is US Eastern (the owner's call, 2026-10-23: night 20:00–05:00 there, the same as the Pumpkin Kings')
+const ET_FMT = (() => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }); } catch { return null; } })();
+function etHour(t = Date.now()) {
+  if (ET_FMT) try { const p = {}; for (const x of ET_FMT.formatToParts(new Date(t))) p[x.type] = x.value; return (+p.hour % 24) + (+p.minute) / 60; } catch { /* below */ }
+  const d = new Date(t - 5 * 3600e3); return d.getUTCHours() + d.getUTCMinutes() / 60; // no time-zone data: Eastern standard time
+}
 function dayNight() {
-  const d = new Date(Date.now() + 9 * 3600e3);
-  const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
+  const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : etHour();
   const k = h >= 20 || h < 5 ? 1 : h >= 17 ? (h - 17) / 3 : h < 7 ? 1 - (h - 5) / 2 : 0;
   if (Math.abs(k - nightK) < 0.01) return; nightK = k;
   // skyEnv is made further down the module, past awaits: a first call that comes too early tries again next time
@@ -4042,8 +4047,8 @@ function dayNight() {
     if (lgrade.set(k, dusk, gz, gk)) fxPost.setLut(lgrade.tex()); fxPost.setAir(airFor(k, dusk, zz)); }
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
-  // an aurora on one night in three (by the Seoul date), or with ?aurora=1; strongest in the deep of the night
-  if (skyU.uAur) { const q = new URLSearchParams(location.search).get("aurora"), d = Math.floor((Date.now() + 9 * 3600e3 - 12 * 3600e3) / 864e5), on = q === "1" || (q !== "0" && d % 3 === 0); skyU.uAur.value = on ? Math.max(0, (k - 0.55) / 0.45) : 0; }
+  // an aurora on one night in three (by the US Eastern date), or with ?aurora=1; strongest in the deep of the night
+  if (skyU.uAur) { const q = new URLSearchParams(location.search).get("aurora"), d = Math.floor((Date.now() - 5 * 3600e3 - 12 * 3600e3) / 864e5), on = q === "1" || (q !== "0" && d % 3 === 0); skyU.uAur.value = on ? Math.max(0, (k - 0.55) / 0.45) : 0; }
   st.sun.intensity = 2.15 * (1 - k * 0.62); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun; a cool moonlight at night
   st.sun.color.lerp(MOONC, k * 0.6);
   st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; if (ENV.rimStrength) ENV.rimStrength.value = 0.16 + k * 0.18; st.renderer.toneMappingExposure = 0.8 + k * 0.22; /* a calmer day: the white plaza was glaring */
