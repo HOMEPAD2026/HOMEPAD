@@ -48,6 +48,7 @@ export const ACH = [
   { id: "lv20", name: "Legend", line: "Reach level 20", ev: "level", n: 20, title: "Legend" },
   { id: "raid1", name: "Raid breaker", line: "Help bring down a weekly raid boss", ev: "raid", n: 1, title: "Raid Breaker" },
   { id: "quiz", name: "Scam spotter", line: "Answer 25 quiz questions right", ev: "quizOk", n: 25, title: "Scam Spotter" },
+  { id: "starter", name: "First day", line: "Finish every step of \"Your first 5 minutes\"", ev: "starter", n: 5, title: "Starter" }, // b-st3
   // the far ring: in each ground, knock out 30 scammers, beat its boss and catch its fish (three steps)
   { id: "gpeaks", name: "Peak warden", line: "In Ponzi Peaks: 30 knock-outs, its boss, its fish", ev: "ground", zone: "peaks", fish: "cod", n: 3, title: "Peak Warden" },
   { id: "gdunes", name: "Desert warden", line: "In Exit-Scam Desert: 30 knock-outs, its boss, its fish", ev: "ground", zone: "dunes", fish: "snapper", n: 3, title: "Dune Walker" },
@@ -123,6 +124,7 @@ export function createQuests(ctx) {
   // how far an achievement is: most count an event; a ground's is its three steps
   function haveOf(a, x) {
     if (a.ev === "level") return ctx.level(); if (a.ev === "zoneSet") return x.zones.length;
+    if (a.ev === "starter") return ctx.starterDone ? ctx.starterDone() : 0; // b-st3: 5 when every first-day step is done
     if (a.ev === "ground") { const fish = ((ctx.rpg.data() || {}).x || {}).fish || {}; return ((x.zk || {})[a.zone] >= 30 ? 1 : 0) + (x.seen["boss-" + a.zone] ? 1 : 0) + (fish[a.fish] ? 1 : 0); }
     return x.c[a.ev] || 0;
   }

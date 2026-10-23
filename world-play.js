@@ -73,17 +73,17 @@ const WORDS = {
     move: "hareket", jump: "zıpla", run: "koş", enter: "gir", board: "hoverboard", emote: "ifade", photo: "fotoğraf", map: "harita", help: "yardım", "drag to look": "sürükleyerek bak" },
 };
 // b-st1: the first minutes' words
-Object.assign(WORDS.ko, { "Welcome!": "환영해요!", "The fountain's show": "분수 쇼", "on the hour, at the plaza": "매시 정각, 광장에서", "Opening the plaza…": "광장을 여는 중…", "Dressing the town…": "마을을 꾸미는 중…", "Waking the scammers…": "스캐머를 깨우는 중…", "Polishing the light…": "빛을 다듬는 중…",
+Object.assign(WORDS.ko, { "Toss a coin in the fountain": "분수에 동전 던지기", "May your next chest be golden.": "다음 상자는 황금 상자이길.", "May the scammers never find your wallet.": "스캐머가 내 지갑을 절대 찾지 못하길.", "May your hero level up twice today.": "오늘 영웅이 두 번 레벨업하길.", "May your island be the week's best.": "내 섬이 이번 주 최고가 되길.", "May your dino hatch strong.": "내 공룡이 튼튼하게 부화하길.", "May the river card be yours.": "리버 카드가 내 편이길.", "Welcome back, {x}!": "다시 오셨네요, {x}!", "hero": "영웅", "{n} days since your last visit": "마지막 방문 후 {n}일", "Good to see you again today": "오늘 또 만나서 반가워요", "today's fountain coin is waiting": "오늘의 분수 동전이 기다려요", "now": "진행 중", "Back to where I left": "마지막 위치로 돌아가기", "Jurassic boss hour": "쥬라기 보스 타임", "Poker Sit & Go": "포커 시트 앤 고", "The Pumpkin Kings wake": "호박킹 기상", "in {h} h {m} min": "{h}시간 {m}분 후", "in {m} min": "{m}분 후", "New launch on ArcPad": "ArcPad 신규 런칭", "Welcome!": "환영해요!", "The fountain's show": "분수 쇼", "on the hour, at the plaza": "매시 정각, 광장에서", "Opening the plaza…": "광장을 여는 중…", "Dressing the town…": "마을을 꾸미는 중…", "Waking the scammers…": "스캐머를 깨우는 중…", "Polishing the light…": "빛을 다듬는 중…",
   "Step through a portal to the Utility Village": "포털을 지나 유틸리티 마을로 가기", "One world, eight games. Pick your hero, a colour and a name — you can change them later.": "하나의 세계, 8개의 게임. 영웅과 색, 이름을 골라요 — 나중에 바꿀 수 있어요.",
   "Move": "이동", "Jump": "점프", "Attack": "공격", "Drag the stick on the left. Push it far to run.": "왼쪽 스틱을 드래그해요. 끝까지 밀면 달려요.", "Tap the big blue arrow.": "큰 파란 화살표를 눌러요.", "Tap the red sword near a scammer.": "스캐머 가까이에서 빨간 검을 눌러요.",
   "W A S D or the arrow keys. Hold Shift to run.": "W A S D 또는 화살표 키. Shift를 누르고 있으면 달려요.", "Space.": "스페이스바.", "J, or click the red sword near a scammer.": "J, 또는 스캐머 가까이에서 빨간 검을 클릭해요.",
   "How to play": "플레이 방법", "Welcome to ARCIRCLE WORLD": "ARCIRCLE WORLD에 오신 걸 환영해요", "Three things to start": "시작할 때 알아둘 세 가지", "All controls": "전체 조작법", "Let's go!": "시작!" });
-Object.assign(WORDS.zh, { "Welcome!": "欢迎！", "The fountain's show": "喷泉表演", "on the hour, at the plaza": "每个整点，在广场", "Opening the plaza…": "正在打开广场…", "Dressing the town…": "正在装点小镇…", "Waking the scammers…": "正在唤醒骗子…", "Polishing the light…": "正在打磨光影…",
+Object.assign(WORDS.zh, { "Toss a coin in the fountain": "向喷泉投一枚硬币", "May your next chest be golden.": "愿你的下一个宝箱是金色的。", "May the scammers never find your wallet.": "愿骗子永远找不到你的钱包。", "May your hero level up twice today.": "愿你的英雄今天连升两级。", "May your island be the week's best.": "愿你的岛成为本周最佳。", "May your dino hatch strong.": "愿你的恐龙健壮孵化。", "May the river card be yours.": "愿河牌站在你这边。", "Welcome back, {x}!": "欢迎回来，{x}！", "hero": "英雄", "{n} days since your last visit": "距上次来访已 {n} 天", "Good to see you again today": "今天又见面了", "today's fountain coin is waiting": "今天的喷泉硬币在等你", "now": "进行中", "Back to where I left": "回到上次的位置", "Jurassic boss hour": "侏罗纪首领时间", "Poker Sit & Go": "扑克坐满即玩", "The Pumpkin Kings wake": "南瓜王苏醒", "in {h} h {m} min": "{h} 小时 {m} 分钟后", "in {m} min": "{m} 分钟后", "New launch on ArcPad": "ArcPad 新上线", "Welcome!": "欢迎！", "The fountain's show": "喷泉表演", "on the hour, at the plaza": "每个整点，在广场", "Opening the plaza…": "正在打开广场…", "Dressing the town…": "正在装点小镇…", "Waking the scammers…": "正在唤醒骗子…", "Polishing the light…": "正在打磨光影…",
   "Step through a portal to the Utility Village": "穿过传送门前往工具村", "One world, eight games. Pick your hero, a colour and a name — you can change them later.": "一个世界，八款游戏。选择你的英雄、颜色和名字——之后还能更改。",
   "Move": "移动", "Jump": "跳跃", "Attack": "攻击", "Drag the stick on the left. Push it far to run.": "拖动左边的摇杆。推到底就会奔跑。", "Tap the big blue arrow.": "点击蓝色大箭头。", "Tap the red sword near a scammer.": "在骗子附近点击红色的剑。",
   "W A S D or the arrow keys. Hold Shift to run.": "W A S D 或方向键。按住 Shift 奔跑。", "Space.": "空格键。", "J, or click the red sword near a scammer.": "J，或在骗子附近点击红色的剑。",
   "How to play": "玩法", "Welcome to ARCIRCLE WORLD": "欢迎来到 ARCIRCLE WORLD", "Three things to start": "开始前的三件事", "All controls": "全部操作", "Let's go!": "出发！" });
-Object.assign(WORDS.tr, { "Welcome!": "Hoş geldin!", "The fountain's show": "Çeşme gösterisi", "on the hour, at the plaza": "her saat başı, meydanda", "Opening the plaza…": "Meydan açılıyor…", "Dressing the town…": "Kasaba süsleniyor…", "Waking the scammers…": "Dolandırıcılar uyanıyor…", "Polishing the light…": "Işık parlatılıyor…",
+Object.assign(WORDS.tr, { "Toss a coin in the fountain": "Çeşmeye bir bozuk para at", "May your next chest be golden.": "Bir sonraki sandığın altın olsun.", "May the scammers never find your wallet.": "Dolandırıcılar cüzdanını asla bulmasın.", "May your hero level up twice today.": "Kahramanın bugün iki seviye atlasın.", "May your island be the week's best.": "Adan haftanın en iyisi olsun.", "May your dino hatch strong.": "Dinozorun güçlü çıksın.", "May the river card be yours.": "River kartı senin olsun.", "Welcome back, {x}!": "Tekrar hoş geldin, {x}!", "hero": "kahraman", "{n} days since your last visit": "Son ziyaretinden bu yana {n} gün", "Good to see you again today": "Bugün seni yine görmek güzel", "today's fountain coin is waiting": "bugünün çeşme parası seni bekliyor", "now": "şimdi", "Back to where I left": "Kaldığım yere dön", "Jurassic boss hour": "Jurassic boss saati", "Poker Sit & Go": "Poker Sit & Go", "The Pumpkin Kings wake": "Balkabağı Kralları uyanıyor", "in {h} h {m} min": "{h} sa {m} dk sonra", "in {m} min": "{m} dk sonra", "New launch on ArcPad": "ArcPad'de yeni lansman", "Welcome!": "Hoş geldin!", "The fountain's show": "Çeşme gösterisi", "on the hour, at the plaza": "her saat başı, meydanda", "Opening the plaza…": "Meydan açılıyor…", "Dressing the town…": "Kasaba süsleniyor…", "Waking the scammers…": "Dolandırıcılar uyanıyor…", "Polishing the light…": "Işık parlatılıyor…",
   "Step through a portal to the Utility Village": "Bir portaldan Araçlar Köyü'ne geç", "One world, eight games. Pick your hero, a colour and a name — you can change them later.": "Tek dünya, sekiz oyun. Kahramanını, rengini ve adını seç — sonra değiştirebilirsin.",
   "Move": "Hareket", "Jump": "Zıpla", "Attack": "Saldır", "Drag the stick on the left. Push it far to run.": "Soldaki çubuğu sürükle. Sonuna kadar itersen koşarsın.", "Tap the big blue arrow.": "Büyük mavi oka dokun.", "Tap the red sword near a scammer.": "Bir dolandırıcının yanında kırmızı kılıca dokun.",
   "W A S D or the arrow keys. Hold Shift to run.": "W A S D veya ok tuşları. Koşmak için Shift'e basılı tut.", "Space.": "Boşluk tuşu.", "J, or click the red sword near a scammer.": "J, ya da bir dolandırıcının yanında kırmızı kılıca tıkla.",
@@ -570,7 +570,11 @@ const clouds = K.makeClouds(); planet.add(clouds);
 // mountains on the horizon, birds, butterflies and fish (world-ambient.js; nothing but the mountains on Low)
 const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn() }); let ambNight = 0; // ambNight: set by dayNight
 // anonymous health counters (world-diag.js): script errors, the frame rate band, a GPU memory climb
+// b-st3: the first minutes, counted (world-diag.js funnel): each step once a visit; nw = this browser's first visit
+const FUN_NEW = (() => { try { const k = "arc.world.fun0"; const was = localStorage.getItem(k); if (!was) localStorage.setItem(k, String(Date.now())); return !was; } catch { return false; } })();
+const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; funSent.add(ev); try { if (diag && diag.funnel) diag.funnel(ev, FUN_NEW); } catch { /* fine */ } };
 const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : "hub"), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+fun("open"); st.on(() => { if (!funSent.has("move") && mode === "hub" && speedNow > 1.5) fun("move"); });
 st.on((dt) => { try { diag.tick(dt); } catch { /* health counters must never stop the game */ } });
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
 // b-lpv (the owner's call, 2026-10-23): the Launchpad Village and the Utility Village are lands of their own past the
@@ -841,6 +845,9 @@ async function dressWorld(kit) {
   // the hunting grounds (world-zones.js)
   const zs = (zoneRoot = null, ZN.makeZones({ THREE, K, planet, kit, T, low: lowGfx, onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } }));
   zoneRoot = zs.root;
+  // b-st3: on a computer the far grounds are built now, behind the loading screen, so their shaders are compiled with the
+  // rest (st.warm) instead of on the way in; a phone keeps building each as you come near (memory)
+  if (!st.quality.coarse && !lowGfx) try { zs.buildAll(); } catch (e) { console.warn("far grounds", e); }
   // each ground's own floor (world-env.js): cracked rock, ripples, moss, paving, ice, glowing seams
   if (!lowGfx) zs.root.children.forEach((g) => { const zn = g.userData && g.userData.zone, gm = g.children.find((c) => c.name === "zone-ground"); if (zn && gm) floorU.push(ENV.zoneFloor(gm.material, zn, { lite: st.quality.coarse })); });
   zs.root.traverse((o) => { if (o.name !== "zone-ground") return; if (!lowGfx) LOOK.stoneGrain(o.material); if (gshadow) gshadow.receive(o.material); }); // b447: the grounds' floors get the plaza's grain too spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
@@ -1723,6 +1730,7 @@ function nearest() {
   shops.forEach((g) => consider(g, "shop", { spec: g.userData.spec }, 2.8));
   coinBuildings.forEach((g) => consider(g, "coin", { coin: g.userData.coin }, 2.4));
   consider(portal, "portal", {}, 2.4);
+  if (fountDay() !== tipDay() && !landNow) consider(fountain, "fountain", {}, 5.2); // b-st3: today's coin, while it's still to toss
   lands.portals.forEach((g) => consider(g, "lport", { to: g.userData.to }, 2.6)); lands.back.forEach((g) => { if (g.parent && g.parent.visible) consider(g, "lport", { to: "town" }, 2.6); }); // b-lpv
   consider(pad, "pad", {}, 1.6);
   if (race && !race.racing()) consider(race.pad, "race", {}, 1.8);
@@ -1738,7 +1746,7 @@ function paintPrompt() {
   if (p.hidden) { p.hidden = false; void p.offsetWidth; }
   p.classList.add("on");
   const b = (s) => `<b>${esc(s)}</b>`;
-  $("wp-enter-t").innerHTML = near.kind === "lport" ? (near.to === "town" ? b(TW("Back to town")) : TW("Go to {x}", { x: b(landName(near.to)) })) : near.kind === "land" ? land.promptHTML(near.n) : near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "village" ? (near.mine ? T("Open {x}", { x: b(T("My village")) }) : T("Village centre · Lv {n}", { n: near.level })) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "defense" ? esc(TW("Start AC Defense")) : near.kind === "jump" ? esc(TW("Start Coin Jump")) : near.kind === "miner" ? T("Talk to {x}", { x: b(TW("the miner")) }) : near.kind === "mine" ? (mineRest > Date.now() ? esc(TW("ARCL Mine · opens in {t}", { t: restLeft(mineRest) })) : esc(TW("Enter the ARCL Mine"))) : near.kind === "agentdim" ? T("Enter {x}", { x: b(TW("AGENT DIMENSION")) }) : near.kind === "kairo" ? T("Enter {x}", { x: b(TW("KAIRO Finance Hub")) }) : near.kind === "jurassic" ? (jurAllowed() ? T("Enter {x}", { x: b(TW("Jurassic World")) }) : esc(TW("Jurassic World · Coming soon"))) : near.kind === "beat" ? esc(TW("Start Beat Stomp")) : near.kind === "surv" ? esc(TW("Enter Survivors Arena")) : near.kind === "rings" ? esc(TW("Play INFINITY RINGS")) : near.kind === "poker" ? esc(TW("Enter ARCIA Poker Lounge")) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
+  $("wp-enter-t").innerHTML = near.kind === "fountain" ? esc(TW("Toss a coin in the fountain")) : near.kind === "lport" ? (near.to === "town" ? b(TW("Back to town")) : TW("Go to {x}", { x: b(landName(near.to)) })) : near.kind === "land" ? land.promptHTML(near.n) : near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "village" ? (near.mine ? T("Open {x}", { x: b(T("My village")) }) : T("Village centre · Lv {n}", { n: near.level })) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "defense" ? esc(TW("Start AC Defense")) : near.kind === "jump" ? esc(TW("Start Coin Jump")) : near.kind === "miner" ? T("Talk to {x}", { x: b(TW("the miner")) }) : near.kind === "mine" ? (mineRest > Date.now() ? esc(TW("ARCL Mine · opens in {t}", { t: restLeft(mineRest) })) : esc(TW("Enter the ARCL Mine"))) : near.kind === "agentdim" ? T("Enter {x}", { x: b(TW("AGENT DIMENSION")) }) : near.kind === "kairo" ? T("Enter {x}", { x: b(TW("KAIRO Finance Hub")) }) : near.kind === "jurassic" ? (jurAllowed() ? T("Enter {x}", { x: b(TW("Jurassic World")) }) : esc(TW("Jurassic World · Coming soon"))) : near.kind === "beat" ? esc(TW("Start Beat Stomp")) : near.kind === "surv" ? esc(TW("Enter Survivors Arena")) : near.kind === "rings" ? esc(TW("Play INFINITY RINGS")) : near.kind === "poker" ? esc(TW("Enter ARCIA Poker Lounge")) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
   { const e2 = $("wp-enter2"), on = near.kind === "isle"; e2.hidden = !on; if (on) e2.innerHTML = `<span>${esc(T("Visit a friend's island"))}</span><small>${esc(island.friendCount() ? T("{n} friends, one at random", { n: island.friendCount() }) : T("No friends yet: a random island"))}</small>`; }
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
@@ -2166,6 +2174,7 @@ function enter(n) {
   if (n.kind === "resident") { island.talk(n.res); return; }
   if (n.kind === "portal") { portalGo(n.g); return; }
   if (n.kind === "lport") { landGo(n.to); return; }
+  if (n.kind === "fountain") { tossCoin(); return; }
   if (n.kind === "pad") { openMap(); return; }
   if (n.kind === "defense") { openDefense(); return; }
   if (n.kind === "jump") { openJump(); return; }
@@ -2243,6 +2252,7 @@ function buildCoinCity(list) {
     planet.add(g); spins.push(...b.userData.spin); coinBuildings.push(g);
   });
   lands.setNewest(list.slice().sort((a, b) => (b.launchedAt || 0) - (a.launchedAt || 0))[0] || null);
+  try { launchFireworks(list.slice().sort((a, b) => (b.launchedAt || 0) - (a.launchedAt || 0))[0]); } catch { /* fine */ }
   if (labels) labels.dirty = true; farCull.rescan();
   dressLots();
 }
@@ -3119,6 +3129,7 @@ const make = $("wp-make");
 const KK_NAME = { "kk-knight": "Knight", "kk-mage": "Mage", "kk-rogue": "Rogue", "kk-rogue-hooded": "Hooded Rogue", "kk-ranger": "Ranger", "kk-barbarian": "Barbarian" };
 let pickChar = heroOf(P.char || "arc-arc"), pickTint = P.tint || 0; // pickTint: the hero's colour (K.HERO_TINTS; b447)
 function openMake() {
+  if (!P.char) { fun("maker"); try { const pp = localStorage.getItem("arc.world.prepick"); if (pp && (K.HERO_IDS || []).includes(pp) && pp !== pickChar) { pickChar = pp; if (avatar) setAvatar(pickChar); } } catch { /* private */ } } // b-st3: the hero picked on the loading screen
   // the ARC Bots first (each with its name and role), then the classic characters
   const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.startsWith("kk-") ? T(KK_NAME[id] || id) : K.HEROES && K.HEROES[id] ? K.HEROES[id].name : id.startsWith("custom-") ? id.slice(7).replace(/-/g, " ") : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/brand/mark-sm-v2.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : K.HEROES && K.HEROES[id] ? `<small>${esc(K.HEROES[id].name)}</small>` : ""}</button>`; };
   const sec = (h, ids) => (ids.length ? `<p class="wp-make-sec">${esc(T(h))}</p>` + ids.map(cell).join("") : "");
@@ -3179,6 +3190,7 @@ $("wp-make-grid").addEventListener("click", (e) => {
 // 10,000 $ARCIRCLE from your wallet (half burned, half to the treasury), which the server checks on the next save
 const CHAR_COST = 10000;
 function finishMake(ch, nm) {
+  fun("named");
   P.char = ch; P.name = nm; if (K.HERO_ONLY) P.tint = pickTint; save();
   setNameTag(); make.hidden = true; frozen = false; camYaw = facing - Math.PI; paintQuests(); tutorialStep(-1); maybeGuide();
   const ask = $("wp-make-ask"); if (ask) ask.remove();
@@ -3303,6 +3315,55 @@ function startSweep(ms = 1800) {
   if (reduce || introOn || mode !== "hub") return;
   const a = camYaw + Math.PI * 0.62; cam.position.set(at.x - Math.sin(a) * 5.5, at.y + 2.6, at.z - Math.cos(a) * 5.5); landUntil = performance.now() + ms;
 }
+let qsAt = 0; // b-st3: when the how-to closed
+/// b-st3: back on another day: a card that slides in at the top (your name, how long you were away, what's on next), 6 s
+function welcomeBack(days) {
+  if (!P.char || document.querySelector(".wp-wb")) return; const ev = plazaEvents()[0], lp = lastPos();
+  const el = document.createElement("div"); el.className = "wp-wb"; el.setAttribute("role", "status");
+  el.innerHTML = `<b>${esc(TW("Welcome back, {x}!", { x: P.name || TW("hero") }))}</b><small>${esc(days > 1 ? TW("{n} days since your last visit", { n: days }) : TW("Good to see you again today"))}${fountDay() !== tipDay() ? " · " + esc(TW("today's fountain coin is waiting")) : ""}</small>${ev ? `<em>${ev.ic} ${esc(ev.t)} · ${esc(ev.live ? TW("now") : evLeft(ev.at))}</em>` : ""}${lp ? `<button type="button" data-wb="last">📍 ${esc(TW("Back to where I left"))}</button>` : ""}`;
+  // b-st3: the spawn choice: the plaza (where you are), or back to where you left off last time (a spot in town)
+  el.addEventListener("click", (e) => { if (!e.target.closest('[data-wb="last"]') || !lp || mode !== "hub" || flying || introOn) return; standAt(lp.x, lp.z, { x: lp.x + Math.sin(lp.f || 0), z: lp.z + Math.cos(lp.f || 0) }); vfx.teleport(here(), { color: 0x7fe9ff, color2: 0x2f86ff }); startSweep(1200); el.classList.remove("on"); });
+  document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on")); setTimeout(() => el.classList.remove("on"), lp ? 9000 : 6000); setTimeout(() => el.remove(), lp ? 9600 : 6600);
+  if (Snd.quest) Snd.quest();
+}
+/// b-st3: where you were in town (not the plaza, not a land), kept every 20 s and as the page goes, for "back to where I left"
+const LASTPOS = "arc.world.lastpos";
+function keepPos() { try { if (!landed || mode !== "hub" || landNow || flying || introOn) return; const x = -planet.position.x, z = -planet.position.z; if (Math.hypot(x, z) < 24) return; localStorage.setItem(LASTPOS, JSON.stringify({ x: +x.toFixed(1), z: +z.toFixed(1), f: +facing.toFixed(2), at: Date.now() })); } catch { /* private */ } }
+every(20000, keepPos); addEventListener("pagehide", keepPos);
+const lastPos = () => { try { const p = JSON.parse(localStorage.getItem(LASTPOS) || "null"); return p && Date.now() - p.at < 7 * 864e5 && Math.hypot(p.x, p.z) >= 24 && !LD.landAt(p.x, p.z) ? p : null; } catch { return null; } };
+/// b-st3: what's on next round town (all on the clock, so every player sees the same): the fountain's show on the hour,
+/// Jurassic's boss hour (12:00 and 20:00 Seoul), poker's Sit & Go (even UTC hours), the Pumpkin Kings' night (20:00 US Eastern)
+function plazaEvents(now = Date.now()) {
+  const ev = [], d = new Date(now), day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  ev.push({ ic: "⛲", t: TW("The fountain's show"), at: now + 3600e3 - (now % 3600e3) });
+  for (const h of [3, 11]) { let t = day0 + h * 3600e3; if (t + 30 * 60e3 < now) t += 864e5; ev.push({ ic: "🦖", t: TW("Jurassic boss hour"), at: t, live: t <= now }); }
+  { const h = d.getUTCHours(); ev.push({ ic: "🃏", t: TW("Poker Sit & Go"), at: day0 + (h + (h % 2 ? 1 : 2)) * 3600e3 }); }
+  let pk = null; try { pk = pumpKings; } catch { /* not declared yet: still loading */ }
+  if (pk) { const eh = etHour(now), live = eh >= 20 || eh < 5; ev.push({ ic: "🎃", t: TW("The Pumpkin Kings wake"), at: live ? now : now + (20 - eh) * 3600e3, live }); }
+  return ev.sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0) || a.at - b.at);
+}
+const evLeft = (at) => { const m = Math.max(0, Math.round((at - Date.now()) / 60e3)); return m >= 60 ? TW("in {h} h {m} min", { h: Math.floor(m / 60), m: m % 60 }) : TW("in {m} min", { m }); };
+// the pill at the top of the screen: the next three, one at a time (in town only)
+{ const pill = document.createElement("div"); pill.className = "wp-evt"; pill.id = "wp-evt"; pill.setAttribute("aria-live", "off"); pill.hidden = true; document.body.appendChild(pill); let i = 0;
+  every(6000, () => { try { const on = landed && mode === "hub" && !frozen && !introOn && !document.body.classList.contains("wp-first"); pill.hidden = !on; if (!on) return;
+    const L = plazaEvents().slice(0, 3), e = L[i++ % L.length]; if (!e) return; pill.innerHTML = `<span>${e.ic}</span><b>${esc(e.t)}</b><small class="${e.live ? "live" : ""}">${esc(e.live ? TW("now") : evLeft(e.at))}</small>`; pill.classList.remove("in"); void pill.offsetWidth; pill.classList.add("in"); } catch { /* next time */ } }); }
+/// b-st3: a coin launched on ArcPad in the last 15 minutes: fireworks over the plaza, once per coin on this device
+function launchFireworks(c) {
+  if (!c || !c.launchedAt || Date.now() - c.launchedAt > 15 * 60e3 || mode !== "hub" || reduce) return; const k = "arc.world.fw." + String(c.token || c.symbol || "").slice(0, 46);
+  try { if (localStorage.getItem(k)) return; localStorage.setItem(k, "1"); } catch { return; }
+  const C = [0x38d8ff, 0x2ee0a0, 0xffc861, 0xff7ab6, 0x9b8cff];
+  for (let n = 0; n < 7; n++) setTimeout(() => { try { vfx.burst(new THREE.Vector3((Math.random() - 0.5) * 14, 14 + Math.random() * 6, (Math.random() - 0.5) * 14), C[n % C.length], true); if (Snd.pop) Snd.pop(); } catch { /* fine */ } }, n * 420);
+  feed(`🚀 ${esc(TW("New launch on ArcPad"))}: <b>$${esc(c.symbol || "")}</b>`, "#ffc861");
+}
+/// b-st3: a coin in the fountain, once a Seoul day: a wish, the jets leap, 10 ARCL (the server checks the day: arcl-claim "fountain")
+const WISHES = ["May your next chest be golden.", "May the scammers never find your wallet.", "May your hero level up twice today.", "May your island be the week's best.", "May your dino hatch strong.", "May the river card be yours."];
+const fountDay = () => { try { return localStorage.getItem("arc.world.fount") || ""; } catch { return ""; } };
+function tossCoin() {
+  if (fountDay() === tipDay()) return; try { localStorage.setItem("arc.world.fount", tipDay()); } catch { /* private: once this visit */ } near = null; paintPrompt();
+  try { fountain.userData.burst(5); vfx.burst(new THREE.Vector3(0, 2.4, 0), 0xffc861, true); if (Snd.coin) Snd.coin(); if (avatar && !(avatar.busy && avatar.busy())) avatar.play("cast", { once: true }); } catch { /* fine */ }
+  toast(`⛲ <b>${esc(TW(WISHES[Math.floor(Math.random() * WISHES.length)]))}</b>`);
+  arclShop.claim("fountain", {}, null);
+}
 /// b-st2: a portal's pull: the screen flashes its colour from the middle out (CSS, gone in 0.7 s)
 function pullFlash(c) { if (reduce) return; const f = document.createElement("div"); f.className = "wp-pull"; f.style.setProperty("--c", c); f.setAttribute("aria-hidden", "true"); document.body.appendChild(f); setTimeout(() => f.remove(), 800); }
 /// b-st2: the first arrival: a big welcome over the plaza and confetti (DOM, gone in 3 s)
@@ -3323,7 +3384,7 @@ function quickStart() {
     <ol>${cards.map(([ic, t, p0], i) => `<li style="--i:${i}"><span aria-hidden="true">${ic}</span><div><b>${esc(t)}</b><p>${esc(p0)}</p></div></li>`).join("")}</ol>
     <div class="wp-qs-row"><button type="button" class="wp-btn" data-qs="all">${esc(TW("All controls"))}</button><button type="button" class="wp-cta" data-qs="go">${esc(TW("Let's go!"))}</button></div></div>`;
   frozen = true; keys.clear(); paintPrompt();
-  const done = (all) => { el.classList.add("out"); setTimeout(() => el.remove(), 260); frozen = false; if (all) { openGuide(); return; } if (!P.guideSeen) { P.guideSeen = true; save(); } firstRun(false); setNameTag(); setTimeout(() => arclShop.maybeDaily(), 600); };
+  const done = (all) => { fun("start"); qsAt = Date.now(); el.classList.add("out"); setTimeout(() => el.remove(), 260); frozen = false; if (all) { openGuide(); return; } if (!P.guideSeen) { P.guideSeen = true; save(); } firstRun(false); setNameTag(); setTimeout(() => arclShop.maybeDaily(), 600); };
   el.addEventListener("click", (e) => { const b = e.target.closest("[data-qs]"); if (b) done(b.dataset.qs === "all"); });
   document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on")); setTimeout(() => { const g = el.querySelector('[data-qs="go"]'); if (g) g.focus({ preventScroll: true }); }, 80);
 }
@@ -3607,7 +3668,7 @@ combat = FIGHT.createCombat({ alt: (a) => (jurOn && jurGame ? jurGame.act(a) : f
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); if (avatar && avatar.kk && grounded) avatar.play("dodge", { once: true, speed: 1.4, fade: 0.05 }); },
   onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); if (z) arciaOn("zone", z); },
-  onKill: (k) => { if (quests) quests.on.kill(k); arciaOn("kill", k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
+  onKill: (k) => { fun("fight"); if (quests) quests.on.kill(k); arciaOn("kill", k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
   xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
   onLoot: (it) => { if (quests) quests.on.loot(it); arciaOn("loot", it); if (it.r >= 3) shareDrop(it); if (it.r >= 2) lootCard(it); },
@@ -3653,7 +3714,7 @@ let svAch = null, svAchP = null;
 const svAchLoad = () => { if (svAchP) return svAchP; const s = sess();
   svAchP = (s ? fetch("/api/social?world=surv&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.meta && j.meta.ach) || []) : Promise.resolve().then(() => { try { return Object.keys((JSON.parse(localStorage.getItem("arc.surv.meta") || "null") || {}).ach || {}); } catch { return []; } }))
     .catch(() => []).then((a) => { svAch = Array.isArray(a) ? a : []; svAchP = null; if (rpg.isOpen()) rpg.repaint(); }); return svAchP; };
-quests = QST.createQuests({ isGM: (w) => VILL.isGM(w), svAch: () => svAch, svAchLoad,
+quests = QST.createQuests({ isGM: (w) => VILL.isGM(w), svAch: () => svAch, svAchLoad, starterDone: () => { try { const st0 = startSteps(), d = st0.filter((x) => x.done).length; return d >= st0.length ? 5 : Math.min(4, d); } catch { return 0; } },
   T: TW, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why), fishList: LIFE.FISH,
   // Rankings → Players: portraits, who's around now, a player's card
   charThumb: (id) => thumbCache[id] || "", needThumbs: (ids) => renderThumbsFor(ids).then(() => rpg.isOpen() && rpg.repaint()),
@@ -4405,12 +4466,14 @@ setInterval(() => { try {
   if (npc) npc.userData.ac.update(dt, t);
   if (stage && mode === "hub") stage.tick(dt, t);
   if (mode === "hub" && folk.length) for (const f of folk) {
+    // b-st3: walk past one and it stops to wave at you (once in a while each)
+    if (f.wait <= 0 && t > (f.greet || 0)) { const px = -planet.position.x, pz = -planet.position.z, fx = f.g.position.x, fz = f.g.position.z; if ((fx - px) ** 2 + (fz - pz) ** 2 < 12) { f.greet = t + 25; f.wave = true; f.sit = false; f.wait = 2.4; f.face = Math.atan2(px - fx, pz - fz); } }
     const want = f.wait > 0 ? (f.sit ? "sit" : f.wave ? "emote-yes" : "idle") : "walk";
     if (f.wait > 0) { f.wait -= dt; if (f.wait <= 0) { f.walkT = 8 + Math.random() * 12; f.wave = false; f.sit = false; } }
     else { f.a += (f.dir * f.sp * dt) / f.r; f.walkT -= dt; if (f.walkT <= 0) { const r = Math.random(); f.sit = r < 0.25; f.wave = !f.sit && r < 0.5; f.wait = f.sit ? 6 + Math.random() * 6 : 2.5 + Math.random() * 4; } } // now and then one sits down for a while
     if (want !== f.anim) { f.anim = want; try { f.c.play(want, want === "emote-yes" ? { once: true } : {}); } catch { /* no such clip */ } }
     const x = Math.sin(f.a) * f.r, z = -Math.cos(f.a) * f.r; f.g.position.set(x, 0, z);
-    f.g.rotation.y = Math.atan2(Math.cos(f.a) * f.dir, Math.sin(f.a) * f.dir); // facing along the ring
+    f.g.rotation.y = f.wave && f.wait > 0 && f.face != null ? f.face : Math.atan2(Math.cos(f.a) * f.dir, Math.sin(f.a) * f.dir); // facing along the ring (or you, while it waves)
     if (f.c.update && !f.c.mixer) f.c.update(dt, t); /* an ARC Bot's mixer already steps it */
   }
   if (pull) stepPull();
@@ -4634,7 +4697,9 @@ const landing = dive();
   if (n === seen) return; const first = seen < 0; seen = n; if (first) return;
   busy = true; st.warm(3000).then(() => { busy = false; }, () => { busy = false; });
 }, 2500); }
-$("wp-loading").classList.add("done");
+$("wp-loading").classList.add("done"); fun("ready");
+// b-st3: back on another day (this browser was here before, on an earlier Seoul day)
+try { const k = "arc.world.funday", d0 = localStorage.getItem(k), d1 = tipDay(); if (d0 && d0 !== d1) { fun("back"); if (P.char) landing.then(() => setTimeout(() => welcomeBack(Math.round((Date.parse(d1) - Date.parse(d0)) / 864e5)), 2200)); } localStorage.setItem(k, d1); } catch { /* private */ }
 // weekend 2×: say so once a session, a few seconds in
 if (weekend2x()) setTimeout(() => { if (!introOn) toast(TW("Weekend 2×: double XP and double ARCL from play")); else setTimeout(() => toast(TW("Weekend 2×: double XP and double ARCL from play")), 4000); }, 6000);
 // a friend's INFINITY RINGS challenge (?rings=<board>&vs=<moves>&by=<name>, world-rings.js share()): to the palace, and
@@ -4931,7 +4996,7 @@ function goGame(g) {
   if (jurOn || survOn || pokerOn || ringsOn || mineOn || defenseOn || jumpOn || beatOn) { toast(TW("Leave this game first")); return; }
   closeAll(); frozen = false;
   // b-fx1: a portal swirl round the game's picture, which zooms in, then the game (less motion: none)
-  if (!reduce) { const w = document.createElement("div"); w.className = "wp-warp"; if (g.warp) g.warp.forEach((c, k) => w.style.setProperty("--w" + (k + 1), c)); w.innerHTML = `<i></i><img src="/images/games/${g.id}-art.webp" alt="">`; document.body.appendChild(w); setTimeout(() => w.classList.add("out"), 900); setTimeout(() => w.remove(), 1400); }
+  fun("game"); if (!reduce) { const w = document.createElement("div"); w.className = "wp-warp"; if (g.warp) g.warp.forEach((c, k) => w.style.setProperty("--w" + (k + 1), c)); w.innerHTML = `<i></i><img src="/images/games/${g.id}-art.webp" alt="">`; document.body.appendChild(w); setTimeout(() => w.classList.add("out"), 900); setTimeout(() => w.remove(), 1400); }
   if (g.door) { const e = gv.exitOf(g.door); standAt(e.x, e.z, gv.center); vfx.teleport(here(), { color: 0xb48cff, color2: 0x38d8ff }); }
   setTimeout(() => { try { const r = g.open(); if (r && r.catch) r.catch((e) => toast(TW("Couldn't start it: {e}", { e: String((e && e.message) || e).slice(0, 60) }))); } catch (e) { toast(TW("Couldn't start it: {e}", { e: String((e && e.message) || e).slice(0, 60) })); } }, reduce ? (g.door ? 350 : 0) : 650);
 }
@@ -4984,7 +5049,7 @@ async function openGames() {
 // egg → your first game. Shown once by itself after the controls (instead of that day's tips), and from Games → New
 // player guide; each step shows whether it's done and has its button.
 const START = "arc.world.start";
-function openStart(asked) {
+function startSteps() {
   const L = launchUI.state().v, D = dinoTown.state(), s = sess(), played = playedAny();
   const gift = L && L.open ? (L.claimed ? "done" : s ? (L.eligible ? "go" : "lv") : "sign") : "none";
   const egg = D ? (D.first ? "go" : "done") : s ? "go" : "sign";
@@ -4995,7 +5060,10 @@ function openStart(asked) {
     { n: 0, ic: "🥚", t: TW("Your first egg"), p: egg === "sign" ? TW("Sign in with your wallet to raise a dinosaur") : TW("Pick it up in Jurassic World and care for it for 3 days."), done: egg === "done", b: TW("Jurassic World"), go: () => goGame(GAME_LIST[0]) },
     { n: 0, ic: "🕹️", t: TW("Play your first game"), p: TW("Survivors, poker, puzzles, the mine… Try one!"), done: played, b: TW("Games"), go: () => openGames() },
   ].map((x, i) => ({ ...x, n: i + 1 }));
-  const left = steps.filter((x) => !x.done).length;
+  return steps;
+}
+function openStart(asked) {
+  const steps = startSteps(), left = steps.filter((x) => !x.done).length;
   if (!asked && !left) return false;
   try { localStorage.setItem(START, "1"); localStorage.setItem("arc.tips.town", tipDay()); } catch { /* private */ }
   const box = document.createElement("div"); box.className = "wp-st wp-start"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("data-no-i18n", "");
@@ -5012,7 +5080,7 @@ function openStart(asked) {
 }
 // once by itself: a new player (under level 10) who hasn't seen it, after the controls; it goes after the launch card
 setTimeout(function tryStart() { let seen = true; try { seen = !!localStorage.getItem(START); } catch { /* private */ }
-  if (seen || level() >= 10) return; if (worldReady && P.guideSeen) autoShow("start", 15, () => openStart(false)); else setTimeout(tryStart, 4000); }, 10000);
+  if (seen || level() >= 10) return; if (worldReady && P.guideSeen && Date.now() - qsAt > 60e3) autoShow("start", 15, () => openStart(false)); else setTimeout(tryStart, 4000); }, 10000); // (b-st3: a minute after the how-to, so the plaza comes first)
 // phones: the top bar's reward buttons (Gifts, Launch, Starter) and the Shop fold into one 🎁 button with a list; a 🎮 Games button next to it
 const rewUI = (() => {
   const bar = document.querySelector(".wp-hud-btns"), ref = $("wp-gift-btn"); if (!bar || !ref) return { paint() {} };

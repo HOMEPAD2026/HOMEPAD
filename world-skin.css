@@ -3199,3 +3199,32 @@ html.wp-pcphone .wp-hud-l{display:grid;grid-template-columns:auto minmax(0,1fr);
 html.wp-pcphone .wp-hud-l>*{grid-column:1/-1}
 html.wp-pcphone .wp-hud-l>.wp-brand{grid-column:1}
 html.wp-pcphone .wp-hud-l>.wp-chips{grid-column:2}
+/* b-st3: welcome back (a card sliding down at the top), what's on next (a pill at the top centre) */
+.wp-wb{position:fixed;left:50%;top:max(14px,env(safe-area-inset-top));z-index:66;transform:translate(-50%,-140%);display:grid;gap:3px;justify-items:center;min-width:min(340px,86vw);max-width:92vw;padding:12px 20px;border-radius:20px;background:linear-gradient(180deg,rgba(20,48,104,.96),rgba(8,22,56,.96));box-shadow:inset 0 0 0 1.5px rgba(120,220,255,.5),0 14px 30px rgba(0,0,0,.4);color:#eaf6ff;text-align:center;pointer-events:none;transition:transform .5s cubic-bezier(.2,1.3,.4,1)}
+.wp-wb.on{transform:translate(-50%,0)}
+.wp-wb b{font:900 18px/1.2 var(--f-ui)}.wp-wb small{font:700 13px/1.35 var(--f-ui);color:#bcd6f2}.wp-wb em{font:800 13px/1.3 var(--f-ui);font-style:normal;color:#7fe8ff}
+.wp-evt{position:fixed;left:50%;top:max(12px,env(safe-area-inset-top));z-index:30;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border-radius:999px;background:rgba(8,22,54,.72);box-shadow:inset 0 0 0 1px rgba(140,220,255,.35);color:#eaf6ff;font:800 13px/1 var(--f-ui);white-space:nowrap;pointer-events:none;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.wp-evt[hidden]{display:none}
+.wp-evt>span{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(180deg,#3aa0ff,#1f5fd6);font-size:15px}
+.wp-evt small{font:800 12px/1 var(--f-num,var(--f-ui));color:#7fe8ff}.wp-evt small.live{color:#2ee0a0}
+.wp-evt.in{animation:wpEvtIn .45s ease both}
+@keyframes wpEvtIn{from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translateX(-50%)}}
+html.wp-pcphone .wp-evt{left:61%;max-width:36%;overflow:hidden;font-size:20px;padding:10px 22px 10px 12px;gap:12px}html.wp-pcphone .wp-evt>span{width:42px;height:42px;font-size:24px}html.wp-pcphone .wp-evt small{font-size:20px}
+html.wp-pcphone .wp-wb{min-width:min(640px,86vw);padding:22px 30px;border-radius:30px}html.wp-pcphone .wp-wb b{font-size:32px}html.wp-pcphone .wp-wb small,html.wp-pcphone .wp-wb em{font-size:24px}
+body.wp-clean .wp-evt{display:none}
+/* b-st3: the loading screen's waiting room: who's here, what's next, the hero to start with */
+.wp-loading .wp-lroom{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:min(520px,92vw);margin-top:6px}
+.wp-loading .wp-lroom>span{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(8,22,54,.66);box-shadow:inset 0 0 0 1px rgba(140,220,255,.28);font:700 12.5px/1 var(--f-ui);color:#dcefff}
+.wp-loading .wp-lroom>span[hidden]{display:none}.wp-loading .wp-lroom>span b{color:#7fe8ff}.wp-loading .wp-lroom>span i{font-style:normal}
+.wp-loading .wp-lpick{flex-basis:100%;display:grid;gap:8px;justify-items:center;margin-top:6px}
+.wp-loading .wp-lpick p{margin:0;font:800 13px/1.3 var(--f-ui);color:#eaf6ff}
+.wp-loading .wp-lpick>div{display:flex;gap:10px}
+.wp-loading .wp-lpick button{display:grid;justify-items:center;gap:2px;width:84px;padding:6px 4px 8px;border:0;border-radius:16px;background:rgba(8,22,54,.7);box-shadow:inset 0 0 0 1.5px rgba(140,220,255,.3);color:#eaf6ff;cursor:pointer;transition:transform .15s}
+.wp-loading .wp-lpick button img{width:64px;height:64px;object-fit:contain;animation:none;filter:none}
+.wp-loading .wp-lpick button b{font:900 12px/1 var(--f-ui);letter-spacing:.06em}
+.wp-loading .wp-lpick button[aria-pressed="true"]{box-shadow:inset 0 0 0 2.5px #2ee0a0,0 0 18px rgba(46,224,160,.5);transform:translateY(-2px)}
+.wp-loading.has-3d .wp-lpick button img{display:block}
+html.wp-pcphone .wp-loading .wp-lroom{max-width:92vw;gap:14px}html.wp-pcphone .wp-loading .wp-lroom>span{font-size:22px;padding:12px 20px}
+html.wp-pcphone .wp-loading .wp-lpick p{font-size:24px}html.wp-pcphone .wp-loading .wp-lpick button{width:160px;border-radius:26px}html.wp-pcphone .wp-loading .wp-lpick button img{width:120px;height:120px}html.wp-pcphone .wp-loading .wp-lpick button b{font-size:22px}
+.wp-wb button{pointer-events:auto;margin-top:6px;padding:8px 16px;border:0;border-radius:999px;background:linear-gradient(180deg,#5fe6c0,#2ec7a0);color:#06281f;font:900 13px/1 var(--f-ui);cursor:pointer}
+html.wp-pcphone .wp-wb button{font-size:24px;padding:16px 28px}

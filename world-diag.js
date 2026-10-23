@@ -9,6 +9,8 @@
 //            frame rate (median) and the bad moments (the slowest 10% of frames), in bands, with the graphics chip's
 //            class and family (Adreno, Mali, Apple…), the frame limit and the pixel ratio, so Auto quality can be
 //            tuned from real phones rather than guesses
+//   funnel   (b-st3) the first minutes, step by step (each once a visit): the page opened, loading done, the maker shown,
+//            a name picked, the how-to closed, the first steps, the first knock-out, the first game — new browsers apart
 // No wallet, no name, no position: only these counters (api/_world.mjs diag). ?nodiag turns it off.
 // fps → band 0..7: under 15, 15–20, 20–25, 25–30, 30–40, 40–50, 50–55, 55 and up
 export const fpsBand = (f) => (f < 15 ? 0 : f < 20 ? 1 : f < 25 ? 2 : f < 30 ? 3 : f < 40 ? 4 : f < 50 ? 5 : f < 55 ? 6 : 7);
@@ -107,5 +109,7 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
     if (now - last > 170e3) { last = now; send({ kind: "fps", b: band, dev, q: quality }); }
     if (base && !memSent) { const m = renderer.info.memory, dg = m.geometries - base.g, dtx = m.textures - base.t; if (dg > 300 || dtx > 300) { memSent = true; send({ kind: "mem", g: dg, t: dtx, dev, q: quality }); } }
   }
-  return { tick, err, gpu, fam };
+  /// b-st3: the first minutes, counted (no id): open → ready → maker → named → start → move → fight → game, and back on another day; nw: a browser here for the first time
+  const funnel = (ev, nw = false) => send({ kind: "funnel", ev, dev, nw: nw ? 1 : 0 });
+  return { tick, err, gpu, fam, funnel };
 }

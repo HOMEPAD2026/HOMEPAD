@@ -52,7 +52,7 @@ export function createAmbient({ THREE, planet, low = false, fountainY = 0.3, bat
   }
 
   /* b-st2: fireflies at night, drifting round a spot near you, each blinking on its own beat (added on, so they glow) */
-  const NFF = low ? 0 : 44, ffP = new Float32Array(NFF * 3), ffC = new Float32Array(NFF * 3), ffU = [], ffHome = new THREE.Vector3(); let ffSet = false;
+  const NFF = low ? 0 : 26, ffP = new Float32Array(NFF * 3), ffC = new Float32Array(NFF * 3), ffU = [], ffHome = new THREE.Vector3(); let ffSet = false;
   const ffG = new THREE.BufferGeometry(); ffG.setAttribute("position", new THREE.BufferAttribute(ffP, 3)); ffG.setAttribute("color", new THREE.BufferAttribute(ffC, 3));
   const ff = new THREE.Points(ffG, new THREE.PointsMaterial({ size: 0.16, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
   ff.frustumCulled = false; ff.visible = false; if (NFF) root.add(ff);

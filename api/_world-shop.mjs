@@ -47,6 +47,7 @@ export const EXCHANGE = { open: false, rate: null, minClaim: null, startsAt: nul
 // what ARCL is earned for (each checked in claim())
 export const EARN = [
   { kind: "daily", n: 20, label: "Daily check-in", more: "+5 a day of streak, up to +30" },
+  { kind: "fountain", n: 10, label: "A coin in the plaza fountain", more: "once a day" }, // b-st3: a wish at the fountain
   ...["phisher", "airdrop", "honeypot", "doppel", "golem", "dragon"].map((id, i) => ({ kind: "stage:" + id, n: 30, label: `Beat scammer stage ${i + 1}` })),
   { kind: "hold", n: 50, label: "Hold $ARCIRCLE" },
   { kind: "launch", n: 100, label: "Launch a coin on ArcPad" },
@@ -418,6 +419,11 @@ export function makeShop(deps) {
       const got = await credit(w, kind, n * wkK(kind, now()));
       if (kind === "street" || kind === "hunt" || kind === "boss") await huntPoint(w, kind === "street" ? 1 : kind === "boss" ? 10 : [0, 0, 2, 3, 4][Math.max(2, Math.min(4, Math.floor(Number(b.tier) || 2)))]).catch(() => {});
       return json(200, { ok: true, kind, credited: got, capped: got < n, left: e.repeat.max - c - 1, ...(await balance(w)) });
+    }
+    if (kind === "fountain") { // b-st3: a coin in the plaza fountain, once a Seoul day
+      if (!(await commit([{ create: `worldArclFount/${w}_${seoulDay(now())}`, data: { at: now() } }])).ok) return json(409, { error: "you've made today's wish already" });
+      const got = await credit(w, kind, 10);
+      return json(200, { ok: true, kind, credited: got, ...(await balance(w)) });
     }
     if (kind === "daily") {
       const day = seoulDay(now()), y = seoulDay(now() - 864e5);

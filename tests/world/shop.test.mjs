@@ -195,5 +195,10 @@ r = await W.handle({ action: "world-sell", ...S5, item: { id: "lgcy01", b: "boot
 { const { weekendK } = await import("../../api/_world-shop.mjs");
   check(weekendK(Date.parse("2026-10-17T03:00:00Z")) === 2 && weekendK(Date.parse("2026-10-16T03:00:00Z")) === 1, "Saturday doubles, Friday doesn't");
   check(weekendK(Date.parse("2026-10-18T14:59:00Z")) === 2 && weekendK(Date.parse("2026-10-18T15:01:00Z")) === 1, "Sunday 23:59 Seoul still doubles, Monday 00:01 doesn't"); }
+// b-st3: a coin in the plaza fountain: 10 ARCL once a Seoul day
+{ const fs1 = async () => { const iss = new Date(T).toISOString(); return { wallet: w.address, issued: iss, signature: await w.signMessage(loginMessage(w.address, iss)) }; }; let S = await fs1();
+  const f1 = await W.handle({ action: "world-arcl-claim", ...S, kind: "fountain" }); check(f1.status === 200 && f1.body.credited === 10, "the fountain: 10 ARCL ");
+  const f2 = await W.handle({ action: "world-arcl-claim", ...S, kind: "fountain" }); check(f2.status === 409, "the fountain twice a day: refused");
+  T += 24 * 3600e3; S = await fs1(); const f3 = await W.handle({ action: "world-arcl-claim", ...S, kind: "fountain" }); check(f3.status === 200 && f3.body.credited === 10, "the next day: again"); }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

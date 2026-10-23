@@ -199,6 +199,11 @@ export function make(deps) {
       await commit([{ inc: day, fields: { [`rg50_${dev}_${q}_${band(b.p50)}`]: 1, [`rg10_${dev}_${q}_${band(b.p10)}`]: 1, [`rgfam_${dev}_${fam}_${band(b.p50)}`]: 1 } }]).catch(() => {});
       return json(200, { ok: true });
     }
+    if (b.kind === "funnel") { // b-st3: the first minutes, step by step (world-diag.js funnel): counts only, new browsers apart
+      const ev = FUNNEL.includes(b.ev) ? b.ev : ""; if (!ev) return json(400, { error: "unknown step" });
+      await commit([{ inc: day, fields: { [`fun_${ev}_${dev}`]: 1, ...(b.nw ? { [`fun_${ev}_${dev}_new`]: 1 } : {}) } }]).catch(() => {});
+      return json(200, { ok: true });
+    }
     if (b.kind === "mem") { await commit([{ inc: day, fields: { [`mem_${dev}_${q}`]: 1 } }]).catch(() => {}); return json(200, { ok: true }); }
     if (b.kind === "err") {
       const msg = String(b.msg || "").slice(0, 180); if (!msg) return json(400, { error: "empty" });
@@ -209,6 +214,7 @@ export function make(deps) {
     }
     return json(400, { error: "unknown kind" });
   }
+  const FUNNEL = ["open", "ready", "maker", "named", "start", "move", "fight", "game", "back"];
   async function diagView() {
     const days = [0, 1, 2].map((i) => seoulDay(now() - i * 864e5)), d = await getDocs(days.map((x) => `worldDiag/${x}`));
     const out = days.map((x) => ({ day: x, n: d[`worldDiag/${x}`] || {} }));
@@ -231,7 +237,9 @@ export function make(deps) {
     const scripts = Object.entries(jc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, n]) => { const i = k.indexOf("_"); return { dev: k.slice(0, i), what: k.slice(i + 1), n }; });
     // b-svx: SURVIVORS ARENA runs over the three days: ends by minute, weapons by how their runs ended, evolutions, what knocked runs out, heroes
     const sv = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) { const m = /^(svend|svhero|svby|svw|svevo)_(.+)$/.exec(key); if (m) { const g = (sv[m[1]] = sv[m[1]] || {}); g[m[2]] = (g[m[2]] || 0) + v; } }
-    return json(200, { days: out, frames, hitches, shaders, scripts, surv: sv, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
+    // b-st3: the first minutes by day: how many visits reached each step (phone / computer, and new browsers)
+    const funnel = out.map((x) => ({ day: x.day, ...Object.fromEntries(FUNNEL.map((ev) => [ev, { ph: x.n[`fun_${ev}_ph`] || 0, pc: x.n[`fun_${ev}_pc`] || 0, phNew: x.n[`fun_${ev}_ph_new`] || 0, pcNew: x.n[`fun_${ev}_pc_new`] || 0 }])) }));
+    return json(200, { days: out, funnel, frames, hitches, shaders, scripts, surv: sv, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
   }
   async function ping(b) {
     const id = String(b.id || "");
