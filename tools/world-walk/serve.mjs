@@ -1,7 +1,7 @@
 // tools/world-walk/serve.mjs — a local stand-in for the site, for the browser walk (walk.mjs): the repo's files, and
 // /api/social's World calls answered by api/_world.mjs on an in-memory store (the same harness the tests use). A fresh
 // random test wallet signs in each run; its session is written to SESS (default: a temp file) for the walk to use.
-// Seed routes for tests: /seedsave?lv=6 · /seedsurv?coins · /seeddinos · /seedbuddy?lv&days&name · /seedarcl · /seedagent · /seedmkt?n · /seedjur[?full=1&cloak=0] · /skew?ms · /skewegg
+// LAUNCHES=<file>: serve that copy of production's /api/c?view=launches. Seed routes for tests: /seedsave?lv=6 · /seedsurv?coins · /seeddinos · /seedbuddy?lv&days&name · /seedarcl · /seedagent · /seedmkt?n · /seedjur[?full=1&cloak=0] · /skew?ms · /skewegg
 //   node tools/world-walk/serve.mjs            (PORT=8858)
 import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.."); process.chdir(ROOT);
@@ -19,7 +19,11 @@ const store = {
   listDocs: async () => [], query: async () => [],
 };
 const json = (status, b, cache) => ({ status, body: b, cache });
-const W = make({ ...store, recover: recoverSigner, issuedOk: (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && Date.now() - t <= max && Date.now() - t >= -60e3; }, json, now: () => Date.now() + SKEW });
+// LAUNCHES (above): the coins and, with LAUNCHES_MINE=<index>, that coin launched by this run's test wallet (to walk the
+// creator's lot-building); who launched a coin and its market cap are answered from the same copy
+const launches = () => { const j = JSON.parse(fs.readFileSync(process.env.LAUNCHES, "utf8")); const k = process.env.LAUNCHES_MINE; if (k != null && j.launches[+k] && typeof sess !== "undefined") j.launches[+k].creator = sess.wallet; return j; };
+const lc0 = (a) => String(a || "").toLowerCase(), coinOf = (a) => (process.env.LAUNCHES ? launches().launches.find((c) => lc0(c.token) === lc0(a)) : null);
+const W = make({ ...store, ...(process.env.LAUNCHES ? { launchRecord: async (a) => { const c = coinOf(a); return c ? { token: lc0(c.token), creator: c.creator, launchedAt: c.launchedAt } : null; }, coinMcap: async (a) => { const c = coinOf(a); return c ? Number(c.marketCapUsd) || 0 : null; } } : {}), recover: recoverSigner, issuedOk: (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && Date.now() - t <= max && Date.now() - t >= -60e3; }, json, now: () => Date.now() + SKEW });
 const w = ethers.Wallet.createRandom(), issued = new Date().toISOString();
 const sess = { wallet: w.address.toLowerCase(), issued, signature: await w.signMessage(loginMessage(w.address.toLowerCase(), issued)) };
 fs.writeFileSync(process.env.SESS || path.join(os.tmpdir(), "world-walk-sess.json"), JSON.stringify(sess));
@@ -52,6 +56,9 @@ http.createServer(async (req, res) => {
     if (u.pathname === "/seedagent") { db.delete(`worldAgent/${sess.wallet}`); return send({ status: 200, body: { ok: true } }); } // AGENT DIMENSION: start without an agent
     if (u.pathname === "/seedarcl") { db.set(`worldArclBal/${sess.wallet}`, { bal: 250000, earned: 250000 }); return send({ status: 200, body: { ok: true } }); }
     if (u.pathname === "/seedjur") { const k = `worldJurInv/${sess.wallet}`, v = db.get(k) || {}; v.mat = { ...(v.mat || {}), wood: 60, stone: 40, flint: 6, fiber: 20, meat: 3, berries: 4, hardwood: 5 }; if (u.searchParams.get("full")) { v.tools = { axe: 2, spear: 1, rod: 1, armor: 1, cloak: Number(u.searchParams.get("cloak") ?? 1) }; v.mat = { ...v.mat, wood: 200, stone: 80, fiber: 60, hide: 20, bone: 12, rope: 4, torch: 3, bola: 3, berries: 20, reed: 10, antidote: 1 }; } db.set(k, v); return send({ status: 200, body: { ok: true } }); }
+    // the ArcPad launches list (Coin City / the Launchpad Village): from a saved copy of production's /api/c?view=launches
+    // (LAUNCHES=file) — this container can't reach Arc's RPC to build it
+    if (u.pathname === "/api/c" && u.searchParams.get("view") === "launches" && process.env.LAUNCHES) return send({ status: 200, body: launches() });
     if (u.pathname === "/api/social") {
       if (req.method === "POST") { let s = ""; for await (const c of req) s += c; const b = JSON.parse(s || "{}"); const r = await W.handle(b); if (/mine/.test(b.action || "")) log.push(b.action + " " + (r ? r.status : "-") + " " + JSON.stringify(r ? r.body : null).slice(0, 160)); if (r) return send(r); return send({ status: 404, body: { error: "not here" } }); }
       if (u.searchParams.get("world") === "minelog") return send({ status: 200, body: { log, bal: db.get(`worldArclBal/${sess.wallet}`) || null } });

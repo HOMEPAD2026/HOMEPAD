@@ -2207,10 +2207,12 @@ function feed(html, color = "#39ff88") {
 // (or the biggest it reached: the server's, lotTiers); the coin's building stands on it, bigger with the tier
 const lotTiers = {}; let coinSig = "";
 const lotTierOf = (c) => Math.max(LD.tierOfCap(c.marketCapUsd), lotTiers[lc(c.token)] || 0);
+// whose coins are yours: the connected wallet, or the signed-in one when the wallet isn't connected on this page
+const myW = () => lc(addr() || (sess() && sess().wallet) || "");
 function buildCoinCity(list) {
   if (!kit) return;
   coinBuildings.splice(0).forEach((g) => planet.remove(g));
-  const me = lc(addr());
+  const me = myW();
   const { lots, r, rings } = LD.layoutLots(list, lotTierOf); lands.sizeTo(r, rings);
   coinSig = list.map((c) => c.token + ":" + lotTierOf(c)).join(",");
   lots.forEach((L) => {
@@ -2251,7 +2253,7 @@ async function refreshCoins(first) {
   const list = (j && Array.isArray(j.launches) ? j.launches : []).filter((c) => c && c.token && c.symbol);
   if (!list.length) return;
   const newest = Math.max(...list.map((c) => c.launchedAt || 0));
-  const me = lc(addr());
+  const me = myW();
   myCoins = me ? list.filter((c) => lc(c.creator) === me) : [];
   if (first || !coinData) {
     list.slice().sort((a, b) => b.launchedAt - a.launchedAt).slice(0, 3).reverse().forEach((c) => feed(T("{x} launched on ArcPad {when}", { x: `<b>$${esc(c.symbol)}</b>`, when: ago(c.launchedAt) }), "#4f9dff"));
@@ -5087,7 +5089,10 @@ window.arcWorld = { snd: Snd, pk: () => pumpKings, standAt: (x, z, c) => standAt
   jurassic: () => ({ game: jurGame, on: jurOn, open: openJurassic, allowed: jurAllowed(), gate: () => { const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 3, g.z - g.z / d * 3, { x: g.x, z: g.z }); } }),
   mine: () => ({ game: mineGame, on: mineOn, rest: mineRest, open: openMine, door: () => { const e = mv.exit(); standAt(e.x, e.z, { x: e.x + Math.sin(e.face) * 5, z: e.z + Math.cos(e.face) * 5 }); } }),
   jump: () => jumpRace, beat: () => beatGame, mode: () => mode, input: () => ({ joy: joy ? { dx: +joy.dx.toFixed(2), dy: +joy.dy.toFixed(2), fixed: joy.fixed } : null, look: !!look, pinch: !!pinch, touches: touches.size, cam: +camGoal.toFixed(2) }), gv: () => gv, liftTo: (y) => { hop = y; at.y = y; vy = 0; grounded = true; } /* tests: stand at a height (a Coin Jump platform) */, goGameVillage: () => goGameVillage(), island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
-  lands: { go: (id) => landGo(id), now: () => landNow, lots: () => coinBuildings.map((g) => ({ sym: g.userData.coin.symbol, tier: g.userData.tier, x: g.position.x, z: g.position.z, size: g.userData.size })), portals: () => lands.portals.map((p) => ({ to: p.userData.to, model: !!p.userData.model, x: p.position.x, z: p.position.z })), shops: () => shops.map((g) => ({ id: g.userData.spec.id, x: g.position.x, z: g.position.z })), stand: (x, z, cx, cz) => standAt(x, z, cx != null ? { x: cx, z: cz } : undefined), out: () => outOfBounds(), coins: (list) => { coinData = list; coinData.mine = 0; buildCoinCity(list); return coinBuildings.length; } }, // b-lpv: tests
+  lands: { go: (id) => landGo(id), now: () => landNow, lots: () => coinBuildings.map((g) => ({ sym: g.userData.coin.symbol, tier: g.userData.tier, x: g.position.x, z: g.position.z, size: g.userData.size })), portals: () => lands.portals.map((p) => ({ to: p.userData.to, model: !!p.userData.model, x: p.position.x, z: p.position.z })), shops: () => shops.map((g) => ({ id: g.userData.spec.id, x: g.position.x, z: g.position.z })), stand: (x, z, cx, cz) => standAt(x, z, cx != null ? { x: cx, z: cz } : undefined), out: () => outOfBounds(), coins: (list) => { coinData = list; coinData.mine = 0; buildCoinCity(list); return coinBuildings.length; },
+    mine: () => coinBuildings.filter((g) => g.userData.mine).map((g) => ({ sym: g.userData.coin.symbol, token: g.userData.coin.token, tier: g.userData.tier, built: !!g.userData.lotG, x: g.position.x, z: g.position.z })),
+    lotOpen: (token) => { const c = (coinData || []).find((x) => lc(x.token) === lc(token)); if (!c) return false; const tr = LD.LOT_TIERS[lotTierOf(c)]; goIsland({ lot: { ...c, N: tr.N, max: tr.max } }); return true; },
+    isle: () => island.debug(), fill: (n) => island.testFill(n), save: () => island.save(), leave: () => leaveIsland() }, // b-lpv: tests
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
   coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, robots: () => !!(kit && kit.enemies && kit.enemies.EyeDrone), quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
