@@ -3235,3 +3235,13 @@ html.wp-pcphone .wp-wb button{font-size:24px;padding:16px 28px}
 .wp-loading .wp-keyart::after{background:linear-gradient(180deg,rgba(4,10,26,.5),rgba(4,10,26,0) 22%,rgba(4,10,26,0) 48%,rgba(3,8,20,.55) 70%,rgba(3,8,20,.82))}
 .wp-loading::before{display:none}
 .wp-loading>span{padding:5px 14px;border-radius:999px;background:rgba(8,22,54,.66);text-shadow:0 1px 3px rgba(0,0,0,.5)}.wp-loading .wp-loadpct{padding:2px 8px;border-radius:999px;background:rgba(8,22,54,.5);color:#dcefff}
+/* Jurassic keeps the town HUD's old column (its top row is Jurassic's own; the brand there is only invisible, so a
+   shared brand + level row would push the level card onto that row) */
+html.wp-pcphone body.wp-jurassic .wp-hud-l{display:flex;flex-direction:column}
+html.wp-pcphone .wz .wz-top[data-game-hud]{max-width:calc((100vw - 24px - 200px) / 1.6)} /* clear of the town's top-right buttons: a chip that doesn't fit wraps to a 2nd row */
+html.wp-pcphone body.wp-jurassic .wp-hud-l{padding-top:62px} /* (room for that 2nd row) */
+html.wp-pcphone .wz-map:not(.big){top:252px} /* under the online chip, not over the Menu button */
+/* the owner's call (2026-10-24): no ARCIRCLE logo + word at the top left on phones; the level card takes the first row
+   (Jurassic keeps the brand's invisible space, so its own top row stays clear) */
+html.wp-pcphone body:not(.wp-jurassic) .wp-hud-l>.wp-brand{display:none}
+html.wp-pcphone .wp-hud-l{display:flex;flex-direction:column}
