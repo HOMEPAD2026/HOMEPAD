@@ -60,7 +60,9 @@ export function itemStats(it) {
   }
   return {};
 }
-export const itemName = (it) => { const p = parseBase(it.b); return p ? BASES[p.slot][p.tier] + (it.p ? ` +${it.p}` : "") : "?"; };
+// one-of-a-kind pieces (it.u): their own name in place of the base's (the Halloween Pumpkin King's blade, api/_world-halloween.mjs)
+export const UNIQUE = { jack: "Jack's Inferno Blade" };
+export const itemName = (it) => { const p = parseBase(it.b); return p ? (UNIQUE[it.u] || BASES[p.slot][p.tier]) + (it.p ? ` +${it.p}` : "") : "?"; };
 export const STAT_NAME = { atk: "Attack", def: "Defense", hp: "Max HP", sp: "Max SP", crit: "Critical", spd: "Speed" };
 
 // the sets: pieces of one tier together

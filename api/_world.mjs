@@ -43,6 +43,7 @@ import { makeAgentDim, AGENT } from "./_world-agent.mjs";
 import { makeAgentVault } from "./_world-agentvault.mjs";
 import { makeSwap } from "./_world-swap.mjs";
 import { makeSurvivors } from "./_world-survivors.mjs";
+import { makeHalloween } from "./_world-halloween.mjs";
 import { makeRings } from "./_world-rings.mjs";
 import { makePoker } from "./_world-poker.mjs";
 import { makeDino } from "./_world-dino.mjs";
@@ -77,6 +78,8 @@ const cleanItem = (x) => (x && typeof x === "object" && /^[a-z0-9]{4,10}$/.test(
       ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.k) && x.k >= 0 && x.k <= 4 ? { k: x.k } : {}), ...(x.lk ? { lk: 1 } : {}),
       // a weapon's temper stage (world-life.js workbench): 1–5
       ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.tm) && x.tm >= 1 && x.tm <= 5 ? { tm: x.tm } : {}),
+      // a one-of-a-kind piece's name (world-rpg-data.js UNIQUE: the Halloween Pumpkin King's "jack")
+      ...(x.u === "jack" && String(x.b).startsWith("weapon-") ? { u: "jack" } : {}),
       // durability left on an Epic or Legendary piece (absent = full; 0 = broken); world-rpg-data.js DUR_MAX
       ...(DUR_MAX[Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0)))] && Number.isInteger(x.du) && x.du >= 0 && x.du < DUR_MAX[Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0)))] ? { du: x.du } : {}) } : null);
 // a weapon's kind when none was chosen: settled by its id (world-gear3d.js weaponKind, the same hash)
@@ -313,6 +316,7 @@ export function make(deps) {
   const coins = makeCoins({ ...deps, json, now, ledger }); // the coins page's public totals (coins.html)
   const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
+  const pk = makeHalloween({ ...deps, json, now, signer, award: shop.award, level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // the Halloween Pumpkin Kings (api/_world-halloween.mjs)
   const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
@@ -553,6 +557,7 @@ export function make(deps) {
       }
       if (w === "phase") { if (!on()) return json(200, { phase: PH.phase, epoch: PH.epoch, top: [] }); return phaseView(); }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
+      if (w === "pk") return pk.read(w, url);
       if (w === "surv" || w === "surv-top" || w === "surv-daily" || w === "surv-endless") return surv.read(w, url);
       if (w === "rings" || w === "rings-top" || w === "rings-ta" || w === "rings-chal") return rings.read(w, url);
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest") return poker.read(w, url);
@@ -597,7 +602,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await pk.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

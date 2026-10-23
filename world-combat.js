@@ -55,7 +55,7 @@ const bossEvery = () => (weekEvent() === "boss" ? 15 : 30) * 60e3; // a boss rus
 export function createCombat(ctx) {
   const { THREE, K, planet, Snd, rpg } = ctx;
   const VX = ctx.vfx || null; // world-vfx.js: the layered light effects on top of the puffs below
-  const LW = { ko: { Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Meteor: "메테오", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Meteor: "陨石", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" }, tr: { Spring: "Yay", Shield: "Kalkan", Magnet: "Mıknatıs", Shock: "Şok", Meteor: "Meteor", Attack: "Saldır", Dodge: "Kaçın", Dodged: "Kaçındın!", free: "ücretsiz", Elite: "Elit", Boss: "Boss" } }[ctx.lang] || {};
+  const LW = { ko: { "Halloween · everyone's HP": "할로윈 · 모두의 HP", Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Meteor: "메테오", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { "Halloween · everyone's HP": "万圣节 · 全员共享血量", Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Meteor: "陨石", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" }, tr: { "Halloween · everyone's HP": "Cadılar Bayramı · herkesin canı", Spring: "Yay", Shield: "Kalkan", Magnet: "Mıknatıs", Shock: "Şok", Meteor: "Meteor", Attack: "Saldır", Dodge: "Kaçın", Dodged: "Kaçındın!", free: "ücretsiz", Elite: "Elit", Boss: "Boss" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const V3 = THREE.Vector3, UP = new THREE.Vector3(0, 1, 0);
   const root = new THREE.Group(); root.name = "combat"; planet.add(root);
@@ -214,6 +214,7 @@ export function createCombat(ctx) {
     if (m.bar) { m.g.remove(m.bar); if (barPool.length < 16) barPool.push(m.bar); else { if (m.bar.material.map) m.bar.material.map.dispose(); m.bar.material.dispose(); } }
     if (m.crown) m.crown.traverse((x) => { if (x.isMesh) { x.geometry.dispose(); x.material.dispose(); } });
     if (m.aura) { m.aura.geometry.dispose(); m.aura.material.dispose(); }
+    if (m.e && m.e.keep) { m.g.remove(m.e.obj); return; } // a body lent by another module (world-pumpking.js) goes back to it whole
     if (m.e && m.e.key) { m.g.remove(m.e.obj); m.e.obj.position.x = 0; m.e.obj.rotation.x = m.e.obj.rotation.z = 0; const a = mobPool.get(m.e.key) || []; if (a.length < 6) { a.push(m.e); mobPool.set(m.e.key, a); return; } }
     if (m.e && m.e.obj) { const seen = new Set(); m.e.obj.traverse((x) => { if (x.isMesh && x.material && !seen.has(x.material) && !x.userData.outline) { seen.add(x.material); x.material.dispose(); } }); if (m.e.mixer) m.e.mixer.stopAllAction(); }
   }
@@ -262,8 +263,8 @@ export function createCombat(ctx) {
     const spec = MOBS[o.type] || MOBS[["spam", "drop", "rug"][Math.floor(Math.random() * 3)]];
     const bs = o.rank === "boss" ? o.boss : null;
     // a creature's look in this ground, once its pack is in (the robot until then)
-    const skinId = bs ? bs.skin : o.zone && o.zone.skins ? o.zone.skins[spec.id] : null, skin = skinId && kit.enemies[skinId] ? SKIN[skinId] : null;
-    const e = takeEnemy(kit, skin ? skinId : bs ? bs.model : spec.model); if (!e) return null;
+    const skinId = o.ent ? null : bs ? bs.skin : o.zone && o.zone.skins ? o.zone.skins[spec.id] : null, skin = skinId && kit.enemies[skinId] ? SKIN[skinId] : null;
+    const e = o.ent || takeEnemy(kit, skin ? skinId : bs ? bs.model : spec.model); if (!e) return null; // o.ent: a body another module made and keeps (world-pumpking.js)
     ctx.here(me);
     let p = o.at || null;
     for (let tries = 0; tries < 10 && !p; tries++) {
@@ -278,6 +279,7 @@ export function createCombat(ctx) {
     const pow = (o.zone && o.zone.pow) || 1; if (pow !== 1 && !o.raid) { st.hp = Math.round(st.hp * pow); st.atk = Math.round(st.atk * pow); st.def = Math.round(st.def * (1 + (pow - 1) * 0.6)); st.xp = Math.round(st.xp * (1 + (pow - 1) * 0.5)); }
     if (o.def != null) st.def = o.def; // AC Defense: its Defense is the wave's own
     if (o.raid) { st.hp = o.max; st.atk = Math.round(st.atk * 0.85); } // the shared weekly raid keeps a little gentler bite
+    if (o.ext) { st.hp = o.max; if (o.atkK) st.atk = Math.round(st.atk * o.atkK); } // a shared boss from another module: its HP is the server's
     if (o.hp) st.hp = Math.max(1, Math.round(o.hp)); // AC Defense: its HP is the wave's own
     const g = new THREE.Group(); g.position.copy(p);
     const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
@@ -304,6 +306,7 @@ export function createCombat(ctx) {
     // an elite comes with an element: frost, blazing or toxic — its own colour, motes round it and a name to match
     if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
     if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
+    if (o.ext) { m.ext = o.ext; m.home = o.home || null; m.hp = Math.max(1, o.hp != null ? o.hp : o.max); if (o.pats) m.pats = o.pats; label(m); }
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
       const crown = new THREE.Group(); crown.position.y = bb.max.y + 1.2; g.add(crown);
@@ -315,7 +318,7 @@ export function createCombat(ctx) {
     if (o.tgt) { m.dT = dT; m.bT = bs ? bs.tint : 0; m.glow = bs ? 0.55 : dGlow; for (const mt of m.em) { mt.emissive.setHex(bs ? m.bT : dT); mt.emissiveIntensity = m.glow; } } // AC Defense: the wave's tint (tickMobs keeps it)
     m.sc = sc; m.ph = Math.random() * TAU; m.ghost = ghost;
     // ranks read at a glance: a small gold crown over an elite, a red one and a faint red haze round a boss
-    if ((rank === "elite" || (rank === "boss" && !o.raid)) && !ctx.lite?.()) {
+    if ((rank === "elite" || (rank === "boss" && !o.raid && !o.ext)) && !ctx.lite?.()) { // (a lent body keeps its own look: no crown, no haze)
       const boss = rank === "boss", cg = new THREE.Group(), s0 = boss ? 0.55 : 0.28, mat = boss ? crownBossMat : crownMat;
       const band = new THREE.Mesh(geoOf("crownBand", () => new THREE.CylinderGeometry(1, 1, 0.45, 10, 1, true)), mat); cg.add(band);
       for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU, sp = new THREE.Mesh(geoOf("crownSpike", () => new THREE.ConeGeometry(0.28, 0.6, 4)), mat); sp.position.set(Math.cos(a) * 0.9, 0.5, Math.sin(a) * 0.9); cg.add(sp); }
@@ -326,7 +329,8 @@ export function createCombat(ctx) {
     label(m); mobs.push(m);
     if (m.slow === 0) { const shR = Math.round(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6) * 10) / 10; const shell = new THREE.Mesh(geoOf("shell" + shR, () => new THREE.IcosahedronGeometry(shR, 0)), shellMat); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
-    if (bs && o.raid) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); }
+    if (o.ext) { ctx.shake(0.5); Snd.siren && Snd.siren(); }
+    else if (bs && o.raid) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); }
     else if (bs && o.tgt) { bossBar(m); ctx.shake(0.4); Snd.siren && Snd.siren(); if (bossCb) try { bossCb(m); } catch { /* the arena's intro is extra */ } }
     else if (bs) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); else ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); }
     return m;
@@ -340,7 +344,7 @@ export function createCombat(ctx) {
     if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
     m.leanT = kind === "heavy" ? 0.42 : 0.3; m.leanL = m.leanT; m.leanX = tmp.x; m.leanZ = tmp.z; // it rocks back away from the blow
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
-    if (!m.raid && !m.tgt) tryStep(m, tmp, kb); // (a defence scammer holds its line)
+    if (!m.raid && !m.tgt && !m.ext) tryStep(m, tmp, kb); // (a defence scammer holds its line)
     if (kind === "ice") { const deep = brOf("ice") === "a"; m.slow = deep ? 5 : 3; if (deep) { m.stun = Math.max(m.stun, m.rank === "boss" ? 0.2 : 0.6); m.statue = true; } }
     if (kind === "shock") m.stun = (m.rank === "boss" ? 0.4 : 1.2) * (brOf("shock") === "b" ? 2 : 1);
     if (kind === "shock" && VX) VX.impact(m.g.position.clone().setY(m.y + 0.6), "shock");
@@ -371,6 +375,7 @@ export function createCombat(ctx) {
     // the raid boss's HP is everyone's: the hit is reported (world-raid.js) and it only falls when the server says so
     if (m.raid && raidMod === "rally" && Math.random() < 0.15) { const h = Math.max(1, Math.round(maxHp() * 0.012)); if (!down && hp < maxHp()) { hp = Math.min(maxHp(), hp + h); paintVit(); ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); } } // Rally week: hits on the boss mend you a little
     if (m.raid) { ctx.raidHit && ctx.raidHit(dmg); if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return; }
+    if (m.ext) { try { m.ext.hit(m, dmg, crit); } catch { /* the fight goes on */ } if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return; } // it falls when its server says so
     if (m.hp <= 0) kill(m);
   }
   const stepV = new V3(); // its own: callers pass tmp / tmp2 as the direction
@@ -400,6 +405,7 @@ export function createCombat(ctx) {
     if (ctx.parts) ctx.parts.emit({ at: p, kind: "glow", n: m.rank === "boss" ? 36 : 14, speed: 2.4, up: 2.4, spread: 0.8, size: 0.32, life: 1.1, grav: -3.5, drag: 1.4, color: 0xfff2c8, color2: 0xffc861, jitter: 0.6 });
     if (m.rank === "boss" && ctx.slowmo) { ctx.slowmo(700); ctx.punch && ctx.punch(); } // the boss goes down in slow motion
     if (m.tgt) { if (m.rank === "boss") hideBossBar(); if (m.tgt.dead) m.tgt.dead(m); return; } // AC Defense: no XP, drops or ARCL claims; the arena pays in scrap
+    if (m.ext) { hideBossBar(); try { if (m.ext.down) m.ext.down(m); } catch { /* gone anyway */ } return; } // no XP, drops or claims here: its own reward
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
@@ -451,7 +457,7 @@ export function createCombat(ctx) {
       if (!m.raid) m.bar.visible = !far && !(m.tgt && m.hp >= m.max);
       if (m.dead) { m.dead += dt; if (m.e && m.e.dis && !ctx.reduce) { m.e.dis.value = Math.min(1, m.dead / 0.45); if (m.e.outlines) m.e.outlines.forEach((o) => { o.visible = false; }); m.g.position.y += dt * 0.8; if (m.dead > 0.5) { m.e.dis.value = 0; retire(m, i); } } else { m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); } continue; } // breaks up into data cubes
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
-      if (!m.tgt && d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
+      if (!m.tgt && !m.ext && d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
       m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
       if (m.tgt) { m.lblT = (m.lblT || 0) - dt; if (m.lbl && m.lblT <= 0) { const lo = lowQ(); m.lbl = 0; m.lblT = lo ? 0.25 : 0.1; if (lo) m.trail = Math.max(0, m.hp / m.max); label(m); } } // a defence walker's bar redraws at most 10 (low: 4) times a second
       if (!(m.tgt && lowQ())) tickTrail(m, dt);
@@ -477,6 +483,8 @@ export function createCombat(ctx) {
       // it notices you: a "!" pops over its head (the pooled floating text), once until you've got well away again
       if (!m.seen && d < 15 && m.rank !== "boss" && !far) { m.seen = true; if (alertT <= 0) { alertT = 0.2; ctx.float("!", tmpA.copy(m.g.position).setY((m.y || 0) + 2.3), "#ffd23a", true); } }
       else if (m.seen && d > 20) m.seen = false;
+      if (m.home && !m.cast && !m.dash) { const hx = m.home.x - m.g.position.x, hz = m.home.z - m.g.position.z, hd = Math.hypot(hx, hz); // its ground: past it, it walks back home and lets you go
+        if (Math.hypot(me.x - m.home.x, me.z - m.home.z) > m.home.r + 4 || hd > m.home.r) { if (hd > 1) { tmp.set(hx / hd, 0, hz / hd); tryStep(m, tmp, m.spec.speed * dt); m.g.rotation.y = Math.atan2(tmp.x, tmp.z); } m.wu = 0; continue; } }
       if (m.rank === "boss" && !m.raid && bossAI(m, dt, t, d)) { m.wu = 0; continue; } // a boss winding up a move stands its ground
       if (behave(m, dt, t, d, i)) { m.wu = 0; continue; } // a ranged, charging or fleeing scammer doing its own thing
       const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1) * (m.rage ? 1.3 : 1);
@@ -729,7 +737,7 @@ export function createCombat(ctx) {
     const k = Math.max(0, m.hp / m.max);
     if (bossEl.hidden || bossEl.dataset.bid !== String(m.barId)) {
       bossEl.hidden = false; bossEl.dataset.bid = String(m.barId);
-      bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><q class="wc-bt" style="width:${100 * k}%"></q><u style="width:${100 * k}%"></u>${m.raid ? "" : '<s class="wc-ph" style="left:50%" aria-hidden="true"></s>'}</i><em></em>`;
+      bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : m.ext ? `<span class="wc-long">${T("Halloween · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><q class="wc-bt" style="width:${100 * k}%"></q><u style="width:${100 * k}%"></u>${m.raid ? "" : '<s class="wc-ph" style="left:50%" aria-hidden="true"></s>'}</i><em></em>`;
     }
     bossEl.classList.toggle("raid", !!m.raid); bossEl.classList.toggle("rage", !!m.rage);
     const u = bossEl.querySelector("u"), q = bossEl.querySelector(".wc-bt"), em = bossEl.querySelector("em");
@@ -1503,6 +1511,11 @@ export function createCombat(ctx) {
     raidMob: () => mobs.find((m) => m.raid && !m.dead) || null,
     raidPhase: (p) => { raidPhase = p; }, raidMod: (id) => { raidMod = id || ""; },
     spawnRaid(o) { return spawnMob({ ...o, rank: "boss", raid: true }); },
+    // a shared boss another module owns (world-pumpking.js): o.ent its body, o.ext { hit(m, dmg, crit), down(m) }, o.home { x, z, r }
+    spawnExt(o) { return spawnMob({ ...o, rank: "boss" }); },
+    extSet(m, hpNow) { if (!m || m.dead) return; m.hp = Math.max(1, Math.min(m.max, hpNow)); label(m); if (!bossEl.hidden && bossEl.dataset.bid === String(m.barId)) bossBar(m); if (m.rank === "boss" && !m.rage && m.hp < m.max * 0.5) enrage(m); },
+    extDown(m) { if (!m || m.dead) return; m.hp = 0; label(m); kill(m); },
+    extGone(m) { const i = mobs.indexOf(m); if (i >= 0) { if (bossEl.dataset.bid === String(m.barId)) hideBossBar(); retire(m, i); } },
     raidSet(hpNow) { const m = mobs.find((x) => x.raid && !x.dead); if (!m) return; m.hp = Math.max(1, Math.min(m.max, hpNow)); label(m); bossBar(m); },
     raidDown() {
       const m = mobs.find((x) => x.raid && !x.dead); if (!m) return;
