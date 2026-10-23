@@ -12,6 +12,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 
 const src = fs.readFileSync(path.join(ROOT, "world-play.js"), "utf8");
+// the modules that take TW from world-play.js (their T is TW): their T("…") literals and the names/lines in their tables
+const MODS = ["world-adcity.js", "world-studio.js", "world-studio-gen.js"].map((f) => fs.readFileSync(path.join(ROOT, f), "utf8"));
 const words = vm.runInNewContext("(" + src.slice(src.indexOf("const WORDS = {") + "const WORDS = ".length, src.indexOf("\n};", src.indexOf("const WORDS = {")) + 2) + ")");
 // later additions: Object.assign(WORDS.ko, { … });
 for (const m of src.matchAll(/Object\.assign\(WORDS\.(ko|zh|tr), (\{[\s\S]*?\})\);/g)) Object.assign(words[m[1]], vm.runInNewContext("(" + m[2] + ")"));
@@ -27,6 +29,9 @@ const has = (fn, l, s) => (fn === "TW" && words[l] && words[l][s] != null) || in
 // the literals: T("…") and TW("…") with a plain double-quoted string
 const seen = new Map();
 for (const m of src.matchAll(/\b(TW?)\("((?:[^"\\]|\\.)*)"/g)) { const s = JSON.parse('"' + m[2] + '"'); if (!/[A-Za-z]{2}/.test(s)) continue; const k = m[1] + "|" + s; seen.set(k, { fn: m[1], s }); }
+for (const m of MODS) { for (const x of m.matchAll(/\bT\("((?:[^"\\]|\\.)*)"/g)) { const s = JSON.parse('"' + x[1] + '"'); if (/[A-Za-z]{2}/.test(s)) seen.set("TW|" + s, { fn: "TW", s }); }
+  for (const x of m.matchAll(/\b(?:name|sub|title|desc|hint): "((?:[^"\\]|\\.)*)"/g)) { const s = JSON.parse('"' + x[1] + '"'); if (/[A-Za-z]{2}/.test(s)) seen.set("TW|" + s, { fn: "TW", s }); }
+  for (const x of m.matchAll(/lines: \[((?:"(?:[^"\\]|\\.)*",?\s*)+)\]/g)) for (const y of x[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)) seen.set("TW|" + JSON.parse('"' + y[1] + '"'), { fn: "TW", s: JSON.parse('"' + y[1] + '"') }); }
 const missing = [];
 for (const { fn, s } of seen.values()) for (const l of ["ko", "zh", "tr"]) if (!has(fn, l, s)) missing.push(`${l}|${fn}|${s}`);
 const KNOWN = path.join(ROOT, "tests/world/i18n-known-missing.json");

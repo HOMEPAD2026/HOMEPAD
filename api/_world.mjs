@@ -41,6 +41,7 @@ import { makeMine } from "./_world-mine.mjs";
 import { makeWelcome } from "./_world-welcome.mjs";
 import { makeJur } from "./_world-jur.mjs";
 import { makeAgentDim, AGENT } from "./_world-agent.mjs";
+import { makeStudio } from "./_world-studio.mjs";
 import { makeAgentVault } from "./_world-agentvault.mjs";
 import { makeSwap } from "./_world-swap.mjs";
 import { makeSurvivors } from "./_world-survivors.mjs";
@@ -312,6 +313,7 @@ export function make(deps) {
   // AGENT DIMENSION: your agent, its chat and its errands (api/_world-agent.mjs)
   const agentDim = makeAgentDim({ ...deps, json, now, signer, isGM, debit: shop.debit, jur: { give: (w, m) => jur.give(w, m) }, mine: { addOre: (w, o) => mine.addOre(w, o) },
     level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
+  const studio = makeStudio({ ...deps, json, now, signer, shut: (w) => !AGENT.OPEN && !isGM(w), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), randomId: deps.randomId || (() => Math.random().toString(36).slice(2)) }); // AD-City 3: ARCIRCLE Studio Lite (api/_world-studio.mjs)
   const agentVault = makeAgentVault({ getDocs: deps.getDocs, setDoc: deps.setDoc, json, now, signer, io: deps.agentVaultIo, sel: deps.agentVaultSel, shut: (w) => !AGENT.OPEN && !isGM(w) }); // AD3: the agent trades from the player's own vault (api/_world-agentvault.mjs)
   // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
   const launch = makeLaunch({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
@@ -586,6 +588,8 @@ export function make(deps) {
       if (w === "jur-boss" || w === "jur-top" || w === "jur-camp") return jur.read(w, url);
       if (w === "agent-id") return agentDim.idFree(url.searchParams.get("id"));
       if (w === "agent-top") return agentDim.top();
+      if (w === "agent-city") return agentDim.city();
+      if (String(w).startsWith("studio-")) { const r = await studio.read(url); if (r) return r; }
       if (w === "agent-vault") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return agentVault.view(lc(a)); }
       if (w === "agent-vault-tick") return agentVault.tick({ key: url.searchParams.get("key") || "" });
       if (w === "agent") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return agentDim.view(lc(a)); }
@@ -619,7 +623,7 @@ export function make(deps) {
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
       if (b.action === "world-lot-tier") return lotTier(b);
-      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await pk.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await studio.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await pk.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

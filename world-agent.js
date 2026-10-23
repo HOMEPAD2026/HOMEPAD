@@ -88,8 +88,17 @@ export function createAgentDim(ctx) {
   async function look() {
     const w = wallet(); if (!w) { st = null; paintChip(); return; }
     try { const r = await fetch("/api/social?world=agent&wallet=" + encodeURIComponent(w), { cache: "no-store" }); if (r.ok) st = await r.json(); } catch { /* the next look */ }
-    last = Date.now(); paintChip(); spawn(); notify();
+    last = Date.now(); paintChip(); spawn(); notify(); awayNote();
     if (el && !el.hidden) paint();
+  }
+  // AD-City 2: errands the job board brought back while you were away — one toast for what's new since last time
+  function awayNote() {
+    const a = A(); if (!a || !(a.auto || []).length) return; let seen = 0; try { seen = Number(localStorage.getItem("arc.agent.auto") || 0); } catch { /* not kept */ }
+    const fresh = a.auto.filter((x) => x.at > seen); if (!fresh.length) return;
+    try { localStorage.setItem("arc.agent.auto", String(Math.max(...a.auto.map((x) => x.at)))); } catch { /* not kept */ }
+    if (!seen) return; // (the first look on this device: nothing to tell)
+    const got = {}; fresh.forEach((x) => { for (const [m, n] of Object.entries(x.loot || {})) got[m] = (got[m] || 0) + n; });
+    ctx.toast(`<b>${esc(T("While you were away"))}</b> · ${esc(T("{n} finished {k} errand(s)", { n: a.name, k: fresh.length }))}<br>${lootLine(got)}`);
   }
   // an errand that's done: a toast in town, and a system notice when the page is in the background (if allowed)
   let notifyArmed = false;
@@ -267,7 +276,11 @@ export function createAgentDim(ctx) {
     const free = a.jobs.length < a.slots && a.jobsLeft > 0;
     const cards = Object.entries(J).map(([id, j]) => `<div class="wag-job${id === best ? " best" : ""}"><i class="wag-jic" aria-hidden="true">${JOB_IC[id] || "•"}</i><div><b>${esc(T(j.name))}</b>${id === best ? `<em>${esc(T("{n}'s specialty +25%", { n: a.name }))}</em>` : ""}<small>${j.loot.map((m) => `${MAT[m] || "•"} ${esc(T(MAT_N[m] || m))}`).join(" · ")}</small><small>⏱ ${esc(left(j.min * 60e3))} · +${j.xp} XP</small></div>
       <button type="button" data-job="${id}" ${free ? "" : "disabled"}><img src="/images/arcl2-64.png" alt="" onerror="this.remove()"> ${j.arcl}</button></div>`).join("");
-    return `${run ? `<h3>${esc(T("On the way"))}</h3>${run}` : ""}<h3>${esc(T("Send {n} on an errand", { n: a.name }))}</h3>${cards}
+    // AD-City 2: the job board — errands lined up start by themselves when a slot frees (paid then), even while you're away
+    const q = a.queue || [], qm = a.qMax || 4, note = a.qNote === "arcl" ? T("Waiting: not enough ARCL for the next errand.") : a.qNote === "day" ? T("Today's errands are used up — the board goes on tomorrow.") : "";
+    const board = `<h3>📋 ${esc(T("Job board"))} <small>${q.length}/${qm}</small></h3><div class="wag-board">${q.length ? q.map((id, i) => `<span class="wag-q"><i aria-hidden="true">${JOB_IC[id] || "•"}</i>${esc(T((J[id] || {}).name || id))}<button type="button" data-qdel="${i}" aria-label="${esc(T("Remove"))}">×</button></span>`).join("") : `<p class="wag-fine">${esc(T("Line up errands: when a slot frees, the next one starts by itself — even while you're away. Each is paid when it starts."))}</p>`}
+      ${note ? `<p class="wag-qnote">${esc(note)}</p>` : ""}<div class="wag-qadd">${Object.entries(J).map(([id, j]) => `<button type="button" data-qadd="${id}" ${q.length >= qm ? "disabled" : ""}>+ ${JOB_IC[id] || "•"} ${esc(T(j.name))}</button>`).join("")}</div></div>`;
+    return `${run ? `<h3>${esc(T("On the way"))}</h3>${run}` : ""}${board}<h3>${esc(T("Send {n} on an errand", { n: a.name }))}</h3>${cards}
       <p class="wag-fine">${esc(T("Errands cost ARCL and bring back materials, not ARCL. {k} errand slot(s) · {d} errands left today.", { k: a.slots, d: Math.max(0, a.jobsLeft) }))}${a.lv < 5 ? " " + esc(T("A second slot opens at agent level 5.")) : ""}</p>`;
   }
   function paintMe(a) {
@@ -415,6 +428,13 @@ export function createAgentDim(ctx) {
     if (body && body.play) try { body.play("emote-yes", { once: true }); } catch { /* no clip */ }
     bubble(T("On my way!"), 1200); setTimeout(() => depart(() => spawn()), 700); paint(); paintChip();
   }
+  async function board(o) {
+    if (busy) return; busy = true; const r = await act({ action: "world-agent-queue", ...o }); busy = false; if (!r) return;
+    if (!r.ok) return fail(r);
+    const was = (A() && A().jobs.length) || 0; st.agent = r.j.agent; paint(); paintChip(); if (ctx.purse) ctx.purse(true);
+    if (o.op === "add") ctx.toast(st.agent.jobs.length > was ? T("{n} set off — back in {t}", { n: st.agent.name, t: left(st.jobs[o.job].min * 60e3) }) : T("On the job board"));
+    if (st.agent.jobs.length > was) setTimeout(() => depart(() => spawn()), 500);
+  }
   async function claim(id) {
     const r = await act({ action: "world-agent-claim", id }); if (!r) return;
     if (!r.ok) { if (r.j && r.j.agent) st.agent = r.j.agent; paint(); return fail(r); }
@@ -451,6 +471,8 @@ export function createAgentDim(ctx) {
     if (b.dataset.ask) return send(b.dataset.ask);
     if (b.dataset.job) return job(b.dataset.job);
     if (b.dataset.claim) return claim(b.dataset.claim);
+    if (b.dataset.qadd) return board({ op: "add", job: b.dataset.qadd });
+    if (b.dataset.qdel) return board({ op: "del", i: Number(b.dataset.qdel) });
     if (b.hasAttribute("data-save")) return save();
     if (b.hasAttribute("data-ok")) { report = null; return paint(); }
     if (Object.keys(b.dataset).some((k) => k.startsWith("v") && k !== "view")) return vClick(b);
@@ -458,6 +480,8 @@ export function createAgentDim(ctx) {
 
   setTimeout(look, 1500);
   setInterval(() => { if (Date.now() - last > (document.hidden ? 180e3 : 90e3)) look(); else { paintChip(); notify(); if (!away() && A() && !bodyKind) spawn(); if (shown() && tab === "jobs" && !report) paint(); } }, 5000);
-  return { open, close, shown, look, tick, paintChip, state: () => st,
+  /// AD-City 1: may this player go into Nexus City? (the same gate as the window: GM wallets while AGENT DIMENSION is closed)
+  async function canEnter() { if (!wallet()) return false; if (!st || Date.now() - last > 60e3) await look(); return !closed(); }
+  return { open, close, shown, look, tick, paintChip, canEnter, state: () => st,
     debug: () => ({ kind: bodyKind, agent: A() && { name: A().name, lv: A().lv, jobs: A().jobs.length, chatLeft: A().chatLeft }, clips: body && body.mixer && body.mixer._actions ? body.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : [], pos: body ? [+body.obj.position.x.toFixed(1), +body.obj.position.z.toFixed(1)] : null, on: ctx.inHub(), ticks, mt: body && body.mixer ? +body.mixer.time.toFixed(2) : 0, chip: chip ? chip.textContent : "", chipShown: chip ? !chip.hidden : false }) };
 }

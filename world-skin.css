@@ -3248,3 +3248,77 @@ html.wp-pcphone .wp-hud-l{display:flex;flex-direction:column}
 /* phones: the level card, HP/SP and the quest card share one left edge (the owner, 2026-10-23) */
 html.wp-pcphone .wp-hud-l{align-items:flex-start}
 html.wp-pcphone .wp-hud-l>:is(.wp-chips,#wc-vit,#wp-quests){margin-left:0;align-self:flex-start}
+/* AD-City 1: a Nexus City building still being built (world-adcity.js soonCard) */
+.adc-card{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px;background:rgba(2,8,20,.55);backdrop-filter:blur(3px)}
+.adc-card .adc-in{width:min(420px,100%);padding:22px 22px 18px;border-radius:22px;color:#eef3f7;background:linear-gradient(180deg,rgba(10,26,56,.96),rgba(4,10,26,.96));border:2px solid var(--ac,#5fd3ff);box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 18px 50px rgba(0,0,0,.5),0 0 34px color-mix(in srgb,var(--ac,#5fd3ff) 35%,transparent);animation:adcIn .28s cubic-bezier(.2,1.3,.4,1)}
+.adc-card small{display:block;font:800 11px/1 Sora,sans-serif;letter-spacing:.18em;color:var(--ac,#5fd3ff);text-transform:uppercase}
+.adc-card h3{margin:8px 0 10px;font:900 24px/1.15 Sora,sans-serif}
+.adc-card .adc-soon{display:inline-block;margin-bottom:10px;padding:5px 11px;border-radius:999px;background:rgba(255,224,102,.14);color:#ffe066;font:800 13px/1 Sora,sans-serif}
+.adc-card p{margin:0 0 10px;font:600 15px/1.45 Sora,sans-serif;color:#cfe0f5}
+.adc-card .adc-ok{width:100%;margin-top:6px;padding:13px;border:0;border-radius:14px;font:900 16px/1 Sora,sans-serif;color:#04111f;background:linear-gradient(90deg,#2f8cff,var(--ac,#5fd3ff));cursor:pointer}
+@keyframes adcIn{from{transform:translateY(14px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+/* AD-City 2: the agent's job board (world-agent.js paintJobs) */
+.wag-board{margin-top:6px;padding:10px 12px;border-radius:12px;border:1px dashed rgba(124,245,200,.35);background:rgba(4,20,24,.35)}
+.wag-board .wag-q{display:inline-flex;align-items:center;gap:6px;margin:0 6px 6px 0;padding:6px 6px 6px 10px;border-radius:999px;background:rgba(124,245,200,.14);border:1px solid rgba(124,245,200,.4);font:700 13px/1 Sora,sans-serif}
+.wag-board .wag-q button{width:22px;height:22px;border:0;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font:800 14px/1 Sora,sans-serif;cursor:pointer}
+.wag-qadd{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.wag-qadd button{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#eef3f7;font:700 12px/1.1 Sora,sans-serif;cursor:pointer}
+.wag-qadd button:disabled{opacity:.4;cursor:default}
+.wag-qnote{margin:4px 0 0;color:#ffe066;font:700 12px/1.35 Sora,sans-serif}
+/* AD-City 3: ARCIRCLE Studio Lite (world-studio.js) — the window and the runner's HUD */
+.wst{position:fixed;inset:0;z-index:64;display:grid;place-items:center;padding:16px;background:rgba(2,8,20,.55);backdrop-filter:blur(3px)}
+.wst[hidden]{display:none}
+.wst-in{position:relative;width:min(760px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;border-radius:22px;color:#eef3f7;background:linear-gradient(180deg,rgba(10,26,56,.97),rgba(4,10,26,.97));border:2px solid #7cf5c8;box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 34px rgba(124,245,200,.25);overflow:hidden}
+.wst-h{padding:16px 54px 8px 20px}.wst-h small{font:800 11px/1 Sora,sans-serif;letter-spacing:.18em;color:#7cf5c8;text-transform:uppercase}
+.wst-h h2{margin:6px 0 0;font:900 24px/1.1 Sora,sans-serif}.wst-h h2 em{font-style:normal;color:#7cf5c8}
+.wst-x{position:absolute;top:12px;right:12px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;font:800 22px/1 Sora,sans-serif;cursor:pointer}
+.wst-tabs{display:flex;gap:6px;padding:4px 16px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.wst-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border:0;border-radius:12px;background:rgba(255,255,255,.06);color:#cfe0f5;font:800 13px/1 Sora,sans-serif;cursor:pointer}
+.wst-tabs button.on{background:linear-gradient(90deg,#2f8cff,#7cf5c8);color:#04111f}
+.wst-body{padding:12px 16px;overflow:auto;flex:1}
+.wst-foot{margin:0;padding:8px 16px 12px;color:#8ea5bf;font:600 11px/1.4 Sora,sans-serif}
+.wst-tpls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.wst-tpl{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#eef3f7;cursor:pointer}
+.wst-tpl i{font-style:normal;font-size:24px}.wst-tpl b{font:800 12px/1.2 Sora,sans-serif;text-align:center}.wst-tpl small{font:700 10px/1 Sora,sans-serif;color:#ffe066}
+.wst-tpl.on{border-color:#7cf5c8;background:rgba(124,245,200,.14);box-shadow:0 0 0 1px #7cf5c8 inset}.wst-tpl.soon{opacity:.55;cursor:default}
+.wst-ai{margin-top:12px;padding:12px;border-radius:14px;background:linear-gradient(90deg,rgba(180,140,255,.16),rgba(95,211,255,.12));border:1px solid rgba(180,140,255,.4)}
+.wst-ai>b{font:800 13px/1.2 Sora,sans-serif}.wst-airow{display:flex;gap:8px;margin-top:8px}
+.wst-airow input,.wst-title input{flex:1;min-width:0;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;font:600 14px/1.2 Sora,sans-serif}
+.wst-ainote{display:block;margin-top:6px;color:#cfe0f5;font:600 12px/1.35 Sora,sans-serif}
+.wst-title{display:flex;align-items:center;gap:10px;margin-top:12px}.wst-title span,.wst-row>span{min-width:64px;font:800 12px/1 Sora,sans-serif;color:#9fb4c8}
+.wst-row{display:flex;align-items:center;gap:10px;margin-top:10px}.wst-chips{display:flex;flex-wrap:wrap;gap:6px}
+.wst-chips button{padding:8px 11px;border-radius:999px;border:1px solid var(--c,rgba(255,255,255,.2));background:color-mix(in srgb,var(--b,#0b1430) 55%,#000);color:#fff;font:800 12px/1 Sora,sans-serif;cursor:pointer}
+.wst-chips button.on{background:var(--c,#7cf5c8);color:#04111f}
+.wst-sls{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:10px}
+.wst-sl{display:flex;flex-direction:column;gap:4px;font:700 12px/1.2 Sora,sans-serif;color:#cfe0f5}.wst-sl b{color:#7cf5c8}.wst-sl input{accent-color:#7cf5c8}
+.wst-fine{margin:10px 0 0;color:#9fb4c8;font:600 12px/1.4 Sora,sans-serif}.wst-link{border:0;background:none;color:#7cf5c8;font:800 12px/1 Sora,sans-serif;text-decoration:underline;cursor:pointer}
+.wst-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.wst-go{padding:11px 14px;border:0;border-radius:12px;font:900 14px/1 Sora,sans-serif;color:#04111f;background:linear-gradient(90deg,#2f8cff,#7cf5c8);cursor:pointer}
+.wst-go.big{flex:1;padding:14px}.wst-go.alt{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}.wst-go:disabled{opacity:.5}
+.wst-card{display:flex;gap:12px;margin-bottom:10px;padding:10px;border-radius:14px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:rgba(255,255,255,.04)}
+.wst-cv{flex:0 0 92px;height:76px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--b),color-mix(in srgb,var(--c) 40%,#000));box-shadow:0 0 0 1px var(--c) inset}
+.wst-cv i{font-style:normal;font-size:26px}.wst-cv em{font:800 10px/1 Sora,sans-serif;font-style:normal;color:#fff;text-shadow:0 1px 2px #000}
+.wst-ci{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.wst-ci b{font:900 15px/1.2 Sora,sans-serif}.wst-ci small{color:#9fb4c8;font:600 12px/1.3 Sora,sans-serif}
+.wst-cb{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}.wst-cb button{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font:800 12px/1 Sora,sans-serif;cursor:pointer}
+.wst-cb .wst-go{border:0;color:#04111f}
+.wst-empty{padding:24px 8px;text-align:center;color:#9fb4c8;font:700 14px/1.5 Sora,sans-serif}
+@media (max-width:560px){.wst{padding:0;align-items:end}.wst-in{max-height:92dvh;border-radius:22px 22px 0 0}.wst-tpls{grid-template-columns:repeat(2,1fr)}.wst-sls{grid-template-columns:1fr}}
+body.wp-studio .wp-hud,body.wp-studio .wp-dock,body.wp-studio .wp-joy,body.wp-studio .wp-acts,body.wp-studio .wp-keys,body.wp-studio .wp-mini,body.wp-studio .wp-quests,body.wp-studio .wp-evt,body.wp-studio [class^="wc-"]:not(.wc-dead){display:none!important}
+.wst-hud{position:fixed;inset:0;z-index:60;pointer-events:none;color:#fff}
+.wst-top{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;background:rgba(4,12,28,.7);pointer-events:auto;flex-wrap:wrap}
+.wst-hn{flex:1;min-width:0;font:900 14px/1.1 Sora,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wst-hp,.wst-hc{font:800 15px/1 Sora,sans-serif}
+.wst-hx{width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font:800 20px/1 Sora,sans-serif;cursor:pointer}
+.wst-bar{flex:1 0 100%;height:6px;border-radius:6px;background:rgba(255,255,255,.15);overflow:hidden}.wst-bar em{display:block;height:100%;width:0;background:linear-gradient(90deg,#2f8cff,#7cf5c8)}
+.wst-cd{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font:900 96px/1 Sora,sans-serif;text-shadow:0 0 30px #7cf5c8,0 4px 10px rgba(0,0,0,.5)}
+.wst-cd.pop{animation:wstPop .6s ease-out}@keyframes wstPop{from{transform:translate(-50%,-50%) scale(1.6);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.wst-help{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);margin:0;padding:8px 14px;border-radius:999px;background:rgba(4,12,28,.6);font:700 13px/1.2 Sora,sans-serif;white-space:nowrap}
+.wst-res{position:absolute;inset:0;display:grid;place-items:center;padding:16px;background:rgba(2,8,20,.5);pointer-events:auto}
+.wst-rin{width:min(380px,100%);padding:22px;border-radius:22px;text-align:center;background:linear-gradient(180deg,rgba(10,26,56,.97),rgba(4,10,26,.97));border:2px solid #7cf5c8}
+.wst-rin small{color:#7cf5c8;font:800 12px/1 Sora,sans-serif;letter-spacing:.1em}.wst-rin h3{margin:8px 0;font:900 24px/1.1 Sora,sans-serif}
+.wst-score{display:block;font:900 56px/1 Sora,sans-serif;color:#ffe066;text-shadow:0 0 20px rgba(255,224,102,.5)}.wst-rin p{margin:8px 0;color:#cfe0f5;font:700 14px/1.4 Sora,sans-serif}
+.wst-rin span{display:flex;gap:8px;margin-top:12px}
+/* (Studio Lite on the phone layout: zoomed like the agent's window; the runner's bar at the very top, not under the town HUD) */
+html.wp-pcphone .wst-in{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(92vh / 1.5)}
+html.wp-pcphone .wst-top[data-game-hud]{top:max(10px,env(safe-area-inset-top));right:auto;width:calc((100vw - 24px) / 1.42)}
+html.wp-pcphone .wst-help{zoom:1.6}html.wp-pcphone .wst-rin{zoom:1.5}html.wp-pcphone .wst-cd{zoom:1.6}
+body.wp-studio :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wl-act,.wp-hide,.wp-clean-tab,#wp-hidebtn),body.wp-studio [class^="wc-"]:not(.wc-dead){display:none!important}

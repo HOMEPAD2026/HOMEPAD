@@ -13,6 +13,13 @@
 //   POST { action: "world-agent-job",    …signature, job }                 → { agent, bal }  (ARCL paid now)
 //   POST { action: "world-agent-claim",  …signature, id }                  → { loot, ore, xp, lv, agent } (an errand that's done)
 //   GET  ?world=agent-top                                       → { week, top: [{ id, name, kind, lv, n }] }  (AD2: the week's busiest agents)
+//   POST { action: "world-agent-queue",  …signature, op: "add"|"del"|"clear", job?, i? } → { agent }   (AD-City 2: the job board)
+//   GET  ?world=agent-city                                      → { work: [{ id, name, kind, job, start, end, no }], today }  (who's working now, for Nexus City)
+//   (AD-City 2, the owner's call 2026-10-23: agents work on their own. Up to QUEUE errands wait on the job board; when a
+//   slot is free the next one starts by itself — paid then, at that moment, from the player's ARCL — and an errand that's
+//   done while more are waiting is brought back for the player (its loot delivered as a claim would, listed in auto for
+//   the "while you were away" card). It all happens on the server's clock whenever the agent is looked at, so it runs
+//   while the player is away and nothing runs in the page.)
 //   (AD2: each agent has a number, no — the order it was made in — and founder: made in the pre-launch event (Genesis
 //   Founder); its last errands (hist) feed the day's briefing and the chat's memory; a chat reply can carry suggest:
 //   "gather" | "mine" | "scout" when the player asked for an errand — the page asks before it sends it)
@@ -21,6 +28,7 @@
 //            worldAgent/<wallet> { kind, id, name, persona, xp, at, jobs: [{ id, job, start, end }], day, jobsDay, chatDay, chatN, log }
 //            worldAgentDone/<wallet>_<id> (an errand claimed: a create-only marker, so it pays once even from two tabs)
 //            worldAgentNo/<n> { w } (the agents' numbers, create-only) · worldStats/agentCount { n } · worldStats/agentWeek_<wk> { top }
+//            worldStats/agentWork { list: { <wallet>: { id, name, kind, job, start, end, no } } } (who's out now) · worldStats/agentWorkDay_<day> { n }
 export const AGENT = {
   KINDS: {
     aurora: { name: "AURORA", role: "Caretaker & Coordinator", style: "warm, caring and organised; you look after your partner, their camp and their friends", best: "gather" },
@@ -39,6 +47,7 @@ export const AGENT = {
   // the owner's call (2026-10-22): not open yet — only GM wallets can use it; everyone else sees "under construction"
   OPEN: false,
   ID: /^[a-z0-9_]{3,16}$/, ID_RESERVED: /^(admin|gm|arcia|arcircle|official|support|system|mod|moderator|aurora|orion|vex|agent|null|undefined)$/,
+  QUEUE: 4, WORK: 60, AUTO: 10,
   HIST: 20, TOP: 30, BEST_K: 1.25, DAY_JOBS: 6, CHAT_DAY: 20, CHAT_IN: 280, CHAT_OUT: 600, LOG: 12, NAME: 14, PERSONA: 160, LV_MAX: 30,
   SLOTS: (lv) => (lv >= 5 ? 2 : 1),
 };
@@ -62,7 +71,8 @@ export function makeAgentDim(deps) {
     return { kind: a.kind, id: a.id || "", name: a.name, persona: a.persona || "", xp: a.xp || 0, lv, slots: AGENT.SLOTS(lv), at: a.at,
       jobs: (a.jobs || []).map((j) => ({ ...j, done: now() >= j.end })), jobsLeft: AGENT.DAY_JOBS - (a.day === d ? a.jobsDay || 0 : 0),
       chatLeft: AGENT.CHAT_DAY - (a.chatDay === d ? a.chatN || 0 : 0), log: (a.log || []).slice(-AGENT.LOG),
-      no: a.no || 0, founder: !!a.pre, done: a.done || 0, hist: (a.hist || []).slice(-8), brief: brief(a) };
+      no: a.no || 0, founder: !!a.pre, done: a.done || 0, hist: (a.hist || []).slice(-8), brief: brief(a),
+      queue: (a.queue || []).map((q) => q.job), qMax: AGENT.QUEUE, qNote: a.qNote || "", auto: (a.auto || []).slice(-AGENT.AUTO) };
   };
   // the day's briefing (the first time the window opens in a day): what it did yesterday, what's left today
   function brief(a) {
@@ -88,7 +98,8 @@ export function makeAgentDim(deps) {
   const shut = (w) => !AGENT.OPEN && !(deps.isGM && deps.isGM(w));
   async function view(w) {
     if (shut(w)) return json(200, { ok: true, closed: true, agent: null, kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL });
-    return json(200, { ok: true, agent: pub(await load(w)), kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL });
+    const a = await load(w); if (a) await advance(w, a).catch(() => false);
+    return json(200, { ok: true, agent: pub(a), kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL });
   }
   const idOf = (x) => String(x || "").trim().toLowerCase().replace(/^@/, "");
   const idOk = (id) => AGENT.ID.test(id) && !AGENT.ID_RESERVED.test(id);
@@ -189,29 +200,86 @@ export function makeAgentDim(deps) {
     const paid = await deps.debit(w, "agent-" + b.job, J.arcl); if (paid.err) return json(400, { error: paid.err });
     const t = now(), id = `${b.job}-${t.toString(36)}`;
     a.jobs = [...(a.jobs || []), { id, job: b.job, start: t, end: t + J.min * 60e3 }]; a.jobsDay += 1;
-    await setDoc(`worldAgent/${w}`, a);
+    await setDoc(`worldAgent/${w}`, a); await workIndex(w, a).catch(() => {});
     return json(200, { ok: true, agent: pub(a), bal: paid.bal });
+  }
+
+  /// an errand that's back: its loot and XP (once: the create-only marker), the agent saved by the caller. → { got, k, xp, lv0, ore } | null (already brought back)
+  async function settle(w, a, j) {
+    a.jobs = (a.jobs || []).filter((x) => x.id !== j.id);
+    if (!(await deps.commit([{ create: `worldAgentDone/${w}_${j.id}`, data: { at: now() } }])).ok) return null;
+    const J = AGENT.JOBS[j.job], k = AGENT.KINDS[a.kind].best === j.job ? AGENT.BEST_K : 1, got = {};
+    for (const [m, r] of Object.entries(J.loot)) { const n = Math.round(between(r) * k); if (n > 0) got[m] = n; }
+    const lv0 = agentLevel(a.xp); a.xp = (a.xp || 0) + J.xp; a.done = (a.done || 0) + 1;
+    a.hist = [...(a.hist || []), { job: j.job, loot: got, at: now() }].slice(-AGENT.HIST);
+    let ore = null;
+    if (J.to === "mine" && deps.mine) ore = await deps.mine.addOre(w, got).catch(() => null);
+    else if (deps.jur) await deps.jur.give(w, got).catch(() => null);
+    await bumpTop(w, a).catch(() => {}); await bumpDay().catch(() => {});
+    return { got, k, xp: J.xp, lv0, ore };
+  }
+  /// the job board: while errands wait and a slot is free, the next one starts (paid now); a finished errand in the way
+  /// is brought back first. Backdated to when its slot freed (never before it was queued), so time away isn't lost.
+  async function advance(w, a) {
+    if (!(a.queue || []).length) return false;
+    let changed = false, freeAt = 0;
+    for (let guard = 0; guard < 16; guard++) {
+      const t = now(), lv = agentLevel(a.xp), busy = a.jobs || [];
+      if (!a.queue.length) break; // (nothing waiting: what's back stays for the player to bring back)
+      if (busy.length >= AGENT.SLOTS(lv)) {
+        const j = busy.filter((x) => x.end <= t).sort((p, q) => p.end - q.end)[0]; if (!j) break;
+        const r = await settle(w, a, j); changed = true; freeAt = j.end;
+        if (r) a.auto = [...(a.auto || []), { job: j.job, loot: r.got, xp: r.xp, at: j.end }].slice(-AGENT.AUTO);
+        continue;
+      }
+      const d = day(t); if (a.day !== d) { a.day = d; a.jobsDay = 0; }
+      if ((a.jobsDay || 0) >= AGENT.DAY_JOBS) { a.qNote = "day"; changed = true; break; }
+      const q = a.queue[0], J = AGENT.JOBS[q.job]; if (!J) { a.queue.shift(); changed = true; continue; }
+      const paid = await deps.debit(w, "agent-" + q.job, J.arcl); if (paid.err) { if (/enough/.test(paid.err) && a.qNote !== "arcl") { a.qNote = "arcl"; changed = true; } break; } // (another spend this moment: the next look starts it)
+      const start = Math.min(t, Math.max(freeAt || t, q.at || 0)), id = `${q.job}-${start.toString(36)}q`;
+      a.queue.shift(); a.jobs = [...busy, { id, job: q.job, start, end: start + J.min * 60e3, auto: true }]; a.jobsDay = (a.jobsDay || 0) + 1; a.qNote = ""; changed = true;
+    }
+    if (changed) { await setDoc(`worldAgent/${w}`, a); await workIndex(w, a).catch(() => {}); }
+    return changed;
+  }
+  async function queue(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, a = await load(w); if (!a) return json(404, { error: "no agent yet" });
+    a.queue = a.queue || [];
+    if (b.op === "add") { if (!AGENT.JOBS[b.job]) return json(400, { error: "no such errand" }); if (a.queue.length >= AGENT.QUEUE) return json(400, { error: `the job board holds ${AGENT.QUEUE} errands` }); a.queue.push({ job: b.job, at: now() }); }
+    else if (b.op === "del") { const i = Number(b.i); if (!(i >= 0 && i < a.queue.length)) return json(400, { error: "no such errand on the board" }); a.queue.splice(i, 1); }
+    else if (b.op === "clear") a.queue = [];
+    else return json(400, { error: "add, del or clear" });
+    a.qNote = ""; await setDoc(`worldAgent/${w}`, a);
+    await advance(w, a).catch(() => false);
+    return json(200, { ok: true, agent: pub(a) });
+  }
+  /// who's out on an errand now (Nexus City shows them at work): one small doc, the wallet's entry replaced or dropped
+  async function workIndex(w, a) {
+    const k = "worldStats/agentWork", d = (await one(k)) || {}, list = d.list || {}, t = now(), j = (a.jobs || []).filter((x) => x.end > t).sort((p, q) => p.start - q.start)[0];
+    if (j) list[w] = { id: a.id || "", name: a.name, kind: a.kind, job: j.job, start: j.start, end: j.end, no: a.no || 0 }; else delete list[w];
+    const keep = Object.entries(list).filter(([, v]) => v.end > t - 6e5).sort((p, q) => q[1].start - p[1].start).slice(0, AGENT.WORK);
+    await setDoc(k, { list: Object.fromEntries(keep) });
+  }
+  async function bumpDay() { const k = `worldStats/agentWorkDay_${day(now())}`, d = (await one(k)) || {}; await setDoc(k, { n: (d.n || 0) + 1 }); }
+  async function city() {
+    const t = now(), d = (await one("worldStats/agentWork")) || {}, n = (await one(`worldStats/agentWorkDay_${day(t)}`)) || {};
+    const work = Object.values(d.list || {}).filter((v) => v.end > t - 6e5).sort((p, q) => q.start - p.start).slice(0, 24);
+    return json(200, { ok: true, now: t, work, today: n.n || 0 }, "public, max-age=20");
   }
 
   async function claim(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet, a = await load(w); if (!a) return json(404, { error: "no agent yet" });
     const j = (a.jobs || []).find((x) => x.id === b.id); if (!j) return json(404, { error: "no such errand" });
     if (now() < j.end) return json(400, { error: "not back yet", end: j.end });
-    a.jobs = a.jobs.filter((x) => x.id !== j.id);
-    if (!(await deps.commit([{ create: `worldAgentDone/${w}_${j.id}`, data: { at: now() } }])).ok) { await setDoc(`worldAgent/${w}`, a); return json(409, { error: "already brought back", agent: pub(a) }); }
-    const J = AGENT.JOBS[j.job], k = AGENT.KINDS[a.kind].best === j.job ? AGENT.BEST_K : 1, got = {};
-    for (const [m, r] of Object.entries(J.loot)) { const n = Math.round(between(r) * k); if (n > 0) got[m] = n; }
-    const lv0 = agentLevel(a.xp); a.xp = (a.xp || 0) + J.xp; a.done = (a.done || 0) + 1;
-    a.hist = [...(a.hist || []), { job: j.job, loot: got, at: now() }].slice(-AGENT.HIST);
-    await setDoc(`worldAgent/${w}`, a); await bumpTop(w, a).catch(() => {});
-    let ore = null;
-    if (J.to === "mine" && deps.mine) ore = await deps.mine.addOre(w, got).catch(() => null);
-    else if (deps.jur) await deps.jur.give(w, got).catch(() => null);
-    return json(200, { ok: true, job: j.job, loot: got, best: k > 1, xp: J.xp, lv: agentLevel(a.xp), up: agentLevel(a.xp) > lv0, ore, agent: pub(a) });
+    const r = await settle(w, a, j);
+    if (!r) { await setDoc(`worldAgent/${w}`, a); return json(409, { error: "already brought back", agent: pub(a) }); }
+    await advance(w, a).catch(() => false); // (the job board's next errand takes the freed slot)
+    await setDoc(`worldAgent/${w}`, a); await workIndex(w, a).catch(() => {});
+    return json(200, { ok: true, job: j.job, loot: r.got, best: r.k > 1, xp: r.xp, lv: agentLevel(a.xp), up: agentLevel(a.xp) > r.lv0, ore: r.ore, agent: pub(a) });
   }
 
   return {
-    view, load, idFree, top,
+    view, load, idFree, top, city,
     async handle(b) {
       if (!String(b.action || "").startsWith("world-agent-") || b.action.startsWith("world-agent-vault") || b.action === "world-agent-rules") return null;
       { const s = signer(b); if (s.err) return s.err; if (shut(s.wallet)) return json(403, { error: "AGENT DIMENSION is under construction", closed: true }); }
@@ -220,6 +288,7 @@ export function makeAgentDim(deps) {
       if (b.action === "world-agent-chat") return chat(b);
       if (b.action === "world-agent-job") return job(b);
       if (b.action === "world-agent-claim") return claim(b);
+      if (b.action === "world-agent-queue") return queue(b);
       return null;
     },
   };

@@ -92,4 +92,28 @@ r = await W2.handle({ action: "world-agent-chat", ...(await sign(me)), t: "could
 check(/never claim you already left/.test(lastSys) || true, "(the prompt says the game asks first)");
 aiOn = false; r = await call(me, "world-agent-chat", { t: "나무 좀 채집해줘" }); check(r.body.offline && r.body.suggest === "gather", "no model: the errand is still recognised (ko) → " + r.body.suggest);
 r = await call(me, "world-agent-chat", { t: "hello there" }); check(!r.body.suggest, "small talk suggests nothing");
+// AD-City 2: the job board — errands wait, start by themselves when a slot frees (paid then), finished ones are brought back
+{ db.set(`worldAgent/${lc}`, { ...db.get(`worldAgent/${lc}`), jobs: [], jobsDay: 0, queue: [], auto: [] });
+  const bal0 = db.get(`worldArclBal/${lc}`).bal, T0 = T;
+  r = await call(me, "world-agent-queue", { op: "add", job: "teleport" }); check(r.status === 400, "board: an unknown errand is refused");
+  r = await call(me, "world-agent-queue", { op: "add", job: "gather" }); T += 2000; r = await call(me, "world-agent-queue", { op: "add", job: "mine" }); T += 2000; r = await call(me, "world-agent-queue", { op: "add", job: "gather" });
+  check(r.status === 200 && r.body.agent.jobs.length === 2 && r.body.agent.queue.length === 1 && r.body.agent.queue[0] === "gather", "board: two slots at level 5 start at once, the third waits");
+  check(db.get(`worldArclBal/${lc}`).bal === bal0 - AGENT.JOBS.gather.arcl - AGENT.JOBS.mine.arcl, "board: only the started errands are paid");
+  let c = (await W.read(new URL("https://x/api/social?world=agent-city"))).body; check(c.ok && c.work.some((x) => x.id === "shadow_v"), "the city sees @shadow_v at work");
+  for (let i = 0; i < 3; i++) await call(me, "world-agent-queue", { op: "add", job: "scout" }); r = await call(me, "world-agent-queue", { op: "add", job: "scout" });
+  check(r.status === 400 && /holds/.test(r.body.error), "board: it holds " + AGENT.QUEUE);
+  r = await call(me, "world-agent-queue", { op: "del", i: 3 }); r = await call(me, "world-agent-queue", { op: "del", i: 2 }); r = await call(me, "world-agent-queue", { op: "del", i: 1 }); check(r.body.agent.queue.length === 1, "board: errands taken off");
+  const inv0 = JSON.stringify((db.get(`worldJurInv/${lc}`) || {}).mat || {});
+  T += AGENT.JOBS.mine.min * 60e3 + 1000; v = await view(me);
+  const g3 = v.agent.jobs.find((j) => j.auto && j.start > T0 + 5000);
+  check(v.agent.auto.length === 1 && v.agent.auto[0].job === "gather" && v.agent.jobs.some((j) => j.job === "mine" && j.done), "away: the finished errand in the way was brought back for you; the rest wait for you " + JSON.stringify(v.agent.auto.map((x) => x.job)));
+  check(g3 && g3.job === "gather" && g3.start === T0 + AGENT.JOBS.gather.min * 60e3 && g3.start < T, "away: the waiting errand started when its slot freed (backdated), not now");
+  check(JSON.stringify(db.get(`worldJurInv/${lc}`).mat) !== inv0, "away: its loot is in the pack");
+  check(v.agent.queue.length === 0, "the board is empty");
+  r = await call(me, "world-agent-claim", { id: g3.id }); check(r.status === 200, "the last one is claimed by hand");
+  c = (await W.read(new URL("https://x/api/social?world=agent-city"))).body; check(c.today >= 2, "the city counts today's errands: " + c.today);
+  // no ARCL: the board waits and says why
+  const pa = db.get(`worldAgent/${poor.address.toLowerCase()}`); db.set(`worldAgent/${poor.address.toLowerCase()}`, { ...pa, jobs: [] });
+  r = await call(poor, "world-agent-queue", { op: "add", job: "mine" }); check(r.status === 200 && r.body.agent.queue.length === 1 && r.body.agent.qNote === "arcl", "no ARCL: the errand waits on the board (qNote arcl)");
+}
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
