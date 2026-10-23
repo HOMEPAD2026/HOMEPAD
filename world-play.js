@@ -3343,10 +3343,18 @@ function plazaEvents(now = Date.now()) {
   return ev.sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0) || a.at - b.at);
 }
 const evLeft = (at) => { const m = Math.max(0, Math.round((at - Date.now()) / 60e3)); return m >= 60 ? TW("in {h} h {m} min", { h: Math.floor(m / 60), m: m % 60 }) : TW("in {m} min", { m }); };
+// on a phone the top row is full (brand, level, buttons): the pill goes just under the quest card (or the HP card),
+// centred, where it clears the minimap; a computer has room at the top centre
+function placePill(pill) {
+  if (!document.documentElement.classList.contains("wp-pcphone")) { pill.style.top = ""; return; }
+  let y = 0; for (const e of [document.getElementById("wp-quests"), document.getElementById("wc-vit"), document.querySelector(".wp-chips")]) { if (!e || !e.getClientRects().length) continue; const r = e.getBoundingClientRect(); if (r.height > 0) y = Math.max(y, r.bottom); }
+  pill.style.top = y ? Math.round(y + 14) + "px" : "";
+}
+addEventListener("resize", () => { const p = document.getElementById("wp-evt"); if (p && !p.hidden) placePill(p); });
 // the pill at the top of the screen: the next three, one at a time (in town only)
 { const pill = document.createElement("div"); pill.className = "wp-evt"; pill.id = "wp-evt"; pill.setAttribute("aria-live", "off"); pill.hidden = true; document.body.appendChild(pill); let i = 0;
   every(6000, () => { try { const on = landed && mode === "hub" && !frozen && !introOn && !document.body.classList.contains("wp-first"); pill.hidden = !on; if (!on) return;
-    const L = plazaEvents().slice(0, 3), e = L[i++ % L.length]; if (!e) return; pill.innerHTML = `<span>${e.ic}</span><b>${esc(e.t)}</b><small class="${e.live ? "live" : ""}">${esc(e.live ? TW("now") : evLeft(e.at))}</small>`; pill.classList.remove("in"); void pill.offsetWidth; pill.classList.add("in"); } catch { /* next time */ } }); }
+    const L = plazaEvents().slice(0, 3), e = L[i++ % L.length]; if (!e) return; pill.innerHTML = `<span>${e.ic}</span><b>${esc(e.t)}</b><small class="${e.live ? "live" : ""}">${esc(e.live ? TW("now") : evLeft(e.at))}</small>`; placePill(pill); pill.classList.remove("in"); void pill.offsetWidth; pill.classList.add("in"); } catch { /* next time */ } }); }
 /// b-st3: a coin launched on ArcPad in the last 15 minutes: fireworks over the plaza, once per coin on this device
 function launchFireworks(c) {
   if (!c || !c.launchedAt || Date.now() - c.launchedAt > 15 * 60e3 || mode !== "hub" || reduce) return; const k = "arc.world.fw." + String(c.token || c.symbol || "").slice(0, 46);

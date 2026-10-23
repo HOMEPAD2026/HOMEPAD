@@ -3209,7 +3209,7 @@ html.wp-pcphone .wp-hud-l>.wp-chips{grid-column:2}
 .wp-evt small{font:800 12px/1 var(--f-num,var(--f-ui));color:#7fe8ff}.wp-evt small.live{color:#2ee0a0}
 .wp-evt.in{animation:wpEvtIn .45s ease both}
 @keyframes wpEvtIn{from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translateX(-50%)}}
-html.wp-pcphone .wp-evt{left:61%;max-width:36%;overflow:hidden;font-size:20px;padding:10px 22px 10px 12px;gap:12px}html.wp-pcphone .wp-evt>span{width:42px;height:42px;font-size:24px}html.wp-pcphone .wp-evt small{font-size:20px}
+html.wp-pcphone .wp-evt{max-width:38%;overflow:hidden;font-size:20px;padding:10px 22px 10px 12px;gap:12px}html.wp-pcphone .wp-evt>span{width:42px;height:42px;font-size:24px}html.wp-pcphone .wp-evt small{font-size:20px}
 html.wp-pcphone .wp-wb{min-width:min(640px,86vw);padding:22px 30px;border-radius:30px}html.wp-pcphone .wp-wb b{font-size:32px}html.wp-pcphone .wp-wb small,html.wp-pcphone .wp-wb em{font-size:24px}
 body.wp-clean .wp-evt{display:none}
 /* b-st3: the loading screen's waiting room: who's here, what's next, the hero to start with */
