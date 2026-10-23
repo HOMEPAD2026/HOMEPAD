@@ -3322,3 +3322,85 @@ html.wp-pcphone .wst-in{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(92vh / 
 html.wp-pcphone .wst-top[data-game-hud]{top:max(10px,env(safe-area-inset-top));right:auto;width:calc((100vw - 24px) / 1.42)}
 html.wp-pcphone .wst-help{zoom:1.6}html.wp-pcphone .wst-rin{zoom:1.5}html.wp-pcphone .wst-cd{zoom:1.6}
 body.wp-studio :is(.wp-keys,.wp-joyrest,.wp-hud-l,.wp-hud-r,.wp-chips,.wp-quests,.wp-qmini,.wp-mini,.wp-qmark,.wp-hint,.wp-prompt,.wp-joy,.wp-dock,.wp-acts,.wp-photo-bar,.wl-act,.wp-hide,.wp-clean-tab,#wp-hidebtn),body.wp-studio [class^="wc-"]:not(.wc-dead){display:none!important}
+/* the owner's look for the map (2026-10-23, from the owner's mock-up): a header with art, the minimap key folded away,
+   section chips, compact cards with the place's own art on the right (images/ui/map) */
+#wp-mapsheet>.wp-card{background:linear-gradient(180deg,rgba(14,40,96,.96),rgba(6,18,48,.97));border:1.5px solid rgba(95,211,255,.55);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset,0 18px 48px rgba(0,0,0,.45),0 0 30px rgba(47,140,255,.25)}
+#wp-mapsheet .wp-sheet-head{position:relative;min-height:74px;background:url("/images/ui/map/head.webp") right -6px top -8px/auto 112% no-repeat;-webkit-mask-image:none}
+#wp-mapsheet .wp-sheet-head::before{content:"";position:absolute;inset:-6px auto -6px -6px;width:62%;background:linear-gradient(90deg,rgba(10,30,76,1) 40%,rgba(10,30,76,0));pointer-events:none}
+#wp-mapsheet .wp-sheet-head h2{position:relative;font:900 30px/1 Sora,sans-serif;letter-spacing:.01em;text-shadow:0 2px 12px rgba(47,140,255,.6)}
+#wp-mapsheet .wp-sheet-head .wp-x{position:relative;z-index:1}
+#wp-mapsheet .wp-map-sub{margin:-6px 0 8px;color:#cfe0f5;font:600 13px/1.3 Sora,sans-serif}
+#wp-mapsheet details.wp-mapkey{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08)}
+#wp-mapsheet details.wp-mapkey>summary{cursor:pointer;list-style:none;font:800 12px/1.2 Sora,sans-serif;color:#9fe6ff}
+#wp-mapsheet details.wp-mapkey>summary::-webkit-details-marker{display:none}
+#wp-mapsheet details.wp-mapkey>summary::after{content:" ▾";opacity:.7}#wp-mapsheet details.wp-mapkey[open]>summary::after{content:" ▴"}
+#wp-mapsheet details.wp-mapkey[open]>span{display:inline-flex;margin:6px 10px 0 0}
+.wp-mapchips{position:sticky;top:-1px;z-index:2;display:flex;gap:6px;overflow-x:auto;margin:0 -4px 8px;padding:6px 4px;background:linear-gradient(180deg,rgba(9,26,66,.98) 70%,rgba(9,26,66,0));scrollbar-width:none}
+.wp-mapchips::-webkit-scrollbar{display:none}
+.wp-mapchips button{flex:0 0 auto;padding:7px 11px;border-radius:999px;border:1px solid color-mix(in srgb,var(--c,#5fd3ff) 55%,transparent);background:color-mix(in srgb,var(--c,#5fd3ff) 14%,rgba(0,0,0,.3));color:#eef3f7;font:800 12px/1 Sora,sans-serif;cursor:pointer;white-space:nowrap}
+#wp-maplist>h3{margin:12px 2px 6px;font:800 13px/1.2 Sora,sans-serif;scroll-margin-top:48px}
+#wp-mapsheet .wp-maplist{gap:6px}
+#wp-mapsheet .wp-maplist button{position:relative;min-height:56px;padding:8px 12px;gap:10px;border-radius:14px;border:1px solid rgba(95,211,255,.18);background:linear-gradient(90deg,rgba(8,24,60,.9),rgba(12,34,80,.75));overflow:hidden}
+#wp-mapsheet .wp-maplist button.art{min-height:64px;background:linear-gradient(90deg,rgba(8,24,60,.98) 42%,rgba(8,24,60,.55) 64%,rgba(8,24,60,0) 82%),var(--art) right center/auto 100% no-repeat,linear-gradient(90deg,#08183c,#0c2250)}
+#wp-mapsheet .wp-maplist button:hover,#wp-mapsheet .wp-maplist button:focus-visible{border-color:rgba(124,245,200,.7);box-shadow:0 0 0 1px rgba(124,245,200,.5),0 0 16px rgba(124,245,200,.25)}
+#wp-mapsheet .wp-maplist button>span{position:relative;max-width:66%;min-width:0}
+#wp-mapsheet .wp-maplist button:not(.art)>span{max-width:none}
+#wp-mapsheet .wp-maplist button b{display:block;font:800 15px/1.2 Sora,sans-serif;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+#wp-mapsheet .wp-maplist button small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;font:600 12px/1.3 Sora,sans-serif;color:#b9cde6;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#wp-mapsheet .wp-maplist button>i{flex:0 0 auto;width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c),0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent)}
+/* the owner's look for the Menu (2026-10-23, from the owner's mock-up): a header with art, Recent as art cards, the nine
+   as 3D icons, More as icon rows, the small things as pills (images/ui/menu) */
+body.wp .wp-hub-card{background:linear-gradient(180deg,rgba(14,40,96,.97),rgba(6,18,48,.97));border:1.5px solid rgba(95,211,255,.55);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset,0 18px 48px rgba(0,0,0,.45),0 0 30px rgba(47,140,255,.25)}
+body.wp .wp-hub-h{position:relative;min-height:70px;display:flex;align-items:center;background:url("/images/ui/menu/head.webp") right 54px top -24px/auto 150% no-repeat;border-bottom:0}
+body.wp .wp-hub-h::before{content:"";position:absolute;inset:-8px 50% -8px -8px;background:linear-gradient(90deg,rgba(12,34,84,1) 30%,rgba(12,34,84,0));pointer-events:none}
+body.wp .wp-hub-h h2{position:relative;font-size:30px;text-shadow:0 2px 12px rgba(47,140,255,.6)}body.wp .wp-hub-h .wp-hub-x{position:relative;margin-left:auto}
+body.wp .wp-hub section{margin-top:12px}
+body.wp .wp-hub-recent .wp-hub-grid{grid-template-columns:repeat(2,1fr)!important}
+body.wp .wp-hub-recent .wp-hub-grid button.wp-hub-r:last-child:nth-child(odd){grid-column:1/-1}
+body.wp .wp-hub-grid button.wp-hub-r{min-height:64px;background:linear-gradient(90deg,rgba(14,40,96,.96) 38%,rgba(14,40,96,.4) 70%,rgba(14,40,96,0)),var(--art,none) right center/auto 100% no-repeat,var(--ui-row)}
+body.wp .wp-hub-grid button.wp-hub-r.pri{background:linear-gradient(90deg,var(--ui-mint-1) 30%,color-mix(in srgb,var(--ui-mint-2) 50%,transparent) 62%,rgba(0,0,0,0)),var(--art,none) right center/auto 100% no-repeat,var(--ui-mint-2)}
+body.wp .wp-hub-grid button.wp-hub-r.pri span{text-shadow:none}
+body.wp .wp-hub-grid button .wp-hub-img{flex:none;width:34px;height:34px;object-fit:contain;border-radius:8px;-webkit-mask-image:radial-gradient(circle,#000 62%,transparent 74%);mask-image:radial-gradient(circle,#000 62%,transparent 74%)}
+body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g{min-height:112px;padding:6px 6px 10px;gap:2px;background:radial-gradient(ellipse at 50% 35%,rgba(40,100,200,.45),rgba(10,30,80,.7) 70%);border:1.5px solid rgba(120,190,255,.4)}
+body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g::after{display:none}
+body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g .wp-hub-img{width:76px;height:66px;object-fit:cover;-webkit-mask-image:radial-gradient(ellipse 50% 52% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 50% 52% at 50% 50%,#000 60%,transparent 100%);filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));transition:transform .15s ease}
+body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g:hover .wp-hub-img{transform:translateY(-2px) scale(1.05)}
+body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g span{flex:none;font:800 14px var(--f-ui)}
+body.wp .wp-hub-more .wp-hub-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+body.wp .wp-hub-grid button.wp-hub-m{min-height:52px;padding:8px 12px 8px 10px}
+body.wp .wp-hub-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+body.wp .wp-hub-pills button.wp-hub-p{position:relative;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid rgba(150,212,255,.22);background:rgba(255,255,255,.05);color:#cfe0f5;font:700 12px var(--f-ui);cursor:pointer}
+body.wp .wp-hub-pills button.wp-hub-p:hover{background:rgba(255,255,255,.1);color:#fff}
+html.wp-pcphone body.wp .wp-hub-h{min-height:130px;background-position:right 100px top -40px}
+html.wp-pcphone body.wp .wp-hub-h h2{font-size:56px}
+html.wp-pcphone body.wp .wp-hub-grid button.wp-hub-r{min-height:116px}
+html.wp-pcphone body.wp .wp-hub-grid button .wp-hub-img{width:64px;height:64px;border-radius:14px}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid{gap:16px}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g{min-height:210px;padding:10px 10px 18px;border-radius:26px}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g .wp-hub-img{width:150px;height:130px}
+html.wp-pcphone body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g span{font-size:28px}
+html.wp-pcphone body.wp .wp-hub-grid button.wp-hub-m{min-height:96px;padding:14px 22px 14px 16px}
+html.wp-pcphone body.wp .wp-hub-pills{gap:12px;margin-top:18px}
+html.wp-pcphone body.wp .wp-hub-pills button.wp-hub-p{padding:14px 22px;font-size:24px;gap:10px}html.wp-pcphone body.wp .wp-hub-pills button.wp-hub-p svg{width:28px;height:28px}
+/* the owner's look for the Character window (2026-10-23, from the owner's mock-up): a glowing stage under the hero,
+   icons by the stats (images/ui/char st-*), the skills' own round icons (sk-*), worn gear lit */
+body.wp .wr-avatar.has-3d{background:radial-gradient(ellipse 46% 13% at 50% 86%,rgba(95,211,255,.55),rgba(47,140,255,.18) 60%,transparent 72%),radial-gradient(ellipse 60% 70% at 50% 60%,rgba(47,134,255,.28),transparent 70%)}
+body.wp .wr-avatar.has-3d::before,body.wp .wr-avatar.has-3d::after{content:"";position:absolute;left:50%;bottom:7%;width:56%;height:16%;transform:translateX(-50%);border-radius:50%;border:2px solid rgba(124,230,255,.8);box-shadow:0 0 18px rgba(95,211,255,.8),inset 0 0 14px rgba(95,211,255,.5);pointer-events:none}
+body.wp .wr-avatar.has-3d::after{width:78%;height:22%;bottom:4%;border-width:1px;border-color:rgba(124,230,255,.35);box-shadow:0 0 10px rgba(95,211,255,.3)}
+body.wp .wr-avatar.has-3d>span{font:800 14px var(--f-num);color:#cfeeff}
+body.wp .wr-stats.big{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;padding:10px 14px;border-radius:14px;border:1px solid rgba(95,211,255,.25);background:rgba(4,14,40,.45);position:relative}
+body.wp .wr-stats.big::after{content:"";position:absolute;left:50%;top:10px;bottom:10px;width:1px;background:rgba(150,212,255,.2)}
+body.wp .wr-stats.big li span{display:inline-flex;align-items:center;gap:8px}
+body.wp .wr-stats.big li span::before{content:"";flex:none;width:22px;height:20px;background:center/contain no-repeat;border-radius:4px}
+body.wp .wr-stats.big li.st-atk span::before{background-image:url("/images/ui/char/st-atk.webp")}body.wp .wr-stats.big li.st-def span::before{background-image:url("/images/ui/char/st-def.webp")}
+body.wp .wr-stats.big li.st-hp span::before{background-image:url("/images/ui/char/st-hp.webp")}body.wp .wr-stats.big li.st-sp span::before{background-image:url("/images/ui/char/st-sp.webp")}
+body.wp .wr-stats.big li.st-crit span::before{background-image:url("/images/ui/char/st-crit.webp")}body.wp .wr-stats.big li.st-spd span::before{background-image:url("/images/ui/char/st-spd.webp")}
+body.wp .wr-skills li{position:relative;padding-left:52px!important;min-height:44px;border-radius:999px!important;border:1px solid rgba(95,211,255,.22)!important;background:linear-gradient(90deg,rgba(14,40,96,.7),rgba(8,22,56,.6))!important}
+body.wp .wr-skills li::before{content:"";position:absolute;left:4px;top:50%;width:38px;height:38px;transform:translateY(-50%);border-radius:50%;background:center/cover no-repeat;box-shadow:0 0 10px rgba(95,211,255,.35)}
+body.wp .wr-skills li.sk-ice::before{background-image:url("/images/ui/char/sk-ice.webp")}body.wp .wr-skills li.sk-fire::before{background-image:url("/images/ui/char/sk-fire.webp")}
+body.wp .wr-skills li.sk-shock::before{background-image:url("/images/ui/char/sk-shock.webp")}body.wp .wr-skills li.sk-meteor::before{background-image:url("/images/ui/char/sk-meteor.webp")}
+body.wp .wr-skills li.off::before{filter:grayscale(.85) brightness(.6)}body.wp .wr-skills li.off b{color:#c6d4e6}
+body.wp .wr-paper .wr-slot .wr-tile,body.wp .wr-paper .wr-slot>button{box-shadow:0 0 0 1.5px rgba(124,230,255,.85),0 0 16px rgba(95,211,255,.45)!important}
+html.wp-pcphone body.wp .wr-stats.big li span::before{width:44px;height:40px}
+html.wp-pcphone body.wp .wr-skills li{padding-left:104px!important;min-height:88px}
+html.wp-pcphone body.wp .wr-skills li::before{left:8px;width:76px;height:76px}

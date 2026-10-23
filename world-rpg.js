@@ -373,7 +373,7 @@ export function createRpg(ctx) {
     return mini ? (v < m ? `<i class="wr-du${v === 0 ? " brk" : pc < WEAR_WARN * 100 ? " low" : ""}" style="--du:${pc}%" aria-label="${esc(T("Durability"))} ${pc}%"></i>${v === 0 ? `<em class="wr-brk">${esc(T("Broken"))}</em>` : ""}` : "")
       : `<p class="wr-dura${v === 0 ? " brk" : pc < WEAR_WARN * 100 ? " low" : ""}"><span>${esc(T("Durability"))}</span><i style="--du:${pc}%"></i><b>${v} / ${m}</b>${v === 0 ? `<em class="wr-brk">${esc(T("Broken"))}</em>` : ""}</p>`; };
   const tile = (it, attrs = "") => { if (!it) return ""; const pb = parseBase(it.b), gate = pb && (TIERS[pb.tier].lv > ctx.level() || isBroken(it)); return `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}${gate ? " gate" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${pic(it)}${upNow.has(it.id) ? `<i class="wr-up" aria-label="${esc(T("Upgrade"))}"></i>` : ""}${it.p ? `<b>+${it.p}</b>` : ""}${it.tm ? `<em class="wr-tm" aria-label="${esc(T("Temper {n} of {m}", { n: it.tm, m: 5 }))}">${"✦".repeat(it.tm)}</em>` : ""}<small>${it.lv}</small>${durBar(it, true)}${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>`; };
-  const statLine = (k, v, d) => `<li><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "+" : "−"}${Math.abs(Math.round(d * 10) / 10)}${k === "crit" || k === "spd" ? "%" : ""}</i>` : ""}</li>`;
+  const statLine = (k, v, d) => `<li class="st-${k}"><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "+" : "−"}${Math.abs(Math.round(d * 10) / 10)}${k === "crit" || k === "spd" ? "%" : ""}</i>` : ""}</li>`;
   const emptyBox = (pic, line, btn) => `<div class="wr-emptybox">${art(pic, 52)}<p>${esc(line)}</p>${btn || ""}</div>`;
   const huntBtn = () => (ctx.goHunt ? `<button type="button" class="go" data-hunt>${esc(T("Go hunting"))}</button>` : "");
   function detail(it) {
@@ -423,7 +423,7 @@ export function createRpg(ctx) {
   function skillsHTML() {
     const lv = ctx.level(), br = ((R().x || {}).br) || {};
     return `<div class="wr-skills"><h3>${esc(T("Skills"))}</h3><ul>${SKILL_INFO.map((k) => { const sl = skillLevel(lv, k.lv), opts = BRANCHES[k.id];
-      if (!sl) return `<li class="off"><b>${esc(T(k.name))}</b><small>${esc(T("Level {n}", { n: k.lv }))}</small></li>`;
+      if (!sl) return `<li class="off sk-${k.id}"><b>${esc(T(k.name))}</b><small>${esc(T("Level {n}", { n: k.lv }))}</small></li>`;
       const can = sl >= BRANCH_AT;
       return `<li class="sk-${k.id}"><b>${esc(T(k.name))} <span>${"★".repeat(sl)}</span></b>${can ? `<div class="wr-br">${opts.map((o) => `<button type="button" data-br="${k.id}:${o.id}" aria-pressed="${br[k.id] === o.id}" title="${esc(T(o.line))}"><i class="br-fx br-${k.id}-${o.id}" aria-hidden="true"><u></u><u></u><u></u></i><b>${esc(T(o.name))}</b><small>${esc(T(o.line))}</small></button>`).join("")}</div>` : `<small>${esc(T("Picks a branch at skill level 2 (level {n})", { n: k.lv + 5 }))}</small>`}</li>`; }).join("")}</ul></div>`;
   }
