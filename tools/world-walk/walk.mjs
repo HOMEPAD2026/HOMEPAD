@@ -39,7 +39,7 @@ async function open(dev, { route } = {}) {
   await p.waitForTimeout(12000); // (the seeded save is newer than this browser's: the game takes it and reloads once)
   for (let i = 0; i < 120 && !(await G(() => !!(window.arcWorld && window.arcWorld.jurassic) && !document.body.classList.contains("wp-intro"))); i++) await p.waitForTimeout(1000);
   await G(() => { window.arcWorld.P.guideSeen = true; });
-  const skip = () => G(() => { for (const s of ["#wp-guide-go", ".wp-tips-go", ".wp-coach-skip", ".wp-st .wp-st-x"]) document.querySelectorAll(s).forEach((c) => c.click()); });
+  const skip = () => G(() => { for (const s of ["#wp-guide-go", ".wp-qs [data-qs=go]", ".wp-tips-go", ".wp-coach-skip", ".wp-st .wp-st-x"]) document.querySelectorAll(s).forEach((c) => c.click()); });
   for (let i = 0; i < 6; i++) { await p.waitForTimeout(800); await skip(); }
   const shot = (n) => p.screenshot({ path: path.join(OUT, `${dev}-${n}.png`), timeout: 120000 });
   const vis = (sel) => G((s) => { const e = document.querySelector(s); return !!(e && e.getClientRects().length && !e.hidden); }, sel);

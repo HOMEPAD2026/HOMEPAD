@@ -1188,7 +1188,7 @@ export function createCombat(ctx) {
     const s = slotSkill(), n = learned().length;
     slotBtn.className = "wc-skill wc-slot" + (s ? " wc-" + s.id : " locked");
     slotBtn.querySelector("i").innerHTML = s ? ICON[s.id] : ICON.lock;
-    slotBtn.querySelector(".wc-lock").textContent = s ? "" : T("Lv {n}", { n: SKILLS[0].lv });
+    slotBtn.querySelector(".wc-lock").textContent = s ? "" : "🔒 " + T("Lv {n}", { n: SKILLS[0].lv }); // (b-st1: a lock, so it doesn't read as your level)
     slotBtn.querySelector(".wc-slv").textContent = s ? "★".repeat(skillLevel(ctx.level(), s.lv)) : "";
     slotBtn.querySelector("[data-swap]").hidden = n < 2;
     slotBtn.setAttribute("aria-label", s ? `${T(s.name)} (Z)` : T("Your first skill opens at level 10"));
