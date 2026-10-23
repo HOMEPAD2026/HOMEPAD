@@ -3228,3 +3228,9 @@ html.wp-pcphone .wp-loading .wp-lroom{max-width:92vw;gap:14px}html.wp-pcphone .w
 html.wp-pcphone .wp-loading .wp-lpick p{font-size:24px}html.wp-pcphone .wp-loading .wp-lpick button{width:160px;border-radius:26px}html.wp-pcphone .wp-loading .wp-lpick button img{width:120px;height:120px}html.wp-pcphone .wp-loading .wp-lpick button b{font-size:22px}
 .wp-wb button{pointer-events:auto;margin-top:6px;padding:8px 16px;border:0;border-radius:999px;background:linear-gradient(180deg,#5fe6c0,#2ec7a0);color:#06281f;font:900 13px/1 var(--f-ui);cursor:pointer}
 html.wp-pcphone .wp-wb button{font-size:24px;padding:16px 28px}
+/* the owner's full-screen key art (images/load/hq-*): sharp over the whole screen, no masked middle, a light veil
+   only at the top (the logo) and the bottom (the bar, the tip, the waiting room) */
+.wp-loading .wp-keyart b{background-position:center;background-size:cover;background-color:#06142e}
+.wp-loading .wp-keyart b::before{display:none}
+.wp-loading .wp-keyart::after{background:linear-gradient(180deg,rgba(4,10,26,.5),rgba(4,10,26,0) 22%,rgba(4,10,26,0) 48%,rgba(3,8,20,.55) 70%,rgba(3,8,20,.82))}
+.wp-loading::before{display:none}
