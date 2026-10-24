@@ -12,7 +12,7 @@ export function createAdGuide(ctx) {
   function css() { if (document.getElementById("adg-css")) return; const l = document.createElement("link"); l.id = "adg-css"; l.rel = "stylesheet"; l.href = "/ad-guide.css" + (ctx.ver || ""); document.head.appendChild(l); }
   function paint() {
     if (!data || !el) return; const D = data[ctx.lang] || data.en;
-    el.innerHTML = `<div class="wpg-in adg" role="document"><button type="button" class="wpg-x" data-x aria-label="${esc(D.close)}">×</button>${data.html(ctx.lang, tab, esc, 2)}</div>`;
+    el.innerHTML = `<button type="button" class="wpg-x wpg-xf" data-x aria-label="${esc(D.close)}">×</button><div class="wpg-in adg" role="document">${data.html(ctx.lang, tab, esc, 2)}</div>`;
     const b = el.querySelector(".wpg-in"); if (b) b.scrollTop = 0;
   }
   async function open(which) {

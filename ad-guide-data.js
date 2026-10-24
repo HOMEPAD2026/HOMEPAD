@@ -354,14 +354,14 @@ window.ARC_AD_GUIDE.art = {
 window.ARC_AD_GUIDE.html = function (lang, tab, esc, open) {
   var A = window.ARC_AD_GUIDE, D = A[lang] || A.en, G = D[tab], ART = A.art[tab] || { steps: {} }, img = function (n) { return "/images/ui/guide/" + n + ".webp?v=1"; };
   var nOpen = open == null ? 2 : open;
-  var head = '<header class="adg-head">' + (ART.head ? '<img class="adg-head-art" src="' + img(ART.head) + '" alt="" loading="lazy">' : "") +
+  var head = '<header class="adg-head">' + (ART.head ? '<img class="adg-head-art" src="' + img(ART.head) + '" alt="">' : "") +
     '<small>📖 ' + esc(D.title) + '</small><h2>' + esc(G.title) + '</h2>' +
     '<nav class="adg-tabs">' + ["ad", "studio"].map(function (k) { return '<button type="button" data-adg="' + k + '" class="' + (k === tab ? "on" : "") + '">' + (k === "ad" ? "🤖 " : "🎮 ") + esc(D.tabs[k]) + "</button>"; }).join("") + "</nav></header>";
-  var lead = '<p class="adg-lead' + (ART.lead ? " art" : "") + '">' + esc(G.lead) + (ART.lead ? '<img src="' + img(ART.lead) + '" alt="" loading="lazy">' : "") + "</p>";
+  var lead = '<p class="adg-lead' + (ART.lead ? " art" : "") + '">' + esc(G.lead) + (ART.lead ? '<img src="' + img(ART.lead) + '" alt="">' : "") + "</p>";
   var parts = G.parts.map(function (p, i) {
     var h = String(p.h).replace(/^\d+\.\s*/, "");
     var steps = p.steps ? '<ol class="adg-steps">' + p.steps.map(function (s, j) { var a = ART.steps[i + "-" + j];
-      return '<li class="' + (a ? "art" : "") + '"><b class="adg-n">' + (j + 1) + '</b><i class="adg-ic" aria-hidden="true">' + s[0] + '</i><div class="adg-tx"><b>' + esc(s[1]) + "</b><p>" + esc(s[2]) + "</p></div>" + (a ? '<img class="adg-art" src="' + img(a) + '" alt="" loading="lazy">' : "") + "</li>"; }).join("") + "</ol>" : "";
+      return '<li class="' + (a ? "art" : "") + '"><b class="adg-n">' + (j + 1) + '</b><i class="adg-ic" aria-hidden="true">' + s[0] + '</i><div class="adg-tx"><b>' + esc(s[1]) + "</b><p>" + esc(s[2]) + "</p></div>" + (a ? '<img class="adg-art" src="' + img(a) + '" alt="">' : "") + "</li>"; }).join("") + "</ol>" : "";
     var tips = p.tips ? '<ul class="adg-tips">' + p.tips.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" : "";
     return '<details class="adg-part p' + i + '"' + (i < nOpen ? " open" : "") + '><summary><b class="adg-pn">' + (i + 1) + '</b><span class="adg-pi" aria-hidden="true">' + p.icon + "</span>" + esc(h) + "</summary>" + steps + tips + "</details>";
   }).join("");

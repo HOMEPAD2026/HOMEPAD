@@ -3579,3 +3579,6 @@ html.wp-pcphone .wst-help,html.wp-pcphone .wag-help{zoom:1.3}
 .wst-h>.wst-help{width:38px!important;height:38px;padding:0;top:12px;right:58px;border-radius:50%;font-size:18px;display:grid;place-items:center}html.wp-pcphone .wst-h>.wst-help{zoom:1}
 .wpg-in.adg{display:block;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;background:linear-gradient(180deg,#0a1430,#060d22)}
 .wpg-in.adg .wpg-x{z-index:3;background:rgba(6,14,36,.7);border:1px solid rgba(255,255,255,.25)}
+.wpg-xf{position:fixed!important;top:max(16px,env(safe-area-inset-top));right:16px;z-index:13200;width:44px;height:44px;background:rgba(6,14,36,.85)!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+html.wp-pcphone .wpg-xf{zoom:1.5}
+.wpg-in.adg .adg-head h2{margin-right:56px}
