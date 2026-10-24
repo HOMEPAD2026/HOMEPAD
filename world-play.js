@@ -118,6 +118,9 @@ Object.assign(WORDS.tr, { "Difficulty": "Zorluk", "Test": "Test", "Pick a templa
 Object.assign(WORDS.ko, { "Your best here: {n}": "이 게임 내 최고 기록: {n}", "Top 10": "TOP 10", "Nobody has played it yet — be the first!": "아직 아무도 안 해봤어요 — 첫 번째가 되어 보세요!", "Race {n}'s ghost ({s})": "{n}의 고스트와 경주 ({s})", "You beat {n}'s {s}!": "{n}의 {s}점을 넘었어요!", "{n} scored {s} — {d} to go": "{n}의 기록 {s}점 — {d}점 남았어요", "You're #1 — your run is the ghost to beat now": "1위예요 — 이제 내 플레이가 모두가 이겨야 할 고스트예요", "Challenge a friend": "친구에게 도전장", "Next game": "다음 게임", "Challenge link copied — can they beat {s}?": "도전 링크 복사됨 — {s}점을 넘을 수 있을까요?", "That's every game on the arcade for now": "지금은 아케이드의 게임을 모두 해봤어요" });
 Object.assign(WORDS.zh, { "Your best here: {n}": "你在这里的最好成绩: {n}", "Top 10": "前 10 名", "Nobody has played it yet — be the first!": "还没人玩过 — 来当第一个!", "Race {n}'s ghost ({s})": "和 {n} 的幽灵比赛 ({s})", "You beat {n}'s {s}!": "你超过了 {n} 的 {s} 分!", "{n} scored {s} — {d} to go": "{n} 得了 {s} 分 — 还差 {d} 分", "You're #1 — your run is the ghost to beat now": "你是第 1 名 — 你的这局成了大家要追的幽灵", "Challenge a friend": "挑战好友", "Next game": "下一个游戏", "Challenge link copied — can they beat {s}?": "挑战链接已复制 — 他们能超过 {s} 分吗?", "That's every game on the arcade for now": "街机厅的游戏目前就这些" });
 Object.assign(WORDS.tr, { "Your best here: {n}": "Buradaki en iyin: {n}", "Top 10": "İlk 10", "Nobody has played it yet — be the first!": "Henüz kimse oynamadı — ilk sen ol!", "Race {n}'s ghost ({s})": "{n} hayaletiyle yarış ({s})", "You beat {n}'s {s}!": "{n} adlı oyuncunun {s} puanını geçtin!", "{n} scored {s} — {d} to go": "{n} {s} puan aldı — {d} kaldı", "You're #1 — your run is the ghost to beat now": "1. sıradasın — artık senin koşun geçilecek hayalet", "Challenge a friend": "Bir arkadaşına meydan oku", "Next game": "Sonraki oyun", "Challenge link copied — can they beat {s}?": "Meydan okuma bağlantısı kopyalandı — {s} puanı geçebilecekler mi?", "That's every game on the arcade for now": "Şimdilik arcade'deki oyunlar bu kadar" });
+Object.assign(WORDS.ko, { "No hints": "힌트 없음", "1 hint": "힌트 1개", "2 hints": "힌트 2개", "3 hints": "힌트 3개", "Rings": "링 개수", "Pegs": "말뚝", "Lock rings": "잠금 링", "Ice rings": "얼음 링", "Energy rings": "에너지 링", "Hints": "힌트", "{n} rings · par {p}": "링 {n}개 · 기준 {p}수", "Moves {n}": "{n}수", "Par {n}": "기준 {n}수", "Cleared!": "클리어!" });
+Object.assign(WORDS.zh, { "No hints": "无提示", "1 hint": "1 个提示", "2 hints": "2 个提示", "3 hints": "3 个提示", "Rings": "圆环数量", "Pegs": "钉子", "Lock rings": "锁环", "Ice rings": "冰环", "Energy rings": "能量环", "Hints": "提示", "{n} rings · par {p}": "{n} 个环 · 标准 {p} 步", "Moves {n}": "{n} 步", "Par {n}": "标准 {n} 步", "Cleared!": "通关!" });
+Object.assign(WORDS.tr, { "No hints": "İpucu yok", "1 hint": "1 ipucu", "2 hints": "2 ipucu", "3 hints": "3 ipucu", "Rings": "Halkalar", "Pegs": "Çiviler", "Lock rings": "Kilit halkaları", "Ice rings": "Buz halkaları", "Energy rings": "Enerji halkaları", "Hints": "İpuçları", "{n} rings · par {p}": "{n} halka · par {p}", "Moves {n}": "{n} hamle", "Par {n}": "Par {n}", "Cleared!": "Temizlendi!" });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
@@ -2082,18 +2085,22 @@ async function openSurvivors() {
 // of the palace. What pays is the server's (api/_world-rings.mjs). Level 100 cleared: the INFINITY MASTER title.
 let ringsGame = null, ringsOn = false, ringsBusy = false, ringsMaster = false, ringsLegend = false;
 try { const j = JSON.parse(localStorage.getItem("arc.world.rings") || "{}"); ringsMaster = !!j.master; ringsLegend = !!j.legend; } catch { /* earned again on the next clear */ }
-async function openRings() {
-  if (ringsOn || ringsBusy || pokerOn || pokerBusy || survOn || mineOn || defenseOn || jumpOn || beatOn || jurOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
-  ringsBusy = true; closeAll(); document.querySelectorAll(".wp-tips,.wp-coach,.wp-coach-ring").forEach((e) => e.remove()); tipsUp = false;
-  const veil = $("wp-veil");
-  try {
-    if (!ringsGame) {
+async function ensureRings(veil = $("wp-veil")) { // (the puzzle hall's game, made the first time it's needed: its door, or a Studio puzzle)
+  if (!ringsGame) {
       let M; try { M = await import("./world-rings.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       ringsGame = M.createRings({ THREE, K, st, ver: VER, hero: () => ({ ch: heroOf(P.char || "custom-aron"), tn: P.tint || 0 }), share: (c) => bragCard(c), T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, quality: S.quality || "auto", fam: diag.fam || "", name: () => P.name || "", refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         onMaster: () => { ringsMaster = true; badges(); paintAura(); },
         onLegend: () => { ringsLegend = true; badges(); },
         onLeave: () => { ringsOn = false; frozen = false; keys.clear(); const e = gv.exitOf("rings"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
-    }
+    }  return ringsGame;
+}
+async function openRings() {
+  if (ringsOn || ringsBusy || pokerOn || pokerBusy || survOn || mineOn || defenseOn || jumpOn || beatOn || jurOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
+  ringsBusy = true; closeAll(); document.querySelectorAll(".wp-tips,.wp-coach,.wp-coach-ring").forEach((e) => e.remove()); tipsUp = false;
+  const veil = $("wp-veil");
+  try {
+    await ensureRings(veil);
+
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
     frozen = true; keys.clear(); near = null; paintPrompt();
     const ok = await ringsGame.enter();
@@ -5304,7 +5311,7 @@ async function openStudio() {
   if (studioBusy || frozen || mode !== "hub") return; studioBusy = true;
   try {
     if (!studio) { let M; try { M = await import("./world-studio.js"); } catch (e) { if (staleReload()) return; throw e; }
-      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", sess, post, signIn: () => signIn(),
+      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
         makeHero: () => K.makeCharacter(heroOf(P.char || "custom-aron"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         agentName: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.name : ""; } catch { return ""; } },
         onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); }, onClose: () => { frozen = false; near = null; paintPrompt(); } }); }
@@ -5394,7 +5401,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { snd: Snd, studio: () => studio, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { snd: Snd, studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),

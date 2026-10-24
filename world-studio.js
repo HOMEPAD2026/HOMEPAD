@@ -7,14 +7,15 @@
 //   the runner   its own scene drawn instead of the town (st.view / st.solo, like the Game Village's games): three lanes,
 //                your hero runs (sprint), jumps the gaps (jump), slides under lasers (dodge), switches lanes past walls,
 //                grabs coins; three hearts; the finish arch; a result card (score, your best, your place)
-import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, clampSpec, genLevel, scoreOf, speedOf, dashSpeed, estimate } from "./world-studio-gen.js";
+import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, clampSpec, genLevel, scoreOf, speedOf, dashSpeed, estimate, puzzleScore } from "./world-studio-gen.js";
 import { makePreview } from "./world-studio-prev.js";
+import { level as ringLevel } from "./world-rings-engine.js";
 // Studio 2 (2026-10-24): two more templates (Infinity Dash: the lanes without a finish, faster and faster; Arena Survival:
 // seen from above, drones from the edge, laser sweeps, coins, last the time), a preview strip of the level in the editor,
 // a share link (/play?sg=<id>), and the runs' effects (coin pops and a combo, speed lines, a slow-mo near miss under a
 // laser, confetti at the finish, "New best!")
 const ICON = { runner: "🏃", dash: "♾️", arena: "🛸", puzzle: "🧩", defense: "🛡️" };
-const LEN_NAME = { dash: { 30: "Gentle", 45: "Steady", 60: "Fast", 90: "Wild" } };
+const LEN_NAME = { dash: { 30: "Gentle", 45: "Steady", 60: "Fast", 90: "Wild" }, puzzle: { 30: "No hints", 45: "1 hint", 60: "2 hints", 90: "3 hints" } };
 
 /// ctx: { THREE, K, st, T, esc, toast, Snd, reduce, low, coarse, sess, post, signIn, makeHero(), agentName(), onOpen, onClose }
 export function createStudio(ctx) {
@@ -31,7 +32,7 @@ export function createStudio(ctx) {
   async function load() {
     try { const r = await fetch("/api/social?world=studio-arcade", { cache: "no-store" }); if (r.ok) arcade = (await r.json()).games || []; } catch { /* the next look */ }
     const w = wallet(); if (w) try { const r = await fetch("/api/social?world=studio-mine&wallet=" + w, { cache: "no-store" }); if (r.ok) mine = (await r.json()).games || []; } catch { /* the next look */ }
-    if (el && !el.hidden) paint();
+    if (el && !el.hidden) { if (tab === "game" && gid) return openGame(gid); paint(); } /* (back from a run on a game's page: its top 10 read again) */
   }
 
   // ---------------- the window ----------------
@@ -84,11 +85,12 @@ export function createStudio(ctx) {
   }
   function fillSnaps() { if (!prev || tab !== "make" || step !== 2) return; for (const id of Object.keys(THEMES)) { const k = spec.tpl + ":" + id; if (!snaps[k]) { snaps[k] = prev.snap({ ...spec, theme: id }); const im = el.querySelector(`[data-snap="${id}"]`); if (im) im.style.backgroundImage = `url(${snaps[k]})`; return setTimeout(fillSnaps, 30); } } }
   let prevT = 0; const prevSoon = () => { clearTimeout(prevT); prevT = setTimeout(() => { if (prev && tab === "make") prev.set(spec); }, 160); };
-  const summary = (L) => spec.tpl === "arena" ? esc(T("{s} s · {d} waves · {c} coins", { s: L.secs, d: L.waves.length, c: L.coins })) : spec.tpl === "dash" ? esc(T("endless · {c} coins on the way", { c: L.coins })) : `${Math.round(L.len)} m · ${L.coins} ${esc(T("coins"))}`;
+  const summary = (L) => spec.tpl === "puzzle" ? (() => { const R = ringLevel(L.id); return R ? esc(T("{n} rings · par {p}", { n: R.rings.length, p: R.par })) : ""; })() : spec.tpl === "arena" ? esc(T("{s} s · {d} waves · {c} coins", { s: L.secs, d: L.waves.length, c: L.coins })) : spec.tpl === "dash" ? esc(T("endless · {c} coins on the way", { c: L.coins })) : `${Math.round(L.len)} m · ${L.coins} ${esc(T("coins"))}`;
   /// the level at a glance: the track (or the arena's timeline), walls / gaps / lasers / coins in their colours
   function drawPrev() {
     const cv = el && el.querySelector(".wst-prev"); if (!cv) return; const x = cv.getContext("2d"), w = cv.width, h = cv.height, th = THEMES[spec.theme], L = genLevel(spec);
     x.clearRect(0, 0, w, h); x.fillStyle = hex(th.track); x.globalAlpha = 0.9; x.fillRect(0, 8, w, h - 16); x.globalAlpha = 1;
+    if (spec.tpl === "puzzle") { const R = ringLevel(L.id); if (!R) return; const xs = R.rings.map((r) => r.x), ys = R.rings.map((r) => r.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2, k = Math.min((w - 20) / (Math.max(...xs) - Math.min(...xs) + 3), (h - 12) / (Math.max(...ys) - Math.min(...ys) + 3)); x.lineWidth = 3; for (const r of R.rings) { const g = (r.g * Math.PI) / 4; x.strokeStyle = ["#5fd3ff", "#7cf5c8", "#ffd23a", "#ff6fae", "#b48cff", "#ff9f2e"][r.c % 6]; x.beginPath(); x.arc(w / 2 + (r.x - cx) * k, h / 2 - (r.y - cy) * k, r.r * k * 0.92, -g + 0.45, -g + Math.PI * 2 - 0.45); x.stroke(); } return; }
     if (spec.tpl === "arena") { const X = (t) => (t / L.secs) * (w - 8) + 4; for (const v of L.waves) { x.fillStyle = v.k === "L" ? "#ff3355" : v.k === "D" ? "#ffb02e" : hex(th.wall); const r = v.k === "D" ? 7 : 4; x.beginPath(); x.arc(X(v.t), 14 + ((v.a * 97) % 1) * (h - 28), r, 0, 6.283); x.fill(); } x.fillStyle = "#ffd23a"; for (const c of L.coinsAt) x.fillRect(X(c.t) - 2, h - 14, 4, 4); return; }
     const span = spec.tpl === "dash" ? Math.min(L.len, 1600) : L.len, X = (z) => (z / span) * (w - 8) + 4, Y = (lane) => 16 + lane * ((h - 32) / 2);
     x.strokeStyle = hex(th.edge); x.globalAlpha = 0.35; for (const l of [0, 1, 2]) { x.beginPath(); x.moveTo(0, Y(l)); x.lineTo(w, Y(l)); x.stroke(); } x.globalAlpha = 1;
@@ -193,6 +195,7 @@ export function createStudio(ctx) {
   // ---------------- the runner ----------------
   async function run(o) {
     if (playing) return; const vw = el && !el.hidden; if (el) el.hidden = true;
+    if (o.spec.tpl === "puzzle") return playPuzzle(o, vw);
     try { playing = o.spec.tpl === "arena" ? await makeArena(o) : await makeRun(o); }
     catch (e) { console.warn("studio run", e); playing = null; ctx.st.solo(null); ctx.st.view(null); document.body.classList.remove("wp-studio"); ctx.toast(T("The game couldn't start") + " — " + esc(String((e && e.message) || e).slice(0, 60))); if (vw && el) el.hidden = false; }
   }
@@ -290,6 +293,21 @@ export function createStudio(ctx) {
     st.view(scene, cam); st.solo(tick); tick(0.016, 0); paintHud();
     return { S, leave, L, ghost: () => (gh ? 1 : 0), clips: (all) => (hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((x) => x.isRunning() && (all || x.getEffectiveWeight() > 0.5)).map((x) => x.getClip().name) : []), jump, slide, lane };
   }
+  /// Studio 3c: a Ring Puzzle is played on INFINITY RINGS' own board (world-rings.js playStudio); the clear's moves come back
+  /// here, go to the server (which replays them) and get the Studio's result card
+  async function playPuzzle(o, vw) {
+    const back = () => { playing = null; document.body.classList.remove("wp-studio"); if (el && vw) { el.hidden = false; paint(); load(); } };
+    let R = null; try { R = ctx.rings ? await ctx.rings() : null; } catch (e) { console.warn("studio puzzle", e); }
+    const L = genLevel(o.spec); playing = { puzzle: true, S: { t: 0 } };
+    const ok = R && await R.playStudio(L.id, { hints: L.hints,
+      onExit: () => back(),
+      onDone: async (r) => {
+        document.body.classList.add("wp-studio"); const hud = document.createElement("div"); hud.className = "wst-hud"; document.body.appendChild(hud);
+        const leave = (again) => { hud.remove(); playing = null; document.body.classList.remove("wp-studio"); if (!again && el) { el.hidden = false; paint(); load(); } };
+        await result(o, hud, { puzzle: r, coins: 0, dist: 0, done: true, line: `🧩 ${T("Moves {n}", { n: r.count })} · ${T("Par {n}", { n: r.par })}${r.hints ? " · 💡 " + r.hints : ""}`, head: "🧩 " + T("Cleared!") + " " + "★".repeat(r.stars), confetti: true }, leave);
+      } }).catch((e) => { console.warn("studio puzzle", e); return false; });
+    if (!ok) { ctx.toast(T("The game couldn't start")); back(); }
+  }
   /// Studio 3: the #1's ghost — a see-through figure that runs their run (a sample every 0.2 s, in between it glides)
   function makeGhost(scene, gst, arena) {
     if (!gst || !Array.isArray(gst.tr) || gst.tr.length < 2) return null;
@@ -300,8 +318,8 @@ export function createStudio(ctx) {
   }
   /// the run's end: the score (sent when it's a published game and you're signed in), your best on this device, a card
   async function result(o, hud, r, leave) {
-    const score = scoreOf(r.coins, r.dist, r.done); let res = null;
-    if (o.id && !o.test && ctx.sess()) { const q = await act({ action: "world-studio-play", id: o.id, coins: r.coins, dist: Math.round(r.dist), done: r.done, trace: r.trace || [] }); if (q && q.ok) res = q.j; }
+    const score = r.puzzle ? puzzleScore(r.puzzle.par, r.puzzle.count, Math.min(genLevel(o.spec).hints, r.puzzle.hints || 0)) : scoreOf(r.coins, r.dist, r.done); let res = null;
+    if (o.id && !o.test && ctx.sess()) { const q = await act({ action: "world-studio-play", id: o.id, ...(r.puzzle ? { moves: r.puzzle.moves, hints: r.puzzle.hints || 0 } : { coins: r.coins, dist: Math.round(r.dist), done: r.done, trace: r.trace || [] }) }); if (q && q.ok) res = q.j; }
     let best = 0; const key = "arc.studio.best." + (o.id || "test:" + o.spec.tpl + ":" + o.spec.seed); try { best = Number(localStorage.getItem(key) || 0); if (score > best) localStorage.setItem(key, String(score)); } catch { /* not kept */ }
     const isBest = score > best && best > 0;
     lastRun = { score, coins: r.coins, dist: Math.round(r.dist), done: r.done, res, isBest };

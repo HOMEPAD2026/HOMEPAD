@@ -4,6 +4,7 @@
 // and a still of each theme for the theme cards. Nothing here is the game: no hero, no rules, just how it will look.
 // makePreview({ THREE }) → { canvas, set(spec), snap(spec) → dataURL, stop(), dispose() } (null where WebGL can't start)
 import { THEMES, LANES, genLevel, speedOf } from "./world-studio-gen.js";
+import { level as ringLevel } from "./world-rings-engine.js";
 
 export function makePreview({ THREE, w = 640, h = 300 }) {
   const canvas = document.createElement("canvas"); canvas.className = "wst-3d"; canvas.width = w; canvas.height = h;
@@ -17,6 +18,15 @@ export function makePreview({ THREE, w = 640, h = 300 }) {
     const th = THEMES[spec.theme] || THEMES.neon, L = genLevel(spec), sc = new THREE.Scene();
     sc.background = new THREE.Color(th.sky); sc.fog = new THREE.Fog(th.fog, 30, 120);
     sc.add(new THREE.HemisphereLight(0xffffff, th.track, 1.2)); const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(6, 14, -6); sc.add(sun);
+    if (spec.tpl === "puzzle") { // (the Ring Puzzle: its board, rings with their gaps, slowly turning to show it off)
+      const R = ringLevel(L.id), grp = new THREE.Group(); sc.add(grp); const COLS = [0x5fd3ff, 0x7cf5c8, 0xffd23a, 0xff6fae, 0xb48cff, 0xff9f2e];
+      if (R) { const xs = R.rings.map((r) => r.x), ys = R.rings.map((r) => r.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        for (const r of R.rings) { const m = new THREE.Mesh(new THREE.TorusGeometry(r.r, 0.13, 10, 48, Math.PI * 2 - 0.9), std(COLS[r.c % 6], { emissive: COLS[r.c % 6], emissiveIntensity: 0.25, metalness: 0.4, roughness: 0.3 })); m.position.set(r.x - cx, r.y - cy, 0); m.rotation.z = (r.g * Math.PI) / 4 + 0.45; grp.add(m);
+          if (r.peg >= 0) { const pg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.5, 10), std(0xcfd8e3, { metalness: 0.9 })); const a = (r.peg * Math.PI) / 4; pg.rotation.x = Math.PI / 2; pg.position.set(r.x - cx + Math.cos(a) * r.r, r.y - cy + Math.sin(a) * r.r, 0); grp.add(pg); } }
+        const back = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(...xs) - Math.min(...xs) + 6, Math.max(...ys) - Math.min(...ys) + 6), std(th.track, { roughness: 0.8 })); back.position.z = -0.4; grp.add(back); }
+      const span = R ? Math.max(Math.max(...R.rings.map((r) => r.x)) - Math.min(...R.rings.map((r) => r.x)), Math.max(...R.rings.map((r) => r.y)) - Math.min(...R.rings.map((r) => r.y))) + 4 : 8;
+      return { sc, tick(t) { grp.rotation.y = Math.sin(t * 0.5) * 0.35; cam.position.set(0, 0, span * 1.05 + 2); cam.lookAt(0, 0, 0); } };
+    }
     if (spec.tpl === "arena") {
       const Rr = L.R, floor = new THREE.Mesh(new THREE.CylinderGeometry(Rr, Rr + 0.6, 0.6, 48), std(th.track, { roughness: 0.6 })); floor.position.y = -0.3; sc.add(floor);
       for (const [r, op] of [[Rr, 1], [Rr * 0.66, 0.5], [Rr * 0.33, 0.5]]) { const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.1, 6, 72), glow(th.edge, op)); m.rotation.x = Math.PI / 2; m.position.y = 0.03; sc.add(m); }

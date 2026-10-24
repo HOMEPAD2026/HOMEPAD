@@ -94,7 +94,7 @@ export function createRings(ctx) {
   let on = false, busy = false, mode = "off", S = null, ui = null, prOrig = 0;
   let clasps = [], pegs = [], keyLines = null, ghost = null, chal = null, stage = 0, playT = 0;
   let L = null, s = null, lvId = "", rings = [], moves = [], hist = [], hintsUsed = 0, hintsLeft = RINGS.HINTS, hammerArmed = false, xray = false, runP = null, boardT = 0, falls = [], doneT = -1;
-  let prog = load(), status = null, board = null, ta = null, taTop = null, chalBox = null;
+  let prog = load(), status = null, board = null, ta = null, taTop = null, chalBox = null, studio = null; // studio: a board from ARCIRCLE Studio (playStudio)
 
   // ---------------- progress (this device; the server's best stars merged in for a wallet) ----------------
   function load() { let j = {}; try { j = JSON.parse(localStorage.getItem(SAVE) || "{}") || {}; } catch { /* a fresh start */ } return { best: j.best || {}, moves: j.moves || {}, endless: j.endless || 1, tips: j.tips || {}, master: !!j.master, legend: !!j.legend, bag: j.bag | 0, chest: j.chest || {}, skin: j.skin || "candy", refill: j.refill || "", taBest: j.taBest | 0, wk: j.wk || {} }; }
@@ -106,7 +106,7 @@ export function createRings(ctx) {
   const chStars = (c) => { let n = 0; for (let k = 1; k <= 20; k++) n += bestOf(String(c * 20 + k)); return n; };
   const skinOk = (k) => { const x = SKINS.find((o) => o.id === k); return !!x && (x.ch == null || ((prog.chest[x.ch] | 0) & 2) > 0); };
   const skin = () => (skinOk(prog.skin) ? prog.skin : "candy");
-  const paying = (id) => !/^[ewt]:/.test(id) && (!/^d:/.test(id) || id.slice(2, 12) === seoulDay()) && !!(ctx.sess && ctx.sess()); // (another day's daily puzzle, from a friend's link: played, not paid)
+  const paying = (id) => !/^[ewts]:/.test(id) && (!/^d:/.test(id) || id.slice(2, 12) === seoulDay()) && !!(ctx.sess && ctx.sess()); // (another day's daily puzzle, from a friend's link: played, not paid)
 
   // ---------------- the scene ----------------
   function build() {
@@ -486,6 +486,10 @@ export function createRings(ctx) {
 
   // ---------------- the clear ----------------
   async function finish() {
+    if (studio) { // (a Studio game: the clear goes back to the Studio, nothing is kept here)
+      mode = "done"; tipHide(); const stars = starsOf(L, s.moves, s.hammer, hintsUsed), r = { moves: moves.slice(), count: s.moves, stars, par: L.par, hints: hintsUsed, hammer: s.hammer };
+      celebrate(stars); snd("win"); setTimeout(() => { const o = studio; studio = null; reset(); if (o && o.onDone) o.onDone(r); }, 1500); return;
+    }
     mode = "done"; tipHide(); const stars = starsOf(L, s.moves, s.hammer, hintsUsed), key = keyOf(lvId), was = bestOf(lvId), prevMoves = prog.moves[key] || 0;
     const newBest = stars > (prog.best[key] || 0); if (newBest) prog.best[key] = stars; if (!prog.moves[key] || s.moves < prog.moves[key]) prog.moves[key] = s.moves;
     const n = /^\d+$/.test(lvId) ? Number(lvId) : 0, endless = /^e:/.test(lvId), weekly = /^w:/.test(lvId); if (endless) prog.endless = Math.max(prog.endless, Number(lvId.slice(2)) + 1);
@@ -829,9 +833,15 @@ export function createRings(ctx) {
     try { if (prOrig && st.renderer.getPixelRatio() !== prOrig) st.renderer.setPixelRatio(prOrig); } catch { /* the town sets its own */ }
     try { st.solo(null); st.view(null); } catch { /* the world draws again */ }
   }
-  function leave() { if (!on) return; reset(); if (ctx.onLeave) ctx.onLeave(); }
+  function leave() { if (!on) return; if (studio) { const o = studio; studio = null; reset(); if (o.onExit) o.onExit(); return; } reset(); if (ctx.onLeave) ctx.onLeave(); }
+  /// Studio 3: one board from ARCIRCLE Studio ("s:" level ids): straight onto the board, no lobby, no ARCL; its hints the
+  /// game's own; the clear (or the way out) goes back to the Studio, not to the Game Village. o: { hints, onDone(r), onExit() }
+  async function playStudio(id, o = {}) {
+    if (!level(String(id))) return false; studio = o; const ok = await enter(); if (!ok) { studio = null; return false; }
+    startBoard(String(id)); hintsLeft = Math.max(0, Math.min(RINGS.HINTS, o.hints | 0)); paintHud(); return true;
+  }
   return {
-    enter, leave, active: () => on,
+    enter, leave, active: () => on, playStudio, studio: () => !!studio,
     /// tests: the board's numbers, and a few levers
     debug: () => ({ mode, lv: lvId, stage, chal: chal ? chal.vs : 0, moves: s ? s.moves : 0, par: L ? L.par : 0, alive: s ? s.alive.filter(Boolean).length : 0, n: L ? L.rings.length : 0, fms: Math.round(frameMs), stars: L && s ? starsOf(L, s.moves, s.hammer, hintsUsed) : 0, hints: hintsUsed, falling: rings.filter((r) => r.fall).length, queued: falls.length, bt: +boardT.toFixed(2), round: L && S ? (() => { const V = view(), r = L.rings[0], P = (x, y) => { const v = new THREE.Vector3(x, y, 0).project(S.cam); return [((v.x + 1) / 2) * V.w, ((1 - v.y) / 2) * V.h]; }; const a = P(r.x - r.r, r.y), b = P(r.x + r.r, r.y), c = P(r.x, r.y - r.r), d = P(r.x, r.y + r.r); return +((b[0] - a[0]) / (c[1] - d[1])).toFixed(3); })() : 0, cv: (() => { const V = view(); return [Math.round(V.w), Math.round(V.h), innerWidth, innerHeight].join("x"); })(), free: L && s ? L.rings.map((r, i) => isFree(L, s, i)).filter(Boolean).length : 0,
       hero: !!(S && S.hero && S.hero.obj.visible), ice: s && s.ice ? s.ice.filter(Boolean).length : 0, bag: prog.bag, skin: skin(), ta: ta ? { n: ta.n, left: +ta.left.toFixed(1) } : null,

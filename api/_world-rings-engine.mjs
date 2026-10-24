@@ -255,21 +255,24 @@ export const WEEK_THEMES = [
 export const taLevel = (seed, k) => level(`t:${seed}:${k}`);
 const cache = new Map();
 /// a level: "12" (the campaign, 1–200), "d:2026-10-18:0" (a daily puzzle, 0–2), "e:7" (the endless run's 7th board),
-/// "w:2026-43:2" (the week's puzzle of its 3rd day), "t:123456:4" (a time attack's 5th board)
+/// "w:2026-43:2" (the week's puzzle of its 3rd day), "t:123456:4" (a time attack's 5th board), "s:4821:3:2:1:0:1" (a Studio game)
 export function level(id) {
   id = String(id); if (cache.has(id)) return cache.get(id);
   let m, n, seed, boss = false;
-  let theme = null;
+  let theme = null, studio = null;
   if ((m = /^([1-9]\d?|1\d\d|200)$/.exec(id))) { n = Number(m[1]); seed = n * 7919 + 101; boss = n === 100 || n === 200; }
   else if ((m = /^d:(\d{4})-(\d\d)-(\d\d):([0-2])$/.exec(id))) { n = [32, 56, 86][Number(m[4])]; seed = (Number(m[1]) * 400 + Number(m[2]) * 32 + Number(m[3])) * 31 + Number(m[4]) * 977 + 5; }
   else if ((m = /^e:([1-9]\d{0,4})$/.exec(id))) { n = 0; seed = Number(m[1]) * 104729 + 3; }
   else if ((m = /^w:(\d{4})-(\d\d):([0-6])$/.exec(id))) { const wk = Number(m[1]) * 53 + Number(m[2]), d = Number(m[3]); theme = WEEK_THEMES[wk % WEEK_THEMES.length]; n = (theme.at || 50) + d * 6; seed = wk * 7907 + d * 613 + 11; }
+  else if ((m = /^s:(\d{1,6}):([1-5]):([0-5]):([0-5]):([0-3]):([0-3])$/.exec(id))) { // ARCIRCLE Studio's Ring Puzzle (Studio 3): size · pegs · locks · ice · energy, the maker's seed
+    const z = Number(m[2]), N = [4, 5, 6, 8, 10][z - 1]; n = 30 + z * 8; seed = Number(m[1]) * 7877 + 17;
+    studio = { N, peg: Number(m[3]) * 0.1, cyc: z >= 3 ? 0.3 : 0, lock: Math.min(Number(m[4]), Math.floor(N / 3)), energy: Number(m[6]), gear: 0, ice: Number(m[5]), portal: 0, timer: 0, par: [1, 70] }; }
   else if ((m = /^t:(\d{1,9}):(\d{1,2})$/.exec(id))) { const k = Number(m[2]); n = Math.min(24, 6 + k * 2); seed = Number(m[1]) * 31 + k * 7877 + 1; }
   else return null;
   // the endless run keeps climbing: more rings, more of every kind, a higher par as the boards go by
-  const e = n === 0 ? Number(id.slice(2)) : 0, sp0 = e ? { ...specOf(90), N: Math.min(18, 12 + Math.floor(e / 6)), lock: 2 + Math.min(3, Math.floor(e / 10)), energy: 2 + Math.min(3, Math.floor(e / 12)), gear: 1 + Math.min(2, Math.floor(e / 15)), par: [12, 90] } : specOf(boss ? n - 1 : n);
+  const e = n === 0 ? Number(id.slice(2)) : 0, sp0 = studio ? studio : e ? { ...specOf(90), N: Math.min(18, 12 + Math.floor(e / 6)), lock: 2 + Math.min(3, Math.floor(e / 10)), energy: 2 + Math.min(3, Math.floor(e / 12)), gear: 1 + Math.min(2, Math.floor(e / 15)), par: [12, 90] } : specOf(boss ? n - 1 : n);
   const sp = theme ? { ...sp0, ...theme.sp } : sp0;
-  const want = boss ? 0 : e ? Math.min(75, 40 + Math.round(e * 0.6)) : targetPar(n);
+  const want = boss ? 0 : studio ? Math.round(studio.N * 1.6) : e ? Math.min(75, 40 + Math.round(e * 0.6)) : targetPar(n);
   // of the boards that pass, keep the one whose par is nearest the level's target and whose shape fits a phone
   // (taller than wide, not a thin tower); stop early once one is close enough
   let L = null, best = Infinity, good = 0;

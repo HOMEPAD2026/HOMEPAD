@@ -41,10 +41,14 @@ check(Object.values(walls).every((s) => s.size < 3), "every wall row leaves a la
 const D = G.genLevel({ tpl: "dash", seed: 9, len: 60 }), A = G.genLevel({ tpl: "arena", seed: 9, len: 45, walls: 3, gaps: 2, lasers: 1, coins: 4 });
 check(D.len > G.genLevel({ tpl: "runner", seed: 9, len: 90 }).len && D.rows.length > 40, "the dash's track runs on far past a runner's (" + D.len + " m)");
 check(A.secs === 45 && A.len === 900 && A.waves.some((w) => w.k === "d") && A.waves.some((w) => w.k === "L") && A.waves.some((w) => w.k === "D") && A.coins > 0 && A.waves.every((w, i) => !i || A.waves[i - 1].t <= w.t), "the arena: drones, sweeps and big drones in time order, coins (" + A.waves.length + " waves)");
-check(G.clampSpec({ tpl: "arena" }).title === "My Arena" && G.clampSpec({ tpl: "puzzle" }).tpl === "runner", "templates: the arena opens, a closed one falls back to the runner");
+check(G.clampSpec({ tpl: "arena" }).title === "My Arena" && G.clampSpec({ tpl: "puzzle" }).tpl === "puzzle" && G.clampSpec({ tpl: "defense" }).tpl === "runner", "templates: the arena and the puzzle open, a closed one falls back to the runner");
 // Studio 3: one-tap difficulty and the bots' estimate (seeded: the same answer twice; harder presets clear less)
 for (const tpl of ["runner", "dash", "arena"]) { const e = (k) => G.estimate({ tpl, seed: 11, len: 45, ...G.PRESETS[k] }), a = e("easy"), z = e("extreme");
   check(JSON.stringify(e("hard")) === JSON.stringify(e("hard")) && a.clear >= z.clear && a.stars <= z.stars && a.clear >= 0 && a.clear <= 1 && z.fails.length === 10, `${tpl}: easy clears ${a.clear}, extreme ${z.clear} (${z.why})`); }
+// Studio 3c: the Ring Puzzle — the rings engine's board from the spec, a clear checked by replaying the moves
+const RE = await import("../../api/_world-rings-engine.mjs");
+const PZ = G.clampSpec({ tpl: "puzzle", seed: 4821, speed: 3, coins: 2, walls: 1, gaps: 1, lasers: 1, len: 45 }), PL = RE.level(G.genLevel(PZ).id);
+check(PZ.title === "My Ring Puzzle" && PL && PL.rings.length === 6 && PL.par > 0, "a puzzle's board: " + G.genLevel(PZ).id + " · " + (PL && PL.rings.length) + " rings, par " + (PL && PL.par));
 // closed: only GMs while AGENT DIMENSION is closed
 let r = await call(me, "world-studio-save", { spec: {} }); check(r.status === 403 && r.body.closed, "closed: a player can't save a game yet");
 AGENT.OPEN = true;
@@ -56,6 +60,12 @@ r = await call(fan, "world-studio-save", { id, spec: { title: "mine now" } }); c
 r = await call(fan, "world-studio-play", { id, coins: 1, dist: 10 }); check(r.status === 403, "not published: others can't play it");
 let ar = await get("studio-arcade"); check(ar.ok && !ar.games.some((g) => g.id === id), "a draft isn't on the arcade");
 r = await call(me, "world-studio-publish", { id, on: true }); ar = await get("studio-arcade"); check(r.status === 200 && ar.games.some((g) => g.id === id && g.title === "Neon Rush 2"), "published: on the Creator Arcade");
+{ r = await call(me, "world-studio-save", { spec: PZ }); const pid = r.body.game.id; await call(me, "world-studio-publish", { id: pid, on: true });
+  const sol = RE.plan(PL, RE.stateOf(PL), 10, 2); T += 30e3;
+  r = await call(fan, "world-studio-play", { id: pid, moves: [[0, 1], [0, 1], [0, 1]].slice(0, 1) }); check(r.status === 200 && r.body.score === 0, "a puzzle not cleared scores nothing");
+  T += 30e3; r = await call(fan, "world-studio-play", { id: pid, moves: [[99, 1]] }); check(r.status === 400, "moves that can't be played are turned away");
+  T += 30e3; r = await call(fan, "world-studio-play", { id: pid, moves: sol, hints: 9 }); check(r.status === 200 && r.body.score === G.puzzleScore(PL.par, sol.length, 1), "a clear: replayed and scored (" + r.body.score + ", " + sol.length + " moves, par " + PL.par + ", hints held to the game's 1)");
+  await call(me, "world-studio-del", { id: pid }); }
 // plays: checked against the level; counted once in 20 s; the best kept
 const L = G.genLevel(db.get(`worldStudio/${id}`).spec);
 r = await call(fan, "world-studio-play", { id, coins: 9999, dist: 1e9, done: true }); check(r.status === 200 && r.body.score === G.scoreOf(L.coins, L.len, true) && r.body.plays === 1, "a run can't beat the level: " + r.body.score);

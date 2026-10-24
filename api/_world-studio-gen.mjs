@@ -5,20 +5,23 @@
 //   runner   three lanes, run to the finish: switch lanes past walls, jump the gaps, slide under the lasers, grab coins
 //   dash     (Studio 2) the same lanes, no finish: the speed keeps rising until your hearts run out — how far can you go?
 //   arena    (Studio 2) a round arena seen from above: drones come at you from the edge, dodge them, grab coins, last the time
-//   (puzzle · defense: the next templates, listed as coming)
+//   puzzle   (Studio 3) INFINITY RINGS' rings on a board of the maker's choosing: clear it in as few moves as you can — the
+//            board is the rings engine's (a level id "s:<seed>:<size>:<pegs>:<locks>:<ice>:<energy>", puzzleId), solved for its par
+//   (defense: the next template, listed as coming)
 // Each template reads the same fields its own way (KNOBS: the editor's labels); genLevel(spec).len and .coins are the most
 // a run can show (metres, or for the arena 20 a second survived), which the server holds a score to.
 export const TEMPLATES = {
   runner: { name: "Sky Runner", open: true },
   dash: { name: "Infinity Dash", open: true },
   arena: { name: "Arena Survival", open: true },
-  puzzle: { name: "Ring Puzzle", open: false },
+  puzzle: { name: "Ring Puzzle", open: true },
   defense: { name: "Tower Defense", open: false },
 };
 export const KNOBS = {
   runner: { speed: "Speed", coins: "Coins", walls: "Walls", gaps: "Gaps to jump", lasers: "Lasers to slide under", len: "Length" },
   dash: { speed: "Starting speed", coins: "Coins", walls: "Walls", gaps: "Gaps to jump", lasers: "Lasers to slide under", len: "How fast it speeds up" },
   arena: { speed: "Drone speed", coins: "Coins", walls: "Drones", gaps: "Laser sweeps", lasers: "Big drones", len: "Survive for" },
+  puzzle: { speed: "Rings", coins: "Pegs", walls: "Lock rings", gaps: "Ice rings", lasers: "Energy rings", len: "Hints" },
 };
 export const DASH_MAX = 240; // (seconds: the dash's track is built this long; nobody's hearts last that far)
 export const THEMES = {
@@ -35,7 +38,7 @@ const int = (v, a, b, d) => { const n = Math.round(Number(v)); return Number.isF
 export function clampSpec(s = {}) {
   const title = String(s.title || "").replace(/[\u0000-\u001f<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 24) || "My Sky Run";
   return {
-    tpl: TEMPLATES[s.tpl] && TEMPLATES[s.tpl].open ? s.tpl : "runner", title: title === "My Sky Run" && s.tpl === "arena" ? "My Arena" : title === "My Sky Run" && s.tpl === "dash" ? "My Infinity Dash" : title,
+    tpl: TEMPLATES[s.tpl] && TEMPLATES[s.tpl].open ? s.tpl : "runner", title: title === "My Sky Run" && s.tpl === "arena" ? "My Arena" : title === "My Sky Run" && s.tpl === "dash" ? "My Infinity Dash" : title === "My Sky Run" && s.tpl === "puzzle" ? "My Ring Puzzle" : title,
     theme: THEMES[s.theme] ? s.theme : "neon",
     speed: int(s.speed, 1, 5, 3), len: LENS.includes(Number(s.len)) ? Number(s.len) : 45,
     coins: int(s.coins, 0, 5, 3), walls: int(s.walls, 0, 5, 2), gaps: int(s.gaps, 0, 3, 1), lasers: int(s.lasers, 0, 3, 1),
@@ -50,6 +53,7 @@ export const dashSpeed = (spec, t) => speedOf(spec) * (1 + t / (150 - spec.len))
 export function genLevel(spec0) {
   const spec = clampSpec(spec0);
   if (spec.tpl === "arena") return genArena(spec);
+  if (spec.tpl === "puzzle") return { puzzle: true, id: puzzleId(spec), len: 0, coins: 0, hints: puzzleHints(spec) };
   const v = speedOf(spec), len = spec.tpl === "dash" ? Math.round(Array.from({ length: DASH_MAX }, (_, t) => dashSpeed(spec, t + 0.5)).reduce((a, b) => a + b, 0)) : Math.round(v * spec.len);
   let s = spec.seed >>> 0 || 1; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const rows = []; let coins = 0, z = 26; const step = Math.max(9, 22 - spec.walls * 2 - spec.gaps - spec.lasers) * (0.8 + spec.speed * 0.08);
@@ -96,6 +100,7 @@ export function estimate(spec0) {
   const spec = clampSpec(spec0), L = genLevel(spec), N = 40, fails = new Array(10).fill(0), why = {};
   let s = (spec.seed * 2654435761) >>> 0 || 7; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   let clears = 0;
+  if (spec.tpl === "puzzle") { const k = spec.speed * 1.2 + spec.walls * 0.5 + spec.gaps * 0.5 + spec.lasers * 0.4 + spec.coins * 0.15 - puzzleHints(spec) * 0.6, clear = Math.max(0.05, Math.min(1, 1.15 - k / 7)), st = clear > 0.8 ? 1 : clear > 0.6 ? 2 : clear > 0.4 ? 3 : clear > 0.2 ? 4 : 5; return { clear: Math.round(clear * 100) / 100, stars: st, fails, why: "" }; }
   if (spec.tpl === "arena") {
     const dS = 2.6 + spec.speed * 0.9;
     for (let b = 0; b < N; b++) {
@@ -123,3 +128,8 @@ export function estimate(spec0) {
   const top = Object.entries(why).sort((a, b) => b[1] - a[1])[0];
   return { clear: Math.round(clear * 100) / 100, stars, fails, why: top ? top[0] : "" };
 }
+/// Studio 3: the Ring Puzzle's board — the rings engine's level id (the page and the server build it with their own copy of
+/// world-rings-engine); its score: a clear, fewer moves than par … over par, hints cost a little
+export const puzzleId = (spec) => `s:${spec.seed % 1000000}:${spec.speed}:${spec.coins}:${spec.walls}:${spec.gaps}:${spec.lasers}`;
+export const puzzleHints = (spec) => ({ 30: 0, 45: 1, 60: 2, 90: 3 })[spec.len] || 0;
+export const puzzleScore = (par, moves, hints = 0) => Math.max(100, 1000 - 40 * Math.max(0, moves - par) + 20 * Math.max(0, par - moves) - 50 * hints);
