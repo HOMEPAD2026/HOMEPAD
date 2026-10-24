@@ -176,6 +176,7 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
     { id: "ut", name: T("Utility Village"), col: 0x4f9dff, phi: 70 },
     { id: "pv", name: T("Partner Village"), col: 0x38e1d6, phi: 150 },
     { id: "gv", name: T("Game Village"), col: 0xffc861, phi: 300 },
+    { id: "rq", name: "RAID QUEENS", col: 0xff4d8d, phi: 225 }, // (the owner, 2026-10-25: a RAID QUEENS building by the fountain, a portal into the land)
   ];
   const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id; K.placeOn(p, K.dirOf(21, d.phi)); planet.add(p); return p; });
   // b-st2: lines of light on the plaza floor from the fountain out to each portal, pulses running outward in its colour
@@ -192,7 +193,7 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
   spins.push((dt, t) => { lineU.value = t; });
   // the two villages' portals are the owner's models (models/world/lands, Meshy, packed by tools/pack-prop.mjs): 6.5 m
   // tall, in place of the rings, loaded a few seconds after the town (about 1 MB each)
-  const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb" }, MODEL_H = 6.5;
+  const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb", rq: "/models/world/raid/gate.glb" }, MODEL_H = 6.5;
   setTimeout(() => { for (const [id, url] of Object.entries(MODELS)) { const p = portals.find((q) => q.userData.to === id); if (!p || !K.gltfLoader) continue;
     try { K.gltfLoader().load(url + ver, (g) => {
       const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = MODEL_H / (sz.y || 1);
