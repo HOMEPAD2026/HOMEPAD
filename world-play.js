@@ -829,7 +829,19 @@ const heroOf = (id) => (K.heroOf ? K.heroOf(id) : id);
 // the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
 function paintFace() { const imgs = [$("wc-face-img"), $("wp-lv-face")].filter(Boolean), id = P.char || "arc-arc"; if (!imgs.length) return; const put = () => imgs.forEach((img) => { img.src = thumbCache[id]; }); if (thumbCache[id]) { put(); return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) put(); }); }
 async function setAvatar(id) {
-  const a = await K.makeCharacter(heroOf(id), VER, P.outfit || null).catch(() => K.makeCharacter("bot"));
+  // an old phone's hero load that never settles (a texture that never decodes, a lost GPU context) held the loading
+  // screen at 80 % "Opening the plaza…" (a Mali-T830 in diag, 2026-10-24): after 20 s you go in as the plain robot,
+  // and the hero takes its place if it arrives later
+  const want = K.makeCharacter(heroOf(id), VER, P.outfit || null), sw = ++avatarSwap; let late = false;
+  let a = await Promise.race([want, new Promise((r) => setTimeout(() => { late = true; r(null); }, 20000))]).catch(() => null);
+  if (!a) {
+    a = await K.makeCharacter("bot");
+    if (late) { try { diag.err(`hero load slow: ${heroOf(id)} · dpr ${devicePixelRatio} · ${glLost ? "GL LOST" : "gl ok"}`, "load"); } catch { /* no report */ } want.then((b) => { if (b && sw === avatarSwap) putAvatar(b); }).catch(() => {}); }
+  }
+  putAvatar(a);
+}
+let avatarSwap = 0;
+function putAvatar(a) {
   setTimeout(paintFace, 300);
   if (avatar) player.remove(avatar.obj);
   if (a.setTint) a.setTint(P.tint || 0); // b447: the hero in your colour

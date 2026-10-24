@@ -3719,3 +3719,5 @@ html.wp-pcphone .cx-tabs{grid-template-columns:repeat(7,minmax(44px,1fr))}html.w
 html.wp-pcphone .cx-body,html.wp-pcphone .cx-foot{grid-template-columns:1fr}html.wp-pcphone .cx-grid{grid-template-columns:62px repeat(5,1fr);gap:5px;padding:6px}html.wp-pcphone .cx-th{font-size:9.5px}html.wp-pcphone .cx-th b{font-size:13px}html.wp-pcphone .cx-rh{font-size:11.5px}html.wp-pcphone .cx-c i{font-size:20px}
 html.wp-pcphone .cx-rew ol{grid-template-columns:repeat(5,minmax(58px,1fr));overflow-x:auto}html.wp-pcphone .cx-ri{font-size:24px}
 html.wp-pcphone .cx-in{zoom:2.2;width:calc(100vw / 2.2);max-height:calc(100vh / 2.2)}
+/* the minimap's ring ran into the USDC / $ARCIRCLE purse on phones (the owner's screenshot, 2026-10-24): a little lower */
+html.wp-pcphone body.wp .wp-hud .wp-mini{margin-top:28px}
