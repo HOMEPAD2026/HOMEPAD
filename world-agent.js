@@ -519,8 +519,8 @@ export function createAgentDim(ctx) {
 
   setTimeout(look, 1500);
   setInterval(() => { if (Date.now() - last > (document.hidden ? 180e3 : 90e3)) look(); else { paintChip(); notify(); if (!away() && A() && !bodyKind) spawn(); if (shown() && tab === "jobs" && !report) paint(); } }, 5000);
-  /// AD-City 1: may this player go into Nexus City? (the same gate as the window: GM wallets while AGENT DIMENSION is closed)
-  async function canEnter() { if (!wallet()) return false; if (!st || Date.now() - last > 60e3) await look(); return !closed(); }
+  /// AD-City 1: may this player go into Nexus City? (everyone, guests too; GM wallets only while the server says closed)
+  async function canEnter() { if (!wallet()) return true; /* (a guest looks round Nexus City too: the owner, 2026-10-24; buying, the arena and errands ask for the wallet there) */ if (!st || Date.now() - last > 60e3) await look(); return !closed(); }
   return { open, close, shown, look, tick, paintChip, canEnter, state: () => st,
     debug: () => ({ kind: bodyKind, agent: A() && { name: A().name, lv: A().lv, jobs: A().jobs.length, chatLeft: A().chatLeft }, clips: body && body.mixer && body.mixer._actions ? body.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : [], pos: body ? [+body.obj.position.x.toFixed(1), +body.obj.position.z.toFixed(1)] : null, on: ctx.inHub(), ticks, mt: body && body.mixer ? +body.mixer.time.toFixed(2) : 0, chip: chip ? chip.textContent : "", chipShown: chip ? !chip.hidden : false }) };
 }
