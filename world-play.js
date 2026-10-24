@@ -131,7 +131,7 @@ const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
 /// the opening week's launch card (24 – 31 Oct, Seoul): on every visit, for everyone (guests and agent owners too), on top of
-/// everything, as soon as this code runs — over the loading screen (the owner's call 2026-10-24: "우선순위를 더 높여 … 더 빠르게").
+/// everything, the moment the loading screen is done and you're in the town (not over the loading screen: the owner, 2026-10-24).
 /// "Go to the AD Tower" pressed before the town is ready waits for it (adpGo).
 const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z");
 let adpDone = false, adpGo = false;
@@ -149,7 +149,6 @@ function adPromo(force) {
   const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 220); if (was !== null) try { frozen = was && !!document.querySelector("#wp-make:not([hidden]),.wp-qs"); } catch { /* fine */ } };
   el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-later]")) return close(); if (e.target.closest("[data-go]")) { close(); if (adpReady()) goAgentTower(); else { adpGo = true; try { toast(TW("Taking you to the AD Tower as soon as the town is ready…")); } catch { /* the toast comes later */ } } } });
 }
-adPromo();
 document.querySelectorAll("[data-w]").forEach((el) => { el.textContent = W(el.dataset.w); });
 if (LANG !== "en") { const k = $("wp-keys"); if (k) k.innerHTML = `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ${W("move")} <span>·</span> <kbd>Space</kbd> ${W("jump")} <span>·</span> <kbd>Shift</kbd> ${W("run")} <span>·</span> <kbd>E</kbd> ${W("enter")} <span>·</span> <kbd>F</kbd> ${W("board")} <span>·</span> <kbd>1</kbd><kbd>2</kbd> ${W("emote")} <span>·</span> <kbd>P</kbd> ${W("photo")} <span>·</span> <kbd>M</kbd> ${W("map")} <span>·</span> <kbd>H</kbd> ${W("help")} <span>·</span> ${W("drag to look")}`; }
 K.SHOPS.forEach((s) => { s.name = T(s.name); s.line = T(s.line); });
@@ -5391,7 +5390,7 @@ function goAgentTower() {
   const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - (g.x / d) * 16, g.z - (g.z / d) * 16, { x: g.x, z: g.z });
   try { vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); } catch { /* no flash */ } near = null; paintPrompt(); setTimeout(() => openAgent(), 900);
 }
-every(300, () => { if (adpGo && adpReady()) { adpGo = false; goAgentTower(); } });
+every(300, () => { if (!adpDone && adpReady()) adPromo(); if (adpGo && adpReady()) { adpGo = false; goAgentTower(); } }); /* (the card when you step into the town, not over the loading screen: the owner, 2026-10-24) */
 async function openAgent() { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(); }
 setTimeout(() => { loadAgent().catch(() => {}); }, 7000);
 // the Halloween Pumpkin Kings (world-pumpking.js, 22 Oct – 5 Nov US Eastern; ?pk=day / ?pk=night to try): five dancing
