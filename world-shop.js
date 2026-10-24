@@ -386,7 +386,7 @@ export function createShop(ctx) {
   function delta(n, d = {}) { if (!arcl) return; arcl = { ...arcl, bal: Math.max(0, (arcl.bal || 0) + n), today: Math.max(0, (arcl.today || 0) + (d.today || 0)), sold: Math.max(0, (arcl.sold || 0) + (d.sold || 0)) }; paintChip(true); }
   return {
     apply, delta,
-    refresh, claim, flushQueue, resumePending, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
+    refresh, claim, flushQueue, resumePending, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, streak: () => { if (!arcl) return null; const last = arcl.lastDay, st = last ? arcl.streak || 0 : 0, done = last === seoulDay(), next = done ? st : last === seoulDay(Date.now() - 864e5) ? st + 1 : 1, day = ((next - 1) % 7) + 1, start = next - day + 1; return { next, day, done, arcl: Array.from({ length: 7 }, (_, i) => arclFor(start + i)) }; }, /* (the Character window's Daily strip) */ dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
     pay: async (id, target = "", onStatus = null) => !!(await payArc(id, target, null, onStatus)), // the game's own purchases (a revive)
     /// knocked out (world-combat.js): "down" records it and says whether today's free get-up is left; "rest" starts the
     /// 24-hour rest; "view" reads the state. null when signed out or offline (the game then keeps its own count).

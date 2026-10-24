@@ -35,6 +35,21 @@ const VILLAGE_DAILY = [
 // 2026-10-20 handed everyone an undefined hunt, and the town never finished loading)
 export const dailyHunts = (day = seoulDay()) => { const h = hash(day); const pick = []; for (let i = 0; pick.length < 3 && i < 30; i++) { const q = DAILY[(h >>> (i * 3 % 32)) % DAILY.length]; if (q && !pick.includes(q)) pick.push(q); } for (const q of DAILY) if (pick.length < 3 && !pick.includes(q)) pick.push(q); pick.push(VILLAGE_DAILY[(h >>> 7) % VILLAGE_DAILY.length]); return pick; };
 // achievements: each one gives a title to wear under your name
+// weekly missions (2026-10-24, the owner's Weekly mock-up): counted from the same events as the daily hunts, reset each
+// Monday (Seoul); rewards are the season's kind (XP, scrap, potions, gear — no ARCL), and a chest for 2 / 4 / 6 / 8 done
+export const WEEKLY = [
+  { id: "wk-kill", ev: "kill", n: 300, name: "Hunt scammers", line: "Knock out 300 scammers", r: { kind: "xp", n: 600 } },
+  { id: "wk-elite", ev: "elite", n: 30, name: "Elite hunter", line: "Knock out 30 elites", r: { kind: "hp", n: 8 } },
+  { id: "wk-boss", ev: "boss", n: 5, name: "Defeat bosses", line: "Beat 5 bosses", r: { kind: "scrap", n: 400 } },
+  { id: "wk-skill", ev: "skill", n: 120, name: "Use your skills", line: "Use a skill 120 times", r: { kind: "sp", n: 8 } },
+  { id: "wk-daily", ev: "dailyDone", n: 12, name: "Daily routine", line: "Finish 12 daily hunts", r: { kind: "gear", r: 2 } },
+  { id: "wk-game", ev: "game", n: 10, name: "Play mini games", line: "Start 10 games from the Games list", r: { kind: "xp", n: 500 } },
+  { id: "wk-rare", ev: "rare", n: 10, name: "Treasure hunter", line: "Find 10 pieces of Rare gear or better", r: { kind: "scrap", n: 300 } },
+  { id: "wk-zone", ev: "zone", n: 10, name: "Explorer", line: "Hunt in a ground on 10 different days", r: { kind: "recall", n: 4 } },
+];
+export const WEEKLY_CHESTS = [{ n: 2, kind: "scrap", k: 200 }, { n: 4, kind: "gear", r: 2 }, { n: 6, kind: "xp", k: 1200 }, { n: 8, kind: "gear", r: 3 }];
+const weekOf = (t = Date.now()) => { const d = new Date(t + 9 * 3600e3), day = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day)).toISOString().slice(0, 10); };
+const weekEnds = (t = Date.now()) => Date.parse(weekOf(t) + "T00:00:00Z") - 9 * 3600e3 + 7 * 864e5;
 export const ACH = [
   { id: "k10", name: "First blood", line: "Knock out 10 scammers", ev: "kill", n: 10, title: "Scam Hunter" },
   { id: "k100", name: "On the hunt", line: "Knock out 100 scammers", ev: "kill", n: 100, title: "Phish Hunter" },
@@ -105,6 +120,7 @@ export function createQuests(ctx) {
     const sn = seasonOf(); if (!x.ss || x.ss.id !== sn.id) { if (x.ss && x.ss.pts) x.ssPrev = { id: x.ss.id, pts: x.ss.pts, k: x.ss.k || {}, star: !!x.stitle }; x.ss = { id: sn.id, pts: 0, got: [], k: {} }; }
     if (!x.qz || x.qz.day !== seoulDay()) x.qz = { day: seoulDay(), a: [], done: 0 };
     x.petXp = x.petXp || {};
+    if (!x.wk || x.wk.id !== weekOf()) x.wk = { id: weekOf(), p: {}, done: [], got: [] };
     return x;
   };
   const todays = dailyHunts;
@@ -117,6 +133,7 @@ export function createQuests(ctx) {
   }
   function bump(ev, n = 1) {
     const x = X(); x.c[ev] = (x.c[ev] || 0) + n;
+    for (const w of WEEKLY) if (w.ev === ev && !x.wk.done.includes(w.id)) { const was = x.wk.p[w.id] || 0; x.wk.p[w.id] = Math.min(w.n, was + n); if (was < w.n && x.wk.p[w.id] >= w.n) ctx.toast(T("Weekly mission done: {x}", { x: T(w.name) })); }
     if (SEASON_PTS[ev]) seasonAdd(ev, n);
     for (const q of todays()) if (q.ev === ev && !x.d.done.includes(q.id)) { x.d.p[q.id] = (x.d.p[q.id] || 0) + n; if (x.d.p[q.id] >= q.n && !x.d.notified?.includes(q.id)) { x.d.notified = [...(x.d.notified || []), q.id]; ctx.Snd.quest && ctx.Snd.quest(); ctx.toast(T("Daily hunt done: {x}. Claim it in the Adventure log.", { x: T(q.name) })); } }
     checkAch(); ctx.save(); if (x.owed && x.owed.length) payOwed();
@@ -138,7 +155,7 @@ export function createQuests(ctx) {
   }
   function claim(id) {
     const x = X(), q = todays().find((y) => y.id === id); if (!q || x.d.done.includes(id) || (x.d.p[id] || 0) < q.n) return;
-    x.d.done.push(id); const r = ctx.rpg.data(); r.scrap = (r.scrap || 0) + q.scrap; r.hp = Math.min(99, (r.hp || 0) + 1); seasonAdd("daily");
+    x.d.done.push(id); bump("dailyDone"); const r = ctx.rpg.data(); r.scrap = (r.scrap || 0) + q.scrap; r.hp = Math.min(99, (r.hp || 0) + 1); seasonAdd("daily");
     ctx.save(); ctx.gain(q.xp, T(q.name)); ctx.toast(T("+{n} scrap · +1 health potion", { n: q.scrap }));
   }
   // yesterday's finished hunts (X() keeps them in x.owed at the day's turn): the same pay as claim(), once
@@ -168,6 +185,25 @@ export function createQuests(ctx) {
   function weekHTML() {
     const today = (new Date(Date.now() + 9 * 3600e3).getUTCDay() + 6) % 7;
     return `<ol class="wq-week">${DAYN.map((d, i) => { const zid = WEEKDAY_ZONE[(i + 1) % 7], z = zid && ZONES.find((y) => y.id === zid), fid = WEEKDAY_FAR[(i + 1) % 7], fz = fid && ZONES.find((y) => y.id === fid); return `<li class="${i === today ? "now" : ""}" style="--zc:${z ? "#" + z.color.toString(16).padStart(6, "0") : "#39ff88"}"><b>${esc(T(d))}</b><small>${esc(z ? z.name.split(" ")[0] : T("All"))}${fz ? `<br>${esc(fz.name.split(" ")[0])}` : ""}</small>${i === 0 ? `<em>${esc(T("New raid"))}</em>` : ""}</li>`; }).join("")}</ol>`;
+  }
+  // ---------------- weekly missions ----------------
+  function giveReward(t, why) {
+    const r = ctx.rpg.data();
+    if (t.kind === "xp") { ctx.gain(t.n || t.k, why); return true; }
+    if (t.kind === "scrap") { r.scrap = (r.scrap || 0) + (t.n || t.k); ctx.toast(T("+{n} scrap", { n: t.n || t.k })); return true; }
+    if (t.kind === "hp" || t.kind === "sp" || t.kind === "recall") { r[t.kind] = Math.min(99, (r[t.kind] || 0) + t.n); ctx.toast(rewardText(t)); return true; }
+    if (t.kind === "gear") { const it = ctx.rpg.giftPiece(ctx.level(), t.r); ctx.toast(it ? T("Weekly gear: {x}", { x: ctx.rpg.itemName(it) }) : T("Your bag is full — make room and claim it again")); return !!it; }
+    return false;
+  }
+  function weekClaim(id) { const x = X(), w = WEEKLY.find((q) => q.id === id); if (!w || x.wk.done.includes(id) || (x.wk.p[id] || 0) < w.n) return; if (!giveReward(w.r, T(w.name))) return; x.wk.done.push(id); ctx.Snd.win && ctx.Snd.win(); ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); }
+  function weekChest(n) { const x = X(), c = WEEKLY_CHESTS.find((q) => q.n === n); if (!c || x.wk.got.includes(n) || x.wk.done.length < n) return; if (!giveReward(c, T("Weekly chest"))) return; x.wk.got.push(n); ctx.Snd.chest ? ctx.Snd.chest() : ctx.Snd.win && ctx.Snd.win(); ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); }
+  const weekPending = () => { const x = X(); return WEEKLY.filter((w) => !x.wk.done.includes(w.id) && (x.wk.p[w.id] || 0) >= w.n).length + WEEKLY_CHESTS.filter((c) => !x.wk.got.includes(c.n) && x.wk.done.length >= c.n).length; };
+  function weeklyHTML(x) {
+    const left = Math.max(0, weekEnds() - Date.now()), d = Math.floor(left / 864e5), h = Math.floor((left % 864e5) / 3600e3), done = x.wk.done.length;
+    const rw = (t) => `<span class="wq-rw">${esc(rewardText(t.kind === "xp" || t.kind === "scrap" ? { ...t, n: t.n || t.k } : t))}</span>`;
+    return `<div class="wq-week"><div class="wq-week-h"><b>${esc(T("Weekly missions"))}</b><small>⏱ ${esc(T("Resets in {d} d {h} h", { d, h }))}</small></div>
+      <ol class="wq-chests">${WEEKLY_CHESTS.map((c) => { const got = x.wk.got.includes(c.n), can = !got && done >= c.n; return `<li class="${got ? "done" : can ? "can" : ""}">${art(c.n >= 8 ? "chest" : c.n >= 4 ? "box" : "scrap", 46)}<b>${c.n}</b>${can ? `<button type="button" data-wkchest="${c.n}">${esc(T("Claim"))}</button>` : got ? "<i>✓</i>" : rw(c)}</li>`; }).join("")}</ol>${bar(done, WEEKLY.length)}<p class="wr-note">${esc(T("{a} of {b} missions done this week", { a: done, b: WEEKLY.length }))}</p></div>
+      <ul class="wq-list">${WEEKLY.map((w) => { const p = x.wk.p[w.id] || 0, got = x.wk.done.includes(w.id), ok = p >= w.n; return `<li class="${got ? "done" : ""}"><div><b>${esc(T(w.name))}</b><small>${esc(T(w.line))} · ${rw(w.r)}</small>${bar(p, w.n)}</div><span>${p} / ${w.n}</span>${got ? `<em class="ok">✓</em>` : `<span class="wq-acts"><button type="button" data-wkclaim="${w.id}" ${ok ? "" : "disabled"}>${esc(T("Claim"))}</button></span>`}</li>`; }).join("")}</ul>`;
   }
   // ---------------- the season log ----------------
   function seasonClaim(i) {
@@ -291,6 +327,7 @@ export function createQuests(ctx) {
         <div class="wq-recap">${x.ss.pts ? `<button type="button" class="wp-btn" data-srecap="cur">${esc(T("Share my season"))}</button>` : ""}${x.ssPrev ? `<p>${esc(T("Season {n}: {p} points, tier {t}", { n: x.ssPrev.id, p: x.ssPrev.pts.toLocaleString("en-US"), t: tierOf(x.ssPrev.pts) }))} <button type="button" class="wp-link" data-srecap="prev">${esc(T("Share its card"))}</button></p>` : ""}</div>`;
     }
     else if (tab === "pets") body = ctx.petHTML ? ctx.petHTML() : "";
+    else if (tab === "weekly") body = weeklyHTML(x);
     else if (tab === "codex") {
       const beaten = (ctx.P && ctx.P.beaten) || [], all = [...CODEX_STORY, ...CODEX], got = all.filter((c) => (c.story ? beaten.includes(c.story) : x.seen[c.id])).length;
       const page = (c) => { const n = c.story ? (beaten.includes(c.story) ? 1 : 0) : x.seen[c.id] || 0; return `<article class="${n ? "" : "locked"}${c.story ? " story" : ""}"><h4>${esc(n ? T(c.name) : "???")}</h4><p>${esc(n ? T(c.line) : c.story ? T("Beat this scammer on the planet to open its page.") : T("Knock one out to learn how this scam works."))}</p>${n && c.beat ? `<p class="wq-beat"><b>${esc(T("How to beat it"))}</b> ${esc(T(c.beat))}</p>` : ""}<small>${n ? esc(c.story ? T("Beaten on the planet") : T("Knocked out {n}", { n })) : ""}</small></article>`; };
@@ -316,6 +353,8 @@ export function createQuests(ctx) {
     if (b.dataset.gmlist) { if (ctx.gmList) ctx.gmList(b.dataset.gmlist, b.dataset.n || ""); return true; }
     if (b.dataset.prof) { if (ctx.openProfile) ctx.openProfile(b.dataset.prof); return false; }
     if (b.hasAttribute("data-sclaimall")) { const x = X(); SEASON_TIERS.forEach((t, i) => { if (x.ss.pts >= t.pts && !x.ss.got.includes(i)) seasonClaim(i); }); return true; }
+    if (b.dataset.wkclaim) { weekClaim(b.dataset.wkclaim); return true; }
+    if (b.dataset.wkchest) { weekChest(+b.dataset.wkchest); return true; }
     if (b.dataset.qtab === "items" && ctx.openItems) { ctx.openItems(); return true; } // (the item codex is a window of its own: world-codex.js)
     if (b.dataset.qtab) { tab = b.dataset.qtab; seeTab(tab); if (tab === "rank") { top = null; loadTop().then(() => ctx.repaint()); } return true; }
     if (b.hasAttribute("data-qdaily")) { ctx.openDaily && ctx.openDaily(); return true; }
@@ -334,7 +373,7 @@ export function createQuests(ctx) {
   const hasPet = () => !!activePet();
   const seasonPending = () => { const x = X(); return SEASON_TIERS.filter((t, i) => x.ss.pts >= t.pts && !x.ss.got.includes(i)).length; };
   const dailyReady = () => { const x = X(); return todays().filter((q) => !x.d.done.includes(q.id) && (x.d.p[q.id] || 0) >= q.n).length; };
-  const pending = () => dailyReady() + seasonPending() + (ctx.bountyReady ? ctx.bountyReady() : 0);
+  const pending = () => dailyReady() + seasonPending() + weekPending() + (ctx.bountyReady ? ctx.bountyReady() : 0);
   /// on Sunday (Seoul), once: the week's bounties reset tonight, and some are ready or close
   function bountyNotice(say, f) {
     if (!f || !f.bounties || new Date(Date.now() + 9 * 3600e3).getUTCDay() !== 0) return;

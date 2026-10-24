@@ -366,6 +366,7 @@ export function createRpg(ctx) {
   // the bag's filter (all / weapons / armour / accessories) and the pieces you haven't looked at yet
   const BAGF = { all: null, weapon: ["weapon"], armor: ["shield", "armor", "helm", "boots"], acc: ["ring", "necklace"] };
   let bagF = "all"; const fresh = new Set();
+  let bossOn = false;
   let open = false, sel = null, view = "inv", forgeTab = "gear", log = null, fuseSel = [], fuseSlot = "", invPane = "gear", charSub = "overview", evOn = false, colAll = false;
   const rc = (it) => RARITY[it.r || 0].color;
   // a weapon shows its own 3D picture (its kind at a glance); the rest keep their icons
@@ -629,20 +630,20 @@ export function createRpg(ctx) {
   const SIDE = {
     inv: [["overview", "Overview", "person"], ["equip", "Equipment", "bag"], ["skills", "Skills", "sword"], ["titles", "Titles", "trophy"], ["look", "Costumes", "shirt"]],
     forge: [["craft", "Craft", "anvil"], ["enhance", "Enhance", "sword"], ["fuse", "Fuse", "chart"], ["repair", "Repair", "wrench"], ["shop", "Shop", "shop"], ["sell", "Sell", "check"]],
-    adv: [["map", "World Map", "map"], ["daily", "Daily", "check"], ["ach", "Achievements", "trophy"], ["season", "Season", "season"], ["events", "Events", "chart"]],
+    adv: [["map", "World Map", "map"], ["daily", "Daily", "check"], ["weekly", "Weekly", "trophy"], ["boss", "Boss", "sword"], ["ach", "Achievements", "trophy"], ["season", "Season", "season"], ["events", "Events", "chart"]],
     col: [["all", "Overview", "codex"], ["items", "Item codex", "bag"], ["codex", "Scammer codex", "book"], ["pets", "Pets", "paw"], ["jur", "Jurassic codex", "island"]],
     com: [["rank", "Rankings", "trophy"], ["crew", "Crew", "crew"], ["friends", "Friends", "chat"], ["invite", "Invite friends", "mail"]],
   };
   const HEAD = { overview: ["Character", "Your hero, your gear and your stats."], equip: ["Equipment", "What you wear, your bag and your storage."], skills: ["Skills", "Your skills and the branch each one takes."], titles: ["Titles", "Each achievement gives a title to wear under your name."], look: ["Costumes", "Your hero and your look."],
     craft: ["Craft", "Gear and accessories for ARCL."], enhance: ["Enhance", "Make your gear stronger with scrap."], fuse: ["Fuse", "Three of one rarity make one of the next."], repair: ["Repair", "Restore the durability of Epic and Legendary gear."], shop: ["Shop", "Potions, scrolls and scrap for your adventure."], sell: ["Sell", "Turn gear you don't need into ARCL."],
-    daily: ["Daily", "Today's hunts, the quiz and the chest."], ach: ["Achievements", "Goals that give titles and bonuses."], season: ["Season", "Season points and the rewards at each tier."], events: ["Events", "What's on in the world, and when."],
+    daily: ["Daily", "Today's hunts, the quiz and the chest."], weekly: ["Weekly missions", "Bigger goals that reset each Monday, and chests for finishing them."], boss: ["World bosses", "Every boss in the world, when it's up, and the way there."], ach: ["Achievements", "Goals that give titles and bonuses."], season: ["Season", "Season points and the rewards at each tier."], events: ["Events", "What's on in the world, and when."],
     all: ["Collection", "Everything you've found, in one place."], codex: ["Scammer codex", "Every scammer here is a real scam."], pets: ["Pets", "Your companions and their eggs."], rank: ["Rankings", "The world's best, this week and for good."] };
   // art cut from the owner's mock-ups: ARON at the anvil, at the stall, with a coin, on a chest
-  const ART = { craft: "forge", fuse: "forge", repair: "enh", enhance: "enh", shop: "shop", sell: "sell", daily: "adv", ach: "adv", season: "adv", events: "adv" }, WIDE = new Set(["shop", "sell"]);
+  const ART = { weekly: "adv", boss: "adv", craft: "forge", fuse: "forge", repair: "enh", enhance: "enh", shop: "shop", sell: "sell", daily: "adv", ach: "adv", season: "adv", events: "adv" }, WIDE = new Set(["shop", "sell"]);
   const LOGSEC = { daily: "adv", ach: "adv", season: "adv", codex: "col", pets: "col", rank: "com" };
   const logTab = () => (log && log.tab ? log.tab() : "daily");
-  const sec = () => (view === "inv" ? "inv" : view === "forge" ? "forge" : evOn ? "adv" : colAll ? "col" : LOGSEC[logTab()] || "adv");
-  const sideOn = (sc) => (sc === "inv" ? charSub : sc === "forge" ? (["gear", "acc", "master"].includes(forgeTab) ? "craft" : forgeTab === "supplies" ? "shop" : forgeTab) : evOn ? "events" : colAll ? "all" : logTab());
+  const sec = () => (view === "inv" ? "inv" : view === "forge" ? "forge" : evOn || bossOn ? "adv" : colAll ? "col" : LOGSEC[logTab()] || "adv");
+  const sideOn = (sc) => (sc === "inv" ? charSub : sc === "forge" ? (["gear", "acc", "master"].includes(forgeTab) ? "craft" : forgeTab === "supplies" ? "shop" : forgeTab) : evOn ? "events" : bossOn ? "boss" : colAll ? "all" : logTab());
   const hub = (k) => (ctx.hub ? ctx.hub(k) : null);
   const logPane = (t) => { if (!log) return ""; if (logTab() !== t) log.setTab(t); return log.html(); };
   const fmt = (v) => (v == null ? "—" : v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "K" : Math.floor(v).toLocaleString("en-US"));
@@ -734,6 +735,21 @@ export function createRpg(ctx) {
     const ev = hub("events") || [];
     return `<div class="hb-evs">${ev.map((e) => `<article class="hb-card hb-ev${e.live ? " live" : ""}"><span class="hb-evi">${e.ic}</span><div><b>${esc(e.t)}</b><small>${esc(e.live ? T("On now") : e.left)}</small></div>${e.live ? `<em>${esc(T("Live"))}</em>` : ""}</article>`).join("")}</div>`;
   }
+  // the world's bosses (the owner's Boss / Raids mock-ups): a card each, live or when next, rewards, a way there
+  function bossHTML() {
+    const L = hub("bosses") || [];
+    return `<div class="hb-bosses">${L.map((x, i) => `<article class="hb-card hb-boss${x.live ? " live" : ""}" style="--bc:${x.color || "#3ab8ff"}"><div class="hb-bart"><span>${x.ic}</span>${x.live ? `<em>${esc(T("Live"))}</em>` : ""}</div>
+      <div class="hb-binfo"><h3>${esc(x.name)}</h3><small>${esc(x.where)} · ${esc(x.lv)}</small><p>${esc(x.line)}</p>
+        <dl class="hb-dl">${x.when ? `<div><dt>${esc(T("When"))}</dt><dd>${esc(x.when)}</dd></div>` : ""}${x.rew ? `<div><dt>${esc(T("Rewards"))}</dt><dd>${esc(x.rew)}</dd></div>` : ""}${x.mine != null ? `<div><dt>${esc(T("You beat it"))}</dt><dd>${x.mine}×</dd></div>` : ""}</dl></div>
+      <div class="hb-gold"><button type="button" class="wr-buy${x.live ? "" : " alt"}" data-bossgo="${i}">${esc(x.live ? T("Join now") : T("Go there"))}</button></div></article>`).join("") || `<div class="hb-empty"><p>${esc(T("No bosses to show right now."))}</p></div>`}</div>`;
+  }
+  // the login streak as a week of seven (the owner's Daily mock-up): the server's calendar (world-shop.js), tap to open it
+  function streakHTML() {
+    const st = hub("streak"); if (!st) return "";
+    return `<section class="hb-card hb-streak"><div class="hb-ch"><h4>🔥 ${esc(T("Login streak"))}</h4><small>${esc(T("{n}-day streak", { n: st.next }))}</small></div>
+      <ol>${st.arcl.map((a, i) => { const d = i + 1, s0 = d < st.day || (d === st.day && st.done) ? "done" : d === st.day ? "today" : ""; return `<li class="${s0}${d === 7 ? " big" : ""}"><small>${esc(T("Day {n}", { n: d }))}</small><i>${s0 === "done" ? "✓" : d === 7 ? "🎁" : "◆"}</i><b>${a}</b></li>`; }).join("")}</ol>
+      ${st.done ? "" : `<div class="hb-gold"><button type="button" class="wr-buy" data-hubgo="daily">${esc(T("Open today's chest"))}</button></div>`}</section>`;
+  }
   function colHTML() {
     const c = hub("counts") || {}, card = (k, ic, n, line, x) => `<button type="button" class="hb-card hb-colc" data-side="${k}"><span class="hb-coli">${uiIcon(ic, 30)}</span><div><b>${esc(T(n))}</b><small>${esc(T(line))}</small></div>${x ? `<em>${x}</em>` : ""}</button>`;
     return `<div class="hb-cols">${card("items", "bag", "Item codex", "Every piece of gear, tier by grade", c.items)}${card("codex", "book", "Scammer codex", "Pages: every page is a real scam", c.scam)}${card("pets", "paw", "Pets", "Companions and their eggs", c.pets)}${card("jur", "island", "Jurassic codex", "Dinosaurs, fish and finds in Jurassic World")}${card("ach", "trophy", "Achievements", "Goals that give titles", c.ach)}</div>`;
@@ -742,8 +758,9 @@ export function createRpg(ctx) {
     if (sc === "inv") return k === "overview" ? overviewHTML() : k === "skills" ? skillsPane() : k === "titles" ? titlesPane() : k === "look" ? lookHTML() : equipHTML();
     if (sc === "forge") return forgeHTML();
     if (evOn) return eventsHTML();
+    if (bossOn) return bossHTML();
     if (colAll) return colHTML();
-    return log ? log.html() : "";
+    return (k === "daily" ? streakHTML() : "") + (log ? log.html() : "");
   }
   let paintKey = "";
   function paint() {
@@ -768,7 +785,7 @@ export function createRpg(ctx) {
   // the bar's sections and the side menu
   function goSec(id) {
     if (id === "play") { hide(); return; }
-    evOn = false; colAll = false; sel = null; plan = null;
+    evOn = false; bossOn = false; colAll = false; sel = null; plan = null;
     if (id === "inv" || id === "forge") view = id;
     else { view = "log"; if (id === "col") colAll = true; else qtab(id === "com" ? "rank" : "daily"); }
     if (ctx.onView) ctx.onView(view); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint();
@@ -780,7 +797,7 @@ export function createRpg(ctx) {
     if (sc === "inv") { charSub = k; if (k === "equip") invPane = "gear"; paint(); return; }
     if (sc === "forge") { forgeTab = k === "craft" ? "gear" : k === "shop" ? "supplies" : k; seeTab(forgeTab); fuseSel = []; paint(); return; }
     if (["map", "crew", "friends", "invite", "items", "jur"].includes(k)) { if (k !== "jur") hide(); hub(k); return; }
-    evOn = k === "events"; colAll = k === "all"; if (!evOn && !colAll) qtab(k); paint();
+    evOn = k === "events"; bossOn = k === "boss"; colAll = k === "all"; if (!evOn && !colAll && !bossOn) qtab(k); paint();
   }
   // the turning 3D view (world-preview.js): the selected weapon in its card, or else you, gear on, in the paper doll
   let PV = null;
@@ -796,7 +813,7 @@ export function createRpg(ctx) {
   }
   // the panel slides in when it opens, not again on every repaint (equipping, selling…)
   let opening = false;
-  function show(v, sub) { if (v) { evOn = false; colAll = false; if (v === "inv" && sub) charSub = sub; } view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
+  function show(v, sub) { if (v) { evOn = false; bossOn = false; colAll = false; if (v === "inv" && sub) charSub = sub; } view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
   function hide() { const tp = document.querySelector(".wr-tip"); if (tp) tp.hidden = true; if (ask) { clearTimeout(ask.t); ask = null; } if (!open) return; open = false; fresh.clear(); el.hidden = true; sel = null; ctx.freeze(false); if (PV) PV.stop(); }
   function hammer() { const a = el.querySelector(".wr-detail"); if (a) { a.classList.remove("hit"); void a.offsetWidth; a.classList.add("hit"); } }
   // the Forge answers at once (b401): the counter, the sound and the bag move on the click, and the server's answer
@@ -884,6 +901,7 @@ export function createRpg(ctx) {
     if (d.tsel) { tSel = d.tsel; paint(); return; }
     if (b.hasAttribute("data-craftall")) { craftAll = !craftAll; paint(); return; }
     if (d.sideGo) { goSide(d.sideGo); return; }
+    if (d.bossgo != null) { hide(); hub("bossgo:" + d.bossgo); return; }
     if (d.fpick) { fpick = d.fpick; askBuy = ""; scrollDet = true; paint(); return; }
     if (d.sec) { goSec(d.sec); return; }
     if (d.side) { goSide(d.side); return; }

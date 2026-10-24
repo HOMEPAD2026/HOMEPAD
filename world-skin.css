@@ -3949,7 +3949,7 @@ html.wp-pcphone .hb .wq-list li{flex-wrap:wrap}
 @keyframes hbPopU{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
 @keyframes hbPopR{0%{opacity:1;transform:translate(-50%,-50%) scale(.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(4)}}
 .hb-flash{animation:hbFlash .6s ease-out}@keyframes hbFlash{0%{filter:brightness(2.2) saturate(1.4)}100%{filter:none}}
-.hb-main.hb-in{animation:hbIn .24s ease-out}@keyframes hbIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+.hb-main.hb-in{animation:hbIn .24s ease-out}@keyframes hbIn{from{transform:translateX(16px)}to{transform:none}} /* (no opacity: a slow phone that stalls an animation must not leave the pane faded) */
 .hb-nav button,.hb-secs button,.hb-fcell,.hb-scard,.hb-skc,.hb-trow,.hb-acts button,.hb-gold .wr-buy{transition:transform .12s,box-shadow .2s,filter .2s}
 .hb-nav button:active,.hb-fcell:active,.hb-scard:active,.hb-skc:active,.hb-acts button:active,.hb-gold .wr-buy:active{transform:scale(.96)}
 .hb-gold .wr-buy:not([disabled]){animation:hbGlow 2.4s ease-in-out infinite}@keyframes hbGlow{0%,100%{box-shadow:0 0 18px rgba(255,190,60,.4),inset 0 2px 0 rgba(255,255,255,.5)}50%{box-shadow:0 0 30px rgba(255,200,80,.75),inset 0 2px 0 rgba(255,255,255,.5)}}
@@ -3969,5 +3969,25 @@ html.wp-pcphone .hb .wq-list li{flex-wrap:wrap}
 /* phones: the gold button stays in reach at the bottom while its card is on screen */
 html.wp-pcphone .hb-fdet .hb-gold{position:sticky;bottom:6px;z-index:3;padding-top:6px;background:linear-gradient(180deg,transparent,rgba(8,17,42,.96) 30%)}
 html.wp-pcphone .hb-today{grid-column:1/-1}
+/* ---- weekly missions + the boss board ---- */
+.hb .wq-week{margin-bottom:12px;padding:16px;border-radius:18px;border:1px solid rgba(255,200,97,.4);background:linear-gradient(180deg,rgba(40,30,12,.94),rgba(12,12,26,.96))}
+.hb .wq-week-h{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}.hb .wq-week-h b{font:900 22px/1 Sora,sans-serif;color:#fff}.hb .wq-week-h small{margin-left:auto;color:#ffe7b0;font-weight:700}
+.hb .wq-chests{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.hb .wq-chests li{display:grid;justify-items:center;gap:4px;padding:10px 6px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:center}.hb .wq-chests li b{font:900 18px/1 Sora,sans-serif;color:#fff}
+.hb .wq-chests li.can{border-color:#ffc861;box-shadow:0 0 16px rgba(255,200,97,.45);animation:hbGlow 2s ease-in-out infinite}.hb .wq-chests li.done{opacity:.6;border-color:#2fd08a}.hb .wq-chests li i{font-style:normal;color:#7cf5c8;font-weight:900}
+.hb .wq-chests button{min-height:34px;padding:0 12px;border-radius:999px;border:0;background:linear-gradient(90deg,#ffc861,#ff9f2e);color:#3a2400;font:900 13px/1 Sora,sans-serif;cursor:pointer}
+.hb .wq-rw{color:#ffe49a;font-weight:700;font-size:12px}
+.hb-bosses{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.hb-boss{display:grid;grid-template-columns:96px 1fr;grid-template-rows:1fr auto;gap:10px 14px;border-color:color-mix(in srgb,var(--bc) 55%,transparent)}
+.hb-boss.live{box-shadow:0 0 22px color-mix(in srgb,var(--bc) 45%,transparent);animation:hbLive 2.4s ease-in-out infinite}@keyframes hbLive{50%{box-shadow:0 0 34px color-mix(in srgb,var(--bc) 70%,transparent)}}
+.hb-bart{position:relative;display:grid;place-items:center;width:96px;height:96px;border-radius:18px;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--bc) 45%,transparent),rgba(4,10,26,.95) 72%);border:2px solid var(--bc);font-size:52px}
+.hb-bart em{position:absolute;top:-8px;right:-8px;padding:4px 8px;border-radius:999px;background:#ff4a4a;color:#fff;font:900 11px/1 Sora,sans-serif;font-style:normal;box-shadow:0 0 12px rgba(255,74,74,.7)}
+.hb-binfo h3{margin:0;font:900 20px/1.15 Sora,sans-serif;color:#fff}.hb-binfo small{display:block;margin:3px 0 6px;color:color-mix(in srgb,var(--bc) 70%,#fff);font-weight:800}.hb-binfo p{margin:0 0 8px;color:#c9d6ea;font-size:14px}
+.hb-boss .hb-gold{grid-column:1/-1}.hb-boss .hb-gold .wr-buy{min-height:52px;font-size:18px}
+html.wp-pcphone .hb-bosses{display:block}html.wp-pcphone .hb-boss{display:grid;margin-bottom:10px;grid-template-columns:76px 1fr}html.wp-pcphone .hb-bart{width:76px;height:76px;font-size:40px}
+html.wp-pcphone .hb .wq-chests{gap:6px}
+.hb-streak{margin-bottom:12px}.hb-streak ol{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.hb-streak li{display:grid;justify-items:center;gap:4px;padding:8px 2px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}.hb-streak li small{color:#c9d6ea;font-size:11px}.hb-streak li i{font-style:normal;font-size:20px;color:#5fd3ff}.hb-streak li b{font:800 14px/1 Sora,sans-serif;color:#ffe49a}
+.hb-streak li.done{border-color:#2fd08a}.hb-streak li.done i{color:#2fd08a}.hb-streak li.today{border:2px solid #ffc861;box-shadow:0 0 14px rgba(255,200,97,.45)}.hb-streak li.big{background:linear-gradient(180deg,rgba(255,170,60,.25),rgba(40,20,8,.6))}
 /* the minimap's ring ran into the USDC / $ARCIRCLE purse on phones (the owner's screenshot, 2026-10-24): a little lower */
 html.wp-pcphone body.wp .wp-hud .wp-mini{margin-top:28px}
