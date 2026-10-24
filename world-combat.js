@@ -283,8 +283,8 @@ export function createCombat(ctx) {
     if (o.hp) st.hp = Math.max(1, Math.round(o.hp)); // AC Defense: its HP is the wave's own
     const g = new THREE.Group(); g.position.copy(p);
     const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
-    const sc = (skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow) * (bs && o.tgt ? 1.18 : 1); // an AC Defense boss stands a size up
-    const baseY = skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
+    const sc = (o.scale != null ? o.scale * (rank === "elite" ? 1.15 : 1) : skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow) * (bs && o.tgt ? 1.18 : 1); // an AC Defense boss stands a size up
+    const baseY = o.y != null ? o.y : skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
     e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);
     if (!e.own) prepEnemy(e);
@@ -306,6 +306,7 @@ export function createCombat(ctx) {
     // an elite comes with an element: frost, blazing or toxic — its own colour, motes round it and a name to match
     if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
     if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
+    if (o.name) m.spec = { ...m.spec, name: o.name, ...(o.color ? { color: o.color } : {}) }; // (world-raidq.js: an Imp, a Puglin)
     if (o.ext) { m.ext = o.ext; m.home = o.home || null; m.hp = Math.max(1, o.hp != null ? o.hp : o.max); if (o.pats) m.pats = o.pats; label(m); }
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
@@ -410,6 +411,7 @@ export function createCombat(ctx) {
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
     if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + bossEvery()); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
+    else if (m.zone && m.zone.claimTier) ctx.claim("hunt", { tier: m.zone.claimTier }, ctx.screenOf(p)); // (RAID QUEENS' grounds: a hunt of the top tier)
     else if (zi >= 0 && tier >= 2) ctx.claim("hunt", { tier }, ctx.screenOf(p));
     else ctx.claim("street", {}, ctx.screenOf(p));
     ctx.onKill && ctx.onKill({ type: m.spec.id, lv: m.lv, rank: m.rank, zone: m.zone && m.zone.id });
@@ -1369,7 +1371,7 @@ export function createCombat(ctx) {
       } }
       const next = bossAt()[z.id] || 0;
       if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + bossEvery()); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
-    } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid())) {
+    } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid()) && !(ctx.noStreet && ctx.noStreet())) { // (RAID QUEENS' land brings its own)
       if ((spawnT -= dt) <= 0) { spawnT = 22 + Math.random() * 30; if (mobs.filter((m) => !m.dead && !m.zone).length < 3) spawnMob({ lv: 1 + Math.floor(Math.random() * 3) }); }
     }
   }
@@ -1513,6 +1515,8 @@ export function createCombat(ctx) {
     spawnRaid(o) { return spawnMob({ ...o, rank: "boss", raid: true }); },
     // a shared boss another module owns (world-pumpking.js): o.ent its body, o.ext { hit(m, dmg, crit), down(m) }, o.home { x, z, r }
     spawnExt(o) { return spawnMob({ ...o, rank: "boss" }); },
+    // a monster another module owns the body of (world-raidq.js): o.ent, o.at, o.lv, o.rank ("" or "elite"), o.zone { id, name, pow, claimTier }, o.scale (its height), o.y
+    spawnOwn(o) { return spawnMob({ ...o, rank: o.rank === "elite" ? "elite" : "" }); },
     extSet(m, hpNow) { if (!m || m.dead) return; m.hp = Math.max(1, Math.min(m.max, hpNow)); label(m); if (!bossEl.hidden && bossEl.dataset.bid === String(m.barId)) bossBar(m); if (m.rank === "boss" && !m.rage && m.hp < m.max * 0.5) enrage(m); },
     extDown(m) { if (!m || m.dead) return; m.hp = 0; label(m); kill(m); },
     extGone(m) { const i = mobs.indexOf(m); if (i >= 0) { if (bossEl.dataset.bid === String(m.barId)) hideBossBar(); retire(m, i); } },

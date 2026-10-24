@@ -15,6 +15,7 @@ export const LANDS = {
   lp: { id: "lp", name: "Launchpad Village", x: 2400, z: 0, r: 70, color: 0x39ff88, css: "#39ff88" },
   ut: { id: "ut", name: "Utility Village", x: -2400, z: 0, r: 56, color: 0x4f9dff, css: "#4f9dff" },
   ad: { id: "ad", name: "Nexus City", x: 0, z: 2400, r: 92, color: 0x5fd3ff, css: "#5fd3ff" }, // AD-City 1: AGENT DIMENSION's city (world-adcity.js), by the Citadel
+  rq: { id: "rq", name: "RAID QUEENS", x: 0, z: -2400, r: 100, color: 0xff4d8d, css: "#ff4d8d" }, // RAID QUEENS (world-raidq.js): the high levels' land, through the Crimson Citadel
 };
 export const LOT_TIERS = [
   { id: "starter", name: "Starter", min: 0, N: 16, max: 2000, color: 0x9fb4c8, css: "#9fb4c8" },

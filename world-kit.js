@@ -1214,6 +1214,62 @@ async function kkBorrow(src, idleClip, ver, map = KK_BORROW) {
   })().catch((e) => { console.warn("hero moves", e); return {}; });
   kkBorrowed.set(src, p); return p;
 }
+// RAID QUEENS' monsters (Imp, Puglin: Meshy models on the UE mannequin's bones, no clips of their own): the KayKit moves
+// laid on their bones by direction. Each limb bone is turned so it points where the KayKit bone points (so the two rigs
+// needn't stand in the same rest pose: an A-pose takes a T-pose's moves); the hips turn as the KayKit hips turn, round
+// the hero's own facing, and sink as far, scaled to the leg. Sampled at 30 fps into ordinary clips named by `map`'s keys.
+const UE_BONES = { hips: /^(pelvis|hips?)$/i, spine: /^spine_?0?1$/i, chest: /^spine_?0?3$/i, head: /^head$/i, "upperarm.l": /^upperarm_l$/i, "lowerarm.l": /^lowerarm_l$/i, "wrist.l": /^hand_l$/i,
+  "upperarm.r": /^upperarm_r$/i, "lowerarm.r": /^lowerarm_r$/i, "wrist.r": /^hand_r$/i, "upperleg.l": /^thigh_l$/i, "lowerleg.l": /^calf_l$/i, "foot.l": /^foot_l$/i, "upperleg.r": /^thigh_r$/i, "lowerleg.r": /^calf_r$/i, "foot.r": /^foot_r$/i };
+const UE_CHAIN = [["spine", "chest"], ["chest", "head"], ["upperarm.l", "lowerarm.l"], ["upperarm.r", "lowerarm.r"], ["lowerarm.l", "wrist.l"], ["lowerarm.r", "wrist.r"], ["upperleg.l", "lowerleg.l"], ["upperleg.r", "lowerleg.r"], ["lowerleg.l", "foot.l"], ["lowerleg.r", "foot.r"]];
+export const KK_MONSTER = { idle: "Idle_A", walk: "Walking_A", run: "Running_A", attack: "Melee_1H_Attack_Slice_Horizontal", attack2: "Melee_2H_Attack_Chop", hit: "Hit_A", die: "Death_A", spawn: "Spawn_Ground", cast: "Ranged_Magic_Raise" };
+const borrowedDir = new WeakMap();
+export function borrowMoves(src, map = KK_MONSTER, ver = "") {
+  if (borrowedDir.has(src)) return borrowedDir.get(src);
+  const p = (async () => {
+    const g = await kkFile(ver), kk = SkeletonUtils.clone(g.scene), hero = SkeletonUtils.clone(src.scene);
+    const flat = (n) => String(n).toLowerCase().replace(/[^a-z0-9]/g, ""), kB = {}, hB = {};
+    kk.traverse((o) => { const k = Object.keys(KK_TO_MIX).find((x) => flat(x) === flat(o.name)); if (k && !kB[k]) kB[k] = o; });
+    hero.traverse((o) => { if (!o.isBone) return; const k = Object.keys(UE_BONES).find((x) => UE_BONES[x].test(o.name)); if (k && !hB[k]) hB[k] = o; });
+    if (Object.keys(kB).length < 14 || Object.keys(hB).length < 14) return {};
+    kk.updateMatrixWorld(true); hero.updateMatrixWorld(true);
+    const P = (o) => o.getWorldPosition(new THREE.Vector3()), WQ = (o) => o.getWorldQuaternion(new THREE.Quaternion());
+    const basis = (B) => { const up = P(B.head).sub(P(B.hips)).normalize(), rt = P(B["upperleg.r"]).sub(P(B["upperleg.l"])); rt.sub(up.clone().multiplyScalar(rt.dot(up))).normalize(); const fw = new THREE.Vector3().crossVectors(rt, up).normalize(); return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(rt, up, fw)); };
+    const toH = basis(hB).multiply(basis(kB).invert()), toHi = toH.clone().invert();
+    const kHip0 = WQ(kB.hips), hHip0 = WQ(hB.hips), hHipP0 = P(hB.hips), kHipY0 = P(kB.hips).y, hipL0 = hB.hips.position.clone();
+    const upW = P(hB.head).sub(hHipP0).normalize();
+    const legK = Math.abs(kHipY0 - P(kB["foot.l"]).y), legH = Math.abs(hHipP0.y - P(hB["foot.l"]).y), ratio = legH / Math.max(1e-4, legK);
+    const rest = {}; for (const k of Object.keys(hB)) rest[k] = hB[k].quaternion.clone();
+    const noTwist = (q, ax) => { const p0 = ax.clone().multiplyScalar(q.x * ax.x + q.y * ax.y + q.z * ax.z), tw = new THREE.Quaternion(p0.x, p0.y, p0.z, q.w); if (tw.lengthSq() < 1e-9) return q; tw.normalize(); return q.multiply(tw.invert()); };
+    const bones = ["hips", ...new Set(UE_CHAIN.map((c) => c[0]))], mix = new THREE.AnimationMixer(kk), out = {};
+    const pw = new THREE.Quaternion(), d = new THREE.Quaternion(), u = new THREE.Vector3(), v = new THREE.Vector3(), turn = new THREE.Quaternion();
+    for (const [as, name] of Object.entries(map)) {
+      const c = g.animations.find((x) => x.name === name); if (!c) continue;
+      const n = Math.max(2, Math.round(c.duration * 30) + 1), times = new Float32Array(n), q = {}, hp = new Float32Array(n * 3);
+      for (const k of bones) q[k] = new Float32Array(n * 4);
+      mix.stopAllAction(); const a = mix.clipAction(c); a.reset().play();
+      for (let i = 0; i < n; i++) {
+        const t = Math.min(c.duration, i / 30); times[i] = t; a.time = t; mix.update(0); kk.updateMatrixWorld(true);
+        for (const k of Object.keys(hB)) hB[k].quaternion.copy(rest[k]); hB.hips.position.copy(hipL0); hero.updateMatrixWorld(true);
+        // the hips: the KayKit hips' turn from their rest, read in the hero's frame, its spin round "up" dropped
+        d.copy(WQ(kB.hips)).multiply(kHip0.clone().invert()).premultiply(toH).multiply(toHi); noTwist(d, upW);
+        const hw = d.clone().multiply(hHip0); hB.hips.parent.getWorldQuaternion(pw); hB.hips.quaternion.copy(pw.invert().multiply(hw)); hB.hips.updateMatrixWorld(true);
+        const want = hHipP0.clone().setY(hHipP0.y + (P(kB.hips).y - kHipY0) * ratio); hp.set(hB.hips.parent.worldToLocal(want).toArray(), i * 3); hB.hips.position.fromArray(hp, i * 3); hB.hips.updateMatrixWorld(true);
+        // each limb: point it the way the KayKit one points
+        for (const [b0, b1] of UE_CHAIN) {
+          const hb = hB[b0]; v.copy(P(kB[b1])).sub(P(kB[b0])).applyQuaternion(toH).normalize(); u.copy(P(hB[b1])).sub(P(hb)).normalize();
+          if (u.lengthSq() < 1e-8 || v.lengthSq() < 1e-8) continue;
+          turn.setFromUnitVectors(u, v); const w = turn.multiply(WQ(hb)); hb.parent.getWorldQuaternion(pw); hb.quaternion.copy(pw.invert().multiply(w)); hb.updateMatrixWorld(true);
+        }
+        for (const k of bones) q[k].set([hB[k].quaternion.x, hB[k].quaternion.y, hB[k].quaternion.z, hB[k].quaternion.w], i * 4);
+      }
+      const tracks = bones.map((k) => new THREE.QuaternionKeyframeTrack(hB[k].name + ".quaternion", times, q[k]));
+      tracks.push(new THREE.VectorKeyframeTrack(hB.hips.name + ".position", times, hp));
+      out[as] = new THREE.AnimationClip("kk_" + name, c.duration, tracks);
+    }
+    return out;
+  })().catch((e) => { console.warn("monster moves", e); return {}; });
+  borrowedDir.set(src, p); return p;
+}
 // AGENT DIMENSION's agents (Meshy files with only Walking and Running): every other move comes from the KayKit file
 const KK_AGENT = { ...KK_BORROW, idle: "Idle_A", jump: "Jump_Full_Short", attack: "Melee_1H_Attack_Slice_Horizontal", hit: "Hit_A", die: "Death_A", cast: "Ranged_Magic_Raise",
   shoot: "Ranged_Magic_Shoot", dodge: "Dodge_Forward", block: "Melee_Block", "emote-no": "Idle_B", lie: "Lie_Idle", "pick-up": "PickUp", mine: "Pickaxing", chop: "Chopping", dig: "Digging" };
