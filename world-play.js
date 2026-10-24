@@ -682,7 +682,21 @@ const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; fu
 const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
 // a load that hasn't finished after 45 s says where it stopped (?world=diag errors: the step, the quality, the pixel ratio,
 // whether the graphics context was lost) — a Mac stayed at 85 % for hours (2026-10-24) and nothing had been reported
-let glLost = false; try { st.renderer.domElement.addEventListener("webglcontextlost", () => { glLost = true; }); } catch { /* no canvas */ }
+let glLost = false; try { st.renderer.domElement.addEventListener("webglcontextlost", () => { glLost = true; glLostLoading(); }); } catch { /* no canvas */ }
+// players still stuck on the loading screen (the owner, 2026-10-25; diag: iPhones and an Adreno 730 losing the graphics
+// context while the town's shaders compile, three.js then throws "shaderSource … not a WebGLShader" and the load stops):
+// lost while loading → Low graphics (fewer shaders, a smaller canvas) and one reload by itself; a second loss shows the
+// watchdog's message as before
+function glLostLoading() {
+  const b = $("wp-loadbar"); if (!b || !b.isConnected || b.style.width === "100%") return;
+  let tried = false; try { tried = !!sessionStorage.getItem("arc.gl.retry"); } catch { /* private: try once anyway */ }
+  try { diag.err(`gl lost while loading at ${loadAt} · ${S.quality || "auto"}${tried ? " · again" : " · retry light"}`, "load"); } catch { /* not sent */ }
+  if (tried) return;
+  try { sessionStorage.setItem("arc.gl.retry", "1"); const o = JSON.parse(localStorage.getItem(SETS) || "{}"); o.quality = "low"; localStorage.setItem(SETS, JSON.stringify(o)); } catch { /* reload anyway */ }
+  setTimeout(() => location.reload(), 1200);
+}
+// where the load waits, sent at 15 s too (the 45 s report below came from almost nobody: most leave before that)
+setTimeout(() => { const b = $("wp-loadbar"); if (b && b.isConnected && b.style.width !== "100%") try { diag.err(`load slow 15s at ${loadAt} · ${S.quality || "auto"} · ${glLost ? "GL LOST" : "gl ok"} · ${document.hidden ? "hidden" : "shown"}`, "load"); } catch { /* not sent */ } }, 15000);
 setTimeout(() => { const b = $("wp-loadbar"); if (b && b.isConnected && b.style.width !== "100%") try { diag.err(`load stall at ${loadAt} · ${S.quality || "auto"} · dpr ${devicePixelRatio} · ${glLost ? "GL LOST" : "gl ok"} · ${document.hidden ? "hidden" : "shown"}`, "load"); } catch { /* not sent */ } }, 45000);
 fun("open"); st.on(() => { if (!funSent.has("move") && mode === "hub" && speedNow > 1.5) fun("move"); });
 st.on((dt) => { try { diag.tick(dt); } catch { /* health counters must never stop the game */ } });
