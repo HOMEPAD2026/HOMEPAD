@@ -1,0 +1,51 @@
+/* ad-guide.css — the AGENT DIMENSION / Studio Lite guide's look (the owner's mock-up, 2026-10-24), shared by the game's
+   guide window (world-adguide.js) and /game's #adguide (gw.js); the markup comes from ARC_AD_GUIDE.html (ad-guide-data.js) */
+.adg{--adg-c:#5fd3ff;--adg-m:#7cf5c8;--adg-ink:#e8f1fb;--adg-dim:#bccde4;color:var(--adg-ink);font-family:Sora,"Noto Sans KR",sans-serif;text-align:left}
+.adg *{box-sizing:border-box}
+.adg-head{position:relative;padding:16px 18px 12px;overflow:hidden;border-radius:20px 20px 0 0;background:radial-gradient(120% 140% at 0% 0%,rgba(95,211,255,.2),transparent 60%),linear-gradient(180deg,#0e1a3d,#0a1430)}
+.adg-head-art{position:absolute;right:0;top:0;height:100%;max-height:150px;width:auto;max-width:46%;object-fit:cover;-webkit-mask-image:linear-gradient(90deg,transparent,#000 35%);mask-image:linear-gradient(90deg,transparent,#000 35%);opacity:.95;pointer-events:none}
+.adg-head small{position:relative;color:var(--adg-c);font-weight:800;font-size:13px;letter-spacing:.04em}
+.adg-head h2{position:relative;margin:4px 48px 14px 0;max-width:62%;font-size:24px;line-height:1.2;font-weight:900;background:linear-gradient(90deg,#fff 0%,#bff3ff 55%,var(--adg-c));-webkit-background-clip:text;background-clip:text;color:transparent}
+.adg-head:not(:has(.adg-head-art)) h2{max-width:none}
+.adg-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.adg-tabs button{padding:12px 8px;border-radius:14px;border:1px solid rgba(95,211,255,.3);background:rgba(8,18,44,.75);color:#d6e4f6;font:800 14px/1.15 inherit;font-family:inherit;cursor:pointer}
+.adg-tabs button.on{background:linear-gradient(90deg,#4fd8ff,#7cf5c8);color:#06203a;border-color:transparent;box-shadow:0 0 18px rgba(95,211,255,.35)}
+.adg-body{padding:12px 12px 18px}
+.adg-lead{position:relative;margin:0 0 12px;padding:14px 16px;border-radius:16px;background:rgba(10,22,52,.85);border:1px solid rgba(95,211,255,.35);font-size:15px;line-height:1.6;color:#dbe8f8}
+.adg-lead.art{padding-right:120px;min-height:92px}
+.adg-lead img{position:absolute;right:6px;bottom:0;height:88px;width:auto;pointer-events:none}
+.adg-part{margin:0 0 12px;border-radius:18px;background:rgba(9,18,44,.8);border:1px solid rgba(95,211,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.adg-part summary{display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:18px;font-weight:900;color:#fff;cursor:pointer;list-style:none}
+.adg-part summary::-webkit-details-marker{display:none}
+.adg-part summary::after{content:"+";margin-left:auto;font-size:24px;font-weight:700;color:var(--adg-m)}
+.adg-part[open] summary::after{content:"–"}
+.adg-pn{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:linear-gradient(180deg,#3d8bff,#1f5fe0);color:#fff;font-size:18px;font-weight:900;box-shadow:0 0 12px rgba(61,139,255,.45)}
+.adg-part.p0 .adg-pn{background:linear-gradient(180deg,#ff9a3d,#f06a1e);box-shadow:0 0 12px rgba(255,140,60,.45)}
+.adg-pi{font-size:22px}
+.adg-steps{list-style:none;margin:0;padding:0 10px 10px;display:grid;gap:8px}
+.adg-steps li{position:relative;display:flex;gap:10px;align-items:flex-start;min-height:84px;padding:12px;border-radius:14px;overflow:hidden;background:linear-gradient(90deg,rgba(13,26,60,.95),rgba(13,26,60,.8));border:1px solid rgba(95,211,255,.18)}
+.adg-steps li.art{padding-right:40%}
+.adg-n{flex:none;display:grid;place-items:center;width:30px;height:30px;margin-top:4px;border-radius:8px;border:2px solid rgba(95,211,255,.65);background:rgba(10,40,90,.8);color:#9fe6ff;font-size:16px;font-weight:900}
+.adg-ic{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:linear-gradient(180deg,#123a7a,#0b2456);border:1px solid rgba(95,211,255,.45);box-shadow:0 0 12px rgba(95,211,255,.25);font-style:normal;font-size:22px}
+.adg-tx{min-width:0}
+.adg-tx b{display:block;margin:3px 0 4px;font-size:16px;font-weight:900;color:#fff}
+.adg-tx p{margin:0;font-size:14px;line-height:1.55;color:var(--adg-dim)}
+.adg-art{position:absolute;right:0;top:0;height:100%;width:40%;object-fit:cover;-webkit-mask-image:linear-gradient(90deg,transparent,#000 28%);mask-image:linear-gradient(90deg,transparent,#000 28%);pointer-events:none}
+.adg-tips{list-style:none;margin:0;padding:0 10px 12px;display:grid;gap:6px}
+.adg-tips li{position:relative;padding:10px 12px 10px 38px;border-radius:12px;background:rgba(60,48,10,.55);border:1px solid rgba(255,210,58,.28);color:#ffe49a;font-size:14px;line-height:1.5}
+.adg-tips li::before{content:"💡";position:absolute;left:11px;top:9px}
+@media (max-width:560px){
+  .adg-head{padding:14px 14px 12px}.adg-head h2{font-size:19px;max-width:64%;margin-right:40px}.adg-head-art{max-width:40%}
+  .adg-tabs button{font-size:13px;padding:11px 6px}
+  .adg-body{padding:10px 8px 16px}
+  .adg-part summary{font-size:16px;padding:12px}
+  .adg-steps{padding:0 6px 8px}
+  .adg-steps li{min-height:0;padding:10px;gap:8px}
+  .adg-steps li.art{padding-right:114px;min-height:90px}
+  .adg-ic{display:none}
+  .adg-art{width:96px;height:72px;top:10px;right:8px;border-radius:10px;-webkit-mask-image:none;mask-image:none;box-shadow:0 0 0 1px rgba(95,211,255,.25)}
+  .adg-n{width:26px;height:26px;font-size:14px;margin-top:2px}
+  .adg-tx b{font-size:15px}.adg-tx p{font-size:13.5px}
+  .adg-lead{font-size:14px}.adg-lead.art{padding-right:96px}.adg-lead img{height:70px}
+}
+@media (min-width:561px){.adg-art{width:auto;max-width:34%;height:100%;object-fit:contain;object-position:right center;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%);mask-image:linear-gradient(90deg,transparent,#000 22%)}.adg-steps li.art{padding-right:34%}}

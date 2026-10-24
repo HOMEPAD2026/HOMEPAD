@@ -694,14 +694,8 @@
   // the AGENT DIMENSION / Studio Lite guide (window.ARC_AD_GUIDE from /ad-guide-data.js: the same words as the game's guide window)
   var adgTab = "studio";
   function paintAdGuide() {
-    var A = window.ARC_AD_GUIDE, box = $("#gw-adg"); if (!A || !box) return; var D = A[lang] || A.en, G = D[adgTab];
-    $("#gw-adg-k").textContent = "📖 " + D.title; $("#gw-adg-h").textContent = G.title; $("#gw-adg-lead").textContent = G.lead;
-    $("#gw-adg-tabs").innerHTML = ["studio", "ad"].map(function (k) { return '<button type="button" data-adg="' + k + '" class="' + (k === adgTab ? "on" : "") + '">' + (k === "ad" ? "🤖 " : "🎮 ") + esc(D.tabs[k]) + "</button>"; }).join("");
-    box.innerHTML = G.parts.map(function (p, i) {
-      return '<details class="gw-adg-part"' + (i < 2 ? " open" : "") + '><summary><span aria-hidden="true">' + p.icon + "</span>" + esc(p.h) + "</summary>" +
-        (p.steps ? '<ol class="gw-adg-steps">' + p.steps.map(function (s) { return "<li><i aria-hidden=\"true\">" + s[0] + "</i><div><b>" + esc(s[1]) + "</b><p>" + esc(s[2]) + "</p></div></li>"; }).join("") + "</ol>" : "") +
-        (p.tips ? '<ul class="gw-adg-tips">' + p.tips.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" : "") + "</details>";
-    }).join("");
+    var A = window.ARC_AD_GUIDE, box = $("#gw-adg"); if (!A || !A.html || !box) return;
+    box.innerHTML = A.html(lang, adgTab, esc, 2);
   }
   document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("[data-adg]"); if (!b) return; adgTab = b.getAttribute("data-adg"); paintAdGuide(); });
   function setLang(l) { if (!LANGS[l] || l === lang) return; lang = l; try { localStorage.setItem(KEY, lang); } catch (x) { /* this visit only */ } paint(); paintStats(); diag("lang", l); }

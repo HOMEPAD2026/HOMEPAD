@@ -15,10 +15,10 @@ window.ARC_AD_GUIDE = {
           ["🚀", "The shortcut", "Tap \"Go to the AD Tower\" on the launch card, or Menu → AI Agent."],
           ["🌆", "Nexus City", "The door warps you into Nexus City. Anyone can look round, even without a wallet."] ] },
         { icon: "✨", h: "2. Get your agent (Genesis Lab)", steps: [
-          ["1️⃣", "Pick one", "AURORA (gathering), ORION (mining) or VEX (scouting). Each is best at one errand."],
-          ["2️⃣", "ID and name", "Choose a unique ID (3–16 letters, numbers or _) and a name. The ID is checked before you pay."],
-          ["3️⃣", "Personality", "Write a few words, or tap a ready one. Your agent talks this way."],
-          ["4️⃣", "Pay and be born", "Launch price 100,000 $ARCIRCLE (list 200,000, 50% off until Oct 31). Confirm in your wallet, wait a moment for Arc, and watch it be born with its number."] ],
+          ["🤖", "Pick one", "AURORA (gathering), ORION (mining) or VEX (scouting). Each is best at one errand."],
+          ["🪪", "ID and name", "Choose a unique ID (3–16 letters, numbers or _) and a name. The ID is checked before you pay."],
+          ["💬", "Personality", "Write a few words, or tap a ready one. Your agent talks this way."],
+          ["🪙", "Pay and be born", "Launch price 100,000 $ARCIRCLE (list 200,000, 50% off until Oct 31). Confirm in your wallet, wait a moment for Arc, and watch it be born with its number."] ],
           tips: ["50% of every payment is burned and 50% goes to the ARCIRCLE treasury.", "Closed the tab after paying? Open the Genesis Lab again: the same payment is used — you never pay twice.", "Your agent can't move your funds. Anything on-chain always asks your own wallet first."] },
         { icon: "💬", h: "3. Your agent's window", steps: [
           ["💬", "Talk", "Chat with it (20 messages a day). It remembers its last errands — ask it to go gather, mine or scout and it offers a confirm card."],
@@ -51,11 +51,11 @@ window.ARC_AD_GUIDE = {
           ["👛", "Sign in to keep games", "You can try everything as a guest; sign in with a wallet to save and publish."] ],
           tips: ["Three tabs at the top: 🛠️ Create (make a game) · 📁 My games (your drafts and published games) · 🕹️ Creator Arcade (everyone's games)."] },
         { icon: "🛠️", h: "2. Make a game in 5 steps", steps: [
-          ["1️⃣", "Template", "Pick Sky Runner, Infinity Dash, Arena Survival or Ring Puzzle (explained below). Give it a title (up to 24 letters). Short on ideas? Type one sentence — \"a fast jungle run with lots of coins\" — and your agent drafts the whole game (10 drafts a day)."],
-          ["2️⃣", "Theme", "Choose the look: Neon City, Jungle, Ice Peaks, Lava Core or Candy Sky. The 3D preview changes at once."],
-          ["3️⃣", "Difficulty", "Tap Easy, Normal, Hard or Extreme. Under each: its stars (1 easy … 5 brutal) and the clear rate 40 test bots got. Pick the length too. Want more control? Open ⚙️ Advanced settings for each slider, and 🎲 New layout for a fresh arrangement."],
-          ["4️⃣", "Test", "Tap ▶ Test play and play it yourself. A test run isn't counted, so try as often as you like."],
-          ["5️⃣", "Publish", "💾 Save keeps it as a draft (you can keep 12). Publish puts it on the Creator Arcade for everyone. Then 🔗 Copy link to share it."] ],
+          ["📄", "Template", "Pick Sky Runner, Infinity Dash, Arena Survival or Ring Puzzle (explained below). Give it a title (up to 24 letters). Short on ideas? Type one sentence — \"a fast jungle run with lots of coins\" — and your agent drafts the whole game (10 drafts a day)."],
+          ["🎨", "Theme", "Choose the look: Neon City, Jungle, Ice Peaks, Lava Core or Candy Sky. The 3D preview changes at once."],
+          ["📊", "Difficulty", "Tap Easy, Normal, Hard or Extreme. Under each: its stars (1 easy … 5 brutal) and the clear rate 40 test bots got. Pick the length too. Want more control? Open ⚙️ Advanced settings for each slider, and 🎲 New layout for a fresh arrangement."],
+          ["▶️", "Test", "Tap ▶ Test play and play it yourself. A test run isn't counted, so try as often as you like."],
+          ["🚀", "Publish", "💾 Save keeps it as a draft (you can keep 12). Publish puts it on the Creator Arcade for everyone. Then 🔗 Copy link to share it."] ],
           tips: ["You can move between steps any time with Back / Next or by tapping the step numbers.", "The preview strip and the stars update as you change anything — no need to test after every tap."] },
         { icon: "🎮", h: "3. The four templates", steps: [
           ["🏃", "Sky Runner", "Run down 3 lanes to the finish. Switch lanes past walls, jump the gaps, slide under lasers, grab coins. 3 hearts."],
@@ -99,10 +99,10 @@ window.ARC_AD_GUIDE = {
           ["🚀", "바로가기", "출시 카드의 \"AD 타워로 가기\"를 누르거나 메뉴 → AI 에이전트."],
           ["🌆", "넥서스 시티", "문을 지나면 넥서스 시티로 워프해요. 지갑이 없어도 누구나 구경할 수 있어요."] ] },
         { icon: "✨", h: "2. 에이전트 만들기 (제네시스 랩)", steps: [
-          ["1️⃣", "고르기", "AURORA(채집), ORION(채광), VEX(정찰) 중 하나. 각자 잘하는 심부름이 있어요."],
-          ["2️⃣", "ID와 이름", "고유 ID(영문·숫자·_ 3~16자)와 이름을 정해요. ID는 결제 전에 확인해요."],
-          ["3️⃣", "성격", "몇 마디로 쓰거나 준비된 성격을 눌러요. 에이전트가 그 말투로 말해요."],
-          ["4️⃣", "결제하고 탄생", "출시가 100,000 $ARCIRCLE (정가 200,000, 10월 31일까지 50% 할인). 지갑에서 승인하고 Arc 확인을 잠시 기다리면 번호와 함께 탄생해요."] ],
+          ["🤖", "고르기", "AURORA(채집), ORION(채광), VEX(정찰) 중 하나. 각자 잘하는 심부름이 있어요."],
+          ["🪪", "ID와 이름", "고유 ID(영문·숫자·_ 3~16자)와 이름을 정해요. ID는 결제 전에 확인해요."],
+          ["💬", "성격", "몇 마디로 쓰거나 준비된 성격을 눌러요. 에이전트가 그 말투로 말해요."],
+          ["🪙", "결제하고 탄생", "출시가 100,000 $ARCIRCLE (정가 200,000, 10월 31일까지 50% 할인). 지갑에서 승인하고 Arc 확인을 잠시 기다리면 번호와 함께 탄생해요."] ],
           tips: ["결제액의 50%는 소각되고 50%는 ARCIRCLE 트레저리로 가요.", "결제 후 창을 닫았나요? 제네시스 랩을 다시 열면 같은 결제가 쓰여요 — 두 번 내지 않아요.", "에이전트는 내 자산을 옮길 수 없어요. 온체인 작업은 항상 내 지갑이 먼저 물어봐요."] },
         { icon: "💬", h: "3. 에이전트 창", steps: [
           ["💬", "대화", "하루 20번 대화해요. 최근 심부름을 기억하고, 채집·채광·정찰을 부탁하면 확인 카드를 띄워요."],
@@ -135,11 +135,11 @@ window.ARC_AD_GUIDE = {
           ["👛", "로그인하면 저장", "게스트로도 다 해 볼 수 있어요. 저장과 게시는 지갑 로그인이 필요해요."] ],
           tips: ["위쪽 탭 세 개: 🛠️ 만들기 · 📁 내 게임(임시 저장·게시한 게임) · 🕹️ 크리에이터 아케이드(모두의 게임)."] },
         { icon: "🛠️", h: "2. 5단계로 게임 만들기", steps: [
-          ["1️⃣", "템플릿", "스카이 러너, 인피니티 대시, 아레나 서바이벌, 링 퍼즐 중 하나를 골라요 (아래 설명). 제목을 붙여요 (24자까지). 아이디어가 없나요? \"코인이 많은 빠른 정글 런\"처럼 한 문장을 쓰면 에이전트가 게임 전체를 만들어 줘요 (하루 10번)."],
-          ["2️⃣", "테마", "네온 시티, 정글, 얼음 봉우리, 용암 코어, 캔디 스카이 중에서 골라요. 3D 미리보기가 바로 바뀌어요."],
-          ["3️⃣", "난이도", "쉬움·보통·어려움·극한 중 하나를 눌러요. 각각 별(1 쉬움 … 5 극악)과 테스트 봇 40명의 클리어율이 보여요. 길이도 골라요. 더 세세하게? ⚙️ 고급 설정에서 슬라이더를, 🎲 새 레이아웃으로 새로운 배치를 만들어요."],
-          ["4️⃣", "테스트", "▶ 테스트 플레이로 직접 해 봐요. 테스트 기록은 집계되지 않으니 마음껏 해 보세요."],
-          ["5️⃣", "게시", "💾 저장하면 임시 저장(12개까지). 게시하면 크리에이터 아케이드에 올라가 모두가 플레이해요. 🔗 링크 복사로 공유하세요."] ],
+          ["📄", "템플릿", "스카이 러너, 인피니티 대시, 아레나 서바이벌, 링 퍼즐 중 하나를 골라요 (아래 설명). 제목을 붙여요 (24자까지). 아이디어가 없나요? \"코인이 많은 빠른 정글 런\"처럼 한 문장을 쓰면 에이전트가 게임 전체를 만들어 줘요 (하루 10번)."],
+          ["🎨", "테마", "네온 시티, 정글, 얼음 봉우리, 용암 코어, 캔디 스카이 중에서 골라요. 3D 미리보기가 바로 바뀌어요."],
+          ["📊", "난이도", "쉬움·보통·어려움·극한 중 하나를 눌러요. 각각 별(1 쉬움 … 5 극악)과 테스트 봇 40명의 클리어율이 보여요. 길이도 골라요. 더 세세하게? ⚙️ 고급 설정에서 슬라이더를, 🎲 새 레이아웃으로 새로운 배치를 만들어요."],
+          ["▶️", "테스트", "▶ 테스트 플레이로 직접 해 봐요. 테스트 기록은 집계되지 않으니 마음껏 해 보세요."],
+          ["🚀", "게시", "💾 저장하면 임시 저장(12개까지). 게시하면 크리에이터 아케이드에 올라가 모두가 플레이해요. 🔗 링크 복사로 공유하세요."] ],
           tips: ["뒤로/다음 버튼이나 단계 숫자를 눌러 언제든 단계를 오갈 수 있어요.", "바꿀 때마다 미리보기와 별이 바로 바뀌어요 — 매번 테스트할 필요 없어요."] },
         { icon: "🎮", h: "3. 템플릿 4종", steps: [
           ["🏃", "스카이 러너", "3개 레인을 달려 결승선까지. 벽은 레인을 바꿔 피하고, 구멍은 점프, 레이저는 슬라이드, 코인은 모아요. 하트 3개."],
@@ -183,10 +183,10 @@ window.ARC_AD_GUIDE = {
           ["🚀", "快捷方式", "点上线卡片上的「前往 AD 塔」，或 菜单 → AI 智能体。"],
           ["🌆", "Nexus 城", "穿过大门即传送到 Nexus 城。即使没有钱包也能随意参观。"] ] },
         { icon: "✨", h: "2. 获得智能体（创世实验室）", steps: [
-          ["1️⃣", "挑选", "AURORA（采集）、ORION（采矿）或 VEX（侦察），各有最擅长的任务。"],
-          ["2️⃣", "ID 和名字", "选一个唯一 ID（3–16 个字母、数字或 _）和名字。付款前会先检查 ID。"],
-          ["3️⃣", "性格", "写几个词，或点一个现成的。智能体会用这种语气说话。"],
-          ["4️⃣", "付款并诞生", "上线价 100,000 $ARCIRCLE（原价 200,000，10 月 31 日前五折）。在钱包中确认，稍等 Arc 确认，就能看到它带着编号诞生。"] ],
+          ["🤖", "挑选", "AURORA（采集）、ORION（采矿）或 VEX（侦察），各有最擅长的任务。"],
+          ["🪪", "ID 和名字", "选一个唯一 ID（3–16 个字母、数字或 _）和名字。付款前会先检查 ID。"],
+          ["💬", "性格", "写几个词，或点一个现成的。智能体会用这种语气说话。"],
+          ["🪙", "付款并诞生", "上线价 100,000 $ARCIRCLE（原价 200,000，10 月 31 日前五折）。在钱包中确认，稍等 Arc 确认，就能看到它带着编号诞生。"] ],
           tips: ["每笔付款 50% 销毁，50% 进入 ARCIRCLE 金库。", "付款后关掉了页面？再次打开创世实验室，会使用同一笔付款——绝不会重复付款。", "智能体无法动用你的资金。任何链上操作都会先由你的钱包确认。"] },
         { icon: "💬", h: "3. 智能体窗口", steps: [
           ["💬", "聊天", "每天 20 条消息。它记得最近的任务——让它去采集、采矿或侦察，它会弹出确认卡片。"],
@@ -219,11 +219,11 @@ window.ARC_AD_GUIDE = {
           ["👛", "登录后可保存", "游客也能全部试用；用钱包登录才能保存和发布。"] ],
           tips: ["顶部三个标签：🛠️ 制作 · 📁 我的游戏（草稿和已发布）· 🕹️ 创作者街机厅（所有人的游戏）。"] },
         { icon: "🛠️", h: "2. 5 步做出游戏", steps: [
-          ["1️⃣", "模板", "选择天空跑者、无限冲刺、竞技场生存或圆环解谜（见下）。起个标题（最多 24 个字符）。没灵感？写一句话——比如「金币很多的快速丛林跑酷」——智能体会帮你生成整个游戏（每天 10 次）。"],
-          ["2️⃣", "主题", "选择外观：霓虹城、丛林、冰峰、熔岩核心或糖果天空。3D 预览立即更新。"],
-          ["3️⃣", "难度", "点简单、普通、困难或极限。每项下方显示星级（1 简单 … 5 残酷）和 40 个测试机器人的通关率。也可以选长度。想更细？打开 ⚙️ 高级设置调整每个滑块，用 🎲 新布局换一种排列。"],
-          ["4️⃣", "试玩", "点 ▶ 试玩亲自玩一遍。试玩不计入成绩，想玩几次都行。"],
-          ["5️⃣", "发布", "💾 保存为草稿（最多 12 个）。发布后上架创作者街机厅，所有人都能玩。再用 🔗 复制链接分享。"] ],
+          ["📄", "模板", "选择天空跑者、无限冲刺、竞技场生存或圆环解谜（见下）。起个标题（最多 24 个字符）。没灵感？写一句话——比如「金币很多的快速丛林跑酷」——智能体会帮你生成整个游戏（每天 10 次）。"],
+          ["🎨", "主题", "选择外观：霓虹城、丛林、冰峰、熔岩核心或糖果天空。3D 预览立即更新。"],
+          ["📊", "难度", "点简单、普通、困难或极限。每项下方显示星级（1 简单 … 5 残酷）和 40 个测试机器人的通关率。也可以选长度。想更细？打开 ⚙️ 高级设置调整每个滑块，用 🎲 新布局换一种排列。"],
+          ["▶️", "试玩", "点 ▶ 试玩亲自玩一遍。试玩不计入成绩，想玩几次都行。"],
+          ["🚀", "发布", "💾 保存为草稿（最多 12 个）。发布后上架创作者街机厅，所有人都能玩。再用 🔗 复制链接分享。"] ],
           tips: ["随时可以用 返回/下一步 或点步骤编号切换。", "每次修改，预览和星级都会立刻更新——不必每次都试玩。"] },
         { icon: "🎮", h: "3. 四种模板", steps: [
           ["🏃", "天空跑者", "在 3 条跑道上冲向终点。换道躲墙、跳过缺口、滑过激光、收集金币。3 颗心。"],
@@ -267,10 +267,10 @@ window.ARC_AD_GUIDE = {
           ["🚀", "Kısayol", "Çıkış kartındaki \"AD Kulesi'ne git\"e dokun ya da Menü → Yapay Zekâ Ajanı."],
           ["🌆", "Nexus Şehri", "Kapı seni Nexus Şehri'ne ışınlar. Cüzdanı olmayan da gezebilir."] ] },
         { icon: "✨", h: "2. Ajanını al (Genesis Lab)", steps: [
-          ["1️⃣", "Birini seç", "AURORA (toplama), ORION (madencilik) ya da VEX (keşif). Her biri bir görevde en iyisidir."],
-          ["2️⃣", "Kimlik ve ad", "Benzersiz bir kimlik (3–16 harf, rakam ya da _) ve bir ad seç. Kimlik ödemeden önce kontrol edilir."],
-          ["3️⃣", "Kişilik", "Birkaç kelime yaz ya da hazır birine dokun. Ajanın böyle konuşur."],
-          ["4️⃣", "Öde ve doğsun", "Çıkış fiyatı 100.000 $ARCIRCLE (liste 200.000, 31 Ekim'e kadar %50 indirim). Cüzdanında onayla, Arc için biraz bekle ve numarasıyla doğuşunu izle."] ],
+          ["🤖", "Birini seç", "AURORA (toplama), ORION (madencilik) ya da VEX (keşif). Her biri bir görevde en iyisidir."],
+          ["🪪", "Kimlik ve ad", "Benzersiz bir kimlik (3–16 harf, rakam ya da _) ve bir ad seç. Kimlik ödemeden önce kontrol edilir."],
+          ["💬", "Kişilik", "Birkaç kelime yaz ya da hazır birine dokun. Ajanın böyle konuşur."],
+          ["🪙", "Öde ve doğsun", "Çıkış fiyatı 100.000 $ARCIRCLE (liste 200.000, 31 Ekim'e kadar %50 indirim). Cüzdanında onayla, Arc için biraz bekle ve numarasıyla doğuşunu izle."] ],
           tips: ["Her ödemenin %50'si yakılır, %50'si ARCIRCLE hazinesine gider.", "Ödedikten sonra sekmeyi mi kapattın? Genesis Lab'nı yeniden aç: aynı ödeme kullanılır — asla iki kez ödemezsin.", "Ajanın paranı hareket ettiremez. Zincir üstündeki her şey önce kendi cüzdanına sorar."] },
         { icon: "💬", h: "3. Ajanının penceresi", steps: [
           ["💬", "Sohbet", "Günde 20 mesaj. Son görevlerini hatırlar — toplamaya, madenciliğe ya da keşfe gitmesini iste, onay kartı açar."],
@@ -303,11 +303,11 @@ window.ARC_AD_GUIDE = {
           ["👛", "Saklamak için giriş", "Misafir olarak her şeyi deneyebilirsin; kaydetmek ve yayınlamak için cüzdanla giriş yap."] ],
           tips: ["Üstte üç sekme: 🛠️ Oluştur · 📁 Oyunlarım (taslaklar ve yayınlananlar) · 🕹️ Creator Arcade (herkesin oyunları)."] },
         { icon: "🛠️", h: "2. 5 adımda oyun yap", steps: [
-          ["1️⃣", "Şablon", "Gökyüzü Koşucusu, Sonsuz Koşu, Arena Hayatta Kalma ya da Halka Bulmacası seç (aşağıda). Bir başlık ver (24 harfe kadar). Fikrin mi yok? Tek cümle yaz — \"bol paralı hızlı bir orman koşusu\" — ajanın tüm oyunu taslak olarak hazırlar (günde 10)."],
-          ["2️⃣", "Tema", "Görünümü seç: Neon Şehir, Orman, Buz Zirveleri, Lav Çekirdeği ya da Şeker Gökyüzü. 3B önizleme anında değişir."],
-          ["3️⃣", "Zorluk", "Kolay, Normal, Zor ya da Aşırı'ya dokun. Her birinin altında yıldızları (1 kolay … 5 acımasız) ve 40 test botunun geçme oranı görünür. Uzunluğu da seç. Daha fazla kontrol? ⚙️ Gelişmiş ayarlarda her kaydırıcı, 🎲 Yeni düzen ile yeni bir dizilim."],
-          ["4️⃣", "Dene", "▶ Test oyunu ile kendin oyna. Deneme sayılmaz, istediğin kadar dene."],
-          ["5️⃣", "Yayınla", "💾 Kaydet taslak olarak saklar (12'ye kadar). Yayınla, oyunu herkes için Creator Arcade'na koyar. Sonra 🔗 Bağlantıyı kopyala ile paylaş."] ],
+          ["📄", "Şablon", "Gökyüzü Koşucusu, Sonsuz Koşu, Arena Hayatta Kalma ya da Halka Bulmacası seç (aşağıda). Bir başlık ver (24 harfe kadar). Fikrin mi yok? Tek cümle yaz — \"bol paralı hızlı bir orman koşusu\" — ajanın tüm oyunu taslak olarak hazırlar (günde 10)."],
+          ["🎨", "Tema", "Görünümü seç: Neon Şehir, Orman, Buz Zirveleri, Lav Çekirdeği ya da Şeker Gökyüzü. 3B önizleme anında değişir."],
+          ["📊", "Zorluk", "Kolay, Normal, Zor ya da Aşırı'ya dokun. Her birinin altında yıldızları (1 kolay … 5 acımasız) ve 40 test botunun geçme oranı görünür. Uzunluğu da seç. Daha fazla kontrol? ⚙️ Gelişmiş ayarlarda her kaydırıcı, 🎲 Yeni düzen ile yeni bir dizilim."],
+          ["▶️", "Dene", "▶ Test oyunu ile kendin oyna. Deneme sayılmaz, istediğin kadar dene."],
+          ["🚀", "Yayınla", "💾 Kaydet taslak olarak saklar (12'ye kadar). Yayınla, oyunu herkes için Creator Arcade'na koyar. Sonra 🔗 Bağlantıyı kopyala ile paylaş."] ],
           tips: ["Geri / İleri ile ya da adım numaralarına dokunarak istediğin zaman adımlar arasında geçebilirsin.", "Bir şeyi değiştirdikçe önizleme ve yıldızlar anında güncellenir — her dokunuşta denemene gerek yok."] },
         { icon: "🎮", h: "3. Dört şablon", steps: [
           ["🏃", "Gökyüzü Koşucusu", "3 şeritte bitişe koş. Duvarlardan şerit değiştirerek kaç, boşlukları atla, lazerlerin altından kay, paraları topla. 3 can."],
@@ -341,3 +341,30 @@ window.ARC_AD_GUIDE = {
     },
   },
 };
+
+// the art beside each step (cut from the owner's guide mock-up, images/ui/guide/*.webp), by part and step index; the
+// same in every language
+window.ARC_AD_GUIDE.art = {
+  studio: { head: "studio-head", steps: { "0-0": "portal", "0-1": "studio", "1-0": "tpl", "1-1": "theme", "1-2": "diff", "1-3": "test", "1-4": "publish" } },
+  ad: { lead: "robot", steps: { "0-0": "citadel", "0-2": "city", "1-0": "agents", "1-3": "summon", "2-1": "errands" } },
+};
+
+// one way to draw it, for the game's window and /game alike (styles: /ad-guide.css). → HTML of the tabs, the lead and the
+// parts; open: how many parts start open
+window.ARC_AD_GUIDE.html = function (lang, tab, esc, open) {
+  var A = window.ARC_AD_GUIDE, D = A[lang] || A.en, G = D[tab], ART = A.art[tab] || { steps: {} }, img = function (n) { return "/images/ui/guide/" + n + ".webp?v=1"; };
+  var nOpen = open == null ? 2 : open;
+  var head = '<header class="adg-head">' + (ART.head ? '<img class="adg-head-art" src="' + img(ART.head) + '" alt="" loading="lazy">' : "") +
+    '<small>📖 ' + esc(D.title) + '</small><h2>' + esc(G.title) + '</h2>' +
+    '<nav class="adg-tabs">' + ["ad", "studio"].map(function (k) { return '<button type="button" data-adg="' + k + '" class="' + (k === tab ? "on" : "") + '">' + (k === "ad" ? "🤖 " : "🎮 ") + esc(D.tabs[k]) + "</button>"; }).join("") + "</nav></header>";
+  var lead = '<p class="adg-lead' + (ART.lead ? " art" : "") + '">' + esc(G.lead) + (ART.lead ? '<img src="' + img(ART.lead) + '" alt="" loading="lazy">' : "") + "</p>";
+  var parts = G.parts.map(function (p, i) {
+    var h = String(p.h).replace(/^\d+\.\s*/, "");
+    var steps = p.steps ? '<ol class="adg-steps">' + p.steps.map(function (s, j) { var a = ART.steps[i + "-" + j];
+      return '<li class="' + (a ? "art" : "") + '"><b class="adg-n">' + (j + 1) + '</b><i class="adg-ic" aria-hidden="true">' + s[0] + '</i><div class="adg-tx"><b>' + esc(s[1]) + "</b><p>" + esc(s[2]) + "</p></div>" + (a ? '<img class="adg-art" src="' + img(a) + '" alt="" loading="lazy">' : "") + "</li>"; }).join("") + "</ol>" : "";
+    var tips = p.tips ? '<ul class="adg-tips">' + p.tips.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" : "";
+    return '<details class="adg-part p' + i + '"' + (i < nOpen ? " open" : "") + '><summary><b class="adg-pn">' + (i + 1) + '</b><span class="adg-pi" aria-hidden="true">' + p.icon + "</span>" + esc(h) + "</summary>" + steps + tips + "</details>";
+  }).join("");
+  return head + '<div class="adg-body">' + lead + parts + "</div>";
+};
+
