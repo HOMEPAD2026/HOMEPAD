@@ -3281,6 +3281,15 @@ html.wp-pcphone .wp-hud-l>:is(.wp-chips,#wc-vit,#wp-quests){margin-left:0;align-
 .wst-tpl{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#eef3f7;cursor:pointer}
 .wst-tpl i{font-style:normal;font-size:24px}.wst-tpl b{font:800 12px/1.2 Sora,sans-serif;text-align:center}.wst-tpl small{font:700 10px/1 Sora,sans-serif;color:#ffe066}
 .wst-tpl.on{border-color:#7cf5c8;background:rgba(124,245,200,.14);box-shadow:0 0 0 1px #7cf5c8 inset}.wst-tpl.soon{opacity:.55;cursor:default}
+/* (Studio: the owner's look, 2026-10-24 — header art on the right, the templates as art cards; images/ui/studio cut from the mock-up) */
+.wst-h{position:relative;overflow:hidden;min-height:74px;padding:18px 60px 10px 22px}
+.wst-h::before{content:"";position:absolute;top:0;right:0;bottom:0;width:min(62%,420px);background:url(/images/ui/studio/head.webp?v=1) right center/cover no-repeat;-webkit-mask:linear-gradient(90deg,transparent,#000 38%);mask:linear-gradient(90deg,transparent,#000 38%);pointer-events:none}
+.wst-h>*{position:relative}.wst-h h2{font-size:28px;text-shadow:0 2px 12px rgba(0,0,0,.5)}.wst-h .wst-x{z-index:2}
+.wst-tpl{position:relative;overflow:hidden;gap:0;padding:0 0 8px;border-radius:16px;background:linear-gradient(180deg,#14284c,#0b1730)}
+.wst-art{display:block;width:100%;aspect-ratio:3.2/1;background:center/cover no-repeat;margin-bottom:-14px;-webkit-mask:linear-gradient(180deg,#000 60%,transparent);mask:linear-gradient(180deg,#000 60%,transparent)}
+.wst-tpl b{position:relative;font:900 14px/1.2 Sora,sans-serif;text-shadow:0 1px 4px rgba(0,0,0,.8);padding:0 6px}.wst-tpl small{position:relative;margin-top:2px;font-size:11px}
+.wst-tpl.on{border-color:#7cf5c8;box-shadow:0 0 0 2px #7cf5c8 inset,0 0 16px rgba(124,245,200,.45)}.wst-tpl.soon{opacity:.9}.wst-tpl.soon .wst-art{filter:saturate(.75) brightness(.85)}
+.wst-tpl:not(:disabled):hover .wst-art{transform:scale(1.04)}.wst-art{transition:transform .2s}
 .wst-ai{margin-top:12px;padding:12px;border-radius:14px;background:linear-gradient(90deg,rgba(180,140,255,.16),rgba(95,211,255,.12));border:1px solid rgba(180,140,255,.4)}
 .wst-ai>b{font:800 13px/1.2 Sora,sans-serif}.wst-airow{display:flex;gap:8px;margin-top:8px}
 .wst-airow input,.wst-title input{flex:1;min-width:0;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;font:600 14px/1.2 Sora,sans-serif}
@@ -3297,6 +3306,7 @@ html.wp-pcphone .wp-hud-l>:is(.wp-chips,#wc-vit,#wp-quests){margin-left:0;align-
 .wst-go.big{flex:1;padding:14px}.wst-go.alt{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}.wst-go:disabled{opacity:.5}
 .wst-card{display:flex;gap:12px;margin-bottom:10px;padding:10px;border-radius:14px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:rgba(255,255,255,.04)}
 .wst-cv{flex:0 0 92px;height:76px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--b),color-mix(in srgb,var(--c) 40%,#000));box-shadow:0 0 0 1px var(--c) inset}
+.wst-cv[style*="url("]{background-size:cover;background-position:center}
 .wst-cv i{font-style:normal;font-size:26px}.wst-cv em{font:800 10px/1 Sora,sans-serif;font-style:normal;color:#fff;text-shadow:0 1px 2px #000}
 .wst-ci{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.wst-ci b{font:900 15px/1.2 Sora,sans-serif}.wst-ci small{color:#9fb4c8;font:600 12px/1.3 Sora,sans-serif}
 .wst-cb{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}.wst-cb button{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font:800 12px/1 Sora,sans-serif;cursor:pointer}

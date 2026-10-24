@@ -1915,7 +1915,7 @@ function routeTo(g) {
 }
 // how many are in each land now (other players' figures), under the portals' names
 // AD-City 4: other players' agents beside them in Nexus City (their presence's ag "kind:name")
-every(1000, () => { try { if (!adc || !adc.shown() || !ghosts) return; const L = []; ghosts.each((g, w) => { if (!w.ag || w.gone) return; const [kind, name] = String(w.ag).split(":"); L.push({ key: w.wallet || String(w.at), kind, name, x: g.position.x, z: g.position.z }); }); adc.others(L); } catch { /* the next second */ } });
+every(1000, () => { try { if (!adc || !adc.shown() || !ghosts) return; const L = []; ghosts.each((g, w) => { if (!w.ag || w.gone) return; const [kind, name] = String(w.ag).split(":"); L.push({ key: w.wallet || String(w.at), kind, name, x: g.position.x, z: g.position.z }); }); if (/[?&]adwork=demo/.test(location.search)) { const v = here(new THREE.Vector3()), t = performance.now() / 1000; L.push({ key: "demo-a", kind: "aurora", name: "NOVA", x: v.x + 6 + Math.sin(t / 3) * 5, z: v.z - 4 }, { key: "demo-o", kind: "orion", name: "ATLAS", x: v.x - 6, z: v.z - 5 + Math.cos(t / 3) * 5 }); } /* (?adwork=demo: two other players' agents walking near you) */ adc.others(L); } catch { /* the next second */ } });
 every(5000, () => { try { if (!ghosts || mode !== "hub") return; const n = { lp: 0, ut: 0, ad: 0 }; ghosts.each((g, w) => { if (w.gone) return; const L = LD.landAt(g.position.x, g.position.z); if (L) n[L.id]++; }); lands.count("lp", n.lp); lands.count("ut", n.ut); } catch { /* next time */ } });
 function goGameVillage() {
   if (defenseOn || frozen || flying || introOn || mode !== "hub") return; closeAll();
