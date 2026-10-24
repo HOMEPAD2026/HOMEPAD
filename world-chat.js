@@ -259,6 +259,8 @@ export function createChat(ctx) {
 
   return {
     show, hide, isOpen: () => open, unread: () => un.dm + un.q, party,
+    /// for the Character window's Community pane: your friends (online first) and the last lines said here
+    friendsList: () => (fr ? fr.list.filter((x) => x.st === "friend").map((x) => ({ w: x.w, n: nameOf(x.w), on: !!x.on, seen: x.seen || 0 })).sort((a, b) => b.on - a.on) : null), loadFriends: () => loadFriends(), lines: () => local.list.slice(-4).map((m) => ({ n: m.n || short(m.w), m: m.m || m.t || "" })),
     /// your friends' wallets (as last loaded): the town waves when one comes close
     friendWs: () => (fr ? fr.list.filter((x) => x.st === "friend").map((x) => String(x.w).toLowerCase()) : []),
     /// muted here or blocked: their lines don't float over their figure either

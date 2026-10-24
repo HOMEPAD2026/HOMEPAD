@@ -172,6 +172,9 @@ Object.assign(WORDS.tr, { "Daily": "Günlük" });
 Object.assign(WORDS.ko, { "Login streak": "연속 출석", "{n}-day streak": "{n}일 연속", "Open today's chest": "오늘의 상자 열기" });
 Object.assign(WORDS.zh, { "Login streak": "连续登录", "{n}-day streak": "连续 {n} 天", "Open today's chest": "打开今日宝箱" });
 Object.assign(WORDS.tr, { "Login streak": "Giriş serisi", "{n}-day streak": "{n} günlük seri", "Open today's chest": "Bugünün sandığını aç" });
+Object.assign(WORDS.ko, { "Meet friends, join crews, chat and play together.": "친구를 만나고, 크루에 들고, 함께 채팅하고 플레이해요.", "Find friends": "친구 찾기", "Party finder": "파티 찾기", "Chat": "채팅", "online": "접속", "Online": "접속 중", "Offline": "오프라인", "Sign in with a wallet to see your friends.": "지갑으로 로그인하면 친구가 보여요.", "No friends yet: tap a name in chat to add one.": "아직 친구가 없어요: 채팅에서 이름을 눌러 추가하세요.", "Players here now": "지금 여기 있는 플레이어", "Invite to party": "파티 초대", "Invited": "초대함", "Nobody else is in town right now. Invite a friend!": "지금 마을에 다른 사람이 없어요. 친구를 초대해 보세요!", "Chat here": "이곳 채팅", "Open chat": "채팅 열기", "Quiet here. Say hello!": "조용하네요. 인사해 보세요!", "Top players": "상위 플레이어", "Collection progress": "수집 진행도", "Set bonuses": "세트 보너스", "Complete a column in the item codex for a bonus that lasts.": "아이템 도감의 한 줄을 완성하면 영구 보너스를 받아요.", "Critical +{n}": "치명타 +{n}", "Speed +{n}": "이동속도 +{n}", "Search the bag": "가방 검색", "Rarity": "등급", "{n} picked": "{n}개 선택", "Sell picked": "선택 판매", "Salvage picked": "선택 분해", "Sign in with a wallet to make a party.": "지갑으로 로그인하면 파티를 만들 수 있어요." });
+Object.assign(WORDS.zh, { "Meet friends, join crews, chat and play together.": "结识朋友、加入团队、一起聊天和游戏。", "Find friends": "找朋友", "Party finder": "组队", "Chat": "聊天", "online": "在线", "Online": "在线", "Offline": "离线", "Sign in with a wallet to see your friends.": "用钱包登录查看好友。", "No friends yet: tap a name in chat to add one.": "还没有好友：在聊天中点名字即可添加。", "Players here now": "此处在线玩家", "Invite to party": "邀请组队", "Invited": "已邀请", "Nobody else is in town right now. Invite a friend!": "现在镇上没有其他人。邀请一位朋友吧！", "Chat here": "此处聊天", "Open chat": "打开聊天", "Quiet here. Say hello!": "这里很安静。打个招呼吧！", "Top players": "顶尖玩家", "Collection progress": "收集进度", "Set bonuses": "套装加成", "Complete a column in the item codex for a bonus that lasts.": "完成物品图鉴的一列即可获得永久加成。", "Critical +{n}": "暴击 +{n}", "Speed +{n}": "速度 +{n}", "Search the bag": "搜索背包", "Rarity": "品质", "{n} picked": "已选 {n} 个", "Sell picked": "出售所选", "Salvage picked": "分解所选", "Sign in with a wallet to make a party.": "用钱包登录即可组队。" });
+Object.assign(WORDS.tr, { "Meet friends, join crews, chat and play together.": "Arkadaş edin, ekiplere katıl, birlikte sohbet et ve oyna.", "Find friends": "Arkadaş bul", "Party finder": "Parti bul", "Chat": "Sohbet", "online": "çevrimiçi", "Online": "Çevrimiçi", "Offline": "Çevrimdışı", "Sign in with a wallet to see your friends.": "Arkadaşlarını görmek için cüzdanla giriş yap.", "No friends yet: tap a name in chat to add one.": "Henüz arkadaş yok: eklemek için sohbette bir isme dokun.", "Players here now": "Şu an burada olanlar", "Invite to party": "Partiye davet et", "Invited": "Davet edildi", "Nobody else is in town right now. Invite a friend!": "Şu an kasabada kimse yok. Bir arkadaşını davet et!", "Chat here": "Buradaki sohbet", "Open chat": "Sohbeti aç", "Quiet here. Say hello!": "Burası sessiz. Merhaba de!", "Top players": "En iyi oyuncular", "Collection progress": "Koleksiyon ilerlemesi", "Set bonuses": "Set bonusları", "Complete a column in the item codex for a bonus that lasts.": "Kalıcı bonus için eşya kodeksinde bir sütunu tamamla.", "Critical +{n}": "Kritik +{n}", "Speed +{n}": "Hız +{n}", "Search the bag": "Çantada ara", "Rarity": "Nadirlik", "{n} picked": "{n} seçildi", "Sell picked": "Seçilenleri sat", "Salvage picked": "Seçilenleri parçala", "Sign in with a wallet to make a party.": "Parti kurmak için cüzdanla giriş yap." });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
@@ -5484,12 +5487,17 @@ function hubAct(k) {
   if (k.startsWith("bossgo:")) { const b = bossList()[+k.slice(7)]; if (b && b.go) b.go(); return true; }
   if (k === "today") { const c = itemCodex && itemCodex.state ? itemCodex.state() : null; let chest = false; try { chest = !!arclShop.dailyDone(); } catch { /* not built yet */ } return { pend: quests && quests.pending ? quests.pending() : 0, chest, codex: c && c.data ? `${c.data.n} / ${c.data.all}` : "" }; }
   if (k === "daily") { rpg.hide(); return arclShop.openDaily(); }
+  if (k === "friendsList") { try { if (!sess()) return null; const f = chatUI && chatUI.friendsList ? chatUI.friendsList() : null; if (f == null && chatUI && chatUI.loadFriends) chatUI.loadFriends().then(() => rpg.repaint()); return f || []; } catch { return null; } }
+  if (k === "here") { try { return ghosts ? ghosts.named().filter((g) => g.name).sort((a, b) => (b.lv || 0) - (a.lv || 0)) : []; } catch { return []; } }
+  if (k === "lines") { try { return chatUI && chatUI.lines ? chatUI.lines() : []; } catch { return []; } }
+  if (k === "top") { const d = quests && quests.dir ? quests.dir() : null; if (!d && quests && quests.loadDir && !topAsk) { topAsk = true; quests.loadDir().then(() => rpg.repaint()).catch(() => {}); } return ((d && d.list) || []).slice().sort((a, b) => (b.lv || 0) - (a.lv || 0)).slice(0, 5).map((r) => ({ n: r.n || r.name, lv: r.lv })); }
+  if (k.startsWith("invite:")) { try { const p = partyUI(); if (p && p.invite) p.invite(k.slice(7)); else toast(TW("Sign in with a wallet to make a party.")); } catch { toast(TW("Couldn't open it — try again")); } return true; }
   if (k === "streak") { try { return sess() ? arclShop.streak() : null; } catch { return null; } }
   if (k === "name") return P.name || "";
   if (k === "hero") { const h = String(heroOf(P.char || "")).replace("custom-", ""); return /^(aron|lumi|nex)$/.test(h) ? h : "aron"; }
   if (k === "xp") { const x = RPG.xpProgress(P.xp || 0); return x.need ? { a: x.into, b: x.need, k: Math.max(0, Math.min(1, x.into / x.need)) } : null; }
   if (k === "events") return plazaEvents().map((e) => ({ ...e, left: evLeft(e.at) }));
-  if (k === "counts") { const c = itemCodex && itemCodex.state ? itemCodex.state() : null; return { items: c && c.data ? `${c.data.n} / ${c.data.all}` : "" }; }
+  if (k === "counts") { const c = itemCodex && itemCodex.state ? itemCodex.state() : null, q = quests && quests.codexCount ? quests.codexCount() : null; return { items: c && c.data ? `${c.data.n} / ${c.data.all}` : "", scam: q ? `${q.got} / ${q.all}` : "", ach: q ? `${q.ach} / ${q.achAll}` : "", bonus: c && c.data ? c.data.bonus : cxBonus }; }
   if (k === "map") return openMap();
   if (k === "crew") return crewUI.show();
   if (k === "friends") return chatUI && chatUI.show();
@@ -5500,7 +5508,7 @@ function hubAct(k) {
   return null;
 }
 /// the item codex (world-codex.js; the marks and the milestones are the server's: api/_world-codex.mjs)
-let itemCodex = null, cxWas = false;
+let itemCodex = null, cxWas = false, topAsk = false;
 async function loadCodex() {
   if (itemCodex) return itemCodex;
   const M = await import("./world-codex.js");
