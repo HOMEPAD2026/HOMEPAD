@@ -593,3 +593,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-adg-tips { list-style: none; margin: 0; padding: 0 14px 14px; display: grid; gap: 6px; }
 .gw-adg-tips li { position: relative; padding: 10px 12px 10px 36px; border-radius: 12px; background: rgba(255, 210, 58, .08); color: #ffe9a8; font: 600 14.5px/1.5 var(--ui); }
 .gw-adg-tips li::before { content: "💡"; position: absolute; left: 11px; top: 10px; }
+.gw-adg .gw-adg-tabs, .gw-adg .gw-adg-lead, .gw-adg .gw-adg-parts { max-width: 860px; margin-left: auto; margin-right: auto; }
+.gw-adg .gw-adg-tabs { justify-content: center; }
+.gw-adg .gw-adg-lead { text-align: center; }
+.gw-adg .gw-adg-part summary { text-align: left; }
+.gw-adg .gw-adg-steps, .gw-adg .gw-adg-tips { text-align: left; }
