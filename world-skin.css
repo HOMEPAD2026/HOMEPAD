@@ -3551,3 +3551,27 @@ html.wp-pcphone .wp-adp-in{width:min(540px,94vw);zoom:1.5;max-width:calc(94vw / 
 /* responsiveness (2026-10-24): no double-tap wait on any button, and a press shows at once (brightness only: nothing moves) */
 body.wp button,body.wp [role=button],body.wp a{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 body.wp button:active:not(:disabled){filter:brightness(1.18)}
+/* the AGENT DIMENSION / Studio Lite guide (world-adguide.js; words in /ad-guide-data.js) */
+.wst-help,.wag-help{position:absolute;top:14px;right:58px;z-index:2;height:34px;padding:0 12px;border-radius:17px;border:1px solid rgba(124,245,200,.45);background:rgba(124,245,200,.12);color:#c9ffe9;font:800 13px/1 Sora,sans-serif;cursor:pointer;white-space:nowrap}
+.wag-main .wag-help{top:20px;right:66px}
+.wpg{position:fixed;inset:0;z-index:13100;display:grid;place-items:center;padding:14px;background:rgba(2,6,18,.66);backdrop-filter:blur(3px)}
+.wpg[hidden]{display:none}
+.wpg-in{width:min(760px,100%);max-height:calc(100dvh - 28px);display:flex;flex-direction:column;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#0f1a3a,#081026);border:1px solid rgba(95,211,255,.35);box-shadow:0 24px 70px rgba(0,0,0,.55),0 0 40px rgba(95,211,255,.15);color:#e8f1fb;font-family:Sora,sans-serif}
+.wpg-h{position:relative;padding:16px 18px 0;background:radial-gradient(120% 140% at 0% 0%,rgba(95,211,255,.22),transparent 60%),radial-gradient(120% 140% at 100% 0%,rgba(180,140,255,.2),transparent 60%)}
+.wpg-h small{color:#7cf5c8;font-weight:800;letter-spacing:.06em;font-size:12px}.wpg-h h2{margin:4px 44px 12px 0;font-size:22px;line-height:1.2}
+.wpg-x{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;font:800 22px/1 Sora,sans-serif;cursor:pointer}
+.wpg-tabs{display:flex;gap:8px;padding-bottom:12px}.wpg-tabs button{flex:1;padding:11px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#cfe0f5;font:800 14px/1 Sora,sans-serif;cursor:pointer}
+.wpg-tabs button.on{background:linear-gradient(90deg,#5fd3ff,#7cf5c8);color:#06203a;border-color:transparent}
+.wpg-body{overflow:auto;padding:14px 16px 22px;-webkit-overflow-scrolling:touch}
+.wpg-lead{margin:0 0 14px;padding:12px 14px;border-radius:14px;background:rgba(124,245,200,.08);border:1px solid rgba(124,245,200,.25);font-size:15px;line-height:1.55}
+.wpg-part{margin:0 0 14px;padding:14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);animation:wpgIn .35s ease-out both;animation-delay:calc(var(--d,0) * 40ms)}
+@keyframes wpgIn{from{transform:translateY(8px)}}
+.wpg-part h3{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:17px}.wpg-part h3 span{font-size:22px}
+.wpg-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.wpg-steps li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(8,16,40,.6)}
+.wpg-steps i{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:rgba(95,211,255,.12);font-style:normal;font-size:19px}
+.wpg-steps b{display:block;font-size:15px;margin:2px 0 3px;color:#fff}.wpg-steps small{display:block;font-size:14px;line-height:1.5;color:#c3d3e8}
+.wpg-tips{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}.wpg-tips li{padding:8px 12px 8px 34px;position:relative;border-radius:10px;background:rgba(255,210,58,.07);color:#ffe9a8;font-size:14px;line-height:1.45}
+.wpg-tips li::before{content:"💡";position:absolute;left:10px;top:8px}
+html.wp-pcphone .wpg-in{zoom:1.5;width:min(760px,calc(100vw / 1.5 - 18px));max-height:calc(100dvh / 1.5 - 24px)}
+html.wp-pcphone .wst-help,html.wp-pcphone .wag-help{zoom:1.3}

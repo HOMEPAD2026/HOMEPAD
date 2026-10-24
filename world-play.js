@@ -127,6 +127,9 @@ Object.assign(WORDS.tr, { "Get my agent — {n} $ARCIRCLE": "Ajanımı al — {n
 Object.assign(WORDS.ko, { "Taking you to the AD Tower as soon as the town is ready…": "마을이 준비되면 바로 AD 타워로 데려갈게요…" });
 Object.assign(WORDS.zh, { "Taking you to the AD Tower as soon as the town is ready…": "城镇准备好后立即带你前往 AD 塔…" });
 Object.assign(WORDS.tr, { "Taking you to the AD Tower as soon as the town is ready…": "Kasaba hazır olur olmaz seni AD Kulesi'ne götüreceğim…" });
+Object.assign(WORDS.ko, { "How to use": "사용법" });
+Object.assign(WORDS.zh, { "How to use": "使用方法" });
+Object.assign(WORDS.tr, { "How to use": "Nasıl kullanılır" });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
@@ -5281,7 +5284,7 @@ let agentDim = null, agentFails = 0;
 const agentCalm = () => mode === "hub" && !jurOn && !survOn && !ringsOn && !pokerOn && !mineOn && !defenseOn && !jumpOn && !beatOn && !introOn && !document.body.classList.contains("wp-intro");
 async function loadAgent() {
   if (agentDim || agentFails > 2) return agentDim;
-  try { const M = await import("./world-agent.js"); agentDim = M.createAgentDim({ THREE, K, planet, here: (v) => here(v), facing: () => facing, ver: VER, inHub: () => mode === "hub" && !introOn && !jurOn, calm: agentCalm,
+  try { const M = await import("./world-agent.js"); agentDim = M.createAgentDim({ guide: (k) => openAdGuide(k), THREE, K, planet, here: (v) => here(v), facing: () => facing, ver: VER, inHub: () => mode === "hub" && !introOn && !jurOn, calm: agentCalm,
     T: TW, esc, toast, sess, post, signIn: () => signIn(), purse: (f) => refreshPurse(f), coarse, reduce, low: lowGfx, burst: (c) => burst(c), share: (c) => bragCard(c),
     tx: (to, data) => walletTx(to, data), arcircle: /^0x[0-9a-fA-F]{40}$/.test(CFG.ARCIRCLE_TOKEN || "") ? CFG.ARCIRCLE_TOKEN : "" }); }
   catch (e) { agentFails++; console.warn("agent", e); if (staleReload()) return null; }
@@ -5347,7 +5350,7 @@ async function openStudio() {
   if (studioBusy || frozen || mode !== "hub") return; studioBusy = true;
   try {
     if (!studio) { let M; try { M = await import("./world-studio.js"); } catch (e) { if (staleReload()) return; throw e; }
-      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
+      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, guide: (k) => openAdGuide(k), low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
         makeHero: () => K.makeCharacter(heroOf(P.char || "custom-aron"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         agentName: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.name : ""; } catch { return ""; } },
         onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); }, onClose: () => { frozen = false; near = null; paintPrompt(); } }); }
@@ -5391,6 +5394,12 @@ function goAgentTower() {
   try { vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); } catch { /* no flash */ } near = null; paintPrompt(); setTimeout(() => openAgent(), 900);
 }
 every(300, () => { if (!adpDone && adpReady()) adPromo(); if (adpGo && adpReady()) { adpGo = false; goAgentTower(); } }); /* (the card when you step into the town, not over the loading screen: the owner, 2026-10-24) */
+/// the guide to AGENT DIMENSION and ARCIRCLE Studio Lite (world-adguide.js; the words in /ad-guide-data.js, shared with /game)
+let adGuide = null;
+async function openAdGuide(which) {
+  try { if (!adGuide) { const M = await import("./world-adguide.js"); adGuide = M.createAdGuide({ lang: LANG, ver: VER, esc }); } await adGuide.open(which || "ad"); }
+  catch (e) { console.warn("ad guide", e); toast(TW("Couldn't open it — try again")); staleReload(); }
+}
 async function openAgent() { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(); }
 setTimeout(() => { loadAgent().catch(() => {}); }, 7000);
 // the Halloween Pumpkin Kings (world-pumpking.js, 22 Oct – 5 Nov US Eastern; ?pk=day / ?pk=night to try): five dancing
@@ -5449,7 +5458,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { snd: Snd, adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),

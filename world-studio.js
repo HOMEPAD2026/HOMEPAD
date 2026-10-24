@@ -125,7 +125,7 @@ export function createStudio(ctx) {
       : tab === "game" ? paintGame()
       : tab === "arcade" ? (arcade.length ? arcade.map((g) => card(g, false)).join("") : `<p class="wst-empty">${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</p>`)
       : paintMake();
-    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Nexus City"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio Lite</h2><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Nexus City"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio Lite</h2><button type="button" class="wst-help" data-guide>📖 ${esc(T("How to use"))}</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <nav class="wst-tabs">${[["make", "🛠️", "Create"], ["mine", "📁", "My games"], ["arcade", "🕹️", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}</button>`).join("")}</nav>
       <div class="wst-body">${body}</div><p class="wst-foot">${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</p></div>`;
     if (tab === "make") { drawPrev(); attachPreview(); } else if (prev) prev.stop();
@@ -144,6 +144,7 @@ export function createStudio(ctx) {
     const op = e.target.closest("[data-open]"); if (op && !e.target.closest("button")) return openGame(op.dataset.open);
     const b = e.target.closest("button"); if (!b || b.disabled) { if (e.target === el) close(); return; }
     if (b.hasAttribute("data-x")) return close();
+    if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("studio"); return; }
     if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); return; }
     if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
     if (b.hasAttribute("data-next")) { step = Math.min(5, step + 1); fxStep(); return paint(); }

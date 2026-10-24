@@ -209,7 +209,7 @@ export function createAgentDim(ctx) {
     const k = view && K3.includes(view) ? view : "orion", C = K.AGENTS[k];
     el.innerHTML = `<div class="wag-card lab build ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("AGENT DIMENSION"))}</small>
       <div class="wag-nm"><h2>🚧 ${esc(T("Under construction"))}</h2></div><p class="wag-role">${esc(T("AGENT DIMENSION is being built. It opens soon — stay tuned!"))}</p>
-      <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+      <button type="button" class="wag-help" data-guide>📖 ${esc(T("How to use"))}</button><button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <div class="wag-body"><div class="wag-event"><b>🛠️ ${esc(T("Coming soon"))}</b><span>${esc(T("Create your own AI agent — AURORA, ORION or VEX — and let it walk, talk and run errands with you."))}</span></div>
       <button type="button" class="wag-go" data-x>${esc(T("OK"))}</button></div></section></div>`;
   }
@@ -221,7 +221,7 @@ export function createAgentDim(ctx) {
     const C = K.AGENTS[a.kind], tabs = [["talk", "💬", "Talk"], ["jobs", "📋", "Errands"], ["vault", "💼", "Vault"], ["me", "🤖", "Agent"]];
     const head = `<header class="wag-h"><div class="wag-nm"><h2>${esc(a.name)}</h2><b class="wag-lv">${esc(T("Lv {n}", { n: a.lv }))}</b></div>
       ${a.id ? `<p class="wag-at">@${esc(a.id)}${a.no ? ` <span class="wag-no${a.founder ? " gold" : ""}">${no4(a.no)}${a.founder ? " · " + esc(T("Genesis Founder")) : ""}</span>` : ""}</p>` : ""}<p class="wag-role">${esc(T(ROLE[a.kind]))}</p><q class="wag-quote">${esc(T(LINE[a.kind]))}</q><i class="wag-heart" aria-hidden="true">${ICON[a.kind]}</i>
-      <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>`;
+      <button type="button" class="wag-help" data-guide>📖 ${esc(T("How to use"))}</button><button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>`;
     const tb = `<nav class="wag-tabs">${tabs.map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}${id === "jobs" && backs().length ? ' <i class="wag-dot"></i>' : ""}</button>`).join("")}</nav>`;
     el.innerHTML = `<div class="wag-card ${a.kind}" style="--ac:${C.color}">${showcase(view, view === a.kind ? undefined : false)}<section class="wag-main">${head}${tb}<div class="wag-body">${report ? paintReport(a) : tab === "talk" ? paintTalk(a) : tab === "jobs" ? paintJobs(a) : tab === "vault" ? paintVault(a) : paintMe(a)}</div></section></div>`;
     const log = el.querySelector(".wag-log"); if (log) log.scrollTop = log.scrollHeight;
@@ -243,7 +243,7 @@ export function createAgentDim(ctx) {
       <div class="wag-cta"><button type="button" data-back>‹ ${esc(T("Back"))}</button><button type="button" class="wag-go" data-create ${paying ? "disabled" : ""}>${!signed ? esc(T("Sign in to create your agent")) : price() ? (paying ? "⏳ " + esc(T(paying)) : "🔥 " + esc(T("Get my agent — {n} $ARCIRCLE", { n: price().toLocaleString("en-US") }))) : esc(T("Create my agent — free"))}</button></div>${price() ? `<p class="wag-fine">🔥 ${esc(T("50% of the price is burned, 50% goes to the ARCIRCLE treasury — sent from your own wallet on Arc."))}</p>` : ""}<p class="wag-fine">${esc(T("Your agent can't move your funds: anything on-chain will always ask your own wallet first."))}</p></div>`;
     el.innerHTML = `<div class="wag-card lab ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("Genesis Lab"))} · ${esc(T("Create your Agent. Give it a Purpose."))}</small>
       <div class="wag-nm"><h2>${esc(C.name)}</h2>${ICON[k] ? `<b class="wag-lv">${ICON[k]}</b>` : ""}</div><p class="wag-role">${esc(T(ROLE[k]))}</p><q class="wag-quote">${esc(T(LINE[k]))}</q>
-      <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+      <button type="button" class="wag-help" data-guide>📖 ${esc(T("How to use"))}</button><button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <div class="wag-body">${dots}${price() && step === 1 ? `<div class="wag-event launch"><b>🚀 ${esc(T("AGENT DIMENSION is open!"))}</b><span><s>${listPrice().toLocaleString("en-US")}</s> <em>${price().toLocaleString("en-US")} $ARCIRCLE</em> <i>${esc(T("50% OFF"))}</i></span><small>${esc(T("Pick AURORA, ORION or VEX. 50% of the price is burned, 50% goes to the treasury."))}</small></div>` : st && st.prelaunch !== false && step === 1 ? `<div class="wag-event"><b>🎉 ${esc(T("Pre-launch event"))}</b><span>${esc(T("Create your AI agent for free before AGENT DIMENSION officially opens. After the opening, creating an agent will cost."))}</span></div>` : ""}${form}</div></section></div>`;
     const id = el.querySelector(".wag-id"); if (id && draft.id) idInput(id);
   }
@@ -505,6 +505,7 @@ export function createAgentDim(ctx) {
     if (b.hasAttribute("data-share")) return shareCard();
     if (b.dataset.view || b.dataset.nav) { const cur = closed() ? view || "orion" : A() ? view || A().kind : pick || "aurora", nx = b.dataset.view || K3[(K3.indexOf(cur) + Number(b.dataset.nav) + 3) % 3]; if (closed()) { view = nx; return paint(); } if (A()) view = nx; else { if (pick) keepDraft(); pick = nx; draft.name = ""; if (labStep < 2) labStep = 2; } return paint(); }
     if (b.dataset.preset) { const p = el.querySelector(".wag-persona"); if (p) p.value = b.dataset.preset; return; }
+    if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("ad"); return; }
     if (b.hasAttribute("data-create")) return create();
     if (b.hasAttribute("data-send")) return send();
     if (b.dataset.ask) return send(b.dataset.ask);

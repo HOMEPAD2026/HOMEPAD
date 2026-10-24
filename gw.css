@@ -573,3 +573,23 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-arcl .gw-fee { flex-basis: 100%; max-width: 640px; margin: 2px auto 0; font: 600 12px/1.5 var(--ui); color: #ffcf8a; }
 .gw-arcl .gw-coins-link { flex-basis: 100%; color: var(--cy); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .gw-sheet-hero.wide::after { background: linear-gradient(180deg, transparent 78%, #0c1d4c); }
+/* the AGENT DIMENSION / Studio Lite guide (#adguide; words from /ad-guide-data.js) */
+.gw-adg-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 14px; }
+.gw-adg-tabs button { padding: 12px 18px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .22); background: rgba(255, 255, 255, .06); color: #dfe9f7; font: 800 15px/1 var(--ui); cursor: pointer; }
+.gw-adg-tabs button.on { background: linear-gradient(90deg, #5fd3ff, #7cf5c8); color: #06203a; border-color: transparent; }
+.gw-adg-lead { max-width: 860px; margin: 0 0 16px; font: 600 16px/1.6 var(--ui); color: #cfe0f5; }
+.gw-adg-parts { display: grid; gap: 12px; max-width: 860px; }
+.gw-adg-part { border-radius: 18px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); overflow: hidden; }
+.gw-adg-part summary { display: flex; align-items: center; gap: 10px; padding: 16px 18px; font: 800 17px/1.3 var(--ui); color: #fff; cursor: pointer; list-style: none; }
+.gw-adg-part summary::-webkit-details-marker { display: none; }
+.gw-adg-part summary span { font-size: 22px; }
+.gw-adg-part summary::after { content: "+"; margin-left: auto; font-size: 22px; color: #7cf5c8; }
+.gw-adg-part[open] summary::after { content: "–"; }
+.gw-adg-steps { list-style: none; margin: 0; padding: 0 14px 14px; display: grid; gap: 8px; }
+.gw-adg-steps li { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 14px; background: rgba(8, 16, 40, .55); }
+.gw-adg-steps i { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: rgba(95, 211, 255, .14); font-style: normal; font-size: 20px; }
+.gw-adg-steps b { display: block; font: 800 15px/1.3 var(--ui); color: #fff; margin: 2px 0 4px; }
+.gw-adg-steps p { margin: 0; font: 500 14.5px/1.55 var(--ui); color: #c3d3e8; }
+.gw-adg-tips { list-style: none; margin: 0; padding: 0 14px 14px; display: grid; gap: 6px; }
+.gw-adg-tips li { position: relative; padding: 10px 12px 10px 36px; border-radius: 12px; background: rgba(255, 210, 58, .08); color: #ffe9a8; font: 600 14.5px/1.5 var(--ui); }
+.gw-adg-tips li::before { content: "💡"; position: absolute; left: 11px; top: 10px; }
