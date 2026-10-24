@@ -52,8 +52,9 @@ export function createBuilder(ctx) {
     if (done) ctx.onDone(cleanBuild(B, spec)); if (ctx.onClose) ctx.onClose();
   }
   // ---- the canvas: z grows upwards; view = the z at the bottom edge ----
-  let W = 0, H = 0, dpr = 1;
-  function fit() { if (!cv) return; const r = cv.getBoundingClientRect(); dpr = Math.min(2, devicePixelRatio || 1); W = r.width; H = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); dirty = true; }
+  // (W, H in drawing units: on the phone layout — a 980 px page shown at phone size — a unit is u px, so text and pieces stay readable)
+  let W = 0, H = 0, dpr = 1, u = 1;
+  function fit() { if (!cv) return; const r = cv.getBoundingClientRect(); dpr = Math.min(2, devicePixelRatio || 1); u = document.documentElement.classList.contains("wp-pcphone") ? Math.max(1, r.width / 410) : 1; W = r.width / u; H = r.height / u; cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); dirty = true; }
   const ppm = () => ZOOMS[zi], laneW = () => Math.min(120, (W - 70) / 3), x0 = () => (W - laneW() * 3) / 2 + 18;
   const zAt = (py) => view + (H - py) / ppm(), pyOf = (z) => H - (z - view) * ppm();
   const laneAt = (px) => Math.max(0, Math.min(2, Math.floor((px - x0()) / laneW())));
@@ -61,7 +62,7 @@ export function createBuilder(ctx) {
   function loop() { raf = requestAnimationFrame(loop); if (!dirty) return; dirty = false; draw(); }
   function draw() {
     const P = ppm(), lw = laneW(), X = x0(), bad = new Set(valid().bad.map(keyOf));
-    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    g.setTransform(dpr * u, 0, 0, dpr * u, 0, 0); g.clearRect(0, 0, W, H);
     g.fillStyle = hex(th.sky); g.fillRect(0, 0, W, H);
     const yS = pyOf(0), yF = pyOf(B.L);
     g.fillStyle = hex(th.track); g.fillRect(X, Math.max(0, yF), lw * 3, Math.min(H, yS) - Math.max(0, yF));
@@ -94,8 +95,8 @@ export function createBuilder(ctx) {
   function rr(x, y, w, h, r, c) { g.fillStyle = c; g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.fill(); g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 1; g.stroke(); }
   // ---- input: a drag scrolls, a tap uses the tool ----
   function pd(e) { drag = { y: e.clientY, x: e.clientX, v0: view, moved: false }; cv.setPointerCapture(e.pointerId); }
-  function pm(e) { if (!drag) return; const dy = e.clientY - drag.y; if (Math.abs(dy) > 8 || Math.abs(e.clientX - drag.x) > 8) drag.moved = true; if (drag.moved) { view = clampView(drag.v0 + dy / ppm()); dirty = true; } }
-  function pu(e) { const d = drag; drag = null; if (!d || d.moved) return; const r = cv.getBoundingClientRect(); tap(e.clientX - r.left, e.clientY - r.top); }
+  function pm(e) { if (!drag) return; const dy = e.clientY - drag.y; if (Math.abs(dy) > 8 * u || Math.abs(e.clientX - drag.x) > 8 * u) drag.moved = true; if (drag.moved) { view = clampView(drag.v0 + dy / u / ppm()); dirty = true; } }
+  function pu(e) { const d = drag; drag = null; if (!d || d.moved) return; const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); }
   function tap(px, py) {
     const z = Math.round(zAt(py) / SNAP) * SNAP, ln = laneAt(px);
     if (z < 0 || z > B.L) return;

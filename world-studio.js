@@ -62,14 +62,14 @@ export function createStudio(ctx) {
       <div class="wst-ai"><b>✨ ${esc(T("Ask {n} to draft it", { n: ctx.agentName() || T("your agent") }))}</b><div class="wst-airow"><input class="wst-aiin" maxlength="240" placeholder="${esc(T("e.g. a fast jungle run with lots of coins"))}"><button type="button" class="wst-go" data-ai ${busy ? "disabled" : ""}>${esc(T("Draft"))}</button></div>${aiNote ? `<small class="wst-ainote">${esc(aiNote)}</small>` : ""}</div>
       <label class="wst-title"><span>${esc(T("Title"))}</span><input class="wst-tin" maxlength="24" value="${esc(spec.title)}"></label>`;
     else if (step === 2) body = `<div class="wst-themes">${Object.entries(THEMES).map(([id, t]) => `<button type="button" data-theme="${id}" class="wst-thm${id === spec.theme ? " on" : ""}" style="--c:${hex(t.edge)};--b:${hex(t.sky)}"><span class="wst-thi" data-snap="${id}"${snaps[spec.tpl + ":" + id] ? ` style="background-image:url(${snaps[spec.tpl + ":" + id]})"` : ""}></span><b>${esc(T(t.name))}</b></button>`).join("")}</div>`;
-    else if (step === 3 && spec.build) { const B = spec.build, n = B.r.length; // (Studio 4: a hand-built layout — the speed still applies)
-      body = `<div class="wst-build on"><i>🛠️</i><div><b>${esc(T("Hand-built layout"))}</b><small>${esc(T("{n} pieces · {m} m", { n, m: B.L }))}</small></div><span><button type="button" class="wst-go" data-build>✏️ ${esc(T("Edit the layout"))}</button><button type="button" class="wst-link" data-unbuild>${esc(T("Back to quick start"))}</button></span></div>
+    else if (step === 3 && spec.build) { const B = spec.build, ar = !!B.w, n = ar ? B.w.length + B.c.length + B.p.length : B.r.length; // (Studio 4: a hand-built layout — the speed still applies)
+      body = `<div class="wst-build on"><i>🛠️</i><div><b>${esc(T("Hand-built layout"))}</b><small>${esc(ar ? T("{n} pieces · {s} s", { n, s: spec.len }) : T("{n} pieces · {m} m", { n, m: B.L }))}</small></div><span><button type="button" class="wst-go" data-build>✏️ ${esc(T("Edit the layout"))}</button><button type="button" class="wst-link" data-unbuild>${esc(T("Back to quick start"))}</button></span></div>
       ${rulesRow()}
       <div class="wst-row"><span>${esc(T(KN.speed))}</span><div class="wst-chips">${[1, 2, 3, 4, 5].map((x) => `<button type="button" data-speed="${x}" class="${x === spec.speed ? "on" : ""}">${x}</button>`).join("")}</div></div>
       <div class="wst-est s${E.stars}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
       ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}`; }
     else if (step === 3) { const pk = presetOf();
-      body = `${spec.tpl === "runner" || spec.tpl === "dash" ? `<div class="wst-build"><i>🛠️</i><div><b>${esc(T("Build it yourself"))}</b><small>${esc(T("Place every wall, gap, laser, coin and heart by hand — starting from this layout."))}</small></div><span><button type="button" class="wst-go" data-build>🛠️ ${esc(T("Open the builder"))}</button></span></div>` : ""}${rulesRow()}`;
+      body = `${spec.tpl === "runner" || spec.tpl === "dash" || spec.tpl === "arena" ? `<div class="wst-build"><i>🛠️</i><div><b>${esc(T("Build it yourself"))}</b><small>${esc(T(spec.tpl === "arena" ? "Send every drone, sweep and coin when and where you want, and stand pillars — starting from this arena." : "Place every wall, gap, laser, coin and heart by hand — starting from this layout."))}</small></div><span><button type="button" class="wst-go" data-build>🛠️ ${esc(T("Open the builder"))}</button></span></div>` : ""}${rulesRow()}${galleryRow()}`;
       body += `<div class="wst-pres">${Object.keys(PRESETS).map((k) => { const e = estimate({ ...spec, ...PRESETS[k] }); return `<button type="button" data-preset="${k}" class="${pk === k ? "on" : ""} p-${k}"><b>${esc(T(PNAME[k]))}</b><small>${starsTxt(e.stars)}</small><em>${Math.round(e.clear * 100)}%</em></button>`; }).join("")}</div>
       <div class="wst-row"><span>${esc(T(KN.len))}</span><div class="wst-chips">${LENS.map((x) => `<button type="button" data-len="${x}" class="${x === spec.len ? "on" : ""}">${LEN_NAME[spec.tpl] ? esc(T(LEN_NAME[spec.tpl][x])) : x + "s"}</button>`).join("")}</div></div>
       <div class="wst-est s${E.stars}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
@@ -94,12 +94,21 @@ export function createStudio(ctx) {
   }
   function fillSnaps() { if (!prev || tab !== "make" || step !== 2) return; for (const id of Object.keys(THEMES)) { const k = spec.tpl + ":" + id; if (!snaps[k]) { snaps[k] = prev.snap({ ...spec, theme: id }); const im = el.querySelector(`[data-snap="${id}"]`); if (im) im.style.backgroundImage = `url(${snaps[k]})`; return setTimeout(fillSnaps, 30); } } }
   let prevT = 0; const prevSoon = () => { clearTimeout(prevT); prevT = setTimeout(() => { if (prev && tab === "make") prev.set(spec); }, 160); };
-  const summary = (L) => spec.tpl === "puzzle" ? (() => { const R = ringLevel(L.id); return R ? esc(T("{n} rings · par {p}", { n: R.rings.length, p: R.par })) : ""; })() : spec.tpl === "arena" ? esc(T("{s} s · {d} waves · {c} coins", { s: L.secs, d: L.waves.length, c: L.coins })) : spec.tpl === "dash" ? esc(T("endless · {c} coins on the way", { c: L.coins })) : `${Math.round(L.len)} m · ${L.coins} ${esc(T("coins"))}`;
+  const summary = (L) => spec.tpl === "puzzle" ? (() => { const R = ringOf(L.id); return R ? esc(T("{n} rings · par {p}", { n: R.rings.length, p: R.par })) : ""; })() : spec.tpl === "arena" ? esc(T("{s} s · {d} waves · {c} coins", { s: L.secs, d: L.waves.length, c: L.coins })) : spec.tpl === "dash" ? esc(T("endless · {c} coins on the way", { c: L.coins })) : `${Math.round(L.len)} m · ${L.coins} ${esc(T("coins"))}`;
+  /// a ring board drawn small (the preview strip, the S4c board gallery); boards are kept once made (the engine solves each for its par)
+  const ringCache = new Map(), ringOf = (id) => { if (!ringCache.has(id)) { let R = null; try { R = ringLevel(id); } catch { /* no board */ } ringCache.set(id, R); } return ringCache.get(id); };
+  function drawRings(x, w, h, R) { const xs = R.rings.map((r) => r.x), ys = R.rings.map((r) => r.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2, k = Math.min((w - 20) / (Math.max(...xs) - Math.min(...xs) + 3), (h - 12) / (Math.max(...ys) - Math.min(...ys) + 3)); x.lineWidth = Math.max(2, Math.min(4, k * 0.12)); for (const r of R.rings) { const g = (r.g * Math.PI) / 4; x.strokeStyle = ["#5fd3ff", "#7cf5c8", "#ffd23a", "#ff6fae", "#b48cff", "#ff9f2e"][r.c % 6]; x.beginPath(); x.arc(w / 2 + (r.x - cx) * k, h / 2 - (r.y - cy) * k, r.r * k * 0.92, -g + 0.45, -g + Math.PI * 2 - 0.45); x.stroke(); } }
+  /// S4c: the Ring Puzzle's board gallery — six boards of these settings side by side to pick from, each one re-rollable
+  let gal = null, galKey = "";
+  function galSeeds() { const k = [spec.speed, spec.coins, spec.walls, spec.gaps, spec.lasers].join(); if (!gal || galKey !== k) { galKey = k; gal = Array.from({ length: 6 }, (_, i) => (i ? 1 + ((spec.seed * 7919 + i * 104729) % 999999) : spec.seed)); } if (!gal.includes(spec.seed)) gal[0] = spec.seed; return gal; }
+  const galleryRow = () => spec.tpl !== "puzzle" ? "" : `<div class="wst-gal"><div class="wst-galh"><b>🧩 ${esc(T("Pick your board"))}</b><button type="button" class="wst-link" data-galall>🎲 ${esc(T("6 new boards"))}</button></div><div class="wst-galg">${galSeeds().map((sd, i) => `<div class="wst-gb${sd === spec.seed ? " on" : ""}"><button type="button" class="wst-gbp" data-gal="${sd}"><canvas width="180" height="120" data-galcv="${sd}"></canvas><small data-galtx="${sd}">…</small></button><button type="button" class="wst-gbr" data-galre="${i}" aria-label="${esc(T("Another board"))}">🔄</button></div>`).join("")}</div></div>`;
+  function fillGallery() { if (!el || spec.tpl !== "puzzle") return; const cv = el.querySelector("canvas[data-galcv]:not([data-done])"); if (!cv) return; cv.dataset.done = "1"; const sd = Number(cv.dataset.galcv), R = ringOf(genLevel({ ...spec, seed: sd }).id), tx = el.querySelector(`[data-galtx="${sd}"]`);
+    if (R) { drawRings(cv.getContext("2d"), cv.width, cv.height, R); if (tx) tx.textContent = T("{n} rings · par {p}", { n: R.rings.length, p: R.par }); } else if (tx) tx.textContent = "—"; setTimeout(fillGallery, 0); }
   /// the level at a glance: the track (or the arena's timeline), walls / gaps / lasers / coins in their colours
   function drawPrev() {
     const cv = el && el.querySelector(".wst-prev"); if (!cv) return; const x = cv.getContext("2d"), w = cv.width, h = cv.height, th = THEMES[spec.theme], L = genLevel(spec);
     x.clearRect(0, 0, w, h); x.fillStyle = hex(th.track); x.globalAlpha = 0.9; x.fillRect(0, 8, w, h - 16); x.globalAlpha = 1;
-    if (spec.tpl === "puzzle") { const R = ringLevel(L.id); if (!R) return; const xs = R.rings.map((r) => r.x), ys = R.rings.map((r) => r.y), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2, k = Math.min((w - 20) / (Math.max(...xs) - Math.min(...xs) + 3), (h - 12) / (Math.max(...ys) - Math.min(...ys) + 3)); x.lineWidth = 3; for (const r of R.rings) { const g = (r.g * Math.PI) / 4; x.strokeStyle = ["#5fd3ff", "#7cf5c8", "#ffd23a", "#ff6fae", "#b48cff", "#ff9f2e"][r.c % 6]; x.beginPath(); x.arc(w / 2 + (r.x - cx) * k, h / 2 - (r.y - cy) * k, r.r * k * 0.92, -g + 0.45, -g + Math.PI * 2 - 0.45); x.stroke(); } return; }
+    if (spec.tpl === "puzzle") { const R = ringOf(L.id); if (R) drawRings(x, w, h, R); return; }
     if (spec.tpl === "arena") { const X = (t) => (t / L.secs) * (w - 8) + 4; for (const v of L.waves) { x.fillStyle = v.k === "L" ? "#ff3355" : v.k === "D" ? "#ffb02e" : hex(th.wall); const r = v.k === "D" ? 7 : 4; x.beginPath(); x.arc(X(v.t), 14 + ((v.a * 97) % 1) * (h - 28), r, 0, 6.283); x.fill(); } x.fillStyle = "#ffd23a"; for (const c of L.coinsAt) x.fillRect(X(c.t) - 2, h - 14, 4, 4); return; }
     const span = spec.tpl === "dash" ? Math.min(L.len, 1600) : L.len, X = (z) => (z / span) * (w - 8) + 4, Y = (lane) => 16 + lane * ((h - 32) / 2);
     x.strokeStyle = hex(th.edge); x.globalAlpha = 0.35; for (const l of [0, 1, 2]) { x.beginPath(); x.moveTo(0, Y(l)); x.lineTo(w, Y(l)); x.stroke(); } x.globalAlpha = 1;
@@ -137,7 +146,7 @@ export function createStudio(ctx) {
     el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Nexus City"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio Lite</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">📖</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <nav class="wst-tabs">${[["make", "🛠️", "Create"], ["mine", "📁", "My games"], ["arcade", "🕹️", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}</button>`).join("")}</nav>
       <div class="wst-body">${body}</div><p class="wst-foot">${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</p></div>`;
-    if (tab === "make") { drawPrev(); attachPreview(); } else if (prev) prev.stop();
+    if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else if (prev) prev.stop();
   }
   let estT = 0;
   const fxStep = () => { if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } };
@@ -160,6 +169,9 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-back")) { step = Math.max(1, step - 1); return paint(); }
     if (b.dataset.rule) { const k = b.dataset.rule, cur = spec.rules || [], on = cur.includes(k); if (!on && cur.length >= 2) { ctx.toast(esc(T("Two rule cards at most — take one off first"))); return; } spec = clampSpec({ ...spec, rules: on ? cur.filter((x) => x !== k) : [...cur, k] }); return paintKeep(); }
     if (b.dataset.speed) { spec.speed = Number(b.dataset.speed); return paintKeep(); }
+    if (b.dataset.gal) { spec = clampSpec({ ...spec, seed: Number(b.dataset.gal) }); lastTest = null; fxStep(); return paintKeep(); }
+    if (b.dataset.galre) { galSeeds(); gal[Number(b.dataset.galre)] = 1 + Math.floor(Math.random() * 999998); if (gal[Number(b.dataset.galre)] === spec.seed) gal[Number(b.dataset.galre)]++; return paintKeep(); }
+    if (b.hasAttribute("data-galall")) { galSeeds(); const keep = spec.seed; gal = gal.map((_, i) => (i ? 1 + Math.floor(Math.random() * 999998) : keep)); return paintKeep(); }
     if (b.hasAttribute("data-build")) return openBuilder();
     if (b.hasAttribute("data-unbuild")) { if (!confirm(T("Go back to the quick-start layout? Your hand-built layout is dropped."))) return; delete spec.build; spec = clampSpec(spec); return paintKeep(); }
     if (b.dataset.preset) { Object.assign(spec, PRESETS[b.dataset.preset]); if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } return paintKeep(); }
@@ -212,13 +224,13 @@ export function createStudio(ctx) {
   // ---------------- Studio 4: the builder (world-studio-build.js) ----------------
   let builder = null;
   async function openBuilder() {
-    let M; try { M = await import("./world-studio-build.js"); } catch (e) { console.warn("studio builder", e); ctx.toast(esc(T("Couldn't open it — try again"))); return; }
+    const ar = spec.tpl === "arena"; let M; try { M = await import(ar ? "./world-studio-arena.js" : "./world-studio-build.js"); } catch (e) { console.warn("studio builder", e); ctx.toast(esc(T("Couldn't open it — try again"))); return; }
     if (!spec.build) spec = clampSpec({ ...spec, build: toBuild(spec) });
     if (el) el.hidden = true;
-    builder = M.createBuilder({ T, esc, toast: ctx.toast, spec,
-      onDone: (b) => { spec = clampSpec({ ...spec, build: b }); lastTest = null; },
+    builder = (ar ? M.createArenaBuilder : M.createBuilder)({ T, esc, toast: ctx.toast, spec,
+      onDone: (b, sp) => { spec = clampSpec({ ...spec, ...(sp ? { len: sp.len } : {}), build: b }); lastTest = null; },
       onClose: () => { builder = null; if (el) { el.hidden = false; step = 3; paint(); } },
-      onTest: (sp, z) => { const bel = document.querySelector(".wsb"); if (bel) bel.hidden = true; run({ spec: sp, test: true, startZ: z, onBack: () => { if (bel) bel.hidden = false; if (el) el.hidden = true; } }); } });
+      onTest: (sp, z) => { const bel = document.querySelector(".wsb"); if (bel) bel.hidden = true; run({ spec: sp, test: true, ...(ar ? { startT: z } : { startZ: z }), onBack: () => { if (bel) bel.hidden = false; if (el) el.hidden = true; } }); } });
     builder.open();
   }
   // ---------------- the runner ----------------
@@ -394,13 +406,15 @@ export function createStudio(ctx) {
     const floor = new THREE.Mesh(new THREE.CylinderGeometry(R, R + 0.6, 0.6, 64), std(th.track, { roughness: 0.6 })); floor.position.y = -0.3; scene.add(floor);
     for (const [r, w, op] of [[R, 0.14, 1], [R * 0.66, 0.05, 0.5], [R * 0.33, 0.05, 0.5]]) { const m = new THREE.Mesh(new THREE.TorusGeometry(r, w, 6, 96), glow(th.edge, op)); m.rotation.x = Math.PI / 2; m.position.y = 0.03; scene.add(m); }
     for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, h = 1.5 + (i % 3); const p = new THREE.Mesh(new THREE.BoxGeometry(1, h, 1), std(th.prop, { emissive: th.prop, emissiveIntensity: 0.35 })); p.position.set(Math.cos(a) * (R + 2.2), h / 2 - 0.6, Math.sin(a) * (R + 2.2)); scene.add(p); }
+    // S4c: the maker's pillars — you can't walk through them, and a drone that hits one is gone
+    const pil = A.pillars || []; if (pil.length) { const pG = new THREE.CylinderGeometry(1, 1.1, 2.6, 20), pM = std(th.wall, { emissive: th.wall, emissiveIntensity: 0.25 }), capM = glow(th.edge, 0.9); for (const q of pil) { const m = new THREE.Mesh(pG, pM); m.position.set(q.x, 1.3, q.z); scene.add(m); const cap = new THREE.Mesh(new THREE.TorusGeometry(1.02, 0.06, 6, 28), capM); cap.rotation.x = Math.PI / 2; cap.position.set(q.x, 2.62, q.z); scene.add(cap); } }
     // the hero and its walk
     let hero = null; try { hero = await ctx.makeHero(); } catch (e) { console.warn("studio hero", e); }
     const me = new THREE.Group(); scene.add(me); if (hero) { me.add(hero.obj); try { hero.play("idle"); } catch { /* no clip */ } } else { const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 10), std(0xeef4fb)); cap.position.y = 0.9; me.add(cap); }
     document.body.classList.add("wp-studio");
     const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(ctx.coarse ? "Drag anywhere to move · dodge the drones" : "WASD / arrows to move · dodge the drones"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
     document.body.appendChild(hud);
-    const fx = makeFx(hud), S = { x: 0, z: 0, hearts: 3, inv: 0, coins: 0, t: -3, over: false, clip: "", face: 0, combo: 0, lastCoin: -9, tr: [] }, gh = makeGhost(scene, o.ghost, true);
+    const off = Math.max(0, Math.min(A.secs - 5, o.startT || 0)), fx = makeFx(hud), S = { x: 0, z: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, over: false, clip: "", face: 0, combo: 0, lastCoin: -9, tr: [] }, gh = makeGhost(scene, o.ghost, true);
     const keyOn = new Set(), kd = (e) => { const k = e.key.toLowerCase(); if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(k)) { keyOn.add(k); e.preventDefault(); } }, ku = (e) => keyOn.delete(e.key.toLowerCase());
     let drag = null; const pd = (e) => { if (e.target.closest && e.target.closest("button")) return; drag = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 }; }, pm = (e) => { if (drag) { drag.dx = e.clientX - drag.x; drag.dy = e.clientY - drag.y; } }, pu = () => { drag = null; };
     addEventListener("keydown", kd, true); addEventListener("keyup", ku, true); addEventListener("pointerdown", pd); addEventListener("pointermove", pm); addEventListener("pointerup", pu); addEventListener("pointercancel", pu);
@@ -414,14 +428,14 @@ export function createStudio(ctx) {
     const mv = new THREE.Vector3();
     function tick(dt, t) {
       dt = Math.min(dt, 0.05);
-      if (S.t < 0) { const n0 = Math.ceil(-S.t); S.t += dt; const n1 = Math.ceil(-S.t); if (n1 !== n0) { const cd = hud.querySelector(".wst-cd"); cd.textContent = n1 > 0 ? String(n1) : T("GO!"); cd.classList.remove("pop"); void cd.offsetWidth; cd.classList.add("pop"); if (n1 <= 0) setTimeout(() => cd.remove(), 700); } }
+      if (S.t < 0) { const n0 = Math.ceil(-S.t); S.t += dt; if (S.t >= 0 && off) { S.t = off; while (wi < A.waves.length && A.waves[wi].t < off) wi++; while (ci < A.coinsAt.length && A.coinsAt[ci].t < off - 8) ci++; } const n1 = Math.ceil(-Math.min(0, S.t)); if (n1 !== n0) { const cd = hud.querySelector(".wst-cd"); cd.textContent = n1 > 0 ? String(n1) : T("GO!"); cd.classList.remove("pop"); void cd.offsetWidth; cd.classList.add("pop"); if (n1 <= 0) setTimeout(() => cd.remove(), 700); } }
       else if (!S.over) {
         S.t += dt; S.inv = Math.max(0, S.inv - dt);
         // moving: keys or a drag; the camera's up is −z
         let ix = (keyOn.has("arrowright") || keyOn.has("d") ? 1 : 0) - (keyOn.has("arrowleft") || keyOn.has("a") ? 1 : 0), iz = (keyOn.has("arrowdown") || keyOn.has("s") ? 1 : 0) - (keyOn.has("arrowup") || keyOn.has("w") ? 1 : 0);
         if (drag && Math.hypot(drag.dx, drag.dy) > 8) { const l = Math.hypot(drag.dx, drag.dy); ix = drag.dx / l * Math.min(1, l / 60); iz = drag.dy / l * Math.min(1, l / 60); }
         const il = Math.hypot(ix, iz), spd = 6.8 * Math.min(1, il);
-        if (il > 0.05) { S.x += (ix / il) * spd * dt; S.z += (iz / il) * spd * dt; S.face = Math.atan2(ix, iz); const r = Math.hypot(S.x, S.z); if (r > R - 0.8) { S.x *= (R - 0.8) / r; S.z *= (R - 0.8) / r; } }
+        if (il > 0.05) { S.x += (ix / il) * spd * dt; S.z += (iz / il) * spd * dt; S.face = Math.atan2(ix, iz); const r = Math.hypot(S.x, S.z); if (r > R - 0.8) { S.x *= (R - 0.8) / r; S.z *= (R - 0.8) / r; } for (const q of pil) { const dx = S.x - q.x, dz = S.z - q.z, d = Math.hypot(dx, dz) || 0.01; if (d < 1.55) { S.x = q.x + (dx / d) * 1.55; S.z = q.z + (dz / d) * 1.55; } } }
         if (hero && !hero.busy()) { const want = spd > 5 ? "sprint" : spd > 0.5 ? "walk" : "idle"; if (S.clip !== want) play(want); }
         while (wi < A.waves.length && A.waves[wi].t <= S.t) { const w = A.waves[wi++];
           if (w.k === "L") { const m = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, 0.5), glow(0xff3355, 0.25)); m.rotation.set(-Math.PI / 2, 0, w.a); m.position.y = 0.05; scene.add(m); sweeps.push({ m, a: w.a, t: 0 }); continue; }
@@ -431,6 +445,7 @@ export function createStudio(ctx) {
         for (let i = drones.length - 1; i >= 0; i--) { const d = drones[i]; d.life += dt; const p = d.m.position, dx = S.x - p.x, dz = S.z - p.z, l = Math.hypot(dx, dz) || 1, sp = d.big ? dSpeed * 0.6 : dSpeed;
           // homing for the first seconds, then straight on (so they can be dodged)
           if (d.life < 2.2) { d.vx = (dx / l) * sp; d.vz = (dz / l) * sp; } p.x += d.vx * dt; p.z += d.vz * dt; d.m.rotation.y += dt * 3;
+          if (pil.some((q) => Math.hypot(p.x - q.x, p.z - q.z) < (d.big ? 2.1 : 1.6))) { fx.pop && fx.pop(); scene.remove(d.m); drones.splice(i, 1); continue; }
           if (Math.hypot(dx, dz) < (d.big ? 1.5 : 0.95)) { hurt(); scene.remove(d.m); drones.splice(i, 1); continue; }
           if (Math.hypot(p.x, p.z) > R + 3 && d.life > 2) { scene.remove(d.m); drones.splice(i, 1); } }
         for (let i = sweeps.length - 1; i >= 0; i--) { const w = sweeps[i]; w.t += dt; // a warning for 1.2 s, then the beam for 0.5 s

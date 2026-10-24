@@ -3576,7 +3576,7 @@ body.wp button:active:not(:disabled){filter:brightness(1.18)}
 html.wp-pcphone .wpg-in{zoom:1.5;width:min(760px,calc(100vw / 1.5 - 18px));max-height:calc(100dvh / 1.5 - 24px)}
 html.wp-pcphone .wst-help,html.wp-pcphone .wag-help{zoom:1.3}
 .wst-h>.wst-help{position:absolute!important;top:14px;right:58px;z-index:2}
-.wst-h>.wst-help{width:38px!important;height:38px;padding:0;top:12px;right:58px;border-radius:50%;font-size:18px;display:grid;place-items:center}html.wp-pcphone .wst-h>.wst-help{zoom:1}
+.wst-h>.wst-help{left:auto!important;bottom:auto!important;transform:none!important;margin:0;width:38px!important;height:38px;padding:0;top:12px;right:58px;border-radius:50%;font-size:18px;display:grid;place-items:center}html.wp-pcphone .wst-h>.wst-help{zoom:1}
 .wpg-in.adg{display:block;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;background:linear-gradient(180deg,#0a1430,#060d22)}
 .wpg-in.adg .wpg-x{z-index:3;background:rgba(6,14,36,.7);border:1px solid rgba(255,255,255,.25)}
 .wpg-xf{position:fixed!important;top:max(16px,env(safe-area-inset-top));right:16px;z-index:13200;width:44px;height:44px;background:rgba(6,14,36,.85)!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:0 6px 18px rgba(0,0,0,.4)}
@@ -3612,3 +3612,17 @@ html.wp-pcphone .wpg-xf{zoom:1.5}
 html.wp-pcphone .wsb-in{zoom:1.6}
 .wst-vers{display:grid;gap:6px;margin:8px 0}.wst-vers button{display:flex;justify-content:space-between;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#e8f1fb;font:600 13px/1.2 Sora,sans-serif;cursor:pointer}
 .wst-rules{margin:0 0 12px}.wst-rules>span{display:block;margin:0 0 6px;font-size:13px;font-weight:800;color:#cfe0f5}.wst-rules .wst-chips{flex-wrap:wrap}
+/* S4c: the arena builder (world-studio-arena.js) — the runner builder's frame, the seconds as chips */
+.wsb-ar .wsb-len .wsb-i{width:auto;min-width:40px;padding:0 8px;font-size:13px}.wsb-i.on{background:linear-gradient(90deg,#4fd8ff,#7cf5c8);color:#06203a;border-color:transparent}
+/* S4c: the Ring Puzzle's board gallery */
+.wst-gal{margin:10px 0;padding:10px;border-radius:14px;background:rgba(10,22,52,.7);border:1px solid rgba(95,211,255,.25)}
+.wst-galh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.wst-galh b{font-size:14px}
+.wst-galg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wst-gb{position:relative}.wst-gbp{display:block;width:100%;padding:4px 4px 6px;border-radius:12px;border:2px solid rgba(255,255,255,.12);background:rgba(4,12,28,.7);color:#cfe0f5;cursor:pointer}
+.wst-gbp canvas{display:block;width:100%;height:auto;aspect-ratio:3/2}.wst-gbp small{display:block;font:700 11px/1.2 Sora,sans-serif;margin-top:2px}
+.wst-gb.on .wst-gbp{border-color:#7cf5c8;box-shadow:0 0 14px rgba(124,245,200,.35)}
+.wst-gbr{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.45);font-size:13px;cursor:pointer}
+@media (min-width:700px){.wst-galg{grid-template-columns:repeat(6,1fr)}}
+/* Jurassic: the land's HUD layer (.wz, z 40: top chips, goal card, minimap, guide tags) covered the town's windows opened over it
+   (the character / Adventure log sheet is z 33 — the owner's phone, 2026-10-24); while one is open the layer steps aside */
+body:has(:is(.wr-sheet,.wi-sheet,.wa-sheet,.wa-daily,.hc-sheet,.wp-new,.wp-guide,.wp-mapsheet,.wr-credits):not([hidden])) .wz{visibility:hidden}

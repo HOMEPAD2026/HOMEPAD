@@ -117,5 +117,15 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   check(G.clampSpec({ tpl: "arena", rules: ["low"] }).rules === undefined, "rule cards are for runner and dash");
   const e1 = G.estimate(G.clampSpec({ tpl: "runner", speed: 4, walls: 4, seed: 3 })), e2 = G.estimate(G.clampSpec({ tpl: "runner", speed: 4, walls: 4, seed: 3, rules: ["onehp", "mirror"] }));
   check(e2.clear <= e1.clear, `one heart and mirrored controls make it harder for the bots (${e1.clear} → ${e2.clear})`); }
+// S4c: a hand-built arena — pillars inside the ring and off the start, at most BURST arrivals a second, coins off the pillars
+{ const a = G.clampSpec({ tpl: "arena", len: 30, build: { p: [[0, 0], [6, 0], [7, 0], [0, 13], [-6, 2]], w: [[1, "d", 0], [5, "d", 10], [5, "d", 20], [5, "d", 30], [5, "d", 40], [5, "d", 50], [5.2, "d", 60], [5.4, "d", 70], [8, "L", 270], [9, "D", -90], [40, "d", 0]], c: [[3, 6, 0], [3, 3, 3], [50, 1, 1]] } });
+  check(JSON.stringify(a.build.p) === "[[6,0],[-6,2]]", "S4c: pillars off the start, apart, inside the ring: " + JSON.stringify(a.build.p));
+  check(a.build.w.length === 8 && !a.build.w.some((w) => w[0] === 5.4) && a.build.w.find((w) => w[1] === "L")[2] === 90 && a.build.w.find((w) => w[1] === "D")[2] === 270, "S4c: waves from 2 s, ≤ " + G.ARENA_B.BURST + " a second, angles folded");
+  check(JSON.stringify(a.build.c) === "[[3,3,3]]", "S4c: coins not inside a pillar and within the time");
+  const L = G.genLevel(a); check(L.built && L.pillars.length === 2 && L.waves.length === 8 && L.coins === 1 && L.len === 600, "S4c: the arena plays as built");
+  const q = G.toBuild(G.clampSpec({ tpl: "arena", len: 45, walls: 3, seed: 5 })); check(q.w.length > 20 && q.c.length > 5 && q.p.length === 0, "S4c: a quick-start arena opens as its timeline");
+  check(G.clampSpec({ tpl: "runner", build: q }).build === undefined && G.clampSpec({ tpl: "arena", build: { L: 300, r: [] } }).build === undefined, "S4c: a layout only for its own kind");
+  const e0 = G.estimate(G.clampSpec({ tpl: "arena", len: 45, walls: 3, seed: 5, build: q })), e1 = G.estimate(G.clampSpec({ tpl: "arena", len: 45, walls: 3, seed: 5, build: { ...q, p: [[5, 5], [-5, 5], [5, -5], [-5, -5], [9, 0], [-9, 0]] } }));
+  check(e1.clear >= e0.clear, `S4c: pillars make it a little easier for the bots (${e0.clear} → ${e1.clear})`); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

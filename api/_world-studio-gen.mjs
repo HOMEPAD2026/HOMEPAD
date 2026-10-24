@@ -36,7 +36,7 @@ export const LANES = [-2.2, 0, 2.2];
 const int = (v, a, b, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(a, Math.min(b, n)) : d; };
 /// a spec made safe: every field in range, unknown ones dropped. → { tpl, title, theme, speed, len, coins, walls, gaps, lasers, seed }
 export function clampSpec(s = {}) {
-  const out = clampBase(s), b = (out.tpl === "runner" || out.tpl === "dash") && s.build && typeof s.build === "object" ? cleanBuild(s.build, out) : null;
+  const out = clampBase(s), lanes = out.tpl === "runner" || out.tpl === "dash", b = s.build && typeof s.build === "object" ? (lanes && Array.isArray(s.build.r) ? cleanBuild(s.build, out) : out.tpl === "arena" && Array.isArray(s.build.w) ? cleanArena(s.build, out) : null) : null; // (a layout only for its own kind: a template change drops it)
   if (b) out.build = b;
   return out;
 }
@@ -82,6 +82,23 @@ export function cleanBuild(b, spec) {
   }
   return { L, r: out };
 }
+/// S4c: an arena laid out by hand. build = { p: pillars [[x, z]], w: waves [[t, k, deg]] (k d drone · D big drone · L sweep),
+/// c: coins [[t, x, z]] } — x/z metres from the middle, t seconds, deg the side a drone comes from (a sweep's line: 0–179).
+/// The server keeps: ≤ ARENA_B.PILLARS pillars inside the ring, clear of the middle (where you start) and of each other; waves
+/// from 2 s to the end, ≤ ARENA_B.BURST in any second (a crowd you could dodge); coins on the floor, not inside a pillar.
+export const ARENA_B = { PILLARS: 10, PR: 1, WAVES: 400, COINS: 120, BURST: 6 };
+export function cleanArena(b, spec) {
+  const secs = spec.len, R = ARENA_R, num = (v) => Math.round(Number(v) * 10) / 10, p = [], w = [], c = [];
+  for (const x of Array.isArray(b.p) ? b.p.slice(0, 40) : []) { if (!Array.isArray(x)) continue; const px = num(x[0]), pz = num(x[1]), r = Math.hypot(px, pz);
+    if (!Number.isFinite(r) || r > R - 3 || r < 3.2 || p.some((q) => Math.hypot(q[0] - px, q[1] - pz) < 2.6)) continue; p.push([px, pz]); if (p.length >= ARENA_B.PILLARS) break; }
+  const ws = (Array.isArray(b.w) ? b.w.slice(0, ARENA_B.WAVES * 2) : []).filter(Array.isArray).map((x) => [num(x[0]), String(x[1]), Math.round(Number(x[2]))]).filter(([t, k, a]) => Number.isFinite(t) && Number.isFinite(a) && t >= 2 && t <= secs - 0.5 && (k === "d" || k === "D" || k === "L")).map(([t, k, a]) => [t, k, ((a % 360) + 360) % (k === "L" ? 180 : 360)]);
+  ws.sort((x, y) => x[0] - y[0] || x[2] - y[2]); const seen = new Set();
+  for (const x of ws) { const key = x.join(); if (seen.has(key)) continue; let n = 0; for (let i = w.length - 1; i >= 0 && x[0] - w[i][0] < 1; i--) n++; if (n >= ARENA_B.BURST) continue; seen.add(key); w.push(x); if (w.length >= ARENA_B.WAVES) break; }
+  for (const x of Array.isArray(b.c) ? b.c.slice(0, ARENA_B.COINS * 2) : []) { if (!Array.isArray(x)) continue; const t = num(x[0]), cx = num(x[1]), cz = num(x[2]), r = Math.hypot(cx, cz);
+    if (!Number.isFinite(t + r) || t < 0 || t > secs - 1 || r > R - 1.5 || p.some((q) => Math.hypot(q[0] - cx, q[1] - cz) < ARENA_B.PR + 0.7)) continue; c.push([t, cx, cz]); if (c.length >= ARENA_B.COINS) break; }
+  c.sort((x, y) => x[0] - y[0]);
+  return { p, w, c };
+}
 const KIND_OF = { w: "wall", m: "mwall", g: "gap", l: "laser", b: "blink", c: "coin", h: "heart" };
 /// a built layout as the level's rows (the dash: the layout again and again, back to back, to DASH_MAX's length)
 function buildRows(spec, len) {
@@ -119,6 +136,7 @@ export function genLevel(spec0) {
 /// coins that pop up on the floor. → { len: 20 × seconds, secs, waves: [{ t, k, a }], coinsAt: [{ t, x, z }], coins, R }
 export const ARENA_R = 14;
 export function genArena(spec) {
+  if (spec.build) { const B = spec.build; return { len: spec.len * 20, secs: spec.len, waves: B.w.map(([t, k, a]) => ({ t, k, a: +((a * Math.PI) / 180).toFixed(3) })), coinsAt: B.c.map(([t, x, z]) => ({ t, x, z })), coins: B.c.length, R: ARENA_R, pillars: B.p.map(([x, z]) => ({ x, z })), built: true }; }
   let s = spec.seed >>> 0 || 1; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const secs = spec.len, waves = [], coinsAt = [];
   for (let t = 2; t < secs; t += Math.max(0.35, 2.2 - spec.walls * 0.32) * (1 - t / secs / 2.4)) waves.push({ t: +t.toFixed(2), k: "d", a: +(rnd() * 6.283).toFixed(3) });
@@ -147,11 +165,11 @@ export function estimate(spec0) {
   let clears = 0;
   if (spec.tpl === "puzzle") { const k = spec.speed * 1.2 + spec.walls * 0.5 + spec.gaps * 0.5 + spec.lasers * 0.4 + spec.coins * 0.15 - puzzleHints(spec) * 0.6, clear = Math.max(0.05, Math.min(1, 1.15 - k / 7)), st = clear > 0.8 ? 1 : clear > 0.6 ? 2 : clear > 0.4 ? 3 : clear > 0.2 ? 4 : 5; return { clear: Math.round(clear * 100) / 100, stars: st, fails, why: "" }; }
   if (spec.tpl === "arena") {
-    const dS = 2.6 + spec.speed * 0.9;
+    const dS = 2.6 + spec.speed * 0.9, shield = 1 - 0.035 * ((L.pillars || []).length); // (S4c: pillars stop drones)
     for (let b = 0; b < N; b++) {
       const sk = 0.3 + (0.7 * b) / (N - 1); let hearts = 3, end = -1, recent = [];
       for (const w of L.waves) { recent = recent.filter((t) => w.t - t < 3); recent.push(w.t);
-        const p = w.k === "L" ? 0.09 * (1.25 - sk) : (0.012 + (dS - 3) * 0.008 + recent.length * 0.006) * (w.k === "D" ? 1.5 : 1) * (1.3 - sk);
+        const p = (w.k === "L" ? 0.09 * (1.25 - sk) : (0.012 + (dS - 3) * 0.008 + recent.length * 0.006) * (w.k === "D" ? 1.5 : 1) * (1.3 - sk)) * (w.k === "L" ? 1 : shield);
         if (rnd() < Math.min(0.9, p)) { hearts--; if (hearts <= 0) { end = w.t / L.secs; why[w.k] = (why[w.k] || 0) + 1; break; } } }
       if (end < 0) clears++; else fails[Math.min(9, Math.floor(end * 10))]++;
     }
@@ -181,7 +199,9 @@ export const puzzleHints = (spec) => ({ 30: 0, 45: 1, 60: 2, 90: 3 })[spec.len] 
 export const puzzleScore = (par, moves, hints = 0) => Math.max(100, 1000 - 40 * Math.max(0, moves - par) + 20 * Math.max(0, par - moves) - 50 * hints);
 /// Studio 4: a quick-start level as a layout to edit by hand (its rows, its length) — the second tier starts from the first
 export function toBuild(spec0) {
-  const spec = clampSpec({ ...spec0, build: null }); delete spec.build; const L = genLevel(spec), CODE = { wall: "w", gap: "g", laser: "l", coin: "c", heart: "h" };
+  const spec = clampSpec({ ...spec0, build: null }); delete spec.build; const L = genLevel(spec);
+  if (spec.tpl === "arena") return cleanArena({ p: [], w: L.waves.map((w) => [w.t, w.k, Math.round((w.a * 180) / Math.PI)]), c: L.coinsAt.map((c) => [c.t, c.x, c.z]) }, spec); // (S4c)
+  const CODE = { wall: "w", gap: "g", laser: "l", coin: "c", heart: "h" };
   const len = spec.tpl === "dash" ? Math.max(BUILD.MIN, Math.min(600, Math.round(speedOf(spec) * 30 / BUILD.STEP) * BUILD.STEP)) : Math.max(BUILD.MIN, Math.min(BUILD.MAX, Math.round(L.len / BUILD.STEP) * BUILD.STEP));
   return cleanBuild({ L: len, r: L.rows.filter((r) => r.z <= len - 12).map((r) => [Math.round(r.z), CODE[r.k], r.lane || 0]) }, spec);
 }
