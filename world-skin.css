@@ -3575,3 +3575,4 @@ body.wp button:active:not(:disabled){filter:brightness(1.18)}
 .wpg-tips li::before{content:"💡";position:absolute;left:10px;top:8px}
 html.wp-pcphone .wpg-in{zoom:1.5;width:min(760px,calc(100vw / 1.5 - 18px));max-height:calc(100dvh / 1.5 - 24px)}
 html.wp-pcphone .wst-help,html.wp-pcphone .wag-help{zoom:1.3}
+.wst-h>.wst-help{position:absolute!important;top:14px;right:58px;z-index:2}
