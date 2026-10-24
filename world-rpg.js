@@ -88,7 +88,9 @@ export function createRpg(ctx) {
     const it = r.bag[i], p = parseBase(it.b); if (!p) return;
     if (isBroken(it)) { ctx.toast(T("Broken — repair at the Magic Forge")); ctx.Snd.bad && ctx.Snd.bad(); return; }
     if (TIERS[p.tier].lv > ctx.level()) { ctx.toast(T("Needs level {n}", { n: TIERS[p.tier].lv })); ctx.Snd.bad && ctx.Snd.bad(); return; }
+    const pw0 = powerOf(stats());
     r.bag.splice(i, 1); if (r.eq[p.slot]) r.bag.splice(i, 0, r.eq[p.slot]); r.eq[p.slot] = it;
+    cache = null; const dp = Math.round(powerOf(stats()) - pw0); fx(`.hb-stage .s-${p.slot}, .s-${p.slot}`, dp ? (dp > 0 ? "▲ +" : "▼ ") + dp : "", dp >= 0 ? "#7cf5c8" : "#ff8a8a");
     ctx.Snd.equip ? ctx.Snd.equip() : ctx.Snd.place && ctx.Snd.place(); changed();
   }
   // one number for how strong a set of stats is (for "Equip best": attack and defence weigh most, then health)
@@ -216,7 +218,7 @@ export function createRpg(ctx) {
     const r = R(), it = r.bag.find((x) => x.id === id) || Object.values(r.eq).find((x) => x && x.id === id); if (!it) return;
     if ((it.p || 0) >= 10) { ctx.toast(T("Already +10")); return; }
     const c = enhanceCost(it); if (r.scrap < c) { ctx.toast(T("Needs {n} scrap", { n: c })); return; }
-    r.scrap -= c; it.p = (it.p || 0) + 1; ctx.Snd.chest && ctx.Snd.chest(); hammer(); changed(T("{x} is now +{n}", { x: itemName({ ...it, p: 0 }), n: it.p })); ctx.onEnhance && ctx.onEnhance(it.p);
+    r.scrap -= c; it.p = (it.p || 0) + 1; fx(`.hb-fdet .hb-dic, .hb-weap .wr-tile, [data-pick="${it.id}"]`, "+" + it.p + "!", it.p % 5 ? "#ffc861" : "#ff9f2e", it.p % 5 === 0); ctx.Snd.chest && ctx.Snd.chest(); hammer(); changed(T("{x} is now +{n}", { x: itemName({ ...it, p: 0 }), n: it.p })); ctx.onEnhance && ctx.onEnhance(it.p);
   }
   function sortBag() { const r = R(); r.bag.sort((a, b) => (b.r - a.r) || (b.lv - a.lv) || SLOTS.indexOf(parseBase(a.b).slot) - SLOTS.indexOf(parseBase(b.b).slot)); changed(); }
   function salvageCommons() { const r = R(), out = []; let s = 0; r.bag = r.bag.filter((x, i) => { if ((x.r || 0) === 0 && !(x.p > 0) && !x.tm && !x.lk) { s += scrapOf(x); out.push([x, i]); return false; } return true; }); r.scrap += s; if (s) ctx.Snd.salvage && ctx.Snd.salvage(); changed(s ? T("+{n} scrap", { n: s }) : T("No common gear to salvage")); if (s) undoable(out, s); }
@@ -378,6 +380,21 @@ export function createRpg(ctx) {
   const statLine = (k, v, d) => `<li class="st-${k}"><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "+" : "−"}${Math.abs(Math.round(d * 10) / 10)}${k === "crit" || k === "spd" ? "%" : ""}</i>` : ""}</li>`;
   const emptyBox = (pic, line, btn) => `<div class="wr-emptybox">${art(pic, 52)}<p>${esc(line)}</p>${btn || ""}</div>`;
   const huntBtn = () => (ctx.goHunt ? `<button type="button" class="go" data-hunt>${esc(T("Go hunting"))}</button>` : "");
+  // ---------------- effects (the owner's list, 2026-10-24): a pop over what just changed — text, a burst of sparks, a ring;
+  // queued while an action runs and played after the repaint, on the element that's there now (body-level, fixed, so
+  // the phone's zoom doesn't move it)
+  let fxQ = [], fxSc = false;
+  const fx = (sel, text, color = "#ffc861", big = false) => fxQ.push([sel, text, color, big]);
+  function runFx() {
+    const q = fxQ; fxQ = []; if (!q.length || ctx.reduce === true) return;
+    for (const [sel, text, color, big] of q) {
+      const t = sel && el.querySelector(sel); if (!t || !t.getClientRects().length) continue; const r = t.getBoundingClientRect();
+      const d = document.createElement("div"); d.className = "hb-pop" + (big ? " big" : ""); d.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px;--c:${color}`;
+      d.innerHTML = `<i class="hb-ring"></i>${Array.from({ length: big ? 18 : 10 }, (_, i) => { const a = (i / (big ? 18 : 10)) * Math.PI * 2, k = (big ? 110 : 70) * (0.6 + Math.random() * 0.6); return `<u style="--dx:${Math.round(Math.cos(a) * k)}px;--dy:${Math.round(Math.sin(a) * k)}px"></u>`; }).join("")}${text ? `<b>${esc(text)}</b>` : ""}`;
+      document.body.appendChild(d); setTimeout(() => d.remove(), 1300);
+      t.classList.remove("hb-flash"); void t.offsetWidth; t.classList.add("hb-flash");
+    }
+  }
   function detail(it) {
     if (!it) return `<div class="wr-detail empty">${R().bag.length ? emptyBox("box", T("Pick a piece of gear to see it here."), view === "inv" ? `<button type="button" data-best>${esc(T("Equip best"))}</button>` : "") : emptyBox("chest", T("Your bag is empty. Scammers in the hunting grounds drop gear."), huntBtn())}</div>`;
     if (R().store.includes(it)) return `<div class="wr-detail r${it.r || 0}" style="--rc:${rc(it)}"><div class="wr-d-h">${iconSvg(parseBase(it.b).slot, rc(it))}<div><h3>${esc(itemName(it))}</h3><small>${esc(T(RARITY[it.r || 0].name))} · ${esc(T("In storage"))}</small></div></div><div class="wr-acts"><button type="button" class="go" data-unstore="${it.id}">${esc(T("Take out"))}</button></div></div>`;
@@ -457,6 +474,7 @@ export function createRpg(ctx) {
     const res = fuseResult(picked, Math.random(), fuseSlot); if (!res) return;
     if (fuseSlot) r.scrap -= FUSE_PICK_SCRAP; fuseSlot = "";
     r.bag = r.bag.filter((x) => !fuseSel.includes(x.id)); const it = { id: rid(), ...res }; r.bag.push(it); fuseSel = []; sel = it.id;
+    fx(`.hb-fuse .wr-fslot.out, [data-fuse="${it.id}"], [data-pick="${it.id}"]`, T(RARITY[it.r || 0].name) + "!", RARITY[it.r || 0].color, (it.r || 0) >= 2);
     ctx.Snd.win && ctx.Snd.win(); changed(T("Fused: {x}", { x: itemName(it) }));
     const out = el.querySelector(".wr-fslot.out"); if (out) { out.classList.remove("pop"); void out.offsetWidth; out.classList.add("pop"); }
     ctx.onFuse && ctx.onFuse(it);
@@ -513,7 +531,8 @@ export function createRpg(ctx) {
   const arclIc = (n) => `<img class="hb-coin" src="/images/arcl2-64.png" alt="ARCL">${typeof n === "number" ? n.toLocaleString("en-US") : n}`;
   const arcIc = (n) => `<img class="hb-coin" src="/images/arcircle-mark-sm.webp" alt="$ARCIRCLE">${typeof n === "number" ? n.toLocaleString("en-US") : n}`;
   const statRows = (st, nx) => `<ul class="hb-kv">${Object.entries(st).map(([k, v]) => `<li><img src="/images/ui/char/st-${({ hp: "hp", sp: "sp", atk: "atk", def: "def", crit: "crit", spd: "spd" })[k] || "atk"}.webp${ctx.ver || ""}" alt=""><span>${esc(T(STAT_NAME[k] || k))}</span><b>${v}${k === "crit" || k === "spd" ? "%" : ""}${nx && nx[k] != null && nx[k] !== v ? ` <i>→ ${nx[k]}${k === "crit" || k === "spd" ? "%" : ""}</i>` : ""}</b></li>`).join("")}</ul>`;
-  const cellOf = (id, inner, c, on, badge, attr = "data-fpick") => `<button type="button" class="hb-fcell${on ? " on" : ""}" style="--rc:${c}" ${attr}="${esc(id)}">${inner}${badge ? `<em>${badge}</em>` : ""}</button>`;
+  let craftAll = false, scrollDet = false;
+  const cellOf = (id, inner, c, on, badge, attr = "data-fpick", cls = "") => `<button type="button" class="hb-fcell${on ? " on" : ""}${cls}" style="--rc:${c}" ${attr}="${esc(id)}">${inner}${badge ? `<em>${badge}</em>` : ""}</button>`;
   const dHead = (icon, name, sub, c, line) => `<div class="hb-dh" style="--rc:${c}"><span class="hb-dic">${icon}</span><div><h3>${esc(name)}</h3><small>${esc(sub)}</small>${line ? `<p>${esc(line)}</p>` : ""}</div></div>`;
   const split = (title, line, grid, det) => `<div class="hb-fx"><section class="hb-card hb-fgrid"><div class="hb-fh"><h2>${esc(title)}</h2><p>${esc(line)}</p></div>${grid}</section><aside class="hb-card hb-fdet">${det}</aside></div>`;
   function craftHTML(lv, bal) {
@@ -521,9 +540,12 @@ export function createRpg(ctx) {
     const band = mwBand(lv), mOk = lv >= 20;
     const list = master ? SLOTS.map((sl) => ({ id: mwId(sl, mwR, mwP), sl, it: { b: baseId(sl, 4), r: mwR, lv: band, p: mwP }, price: mwPrice(band, mwR, mwP), ok: mOk, need: 20 }))
       : slots.flatMap((sl) => [0, 1, 2, 3, 4].map((t) => ({ id: forgeId(sl, t), sl, it: { b: baseId(sl, t), r: t, lv: TIERS[t].lv, p: 0 }, price: FORGE_PRICE[t], ok: lv >= TIERS[t].lv, need: TIERS[t].lv })));
-    const cur = list.find((x) => x.id === fpick) || list.find((x) => x.ok) || list[0], pb = parseBase(cur.it.b);
+    const nextNeed = Math.min(...list.filter((x) => !x.ok).map((x) => x.need).concat([999])), hidden = craftAll ? 0 : list.filter((x) => !x.ok && x.need > nextNeed).length;
+    const shown = (craftAll ? list : list.filter((x) => x.ok || x.need <= nextNeed)).sort((a, b) => (b.ok - a.ok) || a.need - b.need);
+    const cur = list.find((x) => x.id === fpick) || shown.find((x) => x.ok) || shown[0], pb = parseBase(cur.it.b);
     const grid = `<nav class="hb-chips" role="group">${[["gear", "Weapons & armour"], ["acc", "Accessories"], ["master", "Masterwork"]].map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}</button>`).join("")}</nav>
-      <div class="hb-fcells">${list.map((x) => cellOf(x.id, fart(x.sl, parseBase(x.it.b).tier, rc(x.it)), rc(x.it), x === cur, x.ok ? "" : "🔒")).join("")}</div>
+      <div class="hb-fcells">${shown.map((x) => cellOf(x.id, fart(x.sl, parseBase(x.it.b).tier, rc(x.it)), rc(x.it), x === cur, x.ok ? "" : "🔒 " + x.need, "data-fpick", x.ok ? "" : " lock")).join("")}</div>
+      ${hidden ? `<button type="button" class="hb-more" data-craftall>${esc(T("Show all ({n} more)", { n: hidden }))}</button>` : craftAll ? `<button type="button" class="hb-more" data-craftall>${esc(T("Show less"))}</button>` : ""}
       ${master ? `<p class="wr-note">${esc(mOk ? T("Made at level {n} (your level band). Each ten levels makes them stronger, and dearer.", { n: band }) : T("The Masterwork bench opens at level 20."))}</p>` : `<p class="wr-note">${esc(T("The Arc set (Legendary) is forged from level 20. Stronger pieces made at your own level are on the Masterwork bench."))}</p>`}`;
     const det = `${dHead(fart(cur.sl, pb.tier, rc(cur.it)), BASES[cur.sl][pb.tier] + (cur.it.p ? ` +${cur.it.p}` : ""), `${T(RARITY[cur.it.r].name)} · ${T("Lv {n}", { n: cur.it.lv })}`, rc(cur.it), T("{x} set", { x: TIERS[pb.tier].set }))}
       ${master ? `<div class="hb-mw"><div role="group">${[[3, "Epic"], [4, "Legendary"]].map(([v, n]) => `<button type="button" data-mw="r:${v}" aria-pressed="${mwR === v}">${esc(T(n))}</button>`).join("")}</div><div role="group">${[0, 5, 10].map((v) => `<button type="button" data-mw="p:${v}" aria-pressed="${mwP === v}">+${v}</button>`).join("")}</div></div>` : ""}
@@ -630,7 +652,7 @@ export function createRpg(ctx) {
   const stageHTML = () => `<section class="hb-stage"><nav class="hb-snav">${SIDE.inv.map(([id, n, ic]) => `<button type="button" data-side="${id}" aria-pressed="${id === charSub}">${uiIcon(ic, 22)}<span>${esc(T(n))}</span></button>`).join("")}</nav>
     <div class="hb-col hb-l">${["weapon", "helm", "armor", "boots"].map(slotEl).join("")}</div><div class="wr-avatar hb-hero"><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span></div><div class="hb-col hb-r">${["shield", "ring", "necklace"].map(slotEl).join("")}</div><i class="hb-ped" aria-hidden="true"></i></section>`;
   const ST_IC = { hp: "hp", sp: "sp", atk: "atk", def: "def", crit: "crit", spd: "spd" };
-  const statsCard = () => { const s = stats(); return `<section class="hb-card hb-stats"><h4>${esc(T("Character stats"))}</h4><ul>${["hp", "crit", "sp", "spd", "atk", "def"].map((k) => `<li><img src="/images/ui/char/st-${ST_IC[k]}.webp${ctx.ver || ""}" alt=""><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? s[k] + "%" : s[k]}</b></li>`).join("")}</ul>${ctx.titleLine ? ctx.titleLine() : ""}</section>`; };
+  const statsCard = () => { const s = stats(); return `<section class="hb-card hb-stats"><div class="hb-ch"><h4>${esc(T("Character stats"))}</h4><span class="hb-pow"><small>${esc(T("Power"))}</small><b>${Math.round(powerOf(s)).toLocaleString("en-US")}</b></span></div><ul>${["hp", "crit", "sp", "spd", "atk", "def"].map((k) => `<li><img src="/images/ui/char/st-${ST_IC[k]}.webp${ctx.ver || ""}" alt=""><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? (s[k] ? "+" + s[k] + "%" : "—") : s[k]}</b></li>`).join("")}</ul>${ctx.titleLine ? ctx.titleLine() : ""}</section>`; };
   // the picked piece takes the weapon card's place (on a phone it docks at the bottom instead)
   function weapCard() {
     if (plan) return `<section class="hb-card hb-weap">${planHTML()}</section>`;
@@ -650,7 +672,7 @@ export function createRpg(ctx) {
   }
   function invCard(compact) {
     const r = R(), list = (storeView ? r.store : r.bag).filter((it) => { const pb = parseBase(it.b); return !BAGF[bagF] || (pb && BAGF[bagF].includes(pb.slot)); });
-    const size = storeView ? STORE : compact ? Math.max(list.length, 10) : Math.max(BAG, list.length);
+    const size = storeView ? Math.min(STORE, Math.max(12, Math.ceil((list.length + 1) / 6) * 6)) : Math.min(Math.max(BAG, list.length), Math.max(compact ? 6 : 12, Math.ceil((list.length + 1) / 6) * 6)); // (what you have and a row to spare, not 24 empty boxes)
     return `<section class="hb-card hb-inv"><div class="hb-ch"><h4>${esc(storeView ? T("Storage") : T("Inventory"))}</h4><small>${storeView ? `${r.store.length}/${STORE}` : `${r.bag.length}/${BAG}`}</small>${!storeView && ctx.buyBag && BAG < BAG_MAX && !bagAsk ? `<button type="button" class="hb-plus" data-bagplus>${esc(T("+{n} slots", { n: BAG_STEP }))}</button>` : ""}<button type="button" class="hb-plus" data-storeview aria-pressed="${storeView}">${esc(storeView ? T("Back to the bag") : T("Storage"))}</button></div>
       ${bagAsk ? `<div class="wr-bagask" role="group"><p>${esc(bagAsk === 1 ? T("{n} more bag slots, for good, for 10,000 $ARCIRCLE from your wallet (half is burned, half goes to the treasury). Your bag: {a} → {b} slots.", { n: BAG_STEP, a: BAG, b: Math.min(BAG_MAX, BAG + BAG_STEP) }) : bagAsk)}</p>${bagAsk === 1 ? `<button type="button" class="go" data-bagbuy>${esc(T("Buy"))}</button><button type="button" data-bagno>${esc(T("Cancel"))}</button>` : `<button type="button" data-bagno>${esc(T("Close"))}</button>`}</div>` : ""}
       <nav class="hb-filt" role="group">${[["all", "All"], ["weapon", "Weapons"], ["armor", "Armour"], ["acc", "Accessories"]].map(([k, n]) => `<button type="button" data-bagf="${k}" aria-pressed="${bagF === k}">${esc(T(n))}</button>`).join("")}</nav>
@@ -658,11 +680,21 @@ export function createRpg(ctx) {
       <p class="hb-res">${art("scrap", 18)}<b>${r.scrap}</b> ${esc(T("Scrap"))} · ${art("hp", 18)}<b>${r.hp}</b> · ${art("sp", 18)}<b>${r.sp}</b>${r.recall > 0 ? ` · <button type="button" class="wr-recall" data-recall>${esc(T("Recall to the plaza ({n})", { n: r.recall }))}</button>` : ""}</p>
       <div class="hb-acts hb-3"><button type="button" class="mint" data-best>${esc(T("Equip best"))}</button><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button></div></section>`;
   }
+  // what's waiting today (Overview): rewards to claim, the next events, the daily chest — each a tap away
+  function todayCard() {
+    const t = hub("today") || {}, ev = (hub("events") || []).slice(0, 3);
+    const row = (ic, a, b, go, hot) => `<button type="button" class="hb-trow2${hot ? " hot" : ""}" ${go}><span>${ic}</span><b>${esc(a)}</b><small>${esc(b)}</small><i>›</i></button>`;
+    return `<section class="hb-card hb-today"><h4>${esc(T("Today"))}</h4>
+      ${row("🎁", T("Rewards to claim"), t.pend ? String(t.pend) : T("None right now"), 'data-sec="adv"', t.pend > 0)}
+      ${row("📅", T("Daily reward"), t.chest ? T("Opened") : T("Waiting"), 'data-hubgo="daily"', !t.chest)}
+      ${ev.map((e) => row(e.ic, e.t, e.live ? T("On now") : e.left, 'data-side-go="events"', e.live)).join("")}
+      ${row("🧰", T("Item codex"), t.codex || "—", 'data-hubgo="items"', false)}</section>`;
+  }
   // Overview: the stage, who you are and your stats beside it; the weapon, a look in the bag and the gear set under it
   function overviewHTML() {
     const xp = hub("xp"), hero = hub("hero") || "aron";
     return `<div class="hb-ov">${stageHTML()}<aside class="hb-side2"><div class="hb-card hb-id"><img src="/images/ui/menu2/hero-${hero}.webp${ctx.ver || ""}" alt=""><div><b>${esc(hub("name") || T("Player"))}</b><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span>${xp ? `<i style="--k:${xp.k}"></i><small>${xp.a.toLocaleString("en-US")} / ${xp.b.toLocaleString("en-US")} (${Math.round(xp.k * 100)}%)</small>` : ""}</div>${ctx.sess() && ctx.openProfile ? `<button type="button" class="hb-plus" data-mycard>${esc(T("My card"))}</button>` : ""}</div>${statsCard()}</aside>
-      ${weapCard()}${invCard(true)}${gsetCard()}</div>`;
+      ${weapCard()}${todayCard()}${gsetCard()}</div>`;
   }
   // Equipment: the stage and the bag side by side; the weapon, the stats and the gear set under them
   const equipHTML = () => `<div class="hb-eq">${stageHTML()}${invCard(false)}${weapCard()}${statsCard()}${gsetCard()}</div>`;
@@ -727,8 +759,12 @@ export function createRpg(ctx) {
         <main class="hb-main">${artK ? `<div class="hb-banner${WIDE.has(k) ? "" : " narrow"}" style="--art:url('/images/ui/menu2/${artK}.webp${ctx.ver || ""}')"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}${hd[0] && !(artK && WIDE.has(k)) ? `<div class="hb-head${artK ? " has-art" : ""}"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}<div class="wr-body">${body}</div></main></div>
       ${docked() && picked() ? `<div class="wr-dock">${detail(picked())}</div>` : ""}</div>`;
     if (sy) el.querySelector(".wr-body").scrollTop = sy;
+    if (key !== lastSec) { const m = el.querySelector(".hb-main"); if (m && !opening) m.classList.add("hb-in"); lastSec = key; }
+    if (scrollDet) { scrollDet = false; const dt = docked() && el.querySelector(".hb-fdet"); if (dt) dt.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    if (fxQ.length) setTimeout(runFx, 0); /* (not on the next frame: a slow phone's frame comes late) */
     if (view === "inv") preview3d();
   }
+  let lastSec = "";
   // the bar's sections and the side menu
   function goSec(id) {
     if (id === "play") { hide(); return; }
@@ -791,6 +827,7 @@ export function createRpg(ctx) {
     }
     if (r.j.supply) { const x = r.j.supply; if (!sup || x.kind !== sup.kind || x.n !== sup.n) { R()[x.kind] = (R()[x.kind] || 0) + x.n; } ctx.save(); }
     else { addItem(r.j.item, true); sel = r.j.item.id; ctx.toast(T("Bought: {x}", { x: itemName(r.j.item) })); }
+    fx(".hb-fdet .hb-dic, .hb-scard.on", sup ? "+" + sup.n : T("Crafted!"), "#ffc861", !sup);
     settle(r.j); paint();
   }
   // what's left of today's 150 ARCL of sales (the server's word after each sale; a new day starts full)
@@ -810,7 +847,7 @@ export function createRpg(ctx) {
     if (fast) {
       at = r.bag.indexOf(it); r.bag.splice(at, 1); sel = null; setSellLeft(sellLeft() - want);
       if (ctx.arclDelta) ctx.arclDelta(want, { sold: want, today: want }); if (ctx.arclFly) ctx.arclFly(want, from);
-      ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: want }));
+      fx(".hb-fdet .hb-dic, .hb-fgrid", "+" + want + " ARCL", "#ffe49a"); ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: want }));
     } else if (sb) { sb.disabled = true; sb.classList.add("busy"); }
     const res = await ctx.post({ action: "world-sell", ...s, item: { id: it.id, b: it.b, r: it.r, lv: it.lv, p: it.p || 0 } }).catch(() => ({ ok: false, j: {} }));
     pend.delete(id);
@@ -842,14 +879,16 @@ export function createRpg(ctx) {
     const d = b.dataset;
     if (d.view) { view = d.view; sel = null; show(view); return; }
     if (d.sksel) { skSel = d.sksel; paint(); return; }
-    if (d.skuse) { if (!hub("skill:" + d.skuse)) { R().sk = d.skuse; ctx.save(); } paint(); return; }
+    if (d.skuse) { if (!hub("skill:" + d.skuse)) { R().sk = d.skuse; ctx.save(); } fx(`[data-sksel="${d.skuse}"], .hb-skdet .hb-dic`, T("In use"), "#5fd3ff", true); paint(); return; }
     if (d.tcat) { tCat = d.tcat; paint(); return; }
     if (d.tsel) { tSel = d.tsel; paint(); return; }
-    if (d.fpick) { fpick = d.fpick; askBuy = ""; paint(); return; }
+    if (b.hasAttribute("data-craftall")) { craftAll = !craftAll; paint(); return; }
+    if (d.sideGo) { goSide(d.sideGo); return; }
+    if (d.fpick) { fpick = d.fpick; askBuy = ""; scrollDet = true; paint(); return; }
     if (d.sec) { goSec(d.sec); return; }
     if (d.side) { goSide(d.side); return; }
     if (d.hubgo) { hide(); hub(d.hubgo); return; }
-    if ((view === "log" || (view === "inv" && charSub === "titles")) && log && log.click(b)) { paint(); return; }
+    if ((view === "log" || (view === "inv" && charSub === "titles")) && log && log.click(b)) { if (d.title && b.getAttribute("aria-pressed") !== "true") fx(".hb-plate.big", T("Worn") + "!", "#ffc861", true); paint(); return; }
     if (d.wearset != null) { wearSet(+d.wearset); return; }
     if (b.hasAttribute("data-storeview")) { storeView = !storeView; sel = null; paint(); return; }
     if (d.store) { const r = R(), i = r.bag.findIndex((x) => x.id === d.store); if (i < 0) return; if (r.store.length >= STORE) { ctx.toast(T("Storage is full ({n})", { n: STORE })); return; } r.store.push(r.bag.splice(i, 1)[0]); sel = null; changed(T("Put in storage")); return; }
@@ -871,6 +910,7 @@ export function createRpg(ctx) {
     if (d.fslot != null) { fuseSlot = d.fslot; paint(); return; }
     if (b.hasAttribute("data-fusego")) { const sl = el.querySelector(".wr-fuse-slots"); if (fuseSlot && (R().scrap || 0) < FUSE_PICK_SCRAP) { fuse(); return; } if (sl && !sl.classList.contains("fusing")) { sl.classList.add("fusing"); ctx.Snd.chest && ctx.Snd.chest(); setTimeout(fuse, 700); } else if (!sl) fuse(); return; }
     if (d.br) { setBranch(d.br); return; }
+    if (d.pick && view === "forge") scrollDet = true;
     if (d.pick) { plan = null; sel = sel === d.pick ? null : d.pick; if (sel && view === "inv" && !isWorn(sel)) invPane = "bag"; paint(); return; }
     if (d.equip) { equip(d.equip); return; }
     if (d.repair) { repairPiece(d.repair, false); return; }

@@ -3938,5 +3938,36 @@ html.wp-pcphone .hb-fcells{grid-template-columns:repeat(4,1fr)}html.wp-pcphone .
 html.wp-pcphone .hb-stg .hb-row{padding-top:8px}html.wp-pcphone .hb-stg .hb-nav{display:none}
 html.wp-pcphone .hb-ov>*,html.wp-pcphone .hb-eq>*{margin-bottom:0}
 html.wp-pcphone .hb .wq-list li{flex-wrap:wrap}
+/* ---- effects and motion (world-rpg.js fx / hb-in) ---- */
+.hb-pop{position:fixed;z-index:13500;width:0;height:0;pointer-events:none}
+.hb-pop b{position:absolute;left:0;top:0;transform:translate(-50%,-50%);white-space:nowrap;font:900 30px/1 Sora,sans-serif;color:#fff;-webkit-text-stroke:1px rgba(0,0,0,.35);text-shadow:0 0 14px var(--c),0 2px 0 rgba(0,0,0,.5);animation:hbPopT 1.2s cubic-bezier(.2,1.4,.4,1) forwards}
+.hb-pop.big b{font-size:44px}
+.hb-pop u{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c);animation:hbPopU .9s ease-out forwards}
+.hb-pop .hb-ring{position:absolute;left:0;top:0;width:40px;height:40px;border-radius:50%;border:3px solid var(--c);transform:translate(-50%,-50%) scale(.3);box-shadow:0 0 16px var(--c);animation:hbPopR .7s ease-out forwards}
+.hb-pop.big .hb-ring{animation-duration:.9s}
+@keyframes hbPopT{0%{opacity:0;transform:translate(-50%,-30%) scale(.4)}20%{opacity:1;transform:translate(-50%,-80%) scale(1.15)}70%{opacity:1;transform:translate(-50%,-120%) scale(1)}100%{opacity:0;transform:translate(-50%,-170%) scale(.95)}}
+@keyframes hbPopU{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
+@keyframes hbPopR{0%{opacity:1;transform:translate(-50%,-50%) scale(.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(4)}}
+.hb-flash{animation:hbFlash .6s ease-out}@keyframes hbFlash{0%{filter:brightness(2.2) saturate(1.4)}100%{filter:none}}
+.hb-main.hb-in{animation:hbIn .24s ease-out}@keyframes hbIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+.hb-nav button,.hb-secs button,.hb-fcell,.hb-scard,.hb-skc,.hb-trow,.hb-acts button,.hb-gold .wr-buy{transition:transform .12s,box-shadow .2s,filter .2s}
+.hb-nav button:active,.hb-fcell:active,.hb-scard:active,.hb-skc:active,.hb-acts button:active,.hb-gold .wr-buy:active{transform:scale(.96)}
+.hb-gold .wr-buy:not([disabled]){animation:hbGlow 2.4s ease-in-out infinite}@keyframes hbGlow{0%,100%{box-shadow:0 0 18px rgba(255,190,60,.4),inset 0 2px 0 rgba(255,255,255,.5)}50%{box-shadow:0 0 30px rgba(255,200,80,.75),inset 0 2px 0 rgba(255,255,255,.5)}}
+.hb-hero.wr-avatar.has-3d{animation:hbFloat 3.2s ease-in-out infinite}@keyframes hbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.hb-ped{animation:hbPed 3.2s ease-in-out infinite}@keyframes hbPed{0%,100%{opacity:.85}50%{opacity:1;filter:brightness(1.25)}}
+.hb-fcell.r4,.hb-fcell[style*="#ffb84d"],.wr-tile.r4{position:relative}
+.wr-tile.r4::after{content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,240,180,.55) 48%,transparent 66%) -150% 0/250% 100% no-repeat;animation:hbShine 3s ease-in-out infinite}
+@keyframes hbShine{0%,60%{background-position:-150% 0}100%{background-position:150% 0}}
+@media (prefers-reduced-motion:reduce){.hb-main.hb-in,.hb-gold .wr-buy,.hb-hero.wr-avatar.has-3d,.hb-ped,.wr-tile.r4::after,.hb-flash{animation:none!important}}
+/* power, today, craft grid's locked row, show-all */
+.hb-pow{margin-left:auto;display:flex;align-items:baseline;gap:6px;padding:4px 12px;border-radius:999px;background:linear-gradient(90deg,rgba(255,200,97,.2),rgba(255,140,40,.1));border:1px solid rgba(255,200,97,.5)}.hb-pow small{color:#ffe7b0;font-weight:700}.hb-pow b{font:900 20px/1 Sora,sans-serif;color:#ffd75a}
+.hb-today{grid-area:inv;display:grid;gap:8px}.hb-today h4{margin-bottom:4px}
+.hb-trow2{display:grid;grid-template-columns:34px 1fr auto 14px;align-items:center;gap:10px;min-height:52px;padding:0 12px;border-radius:12px;border:1px solid rgba(110,180,255,.2);background:rgba(10,22,52,.9);color:#fff;text-align:left;cursor:pointer;font:inherit}.hb-trow2 span{font-size:24px}.hb-trow2 b{font-size:15px}.hb-trow2 small{color:#9fe6ff;font-weight:700}.hb-trow2 i{font-style:normal;color:#7f93b3}.hb-trow2.hot{border-color:#ffc861;box-shadow:0 0 12px rgba(255,200,97,.3)}.hb-trow2.hot small{color:#ffd75a}
+.hb-fcell.lock{filter:saturate(.35) brightness(.7)}.hb-fcell.lock em{font-size:11px;font-weight:800;color:#fff;background:rgba(0,0,0,.6);padding:2px 5px;border-radius:6px}
+.hb-more{width:100%;margin-top:10px;min-height:42px;border-radius:12px;border:1px dashed rgba(143,224,255,.5);background:rgba(10,22,52,.6);color:#9fe6ff;font:700 14px/1 Sora,sans-serif;cursor:pointer}
+.hb-p-skills .hb-head,.hb-p-titles .hb-head{display:none}
+/* phones: the gold button stays in reach at the bottom while its card is on screen */
+html.wp-pcphone .hb-fdet .hb-gold{position:sticky;bottom:6px;z-index:3;padding-top:6px;background:linear-gradient(180deg,transparent,rgba(8,17,42,.96) 30%)}
+html.wp-pcphone .hb-today{grid-column:1/-1}
 /* the minimap's ring ran into the USDC / $ARCIRCLE purse on phones (the owner's screenshot, 2026-10-24): a little lower */
 html.wp-pcphone body.wp .wp-hud .wp-mini{margin-top:28px}
