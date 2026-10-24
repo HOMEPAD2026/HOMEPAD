@@ -3512,9 +3512,11 @@ function nqRun() { try {
   for (const e of els) { const off = e !== show; if (e.classList.contains("wp-nq-off") !== off) e.classList.toggle("wp-nq-off", off); }
   if (show && y) { const z = Number(getComputedStyle(show).zoom) || 1, t = Math.round(y / z) + "px"; if (show.style.top !== t) show.style.top = t; }
 } catch { /* the next second */ } }
-// the pill at the top of the screen: the next three, one at a time (in town only)
+// the pill at the top of the screen: the next three, one at a time (in town only). Off since 2026-10-24 (the owner: it
+// stood over the middle of the screen); the schedule is still in the events list and the start's welcome card
+const EVT_PILL = false;
 { const pill = document.createElement("div"); pill.className = "wp-evt"; pill.id = "wp-evt"; pill.setAttribute("aria-live", "off"); pill.hidden = true; document.body.appendChild(pill); let i = 0;
-  every(6000, () => { try { const on = landed && mode === "hub" && !frozen && !introOn && !document.body.classList.contains("wp-first"); pill.hidden = !on; if (!on) return;
+  every(6000, () => { try { const on = EVT_PILL && landed && mode === "hub" && !frozen && !introOn && !document.body.classList.contains("wp-first"); pill.hidden = !on; if (!on) return;
     const L = plazaEvents().slice(0, 3), e = L[i++ % L.length]; if (!e) return; pill.innerHTML = `<span>${e.ic}</span><b>${esc(e.t)}</b><small class="${e.live ? "live" : ""}">${esc(e.live ? TW("now") : evLeft(e.at))}</small>`; placePill(pill); pill.classList.remove("in"); void pill.offsetWidth; pill.classList.add("in"); } catch { /* next time */ } }); }
 /// b-st3: a coin launched on ArcPad in the last 15 minutes: fireworks over the plaza, once per coin on this device
 function launchFireworks(c) {
