@@ -61,8 +61,14 @@ const L = G.genLevel(db.get(`worldStudio/${id}`).spec);
 r = await call(fan, "world-studio-play", { id, coins: 9999, dist: 1e9, done: true }); check(r.status === 200 && r.body.score === G.scoreOf(L.coins, L.len, true) && r.body.plays === 1, "a run can't beat the level: " + r.body.score);
 r = await call(fan, "world-studio-play", { id, coins: 1, dist: 20 }); check(r.body.plays === 1 && r.body.best === G.scoreOf(L.coins, L.len, true), "the same player again within 20 s: not counted twice, the best kept");
 T += 30e3; r = await call(fan, "world-studio-play", { id, coins: 1, dist: 20 }); check(r.body.plays === 2, "later: counted");
-r = await call(me, "world-studio-play", { id, coins: 2, dist: 50 }); check(r.status === 200 && r.body.plays === 2, "the maker's own runs aren't counted as plays");
-let gm = await get("studio-game&id=" + id); check(gm.ok && gm.game.best.length === 2 && gm.game.spec.seed === 7, "the game's page: its spec and the best runs");
+// Studio 3b: the #1 leaves a ghost (their run every 0.2 s) for others to race; a bad trace is left out
+{ const tr = Array.from({ length: 40 }, (_, i) => [0, 0, i * 3]); T += 30e3; const third = ethers.Wallet.createRandom(); r = await call(third, "world-studio-play", { id, coins: 1, dist: 30, trace: tr }); let gh = await get("studio-ghost&id=" + id);
+  check(r.body.ghost === false && !gh.ghost, "a run that isn't the #1 leaves no ghost");
+  r = await call(fan, "world-studio-play", { id, coins: 9999, dist: 1e9, done: true, trace: tr }); gh = await get("studio-ghost&id=" + id);
+  T += 30e3; r = await call(third, "world-studio-play", { id, coins: 0, dist: 1, trace: [["x"]] }); check(r.status === 200 && !r.body.ghost, "a broken trace: the run counts, no ghost");
+  check(r.body && gh.ghost && Array.isArray(gh.ghost.tr) && gh.ghost.tr.length === 40 && gh.ghost.score === G.scoreOf(L.coins, L.len, true), "the #1's run is the ghost: " + JSON.stringify(gh.ghost && { n: gh.ghost.name, s: gh.ghost.score, l: gh.ghost.tr.length })); }
+r = await call(me, "world-studio-play", { id, coins: 2, dist: 50 }); check(r.status === 200 && r.body.plays === 5, "the maker's own runs aren't counted as plays (" + r.body.plays + ")");
+let gm = await get("studio-game&id=" + id); check(gm.ok && gm.game.best.length === 3 && gm.game.spec.seed === 7, "the game's page: its spec and the best runs");
 // likes
 r = await call(fan, "world-studio-like", { id }); check(r.status === 200 && r.body.likes === 1, "liked");
 r = await call(fan, "world-studio-like", { id }); check(r.body.likes === 1 && r.body.already, "once a wallet");

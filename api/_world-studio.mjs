@@ -13,12 +13,14 @@
 //   GET  ?world=studio-arcade                                            → { games: [{ id, title, tpl, theme, byName, plays, likes, at }] }
 //   GET  ?world=studio-game&id=…                                         → { game: { id, spec, title, byName, plays, likes, pub, best } }
 //   GET  ?world=studio-mine&wallet=0x…                                   → { games }
+//   GET  ?world=studio-ghost&id=…                                        → { ghost: { name, score, tr } | null } (Studio 3: the #1's run to race)
 //
 // Firestore: worldStudio/<id> { w, byName, spec, pub, at, up, plays, likes, best: [{ w, name, score }] } · worldStudioBy/<wallet> { ids }
 //            worldStudioLike/<id>_<wallet> (create-only) · worldStats/studioArcade { list: { <id>: { title, tpl, theme, byName, plays, likes, at } } }
 //            worldStudioAi/<wallet>_<day> { n } · worldStudioRun/<wallet>_<id>_<t/20s> (create-only: a play counted once in 20 s)
+//            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
 import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS } from "./_world-studio-gen.mjs";
-export const STUDIO = { DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240 };
+export const STUDIO = { DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900 };
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), shut(w), nameOf(w), randomId(), ai?(sys, msgs) }
@@ -69,7 +71,16 @@ export function makeStudio(deps) {
     const top = mine0 && mine0.score >= score ? mine0 : { w, name, score };
     g.best = [...best, top].sort((p, q) => q.score - p.score).slice(0, STUDIO.BEST);
     await setDoc(`worldStudio/${b.id}`, g); if (g.pub && counted) await arcadeSet(b.id, g).catch(() => {});
-    return json(200, { ok: true, score, best: top.score, plays: g.plays || 0, place: g.best.findIndex((x) => x.w === w) + 1 || null });
+    // Studio 3: the game's #1 leaves a ghost (where they were, every 0.2 s) for the next players to race
+    const tr = traceOf(b.trace); let ghost = false;
+    if (tr && g.best[0] && g.best[0].w === w && g.best[0].score === score) { await setDoc(`worldStudioGhost/${b.id}`, { w, name, score, tr, at: now() }); ghost = true; }
+    return json(200, { ok: true, score, best: top.score, plays: g.plays || 0, place: g.best.findIndex((x) => x.w === w) + 1 || null, ghost });
+  }
+  /// a run's trace: up to STUDIO.TRACE samples of 2 or 3 whole numbers (x×10, y×10, z — or the arena's x×10, z×10)
+  function traceOf(t) {
+    if (!Array.isArray(t) || !t.length || t.length > STUDIO.TRACE) return null;
+    const out = []; for (const p of t) { if (!Array.isArray(p) || p.length < 2 || p.length > 3) return null; const q = p.map((v) => Math.round(Number(v))); if (q.some((v) => !Number.isFinite(v) || Math.abs(v) > 100000)) return null; out.push(q); }
+    return out;
   }
   async function like(w, b) {
     const g = await one(`worldStudio/${b.id}`); if (!g || !g.pub) return json(404, { error: "no such game" });
@@ -118,6 +129,7 @@ export function makeStudio(deps) {
       const w = url.searchParams.get("world");
       if (w === "studio-arcade") { const d = (await one("worldStats/studioArcade")) || {}; return json(200, { ok: true, games: Object.entries(d.list || {}).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
       if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudio/${id}`) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); return json(200, { ok: true, game: pubOf(id, g, true) }); }
+      if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioGhost/${id}`) : null; if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
       if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
       return null;
     },
