@@ -313,7 +313,7 @@ async function signIn() {
   if (r.status === 503) { toast(T("Signed in. Cloud saving isn't switched on yet, so progress stays in this browser.")); return; }
   if (!r.ok) throw new Error(r.j.error || T("Sign-in failed."));
   try { localStorage.setItem(SESS, JSON.stringify({ wallet: a, issued, signature })); localStorage.setItem(LOGGED, issued); } catch { /* private */ }
-  loggedIn(r); setTimeout(() => adPromo(), 2500); /* (AGENT DIMENSION's opening week: the launch art once a day) */
+  loggedIn(r);
 }
 // the beta pass signs the same message but only checks the balance: the first visit with that signature also signs in
 // here (the player is counted, and a save from another device is loaded)
@@ -5353,13 +5353,21 @@ async function openArena() {
 // and opens the Genesis Lab to buy one
 const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z"); // (24 – 31 Oct, Seoul)
 const STUDIO_OPEN = true; /* ARCIRCLE Studio for everyone (the owner, 2026-10-24); the server's STUDIO.OPEN says the same */
-async function adPromo() {
-  if (Date.now() > AD_PROMO_END || !sess() || mode !== "hub" || introOn || frozen || flying || document.body.classList.contains("wp-first") || document.querySelector(".wp-adp")) return;
-  const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); try { if (localStorage.getItem("arc.adpromo") === day) return; } catch { /* shown anyway */ }
-  const a = await loadAgent().catch(() => null); try { if (a && a.look) await a.look(); } catch { /* asked again later */ }
-  const s0 = a && a.state && a.state(); if (s0 && s0.agent) return; // (they have one already)
-  if (frozen || mode !== "hub" || document.querySelector(".wp-adp")) return;
-  try { localStorage.setItem("arc.adpromo", day); } catch { /* fine */ }
+/// shown to everyone who comes in during the opening week (guests too: the Genesis Lab asks them to sign in), once a Seoul day;
+/// a player who already has an agent sees it once. Tried every few seconds until the town is free (no first-run maker, how-to,
+/// welcome card or other window up) — a single try at load missed the owner's phone (2026-10-24).
+let adpDone = false, adpBusy = false;
+const adpT0 = Date.now();
+const adpStarted = () => { const l = document.getElementById("wp-loading"); return !!l && l.classList.contains("done") && (Date.now() - adpT0 > 8000); };
+const adpFree = () => mode === "hub" && !introOn && !frozen && !flying && adpStarted() && !document.body.classList.contains("wp-first") && !document.querySelector(".wp-adp") && ![...document.querySelectorAll(".wp-qs,.wp-wb,.wp-tips,.wp-sheet,.wp-panel,.wag-card,.adc-card,[role=dialog]")].some((e) => !e.hidden && e.getClientRects().length && getComputedStyle(e).display !== "none");
+async function adPromo(force) {
+  if (adpBusy || (adpDone && !force) || Date.now() > AD_PROMO_END) return; if (!adpFree()) return;
+  const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); try { if (!force && localStorage.getItem("arc.adpromo") === day) { adpDone = true; return; } } catch { /* shown anyway */ }
+  adpBusy = true; let own = false;
+  try { if (sess()) { const a = await loadAgent().catch(() => null); try { if (a && a.look) await a.look(); } catch { /* asked again later */ } const s0 = a && a.state && a.state(); own = !!(s0 && s0.agent); } } finally { adpBusy = false; }
+  if (own && !force) { let seen = false; try { seen = !!localStorage.getItem("arc.adpromo.own"); localStorage.setItem("arc.adpromo.own", "1"); } catch { /* fine */ } if (seen) { adpDone = true; return; } }
+  if (!adpFree()) return;
+  adpDone = true; try { localStorage.setItem("arc.adpromo", day); } catch { /* fine */ }
   const el = document.createElement("div"); el.className = "wp-adp"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", TW("AGENT DIMENSION is open!"));
   el.innerHTML = `<div class="wp-adp-in"><button type="button" class="wp-adp-x" data-later aria-label="${esc(T("Close"))}">×</button>
     <button type="button" class="wp-adp-art" data-go><img src="/images/ad/agent-launch.webp?v=1" srcset="/images/ad/agent-launch-640.webp?v=1 640w, /images/ad/agent-launch.webp?v=1 1100w" sizes="(max-width: 600px) 92vw, 540px" width="1100" height="733" alt="${esc(TW("Choose your AI agent — 100,000 $ARCIRCLE, 50% off"))}"></button>
@@ -5374,7 +5382,7 @@ function goAgentTower() {
   const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - (g.x / d) * 16, g.z - (g.z / d) * 16, { x: g.x, z: g.z });
   try { vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); } catch { /* no flash */ } near = null; paintPrompt(); setTimeout(() => openAgent(), 900);
 }
-setTimeout(() => { if (sess()) adPromo(); }, 9000); /* (already signed in when the page opens) */
+let adpAt = 0; every(3000, () => { if (adpDone || Date.now() > AD_PROMO_END) return; if (!adpFree()) { adpAt = 0; return; } if (!adpAt) adpAt = Date.now(); if (Date.now() - adpAt > 4000) adPromo(); }); /* (4 s of a free town first, then the card) */
 async function openAgent() { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(); }
 setTimeout(() => { loadAgent().catch(() => {}); }, 7000);
 // the Halloween Pumpkin Kings (world-pumpking.js, 22 Oct – 5 Nov US Eastern; ?pk=day / ?pk=night to try): five dancing
@@ -5433,7 +5441,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { snd: Snd, adPromo: () => { try { localStorage.removeItem("arc.adpromo"); } catch { /* fine */ } return adPromo(); }, goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { snd: Snd, adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),
