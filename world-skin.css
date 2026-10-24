@@ -3474,3 +3474,12 @@ html.wp-pcphone .adc-card .adc-in{zoom:1.5}
 .aga-conf{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;pointer-events:none;animation:agaConf 2s cubic-bezier(.3,.6,.5,1) forwards}@keyframes agaConf{to{transform:translate(var(--dx),70vh) rotate(300deg);opacity:0}}
 html.wp-pcphone .aga .aga-in{zoom:1.5;max-height:calc(92vh / 1.5)}
 @media (prefers-reduced-motion:reduce){.aga-hour.on,.aga-opts button.on,.aga-conf{animation:none}}
+/* phone HUD (the owner's call 2026-10-24): one notice at a time under the top cards (world-play.js NQ), the boss's bar in
+   that same place left of the minimap (the wallet button and the online count stay as they were — the owner's call) */
+html.wp-pcphone .wp-nq-off{display:none!important}
+html.wp-pcphone .wp-evt{left:var(--nq-cx,50%)!important;max-width:var(--nq-w,38%)!important}
+html.wp-pcphone .wp-dinochip,html.wp-pcphone .wag-chip{left:calc(var(--nq-cx,490px) / 1.6)!important;max-width:calc(var(--nq-w,900px) / 1.6)!important;transform:translateX(-50%)!important;animation:wpNqIn .32s cubic-bezier(.2,1.3,.4,1)}
+@keyframes wpNqIn{from{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.94)}to{opacity:1;transform:translateX(-50%)}}
+html.wp-pcphone .wc-boss{top:var(--nq-top,360px)!important;bottom:auto!important;left:18px!important;transform:none!important;width:var(--nq-w,700px)!important;max-width:none!important;min-width:0!important;padding:14px 20px!important}
+html.wp-pcphone .wc-boss b{font-size:26px}html.wp-pcphone .wc-boss small{font-size:18px}html.wp-pcphone .wc-boss i{height:20px;border-radius:10px}html.wp-pcphone .wc-boss em{font-size:17px}
+@media (prefers-reduced-motion:reduce){html.wp-pcphone .wp-dinochip,html.wp-pcphone .wag-chip{animation:none}}
