@@ -53,25 +53,26 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
   const GLASS = std(0x3d86d6, { roughness: 0.08, metalness: 0.9, emissive: 0x0d3a77, emissiveIntensity: 0.55 });
 
   // ---------------- the ground: dark glass with a grid of light, the plaza, the ring road, four avenues ----------------
-  { const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#121c2e"; x.fillRect(0, 0, w, h); x.strokeStyle = "#5fd3ff"; x.globalAlpha = 0.22; x.lineWidth = 2; for (let k = 0; k <= 8; k++) { x.beginPath(); x.moveTo(k * 64, 0); x.lineTo(k * 64, h); x.stroke(); x.beginPath(); x.moveTo(0, k * 64); x.lineTo(w, k * 64); x.stroke(); } x.globalAlpha = 0.5; x.fillStyle = "#7cf5c8"; for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) x.fillRect(i * 64 - 2, j * 64 - 2, 4, 4); });
+  { const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#c9d8ea"; x.fillRect(0, 0, w, h); x.strokeStyle = "#3f8cff"; x.globalAlpha = 0.32; /* (AD-City 1.5: pale paving, the owner's bright look — it was dark glass) */ x.lineWidth = 2; for (let k = 0; k <= 8; k++) { x.beginPath(); x.moveTo(k * 64, 0); x.lineTo(k * 64, h); x.stroke(); x.beginPath(); x.moveTo(0, k * 64); x.lineTo(w, k * 64); x.stroke(); } x.globalAlpha = 0.7; x.fillStyle = "#2fb8ff"; for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) x.fillRect(i * 64 - 2, j * 64 - 2, 4, 4); });
     if (tex) { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(18, 18); }
-    const ground = add(new THREE.Mesh(new THREE.CircleGeometry(land.r + 60, 96), std(0xffffff, { map: tex, roughness: 0.3, metalness: 0.55 }))); ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true;
+    const ground = add(new THREE.Mesh(new THREE.CircleGeometry(land.r + 60, 96), std(0xffffff, { map: tex, roughness: 0.42, metalness: 0.12 }))); ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true;
     const flat = (geo, mat, y) => { const m = add(new THREE.Mesh(geo, mat)); m.rotation.x = -Math.PI / 2; m.position.y = y; m.receiveShadow = true; return m; };
     const off = { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 };
     flat(new THREE.CircleGeometry(16, 64), std(0xdfe8f3, { roughness: 0.3, metalness: 0.25, ...off }), 0.03); // the plaza
-    flat(new THREE.RingGeometry(20, 28, 96), std(0x0b1220, { roughness: 0.55, metalness: 0.4, ...off }), 0.03); // the ring road
+    // (no ring road on the ground: the raised ring highway is the ring road — its lane lines and a flat crossroads under it
+    // looked like a tangle of four-lane roads, the owner's call 2026-10-24)
     const ln = (r, w, c, op = 0.95) => { const m = add(new THREE.Mesh(new THREE.TorusGeometry(r, w, 4, 160), neon(c, op))); m.rotation.x = Math.PI / 2; m.position.y = 0.06; return m; };
-    ln(16, 0.09, 0x5fd3ff); ln(20.1, 0.07, 0xeef4fb); ln(27.9, 0.07, 0xeef4fb); ln(24, 0.05, 0x7cf5c8, 0.8); ln(land.r, 0.16, 0x5fd3ff, 0.85);
+    ln(16, 0.09, 0x5fd3ff); ln(land.r, 0.16, 0x5fd3ff, 0.85);
     // the avenues (N/E/S/W), 8 m wide, with light edges and pulses running out from the plaza
     const lineU = { value: 0 }, pulseM = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, uniforms: { uT: lineU },
       vertexShader: "varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
       fragmentShader: "varying vec2 vU; uniform float uT; void main(){ float k = fract(vU.y * 9.0 - uT * 0.6); float p = smoothstep(0.0, 0.2, k) * (1.0 - smoothstep(0.2, 0.5, k)); float e = 1.0 - abs(vU.x - 0.5) * 2.0; gl_FragColor = vec4(vec3(0.37, 0.83, 1.0) * (0.25 + p) * e, 1.0); }" });
     for (const a of [0, 90, 180, 270]) {
-      const len = land.r - 28, [cx, cz] = polar(a, 28 + len / 2), road = add(new THREE.Mesh(new THREE.PlaneGeometry(8, len), std(0x0b1220, { roughness: 0.55, metalness: 0.4, ...off })));
+      const len = land.r - 16, [cx, cz] = polar(a, 16 + len / 2), road = add(new THREE.Mesh(new THREE.PlaneGeometry(8, len), std(0x0b1220, { roughness: 0.55, metalness: 0.4, ...off })));
       road.rotation.set(-Math.PI / 2, 0, rad(a)); road.position.set(cx, 0.03, cz); road.receiveShadow = true;
       for (const s of [-1, 1]) { const e = add(new THREE.Mesh(new THREE.PlaneGeometry(0.22, len), neon(0xeef4fb, 0.9))); e.rotation.set(-Math.PI / 2, 0, rad(a)); const [ox, oz] = polar(a + 90, s * 3.9); e.position.set(cx + ox, 0.05, cz + oz); }
       const pg = new THREE.PlaneGeometry(0.5, len); pg.rotateX(-Math.PI / 2); pg.translate(0, 0, -len / 2);
-      const p = add(new THREE.Mesh(pg, pulseM)); const [sx, sz] = polar(a, 28); p.position.set(sx, 0.2, sz); p.rotation.y = rad(a) + Math.PI; p.renderOrder = 1; /* (over the highway pieces once they're down) */
+      const p = add(new THREE.Mesh(pg, pulseM)); const [sx, sz] = polar(a, 16); p.position.set(sx, 0.2, sz); p.rotation.y = rad(a) + Math.PI; p.renderOrder = 1; /* (over the highway pieces once they're down) */
     }
     spins.push((dt, t) => { lineU.value = t; });
   }
@@ -100,6 +101,7 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
   if (winTex) { winTex.wrapS = winTex.wrapT = THREE.RepeatWrapping; }
   const towerM = std(0xffffff, { map: winTex, emissiveMap: winTex, emissive: 0xffffff, emissiveIntensity: 0.85, roughness: 0.12, metalness: 0.6 });
   const uvScale = (geo, su, sv) => { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); uv.needsUpdate = true; return geo; };
+  spins.push((dt, t) => { towerM.emissiveIntensity = 0.82 + Math.sin(t * 0.6) * 0.08 + (Math.sin(t * 7.3) > 0.995 ? 0.25 : 0); }); // (the windows breathe, now and then a flicker)
   const edgeNeon = [neon(0x5fd3ff), neon(0x7cf5c8), neon(0xb48cff), neon(0x3f9bff)];
   function tower(x, z, kind, w, h, ci = 0) {
     const t = new THREE.Group(); t.position.set(x, 0, z); t.rotation.y = Math.atan2(-x, -z); g.add(t); t.userData.radius = Math.min(10, w * 0.62);
@@ -120,7 +122,7 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
   const kinds = ["box", "round", "twist"], clear = (a, half) => [0, 90, 180, 270].some((v) => Math.abs(((a - v + 540) % 360) - 180) < half);
   const nearB = (a, r, gap) => BUILDINGS.some((b) => { const [bx, bz] = polar(b.a, b.r), [x, z] = polar(a, r); return Math.hypot(bx - x, bz - z) < gap; });
   let ti = 0;
-  for (let a = 6; a < 360; a += 11) { const r = 80 + (ti % 3) * 4; if (clear(a, 9) || nearB(a, r, 22)) continue; tower(...polar(a, r), kinds[ti % 3], 7 + rnd() * 4, 22 + rnd() * 36, ti); ti++; }
+  for (let a = 6; a < 360; a += low ? 16 : 11) { const r = 80 + (ti % 3) * 4; if (clear(a, 9) || nearB(a, r, 22)) continue; tower(...polar(a, r), kinds[ti % 3], 7 + rnd() * 4, 22 + rnd() * 36, ti); ti++; }
   for (const a of [20, 70, 110, 160, 200, 250, 290, 340]) { if (nearB(a, 63, 16)) continue; tower(...polar(a, 63), kinds[ti % 3], 5 + rnd() * 2, 14 + rnd() * 14, ti); ti++; }
 
   // ---------------- the six buildings ----------------
@@ -288,6 +290,16 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     if (job === "mine") { const cr = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.6, 0.8, 16), STEEL); cr.position.y = 0.4; mid.add(cr); for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.OctahedronGeometry(0.4 + (i % 2) * 0.15), std(0xffd27a, { emissive: 0xffa21a, emissiveIntensity: 1.1, roughness: 0.2, metalness: 0.4 })), a = (i / 4) * Math.PI * 2; mid.add(c); spins.push((dt, t) => { c.position.set(Math.cos(a + t * 0.8) * 0.7, 1.6 + Math.sin(t * 1.6 + i) * 0.25, Math.sin(a + t * 0.8) * 0.7); c.rotation.y = t * 2; }); } }
     if (job === "scout") { const tb = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.5, 0.9, 20), WHITE); tb.position.y = 0.45; mid.add(tb); const map = new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), new THREE.MeshBasicMaterial({ color: S.col, wireframe: true, transparent: true, opacity: 0.6, toneMapped: false })); map.rotation.x = -Math.PI / 2; map.position.y = 1.15; mid.add(map); const dr = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.4), DARK); mid.add(dr); spins.push((dt, t) => { map.rotation.z = t * 0.5; dr.position.set(Math.cos(t) * 0.8, 2.1 + Math.sin(t * 3) * 0.1, Math.sin(t) * 0.8); }); }
     board(o, T(S.name), T(S.job), S.css, 6.4, 7.5);
+    // the work, seen: motes rising into the pods (gather), sparks off the crucible (mine), a scan ring sweeping out (scout)
+    if (!low) { const N = 40, pos = new Float32Array(N * 3), seed = Array.from({ length: N }, (_, i) => [(i * 2.399) % 6.283, ((i * 0.618) % 1), 0.6 + ((i * 0.37) % 1) * 2.4]);
+      const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: S.col, size: job === "mine" ? 0.16 : 0.22, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); pts.frustumCulled = false; o.add(pts);
+      spins.push((dt, t) => { for (let i = 0; i < N; i++) { const [a, o0, r] = seed[i], k = (t * (job === "mine" ? 0.9 : 0.35) + o0) % 1;
+        if (job === "gather") { const rr = r * (1 - k); pos.set([Math.cos(a + t * 0.6) * rr, 0.3 + k * 1.6, Math.sin(a + t * 0.6) * rr], i * 3); }
+        else if (job === "mine") { const sp = 1.2 + r; pos.set([Math.cos(a) * sp * k, 1.4 + k * 1.2 - k * k * 2.6, Math.sin(a) * sp * k], i * 3); }
+        else { const rr = 0.8 + k * 4.6; pos.set([Math.cos(a) * rr, 0.35, Math.sin(a) * rr], i * 3); } }
+        pg.attributes.position.needsUpdate = true; }); }
+    if (job === "scout") { const sweep = new THREE.Mesh(new THREE.RingGeometry(0.2, 5.3, 48, 1, 0, 0.6), new THREE.MeshBasicMaterial({ color: S.col, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending })); sweep.rotation.x = -Math.PI / 2; sweep.position.y = 0.27; o.add(sweep); spins.push((dt, t) => { sweep.rotation.z = -t * 1.6; }); }
     const sol = new THREE.Group(); sol.userData.radius = 1.6; o.add(sol); solids.push(sol);
   }
   // the job board by the way in: how many are working now and how many errands came back today
@@ -347,7 +359,17 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
   { const base = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.3, 0.18, 40), std(0x14203a, { metalness: 0.5, roughness: 0.35, emissive: 0x5fd3ff, emissiveIntensity: 0.25 })); base.position.y = 0.09; back.add(base); }
 
   // ---------------- the owner's models, in place of the stand-ins ----------------
-  const base = "/models/world/adcity/", loaded = {};
+  const occ = [core, ...Object.values(bld)]; // (what the town's camera fades when it stands between the camera and you: world-play.js camCollide)
+  const base = "/models/world/adcity/", loaded = {}, ringMats = new Set(), spireMats = new Set(); let ringTop = 0, ringK = 1, spireK = 1;
+  /// AD-City 1.5: the raised ring goes see-through while the camera is under it or inside its deck (it filled the screen)
+  const cv = new THREE.Vector3();
+  function seeThrough(camWorld, dt) {
+    if (!ringMats.size && !spireMats.size) return; cv.copy(camWorld).sub(g.position).sub(planet.position);
+    const px = -(g.position.x + planet.position.x), pz = -(g.position.z + planet.position.z), pr = Math.hypot(px, pz); // (you stand at the world's origin: the planet moves)
+    const r = Math.hypot(cv.x, cv.z), want = pr < 34 || (r > 15 && r < 32 && cv.y < ringTop + 2) ? 0.22 : 1, wantS = 1; // (near or inside the ring, or the camera in it: see-through) // (the core's spire too: the camera behind you went inside it)
+    const ease = (k, w, set) => { if (Math.abs(k - w) < 0.01) return k; k += (w - k) * Math.min(1, dt * 6); if (Math.abs(k - w) < 0.02) k = w; for (const m of set) { m.opacity = k; m.depthWrite = k > 0.95; } return k; };
+    ringK = ease(ringK, want, ringMats); spireK = ease(spireK, wantS, spireMats);
+  }
   function fit(o, fp, opt = {}) { // scale a model to fp metres across (its larger side), on the ground, centred; opt.flat: its height squashed to that
     const box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = fp / (Math.max(sz.x, sz.z) || 1), ky = opt.flat ? opt.flat / (sz.y || 1) : k;
     o.scale.set(k, ky, k); o.position.set(-(box.min.x + sz.x / 2) * k, -box.min.y * ky + (opt.y || 0), -(box.min.z + sz.z / 2) * k);
@@ -368,20 +390,22 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     load(MODELS.sky).then((sc) => { const box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), k = 4.2 / (Math.max(sz.x, sz.z) || 1);
       pods.forEach(([p], i) => { const o = i ? sc.clone() : sc, w = new THREE.Group(); o.scale.setScalar(k); o.position.set(-(box.min.x + sz.x / 2) * k, -(box.min.y + sz.y / 2) * k, -(box.min.z + sz.z / 2) * k); w.add(o); w.rotation.y = Math.PI / 2; p.children[0].visible = false; p.children.slice(1).forEach((c) => { c.position.z -= 1.3; }); p.add(w); });
       done(); }).catch((e) => console.warn("nexus city skyblade", e));
-    load(MODELS.spire).then((sc) => { const f = fit(sc, 26); core.add(f.w); core.userData.p.visible = false; core.userData.radius = 11; if (core.userData.board) core.userData.board.position.y = f.h + 4; done(); }).catch((e) => console.warn("nexus city spire", e));
+    load(MODELS.spire).then((sc) => { const f = fit(sc, 26); /* (the town camera's ghosting fades it when it's in the way) */ core.add(f.w); core.userData.p.visible = false; core.userData.radius = 11; if (core.userData.board) core.userData.board.position.y = f.h + 4; done(); }).catch((e) => console.warn("nexus city spire", e));
     // the raised ring: four quarter curves (each one's arc centred on its corner at +x, −z), over the ring road
     load(MODELS.curve).then((sc) => {
       const box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), k = 28 / (sz.x || 1); /* (its outer edge at 28 m: right over the ring road, 20–28 m) */
-      for (let q = 0; q < 4; q++) { const o = q ? sc.clone() : sc, w = new THREE.Group(); o.scale.set(k, k * 2.1, k); o.position.set(-box.max.x * k, -box.min.y * k * 2.1, -box.min.z * k); /* (twice as tall: its deck over the camera, not in front of it) */ w.add(o); w.rotation.y = (q * Math.PI) / 2; g.add(w); }
+      sc.traverse((m) => { if (m.isMesh && m.material) [].concat(m.material).forEach((mm) => { mm.transparent = true; ringMats.add(mm); }); });
+      ringTop = sz.y * k * 2.1;
+      for (let q = 0; q < 4; q++) { const o = q ? sc.clone() : sc, w = new THREE.Group(); o.scale.set(k, k * 2.1, k); o.position.set(-box.max.x * k, -box.min.y * k * 2.1, -box.min.z * k); /* (twice as tall: its deck over the camera, not in front of it) */ w.add(o); w.rotation.y = (q * Math.PI) / 2; g.add(w); occ.push(w); }
       mag.visible = false; trainY = sz.y * k * 2.1 * 0.78 + 0.9; trainR = 28 * 0.84; done();
     }).catch((e) => console.warn("nexus city curve", e));
     // the avenues paved with the highway (three pieces each, laid flat) and a crossroads where each meets the ring road
-    load(MODELS.highway).then((sc) => {
-      const box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), len = (land.r - 30) / 3, kx = len / (sz.x || 1), kz = 8.6 / (sz.z || 1), ky = 0.14 / (sz.y || 1);
-      let n = 0; for (const a of [0, 90, 180, 270]) for (let i = 0; i < 3; i++) { const o = n++ ? sc.clone() : sc, w = new THREE.Group(); o.scale.set(kx, ky, kz); o.position.set(-(box.min.x + sz.x / 2) * kx, 0.035 - box.min.y * ky, -(box.min.z + sz.z / 2) * kz); w.add(o); const [x, z] = polar(a, 30 + len * (i + 0.5)); w.position.set(x, 0, z); w.rotation.y = rad(a) + Math.PI / 2; g.add(w); }
+    if (!low) load(MODELS.highway).then((sc) => {
+      const box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), len = (land.r - 17) / 3, kx = len / (sz.x || 1), kz = 8.6 / (sz.z || 1), ky = 0.14 / (sz.y || 1);
+      let n = 0; for (const a of [0, 90, 180, 270]) for (let i = 0; i < 3; i++) { const o = n++ ? sc.clone() : sc, w = new THREE.Group(); o.scale.set(kx, ky, kz); o.position.set(-(box.min.x + sz.x / 2) * kx, 0.035 - box.min.y * ky, -(box.min.z + sz.z / 2) * kz); w.add(o); const [x, z] = polar(a, 17 + len * (i + 0.5)); w.position.set(x, 0, z); w.rotation.y = rad(a) + Math.PI / 2; g.add(w); }
       done();
     }).catch((e) => console.warn("nexus city highway", e));
-    load(MODELS.cross).then((sc) => {
+    if (false) load(MODELS.cross).then((sc) => { // (the crossroads is kept in models/world/adcity for a road at ground level; not laid now)
       const box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), k = 11 / (Math.max(sz.x, sz.z) || 1), ky = 0.16 / (sz.y || 1);
       [0, 90, 180, 270].forEach((a, i) => { const o = i ? sc.clone() : sc, w = new THREE.Group(); o.scale.set(k, ky, k); o.position.set(-(box.min.x + sz.x / 2) * k, 0.04 - box.min.y * ky, -(box.min.z + sz.z / 2) * k); w.add(o); const [x, z] = polar(a, 24); w.position.set(x, 0, z); w.rotation.y = rad(a); g.add(w); });
       done();
@@ -390,7 +414,11 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
 
   let shown = false;
   return {
-    group: g, doors, back, solids, spins, buildings: bld, loadModels,
+    group: g, doors, back, solids, spins, buildings: bld, loadModels, seeThrough,
+    occluders: () => occ,
+    seeK: () => ({ ring: ringK, spire: spireK, mats: ringMats.size + "/" + spireMats.size, cam: [+cv.x.toFixed(1), +cv.y.toFixed(1), +cv.z.toFixed(1)] }),
+    /// where to stand in front of a building or a station (world coords) and what to face
+    spotOf(id) { const b = BUILDINGS.find((x) => x.id === id), st0 = STATIONS[id]; const [a, r, d] = b ? [b.a, b.r, b.fp / 2 + 4] : st0 ? [st0.a, st0.r, 8] : [0, 0, 0]; if (!b && !st0) return null; const [x, z] = polar(a, r - d), [cx, cz] = polar(a, r); return { x: land.x + x, z: land.z + z, c: { x: land.x + cx, z: land.z + cz } }; },
     /// where you arrive (by the portal back, facing the core)
     arrival: () => ({ x: land.x, z: land.z + land.r - 24, c: { x: land.x, z: land.z } }),
     show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) { loadModels(); pollWork(true); } },

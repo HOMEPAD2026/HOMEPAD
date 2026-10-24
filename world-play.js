@@ -100,6 +100,9 @@ Object.assign(WORDS.tr, { "Ask {n} to draft it": "{n} taslak hazırlasın", "you
 Object.assign(WORDS.ko, { "what the dots mean": "점 표시 안내" });
 Object.assign(WORDS.zh, { "what the dots mean": "圆点的含义" });
 Object.assign(WORDS.tr, { "what the dots mean": "noktaların anlamı" });
+Object.assign(WORDS.ko, { "Welcome to Nexus City": "넥서스 시티에 오신 걸 환영해요", "Six buildings for your agent, and the stations where agents work. Tap one to go to its door.": "에이전트를 위한 건물 6곳과 에이전트들이 일하는 스테이션이에요. 누르면 그 앞으로 가요.", "AGENT DIMENSION's city: six buildings and agents at work": "AGENT DIMENSION의 도시: 건물 6곳과 일하는 에이전트" });
+Object.assign(WORDS.zh, { "Welcome to Nexus City": "欢迎来到 Nexus 城", "Six buildings for your agent, and the stations where agents work. Tap one to go to its door.": "六座为你的智能体准备的建筑，还有智能体工作的站点。点一下就能到门口。", "AGENT DIMENSION's city: six buildings and agents at work": "AGENT DIMENSION 的城市：六座建筑与工作中的智能体" });
+Object.assign(WORDS.tr, { "Welcome to Nexus City": "Nexus Şehri'ne hoş geldin", "Six buildings for your agent, and the stations where agents work. Tap one to go to its door.": "Ajanın için altı bina ve ajanların çalıştığı istasyonlar. Birine dokun, kapısına git.", "AGENT DIMENSION's city: six buildings and agents at work": "AGENT DIMENSION'ın şehri: altı bina ve çalışan ajanlar" });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
@@ -585,7 +588,7 @@ const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn
 // b-st3: the first minutes, counted (world-diag.js funnel): each step once a visit; nw = this browser's first visit
 const FUN_NEW = (() => { try { const k = "arc.world.fun0"; const was = localStorage.getItem(k); if (!was) localStorage.setItem(k, String(Date.now())); return !was; } catch { return false; } })();
 const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; funSent.add(ev); try { if (diag && diag.funnel) diag.funnel(ev, FUN_NEW); } catch { /* fine */ } };
-const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : "hub"), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
 fun("open"); st.on(() => { if (!funSent.has("move") && mode === "hub" && speedNow > 1.5) fun("move"); });
 st.on((dt) => { try { diag.tick(dt); } catch { /* health counters must never stop the game */ } });
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
@@ -1872,7 +1875,7 @@ function goPartnerTower(id = "kairo", k = 10) { // the map's Partner Village lis
 }
 // b-lpv: a portal's trip (the town's to a land or a village; a land's back to the town, by that land's portal)
 const landName = (id) => (id === "ad" ? TW("Nexus City") : id === "lp" ? TW("Launchpad Village") : id === "ut" ? TW("Utility Village") : id === "pv" ? TW("Partner Village") : id === "gv" ? TW("Game Village") : TW("Town"));
-const cityPrompt = (id, b) => { const B = adc && adc.M.BUILDINGS.find((x) => x.id === id); if (!B) return ""; return B.open ? T("Enter {x}", { x: b(TW(B.name)) }) : b(TW(B.name)) + " · " + esc(TW("Coming soon")); };
+const cityPrompt = (id, b) => { const B = adc && adc.M.BUILDINGS.find((x) => x.id === id); if (!B) return ""; return (B.open ? T("Enter {x}", { x: b(TW(B.name)) }) : b(TW(B.name)) + " · " + esc(TW("Coming soon"))) + `<small class="adc-sub">${esc(TW(B.sub))}</small>`; };
 let landNow = "";
 function landGo(to) {
   if (frozen || flying || introOn || mode !== "hub") return;
@@ -2588,7 +2591,8 @@ function openMap() {
   const mineHtml = `<h3 style="--c:#ffc23a">${esc(TW("Mining Village"))}</h3><ul class="wp-maplist"><li><button type="button" data-mine="1"><i style="--c:#ffc23a"></i><span><b>${esc(TW("ARCL Mine"))}</b><small>${esc(TW("Copper, silver and gold rocks · 60 minutes, then a 6-hour rest"))}${mineRest > Date.now() ? " · " + esc(TW("ARCL Mine · opens in {t}", { t: restLeft(mineRest) })) : ""}</small></span></button></li></ul>`;
   const pvHtml = `<h3 style="--c:#38e1d6">🤝 ${esc(TW("Partner Village"))}</h3><ul class="wp-maplist"><li><button type="button" data-pv="1"><i style="--c:#38e1d6"></i><span><b>${esc(TW("Partner Village"))}</b><small>${esc(TW("Official partners of ARCIRCLE WORLD"))} · ${esc(TW("Go to the gate"))}</small></span></button></li><li><button type="button" data-pvk="kairo"><i style="--c:#38e1d6"></i><span><b>KAIRO ${esc(TW("Tower"))}</b><small>${esc(TW("KAIRO Finance Hub"))} · Swap · KLIK · Disperse</small></span></button></li><li><button type="button" data-pvh="kairo"><i style="--c:#7cf5c8"></i><span><b>${esc(TW("KAIRO Finance Hub"))}</b><small>${esc(TW("Open it now"))}</small></span></button></li></ul>`;
   const landsHtml = `<h3 style="--c:#39ff88">🚀 ${esc(TW("Villages"))}</h3><ul class="wp-maplist"><li><button type="button" data-land="lp"><i style="--c:#39ff88"></i><span><b>${esc(TW("Launchpad Village"))}</b><small>${esc(TW("Every coin launched on ArcPad has a lot here"))} · ${coinBuildings.length}</small></span></button></li><li><button type="button" data-land="ut"><i style="--c:#4f9dff"></i><span><b>${esc(TW("Utility Village"))}</b><small>${esc(TW("ARCIRCLE's utilities: launch, swap, stake, scan"))}</small></span></button></li>${landNow ? `<li><button type="button" data-land="town"><i style="--c:#eef3f7"></i><span><b>${esc(TW("Back to town"))}</b></span></button></li>` : ""}</ul>`; // b-lpv
-  $("wp-maplist").innerHTML = keyHtml + landsHtml + pvHtml + groups + arclHtml + mineHtml + zoneHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(TW("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
+  const adHtml = cityOk && adc ? `<h3 style="--c:#5fd3ff">🌆 ${esc(TW("Nexus City"))}</h3><ul class="wp-maplist"><li><button type="button" data-adc="guide"><i style="--c:#5fd3ff"></i><span><b>${esc(TW("Nexus City"))}</b><small>${esc(TW("AGENT DIMENSION's city: six buildings and agents at work"))}</small></span></button></li>${adc.M.BUILDINGS.map((B) => `<li><button type="button" data-adc="${B.id}"><i style="--c:${B.css}"></i><span><b>${esc(TW(B.name))}</b><small>${esc(TW(B.sub))}${B.open ? "" : " · " + esc(TW("Coming soon"))}</small></span></button></li>`).join("")}</ul>` : cityOk ? `<h3 style="--c:#5fd3ff">🌆 ${esc(TW("Nexus City"))}</h3><ul class="wp-maplist"><li><button type="button" data-adc="guide"><i style="--c:#5fd3ff"></i><span><b>${esc(TW("Nexus City"))}</b><small>${esc(TW("AGENT DIMENSION's city: six buildings and agents at work"))}</small></span></button></li></ul>` : "";
+  $("wp-maplist").innerHTML = keyHtml + adHtml + landsHtml + pvHtml + groups + arclHtml + mineHtml + zoneHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(TW("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   decorateMap();
   mapEl.hidden = false; frozen = true; keys.clear(); paintPrompt();
   const first = mapEl.querySelector("button[data-i]"); if (first) first.focus({ preventScroll: true });
@@ -2617,9 +2621,10 @@ $("wp-map-x").addEventListener("click", closeMap);
 mapEl.addEventListener("keydown", (e) => { const g = e.target.closest && e.target.closest(".wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv]"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
-  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv]"); if (!b) return;
+  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv]"); if (!b) return;
   if (b.dataset.pv) { closeMap(); goPartnerVillage(); return; }
   if (b.dataset.land) { closeMap(); landGo(b.dataset.land); return; }
+  if (b.dataset.adc) { closeMap(); if (b.dataset.adc === "guide") { if (landNow === "ad") cityGuide(false); else cityGo(); } else cityTo(b.dataset.adc); return; }
   if (b.dataset.pvk) { closeMap(); goPartnerTower(b.dataset.pvk); return; }
   if (b.dataset.pvh) { closeMap(); openPartner(b.dataset.pvh); return; }
   if (b.dataset.mine) { closeMap(); const e2 = mv.exit(); flyTo({ position: new THREE.Vector3(e2.x, 0, e2.z), userData: { radius: 0.5 } }); return; }
@@ -4340,7 +4345,7 @@ function camCollide(target) {
   const head = new THREE.Vector3(0, hop + 1.6, 0), dirC = target.clone().sub(head), len = dirC.length(); dirC.normalize();
   ray.set(head, dirC); ray.far = len;
   const close = [];
-  const lists = mode === "island" ? [] : [shops, town, coinBuildings, arches];
+  const lists = mode === "island" ? [] : [shops, town, coinBuildings, arches, adc && landNow === "ad" ? adc.occluders() : []]; // (AD-City 1.5: Nexus City's buildings, its spire and the raised ring too)
   for (const list of lists) for (const g of list) { g.getWorldPosition(tmp); if (tmp.distanceTo(head) < len + 7) close.push(g); }
   // inside a hunting ground: its tall props too (the Dark Market's obelisks filled the screen with black)
   if (zoneRoot && mode !== "island") { const px = -planet.position.x, pz = -planet.position.z, now = performance.now();
@@ -4579,7 +4584,7 @@ setInterval(() => { try {
   inK += ((mode === "island" && !island.building() && island.indoor && island.indoor() ? 1 : 0) - inK) * (1 - Math.exp(-dt0 * 4));
   // locked on: the camera eases round so the target (and its wind-up ring) stays in view, unless you're steering it
   if (mode === "hub" && combat && combat.lockAt && !look && !photo && !frozen && performance.now() - lastLook > 2500 && combat.lockAt(lockV)) { const dx = lockV.x + planet.position.x - at.x, dz = lockV.z + planet.position.z - at.z; if (dx * dx + dz * dz > 2.25) camYaw = angLerp(camYaw, Math.atan2(dx, dz) + Math.PI, Math.min(1, dt * (reduce ? 1.2 : 3))); }
-  base.set(0, 5.2 + camPitch * 6 + inK * 7, 9.6 * (1 - inK * 0.5)).multiplyScalar(camDist * camZoom * bz * (1 - Math.sin(Math.min(1, punch) * Math.PI) * 0.07)).applyAxisAngle(Y, camYaw);
+  base.set(0, 5.2 + camPitch * 6 + inK * 7, 9.6 * (1 - inK * 0.5)).multiplyScalar(camDist * camZoom * bz * (landNow === "ad" ? 0.78 : 1) /* (Nexus City: a little closer, among its towers) */ * (1 - Math.sin(Math.min(1, punch) * Math.PI) * 0.07)).applyAxisAngle(Y, camYaw);
   camPos.copy(base).add(at); camPos.y += (hop - at.y) * 0.6;
   if (!photo && inK < 0.5 && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
   else if (inK >= 0.5) camFit += (1 - camFit) * 0.1; // over the walls nothing is in the way: the pulled-in distance lets go
@@ -5213,23 +5218,44 @@ function agentWarp() {
   try { if (Snd.perfect) Snd.perfect(); } catch { /* no sound */ }
   setTimeout(async () => { // AD-City 1: those it's open to (GM wallets for now, or ?adcity=1 to try) go into Nexus City; the rest see it being built
     let ok = CITY_TRY; try { if (!ok) { const a = await loadAgent(); ok = !!(a && a.canEnter && await a.canEnter()); } } catch { ok = false; }
-    u.warp = 0; if (ok) cityGo(); else openAgent();
+    u.warp = 0; if (ok) { cityOk = true; cityGo(); } else openAgent();
   }, reduce ? 0 : 380);
 }
 // AD-City 1 (world-adcity.js): NEXUS CITY, AGENT DIMENSION's land (LD.LANDS.ad), built the first time you go in
 const CITY_TRY = /[?&]adcity=1/.test(location.search);
-let adc = null, adcWait = null;
+let adc = null, adcWait = null, cityOk = CITY_TRY; const camW = new THREE.Vector3();
 function ensureCity() {
   if (adc) return Promise.resolve(adc);
-  return adcWait || (adcWait = import("./world-adcity.js").then((M) => { adc = M.makeAdCity({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, land: LD.LANDS.ad, demo: /[?&]adwork=demo/.test(location.search), me: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.id : ""; } catch { return ""; } }, onModel: () => { if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } } }); adc.M = M; st.on((dt, t) => { try { adc.tick(dt, t); } catch { /* a sign is drawing */ } }); if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } return adc; })
+  return adcWait || (adcWait = import("./world-adcity.js").then((M) => { adc = M.makeAdCity({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, land: LD.LANDS.ad, demo: /[?&]adwork=demo/.test(location.search), me: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.id : ""; } catch { return ""; } }, onModel: () => { if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } } }); adc.M = M; st.on((dt, t) => { try { adc.tick(dt, t); if (landNow === "ad") adc.seeThrough(st.camera.getWorldPosition(camW), dt); } catch { /* a sign is drawing */ } }); if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } return adc; })
     .catch((e) => { adcWait = null; console.warn("nexus city", e); if (!staleReload()) toast(TW("Couldn't open it — try again")); return null; }));
 }
 async function cityGo() {
   if (frozen || flying || introOn || mode !== "hub") return;
   const c = await ensureCity(); if (!c || frozen || mode !== "hub") return;
   closeAll(); const a = c.arrival(); standAt(a.x, a.z, a.c);
-  vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); if (Snd.dash) Snd.dash(); pullFlash("#5fd3ff"); startSweep(1400);
+  let first = false; try { first = !localStorage.getItem("arc.adc.seen"); localStorage.setItem("arc.adc.seen", "1"); } catch { /* not kept */ }
+  vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); if (Snd.dash) Snd.dash(); pullFlash("#5fd3ff"); startSweep(first ? 3400 : 1400); // (the first time: a long look round the city)
+  if (first && !reduce) setTimeout(() => { try { vfx.teleport(here(), { color: 0xb48cff, color2: 0x7cf5c8 }); } catch { /* fine */ } }, 600);
   landTick(true); paintPrompt();
+  if (first) setTimeout(() => cityGuide(true), 3600);
+}
+/// AD-City 1.5: the city guide — every building and work station, a tap takes you to its door (first visit, the map, the core)
+function cityGuide(first) {
+  if (!adc || document.querySelector(".adc-card")) return; const M = adc.M;
+  const el = document.createElement("div"); el.className = "adc-card adc-guide"; el.setAttribute("role", "dialog");
+  const row = (id, name, sub, css, open) => `<button type="button" data-go="${id}" style="--ac:${css}"><i></i><b>${esc(TW(name))}</b><small>${esc(TW(sub))}${open === false ? " · " + esc(TW("Coming soon")) : ""}</small></button>`;
+  el.innerHTML = `<div class="adc-in" style="--ac:#5fd3ff"><small>AGENT DIMENSION</small><h3>🌆 ${esc(TW(first ? "Welcome to Nexus City" : "Nexus City"))}</h3>${first ? `<p>${esc(TW("Six buildings for your agent, and the stations where agents work. Tap one to go to its door."))}</p>` : ""}
+    <div class="adc-list">${M.BUILDINGS.map((b) => row(b.id, b.name, b.sub, b.css, !!b.open)).join("")}${Object.entries(M.STATIONS).map(([id, st0]) => row(id, st0.name, st0.job, st0.css)).join("")}</div>
+    <button type="button" class="adc-ok">${esc(T("OK"))}</button></div>`;
+  frozen = true; keys.clear();
+  const close = () => { el.remove(); frozen = false; };
+  el.addEventListener("click", (e) => { const g = e.target.closest("[data-go]"); if (g) { close(); cityTo(g.dataset.go); return; } if (e.target === el || e.target.closest(".adc-ok")) close(); });
+  document.body.appendChild(el);
+}
+/// straight to a building's (or a station's) door in the city
+async function cityTo(id) {
+  if (landNow !== "ad") { await cityGo(); if (landNow !== "ad") return; }
+  const p = adc && adc.spotOf(id); if (!p) return; standAt(p.x, p.z, p.c); vfx.teleport(here(), { color: 0x5fd3ff, color2: 0x7cf5c8 }); near = null; paintPrompt();
 }
 // AD-City 3: ARCIRCLE Studio Lite (world-studio.js), loaded the first time the Studio's door is used; the window keeps
 // the town still behind it, and a run is its own scene (st.view / st.solo) like the Game Village's games

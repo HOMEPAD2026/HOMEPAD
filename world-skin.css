@@ -3403,3 +3403,19 @@ body.wp .wr-paper .wr-slot .wr-tile,body.wp .wr-paper .wr-slot>button{box-shadow
 html.wp-pcphone body.wp .wr-stats.big li span::before{width:44px;height:40px}
 html.wp-pcphone body.wp .wr-skills li{padding-left:104px!important;min-height:88px}
 html.wp-pcphone body.wp .wr-skills li::before{left:8px;width:76px;height:76px}
+/* AD-City 1.5: the city guide, a building's line under its prompt, the job board's timeline */
+.adc-guide .adc-in{width:min(460px,100%);max-height:calc(100dvh - 40px);overflow:auto}
+.adc-list{display:grid;gap:6px;margin:6px 0 8px}
+.adc-list button{display:grid;grid-template-columns:14px 1fr;column-gap:10px;align-items:center;text-align:left;padding:9px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--ac) 40%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--ac) 16%,rgba(8,22,56,.9)),rgba(8,22,56,.75));color:#fff;cursor:pointer}
+.adc-list button i{grid-row:1/3;width:12px;height:12px;border-radius:50%;background:var(--ac);box-shadow:0 0 10px var(--ac)}
+.adc-list button b{font:800 14px/1.2 Sora,sans-serif}.adc-list button small{font:600 12px/1.3 Sora,sans-serif;color:#b9cde6}
+#wp-enter-t .adc-sub{display:block;margin-top:2px;font-size:.72em;font-weight:600;opacity:.8}
+html.wp-pcphone .adc-card .adc-in{zoom:1.5}
+.wag-tl{position:relative;height:calc(var(--n) * 26px);margin:4px 0 26px;border-radius:10px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 1px,transparent 1px 12.5%),rgba(0,0,0,.25)}
+.wag-tl i{position:absolute;height:22px;margin-top:2px;border-radius:8px;display:flex;align-items:center;padding-left:6px;font-style:normal;background:rgba(124,245,200,.28);border:1px solid rgba(124,245,200,.6);overflow:hidden;white-space:nowrap}
+.wag-tl i.run{background:linear-gradient(90deg,rgba(124,245,200,.7),rgba(95,211,255,.5));animation:wagTl 1.6s ease-in-out infinite alternate}
+.wag-tl i.j-mine{border-color:rgba(255,200,97,.7);background:rgba(255,200,97,.25)}.wag-tl i.j-mine.run{background:linear-gradient(90deg,rgba(255,200,97,.75),rgba(255,160,60,.5))}
+.wag-tl i.j-scout{border-color:rgba(180,140,255,.7);background:rgba(180,140,255,.25)}.wag-tl i.j-scout.run{background:linear-gradient(90deg,rgba(180,140,255,.75),rgba(120,90,255,.5))}
+.wag-tl b{position:absolute;bottom:-20px;font:700 11px/1 Sora,sans-serif;color:#9fb4c8}.wag-tl-a{left:0}.wag-tl-b{right:0}
+@keyframes wagTl{to{filter:brightness(1.25)}}
+.adc-list button small{text-transform:none;letter-spacing:0}
