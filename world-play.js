@@ -5353,28 +5353,22 @@ async function openArena() {
 // and opens the Genesis Lab to buy one
 const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z"); // (24 – 31 Oct, Seoul)
 const STUDIO_OPEN = true; /* ARCIRCLE Studio for everyone (the owner, 2026-10-24); the server's STUDIO.OPEN says the same */
-/// shown to everyone who comes in during the opening week (guests too: the Genesis Lab asks them to sign in), once a Seoul day;
-/// a player who already has an agent sees it once. Tried every few seconds until the town is free (no first-run maker, how-to,
-/// welcome card or other window up) — a single try at load missed the owner's phone (2026-10-24).
-let adpDone = false, adpBusy = false;
+/// the opening week's launch card: on every visit (each page load), for everyone (guests, players who already have an agent),
+/// on top of any other window (the owner's call 2026-10-24: "다른 창보다 우선 … 보유시도 … 모든 접속에"). It waits only for the
+/// loading screen and the arrival flight, and it gives back whatever freeze was there before it.
+let adpDone = false;
 const adpT0 = Date.now();
-const adpStarted = () => { const l = document.getElementById("wp-loading"); return !!l && l.classList.contains("done") && (Date.now() - adpT0 > 8000); };
-const adpFree = () => mode === "hub" && !introOn && !frozen && !flying && adpStarted() && !document.body.classList.contains("wp-first") && !document.querySelector(".wp-adp") && ![...document.querySelectorAll(".wp-qs,.wp-wb,.wp-tips,.wp-sheet,.wp-panel,.wag-card,.adc-card,[role=dialog]")].some((e) => !e.hidden && e.getClientRects().length && getComputedStyle(e).display !== "none");
-async function adPromo(force) {
-  if (adpBusy || (adpDone && !force) || Date.now() > AD_PROMO_END) return; if (!adpFree()) return;
-  const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); try { if (!force && localStorage.getItem("arc.adpromo") === day) { adpDone = true; return; } } catch { /* shown anyway */ }
-  adpBusy = true; let own = false;
-  try { if (sess()) { const a = await loadAgent().catch(() => null); try { if (a && a.look) await a.look(); } catch { /* asked again later */ } const s0 = a && a.state && a.state(); own = !!(s0 && s0.agent); } } finally { adpBusy = false; }
-  if (own && !force) { let seen = false; try { seen = !!localStorage.getItem("arc.adpromo.own"); localStorage.setItem("arc.adpromo.own", "1"); } catch { /* fine */ } if (seen) { adpDone = true; return; } }
-  if (!adpFree()) return;
-  adpDone = true; try { localStorage.setItem("arc.adpromo", day); } catch { /* fine */ }
+const adpReady = () => { const l = document.getElementById("wp-loading"); return !!l && l.classList.contains("done") && Date.now() - adpT0 > 6000 && mode === "hub" && !introOn && !flying; };
+function adPromo(force) {
+  if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
+  adpDone = true;
   const el = document.createElement("div"); el.className = "wp-adp"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", TW("AGENT DIMENSION is open!"));
   el.innerHTML = `<div class="wp-adp-in"><button type="button" class="wp-adp-x" data-later aria-label="${esc(T("Close"))}">×</button>
     <button type="button" class="wp-adp-art" data-go><img src="/images/ad/agent-launch.webp?v=1" srcset="/images/ad/agent-launch-640.webp?v=1 640w, /images/ad/agent-launch.webp?v=1 1100w" sizes="(max-width: 600px) 92vw, 540px" width="1100" height="733" alt="${esc(TW("Choose your AI agent — 100,000 $ARCIRCLE, 50% off"))}"></button>
     <p>${esc(TW("AGENT DIMENSION is open! Pick AURORA, ORION or VEX — 50% of the price is burned, 50% goes to the treasury."))}</p>
     <span><button type="button" class="wp-adp-go" data-go>🚀 ${esc(TW("Go to the AD Tower"))}</button><button type="button" class="wp-adp-later" data-later>${esc(TW("Later"))}</button></span></div>`;
-  document.body.appendChild(el); frozen = true; keys.clear(); near = null; paintPrompt(); try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
-  const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 220); frozen = false; };
+  const was = frozen; document.body.appendChild(el); frozen = true; keys.clear(); near = null; paintPrompt(); try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
+  const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 220); frozen = was && !!document.querySelector("#wp-make:not([hidden]),.wp-qs"); };
   el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-later]")) return close(); if (e.target.closest("[data-go]")) { close(); goAgentTower(); } });
 }
 /// to the Citadel's door (the AD Tower) with a flash of light, then the agent window (the Genesis Lab when there's none yet)
@@ -5382,7 +5376,7 @@ function goAgentTower() {
   const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - (g.x / d) * 16, g.z - (g.z / d) * 16, { x: g.x, z: g.z });
   try { vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); } catch { /* no flash */ } near = null; paintPrompt(); setTimeout(() => openAgent(), 900);
 }
-let adpAt = 0; every(3000, () => { if (adpDone || Date.now() > AD_PROMO_END) return; if (!adpFree()) { adpAt = 0; return; } if (!adpAt) adpAt = Date.now(); if (Date.now() - adpAt > 4000) adPromo(); }); /* (4 s of a free town first, then the card) */
+every(1000, () => { if (!adpDone && adpReady()) adPromo(); });
 async function openAgent() { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(); }
 setTimeout(() => { loadAgent().catch(() => {}); }, 7000);
 // the Halloween Pumpkin Kings (world-pumpking.js, 22 Oct – 5 Nov US Eastern; ?pk=day / ?pk=night to try): five dancing
