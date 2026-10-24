@@ -111,6 +111,7 @@ export function createAgentDim(ctx) {
       else if (ctx.calm()) ctx.toast(`${ICON[a.kind]} ${msg}`); }
   }
   const A = () => (st && st.agent) || null;
+  const GUEST_PAY = { price: 100000, list: 200000 }; // (shown before sign-in; the server's AGENT.PRICE_ARC / LIST_ARC decide once signed in)
   const away = () => { const a = A(); return !!(a && a.jobs.some((j) => Date.now() < j.end)); };
   const backs = () => { const a = A(); return a ? a.jobs.filter((j) => Date.now() >= j.end) : []; };
 
@@ -201,8 +202,9 @@ export function createAgentDim(ctx) {
       <div class="wag-ped" aria-hidden="true"></div>
       <div class="wag-thumbs">${K3.map((x) => `<button type="button" data-view="${x}" class="${x === k ? "on" : ""} ${x}" style="--ac:${K.AGENTS[x].color}" aria-label="${esc(K.AGENTS[x].name)}"><img src="${PORTRAIT(x)}" alt=""></button>`).join("")}</div></aside>`;
   }
-  // not open yet (the owner's call, 2026-10-22): only GM wallets go in; a guest or a player sees it being built
-  const closed = () => !wallet() || !st || st.closed;
+  // open to everyone since 2026-10-24: a guest sees the Genesis Lab too (it signs in at the last step); "being built" only
+  // when the server says closed (AGENT.OPEN false: GM wallets only)
+  const closed = () => !!(st && st.closed) || (!!wallet() && !st);
   function paintBuild() {
     const k = view && K3.includes(view) ? view : "orion", C = K.AGENTS[k];
     el.innerHTML = `<div class="wag-card lab build ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("AGENT DIMENSION"))}</small>
@@ -242,7 +244,7 @@ export function createAgentDim(ctx) {
     el.innerHTML = `<div class="wag-card lab ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("Genesis Lab"))} · ${esc(T("Create your Agent. Give it a Purpose."))}</small>
       <div class="wag-nm"><h2>${esc(C.name)}</h2>${ICON[k] ? `<b class="wag-lv">${ICON[k]}</b>` : ""}</div><p class="wag-role">${esc(T(ROLE[k]))}</p><q class="wag-quote">${esc(T(LINE[k]))}</q>
       <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
-      <div class="wag-body">${dots}${price() && step === 1 ? `<div class="wag-event launch"><b>🚀 ${esc(T("AGENT DIMENSION is open!"))}</b><span><s>${(st.pay.list || 0).toLocaleString("en-US")}</s> <em>${price().toLocaleString("en-US")} $ARCIRCLE</em> <i>${esc(T("50% OFF"))}</i></span><small>${esc(T("Pick AURORA, ORION or VEX. 50% of the price is burned, 50% goes to the treasury."))}</small></div>` : st && st.prelaunch !== false && step === 1 ? `<div class="wag-event"><b>🎉 ${esc(T("Pre-launch event"))}</b><span>${esc(T("Create your AI agent for free before AGENT DIMENSION officially opens. After the opening, creating an agent will cost."))}</span></div>` : ""}${form}</div></section></div>`;
+      <div class="wag-body">${dots}${price() && step === 1 ? `<div class="wag-event launch"><b>🚀 ${esc(T("AGENT DIMENSION is open!"))}</b><span><s>${listPrice().toLocaleString("en-US")}</s> <em>${price().toLocaleString("en-US")} $ARCIRCLE</em> <i>${esc(T("50% OFF"))}</i></span><small>${esc(T("Pick AURORA, ORION or VEX. 50% of the price is burned, 50% goes to the treasury."))}</small></div>` : st && st.prelaunch !== false && step === 1 ? `<div class="wag-event"><b>🎉 ${esc(T("Pre-launch event"))}</b><span>${esc(T("Create your AI agent for free before AGENT DIMENSION officially opens. After the opening, creating an agent will cost."))}</span></div>` : ""}${form}</div></section></div>`;
     const id = el.querySelector(".wag-id"); if (id && draft.id) idInput(id);
   }
   const keepDraft = () => { const q = (c) => el.querySelector(c); if (q(".wag-id")) draft.id = idNorm(q(".wag-id").value); if (q(".wag-name")) draft.name = q(".wag-name").value; if (q(".wag-persona")) draft.persona = q(".wag-persona").value; };
@@ -409,9 +411,12 @@ export function createAgentDim(ctx) {
     try { return await ctx.post({ ...body0, wallet: s2.wallet, issued: s2.issued, signature: s2.signature }); } catch { return { ok: false, j: { error: T("No connection — try again") } }; }
   }
   let paying = "";
-  const price = () => (st && st.pay && !st.prelaunch && st.pay.price > 0 ? st.pay.price : 0);
+  const price = () => (!st ? (wallet() ? 0 : GUEST_PAY.price) : st.pay && !st.prelaunch && st.pay.price > 0 ? st.pay.price : 0);
+  const listPrice = () => (st && st.pay ? st.pay.list || 0 : GUEST_PAY.list);
   async function create() {
-    if (!pick) return; keepDraft(); const name = draft.name, persona = draft.persona, id = draft.id;
+    if (!pick) return; keepDraft();
+    if (!wallet()) { try { await ctx.signIn(); } catch { return; } if (!wallet()) return; try { await look(); } catch { /* the server's answer below */ } if (A()) { paint(); return; } } // (a guest signs in here)
+    const name = draft.name, persona = draft.persona, id = draft.id;
     if (!ID_RE.test(id)) { labStep = 2; paint(); idState(T("3–16 letters, numbers or _"), "bad"); const f = el.querySelector(".wag-id"); if (f) f.focus(); return; }
     // the launch price: 100,000 $ARCIRCLE from the player's own wallet to FeeBurn (50% burned, 50% to the treasury); a
     // payment already sent (its agent not made yet — an ID taken, a closed tab) is used again, never paid twice

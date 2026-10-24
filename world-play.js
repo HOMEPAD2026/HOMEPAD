@@ -5357,8 +5357,7 @@ const STUDIO_OPEN = true; /* ARCIRCLE Studio for everyone (the owner, 2026-10-24
 /// on top of any other window (the owner's call 2026-10-24: "다른 창보다 우선 … 보유시도 … 모든 접속에"). It waits only for the
 /// loading screen and the arrival flight, and it gives back whatever freeze was there before it.
 let adpDone = false;
-const adpT0 = Date.now();
-const adpReady = () => { const l = document.getElementById("wp-loading"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && Date.now() - adpT0 > 6000 && mode === "hub" && !introOn && !flying; };
+const adpReady = () => { const l = document.getElementById("wp-loading"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && mode === "hub" && !introOn; }; /* (at once: the owner found it slow, 2026-10-24) */
 function adPromo(force) {
   if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
   adpDone = true;
@@ -5376,7 +5375,7 @@ function goAgentTower() {
   const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - (g.x / d) * 16, g.z - (g.z / d) * 16, { x: g.x, z: g.z });
   try { vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); } catch { /* no flash */ } near = null; paintPrompt(); setTimeout(() => openAgent(), 900);
 }
-every(1000, () => { if (!adpDone && adpReady()) adPromo(); });
+every(400, () => { if (!adpDone && adpReady()) adPromo(); });
 async function openAgent() { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(); }
 setTimeout(() => { loadAgent().catch(() => {}); }, 7000);
 // the Halloween Pumpkin Kings (world-pumpking.js, 22 Oct – 5 Nov US Eastern; ?pk=day / ?pk=night to try): five dancing
@@ -5418,7 +5417,7 @@ const dinoTown = (() => {
     if (!el) { el = document.createElement("button"); el.type = "button"; el.className = "wp-dinochip"; el.hidden = true; document.body.appendChild(el);
       el.addEventListener("click", () => { if (mode !== "hub" || jurOn || frozen) return; window.arcWorld.jurassic().gate(); toast(TW("Step into the Jurassic World portal")); }); }
     const w = what(), show = !!w && mode === "hub" && !jurOn && !survOn && !ringsOn && !pokerOn && !mineOn && !defenseOn && !jumpOn && !beatOn && !introOn;
-    el.hidden = !show; if (!w) return; el.textContent = w.t; el.className = "wp-dinochip " + w.k;
+    el.hidden = !show; if (!w) return; if (el.textContent !== w.t) el.textContent = w.t; { const c = "wp-dinochip " + w.k + (el.classList.contains("wp-nq-off") ? " wp-nq-off" : ""); if (el.className !== c) el.className = c; } /* (the phone notice queue's wp-nq-off kept) */
     if (w.key && !seen[w.key]) { seen[w.key] = 1; if (w.k === "warn" || w.k === "out") { if (!jurOn) toast(w.t); note("DINO SOULMATE", w.t.replace(/^\S+\s/, "")); } }
   }
   // the companions walking in town: yours (unless it's resting: world-dino.js's "arc.dino" out) and the others' near you
