@@ -414,7 +414,7 @@ function scatter(g, n, maxTheta = 180) {
   for (let i = 0; i < n; i++) {
     const th = 14 + rr() * (maxTheta - 14), ph = rr() * 360;
     if (SHOPS.some((s) => angDist(th, ph, s.theta, s.phi) < 9) || TOWN.some((t) => angDist(th, ph, t[1], t[2]) < 5)) continue;
-    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || angDist(th, ph, 21, 225) < 6 /* (RAID QUEENS' portal by the fountain: world-lands.js DEST) */ || angDist(th, ph, AGENT_GATE.theta, AGENT_GATE.phi) < AGENT_GATE.clear || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
+    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || angDist(th, ph, 24, 110) < 6 /* (RAID QUEENS' portal by the fountain: world-lands.js DEST) */ || angDist(th, ph, AGENT_GATE.theta, AGENT_GATE.phi) < AGENT_GATE.clear || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
     placeOn(o, dirOf(th, ph), R - 0.05); o.rotateY(rr() * 6.28); o.scale.setScalar(0.8 + rr() * 0.7);
     if (rr() < 0.45) o.rotateZ((rr() - 0.5) * 0.4);
     o.updateMatrix(); (rr() < 0.45 ? spots.crys : spots.tree)[i % 3].push(o.matrix.clone());

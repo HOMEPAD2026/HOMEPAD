@@ -90,8 +90,8 @@ export function makeRaidQueens(ctx) {
     spins.push((dt, t) => { halo.rotation.x = Math.PI / 2 + Math.sin(t * 0.7) * 0.25; halo.rotation.z = t * 0.6; halo.position.y = 6.5 + Math.sin(t * 1.3) * 0.25; });
     // crystal spires round the edge (fewer with low graphics)
     const n = ctx.low ? 6 : 12, crys = glow(col, 1.1);
-    for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2 + 0.2, d = P.R - 1.6 - (k % 2) * 1.4, h = 3 + ((k * 7) % 5) * 0.8;
-      const sp = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), crys); sp.scale.set(0.7, h, 0.7); sp.position.set(Math.cos(a) * d, h * 0.9, Math.sin(a) * d); sp.rotation.y = a; rg.add(sp);
+    for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2 + 0.2, d = P.R + 2.5 + (k % 2) * 1.6, h = 2.2 + ((k * 7) % 5) * 0.6; /* (outside the edge: the camera sat inside one) */
+      const sp = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), crys); sp.scale.set(0.55, h, 0.55); sp.position.set(Math.cos(a) * d, h * 0.9, Math.sin(a) * d); sp.rotation.y = a; rg.add(sp);
       if (!ctx.low && k % 3 === 0) { const fl = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0), crys); const y0 = h * 2 + 1.5; fl.position.set(sp.position.x, y0, sp.position.z); rg.add(fl); spins.push((dt, t) => { fl.position.y = y0 + Math.sin(t * 1.2 + k) * 0.5; fl.rotation.y = t + k; }); } }
     // the gate facing the Throne: two pillars, an arch, the name and the levels
     const [gx, gz] = polar(P.a, -(P.R - 0.5)), gate = new THREE.Group(); gate.position.set(gx, 0, gz); gate.rotation.y = rad(P.a); rg.add(gate);
@@ -157,12 +157,12 @@ export function makeRaidQueens(ctx) {
     const raw = c.mobsRaw(); r.mobs = r.mobs.filter((m) => !m.dead && raw.includes(m));
     if ((r.spawnT = (r.spawnT || 0) - dt) > 0 || r.mobs.length >= MOBS_N) return; r.spawnT = 2.2 + Math.random() * 1.6;
     const lv0 = r.R0.lv[0], lv1 = r.R0.lv[1] - 1, my = ctx.level(), base = Math.max(lv0, Math.min(lv1, my)), lv = Math.max(lv0, Math.min(lv1, base - 3 + Math.floor(Math.random() * 6)));
-    const elite = Math.random() < 0.2, kind = elite ? "puglin" : "imp", e = mobEnt(kind, r.R0.skin); if (!e) return;
+    const elite = Math.random() < 0.2, kind = elite ? "puglin" : "imp", e = mobEnt(kind, r.R0.skin); if (!e) { r.why = "ent"; return; }
     // somewhere in the region, not on top of you or her dais
     let at = null; for (let k = 0; k < 10 && !at; k++) { const a = Math.random() * Math.PI * 2, d = Math.random() * (r.P.R - 4), p = new V3(r.c.x + Math.cos(a) * d, 0, r.c.z + Math.sin(a) * d); if (Math.hypot(p.x - me.x, p.z - me.z) > 9 && Math.hypot(p.x - r.d.x, p.z - r.d.z) > 7) at = p; }
-    if (!at) return;
+    if (!at) { r.why = "spot"; return; }
     const m = c.spawnOwn({ ent: e, at, lv, rank: elite ? "elite" : "", zone: r.zone, scale: MOB[kind].h, y: 0, name: T(MOB[kind].name), color: r.R0.css });
-    if (m) r.mobs.push(m);
+    if (m) { r.mobs.push(m); r.why = "ok"; r.made = (r.made || 0) + 1; } else r.why = "spawn";
   }
 
   // ---------------- the queens ----------------
@@ -372,7 +372,7 @@ export function makeRaidQueens(ctx) {
     /// for the minimap and the map: the regions, the queens, the Throne, the way back
     marks: () => [...Object.values(regions).map((q) => ({ g: q.m ? q.m.g : q.dais, css: q.V.css, s: 8, ch: "♛", down: !!(view && (view.queens.find((x) => x.id === q.Q.id) || {}).down) })), { g: throne, css: "#ff7ab8", s: 10, ch: "✦" }],
     /// tests: each queen's state and running clip; the mobs' running clips
-    debug: () => Object.values(regions).map((q) => ({ id: q.Q.id, up: !!q.m, clip: q.ent ? q.ent.cur : "", phase: q.phase, mobs: q.mobs.length, mobClips: q.mobs.map((m) => (m.e.mixer._actions || []).filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join("+")), loaded: !!q.src, mobsReady: !!msrc.imp, moves: Object.keys(mclips.imp || {}).length, view: !!view, lv: ctx.level() })),
+    debug: () => Object.values(regions).map((q) => ({ id: q.Q.id, up: !!q.m, clip: q.ent ? q.ent.cur : "", phase: q.phase, mobs: q.mobs.length, mobClips: q.mobs.map((m) => (m.e.mixer._actions || []).filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join("+")), why: q.why || "", made: q.made || 0, loaded: !!q.src, mobsReady: !!msrc.imp, moves: Object.keys(mclips.imp || {}).length, view: !!view, lv: ctx.level() })),
     testCut: (id, i = 1) => cutIn(regions[Object.keys(regions).find((k) => regions[k].Q.id === id)], i, false),
     testWin: (id = "lysitha") => winCard(id, { rank: 1, arcl: 8000, today: 1, item: { id: "rqtest", b: "weapon-4", r: 3, lv: 100, p: 5 } }),
   };

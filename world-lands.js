@@ -176,9 +176,9 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
     { id: "ut", name: T("Utility Village"), col: 0x4f9dff, phi: 70 },
     { id: "pv", name: T("Partner Village"), col: 0x38e1d6, phi: 150 },
     { id: "gv", name: T("Game Village"), col: 0xffc861, phi: 300 },
-    { id: "rq", name: "RAID QUEENS", col: 0xff4d8d, phi: 225 }, // (the owner, 2026-10-25: a RAID QUEENS building by the fountain, a portal into the land)
+    { id: "rq", name: "RAID QUEENS", col: 0xff4d8d, phi: 110, th: 24 }, // (the owner, 2026-10-25: a RAID QUEENS building by the fountain, a portal into the land; moved off 225° — it crowded the Jurassic World gate — to the open side between the Utility and Partner portals, a little further out)
   ];
-  const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id; K.placeOn(p, K.dirOf(21, d.phi)); planet.add(p); return p; });
+  const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id; K.placeOn(p, K.dirOf(d.th || 21, d.phi)); planet.add(p); return p; });
   // b-st2: lines of light on the plaza floor from the fountain out to each portal, pulses running outward in its colour
   const lineU = { value: 0 };
   portals.forEach((p, i) => {
@@ -211,7 +211,7 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
   let shown = "";
   return {
     lpG, utG, portals, back, tower, spins, town, makeLot, setNewest, sizeTo, arrival,
-    spokes: DEST.map((d) => ({ theta: 21, phi: d.phi })),
+    spokes: DEST.map((d) => ({ theta: d.th || 21, phi: d.phi })),
     /// show only the land you're in (null: the town)
     show(id) { if (id === shown) return; shown = id || ""; lpG.visible = shown === "lp"; utG.visible = shown === "ut"; },
     /// the edge you can't walk past in a land (x, z: where you'd stand)
