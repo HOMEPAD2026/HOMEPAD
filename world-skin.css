@@ -3284,7 +3284,7 @@ html.wp-pcphone .wp-hud-l>:is(.wp-chips,#wc-vit,#wp-quests){margin-left:0;align-
 /* (Studio: the owner's look, 2026-10-24 — header art on the right, the templates as art cards; images/ui/studio cut from the mock-up) */
 .wst-h{position:relative;overflow:hidden;min-height:74px;padding:18px 60px 10px 22px}
 .wst-h::before{content:"";position:absolute;top:0;right:0;bottom:0;width:min(62%,420px);background:url(/images/ui/studio/head.webp?v=1) right center/cover no-repeat;-webkit-mask:linear-gradient(90deg,transparent,#000 38%);mask:linear-gradient(90deg,transparent,#000 38%);pointer-events:none}
-.wst-h>*{position:relative}.wst-h h2{font-size:28px;text-shadow:0 2px 12px rgba(0,0,0,.5)}.wst-h .wst-x{z-index:2}
+.wst-h>*:not(.wst-x){position:relative}.wst-h h2{font-size:28px;text-shadow:0 2px 12px rgba(0,0,0,.5)}.wst-h .wst-x{z-index:2}
 .wst-tpl{position:relative;overflow:hidden;gap:0;padding:0 0 8px;border-radius:16px;background:linear-gradient(180deg,#14284c,#0b1730)}
 .wst-art{display:block;width:100%;aspect-ratio:3.2/1;background:center/cover no-repeat;margin-bottom:-14px;-webkit-mask:linear-gradient(180deg,#000 60%,transparent);mask:linear-gradient(180deg,#000 60%,transparent)}
 .wst-tpl b{position:relative;font:900 14px/1.2 Sora,sans-serif;text-shadow:0 1px 4px rgba(0,0,0,.8);padding:0 6px}.wst-tpl small{position:relative;margin-top:2px;font-size:11px}
