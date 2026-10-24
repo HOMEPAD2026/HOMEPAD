@@ -53,7 +53,7 @@ const hex = (c) => "#" + c.toString(16).padStart(6, "0");
 const load3d = (() => { try { const h = $("wp-loading"); if (!h || !K.webglOk || !K.webglOk()) return null; const l = L3D.loadingScene(THREE, h, { reduce }); if (l) h.classList.add("has-3d"); return l; } catch { return null; } })();
 // (b-st1: the last fifth has steps of its own, named — the bar said "Ready" at 100% while the town was still being
 // dressed and the effects warmed, up to ~18 s on a phone)
-let loadAt = "0%"; const loadbar = (k, say) => { loadAt = Math.round(k * 100) + "%" + (say ? " " + say : ""); const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; const n = $("wp-loadpct"); if (n) n.textContent = Math.round(k * 100) + "%";
+const FAR_PREBUILD = false; let loadAt = "0%"; const loadbar = (k, say) => { loadAt = Math.round(k * 100) + "%" + (say ? " " + say : ""); const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; const n = $("wp-loadpct"); if (n) n.textContent = Math.round(k * 100) + "%";
   if (load3d) load3d.set(k); const sp = document.querySelector("#wp-loading > span"); if (sp) sp.textContent = say || (k >= 1 ? T("Ready") : k >= 0.75 ? T("Calling in the scammers…") : k >= 0.35 ? T("Raising the town…") : T("Building the planet…")); };
 const usd = (v) => v == null ? "—" : v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + Math.round(v).toLocaleString("en-US");
 
@@ -936,7 +936,9 @@ async function dressWorld(kit) {
   zoneRoot = zs.root;
   // b-st3: on a computer the far grounds are built now, behind the loading screen, so their shaders are compiled with the
   // rest (st.warm) instead of on the way in; a phone keeps building each as you come near (memory)
-  if (!st.quality.coarse && !lowGfx) try { zs.buildAll(); } catch (e) { console.warn("far grounds", e); }
+  // (2026-10-24: off again — since this went in, computers stopped finishing the load (diag: 50 opened, 18 got in) and a
+  // Mac stayed at 85 % for hours: every ground and its shaders at once was too much for the GPU. They build on approach.)
+  if (FAR_PREBUILD && !st.quality.coarse && !lowGfx) try { zs.buildAll(); } catch (e) { console.warn("far grounds", e); }
   // each ground's own floor (world-env.js): cracked rock, ripples, moss, paving, ice, glowing seams
   if (!lowGfx) zs.root.children.forEach((g) => { const zn = g.userData && g.userData.zone, gm = g.children.find((c) => c.name === "zone-ground"); if (zn && gm) floorU.push(ENV.zoneFloor(gm.material, zn, { lite: st.quality.coarse })); });
   zs.root.traverse((o) => { if (o.name !== "zone-ground") return; if (!lowGfx) LOOK.stoneGrain(o.material); if (gshadow) gshadow.receive(o.material); }); // b447: the grounds' floors get the plaza's grain too
