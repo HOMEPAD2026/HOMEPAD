@@ -2,7 +2,7 @@
 // template in Nexus City's ARCIRCLE Studio, with their agent's help, and publish them to the Creator Arcade for everyone.
 // A game is numbers on a template (api/_world-studio-gen.mjs clampSpec), never code; the page builds and plays it. No ARCL
 // is paid or earned here (plays, likes and the best runs only); creator earnings come later on the owner's hybrid rules.
-// GM wallets only while STUDIO.OPEN is false (the owner's call 2026-10-24, when AGENT DIMENSION opened to everyone: shut).
+// Open to everyone since 2026-10-24 (the owner: "스튜디오도 전체 오픈해줘"); with STUDIO.OPEN false only GM wallets get in.
 //
 //   POST { action: "world-studio-save",    …signature, spec, id? }        → { game }       (a new draft, or yours changed)
 //   POST { action: "world-studio-publish", …signature, id, on }           → { game }       (on the Creator Arcade, or off)
@@ -21,7 +21,7 @@
 //            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
 import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
-export const STUDIO = { OPEN: false, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900 };
+export const STUDIO = { OPEN: true, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900 };
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), shut(w), nameOf(w), randomId(), ai?(sys, msgs) }

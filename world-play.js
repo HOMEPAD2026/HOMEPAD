@@ -5325,7 +5325,7 @@ async function openStudio() {
 /// a Nexus City building: the three that are open lead into the agent window's tabs; the rest show what they'll be
 async function cityBuilding(id) {
   // (the owner's call 2026-10-24: AGENT DIMENSION is open to all, ARCIRCLE Studio stays the GMs' for now — others see what it'll be)
-  if ((id === "studio" || id === "pick") && !(agentDim && agentDim.state() && agentDim.state().gm) && !CITY_TRY) { if (!adc || document.querySelector(".adc-card")) return; frozen = true; keys.clear(); if (!adc.M.soonCard({ T: TW, esc }, "studio", () => { frozen = false; })) frozen = false; return; }
+  if ((id === "studio" || id === "pick") && !STUDIO_OPEN && !(agentDim && agentDim.state() && agentDim.state().gm) && !CITY_TRY) { if (!adc || document.querySelector(".adc-card")) return; frozen = true; keys.clear(); if (!adc.M.soonCard({ T: TW, esc }, "studio", () => { frozen = false; })) frozen = false; return; }
   if (id === "studio") { openStudio(); return; }
   if (id === "arena") { openArena(); return; }
   if (id === "pick") { const pk = adc && adc.pick(); await openStudio(); if (pk && studio) studio.playId(pk.id); return; }
@@ -5352,6 +5352,7 @@ async function openArena() {
 // launch art once a day, when they sign in or come back signed in; its button takes them to the Citadel (the AD Tower)
 // and opens the Genesis Lab to buy one
 const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z"); // (24 – 31 Oct, Seoul)
+const STUDIO_OPEN = true; /* ARCIRCLE Studio for everyone (the owner, 2026-10-24); the server's STUDIO.OPEN says the same */
 async function adPromo() {
   if (Date.now() > AD_PROMO_END || !sess() || mode !== "hub" || introOn || frozen || flying || document.body.classList.contains("wp-first") || document.querySelector(".wp-adp")) return;
   const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); try { if (localStorage.getItem("arc.adpromo") === day) return; } catch { /* shown anyway */ }
