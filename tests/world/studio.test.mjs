@@ -111,5 +111,11 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   await call(me, "world-studio-publish", { id: bid, on: true }); T += 30e3;
   r2 = await call(fan, "world-studio-play", { id: bid, coins: 99, dist: 9999, done: true }); check(r2.status === 200 && r2.body.score === G.scoreOf(2, 300, true), "a built game's score is held to its own layout: " + r2.body.score);
   await call(me, "world-studio-del", { id: bid }); }
+// S4b: moving walls and blinking lasers are obstacle rows of their own; rule cards (≤ 2, runner and dash only)
+{ const s4 = G.clampSpec({ tpl: "runner", rules: ["mirror", "nope", "onehp", "night"], build: { L: 300, r: [[40, "m", 2], [70, "b", 1], [70, "c", 0], [100, "m", 0], [100, "w", 1]] } });
+  check(JSON.stringify(s4.rules) === '["mirror","onehp"]' && JSON.stringify(s4.build.r) === JSON.stringify([[40, "m", 0], [70, "b", 0], [70, "c", 0], [100, "w", 1]]), "S4b: rule cards and the new obstacles kept by the rules: " + JSON.stringify(s4));
+  check(G.clampSpec({ tpl: "arena", rules: ["low"] }).rules === undefined, "rule cards are for runner and dash");
+  const e1 = G.estimate(G.clampSpec({ tpl: "runner", speed: 4, walls: 4, seed: 3 })), e2 = G.estimate(G.clampSpec({ tpl: "runner", speed: 4, walls: 4, seed: 3, rules: ["onehp", "mirror"] }));
+  check(e2.clear <= e1.clear, `one heart and mirrored controls make it harder for the bots (${e1.clear} → ${e2.clear})`); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

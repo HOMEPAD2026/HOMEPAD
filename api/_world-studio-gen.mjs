@@ -48,23 +48,27 @@ function clampBase(s) {
     speed: int(s.speed, 1, 5, 3), len: LENS.includes(Number(s.len)) ? Number(s.len) : 45,
     coins: int(s.coins, 0, 5, 3), walls: int(s.walls, 0, 5, 2), gaps: int(s.gaps, 0, 3, 1), lasers: int(s.lasers, 0, 3, 1),
     seed: int(s.seed, 1, 999999, 1),
+    ...((s.tpl === "runner" || s.tpl === "dash") && Array.isArray(s.rules) && s.rules.some((r) => RULES.includes(r)) ? { rules: [...new Set(s.rules.filter((r) => RULES.includes(r)))].slice(0, RULES_MAX) } : {}),
   };
 }
 /// Studio 4 ("Build it yourself"): a runner or dash laid out by hand. build = { L: track metres, r: [[z, k, lane]] } with k
 /// w (wall, a lane) · g (gap, across) · l (laser, across) · c (coin, a lane) · h (heart, a lane: one back, up to 3). The server
 /// keeps only what can be played: an obstacle row leaves a lane open (walls in ≤ 2 lanes), one kind of obstacle a row,
 /// obstacle rows at least a reaction apart (BUILD.GAP s at the track's speed), nothing on top of a wall, ≤ BUILD.HEARTS hearts.
-export const BUILD = { MIN: 150, MAX: 2000, STEP: 10, ROWS: 600, HEARTS: 5, GAP: 0.32, KINDS: ["w", "g", "l", "c", "h"] };
+export const BUILD = { MIN: 150, MAX: 2000, STEP: 10, ROWS: 600, HEARTS: 5, GAP: 0.32, KINDS: ["w", "m", "g", "l", "b", "c", "h"] }; // (S4b: m a wall that slides across the lanes, b a laser that blinks)
+const ACROSS = new Set(["g", "l", "b", "m"]);
+/// S4b rule cards: up to RULES_MAX on any runner or dash — low gravity, mirrored controls, night, a single heart, a run that speeds up
+export const RULES = ["low", "mirror", "night", "onehp", "speedup"], RULES_MAX = 2;
 export const buildGap = (spec) => Math.max(4, Math.round(speedOf(spec) * BUILD.GAP));
 export function cleanBuild(b, spec) {
   const L = Math.max(BUILD.MIN, Math.min(BUILD.MAX, Math.round((Number(b.L) || 0) / BUILD.STEP) * BUILD.STEP)), gap = buildGap(spec), raw = Array.isArray(b.r) ? b.r.slice(0, BUILD.ROWS * 2) : [];
-  const rows = []; for (const x of raw) { if (!Array.isArray(x)) continue; const z = Math.round(Number(x[0])), k = String(x[1]), ln = Math.round(Number(x[2]) || 0); if (!Number.isFinite(z) || z < 20 || z > L - 12 || !BUILD.KINDS.includes(k)) continue; rows.push([z, k, k === "g" || k === "l" ? 0 : Math.max(0, Math.min(2, ln))]); }
+  const rows = []; for (const x of raw) { if (!Array.isArray(x)) continue; const z = Math.round(Number(x[0])), k = String(x[1]), ln = Math.round(Number(x[2]) || 0); if (!Number.isFinite(z) || z < 20 || z > L - 12 || !BUILD.KINDS.includes(k)) continue; rows.push([z, k, ACROSS.has(k) ? 0 : Math.max(0, Math.min(2, ln))]); }
   rows.sort((p, q) => p[0] - q[0] || BUILD.KINDS.indexOf(p[1]) - BUILD.KINDS.indexOf(q[1]) || p[2] - q[2]);
   const out = [], seen = new Set(); let lastZ = -99, lastK = "", hearts = 0;
   const walls = new Map(); // z → lanes walled
   for (const [z, k, ln] of rows) {
     const key = z + k + ln; if (seen.has(key)) continue;
-    if (k === "w" || k === "g" || k === "l") {
+    if (k === "w" || ACROSS.has(k)) {
       if (z !== lastZ && z - lastZ < gap) continue; // (too close to the last obstacle row to react)
       if (z === lastZ && (k !== "w" || lastK !== "w")) continue; // (one kind a row)
       if (k === "w") { const set = walls.get(z) || new Set(); if (set.size >= 2) continue; set.add(ln); walls.set(z, set); }
@@ -78,11 +82,11 @@ export function cleanBuild(b, spec) {
   }
   return { L, r: out };
 }
-const KIND_OF = { w: "wall", g: "gap", l: "laser", c: "coin", h: "heart" };
+const KIND_OF = { w: "wall", m: "mwall", g: "gap", l: "laser", b: "blink", c: "coin", h: "heart" };
 /// a built layout as the level's rows (the dash: the layout again and again, back to back, to DASH_MAX's length)
 function buildRows(spec, len) {
   const B = spec.build, rows = [], reps = spec.tpl === "dash" ? Math.ceil(len / B.L) : 1;
-  for (let i = 0; i < reps; i++) for (const [z, k, ln] of B.r) { const zz = z + i * B.L; if (zz > len - 12) break; rows.push(k === "g" || k === "l" ? { z: zz, k: KIND_OF[k] } : { z: zz, k: KIND_OF[k], lane: ln }); }
+  for (let i = 0; i < reps; i++) for (const [z, k, ln] of B.r) { const zz = z + i * B.L; if (zz > len - 12) break; rows.push(ACROSS.has(k) ? { z: zz, k: KIND_OF[k] } : { z: zz, k: KIND_OF[k], lane: ln }); }
   return rows;
 }
 export const speedOf = (spec) => 9 + spec.speed * 2.2; // metres a second
@@ -157,8 +161,9 @@ export function estimate(spec0) {
     const vAt = (z) => { if (!dash) return speedOf(spec); let d = 0, t = 0; while (d < z && t < 600) { d += dashSpeed(spec, t + 0.5); t++; } return dashSpeed(spec, t); };
     const vs = ev.map((e) => vAt(e.z));
     for (let b = 0; b < N; b++) {
-      const sk = 0.3 + (0.7 * b) / (N - 1), react = 0.55 - 0.3 * sk; let hearts = 3, end = -1, pz = 0, pk = "";
-      for (let i = 0; i < ev.length; i++) { const e = ev[i], dt = (e.z - pz) / vs[i], need = react + 0.15 + (pk && pk !== e.k ? 0.15 : 0);
+      const rs = spec.rules || [], rp = (rs.includes("mirror") ? 0.08 : 0) + (rs.includes("night") ? 0.05 : 0);
+      const sk = 0.3 + (0.7 * b) / (N - 1), react = 0.55 - 0.3 * sk; let hearts = (spec.rules || []).includes("onehp") ? 1 : 3, end = -1, pz = 0, pk = "";
+      for (let i = 0; i < ev.length; i++) { const e = ev[i], dt = (e.z - pz) / vs[i], need = react + 0.15 + (pk && pk !== e.k ? 0.15 : 0) + (e.k === "mwall" || e.k === "blink" ? 0.12 : 0) + rp;
         const p = Math.min(0.95, Math.max(0, ((need - dt) / need) * 1.2) + 0.02 * (1 - sk));
         if (rnd() < p) { hearts--; if (hearts <= 0) { end = e.z / goal; why[e.k] = (why[e.k] || 0) + 1; break; } }
         pz = e.z; pk = e.k; }

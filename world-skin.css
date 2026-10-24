@@ -3606,8 +3606,9 @@ html.wp-pcphone .wpg-xf{zoom:1.5}
 .wsb-sel[hidden],.wsb-pieces[hidden]{display:none}
 .wsb-sel span{margin-right:auto;color:#bff3ff}.wsb-sel button,.wsb-pieces button{height:36px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:700 13px/1 Sora,sans-serif;cursor:pointer}
 .wsb-pieces button.on{border-color:#7cf5c8;background:rgba(124,245,200,.18)}.wsb-pieces button i{font-style:normal;margin-right:4px}.wsb-pieces small{flex-basis:100%;color:#9fb3cc}
-.wsb-tools{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#0c1838;border-top:1px solid rgba(95,211,255,.25)}
+.wsb-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#0c1838;border-top:1px solid rgba(95,211,255,.25)}
 .wsb-tools button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;border-radius:12px;border:1px solid transparent;background:none;color:#cfe0f5;font:700 11px/1.1 Sora,sans-serif;cursor:pointer}
 .wsb-tools button i{font-style:normal;font-size:22px}.wsb-tools button.on{background:rgba(95,211,255,.16);border-color:rgba(95,211,255,.6);color:#fff}
 html.wp-pcphone .wsb-in{zoom:1.6}
 .wst-vers{display:grid;gap:6px;margin:8px 0}.wst-vers button{display:flex;justify-content:space-between;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#e8f1fb;font:600 13px/1.2 Sora,sans-serif;cursor:pointer}
+.wst-rules{margin:0 0 12px}.wst-rules>span{display:block;margin:0 0 6px;font-size:13px;font-weight:800;color:#cfe0f5}.wst-rules .wst-chips{flex-wrap:wrap}

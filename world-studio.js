@@ -51,6 +51,8 @@ export function createStudio(ctx) {
   const PNAME = { easy: "Easy", normal: "Normal", hard: "Hard", extreme: "Extreme" }, WHY = { wall: "walls", gap: "gaps", laser: "lasers", d: "drones", D: "big drones", L: "laser sweeps" };
   const starsTxt = (n) => `<span class="wst-stars" aria-label="${n}/5">${"<i>★</i>".repeat(n)}${"<i class=\"off\">★</i>".repeat(5 - n)}</span>`;
   const presetOf = () => Object.keys(PRESETS).find((k) => Object.entries(PRESETS[k]).every(([f, v]) => spec[f] === v)) || "";
+  const RULE_UI = [["low", "🪶", "Low gravity"], ["mirror", "🔁", "Mirrored controls"], ["night", "🌙", "Night run"], ["onehp", "💔", "One heart"], ["speedup", "🚀", "Speeds up"]];
+  const rulesRow = () => (spec.tpl === "runner" || spec.tpl === "dash" ? `<div class="wst-rules"><span>🃏 ${esc(T("Rule cards (up to 2)"))}</span><div class="wst-chips">${RULE_UI.map(([k, ic, n]) => `<button type="button" data-rule="${k}" class="${(spec.rules || []).includes(k) ? "on" : ""}">${ic} ${esc(T(n))}</button>`).join("")}</div></div>` : "");
   function paintMake() {
     const th = THEMES[spec.theme], L = genLevel(spec), KN = KNOBS[spec.tpl] || KNOBS.runner, E = estimate(spec), cur = mine.find((g) => g.id === editId);
     const bar = `<ol class="wst-steps">${STEPS.map(([l], i) => `<li><button type="button" data-step="${i + 1}" class="${step === i + 1 ? "on" : step > i + 1 ? "done" : ""}"><i>${step > i + 1 ? "✓" : i + 1}</i><span>${esc(T(l))}</span></button></li>`).join("")}</ol>`;
@@ -62,11 +64,12 @@ export function createStudio(ctx) {
     else if (step === 2) body = `<div class="wst-themes">${Object.entries(THEMES).map(([id, t]) => `<button type="button" data-theme="${id}" class="wst-thm${id === spec.theme ? " on" : ""}" style="--c:${hex(t.edge)};--b:${hex(t.sky)}"><span class="wst-thi" data-snap="${id}"${snaps[spec.tpl + ":" + id] ? ` style="background-image:url(${snaps[spec.tpl + ":" + id]})"` : ""}></span><b>${esc(T(t.name))}</b></button>`).join("")}</div>`;
     else if (step === 3 && spec.build) { const B = spec.build, n = B.r.length; // (Studio 4: a hand-built layout — the speed still applies)
       body = `<div class="wst-build on"><i>🛠️</i><div><b>${esc(T("Hand-built layout"))}</b><small>${esc(T("{n} pieces · {m} m", { n, m: B.L }))}</small></div><span><button type="button" class="wst-go" data-build>✏️ ${esc(T("Edit the layout"))}</button><button type="button" class="wst-link" data-unbuild>${esc(T("Back to quick start"))}</button></span></div>
+      ${rulesRow()}
       <div class="wst-row"><span>${esc(T(KN.speed))}</span><div class="wst-chips">${[1, 2, 3, 4, 5].map((x) => `<button type="button" data-speed="${x}" class="${x === spec.speed ? "on" : ""}">${x}</button>`).join("")}</div></div>
       <div class="wst-est s${E.stars}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
       ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}`; }
     else if (step === 3) { const pk = presetOf();
-      body = `${spec.tpl === "runner" || spec.tpl === "dash" ? `<div class="wst-build"><i>🛠️</i><div><b>${esc(T("Build it yourself"))}</b><small>${esc(T("Place every wall, gap, laser, coin and heart by hand — starting from this layout."))}</small></div><span><button type="button" class="wst-go" data-build>🛠️ ${esc(T("Open the builder"))}</button></span></div>` : ""}`;
+      body = `${spec.tpl === "runner" || spec.tpl === "dash" ? `<div class="wst-build"><i>🛠️</i><div><b>${esc(T("Build it yourself"))}</b><small>${esc(T("Place every wall, gap, laser, coin and heart by hand — starting from this layout."))}</small></div><span><button type="button" class="wst-go" data-build>🛠️ ${esc(T("Open the builder"))}</button></span></div>` : ""}${rulesRow()}`;
       body += `<div class="wst-pres">${Object.keys(PRESETS).map((k) => { const e = estimate({ ...spec, ...PRESETS[k] }); return `<button type="button" data-preset="${k}" class="${pk === k ? "on" : ""} p-${k}"><b>${esc(T(PNAME[k]))}</b><small>${starsTxt(e.stars)}</small><em>${Math.round(e.clear * 100)}%</em></button>`; }).join("")}</div>
       <div class="wst-row"><span>${esc(T(KN.len))}</span><div class="wst-chips">${LENS.map((x) => `<button type="button" data-len="${x}" class="${x === spec.len ? "on" : ""}">${LEN_NAME[spec.tpl] ? esc(T(LEN_NAME[spec.tpl][x])) : x + "s"}</button>`).join("")}</div></div>
       <div class="wst-est s${E.stars}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
@@ -155,6 +158,7 @@ export function createStudio(ctx) {
     if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
     if (b.hasAttribute("data-next")) { step = Math.min(5, step + 1); fxStep(); return paint(); }
     if (b.hasAttribute("data-back")) { step = Math.max(1, step - 1); return paint(); }
+    if (b.dataset.rule) { const k = b.dataset.rule, cur = spec.rules || [], on = cur.includes(k); if (!on && cur.length >= 2) { ctx.toast(esc(T("Two rule cards at most — take one off first"))); return; } spec = clampSpec({ ...spec, rules: on ? cur.filter((x) => x !== k) : [...cur, k] }); return paintKeep(); }
     if (b.dataset.speed) { spec.speed = Number(b.dataset.speed); return paintKeep(); }
     if (b.hasAttribute("data-build")) return openBuilder();
     if (b.hasAttribute("data-unbuild")) { if (!confirm(T("Go back to the quick-start layout? Your hand-built layout is dropped."))) return; delete spec.build; spec = clampSpec(spec); return paintKeep(); }
@@ -240,6 +244,11 @@ export function createStudio(ctx) {
     scene.add(pil);
     // walls, lasers, coins, the finish
     const walls = L.rows.filter((r) => r.k === "wall"), lasers = L.rows.filter((r) => r.k === "laser"), coinRows = L.rows.filter((r) => r.k === "coin"), heartRows = L.rows.filter((r) => r.k === "heart"), hGot = new Uint8Array(heartRows.length);
+    const RU = new Set(o.spec.rules || []), mwalls = L.rows.filter((r) => r.k === "mwall"), blinks = L.rows.filter((r) => r.k === "blink"); // (S4b)
+    const mwX = (w, t) => Math.sin(t * 1.7 + w.z * 0.37) * LANES[2], blinkOn = (b, t) => Math.sin(t * 2.6 + b.z * 0.21) > -0.25;
+    const mwm = mwalls.map((w) => { const m = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.7, 0.8), std(0xff9a3d, { emissive: 0xff7a1a, emissiveIntensity: 0.5 })); m.position.set(0, 0.85, w.z); scene.add(m); return m; });
+    const blm = blinks.map((b) => { const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, W, 8), glow(0xff5ad8)); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.25, b.z); scene.add(bar); return bar; });
+    if (RU.has("night")) { scene.background = new THREE.Color(0x03050c); scene.fog = new THREE.Fog(0x03050c, 10, 62); }
     const hm = heartRows.map((h) => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.42), std(0xff4d6d, { emissive: 0xff2d55, emissiveIntensity: 0.7 })); m.position.set(LANES[h.lane], 1.1, h.z); scene.add(m); return m; }); // (Studio 4: a heart back, up to 3)
     const wm = new THREE.InstancedMesh(new THREE.BoxGeometry(1.9, 1.7, 0.8), std(th.wall, { emissive: th.wall, emissiveIntensity: 0.45 }), Math.max(1, walls.length));
     walls.forEach((w, i) => { mt.makeTranslation(LANES[w.lane], 0.85, w.z); wm.setMatrixAt(i, mt); }); scene.add(wm);
@@ -259,7 +268,7 @@ export function createStudio(ctx) {
     document.body.classList.add("wp-studio");
     const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(ctx.coarse ? "Swipe ← → to switch lanes · ↑ jump · ↓ slide" : "← → switch lanes · ↑ / Space jump · ↓ slide"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
     document.body.appendChild(hud);
-    const S = { z: Math.max(0, Math.min(L.len - 40, o.startZ || 0)), x: 0, lane: 1, y: 0, vy: 0, slide: 0, hearts: 3, inv: 0, coins: 0, t: -3, done: false, over: false, clip: "", combo: 0, lastCoin: -9, slow: 0, nice: new Set(), tr: [] }; // (o.startZ: the editor's "test from here")
+    const S = { z: Math.max(0, Math.min(L.len - 40, o.startZ || 0)), x: 0, lane: 1, y: 0, vy: 0, slide: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, done: false, over: false, clip: "", combo: 0, lastCoin: -9, slow: 0, nice: new Set(), tr: [] }; // (o.startZ: the editor's "test from here")
     const fx = makeFx(hud);
     const keys = (e) => { if (S.over) return; const k = e.key; if (k === "ArrowLeft" || k === "a" || k === "A") lane(-1); else if (k === "ArrowRight" || k === "d" || k === "D") lane(1); else if (k === "ArrowUp" || k === " " || k === "w" || k === "W") jump(); else if (k === "ArrowDown" || k === "s" || k === "S") slide(); else return; e.preventDefault(); };
     let tx = 0, ty = 0, tt = 0;
@@ -267,26 +276,28 @@ export function createStudio(ctx) {
     const te = (e) => { if (e.target.closest && e.target.closest("button")) return; const p = e.changedTouches ? e.changedTouches[0] : e, dx = p.clientX - tx, dy = p.clientY - ty; if (Math.hypot(dx, dy) < 24) { if (Date.now() - tt < 400) jump(); return; } if (Math.abs(dx) > Math.abs(dy)) lane(dx > 0 ? 1 : -1); else if (dy < 0) jump(); else slide(); };
     addEventListener("keydown", keys, true); addEventListener("touchstart", ts, { passive: true }); addEventListener("touchend", te); const pu = (e) => { if (e.pointerType === "mouse") te(e); }; addEventListener("pointerdown", ts); addEventListener("pointerup", pu);
     const play = (c, once) => { if (!hero) return; try { hero.play(c, once ? { once: true } : {}); } catch { /* no clip */ } S.clip = once ? "" : c; };
-    function lane(d) { if (S.t < 0) return; S.lane = Math.max(0, Math.min(2, S.lane + d)); if (ctx.Snd && ctx.Snd.dash) try { ctx.Snd.dash(); } catch { /* no sound */ } }
-    function jump() { if (S.t < 0 || S.y > 0.01) return; S.vy = 8.6; S.slide = 0; play("jump", true); if (ctx.Snd && ctx.Snd.jump) try { ctx.Snd.jump(); } catch { /* no sound */ } }
+    function lane(d) { if (S.t < 0) return; if (RU.has("mirror")) d = -d; S.lane = Math.max(0, Math.min(2, S.lane + d)); if (ctx.Snd && ctx.Snd.dash) try { ctx.Snd.dash(); } catch { /* no sound */ } }
+    function jump() { if (S.t < 0 || S.y > 0.01) return; S.vy = RU.has("low") ? 7.4 : 8.6; S.slide = 0; play("jump", true); if (ctx.Snd && ctx.Snd.jump) try { ctx.Snd.jump(); } catch { /* no sound */ } }
     function slide() { if (S.t < 0) return; if (S.y > 0.01) S.vy = Math.min(S.vy, -10); S.slide = 0.7; play("dodge", true); }
     function hurt(why) { if (S.inv > 0 || S.over) return; S.hearts--; S.inv = 1.4; play(S.hearts > 0 ? "hit" : "die", true); if (ctx.Snd && ctx.Snd.hurt) try { ctx.Snd.hurt(); } catch { /* no sound */ } paintHud(); if (S.hearts <= 0) end(false); if (why === "gap") { const g = gaps.find((x) => Math.abs(S.z - x) < GAP); S.y = 0; S.vy = 0; if (g != null) S.z = g + GAP / 2 + 0.6; } } // (back on its far side)
-    const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(3 - Math.max(0, S.hearts)); hud.querySelector(".wst-hc").textContent = "🪙 " + S.coins + (dash ? ` · ${Math.round(S.z)} m` : ""); hud.querySelector(".wst-bar em").style.width = dash ? Math.min(100, (S.t / 120) * 100).toFixed(1) + "%" : Math.min(100, (S.z / L.len) * 100).toFixed(1) + "%"; };
+    const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, ((o.spec.rules || []).includes("onehp") ? 1 : 3) - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = "🪙 " + S.coins + (dash ? ` · ${Math.round(S.z)} m` : ""); hud.querySelector(".wst-bar em").style.width = dash ? Math.min(100, (S.t / 120) * 100).toFixed(1) + "%" : Math.min(100, (S.z / L.len) * 100).toFixed(1) + "%"; };
     const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), sc = new THREE.Vector3(1, 1, 1), pv = new THREE.Vector3(), flip = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
     function tick(dt, t) {
       dt = Math.min(dt, 0.05); if (S.slow > 0) { S.slow -= dt; dt *= 0.35; } // (a near miss: a moment of slow motion)
       if (S.t < 0) { const n0 = Math.ceil(-S.t); S.t += dt; const n1 = Math.ceil(-S.t); if (n1 !== n0) { const cd = hud.querySelector(".wst-cd"); cd.textContent = n1 > 0 ? String(n1) : T("GO!"); cd.classList.remove("pop"); void cd.offsetWidth; cd.classList.add("pop"); if (n1 <= 0) { setTimeout(() => cd.remove(), 700); play("sprint"); } } }
       else if (!S.over) {
-        const vNow = dash ? dashSpeed(o.spec, S.t) : v; S.t += dt; S.z += vNow * dt;
+        const vNow = dash ? dashSpeed(o.spec, S.t) : RU.has("speedup") ? v * (1 + S.t * 0.006) : v; S.t += dt; S.z += vNow * dt;
         fx.speed(Math.min(1, Math.max(0, (vNow - 15) / 22))); S.inv = Math.max(0, S.inv - dt); S.slide = Math.max(0, S.slide - dt);
-        S.vy -= 24 * dt; S.y = Math.max(0, S.y + S.vy * dt); if (S.y === 0) S.vy = 0;
+        S.vy -= (RU.has("low") ? 13 : 24) * dt; S.y = Math.max(0, S.y + S.vy * dt); if (S.y === 0) S.vy = 0;
         // over a gap with your feet on the ground: down you go (a heart), back on the far side
         if (S.y < 0.05 && gaps.some((g) => Math.abs(S.z - g) < GAP / 2 - 0.3)) hurt("gap");
         const ln = S.lane, h = S.slide > 0 ? 0.9 : 1.8;
         for (const w of walls) { if (w.z < S.z - 1) continue; if (w.z > S.z + 1) break; if (w.lane === ln && Math.abs(w.z - S.z) < 0.6 && S.y < 1.6) hurt("wall"); }
         for (const l of lasers) { const d = Math.abs(l.z - S.z); if (d < 0.45 && S.y < 1.3 && S.y + h > 1.15) hurt("laser"); else if (d < 0.6 && S.slide > 0 && !S.nice.has(l.z) && !ctx.reduce) { S.nice.add(l.z); S.slow = 0.32; fx.say(T("NICE!")); } }
         coinRows.forEach((c, i) => { if (!got[i] && c.lane === ln && Math.abs(c.z - S.z) < 1 && S.y < 2.2) { got[i] = 1; S.coins++; pop(LANES[c.lane], 1.1, c.z); S.combo = S.t - S.lastCoin < 1.4 ? S.combo + 1 : 1; S.lastCoin = S.t; fx.combo(S.combo); if (ctx.Snd && ctx.Snd.coin) try { ctx.Snd.coin(); } catch { /* no sound */ } } });
-        heartRows.forEach((h, i) => { if (!hGot[i] && h.lane === ln && Math.abs(h.z - S.z) < 1 && S.y < 2.2) { hGot[i] = 1; hm[i].visible = false; if (S.hearts < 3) { S.hearts++; fx.say("❤️ +1"); } pop(LANES[h.lane], 1.1, h.z); } });
+        mwalls.forEach((w, i) => { const x = mwX(w, S.t); mwm[i].position.x = x; if (Math.abs(w.z - S.z) < 0.6 && Math.abs(x - S.x) < 1.2 && S.y < 1.6) hurt("wall"); });
+        blinks.forEach((b2, i) => { const on = blinkOn(b2, S.t); blm[i].visible = on; if (on && Math.abs(b2.z - S.z) < 0.45 && S.y < 1.3 && S.y + h > 1.15) hurt("laser"); });
+        heartRows.forEach((h, i) => { if (!hGot[i] && h.lane === ln && Math.abs(h.z - S.z) < 1 && S.y < 2.2) { hGot[i] = 1; hm[i].visible = false; if (S.hearts < (RU.has("onehp") ? 1 : 3)) { S.hearts++; fx.say("❤️ +1"); } pop(LANES[h.lane], 1.1, h.z); } });
         if (!dash && S.z >= L.len) { S.z = L.len; end(true); }
         if (dash && S.z >= L.len - 30) { S.z = L.len - 30; end(true); }
         paintHud();
@@ -398,7 +409,7 @@ export function createStudio(ctx) {
     const dG = new THREE.SphereGeometry(0.55, 16, 12), bG = new THREE.SphereGeometry(1.1, 18, 14), ringG = new THREE.TorusGeometry(0.8, 0.07, 6, 24), dM = std(th.wall, { emissive: th.wall, emissiveIntensity: 0.6, metalness: 0.5, roughness: 0.25 }), bM = std(0xffb02e, { emissive: 0xff7a1a, emissiveIntensity: 0.6 }), rM = glow(th.edge, 0.8);
     const drones = [], sweeps = [], coins = []; let wi = 0, ci = 0;
     const cM = std(0xffc94a, { emissive: 0xffa21a, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.25 }), cG = new THREE.CylinderGeometry(0.42, 0.42, 0.1, 18);
-    const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(3 - Math.max(0, S.hearts)); hud.querySelector(".wst-hc").textContent = `🪙 ${S.coins} · ${Math.max(0, Math.ceil(A.secs - Math.max(0, S.t)))}s`; hud.querySelector(".wst-bar em").style.width = Math.min(100, (Math.max(0, S.t) / A.secs) * 100).toFixed(1) + "%"; };
+    const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, ((o.spec.rules || []).includes("onehp") ? 1 : 3) - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = `🪙 ${S.coins} · ${Math.max(0, Math.ceil(A.secs - Math.max(0, S.t)))}s`; hud.querySelector(".wst-bar em").style.width = Math.min(100, (Math.max(0, S.t) / A.secs) * 100).toFixed(1) + "%"; };
     function hurt() { if (S.inv > 0 || S.over) return; S.hearts--; S.inv = 1.3; play(S.hearts > 0 ? "hit" : "die", { once: true }); if (ctx.Snd && ctx.Snd.hurt) try { ctx.Snd.hurt(); } catch { /* no sound */ } paintHud(); if (S.hearts <= 0) end(false); }
     const mv = new THREE.Vector3();
     function tick(dt, t) {

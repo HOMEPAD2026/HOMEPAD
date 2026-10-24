@@ -6,7 +6,7 @@
 // ctx: { T, esc, toast, spec, onDone, onTest(spec, startZ), onClose }
 import { BUILD, cleanBuild, clampSpec, estimate, THEMES, buildGap } from "./world-studio-gen.js";
 
-const TOOLS = [["w", "🧱", "Wall"], ["g", "🕳️", "Gap"], ["l", "⚡", "Laser"], ["c", "🪙", "Coin"], ["h", "❤️", "Heart"], ["x", "🧽", "Erase"], ["s", "⬚", "Select"]];
+const TOOLS = [["w", "🧱", "Wall"], ["m", "🔀", "Moving wall"], ["g", "🕳️", "Gap"], ["l", "⚡", "Laser"], ["b", "✨", "Blinking laser"], ["c", "🪙", "Coin"], ["h", "❤️", "Heart"], ["x", "🧽", "Erase"], ["s", "⬚", "Select"]];
 /// ready-made pieces: [dz, kind, lane] from where you tap (metres up the track)
 export const PIECES = {
   zigzag: { icon: "〰️", name: "Zigzag walls", r: [[0, "w", 0], [0, "w", 1], [14, "w", 1], [14, "w", 2], [28, "w", 0], [28, "w", 1], [7, "c", 2], [21, "c", 0], [35, "c", 2]] },
@@ -22,12 +22,12 @@ const SNAP = 2, ZOOMS = [4, 6, 9];
 export function createBuilder(ctx) {
   const { T, esc } = ctx;
   let spec = clampSpec(ctx.spec), B = spec.build ? JSON.parse(JSON.stringify(spec.build)) : { L: 400, r: [] };
-  let tool = "w", piece = "", sel = null, clip = null, undo = [], redo = [], view = 0, zi = 1, el = null, cv = null, g = null, raf = 0, drag = null, dirty = true;
+  let heat = null, tool = "w", piece = "", sel = null, clip = null, undo = [], redo = [], view = 0, zi = 1, el = null, cv = null, g = null, raf = 0, drag = null, dirty = true;
   const th = THEMES[spec.theme] || THEMES.neon, hex = (n) => "#" + n.toString(16).padStart(6, "0");
   const keyOf = (x) => x[0] + x[1] + x[2];
   const snapshot = () => JSON.stringify(B);
   function push() { undo.push(snapshot()); if (undo.length > 80) undo.shift(); redo = []; }
-  function setB(json) { B = JSON.parse(json); dirty = true; paintBar(); }
+  function setB(json) { B = JSON.parse(json); heat = null; dirty = true; paintBar(); }
   const valid = () => { const c = cleanBuild(B, spec), ok = new Set(c.r.map(keyOf)); return { c, bad: B.r.filter((x) => !ok.has(keyOf(x))) }; };
   // ---- the window ----
   function open() {
@@ -67,9 +67,11 @@ export function createBuilder(ctx) {
     g.fillStyle = hex(th.track); g.fillRect(X, Math.max(0, yF), lw * 3, Math.min(H, yS) - Math.max(0, yF));
     g.strokeStyle = hex(th.edge); g.globalAlpha = 0.35; g.lineWidth = 1; for (let i = 1; i < 3; i++) { g.beginPath(); g.moveTo(X + lw * i, Math.max(0, yF)); g.lineTo(X + lw * i, Math.min(H, yS)); g.stroke(); } g.globalAlpha = 1;
     g.fillStyle = hex(th.edge); g.fillRect(X - 3, Math.max(0, yF), 3, Math.min(H, yS) - Math.max(0, yF)); g.fillRect(X + lw * 3, Math.max(0, yF), 3, Math.min(H, yS) - Math.max(0, yF));
+    // where the bots' runs end (estimate().fails, 10 stretches): a strip down the track's left side, redder where more fail
+    { const E = heat || (heat = estimate(clampSpec({ ...spec, build: cleanBuild(B, spec) }))), mx = Math.max(1, ...E.fails); for (let i = 0; i < 10; i++) { const za = (B.L * i) / 10, zb = (B.L * (i + 1)) / 10, ya = pyOf(zb), yb = pyOf(za); if (yb < 0 || ya > H) continue; const k = E.fails[i] / mx; g.fillStyle = k ? `rgba(255,${Math.round(200 - 160 * k)},80,${0.25 + 0.6 * k})` : "rgba(124,245,200,.25)"; g.fillRect(X - 14, ya, 8, yb - ya); } }
     // metres every 10 (every 20 when zoomed out)
     g.font = "600 11px Sora, sans-serif"; g.fillStyle = "rgba(255,255,255,.55)"; g.textAlign = "right";
-    const stepM = P < 5 ? 20 : 10; for (let z = Math.ceil(view / stepM) * stepM; z <= view + H / P; z += stepM) { if (z < 0 || z > B.L) continue; const y = pyOf(z); g.fillText(z + "m", X - 8, y + 4); g.fillStyle = "rgba(255,255,255,.07)"; g.fillRect(X, y, lw * 3, 1); g.fillStyle = "rgba(255,255,255,.55)"; }
+    const stepM = P < 5 ? 20 : 10; for (let z = Math.ceil(view / stepM) * stepM; z <= view + H / P; z += stepM) { if (z < 0 || z > B.L) continue; const y = pyOf(z); g.fillText(z + "m", X - 18, y + 4); g.fillStyle = "rgba(255,255,255,.07)"; g.fillRect(X, y, lw * 3, 1); g.fillStyle = "rgba(255,255,255,.55)"; }
     // start, finish
     g.textAlign = "center"; g.font = "800 12px Sora, sans-serif";
     if (yS > 0 && yS < H + 20) { g.fillStyle = "#7cf5c8"; g.fillRect(X, yS - 3, lw * 3, 3); g.fillText(T("START"), X + lw * 1.5, yS + 14); }
@@ -82,9 +84,11 @@ export function createBuilder(ctx) {
       if (k === "w") { rr(X + lw * ln + 6, y - 7, lw - 12, 14, 5, hex(th.wall)); }
       else if (k === "g") { g.fillStyle = "#05070d"; g.fillRect(X, y - 7, lw * 3, 14); g.strokeStyle = "rgba(255,255,255,.2)"; g.strokeRect(X, y - 7, lw * 3, 14); }
       else if (k === "l") { g.fillStyle = "#ff3355"; g.fillRect(X, y - 2, lw * 3, 4); g.fillStyle = "rgba(255,51,85,.25)"; g.fillRect(X, y - 6, lw * 3, 12); }
+      else if (k === "m") { rr(X + lw * 1 + 6, y - 7, lw - 12, 14, 5, "#ff9a3d"); g.fillStyle = "#ffd9b0"; g.font = "800 13px Sora, sans-serif"; g.fillText("⟵ ⟶", X + lw * 1.5, y + 22); g.font = "800 12px Sora, sans-serif"; }
+      else if (k === "b") { g.strokeStyle = "#ff5ad8"; g.lineWidth = 4; g.setLineDash([10, 8]); g.beginPath(); g.moveTo(X, y); g.lineTo(X + lw * 3, y); g.stroke(); g.setLineDash([]); }
       else if (k === "c") { g.fillStyle = "#ffc94a"; g.beginPath(); g.arc(cx, y, 6, 0, 7); g.fill(); g.strokeStyle = "#a86a00"; g.lineWidth = 1.5; g.stroke(); }
       else if (k === "h") { g.font = "16px sans-serif"; g.fillText("❤️", cx, y + 6); g.font = "800 12px Sora, sans-serif"; }
-      if (isBad) { g.strokeStyle = "#ff3b5c"; g.lineWidth = 3; const bx = k === "g" || k === "l" ? X + lw * 1.5 : cx; g.beginPath(); g.moveTo(bx - 8, y - 8); g.lineTo(bx + 8, y + 8); g.moveTo(bx + 8, y - 8); g.lineTo(bx - 8, y + 8); g.stroke(); }
+      if (isBad) { g.strokeStyle = "#ff3b5c"; g.lineWidth = 3; const bx = k === "g" || k === "l" || k === "m" || k === "b" ? X + lw * 1.5 : cx; g.beginPath(); g.moveTo(bx - 8, y - 8); g.lineTo(bx + 8, y + 8); g.moveTo(bx + 8, y - 8); g.lineTo(bx - 8, y + 8); g.stroke(); }
     }
   }
   function rr(x, y, w, h, r, c) { g.fillStyle = c; g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.fill(); g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 1; g.stroke(); }
@@ -98,12 +102,12 @@ export function createBuilder(ctx) {
     if (tool === "s") { if (!sel || sel.b != null) sel = { a: z, b: null }; else sel.b = z; paintSel(); dirty = true; return; }
     if (tool === "paste") { if (!clip) return; push(); for (const [dz, k, l] of clip) B.r.push([z + dz, k, l]); tool = "s"; paintTools(); after(); return; }
     if (tool === "p") { const P = PIECES[piece]; if (!P) { ctx.toast(esc(T("Pick a piece first"))); return; } push(); for (const [dz, k, l] of P.r) B.r.push([z + dz, k, l]); after(); return; }
-    if (tool === "x") { const i = B.r.findIndex((x) => Math.abs(x[0] - z) <= SNAP && (x[1] === "g" || x[1] === "l" || x[2] === ln)); if (i >= 0) { push(); B.r.splice(i, 1); after(); } return; }
-    const across = tool === "g" || tool === "l", lane = across ? 0 : ln, i = B.r.findIndex((x) => x[0] === z && x[1] === tool && x[2] === lane);
+    if (tool === "x") { const i = B.r.findIndex((x) => Math.abs(x[0] - z) <= SNAP && (x[1] === "g" || x[1] === "l" || x[1] === "m" || x[1] === "b" || x[2] === ln)); if (i >= 0) { push(); B.r.splice(i, 1); after(); } return; }
+    const across = tool === "g" || tool === "l" || tool === "m" || tool === "b", lane = across ? 0 : ln, i = B.r.findIndex((x) => x[0] === z && x[1] === tool && x[2] === lane);
     push(); if (i >= 0) B.r.splice(i, 1); else { B.r.push([z, tool, lane]); if (navigator.vibrate) try { navigator.vibrate(8); } catch { /* no buzz */ } }
     after();
   }
-  function after() { B.r = B.r.filter((x) => x[0] >= 0 && x[0] <= B.L).slice(0, BUILD.ROWS * 2); dirty = true; paintBar(); }
+  function after() { heat = null; B.r = B.r.filter((x) => x[0] >= 0 && x[0] <= B.L).slice(0, BUILD.ROWS * 2); dirty = true; paintBar(); }
   // ---- the bars ----
   function paintTools() { if (!el) return; el.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool || (tool === "paste" && b.dataset.tool === "s")));
     const pc = el.querySelector(".wsb-pieces"); pc.hidden = tool !== "p";
