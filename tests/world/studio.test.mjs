@@ -37,6 +37,11 @@ check(JSON.stringify(L1) === JSON.stringify(L2) && L1.rows.length > 10 && L1.coi
 const walls = {}; for (const r of L1.rows) if (r.k === "wall") (walls[r.z] = walls[r.z] || new Set()).add(r.lane);
 check(Object.values(walls).every((s) => s.size < 3), "every wall row leaves a lane open");
 
+// Studio 2: the dash (no finish, speeding up) and the arena (drones, sweeps, coins over the time)
+const D = G.genLevel({ tpl: "dash", seed: 9, len: 60 }), A = G.genLevel({ tpl: "arena", seed: 9, len: 45, walls: 3, gaps: 2, lasers: 1, coins: 4 });
+check(D.len > G.genLevel({ tpl: "runner", seed: 9, len: 90 }).len && D.rows.length > 40, "the dash's track runs on far past a runner's (" + D.len + " m)");
+check(A.secs === 45 && A.len === 900 && A.waves.some((w) => w.k === "d") && A.waves.some((w) => w.k === "L") && A.waves.some((w) => w.k === "D") && A.coins > 0 && A.waves.every((w, i) => !i || A.waves[i - 1].t <= w.t), "the arena: drones, sweeps and big drones in time order, coins (" + A.waves.length + " waves)");
+check(G.clampSpec({ tpl: "arena" }).title === "My Arena" && G.clampSpec({ tpl: "puzzle" }).tpl === "runner", "templates: the arena opens, a closed one falls back to the runner");
 // closed: only GMs while AGENT DIMENSION is closed
 let r = await call(me, "world-studio-save", { spec: {} }); check(r.status === 403 && r.body.closed, "closed: a player can't save a game yet");
 AGENT.OPEN = true;
@@ -62,9 +67,12 @@ r = await call(me, "world-studio-like", { id }); check(r.status === 400, "not yo
 // the agent drafts one: the model's JSON clamped; without the model, the rules read the words
 r = await call(me, "world-studio-ai", { t: "a fast dinosaur jungle run with lots of coins" }); check(r.status === 200 && r.body.by === "agent" && r.body.spec.theme === "jungle" && r.body.spec.speed === 5 && !("evil" in r.body.spec) && r.body.spec.title === "Dino Dash", "the agent's draft, clamped: " + JSON.stringify(r.body.spec));
 aiReply = "sorry, I can't"; r = await call(me, "world-studio-ai", { t: "얼음 위 쉬운 짧은 게임" }); check(r.status === 200 && r.body.by === "rules" && r.body.spec.theme === "ice" && r.body.spec.len === 30 && r.body.spec.speed === 2, "no JSON: the rules read the words (ko): " + JSON.stringify(r.body.spec));
+aiReply = '{"title":"Drone Storm","theme":"lava","speed":4,"len":60,"coins":2,"walls":5,"gaps":1,"lasers":2}'; r = await call(me, "world-studio-ai", { t: "lots of drones", tpl: "arena" }); check(r.body.by === "agent" && r.body.spec.tpl === "arena" && r.body.spec.walls === 5, "the agent drafts for the template you're on (arena)");
+r = await call(me, "world-studio-save", { spec: { tpl: "arena", len: 30, coins: 3, seed: 4 } }); const aid = r.body.game.id; await call(me, "world-studio-publish", { id: aid, on: true });
+T += 30e3; r = await call(fan, "world-studio-play", { id: aid, coins: 999, dist: 99999, done: true }); const AL = G.genLevel(db.get(`worldStudio/${aid}`).spec); check(r.status === 200 && r.body.score === G.scoreOf(AL.coins, AL.len, true), "an arena run is held to the arena's coins and time: " + r.body.score);
 // mine, the draft cap, delete
-let mine = await get("studio-mine&wallet=" + me.address.toLowerCase()); check(mine.ok && mine.games.length === 1 && mine.games[0].id === id, "my games");
-for (let i = 0; i < STUDIO.DRAFTS - 1; i++) await call(me, "world-studio-save", { spec: { title: "x" + i } });
+let mine = await get("studio-mine&wallet=" + me.address.toLowerCase()); check(mine.ok && mine.games.length === 2 && mine.games.some((g) => g.id === id), "my games");
+for (let i = 0; i < STUDIO.DRAFTS - 2; i++) await call(me, "world-studio-save", { spec: { title: "x" + i } });
 r = await call(me, "world-studio-save", { spec: { title: "one too many" } }); check(r.status === 400 && /delete/.test(r.body.error), "the draft cap: " + STUDIO.DRAFTS);
 r = await call(me, "world-studio-del", { id }); ar = await get("studio-arcade"); mine = await get("studio-mine&wallet=" + me.address.toLowerCase());
 check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.length === STUDIO.DRAFTS - 1, "deleted: off the arcade and my list");

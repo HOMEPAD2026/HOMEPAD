@@ -13,7 +13,7 @@ export const BUILDINGS = [
   { id: "port", name: "Errand Port", sub: "Send your agent on errands", a: 315, r: 46, fp: 20, glb: "launch", col: 0x39ff88, css: "#39ff88", open: true },
   { id: "vault", name: "Vault Tower", sub: "Your agent's trading vault", a: 225, r: 46, fp: 21, glb: "vault", col: 0xffc861, css: "#ffc861", open: true },
   { id: "academy", name: "Agent Academy", sub: "Skills, traits and lessons", a: 135, r: 46, fp: 22, glb: "library", col: 0xb48cff, css: "#b48cff" },
-  { id: "arena", name: "Agent Arena", sub: "Agents face off", a: 180, r: 70, fp: 26, glb: "arena", col: 0xff6fae, css: "#ff6fae" },
+  { id: "arena", name: "Agent Arena", sub: "Quiz duels with your agent", a: 180, r: 70, fp: 26, glb: "arena", col: 0xff6fae, css: "#ff6fae", open: true }, // (AD-City 4: world-agarena.js)
   { id: "studio", name: "ARCIRCLE Studio", sub: "Make your own game", a: 90, r: 68, fp: 22, glb: "studio", col: 0x7cf5c8, css: "#7cf5c8", open: true }, // (AD-City 3: Studio Lite, world-studio.js)
 ];
 // the owner's Meshy models (models/world/adcity, packed by tools/pack-prop.mjs; +z is each one's front): the buildings
@@ -319,6 +319,29 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     jbTex.needsUpdate = true;
   }
   paintBoard(0, 0);
+  // Studio 2: the Studio's pick by its door — the arcade's most played game (likes count three), walk up and play it
+  let pick = null, pickAt = 0, pkTex = null;
+  { const [x, z] = polar(72, 52), o = new THREE.Group(); o.name = "adc-pick"; o.position.set(x, 0, z); o.rotation.y = Math.atan2(-x, -z); g.add(o);
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.4, 0.3), STEEL); post.position.y = 1.7; o.add(post);
+    if (typeof document !== "undefined") { const c0 = document.createElement("canvas"); c0.width = 768; c0.height = 384; pkTex = new THREE.CanvasTexture(c0); pkTex.colorSpace = THREE.SRGBColorSpace; pkTex.userData = { cv: c0 };
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 2.6), new THREE.MeshBasicMaterial({ map: pkTex, transparent: true, side: THREE.DoubleSide, toneMapped: false })); m.position.y = 4.4; o.add(m); }
+    door(o, { id: "pick", col: 0xffd23a, open: true }, 2.6); }
+  const ICO = { runner: "🏃", dash: "⚡", arena: "🛸" };
+  function paintPick() {
+    if (!pkTex) return; const x = pkTex.userData.cv.getContext("2d"), w = 768, h = 384;
+    x.clearRect(0, 0, w, h); x.beginPath(); if (x.roundRect) x.roundRect(6, 6, w - 12, h - 12, 36); else x.rect(6, 6, w - 12, h - 12); x.fillStyle = "rgba(4,14,30,.9)"; x.fill(); x.lineWidth = 6; x.strokeStyle = "#ffd23a"; x.stroke();
+    x.textAlign = "center"; x.fillStyle = "#ffd23a"; x.font = "900 42px Sora, 'Segoe UI', sans-serif"; x.fillText("🎮 " + T("Studio pick"), w / 2, 74);
+    x.fillStyle = "#fff"; x.font = "900 66px Sora, 'Segoe UI', sans-serif"; x.fillText(pick ? (ICO[pick.tpl] || "🎮") + " " + pick.title : T("Make the first game"), w / 2, 180, 700);
+    x.fillStyle = "#cfe0f5"; x.font = "800 32px Sora, 'Segoe UI', sans-serif"; x.fillText(pick ? T("by {name}", { name: pick.byName || "—" }) + " · ▶ " + (pick.plays || 0) + " · ♥ " + (pick.likes || 0) : T("ARCIRCLE Studio"), w / 2, 250, 700);
+    x.fillStyle = "#9fb4c8"; x.font = "700 26px Sora, 'Segoe UI', sans-serif"; x.fillText(T("Walk up to play it"), w / 2, 330, 700);
+    pkTex.needsUpdate = true;
+  }
+  async function pollPick() {
+    if (Date.now() - pickAt < 120e3) return; pickAt = Date.now();
+    try { const r = await fetch("/api/social?world=studio-arcade"); if (!r.ok) return; const j = await r.json(); const gs = (j.games || []).filter((x) => x && x.id); gs.sort((a, b) => (b.plays || 0) + (b.likes || 0) * 3 - (a.plays || 0) - (a.likes || 0) * 3); pick = gs[0] || null; } catch { /* the board keeps what it had */ }
+    paintPick();
+  }
+  paintPick();
   // the workers: a body for each agent at work (at most WMAX; the crew when nobody is), kept by a key so a poll moves nobody
   const WMAX = low ? 6 : 12, workers = new Map(); let workAt = 0, workBusy = false, list = [], polls = 0;
   const left = (ms) => { const m = Math.max(1, Math.ceil(ms / 6e4)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
@@ -352,6 +375,26 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
   let wf = 0; // (past 70 m a worker's clip steps every 6th frame, the time added up)
   let replay = 0; // (an agent's work clips are borrowed after it's made: its job's clip is asked for again every 2 s, a no-op once it plays)
   spins.push((dt, t) => { pollWork(false); wf = (wf + 1) % 6; const again = (replay -= dt) <= 0; if (again) replay = 2; for (const w of workers.values()) { if (!w.o.parent) continue; if (again && w.job && !w.b.busy()) try { w.b.play(STATIONS[w.job].clip); } catch { /* no clip */ } w.acc = (w.acc || 0) + dt; w.o.getWorldPosition(wv); if (wv.lengthSq() < 70 * 70 || wf === 0) { w.b.update(w.acc, t); w.acc = 0; } } });
+
+  // AD-City 4: other players' agents at their side in the city (their presence carries ag "kind:name"); each follows its
+  // player, walking or sprinting to keep up (CU_AS clips), a name tag over it
+  const OMAX = low ? 4 : 8, others = new Map(), AGC = { aurora: "#5fd3ff", orion: "#ffc861", vex: "#b48cff" };
+  async function setOthers(arr) {
+    const want = shown ? arr.filter((x) => x && x.key && AGC[x.kind]).slice(0, OMAX) : [], keep = new Set(want.map((x) => x.key));
+    for (const [k, o] of others) if (!keep.has(k)) { if (o && o.o.parent) o.o.parent.remove(o.o); others.delete(k); }
+    for (const x of want) {
+      const lx = x.x - land.x, lz = x.z - land.z; let o = others.get(x.key);
+      if (o === null) continue; // (its body is loading)
+      if (!o) { others.set(x.key, null); const b = await bodyFor(x.kind); if (!b || !shown || !others.has(x.key)) { others.delete(x.key); continue; }
+        const w = new THREE.Group(); w.name = "adc-other"; w.add(b.obj); const tag = K.label("🤖 " + (x.name || x.kind.toUpperCase()), { accent: AGC[x.kind], size: 0.4 }); tag.position.y = 2.5; w.add(tag);
+        w.position.set(lx + 1.4, 0, lz + 1.4); g.add(w); o = { o: w, b, clip: "", tx: lx, tz: lz }; others.set(x.key, o); }
+      o.tx = lx; o.tz = lz;
+    }
+  }
+  spins.push((dt, t) => { for (const o of others.values()) { if (!o) continue; const p = o.o.position, dx = o.tx - p.x, dz = o.tz - p.z, d = Math.hypot(dx, dz);
+    let sp = 0; if (d > 30) { p.set(o.tx + 1.4, 0, o.tz + 1.4); } else if (d > 1.8) { sp = Math.min(9, 2 + (d - 1.8) * 2.2); const k = Math.min(1, (sp * dt) / d); p.x += dx * k; p.z += dz * k; o.o.rotation.y = Math.atan2(dx, dz); }
+    const want = sp > 6 ? "sprint" : sp > 0.4 ? "walk" : "idle"; if (want !== o.clip && !o.b.busy()) { try { o.b.play(want, want === "idle" ? {} : { speed: Math.max(0.8, sp / 6.5) }); } catch { /* no clip */ } o.clip = want; }
+    o.b.update(dt, t); } });
 
   // ---------------- the way back: a portal on the south avenue ----------------
   const back = K.makePortal(T("Back to town")); back.name = "adc-back"; back.userData.radius = 1.6; back.userData.to = "town"; spins.push(...(back.userData.spin || []));
@@ -421,7 +464,9 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     spotOf(id) { const b = BUILDINGS.find((x) => x.id === id), st0 = STATIONS[id]; const [a, r, d] = b ? [b.a, b.r, b.fp / 2 + 4] : st0 ? [st0.a, st0.r, 8] : [0, 0, 0]; if (!b && !st0) return null; const [x, z] = polar(a, r - d), [cx, cz] = polar(a, r); return { x: land.x + x, z: land.z + z, c: { x: land.x + cx, z: land.z + cz } }; },
     /// where you arrive (by the portal back, facing the core)
     arrival: () => ({ x: land.x, z: land.z + land.r - 24, c: { x: land.x, z: land.z } }),
-    show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) { loadModels(); pollWork(true); } },
+    show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) { loadModels(); pollWork(true); pollPick(); } else setOthers([]); },
+    pick: () => pick,
+    others: (arr) => setOthers(arr || []), othersNow: () => [...others.entries()].filter(([, o]) => o).map(([k, o]) => ({ k, clip: o.clip, clips: o.b.mixer && o.b.mixer._actions ? o.b.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : [] })),
     workers: () => [...workers.entries()].map(([k, w]) => ({ k, job: w.job, text: w.text, clips: w.b.mixer && w.b.mixer._actions ? w.b.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : [] })),
     stations: stG,
     models: () => Object.fromEntries(BUILDINGS.map((b) => [b.id, !!bld[b.id].userData.model]).concat([["spire", !core.userData.p || !core.userData.p.visible], ["ring", !mag.visible]])),

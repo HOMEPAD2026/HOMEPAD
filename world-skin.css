@@ -3317,6 +3317,18 @@ body.wp-studio .wp-hud,body.wp-studio .wp-dock,body.wp-studio .wp-joy,body.wp-st
 .wst-rin small{color:#7cf5c8;font:800 12px/1 Sora,sans-serif;letter-spacing:.1em}.wst-rin h3{margin:8px 0;font:900 24px/1.1 Sora,sans-serif}
 .wst-score{display:block;font:900 56px/1 Sora,sans-serif;color:#ffe066;text-shadow:0 0 20px rgba(255,224,102,.5)}.wst-rin p{margin:8px 0;color:#cfe0f5;font:700 14px/1.4 Sora,sans-serif}
 .wst-rin span{display:flex;gap:8px;margin-top:12px}
+/* (Studio 2: the editor's preview strip, speed lines, the combo, a word that pops, confetti, the new-best badge) */
+.wst-prev{display:block;width:100%;height:76px;margin:8px 0 4px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(95,211,255,.25)}
+.wst-speed{position:absolute;inset:0;opacity:0;transition:opacity .4s;pointer-events:none;background:repeating-conic-gradient(from 0deg at 50% 46%,rgba(255,255,255,0) 0deg 5deg,rgba(255,255,255,.16) 5.4deg 5.8deg,rgba(255,255,255,0) 6.2deg 11deg);-webkit-mask:radial-gradient(circle at 50% 46%,transparent 28%,#000 70%);mask:radial-gradient(circle at 50% 46%,transparent 28%,#000 70%)}
+.wst-combo{padding:4px 9px;border-radius:999px;background:linear-gradient(90deg,#ffb02e,#ff6fae);color:#fff;font:900 14px/1 Sora,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.wst-combo.pop{animation:wstCb .35s ease-out}@keyframes wstCb{from{transform:scale(1.5)}to{transform:scale(1)}}
+.wst-say{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font:900 46px/1 Sora,sans-serif;color:#ffe066;text-shadow:0 0 18px rgba(255,176,46,.8),0 3px 8px rgba(0,0,0,.5);animation:wstSay .9s ease-out forwards}
+@keyframes wstSay{0%{transform:translate(-50%,-50%) scale(.4);opacity:0}20%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-90%) scale(1);opacity:0}}
+.wst-conf{position:absolute;top:-12px;width:8px;height:13px;border-radius:2px;pointer-events:none;animation:wstConf 2.4s cubic-bezier(.3,.6,.5,1) forwards}
+@keyframes wstConf{to{transform:translate(var(--dx),105vh) rotate(var(--r));opacity:.6}}
+.wst-best{display:inline-block;margin-bottom:8px;padding:5px 12px;border-radius:999px;background:linear-gradient(90deg,#ffd23a,#ff9f2e);color:#2a1400;font:900 13px/1 Sora,sans-serif;font-style:normal;animation:wstCb .5s ease-out}
+@media (prefers-reduced-motion:reduce){.wst-say,.wst-conf,.wst-combo.pop,.wst-best{animation:none}.wst-conf{display:none}}
+html.wp-pcphone .wst-say{zoom:1.5}
 /* (Studio Lite on the phone layout: zoomed like the agent's window; the runner's bar at the very top, not under the town HUD) */
 html.wp-pcphone .wst-in{zoom:1.5;width:calc(100vw / 1.5);max-height:calc(92vh / 1.5)}
 html.wp-pcphone .wst-top[data-game-hud]{top:max(10px,env(safe-area-inset-top));right:auto;width:calc((100vw - 24px) / 1.42)}
@@ -3419,3 +3431,36 @@ html.wp-pcphone .adc-card .adc-in{zoom:1.5}
 .wag-tl b{position:absolute;bottom:-20px;font:700 11px/1 Sora,sans-serif;color:#9fb4c8}.wag-tl-a{left:0}.wag-tl-b{right:0}
 @keyframes wagTl{to{filter:brightness(1.25)}}
 .adc-list button small{text-transform:none;letter-spacing:0}
+/* AD-City 4: the Agent Arena's quiz (world-agarena.js), in the city's card */
+.aga .aga-in{position:relative;width:min(460px,100%);max-height:92dvh;overflow:auto}
+.aga-x{position:absolute;top:12px;right:12px;width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font:800 20px/1 Sora,sans-serif;cursor:pointer}
+.aga-sub{margin:0 0 10px;color:#cfe0f5;font:700 14px/1.4 Sora,sans-serif}
+.aga-me{display:flex;align-items:center;gap:12px;margin:6px 0 10px;padding:8px 12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid color-mix(in srgb,var(--c) 50%,transparent)}
+.aga-me img{width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 10px var(--c))}.aga-me b{display:block;font:900 16px/1.1 Sora,sans-serif}.aga-me small{color:#9fb4c8;font:700 12px/1.3 Sora,sans-serif;letter-spacing:0;text-transform:none}
+.aga-hour{display:flex;justify-content:space-between;gap:8px;margin:4px 0 10px;padding:9px 12px;border-radius:12px;background:rgba(95,211,255,.1);color:#cfe6ff;font:800 13px/1.2 Sora,sans-serif}.aga-hour em{font-style:normal;color:#9fb4c8}
+.aga-hour.on{background:linear-gradient(90deg,rgba(255,111,174,.25),rgba(255,176,46,.22));color:#fff;animation:agaGlow 1.6s ease-in-out infinite alternate}@keyframes agaGlow{to{box-shadow:0 0 18px rgba(255,111,174,.45)}}
+.aga-go{display:block;width:100%;padding:13px;border:0;border-radius:14px;background:linear-gradient(90deg,#ff6fae,#ffb02e);color:#2a0716;font:900 16px/1 Sora,sans-serif;cursor:pointer}.aga-go:disabled{opacity:.45;cursor:default}
+.aga-fine,.aga-note,.aga-empty{margin:8px 0;color:#9fb4c8;font:700 12px/1.4 Sora,sans-serif;text-align:center}
+.aga h4{margin:14px 0 6px;font:900 14px/1 Sora,sans-serif}
+.aga-top{list-style:none;margin:0;padding:0;display:grid;gap:4px}.aga-top li{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:10px;background:rgba(255,255,255,.04)}
+.aga-top i{width:20px;font:900 13px/1 Sora,sans-serif;font-style:normal;color:#ffd23a;text-align:center}.aga-top img{width:28px;height:28px;object-fit:contain}.aga-top span{flex:1;min-width:0}.aga-top b{display:block;font:800 13px/1.1 Sora,sans-serif}.aga-top small{color:#9fb4c8;font:700 11px/1.2 Sora,sans-serif;letter-spacing:0;text-transform:none}.aga-top em{font:900 14px/1 Sora,sans-serif;font-style:normal;color:#ffe066}
+.aga-dots{display:flex;align-items:center;gap:6px;margin-bottom:10px}.aga-dots i{width:22px;height:6px;border-radius:6px;background:rgba(255,255,255,.15)}.aga-dots i.done{background:var(--ac)}.aga-dots i.now{background:#fff}
+.aga-x2{margin-left:auto;padding:3px 8px;border-radius:999px;background:linear-gradient(90deg,#ff6fae,#ffb02e);color:#2a0716;font:900 12px/1 Sora,sans-serif}
+.aga-qt{min-height:3.4em;font:900 19px/1.3 Sora,sans-serif!important}
+.aga-time{display:block;height:7px;margin:4px 0 12px;border-radius:7px;background:rgba(255,255,255,.12);overflow:hidden}.aga-time em{display:block;height:100%;width:100%;background:linear-gradient(90deg,#7cf5c8,#5fd3ff);transition:width .1s linear}.aga-time em.low{background:linear-gradient(90deg,#ff6fae,#ffb02e)}
+.aga-opts{display:grid;gap:8px}.aga-opts button{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1.5px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font:800 14px/1.3 Sora,sans-serif;text-align:left;cursor:pointer;transition:transform .12s,background .12s}
+.aga-opts button i{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.12);font:900 13px/1 Sora,sans-serif;font-style:normal}
+.aga-opts button:not(:disabled):active{transform:scale(.97)}.aga-opts button.on{background:color-mix(in srgb,var(--ac) 35%,transparent);border-color:var(--ac);animation:agaPick .3s ease-out}@keyframes agaPick{from{transform:scale(1.05)}to{transform:scale(1)}}
+.aga-opts button.cut{opacity:.3;text-decoration:line-through}
+.aga-agent{display:flex;align-items:center;gap:10px;margin-top:12px}.aga-agent img{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 0 10px var(--ac))}
+.aga-say{flex:1;margin:0;padding:8px 11px;border-radius:14px 14px 14px 4px;background:rgba(255,255,255,.08);color:#eef3f7;font:700 13px/1.35 Sora,sans-serif}
+.aga-agent button{flex:none;padding:9px 10px;border-radius:12px;border:1px solid var(--ac);background:rgba(0,0,0,.25);color:#fff;font:800 12px/1.1 Sora,sans-serif;cursor:pointer}.aga-agent button:disabled{opacity:.4}
+.aga-agent.big img{width:84px;height:84px}
+.aga-score{display:block;margin:10px 0 2px;text-align:center;font:900 54px/1 Sora,sans-serif;color:#ffe066;text-shadow:0 0 20px rgba(255,224,102,.5)}.aga-res .aga-sub{text-align:center}
+.aga-rank{margin:4px 0 8px;text-align:center;color:#ffd23a;font:800 14px/1.2 Sora,sans-serif}
+.aga-rev{list-style:none;margin:8px 0;padding:0;display:grid;gap:4px}.aga-rev li{display:flex;gap:8px;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.04)}.aga-rev i{font-style:normal;font:900 14px/1.2 Sora,sans-serif}.aga-rev .ok i{color:#7cf5c8}.aga-rev .no i{color:#ff6f8e}
+.aga-rev b{display:block;font:700 12px/1.3 Sora,sans-serif}.aga-rev small{color:#7cf5c8;font:700 11px/1.3 Sora,sans-serif;letter-spacing:0;text-transform:none}
+.aga-row{display:flex;gap:8px;margin-top:10px}.aga-row .aga-go{flex:2}.aga-row button:not(.aga-go){flex:1;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:800 14px/1 Sora,sans-serif;cursor:pointer}
+.aga-conf{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;pointer-events:none;animation:agaConf 2s cubic-bezier(.3,.6,.5,1) forwards}@keyframes agaConf{to{transform:translate(var(--dx),70vh) rotate(300deg);opacity:0}}
+html.wp-pcphone .aga .aga-in{zoom:1.5;max-height:calc(92vh / 1.5)}
+@media (prefers-reduced-motion:reduce){.aga-hour.on,.aga-opts button.on,.aga-conf{animation:none}}
