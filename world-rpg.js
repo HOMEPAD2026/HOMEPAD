@@ -402,7 +402,7 @@ export function createRpg(ctx) {
   const docked = () => document.documentElement.classList.contains("wp-pcphone") || matchMedia("(pointer: coarse) and (max-width: 860px)").matches;
   // picking a worn piece keeps you on the Gear pane (its details open in the dock)
   const isWorn = (id) => Object.values(R().eq || {}).some((x) => x && x.id === id);
-  const picked = () => (view === "inv" ? !plan && sel && findItem(sel) : view === "forge" && forgeTab === "sell" ? sel && R().bag.find((x) => x.id === sel) : view === "forge" && forgeTab === "enhance" ? sel && findItem(sel) : null) || null;
+  const picked = () => (view === "inv" && (charSub === "overview" || charSub === "equip") ? !plan && sel && findItem(sel) : null) || null; // (the Forge has its own detail card)
   const inDetail = (it) => (it && docked() ? "" : detail(it));
   const findItem = (id) => R().bag.find((x) => x.id === id) || R().store.find((x) => x.id === id) || Object.values(R().eq).find((x) => x && x.id === id) || null;
   function invHTML() {
@@ -507,23 +507,98 @@ export function createRpg(ctx) {
       ${!signed ? `<p class="wr-note">${esc(T("Sign in with your wallet to repair."))}</p>` : ""}${repairSt ? `<p class="wr-note" role="status">${esc(repairSt)}</p>` : ""}
       ${rows.length ? `<div class="wr-reps">${rows.join("")}</div>` : emptyBox("chest", T("You have no Epic or Legendary gear yet."), huntBtn())}`;
   }
+  // ---------------- the Forge (the owner's mock-ups, 2026-10-24): an item grid in one card, the picked one in a detail card
+  // beside it with the bench's gold button. Every bench does what it did (buy, enhance, fuse, repair, sell, the limits).
+  let fpick = "";
+  const arclIc = (n) => `<img class="hb-coin" src="/images/arcl2-64.png" alt="ARCL">${typeof n === "number" ? n.toLocaleString("en-US") : n}`;
+  const arcIc = (n) => `<img class="hb-coin" src="/images/arcircle-mark-sm.webp" alt="$ARCIRCLE">${typeof n === "number" ? n.toLocaleString("en-US") : n}`;
+  const statRows = (st, nx) => `<ul class="hb-kv">${Object.entries(st).map(([k, v]) => `<li><img src="/images/ui/char/st-${({ hp: "hp", sp: "sp", atk: "atk", def: "def", crit: "crit", spd: "spd" })[k] || "atk"}.webp${ctx.ver || ""}" alt=""><span>${esc(T(STAT_NAME[k] || k))}</span><b>${v}${k === "crit" || k === "spd" ? "%" : ""}${nx && nx[k] != null && nx[k] !== v ? ` <i>→ ${nx[k]}${k === "crit" || k === "spd" ? "%" : ""}</i>` : ""}</b></li>`).join("")}</ul>`;
+  const cellOf = (id, inner, c, on, badge, attr = "data-fpick") => `<button type="button" class="hb-fcell${on ? " on" : ""}" style="--rc:${c}" ${attr}="${esc(id)}">${inner}${badge ? `<em>${badge}</em>` : ""}</button>`;
+  const dHead = (icon, name, sub, c, line) => `<div class="hb-dh" style="--rc:${c}"><span class="hb-dic">${icon}</span><div><h3>${esc(name)}</h3><small>${esc(sub)}</small>${line ? `<p>${esc(line)}</p>` : ""}</div></div>`;
+  const split = (title, line, grid, det) => `<div class="hb-fx"><section class="hb-card hb-fgrid"><div class="hb-fh"><h2>${esc(title)}</h2><p>${esc(line)}</p></div>${grid}</section><aside class="hb-card hb-fdet">${det}</aside></div>`;
+  function craftHTML(lv, bal) {
+    const master = forgeTab === "master", slots = forgeTab === "gear" ? ["weapon", "shield", "armor", "helm"] : ["ring", "boots", "necklace"];
+    const band = mwBand(lv), mOk = lv >= 20;
+    const list = master ? SLOTS.map((sl) => ({ id: mwId(sl, mwR, mwP), sl, it: { b: baseId(sl, 4), r: mwR, lv: band, p: mwP }, price: mwPrice(band, mwR, mwP), ok: mOk, need: 20 }))
+      : slots.flatMap((sl) => [0, 1, 2, 3, 4].map((t) => ({ id: forgeId(sl, t), sl, it: { b: baseId(sl, t), r: t, lv: TIERS[t].lv, p: 0 }, price: FORGE_PRICE[t], ok: lv >= TIERS[t].lv, need: TIERS[t].lv })));
+    const cur = list.find((x) => x.id === fpick) || list.find((x) => x.ok) || list[0], pb = parseBase(cur.it.b);
+    const grid = `<nav class="hb-chips" role="group">${[["gear", "Weapons & armour"], ["acc", "Accessories"], ["master", "Masterwork"]].map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}</button>`).join("")}</nav>
+      <div class="hb-fcells">${list.map((x) => cellOf(x.id, fart(x.sl, parseBase(x.it.b).tier, rc(x.it)), rc(x.it), x === cur, x.ok ? "" : "🔒")).join("")}</div>
+      ${master ? `<p class="wr-note">${esc(mOk ? T("Made at level {n} (your level band). Each ten levels makes them stronger, and dearer.", { n: band }) : T("The Masterwork bench opens at level 20."))}</p>` : `<p class="wr-note">${esc(T("The Arc set (Legendary) is forged from level 20. Stronger pieces made at your own level are on the Masterwork bench."))}</p>`}`;
+    const det = `${dHead(fart(cur.sl, pb.tier, rc(cur.it)), BASES[cur.sl][pb.tier] + (cur.it.p ? ` +${cur.it.p}` : ""), `${T(RARITY[cur.it.r].name)} · ${T("Lv {n}", { n: cur.it.lv })}`, rc(cur.it), T("{x} set", { x: TIERS[pb.tier].set }))}
+      ${master ? `<div class="hb-mw"><div role="group">${[[3, "Epic"], [4, "Legendary"]].map(([v, n]) => `<button type="button" data-mw="r:${v}" aria-pressed="${mwR === v}">${esc(T(n))}</button>`).join("")}</div><div role="group">${[0, 5, 10].map((v) => `<button type="button" data-mw="p:${v}" aria-pressed="${mwP === v}">+${v}</button>`).join("")}</div></div>` : ""}
+      <h4>${esc(T("Base stats"))}</h4>${statRows(itemStats(cur.it))}
+      <div class="hb-price"><span>${esc(T("Needs level"))}</span><b class="${cur.ok ? "" : "need"}">Lv ${cur.need}</b><span>${esc(T("Price"))}</span><b>${arclIc(cur.price)}</b><span>${esc(T("You have"))}</span><b>${arclIc(Math.floor(bal))}</b></div>
+      <div class="hb-gold">${buyBtn(cur.id, cur.price, cur.ok, T("Needs level {n}", { n: cur.need }))}</div>
+      <p class="wr-note">${esc(T("A weapon comes in the kind you're holding. Prices are in ARCL, earned by playing; ARCL can't be bought."))}</p>`;
+    return split(T("Craft"), T("Gear and accessories for ARCL."), grid, det);
+  }
+  function shopHTML(bal) {
+    const list = Object.entries(FORGE_SUPPLY), cur = list.find(([id]) => id === fpick) || list[0], [cid, cx] = cur;
+    const grid = `<div class="hb-fcells hb-shop">${list.map(([id, x]) => `<button type="button" class="hb-scard${id === cid ? " on" : ""}" data-fpick="${id}"><span class="sup-${x.kind}">${art(x.kind, 64)}</span><b>${esc(T(x.name))}</b><em>${arclIc(x.arcl)}</em></button>`).join("")}</div>`;
+    const det = `${dHead(art(cx.kind, 84), T(cx.name), T("Supplies"), "#5fd3ff")}<div class="hb-price"><span>${esc(T("Price"))}</span><b>${arclIc(cx.arcl)}</b><span>${esc(T("You have"))}</span><b>${(R()[cx.kind] || 0).toLocaleString("en-US")}</b><span>ARCL</span><b>${arclIc(Math.floor(bal))}</b></div><div class="hb-gold">${buyBtn(cid, cx.arcl, true, "")}</div>`;
+    return split(T("Shop"), T("Potions, scrolls and scrap for your adventure."), grid, det);
+  }
+  const allGear = () => [...Object.values(R().eq).filter(Boolean), ...R().bag];
+  function enhanceHTML() {
+    const all = allGear(), it = (sel && findItem(sel)) || R().eq.weapon || all[0];
+    const grid = all.length ? `<div class="hb-fcells">${all.map((x) => `<div class="hb-fc">${tile(x, `data-pick="${x.id}"`)}</div>`).join("")}</div>` : emptyBox("chest", T("Your bag is empty."), huntBtn());
+    if (!it) return split(T("Enhance"), T("Make your gear stronger with scrap."), grid, "");
+    const p = it.p || 0, max = p >= 10, cost = enhanceCost(it), have = R().scrap || 0, next = max ? null : itemStats({ ...it, p: p + 1 });
+    const det = `${dHead(tile(it, 'tabindex="-1"'), itemName({ ...it, p: 0 }), `${T(RARITY[it.r || 0].name)} · ${T(SLOT_NAME[parseBase(it.b).slot])}`, rc(it))}
+      <div class="hb-lvl"><b>+${p}</b>${max ? "" : `<i>→</i><b class="up">+${p + 1}</b>`}</div>${statRows(itemStats(it), next)}
+      <div class="hb-chance"><span>${esc(T("Success"))}</span><b>100%</b><i style="--k:1"></i><small>${esc(T("Enhancing always works: it costs scrap, which you get by salvaging gear. Each + adds 8% to the piece."))}</small></div>
+      <h4>${esc(T("Required materials"))}</h4><div class="hb-mats"><span class="${have >= cost ? "" : "short"}">${art("scrap", 40)}<b>${have.toLocaleString("en-US")} / ${max ? "—" : cost.toLocaleString("en-US")}</b></span></div>
+      <div class="hb-gold"><button type="button" class="wr-buy" data-enhance="${it.id}" ${max || have < cost ? "disabled" : ""}>${esc(max ? "MAX" : T("Enhance"))}<small>${max ? "" : esc(T("{n} scrap", { n: cost }))}</small></button></div>`;
+    return split(T("Enhance"), T("Make your gear stronger with scrap."), grid, det);
+  }
+  function fuseHTML2() {
+    const bag = R().bag.filter((it) => (it.r || 0) <= FUSE_MAX_R), picked = fuseSel.map((id) => R().bag.find((x) => x.id === id)).filter(Boolean);
+    const r0 = picked.length ? picked[0].r || 0 : -1, res = picked.length === 3 ? fuseResult(picked, 0) : null;
+    const top = `<div class="hb-fuse"><div class="wr-fuse-slots">${[0, 1, 2].map((i) => `<div class="wr-fslot">${picked[i] ? tile(picked[i], `data-fuse="${picked[i].id}"`) : `<span>${i + 1}</span>`}</div>`).join('<i aria-hidden="true">+</i>')}</div><div class="hb-fuse-arrow" aria-hidden="true"></div>
+      <div class="wr-fslot out${res ? " ready" : ""}" style="--rc:${res ? RARITY[res.r].color : "transparent"}">${res ? `<b>?</b>` : ""}</div>
+      <p class="hb-fuse-out">${esc(res ? T("Makes one {r} piece: one of these three slots, tier {t}, level {lv}", { r: T(RARITY[res.r].name), t: parseBase(res.b).tier + 1, lv: res.lv }) : T("Pick three Common or three Uncommon pieces from your bag."))}</p></div>`;
+    const grid = `${top}<div class="hb-fcells">${bag.map((it) => `<div class="hb-fc${fuseSel.includes(it.id) ? " on" : ""}${r0 >= 0 && (it.r || 0) !== r0 && !fuseSel.includes(it.id) ? " dim" : ""}">${tile(it, `data-fuse="${it.id}"`)}</div>`).join("")}</div>${bag.length ? "" : emptyBox("hammer", T("No Common or Uncommon pieces in your bag."), huntBtn())}`;
+    const det = `<h4>${esc(T("Fusion rules"))}</h4><ol class="hb-rules"><li><b>1</b>${esc(T("Pick three pieces of the same rarity."))}</li><li><b>2</b>${esc(T("They become one piece of the next rarity (Common → Uncommon → Rare)."))}</li><li><b>3</b>${esc(T("The three are used up."))}</li></ol>
+      ${res ? `<div class="wr-fuse-pick"><span>${esc(T("Slot"))}</span><button type="button" data-fslot="" aria-pressed="${!fuseSlot}">${esc(T("Any (free)"))}</button>${[...new Set(picked.map((x) => parseBase(x.b).slot))].map((sl) => `<button type="button" data-fslot="${sl}" aria-pressed="${fuseSlot === sl}">${iconSvg(sl, "#cfe8ff")}${esc(T(SLOT_NAME[sl]))}</button>`).join("")}<small>${esc(T("Choosing costs {n} scrap", { n: FUSE_PICK_SCRAP }))}</small></div>` : ""}
+      <h4>${esc(T("Required materials"))} <small>(${picked.length}/3)</small></h4><div class="hb-mats">${[0, 1, 2].map((i) => picked[i] ? `<span class="hb-fc">${tile(picked[i], `data-fuse="${picked[i].id}"`)}</span>` : `<span class="hb-fc empty"></span>`).join("")}</div>
+      <div class="hb-gold"><button type="button" class="wr-buy wr-fuse-go" data-fusego ${res ? "" : "disabled"}>${esc(T("Fuse"))}</button></div>`;
+    return split(T("Fuse"), T("Three of one rarity make one of the next."), grid, det);
+  }
+  function repairHTML2() {
+    const r = R(), all = [...Object.values(r.eq).filter(Boolean), ...r.bag, ...r.store].filter((it) => durMax(it)).sort((a, b) => durOf(a) / durMax(a) - durOf(b) / durMax(b));
+    const base = ctx.atBase && ctx.atBase(), signed = !!ctx.sess();
+    if (base && freeLeft == null && ctx.repairLeft && !repairBusy) ctx.repairLeft().then((n) => { if (n != null) { freeLeft = n; if (open && view === "forge" && forgeTab === "repair") paint(); } });
+    const it = (sel && all.find((x) => x.id === sel)) || all[0];
+    const grid = all.length ? `<div class="hb-fcells">${all.map((x) => `<div class="hb-fc">${tile(x, `data-pick="${x.id}"`)}<span class="hb-dur" style="--k:${durOf(x) / durMax(x)}">${durOf(x)}/${durMax(x)}</span></div>`).join("")}</div>` : emptyBox("chest", T("You have no Epic or Legendary gear yet."), huntBtn());
+    const info = `<div class="hb-durinfo">${[["81–100", "Excellent", "#2fe0c8"], ["61–80", "Good", "#3aa8ff"], ["31–60", "Worn", "#ffc861"], ["1–30", "Damaged", "#ff5a6a"]].map(([a, n, c]) => `<span><i style="background:${c}"></i>${a}% <b style="color:${c}">${esc(T(n))}</b></span>`).join("")}</div>`;
+    if (!it) return split(T("Repair"), T("Restore the durability of Epic and Legendary gear."), grid + info, `<p class="wr-note">${esc(T("Epic and Legendary gear wears out: a weapon with each knock-out, armor when you take hits. At 0 a piece breaks and gives nothing until it's repaired. Repairs cost $ARCIRCLE (half is burned, half goes to the treasury)."))}</p>`);
+    const m = durMax(it), v = durOf(it), full = v >= m, busy = repairBusy === it.id, price = REPAIR_PRICE[it.r] || 0;
+    const det = `${dHead(tile(it, 'tabindex="-1"'), itemName(it), `${T(RARITY[it.r || 0].name)} · ${T(SLOT_NAME[parseBase(it.b).slot])}`, rc(it))}
+      <div class="hb-durbar"><span>${esc(T("Durability"))}</span><b>${v} / ${m}</b><i style="--k:${v / m}"></i></div>${statRows(itemStats(it))}
+      <div class="hb-price"><span>${esc(T("Cost"))}</span><b>${arcIc(price)}</b><span>${esc(T("After repair"))}</span><b>${m} / ${m}</b></div>
+      ${!signed ? `<p class="wr-note">${esc(T("Sign in with your wallet to repair."))}</p>` : ""}${repairSt ? `<p class="wr-note" role="status">${esc(repairSt)}</p>` : ""}
+      <div class="hb-gold">${full ? `<button type="button" class="wr-buy" disabled>${esc(T("Like new"))}</button>` : `<button type="button" class="wr-buy" data-repair="${it.id}" ${busy || !signed ? "disabled" : ""}>${esc(repairCredit(it.id) ? T("Use paid repair") : T("Repair"))}<small>${repairCredit(it.id) ? "" : arcIc(price)}</small></button>${base ? `<button type="button" class="wr-buy alt" data-repairfree="${it.id}" ${busy || !signed || (freeLeft != null && freeLeft <= 0) ? "disabled" : ""}>${esc(T("Free repair ({n}/{m} left)", { n: freeLeft == null ? "?" : freeLeft, m: REPAIR_FREE_DAY }))}</button>` : ""}`}</div>
+      <p class="wr-note">${esc(base ? T("You're at your own island: {m} repairs a day are free.", { m: REPAIR_FREE_DAY }) : T("At your own island, {m} repairs a day are free.", { m: REPAIR_FREE_DAY }))}</p>`;
+    return split(T("Repair"), T("Restore the durability of Epic and Legendary gear."), grid + info, det);
+  }
+  function sellHTML() {
+    const bag = R().bag, it = sel && bag.find((x) => x.id === sel), g = sellGate();
+    const grid = `${g.html}${bag.length ? `<div class="hb-fcells">${bag.map((x) => `<div class="hb-fc">${tile(x, `data-pick="${x.id}"`)}<span class="hb-pr">${arclIc(sellPrice(x))}</span></div>`).join("")}</div>` : emptyBox("chest", T("Your bag is empty."), huntBtn())}`;
+    const det = it ? `${dHead(tile(it, 'tabindex="-1"'), itemName(it), `${T(RARITY[it.r || 0].name)} · ${T(SLOT_NAME[parseBase(it.b).slot])} · ${T("Lv {n}", { n: it.lv })}`, rc(it))}${statRows(itemStats(it))}
+      <div class="hb-price"><span>${esc(T("Sell price"))}</span><b>${arclIc(sellPrice(it))}</b><span>${esc(T("Salvage"))}</span><b>${art("scrap", 18)} ${scrapOf(it)}</b></div>
+      <div class="hb-gold"><button type="button" class="wr-buy" data-sell="${it.id}" ${it.lk || g.closed ? "disabled" : ""}>${esc(g.closed ? T("Sold out today") : T("Sell"))}<small>${arclIc(sellPrice(it))}</small></button><button type="button" class="wr-buy alt" data-salvage="${it.id}" ${it.lk ? "disabled" : ""}>${esc(T("Salvage"))} <small>+${scrapOf(it)}</small></button></div>`
+      : `<div class="hb-empty">${art("chest", 64)}<p>${esc(T("Sell gear from your bag for ARCL: the price goes by rarity and a little up with each +. Up to {n} ARCL of sales a day; worn gear isn't for sale.", { n: SELL_DAY_CAP.toLocaleString("en-US") }))}</p></div>`;
+    return split(T("Sell"), T("Turn gear you don't need into ARCL."), grid, det);
+  }
   function forgeHTML() {
     const lv = ctx.level(), bal = ctx.arclBal();
-    const tabs = [["gear", "Gear"], ["acc", "Accessories"], ["master", "Masterwork"], ["supplies", "Supplies"], ["sell", "Sell"], ["enhance", "Enhance"], ["fuse", "Fuse"], ["repair", "Magic Forge"]];
-    let body = "";
-    if (forgeTab === "supplies") body = `<div class="wr-forge-grid">${Object.entries(FORGE_SUPPLY).map(([id, x]) => `<article class="wr-fcard"><div class="wr-fart sup-${x.kind}">${art(x.kind, 76)}</div><h4>${esc(T(x.name))}</h4>${buyBtn(id, x.arcl, true, "")}</article>`).join("")}</div>`;
-    else if (forgeTab === "sell") body = `${sellGate().html}<p class="wr-note">${esc(T("Sell gear from your bag for ARCL: the price goes by rarity and a little up with each +. Up to {n} ARCL of sales a day; worn gear isn't for sale.", { n: SELL_DAY_CAP.toLocaleString("en-US") }))}</p>${R().bag.length ? `<div class="wr-cells enh">${R().bag.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}<span class="wr-price"><img src="/images/arcl2-64.png" alt="" width="12" height="12">${sellPrice(it)}</span></div>`).join("")}</div>` : emptyBox("chest", T("Your bag is empty."), huntBtn())}${R().bag.length ? inDetail(sel && R().bag.find((x) => x.id === sel)) : ""}`;
-    else if (forgeTab === "fuse") body = fuseHTML();
-    else if (forgeTab === "repair") body = repairHTML();
-    else if (forgeTab === "master") body = masterHTML(lv, bal);
-    else if (forgeTab === "enhance") { const all = [...Object.values(R().eq).filter(Boolean), ...R().bag]; body = `<p class="wr-note">${esc(T("Enhancing always works: it costs scrap, which you get by salvaging gear. Each + adds 8% to the piece."))} <b>${R().scrap} ${esc(T("Scrap"))}</b></p><div class="wr-cells enh">${all.map((it) => `<div class="wr-cell">${tile(it, `data-pick="${it.id}"`)}</div>`).join("")}</div>${inDetail(sel && findItem(sel))}`; }
-    else {
-      const slots = forgeTab === "gear" ? ["weapon", "shield", "armor", "helm"] : ["ring", "boots", "necklace"];
-      body = `<div class="wr-forge-grid">${slots.flatMap((sl) => [0, 1, 2, 3, 4].map((t) => { const it = { b: baseId(sl, t), r: t, lv: TIERS[t].lv, p: 0 }, g = itemStats(it), ok = lv >= TIERS[t].lv; return `<article class="wr-fcard r${t}${ok ? "" : " locked"}" style="--rc:${rc(it)}"><div class="wr-fart">${fart(sl, parseBase(it.b).tier, rc(it))}</div><h4>${esc(BASES[sl][t])}</h4><small>${esc(T(RARITY[t].name))} · ${esc(T("Lv {n}", { n: TIERS[t].lv }))}</small><p>${Object.entries(g).map(([k, v]) => `${esc(T(STAT_NAME[k]))} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(" · ")}</p>${buyBtn(forgeId(sl, t), FORGE_PRICE[t], ok, T("Needs level {n}", { n: TIERS[t].lv }))}</article>`; })).join("")}</div><p class="wr-note">${esc(T("The Arc set (Legendary) is forged from level 20. Stronger pieces made at your own level are on the Masterwork bench."))}</p>`;
-    }
-    // (the side menu picks the bench; Craft's three benches are chips over it — the old tab row is gone: tabs stays for the names)
-    const chips = ["gear", "acc", "master"].includes(forgeTab) ? `<nav class="hb-chips" role="group">${tabs.slice(0, 3).map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}</button>`).join("")}</nav>` : "";
-    return chips + body;
+    if (forgeTab === "supplies") return shopHTML(bal);
+    if (forgeTab === "sell") return sellHTML();
+    if (forgeTab === "fuse") return fuseHTML2();
+    if (forgeTab === "repair") return repairHTML2();
+    if (forgeTab === "enhance") return enhanceHTML();
+    return craftHTML(lv, bal);
   }
   // ---------------- the window (the owner's redesign, 2026-10-24: the Word file + mock-ups) ----------------
   // a bar on top with the sections (Inventory lives in Character → Equipment: the owner's call), a menu down the left,
@@ -591,11 +666,37 @@ export function createRpg(ctx) {
   }
   // Equipment: the stage and the bag side by side; the weapon, the stats and the gear set under them
   const equipHTML = () => `<div class="hb-eq">${stageHTML()}${invCard(false)}${weapCard()}${statsCard()}${gsetCard()}</div>`;
+  // Skills (the owner's mock-up): your hero on the left, the skills as icon cards, the picked one's card on the right
+  let skSel = "";
+  function skillsPane() {
+    const lv = ctx.level(), br = ((R().x || {}).br) || {}, hero = hub("hero") || "aron", cur = SKILL_INFO.find((k) => k.id === skSel) || SKILL_INFO.find((k) => skillLevel(lv, k.lv)) || SKILL_INFO[0];
+    const sl = skillLevel(lv, cur.lv), opts = BRANCHES[cur.id], stars = (n) => `<span class="hb-stars">${Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? "on" : ""}">★</i>`).join("")}</span>`;
+    const nextAt = sl && sl < 5 ? cur.lv + sl * 5 : 0;
+    return `<div class="hb-sk"><section class="hb-card hb-skhero"><img src="/images/ui/menu2/stand-${hero}.webp${ctx.ver || ""}" alt=""><div><b>${esc(hub("name") || T("Player"))}</b><span>${esc(T("Lv {n}", { n: lv }))}</span></div><button type="button" class="hb-plus" data-hubgo="make">${esc(T("Change character"))}</button></section>
+      <section class="hb-card hb-sklist"><h4>${esc(T("Skills"))}</h4><div class="hb-skgrid">${SKILL_INFO.map((k) => { const n = skillLevel(lv, k.lv); return `<button type="button" class="hb-skc${k === cur ? " on" : ""}${n ? "" : " off"}" data-sksel="${k.id}"><img src="/images/ui/char/sk-${k.id}.webp${ctx.ver || ""}" alt=""><b>${esc(T(k.name))}</b><small>${n ? esc(T("Lv {n}", { n })) : "🔒 " + esc(T("Lv {n}", { n: k.lv }))}</small></button>`; }).join("")}</div>
+        <p class="wr-note">${esc(T("A skill opens at level 10. Swap it with the ⇄ on the skill button."))}</p></section>
+      <aside class="hb-card hb-skdet"><div class="hb-dh"><span class="hb-dic"><img src="/images/ui/char/sk-${cur.id}.webp${ctx.ver || ""}" alt=""></span><div><h3>${esc(T(cur.name))}</h3><small>${sl ? esc(T("Skill level {n}", { n: sl })) : esc(T("Opens at level {n}", { n: cur.lv }))}</small>${stars(sl)}</div>${R().sk === cur.id ? `<em class="hb-tag">${esc(T("In use"))}</em>` : ""}</div>
+        <dl class="hb-dl"><div><dt>${esc(T("Opens at"))}</dt><dd>Lv ${cur.lv}</dd></div><div><dt>${esc(T("Next skill level"))}</dt><dd>${sl >= 5 ? "MAX" : nextAt ? "Lv " + nextAt : "—"}</dd></div><div><dt>${esc(T("Branch"))}</dt><dd>${sl >= BRANCH_AT ? esc(br[cur.id] ? T(opts.find((o) => o.id === br[cur.id]).name) : T("Pick one")) : esc(T("At skill level 2 (level {n})", { n: cur.lv + 5 }))}</dd></div></dl>
+        <h4>${esc(T("Branches"))}</h4><div class="hb-brs">${opts.map((o) => `<button type="button" class="hb-br" data-br="${cur.id}:${o.id}" aria-pressed="${br[cur.id] === o.id}" ${sl >= BRANCH_AT ? "" : "disabled"}><i class="br-fx br-${cur.id}-${o.id}" aria-hidden="true"><u></u><u></u><u></u></i><b>${esc(T(o.name))}</b><small>${esc(T(o.line))}</small></button>`).join("")}</div>
+        <div class="hb-gold"><button type="button" class="wr-buy" data-skuse="${cur.id}" ${sl && R().sk !== cur.id ? "" : "disabled"}>${esc(R().sk === cur.id ? T("In use") : T("Use this skill"))}</button></div></aside></div>`;
+  }
+  // Titles (the owner's mock-up): the worn title on a gold plate over your hero, the list beside it, filtered by kind
+  let tCat = "all", tSel = "";
+  function titlesPane() {
+    const all = (log && log.titleList ? log.titleList() : []), list = all.filter((t) => tCat === "all" || t.cat === tCat), worn = all.find((t) => t.worn), cur = all.find((t) => t.id === tSel) || worn || list[0], hero = hub("hero") || "aron", own = all.filter((t) => t.got).length;
+    const plate = (t, big) => `<div class="hb-plate${big ? " big" : ""}${t && t.got ? "" : " off"}"><b>${esc(t ? t.title : T("No title"))}</b>${t ? `<small>${esc(t.name)}</small>` : ""}</div>`;
+    return `<div class="hb-ti"><section class="hb-card hb-tistage">${plate(worn, true)}<img src="/images/ui/menu2/stand-${hero}.webp${ctx.ver || ""}" alt=""><div class="hb-tieff"><h4>${esc(T("Title effect"))}</h4><p>${esc(worn && worn.bonus ? worn.bonus : T("Wear a title with a bonus to see it here."))}</p></div></section>
+      <section class="hb-card hb-tilist"><div class="hb-ch"><h4>${esc(T("Title list"))}</h4><small>${esc(T("Owned"))} <b>${own} / ${all.length}</b></small></div>
+        <nav class="hb-filt" role="group">${[["all", "All"], ["progress", "Progress"], ["combat", "Combat"], ["collection", "Collection"], ["event", "Event"]].map(([k, n]) => `<button type="button" data-tcat="${k}" aria-pressed="${tCat === k}">${esc(T(n))}</button>`).join("")}</nav>
+        <div class="hb-tgrid">${list.map((t) => `<div class="hb-trow${t.got ? "" : " off"}${t === cur ? " on" : ""}${t.worn ? " worn" : ""}"><button type="button" class="hb-tpick" data-tsel="${t.id}"><span class="hb-tic">${t.got ? "🏅" : "🔒"}</span><span><b>${esc(t.title)}</b><small>${esc(t.got ? t.name : t.line)}</small></span></button>${t.got ? `<button type="button" class="hb-teq" data-title="${t.id}" aria-pressed="${t.worn}">${esc(t.worn ? T("Worn") : T("Wear"))}</button>` : `<em>${t.have}/${t.n}</em>`}</div>`).join("")}</div></section>
+      ${cur ? `<section class="hb-card hb-tidet">${plate(cur)}<p>${esc(cur.line)}</p><h4>${esc(T("How to get it"))}</h4><div class="hb-prog"><span>${esc(cur.line)}</span><b>${cur.got ? esc(T("Done")) : `${cur.have} / ${cur.n}`}</b><i style="--k:${Math.min(1, cur.have / cur.n)}"></i></div>${cur.bonus ? `<p class="hb-bonus">${esc(T("Bonus"))}: <b>${esc(cur.bonus)}</b></p>` : ""}</section>` : ""}</div>`;
+  }
+  // Costumes: the three heroes; your look is made in the character maker (and an ARC Bot's wardrobe)
   function lookHTML() {
     const hero = hub("hero") || "aron";
-    return `<div class="hb-look"><div class="hb-heroes">${[["lumi", "LUMI"], ["aron", "ARON"], ["nex", "NEX"]].map(([id, n]) => `<figure class="${id === hero ? "on" : ""}"><img src="/images/ui/menu2/hero-${id}.webp" alt=""><figcaption>${n}${id === hero ? ` <small>${esc(T("You"))}</small>` : ""}</figcaption></figure>`).join("")}</div>
-      <div class="hb-card"><h4>${esc(T("Your look"))}</h4><p class="wr-note">${esc(T("Pick your hero and their colours in the character maker. ARC Bots also have a wardrobe of outfits."))}</p><div class="hb-acts"><button type="button" class="go" data-hubgo="make">${esc(T("Change character"))}</button>${ctx.isArc && ctx.isArc() ? `<button type="button" data-wardrobe>${esc(T("Wardrobe"))}</button>` : ""}${ctx.sess() && ctx.openProfile ? `<button type="button" data-mycard>${esc(T("My card"))}</button>` : ""}</div></div>
-      <div class="hb-card hb-soon"><h4>${esc(T("Costume sets"))}</h4><p>${esc(T("Coming soon"))}</p></div></div>`;
+    return `<div class="hb-look"><section class="hb-card hb-lookstage"><div class="hb-heroes">${[["lumi", "LUMI"], ["aron", "ARON"], ["nex", "NEX"]].map(([id, n]) => `<figure class="${id === hero ? "on" : ""}"><img src="/images/ui/menu2/stand-${id}.webp${ctx.ver || ""}" alt=""><figcaption>${n}${id === hero ? ` <small>${esc(T("You"))}</small>` : ""}</figcaption></figure>`).join("")}</div></section>
+      <section class="hb-card"><h4>${esc(T("Your look"))}</h4><p class="wr-note">${esc(T("Pick your hero and their colours in the character maker. ARC Bots also have a wardrobe of outfits."))}</p><div class="hb-acts"><button type="button" class="go" data-hubgo="make">${esc(T("Change character"))}</button>${ctx.isArc && ctx.isArc() ? `<button type="button" data-wardrobe>${esc(T("Wardrobe"))}</button>` : ""}${ctx.sess() && ctx.openProfile ? `<button type="button" data-mycard>${esc(T("My card"))}</button>` : ""}</div></section>
+      <section class="hb-card hb-soon"><h4>${esc(T("Costume sets"))}</h4><p>${esc(T("Coming soon"))}</p></section></div>`;
   }
   function eventsHTML() {
     const ev = hub("events") || [];
@@ -606,7 +707,7 @@ export function createRpg(ctx) {
     return `<div class="hb-cols">${card("items", "bag", "Item codex", "Every piece of gear, tier by grade", c.items)}${card("codex", "book", "Scammer codex", "Pages: every page is a real scam", c.scam)}${card("pets", "paw", "Pets", "Companions and their eggs", c.pets)}${card("jur", "island", "Jurassic codex", "Dinosaurs, fish and finds in Jurassic World")}${card("ach", "trophy", "Achievements", "Goals that give titles", c.ach)}</div>`;
   }
   function paneHTML(sc, k) {
-    if (sc === "inv") return k === "overview" ? overviewHTML() : k === "skills" ? `<div class="hb-skills">${skillsHTML()}</div>` : k === "titles" ? logPane("ach") : k === "look" ? lookHTML() : equipHTML();
+    if (sc === "inv") return k === "overview" ? overviewHTML() : k === "skills" ? skillsPane() : k === "titles" ? titlesPane() : k === "look" ? lookHTML() : equipHTML();
     if (sc === "forge") return forgeHTML();
     if (evOn) return eventsHTML();
     if (colAll) return colHTML();
@@ -623,7 +724,7 @@ export function createRpg(ctx) {
         <span class="hb-bal"><span title="ARCL"><img src="/images/arcl2-64.png" alt="ARCL"><b>${fmt(ctx.arclBal())}</b></span><span title="$ARCIRCLE"><img src="/images/arcircle-mark-sm.webp" alt="$ARCIRCLE"><b>${fmt(arc)}</b></span></span>
         <button type="button" class="wa-x hb-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
       <div class="hb-row"><aside class="hb-nav">${SIDE[sc].map(([id, n, ic]) => `<button type="button" data-side="${id}" aria-pressed="${id === k}">${uiIcon(ic, 24)}<span>${esc(T(n))}</span>${id === "fuse" && isNewTab("fuse") ? '<i class="nb">NEW</i>' : ""}</button>`).join("")}${artK && !WIDE.has(k) ? `<img class="hb-art" src="/images/ui/menu2/${artK}.webp${ctx.ver || ""}" alt="">` : ""}</aside>
-        <main class="hb-main">${artK && WIDE.has(k) ? `<div class="hb-banner" style="--art:url('/images/ui/menu2/${artK}.webp${ctx.ver || ""}')"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : hd[0] ? `<div class="hb-head"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}<div class="wr-body">${body}</div></main></div>
+        <main class="hb-main">${artK ? `<div class="hb-banner${WIDE.has(k) ? "" : " narrow"}" style="--art:url('/images/ui/menu2/${artK}.webp${ctx.ver || ""}')"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}${hd[0] && !(artK && WIDE.has(k)) ? `<div class="hb-head${artK ? " has-art" : ""}"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}<div class="wr-body">${body}</div></main></div>
       ${docked() && picked() ? `<div class="wr-dock">${detail(picked())}</div>` : ""}</div>`;
     if (sy) el.querySelector(".wr-body").scrollTop = sy;
     if (view === "inv") preview3d();
@@ -740,6 +841,11 @@ export function createRpg(ctx) {
     const b = e.target.closest("button"); if (!b) return;
     const d = b.dataset;
     if (d.view) { view = d.view; sel = null; show(view); return; }
+    if (d.sksel) { skSel = d.sksel; paint(); return; }
+    if (d.skuse) { if (!hub("skill:" + d.skuse)) { R().sk = d.skuse; ctx.save(); } paint(); return; }
+    if (d.tcat) { tCat = d.tcat; paint(); return; }
+    if (d.tsel) { tSel = d.tsel; paint(); return; }
+    if (d.fpick) { fpick = d.fpick; askBuy = ""; paint(); return; }
     if (d.sec) { goSec(d.sec); return; }
     if (d.side) { goSide(d.side); return; }
     if (d.hubgo) { hide(); hub(d.hubgo); return; }

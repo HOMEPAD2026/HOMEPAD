@@ -343,7 +343,15 @@ export function createQuests(ctx) {
     const key = "arc.world.bountyNote", day = seoulDay(); try { if (localStorage.getItem(key) === day) return; localStorage.setItem(key, day); } catch { return; }
     say([T("Bounties reset tonight."), ready ? T("{n} ready to claim in the Adventure log.", { n: ready }) : "", near ? T("{k} knock-outs to the next one.", { k }) : ""].filter(Boolean).join(" "), "#ffc861");
   }
-  return { on, html, click, title, wear: (t) => { const x = X(); x.title = t; ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); ctx.onTitle && ctx.onTitle(); }, titleBonus, titleOf, hasPet, pending, bump, setTab: (t) => { tab = t; }, tab: () => tab, setRank: (k) => { rk = k; top = null; race = null; recs = null; loadTop().then(() => ctx.repaint && ctx.repaint()); }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, bountyNotice, leftTxt, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
+  // every title in one list for the Character window's Titles pane (world-rpg.js titlesHTML): got, worn, progress, bonus
+  const ACH_CAT = { kill: "combat", elite: "combat", boss: "combat", raid: "combat", ground: "progress", level: "progress", starter: "progress", zoneSet: "progress", legendary: "collection", plus10: "collection", quizOk: "collection" };
+  const titleList = () => { const x = X(), sv = (ctx.svAch && ctx.svAch()) || [], cx = (ctx.cxTitles && ctx.cxTitles()) || [];
+    return [...ACH.map((a) => ({ id: a.id, title: T(a.title), name: T(a.name), line: T(a.line), got: x.ach.includes(a.id), have: Math.min(haveOf(a, x), a.n), n: a.n, bonus: TITLE_BONUS[a.id] ? bonusLine(TITLE_BONUS[a.id]) : "", cat: ACH_CAT[a.ev] || "progress" })),
+      { id: "season", title: T("Season Star"), name: T("Season"), line: T("Every tier of a season"), got: !!x.stitle, have: x.stitle ? 1 : 0, n: 1, bonus: TITLE_BONUS.season ? bonusLine(TITLE_BONUS.season) : "", cat: "event" },
+      ...SVT.map(([id, name, line]) => ({ id: "sv-" + id, title: T(name), name: T("SURVIVORS ARENA"), line: T(line), got: sv.includes(id), have: sv.includes(id) ? 1 : 0, n: 1, bonus: "", cat: "event" })),
+      ...Object.keys(CXT).map((id) => ({ id, title: cxName(id), name: T("Item codex"), line: T(id === "cx-legend" ? "Collect all 175 kinds" : "Collect 100 kinds"), got: cx.includes(id), have: cx.includes(id) ? 1 : 0, n: 1, bonus: "", cat: "collection" }))]
+      .map((t) => ({ ...t, worn: x.title === t.id })); };
+  return { on, html, click, title, titleList, wear: (t) => { const x = X(); x.title = t; ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); ctx.onTitle && ctx.onTitle(); }, titleBonus, titleOf, hasPet, pending, bump, setTab: (t) => { tab = t; }, tab: () => tab, setRank: (k) => { rk = k; top = null; race = null; recs = null; loadTop().then(() => ctx.repaint && ctx.repaint()); }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, bountyNotice, leftTxt, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
 }
 
 /// the companions (world-rpg-data.js PETS): the drone floats by your shoulder and zaps the nearest scammer, the cat
