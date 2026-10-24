@@ -35,6 +35,9 @@ check(phaseOf(600000, 600000) === 1 && phaseOf(360000, 600000) === 2 && phaseOf(
 T = Date.parse("2026-10-24T03:00:00Z");
 const A = ethers.Wallet.createRandom(), B = ethers.Wallet.createRandom(), C = ethers.Wallet.createRandom(), Dw = ethers.Wallet.createRandom(), Ew = ethers.Wallet.createRandom(), low = ethers.Wallet.createRandom();
 lvSet(A, 160, "Ace"); lvSet(B, 140, "Bee"); lvSet(C, 120, "Cee"); lvSet(Dw, 110, "Dee"); lvSet(Ew, 105, "Eve"); lvSet(low, 60, "Low");
+{ const X = ethers.Wallet.createRandom(); lvSet(X, 200, "Ex"); const r0 = await call(X, "world-rq-hit", { queen: "lysitha", dmg: 10 }), c0 = await call(X, "world-rq-claim", { queen: "lysitha", cyc: 0 });
+  check(!RQ.OPEN && r0.status === 403 && c0.status === 403, "closed (GM wallets only): a player's hits and claims are refused"); }
+RQ.OPEN = true; // (the rest: as when it opens to everyone)
 let v = await view(null); check(v.queens.length === 3 && v.queens.every((q) => q.hp === q.max && !q.down && q.phase === 1 && q.cyc === 0), "the guest view: three queens at full HP");
 let r = await call(low, "world-rq-hit", { queen: "lysitha", dmg: 100 }); check(r.status === 403 && r.body.need === 100, "Lv 60 can't fight Lysitha (Lv 100+)");
 r = await call(A, "world-rq-hit", { queen: "solvira", dmg: 100 }); check(r.status === 403 && r.body.need === 200, "Lv 160 can't fight Solvira (200+)");

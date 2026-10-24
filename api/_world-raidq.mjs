@@ -31,6 +31,7 @@ export const RQ = {
     { id: "solvira", name: "RADIANT SOLVIRA", title: "The Sovereign of Light and Sun", lv: 200, hp: 1200000, arcl: 15000, item: { r: 4, p: 3 } },
     { id: "nyxara", name: "CRIMSON NYXARA", title: "The Queen of Blood and Destruction", lv: 300, hp: 1800000, arcl: 25000, item: { r: 4, p: 5 } },
   ],
+  OPEN: false, // false: GM wallets only (the owner, 2026-10-25); true opens it to everyone
   RANK: [1, 0.6, 0.4], SHARE: 0.25, PLUS_DOWN: [0, 1, 2, 3], // the 4th and on: SHARE of the ARCL, 3 fewer +
   PHASES: [0.6, 0.25], // phase 2 below 60 % HP, phase 3 below 25 %
   GAP: 5, CAP_K: 60, MIN_SHARE: 0.03, RESPAWN: 20, DAY_CLAIMS: 1, TOP: 20, // one report per 5 s, ≤ 60 × level each; ≥ 3 % of her HP to share; back 20 min after she falls; one reward a queen a Seoul day
@@ -47,7 +48,7 @@ export function rewardOf(q, rank, w, cyc) {
   return { arcl: Math.round(Q.arcl * k), item: { id, b: `${slot}-4`, r: rank < 3 ? Q.item.r : Math.max(2, Q.item.r - 1), lv: Q.lv, p: Math.max(0, Q.item.p - down) } };
 }
 
-/// deps: { getDocs, setDoc, commit, json, now, signer(b), award(wallet, kind, n), level(wallet), nameOf(wallet) }
+/// deps: { getDocs, setDoc, commit, json, now, signer(b), award(wallet, kind, n), level(wallet), nameOf(wallet), isGM(wallet) }
 export function makeRaidQueens(deps) {
   const { getDocs, setDoc, commit, json, signer } = deps;
   const now = () => deps.now();
@@ -76,6 +77,7 @@ export function makeRaidQueens(deps) {
 
   async function hit(b) {
     const s = signer(b); if (s.err) return s.err;
+    if (!RQ.OPEN && !(deps.isGM && deps.isGM(s.wallet))) return json(403, { error: "RAID QUEENS opens soon" });
     const w = s.wallet, t = now(), Q = RQ.QUEENS.find((q) => q.id === b.queen); if (!Q) return json(400, { error: "no such Raid Queen" });
     const lv = await deps.level(w); if (lv < Q.lv) return json(403, { error: `this queen is for level ${Q.lv}+ (you're ${lv})`, need: Q.lv });
     const ck = `worldRqCur/${Q.id}`, cur = (await one(ck)) || {}, c = cycOf(cur, t);
@@ -95,6 +97,7 @@ export function makeRaidQueens(deps) {
   }
   async function claim(b) {
     const s = signer(b); if (s.err) return s.err;
+    if (!RQ.OPEN && !(deps.isGM && deps.isGM(s.wallet))) return json(403, { error: "RAID QUEENS opens soon" });
     const w = s.wallet, t = now(), Q = RQ.QUEENS.find((q) => q.id === b.queen); if (!Q) return json(400, { error: "no such Raid Queen" });
     const cyc = Math.floor(Number(b.cyc)); if (!(cyc >= 0)) return json(400, { error: "which fall?" });
     const c0 = cycOf(await one(`worldRqCur/${Q.id}`), t); if (cyc > c0 || cyc < c0 - 2) return json(400, { error: "that fall's rewards are gone" });

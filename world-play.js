@@ -777,9 +777,10 @@ setTimeout(() => { try { K.gltfLoader().load(`/models/world/agents/citadel.glb${
 }, undefined, (e) => console.warn("citadel", e)); } catch (e) { console.warn("citadel", e); } }, 9000); // after the town's own models: it's 1.2 MB and far off the plaza
 // RAID QUEENS (world-raidq.js, the owner's design 2026-10-24): the Crimson Eternity Citadel (the owner's GLB) north-west,
 // past The Last Rug (open ground ~150 m out), facing the plaza; a sign, a red beam. Walk up → a warp → the land (LD.LANDS.rq)
-const RQ_ON = /[?&]rq=1/.test(location.search); // (RAID QUEENS is still being built: hidden unless ?rq=1)
+const RQ_TRY = /[?&]rq=1/.test(location.search); // RAID QUEENS: open to GM wallets only for now (the owner, 2026-10-25); ?rq=1 to look as a guest
+const rqOn = () => { if (RQ_TRY) return true; try { const s0 = sess(); return !!(s0 && VILL.isGM(String(s0.wallet).toLowerCase())); } catch { return false; } };
 const RQ_GATE = { x: -46, z: 143, h: 16, r: 8 }; let rqL = null, rqWait = null; // (rqL: the land, world-raidq.js, built the first time you go in)
-const rqGate = new THREE.Group(); rqGate.name = "rq-gate"; rqGate.userData.radius = RQ_GATE.r; rqGate.position.set(RQ_GATE.x, 0, RQ_GATE.z); rqGate.rotation.y = Math.atan2(-RQ_GATE.x, -RQ_GATE.z); if (RQ_ON) planet.add(rqGate);
+const rqGate = new THREE.Group(); rqGate.name = "rq-gate"; rqGate.userData.radius = RQ_GATE.r; rqGate.position.set(RQ_GATE.x, 0, RQ_GATE.z); rqGate.rotation.y = Math.atan2(-RQ_GATE.x, -RQ_GATE.z); rqGate.visible = false; planet.add(rqGate); // (shown, and its model fetched, once rqOn(): rqGateTick)
 { const R0 = RQ_GATE.r + 2.5;
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(R0, R0 + 0.5, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x1e1220, metalness: 0.6, roughness: 0.35, emissive: 0x4a0a22, emissiveIntensity: 0.6 })); pad.position.y = 0.15; rqGate.add(pad);
   const rim = new THREE.Mesh(new THREE.TorusGeometry(R0 + 0.15, 0.12, 8, 128), new THREE.MeshBasicMaterial({ color: 0xff4d8d, toneMapped: false })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.32; rqGate.add(rim);
@@ -794,11 +795,13 @@ const rqGate = new THREE.Group(); rqGate.name = "rq-gate"; rqGate.userData.radiu
   const qp = new THREE.Quaternion(); board.onBeforeRender = (r, sc, cam) => { rqGate.getWorldQuaternion(qp); board.quaternion.copy(qp.invert().multiply(cam.quaternion)); board.updateMatrixWorld(); };
   const beam = K.makeBeacon ? K.makeBeacon(0xff4d8d, 60) : null; if (beam) { rqGate.add(beam); spins.push(beam.userData.spin); }
   spins.push((dt, t) => { rim.material.color.setHSL(0.94 + Math.sin(t * 0.8) * 0.03, 1, 0.62); board.position.y = RQ_GATE.h + 3.2 + Math.sin(t * 1.3) * 0.25; }); }
-if (RQ_ON) setTimeout(() => { try { K.gltfLoader().load(`/models/world/raid/gate.glb${VER}`, (g) => {
+function rqGateModel() { if (rqGate.userData.loading) return; rqGate.userData.loading = 1; try { K.gltfLoader().load(`/models/world/raid/gate.glb${VER}`, (g) => {
   const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = RQ_GATE.h / (sz.y || 1);
   o.scale.setScalar(k); o.position.set(-(box.min.x + sz.x / 2) * k, 0.3 - box.min.y * k, -(box.min.z + sz.z / 2) * k);
   o.traverse((m) => { if (m.isMesh) { m.castShadow = !lowGfx; m.receiveShadow = false; } }); rqGate.add(o); rqGate.userData.model = o; if (labels) labels.dirty = true; farCull.rescan(); if (gshadow) gshadow.rebakeSoon();
-}, undefined, (e) => console.warn("raid gate", e)); } catch (e) { console.warn("raid gate", e); } }, 11000); // (1 MB, far off the plaza: after the town's own models)
+}, undefined, (e) => { console.warn("raid gate", e); rqGate.userData.loading = 0; }); } catch (e) { console.warn("raid gate", e); rqGate.userData.loading = 0; } }
+// (1 MB, far off the plaza: after the town's own models; a GM signing in later sees it appear)
+setInterval(() => { const on = rqOn(); rqGate.visible = on; if (on && performance.now() > 11000) rqGateModel(); }, 1500);
 // hologram signs along the worn path to it: the three agents' faces turning in light, every ~14 m
 { const holoTex = {}, ld = new THREE.TextureLoader();
   ["aurora", "orion", "vex", "aurora", "orion"].forEach((k, i) => {
@@ -1325,7 +1328,7 @@ function inputs() {
   const run = keys.has("shift") || runToggle || (joy && Math.hypot(joy.dx, joy.dy) > 0.95) || (gpad.on && gpad.run);
   return { x, y, m, run };
 }
-const SOLIDS = () => [gv.solids, mv.solids, shops, [portal, isleGate, fountainCore, agentGate, ...(RQ_ON ? [rqGate] : [])], pvil.solids, lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live), decor ? decor.solids() : [], holiday.solids, adc ? adc.solids : [], rqL ? rqL.solids : []];
+const SOLIDS = () => [gv.solids, mv.solids, shops, [portal, isleGate, fountainCore, agentGate, ...(rqGate.visible ? [rqGate] : [])], pvil.solids, lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live), decor ? decor.solids() : [], holiday.solids, adc ? adc.solids : [], rqL ? rqL.solids : []];
 const lp = new THREE.Vector3();
 // a point on the ground (the world group's coordinates) inside a building? — the street scammers ask
 const wp0 = new THREE.Vector3();
@@ -1890,7 +1893,7 @@ function nearest() {
   gv.doors.forEach((d) => { if (d.userData.game === "defense") consider(d, "defense", {}, 2.4); else if (d.userData.game === "jump") consider(d, "jump", {}, 2.4); else if (d.userData.game === "beat") consider(d, "beat", {}, 2.4); else if (d.userData.game === "surv") consider(d, "surv", {}, 2.6); else if (d.userData.game === "rings") consider(d, "rings", {}, 2.6); else if (d.userData.game === "poker") consider(d, "poker", {}, 2.6); });
   consider(isleGate, "isle", {}, 2.4);
   consider(jurGate, "jurassic", {}, 2.6);
-  consider(agentGate, "agentdim", {}, 3.2); if (RQ_ON) consider(rqGate, "rqgate", {}, 3.4);
+  consider(agentGate, "agentdim", {}, 3.2); if (rqOn()) consider(rqGate, "rqgate", {}, 3.4);
   if (rqL && landNow === "rq") { consider(rqL.back, "lport", { to: "town" }, 2.6); consider(rqL.throne, "rqthrone", {}, 3); } // RAID QUEENS
   if (adc && landNow === "ad") { adc.doors.forEach((d) => consider(d, "adb", { b: d.userData.b }, 2.4)); consider(adc.back, "lport", { to: "town" }, 2.6); } // AD-City 1
   pvil.doors.forEach((d) => consider(d, d.userData.partner, {}, 3));
@@ -2752,7 +2755,7 @@ function openMap() {
   const raceHtml = race ? `<h3 style="--c:#2f86ff">${esc(T("Hoverboard race"))}</h3><ul class="wp-maplist"><li><button type="button" data-race="1"><i style="--c:#2f86ff"></i><span><b>${esc(T("Race pad"))}</b><small>${esc(T("Eight rings around the plaza, against the clock"))}</small></span></button></li></ul>` : "";
   const mineHtml = `<h3 style="--c:#ffc23a">${esc(TW("Mining Village"))}</h3><ul class="wp-maplist"><li><button type="button" data-mine="1"><i style="--c:#ffc23a"></i><span><b>${esc(TW("ARCL Mine"))}</b><small>${esc(TW("Copper, silver and gold rocks · 60 minutes, then a 6-hour rest"))}${mineRest > Date.now() ? " · " + esc(TW("ARCL Mine · opens in {t}", { t: restLeft(mineRest) })) : ""}</small></span></button></li></ul>`;
   const pvHtml = `<h3 style="--c:#38e1d6">🤝 ${esc(TW("Partner Village"))}</h3><ul class="wp-maplist"><li><button type="button" data-pv="1"><i style="--c:#38e1d6"></i><span><b>${esc(TW("Partner Village"))}</b><small>${esc(TW("Official partners of ARCIRCLE WORLD"))} · ${esc(TW("Go to the gate"))}</small></span></button></li><li><button type="button" data-pvk="kairo"><i style="--c:#38e1d6"></i><span><b>KAIRO ${esc(TW("Tower"))}</b><small>${esc(TW("KAIRO Finance Hub"))} · Swap · KLIK · Disperse</small></span></button></li><li><button type="button" data-pvh="kairo"><i style="--c:#7cf5c8"></i><span><b>${esc(TW("KAIRO Finance Hub"))}</b><small>${esc(TW("Open it now"))}</small></span></button></li></ul>`;
-  const landsHtml = `<h3 style="--c:#39ff88">🚀 ${esc(TW("Villages"))}</h3><ul class="wp-maplist"><li><button type="button" data-land="lp"><i style="--c:#39ff88"></i><span><b>${esc(TW("Launchpad Village"))}</b><small>${esc(TW("Every coin launched on ArcPad has a lot here"))} · ${coinBuildings.length}</small></span></button></li><li><button type="button" data-land="ut"><i style="--c:#4f9dff"></i><span><b>${esc(TW("Utility Village"))}</b><small>${esc(TW("ARCIRCLE's utilities: launch, swap, stake, scan"))}</small></span></button></li>${RQ_ON ? `<li><button type="button" data-land="rq"><i style="--c:#ff4d8d"></i><span><b>RAID QUEENS</b><small>${esc(TW("Lv 100+ · A new hunting ground"))}</small></span></button></li>` : ""}${landNow ? `<li><button type="button" data-land="town"><i style="--c:#eef3f7"></i><span><b>${esc(TW("Back to town"))}</b></span></button></li>` : ""}</ul>`; // b-lpv
+  const landsHtml = `<h3 style="--c:#39ff88">🚀 ${esc(TW("Villages"))}</h3><ul class="wp-maplist"><li><button type="button" data-land="lp"><i style="--c:#39ff88"></i><span><b>${esc(TW("Launchpad Village"))}</b><small>${esc(TW("Every coin launched on ArcPad has a lot here"))} · ${coinBuildings.length}</small></span></button></li><li><button type="button" data-land="ut"><i style="--c:#4f9dff"></i><span><b>${esc(TW("Utility Village"))}</b><small>${esc(TW("ARCIRCLE's utilities: launch, swap, stake, scan"))}</small></span></button></li>${rqOn() ? `<li><button type="button" data-land="rq"><i style="--c:#ff4d8d"></i><span><b>RAID QUEENS</b><small>${esc(TW("Lv 100+ · A new hunting ground"))}</small></span></button></li>` : ""}${landNow ? `<li><button type="button" data-land="town"><i style="--c:#eef3f7"></i><span><b>${esc(TW("Back to town"))}</b></span></button></li>` : ""}</ul>`; // b-lpv
   const adHtml = cityOk && adc ? `<h3 style="--c:#5fd3ff">🌆 ${esc(TW("Nexus City"))}</h3><ul class="wp-maplist"><li><button type="button" data-adc="guide"><i style="--c:#5fd3ff"></i><span><b>${esc(TW("Nexus City"))}</b><small>${esc(TW("AGENT DIMENSION's city: six buildings and agents at work"))}</small></span></button></li>${adc.M.BUILDINGS.map((B) => `<li><button type="button" data-adc="${B.id}"><i style="--c:${B.css}"></i><span><b>${esc(TW(B.name))}</b><small>${esc(TW(B.sub))}${B.open ? "" : " · " + esc(TW("Coming soon"))}</small></span></button></li>`).join("")}</ul>` : cityOk ? `<h3 style="--c:#5fd3ff">🌆 ${esc(TW("Nexus City"))}</h3><ul class="wp-maplist"><li><button type="button" data-adc="guide"><i style="--c:#5fd3ff"></i><span><b>${esc(TW("Nexus City"))}</b><small>${esc(TW("AGENT DIMENSION's city: six buildings and agents at work"))}</small></span></button></li></ul>` : "";
   $("wp-maplist").innerHTML = keyHtml + adHtml + landsHtml + pvHtml + groups + arclHtml + mineHtml + zoneHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(TW("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   decorateMap();
@@ -2883,7 +2886,7 @@ function drawMini() {
     if (!landNow) {
     put(mv.door, "#ffc23a", 9, "⛏"); // the ARCL Mine's tunnel
     put(agentGate, "#5fd3ff", 10, "∞"); // AGENT DIMENSION's Citadel
-    if (RQ_ON) put(rqGate, "#ff4d8d", 10, "♛"); // RAID QUEENS' Citadel
+    if (rqOn()) put(rqGate, "#ff4d8d", 10, "♛"); // RAID QUEENS' Citadel
     put(pvil.root, "#38e1d6", 10, "🤝"); // the Partner Village
     if (pumpKings) for (const k of pumpKings.marks()) if (k.g) put(k.g, k.rage ? "#ff4d1a" : "#ff9a2a", k.rage ? 8 : 6, "🎃"); // the Halloween Pumpkin Kings (Inferno Jack in red)
     fighters.forEach((g) => put(g, g.userData.live ? "#ff4d6d" : "rgba(255,77,109,.45)", g.userData.live ? 6 : 4));
@@ -4172,7 +4175,7 @@ const HUB = [
   // and the Adventure log's tabs (daily hunts, achievements, season, codex, pets, rankings) are one tile
   // b-ui2: the nine you use most, as big tiles (the owner's mock-up), then everything else
   ["", [["games", "trophy", "Games", ""], ["log", "check", "Quests", "L"], ["rewards", "season", "Rewards", ""], ["shop", "shop", "Shop", ""], ["inv", "bag", "Inventory", "I"], ["petdk", "paw", "Pets", "N"], ["chat", "crew", "Friends", ""], ["set", "gear", "Settings", ""], ["map", "map", "Map", "M"]]],
-  ["More", [["agent", "person", "AI Agent", ""], ["partners", "village", "Partner Village", ""], ...(RQ_ON ? [["raidq", "sword", "Raid Queens", ""]] : []), ["forge", "anvil", "Craft", "C"], ["defense", "sword", "Game Village", ""], ["invite", "mail", "Invite friends", ""], ["start", "keys", "New player guide", ""], ["crew", "crew", "Crew", ""], ["island", "island", "Island", ""], ["market", "shop", "Creator Market", ""], ["codex", "book", "Item codex", ""], ["ledger", "book", "ARCL ledger", ""], ["land", "village", "ARCIRCLE LAND", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""],
+  ["More", [["agent", "person", "AI Agent", ""], ["partners", "village", "Partner Village", ""], ["raidq", "sword", "Raid Queens", ""], ["forge", "anvil", "Craft", "C"], ["defense", "sword", "Game Village", ""], ["invite", "mail", "Invite friends", ""], ["start", "keys", "New player guide", ""], ["crew", "crew", "Crew", ""], ["island", "island", "Island", ""], ["market", "shop", "Creator Market", ""], ["codex", "book", "Item codex", ""], ["ledger", "book", "ARCL ledger", ""], ["land", "village", "ARCIRCLE LAND", ""], ["village", "village", "Village and contest", ""], ["inbox", "mail", "Inbox", ""],
     ["arcia", "help", "What should I do next?", ""], ["make", "person", "Change character", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["music", "music", "Music on / off", ""], ["recent", "book", "Recent messages", ""]]],
 ];
 hubEl = document.createElement("div"); hubEl.className = "wp-hub"; hubEl.hidden = true; hubEl.setAttribute("role", "dialog"); hubEl.setAttribute("aria-modal", "true"); hubEl.setAttribute("data-no-i18n", "");
@@ -4182,7 +4185,7 @@ let hubRecent = [], hubQ = ""; try { hubRecent = JSON.parse(localStorage.getItem
 const JUR_OFF = new Set(["map", "island", "village", "defense", "make"]);
 function paintHub() {
   const isArc = String(heroOf(P.char || "arc-arc")).startsWith("arc-"), /* b447: the wardrobe dresses ARC Bots only */ dot = { log: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])'), chat: chatDot > 0 };
-  const ok = ([id]) => (id !== "petdk" || !!$("wp-dk-pet")) && (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub") && !(jurOn && JUR_OFF.has(id)) /* (in Jurassic World the tiles that move you round town wait) */, all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
+  const ok = ([id]) => (id !== "raidq" || rqOn()) /* (RAID QUEENS: GM wallets only for now) */ && (id !== "petdk" || !!$("wp-dk-pet")) && (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub") && !(jurOn && JUR_OFF.has(id)) /* (in Jurassic World the tiles that move you round town wait) */, all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
   // the owner's look (2026-10-23, from the owner's mock-up): the nine as 3D icons, Recent as cards with the place's art
   // (only what isn't one of the nine, at most three), More as rows with an icon (what's in Recent isn't repeated), and
   // the small things (help, controls, music …) as pills at the end — images/ui/menu
@@ -5442,7 +5445,7 @@ function rqWarp() {
   setTimeout(() => { u.warp = 0; rqGo(); }, reduce ? 0 : 380);
 }
 async function rqGo(region) {
-  if (!RQ_ON || frozen || flying || introOn || mode !== "hub") return;
+  if (!rqOn() || frozen || flying || introOn || mode !== "hub") return;
   const r = await ensureRq(); if (!r || frozen || mode !== "hub") return;
   closeAll(); const a = (region && r.gateOf(region)) || r.arrival(); standAt(a.x, a.z, a.c);
   vfx.teleport(here(), { color: 0xff4d8d, color2: 0xffd36a }); if (Snd.dash) Snd.dash(); pullFlash("#ff4d8d"); startSweep(1600);
@@ -5549,7 +5552,7 @@ function bossList() {
     go: () => import("./world-pumpking-data.js").then((m) => { const lv = level(), ks = m.PK.KINGS.filter((x) => x.lv <= lv + 10), kg = ks[ks.length - 1] || m.PK.KINGS[0], h = m.HOMES[kg.id]; standAt(h[0] + 4, h[1] + 4, { x: h[0], z: h[1] }); }).catch(() => openMap()) }); }
   { const nx = (() => { const t = new Date(now + 9 * 3600e3), dd = (8 - t.getUTCDay()) % 7 || 7; return Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + dd) - 9 * 3600e3; })();
     out.push({ ic: "🐙", color: "#39ff88", name: TW(SOC.RAID.boss.name), where: TW(SOC.RAID.name), lv: `Lv ${SOC.RAID.lv[0]}+`, line: TW("The weekly raid boss: everyone in town brings it down together."), when: TW("Resets in {t}", { t: evLeft(nx).replace(/^in /, "") }), rew: TW("Raid gear, XP, the Raid Breaker title"), live: false, go: () => fly(SOC.RAID) }); }
-  if (RQ_ON) { const v = rqL && rqL.view && rqL.view(); // RAID QUEENS: the three queens (world-raidq-data.js), everyone's HP
+  if (rqOn()) { const v = rqL && rqL.view && rqL.view(); // RAID QUEENS: the three queens (world-raidq-data.js), everyone's HP
     for (const [q, reg, ic, col] of [["lysitha", "silver", "🤍", "#9fd4ff"], ["solvira", "golden", "☀️", "#ffd36a"], ["nyxara", "crimson", "🩸", "#ff4d6d"]]) { const st0 = v && v.queens.find((x) => x.id === q), Q = { lysitha: ["CELESTIAL LYSITHA", 100, "Silver Sanctum"], solvira: ["RADIANT SOLVIRA", 200, "Golden Dominion"], nyxara: ["CRIMSON NYXARA", 300, "Crimson Abyss"] }[q];
       out.push({ ic, color: col, name: TW(Q[0]), where: "RAID QUEENS · " + TW(Q[2]), lv: `Lv ${Q[1]}+`, line: TW("A Raid Queen: everyone's HP, three phases. All who deal 3% of her HP share her reward."), when: st0 && st0.down ? evLeft(st0.back || now) : TW("On now"), live: !st0 || !st0.down, go: () => rqGo(reg) }); } }
   const bk = ((rpg && rpg.data().x) || {}).bk || {};
