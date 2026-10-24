@@ -5358,7 +5358,7 @@ const STUDIO_OPEN = true; /* ARCIRCLE Studio for everyone (the owner, 2026-10-24
 /// loading screen and the arrival flight, and it gives back whatever freeze was there before it.
 let adpDone = false;
 const adpT0 = Date.now();
-const adpReady = () => { const l = document.getElementById("wp-loading"); return !!l && l.classList.contains("done") && Date.now() - adpT0 > 6000 && mode === "hub" && !introOn && !flying; };
+const adpReady = () => { const l = document.getElementById("wp-loading"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && Date.now() - adpT0 > 6000 && mode === "hub" && !introOn && !flying; };
 function adPromo(force) {
   if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
   adpDone = true;
