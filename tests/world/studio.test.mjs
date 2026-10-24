@@ -42,6 +42,9 @@ const D = G.genLevel({ tpl: "dash", seed: 9, len: 60 }), A = G.genLevel({ tpl: "
 check(D.len > G.genLevel({ tpl: "runner", seed: 9, len: 90 }).len && D.rows.length > 40, "the dash's track runs on far past a runner's (" + D.len + " m)");
 check(A.secs === 45 && A.len === 900 && A.waves.some((w) => w.k === "d") && A.waves.some((w) => w.k === "L") && A.waves.some((w) => w.k === "D") && A.coins > 0 && A.waves.every((w, i) => !i || A.waves[i - 1].t <= w.t), "the arena: drones, sweeps and big drones in time order, coins (" + A.waves.length + " waves)");
 check(G.clampSpec({ tpl: "arena" }).title === "My Arena" && G.clampSpec({ tpl: "puzzle" }).tpl === "runner", "templates: the arena opens, a closed one falls back to the runner");
+// Studio 3: one-tap difficulty and the bots' estimate (seeded: the same answer twice; harder presets clear less)
+for (const tpl of ["runner", "dash", "arena"]) { const e = (k) => G.estimate({ tpl, seed: 11, len: 45, ...G.PRESETS[k] }), a = e("easy"), z = e("extreme");
+  check(JSON.stringify(e("hard")) === JSON.stringify(e("hard")) && a.clear >= z.clear && a.stars <= z.stars && a.clear >= 0 && a.clear <= 1 && z.fails.length === 10, `${tpl}: easy clears ${a.clear}, extreme ${z.clear} (${z.why})`); }
 // closed: only GMs while AGENT DIMENSION is closed
 let r = await call(me, "world-studio-save", { spec: {} }); check(r.status === 403 && r.body.closed, "closed: a player can't save a game yet");
 AGENT.OPEN = true;

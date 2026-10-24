@@ -7,7 +7,8 @@
 //   the runner   its own scene drawn instead of the town (st.view / st.solo, like the Game Village's games): three lanes,
 //                your hero runs (sprint), jumps the gaps (jump), slides under lasers (dodge), switches lanes past walls,
 //                grabs coins; three hearts; the finish arch; a result card (score, your best, your place)
-import { TEMPLATES, THEMES, LENS, LANES, KNOBS, clampSpec, genLevel, scoreOf, speedOf, dashSpeed } from "./world-studio-gen.js";
+import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, clampSpec, genLevel, scoreOf, speedOf, dashSpeed, estimate } from "./world-studio-gen.js";
+import { makePreview } from "./world-studio-prev.js";
 // Studio 2 (2026-10-24): two more templates (Infinity Dash: the lanes without a finish, faster and faster; Arena Survival:
 // seen from above, drones from the edge, laser sweeps, coins, last the time), a preview strip of the level in the editor,
 // a share link (/play?sg=<id>), and the runs' effects (coin pops and a combo, speed lines, a slow-mo near miss under a
@@ -18,7 +19,7 @@ const LEN_NAME = { dash: { 30: "Gentle", 45: "Steady", 60: "Fast", 90: "Wild" } 
 /// ctx: { THREE, K, st, T, esc, toast, Snd, reduce, low, coarse, sess, post, signIn, makeHero(), agentName(), onOpen, onClose }
 export function createStudio(ctx) {
   const { THREE, T, esc } = ctx;
-  let el = null, tab = "make", spec = clampSpec({ seed: 1 + Math.floor(Math.random() * 99999) }), editId = "", mine = [], arcade = [], busy = false, playing = null, lastRun = null, aiNote = "";
+  let el = null, tab = "make", step = 1, prev = null, prevOk = true, snaps = {}, lastTest = null, advOpen = false, spec = clampSpec({ seed: 1 + Math.floor(Math.random() * 99999) }), editId = "", mine = [], arcade = [], busy = false, playing = null, lastRun = null, aiNote = "";
   const wallet = () => { const s = ctx.sess(); return s ? String(s.wallet).toLowerCase() : ""; };
   const hex = (c) => "#" + c.toString(16).padStart(6, "0");
   async function act(body) {
@@ -36,27 +37,53 @@ export function createStudio(ctx) {
   // ---------------- the window ----------------
   function shell() {
     if (el) return el; el = document.createElement("div"); el.className = "wst"; el.hidden = true; document.body.appendChild(el);
-    el.addEventListener("click", onClick); el.addEventListener("input", onInput);
+    el.addEventListener("click", onClick); el.addEventListener("input", onInput); el.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches(".wst-adv")) advOpen = e.target.open; }, true);
     el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } });
     return el;
   }
   function open(t) { shell(); if (t) tab = t; el.hidden = false; paint(); load(); if (ctx.onOpen) ctx.onOpen(); }
-  function close() { if (el) el.hidden = true; if (ctx.onClose) ctx.onClose(); }
+  function close() { if (el) el.hidden = true; if (prev) { prev.dispose(); prev = null; } if (ctx.onClose) ctx.onClose(); }
   const shown = () => !!el && !el.hidden;
   const slider = (k, lab, max, min = 0) => `<label class="wst-sl"><span>${esc(T(lab))} <b>${spec[k]}</b></span><input type="range" min="${min}" max="${max}" step="1" value="${spec[k]}" data-k="${k}"></label>`;
+  // Studio 3: the editor in five steps (a bar at the top, Back / Next at the bottom), the live 3D preview over them
+  const STEPS = [["Template", "Pick a template"], ["Theme", "Pick a look"], ["Difficulty", "How hard should it be?"], ["Test", "Try it before anyone else"], ["Publish", "Save it and put it on the arcade"]];
+  const PNAME = { easy: "Easy", normal: "Normal", hard: "Hard", extreme: "Extreme" }, WHY = { wall: "walls", gap: "gaps", laser: "lasers", d: "drones", D: "big drones", L: "laser sweeps" };
+  const starsTxt = (n) => `<span class="wst-stars" aria-label="${n}/5">${"<i>★</i>".repeat(n)}${"<i class=\"off\">★</i>".repeat(5 - n)}</span>`;
+  const presetOf = () => Object.keys(PRESETS).find((k) => Object.entries(PRESETS[k]).every(([f, v]) => spec[f] === v)) || "";
   function paintMake() {
-    const th = THEMES[spec.theme], tpl = Object.entries(TEMPLATES).map(([id, t]) => `<button type="button" class="wst-tpl${id === spec.tpl ? " on" : ""}${t.open ? "" : " soon"}" ${t.open ? `data-tpl="${id}"` : "disabled"}><span class="wst-art" style="background-image:url(/images/ui/studio/${id}.webp?v=1)" aria-hidden="true"></span><b>${esc(T(t.name))}</b>${t.open ? "" : `<small>${esc(T("Coming soon"))}</small>`}</button>`).join("");
-    const L = genLevel(spec), KN = KNOBS[spec.tpl] || KNOBS.runner;
-    return `<div class="wst-tpls">${tpl}</div>
+    const th = THEMES[spec.theme], L = genLevel(spec), KN = KNOBS[spec.tpl] || KNOBS.runner, E = estimate(spec), cur = mine.find((g) => g.id === editId);
+    const bar = `<ol class="wst-steps">${STEPS.map(([l], i) => `<li><button type="button" data-step="${i + 1}" class="${step === i + 1 ? "on" : step > i + 1 ? "done" : ""}"><i>${step > i + 1 ? "✓" : i + 1}</i><span>${esc(T(l))}</span></button></li>`).join("")}</ol>`;
+    const box = step <= 4 ? `<div class="wst-3dbox${step === 4 ? " big" : ""}">${prev ? "" : `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>`}<span class="wst-3dtag">${ICON[spec.tpl] || "🎮"} ${esc(T(TEMPLATES[spec.tpl].name))} · ${esc(T(th.name))}</span></div>` : "";
+    let body = "";
+    if (step === 1) body = `<div class="wst-tpls">${Object.entries(TEMPLATES).map(([id, t]) => `<button type="button" class="wst-tpl${id === spec.tpl ? " on" : ""}${t.open ? "" : " soon"}" ${t.open ? `data-tpl="${id}"` : "disabled"}><span class="wst-art" style="background-image:url(/images/ui/studio/${id}.webp?v=1)" aria-hidden="true"></span><b>${esc(T(t.name))}</b>${t.open ? "" : `<small>${esc(T("Coming soon"))}</small>`}</button>`).join("")}</div>
       <div class="wst-ai"><b>✨ ${esc(T("Ask {n} to draft it", { n: ctx.agentName() || T("your agent") }))}</b><div class="wst-airow"><input class="wst-aiin" maxlength="240" placeholder="${esc(T("e.g. a fast jungle run with lots of coins"))}"><button type="button" class="wst-go" data-ai ${busy ? "disabled" : ""}>${esc(T("Draft"))}</button></div>${aiNote ? `<small class="wst-ainote">${esc(aiNote)}</small>` : ""}</div>
+      <label class="wst-title"><span>${esc(T("Title"))}</span><input class="wst-tin" maxlength="24" value="${esc(spec.title)}"></label>`;
+    else if (step === 2) body = `<div class="wst-themes">${Object.entries(THEMES).map(([id, t]) => `<button type="button" data-theme="${id}" class="wst-thm${id === spec.theme ? " on" : ""}" style="--c:${hex(t.edge)};--b:${hex(t.sky)}"><span class="wst-thi" data-snap="${id}"${snaps[spec.tpl + ":" + id] ? ` style="background-image:url(${snaps[spec.tpl + ":" + id]})"` : ""}></span><b>${esc(T(t.name))}</b></button>`).join("")}</div>`;
+    else if (step === 3) { const pk = presetOf();
+      body = `<div class="wst-pres">${Object.keys(PRESETS).map((k) => { const e = estimate({ ...spec, ...PRESETS[k] }); return `<button type="button" data-preset="${k}" class="${pk === k ? "on" : ""} p-${k}"><b>${esc(T(PNAME[k]))}</b><small>${starsTxt(e.stars)}</small><em>${Math.round(e.clear * 100)}%</em></button>`; }).join("")}</div>
+      <div class="wst-row"><span>${esc(T(KN.len))}</span><div class="wst-chips">${LENS.map((x) => `<button type="button" data-len="${x}" class="${x === spec.len ? "on" : ""}">${LEN_NAME[spec.tpl] ? esc(T(LEN_NAME[spec.tpl][x])) : x + "s"}</button>`).join("")}</div></div>
+      <div class="wst-est s${E.stars}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
+      ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}
+      <details class="wst-adv"${advOpen ? " open" : ""}><summary>⚙️ ${esc(T("Advanced settings"))}</summary><div class="wst-sls">${slider("speed", KN.speed, 5, 1)}${slider("coins", KN.coins, 5)}${slider("walls", KN.walls, 5)}${slider("gaps", KN.gaps, 3)}${slider("lasers", KN.lasers, 3)}</div>
+      <p class="wst-fine" style="--c:${hex(th.edge)}">🎲 ${esc(T("Layout #{n}", { n: spec.seed }))} · <span class="wst-sum">${summary(L)}</span> <button type="button" class="wst-link" data-seed>${esc(T("New layout"))}</button></p></details>`; }
+    else if (step === 4) body = `<ul class="wst-recap"><li><i>${ICON[spec.tpl]}</i>${esc(T(TEMPLATES[spec.tpl].name))}</li><li><i>🎨</i>${esc(T(th.name))}</li><li><i>🔥</i>${starsTxt(E.stars)} · ${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</li><li><i>📏</i><span class="wst-sum">${summary(L)}</span></li></ul>
+      ${lastTest ? `<p class="wst-last">${esc(T("Your test: {s} points", { s: lastTest.score }))}${lastTest.done ? " · 🏁" : ""}</p>` : ""}<button type="button" class="wst-go big wst-testbig" data-test>▶ ${esc(T("Test play"))}</button>`;
+    else body = `<div class="wst-pubbox">${cur && cur.pub ? `<p class="wst-ok">🚀 ${esc(T("It's on the Creator Arcade!"))}</p>` : editId ? `<p>💾 ${esc(T("Saved as a draft. Publish it so everyone can play."))}</p>` : `<p>${esc(T("Save it to keep it, then publish it to the Creator Arcade."))}</p>`}
       <label class="wst-title"><span>${esc(T("Title"))}</span><input class="wst-tin" maxlength="24" value="${esc(spec.title)}"></label>
-      <div class="wst-row"><span>${esc(T("Theme"))}</span><div class="wst-chips">${Object.entries(THEMES).map(([id, t]) => `<button type="button" data-theme="${id}" class="${id === spec.theme ? "on" : ""}" style="--c:${hex(t.edge)};--b:${hex(t.sky)}">${esc(T(t.name))}</button>`).join("")}</div></div>
-      <div class="wst-row"><span>${esc(T(KN.len))}</span><div class="wst-chips">${LENS.map((s) => `<button type="button" data-len="${s}" class="${s === spec.len ? "on" : ""}">${LEN_NAME[spec.tpl] ? esc(T(LEN_NAME[spec.tpl][s])) : s + "s"}</button>`).join("")}</div></div>
-      <div class="wst-sls">${slider("speed", KN.speed, 5, 1)}${slider("coins", KN.coins, 5)}${slider("walls", KN.walls, 5)}${slider("gaps", KN.gaps, 3)}${slider("lasers", KN.lasers, 3)}</div>
-      <canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>
-      <p class="wst-fine" style="--c:${hex(th.edge)}">🎲 ${esc(T("Layout #{n}", { n: spec.seed }))} · <span class="wst-sum">${summary(L)}</span> <button type="button" class="wst-link" data-seed>${esc(T("New layout"))}</button></p>
-      <div class="wst-acts"><button type="button" class="wst-go big" data-test>▶ ${esc(T("Test play"))}</button><button type="button" class="wst-go alt" data-save ${busy ? "disabled" : ""}>💾 ${esc(T(editId ? "Save changes" : "Save"))}</button>${editId ? `<button type="button" class="wst-go alt" data-pub="${esc(editId)}">🚀 ${esc(T((mine.find((g) => g.id === editId) || {}).pub ? "Published ✓" : "Publish"))}</button>` : ""}</div>`;
+      <div class="wst-acts"><button type="button" class="wst-go alt" data-save ${busy ? "disabled" : ""}>💾 ${esc(T(editId ? "Save changes" : "Save"))}</button>${cur && cur.pub ? `<button type="button" class="wst-go" data-share="${esc(editId)}">🔗 ${esc(T("Copy link"))}</button>` : `<button type="button" class="wst-go big" data-savepub ${busy ? "disabled" : ""}>🚀 ${esc(T(editId ? "Publish" : "Save & publish"))}</button>`}</div>
+      ${editId ? `<button type="button" class="wst-link" data-tab="mine">📁 ${esc(T("See it in My games"))}</button>` : ""}</div>`;
+    const nav = `<nav class="wst-nav">${step > 1 ? `<button type="button" class="wst-go alt" data-back>← ${esc(T("Back"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go alt" data-test>▶ ${esc(T("Test"))}</button>` : "<span></span>"}${step < 5 ? `<button type="button" class="wst-go" data-next>${esc(T("Next"))} →</button>` : "<span></span>"}</nav>`;
+    return `${bar}<p class="wst-hint">${esc(T(STEPS[step - 1][1]))}</p>${box}<div class="wst-stepbody s${step}">${body}</div>${nav}`;
   }
+  /// the live preview: one renderer for the window's life, its canvas moved into each paint (none on low graphics)
+  function attachPreview() {
+    if (tab !== "make" || step > 4) { if (prev) prev.stop(); return; }
+    if (!prev && !ctx.saver && prevOk) { try { prev = makePreview({ THREE }); } catch { prev = null; } if (!prev) { prevOk = false; return paint(); } }
+    const bx = el.querySelector(".wst-3dbox"); if (!prev || !bx) return; bx.prepend(prev.canvas); prev.set(spec);
+    if (step === 2) setTimeout(fillSnaps, 60);
+  }
+  function fillSnaps() { if (!prev || tab !== "make" || step !== 2) return; for (const id of Object.keys(THEMES)) { const k = spec.tpl + ":" + id; if (!snaps[k]) { snaps[k] = prev.snap({ ...spec, theme: id }); const im = el.querySelector(`[data-snap="${id}"]`); if (im) im.style.backgroundImage = `url(${snaps[k]})`; return setTimeout(fillSnaps, 30); } } }
+  let prevT = 0; const prevSoon = () => { clearTimeout(prevT); prevT = setTimeout(() => { if (prev && tab === "make") prev.set(spec); }, 160); };
   const summary = (L) => spec.tpl === "arena" ? esc(T("{s} s · {d} waves · {c} coins", { s: L.secs, d: L.waves.length, c: L.coins })) : spec.tpl === "dash" ? esc(T("endless · {c} coins on the way", { c: L.coins })) : `${Math.round(L.len)} m · ${L.coins} ${esc(T("coins"))}`;
   /// the level at a glance: the track (or the arena's timeline), walls / gaps / lasers / coins in their colours
   function drawPrev() {
@@ -78,27 +105,36 @@ export function createStudio(ctx) {
     el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Nexus City"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio Lite</h2><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <nav class="wst-tabs">${[["make", "🛠️", "Create"], ["mine", "📁", "My games"], ["arcade", "🕹️", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}</button>`).join("")}</nav>
       <div class="wst-body">${body}</div><p class="wst-foot">${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</p></div>`;
-    if (tab === "make") drawPrev();
+    if (tab === "make") { drawPrev(); attachPreview(); } else if (prev) prev.stop();
   }
+  let estT = 0;
+  const fxStep = () => { if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } };
+  /// a repaint that keeps the advanced settings open and the page where it was (the estimate after a slider settles)
+  function paintKeep() { const b = el.querySelector(".wst-body"), y = b ? b.scrollTop : 0, d = el.querySelector(".wst-adv"); if (d) advOpen = d.open; paint(); const b2 = el.querySelector(".wst-body"); if (b2) b2.scrollTop = y; }
   function onInput(e) {
     const t = e.target;
-    if (t.matches("[data-k]")) { spec[t.dataset.k] = Number(t.value); const b = t.parentElement.querySelector("b"); if (b) b.textContent = t.value; const f = el.querySelector(".wst-sum"); if (f) f.innerHTML = summary(genLevel(spec)); drawPrev(); }
+    if (t.matches("[data-k]")) { spec[t.dataset.k] = Number(t.value); const b = t.parentElement.querySelector("b"); if (b) b.textContent = t.value; const f = el.querySelector(".wst-sum"); if (f) f.innerHTML = summary(genLevel(spec)); drawPrev(); prevSoon(); clearTimeout(estT); estT = setTimeout(() => { if (tab === "make" && step === 3) paintKeep(); }, 450); }
     if (t.matches(".wst-tin")) spec.title = t.value;
   }
   async function onClick(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) { if (e.target === el) close(); return; }
     if (b.hasAttribute("data-x")) return close();
     if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); return; }
+    if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
+    if (b.hasAttribute("data-next")) { step = Math.min(5, step + 1); fxStep(); return paint(); }
+    if (b.hasAttribute("data-back")) { step = Math.max(1, step - 1); return paint(); }
+    if (b.dataset.preset) { Object.assign(spec, PRESETS[b.dataset.preset]); if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } return paintKeep(); }
+    if (b.hasAttribute("data-savepub")) { await save(); if (editId && !(mine.find((g) => g.id === editId) || {}).pub) await publish(editId); return; }
     if (b.dataset.tpl) { spec = clampSpec({ ...spec, tpl: b.dataset.tpl, title: spec.title === "My Sky Run" || spec.title === "My Arena" || spec.title === "My Infinity Dash" ? "" : spec.title }); return paint(); }
-    if (b.dataset.theme) { spec.theme = b.dataset.theme; return paint(); }
-    if (b.dataset.len) { spec.len = Number(b.dataset.len); return paint(); }
-    if (b.hasAttribute("data-seed")) { spec.seed = 1 + Math.floor(Math.random() * 99999); return paint(); }
+    if (b.dataset.theme) { spec.theme = b.dataset.theme; return paintKeep(); }
+    if (b.dataset.len) { spec.len = Number(b.dataset.len); return paintKeep(); }
+    if (b.hasAttribute("data-seed")) { spec.seed = 1 + Math.floor(Math.random() * 99999); return paintKeep(); }
     if (b.hasAttribute("data-test")) { spec = clampSpec(spec); return run({ spec, id: editId || "", test: true }); }
     if (b.hasAttribute("data-ai")) return draft();
     if (b.hasAttribute("data-save")) return save();
     if (b.dataset.pub) return publish(b.dataset.pub);
     if (b.dataset.del) return del(b.dataset.del);
-    if (b.dataset.edit) { const g = mine.find((x) => x.id === b.dataset.edit); if (g) { spec = clampSpec(g.spec); editId = g.id; tab = "make"; paint(); } return; }
+    if (b.dataset.edit) { const g = mine.find((x) => x.id === b.dataset.edit); if (g) { spec = clampSpec(g.spec); editId = g.id; tab = "make"; step = 3; lastTest = null; paint(); } return; }
     if (b.dataset.play) return playId(b.dataset.play);
     if (b.dataset.like) return like(b.dataset.like);
     if (b.dataset.share) { const u = `${location.origin}/play?sg=${encodeURIComponent(b.dataset.share)}`; try { await navigator.clipboard.writeText(u); ctx.toast("🔗 " + esc(T("Link copied — anyone with it plays your game"))); } catch { prompt(T("Copy link"), u); } return; }
@@ -107,7 +143,7 @@ export function createStudio(ctx) {
     const inp = el.querySelector(".wst-aiin"), t = inp ? inp.value.trim() : ""; if (!t) { if (inp) inp.focus(); return; }
     busy = true; aiNote = T("Thinking…"); paint(); const r = await act({ action: "world-studio-ai", t, tpl: spec.tpl }); busy = false;
     if (!r) { aiNote = ""; paint(); return; }
-    if (r.j && r.j.spec) { spec = clampSpec({ ...r.j.spec, seed: r.j.spec.seed }); editId = ""; aiNote = r.j.by === "agent" ? T("{n} drafted it — tweak anything, then test it.", { n: ctx.agentName() || T("Your agent") }) : T("Drafted from your words — tweak anything, then test it."); paint(); if (ctx.Snd && ctx.Snd.perfect) try { ctx.Snd.perfect(); } catch { /* no sound */ } return; }
+    if (r.j && r.j.spec) { spec = clampSpec({ ...r.j.spec, seed: r.j.spec.seed }); editId = ""; lastTest = null; aiNote = r.j.by === "agent" ? T("{n} drafted it — tweak anything, then test it.", { n: ctx.agentName() || T("Your agent") }) : T("Drafted from your words — tweak anything, then test it."); step = 4; ctx.toast("✨ " + esc(aiNote)); paint(); if (ctx.Snd && ctx.Snd.perfect) try { ctx.Snd.perfect(); } catch { /* no sound */ } return; }
     aiNote = ""; paint(); fail(r);
   }
   async function save() {
@@ -235,6 +271,7 @@ export function createStudio(ctx) {
     let best = 0; const key = "arc.studio.best." + (o.id || "test:" + o.spec.tpl + ":" + o.spec.seed); try { best = Number(localStorage.getItem(key) || 0); if (score > best) localStorage.setItem(key, String(score)); } catch { /* not kept */ }
     const isBest = score > best && best > 0;
     lastRun = { score, coins: r.coins, dist: Math.round(r.dist), done: r.done, res, isBest };
+    if (o.test) lastTest = lastRun;
     const c = document.createElement("div"); c.className = "wst-res"; c.innerHTML = `<div class="wst-rin">${isBest ? `<em class="wst-best">✨ ${esc(T("New best!"))}</em>` : ""}<small>${esc(o.title || o.spec.title)}</small><h3>${esc(r.head)}</h3><b class="wst-score">${score}</b>
       <p>${esc(r.line)}</p>${res ? `<p>${esc(T("Your best: {n}", { n: res.best }))}${res.place ? " · " + esc(T("#{n} on this game", { n: res.place })) : ""}</p>` : o.test ? `<p class="wst-fine">${esc(T("A test run isn't counted."))}</p>` : ""}
       <span><button type="button" class="wst-go big" data-again>↻ ${esc(T("Play again"))}</button><button type="button" class="wst-go alt" data-back>${esc(T(o.test ? "Back to the editor" : "Back"))}</button></span></div>`;

@@ -82,3 +82,44 @@ export function genArena(spec) {
 }
 /// a run's score: coins and how far (a finish counts the whole track) — the server checks it can't beat the level
 export const scoreOf = (coins, dist, done) => Math.max(0, Math.round(coins) * 10 + Math.round(dist / 5) + (done ? 100 : 0));
+/// Studio 3: one-tap difficulty for the editor's third step (the settings a preset sets; the rest stay as they are)
+export const PRESETS = {
+  easy: { speed: 2, coins: 4, walls: 1, gaps: 0, lasers: 0 },
+  normal: { speed: 3, coins: 3, walls: 2, gaps: 1, lasers: 1 },
+  hard: { speed: 4, coins: 3, walls: 4, gaps: 2, lasers: 2 },
+  extreme: { speed: 5, coins: 2, walls: 5, gaps: 3, lasers: 3 },
+};
+/// Studio 3: how hard a level is, from 40 bots of rising skill playing it on paper (seeded: the same answer on the page and
+/// the server). → { clear (0–1, the share who finish — the dash: who last 45 s), stars (1 easy … 5 brutal), fails: 10
+/// buckets of where along the level the runs ended, why: the obstacle kind that ended the most ("wall"|"gap"|"laser"|"d"|"D"|"L") }
+export function estimate(spec0) {
+  const spec = clampSpec(spec0), L = genLevel(spec), N = 40, fails = new Array(10).fill(0), why = {};
+  let s = (spec.seed * 2654435761) >>> 0 || 7; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  let clears = 0;
+  if (spec.tpl === "arena") {
+    const dS = 2.6 + spec.speed * 0.9;
+    for (let b = 0; b < N; b++) {
+      const sk = 0.3 + (0.7 * b) / (N - 1); let hearts = 3, end = -1, recent = [];
+      for (const w of L.waves) { recent = recent.filter((t) => w.t - t < 3); recent.push(w.t);
+        const p = w.k === "L" ? 0.09 * (1.25 - sk) : (0.012 + (dS - 3) * 0.008 + recent.length * 0.006) * (w.k === "D" ? 1.5 : 1) * (1.3 - sk);
+        if (rnd() < Math.min(0.9, p)) { hearts--; if (hearts <= 0) { end = w.t / L.secs; why[w.k] = (why[w.k] || 0) + 1; break; } } }
+      if (end < 0) clears++; else fails[Math.min(9, Math.floor(end * 10))]++;
+    }
+  } else {
+    const dash = spec.tpl === "dash", goal = dash ? Array.from({ length: 45 }, (_, t) => dashSpeed(spec, t + 0.5)).reduce((a, x) => a + x, 0) : L.len;
+    const ev = []; for (const r of L.rows) { if (r.k === "coin" || r.z > goal) continue; const last = ev[ev.length - 1]; if (last && last.z === r.z) continue; ev.push({ z: r.z, k: r.k }); }
+    const vAt = (z) => { if (!dash) return speedOf(spec); let d = 0, t = 0; while (d < z && t < 600) { d += dashSpeed(spec, t + 0.5); t++; } return dashSpeed(spec, t); };
+    const vs = ev.map((e) => vAt(e.z));
+    for (let b = 0; b < N; b++) {
+      const sk = 0.3 + (0.7 * b) / (N - 1), react = 0.55 - 0.3 * sk; let hearts = 3, end = -1, pz = 0, pk = "";
+      for (let i = 0; i < ev.length; i++) { const e = ev[i], dt = (e.z - pz) / vs[i], need = react + 0.15 + (pk && pk !== e.k ? 0.15 : 0);
+        const p = Math.min(0.95, Math.max(0, ((need - dt) / need) * 1.2) + 0.02 * (1 - sk));
+        if (rnd() < p) { hearts--; if (hearts <= 0) { end = e.z / goal; why[e.k] = (why[e.k] || 0) + 1; break; } }
+        pz = e.z; pk = e.k; }
+      if (end < 0) clears++; else fails[Math.min(9, Math.floor(end * 10))]++;
+    }
+  }
+  const clear = clears / N, stars = clear > 0.8 ? 1 : clear > 0.6 ? 2 : clear > 0.4 ? 3 : clear > 0.2 ? 4 : 5;
+  const top = Object.entries(why).sort((a, b) => b[1] - a[1])[0];
+  return { clear: Math.round(clear * 100) / 100, stars, fails, why: top ? top[0] : "" };
+}

@@ -13,7 +13,7 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
 
 const src = fs.readFileSync(path.join(ROOT, "world-play.js"), "utf8");
 // the modules that take TW from world-play.js (their T is TW): their T("…") literals and the names/lines in their tables
-const MODS = ["world-adcity.js", "world-studio.js", "world-studio-gen.js", "world-agarena.js"].map((f) => fs.readFileSync(path.join(ROOT, f), "utf8"));
+const MODS = ["world-adcity.js", "world-studio.js", "world-studio-gen.js", "world-agarena.js", "world-studio-prev.js"].map((f) => fs.readFileSync(path.join(ROOT, f), "utf8"));
 const words = vm.runInNewContext("(" + src.slice(src.indexOf("const WORDS = {") + "const WORDS = ".length, src.indexOf("\n};", src.indexOf("const WORDS = {")) + 2) + ")");
 // later additions: Object.assign(WORDS.ko, { … });
 for (const m of src.matchAll(/Object\.assign\(WORDS\.(ko|zh|tr), (\{[\s\S]*?\})\);/g)) Object.assign(words[m[1]], vm.runInNewContext("(" + m[2] + ")"));
