@@ -8,6 +8,8 @@ import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, i
 export * from "./world-rpg-data.js";
 import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade, weaponThumb, gearThumb, gearModel3d } from "./world-gear3d.js";
 import { art } from "./world-itemart.js";
+import { icon as uiIcon } from "./world-icons.js";
+import { SET_BONUS } from "./world-rpg-data.js";
 const KIND_COST = 5000; // $ARCIRCLE to turn a weapon into another kind (a Weapon kind change; the server checks it on save)
 // the bag: 24 slots, and 8 more for each "Bigger bag" bought with $ARCIRCLE (api/_world-shop.mjs bagSize), up to 120
 const BAG_BASE = 24, BAG_STEP = 8, BAG_MAX = 120;
@@ -362,7 +364,7 @@ export function createRpg(ctx) {
   // the bag's filter (all / weapons / armour / accessories) and the pieces you haven't looked at yet
   const BAGF = { all: null, weapon: ["weapon"], armor: ["shield", "armor", "helm", "boots"], acc: ["ring", "necklace"] };
   let bagF = "all"; const fresh = new Set();
-  let open = false, sel = null, view = "inv", forgeTab = "gear", log = null, fuseSel = [], fuseSlot = "", invPane = "gear";
+  let open = false, sel = null, view = "inv", forgeTab = "gear", log = null, fuseSel = [], fuseSlot = "", invPane = "gear", charSub = "overview", evOn = false, colAll = false;
   const rc = (it) => RARITY[it.r || 0].color;
   // a weapon shows its own 3D picture (its kind at a glance); the rest keep their icons
   // the Forge's cards: the piece drawn in 3D like the bag's (a weapon in the kind you're holding), the line icon as a fallback
@@ -519,18 +521,129 @@ export function createRpg(ctx) {
       const slots = forgeTab === "gear" ? ["weapon", "shield", "armor", "helm"] : ["ring", "boots", "necklace"];
       body = `<div class="wr-forge-grid">${slots.flatMap((sl) => [0, 1, 2, 3, 4].map((t) => { const it = { b: baseId(sl, t), r: t, lv: TIERS[t].lv, p: 0 }, g = itemStats(it), ok = lv >= TIERS[t].lv; return `<article class="wr-fcard r${t}${ok ? "" : " locked"}" style="--rc:${rc(it)}"><div class="wr-fart">${fart(sl, parseBase(it.b).tier, rc(it))}</div><h4>${esc(BASES[sl][t])}</h4><small>${esc(T(RARITY[t].name))} · ${esc(T("Lv {n}", { n: TIERS[t].lv }))}</small><p>${Object.entries(g).map(([k, v]) => `${esc(T(STAT_NAME[k]))} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(" · ")}</p>${buyBtn(forgeId(sl, t), FORGE_PRICE[t], ok, T("Needs level {n}", { n: TIERS[t].lv }))}</article>`; })).join("")}</div><p class="wr-note">${esc(T("The Arc set (Legendary) is forged from level 20. Stronger pieces made at your own level are on the Masterwork bench."))}</p>`;
     }
-    return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}${id === "fuse" && isNewTab("fuse") ? '<i class="nb">NEW</i>' : ""}</button>`).join("")}<span class="wa-bal"><img src="/images/arcl2-64.png" alt="" width="24" height="24"><b>${Math.round(bal).toLocaleString("en-US")}</b></span></nav>${body}`;
+    // (the side menu picks the bench; Craft's three benches are chips over it — the old tab row is gone: tabs stays for the names)
+    const chips = ["gear", "acc", "master"].includes(forgeTab) ? `<nav class="hb-chips" role="group">${tabs.slice(0, 3).map(([id, n]) => `<button type="button" data-ftab="${id}" aria-pressed="${id === forgeTab}">${esc(T(n))}</button>`).join("")}</nav>` : "";
+    return chips + body;
+  }
+  // ---------------- the window (the owner's redesign, 2026-10-24: the Word file + mock-ups) ----------------
+  // a bar on top with the sections (Inventory lives in Character → Equipment: the owner's call), a menu down the left,
+  // the pane in the middle. Every bench, rule and limit is the one it was; only where things sit has changed.
+  const SECS = [["play", "Play", "village"], ["inv", "Character", "person"], ["forge", "Forge", "anvil"], ["adv", "Adventure", "book"], ["col", "Collection", "codex"], ["com", "Community", "crew"]];
+  const SIDE = {
+    inv: [["overview", "Overview", "person"], ["equip", "Equipment", "bag"], ["skills", "Skills", "sword"], ["titles", "Titles", "trophy"], ["look", "Costumes", "shirt"]],
+    forge: [["craft", "Craft", "anvil"], ["enhance", "Enhance", "sword"], ["fuse", "Fuse", "chart"], ["repair", "Repair", "wrench"], ["shop", "Shop", "shop"], ["sell", "Sell", "check"]],
+    adv: [["map", "World Map", "map"], ["daily", "Daily", "check"], ["ach", "Achievements", "trophy"], ["season", "Season", "season"], ["events", "Events", "chart"]],
+    col: [["all", "Overview", "codex"], ["items", "Item codex", "bag"], ["codex", "Scammer codex", "book"], ["pets", "Pets", "paw"], ["jur", "Jurassic codex", "island"]],
+    com: [["rank", "Rankings", "trophy"], ["crew", "Crew", "crew"], ["friends", "Friends", "chat"], ["invite", "Invite friends", "mail"]],
+  };
+  const HEAD = { overview: ["Character", "Your hero, your gear and your stats."], equip: ["Equipment", "What you wear, your bag and your storage."], skills: ["Skills", "Your skills and the branch each one takes."], titles: ["Titles", "Each achievement gives a title to wear under your name."], look: ["Costumes", "Your hero and your look."],
+    craft: ["Craft", "Gear and accessories for ARCL."], enhance: ["Enhance", "Make your gear stronger with scrap."], fuse: ["Fuse", "Three of one rarity make one of the next."], repair: ["Repair", "Restore the durability of Epic and Legendary gear."], shop: ["Shop", "Potions, scrolls and scrap for your adventure."], sell: ["Sell", "Turn gear you don't need into ARCL."],
+    daily: ["Daily", "Today's hunts, the quiz and the chest."], ach: ["Achievements", "Goals that give titles and bonuses."], season: ["Season", "Season points and the rewards at each tier."], events: ["Events", "What's on in the world, and when."],
+    all: ["Collection", "Everything you've found, in one place."], codex: ["Scammer codex", "Every scammer here is a real scam."], pets: ["Pets", "Your companions and their eggs."], rank: ["Rankings", "The world's best, this week and for good."] };
+  // art cut from the owner's mock-ups: ARON at the anvil, at the stall, with a coin, on a chest
+  const ART = { craft: "forge", fuse: "forge", repair: "enh", enhance: "enh", shop: "shop", sell: "sell", daily: "adv", ach: "adv", season: "adv", events: "adv" }, WIDE = new Set(["shop", "sell"]);
+  const LOGSEC = { daily: "adv", ach: "adv", season: "adv", codex: "col", pets: "col", rank: "com" };
+  const logTab = () => (log && log.tab ? log.tab() : "daily");
+  const sec = () => (view === "inv" ? "inv" : view === "forge" ? "forge" : evOn ? "adv" : colAll ? "col" : LOGSEC[logTab()] || "adv");
+  const sideOn = (sc) => (sc === "inv" ? charSub : sc === "forge" ? (["gear", "acc", "master"].includes(forgeTab) ? "craft" : forgeTab === "supplies" ? "shop" : forgeTab) : evOn ? "events" : colAll ? "all" : logTab());
+  const hub = (k) => (ctx.hub ? ctx.hub(k) : null);
+  const logPane = (t) => { if (!log) return ""; if (logTab() !== t) log.setTab(t); return log.html(); };
+  const fmt = (v) => (v == null ? "—" : v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "K" : Math.floor(v).toLocaleString("en-US"));
+  // the Character panes (the owner's Overview / Equipment mock-ups): the hero on a lit stage over the world between the
+  // slot columns, then the cards. On a phone the side menu stands in the stage's left edge (the mobile mock-up).
+  const slotEl = (k) => { const r = R(); return `<div class="wr-slot s-${k}" data-slot="${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.3)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`; };
+  const stageHTML = () => `<section class="hb-stage"><nav class="hb-snav">${SIDE.inv.map(([id, n, ic]) => `<button type="button" data-side="${id}" aria-pressed="${id === charSub}">${uiIcon(ic, 22)}<span>${esc(T(n))}</span></button>`).join("")}</nav>
+    <div class="hb-col hb-l">${["weapon", "helm", "armor", "boots"].map(slotEl).join("")}</div><div class="wr-avatar hb-hero"><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span></div><div class="hb-col hb-r">${["shield", "ring", "necklace"].map(slotEl).join("")}</div><i class="hb-ped" aria-hidden="true"></i></section>`;
+  const ST_IC = { hp: "hp", sp: "sp", atk: "atk", def: "def", crit: "crit", spd: "spd" };
+  const statsCard = () => { const s = stats(); return `<section class="hb-card hb-stats"><h4>${esc(T("Character stats"))}</h4><ul>${["hp", "crit", "sp", "spd", "atk", "def"].map((k) => `<li><img src="/images/ui/char/st-${ST_IC[k]}.webp${ctx.ver || ""}" alt=""><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? s[k] + "%" : s[k]}</b></li>`).join("")}</ul>${ctx.titleLine ? ctx.titleLine() : ""}</section>`; };
+  // the picked piece takes the weapon card's place (on a phone it docks at the bottom instead)
+  function weapCard() {
+    if (plan) return `<section class="hb-card hb-weap">${planHTML()}</section>`;
+    const it = sel && !docked() ? findItem(sel) : null;
+    if (it) return `<section class="hb-card hb-weap hb-picked">${detail(it)}</section>`;
+    const w = R().eq.weapon, ws = w ? itemStats(w) : null;
+    return `<section class="hb-card hb-weap"><h4>${esc(T("Equipped weapon"))}</h4>${w ? `<div class="hb-wrow">${tile(w, `data-pick="${w.id}"`)}<div><b style="color:${rc(w)}">${esc(itemName(w))}</b><small style="color:${rc(w)}">${esc(T(RARITY[w.r || 0].name))} · ${esc(T("Lv {n}", { n: w.lv }))}</small><ul class="hb-kv">${Object.entries(ws).map(([k, v]) => `<li><img src="/images/ui/char/st-${ST_IC[k] || "atk"}.webp${ctx.ver || ""}" alt=""><span>${esc(T(STAT_NAME[k]))}</span><b>+${v}${k === "crit" || k === "spd" ? "%" : ""}</b></li>`).join("")}</ul></div></div>
+      <div class="hb-acts hb-3"><button type="button" class="go" data-enhance="${w.id}" ${(w.p || 0) >= 10 ? "disabled" : ""}>${esc(T("Enhance"))}</button><button type="button" data-pick="${w.id}">${esc(T("Change"))}</button><button type="button" data-unequip="weapon">${esc(T("Remove"))}</button></div>` : emptyBox("hammer", T("You're wearing no gear. The Forge sells some, or equip a piece from your bag."), `<button type="button" class="gold" data-forge>${esc(T("Open Forge"))}</button>`)}</section>`;
+  }
+  function gsetCard() {
+    const r = R(), by = {}; for (const k of SLOTS) { const it = r.eq[k]; if (it) { const t = parseBase(it.b).tier; by[t] = (by[t] || 0) + 1; } }
+    const best = Object.entries(by).sort((a, b) => b[1] - a[1])[0], t = best ? +best[0] : 0, n = best ? best[1] : 0;
+    const line = (b) => Object.entries(b).map(([k, v]) => T({ atkPct: "Attack +{n}%", defPct: "Defense +{n}%", hpPct: "Max HP +{n}%", allPct: "All stats +{n}%" }[k], { n: v })).join(" · ");
+    return `<section class="hb-card hb-gset"><div class="hb-ch"><h4>${esc(T("Gear set"))}</h4><span class="hb-sets">${[0, 1].map((k) => `<span class="wr-gset${sets()[k] ? " on" : ""}"><button type="button" data-wearset="${k}">${esc(T("Set {n}", { n: k + 1 }))}</button><button type="button" class="sv" data-saveset="${k}" aria-label="${esc(T("Save what you wear as set {n}", { n: k + 1 }))}"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg></button></span>`).join("")}</span></div>
+      <div class="hb-worn">${SLOTS.map((k) => `<div class="hb-wc">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.25)")}</span>`}</div>`).join("")}</div>
+      <div class="hb-bon"><img src="/images/ui/menu2/hero-${hub("hero") || "aron"}.webp${ctx.ver || ""}" alt=""><div><b>${esc(T("{x} set ({n}/7)", { x: T(TIERS[t].set), n }))}</b><ul>${SET_BONUS.map(([need, b]) => `<li class="${n >= need ? "on" : ""}"><i>${n >= need ? "✓" : ""}</i><em>${esc(T("{n} pieces", { n: need }))}</em><span>${esc(line(b))}</span></li>`).join("")}</ul></div></div></section>`;
+  }
+  function invCard(compact) {
+    const r = R(), list = (storeView ? r.store : r.bag).filter((it) => { const pb = parseBase(it.b); return !BAGF[bagF] || (pb && BAGF[bagF].includes(pb.slot)); });
+    const size = storeView ? STORE : compact ? Math.max(list.length, 10) : Math.max(BAG, list.length);
+    return `<section class="hb-card hb-inv"><div class="hb-ch"><h4>${esc(storeView ? T("Storage") : T("Inventory"))}</h4><small>${storeView ? `${r.store.length}/${STORE}` : `${r.bag.length}/${BAG}`}</small>${!storeView && ctx.buyBag && BAG < BAG_MAX && !bagAsk ? `<button type="button" class="hb-plus" data-bagplus>${esc(T("+{n} slots", { n: BAG_STEP }))}</button>` : ""}<button type="button" class="hb-plus" data-storeview aria-pressed="${storeView}">${esc(storeView ? T("Back to the bag") : T("Storage"))}</button></div>
+      ${bagAsk ? `<div class="wr-bagask" role="group"><p>${esc(bagAsk === 1 ? T("{n} more bag slots, for good, for 10,000 $ARCIRCLE from your wallet (half is burned, half goes to the treasury). Your bag: {a} → {b} slots.", { n: BAG_STEP, a: BAG, b: Math.min(BAG_MAX, BAG + BAG_STEP) }) : bagAsk)}</p>${bagAsk === 1 ? `<button type="button" class="go" data-bagbuy>${esc(T("Buy"))}</button><button type="button" data-bagno>${esc(T("Cancel"))}</button>` : `<button type="button" data-bagno>${esc(T("Close"))}</button>`}</div>` : ""}
+      <nav class="hb-filt" role="group">${[["all", "All"], ["weapon", "Weapons"], ["armor", "Armour"], ["acc", "Accessories"]].map(([k, n]) => `<button type="button" data-bagf="${k}" aria-pressed="${bagF === k}">${esc(T(n))}</button>`).join("")}</nav>
+      <div class="hb-cells">${Array.from({ length: size }, (_, i) => { const it = list[i]; return `<div class="wr-cell${it && fresh.has(it.id) ? " new" : ""}">${it ? tile(it, `data-pick="${it.id}"`) : ""}</div>`; }).join("")}</div>
+      <p class="hb-res">${art("scrap", 18)}<b>${r.scrap}</b> ${esc(T("Scrap"))} · ${art("hp", 18)}<b>${r.hp}</b> · ${art("sp", 18)}<b>${r.sp}</b>${r.recall > 0 ? ` · <button type="button" class="wr-recall" data-recall>${esc(T("Recall to the plaza ({n})", { n: r.recall }))}</button>` : ""}</p>
+      <div class="hb-acts hb-3"><button type="button" class="mint" data-best>${esc(T("Equip best"))}</button><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button></div></section>`;
+  }
+  // Overview: the stage, who you are and your stats beside it; the weapon, a look in the bag and the gear set under it
+  function overviewHTML() {
+    const xp = hub("xp"), hero = hub("hero") || "aron";
+    return `<div class="hb-ov">${stageHTML()}<aside class="hb-side2"><div class="hb-card hb-id"><img src="/images/ui/menu2/hero-${hero}.webp${ctx.ver || ""}" alt=""><div><b>${esc(hub("name") || T("Player"))}</b><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span>${xp ? `<i style="--k:${xp.k}"></i><small>${xp.a.toLocaleString("en-US")} / ${xp.b.toLocaleString("en-US")} (${Math.round(xp.k * 100)}%)</small>` : ""}</div>${ctx.sess() && ctx.openProfile ? `<button type="button" class="hb-plus" data-mycard>${esc(T("My card"))}</button>` : ""}</div>${statsCard()}</aside>
+      ${weapCard()}${invCard(true)}${gsetCard()}</div>`;
+  }
+  // Equipment: the stage and the bag side by side; the weapon, the stats and the gear set under them
+  const equipHTML = () => `<div class="hb-eq">${stageHTML()}${invCard(false)}${weapCard()}${statsCard()}${gsetCard()}</div>`;
+  function lookHTML() {
+    const hero = hub("hero") || "aron";
+    return `<div class="hb-look"><div class="hb-heroes">${[["lumi", "LUMI"], ["aron", "ARON"], ["nex", "NEX"]].map(([id, n]) => `<figure class="${id === hero ? "on" : ""}"><img src="/images/ui/menu2/hero-${id}.webp" alt=""><figcaption>${n}${id === hero ? ` <small>${esc(T("You"))}</small>` : ""}</figcaption></figure>`).join("")}</div>
+      <div class="hb-card"><h4>${esc(T("Your look"))}</h4><p class="wr-note">${esc(T("Pick your hero and their colours in the character maker. ARC Bots also have a wardrobe of outfits."))}</p><div class="hb-acts"><button type="button" class="go" data-hubgo="make">${esc(T("Change character"))}</button>${ctx.isArc && ctx.isArc() ? `<button type="button" data-wardrobe>${esc(T("Wardrobe"))}</button>` : ""}${ctx.sess() && ctx.openProfile ? `<button type="button" data-mycard>${esc(T("My card"))}</button>` : ""}</div></div>
+      <div class="hb-card hb-soon"><h4>${esc(T("Costume sets"))}</h4><p>${esc(T("Coming soon"))}</p></div></div>`;
+  }
+  function eventsHTML() {
+    const ev = hub("events") || [];
+    return `<div class="hb-evs">${ev.map((e) => `<article class="hb-card hb-ev${e.live ? " live" : ""}"><span class="hb-evi">${e.ic}</span><div><b>${esc(e.t)}</b><small>${esc(e.live ? T("On now") : e.left)}</small></div>${e.live ? `<em>${esc(T("Live"))}</em>` : ""}</article>`).join("")}</div>`;
+  }
+  function colHTML() {
+    const c = hub("counts") || {}, card = (k, ic, n, line, x) => `<button type="button" class="hb-card hb-colc" data-side="${k}"><span class="hb-coli">${uiIcon(ic, 30)}</span><div><b>${esc(T(n))}</b><small>${esc(T(line))}</small></div>${x ? `<em>${x}</em>` : ""}</button>`;
+    return `<div class="hb-cols">${card("items", "bag", "Item codex", "Every piece of gear, tier by grade", c.items)}${card("codex", "book", "Scammer codex", "Pages: every page is a real scam", c.scam)}${card("pets", "paw", "Pets", "Companions and their eggs", c.pets)}${card("jur", "island", "Jurassic codex", "Dinosaurs, fish and finds in Jurassic World")}${card("ach", "trophy", "Achievements", "Goals that give titles", c.ach)}</div>`;
+  }
+  function paneHTML(sc, k) {
+    if (sc === "inv") return k === "overview" ? overviewHTML() : k === "skills" ? `<div class="hb-skills">${skillsHTML()}</div>` : k === "titles" ? logPane("ach") : k === "look" ? lookHTML() : equipHTML();
+    if (sc === "forge") return forgeHTML();
+    if (evOn) return eventsHTML();
+    if (colAll) return colHTML();
+    return log ? log.html() : "";
   }
   let paintKey = "";
   function paint() {
     if (!open) return; upNow = ups();
-    const bd = el.querySelector(".wr-body"), key = view + forgeTab + invPane + storeView, sy = bd && !opening && key === paintKey ? bd.scrollTop : 0; paintKey = key;
-    el.innerHTML = `<div class="wr-card${opening ? " opening" : ""}"><div class="wr-head"><span class="wr-ico">${view === "log" ? '<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>' : view === "forge" ? '<svg viewBox="0 0 24 24"><path d="M3 9h13l5-3v4l-5 2H9v3l3 2H6l3-2v-3H3z"/></svg>' : iconSvg("armor", "#9fe6ff")}</span><div><h2>${esc(view === "forge" ? T("Forge") : view === "log" ? T("Adventure log") : T("Character"))}</h2><p>${esc(view === "forge" ? T("Gear and supplies for ARCL. Enhance with scrap.") : view === "log" ? T("Daily hunts, the season, achievements, companions, the scam codex and top hunters. L opens it.") : T("Your gear, your stats and your bag. I opens and closes it."))}</p></div>
-      <nav class="wr-switch"><button type="button" data-view="inv" aria-pressed="${view === "inv"}">${esc(T("Character"))}</button><button type="button" data-view="forge" aria-pressed="${view === "forge"}">${esc(T("Forge"))}</button>${log ? `<button type="button" data-view="log" aria-pressed="${view === "log"}">${esc(T("Adventure log"))}${log.pending() ? `<i class="wr-dot">${log.pending()}</i>` : ""}</button>` : ""}</nav>
-      <button type="button" class="wa-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-      <div class="wr-body">${view === "forge" ? forgeHTML() : view === "log" && log ? log.html() : invHTML()}</div>${docked() && picked() ? `<div class="wr-dock">${detail(picked())}</div>` : ""}</div>`;
+    const sc = sec(), k = sideOn(sc), bd = el.querySelector(".wr-body"), key = sc + k + forgeTab + invPane + storeView, sy = bd && !opening && key === paintKey ? bd.scrollTop : 0; paintKey = key;
+    const hd = HEAD[k] || ["", ""], artK = ART[k], body = paneHTML(sc, k), arc = hub("arc"), pend = log && log.pending ? log.pending() : 0;
+    el.innerHTML = `<div class="wr-card hb hb-${sc} hb-p-${k}${sc === "inv" && (k === "overview" || k === "equip") ? " hb-stg" : ""}${opening ? " opening" : ""}">
+      <header class="hb-top"><span class="hb-brand"><img src="/images/arcircle-mark-sm.webp" alt=""><b>ARCIRCLE<br>WORLD</b></span>
+        <nav class="hb-secs">${SECS.map(([id, n, ic]) => `<button type="button" data-sec="${id}" aria-pressed="${id === sc}">${uiIcon(ic, 20)}<span>${esc(T(n))}</span>${id === "adv" && pend ? `<i class="wr-dot">${pend}</i>` : ""}</button>`).join("")}</nav>
+        <span class="hb-bal"><span title="ARCL"><img src="/images/arcl2-64.png" alt="ARCL"><b>${fmt(ctx.arclBal())}</b></span><span title="$ARCIRCLE"><img src="/images/arcircle-mark-sm.webp" alt="$ARCIRCLE"><b>${fmt(arc)}</b></span></span>
+        <button type="button" class="wa-x hb-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+      <div class="hb-row"><aside class="hb-nav">${SIDE[sc].map(([id, n, ic]) => `<button type="button" data-side="${id}" aria-pressed="${id === k}">${uiIcon(ic, 24)}<span>${esc(T(n))}</span>${id === "fuse" && isNewTab("fuse") ? '<i class="nb">NEW</i>' : ""}</button>`).join("")}${artK && !WIDE.has(k) ? `<img class="hb-art" src="/images/ui/menu2/${artK}.webp${ctx.ver || ""}" alt="">` : ""}</aside>
+        <main class="hb-main">${artK && WIDE.has(k) ? `<div class="hb-banner" style="--art:url('/images/ui/menu2/${artK}.webp${ctx.ver || ""}')"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : hd[0] ? `<div class="hb-head"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}<div class="wr-body">${body}</div></main></div>
+      ${docked() && picked() ? `<div class="wr-dock">${detail(picked())}</div>` : ""}</div>`;
     if (sy) el.querySelector(".wr-body").scrollTop = sy;
     if (view === "inv") preview3d();
+  }
+  // the bar's sections and the side menu
+  function goSec(id) {
+    if (id === "play") { hide(); return; }
+    evOn = false; colAll = false; sel = null; plan = null;
+    if (id === "inv" || id === "forge") view = id;
+    else { view = "log"; if (id === "col") colAll = true; else qtab(id === "com" ? "rank" : "daily"); }
+    if (ctx.onView) ctx.onView(view); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint();
+  }
+  // a quests tab through its own click (it loads a board, marks a tab seen)
+  const qtab = (t) => { if (!log) return; const fb = document.createElement("button"); fb.dataset.qtab = t; log.click(fb); };
+  function goSide(k) {
+    const sc = sec(); sel = null; plan = null;
+    if (sc === "inv") { charSub = k; if (k === "equip") invPane = "gear"; paint(); return; }
+    if (sc === "forge") { forgeTab = k === "craft" ? "gear" : k === "shop" ? "supplies" : k; seeTab(forgeTab); fuseSel = []; paint(); return; }
+    if (["map", "crew", "friends", "invite", "items", "jur"].includes(k)) { if (k !== "jur") hide(); hub(k); return; }
+    evOn = k === "events"; colAll = k === "all"; if (!evOn && !colAll) qtab(k); paint();
   }
   // the turning 3D view (world-preview.js): the selected weapon in its card, or else you, gear on, in the paper doll
   let PV = null;
@@ -546,7 +659,7 @@ export function createRpg(ctx) {
   }
   // the panel slides in when it opens, not again on every repaint (equipping, selling…)
   let opening = false;
-  function show(v) { view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
+  function show(v, sub) { if (v) { evOn = false; colAll = false; if (v === "inv" && sub) charSub = sub; } view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
   function hide() { const tp = document.querySelector(".wr-tip"); if (tp) tp.hidden = true; if (ask) { clearTimeout(ask.t); ask = null; } if (!open) return; open = false; fresh.clear(); el.hidden = true; sel = null; ctx.freeze(false); if (PV) PV.stop(); }
   function hammer() { const a = el.querySelector(".wr-detail"); if (a) { a.classList.remove("hit"); void a.offsetWidth; a.classList.add("hit"); } }
   // the Forge answers at once (b401): the counter, the sound and the bag move on the click, and the server's answer
@@ -627,7 +740,10 @@ export function createRpg(ctx) {
     const b = e.target.closest("button"); if (!b) return;
     const d = b.dataset;
     if (d.view) { view = d.view; sel = null; show(view); return; }
-    if (view === "log" && log && log.click(b)) { paint(); return; }
+    if (d.sec) { goSec(d.sec); return; }
+    if (d.side) { goSide(d.side); return; }
+    if (d.hubgo) { hide(); hub(d.hubgo); return; }
+    if ((view === "log" || (view === "inv" && charSub === "titles")) && log && log.click(b)) { paint(); return; }
     if (d.wearset != null) { wearSet(+d.wearset); return; }
     if (b.hasAttribute("data-storeview")) { storeView = !storeView; sel = null; paint(); return; }
     if (d.store) { const r = R(), i = r.bag.findIndex((x) => x.id === d.store); if (i < 0) return; if (r.store.length >= STORE) { ctx.toast(T("Storage is full ({n})", { n: STORE })); return; } r.store.push(r.bag.splice(i, 1)[0]); sel = null; changed(T("Put in storage")); return; }

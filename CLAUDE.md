@@ -176,6 +176,9 @@ around standing (SURVIVORS ARENA shipped like that). Before using a clip name an
   holds a private key.
 - **Daily caps will keep rising** — keep them as constants in one place per game, not scattered.
 - **Record more:** every ARCL movement goes into the ledger (worldArclTx, kept in full), not only the last-30 log.
+- **A player's problem comes first (2026-10-24):** when the owner passes on a user's / player's report (a screenshot, a
+  Telegram message, "a player says …"), fixing it is the top priority. As soon as it's fixed and verified, commit it on its
+  own (not mixed with work in progress) and give the owner the deploy commands right away, before going back to anything else.
 
 ## Our 2026 goals (KPIs for December 31, 2026 — the owner's targets, not guarantees)
 

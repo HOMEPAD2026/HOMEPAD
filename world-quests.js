@@ -343,7 +343,7 @@ export function createQuests(ctx) {
     const key = "arc.world.bountyNote", day = seoulDay(); try { if (localStorage.getItem(key) === day) return; localStorage.setItem(key, day); } catch { return; }
     say([T("Bounties reset tonight."), ready ? T("{n} ready to claim in the Adventure log.", { n: ready }) : "", near ? T("{k} knock-outs to the next one.", { k }) : ""].filter(Boolean).join(" "), "#ffc861");
   }
-  return { on, html, click, title, wear: (t) => { const x = X(); x.title = t; ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); ctx.onTitle && ctx.onTitle(); }, titleBonus, titleOf, hasPet, pending, bump, setTab: (t) => { tab = t; }, setRank: (k) => { rk = k; top = null; race = null; recs = null; loadTop().then(() => ctx.repaint && ctx.repaint()); }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, bountyNotice, leftTxt, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
+  return { on, html, click, title, wear: (t) => { const x = X(); x.title = t; ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); ctx.onTitle && ctx.onTitle(); }, titleBonus, titleOf, hasPet, pending, bump, setTab: (t) => { tab = t; }, tab: () => tab, setRank: (k) => { rk = k; top = null; race = null; recs = null; loadTop().then(() => ctx.repaint && ctx.repaint()); }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, bountyNotice, leftTxt, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
 }
 
 /// the companions (world-rpg-data.js PETS): the drone floats by your shoulder and zaps the nearest scammer, the cat
