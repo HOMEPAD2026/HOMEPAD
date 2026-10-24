@@ -183,7 +183,7 @@ addEventListener("pagehide", () => { if (lsT) writeLocal(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && lsT) writeLocal(); });
 // a network poller that skips its ticks while the tab is hidden and runs once (staggered) when it comes back
 const pollers = [];
-const every = (ms, fn) => { const p = { fn, due: false }; pollers.push(p); setInterval(() => { if (document.hidden) { p.due = true; return; } fn(); }, ms); };
+const every = (ms, fn) => { const p = { fn, due: false }; pollers.push(p); const run = () => { if (document.hidden) { p.due = true; return; } fn(); }; if (ms >= 10000) setTimeout(() => { run(); setInterval(run, ms); }, Math.round(Math.random() * ms)); else setInterval(run, ms); }; /* (the long ones start at a random point of their period: they used to fire in the same frame every minute) */
 document.addEventListener("visibilitychange", () => { if (document.hidden) return; let k = 0; for (const p of pollers) if (p.due) { p.due = false; setTimeout(p.fn, 300 * k++); } });
 const saveSet = () => { try { localStorage.setItem(SETS, JSON.stringify(S)); } catch { /* private window */ } };
 // the level from XP on a rising curve (world-rpg-data.js); a save from the old 100-a-level curve is converted once,
@@ -3119,7 +3119,7 @@ function paintCrown() {
 }
 $("wp-wallet").addEventListener("click", () => { if (AC && !addr()) AC.connect().then(() => { refreshPurse(true); refreshCoins(); paintAcct(); }).catch(() => {}); else if (AC) refreshPurse(true); });
 if (AC && AC.on) AC.on(() => { refreshPurse(true); refreshCoins(); paintAcct(); });
-setInterval(() => { if (!document.hidden) refreshPurse(false); }, 30000); // (the return below catches it up)
+setTimeout(() => setInterval(() => { if (!document.hidden) refreshPurse(false); }, 30000), 7000 + Math.random() * 15000); // (the return below catches it up)
 // back from a swap or a launch in another tab: read the purse again (at most every 5 seconds)
 let purseBack = 0; document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - purseBack > 5000) { purseBack = Date.now(); refreshPurse(true); } });
 
@@ -4825,12 +4825,23 @@ loadbar(1);
 const landing = dive();
 // b440: what arrives after loading (a zone's props, the Game Village, an island, a pet) is compiled in the background as
 // soon as it's in the scene, hidden parts too, so its first appearance on screen doesn't stall on shader building
-{ let seen = -1, busy = false; setInterval(() => {
-  if (busy || document.hidden || frozen) return; let n = 0; st.scene.traverse((o) => { if (o.isMesh || o.isPoints || o.isSprite) n++; });
-  if (n === seen) return; const first = seen < 0; seen = n; if (first) return;
-  busy = true; st.warm(3000).then(() => { busy = false; }, () => { busy = false; });
+// new things in the scene get their shaders compiled before they're seen — only the objects whose materials are new (it
+// used to recompile the whole scene, every hidden land and ground switched on for the call, whenever the count of meshes
+// changed: every 2.5 s in a fight or a crowd, a 100–200 ms stall each time)
+{ const warmSeen = new WeakSet(); let first = true, busy = false; setInterval(() => {
+  if (busy || document.hidden || frozen) return; const fresh = [];
+  st.scene.traverse((o) => { if (!(o.isMesh || o.isPoints || o.isSprite) || !o.material) return; const ms = Array.isArray(o.material) ? o.material : [o.material]; let nw = false; for (const m of ms) if (!warmSeen.has(m)) { warmSeen.add(m); nw = true; } if (nw && fresh.length < 40) fresh.push(o); });
+  if (first) { first = false; return; } /* (the loading screen's warm-up compiled these) */ if (!fresh.length) return;
+  busy = true; compileHidden(fresh).then(() => { busy = false; }, () => { busy = false; });
 }, 2500); }
 $("wp-loading").classList.add("done"); fun("ready");
+// the most played games' code fetched while the town is quiet, one at a time (entering one then doesn't wait for the
+// download); not on data saver or a slow connection, never in a fight; a failure here is only a later download
+{ const nc = navigator.connection || {}, slow = nc.saveData || /(^|-)2g|3g/.test(String(nc.effectiveType || ""));
+  const pre = [() => import("./world-survivors.js"), () => import("./world-jurassic.js"), () => import("./world-poker.js"), () => import("./world-rings.js")];
+  const idle = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 200));
+  const next = () => { if (!pre.length) return; if (document.hidden || mode !== "hub" || frozen || document.body.classList.contains("wc-fight")) { setTimeout(next, 8000); return; } idle(() => { const f = pre.shift(); f().catch(() => {}).finally(() => setTimeout(next, 6000)); }); };
+  if (!slow && S.quality !== "saver") setTimeout(next, 25000); }
 // b-st3: back on another day (this browser was here before, on an earlier Seoul day)
 try { const k = "arc.world.funday", d0 = localStorage.getItem(k), d1 = tipDay(); if (d0 && d0 !== d1) { fun("back"); if (P.char) landing.then(() => setTimeout(() => welcomeBack(Math.round((Date.parse(d1) - Date.parse(d0)) / 864e5)), 2200)); } localStorage.setItem(k, d1); } catch { /* private */ }
 // weekend 2×: say so once a session, a few seconds in
@@ -5389,7 +5400,7 @@ let pumpKings = null;
 const pkCalm = () => mode === "hub" && !introOn && !jurOn && !survOn && !ringsOn && !pokerOn && !mineOn && !defenseOn && !jumpOn && !beatOn;
 if (Date.now() < Date.parse("2026-11-06T06:00:00Z") || /[?&]pk=/.test(location.search)) setTimeout(async () => {
   try { const M = await import("./world-pumpking.js");
-    pumpKings = M.createPumpKings({ THREE, K, planet, T: TW, esc, toast, Snd, ver: VER, low: lowGfx, coarse, reduce, combat: () => combat, here: (v) => here(v), level, sess, post, blocked: (v) => blockedAt(v),
+    pumpKings = M.createPumpKings({ THREE, K, planet, T: TW, esc, toast, Snd, ver: VER, low: lowGfx, coarse, reduce, compile: (l) => compileHidden(l), combat: () => combat, here: (v) => here(v), level, sess, post, blocked: (v) => blockedAt(v),
       addItem: (it) => { rpg.addItem(it); save(); }, refresh: () => refreshPurse(true), parts, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, inHub: pkCalm, name: (it) => (it.u === "jack" ? TW("Jack's Inferno Blade") + (it.p ? " +" + it.p : "") : rpg.itemName(it)) });
     try { pumpKings.clear(groundG); } catch { /* the trees stay */ }
   } catch (e) { console.warn("pumpkin kings", e); staleReload(); }

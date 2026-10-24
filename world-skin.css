@@ -3548,3 +3548,6 @@ html.wp-pcphone .wp-adp-in{width:min(540px,94vw);zoom:1.5;max-width:calc(94vw / 
 .wag-event.launch{border-color:#ffd23a!important;background:linear-gradient(135deg,rgba(255,210,58,.16),rgba(180,140,255,.14))!important}
 .wag-event.launch span{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}.wag-event.launch s{color:#9fb4c8;font-weight:700}.wag-event.launch em{font-style:normal;font-weight:900;font-size:1.15em;color:#ffe066}
 .wag-event.launch i{font-style:normal;padding:3px 8px;border-radius:999px;background:#ff3d6e;color:#fff;font-weight:900;font-size:.85em}.wag-event.launch small{display:block;margin-top:4px;color:#cfe0f5}
+/* responsiveness (2026-10-24): no double-tap wait on any button, and a press shows at once (brightness only: nothing moves) */
+body.wp button,body.wp [role=button],body.wp a{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body.wp button:active:not(:disabled){filter:brightness(1.18)}

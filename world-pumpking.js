@@ -46,7 +46,7 @@ export function createPumpKings(ctx) {
   function rig(src, h, glow) {
     const o = K.skelClone(src.scene), box = new THREE.Box3().setFromObject(o), sz = box.max.y - box.min.y || 1, inner = new THREE.Group(); inner.add(o);
     o.scale.setScalar(h / sz); o.position.y = -box.min.y * (h / sz);
-    o.traverse((x) => { if (!x.isMesh) return; x.castShadow = !ctx.low; x.receiveShadow = false; x.frustumCulled = false; x.material = x.material.clone(); if (glow && x.material.emissive) { x.material.emissive.setHex(glow); x.material.emissiveIntensity = 0.12; } });
+    o.traverse((x) => { if (!x.isMesh) return; x.castShadow = !ctx.low && !ctx.coarse; /* (no boss shadows on phones: the shadow pass drew five skinned bodies) */ x.receiveShadow = false; x.frustumCulled = false; x.material = x.material.clone(); if (glow && x.material.emissive) { x.material.emissive.setHex(glow); x.material.emissiveIntensity = 0.12; } });
     const mix = new THREE.AnimationMixer(o), acts = {}; for (const c of src.animations) acts[c.name] = mix.clipAction(c);
     return { obj: inner, mix, acts };
   }
@@ -110,7 +110,7 @@ export function createPumpKings(ctx) {
     else if (k.spS > 3.2) playOn(e, "Running", { speed: Math.max(0.8, k.spS / 4.2) });
     else if (k.spS > 0.35) playOn(e, "Walking", { speed: Math.max(0.8, k.spS / 1.5) });
     else playOn(e, (Math.floor(performance.now() / 9000) + k.lv) % 3 === 0 ? "Idle_03" : "Idle_02", { fade: 0.35 });
-    e.mixer.update(dt);
+    { const d = Math.hypot(me.x - k.pos.x, me.z - k.pos.z), every = d < 45 ? 1 : d < 90 ? 3 : 6; k.jf = (k.jf || 0) + 1; k.jdt = (k.jdt || 0) + dt; if (k.jf % every === 0 || e.onceT > 0) { e.mixer.update(k.jdt); k.jdt = 0; } } // (a far Jack's pose every few frames)
     if (ctx.parts && !ctx.low && !ctx.reduce && (k.emT = (k.emT || 0) - dt) <= 0 && Math.hypot(me.x - k.pos.x, me.z - k.pos.z) < 40) { k.emT = 0.18; ctx.parts.emit({ at: tmp.copy(k.pos).setY(JACK_H * 0.82), kind: "glow", n: 2, speed: 0.8, up: 2.2, spread: 0.4, size: 0.4, life: 0.8, grav: -3, color: 0xff7a1a, color2: 0xffd23a, jitter: 0.3 }); }
   }
   // its fall: the body is ours again, it plays its death where it stood, then the pumpkin dances there
@@ -188,9 +188,11 @@ export function createPumpKings(ctx) {
     if (started) return; started = true;
     try { srcK = await load("/models/world/halloween/pumpkin-king.glb"); } catch (e) { console.warn("pumpkin king", e); started = false; return; }
     for (const k of kings) { const h = HOMES[k.id]; k.home = freeNear(h[0], h[1]); k.pos.copy(k.home); makeKing(k); }
-    poll(true);
+    warm(kings.map((k) => k.obj)); poll(true);
   }
-  const jackSoon = () => { if (srcJ || jP) return; jP = load("/models/world/halloween/inferno-jack.glb").then((g) => { srcJ = g; }).catch((e) => { console.warn("inferno jack", e); jP = null; }); };
+  // compile their shaders while nobody sees them (the first night's wake-up froze phones for half a second)
+  function warm(list) { try { if (ctx.compile) ctx.compile(list.filter(Boolean)); } catch { /* compiled on the first draw */ } }
+  const jackSoon = () => { if (srcJ || jP) return; jP = load("/models/world/halloween/inferno-jack.glb").then((g) => { srcJ = g; warm([rig(srcJ, 1, 0x8a2a06).obj]); }).catch((e) => { console.warn("inferno jack", e); jP = null; }); };
   function tick(dt, t) {
     if (!inTown()) { if (started) for (const k of kings) { if (k.m) sleep(k, false); if (k.obj) k.obj.visible = false; } return; }
     if (!started) { start(); return; } if (!srcK || !kings[0].obj) return;
