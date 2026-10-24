@@ -3418,14 +3418,14 @@ const evLeft = (at) => { const m = Math.max(0, Math.round((at - Date.now()) / 60
 // centred, where it clears the minimap; a computer has room at the top centre
 function placePill(pill) {
   if (!document.documentElement.classList.contains("wp-pcphone")) { pill.style.top = ""; return; }
-  let y = 0; for (const e of [document.getElementById("wp-quests"), document.getElementById("wc-vit"), document.querySelector(".wp-chips")]) { if (!e || !e.getClientRects().length) continue; const r = e.getBoundingClientRect(); if (r.height > 0) y = Math.max(y, r.bottom); }
+  let y = 0; for (const e of [...document.querySelectorAll(".wp-hud-l > *"), document.getElementById("wp-qmini"), document.getElementById("wc-vit"), document.querySelector(".wp-chips")]) { /* (everything in the left column, the folded quest button too: the boss bar sat on it, the owner's phone 2026-10-24) */ if (!e || !e.getClientRects().length) continue; const r = e.getBoundingClientRect(); if (r.height > 0) y = Math.max(y, r.bottom); }
   pill.style.top = y ? Math.round(y + 14) + "px" : "";
 }
 addEventListener("resize", () => { const p = document.getElementById("wp-evt"); if (p && !p.hidden) placePill(p); });
 // phone HUD (the owner's call 2026-10-24): one notice at a time, in one place under the top cards (the boss call, the egg,
 // the agent, the events pill take turns, 6 s each); while a boss's bar is up it has that place to itself
 const NQ = [".wp-bosscall", ".wp-dinochip", ".wag-chip", "#wp-evt"]; let nqI = 0, nqAt = 0, nqTop = 0;
-function noticeSlot() { let y = 0; for (const e of [document.getElementById("wp-quests"), document.getElementById("wc-vit"), document.querySelector(".wp-chips")]) { if (!e || !e.getClientRects().length) continue; const r = e.getBoundingClientRect(); if (r.height > 0) y = Math.max(y, r.bottom); } return y ? Math.round(y + 14) : 0; }
+function noticeSlot() { let y = 0; for (const e of [...document.querySelectorAll(".wp-hud-l > *"), document.getElementById("wp-qmini"), document.getElementById("wc-vit"), document.querySelector(".wp-chips")]) { /* (everything in the left column, the folded quest button too: the boss bar sat on it, the owner's phone 2026-10-24) */ if (!e || !e.getClientRects().length) continue; const r = e.getBoundingClientRect(); if (r.height > 0) y = Math.max(y, r.bottom); } return y ? Math.round(y + 20) : 0; }
 const nqSeen = new WeakSet(), nqObs = typeof MutationObserver === "function" ? new MutationObserver(() => nqRun()) : null; /* (a notice or the boss bar shown or hidden: the slot is sorted at once, not on the next second) */
 every(1000, () => nqRun());
 function nqRun() { try {
