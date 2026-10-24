@@ -1,22 +1,16 @@
 // world-raidq-data.js — RAID QUEENS' rules the game and the server share (a copy of api/_world-raidq.mjs RQ; tests/world/raidq.test.mjs
-// checks the two agree). The land's regions, the queens (level, everyone's HP, rewards) and the phases.
+// checks the two agree): the three queens' runs and the SECRET dungeon, the day's three runs.
 export const RQ = {
-  REGIONS: [
-    { id: "silver", name: "Silver Sanctum", lv: [100, 200], queen: "lysitha", skin: "blue", css: "#9fd4ff" },
-    { id: "golden", name: "Golden Dominion", lv: [200, 300], queen: "solvira", skin: "green", css: "#ffd36a" },
-    { id: "crimson", name: "Crimson Abyss", lv: [300, 400], queen: "nyxara", skin: "red", css: "#ff4d6d" },
-    { id: "throne", name: "Throne of Three", lv: [400, 500], queen: "", skin: "", css: "#ffb4e6", soon: true },
-  ],
-  QUEENS: [ // hp: everyone's; arcl: the top hitter's (RANK for 1st–3rd, SHARE for the rest), item: rarity r, +p
-    { id: "lysitha", name: "CELESTIAL LYSITHA", title: "The Arbiter of Stars and Divinity", lv: 100, hp: 600000, arcl: 8000, item: { r: 3, p: 5 } },
-    { id: "solvira", name: "RADIANT SOLVIRA", title: "The Sovereign of Light and Sun", lv: 200, hp: 1200000, arcl: 15000, item: { r: 4, p: 3 } },
-    { id: "nyxara", name: "CRIMSON NYXARA", title: "The Queen of Blood and Destruction", lv: 300, hp: 1800000, arcl: 25000, item: { r: 4, p: 5 } },
-  ],
   OPEN: false, // false: GM wallets only (the owner, 2026-10-25); true opens it to everyone
-  RANK: [1, 0.6, 0.4], SHARE: 0.25, PLUS_DOWN: [0, 1, 2, 3], // the 4th and on: SHARE of the ARCL, 3 fewer +
-  PHASES: [0.6, 0.25], // phase 2 below 60 % HP, phase 3 below 25 %
-  GAP: 5, CAP_K: 60, MIN_SHARE: 0.03, RESPAWN: 20, DAY_CLAIMS: 1, TOP: 20, // one report per 5 s, ≤ 60 × level each; ≥ 3 % of her HP to share; back 20 min after she falls; one reward a queen a Seoul day
+  DAY_RUNS: 3, TIME_MAX: 15 * 60, // three runs a Seoul day (the owner's call), a run's clock at most 15 minutes
+  MODES: [ // lv: to enter · min: the shortest win the server takes (s) · xpMin: a win's XP in minutes of xpPerMin(your level) · arcl, item: a win's reward
+    { id: "lysitha", region: "Silver Sanctum", lv: 100, boss: 100, min: 150, xpMin: 6, arcl: 2000, item: { r: 3, p: 3, n: 1 } },
+    { id: "solvira", region: "Golden Dominion", lv: 200, boss: 200, min: 150, xpMin: 8, arcl: 3000, item: { r: 4, p: 3, n: 1 } },
+    { id: "nyxara", region: "Crimson Abyss", lv: 300, boss: 300, min: 150, xpMin: 10, arcl: 5000, item: { r: 4, p: 5, n: 1 } },
+  ],
+  // the SECRET dungeon: its price in $ARCIRCLE, its level to enter, its three queens' levels, the shortest win, a win's XP
+  // (Lv 120 → 140 in XP, the owner's number: xpAt(140) − xpAt(120)), its gear (better: Epic/Legendary, more +)
+  SECRET: { id: "secret", PRICE: 10000, lv: 70, bosses: [72, 75, 78], min: 60, xp: 410010, items: [{ r: 4, p: 5 }, { r: 4, p: 4 }, { r: 3, p: 5 }] },
 };
-export const phaseOf = (hp, max) => (hp > max * RQ.PHASES[0] ? 1 : hp > max * RQ.PHASES[1] ? 2 : 3);
-export const queenOf = (id) => RQ.QUEENS.find((q) => q.id === id) || null;
-export const regionOf = (id) => RQ.REGIONS.find((r) => r.id === id) || null;
+export const modeOf = (id) => (id === "secret" ? RQ.SECRET : RQ.MODES.find((m) => m.id === id) || null);
+export const phaseOf = (hp, max) => (hp > max * 0.6 ? 1 : hp > max * 0.25 ? 2 : 3);

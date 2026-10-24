@@ -335,7 +335,7 @@ export function make(deps) {
   const poker = makePoker({ ...deps, json, now, signer, credit: shop.credit, debit: shop.debit, isoWeek: shop.isoWeek, crewOf: crew.crewOf }); // ARCIA POKER LOUNGE: chips (free daily, or bought with ARCL one way), tables, blackjack, outcome-free missions (api/_world-poker.mjs)
   const rings = makeRings({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // INFINITY RINGS: each new star pays (api/_world-rings.mjs)
   const pk = makeHalloween({ ...deps, json, now, signer, award: shop.award, level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // the Halloween Pumpkin Kings (api/_world-halloween.mjs)
-  const rq = makeRaidQueens({ ...deps, json, now, signer, isGM, award: shop.award, level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // RAID QUEENS: the three queens' shared HP and their rewards (api/_world-raidq.mjs)
+  const rq = makeRaidQueens({ ...deps, json, now, signer, isGM, award: shop.award, save: (w) => saveOf(w) }); // RAID QUEENS: runs, the day's three, the SECRET's tickets (api/_world-raidq.mjs)
   const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
@@ -465,8 +465,12 @@ export function make(deps) {
     const ownB = (await shop.own(s.wallet).catch(() => ({}))) || {};
     const boostK = ((Number(ownB.xpBoostUntil) || 0) > now() ? 2 : 1) * ((Number(ownB.xp3Until) || 0) > now() ? 3 : 1) * weekendK(now()); // the Starter's 2×, a launch potion's 3× and the weekend's 2× stack
     // GM wallets (the team's own testing) aren't paced
-    const g = isGM(s.wallet) ? { xp: data.xp, gain: 0, cut: 0, bank: old && old.xb != null ? old.xb : 0, dayKey: "" } : await xpGuard(s.wallet, old, data.xp, boostK);
-    data.xp = g.xp;
+    // XP the server granted itself (a won RAID QUEENS run: worldXpGrant) goes past that pace, once
+    const gk = `worldXpGrant/${s.wallet}`; let extra = 0;
+    if (old && !isGM(s.wallet)) { const gr = ((await getDocs([gk]))[gk] || {}).n || 0, oldXp = old.xpv === XP_VERSION ? old.xp || 0 : xpFromOld(old.xp); extra = Math.max(0, Math.min(gr, Math.floor(data.xp - oldXp))); }
+    const g = isGM(s.wallet) ? { xp: data.xp, gain: 0, cut: 0, bank: old && old.xb != null ? old.xb : 0, dayKey: "" } : await xpGuard(s.wallet, old, data.xp - extra, boostK);
+    data.xp = g.xp + extra;
+    if (extra > 0) await commit([{ inc: gk, fields: { n: -extra } }]).catch(() => {});
     await setDoc(key, { ...data, at: now(), xb: g.bank });
     if (g.gain > 0) await commit([{ inc: g.dayKey, fields: { n: g.gain } }]).catch(() => {});
     if (g.cut > 0) await commit([{ inc: `worldXpFlag/${s.wallet}`, fields: { n: 1, cut: g.cut } }]).catch(() => {});

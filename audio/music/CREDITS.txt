@@ -14,3 +14,11 @@ jurassic-1.mp3  "Cretaceous Dawn"
 jurassic-2.mp3  "Sauropod Spotting"
 jurassic-3.mp3  "Lost Frontier"
 Re-encoded to 128 kbps MP3 for streaming.
+
+RAID QUEENS (played during a run: the waves, then each queen's own fight), supplied by the ARCIRCLE owner:
+rq-waves.mp3    "Battle RPG Theme" by CleytonRX
+rq-lysitha.mp3  "Boss Battle"
+rq-solvira.mp3  "Epic Boss Battle" by Juhani Junkala
+rq-nyxara.mp3   "Intense Boss Battle"
+rq-secret.mp3   "Hard Boss Battle 1" by MintoDog
+Re-encoded to 128 kbps MP3 for streaming.

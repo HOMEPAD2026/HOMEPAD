@@ -307,7 +307,7 @@ export function createCombat(ctx) {
     if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
     if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
     if (o.name) m.spec = { ...m.spec, name: o.name, ...(o.color ? { color: o.color } : {}) }; // (world-raidq.js: an Imp, a Puglin)
-    if (o.ext) { m.ext = o.ext; m.home = o.home || null; m.hp = Math.max(1, o.hp != null ? o.hp : o.max); if (o.pats) m.pats = o.pats; label(m); }
+    if (o.ext) { m.ext = o.ext; m.extLabel = o.extLabel || ""; m.home = o.home || null; m.hp = Math.max(1, o.hp != null ? o.hp : o.max); if (o.pats) m.pats = o.pats; label(m); }
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
       const crown = new THREE.Group(); crown.position.y = bb.max.y + 1.2; g.add(crown);
@@ -739,7 +739,7 @@ export function createCombat(ctx) {
     const k = Math.max(0, m.hp / m.max);
     if (bossEl.hidden || bossEl.dataset.bid !== String(m.barId)) {
       bossEl.hidden = false; bossEl.dataset.bid = String(m.barId);
-      bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : m.ext ? `<span class="wc-long">${T("Halloween · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><q class="wc-bt" style="width:${100 * k}%"></q><u style="width:${100 * k}%"></u>${m.raid ? "" : '<s class="wc-ph" style="left:50%" aria-hidden="true"></s>'}</i><em></em>`;
+      bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : m.ext ? `<span class="wc-long">${m.extLabel || T("Halloween · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><q class="wc-bt" style="width:${100 * k}%"></q><u style="width:${100 * k}%"></u>${m.raid ? "" : '<s class="wc-ph" style="left:50%" aria-hidden="true"></s>'}</i><em></em>`;
     }
     bossEl.classList.toggle("raid", !!m.raid); bossEl.classList.toggle("rage", !!m.rage);
     const u = bossEl.querySelector("u"), q = bossEl.querySelector(".wc-bt"), em = bossEl.querySelector("em");

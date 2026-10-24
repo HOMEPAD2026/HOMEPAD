@@ -4065,6 +4065,49 @@ html.wp-pcphone .rq-cin{zoom:1.7}
 @media (max-width:560px){.rq-cin2 header{grid-template-columns:1fr}.rq-wcard{grid-template-columns:1fr}.rq-wcard>img{height:220px;-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)}}
 html.wp-pcphone .rq-wcard{grid-template-columns:1fr}html.wp-pcphone .rq-wcard>img{height:220px;-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)}
 html.wp-pcphone .rq-cin2 header{grid-template-columns:1fr}
+/* RAID QUEENS runs (world-raidq.js): the lobby (three queens + the SECRET), its pay card, the run's HUD */
+.rq-lobby{position:fixed;inset:0;z-index:11800;display:grid;place-items:center;padding:14px;background:radial-gradient(circle at 50% 20%,rgba(60,10,40,.7),rgba(4,2,10,.9));animation:rqIn .25s ease-out}
+.rq-lb{position:relative;width:min(980px,100%);max-height:94svh;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;background:linear-gradient(170deg,#170919,#06040c);border:1px solid rgba(255,122,184,.35);box-shadow:0 20px 80px rgba(0,0,0,.6),0 0 50px rgba(255,77,141,.18);color:#fff}
+.rq-lb header{position:relative;display:grid;grid-template-columns:200px 1fr;align-items:center;gap:14px;padding:12px 52px 12px 12px;background:linear-gradient(90deg,rgba(255,77,141,.14),transparent)}
+.rq-lb header img{width:100%;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.rq-lb header small{font:800 11px/1 Sora,system-ui,sans-serif;letter-spacing:.22em;color:#ff9ac6}.rq-lb header h3{margin:6px 0 4px;font:900 24px/1.1 Sora,system-ui,sans-serif}.rq-lb header p{margin:0;font:700 13.5px/1.4 system-ui,sans-serif;color:#ffe6a8}
+.rq-load{padding:40px;text-align:center;color:#d9cbe4}
+.rq-modes{overflow-y:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 12px 12px}
+.rq-mode{position:relative;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--rq,#ff7ab8) 18%,#0c0612),#08050d);border:1px solid color-mix(in srgb,var(--rq,#ff7ab8) 45%,transparent);transition:transform .15s,box-shadow .15s}
+.rq-mode:hover{transform:translateY(-2px);box-shadow:0 10px 30px color-mix(in srgb,var(--rq,#ff7ab8) 30%,transparent)}
+.rq-mode>img{width:100%;aspect-ratio:3/3.4;object-fit:cover;object-position:50% 10%;-webkit-mask-image:linear-gradient(180deg,#000 72%,transparent);mask-image:linear-gradient(180deg,#000 72%,transparent)}
+.rq-mode>div:last-child{display:flex;flex-direction:column;flex:1;padding:0 10px 10px;margin-top:-26px;position:relative}
+.rq-mode small{font:800 10.5px/1.2 Sora,system-ui,sans-serif;letter-spacing:.08em;color:var(--rq,#ff7ab8)}
+.rq-mode b{display:block;margin-top:4px;font:900 16px/1.1 Sora,system-ui,sans-serif;text-shadow:0 0 14px color-mix(in srgb,var(--rq,#ff7ab8) 60%,transparent)}
+.rq-mode em{display:block;margin-top:2px;font:italic 600 11.5px/1.3 system-ui,sans-serif;color:#d9cbe4}
+.rq-mode ul{list-style:none;margin:8px 0 10px;padding:0;display:grid;gap:4px;font:600 12px/1.35 system-ui,sans-serif;color:#efe3f6;flex:1}
+.rq-mode button{padding:11px;border-radius:11px;border:0;background:linear-gradient(180deg,color-mix(in srgb,var(--rq,#ff7ab8) 75%,#fff),var(--rq,#ff7ab8));color:#1a0612;font:900 14px Sora,system-ui,sans-serif;cursor:pointer}
+.rq-mode button[disabled]{background:rgba(255,255,255,.08);color:#bfb2c9;cursor:default}
+.rq-mode.lock>img{filter:grayscale(.8) brightness(.55)}
+.rq-secret{--rq:#ff7ab8;background:repeating-linear-gradient(135deg,rgba(255,122,184,.05) 0 12px,transparent 12px 24px),linear-gradient(180deg,#22081c,#07030a)}
+.rq-q{display:grid;place-items:center;aspect-ratio:3/3.4;font:900 96px/1 Sora,system-ui,sans-serif;color:#ff7ab8;text-shadow:0 0 30px #ff4d8d,0 0 60px rgba(255,77,141,.6);background:radial-gradient(circle at 50% 45%,rgba(255,77,141,.25),transparent 60%);animation:rqPulse 2.4s ease-in-out infinite}
+.rq-q.big{aspect-ratio:auto;height:120px;font-size:84px}
+@keyframes rqPulse{50%{text-shadow:0 0 50px #ff4d8d,0 0 90px rgba(255,77,141,.8);transform:scale(1.04)}}
+.rq-pay{width:min(400px,100%);padding:18px;text-align:center;--rq:#ff7ab8}
+.rq-pay small{font:800 11px/1 Sora,system-ui,sans-serif;letter-spacing:.22em;color:#ff9ac6}.rq-pay h3{margin:6px 0;font:900 22px/1.1 Sora,system-ui,sans-serif}.rq-pay p{margin:6px 0;font:600 13.5px/1.4 system-ui,sans-serif;color:#e7dcef}
+.rq-price{display:block;margin:12px 0 4px;font:900 28px/1 Sora,system-ui,sans-serif;color:#ffd36a;text-shadow:0 0 18px rgba(255,200,80,.5)}
+.rq-fine{font-size:12px!important;color:#bfb2c9!important}
+.rq-stat{font:800 13px/1.3 Sora,system-ui,sans-serif!important;color:#fff3c8!important;margin:0 0 10px!important}
+.rq-gain.sm{margin-top:4px}.rq-gain.sm b{font-size:22px;color:#7fe9ff;text-shadow:0 0 14px rgba(127,233,255,.5)}.rq-gain.sm span{color:#c8f6ff}
+.rq-wtx .rq-acts button{width:auto;flex:1;margin-top:0;background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.18)}.rq-wtx .rq-acts .rq-go{background:linear-gradient(180deg,#ffe08a,#ffb648);color:#2a1400;border-color:transparent}
+.rq-hud{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:900;width:min(420px,calc(100vw - 24px));pointer-events:none}
+.rq-hud-in{position:relative;padding:8px 12px 10px;border-radius:14px;background:linear-gradient(180deg,rgba(20,6,20,.88),rgba(8,3,12,.82));border:1px solid color-mix(in srgb,var(--rq) 55%,transparent);box-shadow:0 6px 24px rgba(0,0,0,.45),0 0 24px color-mix(in srgb,var(--rq) 22%,transparent);color:#fff;text-align:center}
+.rq-hud-in small{display:block;font:800 10px/1 Sora,system-ui,sans-serif;letter-spacing:.2em;color:var(--rq)}
+.rq-hud-in>b{display:block;margin:3px 0 2px;font:900 22px/1 Sora,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.rq-hud-in>span{display:block;font:700 12.5px/1.35 system-ui,sans-serif;color:#efe3f6}.rq-hud-in em{font-style:normal;color:#ffd36a;margin-left:4px}
+.rq-hud-in i{position:relative;display:block;height:18px;margin-top:6px;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.08);border:1px solid color-mix(in srgb,var(--rq) 50%,transparent)}
+.rq-hud-in i b{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,color-mix(in srgb,var(--rq) 70%,#000),var(--rq));transition:width .25s}
+.rq-hud-in i span{position:relative;font:800 11px/18px Sora,system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px #000}
+.rq-hud-in button{position:absolute;top:6px;right:6px;pointer-events:auto;padding:5px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.4);color:#fff;font:800 11px Sora,system-ui,sans-serif;cursor:pointer}
+@media (max-width:760px){.rq-modes{grid-template-columns:repeat(2,1fr)}.rq-lb header{grid-template-columns:120px 1fr}}
+html.wp-pcphone .rq-lb{zoom:1.9;width:calc((100vw - 40px) / 1.9);max-height:calc((100svh - 40px) / 1.9)}
+html.wp-pcphone .rq-modes{grid-template-columns:repeat(2,1fr)}html.wp-pcphone .rq-lb header{grid-template-columns:110px 1fr}
+html.wp-pcphone .rq-hud{zoom:1.7;width:calc((100vw - 200px) / 1.7);top:calc(70px + env(safe-area-inset-top,0px))}
 /* the window sat off to the right and filled the phone edge to edge (the owner's screenshot, 2026-10-24): the sheet's 16px
    padding plus a full-width card pushed it right. Centred now, with a little room on every side */
 html.wp-pcphone body.wp .wr-sheet:has(>.wr-card.hb){padding:0;place-items:center}

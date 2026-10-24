@@ -9,7 +9,9 @@ export const PLAYLIST = ["kpop-1", "kpop-2", "kpop-3", "kpop-4", "kpop-5", "kpop
 /// what each track is (audio/music/CREDITS.txt): shown on the stage's screen while it plays
 /// Jurassic World's own three tracks (the owner's), played the same way while you're there
 export const JURASSIC = ["jurassic-1", "jurassic-2", "jurassic-3"];
-export const TITLES = { "jurassic-1": ["Cretaceous Dawn", "ARCIRCLE"], "jurassic-2": ["Sauropod Spotting", "ARCIRCLE"], "jurassic-3": ["Lost Frontier", "ARCIRCLE"], "kpop-1": ["Epic K-pop Music", "ribhavagrawal"], "kpop-2": ["Tell Me", "kontraa"], "kpop-3": ["Modern K-pop", "kulakovka"], "kpop-4": ["Han River Nights", "ultrafi"], "kpop-5": ["Neon Run", "sounovamusic"], "kpop-6": ["K-pop", "kulakovka"] };
+/// RAID QUEENS: the waves, each queen, the SECRET (one track looped while it lasts; world-raidq.js ctx.music)
+export const RAIDQ = { waves: "rq-waves", lysitha: "rq-lysitha", solvira: "rq-solvira", nyxara: "rq-nyxara", secret: "rq-secret" };
+export const TITLES = { "rq-waves": ["Battle RPG Theme", "CleytonRX"], "rq-lysitha": ["Boss Battle", "RAID QUEENS"], "rq-solvira": ["Epic Boss Battle", "Juhani Junkala"], "rq-nyxara": ["Intense Boss Battle", "RAID QUEENS"], "rq-secret": ["Hard Boss Battle 1", "MintoDog"], "jurassic-1": ["Cretaceous Dawn", "ARCIRCLE"], "jurassic-2": ["Sauropod Spotting", "ARCIRCLE"], "jurassic-3": ["Lost Frontier", "ARCIRCLE"], "kpop-1": ["Epic K-pop Music", "ribhavagrawal"], "kpop-2": ["Tell Me", "kontraa"], "kpop-3": ["Modern K-pop", "kulakovka"], "kpop-4": ["Han River Nights", "ultrafi"], "kpop-5": ["Neon Run", "sounovamusic"], "kpop-6": ["K-pop", "kulakovka"] };
 const FADE = 2.5;
 
 export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, on = () => true, list = PLAYLIST, rnd = Math.random } = {}) {
