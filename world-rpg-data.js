@@ -85,6 +85,9 @@ export function statsOf(level, eq, extra) {
   if (extra) for (const k of ["atk", "def", "hp", "sp", "crit", "spd"]) if (extra[k]) s[k] += extra[k];
   // the village blessing: a share more max HP
   if (extra && extra.hpPct) s.hp = Math.round(s.hp * (1 + extra.hpPct / 100));
+  // the item codex's full columns (api/_world-codex.mjs CODEX.SET): a share more attack / defense
+  if (extra && extra.atkPct) s.atk = Math.round(s.atk * (1 + extra.atkPct / 100));
+  if (extra && extra.defPct) s.def = Math.round(s.def * (1 + extra.defPct / 100));
   // small passives on the way to the first skill: level 3 tougher, 5 quicker, 7 sharper
   if (level >= 3) s.hp = Math.round(s.hp * 1.05);
   if (level >= 5) s.spd += 5;
