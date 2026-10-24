@@ -124,9 +124,32 @@ Object.assign(WORDS.tr, { "No hints": "İpucu yok", "1 hint": "1 ipucu", "2 hint
 Object.assign(WORDS.ko, { "Get my agent — {n} $ARCIRCLE": "내 에이전트 받기 — {n} $ARCIRCLE", "50% of the price is burned, 50% goes to the ARCIRCLE treasury — sent from your own wallet on Arc.": "가격의 50%는 소각되고 50%는 ARCIRCLE 트레저리로 가요 — Arc에서 내 지갑으로 직접 보내요.", "AGENT DIMENSION is open!": "AGENT DIMENSION 오픈!", "50% OFF": "50% 할인", "Pick AURORA, ORION or VEX. 50% of the price is burned, 50% goes to the treasury.": "AURORA, ORION, VEX 중 하나를 골라요. 가격의 50%는 소각, 50%는 트레저리로 가요.", "Your payment is still confirming on Arc — try Create again in a minute; it won't charge you twice.": "결제가 아직 Arc에서 확인 중이에요 — 1분 뒤 다시 만들기를 눌러 주세요. 두 번 결제되지 않아요.", "Choose your AI agent — 100,000 $ARCIRCLE, 50% off": "나의 AI 에이전트를 골라요 — 100,000 $ARCIRCLE, 50% 할인", "AGENT DIMENSION is open! Pick AURORA, ORION or VEX — 50% of the price is burned, 50% goes to the treasury.": "AGENT DIMENSION 오픈! AURORA, ORION, VEX 중 하나를 골라요 — 가격의 50%는 소각, 50%는 트레저리로 가요.", "Go to the AD Tower": "AD 타워로 가기", "Waiting for Arc to confirm…": "Arc에서 확인 중…" });
 Object.assign(WORDS.zh, { "Get my agent — {n} $ARCIRCLE": "获取我的智能体 — {n} $ARCIRCLE", "50% of the price is burned, 50% goes to the ARCIRCLE treasury — sent from your own wallet on Arc.": "价格的 50% 销毁,50% 进入 ARCIRCLE 金库 — 在 Arc 上由你自己的钱包发送。", "AGENT DIMENSION is open!": "AGENT DIMENSION 正式开放!", "50% OFF": "5 折", "Pick AURORA, ORION or VEX. 50% of the price is burned, 50% goes to the treasury.": "从 AURORA、ORION、VEX 中选一个。价格的 50% 销毁,50% 进入金库。", "Your payment is still confirming on Arc — try Create again in a minute; it won't charge you twice.": "你的付款仍在 Arc 上确认中 — 一分钟后再点创建,不会重复扣款。", "Choose your AI agent — 100,000 $ARCIRCLE, 50% off": "选择你的 AI 智能体 — 100,000 $ARCIRCLE,5 折", "AGENT DIMENSION is open! Pick AURORA, ORION or VEX — 50% of the price is burned, 50% goes to the treasury.": "AGENT DIMENSION 正式开放!从 AURORA、ORION、VEX 中选一个 — 价格的 50% 销毁,50% 进入金库。", "Go to the AD Tower": "前往 AD 塔", "Waiting for Arc to confirm…": "等待 Arc 确认…" });
 Object.assign(WORDS.tr, { "Get my agent — {n} $ARCIRCLE": "Ajanımı al — {n} $ARCIRCLE", "50% of the price is burned, 50% goes to the ARCIRCLE treasury — sent from your own wallet on Arc.": "Fiyatın %50'si yakılır, %50'si ARCIRCLE hazinesine gider — Arc'ta kendi cüzdanından gönderilir.", "AGENT DIMENSION is open!": "AGENT DIMENSION açıldı!", "50% OFF": "%50 İNDİRİM", "Pick AURORA, ORION or VEX. 50% of the price is burned, 50% goes to the treasury.": "AURORA, ORION ya da VEX'i seç. Fiyatın %50'si yakılır, %50'si hazineye gider.", "Your payment is still confirming on Arc — try Create again in a minute; it won't charge you twice.": "Ödemen Arc'ta hâlâ onaylanıyor — bir dakika sonra tekrar Oluştur'a bas; iki kez ücret alınmaz.", "Choose your AI agent — 100,000 $ARCIRCLE, 50% off": "AI ajanını seç — 100.000 $ARCIRCLE, %50 indirim", "AGENT DIMENSION is open! Pick AURORA, ORION or VEX — 50% of the price is burned, 50% goes to the treasury.": "AGENT DIMENSION açıldı! AURORA, ORION ya da VEX'i seç — fiyatın %50'si yakılır, %50'si hazineye gider.", "Go to the AD Tower": "AD Kulesi'ne git", "Waiting for Arc to confirm…": "Arc onayı bekleniyor…" });
+Object.assign(WORDS.ko, { "Taking you to the AD Tower as soon as the town is ready…": "마을이 준비되면 바로 AD 타워로 데려갈게요…" });
+Object.assign(WORDS.zh, { "Taking you to the AD Tower as soon as the town is ready…": "城镇准备好后立即带你前往 AD 塔…" });
+Object.assign(WORDS.tr, { "Taking you to the AD Tower as soon as the town is ready…": "Kasaba hazır olur olmaz seni AD Kulesi'ne götüreceğim…" });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
+/// the opening week's launch card (24 – 31 Oct, Seoul): on every visit, for everyone (guests and agent owners too), on top of
+/// everything, as soon as this code runs — over the loading screen (the owner's call 2026-10-24: "우선순위를 더 높여 … 더 빠르게").
+/// "Go to the AD Tower" pressed before the town is ready waits for it (adpGo).
+const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z");
+let adpDone = false, adpGo = false;
+const adpReady = () => { try { const l = document.getElementById("wp-loading"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && mode === "hub" && !introOn; } catch { return false; /* (still loading) */ } };
+function adPromo(force) {
+  if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
+  adpDone = true;
+  const el = document.createElement("div"); el.className = "wp-adp"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", TW("AGENT DIMENSION is open!"));
+  el.innerHTML = `<div class="wp-adp-in"><button type="button" class="wp-adp-x" data-later aria-label="${esc(T("Close"))}">×</button>
+    <button type="button" class="wp-adp-art" data-go><img src="/images/ad/agent-launch.webp?v=1" srcset="/images/ad/agent-launch-640.webp?v=1 640w, /images/ad/agent-launch.webp?v=1 1100w" sizes="(max-width: 600px) 92vw, 540px" width="1100" height="733" alt="${esc(TW("Choose your AI agent — 100,000 $ARCIRCLE, 50% off"))}"></button>
+    <p>${esc(TW("AGENT DIMENSION is open! Pick AURORA, ORION or VEX — 50% of the price is burned, 50% goes to the treasury."))}</p>
+    <span><button type="button" class="wp-adp-go" data-go>🚀 ${esc(TW("Go to the AD Tower"))}</button><button type="button" class="wp-adp-later" data-later>${esc(TW("Later"))}</button></span></div>`;
+  let was = null; try { was = frozen; frozen = true; keys.clear(); near = null; paintPrompt(); } catch { /* the town isn't up yet */ }
+  document.body.appendChild(el); try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
+  const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 220); if (was !== null) try { frozen = was && !!document.querySelector("#wp-make:not([hidden]),.wp-qs"); } catch { /* fine */ } };
+  el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-later]")) return close(); if (e.target.closest("[data-go]")) { close(); if (adpReady()) goAgentTower(); else { adpGo = true; try { toast(TW("Taking you to the AD Tower as soon as the town is ready…")); } catch { /* the toast comes later */ } } } });
+}
+adPromo();
 document.querySelectorAll("[data-w]").forEach((el) => { el.textContent = W(el.dataset.w); });
 if (LANG !== "en") { const k = $("wp-keys"); if (k) k.innerHTML = `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ${W("move")} <span>·</span> <kbd>Space</kbd> ${W("jump")} <span>·</span> <kbd>Shift</kbd> ${W("run")} <span>·</span> <kbd>E</kbd> ${W("enter")} <span>·</span> <kbd>F</kbd> ${W("board")} <span>·</span> <kbd>1</kbd><kbd>2</kbd> ${W("emote")} <span>·</span> <kbd>P</kbd> ${W("photo")} <span>·</span> <kbd>M</kbd> ${W("map")} <span>·</span> <kbd>H</kbd> ${W("help")} <span>·</span> ${W("drag to look")}`; }
 K.SHOPS.forEach((s) => { s.name = T(s.name); s.line = T(s.line); });
@@ -5351,31 +5374,13 @@ async function openArena() {
 // AGENT DIMENSION's opening (the owner's call 2026-10-24): for a week, a signed-in player without an agent sees the owner's
 // launch art once a day, when they sign in or come back signed in; its button takes them to the Citadel (the AD Tower)
 // and opens the Genesis Lab to buy one
-const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z"); // (24 – 31 Oct, Seoul)
 const STUDIO_OPEN = true; /* ARCIRCLE Studio for everyone (the owner, 2026-10-24); the server's STUDIO.OPEN says the same */
-/// the opening week's launch card: on every visit (each page load), for everyone (guests, players who already have an agent),
-/// on top of any other window (the owner's call 2026-10-24: "다른 창보다 우선 … 보유시도 … 모든 접속에"). It waits only for the
-/// loading screen and the arrival flight, and it gives back whatever freeze was there before it.
-let adpDone = false;
-const adpReady = () => { const l = document.getElementById("wp-loading"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && mode === "hub" && !introOn; }; /* (at once: the owner found it slow, 2026-10-24) */
-function adPromo(force) {
-  if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
-  adpDone = true;
-  const el = document.createElement("div"); el.className = "wp-adp"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", TW("AGENT DIMENSION is open!"));
-  el.innerHTML = `<div class="wp-adp-in"><button type="button" class="wp-adp-x" data-later aria-label="${esc(T("Close"))}">×</button>
-    <button type="button" class="wp-adp-art" data-go><img src="/images/ad/agent-launch.webp?v=1" srcset="/images/ad/agent-launch-640.webp?v=1 640w, /images/ad/agent-launch.webp?v=1 1100w" sizes="(max-width: 600px) 92vw, 540px" width="1100" height="733" alt="${esc(TW("Choose your AI agent — 100,000 $ARCIRCLE, 50% off"))}"></button>
-    <p>${esc(TW("AGENT DIMENSION is open! Pick AURORA, ORION or VEX — 50% of the price is burned, 50% goes to the treasury."))}</p>
-    <span><button type="button" class="wp-adp-go" data-go>🚀 ${esc(TW("Go to the AD Tower"))}</button><button type="button" class="wp-adp-later" data-later>${esc(TW("Later"))}</button></span></div>`;
-  const was = frozen; document.body.appendChild(el); frozen = true; keys.clear(); near = null; paintPrompt(); try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
-  const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 220); frozen = was && !!document.querySelector("#wp-make:not([hidden]),.wp-qs"); };
-  el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-later]")) return close(); if (e.target.closest("[data-go]")) { close(); goAgentTower(); } });
-}
 /// to the Citadel's door (the AD Tower) with a flash of light, then the agent window (the Genesis Lab when there's none yet)
 function goAgentTower() {
   const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - (g.x / d) * 16, g.z - (g.z / d) * 16, { x: g.x, z: g.z });
   try { vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); } catch { /* no flash */ } near = null; paintPrompt(); setTimeout(() => openAgent(), 900);
 }
-every(400, () => { if (!adpDone && adpReady()) adPromo(); });
+every(300, () => { if (adpGo && adpReady()) { adpGo = false; goAgentTower(); } });
 async function openAgent() { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(); }
 setTimeout(() => { loadAgent().catch(() => {}); }, 7000);
 // the Halloween Pumpkin Kings (world-pumpking.js, 22 Oct – 5 Nov US Eastern; ?pk=day / ?pk=night to try): five dancing
