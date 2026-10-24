@@ -8,6 +8,7 @@ const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
 const { AGENT } = await import("../../api/_world-agent.mjs");
 const { STUDIO } = await import("../../api/_world-studio.mjs");
+AGENT.OPEN = false;
 const G = await import("../../api/_world-studio-gen.mjs");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
@@ -51,7 +52,7 @@ const PZ = G.clampSpec({ tpl: "puzzle", seed: 4821, speed: 3, coins: 2, walls: 1
 check(PZ.title === "My Ring Puzzle" && PL && PL.rings.length === 6 && PL.par > 0, "a puzzle's board: " + G.genLevel(PZ).id + " · " + (PL && PL.rings.length) + " rings, par " + (PL && PL.par));
 // closed: only GMs while AGENT DIMENSION is closed
 let r = await call(me, "world-studio-save", { spec: {} }); check(r.status === 403 && r.body.closed, "closed: a player can't save a game yet");
-AGENT.OPEN = true;
+STUDIO.OPEN = true;
 r = await W.handle({ action: "world-studio-save", spec: {} }); check(r.status >= 400 && r.status < 500, "no signature: nothing");
 r = await call(me, "world-studio-save", { spec: { title: "Neon Rush", theme: "neon", speed: 3, len: 30, coins: 4, walls: 2, gaps: 1, lasers: 1, seed: 7 } });
 const id = r.body.game && r.body.game.id; check(r.status === 200 && /^g[a-z0-9]+$/.test(id) && r.body.game.pub === false, "a draft saved: " + id);

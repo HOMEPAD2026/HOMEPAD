@@ -238,11 +238,11 @@ export function createAgentDim(ctx) {
     else form = `<div class="wag-form"><label>${esc(T("Personality"))}<input class="wag-persona" maxlength="160" value="${esc(draft.persona)}" placeholder="${esc(T("e.g. cheerful, loves dinosaurs"))}"></label>
       <div class="wag-presets">${PRESETS.map((p) => `<button type="button" data-preset="${esc(T(p))}">${esc(T(p))}</button>`).join("")}</div>
       <p class="wag-sum">${ICON[pick]} <b>${esc(draft.name || C.name)}</b> · @${esc(draft.id)}</p>
-      <div class="wag-cta"><button type="button" data-back>‹ ${esc(T("Back"))}</button><button type="button" class="wag-go" data-create>${signed ? esc(T("Create my agent — free")) : esc(T("Sign in to create your agent"))}</button></div><p class="wag-fine">${esc(T("Your agent can't move your funds: anything on-chain will always ask your own wallet first."))}</p></div>`;
+      <div class="wag-cta"><button type="button" data-back>‹ ${esc(T("Back"))}</button><button type="button" class="wag-go" data-create ${paying ? "disabled" : ""}>${!signed ? esc(T("Sign in to create your agent")) : price() ? (paying ? "⏳ " + esc(T(paying)) : "🔥 " + esc(T("Get my agent — {n} $ARCIRCLE", { n: price().toLocaleString("en-US") }))) : esc(T("Create my agent — free"))}</button></div>${price() ? `<p class="wag-fine">🔥 ${esc(T("50% of the price is burned, 50% goes to the ARCIRCLE treasury — sent from your own wallet on Arc."))}</p>` : ""}<p class="wag-fine">${esc(T("Your agent can't move your funds: anything on-chain will always ask your own wallet first."))}</p></div>`;
     el.innerHTML = `<div class="wag-card lab ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("Genesis Lab"))} · ${esc(T("Create your Agent. Give it a Purpose."))}</small>
       <div class="wag-nm"><h2>${esc(C.name)}</h2>${ICON[k] ? `<b class="wag-lv">${ICON[k]}</b>` : ""}</div><p class="wag-role">${esc(T(ROLE[k]))}</p><q class="wag-quote">${esc(T(LINE[k]))}</q>
       <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
-      <div class="wag-body">${dots}${st && st.prelaunch !== false && step === 1 ? `<div class="wag-event"><b>🎉 ${esc(T("Pre-launch event"))}</b><span>${esc(T("Create your AI agent for free before AGENT DIMENSION officially opens. After the opening, creating an agent will cost."))}</span></div>` : ""}${form}</div></section></div>`;
+      <div class="wag-body">${dots}${price() && step === 1 ? `<div class="wag-event launch"><b>🚀 ${esc(T("AGENT DIMENSION is open!"))}</b><span><s>${(st.pay.list || 0).toLocaleString("en-US")}</s> <em>${price().toLocaleString("en-US")} $ARCIRCLE</em> <i>${esc(T("50% OFF"))}</i></span><small>${esc(T("Pick AURORA, ORION or VEX. 50% of the price is burned, 50% goes to the treasury."))}</small></div>` : st && st.prelaunch !== false && step === 1 ? `<div class="wag-event"><b>🎉 ${esc(T("Pre-launch event"))}</b><span>${esc(T("Create your AI agent for free before AGENT DIMENSION officially opens. After the opening, creating an agent will cost."))}</span></div>` : ""}${form}</div></section></div>`;
     const id = el.querySelector(".wag-id"); if (id && draft.id) idInput(id);
   }
   const keepDraft = () => { const q = (c) => el.querySelector(c); if (q(".wag-id")) draft.id = idNorm(q(".wag-id").value); if (q(".wag-name")) draft.name = q(".wag-name").value; if (q(".wag-persona")) draft.persona = q(".wag-persona").value; };
@@ -408,12 +408,39 @@ export function createAgentDim(ctx) {
     const s2 = ctx.sess(); if (!s2) return null;
     try { return await ctx.post({ ...body0, wallet: s2.wallet, issued: s2.issued, signature: s2.signature }); } catch { return { ok: false, j: { error: T("No connection — try again") } }; }
   }
+  let paying = "";
+  const price = () => (st && st.pay && !st.prelaunch && st.pay.price > 0 ? st.pay.price : 0);
   async function create() {
     if (!pick) return; keepDraft(); const name = draft.name, persona = draft.persona, id = draft.id;
     if (!ID_RE.test(id)) { labStep = 2; paint(); idState(T("3–16 letters, numbers or _"), "bad"); const f = el.querySelector(".wag-id"); if (f) f.focus(); return; }
+    // the launch price: 100,000 $ARCIRCLE from the player's own wallet to FeeBurn (50% burned, 50% to the treasury); a
+    // payment already sent (its agent not made yet — an ID taken, a closed tab) is used again, never paid twice
+    let tx = "";
+    if (price() && st.pay && st.pay.to) {
+      const wk = "arc.agent.paid." + wallet(); try { tx = localStorage.getItem(wk) || ""; } catch { tx = ""; }
+      if (!tx) {
+        const ok = await act({ action: "world-agent-create", kind: pick, id, name, persona, check: 1 }); // (the server checks the ID before anything is paid)
+        if (ok && !ok.ok && ok.j && ok.j.taken) { labStep = 2; paint(); idState(T("@{id} is taken — try another", { id }), "bad"); return; }
+        if (ok && !ok.ok && ok.j && ok.j.agent) return create2(ok);
+        if (!ctx.tx || !st.pay.token) { ctx.toast(T("Wallet connect isn't available here.")); return; }
+        paying = "Confirm in your wallet…"; paint();
+        const pad = (h) => String(h).replace(/^0x/, "").toLowerCase().padStart(64, "0");
+        try { tx = await ctx.tx(st.pay.token, "0xa9059cbb" + pad(st.pay.to) + pad(BigInt(st.pay.amount).toString(16))); } catch (e) { paying = ""; paint(); ctx.toast(e && e.code === 4001 ? T("Cancelled in the wallet") : T("The transfer didn't go through: {e}", { e: String((e && e.message) || e).slice(0, 80) })); return; }
+        try { localStorage.setItem(wk, tx); } catch { /* the server still keeps the payment for this wallet */ }
+      }
+      paying = "Waiting for Arc to confirm…"; paint();
+      let r = null; for (let i = 0; i < 40; i++) { r = await act({ action: "world-agent-create", kind: pick, id, name, persona, tx }); if (!r || r.status !== 202) break; await new Promise((ok) => setTimeout(ok, 3000)); }
+      paying = ""; if (r && (r.ok || (r.j && r.j.agent) || (r.j && /already used/.test(r.j.error || "")))) try { localStorage.removeItem(wk); } catch { /* fine */ }
+      if (r && r.status === 202) { paint(); ctx.toast(T("Your payment is still confirming on Arc — try Create again in a minute; it won't charge you twice.")); return; }
+      return create2(r);
+    }
     const r = await act({ action: "world-agent-create", kind: pick, id, name, persona }); if (!r) return;
+    return create2(r);
+  }
+  async function create2(r) {
+    if (!r) { paint(); return; } const id = draft.id;
     if (!r.ok && r.j && r.j.taken) { labStep = 2; paint(); idState(T("@{id} is taken — try another", { id }), "bad"); return; }
-    if (!r.ok && !(r.j && r.j.agent)) return fail(r);
+    if (!r.ok && !(r.j && r.j.agent)) { paint(); return fail(r); }
     st = { ...(st || {}), agent: r.j.agent }; if (!st.jobs) await look();
     tab = "talk"; labStep = 1; arrive = "birth"; paint(); paintChip(); spawn(); if (ctx.burst) ctx.burst(parseInt(K.AGENTS[pick].color.slice(1), 16));
     birthCard(r.j.agent);

@@ -6,6 +6,7 @@ import { ethers } from "ethers";
 const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
 const { AGENT } = await import("../../api/_world-agent.mjs");
+AGENT.OPEN = false; AGENT.PRELAUNCH = true; // (written for the pre-launch: closed, free)
 const { ARENA, BANK, hourOf, ptsOf } = await import("../../api/_world-agarena.mjs");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();

@@ -7,6 +7,7 @@ const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
 const { decideRule, cleanRule, VAULT } = await import("../../api/_world-agentvault.mjs");
 const { AGENT } = await import("../../api/_world-agent.mjs");
+AGENT.OPEN = false; AGENT.PRELAUNCH = true; // (written for the pre-launch: closed, free)
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
 const store = {

@@ -29,6 +29,9 @@
 //            worldAgentDone/<wallet>_<id> (an errand claimed: a create-only marker, so it pays once even from two tabs)
 //            worldAgentNo/<n> { w } (the agents' numbers, create-only) · worldStats/agentCount { n } · worldStats/agentWeek_<wk> { top }
 //            worldStats/agentWork { list: { <wallet>: { id, name, kind, job, start, end, no } } } (who's out now) · worldStats/agentWorkDay_<day> { n }
+import { ARCIRCLE, FEE_BURN } from "./_world-shop.mjs";
+const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", lc = (x) => String(x || "").toLowerCase(), pad32 = (a) => "0x" + lc(a).replace(/^0x/, "").padStart(64, "0");
+export const payInfo = () => ({ price: AGENT.PRICE_ARC, list: AGENT.LIST_ARC, to: FEE_BURN, token: ARCIRCLE, amount: (BigInt(AGENT.PRICE_ARC) * 10n ** 18n).toString(), burnPct: 50 });
 export const AGENT = {
   KINDS: {
     aurora: { name: "AURORA", role: "Caretaker & Coordinator", style: "warm, caring and organised; you look after your partner, their camp and their friends", best: "gather" },
@@ -41,11 +44,12 @@ export const AGENT = {
     mine: { name: "Mine ore", arcl: 120, min: 120, xp: 20, to: "mine", loot: { cu: [2, 4], ag: [0, 1] } },
     scout: { name: "Scout & hunt", arcl: 100, min: 120, xp: 20, to: "jur", loot: { hide: [2, 4], bone: [2, 3], meat: [3, 5], fang: [0, 1] } },
   },
-  // the pre-launch event (the owner's, 2026-10-22): creating an agent is free until the official opening; after it,
-  // creating one will cost (the price isn't set yet: PRELAUNCH false and a price here when it is)
-  PRELAUNCH: true, CREATE_ARCL: 0,
-  // the owner's call (2026-10-22): not open yet — only GM wallets can use it; everyone else sees "under construction"
-  OPEN: false,
+  // the official opening (the owner's call, 2026-10-24): open to everyone; an agent costs PRICE_ARC $ARCIRCLE (the launch
+  // price, half of LIST_ARC), sent from the player's wallet to the FeeBurn contract on Arc — it burns 50% and sends 50%
+  // to the treasury (api/_world-shop.mjs FEE_BURN); the server only reads the transfer back. (Before: a free pre-launch
+  // event, GM wallets only — the agents made then keep their Genesis Founder mark.)
+  PRELAUNCH: false, CREATE_ARCL: 0, PRICE_ARC: 100000, LIST_ARC: 200000,
+  OPEN: true,
   ID: /^[a-z0-9_]{3,16}$/, ID_RESERVED: /^(admin|gm|arcia|arcircle|official|support|system|mod|moderator|aurora|orion|vex|agent|null|undefined)$/,
   QUEUE: 4, WORK: 60, AUTO: 10,
   HIST: 20, TOP: 30, BEST_K: 1.25, DAY_JOBS: 6, CHAT_DAY: 20, CHAT_IN: 280, CHAT_OUT: 600, LOG: 12, NAME: 14, PERSONA: 160, LV_MAX: 30,
@@ -97,9 +101,9 @@ export function makeAgentDim(deps) {
 
   const shut = (w) => !AGENT.OPEN && !(deps.isGM && deps.isGM(w));
   async function view(w) {
-    if (shut(w)) return json(200, { ok: true, closed: true, agent: null, kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL });
+    if (shut(w)) return json(200, { ok: true, closed: true, agent: null, kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL, pay: payInfo(), gm: !!(deps.isGM && deps.isGM(w)) });
     const a = await load(w); if (a) await advance(w, a).catch(() => false);
-    return json(200, { ok: true, agent: pub(a), kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL });
+    return json(200, { ok: true, agent: pub(a), kinds: kinds(), jobs: jobs(), chatDay: AGENT.CHAT_DAY, prelaunch: AGENT.PRELAUNCH, createArcl: AGENT.CREATE_ARCL, pay: payInfo(), gm: !!(deps.isGM && deps.isGM(w)) });
   }
   const idOf = (x) => String(x || "").trim().toLowerCase().replace(/^@/, "");
   const idOk = (id) => AGENT.ID.test(id) && !AGENT.ID_RESERVED.test(id);
@@ -111,6 +115,24 @@ export function makeAgentDim(deps) {
     const name = clean(b.name, AGENT.NAME) || AGENT.KINDS[b.kind].name, id = idOf(b.id);
     if (!idOk(id)) return json(400, { error: "an agent ID is 3–16 letters, numbers or _" });
     const had = await load(w); if (had) return json(409, { error: "you already have an agent", agent: pub(had) });
+    if (await one(`worldAgentId/${id}`)) return json(409, { error: "that agent ID is taken", taken: true });
+    // the price: a transfer of PRICE_ARC $ARCIRCLE from this wallet to FeeBurn, each transaction good for one agent (a
+    // payment whose agent couldn't be made — an ID taken in between — stays this wallet's to use with another ID)
+    let txk = "";
+    if (!AGENT.PRELAUNCH && AGENT.PRICE_ARC > 0) {
+      const tx = String(b.tx || "").toLowerCase(); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(402, { error: `an agent costs ${AGENT.PRICE_ARC.toLocaleString("en-US")} $ARCIRCLE`, pay: payInfo(), gm: !!(deps.isGM && deps.isGM(w)) });
+      txk = `worldPayTx/${tx}`; const used = await one(txk);
+      if (used && (used.wallet !== w || used.item !== "agent" || used.done)) return json(409, { error: "this transaction was already used" });
+      if (!used) {
+        const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null;
+        if (!rc) return json(202, { pending: true, error: "the transaction isn't confirmed yet" });
+        if (rc.status !== "0x1") return json(400, { error: "the transaction failed" });
+        const paid = (rc.logs || []).filter((l) => lc(l.address) === ARCIRCLE && l.topics && lc(l.topics[0]) === TRANSFER && lc(l.topics[1]) === pad32(w) && lc(l.topics[2]) === pad32(FEE_BURN)).reduce((x, l) => x + BigInt(l.data), 0n);
+        if (paid < BigInt(AGENT.PRICE_ARC) * 10n ** 18n) return json(400, { error: `the transfer is less than ${AGENT.PRICE_ARC.toLocaleString("en-US")} $ARCIRCLE` });
+        if (!(await deps.commit([{ create: txk, data: { wallet: w, item: "agent", at: now() } }])).ok) return json(409, { error: "this transaction was already used" });
+        const tok = Number(paid / 10n ** 12n) / 1e6; await deps.commit([{ inc: "worldStats/shop", fields: { paid: 1, arcPaid: tok, arcBurned: tok / 2 } }, { inc: "worldStats/agentSales", fields: { n: 1, arc: tok } }]).catch(() => {});
+      }
+    }
     if (!(await deps.commit([{ create: `worldAgentId/${id}`, data: { w, at: now() } }])).ok) return json(409, { error: "that agent ID is taken", taken: true });
     if (!AGENT.PRELAUNCH && AGENT.CREATE_ARCL > 0) { const paid = await deps.debit(w, "agent-create", AGENT.CREATE_ARCL); if (paid.err) { await deps.commit([{ del: `worldAgentId/${id}` }]).catch(() => {}); return json(400, { error: paid.err }); } }
     let no = 0; // its number: the next free one (create-only, so two players made at once can't share one)
@@ -118,6 +140,7 @@ export function makeAgentDim(deps) {
       if ((await deps.commit([{ create: `worldAgentNo/${c + 1}`, data: { w, at: now() } }, { inc: "worldStats/agentCount", fields: { n: 1 } }])).ok) no = c + 1; }
     const r = await deps.commit([{ create: `worldAgent/${w}`, data: { kind: b.kind, id, name, persona: clean(b.persona, AGENT.PERSONA), xp: 0, at: now(), jobs: [], log: [], hist: [], done: 0, no, pre: AGENT.PRELAUNCH } }]);
     if (!r.ok) { const a = await load(w); if (a) return json(409, { error: "you already have an agent", agent: pub(a) }); return json(503, { error: "try again" }); }
+    if (txk) await setDoc(txk, { wallet: w, item: "agent", at: now(), done: id }).catch(() => {});
     return json(200, { ok: true, agent: pub(await load(w)) });
   }
 

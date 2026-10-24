@@ -7,6 +7,9 @@ import { ethers } from "ethers";
 const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
 const { AGENT, agentLevel } = await import("../../api/_world-agent.mjs");
+const SHOP = await import("../../api/_world-shop.mjs");
+AGENT.OPEN = false; AGENT.PRELAUNCH = true; // (the tests below were written for the pre-launch: free, GMs only; the paid launch is checked at the end)
+const receipts = new Map();
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
 const store = {
@@ -21,7 +24,7 @@ let n = 0; const randomId = () => (0x1000000 + ++n * 7919).toString(16).padStart
 let seed = 777; const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 let aiOn = true, lastSys = "", lastMsgs = null;
 const ai = async (sys, msgs) => { lastSys = sys; lastMsgs = msgs; return aiOn ? "Hello partner! Ready for an errand?" : null; };
-const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId, random, ai, tokenBalance: async () => "0" });
+const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId, random, ai, tokenBalance: async () => "0", receipt: async (h) => receipts.get(h) || null });
 const sign = async (w) => { const issued = new Date(T).toISOString(); return { wallet: w.address, issued, signature: await w.signMessage(loginMessage(w.address, issued)) }; };
 const call = async (w, action, extra = {}) => W.handle({ action, ...(await sign(w)), ...extra });
 const view = async (w) => (await W.read(new URL("https://x/api/social?world=agent&wallet=" + w.address.toLowerCase()))).body;
@@ -116,4 +119,17 @@ r = await call(me, "world-agent-chat", { t: "hello there" }); check(!r.body.sugg
   const pa = db.get(`worldAgent/${poor.address.toLowerCase()}`); db.set(`worldAgent/${poor.address.toLowerCase()}`, { ...pa, jobs: [] });
   r = await call(poor, "world-agent-queue", { op: "add", job: "mine" }); check(r.status === 200 && r.body.agent.queue.length === 1 && r.body.agent.qNote === "arcl", "no ARCL: the errand waits on the board (qNote arcl)");
 }
+// the official opening (2026-10-24): open to everyone; an agent costs 100,000 $ARCIRCLE sent to FeeBurn (50% burned, 50% to the treasury), read back from Arc
+{ AGENT.OPEN = true; AGENT.PRELAUNCH = false; const buyer = ethers.Wallet.createRandom(), pad = (a) => "0x" + a.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  const rc = (from, wei, to = SHOP.FEE_BURN) => ({ status: "0x1", logs: [{ address: SHOP.ARCIRCLE, topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", pad(from), pad(to)], data: "0x" + wei.toString(16) }] });
+  const full = BigInt(AGENT.PRICE_ARC) * 10n ** 18n, h = (n) => "0x" + String(n).padStart(64, "0");
+  let r = await call(buyer, "world-agent-create", { kind: "orion", id: "buyer_1", name: "Buyer" }); check(r.status === 402 && r.body.pay && r.body.pay.price === 100000 && r.body.pay.to === SHOP.FEE_BURN, "the launch: an agent costs 100,000 $ARCIRCLE, paid to FeeBurn");
+  r = await call(buyer, "world-agent-create", { kind: "orion", id: "buyer_1", tx: h(1) }); check(r.status === 202 && r.body.pending, "a payment not on Arc yet: pending");
+  receipts.set(h(2), rc(buyer.address, full / 2n)); r = await call(buyer, "world-agent-create", { kind: "orion", id: "buyer_1", tx: h(2) }); check(r.status === 400, "half the price: refused");
+  receipts.set(h(3), rc(buyer.address, full, "0x000000000000000000000000000000000000dEaD")); r = await call(buyer, "world-agent-create", { kind: "orion", id: "buyer_1", tx: h(3) }); check(r.status === 400, "paid somewhere else: refused");
+  receipts.set(h(4), rc(buyer.address, full)); r = await call(buyer, "world-agent-create", { kind: "orion", id: "nyx_01", tx: h(4) }); check(r.status === 409 && r.body.taken, "a taken ID before paying is checked first");
+  r = await call(buyer, "world-agent-create", { kind: "orion", id: "buyer_1", name: "Buyer", tx: h(4) }); check(r.status === 200 && r.body.agent && r.body.agent.id === "buyer_1", "paid in full: the agent is made");
+  const other = ethers.Wallet.createRandom(); r = await call(other, "world-agent-create", { kind: "vex", id: "other_1", tx: h(4) }); check(r.status === 409, "one transaction, one agent");
+  const v = await view(buyer); check(v.agent && v.pay && v.pay.price === 100000 && v.pay.list === 200000 && v.pay.burnPct === 50 && !v.closed, "the view: open, the price and the list price");
+  check((db.get("worldStats/agentSales") || {}).n === 1, "the sale counted"); }
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
