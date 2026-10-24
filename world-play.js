@@ -53,7 +53,7 @@ const hex = (c) => "#" + c.toString(16).padStart(6, "0");
 const load3d = (() => { try { const h = $("wp-loading"); if (!h || !K.webglOk || !K.webglOk()) return null; const l = L3D.loadingScene(THREE, h, { reduce }); if (l) h.classList.add("has-3d"); return l; } catch { return null; } })();
 // (b-st1: the last fifth has steps of its own, named — the bar said "Ready" at 100% while the town was still being
 // dressed and the effects warmed, up to ~18 s on a phone)
-const loadbar = (k, say) => { const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; const n = $("wp-loadpct"); if (n) n.textContent = Math.round(k * 100) + "%";
+let loadAt = "0%"; const loadbar = (k, say) => { loadAt = Math.round(k * 100) + "%" + (say ? " " + say : ""); const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; const n = $("wp-loadpct"); if (n) n.textContent = Math.round(k * 100) + "%";
   if (load3d) load3d.set(k); const sp = document.querySelector("#wp-loading > span"); if (sp) sp.textContent = say || (k >= 1 ? T("Ready") : k >= 0.75 ? T("Calling in the scammers…") : k >= 0.35 ? T("Raising the town…") : T("Building the planet…")); };
 const usd = (v) => v == null ? "—" : v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + Math.round(v).toLocaleString("en-US");
 
@@ -659,6 +659,10 @@ const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn
 const FUN_NEW = (() => { try { const k = "arc.world.fun0"; const was = localStorage.getItem(k); if (!was) localStorage.setItem(k, String(Date.now())); return !was; } catch { return false; } })();
 const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; funSent.add(ev); try { if (diag && diag.funnel) diag.funnel(ev, FUN_NEW); } catch { /* fine */ } };
 const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+// a load that hasn't finished after 45 s says where it stopped (?world=diag errors: the step, the quality, the pixel ratio,
+// whether the graphics context was lost) — a Mac stayed at 85 % for hours (2026-10-24) and nothing had been reported
+let glLost = false; try { st.renderer.domElement.addEventListener("webglcontextlost", () => { glLost = true; }); } catch { /* no canvas */ }
+setTimeout(() => { const b = $("wp-loadbar"); if (b && b.isConnected && b.style.width !== "100%") try { diag.err(`load stall at ${loadAt} · ${S.quality || "auto"} · dpr ${devicePixelRatio} · ${glLost ? "GL LOST" : "gl ok"} · ${document.hidden ? "hidden" : "shown"}`, "load"); } catch { /* not sent */ } }, 45000);
 fun("open"); st.on(() => { if (!funSent.has("move") && mode === "hub" && speedNow > 1.5) fun("move"); });
 st.on((dt) => { try { diag.tick(dt); } catch { /* health counters must never stop the game */ } });
 st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
@@ -935,7 +939,8 @@ async function dressWorld(kit) {
   if (!st.quality.coarse && !lowGfx) try { zs.buildAll(); } catch (e) { console.warn("far grounds", e); }
   // each ground's own floor (world-env.js): cracked rock, ripples, moss, paving, ice, glowing seams
   if (!lowGfx) zs.root.children.forEach((g) => { const zn = g.userData && g.userData.zone, gm = g.children.find((c) => c.name === "zone-ground"); if (zn && gm) floorU.push(ENV.zoneFloor(gm.material, zn, { lite: st.quality.coarse })); });
-  zs.root.traverse((o) => { if (o.name !== "zone-ground") return; if (!lowGfx) LOOK.stoneGrain(o.material); if (gshadow) gshadow.receive(o.material); }); // b447: the grounds' floors get the plaza's grain too spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
+  zs.root.traverse((o) => { if (o.name !== "zone-ground") return; if (!lowGfx) LOOK.stoneGrain(o.material); if (gshadow) gshadow.receive(o.material); }); // b447: the grounds' floors get the plaza's grain too
+  spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || [])); // (these two had slipped into the comment above)
   // chimneys smoke: the Launchpad's factory and the town's tall chimneys
   [shopG("launch"), ...town.filter((g) => /^town:chimney/.test(g.name))].forEach((g) => {
     if (!g) return; const tw = /^town:/.test(g.name); smokes.push(K.smoke(g, tw ? new THREE.Vector3(0, 5.6 * (g.children[0] ? g.children[0].scale.x : 1), 0) : new THREE.Vector3(-1.5, 6.6, -0.9)));
@@ -4838,15 +4843,15 @@ if (sess()) setTimeout(() => village.load(), 3500); // your village level and bl
 await setAvatar(P.char || "arc-arc"); ensureFootSpot(); // b447: the spot under your feet
 loadbar(0.85, TW("Dressing the town…"));
 // b443: the town's set dressing (trees, lamps, the districts' props) is placed before the screen lifts, up to 8 s
-if (decorOn && decor && decor.townReady) await Promise.race([decor.townReady, new Promise((r) => setTimeout(r, 8000))]);
-farCull.prep(); // (again for what came in since: the fade's shaders made before warm compiles everything)
+if (decorOn && decor && decor.townReady) await Promise.race([Promise.resolve(decor.townReady).catch(() => {}), new Promise((r) => setTimeout(r, 8000))]);
+try { farCull.prep(); } catch (e) { console.warn("far cull", e); } // (again for what came in since: the fade's shaders made before warm compiles everything)
 loadbar(0.9, TW("Waking the scammers…"));
 // b442: the scammers and every effect readied behind the loading screen too (combat.warm: copy, prepare and draw each
 // model once out of sight). It used to start 4 s after the screen lifted and go on every 0.9 s: the first minute on
 // the plaza stuttered. At most 6 s here; anything left (packs that load later) the warm loop below still does.
 if (combat && combat.warm) { const w0 = performance.now(); try { while (performance.now() - w0 < 6000 && await combat.warm(st, 6)); } catch { /* the loop below tries again */ } }
 loadbar(0.95, TW("Polishing the light…"));
-await st.warm(4000); // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
+try { await st.warm(4000); } catch (e) { console.warn("warm", e); } // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
 loadbar(1);
 const landing = dive();
 // b440: what arrives after loading (a zone's props, the Game Village, an island, a pet) is compiled in the background as

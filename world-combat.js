@@ -1468,8 +1468,8 @@ export function createCombat(ctx) {
     // the first time, the light effects too (world-vfx.js: a summon, a boss summon, a chest, a pick-up), played under the
     // ground, and the whole scene compiled: they're out of the camera's view, so only compiling reaches them
     if (samples.length && VX) { const at = new V3(me.x, -40, me.z); try { VX.summon(at, false); VX.summon(at.clone(), true); if (VX.chest) VX.chest(at.clone()); if (VX.collect) VX.collect(at.clone(), 0xffc861); if (VX.warm) VX.warm(at.clone()); } catch { /* a missing effect is fine */ } }
-    try { if (stage.renderer.compileAsync) await stage.renderer.compileAsync(samples.length ? stage.scene : grp, stage.camera, stage.scene); } catch { /* drawn below anyway */ }
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    try { if (stage.renderer.compileAsync) await Promise.race([stage.renderer.compileAsync(samples.length ? stage.scene : grp, stage.camera, stage.scene), new Promise((r) => setTimeout(r, 3000))]); } catch { /* drawn below anyway */ } // (capped: a lost graphics context never finishes a compile — the loading screen waited forever on a Mac)
+    await new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); setTimeout(r, 400); }); // (a hidden tab gets no frames)
     root.remove(grp); culled.forEach((o) => { o.frustumCulled = true; });
     for (const e of list) { grp.remove(e.obj); e.obj.position.set(0, 0, 0); const a = mobPool.get(e.key) || []; a.push(e); mobPool.set(e.key, a); }
     for (const m of samples) if (m.isSprite && m.userData.draw) { grp.remove(m); barPool.push(m); }
