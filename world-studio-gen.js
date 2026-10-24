@@ -7,7 +7,10 @@
 //   arena    (Studio 2) a round arena seen from above: drones come at you from the edge, dodge them, grab coins, last the time
 //   puzzle   (Studio 3) INFINITY RINGS' rings on a board of the maker's choosing: clear it in as few moves as you can — the
 //            board is the rings engine's (a level id "s:<seed>:<size>:<pegs>:<locks>:<ice>:<energy>", puzzleId), solved for its par
-//   (defense: the next template, listed as coming)
+//   climb    (S4d) a tower of platforms seen from the side: you bounce on your own, steer left and right (the sides wrap round),
+//            reach the top — moving, breaking and spring platforms, spikes, coins and hearts on the way
+//   defense  (S4d) a path across a grid from the portal to your crystal, pads beside it: build Bolt / Frost / Cannon towers
+//            on the pads with the gold you're given and earn, stop the waves (grunts, runners, tanks) — 10 lives
 // Each template reads the same fields its own way (KNOBS: the editor's labels); genLevel(spec).len and .coins are the most
 // a run can show (metres, or for the arena 20 a second survived), which the server holds a score to.
 export const TEMPLATES = {
@@ -15,13 +18,16 @@ export const TEMPLATES = {
   dash: { name: "Infinity Dash", open: true },
   arena: { name: "Arena Survival", open: true },
   puzzle: { name: "Ring Puzzle", open: true },
-  defense: { name: "Tower Defense", open: false },
+  climb: { name: "Sky Climb", open: true },
+  defense: { name: "Tower Defense", open: true },
 };
 export const KNOBS = {
   runner: { speed: "Speed", coins: "Coins", walls: "Walls", gaps: "Gaps to jump", lasers: "Lasers to slide under", len: "Length" },
   dash: { speed: "Starting speed", coins: "Coins", walls: "Walls", gaps: "Gaps to jump", lasers: "Lasers to slide under", len: "How fast it speeds up" },
   arena: { speed: "Drone speed", coins: "Coins", walls: "Drones", gaps: "Laser sweeps", lasers: "Big drones", len: "Survive for" },
   puzzle: { speed: "Rings", coins: "Pegs", walls: "Lock rings", gaps: "Ice rings", lasers: "Energy rings", len: "Hints" },
+  defense: { speed: "Enemy speed", coins: "Starting gold", walls: "Enemies a wave", gaps: "Tanks", lasers: "Runners", len: "Waves" },
+  climb: { speed: "Bounce", coins: "Coins", walls: "Moving platforms", gaps: "Breaking platforms", lasers: "Spikes", len: "Height" },
 };
 export const DASH_MAX = 240; // (seconds: the dash's track is built this long; nobody's hearts last that far)
 export const THEMES = {
@@ -36,14 +42,14 @@ export const LANES = [-2.2, 0, 2.2];
 const int = (v, a, b, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(a, Math.min(b, n)) : d; };
 /// a spec made safe: every field in range, unknown ones dropped. → { tpl, title, theme, speed, len, coins, walls, gaps, lasers, seed }
 export function clampSpec(s = {}) {
-  const out = clampBase(s), lanes = out.tpl === "runner" || out.tpl === "dash", b = s.build && typeof s.build === "object" ? (lanes && Array.isArray(s.build.r) ? cleanBuild(s.build, out) : out.tpl === "arena" && Array.isArray(s.build.w) ? cleanArena(s.build, out) : null) : null; // (a layout only for its own kind: a template change drops it)
+  const out = clampBase(s), lanes = out.tpl === "runner" || out.tpl === "dash", b = s.build && typeof s.build === "object" ? (lanes && Array.isArray(s.build.r) && !s.build.climb ? cleanBuild(s.build, out) : out.tpl === "arena" && Array.isArray(s.build.w) ? cleanArena(s.build, out) : out.tpl === "climb" && Array.isArray(s.build.r) && s.build.climb ? cleanClimb(s.build, out) : out.tpl === "defense" && s.build.td && Array.isArray(s.build.path) ? cleanDefense(s.build, out) : null) : null; // (a layout only for its own kind: a template change drops it)
   if (b) out.build = b;
   return out;
 }
 function clampBase(s) {
   const title = String(s.title || "").replace(/[\u0000-\u001f<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 24) || "My Sky Run";
   return {
-    tpl: TEMPLATES[s.tpl] && TEMPLATES[s.tpl].open ? s.tpl : "runner", title: title === "My Sky Run" && s.tpl === "arena" ? "My Arena" : title === "My Sky Run" && s.tpl === "dash" ? "My Infinity Dash" : title === "My Sky Run" && s.tpl === "puzzle" ? "My Ring Puzzle" : title,
+    tpl: TEMPLATES[s.tpl] && TEMPLATES[s.tpl].open ? s.tpl : "runner", title: title === "My Sky Run" && s.tpl === "arena" ? "My Arena" : title === "My Sky Run" && s.tpl === "dash" ? "My Infinity Dash" : title === "My Sky Run" && s.tpl === "puzzle" ? "My Ring Puzzle" : title === "My Sky Run" && s.tpl === "climb" ? "My Sky Climb" : title === "My Sky Run" && s.tpl === "defense" ? "My Tower Defense" : title,
     theme: THEMES[s.theme] ? s.theme : "neon",
     speed: int(s.speed, 1, 5, 3), len: LENS.includes(Number(s.len)) ? Number(s.len) : 45,
     coins: int(s.coins, 0, 5, 3), walls: int(s.walls, 0, 5, 2), gaps: int(s.gaps, 0, 3, 1), lasers: int(s.lasers, 0, 3, 1),
@@ -114,6 +120,8 @@ export const dashSpeed = (spec, t) => speedOf(spec) * (1 + t / (150 - spec.len))
 export function genLevel(spec0) {
   const spec = clampSpec(spec0);
   if (spec.tpl === "arena") return genArena(spec);
+  if (spec.tpl === "climb") return genClimb(spec);
+  if (spec.tpl === "defense") return genDefense(spec);
   if (spec.tpl === "puzzle") return { puzzle: true, id: puzzleId(spec), len: 0, coins: 0, hints: puzzleHints(spec) };
   const v = speedOf(spec), len = spec.tpl === "dash" ? Math.round(Array.from({ length: DASH_MAX }, (_, t) => dashSpeed(spec, t + 0.5)).reduce((a, b) => a + b, 0)) : spec.build ? spec.build.L : Math.round(v * spec.len);
   if (spec.build) { const rows = buildRows(spec, len); return { len, rows, coins: rows.filter((r) => r.k === "coin").length, v, built: true }; }
@@ -147,6 +155,71 @@ export function genArena(spec) {
   for (let i = 0; i < nC; i++) { const a = rnd() * 6.283, r = 2 + rnd() * (ARENA_R - 4); coinsAt.push({ t: +((i + 0.5) * (secs / Math.max(1, nC))).toFixed(2), x: +(Math.cos(a) * r).toFixed(2), z: +(Math.sin(a) * r).toFixed(2) }); }
   return { len: secs * 20, secs, waves, coinsAt, coins: nC, R: ARENA_R };
 }
+/// S4d SKY CLIMB: five columns across (CLIMB.COLS, metres), height up. You bounce on whatever you land on: jumpH(spec) metres
+/// (springs ×2.5), so the next platform must be within reach — the builder shows a gap you can't jump in red, the bots fail it.
+/// rows: { z: height, k: "plat"|"mplat" (slides)|"break" (once)|"spring"|"spike"|"coin"|"heart", lane: 0–4 }
+export const CLIMB = { COLS: [-4, -2, 0, 2, 4], W: 10, G: 24, MIN: 60, MAX: 600, STEP: 10, ROWS: 600, HEARTS: 5, KINDS: ["n", "m", "b", "s", "k", "c", "h"] };
+const KIND_C = { n: "plat", m: "mplat", b: "break", s: "spring", k: "spike", c: "coin", h: "heart" }, CODE_C = Object.fromEntries(Object.entries(KIND_C).map(([a, b]) => [b, a]));
+export const jumpH = (spec) => 3 + spec.speed * 0.25, reachOf = (spec) => jumpH(spec) - 0.5;
+export function cleanClimb(b, spec) {
+  const L = Math.max(CLIMB.MIN, Math.min(CLIMB.MAX, Math.round((Number(b.L) || 0) / CLIMB.STEP) * CLIMB.STEP)), out = [], seen = new Set(); let hearts = 0;
+  const rows = (Array.isArray(b.r) ? b.r.slice(0, CLIMB.ROWS * 2) : []).filter(Array.isArray).map((x) => [Math.round(Number(x[0]) * 2) / 2, String(x[1]), Math.round(Number(x[2]) || 0)]).filter(([z, k, c]) => Number.isFinite(z) && z >= 1.5 && z <= L - 1 && CLIMB.KINDS.includes(k) && c >= 0 && c <= 4);
+  rows.sort((p, q) => p[0] - q[0] || p[2] - q[2]);
+  for (const x of rows) { const [z, k, c] = x; if (out.some((o) => o[2] === c && Math.abs(o[0] - z) < (k === "c" || o[1] === "c" ? 0.5 : 1))) continue; // (one thing a spot: nothing inside a platform)
+    if (k === "h" && hearts >= CLIMB.HEARTS) continue; const key = z + ":" + c; if (seen.has(key)) continue; seen.add(key); if (k === "h") hearts++; out.push([z, k, c]); if (out.length >= CLIMB.ROWS) break; }
+  return { climb: 1, L, r: out };
+}
+/// where a climb can't go on: the heights where the next thing to land on is out of reach (a spring reaches further)
+export function climbGaps(spec, rows, len) {
+  const land = rows.filter((r) => r.k === "plat" || r.k === "mplat" || r.k === "break" || r.k === "spring").sort((a, b) => a.z - b.z), out = []; let y = 0, sp = false;
+  for (const r of land) { if (r.z <= y) { if (r.k === "spring") sp = true; continue; } const reach = sp ? reachOf(spec) * 2.5 : reachOf(spec); if (r.z - y > reach) out.push([y, r.z]); sp = r.k === "spring"; y = r.z; }
+  if (len - y > (sp ? reachOf(spec) * 2.5 : reachOf(spec))) out.push([y, len]);
+  return out;
+}
+export function genClimb(spec) {
+  const len = spec.build ? spec.build.L : spec.len * 4;
+  if (spec.build) { const rows = spec.build.r.map(([z, k, c]) => ({ z, k: KIND_C[k], lane: c })); return { len, rows, coins: rows.filter((r) => r.k === "coin").length, climb: true, built: true, H: jumpH(spec) }; }
+  let s = spec.seed >>> 0 || 1; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const reach = reachOf(spec), rows = []; let z = 0, col = 2, coins = 0, sinceSpring = 0;
+  while (true) { z += Math.round((1.6 + rnd() * (reach - 1.6) * (0.55 + spec.walls * 0.05 + spec.gaps * 0.04)) * 2) / 2; if (z > len - 1.5) break;
+    col = Math.max(0, Math.min(4, col + Math.round((rnd() - 0.5) * 4))); const r = rnd();
+    const k = sinceSpring > 40 && rnd() < 0.3 ? "spring" : r < spec.walls * 0.07 ? "mplat" : r < spec.walls * 0.07 + spec.gaps * 0.08 ? "break" : "plat";
+    if (k === "spring") sinceSpring = 0; else sinceSpring += z - (rows.length ? rows[rows.length - 1].z : 0);
+    rows.push({ z, k, lane: col });
+    if (spec.lasers && rnd() < spec.lasers * 0.09) rows.push({ z: z + 1, k: "spike", lane: (col + 2 + Math.floor(rnd() * 2)) % 5 });
+    if (rnd() < spec.coins * 0.12) { rows.push({ z: z + 1.5, k: "coin", lane: col }); coins++; } }
+  rows.sort((a, b) => a.z - b.z);
+  return { len, rows, coins, climb: true, H: jumpH(spec) };
+}
+/// S4d TOWER DEFENSE: a grid DEF.C × DEF.R; the path is a chain of side-by-side cells from the top row (the portal) to the
+/// bottom row (your crystal); pads sit beside the path. waves: [grunts, runners, tanks] each. The run's score: kills as coins,
+/// 100 a wave held as distance, the whole set held as the finish. build = { td: 1, path: [[c, r]], pads: [[c, r]], waves: [[g, r, t]] }
+export const DEF = { C: 7, R: 11, PADS: 12, WAVES: 20, PER: 30, LIVES: 10, WAVES_OF: { 30: 5, 45: 8, 60: 10, 90: 15 },
+  TOWERS: { bolt: { cost: 50, range: 3.2, dmg: 6, rate: 0.45 }, frost: { cost: 70, range: 2.6, dmg: 2, rate: 0.8, slow: 0.5 }, cannon: { cost: 90, range: 3, dmg: 14, rate: 1.4, splash: 1.3 } },
+  FOES: { g: { hp: 26, v: 1, gold: 5, hurt: 1 }, r: { hp: 14, v: 1.8, gold: 4, hurt: 1 }, t: { hp: 90, v: 0.6, gold: 12, hurt: 2 } } };
+export const defGold = (spec) => 100 + spec.coins * 40, defSpeed = (spec) => 0.9 + spec.speed * 0.22; // (cells a second for a grunt)
+export function cleanDefense(b, spec) {
+  const path = [], seen = new Set(), cell = (x) => (Array.isArray(x) ? [Math.round(Number(x[0])), Math.round(Number(x[1]))] : [NaN, NaN]), inG = ([c, r]) => c >= 0 && c < DEF.C && r >= 0 && r < DEF.R;
+  for (const x of (Array.isArray(b.path) ? b.path : []).slice(0, DEF.C * DEF.R)) { const q = cell(x); if (!inG(q) || seen.has(q.join())) break; const l = path[path.length - 1];
+    if (!l ? q[1] !== 0 : Math.abs(l[0] - q[0]) + Math.abs(l[1] - q[1]) !== 1) break; path.push(q); seen.add(q.join()); if (q[1] === DEF.R - 1) break; } // (side by side, from the top row down to the bottom one)
+  const done = path.length > 1 && path[path.length - 1][1] === DEF.R - 1, pads = [];
+  if (done) for (const x of (Array.isArray(b.pads) ? b.pads : []).slice(0, 60)) { const q = cell(x); if (!inG(q) || seen.has(q.join()) || pads.some((p) => p[0] === q[0] && p[1] === q[1])) continue;
+    if (!path.some((p) => Math.abs(p[0] - q[0]) <= 1 && Math.abs(p[1] - q[1]) <= 1)) continue; pads.push(q); if (pads.length >= DEF.PADS) break; }
+  const waves = (Array.isArray(b.waves) ? b.waves : []).slice(0, DEF.WAVES).filter(Array.isArray).map((w) => { let [g, r, t] = [0, 1, 2].map((i) => Math.max(0, Math.round(Number(w[i]) || 0))); while (g + r + t > DEF.PER) { if (g >= r && g >= t) g--; else if (r >= t) r--; else t--; } return [g, r, t]; }).filter((w) => w[0] + w[1] + w[2] > 0);
+  return { td: 1, path: done ? path : [], pads, waves };
+}
+/// the quick start: a path that winds down the grid (seeded), pads spread along it, waves that grow
+export function genDefense(spec) {
+  let B = spec.build && spec.build.path && spec.build.path.length ? spec.build : null;
+  if (!B) { let s = spec.seed >>> 0 || 1; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const path = []; let c = 1 + Math.floor(rnd() * (DEF.C - 2)); for (let r = 0; r < DEF.R; r++) { path.push([c, r]); if (r % 3 === 1 && r < DEF.R - 2) { const to = Math.max(0, Math.min(DEF.C - 1, c + (rnd() < 0.5 ? -1 : 1) * (2 + Math.floor(rnd() * 3)))); while (c !== to) { c += Math.sign(to - c); path.push([c, r]); } } }
+    const on = new Set(path.map(String)), cand = []; for (let i = 1; i < path.length - 1; i += 2) for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const q = [path[i][0] + dc, path[i][1] + dr]; if (q[0] >= 0 && q[0] < DEF.C && q[1] >= 0 && q[1] < DEF.R && !on.has(String(q)) && !cand.some((x) => String(x) === String(q))) cand.push(q); }
+    const pads = []; const want = 6 + Math.round(spec.coins * 0.8); for (let i = 0; i < cand.length && pads.length < want; i += Math.max(1, Math.floor(cand.length / want))) pads.push(cand[i]);
+    const n = DEF.WAVES_OF[spec.len] || 8, waves = Array.from({ length: n }, (_, i) => [Math.min(DEF.PER, 3 + spec.walls + Math.round(i * (0.8 + spec.walls * 0.15))), Math.min(DEF.PER, Math.round((spec.lasers * i) / 3)), Math.min(DEF.PER, Math.round((spec.gaps * i) / 4))]);
+    B = cleanDefense({ td: 1, path, pads, waves }, spec); }
+  const foes = B.waves.reduce((a, w) => a + w[0] + w[1] + w[2], 0);
+  return { len: B.waves.length * 100, coins: foes, defense: true, built: !!(spec.build && spec.build.path && spec.build.path.length), path: B.path, pads: B.pads, waves: B.waves.map((w, i) => ({ g: w[0], r: w[1], t: w[2], hp: +(1 + i * 0.16).toFixed(2) })), gold: defGold(spec), v: defSpeed(spec) };
+}
 /// a run's score: coins and how far (a finish counts the whole track) — the server checks it can't beat the level
 export const scoreOf = (coins, dist, done) => Math.max(0, Math.round(coins) * 10 + Math.round(dist / 5) + (done ? 100 : 0));
 /// Studio 3: one-tap difficulty for the editor's third step (the settings a preset sets; the rest stay as they are)
@@ -164,7 +237,32 @@ export function estimate(spec0) {
   let s = (spec.seed * 2654435761) >>> 0 || 7; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   let clears = 0;
   if (spec.tpl === "puzzle") { const k = spec.speed * 1.2 + spec.walls * 0.5 + spec.gaps * 0.5 + spec.lasers * 0.4 + spec.coins * 0.15 - puzzleHints(spec) * 0.6, clear = Math.max(0.05, Math.min(1, 1.15 - k / 7)), st = clear > 0.8 ? 1 : clear > 0.6 ? 2 : clear > 0.4 ? 3 : clear > 0.2 ? 4 : 5; return { clear: Math.round(clear * 100) / 100, stars: st, fails, why: "" }; }
-  if (spec.tpl === "arena") {
+  if (spec.tpl === "defense") { // (S4d: each wave's hit points coming at the towers the gold and pads allow, against how long the path keeps them in reach)
+    const T0 = DEF.TOWERS.bolt, reachCells = (p) => L.path.filter((c) => Math.hypot(c[0] - p[0], c[1] - p[1]) <= T0.range).length;
+    const cover = L.pads.map(reachCells).sort((a, b) => b - a);
+    for (let b = 0; b < N; b++) {
+      const sk = 0.3 + (0.7 * b) / (N - 1), pow = []; let lives = DEF.LIVES, gold = L.gold, towers = 0, end = -1;
+      for (let i = 0; i < L.waves.length; i++) { const w = L.waves[i];
+        while (towers < L.pads.length && gold >= T0.cost) { gold -= T0.cost; towers++; pow.push(1); }
+        if (towers >= L.pads.length) for (let k = 0; k < pow.length * 3 && gold >= T0.cost * 0.8; k++) { const j = pow.indexOf(Math.min(...pow)); if (pow[j] >= 2) break; pow[j] += 0.35; gold -= T0.cost * 0.8; } // (all pads built: upgrades)
+        const n0 = w.g + w.r + w.t, cv = cover.slice(0, towers), dps = cv.length ? cv.reduce((a, c, j) => a + pow[j] * (T0.dmg / T0.rate) * (c / L.v + n0 * 0.4), 0) * (0.45 + sk * 0.6) : 0, hp = (w.g * DEF.FOES.g.hp + w.r * DEF.FOES.r.hp * 1.8 + w.t * DEF.FOES.t.hp * 0.7) * w.hp;
+        const leak = Math.max(0, (hp - dps) / hp), n = n0, lost = Math.round(leak * n * (1 + w.t / Math.max(1, n)) * (0.6 + rnd() * 0.8));
+        lives -= lost; gold += Math.round((1 - leak) * (w.g * 5 + w.r * 4 + w.t * 12)); if (lives <= 0) { end = (i + 0.5) / L.waves.length; why[w.t > w.r ? "t" : w.r > 0 ? "r" : "g"] = (why[w.t > w.r ? "t" : w.r > 0 ? "r" : "g"] || 0) + 1; break; } }
+      if (end < 0) clears++; else fails[Math.min(9, Math.floor(end * 10))]++;
+    }
+  } else   if (spec.tpl === "climb") { // (S4d: each hop up — how far, how far across, what kind — and the spikes beside the way)
+    const land = L.rows.filter((r) => r.k !== "coin" && r.k !== "heart" && r.k !== "spike"), spikes = L.rows.filter((r) => r.k === "spike"), reach = reachOf(spec), gapsAt = climbGaps(spec, L.rows, L.len);
+    for (let b = 0; b < N; b++) {
+      const sk = 0.3 + (0.7 * b) / (N - 1); let hearts = 3, end = -1, y = 0, c = 2, sp = false;
+      for (const r of land) { if (r.z <= y) continue; const gap = gapsAt.find((g) => g[0] === y); if (gap) { end = y / L.len; why.gap = (why.gap || 0) + 1; break; }
+        const across = Math.min(Math.abs(r.lane - c), 5 - Math.abs(r.lane - c)) / 2.5, up = (r.z - y) / (sp ? reach * 2.5 : reach), near = spikes.some((x) => x.z > y && x.z < r.z + 1.5) ? 0.05 : 0;
+        const p = Math.max(0, up * up * 0.012 + across * 0.01 + (r.k === "mplat" ? 0.05 : r.k === "break" ? 0.035 : 0) + near + (spec.speed - 1) * 0.004) * (1.35 - sk) * 0.8;
+        if (rnd() < Math.min(0.9, p)) { hearts--; if (hearts <= 0) { end = r.z / L.len; why[r.k] = (why[r.k] || 0) + 1; break; } }
+        y = r.z; c = r.lane; sp = r.k === "spring"; }
+      if (end < 0 && gapsAt.length && gapsAt[gapsAt.length - 1][1] >= L.len) { end = gapsAt[gapsAt.length - 1][0] / L.len; why.gap = (why.gap || 0) + 1; }
+      if (end < 0) clears++; else fails[Math.min(9, Math.floor(end * 10))]++;
+    }
+  } else if (spec.tpl === "arena") {
     const dS = 2.6 + spec.speed * 0.9, shield = 1 - 0.035 * ((L.pillars || []).length); // (S4c: pillars stop drones)
     for (let b = 0; b < N; b++) {
       const sk = 0.3 + (0.7 * b) / (N - 1); let hearts = 3, end = -1, recent = [];
@@ -200,6 +298,8 @@ export const puzzleScore = (par, moves, hints = 0) => Math.max(100, 1000 - 40 * 
 /// Studio 4: a quick-start level as a layout to edit by hand (its rows, its length) — the second tier starts from the first
 export function toBuild(spec0) {
   const spec = clampSpec({ ...spec0, build: null }); delete spec.build; const L = genLevel(spec);
+  if (spec.tpl === "defense") return cleanDefense({ td: 1, path: L.path, pads: L.pads, waves: L.waves.map((w) => [w.g, w.r, w.t]) }, spec); // (S4d)
+  if (spec.tpl === "climb") return cleanClimb({ L: L.len, r: L.rows.map((r) => [r.z, CODE_C[r.k], r.lane]) }, spec); // (S4d)
   if (spec.tpl === "arena") return cleanArena({ p: [], w: L.waves.map((w) => [w.t, w.k, Math.round((w.a * 180) / Math.PI)]), c: L.coinsAt.map((c) => [c.t, c.x, c.z]) }, spec); // (S4c)
   const CODE = { wall: "w", gap: "g", laser: "l", coin: "c", heart: "h" };
   const len = spec.tpl === "dash" ? Math.max(BUILD.MIN, Math.min(600, Math.round(speedOf(spec) * 30 / BUILD.STEP) * BUILD.STEP)) : Math.max(BUILD.MIN, Math.min(BUILD.MAX, Math.round(L.len / BUILD.STEP) * BUILD.STEP));

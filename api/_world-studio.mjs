@@ -9,6 +9,7 @@
 //   POST { action: "world-studio-del",     …signature, id }               → { ok }
 //   POST { action: "world-studio-play",    …signature, id, coins, dist, done, trace? | moves, hints } → { score, best, plays, ghost } (a run, checked against the level; a puzzle's moves replayed on its board)
 //   POST { action: "world-studio-like",    …signature, id }               → { likes }      (once a wallet)
+//   POST { action: "world-studio-pick",    …signature, id, on }           → { pick }       (a GM's editor's pick: listed first in the arcade, ≤ PICKS)
 //   POST { action: "world-studio-ai",      …signature, t }                → { spec, by: "agent"|"rules" } (your agent drafts one from your words; AI_DAY a day)
 //   GET  ?world=studio-arcade                                            → { games: [{ id, title, tpl, theme, byName, plays, likes, at }] }
 //   GET  ?world=studio-game&id=…                                         → { game: { id, spec, title, byName, plays, likes, pub, best } }
@@ -16,12 +17,12 @@
 //   GET  ?world=studio-ghost&id=…                                        → { ghost: { name, score, tr } | null } (Studio 3: the #1's run to race)
 //
 // Firestore: worldStudio/<id> { w, byName, spec, pub, at, up, plays, likes, best: [{ w, name, score }] } · worldStudioBy/<wallet> { ids }
-//            worldStudioLike/<id>_<wallet> (create-only) · worldStats/studioArcade { list: { <id>: { title, tpl, theme, byName, plays, likes, at } } }
+//            worldStudioLike/<id>_<wallet> (create-only) · worldStats/studioArcade { list: { <id>: { title, tpl, theme, byName, plays, likes, at, pick? } } }
 //            worldStudioAi/<wallet>_<day> { n } · worldStudioRun/<wallet>_<id>_<t/20s> (create-only: a play counted once in 20 s)
 //            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
 import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
-export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900 };
+export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), shut(w), nameOf(w), randomId(), ai?(sys, msgs) }
@@ -32,8 +33,8 @@ export function makeStudio(deps) {
   const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })) } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
-    if (g && g.pub) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at }; else delete list[id];
-    const keep = Object.entries(list).sort((p, q) => (q[1].plays + q[1].likes * 5) - (p[1].plays + p[1].likes * 5) || q[1].at - p[1].at).slice(0, STUDIO.ARCADE);
+    if (g && g.pub) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, ...(g.pick ? { pick: g.pick } : {}) }; else delete list[id];
+    const keep = Object.entries(list).sort((p, q) => (q[1].pick ? 1 : 0) - (p[1].pick ? 1 : 0) || (q[1].plays + q[1].likes * 5) - (p[1].plays + p[1].likes * 5) || q[1].at - p[1].at).slice(0, STUDIO.ARCADE); // (editor's picks are always kept)
     await setDoc(k, { list: Object.fromEntries(keep) });
   }
   const mineOf = async (w) => ((await one(`worldStudioBy/${w}`)) || {}).ids || [];
@@ -89,6 +90,13 @@ export function makeStudio(deps) {
     if (!Array.isArray(t) || !t.length || t.length > STUDIO.TRACE) return null;
     const out = []; for (const p of t) { if (!Array.isArray(p) || p.length < 2 || p.length > 3) return null; const q = p.map((v) => Math.round(Number(v))); if (q.some((v) => !Number.isFinite(v) || Math.abs(v) > 100000)) return null; out.push(q); }
     return out;
+  }
+  /// S4 finish: an editor's pick — a GM stars a published game; the arcade lists the picks first (⭐), at most STUDIO.PICKS
+  async function pick(w, b) {
+    if (!deps.isGM || !deps.isGM(w)) return json(403, { error: "only a GM picks games" });
+    const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || !g.pub) return json(404, { error: "no such published game" });
+    if (b.on) { const d = (await one("worldStats/studioArcade")) || {}; if (Object.entries(d.list || {}).filter(([id, x]) => x.pick && id !== b.id).length >= STUDIO.PICKS) return json(400, { error: `at most ${STUDIO.PICKS} picks — take one off first` }); g.pick = now(); } else delete g.pick;
+    await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g); return json(200, { ok: true, pick: !!g.pick });
   }
   async function like(w, b) {
     const g = await one(`worldStudio/${b.id}`); if (!g || !g.pub) return json(404, { error: "no such game" });
@@ -148,6 +156,7 @@ export function makeStudio(deps) {
       if (b.action === "world-studio-save") return save(w, b);
       if (b.action === "world-studio-publish") return publish(w, b);
       if (b.action === "world-studio-del") return del(w, b);
+      if (b.action === "world-studio-pick") return pick(w, b);
       if (b.action === "world-studio-play") return play(w, b);
       if (b.action === "world-studio-like") return like(w, b);
       if (b.action === "world-studio-ai") return ai(w, b);

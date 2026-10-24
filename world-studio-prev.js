@@ -3,7 +3,7 @@
 // spec as you change it — the track with its walls, gaps, lasers and coins flown along, or the arena with its drones —
 // and a still of each theme for the theme cards. Nothing here is the game: no hero, no rules, just how it will look.
 // makePreview({ THREE }) → { canvas, set(spec), snap(spec) → dataURL, stop(), dispose() } (null where WebGL can't start)
-import { THEMES, LANES, genLevel, speedOf } from "./world-studio-gen.js";
+import { THEMES, LANES, CLIMB, DEF, genLevel, speedOf } from "./world-studio-gen.js";
 import { level as ringLevel } from "./world-rings-engine.js";
 
 export function makePreview({ THREE, w = 640, h = 300 }) {
@@ -26,6 +26,24 @@ export function makePreview({ THREE, w = 640, h = 300 }) {
         const back = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(...xs) - Math.min(...xs) + 6, Math.max(...ys) - Math.min(...ys) + 6), std(th.track, { roughness: 0.8 })); back.position.z = -0.4; grp.add(back); }
       const span = R ? Math.max(Math.max(...R.rings.map((r) => r.x)) - Math.min(...R.rings.map((r) => r.x)), Math.max(...R.rings.map((r) => r.y)) - Math.min(...R.rings.map((r) => r.y))) + 4 : 8;
       return { sc, tick(t) { grp.rotation.y = Math.sin(t * 0.5) * 0.35; cam.position.set(0, 0, span * 1.05 + 2); cam.lookAt(0, 0, 0); } };
+    }
+    if (spec.tpl === "defense") { // (S4d: the board — the path, its pads, the portal and the crystal — and a few foes walking it)
+      const CS = 2, P = (c, r) => [(c - (DEF.C - 1) / 2) * CS, (r - (DEF.R - 1) / 2) * CS], on = new Set(L.path.map(String)), tG = new THREE.BoxGeometry(CS * 0.96, 0.3, CS * 0.96), offM = std(th.prop, { roughness: 0.9 }), onM = std(th.track, { roughness: 0.7 });
+      for (let c = 0; c < DEF.C; c++) for (let r = 0; r < DEF.R; r++) { const m = new THREE.Mesh(tG, on.has(String([c, r])) ? onM : offM); const [x, z] = P(c, r); m.position.set(x, on.has(String([c, r])) ? -0.2 : -0.1, z); sc.add(m); }
+      const pM = std(0x3a4a66, { emissive: th.edge, emissiveIntensity: 0.3 }); for (const [c, r] of L.pads) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.85, 0.22, 20), pM); const [x, z] = P(c, r); m.position.set(x, 0.12, z); sc.add(m); }
+      const pts = L.path.map(([c, r]) => P(c, r)); if (pts.length) { const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), std(0x5fd3ff, { emissive: 0x2fa8ff, emissiveIntensity: 0.7 })); cr.position.set(pts[pts.length - 1][0], 1.3, pts[pts.length - 1][1] + 1.2); sc.add(cr); }
+      const fM = std(th.wall, { emissive: th.wall, emissiveIntensity: 0.4 }), fs = Array.from({ length: Math.min(6, pts.length) }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), fM); sc.add(m); return m; });
+      return { sc, tick(t) { const n = pts.length; fs.forEach((m, i) => { if (n < 2) return; const f = ((t * 0.9 + i * 1.6) % (n - 1)), a = Math.floor(f), b = Math.min(n - 1, a + 1), k = f - a; m.position.set(pts[a][0] + (pts[b][0] - pts[a][0]) * k, 0.6, pts[a][1] + (pts[b][1] - pts[a][1]) * k); }); cam.position.set(Math.sin(t * 0.2) * 3, 24, 13); cam.lookAt(0, 0, 0.5); } };
+    }
+    if (spec.tpl === "climb") { // (S4d: the tower's first stretch — platforms, springs, spikes, coins — the camera rising past it)
+      const top = Math.min(L.len, 70), wall = new THREE.Mesh(new THREE.BoxGeometry(CLIMB.W + 3, top + 20, 0.6), std(th.track, { roughness: 0.8 })); wall.position.set(0, top / 2, -1.6); sc.add(wall);
+      const cols = { plat: th.wall, mplat: 0xff9a3d, break: 0xc8a27a, spring: 0x7cf5c8 }, pG = new THREE.BoxGeometry(1.8, 0.32, 1.6), cG = new THREE.CylinderGeometry(0.38, 0.38, 0.1, 14), mats = {};
+      for (const r of L.rows) { if (r.z > top) break; const x = CLIMB.COLS[r.lane] || 0; let m;
+        if (cols[r.k] != null) m = new THREE.Mesh(pG, mats[r.k] || (mats[r.k] = std(cols[r.k], { emissive: cols[r.k], emissiveIntensity: 0.3 })));
+        else if (r.k === "coin") { m = new THREE.Mesh(cG, mats.c || (mats.c = std(0xffc94a, { emissive: 0xffa21a, emissiveIntensity: 0.6, metalness: 0.8 }))); m.rotation.x = Math.PI / 2; }
+        else if (r.k === "spike") m = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.7, 8), mats.k || (mats.k = std(0xff3355, { emissive: 0xff2244, emissiveIntensity: 0.5 })));
+        else continue; m.position.set(x, r.z, 0); sc.add(m); }
+      return { sc, tick(t) { const y = 3 + ((t * 3) % Math.max(10, top - 8)); cam.position.set(Math.sin(t * 0.4) * 2, y + 1.5, 15); cam.lookAt(0, y, 0); } };
     }
     if (spec.tpl === "arena") {
       const Rr = L.R, floor = new THREE.Mesh(new THREE.CylinderGeometry(Rr, Rr + 0.6, 0.6, 48), std(th.track, { roughness: 0.6 })); floor.position.y = -0.3; sc.add(floor);

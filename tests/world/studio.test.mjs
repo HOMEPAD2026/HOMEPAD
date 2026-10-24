@@ -42,7 +42,7 @@ check(Object.values(walls).every((s) => s.size < 3), "every wall row leaves a la
 const D = G.genLevel({ tpl: "dash", seed: 9, len: 60 }), A = G.genLevel({ tpl: "arena", seed: 9, len: 45, walls: 3, gaps: 2, lasers: 1, coins: 4 });
 check(D.len > G.genLevel({ tpl: "runner", seed: 9, len: 90 }).len && D.rows.length > 40, "the dash's track runs on far past a runner's (" + D.len + " m)");
 check(A.secs === 45 && A.len === 900 && A.waves.some((w) => w.k === "d") && A.waves.some((w) => w.k === "L") && A.waves.some((w) => w.k === "D") && A.coins > 0 && A.waves.every((w, i) => !i || A.waves[i - 1].t <= w.t), "the arena: drones, sweeps and big drones in time order, coins (" + A.waves.length + " waves)");
-check(G.clampSpec({ tpl: "arena" }).title === "My Arena" && G.clampSpec({ tpl: "puzzle" }).tpl === "puzzle" && G.clampSpec({ tpl: "defense" }).tpl === "runner", "templates: the arena and the puzzle open, a closed one falls back to the runner");
+check(G.clampSpec({ tpl: "arena" }).title === "My Arena" && G.clampSpec({ tpl: "puzzle" }).tpl === "puzzle" && G.clampSpec({ tpl: "defense" }).tpl === "defense" && G.clampSpec({ tpl: "nope" }).tpl === "runner", "templates: arena, puzzle and (S4d) defense open, an unknown one falls back to the runner");
 // Studio 3: one-tap difficulty and the bots' estimate (seeded: the same answer twice; harder presets clear less)
 for (const tpl of ["runner", "dash", "arena"]) { const e = (k) => G.estimate({ tpl, seed: 11, len: 45, ...G.PRESETS[k] }), a = e("easy"), z = e("extreme");
   check(JSON.stringify(e("hard")) === JSON.stringify(e("hard")) && a.clear >= z.clear && a.stars <= z.stars && a.clear >= 0 && a.clear <= 1 && z.fails.length === 10, `${tpl}: easy clears ${a.clear}, extreme ${z.clear} (${z.why})`); }
@@ -127,5 +127,31 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   check(G.clampSpec({ tpl: "runner", build: q }).build === undefined && G.clampSpec({ tpl: "arena", build: { L: 300, r: [] } }).build === undefined, "S4c: a layout only for its own kind");
   const e0 = G.estimate(G.clampSpec({ tpl: "arena", len: 45, walls: 3, seed: 5, build: q })), e1 = G.estimate(G.clampSpec({ tpl: "arena", len: 45, walls: 3, seed: 5, build: { ...q, p: [[5, 5], [-5, 5], [5, -5], [-5, -5], [9, 0], [-9, 0]] } }));
   check(e1.clear >= e0.clear, `S4c: pillars make it a little easier for the bots (${e0.clear} → ${e1.clear})`); }
+// S4d: SKY CLIMB — a tower of platforms; its layout kept to one thing a spot, hearts capped; a gap out of reach is found
+{ const L = G.genLevel({ tpl: "climb", seed: 4 }); check(L.climb && L.len === 180 && L.rows.length > 40 && G.climbGaps(G.clampSpec({ tpl: "climb", seed: 4 }), L.rows, L.len).length === 0, "S4d: a quick-start climb is reachable all the way up");
+  const c = G.clampSpec({ tpl: "climb", build: { climb: 1, L: 100, r: [[3, "n", 2], [3.2, "c", 2], [3, "n", 2], [6, "s", 9], [-1, "n", 0], [50, "n", 1], ...Array.from({ length: 9 }, (_, i) => [10 + i * 2, "h", 0])] } });
+  check(c.build.r.length === 2 + 5 && c.build.r.filter((x) => x[1] === "h").length === G.CLIMB.HEARTS, "S4d: one thing a spot, columns 0–4, hearts capped: " + JSON.stringify(c.build.r.slice(0, 3)));
+  const lv = G.genLevel(c), gaps = G.climbGaps(c, lv.rows, lv.len); check(gaps.length >= 2 && gaps[0][0] === 3 && gaps[0][1] === 50, "S4d: a gap out of reach is found: " + JSON.stringify(gaps));
+  check(G.estimate(c).clear === 0 && G.estimate({ tpl: "climb", seed: 4, ...G.PRESETS.easy }).clear > G.estimate({ tpl: "climb", seed: 4, ...G.PRESETS.extreme }).clear, "S4d: the bots can't clear an unreachable tower; easy beats extreme");
+  const tb = G.toBuild({ tpl: "climb", seed: 4 }); check(tb.climb && tb.r.length >= L.rows.length - 6 && G.genLevel({ tpl: "climb", build: tb }).built, "S4d: a quick-start climb opens as its layout");
+  check(!G.clampSpec({ tpl: "runner", build: tb }).build && !G.clampSpec({ tpl: "climb", build: { L: 300, r: [] } }).build, "S4d: a climb takes only a climb layout"); }
+// S4d: TOWER DEFENSE — the path must be side by side from the top row down to the bottom; pads must touch it; waves capped
+{ const L = G.genLevel({ tpl: "defense", seed: 2 }); check(L.defense && L.path[0][1] === 0 && L.path[L.path.length - 1][1] === G.DEF.R - 1 && L.pads.length >= 6 && L.waves.length === 8, "S4d: a quick-start defense map has a full path, pads and 8 waves");
+  const d = G.clampSpec({ tpl: "defense", build: { td: 1, path: [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [3, 7], [3, 8], [3, 9], [3, 10]], pads: [[2, 2], [5, 5], [3, 3], [4, 9], [2, 2]], waves: [[40, 0, 0], [0, 0, 0], [3, 2, 1]] } });
+  check(JSON.stringify(d.build.pads) === "[[2,2],[4,9]]" && d.build.waves.length === 2 && d.build.waves[0][0] === G.DEF.PER, "S4d: pads beside the path only, empty waves dropped, a wave capped at " + G.DEF.PER);
+  const broken = G.clampSpec({ tpl: "defense", build: { td: 1, path: [[3, 0], [3, 1], [5, 2]], pads: [[2, 1]], waves: [[5, 0, 0]] } }); check(broken.build.path.length === 0 && broken.build.pads.length === 0, "S4d: a path with a jump in it isn't a path");
+  const Ld = G.genLevel(d); check(Ld.built && Ld.len === 200 && Ld.coins === G.DEF.PER + 6, "S4d: the defense plays as built (score held to its foes and waves)");
+  check(G.estimate({ tpl: "defense", seed: 2, len: 90, ...G.PRESETS.easy }).clear >= G.estimate({ tpl: "defense", seed: 2, len: 90, ...G.PRESETS.extreme }).clear, "S4d: easy defense is easier for the bots than extreme");
+  const tb = G.toBuild({ tpl: "defense", seed: 2 }); check(tb.td && tb.path.length === L.path.length && G.genLevel({ tpl: "defense", build: tb }).built, "S4d: a quick-start map opens in the builder"); }
+// S4 finish: editor's picks — only a GM stars a published game; the arcade lists picks first
+{ const { GM_WALLETS } = await import("../../api/_world-village.mjs"); const gm = ethers.Wallet.createRandom(); GM_WALLETS.push(gm.address.toLowerCase());
+  const mk = ethers.Wallet.createRandom(), a = (await call(mk, "world-studio-save", { spec: { title: "Pick me", tpl: "climb", seed: 3 } })).body.game.id, b2 = (await call(mk, "world-studio-save", { spec: { title: "Not yet" } })).body.game.id;
+  await call(mk, "world-studio-publish", { id: a, on: true });
+  let r3 = await call(fan, "world-studio-pick", { id: a, on: true }); check(r3.status === 403, "a player can't pick");
+  r3 = await call(gm, "world-studio-pick", { id: b2, on: true }); check(r3.status === 404, "only a published game is picked");
+  r3 = await call(gm, "world-studio-pick", { id: a, on: true }); let arc = await get("studio-arcade");
+  check(r3.status === 200 && r3.body.pick && arc.games[0].id === a && arc.games[0].pick, "a GM's pick is listed first with its star");
+  await call(gm, "world-studio-pick", { id: a, on: false }); arc = await get("studio-arcade"); check(!arc.games.find((x) => x.id === a).pick, "a pick taken off");
+  await call(mk, "world-studio-del", { id: a }); await call(mk, "world-studio-del", { id: b2 }); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
