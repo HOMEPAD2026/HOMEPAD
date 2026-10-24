@@ -21,7 +21,7 @@
 //            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
 import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
-export const STUDIO = { OPEN: true, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900 };
+export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900 };
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), shut(w), nameOf(w), randomId(), ai?(sys, msgs) }
@@ -29,7 +29,7 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full) => ({ id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })) } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
     if (g && g.pub) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at }; else delete list[id];
@@ -42,8 +42,8 @@ export function makeStudio(deps) {
     const spec = clampSpec(b.spec || {}), ids = await mineOf(w);
     if (b.id) {
       const g = await one(`worldStudio/${b.id}`); if (!g || g.w !== w) return json(404, { error: "not your game" });
-      g.spec = { ...spec, seed: spec.seed }; g.up = now(); await setDoc(`worldStudio/${b.id}`, g); if (g.pub) await arcadeSet(b.id, g);
-      return json(200, { ok: true, game: pubOf(b.id, g, true) });
+      if (JSON.stringify(g.spec) !== JSON.stringify(spec)) g.vers = [{ at: g.up || g.at, spec: g.spec }, ...(g.vers || [])].slice(0, STUDIO.VERS); /* (Studio 4: the last few saves to go back to) */ g.spec = { ...spec, seed: spec.seed }; g.up = now(); await setDoc(`worldStudio/${b.id}`, g); if (g.pub) await arcadeSet(b.id, g);
+      return json(200, { ok: true, game: pubOf(b.id, g, true, true) });
     }
     if (ids.length >= STUDIO.DRAFTS) return json(400, { error: `you can keep ${STUDIO.DRAFTS} games — delete one first` });
     const id = "g" + String(deps.randomId()).replace(/[^a-z0-9]/gi, "").slice(0, 10).toLowerCase(), g = { w, byName: await deps.nameOf(w).catch(() => ""), spec, pub: false, at: now(), up: now(), plays: 0, likes: 0, best: [] };
@@ -138,7 +138,7 @@ export function makeStudio(deps) {
       if (w === "studio-arcade") { const d = (await one("worldStats/studioArcade")) || {}; return json(200, { ok: true, games: Object.entries(d.list || {}).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
       if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudio/${id}`) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); return json(200, { ok: true, game: pubOf(id, g, true) }); }
       if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioGhost/${id}`) : null; if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
-      if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
+      if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
       return null;
     },
     async handle(b) {

@@ -96,5 +96,20 @@ for (let i = 0; i < STUDIO.DRAFTS - 2; i++) await call(me, "world-studio-save", 
 r = await call(me, "world-studio-save", { spec: { title: "one too many" } }); check(r.status === 400 && /delete/.test(r.body.error), "the draft cap: " + STUDIO.DRAFTS);
 r = await call(me, "world-studio-del", { id }); ar = await get("studio-arcade"); mine = await get("studio-mine&wallet=" + me.address.toLowerCase());
 check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.length === STUDIO.DRAFTS - 1, "deleted: off the arcade and my list");
+// Studio 4: a hand-built layout ("Build it yourself"): the server keeps only what can be played, plays it as built, and keeps versions
+{ const bad = G.clampSpec({ tpl: "runner", build: { L: 300, r: [[30, "w", 0], [30, "w", 1], [30, "w", 2], [32, "g", 0], [60, "l", 0], [60, "c", 1], [60, "w", 1], [90, "h", 1], [90, "h", 1], [5, "c", 0], [400, "c", 0], [120, "x", 0]] } });
+  check(JSON.stringify(bad.build.r) === JSON.stringify([[30, "w", 0], [30, "w", 1], [60, "w", 1], [90, "h", 1]]), "a built layout keeps only what can be played (a free lane, the reaction gap, one kind a row — the wall first —, nothing in a wall): " + JSON.stringify(bad.build.r));
+  const many = G.clampSpec({ tpl: "runner", build: { L: 2000, r: Array.from({ length: 20 }, (_, i) => [40 + i * 2, "h", i % 3]) } }); check(many.build.r.length === G.BUILD.HEARTS, "at most " + G.BUILD.HEARTS + " hearts");
+  check(G.clampSpec({ tpl: "arena", build: { L: 300, r: [[40, "w", 0]] } }).build === undefined, "only runner and dash take a layout");
+  const qb = G.toBuild(G.clampSpec({ tpl: "runner", speed: 3, seed: 9 })), sp = G.clampSpec({ tpl: "runner", speed: 3, build: qb }), L = G.genLevel(sp);
+  check(qb.r.length > 10 && L.built && L.len === qb.L && L.coins === qb.r.filter((x) => x[1] === "c").length, "a quick-start level becomes an editable layout: " + qb.r.length + " pieces, " + qb.L + " m");
+  const ds = G.genLevel(G.clampSpec({ tpl: "dash", build: { L: 200, r: [[40, "w", 1], [80, "g", 0], [120, "c", 2]] } })); check(ds.rows.length > 30 && ds.rows[3].z === 240, "the dash plays its layout again and again: " + ds.rows.length + " rows");
+  let r2 = await call(me, "world-studio-save", { spec: { tpl: "runner", title: "Built", build: { L: 300, r: [[40, "w", 0], [60, "c", 1]] } } }); const bid = r2.body.game && r2.body.game.id;
+  check(r2.status === 200 && r2.body.game.spec.build && r2.body.game.spec.build.r.length === 2, "a built game is saved with its layout");
+  r2 = await call(me, "world-studio-save", { id: bid, spec: { ...r2.body.game.spec, build: { L: 300, r: [[40, "w", 0], [60, "c", 1], [80, "c", 2]] } } });
+  check(r2.status === 200 && r2.body.game.vers && r2.body.game.vers.length === 1 && r2.body.game.vers[0].spec.build.r.length === 2, "the save before is kept as a version");
+  await call(me, "world-studio-publish", { id: bid, on: true }); T += 30e3;
+  r2 = await call(fan, "world-studio-play", { id: bid, coins: 99, dist: 9999, done: true }); check(r2.status === 200 && r2.body.score === G.scoreOf(2, 300, true), "a built game's score is held to its own layout: " + r2.body.score);
+  await call(me, "world-studio-del", { id: bid }); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

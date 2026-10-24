@@ -36,6 +36,11 @@ export const LANES = [-2.2, 0, 2.2];
 const int = (v, a, b, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(a, Math.min(b, n)) : d; };
 /// a spec made safe: every field in range, unknown ones dropped. → { tpl, title, theme, speed, len, coins, walls, gaps, lasers, seed }
 export function clampSpec(s = {}) {
+  const out = clampBase(s), b = (out.tpl === "runner" || out.tpl === "dash") && s.build && typeof s.build === "object" ? cleanBuild(s.build, out) : null;
+  if (b) out.build = b;
+  return out;
+}
+function clampBase(s) {
   const title = String(s.title || "").replace(/[\u0000-\u001f<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 24) || "My Sky Run";
   return {
     tpl: TEMPLATES[s.tpl] && TEMPLATES[s.tpl].open ? s.tpl : "runner", title: title === "My Sky Run" && s.tpl === "arena" ? "My Arena" : title === "My Sky Run" && s.tpl === "dash" ? "My Infinity Dash" : title === "My Sky Run" && s.tpl === "puzzle" ? "My Ring Puzzle" : title,
@@ -44,6 +49,41 @@ export function clampSpec(s = {}) {
     coins: int(s.coins, 0, 5, 3), walls: int(s.walls, 0, 5, 2), gaps: int(s.gaps, 0, 3, 1), lasers: int(s.lasers, 0, 3, 1),
     seed: int(s.seed, 1, 999999, 1),
   };
+}
+/// Studio 4 ("Build it yourself"): a runner or dash laid out by hand. build = { L: track metres, r: [[z, k, lane]] } with k
+/// w (wall, a lane) · g (gap, across) · l (laser, across) · c (coin, a lane) · h (heart, a lane: one back, up to 3). The server
+/// keeps only what can be played: an obstacle row leaves a lane open (walls in ≤ 2 lanes), one kind of obstacle a row,
+/// obstacle rows at least a reaction apart (BUILD.GAP s at the track's speed), nothing on top of a wall, ≤ BUILD.HEARTS hearts.
+export const BUILD = { MIN: 150, MAX: 2000, STEP: 10, ROWS: 600, HEARTS: 5, GAP: 0.32, KINDS: ["w", "g", "l", "c", "h"] };
+export const buildGap = (spec) => Math.max(4, Math.round(speedOf(spec) * BUILD.GAP));
+export function cleanBuild(b, spec) {
+  const L = Math.max(BUILD.MIN, Math.min(BUILD.MAX, Math.round((Number(b.L) || 0) / BUILD.STEP) * BUILD.STEP)), gap = buildGap(spec), raw = Array.isArray(b.r) ? b.r.slice(0, BUILD.ROWS * 2) : [];
+  const rows = []; for (const x of raw) { if (!Array.isArray(x)) continue; const z = Math.round(Number(x[0])), k = String(x[1]), ln = Math.round(Number(x[2]) || 0); if (!Number.isFinite(z) || z < 20 || z > L - 12 || !BUILD.KINDS.includes(k)) continue; rows.push([z, k, k === "g" || k === "l" ? 0 : Math.max(0, Math.min(2, ln))]); }
+  rows.sort((p, q) => p[0] - q[0] || BUILD.KINDS.indexOf(p[1]) - BUILD.KINDS.indexOf(q[1]) || p[2] - q[2]);
+  const out = [], seen = new Set(); let lastZ = -99, lastK = "", hearts = 0;
+  const walls = new Map(); // z → lanes walled
+  for (const [z, k, ln] of rows) {
+    const key = z + k + ln; if (seen.has(key)) continue;
+    if (k === "w" || k === "g" || k === "l") {
+      if (z !== lastZ && z - lastZ < gap) continue; // (too close to the last obstacle row to react)
+      if (z === lastZ && (k !== "w" || lastK !== "w")) continue; // (one kind a row)
+      if (k === "w") { const set = walls.get(z) || new Set(); if (set.size >= 2) continue; set.add(ln); walls.set(z, set); }
+      lastZ = z; lastK = k;
+    } else {
+      if (k === "h" && hearts >= BUILD.HEARTS) continue;
+      const set = walls.get(z); if (set && set.has(ln)) continue; // (not inside a wall)
+      if (k === "h") hearts++;
+    }
+    seen.add(key); out.push([z, k, ln]); if (out.length >= BUILD.ROWS) break;
+  }
+  return { L, r: out };
+}
+const KIND_OF = { w: "wall", g: "gap", l: "laser", c: "coin", h: "heart" };
+/// a built layout as the level's rows (the dash: the layout again and again, back to back, to DASH_MAX's length)
+function buildRows(spec, len) {
+  const B = spec.build, rows = [], reps = spec.tpl === "dash" ? Math.ceil(len / B.L) : 1;
+  for (let i = 0; i < reps; i++) for (const [z, k, ln] of B.r) { const zz = z + i * B.L; if (zz > len - 12) break; rows.push(k === "g" || k === "l" ? { z: zz, k: KIND_OF[k] } : { z: zz, k: KIND_OF[k], lane: ln }); }
+  return rows;
 }
 export const speedOf = (spec) => 9 + spec.speed * 2.2; // metres a second
 /// the dash's speed after t seconds (len picks how fast it climbs: 30 → slow … 90 → fast)
@@ -54,7 +94,8 @@ export function genLevel(spec0) {
   const spec = clampSpec(spec0);
   if (spec.tpl === "arena") return genArena(spec);
   if (spec.tpl === "puzzle") return { puzzle: true, id: puzzleId(spec), len: 0, coins: 0, hints: puzzleHints(spec) };
-  const v = speedOf(spec), len = spec.tpl === "dash" ? Math.round(Array.from({ length: DASH_MAX }, (_, t) => dashSpeed(spec, t + 0.5)).reduce((a, b) => a + b, 0)) : Math.round(v * spec.len);
+  const v = speedOf(spec), len = spec.tpl === "dash" ? Math.round(Array.from({ length: DASH_MAX }, (_, t) => dashSpeed(spec, t + 0.5)).reduce((a, b) => a + b, 0)) : spec.build ? spec.build.L : Math.round(v * spec.len);
+  if (spec.build) { const rows = buildRows(spec, len); return { len, rows, coins: rows.filter((r) => r.k === "coin").length, v, built: true }; }
   let s = spec.seed >>> 0 || 1; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const rows = []; let coins = 0, z = 26; const step = Math.max(9, 22 - spec.walls * 2 - spec.gaps - spec.lasers) * (0.8 + spec.speed * 0.08);
   const W = spec.walls, G = spec.gaps, L = spec.lasers, tot = W * 3 + G * 2 + L * 2 + 0.001;
@@ -112,7 +153,7 @@ export function estimate(spec0) {
     }
   } else {
     const dash = spec.tpl === "dash", goal = dash ? Array.from({ length: 45 }, (_, t) => dashSpeed(spec, t + 0.5)).reduce((a, x) => a + x, 0) : L.len;
-    const ev = []; for (const r of L.rows) { if (r.k === "coin" || r.z > goal) continue; const last = ev[ev.length - 1]; if (last && last.z === r.z) continue; ev.push({ z: r.z, k: r.k }); }
+    const ev = []; for (const r of L.rows) { if (r.k === "coin" || r.k === "heart" || r.z > goal) continue; const last = ev[ev.length - 1]; if (last && last.z === r.z) continue; ev.push({ z: r.z, k: r.k }); }
     const vAt = (z) => { if (!dash) return speedOf(spec); let d = 0, t = 0; while (d < z && t < 600) { d += dashSpeed(spec, t + 0.5); t++; } return dashSpeed(spec, t); };
     const vs = ev.map((e) => vAt(e.z));
     for (let b = 0; b < N; b++) {
@@ -133,3 +174,9 @@ export function estimate(spec0) {
 export const puzzleId = (spec) => `s:${spec.seed % 1000000}:${spec.speed}:${spec.coins}:${spec.walls}:${spec.gaps}:${spec.lasers}`;
 export const puzzleHints = (spec) => ({ 30: 0, 45: 1, 60: 2, 90: 3 })[spec.len] || 0;
 export const puzzleScore = (par, moves, hints = 0) => Math.max(100, 1000 - 40 * Math.max(0, moves - par) + 20 * Math.max(0, par - moves) - 50 * hints);
+/// Studio 4: a quick-start level as a layout to edit by hand (its rows, its length) — the second tier starts from the first
+export function toBuild(spec0) {
+  const spec = clampSpec({ ...spec0, build: null }); delete spec.build; const L = genLevel(spec), CODE = { wall: "w", gap: "g", laser: "l", coin: "c", heart: "h" };
+  const len = spec.tpl === "dash" ? Math.max(BUILD.MIN, Math.min(600, Math.round(speedOf(spec) * 30 / BUILD.STEP) * BUILD.STEP)) : Math.max(BUILD.MIN, Math.min(BUILD.MAX, Math.round(L.len / BUILD.STEP) * BUILD.STEP));
+  return cleanBuild({ L: len, r: L.rows.filter((r) => r.z <= len - 12).map((r) => [Math.round(r.z), CODE[r.k], r.lane || 0]) }, spec);
+}

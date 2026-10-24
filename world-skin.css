@@ -3582,3 +3582,32 @@ html.wp-pcphone .wst-help,html.wp-pcphone .wag-help{zoom:1.3}
 .wpg-xf{position:fixed!important;top:max(16px,env(safe-area-inset-top));right:16px;z-index:13200;width:44px;height:44px;background:rgba(6,14,36,.85)!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:0 6px 18px rgba(0,0,0,.4)}
 html.wp-pcphone .wpg-xf{zoom:1.5}
 .wpg-in.adg .adg-head h2{margin-right:56px}
+/* Studio 4: "Build it yourself" (world-studio-build.js) */
+.wst-build{display:flex;align-items:center;gap:12px;margin:0 0 12px;padding:12px 14px;border-radius:16px;background:linear-gradient(90deg,rgba(95,211,255,.12),rgba(124,245,200,.08));border:1px dashed rgba(124,245,200,.5)}
+.wst-build.on{border-style:solid;background:linear-gradient(90deg,rgba(124,245,200,.16),rgba(95,211,255,.1))}
+.wst-build>i{font-style:normal;font-size:28px}.wst-build>div{flex:1;min-width:0}.wst-build b{display:block;font-size:15px;color:#fff}.wst-build small{display:block;color:#bcd0e6;font-size:12.5px;line-height:1.4}
+.wst-build>span{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.wsb{position:fixed;inset:0;z-index:66;display:flex;background:#060c1e}
+.wsb[hidden]{display:none}
+.wsb-in{flex:1;display:flex;flex-direction:column;min-height:0;color:#e8f1fb;font-family:Sora,sans-serif}
+.wsb-h{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#0c1838;border-bottom:1px solid rgba(95,211,255,.25)}
+.wsb-h>b{font-size:16px;white-space:nowrap}.wsb-hr{margin-left:auto;display:flex;gap:6px;align-items:center}
+.wsb-b{height:38px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:800 13px/1 Sora,sans-serif;cursor:pointer;white-space:nowrap}
+.wsb-b.alt{border-color:rgba(95,211,255,.5);color:#bff3ff}.wsb-b.go{background:linear-gradient(90deg,#4fd8ff,#7cf5c8);color:#06203a;border:0}
+.wsb-i{width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:800 16px/1 Sora,sans-serif;cursor:pointer}
+.wsb-i:disabled,.wsb-b:disabled{opacity:.35}
+.wsb-bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 12px;background:#0a1430;font-size:13px}
+.wsb-len{display:flex;align-items:center;gap:6px}.wsb-len b{min-width:62px;text-align:center}
+.wsb-st{color:#ffd23a;letter-spacing:1px}.wsb-st i{font-style:normal;color:rgba(255,255,255,.2)}.wsb-st small{letter-spacing:0;color:#bcd0e6;margin-left:6px}
+.wsb-cnt{color:#bcd0e6}.wsb-bad{flex-basis:100%;color:#ff9aa8;font-size:12.5px}
+.wsb-main{position:relative;flex:1;min-height:0}.wsb-cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.wsb-side{position:absolute;right:10px;top:10px;display:grid;gap:6px}
+.wsb-sel,.wsb-pieces{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;background:#0c1838;border-top:1px solid rgba(95,211,255,.2);font-size:13px}
+.wsb-sel[hidden],.wsb-pieces[hidden]{display:none}
+.wsb-sel span{margin-right:auto;color:#bff3ff}.wsb-sel button,.wsb-pieces button{height:36px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:700 13px/1 Sora,sans-serif;cursor:pointer}
+.wsb-pieces button.on{border-color:#7cf5c8;background:rgba(124,245,200,.18)}.wsb-pieces button i{font-style:normal;margin-right:4px}.wsb-pieces small{flex-basis:100%;color:#9fb3cc}
+.wsb-tools{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#0c1838;border-top:1px solid rgba(95,211,255,.25)}
+.wsb-tools button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;border-radius:12px;border:1px solid transparent;background:none;color:#cfe0f5;font:700 11px/1.1 Sora,sans-serif;cursor:pointer}
+.wsb-tools button i{font-style:normal;font-size:22px}.wsb-tools button.on{background:rgba(95,211,255,.16);border-color:rgba(95,211,255,.6);color:#fff}
+html.wp-pcphone .wsb-in{zoom:1.6}
+.wst-vers{display:grid;gap:6px;margin:8px 0}.wst-vers button{display:flex;justify-content:space-between;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#e8f1fb;font:600 13px/1.2 Sora,sans-serif;cursor:pointer}
