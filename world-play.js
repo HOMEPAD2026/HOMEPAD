@@ -3616,7 +3616,7 @@ every(1000, () => nqRun());
 function nqRun() { try {
   const ph = document.documentElement.classList.contains("wp-pcphone"), els = NQ.map((q) => document.querySelector(q)).filter(Boolean);
   if (nqObs) for (const e of [...els, document.getElementById("wc-boss")]) if (e && !nqSeen.has(e)) { nqSeen.add(e); nqObs.observe(e, { attributes: true, attributeFilter: ["hidden", "class"] }); }
-  if (!ph) { for (const e of els) e.classList.remove("wp-nq-off"); return; }
+  if (!ph) { for (const e of els) if (e.classList.contains("wp-nq-off")) e.classList.remove("wp-nq-off"); return; } /* (only when it is there: remove() writes the class even when nothing changes, the observer above saw that and called this again — an endless loop that froze every computer at 80 %, 2026-10-25) */
   const y = noticeSlot(); if (y && y !== nqTop) { nqTop = y; document.documentElement.style.setProperty("--nq-top", y + "px"); }
   { const mm = document.querySelector(".wp-mini"), r = mm && mm.getClientRects().length ? mm.getBoundingClientRect() : null, right = r && r.bottom > y && r.top < y + 90 ? Math.round(r.left - 14) : innerWidth - 18; /* (the room left of the minimap) */
     const R = document.documentElement.style; if (R.getPropertyValue("--nq-r") !== right + "px") { R.setProperty("--nq-r", right + "px"); R.setProperty("--nq-cx", Math.round((18 + right) / 2) + "px"); R.setProperty("--nq-w", (right - 18) + "px"); } }
