@@ -123,6 +123,19 @@ The owner asked for this on every commit (not only when they ask):
   retexture, rigging, animations) — backgrounds, floors, buildings, props, monsters, gear. `tools/meshy.mjs` does every
   call; the key is read only from the environment (`MESHY_API_KEY`, set in the environment's settings, never in a file in
   the repo or in a commit); `api.meshy.ai` must be in the environment's allowed domains (a new session picks both up).
+- **Images come from Meshy too** (the owner, 2026-10-25: "이미지도 meshy를 쓰자"): `tools/meshy.mjs image` (text-to-image) and
+  `img2img` (follows reference pictures). Meshy's images have no transparency: ask for a pure black background for
+  glows (draw them additively) and a flat green one for cut-outs (key by hue), then WebP, sized for a phone.
+- **The remaster loop (the owner's method, 2026-10-25 — use it for every screen we want better, RAID QUEENS first):**
+  1. take real screenshots of our screen (desktop 1280×760 with the HUD hidden, and the phone layout);
+  2. give each to Meshy `img2img` as the reference: "remaster this same scene / layout at high quality, keep the
+     composition" → a target mock-up of how it could look;
+  3. compare it with ours, list the differences that matter (lighting, props, materials, UI frames, effects);
+  4. ask Meshy for just those parts one by one (a texture, a prop as text/image-to-3D, a UI frame or icon on green,
+     a glow on black) and build them into the game within the performance budgets below;
+  5. screenshot again and compare with the mock-up; show the owner both.
+  The cloud session that runs Meshy must be on the "기본" environment (this one's network blocks api.meshy.ai): a
+  worker session there makes the files and pushes them to a side branch; this session packs and places them.
 - Pictures can also come from OpenAI's image model (`tools/openai-image.mjs gen|edit`, gpt-image-1, `OPENAI_API_KEY` from the environment, `api.openai.com` allowed): key art, backgrounds, icons, transparent cut-outs, edits that follow reference shots; convert to WebP and size for a phone before they go in.
 - **Keep it smooth without being asked:** every new model gets a triangle budget (props 3–8 k, statues 10–20 k, monsters
   ≤ 5 k), Meshy's remesh to it, then the town's packer (Draco + KTX2, textures ≤ 1024 px); repeats are instanced; far
