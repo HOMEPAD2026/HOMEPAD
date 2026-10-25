@@ -4208,3 +4208,8 @@ body.rq-low::after{content:"";position:fixed;inset:0;z-index:50;pointer-events:n
 .my-pc.listed{opacity:.85;outline:1px dashed rgba(255,211,106,.5)}.my-sellf{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;margin-top:6px}.my-sellf input{width:140px;padding:7px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.35);color:#fff;font:700 13px system-ui}.my-sellf small{flex-basis:100%;color:#cfc0d6}
 .my-mkt{display:grid;gap:8px}.my-li{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:8px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,61,110,.2)}.my-li img{width:56px;height:56px;object-fit:contain}.my-li span{display:grid;gap:2px}.my-li b{color:#fff}.my-li small{color:#d8c6d8}.my-li em{color:#ffd36a;font-style:normal;font-size:12px}
 .my-li .go{padding:9px 12px;border-radius:10px;border:0;background:linear-gradient(180deg,#ff5f8f,#d81b5a);color:#fff;font:800 12px Sora,system-ui,sans-serif}.my-li .go:disabled{opacity:.45}.my-fine{color:#cbb8cc;font-size:12px;margin:10px 0 0}
+/* the Crimson Celestial pieces in 3D (world-mythic.js makeViewer): the picture until the model is in */
+.my-3d{position:relative;height:200px;margin:0 0 8px;border-radius:14px;background:radial-gradient(ellipse at 50% 60%,rgba(255,61,110,.28),rgba(20,4,12,0) 70%);overflow:hidden}
+.my-3d img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .4s}.my-3d.on img{opacity:0}
+.my-3d .my-3dc{position:absolute;inset:0;width:100%!important;height:100%!important}
+.my-rev-art.my-3d{height:240px}

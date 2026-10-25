@@ -8,8 +8,33 @@ const STAT = { atk: "ATK", def: "DEF", hp: "HP", sp: "SP", crit: "Crit %", spd: 
 const SRC = { lysitha: "Lv 100 · Lysitha", solvira: "Lv 200 · Solvira", nyxara: "Lv 300 · Nyxara", throne: "Lv 400 · Throne of Three", secret: "SECRET" };
 const img = (P, ver) => `/images/mythic/${P.glb}.webp${ver || ""}`;
 
+// the pieces in 3D (the owner's Meshy models, packed to ~7 k triangles and 512 px KTX2 textures: models/world/mythic):
+// one small renderer of its own, made when a piece is shown and let go when the window closes, a slow turn and a red rim
+function makeViewer(THREE, K) {
+  let R = null, scene = null, cam = null, raf = 0, obj = null, host = null, t0 = 0;
+  const cache = {};
+  function ensure() {
+    if (R) return; R = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" }); R.setPixelRatio(Math.min(2, devicePixelRatio || 1)); R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping;
+    scene = new THREE.Scene(); cam = new THREE.PerspectiveCamera(30, 1, 0.05, 50); cam.position.set(0, 0.25, 3.2);
+    scene.add(new THREE.HemisphereLight(0xffe6ee, 0x200810, 1.6)); const k = new THREE.DirectionalLight(0xffffff, 2.4); k.position.set(2, 3, 2); scene.add(k);
+    const rim = new THREE.DirectionalLight(0xff3d6e, 3); rim.position.set(-2.5, 1, -2); scene.add(rim);
+  }
+  const load = (glb, ver) => cache[glb] || (cache[glb] = new Promise((ok, no) => K.gltfLoader().load(`/models/world/mythic/${glb}.glb${ver || ""}`, (g) => ok(g.scene), undefined, no)).catch((e) => { delete cache[glb]; throw e; }));
+  function loop(t) { raf = requestAnimationFrame(loop); if (!host || !host.isConnected) { stop(); return; } const w = host.clientWidth, h = host.clientHeight; if (R.domElement.width !== Math.round(w * R.getPixelRatio())) { R.setSize(w, h, false); cam.aspect = w / Math.max(1, h); cam.updateProjectionMatrix(); }
+    if (obj) { obj.rotation.y = (t - t0) / 2400; obj.position.y = Math.sin((t - t0) / 900) * 0.04; } R.render(scene, cam); }
+  function stop() { cancelAnimationFrame(raf); raf = 0; }
+  async function show(el, P, ver) {
+    if (!P || !THREE || !K) return; ensure(); host = el; el.appendChild(R.domElement); R.domElement.className = "my-3dc";
+    let src; try { src = await load(P.glb, ver); } catch { el.classList.add("off"); return; } if (host !== el) return;
+    if (obj) scene.remove(obj); obj = new THREE.Group(); const o = src.clone(true), box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3()), k = 1.7 / Math.max(sz.x, sz.y, sz.z, 1e-3);
+    o.position.copy(c).multiplyScalar(-k); o.scale.setScalar(k); obj.add(o); scene.add(obj); t0 = performance.now(); el.classList.add("on"); if (!raf) raf = requestAnimationFrame(loop);
+  }
+  function dispose() { stop(); host = null; if (R) { R.dispose(); R.forceContextLoss(); R.domElement.remove(); R = null; } scene = null; obj = null; }
+  return { show, dispose };
+}
+
 export function makeMythicUI(ctx) {
-  const { T, esc } = ctx;
+  const { T, esc } = ctx; const viewer = makeViewer(ctx.THREE, ctx.K);
   let el = null, pick = "", tab = "set", mkt = null, sellId = "";
   const statLine = (o) => Object.entries(o).filter(([k, v]) => v && STAT[k]).map(([k, v]) => `${T(STAT[k])} +${v}`).join(" · ");
   function paint() {
@@ -18,7 +43,7 @@ export function makeMythicUI(ctx) {
     const slotCard = (P) => { const mine = pcs.filter((p) => p.def === P.id), w = mine.find((p) => p.id === eq[P.slot]);
       return `<button type="button" class="my-slot${w ? " on" : ""}${mine.length ? "" : " none"}${pick === P.slot ? " sel" : ""}" data-slot="${P.slot}"><img src="${img(P, ctx.ver)}" alt=""><b>${esc(T(P.name))}</b><small>${esc(T(P.line))}</small><i>${w ? "✓ " + esc(T("Worn")) : mine.length ? esc(T("{n} held", { n: mine.length })) : "—"}</i></button>`; };
     const P0 = pick && CC.PIECES.find((p) => p.slot === pick), list = P0 ? pcs.filter((p) => p.def === P0.id) : [];
-    const detail = P0 ? `<div class="my-list"><h4>${esc(T(P0.name))}</h4>${list.length ? list.map((p) => { const on = eq[P0.slot] === p.id, low = p.req > lv;
+    const detail = P0 ? `<div class="my-list"><div class="my-3d" data-3d="${P0.id}"><img src="${img(P0, ctx.ver)}" alt=""></div><h4>${esc(T(P0.name))}</h4>${list.length ? list.map((p) => { const on = eq[P0.slot] === p.id, low = p.req > lv;
         const listed = p.state === "GAME_LISTED", c = enhCost(p.plus || 0), top = (p.plus || 0) >= CC.MAX_PLUS;
         return `<div class="my-pc${on ? " on" : ""}${listed ? " listed" : ""}"><span><b>${esc(T(SRC[p.src] || p.src))}</b><small>${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult} · +${p.plus || 0}${listed ? ` · 🏷 ${Number(p.price).toLocaleString("en-US")} ARCL` : ""}</small><em>${esc(statLine(mythicStats(p)))}</em></span>
           <div class="my-acts">${listed ? `<button type="button" data-unlist="${p.id}">${esc(T("Take back"))}</button>` : `<button type="button" data-eq="${p.id}" ${low && !on ? "disabled" : ""}>${on ? esc(T("Take off")) : low ? "🔒 Lv " + p.req : esc(T("Wear"))}</button>
@@ -32,6 +57,7 @@ export function makeMythicUI(ctx) {
       <div class="my-bon">${CC.BONUS.map(([n, name, b]) => `<div class="${sb.n >= n ? "on" : ""}"><i>${n}</i><span><b>${esc(T(name))}</b><small>${esc(statLine(b))}${b.aura ? " · " + esc(T("Crimson aura")) : ""}</small></span></div>`).join("")}</div>
       <div class="my-drop"><h4>${esc(T("Where it drops"))}</h4>${Object.entries(CC.DROP).map(([k, d]) => `<span><b>${esc(T(SRC[k]))}</b>${+(d.rate * 100).toFixed(2)}% · ${esc(T("worn from Lv {n}", { n: d.req }))} · ×${d.mult}</span>`).join("")}
       <p>${esc(T("One of the six at equal odds on a won run. Kept on the server, never in your device's save."))}</p></div></div>`}</div>`;
+    mount3d(el);
   }
   function marketHtml() {
     if (!mkt) { loadMarket(); return `<div class="my-body"><p class="my-empty">…</p></div>`; }
@@ -46,6 +72,7 @@ export function makeMythicUI(ctx) {
     if (!r || !r.ok) { ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return null; }
     await ctx.refresh(); if (ctx.purse) ctx.purse(); if (okMsg) ctx.toast(okMsg(r.j)); paint(); return r.j;
   }
+  function mount3d(root) { const b = root && root.querySelector("[data-3d]"); if (b) viewer.show(b, pieceOf(b.dataset["3d"]), ctx.ver); }
   async function wear(id) {
     const st = ctx.state() || { pieces: [], eq: {} }, p = (st.pieces || []).find((x) => x.id === id), P = p && pieceOf(p.def); if (!P) return;
     const on = (st.eq || {})[P.slot] === id, r = await ctx.post({ action: "world-mythic-equip", ...ctx.sess(), slot: P.slot, id: on ? null : id });
@@ -69,15 +96,15 @@ export function makeMythicUI(ctx) {
       if (e.target === el || e.target.closest(".my-x")) close(); });
     paint(); ctx.refresh().then(paint);
   }
-  function close() { if (el) { el.remove(); el = null; ctx.freeze(false); } }
+  function close() { if (el) { el.remove(); el = null; ctx.freeze(false); viewer.dispose(); } }
   /// the drop's moment: a dark card, the piece rising in red light, its name, where to wear it
   function reveal(p) {
     const P = pieceOf(p && p.def); if (!P || typeof document === "undefined") return;
     const r = document.createElement("div"); r.className = "my-rev"; r.setAttribute("role", "dialog"); r.setAttribute("data-no-i18n", "");
-    r.innerHTML = `<div class="my-rev-in"><small>MYTHIC · ${esc(T("Crimson Celestial"))}</small><div class="my-rev-art"><img src="${img(P, ctx.ver)}" alt=""></div><b>${esc(T(P.name))}</b><p>${esc(T(SRC[p.src] || p.src))} · ${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}</p><em>${esc(statLine(mythicStats(p)))}</em>
+    r.innerHTML = `<div class="my-rev-in"><small>MYTHIC · ${esc(T("Crimson Celestial"))}</small><div class="my-rev-art my-3d" data-3d="${P.id}"><img src="${img(P, ctx.ver)}" alt=""></div><b>${esc(T(P.name))}</b><p>${esc(T(SRC[p.src] || p.src))} · ${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}</p><em>${esc(statLine(mythicStats(p)))}</em>
       <div class="my-rev-acts"><button type="button" data-k="ok">${esc(T("OK"))}</button><button type="button" class="go" data-k="set">${esc(T("Open the set"))}</button></div></div>`;
-    document.body.appendChild(r);
-    r.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (!b) return; r.remove(); if (b.dataset.k === "set") open(P.slot); });
+    document.body.appendChild(r); mount3d(r);
+    r.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (!b) return; r.remove(); viewer.dispose(); if (b.dataset.k === "set") open(P.slot); });
     try { if (ctx.Snd && ctx.Snd.perfect) ctx.Snd.perfect(); } catch { /* no sound */ }
   }
   return { open, close, reveal, shown: () => !!el };

@@ -5471,7 +5471,7 @@ async function refreshMythic() {
 let myUI = null;
 async function mythicUI() {
   if (myUI) return myUI;
-  try { const M = await import("./world-mythic.js"); myUI = M.makeMythicUI({ T: TW, esc, post, sess, level, state: () => mythicNow, refresh: () => refreshMythic(), purse: () => refreshPurse(true), toast, freeze: (on) => { frozen = !!on; keys.clear(); if (!on) { near = null; paintPrompt(); } }, ver: VER, Snd }); return myUI; }
+  try { const M = await import("./world-mythic.js"); myUI = M.makeMythicUI({ THREE, K, T: TW, esc, post, sess, level, state: () => mythicNow, refresh: () => refreshMythic(), purse: () => refreshPurse(true), toast, freeze: (on) => { frozen = !!on; keys.clear(); if (!on) { near = null; paintPrompt(); } }, ver: VER, Snd }); return myUI; }
   catch (e) { console.warn("mythic", e); if (!staleReload()) toast(TW("Couldn't open it — try again")); return null; }
 }
 async function openMythic(slot) { if (!sess()) { toast(esc(TW("Sign in with your wallet to see your Mythic gear."))); return; } const u = await mythicUI(); if (u) u.open(slot); }
