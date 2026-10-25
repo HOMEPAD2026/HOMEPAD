@@ -4374,3 +4374,14 @@ html.wp-pcphone .my-cut>div,html.wp-pcphone .my-forge-in,html.wp-pcphone .my-sha
 /* Crimson Celestial for a guest (2026-10-25): a line over the tabs and its sign-in button */
 .my-card .my-guest{margin:6px 0 8px;padding:8px 12px;border-radius:12px;background:rgba(255,61,110,.12);border:1px solid rgba(255,61,110,.35);color:#ffd9e2;font-size:13px;line-height:1.4;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .my-card .my-guest .go{margin-left:auto;padding:6px 14px;border-radius:999px;border:0;background:linear-gradient(180deg,#ff5f86,#d8204e);color:#fff;font-weight:800;cursor:pointer}
+.my-hero.my-armored{height:84%;bottom:2%;filter:drop-shadow(0 0 26px rgba(255,61,110,.55))}
+/* Character → Costumes: the battle form and the paint jobs (2026-10-25) */
+.hb-form{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,rgba(60,8,22,.85),rgba(16,10,22,.9));border:1px solid rgba(255,61,110,.35)}
+.hb-form img{width:96px;height:132px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(255,61,110,.45))}
+.hb-form.on{box-shadow:0 0 0 2px #ff3d6e inset}
+.hb-form .hb-lock{color:#ffb3c4;font-size:12.5px;margin:6px 0 0}
+.hb-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.hb-paint{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(10,14,24,.6);color:#e8f0fb;cursor:pointer}
+.hb-paint img{width:100%;aspect-ratio:540/438;object-fit:cover;border-radius:8px}
+.hb-paint.on{border-color:#5fd3ff;box-shadow:0 0 0 2px rgba(95,211,255,.5)}
+.hb-paint.off{opacity:.7}.hb-paint small{color:#9fb2cc}

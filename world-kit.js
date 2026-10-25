@@ -1004,11 +1004,19 @@ export const HEROES = {
   "custom-lumi": { name: "LUMI", glow: 0, tintKey: 0xff2d8a, fx: 0xff6fc8 }, // no glow: the eyes and the heart are the body's pink, and lighting by hue lit the whole body
   "custom-nex": { name: "NEX", glow: 1.5, glowKey: 0x00e8ff, tintOn: "glow", fx: 0x9b6bff }, // a dark suit: the player colour goes on its lights
 };
+// the heroes' battle forms (2026-10-25, the owner: taller, black-and-crimson armour — Meshy models, character-custom-<id>x.glb):
+// not in the maker; a hero who has earned it (world-play.js formOk: Lv 300+ or six Crimson Celestial pieces worn) switches in
+// the Character window → Costumes. Their files have walk and run; the rest (idle, attack, cast…) are KayKit's, borrowed (agent)
+export const HERO_FORMS = {
+  "custom-aronx": { name: "ARON", glow: 1.2, glowKey: 0x00e8ff, tintKey: 0x0d3dff, h: 2.45, agent: true, fx: 0x38d8ff },
+  "custom-lumix": { name: "LUMI", glow: 1.0, glowKey: 0xff3d9a, tintKey: 0xff2d8a, h: 2.45, agent: true, fx: 0xff6fc8 },
+  "custom-nexx": { name: "NEX", glow: 1.2, glowKey: 0x00e8ff, tintOn: "glow", h: 2.45, agent: true, fx: 0x9b6bff },
+};
 export const HERO_IDS = Object.keys(HEROES), HERO_DEFAULT = "custom-aron";
 export const HEROES_SOON = []; // shown locked in the maker until their models arrive (take a name out when it joins HEROES)
 export const HERO_ONLY = (() => { try { return !/[?&]roster=classic\b/.test(location.search); } catch { return true; } })();
-export const heroOf = (id) => (HERO_ONLY && !HEROES[id] ? HERO_DEFAULT : id); // what a player with this saved character is drawn as
-export const CUSTOM_CHARS = [...HERO_IDS];
+export const heroOf = (id) => (HERO_ONLY && !HEROES[id] && !HERO_FORMS[id] ? HERO_DEFAULT : id); // what a player with this saved character is drawn as
+export const CUSTOM_CHARS = [...HERO_IDS, ...Object.keys(HERO_FORMS)];
 export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c), ...KK_CHARS, ...CUSTOM_CHARS];
 export { ARCBOT_IDS };
 export const arcNight = (k) => ARC.setNight(k);
@@ -1127,7 +1135,7 @@ export async function makeCharacter(id, ver = "", outfit = null) {
     charCache.set(id, src);
   }
   if (id.startsWith("kk-")) return makeKK(id, src, ver);
-  if (CUSTOM_CHARS.includes(id)) return makeCustom(src, HEROES[id] || null, ver);
+  if (CUSTOM_CHARS.includes(id)) return makeCustom(src, HEROES[id] || HERO_FORMS[id] || null, ver);
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
@@ -1429,7 +1437,7 @@ function heroMaterials(root, spec) {
 function makeCustom(src, spec = null, ver = "") {
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
-  const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
+  const H = (spec && spec.h) || 2.1, k = H / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
   const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); const hero = spec ? heroMaterials(inner, spec) : null; if (!spec) toonAll(inner); if (charHook) charHook(inner, false, spec ? { pbr: true } : null);
   const crown = new THREE.Group(); crown.position.y = 2.45; crown.name = "crown";
   const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
@@ -1482,7 +1490,7 @@ function makeCustom(src, spec = null, ver = "") {
     if (spikes) { spikes.visible = c != null; if (c != null) spikes.children.forEach((m) => { m.material.color.set(c); if (m.material.emissive) m.material.emissive.set(c); }); }
   };
   return {
-    crownSpikes, obj, mixer, play, height: 2.1, kk: true, custom: true, bones, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt, // kk: swings with its own clips, wears only the weapon and shield
+    crownSpikes, obj, mixer, play, height: H, kk: true, custom: true, bones, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt, // kk: swings with its own clips, wears only the weapon and shield
     mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.3, 0], armor: [0, 0.1, 0], armorR: 0.45, necklace: [0, 0.2, 0.2] },
     attack(kind = 0, heavy = false) { const l = kind === 4 ? lists.cast : kind === 2 || kind === 3 ? lists.shoot : null, all = l && l.length ? l : lists.attack; if (all.length) { const c = all[heavy ? all.length - 1 : 0]; run(act(c), { once: true, fade: 0.06, speed: Math.max(kind === 1 ? 1.1 : 1.4, (c.duration || 0) / 0.8) }); } }, // b447: a long clip (ARON's is 3 s) is sped up to land within the game's swing
     setCrown(a, b) { if (hero) { hero.setHalo(a); return; } [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); }, // a hero shows the tier on its own halo

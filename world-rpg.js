@@ -760,7 +760,18 @@ export function createRpg(ctx) {
     const hero = hub("hero") || "aron";
     return `<div class="hb-look"><section class="hb-card hb-lookstage"><div class="hb-heroes">${[["lumi", "LUMI"], ["aron", "ARON"], ["nex", "NEX"]].map(([id, n]) => `<figure class="${id === hero ? "on" : ""}"><img src="/images/ui/menu2/stand-${id}.webp${ctx.ver || ""}" alt=""><figcaption>${n}${id === hero ? ` <small>${esc(T("You"))}</small>` : ""}</figcaption></figure>`).join("")}</div></section>
       <section class="hb-card"><h4>${esc(T("Your look"))}</h4><p class="wr-note">${esc(T("Pick your hero and their colours in the character maker. ARC Bots also have a wardrobe of outfits."))}</p><div class="hb-acts"><button type="button" class="go" data-hubgo="make">${esc(T("Change character"))}</button>${ctx.isArc && ctx.isArc() ? `<button type="button" data-wardrobe>${esc(T("Wardrobe"))}</button>` : ""}${ctx.sess() && ctx.openProfile ? `<button type="button" data-mycard>${esc(T("My card"))}</button>` : ""}</div></section>
-      <section class="hb-card hb-soon"><h4>${esc(T("Costume sets"))}</h4><p>${esc(T("Coming soon"))}</p></section></div>`;
+      ${formHTML(hero)}${paintsHTML()}</div>`;
+  }
+  // the battle form (world-kit.js HERO_FORMS; earned at Lv 300 or with six Crimson Celestial pieces worn) and the paint jobs owned
+  function formHTML(hero) {
+    const f = hub("form") || {}; if (!f.has) return "";
+    return `<section class="hb-card hb-form${f.on ? " on" : ""}"><img src="/images/ui/menu2/form-${hero}.webp${ctx.ver || ""}" alt=""><div><h4>${esc(T("Battle form"))}</h4><p class="wr-note">${esc(T("Your hero, taller, in black-and-crimson armour."))}</p>
+      ${f.ok ? `<div class="hb-acts"><button type="button" class="go" data-hubdo="${f.on ? "form:off" : "form:on"}">${esc(f.on ? T("Back to the usual look") : T("Wear the battle form"))}</button></div>` : `<p class="hb-lock">🔒 ${esc(T("Opens at Lv {n} or with {p} Crimson Celestial pieces worn ({h} now)", { n: f.lv, p: f.pieces, h: f.n }))}</p>`}</div></section>`;
+  }
+  function paintsHTML() {
+    const L = hub("paints") || []; if (!L.length) return "";
+    const NM = { "paint-onyx": T("Onyx paint"), "paint-gunmetal": T("Gunmetal paint"), "paint-whitegold": T("White Gold paint"), "paint-void": T("Void paint") };
+    return `<section class="hb-card hb-paints"><h4>${esc(T("Paint jobs"))}</h4><div class="hb-pgrid">${L.map((x) => `<button type="button" class="hb-paint${x.on ? " on" : ""}${x.own ? "" : " off"}" ${x.own ? `data-hubdo="paint:${x.id}"` : 'data-hubgo="shop"'}><img src="/images/shop/style-${x.id}.webp${ctx.ver || ""}" alt=""><b>${esc(NM[x.id] || x.id)}</b><small>${esc(x.on ? T("In use") : x.own ? T("Use") : T("In the shop"))}</small></button>`).join("")}</div></section>`;
   }
   function eventsHTML() {
     const ev = hub("events") || [];
@@ -962,6 +973,7 @@ export function createRpg(ctx) {
     if (d.sec) { goSec(d.sec); return; }
     if (d.side) { goSide(d.side); return; }
     if (d.hubgo) { hide(); hub(d.hubgo); return; }
+    if (d.hubdo) { if (hub(d.hubdo) === false) ctx.toast(T("Not yet")); else fx(".hb-form, .hb-paints", T("Done"), "#ff3d6e", true); paint(); return; }
     if ((view === "log" || (view === "inv" && charSub === "titles")) && log && log.click(b)) { if (d.title && b.getAttribute("aria-pressed") !== "true") fx(".hb-plate.big", T("Worn") + "!", "#ffc861", true); paint(); return; }
     if (d.wearset != null) { wearSet(+d.wearset); return; }
     if (b.hasAttribute("data-storeview")) { storeView = !storeView; sel = null; paint(); return; }

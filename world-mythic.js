@@ -98,7 +98,7 @@ export function makeMythicUI(ctx) {
       <div class="my-bon">${nodes.map((x) => `<div class="${x.on ? "on" : ""}"><i>${x.res ? "✦" : x.n}</i><span><b>${esc(T(x.name))}</b><small>${esc(statLine(x.b))}${x.b.aura ? " · " + esc(T("Crimson aura")) : ""}${x.res ? " · " + esc(T("all seven at +{p}", { p: CC.RESONANCE.plus })) : ""}</small></span></div>`).join("")}</div></div>`;
     const wk = (weekNo(tNow()) + 1) * 7 - 3, left = Math.max(0, wk * 864e5 - 9 * 3600e3 - tNow()), d = Math.floor(left / 864e5), h = Math.floor((left % 864e5) / 3600e3);
     const PB = CC.PIECES.find((x) => x.slot === bless);
-    return `<div class="my-body"><div class="my-stage"><img class="my-hero" src="/images/ui/menu2/stand-${hero}.webp${ctx.ver || ""}" alt="" onerror="this.remove()"><div class="my-rune"></div>${RING.map(slotBtn).join("")}</div>
+    return `<div class="my-body"><div class="my-stage"><img class="my-hero my-armored" src="/images/mythic/armored-${hero}.webp${ctx.ver || ""}" alt="" onerror="this.src='/images/ui/menu2/stand-${hero}.webp'"><div class="my-rune"></div>${RING.map(slotBtn).join("")}</div>
       <div class="my-blessing">🌙 <b>${esc(T("This week's blessing"))}</b> ${esc(T(PB ? PB.name : ""))} — ${esc(T("drops twice as often"))} <small>${esc(T("changes in {d}d {h}h", { d, h }))}</small></div>
       ${track}
       <div class="my-drop"><h4>${esc(T("Where it drops"))}</h4>${Object.entries(CC.DROP).map(([k, dd]) => `<span><b>${esc(T(SRC[k]))}</b>${+(dd.rate * 100).toFixed(2)}% · ${esc(T("worn from Lv {n}", { n: dd.req }))} · ×${dd.mult}</span>`).join("")}
