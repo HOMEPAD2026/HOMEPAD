@@ -15,14 +15,15 @@ import { RQ, modeOf, phaseOf } from "./world-raidq-data.js";
 export { RQ };
 
 // each queen: her file, height, colours, her clips by the file's own names (listed from the GLBs), patterns by phase, lines
-export const QV = {
-  lysitha: { name: "CELESTIAL LYSITHA", title: "The Arbiter of Stars and Divinity", glb: "queen-lysitha", h: 3.4, tint: 0x9fd4ff, css: "#9fd4ff", skin: "blue", ground: 0x8f9fb8, idle: ["Idle_02", "Long_Breathe_and_Look_Around"], walk: "Walking", run: "Running", atk: ["Attack", "Right_Hand_Sword_Slash"], die: "Dead", hit: "",
+export // the queens stand five times a hero's height (heroes are 2.1 m: world-kit.js makeCustom; the owner, 2026-10-25)
+const QV = {
+  lysitha: { name: "CELESTIAL LYSITHA", title: "The Arbiter of Stars and Divinity", glb: "queen-lysitha", h: 10.5, tint: 0x9fd4ff, css: "#9fd4ff", skin: "blue", ground: 0x8f9fb8, idle: ["Idle_02", "Long_Breathe_and_Look_Around"], walk: "Walking", run: "Running", atk: ["Attack", "Right_Hand_Sword_Slash"], die: "Dead", hit: "",
     pats: [["slam", "rain"], ["slam", "rain", "cone"], ["slam", "rain", "cone", "line"]],
     lines: ["You've come… just as I expected.", "Is it power? Freedom? Or… my attention?", "Now, the real battle begins.", "How precious… you've earned a glimpse of the stars."] },
-  solvira: { name: "RADIANT SOLVIRA", title: "The Sovereign of Light and Sun", glb: "queen-solvira", h: 3.5, tint: 0xffc861, css: "#ffd36a", skin: "green", ground: 0x8a7444, idle: ["Idle_02"], walk: "Walking", run: "Running", atk: ["Attack", "Weapon_Combo_1", "Flying_Fist_Kick"], die: "Fall_Dead_from_Abdominal_Injury", hit: "Head_Hold_in_Pain",
+  solvira: { name: "RADIANT SOLVIRA", title: "The Sovereign of Light and Sun", glb: "queen-solvira", h: 10.5, tint: 0xffc861, css: "#ffd36a", skin: "green", ground: 0x8a7444, idle: ["Idle_02"], walk: "Walking", run: "Running", atk: ["Attack", "Weapon_Combo_1", "Flying_Fist_Kick"], die: "Fall_Dead_from_Abdominal_Injury", hit: "Head_Hold_in_Pain",
     pats: [["slam", "line"], ["slam", "line", "cone"], ["slam", "line", "cone", "rain"]],
     lines: ["You've come this far… How adorable.", "Kneel before the sun.", "Burn in my radiance!", "The sun… sets… for now."] },
-  nyxara: { name: "CRIMSON NYXARA", title: "The Queen of Blood and Destruction", glb: "queen-nyxara", h: 3.6, tint: 0xff3d5a, css: "#ff4d6d", skin: "red", ground: 0x4a1a24, idle: ["Idle_03", "Idle_02"], walk: "Walking", run: "Running", atk: ["Axe_Spin_Attack", "Double_Blade_Spin", "Jump_and_Slam_Back_Down", "Right_Hand_Sword_Slash"], die: "Fall_Dead_from_Abdominal_Injury", hit: "", arise: "Arise",
+  nyxara: { name: "CRIMSON NYXARA", title: "The Queen of Blood and Destruction", glb: "queen-nyxara", h: 10.8, tint: 0xff3d5a, css: "#ff4d6d", skin: "red", ground: 0x4a1a24, idle: ["Idle_03", "Idle_02"], walk: "Walking", run: "Running", atk: ["Axe_Spin_Attack", "Double_Blade_Spin", "Jump_and_Slam_Back_Down", "Right_Hand_Sword_Slash"], die: "Fall_Dead_from_Abdominal_Injury", hit: "", arise: "Arise",
     pats: [["slam", "cone", "line"], ["slam", "cone", "line", "rain"], ["slam", "cone", "line", "rain"]], ramp: true,
     lines: ["Kneel, if you wish to survive.", "Beauty that devours. Power that rules.", "This is not the end. This is only the beginning.", "…only the beginning."] },
 };
@@ -111,9 +112,14 @@ export function makeRaidQueens(ctx) {
       c.strokeStyle = "rgba(120,110,150,.35)"; c.lineWidth = 2; for (let r = 60; r < m; r += 64) { c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke(); } for (let a = 0; a < 24; a++) { const t = (a / 24) * Math.PI * 2; c.beginPath(); c.moveTo(m + Math.cos(t) * 60, m + Math.sin(t) * 60); c.lineTo(m + Math.cos(t) * 512, m + Math.sin(t) * 512); c.stroke(); }
       c.strokeStyle = "#d9b25e"; for (const [r, w] of [[120, 7], [250, 5], [380, 6], [500, 8]]) { c.lineWidth = w; c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke(); }
       map = new THREE.CanvasTexture(cv); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4; marbleMap = map; }
-    const plaza = new THREE.Mesh(new THREE.CircleGeometry(PLAZA_R, 96), new THREE.MeshStandardMaterial({ color: 0xffffff, map, roughness: 0.35, metalness: 0.15, envMapIntensity: 0.6, fog: false })); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; plaza.receiveShadow = true; H.add(plaza);
-    const edge = new THREE.Mesh(new THREE.RingGeometry(PLAZA_R - 0.5, PLAZA_R, 128), neon(0xff6fa8, 0.85)); edge.rotation.x = -Math.PI / 2; edge.position.y = 0.05; H.add(edge);
-    const side = new THREE.Mesh(new THREE.CylinderGeometry(PLAZA_R, PLAZA_R - 6, 9, 96, 1, true), new THREE.MeshStandardMaterial({ color: 0x4a3a5a, roughness: 0.8, side: THREE.DoubleSide })); side.position.y = -4.5; H.add(side); // (the stone under its edge)
+    // the plaza itself: black marble with gold rings and blue-crystal stars (the owner's floor picture, 2026-10-25, drawn top-down:
+    // images/raid/plaza-floor.webp, the gold and crystals lit by plaza-floor-e.webp); the canvas marble until it's in
+    const plazaM = new THREE.MeshStandardMaterial({ color: 0xffffff, map, roughness: 0.3, metalness: 0.2, envMapIntensity: 0.6, fog: false, emissive: 0xffc878, emissiveIntensity: 0 });
+    { const tl = new THREE.TextureLoader(), tex = (f, srgb, ok) => tl.load(`/images/raid/${f}.webp${ctx.ver || ""}`, (t) => { if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; ok(t); }, undefined, () => {});
+      tex("plaza-floor", true, (t) => { plazaM.map = t; plazaM.needsUpdate = true; }); tex("plaza-floor-e", false, (t) => { plazaM.emissiveMap = t; plazaM.emissiveIntensity = 0.55; plazaM.needsUpdate = true; }); }
+    const plaza = new THREE.Mesh(new THREE.CircleGeometry(PLAZA_R, 96), plazaM); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; plaza.receiveShadow = true; H.add(plaza);
+    const edge = new THREE.Mesh(new THREE.RingGeometry(PLAZA_R - 0.5, PLAZA_R, 128), neon(0xffc46a, 0.85)); edge.rotation.x = -Math.PI / 2; edge.position.y = 0.05; H.add(edge);
+    const side = new THREE.Mesh(new THREE.CylinderGeometry(PLAZA_R, PLAZA_R - 6, 9, 96, 1, true), new THREE.MeshStandardMaterial({ color: 0x1e1a22, roughness: 0.8, side: THREE.DoubleSide })); side.position.y = -4.5; H.add(side); // (the stone under its edge)
     spins.push((dt, t) => { if (H.visible) edge.material.opacity = 0.7 + Math.sin(t * 1.8) * 0.15; }); }
   // the way home: a ring of light behind where you arrive
   const back = new THREE.Group(); back.name = "rq-back"; back.position.set(land.x + 9, 0, land.z + HALL.back - 4); back.userData.radius = 0; planet.add(back); back.visible = false;
@@ -132,15 +138,18 @@ export function makeRaidQueens(ctx) {
         HALL.road[0] = Math.min(HALL.road[1] - 20, fz - 1); door.position.z = land.z + fz + 2.5; wall.userData.radius = Math.min(14, Math.max(4, Math.min(w, half * 2) * 0.42)); }
       { const box = new THREE.Box3().setFromObject(rd.scene), len = (HALL.road[1] - HALL.road[0]) / 2, k = len / (box.max.z - box.min.z || 1); HALL.roadW = (box.max.x - box.min.x) * k; // (two lengths end to end; its width for the deck)
         for (let i = 0; i < 2; i++) { const o = i ? rd.scene.clone() : rd.scene; fit(o, k, 0, -0.17, HALL.road[0] + len * (i + 0.5), box); o.traverse((m) => { if (m.isMesh) m.receiveShadow = true; }); H.add(o); } }
-        // its floor: the model's deck is a sliver at grass height, so the road gets a deck of its own — white marble, a pink
-        // line of light down the middle and along both edges, a gold star every few metres (the concept art)
+        // its floor: the model's deck is a sliver at grass height, so the road gets a deck of its own — the plaza's black marble
+        // (the owner's floor, 2026-10-25), gold lines along both edges and down the middle, a blue-crystal star every few metres
       { const dw = HALL.roadW * 0.8, dl = HALL.road[1] - HALL.road[0], cv = typeof document !== "undefined" ? document.createElement("canvas") : null; let dmap = null;
-        if (cv) { cv.width = 256; cv.height = 2048; const c = cv.getContext("2d"); c.fillStyle = "#f1eef6"; c.fillRect(0, 0, 256, 2048);
-          c.strokeStyle = "rgba(140,130,170,.35)"; c.lineWidth = 2; for (let y = 0; y < 2048; y += 128) { c.beginPath(); c.moveTo(0, y); c.lineTo(256, y); c.stroke(); }
-          for (const [x, w] of [[128, 10], [16, 6], [240, 6]]) { const gr = c.createLinearGradient(x - w * 2, 0, x + w * 2, 0); gr.addColorStop(0, "rgba(255,80,140,0)"); gr.addColorStop(0.5, "rgba(255,70,130,1)"); gr.addColorStop(1, "rgba(255,80,140,0)"); c.fillStyle = gr; c.fillRect(x - w * 2, 0, w * 4, 2048); }
-          c.fillStyle = "#ff5f9a"; for (let y = 64; y < 2048; y += 256) { c.beginPath(); for (let a = 0; a < 8; a++) { const r = a % 2 ? 9 : 34, t = (a / 8) * Math.PI * 2; c.lineTo(128 + Math.sin(t) * r * 1.4, y + Math.cos(t) * r); } c.fill(); }
+        if (cv) { cv.width = 256; cv.height = 2048; const c = cv.getContext("2d"); c.fillStyle = "#0d0c12"; c.fillRect(0, 0, 256, 2048);
+          let sd = 5; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+          for (let i = 0; i < 46; i++) { c.strokeStyle = `rgba(190,190,210,${0.05 + rnd() * 0.12})`; c.lineWidth = 0.6 + rnd() * 1.4; c.beginPath(); let x = rnd() * 256, y = rnd() * 2048; c.moveTo(x, y); for (let k = 0; k < 5; k++) { x += (rnd() - 0.5) * 70; y += (rnd() - 0.5) * 140; c.lineTo(x, y); } c.stroke(); } /* the marble's veins */
+          c.strokeStyle = "rgba(201,154,78,.35)"; c.lineWidth = 1.5; for (let y = 0; y < 2048; y += 128) { c.beginPath(); c.moveTo(0, y); c.lineTo(256, y); c.stroke(); }
+          for (const [x, w] of [[128, 3], [14, 6], [242, 6]]) { const gr = c.createLinearGradient(x - w, 0, x + w, 0); gr.addColorStop(0, "#5a3d14"); gr.addColorStop(0.35, "#c99a4e"); gr.addColorStop(0.5, "#ffe9b0"); gr.addColorStop(0.65, "#c99a4e"); gr.addColorStop(1, "#5a3d14"); c.fillStyle = gr; c.fillRect(x - w, 0, w * 2, 2048); }
+          for (let y = 64; y < 2048; y += 256) { const st = (r1, r2, col) => { c.fillStyle = col; c.beginPath(); for (let a = 0; a < 8; a++) { const r = a % 2 ? r2 : r1, t = (a / 8) * Math.PI * 2; c.lineTo(128 + Math.sin(t) * r * 1.3, y + Math.cos(t) * r); } c.fill(); };
+            st(40, 9, "#b8863a"); st(30, 7, "#e9c47a"); const q = 13; [["#dceeff", 0], ["#7fb0e8", 1], ["#2f5a96", 2], ["#5d8fd0", 3]].forEach(([col, i]) => { const t0 = (i / 4) * Math.PI * 2, t1 = ((i + 1) / 4) * Math.PI * 2; c.fillStyle = col; c.beginPath(); c.moveTo(128, y); c.lineTo(128 + Math.sin(t0) * q, y + Math.cos(t0) * q); c.lineTo(128 + Math.sin(t1) * q, y + Math.cos(t1) * q); c.fill(); }); }
           dmap = new THREE.CanvasTexture(cv); dmap.colorSpace = THREE.SRGBColorSpace; dmap.anisotropy = 4; dmap.wrapT = THREE.RepeatWrapping; dmap.repeat.set(1, Math.max(1, Math.round(dl / 24))); }
-        const deck = new THREE.Mesh(new THREE.PlaneGeometry(dw, dl), new THREE.MeshStandardMaterial({ color: 0xffffff, map: dmap, emissive: 0xff3d7f, emissiveMap: dmap, emissiveIntensity: 0.18, roughness: 0.3, metalness: 0.1, fog: false }));
+        const deck = new THREE.Mesh(new THREE.PlaneGeometry(dw, dl), new THREE.MeshStandardMaterial({ color: 0xffffff, map: dmap, emissive: 0xffc878, emissiveMap: dmap, emissiveIntensity: 0.22, roughness: 0.3, metalness: 0.1, fog: false }));
         deck.rotation.x = -Math.PI / 2; deck.position.set(0, 0.07, (HALL.road[0] + HALL.road[1]) / 2); deck.receiveShadow = true; H.add(deck); }
       { const box = new THREE.Box3().setFromObject(isle.scene), hh = box.max.y - box.min.y || 1;
         // [x, z, height of the spire (m), how high it floats]: big ones far off, small ones near the road; none on the road
@@ -218,7 +227,7 @@ export function makeRaidQueens(ctx) {
     const V = QV[id], max = Math.max(5000, Math.round(dpsAt(lv) * secs)), e = queenEnt(id);
     const q = { id, V, lv, max, phase: 1, fightT: 0, e, m: null, dead: false, lastP: at.clone(), spS: 0 };
     q.m = c.spawnExt({ ent: e, at, lv, max, hp: max, home: { x: land.x, z: land.z, r: ARENA_R - 2 }, pats: V.pats[0], atkK: 1.05, extLabel: "RAID QUEENS",
-      boss: { name: T(V.name), scale: V.h, y: 0, tint: V.tint }, ext: { hit: (mm) => onQueenHit(q, mm), down: (mm) => queenFell(q, mm) } });
+      reach: 4.6, boss: { name: T(V.name), scale: V.h, y: 0, tint: V.tint }, ext: { hit: (mm) => onQueenHit(q, mm), down: (mm) => queenFell(q, mm) } });
     if (!q.m) return null; q.base = q.m.atk;
     if (V.arise) playOn(e, V.arise, { once: true, fade: 0 });
     burst(at, V.tint, true); return q;
