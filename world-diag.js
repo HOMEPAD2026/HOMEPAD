@@ -9,6 +9,9 @@
 //            frame rate (median) and the bad moments (the slowest 10% of frames), in bands, with the graphics chip's
 //            class and family (Adreno, Mali, Apple…), the frame limit and the pixel ratio, so Auto quality can be
 //            tuned from real phones rather than guesses
+//   scene    (2026-10-25) how much each place draws: after 8 s of play in a place (hub, zone, city, rq, surv …), its
+//            draw calls a frame (median and the busiest 10 %), triangles, shader programs, textures and geometries, by
+//            device and chip family — once a place a visit. The phone budget: 300 draw calls a frame.
 //   funnel   (b-st3) the first minutes, step by step (each once a visit): the page opened, loading done, the maker shown,
 //            a name picked, the how-to closed, the first steps, the first knock-out, the first game — new browsers apart
 // No wallet, no name, no position: only these counters (api/_world.mjs diag). ?nodiag turns it off.
@@ -108,7 +111,23 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
     const dpr = Math.round((renderer.getPixelRatio() || 1) * 4) / 4;
     send({ kind: "frames", dev, q: quality, tier: tr, fam, cap: Number(cap()) || 60, dpr, p50: fpsBand(p50), p10: fpsBand(p10) });
   }
+  // the frame's whole draw (every pass of the composer, not only its last): the info's counters are kept over the frame
+  // and read + cleared here, once a frame
+  let sceneW = "", sceneT = 0; const sceneC = [], sceneTr = [], sceneDone = new Set(), lastDraw = { calls: 0, tris: 0 };
+  function drawSample(dt) {
+    const i = renderer.info; if (i.autoReset) i.autoReset = false;
+    lastDraw.calls = i.render.calls; lastDraw.tris = i.render.triangles; i.reset();
+    if (off || document.hidden || !active() || sceneDone.size >= 10) return;
+    let w = ""; try { w = word(where()); } catch { return; } if (!w || sceneDone.has(w)) { sceneW = w; return; }
+    if (w !== sceneW) { sceneW = w; sceneT = 0; sceneC.length = 0; sceneTr.length = 0; }
+    sceneT += dt; if (sceneT < 2) return; // (the first moments of a place are its loading)
+    sceneC.push(lastDraw.calls); sceneTr.push(lastDraw.tris);
+    if (sceneT < 8 || sceneC.length < 60) return;
+    sceneDone.add(w); const c = sceneC.slice().sort((a, b) => a - b), t = sceneTr.slice().sort((a, b) => a - b), m = i.memory;
+    send({ kind: "scene", dev, q: quality, fam, w, c50: c[c.length >> 1], c90: c[Math.floor(c.length * 0.9)], t50: Math.round(t[t.length >> 1] / 1000), prog: (i.programs || []).length, tex: m.textures, geo: m.geometries });
+  }
   function tick(dt) {
+    drawSample(dt);
     if (off || document.hidden || !active()) { prev = 0; return; }
     frameSample();
     acc += dt; n++;
@@ -122,5 +141,5 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
   }
   /// b-st3: the first minutes, counted (no id): open → ready → maker → named → start → move → fight → game, and back on another day; nw: a browser here for the first time
   const funnel = (ev, nw = false) => send({ kind: "funnel", ev, dev, nw: nw ? 1 : 0 });
-  return { tick, err, gpu, fam, funnel, ready };
+  return { tick, err, gpu, fam, funnel, ready, draw: () => ({ ...lastDraw }) };
 }

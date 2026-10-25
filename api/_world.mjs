@@ -171,6 +171,12 @@ export function make(deps) {
       await commit([{ inc: day, fields: { [`f50_${k}_${p50}`]: 1, [`f10_${k}_${p10}`]: 1, [`fam_${dev}_${fam}_${p50}`]: 1, [`cap_${dev}_${cap}`]: 1, [`dpr_${dev}_${String(dpr).replace(".", "p")}`]: 1 } }]).catch(() => {});
       return json(200, { ok: true });
     }
+    if (b.kind === "scene") { // 2026-10-25: how much a place draws a frame (world-diag.js drawSample): sums for averages + the draw-call band
+      const w = word(b.w, 8), fam = /^[a-z0-9]{2,12}$/.test(String(b.fam)) ? b.fam : "other"; if (!w) return json(400, { error: "bad place" });
+      const n = (v, mx) => Math.max(0, Math.min(mx, Math.round(Number(v) || 0))), c50 = n(b.c50, 20000), c90 = n(b.c90, 20000), cb = c50 < 100 ? 0 : c50 < 200 ? 1 : c50 < 300 ? 2 : c50 < 500 ? 3 : c50 < 800 ? 4 : 5, k = `scn_${dev}_${w}`;
+      await commit([{ inc: day, fields: { [`${k}_n`]: 1, [`${k}_c50`]: c50, [`${k}_c90`]: c90, [`${k}_t50`]: n(b.t50, 50000), [`${k}_prog`]: n(b.prog, 5000), [`${k}_tex`]: n(b.tex, 20000), [`${k}_geo`]: n(b.geo, 50000), [`${k}_b${cb}`]: 1, [`scf_${dev}_${fam}_${w}_b${cb}`]: 1 } }]).catch(() => {});
+      return json(200, { ok: true });
+    }
     if (b.kind === "hitch") { // b441: long frames by place, cause and length (world-diag.js)
       const f = {}; let n = 0;
       for (const [k, v] of Object.entries(b.h && typeof b.h === "object" ? b.h : {})) { if (n >= 24 || !/^[a-z0-9]{1,8}_(shader|tex|geo|move|fight|layout|js|resume|busy|stall|other)_[012]$/.test(k)) continue; f[`hit_${dev}_${k}`] = Math.max(1, Math.min(60, Math.floor(Number(v) || 1))); n++; }
@@ -269,9 +275,13 @@ export function make(deps) {
     const scripts = Object.entries(jc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, n]) => { const i = k.indexOf("_"); return { dev: k.slice(0, i), what: k.slice(i + 1), n }; });
     // b-svx: SURVIVORS ARENA runs over the three days: ends by minute, weapons by how their runs ended, evolutions, what knocked runs out, heroes
     const sv = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) { const m = /^(svend|svhero|svby|svw|svevo)_(.+)$/.exec(key); if (m) { const g = (sv[m[1]] = sv[m[1]] || {}); g[m[2]] = (g[m[2]] || 0) + v; } }
+    // 2026-10-25: what each place draws a frame, averaged over the reports (device_place): draw calls (median, busiest 10 %),
+    // triangles (k), shaders, textures, geometries, and how many reports sat in each draw-call band (<100 … 800+)
+    const sn = {}; for (const x of out) for (const [key, v] of Object.entries(x.n)) { const m = /^scn_(ph|pc)_([a-z0-9_]+)_(n|c50|c90|t50|prog|tex|geo|b\d)$/.exec(key); if (!m) continue; const g = (sn[m[1] + "_" + m[2]] = sn[m[1] + "_" + m[2]] || {}); g[m[3]] = (g[m[3]] || 0) + v; }
+    const scenes = Object.entries(sn).map(([k, g]) => { const i = k.indexOf("_"), a = (f) => Math.round((g[f] || 0) / Math.max(1, g.n || 0)); return { dev: k.slice(0, i), where: k.slice(i + 1), n: g.n || 0, calls: a("c50"), calls90: a("c90"), ktris: a("t50"), shaders: a("prog"), textures: a("tex"), geos: a("geo"), bands: ["<100", "100-200", "200-300", "300-500", "500-800", "800+"].map((l, j) => [l, g["b" + j] || 0]).filter((x) => x[1]) }; }).sort((x, y) => y.calls - x.calls);
     // b-st3: the first minutes by day: how many visits reached each step (phone / computer, and new browsers)
     const funnel = out.map((x) => ({ day: x.day, ...Object.fromEntries(FUNNEL.map((ev) => [ev, { ph: x.n[`fun_${ev}_ph`] || 0, pc: x.n[`fun_${ev}_pc`] || 0, phNew: x.n[`fun_${ev}_ph_new`] || 0, pcNew: x.n[`fun_${ev}_pc_new`] || 0 }])) }));
-    return json(200, { days: out, funnel, frames, hitches, shaders, scripts, surv: sv, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
+    return json(200, { days: out, funnel, scenes, frames, hitches, shaders, scripts, surv: sv, errors: errs.map((h) => ({ h, ...(m[`worldDiagMsg/${h}`] || {}), n: out.reduce((a, x) => a + (x.n["err_" + h] || 0), 0) })).sort((a, b) => b.n - a.n) }, "no-store");
   }
   async function ping(b) {
     const id = String(b.id || "");
