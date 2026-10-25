@@ -2810,12 +2810,13 @@ function openMap() {
 }
 // the owner's look for the map (2026-10-23): the places' own art on their cards (images/ui/map, from the owner's mock-up;
 // the games' key art where it has one), the minimap key folded away, and a row of chips that jumps to each section
-const MAP_ART = { lp: "map/lp", ut: "map/ut", pv: "map/pv", "kairo-tower": "map/kairo-tower", "kairo-hub": "map/kairo-hub", launch: "map/launch", quantum: "map/quantum", swap: "map/swap", orders: "map/orders", staking: "map/staking" };
+const MAP_ART = { lp: "map/lp", ut: "map/ut", pv: "map/pv", "kairo-tower": "map/kairo-tower", "kairo-hub": "map/kairo-hub", launch: "map/launch", quantum: "map/quantum", swap: "map/swap", orders: "map/orders", staking: "map/staking", nexus: "map/nexus", research: "map/research", arcia: "map/arcia", ...Object.fromEntries(["spam", "fields", "swamp", "canyon", "depths", "peaks", "dunes", "reef", "wastes", "ruins", "abyss", "void"].map((z) => ["z-" + z, "map/z-" + z])) };
 function decorateMap() {
   const box = $("wp-maplist"); if (!box) return;
   box.querySelectorAll("ul.wp-maplist button").forEach((b) => {
     const d = b.dataset, spec = d.i != null && d.i !== "portal" ? (shops[Number(d.i)] || { userData: {} }).userData.spec : null;
-    const k = d.land || (d.pv ? "pv" : d.pvk ? "kairo-tower" : d.pvh ? "kairo-hub" : spec ? spec.id : "");
+    const zn = d.z != null ? [...ZN.ZONES, SOC.RAID][+d.z] : null; // the grounds, Nexus City and the Research district: Meshy's art (2026-10-25)
+    const k = d.land || (d.pv ? "pv" : d.pvk ? "kairo-tower" : d.pvh ? "kairo-hub" : zn ? "z-" + zn.id : d.adc === "guide" ? "nexus" : spec ? (spec.district === "Research" ? "research" : spec.id) : "");
     const src = MAP_ART[k] ? `/images/ui/${MAP_ART[k]}.webp${VER}` : d.mine ? `/images/games/mine-art-300.webp${VER}` : d.race ? `/images/games/jump-art-300.webp${VER}` : "";
     if (src) { b.style.setProperty("--art", `url("${src}")`); b.classList.add("art"); }
   });
