@@ -7,8 +7,8 @@
 // a set bonus reached, an enhance's hammer, share cards for the big ones.
 //   ctx: { THREE, K, T, esc, post(b), sess(), level(), state() → { pieces, eq, ess, shards, now } | null, refresh() → Promise,
 //          toast(html), freeze(on), ver, Snd, hero() → "aron" | "lumi" | "nex", eqItem(slot) → the regular piece worn there,
-//          share(card), purse(), reduce, tx(to, data) → hash (the player's own wallet), isGM() }
-import { CC, pieceOf, mythicStats, setBonus, enhCost, essOf, slotOdds, blessedSlot, weekNo, reforgeCost } from "./world-mythic-data.js";
+//          share(card), purse(), reduce, tx(to, data) → hash (the player's own wallet), signTyped(typedData) → sig, isGM() }
+import { CC, pieceOf, mythicStats, setBonus, enhCost, essOf, slotOdds, blessedSlot, weekNo, reforgeCost, nftVoucher, nftDomain, nftTypes, nftMintData, nftToGameData } from "./world-mythic-data.js";
 import { itemStats } from "./world-rpg-data.js";
 
 const STAT = { atk: "ATK", def: "DEF", hp: "HP", sp: "SP", crit: "Crit %", spd: "Speed", critDmg: "Crit DMG %", skillPct: "Skill DMG %", dr: "DMG taken −%", atkPct: "ATK %", defPct: "DEF %", hpPct: "HP %" };
@@ -111,14 +111,16 @@ export function makeMythicUI(ctx) {
     const compare = (p) => { if (cur && cur.id === p.id) return ""; const s = mythicStats(p), keys = [...new Set([...Object.keys(s), ...Object.keys(nowStats)])].filter((k) => STAT[k]);
       return `<div class="my-cmp"><small>${esc(T("vs what you wear now"))}</small>${keys.map((k) => { const dlt = Math.round(((s[k] || 0) - (nowStats[k] || 0)) * 10) / 10; return dlt ? `<span class="${dlt > 0 ? "up" : "dn"}">${esc(T(STAT[k]))} ${dlt > 0 ? "▲" : "▼"}${Math.abs(dlt)}</span>` : ""; }).join("")}</div>`; };
     const row = (p) => { const on = eq[P0.slot] === p.id, low = p.req > lv, listed = p.state === "GAME_LISTED", c = enhCost(p.plus || 0, p.fails || 0), top = (p.plus || 0) >= CC.MAX_PLUS;
-      const dups = list.filter((x) => x.id !== p.id && x.state !== "GAME_LISTED" && eq[P0.slot] !== x.id), stars = p.stars || 0;
+      const dups = list.filter((x) => x.id !== p.id && x.state === "GAME_OWNED" && eq[P0.slot] !== x.id), stars = p.stars || 0;
+      if (/^NFT/.test(p.state || "")) return nftRow(p, on, low);
       return `<div class="my-pc${on ? " on" : ""}${listed ? " listed" : ""}" data-pc="${p.id}"><span><b>${esc(T(SRC[p.src] || p.src))} · +${p.plus || 0}${stars ? ` <i class="my-star">${"★".repeat(stars)}</i>` : ""}</b><small>${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}${listed ? ` · 🏷 ${p.cur === "usdc" ? (p.price / 100).toFixed(2) + " USDC" : fmtN(p.price) + " ARCL"}` : ""}</small><em>${esc(statLine(mythicStats(p)))}</em>${compare(p)}</span>
         <div class="my-acts">${listed ? `<button type="button" data-unlist="${p.id}">${esc(T("Take back"))}</button>` : `<button type="button" class="go" data-eq="${p.id}" ${low && !on ? "disabled" : ""}>${on ? esc(T("Take off")) : low ? "🔒 Lv " + p.req : esc(T("Wear"))}</button>
           <button type="button" class="enh" data-enh="${p.id}" ${top ? "disabled" : ""}>${top ? "+" + CC.MAX_PLUS : `⬆ +${(p.plus || 0) + 1} · ${c.ess}💠 ${fmtN(c.arcl)} ARCL · ${Math.round(c.rate * 100)}%${c.up ? ` <small>(+${Math.round(c.up * 100)}%)</small>` : ""}`}</button>
           ${stars < CC.MAX_STARS && dups.length ? `<button type="button" class="awk" data-awk="${p.id}" data-fod="${dups[0].id}">★ ${esc(T("Awaken with a copy"))} → ${"★".repeat(stars + 1)}</button>` : ""}
           <select data-rfs="${p.id}" aria-label="${esc(T("Reforge into"))}"><option value="">♻ ${esc(T("Reforge into…"))} (${reforgeCost(p)}💠)</option>${CC.PIECES.filter((x) => x.id !== p.def).map((x) => `<option value="${x.slot}">${esc(T(x.name))}</option>`).join("")}</select>
           <button type="button" data-sell="${p.id}">🏷 ${esc(T("Sell"))}</button><button type="button" class="salv" data-salv="${p.id}">♻ ${esc(T("Salvage"))} +${essOf(p)}💠</button>
-          <button type="button" class="hist" data-hist="${p.id}">📜 ${esc(T("Its story"))}</button>`}</div>
+          <button type="button" class="hist" data-hist="${p.id}">📜 ${esc(T("Its story"))}</button>
+          <button type="button" class="nft" data-nftask="${p.id}" ${st.nftOn ? "" : "disabled"}>⛓ ${esc(st.nftOn ? T("Take it onto Arc as an NFT") : T("NFT — opening soon"))}</button>`}</div>
         ${histId === p.id ? storyHtml(p) : ""}
         ${sellId === p.id ? `<form class="my-sellf" data-sellf="${p.id}"><span class="my-cur"><button type="button" data-cur="arcl" class="${sellCur === "arcl" ? "on" : ""}">ARCL</button><button type="button" data-cur="usdc" class="${sellCur === "usdc" ? "on" : ""}">USDC</button></span>${sellCur === "usdc" ? `<input type="number" min="${CC.USD.MIN / 100}" max="${CC.USD.MAX / 100}" step="0.5" value="10" aria-label="${esc(T("Price in USDC"))}">` : `<input type="number" min="${CC.MARKET.MIN}" max="${CC.MARKET.MAX}" step="100" value="${CC.MARKET.MIN * 10}" aria-label="${esc(T("Price in ARCL"))}">`}<button type="submit">${esc(T("List for sale"))}</button><small>${esc(sellCur === "usdc" ? T("Paid in USDC on Arc. The team sends you the price less 2% from its wallet after the sale.") : T("2% goes to the platform when it sells."))}</small></form>` : ""}</div>`; };
     const nextStar = (CC.AWAKEN[P0.slot] || []).map((o, i) => `<span>${"★".repeat(i + 1)} ${esc(statLine(o))}</span>`).join("");
@@ -126,10 +128,18 @@ export function makeMythicUI(ctx) {
     return `<div class="my-sheet" role="region" aria-label="${esc(T(P0.name))}"><button type="button" class="my-sheet-x" data-unpick aria-label="${esc(T("Close"))}">⌄</button>
       <div class="my-sheet-top"><div class="my-3d" data-3d="${P0.id}"><img src="${img(P0, ctx.ver)}" alt="" onerror="this.style.visibility='hidden'"><small class="my-3dh">${esc(T("Drag to turn · pinch to zoom"))}</small></div>
       <div><h4>${esc(T(P0.name))}</h4><p class="my-line">${esc(T(SLOT_NAME[P0.slot]))} · ${esc(T(P0.line))}</p><div class="my-awk-l"><small>${esc(T("Awakening"))}</small>${nextStar}</div></div></div>
-      ${list.length ? list.map(row).join("") : `<p class="my-empty">${esc(T("Not found yet. It drops from RAID QUEENS runs — or make it from Crimson Shards."))}</p>`}${oddsTbl}</div>`;
+      ${list.length ? list.map(row).join("") : `<p class="my-empty">${esc(T("Not found yet. It drops from RAID QUEENS runs — or make it from Crimson Shards."))}</p>`}${oddsTbl}
+      ${st.nftOn ? `<form class="my-syncf" data-syncf><input type="text" inputmode="numeric" placeholder="${esc(T("Token number"))}" aria-label="${esc(T("Token number"))}"><button type="submit">⛓ ${esc(T("Add an NFT you hold"))}</button></form>` : ""}</div>`;
+  }
+  // a piece on its way to Arc, or there: its own buttons (mint with the GM's voucher, bring it back, wear it while you hold it)
+  function nftRow(p, on, low) {
+    const P = pieceOf(p.def), n = p.nft || {};
+    const btns = p.state === "NFT_PENDING" ? (n.sig ? `<button type="button" class="go nft" data-nftmint="${p.id}">⛓ ${esc(T("Mint it on Arc"))}</button>` : `<small class="my-wait">⏳ ${esc(T("Waiting for the team's voucher"))}</small>`) + `<button type="button" data-nftcancel="${p.id}">${esc(T("Keep it in the game"))}</button>`
+      : (p.away ? `<small class="my-wait">${esc(T("In another wallet now"))}</small>` : `<button type="button" class="go" data-eq="${p.id}" ${low && !on ? "disabled" : ""}>${on ? esc(T("Take off")) : low ? "🔒 Lv " + p.req : esc(T("Wear"))}</button>`) + `<button type="button" class="nft" data-nftback="${n.tokenId}">↩ ${esc(T("Bring it back into the game"))}</button>`;
+    return `<div class="my-pc nftp${on ? " on" : ""}"><span><b>${esc(T(SRC[p.src] || p.src))} · +${p.plus || 0}${p.stars ? ` <i class="my-star">${"★".repeat(p.stars)}</i>` : ""} <em class="my-nfttag">NFT${p.state === "NFT_PENDING" ? " · " + esc(T("pending")) : ""}</em></b><small>#${esc(String(n.tokenId || "").slice(0, 10))}… · ${esc(T("Worn from Lv {n}", { n: p.req }))}</small><em>${esc(statLine(mythicStats(p)))}</em><small>${esc(T("An NFT keeps its + and stars as they are: bring it back to enhance or trade it here."))}</small></span><div class="my-acts">${btns}</div></div>`;
   }
   function storyHtml(p) {
-    const K = { drop: "Dropped in {v}", claim: "Made from {v} shards", plus: "Enhanced to +{v}", star: "Awakened ★{v}", reforge: "Reforged into {v}", sold: "Changed hands for {v} ARCL", soldUsd: "Changed hands for {v} USDC" };
+    const K = { drop: "Dropped in {v}", claim: "Made from {v} shards", plus: "Enhanced to +{v}", star: "Awakened ★{v}", reforge: "Reforged into {v}", sold: "Changed hands for {v} ARCL", soldUsd: "Changed hands for {v} USDC", nft: "Minted on Arc as an NFT", back: "Back from Arc into the game" };
     const short = (w) => (w ? String(w).slice(0, 6) + "…" + String(w).slice(-4) : "—"), when = (t) => new Date(t).toLocaleDateString();
     const lines = (p.log && p.log.length ? p.log : [{ k: "drop", at: p.at, v: p.src }]).map((x) => { const v = x.k === "drop" || x.k === "claim" ? T(SRC[x.v] || x.v || "") : x.k === "reforge" ? T((pieceOf(x.v) || {}).name || x.v) : x.k === "sold" ? fmtN(x.v) : x.v; return `<li><time>${esc(when(x.at))}</time>${esc(T(K[x.k] || x.k, { v }))}</li>`; });
     return `<div class="my-story"><p>${esc(T("First owner {w}", { w: short(p.first || ((p.hist || [])[0] || {}).from || p.owner) }))} · ${esc(T("{n} owners", { n: 1 + (p.hist || []).length }))}</p><ol>${lines.join("")}</ol></div>`;
@@ -176,12 +186,18 @@ export function makeMythicUI(ctx) {
   }
   async function loadMarket() { try { const r = await fetch("/api/social?world=mythic-market", { cache: "no-store" }); mkt = r.ok ? await r.json() : { items: [] }; } catch { mkt = { items: [] }; } paint(); }
   // ---------------- the team's USDC payouts (GM) ----------------
+  let gmNft = null;
+  function gmNftHtml() {
+    if (!gmNft) { ctx.post({ action: "world-mythic-nft-admin", ...ctx.sess(), op: "list" }).then((r) => { gmNft = (r && r.ok && r.j) || { list: [] }; paint(); }).catch(() => { gmNft = { list: [] }; paint(); }); return ""; }
+    const sh = (w) => (w ? String(w).slice(0, 6) + "…" + String(w).slice(-4) : "—");
+    return `<h4 class="my-h">⛓ ${esc(T("NFT vouchers"))}</h4><div class="my-bids">${(gmNft.list || []).length ? gmNft.list.map((x) => { const P = pieceOf(x.def); return `<div class="my-bid"><span><b>${esc(P ? T(P.name) : "—")} +${x.plus}${x.stars ? " " + "★".repeat(x.stars) : ""}</b><small>→ ${esc(sh(x.owner))} · ${esc(T(SRC[x.src] || x.src))}</small></span>${x.signed ? `<small class="st paid">${esc(T("Signed"))}</small>` : `<button type="button" class="go" data-gmsign="${x.id}">${esc(T("Sign in my wallet"))}</button>`}</div>`; }).join("") : `<p class="my-fine">${esc(T("Nothing to sign."))}</p>`}</div>`;
+  }
   function gmHtml() {
     if (!gmList) { ctx.post({ action: "world-mythic-usd-admin", ...ctx.sess(), op: "list" }).then((r) => { gmList = (r && r.ok && r.j.list) || []; paint(); }).catch(() => { gmList = []; paint(); }); return `<div class="my-body"><p class="my-empty">…</p></div>`; }
     const sh = (w) => (w ? String(w).slice(0, 6) + "…" + String(w).slice(-4) : "—");
     return `<div class="my-body"><p class="my-fine">${esc(T("Send the amount from your own wallet in USDC on Arc; the server checks the transfer and marks it."))}</p><div class="my-bids">${gmList.length ? gmList.map((r) => { const P = pieceOf(r.def), to = r.kind === "payout" ? r.seller : r.buyer, amt = r.kind === "payout" ? r.net : r.cents;
       return `<div class="my-bid"><span><b>${r.kind === "payout" ? "💸 " + esc(T("Payout")) : "↩ " + esc(T("Refund"))} · ${esc(P ? T(P.name) : "—")}</b><small>→ ${esc(sh(to))} · ${esc(new Date(r.at).toLocaleString())} · tx ${esc(sh(r.tx))}</small></span><b class="pr">${(amt / 100).toFixed(2)} USDC</b>
-        ${r.status === "due" ? `<button type="button" class="go" data-gmpay="${r.id}" data-to="${esc(to)}" data-amt="${amt}" data-op="${r.kind === "payout" ? "paid" : "refunded"}">${esc(T("Pay from my wallet"))}</button>` : `<small class="st ${r.status}">${esc(r.status)}</small>`}</div>`; }).join("") : `<p class="my-fine">${esc(T("Nothing to settle."))}</p>`}</div></div>`;
+        ${r.status === "due" ? `<button type="button" class="go" data-gmpay="${r.id}" data-to="${esc(to)}" data-amt="${amt}" data-op="${r.kind === "payout" ? "paid" : "refunded"}">${esc(T("Pay from my wallet"))}</button>` : `<small class="st ${r.status}">${esc(r.status)}</small>`}</div>`; }).join("") : `<p class="my-fine">${esc(T("Nothing to settle."))}</p>`}</div>${gmNftHtml()}</div>`;
   }
   const pad64 = (h) => String(h).replace(/^0x/, "").toLowerCase().padStart(64, "0");
   const usdcData = (to, units) => "0xa9059cbb" + pad64(to) + pad64(BigInt(units).toString(16));
@@ -207,6 +223,29 @@ export function makeMythicUI(ctx) {
     const r = await untilConfirmed({ action: "world-mythic-usd-admin", op: btn.dataset.op, id: btn.dataset.gmpay, gmTx: tx });
     if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
     ctx.toast(esc(T("Settled — the server checked your transfer"))); gmList = null; paint();
+  }
+  async function nftMint(btn, id) {
+    const p = (st0().pieces || []).find((x) => x.id === id); if (!p || !p.nft || !p.nft.sig || !ctx.tx) return;
+    btn.disabled = true; const v = nftVoucher(p, p.nft.to, p.nft.nonce, p.nft.deadline);
+    let tx; try { tx = await ctx.tx(CC.NFT.ADDR, nftMintData(v, p.nft.sig)); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
+    ctx.toast(esc(T("Minting — checking it on Arc…"))); const r = await untilConfirmed({ action: "world-mythic-nft-minted", id, tx });
+    if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
+    await ctx.refresh(); paint(); snd("perfect"); cutIn("set", "NFT", T(pieceOf(p.def).name));
+  }
+  async function nftBack(btn, tokenId) {
+    if (!ctx.tx) return; if (typeof confirm === "function" && !confirm(T("Bring this NFT back into the game? It burns on Arc and the piece comes back to your set."))) return;
+    btn.disabled = true; let tx; try { tx = await ctx.tx(CC.NFT.ADDR, nftToGameData(tokenId)); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
+    const r = await untilConfirmed({ action: "world-mythic-nft-back", tokenId, tx });
+    if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
+    await ctx.refresh(); paint(); snd("equip"); ctx.toast(esc(T("Back in the game — enhance, trade or wear it here")));
+  }
+  async function gmSign(btn, id) {
+    const it = ((gmNft && gmNft.list) || []).find((x) => x.id === id); if (!it || !ctx.signTyped) return;
+    btn.disabled = true; const deadline = Math.floor(Date.now() / 1000) + CC.NFT.DEADLINE_S, v = { ...it.voucher, deadline };
+    let sig; try { sig = await ctx.signTyped({ domain: nftDomain(), types: nftTypes, primaryType: "Voucher", message: v }); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't sign it"))); return; }
+    const r = await ctx.post({ action: "world-mythic-nft-admin", ...ctx.sess(), op: "sign", id, deadline, sig });
+    if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
+    gmNft = null; paint(); ctx.toast(esc(T("Signed — the player can mint it now")));
   }
   // ---------------- the boards ----------------
   function topHtml() {
@@ -266,7 +305,8 @@ export function makeMythicUI(ctx) {
   function open(slot, tab0) {
     if (typeof document === "undefined" || el) return; pick = slot || ""; tab = tab0 || "set"; histId = ""; sellId = "";
     el = document.createElement("div"); el.className = "my-win"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); document.body.appendChild(el); ctx.freeze(true);
-    el.addEventListener("submit", async (e) => { const f = e.target.closest("[data-sellf]"), bf = e.target.closest("[data-bidf]"); if (!f && !bf) return; e.preventDefault();
+    el.addEventListener("submit", async (e) => { const sy = e.target.closest("[data-syncf]"); if (sy) { e.preventDefault(); const tid = String(sy.querySelector("input").value || "").trim(); await act("world-mythic-nft-sync", { tokenId: tid }, () => esc(T("Your NFT is in your set now"))); return; }
+      const f = e.target.closest("[data-sellf]"), bf = e.target.closest("[data-bidf]"); if (!f && !bf) return; e.preventDefault();
       if (f) { const v = Number(f.querySelector("input").value) || 0, usd = sellCur === "usdc", price = usd ? Math.round(v * 100) / 100 : Math.floor(v); sellId = ""; await act("world-mythic-list", { id: f.dataset.sellf, price, cur: usd ? "usdc" : "arcl" }, () => esc(usd ? T("Listed for {p} USDC", { p: price.toFixed(2) }) : T("Listed for {p} ARCL", { p: fmtN(price) }))); mkt = null; return; }
       const fd = new FormData(bf), price = Math.floor(Number(fd.get("price")) || 0); if (typeof confirm === "function" && !confirm(T("Hold {p} ARCL for this request?", { p: fmtN(price) }))) return;
       bidOpen = false; await act("world-mythic-bid", { def: fd.get("def"), minPlus: Number(fd.get("plus")) || 0, price }, () => esc(T("Request posted — the ARCL is held"))); mkt = null; paint(); });
@@ -274,11 +314,16 @@ export function makeMythicUI(ctx) {
       const rf = e.target.closest("[data-rfs]"); if (rf && rf.value) { const P = CC.PIECES.find((x) => x.slot === rf.value); if (typeof confirm === "function" && !confirm(T("Reforge it into {n}? Its + and stars go back to 0.", { n: T(P ? P.name : "") }))) { rf.value = ""; return; }
         const j = await act("world-mythic-reforge", { id: rf.dataset.rfs, slot: rf.value }, () => esc(T("Reforged into {n}", { n: T(P ? P.name : "") }))); if (j) { pick = rf.value; snd("salvage"); paint(); } } });
     el.addEventListener("click", async (e) => { const s = e.target.closest("[data-slot]"), q = e.target.closest("[data-eq]"), tb = e.target.closest("[data-tab]");
-      if (tb) { tab = tb.dataset.tab; if (tab === "mkt") mkt = null; if (tab === "top") top = null; if (tab === "gm") gmList = null; pick = ""; snd("tab"); paint(); return; }
+      if (tb) { tab = tb.dataset.tab; if (tab === "mkt") mkt = null; if (tab === "top") top = null; if (tab === "gm") { gmList = null; gmNft = null; } pick = ""; snd("tab"); paint(); return; }
       if (e.target.closest("[data-unpick]")) { pick = ""; paint(); return; }
       const cu = e.target.closest("[data-cur]"); if (cu) { sellCur = cu.dataset.cur; paint(); return; }
       const bu = e.target.closest("[data-buyusd]"); if (bu && !bu.disabled) { await buyUsd(bu, bu.dataset.buyusd); return; }
       const gp = e.target.closest("[data-gmpay]"); if (gp && !gp.disabled) { await gmPay(gp); return; }
+      const na = e.target.closest("[data-nftask]"); if (na && !na.disabled) { if (typeof confirm === "function" && !confirm(T("Take this piece onto Arc as an NFT? It comes off and can't be enhanced or traded here until you bring it back. The team signs your voucher; then you mint it from your wallet."))) return; await act("world-mythic-nft-ask", { id: na.dataset.nftask }, () => esc(T("Asked — the team will sign your voucher"))); return; }
+      const nc = e.target.closest("[data-nftcancel]"); if (nc) { await act("world-mythic-nft-cancel", { id: nc.dataset.nftcancel }, () => esc(T("It stays in the game"))); return; }
+      const nm = e.target.closest("[data-nftmint]"); if (nm && !nm.disabled) { await nftMint(nm, nm.dataset.nftmint); return; }
+      const nb = e.target.closest("[data-nftback]"); if (nb && !nb.disabled) { await nftBack(nb, nb.dataset.nftback); return; }
+      const gs = e.target.closest("[data-gmsign]"); if (gs && !gs.disabled) { await gmSign(gs, gs.dataset.gmsign); return; }
       if (e.target.closest("[data-odds]")) { oddsOpen = !oddsOpen; paint(); return; }
       if (e.target.closest("[data-bidopen]")) { bidOpen = true; paint(); return; }
       if (e.target.closest("[data-mfw]")) { mf.watch = !mf.watch; paint(); return; }

@@ -4365,3 +4365,9 @@ html.wp-pcphone .my-cut>div,html.wp-pcphone .my-forge-in,html.wp-pcphone .my-sha
 .my-cur{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.2)}.my-cur button{padding:7px 12px;border:0;background:transparent;color:#ffd9e2;font:800 12px Sora,system-ui,sans-serif}.my-cur button.on{background:#ffd36a;color:#2a1400}
 .my-li .go.usd{background:linear-gradient(180deg,#5aa8ff,#2775ca)}
 .my-bid .st{font:800 11px Sora,system-ui,sans-serif;color:#ffd36a}.my-bid .st.paid,.my-bid .st.refunded{color:#7dffb0}
+/* step C: NFTs */
+.my-acts .nft{background:linear-gradient(180deg,#6ad8ff,#2a7bd8);color:#041226;border:0}.my-acts .nft[disabled]{background:rgba(255,255,255,.08);color:#9fb3c8}
+.my-nfttag{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:#2a7bd8;color:#fff;font:900 10px Sora,system-ui,sans-serif;font-style:normal;vertical-align:middle}
+.my-pc.nftp{outline:1px solid rgba(106,216,255,.5)}.my-wait{color:#9fd8ff;font:700 12px system-ui,sans-serif}
+.my-syncf{display:flex;gap:6px;margin-top:10px}.my-syncf input{flex:1;min-width:0;padding:8px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:#1a060c;color:#fff}.my-syncf button{padding:8px 12px;border-radius:10px;border:0;background:linear-gradient(180deg,#6ad8ff,#2a7bd8);color:#041226;font:800 12px Sora,system-ui,sans-serif}
+.my-pc em.my-nfttag{display:inline-block;margin-top:0;color:#fff}

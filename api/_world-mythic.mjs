@@ -38,8 +38,18 @@
 //   POST world-mythic-list { id, price, cur: "usdc" }  ·  POST world-mythic-usd-hold { id } → { desk, token, amount, until }
 //   POST world-mythic-usd-buy { id, tx } → { ok, piece } (202 while the tx isn't confirmed)
 //   POST world-mythic-usd-admin { op: "list" | "paid" | "refunded", id, gmTx } (a GM)
+// step C — NFTs on Arc (contracts/contracts/CrimsonCelestialNFT.sol, CC.NFT.ADDR once deployed): the holder asks
+// (world-mythic-nft-ask: the piece goes NFT_PENDING, off and unlisted), a GM signs the voucher in their own wallet
+// (world-mythic-nft-admin op sign: the server checks the EIP-712 signature is a GM's — it never holds the key), the player
+// mints it from their wallet (world-mythic-nft-minted: the receipt's Minted log → NFT_ACTIVE), it travels like any NFT
+// (worn only by the wallet that holds it: world-mythic-nft-sync brings it to a new holder's game), and comes back by
+// toGame on chain (world-mythic-nft-back: the Returned log → GAME_OWNED, owned by whoever returned it).
+//   GET ?world=mythic-nft&id=<tokenId>   the NFT's metadata (name, image, its kind, origin, + and stars)
 // The states the spec names (GAME_OWNED, GAME_LISTED, NFT_*) — only GAME_OWNED is made for now; trading and NFTs come next.
-import { CC, pieceOf, enhCost, essOf, rollSlot, reforgeCost } from "../world-mythic-data.js";
+import { CC, pieceOf, enhCost, essOf, rollSlot, reforgeCost, nftVoucher } from "../world-mythic-data.js";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { keccak_256 } from "@noble/hashes/sha3.js";
+import { createHash } from "node:crypto";
 import { levelOfSave } from "./_world-social.mjs";
 import { randomBytes } from "node:crypto";
 import { SWAP } from "./_world-swap.mjs";
@@ -48,6 +58,22 @@ const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523
 /// the USDC (ERC-20 interface) a receipt moved from → to, in token units
 const usdcMoved = (rc, from, to) => ((rc && rc.logs) || []).filter((l) => lc(l.address) === lc(CC.USD.TOKEN) && l.topics && lc(l.topics[0]) === TRANSFER && lc(l.topics[1]) === pad32(from) && lc(l.topics[2]) === pad32(to)).reduce((x, l) => x + BigInt(l.data), 0n);
 const centsToUnits = (c) => BigInt(Math.round(c)) * 10n ** BigInt(CC.USD.DEC - 2);
+// ---- EIP-712 for the vouchers (the contract's Voucher; no library: keccak + secp256k1 like the sign-in) ----
+const kk = (b) => Buffer.from(keccak_256(b)), hx = (h) => Buffer.from(String(h).replace(/^0x/, ""), "hex"), w32b = (v) => hx(BigInt(v).toString(16).padStart(64, "0"));
+const TD_DOMAIN = kk(Buffer.from("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"));
+const TD_VOUCHER = kk(Buffer.from("Voucher(address to,uint256 tokenId,uint16 kind,uint8 src,uint8 plus,uint8 stars,uint256 nonce,uint256 deadline)"));
+export function voucherDigest(v, addr) {
+  const dom = kk(Buffer.concat([TD_DOMAIN, kk(Buffer.from(CC.NFT.NAME)), kk(Buffer.from(CC.NFT.VERSION)), w32b(CC.NFT.CHAIN), w32b(addr)]));
+  const st = kk(Buffer.concat([TD_VOUCHER, w32b(v.to), w32b(v.tokenId), w32b(v.kind), w32b(v.src), w32b(v.plus), w32b(v.stars), w32b(v.nonce), w32b(v.deadline)]));
+  return kk(Buffer.concat([Buffer.from([0x19, 0x01]), dom, st]));
+}
+export function recoverDigest(digest, sig) {
+  const b = hx(sig); if (b.length !== 65) return ""; let v = b[64]; if (v >= 27) v -= 27; if (v !== 0 && v !== 1) return "";
+  const rec = new Uint8Array(65); rec[0] = v; rec.set(b.subarray(0, 64), 1);
+  try { const pub = secp256k1.recoverPublicKey(rec, digest, { prehash: false }), full = secp256k1.Point.fromBytes(pub).toBytes(false); return "0x" + Buffer.from(keccak_256(full.subarray(1))).subarray(12).toString("hex"); } catch { return ""; }
+}
+/// a piece's token number: 64 bits of the hash of its game id (the same piece, the same number, every time it comes out)
+export const tokenIdOf = (id) => BigInt("0x" + createHash("sha256").update(String(id)).digest("hex").slice(0, 16)).toString();
 const SLOTS = CC.PIECES.map((p) => p.slot);
 const WEARABLE = new Set(["GAME_OWNED", "NFT_ACTIVE"]);
 
@@ -130,7 +156,8 @@ export function makeMythic(deps) {
     const id = String(b.id); if (!/^m[a-z0-9]{6,24}$/.test(id)) return json(400, { error: "which piece?" });
     const p = await one(`worldMythic/${id}`), P = p && pieceOf(p.def);
     if (!p || p.owner !== w || !(own.ids || []).includes(id)) return json(403, { error: "that piece isn't yours" });
-    if (!WEARABLE.has(p.state)) return json(409, { error: "that piece is listed — take it off the market first" });
+    if (!WEARABLE.has(p.state)) return json(409, { error: p.state === "NFT_PENDING" ? "that piece is on its way to becoming an NFT" : "that piece is listed — take it off the market first" });
+    if (p.state === "NFT_ACTIVE" && !(await holds(w, p))) return json(403, { error: "that NFT is in another wallet now" });
     if (!P || P.slot !== slot) return json(400, { error: "that piece goes in another slot" });
     const lv = levelOfSave(await deps.save(w)); if (lv < p.req) return json(403, { error: `this piece is worn from level ${p.req} (you're ${lv})`, need: p.req });
     eq[slot] = id; await setDoc(`worldMythicOwn/${w}`, { ...own, eq });
@@ -141,7 +168,7 @@ export function makeMythic(deps) {
     if (!/^m[a-z0-9]{6,24}$/.test(id)) return { err: json(400, { error: "which piece?" }) };
     const [p, own] = await Promise.all([one(`worldMythic/${id}`), ownOf(w)]);
     if (!p || p.owner !== w || !(own.ids || []).includes(id)) return { err: json(403, { error: "that piece isn't yours" }) };
-    if (needWearable && !WEARABLE.has(p.state)) return { err: json(409, { error: "that piece is listed — take it off the market first" }) };
+    if (needWearable && p.state !== "GAME_OWNED") return { err: json(409, { error: /^NFT/.test(p.state || "") ? "that piece is an NFT — bring it back into the game first" : "that piece is listed — take it off the market first" }) };
     return { w, id, p, own };
   };
   async function enhance(b) {
@@ -301,6 +328,84 @@ export function makeMythic(deps) {
     return json(200, { ok: true, record: nr });
   }
   async function usdMine(w) { const M0 = (await one(`worldMythicUsdMine/${w}`)) || { ids: [] }, ids = (M0.ids || []).slice(0, 30), d = ids.length ? await getDocs(ids.map((i) => `worldMythicUsd/${i}`)) : {}; return ids.map((i) => d[`worldMythicUsd/${i}`]).filter(Boolean).map((r) => ({ id: r.id, kind: r.kind, def: r.def, cents: r.cents, net: r.net, status: r.status, at: r.at, me: r.seller === w ? "seller" : "buyer", gmTx: r.gmTx || "" })); }
+  // ---------------- step C: NFTs ----------------
+  const NQ = "worldMythicNftQ/all", NFT_ON = () => /^0x[0-9a-fA-F]{40}$/.test(CC.NFT.ADDR || "");
+  /// does the wallet hold the piece's NFT on Arc (ownerOf)? Without a chain reader (tests): its owner in the game
+  async function holds(w, p) {
+    if (!deps.ethCall || !NFT_ON()) return p.owner === w;
+    try { const r = await deps.ethCall(CC.NFT.ADDR, CC.NFT.SEL.ownerOf + BigInt(p.nft.tokenId).toString(16).padStart(64, "0")); return lc("0x" + String(r).slice(-40)) === w; } catch { return p.owner === w; }
+  }
+  async function nftAsk(b) {
+    if (!NFT_ON()) return json(503, { error: "NFTs open soon" });
+    const m = await mine(b); if (m.err) return m.err; const { w, id, p, own } = m;
+    const eq = { ...(own.eq || {}) }; for (const [k, v] of Object.entries(eq)) if (v === id) delete eq[k];
+    const nonce = BigInt("0x" + randomBytes(8).toString("hex")).toString();
+    const np = { ...p, state: "NFT_PENDING", nft: { tokenId: tokenIdOf(id), nonce, asked: now(), to: w } };
+    await setDoc(`worldMythic/${id}`, np); await setDoc(`worldMythicOwn/${w}`, { ...own, eq });
+    const Q = (await one(NQ)) || { ids: [] }; await setDoc(NQ, { ids: [id, ...(Q.ids || []).filter((x) => x !== id)].slice(0, 300) });
+    await setDoc(`worldMythicNft/${np.nft.tokenId}`, { id });
+    return json(200, { ok: true, piece: np });
+  }
+  async function nftCancel(b) {
+    const m = await mine(b, false); if (m.err) return m.err; const { id, p } = m; if (p.state !== "NFT_PENDING") return json(409, { error: "it isn't waiting to be an NFT" });
+    await setDoc(`worldMythic/${id}`, { ...p, state: "GAME_OWNED", nft: null }); return json(200, { ok: true });
+  }
+  async function nftAdmin(b) {
+    const s = signer(b); if (s.err) return s.err; if (!(deps.isGM && deps.isGM(s.wallet))) return json(403, { error: "for the team" });
+    const op = String(b.op || "");
+    if (op === "list") { const Q = (await one(NQ)) || { ids: [] }, ids = (Q.ids || []).slice(0, 100), d = ids.length ? await getDocs(ids.map((i) => `worldMythic/${i}`)) : {};
+      return json(200, { ok: true, addr: CC.NFT.ADDR, chain: CC.NFT.CHAIN, list: ids.map((i) => d[`worldMythic/${i}`]).filter((p) => p && p.state === "NFT_PENDING").map((p) => ({ id: p.id, def: p.def, src: p.src, plus: p.plus || 0, stars: p.stars || 0, owner: p.owner, signed: !!(p.nft && p.nft.sig), voucher: nftVoucher(p, p.owner, p.nft.nonce, (p.nft.deadline || Math.floor(now() / 1000) + CC.NFT.DEADLINE_S)) })) }); }
+    if (op !== "sign") return json(400, { error: "list or sign" });
+    if (!NFT_ON()) return json(503, { error: "the NFT contract isn't set yet" });
+    const id = String(b.id || ""), p = await one(`worldMythic/${id}`); if (!p || p.state !== "NFT_PENDING") return json(404, { error: "it isn't waiting to be an NFT" });
+    const deadline = Math.floor(Number(b.deadline) || 0); if (!(deadline > now() / 1000 && deadline <= now() / 1000 + 7 * 86400)) return json(400, { error: "a deadline within a week" });
+    const v = nftVoucher(p, p.owner, p.nft.nonce, deadline), who = recoverDigest(voucherDigest(v, CC.NFT.ADDR), String(b.sig || ""));
+    if (!who || !(deps.isGM && deps.isGM(who))) return json(400, { error: "that signature isn't a GM wallet's for this voucher" });
+    const np = { ...p, nft: { ...p.nft, deadline, sig: String(b.sig), by: who, signedAt: now() } }; await setDoc(`worldMythic/${id}`, np);
+    if (deps.audit) deps.audit(s.wallet, "mythic-nft-sign", { id, to: p.owner, tokenId: p.nft.tokenId }).catch(() => {});
+    return json(200, { ok: true, voucher: v, sig: np.nft.sig });
+  }
+  const logOfTopic = (rc, topic, tokenId) => ((rc && rc.logs) || []).find((l) => lc(l.address) === lc(CC.NFT.ADDR) && l.topics && lc(l.topics[0]) === topic && BigInt(l.topics[1]) === BigInt(tokenId));
+  async function nftMinted(b) {
+    if (!NFT_ON()) return json(503, { error: "NFTs open soon" });
+    const m = await mine(b, false); if (m.err) return m.err; const { w, id, p } = m, tx = lc(b.tx);
+    if (p.state !== "NFT_PENDING" || !(p.nft && p.nft.sig)) return json(409, { error: "it isn't ready to mint" }); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "the mint's transaction hash" });
+    const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null; if (!rc) return json(202, { pending: true, error: "the transaction isn't confirmed yet — try again in a moment" }); if (rc.status !== "0x1") return json(400, { error: "that transaction failed" });
+    const l = logOfTopic(rc, CC.NFT.TOPIC.minted, p.nft.tokenId); if (!l || lc("0x" + l.topics[2].slice(-40)) !== w) return json(400, { error: "that transaction didn't mint this piece to you" });
+    if (!(await commit([{ create: `worldPayTx/${tx}`, data: { w, k: "mythic-nft-mint", id, at: now() } }])).ok) return json(409, { error: "this transaction was already used" });
+    const np = { ...p, state: "NFT_ACTIVE", nft: { ...p.nft, tx, mintedAt: now() }, log: logOf(p, "nft", p.nft.tokenId) }; await setDoc(`worldMythic/${id}`, np);
+    return json(200, { ok: true, piece: np });
+  }
+  /// a new holder brings the NFT into their game (it changed hands on Arc)
+  async function nftSync(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, tid = String(b.tokenId || ""); if (!/^[0-9]{1,30}$/.test(tid)) return json(400, { error: "which token?" });
+    const ref = await one(`worldMythicNft/${tid}`), p = ref && (await one(`worldMythic/${ref.id}`)); if (!p || p.state !== "NFT_ACTIVE") return json(404, { error: "no such NFT in the game" });
+    if (p.owner === w) return json(200, { ok: true, piece: p }); if (!(await holds(w, { ...p, owner: "" }))) return json(403, { error: "that NFT isn't in your wallet" });
+    const old = p.owner, oo = await ownOf(old), eqO = { ...(oo.eq || {}) }; for (const [k, v] of Object.entries(eqO)) if (v === p.id) delete eqO[k];
+    await setDoc(`worldMythicOwn/${old}`, { ...oo, ids: (oo.ids || []).filter((x) => x !== p.id), eq: eqO }); const no = await ownOf(w); await setDoc(`worldMythicOwn/${w}`, { ...no, ids: [...new Set([...(no.ids || []), p.id])] });
+    const np = { ...p, owner: w, hist: [...(p.hist || []), { from: old, to: w, nft: true, at: now() }].slice(-20) }; await setDoc(`worldMythic/${p.id}`, np); touch(w).catch(() => {}); touch(old).catch(() => {});
+    return json(200, { ok: true, piece: np });
+  }
+  async function nftBack(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, tid = String(b.tokenId || ""), tx = lc(b.tx); if (!/^[0-9]{1,30}$/.test(tid) || !/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "which token, which transaction?" });
+    const ref = await one(`worldMythicNft/${tid}`), p = ref && (await one(`worldMythic/${ref.id}`)); if (!p || p.state !== "NFT_ACTIVE") return json(404, { error: "no such NFT in the game" });
+    const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null; if (!rc) return json(202, { pending: true, error: "the transaction isn't confirmed yet — try again in a moment" }); if (rc.status !== "0x1") return json(400, { error: "that transaction failed" });
+    const l = logOfTopic(rc, CC.NFT.TOPIC.returned, tid); if (!l || lc("0x" + l.topics[2].slice(-40)) !== w) return json(400, { error: "that transaction didn't return this piece from your wallet" });
+    if (!(await commit([{ create: `worldPayTx/${tx}`, data: { w, k: "mythic-nft-back", id: p.id, at: now() } }])).ok) return json(409, { error: "this transaction was already used" });
+    const old = p.owner; if (old !== w) { const oo = await ownOf(old), eqO = { ...(oo.eq || {}) }; for (const [k, v] of Object.entries(eqO)) if (v === p.id) delete eqO[k]; await setDoc(`worldMythicOwn/${old}`, { ...oo, ids: (oo.ids || []).filter((x) => x !== p.id), eq: eqO }); }
+    const no = await ownOf(w); await setDoc(`worldMythicOwn/${w}`, { ...no, ids: [...new Set([...(no.ids || []), p.id])] });
+    const np = { ...p, owner: w, state: "GAME_OWNED", nft: null, nftPast: [...(p.nftPast || []), { tokenId: tid, back: tx, at: now() }].slice(-10), log: logOf(p, "back", tid), ...(old !== w ? { hist: [...(p.hist || []), { from: old, to: w, nft: true, at: now() }].slice(-20) } : {}) };
+    await setDoc(`worldMythic/${p.id}`, np); touch(w).catch(() => {}); if (old !== w) touch(old).catch(() => {});
+    return json(200, { ok: true, piece: np });
+  }
+  async function nftMeta(url) {
+    const tid = String(url.searchParams.get("id") || ""); if (!/^[0-9]{1,30}$/.test(tid)) return json(400, { error: "id?" });
+    const ref = await one(`worldMythicNft/${tid}`), p = ref && (await one(`worldMythic/${ref.id}`)), P = p && pieceOf(p.def); if (!P) return json(404, { error: "no such piece" });
+    const SRCN = { lysitha: "Celestial Lysitha (Lv 100)", solvira: "Radiant Solvira (Lv 200)", nyxara: "Crimson Nyxara (Lv 300)", throne: "Throne of Three (Lv 400)", secret: "SECRET" };
+    return json(200, { name: `${P.name} +${p.plus || 0}${p.stars ? " " + "★".repeat(p.stars) : ""}`, description: `A MYTHIC piece of the Crimson Celestial set from ARCIRCLE WORLD's RAID QUEENS. ${P.line}. Bring it back into the game to wear it.`,
+      image: `https://www.arcircle.app/images/mythic/${P.glb}.webp`, external_url: "https://www.arcircle.app/game",
+      attributes: [{ trait_type: "Set", value: CC.NAME }, { trait_type: "Slot", value: P.slot }, { trait_type: "Origin", value: SRCN[p.src] || p.src }, { trait_type: "Enhance", value: p.plus || 0, display_type: "number" }, { trait_type: "Stars", value: p.stars || 0, display_type: "number" }, { trait_type: "Multiplier", value: p.mult }] }, "public, max-age=300");
+  }
   async function market() {
     const [mk, S, B] = await Promise.all([one(MK), one(SL), one(BD)]);
     return json(200, { items: Object.values((mk && mk.items) || {}).sort((a, b) => b.at - a.at).map((x) => ({ ...x, seller: short(x.seller) })), sales: ((S && S.list) || []).slice(-80),
@@ -313,12 +418,17 @@ export function makeMythic(deps) {
   async function wornOf(w) { const { pieces, eq } = await list(w); const worn = Object.values(eq).map((i) => pieces.find((p) => p.id === i)).filter(Boolean).map((p) => ({ def: p.def, plus: p.plus || 0, stars: p.stars || 0, src: p.src })); return json(200, { n: worn.length, worn }, "no-store"); }
   return {
     roll, list,
-    async read(url) { const w = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return json(400, { error: "wallet?" }); return json(200, { ...(await list(w)), usd: await usdMine(w).catch(() => []), now: now() }, "no-store"); },
+    async read(url) { const w = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return json(400, { error: "wallet?" }); const L = await list(w);
+      // an NFT worn here but held by another wallet on Arc now: off (at most seven calls, the worn ones)
+      for (const [sl, pid] of Object.entries(L.eq)) { const p = L.pieces.find((x) => x.id === pid); if (p && p.state === "NFT_ACTIVE" && !(await holds(w, p))) { delete L.eq[sl]; const own = await ownOf(w); const eq = { ...(own.eq || {}) }; delete eq[sl]; await setDoc(`worldMythicOwn/${w}`, { ...own, eq }); p.away = true; } }
+      return json(200, { ...L, usd: await usdMine(w).catch(() => []), nftOn: NFT_ON(), now: now() }, "no-store"); },
     async worn(url) { const w = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return json(400, { error: "wallet?" }); return wornOf(w); },
-    top,
+    top, nftMeta,
     async handle(b) { const a = b.action; if (a === "world-mythic-equip") return equip(b); if (a === "world-mythic-enhance") return enhance(b); if (a === "world-mythic-salvage") return salvage(b);
       if (a === "world-mythic-list") return listIt(b); if (a === "world-mythic-unlist") return unlist(b); if (a === "world-mythic-buy") return buy(b);
       if (a === "world-mythic-claim") return claim(b); if (a === "world-mythic-reforge") return reforge(b); if (a === "world-mythic-awaken") return awaken(b);
+      if (a === "world-mythic-nft-ask") return nftAsk(b); if (a === "world-mythic-nft-cancel") return nftCancel(b); if (a === "world-mythic-nft-admin") return nftAdmin(b);
+      if (a === "world-mythic-nft-minted") return nftMinted(b); if (a === "world-mythic-nft-sync") return nftSync(b); if (a === "world-mythic-nft-back") return nftBack(b);
       if (a === "world-mythic-usd-hold") return usdHold(b); if (a === "world-mythic-usd-buy") return usdBuy(b); if (a === "world-mythic-usd-admin") return usdAdmin(b);
       if (a === "world-mythic-bid") return bid(b); if (a === "world-mythic-unbid") return unbid(b); if (a === "world-mythic-fill") return fill(b); return null; },
     market,

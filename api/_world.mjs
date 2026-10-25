@@ -634,6 +634,7 @@ export function make(deps) {
       if (w === "mythic") return mythic.read(url);
       if (w === "mythic-market") return mythic.market();
       if (w === "mythic-top") return mythic.top();
+      if (w === "mythic-nft") return mythic.nftMeta(url);
       if (w === "mythic-worn") return mythic.worn(url);
       if (w === "surv" || w === "surv-top" || w === "surv-daily" || w === "surv-endless") return surv.read(w, url);
       if (w === "rings" || w === "rings-top" || w === "rings-ta" || w === "rings-chal") return rings.read(w, url);

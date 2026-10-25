@@ -160,4 +160,33 @@ r = await call(A, "world-mythic-equip", { slot: "weapon", id: null }); check(r.s
   const g3 = "0x" + "b3".repeat(32); RC[g3] = { status: "0x1", logs: [xfer(a, b, 12000000)] };
   r = await call(A, "world-mythic-usd-admin", { op: "refunded", id: rf.id, gmTx: g3 }); check(r.status === 200 && db.get(`worldMythicUsd/${rf.id}`).status === "refunded", "the refund sent back: marked refunded");
 }
+// step C: NFTs — ask, a GM's voucher (EIP-712 in their own wallet), the mint's receipt, a new holder, back into the game
+{ const MD = await import("../../world-mythic-data.js"), { voucherDigest, recoverDigest, tokenIdOf } = await import("../../api/_world-mythic.mjs"); const a = A.address.toLowerCase(), b = B.address.toLowerCase();
+  const pid = (await mine(A)).pieces.find((p) => p.state === "GAME_OWNED").id;
+  r = await call(A, "world-mythic-nft-ask", { id: pid }); check(r.status === 503, "no contract set yet: NFTs open soon");
+  CC.NFT.ADDR = "0x" + "c".repeat(40);
+  r = await call(A, "world-mythic-nft-ask", { id: pid }); check(r.status === 200 && r.body.piece.state === "NFT_PENDING" && r.body.piece.nft.tokenId === tokenIdOf(pid), "Aria asks: the piece waits as NFT_PENDING with its token number");
+  r = await call(A, "world-mythic-enhance", { id: pid }); check(r.status === 409, "waiting to be an NFT: it can't be enhanced");
+  r = await call(A, "world-mythic-equip", { slot: MD.pieceOf(db.get(`worldMythic/${pid}`).def).slot, id: pid }); check(r.status === 409, "…or worn");
+  r = await call(A, "world-mythic-nft-admin", { op: "list" }); const it = r.body.list.find((x) => x.id === pid); check(r.status === 200 && it && !it.signed, "the team's list has it, unsigned");
+  const deadline = Math.floor(T / 1000) + 86400, v = MD.nftVoucher(db.get(`worldMythic/${pid}`), a, db.get(`worldMythic/${pid}`).nft.nonce, deadline);
+  const sigEve = await B.signTypedData(MD.nftDomain(CC.NFT.ADDR), MD.nftTypes, v);
+  r = await call(A, "world-mythic-nft-admin", { op: "sign", id: pid, deadline, sig: sigEve }); check(r.status === 400, "a voucher signed by a non-GM wallet: refused");
+  const sigGM = await A.signTypedData(MD.nftDomain(CC.NFT.ADDR), MD.nftTypes, v);
+  check(recoverDigest(voucherDigest(v, CC.NFT.ADDR), sigGM) === a, "the server's EIP-712 digest matches the wallet's (the signer recovered)");
+  r = await call(A, "world-mythic-nft-admin", { op: "sign", id: pid, deadline, sig: sigGM }); check(r.status === 200 && db.get(`worldMythic/${pid}`).nft.sig === sigGM, "the GM's own signature: kept with the piece");
+  const pad = (x) => "0x" + BigInt(x).toString(16).padStart(64, "0"), padA = (x) => "0x" + x.replace(/^0x/, "").toLowerCase().padStart(64, "0");
+  const mtx = "0x" + "d1".repeat(32); RC[mtx] = { status: "0x1", logs: [{ address: CC.NFT.ADDR, topics: [CC.NFT.TOPIC.minted, pad(v.tokenId), padA(b)], data: "0x" }] };
+  r = await call(A, "world-mythic-nft-minted", { id: pid, tx: mtx }); check(r.status === 400, "a mint to someone else: not this piece's");
+  const mtx2 = "0x" + "d2".repeat(32); RC[mtx2] = { status: "0x1", logs: [{ address: CC.NFT.ADDR, topics: [CC.NFT.TOPIC.minted, pad(v.tokenId), padA(a)], data: "0x" }] };
+  r = await call(A, "world-mythic-nft-minted", { id: pid, tx: mtx2 }); check(r.status === 200 && db.get(`worldMythic/${pid}`).state === "NFT_ACTIVE", "minted to Aria: NFT_ACTIVE");
+  r = await call(A, "world-mythic-list", { id: pid, price: 5000 }); check(r.status === 409, "an NFT can't be listed in the game's market");
+  { const meta = (await W.read(new URL("https://x/api/social?world=mythic-nft&id=" + v.tokenId))).body; check(/\+/.test(meta.name) && /images\/mythic/.test(meta.image) && meta.attributes.length >= 5, "the NFT's metadata: name, picture, attributes"); }
+  // Bo got it on Arc (no chain reader in this test: the server takes the game's owner, so sync is refused) and returns it
+  r = await call(B, "world-mythic-nft-sync", { tokenId: v.tokenId }); check(r.status === 403, "Bo can't bring an NFT that isn't his into his game");
+  const btx = "0x" + "e1".repeat(32); RC[btx] = { status: "0x1", logs: [{ address: CC.NFT.ADDR, topics: [CC.NFT.TOPIC.returned, pad(v.tokenId), padA(b)], data: "0x" }] };
+  r = await call(B, "world-mythic-nft-back", { tokenId: v.tokenId, tx: btx }); check(r.status === 200 && db.get(`worldMythic/${pid}`).state === "GAME_OWNED" && db.get(`worldMythic/${pid}`).owner === b && db.get(`worldMythicOwn/${b}`).ids.includes(pid) && !db.get(`worldMythicOwn/${a}`).ids.includes(pid), "Bo returned it on Arc: it's back in the game, and his");
+  r = await call(B, "world-mythic-nft-back", { tokenId: v.tokenId, tx: btx }); check(r.status === 404, "back once: done");
+  CC.NFT.ADDR = "";
+}
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

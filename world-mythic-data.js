@@ -64,6 +64,13 @@ export const CC = {
   // step D (the owner, 2026-10-25): a piece listed for USDC on Arc — the buyer sends it to the team's desk (api/_world-swap.mjs
   // SWAP.DESK, the ERC-20 USDC at USDC_TOKEN, 6 decimals), the server checks the transfer and hands the piece over, and a
   // GM pays the seller (less FEE) from their own wallet; the server never holds a key. Prices in cents.
+  // step C (the owner, 2026-10-25): a piece taken onto Arc as an NFT (contracts/contracts/CrimsonCelestialNFT.sol) with a
+  // voucher a GM signs in their own wallet (EIP-712); it comes back into the game by returning it there (it burns). ADDR
+  // stays empty until the owner deploys it (contracts/scripts/deploy-crimson-celestial-nft.js): until then "coming soon".
+  NFT: { ADDR: "", CHAIN: 5042, NAME: "CrimsonCelestialNFT", VERSION: "1", DEADLINE_S: 3 * 86400,
+    SEL: { mint: "0xc9c8231d", toGame: "0x453601d8", ownerOf: "0x6352211e" },
+    TOPIC: { minted: "0x68d937d9e57e7cf33f4aecfde473c947bc9836a4d40567eb223fc42179043d30", returned: "0x67ffb28c0e498947b5c148a385ed64809190a87d2a053c40be021f28c69181ec" },
+    SRC: ["lysitha", "solvira", "nyxara", "throne", "secret"] },
   USD: { MIN: 100, MAX: 1000000, FEE: 0.02, HOLD_MS: 15 * 60e3, TOKEN: "0x3600000000000000000000000000000000000000", DEC: 6 },
   MARKET: { FEE: 0.02, MIN: 1000, MAX: 10000000, MAX_LISTED: 300, MAX_BIDS: 300, MY_BIDS: 5, SALES: 200 }, // (bids: buy requests with the ARCL held until filled or taken back)
 };
@@ -104,3 +111,19 @@ export function setBonus(worn) {
   const resonance = n >= R.need && lowPlus >= R.plus; if (resonance) for (const [k, v] of Object.entries(R.stats)) stats[k] = (stats[k] || 0) + v;
   return { n, active, stats, resonance, lowPlus };
 }
+
+/// the voucher a GM signs for a piece (EIP-712 typed data: the contract's Voucher) and the call data that mints it
+const field = ([n, t]) => ({ name: n, type: t }); // (the voucher's fields, the contract's order)
+export const nftTypes = { Voucher: [["to", "address"], ["tokenId", "uint256"], ["kind", "uint16"], ["src", "uint8"], ["plus", "uint8"], ["stars", "uint8"], ["nonce", "uint256"], ["deadline", "uint256"]].map(field) };
+export const nftDomain = (addr) => ({ name: CC.NFT.NAME, version: CC.NFT.VERSION, chainId: CC.NFT.CHAIN, verifyingContract: addr || CC.NFT.ADDR });
+export function nftVoucher(inst, to, nonce, deadline) {
+  const kind = CC.PIECES.findIndex((P) => P.id === inst.def), src = Math.max(0, CC.NFT.SRC.indexOf(inst.src));
+  return { to, tokenId: String(inst.nft && inst.nft.tokenId), kind, src, plus: Math.floor(inst.plus || 0), stars: Math.floor(inst.stars || 0), nonce: String(nonce), deadline: Number(deadline) };
+}
+const w32 = (v) => BigInt(v).toString(16).padStart(64, "0");
+/// mint((address,uint256,uint16,uint8,uint8,uint8,uint256,uint256),bytes): the tuple inline, then the signature's offset, length and bytes
+export function nftMintData(v, sig) {
+  const s = String(sig).replace(/^0x/, ""), n = s.length / 2, padded = s.padEnd(Math.ceil(n / 32) * 64, "0");
+  return CC.NFT.SEL.mint + w32(v.to) + w32(v.tokenId) + w32(v.kind) + w32(v.src) + w32(v.plus) + w32(v.stars) + w32(v.nonce) + w32(v.deadline) + w32(9 * 32) + w32(n) + padded;
+}
+export const nftToGameData = (tokenId) => CC.NFT.SEL.toGame + w32(tokenId);
