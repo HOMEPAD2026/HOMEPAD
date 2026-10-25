@@ -1,5 +1,5 @@
 // world-raidq.js — RAID QUEENS (the owner's design, 2026-10-25): runs in a space of their own, like SURVIVORS ARENA. The
-// RAID QUEENS portal by the fountain (world-lands.js) opens the lobby; a run takes you into the arena (LANDS.rq, 2.4 km
+// RAID QUEENS portal on the far hunting ring (world-lands.js) opens the lobby; a run takes you into the arena (LANDS.rq, 2.4 km
 // north: the town is out of sight, nobody else is drawn there) and you fight it with the town's own combat (attack,
 // skills, potions, HP). Three runs a Seoul day across the queens (api/_world-raidq.mjs RQ.DAY_RUNS).
 //   a queen's run     waves of Imps (KayKit moves on their UE bones: K.borrowMoves), elite Puglins from the second
@@ -161,7 +161,7 @@ export function makeRaidQueens(ctx) {
     }).catch((e) => { hallP = null; console.warn("raid hall", e); return false; }));
   }
   function vis() { const inRun = !!run && !run.done; g.visible = shown && inRun; H.visible = back.visible = shown && !inRun; SKY.visible = shown; if (shown) loadHall(); solids.length = 0; if (H.visible) solids.push(wall); if (H.visible) loadHall(); }
-  /// the hall's front: on the road, facing the Citadel (after a run, and where the portal by the fountain puts you)
+  /// the hall's front: on the road, facing the Citadel (after a run, and where the portal on the far hunting ring puts you)
   function toHall(atDoor) { ctx.stand(land.x, atDoor ? door.position.z + 4 : land.z + HALL.start, { x: land.x, z: land.z + HALL.door }); vis(); }
 
   // ---------------- the monsters: Imp and Puglin, the KayKit moves on their bones, the queen's colours ----------------

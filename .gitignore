@@ -17,3 +17,4 @@ omni/cache/
 omni/typechain-types/
 omni/dist/
 solana/arcircle-orders/target/
+tools/meshy-out/

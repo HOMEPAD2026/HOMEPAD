@@ -176,13 +176,18 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
     { id: "ut", name: T("Utility Village"), col: 0x4f9dff, phi: 70 },
     { id: "pv", name: T("Partner Village"), col: 0x38e1d6, phi: 150 },
     { id: "gv", name: T("Game Village"), col: 0xffc861, phi: 300 },
-    { id: "rq", name: "RAID QUEENS", col: 0xff4d8d, phi: 110, th: 24 }, // (the owner, 2026-10-25: a RAID QUEENS building by the fountain, a portal into the land; moved off 225° — it crowded the Jurassic World gate — to the open side between the Utility and Partner portals, a little further out)
+    // RAID QUEENS: out on the far hunting ring between The Last Rug (Lv 90–100) and Bridge Hack Abyss (Lv 80–90), where the
+    // high levels hunt (the owner, 2026-10-25: "move it away from the fountain, out by the far hunting grounds"); its
+    // own spot (at: x, z) rather than the shops' ring, no plaza line or path out to it, a citadel 12 m tall
+    { id: "rq", name: "RAID QUEENS", col: 0xff4d8d, at: [-168, 62], h: 12 },
   ];
-  const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id; K.placeOn(p, K.dirOf(d.th || 21, d.phi)); planet.add(p); return p; });
+  const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id;
+    if (d.at) { p.position.set(d.at[0], 0, d.at[1]); p.rotation.set(0, Math.atan2(-d.at[0], -d.at[1]), 0); p.userData.far = true; } else K.placeOn(p, K.dirOf(d.th || 21, d.phi));
+    planet.add(p); return p; });
   // b-st2: lines of light on the plaza floor from the fountain out to each portal, pulses running outward in its colour
   const lineU = { value: 0 };
   portals.forEach((p, i) => {
-    const x = p.position.x, z = p.position.z, d = Math.hypot(x, z); if (d < 9) return; const r0 = 5.8, len = d - r0 - 2.6;
+    const x = p.position.x, z = p.position.z, d = Math.hypot(x, z); if (d < 9 || p.userData.far) return; const r0 = 5.8, len = d - r0 - 2.6;
     const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, uniforms: { uT: lineU, uC: { value: new THREE.Color(DEST[i].col) }, uL: { value: len }, uP: { value: i * 0.31 } },
       vertexShader: "varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
       fragmentShader: "varying vec2 vU; uniform float uT, uL, uP; uniform vec3 uC; void main(){ float along = vU.y * uL; float pulse = smoothstep(0.0, 0.25, fract(along / 3.0 - uT * 0.45 + uP)) * (1.0 - smoothstep(0.25, 0.6, fract(along / 3.0 - uT * 0.45 + uP))); float edge = 1.0 - abs(vU.x - 0.5) * 2.0; float ends = smoothstep(0.0, 0.08, vU.y) * (1.0 - smoothstep(0.88, 1.0, vU.y)); gl_FragColor = vec4(uC * (0.22 + pulse * 0.9) * edge * ends, 1.0); }" });
@@ -196,11 +201,11 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
   const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb", rq: "/models/world/raid/gate.glb" }, MODEL_H = 6.5;
   setTimeout(() => { for (const [id, url] of Object.entries(MODELS)) { const p = portals.find((q) => q.userData.to === id); if (!p || !K.gltfLoader) continue;
     try { K.gltfLoader().load(url + ver, (g) => {
-      const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = MODEL_H / (sz.y || 1);
+      const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), H = (DEST.find((d) => d.id === id) || {}).h || MODEL_H, k = H / (sz.y || 1);
       o.scale.setScalar(k); o.position.set(-(box.min.x + sz.x / 2) * k, 0.18 - box.min.y * k, -(box.min.z + sz.z / 2) * k); o.rotation.y = 0;
       o.traverse((m) => { if (m.isMesh) { m.castShadow = !low; m.receiveShadow = false; } });
       p.children.forEach((c) => { if (c.isMesh && c.geometry && c.geometry.type === "TorusGeometry" && c.position.y > 1) c.visible = false; if (c.isMesh && c.geometry && c.geometry.type === "CircleGeometry") c.visible = false; }); // (the rings and their veil give way to the model)
-      p.children.forEach((c) => { if (c.isSprite) c.position.y += MODEL_H - 3.6; }); if (p.userData.subTag) p.userData.subTag.position.y = MODEL_H + 0.25;
+      p.children.forEach((c) => { if (c.isSprite) c.position.y += H - 3.6; }); if (p.userData.subTag) p.userData.subTag.position.y = H + 0.25;
       p.add(o); p.userData.model = o; p.userData.radius = Math.max(1.6, Math.max(sz.x, sz.z) * k * 0.4); if (onModel) onModel(p);
     }, undefined, (e) => console.warn("land portal", e)); } catch (e) { console.warn("land portal", e); } } }, 6000);
   const town = new THREE.Group(); town.name = "land-portals"; // (the paths to them: world-play.js asks K.makePaths for these spokes)
@@ -211,7 +216,7 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
   let shown = "";
   return {
     lpG, utG, portals, back, tower, spins, town, makeLot, setNewest, sizeTo, arrival,
-    spokes: DEST.map((d) => ({ theta: d.th || 21, phi: d.phi })),
+    spokes: DEST.filter((d) => !d.at).map((d) => ({ theta: d.th || 21, phi: d.phi })),
     /// show only the land you're in (null: the town)
     show(id) { if (id === shown) return; shown = id || ""; lpG.visible = shown === "lp"; utG.visible = shown === "ut"; },
     /// the edge you can't walk past in a land (x, z: where you'd stand)

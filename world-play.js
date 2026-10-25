@@ -819,7 +819,7 @@ function rqGateModel() { if (rqGate.userData.loading) return; rqGate.userData.lo
   o.traverse((m) => { if (m.isMesh) { m.castShadow = !lowGfx; m.receiveShadow = false; } }); rqGate.add(o); rqGate.userData.model = o; if (labels) labels.dirty = true; farCull.rescan(); if (gshadow) gshadow.rebakeSoon();
 }, undefined, (e) => { console.warn("raid gate", e); rqGate.userData.loading = 0; }); } catch (e) { console.warn("raid gate", e); rqGate.userData.loading = 0; } }
 // (1 MB, far off the plaza: after the town's own models; a GM signing in later sees it appear)
-// (2026-10-25, the owner: the Citadel stands in the sky realm now — RAID QUEENS' own land, world-raidq.js hall — reached by the portal by the fountain; this one stays hidden)
+// (2026-10-25, the owner: the Citadel stands in the sky realm now — RAID QUEENS' own land, world-raidq.js hall — reached by the portal on the far hunting ring; this one stays hidden)
 // hologram signs along the worn path to it: the three agents' faces turning in light, every ~14 m
 { const holoTex = {}, ld = new THREE.TextureLoader();
   ["aurora", "orion", "vex", "aurora", "orion"].forEach((k, i) => {
@@ -2055,7 +2055,7 @@ function landGo(to) {
   if (to === "gv") { goGameVillage(); return; } if (to === "pv") { goPartnerVillage(); return; } if (to === "ad") { cityGo(); return; } if (to === "rq") { rqGo(); return; }
   closeAll();
   if (to === "town" && landNow === "ad") { const v = agentGate.position, d = Math.hypot(v.x, v.z) || 1, k = K.AGENT_GATE.r + 7; standAt(v.x - (v.x / d) * k, v.z - (v.z / d) * k, { x: 0, z: 0 }); } // (AD-City: out by the Citadel)
-  else if (to === "town") { const p = lands.portals.find((q) => q.userData.to === landNow) || lands.portals[0], v = p.position, d = Math.hypot(v.x, v.z) || 1; standAt(v.x - (v.x / d) * 3.4, v.z - (v.z / d) * 3.4, { x: 0, z: 0 }); }
+  else if (to === "town") { const p = lands.portals.find((q) => q.userData.to === landNow) || lands.portals[0], v = p.position, d = Math.hypot(v.x, v.z) || 1, k = Math.max(3.4, (p.userData.radius || 0) + 2.5); standAt(v.x - (v.x / d) * k, v.z - (v.z / d) * k, p.userData.far ? { x: v.x, z: v.z } : { x: 0, z: 0 }); } /* (a far portal: face it, so the camera stays out of the building) */
   else { const a = lands.arrival(to); if (!a) return; standAt(a.x, a.z, a.c); }
   const col = to === "lp" ? 0x39ff88 : to === "ut" ? 0x4f9dff : 0x7fe9ff; vfx.teleport(here(), { color: col, color2: 0x2f86ff }); if (Snd.dash) Snd.dash();
   pullFlash("#" + col.toString(16).padStart(6, "0")); startSweep(1200); // b-st2: a flash of the portal's colour as it pulls you through, and the camera swings in
@@ -2806,7 +2806,7 @@ mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
   const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv]"); if (!b) return;
   if (b.dataset.pv) { closeMap(); goPartnerVillage(); return; }
-  if (b.dataset.land === "rq") { closeMap(); rqPortalFront(); return; } // (the owner, 2026-10-25: the map's RAID QUEENS takes you to the front of its portal building by the fountain)
+  if (b.dataset.land === "rq") { closeMap(); rqPortalFront(); return; } // (the owner, 2026-10-25: the map's RAID QUEENS takes you to the front of its portal building on the far hunting ring)
   if (b.dataset.land) { closeMap(); landGo(b.dataset.land); return; }
   if (b.dataset.adc) { closeMap(); if (b.dataset.adc === "guide") { if (landNow === "ad") cityGuide(false); else cityGo(); } else cityTo(b.dataset.adc); return; }
   if (b.dataset.pvk) { closeMap(); goPartnerTower(b.dataset.pvk); return; }
@@ -5509,15 +5509,15 @@ function rqSoon() {
   el.addEventListener("click", (e) => { if (e.target === el || e.target.closest(".adc-ok")) close(); });
   document.body.appendChild(el); try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
 }
-/// in front of the RAID QUEENS portal building by the fountain, facing it (from the map; walk in to go through)
+/// in front of the RAID QUEENS portal building on the far hunting ring, facing it (from the map; walk in to go through)
 function rqPortalFront() {
   if (frozen || flying || introOn || mode !== "hub") return;
   const p = lands.portals.find((q) => q.userData.to === "rq"); if (!p) { rqGo(); return; }
-  const v = p.position, d = Math.hypot(v.x, v.z) || 1, k = 5.5; closeAll(); if (landNow) landTick(true);
+  const v = p.position, d = Math.hypot(v.x, v.z) || 1, k = Math.max(5.5, (p.userData.radius || 0) + 3); closeAll(); if (landNow) landTick(true);
   standAt(v.x - (v.x / d) * k, v.z - (v.z / d) * k, { x: v.x, z: v.z });
   vfx.teleport(here(), { color: 0xff4d8d, color2: 0xffd36a }); if (Snd.dash) Snd.dash(); startSweep(1200); landTick(true); paintPrompt();
 }
-/// the portal by the fountain, the map, the Menu: into the sky realm, at the foot of the Spireway facing the Citadel (walk up → rqWarp → the lobby)
+/// the portal on the far hunting ring, the map, the Menu: into the sky realm, at the foot of the Spireway facing the Citadel (walk up → rqWarp → the lobby)
 async function rqGo() {
   if (!rqOn()) { rqSoon(); return; } // (not open yet: the construction card)
   if (frozen || flying || introOn || mode !== "hub") return;
