@@ -56,4 +56,29 @@ r = await call(B, "world-mythic-equip", { slot: "weapon", id: id1 }); check(r.st
 { const id4 = "m" + "t4est000"; db.set(`worldMythic/${id4}`, { id: id4, def: "CC_HELMET", owner: A.address.toLowerCase(), req: 400, mult: 2.8, plus: 0, state: "GAME_OWNED" }); const own = db.get(`worldMythicOwn/${A.address.toLowerCase()}`); own.ids.push(id4); db.set(`worldMythicOwn/${A.address.toLowerCase()}`, own);
   r = await call(A, "world-mythic-equip", { slot: "helm", id: id4 }); check(r.status === 403 && r.body.need === 400, "a Lv 400 piece at Lv 120: refused"); }
 r = await call(A, "world-mythic-equip", { slot: "weapon", id: null }); check(r.status === 200 && !r.body.eq.weapon, "taken off");
+// b5: enhancing, salvaging, the market
+{ const { enhCost, essOf } = await import("../../world-mythic-data.js"); const a = A.address.toLowerCase(), b = B.address.toLowerCase();
+  db.set(`worldArclBal/${a}`, { bal: 100000 }); db.set(`worldArclBal/${b}`, { bal: 20000 });
+  check(enhCost(0).rate === 1 && enhCost(5).rate === 0.75 && enhCost(10).rate === 0.4 && enhCost(14).rate >= 0.15, "the chance: sure to +5, then 75 % → 40 % → lower");
+  r = await call(A, "world-mythic-enhance", { id: id1 }); check(r.status === 400 && /Essence/.test(r.body.error), "no Essence: refused");
+  r = await call(A, "world-mythic-salvage", { id: "mt4est000" }); check(r.status === 200 && r.body.gain === essOf({ src: undefined, plus: 0 }) && db.get("worldMythic/mt4est000").state === "SALVAGED", `salvage: +${r.body.gain} Essence, the piece is gone`);
+  { const own = db.get(`worldMythicOwn/${a}`); own.ess = 200; db.set(`worldMythicOwn/${a}`, own); }
+  R = [0.5]; r = await call(A, "world-mythic-enhance", { id: id1 }); check(r.status === 200 && r.body.hit && r.body.plus === 1 && r.body.ess === 200 - enhCost(0).ess && db.get(`worldArclBal/${a}`).bal === 100000 - enhCost(0).arcl, "+0 → +1: Essence and ARCL spent");
+  { const pc = db.get(`worldMythic/${id1}`); pc.plus = 6; db.set(`worldMythic/${id1}`, pc); }
+  T += 2000; R = [0.95]; r = await call(A, "world-mythic-enhance", { id: id1 }); check(r.status === 200 && !r.body.hit && r.body.plus === 6 && db.get(`worldMythic/${id1}`).plus === 6, "a miss at +6 keeps the +");
+  r = await call(A, "world-mythic-list", { id: id1, price: 500 }); check(r.status === 400, "a price under 1,000: refused");
+  r = await call(A, "world-mythic-equip", { slot: "weapon", id: id1 });
+  r = await call(A, "world-mythic-list", { id: id1, price: 10000 }); check(r.status === 200 && db.get(`worldMythic/${id1}`).state === "GAME_LISTED" && !(db.get(`worldMythicOwn/${a}`).eq || {}).weapon, "listed for 10,000: taken off, not wearable");
+  r = await call(A, "world-mythic-equip", { slot: "weapon", id: id1 }); check(r.status === 409, "a listed piece can't be worn");
+  { const m = (await W.read(new URL("https://x/api/social?world=mythic-market"))).body; check(m.items.length === 1 && m.items[0].price === 10000 && !/^0x[0-9a-f]{40}$/.test(m.items[0].seller), "the market lists it (the seller's wallet shortened)"); }
+  r = await call(A, "world-mythic-buy", { id: id1 }); check(r.status === 400, "your own piece: refused");
+  const sellerBefore = db.get(`worldArclBal/${a}`).bal;
+  r = await call(B, "world-mythic-buy", { id: id1 }); check(r.status === 200 && r.body.fee === 200, "Bo buys it: 2 % fee");
+  check(db.get(`worldArclBal/${b}`).bal === 10000 && db.get(`worldArclBal/${a}`).bal - sellerBefore === 9800, "Bo paid 10,000, Aria got 9,800");
+  { const pc = db.get(`worldMythic/${id1}`); check(pc.owner === b && pc.state === "GAME_OWNED" && pc.plus === 6 && pc.hist.length === 1 && pc.hist[0].price === 10000, "the piece is Bo's: its +, its history kept"); }
+  check(!(db.get(`worldMythicOwn/${a}`).ids || []).includes(id1) && (db.get(`worldMythicOwn/${b}`).ids || []).includes(id1), "off Aria's list, on Bo's");
+  r = await call(B, "world-mythic-buy", { id: id1 }); check(r.status === 404, "sold: gone from sale");
+  r = await call(B, "world-mythic-equip", { slot: "weapon", id: id1 }); check(r.status === 200, "Bo wears it");
+  { const m = (await W.read(new URL("https://x/api/social?world=mythic-market"))).body; check(m.items.length === 0, "the market is empty again"); }
+  r = await call(B, "world-mythic-list", { id: id1, price: 3000 }); r = await call(B, "world-mythic-unlist", { id: id1 }); check(r.status === 200 && db.get(`worldMythic/${id1}`).state === "GAME_OWNED", "listed and taken back"); }
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

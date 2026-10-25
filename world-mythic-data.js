@@ -36,7 +36,16 @@ export const CC = {
   // what each piece adds on top of its slot's usual stats (the spec's "main traits")
   EXTRA: { weapon: { critDmg: 10 }, helm: { skillPct: 6 }, necklace: { skillPct: 6 }, armor: { dr: 3 } },
   MYTHIC_K: 1.3, // above the best Legendary there is (Lv 100, the save's cap) before the dungeon's multiplier
+  // enhancing (+1 … +15, the spec): each step costs Crimson Essence and ARCL; the chance falls after +5 and +10; a miss
+  // keeps the piece and its + (only the cost is gone)
+  ENH: { ess: (n) => 4 + n * 3, arcl: (n) => 1000 * (n + 1), rate: (n) => (n < 5 ? 1 : n < 10 ? 0.75 - (n - 5) * 0.05 : 0.4 - (n - 10) * 0.05) },
+  // salvaging a piece: Crimson Essence by where it came from, plus 2 for each + it carried
+  ESS: { lysitha: 10, solvira: 20, nyxara: 35, throne: 60, secret: 80 },
+  // trading among players for ARCL (step B, the owner's call): 2 % to the platform, the price within these bounds
+  MARKET: { FEE: 0.02, MIN: 1000, MAX: 10000000, MAX_LISTED: 300 },
 };
+export const enhCost = (plus) => ({ ess: CC.ENH.ess(plus), arcl: CC.ENH.arcl(plus), rate: Math.max(0.15, CC.ENH.rate(plus)) });
+export const essOf = (inst) => (CC.ESS[inst && inst.src] || 10) + 2 * Math.max(0, Math.floor((inst && inst.plus) || 0));
 export const pieceOf = (id) => CC.PIECES.find((p) => p.id === id) || null;
 export const pieceBySlot = (slot) => CC.PIECES.find((p) => p.slot === slot) || null;
 

@@ -83,7 +83,13 @@ export function makeRaidQueens(ctx) {
     if (!bgTx[id]) { const t = new THREE.TextureLoader().load(`/images/raid/bg-${id}.webp${ctx.ver || ""}`, () => { cyl.visible = bgM.map === t; }); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.repeat.set(4, 1); bgTx[id] = t; }
     bgM.map = bgTx[id]; bgM.needsUpdate = true; cyl.visible = !!(bgTx[id].image && bgTx[id].image.width);
   }
-  function theme(css, ground, tint) { const c = new THREE.Color(css); if (marbleMap && floorM.map !== marbleMap) { floorM.map = marbleMap; floorM.needsUpdate = true; } floorM.emissiveIntensity = 0.06; if (tint != null) { floorM.color.setHex(tint); floorM.emissive.copy(c); edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); return; } edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); floorM.color.setHex(ground); floorM.emissive.copy(c); }
+  // the arena's floor: the sky realm's black marble with its gold rings (the owner's mock-up: a dark glossy floor that
+  // takes the queen's light), loaded once; the old pale marble until it's in
+  let darkMap = null, darkE = null, floorBase = 0.06;
+  { const tl = new THREE.TextureLoader(); tl.load(`/images/raid/plaza-floor.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; darkMap = t; if (g.visible) { floorM.map = t; floorM.needsUpdate = true; } });
+    tl.load(`/images/raid/plaza-floor-e.webp${ctx.ver || ""}`, (t) => { t.anisotropy = 8; darkE = t; }); }
+  function theme(css, ground, tint) { const c = new THREE.Color(css); const fm = darkMap || marbleMap; if (fm && floorM.map !== fm) { floorM.map = fm; floorM.needsUpdate = true; }
+    if (darkMap) { floorM.roughness = 0.22; floorM.metalness = 0.35; if (darkE && floorM.emissiveMap !== darkE) { floorM.emissiveMap = darkE; floorM.needsUpdate = true; } } floorM.emissiveIntensity = floorBase = darkE ? 0.55 : 0.06; if (tint != null) { floorM.color.setHex(tint); floorM.emissive.copy(c); edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); return; } edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); floorM.color.setHex(ground); floorM.emissive.copy(c); }
 
   // ---------------- the hall: the sky realm you walk into (the owner's concept art, 2026-10-25) ----------------
   // the sky all round (images/raid/sky.webp), a sea of cloud underfoot, the Crimson Spireway (the owner's GLB) up to the
@@ -644,7 +650,7 @@ export function makeRaidQueens(ctx) {
     if (run.t > TIME_LIMIT) { lose("time"); return; }
     fxTick(dt); risesTick(dt); zonesTick(dt); beamTick(dt);
     if (crysT > 0 && (crysT -= dt) <= 0) for (const c0 of crys) c0.visible = true;
-    if (flare > 0) { flare = Math.max(0, flare - dt * 1.4); floorM.emissiveIntensity = 0.06 + flare * 0.9; }
+    if (flare > 0) { flare = Math.max(0, flare - dt * 1.4); floorM.emissiveIntensity = floorBase + flare * 0.9; }
     if (c && c.vitals) { const v = c.vitals(), low = v.hp / Math.max(1, v.max) < 0.3 && !v.down; if (typeof document !== "undefined") document.body.classList.toggle("rq-low", low); if (low && ctx.Snd && ctx.Snd.svHeart) try { ctx.Snd.svHeart(); } catch { /* no sound */ } }
     if (run.stage === "waves") { mobTick(dt); if (run.t >= run.plan.waveEnd) queensIn(); }
     else for (const q of run.queens) { if (q.corpse) { q.e.mixer.update(dt); if (performance.now() - q.corpse.t0 > 4200 && q.e.obj.parent === g) { g.remove(q.e.obj); q.corpse = null; } } else queenTick(q, dt); }
