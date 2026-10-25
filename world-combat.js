@@ -974,7 +974,7 @@ export function createCombat(ctx) {
     fx.push({ o: line, life: 0.28, t: 0, onTick: () => { const p = geo.attributes.position; for (let i = 1; i < n; i++) p.setXYZ(i, pts[i].x + (Math.random() - 0.5) * 0.25, pts[i].y + (Math.random() - 0.5) * 0.25, pts[i].z + (Math.random() - 0.5) * 0.25); p.needsUpdate = true; } });
     fx.push({ o: tube, life: 0.22, t: 0 });
   }
-  const bolts = [];
+  const bolts = [], boltPool = {};
   function shoot(kind, heavy) {
     cd.attack = kind === 2 ? (heavy ? 0.45 : 0.26) : kind === 3 ? (heavy ? 0.8 : 0.6) : heavy ? 0.7 : 0.45;
     const av = ctx.avatar(); if (av) av.play("interact-right", { once: true, fade: 0.04, speed: 2.2 });
@@ -984,10 +984,17 @@ export function createCombat(ctx) {
     const fire = (turn, delay) => (delay ? (f) => setTimeout(f, delay) : (f) => f())(() => {
       if (!ctx.active()) return;
       ctx.here(me); const d = dir.clone().applyAxisAngle(UP, turn);
-      const g = new THREE.Group();
+      // (2026-10-25) a shot's body is kept and used again: a new group, meshes and materials every shot were garbage
+      // (the stalls on phones), and its shared geometries were freed at its end, so each shot uploaded them again
+      const pk = kind + (heavy ? "h" : ""), pg = (boltPool[pk] || (boltPool[pk] = [])).pop();
+      if (pg) { pg.userData.paint(col); pg.rotation.set(0, 0, 0); pg.scale.set(1, 1, 1); pg.visible = true; }
+      const g = pg || new THREE.Group(); g.userData.pk = pk;
+      if (!pg) {
       if (kind === 2) { const core = new THREE.Mesh(sgeo(`Capsule|${[0.08, 0.5, 4, 8]}`, () => new THREE.CapsuleGeometry(0.08, 0.5, 4, 8)), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(2.4) })); core.rotation.x = Math.PI / 2; g.add(core); const halo = new THREE.Sprite(spriteMat(col.getHex(), 0.7)); halo.scale.setScalar(0.9); g.add(halo); }
       else if (kind === 3) { const shaft = new THREE.Mesh(sgeo(`Cylinder|${[0.02, 0.02, 0.9, 5]}`, () => new THREE.CylinderGeometry(0.02, 0.02, 0.9, 5)), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(2) })); shaft.rotation.x = Math.PI / 2; const head = new THREE.Mesh(sgeo(`Cone|${[0.07, 0.2, 4]}`, () => new THREE.ConeGeometry(0.07, 0.2, 4)), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 2.4, 2.4) })); head.rotation.x = Math.PI / 2; head.position.z = 0.5; g.add(shaft, head); const tr = new THREE.Sprite(spriteMat(col.getHex(), 0.5)); tr.scale.set(0.5, 0.5, 1); tr.position.z = -0.3; g.add(tr); }
       else { const orb = new THREE.Mesh(sgeo(`Sphere|${[heavy ? 0.3 : 0.2, 14, 10]}`, () => new THREE.SphereGeometry(heavy ? 0.3 : 0.2, 14, 10)), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(2.2) })); const halo = new THREE.Sprite(spriteMat(col.getHex(), 0.75)); halo.scale.setScalar(heavy ? 1.8 : 1.2); g.add(orb, halo); }
+      g.userData.paint = (c) => g.traverse((o) => { if (!o.material || !o.userData.tint) return; if (o.userData.tint === "w") return; if (o.isSprite) o.material.color.set(c); else o.material.color.copy(c).multiplyScalar(o.userData.tint); });
+      g.children.forEach((o) => { if (o.isSprite) o.userData.tint = 1; else if (o.material && o.material.color) { const m = o.material.color; o.userData.tint = m.r > 2.3 && m.g > 2.3 && m.b > 2.3 && kind === 3 ? "w" : kind === 2 ? 2.4 : kind === 3 ? 2 : 2.2; } }); }
       g.position.copy(me).setY(1.15).addScaledVector(d, 0.9); add(g); g.lookAt(root.localToWorld(g.position.clone().add(d))); // lookAt wants world space
       bolts.push({ g, v: d.multiplyScalar(kind === 2 ? 24 : kind === 3 ? 30 : 13), life: kind === 3 ? 0.7 : kind === 2 ? 0.6 : 1.3, t: 0, kind, dmg, col, pierce: kind === 3 ? 3 : 1, hit: new Set(), splash: kind === 4 ? (heavy ? 3.2 : 2.2) : 0, target: kind === 4 ? target : null });
       if (kind === 2) flash(me.clone().setY(1.15).addScaledVector(d, 1.0), col.getHex(), 1.2, 0.12);
@@ -1021,7 +1028,7 @@ export function createCombat(ctx) {
       if (end) {
         if (b.splash) { for (const m of mobs) if (!m.dead && !b.hit.has(m) && m.g.position.distanceTo(tmp.copy(b.g.position).setY(m.g.position.y)) < b.splash) hit(m, b.dmg * 0.5, b.g.position, "melee"); ring(b.g.position.clone().setY(0), b.col.getHex(), { r0: 0.3, r1: b.splash, life: 0.35, y: 0.1 }); if (VX) VX.impact(b.g.position.clone(), "shock", { big: b.splash / 2.6 }); }
         else flash(b.g.position, b.col.getHex(), 1.4, 0.15);
-        root.remove(b.g); b.g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); bolts.splice(i, 1);
+        root.remove(b.g); { const pl = boltPool[b.g.userData.pk]; if (pl && pl.length < 12) pl.push(b.g); } bolts.splice(i, 1); /* (its geometries are shared: kept) */
       }
     }
   }

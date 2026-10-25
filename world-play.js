@@ -225,7 +225,7 @@ const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s
 /// "Go to the AD Tower" pressed before the town is ready waits for it (adpGo).
 const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z");
 let adpDone = false, adpGo = false;
-const adpReady = () => { try { const l = document.getElementById("wp-loading"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && mode === "hub" && !introOn; } catch { return false; /* (still loading) */ } };
+const adpReady = () => { try { const l = document.getElementById("wp-loading"), mk = document.getElementById("wp-make"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && mode === "hub" && !introOn && !(mk && !mk.hidden) && !!(typeof P !== "undefined" && P && P.name) /* (not over the character maker: a first visit saw it before making a hero — the funnel lost half there, 2026-10-25; it shows once Go is pressed) */; } catch { return false; /* (still loading) */ } };
 function adPromo(force) {
   if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
   adpDone = true;
@@ -575,7 +575,7 @@ const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomT
   onRestored: () => { document.querySelectorAll(".wp-lost").forEach((e) => e.remove()); },
 });
 st.fps(S.fpsCap || 60); // the frame limit (Settings)
-let autoCap = 0, grassThin = false, tmpV3 = null; // grassThin: a slow phone's grass halved (dynRes, b447) // 30 once a slow phone was moved to an even 30 fps (dynRes, b447); declared here because diag reads it
+let autoCap = 0, grassThin = false, tmpV3 = null; if (S.quality === "auto" && st.quality.weak && st.fps) { autoCap = 30; st.fps(30); } /* (the weakest phone chips: an even 30 from the start, K.gpuWeak) */ // grassThin: a slow phone's grass halved (dynRes, b447) // 30 once a slow phone was moved to an even 30 fps (dynRes, b447); declared here because diag reads it
 // b447: on a phone (unless Ultra was picked), no clear-coat layer: glass, crystals and glossy gear keep their colour and
 // shine but skip the second specular layer, which cost each of them about twice the shading. three.js reads clearcoat
 // when it builds a shader, so this one switch covers every module and every material, made before or after it
@@ -3384,6 +3384,7 @@ $("wp-set-acct").addEventListener("click", async (e) => {
 const make = $("wp-make");
 const KK_NAME = { "kk-knight": "Knight", "kk-mage": "Mage", "kk-rogue": "Rogue", "kk-rogue-hooded": "Hooded Rogue", "kk-ranger": "Ranger", "kk-barbarian": "Barbarian" };
 let pickChar = heroOf(P.char || "arc-arc"), pickTint = P.tint || 0; // pickTint: the hero's colour (K.HERO_TINTS; b447)
+let autoNamed = false;
 function openMake() {
   if (!P.char) { fun("maker"); try { const pp = localStorage.getItem("arc.world.prepick"); if (pp && (K.HERO_IDS || []).includes(pp) && pp !== pickChar) { pickChar = pp; if (avatar) setAvatar(pickChar); } } catch { /* private */ } } // b-st3: the hero picked on the loading screen
   // the ARC Bots first (each with its name and role), then the classic characters
@@ -3393,14 +3394,17 @@ function openMake() {
   $("wp-make-grid").innerHTML = K.HERO_ONLY ? sec("Heroes", K.HERO_IDS) + (K.HEROES_SOON || []).map((n) => `<button type="button" class="soon" disabled aria-disabled="true" title="${esc(n)}"><i aria-hidden="true">?</i><small>${esc(n)}</small><em>${esc(TW("Soon"))}</em></button>`).join("") : sec("ARC Bots", K.CHARACTERS.filter((id) => id.startsWith("arc-"))) + sec("Adventurers", K.CHARACTERS.filter((id) => id.startsWith("kk-"))) + sec("Classic characters", K.CHARACTERS.filter((id) => !id.startsWith("arc-") && !id.startsWith("kk-") && !K.CUSTOM_CHARS.includes(id))) + sec("Custom characters", K.CUSTOM_CHARS);
   { const tw = $("wp-make-tints"), L = K.HERO_TINTS || []; tw.hidden = !K.HERO_ONLY || !L.length;
     if (!tw.hidden) { pickTint = P.tint || 0; tw.innerHTML = `<p class="wp-make-sec">${esc(TW("Colour"))}</p>` + L.map((c, i) => `<button type="button" role="radio" data-t="${i}" aria-checked="${i === pickTint}" aria-label="${esc(TW("Colour"))} ${i + 1}" style="--c:${c == null ? "#3f8fff" : "#" + c.toString(16).padStart(6, "0")}"></button>`).join(""); } }
-  $("wp-make-name").value = P.name || "";
+  // (2026-10-25, the funnel: half the players who saw the maker never pressed Go) a first visit gets a name ready —
+  // pick a hero and go; the first change of that name stays free (P.autoName) — and no keyboard popping up on a phone
+  if (!P.name && !$("wp-make-name").value) { const NM = ["Nova", "Pixel", "Comet", "Echo", "Luna", "Bolt", "Sky", "Rook", "Zen", "Vega", "Orbit", "Spark"]; $("wp-make-name").value = NM[Math.floor(Math.random() * NM.length)] + (100 + Math.floor(Math.random() * 900)); autoNamed = true; }
+  else $("wp-make-name").value = P.name || "";
   { const pp = make.querySelector(".wp-make-card > p"); if (pp) pp.textContent = TW("One world, eight games. Pick your hero, a colour and a name — you can change them later."); }
   if (!P.guideSeen) firstRun(true); // b-st1: a first visit sees the world and the maker, not every button at once
   make.hidden = false; frozen = true; keys.clear(); paintPrompt();
   camYaw = facing;
   if (!avatar) setAvatar(pickChar);
   renderThumbs();
-  setTimeout(() => $("wp-make-name").focus({ preventScroll: true }), 60);
+  if (!coarse) setTimeout(() => $("wp-make-name").focus({ preventScroll: true }), 60);
 }
 // sharper portraits: each character rendered once in 3D (kept for the maker, the Players list and profile cards)
 const thumbCache = {};
@@ -3447,6 +3451,7 @@ $("wp-make-grid").addEventListener("click", (e) => {
 const CHAR_COST = 10000;
 function finishMake(ch, nm) {
   fun("named");
+  if (P.autoName && P.name && nm !== P.name) P.autoName = false; else if (!P.name && autoNamed && nm === $("wp-make-name").value) P.autoName = true; autoNamed = false;
   P.char = ch; P.name = nm; if (K.HERO_ONLY) P.tint = pickTint; save();
   setNameTag(); make.hidden = true; frozen = false; camYaw = facing - Math.PI; paintQuests(); tutorialStep(-1); maybeGuide();
   const ask = $("wp-make-ask"); if (ask) ask.remove();
@@ -3456,7 +3461,7 @@ $("wp-make-tints").addEventListener("click", (e) => { const b = e.target.closest
 $("wp-make-go").addEventListener("click", () => {
   const nm = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player");
   if (P.char && heroOf(P.char) === pickChar) pickChar = P.char; // b447: the hero you're already drawn as: your saved character stays (no Character change)
-  const charCh = !!(P.char && P.guideSeen && (pickChar !== P.char || (K.HERO_ONLY && P.tint != null && pickTint !== P.tint))), nameCh /* a new colour counts as a new character (the first one is free; b447) */ = !!(P.name && P.guideSeen && nm !== P.name);
+  const charCh = !!(P.char && P.guideSeen && (pickChar !== P.char || (K.HERO_ONLY && P.tint != null && pickTint !== P.tint))), nameCh /* a new colour counts as a new character (the first one is free; b447) */ = !!(P.name && P.guideSeen && nm !== P.name && !P.autoName); /* (a name the maker picked for you: its first change is free) */
   if (!charCh && !nameCh) { finishMake(pickChar, nm); return; }
   const o = arclShop.own() || {};
   // a change already paid for (or an old ARCL Name change, for a name alone) goes straight through
@@ -4614,7 +4619,7 @@ function camCollide(target) {
 }
 
 // ---------------- frame rate watch: drop quality once if the device can't keep up ----------------
-let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false, liteFx = false;
+let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false, liteFx = !!(S.quality === "auto" && st.quality.weak); /* (the weakest chips: fewer sparks from the start) */
 // dynamic resolution (Auto). A change resizes every render target, which is itself a hitch, so it changes rarely:
 // down a step after two slow 4-second spells in a row (under 38 fps), back up only after 20 s of 58+, and never
 // within 20 s of the last change (at most twice up a session, so it can't see-saw)

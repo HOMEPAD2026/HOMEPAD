@@ -207,7 +207,7 @@ export function createPumpKings(ctx) {
       if (k.corpse) { corpseTick(k, dt); continue; }
       if (night && !k.down && hub && srcJ && ready) { if (!k.m || (ctx.combat() && !ctx.combat().mobsRaw().includes(k.m))) { k.m = null; wake(k, d < 60); } rampTick(k, dt); continue; }
       if (k.m && (!night || !hub)) sleep(k, night && d < 60);
-      k.obj.visible = d < (ctx.low ? 80 : FAR); if (!k.obj.visible) continue;
+      k.obj.visible = d < (ctx.low ? 50 : ctx.coarse ? 65 : FAR); if (!k.obj.visible) continue; /* (a 3 m king is a few pixels past 60 m on a phone, and 14 k skinned triangles: 2026-10-25, the plaza drew all five at 70 k) */
       dayTick(k, dt, now, near);
     }
     if (night) { flush(); poll(false); } else if (now - viewAt > 120000) poll(true);
