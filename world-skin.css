@@ -4230,13 +4230,13 @@ body.rq-low::after{content:"";position:fixed;inset:0;z-index:50;pointer-events:n
 .hb-myw .hb-wrow .wr-slot{width:64px;height:64px;flex:0 0 64px}
 /* RAID QUEENS' loading card (world-play.js rqLoadCard): the Sky Realm's art slowly closing in, the three queens stepping in
    one after another, the title, the steps ticking, a bar and a tip that turns */
-.rql{position:fixed;inset:0;z-index:12500;overflow:hidden;background:#07040c;color:#fff;animation:rqlIn .35s ease both}
+.rql{position:fixed;inset:0;z-index:12500;overflow:hidden;background:#07040c;color:#fff} /* (no fade-in: the loading behind it keeps the page busy, and a fade waiting on it left the card unseen) */
 .rql.out{animation:rqlOut .45s ease both}@keyframes rqlIn{from{opacity:0}}@keyframes rqlOut{to{opacity:0;transform:scale(1.04)}}
 .rql-bg{position:absolute;inset:-4%;background-size:cover;background-position:center;filter:saturate(1.1);animation:rqlZoom 9s ease-out both}
 .rql-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(7,4,12,0) 30%,rgba(7,4,12,.75) 100%),linear-gradient(180deg,rgba(7,4,12,.2),rgba(7,4,12,.1) 45%,rgba(7,4,12,.92))}
 @keyframes rqlZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 .rql-q{position:absolute;left:0;right:0;bottom:22%;height:62%;display:flex;justify-content:center;align-items:flex-end;pointer-events:none}
-.rql-q img{height:100%;width:auto;max-width:34%;object-fit:contain;margin:0 -3%;opacity:0;filter:drop-shadow(0 0 24px rgba(255,60,120,.45));animation:rqlQ .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(.25s + var(--i) * .45s)}
+.rql-q img{height:100%;width:auto;max-width:34%;object-fit:contain;margin:0 -3%;filter:drop-shadow(0 0 24px rgba(255,60,120,.45));animation:rqlQ .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(.25s + var(--i) * .45s)}
 .rql-q img:nth-child(2){height:108%;z-index:2}
 @keyframes rqlQ{from{opacity:0;transform:translateY(40px) scale(.94)}to{opacity:1;transform:none}}
 .rql-in{position:absolute;left:50%;bottom:calc(5% + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));text-align:center}

@@ -37,6 +37,7 @@ check(D_.phaseOf(100, 100) === 1 && D_.phaseOf(59, 100) === 2 && D_.phaseOf(24, 
 T = Date.parse("2026-10-24T03:00:00Z");
 const A = ethers.Wallet.createRandom(), low = ethers.Wallet.createRandom(), G = ethers.Wallet.createRandom();
 lvSet(A, 160, "Ace"); lvSet(low, 60, "Low"); lvSet(G, 120, "Gm"); GM_WALLETS.push(G.address.toLowerCase());
+check(RQ.OPEN === true, "open to everyone (the owner, 2026-10-25)"); RQ.OPEN = false;
 let r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 403 && !RQ.OPEN, "closed: a player can't start");
 r = await call(G, "world-rq-start", { mode: "lysitha" }); check(r.status === 200 && r.body.run, "a GM can (closed)");
 RQ.OPEN = true;

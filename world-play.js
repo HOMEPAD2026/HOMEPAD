@@ -822,7 +822,9 @@ setTimeout(() => { try { K.gltfLoader().load(`/models/world/agents/citadel.glb${
 // RAID QUEENS (world-raidq.js, the owner's design 2026-10-24): the Crimson Eternity Citadel (the owner's GLB) north-west,
 // past The Last Rug (open ground ~150 m out), facing the plaza; a sign, a red beam. Walk up → a warp → the land (LD.LANDS.rq)
 const RQ_TRY = /[?&]rq=1/.test(location.search); // RAID QUEENS: open to GM wallets only for now (the owner, 2026-10-25); ?rq=1 to look as a guest
-const rqOn = () => { if (RQ_TRY) return true; try { const s0 = sess(); return !!(s0 && VILL.isGM(String(s0.wallet).toLowerCase())); } catch { return false; } };
+const RQ_OPEN = true; // RAID QUEENS open to everyone (the owner, 2026-10-25; world-raidq-data.js / api/_world-raidq.mjs RQ.OPEN)
+const rqGM = () => { try { const s0 = sess(); return !!(s0 && VILL.isGM(String(s0.wallet).toLowerCase())); } catch { return false; } };
+const rqOn = () => RQ_OPEN || RQ_TRY || rqGM();
 const RQ_GATE = { x: -46, z: 143, h: 16, r: 8 }; let rqL = null, rqWait = null; // (rqL: the land, world-raidq.js, built the first time you go in)
 const rqGate = new THREE.Group(); rqGate.name = "rq-gate"; rqGate.userData.radius = RQ_GATE.r; rqGate.position.set(RQ_GATE.x, 0, RQ_GATE.z); rqGate.rotation.y = Math.atan2(-RQ_GATE.x, -RQ_GATE.z); rqGate.visible = false; planet.add(rqGate); // (shown, and its model fetched, once rqOn(): rqGateTick)
 { const R0 = RQ_GATE.r + 2.5;
@@ -4237,7 +4239,7 @@ let hubRecent = [], hubQ = ""; try { hubRecent = JSON.parse(localStorage.getItem
 const JUR_OFF = new Set(["map", "island", "village", "defense", "make"]);
 function paintHub() {
   const isArc = String(heroOf(P.char || "arc-arc")).startsWith("arc-"), /* b447: the wardrobe dresses ARC Bots only */ dot = { log: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('#wp-inbox-btn[data-dot]:not([data-dot=""])'), chat: chatDot > 0 };
-  const ok = ([id]) => (id !== "raidq" || rqOn()) /* (RAID QUEENS: GM wallets only for now) */ && (id !== "petdk" || !!$("wp-dk-pet")) && (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub") && !(jurOn && JUR_OFF.has(id)) /* (in Jurassic World the tiles that move you round town wait) */, all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
+  const ok = ([id]) => (id !== "raidq" || rqOn()) && (id !== "petdk" || !!$("wp-dk-pet")) && (id !== "wardrobe" || isArc) && (id !== "island" || mode === "hub") && !(jurOn && JUR_OFF.has(id)) /* (in Jurassic World the tiles that move you round town wait) */, all = HUB.flatMap(([, items]) => items), rec = hubRecent.map((id) => all.find((x) => x[0] === id)).filter((x) => x && ok(x));
   // the owner's look (2026-10-23, from the owner's mock-up): the nine as 3D icons, Recent as cards with the place's art
   // (only what isn't one of the nine, at most three), More as rows with an icon (what's in Recent isn't repeated), and
   // the small things (help, controls, music …) as pills at the end — images/ui/menu
@@ -5516,8 +5518,10 @@ function ensureRq() {
       addItem: (it) => { rpg.addItem(it); save(); }, refresh: () => refreshPurse(true), itemName: (it) => rpg.itemName(it), parts, shake: (n) => { if (!reduce) shake = Math.max(shake, n); },
       stand: (x, z, c) => standAt(x, z, c), freeze: (on) => { frozen = !!on; keys.clear(); if (!on) { near = null; paintPrompt(); } }, compile: (l) => compileHidden(l), active: () => mode === "hub" && !frozen && !introOn && !flying,
       grantXp: (n) => { const before = level(); P.xp += n; save(); paintHud(); xpFloat(n); if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } badges(); }, // (the server's grant: no boosts on top, it's already counted)
-      isGM: () => rqOn(), tx: (to, data) => walletTx(to, data), openMythic: (slot) => openMythic(slot), mythicGot: (p) => { refreshMythic().then(() => mythicUI()).then((u) => u && u.reveal(p)); }, signIn: () => signIn().then(() => refreshPurse(true)), home: () => { frozen = false; landGo("town"); }, stats: () => rpg.stats(), music: (k) => { try { if (!jurOn) music.setList(k && MUS.RAIDQ[k] ? [MUS.RAIDQ[k]] : MUS.PLAYLIST); } catch { /* the town's music plays on */ } } });
-    rqL.M = M; st.on((dt, t) => { try { rqL.tick(dt, t); } catch (e) { console.warn("raid queens", e); } }); if (labels) labels.dirty = true; return rqL; })
+      isGM: () => rqGM(), tx: (to, data) => walletTx(to, data), openMythic: (slot) => openMythic(slot), mythicGot: (p) => { refreshMythic().then(() => mythicUI()).then((u) => u && u.reveal(p)); }, signIn: () => signIn().then(() => refreshPurse(true)), home: () => { frozen = false; landGo("town"); }, stats: () => rpg.stats(), music: (k) => { try { if (!jurOn) music.setList(k && MUS.RAIDQ[k] ? [MUS.RAIDQ[k]] : MUS.PLAYLIST); } catch { /* the town's music plays on */ } } });
+    rqL.M = M; let rqSkyOff = false; st.on((dt, t) => { try { rqL.tick(dt, t); } catch (e) { console.warn("raid queens", e); }
+      // the sky realm draws its own sky (its panorama and sunset): the town's dome, clouds and planets painted over it, so they're put away while you're there
+      const off = landNow === "rq"; if (off) { sky.visible = false; clouds.visible = false; skyPlanets.visible = false; rqSkyOff = true; } else if (rqSkyOff) { rqSkyOff = false; sky.visible = true; clouds.visible = true; nightK = -1; dayNight(); } }); if (labels) labels.dirty = true; return rqL; })
     .catch((e) => { rqWait = null; console.warn("raid queens", e); if (!staleReload()) toast(TW("Couldn't open it — try again")); return null; }));
 }
 function rqWarp() {
@@ -5576,7 +5580,7 @@ function rqLoadCard() {
   return { step, close };
 }
 /// the card, the realm made ready behind it, then the card goes (a realm already ready this visit: no card)
-async function rqReady(r, card) { if (!card) return; card.step(0); try { await r.prepare((k) => card.step(k)); } catch { /* it shows and comes in as before */ } await card.close(); }
+async function rqReady(r, card) { if (!card) return; card.step(0); await new Promise((ok) => requestAnimationFrame(() => setTimeout(ok, 30))); /* (the card painted before the files and shaders take the page) */ try { await r.prepare((k) => card.step(k)); } catch { /* it shows and comes in as before */ } await card.close(); }
 // walk within 30 m of its portal and the sky realm starts coming in quietly (not on low graphics or a saving / slow connection)
 let rqPreT = 0, rqPre = false;
 st.on((dt) => { if (rqPre || (rqPreT += dt) < 1) return; rqPreT = 0; if (!rqGate.visible || lowGfx || mode !== "hub" || !rqOn()) return;

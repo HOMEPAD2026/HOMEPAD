@@ -1,7 +1,7 @@
 // world-raidq-data.js — RAID QUEENS' rules the game and the server share (a copy of api/_world-raidq.mjs RQ; tests/world/raidq.test.mjs
 // checks the two agree): the three queens' runs and the SECRET dungeon, the day's three runs.
 export const RQ = {
-  OPEN: false, // false: GM wallets only (the owner, 2026-10-25); true opens it to everyone
+  OPEN: true, // open to everyone (the owner, 2026-10-25; it was GM wallets only)
   DAY_RUNS: 3, TIME_MAX: 15 * 60, // three runs a Seoul day (the owner's call), a run's clock at most 15 minutes
   MODES: [ // lv: to enter · min: the shortest win the server takes (s) · xpMin: a win's XP in minutes of xpPerMin(your level) · arcl, item: a win's reward
     { id: "lysitha", region: "Silver Sanctum", lv: 100, boss: 100, min: 150, xpMin: 6, arcl: 2000, item: { r: 3, p: 3, n: 1 } },

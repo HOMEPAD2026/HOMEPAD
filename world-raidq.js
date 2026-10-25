@@ -88,6 +88,20 @@ export function makeRaidQueens(ctx) {
   let darkMap = null, darkE = null, floorBase = 0.06;
   { const tl = new THREE.TextureLoader(); tl.load(`/images/raid/plaza-floor.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; darkMap = t; if (g.visible) { floorM.map = t; floorM.needsUpdate = true; } });
     tl.load(`/images/raid/plaza-floor-e.webp${ctx.ver || ""}`, (t) => { t.anisotropy = 8; darkE = t; }); }
+  // her realm's stone in the middle of the arena (Meshy, 2026-10-25: Lysitha silver-white marble with frost stars, Solvira
+  // white and gold suns, Nyxara black with crimson veins; the Throne and the SECRET crimson), a gold ring round it; and the
+  // floor cracking open in lines of fire as she turns (one more phase, wider and brighter: cracks())
+  const medalM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.25, transparent: true, opacity: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+  const medal = flat(new THREE.CircleGeometry(12.5, 72), medalM, 0.045); medal.receiveShadow = true;
+  const medalRing = flat(new THREE.RingGeometry(12.5, 13.1, 96), std(0xd9b25e, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4a10, emissiveIntensity: 0.8 }), 0.05); medalRing.visible = false;
+  const crackM = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, toneMapped: false, opacity: 0 });
+  const crack = flat(new THREE.CircleGeometry(15, 48), crackM, 0.09); crack.renderOrder = 2; let crackK = 0, crackTo = 0;
+  { const t = new THREE.TextureLoader().load(`/images/raid/cracks.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; crackM.map = t; }
+  const medalTx = {};
+  function medalOf(id) { const f = { lysitha: "silver", solvira: "gold" }[id] || "crimson"; crackTo = crackK = 0; crackM.opacity = 0; crack.scale.setScalar(0.6);
+    const put = (t) => { medalM.map = t; medalM.opacity = 0.92; medalM.needsUpdate = true; medalRing.visible = true; };
+    if (medalTx[f]) return put(medalTx[f]);
+    new THREE.TextureLoader().load(`/images/raid/floor-${f}.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; medalTx[f] = t; put(t); }, undefined, () => {}); }
   function theme(css, ground, tint) { const c = new THREE.Color(css); runeM.color.copy(c).lerp(new THREE.Color(0xffffff), 0.45); const fm = darkMap || marbleMap; if (fm && floorM.map !== fm) { floorM.map = fm; floorM.needsUpdate = true; }
     if (darkMap) { floorM.roughness = 0.22; floorM.metalness = 0.35; if (darkE && floorM.emissiveMap !== darkE) { floorM.emissiveMap = darkE; floorM.needsUpdate = true; } } floorM.emissiveIntensity = floorBase = darkE ? 0.55 : 0.06; if (tint != null) { floorM.color.setHex(tint); floorM.emissive.copy(c); edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); return; } edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); floorM.color.setHex(ground); floorM.emissive.copy(c); }
 
@@ -96,17 +110,47 @@ export function makeRaidQueens(ctx) {
   // Crimson Citadel (gate.glb) — the one building for every run (100 / 200 / 300 / 400 / SECRET) — and the Crimson
   // Singularity spires (spire-isle.glb) floating round it at several sizes, slowly bobbing; red beams falling from some.
   // Shown while you're in the land and not in a run (a run shows the arena instead: vis()).
+  /// the sunset over the sky realm (the owner's mock-ups, 2026-10-25, Meshy's sun / moon / mist): a warm band low on the
+  /// panorama, the sun behind the Citadel with slow rays fanning from it, a red moon with its ring high to one side, and
+  /// mist falling from the plaza's edge into the clouds. All additive sprites and one band: no lights, a few draws.
+  function sunset(R, Hh) {
+    const tl = new THREE.TextureLoader(), tx = (f) => { const t = tl.load(`/images/raid/${f}.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; return t; };
+    const add = { blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, toneMapped: false };
+    const cv = (w, h, draw) => { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+    // the warm band: orange at the horizon (the cloud line), pink above, gone by half the sky
+    const band = cv(4, 256, (c, w, h) => { const g = c.createLinearGradient(0, h, 0, 0); g.addColorStop(0, "rgba(255,170,90,.75)"); g.addColorStop(0.22, "rgba(255,120,120,.42)"); g.addColorStop(0.55, "rgba(190,90,160,.12)"); g.addColorStop(1, "rgba(0,0,0,0)"); c.fillStyle = g; c.fillRect(0, 0, w, h); });
+    const bh = Hh * 0.62, b = new THREE.Mesh(new THREE.CylinderGeometry(R - 3, R - 3, bh, 48, 1, true), new THREE.MeshBasicMaterial({ ...add, map: band, side: THREE.BackSide }));
+    b.position.y = bh / 2 - 34; b.renderOrder = -5; b.frustumCulled = false; SKY.add(b);
+    // the sun low behind the Citadel (the hall's -z), a soft glow round it and the rays turning slowly
+    const SUN = new V3(0, 98, -R + 30); /* (just over the Citadel's crown from where you arrive) */
+    const glowT = cv(128, 128, (c) => { const g = c.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, "rgba(255,236,200,.95)"); g.addColorStop(0.25, "rgba(255,180,110,.5)"); g.addColorStop(1, "rgba(255,120,80,0)"); c.fillStyle = g; c.fillRect(0, 0, 128, 128); });
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: glowT, opacity: 0.9 })); glow.scale.setScalar(190); glow.position.copy(SUN); glow.renderOrder = -4; SKY.add(glow);
+    const sun = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: tx("sun") })); sun.scale.setScalar(70); sun.position.copy(SUN); sun.renderOrder = -3; SKY.add(sun);
+    if (!ctx.low) { const rays = cv(512, 512, (c) => { c.translate(256, 256); for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2 + (i % 3) * 0.05, wd = 0.04 + (i % 4) * 0.025, g = c.createLinearGradient(0, 0, Math.cos(a) * 256, Math.sin(a) * 256);
+        g.addColorStop(0, "rgba(255,230,190,.55)"); g.addColorStop(1, "rgba(255,200,150,0)"); c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 256, a - wd, a + wd); c.closePath(); c.fill(); } });
+      const rm = new THREE.SpriteMaterial({ ...add, map: rays, opacity: 0.55 }), ray = new THREE.Sprite(rm); ray.scale.setScalar(420); ray.position.copy(SUN); ray.renderOrder = -4; SKY.add(ray);
+      spins.push((dt, t) => { if (SKY.visible) { rm.rotation += dt * 0.012; rm.opacity = 0.45 + Math.sin(t * 0.4) * 0.1; } }); }
+    // the red moon with its golden ring, high on the right
+    const moon = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: tx("moon"), opacity: 0.95 })); moon.scale.setScalar(64); moon.position.set(R * 0.6, 64, -R * 0.6); moon.renderOrder = -3; SKY.add(moon);
+    // mist pouring off the plaza's edge into the clouds (round the rim, clear of the road's two ends)
+    { const mt = tl.load(`/images/raid/mist.webp${ctx.ver || ""}`); mt.colorSpace = THREE.SRGBColorSpace; mt.wrapT = THREE.RepeatWrapping;
+      const mm = new THREE.MeshBasicMaterial({ ...add, map: mt, opacity: 0.55, side: THREE.DoubleSide });
+      for (const d of [25, 62, 118, 155, 205, 242, 298, 335].slice(0, ctx.low ? 4 : 8)) { const a = (d * Math.PI) / 180, r = 64.6, f = new THREE.Mesh(new THREE.PlaneGeometry(10, 26), mm);
+        f.position.set(Math.cos(a) * r, -13, Math.sin(a) * r); f.rotation.y = Math.PI / 2 - a; SKY.add(f); }
+      spins.push((dt) => { if (SKY.visible) mt.offset.y += dt * 0.12; }); }
+  }
   const H = new THREE.Group(); H.name = "rq-hall"; H.position.set(land.x, 0, land.z); H.visible = false; planet.add(H);
   const SKY = new THREE.Group(); SKY.name = "rq-sky-realm"; SKY.position.set(land.x, 0, land.z); SKY.visible = false; planet.add(SKY); // (the sky, the sea of cloud, the floating spires: around the hall and the arena alike)
   const HALL = { door: -36, start: 48, road: [-24, 44], back: 56 }; // local z: the Citadel, where you arrive, the road's two ends, the way home
   { const R = 260, tx = new THREE.TextureLoader().load(`/images/raid/sky.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; }); tx.wrapS = THREE.MirroredRepeatWrapping; tx.repeat.set(3, 1);
-    const Hh = ((Math.PI * 2 * R) / 3) * (941 / 1672), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, Hh, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false }));
+    const Hh = ((Math.PI * 2 * R) / 3) * (941 / 1672), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, Hh, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, color: 0xffcfb4, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); /* (the owner's panorama warmed to a sunset, 2026-10-25) */
     cyl.position.y = Hh / 2 - 70; cyl.renderOrder = -6; cyl.frustumCulled = false; SKY.add(cyl);
-    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x3a5fe0, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 70; SKY.add(top); }
+    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x4a3f8e, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 70; SKY.add(top);
+    sunset(R, Hh); }
   { // the clouds underfoot: soft pink-white blobs on lavender, drawn once
     const cv = typeof document !== "undefined" ? document.createElement("canvas") : null;
-    let map = null; if (cv) { cv.width = cv.height = 512; const c = cv.getContext("2d"); c.fillStyle = "#9fb4f4"; c.fillRect(0, 0, 512, 512); /* sky blue showing between the clouds */ let sd = 7; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
-      for (let i = 0; i < 230; i++) { const x = rnd() * 512, y = rnd() * 512, r = 14 + rnd() * 52, gr = c.createRadialGradient(x, y, 0, x, y, r); const col = rnd() < 0.3 ? "255,214,236" : "255,250,255"; gr.addColorStop(0, `rgba(${col},.85)`); gr.addColorStop(1, `rgba(${col},0)`); c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+    let map = null; if (cv) { cv.width = cv.height = 512; const c = cv.getContext("2d"); c.fillStyle = "#e9a9a6"; c.fillRect(0, 0, 512, 512); /* the sunset showing between the clouds */ let sd = 7; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 230; i++) { const x = rnd() * 512, y = rnd() * 512, r = 14 + rnd() * 52, gr = c.createRadialGradient(x, y, 0, x, y, r); const col = rnd() < 0.35 ? "255,196,170" : "255,236,222"; gr.addColorStop(0, `rgba(${col},.85)`); gr.addColorStop(1, `rgba(${col},0)`); c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
       map = new THREE.CanvasTexture(cv); map.colorSpace = THREE.SRGBColorSpace; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(9, 9); }
     const sea = new THREE.Mesh(new THREE.CircleGeometry(270, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, map, fog: false, toneMapped: false })); sea.rotation.x = -Math.PI / 2; sea.position.y = -26; SKY.add(sea); // (far below: the plaza floats over it)
     if (map) map.repeat.set(14, 14); spins.push((dt) => { if (SKY.visible && map) { map.offset.x += dt * 0.004; map.offset.y += dt * 0.002; } }); }
@@ -137,12 +181,23 @@ export function makeRaidQueens(ctx) {
   let hallP = null;
   function loadHall() {
     if (hallP) return hallP;
-    return (hallP = Promise.all([load("/models/world/raid/spireway.glb"), load("/models/world/raid/gate.glb"), load("/models/world/raid/spire-isle.glb")]).then(([rd, gt, isle]) => {
+    const opt = (n) => load(`/models/world/raid/${n}.glb`).catch((e) => { console.warn("raid hall", n, e); return null; }); // (the dressing: one that fails leaves the rest)
+    return (hallP = Promise.all([load("/models/world/raid/spireway.glb"), load("/models/world/raid/gate.glb"), load("/models/world/raid/spire-isle.glb"), opt("crest-door"), opt("stairs"), opt("rq-portal")]).then(([rd, gt, isle, crest, stairs, arch]) => {
       const fit = (o, k, x, y0, z, box) => { o.scale.setScalar(k); o.position.set(x - (box.min.x + (box.max.x - box.min.x) / 2) * k, y0 - box.min.y * k, z - (box.min.z + (box.max.z - box.min.z) / 2) * k); };
       // the Citadel first, then the road from its front out to where you arrive; the door and its body follow the model
       { const o = gt.scene, box = new THREE.Box3().setFromObject(o), k = 26 / (box.max.y - box.min.y || 1); fit(o, k, 0, 0, HALL.door, box); o.traverse((m) => { if (m.isMesh) m.castShadow = !ctx.low; }); H.add(o);
         const half = ((box.max.z - box.min.z) / 2) * k, w = (box.max.x - box.min.x) * k, fz = HALL.door + half; // (its front, in the hall's own coordinates)
-        HALL.road[0] = Math.min(HALL.road[1] - 20, fz - 1); door.position.z = land.z + fz + 2.5; wall.userData.radius = Math.min(14, Math.max(4, Math.min(w, half * 2) * 0.42)); }
+        HALL.road[0] = Math.min(HALL.road[1] - 20, fz - 1); door.position.z = land.z + fz + 2.5; wall.userData.radius = Math.min(14, Math.max(4, Math.min(w, half * 2) * 0.42));
+        // the Citadel's crest door (Meshy, 2026-10-25: 7 k triangles, 640 KB) on a black dais at its front, white-marble stairs
+        // up to it (the owner's mock-up); you stand at the stairs' foot to go in
+        const ST_H = 1.5; let foot = fz + 2.5;
+        if (stairs) { const sb = new THREE.Box3().setFromObject(stairs.scene), sz = sb.getSize(new V3()), ky = ST_H / (sz.y || 1), kx = 7.5 / (sz.x || 1), o = stairs.scene;
+          o.scale.set(kx, ky, ky); const dep = sz.z * ky; o.position.set(-(sb.min.x + sz.x / 2) * kx, -sb.min.y * ky, fz + 1.4 + dep / 2 - (sb.min.z + sz.z / 2) * ky); o.rotation.y = 0;
+          o.traverse((m) => { if (m.isMesh) m.receiveShadow = true; }); H.add(o); foot = fz + 1.4 + dep + 1.2; }
+        if (crest) { const cb = new THREE.Box3().setFromObject(crest.scene), cz = cb.getSize(new V3()), k2 = 8.5 / (cz.y || 1), o = crest.scene, y0 = stairs ? ST_H : 0;
+          const dais = new THREE.Mesh(new THREE.BoxGeometry(cz.x * k2 + 1.2, y0 || 0.3, 1.6), std(0x141118, { roughness: 0.3, metalness: 0.5 })); dais.position.set(0, (y0 || 0.3) / 2, fz + 0.6); H.add(dais);
+          fit(o, k2, 0, y0, fz + 0.5, cb); o.traverse((m) => { if (m.isMesh) m.castShadow = !ctx.low; }); H.add(o); }
+        door.position.z = land.z + foot; }
       { const box = new THREE.Box3().setFromObject(rd.scene), len = (HALL.road[1] - HALL.road[0]) / 2, k = len / (box.max.z - box.min.z || 1); HALL.roadW = (box.max.x - box.min.x) * k; // (two lengths end to end; its width for the deck)
         for (let i = 0; i < 2; i++) { const o = i ? rd.scene.clone() : rd.scene; fit(o, k, 0, -0.17, HALL.road[0] + len * (i + 0.5), box); o.traverse((m) => { if (m.isMesh) m.receiveShadow = true; }); H.add(o); } }
         // its floor: the model's deck is a sliver at grass height, so the road gets a deck of its own — the plaza's black marble
@@ -194,6 +249,10 @@ export function makeRaidQueens(ctx) {
         ISLES.forEach(([x, z, h, y], i) => { const o = i ? isle.scene.clone() : isle.scene; fit(o, h / hh, x, y, z, box); o.rotation.y = i * 1.7; SKY.add(o);
           const y0 = o.position.y; spins.push((dt, t) => { if (SKY.visible) { o.position.y = y0 + Math.sin(t * 0.5 + i) * 0.8; o.rotation.y += dt * 0.03 * (i % 2 ? 1 : -1); } });
           if (i % 3 === 0 && !ctx.low) { const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 60, 6, 1, true), neon(0xff4d6d, 0.5)); beam.position.set(x, y - 30, z); SKY.add(beam); } }); }
+      // the way home: Meshy's crimson arch (rq-portal.glb) round the ring of light behind where you arrive
+      if (arch) { const ab = new THREE.Box3().setFromObject(arch.scene), az = ab.getSize(new V3()), ka = 5.2 / (az.y || 1), o = arch.scene; o.scale.setScalar(ka);
+        o.position.set(-(ab.min.x + az.x / 2) * ka, -ab.min.y * ka, -(ab.min.z + az.z / 2) * ka); o.rotation.y = Math.PI; back.add(o);
+        back.children.forEach((c) => { if (c !== o && c.isMesh) c.scale.setScalar(0.62); }); }
       decorHall();
       return true;
     }).catch((e) => { hallP = null; console.warn("raid hall", e); return false; }));
@@ -241,7 +300,7 @@ export function makeRaidQueens(ctx) {
         const rc = new THREE.Mesh(new THREE.CircleGeometry(11, 64), rm); rc.rotation.x = -Math.PI / 2; rc.position.set(0, 0.1, 6); H.add(rc);
         spins.push((dt, t) => { if (H.visible) { rc.rotation.z += dt * 0.08; rm.opacity = 0.7 + Math.sin(t * 1.5) * 0.15; } }); }
       // clouds drifting below the plaza's edge, sprites round the sea of cloud
-      { const cm = new THREE.SpriteMaterial({ map: tex("cloud"), transparent: true, depthWrite: false, fog: false, opacity: 0.95 }); let sd = 3; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      { const cm = new THREE.SpriteMaterial({ map: tex("cloud"), color: 0xffd2bc, transparent: true, depthWrite: false, fog: false, opacity: 0.95 }); let sd = 3; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
         for (let i = 0; i < n(8, 18); i++) { const a = rnd() * Math.PI * 2, r = 78 + rnd() * 120, sc = 26 + rnd() * 34, c = new THREE.Sprite(cm), a0 = a;
           c.scale.set(sc, sc * 0.78, 1); c.position.set(Math.cos(a) * r, -16 + rnd() * 12, Math.sin(a) * r); SKY.add(c);
           spins.push((dt, t) => { if (SKY.visible) { const aa = a0 + t * 0.004; c.position.x = Math.cos(aa) * r; c.position.z = Math.sin(aa) * r; } }); } }
@@ -484,7 +543,7 @@ export function makeRaidQueens(ctx) {
   // a phase: a shockwave from her (it throws you back), the floor flares, the crystals round the edge burst and grow back; and she calls two elites
   let crysT = 0, flare = 0;
   function shock(q) {
-    const m = q.m; if (!m) return; ringFx(m.g.position, q.V.tint, 22, 0.9); ringFx(m.g.position, 0xffffff, 14, 0.6); knockFrom(m.g.position, 16); flare = 1;
+    const m = q.m; if (!m) return; ringFx(m.g.position, q.V.tint, 22, 0.9); ringFx(m.g.position, 0xffffff, 14, 0.6); knockFrom(m.g.position, 16); flare = 1; crackTo = Math.min(1, crackTo + 0.55);
     if (ctx.parts) for (const c of crys) { c.getWorldPosition(cw); ctx.parts.emit({ at: tmp.copy(cw), kind: "glow", n: ctx.low ? 4 : 10, speed: 5, up: 3, spread: 0.6, size: 0.4, life: 0.9, grav: -6, color: q.V.tint, color2: 0xffffff, jitter: 0.4 }); }
     crysT = 6; for (const c of crys) c.visible = false;
     if (run && !run.isS) for (let i = 0; i < 2; i++) spawnOne({ elite: true, near: m.g.position });
@@ -504,7 +563,7 @@ export function makeRaidQueens(ctx) {
       if (!r || !r.ok) { const j = (r && r.j) || {}; if (r && r.status === 402) { closeLobby(); if (!info) await refreshInfo(); payCard(); return; } ctx.toast(esc(j.error ? T(j.error) : T("Couldn't open it — try again"))); return; }
       closeLobby();
       const V = QV[qs[0]], isS = mode === "secret", pink = trio; // (the Throne and the SECRET: the three queens, the trinity's colours)
-      theme(pink ? "#ff7ab8" : V.css, pink ? 0x2a1830 : V.ground, pink ? 0xffbcd4 : ({ lysitha: 0xd6e0ff, solvira: 0xffe9b8, nyxara: 0xffa0a0 })[qs[0]]); backdrop(pink ? "nyxara" : qs[0]); // (the marble floor tinted like the queen's realm: silver-blue, gold, crimson)
+      theme(pink ? "#ff7ab8" : V.css, pink ? 0x2a1830 : V.ground, pink ? 0xffbcd4 : ({ lysitha: 0xd6e0ff, solvira: 0xffe9b8, nyxara: 0xffa0a0 })[qs[0]]); backdrop(pink ? "nyxara" : qs[0]); medalOf(pink ? "" : qs[0]); // (the marble floor tinted like the queen's realm: silver-blue, gold, crimson)
       run = { id: r.j.run, mode, isS, trio, plan: isS ? PLAN.secret : PLAN.normal, t: 0, kills: 0, mobs: [], dying: [], lost: 0, queens: [], stage: "waves", qs, spawnT: 0, done: false, skin: pink ? "red" : V.skin };
       shown = true; vis(); ctx.stand(land.x, land.z + ARENA_R - 8, { x: land.x, z: land.z }); paintHud(); if (ctx.music) ctx.music("waves"); if (ctx.Snd && ctx.Snd.siren) try { ctx.Snd.siren(); } catch { /* no sound */ }
       ctx.toast(`<b>${esc(isS ? "SECRET" : trio ? T("THRONE OF THREE") : T(V.name))}</b> · ${esc(T(trio ? "Clear the waves — then they come." : "Clear the waves — then she comes."))}`);
@@ -741,6 +800,7 @@ export function makeRaidQueens(ctx) {
     fxTick(dt); risesTick(dt); zonesTick(dt); beamTick(dt);
     if (crysT > 0 && (crysT -= dt) <= 0) for (const c0 of crys) c0.visible = true;
     if (flare > 0) { flare = Math.max(0, flare - dt * 1.4); floorM.emissiveIntensity = floorBase + flare * 0.9; }
+    if (crackK < crackTo) { crackK = Math.min(crackTo, crackK + dt * 0.8); crack.scale.setScalar(0.6 + crackK * 0.75); } if (crackTo > 0) crackM.opacity = crackK * (0.75 + Math.sin(t * 3) * 0.2);
     if (c && c.vitals) { const v = c.vitals(), low = v.hp / Math.max(1, v.max) < 0.3 && !v.down; if (typeof document !== "undefined") document.body.classList.toggle("rq-low", low); if (low && ctx.Snd && ctx.Snd.svHeart) try { ctx.Snd.svHeart(); } catch { /* no sound */ } }
     if (run.stage === "waves") { mobTick(dt); if (run.t >= run.plan.waveEnd) queensIn(); }
     else for (const q of run.queens) { if (q.corpse) { q.e.mixer.update(dt); if (performance.now() - q.corpse.t0 > 4200 && q.e.obj.parent === g) { g.remove(q.e.obj); q.corpse = null; } } else queenTick(q, dt); }

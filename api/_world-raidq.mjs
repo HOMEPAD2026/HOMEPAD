@@ -26,7 +26,7 @@ const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", pad32 = (a) => "0x" + lc(a).replace(/^0x/, "").padStart(64, "0");
 
 export const RQ = {
-  OPEN: false, // false: GM wallets only (the owner, 2026-10-25); true opens it to everyone
+  OPEN: true, // open to everyone (the owner, 2026-10-25; it was GM wallets only)
   DAY_RUNS: 3, TIME_MAX: 15 * 60, // three runs a Seoul day (the owner's call), a run's clock at most 15 minutes
   MODES: [ // lv: to enter · min: the shortest win the server takes (s) · xpMin: a win's XP in minutes of xpPerMin(your level) · arcl, item: a win's reward
     { id: "lysitha", region: "Silver Sanctum", lv: 100, boss: 100, min: 150, xpMin: 6, arcl: 2000, item: { r: 3, p: 3, n: 1 } },
