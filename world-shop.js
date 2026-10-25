@@ -14,8 +14,8 @@ const seoulDay = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slic
 // the shop's tabs: [id, name, line under the name, icon]
 const CATS = [["island", "Island", "Choose a style for your island.", "icon-island"], ["bricks", "Bricks", "Build and decorate your island.", "icon-bricks"], ["style", "Style", "Stand out in the world.", "icon-style"], ["plaza", "Plaza", "Be seen in the hub.", "icon-plaza"], ["items", "Items", "Gear and potions: buy and sell at the Forge.", "icon-style"]];
 // each item's picture (images/shop/)
-const artOf = (id) => "/images/shop/" + (id.startsWith("style-") ? "isle-" + id.slice(6) : id.startsWith("brick-") || id.startsWith("pack-") || id.startsWith("isle") ? id : id.startsWith("plate-") || id.startsWith("trail-") || id === "rename" ? "style-" + id : "plaza-" + id) + ".webp";
-const usableId = (id) => /^(plate|trail|style)-/.test(id);
+const artOf = (id) => "/images/shop/" + (id.startsWith("style-") ? "isle-" + id.slice(6) : id.startsWith("brick-") || id.startsWith("pack-") || id.startsWith("isle") ? id : id.startsWith("plate-") || id.startsWith("trail-") || id.startsWith("paint-") || id === "rename" ? "style-" + id : "plaza-" + id) + ".webp";
+const usableId = (id) => /^(plate|trail|style|paint)-/.test(id);
 const QKEY = "arc.world.arclq";
 const PKEY = "arc.world.payq"; // $ARCIRCLE payments sent but not confirmed yet: finished on the next load
 

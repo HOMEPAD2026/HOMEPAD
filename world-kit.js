@@ -1365,6 +1365,16 @@ function cuClipsOf(src) {
 // (less green) and white shell (more red) don't. Each hero on screen gets its own copy of the material (the textures
 // and the shader program stay shared), so it can wear its player's colour (HERO_TINTS: the blue panels take it) and its
 // holder tier on the halo (the blue at the very top of the model).
+// paints for a hero (setSkin): the Crimson Celestial set's own (3+ pieces worn) and the paint jobs sold in the shop's Style
+// (api/_world-shop.mjs CATALOG paint-*); shell: the white shell, panel: the blue panels, glow: the eyes and trim lights, halo
+export const PAINTS = {
+  crimson: { shell: 0x1c1219, panel: 0xc0183a, glow: 0xff3d5e, halo: 0xff3d6e, crown: 0xff3d6e, k: 1 },
+  resonance: { shell: 0x140d14, panel: 0xb3122f, glow: 0xffc861, halo: 0xffc861, crown: 0xffc861, k: 1 },
+  "paint-onyx": { shell: 0x1a1d22, panel: 0x2a3340, glow: 0x5fe8ff, halo: 0x5fe8ff, k: 1 },
+  "paint-gunmetal": { shell: 0x5a6068, panel: 0x2b2f36, glow: 0xff8a2a, halo: 0xff8a2a, k: 1 },
+  "paint-whitegold": { shell: 0xf2ede2, panel: 0xc9a24a, glow: 0xffd27a, halo: 0xffd27a, crown: 0xffd27a, k: 1 },
+  "paint-void": { shell: 0x1a1030, panel: 0x6b2fd8, glow: 0xc49bff, halo: 0xb48cff, crown: 0xb48cff, k: 1 },
+};
 export const HERO_TINTS = [null, 0x2ee0b0, 0xff6fb5, 0xffc23a, 0x9b6bff, 0xff5a5a, 0xff9a3a, 0x5ad65a]; // 0: ARON's own blue
 export const TIER_HALO = [null, 0x35d8d0, 0x39ff88, 0xffc861]; // holder tiers (world-play.js paintCrown): none, holder, 100k, 1M
 // spec (HEROES): glow — how bright the parts in glowKey's colour shine (0: none); glowKey / tintKey — the colour of the
@@ -1374,15 +1384,18 @@ const hueKey = (c) => { const v = new THREE.Color(c), mx = Math.max(v.r, v.g, v.
 function heroMaterials(root, spec) {
   const k = Number(spec.glow ?? 1.4).toFixed(2), glowMode = spec.tintOn === "glow" ? 1 : 0;
   const U = { tint: { value: new THREE.Color() }, tintK: { value: 0 }, halo: { value: new THREE.Color() }, haloK: { value: 0 }, hy0: { value: 0.88 }, hy1: { value: 0.92 },
+    // a paint (setSkin: the Crimson Celestial set's own, or a bought paint job): the white shell, the blue panels and the lit parts
+    // in new colours; boost: the lit parts burn brighter (the battle visor, setBattle)
+    sShell: { value: new THREE.Color() }, sPanel: { value: new THREE.Color() }, sGlow: { value: new THREE.Color() }, sK: { value: 0 }, sGloss: { value: 0 }, boost: { value: 0 },
     gKey: { value: hueKey(spec.glowKey ?? 0x00e8ff) }, tKey: { value: hueKey(spec.tintKey ?? 0x0d3dff) } };
   root.traverse((x) => { if (!x.isMesh || !x.material) return;
     if (x.geometry && spec.halo) { const g = x.geometry; if (!g.boundingBox) g.computeBoundingBox(); const y1 = g.boundingBox.max.y, h = y1 - g.boundingBox.min.y; U.hy0.value = y1 - h * 0.06; U.hy1.value = y1 - h * 0.04; } // the halo: the top 5 % of the model
     if (!spec.halo) { U.hy0.value = 1e9; U.hy1.value = 1e9 + 1; }
     const list = [].concat(x.material).map((m0) => { if (!m0.isMeshStandardMaterial) return m0; const m = m0.clone(); m.side = THREE.FrontSide; m.userData.hero = U;
-      m.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, { hTint: U.tint, hTintK: U.tintK, hHalo: U.halo, hHaloK: U.haloK, hY0: U.hy0, hY1: U.hy1, hGKey: U.gKey, hTKey: U.tKey });
+      m.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, { hTint: U.tint, hTintK: U.tintK, hHalo: U.halo, hHaloK: U.haloK, hY0: U.hy0, hY1: U.hy1, hGKey: U.gKey, hTKey: U.tKey, sShell: U.sShell, sPanel: U.sPanel, sGlow: U.sGlow, sK: U.sK, sGloss: U.sGloss, sBoost: U.boost });
         sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float hY;").replace("#include <begin_vertex>", "#include <begin_vertex>\nhY = position.y;");
         sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
-          varying float hY; uniform vec3 hTint, hHalo, hGKey, hTKey; uniform float hTintK, hHaloK, hY0, hY1;
+          varying float hY; uniform vec3 hTint, hHalo, hGKey, hTKey, sShell, sPanel, sGlow; uniform float hTintK, hHaloK, hY0, hY1, sK, sGloss, sBoost;
           float hLum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
           // how much of a colour is "this hue": its direction (min taken off, scaled to the max) near the key, and saturated
           float hHue(vec3 c, vec3 key, float sat0, float v0) { float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), d = mx - mn;
@@ -1393,15 +1406,23 @@ function heroMaterials(root, spec) {
           float hT = ${glowMode ? "hGlow" : "hHue(hOrig, hTKey, 0.35, 0.08) * (1.0 - hGlow)"};
           { float l = hLum(hOrig); vec3 tn = hTint * (l / max(hLum(hTint), 0.05)), ha = hHalo * (l / max(hLum(hHalo), 0.05));
             diffuseColor.rgb = mix(hOrig, tn, hT * hTintK * (1.0 - hTop));
-            diffuseColor.rgb = mix(diffuseColor.rgb, ha, hHue(hOrig, hTKey, 0.35, 0.08) * hTop * hHaloK); }`)
+            diffuseColor.rgb = mix(diffuseColor.rgb, ha, hHue(hOrig, hTKey, 0.35, 0.08) * hTop * hHaloK);
+            if (sK > 0.0) { float mx = max(hOrig.r, max(hOrig.g, hOrig.b)), mn = min(hOrig.r, min(hOrig.g, hOrig.b)), sat = (mx - mn) / max(mx, 1e-3);
+              float shell = (1.0 - smoothstep(0.2, 0.42, sat)) * smoothstep(0.22, 0.5, l) * (1.0 - hGlow), pan = hHue(hOrig, hTKey, 0.35, 0.08) * (1.0 - hGlow);
+              diffuseColor.rgb = mix(diffuseColor.rgb, sShell * (0.45 + 0.75 * l), shell * sK);
+              diffuseColor.rgb = mix(diffuseColor.rgb, sPanel * (0.45 + 0.8 * l), max(pan, shell * step(0.55, sat + l * 0.0) ) * sK);
+              diffuseColor.rgb = mix(diffuseColor.rgb, sGlow * 0.35, hGlow * sK); } }`)
           .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
-          { vec3 gc = ${glowMode ? "mix(hOrig, hTint * (hLum(hOrig) / max(hLum(hTint), 0.05)), hTintK)" : "hOrig"}; totalEmissiveRadiance += gc * hGlow * ${k};
+          { vec3 gc = ${glowMode ? "mix(hOrig, hTint * (hLum(hOrig) / max(hLum(hTint), 0.05)), hTintK)" : "hOrig"}; gc = mix(gc, sGlow * 0.75, sK); totalEmissiveRadiance += gc * hGlow * ${k} * (1.0 + sBoost * 0.8);
             totalEmissiveRadiance += hHalo * hHaloK * hTop * 0.35; }`); };
       m.customProgramCacheKey = () => `hero${k}${glowMode}`; return m; });
     x.material = list.length === 1 ? list[0] : list; });
   return {
     setTint(i) { const c = HERO_TINTS[i | 0]; U.tintK.value = c == null ? 0 : 1; if (c != null) U.tint.value.set(c); },
     setHalo(c) { U.haloK.value = c == null || !spec.halo ? 0 : 1; if (c != null) U.halo.value.set(c); },
+    /// skin: null (its own look) or { shell, panel, glow, k } (colours; k 0…1 how far)
+    setSkin(sk) { U.sK.value = sk ? Math.max(0, Math.min(1, sk.k ?? 1)) : 0; if (sk) { U.sShell.value.set(sk.shell); U.sPanel.value.set(sk.panel); U.sGlow.value.set(sk.glow); U.sGloss.value = sk.gloss || 0; } },
+    setBattle(on) { U.boost.value = on ? 1 : 0; },
     dispose() { root.traverse((x) => { if (x.isMesh) [].concat(x.material).forEach((m) => { if (m.userData.hero) m.dispose(); }); }); },
   };
 }
@@ -1443,12 +1464,29 @@ function makeCustom(src, spec = null, ver = "") {
   const bones = { "arm-right": bone(/righthand$/, /handr$/, /rhand$/, /handright$/, /rightwrist$/, /wristr$/), "arm-left": bone(/lefthand$/, /handl$/, /lhand$/, /handleft$/, /leftwrist$/, /wristl$/),
     head: bone(/head$/), torso: bone(/spine2$/, /upperchest$/, /chest$/, /spine02$/, /spine1$/, /spine$/) };
   const fx = reacts(obj);
+  // a crown of spikes round the halo (shown with a paint that has one: the Crimson Celestial set's): measured from the
+  // model's top 5 % (the halo) once, kept on the body
+  let spikes = null;
+  const crownSpikes = (c) => {
+    if (!spec || !spec.halo) return;
+    if (!spikes && c != null) { try {
+      obj.updateMatrixWorld(true); const pts = []; let y1 = -1e9; const v = new THREE.Vector3();
+      inner.traverse((m) => { if (!m.isMesh || !m.geometry || !m.geometry.attributes.position) return; const a = m.geometry.attributes.position; for (let i = 0; i < a.count; i += 3) { if (m.isSkinnedMesh && m.getVertexPosition) m.getVertexPosition(i, v); else v.fromBufferAttribute(a, i); v.applyMatrix4(m.matrixWorld); /* (a skinned body: where its bones put the vertex) */ pts.push(v.clone()); if (v.y > y1) y1 = v.y; } });
+      const top = pts.filter((p) => p.y > y1 - 0.13); if (top.length < 6) return;
+      const b = new THREE.Box3().setFromPoints(top), cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2, rx = (b.max.x - b.min.x) / 2, rz = (b.max.z - b.min.z) / 2;
+      const g = new THREE.Group(); g.name = "crown-spikes";
+      const mat = glow(c, 0.55), geo = new THREE.ConeGeometry(0.05, 0.2, 5); mat.metalness = 0.6; mat.roughness = 0.3;
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, sp = new THREE.Mesh(geo, mat); sp.position.set(cx + Math.cos(a) * rx, b.max.y + (i % 2 ? 0.05 : 0.1), cz + Math.sin(a) * rz); sp.scale.y = i % 2 ? 0.7 : 1.15; g.add(sp); }
+      const inv = new THREE.Matrix4().copy(obj.matrixWorld).invert(); g.applyMatrix4(inv); obj.add(g); /* (on the body, not the head bone: this rig's bones sit far from its skin) */
+      spikes = g; } catch { return; } }
+    if (spikes) { spikes.visible = c != null; if (c != null) spikes.children.forEach((m) => { m.material.color.set(c); if (m.material.emissive) m.material.emissive.set(c); }); }
+  };
   return {
-    obj, mixer, play, height: 2.1, kk: true, custom: true, bones, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt, // kk: swings with its own clips, wears only the weapon and shield
+    crownSpikes, obj, mixer, play, height: 2.1, kk: true, custom: true, bones, busy: () => !!oneShot, land: fx.land, hurt: fx.hurt, // kk: swings with its own clips, wears only the weapon and shield
     mount: { weapon: [0, 0, 0], shield: [0, 0, 0], helm: [0, 0.3, 0], armor: [0, 0.1, 0], armorR: 0.45, necklace: [0, 0.2, 0.2] },
     attack(kind = 0, heavy = false) { const l = kind === 4 ? lists.cast : kind === 2 || kind === 3 ? lists.shoot : null, all = l && l.length ? l : lists.attack; if (all.length) { const c = all[heavy ? all.length - 1 : 0]; run(act(c), { once: true, fade: 0.06, speed: Math.max(kind === 1 ? 1.1 : 1.4, (c.duration || 0) / 0.8) }); } }, // b447: a long clip (ARON's is 3 s) is sped up to land within the game's swing
     setCrown(a, b) { if (hero) { hero.setHalo(a); return; } [[r1, a], [r2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); }, // a hero shows the tier on its own halo
-    setTint: (i) => { if (hero) hero.setTint(i); }, hero: !!hero, fx: spec && spec.fx, dispose: () => { if (hero) hero.dispose(); },
+    setTint: (i) => { if (hero) hero.setTint(i); }, setSkin: (sk) => { if (hero) hero.setSkin(sk); }, setBattle: (on) => { if (hero) hero.setBattle(on); }, hero: !!hero, fx: spec && spec.fx, dispose: () => { if (hero) hero.dispose(); },
     // a copy (the character window's turning view) stood straight: the idle clip's first frame, not whatever moment of it
     // the live one is in (ARON's idle stretches back halfway through)
     restPose: (root) => { const c = pick("idle"); if (!c || !root) return; const mx = new THREE.AnimationMixer(root); mx.clipAction(c).play(); mx.update(0); mx.stopAllAction(); root.updateMatrixWorld(true); },

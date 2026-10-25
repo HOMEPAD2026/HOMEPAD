@@ -124,6 +124,11 @@ export const CATALOG = [
   { id: "trail-gold", cat: "style", name: "Gold board trail", line: "A gold trail behind your hoverboard.", usd: 1, arcl: 200 },
   { id: "trail-pink", cat: "style", name: "Pink board trail", line: "A pink trail behind your hoverboard.", usd: 1, arcl: 200 },
   { id: "trail-rainbow", cat: "style", name: "Rainbow board trail", line: "Every colour, cycling behind your hoverboard.", usd: 4, arcl: 1000 },
+  // paint jobs for your hero (world-kit.js PAINTS): the shell, panels and lit eyes in new colours; the Crimson Celestial set paints its own
+  { id: "paint-onyx", cat: "style", name: "Onyx paint", line: "Your hero in matte black with cyan lights.", usd: 3, arcl: 3000 },
+  { id: "paint-gunmetal", cat: "style", name: "Gunmetal paint", line: "Steel grey armour with orange lights.", usd: 3, arcl: 3000 },
+  { id: "paint-whitegold", cat: "style", name: "White Gold paint", line: "Pearl white with gold panels and a gold crown.", usd: 5, arcl: 5000 },
+  { id: "paint-void", cat: "style", name: "Void paint", line: "Deep violet with a violet crown and glowing eyes.", usd: 8, arcl: 8000 },
   // the old ARCL name change: no longer sold (a character change covers the name now); bought ones still work
   { id: "rename", cat: "retired", name: "Name change", line: "Change your name once more.", usd: null, arcl: null, use: true },
   // plaza: be seen in the hub

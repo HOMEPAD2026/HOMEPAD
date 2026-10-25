@@ -1706,10 +1706,11 @@ const arclShop = SHOP.createShop({
   },
   myCoins: () => myCoins, coins: () => (coinData || []).slice(0, 30),
   onOwn: (o) => applyOwn(o),
-  using: (id) => P.style.plate === id || P.style.trail === id || P.isleTheme === id,
+  using: (id) => P.style.plate === id || P.style.trail === id || P.style.paint === id || P.isleTheme === id,
   use: (id) => {
     if (id.startsWith("plate-")) P.style.plate = P.style.plate === id ? "" : id;
     else if (id.startsWith("trail-")) P.style.trail = P.style.trail === id ? "" : id;
+    else if (id.startsWith("paint-")) P.style.paint = P.style.paint === id ? "" : id;
     else if (id.startsWith("style-")) { P.isleTheme = P.isleTheme === id ? "" : id; island.setTheme(P.isleTheme); }
     save(); setNameTag(); paintTrail();
   },
@@ -1766,6 +1767,7 @@ function applyOwn(o) {
   island.setOwned(land && land.mine() ? [...items, "isle64", "land"] : items, (o && o.lots) || []); // b-land: an owner builds 64×64 and more bricks
   if (P.style.plate && !items.includes(P.style.plate)) P.style.plate = "";
   if (P.style.trail && !items.includes(P.style.trail)) P.style.trail = "";
+  if (P.style.paint && !items.includes(P.style.paint)) P.style.paint = ""; // (a paint job is worn only while it's owned)
   if (P.isleTheme && !items.includes(P.isleTheme)) { P.isleTheme = ""; island.setTheme(""); }
   setNameTag(); paintTrail(); if (rpg && rpg.setBagPlus) rpg.setBagPlus(o && o.bag);
   starterOwn(o);
@@ -3331,7 +3333,7 @@ function arclChecks() {
 function tierOf() { let a = 0; try { a = bal.arc || 0; } catch { /* the purse is declared further down (a TDZ before it) */ } return a >= 1e6 ? 3 : a >= 1e5 ? 2 : a > 0 ? 1 : 0; }
 function paintCrown() {
   if (!avatar || !avatar.setCrown) return;
-  if (avatar.hero) { avatar.setCrown(K.TIER_HALO ? K.TIER_HALO[tierOf()] : null); return; }
+  if (avatar.hero) { const sk = heroSkin(); avatar.setCrown(sk && sk.halo ? sk.halo : K.TIER_HALO ? K.TIER_HALO[tierOf()] : null); if (avatar.crownSpikes) avatar.crownSpikes(sk && sk.crown ? sk.crown : null); return; }
   const a = bal.arc || 0;
   if (a >= 1e6) avatar.setCrown(0xffc861, 0xffe7a8); else if (a >= 1e5) avatar.setCrown(0x39ff88, 0x35d8d0); else if (a > 0) avatar.setCrown(0x35d8d0, 0x4f9dff); else avatar.setCrown(0x3f9bff, 0x39ff88);
 }
@@ -5611,6 +5613,23 @@ st.on((dt, t) => {
   if (mythAura && mythAura.visible) { const d = mythAura.userData.disc; d.rotation.z += dt * 0.6; d.material.opacity = 0.7 + Math.sin(t * 2.2) * 0.2;
     const pts = mythAura.userData.pts; if (pts) { const a = pts.geometry.attributes.position; for (let i = 0; i < a.count; i++) { let y = a.getY(i) + dt * 0.7; if (y > 2.3) y = 0.05; a.setY(i, y); } a.needsUpdate = true; } }
 });
+// the hero's paint (world-kit.js PAINTS): a paint job you chose in the shop's Style, else the Crimson Celestial set's own
+// once 3 pieces are worn (all seven at +10: the resonance's gold); checked twice a second and set only when it changes. In a
+// fight the eyes and trim burn brighter (setBattle)
+function heroSkin() {
+  const pick = P.style && P.style.paint, PA = K.PAINTS || {}; if (pick && PA[pick]) return PA[pick];
+  let n = 0; try { n = mythicWorn().length; } catch { /* not loaded */ } if (n < 3) return null;
+  const res = !!(rpg && rpg.stats && rpg.stats().sets && MY && MY.setBonus && MY.setBonus(mythicWorn()).resonance);
+  return { ...(res ? PA.resonance : PA.crimson), k: n >= 6 ? 1 : 0.82 };
+}
+let skinKey = "-", skinT = 0;
+st.on((dt) => {
+  if (!avatar || !avatar.setSkin) return;
+  if (avatar.setBattle) avatar.setBattle(document.body.classList.contains("wc-fight") || !!(rqL && rqL.running && rqL.running()));
+  if ((skinT -= dt) > 0) return; skinT = 0.5;
+  const sk = heroSkin(), key = sk ? `${sk.shell}|${sk.panel}|${sk.glow}|${sk.k}` : ""; if (key === skinKey && avatar.userData_skin === key) return;
+  skinKey = key; avatar.userData_skin = key; avatar.setSkin(sk); paintCrown();
+});
 function mythicWorn() { if (!mythicNow || !MY) return []; const lv = level(); return Object.values(mythicNow.eq || {}).map((id) => (mythicNow.pieces || []).find((p) => p.id === id)).filter((p) => p && p.req <= lv && MY.pieceOf(p.def)); }
 function withMythic(o) {
   const worn = mythicWorn(); if (!worn.length) return o;
@@ -5924,7 +5943,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { mythAura: () => ({ has: !!mythAura, vis: !!(mythAura && mythAura.visible) }), /* (tests: the six's aura) */ mythOn: () => { const L = []; player.traverse((o) => { if (/^mythic:/.test(o.name)) L.push(o.name); }); return L; }, scene3: () => st.scene, cam3: () => st.camera, gl3: () => st.renderer, /* (tests: what the scene draws) */ rqPortalFront: () => rqPortalFront(), mythic: () => mythicNow, mythicTest: (o) => { mythicNow = o; }, /* (tests: a set to show) */ openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { heroSkin: () => { try { return heroSkin(); } catch (e) { return "ERR " + e.message; } }, /* (tests: the hero's paint) */ mythAura: () => ({ has: !!mythAura, vis: !!(mythAura && mythAura.visible) }), /* (tests: the six's aura) */ mythOn: () => { const L = []; player.traverse((o) => { if (/^mythic:/.test(o.name)) L.push(o.name); }); return L; }, scene3: () => st.scene, cam3: () => st.camera, gl3: () => st.renderer, /* (tests: what the scene draws) */ rqPortalFront: () => rqPortalFront(), mythic: () => mythicNow, mythicTest: (o) => { mythicNow = o; }, /* (tests: a set to show) */ openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),
