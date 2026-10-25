@@ -428,7 +428,7 @@ export function createRpg(ctx) {
   const findItem = (id) => R().bag.find((x) => x.id === id) || R().store.find((x) => x.id === id) || Object.values(R().eq).find((x) => x && x.id === id) || null;
   function invHTML() {
     const r = R(), s = stats();
-    const slot = (k) => `<div class="wr-slot s-${k}" data-slot="${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.25)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`;
+    const slot = (k) => mythicTile(k) || `<div class="wr-slot s-${k}" data-slot="${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.25)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`;
     return `<nav class="wr-panes"><button type="button" data-pane="gear" aria-pressed="${invPane === "gear"}">${esc(T("Gear"))}</button><button type="button" data-pane="bag" aria-pressed="${invPane === "bag"}">${esc(T("Bag"))} <small>${r.bag.length}/${BAG}</small></button></nav><div class="wr-grid pane-${invPane}">
       <section class="wr-doll"><h3>${esc(T("Gear"))}<span class="wr-doll-acts">${ctx.sess() && ctx.openProfile ? `<button type="button" class="wr-wardrobe" data-mycard>${esc(T("My card"))}</button>` : ""}${ctx.isArc && ctx.isArc() ? `<button type="button" class="wr-wardrobe" data-wardrobe>${esc(T("Wardrobe"))}</button>` : ""}</span></h3><div class="wr-paper">${SLOTS.map(slot).join("")}<div class="wr-avatar"><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span></div></div>${SLOTS.some((k) => r.eq[k]) ? "" : emptyBox("hammer", T("You're wearing no gear. The Forge sells some, or equip a piece from your bag."), `<button type="button" class="gold" data-forge>${esc(T("Open Forge"))}</button>`)}
         <ul class="wr-stats big">${["atk", "def", "hp", "sp", "crit", "spd"].map((k) => statLine(k, s[k])).join("")}</ul>
@@ -652,7 +652,9 @@ export function createRpg(ctx) {
   const fmt = (v) => (v == null ? "—" : v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "K" : Math.floor(v).toLocaleString("en-US"));
   // the Character panes (the owner's Overview / Equipment mock-ups): the hero on a lit stage over the world between the
   // slot columns, then the cards. On a phone the side menu stands in the stage's left edge (the mobile mock-up).
-  const slotEl = (k) => { const r = R(); return `<div class="wr-slot s-${k}" data-slot="${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.3)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`; };
+  /// a Crimson Celestial piece worn in this slot: it stands in the slot (its stats replace the usual piece's), a tap opens the set
+  const mythicTile = (k) => { const m = ctx.mythicSlot && ctx.mythicSlot(k); if (!m) return ""; return `<div class="wr-slot s-${k} wr-myth" data-slot="${k}"><button type="button" class="wr-mytile" data-myopen="${k}" title="${esc(T(m.P.name))}"><img src="/images/mythic/${m.P.glb}.webp${ctx.ver || ""}" alt=""><i>MYTHIC</i>${m.plus ? `<b>+${m.plus}</b>` : ""}</button></div>`; };
+  const slotEl = (k) => { const r = R(), my = mythicTile(k); if (my) return my; return `<div class="wr-slot s-${k}" data-slot="${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.3)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`; };
   const stageHTML = () => `<section class="hb-stage"><nav class="hb-snav">${SIDE.inv.map(([id, n, ic]) => `<button type="button" data-side="${id}" aria-pressed="${id === charSub}">${uiIcon(ic, 22)}<span>${esc(T(n))}</span></button>`).join("")}</nav>
     <div class="hb-col hb-l">${["weapon", "helm", "armor", "boots"].map(slotEl).join("")}</div><div class="wr-avatar hb-hero"><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span></div><div class="hb-col hb-r">${["shield", "ring", "necklace"].map(slotEl).join("")}</div><i class="hb-ped" aria-hidden="true"></i></section>`;
   const ST_IC = { hp: "hp", sp: "sp", atk: "atk", def: "def", crit: "crit", spd: "spd" };
@@ -662,6 +664,9 @@ export function createRpg(ctx) {
     if (plan) return `<section class="hb-card hb-weap">${planHTML()}</section>`;
     const it = sel && !docked() ? findItem(sel) : null;
     if (it) return `<section class="hb-card hb-weap hb-picked">${detail(it)}</section>`;
+    const mw = ctx.mythicSlot && ctx.mythicSlot("weapon"); // (a Crimson Celestial weapon worn: it's the one that fights)
+    if (mw) return `<section class="hb-card hb-weap hb-myw"><h4>${esc(T("Equipped weapon"))}</h4><div class="hb-wrow"><div class="wr-slot wr-myth"><button type="button" class="wr-mytile" data-myopen="weapon"><img src="/images/mythic/${mw.P.glb}.webp${ctx.ver || ""}" alt=""><i>MYTHIC</i>${mw.plus ? `<b>+${mw.plus}</b>` : ""}</button></div><div><b style="color:#ff5f8f">${esc(T(mw.P.name))}${mw.plus ? " +" + mw.plus : ""}</b><small style="color:#ff9ab8">MYTHIC · ${esc(T("Crimson Celestial"))} · ×${mw.mult}</small><ul class="hb-kv">${Object.entries(mw.st || {}).filter(([k]) => ST_IC[k]).map(([k, v]) => `<li><img src="/images/ui/char/st-${ST_IC[k]}.webp${ctx.ver || ""}" alt=""><b>+${v}</b></li>`).join("")}</ul></div></div>
+      <div class="hb-acts"><button type="button" class="go" data-myopen="weapon">${esc(T("Open the set"))}</button></div></section>`;
     const w = R().eq.weapon, ws = w ? itemStats(w) : null;
     return `<section class="hb-card hb-weap"><h4>${esc(T("Equipped weapon"))}</h4>${w ? `<div class="hb-wrow">${tile(w, `data-pick="${w.id}"`)}<div><b style="color:${rc(w)}">${esc(itemName(w))}</b><small style="color:${rc(w)}">${esc(T(RARITY[w.r || 0].name))} · ${esc(T("Lv {n}", { n: w.lv }))}</small><ul class="hb-kv">${Object.entries(ws).map(([k, v]) => `<li><img src="/images/ui/char/st-${ST_IC[k] || "atk"}.webp${ctx.ver || ""}" alt=""><span>${esc(T(STAT_NAME[k]))}</span><b>+${v}${k === "crit" || k === "spd" ? "%" : ""}</b></li>`).join("")}</ul></div></div>
       <div class="hb-acts hb-3"><button type="button" class="go" data-enhance="${w.id}" ${(w.p || 0) >= 10 ? "disabled" : ""}>${esc(T("Enhance"))}</button><button type="button" data-pick="${w.id}">${esc(T("Change"))}</button><button type="button" data-unequip="weapon">${esc(T("Remove"))}</button></div>` : emptyBox("hammer", T("You're wearing no gear. The Forge sells some, or equip a piece from your bag."), `<button type="button" class="gold" data-forge>${esc(T("Open Forge"))}</button>`)}</section>`;
@@ -707,10 +712,18 @@ export function createRpg(ctx) {
   function overviewHTML() {
     const xp = hub("xp"), hero = hub("hero") || "aron";
     return `<div class="hb-ov">${stageHTML()}<aside class="hb-side2"><div class="hb-card hb-id"><img src="/images/ui/menu2/hero-${hero}.webp${ctx.ver || ""}" alt=""><div><b>${esc(hub("name") || T("Player"))}</b><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span>${xp ? `<i style="--k:${xp.k}"></i><small>${xp.a.toLocaleString("en-US")} / ${xp.b.toLocaleString("en-US")} (${Math.round(xp.k * 100)}%)</small>` : ""}</div>${ctx.sess() && ctx.openProfile ? `<button type="button" class="hb-plus" data-mycard>${esc(T("My card"))}</button>` : ""}</div>${statsCard()}</aside>
-      ${weapCard()}${todayCard()}${gsetCard()}</div>`;
+      ${weapCard()}${todayCard()}${gsetCard()}${mythCard()}</div>`;
   }
   // Equipment: the stage and the bag side by side; the weapon, the stats and the gear set under them
-  const equipHTML = () => `<div class="hb-eq">${stageHTML()}${invCard(false)}${weapCard()}${statsCard()}${gsetCard()}</div>`;
+  // the Crimson Celestial card: how many of the six you wear, the bonuses lit, a way into the set
+  function mythCard() {
+    const m = ctx.mythicSet && ctx.mythicSet(); if (!m || (!m.held && !m.worn)) return "";
+    const line = (b) => Object.entries(b).filter(([k]) => k !== "aura").map(([k, v]) => T({ atkPct: "Attack +{n}%", defPct: "Defense +{n}%", hpPct: "Max HP +{n}%", crit: "Crit +{n}%", skillPct: "Skill damage +{n}%", critDmg: "Crit damage +{n}%", dr: "Damage taken −{n}%" }[k] || k, { n: v })).join(" · ");
+    return `<section class="hb-card hb-myth"><div class="hb-ch"><h4>${esc(T("Crimson Celestial"))}</h4><small>${esc(T("{a} / 6 worn", { a: m.bonus.n }))}</small><button type="button" class="hb-plus" data-myopen="">${esc(T("Open the set"))}</button></div>
+      <ul>${m.BONUS.map(([need, name, b]) => `<li class="${m.bonus.n >= need ? "on" : ""}"><i>${m.bonus.n >= need ? "✓" : need}</i><span><b>${esc(T(name))}</b><small>${esc(line(b))}</small></span></li>`).join("")}</ul>
+      <p class="hb-mynote">${esc(T("A Mythic piece takes its slot's place: the usual piece there stays on, but counts again only when you take the Mythic one off."))}</p></section>`;
+  }
+  const equipHTML = () => `<div class="hb-eq">${stageHTML()}${invCard(false)}${weapCard()}${statsCard()}${gsetCard()}${mythCard()}</div>`;
   // Skills (the owner's mock-up): your hero on the left, the skills as icon cards, the picked one's card on the right
   let skSel = "";
   function skillsPane() {
@@ -923,6 +936,7 @@ export function createRpg(ctx) {
     if (e.target === el || e.target.closest("[data-x]")) { hide(); return; }
     const b = e.target.closest("button"); if (!b) return;
     const d = b.dataset;
+    if (d.myopen != null && ctx.openMythic) { ctx.openMythic(d.myopen || undefined); return; } // (a Crimson Celestial slot or its card: the set window)
     if (d.view) { view = d.view; sel = null; show(view); return; }
     if (d.sksel) { skSel = d.sksel; paint(); return; }
     if (d.skuse) { if (!hub("skill:" + d.skuse)) { R().sk = d.skuse; ctx.save(); } fx(`[data-sksel="${d.skuse}"], .hb-skdet .hb-dic`, T("In use"), "#5fd3ff", true); paint(); return; }
