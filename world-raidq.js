@@ -49,7 +49,8 @@ export function makeRaidQueens(ctx) {
   const W = (lx, lz) => new V3(land.x + lx, 0, land.z + lz);
 
   // ---------------- the arena: a disc of stone in the queen's colours, a glowing edge, crystals round it, her dais ----------------
-  flat(new THREE.CircleGeometry(ARENA_R + 70, 72), std(0x1a1420, { roughness: 0.9 }), 0.01);
+  let marbleMap = null; // (the plaza's marble, drawn once below: the arena's floor too, tinted by the queen)
+  { const side = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R, ARENA_R - 4, 7, 80, 1, true), std(0x3a2e48, { roughness: 0.8, side: THREE.DoubleSide })); side.position.y = -3.5; g.add(side); }
   const floorM = std(0x8f9fb8, { roughness: 0.5, metalness: 0.35, emissive: 0x000000, emissiveIntensity: 0.1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   flat(new THREE.CircleGeometry(ARENA_R, 80), floorM, 0.03);
   const edgeM = neon(0x9fd4ff, 0.9); flat(new THREE.RingGeometry(ARENA_R - 0.35, ARENA_R, 140), edgeM, 0.07);
@@ -72,7 +73,7 @@ export function makeRaidQueens(ctx) {
     if (!bgTx[id]) { const t = new THREE.TextureLoader().load(`/images/raid/bg-${id}.webp${ctx.ver || ""}`, () => { cyl.visible = bgM.map === t; }); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.repeat.set(4, 1); bgTx[id] = t; }
     bgM.map = bgTx[id]; bgM.needsUpdate = true; cyl.visible = !!(bgTx[id].image && bgTx[id].image.width);
   }
-  function theme(css, ground) { const c = new THREE.Color(css); edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); floorM.color.setHex(ground); floorM.emissive.copy(c); }
+  function theme(css, ground, tint) { const c = new THREE.Color(css); if (marbleMap && floorM.map !== marbleMap) { floorM.map = marbleMap; floorM.needsUpdate = true; } floorM.emissiveIntensity = 0.06; if (tint != null) { floorM.color.setHex(tint); floorM.emissive.copy(c); edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); return; } edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); floorM.color.setHex(ground); floorM.emissive.copy(c); }
 
   // ---------------- the hall: the sky realm you walk into (the owner's concept art, 2026-10-25) ----------------
   // the sky all round (images/raid/sky.webp), a sea of cloud underfoot, the Crimson Spireway (the owner's GLB) up to the
@@ -80,18 +81,19 @@ export function makeRaidQueens(ctx) {
   // Singularity spires (spire-isle.glb) floating round it at several sizes, slowly bobbing; red beams falling from some.
   // Shown while you're in the land and not in a run (a run shows the arena instead: vis()).
   const H = new THREE.Group(); H.name = "rq-hall"; H.position.set(land.x, 0, land.z); H.visible = false; planet.add(H);
+  const SKY = new THREE.Group(); SKY.name = "rq-sky-realm"; SKY.position.set(land.x, 0, land.z); SKY.visible = false; planet.add(SKY); // (the sky, the sea of cloud, the floating spires: around the hall and the arena alike)
   const HALL = { door: -36, start: 48, road: [-24, 44], back: 56 }; // local z: the Citadel, where you arrive, the road's two ends, the way home
   { const R = 260, tx = new THREE.TextureLoader().load(`/images/raid/sky.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; }); tx.wrapS = THREE.MirroredRepeatWrapping; tx.repeat.set(3, 1);
     const Hh = ((Math.PI * 2 * R) / 3) * (941 / 1672), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, Hh, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false }));
-    cyl.position.y = Hh / 2 - 70; cyl.renderOrder = -6; cyl.frustumCulled = false; H.add(cyl);
-    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x3a5fe0, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 70; H.add(top); }
+    cyl.position.y = Hh / 2 - 70; cyl.renderOrder = -6; cyl.frustumCulled = false; SKY.add(cyl);
+    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x3a5fe0, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 70; SKY.add(top); }
   { // the clouds underfoot: soft pink-white blobs on lavender, drawn once
     const cv = typeof document !== "undefined" ? document.createElement("canvas") : null;
     let map = null; if (cv) { cv.width = cv.height = 512; const c = cv.getContext("2d"); c.fillStyle = "#9fb4f4"; c.fillRect(0, 0, 512, 512); /* sky blue showing between the clouds */ let sd = 7; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
       for (let i = 0; i < 230; i++) { const x = rnd() * 512, y = rnd() * 512, r = 14 + rnd() * 52, gr = c.createRadialGradient(x, y, 0, x, y, r); const col = rnd() < 0.3 ? "255,214,236" : "255,250,255"; gr.addColorStop(0, `rgba(${col},.85)`); gr.addColorStop(1, `rgba(${col},0)`); c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
       map = new THREE.CanvasTexture(cv); map.colorSpace = THREE.SRGBColorSpace; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(9, 9); }
-    const sea = new THREE.Mesh(new THREE.CircleGeometry(270, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, map, fog: false, toneMapped: false })); sea.rotation.x = -Math.PI / 2; sea.position.y = -26; H.add(sea); // (far below: the plaza floats over it)
-    if (map) map.repeat.set(14, 14); spins.push((dt) => { if (H.visible && map) { map.offset.x += dt * 0.004; map.offset.y += dt * 0.002; } }); }
+    const sea = new THREE.Mesh(new THREE.CircleGeometry(270, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, map, fog: false, toneMapped: false })); sea.rotation.x = -Math.PI / 2; sea.position.y = -26; SKY.add(sea); // (far below: the plaza floats over it)
+    if (map) map.repeat.set(14, 14); spins.push((dt) => { if (SKY.visible && map) { map.offset.x += dt * 0.004; map.offset.y += dt * 0.002; } }); }
   // the plaza you walk on: pale marble tiles with gold rings, its edge a pink glow and a drop of stone below (the concept art's floor)
   const PLAZA_R = 64;
   { const cv = typeof document !== "undefined" ? document.createElement("canvas") : null; let map = null;
@@ -100,7 +102,7 @@ export function makeRaidQueens(ctx) {
       for (let i = 0; i < 70; i++) { c.strokeStyle = `rgba(150,140,180,${0.05 + rnd() * 0.08})`; c.lineWidth = 1 + rnd() * 2; c.beginPath(); let x = rnd() * 1024, y = rnd() * 1024; c.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (rnd() - 0.5) * 160; y += (rnd() - 0.5) * 160; c.lineTo(x, y); } c.stroke(); } // (the marble's veins)
       c.strokeStyle = "rgba(120,110,150,.35)"; c.lineWidth = 2; for (let r = 60; r < m; r += 64) { c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke(); } for (let a = 0; a < 24; a++) { const t = (a / 24) * Math.PI * 2; c.beginPath(); c.moveTo(m + Math.cos(t) * 60, m + Math.sin(t) * 60); c.lineTo(m + Math.cos(t) * 512, m + Math.sin(t) * 512); c.stroke(); }
       c.strokeStyle = "#d9b25e"; for (const [r, w] of [[120, 7], [250, 5], [380, 6], [500, 8]]) { c.lineWidth = w; c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke(); }
-      map = new THREE.CanvasTexture(cv); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4; }
+      map = new THREE.CanvasTexture(cv); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4; marbleMap = map; }
     const plaza = new THREE.Mesh(new THREE.CircleGeometry(PLAZA_R, 96), new THREE.MeshStandardMaterial({ color: 0xffffff, map, roughness: 0.35, metalness: 0.15, envMapIntensity: 0.6, fog: false })); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; plaza.receiveShadow = true; H.add(plaza);
     const edge = new THREE.Mesh(new THREE.RingGeometry(PLAZA_R - 0.5, PLAZA_R, 128), neon(0xff6fa8, 0.85)); edge.rotation.x = -Math.PI / 2; edge.position.y = 0.05; H.add(edge);
     const side = new THREE.Mesh(new THREE.CylinderGeometry(PLAZA_R, PLAZA_R - 6, 9, 96, 1, true), new THREE.MeshStandardMaterial({ color: 0x4a3a5a, roughness: 0.8, side: THREE.DoubleSide })); side.position.y = -4.5; H.add(side); // (the stone under its edge)
@@ -135,13 +137,13 @@ export function makeRaidQueens(ctx) {
       { const box = new THREE.Box3().setFromObject(isle.scene), hh = box.max.y - box.min.y || 1;
         // [x, z, height of the spire (m), how high it floats]: big ones far off, small ones near the road; none on the road
         const ISLES = [[-19, 22, 9, 5], [21, 8, 11, 7], [-22, -8, 13, 9], [-44, -60, 40, 4], [48, -66, 36, 8], [24, -20, 9, 12], [-62, 30, 22, 14], [66, 34, 20, 16], [-86, -14, 34, 12], [88, 2, 34, 10], [-30, -110, 30, 24], [34, -114, 28, 28]].slice(0, ctx.low ? 7 : 12); // (near ones first: low graphics keeps the first seven)
-        ISLES.forEach(([x, z, h, y], i) => { const o = i ? isle.scene.clone() : isle.scene; fit(o, h / hh, x, y, z, box); o.rotation.y = i * 1.7; H.add(o);
-          const y0 = o.position.y; spins.push((dt, t) => { if (H.visible) { o.position.y = y0 + Math.sin(t * 0.5 + i) * 0.8; o.rotation.y += dt * 0.03 * (i % 2 ? 1 : -1); } });
-          if (i % 3 === 0 && !ctx.low) { const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 60, 6, 1, true), neon(0xff4d6d, 0.5)); beam.position.set(x, y - 30, z); H.add(beam); } }); }
+        ISLES.forEach(([x, z, h, y], i) => { const o = i ? isle.scene.clone() : isle.scene; fit(o, h / hh, x, y, z, box); o.rotation.y = i * 1.7; SKY.add(o);
+          const y0 = o.position.y; spins.push((dt, t) => { if (SKY.visible) { o.position.y = y0 + Math.sin(t * 0.5 + i) * 0.8; o.rotation.y += dt * 0.03 * (i % 2 ? 1 : -1); } });
+          if (i % 3 === 0 && !ctx.low) { const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 60, 6, 1, true), neon(0xff4d6d, 0.5)); beam.position.set(x, y - 30, z); SKY.add(beam); } }); }
       return true;
     }).catch((e) => { hallP = null; console.warn("raid hall", e); return false; }));
   }
-  function vis() { const inRun = !!run && !run.done; g.visible = shown && inRun; H.visible = back.visible = shown && !inRun; solids.length = 0; if (H.visible) solids.push(wall); if (H.visible) loadHall(); }
+  function vis() { const inRun = !!run && !run.done; g.visible = shown && inRun; H.visible = back.visible = shown && !inRun; SKY.visible = shown; if (shown) loadHall(); solids.length = 0; if (H.visible) solids.push(wall); if (H.visible) loadHall(); }
   /// the hall's front: on the road, facing the Citadel (after a run, and where the portal by the fountain puts you)
   function toHall(atDoor) { ctx.stand(land.x, atDoor ? door.position.z + 4 : land.z + HALL.start, { x: land.x, z: land.z + HALL.door }); vis(); }
 
@@ -255,7 +257,7 @@ export function makeRaidQueens(ctx) {
       if (!r || !r.ok) { const j = (r && r.j) || {}; if (r && r.status === 402) { closeLobby(); if (!info) await refreshInfo(); payCard(); return; } ctx.toast(esc(j.error ? T(j.error) : T("Couldn't open it — try again"))); return; }
       closeLobby();
       const V = QV[qs[0]], isS = mode === "secret", pink = trio; // (the Throne and the SECRET: the three queens, the trinity's colours)
-      theme(pink ? "#ff7ab8" : V.css, pink ? 0x2a1830 : V.ground); backdrop(pink ? "nyxara" : qs[0]);
+      theme(pink ? "#ff7ab8" : V.css, pink ? 0x2a1830 : V.ground, pink ? 0xffbcd4 : ({ lysitha: 0xd6e0ff, solvira: 0xffe9b8, nyxara: 0xffa0a0 })[qs[0]]); backdrop(pink ? "nyxara" : qs[0]); // (the marble floor tinted like the queen's realm: silver-blue, gold, crimson)
       run = { id: r.j.run, mode, isS, trio, plan: isS ? PLAN.secret : PLAN.normal, t: 0, kills: 0, mobs: [], queens: [], stage: "waves", qs, spawnT: 0, done: false, skin: pink ? "red" : V.skin };
       shown = true; vis(); ctx.stand(land.x, land.z + ARENA_R - 8, { x: land.x, z: land.z }); paintHud(); if (ctx.music) ctx.music("waves"); if (ctx.Snd && ctx.Snd.siren) try { ctx.Snd.siren(); } catch { /* no sound */ }
       ctx.toast(`<b>${esc(isS ? "SECRET" : trio ? T("THRONE OF THREE") : T(V.name))}</b> · ${esc(T(trio ? "Clear the waves — then they come." : "Clear the waves — then she comes."))}`);

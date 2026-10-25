@@ -4107,7 +4107,7 @@ html.wp-pcphone .rq-cin2 header{grid-template-columns:1fr}
 @media (max-width:760px){.rq-modes{grid-template-columns:repeat(2,1fr)}.rq-lb header{grid-template-columns:120px 1fr}}
 html.wp-pcphone .rq-lb{zoom:1.9;width:calc((100vw - 40px) / 1.9);max-height:calc((100svh - 40px) / 1.9)}
 html.wp-pcphone .rq-modes{grid-template-columns:repeat(2,1fr)}html.wp-pcphone .rq-lb header{grid-template-columns:110px 1fr}
-html.wp-pcphone .rq-hud{zoom:1.7;width:calc((100vw - 200px) / 1.7);top:calc(70px + env(safe-area-inset-top,0px))}
+html.wp-pcphone .rq-hud{zoom:1.5;width:calc((100vw - 80px) / 1.5);top:calc(172px + env(safe-area-inset-top,0px))} /* (zoomed ×1.5: about 260 px down, below the HP / SP panel and the purse: the owner's screenshot had it over them) */
 /* the window sat off to the right and filled the phone edge to edge (the owner's screenshot, 2026-10-24): the sheet's 16px
    padding plus a full-width card pushed it right. Centred now, with a little room on every side */
 html.wp-pcphone body.wp .wr-sheet:has(>.wr-card.hb){padding:0;place-items:center}

@@ -1413,7 +1413,8 @@ export function createCombat(ctx) {
       zoneT = 0.5; ctx.here(me); const z = zoneAt(me.x, me.z);
       if (z !== zone) { zone = z; if (z && z !== zoneShown) enterZone(z); zoneShown = z; ctx.onZone && ctx.onZone(z); spawnT = Math.min(spawnT, 2); }
       paintZone(); edgeEl.hidden = true; // no red frame: any ground, any level
-      const bm = mobs.find((m) => m.rank === "boss" && !m.dead); if (bm && bossEl.hidden) bossBar(bm); else if (!bm && !bossEl.hidden) hideBossBar();
+      const bm = mobs.find((m) => m.rank === "boss" && !m.dead && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < 120); // (the nearest few hundred metres: Inferno Jack in town isn't shown in a land 2.4 km off)
+      if (bm && bossEl.hidden) bossBar(bm); else if (!bm && !bossEl.hidden) hideBossBar();
     }
     tickMobs(dt, t); tickMShots(dt); tickItems(dt, t); tickDrops(dt, t);
     if (!on) return;

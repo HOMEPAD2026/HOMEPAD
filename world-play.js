@@ -2062,7 +2062,7 @@ function landGo(to) {
 function landTick(force) {
   const L = mode === "hub" ? LD.landAt(-planet.position.x, -planet.position.z) : null, id = L ? L.id : "";
   lands.show(id); if (adc) adc.show(id === "ad"); if (rqL) rqL.show(id === "rq"); if (id === landNow && !force) return;
-  const was = landNow; landNow = id; if (labels) labels.dirty = true; try { paintQuests(); } catch { /* the quests aren't up yet */ }
+  const was = landNow; landNow = id; if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } // (no town rain in RAID QUEENS' sky realm) try { paintQuests(); } catch { /* the quests aren't up yet */ }
   if (id && id !== was) { toast(`<b>${esc(landName(id))}</b>`); if (id === "lp" && !P.visited.includes("lpv")) { P.visited.push("lpv"); save(); } if (id === "ut" && !P.visited.includes("utv")) { P.visited.push("utv"); save(); } if (id === "ad" && !P.visited.includes("adc")) { P.visited.push("adc"); save(); } if (id === "rq" && !P.visited.includes("rqx")) { P.visited.push("rqx"); save(); } }
 }
 st.on(() => { try { landTick(false); } catch { /* still loading */ } });
@@ -2535,7 +2535,7 @@ async function refreshArc() {
   if (!first && big && sig !== lastBig) { swimWhale(); feed(T("A whale {side} {v} of $ARCIRCLE", { side: big.side === "buy" ? W("bought") : W("sold"), v: usd(big.usdc) }), "#4f9dff"); }
   lastBig = sig || lastBig;
   const m = s.change24h == null ? "" : s.change24h >= 5 ? "aurora" : s.change24h <= -5 ? "rain" : "clear";
-  if (m !== mood) { if (mood === "rain" && m !== "rain") rainbowT = 240; mood = m; aurora.visible = m === "aurora"; rain.visible = m === "rain"; setWet(m === "rain"); if (!first && m) feed(m === "aurora" ? T("$ARCIRCLE is up today: an aurora over the planet") : m === "rain" ? T("$ARCIRCLE is down today: rain over the planet") : T("Clear skies over the planet"), "#35d8d0"); }
+  if (m !== mood) { if (mood === "rain" && m !== "rain") rainbowT = 240; mood = m; aurora.visible = m === "aurora"; rain.visible = m === "rain" && landNow !== "rq"; setWet(m === "rain"); if (!first && m) feed(m === "aurora" ? T("$ARCIRCLE is up today: an aurora over the planet") : m === "rain" ? T("$ARCIRCLE is down today: rain over the planet") : T("Clear skies over the planet"), "#35d8d0"); }
 }
 // the weather's moments: lightning now and then while it rains (a flash, then the thunder a second or two later), and
 // a rainbow across the sky for a few minutes once the rain stops (?rainbow=1 to see it)
@@ -2803,6 +2803,7 @@ mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
   const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv]"); if (!b) return;
   if (b.dataset.pv) { closeMap(); goPartnerVillage(); return; }
+  if (b.dataset.land === "rq") { closeMap(); rqPortalFront(); return; } // (the owner, 2026-10-25: the map's RAID QUEENS takes you to the front of its portal building by the fountain)
   if (b.dataset.land) { closeMap(); landGo(b.dataset.land); return; }
   if (b.dataset.adc) { closeMap(); if (b.dataset.adc === "guide") { if (landNow === "ad") cityGuide(false); else cityGo(); } else cityTo(b.dataset.adc); return; }
   if (b.dataset.pvk) { closeMap(); goPartnerTower(b.dataset.pvk); return; }
@@ -4794,7 +4795,7 @@ setInterval(() => { try {
   // locked on: the camera eases round so the target (and its wind-up ring) stays in view, unless you're steering it
   if (mode === "hub" && combat && combat.lockAt && !look && !photo && !frozen && performance.now() - lastLook > 2500 && combat.lockAt(lockV)) { const dx = lockV.x + planet.position.x - at.x, dz = lockV.z + planet.position.z - at.z; if (dx * dx + dz * dz > 2.25) camYaw = angLerp(camYaw, Math.atan2(dx, dz) + Math.PI, Math.min(1, dt * (reduce ? 1.2 : 3))); }
   // RAID QUEENS' sky realm: the camera lower and flatter, so the sky and the floating spires come into view (the owner: the sky has to show)
-  skyK += ((landNow === "rq" && rqL && rqL.hall.visible && !rqL.running() ? 1 : 0) - skyK) * (1 - Math.exp(-dt0 * 3));
+  skyK += ((landNow === "rq" && rqL ? (rqL.running() ? 0.6 : rqL.hall.visible ? 1 : 0) : 0) - skyK) * (1 - Math.exp(-dt0 * 3));
   base.set(0, 5.2 * (1 - skyK * 0.42) + camPitch * 6 + inK * 7, 9.6 * (1 - inK * 0.5) * (1 + skyK * 0.08)).multiplyScalar(camDist * camZoom * bz * (landNow === "ad" ? 0.78 : 1) /* (Nexus City: a little closer, among its towers) */ * (1 - Math.sin(Math.min(1, punch) * Math.PI) * 0.07)).applyAxisAngle(Y, camYaw);
   camPos.copy(base).add(at); camPos.y += (hop - at.y) * 0.6;
   if (!photo && inK < 0.5 && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
@@ -5505,6 +5506,14 @@ function rqSoon() {
   el.addEventListener("click", (e) => { if (e.target === el || e.target.closest(".adc-ok")) close(); });
   document.body.appendChild(el); try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
 }
+/// in front of the RAID QUEENS portal building by the fountain, facing it (from the map; walk in to go through)
+function rqPortalFront() {
+  if (frozen || flying || introOn || mode !== "hub") return;
+  const p = lands.portals.find((q) => q.userData.to === "rq"); if (!p) { rqGo(); return; }
+  const v = p.position, d = Math.hypot(v.x, v.z) || 1, k = 5.5; closeAll(); if (landNow) landTick(true);
+  standAt(v.x - (v.x / d) * k, v.z - (v.z / d) * k, { x: v.x, z: v.z });
+  vfx.teleport(here(), { color: 0xff4d8d, color2: 0xffd36a }); if (Snd.dash) Snd.dash(); startSweep(1200); landTick(true); paintPrompt();
+}
 /// the portal by the fountain, the map, the Menu: into the sky realm, at the foot of the Spireway facing the Citadel (walk up → rqWarp → the lobby)
 async function rqGo() {
   if (!rqOn()) { rqSoon(); return; } // (not open yet: the construction card)
@@ -5732,7 +5741,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { mythic: () => mythicNow, openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { rqPortalFront: () => rqPortalFront(), mythic: () => mythicNow, openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),
