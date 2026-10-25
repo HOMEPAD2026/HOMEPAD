@@ -78,6 +78,7 @@ export function makeMythicUI(ctx) {
     if (!el) return; const st = st0(), lv = ctx.level(), sb = setBonus(wornNow());
     const nShards = Object.entries(st.shards || {}).filter(([k, n]) => CC.SHARD[k] && n >= CC.SHARD[k]).length;
     el.innerHTML = `<div class="my-card"><header><div><small>MYTHIC · ${esc(T("SET"))}</small><h3>${esc(T("Crimson Celestial"))}</h3><p>${esc(T("{a} / 7 worn · {b} / 5 bonuses", { a: sb.n, b: sb.active.length }))}${sb.resonance ? " · ✦ " + esc(T("Crimson Resonance")) : ""} · 💠 ${esc(T("Crimson Essence {n}", { n: st.ess || 0 }))}</p></div><button type="button" class="my-x" aria-label="${esc(T("Close"))}">✕</button></header>
+      ${guest() ? `<p class="my-guest">🔒 ${esc(T("You're a guest: look round freely. Sign in with your wallet to win pieces in RAID QUEENS, wear them and trade them."))} <button type="button" class="go" data-signin>${esc(T("Sign in"))}</button></p>` : ""}
       <div class="my-tabs">${[["set", T("My set")], ["shard", T("Shards") + (nShards ? " •" : "")], ["mkt", T("Market")], ["top", T("Ranking")], ...(ctx.isGM && ctx.isGM() ? [["gm", "GM · USDC"]] : [])].map(([k, l]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}">${esc(l)}</button>`).join("")}</div>
       ${tab === "mkt" ? marketHtml() : tab === "shard" ? shardHtml() : tab === "top" ? topHtml() : tab === "gm" ? gmHtml() : setHtml(st, lv, sb)}</div>`;
     mount3d(el);
@@ -207,6 +208,7 @@ export function makeMythicUI(ctx) {
   /// a confirmed tx's check on the server, asked again while it says "not confirmed yet" (about a minute)
   async function untilConfirmed(body) { for (let i = 0; i < 16; i++) { const r = await ctx.post({ ...ctx.sess(), ...body }); if (r && r.status === 202) { await new Promise((ok) => setTimeout(ok, 4000)); continue; } return r; } return { ok: false, j: { error: T("The transaction is still not confirmed — it will be checked when you try again.") } }; }
   async function buyUsd(btn, id) {
+    if (needSign()) return;
     if (!ctx.tx) { ctx.toast(esc(T("Wallet connect isn't available here."))); return; }
     btn.disabled = true; const h = await ctx.post({ action: "world-mythic-usd-hold", ...ctx.sess(), id });
     if (!h || !h.ok) { btn.disabled = false; ctx.toast(esc((h && h.j && h.j.error) ? T(h.j.error) : T("Couldn't change it — try again"))); snd("bad"); return; }
@@ -263,7 +265,11 @@ export function makeMythicUI(ctx) {
     return `<div class="my-body my-tops"><section><h4 class="my-h">${esc(T("Collectors"))}</h4>${rows(top.collect, (u) => `${u.n} / 7${u.stars ? " · ★" + u.stars : ""}`)}</section><section><h4 class="my-h">${esc(T("Highest +"))}</h4>${rows(top.plus, (u) => `+${u.best}`)}</section></div>`;
   }
   // ---------------- doing things ----------------
+  /// a guest looks round the set, the market and the boards; doing anything asks for the wallet first
+  const guest = () => !(ctx.sess && ctx.sess());
+  function needSign() { if (!guest()) return false; ctx.toast(esc(T("Sign in with your wallet to collect, trade and wear Mythic gear."))); if (ctx.signIn) ctx.signIn(); return true; }
   async function act(action, extra, okMsg) {
+    if (needSign()) return null;
     const r = await ctx.post({ action, ...ctx.sess(), ...extra });
     if (!r || !r.ok) { ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); snd("bad"); return null; }
     const before = setBonus(wornNow()); await ctx.refresh(); if (ctx.purse) ctx.purse(); if (okMsg) ctx.toast(okMsg(r.j)); paint(); afterBonus(before); return r.j;
@@ -323,6 +329,7 @@ export function makeMythicUI(ctx) {
       const rf = e.target.closest("[data-rfs]"); if (rf && rf.value) { const P = CC.PIECES.find((x) => x.slot === rf.value); if (typeof confirm === "function" && !confirm(T("Reforge it into {n}? Its + and stars go back to 0.", { n: T(P ? P.name : "") }))) { rf.value = ""; return; }
         const j = await act("world-mythic-reforge", { id: rf.dataset.rfs, slot: rf.value }, () => esc(T("Reforged into {n}", { n: T(P ? P.name : "") }))); if (j) { pick = rf.value; snd("salvage"); paint(); } } });
     el.addEventListener("click", async (e) => { const s = e.target.closest("[data-slot]"), q = e.target.closest("[data-eq]"), tb = e.target.closest("[data-tab]");
+      if (e.target.closest("[data-signin]")) { if (ctx.signIn) ctx.signIn(); return; }
       if (tb) { tab = tb.dataset.tab; if (tab === "mkt") mkt = null; if (tab === "top") top = null; if (tab === "gm") { gmList = null; gmNft = null; } pick = ""; snd("tab"); paint(); return; }
       if (e.target.closest("[data-unpick]")) { pick = ""; paint(); return; }
       const cu = e.target.closest("[data-cur]"); if (cu) { sellCur = cu.dataset.cur; paint(); return; }
@@ -380,5 +387,5 @@ export function makeMythicUI(ctx) {
     r.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (!b) return; r.remove(); viewer.dispose(); if (b.dataset.k === "set") { close(); open(P.slot); } if (b.dataset.k === "wear") wearNow(p.id); if (el) { ctx.refresh().then(paint); } });
     snd("chest"); setTimeout(() => snd("perfect"), 900);
   }
-  return { open, close, reveal, shown: () => !!el };
+  return { open, close, reveal, shown: () => !!el, repaint: () => paint() };
 }

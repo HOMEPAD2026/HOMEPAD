@@ -4371,3 +4371,6 @@ html.wp-pcphone .my-cut>div,html.wp-pcphone .my-forge-in,html.wp-pcphone .my-sha
 .my-pc.nftp{outline:1px solid rgba(106,216,255,.5)}.my-wait{color:#9fd8ff;font:700 12px system-ui,sans-serif}
 .my-syncf{display:flex;gap:6px;margin-top:10px}.my-syncf input{flex:1;min-width:0;padding:8px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:#1a060c;color:#fff}.my-syncf button{padding:8px 12px;border-radius:10px;border:0;background:linear-gradient(180deg,#6ad8ff,#2a7bd8);color:#041226;font:800 12px Sora,system-ui,sans-serif}
 .my-pc em.my-nfttag{display:inline-block;margin-top:0;color:#fff}
+/* Crimson Celestial for a guest (2026-10-25): a line over the tabs and its sign-in button */
+.my-card .my-guest{margin:6px 0 8px;padding:8px 12px;border-radius:12px;background:rgba(255,61,110,.12);border:1px solid rgba(255,61,110,.35);color:#ffd9e2;font-size:13px;line-height:1.4;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.my-card .my-guest .go{margin-left:auto;padding:6px 14px;border-radius:999px;border:0;background:linear-gradient(180deg,#ff5f86,#d8204e);color:#fff;font-weight:800;cursor:pointer}
