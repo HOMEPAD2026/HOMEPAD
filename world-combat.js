@@ -1300,6 +1300,7 @@ export function createCombat(ctx) {
   }
   async function goDown() {
     if (down) return; down = true; ctx.down(true); document.body.classList.remove("wc-low"); nudge();
+    if (ctx.softKO && ctx.softKO()) { dead.hidden = true; return; } // a run of its own (RAID QUEENS): its own result card, no town KO card and no revive used; softUp() gets you up
     for (const m of mobs) if (!m.dead && m.rank !== "boss") { m.dead = 0.001; puff(m.g.position.clone().setY(0.6), 0xff4d6d, { n: 8, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
     dead.innerHTML = `<div class="wc-dead-card"><h2>${koHead()}</h2><p>${koLine()}</p></div>`;
     const shown = new Promise((r) => setTimeout(() => { dead.hidden = false; r(); }, 900));
@@ -1485,6 +1486,7 @@ export function createCombat(ctx) {
     warm, // b413: scammers and effects readied ahead of the first fight
     bosses: () => mobs.filter((m) => m.rank === "boss" && !m.dead && m.zone).map((m) => m.zone.id),
     potsCheck, tick, keyDown, keyUp, chargeStart, chargeEnd, charged, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
+    softUp: () => { if (down) getUp("here"); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, mobsRaw: () => mobs,

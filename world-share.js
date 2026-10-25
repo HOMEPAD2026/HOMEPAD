@@ -22,6 +22,7 @@ const THEME = {
   poker: { label: "POKER", rib: ["#6a2cff", "#b46cff"], glow: "#ffcf4a", title: ["#fff3b0", "#ffb52e"], felt: ["#3a1466", "#5a1f7a", "#2a0d40"] },
   surv: { label: "SURVIVORS", rib: ["#ff5a1f", "#ffa23a"], glow: "#ff8a3a", title: ["#ffffff", "#ffd9b8"], felt: ["#3a2a6a", "#5a2a3a", "#2a1420"] },
   agent: { label: "AI AGENT", rib: ["#2a4dff", "#5fd3ff"], glow: "#5fd3ff", title: ["#ffffff", "#c7ecff"], felt: ["#14244e", "#2a1a5a", "#0a1430"] },
+  raid: { label: "RAID QUEENS", rib: ["#c2185b", "#ff5f9a"], glow: "#ff4d8d", title: ["#ffffff", "#ffd1e3"], felt: ["#3a0e24", "#2a0a3a", "#14060e"] },
   rings: { label: "INFINITY RINGS", rib: ["#2f6bff", "#2ee0b0"], glow: "#38d8ff", title: ["#ffffff", "#9ff6ff"], felt: ["#1a2a7a", "#3a1a7a", "#0a1440"] },
 };
 /// a soft copy of a picture over the whole card (drawn small, then large: a blur every browser does)

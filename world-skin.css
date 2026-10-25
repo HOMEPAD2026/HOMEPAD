@@ -4150,3 +4150,15 @@ html.wp-pcphone body.wp .wp-hud .wp-mini{margin-top:28px}
 html.wp-pcphone .my-card{zoom:1.9;width:calc((100vw - 40px) / 1.9);max-height:calc((100svh - 40px) / 1.9)}
 html.wp-pcphone .my-slots{grid-template-columns:repeat(3,1fr)}
 html.wp-pcphone .my-rev-in{zoom:1.8}
+
+/* RAID QUEENS: the run's top panel carries the queens' bars, so the town's boss bar stays down while it's up */
+body:has(.rq-hud) #wc-boss{display:none!important}
+/* RAID QUEENS b2: the lobby card's chips (danger, stars, the Mythic chance), the waves' bar, the queens' phase marks, the grade */
+.rq-chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 2px}.rq-chips span{font:800 11px/1 Sora,system-ui,sans-serif;padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.08);color:#e8e3f3}
+.rq-dg.ok{background:rgba(57,255,136,.16);color:#7dffb4}.rq-dg.mid{background:rgba(255,200,80,.16);color:#ffd36a}.rq-dg.hard{background:rgba(255,77,109,.18);color:#ff8aa0}
+.rq-st{color:#ffd36a!important;letter-spacing:1px}.rq-my{background:rgba(255,61,110,.16)!important;color:#ff9ab8!important}
+.rq-wbar{height:6px;margin:6px 0 0;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}.rq-wbar b{display:block;height:100%;background:linear-gradient(90deg,var(--rq),#fff);transition:width .25s linear}
+.rq-hud-in i u{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(255,255,255,.75);box-shadow:0 0 4px #000;z-index:2}
+.rq-wcard{position:relative}.rq-grade{position:absolute;top:10px;right:14px;z-index:3;font:900 64px/1 Sora,system-ui,sans-serif;font-style:italic;-webkit-text-stroke:2px rgba(0,0,0,.35);animation:rqGrade .7s cubic-bezier(.2,1.4,.4,1) both}
+.rq-grade.g-S{color:#ffd36a;text-shadow:0 0 24px rgba(255,200,80,.9)}.rq-grade.g-A{color:#ff9ab8;text-shadow:0 0 20px rgba(255,90,150,.7)}.rq-grade.g-B{color:#9fd4ff;text-shadow:0 0 16px rgba(120,190,255,.6)}
+@keyframes rqGrade{from{transform:scale(2.6) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}

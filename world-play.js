@@ -196,6 +196,9 @@ Object.assign(WORDS.tr, { "Sign in with your wallet to see your Mythic gear.": "
 Object.assign(WORDS.ko, { "Blob": "블롭", "Pinky": "핑키", "Mushroom": "버섯", "Bee": "벌", "Ninja": "닌자", "Orc": "오크", "Ghost": "유령", "Glub": "글럽", "Spiky": "스파이키", "Big Mushroom": "거대 버섯", "Skull": "해골", "Yeti": "예티" });
 Object.assign(WORDS.zh, { "Blob": "史莱姆", "Pinky": "粉粉", "Mushroom": "蘑菇", "Bee": "蜜蜂", "Ninja": "忍者", "Orc": "兽人", "Ghost": "幽灵", "Glub": "咕噜", "Spiky": "刺球", "Big Mushroom": "巨型蘑菇", "Skull": "骷髅", "Yeti": "雪人" });
 Object.assign(WORDS.tr, { "Blob": "Blob", "Pinky": "Pinky", "Mushroom": "Mantar", "Bee": "Arı", "Ninja": "Ninja", "Orc": "Ork", "Ghost": "Hayalet", "Glub": "Glub", "Spiky": "Dikenli", "Big Mushroom": "Dev Mantar", "Skull": "Kafatası", "Yeti": "Yeti" });
+Object.assign(WORDS.ko, { "Safe": "안전", "Fair": "적정", "Hard": "어려움", "Mythic {p}%": "신화 {p}%", "Share": "공유", "Cleared in {t}": "{t}만에 클리어", "Time": "시간", "Knocked out": "쓰러뜨림", "XP": "경험치", "I beat {q} in RAID QUEENS — grade {g}, {t}. ♾️": "RAID QUEENS에서 {q} 격파 — 등급 {g}, {t}. ♾️" });
+Object.assign(WORDS.zh, { "Safe": "安全", "Fair": "适中", "Hard": "困难", "Mythic {p}%": "神话 {p}%", "Share": "分享", "Cleared in {t}": "{t} 内通关", "Time": "时间", "Knocked out": "击倒", "XP": "经验", "I beat {q} in RAID QUEENS — grade {g}, {t}. ♾️": "我在 RAID QUEENS 击败了 {q} —— 评级 {g}，{t}。♾️" });
+Object.assign(WORDS.tr, { "Safe": "Güvenli", "Fair": "Dengeli", "Hard": "Zor", "Mythic {p}%": "Mitik %{p}", "Share": "Paylaş", "Cleared in {t}": "{t} içinde temizlendi", "Time": "Süre", "Knocked out": "Devrildi", "XP": "XP", "I beat {q} in RAID QUEENS — grade {g}, {t}. ♾️": "RAID QUEENS'te {q} yenildi — derece {g}, {t}. ♾️" });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
@@ -3922,7 +3925,7 @@ const tracks = TRK.createTracks({ THREE, planet, reduce });
 st.on((dt) => { if (mode !== "hub") return; here(tmp3t); tracks.tick(dt, tmp3t.x, tmp3t.z, !(combat && combat.zone())); });
 st.on((dt) => { if (mode === "hub") live.tick(dt); });
 st.on((dt) => parts.tick(dt));
-combat = FIGHT.createCombat({ alt: (a) => (jurOn && jurGame ? jurGame.act(a) : false), koWhy: () => (jurOn ? "dino" : ""), koBy: () => { try { return jurOn && jurGame && jurGame.koBy ? jurGame.koBy() : ""; } catch { return ""; } }, vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
+combat = FIGHT.createCombat({ softKO: () => !!(rqL && rqL.running()), alt: (a) => (jurOn && jurGame ? jurGame.act(a) : false), koWhy: () => (jurOn ? "dino" : ""), koBy: () => { try { return jurOn && jurGame && jurGame.koBy ? jurGame.koBy() : ""; } catch { return ""; } }, vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
   kit: () => kit, here: (v) => here(v), facing: () => facing, faceTo: (a) => { facing = angLerp(facing, a, 0.5); }, afterimage: () => afterimage(), critFlash: () => critFlash(), avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),
@@ -5476,7 +5479,7 @@ function withMythic(o) {
 function ensureRq() {
   if (rqL) return Promise.resolve(rqL);
   return rqWait || (rqWait = import("./world-raidq.js").then((M) => {
-    rqL = M.makeRaidQueens({ THREE, K, planet, cam: () => cam.position, T: TW, esc, toast, Snd, ver: VER, low: lowGfx, reduce, coarse, land: LD.LANDS.rq, combat: () => combat, here: (v) => here(v), level, sess, post,
+    rqL = M.makeRaidQueens({ THREE, K, planet, cam: () => cam.position, brag: (c) => bragCard(c), T: TW, esc, toast, Snd, ver: VER, low: lowGfx, reduce, coarse, land: LD.LANDS.rq, combat: () => combat, here: (v) => here(v), level, sess, post,
       addItem: (it) => { rpg.addItem(it); save(); }, refresh: () => refreshPurse(true), itemName: (it) => rpg.itemName(it), parts, shake: (n) => { if (!reduce) shake = Math.max(shake, n); },
       stand: (x, z, c) => standAt(x, z, c), freeze: (on) => { frozen = !!on; keys.clear(); if (!on) { near = null; paintPrompt(); } }, compile: (l) => compileHidden(l), active: () => mode === "hub" && !frozen && !introOn && !flying,
       grantXp: (n) => { const before = level(); P.xp += n; save(); paintHud(); xpFloat(n); if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } badges(); }, // (the server's grant: no boosts on top, it's already counted)
