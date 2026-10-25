@@ -520,8 +520,8 @@ async function ping() {
   if (document.hidden) return;
   let g; try { if (mode === "hub" && !introOn) { const v = here(new THREE.Vector3()); g = { x: Math.round(v.x * 10) / 10, z: Math.round(v.z * 10) / 10, c: P.char || "bot", lv: level(), ...(P.tint ? { tn: P.tint } : {}), ...(tierOf() ? { tr: tierOf() } : {}) }; /* b447: the hero's colour and halo tier, for the others */ if (combat) { const vt = combat.vitals(), zz = combat.zone(); g.h = Math.max(0, Math.min(100, Math.round((100 * vt.hp) / (vt.max || 1)))); if (zz) g.zn = zz.id; } if (said && !said.sent && Date.now() - said.at < 60e3) { g.s = said.s; said.sent = true; } if (P.pal) g.p = P.pal; if (dinoOutNow) g.dn = 1; try { const s0 = landNow === "ad" && agentDim && agentDim.state(); if (s0 && s0.agent) g.ag = 1; } catch { /* still loading */ } const cm = chatUI && chatUI.pending(); if (cm) g.m = cm; } } catch { /* not ready yet */ }
   // signed in and not hidden (Settings): the sign-in goes along, so others see your name and level over your figure
-  const se = g && S.showName !== false ? sess() : null;
-  try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent, ...(g ? { g } : {}), ...(se ? { s: se } : {}), ...(se && chatUI && chatUI.presenceDue() ? { pr: 1 } : {}) }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
+  const se0 = sess(), se = g && S.showName !== false ? se0 : null; // (signed in but hidden: the sign-in still goes, so the site can count wallets — hide keeps the name off)
+  try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent, ...(g ? { g } : {}), ...(se0 ? { s: se0 } : {}), ...(se0 && !se ? { hide: 1 } : {}), ...(se && chatUI && chatUI.presenceDue() ? { pr: 1 } : {}) }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
 }
 function paintAuthCount() {
   const c = $("wp-auth-count"); if (!stats || !stats.players) { c.hidden = true; return; }

@@ -335,6 +335,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-back { margin: 0; padding: 8px 16px; border-radius: 999px; background: rgba(6, 14, 40, .62); box-shadow: 0 0 0 1px rgba(46, 224, 176, .45) inset; font: 700 14px/1.2 var(--ui); color: #c9fff0; backdrop-filter: blur(8px); }
 .gw-back[hidden] { display: none; }
 .gw-chip[hidden] { display: none; }
+/* who's in now: wallets and guests beside the count */
+.gw-on-split { display: inline-flex; gap: 10px; margin-left: 4px; padding-left: 10px; border-left: 1px solid var(--line); font: 600 12.5px/1 var(--ui); }
+.gw-on-split[hidden] { display: none; }
+.gw-on-split span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.gw-on-split b { font-size: 14px; }
+@media (max-width: 420px) { .gw-chip-on { flex-wrap: wrap; justify-content: center; row-gap: 6px; } .gw-on-split { margin-left: 0; } }
 .gw-ring { overflow: visible; }
 .gw-ring::before { content: ""; position: absolute; inset: -2px; border-radius: inherit; box-shadow: 0 0 0 0 rgba(56, 216, 255, .6); animation: gw-ringp 2.4s ease-out infinite; pointer-events: none; }
 @keyframes gw-ringp { 0% { box-shadow: 0 0 0 0 rgba(56, 216, 255, .55); } 70%, 100% { box-shadow: 0 0 0 18px rgba(56, 216, 255, 0); } }

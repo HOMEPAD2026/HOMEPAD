@@ -28,6 +28,13 @@ check(r.status === 200 && r.body.firstTime && r.body.save === null, "first sign-
 r = await W.handle({ action: "world-login", wallet: w.address, issued, signature: sig });
 check(r.status === 200 && !r.body.firstTime, "second sign-in: not counted again");
 check((await W.stats()).players === 1, "1 player");
+{ // who's in now: a wallet's ping (its sign-in checked) and guests, split for the site
+  T += 125e3; const s1 = { wallet: w.address, issued, signature: sig };
+  await W.handle({ action: "world-ping", id: "guestguest0001" }); await W.handle({ action: "world-ping", id: "walletbrowser1", s: s1, hide: 1 }); r = await W.handle({ action: "world-ping", id: "walletbrowser1", s: s1 });
+  check(r.body.online === 2 && r.body.wallets === 1 && r.body.guests === 1, `online 2: 1 wallet, 1 guest (${r.body.wallets}/${r.body.guests})`);
+  r = await W.handle({ action: "world-ping", id: "fakewallet0001", s: { wallet: w.address, issued, signature: "0x" + "1".repeat(130) } });
+  check(r.body.online === 3 && r.body.wallets === 1 && r.body.guests === 2, "a sign-in that doesn't check counts as a guest");
+}
 r = await W.handle({ action: "world-login", wallet: "0x" + "1".repeat(40), issued, signature: sig });
 check(r.status === 403, "someone else's signature: refused");
 r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 120, xpv: 2, name: "kmp<script>", char: "female-b", visited: ["launch", "BAD ID!"], cards: ["c1", "x"], quests: ["launchpad"] } });

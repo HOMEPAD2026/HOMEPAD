@@ -153,8 +153,10 @@ export function make(deps) {
   async function stats() {
     const w = Math.floor(now() / WINDOW);
     const d = await getDocs(["worldStats/main", `worldOnline/${w}`, `worldOnline/${w - 1}`]);
-    const m = d["worldStats/main"] || {}, a = (d[`worldOnline/${w}`] || {}).n || 0, b = (d[`worldOnline/${w - 1}`] || {}).n || 0;
-    return { online: Math.max(a, b), visitors: m.visitors || 0, uniques: m.uniques || 0, players: m.players || 0, phase: PH.phase, epoch: PH.epoch };
+    const m = d["worldStats/main"] || {}, A = d[`worldOnline/${w}`] || {}, B = d[`worldOnline/${w - 1}`] || {}, a = A.n || 0, b = B.n || 0;
+    // who's in now: signed in with a wallet (the ping's sign-in checked here) and guests — the busier of the two windows
+    const C = a >= b ? A : B, wal = Math.min(C.n || 0, C.wal || 0);
+    return { online: Math.max(a, b), wallets: wal, guests: Math.max(0, (C.n || 0) - wal), visitors: m.visitors || 0, uniques: m.uniques || 0, players: m.players || 0, phase: PH.phase, epoch: PH.epoch };
   }
   // ---- anonymous health counters (world-diag.js): errors, frame-rate bands, a GPU memory climb; no wallet, no place ----
   const word = (x, n) => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, n);
@@ -298,9 +300,11 @@ export function make(deps) {
     if (!b.gate) { // the home page's gate counts the visit but isn't "in the world"
       const seen = await commit([{ create: `worldSeen/${w}_${id}`, data: { at: now() } }]);
       if (seen.ok) await commit([{ inc: `worldOnline/${w}`, fields: { n: 1 } }]);
+      // signed in? the session goes along whether or not the name shows (b.s); counted once a window a browser
+      if (b.s && typeof b.s === "object" && !signer(b.s).err) { const sw = await commit([{ create: `worldSeenW/${w}_${id}`, data: { at: now() } }]); if (sw.ok) await commit([{ inc: `worldOnline/${w}`, fields: { wal: 1 } }]); }
       // where you are, for the wanderers others see; signed in (and not hidden in Settings), with your name and level
       let who = null;
-      if (b.g && b.s && typeof b.s === "object") { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) { const cr = await crew.crewOf(v.wallet).catch(() => null); who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet, ...(cr && cr.tag && !cr.closed ? { tag: cr.tag } : {}), ...(isGM(v.wallet) ? { gm: 1 } : {}) }; } } }
+      if (b.g && b.s && typeof b.s === "object" && !b.hide) { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) { const cr = await crew.crewOf(v.wallet).catch(() => null); who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet, ...(cr && cr.tag && !cr.closed ? { tag: cr.tag } : {}), ...(isGM(v.wallet) ? { gm: 1 } : {}) }; } } }
       // the line they said last, for the bubble over them: signed in only, and filtered again here
       if (b.g && typeof b.g === "object") b.g = { ...b.g, m: who && typeof b.g.m === "string" ? chat.bubble(b.g.m) : "" };
       if (b.g) await social.ghostPing(id, b.g, who).catch(() => {});
