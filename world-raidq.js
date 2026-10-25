@@ -78,9 +78,10 @@ export function makeRaidQueens(ctx) {
   const bgTx = {}, bgM = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false });
   { const R = 95, H = ((Math.PI * 2 * R) / 4) * (941 / 1672), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 64, 1, true), bgM);
     cyl.position.y = H / 2 - 6; cyl.renderOrder = -5; cyl.name = "rq-sky"; cyl.frustumCulled = false; cyl.visible = false; g.add(cyl); bgM.userData.cyl = cyl; }
+  const bgLoad = (id) => { if (!bgTx[id]) { const t = new THREE.TextureLoader().load(`/images/raid/bg-${id}.webp${ctx.ver || ""}`, () => { const cyl = bgM.userData.cyl; if (cyl && bgM.map === t) cyl.visible = true; }); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.repeat.set(4, 1); bgTx[id] = t; } return bgTx[id]; };
   function backdrop(id) {
     const cyl = bgM.userData.cyl; if (!id) { cyl.visible = false; return; }
-    if (!bgTx[id]) { const t = new THREE.TextureLoader().load(`/images/raid/bg-${id}.webp${ctx.ver || ""}`, () => { cyl.visible = bgM.map === t; }); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.repeat.set(4, 1); bgTx[id] = t; }
+    bgLoad(id);
     bgM.map = bgTx[id]; bgM.needsUpdate = true; cyl.visible = !!(bgTx[id].image && bgTx[id].image.width);
   }
   // the arena's floor: the sky realm's black marble with its gold rings (the owner's mock-up: a dark glossy floor that
@@ -100,8 +101,10 @@ export function makeRaidQueens(ctx) {
   const medalTx = {};
   function medalOf(id) { const f = { lysitha: "silver", solvira: "gold" }[id] || "crimson"; crackTo = crackK = 0; crackM.opacity = 0; crack.scale.setScalar(0.6);
     const put = (t) => { medalM.map = t; medalM.opacity = 0.92; medalM.needsUpdate = true; medalRing.visible = true; };
-    if (medalTx[f]) return put(medalTx[f]);
-    new THREE.TextureLoader().load(`/images/raid/floor-${f}.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; medalTx[f] = t; put(t); }, undefined, () => {}); }
+    if (medalTx[f] && medalTx[f].image) return put(medalTx[f]);
+    medalLoad(f, put); }
+  function medalLoad(f, put) { if (medalTx[f]) { if (put) { const t = medalTx[f]; if (t.image) put(t); else t.userData.put = put; } return; }
+    const t = new THREE.TextureLoader().load(`/images/raid/floor-${f}.webp${ctx.ver || ""}`, () => { if (t.userData.put) t.userData.put(t); }, undefined, () => {}); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.userData.put = put; medalTx[f] = t; }
   function theme(css, ground, tint) { const c = new THREE.Color(css); runeM.color.copy(c).lerp(new THREE.Color(0xffffff), 0.45); const fm = darkMap || marbleMap; if (fm && floorM.map !== fm) { floorM.map = fm; floorM.needsUpdate = true; }
     if (darkMap) { floorM.roughness = 0.22; floorM.metalness = 0.35; if (darkE && floorM.emissiveMap !== darkE) { floorM.emissiveMap = darkE; floorM.needsUpdate = true; } } floorM.emissiveIntensity = floorBase = darkE ? 0.55 : 0.06; if (tint != null) { floorM.color.setHex(tint); floorM.emissive.copy(c); edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); return; } edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); floorM.color.setHex(ground); floorM.emissive.copy(c); }
 
@@ -407,11 +410,31 @@ export function makeRaidQueens(ctx) {
       play(name) { if (e.onceT > 0) return; if (name === "Attack") playOn(e, V.atk[Math.floor(Math.random() * V.atk.length)], { once: true, fade: 0.1, speed: 1.1 }); else if (name === "Hit" && V.hit && Math.random() < 0.12) playOn(e, V.hit, { once: true, fade: 0.08, speed: 1.3 }); } };
     playOn(e, V.idle[0], { fade: 0 }); return e;
   }
+  /// the boss's lag (the owner, 2026-10-25: "보스잡을 때 렉이 너무 심한데"): what a run shows only later — her body (a 30 k
+  /// skinned model whose shaders compiled the moment she landed), each monster's body and its skin in her colour, her
+  /// cut-in and story art, her realm's panorama, her floor — made, loaded and compiled before the run starts, while
+  /// nothing moves. Her warmed body is the one that lands; the monsters' go to the pool the spawns take from.
+  const warmQ = {}, warmM = {}, keepImg = [];
+  async function warmRun(ids, skin, trio) {
+    try {
+      const imgs = ids.flatMap((id) => [art(id, "full"), art(id, "page")]); if (trio) imgs.push(art("trinity", "page"));
+      for (const u of imgs) { if (keepImg.some((im) => im.src.endsWith(u))) continue; const im = new Image(); im.src = u; keepImg.push(im); if (im.decode) im.decode().catch(() => {}); }
+      for (const id of ids) bgLoad(id); medalLoad(trio ? "crimson" : ({ lysitha: "silver", solvira: "gold" })[ids[0]] || "crimson");
+      for (const k of Object.keys(MOB)) if (MOB[k].tex && msrc[k]) texOf(k, skin);
+      const list = [], mobs = [];
+      for (const id of ids) if (qsrc[id] && !warmQ[id]) { warmQ[id] = queenEnt(id); list.push(warmQ[id].obj); }
+      for (const k of Object.keys(MOB)) if (msrc[k] && !warmM[k + skin]) { const e = mobEnt(k, skin); if (e) { warmM[k + skin] = 1; mobs.push(e); list.push(e.obj); } }
+      if (!list.length) return;
+      for (const o of list) { o.position.set(0, 0, 0); g.add(o); }
+      if (ctx.compile) { try { await ctx.compile(list); } catch { /* compiled on first sight instead */ } }
+      for (const o of list) g.remove(o); for (const e of mobs) mobBack(e);
+    } catch (e) { console.warn("raid warm", e); }
+  }
   /// your attack against a boss of level lv, a second (her fight's length comes from it)
   function dpsAt(lv) { const s = ctx.stats ? ctx.stats() : { atk: 20 }, def = Math.round(lv * 1.5 * 1.5); return Math.max(5, ((s.atk || 20) - def * 0.5) * 2.1); }
   function spawnQueen(id, lv, at, secs) {
     const c = ctx.combat(); if (!c || !c.spawnExt || !qsrc[id]) return null;
-    const V = QV[id], max = Math.max(5000, Math.round(dpsAt(lv) * secs)), e = queenEnt(id);
+    const V = QV[id], max = Math.max(5000, Math.round(dpsAt(lv) * secs)), e = warmQ[id] || queenEnt(id); delete warmQ[id];
     const q = { id, V, lv, max, phase: 1, fightT: 0, e, m: null, dead: false, lastP: at.clone(), spS: 0 };
     q.m = c.spawnExt({ ent: e, at, lv, max, hp: max, home: { x: land.x, z: land.z, r: ARENA_R - 2 }, pats: V.pats[0], atkK: 1.05, extLabel: "RAID QUEENS",
       reach: 4.6, boss: { name: T(V.name), scale: V.h, y: 0, tint: V.tint }, ext: { hit: (mm) => onQueenHit(q, mm), down: (mm) => queenFell(q, mm) } });
@@ -559,6 +582,7 @@ export function makeRaidQueens(ctx) {
       if (ctx.level() < M.lv) { ctx.toast(esc(T("This run is for Lv {n}+", { n: M.lv }))); return; }
       const trio = mode === "secret" || !!(modeOf(mode) || {}).trio, qs = trio ? ["lysitha", "solvira", "nyxara"] : [mode];
       const [ok, ...gls] = await Promise.all([loadMobs(), ...qs.map(loadQueen)]); if (!ok || gls.some((x) => !x)) { ctx.toast(esc(T("Couldn't open it — try again"))); return; }
+      await warmRun(qs, trio ? "red" : QV[qs[0]].skin, trio);
       const r = await ctx.post({ action: "world-rq-start", ...ctx.sess(), mode });
       if (!r || !r.ok) { const j = (r && r.j) || {}; if (r && r.status === 402) { closeLobby(); if (!info) await refreshInfo(); payCard(); return; } ctx.toast(esc(j.error ? T(j.error) : T("Couldn't open it — try again"))); return; }
       closeLobby();

@@ -2978,7 +2978,7 @@ function qmFloor() { // the top of the bottom controls, read once a second (a la
   return (qmBot = Math.max(innerHeight * 0.45, t - 34));
 }
 function paintMarker() {
-  if (!questTarget || frozen || photo || mode !== "hub") { qm.hidden = true; return; }
+  if (!questTarget || frozen || photo || mode !== "hub" || (rqL && rqL.running())) { if (!qm.hidden) qm.hidden = true; return; } /* (not in a RAID QUEENS run: it pointed 2 km off and read the panels' boxes every frame) */
   questTarget.getWorldPosition(proj); const dist = proj.distanceTo(at);
   if (dist < 5) { qm.hidden = true; return; }
   proj.y += 3; proj.project(cam);
