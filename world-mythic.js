@@ -7,7 +7,7 @@
 // a set bonus reached, an enhance's hammer, share cards for the big ones.
 //   ctx: { THREE, K, T, esc, post(b), sess(), level(), state() → { pieces, eq, ess, shards, now } | null, refresh() → Promise,
 //          toast(html), freeze(on), ver, Snd, hero() → "aron" | "lumi" | "nex", eqItem(slot) → the regular piece worn there,
-//          share(card), purse(), reduce }
+//          share(card), purse(), reduce, tx(to, data) → hash (the player's own wallet), isGM() }
 import { CC, pieceOf, mythicStats, setBonus, enhCost, essOf, slotOdds, blessedSlot, weekNo, reforgeCost } from "./world-mythic-data.js";
 import { itemStats } from "./world-rpg-data.js";
 
@@ -64,7 +64,7 @@ function makeViewer(THREE, K) {
 
 export function makeMythicUI(ctx) {
   const { T, esc } = ctx; const viewer = makeViewer(ctx.THREE, ctx.K);
-  let el = null, pick = "", tab = "set", mkt = null, sellId = "", top = null, mf = { slot: "", plus: 0, sort: "new", watch: false }, histId = "", oddsOpen = false, bidOpen = false;
+  let el = null, pick = "", tab = "set", sellCur = "arcl", gmList = null, mkt = null, sellId = "", top = null, mf = { slot: "", plus: 0, sort: "new", watch: false }, histId = "", oddsOpen = false, bidOpen = false;
   const statLine = (o) => Object.entries(o).filter(([k, v]) => v && STAT[k]).map(([k, v]) => `${T(STAT[k])} +${v}`).join(" · ");
   const watchSet = () => { try { return new Set(JSON.parse(localStorage.getItem("arc.world.myWatch") || "[]")); } catch { return new Set(); } };
   const setWatch = (s) => { try { localStorage.setItem("arc.world.myWatch", JSON.stringify([...s].slice(-60))); } catch { /* this visit only */ } };
@@ -78,8 +78,8 @@ export function makeMythicUI(ctx) {
     if (!el) return; const st = st0(), lv = ctx.level(), sb = setBonus(wornNow());
     const nShards = Object.entries(st.shards || {}).filter(([k, n]) => CC.SHARD[k] && n >= CC.SHARD[k]).length;
     el.innerHTML = `<div class="my-card"><header><div><small>MYTHIC · ${esc(T("SET"))}</small><h3>${esc(T("Crimson Celestial"))}</h3><p>${esc(T("{a} / 7 worn · {b} / 5 bonuses", { a: sb.n, b: sb.active.length }))}${sb.resonance ? " · ✦ " + esc(T("Crimson Resonance")) : ""} · 💠 ${esc(T("Crimson Essence {n}", { n: st.ess || 0 }))}</p></div><button type="button" class="my-x" aria-label="${esc(T("Close"))}">✕</button></header>
-      <div class="my-tabs">${[["set", T("My set")], ["shard", T("Shards") + (nShards ? " •" : "")], ["mkt", T("Market")], ["top", T("Ranking")]].map(([k, l]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}">${esc(l)}</button>`).join("")}</div>
-      ${tab === "mkt" ? marketHtml() : tab === "shard" ? shardHtml() : tab === "top" ? topHtml() : setHtml(st, lv, sb)}</div>`;
+      <div class="my-tabs">${[["set", T("My set")], ["shard", T("Shards") + (nShards ? " •" : "")], ["mkt", T("Market")], ["top", T("Ranking")], ...(ctx.isGM && ctx.isGM() ? [["gm", "GM · USDC"]] : [])].map(([k, l]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}">${esc(l)}</button>`).join("")}</div>
+      ${tab === "mkt" ? marketHtml() : tab === "shard" ? shardHtml() : tab === "top" ? topHtml() : tab === "gm" ? gmHtml() : setHtml(st, lv, sb)}</div>`;
     mount3d(el);
   }
   function setHtml(st, lv, sb) {
@@ -112,7 +112,7 @@ export function makeMythicUI(ctx) {
       return `<div class="my-cmp"><small>${esc(T("vs what you wear now"))}</small>${keys.map((k) => { const dlt = Math.round(((s[k] || 0) - (nowStats[k] || 0)) * 10) / 10; return dlt ? `<span class="${dlt > 0 ? "up" : "dn"}">${esc(T(STAT[k]))} ${dlt > 0 ? "▲" : "▼"}${Math.abs(dlt)}</span>` : ""; }).join("")}</div>`; };
     const row = (p) => { const on = eq[P0.slot] === p.id, low = p.req > lv, listed = p.state === "GAME_LISTED", c = enhCost(p.plus || 0, p.fails || 0), top = (p.plus || 0) >= CC.MAX_PLUS;
       const dups = list.filter((x) => x.id !== p.id && x.state !== "GAME_LISTED" && eq[P0.slot] !== x.id), stars = p.stars || 0;
-      return `<div class="my-pc${on ? " on" : ""}${listed ? " listed" : ""}" data-pc="${p.id}"><span><b>${esc(T(SRC[p.src] || p.src))} · +${p.plus || 0}${stars ? ` <i class="my-star">${"★".repeat(stars)}</i>` : ""}</b><small>${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}${listed ? ` · 🏷 ${fmtN(p.price)} ARCL` : ""}</small><em>${esc(statLine(mythicStats(p)))}</em>${compare(p)}</span>
+      return `<div class="my-pc${on ? " on" : ""}${listed ? " listed" : ""}" data-pc="${p.id}"><span><b>${esc(T(SRC[p.src] || p.src))} · +${p.plus || 0}${stars ? ` <i class="my-star">${"★".repeat(stars)}</i>` : ""}</b><small>${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}${listed ? ` · 🏷 ${p.cur === "usdc" ? (p.price / 100).toFixed(2) + " USDC" : fmtN(p.price) + " ARCL"}` : ""}</small><em>${esc(statLine(mythicStats(p)))}</em>${compare(p)}</span>
         <div class="my-acts">${listed ? `<button type="button" data-unlist="${p.id}">${esc(T("Take back"))}</button>` : `<button type="button" class="go" data-eq="${p.id}" ${low && !on ? "disabled" : ""}>${on ? esc(T("Take off")) : low ? "🔒 Lv " + p.req : esc(T("Wear"))}</button>
           <button type="button" class="enh" data-enh="${p.id}" ${top ? "disabled" : ""}>${top ? "+" + CC.MAX_PLUS : `⬆ +${(p.plus || 0) + 1} · ${c.ess}💠 ${fmtN(c.arcl)} ARCL · ${Math.round(c.rate * 100)}%${c.up ? ` <small>(+${Math.round(c.up * 100)}%)</small>` : ""}`}</button>
           ${stars < CC.MAX_STARS && dups.length ? `<button type="button" class="awk" data-awk="${p.id}" data-fod="${dups[0].id}">★ ${esc(T("Awaken with a copy"))} → ${"★".repeat(stars + 1)}</button>` : ""}
@@ -120,7 +120,7 @@ export function makeMythicUI(ctx) {
           <button type="button" data-sell="${p.id}">🏷 ${esc(T("Sell"))}</button><button type="button" class="salv" data-salv="${p.id}">♻ ${esc(T("Salvage"))} +${essOf(p)}💠</button>
           <button type="button" class="hist" data-hist="${p.id}">📜 ${esc(T("Its story"))}</button>`}</div>
         ${histId === p.id ? storyHtml(p) : ""}
-        ${sellId === p.id ? `<form class="my-sellf" data-sellf="${p.id}"><input type="number" min="${CC.MARKET.MIN}" max="${CC.MARKET.MAX}" step="100" value="${CC.MARKET.MIN * 10}" aria-label="${esc(T("Price in ARCL"))}"><button type="submit">${esc(T("List for sale"))}</button><small>${esc(T("2% goes to the platform when it sells."))}</small></form>` : ""}</div>`; };
+        ${sellId === p.id ? `<form class="my-sellf" data-sellf="${p.id}"><span class="my-cur"><button type="button" data-cur="arcl" class="${sellCur === "arcl" ? "on" : ""}">ARCL</button><button type="button" data-cur="usdc" class="${sellCur === "usdc" ? "on" : ""}">USDC</button></span>${sellCur === "usdc" ? `<input type="number" min="${CC.USD.MIN / 100}" max="${CC.USD.MAX / 100}" step="0.5" value="10" aria-label="${esc(T("Price in USDC"))}">` : `<input type="number" min="${CC.MARKET.MIN}" max="${CC.MARKET.MAX}" step="100" value="${CC.MARKET.MIN * 10}" aria-label="${esc(T("Price in ARCL"))}">`}<button type="submit">${esc(T("List for sale"))}</button><small>${esc(sellCur === "usdc" ? T("Paid in USDC on Arc. The team sends you the price less 2% from its wallet after the sale.") : T("2% goes to the platform when it sells."))}</small></form>` : ""}</div>`; };
     const nextStar = (CC.AWAKEN[P0.slot] || []).map((o, i) => `<span>${"★".repeat(i + 1)} ${esc(statLine(o))}</span>`).join("");
     const oddsTbl = `<div class="my-odds${oddsOpen ? " on" : ""}"><button type="button" data-odds>${esc(T("Enhance odds"))} ${oddsOpen ? "▲" : "▼"}</button>${oddsOpen ? `<div>${Array.from({ length: CC.MAX_PLUS }, (_, n) => { const c = enhCost(n); return `<span><b>+${n} → +${n + 1}</b>${Math.round(c.rate * 100)}% · ${c.ess}💠 · ${fmtN(c.arcl)}</span>`; }).join("")}<p>${esc(T("A miss keeps the piece and its +. Each miss in a row adds {u}% to the next try, up to {m}%.", { u: Math.round(CC.ENH.FAIL_UP * 100), m: Math.round(CC.ENH.FAIL_MAX * 100) }))}</p></div>` : ""}</div>`;
     return `<div class="my-sheet" role="region" aria-label="${esc(T(P0.name))}"><button type="button" class="my-sheet-x" data-unpick aria-label="${esc(T("Close"))}">⌄</button>
@@ -129,7 +129,7 @@ export function makeMythicUI(ctx) {
       ${list.length ? list.map(row).join("") : `<p class="my-empty">${esc(T("Not found yet. It drops from RAID QUEENS runs — or make it from Crimson Shards."))}</p>`}${oddsTbl}</div>`;
   }
   function storyHtml(p) {
-    const K = { drop: "Dropped in {v}", claim: "Made from {v} shards", plus: "Enhanced to +{v}", star: "Awakened ★{v}", reforge: "Reforged into {v}", sold: "Changed hands for {v} ARCL" };
+    const K = { drop: "Dropped in {v}", claim: "Made from {v} shards", plus: "Enhanced to +{v}", star: "Awakened ★{v}", reforge: "Reforged into {v}", sold: "Changed hands for {v} ARCL", soldUsd: "Changed hands for {v} USDC" };
     const short = (w) => (w ? String(w).slice(0, 6) + "…" + String(w).slice(-4) : "—"), when = (t) => new Date(t).toLocaleDateString();
     const lines = (p.log && p.log.length ? p.log : [{ k: "drop", at: p.at, v: p.src }]).map((x) => { const v = x.k === "drop" || x.k === "claim" ? T(SRC[x.v] || x.v || "") : x.k === "reforge" ? T((pieceOf(x.v) || {}).name || x.v) : x.k === "sold" ? fmtN(x.v) : x.v; return `<li><time>${esc(when(x.at))}</time>${esc(T(K[x.k] || x.k, { v }))}</li>`; });
     return `<div class="my-story"><p>${esc(T("First owner {w}", { w: short(p.first || ((p.hist || [])[0] || {}).from || p.owner) }))} · ${esc(T("{n} owners", { n: 1 + (p.hist || []).length }))}</p><ol>${lines.join("")}</ol></div>`;
@@ -147,30 +147,67 @@ export function makeMythicUI(ctx) {
     if (!mkt) { loadMarket(); return `<div class="my-body"><p class="my-empty">…</p></div>`; }
     const me = ((ctx.sess && ctx.sess()) || {}).wallet || "", mine = (s) => me && s && me.toLowerCase().startsWith(s.slice(0, 6).toLowerCase()) && me.toLowerCase().endsWith(s.slice(-4).toLowerCase());
     const watch = watchSet(), st = st0();
-    let items = (mkt.items || []).filter((x) => { const P = pieceOf(x.def); return P && (!mf.slot || P.slot === mf.slot) && (x.plus || 0) >= mf.plus && (!mf.watch || watch.has(x.id)); });
+    let items = (mkt.items || []).filter((x) => { const P = pieceOf(x.def); return P && (!mf.slot || P.slot === mf.slot) && (x.plus || 0) >= mf.plus && (!mf.watch || watch.has(x.id)) && (!mf.cur || (x.cur || "arcl") === mf.cur); });
     items = items.sort((a, b) => (mf.sort === "low" ? a.price - b.price : mf.sort === "high" ? b.price - a.price : mf.sort === "plus" ? (b.plus || 0) - (a.plus || 0) : b.at - a.at));
     // the price line: recent sales of the filtered slot (or all), oldest to newest
-    const sales = (mkt.sales || []).filter((s) => !mf.slot || (pieceOf(s.def) || {}).slot === mf.slot).slice(-30);
+    const sales = (mkt.sales || []).filter((s) => (!mf.slot || (pieceOf(s.def) || {}).slot === mf.slot) && (s.cur || "arcl") === (mf.cur || "arcl")).slice(-30), unit = mf.cur === "usdc" ? "USDC" : "ARCL", pv = (v) => (mf.cur === "usdc" ? (v / 100).toFixed(2) : fmtN(v));
     let line = ""; if (sales.length >= 2) { const max = Math.max(...sales.map((s) => s.price)), min = Math.min(...sales.map((s) => s.price)), W = 300, H = 70, pts = sales.map((s, i) => `${(i / (sales.length - 1) * W).toFixed(1)},${(H - 6 - (max === min ? 0.5 : (s.price - min) / (max - min)) * (H - 12)).toFixed(1)}`).join(" ");
-      line = `<div class="my-line-c"><small>${esc(T("Recent sales"))} · ${sales.length} · ${fmtN(min)}–${fmtN(max)} ARCL</small><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#ff7a9c" stroke-width="2"/></svg><b>${esc(T("Last {p} ARCL", { p: fmtN(sales[sales.length - 1].price) }))}</b></div>`; }
+      line = `<div class="my-line-c"><small>${esc(T("Recent sales"))} · ${sales.length} · ${pv(min)}–${pv(max)} ${unit}</small><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#ff7a9c" stroke-width="2"/></svg><b>${esc(T(unit === "USDC" ? "Last {p} USDC" : "Last {p} ARCL", { p: pv(sales[sales.length - 1].price) }))}</b></div>`; }
     else line = `<p class="my-fine">${esc(T("No sales yet — the price line starts with the first."))}</p>`;
     const filters = `<div class="my-mf"><select data-mf="slot"><option value="">${esc(T("All pieces"))}</option>${CC.PIECES.map((P) => `<option value="${P.slot}" ${mf.slot === P.slot ? "selected" : ""}>${esc(T(P.name))}</option>`).join("")}</select>
       <select data-mf="plus">${[0, 5, 10, 15].map((n) => `<option value="${n}" ${mf.plus === n ? "selected" : ""}>${n ? "+" + n + "↑" : esc(T("Any +"))}</option>`).join("")}</select>
       <select data-mf="sort">${[["new", T("Newest")], ["low", T("Price ↑")], ["high", T("Price ↓")], ["plus", T("Highest +")]].map(([k, l]) => `<option value="${k}" ${mf.sort === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+      <select data-mf="cur"><option value="" ${!mf.cur ? "selected" : ""}>ARCL + USDC</option><option value="arcl" ${mf.cur === "arcl" ? "selected" : ""}>ARCL</option><option value="usdc" ${mf.cur === "usdc" ? "selected" : ""}>USDC</option></select>
       <button type="button" data-mfw class="${mf.watch ? "on" : ""}">★ ${esc(T("Watched"))}</button></div>`;
     const list = items.length ? items.map((x) => { const P = pieceOf(x.def); return `<div class="my-li"><img src="${img(P, ctx.ver)}" alt="" onerror="this.style.visibility='hidden'"><span><b>${esc(T(P.name))} +${x.plus || 0}${x.stars ? " " + "★".repeat(x.stars) : ""}</b><small>${esc(T(SRC[x.src] || x.src))} · ${esc(T("Worn from Lv {n}", { n: x.req }))} · ×${x.mult}</small><em>${esc(statLine(mythicStats(x)))}</em><small>${esc(T("Seller {w}", { w: x.seller }))}</small></span>
-      <div class="my-li-b"><button type="button" class="star${watch.has(x.id) ? " on" : ""}" data-watch="${x.id}" aria-label="${esc(T("Watch"))}">★</button><button type="button" class="go" data-buy="${x.id}" ${mine(x.seller) ? "disabled" : ""}>${fmtN(x.price)} ARCL</button></div></div>`; }).join("") : `<p class="my-empty">${esc(mf.watch ? T("Nothing you watch is for sale.") : T("Nothing for sale right now."))}</p>`;
+      <div class="my-li-b"><button type="button" class="star${watch.has(x.id) ? " on" : ""}" data-watch="${x.id}" aria-label="${esc(T("Watch"))}">★</button>${x.cur === "usdc" ? `<button type="button" class="go usd" data-buyusd="${x.id}" ${mine(x.seller) ? "disabled" : ""}>${(x.price / 100).toFixed(2)} USDC</button>` : `<button type="button" class="go" data-buy="${x.id}" ${mine(x.seller) ? "disabled" : ""}>${fmtN(x.price)} ARCL</button>`}</div></div>`; }).join("") : `<p class="my-empty">${esc(mf.watch ? T("Nothing you watch is for sale.") : T("Nothing for sale right now."))}</p>`;
     // buy requests: anyone's, the ones you can fill (a matching piece of yours), your own (take back), a new one
     const bids = (mkt.bids || []).filter((x) => !mf.slot || (pieceOf(x.def) || {}).slot === mf.slot);
     const fitOf = (b) => (st.pieces || []).filter((p) => p.def === b.def && (p.plus || 0) >= b.minPlus && p.state !== "GAME_LISTED").sort((a, c) => (a.plus || 0) - (c.plus || 0))[0];
     const bidRows = bids.length ? bids.map((b) => { const P = pieceOf(b.def), f = fitOf(b), my = mine(b.w); return P ? `<div class="my-bid"><span><b>${esc(T(P.name))} ${b.minPlus ? "+" + b.minPlus + "↑" : ""}</b><small>${esc(T("Wanted by {w}", { w: b.w }))}</small></span><b class="pr">${fmtN(b.price)} ARCL</b>
       ${my ? `<button type="button" data-unbid="${b.bid}">${esc(T("Take back"))}</button>` : f ? `<button type="button" class="go" data-fill="${b.bid}" data-fid="${f.id}">${esc(T("Sell mine (+{n})", { n: f.plus || 0 }))}</button>` : ""}</div>` : ""; }).join("") : `<p class="my-fine">${esc(T("No buy requests yet."))}</p>`;
     const bidForm = bidOpen ? `<form class="my-bidf" data-bidf><select name="def">${CC.PIECES.map((P) => `<option value="${P.id}">${esc(T(P.name))}</option>`).join("")}</select><select name="plus">${[0, 5, 10, 15].map((n) => `<option value="${n}">${n ? "+" + n + "↑" : esc(T("Any +"))}</option>`).join("")}</select><input name="price" type="number" min="${CC.MARKET.MIN}" max="${CC.MARKET.MAX}" step="100" value="${CC.MARKET.MIN * 10}" aria-label="${esc(T("Price in ARCL"))}"><button type="submit" class="go">${esc(T("Post the request"))}</button><small>${esc(T("The ARCL is held until someone sells you one, or you take it back."))}</small></form>` : `<button type="button" class="my-newbid" data-bidopen>＋ ${esc(T("Ask to buy a piece"))}</button>`;
-    return `<div class="my-body">${filters}${line}<div class="my-mkt">${list}</div>
+    const myUsd = (st.usd || []).length ? `<h4 class="my-h">${esc(T("My USDC trades"))}</h4><div class="my-bids">${st.usd.map((r) => { const P = pieceOf(r.def), amt = ((r.kind === "payout" && r.me === "seller" ? r.net : r.cents) / 100).toFixed(2);
+      const what = r.kind === "refund" ? T("Refund to you") : r.me === "seller" ? T("Your sale — paid to you") : T("Your purchase"), stt = r.status === "due" ? (r.kind === "payout" && r.me === "buyer" ? T("Done") : T("Waiting for the team")) : r.status === "paid" ? T("Paid") : r.status === "refunded" ? T("Refunded") : r.status;
+      return `<div class="my-bid"><span><b>${esc(P ? T(P.name) : "—")}</b><small>${esc(what)} · ${esc(new Date(r.at).toLocaleDateString())}</small></span><b class="pr">${amt} USDC</b><small class="st ${r.status}">${esc(stt)}</small></div>`; }).join("")}</div>` : "";
+    return `<div class="my-body">${filters}${line}<div class="my-mkt">${list}</div>${myUsd}
       <h4 class="my-h">${esc(T("Buy requests"))}</h4><div class="my-bids">${bidRows}</div>${bidForm}
       <p class="my-fine">${esc(T("Pieces change hands with their +, stars, story and where they came from. 2% of the price goes to the platform."))}</p></div>`;
   }
   async function loadMarket() { try { const r = await fetch("/api/social?world=mythic-market", { cache: "no-store" }); mkt = r.ok ? await r.json() : { items: [] }; } catch { mkt = { items: [] }; } paint(); }
+  // ---------------- the team's USDC payouts (GM) ----------------
+  function gmHtml() {
+    if (!gmList) { ctx.post({ action: "world-mythic-usd-admin", ...ctx.sess(), op: "list" }).then((r) => { gmList = (r && r.ok && r.j.list) || []; paint(); }).catch(() => { gmList = []; paint(); }); return `<div class="my-body"><p class="my-empty">…</p></div>`; }
+    const sh = (w) => (w ? String(w).slice(0, 6) + "…" + String(w).slice(-4) : "—");
+    return `<div class="my-body"><p class="my-fine">${esc(T("Send the amount from your own wallet in USDC on Arc; the server checks the transfer and marks it."))}</p><div class="my-bids">${gmList.length ? gmList.map((r) => { const P = pieceOf(r.def), to = r.kind === "payout" ? r.seller : r.buyer, amt = r.kind === "payout" ? r.net : r.cents;
+      return `<div class="my-bid"><span><b>${r.kind === "payout" ? "💸 " + esc(T("Payout")) : "↩ " + esc(T("Refund"))} · ${esc(P ? T(P.name) : "—")}</b><small>→ ${esc(sh(to))} · ${esc(new Date(r.at).toLocaleString())} · tx ${esc(sh(r.tx))}</small></span><b class="pr">${(amt / 100).toFixed(2)} USDC</b>
+        ${r.status === "due" ? `<button type="button" class="go" data-gmpay="${r.id}" data-to="${esc(to)}" data-amt="${amt}" data-op="${r.kind === "payout" ? "paid" : "refunded"}">${esc(T("Pay from my wallet"))}</button>` : `<small class="st ${r.status}">${esc(r.status)}</small>`}</div>`; }).join("") : `<p class="my-fine">${esc(T("Nothing to settle."))}</p>`}</div></div>`;
+  }
+  const pad64 = (h) => String(h).replace(/^0x/, "").toLowerCase().padStart(64, "0");
+  const usdcData = (to, units) => "0xa9059cbb" + pad64(to) + pad64(BigInt(units).toString(16));
+  /// a confirmed tx's check on the server, asked again while it says "not confirmed yet" (about a minute)
+  async function untilConfirmed(body) { for (let i = 0; i < 16; i++) { const r = await ctx.post({ ...ctx.sess(), ...body }); if (r && r.status === 202) { await new Promise((ok) => setTimeout(ok, 4000)); continue; } return r; } return { ok: false, j: { error: T("The transaction is still not confirmed — it will be checked when you try again.") } }; }
+  async function buyUsd(btn, id) {
+    if (!ctx.tx) { ctx.toast(esc(T("Wallet connect isn't available here."))); return; }
+    btn.disabled = true; const h = await ctx.post({ action: "world-mythic-usd-hold", ...ctx.sess(), id });
+    if (!h || !h.ok) { btn.disabled = false; ctx.toast(esc((h && h.j && h.j.error) ? T(h.j.error) : T("Couldn't change it — try again"))); snd("bad"); return; }
+    if (typeof confirm === "function" && !confirm(T("Pay {p} USDC from your wallet on Arc? The piece is held for you for 15 minutes.", { p: h.j.usd.toFixed(2) }))) { btn.disabled = false; return; }
+    let tx; try { tx = await ctx.tx(h.j.token, usdcData(h.j.desk, h.j.amount)); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
+    try { localStorage.setItem("arc.world.myUsdTx", JSON.stringify({ id, tx, at: Date.now() })); } catch { /* kept on the server once checked */ }
+    ctx.toast(esc(T("Payment sent — checking it on Arc…")));
+    const r = await untilConfirmed({ action: "world-mythic-usd-buy", id, tx });
+    if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); snd("bad"); return; }
+    try { localStorage.removeItem("arc.world.myUsdTx"); } catch { /* fine */ }
+    await ctx.refresh(); mkt = null; tab = "set"; paint(); snd("buy"); if (r.j.piece) reveal(r.j.piece);
+  }
+  async function gmPay(btn) {
+    if (!ctx.tx) { ctx.toast(esc(T("Wallet connect isn't available here."))); return; }
+    const amt = Number(btn.dataset.amt), to = btn.dataset.to; if (typeof confirm === "function" && !confirm(T("Send {p} USDC to {w} from your wallet?", { p: (amt / 100).toFixed(2), w: to.slice(0, 6) + "…" + to.slice(-4) }))) return;
+    btn.disabled = true; let tx; try { tx = await ctx.tx(CC.USD.TOKEN, usdcData(to, BigInt(Math.round(amt)) * 10n ** BigInt(CC.USD.DEC - 2))); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
+    const r = await untilConfirmed({ action: "world-mythic-usd-admin", op: btn.dataset.op, id: btn.dataset.gmpay, gmTx: tx });
+    if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
+    ctx.toast(esc(T("Settled — the server checked your transfer"))); gmList = null; paint();
+  }
   // ---------------- the boards ----------------
   function topHtml() {
     if (!top) { fetch("/api/social?world=mythic-top", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { top = j || { collect: [], plus: [] }; paint(); }).catch(() => { top = { collect: [], plus: [] }; paint(); }); return `<div class="my-body"><p class="my-empty">…</p></div>`; }
@@ -230,15 +267,18 @@ export function makeMythicUI(ctx) {
     if (typeof document === "undefined" || el) return; pick = slot || ""; tab = tab0 || "set"; histId = ""; sellId = "";
     el = document.createElement("div"); el.className = "my-win"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); document.body.appendChild(el); ctx.freeze(true);
     el.addEventListener("submit", async (e) => { const f = e.target.closest("[data-sellf]"), bf = e.target.closest("[data-bidf]"); if (!f && !bf) return; e.preventDefault();
-      if (f) { const price = Math.floor(Number(f.querySelector("input").value) || 0); sellId = ""; await act("world-mythic-list", { id: f.dataset.sellf, price }, () => esc(T("Listed for {p} ARCL", { p: fmtN(price) }))); mkt = null; return; }
+      if (f) { const v = Number(f.querySelector("input").value) || 0, usd = sellCur === "usdc", price = usd ? Math.round(v * 100) / 100 : Math.floor(v); sellId = ""; await act("world-mythic-list", { id: f.dataset.sellf, price, cur: usd ? "usdc" : "arcl" }, () => esc(usd ? T("Listed for {p} USDC", { p: price.toFixed(2) }) : T("Listed for {p} ARCL", { p: fmtN(price) }))); mkt = null; return; }
       const fd = new FormData(bf), price = Math.floor(Number(fd.get("price")) || 0); if (typeof confirm === "function" && !confirm(T("Hold {p} ARCL for this request?", { p: fmtN(price) }))) return;
       bidOpen = false; await act("world-mythic-bid", { def: fd.get("def"), minPlus: Number(fd.get("plus")) || 0, price }, () => esc(T("Request posted — the ARCL is held"))); mkt = null; paint(); });
     el.addEventListener("change", async (e) => { const s = e.target.closest("[data-mf]"); if (s) { const k = s.dataset.mf; mf[k] = k === "plus" ? Number(s.value) || 0 : s.value; paint(); return; }
       const rf = e.target.closest("[data-rfs]"); if (rf && rf.value) { const P = CC.PIECES.find((x) => x.slot === rf.value); if (typeof confirm === "function" && !confirm(T("Reforge it into {n}? Its + and stars go back to 0.", { n: T(P ? P.name : "") }))) { rf.value = ""; return; }
         const j = await act("world-mythic-reforge", { id: rf.dataset.rfs, slot: rf.value }, () => esc(T("Reforged into {n}", { n: T(P ? P.name : "") }))); if (j) { pick = rf.value; snd("salvage"); paint(); } } });
     el.addEventListener("click", async (e) => { const s = e.target.closest("[data-slot]"), q = e.target.closest("[data-eq]"), tb = e.target.closest("[data-tab]");
-      if (tb) { tab = tb.dataset.tab; if (tab === "mkt") mkt = null; if (tab === "top") top = null; pick = ""; snd("tab"); paint(); return; }
+      if (tb) { tab = tb.dataset.tab; if (tab === "mkt") mkt = null; if (tab === "top") top = null; if (tab === "gm") gmList = null; pick = ""; snd("tab"); paint(); return; }
       if (e.target.closest("[data-unpick]")) { pick = ""; paint(); return; }
+      const cu = e.target.closest("[data-cur]"); if (cu) { sellCur = cu.dataset.cur; paint(); return; }
+      const bu = e.target.closest("[data-buyusd]"); if (bu && !bu.disabled) { await buyUsd(bu, bu.dataset.buyusd); return; }
+      const gp = e.target.closest("[data-gmpay]"); if (gp && !gp.disabled) { await gmPay(gp); return; }
       if (e.target.closest("[data-odds]")) { oddsOpen = !oddsOpen; paint(); return; }
       if (e.target.closest("[data-bidopen]")) { bidOpen = true; paint(); return; }
       if (e.target.closest("[data-mfw]")) { mf.watch = !mf.watch; paint(); return; }
@@ -258,7 +298,15 @@ export function makeMythicUI(ctx) {
       if (q && !q.disabled) { wear(q.dataset.eq); return; }
       if (s) { const sl = s.dataset.slot; pick = pick === sl ? "" : sl; histId = ""; snd("tap"); paint(); return; }
       if (e.target === el || e.target.closest(".my-x")) close(); });
-    paint(); ctx.refresh().then(paint);
+    paint(); ctx.refresh().then(paint); resumeUsd();
+  }
+  /// a USDC payment sent but not checked (the page closed, the network dropped): checked again the next time the set opens
+  async function resumeUsd() {
+    let pend = null; try { pend = JSON.parse(localStorage.getItem("arc.world.myUsdTx") || "null"); } catch { /* none */ }
+    if (!pend || !pend.tx || Date.now() - pend.at > 864e5 * 3) return;
+    const r = await ctx.post({ action: "world-mythic-usd-buy", ...ctx.sess(), id: pend.id, tx: pend.tx }); if (!r || r.status === 202) return;
+    try { localStorage.removeItem("arc.world.myUsdTx"); } catch { /* fine */ }
+    if (r.ok && r.j.piece) { await ctx.refresh(); paint(); reveal(r.j.piece); } else if (r.j && r.j.refund) ctx.toast(esc(T(r.j.error)));
   }
   function close() { if (el) { el.remove(); el = null; ctx.freeze(false); viewer.dispose(); } }
   /// the drop's moment: the screen dims, a beam of crimson light comes down, the piece falls into it and settles, its name

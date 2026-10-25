@@ -20,7 +20,7 @@ const { CC, mythicStats, setBonus, pieceOf } = await import("../../world-mythic-
 const { itemStats } = await import("../../world-rpg-data.js");
 const json = (status, b) => ({ status, body: b });
 let T = Date.parse("2026-10-25T03:00:00Z"), R = []; const rand = () => (R.length ? R.shift() : 0.99); // (queued rolls: the drop, then the piece)
-const W = make({ ...store, recover: recoverSigner, issuedOk: () => true, json, now: () => T, rand });
+const RC = {}; const W = make({ ...store, recover: recoverSigner, issuedOk: () => true, json, now: () => T, rand, receipt: async (h) => RC[h] || null });
 const sign = async (w) => { const issued = new Date(T).toISOString(); return { wallet: w.address, issued, signature: await w.signMessage(loginMessage(w.address, issued)) }; };
 const call = async (w, action, extra = {}) => W.handle({ action, ...(await sign(w)), ...extra });
 const lvSet = (w, lv, name) => db.set(`worldSave/${w.address.toLowerCase()}`, { xp: xpAt(lv), xpv: XP_VERSION, name });
@@ -131,5 +131,33 @@ r = await call(A, "world-mythic-equip", { slot: "weapon", id: null }); check(r.s
   { const tp = (await W.read(new URL("https://x/api/social?world=mythic-top"))).body; check(tp.collect.length >= 2 && tp.plus[0].best >= 11 && tp.collect.every((x) => !/^0x[0-9a-f]{40}$/.test(x.w)), "the boards: collection and best +"); }
   r = await call(B, "world-mythic-equip", { slot: "necklace", id: ringId });
   { const v = (await W.read(new URL("https://x/api/social?world=mythic-worn&wallet=" + B.address))).body; check(v.n >= 1 && v.worn.some((x) => x.def === "CC_NECKLACE" && x.plus === 11 && x.stars === 1), "anyone can see what Bo wears: the Heart +11 ★1"); }
+}
+// step D: a piece for USDC — the desk's receipt, the piece handed over, the seller's payout by a GM, a late payment refunded
+{ const { SWAP } = await import("../../api/_world-swap.mjs"); const a = A.address.toLowerCase(), b = B.address.toLowerCase(), C = ethers.Wallet.createRandom(), c = C.address.toLowerCase(); lvSet(C, 150, "Cy");
+  const pad = (x) => "0x" + x.replace(/^0x/, "").toLowerCase().padStart(64, "0"), xfer = (from, to, units) => ({ address: CC.USD.TOKEN, topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", pad(from), pad(to)], data: "0x" + BigInt(units).toString(16) });
+  { const own = db.get(`worldMythicOwn/${a}`); own.shards = { ...own.shards, solvira: CC.SHARD.solvira }; db.set(`worldMythicOwn/${a}`, own); }
+  T += 3000; const pc = (await call(A, "world-mythic-claim", { src: "solvira", slot: "boots" })).body.piece;
+  r = await call(A, "world-mythic-list", { id: pc.id, price: 0.5, cur: "usdc" }); check(r.status === 400, "under 1 USDC: refused");
+  r = await call(A, "world-mythic-list", { id: pc.id, price: 12.5, cur: "usdc" }); check(r.status === 200 && db.get(`worldMythic/${pc.id}`).cur === "usdc" && db.get(`worldMythic/${pc.id}`).price === 1250, "listed for 12.50 USDC (kept in cents)");
+  r = await call(B, "world-mythic-buy", { id: pc.id }); check(r.status === 400 && /USDC/.test(r.body.error), "an ARCL buy of a USDC piece: refused");
+  r = await call(B, "world-mythic-usd-hold", { id: pc.id }); check(r.status === 200 && r.body.desk === SWAP.DESK && r.body.amount === "12500000", "Bo holds it: pay 12.5 USDC (12,500,000 units) to the desk");
+  r = await call(C, "world-mythic-usd-hold", { id: pc.id }); check(r.status === 409, "someone else can't hold it while Bo pays");
+  const tx1 = "0x" + "a1".repeat(32); r = await call(B, "world-mythic-usd-buy", { id: pc.id, tx: tx1 }); check(r.status === 202, "a tx not confirmed yet: wait");
+  RC[tx1] = { status: "0x1", logs: [xfer(b, SWAP.DESK, 12000000)] }; r = await call(B, "world-mythic-usd-buy", { id: pc.id, tx: tx1 });
+  check(r.status === 409 && r.body.refund && db.get(`worldMythic/${pc.id}`).owner === a, "12 USDC for a 12.50 piece: not sold, a refund recorded");
+  const tx2 = "0x" + "a2".repeat(32); RC[tx2] = { status: "0x1", logs: [xfer(b, SWAP.DESK, 12500000)] };
+  r = await call(B, "world-mythic-usd-buy", { id: pc.id, tx: tx2 }); check(r.status === 200 && db.get(`worldMythic/${pc.id}`).owner === b && db.get(`worldMythic/${pc.id}`).state === "GAME_OWNED", "12.50 USDC to the desk: the piece is Bo's");
+  r = await call(B, "world-mythic-usd-buy", { id: pc.id, tx: tx2 }); check(r.status === 409, "the same tx again: refused");
+  const pay = db.get(`worldMythicUsd/${r.body.refund || (await mine(A)).usd.find((x) => x.kind === "payout").id}`) || db.get(`worldMythicUsd/${(await mine(A)).usd.find((x) => x.kind === "payout").id}`);
+  { const m = await mine(A), po = m.usd.find((x) => x.kind === "payout"); check(po && po.net === 1225 && po.status === "due" && po.me === "seller", "Aria sees her payout: 12.25 USDC due (2 % fee)"); }
+  r = await call(B, "world-mythic-usd-admin", { op: "list" }); check(r.status === 403, "the payouts list is for the team");
+  r = await call(A, "world-mythic-usd-admin", { op: "list" }); const due = r.body.list.find((x) => x.kind === "payout"), rf = r.body.list.find((x) => x.kind === "refund");
+  check(r.status === 200 && due && rf && rf.buyer === b && rf.cents === 1200, "the team's list: a payout to Aria and a 12 USDC refund to Bo");
+  const g1 = "0x" + "b1".repeat(32); RC[g1] = { status: "0x1", logs: [xfer(a, due.seller, 1000000)] };
+  r = await call(A, "world-mythic-usd-admin", { op: "paid", id: due.id, gmTx: g1 }); check(r.status === 400, "a GM's transfer that doesn't cover the payout: refused");
+  const g2 = "0x" + "b2".repeat(32); RC[g2] = { status: "0x1", logs: [xfer(a, due.seller, 12250000)] };
+  r = await call(A, "world-mythic-usd-admin", { op: "paid", id: due.id, gmTx: g2 }); check(r.status === 200 && db.get(`worldMythicUsd/${due.id}`).status === "paid", "the GM pays 12.25 USDC from their own wallet: marked paid");
+  const g3 = "0x" + "b3".repeat(32); RC[g3] = { status: "0x1", logs: [xfer(a, b, 12000000)] };
+  r = await call(A, "world-mythic-usd-admin", { op: "refunded", id: rf.id, gmTx: g3 }); check(r.status === 200 && db.get(`worldMythicUsd/${rf.id}`).status === "refunded", "the refund sent back: marked refunded");
 }
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

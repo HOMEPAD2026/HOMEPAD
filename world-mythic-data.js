@@ -61,6 +61,10 @@ export const CC = {
   // salvaging a piece: Crimson Essence by where it came from, plus 2 for each + it carried
   ESS: { lysitha: 10, solvira: 20, nyxara: 35, throne: 60, secret: 80 },
   // trading among players for ARCL (step B, the owner's call): 2 % to the platform, the price within these bounds
+  // step D (the owner, 2026-10-25): a piece listed for USDC on Arc — the buyer sends it to the team's desk (api/_world-swap.mjs
+  // SWAP.DESK, the ERC-20 USDC at USDC_TOKEN, 6 decimals), the server checks the transfer and hands the piece over, and a
+  // GM pays the seller (less FEE) from their own wallet; the server never holds a key. Prices in cents.
+  USD: { MIN: 100, MAX: 1000000, FEE: 0.02, HOLD_MS: 15 * 60e3, TOKEN: "0x3600000000000000000000000000000000000000", DEC: 6 },
   MARKET: { FEE: 0.02, MIN: 1000, MAX: 10000000, MAX_LISTED: 300, MAX_BIDS: 300, MY_BIDS: 5, SALES: 200 }, // (bids: buy requests with the ARCL held until filled or taken back)
 };
 export const enhCost = (plus, fails = 0) => { const base = Math.max(0.15, CC.ENH.rate(plus)), up = Math.min(CC.ENH.FAIL_MAX, Math.max(0, Math.floor(fails || 0)) * CC.ENH.FAIL_UP); return { ess: CC.ENH.ess(plus), arcl: CC.ENH.arcl(plus), rate: Math.min(1, Math.round((base + up) * 100) / 100), base, up }; };
