@@ -1,4 +1,4 @@
-// world-mythic-data.js — the Crimson Celestial set (the owner's spec v1.0, 2026-10-25): the game's first MYTHIC gear, six
+// world-mythic-data.js — the Crimson Celestial set (the owner's spec v1.0, 2026-10-25): the game's first MYTHIC gear, seven
 // pieces that drop from RAID QUEENS runs, held on the server (api/_world-mythic.mjs: worldMythic/<id>, never in the
 // save the device sends), with set bonuses that stack at 2 / 3 / 4 / 5 / 6 different pieces worn. Shared by the game and
 // the server; tests/world/mythic.test.mjs checks the numbers.
@@ -16,8 +16,9 @@ export const CC = {
     { id: "CC_RING", slot: "ring", name: "Eclipse Ring", glb: "cc-ring", line: "Critical rate, attack" },
     { id: "CC_NECKLACE", slot: "necklace", name: "Crimson Heart", glb: "cc-necklace", line: "Max HP, skill damage" },
     { id: "CC_BOOTS", slot: "boots", name: "Skywalker Boots", glb: "cc-boots", line: "Speed, defense" },
+    { id: "CC_SHIELD", slot: "shield", name: "Crimson Eclipse Shield", glb: "cc-shield", line: "Defense, damage taken" }, // (the seventh, 2026-10-25: the set fills every gear slot)
   ],
-  // a RAID QUEENS win's chance of one piece (one of the six at equal odds), its level to wear and its stats' multiplier
+  // a RAID QUEENS win's chance of one piece (which one: rollSlot — missing slots and the week's blessed slot first), its level to wear and its stats' multiplier
   DROP: {
     lysitha: { rate: 0.01, req: 100, mult: 1.0 },
     solvira: { rate: 0.02, req: 200, mult: 1.5 },
@@ -34,17 +35,46 @@ export const CC = {
     [6, "Crimson Ascension", { critDmg: 25, skillPct: 20, aura: 1 }],
   ],
   // what each piece adds on top of its slot's usual stats (the spec's "main traits")
-  EXTRA: { weapon: { critDmg: 10 }, helm: { skillPct: 6 }, necklace: { skillPct: 6 }, armor: { dr: 3 } },
+  EXTRA: { weapon: { critDmg: 10 }, helm: { skillPct: 6 }, necklace: { skillPct: 6 }, armor: { dr: 3 }, shield: { dr: 2 } },
+  // Crimson Resonance: all seven worn, each at +10 or more — a bonus beyond the five
+  RESONANCE: { need: 7, plus: 10, name: "Crimson Resonance", stats: { atkPct: 8, critDmg: 15, dr: 5 } },
+  // Crimson Shards (the set's pity): every won run adds its dungeon's shards; that many of one dungeon's shards make a piece
+  // of the slot you pick, from that dungeon (its level to wear and multiplier) — the end of the luck is in sight
+  SHARD: { lysitha: 60, solvira: 40, nyxara: 30, throne: 12, secret: 5 },
+  // which slot a drop is: a slot you don't hold weighs MISS, the week's blessed slot (blessedSlot, Monday Seoul) BLESS more
+  WEIGHT: { MISS: 3, BLESS: 2 },
+  // reforging a piece into another slot (same dungeon, same multiplier; its + and stars go back to 0): Crimson Essence by origin
+  REFORGE: { lysitha: 30, solvira: 50, nyxara: 80, throne: 120, secret: 160 },
+  // awakening: the same piece given up raises a piece's stars (≤ 3); each star opens the slot's own option
+  AWAKEN: {
+    weapon: [{ critDmg: 6 }, { atkPct: 4 }, { skillPct: 8 }], shield: [{ defPct: 4 }, { hpPct: 4 }, { dr: 3 }], armor: [{ hpPct: 4 }, { defPct: 4 }, { dr: 3 }],
+    helm: [{ crit: 3 }, { skillPct: 6 }, { critDmg: 6 }], ring: [{ crit: 3 }, { atkPct: 4 }, { critDmg: 8 }], boots: [{ spd: 3 }, { defPct: 4 }, { dr: 2 }],
+    necklace: [{ hpPct: 4 }, { skillPct: 6 }, { atkPct: 4 }],
+  },
+  MAX_STARS: 3,
+  // the Reaper's own skill: every ten seconds the next hit is a crimson scythe spin round you (×REAPER.mult of the hit)
+  REAPER: { every: 10, mult: 3, r: 4.5 },
   MYTHIC_K: 1.3, // above the best Legendary there is (Lv 100, the save's cap) before the dungeon's multiplier
   // enhancing (+1 … +15, the spec): each step costs Crimson Essence and ARCL; the chance falls after +5 and +10; a miss
   // keeps the piece and its + (only the cost is gone)
-  ENH: { ess: (n) => 4 + n * 3, arcl: (n) => 1000 * (n + 1), rate: (n) => (n < 5 ? 1 : n < 10 ? 0.75 - (n - 5) * 0.05 : 0.4 - (n - 10) * 0.05) },
+  ENH: { ess: (n) => 4 + n * 3, arcl: (n) => 1000 * (n + 1), rate: (n) => (n < 5 ? 1 : n < 10 ? 0.75 - (n - 5) * 0.05 : 0.4 - (n - 10) * 0.05), FAIL_UP: 0.05, FAIL_MAX: 0.25 }, // (each miss in a row at the same + adds FAIL_UP, up to FAIL_MAX)
   // salvaging a piece: Crimson Essence by where it came from, plus 2 for each + it carried
   ESS: { lysitha: 10, solvira: 20, nyxara: 35, throne: 60, secret: 80 },
   // trading among players for ARCL (step B, the owner's call): 2 % to the platform, the price within these bounds
-  MARKET: { FEE: 0.02, MIN: 1000, MAX: 10000000, MAX_LISTED: 300 },
+  MARKET: { FEE: 0.02, MIN: 1000, MAX: 10000000, MAX_LISTED: 300, MAX_BIDS: 300, MY_BIDS: 5, SALES: 200 }, // (bids: buy requests with the ARCL held until filled or taken back)
 };
-export const enhCost = (plus) => ({ ess: CC.ENH.ess(plus), arcl: CC.ENH.arcl(plus), rate: Math.max(0.15, CC.ENH.rate(plus)) });
+export const enhCost = (plus, fails = 0) => { const base = Math.max(0.15, CC.ENH.rate(plus)), up = Math.min(CC.ENH.FAIL_MAX, Math.max(0, Math.floor(fails || 0)) * CC.ENH.FAIL_UP); return { ess: CC.ENH.ess(plus), arcl: CC.ENH.arcl(plus), rate: Math.min(1, Math.round((base + up) * 100) / 100), base, up }; };
+/// the week's blessed slot (Monday 00:00 Seoul): one of the seven in turn, the same for everyone
+export const weekNo = (t) => Math.floor(((t + 9 * 3600e3) / 864e5 + 3) / 7);
+export const blessedSlot = (t) => CC.PIECES[((weekNo(t) * 5) % CC.PIECES.length + CC.PIECES.length) % CC.PIECES.length].slot;
+/// a drop's slot: weights by what you hold (a missing slot ×MISS) and the week's blessing (×BLESS); r in [0, 1)
+export function rollSlot(held, t, r) {
+  const have = new Set(held || []), bless = blessedSlot(t), w = CC.PIECES.map((P) => (have.has(P.slot) ? 1 : CC.WEIGHT.MISS) * (P.slot === bless ? CC.WEIGHT.BLESS : 1)), sum = w.reduce((a, b) => a + b, 0);
+  let x = r * sum; for (let i = 0; i < w.length; i++) { x -= w[i]; if (x < 0) return CC.PIECES[i]; } return CC.PIECES[CC.PIECES.length - 1];
+}
+/// a slot's chance of being the next drop's (for the window)
+export function slotOdds(held, t) { const have = new Set(held || []), bless = blessedSlot(t), w = CC.PIECES.map((P) => (have.has(P.slot) ? 1 : CC.WEIGHT.MISS) * (P.slot === bless ? CC.WEIGHT.BLESS : 1)), sum = w.reduce((a, b) => a + b, 0); return Object.fromEntries(CC.PIECES.map((P, i) => [P.slot, w[i] / sum])); }
+export const reforgeCost = (inst) => CC.REFORGE[inst && inst.src] || 30;
 export const essOf = (inst) => (CC.ESS[inst && inst.src] || 10) + 2 * Math.max(0, Math.floor((inst && inst.plus) || 0));
 export const pieceOf = (id) => CC.PIECES.find((p) => p.id === id) || null;
 export const pieceBySlot = (slot) => CC.PIECES.find((p) => p.slot === slot) || null;
@@ -57,6 +87,8 @@ export function mythicStats(inst) {
   const base = itemStats({ b: `${P.slot}-4`, r: 4, lv: 100, p: plus }), out = {};
   for (const [k, v] of Object.entries(base)) out[k] = k === "crit" || k === "spd" ? Math.round(v * (1 + (mult - 1) * 0.1) * 10) / 10 : Math.round(v * CC.MYTHIC_K * mult);
   for (const [k, v] of Object.entries(CC.EXTRA[P.slot] || {})) out[k] = (out[k] || 0) + v;
+  const stars = Math.max(0, Math.min(CC.MAX_STARS, Math.floor(inst.stars || 0)));
+  for (let i = 0; i < stars; i++) for (const [k, v] of Object.entries((CC.AWAKEN[P.slot] || [])[i] || {})) out[k] = (out[k] || 0) + v;
   return out;
 }
 
@@ -64,5 +96,7 @@ export function mythicStats(inst) {
 export function setBonus(worn) {
   const slots = new Set((worn || []).map((w) => (pieceOf(w.def) || {}).slot).filter(Boolean)), n = slots.size, stats = {}, active = [];
   for (const [need, name, b] of CC.BONUS) if (n >= need) { active.push([need, name]); for (const [k, v] of Object.entries(b)) stats[k] = (stats[k] || 0) + v; }
-  return { n, active, stats };
+  const R = CC.RESONANCE, lowPlus = (worn || []).length ? Math.min(...[...slots].map((sl) => Math.max(...(worn || []).filter((w) => (pieceOf(w.def) || {}).slot === sl).map((w) => Math.floor(w.plus || 0))))) : 0;
+  const resonance = n >= R.need && lowPlus >= R.plus; if (resonance) for (const [k, v] of Object.entries(R.stats)) stats[k] = (stats[k] || 0) + v;
+  return { n, active, stats, resonance, lowPlus };
 }

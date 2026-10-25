@@ -342,6 +342,7 @@ export function createCombat(ctx) {
     if (m.trail == null || m.trailHold <= 0) m.trail = Math.max(0, m.hp / m.max); m.trailHold = 0.4; m.hp -= dmg; m.hitT = 0.18; if (m.tgt) m.lbl = 1; else label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
     if (kind !== "pet") { if (ctx.hitstop) ctx.hitstop(kind === "heavy" ? 85 : kind === "meteor" ? 70 : crit ? 70 : 38); if (ctx.kickCam) ctx.kickCam(tmp, kind === "heavy" ? 0.16 : crit ? 0.12 : 0.06); }
+    if (crit && stats().mythic && kind !== "pet") { ring(tmp2.copy(m.g.position), 0xff3d6e, { r0: 0.3, r1: 2.2, life: 0.32, y: m.y + 0.5 }); if (ctx.parts && !ctx.reduce) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.8), 0xff3d6e, 14, tmp); } // (a Mythic piece worn: its criticals crack crimson)
     if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
     m.leanT = kind === "heavy" ? 0.42 : 0.3; m.leanL = m.leanT; m.leanX = tmp.x; m.leanZ = tmp.z; // it rocks back away from the blow
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
@@ -821,7 +822,18 @@ export function createCombat(ctx) {
     let any = false;
     for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length() - (m.rank === "boss" ? 2 : 0); if (d < reach && ((ham && heavy) || d < 0.8 || tmp.normalize().dot(fwd) > 0.2)) { const c = critRoll(); hit(m, base * (c ? critX() : 1), me, heavy ? "heavy" : "melee", c); any = true; puff(m.g.position.clone().setY(m.y + 0.5), 0xffffff, { n: 6, speed: 4, size: 0.25, life: 0.3 }); } }
     if (any) ctx.shake(heavy ? 0.16 : 0.07);
+    if (any) reaperSpin(base);
     return true;
+  }
+  // the Crimsonfall Reaper's own skill (the Crimson Celestial weapon worn): every ten seconds the next hit that lands is a
+  // crimson scythe spin round you — ×3 of that hit to everything in reach
+  let reaperT = 0;
+  function reaperSpin(base) {
+    const R0 = stats().reaper; if (!R0 || reaperT > 0) return; reaperT = R0.every || 10; ctx.here(me);
+    ring(me, 0xff3d6e, { r0: 0.6, r1: R0.r || 4.5, life: 0.45, y: 0.9 }); ring(me, 0xffd36a, { r0: 0.4, r1: (R0.r || 4.5) * 0.7, life: 0.35, y: 0.3 });
+    if (VX && VX.boom) VX.boom(fxV.copy(me).setY(1), "hit", { size: 3.6, life: 0.45 }); if (ctx.parts && !ctx.reduce) ctx.parts.sparks(fxV.copy(me).setY(1.1), 0xff3d6e, 24, fwd);
+    for (const m of mobs) { if (m.dead) continue; const d = tmp.copy(m.g.position).sub(me).setY(0).length() - (m.rank === "boss" ? 2 : 0); if (d < (R0.r || 4.5)) hit(m, base * (R0.mult || 3), me, "heavy", false); }
+    if (ctx.toastFx) ctx.toastFx("Crimsonfall"); ctx.shake(0.22); Snd.charged && Snd.charged();
   }
   // dodge: a quick dash where you're looking or moving; you can't be hit during it
   function dodge() {
@@ -1252,9 +1264,11 @@ export function createCombat(ctx) {
     const q = ctx.xpProg ? ctx.xpProg() : { into: (ctx.xp ? ctx.xp() : 0) % 100, need: 100 }; VB.xpB.style.width = Math.min(100, (100 * q.into) / q.need).toFixed(1) + "%"; setTx(VB.xpN, `${q.into.toLocaleString("en-US")} / ${q.need.toLocaleString("en-US")}`);
     vit.classList.toggle("danger", hp / mh < 0.3); nudge(); document.body.classList.toggle("wc-low", hp / mh < 0.3 && !down && ctx.inHub());
   }
+  let drFlash = 0;
   function damage(n) {
     if (resting() || down) return;
-    if (stats().dr) n = Math.max(1, Math.round(n * (1 - Math.min(50, stats().dr) / 100))); // damage reduction (the Crimson Celestial set), at most half
+    if (stats().dr) { n = Math.max(1, Math.round(n * (1 - Math.min(50, stats().dr) / 100))); // damage reduction (the Crimson Celestial set), at most half
+      if (stats().mythic && performance.now() - drFlash > 600) { drFlash = performance.now(); ctx.here(me); ring(me, 0xff3d6e, { r0: 0.7, r1: 1.5, life: 0.25, y: 1.1 }); } } // (a crimson shield flares as it takes the edge off)
     ghostHp = Math.max(ghostHp, hp); hp = Math.max(0, hp - n); calmT = 4; paintVit();
     if (rpg.wear) rpg.wear("hurt"); // worn armor, helmet, shield and boots wear out, 1 per 3 s of taking damage
     vit.classList.remove("hit"); requestAnimationFrame(() => vit.classList.add("hit"));
@@ -1390,6 +1404,7 @@ export function createCombat(ctx) {
     bar.hidden = !ctx.inHub(); vit.hidden = !ctx.inHub();
     if ((placeT -= dt) <= 0) { placeT = 1; place(); }
     for (const k in cd) cd[k] = Math.max(0, cd[k] - dt);
+    if (reaperT > 0) reaperT = Math.max(0, reaperT - dt);
     if (dodgeBuf && cd.dodge <= 0) { const ok = performance.now() - dodgeBuf < 150; dodgeBuf = 0; if (ok) dodge(); }
     if (atkBuf && cd.attack <= 0) { const ok = performance.now() - atkBuf < 150; atkBuf = 0; if (ok) attack(); }
     comboT = Math.max(0, comboT - dt);

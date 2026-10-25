@@ -4273,3 +4273,91 @@ html.wp-pcphone .rql[class*=" g-"] .rql-in small{font-size:22px}html.wp-pcphone 
 html.wp-pcphone .hb-myrow>b{font-size:16px}html.wp-pcphone .hb-myrow .wr-mytile i{font-size:12px}html.wp-pcphone .hb-myrow .wr-mytile b{font-size:16px}
 /* the GM tab's player logs (world-market.js plogHtml) */
 .wmk-plog li.bad b{color:#ffb3b3}.wmk-plog li.ok b{color:#9ff0c4}.wmk-plog small{word-break:break-word}
+/* ---- Crimson Celestial b6 (world-mythic.js): the hero with the seven slots round it, the track, the sheet, shards, market, boards, moments ---- */
+.my-card{width:min(1040px,100%)}
+.my-stage{position:relative;width:min(560px,100%);aspect-ratio:1/0.92;margin:0 auto;border-radius:20px;overflow:hidden;background:radial-gradient(circle at 50% 58%,rgba(255,61,110,.28),rgba(26,4,12,.2) 46%,transparent 70%),url("/images/mythic/set-bg.webp") center/cover,#12040a}
+.my-hero{position:absolute;left:50%;bottom:6%;height:72%;transform:translateX(-50%);filter:drop-shadow(0 0 22px rgba(255,61,110,.5));pointer-events:none}
+.my-rune{position:absolute;left:50%;bottom:2%;width:52%;aspect-ratio:1/0.38;transform:translateX(-50%);background:url("/images/mythic/aura-rune.webp") center/contain no-repeat,radial-gradient(ellipse,rgba(255,61,110,.45),transparent 70%);mix-blend-mode:screen;opacity:.85;animation:myRune 18s linear infinite;pointer-events:none}
+@keyframes myRune{to{filter:hue-rotate(20deg)}}
+.my-stage .my-slot{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);width:clamp(74px,17%,104px);padding:6px 4px 5px;gap:2px;background:radial-gradient(circle at 50% 35%,rgba(255,40,90,.22),rgba(10,2,6,.86));backdrop-filter:blur(4px);transition:transform .2s}
+.my-stage .my-slot:hover{transform:translate(-50%,-50%) scale(1.05)}
+.my-stage .my-slot.sel{transform:translate(-50%,-50%) scale(1.08);border-color:#ffd36a;box-shadow:0 0 0 2px #ffd36a,0 0 24px rgba(255,211,106,.5)}
+.my-stage .my-slot img{width:78%}
+.my-stage .my-slot b{font-size:10.5px;line-height:1.1;text-align:center}.my-stage .my-slot i{font-size:10px;text-align:center}
+.my-slot .pl{position:absolute;top:4px;right:5px;font:900 11px Sora,system-ui,sans-serif;font-style:normal;color:#ffd36a;text-shadow:0 1px 2px #000}
+.my-slot.bless::before{content:"🌙";position:absolute;top:3px;left:5px;font-size:12px}
+.my-blessing{padding:9px 12px;border-radius:12px;background:linear-gradient(90deg,rgba(120,90,255,.18),rgba(255,61,110,.12));border:1px solid rgba(180,160,255,.35);font:600 13px system-ui,sans-serif;color:#efe6ff}.my-blessing b{color:#d8c8ff}.my-blessing small{color:#bfb0dd;margin-left:6px}
+.my-track{display:grid;gap:10px}.my-track>p{margin:0;font:700 13px system-ui,sans-serif;color:#ffd9e2}.my-track>p small{display:block;font-weight:600;color:#ffb3c4;margin-top:2px}
+.my-track-bar{position:relative;height:8px;margin:14px 14px 6px;border-radius:4px;background:rgba(255,255,255,.1)}.my-track-bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#ff3d6e,#ffd36a);box-shadow:0 0 12px #ff3d6e;transition:width .6s}
+.my-track-bar>b{position:absolute;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#2a0a14;border:2px solid rgba(255,255,255,.25);font:900 12px Sora,system-ui,sans-serif;color:#cdb5bd}
+.my-track-bar>b.on{border-color:#ffd36a;color:#ffd36a;box-shadow:0 0 12px rgba(255,211,106,.6)}.my-track-bar>b.res{background:#1a0820;border-color:#b48cff}.my-track-bar>b.res.on{color:#fff;border-color:#fff;box-shadow:0 0 16px #ff3d6e,0 0 30px #b48cff}
+.my-sheet{position:absolute;left:0;right:0;bottom:0;max-height:80%;overflow-y:auto;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));border-radius:18px 18px 0 0;background:linear-gradient(180deg,#22070f,#0b0306);border-top:1px solid rgba(255,211,106,.45);box-shadow:0 -18px 50px rgba(0,0,0,.6);animation:mySheet .28s cubic-bezier(.2,.9,.2,1);z-index:3}
+@keyframes mySheet{from{transform:translateY(40%);opacity:0}}
+.my-sheet-x{position:sticky;top:-6px;display:block;margin:-6px auto 4px;width:56px;height:22px;border-radius:11px;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:15px;z-index:2}
+.my-sheet-top{display:grid;grid-template-columns:minmax(160px,42%) 1fr;gap:12px;align-items:center}.my-sheet-top h4{margin:0 0 4px;font:900 19px Sora,system-ui,sans-serif;color:#ffd36a}.my-line{margin:0 0 8px;color:#e8c9d2;font:600 12.5px system-ui,sans-serif}
+.my-sheet .my-3d{height:210px;margin:0;cursor:grab}.my-3dh{position:absolute;left:0;right:0;bottom:6px;text-align:center;font:600 10.5px system-ui,sans-serif;color:rgba(255,220,230,.6);pointer-events:none}
+.my-awk-l{display:grid;gap:3px}.my-awk-l small{font:800 10.5px Sora,system-ui,sans-serif;letter-spacing:.16em;color:#ff9ab3}.my-awk-l span{font:600 12px system-ui,sans-serif;color:#ffd9a0}
+.my-pc{flex-wrap:wrap}.my-pc>span{flex:1 1 240px;min-width:0}.my-acts{flex:1 1 100%}.my-acts .go{background:linear-gradient(180deg,#ff7a9c,#ff3d6e);color:#1a0610}
+.my-acts select{max-width:190px;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#1a060c;color:#ffd9e2;font:700 12px system-ui,sans-serif}
+.my-acts .awk{background:linear-gradient(180deg,#c9a8ff,#8a5cff);color:#140628;border:0}.my-acts .hist{background:rgba(255,255,255,.06);color:#e8d2da}
+.my-star{font-style:normal;color:#ffd36a;letter-spacing:-1px}
+.my-cmp{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:4px;font:700 11.5px system-ui,sans-serif}.my-cmp small{width:100%;color:#c9a9b4;font-weight:600}.my-cmp .up{color:#7dffb0}.my-cmp .dn{color:#ff8a8a}
+.my-story{width:100%;margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.35);border-left:3px solid #ffd36a}.my-story p{margin:0 0 4px;font:700 12px system-ui,sans-serif;color:#ffd9a0}.my-story ol{margin:0;padding-left:18px;font:600 12px/1.5 system-ui,sans-serif;color:#efdbe1}.my-story time{color:#b89aa5;margin-right:8px}
+.my-odds{margin-top:10px}.my-odds>button{padding:7px 12px;border-radius:9px;border:1px solid rgba(255,211,106,.35);background:transparent;color:#ffd36a;font:800 12px Sora,system-ui,sans-serif}
+.my-odds>div{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px;margin-top:6px}.my-odds span{padding:4px 8px;border-radius:7px;background:rgba(255,255,255,.04);font:600 11.5px system-ui,sans-serif;color:#efdbe1}.my-odds span b{margin-right:6px;color:#ffd36a}.my-odds p{grid-column:1/-1;margin:4px 0 0;color:#c9a9b4;font:600 11.5px system-ui,sans-serif}
+.my-shard{display:grid;gap:8px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,61,110,.2)}.my-shard.full{border-color:#ffd36a;box-shadow:0 0 18px rgba(255,211,106,.25)}
+.my-shard>div:first-child{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}.my-shard b{font:800 13.5px Sora,system-ui,sans-serif;color:#fff}.my-shard small{font:700 12px system-ui,sans-serif;color:#ffd36a}
+.my-sbar{grid-column:1/-1;display:block;height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}.my-sbar>i{display:block;height:100%;background:linear-gradient(90deg,#ff3d6e,#ffd36a)}
+.my-shard-left{color:#c9a9b4!important}.my-shard-pick{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.my-shard-pick button{display:grid;gap:2px;justify-items:center;padding:6px 2px;border-radius:10px;border:1px solid rgba(255,211,106,.4);background:rgba(0,0,0,.35);color:#fff;font:700 10px system-ui,sans-serif;cursor:pointer}.my-shard-pick img{width:100%;aspect-ratio:1;object-fit:contain}
+.my-mf{display:flex;flex-wrap:wrap;gap:6px}.my-mf select,.my-mf button{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,61,110,.35);background:#1a060c;color:#ffd9e2;font:700 12px system-ui,sans-serif}.my-mf button.on{background:#ffd36a;color:#2a1400}
+.my-line-c{display:grid;gap:4px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.3)}.my-line-c small{color:#c9a9b4;font:600 11.5px system-ui,sans-serif}.my-line-c svg{width:100%;height:70px}.my-line-c b{font:800 12.5px Sora,system-ui,sans-serif;color:#ff9ab3}
+.my-li-b{display:flex;flex-direction:column;gap:6px;align-items:flex-end}.my-li-b .star{width:32px;height:32px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#776;font-size:15px}.my-li-b .star.on{color:#ffd36a;border-color:#ffd36a}
+.my-h{margin:6px 0 0;font:900 14px Sora,system-ui,sans-serif;color:#ffd36a}
+.my-bids{display:grid;gap:6px}.my-bid{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;background:rgba(255,255,255,.04)}.my-bid b{font:800 13px Sora,system-ui,sans-serif}.my-bid small{display:block;color:#c9a9b4;font:600 11.5px system-ui,sans-serif}.my-bid .pr{color:#ffd36a}
+.my-bid button,.my-bidf button,.my-newbid{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:800 12px Sora,system-ui,sans-serif}.my-bid .go,.my-bidf .go{background:linear-gradient(180deg,#ff5f8f,#d81b5a);border:0}
+.my-bidf{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.my-bidf select,.my-bidf input{padding:8px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:#1a060c;color:#fff;font:700 12px system-ui,sans-serif}.my-bidf input{width:130px}.my-bidf small{width:100%;color:#c9a9b4}
+.my-tops{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.my-top{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:4px}.my-top li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.04);font:700 13px system-ui,sans-serif;color:#fff}.my-top li i{font-style:normal;color:#ffd36a;font-weight:900}.my-top li:nth-child(-n+3){background:linear-gradient(90deg,rgba(255,211,106,.16),rgba(255,255,255,.03))}.my-top span{color:#ff9ab3}
+/* the moments */
+.my-flare{position:absolute;inset:-14px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,61,110,.85),rgba(255,211,106,.4) 40%,transparent 70%);animation:myFlare 1.1s ease-out both;mix-blend-mode:screen}
+@keyframes myFlare{from{transform:scale(.3);opacity:1}to{transform:scale(1.8);opacity:0}}
+.my-cut{position:fixed;inset:0;z-index:12700;display:grid;place-items:center;pointer-events:none;background:linear-gradient(180deg,transparent 34%,rgba(60,0,18,.75) 44%,rgba(60,0,18,.75) 56%,transparent 66%);animation:myCutIn .35s ease-out both}
+.my-cut>div{text-align:center;color:#fff;animation:myCutTxt .5s cubic-bezier(.2,.9,.2,1) both}.my-cut small{display:block;font:900 12px Sora,system-ui,sans-serif;letter-spacing:.4em;color:#ffb3c4}.my-cut b{display:block;font:900 54px/1 "Cinzel",Georgia,serif;color:#ffd36a;text-shadow:0 0 24px #ff3d6e}.my-cut strong{display:block;margin-top:4px;font:900 24px Sora,system-ui,sans-serif;letter-spacing:.06em;text-shadow:0 0 18px #ff3d6e}
+.my-cut.big{background:radial-gradient(circle at 50% 50%,rgba(255,61,110,.55),rgba(40,0,12,.85) 60%)}.my-cut.big::before,.my-cut.big::after{content:"";position:absolute;top:50%;width:46vw;height:30vh;transform:translateY(-50%);background:conic-gradient(from 200deg,transparent,rgba(255,211,106,.55),transparent 30%);filter:blur(2px);animation:myWing 1.2s ease-out both}
+.my-cut.big::before{right:50%;transform-origin:right center}.my-cut.big::after{left:50%;transform:translateY(-50%) scaleX(-1);transform-origin:left center}
+.my-cut.big b{font-size:80px}.my-cut.out{animation:myCutOut .5s ease-in both}
+@keyframes myCutIn{from{opacity:0}}@keyframes myCutOut{to{opacity:0}}@keyframes myCutTxt{from{transform:scale(1.6);opacity:0;letter-spacing:.3em}}@keyframes myWing{from{opacity:0;clip-path:inset(0 0 0 100%)}}
+.my-forge{position:fixed;inset:0;z-index:12600;display:grid;place-items:center;background:rgba(10,2,6,.72)}.my-forge-in{position:relative;width:220px;height:220px;display:grid;place-items:center}
+.my-forge .hm{position:absolute;top:10px;right:24px;font-size:64px;font-style:normal;transform-origin:80% 80%;filter:drop-shadow(0 0 10px #ff3d6e)}.my-forge.hit .hm{animation:myHam .3s ease-in}
+@keyframes myHam{0%{transform:rotate(-40deg)}60%{transform:rotate(18deg)}100%{transform:rotate(0)}}
+.my-forge .pl{position:relative;z-index:2;font:900 64px "Cinzel",Georgia,serif;color:#ffd36a;opacity:0;text-shadow:0 0 22px #ff3d6e}
+.my-forge .bu,.my-forge .cr{position:absolute;inset:-40px;opacity:0;pointer-events:none;mix-blend-mode:screen}
+.my-forge .bu{background:url("/images/mythic/burst.webp") center/contain no-repeat,radial-gradient(circle,rgba(255,211,106,.9),rgba(255,61,110,.5) 35%,transparent 65%)}
+.my-forge .cr{background:url("/images/mythic/crack.webp") center/contain no-repeat,repeating-conic-gradient(from 10deg,rgba(255,61,110,.7) 0 2deg,transparent 2deg 30deg)}
+.my-forge.ok .bu{animation:myBurst .9s ease-out both}.my-forge.ok .pl{animation:myPlus .7s cubic-bezier(.2,.9,.2,1) .1s both}.my-forge.ok .hm,.my-forge.miss .hm{opacity:0;transition:opacity .2s}
+.my-forge.miss .cr{animation:myCrack 1.2s ease-out both}.my-forge.miss .pl{font:900 26px Sora,system-ui,sans-serif;color:#ffd9e2;animation:myPlus .6s .5s both}
+.my-forge.out{opacity:0;transition:opacity .3s}
+@keyframes myBurst{from{transform:scale(.2);opacity:1}to{transform:scale(1.4);opacity:0}}@keyframes myPlus{from{transform:translateY(-60px) scale(2.2);opacity:0}to{transform:none;opacity:1}}@keyframes myCrack{0%{opacity:0;transform:scale(.6)}25%{opacity:1}70%{opacity:.8;filter:none}100%{opacity:0;transform:scale(.9);filter:brightness(2)}}
+.my-shareask{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:12650;display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:14px;background:#22070f;border:1px solid #ffd36a;color:#fff;font:700 13px system-ui,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.6);animation:mySheet .3s ease-out}
+.my-shareask .go{padding:8px 12px;border-radius:10px;border:0;background:linear-gradient(180deg,#ffd36a,#e2a12a);color:#2a1400;font:900 12.5px Sora,system-ui,sans-serif}.my-shareask .x{border:0;background:transparent;color:#fff;font-size:15px}
+.my-rev{overflow:hidden;animation:myDim .5s ease-out both;background:radial-gradient(circle,rgba(90,6,30,.9),rgba(0,0,0,.96))}@keyframes myDim{from{background:rgba(0,0,0,0)}}
+.my-rev-beam{position:absolute;left:50%;top:0;bottom:0;width:min(46vw,260px);transform:translateX(-50%);background:url("/images/mythic/drop-beam.webp") center/100% 100% no-repeat,linear-gradient(90deg,transparent,rgba(255,61,110,.35) 30%,rgba(255,211,106,.55) 50%,rgba(255,61,110,.35) 70%,transparent);mix-blend-mode:screen;animation:myBeam 1.4s ease-out both;pointer-events:none}
+@keyframes myBeam{0%{transform:translateX(-50%) scaleX(.05);opacity:0}30%{opacity:1}100%{transform:translateX(-50%) scaleX(1);opacity:.7}}
+.my-rev .my-rev-art{animation:myFall 1s cubic-bezier(.3,1.4,.5,1) .35s both}@keyframes myFall{from{transform:translateY(-70vh) scale(.6);opacity:0}}
+.my-rev-in{position:relative;z-index:2}.my-new{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:999px;background:#ffd36a;color:#2a1400;font:900 12px Sora,system-ui,sans-serif;font-style:normal;animation:myPop .4s 1.3s both}
+@keyframes myPop{from{transform:scale(0)}}
+.my-rev-name{display:block;margin-top:2px;font:700 28px/1.15 "Cinzel",Georgia,serif;color:#ffd9a0;text-shadow:0 0 18px #ff3d6e}.my-rev-name span{display:inline-block;animation:myCarve .35s ease-out both;animation-delay:calc(1.2s + var(--i) * .045s)}
+@keyframes myCarve{from{opacity:0;transform:translateY(8px);filter:blur(4px)}}
+.my-rev-opens{margin:8px 0 0;padding:6px 10px;border-radius:10px;background:rgba(255,211,106,.14);color:#ffd36a;font:800 13px Sora,system-ui,sans-serif}
+.my-rev.calm *,.my-rev.calm{animation:none!important}
+@media (max-width:760px){.my-sheet-top{grid-template-columns:1fr}.my-shard-pick{grid-template-columns:repeat(4,1fr)}.my-stage{aspect-ratio:1/1}}
+html.wp-pcphone .my-sheet-top{grid-template-columns:1fr}html.wp-pcphone .my-shard-pick{grid-template-columns:repeat(4,1fr)}html.wp-pcphone .my-stage{aspect-ratio:1/1}
+html.wp-pcphone .my-cut>div,html.wp-pcphone .my-forge-in,html.wp-pcphone .my-shareask{zoom:1.8}
+@media (prefers-reduced-motion:reduce){.my-rune,.my-flare,.my-cut,.my-cut>div,.my-forge *,.my-rev-beam,.my-rev .my-rev-art,.my-rev-name span,.my-sheet{animation:none!important}}
+.wp-prof-myth li{position:relative}.wp-prof-myth img{width:100%;height:100%;object-fit:contain}.wp-prof-myth i{position:absolute;left:2px;bottom:0;font-style:normal;font-size:9px;color:#ffd36a}
+.my-body{grid-auto-rows:max-content;align-content:start}.my-stage{flex:none}
+@media (max-aspect-ratio:1/1){.my-stage{background:radial-gradient(circle at 50% 58%,rgba(255,61,110,.28),rgba(26,4,12,.2) 46%,transparent 70%),url("/images/mythic/set-bg-tall.webp") center 70%/cover,#12040a}}
+.my-cut>div{position:relative;padding:34px 44px}.my-cut>div::before{content:"";position:absolute;inset:-6px -10px;background:url("/images/mythic/card-frame.webp") center/100% 100% no-repeat;z-index:-1;filter:drop-shadow(0 0 18px rgba(255,61,110,.6))}
+.my-cut>div{width:230px;min-height:300px;display:grid;place-content:center;box-sizing:border-box}
+.my-rev-in>b.my-rev-name{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#ffd9a0;-webkit-text-fill-color:#ffd9a0}
+@keyframes myBeam{0%{transform:translateX(-50%) scaleX(.05);opacity:0}30%{opacity:.9}100%{transform:translateX(-50%) scaleX(1);opacity:.35}}
+.my-rev-beam{width:min(30vw,170px)}

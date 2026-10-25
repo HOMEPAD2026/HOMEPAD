@@ -15,8 +15,23 @@
 //   GET  ?world=mythic-market                 { items: [{ id, def, src, mult, plus, req, price, at, seller (short) }] }
 // worldMythicOwn/<wallet> { ids, eq, ess } · worldMythicMkt/all { items: { <id>: listing } } · worldMythicSold/<id>_<listed at> (the buy lock)
 // worldStats/mythicFee { arcl } · an instance's own hist: [{ from, to, price, at }]
+// b6 (2026-10-25, the owner's list): the seventh piece (the shield), Crimson Shards (every won run's pity: SHARD of one dungeon
+// → a piece of the slot you pick), drops weighed toward slots you don't hold and the week's blessed slot (rollSlot),
+// reforging into another slot (Essence), awakening with the same piece (stars ≤ 3), a miss's bonus on the next enhance
+// (inst.fails), each piece's own log (made / + / stars / reforged / sold), the first owner kept, buy requests (bids: the
+// ARCL held here until filled or taken back), recent sales for the price line, the boards (collection, best +), what a
+// player wears for others to see.
+//   POST world-mythic-claim { src, slot }     a piece from that dungeon's shards                    → { ok, piece, shards }
+//   POST world-mythic-reforge { id, slot }    the piece into another slot (Essence)                 → { ok, piece }
+//   POST world-mythic-awaken { id, fodder }   the same piece given up: one more star                → { ok, piece }
+//   POST world-mythic-bid { def, minPlus, price }  a buy request, the ARCL held                      → { ok, bid }
+//   POST world-mythic-unbid { bid }           taken back, the ARCL returned
+//   POST world-mythic-fill { bid, id }        your piece to the request: the price less 2 % to you
+//   GET  ?world=mythic-top                    { collect: [...], plus: [...] }
+//   GET  ?world=mythic-worn&wallet=0x…        { n, worn: [{ def, plus, stars, src }] }
+// worldMythicBids/all { items: { <bid>: { bid, w, def, minPlus, price, at } } } · worldMythicSales/all { list } · worldMythicBoard/all { users }
 // The states the spec names (GAME_OWNED, GAME_LISTED, NFT_*) — only GAME_OWNED is made for now; trading and NFTs come next.
-import { CC, pieceOf, enhCost, essOf } from "../world-mythic-data.js";
+import { CC, pieceOf, enhCost, essOf, rollSlot, reforgeCost } from "../world-mythic-data.js";
 import { levelOfSave } from "./_world-social.mjs";
 import { randomBytes } from "node:crypto";
 const SLOTS = CC.PIECES.map((p) => p.slot);
@@ -28,22 +43,70 @@ export function makeMythic(deps) {
   const now = () => deps.now(), rand = deps.rand || (() => randomBytes(6).readUIntBE(0, 6) / 2 ** 48);
   const one = async (p) => (await getDocs([p]))[p];
   const ownOf = async (w) => (await one(`worldMythicOwn/${w}`)) || { ids: [], eq: {} };
-  /// a won run's roll: maybe one piece (the dungeon's rate), one of the six at equal odds; returns the piece or null
-  async function roll(w, mode, run) {
-    const D = CC.DROP[mode]; if (!D || rand() >= D.rate) return null;
-    const P = CC.PIECES[Math.min(CC.PIECES.length - 1, Math.floor(rand() * CC.PIECES.length))], t = now();
-    const id = ("m" + t.toString(36) + randomBytes(4).toString("hex")).slice(0, 20);
-    const inst = { id, def: P.id, set: CC.SET, owner: w, src: mode, req: D.req, mult: D.mult, plus: 0, state: "GAME_OWNED", at: t, run };
+  const logOf = (p, k, v) => [...(p.log || []), { k, at: now(), ...(v != null ? { v } : {}) }].slice(-30);
+  /// a new piece in a slot, from a dungeon, kept here and put on its owner's list
+  async function make(w, mode, P, run, how) {
+    const D = CC.DROP[mode], t = now(), id = ("m" + t.toString(36) + randomBytes(4).toString("hex")).slice(0, 20);
+    const inst = { id, def: P.id, set: CC.SET, owner: w, first: w, src: mode, req: D.req, mult: D.mult, plus: 0, stars: 0, state: "GAME_OWNED", at: t, run: run || "", log: [{ k: how || "drop", at: t, v: mode }] };
     await setDoc(`worldMythic/${id}`, inst);
     const own = await ownOf(w); await setDoc(`worldMythicOwn/${w}`, { ...own, ids: [...(own.ids || []), id] });
-    await commit([{ inc: "worldStats/mythic", fields: { [P.id]: 1, [mode]: 1 } }]).catch(() => {});
+    await commit([{ inc: "worldStats/mythic", fields: { [P.id]: 1, [mode]: 1, ...(how === "claim" ? { claims: 1 } : {}) } }]).catch(() => {});
+    touch(w).catch(() => {});
     return inst;
+  }
+  /// a won run: its dungeon's shard first (always), then maybe one piece (the dungeon's rate) — the slot weighed toward the
+  /// ones you don't hold and the week's blessed slot (rollSlot); returns the piece or null
+  async function roll(w, mode, run) {
+    const D = CC.DROP[mode]; if (!D) return null;
+    const own = await ownOf(w), sh = { ...(own.shards || {}) }; sh[mode] = (sh[mode] || 0) + 1; await setDoc(`worldMythicOwn/${w}`, { ...own, shards: sh });
+    if (rand() >= D.rate) return null;
+    const held = await heldSlots(w), P = rollSlot(held, now(), rand());
+    return make(w, mode, P, run, "drop");
+  }
+  async function heldSlots(w) { const { pieces } = await list(w); return [...new Set(pieces.map((p) => (pieceOf(p.def) || {}).slot).filter(Boolean))]; }
+  /// the boards' row for a wallet (what it holds now): distinct slots, the best +, the sum of +
+  async function touch(w) {
+    const { pieces } = await list(w), sv = await deps.save(w).catch(() => null), name = String((sv && sv.name) || "").slice(0, 20);
+    const n = new Set(pieces.map((p) => (pieceOf(p.def) || {}).slot).filter(Boolean)).size, best = pieces.reduce((m, p) => Math.max(m, Math.floor(p.plus || 0)), 0), sum = pieces.reduce((m, p) => m + Math.floor(p.plus || 0), 0), stars = pieces.reduce((m, p) => m + Math.floor(p.stars || 0), 0);
+    const B = (await one("worldMythicBoard/all")) || { users: {} }, users = { ...(B.users || {}) };
+    if (!pieces.length) delete users[w]; else users[w] = { name, n, best, sum, stars, at: now() };
+    const keep = Object.entries(users).sort((a, b) => b[1].n - a[1].n || b[1].sum - a[1].sum).slice(0, 400); await setDoc("worldMythicBoard/all", { users: Object.fromEntries(keep) });
+  }
+  async function claim(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, src = String(b.src || ""), slot = String(b.slot || "");
+    const need = CC.SHARD[src], P = CC.PIECES.find((x) => x.slot === slot); if (!need || !P) return json(400, { error: "which dungeon and slot?" });
+    const own = await ownOf(w), have = (own.shards || {})[src] || 0; if (have < need) return json(400, { error: `${need} shards needed (you have ${have})`, need });
+    if (!(await commit([{ create: `worldMythicClaim/${w}_${src}_${have}`, data: { at: now() } }])).ok) return json(409, { error: "already made — refresh" });
+    await setDoc(`worldMythicOwn/${w}`, { ...own, shards: { ...(own.shards || {}), [src]: have - need } });
+    const inst = await make(w, src, P, "", "claim");
+    return json(200, { ok: true, piece: inst, shards: have - need });
+  }
+  async function reforge(b) {
+    const m = await mine(b); if (m.err) return m.err; const { w, id, p, own } = m, slot = String(b.slot || ""), P = CC.PIECES.find((x) => x.slot === slot);
+    if (!P) return json(400, { error: "which slot?" }); if (P.id === p.def) return json(400, { error: "it's that piece already" });
+    const cost = reforgeCost(p), ess = own.ess || 0; if (ess < cost) return json(400, { error: `${cost} Crimson Essence needed (you have ${ess})`, need: cost });
+    const eq = { ...(own.eq || {}) }; for (const [k, v] of Object.entries(eq)) if (v === id) delete eq[k];
+    const np = { ...p, def: P.id, plus: 0, stars: 0, fails: 0, log: logOf(p, "reforge", P.id) };
+    await setDoc(`worldMythic/${id}`, np); await setDoc(`worldMythicOwn/${w}`, { ...own, eq, ess: ess - cost });
+    touch(w).catch(() => {}); return json(200, { ok: true, piece: np, ess: ess - cost });
+  }
+  async function awaken(b) {
+    const m = await mine(b); if (m.err) return m.err; const { w, id, p, own } = m, fid = String(b.fodder || "");
+    if (fid === id || !/^m[a-z0-9]{6,24}$/.test(fid)) return json(400, { error: "give up another copy of the same piece" });
+    if ((p.stars || 0) >= CC.MAX_STARS) return json(409, { error: `it has ${CC.MAX_STARS} stars already` });
+    const f = await one(`worldMythic/${fid}`); if (!f || f.owner !== w || !(own.ids || []).includes(fid)) return json(403, { error: "that piece isn't yours" });
+    if (f.def !== p.def) return json(400, { error: "only the same piece can awaken it" }); if (!WEARABLE.has(f.state)) return json(409, { error: "that piece is listed — take it off the market first" });
+    const eq = { ...(own.eq || {}) }; for (const [k, v] of Object.entries(eq)) if (v === fid) delete eq[k];
+    const np = { ...p, stars: (p.stars || 0) + 1, log: logOf(p, "star", (p.stars || 0) + 1) };
+    await setDoc(`worldMythic/${fid}`, { ...f, state: "AWAKENED_INTO", owner: "", into: id, at2: now() });
+    await setDoc(`worldMythic/${id}`, np); await setDoc(`worldMythicOwn/${w}`, { ...own, ids: (own.ids || []).filter((x) => x !== fid), eq });
+    touch(w).catch(() => {}); return json(200, { ok: true, piece: np });
   }
   async function list(w) {
     const own = await ownOf(w), ids = (own.ids || []).slice(-200), d = ids.length ? await getDocs(ids.map((i) => `worldMythic/${i}`)) : {};
     const pieces = ids.map((i) => d[`worldMythic/${i}`]).filter((x) => x && x.owner === w);
     const eq = {}; for (const [s, i] of Object.entries(own.eq || {})) if (pieces.some((p) => p.id === i)) eq[s] = i; // (what was traded away isn't worn)
-    return { pieces, eq, ess: own.ess || 0 };
+    return { pieces, eq, ess: own.ess || 0, shards: own.shards || {} };
   }
   async function equip(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet;
@@ -70,20 +133,23 @@ export function makeMythic(deps) {
   async function enhance(b) {
     const m = await mine(b); if (m.err) return m.err; const { w, id, p, own } = m, plus = Math.floor(p.plus || 0);
     if (plus >= CC.MAX_PLUS) return json(409, { error: `it's at +${CC.MAX_PLUS} already` });
-    const c = enhCost(plus), ess = own.ess || 0; if (ess < c.ess) return json(400, { error: `${c.ess} Crimson Essence needed (you have ${ess})`, need: c });
+    const c = enhCost(plus, p.fails || 0), ess = own.ess || 0; if (ess < c.ess) return json(400, { error: `${c.ess} Crimson Essence needed (you have ${ess})`, need: c });
     if (!deps.debit) return json(503, { error: "try again later" });
     const d = await deps.debit(w, "mythic-enh", c.arcl); if (d.err) return json(400, { error: d.err === "not enough ARCL" ? `${c.arcl.toLocaleString("en-US")} ARCL needed` : d.err, need: c });
     const hit = rand() < c.rate, np = hit ? plus + 1 : plus;
     await setDoc(`worldMythicOwn/${w}`, { ...own, ess: ess - c.ess });
-    if (hit) await setDoc(`worldMythic/${id}`, { ...p, plus: np });
+    const fails = hit ? 0 : (p.fails || 0) + 1;
+    await setDoc(`worldMythic/${id}`, { ...p, plus: np, fails, ...(hit && np >= 5 ? { log: logOf(p, "plus", np) } : {}) });
     await commit([{ inc: "worldStats/mythic", fields: { [hit ? "enhOk" : "enhMiss"]: 1 } }]).catch(() => {});
-    return json(200, { ok: true, hit, plus: np, ess: ess - c.ess, bal: d.bal });
+    if (hit) touch(w).catch(() => {});
+    return json(200, { ok: true, hit, plus: np, fails, rate: c.rate, next: np < CC.MAX_PLUS ? enhCost(np, fails).rate : 0, ess: ess - c.ess, bal: d.bal });
   }
   async function salvage(b) {
     const m = await mine(b); if (m.err) return m.err; const { w, id, p, own } = m, gain = essOf(p);
     const eq = { ...(own.eq || {}) }; for (const [k, v] of Object.entries(eq)) if (v === id) delete eq[k];
     await setDoc(`worldMythic/${id}`, { ...p, state: "SALVAGED", owner: "", at2: now() });
     await setDoc(`worldMythicOwn/${w}`, { ...own, ids: (own.ids || []).filter((x) => x !== id), eq, ess: (own.ess || 0) + gain });
+    touch(w).catch(() => {});
     return json(200, { ok: true, ess: (own.ess || 0) + gain, gain });
   }
   const MK = "worldMythicMkt/all", short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
@@ -116,17 +182,68 @@ export function makeMythic(deps) {
     const so = await ownOf(seller), bo = await ownOf(w), eqS = { ...(so.eq || {}) }; for (const [k, v] of Object.entries(eqS)) if (v === id) delete eqS[k];
     await setDoc(`worldMythicOwn/${seller}`, { ...so, ids: (so.ids || []).filter((x) => x !== id), eq: eqS });
     await setDoc(`worldMythicOwn/${w}`, { ...bo, ids: [...(bo.ids || []), id] });
-    await setDoc(`worldMythic/${id}`, { ...p, owner: w, state: "GAME_OWNED", price: 0, hist: [...(p.hist || []), { from: seller, to: w, price: p.price, at: now() }].slice(-20) });
+    await setDoc(`worldMythic/${id}`, { ...p, owner: w, first: p.first || seller, state: "GAME_OWNED", price: 0, hist: [...(p.hist || []), { from: seller, to: w, price: p.price, at: now() }].slice(-20), log: logOf(p, "sold", p.price) });
     const mk = (await one(MK)) || { items: {} }, items = { ...(mk.items || {}) }; delete items[id]; await setDoc(MK, { items });
     await commit([{ inc: "worldStats/mythicFee", fields: { arcl: fee, sales: 1 } }]).catch(() => {});
+    await sold(p, p.price); touch(w).catch(() => {}); touch(seller).catch(() => {});
     return json(200, { ok: true, id, price: p.price, fee, bal: d.bal });
   }
-  async function market() { const mk = (await one(MK)) || { items: {} }; return json(200, { items: Object.values(mk.items || {}).sort((a, b) => b.at - a.at).map((x) => ({ ...x, seller: short(x.seller) })) }, "no-store"); }
+  // recent sales (the price line) and buy requests
+  const SL = "worldMythicSales/all", BD = "worldMythicBids/all";
+  async function sold(p, price) { const S = (await one(SL)) || { list: [] }; await setDoc(SL, { list: [...(S.list || []), { def: p.def, src: p.src, plus: p.plus || 0, stars: p.stars || 0, price, at: now() }].slice(-CC.MARKET.SALES) }); }
+  async function bid(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, P = pieceOf(String(b.def || "")), M = CC.MARKET;
+    const price = Math.floor(Number(b.price) || 0), minPlus = Math.max(0, Math.min(CC.MAX_PLUS, Math.floor(Number(b.minPlus) || 0)));
+    if (!P) return json(400, { error: "which piece?" }); if (!(price >= M.MIN && price <= M.MAX)) return json(400, { error: `a price from ${M.MIN.toLocaleString("en-US")} to ${M.MAX.toLocaleString("en-US")} ARCL` });
+    const B = (await one(BD)) || { items: {} }, all = Object.values(B.items || {});
+    if (all.length >= M.MAX_BIDS) return json(429, { error: "too many requests — try later" }); if (all.filter((x) => x.w === w).length >= M.MY_BIDS) return json(429, { error: `at most ${M.MY_BIDS} requests at a time` });
+    if (!deps.debit || !deps.award) return json(503, { error: "try again later" });
+    const d = await deps.debit(w, "mythic-bid", price); if (d.err) return json(400, { error: d.err === "not enough ARCL" ? `${price.toLocaleString("en-US")} ARCL needed` : d.err });
+    const id = "b" + now().toString(36) + randomBytes(3).toString("hex"), row = { bid: id, w, def: P.id, minPlus, price, at: now() };
+    await setDoc(BD, { items: { ...(B.items || {}), [id]: row } });
+    return json(200, { ok: true, bid: { ...row, w: short(w) }, bal: d.bal });
+  }
+  async function unbid(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, id = String(b.bid || "");
+    const B = (await one(BD)) || { items: {} }, row = (B.items || {})[id]; if (!row) return json(404, { error: "that request is gone" }); if (row.w !== w) return json(403, { error: "not your request" });
+    if (!(await commit([{ create: `worldMythicBidDone/${id}`, data: { at: now(), k: "back" } }])).ok) return json(409, { error: "it was just filled" });
+    const items = { ...(B.items || {}) }; delete items[id]; await setDoc(BD, { items });
+    await deps.award(w, "mythic-bid-back", row.price); return json(200, { ok: true });
+  }
+  async function fill(b) {
+    const m = await mine(b); if (m.err) return m.err; const { w, id, p, own } = m, bidId = String(b.bid || "");
+    const B = (await one(BD)) || { items: {} }, row = (B.items || {})[bidId]; if (!row) return json(404, { error: "that request is gone" });
+    if (row.w === w) return json(400, { error: "that's your own request" }); if (row.def !== p.def || Math.floor(p.plus || 0) < row.minPlus) return json(400, { error: "that piece doesn't match the request" });
+    if (!(await commit([{ create: `worldMythicBidDone/${bidId}`, data: { at: now(), k: "fill", id } }])).ok) return json(409, { error: "someone else just filled it" });
+    const items = { ...(B.items || {}) }; delete items[bidId]; await setDoc(BD, { items });
+    const fee = Math.ceil(row.price * CC.MARKET.FEE); await deps.award(w, "mythic-sale", row.price - fee);
+    const eqS = { ...(own.eq || {}) }; for (const [k, v] of Object.entries(eqS)) if (v === id) delete eqS[k];
+    await setDoc(`worldMythicOwn/${w}`, { ...own, ids: (own.ids || []).filter((x) => x !== id), eq: eqS });
+    const bo = await ownOf(row.w); await setDoc(`worldMythicOwn/${row.w}`, { ...bo, ids: [...(bo.ids || []), id] });
+    await setDoc(`worldMythic/${id}`, { ...p, owner: row.w, first: p.first || w, hist: [...(p.hist || []), { from: w, to: row.w, price: row.price, at: now() }].slice(-20), log: logOf(p, "sold", row.price) });
+    await commit([{ inc: "worldStats/mythicFee", fields: { arcl: fee, sales: 1 } }]).catch(() => {});
+    await sold(p, row.price); touch(w).catch(() => {}); touch(row.w).catch(() => {});
+    return json(200, { ok: true, price: row.price, fee });
+  }
+  async function market() {
+    const [mk, S, B] = await Promise.all([one(MK), one(SL), one(BD)]);
+    return json(200, { items: Object.values((mk && mk.items) || {}).sort((a, b) => b.at - a.at).map((x) => ({ ...x, seller: short(x.seller) })), sales: ((S && S.list) || []).slice(-80),
+      bids: Object.values((B && B.items) || {}).sort((a, b) => b.price - a.price).map((x) => ({ ...x, w: short(x.w) })) }, "no-store");
+  }
+  async function top() {
+    const B = (await one("worldMythicBoard/all")) || { users: {} }, rows = Object.entries(B.users || {}).map(([w, u]) => ({ ...u, w: short(w) }));
+    return json(200, { collect: [...rows].sort((a, b) => b.n - a.n || b.sum - a.sum || a.at - b.at).slice(0, 20), plus: [...rows].sort((a, b) => b.best - a.best || b.sum - a.sum || a.at - b.at).slice(0, 20) }, "no-store");
+  }
+  async function wornOf(w) { const { pieces, eq } = await list(w); const worn = Object.values(eq).map((i) => pieces.find((p) => p.id === i)).filter(Boolean).map((p) => ({ def: p.def, plus: p.plus || 0, stars: p.stars || 0, src: p.src })); return json(200, { n: worn.length, worn }, "no-store"); }
   return {
     roll, list,
-    async read(url) { const w = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return json(400, { error: "wallet?" }); return json(200, await list(w), "no-store"); },
+    async read(url) { const w = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return json(400, { error: "wallet?" }); return json(200, { ...(await list(w)), now: now() }, "no-store"); },
+    async worn(url) { const w = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return json(400, { error: "wallet?" }); return wornOf(w); },
+    top,
     async handle(b) { const a = b.action; if (a === "world-mythic-equip") return equip(b); if (a === "world-mythic-enhance") return enhance(b); if (a === "world-mythic-salvage") return salvage(b);
-      if (a === "world-mythic-list") return listIt(b); if (a === "world-mythic-unlist") return unlist(b); if (a === "world-mythic-buy") return buy(b); return null; },
+      if (a === "world-mythic-list") return listIt(b); if (a === "world-mythic-unlist") return unlist(b); if (a === "world-mythic-buy") return buy(b);
+      if (a === "world-mythic-claim") return claim(b); if (a === "world-mythic-reforge") return reforge(b); if (a === "world-mythic-awaken") return awaken(b);
+      if (a === "world-mythic-bid") return bid(b); if (a === "world-mythic-unbid") return unbid(b); if (a === "world-mythic-fill") return fill(b); return null; },
     market,
   };
 }

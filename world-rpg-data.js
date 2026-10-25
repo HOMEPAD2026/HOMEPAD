@@ -96,6 +96,7 @@ export function statsOf(level, eq, extra) {
   s.crit = Math.min(60, Math.round(s.crit * 10) / 10); s.spd = Math.min(40, s.spd);
   // the Crimson Celestial set's own stats: critical damage %, skill damage %, damage reduction % (world-combat.js reads them)
   s.critDmg = (extra && extra.critDmg) || 0; s.skillPct = (extra && extra.skillPct) || 0; s.dr = Math.min(50, (extra && extra.dr) || 0);
+  if (extra && extra.mythic) s.mythic = extra.mythic; if (extra && extra.reaper) s.reaper = extra.reaper; if (extra && extra.aura) s.aura = true; // (flags: a Mythic piece worn, the Reaper's spin, the six's aura)
   s.sets = active;
   return s;
 }
