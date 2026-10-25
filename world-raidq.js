@@ -27,9 +27,16 @@ export const QV = {
     lines: ["Kneel, if you wish to survive.", "Beauty that devours. Power that rules.", "This is not the end. This is only the beginning.", "…only the beginning."] },
 };
 export const PROLOGUE = ["Long ago, the Eternal Crown kept the three realms in balance.", "It broke — and from its shards rose three queens.", "Win back the crown's fragments, queen by queen. Then face the Throne of Three."];
-const MOB = { imp: { glb: "imp", h: 1.9, name: "Crown Imp" }, puglin: { glb: "puglin", h: 2.5, name: "Puglin Brute" } };
-// a run's clock: Imp waves (alive at once grows), Puglins after eliteAt, the queen at waveEnd; queenSec: her fight's length
-const PLAN = { normal: { waveEnd: 100, eliteAt: 55, alive: [4, 8], queenSec: 85 }, secret: { waveEnd: 20, eliteAt: 999, alive: [4, 5], queenSec: 32 } };
+const MOB = { imp: { glb: "imp", h: 1.9, name: "Crown Imp", tex: 1 }, puglin: { glb: "puglin", h: 2.5, name: "Puglin Brute", tex: 1 },
+  // SURVIVORS ARENA's crowd (models/world/survivors/monsters.glb, one root a kind, clips "<id>:move|atk|die"), a size up
+  blob: { sv: 1, h: 1.35, name: "Blob" }, pink: { sv: 1, h: 1.4, name: "Pinky" }, mush: { sv: 1, h: 1.55, name: "Mushroom" }, bee: { sv: 1, h: 1.45, fly: 1, name: "Bee" },
+  ninja: { sv: 1, h: 1.75, name: "Ninja" }, orc: { sv: 1, h: 2.7, name: "Orc" }, ghost: { sv: 1, h: 2.1, fly: 0.6, name: "Ghost" }, glub: { sv: 1, h: 2, fly: 0.75, name: "Glub" },
+  spiky: { sv: 1, h: 2.1, name: "Spiky" }, mushx: { sv: 1, h: 2.4, name: "Big Mushroom" }, skull: { sv: 1, h: 3.2, name: "Skull" }, yeti: { sv: 1, h: 3.4, name: "Yeti" } };
+// who comes when: the run's share of its waves (0 → 1) picks the pool; elites after eliteAt, a quarter of the spawns
+const POOL = [[0, ["imp", "blob", "pink", "mush", "bee", "imp"]], [0.3, ["imp", "ninja", "orc", "ghost", "glub", "bee", "mush"]], [0.6, ["imp", "orc", "ghost", "glub", "ninja", "pink"]]];
+const ELITES = ["puglin", "spiky", "mushx", "skull", "yeti", "puglin"];
+// a run's clock: waves (alive at once grows), elites after eliteAt, the queen at waveEnd; queenSec: her fight's length
+const PLAN = { normal: { waveEnd: 100, eliteAt: 45, alive: [8, 18], queenSec: 85 }, secret: { waveEnd: 20, eliteAt: 6, alive: [8, 12], queenSec: 32 } };
 const ARENA_R = 30, TIME_LIMIT = 10 * 60;
 const dayKey = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* this visit */ } } };
@@ -49,6 +56,7 @@ export function makeRaidQueens(ctx) {
   const W = (lx, lz) => new V3(land.x + lx, 0, land.z + lz);
 
   // ---------------- the arena: a disc of stone in the queen's colours, a glowing edge, crystals round it, her dais ----------------
+  const crys = []; /* the crystals round the edge: one right in front of the camera filled the screen with light, so it steps aside (tick) */
   let marbleMap = null; // (the plaza's marble, drawn once below: the arena's floor too, tinted by the queen)
   { const side = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R, ARENA_R - 4, 7, 80, 1, true), std(0x3a2e48, { roughness: 0.8, side: THREE.DoubleSide })); side.position.y = -3.5; g.add(side); }
   const floorM = std(0x8f9fb8, { roughness: 0.5, metalness: 0.35, emissive: 0x000000, emissiveIntensity: 0.1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
@@ -57,7 +65,7 @@ export function makeRaidQueens(ctx) {
   const innerM = neon(0x9fd4ff, 0.35); flat(new THREE.RingGeometry(9.6, 10, 100), innerM, 0.06);
   const crysM = std(0x9fd4ff, { emissive: 0x9fd4ff, emissiveIntensity: 1.1 });
   { const n = ctx.low ? 8 : 16; for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2, d = ARENA_R + 2.4 + (k % 2) * 1.8, h = 2.4 + ((k * 7) % 5) * 0.7;
-      const sp = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), crysM); sp.scale.set(0.55, h, 0.55); sp.position.set(Math.cos(a) * d, h * 0.9, Math.sin(a) * d); sp.rotation.y = a; g.add(sp);
+      const sp = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), crysM); sp.scale.set(0.55, h, 0.55); sp.position.set(Math.cos(a) * d, h * 0.9, Math.sin(a) * d); sp.rotation.y = a; g.add(sp); crys.push(sp);
       if (!ctx.low && k % 4 === 0) { const fl = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), crysM), y0 = h * 2 + 1.4; fl.position.set(sp.position.x, y0, sp.position.z); g.add(fl); spins.push((dt, t) => { fl.position.y = y0 + Math.sin(t * 1.2 + k) * 0.5; fl.rotation.y = t + k; }); } } }
   const dais = new THREE.Group(); dais.position.set(0, 0, -ARENA_R + 7); g.add(dais);
   const daisTop = std(0x9fd4ff, { metalness: 0.6, roughness: 0.3, emissive: 0x9fd4ff, emissiveIntensity: 0.4 });
@@ -152,7 +160,11 @@ export function makeRaidQueens(ctx) {
   let mobsP = null, run = null;
   function loadMobs() {
     if (mobsP) return mobsP;
-    mobsP = Promise.all(Object.entries(MOB).map(async ([k, M]) => { const gl = await load(`/models/world/raid/${M.glb}.glb`); msrc[k] = gl; mclips[k] = await K.borrowMoves(gl, K.KK_MONSTER, ctx.ver || ""); }))
+    const sv = load("/models/world/survivors/monsters.glb").then((gl) => { for (const [k, M] of Object.entries(MOB)) { if (!M.sv) continue; const root = gl.scene.getObjectByName(k); if (!root) continue;
+        if (root.parent) root.parent.remove(root); root.position.set(0, 0, 0); const by = {}; for (const c of gl.animations) if (c.name.startsWith(k + ":")) by[c.name.split(":")[1]] = c;
+        msrc[k] = { scene: root }; mclips[k] = { run: by.move, walk: by.move, attack: by.atk, die: by.die }; for (const n of Object.keys(mclips[k])) if (!mclips[k][n]) delete mclips[k][n]; } })
+      .catch((e) => console.warn("raid monsters (survivors)", e)); /* the run still has its Imps without them */
+    mobsP = Promise.all([...Object.entries(MOB).filter(([, M]) => M.glb).map(async ([k, M]) => { const gl = await load(`/models/world/raid/${M.glb}.glb`); msrc[k] = gl; mclips[k] = await K.borrowMoves(gl, K.KK_MONSTER, ctx.ver || ""); }), sv])
       .then(() => true).catch((e) => { console.warn("raid monsters", e); mobsP = null; return false; });
     return mobsP;
   }
@@ -173,7 +185,7 @@ export function makeRaidQueens(ctx) {
       play(name, o2 = {}) { const n = name === "Attack" ? (Math.random() < 0.35 && acts.attack2 ? "attack2" : "attack") : name === "Hit" ? "hit" : name === "Run" ? "run" : String(name).toLowerCase();
         const a = acts[n]; if (!a) return; if (!o2.once) { if (!once) loop(n); return; }
         if (once && n === "hit") return; a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.timeScale = n === "hit" ? 1.4 : 1.15; a.play(); if (cur && cur !== a) cur.crossFadeTo(a, o2.fade ?? 0.08, false); cur = a; once = a; } };
-    const t0 = texOf(kind, skin); if (t0) e.paint(t0);
+    const t0 = MOB[kind].tex ? texOf(kind, skin) : null; if (t0) e.paint(t0);
     loop("run"); return e;
   }
 
@@ -268,13 +280,19 @@ export function makeRaidQueens(ctx) {
     const raw = c.mobsRaw(), before = run.mobs.length; run.mobs = run.mobs.filter((m) => !m.dead && raw.includes(m)); run.kills += Math.max(0, before - run.mobs.length); // (gone = knocked out: the arena's leash keeps them in)
     if (run.t >= run.plan.waveEnd) return;
     const [a0, a1] = run.plan.alive, want = Math.round(a0 + (a1 - a0) * Math.min(1, run.t / run.plan.waveEnd));
-    if ((run.spawnT -= dt) > 0 || run.mobs.length >= want) return; run.spawnT = 1.1 + Math.random() * 0.8;
-    const M = modeOf(run.mode), my = ctx.level(), lv = run.isS ? 70 + Math.floor(Math.random() * 6) : Math.max(M.lv, Math.min(M.lv + 99, my - 3 + Math.floor(Math.random() * 6)));
-    const elite = run.t >= run.plan.eliteAt && Math.random() < 0.25, kind = elite ? "puglin" : "imp", e = mobEnt(kind, run.skin); if (!e) return;
+    const cap = Math.round(want * (ctx.low ? 0.65 : 1)); /* low graphics: fewer at once */
+    if ((run.spawnT -= dt) > 0 || run.mobs.length >= cap) return; run.spawnT = 0.45 + Math.random() * 0.45;
+    for (let n = run.mobs.length < cap - 3 ? 2 : 1; n > 0; n--) spawnOne();
+  }
+  function spawnOne() {
+    const c = ctx.combat(), M = modeOf(run.mode), my = ctx.level(), lv = run.isS ? 70 + Math.floor(Math.random() * 6) : Math.max(M.lv, Math.min(M.lv + 99, my - 3 + Math.floor(Math.random() * 6)));
+    const f = run.t / run.plan.waveEnd, pool = POOL.filter(([at]) => f >= at).pop()[1], elite = run.t >= run.plan.eliteAt && Math.random() < 0.25;
+    let kind = (elite ? ELITES : pool)[Math.floor(Math.random() * (elite ? ELITES : pool).length)]; if (!msrc[kind]) kind = elite ? "puglin" : "imp";
+    const e = mobEnt(kind, run.skin); if (!e) return;
     let at = null; for (let k = 0; k < 10 && !at; k++) { const a = Math.random() * Math.PI * 2, d = 10 + Math.random() * (ARENA_R - 13), p = W(Math.cos(a) * d, Math.sin(a) * d); if (Math.hypot(p.x - me.x, p.z - me.z) > 8) at = p; }
     if (!at) return;
     const zone = { id: "rq-" + run.mode, name: "RAID QUEENS", x: land.x, z: land.z, r: ARENA_R - 1, lv: [M.lv, M.lv + 100], pow: run.isS ? 2.2 : 2 + (M.lv / 300) * 0.8, claimTier: 4, mobs: [] };
-    const m = c.spawnOwn({ ent: e, at, lv, rank: elite ? "elite" : "", zone, scale: MOB[kind].h, y: 0, name: T(MOB[kind].name), color: (QV[run.qs[0]] || {}).css });
+    const m = c.spawnOwn({ ent: e, at, lv, rank: elite ? "elite" : "", zone, scale: MOB[kind].h, y: MOB[kind].fly || 0, name: T(MOB[kind].name), color: (QV[run.qs[0]] || {}).css });
     if (m) run.mobs.push(m);
   }
   function queensIn() {
@@ -439,7 +457,9 @@ export function makeRaidQueens(ctx) {
   // ---------------- each frame ----------------
   let shown = false;
   function show(on) { on = !!on; if (on === shown) return; shown = on; vis(); }
+  const cw = new V3();
   function tick(dt, t) {
+    if (g.visible && ctx.cam) { const cp = ctx.cam(); if (cp) for (const c of crys) { c.getWorldPosition(cw); c.visible = Math.hypot(cw.x - cp.x, cw.z - cp.z) > 7; } }
     if (shown) for (const f of spins) f(dt, t);
     if (!run || run.done) return;
     ctx.here(me); const c = ctx.combat();
@@ -459,7 +479,7 @@ export function makeRaidQueens(ctx) {
     /// for the minimap: the queens in the arena
     marks: () => (run ? run.queens.filter((q) => q.m && !q.dead).map((q) => ({ g: q.m.g, css: q.V.css, s: 8, ch: "♛" })) : []),
     /// tests: the run's state, the queens' and mobs' running clips
-    debug: () => (run ? { mode: run.mode, stage: run.stage, t: Math.round(run.t), kills: run.kills, mobs: run.mobs.length,
+    debug: () => (run ? { mode: run.mode, stage: run.stage, t: Math.round(run.t), kills: run.kills, mobs: run.mobs.length, kinds: run.mobs.map((m) => m.e.kind),
       mobClips: run.mobs.map((m) => (m.e.mixer._actions || []).filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join("+")),
       queens: run.queens.map((q) => ({ id: q.id, hp: q.m ? Math.round(q.m.hp) : 0, max: q.max, phase: q.phase, clip: q.e.cur, dead: q.dead })) } : null),
     testSkip: (sec) => { if (run) run.t = sec; },
