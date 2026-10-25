@@ -23,7 +23,7 @@
 //
 // Firestore: worldDino/<w> { egg, buddy, memorial, claimDay, v } (+ worldDinoSeq/<w>_<v> with each change) ·
 //            worldDinoClaim/<nest>_<slot> (the first to pick an egg up) · worldDinoFood/<w> { n } · worldDinoFoodDay/<w>_<day> ·
-//            worldDinoRank/<w> (a companion on the battle ladder) · worldDinoIdx { ws } (who's on it)
+//            worldDinoRank/<w> (a companion on the battle ladder) · worldDinoIdx/main { ws } (who's on it)
 import { DINO, eggsAt, eggState, care as careE, gainXp, gainBond, away, stageOf, assistOf, genesOf, missionsOf, bumpMission, battle, rated, statsOf } from "./_world-dino-engine.mjs";
 
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -163,7 +163,7 @@ export function makeDino(deps) {
   const rankOf = (w, D) => { const B = act(D), g = genesB(B, w); return { name: B.name, lv: B.lv, bond: B.bond, iv: g.iv || 0, stage: stageOf(B, now()), species: g.species, pal: g.pal, eye: g.eye, rarity: g.rarity, rating: D.rating || DINO.RATING0, w: D.bw || 0, l: D.bl || 0, at: now() }; };
   async function onLadder(w, D) {
     if (!act(D)) return; await deps.setDoc(`worldDinoRank/${w}`, rankOf(w, D));
-    const ix = (await one("worldDinoIdx")) || { ws: [] }; if (!ix.ws.includes(w)) await deps.setDoc("worldDinoIdx", { ws: [...ix.ws, w].slice(-500) });
+    const ix = (await one("worldDinoIdx/main")) || { ws: [] }; if (!ix.ws.includes(w)) await deps.setDoc("worldDinoIdx/main", { ws: [...ix.ws, w].slice(-500) });
   }
   /// a wild one of about your level when there's nobody to battle yet
   const wild = (me, seed) => { const lv = Math.max(1, me.lv + Math.floor((seed % 5) - 2)), g = genesOf("wild_" + seed); return { name: g.species === "trike" ? "Wild Trike" : "Wild Raptor", lv, bond: 30, stage: me.stage, species: g.species, pal: g.pal, eye: g.eye, rarity: "common", rating: DINO.RATING0, wild: true }; };
@@ -171,7 +171,7 @@ export function makeDino(deps) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet, lv = await lvOf(w), t = now(), day = seoulDay(t);
     const D0 = norm(await one(key(w)), t); if (!act(D0)) return json(409, { error: "you have no companion" });
     if (D0.bt && D0.bt.day === day && D0.bt.n >= DINO.BATTLES_DAY) return json(429, { error: "that's today's battles — come back tomorrow" });
-    const me = rankOf(w, D0), ix = ((await one("worldDinoIdx")) || { ws: [] }).ws.filter((x) => x !== w), seed = (t ^ parseInt(w.slice(2, 10), 16)) >>> 0;
+    const me = rankOf(w, D0), ix = ((await one("worldDinoIdx/main")) || { ws: [] }).ws.filter((x) => x !== w), seed = (t ^ parseInt(w.slice(2, 10), 16)) >>> 0;
     const pool = []; for (let i = 0; i < Math.min(12, ix.length); i++) pool.push(ix[(seed + i * 7919) % ix.length]);
     const docs = pool.length ? await getDocs([...new Set(pool)].map((x) => `worldDinoRank/${x}`)) : {};
     const cands = Object.values(docs).filter(Boolean).sort((a, c) => Math.abs(a.rating - me.rating) - Math.abs(c.rating - me.rating));
@@ -215,7 +215,7 @@ export function makeDino(deps) {
     assist, hunt, gather, look, gift,
     async read(v, url) {
       if (v === "dino-nests") { const t = now(), live = eggsAt(t), cl = await getDocs(live.map((e) => `worldDinoClaim/${e.nest}_${e.slot}`)); return json(200, { eggs: live.filter((e) => !cl[`worldDinoClaim/${e.nest}_${e.slot}`]).map(({ nest, slot, x, z, to }) => ({ nest, slot, x, z, to })), now: t }, "public, max-age=15"); }
-      if (v === "dino-ladder") { const ix = ((await one("worldDinoIdx")) || { ws: [] }).ws, docs = ix.length ? await getDocs(ix.map((x) => `worldDinoRank/${x}`)) : {};
+      if (v === "dino-ladder") { const ix = ((await one("worldDinoIdx/main")) || { ws: [] }).ws, docs = ix.length ? await getDocs(ix.map((x) => `worldDinoRank/${x}`)) : {};
         return json(200, { top: Object.values(docs).filter(Boolean).sort((a, c) => c.rating - a.rating || c.lv - a.lv).slice(0, 20).map(({ at, ...x }) => x) }, "public, max-age=60"); }
       if (v !== "dino") return null;
       const w = String((url && url.searchParams && url.searchParams.get("wallet")) || "").toLowerCase(), t = now();
