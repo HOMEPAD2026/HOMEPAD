@@ -350,17 +350,24 @@ export function makeMythic(deps) {
     const m = await mine(b, false); if (m.err) return m.err; const { id, p } = m; if (p.state !== "NFT_PENDING") return json(409, { error: "it isn't waiting to be an NFT" });
     await setDoc(`worldMythic/${id}`, { ...p, state: "GAME_OWNED", nft: null }); return json(200, { ok: true });
   }
+  /// the wallet the contract takes vouchers from (and one waiting to take over, from when); null when it can't be read
+  async function chainSigner() {
+    if (!deps.ethCall || !NFT_ON()) return null;
+    try { const [a, b2, c] = await Promise.all(["signer", "pendingSigner", "pendingSignerAt"].map((k) => deps.ethCall(CC.NFT.ADDR, CC.NFT.SEL[k])));
+      const ad = (r) => lc("0x" + String(r).slice(-40)); return { signer: ad(a), pending: /^0x0+$/.test(ad(b2)) ? "" : ad(b2), at: Number(BigInt(c || "0x0")) }; } catch { return null; }
+  }
   async function nftAdmin(b) {
     const s = signer(b); if (s.err) return s.err; if (!(deps.isGM && deps.isGM(s.wallet))) return json(403, { error: "for the team" });
     const op = String(b.op || "");
     if (op === "list") { const Q = (await one(NQ)) || { ids: [] }, ids = (Q.ids || []).slice(0, 100), d = ids.length ? await getDocs(ids.map((i) => `worldMythic/${i}`)) : {};
-      return json(200, { ok: true, addr: CC.NFT.ADDR, chain: CC.NFT.CHAIN, list: ids.map((i) => d[`worldMythic/${i}`]).filter((p) => p && p.state === "NFT_PENDING").map((p) => ({ id: p.id, def: p.def, src: p.src, plus: p.plus || 0, stars: p.stars || 0, owner: p.owner, signed: !!(p.nft && p.nft.sig), voucher: nftVoucher(p, p.owner, p.nft.nonce, (p.nft.deadline || Math.floor(now() / 1000) + CC.NFT.DEADLINE_S)) })) }); }
+      return json(200, { ok: true, addr: CC.NFT.ADDR, chain: CC.NFT.CHAIN, signer: await chainSigner(), list: ids.map((i) => d[`worldMythic/${i}`]).filter((p) => p && p.state === "NFT_PENDING").map((p) => ({ id: p.id, def: p.def, src: p.src, plus: p.plus || 0, stars: p.stars || 0, owner: p.owner, signed: !!(p.nft && p.nft.sig), voucher: nftVoucher(p, p.owner, p.nft.nonce, (p.nft.deadline || Math.floor(now() / 1000) + CC.NFT.DEADLINE_S)) })) }); }
     if (op !== "sign") return json(400, { error: "list or sign" });
     if (!NFT_ON()) return json(503, { error: "the NFT contract isn't set yet" });
     const id = String(b.id || ""), p = await one(`worldMythic/${id}`); if (!p || p.state !== "NFT_PENDING") return json(404, { error: "it isn't waiting to be an NFT" });
     const deadline = Math.floor(Number(b.deadline) || 0); if (!(deadline > now() / 1000 && deadline <= now() / 1000 + 7 * 86400)) return json(400, { error: "a deadline within a week" });
     const v = nftVoucher(p, p.owner, p.nft.nonce, deadline), who = recoverDigest(voucherDigest(v, CC.NFT.ADDR), String(b.sig || ""));
     if (!who || !(deps.isGM && deps.isGM(who))) return json(400, { error: "that signature isn't a GM wallet's for this voucher" });
+    const cs = await chainSigner(); if (cs && cs.signer !== who) return json(400, { error: "the contract takes vouchers from another wallet: make your wallet its signer first (GM · NFT)" }); // (a voucher it would refuse on Arc)
     const np = { ...p, nft: { ...p.nft, deadline, sig: String(b.sig), by: who, signedAt: now() } }; await setDoc(`worldMythic/${id}`, np);
     if (deps.audit) deps.audit(s.wallet, "mythic-nft-sign", { id, to: p.owner, tokenId: p.nft.tokenId }).catch(() => {});
     return json(200, { ok: true, voucher: v, sig: np.nft.sig });

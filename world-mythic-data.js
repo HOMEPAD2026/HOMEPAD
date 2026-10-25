@@ -67,8 +67,8 @@ export const CC = {
   // step C (the owner, 2026-10-25): a piece taken onto Arc as an NFT (contracts/contracts/CrimsonCelestialNFT.sol) with a
   // voucher a GM signs in their own wallet (EIP-712); it comes back into the game by returning it there (it burns). ADDR
   // stays empty until the owner deploys it (contracts/scripts/deploy-crimson-celestial-nft.js): until then "coming soon".
-  NFT: { ADDR: "", CHAIN: 5042, NAME: "CrimsonCelestialNFT", VERSION: "1", DEADLINE_S: 3 * 86400,
-    SEL: { mint: "0xc9c8231d", toGame: "0x453601d8", ownerOf: "0x6352211e" },
+  NFT: { ADDR: "0x709E1B65c529567Fbe1C79dE278c2ABbA0086ff5", CHAIN: 5042, /* (deployed 2026-10-25 on Arc by the owner) */ NAME: "CrimsonCelestialNFT", VERSION: "1", DEADLINE_S: 3 * 86400,
+    SEL: { mint: "0xc9c8231d", toGame: "0x453601d8", ownerOf: "0x6352211e", signer: "0x238ac933", pendingSigner: "0x14d90c45", pendingSignerAt: "0xdd8e97b1", proposeSigner: "0x3f8a2b2c", acceptSigner: "0x6472674c" },
     TOPIC: { minted: "0x68d937d9e57e7cf33f4aecfde473c947bc9836a4d40567eb223fc42179043d30", returned: "0x67ffb28c0e498947b5c148a385ed64809190a87d2a053c40be021f28c69181ec" },
     SRC: ["lysitha", "solvira", "nyxara", "throne", "secret"] },
   USD: { MIN: 100, MAX: 1000000, FEE: 0.02, HOLD_MS: 15 * 60e3, TOKEN: "0x3600000000000000000000000000000000000000", DEC: 6 },

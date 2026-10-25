@@ -190,7 +190,10 @@ export function makeMythicUI(ctx) {
   function gmNftHtml() {
     if (!gmNft) { ctx.post({ action: "world-mythic-nft-admin", ...ctx.sess(), op: "list" }).then((r) => { gmNft = (r && r.ok && r.j) || { list: [] }; paint(); }).catch(() => { gmNft = { list: [] }; paint(); }); return ""; }
     const sh = (w) => (w ? String(w).slice(0, 6) + "…" + String(w).slice(-4) : "—");
-    return `<h4 class="my-h">⛓ ${esc(T("NFT vouchers"))}</h4><div class="my-bids">${(gmNft.list || []).length ? gmNft.list.map((x) => { const P = pieceOf(x.def); return `<div class="my-bid"><span><b>${esc(P ? T(P.name) : "—")} +${x.plus}${x.stars ? " " + "★".repeat(x.stars) : ""}</b><small>→ ${esc(sh(x.owner))} · ${esc(T(SRC[x.src] || x.src))}</small></span>${x.signed ? `<small class="st paid">${esc(T("Signed"))}</small>` : `<button type="button" class="go" data-gmsign="${x.id}">${esc(T("Sign in my wallet"))}</button>`}</div>`; }).join("") : `<p class="my-fine">${esc(T("Nothing to sign."))}</p>`}</div>`;
+    // the contract's signer: vouchers must come from it; the owner (a GM) moves it to their wallet (a day's wait, then accept)
+    const cs = gmNft.signer, me = String((ctx.sess() || {}).wallet || "").toLowerCase(), wait = cs && cs.pending === me ? cs.at * 1000 - Date.now() : 0;
+    const sgn = !cs ? "" : `<div class="my-bid"><span><b>${esc(T("Contract signer"))}: ${esc(sh(cs.signer))}</b><small>${esc(cs.signer === me ? T("Your wallet — you can sign") : cs.pending === me ? (wait > 0 ? T("Your wallet takes over in {h} h", { h: Math.ceil(wait / 3600e3) }) : T("Ready: accept it now")) : T("Not your wallet: vouchers you sign would be refused"))}</small></span>${cs.signer === me ? "" : cs.pending === me ? (wait > 0 ? "" : `<button type="button" class="go" data-gmsigner="accept">${esc(T("Accept"))}</button>`) : `<button type="button" class="go" data-gmsigner="propose">${esc(T("Make my wallet the signer"))}</button>`}</div>`;
+    return `<h4 class="my-h">⛓ ${esc(T("NFT vouchers"))}</h4><div class="my-bids">${sgn}${(gmNft.list || []).length ? gmNft.list.map((x) => { const P = pieceOf(x.def); return `<div class="my-bid"><span><b>${esc(P ? T(P.name) : "—")} +${x.plus}${x.stars ? " " + "★".repeat(x.stars) : ""}</b><small>→ ${esc(sh(x.owner))} · ${esc(T(SRC[x.src] || x.src))}</small></span>${x.signed ? `<small class="st paid">${esc(T("Signed"))}</small>` : `<button type="button" class="go" data-gmsign="${x.id}">${esc(T("Sign in my wallet"))}</button>`}</div>`; }).join("") : `<p class="my-fine">${esc(T("Nothing to sign."))}</p>`}</div>`;
   }
   function gmHtml() {
     if (!gmList) { ctx.post({ action: "world-mythic-usd-admin", ...ctx.sess(), op: "list" }).then((r) => { gmList = (r && r.ok && r.j.list) || []; paint(); }).catch(() => { gmList = []; paint(); }); return `<div class="my-body"><p class="my-empty">…</p></div>`; }
@@ -238,6 +241,12 @@ export function makeMythicUI(ctx) {
     const r = await untilConfirmed({ action: "world-mythic-nft-back", tokenId, tx });
     if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
     await ctx.refresh(); paint(); snd("equip"); ctx.toast(esc(T("Back in the game — enhance, trade or wear it here")));
+  }
+  async function gmSigner(btn, op) {
+    if (!ctx.tx) return; const me = String((ctx.sess() || {}).wallet || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(me)) return;
+    btn.disabled = true; const data = op === "accept" ? CC.NFT.SEL.acceptSigner : CC.NFT.SEL.proposeSigner + me.slice(2).padStart(64, "0");
+    try { await ctx.tx(CC.NFT.ADDR, data); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
+    ctx.toast(esc(op === "accept" ? T("Your wallet signs the vouchers now") : T("Sent — accept it here after a day"))); setTimeout(() => { gmNft = null; paint(); }, 8000);
   }
   async function gmSign(btn, id) {
     const it = ((gmNft && gmNft.list) || []).find((x) => x.id === id); if (!it || !ctx.signTyped) return;
@@ -324,6 +333,7 @@ export function makeMythicUI(ctx) {
       const nm = e.target.closest("[data-nftmint]"); if (nm && !nm.disabled) { await nftMint(nm, nm.dataset.nftmint); return; }
       const nb = e.target.closest("[data-nftback]"); if (nb && !nb.disabled) { await nftBack(nb, nb.dataset.nftback); return; }
       const gs = e.target.closest("[data-gmsign]"); if (gs && !gs.disabled) { await gmSign(gs, gs.dataset.gmsign); return; }
+      const gn = e.target.closest("[data-gmsigner]"); if (gn && !gn.disabled) { await gmSigner(gn, gn.dataset.gmsigner); return; }
       if (e.target.closest("[data-odds]")) { oddsOpen = !oddsOpen; paint(); return; }
       if (e.target.closest("[data-bidopen]")) { bidOpen = true; paint(); return; }
       if (e.target.closest("[data-mfw]")) { mf.watch = !mf.watch; paint(); return; }
