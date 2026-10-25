@@ -4999,15 +4999,18 @@ if (sess()) setTimeout(() => village.load(), 3500); // your village level and bl
 await capWait(Promise.resolve().then(() => setAvatar(P.char || "arc-arc")), 30000, "avatar", false); // (not skipped: the town needs its hero) try { ensureFootSpot(); } catch (e) { console.warn("foot spot", e); } // b447: the spot under your feet
 loadbar(0.85, TW("Dressing the town…"));
 // b443: the town's set dressing (trees, lamps, the districts' props) is placed before the screen lifts, up to 8 s
-if (decorOn && decor && decor.townReady) await capWait(Promise.resolve(decor.townReady).catch(() => {}), 8000, "decor");
+// (2026-10-25, the funnel: a third of new browsers left before the town showed) a phone on low graphics, or a load
+// already slow (past 25 s), gets half these waits: what isn't ready goes on in the background, behind the town
+const quickIn = (coarse && lowGfx) || performance.now() > 25000, qk = (ms) => (quickIn ? Math.round(ms / 2) : ms);
+if (decorOn && decor && decor.townReady) await capWait(Promise.resolve(decor.townReady).catch(() => {}), qk(8000), "decor");
 try { farCull.prep(); } catch (e) { console.warn("far cull", e); } // (again for what came in since: the fade's shaders made before warm compiles everything)
 loadbar(0.9, TW("Waking the scammers…"));
 // b442: the scammers and every effect readied behind the loading screen too (combat.warm: copy, prepare and draw each
 // model once out of sight). It used to start 4 s after the screen lifted and go on every 0.9 s: the first minute on
 // the plaza stuttered. At most 6 s here; anything left (packs that load later) the warm loop below still does.
-if (combat && combat.warm) { const w0 = performance.now(); try { while (!bootSkipped && performance.now() - w0 < 6000 && await capWait(combat.warm(st, 6), 2500, "warm")); } catch { /* the loop below tries again */ } }
+if (combat && combat.warm) { const w0 = performance.now(); try { while (!bootSkipped && performance.now() - w0 < qk(6000) && await capWait(combat.warm(st, 6), 2500, "warm")); } catch { /* the loop below tries again */ } }
 loadbar(0.95, TW("Polishing the light…"));
-try { await capWait(st.warm(4000), 6000, "light"); } catch (e) { console.warn("warm", e); } // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
+try { await capWait(st.warm(quickIn ? 2500 : 4000), qk(6000), "light"); } catch (e) { console.warn("warm", e); } // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
 loadbar(1); try { diag.ready(performance.now() / 1000); } catch { /* no report */ }
 const landing = dive();
 // b440: what arrives after loading (a zone's props, the Game Village, an island, a pet) is compiled in the background as
