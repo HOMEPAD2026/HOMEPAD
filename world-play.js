@@ -211,6 +211,12 @@ Object.assign(WORDS.tr, { "{a} / 6 worn": "{a} / 6 giyili", "Open the set": "Set
 Object.assign(WORDS.ko, { "Tap to wear": "눌러서 착용", "Wear now": "바로 착용", "Worn — the set's bonuses count it now": "착용 완료 — 이제 세트 보너스에 반영돼요" });
 Object.assign(WORDS.zh, { "Tap to wear": "点击穿戴", "Wear now": "立即穿戴", "Worn — the set's bonuses count it now": "已穿戴——现在计入套装加成" });
 Object.assign(WORDS.tr, { "Tap to wear": "Giymek için dokun", "Wear now": "Hemen giy", "Worn — the set's bonuses count it now": "Giyildi — set bonusları artık sayıyor" });
+Object.assign(WORDS.ko, { "Sky Realm": "스카이 렐름", "Sky": "하늘", "Citadel": "성채", "Queens": "여왕", "Monsters": "몬스터", "The day's first win of each run pays ARCL ×1.5 and one more piece.": "던전마다 하루 첫 승리는 ARCL ×1.5에 아이템 하나가 더 나와요.", "Fill the gold guard bar under her HP to BREAK her: 4 seconds stunned.": "체력 아래 금색 가드 게이지를 채우면 BREAK: 4초 동안 기절해요.", "Each queen has her own trick — frost circles, a sweeping sunbeam, healing blood pools.": "여왕마다 기술이 달라요 — 서리 원, 휩쓰는 태양광, 회복하는 피 웅덩이.", "A won run can drop a Crimson Celestial piece. Tap it in the set to wear it.": "승리하면 크림슨 셀레스티얼 조각이 나올 수 있어요. 세트 창에서 눌러 착용하세요.", "This week's fastest: {n} · {t}": "이번 주 최단 기록: {n} · {t}" });
+Object.assign(WORDS.zh, { "Sky Realm": "天空领域", "Sky": "天空", "Citadel": "城堡", "Queens": "女王", "Monsters": "怪物", "The day's first win of each run pays ARCL ×1.5 and one more piece.": "每个副本每天的首胜：ARCL ×1.5，并多掉一件装备。", "Fill the gold guard bar under her HP to BREAK her: 4 seconds stunned.": "填满她血条下的金色护盾条即可破防：眩晕 4 秒。", "Each queen has her own trick — frost circles, a sweeping sunbeam, healing blood pools.": "每位女王都有绝招——冰霜法阵、横扫的日光、治疗的血池。", "A won run can drop a Crimson Celestial piece. Tap it in the set to wear it.": "胜利后可能掉落深红天界部件。在套装界面点击即可穿戴。", "This week's fastest: {n} · {t}": "本周最快：{n} · {t}" });
+Object.assign(WORDS.tr, { "Sky Realm": "Gök Diyarı", "Sky": "Gökyüzü", "Citadel": "Kale", "Queens": "Kraliçeler", "Monsters": "Canavarlar", "The day's first win of each run pays ARCL ×1.5 and one more piece.": "Her koşunun günün ilk zaferi ARCL ×1,5 ve bir parça daha verir.", "Fill the gold guard bar under her HP to BREAK her: 4 seconds stunned.": "HP'sinin altındaki altın koruma çubuğunu doldur, KIR: 4 saniye sersemler.", "Each queen has her own trick — frost circles, a sweeping sunbeam, healing blood pools.": "Her kraliçenin bir hilesi var — buz halkaları, süpüren güneş ışını, iyileştiren kan havuzları.", "A won run can drop a Crimson Celestial piece. Tap it in the set to wear it.": "Kazanılan koşu bir Crimson Celestial parçası düşürebilir. Giymek için sette ona dokun.", "This week's fastest: {n} · {t}": "Bu haftanın en hızlısı: {n} · {t}" });
+Object.assign(WORDS.ko, { "Player logs": "플레이어 로그", "name or 0x…": "이름 또는 0x…", "Search a player by name or wallet: their errors and loads, newest first.": "이름이나 지갑으로 플레이어를 찾아보세요: 오류와 로딩 기록이 최신순으로 나와요.", "Nothing reported yet": "아직 기록이 없어요", "Recent players with reports": "최근 기록이 있는 플레이어", "{n} errors": "오류 {n}개" });
+Object.assign(WORDS.zh, { "Player logs": "玩家日志", "name or 0x…": "名字或 0x…", "Search a player by name or wallet: their errors and loads, newest first.": "按名字或钱包搜索玩家：最新的错误和加载记录在前。", "Nothing reported yet": "暂无记录", "Recent players with reports": "最近有记录的玩家", "{n} errors": "{n} 个错误" });
+Object.assign(WORDS.tr, { "Player logs": "Oyuncu kayıtları", "name or 0x…": "isim ya da 0x…", "Search a player by name or wallet: their errors and loads, newest first.": "Bir oyuncuyu isim ya da cüzdanla ara: hataları ve yüklemeleri, en yenisi önce.", "Nothing reported yet": "Henüz kayıt yok", "Recent players with reports": "Kaydı olan son oyuncular", "{n} errors": "{n} hata" });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
@@ -715,7 +721,7 @@ const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn
 // b-st3: the first minutes, counted (world-diag.js funnel): each step once a visit; nw = this browser's first visit
 const FUN_NEW = (() => { try { const k = "arc.world.fun0"; const was = localStorage.getItem(k); if (!was) localStorage.setItem(k, String(Date.now())); return !was; } catch { return false; } })();
 const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; funSent.add(ev); try { if (diag && diag.funnel) diag.funnel(ev, FUN_NEW); } catch { /* fine */ } };
-const diag = DIAG.createDiag({ post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+const diag = DIAG.createDiag({ who: () => { const s0 = sess(); return s0 ? { w: s0.wallet, nm: (typeof P !== "undefined" && P && P.name) || "" } : {}; }, ver: VER, post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
 // a load that hasn't finished after 45 s says where it stopped (?world=diag errors: the step, the quality, the pixel ratio,
 // whether the graphics context was lost) — a Mac stayed at 85 % for hours (2026-10-24) and nothing had been reported
 let glLost = false; try { st.renderer.domElement.addEventListener("webglcontextlost", () => { glLost = true; glLostLoading(); }); } catch { /* no canvas */ }
@@ -731,6 +737,11 @@ function glLostLoading() {
   try { sessionStorage.setItem("arc.gl.retry", "1"); const o = JSON.parse(localStorage.getItem(SETS) || "{}"); o.quality = "low"; localStorage.setItem(SETS, JSON.stringify(o)); } catch { /* reload anyway */ }
   setTimeout(() => location.reload(), 1200);
 }
+// the loading's waits, each with an end (a step that never settles reports itself once and lets the load go on), and
+// the loading screen's "Enter now" (play.html's watchdog, after 20 s on one step) that ends every one of them
+let bootSkipped = false, bootSkipFn = null; const bootSkip = new Promise((r) => { bootSkipFn = r; });
+window.__arcBootSkip = () => { bootSkipped = true; try { diag.err(`load: Enter now at ${loadAt}`, "load"); } catch { /* no report */ } bootSkipFn(); };
+function capWait(p, ms, what, skip = true) { let late = false; return Promise.race([Promise.resolve(p).catch((e) => { try { diag.err(`load ${what}: ${(e && e.message) || e}`, "load"); } catch { /* no report */ } return null; }), new Promise((r) => setTimeout(() => { late = true; r(null); }, ms)), ...(skip ? [bootSkip.then(() => null)] : [])]).then((v) => { if (late) try { diag.err(`load ${what} timed out at ${loadAt}`, "load"); } catch { /* no report */ } return v; }); }
 // where the load waits, sent at 15 s too (the 45 s report below came from almost nobody: most leave before that)
 setTimeout(() => { const b = $("wp-loadbar"); if (b && b.isConnected && b.style.width !== "100%") try { diag.err(`load slow 15s at ${loadAt} · ${S.quality || "auto"} · ${glLost ? "GL LOST" : "gl ok"} · ${document.hidden ? "hidden" : "shown"}`, "load"); } catch { /* not sent */ } }, 15000);
 setTimeout(() => { const b = $("wp-loadbar"); if (b && b.isConnected && b.style.width !== "100%") try { diag.err(`load stall at ${loadAt} · ${S.quality || "auto"} · dpr ${devicePixelRatio} · ${glLost ? "GL LOST" : "gl ok"} · ${document.hidden ? "hidden" : "shown"}`, "load"); } catch { /* not sent */ } }, 45000);
@@ -3913,6 +3924,7 @@ rpg = RPG.createRpg({
   hub: (k) => hubAct(k), ver: VER, reduce: () => reduce,
   // the Crimson Celestial pieces worn (and wearable at your level), by slot, for the Character window's slots and its card
   mythicSlot: (k) => { try { if (!MY) return null; const p = mythicWorn().find((x) => MY.pieceOf(x.def).slot === k); return p ? { ...p, P: MY.pieceOf(p.def), st: MY.mythicStats(p) } : null; } catch { return null; } }, // (try: it can be asked before the Mythic state below is set up)
+  mythicHeld: () => { try { if (!MY || !mythicNow) return []; const on = new Set(Object.values(mythicNow.eq || {})); return (mythicNow.pieces || []).filter((p) => MY.pieceOf(p.def) && p.state !== "GAME_LISTED").map((p) => ({ ...p, P: MY.pieceOf(p.def), worn: on.has(p.id) })); } catch { return []; } }, // (the bag's Mythic row)
   mythicSet: () => { try { if (!MY) return null; const worn = mythicWorn(); return { worn: worn.length, bonus: MY.setBonus(worn), BONUS: MY.CC.BONUS, held: ((mythicNow && mythicNow.pieces) || []).length }; } catch { return null; } },
   openMythic: (k) => openMythic(k),
   THREE, T: TW, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd, reduce, scene: () => st.scene,
@@ -4888,7 +4900,9 @@ dailyState(); makeMeadow(); dayNight(); worldReady = true; if (st.quality.coarse
 const bakeNow = () => { if (mode === "hub") farCull.all(bakeMiniMap); };
 if (town.length) bakeNow(); else setTimeout(() => { if (window.requestIdleCallback) requestIdleCallback(bakeNow, { timeout: 4000 }); else bakeNow(); }, 6000);
 loadbar(0.8, TW("Opening the plaza…"));
-paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshMythic(); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
+// (each on its own: one that throws must never hold the load at 80 % — Macs stuck there, 2026-10-25)
+for (const f of [paintHud, paintQuests, paintAcct, () => refreshPurse(true), () => refreshCoins(true), refreshMythic, refreshArc, refreshQuantum, ping]) { try { const r = f(); if (r && r.catch) r.catch((e) => { try { diag.err("boot: " + (e && e.message || e), "load80"); } catch { /* no report */ } }); } catch (e) { console.warn("boot", e); try { diag.err("boot: " + (e && e.message || e), "load80"); } catch { /* no report */ } } }
+setTimeout(resumeSession, 2500);
 setTimeout(refreshWelcome, 3500); every(10 * 60e3, refreshWelcome);
 // the right edge's tab (world-skin.css .wp-clean-tab): one tap hides the screen's buttons in both worlds, leaving what you
 // play with; remembered in this browser
@@ -4974,19 +4988,20 @@ if (sess()) setTimeout(() => village.load(), 3500); // your village level and bl
 // the way in is one move: the robot is dressed while the loading screen is still up, the first frame you see is the
 // start of the dive (never the town first and then a jump back out to space), and from the home gate, which has
 // already dived down to the robot, the camera only comes down the last stretch to land behind you
-await setAvatar(P.char || "arc-arc"); ensureFootSpot(); // b447: the spot under your feet
+// every wait from here on has an end, and the loading screen's "Enter now" (bootSkip, after 20 s on one step) ends them all
+await capWait(Promise.resolve().then(() => setAvatar(P.char || "arc-arc")), 30000, "avatar", false); // (not skipped: the town needs its hero) try { ensureFootSpot(); } catch (e) { console.warn("foot spot", e); } // b447: the spot under your feet
 loadbar(0.85, TW("Dressing the town…"));
 // b443: the town's set dressing (trees, lamps, the districts' props) is placed before the screen lifts, up to 8 s
-if (decorOn && decor && decor.townReady) await Promise.race([Promise.resolve(decor.townReady).catch(() => {}), new Promise((r) => setTimeout(r, 8000))]);
+if (decorOn && decor && decor.townReady) await capWait(Promise.resolve(decor.townReady).catch(() => {}), 8000, "decor");
 try { farCull.prep(); } catch (e) { console.warn("far cull", e); } // (again for what came in since: the fade's shaders made before warm compiles everything)
 loadbar(0.9, TW("Waking the scammers…"));
 // b442: the scammers and every effect readied behind the loading screen too (combat.warm: copy, prepare and draw each
 // model once out of sight). It used to start 4 s after the screen lifted and go on every 0.9 s: the first minute on
 // the plaza stuttered. At most 6 s here; anything left (packs that load later) the warm loop below still does.
-if (combat && combat.warm) { const w0 = performance.now(); try { while (performance.now() - w0 < 6000 && await combat.warm(st, 6)); } catch { /* the loop below tries again */ } }
+if (combat && combat.warm) { const w0 = performance.now(); try { while (!bootSkipped && performance.now() - w0 < 6000 && await capWait(combat.warm(st, 6), 2500, "warm")); } catch { /* the loop below tries again */ } }
 loadbar(0.95, TW("Polishing the light…"));
-try { await st.warm(4000); } catch (e) { console.warn("warm", e); } // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
-loadbar(1);
+try { await capWait(st.warm(4000), 6000, "light"); } catch (e) { console.warn("warm", e); } // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
+loadbar(1); try { diag.ready(performance.now() / 1000); } catch { /* no report */ }
 const landing = dive();
 // b440: what arrives after loading (a zone's props, the Game Village, an island, a pet) is compiled in the background as
 // soon as it's in the scene, hidden parts too, so its first appearance on screen doesn't stall on shader building
@@ -5515,7 +5530,8 @@ function rqWarp() {
 /// the one building for every run: 100 / 200 / 300 / 400 / SECRET (the owner, 2026-10-25: like SURVIVORS ARENA's building)
 async function rqLobby() {
   if (frozen || flying || introOn || mode !== "hub") return;
-  const r = await ensureRq(); if (!r || frozen || mode !== "hub") return;
+  const card = rqL && rqL.prepared() ? null : rqLoadCard();
+  const r = await ensureRq(); if (!r) { if (card) card.close(); return; } await rqReady(r, card); if (frozen || mode !== "hub") return;
   closeAll(); r.openLobby();
 }
 /// the Citadel before RAID QUEENS opens (anyone but a GM): what's being built, no way in yet
@@ -5539,10 +5555,39 @@ function rqPortalFront() {
   vfx.teleport(here(), { color: 0xff4d8d, color2: 0xffd36a }); if (Snd.dash) Snd.dash(); startSweep(1200); landTick(true); paintPrompt();
 }
 /// the portal on the far hunting ring, the map, the Menu: into the sky realm, at the foot of the Spireway facing the Citadel (walk up → rqWarp → the lobby)
+/// RAID QUEENS' loading card (the owner, 2026-10-25): the three queens' cut-ins in turn over the Sky Realm's art, the steps
+/// ticking (sky · citadel · queens · monsters), a tip card that turns; the files come in behind it (rqL.prepare) and their
+/// shaders compile, so the hall doesn't stutter as it shows. Only until the realm is ready once this visit; at least 1.4 s
+function rqLoadCard() {
+  const el = document.createElement("div"); el.className = "rql"; el.setAttribute("role", "status"); el.setAttribute("data-no-i18n", "");
+  const tall = innerHeight > innerWidth, t0 = performance.now(), mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+  const tips = [TW("The day's first win of each run pays ARCL ×1.5 and one more piece."), TW("Fill the gold guard bar under her HP to BREAK her: 4 seconds stunned."),
+    TW("Each queen has her own trick — frost circles, a sweeping sunbeam, healing blood pools."), TW("A won run can drop a Crimson Celestial piece. Tap it in the set to wear it.")];
+  el.innerHTML = `<div class="rql-bg" style="background-image:url('/images/raid/${tall ? "loading-tall" : "loading-wide"}.webp${VER}'),url('/images/raid/key.webp${VER}')"></div>
+    <div class="rql-q">${["lysitha", "solvira", "nyxara"].map((id, i) => `<img src="/images/raid/${id}-full.webp${VER}" alt="" style="--i:${i}">`).join("")}</div>
+    <div class="rql-in"><small>RAID QUEENS</small><h2>${esc(TW("Sky Realm"))}</h2><ol>${["Sky", "Citadel", "Queens", "Monsters"].map((k, i) => `<li data-k="${i}">${esc(TW(k))}</li>`).join("")}</ol>
+    <i class="rql-bar"><b></b></i><p class="rql-tip">${esc(tips[0])}</p></div>`;
+  document.body.appendChild(el);
+  let ti = 0; const tipEl = el.querySelector(".rql-tip"), turn = setInterval(() => { ti = (ti + 1) % tips.length; tipEl.classList.remove("on"); void tipEl.offsetWidth; tipEl.textContent = tips[ti]; tipEl.classList.add("on"); }, 3000);
+  fetch("/api/social?world=rq-top&mode=lysitha", { cache: "no-store" }).then((r) => r.ok && r.json()).then((j) => { const x0 = j && j.top && j.top[0]; if (x0) tips.push(TW("This week's fastest: {n} · {t}", { n: String(x0.name || x0.w || "").slice(0, 16), t: mmss(x0.t || 0) })); }).catch(() => {});
+  const done = new Set(); // (0 sky · 1 citadel · 2 queens · 3 monsters; 4 = everything)
+  const step = (k) => { if (k >= 4) [0, 1, 2, 3].forEach((i) => done.add(i)); else done.add(k); el.querySelectorAll("li").forEach((li) => li.classList.toggle("ok", done.has(Number(li.dataset.k)))); el.querySelector(".rql-bar b").style.width = `${(done.size / 4) * 100}%`; };
+  const close = async () => { const wait = 1400 - (performance.now() - t0); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); clearInterval(turn); el.classList.add("out"); setTimeout(() => el.remove(), 450); };
+  return { step, close };
+}
+/// the card, the realm made ready behind it, then the card goes (a realm already ready this visit: no card)
+async function rqReady(r, card) { if (!card) return; card.step(0); try { await r.prepare((k) => card.step(k)); } catch { /* it shows and comes in as before */ } await card.close(); }
+// walk within 30 m of its portal and the sky realm starts coming in quietly (not on low graphics or a saving / slow connection)
+let rqPreT = 0, rqPre = false;
+st.on((dt) => { if (rqPre || (rqPreT += dt) < 1) return; rqPreT = 0; if (!rqGate.visible || lowGfx || mode !== "hub" || !rqOn()) return;
+  const c = navigator.connection; if (c && (c.saveData || /2g|3g/.test(c.effectiveType || ""))) return;
+  const v = here(new THREE.Vector3()); if (Math.hypot(v.x - RQ_GATE.x, v.z - RQ_GATE.z) > 30) return; rqPre = true;
+  ensureRq().then((r) => r && r.prepare(() => {}, { quiet: true })).catch(() => { rqPre = false; }); });
 async function rqGo() {
   if (!rqOn()) { rqSoon(); return; } // (not open yet: the construction card)
   if (frozen || flying || introOn || mode !== "hub") return;
-  const r = await ensureRq(); if (!r || frozen || mode !== "hub") return;
+  const card = rqL && rqL.prepared() ? null : rqLoadCard();
+  const r = await ensureRq(); if (!r) { if (card) card.close(); return; } await rqReady(r, card); if (frozen || mode !== "hub") return;
   closeAll(); r.loadHall(); const a = r.arrival(); standAt(a.x, a.z, a.c);
   vfx.teleport(here(), { color: 0xff4d8d, color2: 0xffd36a }); if (Snd.dash) Snd.dash(); pullFlash("#ff4d8d"); startSweep(1600);
   landTick(true); paintPrompt();

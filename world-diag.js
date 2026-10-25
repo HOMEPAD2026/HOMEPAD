@@ -24,15 +24,26 @@ export function gpuFamily(name) {
   if (/nvidia|geforce|rtx|gtx/.test(g)) return "nvidia"; if (/radeon|amd/.test(g)) return "amd"; if (/intel/.test(g)) return "intel";
   if (/swiftshader|llvmpipe|software/.test(g)) return "soft"; return "other";
 }
-export function createDiag({ post, renderer, quality = "", coarse = false, active = () => true, tier = "", cap = () => 60, where = () => "", busy = () => false, work = () => -1 }) {
+/// the browser and system in a few words for the per-player log ("Mac Chrome 131", "Win Edge 130", "Android Samsung 26")
+export function uaShort(u = (typeof navigator !== "undefined" && navigator.userAgent) || "") {
+  const os = /iPhone|iPad/.test(u) ? "iOS" : /Android/.test(u) ? "Android" : /Mac OS X|Macintosh/.test(u) ? "Mac" : /Windows/.test(u) ? "Win" : /Linux/.test(u) ? "Linux" : "other";
+  const m = /SamsungBrowser\/(\d+)/.exec(u) || /Edg\/(\d+)/.exec(u) || /Firefox\/(\d+)/.exec(u) || /CriOS\/(\d+)/.exec(u) || /Chrome\/(\d+)/.exec(u) || /Version\/(\d+)[\d.]* .*Safari/.exec(u);
+  const br = !m ? "?" : /Samsung/.test(m[0]) ? "Samsung" : /Edg/.test(m[0]) ? "Edge" : /Firefox/.test(m[0]) ? "Firefox" : /CriOS|Chrome/.test(m[0]) ? "Chrome" : "Safari";
+  return `${os} ${br} ${m ? m[1] : ""}`.trim();
+}
+export function createDiag({ post, renderer, quality = "", coarse = false, active = () => true, tier = "", cap = () => 60, where = () => "", busy = () => false, work = () => -1, who = () => ({}), ver = "" }) {
   const off = (() => { try { return new URLSearchParams(location.search).has("nodiag") || navigator.webdriver; } catch { return true; } })();
   const gpu = (() => { try { const gl = renderer.getContext(), x = gl.getExtension("WEBGL_debug_renderer_info"); return String(x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).slice(0, 80); } catch { return ""; } })();
   const dev = coarse ? "phone" : "pc", sent = new Set();
   const send = (b) => { if (off) return; try { post({ action: "world-diag", ...b }).catch(() => {}); } catch { /* offline */ } };
   function err(msg, src) {
     const m = String(msg || "").slice(0, 180); if (!m || sent.has(m) || sent.size >= 5) return; sent.add(m);
-    send({ kind: "err", msg: m, src: String(src || "").replace(/^https?:\/\/[^/]+/, "").replace(/\?.*$/, "").slice(0, 60), gpu, dev });
+    send({ kind: "err", msg: m, src: String(src || "").replace(/^https?:\/\/[^/]+/, "").replace(/\?.*$/, "").slice(0, 60), gpu, dev, ...me() });
   }
+  // (the per-player log: who, on what — a signed-in player's wallet and name, the browser, the build)
+  const me = () => { let o = {}; try { o = who() || {}; } catch { /* nobody yet */ } return { w: o.w || "", nm: o.nm || "", ua: uaShort(), v: String(ver || "").slice(0, 24), q: quality }; };
+  /// a signed-in player got in (once a visit): the load's length, so their log shows the visits that worked too
+  function ready(sec) { if (me().w) send({ kind: "uready", sec, gpu, dev, ...me() }); }
   addEventListener("error", (e) => err(e.message, e.filename + ":" + e.lineno));
   addEventListener("unhandledrejection", (e) => { const r = e.reason; err(r && r.message ? r.message : String(r), r && r.stack ? (String(r.stack).split("\n")[1] || "").trim() : ""); });
   // the frame rate and the GPU memory, measured while you play (not in menus, not while the tab is hidden)
@@ -111,5 +122,5 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
   }
   /// b-st3: the first minutes, counted (no id): open → ready → maker → named → start → move → fight → game, and back on another day; nw: a browser here for the first time
   const funnel = (ev, nw = false) => send({ kind: "funnel", ev, dev, nw: nw ? 1 : 0 });
-  return { tick, err, gpu, fam, funnel };
+  return { tick, err, gpu, fam, funnel, ready };
 }

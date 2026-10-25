@@ -4107,11 +4107,11 @@ html.wp-pcphone .rq-cin2 header{grid-template-columns:1fr}
 @media (max-width:760px){.rq-modes{grid-template-columns:repeat(2,1fr)}.rq-lb header{grid-template-columns:120px 1fr}}
 html.wp-pcphone .rq-lb{zoom:1.9;width:calc((100vw - 40px) / 1.9);max-height:calc((100svh - 40px) / 1.9)}
 html.wp-pcphone .rq-modes{grid-template-columns:repeat(2,1fr)}html.wp-pcphone .rq-lb header{grid-template-columns:110px 1fr}
-/* phones: the run's panel sits in the top row's gap, between the level card (left) and the wallet (right), so the
-   queen stays in view (the owner, 2026-10-25: it covered her under the HP panel); compact, no zoom */
-html.wp-pcphone .rq-hud{zoom:1;left:314px;transform:none;width:calc(100vw - 314px - 214px);top:calc(30px + env(safe-area-inset-top,0px))}
+/* phones: the run's panel sits on the left under the HP / SP panel, compact, so the queen stays in view (the owner,
+   2026-10-25: first it covered her in the middle, then three queens' bars overflowed the top row's gap) */
+html.wp-pcphone .rq-hud{zoom:1;left:20px;transform:none;width:380px;top:calc(262px + env(safe-area-inset-top,0px))} /* (under the HP / SP panel on the left: the owner, 2026-10-25 — the top row was too small for three queens' bars) */
 html.wp-pcphone .rq-hud-in{padding:6px 12px 7px}
-html.wp-pcphone .rq-hud-in small{font-size:12px;letter-spacing:.16em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:64px}
+html.wp-pcphone .rq-hud-in small{font-size:12px;letter-spacing:.14em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:66px;text-align:left}
 html.wp-pcphone .rq-hud-in>b{margin:1px 0 0;font-size:25px}
 html.wp-pcphone .rq-hud-in>span{padding-bottom:4px;margin-bottom:1px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html.wp-pcphone .rq-hud-in i{height:24px;margin-top:4px}html.wp-pcphone .rq-hud-in i span{font-size:14px;line-height:24px}
@@ -4228,3 +4228,37 @@ body.rq-low::after{content:"";position:fixed;inset:0;z-index:50;pointer-events:n
 .hb-myth{border-color:rgba(255,61,110,.45)!important;background:linear-gradient(160deg,rgba(60,8,26,.85),rgba(14,4,12,.9))!important}.hb-myth ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:5px}.hb-myth li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;opacity:.55}.hb-myth li.on{opacity:1}
 .hb-myth li i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(255,61,110,.25);color:#fff;font:900 11px Sora,system-ui,sans-serif;font-style:normal}.hb-myth li.on i{background:#ff3d6e}.hb-myth li b{display:block;color:#fff;font:800 12px system-ui}.hb-myth li small{color:#f0c8d6;font-size:11px}.hb-mynote{margin:8px 0 0;color:#cdb6c4;font-size:11px}
 .hb-myw .hb-wrow .wr-slot{width:64px;height:64px;flex:0 0 64px}
+/* RAID QUEENS' loading card (world-play.js rqLoadCard): the Sky Realm's art slowly closing in, the three queens stepping in
+   one after another, the title, the steps ticking, a bar and a tip that turns */
+.rql{position:fixed;inset:0;z-index:12500;overflow:hidden;background:#07040c;color:#fff;animation:rqlIn .35s ease both}
+.rql.out{animation:rqlOut .45s ease both}@keyframes rqlIn{from{opacity:0}}@keyframes rqlOut{to{opacity:0;transform:scale(1.04)}}
+.rql-bg{position:absolute;inset:-4%;background-size:cover;background-position:center;filter:saturate(1.1);animation:rqlZoom 9s ease-out both}
+.rql-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(7,4,12,0) 30%,rgba(7,4,12,.75) 100%),linear-gradient(180deg,rgba(7,4,12,.2),rgba(7,4,12,.1) 45%,rgba(7,4,12,.92))}
+@keyframes rqlZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
+.rql-q{position:absolute;left:0;right:0;bottom:22%;height:62%;display:flex;justify-content:center;align-items:flex-end;pointer-events:none}
+.rql-q img{height:100%;width:auto;max-width:34%;object-fit:contain;margin:0 -3%;opacity:0;filter:drop-shadow(0 0 24px rgba(255,60,120,.45));animation:rqlQ .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(.25s + var(--i) * .45s)}
+.rql-q img:nth-child(2){height:108%;z-index:2}
+@keyframes rqlQ{from{opacity:0;transform:translateY(40px) scale(.94)}to{opacity:1;transform:none}}
+.rql-in{position:absolute;left:50%;bottom:calc(5% + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));text-align:center}
+.rql-in small{display:block;font:700 12px/1 "Cinzel",Georgia,serif;letter-spacing:.32em;color:#ffb3cf}
+.rql-in h2{margin:6px 0 12px;font:700 40px/1 "Cinzel",Georgia,serif;letter-spacing:.06em;text-shadow:0 0 22px rgba(255,77,141,.7),0 2px 0 #000}
+.rql-in ol{display:flex;justify-content:center;gap:8px;margin:0 0 10px;padding:0;list-style:none}
+.rql-in li{padding:5px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(10,6,18,.6);font:700 12px Sora,system-ui,sans-serif;color:#cdbfd8;transition:all .25s}
+.rql-in li::before{content:"○ ";opacity:.7}.rql-in li.ok{color:#fff;border-color:#ffd36a;background:rgba(80,40,10,.55);box-shadow:0 0 12px rgba(255,211,106,.35)}.rql-in li.ok::before{content:"✓ ";color:#ffd36a;opacity:1}
+.rql-bar{display:block;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.12)}.rql-bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4d8d,#ffd36a);box-shadow:0 0 10px #ff4d8d;transition:width .35s}
+.rql-tip{min-height:2.8em;margin:12px 0 0;padding:10px 14px;border-radius:12px;background:rgba(10,6,18,.7);border:1px solid rgba(255,211,106,.28);font:600 13.5px/1.4 system-ui,sans-serif;color:#f4ecff}
+.rql-tip.on{animation:rqlTip .4s ease both}@keyframes rqlTip{from{opacity:0;transform:translateY(6px)}}
+html.wp-pcphone .rql-in{width:calc(100vw - 80px);bottom:calc(9% + env(safe-area-inset-bottom,0px))}html.wp-pcphone .rql-in small{font-size:22px}html.wp-pcphone .rql-in h2{font-size:72px;margin:10px 0 22px}
+html.wp-pcphone .rql-in li{padding:9px 18px;font-size:22px}html.wp-pcphone .rql-bar{height:10px;border-radius:5px}html.wp-pcphone .rql-tip{font-size:24px;padding:16px 22px;border-radius:18px}
+html.wp-pcphone .rql-q{bottom:30%;height:52%}html.wp-pcphone .rql-q img{max-width:40%}
+@media (prefers-reduced-motion:reduce){.rql,.rql-bg,.rql-q img,.rql-tip.on{animation:none}.rql-q img{opacity:1}}
+/* the bag's Crimson Celestial row (world-rpg.js mythRow): the pieces you hold, a tap opens the set */
+.hb-myrow{margin:0 0 8px;padding:8px;border-radius:12px;border:1px solid rgba(255,61,110,.4);background:linear-gradient(180deg,rgba(60,6,24,.55),rgba(20,4,12,.5))}
+.hb-myrow>b{display:flex;align-items:center;gap:6px;margin:0 0 6px;font:800 11px/1 Sora,system-ui,sans-serif;letter-spacing:.12em;color:#ffb3c8}.hb-myrow>b small{padding:2px 6px;border-radius:999px;background:#ff3d6e;color:#fff;font-size:10px;letter-spacing:0}
+.hb-myrow>div{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.hb-myrow .wr-mytile{aspect-ratio:1;border-radius:10px;border:1px solid rgba(255,61,110,.45);background:radial-gradient(circle at 50% 40%,rgba(255,40,90,.22),rgba(10,2,6,.9))}
+.hb-myrow .wr-mytile.on{border-color:#ffd36a;box-shadow:0 0 12px rgba(255,211,106,.45)}.hb-myrow .wr-mytile.on i{background:#c99a2e}
+.hb-myrow .wr-mytile span{position:absolute;left:0;right:0;top:100%;display:none}
+html.wp-pcphone .hb-myrow>b{font-size:16px}html.wp-pcphone .hb-myrow .wr-mytile i{font-size:12px}html.wp-pcphone .hb-myrow .wr-mytile b{font-size:16px}
+/* the GM tab's player logs (world-market.js plogHtml) */
+.wmk-plog li.bad b{color:#ffb3b3}.wmk-plog li.ok b{color:#9ff0c4}.wmk-plog small{word-break:break-word}

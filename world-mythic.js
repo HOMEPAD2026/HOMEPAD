@@ -43,14 +43,14 @@ export function makeMythicUI(ctx) {
     const slotCard = (P) => { const mine = pcs.filter((p) => p.def === P.id), w = mine.find((p) => p.id === eq[P.slot]);
       return `<button type="button" class="my-slot${w ? " on" : ""}${mine.length ? (w ? "" : " held") : " none"}${pick === P.slot ? " sel" : ""}" data-slot="${P.slot}"><img src="${img(P, ctx.ver)}" alt=""><b>${esc(T(P.name))}</b><small>${esc(T(P.line))}</small><i>${w ? "✓ " + esc(T("Worn")) : mine.length ? esc(T("{n} held", { n: mine.length })) + " · " + esc(T("Tap to wear")) : "—"}</i></button>`; };
     const P0 = pick && CC.PIECES.find((p) => p.slot === pick), list = P0 ? pcs.filter((p) => p.def === P0.id) : [];
-    const detail = P0 ? `<div class="my-list"><div class="my-3d" data-3d="${P0.id}"><img src="${img(P0, ctx.ver)}" alt=""></div><h4>${esc(T(P0.name))}</h4>${list.length ? list.map((p) => { const on = eq[P0.slot] === p.id, low = p.req > lv;
+    const detail = P0 ? `<div class="my-list"><h4>${esc(T(P0.name))}</h4>${list.length ? list.map((p) => { const on = eq[P0.slot] === p.id, low = p.req > lv;
         const listed = p.state === "GAME_LISTED", c = enhCost(p.plus || 0), top = (p.plus || 0) >= CC.MAX_PLUS;
         return `<div class="my-pc${on ? " on" : ""}${listed ? " listed" : ""}"><span><b>${esc(T(SRC[p.src] || p.src))}</b><small>${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult} · +${p.plus || 0}${listed ? ` · 🏷 ${Number(p.price).toLocaleString("en-US")} ARCL` : ""}</small><em>${esc(statLine(mythicStats(p)))}</em></span>
           <div class="my-acts">${listed ? `<button type="button" data-unlist="${p.id}">${esc(T("Take back"))}</button>` : `<button type="button" data-eq="${p.id}" ${low && !on ? "disabled" : ""}>${on ? esc(T("Take off")) : low ? "🔒 Lv " + p.req : esc(T("Wear"))}</button>
             <button type="button" class="enh" data-enh="${p.id}" ${top ? "disabled" : ""}>${top ? "+" + CC.MAX_PLUS : `⬆ +${(p.plus || 0) + 1} · ${c.ess}💠 ${c.arcl.toLocaleString("en-US")} ARCL · ${Math.round(c.rate * 100)}%`}</button>
             <button type="button" data-sell="${p.id}">🏷 ${esc(T("Sell"))}</button><button type="button" class="salv" data-salv="${p.id}">♻ ${esc(T("Salvage"))} +${essOf(p)}💠</button>`}</div>
           ${sellId === p.id ? `<form class="my-sellf" data-sellf="${p.id}"><input type="number" min="${CC.MARKET.MIN}" max="${CC.MARKET.MAX}" step="100" value="${CC.MARKET.MIN * 10}" aria-label="${esc(T("Price in ARCL"))}"><button type="submit">${esc(T("List for sale"))}</button><small>${esc(T("2% goes to the platform when it sells."))}</small></form>` : ""}</div>`; }).join("")
-      : `<p class="my-empty">${esc(T("Not found yet. It drops from RAID QUEENS runs."))}</p>`}</div>` : "";
+      : `<p class="my-empty">${esc(T("Not found yet. It drops from RAID QUEENS runs."))}</p>`}<div class="my-3d" data-3d="${P0.id}"><img src="${img(P0, ctx.ver)}" alt=""></div></div>` : "";
     el.innerHTML = `<div class="my-card"><header><div><small>MYTHIC · ${esc(T("SET"))}</small><h3>${esc(T("Crimson Celestial"))}</h3><p>${esc(T("{a} / 6 worn · {b} / 5 bonuses", { a: sb.n, b: sb.active.length }))} · 💠 ${esc(T("Crimson Essence {n}", { n: st.ess || 0 }))}</p></div><button type="button" class="my-x" aria-label="${esc(T("Close"))}">✕</button></header>
       <div class="my-tabs"><button type="button" data-tab="set" class="${tab === "set" ? "on" : ""}">${esc(T("My set"))}</button><button type="button" data-tab="mkt" class="${tab === "mkt" ? "on" : ""}">${esc(T("Market"))}</button></div>
       ${tab === "mkt" ? marketHtml() : `<div class="my-body"><div class="my-slots">${CC.PIECES.map(slotCard).join("")}</div>${detail}
@@ -95,10 +95,16 @@ export function makeMythicUI(ctx) {
       const ul = e.target.closest("[data-unlist]"); if (ul) { await act("world-mythic-unlist", { id: ul.dataset.unlist }, () => esc(T("Taken back"))); mkt = null; return; }
       const by = e.target.closest("[data-buy]"); if (by && !by.disabled) { if (typeof confirm === "function" && !confirm(T("Buy it for {p} ARCL?", { p: by.textContent }))) return; by.disabled = true; await act("world-mythic-buy", { id: by.dataset.buy }, () => esc(T("It's yours — in your set now"))); mkt = null; tab = "set"; paint(); return; }
       if (e.target.closest(".my-sellf")) return;
-      if (q && !q.disabled) { wear(q.dataset.eq); return; } if (s) { pick = pick === s.dataset.slot ? "" : s.dataset.slot; paint(); return; }
+      if (q && !q.disabled) { wear(q.dataset.eq); return; } if (s) { const sl = s.dataset.slot;
+        // a piece held but not worn: the tap wears it (the owner, 2026-10-25: the Wear button sat out of sight under the 3D view)
+        if (s.classList.contains("held")) { const st0 = ctx.state() || { pieces: [], eq: {} }, can = (st0.pieces || []).filter((p) => { const P = pieceOf(p.def); return P && P.slot === sl && p.state !== "GAME_LISTED" && p.req <= ctx.level(); });
+          if (can.length === 1) { pick = sl; await wear(can[0].id); if (Object.values((ctx.state() || {}).eq || {}).includes(can[0].id)) ctx.toast(esc(T("Worn — the set's bonuses count it now"))); seeList(); return; } }
+        pick = pick === sl ? "" : sl; paint(); seeList(); return; }
       if (e.target === el || e.target.closest(".my-x")) close(); });
     paint(); ctx.refresh().then(paint);
   }
+  /// the picked piece's buttons brought into view (on a phone they sat under the slots and the 3D view)
+  function seeList() { const b = el && el.querySelector(".my-pc"); if (b) try { b.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch { /* old browser */ } }
   function close() { if (el) { el.remove(); el = null; ctx.freeze(false); viewer.dispose(); } }
   /// the drop's moment: a dark card, the piece rising in red light, its name, where to wear it
   function reveal(p) {

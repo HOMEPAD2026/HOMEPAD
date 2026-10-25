@@ -39,7 +39,7 @@ const POOL = [[0, ["imp", "blob", "pink", "mush", "bee", "imp"]], [0.3, ["imp", 
 const ELITES = ["puglin", "spiky", "mushx", "skull", "yeti", "puglin"];
 // a run's clock: waves (alive at once grows), elites after eliteAt, the queen at waveEnd; queenSec: her fight's length
 const PLAN = { normal: { waveEnd: 100, eliteAt: 45, alive: [8, 18], queenSec: 85 }, secret: { waveEnd: 20, eliteAt: 6, alive: [8, 12], queenSec: 32 } };
-const ARENA_R = 30, TIME_LIMIT = 10 * 60;
+const ARENA_R = 30, TIME_LIMIT = 10 * 60, RQ_MUSIC = "rq-waves"; // (the first track a run plays: fetched with the loading card)
 const dayKey = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* this visit */ } } };
 const SEEN = "arc.rq.seen", MET = "arc.rq.met", GOT = "arc.rq.got";
@@ -252,6 +252,23 @@ export function makeRaidQueens(ctx) {
   const runeM = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, toneMapped: false, opacity: 0.7 });
   { const t = new THREE.TextureLoader().load(`/images/raid/rune.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; runeM.map = t;
     const rc = flat(new THREE.CircleGeometry(9.4, 64), runeM, 0.08); rc.receiveShadow = false; spins.push((dt, t2) => { if (g.visible) { rc.rotation.z += dt * 0.12; runeM.opacity = 0.55 + Math.sin(t2 * 2) * 0.15; } }); }
+  /// everything the sky realm needs, fetched before the hall shows (the loading card when you step through, or quietly
+  /// when you walk near the portal), then its shaders compiled while it's hidden, so the first look doesn't stutter.
+  /// step(k): 1 the hall and its dressing, 2 your queen, 3 the monsters, 4 ready. Never more than 15 s: whatever is still
+  /// out comes in later, as it always did. quiet: the walk-by fetch (no music, and only the hall on low graphics)
+  let prepP = null, prepDone = false;
+  function prepare(step = () => {}, opt = {}) {
+    if (prepP) return prepP.then((v) => { step(4); return v; });
+    const lv = ctx.level(), top = RQ.MODES.filter((M) => !M.trio && lv >= M.lv).pop();
+    const at = (k, p) => Promise.resolve(p).then((v) => { step(k); return v; }, () => step(k));
+    const quietLow = opt.quiet && ctx.low;
+    const all = Promise.all([at(1, loadHall().then(() => decorP)), at(2, top && !quietLow ? loadQueen(top.id) : null), at(3, quietLow ? null : loadMobs()),
+      opt.quiet ? null : fetch(`/audio/music/${RQ_MUSIC}.mp3${ctx.ver || ""}`).then((r) => r.ok && r.blob()).catch(() => null)]);
+    prepP = Promise.race([all, new Promise((r) => setTimeout(r, 15000))]).then(async () => {
+      if (ctx.compile) { try { await ctx.compile([H, SKY]); } catch { /* compiled on first sight instead */ } } prepDone = true; step(4); return true; });
+    prepP.catch(() => { prepP = null; });
+    return prepP;
+  }
   function vis() { const inRun = !!run && !run.done; g.visible = shown && inRun; H.visible = back.visible = shown && !inRun; SKY.visible = shown; if (shown) loadHall(); if (H.visible) paintTopSign(); solids.length = 0; if (H.visible) solids.push(wall); if (H.visible) loadHall(); }
   /// the hall's front: on the road, facing the Citadel (after a run, and where the portal on the far hunting ring puts you)
   // over the Citadel's door: this week's fastest (Lysitha's board), a sign drawn on a canvas, refreshed when the hall shows
@@ -732,7 +749,7 @@ export function makeRaidQueens(ctx) {
     const dx = me.x - land.x, dz = me.z - land.z, d = Math.hypot(dx, dz); if (d > ARENA_R - 0.6) ctx.stand(land.x + (dx / d) * (ARENA_R - 1.2), land.z + (dz / d) * (ARENA_R - 1.2), { x: land.x, z: land.z });
   }
   return {
-    group: g, hall: H, door, back, solids, toHall, arrival: () => ({ x: land.x, z: land.z + HALL.start, c: { x: land.x, z: land.z + HALL.door } }), loadHall, tick, show, openLobby, chronicle, board, page, start, leave, loadMobs,
+    group: g, hall: H, door, back, solids, toHall, arrival: () => ({ x: land.x, z: land.z + HALL.start, c: { x: land.x, z: land.z + HALL.door } }), loadHall, prepare, prepared: () => prepDone, tick, show, openLobby, chronicle, board, page, start, leave, loadMobs,
     shown: () => shown, running: () => !!run && !run.done, info: () => info, refreshInfo,
     /// for the minimap: the queens in the arena
     marks: () => (run ? run.queens.filter((q) => q.m && !q.dead).map((q) => ({ g: q.m.g, css: q.V.css, s: 8, ch: "♛" })) : []),

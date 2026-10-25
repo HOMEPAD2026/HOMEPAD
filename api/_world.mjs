@@ -215,9 +215,36 @@ export function make(deps) {
       const h = hash(msg);
       await commit([{ inc: day, fields: { [`err_${h}`]: 1 } }]).catch(() => {});
       await commit([{ create: `worldDiagMsg/${h}`, data: { msg, src: String(b.src || "").slice(0, 60), gpu: String(b.gpu || "").slice(0, 80), dev, at: now() } }]).catch(() => {});
+      await userLog(b, dev, msg).catch(() => {});
       return json(200, { ok: true });
     }
+    if (b.kind === "uready") { // a signed-in player got in: how long the load took (the line that says a player's last visit worked)
+      const sec = Math.max(0, Math.min(999, Math.round(Number(b.sec) || 0)));
+      await userLog(b, dev, `ready in ${sec}s`).catch(() => {}); return json(200, { ok: true });
+    }
     return json(400, { error: "unknown kind" });
+  }
+  /// the owner, 2026-10-25: a log per player, errors above all — every error and slow / stuck load a signed-in player's
+  /// browser reports, and each time they got in, kept under their wallet (worldDiagUser/<wallet>: the last 60, newest
+  /// first) with their name, browser and GPU; worldDiagUsers/recent lists the last 400 players who reported anything.
+  /// Unsigned (the report can come from a page that can't sign yet), so it's a log, never a record anything trusts;
+  /// only a GM reads it (world-diag-user)
+  const UA = (s) => String(s || "").replace(/[^\w .;:/()\-]/g, "").slice(0, 60);
+  async function userLog(b, dev, line) {
+    const w = lc(b.w); if (!isAddr(w)) return;
+    const k = `worldDiagUser/${w}`, ik = "worldDiagUsers/recent", d = await getDocs([k, ik]), cur = d[k] || {}, ix = d[ik] || {};
+    const e = { at: now(), m: String(line).slice(0, 200), s: String(b.src || "").slice(0, 60), ua: UA(b.ua), g: String(b.gpu || "").slice(0, 60), d: dev, v: String(b.v || "").slice(0, 24), q: word(b.q, 8) };
+    const name = String(b.nm || cur.name || "").slice(0, 16);
+    await setDoc(k, { w, name, at: e.at, list: [e, ...(Array.isArray(cur.list) ? cur.list : [])].slice(0, 60) });
+    const m = { ...(ix.m || {}) }, o = m[w] || {}; m[w] = { name, at: e.at, n: (o.n || 0) + 1, err: (o.err || 0) + (/^ready in/.test(e.m) ? 0 : 1), last: e.m.slice(0, 90), ua: e.ua, d: dev };
+    await setDoc(ik, { m: Object.fromEntries(Object.entries(m).sort((x, y) => y[1].at - x[1].at).slice(0, 400)) });
+  }
+  async function userLogRead(b) {
+    const v = signer(b); if (v.err) return v.err; if (!isGM(v.wallet)) return json(403, { error: "GM only" });
+    const q = String(b.q || "").trim().toLowerCase(), ix = ((await getDocs(["worldDiagUsers/recent"]))["worldDiagUsers/recent"] || {}).m || {};
+    const hits = !q ? [] : isAddr(q) ? [q] : Object.entries(ix).filter(([w, o]) => w.includes(q) || String(o.name || "").toLowerCase().includes(q)).slice(0, 5).map(([w]) => w);
+    const docs = hits.length ? await getDocs(hits.map((w) => `worldDiagUser/${w}`)) : {};
+    return json(200, { recent: Object.entries(ix).slice(0, 60).map(([w, o]) => ({ w, ...o })), found: hits.map((w) => docs[`worldDiagUser/${w}`] || { w, list: [] }) });
   }
   const FUNNEL = ["open", "ready", "maker", "named", "start", "move", "fight", "game", "back"];
   async function diagView() {
@@ -627,6 +654,7 @@ export function make(deps) {
       if (!on()) return json(503, { error: "storage is off" });
       if (b.action === "world-ping") return ping(b);
       if (b.action === "world-diag") return diag(b);
+      if (b.action === "world-diag-user") return userLogRead(b);
       if (b.action === "world-login") return login(b);
       if (!String(b.action || "").startsWith("world-support-")) {
         // between the betas: GM wallets only
