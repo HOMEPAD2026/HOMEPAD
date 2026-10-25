@@ -18,3 +18,4 @@ omni/typechain-types/
 omni/dist/
 solana/arcircle-orders/target/
 tools/meshy-out/
+tools/ai-out/

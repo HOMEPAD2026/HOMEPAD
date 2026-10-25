@@ -123,6 +123,7 @@ The owner asked for this on every commit (not only when they ask):
   retexture, rigging, animations) — backgrounds, floors, buildings, props, monsters, gear. `tools/meshy.mjs` does every
   call; the key is read only from the environment (`MESHY_API_KEY`, set in the environment's settings, never in a file in
   the repo or in a commit); `api.meshy.ai` must be in the environment's allowed domains (a new session picks both up).
+- Pictures can also come from OpenAI's image model (`tools/openai-image.mjs gen|edit`, gpt-image-1, `OPENAI_API_KEY` from the environment, `api.openai.com` allowed): key art, backgrounds, icons, transparent cut-outs, edits that follow reference shots; convert to WebP and size for a phone before they go in.
 - **Keep it smooth without being asked:** every new model gets a triangle budget (props 3–8 k, statues 10–20 k, monsters
   ≤ 5 k), Meshy's remesh to it, then the town's packer (Draco + KTX2, textures ≤ 1024 px); repeats are instanced; far
   things get a lighter stand-in; things load only where they're seen and fewer on low graphics; about 3 MB more a scene
