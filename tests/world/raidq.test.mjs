@@ -65,10 +65,10 @@ T += 864e5; r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.st
   const rs = await W.handle({ action: "world-save", ...S, data: { xp: want, xpv: XP_VERSION, name: "Ace", char: "kk-knight", rpg: { eq: {}, bag: [], store: [] } } });
   check(rs.status === 200 && db.get(`worldSave/${w}`).xp >= want - 5 && (db.get(`worldXpGrant/${w}`).n || 0) === 0, `the save took the granted XP past the pace (${rs.status})`); }
 // the SECRET dungeon
-r = await call(A, "world-rq-start", { mode: "secret" }); check(r.status === 402 && r.body.pay && r.body.pay.price === 10000 && r.body.pay.to === FEE_BURN, "the SECRET asks 10,000 $ARCIRCLE");
-const tx = "0x" + "ab".repeat(32), amt = (10000n * 10n ** 18n).toString(16).padStart(64, "0");
+r = await call(A, "world-rq-start", { mode: "secret" }); check(r.status === 402 && r.body.pay && r.body.pay.price === 1000000 && r.body.pay.to === FEE_BURN, "the SECRET asks 1,000,000 $ARCIRCLE");
+const tx = "0x" + "ab".repeat(32), amt = (1000000n * 10n ** 18n).toString(16).padStart(64, "0");
 RC.set(tx, { status: "0x1", logs: [{ address: ARCIRCLE, topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", pad(A.address), pad(FEE_BURN)], data: "0x" + amt }] });
-r = await call(A, "world-rq-buy", { tx }); check(r.status === 200 && r.body.tickets === 1, "a transfer of 10,000 to FeeBurn: one ticket");
+r = await call(A, "world-rq-buy", { tx }); check(r.status === 200 && r.body.tickets === 1, "a transfer of 1,000,000 to FeeBurn: one ticket");
 r = await call(A, "world-rq-buy", { tx }); check(r.status === 409, "the same transaction can't buy twice");
 const tx2 = "0x" + "cd".repeat(32); RC.set(tx2, { status: "0x1", logs: [{ address: ARCIRCLE, topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", pad(A.address), pad(FEE_BURN)], data: "0x" + (5000n * 10n ** 18n).toString(16).padStart(64, "0") }] });
 r = await call(A, "world-rq-buy", { tx: tx2 }); check(r.status === 400, "5,000 isn't enough");

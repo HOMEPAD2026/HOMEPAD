@@ -15,7 +15,7 @@ export const RQ = {
   // the first win of each run in a Seoul day: its ARCL × (1 + FIRST.arcl) and one more piece of gear (b4, 2026-10-25)
   FIRST: { arcl: 0.5, items: 1 },
   TOP_N: 20, // each run's week board (the fastest wins, one line a player)
-  SECRET: { id: "secret", PRICE: 10000, lv: 70, bosses: [72, 75, 78], min: 60, xp: 410010, items: [{ r: 4, p: 5 }, { r: 4, p: 4 }, { r: 3, p: 5 }] },
+  SECRET: { id: "secret", PRICE: 1000000, lv: 70, bosses: [72, 75, 78], min: 60, xp: 410010, items: [{ r: 4, p: 5 }, { r: 4, p: 4 }, { r: 3, p: 5 }] },
 };
 export const modeOf = (id) => (id === "secret" ? RQ.SECRET : RQ.MODES.find((m) => m.id === id) || null);
 export const phaseOf = (hp, max) => (hp > max * 0.6 ? 1 : hp > max * 0.25 ? 2 : 3);

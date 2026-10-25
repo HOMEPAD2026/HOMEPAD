@@ -6,7 +6,7 @@
 //                     minute, then the queen (the owner's GLB) — her page (the owner's picture) the first time each day,
 //                     phases at 60 % / 25 % (a cut-in with her line, more patterns, harder hits; Nyxara grows stronger the
 //                     longer the fight). Her HP is fitted to your attack so a fight lasts about a minute and a half.
-//   the SECRET        ??? on the lobby until you're in: 10,000 $ARCIRCLE a run from your wallet (free for a GM), Lv 70+,
+//   the SECRET        ??? on the lobby until you're in: 1,000,000 $ARCIRCLE a run from your wallet (a GM's runs cost nothing, not shown), Lv 70+,
 //                     a short wave, then the three queens at once (Lv 72 / 75 / 78), about two minutes alone; a win gives
 //                     Lv 120 → 140 in XP and three good pieces
 //   the end           the server takes the win (its time bounded), grants the XP, makes the gear, pays the ARCL; the
@@ -605,7 +605,7 @@ export function makeRaidQueens(ctx) {
     lobby.innerHTML = `<div class="rq-lb"><header><img src="/images/raid/key-sm.webp${ctx.ver || ""}" alt=""><div><small>RAID QUEENS</small><h3>${esc(T("Choose your queen"))}</h3><p>${esc(T("Runs today: {a} / {b}", { a: left, b: d.max }))}${gm ? " · GM" : ""}</p></div><button type="button" class="rq-x" aria-label="${esc(T("Close"))}">✕</button></header>
       <div class="rq-modes">${RQ.MODES.map(card).join("")}
       <div class="rq-mode rq-secret${slock ? " lock" : ""}"><div class="rq-q">?</div><div><small>🔒 SECRET · Lv ${S.lv}+</small><b>??? ${esc(T("SECRET DUNGEON"))}</b><em>${esc(T("Nobody knows what waits inside."))}</em>
-        <ul><li>❓ ${esc(T("Only the brave find out"))}</li><li>💎 ${gm ? esc(T("GM · free")) : `${S.PRICE.toLocaleString("en-US")} $ARCIRCLE · ${esc(T("one run"))}`}${tk ? ` · ${esc(T("Tickets: {n}", { n: tk }))}` : ""}</li></ul>
+        <ul><li>❓ ${esc(T("Only the brave find out"))}</li><li>💎 ${S.PRICE.toLocaleString("en-US")} $ARCIRCLE · ${esc(T("one run"))}${tk ? ` · ${esc(T("Tickets: {n}", { n: tk }))}` : ""}</li></ul>
         <button type="button" data-go="secret" ${slock ? "disabled" : ""}>${slock ? "🔒 Lv " + S.lv : esc(T("Enter"))}</button></div></div></div>
       <div class="rq-foot">${ctx.openMythic ? `<button type="button" class="rq-myb" data-myth>👑 ${esc(T("Crimson Celestial"))}</button>` : ""}<button type="button" data-board>🏆 ${esc(T("This week's fastest"))}</button><button type="button" data-chron>📖 ${esc(T("RAID QUEENS CHRONICLE"))}</button></div></div>`;
   }
