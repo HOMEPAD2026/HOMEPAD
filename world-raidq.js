@@ -307,7 +307,7 @@ export function makeRaidQueens(ctx) {
   function queensIn() {
     run.stage = "queen"; const c = ctx.combat();
     for (const m of run.mobs) if (!m.dead && c) { try { c.extGone(m); } catch { /* gone */ } } run.mobs = [];
-    const go = () => { if (!run) return; const n = run.qs.length; run.qs.forEach((id, i) => { const a = n === 1 ? 0 : (i - 1) * 0.6, at = W(Math.sin(a) * (ARENA_R - 9), -Math.cos(a) * (ARENA_R - 9));
+    const go = () => { if (!run || run.queens.length) return; const n = run.qs.length; run.qs.forEach((id, i) => { const a = n === 1 ? 0 : (i - 1) * 0.6, at = W(Math.sin(a) * (ARENA_R - 9), -Math.cos(a) * (ARENA_R - 9));
         const q = spawnQueen(id, run.isS ? RQ.SECRET.bosses[i] : modeOf(run.trio ? run.mode : id).boss, at, run.plan.queenSec); if (q) run.queens.push(q); }); paintHud(); };
     const met = ls.get(MET, {}), key = run.trio ? "trinity" : run.qs[0]; if (ctx.music) ctx.music(run.trio ? "secret" : run.qs[0]);
     if (met[key] !== dayKey()) { met[key] = dayKey(); ls.set(MET, met); page(key, { onDone: go }); } else go();
@@ -433,7 +433,7 @@ export function makeRaidQueens(ctx) {
     const roll = (t) => { if (!t0) t0 = t; const max = sc.scrollHeight - sc.clientHeight; if (max > 4 && !el.dataset.user) sc.scrollTop = Math.min(max, ((t - t0) / (ctx.reduce ? 1 : 11000)) * max); if (t - t0 < 11500) raf = requestAnimationFrame(roll); };
     img.addEventListener("load", () => { raf = requestAnimationFrame(roll); });
     sc.addEventListener("pointerdown", () => { el.dataset.user = "1"; }, { passive: true });
-    const close = () => { cancelAnimationFrame(raf); el.remove(); pageEl = null; ctx.freeze(false); if (onDone) onDone(); };
+    let shut = false; const close = () => { if (shut) return; shut = true; cancelAnimationFrame(raf); el.remove(); pageEl = null; ctx.freeze(false); if (onDone) onDone(); }; /* once: Skip and Fight! tapped together brought the queens twice */
     el.addEventListener("click", (e) => { if (e.target.closest(".rq-skip, .rq-go")) close(); });
   }
   function cutIn(q, i, fall) {
