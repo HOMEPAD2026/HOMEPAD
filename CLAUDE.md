@@ -106,6 +106,7 @@ The owner asked for this on every commit (not only when they ask):
 
 - A tweet in the style above, its length matched to the update (a small fix: a few lines; a big feature batch: a long
   post). Only claim what was built and verified; say what's next.
+- While building, show progress too (the owner, 2026-10-25: "만드는 중간에 스크린샷 보여줄 수 있으면 보여줘"): send a real screenshot (SendUserFile) whenever a visible piece first works — a new scene, a window, a fix — not only at the end.
 - 2–3 real screenshots of the change as reference images (phone layout 390x844 and/or desktop), saved where the owner
   can open them (scratchpad / SendUserFile), never mock-ups.
 - A ready-to-paste prompt for an image AI to make the promo image from those shots: subject, composition, the
