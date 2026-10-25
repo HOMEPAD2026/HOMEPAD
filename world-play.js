@@ -5628,7 +5628,7 @@ function ensureRq() {
       isGM: () => rqGM(), tx: (to, data) => walletTx(to, data), openMythic: (slot) => openMythic(slot), mythicGot: (p) => { refreshMythic().then(() => mythicUI()).then((u) => u && u.reveal(p)); }, signIn: () => signIn().then(() => refreshPurse(true)), home: () => { frozen = false; landGo("town"); }, stats: () => rpg.stats(), music: (k) => { try { if (!jurOn) music.setList(k && MUS.RAIDQ[k] ? [MUS.RAIDQ[k]] : MUS.PLAYLIST); } catch { /* the town's music plays on */ } } });
     rqL.M = M; let rqSkyOff = false; st.on((dt, t) => { try { rqL.tick(dt, t); } catch (e) { console.warn("raid queens", e); }
       // the sky realm draws its own sky (its panorama and sunset): the town's dome, clouds and planets painted over it, so they're put away while you're there
-      const off = landNow === "rq"; if (off) { sky.visible = false; clouds.visible = false; skyPlanets.visible = false; rqSkyOff = true; } else if (rqSkyOff) { rqSkyOff = false; sky.visible = true; clouds.visible = true; nightK = -1; dayNight(); } }); if (labels) labels.dirty = true; return rqL; })
+      const off = landNow === "rq"; if (off) { sky.visible = false; clouds.visible = false; skyPlanets.visible = false; halo.visible = false; rqSkyOff = true; } else if (rqSkyOff) { rqSkyOff = false; sky.visible = true; clouds.visible = true; halo.visible = true; nightK = -1; dayNight(); } }); /* (halo: the town sky's big ARCIRCLE rings — a blue ring and a green bar over the Citadel, the owner's screenshot 2026-10-25) */ if (labels) labels.dirty = true; return rqL; })
     .catch((e) => { rqWait = null; console.warn("raid queens", e); if (!staleReload()) toast(TW("Couldn't open it — try again")); return null; }));
 }
 function rqWarp() {
