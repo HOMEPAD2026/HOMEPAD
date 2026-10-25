@@ -88,7 +88,7 @@ export function makeRaidQueens(ctx) {
   let darkMap = null, darkE = null, floorBase = 0.06;
   { const tl = new THREE.TextureLoader(); tl.load(`/images/raid/plaza-floor.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; darkMap = t; if (g.visible) { floorM.map = t; floorM.needsUpdate = true; } });
     tl.load(`/images/raid/plaza-floor-e.webp${ctx.ver || ""}`, (t) => { t.anisotropy = 8; darkE = t; }); }
-  function theme(css, ground, tint) { const c = new THREE.Color(css); const fm = darkMap || marbleMap; if (fm && floorM.map !== fm) { floorM.map = fm; floorM.needsUpdate = true; }
+  function theme(css, ground, tint) { const c = new THREE.Color(css); runeM.color.copy(c).lerp(new THREE.Color(0xffffff), 0.45); const fm = darkMap || marbleMap; if (fm && floorM.map !== fm) { floorM.map = fm; floorM.needsUpdate = true; }
     if (darkMap) { floorM.roughness = 0.22; floorM.metalness = 0.35; if (darkE && floorM.emissiveMap !== darkE) { floorM.emissiveMap = darkE; floorM.needsUpdate = true; } } floorM.emissiveIntensity = floorBase = darkE ? 0.55 : 0.06; if (tint != null) { floorM.color.setHex(tint); floorM.emissive.copy(c); edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); return; } edgeM.color.copy(c); innerM.color.copy(c); crysM.color.copy(c); crysM.emissive.copy(c); daisTop.color.copy(c); daisTop.emissive.copy(c); floorM.color.setHex(ground); floorM.emissive.copy(c); }
 
   // ---------------- the hall: the sky realm you walk into (the owner's concept art, 2026-10-25) ----------------
@@ -158,17 +158,35 @@ export function makeRaidQueens(ctx) {
           dmap = new THREE.CanvasTexture(cv); dmap.colorSpace = THREE.SRGBColorSpace; dmap.anisotropy = 4; dmap.wrapT = THREE.RepeatWrapping; dmap.repeat.set(1, Math.max(1, Math.round(dl / 24))); }
         const deck = new THREE.Mesh(new THREE.PlaneGeometry(dw, dl), new THREE.MeshStandardMaterial({ color: 0xffffff, map: dmap, emissive: 0xffc878, emissiveMap: dmap, emissiveIntensity: 0.22, roughness: 0.3, metalness: 0.1, fog: false }));
         deck.rotation.x = -Math.PI / 2; deck.position.set(0, 0.07, (HALL.road[0] + HALL.road[1]) / 2); deck.receiveShadow = true; H.add(deck); }
-      // the three queens along the Spireway as standing holograms (their cut-out art on a pedestal, in their colours; a
-      // picture each, not their 2 MB models): Lysitha nearest the Citadel, Nyxara nearest where you arrive
-      { const tl = new THREE.TextureLoader(), side = (HALL.roadW || 10) * 0.5 + 4.5;
-        ["lysitha", "solvira", "nyxara"].forEach((id, i) => { const V = QV[id], z = HALL.road[0] + 10 + i * ((HALL.road[1] - HALL.road[0] - 16) / 2), x = i % 2 ? side : -side, st = new THREE.Group(); st.position.set(x, 0, z); st.rotation.y = x > 0 ? -Math.PI / 2 : Math.PI / 2;
-          const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.9, 1.1, 24), std(0x1c1820, { roughness: 0.35, metalness: 0.5 })); ped.position.y = 0.55; st.add(ped);
-          const rim = new THREE.Mesh(new THREE.TorusGeometry(1.62, 0.07, 6, 40), neon(V.tint, 0.95)); rim.rotation.x = Math.PI / 2; rim.position.y = 1.1; st.add(rim);
-          const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, alphaTest: 0.35, side: THREE.DoubleSide, fog: false, toneMapped: false });
+      // the three queens along the Spireway as statues of light (their cut-out art, a picture each, not their 2 MB models):
+      // the picture turns to face you (it stood side-on to the road, a sliver from where you walk — the owner, 2026-10-25),
+      // 9.5 m tall on a black-and-gold plinth, a soft glow of her colour behind, a shaft of light, her summoning circle
+      // turning underfoot, motes rising, her name over her; Lysitha nearest the Citadel, Nyxara nearest where you arrive
+      { const tl = new THREE.TextureLoader(), side = (HALL.roadW || 10) * 0.5 + 6.5, cw = new V3();
+        const glowTx = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const c = cv.getContext("2d"), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, "rgba(255,255,255,.9)"); gr.addColorStop(0.4, "rgba(255,255,255,.35)"); gr.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = gr; c.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(cv); })();
+        const shaftTx = (() => { const cv = document.createElement("canvas"); cv.width = 4; cv.height = 128; const c = cv.getContext("2d"), gr = c.createLinearGradient(0, 128, 0, 0); gr.addColorStop(0, "rgba(255,255,255,.75)"); gr.addColorStop(0.5, "rgba(255,255,255,.18)"); gr.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = gr; c.fillRect(0, 0, 4, 128); return new THREE.CanvasTexture(cv); })();
+        const runeTx = tl.load(`/images/raid/rune.webp${ctx.ver || ""}`); runeTx.colorSpace = THREE.SRGBColorSpace;
+        const add = (o) => ({ blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, toneMapped: false, ...o });
+        const nameTx = (V) => { const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 200; const c = cv.getContext("2d"); c.textAlign = "center"; c.shadowColor = V.css; c.shadowBlur = 24;
+          c.fillStyle = "#fff"; c.font = "700 84px Cinzel, Georgia, serif"; c.fillText(V.name, 512, 100); c.shadowBlur = 0; c.fillStyle = "#ffd98a"; c.font = "600 40px Cinzel, Georgia, serif"; c.fillText(T(V.title), 512, 168);
+          const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; };
+        ["lysitha", "solvira", "nyxara"].forEach((id, i) => { const V = QV[id], z = HALL.road[0] + 10 + i * ((HALL.road[1] - HALL.road[0] - 16) / 2), x = i % 2 ? side : -side, st = new THREE.Group(); st.position.set(x, 0, z);
+          const ped = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.7, 0.9, 32), std(0x141118, { roughness: 0.25, metalness: 0.6 })); ped.position.y = 0.45; st.add(ped);
+          const ped2 = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.0, 0.5, 32), std(0x1c1820, { roughness: 0.25, metalness: 0.6 })); ped2.position.y = 1.15; st.add(ped2);
+          for (const [r, y] of [[2.32, 0.9], [1.82, 1.4]]) { const gold = new THREE.Mesh(new THREE.TorusGeometry(r, 0.06, 6, 48), std(0xd9b25e, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4a10, emissiveIntensity: 0.6 })); gold.rotation.x = Math.PI / 2; gold.position.y = y; st.add(gold); }
+          const runeM2 = new THREE.MeshBasicMaterial(add({ map: runeTx, color: new THREE.Color(V.tint).lerp(new THREE.Color(0xffffff), 0.3), opacity: 0.85 })), rune = new THREE.Mesh(new THREE.CircleGeometry(4.4, 48), runeM2); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.06; st.add(rune);
+          const shaft = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 2.1, 13, 24, 1, true), new THREE.MeshBasicMaterial(add({ map: shaftTx, color: V.tint, opacity: 0.55, side: THREE.DoubleSide }))); shaft.position.y = 1.4 + 6.5; st.add(shaft);
+          const glow = new THREE.Sprite(new THREE.SpriteMaterial(add({ map: glowTx, color: V.tint, opacity: 0.75 }))); glow.scale.set(10, 12, 1); glow.position.y = 6.4; glow.renderOrder = 1; st.add(glow);
+          const holder = new THREE.Group(); holder.position.y = 1.4; st.add(holder);
+          const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide, fog: false, toneMapped: false });
           tl.load(`/images/raid/${id}-full.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; mat.map = t; mat.needsUpdate = true; });
-          const card = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 6.9), mat); card.position.y = 1.1 + 3.45; st.add(card);
-          const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 9, 24, 1, true), neon(V.tint, 0.12)); beam.position.y = 1.1 + 4.5; st.add(beam);
-          spins.push((dt, t) => { if (!H.visible) return; card.position.y = 4.55 + Math.sin(t * 1.1 + i) * 0.12; rim.material.opacity = 0.7 + Math.sin(t * 2 + i) * 0.25; });
+          const card = new THREE.Mesh(new THREE.PlaneGeometry(6.3, 9.5), mat); card.position.y = 4.75; card.renderOrder = 2; holder.add(card);
+          const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: nameTx(V), transparent: true, depthWrite: false, fog: false, toneMapped: false })); tag.scale.set(8.4, 1.64, 1); tag.position.y = 1.4 + 10.6; st.add(tag);
+          let motes = null; if (!ctx.low) { const N = 14, pos = new Float32Array(N * 3); for (let k = 0; k < N; k++) { const a = (k / N) * Math.PI * 2; pos[k * 3] = Math.cos(a) * (1.2 + (k % 3) * 0.5); pos[k * 3 + 1] = (k * 0.83) % 11; pos[k * 3 + 2] = Math.sin(a) * (1.2 + (k % 3) * 0.5); }
+            const gm = new THREE.BufferGeometry(); gm.setAttribute("position", new THREE.BufferAttribute(pos, 3)); motes = new THREE.Points(gm, new THREE.PointsMaterial(add({ map: glowTx, color: V.tint, size: 0.55, opacity: 0.9 }))); motes.position.y = 1.4; st.add(motes); }
+          spins.push((dt, t) => { if (!H.visible) return; holder.position.y = 1.4 + Math.sin(t * 1.1 + i) * 0.15; rune.rotation.z += dt * 0.15; runeM2.opacity = 0.7 + Math.sin(t * 2 + i) * 0.15; glow.material.opacity = 0.6 + Math.sin(t * 1.6 + i) * 0.15;
+            const cp = ctx.cam && ctx.cam(); if (cp) { st.getWorldPosition(cw); holder.rotation.y = Math.atan2(cp.x - cw.x, cp.z - cw.z); }
+            if (motes) { const a = motes.geometry.attributes.position; for (let k = 0; k < a.count; k++) { let y = a.getY(k) + dt * (0.8 + (k % 4) * 0.25); if (y > 11) y = 0; a.setY(k, y); } a.needsUpdate = true; } });
           H.add(st); }); }
       { const box = new THREE.Box3().setFromObject(isle.scene), hh = box.max.y - box.min.y || 1;
         // [x, z, height of the spire (m), how high it floats]: big ones far off, small ones near the road; none on the road
@@ -176,9 +194,64 @@ export function makeRaidQueens(ctx) {
         ISLES.forEach(([x, z, h, y], i) => { const o = i ? isle.scene.clone() : isle.scene; fit(o, h / hh, x, y, z, box); o.rotation.y = i * 1.7; SKY.add(o);
           const y0 = o.position.y; spins.push((dt, t) => { if (SKY.visible) { o.position.y = y0 + Math.sin(t * 0.5 + i) * 0.8; o.rotation.y += dt * 0.03 * (i % 2 ? 1 : -1); } });
           if (i % 3 === 0 && !ctx.low) { const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 60, 6, 1, true), neon(0xff4d6d, 0.5)); beam.position.set(x, y - 30, z); SKY.add(beam); } }); }
+      decorHall();
       return true;
     }).catch((e) => { hallP = null; console.warn("raid hall", e); return false; }));
   }
+  // the hall's dressing (Meshy, 2026-10-25: models/world/raid/props, 250–780 KB each, 3–12 k triangles; images/raid
+  // rune / cloud / banner): braziers along the Spireway, crystal pillars with crimson banners round the plaza, two
+  // guardian statues at the Citadel, broken columns, floating crystals, a summoning circle, clouds drifting below.
+  // A model used more than once is instanced (one draw a part however many stand); low graphics puts out fewer; each
+  // file on its own, so one that fails leaves the rest. Loaded after the hall, only when you come to the sky realm.
+  let decorP = null;
+  function decorHall() {
+    if (decorP) return decorP;
+    const P = (n) => load(`/models/world/raid/props/${n}.glb`).catch((e) => { console.warn("raid prop", n, e); return null; });
+    const tl = new THREE.TextureLoader(), tex = (f) => { const t = tl.load(`/images/raid/${f}.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; return t; };
+    const up = new V3(0, 1, 0), q = new THREE.Quaternion(), M = new THREE.Matrix4(), B = new THREE.Matrix4(), O = new THREE.Matrix4(), p = new V3(), s = new V3();
+    const sizeOf = (gl) => { gl.scene.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(gl.scene); return { b, h: b.max.y - b.min.y || 1, w: Math.max(b.max.x - b.min.x, b.max.z - b.min.z) }; };
+    /// one model at many spots ({ x, y, z, h: its height in metres, ry }): an InstancedMesh a part
+    function inst(gl, spots, parent) { if (!gl || !spots.length) return; const { b, h } = sizeOf(gl); O.makeTranslation(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2);
+      gl.scene.traverse((m) => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, spots.length);
+        spots.forEach((o, i) => { q.setFromAxisAngle(up, o.ry || 0); B.compose(p.set(o.x, o.y || 0, o.z), q, s.setScalar(o.h / h)); im.setMatrixAt(i, M.multiplyMatrices(B, O).multiply(m.matrixWorld)); });
+        im.instanceMatrix.needsUpdate = true; im.frustumCulled = false; im.castShadow = !ctx.low; im.receiveShadow = true; parent.add(im); }); }
+    const fz = door.position.z - land.z - 2.5, hw = (HALL.roadW || 10) * 0.4, n = (a, b) => (ctx.low ? a : b);
+    const AROUND = [30, 60, 120, 150, 210, 240, 300, 330].map((d) => (d * Math.PI) / 180); // (round the plaza, clear of the road: it runs along z)
+    return (decorP = Promise.all(["brazier", "crystal-pillar", "guardian-statue", "broken-column", "crystal-cluster"].map(P)).then(([braz, pil, guard, col, clus]) => {
+      // braziers both sides of the Spireway, a crimson flame (a glow sprite, no light) flickering on each
+      { const zs = []; for (let z = HALL.road[0] + 6; z < HALL.road[1] - 2; z += ctx.low ? 22 : 13) zs.push(z);
+        const spots = zs.flatMap((z) => [{ x: -hw - 1.1, z, h: 2.6 }, { x: hw + 1.1, z, h: 2.6, ry: Math.PI }]); inst(braz, spots, H);
+        if (braz) { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const c = cv.getContext("2d"), gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,236,190,1)"); gr.addColorStop(0.35, "rgba(255,92,90,.75)"); gr.addColorStop(1, "rgba(255,40,80,0)"); c.fillStyle = gr; c.fillRect(0, 0, 64, 64);
+          const fm = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false, toneMapped: false });
+          spots.forEach((o, i) => { const f = new THREE.Sprite(fm); f.position.set(o.x, o.h * 0.98, o.z); f.scale.setScalar(1.6); H.add(f); spins.push((dt, t) => { if (H.visible) f.scale.setScalar(1.45 + Math.sin(t * 9 + i * 1.7) * 0.12 + Math.sin(t * 23 + i) * 0.06); }); }); } }
+      // crystal pillars round the plaza's rim, a crimson banner hung on each facing the middle
+      { const R = PLAZA_R - 9, spots = AROUND.slice(0, n(4, 8)).map((a) => ({ x: Math.cos(a) * R, z: Math.sin(a) * R, h: 11, ry: -a })); inst(pil, spots, H);
+        const bw = pil ? (sizeOf(pil).w * 11) / sizeOf(pil).h : 2, bm = new THREE.MeshBasicMaterial({ map: tex("banner"), transparent: true, alphaTest: 0.4, side: THREE.DoubleSide, fog: false });
+        spots.forEach((o) => { const bn = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 5), bm), a = Math.atan2(-o.z, -o.x); bn.position.set(o.x + Math.cos(a) * (bw * 0.5 + 0.15), 5.6, o.z + Math.sin(a) * (bw * 0.5 + 0.15)); bn.rotation.y = Math.PI / 2 - a; H.add(bn); }); }
+      // two guardian statues, one each side of the Citadel's door, facing the road
+      inst(guard, [{ x: -hw - 6, z: fz + 2, h: 10 }, { x: hw + 6, z: fz + 2, h: 10 }], H);
+      // broken columns out on the plaza, left as they fell
+      inst(col, AROUND.slice(0, n(3, 7)).map((a, i) => { const r = 30 + (i % 3) * 8, b = a + 0.22; return { x: Math.cos(b) * r, z: Math.sin(b) * r, h: 4 + (i % 3) * 1.3, ry: i * 2.1 }; }), H);
+      // crystals floating over the plaza, bobbing and turning (the same body each time)
+      if (clus) { const { b, h } = sizeOf(clus); for (let i = 0; i < n(3, 6); i++) { const a = AROUND[(i * 3) % 8] + 0.4, r = 24 + (i % 2) * 14, k = (2.2 + (i % 3) * 0.8) / h, o = i ? clus.scene.clone() : clus.scene, y0 = 9 + (i % 3) * 3;
+          o.scale.setScalar(k); o.position.set(Math.cos(a) * r - ((b.min.x + b.max.x) / 2) * k, y0, Math.sin(a) * r - ((b.min.z + b.max.z) / 2) * k); H.add(o);
+          spins.push((dt, t) => { if (H.visible) { o.position.y = y0 + Math.sin(t * 0.8 + i * 1.3) * 0.6; o.rotation.y += dt * 0.25; } }); } }
+      // the summoning circle on the plaza's middle (additive: its black adds nothing), slowly turning
+      { const rm = new THREE.MeshBasicMaterial({ map: tex("rune"), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, toneMapped: false, opacity: 0.85 });
+        const rc = new THREE.Mesh(new THREE.CircleGeometry(11, 64), rm); rc.rotation.x = -Math.PI / 2; rc.position.set(0, 0.1, 6); H.add(rc);
+        spins.push((dt, t) => { if (H.visible) { rc.rotation.z += dt * 0.08; rm.opacity = 0.7 + Math.sin(t * 1.5) * 0.15; } }); }
+      // clouds drifting below the plaza's edge, sprites round the sea of cloud
+      { const cm = new THREE.SpriteMaterial({ map: tex("cloud"), transparent: true, depthWrite: false, fog: false, opacity: 0.95 }); let sd = 3; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+        for (let i = 0; i < n(8, 18); i++) { const a = rnd() * Math.PI * 2, r = 78 + rnd() * 120, sc = 26 + rnd() * 34, c = new THREE.Sprite(cm), a0 = a;
+          c.scale.set(sc, sc * 0.78, 1); c.position.set(Math.cos(a) * r, -16 + rnd() * 12, Math.sin(a) * r); SKY.add(c);
+          spins.push((dt, t) => { if (SKY.visible) { const aa = a0 + t * 0.004; c.position.x = Math.cos(aa) * r; c.position.z = Math.sin(aa) * r; } }); } }
+      return true;
+    }));
+  }
+  // in a run: the same summoning circle under the arena's middle, in the queen's colour (theme())
+  const runeM = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, toneMapped: false, opacity: 0.7 });
+  { const t = new THREE.TextureLoader().load(`/images/raid/rune.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; runeM.map = t;
+    const rc = flat(new THREE.CircleGeometry(9.4, 64), runeM, 0.08); rc.receiveShadow = false; spins.push((dt, t2) => { if (g.visible) { rc.rotation.z += dt * 0.12; runeM.opacity = 0.55 + Math.sin(t2 * 2) * 0.15; } }); }
   function vis() { const inRun = !!run && !run.done; g.visible = shown && inRun; H.visible = back.visible = shown && !inRun; SKY.visible = shown; if (shown) loadHall(); if (H.visible) paintTopSign(); solids.length = 0; if (H.visible) solids.push(wall); if (H.visible) loadHall(); }
   /// the hall's front: on the road, facing the Citadel (after a run, and where the portal on the far hunting ring puts you)
   // over the Citadel's door: this week's fastest (Lysitha's board), a sign drawn on a canvas, refreshed when the hall shows
