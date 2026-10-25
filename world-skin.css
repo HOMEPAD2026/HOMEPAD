@@ -4107,7 +4107,15 @@ html.wp-pcphone .rq-cin2 header{grid-template-columns:1fr}
 @media (max-width:760px){.rq-modes{grid-template-columns:repeat(2,1fr)}.rq-lb header{grid-template-columns:120px 1fr}}
 html.wp-pcphone .rq-lb{zoom:1.9;width:calc((100vw - 40px) / 1.9);max-height:calc((100svh - 40px) / 1.9)}
 html.wp-pcphone .rq-modes{grid-template-columns:repeat(2,1fr)}html.wp-pcphone .rq-lb header{grid-template-columns:110px 1fr}
-html.wp-pcphone .rq-hud{zoom:1.5;width:calc((100vw - 80px) / 1.5);top:calc(172px + env(safe-area-inset-top,0px))} /* (zoomed ×1.5: about 260 px down, below the HP / SP panel and the purse: the owner's screenshot had it over them) */
+/* phones: the run's panel sits in the top row's gap, between the level card (left) and the wallet (right), so the
+   queen stays in view (the owner, 2026-10-25: it covered her under the HP panel); compact, no zoom */
+html.wp-pcphone .rq-hud{zoom:1;left:314px;transform:none;width:calc(100vw - 314px - 214px);top:calc(30px + env(safe-area-inset-top,0px))}
+html.wp-pcphone .rq-hud-in{padding:6px 12px 7px}
+html.wp-pcphone .rq-hud-in small{font-size:12px;letter-spacing:.16em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:64px}
+html.wp-pcphone .rq-hud-in>b{margin:1px 0 0;font-size:25px}
+html.wp-pcphone .rq-hud-in>span{padding-bottom:4px;margin-bottom:1px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.wp-pcphone .rq-hud-in i{height:24px;margin-top:4px}html.wp-pcphone .rq-hud-in i span{font-size:14px;line-height:24px}
+html.wp-pcphone .rq-hud-in button{top:5px;right:6px;padding:6px 10px;font-size:12px}
 /* the window sat off to the right and filled the phone edge to edge (the owner's screenshot, 2026-10-24): the sheet's 16px
    padding plus a full-width card pushed it right. Centred now, with a little room on every side */
 html.wp-pcphone body.wp .wr-sheet:has(>.wr-card.hb){padding:0;place-items:center}
@@ -4126,7 +4134,7 @@ html.wp-pcphone body.wp .wp-hud .wp-mini{margin-top:28px}
 .my-slot{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 6px;border-radius:14px;border:1px solid rgba(255,61,110,.3);background:radial-gradient(circle at 50% 35%,rgba(255,40,90,.16),rgba(10,2,6,.9));color:#fff;cursor:pointer;text-align:center;transition:transform .15s,box-shadow .15s}
 .my-slot img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:10px;filter:drop-shadow(0 0 10px rgba(255,40,90,.5))}
 .my-slot b{font:900 12.5px/1.15 Sora,system-ui,sans-serif}.my-slot small{font:600 10.5px/1.25 system-ui,sans-serif;color:#d9b8c2}.my-slot i{font:800 11px Sora,system-ui,sans-serif;font-style:normal;color:#ffd36a}
-.my-slot.none img{filter:grayscale(1) brightness(.35)}.my-slot.on{border-color:#ff3d6e;box-shadow:0 0 22px rgba(255,61,110,.45)}.my-slot.sel{transform:translateY(-3px);border-color:#ffd36a}
+.my-slot.none img{filter:grayscale(1) brightness(.35)}.my-slot.held{border-color:#ffd36a;animation:myHeld 1.6s ease-in-out infinite}@keyframes myHeld{50%{box-shadow:0 0 20px rgba(255,211,106,.55)}}.my-slot.on{border-color:#ff3d6e;box-shadow:0 0 22px rgba(255,61,110,.45)}.my-slot.sel{transform:translateY(-3px);border-color:#ffd36a}
 .my-list{padding:10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,211,106,.3)}.my-list h4{margin:0 0 8px;font:900 15px Sora,system-ui,sans-serif;color:#ffd36a}
 .my-pc{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:11px;background:rgba(0,0,0,.3);margin-top:6px}.my-pc.on{outline:1px solid #ff3d6e}
 .my-pc b{display:block;font:800 13px Sora,system-ui,sans-serif}.my-pc small{display:block;font:600 11.5px system-ui,sans-serif;color:#d9b8c2}.my-pc em{display:block;font:700 11.5px system-ui,sans-serif;font-style:normal;color:#ffb3c4;margin-top:2px}

@@ -41,7 +41,7 @@ export function makeMythicUI(ctx) {
     if (!el) return; const st = ctx.state() || { pieces: [], eq: {} }, lv = ctx.level(), pcs = st.pieces || [], eq = st.eq || {};
     const worn = Object.values(eq).map((id) => pcs.find((p) => p.id === id)).filter((p) => p && p.req <= lv), sb = setBonus(worn);
     const slotCard = (P) => { const mine = pcs.filter((p) => p.def === P.id), w = mine.find((p) => p.id === eq[P.slot]);
-      return `<button type="button" class="my-slot${w ? " on" : ""}${mine.length ? "" : " none"}${pick === P.slot ? " sel" : ""}" data-slot="${P.slot}"><img src="${img(P, ctx.ver)}" alt=""><b>${esc(T(P.name))}</b><small>${esc(T(P.line))}</small><i>${w ? "✓ " + esc(T("Worn")) : mine.length ? esc(T("{n} held", { n: mine.length })) : "—"}</i></button>`; };
+      return `<button type="button" class="my-slot${w ? " on" : ""}${mine.length ? (w ? "" : " held") : " none"}${pick === P.slot ? " sel" : ""}" data-slot="${P.slot}"><img src="${img(P, ctx.ver)}" alt=""><b>${esc(T(P.name))}</b><small>${esc(T(P.line))}</small><i>${w ? "✓ " + esc(T("Worn")) : mine.length ? esc(T("{n} held", { n: mine.length })) + " · " + esc(T("Tap to wear")) : "—"}</i></button>`; };
     const P0 = pick && CC.PIECES.find((p) => p.slot === pick), list = P0 ? pcs.filter((p) => p.def === P0.id) : [];
     const detail = P0 ? `<div class="my-list"><div class="my-3d" data-3d="${P0.id}"><img src="${img(P0, ctx.ver)}" alt=""></div><h4>${esc(T(P0.name))}</h4>${list.length ? list.map((p) => { const on = eq[P0.slot] === p.id, low = p.req > lv;
         const listed = p.state === "GAME_LISTED", c = enhCost(p.plus || 0), top = (p.plus || 0) >= CC.MAX_PLUS;
@@ -79,6 +79,9 @@ export function makeMythicUI(ctx) {
     if (!r || !r.ok) { ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
     await ctx.refresh(); paint(); try { if (ctx.Snd && ctx.Snd.equip) ctx.Snd.equip(); } catch { /* no sound */ }
   }
+  /// the drop card's Wear now: the new piece may not be in the set we hold yet, so fetch it first
+  async function wearNow(id) { try { await ctx.refresh(); } catch { /* try with what we have */ } const st = ctx.state() || { pieces: [] }; if (!(st.pieces || []).some((x) => x.id === id)) { ctx.toast(esc(T("Couldn't change it — try again"))); return; }
+    await wear(id); const eq = (ctx.state() || {}).eq || {}; if (Object.values(eq).includes(id)) ctx.toast(esc(T("Worn — the set's bonuses count it now"))); }
   function open(slot) {
     if (typeof document === "undefined" || el) return; pick = slot || "";
     el = document.createElement("div"); el.className = "my-win"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); document.body.appendChild(el); ctx.freeze(true);
@@ -102,9 +105,9 @@ export function makeMythicUI(ctx) {
     const P = pieceOf(p && p.def); if (!P || typeof document === "undefined") return;
     const r = document.createElement("div"); r.className = "my-rev"; r.setAttribute("role", "dialog"); r.setAttribute("data-no-i18n", "");
     r.innerHTML = `<div class="my-rev-in"><small>MYTHIC · ${esc(T("Crimson Celestial"))}</small><div class="my-rev-art my-3d" data-3d="${P.id}"><img src="${img(P, ctx.ver)}" alt=""></div><b>${esc(T(P.name))}</b><p>${esc(T(SRC[p.src] || p.src))} · ${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}</p><em>${esc(statLine(mythicStats(p)))}</em>
-      <div class="my-rev-acts"><button type="button" data-k="ok">${esc(T("OK"))}</button><button type="button" class="go" data-k="set">${esc(T("Open the set"))}</button></div></div>`;
+      <div class="my-rev-acts"><button type="button" data-k="ok">${esc(T("OK"))}</button><button type="button" class="go" data-k="set">${esc(T("Open the set"))}</button>${p.id && ctx.level() >= p.req ? `<button type="button" class="go" data-k="wear">${esc(T("Wear now"))}</button>` : ""}</div></div>`;
     document.body.appendChild(r); mount3d(r);
-    r.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (!b) return; r.remove(); viewer.dispose(); if (b.dataset.k === "set") open(P.slot); });
+    r.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (!b) return; r.remove(); viewer.dispose(); if (b.dataset.k === "set") open(P.slot); if (b.dataset.k === "wear") wearNow(p.id); });
     try { if (ctx.Snd && ctx.Snd.perfect) ctx.Snd.perfect(); } catch { /* no sound */ }
   }
   return { open, close, reveal, shown: () => !!el };
