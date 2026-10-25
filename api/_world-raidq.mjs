@@ -2,6 +2,7 @@
 // Through the RAID QUEENS portal by the fountain a player picks a queen and plays a run alone: waves of Imps, elite
 // Puglins, then the queen herself (phases at 60 % / 25 %). Three runs a Seoul day (RQ.DAY_RUNS), across the three queens.
 //   lysitha  Silver Sanctum   Lv 100+   ·   solvira  Golden Dominion   Lv 200+   ·   nyxara  Crimson Abyss   Lv 300+
+//   throne   Throne of Three  Lv 400+ — the three queens at once (counted in the three a day)
 //   secret   ??? — the three queens together, Lv 70s, about two minutes alone, Lv 120 → about 140, better gear; a run
 //            costs RQ.SECRET.PRICE $ARCIRCLE from the player's wallet (to FeeBurn: half burned, half the treasury, the
 //            server reads the transfer back), free for GM wallets; not counted in the three a day
@@ -30,6 +31,8 @@ export const RQ = {
     { id: "lysitha", region: "Silver Sanctum", lv: 100, boss: 100, min: 150, xpMin: 6, arcl: 2000, item: { r: 3, p: 3, n: 1 } },
     { id: "solvira", region: "Golden Dominion", lv: 200, boss: 200, min: 150, xpMin: 8, arcl: 3000, item: { r: 4, p: 3, n: 1 } },
     { id: "nyxara", region: "Crimson Abyss", lv: 300, boss: 300, min: 150, xpMin: 10, arcl: 5000, item: { r: 4, p: 5, n: 1 } },
+    // the Throne of Three (the owner, 2026-10-25: 100 / 200 / 300 / 400 / SECRET from the one building): the three queens at once, Lv 400
+    { id: "throne", region: "Throne of Three", lv: 400, boss: 400, min: 180, xpMin: 14, arcl: 8000, item: { r: 4, p: 6, n: 2 }, trio: true },
   ],
   // the SECRET dungeon: its price in $ARCIRCLE, its level to enter, its three queens' levels, the shortest win, a win's XP
   // (Lv 120 → 140 in XP, the owner's number: xpAt(140) − xpAt(120)), its gear (better: Epic/Legendary, more +)
@@ -85,9 +88,9 @@ export function makeRaidQueens(deps) {
     const id = String(b.run || ""); if (!/^r[a-z0-9]{4,24}$/.test(id)) return json(400, { error: "which run?" });
     const r = await one(`worldRqRun/${id}`); if (!r || r.w !== w) return json(404, { error: "no such run" });
     const sec = (t - r.at) / 1000, M = modeOf(r.mode);
+    if (b.won && sec < M.min) return json(400, { error: "that was too quick", min: M.min, t: Math.round(sec) }); // (before the lock: the run can still end once it's been long enough)
     if (!(await commit([{ create: `worldRqDone/${id}`, data: { at: t, won: !!b.won } }])).ok) return json(409, { error: "this run is already over" });
     if (!b.won) return json(200, { ok: true, won: false, t: Math.round(sec) });
-    if (sec < M.min) return json(400, { error: "that was too quick", min: M.min, t: Math.round(sec) });
     if (sec > RQ.TIME_MAX) return json(400, { error: "the run's time ran out", t: Math.round(sec) });
     const xp = xpOf(r.mode, r.lv), items = itemsOf(r.mode, id, r.lv), arcl = r.mode === "secret" ? 0 : M.arcl;
     await commit([{ inc: `worldXpGrant/${w}`, fields: { n: xp } }, { inc: `worldRqClear/${w}`, fields: { [r.mode]: 1 } }, { inc: "worldStats/raidq", fields: { [r.mode]: 1 } }]).catch(() => {});

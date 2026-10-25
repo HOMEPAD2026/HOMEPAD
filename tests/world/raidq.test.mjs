@@ -45,7 +45,8 @@ r = await call(A, "world-rq-start", { mode: "solvira" }); check(r.status === 403
 r = await call(A, "world-rq-start", { mode: "nope" }); check(r.status === 400, "an unknown run");
 r = await call(A, "world-rq-start", { mode: "lysitha" }); const run1 = r.body.run; check(r.status === 200 && /^r/.test(run1), "Ace starts a run");
 T += 60e3; r = await call(A, "world-rq-end", { run: run1, won: true }); check(r.status === 400 && r.body.min === 150, "a win in 60 s is too quick");
-r = await call(A, "world-rq-end", { run: run1, won: true }); check(r.status === 409, "a run ends once");
+r = await call(A, "world-rq-end", { run: run1, won: false }); check(r.status === 200, "a too-quick win leaves the run open (it can still end)");
+r = await call(A, "world-rq-end", { run: run1, won: false }); check(r.status === 409, "a run ends once");
 r = await call(A, "world-rq-start", { mode: "lysitha" }); const run2 = r.body.run;
 T += 200e3; const b0 = (db.get(`worldArclBal/${A.address.toLowerCase()}`) || {}).bal || 0;
 r = await call(A, "world-rq-end", { run: run2, won: true });
@@ -77,5 +78,12 @@ check(r.status === 200 && r.body.xp === 410010 && r.body.items.length === 3 && r
 r = await call(G, "world-rq-start", { mode: "secret" }); check(r.status === 200, "a GM enters the SECRET free");
 r = await call(low, "world-rq-start", { mode: "secret" }); check(r.status === 403 && r.body.need === 70, "the SECRET needs Lv 70");
 r = await call(A, "world-rq-start", { mode: "lysitha" }); const lost = r.body.run; T += 30e3; r = await call(A, "world-rq-end", { run: lost, won: false }); check(r.status === 200 && !r.body.won, "a lost run ends with nothing");
+// the Throne of Three (Lv 400): the three queens at once, two pieces, counted in the three a day
+{ const H = ethers.Wallet.createRandom(); lvSet(H, 399, "Hana");
+  r = await call(H, "world-rq-start", { mode: "throne" }); check(r.status === 403 && r.body.need === 400, "the Throne needs Lv 400");
+  lvSet(H, 410, "Hana"); r = await call(H, "world-rq-start", { mode: "throne" }); const tr = r.body.run; check(r.status === 200 && r.body.mode === "throne", "Lv 410 starts the Throne of Three");
+  T += 120e3; r = await call(H, "world-rq-end", { run: tr, won: true, kills: 60 }); check(r.status === 400, "a Throne win needs its 3 minutes");
+  T += 70e3; r = await call(H, "world-rq-end", { run: tr, won: true, kills: 60 }); check(r.status === 200 && r.body.items.length === 2 && r.body.arcl === 8000 && r.body.xp === xpOf("throne", 410), `the Throne's win: ${r.body.xp} XP, two pieces, 8,000 ARCL`);
+  check((await view(H)).day.used === 1, "the Throne counts in the three a day"); }
 check(seoulDay(Date.parse("2026-10-24T14:59:00Z")) === "2026-10-24" && seoulDay(Date.parse("2026-10-24T15:00:00Z")) === "2026-10-25", "the Seoul day turns at 15:00 UTC");
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

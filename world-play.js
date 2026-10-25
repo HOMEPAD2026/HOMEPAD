@@ -187,6 +187,9 @@ Object.assign(WORDS.tr, { "Lv 100+ · Waves, then a queen · 3 runs a day": "Lv 
 Object.assign(WORDS.ko, { "Leave the run? It counts as lost.": "런을 나갈까요? 패배로 처리됩니다.", "Waves · {n} knocked out": "웨이브 · {n}마리 처치", "She comes in {t}": "{t} 후 여왕 등장", "The queen is here!": "여왕이 나타났다!", "Waves of Imps, elite Puglins, then the queen": "임프 웨이브, 정예 퍼글린, 그리고 여왕", "1 piece of gear": "장비 1개", "Best {t}": "최고 기록 {t}", "Back tomorrow": "내일 다시", "Choose your queen": "도전할 여왕을 고르세요", "Runs today: {a} / {b}": "오늘 남은 판: {a} / {b}", "SECRET DUNGEON": "시크릿 던전", "Nobody knows what waits inside.": "안에 무엇이 기다리는지 아무도 모릅니다.", "Only the brave find out": "용기 있는 자만이 알게 됩니다", "GM · free": "GM · 무료", "one run": "1회 입장", "Tickets: {n}": "입장권: {n}", "Sent from your wallet: half is burned, half goes to the treasury. One run.": "내 지갑에서 전송: 절반은 소각, 절반은 트레저리로. 1회 입장.", "Pay and enter": "결제하고 입장", "Your payment is still confirming on Arc — try again in a minute; it won't charge you twice.": "Arc에서 결제 확인 중이에요 — 1분 뒤 다시 시도하세요. 두 번 청구되지 않아요.", "You left the run": "런을 나갔어요", "Time's up": "시간 종료", "Knocked out": "쓰러졌어요", "{n} knocked out": "{n}마리 처치", "Nothing is won this time. Runs left today are on the lobby.": "이번엔 보상이 없어요. 오늘 남은 판은 로비에서 확인하세요.", "Lobby": "로비", "CELESTIAL LYSITHA": "CELESTIAL LYSITHA", "RADIANT SOLVIRA": "RADIANT SOLVIRA", "CRIMSON NYXARA": "CRIMSON NYXARA", "RAID QUEENS": "RAID QUEENS" });
 Object.assign(WORDS.zh, { "Leave the run? It counts as lost.": "要离开这一局吗？将记为失败。", "Waves · {n} knocked out": "怪潮 · 已击倒 {n}", "She comes in {t}": "她将在 {t} 后降临", "The queen is here!": "女王降临了！", "Waves of Imps, elite Puglins, then the queen": "小恶魔怪潮、精英帕格林，然后是女王", "1 piece of gear": "1 件装备", "Best {t}": "最佳 {t}", "Back tomorrow": "明天再来", "Choose your queen": "选择你的女王", "Runs today: {a} / {b}": "今日剩余：{a} / {b}", "SECRET DUNGEON": "秘密地下城", "Nobody knows what waits inside.": "没人知道里面等着什么。", "Only the brave find out": "唯有勇者才能知晓", "GM · free": "GM · 免费", "one run": "一局", "Tickets: {n}": "门票：{n}", "Sent from your wallet: half is burned, half goes to the treasury. One run.": "从你的钱包发送：一半销毁，一半进入金库。一局。", "Pay and enter": "支付并进入", "Your payment is still confirming on Arc — try again in a minute; it won't charge you twice.": "你的付款仍在 Arc 上确认 —— 请一分钟后重试，不会重复扣费。", "You left the run": "你离开了这一局", "Time's up": "时间到", "Knocked out": "被击倒", "{n} knocked out": "击倒 {n}", "Nothing is won this time. Runs left today are on the lobby.": "这次没有奖励。今日剩余次数见大厅。", "Lobby": "大厅", "CELESTIAL LYSITHA": "CELESTIAL LYSITHA", "RADIANT SOLVIRA": "RADIANT SOLVIRA", "CRIMSON NYXARA": "CRIMSON NYXARA", "RAID QUEENS": "RAID QUEENS" });
 Object.assign(WORDS.tr, { "Leave the run? It counts as lost.": "Oyundan çıkılsın mı? Kaybedilmiş sayılır.", "Waves · {n} knocked out": "Dalgalar · {n} devrildi", "She comes in {t}": "{t} içinde geliyor", "The queen is here!": "Kraliçe geldi!", "Waves of Imps, elite Puglins, then the queen": "İmp dalgaları, seçkin Puglinler, sonra kraliçe", "1 piece of gear": "1 parça ekipman", "Best {t}": "En iyi {t}", "Back tomorrow": "Yarın tekrar", "Choose your queen": "Kraliçeni seç", "Runs today: {a} / {b}": "Bugün kalan: {a} / {b}", "SECRET DUNGEON": "GİZLİ ZİNDAN", "Nobody knows what waits inside.": "İçeride ne beklediğini kimse bilmiyor.", "Only the brave find out": "Bunu yalnızca cesurlar öğrenir", "GM · free": "GM · ücretsiz", "one run": "bir oyun", "Tickets: {n}": "Bilet: {n}", "Sent from your wallet: half is burned, half goes to the treasury. One run.": "Cüzdanından gönderilir: yarısı yakılır, yarısı hazineye gider. Bir oyun.", "Pay and enter": "Öde ve gir", "Your payment is still confirming on Arc — try again in a minute; it won't charge you twice.": "Ödemen hâlâ Arc'ta onaylanıyor — bir dakika sonra tekrar dene; iki kez ücret alınmaz.", "You left the run": "Oyundan çıktın", "Time's up": "Süre doldu", "Knocked out": "Devrildin", "{n} knocked out": "{n} devrildi", "Nothing is won this time. Runs left today are on the lobby.": "Bu sefer ödül yok. Bugün kalan oyunlar lobide.", "Lobby": "Lobi", "CELESTIAL LYSITHA": "CELESTIAL LYSITHA", "RADIANT SOLVIRA": "RADIANT SOLVIRA", "CRIMSON NYXARA": "CRIMSON NYXARA", "RAID QUEENS": "RAID QUEENS" });
+Object.assign(WORDS.ko, { "{n} pieces of gear": "장비 {n}개", "Waves, then all three queens at once": "웨이브 후 세 여왕이 한꺼번에", "Clear the waves — then they come.": "웨이브를 처치하면 — 그들이 나타납니다." });
+Object.assign(WORDS.zh, { "{n} pieces of gear": "{n} 件装备", "Waves, then all three queens at once": "怪潮之后，三位女王一同降临", "Clear the waves — then they come.": "清完怪潮 —— 她们就会降临。" });
+Object.assign(WORDS.tr, { "{n} pieces of gear": "{n} parça ekipman", "Waves, then all three queens at once": "Dalgalar, sonra üç kraliçe birden", "Clear the waves — then they come.": "Dalgaları temizle — sonra onlar gelir." });
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
@@ -810,7 +813,7 @@ function rqGateModel() { if (rqGate.userData.loading) return; rqGate.userData.lo
   o.traverse((m) => { if (m.isMesh) { m.castShadow = !lowGfx; m.receiveShadow = false; } }); rqGate.add(o); rqGate.userData.model = o; if (labels) labels.dirty = true; farCull.rescan(); if (gshadow) gshadow.rebakeSoon();
 }, undefined, (e) => { console.warn("raid gate", e); rqGate.userData.loading = 0; }); } catch (e) { console.warn("raid gate", e); rqGate.userData.loading = 0; } }
 // (1 MB, far off the plaza: after the town's own models; a GM signing in later sees it appear)
-rqGate.visible = true; setTimeout(rqGateModel, 11000); // (the entrance stands for everyone; inside is the GMs' until it opens: rqWarp)
+// (2026-10-25, the owner: the Citadel stands in the sky realm now — RAID QUEENS' own land, world-raidq.js hall — reached by the portal by the fountain; this one stays hidden)
 // hologram signs along the worn path to it: the three agents' faces turning in light, every ~14 m
 { const holoTex = {}, ld = new THREE.TextureLoader();
   ["aurora", "orion", "vex", "aurora", "orion"].forEach((k, i) => {
@@ -1902,7 +1905,8 @@ function nearest() {
   gv.doors.forEach((d) => { if (d.userData.game === "defense") consider(d, "defense", {}, 2.4); else if (d.userData.game === "jump") consider(d, "jump", {}, 2.4); else if (d.userData.game === "beat") consider(d, "beat", {}, 2.4); else if (d.userData.game === "surv") consider(d, "surv", {}, 2.6); else if (d.userData.game === "rings") consider(d, "rings", {}, 2.6); else if (d.userData.game === "poker") consider(d, "poker", {}, 2.6); });
   consider(isleGate, "isle", {}, 2.4);
   consider(jurGate, "jurassic", {}, 2.6);
-  consider(agentGate, "agentdim", {}, 3.2); consider(rqGate, "rqgate", {}, 3.4);
+  consider(agentGate, "agentdim", {}, 3.2);
+  if (rqL && landNow === "rq" && rqL.hall.visible) { consider(rqL.door, "rqgate", {}, 4); consider(rqL.back, "lport", { to: "town" }, 2.6); } // RAID QUEENS' sky realm: the Citadel's door, the way home
   if (adc && landNow === "ad") { adc.doors.forEach((d) => consider(d, "adb", { b: d.userData.b }, 2.4)); consider(adc.back, "lport", { to: "town" }, 2.6); } // AD-City 1
   pvil.doors.forEach((d) => consider(d, d.userData.partner, {}, 3));
   if (plazaNow && (plazaNow.isle || plazaNow.coin)) consider(screen, "screen", {}, 2.6);
@@ -2045,7 +2049,6 @@ function landGo(to) {
   if (to === "gv") { goGameVillage(); return; } if (to === "pv") { goPartnerVillage(); return; } if (to === "ad") { cityGo(); return; } if (to === "rq") { rqGo(); return; }
   closeAll();
   if (to === "town" && landNow === "ad") { const v = agentGate.position, d = Math.hypot(v.x, v.z) || 1, k = K.AGENT_GATE.r + 7; standAt(v.x - (v.x / d) * k, v.z - (v.z / d) * k, { x: 0, z: 0 }); } // (AD-City: out by the Citadel)
-  else if (to === "town" && landNow === "rq") { const v = rqGate.position, d = Math.hypot(v.x, v.z) || 1, k = RQ_GATE.r + 6; standAt(v.x - (v.x / d) * k, v.z - (v.z / d) * k, { x: 0, z: 0 }); } // (RAID QUEENS: out by the Citadel)
   else if (to === "town") { const p = lands.portals.find((q) => q.userData.to === landNow) || lands.portals[0], v = p.position, d = Math.hypot(v.x, v.z) || 1; standAt(v.x - (v.x / d) * 3.4, v.z - (v.z / d) * 3.4, { x: 0, z: 0 }); }
   else { const a = lands.arrival(to); if (!a) return; standAt(a.x, a.z, a.c); }
   const col = to === "lp" ? 0x39ff88 : to === "ut" ? 0x4f9dff : 0x7fe9ff; vfx.teleport(here(), { color: col, color2: 0x2f86ff }); if (Snd.dash) Snd.dash();
@@ -2064,9 +2067,9 @@ st.on(() => { try { landTick(false); } catch { /* still loading */ } });
 function routeTo(g) {
   if (!g) return g; const p = g.position, L = g.parent === planet ? LD.landAt(p.x, p.z) : null, id = L ? L.id : "";
   if (id === landNow) return g;
-  if (landNow === "rq") return g;
+  if (landNow === "rq") return rqL ? rqL.back : g;
   if (landNow) return landNow === "ad" ? (adc ? adc.back : g) : lands.back[landNow === "lp" ? 0 : 1] || g;
-  if (id === "ad") return agentGate; if (id === "rq") return rqGate;
+  if (id === "ad") return agentGate;
   return lands.portals.find((q) => q.userData.to === id) || g;
 }
 // how many are in each land now (other players' figures), under the portals' names
@@ -2882,7 +2885,7 @@ function drawMini() {
     if (ghosts) ghosts.each((g, w) => { const L = LD.landAt(g.position.x, g.position.z); if ((L ? L.id : "") !== landNow) return; const fr = !!(w && w.wallet && island.isFriend(w.wallet)); put(g, fr ? "#ffc861" : "rgba(159,230,255,.55)", fr ? 5 : 3); });
     if (landNow === "lp") coinBuildings.forEach((g) => put(g, g.userData.mine ? "#39ff88" : "rgba(238,243,247,.55)", 4));
     if (!landNow) lands.portals.forEach((g) => put(g, "#" + (g.userData.to === "rq" ? "ff4d8d" : g.userData.to === "lp" ? "39ff88" : g.userData.to === "ut" ? "4f9dff" : g.userData.to === "pv" ? "38e1d6" : "ffc861"), 7)); else lands.back.forEach((g) => { if (g.parent && g.parent.visible) put(g, "#eef3f7", 7); });
-    if (landNow === "rq" && rqL) { rqL.marks().forEach((m0) => put(m0.g, m0.down ? "rgba(238,243,247,.4)" : m0.css, m0.s, m0.ch)); } // RAID QUEENS
+    if (landNow === "rq" && rqL) { if (rqL.hall.visible) put(rqL.back, "#eef3f7", 7); rqL.marks().forEach((m0) => put(m0.g, m0.down ? "rgba(238,243,247,.4)" : m0.css, m0.s, m0.ch)); } // RAID QUEENS
     if (landNow === "ad" && adc) { put(adc.back, "#eef3f7", 7); adc.doors.forEach((d) => { const B = adc.M.BUILDINGS.find((x) => x.id === d.userData.b); put(d, B ? B.css : "#5fd3ff", B && B.open ? 6 : 4.5); }); } // AD-City 1
     if (!landNow) { // the town's marks
     // scammers round you: small red dots (an elite a little bigger, gold-edged)
@@ -5454,7 +5457,13 @@ function rqWarp() {
   const u = rqGate.userData; if (u.warp) return; u.warp = 1;
   if (!reduce) { const f = document.createElement("div"); f.className = "wag-warp rq-warp"; document.body.appendChild(f); setTimeout(() => f.remove(), 900); }
   try { if (Snd.perfect) Snd.perfect(); } catch { /* no sound */ }
-  setTimeout(() => { u.warp = 0; rqGo(); }, reduce ? 0 : 380);
+  setTimeout(() => { u.warp = 0; rqLobby(); }, reduce ? 0 : 380);
+}
+/// the one building for every run: 100 / 200 / 300 / 400 / SECRET (the owner, 2026-10-25: like SURVIVORS ARENA's building)
+async function rqLobby() {
+  if (frozen || flying || introOn || mode !== "hub") return;
+  const r = await ensureRq(); if (!r || frozen || mode !== "hub") return;
+  closeAll(); r.openLobby();
 }
 /// the Citadel before RAID QUEENS opens (anyone but a GM): what's being built, no way in yet
 function rqSoon() {
@@ -5468,12 +5477,14 @@ function rqSoon() {
   el.addEventListener("click", (e) => { if (e.target === el || e.target.closest(".adc-ok")) close(); });
   document.body.appendChild(el); try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
 }
-/// the gate, the map, the Menu: the lobby (three queens, the SECRET, today's runs); a run warps you into the arena (world-raidq.js start)
+/// the portal by the fountain, the map, the Menu: into the sky realm, at the foot of the Spireway facing the Citadel (walk up → rqWarp → the lobby)
 async function rqGo() {
   if (!rqOn()) { rqSoon(); return; } // (not open yet: the construction card)
   if (frozen || flying || introOn || mode !== "hub") return;
   const r = await ensureRq(); if (!r || frozen || mode !== "hub") return;
-  closeAll(); r.openLobby();
+  closeAll(); r.loadHall(); const a = r.arrival(); standAt(a.x, a.z, a.c);
+  vfx.teleport(here(), { color: 0xff4d8d, color2: 0xffd36a }); if (Snd.dash) Snd.dash(); pullFlash("#ff4d8d"); startSweep(1600);
+  landTick(true); paintPrompt();
 }
 async function openRaidQueens() { await rqGo(); }
 // AD-City 1 (world-adcity.js): NEXUS CITY, AGENT DIMENSION's land (LD.LANDS.ad), built the first time you go in
@@ -5576,7 +5587,7 @@ function bossList() {
   { const nx = (() => { const t = new Date(now + 9 * 3600e3), dd = (8 - t.getUTCDay()) % 7 || 7; return Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + dd) - 9 * 3600e3; })();
     out.push({ ic: "🐙", color: "#39ff88", name: TW(SOC.RAID.boss.name), where: TW(SOC.RAID.name), lv: `Lv ${SOC.RAID.lv[0]}+`, line: TW("The weekly raid boss: everyone in town brings it down together."), when: TW("Resets in {t}", { t: evLeft(nx).replace(/^in /, "") }), rew: TW("Raid gear, XP, the Raid Breaker title"), live: false, go: () => fly(SOC.RAID) }); }
   if (rqOn()) { // RAID QUEENS: a run of your own, 3 a Seoul day (world-raidq.js)
-    for (const [q, reg, ic, col] of [["lysitha", "silver", "🤍", "#9fd4ff"], ["solvira", "golden", "☀️", "#ffd36a"], ["nyxara", "crimson", "🩸", "#ff4d6d"]]) { const Q = { lysitha: ["CELESTIAL LYSITHA", 100, "Silver Sanctum"], solvira: ["RADIANT SOLVIRA", 200, "Golden Dominion"], nyxara: ["CRIMSON NYXARA", 300, "Crimson Abyss"] }[q];
+    for (const [q, reg, ic, col] of [["lysitha", "silver", "🤍", "#9fd4ff"], ["solvira", "golden", "☀️", "#ffd36a"], ["nyxara", "crimson", "🩸", "#ff4d6d"], ["throne", "throne", "👑", "#ff7ab8"]]) { const Q = { lysitha: ["CELESTIAL LYSITHA", 100, "Silver Sanctum"], solvira: ["RADIANT SOLVIRA", 200, "Golden Dominion"], nyxara: ["CRIMSON NYXARA", 300, "Crimson Abyss"], throne: ["THRONE OF THREE", 400, "Throne of Three"] }[q];
       out.push({ ic, color: col, name: TW(Q[0]), where: "RAID QUEENS · " + TW(Q[2]), lv: `Lv ${Q[1]}+`, line: TW("A run of your own: clear the waves, then bring the queen down. 3 runs a day."), when: TW("{n} runs a day", { n: 3 }), live: true, go: () => rqGo() }); } }
   const bk = ((rpg && rpg.data().x) || {}).bk || {};
   for (const z of ZN.ZONES) if (z.boss) out.push({ ic: "👑", color: "#" + (z.color || 0x5fd3ff).toString(16).padStart(6, "0"), name: TW(z.boss.name), where: TW(z.name), lv: `Lv ${z.lv[0]}–${z.lv[1]}`, line: TW(z.boss.line || "A hunting ground's boss."), when: TW("Any time"), rew: TW("Gear, XP"), mine: bk[z.id] || 0, live: false, go: () => fly(z) });

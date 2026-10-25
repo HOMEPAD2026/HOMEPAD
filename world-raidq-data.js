@@ -7,6 +7,8 @@ export const RQ = {
     { id: "lysitha", region: "Silver Sanctum", lv: 100, boss: 100, min: 150, xpMin: 6, arcl: 2000, item: { r: 3, p: 3, n: 1 } },
     { id: "solvira", region: "Golden Dominion", lv: 200, boss: 200, min: 150, xpMin: 8, arcl: 3000, item: { r: 4, p: 3, n: 1 } },
     { id: "nyxara", region: "Crimson Abyss", lv: 300, boss: 300, min: 150, xpMin: 10, arcl: 5000, item: { r: 4, p: 5, n: 1 } },
+    // the Throne of Three (the owner, 2026-10-25: 100 / 200 / 300 / 400 / SECRET from the one building): the three queens at once, Lv 400
+    { id: "throne", region: "Throne of Three", lv: 400, boss: 400, min: 180, xpMin: 14, arcl: 8000, item: { r: 4, p: 6, n: 2 }, trio: true },
   ],
   // the SECRET dungeon: its price in $ARCIRCLE, its level to enter, its three queens' levels, the shortest win, a win's XP
   // (Lv 120 → 140 in XP, the owner's number: xpAt(140) − xpAt(120)), its gear (better: Epic/Legendary, more +)
