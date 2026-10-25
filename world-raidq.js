@@ -81,17 +81,30 @@ export function makeRaidQueens(ctx) {
   // Shown while you're in the land and not in a run (a run shows the arena instead: vis()).
   const H = new THREE.Group(); H.name = "rq-hall"; H.position.set(land.x, 0, land.z); H.visible = false; planet.add(H);
   const HALL = { door: -36, start: 48, road: [-24, 44], back: 56 }; // local z: the Citadel, where you arrive, the road's two ends, the way home
-  { const R = 160, tx = new THREE.TextureLoader().load(`/images/raid/sky.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; }); tx.wrapS = THREE.MirroredRepeatWrapping; tx.repeat.set(3, 1);
+  { const R = 260, tx = new THREE.TextureLoader().load(`/images/raid/sky.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; }); tx.wrapS = THREE.MirroredRepeatWrapping; tx.repeat.set(3, 1);
     const Hh = ((Math.PI * 2 * R) / 3) * (941 / 1672), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, Hh, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false }));
-    cyl.position.y = Hh / 2 - 60; cyl.renderOrder = -6; cyl.frustumCulled = false; H.add(cyl);
-    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x3a5fe0, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 60; H.add(top); }
+    cyl.position.y = Hh / 2 - 70; cyl.renderOrder = -6; cyl.frustumCulled = false; H.add(cyl);
+    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x3a5fe0, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 70; H.add(top); }
   { // the clouds underfoot: soft pink-white blobs on lavender, drawn once
     const cv = typeof document !== "undefined" ? document.createElement("canvas") : null;
     let map = null; if (cv) { cv.width = cv.height = 512; const c = cv.getContext("2d"); c.fillStyle = "#9fb4f4"; c.fillRect(0, 0, 512, 512); /* sky blue showing between the clouds */ let sd = 7; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
       for (let i = 0; i < 230; i++) { const x = rnd() * 512, y = rnd() * 512, r = 14 + rnd() * 52, gr = c.createRadialGradient(x, y, 0, x, y, r); const col = rnd() < 0.3 ? "255,214,236" : "255,250,255"; gr.addColorStop(0, `rgba(${col},.85)`); gr.addColorStop(1, `rgba(${col},0)`); c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
       map = new THREE.CanvasTexture(cv); map.colorSpace = THREE.SRGBColorSpace; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(9, 9); }
-    const sea = new THREE.Mesh(new THREE.CircleGeometry(165, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, map, fog: false, toneMapped: false })); sea.rotation.x = -Math.PI / 2; sea.position.y = 0.02; H.add(sea);
-    spins.push((dt) => { if (H.visible && map) { map.offset.x += dt * 0.004; map.offset.y += dt * 0.002; } }); }
+    const sea = new THREE.Mesh(new THREE.CircleGeometry(270, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, map, fog: false, toneMapped: false })); sea.rotation.x = -Math.PI / 2; sea.position.y = -26; H.add(sea); // (far below: the plaza floats over it)
+    if (map) map.repeat.set(14, 14); spins.push((dt) => { if (H.visible && map) { map.offset.x += dt * 0.004; map.offset.y += dt * 0.002; } }); }
+  // the plaza you walk on: pale marble tiles with gold rings, its edge a pink glow and a drop of stone below (the concept art's floor)
+  const PLAZA_R = 64;
+  { const cv = typeof document !== "undefined" ? document.createElement("canvas") : null; let map = null;
+    if (cv) { cv.width = cv.height = 1024; const c = cv.getContext("2d"), m = 512; c.fillStyle = "#e9e6f2"; c.fillRect(0, 0, 1024, 1024);
+      let sd = 11; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 70; i++) { c.strokeStyle = `rgba(150,140,180,${0.05 + rnd() * 0.08})`; c.lineWidth = 1 + rnd() * 2; c.beginPath(); let x = rnd() * 1024, y = rnd() * 1024; c.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (rnd() - 0.5) * 160; y += (rnd() - 0.5) * 160; c.lineTo(x, y); } c.stroke(); } // (the marble's veins)
+      c.strokeStyle = "rgba(120,110,150,.35)"; c.lineWidth = 2; for (let r = 60; r < m; r += 64) { c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke(); } for (let a = 0; a < 24; a++) { const t = (a / 24) * Math.PI * 2; c.beginPath(); c.moveTo(m + Math.cos(t) * 60, m + Math.sin(t) * 60); c.lineTo(m + Math.cos(t) * 512, m + Math.sin(t) * 512); c.stroke(); }
+      c.strokeStyle = "#d9b25e"; for (const [r, w] of [[120, 7], [250, 5], [380, 6], [500, 8]]) { c.lineWidth = w; c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke(); }
+      map = new THREE.CanvasTexture(cv); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4; }
+    const plaza = new THREE.Mesh(new THREE.CircleGeometry(PLAZA_R, 96), new THREE.MeshStandardMaterial({ color: 0xffffff, map, roughness: 0.35, metalness: 0.15, envMapIntensity: 0.6, fog: false })); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; plaza.receiveShadow = true; H.add(plaza);
+    const edge = new THREE.Mesh(new THREE.RingGeometry(PLAZA_R - 0.5, PLAZA_R, 128), neon(0xff6fa8, 0.85)); edge.rotation.x = -Math.PI / 2; edge.position.y = 0.05; H.add(edge);
+    const side = new THREE.Mesh(new THREE.CylinderGeometry(PLAZA_R, PLAZA_R - 6, 9, 96, 1, true), new THREE.MeshStandardMaterial({ color: 0x4a3a5a, roughness: 0.8, side: THREE.DoubleSide })); side.position.y = -4.5; H.add(side); // (the stone under its edge)
+    spins.push((dt, t) => { if (H.visible) edge.material.opacity = 0.7 + Math.sin(t * 1.8) * 0.15; }); }
   // the way home: a ring of light behind where you arrive
   const back = new THREE.Group(); back.name = "rq-back"; back.position.set(land.x + 9, 0, land.z + HALL.back - 4); back.userData.radius = 0; planet.add(back); back.visible = false;
   { const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.16, 10, 64), neon(0xff7ab8)); ring.position.y = 2.6; back.add(ring); const veil = new THREE.Mesh(new THREE.CircleGeometry(2.1, 40), neon(0xffd6ec, 0.35)); veil.position.y = 2.6; back.add(veil); spins.push((dt, t) => { ring.rotation.z = t * 0.8; veil.material.opacity = 0.28 + Math.sin(t * 2) * 0.08; }); }
@@ -107,8 +120,18 @@ export function makeRaidQueens(ctx) {
       { const o = gt.scene, box = new THREE.Box3().setFromObject(o), k = 26 / (box.max.y - box.min.y || 1); fit(o, k, 0, 0, HALL.door, box); o.traverse((m) => { if (m.isMesh) m.castShadow = !ctx.low; }); H.add(o);
         const half = ((box.max.z - box.min.z) / 2) * k, w = (box.max.x - box.min.x) * k, fz = HALL.door + half; // (its front, in the hall's own coordinates)
         HALL.road[0] = Math.min(HALL.road[1] - 20, fz - 1); door.position.z = land.z + fz + 2.5; wall.userData.radius = Math.min(14, Math.max(4, Math.min(w, half * 2) * 0.42)); }
-      { const box = new THREE.Box3().setFromObject(rd.scene), len = (HALL.road[1] - HALL.road[0]) / 2, k = len / (box.max.z - box.min.z || 1); // (two lengths end to end)
+      { const box = new THREE.Box3().setFromObject(rd.scene), len = (HALL.road[1] - HALL.road[0]) / 2, k = len / (box.max.z - box.min.z || 1); HALL.roadW = (box.max.x - box.min.x) * k; // (two lengths end to end; its width for the deck)
         for (let i = 0; i < 2; i++) { const o = i ? rd.scene.clone() : rd.scene; fit(o, k, 0, -0.17, HALL.road[0] + len * (i + 0.5), box); o.traverse((m) => { if (m.isMesh) m.receiveShadow = true; }); H.add(o); } }
+        // its floor: the model's deck is a sliver at grass height, so the road gets a deck of its own — white marble, a pink
+        // line of light down the middle and along both edges, a gold star every few metres (the concept art)
+      { const dw = HALL.roadW * 0.8, dl = HALL.road[1] - HALL.road[0], cv = typeof document !== "undefined" ? document.createElement("canvas") : null; let dmap = null;
+        if (cv) { cv.width = 256; cv.height = 2048; const c = cv.getContext("2d"); c.fillStyle = "#f1eef6"; c.fillRect(0, 0, 256, 2048);
+          c.strokeStyle = "rgba(140,130,170,.35)"; c.lineWidth = 2; for (let y = 0; y < 2048; y += 128) { c.beginPath(); c.moveTo(0, y); c.lineTo(256, y); c.stroke(); }
+          for (const [x, w] of [[128, 10], [16, 6], [240, 6]]) { const gr = c.createLinearGradient(x - w * 2, 0, x + w * 2, 0); gr.addColorStop(0, "rgba(255,80,140,0)"); gr.addColorStop(0.5, "rgba(255,70,130,1)"); gr.addColorStop(1, "rgba(255,80,140,0)"); c.fillStyle = gr; c.fillRect(x - w * 2, 0, w * 4, 2048); }
+          c.fillStyle = "#ff5f9a"; for (let y = 64; y < 2048; y += 256) { c.beginPath(); for (let a = 0; a < 8; a++) { const r = a % 2 ? 9 : 34, t = (a / 8) * Math.PI * 2; c.lineTo(128 + Math.sin(t) * r * 1.4, y + Math.cos(t) * r); } c.fill(); }
+          dmap = new THREE.CanvasTexture(cv); dmap.colorSpace = THREE.SRGBColorSpace; dmap.anisotropy = 4; dmap.wrapT = THREE.RepeatWrapping; dmap.repeat.set(1, Math.max(1, Math.round(dl / 24))); }
+        const deck = new THREE.Mesh(new THREE.PlaneGeometry(dw, dl), new THREE.MeshStandardMaterial({ color: 0xffffff, map: dmap, emissive: 0xff3d7f, emissiveMap: dmap, emissiveIntensity: 0.18, roughness: 0.3, metalness: 0.1, fog: false }));
+        deck.rotation.x = -Math.PI / 2; deck.position.set(0, 0.07, (HALL.road[0] + HALL.road[1]) / 2); deck.receiveShadow = true; H.add(deck); }
       { const box = new THREE.Box3().setFromObject(isle.scene), hh = box.max.y - box.min.y || 1;
         // [x, z, height of the spire (m), how high it floats]: big ones far off, small ones near the road; none on the road
         const ISLES = [[-19, 22, 9, 5], [21, 8, 11, 7], [-22, -8, 13, 9], [-44, -60, 40, 4], [48, -66, 36, 8], [24, -20, 9, 12], [-62, 30, 22, 14], [66, 34, 20, 16], [-86, -14, 34, 12], [88, 2, 34, 10], [-30, -110, 30, 24], [34, -114, 28, 28]].slice(0, ctx.low ? 7 : 12); // (near ones first: low graphics keeps the first seven)
@@ -302,7 +325,7 @@ export function makeRaidQueens(ctx) {
     if (typeof document === "undefined" || lobby || run) return;
     lobby = document.createElement("div"); lobby.className = "rq-lobby"; lobby.setAttribute("role", "dialog"); lobby.setAttribute("data-no-i18n", ""); document.body.appendChild(lobby); ctx.freeze(true);
     lobby.innerHTML = `<div class="rq-lb"><p class="rq-load">…</p></div>`;
-    lobby.addEventListener("click", (e) => { const b = e.target.closest("[data-go]"), cr = e.target.closest("[data-chron]");
+    lobby.addEventListener("click", (e) => { const b = e.target.closest("[data-go]"), cr = e.target.closest("[data-chron]"); if (e.target.closest("[data-myth]")) { closeLobby(); ctx.openMythic(); return; }
       if (b && !b.disabled) { start(b.dataset.go); return; } if (cr) { closeLobby(); chronicle(); return; } if (e.target.closest(".rq-x") || e.target === lobby) closeLobby(); });
     await refreshInfo(); if (lobby) paintLobby();
   }
@@ -319,7 +342,7 @@ export function makeRaidQueens(ctx) {
       <div class="rq-mode rq-secret${slock ? " lock" : ""}"><div class="rq-q">?</div><div><small>🔒 SECRET · Lv ${S.lv}+</small><b>??? ${esc(T("SECRET DUNGEON"))}</b><em>${esc(T("Nobody knows what waits inside."))}</em>
         <ul><li>❓ ${esc(T("Only the brave find out"))}</li><li>💎 ${gm ? esc(T("GM · free")) : `${S.PRICE.toLocaleString("en-US")} $ARCIRCLE · ${esc(T("one run"))}`}${tk ? ` · ${esc(T("Tickets: {n}", { n: tk }))}` : ""}</li></ul>
         <button type="button" data-go="secret" ${slock ? "disabled" : ""}>${slock ? "🔒 Lv " + S.lv : esc(T("Enter"))}</button></div></div></div>
-      <div class="rq-foot"><button type="button" data-chron>📖 ${esc(T("RAID QUEENS CHRONICLE"))}</button></div></div>`;
+      <div class="rq-foot">${ctx.openMythic ? `<button type="button" class="rq-myb" data-myth>👑 ${esc(T("Crimson Celestial"))}</button>` : ""}<button type="button" data-chron>📖 ${esc(T("RAID QUEENS CHRONICLE"))}</button></div></div>`;
   }
   // the SECRET's price: a transfer from your wallet to FeeBurn, then the run; a transfer still confirming isn't paid twice
   function payCard() {
@@ -361,6 +384,7 @@ export function makeRaidQueens(ctx) {
     document.body.appendChild(el); ctx.freeze(true);
     el.addEventListener("click", (e) => { const a = e.target.closest("[data-again]"), h = e.target.closest("[data-home]"); if (!a && !h) return; el.remove(); ctx.freeze(false); toHall(true); if (a) setTimeout(() => openLobby(), 400); });
     try { if (won && ctx.Snd && ctx.Snd.coin) ctx.Snd.coin(); } catch { /* no sound */ }
+    if (won && j && j.mythic && ctx.mythicGot) setTimeout(() => ctx.mythicGot(j.mythic), 900); // (a MYTHIC piece: its own reveal over the card)
   }
 
   // ---------------- the story: pages, cut-ins, the chronicle (the owner's pictures) ----------------

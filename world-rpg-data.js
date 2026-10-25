@@ -74,6 +74,7 @@ export function statsOf(level, eq, extra) {
   const sets = {};
   for (const slot of SLOTS) {
     const it = eq && eq[slot]; if (!it || isBroken(it)) continue; // a broken piece gives nothing
+    if (extra && extra.skip && extra.skip[slot]) continue; // a MYTHIC piece worn in this slot takes its place (world-mythic-data.js: its stats come in extra)
     const g = itemStats(it); for (const k in g) s[k] = (s[k] || 0) + g[k];
     const p = parseBase(it.b); if (p) sets[p.tier] = (sets[p.tier] || 0) + 1;
   }
@@ -93,6 +94,8 @@ export function statsOf(level, eq, extra) {
   if (level >= 5) s.spd += 5;
   if (level >= 7) s.crit += 3;
   s.crit = Math.min(60, Math.round(s.crit * 10) / 10); s.spd = Math.min(40, s.spd);
+  // the Crimson Celestial set's own stats: critical damage %, skill damage %, damage reduction % (world-combat.js reads them)
+  s.critDmg = (extra && extra.critDmg) || 0; s.skillPct = (extra && extra.skillPct) || 0; s.dr = Math.min(50, (extra && extra.dr) || 0);
   s.sets = active;
   return s;
 }

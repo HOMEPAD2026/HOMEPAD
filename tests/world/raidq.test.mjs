@@ -32,7 +32,7 @@ const pad = (a) => "0x" + a.toLowerCase().replace(/^0x/, "").padStart(64, "0");
 const D_ = D; check(JSON.stringify(RQ) === JSON.stringify(D_.RQ), "the game's rules are the server's (world-raidq-data.js)");
 check(RQ.SECRET.xp === xpAt(140) - xpAt(120), `the SECRET's XP is Lv 120 → 140 (${RQ.SECRET.xp})`);
 check(D_.phaseOf(100, 100) === 1 && D_.phaseOf(59, 100) === 2 && D_.phaseOf(24, 100) === 3, "phases at 60 % / 25 %");
-{ const a = itemsOf("secret", "rabc", 120), b = itemsOf("nyxara", "rabc", 320); check(a.length === 3 && a[0].r === 4 && a[0].p === 5 && a[0].lv === 120 && b.length === 1 && b[0].r === 4, "gear: the SECRET three (Legendary +5 …), a queen one");
+{ const a = itemsOf("secret", "rabc", 120), b = itemsOf("nyxara", "rabc", 320); check(a.length === 3 && a[0].r === 4 && a[0].p === 5 && a[0].lv === 100 && b.length === 1 && b[0].r === 4, "gear: the SECRET three (Legendary +5 …), a queen one");
   check(JSON.stringify(itemsOf("secret", "rx", 120)) === JSON.stringify(itemsOf("secret", "rx", 120)) && /^[a-z0-9]{4,10}$/.test(a[0].id), "the same gear for the same run, save-safe ids"); }
 T = Date.parse("2026-10-24T03:00:00Z");
 const A = ethers.Wallet.createRandom(), low = ethers.Wallet.createRandom(), G = ethers.Wallet.createRandom();

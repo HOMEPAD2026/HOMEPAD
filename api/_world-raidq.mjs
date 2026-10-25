@@ -46,7 +46,7 @@ const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h
 export function itemsOf(mode, run, lv) {
   const M = modeOf(mode); if (!M) return [];
   const list = mode === "secret" ? M.items : Array.from({ length: M.item.n }, () => ({ r: M.item.r, p: M.item.p }));
-  return list.map((x, i) => ({ id: ("rq" + hash(`${run}|${i}|id`).toString(36)).slice(0, 10).padEnd(6, "0"), b: `${SLOTS[hash(`${run}|${i}`) % SLOTS.length]}-4`, r: x.r, lv: Math.max(1, Math.min(500, lv)), p: x.p }));
+  return list.map((x, i) => ({ id: ("rq" + hash(`${run}|${i}|id`).toString(36)).slice(0, 10).padEnd(6, "0"), b: `${SLOTS[hash(`${run}|${i}`) % SLOTS.length]}-4`, r: x.r, lv: Math.max(1, Math.min(100, lv)), p: x.p })); // (gear tops out at Lv 100, the save's cap and the gear's scale; the Crimson Celestial set is the step past it)
 }
 /// a won run's XP for a player of level lv
 export const xpOf = (mode, lv) => (mode === "secret" ? RQ.SECRET.xp : Math.round(xpPerMin(lv) * ((modeOf(mode) || {}).xpMin || 0)));
@@ -97,7 +97,9 @@ export function makeRaidQueens(deps) {
     const bk = `worldRqBest/${w}`, bst = (await one(bk)) || {}, tt = Math.round(sec), best = !bst[r.mode] || tt < bst[r.mode];
     if (best) await setDoc(bk, { ...bst, [r.mode]: tt });
     const credited = arcl && deps.award ? await deps.award(w, "raidq", arcl) : 0;
-    return json(200, { ok: true, won: true, mode: r.mode, t: tt, xp, items, arcl, credited, best });
+    // the Crimson Celestial set: maybe a MYTHIC piece, made and kept on the server (api/_world-mythic.mjs; once a run: after the done-lock)
+    const mythic = deps.mythic ? await deps.mythic.roll(w, r.mode, id).catch(() => null) : null;
+    return json(200, { ok: true, won: true, mode: r.mode, t: tt, xp, items, arcl, credited, best, ...(mythic ? { mythic } : {}) });
   }
   // a SECRET ticket: a transfer of SECRET.PRICE $ARCIRCLE from this wallet to FeeBurn, each transaction good for one run
   async function buy(b) {

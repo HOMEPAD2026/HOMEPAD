@@ -705,7 +705,7 @@ export function createCombat(ctx) {
     if (rpg.swing) rpg.swing(true);
     const av = ctx.avatar(); if (av) av.play("pick-up", { once: true, fade: 0.04, speed: 2.2 });
     ctx.float(T(CHARGE[kind].name), me.clone().setY(3), "#ffd27a", true);
-    let n = 0; const hitAll = (test, mult, k2) => { for (const m of mobs) { if (m.dead) continue; if (test(m)) { const c = critRoll(); hit(m, base * mult * (c ? 1.8 : 1), me, k2 || "heavy", c); n++; } } };
+    let n = 0; const hitAll = (test, mult, k2) => { for (const m of mobs) { if (m.dead) continue; if (test(m)) { const c = critRoll(); hit(m, base * mult * (c ? critX() : 1), me, k2 || "heavy", c); n++; } } };
     if (kind === 0) { // whirlwind
       for (let i = 0; i < 2; i++) { const blade = new THREE.Mesh(sgeo(`Ring|${[1.6, 3.6, 48, 1, 0, TAU * 0.8]}`, () => new THREE.RingGeometry(1.6, 3.6, 48, 1, 0, TAU * 0.8)), additive(i ? col : 0xffffff, i ? 0.5 : 0.8)); blade.material.side = THREE.DoubleSide; blade.rotation.x = -Math.PI / 2; blade.position.copy(me).setY(0.9 + i * 0.25); add(blade); fx.push({ o: blade, life: 0.4, t: 0, op0: i ? 0.5 : 0.8, onTick: (k) => { blade.rotation.z = k * 9 * (i ? -1 : 1); blade.scale.setScalar(0.8 + k * 0.4); } }); }
       hitAll((m) => m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 3.8 + (m.rank === "boss" ? 2 : 0), 2.0);
@@ -780,6 +780,7 @@ export function createCombat(ctx) {
 
   // ---------------- attacking: a three-hit combo ----------------
   const critRoll = () => Math.random() * 100 < stats().crit;
+  const critX = () => 1.8 + (stats().critDmg || 0) / 100; // a critical hit's multiplier: ×1.8, more with critical damage (the Crimson Celestial set)
   // the weapon in hand decides how you attack (world-gear3d.js WEAPON_KINDS): 0 dual swords (this combo), 1 plasma hammer
   // (slower, harder, the third swing slams all round), 2 blaster, 3 bow and 4 staff (shots, below)
   const wKind = () => { const d = rpg.data && rpg.data(), w = d && d.eq && d.eq.weapon; return w ? weaponKind(w) : 0; };
@@ -818,7 +819,7 @@ export function createCombat(ctx) {
     const reach = ham ? (heavy ? 3.9 : 3.0) : heavy ? 3.1 : 2.6, base = stats().atk * (heavy ? 1.7 : combo === 2 ? 1.15 : 1) * (ham ? 1.45 : 1);
     if (ham && heavy) { ring(me, 0xffc861, { r0: 0.5, r1: 4.2, life: 0.4, y: 0.1 }); if (VX) { VX.impact(me.clone().setY(0.4), "hit", { big: 1.6 }); if (VX.boom) VX.boom(fxV.copy(me).addScaledVector(fwd, 1.2).setY(0.9), "hit", { size: 3.4, life: 0.5 }); } ctx.shake(0.25); }
     let any = false;
-    for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length() - (m.rank === "boss" ? 2 : 0); if (d < reach && ((ham && heavy) || d < 0.8 || tmp.normalize().dot(fwd) > 0.2)) { const c = critRoll(); hit(m, base * (c ? 1.8 : 1), me, heavy ? "heavy" : "melee", c); any = true; puff(m.g.position.clone().setY(m.y + 0.5), 0xffffff, { n: 6, speed: 4, size: 0.25, life: 0.3 }); } }
+    for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length() - (m.rank === "boss" ? 2 : 0); if (d < reach && ((ham && heavy) || d < 0.8 || tmp.normalize().dot(fwd) > 0.2)) { const c = critRoll(); hit(m, base * (c ? critX() : 1), me, heavy ? "heavy" : "melee", c); any = true; puff(m.g.position.clone().setY(m.y + 0.5), 0xffffff, { n: 6, speed: 4, size: 0.25, life: 0.3 }); } }
     if (any) ctx.shake(heavy ? 0.16 : 0.07);
     return true;
   }
@@ -894,7 +895,7 @@ export function createCombat(ctx) {
     if (best) out.copy(best.g.position).sub(me).setY(0).normalize();
     return best;
   }
-  const power = (s) => stats().atk * s.mult * (1 + 0.12 * (skillLevel(ctx.level(), s.lv) - 1));
+  const power = (s) => stats().atk * s.mult * (1 + 0.12 * (skillLevel(ctx.level(), s.lv) - 1)) * (1 + (stats().skillPct || 0) / 100); // (skill damage: the Crimson Celestial set)
   // the way a skill grew (world-rpg-data.js BRANCHES): "a", "b" or "" before skill level 2 / before choosing
   const brOf = (id) => { const s = SKILLS.find((x) => x.id === id); if (!s || skillLevel(ctx.level(), s.lv) < BRANCH_AT) return ""; const b = ((rpg.data() || {}).x || {}).br || {}; return b[id] === "a" || b[id] === "b" ? b[id] : ""; };
   function cast(id) {
@@ -950,7 +951,7 @@ export function createCombat(ctx) {
     } else {
       for (let i = 0; i < pts.length - 1; i++) { bolt(pts[i], pts[i + 1]); bolt(pts[i], pts[i + 1]); }
       const dmg = power(s) * (brOf("shock") === "b" ? 1.2 : 1);
-      chain.forEach((m, i) => { setTimeout(() => { const c = critRoll(); hit(m, dmg * (c ? 1.8 : 1), me, "shock", c); flash(m.g.position.clone().setY(m.y + 0.4), 0xd8c4ff, 2.2, 0.25); puff(m.g.position.clone().setY(m.y + 0.4), 0xb48cff, { n: 8, speed: 5, size: 0.22, life: 0.35 }); }, i * 70); });
+      chain.forEach((m, i) => { setTimeout(() => { const c = critRoll(); hit(m, dmg * (c ? critX() : 1), me, "shock", c); flash(m.g.position.clone().setY(m.y + 0.4), 0xd8c4ff, 2.2, 0.25); puff(m.g.position.clone().setY(m.y + 0.4), 0xb48cff, { n: 8, speed: 5, size: 0.22, life: 0.35 }); }, i * 70); });
       ctx.shake(0.12);
     }
     flash(hand, 0xb48cff, 1.8, 0.2); Snd.cast && Snd.cast("shock");
@@ -1012,7 +1013,7 @@ export function createCombat(ctx) {
         const rad = m.rank === "boss" ? 2.6 : 1.0;
         const u = Math.max(0, Math.min(1, ((m.g.position.x - ax) * bx + (m.g.position.z - az) * bz) / bl));
         if (Math.hypot(m.g.position.x - ax - bx * u, m.g.position.z - az - bz * u) < rad && Math.abs(b.g.position.y - (m.y + 0.5)) < (m.rank === "boss" ? 4 : 1.8)) {
-          const c = critRoll(); hit(m, b.dmg * (c ? 1.8 : 1), me, "melee", c); b.hit.add(m);
+          const c = critRoll(); hit(m, b.dmg * (c ? critX() : 1), me, "melee", c); b.hit.add(m);
           puff(b.g.position, b.col.getHex(), { n: 6, speed: 3, size: 0.35, life: 0.35, grav: 1 });
           if (b.hit.size >= b.pierce) { end = true; break; }
         }
@@ -1034,7 +1035,7 @@ export function createCombat(ctx) {
         if (s.trail <= 0.02) puff(s.o.position, 0xff7a2a, { n: 4, speed: 1, size: 1.4, life: 0.6, grav: -1 });
         if (s.t < s.life) continue;
         const p = s.at.clone();
-        for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < (m.rank === "boss" ? 6.5 : 4.5) * (s.big || 1)) { const c = critRoll(); hit(m, s.dmg * (c ? 1.8 : 1), p, "meteor", c); }
+        for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < (m.rank === "boss" ? 6.5 : 4.5) * (s.big || 1)) { const c = critRoll(); hit(m, s.dmg * (c ? critX() : 1), p, "meteor", c); }
         if (VX) { VX.impact(p.clone().setY(0.8), "meteor", { big: s.big || 1 }); if (VX.boom) VX.boom(fxV.copy(p).setY(1.6), "meteor", { size: 6.5 * (s.big || 1), life: 0.85 }); }
         flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5 * (s.big || 1), life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
         puff(p.clone().setY(0.8), 0xff7a2a, { n: 34, speed: 9, size: 0.9, life: 0.8, grav: -1 }); puff(p.clone().setY(0.6), 0x55504a, { n: 16, speed: 2.5, size: 1.6, life: 1.4, grav: -1.2 });
@@ -1047,10 +1048,10 @@ export function createCombat(ctx) {
       if (target || s.t > s.life || s.o.position.y < 0.1) {
         const p = s.o.position.clone(), c = critRoll();
         if (s.kind === "ice") {
-          if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "ice", c);
+          if (target) hit(target, s.dmg * (c ? critX() : 1), me, "ice", c);
           shards(p, 0xbff0ff, 14, 6); ring(p, 0x8fe6ff, { r0: 0.3, r1: 2.2, life: 0.4 }); flash(p, 0xcff6ff, 2.2, 0.2); if (VX) { VX.impact(p, "ice"); if (VX.boom) VX.boom(p, "ice", { size: 2.4, life: 0.45 }); }
         } else {
-          if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "fire", c);
+          if (target) hit(target, s.dmg * (c ? critX() : 1), me, "fire", c);
           for (const m of mobs) if (m !== target && !m.dead && m.g.position.distanceTo(p) < (s.wide ? 4.5 : 3)) hit(m, s.dmg * (s.wide ? 0.8 : 0.6), p, "fire");
           if (s.wide) { ring(p, 0xffd27a, { r0: 0.6, r1: 4.8, life: 0.5 }); groundFire(p); }
           if (VX) { VX.impact(p, "fire", { big: s.wide ? 1.5 : 1 }); if (VX.boom) VX.boom(p, "fire", { size: s.wide ? 4.6 : 3.4, life: 0.65 }); }
@@ -1246,6 +1247,7 @@ export function createCombat(ctx) {
   }
   function damage(n) {
     if (resting() || down) return;
+    if (stats().dr) n = Math.max(1, Math.round(n * (1 - Math.min(50, stats().dr) / 100))); // damage reduction (the Crimson Celestial set), at most half
     ghostHp = Math.max(ghostHp, hp); hp = Math.max(0, hp - n); calmT = 4; paintVit();
     if (rpg.wear) rpg.wear("hurt"); // worn armor, helmet, shield and boots wear out, 1 per 3 s of taking damage
     vit.classList.remove("hit"); requestAnimationFrame(() => vit.classList.add("hit"));

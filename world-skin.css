@@ -4115,3 +4115,38 @@ html.wp-pcphone body.wp .wr-card.hb{width:calc((100vw - 60px) / 1.38);height:cal
 body.wp .wr-card.hb{width:min(1560px,calc(100vw - 40px));height:calc(100svh - 40px)}
 /* the minimap's ring ran into the USDC / $ARCIRCLE purse on phones (the owner's screenshot, 2026-10-24): a little lower */
 html.wp-pcphone body.wp .wp-hud .wp-mini{margin-top:28px}
+/* MYTHIC — the Crimson Celestial set's window (world-mythic.js) and the drop's reveal */
+.my-win{position:fixed;inset:0;z-index:11900;display:grid;place-items:center;padding:14px;background:radial-gradient(circle at 50% 30%,rgba(70,6,22,.78),rgba(4,1,4,.94));animation:rqIn .25s ease-out}
+.my-card{position:relative;width:min(980px,100%);max-height:94svh;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;background:linear-gradient(170deg,#1a060c,#060206);border:1px solid rgba(255,61,110,.45);box-shadow:0 20px 80px rgba(0,0,0,.7),0 0 60px rgba(255,40,90,.22);color:#fff}
+.my-card header{position:relative;padding:14px 52px 12px 16px;background:linear-gradient(90deg,rgba(255,40,90,.18),transparent)}
+.my-card header small{font:800 11px/1 Sora,system-ui,sans-serif;letter-spacing:.24em;color:#ff7a9c}.my-card header h3{margin:6px 0 4px;font:900 26px/1.05 Sora,system-ui,sans-serif;background:linear-gradient(90deg,#ffd0a0,#ff3d6e);-webkit-background-clip:text;background-clip:text;color:transparent}.my-card header p{margin:0;font:700 13px system-ui,sans-serif;color:#ffd9e2}
+.my-x{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.35);color:#fff;font-size:16px;cursor:pointer}
+.my-body{overflow-y:auto;padding:10px 14px 16px;display:grid;gap:12px}
+.my-slots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.my-slot{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 6px;border-radius:14px;border:1px solid rgba(255,61,110,.3);background:radial-gradient(circle at 50% 35%,rgba(255,40,90,.16),rgba(10,2,6,.9));color:#fff;cursor:pointer;text-align:center;transition:transform .15s,box-shadow .15s}
+.my-slot img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:10px;filter:drop-shadow(0 0 10px rgba(255,40,90,.5))}
+.my-slot b{font:900 12.5px/1.15 Sora,system-ui,sans-serif}.my-slot small{font:600 10.5px/1.25 system-ui,sans-serif;color:#d9b8c2}.my-slot i{font:800 11px Sora,system-ui,sans-serif;font-style:normal;color:#ffd36a}
+.my-slot.none img{filter:grayscale(1) brightness(.35)}.my-slot.on{border-color:#ff3d6e;box-shadow:0 0 22px rgba(255,61,110,.45)}.my-slot.sel{transform:translateY(-3px);border-color:#ffd36a}
+.my-list{padding:10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,211,106,.3)}.my-list h4{margin:0 0 8px;font:900 15px Sora,system-ui,sans-serif;color:#ffd36a}
+.my-pc{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:11px;background:rgba(0,0,0,.3);margin-top:6px}.my-pc.on{outline:1px solid #ff3d6e}
+.my-pc b{display:block;font:800 13px Sora,system-ui,sans-serif}.my-pc small{display:block;font:600 11.5px system-ui,sans-serif;color:#d9b8c2}.my-pc em{display:block;font:700 11.5px system-ui,sans-serif;font-style:normal;color:#ffb3c4;margin-top:2px}
+.my-pc button{flex:none;padding:9px 14px;border-radius:10px;border:0;background:linear-gradient(180deg,#ff7a9c,#ff3d6e);color:#1a0610;font:900 13px Sora,system-ui,sans-serif;cursor:pointer}.my-pc button[disabled]{background:rgba(255,255,255,.1);color:#b9a7ae}
+.my-empty{margin:4px 0;color:#d9b8c2;font:600 13px system-ui,sans-serif}
+.my-bon{display:grid;gap:6px}.my-bon>div{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);opacity:.55}
+.my-bon>div.on{opacity:1;border-color:rgba(255,61,110,.55);background:linear-gradient(90deg,rgba(255,40,90,.18),rgba(255,255,255,.02));box-shadow:0 0 18px rgba(255,40,90,.18)}
+.my-bon i{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font:900 14px Sora,system-ui,sans-serif;font-style:normal;background:#2a0a14;border:1px solid #ff3d6e;color:#ffd36a}
+.my-bon b{display:block;font:900 13.5px Sora,system-ui,sans-serif}.my-bon small{font:600 12px system-ui,sans-serif;color:#ffc9d6}
+.my-drop{padding:10px;border-radius:14px;background:rgba(0,0,0,.28)}.my-drop h4{margin:0 0 6px;font:900 13px Sora,system-ui,sans-serif;color:#ff9ab3}.my-drop span{display:inline-block;margin:3px 8px 3px 0;padding:5px 9px;border-radius:9px;background:rgba(255,255,255,.05);font:700 11.5px system-ui,sans-serif;color:#f3e3e8}.my-drop span b{margin-right:6px;color:#ffd36a}.my-drop p{margin:8px 0 0;font:600 11.5px system-ui,sans-serif;color:#bfa8b0}
+.rq-myb{border-color:rgba(255,61,110,.6)!important;color:#ffd0dc!important}
+.my-rev{position:fixed;inset:0;z-index:12500;display:grid;place-items:center;background:radial-gradient(circle,rgba(120,8,40,.75),rgba(0,0,0,.92));animation:rqIn .3s ease-out}
+.my-rev-in{width:min(380px,92vw);text-align:center;color:#fff;padding:18px}.my-rev-in small{font:900 12px Sora,system-ui,sans-serif;letter-spacing:.3em;color:#ff7a9c}
+.my-rev-art{margin:12px auto;width:240px;height:240px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,rgba(255,61,110,.5),transparent 68%);animation:myRise 1.2s cubic-bezier(.2,.9,.2,1) both}
+.my-rev-art img{width:88%;filter:drop-shadow(0 0 24px #ff3d6e)}
+@keyframes myRise{0%{transform:translateY(40px) scale(.6);opacity:0;filter:brightness(3)}60%{opacity:1}100%{transform:none;filter:none}}
+.my-rev-in>b{display:block;font:900 26px/1.1 Sora,system-ui,sans-serif;background:linear-gradient(90deg,#ffd0a0,#ff3d6e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.my-rev-in p{margin:6px 0 2px;font:700 13px system-ui,sans-serif;color:#ffd9e2}.my-rev-in em{display:block;font:700 12px system-ui,sans-serif;font-style:normal;color:#ffb3c4}
+.my-rev-acts{display:flex;gap:10px;justify-content:center;margin-top:14px}.my-rev-acts button{min-width:110px;padding:11px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:900 14px Sora,system-ui,sans-serif;cursor:pointer}.my-rev-acts .go{border:0;background:linear-gradient(180deg,#ff7a9c,#ff3d6e);color:#1a0610}
+@media (max-width:760px){.my-slots{grid-template-columns:repeat(3,1fr)}}
+html.wp-pcphone .my-card{zoom:1.9;width:calc((100vw - 40px) / 1.9);max-height:calc((100svh - 40px) / 1.9)}
+html.wp-pcphone .my-slots{grid-template-columns:repeat(3,1fr)}
+html.wp-pcphone .my-rev-in{zoom:1.8}
