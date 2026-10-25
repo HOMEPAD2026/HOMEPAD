@@ -50,12 +50,14 @@ r = await call(A, "world-rq-end", { run: run1, won: false }); check(r.status ===
 r = await call(A, "world-rq-start", { mode: "lysitha" }); const run2 = r.body.run;
 T += 200e3; const b0 = (db.get(`worldArclBal/${A.address.toLowerCase()}`) || {}).bal || 0;
 r = await call(A, "world-rq-end", { run: run2, won: true });
-check(r.status === 200 && r.body.xp === xpOf("lysitha", 160) && r.body.items.length === 1 && r.body.arcl === 2000 && r.body.best, `a win: XP ${r.body.xp}, a piece, 2,000 ARCL, a best time`);
-check(((db.get(`worldArclBal/${A.address.toLowerCase()}`) || {}).bal || 0) - b0 === 2000, "the ARCL is credited (outside the daily cap)");
+check(r.status === 200 && r.body.xp === xpOf("lysitha", 160) && r.body.items.length === 2 && r.body.arcl === 3000 && r.body.first && r.body.best, `the day's first win: XP ${r.body.xp}, a piece + the bonus piece, 2,000 × 1.5 ARCL, a best time`);
+check(((db.get(`worldArclBal/${A.address.toLowerCase()}`) || {}).bal || 0) - b0 === 3000, "the ARCL is credited (outside the daily cap)");
+check(r.body.rank === 1, "the week's board: first place");
+{ const tb = (await W.read(new URL("https://x/api/social?world=rq-top&mode=lysitha"))).body; check(tb.top.length === 1 && tb.top[0].name === "Ace" && tb.top[0].t === r.body.t && !("id" in tb.top[0]), "rq-top: the week's fastest, the name, no full wallet"); }
 check((db.get(`worldXpGrant/${A.address.toLowerCase()}`) || {}).n === r.body.xp, "the XP is granted for the next save");
-r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 200, "the third run of the day");
+r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 200, "the third run of the day"); { const r3 = r.body.run; T += 160e3; r = await call(A, "world-rq-end", { run: r3, won: true }); check(r.status === 200 && r.body.items.length === 1 && r.body.arcl === 2000 && !r.body.first, "a second win the same day: no bonus"); }
 r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 429, "a fourth is refused (three a day)");
-let v = await view(A); check(v.day.used === 3 && v.day.max === 3 && v.clears.lysitha === 1 && v.best.lysitha >= 150, "the view: 3/3 used, a clear, the best time");
+let v = await view(A); check(v.day.used === 3 && v.day.max === 3 && v.clears.lysitha === 2 && v.best.lysitha >= 150 && v.firstDone.includes("lysitha"), "the view: 3/3 used, the clears, the best time, today's first done");
 T += 864e5; r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 200, "the next Seoul day: runs again");
 // the XP grant: a save past the pace takes it, once
 { const w = A.address.toLowerCase(), sv = db.get(`worldSave/${w}`); sv.at = T - 60e3; sv.xb = 0; db.set(`worldSave/${w}`, sv); T += 9000;
@@ -74,7 +76,7 @@ r = await call(A, "world-rq-buy", { tx: "0x" + "ef".repeat(32) }); check(r.statu
 r = await call(A, "world-rq-start", { mode: "secret" }); const sr = r.body.run; check(r.status === 200, "the ticket starts the SECRET (outside the three a day)");
 v = await view(A); check(v.tickets === 0, "the ticket is used");
 T += 90e3; r = await call(A, "world-rq-end", { run: sr, won: true });
-check(r.status === 200 && r.body.xp === 410010 && r.body.items.length === 3 && r.body.arcl === 0, "the SECRET's win: 410,010 XP and three pieces");
+check(r.status === 200 && r.body.xp === 410010 && r.body.items.length === 4 && r.body.arcl === 0, "the SECRET's win: 410,010 XP and three pieces (+1 the day's first)");
 r = await call(G, "world-rq-start", { mode: "secret" }); check(r.status === 200, "a GM enters the SECRET free");
 r = await call(low, "world-rq-start", { mode: "secret" }); check(r.status === 403 && r.body.need === 70, "the SECRET needs Lv 70");
 r = await call(A, "world-rq-start", { mode: "lysitha" }); const lost = r.body.run; T += 30e3; r = await call(A, "world-rq-end", { run: lost, won: false }); check(r.status === 200 && !r.body.won, "a lost run ends with nothing");
@@ -83,7 +85,7 @@ r = await call(A, "world-rq-start", { mode: "lysitha" }); const lost = r.body.ru
   r = await call(H, "world-rq-start", { mode: "throne" }); check(r.status === 403 && r.body.need === 400, "the Throne needs Lv 400");
   lvSet(H, 410, "Hana"); r = await call(H, "world-rq-start", { mode: "throne" }); const tr = r.body.run; check(r.status === 200 && r.body.mode === "throne", "Lv 410 starts the Throne of Three");
   T += 120e3; r = await call(H, "world-rq-end", { run: tr, won: true, kills: 60 }); check(r.status === 400, "a Throne win needs its 3 minutes");
-  T += 70e3; r = await call(H, "world-rq-end", { run: tr, won: true, kills: 60 }); check(r.status === 200 && r.body.items.length === 2 && r.body.arcl === 8000 && r.body.xp === xpOf("throne", 410), `the Throne's win: ${r.body.xp} XP, two pieces, 8,000 ARCL`);
+  T += 70e3; r = await call(H, "world-rq-end", { run: tr, won: true, kills: 60 }); check(r.status === 200 && r.body.items.length === 3 && r.body.arcl === 12000 && r.body.xp === xpOf("throne", 410), `the Throne's first win today: ${r.body.xp} XP, two pieces + one, 8,000 × 1.5 ARCL`);
   check((await view(H)).day.used === 1, "the Throne counts in the three a day"); }
 check(seoulDay(Date.parse("2026-10-24T14:59:00Z")) === "2026-10-24" && seoulDay(Date.parse("2026-10-24T15:00:00Z")) === "2026-10-25", "the Seoul day turns at 15:00 UTC");
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

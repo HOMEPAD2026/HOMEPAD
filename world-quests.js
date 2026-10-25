@@ -46,6 +46,7 @@ export const WEEKLY = [
   { id: "wk-game", ev: "game", n: 10, name: "Play mini games", line: "Start 10 games from the Games list", r: { kind: "xp", n: 500 } },
   { id: "wk-rare", ev: "rare", n: 10, name: "Treasure hunter", line: "Find 10 pieces of Rare gear or better", r: { kind: "scrap", n: 300 } },
   { id: "wk-zone", ev: "zone", n: 10, name: "Explorer", line: "Hunt in a ground on 10 different days", r: { kind: "recall", n: 4 } },
+  { id: "wk-raidq", ev: "raidq", n: 3, name: "Queen hunter", line: "Win 3 RAID QUEENS runs", r: { kind: "gear", r: 3 }, gate: "rq" }, // (gate: shown only where ctx.gate says it's open)
 ];
 export const WEEKLY_CHESTS = [{ n: 2, kind: "scrap", k: 200 }, { n: 4, kind: "gear", r: 2 }, { n: 6, kind: "xp", k: 1200 }, { n: 8, kind: "gear", r: 3 }];
 const weekOf = (t = Date.now()) => { const d = new Date(t + 9 * 3600e3), day = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day)).toISOString().slice(0, 10); };
@@ -197,13 +198,14 @@ export function createQuests(ctx) {
   }
   function weekClaim(id) { const x = X(), w = WEEKLY.find((q) => q.id === id); if (!w || x.wk.done.includes(id) || (x.wk.p[id] || 0) < w.n) return; if (!giveReward(w.r, T(w.name))) return; x.wk.done.push(id); ctx.Snd.win && ctx.Snd.win(); ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); }
   function weekChest(n) { const x = X(), c = WEEKLY_CHESTS.find((q) => q.n === n); if (!c || x.wk.got.includes(n) || x.wk.done.length < n) return; if (!giveReward(c, T("Weekly chest"))) return; x.wk.got.push(n); ctx.Snd.chest ? ctx.Snd.chest() : ctx.Snd.win && ctx.Snd.win(); ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); }
-  const weekPending = () => { const x = X(); return WEEKLY.filter((w) => !x.wk.done.includes(w.id) && (x.wk.p[w.id] || 0) >= w.n).length + WEEKLY_CHESTS.filter((c) => !x.wk.got.includes(c.n) && x.wk.done.length >= c.n).length; };
+  const WK = () => WEEKLY.filter((w) => !w.gate || (ctx.gate && ctx.gate(w.gate)));
+  const weekPending = () => { const x = X(); return WK().filter((w) => !x.wk.done.includes(w.id) && (x.wk.p[w.id] || 0) >= w.n).length + WEEKLY_CHESTS.filter((c) => !x.wk.got.includes(c.n) && x.wk.done.length >= c.n).length; };
   function weeklyHTML(x) {
     const left = Math.max(0, weekEnds() - Date.now()), d = Math.floor(left / 864e5), h = Math.floor((left % 864e5) / 3600e3), done = x.wk.done.length;
     const rw = (t) => `<span class="wq-rw">${esc(rewardText(t.kind === "xp" || t.kind === "scrap" ? { ...t, n: t.n || t.k } : t))}</span>`;
     return `<div class="wq-week"><div class="wq-week-h"><b>${esc(T("Weekly missions"))}</b><small>⏱ ${esc(T("Resets in {d} d {h} h", { d, h }))}</small></div>
       <ol class="wq-chests">${WEEKLY_CHESTS.map((c) => { const got = x.wk.got.includes(c.n), can = !got && done >= c.n; return `<li class="${got ? "done" : can ? "can" : ""}">${art(c.n >= 8 ? "chest" : c.n >= 4 ? "box" : "scrap", 46)}<b>${c.n}</b>${can ? `<button type="button" data-wkchest="${c.n}">${esc(T("Claim"))}</button>` : got ? "<i>✓</i>" : rw(c)}</li>`; }).join("")}</ol>${bar(done, WEEKLY.length)}<p class="wr-note">${esc(T("{a} of {b} missions done this week", { a: done, b: WEEKLY.length }))}</p></div>
-      <ul class="wq-list">${WEEKLY.map((w) => { const p = x.wk.p[w.id] || 0, got = x.wk.done.includes(w.id), ok = p >= w.n; return `<li class="${got ? "done" : ""}"><div><b>${esc(T(w.name))}</b><small>${esc(T(w.line))} · ${rw(w.r)}</small>${bar(p, w.n)}</div><span>${p} / ${w.n}</span>${got ? `<em class="ok">✓</em>` : `<span class="wq-acts"><button type="button" data-wkclaim="${w.id}" ${ok ? "" : "disabled"}>${esc(T("Claim"))}</button></span>`}</li>`; }).join("")}</ul>`;
+      <ul class="wq-list">${WK().map((w) => { const p = x.wk.p[w.id] || 0, got = x.wk.done.includes(w.id), ok = p >= w.n; return `<li class="${got ? "done" : ""}"><div><b>${esc(T(w.name))}</b><small>${esc(T(w.line))} · ${rw(w.r)}</small>${bar(p, w.n)}</div><span>${p} / ${w.n}</span>${got ? `<em class="ok">✓</em>` : `<span class="wq-acts"><button type="button" data-wkclaim="${w.id}" ${ok ? "" : "disabled"}>${esc(T("Claim"))}</button></span>`}</li>`; }).join("")}</ul>`;
   }
   // ---------------- the season log ----------------
   function seasonClaim(i) {
@@ -263,6 +265,9 @@ export function createQuests(ctx) {
   const RK = [["players", "Players"], ["level", "Levels"], ["codex", "Codex"], ["hunt", "Hunters"], ["raid", "Raid damage"], ["race", "Race"], ["fish", "Biggest fish"], ["boss", "Boss runs"]];
   // b-sv7: SURVIVORS ARENA's six achievements (world-survivors-data.js ACH) are titles here too, worn as "sv-<id>"
   const SVT = [["first", "First Survivor", "Survive 12 minutes"], ["boss", "Boss Slayer", "Defeat 10 bosses in all"], ["k1000", "Crowd Breaker", "1,000 knock-outs in one run"], ["evo", "Evolver", "Discover 3 evolutions"], ["hard", "Arena Master", "Survive 12 minutes on Hard"], ["legend", "Legend", "Survive 12 minutes on Hard 5 times"]];
+  // RAID QUEENS: a title for each run's first win (from the server's clears: ctx.rqAch)
+  const RQT = [["lysitha", "Starbreaker", "Defeat Celestial Lysitha"], ["solvira", "Sunbreaker", "Defeat Radiant Solvira"], ["nyxara", "Bloodbane", "Defeat Crimson Nyxara"], ["throne", "Queen of Queens", "Win the Throne of Three"], ["secret", "Secret Keeper", "Clear the SECRET dungeon"]];
+  const rqName = (t) => { const a = /^rq-/.test(t || "") && RQT.find((y) => "rq-" + y[0] === t); return a ? T(a[1]) : ""; };
   const svName = (t) => { const a = /^sv-/.test(t || "") && SVT.find((y) => "sv-" + y[0] === t); return a ? T(a[1]) : ""; };
   // the item codex's titles (api/_world-codex.mjs CODEX.STEPS: 100 and 175 kinds), worn as "cx-<id>"
   const CXT = { "cx-collector": "Collector", "cx-legend": "Legend Hunter" }, cxName = (t) => (CXT[t] ? T(CXT[t]) : "");
@@ -368,7 +373,7 @@ export function createQuests(ctx) {
     if (b.dataset.title) { const x = X(); x.title = x.title === b.dataset.title ? "" : b.dataset.title; ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); ctx.onTitle && ctx.onTitle(); return true; }
     return false;
   }
-  const title = () => { const x = X(); if (x.title === "season" && x.stitle) return T("Season Star"); if (cxName(x.title)) { const got = ctx.cxTitles && ctx.cxTitles(); return !got || got.includes(x.title) ? cxName(x.title) : ""; } if (svName(x.title)) { const got = ctx.svAch && ctx.svAch(); return !got || got.includes(x.title.slice(3)) ? svName(x.title) : ""; } const a = ACH.find((y) => y.id === x.title); return a ? T(a.title) : ""; };
+  const title = () => { const x = X(); if (x.title === "season" && x.stitle) return T("Season Star"); if (cxName(x.title)) { const got = ctx.cxTitles && ctx.cxTitles(); return !got || got.includes(x.title) ? cxName(x.title) : ""; } if (svName(x.title)) { const got = ctx.svAch && ctx.svAch(); return !got || got.includes(x.title.slice(3)) ? svName(x.title) : ""; } if (rqName(x.title)) { const got = ctx.rqAch && ctx.rqAch(); return !got || got.includes(x.title.slice(3)) ? rqName(x.title) : ""; } const a = ACH.find((y) => y.id === x.title); return a ? T(a.title) : ""; };
   const titleBonus = () => { const x = X(); return (x.title === "season" ? (x.stitle ? TITLE_BONUS.season : null) : x.ach.includes(x.title) ? TITLE_BONUS[x.title] : null) || null; };
   const hasPet = () => !!activePet();
   const seasonPending = () => { const x = X(); return SEASON_TIERS.filter((t, i) => x.ss.pts >= t.pts && !x.ss.got.includes(i)).length; };
@@ -384,10 +389,11 @@ export function createQuests(ctx) {
   }
   // every title in one list for the Character window's Titles pane (world-rpg.js titlesHTML): got, worn, progress, bonus
   const ACH_CAT = { kill: "combat", elite: "combat", boss: "combat", raid: "combat", ground: "progress", level: "progress", starter: "progress", zoneSet: "progress", legendary: "collection", plus10: "collection", quizOk: "collection" };
-  const titleList = () => { const x = X(), sv = (ctx.svAch && ctx.svAch()) || [], cx = (ctx.cxTitles && ctx.cxTitles()) || [];
+  const titleList = () => { const x = X(), sv = (ctx.svAch && ctx.svAch()) || [], cx = (ctx.cxTitles && ctx.cxTitles()) || [], rq = ctx.rqAch && ctx.gate && ctx.gate("rq") ? ctx.rqAch() || [] : null;
     return [...ACH.map((a) => ({ id: a.id, title: T(a.title), name: T(a.name), line: T(a.line), got: x.ach.includes(a.id), have: Math.min(haveOf(a, x), a.n), n: a.n, bonus: TITLE_BONUS[a.id] ? bonusLine(TITLE_BONUS[a.id]) : "", cat: ACH_CAT[a.ev] || "progress" })),
       { id: "season", title: T("Season Star"), name: T("Season"), line: T("Every tier of a season"), got: !!x.stitle, have: x.stitle ? 1 : 0, n: 1, bonus: TITLE_BONUS.season ? bonusLine(TITLE_BONUS.season) : "", cat: "event" },
       ...SVT.map(([id, name, line]) => ({ id: "sv-" + id, title: T(name), name: T("SURVIVORS ARENA"), line: T(line), got: sv.includes(id), have: sv.includes(id) ? 1 : 0, n: 1, bonus: "", cat: "event" })),
+      ...(rq ? RQT.map(([id, name, line]) => ({ id: "rq-" + id, title: T(name), name: "RAID QUEENS", line: T(line), got: rq.includes(id), have: rq.includes(id) ? 1 : 0, n: 1, bonus: "", cat: "event" })) : []),
       ...Object.keys(CXT).map((id) => ({ id, title: cxName(id), name: T("Item codex"), line: T(id === "cx-legend" ? "Collect all 175 kinds" : "Collect 100 kinds"), got: cx.includes(id), have: cx.includes(id) ? 1 : 0, n: 1, bonus: "", cat: "collection" }))]
       .map((t) => ({ ...t, worn: x.title === t.id })); };
   const codexCount = () => { const x = X(), beaten = (ctx.P && ctx.P.beaten) || [], all = [...CODEX_STORY, ...CODEX]; return { got: all.filter((c) => (c.story ? beaten.includes(c.story) : x.seen[c.id])).length, all: all.length, ach: x.ach.length, achAll: ACH.length }; };

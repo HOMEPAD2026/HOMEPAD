@@ -4162,3 +4162,22 @@ body:has(.rq-hud) #wc-boss{display:none!important}
 .rq-wcard{position:relative}.rq-grade{position:absolute;top:10px;right:14px;z-index:3;font:900 64px/1 Sora,system-ui,sans-serif;font-style:italic;-webkit-text-stroke:2px rgba(0,0,0,.35);animation:rqGrade .7s cubic-bezier(.2,1.4,.4,1) both}
 .rq-grade.g-S{color:#ffd36a;text-shadow:0 0 24px rgba(255,200,80,.9)}.rq-grade.g-A{color:#ff9ab8;text-shadow:0 0 20px rgba(255,90,150,.7)}.rq-grade.g-B{color:#9fd4ff;text-shadow:0 0 16px rgba(120,190,255,.6)}
 @keyframes rqGrade{from{transform:scale(2.6) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+/* RAID QUEENS b3: the queen's guard under her bar, BREAK, her words, the landing's letterbox, the low-HP edge */
+.rq-hud-in i s{position:absolute;left:0;bottom:0;height:3px;background:#ffd36a;box-shadow:0 0 6px #ffd36a;transition:width .2s}.rq-hud-in i s.on{background:#fff;animation:rqBrk .3s steps(2) infinite}
+@keyframes rqBrk{50%{opacity:.35}}
+.rq-ban{position:fixed;left:50%;top:38%;z-index:60;transform:translate(-50%,-50%);text-align:center;pointer-events:none;animation:rqBan 1.5s ease-out both}
+.rq-ban b{display:block;font:900 clamp(44px,9vw,92px)/1 Sora,system-ui,sans-serif;font-style:italic;color:#fff;-webkit-text-stroke:3px var(--rq);text-shadow:0 0 30px var(--rq),0 6px 0 rgba(0,0,0,.35)}.rq-ban small{font:800 14px Sora,system-ui,sans-serif;color:#fff}
+@keyframes rqBan{0%{transform:translate(-50%,-50%) scale(2.2);opacity:0}15%{transform:translate(-50%,-50%) scale(1);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-62%) scale(.96);opacity:0}}
+.rq-sub{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:55;transform:translateX(-50%);max-width:min(620px,calc(100vw - 32px));padding:9px 16px;border-radius:12px;background:rgba(10,6,16,.72);border:1px solid color-mix(in srgb,var(--rq) 60%,transparent);color:#fff;font:600 14px/1.35 system-ui,sans-serif;text-align:center;pointer-events:none;animation:rqSub 3.8s ease both}
+.rq-sub b{color:var(--rq);margin-right:4px}@keyframes rqSub{0%{opacity:0;transform:translate(-50%,10px)}8%,88%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+body.rq-cine::before,body.rq-cine::after{content:"";position:fixed;left:0;right:0;height:11vh;background:#000;z-index:58;pointer-events:none;animation:rqBox 2.6s ease both}
+body.rq-cine::before{top:0}body.rq-cine::after{bottom:0}@keyframes rqBox{0%{transform:scaleY(0)}15%,80%{transform:scaleY(1)}100%{transform:scaleY(0)}}
+body.rq-low::after{content:"";position:fixed;inset:0;z-index:50;pointer-events:none;box-shadow:inset 0 0 90px 30px rgba(255,20,60,.55);animation:rqLow 1s ease-in-out infinite}
+@keyframes rqLow{50%{box-shadow:inset 0 0 60px 16px rgba(255,20,60,.3)}}
+@media (prefers-reduced-motion:reduce){.rq-ban,.rq-sub,body.rq-cine::before,body.rq-cine::after,body.rq-low::after{animation:none}}
+/* RAID QUEENS b4: the day's first win, the week's boards */
+.rq-1st{background:rgba(57,255,136,.14)!important;color:#7dffb4!important}p.rq-1st{display:inline-block;margin:6px 0;padding:6px 10px;border-radius:10px;font:700 13px/1.3 system-ui,sans-serif}
+.rq-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.rq-tabs button{padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font:800 12px Sora,system-ui,sans-serif}.rq-tabs button.on{background:var(--rq);border-color:var(--rq);color:#14060e}
+.rq-top{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:46vh;overflow:auto}.rq-top li{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05);color:#fff}
+.rq-top li.me{background:color-mix(in srgb,var(--rq) 26%,transparent);outline:1px solid var(--rq)}.rq-top i{font:900 16px Sora,system-ui,sans-serif;font-style:normal;text-align:center}.rq-top b{font:800 14px system-ui,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rq-top em{font:800 14px Sora,system-ui,sans-serif;font-style:normal;color:#ffd36a}
+.rq-top li.rq-empty,.rq-top li.rq-load{display:block;text-align:center;color:#cfc6dd}.rq-top.sm li{padding:7px 12px}.rq-bd h4{margin:12px 0 6px;color:#fff;font:800 14px Sora,system-ui,sans-serif}

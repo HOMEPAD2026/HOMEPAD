@@ -14,6 +14,7 @@
 //   POST { action: "world-rq-start", …signature, mode }          → { run, mode, seed }  (403 closed / level, 429 the day's three)
 //   POST { action: "world-rq-end", …signature, run, won, kills } → { xp, items, arcl, credited, best, t }
 //   POST { action: "world-rq-buy", …signature, tx }              a SECRET ticket from a transfer (202 while it's unconfirmed)
+//   GET  ?world=rq-top&mode=lysitha|solvira|nyxara|throne|secret   { week, mode, top: [{ w, name, t }], crews: [{ id, name, tag, n }] }
 //
 // Firestore: worldRqRun/<id> { w, mode, at, lv } · worldRqDone/<id> · worldRqDay/<wallet>_<day> { n } · worldRqTicket/<wallet> { n }
 //            worldRqBest/<wallet> { <mode>: seconds } · worldRqClear/<wallet> { <mode>: n } · worldPayTx/<tx> · worldXpGrant/<wallet> { n }
@@ -36,6 +37,9 @@ export const RQ = {
   ],
   // the SECRET dungeon: its price in $ARCIRCLE, its level to enter, its three queens' levels, the shortest win, a win's XP
   // (Lv 120 → 140 in XP, the owner's number: xpAt(140) − xpAt(120)), its gear (better: Epic/Legendary, more +)
+  // the first win of each run in a Seoul day: its ARCL × (1 + FIRST.arcl) and one more piece of gear (b4, 2026-10-25)
+  FIRST: { arcl: 0.5, items: 1 },
+  TOP_N: 20, // each run's week board (the fastest wins, one line a player)
   SECRET: { id: "secret", PRICE: 10000, lv: 70, bosses: [72, 75, 78], min: 60, xp: 410010, items: [{ r: 4, p: 5 }, { r: 4, p: 4 }, { r: 3, p: 5 }] },
 };
 export const modeOf = (id) => (id === "secret" ? RQ.SECRET : RQ.MODES.find((m) => m.id === id) || null);
@@ -43,9 +47,9 @@ export const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 1
 const SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"];
 const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 /// a won run's gear: one piece a queen (secret: three), its slot from the run, the player's level (the same every time)
-export function itemsOf(mode, run, lv) {
+export function itemsOf(mode, run, lv, extra = 0) {
   const M = modeOf(mode); if (!M) return [];
-  const list = mode === "secret" ? M.items : Array.from({ length: M.item.n }, () => ({ r: M.item.r, p: M.item.p }));
+  const list = [...(mode === "secret" ? M.items : Array.from({ length: M.item.n }, () => ({ r: M.item.r, p: M.item.p }))), ...Array.from({ length: extra }, () => (mode === "secret" ? M.items[0] : { r: M.item.r, p: M.item.p }))];
   return list.map((x, i) => ({ id: ("rq" + hash(`${run}|${i}|id`).toString(36)).slice(0, 10).padEnd(6, "0"), b: `${SLOTS[hash(`${run}|${i}`) % SLOTS.length]}-4`, r: x.r, lv: Math.max(1, Math.min(100, lv)), p: x.p })); // (gear tops out at Lv 100, the save's cap and the gear's scale; the Crimson Celestial set is the step past it)
 }
 /// a won run's XP for a player of level lv
@@ -62,9 +66,10 @@ export function makeRaidQueens(deps) {
   async function view(w) {
     const t = now(), day = seoulDay(t);
     if (!w) return json(200, { open: RQ.OPEN, day: { used: 0, max: RQ.DAY_RUNS }, pay: payInfo() }, "public, max-age=30");
-    const d = await getDocs([`worldRqDay/${w}_${day}`, `worldRqTicket/${w}`, `worldRqBest/${w}`, `worldRqClear/${w}`]);
+    const fks = [...RQ.MODES.map((m) => m.id), "secret"].map((m) => `worldRqFirst/${w}_${day}_${m}`);
+    const d = await getDocs([`worldRqDay/${w}_${day}`, `worldRqTicket/${w}`, `worldRqBest/${w}`, `worldRqClear/${w}`, ...fks]);
     return json(200, { open: RQ.OPEN, gm: gm(w), day: { used: (d[`worldRqDay/${w}_${day}`] || {}).n || 0, max: RQ.DAY_RUNS }, tickets: (d[`worldRqTicket/${w}`] || {}).n || 0,
-      best: d[`worldRqBest/${w}`] || {}, clears: d[`worldRqClear/${w}`] || {}, pay: payInfo() }, "no-store");
+      best: d[`worldRqBest/${w}`] || {}, clears: d[`worldRqClear/${w}`] || {}, firstDone: fks.filter((k) => d[k]).map((k) => k.split("_").pop()), pay: payInfo() }, "no-store");
   }
   async function start(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet, t = now(), G = gm(w);
@@ -92,14 +97,34 @@ export function makeRaidQueens(deps) {
     if (!(await commit([{ create: `worldRqDone/${id}`, data: { at: t, won: !!b.won } }])).ok) return json(409, { error: "this run is already over" });
     if (!b.won) return json(200, { ok: true, won: false, t: Math.round(sec) });
     if (sec > RQ.TIME_MAX) return json(400, { error: "the run's time ran out", t: Math.round(sec) });
-    const xp = xpOf(r.mode, r.lv), items = itemsOf(r.mode, id, r.lv), arcl = r.mode === "secret" ? 0 : M.arcl;
+    const fk = `worldRqFirst/${w}_${seoulDay(t)}_${r.mode}`, first = (await commit([{ create: fk, data: { at: t, run: id } }])).ok; // (the day's first win of this run: a bonus)
+    const items = itemsOf(r.mode, id, r.lv, first ? RQ.FIRST.items : 0), xp = xpOf(r.mode, r.lv), arcl = r.mode === "secret" ? 0 : Math.round(M.arcl * (first ? 1 + RQ.FIRST.arcl : 1));
     await commit([{ inc: `worldXpGrant/${w}`, fields: { n: xp } }, { inc: `worldRqClear/${w}`, fields: { [r.mode]: 1 } }, { inc: "worldStats/raidq", fields: { [r.mode]: 1 } }]).catch(() => {});
     const bk = `worldRqBest/${w}`, bst = (await one(bk)) || {}, tt = Math.round(sec), best = !bst[r.mode] || tt < bst[r.mode];
     if (best) await setDoc(bk, { ...bst, [r.mode]: tt });
     const credited = arcl && deps.award ? await deps.award(w, "raidq", arcl) : 0;
+    const rank = await boards(w, r.mode, tt).catch(() => null);
     // the Crimson Celestial set: maybe a MYTHIC piece, made and kept on the server (api/_world-mythic.mjs; once a run: after the done-lock)
     const mythic = deps.mythic ? await deps.mythic.roll(w, r.mode, id).catch(() => null) : null;
-    return json(200, { ok: true, won: true, mode: r.mode, t: tt, xp, items, arcl, credited, best, ...(mythic ? { mythic } : {}) });
+    return json(200, { ok: true, won: true, mode: r.mode, t: tt, xp, items, arcl, credited, best, first, rank, ...(mythic ? { mythic } : {}) });
+  }
+  const week = () => (deps.isoWeek ? deps.isoWeek(now()) : seoulDay(now()).slice(0, 7));
+  const short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+  /// a win on the week's boards: the run's fastest (one line a player) and the crews' clears; returns your place
+  async function boards(w, mode, t) {
+    const wk = week(), key = `worldStats/rqWeek_${wk}_${mode}`, cur = await one(key); let top = (cur && cur.top) || [];
+    const was = top.find((x) => x.id === w);
+    if (!was || t < was.t) { const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16); top = [{ w: short(w), id: w, t, name }, ...top.filter((x) => x.id !== w)].sort((a, b) => a.t - b.t).slice(0, RQ.TOP_N); await setDoc(key, { top }); }
+    const cm = await one(`worldCrewOf/${w}`);
+    if (cm && cm.id) { const c = await one(`worldCrew/${cm.id}`); if (c) { const ck = `worldStats/rqCrewWeek_${wk}`, cc = (await one(ck)) || {}, e = cc[cm.id] || { n: 0 };
+      await setDoc(ck, { ...cc, [cm.id]: { n: (e.n || 0) + 1, name: String(c.name || "").slice(0, 24), tag: String(c.tag || "").slice(0, 6) } }); } }
+    const i = top.findIndex((x) => x.id === w); return i < 0 ? null : i + 1;
+  }
+  async function topView(mode) {
+    const M = modeOf(mode); if (!M) return json(400, { error: "which run?" });
+    const wk = week(), [d, cc] = await Promise.all([one(`worldStats/rqWeek_${wk}_${M.id}`), one(`worldStats/rqCrewWeek_${wk}`)]);
+    const crews = Object.entries(cc || {}).map(([id, v]) => ({ id, name: v.name, tag: v.tag, n: v.n || 0 })).sort((a, b) => b.n - a.n).slice(0, 10);
+    return json(200, { week: wk, mode: M.id, top: ((d && d.top) || []).map(({ w, name, t }) => ({ w, name: name || w, t })), crews }, "public, max-age=30");
   }
   // a SECRET ticket: a transfer of SECRET.PRICE $ARCIRCLE from this wallet to FeeBurn, each transaction good for one run
   async function buy(b) {
@@ -118,7 +143,7 @@ export function makeRaidQueens(deps) {
     return json(200, { ok: true, tickets: (((await one(`worldRqTicket/${w}`)) || {}).n) || 1 });
   }
   return {
-    async read(v, url) { if (v === "rq") { const a = url.searchParams.get("wallet"); return view(isAddr(a) ? lc(a) : ""); } return null; },
+    async read(v, url) { if (v === "rq") { const a = url.searchParams.get("wallet"); return view(isAddr(a) ? lc(a) : ""); } if (v === "rq-top") return topView(String(url.searchParams.get("mode") || "lysitha")); return null; },
     async handle(b) { if (b.action === "world-rq-start") return start(b); if (b.action === "world-rq-end") return end(b); if (b.action === "world-rq-buy") return buy(b); return null; },
   };
 }

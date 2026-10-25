@@ -173,8 +173,21 @@ export function makeRaidQueens(ctx) {
       return true;
     }).catch((e) => { hallP = null; console.warn("raid hall", e); return false; }));
   }
-  function vis() { const inRun = !!run && !run.done; g.visible = shown && inRun; H.visible = back.visible = shown && !inRun; SKY.visible = shown; if (shown) loadHall(); solids.length = 0; if (H.visible) solids.push(wall); if (H.visible) loadHall(); }
+  function vis() { const inRun = !!run && !run.done; g.visible = shown && inRun; H.visible = back.visible = shown && !inRun; SKY.visible = shown; if (shown) loadHall(); if (H.visible) paintTopSign(); solids.length = 0; if (H.visible) solids.push(wall); if (H.visible) loadHall(); }
   /// the hall's front: on the road, facing the Citadel (after a run, and where the portal on the far hunting ring puts you)
+  // over the Citadel's door: this week's fastest (Lysitha's board), a sign drawn on a canvas, refreshed when the hall shows
+  let topSign = null, topAt = 0;
+  async function paintTopSign() {
+    if (typeof document === "undefined" || Date.now() - topAt < 60e3) return; topAt = Date.now();
+    let j = null; try { const r = await fetch("/api/social?world=rq-top&mode=lysitha", { cache: "no-store" }); if (r.ok) j = await r.json(); } catch { return; }
+    const x0 = j && j.top && j.top[0]; const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 256; const c2 = cv.getContext("2d");
+    const gr = c2.createLinearGradient(0, 0, 1024, 0); gr.addColorStop(0, "rgba(40,8,24,0)"); gr.addColorStop(0.15, "rgba(40,8,24,.85)"); gr.addColorStop(0.85, "rgba(40,8,24,.85)"); gr.addColorStop(1, "rgba(40,8,24,0)"); c2.fillStyle = gr; c2.fillRect(0, 30, 1024, 196);
+    c2.textAlign = "center"; c2.fillStyle = "#ffd36a"; c2.font = "800 44px Sora, system-ui, sans-serif"; c2.fillText("🏆 " + T("This week's fastest"), 512, 96);
+    c2.fillStyle = "#fff"; c2.font = "900 70px Sora, system-ui, sans-serif"; c2.fillText(x0 ? `${(x0.name || x0.w).slice(0, 16)} · ${fmt(x0.t)}` : T("Be the first!"), 512, 186);
+    const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace;
+    if (!topSign) { topSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false, fog: false, toneMapped: false })); topSign.scale.set(16, 4, 1); topSign.position.set(0, 29, HALL.door + 8); H.add(topSign); }
+    else { topSign.material.map.dispose(); topSign.material.map = tx; topSign.material.needsUpdate = true; }
+  }
   function toHall(atDoor) { ctx.stand(land.x, atDoor ? door.position.z + 4 : land.z + HALL.start, { x: land.x, z: land.z + HALL.door }); vis(); }
 
   // ---------------- the monsters: Imp and Puglin, the KayKit moves on their bones, the queen's colours ----------------
@@ -249,16 +262,23 @@ export function makeRaidQueens(ctx) {
       reach: 4.6, boss: { name: T(V.name), scale: V.h, y: 0, tint: V.tint }, ext: { hit: (mm) => onQueenHit(q, mm), down: (mm) => queenFell(q, mm) } });
     if (!q.m) return null; q.base = q.m.atk;
     if (V.arise) playOn(e, V.arise, { once: true, fade: 0 });
-    burst(at, V.tint, true); return q;
+    q.drop = 1.8; q.baseY = e.obj.position.y; e.obj.position.y = q.baseY + 30; pillarFx(at, V.tint, 40, 3, 2); q.m.stun = 2; // (she comes down from the sky in a column of light)
+    if (typeof document !== "undefined") { document.body.classList.add("rq-cine"); setTimeout(() => document.body.classList.remove("rq-cine"), 2600); }
+    return q;
   }
   // her HP is ours (the run is yours alone): the combat takes the hit, she falls when it reaches the end
   function onQueenHit(q, m) {
     const c = ctx.combat(); if (!c) return;
-    const ph = phaseOf(m.hp, m.max); if (ph > q.phase) { q.phase = ph; m.pats = q.V.pats[ph - 1]; cutIn(q, ph - 1, false); }
+    const dmg = (q.lastHp ?? m.max) - m.hp; q.lastHp = m.hp; breakTick(q, m, dmg);
+    const ph = phaseOf(m.hp, m.max); if (ph > q.phase) { q.phase = ph; m.pats = q.V.pats[ph - 1]; cutIn(q, ph - 1, false); shock(q); }
     if (m.hp <= 1 && !q.dead) { q.dead = true; setTimeout(() => { try { c.extDown(m); } catch { /* gone */ } }, 0); }
   }
   function queenTick(q, dt) {
     const m = q.m, e = q.e; if (!m || q.dead) return;
+    if (q.drop > 0) { q.drop -= dt; const k = Math.max(0, q.drop / 1.8); e.obj.position.y = q.baseY + k * k * 30; if (q.drop <= 0) { e.obj.position.y = q.baseY; ringFx(m.g.position, q.V.tint, 16, 0.9); ringFx(m.g.position, 0xffffff, 9, 0.5); knockFrom(m.g.position, 10); if (ctx.shake) ctx.shake(0.8); try { if (ctx.Snd && ctx.Snd.svDrum) ctx.Snd.svDrum(1); } catch { /* no sound */ } } }
+    if (q.brkT > 0) { q.brkT -= dt; if (q.brkT <= 0) { m.def = q.def0; q.brk = 0; q.brkCd = 8; } } else if (q.brkCd > 0) q.brkCd -= dt;
+    trickTick(q, dt);
+    if ((q.subT = (q.subT ?? 14) - dt) <= 0 && q.drop <= 0) { q.subT = 20 + Math.random() * 8; subtitle(q); }
     const p = m.g.position, sp = Math.hypot(p.x - q.lastP.x, p.z - q.lastP.z) / Math.max(1e-3, dt); q.lastP.copy(p);
     q.spS += (sp - q.spS) * Math.min(1, dt * 8);
     if (e.onceT > 0) e.onceT -= dt;
@@ -274,14 +294,105 @@ export function makeRaidQueens(ctx) {
     const e = q.e; q.dead = true; if (!e) return;
     const wp = m.g.position.clone(); m.g.remove(e.obj); e.obj.position.copy(wp).sub(g.position).setY(0); e.obj.rotation.y = m.g.rotation.y; e.obj.scale.setScalar(q.V.h); g.add(e.obj);
     playOn(e, q.V.die, { once: true, fade: 0.1 }); q.corpse = { t0: performance.now() };
-    cutIn(q, 3, true); if (ctx.shake) ctx.shake(0.6);
-    if (run && run.queens.every((x) => x.dead)) setTimeout(() => win(), 2600);
+    cutIn(q, 3, true); if (ctx.shake) ctx.shake(0.6); pillarFx(wp, q.V.tint, 60, 2.6, 2.4); ringFx(wp, 0xffffff, 18, 1);
+    if (run && run.queens.every((x) => x.dead)) { if (ctx.slowmo) ctx.slowmo(1100); zonesClear(); setTimeout(() => { if (ctx.heroClip) ctx.heroClip("emote-yes"); }, 1300); setTimeout(() => win(), 2600); }
   }
   function burst(at, col, big) {
     if (ctx.parts) ctx.parts.emit({ at: tmp.copy(at).setY(2), kind: "glow", n: big ? 50 : 20, speed: big ? 7 : 3, up: 3, spread: 1.2, size: 0.6, life: 1.1, grav: -2, color: col, color2: 0xffffff, jitter: 0.5 });
     if (big) { if (ctx.shake) ctx.shake(0.45); if (ctx.Snd && ctx.Snd.roar) try { ctx.Snd.roar(); } catch { /* no sound */ } }
   }
 
+  // ---------------- effects (b3): rings, pillars, rifts, the queens' tricks ----------------
+  const fx = [], loc = (v) => tmp.copy(v).sub(g.position);
+  const ringGeo = new THREE.RingGeometry(0.86, 1, 72), discGeo = new THREE.CircleGeometry(1, 48), pillGeo = new THREE.CylinderGeometry(1, 1, 1, 24, 1, true);
+  function addFx(o, life, upd) { g.add(o); fx.push({ o, t: 0, life, upd }); return o; }
+  /// a ring on the floor opening from r0 to r1 and fading (col: its colour)
+  function ringFx(at, col, r1, life = 0.6, r0 = 0.4, y = 0.14) {
+    const m = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
+    m.rotation.x = -Math.PI / 2; const p = loc(at); m.position.set(p.x, y, p.z);
+    return addFx(m, life, (k) => { const r = r0 + (r1 - r0) * (1 - Math.pow(1 - k, 3)); m.scale.set(r, r, r); m.material.opacity = 0.95 * (1 - k); });
+  }
+  /// a column of light (a queen's landing, her fall, a summons)
+  function pillarFx(at, col, h = 26, r = 2.2, life = 1.4) {
+    const m = new THREE.Mesh(pillGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
+    const p = loc(at); m.position.set(p.x, h / 2, p.z); m.scale.set(r, h, r);
+    return addFx(m, life, (k) => { m.material.opacity = 0.6 * (1 - k); const w = r * (1 - k * 0.6); m.scale.set(w, h, w); });
+  }
+  function fxTick(dt) { for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; const k = Math.min(1, f.t / f.life); f.upd(k, dt); if (k >= 1) { g.remove(f.o); f.o.material.dispose(); fx.splice(i, 1); } } }
+  function fxClear() { for (const f of fx) { g.remove(f.o); f.o.material.dispose(); } fx.length = 0; }
+  const knockFrom = (at, power) => { if (!ctx.knock) return; ctx.here(me); const dx = me.x - at.x, dz = me.z - at.z, d = Math.hypot(dx, dz) || 1; ctx.knock(dx / d, dz / d, power); };
+  const hurt = (frac) => { const c = ctx.combat(); if (!c || !c.hurtMe || !c.vitals) return; const v = c.vitals(); if (v.down) return; c.hurtMe(Math.max(1, Math.round(v.max * frac))); };
+  // the queens' tricks (each her own, from her second minute on): Lysitha's frost circles, Solvira's sweeping sunbeam,
+  // Nyxara's blood pools (that heal her while she stands in one); a red outline first, then the danger
+  const zones = [];
+  function zoneAt(q, at, r, kind) {
+    const col = { frost: 0x9fd4ff, blood: 0xff2d4d }[kind];
+    const edge = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xff4d6d, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
+    const fill = new THREE.Mesh(discGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
+    for (const m of [edge, fill]) { m.rotation.x = -Math.PI / 2; const p = loc(at); m.position.set(p.x, 0.11, p.z); m.scale.setScalar(r); g.add(m); }
+    zones.push({ q, at: at.clone(), r, kind, edge, fill, t: 0, warn: 1.3, life: 6.5, hitT: 0 });
+  }
+  function zonesTick(dt) {
+    ctx.here(me);
+    for (let i = zones.length - 1; i >= 0; i--) { const z = zones[i]; z.t += dt;
+      const live = z.t > z.warn, k = Math.min(1, z.t / z.warn);
+      z.edge.material.opacity = live ? 0.55 : 0.4 + 0.5 * Math.abs(Math.sin(z.t * 9)); z.fill.material.opacity = live ? 0.42 * Math.min(1, (z.life - z.t) * 2) : 0.12 * k;
+      if (live && Math.hypot(me.x - z.at.x, me.z - z.at.z) < z.r && (z.hitT -= dt) <= 0) { z.hitT = 0.5; hurt(z.kind === "blood" ? 0.05 : 0.04); if (ctx.parts) ctx.parts.emit({ at: tmp.copy(me).setY(0.5), kind: "glow", n: 6, speed: 2, up: 1, spread: 0.4, size: 0.3, life: 0.5, grav: -1, color: z.kind === "blood" ? 0xff2d4d : 0xbfe6ff, color2: 0xffffff, jitter: 0.3 }); }
+      if (live && z.kind === "blood" && z.q.m && !z.q.dead) { const p = z.q.m.g.position; if (Math.hypot(p.x - z.at.x, p.z - z.at.z) < z.r + 1 && (z.healT = (z.healT || 0) - dt) <= 0) { z.healT = 1; z.q.m.hp = Math.min(z.q.m.max, z.q.m.hp + z.q.m.max * 0.01); } }
+      if (z.t > z.life) { g.remove(z.edge); g.remove(z.fill); z.edge.material.dispose(); z.fill.material.dispose(); zones.splice(i, 1); } }
+  }
+  function zonesClear() { for (const z of zones) { g.remove(z.edge); g.remove(z.fill); z.edge.material.dispose(); z.fill.material.dispose(); } zones.length = 0; if (beam) { g.remove(beam.o); beam.o.material.dispose(); beam = null; } }
+  // Solvira's sunbeam: a line from her across the floor, turning; a hit once a pass
+  let beam = null;
+  function beamStart(q) {
+    if (beam) return; const L = ARENA_R * 2, o = new THREE.Mesh(new THREE.PlaneGeometry(2.4, L), new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
+    o.rotation.x = -Math.PI / 2; o.geometry.translate(0, L / 2, 0); g.add(o); beam = { q, o, t: 0, a: Math.random() * 6.28, hit: 0 };
+  }
+  function beamTick(dt) {
+    if (!beam) return; const b = beam, q = b.q; b.t += dt;
+    if (!q.m || q.dead || b.t > 9) { g.remove(b.o); b.o.material.dispose(); beam = null; return; }
+    const p = loc(q.m.g.position); b.o.position.set(p.x, 0.16, p.z); const live = b.t > 1.4; b.a += dt * (live ? 0.55 : 0); b.o.rotation.z = b.a;
+    b.o.material.opacity = live ? 0.55 + Math.sin(b.t * 20) * 0.1 : 0.15 + 0.2 * Math.abs(Math.sin(b.t * 9)); b.o.material.color.setHex(live ? 0xffd36a : 0xff4d6d);
+    if (!live) return; ctx.here(me); const dx = me.x - q.m.g.position.x, dz = me.z - q.m.g.position.z, dir = b.a + Math.PI / 2, along = dx * Math.cos(dir) + dz * Math.sin(dir), off = Math.abs(-dx * Math.sin(dir) + dz * Math.cos(dir));
+    if (along > 0 && off < 1.4 && (b.hit -= dt) <= 0) { b.hit = 1.2; hurt(0.16); if (ctx.shake) ctx.shake(0.3); }
+    else if (b.hit > 0) b.hit -= dt;
+  }
+  function trickTick(q, dt) {
+    if (!q.m || q.dead || q.drop > 0 || q.fightT < 8) return;
+    if ((q.trickT = (q.trickT ?? 6) - dt) > 0) return; q.trickT = 9 + Math.random() * 3 - q.phase;
+    ctx.here(me); const near = (r) => { const a = Math.random() * 6.28, d = Math.random() * r; return new V3(me.x + Math.cos(a) * d, 0, me.z + Math.sin(a) * d); };
+    if (q.id === "lysitha") { for (let i = 0; i < 1 + q.phase; i++) zoneAt(q, near(6), 3.2, "frost"); }
+    else if (q.id === "nyxara") { zoneAt(q, near(4), 3.6, "blood"); zoneAt(q, q.m.g.position.clone(), 4, "blood"); }
+    else if (q.id === "solvira") beamStart(q);
+  }
+  // her guard: hits fill it, full → BREAK (she kneels 4 s and takes far more), then it's shut for a while
+  function breakTick(q, m, dmg) {
+    if (q.brkT > 0 || (q.brkCd || 0) > 0 || dmg <= 0) return;
+    q.brk = Math.min(1, (q.brk || 0) + dmg / (q.max * 0.09));
+    if (q.brk < 1) return;
+    q.brkT = 4; q.def0 = m.def; m.def = Math.round(m.def * 0.3); m.stun = Math.max(m.stun || 0, 4);
+    ringFx(m.g.position, 0xffd36a, 7, 0.7); if (ctx.parts) ctx.parts.emit({ at: tmp.copy(m.g.position).setY(q.V.h * 0.5), kind: "glow", n: 40, speed: 6, up: 2, spread: 1.2, size: 0.5, life: 0.9, grav: -2, color: 0xffd36a, color2: 0xffffff, jitter: 0.4 });
+    banner("BREAK!", q.V.css); try { if (ctx.Snd && ctx.Snd.perfect) ctx.Snd.perfect(); } catch { /* no sound */ } if (ctx.slowmo) ctx.slowmo(260);
+  }
+  function banner(text, css, sub) {
+    if (typeof document === "undefined") return; document.querySelectorAll(".rq-ban").forEach((x) => x.remove());
+    const el = document.createElement("div"); el.className = "rq-ban"; el.setAttribute("data-no-i18n", ""); el.style.setProperty("--rq", css || "#ff7ab8"); el.innerHTML = `<b>${esc(text)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}`;
+    document.body.appendChild(el); setTimeout(() => el.remove(), 1500);
+  }
+  // her words now and then, as a line at the bottom
+  function subtitle(q) {
+    if (typeof document === "undefined") return; document.querySelectorAll(".rq-sub").forEach((x) => x.remove());
+    const el = document.createElement("div"); el.className = "rq-sub"; el.setAttribute("data-no-i18n", ""); el.style.setProperty("--rq", q.V.css);
+    el.innerHTML = `<b>${esc(T(q.V.name))}</b> “${esc(T(q.V.lines[1 + Math.floor(Math.random() * 2)]))}”`; document.body.appendChild(el); setTimeout(() => el.remove(), 3800);
+  }
+  // a phase: a shockwave from her (it throws you back), the floor flares, the crystals round the edge burst and grow back; and she calls two elites
+  let crysT = 0, flare = 0;
+  function shock(q) {
+    const m = q.m; if (!m) return; ringFx(m.g.position, q.V.tint, 22, 0.9); ringFx(m.g.position, 0xffffff, 14, 0.6); knockFrom(m.g.position, 16); flare = 1;
+    if (ctx.parts) for (const c of crys) { c.getWorldPosition(cw); ctx.parts.emit({ at: tmp.copy(cw), kind: "glow", n: ctx.low ? 4 : 10, speed: 5, up: 3, spread: 0.6, size: 0.4, life: 0.9, grav: -6, color: q.V.tint, color2: 0xffffff, jitter: 0.4 }); }
+    crysT = 6; for (const c of crys) c.visible = false;
+    if (run && !run.isS) for (let i = 0; i < 2; i++) spawnOne({ elite: true, near: m.g.position });
+  }
   // ---------------- a run ----------------
   let hud = null, info = null, busy = false;
   async function refreshInfo() { try { const s = ctx.sess(); const r = await fetch("/api/social?world=rq" + (s ? "&wallet=" + s.wallet : ""), { cache: "no-store" }); if (r.ok) info = await r.json(); } catch { /* the lobby says so */ } return info; }
@@ -305,7 +416,7 @@ export function makeRaidQueens(ctx) {
   }
   function mobTick(dt) {
     const c = ctx.combat(); if (!c || !c.spawnOwn || !msrc.imp) return;
-    const raw = c.mobsRaw(), before = run.mobs.length; run.mobs = run.mobs.filter((m) => { if (!m.dead && raw.includes(m)) return true; if (!raw.includes(m)) mobBack(m.e); else run.dying.push(m); return false; }); run.kills += Math.max(0, before - run.mobs.length);
+    const raw = c.mobsRaw(), before = run.mobs.length; run.mobs = run.mobs.filter((m) => { if (!m.dead && raw.includes(m)) return true; if (ctx.parts && !ctx.low) ctx.parts.emit({ at: tmp.copy(m.g.position).setY(1), kind: "glow", n: 12, speed: 4, up: 2.5, spread: 0.5, size: 0.35, life: 0.7, grav: -4, color: run.trio ? 0xff7ab8 : QV[run.qs[0]].tint, color2: 0xffffff, jitter: 0.4 }); if (!raw.includes(m)) mobBack(m.e); else run.dying.push(m); return false; }); run.kills += Math.max(0, before - run.mobs.length);
     run.dying = run.dying.filter((m) => { if (raw.includes(m)) return true; mobBack(m.e); return false; }); /* (down but still falling: back to the pool once the combat lets it go) */ // (gone = knocked out: the arena's leash keeps them in)
     if (run.t >= run.plan.waveEnd) return;
     const [a0, a1] = run.plan.alive, want = Math.round(a0 + (a1 - a0) * Math.min(1, run.t / run.plan.waveEnd));
@@ -313,17 +424,19 @@ export function makeRaidQueens(ctx) {
     if ((run.spawnT -= dt) > 0 || run.mobs.length >= cap) return; run.spawnT = 0.45 + Math.random() * 0.45;
     for (let n = run.mobs.length < cap - 3 ? 2 : 1; n > 0; n--) spawnOne();
   }
-  function spawnOne() {
+  function spawnOne(o = {}) {
     const c = ctx.combat(), M = modeOf(run.mode), my = ctx.level(), lv = run.isS ? 70 + Math.floor(Math.random() * 6) : Math.max(M.lv, Math.min(M.lv + 99, my - 3 + Math.floor(Math.random() * 6)));
-    const f = run.t / run.plan.waveEnd, pool = POOL.filter(([at]) => f >= at).pop()[1], elite = run.t >= run.plan.eliteAt && Math.random() < 0.25;
+    const f = Math.min(1, run.t / run.plan.waveEnd), pool = POOL.filter(([at]) => f >= at).pop()[1], elite = o.elite || (run.t >= run.plan.eliteAt && Math.random() < 0.25);
     let kind = (elite ? ELITES : pool)[Math.floor(Math.random() * (elite ? ELITES : pool).length)]; if (!msrc[kind]) kind = elite ? "puglin" : "imp";
     const e = mobEnt(kind, run.skin); if (!e) return;
-    let at = null; for (let k = 0; k < 10 && !at; k++) { const a = Math.random() * Math.PI * 2, d = 10 + Math.random() * (ARENA_R - 13), p = W(Math.cos(a) * d, Math.sin(a) * d); if (Math.hypot(p.x - me.x, p.z - me.z) > 8) at = p; }
+    let at = null; for (let k = 0; k < 10 && !at; k++) { const a = Math.random() * Math.PI * 2, d = 10 + Math.random() * (ARENA_R - 13), p = o.near ? new V3(o.near.x + Math.cos(a) * 4, 0, o.near.z + Math.sin(a) * 4) : W(Math.cos(a) * d, Math.sin(a) * d); if (Math.hypot(p.x - me.x, p.z - me.z) > (o.near ? 3 : 8) && Math.hypot(p.x - land.x, p.z - land.z) < ARENA_R - 2) at = p; }
     if (!at) return;
     const zone = { id: "rq-" + run.mode, name: "RAID QUEENS", x: land.x, z: land.z, r: ARENA_R - 1, lv: [M.lv, M.lv + 100], pow: run.isS ? 2.2 : 2 + (M.lv / 300) * 0.8, claimTier: 4, mobs: [] };
     const m = c.spawnOwn({ ent: e, at, lv, rank: elite ? "elite" : "", zone, scale: MOB[kind].h, y: MOB[kind].fly || 0, name: T(MOB[kind].name), color: (QV[run.qs[0]] || {}).css });
-    if (m) run.mobs.push(m);
+    if (m) { run.mobs.push(m); ringFx(at, elite ? 0xffc861 : (QV[run.qs[0]] || {}).tint || 0xff4d8d, elite ? 3 : 2, 0.55); const y1 = e.obj.position.y; e.obj.position.y = y1 - 1.6; rises.push({ e, y1, t: 0 }); } /* (it climbs out of a rift) */
   }
+  const rises = [];
+  function risesTick(dt) { for (let i = rises.length - 1; i >= 0; i--) { const r = rises[i]; r.t += dt; const k = Math.min(1, r.t / 0.45); r.e.obj.position.y = r.y1 - 1.6 * (1 - k) * (1 - k); if (k >= 1) rises.splice(i, 1); } }
   function queensIn() {
     run.stage = "queen"; const c = ctx.combat();
     for (const m of run.mobs) if (!m.dead && c) { try { c.extGone(m); } catch { /* gone */ } } run.mobs = [];
@@ -340,7 +453,7 @@ export function makeRaidQueens(ctx) {
     let j = null; try { const r = await ctx.post({ action: "world-rq-end", ...ctx.sess(), run: r0.id, won: true, kills: r0.kills }); j = r && r.j; if (!r || !r.ok) ctx.toast(esc((j && j.error) ? T(j.error) : T("Couldn't save the result — try again"))); } catch { /* the card says so */ }
     r0.done = true;
     if (j && j.ok) { if (j.xp && ctx.grantXp) ctx.grantXp(j.xp); const ids = ls.get(GOT, []); for (const it of j.items || []) if (!ids.includes(it.id)) { try { ctx.addItem(it); } catch { /* the card still shows */ } ids.push(it.id); } ls.set(GOT, ids.slice(-60)); if (j.credited > 0 && ctx.refresh) ctx.refresh(); }
-    endRun(); resultCard(r0, j, true); ending = false;
+    endRun(); resultCard(r0, j, true); ending = false; if (j && j.ok && ctx.onWin) try { ctx.onWin(r0.mode, j); } catch { /* the card still shows */ }
   }
   async function lose(why) {
     if (!run || run.done) return; const r0 = run; r0.done = true;
@@ -350,6 +463,7 @@ export function makeRaidQueens(ctx) {
   function endRun() {
     const c = ctx.combat(), r0 = run; if (!r0) return;
     if (c) { for (const m of r0.mobs) if (!m.dead) try { c.extGone(m); } catch { /* gone */ } for (const q of r0.queens) { if (q.m && !q.dead) try { c.extGone(q.m); } catch { /* gone */ } if (q.e && q.e.obj.parent === g) g.remove(q.e.obj); } }
+    zonesClear(); fxClear(); rises.length = 0; crysT = 0; for (const c0 of crys) c0.visible = true; if (typeof document !== "undefined") document.body.classList.remove("rq-low", "rq-cine");
     run = null; paintHud(); vis(); if (ctx.music) ctx.music("");
   }
   function leave() { if (run && !run.done) { if (typeof confirm === "function" && !confirm(T("Leave the run? It counts as lost."))) return; lose("left"); } else toHall(true); }
@@ -362,7 +476,7 @@ export function makeRaidQueens(ctx) {
     if (!hud) { hud = document.createElement("div"); hud.className = "rq-hud"; hud.setAttribute("data-game-hud", ""); hud.setAttribute("data-no-i18n", ""); document.body.appendChild(hud);
       hud.addEventListener("click", (e) => { if (e.target.closest("[data-leave]")) leave(); }); }
     const V = QV[run.qs[0]], css = run.trio ? "#ff7ab8" : V.css;
-    const qline = run.queens.map((q) => `<i style="--rq:${q.V.css}"><b style="width:${Math.max(0, (100 * (q.m && !q.dead ? q.m.hp : 0)) / q.max)}%"></b><u style="left:60%"></u><u style="left:25%"></u><span>${esc(T(q.V.name))}${q.dead ? " ✓" : ` · ${esc(T("Phase {n}", { n: q.phase }))}`}</span></i>`).join("");
+    const qline = run.queens.map((q) => `<i style="--rq:${q.V.css}"><b style="width:${Math.max(0, (100 * (q.m && !q.dead ? q.m.hp : 0)) / q.max)}%"></b><u style="left:60%"></u><u style="left:25%"></u><s class="${q.brkT > 0 ? "on" : ""}" style="width:${q.brkT > 0 ? 100 : Math.round((q.brk || 0) * 100)}%"></s><span>${esc(T(q.V.name))}${q.dead ? " ✓" : ` · ${esc(T("Phase {n}", { n: q.phase }))}`}</span></i>`).join("");
     hud.style.setProperty("--rq", css);
     hud.innerHTML = `<div class="rq-hud-in"><small>RAID QUEENS · ${esc(run.isS ? "SECRET" : T(modeOf(run.mode).region))}</small><b>${fmt(run.t)}</b>
       <span>${run.stage === "waves" ? esc(T("Waves · {n} knocked out", { n: run.kills })) + ` <em>${esc(T("She comes in {t}", { t: fmt(Math.max(0, run.plan.waveEnd - run.t)) }))}</em>` + `<p class="rq-wbar"><b style="width:${Math.min(100, (100 * run.t) / run.plan.waveEnd)}%"></b></p>` : esc(note || T("The queen is here!"))}</span>${qline}
@@ -375,7 +489,7 @@ export function makeRaidQueens(ctx) {
     lobby = document.createElement("div"); lobby.className = "rq-lobby"; lobby.setAttribute("role", "dialog"); lobby.setAttribute("data-no-i18n", ""); document.body.appendChild(lobby); ctx.freeze(true);
     lobby.innerHTML = `<div class="rq-lb"><p class="rq-load">…</p></div>`;
     lobby.addEventListener("click", (e) => { const b = e.target.closest("[data-go]"), cr = e.target.closest("[data-chron]"); if (e.target.closest("[data-myth]")) { closeLobby(); ctx.openMythic(); return; }
-      if (b && !b.disabled) { start(b.dataset.go); return; } if (cr) { closeLobby(); chronicle(); return; } if (e.target.closest(".rq-x") || e.target === lobby) closeLobby(); });
+      if (b && !b.disabled) { start(b.dataset.go); return; } if (cr) { closeLobby(); chronicle(); return; } if (e.target.closest("[data-board]")) { closeLobby(); board("lysitha"); return; } if (e.target.closest(".rq-x") || e.target === lobby) closeLobby(); });
     loadMobs(); for (const M of RQ.MODES) if (!M.trio && ctx.level() >= M.lv) loadQueen(M.id); /* (fetched while you choose, so Enter starts at once) */
     await refreshInfo(); if (lobby) paintLobby();
   }
@@ -388,7 +502,7 @@ export function makeRaidQueens(ctx) {
     if (!lobby) return; const lv = ctx.level(), d = (info && info.day) || { used: 0, max: RQ.DAY_RUNS }, best = (info && info.best) || {}, clears = (info && info.clears) || {}, gm = ctx.isGM(), left = Math.max(0, d.max - d.used);
     const card = (M) => { const V = QV[M.id] || TRI, lock = lv < M.lv, none = !gm && left <= 0;
       return `<div class="rq-mode${lock ? " lock" : ""}" style="--rq:${V.css}"><img src="${M.trio ? `/images/raid/trinity-page.webp${ctx.ver || ""}` : `/images/raid/${M.id}-full.webp${ctx.ver || ""}`}" alt=""><div><small>${esc(T(M.region))} · Lv ${M.lv}+</small><b>${esc(T(V.name))}</b><em>${esc(T(V.title))}</em>
-        <p class="rq-chips"><span class="rq-dg ${danger(M)[1]}">${esc(T(danger(M)[0]))}</span><span class="rq-st">${stars(M, best[M.id])}</span>${CC.DROP[M.id] ? `<span class="rq-my">💠 ${esc(T("Mythic {p}%", { p: +(CC.DROP[M.id].rate * 100).toFixed(1) }))}</span>` : ""}</p>
+        <p class="rq-chips"><span class="rq-dg ${danger(M)[1]}">${esc(T(danger(M)[0]))}</span><span class="rq-st">${stars(M, best[M.id])}</span>${CC.DROP[M.id] ? `<span class="rq-my">💠 ${esc(T("Mythic {p}%", { p: +(CC.DROP[M.id].rate * 100).toFixed(1) }))}</span>` : ""}${info && info.firstDone && !info.firstDone.includes(M.id) ? `<span class="rq-1st">🎁 ${esc(T("First win today: ARCL ×1.5 + 1 gear"))}</span>` : ""}</p>
         <ul><li>⚔️ ${esc(T(M.trio ? "Waves, then all three queens at once" : "Waves of Imps, elite Puglins, then the queen"))}</li><li>🎁 XP · ${esc(T(M.item.n > 1 ? "{n} pieces of gear" : "1 piece of gear", { n: M.item.n }))} · ${M.arcl.toLocaleString("en-US")} ARCL</li>${best[M.id] ? `<li>⏱ ${esc(T("Best {t}", { t: fmt(best[M.id]) }))} · ${esc(T("Cleared ×{n}", { n: clears[M.id] || 0 }))}</li>` : ""}</ul>
         <button type="button" data-go="${M.id}" ${lock || none ? "disabled" : ""}>${lock ? "🔒 Lv " + M.lv : none ? esc(T("Back tomorrow")) : esc(T("Enter"))}</button></div></div>`; };
     const S = RQ.SECRET, tk = (info && info.tickets) || 0, slock = lv < S.lv;
@@ -397,7 +511,7 @@ export function makeRaidQueens(ctx) {
       <div class="rq-mode rq-secret${slock ? " lock" : ""}"><div class="rq-q">?</div><div><small>🔒 SECRET · Lv ${S.lv}+</small><b>??? ${esc(T("SECRET DUNGEON"))}</b><em>${esc(T("Nobody knows what waits inside."))}</em>
         <ul><li>❓ ${esc(T("Only the brave find out"))}</li><li>💎 ${gm ? esc(T("GM · free")) : `${S.PRICE.toLocaleString("en-US")} $ARCIRCLE · ${esc(T("one run"))}`}${tk ? ` · ${esc(T("Tickets: {n}", { n: tk }))}` : ""}</li></ul>
         <button type="button" data-go="secret" ${slock ? "disabled" : ""}>${slock ? "🔒 Lv " + S.lv : esc(T("Enter"))}</button></div></div></div>
-      <div class="rq-foot">${ctx.openMythic ? `<button type="button" class="rq-myb" data-myth>👑 ${esc(T("Crimson Celestial"))}</button>` : ""}<button type="button" data-chron>📖 ${esc(T("RAID QUEENS CHRONICLE"))}</button></div></div>`;
+      <div class="rq-foot">${ctx.openMythic ? `<button type="button" class="rq-myb" data-myth>👑 ${esc(T("Crimson Celestial"))}</button>` : ""}<button type="button" data-board>🏆 ${esc(T("This week's fastest"))}</button><button type="button" data-chron>📖 ${esc(T("RAID QUEENS CHRONICLE"))}</button></div></div>`;
   }
   // the SECRET's price: a transfer from your wallet to FeeBurn, then the run; a transfer still confirming isn't paid twice
   function payCard() {
@@ -435,7 +549,7 @@ export function makeRaidQueens(ctx) {
     el.innerHTML = `<div class="rq-wcard"><img src="${r0.trio ? `/images/raid/trinity-page.webp${ctx.ver || ""}` : `/images/raid/${r0.qs[0]}-full.webp${ctx.ver || ""}`}" alt=""><div class="rq-wtx"><small>RAID QUEENS · ${esc(r0.isS ? "SECRET" : T(modeOf(r0.mode).region))}</small>
       ${won && j && j.ok ? `<div class="rq-grade g-${gradeOf(r0, j)}">${gradeOf(r0, j)}</div>` : ""}
       <h3>${won ? "👑 " + esc(T("Victory")) : "💀 " + esc(why === "left" ? T("You left the run") : why === "time" ? T("Time's up") : T("Knocked out"))}</h3>
-      ${won && j && j.ok ? `<p class="rq-stat">⏱ ${fmt(j.t)}${j.best ? ` · ${esc(T("New best!"))}` : ""} · ${esc(T("{n} knocked out", { n: r0.kills }))}</p>
+      ${won && j && j.ok ? `<p class="rq-stat">⏱ ${fmt(j.t)}${j.best ? ` · ${esc(T("New best!"))}` : ""} · ${esc(T("{n} knocked out", { n: r0.kills }))}${j.rank ? ` · 🏆 ${esc(T("#{n} this week", { n: j.rank }))}` : ""}</p>${j.first ? `<p class="rq-1st">🎁 ${esc(T("The day's first win: ARCL ×1.5 and one more piece"))}</p>` : ""}
         <div class="rq-gain"><b>+${Number(j.xp || 0).toLocaleString("en-US")}</b><span>XP</span></div>${j.arcl ? `<div class="rq-gain sm"><b>+${Number(j.arcl).toLocaleString("en-US")}</b><span>ARCL</span></div>` : ""}
         ${items.map((it) => `<div class="rq-item" style="--rc:${RC[it.r] || "#ffc861"}"><i></i><span><b>${esc(ctx.itemName(it))}</b><small>${esc(T(RN[it.r] || ""))} · +${it.p} · Lv ${it.lv}</small></span></div>`).join("")}${items.length ? `<p>${esc(T("It's in your bag."))}</p>` : ""}`
         : `<p>${esc(won ? T("Couldn't save the result — try again") : T("Nothing is won this time. Runs left today are on the lobby."))}</p>`}
@@ -480,6 +594,22 @@ export function makeRaidQueens(ctx) {
     if (!fall && ctx.Snd && ctx.Snd.siren) try { ctx.Snd.siren(); } catch { /* no sound */ }
     if (!fall && ctx.shake) ctx.shake(0.35);
   }
+  /// the week's boards: each run's fastest wins (one line a player), and the crews' clears
+  async function board(mode) {
+    if (typeof document === "undefined") return; document.querySelectorAll(".rq-chron.rq-bd").forEach((x) => x.remove());
+    const el = document.createElement("div"); el.className = "rq-chron rq-bd"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); document.body.appendChild(el); ctx.freeze(true);
+    const ids = [...RQ.MODES.map((m) => m.id), "secret"], me0 = ((ctx.sess() || {}).wallet || "").toLowerCase();
+    const paint = (j) => { const V = QV[mode], css = V ? V.css : "#ff7ab8";
+      el.innerHTML = `<div class="rq-cin2" style="--rq:${css}"><header><img src="/images/raid/key-sm.webp${ctx.ver || ""}" alt=""><div><small>RAID QUEENS · ${esc(T("This week"))}</small><h3>${esc(T("This week's fastest"))}</h3><p>${esc(T("The fastest win of each player this week. Monday starts a new week (Seoul)."))}</p></div><button type="button" class="rq-x" aria-label="${esc(T("Close"))}">✕</button></header>
+        <div class="rq-tabs">${ids.map((id) => `<button type="button" data-m="${id}" class="${id === mode ? "on" : ""}">${esc(id === "secret" ? "SECRET" : id === "throne" ? T("Throne") : T((QV[id] || {}).name || id).split(" ").pop())}</button>`).join("")}</div>
+        <ol class="rq-top">${!j ? `<li class="rq-load">…</li>` : j.top.length ? j.top.map((x, i) => `<li class="${me0 && me0.startsWith(x.w.slice(0, 6).toLowerCase()) && me0.endsWith(x.w.slice(-4).toLowerCase()) ? "me" : ""}"><i>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(x.name || x.w)}</b><em>${fmt(x.t)}</em></li>`).join("") : `<li class="rq-empty">${esc(T("Be the first!"))}</li>`}</ol>
+        ${j && j.crews && j.crews.length ? `<h4>${esc(T("Crews this week"))}</h4><ol class="rq-top sm">${j.crews.map((c, i) => `<li><i>${i + 1}</i><b>[${esc(c.tag || "")}] ${esc(c.name || "")}</b><em>${esc(T("{n} clears", { n: c.n }))}</em></li>`).join("")}</ol>` : ""}
+        <div class="rq-foot"><button type="button" class="go" data-lobby>${esc(T("Lobby"))}</button></div></div>`; };
+    paint(null); const load0 = async () => { try { const r = await fetch("/api/social?world=rq-top&mode=" + mode, { cache: "no-store" }); paint(r.ok ? await r.json() : { top: [] }); } catch { paint({ top: [] }); } }; load0();
+    el.addEventListener("click", (e) => { const m = e.target.closest("[data-m]"); if (m) { mode = m.dataset.m; paint(null); load0(); return; }
+      if (e.target.closest("[data-lobby]")) { el.remove(); ctx.freeze(false); openLobby(); return; }
+      if (e.target === el || e.target.closest(".rq-x")) { el.remove(); ctx.freeze(false); } });
+  }
   function chronicle() {
     if (typeof document === "undefined" || document.querySelector(".rq-chron")) return;
     const s = seen(), clears = (info && info.clears) || {};
@@ -503,7 +633,7 @@ export function makeRaidQueens(ctx) {
   function show(on) { on = !!on; if (on === shown) return; shown = on; vis(); }
   const cw = new V3();
   function tick(dt, t) {
-    if (g.visible && ctx.cam) { const cp = ctx.cam(); if (cp) for (const c of crys) { c.getWorldPosition(cw); c.visible = Math.hypot(cw.x - cp.x, cw.z - cp.z) > 7; } }
+    if (g.visible && ctx.cam && !(crysT > 0)) { const cp = ctx.cam(); if (cp) for (const c of crys) { c.getWorldPosition(cw); c.visible = Math.hypot(cw.x - cp.x, cw.z - cp.z) > 7; } }
     if (shown) for (const f of spins) f(dt, t);
     if (!run || run.done) return;
     ctx.here(me); const c = ctx.combat();
@@ -512,6 +642,10 @@ export function makeRaidQueens(ctx) {
     run.t += dt;
     if (c && c.vitals) { const v = c.vitals(); if (run.hp0 != null && v.hp < run.hp0) run.lost += run.hp0 - v.hp; run.hp0 = v.hp; run.maxHp = v.max; } /* (for the grade) */
     if (run.t > TIME_LIMIT) { lose("time"); return; }
+    fxTick(dt); risesTick(dt); zonesTick(dt); beamTick(dt);
+    if (crysT > 0 && (crysT -= dt) <= 0) for (const c0 of crys) c0.visible = true;
+    if (flare > 0) { flare = Math.max(0, flare - dt * 1.4); floorM.emissiveIntensity = 0.06 + flare * 0.9; }
+    if (c && c.vitals) { const v = c.vitals(), low = v.hp / Math.max(1, v.max) < 0.3 && !v.down; if (typeof document !== "undefined") document.body.classList.toggle("rq-low", low); if (low && ctx.Snd && ctx.Snd.svHeart) try { ctx.Snd.svHeart(); } catch { /* no sound */ } }
     if (run.stage === "waves") { mobTick(dt); if (run.t >= run.plan.waveEnd) queensIn(); }
     else for (const q of run.queens) { if (q.corpse) { q.e.mixer.update(dt); if (performance.now() - q.corpse.t0 > 4200 && q.e.obj.parent === g) { g.remove(q.e.obj); q.corpse = null; } } else queenTick(q, dt); }
     if ((run.hudT = (run.hudT || 0) - dt) <= 0) { run.hudT = 0.25; paintHud(); }
@@ -519,7 +653,7 @@ export function makeRaidQueens(ctx) {
     const dx = me.x - land.x, dz = me.z - land.z, d = Math.hypot(dx, dz); if (d > ARENA_R - 0.6) ctx.stand(land.x + (dx / d) * (ARENA_R - 1.2), land.z + (dz / d) * (ARENA_R - 1.2), { x: land.x, z: land.z });
   }
   return {
-    group: g, hall: H, door, back, solids, toHall, arrival: () => ({ x: land.x, z: land.z + HALL.start, c: { x: land.x, z: land.z + HALL.door } }), loadHall, tick, show, openLobby, chronicle, page, start, leave, loadMobs,
+    group: g, hall: H, door, back, solids, toHall, arrival: () => ({ x: land.x, z: land.z + HALL.start, c: { x: land.x, z: land.z + HALL.door } }), loadHall, tick, show, openLobby, chronicle, board, page, start, leave, loadMobs,
     shown: () => shown, running: () => !!run && !run.done, info: () => info, refreshInfo,
     /// for the minimap: the queens in the arena
     marks: () => (run ? run.queens.filter((q) => q.m && !q.dead).map((q) => ({ g: q.m.g, css: q.V.css, s: 8, ch: "♛" })) : []),
