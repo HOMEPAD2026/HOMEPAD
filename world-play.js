@@ -211,6 +211,9 @@ Object.assign(WORDS.tr, { "{a} / 6 worn": "{a} / 6 giyili", "Open the set": "Set
 Object.assign(WORDS.ko, { "Tap to wear": "눌러서 착용", "Wear now": "바로 착용", "Worn — the set's bonuses count it now": "착용 완료 — 이제 세트 보너스에 반영돼요" });
 Object.assign(WORDS.zh, { "Tap to wear": "点击穿戴", "Wear now": "立即穿戴", "Worn — the set's bonuses count it now": "已穿戴——现在计入套装加成" });
 Object.assign(WORDS.tr, { "Tap to wear": "Giymek için dokun", "Wear now": "Hemen giy", "Worn — the set's bonuses count it now": "Giyildi — set bonusları artık sayıyor" });
+Object.assign(WORDS.ko, {"12-minute survival": "12분 생존", "Survive the Primeval Plains": "원시 평원에서 살아남기", "Hold'em · Blackjack · Sit & Go": "홀덤 · 블랙잭 · 시트 앤 고", "Game": "게임", "World": "월드", "Ready": "준비 완료", "Walk to dodge — your weapons fire by themselves.": "걸어서 피하세요 — 무기는 알아서 쏴요.", "Pick cards that build toward an evolution: the book shows which pairs.": "진화로 이어지는 카드를 고르세요: 도감에 짝이 나와요.", "Arena coins buy permanent upgrades between runs.": "아레나 코인으로 영구 강화를 살 수 있어요.", "Chop, mine and pick to fill your pack, then craft at the workbench.": "나무·돌·열매를 모아 가방을 채우고 작업대에서 만드세요.", "Boss hour: 12:00 and 20:00 Seoul time — hit it 10 times for a share.": "보스 타임: 서울 기준 12:00와 20:00 — 10번 이상 때리면 보상을 나눠 받아요.", "Nights are dangerous. Light a campfire and sleep in your hut.": "밤은 위험해요. 모닥불을 켜고 오두막에서 주무세요.", "Free chips every day. Chips are play money — never ARCL.": "칩은 매일 무료예요. 칩은 게임 머니 — ARCL이 아니에요.", "Sit & Go starts every 2 hours: the top 3 share the prize chips.": "시트 앤 고는 2시간마다 시작: 상위 3명이 상금 칩을 나눠요.", "Today's rule changes every Seoul day — check its own board.": "오늘의 룰은 서울 기준 매일 바뀌어요 — 전용 순위표도 확인하세요."}); // (gameCard)
+Object.assign(WORDS.zh, {"12-minute survival": "12 分钟生存", "Survive the Primeval Plains": "在原始平原生存", "Hold'em · Blackjack · Sit & Go": "德州扑克 · 21点 · Sit & Go", "Game": "游戏", "World": "世界", "Ready": "就绪", "Walk to dodge — your weapons fire by themselves.": "走位闪避——武器会自动开火。", "Pick cards that build toward an evolution: the book shows which pairs.": "选择能进化的卡牌：图鉴里写着搭配。", "Arena coins buy permanent upgrades between runs.": "竞技场金币可购买永久强化。", "Chop, mine and pick to fill your pack, then craft at the workbench.": "砍树、采矿、采集装满背包，再到工作台制作。", "Boss hour: 12:00 and 20:00 Seoul time — hit it 10 times for a share.": "首领时间：首尔时间 12:00 和 20:00——命中 10 次即可分享奖励。", "Nights are dangerous. Light a campfire and sleep in your hut.": "夜晚很危险。点燃篝火，在小屋里睡觉。", "Free chips every day. Chips are play money — never ARCL.": "每天免费筹码。筹码只是游戏币——不是 ARCL。", "Sit & Go starts every 2 hours: the top 3 share the prize chips.": "Sit & Go 每 2 小时开始：前 3 名分享奖池筹码。", "Today's rule changes every Seoul day — check its own board.": "今日规则按首尔时间每天更换——看看它的专属榜单。"}); // (gameCard)
+Object.assign(WORDS.tr, {"12-minute survival": "12 dakikalık hayatta kalma", "Survive the Primeval Plains": "İlkel Ovalar'da hayatta kal", "Hold'em · Blackjack · Sit & Go": "Hold'em · Blackjack · Sit & Go", "Game": "Oyun", "World": "Dünya", "Ready": "Hazır", "Walk to dodge — your weapons fire by themselves.": "Kaçmak için yürü — silahların kendiliğinden ateş eder.", "Pick cards that build toward an evolution: the book shows which pairs.": "Evrime giden kartları seç: kitap hangi ikililer olduğunu gösterir.", "Arena coins buy permanent upgrades between runs.": "Arena paraları kalıcı geliştirmeler alır.", "Chop, mine and pick to fill your pack, then craft at the workbench.": "Kes, kaz ve topla, çantanı doldur; sonra tezgâhta üret.", "Boss hour: 12:00 and 20:00 Seoul time — hit it 10 times for a share.": "Boss saati: Seul saatiyle 12:00 ve 20:00 — pay için 10 kez vur.", "Nights are dangerous. Light a campfire and sleep in your hut.": "Geceler tehlikeli. Kamp ateşi yak ve kulübende uyu.", "Free chips every day. Chips are play money — never ARCL.": "Her gün bedava fiş. Fişler oyun parası — asla ARCL değil.", "Sit & Go starts every 2 hours: the top 3 share the prize chips.": "Sit & Go her 2 saatte başlar: ilk 3 ödül fişlerini paylaşır.", "Today's rule changes every Seoul day — check its own board.": "Günün kuralı her Seul gününde değişir — kendi tablosuna bak."}); // (gameCard)
 Object.assign(WORDS.ko, { "Sky Realm": "스카이 렐름", "Sky": "하늘", "Citadel": "성채", "Queens": "여왕", "Monsters": "몬스터", "The day's first win of each run pays ARCL ×1.5 and one more piece.": "던전마다 하루 첫 승리는 ARCL ×1.5에 아이템 하나가 더 나와요.", "Fill the gold guard bar under her HP to BREAK her: 4 seconds stunned.": "체력 아래 금색 가드 게이지를 채우면 BREAK: 4초 동안 기절해요.", "Each queen has her own trick — frost circles, a sweeping sunbeam, healing blood pools.": "여왕마다 기술이 달라요 — 서리 원, 휩쓰는 태양광, 회복하는 피 웅덩이.", "A won run can drop a Crimson Celestial piece. Tap it in the set to wear it.": "승리하면 크림슨 셀레스티얼 조각이 나올 수 있어요. 세트 창에서 눌러 착용하세요.", "This week's fastest: {n} · {t}": "이번 주 최단 기록: {n} · {t}" });
 Object.assign(WORDS.zh, { "Sky Realm": "天空领域", "Sky": "天空", "Citadel": "城堡", "Queens": "女王", "Monsters": "怪物", "The day's first win of each run pays ARCL ×1.5 and one more piece.": "每个副本每天的首胜：ARCL ×1.5，并多掉一件装备。", "Fill the gold guard bar under her HP to BREAK her: 4 seconds stunned.": "填满她血条下的金色护盾条即可破防：眩晕 4 秒。", "Each queen has her own trick — frost circles, a sweeping sunbeam, healing blood pools.": "每位女王都有绝招——冰霜法阵、横扫的日光、治疗的血池。", "A won run can drop a Crimson Celestial piece. Tap it in the set to wear it.": "胜利后可能掉落深红天界部件。在套装界面点击即可穿戴。", "This week's fastest: {n} · {t}": "本周最快：{n} · {t}" });
 Object.assign(WORDS.tr, { "Sky Realm": "Gök Diyarı", "Sky": "Gökyüzü", "Citadel": "Kale", "Queens": "Kraliçeler", "Monsters": "Canavarlar", "The day's first win of each run pays ARCL ×1.5 and one more piece.": "Her koşunun günün ilk zaferi ARCL ×1,5 ve bir parça daha verir.", "Fill the gold guard bar under her HP to BREAK her: 4 seconds stunned.": "HP'sinin altındaki altın koruma çubuğunu doldur, KIR: 4 saniye sersemler.", "Each queen has her own trick — frost circles, a sweeping sunbeam, healing blood pools.": "Her kraliçenin bir hilesi var — buz halkaları, süpüren güneş ışını, iyileştiren kan havuzları.", "A won run can drop a Crimson Celestial piece. Tap it in the set to wear it.": "Kazanılan koşu bir Crimson Celestial parçası düşürebilir. Giymek için sette ona dokun.", "This week's fastest: {n} · {t}": "Bu haftanın en hızlısı: {n} · {t}" });
@@ -2196,20 +2199,24 @@ async function openJurassic() {
   if (jurOn || jurBusy || mineOn || defenseOn || jumpOn || beatOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
   if (!jurAllowed()) { toast(TW("Jurassic World is coming soon. The portal opens to everyone at launch.")); if (avatar && grounded) avatar.play("emote-no", { once: true }); return; }
   jurBusy = true; closeAll(); document.querySelectorAll(".wp-tips").forEach((e) => e.remove()); tipsUp = false; // (town tips still up: Jurassic World's own card comes)
-  const veil = $("wp-veil");
+  const veil = $("wp-veil"), card = jurGame ? null : gameCard("jur");
   try {
     if (!jurGame) {
+      if (card) await paintFrame();
       let M; try { M = await import("./world-jurassic.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       jurGame = M.createJurassic({ input: () => ({ joy: joy ? { dx: joy.dx, dy: joy.dy } : null, run: runToggle || gpad.run, gx: gpad.x, gy: gpad.y, yaw: camYaw, pitch: camPitch, zoom: camGoal }), setView: (v) => { if (v.yaw != null) camYaw = v.yaw; if (v.pitch != null) camPitch = v.pitch; if (v.zoom != null) camGoal = camDist = v.zoom; }, hurt: (n) => (combat ? combat.hurtMe(n) : null), vitals: () => (combat ? combat.vitals() : null), heal: (k) => (combat && combat.heal ? combat.heal(k) : null), coach: (k, steps) => coach(k, steps), tips: (rows, o) => showTips(rows, o), Snd, sess, post, share: (c) => bragCard(c), level, lang: LANG, char: () => P.char || "arc-arc", music: () => music, stats: () => { try { return rpg && rpg.stats ? rpg.stats() : null; } catch { return null; } }, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why), THREE, K, st, ver: VER, makeGate: (n) => JG.makeJurassicGate(THREE, K, n, { low: lowGfx }), T: TW, esc, toast, reduce, low: lowGfx, coarse,
         makeHero: () => K.makeCharacter(heroOf(P.char || "arc-arc"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         onLeave: () => { jurOn = false; frozen = false; setTimeout(() => dinoTown.look(), 300); try { music.setList(MUS.PLAYLIST); } catch { /* fine */ } keys.clear(); const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 4, g.z - g.z / d * 4, { x: 0, z: 0 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
-    if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
+    if (card) card.step(1);
+    if (veil && !reduce && !card) { veil.style.opacity = "1"; await sleep(320); }
     frozen = true; keys.clear(); near = null; paintPrompt();
     const ok = await jurGame.enter();
+    if (card) { card.step(2); await card.close(!ok); }
     if (ok) { jurOn = true; try { music.setList(MUS.JURASSIC); } catch { /* the town's music plays on */ } } else frozen = false;
     if (veil) veil.style.opacity = "0";
   } catch (e) {
+    if (card) card.close(true);
     console.warn("jurassic", e); if (diag && diag.err) diag.err("jurassic: " + String((e && e.message) || e), "openJurassic"); jurOn = false; frozen = false; near = null; paintPrompt(); if (veil) veil.style.opacity = "0";
     try { st.view(null); st.solo(null); document.body.classList.remove("wp-jurassic"); } catch { /* the town draws again */ }
     const why = String((e && e.message) || e);
@@ -2236,6 +2243,29 @@ async function openMine() {
     toast(TW(why.startsWith("load:") ? "The ARCL Mine couldn't load. Refresh the page and try again." : "The ARCL Mine couldn't start") + " — " + esc(why.slice(0, 80)));
   } finally { mineBusy = false; }
 }
+/// a game's loading card the first time it opens this visit (the owner's list, 2026-10-25: like RAID QUEENS'): its key art,
+/// three steps ticking (game · world · ready) and a turning tip, over the module, its models and its first frame; later
+/// visits keep the short veil. RAID QUEENS' look (.rql) with the game's colour (.rql.g-<kind>)
+const GAME_CARD = {
+  surv: { name: "SURVIVORS ARENA", sub: "12-minute survival", art: "key-surv", tips: ["Walk to dodge — your weapons fire by themselves.", "Pick cards that build toward an evolution: the book shows which pairs.", "Arena coins buy permanent upgrades between runs."] },
+  jur: { name: "JURASSIC WORLD", sub: "Survive the Primeval Plains", art: "key-jurassic", tips: ["Chop, mine and pick to fill your pack, then craft at the workbench.", "Boss hour: 12:00 and 20:00 Seoul time — hit it 10 times for a share.", "Nights are dangerous. Light a campfire and sleep in your hut."] },
+  poker: { name: "ARCIA POKER LOUNGE", sub: "Hold'em · Blackjack · Sit & Go", art: "key-poker", tips: ["Free chips every day. Chips are play money — never ARCL.", "Sit & Go starts every 2 hours: the top 3 share the prize chips.", "Today's rule changes every Seoul day — check its own board."] },
+};
+function gameCard(kind) {
+  const G = GAME_CARD[kind]; if (!G) return null;
+  const el = document.createElement("div"); el.className = "rql g-" + kind; el.setAttribute("role", "status"); el.setAttribute("data-no-i18n", "");
+  const t0 = performance.now(), tips = G.tips.map((x) => TW(x));
+  const art = `url('/images/gw/${G.art}.webp${VER}')`; // (the key art is wide: whole over a blurred copy of itself on a tall phone)
+  el.innerHTML = `<div class="rql-bg" style="background-image:${art}"></div><div class="rql-art" style="background-image:${art}"></div>
+    <div class="rql-in"><small>${esc(TW(G.sub))}</small><h2>${esc(G.name)}</h2><ol>${["Game", "World", "Ready"].map((k, i) => `<li data-k="${i}">${esc(TW(k))}</li>`).join("")}</ol>
+    <i class="rql-bar"><b></b></i><p class="rql-tip">${esc(tips[0])}</p></div>`;
+  document.body.appendChild(el);
+  let ti = 0; const tipEl = el.querySelector(".rql-tip"), turn = setInterval(() => { ti = (ti + 1) % tips.length; tipEl.classList.remove("on"); void tipEl.offsetWidth; tipEl.textContent = tips[ti]; tipEl.classList.add("on"); }, 3000);
+  const done = new Set(), step = (k) => { for (let i = 0; i <= k; i++) done.add(i); el.querySelectorAll("li").forEach((li) => li.classList.toggle("ok", done.has(Number(li.dataset.k)))); el.querySelector(".rql-bar b").style.width = `${(done.size / 3) * 100}%`; };
+  let gone = false; const close = async (fast) => { if (gone) return; gone = true; const wait = fast ? 0 : 1200 - (performance.now() - t0); if (wait > 0) await sleep(wait); clearInterval(turn); el.classList.add("out"); setTimeout(() => el.remove(), 450); };
+  return { step, close };
+}
+const paintFrame = () => new Promise((ok) => requestAnimationFrame(() => setTimeout(ok, 30))); // (the card painted before the module and its files take the page)
 // SURVIVORS ARENA (world-survivors.js): the Game Village's 12-minute survival game, loaded the first time its door is used.
 // Like the mine, its scene is drawn instead of the town (st.view) while you're in; the town waits, frozen, and you come
 // back out in front of the arena's door. What pays is the server's (api/_world-survivors.mjs).
@@ -2243,20 +2273,24 @@ let survGame = null, survOn = false, survBusy = false;
 async function openSurvivors() {
   if (survOn || survBusy || mineOn || defenseOn || jumpOn || beatOn || jurOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
   survBusy = true; closeAll(); document.querySelectorAll(".wp-tips,.wp-coach,.wp-coach-ring").forEach((e) => e.remove()); tipsUp = false; // (town tips or a tour bubble still up: they'd sit over the arena)
-  const veil = $("wp-veil");
+  const veil = $("wp-veil"), card = survGame ? null : gameCard("surv");
   try {
     if (!survGame) {
+      if (card) await paintFrame();
       let M; try { M = await import("./world-survivors.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       survGame = M.createSurvivors({ THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", fam: diag.fam || "", fps: (n) => st.fps(n || S.fpsCap || autoCap || 60), fpsSet: () => !!S.fpsCap, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }), addSupply: (k, n) => { const ok = !!(rpg && rpg.addSupply && rpg.addSupply(k, n)); try { if (ok && combat && combat.paintPots) combat.paintPots(); } catch { /* shown on the next repaint */ } return ok; },
         onLeave: () => { survOn = false; frozen = false; svAch = null; keys.clear(); const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
-    if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
+    if (card) card.step(1);
+    if (veil && !reduce && !card) { veil.style.opacity = "1"; await sleep(320); }
     frozen = true; keys.clear(); near = null; paintPrompt();
     const ok = await survGame.enter();
+    if (card) { card.step(2); await card.close(!ok); }
     if (ok) survOn = true; else frozen = false;
     if (veil) veil.style.opacity = "0";
   } catch (e) { // never fail silently: say why (short), put the town back, and let the next tap try again
+    if (card) card.close(true);
     console.warn("survivors", e); if (diag && diag.err) diag.err("surv: " + String((e && e.message) || e), "openSurvivors"); survOn = false; frozen = false; near = null; paintPrompt(); if (veil) veil.style.opacity = "0";
     try { st.view(null); st.solo(null); document.body.classList.remove("wp-surv"); } catch { /* the town draws again */ }
     const why = String((e && e.message) || e);
@@ -2305,19 +2339,23 @@ let pokerGame = null, pokerOn = false, pokerBusy = false;
 async function openPoker() {
   if (pokerOn || pokerBusy || ringsOn || ringsBusy || survOn || mineOn || defenseOn || jumpOn || beatOn || jurOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
   pokerBusy = true; closeAll(); document.querySelectorAll(".wp-tips,.wp-coach,.wp-coach-ring").forEach((e) => e.remove()); tipsUp = false;
-  const veil = $("wp-veil");
+  const veil = $("wp-veil"), card = pokerGame ? null : gameCard("poker");
   try {
     if (!pokerGame) {
+      if (card) await paintFrame();
       let M; try { M = await import("./world-poker.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
       pokerGame = M.createPoker({ THREE, K, st, ver: VER, hero: () => ({ ch: heroOf(P.char || "custom-aron"), tn: P.tint || 0 }), T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", name: () => P.name || "", refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         onLeave: () => { pokerOn = false; frozen = false; keys.clear(); const e = gv.exitOf("poker"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
-    if (veil && !reduce) { veil.style.opacity = "1"; await sleep(320); }
+    if (card) card.step(1);
+    if (veil && !reduce && !card) { veil.style.opacity = "1"; await sleep(320); }
     frozen = true; keys.clear(); near = null; paintPrompt();
     const ok = await pokerGame.enter();
+    if (card) { card.step(2); await card.close(!ok); }
     if (ok) pokerOn = true; else frozen = false;
     if (veil) veil.style.opacity = "0";
   } catch (e) { // never fail silently: say why (short), put the town back, and let the next tap try again
+    if (card) card.close(true);
     console.warn("poker", e); if (diag && diag.err) diag.err("poker: " + String((e && e.message) || e), "openPoker"); pokerOn = false; frozen = false; near = null; paintPrompt(); if (veil) veil.style.opacity = "0";
     try { st.view(null); st.solo(null); document.body.classList.remove("wp-poker"); } catch { /* the town draws again */ }
     const why = String((e && e.message) || e);

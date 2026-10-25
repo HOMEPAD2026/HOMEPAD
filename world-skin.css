@@ -4252,6 +4252,17 @@ html.wp-pcphone .rql-in{width:calc(100vw - 80px);bottom:calc(9% + env(safe-area-
 html.wp-pcphone .rql-in li{padding:9px 18px;font-size:22px}html.wp-pcphone .rql-bar{height:10px;border-radius:5px}html.wp-pcphone .rql-tip{font-size:24px;padding:16px 22px;border-radius:18px}
 html.wp-pcphone .rql-q{bottom:30%;height:52%}html.wp-pcphone .rql-q img{max-width:40%}
 @media (prefers-reduced-motion:reduce){.rql,.rql-bg,.rql-q img,.rql-tip.on{animation:none}.rql-q img{opacity:1}}
+/* a game's first loading card (world-play.js gameCard): RAID QUEENS' card in the game's own colour and type */
+.rql[class*=" g-"]{--gca:#35d8d0;--gcb:#7ee0ff}.rql.g-surv{--gca:#ff6a3d;--gcb:#ffd36a}.rql.g-jur{--gca:#7bd14a;--gcb:#ffd36a}.rql.g-poker{--gca:#ff4d8d;--gcb:#ffd36a}
+.rql[class*=" g-"] .rql-bg{background-color:#07040c;filter:blur(22px) brightness(.55) saturate(1.2)}
+.rql-art{position:absolute;left:0;right:0;top:max(6%,calc(38% - 36vw));aspect-ratio:828/592;background:center/cover no-repeat;animation:rqlZoom 9s ease-out both;-webkit-mask:linear-gradient(180deg,transparent,#000 14%,#000 80%,transparent);mask:linear-gradient(180deg,transparent,#000 14%,#000 80%,transparent)}
+@media (min-aspect-ratio:4/3){.rql-art{inset:0;aspect-ratio:auto;-webkit-mask:none;mask:none}.rql[class*=" g-"] .rql-bg{display:none}}
+.rql-art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,4,12,0) 55%,rgba(7,4,12,.85))}
+.rql[class*=" g-"] .rql-in small{font:800 12px/1 Sora,system-ui,sans-serif;letter-spacing:.24em;color:var(--gcb);text-transform:uppercase}
+.rql[class*=" g-"] .rql-in h2{color:#fff;font:900 38px/1.05 Sora,system-ui,sans-serif;letter-spacing:.02em;text-shadow:0 0 22px color-mix(in srgb,var(--gca) 70%,transparent),0 2px 0 #000}
+.rql[class*=" g-"] .rql-bar b{background:linear-gradient(90deg,var(--gca),var(--gcb));box-shadow:0 0 10px var(--gca)}
+.rql[class*=" g-"] .rql-tip{border-color:color-mix(in srgb,var(--gca) 45%,transparent)}
+html.wp-pcphone .rql[class*=" g-"] .rql-in small{font-size:22px}html.wp-pcphone .rql[class*=" g-"] .rql-in h2{font-size:64px}
 /* the bag's Crimson Celestial row (world-rpg.js mythRow): the pieces you hold, a tap opens the set */
 .hb-myrow{margin:0 0 8px;padding:8px;border-radius:12px;border:1px solid rgba(255,61,110,.4);background:linear-gradient(180deg,rgba(60,6,24,.55),rgba(20,4,12,.5))}
 .hb-myrow>b{display:flex;align-items:center;gap:6px;margin:0 0 6px;font:800 11px/1 Sora,system-ui,sans-serif;letter-spacing:.12em;color:#ffb3c8}.hb-myrow>b small{padding:2px 6px;border-radius:999px;background:#ff3d6e;color:#fff;font-size:10px;letter-spacing:0}
