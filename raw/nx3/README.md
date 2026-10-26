@@ -4,8 +4,8 @@ Everything here is straight from Meshy (`tools/meshy.mjs`) plus plain crops/resi
 GLBs are raw (uncompressed textures, ~2–4 MB each) and PNGs are full size. Pack before use.
 Task ids for every call are in `tools/meshy-out/log.jsonl` (local, git-ignored) of the worker session.
 
-**Credits ran out (915 → 0).** Done: groups 1–7, 9, 10, 11 in full; group 8 (landmarks) only partly —
-2 of 12 models, but all 12 have a concept picture ready for `image3d` when credits come back.
+All 11 groups are done. The first pass ran out of credits (915 → 0) with 2 of the 12 landmarks modelled; after the
+owner topped up (1000) the other 10 were made the same way (300 credits; 700 left).
 
 Background notes for all "on green" pictures: Meshy does not give a pure `#00ff00`. Backgrounds are a
 flat-ish lime/sage green (e.g. `rgb(191,253,123)`, some with a soft vignette or a slightly different tint
@@ -77,13 +77,23 @@ Each was drawn first (`concept/<name>.png`, 1024², grey background) and turned 
 Rigging was only tried on the two bipeds; the four floating/blob ones are not humanoid and were left static
 (bob/spin them in code). The attack/death files are full skinned models with one clip each.
 
-## 8. landmarks/ — partial (credits ran out)
-| file | tris | note |
+## 8. landmarks/ — image → 3D, 7.4–8.3k tris
+Each landmark was drawn first (`concept/<name>.png`, 1024², light grey background) and turned into 3D with `image3d --polys 8000`.
+All 12 match their concept pictures; sizes are Meshy's raw ~1.9 m bounding box, so scale them up in placement.
+| file | tris | what |
 |---|---|---|
-| spam-alley.glb | 8091 | `image3d` from concept — tower of pink/white envelopes |
-| airdrop-fields.glb | 7735 | `image3d` from concept — crate monument under a red/white parachute |
-| concept/*.png | 1024² | all 12 landmarks drawn on light grey: spam-alley, airdrop-fields, honeypot-swamp, rug-canyon, dark-market-depths, ponzi-peaks, exit-scam-desert, phishing-reef, bot-farm-wastes (came out as a broken robot with a dome, not a silo), fake-exchange-ruins, bridge-hack-abyss, the-last-rug |
-**Missing models (10):** honeypot-swamp … the-last-rug. To finish: `node tools/meshy.mjs image3d raw/nx3/landmarks/concept/<name>.png --polys 8000 --out raw/nx3/landmarks/<name>.glb` (~30 credits each).
+| spam-alley.glb | 8091 | leaning tower of pink/white mail envelopes |
+| airdrop-fields.glb | 7735 | crate monument under a red/white parachute |
+| honeypot-swamp.glb | 8284 | big golden honey pot dripping honey on a mossy stone pedestal |
+| rug-canyon.glb | 8116 | red brick/stone arch with a patterned rug draped over it |
+| dark-market-depths.glb | 8125 | dark purple market stall gate with crates and barrels |
+| ponzi-peaks.glb | 7358 | stepped pyramid of gold coins with a gem on top |
+| exit-scam-desert.glb | 7602 | broken sandstone arch with a hanging green exit-sign (running figure only, no text) |
+| phishing-reef.glb | 8327 | giant hook made of colourful coral on a rock |
+| bot-farm-wastes.glb | 8233 | broken rusty robot with a cracked dome (reads as a wrecked robot more than a silo) |
+| fake-exchange-ruins.glb | 8104 | crumbling classical columned facade; it is thin (0.57 deep), best seen from the front |
+| bridge-hack-abyss.glb | 7593 | broken stone pier with glowing cyan cracks |
+| the-last-rug.glb | 7921 | dark purple and gold throne with glowing runes (a throne; the floating carpet part is only the seat cloth) |
 
 ## 9. codex/ — 30 item pictures, 512×512, on green
 `<slot>-<tier>.png`, slot ∈ shield, armor, helm, ring, boots, necklace; tier 0 Starter, 1 Cold Wallet, 2 Multisig,
