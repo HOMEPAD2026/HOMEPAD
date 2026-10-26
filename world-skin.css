@@ -4621,3 +4621,37 @@ html.wp-pcphone.wp-land .wst.wide .wst-in{zoom:1.9;width:calc(100vw / 1.9);heigh
 .wsp-turn-b{display:flex;gap:2vmin;justify-content:center;flex-wrap:wrap}
 .wsp-lock{padding:1.8vmin 4.4vmin;border-radius:99px;border:0;background:linear-gradient(135deg,#2f8cff,#7cf5c8);color:#04122a;font:900 clamp(13px,3.2vmin,34px)/1 Sora,sans-serif;box-shadow:0 6px 18px rgba(47,140,255,.4)}
 .wst .wst-cb button{display:inline-flex;align-items:center;justify-content:center;gap:.35em}.wst .wst-cb button .wst-ic{margin:0}
+/* Studio Beta (2026-10-26): Creator City's windows (the Academy, the Hall of Fame, the Asset Factory, the Launch Portal) and
+   the "I MADE MY FIRST GAME!" moment */
+.rql.g-cc{--gca:#7cf5c8;--gcb:#ffd23a}
+.ccw{position:fixed;inset:0;z-index:66;display:grid;place-items:center;padding:16px;background:rgba(2,8,20,.55);backdrop-filter:blur(3px)}
+.ccw-in{position:relative;width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px 22px 18px;border-radius:24px;color:#eef3f7;background:linear-gradient(180deg,rgba(6,16,40,.55),rgba(3,8,22,.85)),url("/images/studio/ui/bg-768.webp?v=1") center/cover;border:2px solid rgba(124,245,200,.85);box-shadow:0 0 26px rgba(95,211,255,.4),0 24px 60px rgba(0,0,0,.55);font:600 14.5px/1.45 Sora,sans-serif}
+html.wp-pcphone .ccw-in{zoom:1.7}
+.ccw-x{position:absolute;top:10px;right:12px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:800 20px/1 Sora,sans-serif}
+.ccw-k{display:block;color:#7cf5c8;font:900 12px/1 Sora,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.ccw h3{margin:8px 0 6px;font:900 24px/1.2 Sora,sans-serif}.ccw h4{margin:14px 0 6px;font:900 16px/1.2 Sora,sans-serif}
+.ccw-steps,.ccw-lvls,.ccw-rank{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
+.ccw-steps li,.ccw-lvls li,.ccw-rank li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.ccw-steps i,.ccw-lvls i,.ccw-rank i{flex:0 0 30px;height:30px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.08);font:900 14px/1 Sora,sans-serif;font-style:normal}
+.ccw-steps li.ok,.ccw-lvls li.ok{background:linear-gradient(90deg,rgba(124,245,200,.22),rgba(124,245,200,.04));border-color:rgba(124,245,200,.5)}
+.ccw-steps li.ok i,.ccw-lvls li.ok i{background:#7cf5c8;color:#04122a}
+.ccw-lvls em,.ccw-rank em{margin-left:auto;font-style:normal;color:#b9cfe6;font-size:12.5px}
+.ccw-rank li.r0{background:linear-gradient(90deg,rgba(255,210,58,.34),rgba(255,210,58,.05))}.ccw-rank li.r1{background:linear-gradient(90deg,rgba(207,224,245,.28),rgba(207,224,245,.04))}.ccw-rank li.r2{background:linear-gradient(90deg,rgba(214,140,80,.3),rgba(214,140,80,.04))}
+.ccw-bar{height:10px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}.ccw-bar b{display:block;height:100%;background:linear-gradient(90deg,#2f8cff,#7cf5c8);border-radius:99px}
+.ccw-fine{color:#b9cfe6;font-size:12.5px;margin:8px 0}.ccw-lv{margin:10px 0 0;color:#ffd23a;font-weight:800}
+.ccw-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ccw-go{flex:1;min-height:50px;border:0;border-radius:14px;background:linear-gradient(135deg,#2f8cff,#7cf5c8);color:#04122a;font:900 16px/1 Sora,sans-serif;box-shadow:0 8px 20px rgba(47,140,255,.35)}
+.ccw-alt{min-height:50px;padding:0 18px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.07);color:#fff;font:800 14px/1 Sora,sans-serif}
+.cc-cut{position:fixed;inset:0;z-index:13200;display:grid;place-items:center;pointer-events:none;background:radial-gradient(circle,rgba(255,210,58,.25),rgba(2,8,20,.7) 70%);animation:ccIn .5s ease-out}
+.cc-cut div{text-align:center;transform:rotate(-3deg)}
+.cc-cut small{display:block;color:#7cf5c8;font:900 clamp(12px,2.4vmin,26px)/1 Sora,sans-serif;letter-spacing:.2em}
+.cc-cut b{display:block;margin:1.4vmin 0;font:900 clamp(34px,9vmin,110px)/1 Sora,sans-serif;color:#fff;text-shadow:0 0 30px #ffd23a,0 6px 0 #c47a00;animation:ccPop .7s cubic-bezier(.2,1.6,.4,1)}
+.cc-cut span{display:block;color:#eaf6ff;font:800 clamp(13px,2.6vmin,28px)/1.3 Sora,sans-serif}
+.cc-cut.out{opacity:0;transition:opacity .5s}
+@keyframes ccIn{from{opacity:0}to{opacity:1}}@keyframes ccPop{0%{transform:scale(.4)}100%{transform:scale(1)}}
+/* the rating row on a run's result card */
+.wst-rate{margin:10px 0;padding:10px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);display:grid;gap:8px;justify-items:center}
+.wst-rate small{font-weight:800;color:#cfe0f5}.wst-rate span{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.wst-rate button{padding:8px 14px;border-radius:99px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.07);color:#fff;font:800 13.5px/1 Sora,sans-serif}
+.wst-rate button.on{background:linear-gradient(135deg,#2f8cff,#7cf5c8);color:#04122a;border-color:transparent}.wst-rate.done span{opacity:.55;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.cc-cut,.cc-cut b{animation:none}}

@@ -84,6 +84,11 @@ let gm = await get("studio-game&id=" + id); check(gm.ok && gm.game.best.length =
 r = await call(fan, "world-studio-like", { id }); check(r.status === 200 && r.body.likes === 1, "liked");
 r = await call(fan, "world-studio-like", { id }); check(r.body.likes === 1 && r.body.already, "once a wallet");
 r = await call(me, "world-studio-like", { id }); check(r.status === 400, "not your own game");
+// Studio Beta: a player's rating after a run — once a wallet, not your own, the maker sees it
+r = await call(fan, "world-studio-rate", { id, fun: 1, dif: 2 }); check(r.status === 200 && r.body.fb && r.body.fb.up === 1 && r.body.fb.d[2] === 1, "rated: fun, hard");
+r = await call(fan, "world-studio-rate", { id, fun: -1, dif: 0 }); check(r.body.already, "rated once a wallet");
+r = await call(me, "world-studio-rate", { id, fun: 1, dif: 1 }); check(r.status === 400, "can't rate your own game");
+r = await call(fan, "world-studio-rate", { id, fun: 3, dif: 1 }); check(r.status === 400 || r.body.already, "a bad rating is refused");
 // the agent drafts one: the model's JSON clamped; without the model, the rules read the words
 r = await call(me, "world-studio-ai", { t: "a fast dinosaur jungle run with lots of coins" }); check(r.status === 200 && r.body.by === "agent" && r.body.spec.theme === "jungle" && r.body.spec.speed === 5 && !("evil" in r.body.spec) && r.body.spec.title === "Dino Dash", "the agent's draft, clamped: " + JSON.stringify(r.body.spec));
 aiReply = "sorry, I can't"; r = await call(me, "world-studio-ai", { t: "얼음 위 쉬운 짧은 게임" }); check(r.status === 200 && r.body.by === "rules" && r.body.spec.theme === "ice" && r.body.spec.len === 30 && r.body.spec.speed === 2, "no JSON: the rules read the words (ko): " + JSON.stringify(r.body.spec));

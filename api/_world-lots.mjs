@@ -10,7 +10,7 @@ export const LOT_TIERS = [
   { id: "m", min: 1e4, N: 36, max: 10000 },
   { id: "l", min: 1e5, N: 48, max: 20000 },
 ];
-export const LANDS = { lp: { x: 2400, z: 0, r: 260 }, ut: { x: -2400, z: 0, r: 60 }, ad: { x: 0, z: 2400, r: 96 }, rq: { x: 0, z: -2400, r: 104 } }; // (ad: Nexus City, world-adcity.js; rq: RAID QUEENS, world-raidq.js)
+export const LANDS = { lp: { x: 2400, z: 0, r: 260 }, ut: { x: -2400, z: 0, r: 60 }, ad: { x: 0, z: 2400, r: 96 }, rq: { x: 0, z: -2400, r: 104 }, cc: { x: -2400, z: 2400, r: 100 } }; // (ad: Nexus City, world-adcity.js; rq: RAID QUEENS, world-raidq.js)
 export const tierOfCap = (mc) => { let t = 0; LOT_TIERS.forEach((x, i) => { if ((Number(mc) || 0) >= x.min) t = i; }); return t; };
 /// is (x, z) somewhere a player can stand: the town, or inside a land
 export const inWorld = (x, z) => Math.hypot(x, z) <= 150 || Object.values(LANDS).some((L) => Math.hypot(x - L.x, z - L.z) <= L.r);

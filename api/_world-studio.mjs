@@ -9,6 +9,7 @@
 //   POST { action: "world-studio-del",     …signature, id }               → { ok }
 //   POST { action: "world-studio-play",    …signature, id, coins, dist, done, trace? | moves, hints } → { score, best, plays, ghost } (a run, checked against the level; a puzzle's moves replayed on its board)
 //   POST { action: "world-studio-like",    …signature, id }               → { likes }      (once a wallet)
+//   POST { action: "world-studio-rate",    …signature, id, fun ±1, dif 0|1|2 } → { fb }   (Studio Beta: once a wallet a game; the maker sees g.fb)
 //   POST { action: "world-studio-pick",    …signature, id, on }           → { pick }       (a GM's editor's pick: listed first in the arcade, ≤ PICKS)
 //   POST { action: "world-studio-ai",      …signature, t }                → { spec, by: "agent"|"rules" } (your agent drafts one from your words; AI_DAY a day)
 //   GET  ?world=studio-arcade                                            → { games: [{ id, title, tpl, theme, byName, plays, likes, at }] }
@@ -57,7 +58,7 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
     if (g && g.pub && !g.hidden) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
@@ -181,6 +182,15 @@ export function makeStudio(deps) {
     if (!o) o = tweakRules(t, base); else await setDoc(k, { n: (d.n || 0) + 1 });
     return json(200, { ok: true, spec: keep(o), by, say, left: STUDIO.AI_DAY - (d.n || 0) - (by === "agent" ? 1 : 0) });
   }
+  /// Studio Beta: a player's word on a game after a run — fun or not, and how hard (once a wallet; not your own game)
+  async function rate(w, b) {
+    const g = await game(b.id); if (!g || !g.pub) return json(404, { error: "no such game" });
+    if (g.w === w) return json(400, { error: "that's your own game" });
+    const fun = Number(b.fun), dif = Number(b.dif); if (![1, -1].includes(fun) || ![0, 1, 2].includes(dif)) return json(400, { error: "fun ±1 and dif 0–2" });
+    if (!(await deps.commit([{ create: `worldStudioRate/${b.id}_${w}`, data: { at: now(), fun, dif } }])).ok) return json(200, { ok: true, already: true });
+    const fb = { up: 0, down: 0, d: [0, 0, 0], ...(g.fb || {}) }; fb.d = [...(fb.d || [0, 0, 0])]; if (fun > 0) fb.up++; else fb.down++; fb.d[dif]++; g.fb = fb;
+    await setDoc(`worldStudio/${b.id}`, g); return json(200, { ok: true, fb });
+  }
   async function like(w, b) {
     const g = await game(b.id); if (!g || !g.pub) return json(404, { error: "no such game" });
     if (g.w === w) return json(400, { error: "that's your own game" });
@@ -247,6 +257,7 @@ export function makeStudio(deps) {
       if (b.action === "world-studio-pick") return pick(w, b);
       if (b.action === "world-studio-play") return play(w, b);
       if (b.action === "world-studio-like") return like(w, b);
+      if (b.action === "world-studio-rate") return rate(w, b);
       if (b.action === "world-studio-ai") return ai(w, b);
       if (b.action === "world-studio-tweak") return tweak(w, b);
       if (b.action === "world-studio-report") return report(w, b);
