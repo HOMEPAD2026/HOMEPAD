@@ -3,6 +3,7 @@
 //
 // The game is ~45 ES modules (world-*.js, 1.35 MB as written). Phones paid for every byte and every file. This
 // bundles them with esbuild into /w/:
+//   w/world-studio-web.js  a second entry: the Studio's web page (studio-web.html, /game/@<creator>/<game>), sharing the chunks
 //   w/world-play.js   the entry (the beta check, then the game); loaded as /w/world-play.js?v=N so the asset
 //                     version (VER, read from its own URL) keeps working
 //   w/c-<hash>.js     the rest: world-all.js and everything it pulls in, plus the parts loaded on demand (the 3D
@@ -102,7 +103,7 @@ const threeExternal = {
 // memory (old) and come back below; on an error, put them back and stop
 let res;
 try { res = await esbuild.build({
-  absWorkingDir: ROOT, entryPoints: ["world-play.js"], outdir: OUT, bundle: true, splitting: true, format: "esm",
+  absWorkingDir: ROOT, entryPoints: ["world-play.js", "world-studio-web.js"], outdir: OUT, bundle: true, splitting: true, format: "esm",
   minify: true, target: ["es2022"], sourcemap: false, entryNames: "[name]", chunkNames: "c-[hash]", metafile: true,
   legalComments: "eof", plugins: [threeExternal], logLevel: "warning",
 }); } catch (err) {

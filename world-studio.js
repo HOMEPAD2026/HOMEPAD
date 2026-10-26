@@ -31,6 +31,7 @@ export function createStudio(ctx) {
   const thumbs = new Map(); let thumbQ = [], thumbT = 0;
   // STU-C: the arcade's search / sort / template filter, the weekly contest, a remix's origin
   let aq = "", asort = "pop", atpl = "", week = null, remixFrom = "";
+  let myH = null, hEdit = false; // (the web: your creator ID — your games' page is /game/@<it>; null = not read yet)
   // STU-D: the GM's reported games, a game's numbers open on its card, the report reasons
   let reports = [], statsOpen = "", repOpen = false; const REASONS = [["broken", "🧩", "It doesn't work"], ["unfair", "😤", "Impossible / unfair"], ["rude", "🚫", "Rude name"], ["copy", "📋", "Copied from another game"], ["other", "❓", "Something else"]];
   const hex = (c) => "#" + c.toString(16).padStart(6, "0");
@@ -39,12 +40,31 @@ export function createStudio(ctx) {
     const s = ctx.sess(); if (!s) return null;
     try { return await ctx.post({ ...body, wallet: s.wallet, issued: s.issued, signature: s.signature }); } catch { return { ok: false, j: { error: T("No connection — try again") } }; }
   }
+  /// a game's link: its page on the web (/game/@<creator>/<game>) once its maker has an ID, else the World's own link
+  const links = new Map();
+  async function webLink(id) {
+    if (links.has(id)) return links.get(id); let u = `${location.origin}/play?sg=${encodeURIComponent(id)}`;
+    try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id), { cache: "no-store" }); if (r.ok) { const g = (await r.json()).game; if (g && g.h && g.slug) u = `${location.origin}/game/@${g.h}/${g.slug}`; } } catch { /* the World's link */ }
+    links.set(id, u); return u;
+  }
+  const hSuggest = () => String((ctx.myName && ctx.myName()) || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9_]/g, "").slice(0, 20);
+  function webBox() {
+    if (!wallet() || myH == null) return "";
+    if (myH && !hEdit) return `<div class="wst-web"><i>🌐</i><div><small>${esc(T("Your games on the web"))}</small><b>arcircle.app/game/@${esc(myH)}</b></div><a class="wst-go" href="/game/@${esc(myH)}" target="_blank" rel="noopener">${esc(T("Open"))}</a><button type="button" data-hcopy>🔗</button><button type="button" data-hedit>${esc(T("Change"))}</button></div>`;
+    return `<div class="wst-web pick"><i>🌐</i><div><b>${esc(T(myH ? "Change your creator ID" : "Get your own page on the web"))}</b><small>${esc(T("Pick a creator ID: your games live at arcircle.app/game/@<ID>, playable in any browser."))}</small></div><label class="wst-hin"><span>@</span><input type="text" maxlength="20" autocomplete="off" spellcheck="false" placeholder="${esc(T("your_id"))}" value="${esc(myH || hSuggest())}"></label><button type="button" class="wst-go" data-hsave>${esc(T("Save"))}</button>${myH ? `<button type="button" data-hcancel>✕</button>` : ""}</div>`;
+  }
+  async function saveHandle() {
+    const inp = el && el.querySelector(".wst-hin input"), h = inp ? inp.value.trim().toLowerCase() : ""; if (!/^[a-z0-9_]{3,20}$/.test(h)) { ctx.toast(esc(T("3–20 letters, numbers or _"))); if (inp) inp.focus(); return; }
+    const r = await act({ action: "world-studio-handle", h }); if (!r || !r.ok) return r && fail(r);
+    myH = r.j.h; hEdit = false; links.clear(); ctx.toast("🌐 " + esc(T("Your page: arcircle.app/game/@{h}", { h: myH }))); paint();
+  }
   const fail = (r) => { const e = r && r.j && r.j.error; ctx.toast(e ? (r.j.closed ? "🚧 " + T("Being built") : esc(e)) : T("Couldn't open it — try again")); };
   async function load() {
     try { const r = await fetch("/api/social?world=studio-arcade", { cache: "no-store" }); if (r.ok) arcade = (await r.json()).games || []; } catch { /* the next look */ }
     try { const r = await fetch("/api/social?world=studio-week", { cache: "no-store" }); if (r.ok) week = await r.json(); } catch { /* the next look */ }
     if (ctx.isGM && ctx.isGM()) try { const r = await fetch("/api/social?world=studio-reports", { cache: "no-store" }); if (r.ok) reports = (await r.json()).list || []; } catch { /* the next look */ }
     const w = wallet(); if (w) try { const r = await fetch("/api/social?world=studio-mine&wallet=" + w, { cache: "no-store" }); if (r.ok) mine = (await r.json()).games || []; } catch { /* the next look */ }
+    if (w && myH == null) try { const r = await fetch("/api/social?world=studio-handle&wallet=" + w, { cache: "no-store" }); if (r.ok) myH = (await r.json()).h || ""; } catch { /* the next look */ }
     if (el && !el.hidden) { if (tab === "game" && gid) return openGame(gid); paint(); } /* (back from a run on a game's page: its top 10 read again) */
   }
 
@@ -52,7 +72,7 @@ export function createStudio(ctx) {
   function shell() {
     if (el) return el; el = document.createElement("div"); el.className = "wst"; el.hidden = true; document.body.appendChild(el);
     el.addEventListener("click", onClick); el.addEventListener("input", onInput); el.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches(".wst-adv")) advOpen = e.target.open; }, true);
-    el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } });
+    el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } else if (e.key === "Enter" && e.target.closest && e.target.closest(".wst-hin")) { e.preventDefault(); saveHandle(); } });
     return el;
   }
   const land = ctx.land || makeLand({ T, esc, coarse: !!ctx.coarse }); // (phones: the Studio sideways while it's open — world-studio-pad.js)
@@ -172,7 +192,7 @@ export function createStudio(ctx) {
     const L = locals(), w = wallet();
     const loc = L.length ? `<div class="wst-local"><b>📱 ${esc(T("{n} drafts on this device", { n: L.length }))}</b><small>${esc(T(w ? "Put them in your account to keep them everywhere and publish them." : "They stay on this phone or computer. Sign in to keep them everywhere and publish them."))}</small><button type="button" class="wst-go" data-${w ? "lup" : "signin"}>${esc(T(w ? "Put them in my account" : "Sign in"))}</button></div>${L.map(localCard).join("")}` : "";
     if (!w) return loc || `<div class="wst-emptybox"><i>🎮</i><b>${esc(T("No games yet"))}</b><small>${esc(T("Make one in Create — you can save it on this device without signing in."))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`;
-    return loc + (mine.length ? mine.map((g) => card(g, true)).join("") : L.length ? "" : `<div class="wst-emptybox"><i>🎮</i><b>${esc(T("No games yet"))}</b><small>${esc(T("No games yet — make your first one in Create."))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`);
+    return webBox() + loc + (mine.length ? mine.map((g) => card(g, true)).join("") : L.length ? "" : `<div class="wst-emptybox"><i>🎮</i><b>${esc(T("No games yet"))}</b><small>${esc(T("No games yet — make your first one in Create."))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`);
   }
   function contestBox() {
     if (!week || !week.tpl || !TEMPLATES[week.tpl]) return ""; const left = Math.max(0, week.ends - Date.now()), d = Math.floor(left / 86400e3), h = Math.floor((left % 86400e3) / 3600e3);
@@ -286,7 +306,11 @@ export function createStudio(ctx) {
     if (b.dataset.edit) { repOpen = false; const g = mine.find((x) => x.id === b.dataset.edit); if (g) { spec = clampSpec(g.spec); editId = g.id; localId = ""; remixFrom = ""; tab = "make"; step = 3; lastTest = null; paint(); } return; }
     if (b.dataset.play) return playId(b.dataset.play, tab === "game" && gdata && gdata.id === b.dataset.play && ghostOn ? { ghost: gdata.ghost } : {});
     if (b.dataset.like) return like(b.dataset.like);
-    if (b.dataset.share) { ev("share"); const u = `${location.origin}/play?sg=${encodeURIComponent(b.dataset.share)}`; try { await navigator.clipboard.writeText(u); ctx.toast("🔗 " + esc(T("Link copied — anyone with it plays your game"))); } catch { prompt(T("Copy link"), u); } return; }
+    if (b.hasAttribute("data-hsave")) return saveHandle();
+    if (b.hasAttribute("data-hedit")) { hEdit = true; paint(); return; }
+    if (b.hasAttribute("data-hcancel")) { hEdit = false; paint(); return; }
+    if (b.hasAttribute("data-hcopy")) { const u = `${location.origin}/game/@${myH}`; try { await navigator.clipboard.writeText(u); ctx.toast("🔗 " + esc(T("Link copied"))); } catch { prompt(T("Copy link"), u); } return; }
+    if (b.dataset.share) { ev("share"); const u = await webLink(b.dataset.share); try { await navigator.clipboard.writeText(u); ctx.toast("🔗 " + esc(T("Link copied — anyone with it plays your game"))); } catch { prompt(T("Copy link"), u); } return; }
   }
   async function draft() {
     const inp = el.querySelector(".wst-aiin"), t = inp ? inp.value.trim() : ""; if (!t) { if (inp) inp.focus(); return; }
@@ -324,7 +348,7 @@ export function createStudio(ctx) {
   }
   async function publish(id) {
     const g = mine.find((x) => x.id === id), on = !(g && g.pub); const r = await act({ action: "world-studio-publish", id, on }); if (!r || !r.ok) return r && fail(r);
-    mine = mine.map((x) => (x.id === id ? r.j.game : x)); ctx.toast(on ? "🚀 " + esc(T("On the Creator Arcade!")) : esc(T("Taken off the Creator Arcade"))); paint(); load();
+    mine = mine.map((x) => (x.id === id ? r.j.game : x)); links.delete(id); ctx.toast(on ? "🚀 " + esc(T("On the Creator Arcade!")) + (myH && r.j.game.slug ? " · 🌐 /game/@" + esc(myH) + "/" + esc(r.j.game.slug) : myH === "" ? " · 🌐 " + esc(T("Pick a creator ID in My games for its own web page")) : "") : esc(T("Taken off the Creator Arcade"))); paint(); load();
     if (on) { ev("publish"); let first = false; try { first = !localStorage.getItem("arc.studio.pub1"); localStorage.setItem("arc.studio.pub1", "1"); } catch { /* not kept */ } launchFx(first); }
   }
   async function del(id) {
@@ -336,7 +360,7 @@ export function createStudio(ctx) {
     let g = mine.find((x) => x.id === id && x.spec);
     if (!g) try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id), { cache: "no-store" }); if (r.ok) g = (await r.json()).game; } catch { /* below */ }
     if (!g || !g.spec) { ctx.toast(T("Couldn't open it — try again")); return; }
-    run({ spec: clampSpec(g.spec), id, title: g.title, by: g.byName, ghost: opt.ghost || null, vs: opt.vs || 0, vsBy: opt.vsBy || "" });
+    run({ spec: clampSpec(g.spec), id, title: g.title, by: g.byName, ghost: opt.ghost || null, vs: opt.vs || 0, vsBy: opt.vsBy || "", ...(opt.onBack ? { onBack: opt.onBack } : {}) }); // (onBack: the web page's own way back, world-studio-web.js)
   }
 
   /// STU-A: a 1200×630 share card for a game (its level's picture, who made it, its numbers; the game's own link in the words)
@@ -346,7 +370,7 @@ export function createStudio(ctx) {
     if (!g) { ctx.toast(T("Couldn't open it — try again")); return; }
     const sp = g.spec || g.s, th = THEMES[g.theme || sp.theme] || THEMES.neon; let art = thumbs.get(thumbKey(g)) || "";
     if (!art && !ctx.saver) { try { if (!prev) prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); art = prev ? prev.snap(clampSpec({ ...sp })) : ""; } catch { art = ""; } }
-    const url = `${location.origin}/play?sg=${encodeURIComponent(id)}`;
+    const url = await webLink(id);
     ctx.share({ kind: "studio", tag: `${ICON[sp.tpl] || "🎮"} ${T((TEMPLATES[sp.tpl] || TEMPLATES.runner).name)} · ${T(th.name)}`, title: g.title || sp.title || "", sub: T("by {n}", { n: g.byName || "?" }),
       rows: [...(score != null ? [[T("My score"), String(score), "🏆"]] : []), [T("Plays"), String(g.plays || 0), "▶"], [T("Likes"), String(g.likes || 0), "♥"]], art: art || `/images/ui/studio/${TEMPLATES[sp.tpl] ? sp.tpl : "runner"}.webp`, cover: true, accent: hex(th.edge),
       text: `${score != null ? T("I scored {s} in", { s: score }) + " " : ""}"${g.title || sp.title}" — ${T("a game made in ARCIRCLE Studio")} 🎮 ${url}` });

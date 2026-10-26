@@ -65,6 +65,14 @@
       "destination": "/game.html"
     },
     {
+      "source": "/game/@:h",
+      "destination": "/api/social?world=studio-page&h=:h"
+    },
+    {
+      "source": "/game/@:h/:g",
+      "destination": "/api/social?world=studio-page&h=:h&g=:g"
+    },
+    {
       "source": "/coins",
       "destination": "/coins.html"
     },

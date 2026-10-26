@@ -218,5 +218,39 @@ for (const tpl of ["jump", "dungeon", "escape", "boss", "mining"]) { const sp = 
   check(G.clampSpec({ tpl: "race", build: { rc: 1, r: [[0, 0], [20, 0]] } }).build === undefined, "race: a track of fewer than 3 rings isn't kept");
   const L = G.genLevel(G.clampSpec({ tpl: "race", seed: 9, len: 60 })); check(L.race && L.B.r.length === 11 && L.limit > 20 && L.coins === L.B.o.length + L.limit, "race: a quick-start loop, a time limit, orbs + seconds left as coins"); }
 for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl, seed: 3 }); check(G.estimate(sp).stars >= 1 && (tpl === "survival" || JSON.stringify(G.toBuild(sp)) === JSON.stringify(tpl === "rhythm" ? G.genBeatChart(sp) : G.genRaceBuild(sp))), `${tpl}: the bots rate it${tpl === "survival" ? "" : "; the builder starts from the quick start"}`); }
+// ---- the web: creator IDs and game addresses (/game/@<id>/<game>) ----
+{ const S = await import("../../api/_world-studio.mjs"), cr = ethers.Wallet.createRandom(), cr2 = ethers.Wallet.createRandom(), other = ethers.Wallet.createRandom();
+  check(S.slugOf("Neon Rush!") === "neon-rush" && S.slugOf("Café  Run--") === "cafe-run" && S.slugOf("네온 러시") === "" && S.normHandle("@Mint_01") === "mint_01", "web: a title becomes an address (letters, numbers, -); an ID is lower case without its @");
+  let r = await call(cr, "world-studio-handle", { h: "ab" }); check(r.status === 400, "web: an ID needs 3–20 letters, numbers or _");
+  r = await call(cr, "world-studio-handle", { h: "arcircle" }); check(r.status === 400, "web: a reserved ID (arcircle, gm, admin …) can't be taken");
+  r = await call(cr, "world-studio-handle", { h: "@MintMaker" }); check(r.status === 200 && r.body.h === "mintmaker", "web: a creator picks an ID: " + JSON.stringify(r.body));
+  r = await call(cr2, "world-studio-handle", { h: "mintmaker" }); check(r.status === 409, "web: an ID is one creator's (taken → 409)");
+  check((await get("studio-handle&wallet=" + cr.address.toLowerCase())).h === "mintmaker", "web: a wallet's ID is read back");
+  r = await call(cr, "world-studio-save", { spec: { tpl: "jump", title: "Neon Run", seed: 7 } }); const id1 = r.body.game.id; await call(cr, "world-studio-publish", { id: id1, on: true });
+  r = await call(cr, "world-studio-save", { spec: { tpl: "runner", title: "Neon Run", seed: 8 } }); const id2 = r.body.game.id; await call(cr, "world-studio-publish", { id: id2, on: true });
+  r = await call(cr, "world-studio-save", { spec: { tpl: "runner", title: "네온 러시", seed: 9 } }); const id3 = r.body.game.id; await call(cr, "world-studio-publish", { id: id3, on: true });
+  r = await call(cr, "world-studio-save", { spec: { tpl: "runner", title: "Secret", seed: 10 } }); const id4 = r.body.game.id; // (a draft: never on the web)
+  let c = await get("studio-creator&h=@mintmaker"); const sl = Object.fromEntries(c.games.map((g) => [g.id, g.slug]));
+  check(c.creator.h === "mintmaker" && c.games.length === 3 && sl[id1] === "neon-run" && sl[id2] === "neon-run-2" && sl[id3] === id3 && !(id4 in sl), "web: a creator's page lists the published games, each with its own address: " + JSON.stringify(sl));
+  let at = await get("studio-at&h=mintmaker&g=neon-run-2"); check(at.game && at.game.id === id2 && at.game.spec && at.creator.h === "mintmaker", "web: a game is found by its address");
+  check((await get("studio-game&id=" + id1)).game.h === "mintmaker" && (await get("studio-game&id=" + id1)).game.slug === "neon-run", "web: a game says its address (for the share links)");
+  await call(cr, "world-studio-save", { id: id1, spec: { tpl: "jump", title: "Sky Run", seed: 7 } }); at = await get("studio-at&h=mintmaker&g=neon-run");
+  check(at.game && at.game.id === id1 && at.game.slug === "sky-run", "web: a renamed game gets a new address and the old one still finds it");
+  check((await get("studio-at&h=mintmaker&g=" + id4)).error, "web: a draft has no address");
+  r = await call(cr, "world-studio-handle", { h: "mintqueen" }); check(r.status === 200 && r.body.left === S.HANDLE.CHANGES - 1, "web: an ID can change (" + S.HANDLE.CHANGES + " times)");
+  check((await get("studio-creator&h=mintmaker")).moved === "mintqueen", "web: the old ID points to the new one");
+  r = await call(cr2, "world-studio-handle", { h: "mintmaker" }); check(r.status === 409, "web: an old ID stays its creator's (nobody else can take a link that's out there)");
+  r = await call(cr, "world-studio-handle", { h: "mintmaker" }); check(r.status === 200 && !(await get("studio-creator&h=mintmaker")).moved, "web: a creator can go back to an old ID of their own");
+  const pg = (q) => W.read(new URL("https://www.arcircle.app/api/social?world=studio-page&" + q));
+  let P = await pg("h=mintmaker&g=sky-run"); const html = P.body.__html || "";
+  check(P.status === 200 && /og:title" content="Sky Run — @mintmaker/.test(html) && /twitter:card" content="summary_large_image"/.test(html) && /images\/studio\/tpl\/jump-768\.webp/.test(html) && /window\.__SG = \{/.test(html), "web: a game's page carries its card for X (title, picture) and its data");
+  P = await pg("h=mintmaker&g=neon-run"); check(P.status === 301 && P.body.headers.location === "/game/@mintmaker/sky-run", "web: an old address sends you on to the game's current one");
+  await call(cr, "world-studio-handle", { h: "mintqueen" }); P = await pg("h=mintmaker&g=sky-run"); check(P.status === 301 && P.body.headers.location === "/game/@mintqueen/sky-run", "web: an old ID's link sends you on to the new ID");
+  P = await pg("h=nobodyhere&g=x"); check(P.status === 404 && /noindex/.test(P.body.__html), "web: an address that isn't there is a 404 page (not indexed)");
+  P = await pg("h=arcircle&g=neon-rush"); check(P.status === 200 && /Neon Rush — @arcircle/.test(P.body.__html), "web: ARCIRCLE's own games live at /game/@arcircle/<game>");
+  P = await pg("h=arcircle"); check(P.status === 200 && (P.body.__html.match(/"slug":/g) || []).length >= 15, "web: @arcircle's page lists the official games");
+  await call(cr, "world-studio-save", { id: id2, spec: { tpl: "runner", title: "<img src=x onerror=alert(1)>", seed: 8 } }); P = await pg("h=mintqueen");
+  check(!/<img src=x/.test(P.body.__html) && !/<\/script><img/.test(P.body.__html), "web: a title can't put markup into the page");
+}
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

@@ -12,7 +12,7 @@
 //     "lanes": a push left / right changes lane once, up jumps, down slides.
 const isLand = () => innerWidth > innerHeight; // (the page's own shape: it follows a turn on every browser, and a split screen too)
 const canLock = () => !!(document.documentElement.requestFullscreen && screen.orientation && screen.orientation.lock);
-export function makeGate({ T = (s) => s, esc = (s) => s, coarse = false, onBack = null, ver = "" } = {}) {
+export function makeGate({ T = (s) => s, esc = (s) => s, coarse = false, onBack = null, ver = "", place = "Creator City", line = "Creator City and the Studio are made for landscape — building, testing and playing all fit on one screen.", back = "Back to Game World" } = {}) { // (place / line / back: the web page's own words, world-studio-web.js)
   const want = new Set(); let el = null, hint = null, mine = false, was = false, hintT = 0, listening = false;
   async function lockIt(btn) {
     if (btn) btn.classList.add("busy");
@@ -28,14 +28,14 @@ export function makeGate({ T = (s) => s, esc = (s) => s, coarse = false, onBack 
     el = document.createElement("div"); el.className = "wsg" + (canLock() ? "" : " manual"); el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
     el.style.setProperty("--art", `url("/images/cc/gate-tall.webp${ver}"), url("/images/gw/key-cc.webp${ver}")`);
     el.innerHTML = `<div class="wsg-art" aria-hidden="true"></div><div class="wsg-glow" aria-hidden="true"></div>
-      <div class="wsg-top"><small>ARCIRCLE STUDIO BETA</small><span>${esc(T("Creator City"))}</span></div>
+      <div class="wsg-top"><small>ARCIRCLE STUDIO BETA</small><span>${esc(T(place))}</span></div>
       <div class="wsg-in">
         <div class="wsg-ph" aria-hidden="true"><i class="wsg-phone"><em></em></i><svg viewBox="0 0 120 120"><path d="M20 70 A44 44 0 0 1 86 26" /><path class="hd" d="M78 16 L90 26 L76 34" /></svg></div>
         <b>${esc(T("Turn your phone sideways"))}</b>
-        <p>${esc(T("Creator City and the Studio are made for landscape — building, testing and playing all fit on one screen."))}</p>
+        <p>${esc(T(line))}</p>
         <button type="button" class="wsg-go"><span>⟳</span>${esc(T("Turn sideways"))}</button>
         <p class="wsg-man">${esc(T("Is auto-rotate off? Swipe down from the top and turn on Auto rotate, then turn your phone."))}</p>
-        <button type="button" class="wsg-back">← ${esc(T("Back to Game World"))}</button>
+        <button type="button" class="wsg-back">← ${esc(T(back))}</button>
       </div>`;
     el.querySelector(".wsg-go").addEventListener("click", (e) => lockIt(e.currentTarget));
     el.querySelector(".wsg-back").addEventListener("click", () => { hide(); if (onBack) onBack([...want]); });

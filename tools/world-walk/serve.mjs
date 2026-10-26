@@ -23,7 +23,7 @@ const json = (status, b, cache) => ({ status, body: b, cache });
 // creator's lot-building); who launched a coin and its market cap are answered from the same copy
 const launches = () => { const j = JSON.parse(fs.readFileSync(process.env.LAUNCHES, "utf8")); const k = process.env.LAUNCHES_MINE; if (k != null && j.launches[+k] && typeof sess !== "undefined") j.launches[+k].creator = sess.wallet; return j; };
 const lc0 = (a) => String(a || "").toLowerCase(), coinOf = (a) => (process.env.LAUNCHES ? launches().launches.find((c) => lc0(c.token) === lc0(a)) : null);
-const W = make({ ...store, ...(process.env.LAUNCHES ? { launchRecord: async (a) => { const c = coinOf(a); return c ? { token: lc0(c.token), creator: c.creator, launchedAt: c.launchedAt } : null; }, coinMcap: async (a) => { const c = coinOf(a); return c ? Number(c.marketCapUsd) || 0 : null; } } : {}), recover: recoverSigner, issuedOk: (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && Date.now() - t <= max && Date.now() - t >= -60e3; }, json, now: () => Date.now() + SKEW });
+const W = make({ ...store, pageTpl: async () => fs.readFileSync("studio-web.html", "utf8"), ...(process.env.LAUNCHES ? { launchRecord: async (a) => { const c = coinOf(a); return c ? { token: lc0(c.token), creator: c.creator, launchedAt: c.launchedAt } : null; }, coinMcap: async (a) => { const c = coinOf(a); return c ? Number(c.marketCapUsd) || 0 : null; } } : {}), recover: recoverSigner, issuedOk: (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && Date.now() - t <= max && Date.now() - t >= -60e3; }, json, now: () => Date.now() + SKEW });
 const w = ethers.Wallet.createRandom(), issued = new Date().toISOString();
 const sess = { wallet: w.address.toLowerCase(), issued, signature: await w.signMessage(loginMessage(w.address.toLowerCase(), issued)) };
 fs.writeFileSync(process.env.SESS || path.join(os.tmpdir(), "world-walk-sess.json"), JSON.stringify(sess));
@@ -32,7 +32,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 const log = [];
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
-  const send = (r) => { res.writeHead(r.status, { "content-type": "application/json" }); res.end(JSON.stringify(r.body)); };
+  const send = (r) => { if (r.body && r.body.__html != null) { res.writeHead(r.status, { "content-type": "text/html; charset=utf-8", ...(r.body.headers || {}) }); return res.end(r.body.__html); } res.writeHead(r.status, { "content-type": "application/json" }); res.end(JSON.stringify(r.body)); };
   try {
     if (u.pathname === "/skew") { SKEW += Number(u.searchParams.get("ms") || 0); return send({ status: 200, body: { ok: true, skew: SKEW } }); }
     if (u.pathname === "/skewegg") { let t = Date.now() + SKEW; for (let i = 0; i < 4000 && !DE.eggsAt(t).length; i++) t += 60e3; SKEW = t + 30e3 - Date.now(); return send({ status: 200, body: { ok: true, skew: SKEW, eggs: DE.eggsAt(Date.now() + SKEW) } }); }
@@ -59,6 +59,8 @@ http.createServer(async (req, res) => {
     // the ArcPad launches list (Coin City / the Launchpad Village): from a saved copy of production's /api/c?view=launches
     // (LAUNCHES=file) — this container can't reach Arc's RPC to build it
     if (u.pathname === "/api/c" && u.searchParams.get("view") === "launches" && process.env.LAUNCHES) return send({ status: 200, body: launches() });
+    // the Studio's web pages (vercel.json: /game/@<id>[/<game>] → ?world=studio-page)
+    { const m = u.pathname.match(/^\/game\/(?:@|%40)([^/]+)(?:\/([^/]+))?\/?$/); if (m) { u.pathname = "/api/social"; u.searchParams.set("world", "studio-page"); u.searchParams.set("h", decodeURIComponent(m[1])); if (m[2]) u.searchParams.set("g", decodeURIComponent(m[2])); } }
     if (u.pathname === "/api/social") {
       if (req.method === "POST") { let s = ""; for await (const c of req) s += c; const b = JSON.parse(s || "{}"); const r = await W.handle(b); if (/mine/.test(b.action || "")) log.push(b.action + " " + (r ? r.status : "-") + " " + JSON.stringify(r ? r.body : null).slice(0, 160)); if (r) return send(r); return send({ status: 404, body: { error: "not here" } }); }
       if (u.searchParams.get("world") === "minelog") return send({ status: 200, body: { log, bal: db.get(`worldArclBal/${sess.wallet}`) || null } });

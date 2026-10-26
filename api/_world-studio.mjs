@@ -21,6 +21,11 @@
 //   GET  ?world=studio-reports                                          → { list }       (the reported games, most first)
 //   GET  ?world=studio-week                                             → { week, tpl, ends, top, last } (STU-C: the weekly contest)
 //   GET  ?world=studio-ghost&id=…                                        → { ghost: { name, score, tr } | null } (Studio 3: the #1's run to race)
+//   POST { action: "world-studio-handle", …signature, h }                → { h }          (the web: your creator ID, /game/@<h>; HANDLE.CHANGES changes)
+//   GET  ?world=studio-handle&wallet=0x…                                 → { h }
+//   GET  ?world=studio-creator&h=…                                       → { creator, games } | { moved } (a creator's published games)
+//   GET  ?world=studio-at&h=…&g=…                                        → { creator, game } | { moved: { h, g } } (one game by its address)
+//   GET  ?world=studio-page&h=…[&g=…]                                    → the web page (HTML) for /game/@<h>[/<g>] (vercel.json rewrites)
 //
 // STU-A: OFFICIAL — six games by ARCIRCLE (ids goff*) listed from the start; the arcade's list carries a small spec (s) for
 // the cards' pictures and off for an official game.
@@ -28,6 +33,7 @@
 //            worldStudioLike/<id>_<wallet> (create-only) · worldStats/studioArcade { list: { <id>: { title, tpl, theme, byName, plays, likes, at, pick? } } }
 //            worldStudioAi/<wallet>_<day> { n } · worldStudioRun/<wallet>_<id>_<t/20s> (create-only: a play counted once in 20 s)
 //            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
+//            worldStudioHandle/<h> { w, at, moved? } (create-only; an old ID keeps pointing to its owner's new one) · worldStudioHandleOf/<wallet> { h, n, old }
 import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
@@ -52,6 +58,14 @@ export const OFFICIAL = {
   goffrace: { tpl: "race", theme: "ice", title: "Glacier Grand Prix", speed: 3, len: 45, coins: 3, walls: 2, gaps: 2, lasers: 1, seed: 2424 },
 };
 const OFF_AT = Date.UTC(2026, 9, 26);
+// the web (2026-10-26, the owner: "유저가 게임을 만들면 우리 웹 /game 뒤로 유저 이름 해서 실제 연동"): a creator picks an ID and
+// each published game gets an address of its own, arcircle.app/game/@<id>/<game> — a page with its card for X, its board and
+// a Play button that runs it in the browser without the town (world-studio-web.js). ARCIRCLE's own games live at @arcircle.
+export const HANDLE = { RE: /^[a-z0-9_]{3,20}$/, CHANGES: 3, SLUGS: 6,
+  RESERVED: ["arcircle", "official", "admin", "gm", "support", "help", "studio", "game", "games", "play", "api", "world", "team", "staff", "mod", "moderator", "system", "null", "undefined", "root", "www", "arc", "arcia", "arcl", "new", "me", "you", "creator", "creators"] };
+export const normHandle = (h) => String(h == null ? "" : h).trim().replace(/^(@|%40)/, "").toLowerCase().slice(0, 24);
+/// a game's address from its title: plain letters and numbers joined by "-" (a title in another script keeps the game's id)
+export const slugOf = (t) => String(t || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).replace(/-+$/, "");
 // STU-C: the weekly creator contest — each Seoul week (from Monday) one template is the theme; that week's plays (by others)
 // and likes ×5 on that template's published games rank them; last week's top 3 stay shown. worldStudioWeek/<monday> { tpl, list }
 export const CONTEST = { TPLS: ["runner", "arena", "climb", "dash", "defense", "puzzle", "rush"], LIKE: 5, TOP: 10, KEEP: 60 };
@@ -84,12 +98,75 @@ export function makeStudio(deps) {
   }
   const weekTop = (d) => Object.entries((d && d.list) || {}).map(([id, x]) => ({ id, ...x, pts: x.p + x.l * CONTEST.LIKE })).sort((a, b) => b.pts - a.pts);
   const mineOf = async (w) => ((await one(`worldStudioBy/${w}`)) || {}).ids || [];
+  // ---- the web: creator IDs and game addresses ----
+  const handleOf = async (w) => (w === "arcircle" ? "arcircle" : ((await one(`worldStudioHandleOf/${w}`)) || {}).h || "");
+  const slugFor = (id, g) => (g && g.slug) || slugOf(g && g.spec && g.spec.title) || id;
+  /// a published game's address among its maker's other games (a second "Neon Run" is neon-run-2); old ones kept (g.slugs)
+  async function setSlug(w, id, g) {
+    const ids = (await mineOf(w)).filter((x) => x !== id), docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {};
+    const taken = new Set(); for (const [k, d] of Object.entries(docs)) if (d && !d.gone && d.pub) for (const x of [d.slug, ...(d.slugs || [])]) if (x) taken.add(x); for (const i of ids) taken.add(i);
+    const base = slugOf(g.spec.title).length >= 2 ? slugOf(g.spec.title) : id; let sl = base, n = 2; while (taken.has(sl)) sl = `${base}-${n++}`;
+    g.slug = sl; g.slugs = [sl, ...(g.slugs || []).filter((x) => x !== sl && !taken.has(x))].slice(0, HANDLE.SLUGS);
+  }
+  async function setHandle(w, b) {
+    const h = normHandle(b.h); if (!HANDLE.RE.test(h)) return json(400, { error: "3–20 letters, numbers or _" });
+    if (HANDLE.RESERVED.includes(h)) return json(400, { error: "that ID is reserved" });
+    const me = (await one(`worldStudioHandleOf/${w}`)) || {}; if (me.h === h) return json(200, { ok: true, h, left: HANDLE.CHANGES - (me.n || 0) });
+    const cur = await one(`worldStudioHandle/${h}`);
+    if (cur && cur.w !== w) return json(409, { error: "that ID is taken" });
+    if (me.h && (me.n || 0) >= HANDLE.CHANGES) return json(400, { error: `an ID can change ${HANDLE.CHANGES} times` });
+    if (!cur) { if (!(await deps.commit([{ create: `worldStudioHandle/${h}`, data: { w, at: now() } }])).ok) return json(409, { error: "that ID is taken" }); }
+    else await setDoc(`worldStudioHandle/${h}`, { w, at: cur.at || now() }); // (one of your own old IDs again: it never stopped being yours)
+    if (me.h) await setDoc(`worldStudioHandle/${me.h}`, { w, at: now(), moved: h }); // (the old address keeps working: it points here)
+    const n = (me.n || 0) + (me.h ? 1 : 0); await setDoc(`worldStudioHandleOf/${w}`, { h, at: now(), n, old: me.h ? [...new Set([me.h, ...(me.old || [])])].slice(0, 6) : me.old || [] });
+    return json(200, { ok: true, h, left: HANDLE.CHANGES - n });
+  }
+  async function creatorOf(h0) {
+    const h = normHandle(h0); if (h === "arcircle") return { h, w: "arcircle", name: "ARCIRCLE", off: true };
+    if (!HANDLE.RE.test(h)) return null; const d = await one(`worldStudioHandle/${h}`); if (!d) return null;
+    if (d.moved) return { moved: (await handleOf(d.w)) || d.moved };
+    return { h, w: d.w, name: await deps.nameOf(d.w).catch(() => "") };
+  }
+  /// a creator's published games (not hidden), most played first — ARCIRCLE's are the official ones
+  async function gamesOf(c) {
+    const ids = c.off ? Object.keys(OFFICIAL) : await mineOf(c.w), docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}, out = [];
+    for (const id of ids) { const g = docs[`worldStudio/${id}`] || (c.off ? await game(id) : null); if (g && !g.gone && g.pub && !g.hidden && g.spec) out.push([id, g]); }
+    return out.sort((p, q) => (q[1].plays || 0) + (q[1].likes || 0) * 5 - (p[1].plays || 0) - (p[1].likes || 0) * 5 || (q[1].at || 0) - (p[1].at || 0));
+  }
+  const findIn = (list, sl) => list.find(([id, g]) => id === sl || slugFor(id, g) === sl) || list.find(([, g]) => (g.slugs || []).includes(sl)) || null;
+  const card = (c) => ({ h: c.h, name: c.name || "", ...(c.off ? { off: true } : {}) });
+  /// the page at /game/@<h>[/<g>]: the static studio-web.html with this game's (or creator's) card for X and its data inline
+  async function page(url) {
+    const h = normHandle(url.searchParams.get("h")), sl = String(url.searchParams.get("g") || "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 60);
+    const out = (status, text, headers = {}) => (deps.html ? deps.html(status, text, headers) : json(status, { __html: text, headers }));
+    const c = await creatorOf(h);
+    if (c && c.moved) return out(301, "", { location: `/game/@${c.moved}${sl ? "/" + sl : ""}` });
+    let data = null, status = 200;
+    if (c) { const list = await gamesOf(c);
+      if (sl) { const f = findIn(list, sl); if (f) { const [id, g] = f, canon = slugFor(id, g); if (canon !== sl) return out(301, "", { location: `/game/@${c.h}/${canon}` }); data = { creator: card(c), game: { ...pubOf(id, g, true), slug: canon }, more: list.filter(([i]) => i !== id).slice(0, 6).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }; } else status = 404; }
+      else data = { creator: card(c), games: list.slice(0, 60).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) };
+    } else status = 404;
+    const origin = url.origin && url.origin !== "null" ? url.origin : "https://www.arcircle.app";
+    let tpl = ""; try { tpl = deps.pageTpl ? await deps.pageTpl(url) : await (deps.fetch || fetch)(new URL("/studio-web.html", origin)).then((r) => (r.ok ? r.text() : "")); } catch { tpl = ""; }
+    if (!tpl) tpl = `<!doctype html><html><head><meta charset="utf-8"><!--META--></head><body><!--DATA--><p><a href="/game">ARCIRCLE WORLD</a></p></body></html>`;
+    const e = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m]);
+    const g = data && data.game, path = `/game/@${c && c.h ? c.h : h}${g ? "/" + g.slug : ""}`;
+    const title = g ? `${g.title} — @${c.h} · ARCIRCLE Studio` : c ? `@${c.h} — ${c.name || c.h}'s games · ARCIRCLE Studio` : "Game not found · ARCIRCLE Studio";
+    const desc = g ? `Play "${g.title}" by @${c.h} in your browser — a ${(TEMPLATES[g.tpl] || TEMPLATES.runner).name} game made in ARCIRCLE Studio. ${g.plays} plays · ${g.likes} likes.` : c ? `${data.games.length} games made in ARCIRCLE Studio by @${c.h}. Play them free in your browser.` : "This game isn't here. Find more in ARCIRCLE WORLD.";
+    const img = `${origin}/images/${g ? `studio/tpl/${TEMPLATES[g.tpl] ? g.tpl : "runner"}-768.webp` : "gw/key-studio.webp"}`;
+    const meta = [`<title>${e(title)}</title>`, `<meta name="description" content="${e(desc)}">`, `<link rel="canonical" href="${e(origin + path)}">`,
+      `<meta property="og:type" content="website">`, `<meta property="og:site_name" content="ARCIRCLE WORLD">`, `<meta property="og:title" content="${e(title)}">`, `<meta property="og:description" content="${e(desc)}">`, `<meta property="og:url" content="${e(origin + path)}">`, `<meta property="og:image" content="${e(img)}">`,
+      `<meta name="twitter:card" content="summary_large_image">`, `<meta name="twitter:title" content="${e(title)}">`, `<meta name="twitter:description" content="${e(desc)}">`, `<meta name="twitter:image" content="${e(img)}">`, ...(status === 404 ? [`<meta name="robots" content="noindex">`] : [])].join("\n");
+    const js = JSON.stringify(data ? { ...data, path } : { missing: { h, g: sl } }).replace(/</g, "\\u003c").replace(/\u2028|\u2029/g, "");
+    const html = tpl.replace("<!--META-->", meta).replace("<!--DATA-->", `<script>window.__SG = ${js};</script>`);
+    return out(status, html, { "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300" });
+  }
 
   async function save(w, b) {
     const spec = clampSpec(b.spec || {}), ids = await mineOf(w);
     if (b.id) {
       const g = await one(`worldStudio/${b.id}`); if (!g || g.w !== w) return json(404, { error: "not your game" });
-      if (JSON.stringify(g.spec) !== JSON.stringify(spec)) g.vers = [{ at: g.up || g.at, spec: g.spec }, ...(g.vers || [])].slice(0, STUDIO.VERS); /* (Studio 4: the last few saves to go back to) */ g.spec = { ...spec, seed: spec.seed }; g.up = now(); await setDoc(`worldStudio/${b.id}`, g); if (g.pub) await arcadeSet(b.id, g);
+      if (JSON.stringify(g.spec) !== JSON.stringify(spec)) g.vers = [{ at: g.up || g.at, spec: g.spec }, ...(g.vers || [])].slice(0, STUDIO.VERS); /* (Studio 4: the last few saves to go back to) */ const retitled = g.spec.title !== spec.title; g.spec = { ...spec, seed: spec.seed }; g.up = now(); if (g.pub && retitled) await setSlug(w, b.id, g); await setDoc(`worldStudio/${b.id}`, g); if (g.pub) await arcadeSet(b.id, g);
       return json(200, { ok: true, game: pubOf(b.id, g, true, true) });
     }
     if (ids.length >= STUDIO.DRAFTS) return json(400, { error: `you can keep ${STUDIO.DRAFTS} games — delete one first` });
@@ -100,9 +177,9 @@ export function makeStudio(deps) {
   }
   async function publish(w, b) {
     const g = await one(`worldStudio/${b.id}`); if (!g || g.w !== w) return json(404, { error: "not your game" });
-    g.pub = b.on !== false; g.at = g.pub && !g.pubAt ? now() : g.at; if (g.pub) g.pubAt = g.pubAt || now();
+    g.pub = b.on !== false; g.at = g.pub && !g.pubAt ? now() : g.at; if (g.pub) { g.pubAt = g.pubAt || now(); await setSlug(w, b.id, g); } // (the web: its address under /game/@<you>/)
     await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g);
-    return json(200, { ok: true, game: pubOf(b.id, g, true) });
+    return json(200, { ok: true, game: { ...pubOf(b.id, g, true), ...(g.pub && g.slug ? { slug: g.slug } : {}) } });
   }
   async function del(w, b) {
     const g = await one(`worldStudio/${b.id}`); if (!g || g.w !== w) return json(404, { error: "not your game" });
@@ -247,7 +324,13 @@ export function makeStudio(deps) {
       if (w === "studio-arcade") { const d = (await one("worldStats/studioArcade")) || {}, list = { ...(d.list || {}) };
         for (const [id, o] of Object.entries(OFFICIAL)) if (!list[id]) { const sp = clampSpec(o); list[id] = { title: sp.title, tpl: sp.tpl, theme: sp.theme, byName: "ARCIRCLE", plays: 0, likes: 0, at: OFF_AT, s: tinySpec(sp), off: true }; } // (STU-A: the official games are always listed)
         return json(200, { ok: true, games: Object.entries(list).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
-      if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); return json(200, { ok: true, game: pubOf(id, g, true) }); }
+      if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); const h = g.pub ? await handleOf(g.w) : ""; return json(200, { ok: true, game: { ...pubOf(id, g, true), ...(h ? { h, slug: slugFor(id, g) } : {}) } }); }
+      if (w === "studio-handle") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const d = (await one(`worldStudioHandleOf/${a}`)) || {}; return json(200, { ok: true, h: d.h || "", left: HANDLE.CHANGES - (d.n || 0) }); }
+      if (w === "studio-creator") { const c = await creatorOf(url.searchParams.get("h")); if (!c) return json(404, { error: "no such creator" }); if (c.moved) return json(200, { ok: true, moved: c.moved });
+        const list = await gamesOf(c); return json(200, { ok: true, creator: card(c), games: list.map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }, "public, max-age=30"); }
+      if (w === "studio-at") { const c = await creatorOf(url.searchParams.get("h")), sl = String(url.searchParams.get("g") || "").toLowerCase(); if (!c) return json(404, { error: "no such creator" }); if (c.moved) return json(200, { ok: true, moved: { h: c.moved, g: sl } });
+        const f = findIn(await gamesOf(c), sl); if (!f) return json(404, { error: "no such game" }); return json(200, { ok: true, creator: card(c), game: { ...pubOf(f[0], f[1], true), slug: slugFor(f[0], f[1]) } }); }
+      if (w === "studio-page") return page(url);
       if (w === "studio-reports") { const d = (await one("worldStats/studioReports")) || {}; return json(200, { ok: true, list: Object.entries(d.list || {}).map(([id, x]) => ({ id, ...x })).sort((a, b) => b.n - a.n) }); }
       if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`)];
         return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3) } : null }, "public, max-age=30"); }
@@ -270,6 +353,7 @@ export function makeStudio(deps) {
       if (b.action === "world-studio-tweak") return tweak(w, b);
       if (b.action === "world-studio-report") return report(w, b);
       if (b.action === "world-studio-hide") return hide(w, b);
+      if (b.action === "world-studio-handle") return setHandle(w, b);
       return null;
     },
   };

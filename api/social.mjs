@@ -204,7 +204,7 @@ const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDoc
 // ArcPad v6 (api/_arcpad-v6.mjs): comments, referrals, launch plans
 let V6 = null;
 let WORLD = null;
-const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, queryDocs, storeEnabled, recover: recoverSigner, issuedOk, json, launchRecord, tokenBalance, coinMcap: async (a) => { const c = await getCoin(a); return c ? c.mcapUsd : null; }, phase: WORLD_PHASE,
+const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, queryDocs, storeEnabled, recover: recoverSigner, issuedOk, json, html: (status, text, headers = {}) => new Response(text, { status, headers: { "content-type": "text/html; charset=utf-8", ...headers } }), /* (the Studio's web pages, /game/@<id>/<game>) */ launchRecord, tokenBalance, coinMcap: async (a) => { const c = await getCoin(a); return c ? c.mcapUsd : null; }, phase: WORLD_PHASE,
   arcPrice: async () => (await token.tokenStats(null)).price, receipt: (h) => rpcCall("eth_getTransactionReceipt", [h]), blockNumber: () => rpcCall("eth_blockNumber", []), ownerOf: (a) => rpcCall("eth_call", [{ to: a, data: "0x8da5cb5b" }, "latest"]), ethCall: (to, data) => rpcCall("eth_call", [{ to, data }, "latest"]) }));
 const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)), veTier: (w) => vearcia.veTierOf(w),
   argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));
