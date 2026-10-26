@@ -40,8 +40,10 @@ async function open(dev, { route } = {}) {
   await p.waitForTimeout(12000); // (the seeded save is newer than this browser's: the game takes it and reloads once)
   for (let i = 0; i < 120 && !(await G(() => !!(window.arcWorld && window.arcWorld.jurassic) && !document.body.classList.contains("wp-intro"))); i++) await p.waitForTimeout(1000);
   await G(() => { window.arcWorld.P.guideSeen = true; });
-  const skip = () => G(() => { for (const s of ["#wp-guide-go", ".wp-qs [data-qs=go]", ".wp-tips-go", ".wp-coach-skip", ".wp-st .wp-st-x"]) document.querySelectorAll(s).forEach((c) => c.click()); });
+  const skip = () => G(() => { for (const s of ["#wp-guide-go", ".wp-qs [data-qs=go]", ".wp-tips-go", ".wp-coach-skip", ".wp-st .wp-st-x", ".wp-adp [data-later]"]) document.querySelectorAll(s).forEach((c) => c.click()); });
   for (let i = 0; i < 6; i++) { await p.waitForTimeout(800); await skip(); }
+  // (the AD launch card sits over the maker until it's closed: a maker still up is finished now)
+  if (await p.isVisible("#wp-make-name").catch(() => false)) { await p.fill("#wp-make-name", "Ranger"); await G(() => document.getElementById("wp-make-go").click()); for (let i = 0; i < 6; i++) { await p.waitForTimeout(800); await skip(); } }
   const shot = (n) => p.screenshot({ path: path.join(OUT, `${dev}-${n}.png`), timeout: 120000 });
   const vis = (sel) => G((s) => { const e = document.querySelector(s); return !!(e && e.getClientRects().length && !e.hidden); }, sel);
   return { p, G, shot, vis, errs, refusals, loads: () => loads };
