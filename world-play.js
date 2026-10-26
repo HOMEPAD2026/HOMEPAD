@@ -2045,7 +2045,7 @@ function landGo(to) {
 function landTick(force) {
   const L = mode === "hub" ? LD.landAt(-planet.position.x, -planet.position.z) : null, id = L ? L.id : "";
   lands.show(id); if (adc) adc.show(id === "ad"); if (rqL) rqL.show(id === "rq"); if (ccL) ccL.show(id === "cc"); if (id === landNow && !force) return;
-  const was = landNow; landNow = id; try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); // (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } // (no town rain in RAID QUEENS' sky realm) try { paintQuests(); } catch { /* the quests aren't up yet */ }
+  const was = landNow; landNow = id; try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); /* (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) */ if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } /* (no town rain in RAID QUEENS' sky realm) */ try { paintQuests(); } catch { /* the quests aren't up yet */ }
   if (id && id !== was) { toast(`<b>${esc(landName(id))}</b>`); if (id === "lp" && !P.visited.includes("lpv")) { P.visited.push("lpv"); save(); } if (id === "ut" && !P.visited.includes("utv")) { P.visited.push("utv"); save(); } if (id === "ad" && !P.visited.includes("adc")) { P.visited.push("adc"); save(); } if (id === "rq" && !P.visited.includes("rqx")) { P.visited.push("rqx"); save(); } }
 }
 st.on(() => { try { landTick(false); } catch { /* still loading */ } });
