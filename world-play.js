@@ -572,9 +572,9 @@ const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; fu
 const diag = DIAG.createDiag({ who: () => { const s0 = sess(); return s0 ? { w: s0.wallet, nm: (typeof P !== "undefined" && P && P.name) || "" } : {}; }, ver: VER, post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : landNow === "rq" ? (rqL && rqL.running() ? "raid" : "rqhall") : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
 // a phone turned sideways or back: what its browser did with the page's scale (play.html window.__arcVp), in the player's
 // log — a phone in full screen once kept the upright layout and drew the HUD huge, and this container can't hold one
-if (document.documentElement.classList.contains("wp-pcphone")) { let was = document.documentElement.classList.contains("wp-land"), vpT = 0;
+if (document.documentElement.classList.contains("wp-pcphone")) { let was = document.documentElement.classList.contains("wp-land"), vpT = 0; // (the turn's log line ends "→ phone layout" when the page fell back to the phone's own width)
   new MutationObserver(() => { const now = document.documentElement.classList.contains("wp-land"); if (now === was) return; was = now; clearTimeout(vpT);
-    vpT = setTimeout(() => { try { const v = window.__arcVp || {}; diag.err(`vp ${now ? "land" : "up"}: W${v.W} iw${innerWidth}x${innerHeight} scr${screen.width}x${screen.height} ${v.o || ""}${document.fullscreenElement ? " fs" : ""}${v.off ? " off→" + (v.after || "?") : ""}`, "vp"); } catch { /* not sent */ } }, 2500); }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] }); }
+    vpT = setTimeout(() => { try { const v = window.__arcVp || {}; diag.err(`vp ${now ? "land" : "up"}: W${v.W} iw${innerWidth}x${innerHeight} scr${screen.width}x${screen.height} ${v.o || ""}${document.fullscreenElement ? " fs" : ""}${v.off ? " off→" + (v.after || "?") : ""}${v.dev ? " → phone layout" : ""}`, "vp"); } catch { /* not sent */ } }, 2500); }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] }); }
 // a load that hasn't finished after 45 s says where it stopped (?world=diag errors: the step, the quality, the pixel ratio,
 // whether the graphics context was lost) — a Mac stayed at 85 % for hours (2026-10-24) and nothing had been reported
 let glLost = false; try { st.renderer.domElement.addEventListener("webglcontextlost", () => { glLost = true; glLostLoading(); }); } catch { /* no canvas */ }
@@ -1151,8 +1151,8 @@ function padTick(dt) {
 addEventListener("blur", () => { keys.clear(); jumpDown = false; });
 const joyEl = $("wp-joy"), knob = joyEl.querySelector("i");
 let downAt = null, hoverXY = null, pinch = null;
-const JOYMAX = document.documentElement.classList.contains("wp-pcphone") ? 118 : 56;
-let joyMax = JOYMAX, joyK = 1; const TOUCHK = JOYMAX / 56; // the phone layout is scaled down ~0.4, so tap slop and the pinch dead zone grow with it
+let JOYMAX = document.documentElement.classList.contains("wp-pcphone") ? 118 : 56; // (let: a phone that refused the scaled page after a turn drops to its own layout — play.html __arcVpOff)
+let joyMax = JOYMAX, joyK = 1; let TOUCHK = JOYMAX / 56; // the phone layout is scaled down ~0.4, so tap slop and the pinch dead zone grow with it
 // the phone frame on a computer (b416): the mouse works the stick like a thumb (press on the left half and drag)
 const mouseStick = window.__arcFrame === "mobile";
 const touches = new Map(); // non-stick touches: two of them pinch to zoom
@@ -3736,6 +3736,7 @@ $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; sa
 // b443: the fixed joystick's size and height (phones): CSS variables on <html>; restAt() reads the ring's real box, and
 // the knob's reach grows with the ring
 const joyApply = () => { const k = [0.85, 1, 1.2].includes(+S.joyK) ? +S.joyK : 1, up = Math.max(0, Math.min(240, +S.joyUp || 0)); document.documentElement.style.setProperty("--joy-k", k); document.documentElement.style.setProperty("--joy-up", up + "px"); joyMax = JOYMAX * k; joyK = k; };
+addEventListener("resize", () => { if (JOYMAX !== 56 && !document.documentElement.classList.contains("wp-pcphone")) { JOYMAX = 56; TOUCHK = 1; joyMax = JOYMAX * joyK; } });
 $("wp-set-joyk").addEventListener("change", (e) => { S.joyK = +e.target.value; saveSet(); joyApply(); });
 $("wp-set-joyup").addEventListener("input", (e) => { S.joyUp = +e.target.value; saveSet(); joyApply(); });
 joyApply();
