@@ -35,7 +35,7 @@ export function createCodex(ctx) {
     for (const it of ctx.items()) { const mm = /^([a-z]+)-([0-4])$/.exec(String(it && it.b)); if (!mm || TIERS[+mm[2]].lv > lv) continue; const k = `${it.b}:${it.r || 0}`; if (!m[k]) m[k] = { at: 0, p: it.p || 0 }; else m[k].p = Math.max(m[k].p || 0, it.p || 0); if (it.u && UNIQ[it.u] && !u[it.u]) u[it.u] = 1; }
     return { m, u };
   }
-  const pic = (s, t, r) => `/images/ui/codex/items/${s}-${t}-${r}.webp${ctx.ver || ""}`;
+  const pic = (s, t, r) => (s === "weapon" ? `/images/ui/codex/items/${s}-${t}-${r}.webp${ctx.ver || ""}` : `/images/ui/codex/items/${s}-${t}.webp${ctx.ver || ""}`); // (b-nx3: the other six slots one Meshy picture a tier — the grade is the cell's colour)
   // the bag's own 3D thumbnails under the drawn picture (where the mock-up has one: the weapons)
   const thumb = (s, t, c) => { try { const u = s === "weapon" ? weaponThumb(0, t, c) : gearThumb(s, t, c); if (u) return `<img class="cx-3d" src="${u}" alt="">`; } catch { /* the drawn icon */ } return iconSvg(s, c); };
   function cell(s, t, r, M) {

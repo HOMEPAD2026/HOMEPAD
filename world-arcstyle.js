@@ -227,6 +227,29 @@ function pineGeo() {
 }
 export const TREE_COLORS = { green: [0x4fbf5a, 0x3fae63, 0x5ccf6a, 0x36a35a], blossom: [0xff9fcf, 0xffb8dc], maple: [0xff8a3a, 0xffb347], crystal: [0x8fe6ff] };
 /// matrices: [Matrix4] → a Group of three instanced meshes (trunks, round crowns, pines); kinds picked by a seed
+// b-nx3 (2026-10-26): Meshy's trees (models/world/trees, ~900 tris and 256 px KTX2 each, 40–160 KB) take the drawn ones'
+// place once all four are in: the green ones round trees (every fourth a bush), the blossom ones blossom, the pines pines;
+// one instanced mesh a part. world-play.js turns it off on low graphics (TREES.meshy = false) before the ground is made.
+export const TREES = { meshy: true, loader: null, ver: "" };
+function meshyTrees(g, round, pines, cols) {
+  if (!TREES.loader) return;
+  const want = { "tree-round": 3.4, "tree-blossom": 3.2, "tree-pine": 4.1, "bush-cluster": 1.15 }, got = {};
+  const isBlossom = (c) => TREE_COLORS.blossom.includes(typeof c === "number" ? c : new THREE.Color(c).getHex());
+  const groups = { "tree-round": [], "tree-blossom": [], "bush-cluster": [], "tree-pine": pines };
+  round.forEach((m, i) => { if (isBlossom(cols[i])) groups["tree-blossom"].push(m); else if (i % 4 === 3) groups["bush-cluster"].push(m); else groups["tree-round"].push(m); });
+  const done = () => {
+    if (Object.keys(got).length < 4) return;
+    const mm = new THREE.Matrix4(), add = [];
+    for (const [name, list] of Object.entries(groups)) { const src = got[name]; if (!src || !list.length) continue;
+      src.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(src), sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3()), k = want[name] / Math.max(sz.y, 1e-3);
+      const fix = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z));
+      src.traverse((m) => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, list.length); im.name = "tree:" + name; im.castShadow = true; im.receiveShadow = true;
+        list.forEach((mx, i) => { mm.multiplyMatrices(mx, fix).multiply(m.matrixWorld); im.setMatrixAt(i, mm); }); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); add.push(im); }); }
+    if (!add.length) return;
+    g.children.forEach((c) => { c.visible = false; }); add.forEach((m) => g.add(m));
+  };
+  for (const name of Object.keys(want)) TREES.loader().load(`/models/world/trees/${name}.glb${TREES.ver}`, (gl) => { got[name] = gl.scene; done(); }, undefined, () => { /* the drawn trees stay */ });
+}
 export function makeTrees(matrices, { blossom = 0.12, maple = 0.08, pine = 0.18, seed = 3 } = {}) {
   let s = seed; const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
   const round = [], pines = [], cols = [];
@@ -240,6 +263,7 @@ export function makeTrees(matrices, { blossom = 0.12, maple = 0.08, pine = 0.18,
     round.forEach((m, i) => { cm.setMatrixAt(i, m); cm.setColorAt(i, c.set(cols[i])); }); cm.castShadow = true; cm.receiveShadow = true; g.add(cm);
   }
   if (pines.length) { const pm = new THREE.InstancedMesh(pineGeo(), windLook(new THREE.MeshStandardMaterial({ color: 0x2f8f58, vertexColors: true, roughness: 0.8 }), { amp: 0.05, h: 3 }), pines.length); pines.forEach((m, i) => pm.setMatrixAt(i, m)); pm.castShadow = true; g.add(pm); }
+  if (TREES.meshy) meshyTrees(g, round, pines, cols);
   return g;
 }
 

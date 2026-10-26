@@ -147,12 +147,15 @@ export const maxLv = (id) => (PASSIVES[id] && PASSIVES[id].max) || MAX_LV;
 export const THEMES = {
   desert: { name: "Desert Colosseum", tile: [18, 2, -18], base: 120, seam: "rgba(80,190,255,.55)", crack: ["rgba(255,120,40,.5)", "rgba(255,220,120,.95)"], crystal: [0x7fe8ff, 0x2a9cff], band: 0x38d8ff,
     sky: [[0x2a4f8a, 0xd8ecff, 0x5a4a6e], [0x3a3f7a, 0xffe0c8, 0x5a3a5e], [0x4a2a5e, 0xffb89a, 0x4a2a4e], [0x141c48, 0x9ab8ff, 0x2a2a4e], [0x3a0a1a, 0xffa0a0, 0x4a1a2a]] },
-  ice: { name: "Frost Temple", tile: [-14, 4, 26], base: 150, seam: "rgba(200,240,255,.7)", crack: ["rgba(80,200,255,.5)", "rgba(220,250,255,.95)"], crystal: [0xbff6ff, 0x5ad8ff], band: 0x8ff0ff,
+  ice: { name: "Frost Temple", img: "ice", tile: [-14, 4, 26], base: 150, seam: "rgba(200,240,255,.7)", crack: ["rgba(80,200,255,.5)", "rgba(220,250,255,.95)"], crystal: [0xbff6ff, 0x5ad8ff], band: 0x8ff0ff,
     sky: [[0x3a6aa8, 0xe8f6ff, 0x5a6a8e], [0x4a5a9a, 0xfff0e8, 0x5a5a7e], [0x3a3a7e, 0xd8c8ff, 0x3a3a6e], [0x0e1a44, 0xa8c8ff, 0x22305e], [0x2a0a3a, 0xff9ab8, 0x3a1a4a]] },
-  neon: { name: "Neon Grid", tile: [-30, -28, 0], base: 70, seam: "rgba(255,90,216,.75)", crack: ["rgba(57,255,136,.45)", "rgba(200,255,220,.95)"], crystal: [0xff8ae4, 0xff2dbf], band: 0xff5ad8,
+  neon: { name: "Neon Grid", img: "cyber", tile: [-30, -28, 0], base: 70, seam: "rgba(255,90,216,.75)", crack: ["rgba(57,255,136,.45)", "rgba(200,255,220,.95)"], crystal: [0xff8ae4, 0xff2dbf], band: 0xff5ad8,
     sky: [[0x1a1450, 0xc8b8ff, 0x3a2a6e], [0x241460, 0xffb8f0, 0x3a2060], [0x1a0a48, 0xd890ff, 0x2a1450], [0x080a2a, 0x8aa8ff, 0x1a1a40], [0x2a0820, 0xff80b0, 0x3a0a2a]] },
 };
-export const themeToday = (t = Date.now()) => ["desert", "ice", "neon"][Math.floor((t + 9 * 3600e3) / 864e5) % 3];
+// b-nx3: lava (Meshy's volcano floor) joins the turn; img: a Meshy floor (images/surv/floor-<img>-<1024|512>.webp) over the drawn tiles
+THEMES.lava = { name: "Magma Crater", img: "lava", rep: 9, tile: [40, -10, -30], base: 60, seam: "rgba(255,120,40,.7)", crack: ["rgba(255,90,20,.55)", "rgba(255,220,120,.95)"], crystal: [0xff9a4a, 0xff3a1a], band: 0xff6a2a,
+  sky: [[0x2a0e14, 0xffb08a, 0x3a1a1a], [0x34101a, 0xffc0a0, 0x3a1a22], [0x2a0a1a, 0xff9a7a, 0x2a0e1a], [0x10060e, 0xc88a7a, 0x1a0a12], [0x3a0a0a, 0xffa0a0, 0x4a1a1a]] };
+export const themeToday = (t = Date.now()) => ["desert", "ice", "neon", "lava"][Math.floor((t + 9 * 3600e3) / 864e5) % 4];
 
 // ---------------- b-svx: what carries over between runs (the server keeps a copy in api/_world-survivors.mjs; the test checks) ----------------
 // arena coins: earned by every run (not ARCL, never paid out), spent on permanent upgrades. A daily challenge run earns ×1.5.

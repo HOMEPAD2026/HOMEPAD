@@ -278,7 +278,9 @@ export function createSurvivors(ctx) {
           if (r() < 0.3) { g.strokeStyle = "rgba(40,28,18,.35)"; g.lineWidth = 2; g.beginPath(); let cx = px + dx + 20 + r() * 80, cy = py + 20 + r() * 80; g.moveTo(cx, cy); for (let q = 0; q < 5; q++) { cx += (r() - 0.5) * 40; cy += (r() - 0.5) * 40; g.lineTo(cx, cy); } g.stroke(); } } }
       g.strokeStyle = th.seam; g.lineWidth = 3; for (let y = 0; y <= 4; y++) { g.beginPath(); g.moveTo(0, y * 128 + 2); g.lineTo(w, y * 128 + 2); g.stroke(); }
       for (let y = 0; y < 4; y++) for (let x = 0; x <= 4; x++) { const px = x * 128 + (y % 2 ? 64 : 0) + 2; g.beginPath(); g.moveTo(px, y * 128); g.lineTo(px, y * 128 + 128); g.stroke(); } });
-    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26, 26); t.anisotropy = 4; return t; }
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26, 26); t.anisotropy = 4;
+    if (th.img) { const S = ctx.low || phone() ? 512 : 1024; new THREE.TextureLoader().load(`/images/surv/floor-${th.img}-${S}.webp?v=${ctx.ver || "1"}`, (w) => { t.image = w.image; t.repeat.set(th.rep || 11, th.rep || 11); t.needsUpdate = true; }, undefined, () => { /* the drawn tiles stay */ }); } // (b-nx3: Meshy's floor once it's in)
+    return t; }
   function crackTexOf(th) { return canvasTex(256, 256, (g, w) => { let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647); g.lineCap = "round";
       for (let b = 0; b < 7; b++) { let x = w / 2, y = w / 2; const a0 = r() * 6.283; g.beginPath(); g.moveTo(x, y); for (let q = 0; q < 8; q++) { const a = a0 + (r() - 0.5) * 1.2; x += Math.cos(a) * 14; y += Math.sin(a) * 14; g.lineTo(x, y); }
         g.strokeStyle = th.crack[0]; g.lineWidth = 9; g.stroke(); g.strokeStyle = th.crack[1]; g.lineWidth = 3; g.stroke(); } }); }

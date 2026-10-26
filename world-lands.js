@@ -198,7 +198,7 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
   spins.push((dt, t) => { lineU.value = t; });
   // the two villages' portals are the owner's models (models/world/lands, Meshy, packed by tools/pack-prop.mjs): 6.5 m
   // tall, in place of the rings, loaded a few seconds after the town (about 1 MB each)
-  const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb", rq: "/models/world/raid/gate.glb" }, MODEL_H = 6.5;
+  const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb", pv: "/models/world/lands/portal-partnership.glb", gv: "/models/world/lands/portal-arcade.glb", /* (b-nx3: Partner and Game Village from Meshy too) */ rq: "/models/world/raid/gate.glb" }, MODEL_H = 6.5;
   setTimeout(() => { for (const [id, url] of Object.entries(MODELS)) { const p = portals.find((q) => q.userData.to === id); if (!p || !K.gltfLoader) continue;
     try { K.gltfLoader().load(url + ver, (g) => {
       const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), H = (DEST.find((d) => d.id === id) || {}).h || MODEL_H, k = H / (sz.y || 1);

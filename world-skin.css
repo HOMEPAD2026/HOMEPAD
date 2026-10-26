@@ -4460,3 +4460,9 @@ html.wp-pcphone .wsk-new{width:min(640px,90vw);top:22%;padding:30px}html.wp-pcph
 html.wp-pcphone .wsk-cut b{font-size:54px}html.wp-pcphone .wsk-cut.big b{font-size:70px}html.wp-pcphone .wsk-cut.big img{height:340px}
 .hb-skdet .hb-skline{margin:8px 0 0;font:600 13px/1.4 var(--f-ui);color:#cfe3ff}
 .hb-skdet .hb-stars{font-size:.82em;letter-spacing:-1px}
+/* b-nx3: each hero's card in the maker stands in its own Meshy studio (cyan ARON, pink LUMI, violet NEX) */
+body.wp .wp-make-grid.heroes button[data-c="custom-aron"]{background:url("/images/ui/maker/card-aron.webp?v=1") center/cover no-repeat}
+body.wp .wp-make-grid.heroes button[data-c="custom-lumi"]{background:url("/images/ui/maker/card-lumi.webp?v=1") center/cover no-repeat}
+body.wp .wp-make-grid.heroes button[data-c="custom-nex"]{background:url("/images/ui/maker/card-nex.webp?v=1") center/cover no-repeat}
+body.wp .wp-make-grid.heroes button[data-c^="custom-"] img{background:none;filter:drop-shadow(0 6px 10px rgba(0,8,30,.45))}
+body.wp .wp-make-grid.heroes button[data-c^="custom-"] small{text-shadow:0 1px 3px rgba(0,0,0,.8)}

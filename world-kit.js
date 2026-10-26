@@ -445,6 +445,8 @@ function grassTexture() {
   return t;
 }
 const GROUND_VER = "?v=1";
+/// b-nx3: Meshy's trees on the town ground (world-arcstyle.js TREES), off on low graphics; asked before makeGround
+export function treeOptions(on, ver = "") { ARC.TREES.meshy = !!on; ARC.TREES.ver = ver; ARC.TREES.loader = gltfLoader; }
 export function makeGround({ radius = 330 } = {}) {
   const g = new THREE.Group(); g.name = "ground";
   const tex = grassTexture(); tex.repeat.set(radius / 9, radius / 9);

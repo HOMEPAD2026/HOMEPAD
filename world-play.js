@@ -640,6 +640,7 @@ const WORN_PATHS = RPG.ZONES.filter((z) => Math.hypot(z.x, z.z) < 260).map((z) =
 const AGW = (() => { const g = K.AGENT_GATE, d = K.flatR ? K.flatR(g.theta) : 78, a = THREE.MathUtils.degToRad(g.phi); return { x: d * Math.sin(a), z: -d * Math.cos(a), d, r: g.r }; })();
 { const a = K.flatR ? K.flatR(11) + 1 : 16, ux = AGW.x / AGW.d, uz = AGW.z / AGW.d; WORN_PATHS.push([ux * a, uz * a, ux * (AGW.d - AGW.r + 1), uz * (AGW.d - AGW.r + 1)]); }
 { const v = PV.PARTNER_VILLAGE, d = Math.hypot(v.x, v.z), a = K.flatR ? K.flatR(11) + 1 : 16; WORN_PATHS.push([v.x / d * a, v.z / d * a, v.x / d * (d - v.r + 0.5), v.z / d * (d - v.r + 0.5)]); } // the walk out to the Partner Village
+if (K.treeOptions) K.treeOptions(!(S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low)), VER); /* (lowGfx is set further down) */
 const groundG = K.makeGround(); planet.add(groundG);
 { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) LOOK.groundLook(gm.material, { low: S.quality === "low" || S.quality === "saver", paths: WORN_PATHS }); }
 // far shadows (world-look.js): halls, trees and the grounds' props shade the ground past the real shadow's reach
