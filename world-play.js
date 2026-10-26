@@ -806,10 +806,44 @@ const spins = [];
 // additive glow or a hologram the order can't show), glows and see-through things stop casting shadows, and the
 // holograms by the path are hidden when you're far from them
 const lightSeen = new WeakSet(), lightFar = [];
+// b-perf2 (2026-10-26, diag: PowerVR / Mali-G5x phones under 15 fps, 315 shader programs and ~1,070 materials in the
+// town): cheaper materials where it pays. Phones and the lower computer chips: MeshPhysical (the Meshy models' glTF
+// extensions) → MeshStandard. The weakest chips (K.gpuWeak) and any phone still slow after the other steps (liteFx):
+// MeshStandard → MeshLambert. Only plain ones are swapped: opaque, not glowing, no shader hook of their own, not on a
+// skinned body (the heroes and the monsters keep theirs) — what code animates is transparent or glowing. Swapped
+// copies with the same look are shared, so there are fewer materials too. ?weakgpu tries the Lambert step on any device.
+const PLAIN_HOOK = THREE.Material.prototype.onBeforeCompile, cheapOf = new WeakMap(), cheapKey = new Map();
+const physToStd = coarse || K.gpuTier() !== "high" || /[?&]weakgpu\b/.test(location.search);
+let lambertOn = false;
+function wantLambert() { try { return /[?&]weakgpu\b/.test(location.search) || (S.quality === "auto" && (!!st.quality.weak || !!liteFx)); } catch { return false; } }
+const cheapProps = ["map", "alphaMap", "aoMap", "aoMapIntensity", "lightMap", "lightMapIntensity", "normalMap", "normalScale", "bumpMap", "bumpScale", "emissiveMap", "side", "vertexColors", "alphaTest", "fog", "flatShading", "depthWrite", "depthTest", "polygonOffset", "polygonOffsetFactor", "polygonOffsetUnits"];
+function cheapMat(m) {
+  if (!m || m.transparent || m.onBeforeCompile !== PLAIN_HOOK || (m.userData && m.userData.keep)) return m;
+  const glow = !!(m.emissive && m.emissive.getHex() && (m.emissiveIntensity || 0) > 0); // (a glow may be pulsed by code: only the weakest chips' step takes it, as it is now)
+  const toL = lambertOn && (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial), toS = !toL && !glow && physToStd && m.isMeshPhysicalMaterial;
+  if (!toL && !toS) return m;
+  const had = cheapOf.get(m); if (had && (had.isMeshLambertMaterial || !toL)) return had;
+  const key = [toL ? "L" : "S", m.color && m.color.getHexString(), m.emissive ? m.emissive.getHexString() + "*" + m.emissiveIntensity : "", ...cheapProps.map((k) => { const v = m[k]; return v && v.isTexture ? v.uuid : v && v.isVector2 ? v.x + "," + v.y : String(v); }), toS ? [m.roughness, m.metalness, m.roughnessMap && m.roughnessMap.uuid, m.metalnessMap && m.metalnessMap.uuid, m.envMap && m.envMap.uuid, m.envMapIntensity].join() : ""].join("|");
+  let n = cheapKey.get(key);
+  if (!n) {
+    n = toL ? new THREE.MeshLambertMaterial() : new THREE.MeshStandardMaterial();
+    if (m.color) n.color.copy(m.color); if (m.emissive) { n.emissive.copy(m.emissive); n.emissiveIntensity = m.emissiveIntensity; }
+    for (const k of cheapProps) { if (m[k] === undefined || n[k] === undefined) continue; if (m[k] && m[k].isVector2) n[k].copy(m[k]); else n[k] = m[k]; }
+    if (toS) for (const k of ["roughness", "metalness", "roughnessMap", "metalnessMap", "envMap", "envMapIntensity"]) n[k] = m[k];
+    n.name = m.name; n.userData.cheap = true; cheapKey.set(key, n);
+  }
+  cheapOf.set(m, n); return n;
+}
+function cheapen(o) {
+  if (!o.isMesh || o.isSkinnedMesh || !o.material) return;
+  if (Array.isArray(o.material)) { let ch = false; const a = o.material.map((m) => { const n = cheapMat(m); if (n !== m) ch = true; return n; }); if (ch) o.material = a; }
+  else { const n = cheapMat(o.material); if (n !== o.material) o.material = n; }
+}
 function lighten(root) {
+  if (!lambertOn && wantLambert()) { lambertOn = true; root.traverse(cheapen); } // (once it turns on: everything already there too)
   root.traverse((o) => {
     if (!o.isMesh && !o.isSprite && !o.isPoints) return;
-    if (!lightSeen.has(o)) { lightSeen.add(o); if (o.name === "agent-holo" || (o.parent && o.parent.name === "agent-holo")) { /* (the group is checked below) */ }
+    if (!lightSeen.has(o)) { lightSeen.add(o); cheapen(o); if (o.name === "agent-holo" || (o.parent && o.parent.name === "agent-holo")) { /* (the group is checked below) */ }
       for (const m of [].concat(o.material || [])) { if (!m || lightSeen.has(m)) continue; lightSeen.add(m);
         if (m.transparent && m.side === THREE.DoubleSide && (m.blending === THREE.AdditiveBlending || m.depthWrite === false)) m.forceSinglePass = true; }
       const m0 = [].concat(o.material || [])[0]; if (o.castShadow && m0 && (m0.isMeshBasicMaterial || m0.isShaderMaterial || m0.isPointsMaterial || m0.transparent || m0.blending === THREE.AdditiveBlending)) o.castShadow = false; }
@@ -4726,6 +4760,9 @@ const dynStart = performance.now(); let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = 
 // b441: AC Defense and Coin Jump on a phone: half the grass (its blades are in random order, so it thins evenly) and
 // a quicker dynamic resolution while the game is on; all back on leaving
 let gameOn = false;
+// b-perf2: the weakest chips (K.gpuWeak, Auto) start where the slow-frame steps would take them anyway: half the grass
+// and 85 % of the pixels (dynRes can still go down to 60 %), so their first minute isn't spent finding it out
+if (S.quality === "auto" && st.quality.weak && !navigator.webdriver) { const wk = st.on(() => { try { if (!grass || !grass.mesh) return; } catch { return; } grassThin = true; try { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = Math.round(g.userData.full * 0.5); } catch { /* no grass */ } if (st.scale && dynK > 0.85) { dynK = 0.85; st.scale(dynK); } if (typeof wk === "function") wk(); }); }
 st.on(() => { let on = false; try { on = !!(defenseOn || jumpOn || beatOn); } catch { return; } if (on === gameOn) return; gameOn = on; dynBad = 0;
   try { if (coarse && grass && grass.mesh) { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = on || grassThin ? Math.round(g.userData.full * 0.5) : g.userData.full; } } catch { /* no grass */ } });
 function dynRes(dt) {
@@ -5100,7 +5137,7 @@ loadbar(0.85, TW("Dressing the town…"));
 // b443: the town's set dressing (trees, lamps, the districts' props) is placed before the screen lifts, up to 8 s
 // (2026-10-25, the funnel: a third of new browsers left before the town showed) a phone on low graphics, or a load
 // already slow (past 25 s), gets half these waits: what isn't ready goes on in the background, behind the town
-const quickIn = (coarse && lowGfx) || performance.now() > 25000, qk = (ms) => (quickIn ? Math.round(ms / 2) : ms);
+const quickIn = (coarse && lowGfx) || performance.now() > 25000, weakIn = S.quality === "auto" && !!st.quality.weak, qk = (ms) => (weakIn ? Math.round(ms / 4) : quickIn ? Math.round(ms / 2) : ms); // (b-perf2: the weakest chips a quarter: the town shows, the rest comes in behind it)
 if (decorOn && decor && decor.townReady) await capWait(Promise.resolve(decor.townReady).catch(() => {}), qk(8000), "decor");
 try { farCull.prep(); } catch (e) { console.warn("far cull", e); } // (again for what came in since: the fade's shaders made before warm compiles everything)
 loadbar(0.9, TW("Waking the scammers…"));
