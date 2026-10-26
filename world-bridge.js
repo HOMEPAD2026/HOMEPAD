@@ -118,8 +118,8 @@ export function makeBridge(ctx) {
     const chips = CHAINS.map((x) => { const v = bal[x.key]; return `<button type="button" class="wbr-ch${x.key === src ? " on" : ""}${v === 0n ? " zero" : ""}" data-src="${x.key}" style="--c:${x.color || "#35d8d0"}"><i></i><b>${esc(x.name)}</b><small>${v == null ? (v === null ? "—" : "…") : fmt(v)}</small></button>`; }).join("");
     const fastOk = c && c.fast !== false;
     el.querySelector(".wbr-body").innerHTML = `
-      <div class="wbr-arc"><span>${esc(T("Your USDC on Arc"))}</span><b>${arcBal == null ? "…" : fmt(arcBal)}</b>${need > 0n ? `<em>${esc(T("Needed: {n} USDC", { n: fmt(need) }))}</em>` : ""}</div>
-      <h4>${esc(T("From"))}</h4><div class="wbr-chs">${chips}</div>
+      <div class="wbr-arc"><img src="/images/ui/kit/ic-usdc-coin.webp" alt="" width="30" height="30"><span>${esc(T("Your USDC on Arc"))}</span><b>${arcBal == null ? "…" : fmt(arcBal)}</b>${need > 0n ? `<em>${esc(T("Needed: {n} USDC", { n: fmt(need) }))}</em>` : ""}</div>
+      <h4><img src="/images/ui/kit/ic-chain-link.webp" alt="" width="18" height="18"> ${esc(T("From"))}</h4><div class="wbr-chs">${chips}</div>
       <div class="wbr-amt"><input data-amt inputmode="decimal" placeholder="0.00" aria-label="${esc(T("Amount in USDC"))}" value="${el.__v || ""}"><span>USDC</span><button type="button" data-max ${haveC ? "" : "disabled"}>${esc(T("Max"))}</button></div>
       <div class="wbr-quick">${[10, 25, 50, 100].map((n) => `<button type="button" data-q="${n}">${n}</button>`).join("")}</div>
       <div class="wbr-sp"><button type="button" data-sp="fast" class="${speed === "fast" && fastOk ? "on" : ""}" ${fastOk ? "" : "disabled"}>⚡ ${esc(T("Fast"))}<small>${esc(T("about a minute · small fee"))}</small></button><button type="button" data-sp="std" class="${speed !== "fast" || !fastOk ? "on" : ""}">🐢 ${esc(T("Standard"))}<small>${esc(c ? STD_ETA[c.key] || "15–20 min" : "")} · ${esc(T("lower fee"))}</small></button></div>
@@ -145,7 +145,7 @@ export function makeBridge(ctx) {
   function open(opt = {}) {
     if (el) return; need = opt.need ? BigInt(Math.ceil(opt.need)) : 0n;
     el = document.createElement("div"); el.className = "wbr"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
-    el.innerHTML = `<div class="wbr-in"><div class="wbr-hd"><small>ARC · CCTP</small><h3>💙 ${esc(T("Bring USDC to Arc"))}</h3><p>${esc(T("USDC on another chain? Move it to your wallet on Arc in a minute — then spend it in the game."))}</p><button type="button" class="wbr-x" data-x aria-label="${esc(T("Close"))}">×</button></div><div class="wbr-body"></div></div>`;
+    el.innerHTML = `<div class="wbr-in"><div class="wbr-hd art" style="--hdr:url('/images/ui/kit/hdr-bridge.webp')"><small>ARC · CCTP</small><h3>💙 ${esc(T("Bring USDC to Arc"))}</h3><p>${esc(T("USDC on another chain? Move it to your wallet on Arc in a minute — then spend it in the game."))}</p><button type="button" class="wbr-x" data-x aria-label="${esc(T("Close"))}">×</button></div><div class="wbr-body"></div></div>`;
     if (need > 0n && arcBal != null && need > arcBal) el.__v = (Number(need - arcBal) / 1e6 + 0.5).toFixed(2);
     el.addEventListener("click", (e) => { if (e.target === el) close(); else onClick(e); }); el.addEventListener("input", onInput);
     document.body.appendChild(el); ctx.onOpen && ctx.onOpen(); paint(); readAll().then(() => { if (need > 0n && arcBal != null && need > arcBal && !el.__v) el.__v = (Number(need - arcBal) / 1e6 + 0.5).toFixed(2); paint(); requote(); });

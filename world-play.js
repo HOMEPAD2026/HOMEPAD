@@ -4263,7 +4263,7 @@ function paintHub() {
   // the owner's look (2026-10-23, from the owner's mock-up): the nine as 3D icons, Recent as cards with the place's art
   // (only what isn't one of the nine, at most three), More as rows with an icon (what's in Recent isn't repeated), and
   // the small things (help, controls, music …) as pills at the end — images/ui/menu
-  const G = new Set(["games", "log", "rewards", "shop", "inv", "petdk", "chat", "set", "map"]), IC = new Set(["agent", "partners", "forge", "defense", "invite", "start", "crew", "island", "market", "ledger", "land", "village"]), ART = new Set(["partners", "log", "defense"]);
+  const G = new Set(["games", "log", "rewards", "shop", "inv", "petdk", "chat", "set", "map"]), IC = new Set(["agent", "partners", "forge", "defense", "invite", "start", "crew", "island", "market", "ledger", "land", "village", "bridge"]), ART = new Set(["partners", "log", "defense"]);
   const img = (k) => `<img class="wp-hub-img" src="/images/ui/menu/${k}.webp${VER}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`;
   const extra = (id, key) => `${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}`;
   const tile = ([id, ic, label, key], kind) => kind === "g" ? `<button type="button" data-hub="${id}" class="wp-hub-g">${img("g-" + id)}<span>${esc(TW(label))}</span>${extra(id, key)}</button>`
@@ -5904,7 +5904,7 @@ function ccWin(html, cls = "") {
 const CC_QUESTS = [["Publish your first game", (c) => c.pub, 1], ["Make 3 games", (c) => c.games, 3], ["10 plays by other players", (c) => c.plays, 10], ["10 likes on your games", (c) => c.likes, 10], ["Publish 5 games", (c) => c.pub, 5], ["100 plays by other players", (c) => c.plays, 100]];
 function ccAcademy(first) {
   ccStep("visit"); const d = ccDone(), n = CC_STEPS.filter(([x]) => d[x]).length, L = ccLevel();
-  const w = ccWin(`<small class="ccw-k">🎓 ${esc(TW("Creator Academy"))}</small><h3>${esc(TW(first ? "Welcome to Creator City!" : "Your first game in 10 minutes"))}</h3><p>${esc(TW("Five steps, no code. Each one ticks itself off as you do it in the Studio."))}</p>
+  const w = ccWin(`<div class="ccw-hero" style="background-image:url('/images/ui/kit/hdr-tutorial.webp')" aria-hidden="true"></div><small class="ccw-k"><img src="/images/ui/kit/ic-tutorial-cap.webp" alt="" width="20" height="20"> ${esc(TW("Creator Academy"))}</small><h3>${esc(TW(first ? "Welcome to Creator City!" : "Your first game in 10 minutes"))}</h3><p>${esc(TW("Five steps, no code. Each one ticks itself off as you do it in the Studio."))}</p>
     <ol class="ccw-steps">${CC_STEPS.map(([k, l], i) => `<li class="${d[k] ? "ok" : ""}"><i>${d[k] ? "✓" : i + 1}</i><span>${esc(TW(l))}</span></li>`).join("")}</ol>
     <div class="ccw-bar"><b style="width:${(n / CC_STEPS.length) * 100}%"></b></div><p class="ccw-fine">${d.all ? "🏅 " + esc(TW("I MADE MY FIRST GAME!")) : `${n} / ${CC_STEPS.length}`}${sess() ? "" : " · " + esc(TW("Sign in to publish — your drafts are kept on this device until then."))}</p>
     <div class="ccw-acts"><button type="button" class="ccw-go" data-make>🛠️ ${esc(TW(n ? "Continue in the Studio" : "Start my first game"))}</button>${first ? `<button type="button" class="ccw-alt" data-x>${esc(TW("Look around first"))}</button>` : ""}</div>

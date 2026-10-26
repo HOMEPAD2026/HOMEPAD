@@ -198,7 +198,7 @@ export function createStudio(ctx) {
   const usd = (c) => (c / 100).toFixed(c % 100 ? 2 : 0);
   function prizeLine(pz, last) {
     if (!pz || !pz.usd) return ""; const medal = ["🥇", "🥈", "🥉"];
-    return `<div class="wst-prize"><i>${IC("ic-trophy")}</i><b>${esc(T("USDC prize"))}</b>${pz.usd.map((c, i) => (c ? `<span>${medal[i]} ${usd(c)} USDC${last && pz.paid && pz.paid[i] ? ` <a href="https://arcscan.app/tx/${esc(pz.paid[i].tx)}" target="_blank" rel="noopener" title="${esc(T("Paid"))}">✓</a>` : ""}</span>` : "")).join("")}</div>`;
+    return `<div class="wst-prize"><img src="/images/ui/kit/ic-prize-trophy.webp" alt="" width="28" height="28"><b>${esc(T("USDC prize"))}</b>${pz.usd.map((c, i) => (c ? `<span>${medal[i]} ${usd(c)} USDC${last && pz.paid && pz.paid[i] ? ` <a href="https://arcscan.app/tx/${esc(pz.paid[i].tx)}" target="_blank" rel="noopener" title="${esc(T("Paid"))}">✓</a>` : ""}</span>` : "")).join("")}</div>`;
   }
   function gmPrize() {
     if (!(ctx.isGM && ctx.isGM())) return ""; const pz = (week && week.prize) || { usd: [0, 0, 0] }, lp = week && week.last && week.last.prize;

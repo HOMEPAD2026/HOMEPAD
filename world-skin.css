@@ -4847,3 +4847,22 @@ html.wp-vpfb.wp-land .wbr-in{zoom:var(--fbz,.7);max-height:calc((100dvh - 24px) 
 .wst-gmprize form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}.wst-gmprize input{width:70px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff}
 .wst-gmprize .wst-go{display:block;margin:4px 0}
 .my-nsales{display:grid;gap:2px;margin:6px 0}.my-nsale{color:#c9a9b4;font-size:11.5px}form.my-bid input{width:80px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff}
+/* the Meshy UI kit (raw/nx10, 2026-10-26): icons and header art (the pill buttons stay CSS: as 9-slice images their text read poorly) */
+.wbr-go:not(:disabled):active{transform:translateY(1px) scale(.99)}
+.wbr-arc img{align-self:center}.wbr-body h4 img{vertical-align:-4px}.my-h img{vertical-align:-5px}
+.wst-prize img{width:28px;height:28px}
+.wp-coach-tip::after{content:"";position:absolute;left:-14px;top:50%;width:30px;height:30px;margin-top:-15px;background:url(/images/ui/kit/ic-arrow-guide.webp) center/contain no-repeat;transform:rotate(180deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.wp-coach-tip{padding-left:22px}
+.ccw-hero{height:120px;margin:-6px -6px 10px;border-radius:16px;background:center 35%/cover no-repeat;box-shadow:inset 0 -40px 40px -20px rgba(6,16,34,.9)}
+.ccw-k img{vertical-align:-4px}
+.my-nhero{height:96px;margin:14px 0 -4px;border-radius:14px;background:linear-gradient(90deg,rgba(20,4,10,.85) 25%,rgba(20,4,10,0)),url(/images/ui/kit/hdr-nftmarket.webp) center/cover no-repeat}
+.wst-contest{background-image:linear-gradient(90deg,rgba(7,16,34,.96) 45%,rgba(7,16,34,.55)),url(/images/ui/kit/hdr-prize.webp);background-size:cover;background-position:center}
+.wbr-go{position:relative;overflow:hidden}.wbr-go::after{content:"";position:absolute;inset:0;background:url(/images/ui/kit/fx-bridge-beam.webp) center/120% 100% no-repeat;mix-blend-mode:screen;opacity:.55;pointer-events:none}
+.my-payall{background:linear-gradient(135deg,#ffd23a,#ffb02e);color:#3a2600;border:0}
+.wbr-burst{background:url(/images/ui/kit/fx-success-burst.webp) center/contain no-repeat;mix-blend-mode:screen;border-radius:0}
+.wbr-list li::before{content:"";width:18px;height:18px;background:center/contain no-repeat;grid-row:span 1}
+.wbr-list li{grid-template-columns:18px auto 1fr auto auto}
+.wbr-list li.ok::before{background-image:url(/images/ui/kit/ic-check-badge.webp)}.wbr-list li.wait::before{background-image:url(/images/ui/kit/ic-clock.webp)}
+.my-payall::before{content:"";display:inline-block;width:22px;height:22px;margin-right:6px;vertical-align:-6px;background:url(/images/ui/kit/ic-payout.webp) center/contain no-repeat}
+.wbr-go:not([disabled])::before{content:"";display:inline-block;width:22px;height:22px;margin-right:6px;vertical-align:-6px;background:url(/images/ui/kit/ic-wallet.webp) center/contain no-repeat}
+.wbr-body h4{display:flex;align-items:center;gap:6px}
