@@ -4626,7 +4626,8 @@ html.wp-pcphone.wp-land .wst.wide .wst-in{zoom:1.9;width:calc(100vw / 1.9);heigh
 .rql.g-cc{--gca:#7cf5c8;--gcb:#ffd23a}
 .ccw{position:fixed;inset:0;z-index:66;display:grid;place-items:center;padding:16px;background:rgba(2,8,20,.55);backdrop-filter:blur(3px)}
 .ccw-in{position:relative;width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px 22px 18px;border-radius:24px;color:#eef3f7;background:linear-gradient(180deg,rgba(6,16,40,.55),rgba(3,8,22,.85)),url("/images/studio/ui/bg-768.webp?v=1") center/cover;border:2px solid rgba(124,245,200,.85);box-shadow:0 0 26px rgba(95,211,255,.4),0 24px 60px rgba(0,0,0,.55);font:600 14.5px/1.45 Sora,sans-serif}
-html.wp-pcphone .ccw-in{zoom:1.7}
+html.wp-pcphone .ccw-in{zoom:1.7;max-height:calc((100dvh - 32px) / 1.7)}
+html.wp-pcphone.wp-land .ccw-in{zoom:1.15;width:min(680px,calc(100vw / 1.15 - 32px));max-height:calc((100dvh - 32px) / 1.15)} /* (sideways the page is ~980 high: the upright zoom made Creator City's cards fill the screen) */
 .ccw-x{position:absolute;top:10px;right:12px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:800 20px/1 Sora,sans-serif}
 .ccw-k{display:block;color:#7cf5c8;font:900 12px/1 Sora,sans-serif;letter-spacing:.12em;text-transform:uppercase}
 .ccw h3{margin:8px 0 6px;font:900 24px/1.2 Sora,sans-serif}.ccw h4{margin:14px 0 6px;font:900 16px/1.2 Sora,sans-serif}
