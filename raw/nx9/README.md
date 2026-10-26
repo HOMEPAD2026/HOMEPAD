@@ -68,3 +68,32 @@ ARON with a halo in each scene; no text.
 | tpl-escape.png | puzzle room with padlocked doors, glowing floor switches and a golden key. Redone (letterbox bars); the redo had side bars, so it was cropped to the picture and resized |
 | tpl-boss.png | facing a giant dark horned boss on a glowing rune arena |
 Credits for D: 10 images = 30.
+
+## C 30. jump/icons/ — 24 editor icons, 256², on lime green (key by hue)
+icon-grass, -stone, -lava, -ice, -bridge, -moving-platform, -spinning-platform, -falling-platform, -blinking-platform,
+-spring, -spikes, -checkpoint, -coin, -key, -door, -switch, -walker, -flyer, -chest, -potion, -finish, -dragon,
+-cannon, -eraser. All use the same glossy toy look with cyan glow and top-left light, made at 1024 and resized to 256.
+The brief listed 20 names but described 24, so all 24 are made.
+icon-stone (first came out as a castle tower) and icon-dragon (had a dark tile behind it) were redone.
+The moving-platform arrows are small.
+Credits: 26 images = 78.
+
+## B. npc/ — Creator City characters (image → 3D, PBR, maps 1024, then Meshy rigging; all three rigs worked)
+Concepts are in `npc/concept/`; the builder's was redone so it holds its wrench.
+| character | static model | rigged (1.4 m) | clips (each a full skinned model, except walk) |
+|---|---|---|---|
+| npc-mentor: round mint/white teacher bot, grad-cap antenna, tablet | npc-mentor.glb 5,176 tris, 3.3 MB | npc-mentor-rigged.glb | -idle (4.0 s), -walk (walking_man 1.1 s, animation-only 288-tri proxy), -wave (Big_Wave_Hello 5.4 s), -talk (Talk_with_Hands_Open 4.0 s) |
+| npc-builder: orange/grey bot, yellow hard hat, glowing cyan wrench | npc-builder.glb 5,181 tris, 3.5 MB | npc-builder-rigged.glb | -idle, -walk, -hammer (Heavy_Hammer_Swing 1.9 s) |
+| npc-gamer: pink/white bot, headphones, smiley face screen, controller | npc-gamer.glb 5,144 tris, 3.6 MB | npc-gamer-rigged.glb | -idle, -walk, -cheer (Victory_Cheer 9.4 s), -dance (FunnyDancing_01 7.8 s) |
+Notes:
+- Each model is 3–4 % over 5k triangles; trim in the packer.
+- PBR maps (base colour, metallic-roughness, normal) are kept in the rigged and animated files too, downscaled to 1024.
+  Each file is 3.3–4.1 MB before packing.
+- Meshy's library has no hammering or working loop. The builder's "work" clip is Heavy_Hammer_Swing, a single swing:
+  loop it, or play it on a timer.
+- The mentor's tablet screen has a small "A"-like glyph on it.
+- The cheer clip is long (9.4 s); trim it if needed.
+Credits for B: 4 concepts (12) + 3 image-to-3D (90) + 3 rigs (15) + 8 animations (24) = 141.
+
+## Totals
+This batch used 778 credits (1751 → 973): A 15, C 517 + icons 78, D 30, B 141. The account was then topped up again (1973).
