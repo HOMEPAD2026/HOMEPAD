@@ -75,7 +75,7 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
       const roof = new THREE.Mesh(new THREE.TorusGeometry(W / 2, 0.45, 8, 48), std(0xffc861, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4200, emissiveIntensity: 0.4 })); roof.rotation.x = Math.PI / 2; roof.position.y = H; P.add(roof);
       const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.9, 1.2, 24), WHITE); ped.position.y = 0.6; P.add(ped);
       const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), glow); star.position.y = 2.6; P.add(star); spins.push((dt, t) => { star.rotation.y = t; star.position.y = 2.6 + Math.sin(t * 1.5) * 0.2; });
-      o.userData.board = board(o, "🏆 " + T(f.name), T(f.sub), f.css, 4.6, 7.5, W / 2 + 2.6); door(o, f.id, f.col, W / 2 + 2.2); // (2026-10-26: the names over the doors at eye height — on top of the buildings they were off a sideways phone's short screen) solid(o, 1.9); continue;
+      o.userData.board = board(o, "🏆 " + T(f.name), T(f.sub), f.css, 4.6, 7.5, W / 2 + 2.6); door(o, f.id, f.col, W / 2 + 2.2); solid(o, 1.9); continue; // (2026-10-26: the names over the doors at eye height — on top of the buildings they were off a sideways phone's short screen)
     }
     const body = new THREE.Mesh(f.id === "contest" || f.id === "launch" ? new THREE.CylinderGeometry(W / 2, W / 2 + 0.6, H, 28) : new THREE.BoxGeometry(W, H, W * 0.8), WHITE); body.position.y = H / 2; P.add(body);
     const band = new THREE.Mesh(f.id === "contest" || f.id === "launch" ? new THREE.CylinderGeometry(W / 2 + 0.05, W / 2 + 0.05, H * 0.28, 28, 1, true) : new THREE.BoxGeometry(W + 0.1, H * 0.28, W * 0.8 + 0.1), GLASS); band.position.y = H * 0.62; P.add(band);
