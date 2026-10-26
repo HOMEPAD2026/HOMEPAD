@@ -1161,6 +1161,10 @@ const touches = new Map(); // non-stick touches: two of them pinch to zoom
 // float-anywhere-on-the-left behaviour
 const joyRest = document.querySelector(".wp-joyrest");
 const restAt = () => { const r = joyRest && joyRest.getBoundingClientRect(); return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2, r: Math.max(r.width * 0.75, JOYMAX * 1.3) } : null; };
+// the stick's own CSS zoom (sideways at a phone's own width world-skin.css draws the HUD smaller with zoom): its left /
+// top and the knob's shift are in its zoomed pixels, so a touch's screen point is divided by it — without that the base
+// jumped up and to the left of the thumb the moment you pressed (a player, 2026-10-26)
+const joyZ = () => { let z = 1; for (let e = joyEl; e && e.nodeType === 1; e = e.parentElement) { const v = parseFloat(getComputedStyle(e).zoom); if (v > 0) z *= v; } return z; };
 const onStick = (e) => { if (e.pointerType === "mouse") return mouseStick && e.clientX < innerWidth * 0.5; const c = restAt(); return c ? Math.hypot(e.clientX - c.x, e.clientY - c.y) < c.r : e.clientX < innerWidth * 0.5; };
 // let go of everything (a finger lifted where the browser didn't tell us, the app went to the background): the stick
 // used to stay held and the character kept running until another touch
@@ -1187,9 +1191,10 @@ cv.addEventListener("pointerdown", (e) => {
   }
   if (willJoy) {
     const c = e.pointerType === "touch" ? restAt() : null, bx = c ? c.x : e.clientX, by = c ? c.y : e.clientY; // touch: the base sits on its ring
-    joy = { id: e.pointerId, x: bx, y: by, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0, fixed: !!c };
-    joyEl.style.left = bx + "px"; joyEl.style.top = by + "px"; joyEl.classList.add("on"); knob.style.transform = "";
-    if (c) { let dx = e.clientX - bx, dy = e.clientY - by; const m = Math.hypot(dx, dy); if (m > joyMax) { dx *= joyMax / m; dy *= joyMax / m; } joy.dx = dx / joyMax; joy.dy = dy / joyMax; knob.style.transform = `translate(${dx / joyK}px,${dy / joyK}px)`; }
+    const z = joyZ(), mx = joyMax * z; // (the stick's reach on screen shrinks with its zoom)
+    joy = { id: e.pointerId, x: bx, y: by, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0, fixed: !!c, z, mx };
+    joyEl.style.left = bx / z + "px"; joyEl.style.top = by / z + "px"; joyEl.classList.add("on"); knob.style.transform = "";
+    if (c) { let dx = e.clientX - bx, dy = e.clientY - by; const m = Math.hypot(dx, dy); if (m > mx) { dx *= mx / m; dy *= mx / m; } joy.dx = dx / mx; joy.dy = dy / mx; knob.style.transform = `translate(${dx / joyK / z}px,${dy / joyK / z}px)`; }
   } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 cv.addEventListener("pointermove", (e) => {
@@ -1203,10 +1208,10 @@ cv.addEventListener("pointermove", (e) => {
   if (e.pointerType === "mouse" && mode === "island") { hoverXY = { x: e.clientX, y: e.clientY }; if (!look) island.hover(e.clientX, e.clientY); }
   if (joy && e.pointerId === joy.id) {
     joy.cx = e.clientX; joy.cy = e.clientY;
-    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = joyMax;
+    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = joy.mx, z = joy.z;
     if (m > max && joy.fixed) { dx *= max / m; dy *= max / m; } // the fixed base doesn't move: the knob stops at the rim
-    else if (m > max) { const k = (m - max) / m; joy.x = Math.min(joy.x + dx * k, innerWidth * 0.5); joy.y += dy * k; joyEl.style.left = joy.x + "px"; joyEl.style.top = joy.y + "px"; dx *= max / m; dy *= max / m; } // past the rim the base follows the thumb (no dead centre to cross on a turn)
-    joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx / joyK}px,${dy / joyK}px)`;
+    else if (m > max) { const k = (m - max) / m; joy.x = Math.min(joy.x + dx * k, innerWidth * 0.5); joy.y += dy * k; joyEl.style.left = joy.x / z + "px"; joyEl.style.top = joy.y / z + "px"; dx *= max / m; dy *= max / m; } // past the rim the base follows the thumb (no dead centre to cross on a turn)
+    joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx / joyK / z}px,${dy / joyK / z}px)`;
   } else if (look && e.pointerId === look.id) {
     camYaw -= (e.clientX - look.x) * 0.006 * S.sens;
     camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - look.y) * 0.004 * S.sens, -0.3, mode === "island" && island.building() ? 1.4 : 0.75);

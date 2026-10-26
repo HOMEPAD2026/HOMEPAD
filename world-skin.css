@@ -4759,14 +4759,24 @@ html.wp-pcphone .wbt-pads{zoom:1.7}html.wp-pcphone .wst-judge{zoom:1.6}
   html.wp-land:not(.wp-pcphone) .wp-hud-r>*+*{margin-top:10px}
   html.wp-land:not(.wp-pcphone) .wp-mini{zoom:.85}
   html.wp-land:not(.wp-pcphone) #wp-dock{zoom:calc(var(--fbz,1) * .72);left:0;right:0;margin:0 auto;width:max-content;transform:none;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 6px)} /* (the dock in the middle at the bottom, between the stick and the fight buttons) */
-  html.wp-land:not(.wp-pcphone) #wp-joy,html.wp-land:not(.wp-pcphone) .wp-joyrest{margin-left:14px;margin-bottom:6px}
-  html.wp-land:not(.wp-pcphone) #wp-acts{margin-right:12px;margin-bottom:6px}}
+  html.wp-land:not(.wp-pcphone) .wp-joyrest{margin-left:14px;margin-bottom:6px} /* (only the ring: on the moving stick it replaced its centring margin and the base sat 50 px right of the thumb) */
+  html.wp-land:not(.wp-pcphone) #wp-acts{margin-right:12px;margin-bottom:6px}
+  /* (2026-10-26, a player: the resting stick sat halfway up the screen, by the quest card — 168 px up was the scaled
+     page's room; at a phone's own width it goes down into the corner, clear of the quest card) */
+  html.wp-land:not(.wp-pcphone) .wp-joyrest{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 14px)}}
+/* a turn settling (play.html html.wp-turning, ≤ 1.6 s): the HUD waits, instead of showing for a moment at the old layout's
+   sizes (a player saw a huge HUD for a second on entering Creator City sideways) */
+html.wp-turning body.wp :is(.wp-hud,#wp-dock,#wp-joy,.wp-joyrest,#wp-acts,#wc-bar,.wc-bar,#wp-mini,#wp-qmark,#wp-clean,.wz-bossbar,.wp-evt){opacity:0!important;transition:none!important}
 /* Creator City (2026-10-26, the owner): no logo top-left — the way back to the town in its place */
 .wp-back-gw{display:none}
 body.wp.wp-in-cc .wp-brand{display:none!important}
-body.wp.wp-in-cc .wp-back-gw{display:inline-flex;align-items:center;gap:8px;pointer-events:auto;cursor:pointer;margin-bottom:8px;padding:9px 16px 9px 10px;border-radius:999px;border:1.5px solid rgba(124,245,200,.55);background:linear-gradient(180deg,rgba(12,30,60,.88),rgba(6,16,38,.92));color:#eef6ff;font:800 14px/1 Sora,system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12)}
-body.wp.wp-in-cc .wp-back-gw i{font-style:normal;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#2f8cff,#7cf5c8);color:#04122a;font-size:15px}
-body.wp.wp-in-cc .wp-back-gw:active{transform:scale(.96)}
+/* (2026-10-26, a player: the button ran the column's full width with empty room after its words, and looked plain) —
+   as wide as its words, a glass pill with Meshy's arrow turned back, a soft cyan edge */
+body.wp.wp-in-cc .wp-back-gw{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;width:max-content;max-width:100%;flex:none;pointer-events:auto;cursor:pointer;margin:0 0 8px;padding:5px 15px 5px 5px;border-radius:999px;border:1px solid rgba(124,245,226,.6);background:linear-gradient(180deg,rgba(40,92,170,.78),rgba(10,26,64,.9) 62%);color:#f2fbff;font:800 13.5px/1.1 Sora,system-ui,sans-serif;letter-spacing:.01em;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:0 0 0 3px rgba(92,242,210,.1),0 6px 16px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -6px 12px rgba(0,0,0,.22);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .12s,box-shadow .2s}
+body.wp.wp-in-cc .wp-back-gw i{flex:none;font-size:0;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 50% 40%,rgba(124,245,226,.35),rgba(8,24,56,.85) 70%) center/100% 100% no-repeat;box-shadow:inset 0 0 0 1px rgba(124,245,226,.45);position:relative}
+body.wp.wp-in-cc .wp-back-gw i::after{content:"";position:absolute;inset:4px 3px;background:url(images/ui/kit/ic-arrow-guide.webp) center/contain no-repeat;transform:scaleX(-1)}
+body.wp.wp-in-cc .wp-back-gw:hover{box-shadow:0 0 0 3px rgba(92,242,210,.22),0 6px 16px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.28)}
+body.wp.wp-in-cc .wp-back-gw:active{transform:scale(.95)}
 html.wp-pcphone body.wp.wp-in-cc .wp-back-gw{zoom:1.6}
 body.wp.wp-in-cc.wp-clean .wp-back-gw{display:inline-flex}
 /* html.wp-vpfb (play.html): a phone that refused the scaled page sideways, at its own width (a Galaxy at 780 × 360).
