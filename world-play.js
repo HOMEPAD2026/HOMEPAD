@@ -569,7 +569,7 @@ const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn
 // b-st3: the first minutes, counted (world-diag.js funnel): each step once a visit; nw = this browser's first visit
 const FUN_NEW = (() => { try { const k = "arc.world.fun0"; const was = localStorage.getItem(k); if (!was) localStorage.setItem(k, String(Date.now())); return !was; } catch { return false; } })();
 const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; funSent.add(ev); try { if (diag && diag.funnel) diag.funnel(ev, FUN_NEW); } catch { /* fine */ } };
-const diag = DIAG.createDiag({ who: () => { const s0 = sess(); return s0 ? { w: s0.wallet, nm: (typeof P !== "undefined" && P && P.name) || "" } : {}; }, ver: VER, post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => S.fpsCap || autoCap || 60, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : landNow === "rq" ? (rqL && rqL.running() ? "raid" : "rqhall") : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+const diag = DIAG.createDiag({ who: () => { const s0 = sess(); return s0 ? { w: s0.wallet, nm: (typeof P !== "undefined" && P && P.name) || "" } : {}; }, ver: VER, post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => { try { return capNow(); } catch { return S.fpsCap || autoCap || 60; } }, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : landNow === "rq" ? (rqL && rqL.running() ? "raid" : "rqhall") : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
 // a phone turned sideways or back: what its browser did with the page's scale (play.html window.__arcVp), in the player's
 // log — a phone in full screen once kept the upright layout and drew the HUD huge, and this container can't hold one
 if (document.documentElement.classList.contains("wp-pcphone")) { let was = document.documentElement.classList.contains("wp-land"), vpT = 0; // (the turn's log line ends "→ phone layout" when the page fell back to the phone's own width)
@@ -4662,6 +4662,15 @@ let gameOn = false;
 if (S.quality === "auto" && st.quality.weak && !navigator.webdriver) { const wk = st.on(() => { try { if (!grass || !grass.mesh) return; } catch { return; } grassThin = true; try { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = Math.round(g.userData.full * 0.5); } catch { /* no grass */ } if (st.scale && dynK > 0.85) { dynK = 0.85; st.scale(dynK); } if (typeof wk === "function") wk(); }); }
 st.on(() => { let on = false; try { on = !!(defenseOn || jumpOn || beatOn); } catch { return; } if (on === gameOn) return; gameOn = on; dynBad = 0;
   try { if (coarse && grass && grass.mesh) { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = on || grassThin ? Math.round(g.userData.full * 0.5) : g.userData.full; } } catch { /* no grass */ } });
+// RAID QUEENS on a phone (2026-10-26, the owner: the phone got hot in raids): a quick phone ran the light raid scene
+// flat out at 60 fps and full pixels for minutes. While you're in its land a phone runs at an even 30 and at most 85 %
+// of the pixels (a frame limit you chose in Settings stays yours); all back on leaving
+const RQ_COOL = { fps: 30, k: 0.85 };
+let rqCool = false, rqK = 0;
+st.on(() => { let on = false; try { on = !!coarse && landNow === "rq"; } catch { return; } if (on === rqCool) return; rqCool = on; dynBad = 0; dynGood = 0;
+  if (!S.fpsCap) st.fps(on ? Math.min(autoCap || 60, RQ_COOL.fps) : autoCap || 60);
+  if (S.quality === "auto" && st.scale) { if (on && dynK > RQ_COOL.k) { rqK = dynK; dynK = RQ_COOL.k; st.scale(dynK); } else if (!on && rqK) { dynK = Math.max(dynK, rqK); rqK = 0; st.scale(dynK); } } });
+const capNow = () => S.fpsCap || (rqCool ? Math.min(autoCap || 60, RQ_COOL.fps) : autoCap) || 60;
 function dynRes(dt) {
   if (S.quality !== "auto" || degraded || photo || navigator.webdriver || !st.scale) return;
   dynAcc += dt; dynN++; if (performance.now() - dynT0 < 4000 || dynAcc < 1.5) return;
@@ -4671,12 +4680,12 @@ function dynRes(dt) {
   // b447: a phone already at the fewest pixels and still under 40 fps judders between 30 and 45: an even 30 looks smoother
   if (st.quality.coarse && dynK <= 0.6 && fps < (S.fpsCap || 60) * 0.8 && !liveShOff && now - dynLast > 20000 && bakedShadows()) { dynLast = now; dynBad = 0; return; } // b447: then the live shadow goes
   if (st.quality.coarse && !S.fpsCap && !autoCap && liveShOff && dynK <= 0.6 && fps < 40) { if (++capBad >= 2) { autoCap = 30; st.fps(30); } } else capBad = 0;
-  const capF = S.fpsCap || autoCap || 60; dynBad = fps < capF * (st.quality.coarse ? (now - dynStart > 600000 ? 0.9 : 0.8) : 0.7) ? dynBad + 1 : 0; /* b448: after 10 minutes a phone is warm: ease off a step earlier */ dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
+  const capF = capNow(); dynBad = fps < capF * (st.quality.coarse ? (now - dynStart > 600000 ? 0.9 : 0.8) : 0.7) ? dynBad + 1 : 0; /* b448: after 10 minutes a phone is warm: ease off a step earlier */ dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
   if (now - dynLast < (gameOn ? 8000 : 20000)) return;
   // b447: on a phone the grass goes to half before the first pixel goes (the blades are back on phones and cost)
   if (dynBad >= (gameOn ? 1 : 2) && st.quality.coarse && !grassThin && grass && grass.mesh) { grassThin = true; try { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = Math.round(g.userData.full * 0.5); } catch { /* no grass */ } dynBad = 0; dynLast = now; return; }
   if (dynBad >= (gameOn ? 1 : 2) && dynK > 0.6) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
-  else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
+  else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(rqCool ? RQ_COOL.k : 1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
 }
 function watchFps(dt) {
   if (st.idle) st.idle(!!(frozen && !photo && !introOn && !flying)); // a menu is open: the world behind it rests
@@ -4688,7 +4697,7 @@ function watchFps(dt) {
     // still slow after that: fewer sparks and puffs in fights
     if (degraded) { if (fpsN / fpsAcc < 22) { liteFx = true; toast(T("Fewer effects to keep things smooth")); } fpsAcc = 0; fpsN = 0; fpsT0 = performance.now(); return; }
     // slow: first fewer pixels (twice at most), and only then no bloom and no shadows
-    if (fpsN / fpsAcc < (S.fpsCap || autoCap || 60) * 0.43 && !(st.lighter && st.lighter()) && !(st.softer && st.softer())) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); }
+    if (fpsN / fpsAcc < capNow() * 0.43 && !(st.lighter && st.lighter()) && !(st.softer && st.softer())) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); }
     fpsAcc = 0; fpsN = 0; fpsT0 = performance.now();
   }
 }
