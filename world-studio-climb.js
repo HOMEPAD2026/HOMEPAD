@@ -4,6 +4,7 @@
 // fall below the screen and you lose a heart and come back on the last platform you stood on. Reach the top.
 // env: { ctx, THREE, T, esc, makeFx, makeGhost, result, back(again) }
 import { look as themeLook } from "./world-studio-look.js";
+import { makePad } from "./world-studio-pad.js";
 import { THEMES, CLIMB, genLevel } from "./world-studio-gen.js";
 
 export async function makeClimb(o, env) {
@@ -36,11 +37,12 @@ export async function makeClimb(o, env) {
   const me = new THREE.Group(); scene.add(me); if (hero) { me.add(hero.obj); try { hero.play("fall"); } catch { /* no clip */ } } else { const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 10), std(0xeef4fb)); cap.position.y = 0.9; me.add(cap); }
   const gh = makeGhost(scene, o.ghost, false);
   document.body.classList.add("wp-studio");
-  const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(ctx.coarse ? "Hold the left or right side to steer · the sides wrap round" : "← → / A D to steer · the sides wrap round"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
+  const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(ctx.coarse ? "Steer with the stick · the sides wrap round" : "← → / A D to steer · the sides wrap round"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
   document.body.appendChild(hud);
   const start = Math.max(0, Math.min(L.len - 10, o.startZ || 0)), from = start > 0 ? lands.filter((p) => p.z <= start).pop() : null;
   const S = { x: from ? from.x : 0, y: from ? from.z + 0.16 : 0, vy: 0, hearts: 3, inv: 0, coins: 0, t: -3, over: false, clip: "", best: from ? from.z : 0, last: from, face: 0, combo: 0, lastCoin: -9, tr: [] }, fx = makeFx(hud);
   const keyOn = new Set(), kd = (e) => { const k = e.key.toLowerCase(); if (["arrowleft", "arrowright", "a", "d"].includes(k)) { keyOn.add(k); e.preventDefault(); } }, ku = (e) => keyOn.delete(e.key.toLowerCase());
+  const pad = ctx.coarse ? makePad(hud, { mode: "steer", T }) : null; // (phones: the stick — world-studio-pad.js)
   let hold = 0; const pd = (e) => { if (e.target.closest && e.target.closest("button")) return; hold = e.clientX < innerWidth / 2 ? -1 : 1; }, pm = (e) => { if (hold && e.buttons !== 0) hold = e.clientX < innerWidth / 2 ? -1 : 1; }, pu = () => { hold = 0; };
   addEventListener("keydown", kd, true); addEventListener("keyup", ku, true); addEventListener("pointerdown", pd); addEventListener("pointermove", pm); addEventListener("pointerup", pu); addEventListener("pointercancel", pu);
   const play = (c, once) => { if (!hero) return; try { hero.play(c, once ? { once: true } : {}); } catch { /* no clip */ } S.clip = once ? "" : c; };
@@ -54,7 +56,7 @@ export async function makeClimb(o, env) {
     if (S.t < 0) { const n0 = Math.ceil(-S.t); S.t += dt; const n1 = Math.ceil(-Math.min(0, S.t)); if (n1 !== n0) { const cd = hud.querySelector(".wst-cd"); cd.textContent = n1 > 0 ? String(n1) : T("GO!"); cd.classList.remove("pop"); void cd.offsetWidth; cd.classList.add("pop"); if (n1 <= 0) { setTimeout(() => cd.remove(), 700); S.vy = V0; play("jump"); } } }
     else if (!S.over) {
       S.t += dt; S.inv = Math.max(0, S.inv - dt);
-      const ix = (keyOn.has("arrowright") || keyOn.has("d") ? 1 : 0) - (keyOn.has("arrowleft") || keyOn.has("a") ? 1 : 0) || hold;
+      const ix = (keyOn.has("arrowright") || keyOn.has("d") ? 1 : 0) - (keyOn.has("arrowleft") || keyOn.has("a") ? 1 : 0) || hold || (pad && pad.on ? pad.x : 0);
       S.x += ix * 7.5 * dt; if (ix) S.face = ix * 0.9; if (S.x > HW) S.x -= HW * 2; if (S.x < -HW) S.x += HW * 2; // (the sides wrap round)
       for (const p of lands) if (p.k === "mplat") p.m.position.x = mx(p, t);
       const y0 = S.y; S.vy -= G * dt; S.y += S.vy * dt;
@@ -87,7 +89,7 @@ export async function makeClimb(o, env) {
     cam.position.set(0, camY + 1.5, dist); cam.lookAt(0, camY, 0);
   }
   hud.querySelector(".wst-hx").addEventListener("click", () => leave());
-  async function end(done) { if (S.over) return; S.over = true; play(done ? "emote-yes" : "die", true);
+  async function end(done) { if (S.over) return; S.over = true; if (pad) pad.hide(); play(done ? "emote-yes" : "die", true);
     await result(o, hud, { trace: S.tr, coins: S.coins, dist: done ? L.len : S.best, done, line: `🪙 ${S.coins} / ${L.coins} · ${Math.round(done ? L.len : S.best)} / ${L.len} m`, head: done ? "🏔️ " + T("You reached the top!") : "💥 " + T("Out of hearts"), confetti: done }, leave); }
   function leave(again) {
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); removeEventListener("pointerdown", pd); removeEventListener("pointermove", pm); removeEventListener("pointerup", pu); removeEventListener("pointercancel", pu);

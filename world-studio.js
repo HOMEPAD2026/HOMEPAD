@@ -11,6 +11,7 @@ import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, DEF, clampSpec, toBuild
 import { makePreview } from "./world-studio-prev.js";
 import { look as themeLook, trackUV } from "./world-studio-look.js";
 import { level as ringLevel } from "./world-rings-engine.js";
+import { makePad, makeLand } from "./world-studio-pad.js";
 // Studio 2 (2026-10-24): two more templates (Infinity Dash: the lanes without a finish, faster and faster; Arena Survival:
 // seen from above, drones from the edge, laser sweeps, coins, last the time), a preview strip of the level in the editor,
 // a share link (/play?sg=<id>), and the runs' effects (coin pops and a combo, speed lines, a slow-mo near miss under a
@@ -54,8 +55,9 @@ export function createStudio(ctx) {
     el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } });
     return el;
   }
-  function open(t) { shell(); if (t) tab = t; el.hidden = false; paint(); load(); if (ctx.onOpen) ctx.onOpen(); }
-  function close() { if (el) el.hidden = true; if (prev) { prev.dispose(); prev = null; } if (ctx.onClose) ctx.onClose(); }
+  const land = makeLand({ T, esc, coarse: !!ctx.coarse }); // (phones: the Studio sideways while it's open — world-studio-pad.js)
+  function open(t) { shell(); if (t) tab = t; el.hidden = false; paint(); load(); land.enter(); if (ctx.onOpen) ctx.onOpen(); }
+  function close() { if (el) el.hidden = true; if (prev) { prev.dispose(); prev = null; } land.exit(); if (ctx.onClose) ctx.onClose(); }
   const shown = () => !!el && !el.hidden;
   const slider = (k, lab, max, min = 0) => `<label class="wst-sl"><span>${esc(T(lab))} <b>${spec[k]}</b></span><input type="range" min="${min}" max="${max}" step="1" value="${spec[k]}" data-k="${k}"></label>`;
   // Studio 3: the editor in five steps (a bar at the top, Back / Next at the bottom), the live 3D preview over them
@@ -398,10 +400,10 @@ export function createStudio(ctx) {
     const gh = makeGhost(scene, o.ghost, false);
     // the HUD and the controls
     document.body.classList.add("wp-studio");
-    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(ctx.coarse ? "Swipe ← → to switch lanes · ↑ jump · ↓ slide" : "← → switch lanes · ↑ / Space jump · ↓ slide"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
+    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(ctx.coarse ? "Stick ← → to switch lanes · ⤒ jump · ⤓ slide (or swipe)" : "← → switch lanes · ↑ / Space jump · ↓ slide"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
     document.body.appendChild(hud);
     const S = { z: Math.max(0, Math.min(L.len - 40, o.startZ || 0)), x: 0, lane: 1, y: 0, vy: 0, slide: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, done: false, over: false, clip: "", combo: 0, lastCoin: -9, slow: 0, nice: new Set(), tr: [] }; // (o.startZ: the editor's "test from here")
-    const fx = makeFx(hud);
+    const fx = makeFx(hud), pad = ctx.coarse ? makePad(hud, { mode: "lanes", T, onLane: (d) => lane(d), onJump: () => jump(), onSlide: () => slide() }) : null;
     const keys = (e) => { if (S.over) return; const k = e.key; if (k === "ArrowLeft" || k === "a" || k === "A") lane(-1); else if (k === "ArrowRight" || k === "d" || k === "D") lane(1); else if (k === "ArrowUp" || k === " " || k === "w" || k === "W") jump(); else if (k === "ArrowDown" || k === "s" || k === "S") slide(); else return; e.preventDefault(); };
     let tx = 0, ty = 0, tt = 0;
     const ts = (e) => { const p = e.changedTouches ? e.changedTouches[0] : e; tx = p.clientX; ty = p.clientY; tt = Date.now(); };
@@ -449,7 +451,7 @@ export function createStudio(ctx) {
     }
     hud.querySelector(".wst-hx").addEventListener("click", () => leave());
     async function end(done) {
-      if (S.over) return; S.over = true; S.done = done; play(done ? "emote-yes" : "die", true);
+      if (S.over) return; S.over = true; S.done = done; if (pad) pad.hide(); play(done ? "emote-yes" : "die", true);
       fx.speed(0); if (!done && !dash) { deathMark(scene, S.x, S.z); await beat(hud); } // (STU-B: where it ended, a moment before the card)
       await result(o, hud, { trace: S.tr, coins: S.coins, dist: S.z, done, line: dash ? `🪙 ${S.coins} · ${Math.round(S.z)} m` : `🪙 ${S.coins} / ${L.coins} · ${Math.round(S.z)} / ${Math.round(L.len)} m`, head: dash ? "♾️ " + T("{m} m!", { m: Math.round(S.z) }) : done ? "🏁 " + T("Finished!") : "💥 " + T("Out of hearts"), confetti: done || dash }, leave);
     }
@@ -559,9 +561,9 @@ export function createStudio(ctx) {
     let hero = null; try { hero = await ctx.makeHero(); } catch (e) { console.warn("studio hero", e); }
     const me = new THREE.Group(); scene.add(me); if (hero) { me.add(hero.obj); try { hero.play("idle"); } catch { /* no clip */ } } else { const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 10), std(0xeef4fb)); cap.position.y = 0.9; me.add(cap); }
     document.body.classList.add("wp-studio");
-    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(o.spec.tpl === "rush" ? (ctx.coarse ? "Drag anywhere to move · grab every coin" : "WASD / arrows to move · grab every coin") : ctx.coarse ? "Drag anywhere to move · dodge the drones" : "WASD / arrows to move · dodge the drones"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
+    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(o.spec.tpl === "rush" ? (ctx.coarse ? "Move with the stick · grab every coin" : "WASD / arrows to move · grab every coin") : ctx.coarse ? "Move with the stick · dodge the drones" : "WASD / arrows to move · dodge the drones"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
     document.body.appendChild(hud);
-    const off = Math.max(0, Math.min(A.secs - 5, o.startT || 0)), fx = makeFx(hud), S = { x: 0, z: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, over: false, clip: "", face: 0, combo: 0, lastCoin: -9, tr: [] }, gh = makeGhost(scene, o.ghost, true);
+    const off = Math.max(0, Math.min(A.secs - 5, o.startT || 0)), fx = makeFx(hud), S = { x: 0, z: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, over: false, clip: "", face: 0, combo: 0, lastCoin: -9, tr: [] }, gh = makeGhost(scene, o.ghost, true), pad = ctx.coarse ? makePad(hud, { mode: "stick", T }) : null;
     const keyOn = new Set(), kd = (e) => { const k = e.key.toLowerCase(); if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(k)) { keyOn.add(k); e.preventDefault(); } }, ku = (e) => keyOn.delete(e.key.toLowerCase());
     let drag = null; const pd = (e) => { if (e.target.closest && e.target.closest("button")) return; drag = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 }; }, pm = (e) => { if (drag) { drag.dx = e.clientX - drag.x; drag.dy = e.clientY - drag.y; } }, pu = () => { drag = null; };
     addEventListener("keydown", kd, true); addEventListener("keyup", ku, true); addEventListener("pointerdown", pd); addEventListener("pointermove", pm); addEventListener("pointerup", pu); addEventListener("pointercancel", pu);
@@ -581,6 +583,7 @@ export function createStudio(ctx) {
         // moving: keys or a drag; the camera's up is −z
         let ix = (keyOn.has("arrowright") || keyOn.has("d") ? 1 : 0) - (keyOn.has("arrowleft") || keyOn.has("a") ? 1 : 0), iz = (keyOn.has("arrowdown") || keyOn.has("s") ? 1 : 0) - (keyOn.has("arrowup") || keyOn.has("w") ? 1 : 0);
         if (drag && Math.hypot(drag.dx, drag.dy) > 8) { const l = Math.hypot(drag.dx, drag.dy); ix = drag.dx / l * Math.min(1, l / 60); iz = drag.dy / l * Math.min(1, l / 60); }
+        if (pad && pad.on) { ix = pad.x; iz = pad.y; } // (phones: the stick)
         const il = Math.hypot(ix, iz), spd = 6.8 * Math.min(1, il);
         if (il > 0.05) { S.x += (ix / il) * spd * dt; S.z += (iz / il) * spd * dt; S.face = Math.atan2(ix, iz); const r = Math.hypot(S.x, S.z); if (r > R - 0.8) { S.x *= (R - 0.8) / r; S.z *= (R - 0.8) / r; } for (const q of pil) { const dx = S.x - q.x, dz = S.z - q.z, d = Math.hypot(dx, dz) || 0.01; if (d < 1.55) { S.x = q.x + (dx / d) * 1.55; S.z = q.z + (dz / d) * 1.55; } } }
         if (hero && !hero.busy()) { const want = spd > 5 ? "sprint" : spd > 0.5 ? "walk" : "idle"; if (S.clip !== want) play(want); }
@@ -610,7 +613,7 @@ export function createStudio(ctx) {
       if (cam.aspect !== innerWidth / innerHeight) { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
     }
     hud.querySelector(".wst-hx").addEventListener("click", () => leave());
-    async function end(done) { if (S.over) return; S.over = true; play(done ? "emote-yes" : "die", { once: true }); const secs = Math.min(A.secs, Math.max(0, S.t)); if (!done) { deathMark(scene, S.x, S.z); await beat(hud); }
+    async function end(done) { if (S.over) return; S.over = true; if (pad) pad.hide(); play(done ? "emote-yes" : "die", { once: true }); const secs = Math.min(A.secs, Math.max(0, S.t)); if (!done) { deathMark(scene, S.x, S.z); await beat(hud); }
       await result(o, hud, { trace: S.tr, coins: S.coins, dist: secs * 20, done, line: `🪙 ${S.coins} / ${A.coins} · ${Math.round(secs)} / ${A.secs} s`, head: done ? (o.spec.tpl === "rush" ? "💰 " + T("Time's up — {n} coins!", { n: S.coins }) : "🛸 " + T("You lasted!")) : "💥 " + T("Out of hearts"), confetti: done }, leave); }
     function leave(again) {
       removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); removeEventListener("pointerdown", pd); removeEventListener("pointermove", pm); removeEventListener("pointerup", pu); removeEventListener("pointercancel", pu);

@@ -4529,3 +4529,24 @@ html.wp-pcphone .wst-in{zoom:1.25;height:calc(100dvh / 1.25);max-height:calc(100
 @media (prefers-reduced-motion:reduce){.wst-hud.ouch::after,.wst-launch>i,.wst-build-in::after,.wsb-pop{animation:none!important;display:none}}
 body.wp .wp-stu-btn{display:inline-flex!important;position:relative} /* the Studio shortcut left of Rewards (2026-10-26) */
 body.wp .wp-hud .wp-hud-btns>#wp-stu-btn.wp-btn .wp-bl{font-size:11.6px!important;letter-spacing:-.05em}
+/* STU-L (2026-10-26): the Studio on phones — a thumb stick (left), jump / slide (right, the runs), the turn-your-phone card */
+.wsp{--ws:132px;position:fixed;inset:0;z-index:3;pointer-events:none}
+html.wp-pcphone .wsp{--ws:300px}
+.wsp[hidden]{display:none}
+.wsp-zone{position:absolute;left:0;bottom:0;width:46%;height:70%;pointer-events:auto;touch-action:none}
+.wsp-base{position:absolute;left:calc(var(--ws)*.35);bottom:calc(var(--ws)*.3);width:var(--ws);height:var(--ws);border-radius:50%;background:radial-gradient(circle,rgba(124,245,200,.16),rgba(8,20,40,.42) 70%);border:calc(var(--ws)*.025) solid rgba(124,245,200,.55);box-shadow:0 0 calc(var(--ws)*.12) rgba(95,211,255,.35),inset 0 0 calc(var(--ws)*.1) rgba(95,211,255,.25);opacity:.62;transition:opacity .15s;pointer-events:none}
+.wsp-base.on{bottom:auto;opacity:1}
+.wsp-knob{position:absolute;left:30%;top:30%;width:40%;height:40%;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ffffff,#9fe9ff 45%,#2f8cff);box-shadow:0 calc(var(--ws)*.02) calc(var(--ws)*.06) rgba(0,0,0,.45),0 0 calc(var(--ws)*.1) rgba(124,245,200,.6)}
+.wsp-btns{position:absolute;right:calc(var(--ws)*.28);bottom:calc(var(--ws)*.28);display:flex;gap:calc(var(--ws)*.14);align-items:flex-end;pointer-events:auto}
+.wsp-b{width:calc(var(--ws)*.62);height:calc(var(--ws)*.62);border-radius:50%;border:calc(var(--ws)*.02) solid rgba(255,255,255,.55);background:radial-gradient(circle at 40% 35%,#7cf5c8,#1d8f8a 70%);color:#fff;font:900 calc(var(--ws)*.3)/1 Sora,sans-serif;box-shadow:0 calc(var(--ws)*.03) calc(var(--ws)*.08) rgba(0,0,0,.45);touch-action:none}
+.wsp-b.wsp-jump{width:calc(var(--ws)*.78);height:calc(var(--ws)*.78);background:radial-gradient(circle at 40% 35%,#9fe9ff,#2f6cff 70%)}
+.wsp-b.hit{animation:wsp-hit .22s ease-out}
+@keyframes wsp-hit{0%{transform:scale(.86)}100%{transform:scale(1)}}
+.wsp-turn{position:fixed;inset:0;z-index:13500;display:flex;align-items:center;justify-content:center;background:rgba(2,8,20,.82);backdrop-filter:blur(6px)}
+.wsp-turn-in{max-width:min(86vw,720px);padding:4vmin 5vmin;border-radius:3vmin;text-align:center;color:#eaf6ff;background:linear-gradient(180deg,rgba(12,32,64,.95),rgba(4,12,28,.95));border:2px solid rgba(124,245,200,.5)}
+.wsp-turn-in b{display:block;font:900 clamp(20px,5.2vmin,56px)/1.15 Sora,sans-serif;margin:2vmin 0 1vmin}
+.wsp-turn-in p{margin:0 0 3vmin;font:700 clamp(14px,3.4vmin,36px)/1.35 Sora,sans-serif;color:#b9cfe6}
+.wsp-keep{padding:1.6vmin 4vmin;border-radius:99px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font:800 clamp(13px,3vmin,32px)/1 Sora,sans-serif}
+.wsp-phone{display:inline-block;width:14vmin;height:22vmin;border:1.2vmin solid #7cf5c8;border-radius:2.4vmin;animation:wsp-rot 1.8s ease-in-out infinite}
+@keyframes wsp-rot{0%,20%{transform:rotate(0)}55%,80%{transform:rotate(-90deg)}100%{transform:rotate(-90deg)}}
+@media (prefers-reduced-motion:reduce){.wsp-phone{animation:none;transform:rotate(-90deg)}}
