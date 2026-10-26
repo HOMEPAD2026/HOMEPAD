@@ -1,4 +1,4 @@
-// world-adguide.js — the guide window for AGENT DIMENSION and ARCIRCLE Studio Lite (the owner's ask, 2026-10-24: easy, with
+// world-adguide.js — the guide window for AGENT DIMENSION and ARCIRCLE STUDIO BETA (was Studio Lite) (the owner's ask, 2026-10-24: easy, with
 // the Studio in most detail). The words live in /ad-guide-data.js (window.ARC_AD_GUIDE, en/ko/zh/tr), shared with /game's
 // guide section; this only draws them: two tabs, each part a card of numbered steps and tips.
 // ctx: { lang, ver, esc, onOpen, onClose }
@@ -16,7 +16,7 @@ export function createAdGuide(ctx) {
     const b = el.querySelector(".wpg-in"); if (b) b.scrollTop = 0;
   }
   async function open(which) {
-    if (which === "ad" || which === "studio") tab = which;
+    if (which === "ad" || which === "beta") tab = which; else if (which === "studio") tab = "beta"; // (the Studio Lite guide became the Studio Beta one)
     if (!el) { el = document.createElement("div"); el.className = "wpg"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); document.body.appendChild(el);
       el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-x]")) return close(); const t = e.target.closest("[data-adg]"); if (t) { tab = t.dataset.adg; paint(); } }); }
     css(); el.hidden = false; el.innerHTML = `<div class="wpg-in adg"><p class="adg-lead">…</p></div>`; if (ctx.onOpen) ctx.onOpen();
