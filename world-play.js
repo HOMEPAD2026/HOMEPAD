@@ -1166,7 +1166,7 @@ async function dressWorld(kit) {
   shops.forEach(boxOf);
   K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
   // the hunting grounds (world-zones.js)
-  const zs = (zoneRoot = null, ZN.makeZones({ THREE, K, planet, kit, T, low: lowGfx, onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } }));
+  const zs = (zoneRoot = null, ZN.makeZones({ THREE, K, planet, kit, T, low: lowGfx, ver: VER, onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } }));
   zoneRoot = zs.root;
   // b-st3: on a computer the far grounds are built now, behind the loading screen, so their shaders are compiled with the
   // rest (st.warm) instead of on the way in; a phone keeps building each as you come near (memory)

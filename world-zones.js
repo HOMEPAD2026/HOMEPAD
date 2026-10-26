@@ -6,12 +6,16 @@ import { ZONES, zoneAt, pondOf } from "./world-rpg-data.js";
 import { farProps } from "./world-zones-far.js";
 export { ZONES, zoneAt };
 
-export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = null }) {
+// each ground's landmark (a Meshy model, 0.2–0.6 MB, ~8 k tris): on the far side from the gate, facing it, loaded only
+// as you come near (nearer on low graphics), one at a time
+const LANDMARK = { spam: "spam-alley", fields: "airdrop-fields", swamp: "honeypot-swamp", canyon: "rug-canyon", depths: "dark-market-depths", peaks: "ponzi-peaks", dunes: "exit-scam-desert", reef: "phishing-reef", wastes: "bot-farm-wastes", ruins: "fake-exchange-ruins", abyss: "bridge-hack-abyss", void: "the-last-rug" };
+
+export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = null, ver = "" }) {
   const root = new THREE.Group(); root.name = "zones"; planet.add(root);
   const rnd = (seed) => { let a = seed; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; };
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, flatShading: true, ...o });
   const glowM = (c, k = 2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
-  const spins = [], signs = [], gates = [], lazy = [];
+  const spins = [], signs = [], gates = [], lazy = [], marks = [];
   ZONES.forEach((zn, zi) => {
     const g = new THREE.Group(); g.position.set(zn.x, 0, zn.z); root.add(g);
     const r = rnd(97 + zi * 13);
@@ -66,6 +70,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
     // the props never move: merge the ones that look alike into one mesh each (hundreds of draw calls fewer)
     if (K.mergeStatic) K.mergeStatic(g);
     g.userData = { zone: zn, border };
+    if (LANDMARK[zn.id]) marks.push({ zn, g, toPlaza, file: LANDMARK[zn.id], state: 0 });
     spins.push((dt, t) => { border.material.emissiveIntensity = 1.3 + Math.sin(t * 2 + zi) * 0.4; });
   });
   // a gate's sign right over your head would sit on top of the HUD: it fades out while you stand under it
@@ -79,5 +84,17 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
       if (all || d < 40) { l.built = true; l.build(); if (!all) return; continue; }
       if (d < 160 && !queued) { queued = l; const go = () => { const q = queued; queued = null; if (q && !q.built) { q.built = true; q.build(); } };
         if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 2500 }); else setTimeout(go, 300); return; } } };
-  return { root, gates, update: (dt, t) => { buildNear(false); spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt, buildAll: () => buildNear(true), built: () => lazy.filter((l) => l.built).map((l) => l.zn.id) };
+  let markBusy = false;
+  const markNear = () => { if (markBusy || !K.gltfLoader) return; const px = -planet.position.x, pz = -planet.position.z, reach = low ? 40 : 70;
+    const m = marks.find((l) => !l.state && Math.hypot(l.zn.x - px, l.zn.z - pz) - l.zn.r < reach); if (!m) return;
+    m.state = 1; markBusy = true;
+    K.gltfLoader().load(`/models/world/landmarks/${m.file}.glb${ver}`, (gl) => { markBusy = false;
+      const src = gl.scene; src.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(src), sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+      const h = m.zn.deco ? 17 : 13, k = Math.min(h / Math.max(sz.y, 1e-3), (m.zn.r * 0.8) / Math.max(sz.x, sz.z, 1e-3));
+      const hold = new THREE.Group(); src.position.set(-c.x, -box.min.y, -c.z); hold.add(src); hold.scale.setScalar(k);
+      const a = m.toPlaza + Math.PI, d = m.zn.r * 0.62; hold.position.set(Math.sin(a) * d, 0, Math.cos(a) * d); hold.rotation.y = m.toPlaza; hold.name = "landmark";
+      hold.traverse((o) => { if (o.isMesh) { o.castShadow = !low; o.receiveShadow = false; o.matrixAutoUpdate = false; o.updateMatrix(); } });
+      m.g.add(hold); m.state = 2; if (onBuilt) onBuilt(m.zn);
+    }, undefined, (e) => { markBusy = false; m.state = 3; console.warn("landmark", m.file, e); }); };
+  return { root, gates, update: (dt, t) => { buildNear(false); markNear(); spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt, buildAll: () => buildNear(true), built: () => lazy.filter((l) => l.built).map((l) => l.zn.id) };
 }

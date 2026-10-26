@@ -241,6 +241,7 @@ function meshyTrees(g, round, pines, cols) {
     if (Object.keys(got).length < 4) return;
     const mm = new THREE.Matrix4(), add = [];
     for (const [name, list] of Object.entries(groups)) { const src = got[name]; if (!src || !list.length) continue;
+      if (name === "tree-pine") src.traverse((m) => { if (m.isMesh && m.material && m.material.color) { m.material.color.setRGB(1.55, 1.75, 1.5); if (m.material.emissive) { m.material.emissive.setHex(0x0e2a1c); } } }); /* Meshy's pine is painted dark: it went black on its shaded side */
       src.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(src), sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3()), k = want[name] / Math.max(sz.y, 1e-3);
       const fix = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z));
       src.traverse((m) => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, list.length); im.name = "tree:" + name; im.castShadow = true; im.receiveShadow = true;
