@@ -4748,3 +4748,7 @@ html.wp-pcphone .wbt-pads{zoom:1.7}html.wp-pcphone .wst-judge{zoom:1.6}
 .wst-hin{display:flex;align-items:center;flex:1 1 170px;max-width:260px;border-radius:12px;background:rgba(5,10,26,.6);border:1px solid rgba(120,190,255,.35);padding:0 10px}
 .wst-hin span{color:#5cf2c0;font-weight:800}.wst-hin input{flex:1;min-width:0;background:none;border:0;outline:0;color:#eef5ff;font:700 15px/1 Sora,system-ui,sans-serif;padding:10px 6px}
 .wst-hin:focus-within{border-color:#5cf2c0;box-shadow:0 0 0 3px rgba(92,242,192,.18)}
+/* a phone held sideways at its own width (play.html fell back from the scaled page: a Galaxy refused it, 780 × 360): the
+   HUD made for a tall phone filled the short screen and overlapped — sideways and low, it's drawn smaller */
+@media (max-height:480px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-dock,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.68}}
+@media (max-height:380px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-dock,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.6}}
