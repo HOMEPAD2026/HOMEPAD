@@ -281,7 +281,7 @@ function rugCrawler() {
 }
 const VILLAIN = { EyeDrone: spamDrone, QuadShell: dropCrate, Trilobite: rugCrawler };
 // the bottom and top of the robot models they replace (so every scale and height already tuned for those still fits)
-const SIZE = { EyeDrone: [-1, 1], QuadShell: [-0.64, 0.64], Trilobite: [-0.87, 0.87] };
+const SIZE = { EyeDrone: [-1, 1], QuadShell: [-0.64, 0.64], Trilobite: [-0.87, 0.87], Angler: [-0.87, 0.87], Balloon: [-1, 1], BotDrone: [-1, 1] };
 // fewer draw calls: inside each moving part, the meshes that share a look become one (the parts still move apart)
 function mergeParts(root) {
   const key = (m) => [m.type, m.color && m.color.getHex(), m.emissive && m.emissive.getHex(), m.emissiveIntensity, m.roughness, m.metalness, m.clearcoat, !!m.userData.glow, m.transparent, m.opacity].join("|");
@@ -312,6 +312,15 @@ function meshyVillain(model, fly) {
     clip("BackFlip", 0.9, [track("v-body", "quaternion", [0, 0.3, 0.6, 0.9], [Q(0, 0, 0), Q(-2.1, 0, 0), Q(-4.2, 0, 0), Q(-6.283, 0, 0)]), track("v-body", "position", [0, 0.3, 0.6, 0.9], [[0, 0, 0], [0, 0.9, 0], [0, 0.9, 0], [0, 0, 0]])]),
   ];
   return { scene: root, clips };
+}
+// the far grounds' own scammers (b-nx4): the Phishing Angler (Phishing Reef), the Pump Balloon (Ponzi Peaks), the Bot-Farm
+// Drone (Bot Farm Wastes) — loaded with the creature pack, only when a ground that dresses its scammers comes near
+const MESHY_EXTRA = { Angler: ["phishing-angler", false], Balloon: ["pump-balloon", true], BotDrone: ["bot-farm-drone", true] };
+export function meshyExtras(kit, loader, ver = "") {
+  if (!loader) return Promise.resolve(kit);
+  return Promise.all(Object.entries(MESHY_EXTRA).map(([name, [file, fly]]) => new Promise((ok) => {
+    try { loader().load(`/models/world/scammers/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, fly)); } catch (e) { console.warn("scammer", file, e); } ok(); }, undefined, () => ok()); } catch { ok(); }
+  }))).then(() => kit);
 }
 /// swap in the Meshy bodies; resolves when they're in (or after `wait` ms, whatever came by then)
 export function meshyVillains(kit, loader, ver = "", wait = 5000) {

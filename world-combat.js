@@ -35,6 +35,7 @@ const MOBS = {
 const SKIN = {
   Bat: { h: 1.25, y: 0.9 }, Wasp: { h: 1.1, y: 0.9 }, Frog: { h: 0.75, y: 0 }, Snake: { h: 1.25, y: 0 }, Rat: { h: 0.7, y: 0 },
   Spider: { h: 0.8, y: 0 }, Slime: { h: 0.85, y: 0 }, Skeleton: { h: 1.85, y: 0 }, Dragon: { h: 3.4, y: 1.1 },
+  Angler: { h: 0.95, y: 0.55 }, Balloon: { h: 0.85, y: 1.0 }, BotDrone: { h: 0.7, y: 1.2 }, /* (b-nx4: Meshy scammers, sized like the robots they stand in for) */
 };
 const ITEMS = [
   { id: "coin", name: "ARCL coin", w: 30, color: 0xffc861 },

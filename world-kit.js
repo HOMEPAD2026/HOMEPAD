@@ -20,7 +20,7 @@ import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js"
 import { KTX2Loader } from "./vendor/three/addons/KTX2Loader.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 export const skelClone = (o) => SkeletonUtils.clone(o); // a rigged model's copy with its own bones (Jurassic World's herds)
-import { villainize, meshyVillains } from "./world-gear3d.js"; // the scammers as villain bots
+import { villainize, meshyVillains, meshyExtras } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 export const makeTrees = (...a) => ARC.makeTrees(...a); // the town's round, wind-swayed trees (the Game Village gardens use them, b447)
@@ -836,7 +836,7 @@ export function loadKit(ver = "") {
     // grounds use, which competed with the town's packs and was readied on the plaza
     kit.loadMonsters = () => kit.monstersReady || (kit.monstersReady = kit.enemiesReady.then(() => loadPack("/models/world/packs/q-monsters.glb", ver)).then((p) => {
       for (const [n, node] of p.models) kit.enemies[n] = { scene: node, clips: p.clips.filter((c) => c.name.startsWith(n + "/")).map((c) => { const x = c.clone(); x.name = c.name.slice(n.length + 1); return x; }) };
-      return kit;
+      return MESHY_SCAM.on ? meshyExtras(kit, gltfLoader, ver) : kit;
     }).catch((err) => { console.warn("world monsters:", err); return kit; }));
     return kit;
   });
