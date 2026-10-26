@@ -2045,7 +2045,7 @@ function landGo(to) {
 function landTick(force) {
   const L = mode === "hub" ? LD.landAt(-planet.position.x, -planet.position.z) : null, id = L ? L.id : "";
   lands.show(id); if (adc) adc.show(id === "ad"); if (rqL) rqL.show(id === "rq"); if (ccL) ccL.show(id === "cc"); if (id === landNow && !force) return;
-  const was = landNow; landNow = id; try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } // (no town rain in RAID QUEENS' sky realm) try { paintQuests(); } catch { /* the quests aren't up yet */ }
+  const was = landNow; landNow = id; try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); // (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } // (no town rain in RAID QUEENS' sky realm) try { paintQuests(); } catch { /* the quests aren't up yet */ }
   if (id && id !== was) { toast(`<b>${esc(landName(id))}</b>`); if (id === "lp" && !P.visited.includes("lpv")) { P.visited.push("lpv"); save(); } if (id === "ut" && !P.visited.includes("utv")) { P.visited.push("utv"); save(); } if (id === "ad" && !P.visited.includes("adc")) { P.visited.push("adc"); save(); } if (id === "rq" && !P.visited.includes("rqx")) { P.visited.push("rqx"); save(); } }
 }
 st.on(() => { try { landTick(false); } catch { /* still loading */ } });
@@ -3868,6 +3868,10 @@ function openNew() {
 // the ARCIRCLE logo (b405, a player's idea): a small menu — your island, a player's island (a random one, or the
 // list), or the Platform World (where the logo used to go straight away)
 const brandA = document.querySelector(".wp-brand"), brandM = document.createElement("div");
+// Creator City: the top-left's logo gives its place to "Back to Game World" (straight to the town's plaza)
+{ const gb = document.createElement("button"); gb.type = "button"; gb.className = "wp-back-gw"; gb.innerHTML = `<i aria-hidden="true">←</i><span>${esc(TW("Back to Game World"))}</span>`;
+  gb.addEventListener("click", () => { if (frozen || landNow !== "cc") return; closeAll(); landGo("town"); });
+  if (brandA && brandA.parentNode) brandA.parentNode.insertBefore(gb, brandA); }
 brandM.className = "wp-brand-menu"; brandM.id = "wp-brand-menu"; brandM.hidden = true; brandM.setAttribute("role", "menu"); brandM.setAttribute("data-no-i18n", "");
 function paintBrandMenu() {
   const ICON = {
@@ -3975,7 +3979,7 @@ combat = FIGHT.createCombat({ softKO: () => !!(rqL && rqL.running()), alt: (a) =
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); if (avatar && avatar.kk && grounded) avatar.play("dodge", { once: true, speed: 1.4, fade: 0.05 }); },
   onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); if (z) arciaOn("zone", z); },
   onKill: (k) => { fun("fight"); if (quests) quests.on.kill(k); arciaOn("kill", k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
-  xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), noStreet: () => landNow === "rq", raidHit: (n) => raid && raid.hit(n),
+  xpBoost: (zid) => RPG.xpBoost(zid) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), noStreet: () => landNow === "rq" || landNow === "cc", raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
   onLoot: (it) => { if (quests) quests.on.loot(it); arciaOn("loot", it); if (it.r >= 3) shareDrop(it); if (it.r >= 2) lootCard(it); },
   legend: () => { replay(document.body, "wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },

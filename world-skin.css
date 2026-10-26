@@ -4760,3 +4760,11 @@ html.wp-pcphone .wbt-pads{zoom:1.7}html.wp-pcphone .wst-judge{zoom:1.6}
   html.wp-land:not(.wp-pcphone) #wp-joy,html.wp-land:not(.wp-pcphone) .wp-joyrest{margin-left:14px;margin-bottom:6px}
   html.wp-land:not(.wp-pcphone) #wp-acts{margin-right:12px;margin-bottom:6px}}
 @media (max-height:380px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.56}html.wp-land:not(.wp-pcphone) #wp-dock{zoom:.46}}
+/* Creator City (2026-10-26, the owner): no logo top-left — the way back to the town in its place */
+.wp-back-gw{display:none}
+body.wp.wp-in-cc .wp-brand{display:none!important}
+body.wp.wp-in-cc .wp-back-gw{display:inline-flex;align-items:center;gap:8px;pointer-events:auto;cursor:pointer;margin-bottom:8px;padding:9px 16px 9px 10px;border-radius:999px;border:1.5px solid rgba(124,245,200,.55);background:linear-gradient(180deg,rgba(12,30,60,.88),rgba(6,16,38,.92));color:#eef6ff;font:800 14px/1 Sora,system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12)}
+body.wp.wp-in-cc .wp-back-gw i{font-style:normal;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#2f8cff,#7cf5c8);color:#04122a;font-size:15px}
+body.wp.wp-in-cc .wp-back-gw:active{transform:scale(.96)}
+html.wp-pcphone body.wp.wp-in-cc .wp-back-gw{zoom:1.6}
+body.wp.wp-in-cc.wp-clean .wp-back-gw{display:inline-flex}
