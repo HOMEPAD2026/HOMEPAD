@@ -54,3 +54,17 @@ All of them are under 600 KB. Sizes are Meshy's normalised ~1.9 m on the longest
 | boss-dragon-idle.glb | 5,198 | 983 | Idle 4.0 s (full skinned model) |
 | boss-dragon-attack.glb | 5,198 | 952 | Attack 2.8 s (full skinned model) |
 Credits for C so far: 23 images + 4 redos (81), 14 image-to-3D (420), 2 rigs (10), 2 animations (6) = 517.
+
+## D. templates/ — Studio template card art, 1024×576 (made at 1344×768 and resized)
+ARON with a halo in each scene; no text.
+| file | what |
+|---|---|
+| tpl-jump.png | leaping between floating grass-block islands, coins, a small green dragon on a far island |
+| tpl-survival.png | in a ring of cute monsters with cyan blades and orbs orbiting, rune floor |
+| tpl-racing.png | on a hoverboard along a neon track through cyan boost rings, city behind |
+| tpl-mining.png | swinging a pickaxe at glowing blue crystals in a cave, sparks |
+| tpl-rhythm.png | stomping on glowing beat tiles with music notes and light beams |
+| tpl-dungeon.png | torch-lit stone corridor with chests of gold and cute skeletons |
+| tpl-escape.png | puzzle room with padlocked doors, glowing floor switches and a golden key. Redone (letterbox bars); the redo had side bars, so it was cropped to the picture and resized |
+| tpl-boss.png | facing a giant dark horned boss on a glowing rune arena |
+Credits for D: 10 images = 30.
