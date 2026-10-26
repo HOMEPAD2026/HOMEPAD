@@ -22,6 +22,11 @@ export function createStudio(ctx) {
   const { THREE, T, esc } = ctx;
   const nextSeen = new Set(); let el = null, tab = "make", gid = "", gdata = null, ghostOn = true, step = 1, prev = null, prevOk = true, snaps = {}, lastTest = null, advOpen = false, spec = clampSpec({ seed: 1 + Math.floor(Math.random() * 99999) }), editId = "", mine = [], arcade = [], busy = false, playing = null, lastRun = null, aiNote = "";
   const wallet = () => { const s = ctx.sess(); return s ? String(s.wallet).toLowerCase() : ""; };
+  // STU-A (2026-10-26): a guest's drafts live on this device until they sign in (then they go up with one tap)
+  const LKEY = "arc.studio.local", locals = () => { try { const a = JSON.parse(localStorage.getItem(LKEY) || "[]"); return Array.isArray(a) ? a.filter((d) => d && d.id && d.spec) : []; } catch { return []; } };
+  const setLocals = (a) => { try { localStorage.setItem(LKEY, JSON.stringify(a.slice(0, 12))); } catch { /* not kept */ } };
+  // STU-A: each card's picture is its own level drawn by the preview (one a moment, kept for the window's life)
+  const thumbs = new Map(); let thumbQ = [], thumbT = 0;
   const hex = (c) => "#" + c.toString(16).padStart(6, "0");
   async function act(body) {
     if (!ctx.sess()) { try { await ctx.signIn(); } catch { return null; } }
@@ -70,7 +75,7 @@ export function createStudio(ctx) {
       ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}`; }
     else if (step === 3) { const pk = presetOf();
       body = `${spec.tpl !== "puzzle" ? `<div class="wst-build"><i>🛠️</i><div><b>${esc(T("Build it yourself"))}</b><small>${esc(T(spec.tpl === "arena" ? "Send every drone, sweep and coin when and where you want, and stand pillars — starting from this arena." : spec.tpl === "climb" ? "Place every platform, spring, spike and coin up the tower by hand — starting from this one." : spec.tpl === "defense" ? "Draw the path, place the tower pads and set every wave by hand — starting from this map." : "Place every wall, gap, laser, coin and heart by hand — starting from this layout."))}</small></div><span><button type="button" class="wst-go" data-build>🛠️ ${esc(T("Open the builder"))}</button></span></div>` : ""}${rulesRow()}${galleryRow()}`;
-      body += `<div class="wst-pres">${Object.keys(PRESETS).map((k) => { const e = estimate({ ...spec, ...PRESETS[k] }); return `<button type="button" data-preset="${k}" class="${pk === k ? "on" : ""} p-${k}"><b>${esc(T(PNAME[k]))}</b><small>${starsTxt(e.stars)}</small><em>${Math.round(e.clear * 100)}%</em></button>`; }).join("")}</div>
+      body += `<div class="wst-pres">${Object.keys(PRESETS).map((k) => { const e = estimate({ ...spec, ...PRESETS[k] }); return `<button type="button" data-preset="${k}" class="${pk === k ? "on" : ""} p-${k}"><b>${esc(T(PNAME[k]))}</b><small>${starsTxt(e.stars)}</small><em>${Math.round(e.clear * 100)}%</em></button>`; }).join("")}</div><p class="wst-pcap">${esc(T("% = how many of 40 test players finish it"))}</p>
       <div class="wst-row"><span>${esc(T(KN.len))}</span><div class="wst-chips">${LENS.map((x) => `<button type="button" data-len="${x}" class="${x === spec.len ? "on" : ""}">${LEN_NAME[spec.tpl] ? esc(T(LEN_NAME[spec.tpl][x])) : x + "s"}</button>`).join("")}</div></div>
       <div class="wst-est s${E.stars}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
       ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}
@@ -121,8 +126,29 @@ export function createStudio(ctx) {
     for (const r of L.rows) { if (r.z > span) break; const px = X(r.z); if (r.k === "wall") { x.fillStyle = hex(th.wall); x.fillRect(px - 2, Y(r.lane) - 7, 5, 14); } else if (r.k === "gap") { x.fillStyle = "#020610"; x.fillRect(px - 3, 8, 7, h - 16); } else if (r.k === "laser") { x.fillStyle = "#ff3355"; x.fillRect(px - 1, 8, 3, h - 16); } else { x.fillStyle = "#ffd23a"; x.beginPath(); x.arc(px, Y(r.lane), 2.2, 0, 6.283); x.fill(); } }
     if (spec.tpl !== "dash") { x.fillStyle = "#fff"; x.fillRect(w - 5, 8, 3, h - 16); }
   }
-  const card = (g, own) => `<div class="wst-card" style="--c:${hex((THEMES[g.theme] || THEMES.neon).edge)};--b:${hex((THEMES[g.theme] || THEMES.neon).sky)}"><div class="wst-cv" data-open="${esc(g.id)}" role="button" tabindex="0" style="background-image:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(/images/ui/studio/${TEMPLATES[g.tpl] ? g.tpl : "runner"}.webp?v=1)"><i aria-hidden="true">${ICON[g.tpl] || "🏃"}</i><em>${esc(T((THEMES[g.theme] || THEMES.neon).name))}</em>${g.pick ? `<b class="wst-pick">⭐ ${esc(T("Editor's pick"))}</b>` : ""}</div><div class="wst-ci"><b data-open="${esc(g.id)}" role="button">${esc(g.title)}</b><small>${own ? (g.pub ? "🚀 " + esc(T("On the Creator Arcade")) : "📝 " + esc(T("Draft"))) : esc(T("by {n}", { n: g.byName || "?" }))} · ▶ ${g.plays || 0} · ♥ ${g.likes || 0}</small>
+  const thumbKey = (g) => g.id + ":" + (g.up || g.at || 0);
+  const coverOf = (g) => thumbs.get(thumbKey(g)) || `/images/ui/studio/${TEMPLATES[g.tpl] ? g.tpl : "runner"}.webp?v=1`;
+  const card = (g, own) => `<div class="wst-card${g.off ? " off" : ""}" style="--c:${hex((THEMES[g.theme] || THEMES.neon).edge)};--b:${hex((THEMES[g.theme] || THEMES.neon).sky)}"><div class="wst-cv" data-open="${esc(g.id)}" data-th="${esc(thumbKey(g))}" role="button" tabindex="0" style="background-image:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${coverOf(g)})"><i aria-hidden="true">${ICON[g.tpl] || "🏃"}</i><em>${esc(T((THEMES[g.theme] || THEMES.neon).name))}</em>${g.pick ? `<b class="wst-pick">⭐ ${esc(T("Editor's pick"))}</b>` : g.off ? `<b class="wst-pick off">✔ ${esc(T("Official"))}</b>` : ""}</div><div class="wst-ci"><b data-open="${esc(g.id)}" role="button">${esc(g.title)}</b><small>${own ? (g.pub ? "🚀 " + esc(T("On the Creator Arcade")) : "📝 " + esc(T("Draft"))) : esc(T("by {n}", { n: g.byName || "?" }))} · ▶ ${g.plays || 0} · ♥ ${g.likes || 0}</small>
     <span class="wst-cb"><button type="button" class="wst-go" data-play="${esc(g.id)}">▶ ${esc(T("Play"))}</button>${own ? `<button type="button" data-edit="${esc(g.id)}">${esc(T("Edit"))}</button><button type="button" data-pub="${esc(g.id)}">${esc(T(g.pub ? "Unpublish" : "Publish"))}</button><button type="button" data-del="${esc(g.id)}" aria-label="${esc(T("Delete"))}">🗑</button>${g.vers && g.vers.length ? `<button type="button" data-vers="${esc(g.id)}" aria-label="${esc(T("Versions"))}">🕘 ${g.vers.length}</button>` : ""}` : `<button type="button" data-like="${esc(g.id)}">♥ ${esc(T("Like"))}</button>`}${!own && g.pub !== false && ctx.isGM && ctx.isGM() ? `<button type="button" data-gpick="${esc(g.id)}" aria-label="${esc(T("Editor's pick"))}">${g.pick ? "★" : "☆"}</button>` : ""}${g.pub ? `<button type="button" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">🔗</button>` : ""}</span></div></div>`;
+  function wantThumbs(list) { if (ctx.saver || !prevOk) return; for (const g of list) { const sp = g.spec || g.s; if (sp && !thumbs.has(thumbKey(g))) thumbQ.push([thumbKey(g), sp]); } clearTimeout(thumbT); thumbT = setTimeout(nextThumb, 60); }
+  function nextThumb() {
+    if (!el || el.hidden || !thumbQ.length) return; if (!prev) { try { prev = makePreview({ THREE }); } catch { prev = null; } if (!prev) { prevOk = false; return; } }
+    const [k, sp] = thumbQ.shift(); if (!thumbs.has(k)) { let u = ""; try { u = prev.snap(clampSpec({ ...sp })); } catch { /* the template's picture stays */ } if (u) { thumbs.set(k, u); el.querySelectorAll(`[data-th="${CSS.escape(k)}"]`).forEach((c) => { c.style.backgroundImage = `linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${u})`; c.classList.add("snap"); }); } }
+    thumbT = setTimeout(nextThumb, 40);
+  }
+  const localCard = (d) => { const th = THEMES[d.spec.theme] || THEMES.neon; return `<div class="wst-card local" style="--c:${hex(th.edge)};--b:${hex(th.sky)}"><div class="wst-cv" data-th="${esc(d.id + ":" + d.at)}" style="background-image:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${thumbs.get(d.id + ":" + d.at) || `/images/ui/studio/${TEMPLATES[d.spec.tpl] ? d.spec.tpl : "runner"}.webp?v=1`})"><i aria-hidden="true">${ICON[d.spec.tpl] || "🏃"}</i><em>${esc(T(th.name))}</em></div><div class="wst-ci"><b>${esc(d.spec.title)}</b><small>📱 ${esc(T("On this device"))}</small>
+    <span class="wst-cb"><button type="button" class="wst-go" data-ltest="${esc(d.id)}">▶ ${esc(T("Test"))}</button><button type="button" data-ledit="${esc(d.id)}">${esc(T("Edit"))}</button><button type="button" data-ldel="${esc(d.id)}" aria-label="${esc(T("Delete"))}">🗑</button></span></div></div>`; };
+  function paintMine() {
+    const L = locals(), w = wallet();
+    const loc = L.length ? `<div class="wst-local"><b>📱 ${esc(T("{n} drafts on this device", { n: L.length }))}</b><small>${esc(T(w ? "Put them in your account to keep them everywhere and publish them." : "They stay on this phone or computer. Sign in to keep them everywhere and publish them."))}</small><button type="button" class="wst-go" data-${w ? "lup" : "signin"}>${esc(T(w ? "Put them in my account" : "Sign in"))}</button></div>${L.map(localCard).join("")}` : "";
+    if (!w) return loc || `<div class="wst-emptybox"><i>🎮</i><b>${esc(T("No games yet"))}</b><small>${esc(T("Make one in Create — you can save it on this device without signing in."))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`;
+    return loc + (mine.length ? mine.map((g) => card(g, true)).join("") : L.length ? "" : `<div class="wst-emptybox"><i>🎮</i><b>${esc(T("No games yet"))}</b><small>${esc(T("No games yet — make your first one in Create."))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`);
+  }
+  function paintArcade() {
+    const off = arcade.filter((g) => g.off), rest = arcade.filter((g) => !g.off);
+    return `${off.length ? `<h4 class="wst-sec">✔ ${esc(T("Start here — made by ARCIRCLE"))}</h4><div class="wst-offrow">${off.map((g) => card(g, false)).join("")}</div>` : ""}
+      <h4 class="wst-sec">🕹️ ${esc(T("Players' games"))}</h4>${rest.length ? rest.map((g) => card(g, false)).join("") : `<div class="wst-emptybox"><i>🚀</i><b>${esc(T("Be the first creator!"))}</b><small>${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`}`;
+  }
   // Studio 3: a game's own page — its cover, who made it, how hard, the top 10, play / race the #1's ghost / like / challenge
   async function openGame(id) {
     gid = id; gdata = null; tab = "game"; paint();
@@ -139,20 +165,17 @@ export function createStudio(ctx) {
       <div class="wst-est s${E.stars}">${starsTxt(E.stars)}<span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${my ? `<small>${esc(T("Your best here: {n}", { n: my }))}</small>` : ""}</div>
       <h4>🏆 ${esc(T("Top 10"))}</h4>${(g.best || []).length ? `<ol class="wst-board">${g.best.map((x, i) => `<li class="${i === 0 ? "gold" : ""}"><i>${i === 0 ? "👑" : i + 1}</i><b>${esc(x.name || "?")}</b><em>${x.score}</em></li>`).join("")}</ol>` : `<p class="wst-empty">${esc(T("Nobody has played it yet — be the first!"))}</p>`}
       ${g.ghost ? `<label class="wst-ghosto"><input type="checkbox" data-ghost ${ghostOn ? "checked" : ""}> 👻 ${esc(T("Race {n}'s ghost ({s})", { n: g.ghost.name || "#1", s: g.ghost.score }))}</label>` : ""}
-      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">▶ ${esc(T("Play"))}</button>${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">♥ ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">🔗</button></div>
+      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">▶ ${esc(T("Play"))}</button>${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">♥ ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">🔗</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}</div>
       <button type="button" class="wst-link" data-tab="arcade">← ${esc(T("Creator Arcade"))}</button></div>`;
   }
   const localBest = (id) => { try { return Number(localStorage.getItem("arc.studio.best." + id) || 0); } catch { return 0; } };
   function paint() {
     if (!el) return;
-    const body = tab === "mine" ? (wallet() ? (mine.length ? mine.map((g) => card(g, true)).join("") : `<p class="wst-empty">${esc(T("No games yet — make your first one in Create."))}</p>`) : `<p class="wst-empty">${esc(T("Sign in with a wallet to keep your games."))}</p>`)
-      : tab === "game" ? paintGame()
-      : tab === "arcade" ? (arcade.length ? arcade.map((g) => card(g, false)).join("") : `<p class="wst-empty">${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</p>`)
-      : paintMake();
-    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Nexus City"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio Lite</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">📖</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+    const body = tab === "mine" ? paintMine() : tab === "game" ? paintGame() : tab === "arcade" ? paintArcade() : paintMake();
+    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Nexus City"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">📖</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <nav class="wst-tabs">${[["make", "🛠️", "Create"], ["mine", "📁", "My games"], ["arcade", "🕹️", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}</button>`).join("")}</nav>
       <div class="wst-body">${body}</div><p class="wst-foot">${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</p></div>`;
-    if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else if (prev) prev.stop();
+    if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else { if (prev) prev.stop(); wantThumbs(tab === "arcade" ? arcade : tab === "mine" ? [...mine, ...locals().map((d) => ({ id: d.id, at: d.at, spec: d.spec }))] : []); }
   }
   let estT = 0;
   const fxStep = () => { if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } };
@@ -168,6 +191,12 @@ export function createStudio(ctx) {
     const op = e.target.closest("[data-open]"); if (op && !e.target.closest("button")) return openGame(op.dataset.open);
     const b = e.target.closest("button"); if (!b || b.disabled) { if (e.target === el) close(); return; }
     if (b.hasAttribute("data-x")) return close();
+    if (b.hasAttribute("data-signin")) { try { await ctx.signIn(); } catch { return; } await load(); paint(); return; }
+    if (b.hasAttribute("data-lup")) return uploadLocals();
+    if (b.dataset.ltest) { const d = locals().find((x) => x.id === b.dataset.ltest); if (d) run({ spec: clampSpec(d.spec), test: true }); return; }
+    if (b.dataset.ledit) { const d = locals().find((x) => x.id === b.dataset.ledit); if (d) { spec = clampSpec(d.spec); editId = ""; localId = d.id; tab = "make"; step = 3; lastTest = null; paint(); } return; }
+    if (b.dataset.ldel) { if (!confirm(T("Delete this game?"))) return; setLocals(locals().filter((x) => x.id !== b.dataset.ldel)); if (localId === b.dataset.ldel) localId = ""; paint(); return; }
+    if (b.dataset.card) return shareCard(b.dataset.card);
     if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("studio"); return; }
     if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); return; }
     if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
@@ -182,7 +211,7 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-build")) return openBuilder();
     if (b.hasAttribute("data-unbuild")) { if (!confirm(T("Go back to the quick-start layout? Your hand-built layout is dropped."))) return; delete spec.build; spec = clampSpec(spec); return paintKeep(); }
     if (b.dataset.preset) { Object.assign(spec, PRESETS[b.dataset.preset]); if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } return paintKeep(); }
-    if (b.hasAttribute("data-savepub")) { await save(); if (editId && !(mine.find((g) => g.id === editId) || {}).pub) await publish(editId); return; }
+    if (b.hasAttribute("data-savepub")) { if (!ctx.sess()) { try { await ctx.signIn(); } catch { return; } if (!ctx.sess()) return; } if (!okToPublish()) return; await save(); if (editId && !(mine.find((g) => g.id === editId) || {}).pub) await publish(editId); return; }
     if (b.dataset.tpl) { spec = clampSpec({ ...spec, tpl: b.dataset.tpl, title: spec.title === "My Sky Run" || spec.title === "My Arena" || spec.title === "My Infinity Dash" ? "" : spec.title }); return paint(); }
     if (b.dataset.theme) { spec.theme = b.dataset.theme; return paintKeep(); }
     if (b.dataset.len) { spec.len = Number(b.dataset.len); return paintKeep(); }
@@ -195,7 +224,7 @@ export function createStudio(ctx) {
     if (b.dataset.vers) { const g = mine.find((x) => x.id === b.dataset.vers), card = b.closest(".wst-card") || b.parentElement; if (!g || !card) return; const old = card.querySelector(".wst-vers"); if (old) { old.remove(); return; }
       const box = document.createElement("div"); box.className = "wst-vers"; box.innerHTML = `<small>${esc(T("Earlier saves — open one, then save to keep it"))}</small>` + g.vers.map((v, i) => `<button type="button" data-restore="${esc(g.id)}:${i}"><span>${esc(new Date(v.at).toLocaleString())}</span><b>${v.spec && v.spec.build ? "🛠️ " + v.spec.build.r.length : esc(T(TEMPLATES[(v.spec || {}).tpl] ? TEMPLATES[v.spec.tpl].name : ""))}</b></button>`).join(""); card.appendChild(box); return; }
     if (b.dataset.restore) { const [id, i] = b.dataset.restore.split(":"), g = mine.find((x) => x.id === id), v = g && g.vers && g.vers[Number(i)]; if (!v) return; spec = clampSpec(v.spec); editId = id; tab = "make"; step = 3; lastTest = null; paint(); ctx.toast(esc(T("An earlier save is open — save to keep it"))); return; }
-    if (b.dataset.edit) { const g = mine.find((x) => x.id === b.dataset.edit); if (g) { spec = clampSpec(g.spec); editId = g.id; tab = "make"; step = 3; lastTest = null; paint(); } return; }
+    if (b.dataset.edit) { const g = mine.find((x) => x.id === b.dataset.edit); if (g) { spec = clampSpec(g.spec); editId = g.id; localId = ""; tab = "make"; step = 3; lastTest = null; paint(); } return; }
     if (b.dataset.play) return playId(b.dataset.play, tab === "game" && gdata && gdata.id === b.dataset.play && ghostOn ? { ghost: gdata.ghost } : {});
     if (b.dataset.like) return like(b.dataset.like);
     if (b.dataset.share) { const u = `${location.origin}/play?sg=${encodeURIComponent(b.dataset.share)}`; try { await navigator.clipboard.writeText(u); ctx.toast("🔗 " + esc(T("Link copied — anyone with it plays your game"))); } catch { prompt(T("Copy link"), u); } return; }
@@ -207,10 +236,24 @@ export function createStudio(ctx) {
     if (r.j && r.j.spec) { spec = clampSpec({ ...r.j.spec, seed: r.j.spec.seed }); editId = ""; lastTest = null; aiNote = r.j.by === "agent" ? T("{n} drafted it — tweak anything, then test it.", { n: ctx.agentName() || T("Your agent") }) : T("Drafted from your words — tweak anything, then test it."); step = 4; ctx.toast("✨ " + esc(aiNote)); paint(); if (ctx.Snd && ctx.Snd.perfect) try { ctx.Snd.perfect(); } catch { /* no sound */ } return; }
     aiNote = ""; paint(); fail(r);
   }
+  let localId = "";
+  /// STU-A: almost nobody finishes it and the maker hasn't either — ask first
+  function okToPublish() { const E = estimate(spec); if (E.clear >= 0.05 || (lastTest && lastTest.done)) return true; return confirm(T("Almost nobody finishes this one. Publish anyway? (Finish it once in a test first to be sure.)")); }
+  async function uploadLocals() {
+    const L = locals(); if (!L.length) return; busy = true; let n = 0;
+    for (const d of L) { const r = await act({ action: "world-studio-save", spec: clampSpec(d.spec) }); if (!r || !r.ok) { if (r) fail(r); break; } mine = [r.j.game, ...mine]; setLocals(locals().filter((x) => x.id !== d.id)); n++; }
+    busy = false; if (n) ctx.toast("💾 " + esc(T("{n} games are in your account now", { n }))); paint();
+  }
   async function save() {
+    if (!ctx.sess()) { // (a guest: kept on this device)
+      spec = clampSpec(spec); const L = locals(), at = Date.now(), id = localId || "l" + at.toString(36);
+      if (!localId && L.length >= 12) { ctx.toast(esc(T("you can keep 12 games — delete one first"))); return; }
+      localId = id; setLocals([{ id, spec, at }, ...L.filter((x) => x.id !== id)]);
+      ctx.toast("📱 " + esc(T("Saved on this device — sign in to keep it everywhere and publish"))); paint(); return;
+    }
     spec = clampSpec(spec); busy = true; paint(); const r = await act({ action: "world-studio-save", spec, id: editId || undefined }); busy = false;
     if (!r || !r.ok) { paint(); if (r) fail(r); return; }
-    editId = r.j.game.id; mine = [r.j.game, ...mine.filter((g) => g.id !== editId)]; ctx.toast("💾 " + esc(T("Saved"))); paint();
+    editId = r.j.game.id; mine = [r.j.game, ...mine.filter((g) => g.id !== editId)]; if (localId) { setLocals(locals().filter((x) => x.id !== localId)); localId = ""; } ctx.toast("💾 " + esc(T("Saved"))); paint();
   }
   async function publish(id) {
     const g = mine.find((x) => x.id === id), on = !(g && g.pub); const r = await act({ action: "world-studio-publish", id, on }); if (!r || !r.ok) return r && fail(r);
@@ -228,6 +271,18 @@ export function createStudio(ctx) {
     run({ spec: clampSpec(g.spec), id, title: g.title, by: g.byName, ghost: opt.ghost || null, vs: opt.vs || 0, vsBy: opt.vsBy || "" });
   }
 
+  /// STU-A: a 1200×630 share card for a game (its level's picture, who made it, its numbers; the game's own link in the words)
+  async function shareCard(id, score) {
+    if (!ctx.share) return; let g = (gdata && gdata.id === id ? gdata : null) || arcade.find((x) => x.id === id) || mine.find((x) => x.id === id);
+    if (!g || !(g.spec || g.s)) { try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id), { cache: "no-store" }); if (r.ok) g = (await r.json()).game; } catch { /* below */ } }
+    if (!g) { ctx.toast(T("Couldn't open it — try again")); return; }
+    const sp = g.spec || g.s, th = THEMES[g.theme || sp.theme] || THEMES.neon; let art = thumbs.get(thumbKey(g)) || "";
+    if (!art && !ctx.saver) { try { if (!prev) prev = makePreview({ THREE }); art = prev ? prev.snap(clampSpec({ ...sp })) : ""; } catch { art = ""; } }
+    const url = `${location.origin}/play?sg=${encodeURIComponent(id)}`;
+    ctx.share({ kind: "studio", tag: `${ICON[sp.tpl] || "🎮"} ${T((TEMPLATES[sp.tpl] || TEMPLATES.runner).name)} · ${T(th.name)}`, title: g.title || sp.title || "", sub: T("by {n}", { n: g.byName || "?" }),
+      rows: [...(score != null ? [[T("My score"), String(score), "🏆"]] : []), [T("Plays"), String(g.plays || 0), "▶"], [T("Likes"), String(g.likes || 0), "♥"]], art: art || `/images/ui/studio/${TEMPLATES[sp.tpl] ? sp.tpl : "runner"}.webp`, cover: true, accent: hex(th.edge),
+      text: `${score != null ? T("I scored {s} in", { s: score }) + " " : ""}"${g.title || sp.title}" — ${T("a game made in ARCIRCLE Studio")} 🎮 ${url}` });
+  }
   // ---------------- Studio 4: the builder (world-studio-build.js) ----------------
   let builder = null;
   async function openBuilder() {
@@ -386,11 +441,12 @@ export function createStudio(ctx) {
       <p>${esc(r.line)}</p>${res ? `<p>${esc(T("Your best: {n}", { n: res.best }))}${res.place ? " · " + esc(T("#{n} on this game", { n: res.place })) : ""}</p>` : o.test ? `<p class="wst-fine">${esc(T("A test run isn't counted."))}</p>` : ""}
       ${o.vs ? `<p class="wst-vs ${score > o.vs ? "won" : ""}">${score > o.vs ? "🏆 " + esc(T("You beat {n}'s {s}!", { n: o.vsBy || "?", s: o.vs })) : "⚔️ " + esc(T("{n} scored {s} — {d} to go", { n: o.vsBy || "?", s: o.vs, d: o.vs - score + 1 }))}</p>` : ""}${res && res.ghost ? `<p class="wst-vs won">👻 ${esc(T("You're #1 — your run is the ghost to beat now"))}</p>` : ""}
       <span><button type="button" class="wst-go big" data-again>↻ ${esc(T("Play again"))}</button><button type="button" class="wst-go alt" data-back>${esc(T(o.test ? "Back to the editor" : "Back"))}</button></span>
-      ${o.id && !o.test ? `<span><button type="button" class="wst-go alt" data-chal>⚔️ ${esc(T("Challenge a friend"))}</button><button type="button" class="wst-go" data-nextg>${esc(T("Next game"))} ▶</button></span>` : ""}</div>`;
+      ${o.id && !o.test ? `<span><button type="button" class="wst-go alt" data-chal>⚔️ ${esc(T("Challenge a friend"))}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-rcard aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go" data-nextg>${esc(T("Next game"))} ▶</button></span>` : ""}</div>`;
     hud.appendChild(c); if (r.confetti && !ctx.reduce) confetti(hud);
     c.querySelector("[data-again]").addEventListener("click", () => { leave(true); setTimeout(() => run(o), 50); });
     c.querySelector("[data-back]").addEventListener("click", () => leave());
     const ch = c.querySelector("[data-chal]"); if (ch) ch.addEventListener("click", async () => { const me0 = (ctx.myName && ctx.myName()) || ""; const u = `${location.origin}/play?sg=${encodeURIComponent(o.id)}&vs=${score}${me0 ? "&by=" + encodeURIComponent(me0) : ""}`; try { await navigator.clipboard.writeText(u); ctx.toast("⚔️ " + esc(T("Challenge link copied — can they beat {s}?", { s: score }))); } catch { prompt(T("Copy link"), u); } });
+    const rc = c.querySelector("[data-rcard]"); if (rc) rc.addEventListener("click", () => shareCard(o.id, score));
     const nx = c.querySelector("[data-nextg]"); if (nx) nx.addEventListener("click", async () => { if (!arcade.length) await load(); const L2 = arcade.filter((g) => g.id !== o.id); if (!L2.length) { ctx.toast(esc(T("That's every game on the arcade for now"))); return; } const seen = nextSeen.add(o.id), pick = L2.find((g) => !seen.has(g.id)) || L2[0]; leave(true); setTimeout(() => playId(pick.id), 50); });
   }
   function confetti(box) { const cols = ["#5fd3ff", "#7cf5c8", "#ffd23a", "#ff6fae", "#b48cff"]; for (let i = 0; i < 46; i++) { const p = document.createElement("i"); p.className = "wst-conf"; p.style.cssText = `left:${(i * 37) % 100}%;background:${cols[i % 5]};animation-delay:${(i % 9) * 0.06}s;--dx:${((i * 53) % 120) - 60}px;--r:${(i * 71) % 360}deg`; box.appendChild(p); setTimeout(() => p.remove(), 2600); } }

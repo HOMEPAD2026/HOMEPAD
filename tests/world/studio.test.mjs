@@ -153,5 +153,14 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   check(r3.status === 200 && r3.body.pick && arc.games[0].id === a && arc.games[0].pick, "a GM's pick is listed first with its star");
   await call(gm, "world-studio-pick", { id: a, on: false }); arc = await get("studio-arcade"); check(!arc.games.find((x) => x.id === a).pick, "a pick taken off");
   await call(mk, "world-studio-del", { id: a }); await call(mk, "world-studio-del", { id: b2 }); }
+// STU-A: the official games — listed from the start, one a template, playable and likeable, never anyone's to change
+{ const { OFFICIAL } = await import("../../api/_world-studio.mjs"); const arc = await get("studio-arcade"), off = arc.games.filter((g) => g.off);
+  check(off.length === 6 && new Set(off.map((g) => g.tpl)).size === 6 && off.every((g) => g.byName === "ARCIRCLE" && g.s && g.s.tpl === g.tpl), "six official games on the arcade, one a template, each with its small spec");
+  const g1 = (await get("studio-game&id=goffrun")).game; check(g1 && g1.off && g1.spec && g1.spec.title === OFFICIAL.goffrun.title, "an official game opens");
+  const L = G.genLevel(g1.spec), r1 = await call(fan, "world-studio-play", { id: "goffrun", coins: 2, dist: L.len, done: true }); check(r1.status === 200 && r1.body.score > 0 && r1.body.place === 1, "an official game is played and scored (#" + r1.body.place + ")");
+  const r2 = await call(fan, "world-studio-like", { id: "goffrun" }); check(r2.status === 200 && r2.body.likes === 1, "an official game can be liked");
+  const arc2 = await get("studio-arcade"), e = arc2.games.filter((g) => g.id === "goffrun"); check(e.length === 1 && e[0].plays === 1 && e[0].likes === 1 && e[0].off, "listed once, with its plays and likes");
+  const r3 = await call(me, "world-studio-save", { id: "goffrun", spec: g1.spec }), r4 = await call(me, "world-studio-del", { id: "goffrun" }); check(r3.status === 404 && r4.status === 404, "nobody can change or delete an official game");
+  check((await get("studio-game&id=goffnope")).ok !== true, "an unknown id isn't made up"); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

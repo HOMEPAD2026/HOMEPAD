@@ -5,7 +5,7 @@
 // elsewhere it opens X's post window with the words and the link, and the picture is saved to attach.
 //
 // openShare(card, o)
-//   card: { kind: "dino" | "poker" | "surv" | "rings", tag (the small line over the title), title, sub, rows: [[label, value, icon]],
+//   card: { kind: "dino" | "poker" | "surv" | "rings" | "studio", tag (the small line over the title), title, sub, rows: [[label, value, icon]],
 //           badge (the grade in the panel's corner), cards (poker: the five, fanned), foot,
 //           art (an image URL or a data URL), emoji (when there's no art), cover (the art fills the panel: a screenshot), accent ("#rrggbb"), text (the post's words) }
 //   o: { T(s, v), esc, toast, link() → the invite link, coarse }
@@ -24,6 +24,7 @@ const THEME = {
   agent: { label: "AI AGENT", rib: ["#2a4dff", "#5fd3ff"], glow: "#5fd3ff", title: ["#ffffff", "#c7ecff"], felt: ["#14244e", "#2a1a5a", "#0a1430"] },
   mythic: { label: "MYTHIC", rib: ["#8a0f2e", "#ff3d6e"], glow: "#ff3d6e", title: ["#ffe2b0", "#ff7a9c"], felt: ["#3a0814", "#1a0610", "#0a0206"] },
   raid: { label: "RAID QUEENS", rib: ["#c2185b", "#ff5f9a"], glow: "#ff4d8d", title: ["#ffffff", "#ffd1e3"], felt: ["#3a0e24", "#2a0a3a", "#14060e"] },
+  studio: { label: "ARCIRCLE STUDIO", rib: ["#2f8cff", "#7cf5c8"], glow: "#7cf5c8", title: ["#ffffff", "#c9fff0"], felt: ["#0b1a3a", "#12305a", "#061026"] },
   rings: { label: "INFINITY RINGS", rib: ["#2f6bff", "#2ee0b0"], glow: "#38d8ff", title: ["#ffffff", "#9ff6ff"], felt: ["#1a2a7a", "#3a1a7a", "#0a1440"] },
 };
 /// a soft copy of a picture over the whole card (drawn small, then large: a blur every browser does)

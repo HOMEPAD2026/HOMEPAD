@@ -16,6 +16,8 @@
 //   GET  ?world=studio-mine&wallet=0x…                                   → { games }
 //   GET  ?world=studio-ghost&id=…                                        → { ghost: { name, score, tr } | null } (Studio 3: the #1's run to race)
 //
+// STU-A: OFFICIAL — six games by ARCIRCLE (ids goff*) listed from the start; the arcade's list carries a small spec (s) for
+// the cards' pictures and off for an official game.
 // Firestore: worldStudio/<id> { w, byName, spec, pub, at, up, plays, likes, best: [{ w, name, score }] } · worldStudioBy/<wallet> { ids }
 //            worldStudioLike/<id>_<wallet> (create-only) · worldStats/studioArcade { list: { <id>: { title, tpl, theme, byName, plays, likes, at, pick? } } }
 //            worldStudioAi/<wallet>_<day> { n } · worldStudioRun/<wallet>_<id>_<t/20s> (create-only: a play counted once in 20 s)
@@ -23,6 +25,20 @@
 import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
+// STU-A (2026-10-26, the owner: "스튜디오는 다 진행하자"): the arcade's own games, one a template, made by ARCIRCLE — there
+// from the start so a first visit has something to play and copy; kept in code (no document until someone plays or likes
+// one: then worldStudio/<id> holds its plays, likes and top 10 like any game), never owned by a wallet, never deleted
+export const OFFICIAL = {
+  goffrun: { tpl: "runner", theme: "neon", title: "Neon Rush", speed: 4, len: 45, coins: 4, walls: 3, gaps: 2, lasers: 2, seed: 2026 },
+  goffdash: { tpl: "dash", theme: "ice", title: "Frozen Infinity", speed: 3, len: 45, coins: 4, walls: 3, gaps: 2, lasers: 2, seed: 1031 },
+  goffarena: { tpl: "arena", theme: "lava", title: "Lava Drone Panic", speed: 3, len: 45, coins: 4, walls: 3, gaps: 2, lasers: 1, seed: 777 },
+  goffpuz: { tpl: "puzzle", theme: "candy", title: "Candy Rings", speed: 3, len: 45, coins: 2, walls: 1, gaps: 1, lasers: 0, seed: 4242 },
+  goffclimb: { tpl: "climb", theme: "jungle", title: "Jungle Tower", speed: 3, len: 45, coins: 4, walls: 2, gaps: 1, lasers: 1, seed: 909 },
+  gofftd: { tpl: "defense", theme: "neon", title: "Crystal Defense", speed: 4, len: 60, coins: 3, walls: 3, gaps: 2, lasers: 2, seed: 5150 },
+};
+const OFF_AT = Date.UTC(2026, 9, 26);
+/// a small copy of a spec for the arcade's list (the page draws a card's picture from it; a hand-built layout isn't in it)
+export const tinySpec = (sp) => { const o = {}; for (const k of ["tpl", "theme", "speed", "len", "coins", "walls", "gaps", "lasers", "seed"]) o[k] = sp[k]; if (sp.rules) o.rules = sp.rules; return o; };
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), shut(w), nameOf(w), randomId(), ai?(sys, msgs) }
@@ -30,13 +46,15 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })) } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })) } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
-    if (g && g.pub) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, ...(g.pick ? { pick: g.pick } : {}) }; else delete list[id];
+    if (g && g.pub) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
     const keep = Object.entries(list).sort((p, q) => (q[1].pick ? 1 : 0) - (p[1].pick ? 1 : 0) || (q[1].plays + q[1].likes * 5) - (p[1].plays + p[1].likes * 5) || q[1].at - p[1].at).slice(0, STUDIO.ARCADE); // (editor's picks are always kept)
     await setDoc(k, { list: Object.fromEntries(keep) });
   }
+  /// a game's document, or an official game made up from code the first time it's asked for
+  const game = async (id) => { const g = await one(`worldStudio/${id}`); if (g) return g; const o = OFFICIAL[id]; return o ? { w: "arcircle", byName: "ARCIRCLE", official: true, spec: clampSpec(o), pub: true, at: OFF_AT, up: OFF_AT, pubAt: OFF_AT, plays: 0, likes: 0, best: [] } : null; };
   const mineOf = async (w) => ((await one(`worldStudioBy/${w}`)) || {}).ids || [];
 
   async function save(w, b) {
@@ -63,7 +81,7 @@ export function makeStudio(deps) {
     return json(200, { ok: true });
   }
   async function play(w, b) {
-    const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || !g.spec) return json(404, { error: "no such game" });
+    const g = await game(b.id); if (!g || g.gone || !g.spec) return json(404, { error: "no such game" });
     if (!g.pub && g.w !== w) return json(403, { error: "not published" });
     let score;
     if (g.spec.tpl === "puzzle") { // (Studio 3: the moves are played out on the board; only a clear scores)
@@ -94,12 +112,12 @@ export function makeStudio(deps) {
   /// S4 finish: an editor's pick — a GM stars a published game; the arcade lists the picks first (⭐), at most STUDIO.PICKS
   async function pick(w, b) {
     if (!deps.isGM || !deps.isGM(w)) return json(403, { error: "only a GM picks games" });
-    const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || !g.pub) return json(404, { error: "no such published game" });
+    const g = await game(b.id); if (!g || g.gone || !g.pub) return json(404, { error: "no such published game" });
     if (b.on) { const d = (await one("worldStats/studioArcade")) || {}; if (Object.entries(d.list || {}).filter(([id, x]) => x.pick && id !== b.id).length >= STUDIO.PICKS) return json(400, { error: `at most ${STUDIO.PICKS} picks — take one off first` }); g.pick = now(); } else delete g.pick;
     await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g); return json(200, { ok: true, pick: !!g.pick });
   }
   async function like(w, b) {
-    const g = await one(`worldStudio/${b.id}`); if (!g || !g.pub) return json(404, { error: "no such game" });
+    const g = await game(b.id); if (!g || !g.pub) return json(404, { error: "no such game" });
     if (g.w === w) return json(400, { error: "that's your own game" });
     if (!(await deps.commit([{ create: `worldStudioLike/${b.id}_${w}`, data: { at: now() } }])).ok) return json(200, { ok: true, likes: g.likes || 0, already: true });
     g.likes = (g.likes || 0) + 1; await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g);
@@ -143,8 +161,10 @@ export function makeStudio(deps) {
   return {
     async read(url) {
       const w = url.searchParams.get("world");
-      if (w === "studio-arcade") { const d = (await one("worldStats/studioArcade")) || {}; return json(200, { ok: true, games: Object.entries(d.list || {}).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
-      if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudio/${id}`) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); return json(200, { ok: true, game: pubOf(id, g, true) }); }
+      if (w === "studio-arcade") { const d = (await one("worldStats/studioArcade")) || {}, list = { ...(d.list || {}) };
+        for (const [id, o] of Object.entries(OFFICIAL)) if (!list[id]) { const sp = clampSpec(o); list[id] = { title: sp.title, tpl: sp.tpl, theme: sp.theme, byName: "ARCIRCLE", plays: 0, likes: 0, at: OFF_AT, s: tinySpec(sp), off: true }; } // (STU-A: the official games are always listed)
+        return json(200, { ok: true, games: Object.entries(list).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
+      if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); return json(200, { ok: true, game: pubOf(id, g, true) }); }
       if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioGhost/${id}`) : null; if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
       if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
       return null;
