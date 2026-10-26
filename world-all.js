@@ -44,4 +44,5 @@ import * as JG from "./world-jurgate.js";
 import * as LANDM from "./world-land.js";
 import * as PV from "./world-partnervillage.js";
 import * as LD from "./world-lands.js";
-export default [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX, PET, CHAT, GV, MV, JG, LANDM, PV, LD];
+import * as SHUB from "./world-studiohub.js";
+export default [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX, PET, CHAT, GV, MV, JG, LANDM, PV, LD, SHUB];

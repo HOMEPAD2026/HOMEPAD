@@ -4527,3 +4527,5 @@ html.wp-pcphone .wst-in{zoom:1.25;height:calc(100dvh / 1.25);max-height:calc(100
 .wsb-pop{position:fixed;z-index:90;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;pointer-events:none;border:3px solid #7cf5c8;animation:wsbPop .6s ease-out forwards}.wsb-pop.x{border-color:#ff8fa3;border-style:dashed}
 @keyframes wsbPop{from{transform:scale(.4);opacity:1}to{transform:scale(5);opacity:0}}
 @media (prefers-reduced-motion:reduce){.wst-hud.ouch::after,.wst-launch>i,.wst-build-in::after,.wsb-pop{animation:none!important;display:none}}
+body.wp .wp-stu-btn{display:inline-flex!important;position:relative} /* the Studio shortcut left of Rewards (2026-10-26) */
+body.wp .wp-hud .wp-hud-btns>#wp-stu-btn.wp-btn .wp-bl{font-size:11.6px!important;letter-spacing:-.05em}

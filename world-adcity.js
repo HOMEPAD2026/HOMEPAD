@@ -14,7 +14,6 @@ export const BUILDINGS = [
   { id: "vault", name: "Vault Tower", sub: "Your agent's trading vault", a: 225, r: 46, fp: 21, glb: "vault", col: 0xffc861, css: "#ffc861", open: true },
   { id: "academy", name: "Agent Academy", sub: "Skills, traits and lessons", a: 135, r: 46, fp: 22, glb: "library", col: 0xb48cff, css: "#b48cff" },
   { id: "arena", name: "Agent Arena", sub: "Quiz duels with your agent", a: 180, r: 70, fp: 26, glb: "arena", col: 0xff6fae, css: "#ff6fae", open: true }, // (AD-City 4: world-agarena.js)
-  { id: "studio", name: "ARCIRCLE Studio", sub: "Make your own game", a: 90, r: 68, fp: 22, glb: "studio", col: 0x7cf5c8, css: "#7cf5c8", open: true }, // (AD-City 3: Studio Lite, world-studio.js)
 ];
 // the owner's Meshy models (models/world/adcity, packed by tools/pack-prop.mjs; +z is each one's front): the buildings
 // above, the plaza's Infinity Spire City, and road pieces (a straight highway, a crossroads, a raised quarter curve).
@@ -199,15 +198,7 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2, p = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.4), neon(i % 2 ? 0xff6fae : 0x5fd3ff, 0.55)); p.material.side = THREE.DoubleSide; p.material.blending = THREE.AdditiveBlending; p.position.set(Math.sin(a) * 3, 0, Math.cos(a) * 3); p.rotation.y = a; sc.add(p); }
     spins.push((dt, t) => { sc.rotation.y = t * 0.4; fr.scale.setScalar(1 + Math.sin(t * 2) * 0.08); });
     o.userData.board = board(o, T(b.name), T(b.sub), b.css, 18.5, 13); door(o, b, b.fp / 2 + 1.6); body(o, Math.min(11, b.fp / 2 - 0.6)); }
-  // ARCIRCLE Studio: a white cube with tilted shards of coloured glass and a play mark of light over it
-  { const b = BUILDINGS[5], o = spot(b), P = o.userData.p;
-    const cube = new THREE.Mesh(new THREE.BoxGeometry(11, 9, 11), WHITE); cube.position.y = 4.5; P.add(cube);
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(7, 5.2), GLASS); front.position.set(0, 4, 5.52); P.add(front);
-    [[0xff6fae, -4, 10.2, 2, 0.4], [0x5fd3ff, 3, 11.5, -2, -0.5], [0xffe066, 0.5, 13, 3, 0.25], [0x7cf5c8, -2, 12.4, -3, -0.2]].forEach(([c, x, y, z, rz]) => { const s = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.5, 3.6), std(c, { emissive: c, emissiveIntensity: 0.7, roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.85 })); s.position.set(x, y, z); s.rotation.set(0.25, rz * 2, rz); P.add(s); const y0 = y, ph = x; spins.push((dt, t) => { s.position.y = y0 + Math.sin(t * 1.1 + ph) * 0.3; }); });
-    const tri = new THREE.Shape(); tri.moveTo(-1.4, -1.7); tri.lineTo(2, 0); tri.lineTo(-1.4, 1.7); tri.closePath();
-    const play = new THREE.Mesh(new THREE.ShapeGeometry(tri), neon(b.col, 0.9)); play.material.side = THREE.DoubleSide; play.position.y = 17; P.add(play);
-    spins.push((dt, t) => { play.rotation.y = t * 0.9; });
-    o.userData.board = board(o, T(b.name), T(b.sub), b.css, 21.5); door(o, b, b.fp / 2 + 1.6); body(o, Math.min(11, b.fp / 2 - 0.6)); }
+  // (ARCIRCLE Studio stood here at 90°; it moved to the town's plaza on 2026-10-26 — world-studiohub.js)
 
   // ---------------- the NEXUS CORE in the plaza ----------------
   const core = new THREE.Group(); core.name = "adc-core"; g.add(core); core.userData.radius = 4.2; solids.push(core);
@@ -319,49 +310,6 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     jbTex.needsUpdate = true;
   }
   paintBoard(0, 0);
-  // Studio 2 → STU-B (2026-10-26): four arcade cabinets by the Studio's door, each a shelf of the arcade — the most played (likes count
-  // three), the newest players' game, the editor's pick (else this week's), and ARCIRCLE's own of the day; walk up to one and play it
-  const CABS = [{ id: "pick", k: "top", col: 0xffd23a, css: "#ffd23a", name: "Most played" }, { id: "cab1", k: "new", col: 0x5fd3ff, css: "#5fd3ff", name: "Newest" },
-    { id: "cab2", k: "pick", col: 0xff6fae, css: "#ff6fae", name: "Editor's pick" }, { id: "cab3", k: "off", col: 0x7cf5c8, css: "#7cf5c8", name: "Made by ARCIRCLE" }];
-  const picks = {}; let pickAt = 0;
-  CABS.forEach((cb, i) => { const [x, z] = polar(60 + i * 7, 50), o = new THREE.Group(); o.name = "adc-cab:" + cb.id; o.position.set(x, 0, z); o.scale.setScalar(1.3); o.rotation.y = Math.atan2(-x, -z); g.add(o);
-    const glow = new THREE.MeshBasicMaterial({ color: cb.col, toneMapped: false });
-    const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.3, 1.0), DARK); box.position.y = 1.15; o.add(box);
-    const trim = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.08, 1.06), glow); trim.position.y = 2.3; o.add(trim);
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 0.5), STEEL); deck.position.set(0, 1.05, 0.62); deck.rotation.x = 0.25; o.add(deck);
-    const stick = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), glow); stick.position.set(-0.3, 1.2, 0.66); o.add(stick);
-    if (typeof document !== "undefined") { const mk = (w, h) => { const c0 = document.createElement("canvas"); c0.width = w; c0.height = h; const t = new THREE.CanvasTexture(c0); t.colorSpace = THREE.SRGBColorSpace; t.userData = { cv: c0 }; return t; };
-      cb.tex = mk(512, 400); const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.02), new THREE.MeshBasicMaterial({ map: cb.tex, toneMapped: false })); scr.position.set(0, 1.72, 0.52); scr.rotation.x = -0.12; o.add(scr);
-      cb.mq = mk(512, 128); const mq = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.38), new THREE.MeshBasicMaterial({ map: cb.mq, toneMapped: false })); mq.position.set(0, 2.55, 0.42); o.add(mq);
-      const x2 = cb.mq.userData.cv.getContext("2d"); x2.fillStyle = "#06101f"; x2.fillRect(0, 0, 512, 128); x2.fillStyle = cb.css; x2.fillRect(0, 118, 512, 10); x2.textAlign = "center"; x2.font = "900 50px Sora, 'Segoe UI', sans-serif"; x2.fillText(T(cb.name), 256, 80, 480); cb.mq.needsUpdate = true; }
-    const mqb = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.42, 0.5), DARK); mqb.position.set(0, 2.55, 0.15); o.add(mqb);
-    body(o, 0.9);
-    door(o, { id: cb.id, col: cb.col, open: true }, 1.9); });
-  const ICO = { runner: "🏃", dash: "⚡", arena: "🛸", climb: "🧗", defense: "🏰", puzzle: "🧩", rush: "💰" };
-  function paintPick() {
-    for (const cb of CABS) { if (!cb.tex) continue; const x = cb.tex.userData.cv.getContext("2d"), w = 512, h = 400, p = picks[cb.id];
-      const gr = x.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#0b2346"); gr.addColorStop(1, "#040b18"); x.fillStyle = gr; x.fillRect(0, 0, w, h);
-      x.globalAlpha = 0.12; x.fillStyle = "#fff"; for (let y = 0; y < h; y += 6) x.fillRect(0, y, w, 2); x.globalAlpha = 1;
-      x.textAlign = "center"; x.font = "900 96px Sora, 'Segoe UI', sans-serif"; x.fillText(p ? ICO[p.tpl] || "🎮" : "✨", w / 2, 130);
-      x.fillStyle = "#fff"; x.font = "900 46px Sora, 'Segoe UI', sans-serif"; x.fillText(p ? p.title : T("Make the first game"), w / 2, 220, 480);
-      x.fillStyle = "#cfe0f5"; x.font = "800 30px Sora, 'Segoe UI', sans-serif"; x.fillText(p ? T("by {name}", { name: p.byName || "—" }) : T("ARCIRCLE Studio"), w / 2, 272, 480);
-      if (p) { x.fillText("▶ " + (p.plays || 0) + "   ♥ " + (p.likes || 0), w / 2, 316, 480); }
-      x.fillStyle = cb.css; x.font = "900 28px Sora, 'Segoe UI', sans-serif"; x.fillText(T("Walk up to play it"), w / 2, 372, 480);
-      cb.tex.needsUpdate = true; }
-  }
-  const score = (a) => (a.plays || 0) + (a.likes || 0) * 3;
-  function choose(gs) { const day = Math.floor(Date.now() / 864e5), mine = gs.filter((a) => !a.off), offs = gs.filter((a) => a.off).sort((a, b) => (a.id < b.id ? -1 : 1)), used = new Set();
-    const take = (L) => { const a = L.find((y) => !used.has(y.id)) || L[0] || null; if (a) used.add(a.id); return a; };
-    picks.pick = take([...gs].sort((a, b) => score(b) - score(a)));
-    picks.cab3 = offs.length ? take([...offs.slice(day % offs.length), ...offs.slice(0, day % offs.length)]) : null;
-    picks.cab1 = take([...mine.sort((a, b) => (b.at || 0) - (a.at || 0)), ...offs]); // (no players' games yet: another of ours, never the same twice)
-    picks.cab2 = take([...gs.filter((a) => a.pick).sort((a, b) => (b.pick || 0) - (a.pick || 0)), ...mine.sort((a, b) => (b.likes || 0) - (a.likes || 0)), ...offs]); }
-  async function pollPick() {
-    if (Date.now() - pickAt < 120e3) return; pickAt = Date.now();
-    try { const r = await fetch("/api/social?world=studio-arcade"); if (!r.ok) return; const j = await r.json(); choose((j.games || []).filter((x) => x && x.id)); } catch { /* the cabinets keep what they had */ }
-    paintPick();
-  }
-  paintPick();
   // the workers: a body for each agent at work (at most WMAX; the crew when nobody is), kept by a key so a poll moves nobody
   const WMAX = low ? 6 : 12, workers = new Map(); let workAt = 0, workBusy = false, list = [], polls = 0;
   const left = (ms) => { const m = Math.max(1, Math.ceil(ms / 6e4)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
@@ -484,8 +432,7 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     spotOf(id) { const b = BUILDINGS.find((x) => x.id === id), st0 = STATIONS[id]; const [a, r, d] = b ? [b.a, b.r, b.fp / 2 + 4] : st0 ? [st0.a, st0.r, 8] : [0, 0, 0]; if (!b && !st0) return null; const [x, z] = polar(a, r - d), [cx, cz] = polar(a, r); return { x: land.x + x, z: land.z + z, c: { x: land.x + cx, z: land.z + cz } }; },
     /// where you arrive (by the portal back, facing the core)
     arrival: () => ({ x: land.x, z: land.z + land.r - 24, c: { x: land.x, z: land.z } }),
-    show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) { loadModels(); pollWork(true); pollPick(); } else setOthers([]); },
-    pick: (id = "pick") => picks[id] || null, cabs: () => CABS.map((c) => ({ id: c.id, name: c.name, g: picks[c.id] ? picks[c.id].id : null })),
+    show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) { loadModels(); pollWork(true); } else setOthers([]); },
     others: (arr) => setOthers(arr || []), othersNow: () => [...others.entries()].filter(([, o]) => o).map(([k, o]) => ({ k, clip: o.clip, clips: o.b.mixer && o.b.mixer._actions ? o.b.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : [] })),
     workers: () => [...workers.entries()].map(([k, w]) => ({ k, job: w.job, text: w.text, clips: w.b.mixer && w.b.mixer._actions ? w.b.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : [] })),
     stations: stG,
