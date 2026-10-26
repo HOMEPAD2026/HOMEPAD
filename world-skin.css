@@ -4550,3 +4550,49 @@ html.wp-pcphone .wsp{--ws:300px}
 .wsp-phone{display:inline-block;width:14vmin;height:22vmin;border:1.2vmin solid #7cf5c8;border-radius:2.4vmin;animation:wsp-rot 1.8s ease-in-out infinite}
 @keyframes wsp-rot{0%,20%{transform:rotate(0)}55%,80%{transform:rotate(-90deg)}100%{transform:rotate(-90deg)}}
 @media (prefers-reduced-motion:reduce){.wsp-phone{animation:none;transform:rotate(-90deg)}}
+/* STU-6 (2026-10-26, the owner: "대폭 상향" — people pay for it): the Studio's wide layout (a computer, a phone held sideways):
+   a rail on the left (the mark, the three sections, the line about ARCL), the page on the right; Create in two columns,
+   the live preview big on the left, the step on the right; bigger type and buttons everywhere */
+.wst.wide{padding:2.2vh 2vw}
+.wst.wide .wst-in{width:min(1360px,100%);height:min(840px,calc(100dvh - 4.4vh));max-height:none;min-height:0;display:grid;grid-template-columns:clamp(200px,17%,260px) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"h b" "t b" "f b";border-radius:26px;background:radial-gradient(120% 80% at 80% 0%,rgba(47,140,255,.22),transparent 60%),radial-gradient(90% 70% at 0% 100%,rgba(124,245,200,.14),transparent 60%),linear-gradient(160deg,#0a1a3a,#050c1e 60%,#060a18)}
+html.wp-pcphone .wst.wide{padding:0}
+html.wp-pcphone .wst.wide .wst-in{width:calc(100vw / 1.25);height:calc(100dvh / 1.25);border-radius:0}
+.wst.wide .wst-h{grid-area:h;min-height:0;padding:20px 18px 14px;background-size:cover!important;background-position:30% 50%!important;border-bottom:1px solid rgba(124,245,200,.14)}
+.wst.wide .wst-h h2{font-size:22px;line-height:1.1;margin-top:6px}
+.wst.wide .wst-h .wst-x,.wst.wide .wst-h .wst-help{top:auto;bottom:auto}
+.wst.wide .wst-tabs{grid-area:t;flex-direction:column;align-items:stretch;gap:10px;padding:16px 12px;border:0}
+.wst.wide .wst-tabs button{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:16px 14px;border-radius:16px;font:800 16px/1.15 Sora,sans-serif;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.wst.wide .wst-tabs button span{font-size:22px;width:28px;text-align:center}
+.wst.wide .wst-tabs button.on{background:linear-gradient(135deg,rgba(47,140,255,.85),rgba(124,245,200,.75));color:#04122a;border-color:rgba(255,255,255,.5);box-shadow:0 8px 22px rgba(47,140,255,.35)}
+.wst.wide .wst-foot{grid-area:f;margin:0;padding:12px 16px 16px;font-size:11.5px;line-height:1.45;opacity:.62;border:0;align-self:end}
+.wst.wide .wst-body{grid-area:b;padding:20px 24px 0;overflow:auto;border-left:1px solid rgba(124,245,200,.16);background:rgba(2,8,22,.42)}
+.wst.wide .wst-mk{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;align-items:start}
+.wst.wide .wst-mkl{position:sticky;top:0;display:flex;flex-direction:column;gap:12px}
+.wst.wide .wst-3dbox,.wst.wide .wst-3dbox.big{margin:0;aspect-ratio:16/11;border-radius:20px;border:2px solid rgba(124,245,200,.35);box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.05) inset}
+.wst.wide .wst-3dtag{font-size:14px;padding:8px 12px}
+.wst-facts{display:none}
+.wst.wide .wst-facts{display:flex;gap:8px;margin:0;padding:0;list-style:none}
+.wst.wide .wst-facts li{flex:1;display:flex;align-items:center;gap:8px;min-width:0;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font:800 13.5px/1.2 Sora,sans-serif}
+.wst.wide .wst-facts li i{font-style:normal;font-size:18px}.wst.wide .wst-facts li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wst.wide .wst-mkr .wst-steps{margin-top:0}
+.wst.wide .wst-steps button{padding:12px 10px;font-size:14px}
+.wst.wide .wst-hint{font:900 19px/1.25 Sora,sans-serif;margin:12px 0 12px}
+.wst.wide .wst-tpls{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.wst.wide .wst-tpl{border-radius:18px}.wst.wide .wst-tpl .wst-art{aspect-ratio:16/7}.wst.wide .wst-tpl b{font-size:15px;padding-top:8px}
+.wst.wide .wst-tpl.on{box-shadow:0 0 0 3px #7cf5c8,0 10px 26px rgba(124,245,200,.3)}
+.wst.wide .wst-themes{gap:10px}.wst.wide .wst-sub{font-size:16px;margin:16px 0 10px}
+.wst.wide .wst-nav{position:sticky;bottom:0;margin:18px -24px 0;padding:14px 24px calc(14px + env(safe-area-inset-bottom));gap:12px;background:linear-gradient(180deg,rgba(3,9,24,0),rgba(3,9,24,.92) 30%);justify-content:flex-end}
+.wst.wide .wst-nav>span{display:none}
+.wst.wide .wst-nav .wst-go{min-width:180px}
+.wst .wst-go{min-height:46px;border-radius:14px;font:900 15.5px/1 Sora,sans-serif;letter-spacing:.01em;box-shadow:0 8px 20px rgba(47,140,255,.28),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .12s,filter .12s}
+.wst .wst-go:hover{filter:brightness(1.08)}.wst .wst-go:active{transform:translateY(1px) scale(.99)}
+.wst .wst-go.alt{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);box-shadow:none;color:#eef3f7}
+/* the arcade and the game page, wide: more cards a row, a bigger banner */
+.wst.wide .wst-offrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important;gap:14px}
+.wst.wide .wst-gp{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:22px;align-items:start}
+.wst.wide .wst-gpr{position:sticky;top:0;padding:16px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09)}
+.wst.wide .wst-gpr h4{margin:0 0 10px;font:900 18px/1.2 Sora,sans-serif}
+.wst.wide .wst-gcv{min-height:300px;border-radius:22px}.wst.wide .wst-gcv h3{font-size:34px}
+.wst.wide .wst-gpl .wst-acts .wst-go.big{min-height:58px;font-size:19px}
+/* a phone held sideways: the Studio drawn larger (the 980-wide page made its words too small to read on a phone) */
+html.wp-pcphone.wp-land .wst.wide .wst-in{zoom:1.9;width:calc(100vw / 1.9);height:calc(100dvh / 1.9)}

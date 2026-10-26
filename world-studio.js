@@ -109,12 +109,14 @@ export function createStudio(ctx) {
       ${editId ? `<button type="button" class="wst-link" data-tab="mine">📁 ${esc(T("See it in My games"))}</button>` : ""}</div>`;
     else body = "";
     const nav = `<nav class="wst-nav">${step > 1 ? `<button type="button" class="wst-go alt" data-back>← ${esc(T("Back"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go alt" data-test>▶ ${esc(T("Test"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go" data-next>${esc(T("Next"))} →</button>` : "<span></span>"}</nav>`;
-    return `${bar}<p class="wst-hint">${esc(T((VIS.find((v) => v[0] === step) || VIS[0])[2]))}</p>${box}<div class="wst-stepbody s${step}">${body}</div>${nav}`;
+    // STU-6: two columns where there's room (a computer, a phone held sideways) — the live preview on the left, the step on the right
+    const side = step <= 4 ? `<ul class="wst-facts"><li><i>${ICON[spec.tpl] || "🎮"}</i><span>${esc(T(TEMPLATES[spec.tpl].name))}</span></li><li><i>🎨</i><span>${esc(T(th.name))}</span></li><li><i>🔥</i><span>${starsTxt(E.stars)} ${Math.round(E.clear * 100)}%</span></li></ul>` : "";
+    return `<div class="wst-mk s${step}"><div class="wst-mkl">${box}${side}</div><div class="wst-mkr">${bar}<p class="wst-hint">${esc(T((VIS.find((v) => v[0] === step) || VIS[0])[2]))}</p><div class="wst-stepbody s${step}">${body}</div></div></div>${nav}`;
   }
   /// the live preview: one renderer for the window's life, its canvas moved into each paint (none on low graphics)
   function attachPreview() {
     if (tab !== "make" || step > 4) { if (prev) prev.stop(); return; }
-    if (!prev && !ctx.saver && prevOk) { try { prev = makePreview({ THREE }); } catch { prev = null; } if (!prev) { prevOk = false; return paint(); } }
+    if (!prev && !ctx.saver && prevOk) { try { prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); } catch { prev = null; } if (!prev) { prevOk = false; return paint(); } }
     const bx = el.querySelector(".wst-3dbox"); if (!prev || !bx) return; bx.prepend(prev.canvas); prev.set(spec);
     /* (STU-B: the theme cards show each theme's Meshy sky; fillSnaps is kept for the old preview pictures) */
   }
@@ -153,7 +155,7 @@ export function createStudio(ctx) {
     <span class="wst-cb"><button type="button" class="wst-go" data-play="${esc(g.id)}">▶ ${esc(T("Play"))}</button>${own ? `<button type="button" data-edit="${esc(g.id)}">${esc(T("Edit"))}</button><button type="button" data-pub="${esc(g.id)}">${esc(T(g.pub ? "Unpublish" : "Publish"))}</button><button type="button" data-del="${esc(g.id)}" aria-label="${esc(T("Delete"))}">🗑</button>${g.vers && g.vers.length ? `<button type="button" data-vers="${esc(g.id)}" aria-label="${esc(T("Versions"))}">🕘 ${g.vers.length}</button>` : ""}${g.pub ? `<button type="button" data-stats="${esc(g.id)}" class="${statsOpen === g.id ? "on" : ""}">📊 ${esc(T("Stats"))}</button>` : ""}` : `<button type="button" data-like="${esc(g.id)}">♥ ${esc(T("Like"))}</button>`}${!own && g.pub !== false && ctx.isGM && ctx.isGM() ? `<button type="button" data-gpick="${esc(g.id)}" aria-label="${esc(T("Editor's pick"))}">${g.pick ? "★" : "☆"}</button>` : ""}${g.pub ? `<button type="button" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">🔗</button>` : ""}</span>${own && statsOpen === g.id ? statsBox(g) : ""}</div></div>`;
   function wantThumbs(list) { if (ctx.saver || !prevOk) return; for (const g of list) { const sp = g.spec || g.s; if (sp && !thumbs.has(thumbKey(g))) thumbQ.push([thumbKey(g), sp]); } clearTimeout(thumbT); thumbT = setTimeout(nextThumb, 60); }
   function nextThumb() {
-    if (!el || el.hidden || !thumbQ.length) return; if (!prev) { try { prev = makePreview({ THREE }); } catch { prev = null; } if (!prev) { prevOk = false; return; } }
+    if (!el || el.hidden || !thumbQ.length) return; if (!prev) { try { prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); } catch { prev = null; } if (!prev) { prevOk = false; return; } }
     const [k, sp] = thumbQ.shift(); if (!thumbs.has(k)) { let u = ""; try { u = prev.snap(clampSpec({ ...sp })); } catch { /* the template's picture stays */ } if (u) { thumbs.set(k, u); el.querySelectorAll(`[data-th="${CSS.escape(k)}"]`).forEach((c) => { c.style.backgroundImage = `linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${u})`; c.classList.add("snap"); }); } }
     thumbT = setTimeout(nextThumb, 40);
   }
@@ -181,7 +183,7 @@ export function createStudio(ctx) {
     const off = arcList(arcade.filter((g) => g.off)), rest = arcList(arcade.filter((g) => !g.off)), filtered = aq.trim() || atpl;
     const rbox = ctx.isGM && ctx.isGM() && reports.length ? `<div class="wst-reports"><b>⚑ ${esc(T("Reported games (GM)"))}</b>${reports.slice(0, 8).map((x) => `<div><span data-open="${esc(x.id)}" role="button">${esc(x.title)} · ${esc(x.byName || "?")}</span><em>${x.n}</em></div>`).join("")}</div>` : "";
     return `${rbox}${contestBox()}${arcTools()}${off.length ? `<h4 class="wst-sec">✔ ${esc(T("Start here — made by ARCIRCLE"))}</h4><div class="wst-offrow">${off.map((g) => card(g, false)).join("")}</div>` : ""}
-      <h4 class="wst-sec">🕹️ ${esc(T("Players' games"))}</h4>${rest.length ? rest.map((g) => card(g, false)).join("") : filtered ? `<p class="wst-empty">${esc(T("No games match — try another word or template"))}</p>` : `<div class="wst-emptybox"><i>🚀</i><b>${esc(T("Be the first creator!"))}</b><small>${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`}`;
+      <h4 class="wst-sec">🕹️ ${esc(T("Players' games"))}</h4>${rest.length ? `<div class="wst-offrow">${rest.map((g) => card(g, false)).join("")}</div>` : filtered ? `<p class="wst-empty">${esc(T("No games match — try another word or template"))}</p>` : `<div class="wst-emptybox"><i>🚀</i><b>${esc(T("Be the first creator!"))}</b><small>${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`}`;
   }
   // Studio 3: a game's own page — its cover, who made it, how hard, the top 10, play / race the #1's ghost / like / challenge
   async function openGame(id) {
@@ -194,20 +196,23 @@ export function createStudio(ctx) {
     if (!gdata) return `<p class="wst-empty">${esc(T("Loading…"))}</p>`;
     if (gdata.gone || !gdata.spec) return `<p class="wst-empty">${esc(T("Couldn't open it — try again"))}</p><button type="button" class="wst-go alt" data-tab="arcade">← ${esc(T("Back"))}</button>`;
     const g = gdata, th = THEMES[g.theme] || THEMES.neon, E = estimate(g.spec), own = mine.some((x) => x.id === g.id), my = localBest(g.id);
-    return `<div class="wst-gp" style="--c:${hex(th.edge)};--b:${hex(th.sky)}">
+    return `<div class="wst-gp" style="--c:${hex(th.edge)};--b:${hex(th.sky)}"><div class="wst-gpl">
       <div class="wst-gcv" style="background-image:linear-gradient(180deg,transparent 30%,rgba(2,8,20,.85)),url(/images/ui/studio/${TEMPLATES[g.tpl] ? g.tpl : "runner"}.webp?v=1)"><small>${ICON[g.tpl] || "🎮"} ${esc(T((TEMPLATES[g.tpl] || TEMPLATES.runner).name))} · ${esc(T(th.name))}</small><h3>${esc(g.title)}</h3><span>${esc(T("by {n}", { n: g.byName || "?" }))} · ▶ ${g.plays || 0} · ♥ ${g.likes || 0}${g.remixes ? ` · 🔀 ${g.remixes}` : ""}</span>${g.from ? `<small class="wst-from" data-open="${esc(g.from.id)}" role="button">🔀 ${esc(T("Remix of {t} by {n}", { t: g.from.title, n: g.from.byName || "?" }))}</small>` : ""}</div>
       <div class="wst-est s${E.stars}">${starsTxt(E.stars)}<span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${my ? `<small>${esc(T("Your best here: {n}", { n: my }))}</small>` : ""}</div>
-      <h4>🏆 ${esc(T("Top 10"))}</h4>${(g.best || []).length ? `<ol class="wst-board">${g.best.map((x, i) => `<li class="${i === 0 ? "gold" : ""}"><i>${i === 0 ? "👑" : i + 1}</i><b>${esc(x.name || "?")}</b><em>${x.score}</em></li>`).join("")}</ol>` : `<p class="wst-empty">${esc(T("Nobody has played it yet — be the first!"))}</p>`}
       ${g.ghost ? `<label class="wst-ghosto"><input type="checkbox" data-ghost ${ghostOn ? "checked" : ""}> 👻 ${esc(T("Race {n}'s ghost ({s})", { n: g.ghost.name || "#1", s: g.ghost.score }))}</label>` : ""}
       <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">▶ ${esc(T("Play"))}</button>${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">♥ ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">🔗</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">🔀 ${esc(T("Remix"))}</button></div>
       ${own ? "" : `<div class="wst-rep">${repOpen ? `<small>${esc(T("What's wrong with it?"))}</small><div class="wst-chips">${REASONS.map(([k, ic, l]) => `<button type="button" data-report="${k}">${ic} ${esc(T(l))}</button>`).join("")}</div>` : `<button type="button" class="wst-link" data-repopen>⚑ ${esc(T("Report this game"))}</button>`}${ctx.isGM && ctx.isGM() ? ` <button type="button" class="wst-link" data-ghide="${g.hidden ? 0 : 1}">${g.hidden ? "👁 " + esc(T("Show it again")) : "🙈 " + esc(T("Hide from the arcade (GM)"))}</button>` : ""}</div>`}
-      <button type="button" class="wst-link" data-tab="arcade">← ${esc(T("Creator Arcade"))}</button></div>`;
+      <button type="button" class="wst-link" data-tab="arcade">← ${esc(T("Creator Arcade"))}</button></div>
+      <aside class="wst-gpr"><h4>🏆 ${esc(T("Top 10"))}</h4>${(g.best || []).length ? `<ol class="wst-board">${g.best.map((x, i) => `<li class="${i === 0 ? "gold" : ""}"><i>${i === 0 ? "👑" : i + 1}</i><b>${esc(x.name || "?")}</b><em>${x.score}</em></li>`).join("")}</ol>` : `<p class="wst-empty">${esc(T("Nobody has played it yet — be the first!"))}</p>`}</aside></div>`;
   }
   const localBest = (id) => { try { return Number(localStorage.getItem("arc.studio.best." + id) || 0); } catch { return 0; } };
+  const isWide = () => innerWidth >= 820 && innerWidth > innerHeight * 1.15;
+  addEventListener("resize", () => { if (el && !el.hidden && el.classList.contains("wide") !== isWide()) paint(); });
   function paint() {
     if (!el) return;
     const body = tab === "mine" ? paintMine() : tab === "game" ? paintGame() : tab === "arcade" ? paintArcade() : paintMake();
-    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Nexus City"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">📖</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+    el.classList.toggle("wide", isWide()); // (STU-6: a computer or a phone held sideways — the rail-and-columns layout)
+    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Make your own game"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">📖</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <nav class="wst-tabs">${[["make", "🛠️", "Create"], ["mine", "📁", "My games"], ["arcade", "🕹️", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}</button>`).join("")}</nav>
       <div class="wst-body">${body}</div><p class="wst-foot">${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</p></div>`;
     if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else { if (prev) prev.stop(); wantThumbs(tab === "arcade" ? arcade : tab === "mine" ? [...mine, ...locals().map((d) => ({ id: d.id, at: d.at, spec: d.spec }))] : []); }
@@ -331,7 +336,7 @@ export function createStudio(ctx) {
     if (!g || !(g.spec || g.s)) { try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id), { cache: "no-store" }); if (r.ok) g = (await r.json()).game; } catch { /* below */ } }
     if (!g) { ctx.toast(T("Couldn't open it — try again")); return; }
     const sp = g.spec || g.s, th = THEMES[g.theme || sp.theme] || THEMES.neon; let art = thumbs.get(thumbKey(g)) || "";
-    if (!art && !ctx.saver) { try { if (!prev) prev = makePreview({ THREE }); art = prev ? prev.snap(clampSpec({ ...sp })) : ""; } catch { art = ""; } }
+    if (!art && !ctx.saver) { try { if (!prev) prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); art = prev ? prev.snap(clampSpec({ ...sp })) : ""; } catch { art = ""; } }
     const url = `${location.origin}/play?sg=${encodeURIComponent(id)}`;
     ctx.share({ kind: "studio", tag: `${ICON[sp.tpl] || "🎮"} ${T((TEMPLATES[sp.tpl] || TEMPLATES.runner).name)} · ${T(th.name)}`, title: g.title || sp.title || "", sub: T("by {n}", { n: g.byName || "?" }),
       rows: [...(score != null ? [[T("My score"), String(score), "🏆"]] : []), [T("Plays"), String(g.plays || 0), "▶"], [T("Likes"), String(g.likes || 0), "♥"]], art: art || `/images/ui/studio/${TEMPLATES[sp.tpl] ? sp.tpl : "runner"}.webp`, cover: true, accent: hex(th.edge),

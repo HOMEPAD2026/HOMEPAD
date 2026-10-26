@@ -5,15 +5,33 @@
 // makePreview({ THREE }) → { canvas, set(spec), snap(spec) → dataURL, stop(), dispose() } (null where WebGL can't start)
 import { THEMES, LANES, CLIMB, DEF, genLevel, speedOf } from "./world-studio-gen.js";
 import { level as ringLevel } from "./world-rings-engine.js";
+import { look as themeLook } from "./world-studio-look.js";
 
-export function makePreview({ THREE, w = 640, h = 300 }) {
+export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) {
   const canvas = document.createElement("canvas"); canvas.className = "wst-3d"; canvas.width = w; canvas.height = h;
   let R; try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "low-power" }); } catch { return null; }
   R.setPixelRatio(1); R.setSize(w, h, false); if ("outputColorSpace" in R) R.outputColorSpace = THREE.SRGBColorSpace;
   const cam = new THREE.PerspectiveCamera(58, w / h, 0.1, 400);
   let scene = null, built = null, raf = 0, t0 = performance.now(), live = false;
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.2, ...o }), glow = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, toneMapped: false });
-  function free(sc) { if (sc) sc.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); }); }
+  // STU-6 (2026-10-26): each theme's Meshy sky behind the level and its painted floor / block faces on it, once they're in
+  // (world-studio-look.js caches them for the page: the runs use the same); the drawn colours until then. A face's texture
+  // copy is kept per theme and tiling, so moving a slider doesn't upload new ones.
+  const lookNow = {}, maps = new Map();
+  function dressNow(b, spec, lk) {
+    const th = THEMES[spec.theme] || THEMES.neon, tc = new THREE.Color(th.track).getHex(), wc = new THREE.Color(th.wall).getHex();
+    if (lk.sky) { b.sc.background = lk.sky; if (b.sc.fog) { b.sc.fog.near = 70; b.sc.fog.far = 280; } }
+    b.sc.traverse((m) => { if (!m.isMesh || !m.material || m.material.map || !m.material.color) return; const c = m.material.color.getHex(), tr = c === tc, src = tr ? lk.track : c === wc ? lk.wall : null; if (!src) return;
+      const gp = m.geometry.parameters || {}, rx = tr ? Math.max(1, Math.round((gp.width || gp.radiusTop * 2 || 8) / 6)) : 1, ry = tr ? Math.max(1, Math.round((gp.depth || gp.radiusTop * 2 || 8) / 6)) : 1, key = spec.theme + (tr ? "t" : "w") + rx + "x" + ry;
+      let t = maps.get(key); if (!t) { t = src.clone(); t.repeat.set(rx, ry); t.needsUpdate = true; maps.set(key, t); }
+      m.material.map = t; m.material.color.set(0xffffff); m.material.needsUpdate = true; });
+  }
+  function dress(b, spec) {
+    const th = spec.theme in THEMES ? spec.theme : "neon";
+    if (lookNow[th]) { dressNow(b, spec, lookNow[th]); return; }
+    themeLook(THREE, th, { ver, low }).then((lk) => { if (!lk) return; lookNow[th] = lk; if (built === b) dressNow(b, spec, lk); }).catch(() => {});
+  }
+  function free(sc) { if (sc) sc.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); }); } // (the theme's textures are shared: a material's dispose leaves them)
   function build(spec) {
     const th = THEMES[spec.theme] || THEMES.neon, L = genLevel(spec), sc = new THREE.Scene();
     sc.background = new THREE.Color(th.sky); sc.fog = new THREE.Fog(th.fog, 30, 120);
@@ -71,10 +89,12 @@ export function makePreview({ THREE, w = 640, h = 300 }) {
     const v = Math.min(22, speedOf(spec)) * 0.8;
     return { sc, tick(t) { const z = (t * v) % Math.max(40, view - 20); cam.position.set(Math.sin(t * 0.7) * 1.4, 4.6, z - 8); cam.lookAt(0, 1, z + 12); } };
   }
-  function frame() { raf = 0; if (!live || !built) return; if (!canvas.isConnected) { live = false; return; } built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); raf = requestAnimationFrame(frame); }
-  function set(spec) { const old = built; built = build(spec); scene = built.sc; if (old) free(old.sc); live = true; if (!raf) raf = requestAnimationFrame(frame); }
+  let cw = w, ch = h;
+  function fit() { const W0 = canvas.clientWidth, H0 = canvas.clientHeight; if (!W0 || !H0) return; const k = Math.min(1, (low ? 720 : 1100) / Math.max(W0, H0)), W1 = Math.round(W0 * k), H1 = Math.round(H0 * k); if (Math.abs(W1 - cw) < 8 && Math.abs(H1 - ch) < 8) return; cw = W1; ch = H1; R.setSize(cw, ch, false); cam.aspect = cw / ch; cam.updateProjectionMatrix(); } // (STU-6: drawn at the size it's shown, not stretched)
+  function frame() { raf = 0; if (!live || !built) return; if (!canvas.isConnected) { live = false; return; } fit(); built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); raf = requestAnimationFrame(frame); }
+  function set(spec) { const old = built; built = build(spec); scene = built.sc; dress(built, spec); if (old) free(old.sc); live = true; if (!raf) raf = requestAnimationFrame(frame); }
   /// a still of a spec (the theme cards): built, drawn once, let go; the live view carries on after
-  function snap(spec) { const b = build(spec); b.tick(1.6); R.render(b.sc, cam); const url = canvas.toDataURL("image/jpeg", 0.8); free(b.sc); if (built) R.render(built.sc, cam); return url; }
+  function snap(spec) { const b = build(spec); if (lookNow[spec.theme]) dressNow(b, spec, lookNow[spec.theme]); b.tick(1.6); R.render(b.sc, cam); const url = canvas.toDataURL("image/jpeg", 0.8); free(b.sc); if (built) R.render(built.sc, cam); return url; }
   function stop() { live = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
   function dispose() { stop(); if (built) free(built.sc); built = null; scene = null; try { R.dispose(); R.forceContextLoss && R.forceContextLoss(); } catch { /* gone */ } }
   return { canvas, set, snap, stop, dispose, scene: () => scene };
