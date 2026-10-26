@@ -49,11 +49,11 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
     const R = 420, H = ((Math.PI * 2 * R) / 3) * (768 / 1344), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, side: THREE.BackSide, fog: false, depthWrite: false }));
     cyl.position.y = H / 2 - 60; cyl.renderOrder = -5; cyl.name = "cc-sky"; cyl.frustumCulled = false; g.add(cyl); }
   // ---------------- a sign that turns to face you ----------------
-  function board(parent, title, sub, col, y, w = 11) {
+  function board(parent, title, sub, col, y, w = 11, z = 0) {
     const tex = canvasTex(1024, 300, (x) => { x.beginPath(); if (x.roundRect) x.roundRect(8, 8, 1008, 284, 44); else x.rect(8, 8, 1008, 284); x.fillStyle = "rgba(6,18,40,.9)"; x.fill(); x.lineWidth = 8; x.strokeStyle = col; x.stroke();
       x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = col; x.shadowBlur = 22; x.fillStyle = "#fff"; x.font = "900 88px Sora, 'Segoe UI', sans-serif"; x.fillText(title, 512, 112, 960); x.shadowBlur = 0; x.fillStyle = "#cfe6ff"; x.font = "800 44px Sora, 'Segoe UI', sans-serif"; x.fillText(sub, 512, 222, 940); });
     if (!tex) return null;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.293), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.y = y; m.renderOrder = 11; parent.add(m);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.293), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.set(0, y, z); m.renderOrder = 11; parent.add(m);
     const qp = new THREE.Quaternion(); m.onBeforeRender = (r, sc, cam) => { parent.getWorldQuaternion(qp); m.quaternion.copy(qp.invert().multiply(cam.quaternion)); m.updateMatrixWorld(); };
     const y0 = y, ph = Math.random() * 6; spins.push((dt, t) => { m.position.y = y0 + Math.sin(t * 1.2 + ph) * 0.2; });
     return m;
@@ -75,13 +75,14 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
       const roof = new THREE.Mesh(new THREE.TorusGeometry(W / 2, 0.45, 8, 48), std(0xffc861, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4200, emissiveIntensity: 0.4 })); roof.rotation.x = Math.PI / 2; roof.position.y = H; P.add(roof);
       const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.9, 1.2, 24), WHITE); ped.position.y = 0.6; P.add(ped);
       const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), glow); star.position.y = 2.6; P.add(star); spins.push((dt, t) => { star.rotation.y = t; star.position.y = 2.6 + Math.sin(t * 1.5) * 0.2; });
-      o.userData.board = board(o, "🏆 " + T(f.name), T(f.sub), f.css, H + 3, 10); door(o, f.id, f.col, W / 2 + 2.2); solid(o, 1.9); continue;
+      o.userData.board = board(o, "🏆 " + T(f.name), T(f.sub), f.css, 4.6, 7.5, W / 2 + 2.6); door(o, f.id, f.col, W / 2 + 2.2); // (2026-10-26: the names over the doors at eye height — on top of the buildings they were off a sideways phone's short screen) solid(o, 1.9); continue;
     }
     const body = new THREE.Mesh(f.id === "contest" || f.id === "launch" ? new THREE.CylinderGeometry(W / 2, W / 2 + 0.6, H, 28) : new THREE.BoxGeometry(W, H, W * 0.8), WHITE); body.position.y = H / 2; P.add(body);
     const band = new THREE.Mesh(f.id === "contest" || f.id === "launch" ? new THREE.CylinderGeometry(W / 2 + 0.05, W / 2 + 0.05, H * 0.28, 28, 1, true) : new THREE.BoxGeometry(W + 0.1, H * 0.28, W * 0.8 + 0.1), GLASS); band.position.y = H * 0.62; P.add(band);
     const crown = new THREE.Mesh(new THREE.TorusGeometry(Math.min(3.2, W / 3), 0.25, 8, 40), glow); crown.position.y = H + 2.2; P.add(crown); spins.push((dt, t) => { crown.rotation.y = t * 0.8; crown.rotation.x = Math.sin(t * 0.6) * 0.3; });
-    o.userData.board = board(o, f.icon + " " + T(f.name), T(f.sub), f.css, H + 4.8);
-    door(o, f.id, f.col, (f.id === "contest" || f.id === "launch" ? W / 2 + 0.6 : W * 0.4) + 1.8); solid(o, Math.min(10, W / 2 - 0.4));
+    const dz = (f.id === "contest" || f.id === "launch" ? W / 2 + 0.6 : W * 0.4) + 1.8;
+    o.userData.board = board(o, f.icon + " " + T(f.name), T(f.sub), f.css, 5.2, 7.5, dz + 0.6);
+    door(o, f.id, f.col, dz); solid(o, Math.min(10, W / 2 - 0.4));
   }
   // ---------------- the Meshy models, one at a time once you're in (each fitted to its footprint) ----------------
   let started = false; const loaded = {};

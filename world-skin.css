@@ -4768,3 +4768,15 @@ body.wp.wp-in-cc .wp-back-gw i{font-style:normal;width:26px;height:26px;display:
 body.wp.wp-in-cc .wp-back-gw:active{transform:scale(.96)}
 html.wp-pcphone body.wp.wp-in-cc .wp-back-gw{zoom:1.6}
 body.wp.wp-in-cc.wp-clean .wp-back-gw{display:inline-flex}
+/* html.wp-vpfb (play.html): a phone that refused the scaled page sideways, at its own width (a Galaxy at 780 × 360).
+   Everything over the 3D view is drawn at 0.7 — the size the scaled page gives it — and the windows that measure the
+   screen in vh are given that room back. (The HUD keeps its own smaller size above.) */
+@media (max-height:480px){
+  html.wp-vpfb.wp-land body.wp>:where(:not(#wp-cv,.wp-vig,.wp-veil,.wp-speed,.wp-tpflash,canvas,script,style,link)){zoom:.7}
+  html.wp-vpfb.wp-land .wst.wide .wst-in{height:calc(100dvh / .7 - 20px);max-height:none}
+  html.wp-vpfb.wp-land .wst:not(.wide) .wst-in{max-height:calc(100dvh / .7 - 24px);min-height:0}
+  html.wp-vpfb.wp-land .ccw-in{width:min(680px,calc(100vw / .7 - 32px));max-height:calc(100dvh / .7 - 32px)}
+  html.wp-vpfb.wp-land .wst{padding:8px}
+  html.wp-vpfb.wp-land .ccw{zoom:.6}html.wp-vpfb.wp-land .ccw-in{max-height:calc(100dvh / .6 - 32px);width:min(720px,calc(100vw / .6 - 40px))}
+  html.wp-vpfb.wp-land .wsj-pal{width:min(330px,34%)}html.wp-vpfb.wp-land .wsj-grp{flex:none;width:64px;overflow-x:hidden;order:-1}html.wp-vpfb.wp-land .wsj-items{min-width:0} /* (the builder's group rail took the whole palette: the pieces had 8 px) */
+}
