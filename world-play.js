@@ -3736,7 +3736,7 @@ $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; sa
 // b443: the fixed joystick's size and height (phones): CSS variables on <html>; restAt() reads the ring's real box, and
 // the knob's reach grows with the ring
 const joyApply = () => { const k = [0.85, 1, 1.2].includes(+S.joyK) ? +S.joyK : 1, up = Math.max(0, Math.min(240, +S.joyUp || 0)); document.documentElement.style.setProperty("--joy-k", k); document.documentElement.style.setProperty("--joy-up", up + "px"); joyMax = JOYMAX * k; joyK = k; };
-addEventListener("resize", () => { if (JOYMAX !== 56 && !document.documentElement.classList.contains("wp-pcphone")) { JOYMAX = 56; TOUCHK = 1; joyMax = JOYMAX * joyK; } });
+addEventListener("resize", () => { const pcp = document.documentElement.classList.contains("wp-pcphone"), want = pcp ? 118 : 56; if (JOYMAX !== want) { JOYMAX = want; TOUCHK = want / 56; joyMax = JOYMAX * joyK; } });
 $("wp-set-joyk").addEventListener("change", (e) => { S.joyK = +e.target.value; saveSet(); joyApply(); });
 $("wp-set-joyup").addEventListener("input", (e) => { S.joyUp = +e.target.value; saveSet(); joyApply(); });
 joyApply();
