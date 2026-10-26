@@ -212,6 +212,8 @@ export function makeMythicUI(ctx) {
     if (!ctx.tx) { ctx.toast(esc(T("Wallet connect isn't available here."))); return; }
     btn.disabled = true; const h = await ctx.post({ action: "world-mythic-usd-hold", ...ctx.sess(), id });
     if (!h || !h.ok) { btn.disabled = false; ctx.toast(esc((h && h.j && h.j.error) ? T(h.j.error) : T("Couldn't change it — try again"))); snd("bad"); return; }
+    // not enough USDC on Arc: offer to bring it from another chain first (world-bridge.js); the hold keeps the piece 15 minutes
+    if (ctx.usdcArc && ctx.bridge) { const have = await ctx.usdcArc(); if (have != null && have < BigInt(h.j.amount)) { btn.disabled = false; if (typeof confirm !== "function" || confirm(T("You have {h} USDC on Arc and this costs {p}. Bring USDC from another chain first? The piece stays held for 15 minutes.", { h: (Number(have) / 1e6).toFixed(2), p: h.j.usd.toFixed(2) }))) ctx.bridge(Number(BigInt(h.j.amount) - have)); return; } }
     if (typeof confirm === "function" && !confirm(T("Pay {p} USDC from your wallet on Arc? The piece is held for you for 15 minutes.", { p: h.j.usd.toFixed(2) }))) { btn.disabled = false; return; }
     let tx; try { tx = await ctx.tx(h.j.token, usdcData(h.j.desk, h.j.amount)); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
     try { localStorage.setItem("arc.world.myUsdTx", JSON.stringify({ id, tx, at: Date.now() })); } catch { /* kept on the server once checked */ }

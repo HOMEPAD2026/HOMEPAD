@@ -4789,3 +4789,52 @@ html.wp-vpfb.wp-land .wsj-pal{width:min(330px,34%)}html.wp-vpfb.wp-land .wsj-grp
 @keyframes wpCoachTip{50%{transform:translateY(-3px)}}
 html.wp-pcphone .wp-coach-tip{zoom:1.6}
 @media (prefers-reduced-motion:reduce){.wp-coach,.wp-coach-tip{animation:none}}
+/* "Bring USDC to Arc" (world-bridge.js, 2026-10-26) */
+.wbr{position:fixed;inset:0;z-index:12010;display:grid;place-items:center;padding:16px;background:rgba(2,8,20,.6);backdrop-filter:blur(3px)}
+.wbr-in{position:relative;width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;border-radius:22px;background:linear-gradient(180deg,#0b1a33,#071022);border:1px solid rgba(124,245,200,.28);box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);color:#e8f4ff;font:500 14px/1.45 Sora,system-ui,sans-serif}
+.wbr-hd{position:relative;padding:22px 22px 18px;background:radial-gradient(120% 140% at 100% 0,rgba(53,216,208,.35),transparent 60%),linear-gradient(135deg,#123a6b,#0b2347);background-size:cover;background-position:center;border-radius:22px 22px 0 0}
+.wbr-hd.art{background-image:linear-gradient(90deg,rgba(7,16,34,.92) 30%,rgba(7,16,34,.2)),var(--hdr)}
+.wbr-hd small{font:800 11px/1 Sora,sans-serif;letter-spacing:.18em;color:#7cf5c8}
+.wbr-hd h3{margin:6px 0 4px;font:900 24px/1.15 "Exo 2",Sora,sans-serif}
+.wbr-hd p{margin:0;max-width:34ch;color:#bcd3ee;font-size:13px}
+.wbr-x{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;font-size:20px;cursor:pointer}
+.wbr-body{padding:16px 20px 20px;display:grid;gap:12px}
+.wbr-body h4{margin:4px 0 -4px;font:800 12px/1 Sora,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8fb0d6}
+.wbr-arc{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;background:rgba(53,216,208,.1);border:1px solid rgba(53,216,208,.3)}
+.wbr-arc span{color:#9fd8e8;font-size:12px}.wbr-arc b{font:900 22px/1 "Exo 2",sans-serif;color:#fff}.wbr-arc em{margin-left:auto;font-style:normal;color:#ffd23a;font-size:12px}
+.wbr-chs{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.wbr-ch{display:grid;grid-template-columns:12px 1fr;column-gap:8px;align-items:center;text-align:left;padding:9px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#e8f4ff;cursor:pointer}
+.wbr-ch i{grid-row:span 2;width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.wbr-ch b{font:700 13px/1.1 Sora,sans-serif}.wbr-ch small{color:#8fb0d6;font-size:11px}
+.wbr-ch.zero{opacity:.55}.wbr-ch.on{border-color:#35d8d0;background:rgba(53,216,208,.16);box-shadow:0 0 0 2px rgba(53,216,208,.25)}
+.wbr-amt{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px;border-radius:14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.14)}
+.wbr-amt input{flex:1;min-width:0;background:none;border:0;color:#fff;font:800 22px/1 "Exo 2",sans-serif;outline:none}
+.wbr-amt span{color:#8fb0d6;font-weight:700}.wbr-amt button,.wbr-quick button{border:1px solid rgba(124,245,200,.35);background:rgba(124,245,200,.1);color:#bff7e6;border-radius:10px;padding:8px 12px;font-weight:800;cursor:pointer}
+.wbr-quick{display:flex;gap:8px}.wbr-quick button{flex:1}
+.wbr-sp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wbr-sp button{display:grid;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#e8f4ff;font-weight:800;cursor:pointer}
+.wbr-sp button small{color:#8fb0d6;font-weight:500;font-size:11px}.wbr-sp button.on{border-color:#ffd23a;background:rgba(255,210,58,.12)}.wbr-sp button:disabled{opacity:.4}
+.wbr-q{margin:0;font-weight:700;color:#e8f4ff}.wbr-q small{display:block;color:#8fb0d6;font-weight:500}
+.wbr-warn{margin:0;padding:8px 12px;border-radius:10px;background:rgba(255,160,64,.12);border:1px solid rgba(255,160,64,.35);color:#ffd2a6;font-size:13px}
+.wbr-go{padding:15px;border-radius:999px;border:0;background:linear-gradient(135deg,#35d8d0,#7cf5c8);color:#03202a;font:900 16px/1 Sora,sans-serif;box-shadow:0 8px 24px rgba(53,216,208,.35),inset 0 1px 0 rgba(255,255,255,.6);cursor:pointer}
+.wbr-go.art{background:var(--btn) center/100% 100% no-repeat;box-shadow:none}
+.wbr-go:disabled{opacity:.45;cursor:default}
+.wbr-steps{display:none;margin:0;padding:0;list-style:none;grid-template-columns:repeat(5,1fr);gap:6px;font-size:11px;color:#8fb0d6;text-align:center}
+.wbr-steps.show{display:grid}
+.wbr-steps li i{display:block;margin:0 auto 4px;width:14px;height:14px;border-radius:50%;border:2px solid #3a5577}
+.wbr-steps li.on{color:#fff}.wbr-steps li.on i{border-color:#35d8d0;box-shadow:0 0 0 4px rgba(53,216,208,.2);animation:wbrPulse 1s ease-in-out infinite}
+.wbr-steps li.done{color:#7cf5c8}.wbr-steps li.done i{background:#7cf5c8;border-color:#7cf5c8}
+@keyframes wbrPulse{50%{box-shadow:0 0 0 8px rgba(53,216,208,.05)}}
+.wbr-msg{margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06);font-size:13px}
+.wbr-msg.ok{background:rgba(124,245,200,.12);color:#bff7e6}.wbr-msg.err{background:rgba(255,90,90,.12);color:#ffc0c0}
+.wbr-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.wbr-list li{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.04);font-size:12px}
+.wbr-list li span{color:#8fb0d6}.wbr-list li em{font-style:normal;font-weight:800}.wbr-list li.ok em{color:#7cf5c8}.wbr-list li.wait em{color:#ffd23a}.wbr-list li.bad em{color:#ff8a8a}
+.wbr-list a{color:#7fc8ff}
+.wbr-fine{margin:0;color:#6f8db2;font-size:11.5px}
+.wbr-burst{position:absolute;left:50%;top:40%;width:320px;height:320px;margin:-160px 0 0 -160px;border-radius:50%;background:radial-gradient(circle,rgba(124,245,200,.6),transparent 60%);pointer-events:none;animation:wbrBurst 1.3s ease-out forwards}
+@keyframes wbrBurst{from{transform:scale(.2);opacity:1}to{transform:scale(1.6);opacity:0}}
+html.wp-pcphone .wbr-in{zoom:1.6;max-height:calc((100dvh - 32px) / 1.6)}
+html.wp-pcphone.wp-land .wbr-in{zoom:1.1;max-height:calc((100dvh - 24px) / 1.1);width:min(760px,100%)}
+html.wp-vpfb.wp-land .wbr-in{zoom:var(--fbz,.7);max-height:calc((100dvh - 24px) / var(--fbz,.7))}
+@media (max-width:560px){.wbr{padding:0;align-items:end}.wbr-in{border-radius:22px 22px 0 0;max-height:94dvh}}
