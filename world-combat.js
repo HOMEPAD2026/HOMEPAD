@@ -206,7 +206,8 @@ export function createCombat(ctx) {
   // scammers are kept for reuse (a few per model) instead of copied afresh each time: a copy of a skinned model and
   // its materials every few seconds was a hitch on phones
   const mobPool = new Map();
-  const takeEnemy = (kit, key) => { const a = mobPool.get(key); if (a && a.length) return a.pop(); const e = K.enemy(kit, key); if (e) e.key = key; return e; };
+  // (b-nx3: a pooled body made from an older source — the drawn villain before Meshy's arrived — is let go, not reused)
+  const takeEnemy = (kit, key) => { const a = mobPool.get(key), src = kit.enemies && kit.enemies[key]; while (a && a.length) { const e = a.pop(); if (!e.src || e.src === src) return e; } const e = K.enemy(kit, key); if (e) { e.key = key; e.src = src; } return e; };
   // gone: its HP bar's canvas texture is freed (one per scammer: these piled up over a long hunt, slowing the game and,
   // on phones, running the GPU out of memory, which showed as black squares); a scammer that doesn't go back to the
   // pool frees its own materials too

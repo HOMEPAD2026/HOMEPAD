@@ -20,7 +20,7 @@ import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js"
 import { KTX2Loader } from "./vendor/three/addons/KTX2Loader.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 export const skelClone = (o) => SkeletonUtils.clone(o); // a rigged model's copy with its own bones (Jurassic World's herds)
-import { villainize } from "./world-gear3d.js"; // the scammers as villain bots
+import { villainize, meshyVillains } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 export const makeTrees = (...a) => ARC.makeTrees(...a); // the town's round, wind-swayed trees (the Game Village gardens use them, b447)
@@ -445,6 +445,7 @@ function grassTexture() {
   return t;
 }
 const GROUND_VER = "?v=1";
+export const MESHY_SCAM = { on: true }; // (b-nx3: world-play.js can turn Meshy's scammer bodies off)
 /// b-nx3: Meshy's trees on the town ground (world-arcstyle.js TREES), off on low graphics; asked before makeGround
 export function treeOptions(on, ver = "") { ARC.TREES.meshy = !!on; ARC.TREES.ver = ver; ARC.TREES.loader = gltfLoader; }
 export function makeGround({ radius = 330 } = {}) {
@@ -829,7 +830,7 @@ export function loadKit(ver = "") {
     };
     const kit = { props: { ...split(p, PROP_NAMES), ...split(c, CITY_NAMES) }, enemies: {} };
     // the scammers are drawn in code now (world-gear3d.js villainize): no robot file to download
-    kit.enemiesReady = Promise.resolve().then(() => { villainize(kit); return kit; }).catch((err) => { console.warn("world robots:", err); return kit; });
+    kit.enemiesReady = Promise.resolve().then(() => { villainize(kit); return MESHY_SCAM.on ? meshyVillains(kit, gltfLoader, ver) : kit; }).catch((err) => { console.warn("world robots:", err); return kit; }); // (b-nx3: Meshy's bodies when they come)
     // the creatures the far hunting grounds dress their scammers as (Quaternius, CC0); clips come named "Bat/Run" and so on
     // b443: on request (world-play.js: once you head out of town, or 90 s in), not at start: 2.1 MB that only the far
     // grounds use, which competed with the town's packs and was readied on the plaza

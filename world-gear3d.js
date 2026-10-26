@@ -296,6 +296,37 @@ function mergeParts(root) {
     }
   });
 }
+// b-nx3 (2026-10-26): Meshy's scammers (models/world/scammers, ~2.8 k tris, 512 px KTX2, 120–240 KB) as the villains' bodies:
+// the model goes inside v-body and the same moves are keyed on it (a bob, a lean, a lunge, a squash, a fall, a flip), so
+// every clip name the fights use (Idle / Run / Attack / Hit / TurnOff / BackFlip) is there. The drawn ones stay if a
+// file doesn't come.
+const MESHY_VILLAIN = { EyeDrone: "spam-bot", QuadShell: "fake-airdrop", Trilobite: "rug-gremlin" };
+function meshyVillain(model, fly) {
+  const body = part("v-body", model), root = part("v-root", body), y = fly ? 0.12 : 0.05;
+  const clips = [
+    clip("Idle", 1.6, [track("v-body", "position", [0, 0.8, 1.6], [[0, 0, 0], [0, fly ? 0.1 : 0.03, 0], [0, 0, 0]]), track("v-body", "scale", [0, 0.8, 1.6], [[1, 1, 1], [1.02, 0.98, 1.02], [1, 1, 1]])]),
+    clip("Run", 0.36, [track("v-body", "position", [0, 0.09, 0.18, 0.27, 0.36], [[0, 0, 0], [0, y, 0], [0, 0, 0], [0, y, 0], [0, 0, 0]]), track("v-body", "quaternion", [0, 0.18, 0.36], [Q(0.18, 0, 0.1), Q(0.18, 0, -0.1), Q(0.18, 0, 0.1)])]),
+    clip("Attack", 0.6, [track("v-body", "position", [0, 0.2, 0.3, 0.6], [[0, 0, 0], [0, 0.1, -0.3], [0, 0, 0.55], [0, 0, 0]]), track("v-body", "quaternion", [0, 0.2, 0.3, 0.6], [Q(0, 0, 0), Q(-0.35, 0, 0), Q(0.4, 0, 0), Q(0, 0, 0)])]),
+    clip("Hit", 0.35, [track("v-body", "scale", [0, 0.1, 0.35], [[1, 1, 1], [1.18, 0.82, 1.18], [1, 1, 1]]), track("v-body", "quaternion", [0, 0.1, 0.35], [Q(0, 0, 0), Q(-0.35, 0.2, 0.15), Q(0, 0, 0)])]),
+    clip("TurnOff", 1.2, [track("v-body", "quaternion", [0, 1.2], [Q(0, 0, 0), Q(0, 0, Math.PI / 2)]), track("v-body", "position", [0, 1.2], [[0, 0, 0], [0, -0.25, 0]]), track("v-body", "scale", [0, 1.2], [[1, 1, 1], [1.1, 0.7, 1.1]])]),
+    clip("BackFlip", 0.9, [track("v-body", "quaternion", [0, 0.3, 0.6, 0.9], [Q(0, 0, 0), Q(-2.1, 0, 0), Q(-4.2, 0, 0), Q(-6.283, 0, 0)]), track("v-body", "position", [0, 0.3, 0.6, 0.9], [[0, 0, 0], [0, 0.9, 0], [0, 0.9, 0], [0, 0, 0]])]),
+  ];
+  return { scene: root, clips };
+}
+/// swap in the Meshy bodies; resolves when they're in (or after `wait` ms, whatever came by then)
+export function meshyVillains(kit, loader, ver = "", wait = 5000) {
+  if (!loader) return Promise.resolve(kit);
+  const jobs = Object.entries(MESHY_VILLAIN).map(([name, file]) => new Promise((ok) => {
+    try { loader().load(`/models/world/scammers/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, name === "EyeDrone")); } catch (e) { console.warn("scammer", file, e); } ok(); }, undefined, () => ok()); } catch { ok(); }
+  }));
+  return Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, wait))]).then(() => kit);
+}
+function place(kit, name, v) {
+  const [y0] = SIZE[name], have = new THREE.Box3().setFromObject(v.scene), ext = have.getSize(new THREE.Vector3()), k = (name === "Trilobite" ? 2.8 : 2) / Math.max(0.01, ext.x, ext.y, ext.z);
+  const wrap = new THREE.Group(); wrap.name = "v-wrap"; v.scene.scale.setScalar(k); v.scene.position.y = y0 - have.min.y * k; wrap.add(v.scene); v.scene = wrap;
+  v.scene.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = false; } });
+  kit.enemies[name] = v;
+}
 /// put the villains in place of the robot models, each at the size of the model it replaces
 export function villainize(kit) {
   for (const [name, build] of Object.entries(VILLAIN)) {
