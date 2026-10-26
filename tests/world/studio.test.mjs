@@ -160,7 +160,7 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   await call(mk, "world-studio-del", { id: a }); await call(mk, "world-studio-del", { id: b2 }); }
 // STU-A: the official games — listed from the start, one a template, playable and likeable, never anyone's to change
 { const { OFFICIAL } = await import("../../api/_world-studio.mjs"); const arc = await get("studio-arcade"), off = arc.games.filter((g) => g.off);
-  check(off.length === 7 && new Set(off.map((g) => g.tpl)).size === 7 && off.every((g) => g.byName === "ARCIRCLE" && g.s && g.s.tpl === g.tpl), "seven official games on the arcade, one a template, each with its small spec");
+  check(off.length === 15 && new Set(off.map((g) => g.tpl)).size === 15 && off.every((g) => g.byName === "ARCIRCLE" && g.s && g.s.tpl === g.tpl), "fifteen official games on the arcade, one a template, each with its small spec");
   const g1 = (await get("studio-game&id=goffrun")).game; check(g1 && g1.off && g1.spec && g1.spec.title === OFFICIAL.goffrun.title, "an official game opens");
   const L = G.genLevel(g1.spec), r1 = await call(fan, "world-studio-play", { id: "goffrun", coins: 2, dist: L.len, done: true }); check(r1.status === 200 && r1.body.score > 0 && r1.body.place === 1, "an official game is played and scored (#" + r1.body.place + ")");
   const r2 = await call(fan, "world-studio-like", { id: "goffrun" }); check(r2.status === 200 && r2.body.likes === 1, "an official game can be liked");
@@ -197,5 +197,26 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   r = await call(mk, "world-studio-tweak", { spec: base, t: "make it easier, no lasers" }); check(r.status === 200 && r.body.by === "agent" && r.body.spec.lasers === 0 && r.body.spec.walls === 1 && r.body.spec.tpl === "runner" && r.body.spec.seed === base.seed && /easier/.test(r.body.say), "the agent's tweak: only the settings it changed, the template and layout kept");
   aiReply = "no json here"; r = await call(mk, "world-studio-tweak", { spec: { ...base, coins: 2 }, t: "more coins please" }); check(r.body.by === "rules" && r.body.spec.coins === 3, "without the model the words are read by rules (more coins: " + r.body.spec.coins + ")");
   await call(mk, "world-studio-del", { id }); }
+// ---- SB-2 / SB-3: JUMP WORLD and its modes — the grid's rules, a level for each, the score held to what it holds ----
+{ const sp = G.clampSpec({ tpl: "jump", build: { jw: 1, W: 9999, c: [[0, 0, "g"], [0, 0, "s"], [-1, 0, "g"], [5, 20, "g"], [3, 1, "nope"], [4, 1, "B"], [5, 2, "o"], [8, 1, "B"], [9, 1, "B"], [12, 1, "B"], [2, 1, "S"], [3, 3, "S"]] } }), c = sp.build.c, has = (x, y, k) => c.some((q) => q[0] === x && q[1] === y && q[2] === k);
+  check(sp.build.W === G.JW.MAX && has(0, 0, "g") && !has(0, 0, "s") && !c.some((q) => q[0] < 0 || q[1] >= G.JW.H || q[2] === "nope"), "JUMP WORLD: the grid's bounds, one thing a cell, unknown pieces dropped");
+  check(!has(5, 2, "o") && c.filter((q) => q[2] === "B").length === G.JW.BOSSES && c.filter((q) => q[2] === "S").length === 1 && c.some((q) => q[2] === "F"), "a dragon takes 2 × 2 (a coin inside it goes), two bosses at most, one start, a finish added"); }
+for (const tpl of ["jump", "dungeon", "escape", "boss", "mining"]) { const sp = G.clampSpec({ tpl, seed: 4242, len: 45 }), L = G.genLevel(sp), R = G.jwReach(L.B);
+  check(L.jump && L.B.c.length > 40 && L.len > 30 && L.coins > 0 && R.ok && (tpl === "escape" || tpl === "mining" ? L.timer > 0 : !L.timer) && (tpl !== "boss" || L.B.c.some((q) => q[2] === "B")), `${tpl}: a quick-start level that can be finished${tpl === "boss" ? ", with its dragon" : ""}${L.timer ? ", against the clock" : ""}`);
+  check(JSON.stringify(G.toBuild(sp)) === JSON.stringify(G.genJumpBuild(sp)) && G.estimate(sp).stars >= 1, `${tpl}: the builder starts from the quick-start level; the bots rate it`); }
+{ const mk = ethers.Wallet.createRandom(), other = ethers.Wallet.createRandom(), r = await call(mk, "world-studio-save", { spec: { tpl: "jump", title: "JW test", seed: 99 } }); const id = r.body && r.body.game && r.body.game.id; if (id) { await call(mk, "world-studio-publish", { id, on: true });
+  const L = G.genLevel(G.clampSpec({ tpl: "jump", seed: 99 })), q = await call(other, "world-studio-play", { id, coins: 99999, dist: 99999, done: true });
+  check(q.status === 200 && q.body.score === G.scoreOf(L.coins, L.len, true), "a JUMP WORLD run's score is held to the level's coins and length"); await call(mk, "world-studio-del", { id }); } else check(false, "a JUMP WORLD game saves"); }
+// ---- SB-3: MONSTER SURVIVAL, BEAT MAKER, HOVER RACE ----
+{ const L = G.genLevel(G.clampSpec({ tpl: "survival", len: 60, lasers: 2, walls: 4, speed: 5 }));
+  check(L.survival && L.secs === 240 && L.bossAt.length === 3 && L.bossAt.every((t, i, a) => t > 0 && t < L.secs && (!i || t > a[i - 1])) && L.diff === "hard" && L.rate > 1 && L.len === L.secs * 20, "survival: the maker's length, crowd, bosses spread over the run, the arena's difficulty"); }
+{ const sp = G.clampSpec({ tpl: "rhythm", len: 30, speed: 3, build: { bt: 1, n: [[2, 0], [10, 0], [10, 0], [10, 1], [10, 2], [12, 9], [99999, 1], [20, 3]] } }), n = sp.build.n;
+  check(n.length === 3 && n.every(([s0, l]) => s0 >= 8 && s0 < G.stepsOf(sp) && l >= 0 && l < 4) && n.filter((q) => q[0] === 10).length === 2, "beat: notes on the song's steps and lanes, none in the count-in, two at once at most");
+  const L = G.genLevel(G.clampSpec({ tpl: "rhythm", seed: 5 })); check(L.beat && L.B.n.length > 20 && L.coins === L.B.n.length * 2 && L.bpm === G.bpmOf(G.clampSpec({ tpl: "rhythm" })), "beat: a quick-start chart, 2 coins a note at most"); }
+{ const sp = G.clampSpec({ tpl: "race", build: { rc: 1, laps: 9, r: [[0, 0], [2, 2], [30, 0], [30, 30], [999, 0], [0, 30]], w: [[30, 1], [10, 10]], o: [[5, 5]] } }), b = sp.build;
+  check(b.laps === 3 && b.r.length === 4 && b.w.length === 1 && b.o.length === 1, "race: laps 1–3, rings apart and on the ground, no pillar inside a ring");
+  check(G.clampSpec({ tpl: "race", build: { rc: 1, r: [[0, 0], [20, 0]] } }).build === undefined, "race: a track of fewer than 3 rings isn't kept");
+  const L = G.genLevel(G.clampSpec({ tpl: "race", seed: 9, len: 60 })); check(L.race && L.B.r.length === 11 && L.limit > 20 && L.coins === L.B.o.length + L.limit, "race: a quick-start loop, a time limit, orbs + seconds left as coins"); }
+for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl, seed: 3 }); check(G.estimate(sp).stars >= 1 && (tpl === "survival" || JSON.stringify(G.toBuild(sp)) === JSON.stringify(tpl === "rhythm" ? G.genBeatChart(sp) : G.genRaceBuild(sp))), `${tpl}: the bots rate it${tpl === "survival" ? "" : "; the builder starts from the quick start"}`); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

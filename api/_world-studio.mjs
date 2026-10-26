@@ -42,6 +42,14 @@ export const OFFICIAL = {
   goffclimb: { tpl: "climb", theme: "jungle", title: "Jungle Tower", speed: 3, len: 45, coins: 4, walls: 2, gaps: 1, lasers: 1, seed: 909 },
   goffrush: { tpl: "rush", theme: "candy", title: "Candy Coin Rush", speed: 3, len: 45, coins: 4, walls: 2, gaps: 1, lasers: 0, seed: 3030 },
   gofftd: { tpl: "defense", theme: "neon", title: "Crystal Defense", speed: 4, len: 60, coins: 3, walls: 3, gaps: 2, lasers: 2, seed: 5150 },
+  goffjump: { tpl: "jump", theme: "jungle", title: "Jungle Jump", speed: 3, len: 45, coins: 4, walls: 3, gaps: 2, lasers: 2, seed: 1212 }, // (SB-2/3: JUMP WORLD and its modes)
+  goffdung: { tpl: "dungeon", theme: "lava", title: "Ember Dungeon", speed: 3, len: 45, coins: 3, walls: 3, gaps: 1, lasers: 2, seed: 3131 },
+  goffesc: { tpl: "escape", theme: "neon", title: "Neon Escape", speed: 3, len: 45, coins: 2, walls: 2, gaps: 1, lasers: 1, seed: 4747 },
+  goffboss: { tpl: "boss", theme: "candy", title: "Candy Dragon", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 6060 },
+  goffmine: { tpl: "mining", theme: "ice", title: "Crystal Mine Rush", speed: 3, len: 45, coins: 4, walls: 1, gaps: 1, lasers: 1, seed: 8282 },
+  goffsurv: { tpl: "survival", theme: "lava", title: "Lava Horde", speed: 3, len: 45, coins: 2, walls: 3, gaps: 2, lasers: 1, seed: 6666 }, // (SB-3: the arena's engine, a beat, a race)
+  goffbeat: { tpl: "rhythm", theme: "neon", title: "Neon Beat", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 1280 },
+  goffrace: { tpl: "race", theme: "ice", title: "Glacier Grand Prix", speed: 3, len: 45, coins: 3, walls: 2, gaps: 2, lasers: 1, seed: 2424 },
 };
 const OFF_AT = Date.UTC(2026, 9, 26);
 // STU-C: the weekly creator contest — each Seoul week (from Monday) one template is the theme; that week's plays (by others)

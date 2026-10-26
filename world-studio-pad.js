@@ -71,17 +71,17 @@ export function makeGate({ T = (s) => s, esc = (s) => s, coarse = false, onBack 
 }
 export function makeLand(o = {}) { const g = makeGate(o); return { landscape: g.landscape, enter() { g.on("studio", true); }, exit() { g.on("studio", false); } }; }
 
-export function makePad(hud, { mode = "stick", T = (s) => s, onLane = null, onJump = null, onSlide = null } = {}) {
+export function makePad(hud, { mode = "stick", T = (s) => s, onLane = null, onJump = null, onSlide = null, onJumpUp = null, onAct = null } = {}) {
   const P = { x: 0, y: 0, on: false, hide() { el.hidden = true; P.on = false; P.x = P.y = 0; } };
   const el = document.createElement("div"); el.className = "wsp wsp-" + mode;
-  el.innerHTML = `<div class="wsp-zone"></div><div class="wsp-base"><i class="wsp-knob"></i></div>${mode === "lanes" ? `<div class="wsp-btns"><button type="button" class="wsp-b wsp-slide" aria-label="${T("Slide")}">⤓</button><button type="button" class="wsp-b wsp-jump" aria-label="${T("Jump")}">⤒</button></div>` : ""}`;
+  el.innerHTML = `<div class="wsp-zone"></div><div class="wsp-base"><i class="wsp-knob"></i></div>${mode === "lanes" ? `<div class="wsp-btns"><button type="button" class="wsp-b wsp-slide" aria-label="${T("Slide")}">⤓</button><button type="button" class="wsp-b wsp-jump" aria-label="${T("Jump")}">⤒</button></div>` : mode === "side" ? `<div class="wsp-btns">${onAct ? `<button type="button" class="wsp-b wsp-act" aria-label="${T("Dig")}">⛏</button>` : ""}<button type="button" class="wsp-b wsp-jump" aria-label="${T("Jump")}">⤒</button></div>` : ""}`;
   hud.appendChild(el);
   const zone = el.querySelector(".wsp-zone"), base = el.querySelector(".wsp-base"), knob = el.querySelector(".wsp-knob");
   let id = null, cx = 0, cy = 0, ex = 0, ey = 0; // (ex / ey: which way a lane push has already gone, so one push = one lane)
   const home = () => { base.style.left = ""; base.style.top = ""; base.classList.remove("on"); knob.style.transform = ""; };
   const move = (e) => {
     const R = base.offsetWidth * 0.42 || 50; let dx = e.clientX - cx, dy = e.clientY - cy; const l = Math.hypot(dx, dy); if (l > R) { dx *= R / l; dy *= R / l; }
-    knob.style.transform = `translate(${dx}px, ${dy}px)`; P.x = dx / R; P.y = mode === "steer" ? 0 : dy / R;
+    knob.style.transform = `translate(${dx}px, ${dy}px)`; P.x = dx / R; P.y = mode === "steer" || mode === "side" ? 0 : dy / R;
     if (mode === "lanes") {
       if (ex === 0 && Math.abs(P.x) > 0.55) { ex = Math.sign(P.x); if (onLane) onLane(ex); } else if (Math.abs(P.x) < 0.3) ex = 0;
       if (ey === 0 && Math.abs(P.y) > 0.6) { ey = Math.sign(P.y); if (ey < 0 && onJump) onJump(); if (ey > 0 && onSlide) onSlide(); } else if (Math.abs(P.y) < 0.3) ey = 0;
@@ -94,7 +94,8 @@ export function makePad(hud, { mode = "stick", T = (s) => s, onLane = null, onJu
   zone.addEventListener("pointermove", (e) => { if (e.pointerId === id) { e.stopPropagation(); move(e); } });
   const up = (e) => { if (e.pointerId !== id) return; e.stopPropagation(); id = null; P.on = false; P.x = P.y = 0; ex = ey = 0; home(); };
   zone.addEventListener("pointerup", up); zone.addEventListener("pointercancel", up);
-  for (const [q, f] of [[".wsp-jump", () => onJump && onJump()], [".wsp-slide", () => onSlide && onSlide()]]) { const b = el.querySelector(q); if (b) b.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); b.classList.remove("hit"); void b.offsetWidth; b.classList.add("hit"); f(); }); }
+  { const jb = el.querySelector(".wsp-jump"); if (jb && onJumpUp) for (const k of ["pointerup", "pointercancel", "pointerleave"]) jb.addEventListener(k, () => onJumpUp()); } // (SB-2: let go early for a short hop)
+  for (const [q, f] of [[".wsp-jump", () => onJump && onJump()], [".wsp-slide", () => onSlide && onSlide()], [".wsp-act", () => onAct && onAct()]]) { const b = el.querySelector(q); if (b) b.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); b.classList.remove("hit"); void b.offsetWidth; b.classList.add("hit"); f(); }); }
   // (the runs listen for swipes on the whole window: a touch that starts on the pad is the pad's)
   for (const k of ["touchstart", "touchend"]) el.addEventListener(k, (e) => e.stopPropagation(), { passive: true });
   return P;

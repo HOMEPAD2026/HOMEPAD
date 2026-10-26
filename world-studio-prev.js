@@ -3,7 +3,7 @@
 // spec as you change it — the track with its walls, gaps, lasers and coins flown along, or the arena with its drones —
 // and a still of each theme for the theme cards. Nothing here is the game: no hero, no rules, just how it will look.
 // makePreview({ THREE }) → { canvas, set(spec), snap(spec) → dataURL, stop(), dispose() } (null where WebGL can't start)
-import { THEMES, LANES, CLIMB, DEF, genLevel, speedOf } from "./world-studio-gen.js";
+import { THEMES, LANES, CLIMB, DEF, JUMPS, JW, genLevel, speedOf } from "./world-studio-gen.js";
 import { level as ringLevel } from "./world-rings-engine.js";
 import { look as themeLook } from "./world-studio-look.js";
 
@@ -52,6 +52,29 @@ export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) 
       const pts = L.path.map(([c, r]) => P(c, r)); if (pts.length) { const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), std(0x5fd3ff, { emissive: 0x2fa8ff, emissiveIntensity: 0.7 })); cr.position.set(pts[pts.length - 1][0], 1.3, pts[pts.length - 1][1] + 1.2); sc.add(cr); }
       const fM = std(th.wall, { emissive: th.wall, emissiveIntensity: 0.4 }), fs = Array.from({ length: Math.min(6, pts.length) }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), fM); sc.add(m); return m; });
       return { sc, tick(t) { const n = pts.length; fs.forEach((m, i) => { if (n < 2) return; const f = ((t * 0.9 + i * 1.6) % (n - 1)), a = Math.floor(f), b = Math.min(n - 1, a + 1), k = f - a; m.position.set(pts[a][0] + (pts[b][0] - pts[a][0]) * k, 0.6, pts[a][1] + (pts[b][1] - pts[a][1]) * k); }); cam.position.set(Math.sin(t * 0.2) * 3, 24, 13); cam.lookAt(0, 0, 0.5); } };
+    }
+    if (L.survival || L.beat || L.race) { // (SB-3: the survival arena with its crowd turning in, the beat highway, the race's ring loop)
+      if (L.survival) { const floor = new THREE.Mesh(new THREE.CylinderGeometry(16, 16.5, 0.6, 48), std(0x3a2a24, { roughness: 0.9 })); floor.position.y = -0.3; sc.add(floor); const mG = new THREE.SphereGeometry(0.5, 10, 8), mM = std(0xff5a7a, { emissive: 0xff2a4a, emissiveIntensity: 0.4 }), n = Math.round(30 * L.rate), im = new THREE.InstancedMesh(mG, mM, n), mt = new THREE.Matrix4(); sc.add(im);
+        const boss = L.bossAt.length ? new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 12), std(0x8b5cf6, { emissive: 0x5b2cd6, emissiveIntensity: 0.5 })) : null; if (boss) sc.add(boss);
+        return { sc, tick(t) { for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + t * 0.3, r = 4 + ((i * 7 + t * 2) % 11); mt.makeTranslation(Math.cos(a) * r, 0.5, Math.sin(a) * r); im.setMatrixAt(i, mt); } im.instanceMatrix.needsUpdate = true; if (boss) boss.position.set(Math.cos(t * 0.4) * 9, 1.6, Math.sin(t * 0.4) * 9); cam.position.set(0, 18, 16); cam.lookAt(0, 0, 0); } }; }
+      if (L.beat) { sc.background = new THREE.Color(0x070b1c); const road = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 60), std(0x10183a)); road.rotation.x = -Math.PI / 2; road.position.z = -28; sc.add(road); const cols = [0xff6fae, 0xffd23a, 0x7cf5c8, 0x5fd3ff], ms = cols.map((c) => std(c, { emissive: c, emissiveIntensity: 0.8 })), g = new THREE.SphereGeometry(0.4, 12, 8), spb = 60 / L.bpm / 2;
+        const ns = L.B.n.slice(0, 160).map(([s0, l]) => { const m = new THREE.Mesh(g, ms[l]); sc.add(m); return { s0, l, m }; });
+        return { sc, tick(t) { const now = (t % (L.secs * 0.5)) + 3; for (const q of ns) { const ah = 3 + q.s0 * spb - now; q.m.visible = ah > -0.2 && ah < 2.4; q.m.position.set((q.l - 1.5) * 1.5, 0.35, -ah * 20); } cam.position.set(0, 6, 8.5); cam.lookAt(0, 0, -12); } }; }
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), std(th.track, { roughness: 0.8 })); ground.rotation.x = -Math.PI / 2; sc.add(ground);
+      const rs = L.B.r.map((q, i) => { const nx = L.B.r[(i + 1) % L.B.r.length], m = new THREE.Mesh(new THREE.TorusGeometry(3.4, 0.28, 10, 36), glow(0xffd23a)); m.position.set(q[0], 3.4, q[1]); m.rotation.y = Math.atan2(nx[0] - q[0], nx[1] - q[1]); sc.add(m); return m; });
+      for (const q of L.B.w) { const m = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 7, 12), std(th.wall, { emissive: th.wall, emissiveIntensity: 0.3 })); m.position.set(q[0], 3.5, q[1]); sc.add(m); }
+      return { sc, tick(t) { const n = L.B.r.length, f = (t * 0.35) % n, i = Math.floor(f), a = L.B.r[i], c = L.B.r[(i + 1) % n], k = f - i, x = a[0] + (c[0] - a[0]) * k, z = a[1] + (c[1] - a[1]) * k, h = Math.atan2(c[0] - a[0], c[1] - a[1]); cam.position.set(x - Math.sin(h) * 12, 6, z - Math.cos(h) * 12); cam.lookAt(x + Math.sin(h) * 8, 1.5, z + Math.cos(h) * 8); rs.forEach((m) => { m.rotation.z = t; }); } };
+    }
+    if (JUMPS[spec.tpl]) { // (SB-2 JUMP WORLD and its modes: the level from the side, the camera panning along it)
+      const dark = spec.tpl === "dungeon" || spec.tpl === "mining", B = L.B, box = new THREE.BoxGeometry(1, 1, 1.6), mt = new THREE.Matrix4(), by = {};
+      if (dark) { sc.background = new THREE.Color(0x0b0a14); sc.fog = new THREE.Fog(0x0b0a14, 18, 60); }
+      const COL = { g: th.track, s: th.wall, i: 0x9fd8ff, l: 0xff5a1a, w: 0xa8744a, m: 0xff9a3d, v: 0x5fd3ff, f: 0xc8a27a, b: 0xff5ad8, p: 0x7cf5c8, k: 0xdfe6f2, o: 0xffc94a, y: 0xffd23a, d: 0xa8744a, t: 0xff3b5c, r: 0xff3b5c, u: 0x3b7bff, h: 0xff4d6d, q: 0xffb02e, e: 0x8b5cf6, n: 0x2a2f3a, z: 0x2a2f3a, B: 0x2fb36a, F: 0xffd23a, S: 0x7cf5c8, 1: 0xd97a3a, 2: 0xdfe6f2, 3: 0xffd23a };
+      for (const c of B.c) (by[c[2]] || (by[c[2]] = [])).push(c);
+      for (const [k, list] of Object.entries(by)) { const small = !"gsilwmvfbdzru123".includes(k), g = k === "B" ? new THREE.BoxGeometry(2, 2, 1.4) : small ? new THREE.SphereGeometry(k === "F" ? 0.8 : 0.36, 12, 8) : box, im = new THREE.InstancedMesh(g, std(COL[k] ?? 0xffffff, { emissive: COL[k] ?? 0, emissiveIntensity: small || k === "l" ? 0.5 : 0.08 }), list.length);
+        list.forEach((c, i) => { mt.makeTranslation(c[0] + (k === "B" ? 1 : 0.5), c[1] + (k === "B" ? 1 : 0.5), 0); im.setMatrixAt(i, mt); }); sc.add(im); }
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(B.W + 80, 50), std(dark ? 0x141220 : th.fog, { roughness: 1 })); back.position.set(B.W / 2, 14, -14); sc.add(back);
+      const span = Math.max(1, B.W - 24);
+      return { sc, tick(t) { const x = 12 + ((t * 3.2) % span); cam.position.set(x, 7.5, 19); cam.lookAt(x, 5, 0); } };
     }
     if (spec.tpl === "climb") { // (S4d: the tower's first stretch — platforms, springs, spikes, coins — the camera rising past it)
       const top = Math.min(L.len, 70), wall = new THREE.Mesh(new THREE.BoxGeometry(CLIMB.W + 3, top + 20, 0.6), std(th.track, { roughness: 0.8 })); wall.position.set(0, top / 2, -1.6); sc.add(wall);

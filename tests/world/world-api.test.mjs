@@ -57,7 +57,7 @@ check(r.status === 429, "saving again within 8 s: refused");
   check(sv().xp - x1 <= Math.ceil(pace * 18 / 60) + 1, "a save that adds nothing doesn't top the allowance up (+" + (sv().xp - x1) + " in 18 s)");
   T += 3 * 3600e3; const x2 = sv().xp; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: x2 + 9e6, xpv: 2 } });
   check(sv().xp - x2 === SRV.xpBankCap(SRV.levelOfXp(x2)), "hours away: the allowance holds at most 30 minutes of play");
-  db.set(`worldXpDay/${me}_${new Date(T + 9 * 3600e3).toISOString().slice(0, 10)}`, { n: SRV.xpPerMin(SRV.levelOfXp(sv().xp)) * SRV.XP_RULES.dayMin });
+  db.set(`worldXpDay/${me}_${new Date(T + 600e3 + 9 * 3600e3).toISOString().slice(0, 10)}`, { n: SRV.xpPerMin(SRV.levelOfXp(sv().xp)) * SRV.XP_RULES.dayMin });
   T += 600e3; const x3 = sv().xp; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: x3 + 5000, xpv: 2 } });
   check(sv().xp === x3, "a day's XP limit reached: nothing more today");
   T += 9e3; const hi = sv().xp; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 50, xpv: 2 } });

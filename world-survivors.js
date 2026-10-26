@@ -176,6 +176,7 @@ export function createSurvivors(ctx) {
   const CAP = () => Math.round((phone() ? 150 : 240) * [0.6, 0.8, 1][Q]);
   let S = null, ui = null, on = false, busy = false, hero = null, heroId = "", heroP = null, pack = null, packP = null;
   let mode = "off"; // off · lobby · count · play · cards · pause · over
+  let customCfg = null, customDone = null; // SB-3: a Studio game's run (custom): its length, crowd, elites and bosses from the maker, no server, no ARCL
   let pick = { hero: 0, diff: "normal", mode: "classic" };
   try { const s = JSON.parse(localStorage.getItem("arc.surv.pick") || "null"); if (s && HEROES[s.hero] && RULES.DIFF[s.diff]) pick = { ...s, mode: RULES.MODES[s.mode] ? s.mode : "classic" }; } catch { /* the defaults */ }
   // b-sv7: a run's mode — classic 12:00 · quick 6:00 (the content clock runs twice as fast, half the ARCL) · endless (past the Titan, its own board)
@@ -516,6 +517,7 @@ export function createSurvivors(ctx) {
       streak: 0, streakT: 0, shield: 0, shieldT: 0, revived: false, infT: 25, dmgBy: {}, loot: { hp: 0, sp: 0, scrap: 0 }, stop: 0, focus: null, drones: [], skillCd: 6, overT: 0, crates: [], crateT: 20, lavaT: 90 };
     R.mode = DD ? "classic" : pick.mode || "classic"; R.tk = R.mode === "quick" ? 2 : 1; R.runS = RULES.MODES[R.mode].run; R.bossAt = RULES.MODES[R.mode].boss; R.endless = R.mode === "endless"; R.endS = R.mode === "quick" ? 450 : R.endless ? RULES.ENDLESS_S : RULES.END_S;
     R.comboMax = 0; R.extraT = 0; R.extraN = 0; if (R.tk !== 1) R.swarmAt = R.swarmAt.map((x) => x / R.tk);
+    if (customCfg) { const c = customCfg; R.custom = c; R.runS = R.endS = c.secs; R.bossAt = c.bossAt.slice(0, BOSSES.length); R.D = { ...R.D, rate: R.D.rate * c.rate, hp: R.D.hp * (c.hp || 1) }; R.eliteT = c.elite; R.swarmAt = R.swarmAt.filter((x) => x < c.secs); }
     R.w[h.w] = 1;
     // b-svx: the permanent upgrades (arena coins), and the daily challenge's twist
     R.hpMax += 10 * (UP.hp || 0); R.bonusDmg *= 1 + 0.05 * (UP.atk || 0); R.reroll += UP.reroll || 0;
@@ -1204,7 +1206,7 @@ export function createSurvivors(ctx) {
     if (hero && hero.mixer && hero.play) { hero.mixer.stopAllAction(); hero.play("walk", { fade: 0 }); hero.play("idle", { fade: 0 }); hero.mixer.update(0); } // the last run's fall doesn't carry over
     { const h = HEROES[pick.hero]; ui.skill.querySelector(".sv-skill-ic").innerHTML = icon(h.skill === "overdrive" ? "laser" : h.skill === "bloom" ? "recov" : "speed", 26); ui.skill.querySelector("b").textContent = T(h.sname); ui.skill.style.setProperty("--c", h.color); }
     const ss = ctx.sess && ctx.sess();
-    runP = ss && ctx.post ? ctx.post({ action: "world-surv-start", ...ss, diff: pick.daily ? "normal" : pick.diff, daily: !!pick.daily, mode: R.mode }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j : null)).catch(() => null) : Promise.resolve(null);
+    runP = R.custom ? Promise.resolve(null) : ss && ctx.post ? ctx.post({ action: "world-surv-start", ...ss, diff: pick.daily ? "normal" : pick.diff, daily: !!pick.daily, mode: R.mode }).then((r) => (r && r.ok && r.j && r.j.runId ? r.j : null)).catch(() => null) : Promise.resolve(null);
     mode = "count"; banner(T("3 · 2 · 1 · GO!"), T(HEROES[pick.hero].name)); snd("enter"); ring(0, 0, 0.5, 6, 0x39ff88, 1.2, EASE);
     setTimeout(() => { if (on && mode === "count") { mode = "play"; lastNow = 0; for (let i = 0; i < 6; i++) { edgePoint(); spawn("blob", ep.x, ep.z); } hints(); } }, 1500);
   }
@@ -1229,6 +1231,7 @@ export function createSurvivors(ctx) {
     if (!R || R.over) return; R.over = true; mode = "over"; keys.clear(); joy.on = false; paintJoy(); ui.cards.hidden = true; cards = null;
     if (how === "dead" && R.t < R.runS) R.clear = false;
     const secs = Math.floor(R.t), out = { secs, kills: R.kills, bosses: R.bosses, diff: R.diff, clear: R.clear && secs >= R.runS };
+    if (R.custom) { const done = customDone; customDone = null; customCfg = null; out.clear = how !== "dead" && how !== "quit" && secs >= R.runS; out.how = how; banner(out.clear ? T("VICTORY") : how === "dead" ? T("YOU FELL") : T("Run ended"), ""); snd(out.clear ? "win" : "ko"); setTimeout(() => { reset(); if (done) done(out); }, 1400); return; } // (SB-3: the Studio shows the result)
     const xp = worldXp(out); if (ctx.gain && xp > 0) try { ctx.gain(xp, "survivors"); } catch { /* the run still ends */ }
     try { if (!/[?&]nodiag\b/.test(location.search) && !navigator.webdriver && ctx.post) ctx.post({ action: "world-diag", kind: "survrun", how, min: Math.min(15, Math.floor(R.t / 60)), hero: R.hero.id.replace("custom-", ""), diff: R.diff, w: Object.keys(R.w).slice(0, 6), evo: Object.keys(R.evo || {}).slice(0, 6), by: R.lastBy ? R.lastBy.by.split(":")[0] : "", lv: R.lv }).catch(() => {}); } catch { /* health counters never stop the game */ }
     if (ctx.addSupply) { try { if (R.loot.hp) ctx.addSupply("hp", R.loot.hp); if (R.loot.scrap) ctx.addSupply("scrap", R.loot.scrap); if (R.loot.sp) ctx.addSupply("sp", R.loot.sp); } catch { /* the run still ends */ } }
@@ -1314,6 +1317,8 @@ export function createSurvivors(ctx) {
   function leave() { if (!on) return; if (R && !R.over && mode !== "lobby") { endRun("quit"); return; } reset(); if (ctx.onLeave) ctx.onLeave(); }
   return {
     enter, leave: () => { if (on) { reset(); if (ctx.onLeave) ctx.onLeave(); } }, active: () => on,
+    /// SB-3: a Studio game's run — cfg { secs, rate, elite, bossAt: [s], diff, hero } → resolves with { secs, kills, bosses, clear, how } (null if the arena couldn't open)
+    custom: async (cfg) => { const ok = await enter(); if (!ok) return null; customCfg = cfg; pick = { ...pick, hero: HEROES[cfg.hero] ? cfg.hero : pick.hero, diff: RULES.DIFF[cfg.diff] ? cfg.diff : "normal", mode: "classic", daily: false }; return new Promise((res) => { customDone = res; startRun(); }); },
     /// near the Game Village: the monsters' file fetched ahead (the bake waits for the visit)
     prefetch: () => { try { fetch("models/world/survivors/monsters.glb?v=" + (ctx.ver || "1")).catch(() => {}); } catch { /* fetched on the visit */ } },
     /// tests: the run's numbers, and a few levers

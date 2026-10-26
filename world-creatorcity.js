@@ -89,11 +89,30 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   function loadModels() {
     if (started || !K.gltfLoader) return; started = true;
     const KEY = ["arcade", "tower", "academy", "hall"], q = FAC.filter((f) => !low || KEY.includes(f.id)).sort((a, b) => (KEY.indexOf(a.id) + 9) % 9 - (KEY.indexOf(b.id) + 9) % 9); let i = 0; // (low graphics: those four only, about 2 MB; the rest keep their stand-ins)
-    const next = () => { const f = q[i++]; if (!f) { portalModel(); return; } try { K.gltfLoader().load(`/models/world/cc/${f.glb}.glb${ver}`, (gl) => { const o = bld[f.id], m = fit(gl.scene, f.fp); gl.scene.traverse((x) => { if (x.isMesh) { x.castShadow = false; x.receiveShadow = !low; } }); o.add(m.w); o.userData.p.visible = false; loaded[f.id] = true; if (o.userData.board) o.userData.board.position.y = m.h + 3.2; next(); }, undefined, () => next()); } catch { next(); } };
+    const next = () => { const f = q[i++]; if (!f) { portalModel(); if (!low) setTimeout(npcs, 400); return; } try { K.gltfLoader().load(`/models/world/cc/${f.glb}.glb${ver}`, (gl) => { const o = bld[f.id], m = fit(gl.scene, f.fp); gl.scene.traverse((x) => { if (x.isMesh) { x.castShadow = false; x.receiveShadow = !low; } }); o.add(m.w); o.userData.p.visible = false; loaded[f.id] = true; if (o.userData.board) o.userData.board.position.y = m.h + 3.2; next(); }, undefined, () => next()); } catch { next(); } };
     next();
   }
   // the game portals' arch (one Meshy model, tinted per game; its swirl becomes the game's colour)
   function portalModel() { try { K.gltfLoader().load(`/models/world/cc/game-portal.glb${ver}`, (gl) => { const m = fit(gl.scene, 4.6); portals.forEach((p) => { const c = m.w.clone(true); c.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (x.material.emissive) { x.material.emissive.copy(p.ring.material.color); x.material.emissiveIntensity = 0.6; } } }); p.o.add(c); p.arch = c; p.ring.visible = false; }); }); } catch { /* the rings stay */ } }
+  // ---------------- SB-4: the city's people (Meshy, models/world/studio/npc): the Academy's mentor, the Asset Factory's
+  // builder, the Arcade's host — each at its building's door, idling, now and then their gesture, a line when you come near
+  const NPCS = [["mentor", "academy", 9, ["wave", "talk"], "Your first game takes ten minutes — come in!"], ["builder", "factory", -9, ["hammer"], "New parts and themes arrive here as you create."], ["gamer", "arcade", 12, ["cheer", "dance"], "Step into a portal and play what everyone made!"]], people = [];
+  function npcs() {
+    if (!K.gltfLoader || !K.skelClone) return;
+    for (const [file, fid, da, gest, line] of NPCS) { const f = FAC.find((x) => x.id === fid); if (!f) continue;
+      try { K.gltfLoader().load(`/models/world/studio/npc/${file}.glb${ver}`, (gl) => {
+        const m = K.skelClone(gl.scene), bx = new THREE.Box3().setFromObject(m), k = 1.9 / ((bx.max.y - bx.min.y) || 1); m.scale.setScalar(k); m.position.y = -bx.min.y * k; m.traverse((x) => { if (x.isSkinnedMesh) x.frustumCulled = false; });
+        const o = new THREE.Group(), [x, z] = polar(f.a + da, Math.max(10, f.r - f.fp / 2 - 4)); o.position.set(x, 0, z); o.rotation.y = Math.atan2(-x, -z); o.add(m); g.add(o);
+        const mx = new THREE.AnimationMixer(m), clip = (n2) => gl.animations.find((a) => a.name === n2), idle = clip("idle") ? mx.clipAction(clip("idle")).play() : null;
+        let tag = null; try { tag = K.label(T(line), { accent: f.css, size: 0.42 }); tag.position.y = 2.6; tag.visible = false; o.add(tag); } catch { /* no tag */ }
+        const P = { o, mx, idle, gest: gest.map(clip).filter(Boolean), next: 3 + Math.random() * 4, tag, near: false, f }; people.push(P);
+      }, undefined, () => { /* the door stays as it is */ }); } catch { /* no people */ } }
+  }
+  function peopleTick(dt, me) {
+    for (const P of people) { P.mx.update(dt); P.next -= dt;
+      if (P.next <= 0 && P.gest.length) { P.next = 7 + Math.random() * 5; const c = P.gest[(Math.random() * P.gest.length) | 0], a = P.mx.clipAction(c); a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.fadeIn(0.25).play(); if (P.idle) { P.idle.fadeOut(0.25); setTimeout(() => { if (P.idle) P.idle.reset().fadeIn(0.3).play(); }, Math.max(1200, Math.min(4000, c.duration * 1000 - 300))); } }
+      if (me && P.tag) { const d = Math.hypot(me.x - land.x - P.o.position.x, me.z - land.z - P.o.position.z), near = d < 7; if (near !== P.near) { P.near = near; P.tag.visible = near; if (near) P.o.rotation.y = Math.atan2(me.x - land.x - P.o.position.x, me.z - land.z - P.o.position.z); } } }
+  }
   // ---------------- the Game Arcade's portals: the top games, each a door you walk into ----------------
   const portals = [], arc = FAC.find((f) => f.id === "arcade");
   for (let i = 0; i < PORTALS; i++) {
@@ -119,7 +138,8 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   return {
     group: g, doors, back, solids, FAC,
     show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) loadModels(); },
-    tick(dt, t) { if (shown) for (const f of spins) f(dt, t); },
+    tick(dt, t, me) { if (shown) { for (const f of spins) f(dt, t); peopleTick(dt, me); } },
+    people: () => people.map((P) => ({ id: P.f.id, near: P.near, clip: P.mx._actions.filter((a) => a.isRunning()).map((a) => a.getClip().name) })),
     arrival: () => ({ x: land.x, z: land.z + land.r - 16, c: { x: land.x, z: land.z } }),
     setGames, portalGame: (i) => (portals[i] ? portals[i].game : null),
     marks: () => FAC.map((f) => ({ g: bld[f.id], css: f.css, s: f.id === "hall" ? 6 : 5.5, ch: f.icon })),

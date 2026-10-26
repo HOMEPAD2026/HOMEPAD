@@ -4691,3 +4691,49 @@ html.wp-pcphone .ccw-in{zoom:1.7}
 @keyframes wsg-back{0%,25%{transform:rotate(90deg)}55%,100%{transform:rotate(0)}}
 .wsg-hint b{display:block;font:900 3vmin/1.2 Sora,sans-serif}.wsg-hint small{display:block;margin-top:.6vmin;font:600 2.4vmin/1.3 Sora,sans-serif;color:#bcd3ea}
 .wsg-hint button{border:0;background:rgba(255,255,255,.1);color:#fff;width:6vmin;height:6vmin;border-radius:50%;font:900 2.6vmin/1 Sora,sans-serif}
+/* SB-2 (2026-10-26): JUMP WORLD's builder — the palette in groups on the left, the grid and the whole level's strip in the
+   middle, the one-hand set (place · move · flip · erase · test · done) along the bottom; the run's keys and boss bar */
+.wsj-main{position:relative;flex:1;min-height:0;display:flex}
+.wsj-pal{width:clamp(170px,22%,250px);display:flex;min-height:0;background:#0a1430;border-right:1px solid rgba(95,211,255,.2)}
+.wsj-grp{display:flex;flex-direction:column;gap:4px;padding:6px 4px;border-right:1px solid rgba(255,255,255,.06);overflow:auto}
+.wsj-grp button{display:flex;flex-direction:column;align-items:center;gap:2px;width:54px;padding:6px 2px;border-radius:12px;border:1px solid transparent;background:none;color:#bcd0e6;font:700 9.5px/1.1 Sora,sans-serif;cursor:pointer}
+.wsj-grp button i{font-style:normal;font-size:20px}.wsj-grp button.on{background:rgba(95,211,255,.16);border-color:rgba(95,211,255,.55);color:#fff}
+.wsj-items{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:6px;padding:8px 6px;overflow:auto}
+.wsj-items button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 3px 7px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));color:#e8f1fb;font:700 10.5px/1.15 Sora,sans-serif;text-align:center;cursor:pointer}
+.wsj-items button i{display:grid;place-items:center;width:40px;height:40px;font-style:normal;font-size:26px}.wsj-items button img{width:40px;height:40px;object-fit:contain}
+.wsj-items button.on{border-color:#7cf5c8;background:rgba(124,245,200,.18);box-shadow:0 0 12px rgba(124,245,200,.3)}
+.wsj-stage{position:relative;flex:1;min-width:0;display:flex;flex-direction:column}
+.wsj-cv{position:relative!important;flex:1;min-height:0;inset:auto!important}
+.wsj-strip{display:block;width:100%;height:34px;border-top:1px solid rgba(95,211,255,.25);cursor:pointer;touch-action:none}
+.wsj-zoom{position:absolute;right:10px;top:10px;display:grid;gap:6px}
+.wsj-tools{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:#0c1838;border-top:1px solid rgba(95,211,255,.25)}
+.wsj-tools button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:12px;border:1px solid transparent;background:none;color:#cfe0f5;font:700 11px/1.1 Sora,sans-serif;cursor:pointer}
+.wsj-tools button i{font-style:normal;font-size:21px}.wsj-tools button.on{background:rgba(95,211,255,.16);border-color:rgba(95,211,255,.6);color:#fff}
+.wsj-tools button.go{background:linear-gradient(90deg,#4fd8ff,#7cf5c8);color:#06203a}.wsj-tools button.alt{border-color:rgba(95,211,255,.45)}
+.wsb-ok{color:#7cf5c8;font-size:12.5px}
+html.wp-land .wsj .wsb-bar{padding:4px 10px;font-size:12px}html.wp-land .wsj .wsb-h{padding:6px 10px}
+.wst-jw .wst-hk{padding:4px 10px;border-radius:999px;background:rgba(255,210,58,.16);font-weight:800}.wst-jw .wst-ht{padding:4px 10px;border-radius:999px;background:rgba(95,211,255,.16);font-weight:800;font-variant-numeric:tabular-nums}
+.wst-boss{position:absolute;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);width:min(440px,70vw);text-align:center;pointer-events:none}
+.wst-boss small{display:block;font:900 12px/1 Sora,sans-serif;letter-spacing:.14em;color:#ffd9a0;text-shadow:0 1px 4px rgba(0,0,0,.6);margin-bottom:5px}
+.wst-boss i{display:block;height:12px;border-radius:99px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.3);overflow:hidden}.wst-boss em{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff3b5c,#ffb02e);transition:width .3s}
+.wst-boss[hidden]{display:none}
+html.wp-pcphone .wst-boss{zoom:1.8}
+.wst-jw .wst-keys{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);margin:0;padding:6px 14px;border-radius:99px;background:rgba(4,10,24,.55);color:#cfe0f5;font:700 12px/1.2 Sora,sans-serif;pointer-events:none}
+.wsp-b.wsp-act{background:radial-gradient(circle at 40% 35%,#ffd23a,#c07a10 70%)}
+/* SB-3: BEAT MAKER (four lane pads along the bottom, the groove meter, Perfect / Good / Miss), HOVER RACE (laps, rings, the clock) */
+.wst-bt .wst-hg{display:inline-flex;align-items:center;gap:6px}.wst-bt .wst-hg i{display:block;width:120px;height:10px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}.wst-bt .wst-hg em{display:block;height:100%;background:linear-gradient(90deg,#ff6fae,#ffd23a,#7cf5c8);transition:width .2s}
+.wst-judge{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font:900 clamp(26px,6vw,54px)/1 Sora,sans-serif;text-shadow:0 3px 14px rgba(0,0,0,.6);pointer-events:none;opacity:0}
+.wst-judge.pop{animation:wst-jp .5s ease-out}@keyframes wst-jp{0%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
+.wbt-pads{position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 max(14px,env(safe-area-inset-left))}
+.wbt-pads button{height:clamp(70px,16vh,120px);border-radius:22px;border:2px solid var(--c);background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--c) 45%,transparent),rgba(6,12,30,.6));color:#fff;font:900 18px/1 Sora,sans-serif;touch-action:none;box-shadow:0 0 18px color-mix(in srgb,var(--c) 40%,transparent)}
+.wbt-pads button:active{transform:scale(.96);background:var(--c)}.wbt-pads button i{font-style:normal;opacity:.85}
+@media (hover:hover) and (pointer:fine){.wbt-pads{opacity:.55}}
+html.wp-pcphone .wbt-pads{zoom:1.7}html.wp-pcphone .wst-judge{zoom:1.6}
+.wbt-tools{grid-template-columns:repeat(5,1fr)}
+.wst-rc .wst-hl,.wst-rc .wst-hr0,.wst-rc .wst-ht{padding:4px 10px;border-radius:999px;background:rgba(95,211,255,.16);font-weight:800;font-variant-numeric:tabular-nums}
+.wst-rc .wst-keys,.wst-bt .wst-keys{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);margin:0;padding:6px 14px;border-radius:99px;background:rgba(4,10,24,.55);color:#cfe0f5;font:700 12px/1.2 Sora,sans-serif;pointer-events:none}
+/* SB-4: the Academy's creator quests */
+.ccw-q{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:6px}
+.ccw-q li{display:grid;grid-template-columns:1fr 90px 44px;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font:700 13px/1.25 Sora,sans-serif}
+.ccw-q li i{display:block;height:7px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}.ccw-q li i b{display:block;height:100%;background:linear-gradient(90deg,#5fd3ff,#7cf5c8)}
+.ccw-q li em{font-style:normal;text-align:right;color:#bcd3ea;font-variant-numeric:tabular-nums}.ccw-q li.ok{border-color:rgba(124,245,200,.45);background:rgba(124,245,200,.08)}.ccw-q li.ok span{color:#7cf5c8}
