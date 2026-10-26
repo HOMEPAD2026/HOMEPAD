@@ -4934,12 +4934,12 @@ for (const f of [paintHud, paintQuests, paintAcct, () => refreshPurse(true), () 
 setTimeout(resumeSession, 2500);
 setTimeout(refreshWelcome, 3500); every(10 * 60e3, refreshWelcome);
 // the right edge's tab (world-skin.css .wp-clean-tab): one tap hides the screen's buttons in both worlds, leaving what you
-// play with; remembered in this browser
+// play with; for this visit only
 { const b = document.createElement("button"); b.type = "button"; b.id = "wp-clean"; b.className = "wp-clean-tab"; b.setAttribute("aria-label", T("Show or hide the screen buttons")); b.setAttribute("aria-pressed", "false"); b.setAttribute("data-no-i18n", "");
   b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   const set = (on) => { document.body.classList.toggle("wp-clean", on); b.setAttribute("aria-pressed", String(on)); try { localStorage.setItem("arc.world.clean", on ? "1" : ""); } catch { /* private */ } };
   b.addEventListener("click", () => set(!document.body.classList.contains("wp-clean")));
-  document.body.appendChild(b); try { if (localStorage.getItem("arc.world.clean") === "1") set(true); } catch { /* private */ } }
+  document.body.appendChild(b); try { localStorage.removeItem("arc.world.clean"); } catch { /* private */ } } // (2026-10-26: not kept to the next visit any more — a tap by mistake while the sideways HUD was too big hid players' buttons on every visit after; every visit starts with them shown)
 // a first-time tour: a ring round one button at a time and a bubble saying what it does (Next / Got it / Skip);
 // each tour shows once in this browser (key). Steps whose button isn't on screen are passed over.
 let coachOff = null;

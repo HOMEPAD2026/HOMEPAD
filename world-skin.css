@@ -4750,5 +4750,13 @@ html.wp-pcphone .wbt-pads{zoom:1.7}html.wp-pcphone .wst-judge{zoom:1.6}
 .wst-hin:focus-within{border-color:#5cf2c0;box-shadow:0 0 0 3px rgba(92,242,192,.18)}
 /* a phone held sideways at its own width (play.html fell back from the scaled page: a Galaxy refused it, 780 × 360): the
    HUD made for a tall phone filled the short screen and overlapped — sideways and low, it's drawn smaller */
-@media (max-height:480px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-dock,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.68}}
-@media (max-height:380px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-dock,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.6}}
+@media (max-height:480px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.62}
+  html.wp-land:not(.wp-pcphone) .wp-hud{padding:max(10px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) 0 max(22px,env(safe-area-inset-left))}
+  html.wp-land:not(.wp-pcphone) .wp-brand{display:none} /* (sideways and low: the logo gives its row to the cards) */
+  html.wp-land:not(.wp-pcphone) .wp-hud-l>*+*{margin-top:10px}
+  html.wp-land:not(.wp-pcphone) .wp-hud-r>*+*{margin-top:10px}
+  html.wp-land:not(.wp-pcphone) .wp-mini{zoom:.85}
+  html.wp-land:not(.wp-pcphone) #wp-dock{zoom:.5;left:0;right:0;margin:0 auto;width:max-content;transform:none;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 6px)} /* (the dock in the middle at the bottom, between the stick and the fight buttons) */
+  html.wp-land:not(.wp-pcphone) #wp-joy,html.wp-land:not(.wp-pcphone) .wp-joyrest{margin-left:14px;margin-bottom:6px}
+  html.wp-land:not(.wp-pcphone) #wp-acts{margin-right:12px;margin-bottom:6px}}
+@media (max-height:380px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.56}html.wp-land:not(.wp-pcphone) #wp-dock{zoom:.46}}
