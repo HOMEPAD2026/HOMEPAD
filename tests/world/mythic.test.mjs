@@ -192,6 +192,18 @@ r = await call(A, "world-mythic-equip", { slot: "weapon", id: null }); check(r.s
   const btx = "0x" + "e1".repeat(32); RC[btx] = { status: "0x1", logs: [{ address: CC.NFT.ADDR, topics: [CC.NFT.TOPIC.returned, pad(v.tokenId), padA(b)], data: "0x" }] };
   r = await call(B, "world-mythic-nft-back", { tokenId: v.tokenId, tx: btx }); check(r.status === 200 && db.get(`worldMythic/${pid}`).state === "GAME_OWNED" && db.get(`worldMythic/${pid}`).owner === b && db.get(`worldMythicOwn/${b}`).ids.includes(pid) && !db.get(`worldMythicOwn/${a}`).ids.includes(pid), "Bo returned it on Arc: it's back in the game, and his");
   r = await call(B, "world-mythic-nft-back", { tokenId: v.tokenId, tx: btx }); check(r.status === 404, "back once: done");
+  // the NFTs' market on Arc (CrimsonMarket.sol): the players' txs update the index, a sale moves the piece to the buyer
+  { const MK0 = CC.NFTMKT.ADDR; CC.NFTMKT.ADDR = "0x" + "ab".repeat(20); const p0 = db.get(`worldMythic/${pid}`), tid = String(v.tokenId);
+    db.set(`worldMythic/${pid}`, { ...p0, state: "NFT_ACTIVE", owner: a, nft: { tokenId: tid } }); db.set(`worldMythicNft/${tid}`, { id: pid }); db.set(`worldMythicOwn/${a}`, { ...(db.get(`worldMythicOwn/${a}`) || {}), ids: [...new Set([...((db.get(`worldMythicOwn/${a}`) || {}).ids || []), pid])] });
+    const ltx = "0x" + "f1".repeat(32); RC[ltx] = { status: "0x1", logs: [{ address: CC.NFTMKT.ADDR, topics: [CC.NFTMKT.TOPIC.listed, pad(tid), padA(a)], data: pad(25000000n) }] };
+    r = await call(A, "world-mythic-nftmkt-note", { tx: ltx }); let L = (await W.read(new URL("https://x/api/social?world=mythic-nftmkt"))).body;
+    check(r.status === 200 && L.on && L.list.length === 1 && L.list[0].price === 2500 && L.list[0].seller === a, "a listing on Arc shows in the game's NFT market (25 USDC)");
+    const stx = "0x" + "f2".repeat(32); RC[stx] = { status: "0x1", logs: [{ address: CC.NFTMKT.ADDR, topics: [CC.NFTMKT.TOPIC.sold, pad(tid), padA(a), padA(b)], data: pad(25000000n) + pad(500000n).slice(2) }] };
+    r = await call(B, "world-mythic-nftmkt-note", { tx: stx }); L = (await W.read(new URL("https://x/api/social?world=mythic-nftmkt"))).body;
+    check(r.status === 200 && !L.list.length && L.sales.length === 1 && db.get(`worldMythic/${pid}`).owner === b && db.get(`worldMythicOwn/${b}`).ids.includes(pid) && !db.get(`worldMythicOwn/${a}`).ids.includes(pid), "sold on Arc: off the list, in the sales, the piece is the buyer's in the game");
+    const xtx = "0x" + "f3".repeat(32); RC[xtx] = { status: "0x1", logs: [{ address: CC.NFT.ADDR, topics: [CC.NFT.TOPIC.minted, pad(tid), padA(a)], data: "0x" }] };
+    r = await call(A, "world-mythic-nftmkt-note", { tx: xtx }); check(r.status === 400, "a tx that didn't touch the market: refused");
+    CC.NFTMKT.ADDR = MK0; }
   CC.NFT.ADDR = ADDR0;
 }
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);

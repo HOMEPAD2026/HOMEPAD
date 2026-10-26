@@ -182,9 +182,43 @@ export function makeMythicUI(ctx) {
       const what = r.kind === "refund" ? T("Refund to you") : r.me === "seller" ? T("Your sale — paid to you") : T("Your purchase"), stt = r.status === "due" ? (r.kind === "payout" && r.me === "buyer" ? T("Done") : T("Waiting for the team")) : r.status === "paid" ? T("Paid") : r.status === "refunded" ? T("Refunded") : r.status;
       return `<div class="my-bid"><span><b>${esc(P ? T(P.name) : "—")}</b><small>${esc(what)} · ${esc(new Date(r.at).toLocaleDateString())}</small></span><b class="pr">${amt} USDC</b><small class="st ${r.status}">${esc(stt)}</small></div>`; }).join("")}</div>` : "";
     return `<div class="my-body">${filters}${line}<div class="my-mkt">${list}</div>${myUsd}
+      ${nftMktHtml()}
       <h4 class="my-h">${esc(T("Buy requests"))}</h4><div class="my-bids">${bidRows}</div>${bidForm}
       <p class="my-fine">${esc(T("Pieces change hands with their +, stars, story and where they came from. 2% of the price goes to the platform."))}</p></div>`;
   }
+  // ---------------- the NFTs' own market on Arc (CrimsonMarket.sol): list / buy for USDC from your wallet ----------------
+  let nmk = null; const MK = CC.NFTMKT, MK_ON = /^0x[0-9a-fA-F]{40}$/.test(MK.ADDR || "");
+  const u256 = (n) => BigInt(n).toString(16).padStart(64, "0"), addr64 = (a) => String(a).toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  function nftMktHtml() {
+    if (!MK_ON) return `<h4 class="my-h">⛓ ${esc(T("NFT market on Arc"))}</h4><p class="my-fine">${esc(T("Buy and sell Crimson Celestial NFTs for USDC, wallet to wallet — opening soon."))}</p>`;
+    if (!nmk) { fetch("/api/social?world=mythic-nftmkt", { cache: "no-store" }).then((r) => r.json()).then((j) => { nmk = j || { list: [] }; paint(); }).catch(() => { nmk = { list: [] }; paint(); }); return `<h4 class="my-h">⛓ ${esc(T("NFT market on Arc"))}</h4><p class="my-empty">…</p>`; }
+    const me = String(((ctx.sess && ctx.sess()) || {}).wallet || "").toLowerCase(), mineNft = (st0().pieces || []).filter((p) => p.state === "NFT_ACTIVE" && p.owner === me);
+    const listed = new Set((nmk.list || []).map((x) => x.id));
+    const rows = (nmk.list || []).map((x) => { const P = pieceOf(x.def); return P ? `<div class="my-bid"><span><b>${esc(T(P.name))} +${x.plus}${x.stars ? " " + "★".repeat(x.stars) : ""}</b><small>NFT #${esc(x.tid)}</small></span><b class="pr">${(x.price / 100).toFixed(2)} USDC</b>${x.seller === me ? `<button type="button" data-nmcancel="${esc(x.tid)}">${esc(T("Take down"))}</button>` : `<button type="button" class="go usd" data-nmbuy="${esc(x.tid)}" data-amt="${x.price}">${esc(T("Buy"))}</button>`}</div>` : ""; }).join("") || `<p class="my-fine">${esc(T("Nothing for sale right now."))}</p>`;
+    const mineRows = mineNft.filter((p) => !listed.has(p.id)).map((p) => { const P = pieceOf(p.def); return P ? `<form class="my-bid" data-nmlist="${esc(p.nft.tokenId)}"><span><b>${esc(T(P.name))} +${p.plus || 0}</b><small>NFT #${esc(p.nft.tokenId)}</small></span><input type="number" min="1" max="1000000" step="0.5" value="25" aria-label="${esc(T("Price in USDC"))}"><button type="submit" class="go">${esc(T("List on Arc"))}</button></form>` : ""; }).join("");
+    const sales = (nmk.sales || []).slice(0, 5).map((x) => { const P = pieceOf(x.def); return `<small class="my-nsale">${esc(P ? T(P.name) : "—")} +${x.plus} · ${(x.price / 100).toFixed(2)} USDC · ${esc(x.buyer)}</small>`; }).join("");
+    return `<h4 class="my-h">⛓ ${esc(T("NFT market on Arc"))}</h4><div class="my-bids">${rows}</div>${mineRows ? `<p class="my-fine">${esc(T("Your NFTs — list one for USDC:"))}</p><div class="my-bids">${mineRows}</div>` : ""}${sales ? `<div class="my-nsales">${sales}</div>` : ""}<p class="my-fine">${esc(T("Wallet to wallet on Arc: the market holds nothing, the piece moves when it's paid. {f}% goes to the platform.", { f: (MK.FEE_BPS / 100).toFixed(0) }))}</p>`;
+  }
+  async function nmNote(tx) { const r = await untilConfirmed({ action: "world-mythic-nftmkt-note", tx }); if (!r || !r.ok) ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); nmk = null; await ctx.refresh(); paint(); return r && r.ok; }
+  const call = async (to, data) => { try { return await ctx.tx(to, data); } catch (e) { ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return null; } };
+  async function nmList(f) {
+    if (needSign() || !ctx.tx) return; const tid = f.dataset.nmlist, cents = Math.round((Number(f.querySelector("input").value) || 0) * 100); if (cents < 100) return;
+    f.querySelector("button").disabled = true;
+    // let the market move this piece once it's paid (one approval for all your pieces), then list it
+    if (!(await call(CC.NFT.ADDR, MK.SEL.setApprovalForAll + addr64(MK.ADDR) + u256(1)))) { f.querySelector("button").disabled = false; return; }
+    const tx = await call(MK.ADDR, MK.SEL.list + u256(tid) + u256(BigInt(cents) * 10000n)); if (!tx) { f.querySelector("button").disabled = false; return; }
+    ctx.toast(esc(T("Listing on Arc…"))); if (await nmNote(tx)) { ctx.toast("⛓ " + esc(T("Listed on Arc"))); snd("buy"); }
+  }
+  async function nmBuy(btn) {
+    if (needSign() || !ctx.tx) return; const tid = btn.dataset.nmbuy, cents = Number(btn.dataset.amt), units = BigInt(cents) * 10000n;
+    if (ctx.usdcArc && ctx.bridge) { const have = await ctx.usdcArc(); if (have != null && have < units) { if (typeof confirm !== "function" || confirm(T("You have {h} USDC on Arc and this costs {p}. Bring USDC from another chain first?", { h: (Number(have) / 1e6).toFixed(2), p: (cents / 100).toFixed(2) }))) ctx.bridge(Number(units - have)); return; } }
+    if (typeof confirm === "function" && !confirm(T("Buy this NFT for {p} USDC from your wallet on Arc?", { p: (cents / 100).toFixed(2) }))) return;
+    btn.disabled = true;
+    if (!(await call(CC.USD.TOKEN, MK.SEL.approve + addr64(MK.ADDR) + u256(units)))) { btn.disabled = false; return; }
+    const tx = await call(MK.ADDR, MK.SEL.buy + u256(tid) + u256(units)); if (!tx) { btn.disabled = false; return; }
+    ctx.toast(esc(T("Payment sent — checking it on Arc…"))); if (await nmNote(tx)) { ctx.toast("⛓ " + esc(T("It's yours — the NFT is in your wallet"))); snd("buy"); }
+  }
+  async function nmCancel(btn) { if (needSign() || !ctx.tx) return; btn.disabled = true; const tx = await call(MK.ADDR, MK.SEL.cancel + u256(btn.dataset.nmcancel)); if (!tx) { btn.disabled = false; return; } await nmNote(tx); }
   async function loadMarket() { try { const r = await fetch("/api/social?world=mythic-market", { cache: "no-store" }); mkt = r.ok ? await r.json() : { items: [] }; } catch { mkt = { items: [] }; } paint(); }
   // ---------------- the team's USDC payouts (GM) ----------------
   let gmNft = null;
@@ -340,6 +374,7 @@ export function makeMythicUI(ctx) {
     if (typeof document === "undefined" || el) return; pick = slot || ""; tab = tab0 || "set"; histId = ""; sellId = "";
     el = document.createElement("div"); el.className = "my-win"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); document.body.appendChild(el); ctx.freeze(true);
     el.addEventListener("submit", async (e) => { const sy = e.target.closest("[data-syncf]"); if (sy) { e.preventDefault(); const tid = String(sy.querySelector("input").value || "").trim(); await act("world-mythic-nft-sync", { tokenId: tid }, () => esc(T("Your NFT is in your set now"))); return; }
+      const nl = e.target.closest("[data-nmlist]"); if (nl) { e.preventDefault(); await nmList(nl); return; }
       const f = e.target.closest("[data-sellf]"), bf = e.target.closest("[data-bidf]"); if (!f && !bf) return; e.preventDefault();
       if (f) { const v = Number(f.querySelector("input").value) || 0, usd = sellCur === "usdc", price = usd ? Math.round(v * 100) / 100 : Math.floor(v); sellId = ""; await act("world-mythic-list", { id: f.dataset.sellf, price, cur: usd ? "usdc" : "arcl" }, () => esc(usd ? T("Listed for {p} USDC", { p: price.toFixed(2) }) : T("Listed for {p} ARCL", { p: fmtN(price) }))); mkt = null; return; }
       const fd = new FormData(bf), price = Math.floor(Number(fd.get("price")) || 0); if (typeof confirm === "function" && !confirm(T("Hold {p} ARCL for this request?", { p: fmtN(price) }))) return;
@@ -355,6 +390,8 @@ export function makeMythicUI(ctx) {
       const bu = e.target.closest("[data-buyusd]"); if (bu && !bu.disabled) { await buyUsd(bu, bu.dataset.buyusd); return; }
       const gp = e.target.closest("[data-gmpay]"); if (gp && !gp.disabled) { await gmPay(gp); return; }
       const ga = e.target.closest("[data-gmpayall]"); if (ga && !ga.disabled) { await gmPayAll(ga); return; }
+      const nb = e.target.closest("[data-nmbuy]"); if (nb && !nb.disabled) { await nmBuy(nb); return; }
+      const nc = e.target.closest("[data-nmcancel]"); if (nc && !nc.disabled) { await nmCancel(nc); return; }
       const na = e.target.closest("[data-nftask]"); if (na && !na.disabled) { if (typeof confirm === "function" && !confirm(T("Take this piece onto Arc as an NFT? It comes off and can't be enhanced or traded here until you bring it back. The team signs your voucher; then you mint it from your wallet."))) return; await act("world-mythic-nft-ask", { id: na.dataset.nftask }, () => esc(T("Asked — the team will sign your voucher"))); return; }
       const nc = e.target.closest("[data-nftcancel]"); if (nc) { await act("world-mythic-nft-cancel", { id: nc.dataset.nftcancel }, () => esc(T("It stays in the game"))); return; }
       const nm = e.target.closest("[data-nftmint]"); if (nm && !nm.disabled) { await nftMint(nm, nm.dataset.nftmint); return; }

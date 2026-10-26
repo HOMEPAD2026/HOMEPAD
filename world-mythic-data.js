@@ -71,6 +71,10 @@ export const CC = {
     SEL: { mint: "0xc9c8231d", toGame: "0x453601d8", ownerOf: "0x6352211e", signer: "0x238ac933", pendingSigner: "0x14d90c45", pendingSignerAt: "0xdd8e97b1", proposeSigner: "0x3f8a2b2c", acceptSigner: "0x6472674c" },
     TOPIC: { minted: "0x68d937d9e57e7cf33f4aecfde473c947bc9836a4d40567eb223fc42179043d30", returned: "0x67ffb28c0e498947b5c148a385ed64809190a87d2a053c40be021f28c69181ec" },
     SRC: ["lysitha", "solvira", "nyxara", "throne", "secret"] },
+  // the NFTs' own market on Arc (contracts/contracts/CrimsonMarket.sol, 2026-10-26): list / buy for USDC, nothing held,
+  // 2 % to the treasury; empty ADDR = "opening soon" (the owner deploys: contracts/scripts/deploy-crimson-market.js)
+  NFTMKT: { ADDR: "", FEE_BPS: 200, SEL: { list: "0x50fd7367", cancel: "0x40e58ee5", buy: "0xd6febde8", setApprovalForAll: "0xa22cb465", isApprovedForAll: "0xe985e9c5", listings: "0xde74e57b", approve: "0x095ea7b3", allowance: "0xdd62ed3e" },
+    TOPIC: { listed: "0x50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc08343", cancelled: "0x26deca31ff8139a06c52453ce8985d34f7648a6d9af1d283c4063d052c355a0f", sold: "0xa70b1a854695e7921b122988e216d3a6cd10ed799017c67b1ff231967e6bf56d" } },
   USD: { MIN: 100, MAX: 1000000, FEE: 0.02, HOLD_MS: 15 * 60e3, TOKEN: "0x3600000000000000000000000000000000000000", DEC: 6 },
   MARKET: { FEE: 0.02, MIN: 1000, MAX: 10000000, MAX_LISTED: 300, MAX_BIDS: 300, MY_BIDS: 5, SALES: 200 }, // (bids: buy requests with the ARCL held until filled or taken back)
 };

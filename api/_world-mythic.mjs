@@ -384,6 +384,40 @@ export function makeMythic(deps) {
     return json(200, { ok: true, piece: np });
   }
   /// a new holder brings the NFT into their game (it changed hands on Arc)
+  // ---------------- the NFTs' market on Arc (CrimsonMarket.sol): an index of its listings and sales, from the players' txs ----------------
+  const MKQ = "worldMythicNftMkt/all", MKT_ON = () => /^0x[0-9a-fA-F]{40}$/.test(CC.NFTMKT.ADDR || "");
+  /// a market tx a player sent (list / cancel / buy): its logs from the market contract update the index; a sale also
+  /// moves the piece in the game to the buyer (as world-mythic-nft-sync would)
+  async function nftMktNote(b) {
+    if (!MKT_ON()) return json(503, { error: "the NFT market opens soon" });
+    const s = signer(b); if (s.err) return s.err; const tx = lc(b.tx); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "which transaction?" });
+    const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null; if (!rc) return json(202, { pending: true, error: "the transaction isn't confirmed yet" }); if (rc.status !== "0x1") return json(400, { error: "that transaction failed" });
+    const M = (await one(MKQ)) || { list: {}, sales: [], txs: [] }; if ((M.txs || []).includes(tx)) return json(200, { ok: true, list: M.list });
+    let n = 0;
+    for (const l of (rc.logs || []).filter((x) => lc(x.address) === lc(CC.NFTMKT.ADDR) && x.topics && x.topics.length > 1)) {
+      const t = lc(l.topics[0]), tid = BigInt(l.topics[1]).toString(), who = l.topics[2] ? lc("0x" + l.topics[2].slice(-40)) : "", d = String(l.data || "0x").replace(/^0x/, "");
+      if (t === CC.NFTMKT.TOPIC.listed) { M.list[tid] = { seller: who, price: Number(BigInt("0x" + (d.slice(0, 64) || "0")) / 10000n), at: now() }; n++; }
+      else if (t === CC.NFTMKT.TOPIC.cancelled) { delete M.list[tid]; n++; }
+      else if (t === CC.NFTMKT.TOPIC.sold) {
+        const buyer = lc("0x" + l.topics[3].slice(-40)), price = Number(BigInt("0x" + (d.slice(0, 64) || "0")) / 10000n); delete M.list[tid]; n++;
+        const ref = await one(`worldMythicNft/${tid}`), p = ref && (await one(`worldMythic/${ref.id}`));
+        M.sales = [...(M.sales || []), { tid, def: p ? p.def : "", plus: p ? p.plus || 0 : 0, price, seller: short(who), buyer: short(buyer), at: now(), tx }].slice(-CC.MARKET.SALES);
+        if (p && p.state === "NFT_ACTIVE" && p.owner !== buyer) { const old = p.owner, oo = await ownOf(old), eqO = { ...(oo.eq || {}) }; for (const [k, v] of Object.entries(eqO)) if (v === p.id) delete eqO[k];
+          await setDoc(`worldMythicOwn/${old}`, { ...oo, ids: (oo.ids || []).filter((x) => x !== p.id), eq: eqO }); const no = await ownOf(buyer); await setDoc(`worldMythicOwn/${buyer}`, { ...no, ids: [...new Set([...(no.ids || []), p.id])] });
+          await setDoc(`worldMythic/${p.id}`, { ...p, owner: buyer, hist: [...(p.hist || []), { from: old, to: buyer, nft: true, usdc: price, at: now() }].slice(-20) }); touch(buyer).catch(() => {}); touch(old).catch(() => {}); }
+      }
+    }
+    if (!n) return json(400, { error: "that transaction didn't touch the NFT market" });
+    M.txs = [...(M.txs || []), tx].slice(-500); await setDoc(MKQ, M);
+    return json(200, { ok: true, list: M.list });
+  }
+  /// GET ?world=mythic-nftmkt: what's listed (with each piece's kind, + and stars) and the last sales
+  async function nftMkt() {
+    const M = (await one(MKQ)) || { list: {}, sales: [] }, tids = Object.keys(M.list || {}).slice(0, 200), refs = tids.length ? await getDocs(tids.map((t) => `worldMythicNft/${t}`)) : {};
+    const ids = tids.map((t) => refs[`worldMythicNft/${t}`] && refs[`worldMythicNft/${t}`].id).filter(Boolean), P = ids.length ? await getDocs(ids.map((i) => `worldMythic/${i}`)) : {};
+    const rows = tids.map((t) => { const r = refs[`worldMythicNft/${t}`], p = r && P[`worldMythic/${r.id}`]; return p && p.state === "NFT_ACTIVE" ? { tid: t, id: p.id, def: p.def, plus: p.plus || 0, stars: p.stars || 0, src: p.src, price: M.list[t].price, seller: M.list[t].seller, at: M.list[t].at } : null; }).filter(Boolean);
+    return json(200, { on: MKT_ON(), addr: CC.NFTMKT.ADDR, feeBps: CC.NFTMKT.FEE_BPS, list: rows.sort((a, b) => b.at - a.at), sales: (M.sales || []).slice(-30).reverse() }, "no-store");
+  }
   async function nftSync(b) {
     const s = signer(b); if (s.err) return s.err; const w = s.wallet, tid = String(b.tokenId || ""); if (!/^[0-9]{1,30}$/.test(tid)) return json(400, { error: "which token?" });
     const ref = await one(`worldMythicNft/${tid}`), p = ref && (await one(`worldMythic/${ref.id}`)); if (!p || p.state !== "NFT_ACTIVE") return json(404, { error: "no such NFT in the game" });
@@ -430,11 +464,12 @@ export function makeMythic(deps) {
       for (const [sl, pid] of Object.entries(L.eq)) { const p = L.pieces.find((x) => x.id === pid); if (p && p.state === "NFT_ACTIVE" && !(await holds(w, p))) { delete L.eq[sl]; const own = await ownOf(w); const eq = { ...(own.eq || {}) }; delete eq[sl]; await setDoc(`worldMythicOwn/${w}`, { ...own, eq }); p.away = true; } }
       return json(200, { ...L, usd: await usdMine(w).catch(() => []), nftOn: NFT_ON(), now: now() }, "no-store"); },
     async worn(url) { const w = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return json(400, { error: "wallet?" }); return wornOf(w); },
-    top, nftMeta,
+    top, nftMeta, nftMkt,
     async handle(b) { const a = b.action; if (a === "world-mythic-equip") return equip(b); if (a === "world-mythic-enhance") return enhance(b); if (a === "world-mythic-salvage") return salvage(b);
       if (a === "world-mythic-list") return listIt(b); if (a === "world-mythic-unlist") return unlist(b); if (a === "world-mythic-buy") return buy(b);
       if (a === "world-mythic-claim") return claim(b); if (a === "world-mythic-reforge") return reforge(b); if (a === "world-mythic-awaken") return awaken(b);
       if (a === "world-mythic-nft-ask") return nftAsk(b); if (a === "world-mythic-nft-cancel") return nftCancel(b); if (a === "world-mythic-nft-admin") return nftAdmin(b);
+      if (a === "world-mythic-nftmkt-note") return nftMktNote(b);
       if (a === "world-mythic-nft-minted") return nftMinted(b); if (a === "world-mythic-nft-sync") return nftSync(b); if (a === "world-mythic-nft-back") return nftBack(b);
       if (a === "world-mythic-usd-hold") return usdHold(b); if (a === "world-mythic-usd-buy") return usdBuy(b); if (a === "world-mythic-usd-admin") return usdAdmin(b);
       if (a === "world-mythic-bid") return bid(b); if (a === "world-mythic-unbid") return unbid(b); if (a === "world-mythic-fill") return fill(b); return null; },
