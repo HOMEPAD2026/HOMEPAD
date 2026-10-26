@@ -801,6 +801,24 @@ function setWet(on) {
   setTimeout(() => { try { nightK = -1; dayNight(); } catch { /* not set up yet: dayNight runs at the start anyway */ } }, 0); // the grass darkens a touch
 }
 const spins = [];
+// a lighter town (2026-10-26, the owner: "a lighter town"): every few seconds the new things in the world are looked at once —
+// a see-through two-sided material draws in one pass instead of two (three.js draws back faces then front ones: for an
+// additive glow or a hologram the order can't show), glows and see-through things stop casting shadows, and the
+// holograms by the path are hidden when you're far from them
+const lightSeen = new WeakSet(), lightFar = [];
+function lighten(root) {
+  root.traverse((o) => {
+    if (!o.isMesh && !o.isSprite && !o.isPoints) return;
+    if (!lightSeen.has(o)) { lightSeen.add(o); if (o.name === "agent-holo" || (o.parent && o.parent.name === "agent-holo")) { /* (the group is checked below) */ }
+      for (const m of [].concat(o.material || [])) { if (!m || lightSeen.has(m)) continue; lightSeen.add(m);
+        if (m.transparent && m.side === THREE.DoubleSide && (m.blending === THREE.AdditiveBlending || m.depthWrite === false)) m.forceSinglePass = true; }
+      const m0 = [].concat(o.material || [])[0]; if (o.castShadow && m0 && (m0.isMeshBasicMaterial || m0.isShaderMaterial || m0.isPointsMaterial || m0.transparent || m0.blending === THREE.AdditiveBlending)) o.castShadow = false; }
+  });
+  root.children.forEach((g) => { if (g.name === "agent-holo" && !lightSeen.has(g)) { lightSeen.add(g); lightFar.push(g); } });
+}
+let lightT = 0; // (by the clock: a slow phone's frames mustn't put it off)
+const lightV = new THREE.Vector3();
+st.on(() => { const nw = performance.now(); if (nw < lightT) return; lightT = nw + 3000; try { lighten(planet); here(lightV); for (const g of lightFar) g.visible = g.position.distanceTo(lightV) < 70; } catch { /* the world isn't up yet */ } });
 let mixLod = 0; const mixV = new THREE.Vector3(), camFr = new THREE.Frustum(), camFrM = new THREE.Matrix4(), camSph = new THREE.Sphere(new THREE.Vector3(), 2.5); // the animation LOD below (the loop)
 const shops = K.SHOPS.map((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); g.position.x += LD.LANDS.ut.x; g.position.z += LD.LANDS.ut.z; planet.add(g); /* b-lpv: in the Utility Village, as they stood round the plaza */ K.shadowy(g); spins.push(...g.userData.spin); return g; });
 shops.forEach((g) => { const cs = LOOK.contactShadow((g.userData.radius || 3) + 2.2, 0.38); cs.position.x = g.position.x; cs.position.z = g.position.z; planet.add(cs); });
