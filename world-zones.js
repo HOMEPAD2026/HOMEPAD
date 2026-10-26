@@ -104,7 +104,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
       const hold = new THREE.Group(); src.position.set(-c.x, -box.min.y, -c.z); hold.add(src); hold.scale.setScalar(k);
       const a = m.toPlaza + Math.PI, d = m.zn.r * 0.62; hold.position.set(Math.sin(a) * d, 0, Math.cos(a) * d); hold.rotation.y = m.toPlaza; hold.name = "landmark";
       hold.traverse((o) => { if (o.isMesh) { o.castShadow = !low; o.receiveShadow = false; o.matrixAutoUpdate = false; o.updateMatrix(); } });
-      m.g.add(hold); m.state = 2; if (onBuilt) onBuilt(m.zn);
+      m.g.add(hold); m.state = 2; if (onBuilt) onBuilt(m.zn); if (K.loadBossBody && kit) K.loadBossBody(kit, m.zn.id, ver);
     }, undefined, (e) => { markBusy = false; m.state = 3; console.warn("landmark", m.file, e); }); };
   return { root, gates, update: (dt, t) => { buildNear(false); markNear(); spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt, buildAll: () => buildNear(true), built: () => lazy.filter((l) => l.built).map((l) => l.zn.id) };
 }

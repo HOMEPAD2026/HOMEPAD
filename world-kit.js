@@ -20,7 +20,7 @@ import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js"
 import { KTX2Loader } from "./vendor/three/addons/KTX2Loader.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 export const skelClone = (o) => SkeletonUtils.clone(o); // a rigged model's copy with its own bones (Jurassic World's herds)
-import { villainize, meshyVillains, meshyExtras } from "./world-gear3d.js"; // the scammers as villain bots
+import { villainize, meshyVillains, meshyExtras, meshyBoss } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 export const makeTrees = (...a) => ARC.makeTrees(...a); // the town's round, wind-swayed trees (the Game Village gardens use them, b447)
@@ -447,6 +447,8 @@ function grassTexture() {
 const GROUND_VER = "?v=1";
 export const MESHY_SCAM = { on: true }; // (b-nx3: world-play.js can turn Meshy's scammer bodies off)
 /// b-nx3: Meshy's trees on the town ground (world-arcstyle.js TREES), off on low graphics; asked before makeGround
+/// a near ground's boss body from Meshy (world-zones.js asks as you come near; nothing on low graphics' MESHY_SCAM off)
+export function loadBossBody(kit, id, ver = "") { if (MESHY_SCAM.on) meshyBoss(kit, gltfLoader, id, ver); }
 export function treeOptions(on, ver = "") { ARC.TREES.meshy = !!on; ARC.TREES.ver = ver; ARC.TREES.loader = gltfLoader; }
 export function makeGround({ radius = 330 } = {}) {
   const g = new THREE.Group(); g.name = "ground";

@@ -322,6 +322,13 @@ export function meshyExtras(kit, loader, ver = "") {
     try { loader().load(`/models/world/scammers/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, fly)); } catch (e) { console.warn("scammer", file, e); } ok(); }, undefined, () => ok()); } catch { ok(); }
   }))).then(() => kit);
 }
+// the near grounds' bosses (b-nx4, Meshy, models/world/bosses/<zone>.glb, 4.8 k tris, 0.25–0.4 MB): a body of their own,
+// standing on the ground (a 2 m box from its feet), fetched as you come near the ground; the old look stays until then
+const BOSS_BODIES = new Set(["spam", "fields", "swamp", "canyon", "depths"]), bossAsked = new Set();
+export function meshyBoss(kit, loader, id, ver = "") {
+  if (!kit || !loader || !BOSS_BODIES.has(id) || bossAsked.has(id)) return; bossAsked.add(id);
+  try { loader().load(`/models/world/bosses/${id}.glb${ver}`, (g) => { try { place(kit, "Boss_" + id, meshyVillain(g.scene, false)); } catch (e) { console.warn("boss body", id, e); } }, undefined, () => { /* the old look stays */ }); } catch { /* the old look stays */ }
+}
 /// swap in the Meshy bodies; resolves when they're in (or after `wait` ms, whatever came by then)
 export function meshyVillains(kit, loader, ver = "", wait = 5000) {
   if (!loader) return Promise.resolve(kit);
@@ -331,7 +338,7 @@ export function meshyVillains(kit, loader, ver = "", wait = 5000) {
   return Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, wait))]).then(() => kit);
 }
 function place(kit, name, v) {
-  const [y0] = SIZE[name], have = new THREE.Box3().setFromObject(v.scene), ext = have.getSize(new THREE.Vector3()), k = (name === "Trilobite" ? 2.8 : 2) / Math.max(0.01, ext.x, ext.y, ext.z);
+  const [y0] = SIZE[name] || [0, 2], have = new THREE.Box3().setFromObject(v.scene), ext = have.getSize(new THREE.Vector3()), k = (name === "Trilobite" ? 2.8 : 2) / Math.max(0.01, ext.x, ext.y, ext.z);
   const wrap = new THREE.Group(); wrap.name = "v-wrap"; v.scene.scale.setScalar(k); v.scene.position.y = y0 - have.min.y * k; wrap.add(v.scene); v.scene = wrap;
   v.scene.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = false; } });
   kit.enemies[name] = v;

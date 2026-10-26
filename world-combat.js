@@ -35,6 +35,7 @@ const MOBS = {
 const SKIN = {
   Bat: { h: 1.25, y: 0.9 }, Wasp: { h: 1.1, y: 0.9 }, Frog: { h: 0.75, y: 0 }, Snake: { h: 1.25, y: 0 }, Rat: { h: 0.7, y: 0 },
   Spider: { h: 0.8, y: 0 }, Slime: { h: 0.85, y: 0 }, Skeleton: { h: 1.85, y: 0 }, Dragon: { h: 3.4, y: 1.1 },
+  Boss_spam: { h: 1, y: 0 }, Boss_fields: { h: 1, y: 0 }, Boss_swamp: { h: 1, y: 0 }, Boss_canyon: { h: 1, y: 0 }, Boss_depths: { h: 1, y: 0 },
   Angler: { h: 0.95, y: 0.55 }, Balloon: { h: 0.85, y: 1.0 }, BotDrone: { h: 0.7, y: 1.2 }, /* (b-nx4: Meshy scammers, sized like the robots they stand in for) */
 };
 const ITEMS = [
@@ -266,7 +267,8 @@ export function createCombat(ctx) {
     const spec = MOBS[o.type] || MOBS[["spam", "drop", "rug"][Math.floor(Math.random() * 3)]];
     const bs = o.rank === "boss" ? o.boss : null;
     // a creature's look in this ground, once its pack is in (the robot until then)
-    const skinId = o.ent ? null : bs ? bs.skin : o.zone && o.zone.skins ? o.zone.skins[spec.id] : null, skin = skinId && kit.enemies[skinId] ? SKIN[skinId] : null;
+    const mskin = bs && bs.mskin && kit.enemies[bs.mskin] ? bs.mskin : null; /* (b-nx4: a near ground's Meshy boss body, once it's in) */
+    const skinId = o.ent ? null : mskin || (bs ? bs.skin : o.zone && o.zone.skins ? o.zone.skins[spec.id] : null), skin = skinId && kit.enemies[skinId] ? SKIN[skinId] : null;
     const e = o.ent || takeEnemy(kit, skin ? skinId : bs ? bs.model : spec.model); if (!e) return null; // o.ent: a body another module made and keeps (world-pumpking.js)
     ctx.here(me);
     let p = o.at || null;
@@ -286,7 +288,7 @@ export function createCombat(ctx) {
     if (o.hp) st.hp = Math.max(1, Math.round(o.hp)); // AC Defense: its HP is the wave's own
     const g = new THREE.Group(); g.position.copy(p);
     const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
-    const sc = (o.scale != null ? o.scale * (rank === "elite" ? 1.15 : 1) : skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow) * (bs && o.tgt ? 1.18 : 1); // an AC Defense boss stands a size up
+    const sc = (o.scale != null ? o.scale * (rank === "elite" ? 1.15 : 1) : skin ? (bs ? (mskin ? bs.mskinH : bs.skinH) || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow) * (bs && o.tgt ? 1.18 : 1); // an AC Defense boss stands a size up
     const baseY = o.y != null ? o.y : skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
     e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);

@@ -2958,7 +2958,7 @@ function openMap() {
 }
 // the owner's look for the map (2026-10-23): the places' own art on their cards (images/ui/map, from the owner's mock-up;
 // the games' key art where it has one), the minimap key folded away, and a row of chips that jumps to each section
-const MAP_ART = { lp: "map/lp", ut: "map/ut", pv: "map/pv", "kairo-tower": "map/kairo-tower", "kairo-hub": "map/kairo-hub", launch: "map/launch", quantum: "map/quantum", swap: "map/swap", orders: "map/orders", staking: "map/staking", nexus: "map/nexus", research: "map/research", arcia: "map/arcia", ...Object.fromEntries(["spam", "fields", "swamp", "canyon", "depths", "peaks", "dunes", "reef", "wastes", "ruins", "abyss", "void"].map((z) => ["z-" + z, "map/z-" + z])) };
+const MAP_ART = { lp: "map/lp", ut: "map/ut", pv: "map/pv", "kairo-tower": "map/kairo-tower", "kairo-hub": "map/kairo-hub", launch: "map/launch", quantum: "map/quantum", swap: "map/swap", orders: "map/orders", staking: "map/staking", nexus: "map/nexus", research: "map/research", arcia: "map/arcia", rq: "map/rq", ...Object.fromEntries(["spam", "fields", "swamp", "canyon", "depths", "peaks", "dunes", "reef", "wastes", "ruins", "abyss", "void"].map((z) => ["z-" + z, "map/z-" + z])) };
 function decorateMap() {
   const box = $("wp-maplist"); if (!box) return;
   box.querySelectorAll("ul.wp-maplist button").forEach((b) => {
