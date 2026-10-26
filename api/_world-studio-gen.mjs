@@ -20,6 +20,7 @@ export const TEMPLATES = {
   puzzle: { name: "Ring Puzzle", open: true },
   climb: { name: "Sky Climb", open: true },
   defense: { name: "Tower Defense", open: true },
+  rush: { name: "Coin Rush", open: true }, // (STU-D: the arena's engine — as many coins as you can in the time, a few drones in the way)
 };
 export const KNOBS = {
   runner: { speed: "Speed", coins: "Coins", walls: "Walls", gaps: "Gaps to jump", lasers: "Lasers to slide under", len: "Length" },
@@ -27,6 +28,7 @@ export const KNOBS = {
   arena: { speed: "Drone speed", coins: "Coins", walls: "Drones", gaps: "Laser sweeps", lasers: "Big drones", len: "Survive for" },
   puzzle: { speed: "Rings", coins: "Pegs", walls: "Lock rings", gaps: "Ice rings", lasers: "Energy rings", len: "Hints" },
   defense: { speed: "Enemy speed", coins: "Starting gold", walls: "Enemies a wave", gaps: "Tanks", lasers: "Runners", len: "Waves" },
+  rush: { speed: "Drone speed", coins: "Coins", walls: "Drones", gaps: "Laser sweeps", lasers: "Big drones", len: "Time" },
   climb: { speed: "Bounce", coins: "Coins", walls: "Moving platforms", gaps: "Breaking platforms", lasers: "Spikes", len: "Height" },
 };
 export const DASH_MAX = 240; // (seconds: the dash's track is built this long; nobody's hearts last that far)
@@ -42,14 +44,14 @@ export const LANES = [-2.2, 0, 2.2];
 const int = (v, a, b, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(a, Math.min(b, n)) : d; };
 /// a spec made safe: every field in range, unknown ones dropped. → { tpl, title, theme, speed, len, coins, walls, gaps, lasers, seed }
 export function clampSpec(s = {}) {
-  const out = clampBase(s), lanes = out.tpl === "runner" || out.tpl === "dash", b = s.build && typeof s.build === "object" ? (lanes && Array.isArray(s.build.r) && !s.build.climb ? cleanBuild(s.build, out) : out.tpl === "arena" && Array.isArray(s.build.w) ? cleanArena(s.build, out) : out.tpl === "climb" && Array.isArray(s.build.r) && s.build.climb ? cleanClimb(s.build, out) : out.tpl === "defense" && s.build.td && Array.isArray(s.build.path) ? cleanDefense(s.build, out) : null) : null; // (a layout only for its own kind: a template change drops it)
+  const out = clampBase(s), lanes = out.tpl === "runner" || out.tpl === "dash", b = s.build && typeof s.build === "object" ? (lanes && Array.isArray(s.build.r) && !s.build.climb ? cleanBuild(s.build, out) : (out.tpl === "arena" || out.tpl === "rush") && Array.isArray(s.build.w) ? cleanArena(s.build, out) : out.tpl === "climb" && Array.isArray(s.build.r) && s.build.climb ? cleanClimb(s.build, out) : out.tpl === "defense" && s.build.td && Array.isArray(s.build.path) ? cleanDefense(s.build, out) : null) : null; // (a layout only for its own kind: a template change drops it)
   if (b) out.build = b;
   return out;
 }
 function clampBase(s) {
   const title = String(s.title || "").replace(/[\u0000-\u001f<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 24) || "My Sky Run";
   return {
-    tpl: TEMPLATES[s.tpl] && TEMPLATES[s.tpl].open ? s.tpl : "runner", title: title === "My Sky Run" && s.tpl === "arena" ? "My Arena" : title === "My Sky Run" && s.tpl === "dash" ? "My Infinity Dash" : title === "My Sky Run" && s.tpl === "puzzle" ? "My Ring Puzzle" : title === "My Sky Run" && s.tpl === "climb" ? "My Sky Climb" : title === "My Sky Run" && s.tpl === "defense" ? "My Tower Defense" : title,
+    tpl: TEMPLATES[s.tpl] && TEMPLATES[s.tpl].open ? s.tpl : "runner", title: title === "My Sky Run" && s.tpl === "arena" ? "My Arena" : title === "My Sky Run" && s.tpl === "rush" ? "My Coin Rush" : title === "My Sky Run" && s.tpl === "dash" ? "My Infinity Dash" : title === "My Sky Run" && s.tpl === "puzzle" ? "My Ring Puzzle" : title === "My Sky Run" && s.tpl === "climb" ? "My Sky Climb" : title === "My Sky Run" && s.tpl === "defense" ? "My Tower Defense" : title,
     theme: THEMES[s.theme] ? s.theme : "neon",
     speed: int(s.speed, 1, 5, 3), len: LENS.includes(Number(s.len)) ? Number(s.len) : 45,
     coins: int(s.coins, 0, 5, 3), walls: int(s.walls, 0, 5, 2), gaps: int(s.gaps, 0, 3, 1), lasers: int(s.lasers, 0, 3, 1),
@@ -119,7 +121,7 @@ export const dashSpeed = (spec, t) => speedOf(spec) * (1 + t / (150 - spec.len))
 /// laser across (slide) or coins in a lane. → { len (metres), rows: [{ z, k: "wall"|"gap"|"laser"|"coin", lane? }], coins }
 export function genLevel(spec0) {
   const spec = clampSpec(spec0);
-  if (spec.tpl === "arena") return genArena(spec);
+  if (spec.tpl === "arena" || spec.tpl === "rush") return genArena(spec);
   if (spec.tpl === "climb") return genClimb(spec);
   if (spec.tpl === "defense") return genDefense(spec);
   if (spec.tpl === "puzzle") return { puzzle: true, id: puzzleId(spec), len: 0, coins: 0, hints: puzzleHints(spec) };
@@ -146,12 +148,12 @@ export const ARENA_R = 14;
 export function genArena(spec) {
   if (spec.build) { const B = spec.build; return { len: spec.len * 20, secs: spec.len, waves: B.w.map(([t, k, a]) => ({ t, k, a: +((a * Math.PI) / 180).toFixed(3) })), coinsAt: B.c.map(([t, x, z]) => ({ t, x, z })), coins: B.c.length, R: ARENA_R, pillars: B.p.map(([x, z]) => ({ x, z })), built: true }; }
   let s = spec.seed >>> 0 || 1; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const secs = spec.len, waves = [], coinsAt = [];
-  for (let t = 2; t < secs; t += Math.max(0.35, 2.2 - spec.walls * 0.32) * (1 - t / secs / 2.4)) waves.push({ t: +t.toFixed(2), k: "d", a: +(rnd() * 6.283).toFixed(3) });
+  const secs = spec.len, waves = [], coinsAt = [], rush = spec.tpl === "rush"; // (Coin Rush: half the drones, three times the coins)
+  for (let t = 2; t < secs; t += Math.max(0.35, 2.2 - spec.walls * 0.32) * (1 - t / secs / 2.4) * (rush ? 2 : 1)) waves.push({ t: +t.toFixed(2), k: "d", a: +(rnd() * 6.283).toFixed(3) });
   for (let i = 0; i < spec.lasers * Math.ceil(secs / 30); i++) waves.push({ t: +(6 + rnd() * (secs - 8)).toFixed(2), k: "D", a: +(rnd() * 6.283).toFixed(3) });
   for (let i = 0; i < spec.gaps * Math.ceil(secs / 20); i++) waves.push({ t: +(5 + rnd() * (secs - 7)).toFixed(2), k: "L", a: +(rnd() * 3.1416).toFixed(3) });
   waves.sort((p, q) => p.t - q.t);
-  const nC = Math.round(spec.coins * secs / 6);
+  const nC = Math.round(spec.coins * secs / (rush ? 2 : 6));
   for (let i = 0; i < nC; i++) { const a = rnd() * 6.283, r = 2 + rnd() * (ARENA_R - 4); coinsAt.push({ t: +((i + 0.5) * (secs / Math.max(1, nC))).toFixed(2), x: +(Math.cos(a) * r).toFixed(2), z: +(Math.sin(a) * r).toFixed(2) }); }
   return { len: secs * 20, secs, waves, coinsAt, coins: nC, R: ARENA_R };
 }
@@ -262,7 +264,7 @@ export function estimate(spec0) {
       if (end < 0 && gapsAt.length && gapsAt[gapsAt.length - 1][1] >= L.len) { end = gapsAt[gapsAt.length - 1][0] / L.len; why.gap = (why.gap || 0) + 1; }
       if (end < 0) clears++; else fails[Math.min(9, Math.floor(end * 10))]++;
     }
-  } else if (spec.tpl === "arena") {
+  } else if (spec.tpl === "arena" || spec.tpl === "rush") {
     const dS = 2.6 + spec.speed * 0.9, shield = 1 - 0.035 * ((L.pillars || []).length); // (S4c: pillars stop drones)
     for (let b = 0; b < N; b++) {
       const sk = 0.3 + (0.7 * b) / (N - 1); let hearts = 3, end = -1, recent = [];
@@ -300,7 +302,7 @@ export function toBuild(spec0) {
   const spec = clampSpec({ ...spec0, build: null }); delete spec.build; const L = genLevel(spec);
   if (spec.tpl === "defense") return cleanDefense({ td: 1, path: L.path, pads: L.pads, waves: L.waves.map((w) => [w.g, w.r, w.t]) }, spec); // (S4d)
   if (spec.tpl === "climb") return cleanClimb({ L: L.len, r: L.rows.map((r) => [r.z, CODE_C[r.k], r.lane]) }, spec); // (S4d)
-  if (spec.tpl === "arena") return cleanArena({ p: [], w: L.waves.map((w) => [w.t, w.k, Math.round((w.a * 180) / Math.PI)]), c: L.coinsAt.map((c) => [c.t, c.x, c.z]) }, spec); // (S4c)
+  if (spec.tpl === "arena" || spec.tpl === "rush") return cleanArena({ p: [], w: L.waves.map((w) => [w.t, w.k, Math.round((w.a * 180) / Math.PI)]), c: L.coinsAt.map((c) => [c.t, c.x, c.z]) }, spec); // (S4c)
   const CODE = { wall: "w", gap: "g", laser: "l", coin: "c", heart: "h" };
   const len = spec.tpl === "dash" ? Math.max(BUILD.MIN, Math.min(600, Math.round(speedOf(spec) * 30 / BUILD.STEP) * BUILD.STEP)) : Math.max(BUILD.MIN, Math.min(BUILD.MAX, Math.round(L.len / BUILD.STEP) * BUILD.STEP));
   return cleanBuild({ L: len, r: L.rows.filter((r) => r.z <= len - 12).map((r) => [Math.round(r.z), CODE[r.k], r.lane || 0]) }, spec);

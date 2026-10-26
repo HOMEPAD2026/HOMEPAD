@@ -51,7 +51,7 @@ window.ARC_AD_GUIDE = {
           ["👛", "Sign in to keep games", "You can try everything as a guest; sign in with a wallet to save and publish."] ],
           tips: ["Three tabs at the top: 🛠️ Create (make a game) · 📁 My games (your drafts and published games) · 🕹️ Creator Arcade (everyone's games)."] },
         { icon: "🛠️", h: "2. Make a game in 5 steps", steps: [
-          ["📄", "Template", "Pick Sky Runner, Infinity Dash, Arena Survival, Ring Puzzle, Sky Climb or Tower Defense (explained below). Give it a title (up to 24 letters). Short on ideas? Type one sentence — \"a fast jungle run with lots of coins\" — and your agent drafts the whole game (10 drafts a day)."],
+          ["📄", "Template", "Pick Sky Runner, Infinity Dash, Arena Survival, Ring Puzzle, Sky Climb, Tower Defense or Coin Rush (explained below). Give it a title (up to 24 letters). Short on ideas? Type one sentence — \"a fast jungle run with lots of coins\" — and your agent drafts the whole game (10 drafts a day)."],
           ["🎨", "Theme", "Choose the look: Neon City, Jungle, Ice Peaks, Lava Core or Candy Sky. The 3D preview changes at once."],
           ["📊", "Difficulty", "Tap Easy, Normal, Hard or Extreme. Under each: its stars (1 easy … 5 brutal) and the clear rate 40 test bots got. Pick the length too. Want more control? Open ⚙️ Advanced settings for each slider, and 🎲 New layout for a fresh arrangement."],
           ["▶️", "Test", "Tap ▶ Test play and play it yourself. A test run isn't counted, so try as often as you like."],
@@ -64,6 +64,7 @@ window.ARC_AD_GUIDE = {
           ["💍", "Ring Puzzle", "INFINITY RINGS on your own board. Tap a ring to knock it off; clear the board in as few moves as you can (the par)."],
           ["🧗", "Sky Climb", "A tower seen from the side. You bounce on your own — steer left and right (the sides wrap round), land on platforms, ride springs, dodge spikes and reach the top."],
           ["🛡️", "Tower Defense", "Foes walk the path from the portal to your crystal. Tap a pad to build a Bolt, Frost or Cannon tower; tap a tower to upgrade or sell it. Hold every wave — 10 lives."] ] },
+          ["💰", "Coin Rush", "The arena seen from above, full of coins. Grab as many as you can before the time runs out while a few drones chase you — your coins are your score."],
         { icon: "🕹️", h: "4. Controls", steps: [
           ["📱", "Runner & Dash on a phone", "Swipe left/right to change lanes · swipe up or tap to jump · swipe down to slide."],
           ["⌨️", "Runner & Dash on a computer", "← → or A D to change lanes · ↑, Space or W to jump · ↓ or S to slide."],
@@ -153,7 +154,7 @@ window.ARC_AD_GUIDE = {
           ["👛", "로그인하면 저장", "게스트로도 다 해 볼 수 있어요. 저장과 게시는 지갑 로그인이 필요해요."] ],
           tips: ["위쪽 탭 세 개: 🛠️ 만들기 · 📁 내 게임(임시 저장·게시한 게임) · 🕹️ 크리에이터 아케이드(모두의 게임)."] },
         { icon: "🛠️", h: "2. 5단계로 게임 만들기", steps: [
-          ["📄", "템플릿", "스카이 러너, 인피니티 대시, 아레나 서바이벌, 링 퍼즐, 스카이 클라임, 타워 디펜스 중 하나를 골라요 (아래 설명). 제목을 붙여요 (24자까지). 아이디어가 없나요? \"코인이 많은 빠른 정글 런\"처럼 한 문장을 쓰면 에이전트가 게임 전체를 만들어 줘요 (하루 10번)."],
+          ["📄", "템플릿", "스카이 러너, 인피니티 대시, 아레나 서바이벌, 링 퍼즐, 스카이 클라임, 타워 디펜스, 코인 러시 중 하나를 골라요 (아래 설명). 제목을 붙여요 (24자까지). 아이디어가 없나요? \"코인이 많은 빠른 정글 런\"처럼 한 문장을 쓰면 에이전트가 게임 전체를 만들어 줘요 (하루 10번)."],
           ["🎨", "테마", "네온 시티, 정글, 얼음 봉우리, 용암 코어, 캔디 스카이 중에서 골라요. 3D 미리보기가 바로 바뀌어요."],
           ["📊", "난이도", "쉬움·보통·어려움·극한 중 하나를 눌러요. 각각 별(1 쉬움 … 5 극악)과 테스트 봇 40명의 클리어율이 보여요. 길이도 골라요. 더 세세하게? ⚙️ 고급 설정에서 슬라이더를, 🎲 새 레이아웃으로 새로운 배치를 만들어요."],
           ["▶️", "테스트", "▶ 테스트 플레이로 직접 해 봐요. 테스트 기록은 집계되지 않으니 마음껏 해 보세요."],
@@ -166,6 +167,7 @@ window.ARC_AD_GUIDE = {
           ["💍", "링 퍼즐", "나만의 보드로 하는 인피니티 링. 링을 눌러 떨어뜨려요. 최대한 적은 횟수(기준 횟수)로 보드를 비우세요."],
           ["🧗", "스카이 클라임", "옆에서 보는 탑이에요. 캐릭터가 저절로 튀어 올라요 — 좌우로 움직여(양 끝은 이어져 있어요) 발판에 내리고, 스프링을 타고, 가시를 피해 정상까지!"],
           ["🛡️", "타워 디펜스", "적들이 포탈에서 크리스탈까지 길을 따라 와요. 자리를 탭해 볼트·서리·캐논 타워를 짓고, 타워를 탭해 업그레이드하거나 팔아요. 모든 웨이브를 막아요 — 생명 10."] ] },
+          ["💰", "코인 러시", "위에서 보는 아레나에 코인이 가득해요. 드론 몇 대를 피하면서 시간이 끝나기 전에 최대한 많이 모으세요 — 모은 코인이 점수예요."],
         { icon: "🕹️", h: "4. 조작법", steps: [
           ["📱", "러너·대시 (폰)", "좌우로 밀어 레인 변경 · 위로 밀거나 탭하면 점프 · 아래로 밀면 슬라이드."],
           ["⌨️", "러너·대시 (PC)", "← → 또는 A D 레인 변경 · ↑, 스페이스, W 점프 · ↓ 또는 S 슬라이드."],
@@ -255,7 +257,7 @@ window.ARC_AD_GUIDE = {
           ["👛", "登录后可保存", "游客也能全部试用；用钱包登录才能保存和发布。"] ],
           tips: ["顶部三个标签：🛠️ 制作 · 📁 我的游戏（草稿和已发布）· 🕹️ 创作者街机厅（所有人的游戏）。"] },
         { icon: "🛠️", h: "2. 5 步做出游戏", steps: [
-          ["📄", "模板", "选择天空跑者、无限冲刺、竞技场生存、圆环解谜、天空攀登或塔防（见下）。起个标题（最多 24 个字符）。没灵感？写一句话——比如「金币很多的快速丛林跑酷」——智能体会帮你生成整个游戏（每天 10 次）。"],
+          ["📄", "模板", "选择天空跑者、无限冲刺、竞技场生存、圆环解谜、天空攀登、塔防或金币冲刺（见下）。起个标题（最多 24 个字符）。没灵感？写一句话——比如「金币很多的快速丛林跑酷」——智能体会帮你生成整个游戏（每天 10 次）。"],
           ["🎨", "主题", "选择外观：霓虹城、丛林、冰峰、熔岩核心或糖果天空。3D 预览立即更新。"],
           ["📊", "难度", "点简单、普通、困难或极限。每项下方显示星级（1 简单 … 5 残酷）和 40 个测试机器人的通关率。也可以选长度。想更细？打开 ⚙️ 高级设置调整每个滑块，用 🎲 新布局换一种排列。"],
           ["▶️", "试玩", "点 ▶ 试玩亲自玩一遍。试玩不计入成绩，想玩几次都行。"],
@@ -268,6 +270,7 @@ window.ARC_AD_GUIDE = {
           ["💍", "圆环解谜", "在你自己的棋盘上玩无限圆环。点圆环把它打掉；用尽量少的步数（标准步数）清空棋盘。"],
           ["🧗", "天空攀登", "从侧面看的高塔。你会自动弹跳——左右移动（两边相连），落在平台上、踩弹簧、躲尖刺，一路登顶。"],
           ["🛡️", "塔防", "敌人沿着路径从传送门走向你的水晶。点塔位建造闪电、冰霜或加农炮塔；点塔可升级或出售。守住每一波——10 条命。"] ] },
+          ["💰", "金币冲刺", "俯视的竞技场里满是金币。在时间结束前躲开几架无人机，尽可能多地收集——金币就是你的分数。"],
         { icon: "🕹️", h: "4. 操作", steps: [
           ["📱", "跑者和冲刺（手机）", "左右滑动换道 · 上滑或点击跳跃 · 下滑滑铲。"],
           ["⌨️", "跑者和冲刺（电脑）", "← → 或 A D 换道 · ↑、空格或 W 跳跃 · ↓ 或 S 滑铲。"],
@@ -357,7 +360,7 @@ window.ARC_AD_GUIDE = {
           ["👛", "Saklamak için giriş", "Misafir olarak her şeyi deneyebilirsin; kaydetmek ve yayınlamak için cüzdanla giriş yap."] ],
           tips: ["Üstte üç sekme: 🛠️ Oluştur · 📁 Oyunlarım (taslaklar ve yayınlananlar) · 🕹️ Creator Arcade (herkesin oyunları)."] },
         { icon: "🛠️", h: "2. 5 adımda oyun yap", steps: [
-          ["📄", "Şablon", "Gökyüzü Koşucusu, Sonsuz Koşu, Arena Hayatta Kalma, Halka Bulmacası, Gökyüzü Tırmanışı ya da Kule Savunması seç (aşağıda). Bir başlık ver (24 harfe kadar). Fikrin mi yok? Tek cümle yaz — \"bol paralı hızlı bir orman koşusu\" — ajanın tüm oyunu taslak olarak hazırlar (günde 10)."],
+          ["📄", "Şablon", "Gökyüzü Koşucusu, Sonsuz Koşu, Arena Hayatta Kalma, Halka Bulmacası, Gökyüzü Tırmanışı, Kule Savunması ya da Altın Koşusu seç (aşağıda). Bir başlık ver (24 harfe kadar). Fikrin mi yok? Tek cümle yaz — \"bol paralı hızlı bir orman koşusu\" — ajanın tüm oyunu taslak olarak hazırlar (günde 10)."],
           ["🎨", "Tema", "Görünümü seç: Neon Şehir, Orman, Buz Zirveleri, Lav Çekirdeği ya da Şeker Gökyüzü. 3B önizleme anında değişir."],
           ["📊", "Zorluk", "Kolay, Normal, Zor ya da Aşırı'ya dokun. Her birinin altında yıldızları (1 kolay … 5 acımasız) ve 40 test botunun geçme oranı görünür. Uzunluğu da seç. Daha fazla kontrol? ⚙️ Gelişmiş ayarlarda her kaydırıcı, 🎲 Yeni düzen ile yeni bir dizilim."],
           ["▶️", "Dene", "▶ Test oyunu ile kendin oyna. Deneme sayılmaz, istediğin kadar dene."],
@@ -370,6 +373,7 @@ window.ARC_AD_GUIDE = {
           ["💍", "Halka Bulmacası", "Kendi tahtanda INFINITY RINGS. Bir halkaya dokunup düşür; tahtayı olabildiğince az hamlede (par) temizle."],
           ["🧗", "Gökyüzü Tırmanışı", "Yandan görülen bir kule. Kendiliğinden zıplarsın — sağa sola yönlen (kenarlar birbirine bağlı), platformlara kon, yaylarla uç, dikenlerden kaç ve zirveye ulaş."],
           ["🛡️", "Kule Savunması", "Düşmanlar geçitten kristaline giden yolu yürür. Bir yere dokunup Şimşek, Ayaz ya da Top kulesi kur; yükseltmek ya da satmak için kuleye dokun. Her dalgayı tut — 10 can."] ] },
+          ["💰", "Altın Koşusu", "Yukarıdan görülen arena altın dolu. Peşindeki birkaç dronu atlatırken süre bitmeden olabildiğince çok topla — altınların skorundur."],
         { icon: "🕹️", h: "4. Kontroller", steps: [
           ["📱", "Koşucu ve Hücum (telefon)", "Şerit için sola/sağa kaydır · zıplamak için yukarı kaydır ya da dokun · kaymak için aşağı kaydır."],
           ["⌨️", "Koşucu ve Hücum (bilgisayar)", "Şerit için ← → ya da A D · zıplamak için ↑, Boşluk ya da W · kaymak için ↓ ya da S."],

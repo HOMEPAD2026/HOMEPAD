@@ -45,7 +45,7 @@ export function makePreview({ THREE, w = 640, h = 300 }) {
         else continue; m.position.set(x, r.z, 0); sc.add(m); }
       return { sc, tick(t) { const y = 3 + ((t * 3) % Math.max(10, top - 8)); cam.position.set(Math.sin(t * 0.4) * 2, y + 1.5, 15); cam.lookAt(0, y, 0); } };
     }
-    if (spec.tpl === "arena") {
+    if (spec.tpl === "arena" || spec.tpl === "rush") {
       const Rr = L.R, floor = new THREE.Mesh(new THREE.CylinderGeometry(Rr, Rr + 0.6, 0.6, 48), std(th.track, { roughness: 0.6 })); floor.position.y = -0.3; sc.add(floor);
       for (const [r, op] of [[Rr, 1], [Rr * 0.66, 0.5], [Rr * 0.33, 0.5]]) { const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.1, 6, 72), glow(th.edge, op)); m.rotation.x = Math.PI / 2; m.position.y = 0.03; sc.add(m); }
       for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, hh = 1.5 + (i % 3), p = new THREE.Mesh(new THREE.BoxGeometry(1, hh, 1), std(th.prop, { emissive: th.prop, emissiveIntensity: 0.35 })); p.position.set(Math.cos(a) * (Rr + 2.2), hh / 2 - 0.6, Math.sin(a) * (Rr + 2.2)); sc.add(p); }
