@@ -4750,16 +4750,17 @@ html.wp-pcphone .wbt-pads{zoom:1.7}html.wp-pcphone .wst-judge{zoom:1.6}
 .wst-hin:focus-within{border-color:#5cf2c0;box-shadow:0 0 0 3px rgba(92,242,192,.18)}
 /* a phone held sideways at its own width (play.html fell back from the scaled page: a Galaxy refused it, 780 × 360): the
    HUD made for a tall phone filled the short screen and overlapped — sideways and low, it's drawn smaller */
-@media (max-height:480px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.62}
+/* (2026-10-26: one scale from the screen itself — --fbz = its height ÷ 515, the scaled page's sideways height, 0.5–1;
+   play.html sets it — instead of fixed steps, so a 344, 360 or 412 px high phone all look alike) */
+@media (orientation:landscape){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:calc(var(--fbz,1) * .88)}
   html.wp-land:not(.wp-pcphone) .wp-hud{padding:max(10px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) 0 max(22px,env(safe-area-inset-left))}
-  html.wp-land:not(.wp-pcphone) .wp-brand{display:none} /* (sideways and low: the logo gives its row to the cards) */
+  html.wp-land.wp-vpfb .wp-brand{display:none} /* (sideways and low: the logo gives its row to the cards) */
   html.wp-land:not(.wp-pcphone) .wp-hud-l>*+*{margin-top:10px}
   html.wp-land:not(.wp-pcphone) .wp-hud-r>*+*{margin-top:10px}
   html.wp-land:not(.wp-pcphone) .wp-mini{zoom:.85}
-  html.wp-land:not(.wp-pcphone) #wp-dock{zoom:.5;left:0;right:0;margin:0 auto;width:max-content;transform:none;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 6px)} /* (the dock in the middle at the bottom, between the stick and the fight buttons) */
+  html.wp-land:not(.wp-pcphone) #wp-dock{zoom:calc(var(--fbz,1) * .72);left:0;right:0;margin:0 auto;width:max-content;transform:none;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 6px)} /* (the dock in the middle at the bottom, between the stick and the fight buttons) */
   html.wp-land:not(.wp-pcphone) #wp-joy,html.wp-land:not(.wp-pcphone) .wp-joyrest{margin-left:14px;margin-bottom:6px}
   html.wp-land:not(.wp-pcphone) #wp-acts{margin-right:12px;margin-bottom:6px}}
-@media (max-height:380px){html.wp-land:not(.wp-pcphone) :is(.wp-hud,#wp-acts,#wp-joy,.wp-joyrest,#wp-qmark,#wp-clean){zoom:.56}html.wp-land:not(.wp-pcphone) #wp-dock{zoom:.46}}
 /* Creator City (2026-10-26, the owner): no logo top-left — the way back to the town in its place */
 .wp-back-gw{display:none}
 body.wp.wp-in-cc .wp-brand{display:none!important}
@@ -4771,12 +4772,20 @@ body.wp.wp-in-cc.wp-clean .wp-back-gw{display:inline-flex}
 /* html.wp-vpfb (play.html): a phone that refused the scaled page sideways, at its own width (a Galaxy at 780 × 360).
    Everything over the 3D view is drawn at 0.7 — the size the scaled page gives it — and the windows that measure the
    screen in vh are given that room back. (The HUD keeps its own smaller size above.) */
-@media (max-height:480px){
-  html.wp-vpfb.wp-land body.wp>:where(:not(#wp-cv,.wp-vig,.wp-veil,.wp-speed,.wp-tpflash,canvas,script,style,link)){zoom:.7}
-  html.wp-vpfb.wp-land .wst.wide .wst-in{height:calc(100dvh / .7 - 20px);max-height:none}
-  html.wp-vpfb.wp-land .wst:not(.wide) .wst-in{max-height:calc(100dvh / .7 - 24px);min-height:0}
-  html.wp-vpfb.wp-land .ccw-in{width:min(680px,calc(100vw / .7 - 32px));max-height:calc(100dvh / .7 - 32px)}
-  html.wp-vpfb.wp-land .wst{padding:8px}
-  html.wp-vpfb.wp-land .ccw{zoom:.6}html.wp-vpfb.wp-land .ccw-in{max-height:calc(100dvh / .6 - 32px);width:min(720px,calc(100vw / .6 - 40px))}
-  html.wp-vpfb.wp-land .wsj-pal{width:min(330px,34%)}html.wp-vpfb.wp-land .wsj-grp{flex:none;width:64px;overflow-x:hidden;order:-1}html.wp-vpfb.wp-land .wsj-items{min-width:0} /* (the builder's group rail took the whole palette: the pieces had 8 px) */
-}
+html.wp-vpfb.wp-land body.wp>:where(:not(#wp-cv,.wp-vig,.wp-veil,.wp-speed,.wp-tpflash,canvas,script,style,link)){zoom:var(--fbz,.7)}
+html.wp-vpfb.wp-land .wst.wide .wst-in{height:calc(100dvh / var(--fbz,.7) - 20px);max-height:none}
+html.wp-vpfb.wp-land .wst:not(.wide) .wst-in{max-height:calc(100dvh / var(--fbz,.7) - 24px);min-height:0}
+html.wp-vpfb.wp-land .wst{padding:8px}
+html.wp-vpfb.wp-land .ccw{zoom:calc(var(--fbz,.7) * .86)}html.wp-vpfb.wp-land .ccw-in{max-height:calc(100dvh / (var(--fbz,.7) * .86) - 32px);width:min(720px,calc(100vw / (var(--fbz,.7) * .86) - 40px))}
+html.wp-vpfb.wp-land .wsj-pal{width:min(330px,34%)}html.wp-vpfb.wp-land .wsj-grp{flex:none;width:64px;overflow-x:hidden;order:-1}html.wp-vpfb.wp-land .wsj-items{min-width:0} /* (the builder's group rail took the whole palette: the pieces had 8 px) */
+
+/* the creator tutorial (2026-10-26): the Studio's button to press glows, a line beside it */
+.wp-coach{outline:3px solid #ffd23a!important;outline-offset:3px;box-shadow:0 0 0 6px rgba(255,210,58,.25),0 0 22px rgba(255,210,58,.7)!important;animation:wpCoach 1.1s ease-in-out infinite;position:relative;z-index:2}
+@keyframes wpCoach{50%{outline-color:#7cf5c8;box-shadow:0 0 0 10px rgba(124,245,200,.18),0 0 30px rgba(124,245,200,.75)}}
+.wp-coach-tip{position:fixed;z-index:12050;width:220px;padding:9px 12px;border-radius:12px;background:linear-gradient(135deg,#ffd23a,#ffb02e);color:#1a1300;font:800 13px/1.3 Sora,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:none;animation:wpCoachTip 1.1s ease-in-out infinite;text-align:center}
+.wp-coach-tip::before{content:"";position:absolute;left:50%;top:-7px;margin-left:-7px;border:7px solid transparent;border-top:0;border-bottom-color:#ffd23a}
+.wp-coach-tip.up::before{top:auto;bottom:-7px;border-bottom:0;border-top:7px solid #ffb02e;border-left:7px solid transparent;border-right:7px solid transparent}
+.wp-coach-tip[hidden]{display:none}
+@keyframes wpCoachTip{50%{transform:translateY(-3px)}}
+html.wp-pcphone .wp-coach-tip{zoom:1.6}
+@media (prefers-reduced-motion:reduce){.wp-coach,.wp-coach-tip{animation:none}}

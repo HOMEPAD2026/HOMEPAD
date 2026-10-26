@@ -2702,6 +2702,7 @@ function checkQuests() {
   badges(); paintQuests();
 }
 function paintQuests() {
+  { const hs = $("wp-quests-h").querySelector("span"), cc = landNow === "cc" && !!ccL && !ccTutDone(); if (hs) hs.textContent = TW(cc ? "Creator tutorial" : "Quests"); if (cc) return paintCcTut(); }
   const shown = QUESTS.filter((q) => !q.gate || q.gate() || P.quests.includes(q.id)); // a gated step stays hidden until its gate opens
   const open = shown.filter((q) => !P.quests.includes(q.id));
   $("wp-quests-n").textContent = `${shown.length - open.length}/${shown.length}`; $("wp-qmini-n").textContent = `${shown.length - open.length}/${shown.length}`;
@@ -5778,7 +5779,7 @@ async function openStudio(tab) {
         makeHero: () => K.makeCharacter(heroOf(P.char || "custom-aron"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         agentName: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.name : ""; } catch { return ""; } },
         share: (c) => bragCard(c),
-        land: stuLand, onEvent: (k) => ccStep(k), soundOn: () => S.sound !== false,
+        land: stuLand, onEvent: (k) => { ccStep(k); if (k === "rate") ccStep("play"); }, soundOn: () => S.sound !== false,
         survivors: async (cfg) => { try { await survModule(); return await survGame.custom(cfg); } catch (e) { console.warn("studio survival", e); if (String((e && e.message) || e).startsWith("load:") && staleReload()) return null; return null; } }, // (SB-3: MONSTER SURVIVAL on the arena's engine)
         onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); document.body.classList.add("wp-stu-open"); }, onClose: () => { frozen = false; near = null; paintPrompt(); document.body.classList.remove("wp-stu-open"); } });
       if (card) { card.step(1); await Promise.all(["/images/studio/ui/bg-1344.webp", "/images/studio/tpl/runner-400.webp", "/images/studio/ui/tab-make.webp"].map((u) => new Promise((ok) => { const im = new Image(); im.onload = im.onerror = ok; im.src = u + VER; }))); } }
@@ -5821,10 +5822,57 @@ const ccPrompt = (id, b) => { if (/^gp\d$/.test(id)) { const gm = ccL && ccL.por
 // the 10-minute first game (the Academy): five steps counted from what you do in the Studio; all five → "I MADE MY FIRST GAME!"
 const CC_STEPS = [["tpl", "Pick a template"], ["tune", "Tune it — how hard, how long"], ["test", "Test play it"], ["publish", "Publish it to the arcade"], ["share", "Send the link to a friend"]];
 const ccDone = () => { try { return JSON.parse(localStorage.getItem("arc.cc.steps") || "{}"); } catch { return {}; } };
+// the creator tutorial (2026-10-26, the owner: "a quest a new player follows to make a game"): Creator City's quest card,
+// the gold arrow and the foot chevrons lead to the next place, and in the Studio the button to press glows (ccCoach);
+// each step pays a little XP, all seven the title Rookie Creator (quests ACH "cctut"); the same steps as the Academy's
+const CC_TUT = [["visit", "Meet the mentor at the Academy", "academy", 40], ["tpl", "Enter the Studio Tower and pick a template", "tower", 40], ["tune", "Tune it — how hard, how long", "tower", 40], ["test", "Test play it", "tower", 60], ["publish", "Publish it to the arcade", "tower", 80], ["share", "Copy your game's link to share it", "tower", 40], ["play", "Play someone's game at a game portal", "gp", 60]];
+const CC_TUT_XP = 300;
+const ccTutDone = () => !!ccDone().tut;
+const ccTutNow = () => { const d = ccDone(); return CC_TUT.find(([k]) => !d[k]) || null; };
+function ccTutTarget(where) {
+  if (!ccL || !where) return null;
+  if (where === "gp") { for (let i = 0; i < 6; i++) if (ccL.portalGame(i)) return ccL.door("gp" + i); return ccL.door("arcade"); }
+  return ccL.door(where);
+}
+function paintCcTut() {
+  const d = ccDone(), n = CC_TUT.filter(([k]) => d[k]).length, open = CC_TUT.filter(([k]) => !d[k]);
+  $("wp-quests-n").textContent = `${n}/${CC_TUT.length}`; $("wp-qmini-n").textContent = `${n}/${CC_TUT.length}`;
+  $("wp-quests-l").innerHTML = open.slice(0, 3).map(([k, t, , xp], i) => `<li${i === 0 ? ` class="cur" role="button" tabindex="0" data-q="cc-${k}"` : ""}><i></i><span>🎓 ${esc(TW(t))}</span>${i === 0 ? '<em class="wp-qdist" data-no-i18n></em>' : ""}<small>+${xp} XP</small></li>`).join("");
+  markLongQuest();
+  const cur = open[0], st0 = studioShown(), tg = cur && !st0 ? ccTutTarget(cur[2]) : null;
+  if (tg !== questTarget) { if (beacon.parent) beacon.parent.remove(beacon); questTarget = tg; if (tg) tg.add(beacon); }
+}
+const studioShown = () => !!document.querySelector(".wst:not([hidden])");
+// in the Studio: the button the tutorial's step wants glows, with a line beside it (looked up twice a second while it's open)
+const CC_COACH = { tpl: ['.wst [data-tpl="jump"]', ".wst [data-tpl]"], tune: [".wst [data-next]"], test: [".wst [data-test]"], publish: [".wst [data-pub]", ".wst [data-save]"], share: [".wst [data-share]"] };
+let coachEl = null, coachTip = null;
+function ccCoach() {
+  const cur = landNow === "cc" && !ccTutDone() && studioShown() && !document.querySelector(".wsb:not([hidden]), .wst-run") ? ccTutNow() : null;
+  let el = null; if (cur && CC_COACH[cur[0]]) for (const q of CC_COACH[cur[0]]) { el = [...document.querySelectorAll(q)].find((e) => e.offsetParent); if (el) break; }
+  if (el !== coachEl) { if (coachEl) coachEl.classList.remove("wp-coach"); coachEl = el; if (el) { el.classList.add("wp-coach"); try { let sc = el.parentElement; while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement; if (sc) { const a = el.getBoundingClientRect(), b0 = sc.getBoundingClientRect(); if (a.bottom > b0.bottom || a.top < b0.top) { const zk = b0.height / (sc.clientHeight || b0.height) || 1; sc.scrollTop += (a.top - b0.top - (b0.height - a.height) / 2) / zk; } } } catch { /* fine */ } /* (only the scrolling list itself: scrollIntoView moved the whole window sideways) */ } }
+  if (!el) { if (coachTip) coachTip.hidden = true; return; }
+  if (!coachTip) { coachTip = document.createElement("div"); coachTip.className = "wp-coach-tip"; coachTip.setAttribute("role", "status"); document.body.appendChild(coachTip); }
+  const r = el.getBoundingClientRect(), z = parseFloat(getComputedStyle(coachTip).zoom) || 1, txt = "👆 " + TW(cur[1]);
+  if (coachTip.textContent !== txt) coachTip.textContent = txt;
+  const below = r.bottom + 60 < innerHeight; coachTip.hidden = false; coachTip.classList.toggle("up", !below);
+  const tw = (coachTip.offsetWidth || 220) * z; coachTip.style.left = Math.max(8, Math.min(innerWidth - tw - 8, r.left + r.width / 2 - tw / 2)) / z + "px"; coachTip.style.top = Math.max(8, Math.min(innerHeight - 60, below ? r.bottom + 10 : r.top - 46)) / z + "px";
+}
+every(500, () => { try { ccCoach(); } catch { /* next time */ } });
 function ccStep(k) {
-  if (!CC_STEPS.some(([x]) => x === k)) return; const d = ccDone(); if (d[k]) return; d[k] = Date.now(); try { localStorage.setItem("arc.cc.steps", JSON.stringify(d)); } catch { /* not kept */ }
+  if (!CC_STEPS.some(([x]) => x === k) && !CC_TUT.some(([x]) => x === k)) return; const d = ccDone(); if (d[k]) return; d[k] = Date.now(); try { localStorage.setItem("arc.cc.steps", JSON.stringify(d)); } catch { /* not kept */ }
+  const tu = CC_TUT.find(([x]) => x === k);
+  if (tu && !d.tut) { const n2 = CC_TUT.filter(([x]) => d[x]).length; gain(tu[3], TW("Creator tutorial")); try { if (Snd.coin) Snd.coin(); } catch { /* no sound */ }
+    if (n2 === CC_TUT.length) { d.tut = Date.now(); try { localStorage.setItem("arc.cc.steps", JSON.stringify(d)); } catch { /* not kept */ } setTimeout(ccTutFinish, d.all ? 900 : 4800); }
+    setTimeout(() => { try { paintQuests(); } catch { /* fine */ } }, 50); }
+  if (!CC_STEPS.some(([x]) => x === k)) return;
   const n = CC_STEPS.filter(([x]) => d[x]).length; toast(`🎓 ${esc(TW("Creator Academy"))} · ${n}/${CC_STEPS.length} — ${esc(TW(CC_STEPS.find(([x]) => x === k)[1]))} ✓`);
   if (n === CC_STEPS.length && !d.all) { d.all = Date.now(); try { localStorage.setItem("arc.cc.steps", JSON.stringify(d)); } catch { /* not kept */ } setTimeout(ccFirstGame, 900); }
+}
+function ccTutFinish() {
+  gain(CC_TUT_XP, TW("Creator tutorial")); try { if (quests) quests.bump("cctut"); } catch { /* the title waits */ }
+  const el = document.createElement("div"); el.className = "cc-cut"; el.innerHTML = `<div><small>🎓 ${esc(TW("Creator tutorial"))}</small><b>${esc(TW("TUTORIAL COMPLETE!"))}</b><span>${esc(TW("You're a Rookie Creator — the title is yours in Character → Titles."))} +${CC_TUT_XP} XP</span></div>`;
+  document.body.appendChild(el); try { if (Snd.levelUp) Snd.levelUp(); } catch { /* no sound */ } try { vfx.teleport(here(), { color: 0x7cf5c8, color2: 0xffd23a }); } catch { /* fine */ }
+  setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 600); }, 4200); try { paintQuests(); } catch { /* fine */ }
 }
 function ccFirstGame() {
   const el = document.createElement("div"); el.className = "cc-cut"; el.innerHTML = `<div><small>ARCIRCLE STUDIO BETA</small><b>${esc(TW("I MADE MY FIRST GAME!"))}</b><span>${esc(TW("Your game is on the Creator Arcade — every play and like counts."))}</span></div>`;
@@ -5842,7 +5890,7 @@ function ccWin(html, cls = "") {
 // SB-4: the creator quests (the Academy, after the first game): counted from your games' own numbers, never paid
 const CC_QUESTS = [["Publish your first game", (c) => c.pub, 1], ["Make 3 games", (c) => c.games, 3], ["10 plays by other players", (c) => c.plays, 10], ["10 likes on your games", (c) => c.likes, 10], ["Publish 5 games", (c) => c.pub, 5], ["100 plays by other players", (c) => c.plays, 100]];
 function ccAcademy(first) {
-  const d = ccDone(), n = CC_STEPS.filter(([x]) => d[x]).length, L = ccLevel();
+  ccStep("visit"); const d = ccDone(), n = CC_STEPS.filter(([x]) => d[x]).length, L = ccLevel();
   const w = ccWin(`<small class="ccw-k">🎓 ${esc(TW("Creator Academy"))}</small><h3>${esc(TW(first ? "Welcome to Creator City!" : "Your first game in 10 minutes"))}</h3><p>${esc(TW("Five steps, no code. Each one ticks itself off as you do it in the Studio."))}</p>
     <ol class="ccw-steps">${CC_STEPS.map(([k, l], i) => `<li class="${d[k] ? "ok" : ""}"><i>${d[k] ? "✓" : i + 1}</i><span>${esc(TW(l))}</span></li>`).join("")}</ol>
     <div class="ccw-bar"><b style="width:${(n / CC_STEPS.length) * 100}%"></b></div><p class="ccw-fine">${d.all ? "🏅 " + esc(TW("I MADE MY FIRST GAME!")) : `${n} / ${CC_STEPS.length}`}${sess() ? "" : " · " + esc(TW("Sign in to publish — your drafts are kept on this device until then."))}</p>
@@ -5866,7 +5914,7 @@ function ccFactory() {
     <p class="ccw-fine">${L.signed ? `🎮 ${L.games} · 🚀 ${L.pub} · ▶ ${L.plays} · ♥ ${L.likes}` : esc(TW("Sign in to count your games."))} · ${esc(TW("New parts and themes arrive here as the beta grows."))}</p>`, "ccw-fac");
 }
 async function ccBuilding(id) {
-  if (/^gp\d$/.test(id)) { const gm = ccL && ccL.portalGame(Number(id.slice(2))); if (!gm) return; await openStudio(); if (studio) studio.playId(gm.id); return; }
+  if (/^gp\d$/.test(id)) { const gm = ccL && ccL.portalGame(Number(id.slice(2))); if (!gm) return; await openStudio(); if (studio) { studio.playId(gm.id); ccStep("play"); } return; }
   if (id === "tower") return openStudio("make");
   if (id === "arcade" || id === "contest") return openStudio("arcade");
   if (id === "market") return openMarket("market");
