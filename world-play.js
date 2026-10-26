@@ -776,6 +776,34 @@ const lands = LD.makeLands({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, gro
 planet.add(K.makePaths(lands.spokes)); planet.add(K.makeDistrictSigns(["dark"])); planet.add(K.makeDistrictTints(["dark"]));
 st.on((dt, t) => { try { lands.tick(dt, t); } catch { /* a land's sign is drawing */ } });
 const lamps = K.makeLamps(); planet.add(lamps);
+// b-nx3 (2026-10-26, the owner: the plaza remastered after Meshy's mock-up): benches facing the fountain, flower
+// planters and blue banners on the open ring between the plaza's edge and the portals, kept off the portals' and the
+// hunting grounds' paths. Meshy models (models/world/plaza, 3.5 k tris and 512 px KTX2 each, ~150 KB), one instanced
+// mesh per part (a handful of draws for all of them), loaded once the town is up; fewer on low graphics.
+function plazaDress() {
+  const ang = (x, z) => ((Math.atan2(x, -z) * 180) / Math.PI + 360) % 360, away = [];
+  try { for (const w of WORN_PATHS) away.push(ang(w[0], w[1])); } catch { /* no paths */ }
+  for (const ph of [0, 70, 150, 300]) away.push(ph);
+  const free = []; for (let ph = 4; ph < 360; ph += 8) if (away.every((a) => Math.min(Math.abs(a - ph), 360 - Math.abs(a - ph)) > 7)) free.push(ph);
+  const few = lowGfx || S.quality === "saver";
+  const pick = (n, off) => { const out = new Set(); for (let i = 0; i < n && free.length; i++) out.add(free[Math.floor((i + off / 4) * free.length / n) % free.length]); return [...out]; };
+  const PLAN = [["park-bench", 13, pick(few ? 3 : 6, 0), 0.95, 0], ["flower-planter", 15.6, pick(few ? 4 : 8, 1), 1.0, 0], ["banner-pole", 18.4, pick(few ? 2 : 5, 2), 4.4, 0]];
+  if (!few) PLAN.push(["hedge-block", 16.2, pick(5, 3), 0.9, 0]);
+  const grp = new THREE.Group(); grp.name = "plaza-dress"; planet.add(grp);
+  const o3 = new THREE.Object3D(), mm = new THREE.Matrix4();
+  for (const [file, th, phis, h, turn] of PLAN) {
+    if (!phis.length) continue;
+    K.gltfLoader().load(`/models/world/plaza/${file}.glb${VER}`, (gl) => {
+      const src = gl.scene; src.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(src), sz = box.getSize(new THREE.Vector3()), k = h / Math.max(sz.y, 1e-3), c = box.getCenter(new THREE.Vector3());
+      const fix = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z));
+      src.traverse((m) => { if (!m.isMesh) return;
+        const im = new THREE.InstancedMesh(m.geometry, m.material, phis.length); im.name = "plaza:" + file; im.castShadow = !lowGfx; im.receiveShadow = true;
+        phis.forEach((ph, i) => { K.placeOn(o3, K.dirOf(th, ph)); o3.rotateY(turn); o3.updateMatrix(); mm.multiplyMatrices(o3.matrix, fix).multiply(m.matrixWorld); im.setMatrixAt(i, mm); });
+        im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); grp.add(im); });
+    }, undefined, () => { /* the plaza stays as it was */ });
+  }
+}
+setTimeout(() => { try { plazaDress(); } catch (e) { console.warn("plaza dress", e); } }, 2500);
 // at night the three lamps nearest you really light what's round them (you, scammers, the walls): three point lights
 // that move to whichever lamps are closest (a computer; a phone keeps the painted pools)
 // the lamps' three point lights cost every lit surface on screen a little more: Ultra only (b411; Auto on a computer had them)

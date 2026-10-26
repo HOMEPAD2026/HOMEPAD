@@ -444,9 +444,13 @@ function grassTexture() {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
   return t;
 }
+const GROUND_VER = "?v=1";
 export function makeGround({ radius = 330 } = {}) {
   const g = new THREE.Group(); g.name = "ground";
   const tex = grassTexture(); tex.repeat.set(radius / 9, radius / 9);
+  // b-nx3: Meshy's painted grass takes the drawn one's place once it's in (1024 px, 512 on a phone); world-look.js's
+  // patches, cloud shadows and paths still go over it
+  try { const S = matchMedia("(pointer: coarse)").matches ? 512 : 1024; new THREE.TextureLoader().load(`/images/world/ground/grass-${S}.webp${GROUND_VER}`, (t) => { tex.image = t.image; tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; }, undefined, () => { /* the drawn grass stays */ }); } catch { /* the drawn grass stays */ }
   const ground = new THREE.Mesh(new THREE.CircleGeometry(radius, 96), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 }));
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; g.add(ground);
   // the plaza: stone, a cyan ring at its edge
