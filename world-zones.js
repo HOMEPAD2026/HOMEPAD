@@ -10,6 +10,10 @@ export { ZONES, zoneAt };
 // as you come near (nearer on low graphics), one at a time
 const LANDMARK = { spam: "spam-alley", fields: "airdrop-fields", swamp: "honeypot-swamp", canyon: "rug-canyon", depths: "dark-market-depths", peaks: "ponzi-peaks", dunes: "exit-scam-desert", reef: "phishing-reef", wastes: "bot-farm-wastes", ruins: "fake-exchange-ruins", abyss: "bridge-hack-abyss", void: "the-last-rug" };
 
+// each ground's painted floor (b-nx4, Meshy, images/world/zones/<id>-512|1024.webp; void keeps its drawn hexagons): laid
+// under the floor's own pattern (world-env.js zoneFloor, turned down to a third once it's in), mirrored so no seam shows
+const GROUND_TEX = ["spam", "fields", "swamp", "canyon", "depths", "peaks", "dunes", "reef", "wastes", "ruins", "abyss"];
+
 export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = null, ver = "" }) {
   const root = new THREE.Group(); root.name = "zones"; planet.add(root);
   const rnd = (seed) => { let a = seed; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; };
@@ -70,7 +74,7 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
     // the props never move: merge the ones that look alike into one mesh each (hundreds of draw calls fewer)
     if (K.mergeStatic) K.mergeStatic(g);
     g.userData = { zone: zn, border };
-    if (LANDMARK[zn.id]) marks.push({ zn, g, toPlaza, file: LANDMARK[zn.id], state: 0 });
+    if (LANDMARK[zn.id]) marks.push({ zn, g, toPlaza, file: LANDMARK[zn.id], state: 0, ground, tx: GROUND_TEX.includes(zn.id) ? 0 : 3 });
     spins.push((dt, t) => { border.material.emissiveIntensity = 1.3 + Math.sin(t * 2 + zi) * 0.4; });
   });
   // a gate's sign right over your head would sit on top of the HUD: it fades out while you stand under it
@@ -84,8 +88,14 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
       if (all || d < 40) { l.built = true; l.build(); if (!all) return; continue; }
       if (d < 160 && !queued) { queued = l; const go = () => { const q = queued; queued = null; if (q && !q.built) { q.built = true; q.build(); } };
         if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 2500 }); else setTimeout(go, 300); return; } } };
-  let markBusy = false;
-  const markNear = () => { if (markBusy || !K.gltfLoader) return; const px = -planet.position.x, pz = -planet.position.z, reach = low ? 40 : 70;
+  let markBusy = false, texBusy = false;
+  const texNear = (px, pz) => { if (texBusy) return; const m = marks.find((l) => !l.tx && Math.hypot(l.zn.x - px, l.zn.z - pz) - l.zn.r < 90); if (!m) return;
+    m.tx = 1; texBusy = true; const S = low || matchMedia("(pointer: coarse)").matches ? 512 : 1024;
+    new THREE.TextureLoader().load(`/images/world/zones/${m.zn.id}-${S}.webp${ver}`, (t) => { texBusy = false; m.tx = 2;
+      t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping; t.repeat.setScalar(Math.round((m.zn.r * 2) / 7)); t.anisotropy = 4;
+      const mat = m.ground.material; mat.map = t; mat.color.set(0xffffff).lerp(new THREE.Color(m.zn.ground), 0.12); if (mat.userData.floorU) mat.userData.floorU.uFs.value *= 0.3; mat.needsUpdate = true;
+    }, undefined, () => { texBusy = false; m.tx = 3; }); };
+  const markNear = () => { if (markBusy || !K.gltfLoader) return; const px = -planet.position.x, pz = -planet.position.z, reach = low ? 40 : 70; texNear(px, pz);
     const m = marks.find((l) => !l.state && Math.hypot(l.zn.x - px, l.zn.z - pz) - l.zn.r < reach); if (!m) return;
     m.state = 1; markBusy = true;
     K.gltfLoader().load(`/models/world/landmarks/${m.file}.glb${ver}`, (gl) => { markBusy = false;

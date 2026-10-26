@@ -438,7 +438,7 @@ export function zoneFloor(mat, zn, { lite = false } = {}) {
         diffuseColor.rgb = mix(c, base * 0.9, rim * 0.5);
         vFloorGlow = glow * uFgk * (0.75 + 0.25 * sin(uFt * 2.0 + n * 9.0)) * (1.0 - rim); }`).replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += uFg * vFloorGlow * 1.6;").replace("void main() {", "float vFloorGlow = 0.0;\nvoid main() {");
   };
-  mat.customProgramCacheKey = () => prevKey() + "|floor"; mat.needsUpdate = true;
+  mat.customProgramCacheKey = () => prevKey() + "|floor"; mat.needsUpdate = true; mat.userData.floorU = U;
   return U;
 }
 
