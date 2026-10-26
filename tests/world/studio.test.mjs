@@ -175,5 +175,22 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   r = await call(fan, "world-studio-save", { spec: gs.spec, from: id }); const rm = r.body.game; check(r.status === 200 && rm.from && rm.from.id === id && rm.from.title === "Week Entry", "a remix keeps where it came from");
   check(((await get("studio-game&id=" + id)).game.remixes || 0) === 1, "the original counts its remixes");
   await call(fan, "world-studio-del", { id: rm.id }); await call(mk, "world-studio-del", { id }); await call(mk, "world-studio-del", { id: id2 }); }
+// STU-D: the maker's numbers, reports + a GM's hide, the agent's tweak
+{ const { GM_WALLETS } = await import("../../api/_world-village.mjs"); const gm = ethers.Wallet.createRandom(); GM_WALLETS.push(gm.address.toLowerCase());
+  const mk = ethers.Wallet.createRandom(), p2 = ethers.Wallet.createRandom(); let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", title: "Stats Run", seed: 31 } }); const id = r.body.game.id; await call(mk, "world-studio-publish", { id, on: true });
+  const L = G.genLevel((await get("studio-game&id=" + id)).game.spec);
+  await call(fan, "world-studio-play", { id, coins: 0, dist: L.len * 0.35, done: false }); T += 21e3; await call(p2, "world-studio-play", { id, coins: 1, dist: L.len, done: true }); T += 21e3; await call(mk, "world-studio-play", { id, coins: 0, dist: 1, done: false });
+  let mine = (await get("studio-mine&wallet=" + mk.address.toLowerCase())).games.find((g) => g.id === id);
+  check(mine.stats && mine.stats.runs === 2 && mine.stats.clears === 1 && mine.stats.ends[3] === 1 && mine.stats.ends.reduce((a, x) => a + x, 0) === 1, "the maker's numbers: runs, clears, where the others' runs ended (the maker's own not counted)");
+  check(!(await get("studio-game&id=" + id)).game.stats, "the numbers are the maker's: not on the public page");
+  r = await call(fan, "world-studio-report", { id, why: "unfair" }); const r2 = await call(fan, "world-studio-report", { id, why: "rude" }); const r3 = await call(mk, "world-studio-report", { id, why: "rude" });
+  const rep = await get("studio-reports"); check(r.status === 200 && r2.body.already && r3.status === 400 && rep.list[0] && rep.list[0].id === id && rep.list[0].n === 1, "a report once a wallet, not your own; the GM's list");
+  r = await call(fan, "world-studio-hide", { id, on: true }); check(r.status === 403, "only a GM hides a game");
+  r = await call(gm, "world-studio-hide", { id, on: true }); let arc = await get("studio-arcade"); check(r.body.hidden && !arc.games.some((g) => g.id === id), "a GM hides a game: off the arcade");
+  r = await call(gm, "world-studio-hide", { id, on: false }); arc = await get("studio-arcade"); check(!r.body.hidden && arc.games.some((g) => g.id === id) && !(await get("studio-reports")).list.some((x) => x.id === id), "and back, its reports cleared");
+  aiReply = '{"lasers":0,"walls":1,"say":"Fewer lasers, an easier start","tpl":"arena","seed":5}'; const base = (await get("studio-game&id=" + id)).game.spec;
+  r = await call(mk, "world-studio-tweak", { spec: base, t: "make it easier, no lasers" }); check(r.status === 200 && r.body.by === "agent" && r.body.spec.lasers === 0 && r.body.spec.walls === 1 && r.body.spec.tpl === "runner" && r.body.spec.seed === base.seed && /easier/.test(r.body.say), "the agent's tweak: only the settings it changed, the template and layout kept");
+  aiReply = "no json here"; r = await call(mk, "world-studio-tweak", { spec: { ...base, coins: 2 }, t: "more coins please" }); check(r.body.by === "rules" && r.body.spec.coins === 3, "without the model the words are read by rules (more coins: " + r.body.spec.coins + ")");
+  await call(mk, "world-studio-del", { id }); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

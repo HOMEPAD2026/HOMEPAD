@@ -14,6 +14,10 @@
 //   GET  ?world=studio-arcade                                            → { games: [{ id, title, tpl, theme, byName, plays, likes, at }] }
 //   GET  ?world=studio-game&id=…                                         → { game: { id, spec, title, byName, plays, likes, pub, best } }
 //   GET  ?world=studio-mine&wallet=0x…                                   → { games }
+//   POST { action: "world-studio-tweak",   …signature, spec, t }          → { spec, by, say } (STU-D: the agent changes your game from a sentence; AI_DAY)
+//   POST { action: "world-studio-report",  …signature, id, why }          → { ok }         (STU-D: once a wallet; why ∈ broken|unfair|rude|copy|other)
+//   POST { action: "world-studio-hide",    …signature, id, on }           → { hidden }     (STU-D: a GM takes a game off the arcade, or back)
+//   GET  ?world=studio-reports                                          → { list }       (the reported games, most first)
 //   GET  ?world=studio-week                                             → { week, tpl, ends, top, last } (STU-C: the weekly contest)
 //   GET  ?world=studio-ghost&id=…                                        → { ghost: { name, score, tr } | null } (Studio 3: the #1's run to race)
 //
@@ -52,10 +56,10 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })) } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
-    if (g && g.pub) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
+    if (g && g.pub && !g.hidden) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
     const keep = Object.entries(list).sort((p, q) => (q[1].pick ? 1 : 0) - (p[1].pick ? 1 : 0) || (q[1].plays + q[1].likes * 5) - (p[1].plays + p[1].likes * 5) || q[1].at - p[1].at).slice(0, STUDIO.ARCADE); // (editor's picks are always kept)
     await setDoc(k, { list: Object.fromEntries(keep) });
   }
@@ -108,6 +112,11 @@ export function makeStudio(deps) {
       score = scoreOf(coins, dist, done);
     }
     const counted = (await deps.commit([{ create: `worldStudioRun/${w}_${b.id}_${Math.floor(now() / 20000)}`, data: { at: now() } }])).ok;
+    // STU-D: the maker's numbers — runs, clears, the score's total, and where along the level runs end (10 buckets)
+    if (counted && g.w !== w) { const st = g.stats || { runs: 0, clears: 0, sum: 0, ends: Array(10).fill(0) }; st.runs++; st.sum += score;
+      const cleared = g.spec.tpl === "puzzle" ? score > 0 : !!b.done; if (cleared) st.clears++;
+      else if (g.spec.tpl !== "puzzle") { const L = genLevel(g.spec), f = Math.max(0, Math.min(0.999, (Number(b.dist) || 0) / Math.max(1, L.len))); st.ends[Math.floor(f * 10)]++; }
+      g.stats = st; }
     if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); }
     const name = await deps.nameOf(w).catch(() => "") || "Player", best = (g.best || []).filter((x) => x.w !== w), mine0 = (g.best || []).find((x) => x.w === w);
     const top = mine0 && mine0.score >= score ? mine0 : { w, name, score };
@@ -130,6 +139,46 @@ export function makeStudio(deps) {
     const g = await game(b.id); if (!g || g.gone || !g.pub) return json(404, { error: "no such published game" });
     if (b.on) { const d = (await one("worldStats/studioArcade")) || {}; if (Object.entries(d.list || {}).filter(([id, x]) => x.pick && id !== b.id).length >= STUDIO.PICKS) return json(400, { error: `at most ${STUDIO.PICKS} picks — take one off first` }); g.pick = now(); } else delete g.pick;
     await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g); return json(200, { ok: true, pick: !!g.pick });
+  }
+  /// STU-D: a player reports a game (once each, a reason from a short list); a GM sees the count and can hide it from the arcade
+  const WHY = ["broken", "unfair", "rude", "copy", "other"];
+  async function report(w, b) {
+    const g = await game(b.id); if (!g || g.gone || !g.pub) return json(404, { error: "no such game" }); if (g.w === w) return json(400, { error: "that's your own game" });
+    const why = WHY.includes(b.why) ? b.why : "other"; if (!(await deps.commit([{ create: `worldStudioReport/${b.id}_${w}`, data: { at: now(), why } }])).ok) return json(200, { ok: true, already: true });
+    g.reports = g.reports || {}; g.reports[why] = (g.reports[why] || 0) + 1; await setDoc(`worldStudio/${b.id}`, g);
+    const k = "worldStats/studioReports", d = (await one(k)) || { list: {} }; d.list[b.id] = { title: g.spec.title, byName: g.byName || "", n: Object.values(g.reports).reduce((a, x) => a + x, 0), at: now() }; await setDoc(k, d);
+    return json(200, { ok: true });
+  }
+  async function hide(w, b) {
+    if (!deps.isGM || !deps.isGM(w)) return json(403, { error: "only a GM hides games" });
+    const g = await game(b.id); if (!g || g.gone) return json(404, { error: "no such game" });
+    if (b.on) g.hidden = now(); else delete g.hidden; await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g);
+    if (!b.on) { const k = "worldStats/studioReports", d = (await one(k)) || { list: {} }; delete d.list[b.id]; await setDoc(k, d); }
+    return json(200, { ok: true, hidden: !!g.hidden });
+  }
+  /// STU-D: the agent changes the game you're making from a sentence ("fewer lasers", "harder at the end") — the model answers
+  /// with only the settings to change (clamped like any spec); without it, plain rules read the words. Counts on AI_DAY.
+  function tweakRules(t, sp) {
+    const x = String(t).toLowerCase(), has = (...w) => w.some((k) => x.includes(k)), o = { ...sp }, up = (k, n, max) => { o[k] = Math.max(0, Math.min(max, (o[k] || 0) + n)); };
+    const more = has("more", "lots", "많이", "더 많", "多", "daha fazla"), less = has("fewer", "less", "no ", "적게", "줄", "없", "少", "daha az");
+    for (const [k, words, max] of [["coins", ["coin", "코인", "동전", "金币", "para"], 5], ["walls", ["wall", "벽", "墙", "duvar", "drone", "드론"], 5], ["gaps", ["gap", "jump", "구멍", "점프", "跳", "boşluk"], 3], ["lasers", ["laser", "레이저", "激光", "lazer"], 3]]) if (has(...words)) up(k, more ? 1 : less ? -1 : 1, max);
+    if (has("harder", "hard", "어렵", "难", "zor")) { up("walls", 1, 5); up("lasers", 1, 3); o.speed = Math.min(5, o.speed + 1); }
+    if (has("easier", "easy", "쉽", "简单", "kolay")) { up("walls", -1, 5); up("lasers", -1, 3); up("gaps", -1, 3); o.speed = Math.max(1, o.speed - 1); }
+    if (has("faster", "빠르", "快", "hızlı")) o.speed = Math.min(5, o.speed + 1); if (has("slower", "느리", "慢", "yavaş")) o.speed = Math.max(1, o.speed - 1);
+    if (has("longer", "길게", "长", "uzun")) o.len = LENS[Math.min(LENS.length - 1, LENS.indexOf(o.len) + 1)] || o.len; if (has("shorter", "짧", "短", "kısa")) o.len = LENS[Math.max(0, LENS.indexOf(o.len) - 1)] || o.len;
+    for (const th of Object.keys(THEMES)) if (x.includes(th)) o.theme = th;
+    return o;
+  }
+  async function tweak(w, b) {
+    const t = String(b.t || "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, STUDIO.PROMPT); if (!t) return json(400, { error: "tell your agent what to change" });
+    const base = clampSpec(b.spec || {}), tpl = base.tpl, K = KNOBS[tpl], k = `worldStudioAi/${w}_${day(now())}`, d = (await one(k)) || {};
+    const keep = (o) => clampSpec({ ...base, ...o, tpl, seed: base.seed, ...(base.build ? { build: base.build } : {}) });
+    if ((d.n || 0) >= STUDIO.AI_DAY) return json(200, { ok: true, spec: keep(tweakRules(t, base)), by: "rules", left: 0 });
+    const sys = `You adjust one level of the "${tpl}" template in ARCIRCLE Studio. Current settings: ${JSON.stringify({ theme: base.theme, speed: base.speed, len: base.len, coins: base.coins, walls: base.walls, gaps: base.gaps, lasers: base.lasers })}. What each means here: speed = ${K.speed}, coins = ${K.coins}, walls = ${K.walls}, gaps = ${K.gaps}, lasers = ${K.lasers}, len = ${K.len}. Ranges: speed 1-5, coins 0-5, walls 0-5, gaps 0-3, lasers 0-3, len one of ${LENS.join("|")}, theme one of ${Object.keys(THEMES).join("|")}. Reply with JSON only: just the settings to change, plus "say": one short friendly sentence (in the player's language) of what you changed.`;
+    let o = null, say = "", by = "rules";
+    try { const r = await callAI(sys, [{ role: "user", content: t }]); const m = r && String(r).match(/\{[\s\S]*\}/); if (m) { const j = JSON.parse(m[0]); say = String(j.say || "").replace(/[\u0000-\u001f<>]/g, " ").slice(0, 140); delete j.say; o = j; by = "agent"; } } catch { o = null; }
+    if (!o) o = tweakRules(t, base); else await setDoc(k, { n: (d.n || 0) + 1 });
+    return json(200, { ok: true, spec: keep(o), by, say, left: STUDIO.AI_DAY - (d.n || 0) - (by === "agent" ? 1 : 0) });
   }
   async function like(w, b) {
     const g = await game(b.id); if (!g || !g.pub) return json(404, { error: "no such game" });
@@ -180,6 +229,7 @@ export function makeStudio(deps) {
         for (const [id, o] of Object.entries(OFFICIAL)) if (!list[id]) { const sp = clampSpec(o); list[id] = { title: sp.title, tpl: sp.tpl, theme: sp.theme, byName: "ARCIRCLE", plays: 0, likes: 0, at: OFF_AT, s: tinySpec(sp), off: true }; } // (STU-A: the official games are always listed)
         return json(200, { ok: true, games: Object.entries(list).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
       if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); return json(200, { ok: true, game: pubOf(id, g, true) }); }
+      if (w === "studio-reports") { const d = (await one("worldStats/studioReports")) || {}; return json(200, { ok: true, list: Object.entries(d.list || {}).map(([id, x]) => ({ id, ...x })).sort((a, b) => b.n - a.n) }); }
       if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`)];
         return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3) } : null }, "public, max-age=30"); }
       if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioGhost/${id}`) : null; if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
@@ -197,6 +247,9 @@ export function makeStudio(deps) {
       if (b.action === "world-studio-play") return play(w, b);
       if (b.action === "world-studio-like") return like(w, b);
       if (b.action === "world-studio-ai") return ai(w, b);
+      if (b.action === "world-studio-tweak") return tweak(w, b);
+      if (b.action === "world-studio-report") return report(w, b);
+      if (b.action === "world-studio-hide") return hide(w, b);
       return null;
     },
   };

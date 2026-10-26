@@ -4497,3 +4497,15 @@ html.wp-pcphone .wst-in{zoom:1.25;height:calc(100dvh / 1.25);max-height:calc(100
 .wst-atools{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.wst-aq{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;font:600 14px/1.2 Sora,sans-serif}
 .wst-atpl{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}.wst-atpl button{flex:none}
 .wst-from{display:block;margin-top:4px;color:#7cf5c8;font:800 12px/1.2 Sora,sans-serif;cursor:pointer;text-decoration:underline}
+/* STU-D: drop-off heat strips, the maker's numbers, report / GM boxes, the tweak box */
+.wst-heat{margin:8px 0;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04)}.wst-heat small{display:block;margin-bottom:6px;color:#cfe0f5;font:800 12px/1 Sora,sans-serif}
+.wst-heatb{display:flex;gap:3px;height:18px}.wst-heatb i{flex:1;border-radius:4px;background:rgb(255,51,85);opacity:calc(.12 + var(--k) * .88);box-shadow:0 0 calc(var(--k) * 10px) rgba(255,51,85,.6)}
+.wst-heat em{display:flex;justify-content:space-between;margin-top:4px;font:700 10px/1 Sora,sans-serif;font-style:normal;color:#8ea5bf}
+.wst-tweak{border-color:rgba(124,245,200,.4);background:linear-gradient(90deg,rgba(124,245,200,.12),rgba(95,211,255,.08))}
+.wst-flash{animation:wstFlash .7s ease-out}@keyframes wstFlash{0%{box-shadow:0 0 0 0 rgba(124,245,200,.9)}100%{box-shadow:0 0 0 14px rgba(124,245,200,0)}}
+.wst-stats{flex:1 0 100%;margin-top:8px;padding:10px;border-radius:12px;background:rgba(0,0,0,.25)}.wst-stats ul{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0;padding:0;list-style:none}
+.wst-stats li{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;background:rgba(255,255,255,.05)}.wst-stats li b{font:900 16px/1 Sora,sans-serif;color:#7cf5c8}.wst-stats li small{font:700 10px/1.1 Sora,sans-serif;color:#9fb4c8;text-align:center}
+.wst-card{flex-wrap:wrap}.wst-cb button.on{border-color:#7cf5c8;color:#7cf5c8}
+.wst-rep{margin-top:8px}.wst-rep small{display:block;margin-bottom:6px;color:#cfe0f5;font:800 12px/1 Sora,sans-serif}
+.wst-reports{margin-bottom:10px;padding:10px;border-radius:14px;background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.45)}.wst-reports b{display:block;margin-bottom:6px;font:900 13px/1 Sora,sans-serif}
+.wst-reports div{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font:700 12px/1.2 Sora,sans-serif}.wst-reports span{cursor:pointer;text-decoration:underline}.wst-reports em{font-style:normal;color:#ff8fa3}
