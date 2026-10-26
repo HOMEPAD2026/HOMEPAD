@@ -15,7 +15,8 @@
 //   street items  ARCL coins, speed boots, a spring, XP stars, mana crystals, health potions, a shield, a magnet
 // ARCL goes through the server's claim: "street" (5), "hunt" (8–12 by tier, level-gated), "boss" (30), "pickup" (2),
 // each limited per day, because the server can't watch a fight.
-import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush, weekEvent } from "./world-rpg-data.js";
+import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush, weekEvent, skillDmgK, skillCdK, SLOT2_LV, ULT_LV, ULT_MAX, SKILL_LINE } from "./world-rpg-data.js";
+import { makeSkills, HIGH } from "./world-skills.js";
 import { weaponKind, potion as potion3d, token as token3d } from "./world-gear3d.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
@@ -60,7 +61,7 @@ export function createCombat(ctx) {
   const V3 = THREE.Vector3, UP = new THREE.Vector3(0, 1, 0);
   const root = new THREE.Group(); root.name = "combat"; planet.add(root);
   const mobs = [], items = [], shots = [], fx = [], drops = [];
-  const cd = { attack: 0, ice: 0, fire: 0, shock: 0, meteor: 0, dodge: 0 };
+  const cd = { attack: 0, ice: 0, fire: 0, shock: 0, meteor: 0, dodge: 0, blade: 0, chrono: 0, void: 0, judge: 0, infinity: 0 };
   const stats = () => rpg.stats();
   const maxHp = () => stats().hp, maxSp = () => stats().sp;
   let fightOn = false, quietT = 0, hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
@@ -336,14 +337,18 @@ export function createCombat(ctx) {
     else if (bs) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv, bs.line); else ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); }
     return m;
   }
-  function hit(m, raw, from, kind, crit) {
-    if (m.dead) return;
-    const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1)));
+  // light: a high skill's many hits (world-skills.js) — no hit-stop, no camera kick, the star and the sparks only on a
+  // crit, a number at most every 0.2 s a scammer — so a long skill over a crowd doesn't stall a phone
+  function hit(m, raw, from, kind, crit, light) {
+    if (m.dead) return 0;
+    const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1) * (m.vulnUntil > performance.now() ? 1.25 : 1))); // (Chrono Field: +25% taken)
+    if (kind !== "pet" && ctx.level() >= ULT_LV) gainUlt(light ? 0.35 : 2);
+    const quiet = light && !crit;
     if (m.trail == null || m.trailHold <= 0) m.trail = Math.max(0, m.hp / m.max); m.trailHold = 0.4; m.hp -= dmg; m.hitT = 0.18; if (m.tgt) m.lbl = 1; else label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
-    if (kind !== "pet") { if (ctx.hitstop) ctx.hitstop(kind === "heavy" ? 85 : kind === "meteor" ? 70 : crit ? 70 : 38); if (ctx.kickCam) ctx.kickCam(tmp, kind === "heavy" ? 0.16 : crit ? 0.12 : 0.06); }
+    if (kind !== "pet" && !light) { if (ctx.hitstop) ctx.hitstop(kind === "heavy" ? 85 : kind === "meteor" ? 70 : crit ? 70 : 38); if (ctx.kickCam) ctx.kickCam(tmp, kind === "heavy" ? 0.16 : crit ? 0.12 : 0.06); }
     if (crit && stats().mythic && kind !== "pet") { ring(tmp2.copy(m.g.position), 0xff3d6e, { r0: 0.3, r1: 2.2, life: 0.32, y: m.y + 0.5 }); if (ctx.parts && !ctx.reduce) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.8), 0xff3d6e, 14, tmp); } // (a Mythic piece worn: its criticals crack crimson)
-    if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
+    if (ctx.parts && !quiet) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
     m.leanT = kind === "heavy" ? 0.42 : 0.3; m.leanL = m.leanT; m.leanX = tmp.x; m.leanZ = tmp.z; // it rocks back away from the blow
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
     if (!m.raid && !m.tgt && !m.ext) tryStep(m, tmp, kb); // (a defence scammer holds its line)
@@ -352,12 +357,12 @@ export function createCombat(ctx) {
     if (kind === "shock" && VX) VX.impact(m.g.position.clone().setY(m.y + 0.6), "shock");
     if (kind === "fire" || kind === "meteor") { const inf = kind === "fire" && brOf("fire") === "b"; m.burn = inf ? 5 : 3; m.burnD = Math.max(1, Math.round(raw * (inf ? 0.24 : 0.12))); }
     m.e.play("Hit", { once: true, fade: 0.05 });
-    ctx.float((crit ? "!" : "") + dmg, tmp2.copy(m.g.position).setY(m.bar.position.y + 0.4), crit ? "#ffe066" : kind === "ice" ? "#8fe6ff" : kind === "fire" || kind === "meteor" ? "#ffb070" : kind === "shock" ? "#d8c4ff" : "#ffffff", crit, dmg / m.max);
-    if (crit || kind === "heavy") stopT = Math.max(stopT, crit ? 0.07 : 0.05);
+    const nowT = performance.now(); if (!quiet || !(m.fltT > nowT)) { m.fltT = nowT + 200; ctx.float((crit ? "!" : "") + dmg, tmp2.copy(m.g.position).setY(m.bar.position.y + 0.4), crit ? "#ffe066" : kind === "ice" ? "#8fe6ff" : kind === "fire" || kind === "meteor" ? "#ffb070" : kind === "shock" ? "#d8c4ff" : "#ffffff", crit, dmg / m.max); }
+    if (light) { /* no hit-stop */ } else if (crit || kind === "heavy") stopT = Math.max(stopT, crit ? 0.07 : 0.05);
     else if (kind === "melee") stopT = Math.max(stopT, 0.03); // even a plain cut bites for a moment
     m.punch = 1; // the body squashes and springs back (tickMobs)
     if (kind === "melee" || kind === "heavy" || kind === "shot") Snd.impact && Snd.impact(wKind());
-    Snd.hitFx && Snd.hitFx(kind, crit); if (crit && kind !== "pet") ctx.buzz && ctx.buzz(15); // the element's sound, a crit's ding (world-sfx.js)
+    if (!quiet || Math.random() < 0.12) Snd.hitFx && Snd.hitFx(kind, crit); if (crit && kind !== "pet") ctx.buzz && ctx.buzz(15); // the element's sound, a crit's ding (world-sfx.js)
     if (m.rank === "boss" && !m.raid && !m.rage && m.hp > 0 && m.hp < m.max * 0.5) enrage(m);
     if ((kind === "melee" || kind === "heavy") && !ctx.reduce) { // a bright slash mark across the body, at the angle of the swing
       const big = kind === "heavy" ? 1.5 : 1, ang = combo === 2 ? 0.6 : combo === 3 ? -0.2 : -0.7;
@@ -366,19 +371,20 @@ export function createCombat(ctx) {
     // the blow's star (world-vfx.js) where it landed, in the element's colour (a skill's, or the weapon's: cyan
     // swords, a gold hammer, a pink blaster, a green bow, a violet staff); a crit or a heavy blow pops bigger, gold, and
     // sends a ring across the ground
-    if (VX && VX.star) { const big = crit || kind === "heavy";
+    if (VX && VX.star && !quiet) { const big = crit || kind === "heavy";
       VX.star(fxV.copy(m.g.position).addScaledVector(tmp, -0.35).setY(m.y + 0.65), crit ? 0xffb347 : HIT_TINT[kind] ?? WPN_TINT[wKind()] ?? 0xffffff, { big, size: m.rank === "boss" ? 1.5 : kind === "pet" ? 0.6 : 1, rot: kind === "melee" || kind === "heavy" ? -(combo === 2 ? 0.6 : combo === 3 ? -0.2 : -0.7) : undefined });
       if (big) VX.quake(fxV.copy(m.g.position).setY(0), crit ? 0xffc861 : 0xffe8b0, m.rank === "boss" ? 4.5 : 2.6); }
-    if (crit && ctx.slowmo) ctx.slowmo(160);
-    if (crit && kind !== "pet" && ctx.critFlash) ctx.critFlash();
+    if (crit && !light && ctx.slowmo) ctx.slowmo(160);
+    if (crit && !light && kind !== "pet" && ctx.critFlash) ctx.critFlash();
     // a heavy blow drives it back: dust kicks up behind its feet, along the push
     if (kind === "heavy" && !ctx.reduce && m.rank !== "boss") puff(tmp2.copy(m.g.position).addScaledVector(tmp, 0.6).setY(0.2), 0xd8c8a8, { n: 8, speed: 2.2, size: 0.45, life: 0.45, grav: 1.5 });
     if (kind === "heavy" && ctx.punch) ctx.punch();
     // the raid boss's HP is everyone's: the hit is reported (world-raid.js) and it only falls when the server says so
     if (m.raid && raidMod === "rally" && Math.random() < 0.15) { const h = Math.max(1, Math.round(maxHp() * 0.012)); if (!down && hp < maxHp()) { hp = Math.min(maxHp(), hp + h); paintVit(); ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); } } // Rally week: hits on the boss mend you a little
-    if (m.raid) { ctx.raidHit && ctx.raidHit(dmg); if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return; }
-    if (m.ext) { try { m.ext.hit(m, dmg, crit); } catch { /* the fight goes on */ } if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return; } // it falls when its server says so
+    if (m.raid) { ctx.raidHit && ctx.raidHit(dmg); if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return dmg; }
+    if (m.ext) { try { m.ext.hit(m, dmg, crit); } catch { /* the fight goes on */ } if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return dmg; } // it falls when its server says so
     if (m.hp <= 0) kill(m);
+    return dmg;
   }
   const stepV = new V3(); // its own: callers pass tmp / tmp2 as the direction
   const fxV = new V3(); // where a pooled effect plays (copied by world-vfx.js, so one scratch does)
@@ -389,7 +395,7 @@ export function createCombat(ctx) {
     m.g.position.copy(stepV); return true;
   }
   function kill(m) {
-    m.dead = 0.001; Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
+    m.dead = 0.001; if (ctx.level() >= ULT_LV) gainUlt(4 + (hs ? hs.onKill() : 0)); Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
     if (rpg.wear) rpg.wear("kill"); // Epic and Legendary weapons wear out: 1 a knock-out (world-rpg.js)
     const p = m.g.position.clone().setY(m.y + 0.4);
     if (m.tgt) { // AC Defense: a wave drops many at once, so a lighter knock-out: its cubes and a little scrap pop (no shards, no shake but a boss's)
@@ -907,16 +913,17 @@ export function createCombat(ctx) {
     if (best) out.copy(best.g.position).sub(me).setY(0).normalize();
     return best;
   }
-  const power = (s) => stats().atk * s.mult * (1 + 0.12 * (skillLevel(ctx.level(), s.lv) - 1)) * (1 + (stats().skillPct || 0) / 100); // (skill damage: the Crimson Celestial set)
+  const power = (s) => stats().atk * s.mult * skillDmgK(skillLevel(ctx.level(), s.lv)) * (1 + (stats().skillPct || 0) / 100); // (skill damage: the Crimson Celestial set)
   // the way a skill grew (world-rpg-data.js BRANCHES): "a", "b" or "" before skill level 2 / before choosing
-  const brOf = (id) => { const s = SKILLS.find((x) => x.id === id); if (!s || skillLevel(ctx.level(), s.lv) < BRANCH_AT) return ""; const b = ((rpg.data() || {}).x || {}).br || {}; return b[id] === "a" || b[id] === "b" ? b[id] : ""; };
+  const brOf = (id) => { const s = SKILLS.find((x) => x.id === id) || HIGH.find((x) => x.id === id); if (!s || skillLevel(ctx.level(), s.lv) < BRANCH_AT) return ""; const b = ((rpg.data() || {}).x || {}).br || {}; return b[id] === "a" || b[id] === "b" ? b[id] : ""; };
   function cast(id) {
+    if (HIGH.some((x) => x.id === id)) return castHigh(id);
     const s = SKILLS.find((x) => x.id === id); if (!s || !ctx.active()) return false;
     if (resting()) { restNote(); return false; }
     if (!unlocked(s)) { ctx.toast(T("{x} unlocks at level {n}", { x: T(s.name), n: s.lv })); return false; }
     if (cd[id] > 0) return false;
     if (sp < s.sp) { ctx.toast(T("Not enough SP")); vit.classList.remove("low"); requestAnimationFrame(() => vit.classList.add("low")); return false; }
-    sp -= s.sp; cd[id] = s.cd * (1 - 0.05 * (skillLevel(ctx.level(), s.lv) - 1)); paintVit(); ctx.onCast && ctx.onCast(id);
+    sp -= s.sp; cd[id] = s.cd * skillCdK(skillLevel(ctx.level(), s.lv)); paintVit(); ctx.onCast && ctx.onCast(id);
     const av = ctx.avatar(); if (av) av.play("interact-right", { once: true, fade: 0.05, speed: 1.4 });
     ctx.here(me);
     const hand = me.clone().setY(1.25);
@@ -932,6 +939,26 @@ export function createCombat(ctx) {
     shots.push({ o: core, kind: id, v: fwd.clone().multiplyScalar(id === "ice" ? 14 : 12), life: 1.9, t: 0, trail: 0, dmg: power(s) * (id === "ice" && brOf("ice") === "b" ? 1.3 : 1), wide: id === "fire" && brOf("fire") === "a" });
     flash(start, s.color, 2.4, 0.22); ring(me, s.color, { r0: 0.3, r1: 1.8, life: 0.3, y: 0.1 });
     Snd.cast && Snd.cast(id);
+    return true;
+  }
+  // ---- the high skills (world-skills.js): X from Lv 150 (Blade Storm / Chrono Field / Void Ray), C from Lv 300 (the
+  // ultimates, cast with a full gauge: hits and knock-outs fill it; it isn't saved, a new visit starts empty)
+  let gauge = 0, gaugeQ = -1;
+  function gainUlt(n) { if (gauge >= ULT_MAX) return; gauge = Math.min(ULT_MAX, gauge + n); }
+  const hs = makeSkills({ THREE, ctx: { T, esc: ctx.esc, hero: () => (ctx.heroKind ? ctx.heroKind() : "aron"), avatar: ctx.avatar, reduce: ctx.reduce, ver: ctx.ver || "", Snd, float: ctx.float, slowmo: ctx.slowmo, parts: ctx.parts },
+    root, mobs, UP, VX, here: (v) => ctx.here(v), aim, hit, critRoll, critX, power, brOf, ring, flash, puff, scorch, pillar, shake: (n) => ctx.shake(n), lowQ, stats,
+    heal: (n) => { if (down) return 0; const h = Math.max(0, Math.min(n, maxHp() - hp)); if (h) { hp += h; paintVit(); } return Math.round(h); },
+    guard: (sec) => { guardT = Math.max(guardT, sec); } });
+  function castHigh(id) {
+    const s = HIGH.find((x) => x.id === id); if (!s || !ctx.active()) return false;
+    if (resting()) { restNote(); return false; }
+    if (!unlocked(s)) { ctx.toast(T("{x} unlocks at level {n}", { x: T(s.name), n: s.lv })); return false; }
+    if (cd[id] > 0 || hs.busy()) return false;
+    if (s.ult) { if (gauge < ULT_MAX) { ctx.toast(T("The ultimate gauge isn't full yet: hit and knock out scammers")); return false; } }
+    else if (sp < s.sp) { ctx.toast(T("Not enough SP")); vit.classList.remove("low"); requestAnimationFrame(() => vit.classList.add("low")); return false; }
+    if (!hs.cast(id, s)) return false;
+    if (s.ult) gauge = 0; else sp -= s.sp;
+    cd[id] = s.cd * skillCdK(skillLevel(ctx.level(), s.lv)); paintVit(); ctx.onCast && ctx.onCast(id);
     return true;
   }
   // Meteor: a burning rock falls on the nearest scammer ahead (or a few steps ahead) and blows a crater
@@ -1161,6 +1188,8 @@ export function createCombat(ctx) {
   bar.innerHTML = `<div class="wc-buffs" id="wc-buffs"></div>
     <div class="wc-pots"><button type="button" class="wc-pot hp" data-skill="pot-hp" aria-label="${T("Health potion")}">${ICON.hp}<b class="wc-key">4</b><em id="wc-pot-hp">0</em></button><button type="button" class="wc-forgechip" data-skill="forge" hidden>${T("Forge")}</button><button type="button" class="wc-pot sp" data-skill="pot-sp" aria-label="${T("Mana potion")}">${ICON.hp}<b class="wc-key">5</b><em id="wc-pot-sp">0</em></button></div>
     <button type="button" class="wc-skill wc-slot" data-skill="slot"><i></i><em class="wc-cd"></em><b class="wc-key">Z</b><small class="wc-lock"></small><small class="wc-slv"></small><span class="wc-swap" data-swap hidden aria-label="${T("Change skill")}"><svg viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3"/></svg></span></button>
+    <button type="button" class="wc-skill wc-hi wc-slot2 locked" data-skill="slot2"><i></i><em class="wc-cd"></em><b class="wc-key">X</b><small class="wc-lock"></small><small class="wc-slv"></small></button>
+    <button type="button" class="wc-skill wc-hi wc-ult locked" data-skill="ult"><svg class="wc-gauge" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" pathLength="100"/></svg><i></i><em class="wc-cd"></em><b class="wc-key">C</b><small class="wc-lock"></small></button>
     <button type="button" class="wc-lockon" data-skill="lockon" aria-label="${T("Lock on")}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b class="wc-key">Tab</b></button>
     <button type="button" class="wc-attack" data-skill="attack" aria-label="${T("Attack")}"><i>${ICON.attack}</i><em class="wc-cd"></em><b class="wc-key">J</b><span class="wc-combo" id="wc-combo"></span></button>
     <button type="button" class="wc-dodge" data-skill="dodge" aria-label="${T("Dodge")}"><svg class="wc-ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" pathLength="100"/></svg><i>${ICON.dodge}</i><b class="wc-key">K</b></button>
@@ -1171,7 +1200,13 @@ export function createCombat(ctx) {
   const learned = () => SKILLS.filter((x) => unlocked(x));
   const slotSkill = () => { const l = learned(); if (!l.length) return null; const want = (rpg.data() || {}).sk; return l.find((x) => x.id === want) || l[l.length - 1]; };
   const slotBtn = bar.querySelector('[data-skill="slot"]'), picker = bar.querySelector("#wc-pick");
-  function setSlot(id) { const s = SKILLS.find((x) => x.id === id); if (!s || !unlocked(s)) return; rpg.setSkill(id); paintSkills(); paintCd(); ctx.toast(T("Skill slot: {x}", { x: T(s.name) })); }
+  // X and C: the high skill set there in Character → Skills (rpg x.sk2 / x.ult), or the newest learned
+  const hiOf = (ult) => { const l = HIGH.filter((x) => !!x.ult === ult && unlocked(x)); if (!l.length) return null; const want = (((rpg.data() || {}).x) || {})[ult ? "ult" : "sk2"]; return l.find((x) => x.id === want) || l[l.length - 1]; };
+  const slot2Btn = bar.querySelector('[data-skill="slot2"]'), ultBtn = bar.querySelector('[data-skill="ult"]'), gaugeRing = ultBtn.querySelector(".wc-gauge circle");
+  function setSlot(id) {
+    const h = HIGH.find((x) => x.id === id);
+    if (h) { if (!unlocked(h)) return; if (rpg.setHigh) rpg.setHigh(h.ult ? "ult" : "sk2", id); paintSkills(); paintCd(); ctx.toast(T("Skill slot: {x}", { x: T(h.name) })); return; }
+    const s = SKILLS.find((x) => x.id === id); if (!s || !unlocked(s)) return; rpg.setSkill(id); paintSkills(); paintCd(); ctx.toast(T("Skill slot: {x}", { x: T(s.name) })); }
   function nextSkill() { const l = learned(); if (l.length < 2) return false; const cur = slotSkill(); setSlot(l[(l.indexOf(cur) + 1) % l.length].id); return true; }
   function openPick() {
     const cur = slotSkill();
@@ -1190,6 +1225,7 @@ export function createCombat(ctx) {
       return;
     }
     closePick();
+    if (id === "slot2" || id === "ult") { const h = hiOf(id === "ult"); if (!h) ctx.toast(T("{x} unlocks at level {n}", { x: T(id === "ult" ? "Ultimate" : "Skill slot X"), n: id === "ult" ? ULT_LV : SLOT2_LV })); else castHigh(h.id); b.classList.remove("press"); requestAnimationFrame(() => b.classList.add("press")); return; }
     if (id === "lockon") { lockOn(); return; }
     if (id === "forge") { rpg.forgeTab("supplies"); rpg.show("forge"); return; } // out of health potions at low HP: straight to the Forge's supplies
     if (id === "dodge") dodge();
@@ -1211,9 +1247,18 @@ export function createCombat(ctx) {
     slotBtn.className = "wc-skill wc-slot" + (s ? " wc-" + s.id : " locked");
     slotBtn.querySelector("i").innerHTML = s ? ICON[s.id] : ICON.lock;
     slotBtn.querySelector(".wc-lock").textContent = s ? "" : "🔒 " + T("Lv {n}", { n: SKILLS[0].lv }); // (b-st1: a lock, so it doesn't read as your level)
-    slotBtn.querySelector(".wc-slv").textContent = s ? "★".repeat(skillLevel(ctx.level(), s.lv)) : "";
+    slotBtn.querySelector(".wc-slv").textContent = s ? "★".repeat(Math.min(5, skillLevel(ctx.level(), s.lv))) + (skillLevel(ctx.level(), s.lv) > 5 ? "+" : "") : ""; // (skill levels 6–10: a +)
     slotBtn.querySelector("[data-swap]").hidden = n < 2;
     slotBtn.setAttribute("aria-label", s ? `${T(s.name)} (Z)` : T("Your first skill opens at level 10"));
+    for (const [btn, ult, key, at] of [[slot2Btn, false, "X", SLOT2_LV], [ultBtn, true, "C", ULT_LV]]) {
+      const h = hiOf(ult); btn.className = "wc-skill wc-hi " + (ult ? "wc-ult" : "wc-slot2") + (h ? " wc-" + h.id : " locked") + (ctx.level() >= at - 20 || h ? "" : " far");
+      btn.querySelector("i").innerHTML = h ? `<img src="/images/skills/ic-${h.id}.webp${ctx.ver || ""}" alt="">` : ICON.lock;
+      btn.querySelector(".wc-lock").textContent = h ? "" : "🔒 " + T("Lv {n}", { n: at });
+      const sv = btn.querySelector(".wc-slv"); if (sv) sv.textContent = h ? "★".repeat(Math.min(5, skillLevel(ctx.level(), h.lv))) + (skillLevel(ctx.level(), h.lv) > 5 ? "+" : "") : "";
+      btn.setAttribute("aria-label", h ? `${T(h.name)} (${key})` : T("{x} unlocks at level {n}", { x: T(ult ? "Ultimate" : "Skill slot X"), n: at }));
+      btn.title = h ? `${T(h.name)} (${key}) · ${T(SKILL_LINE[h.id])}` : btn.getAttribute("aria-label");
+    }
+    gaugeQ = -1;
     slotBtn.title = s ? `${T(s.name)} (Z) · ${T("Skill level {n}", { n: skillLevel(ctx.level(), s.lv) })}${n > 1 ? " · " + T("Q or a long press changes it") : ""}` : T("Your first skill opens at level 10");
   }
   // potions can come from anywhere (the Forge, a daily hunt, the season road, a drop): the buttons follow, and pop when they go up
@@ -1231,11 +1276,15 @@ export function createCombat(ctx) {
   function paintCd() {
     const sl = slotSkill();
     for (const [id, left] of Object.entries(cd)) {
-      const b = id === "attack" ? bar.querySelector('[data-skill="attack"]') : sl && sl.id === id ? slotBtn : null; if (!b) continue;
-      const total = CDT[id] || SKILLS.find((s) => s.id === id).cd;
+      const hi = HIGH.find((x) => x.id === id), h2 = hi && hiOf(!!hi.ult);
+      const b = id === "attack" ? bar.querySelector('[data-skill="attack"]') : sl && sl.id === id ? slotBtn : h2 && h2.id === id ? (hi.ult ? ultBtn : slot2Btn) : null; if (!b) continue;
+      const total = CDT[id] || (SKILLS.find((s) => s.id === id) || hi).cd;
       b.style.setProperty("--cd", String(Math.max(0, Math.min(1, left / total))));
       b.classList.toggle("cooling", left > 0);
     }
+    // the ultimate's gauge round its button (in 50 steps); full: it glows
+    const gq = ctx.level() >= ULT_LV ? Math.floor((gauge / ULT_MAX) * 50) : 0;
+    if (gq !== gaugeQ) { gaugeQ = gq; gaugeRing.style.strokeDashoffset = String(100 - gq * 2); ultBtn.classList.toggle("full", gq >= 50 && !!hiOf(true)); }
     const c = bar.querySelector("#wc-combo"); if (c) { c.textContent = comboT > 0 && combo > 1 ? `x${combo}` : ""; }
     // the dodge's ring refills as its cooldown runs out (in 24 steps, so the style isn't written every frame)
     const q = Math.ceil((cd.dodge / CDT.dodge) * 24);
@@ -1267,6 +1316,7 @@ export function createCombat(ctx) {
   let drFlash = 0;
   function damage(n) {
     if (resting() || down) return;
+    n = Math.max(1, Math.round(n * hs.hurtK())); hs.onHurt(n); // (Sanctuary: −30%; Rewind remembers it)
     if (stats().dr) { n = Math.max(1, Math.round(n * (1 - Math.min(50, stats().dr) / 100))); // damage reduction (the Crimson Celestial set), at most half
       if (stats().mythic && performance.now() - drFlash > 600) { drFlash = performance.now(); ctx.here(me); ring(me, 0xff3d6e, { r0: 0.7, r1: 1.5, life: 0.25, y: 1.1 }); } } // (a crimson shield flares as it takes the edge off)
     ghostHp = Math.max(ghostHp, hp); hp = Math.max(0, hp - n); calmT = 4; paintVit();
@@ -1320,7 +1370,7 @@ export function createCombat(ctx) {
     }
   }
   async function goDown() {
-    if (down) return; down = true; ctx.down(true); document.body.classList.remove("wc-low"); nudge();
+    if (down) return; down = true; hs.stop(); ctx.down(true); document.body.classList.remove("wc-low"); nudge();
     if (ctx.softKO && ctx.softKO()) { dead.hidden = true; return; } // a run of its own (RAID QUEENS): its own result card, no town KO card and no revive used; softUp() gets you up
     for (const m of mobs) if (!m.dead && m.rank !== "boss") { m.dead = 0.001; puff(m.g.position.clone().setY(0.6), 0xff4d6d, { n: 8, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
     dead.innerHTML = `<div class="wc-dead-card"><h2>${koHead()}</h2><p>${koLine()}</p></div>`;
@@ -1427,10 +1477,10 @@ export function createCombat(ctx) {
       if (Math.floor(h0) !== Math.floor(hp) || Math.floor(s0) !== Math.floor(sp)) paintVit();
       if (hp / mh < 0.3 && ctx.inHub()) { heartT -= dt; if (heartT <= 0) { heartT = 0.85; Snd.heart && Snd.heart(); } }
     }
-    tickFx(dt); chargeTick(dt);
+    tickFx(dt); chargeTick(dt); hs.tick(dt, t);
     if (stopT > 0) { stopT -= dt; return; } // hit-stop: everything in the fight holds still for a beat
     tickShots(dt);
-    if (!ctx.inHub()) { root.visible = false; zoneEl.hidden = true; bossEl.hidden = true; edgeEl.hidden = true; return; } // an island or a sheet: the boss bar steps away too
+    if (!ctx.inHub()) { if (hs.busy()) hs.stop(); root.visible = false; zoneEl.hidden = true; bossEl.hidden = true; edgeEl.hidden = true; return; } // an island or a sheet: the boss bar steps away too
     root.visible = true;
     if ((zoneT -= dt) <= 0) {
       zoneT = 0.5; ctx.here(me); const z = zoneAt(me.x, me.z);
@@ -1452,6 +1502,8 @@ export function createCombat(ctx) {
     if (k === "4") return drink("hp") || true;
     if (k === "5") return drink("sp") || true;
     if (k === "z") { const s = slotSkill(); if (s) cast(s.id); else ctx.toast(T("Your first skill opens at level 10")); return true; }
+    if (k === "x") { const h = hiOf(false); if (h) { castHigh(h.id); return true; } return false; }
+    if (k === "c") { const h = hiOf(true); if (h) { castHigh(h.id); return true; } return false; } // (before Lv 300, C stays the Forge's key)
     return false;
   }
   function keyUp(k, cancel) { if (k === "j") chargeEnd(!cancel); }
@@ -1460,6 +1512,8 @@ export function createCombat(ctx) {
     paintSkills(); hp = maxHp(); sp = maxSp(); ghostHp = hp; paintVit(); paintPots(); ctx.buzz && ctx.buzz([20, 30, 60]);
     ctx.here(me); pillar(me, 0xffb347, 16, 1.6, 1.1); ring(me, 0xffc861, { r0: 0.4, r1: 5, life: 0.9, y: 0.15 }); puff(me.clone().setY(1.2), 0xffe08a, { n: 30, speed: 6, size: 0.4, life: 1.2, grav: -2 });
     if (before) { const now = stats(); [["atk", "Attack"], ["def", "Defense"], ["hp", "Max HP"], ["sp", "Max SP"]].forEach(([k, n], i) => { const d = now[k] - before[k]; if (d > 0) setTimeout(() => ctx.float(`${T(n)} +${d}`, me.clone().setY(2.8 + i * 0.1), "#ffe08a"), 500 + i * 260); }); }
+    const h = HIGH.filter((x) => x.lv > lastLv && x.lv <= n).pop();
+    if (h) { setTimeout(() => { hs.newCard(h, h.ult ? "C" : "X", SKILL_LINE[h.id]); (h.ult ? ultBtn : slot2Btn).classList.add("learned"); setTimeout(() => (h.ult ? ultBtn : slot2Btn).classList.remove("learned"), 2400); }, 900); if (rpg.setHigh) rpg.setHigh(h.ult ? "ult" : "sk2", h.id); }
     const s = SKILLS.filter((x) => x.lv > lastLv && x.lv <= n).pop(); lastLv = n;
     if (s) { rpg.setSkill(s.id); paintSkills(); setTimeout(() => { ctx.skillCard ? ctx.skillCard(s) : ctx.toast(T("New skill: {x}! It's in your skill slot (Z).", { x: T(s.name) })); slotBtn.classList.add("learned"); setTimeout(() => slotBtn.classList.remove("learned"), 2600); ring(me, s.color, { r0: 0.4, r1: 4, life: 0.8, y: 0.2 }); }, 1400); }
   }
@@ -1510,7 +1564,7 @@ export function createCombat(ctx) {
     potsCheck, tick, keyDown, keyUp, chargeStart, chargeEnd, charged, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
     softUp: () => { if (down) getUp("here"); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
-    speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
+    speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100) * hs.moveK(), gauge: () => gauge, fillUlt: () => { gauge = ULT_MAX; }, skillStep: (sec) => { for (let i = 0; i < Math.round(sec * 30); i++) hs.tick(1 / 30, performance.now() / 1000 + i / 30); }, castBusy: () => hs.busy(), /* (fillUlt: tests) */ jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, mobsRaw: () => mobs,
     /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
     locked: () => lockAlive(), lockAt: (out) => (lockAlive() ? out.copy(lockT.g.position) : null),

@@ -1211,7 +1211,7 @@ addEventListener("keydown", (e) => {
   if (k === "l" && rpg && quests) { closeAll(); rpg.show("log"); return; }
   if (k === "h") { openHelp(); return; }
   // the dock's keys: B bag, C forge, N pets, U build, in town only (B stays the island's build key there; U on a visited island would leave it)
-  if (mode === "hub" && !e.repeat && (k === "b" || k === "c" || k === "n")) { if (k === "n") $("wp-dk-pet").click(); else { const d = $(k === "b" ? "wp-dk-bag" : "wp-dk-craft"); if (d) d.click(); } return; }
+  if (mode === "hub" && !e.repeat && (k === "b" || (k === "c" && level() < RPG.ULT_LV) || k === "n")) { /* from Lv 300, C is the ultimate (world-combat.js) */ if (k === "n") $("wp-dk-pet").click(); else { const d = $(k === "b" ? "wp-dk-bag" : "wp-dk-craft"); if (d) d.click(); } return; }
   if (k === "u" && !e.repeat && mode === "hub") { const d = $("wp-dk-build"); if (d) d.click(); return; }
   if (combat && mode === "hub" && combat.keyDown(k, e.repeat)) { e.preventDefault(); return; }
   if (k === "f") { setBoard(!boarding); return; }
@@ -3623,7 +3623,7 @@ guide.className = "wp-guide"; guide.id = "wp-guide"; guide.hidden = true; guide.
   const legend = `<ul class="wp-guide-legend">
     <h4>${esc(W("Moving"))}</h4>${li(["W", "A", "S", "D"], "Move (or the arrow keys)", M)}${li(["Shift"], "Run (hold)", M)}${li([W("Space")], "Jump", M)}
     <h4>${esc(T("Doing things"))}</h4>${li(["E"], "Enter a shop, talk", A)}${li(["F"], "Hoverboard on and off", A)}${li(["1", "2"], "Wave, shake your head", A)}${li(["T"], "Emote wheel: sit, point, faint…", A)}${li(["P"], "Photo mode", A)}
-    <h4>${esc(W("Fighting"))}</h4>${li(["J"], "Attack", M)}${li(["J"], "Hold to charge, let go when the ring is full: each weapon has its own charged attack", M)}${li(["K"], "Dodge: a quick dash nothing can hit", M)}${li(["Z"], "Cast the skill in your slot (skills come at levels 10, 20, 40, 80)", M)}${li(["Q"], "Change the skill in the slot", M)}${li(["4", "5"], "Health and mana potions", M)}${li(["I"], "Character, gear and bag", M)}${li(["L"], "Adventure log", M)}
+    <h4>${esc(W("Fighting"))}</h4>${li(["J"], "Attack", M)}${li(["J"], "Hold to charge, let go when the ring is full: each weapon has its own charged attack", M)}${li(["K"], "Dodge: a quick dash nothing can hit", M)}${li(["Z"], "Cast the skill in your slot (skills come at levels 10, 20, 40, 80)", M)}${li(["X"], "Your high skill (Lv 150: Blade Storm, Lv 200: Chrono Field, Lv 250: Void Ray)", M)}${li(["C"], "The ultimate, with a full gauge (Lv 300: Celestial Judgment, Lv 350: Infinity Burst); before Lv 300, C opens the Forge", M)}${li(["Q"], "Change the skill in the slot", M)}${li(["4", "5"], "Health and mana potions", M)}${li(["I"], "Character, gear and bag", M)}${li(["L"], "Adventure log", M)}
     <h4>${esc(W("Menus"))}</h4>${li(["M"], "Map and fast travel", U)}${li(["H"], "Help Center", U)}${li(["Esc"], "Close what's open", U)}
     <h4>${esc(T("Game controller"))}</h4>${li(["A"], "Jump", M)}${li(["X", "B", "Y"], "Attack, dodge, the skill", M)}${li(["LB", "RB"], "Change the skill", M)}${li(["LT", "RT"], "Health and mana potions", M)}${li(["▲", "▼"], "Emotes and lines to say, enter a shop", A)}${li(["Start", "View"], "Map, Adventure log", U)}
     <h4>${esc(T("Building on your island"))}</h4>${li(["B"], "Build mode on and off", B)}${li(["Tab"], "All bricks", B)}${li(["R"], "Rotate the brick", B)}${li(["X"], "Remove tool", B)}${li(["C"], "Paint tool", B)}${li(["V"], "Pick a brick and its colour", B)}${li(["G"], "Mirror", B)}${li(["L"], "Layer lock", B)}${li(["Ctrl", "Z"], "Undo", B)}
@@ -4045,7 +4045,7 @@ st.on((dt) => { if (mode !== "hub") return; here(tmp3t); tracks.tick(dt, tmp3t.x
 st.on((dt) => { if (mode === "hub") live.tick(dt); });
 st.on((dt) => parts.tick(dt));
 combat = FIGHT.createCombat({ softKO: () => !!(rqL && rqL.running()), alt: (a) => (jurOn && jurGame ? jurGame.act(a) : false), koWhy: () => (jurOn ? "dino" : ""), koBy: () => { try { return jurOn && jurGame && jurGame.koBy ? jurGame.koBy() : ""; } catch { return ""; } }, vfx, parts, wave: (p, power = 1) => { if (!fxPost || !fxPost.shock || reduce) return; const at = p.clone(); fxPost.shock((out) => out.copy(at).add(planet.position).setY(0.6), { power }); },
-  THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
+  THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse, ver: VER, heroKind: () => { const c = String(P.char || ""); return /lumi/.test(c) ? "lumi" : /nex/.test(c) ? "nex" : "aron"; }, /* the high skills draw in the hero's colours (world-skills.js) */
   kit: () => kit, here: (v) => here(v), facing: () => facing, faceTo: (a) => { facing = angLerp(facing, a, 0.5); }, afterimage: () => afterimage(), critFlash: () => critFlash(), avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },

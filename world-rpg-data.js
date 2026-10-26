@@ -101,7 +101,15 @@ export function statsOf(level, eq, extra) {
   return s;
 }
 export const PASSIVES = [{ lv: 3, name: "Tough skin", line: "Max HP +5%" }, { lv: 5, name: "Quick feet", line: "Speed +5%" }, { lv: 7, name: "Sharp eye", line: "Critical +3%" }];
-export const skillLevel = (level, unlock) => (level < unlock ? 0 : Math.min(5, 1 + Math.floor((level - unlock) / 5)));
+// a skill grows a level every five levels after it's learned, up to 10 (2026-10-25: was 5)
+export const SKILL_MAX = 10;
+export const skillLevel = (level, unlock) => (level < unlock ? 0 : Math.min(SKILL_MAX, 1 + Math.floor((level - unlock) / 5)));
+/// a skill's damage at its level: +12% a level up to 5 (as before), then +8% a level up to 10
+export const skillDmgK = (sl) => 1 + 0.12 * (Math.min(5, Math.max(1, sl)) - 1) + 0.08 * Math.max(0, sl - 5);
+/// its cooldown: −5% a level up to 5 (as before), and at level 10 another −15%
+export const skillCdK = (sl) => (1 - 0.05 * (Math.min(5, Math.max(1, sl)) - 1)) * (sl >= SKILL_MAX ? 0.85 : 1);
+/// the second skill slot (X) and the ultimate (C, with its gauge)
+export const SLOT2_LV = 150, ULT_LV = 300, ULT_MAX = 100;
 
 // scammers by level
 // levels: the XP from one level to the next grows with the level — 100 at level 1, about 450 at 10, 1,000 at 20,
@@ -177,8 +185,15 @@ export const TITLE_BONUS = {
 };
 export const bonusLine = (b) => Object.entries(b || {}).map(([k, v]) => `${STAT_NAME[k]} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(", ");
 
-// the four skills (world-combat.js SKILLS has their numbers): when each is learned
-export const SKILL_INFO = [{ id: "ice", name: "Ice Ball", lv: 10 }, { id: "fire", name: "Fire Ball", lv: 20 }, { id: "shock", name: "Shock", lv: 40 }, { id: "meteor", name: "Meteor", lv: 80 }];
+// the skills (world-combat.js SKILLS has their numbers): when each is learned; ult: the C slot's, cast with a full gauge
+export const SKILL_INFO = [{ id: "ice", name: "Ice Ball", lv: 10 }, { id: "fire", name: "Fire Ball", lv: 20 }, { id: "shock", name: "Shock", lv: 40 }, { id: "meteor", name: "Meteor", lv: 80 },
+  { id: "blade", name: "Blade Storm", lv: 150 }, { id: "chrono", name: "Chrono Field", lv: 200 }, { id: "void", name: "Void Ray", lv: 250 },
+  { id: "judge", name: "Celestial Judgment", lv: 300, ult: true }, { id: "infinity", name: "Infinity Burst", lv: 350, ult: true }];
+export const SKILL_LINE = {
+  ice: "A ball of ice that slows", fire: "A fireball that bursts and burns", shock: "Lightning that jumps and stuns", meteor: "A meteor that leaves a crater",
+  blade: "Blades spin round you for 4 seconds, then burst", chrono: "A clock field: scammers slow down and take 25% more damage",
+  void: "Channel a piercing beam that grows stronger", judge: "Seven swords fall, then a great sword stuns them all", infinity: "Twelve slashes along the infinity sign, then a huge blast",
+};
 // skill branches: at skill level 2 each skill picks one of two ways to grow (saved in P.rpg.x.br)
 export const BRANCH_AT = 2;
 export const BRANCHES = {
@@ -186,6 +201,11 @@ export const BRANCHES = {
   fire: [{ id: "a", name: "Wildfire", line: "A wider blast that hits the crowd harder" }, { id: "b", name: "Inferno", line: "Burns twice as hard, for longer" }],
   shock: [{ id: "a", name: "Long Chain", line: "Jumps to two more scammers" }, { id: "b", name: "Overload", line: "Stuns twice as long, 20% more damage" }],
   meteor: [{ id: "a", name: "Twin Star", line: "A second meteor follows the first" }, { id: "b", name: "Crater", line: "A crater half again as wide" }],
+  blade: [{ id: "a", name: "Cyclone", line: "Pulls scammers in, 40% wider" }, { id: "b", name: "Blood Edge", line: "Each hit mends 1% of your HP" }],
+  chrono: [{ id: "a", name: "Time Stop", line: "Freezes them for 1.5 seconds (a boss 0.5)" }, { id: "b", name: "Rewind", line: "When it ends, the HP you lost in it comes back" }],
+  void: [{ id: "a", name: "Prism", line: "Three beams at 60% each" }, { id: "b", name: "Event Horizon", line: "A black hole at the end: pulls for 2 seconds, then explodes" }],
+  judge: [{ id: "a", name: "Day of Judgment", line: "Ten swords in a tighter circle" }, { id: "b", name: "Sanctuary", line: "8 seconds of holy ground: 30% less damage taken, HP back" }],
+  infinity: [{ id: "a", name: "Eternity", line: "Each knock-out gives back 5% of the gauge" }, { id: "b", name: "Singularity", line: "The blast doubles, +30% against bosses" }],
 };
 
 // gear fusion at the Forge: three pieces of one rarity (Common or Uncommon) make one of the next rarity

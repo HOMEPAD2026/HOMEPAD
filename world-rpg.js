@@ -4,7 +4,7 @@
 // Saved with the rest of your progress (P.rpg → world-save, checked for shape in api/_world.mjs). Gear dropped by
 // scammers turns into scrap, or sells back to the Forge through the server (by rarity, capped per day, each piece
 // once); the Forge sells for ARCL through the server too.
-import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, ARCL_DAY_CAP, mwBand, mwPrice, mwId, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, skillLevel, bonusLine, DUR_MAX, REPAIR_PRICE, REPAIR_FREE_DAY, WEAR_WARN, WEAR_HURT_MS, WEAR_KILL, WEAR_HURT, durMax, durOf, isBroken } from "./world-rpg-data.js";
+import { SLOTS, SLOT_NAME, RARITY, TIERS, BASES, baseId, parseBase, itemStats, itemName, STAT_NAME, statsOf, FORGE_PRICE, FORGE_SUPPLY, forgeId, sellPrice, SELL_DAY_CAP, ARCL_DAY_CAP, mwBand, mwPrice, mwId, fuseResult, FUSE_MAX_R, FUSE_PICK_SCRAP, SKILL_INFO, BRANCHES, BRANCH_AT, SKILL_MAX, SKILL_LINE, skillLevel, bonusLine, DUR_MAX, REPAIR_PRICE, REPAIR_FREE_DAY, WEAR_WARN, WEAR_HURT_MS, WEAR_KILL, WEAR_HURT, durMax, durOf, isBroken } from "./world-rpg-data.js";
 export * from "./world-rpg-data.js";
 import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade, weaponThumb, gearThumb, gearModel3d } from "./world-gear3d.js";
 import { art } from "./world-itemart.js";
@@ -734,15 +734,16 @@ export function createRpg(ctx) {
   let skSel = "";
   function skillsPane() {
     const lv = ctx.level(), br = ((R().x || {}).br) || {}, hero = hub("hero") || "aron", cur = SKILL_INFO.find((k) => k.id === skSel) || SKILL_INFO.find((k) => skillLevel(lv, k.lv)) || SKILL_INFO[0];
-    const sl = skillLevel(lv, cur.lv), opts = BRANCHES[cur.id], stars = (n) => `<span class="hb-stars">${Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? "on" : ""}">★</i>`).join("")}</span>`;
-    const nextAt = sl && sl < 5 ? cur.lv + sl * 5 : 0;
+    const sl = skillLevel(lv, cur.lv), opts = BRANCHES[cur.id], stars = (n) => `<span class="hb-stars">${Array.from({ length: SKILL_MAX }, (_, i) => `<i class="${i < n ? "on" : ""}">★</i>`).join("")}</span>`;
+    const nextAt = sl && sl < SKILL_MAX ? cur.lv + sl * 5 : 0, xs = (R().x || {}), using = cur.lv >= 150 ? (xs[cur.ult ? "ult" : "sk2"] || "") === cur.id : R().sk === cur.id;
     return `<div class="hb-sk"><section class="hb-card hb-skhero"><img src="/images/ui/menu2/stand-${hero}.webp${ctx.ver || ""}" alt=""><div><b>${esc(hub("name") || T("Player"))}</b><span>${esc(T("Lv {n}", { n: lv }))}</span></div><button type="button" class="hb-plus" data-hubgo="make">${esc(T("Change character"))}</button></section>
       <section class="hb-card hb-sklist"><h4>${esc(T("Skills"))}</h4><div class="hb-skgrid">${SKILL_INFO.map((k) => { const n = skillLevel(lv, k.lv); return `<button type="button" class="hb-skc${k === cur ? " on" : ""}${n ? "" : " off"}" data-sksel="${k.id}"><img src="/images/ui/char/sk-${k.id}.webp${ctx.ver || ""}" alt=""><b>${esc(T(k.name))}</b><small>${n ? esc(T("Lv {n}", { n })) : "🔒 " + esc(T("Lv {n}", { n: k.lv }))}</small></button>`; }).join("")}</div>
         <p class="wr-note">${esc(T("A skill opens at level 10. Swap it with the ⇄ on the skill button."))}</p></section>
-      <aside class="hb-card hb-skdet"><div class="hb-dh"><span class="hb-dic"><img src="/images/ui/char/sk-${cur.id}.webp${ctx.ver || ""}" alt=""></span><div><h3>${esc(T(cur.name))}</h3><small>${sl ? esc(T("Skill level {n}", { n: sl })) : esc(T("Opens at level {n}", { n: cur.lv }))}</small>${stars(sl)}</div>${R().sk === cur.id ? `<em class="hb-tag">${esc(T("In use"))}</em>` : ""}</div>
-        <dl class="hb-dl"><div><dt>${esc(T("Opens at"))}</dt><dd>Lv ${cur.lv}</dd></div><div><dt>${esc(T("Next skill level"))}</dt><dd>${sl >= 5 ? "MAX" : nextAt ? "Lv " + nextAt : "—"}</dd></div><div><dt>${esc(T("Branch"))}</dt><dd>${sl >= BRANCH_AT ? esc(br[cur.id] ? T(opts.find((o) => o.id === br[cur.id]).name) : T("Pick one")) : esc(T("At skill level 2 (level {n})", { n: cur.lv + 5 }))}</dd></div></dl>
+      <aside class="hb-card hb-skdet"><div class="hb-dh"><span class="hb-dic"><img src="/images/ui/char/sk-${cur.id}.webp${ctx.ver || ""}" alt=""></span><div><h3>${esc(T(cur.name))}</h3><small>${sl ? esc(T("Skill level {n}", { n: sl })) : esc(T("Opens at level {n}", { n: cur.lv }))} · ${esc(T(cur.ult ? "Key C · ultimate" : cur.lv >= 150 ? "Key X" : "Key Z"))}</small>${stars(sl)}</div>${using ? `<em class="hb-tag">${esc(T("In use"))}</em>` : ""}</div>
+        ${SKILL_LINE[cur.id] ? `<p class="hb-skline">${esc(T(SKILL_LINE[cur.id]))}</p>` : ""}
+        <dl class="hb-dl"><div><dt>${esc(T("Opens at"))}</dt><dd>Lv ${cur.lv}</dd></div><div><dt>${esc(T("Next skill level"))}</dt><dd>${sl >= SKILL_MAX ? "MAX" : nextAt ? "Lv " + nextAt : "—"}</dd></div><div><dt>${esc(T("Branch"))}</dt><dd>${sl >= BRANCH_AT ? esc(br[cur.id] ? T(opts.find((o) => o.id === br[cur.id]).name) : T("Pick one")) : esc(T("At skill level 2 (level {n})", { n: cur.lv + 5 }))}</dd></div></dl>
         <h4>${esc(T("Branches"))}</h4><div class="hb-brs">${opts.map((o) => `<button type="button" class="hb-br" data-br="${cur.id}:${o.id}" aria-pressed="${br[cur.id] === o.id}" ${sl >= BRANCH_AT ? "" : "disabled"}><i class="br-fx br-${cur.id}-${o.id}" aria-hidden="true"><u></u><u></u><u></u></i><b>${esc(T(o.name))}</b><small>${esc(T(o.line))}</small></button>`).join("")}</div>
-        <div class="hb-gold"><button type="button" class="wr-buy" data-skuse="${cur.id}" ${sl && R().sk !== cur.id ? "" : "disabled"}>${esc(R().sk === cur.id ? T("In use") : T("Use this skill"))}</button></div></aside></div>`;
+        <div class="hb-gold"><button type="button" class="wr-buy" data-skuse="${cur.id}" ${sl && !using ? "" : "disabled"}>${esc(using ? T("In use") : T("Use this skill"))}</button></div></aside></div>`;
   }
   // Titles (the owner's mock-up): the worn title on a gold plate over your hero, the list beside it, filtered by kind
   let tCat = "all", tSel = "";
@@ -956,7 +957,7 @@ export function createRpg(ctx) {
     if (d.myopen != null && ctx.openMythic) { ctx.openMythic(d.myopen || undefined); return; } // (a Crimson Celestial slot or its card: the set window)
     if (d.view) { view = d.view; sel = null; show(view); return; }
     if (d.sksel) { skSel = d.sksel; paint(); return; }
-    if (d.skuse) { if (!hub("skill:" + d.skuse)) { R().sk = d.skuse; ctx.save(); } fx(`[data-sksel="${d.skuse}"], .hb-skdet .hb-dic`, T("In use"), "#5fd3ff", true); paint(); return; }
+    if (d.skuse) { if (!hub("skill:" + d.skuse)) { const hi = SKILL_INFO.find((k) => k.id === d.skuse && k.lv >= 150); if (hi) { const r = R(); r.x = r.x || {}; r.x[hi.ult ? "ult" : "sk2"] = d.skuse; } else R().sk = d.skuse; ctx.save(); } fx(`[data-sksel="${d.skuse}"], .hb-skdet .hb-dic`, T("In use"), "#5fd3ff", true); paint(); return; }
     if (d.tcat) { tCat = d.tcat; paint(); return; }
     if (d.tsel) { tSel = d.tsel; paint(); return; }
     if (b.hasAttribute("data-craftall")) { craftAll = !craftAll; paint(); return; }
@@ -1060,6 +1061,7 @@ export function createRpg(ctx) {
     onLevel: () => changed(), refresh: () => { cache = null; ctx.onStats(stats()); },
     data: () => R(),
     setSkill: (id) => { R().sk = id; ctx.save(); },
+    setHigh: (k, id) => { const r = R(); r.x = r.x || {}; r.x[k] = id; ctx.save(); }, // the X slot (sk2) and the ultimate (ult)
     // the 7th day's chest: a Rare (or, one time in four, an Epic) piece at your level
     giftPiece: (lv, rr) => { const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)], tier = Math.max(0, Math.min(4, TIERS.filter((t) => t.lv <= lv).length - 1)); const it = { id: rid(), b: baseId(slot, tier), r: rr != null ? rr : Math.random() < 0.25 ? 3 : 2, lv: Math.max(1, Math.min(60, lv)), p: 0 }; return addItem(it, true) ? it : null; },
     setLog: (q) => { log = q; }, forgeTab: (t) => { forgeTab = t; seeTab(t); }, pane: (k) => { invPane = k === "bag" ? "bag" : "gear"; storeView = false; }, repaint: () => paint(), view: () => view,
