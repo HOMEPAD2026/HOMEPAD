@@ -14,6 +14,7 @@
 //   GET  ?world=studio-arcade                                            → { games: [{ id, title, tpl, theme, byName, plays, likes, at }] }
 //   GET  ?world=studio-game&id=…                                         → { game: { id, spec, title, byName, plays, likes, pub, best } }
 //   GET  ?world=studio-mine&wallet=0x…                                   → { games }
+//   GET  ?world=studio-week                                             → { week, tpl, ends, top, last } (STU-C: the weekly contest)
 //   GET  ?world=studio-ghost&id=…                                        → { ghost: { name, score, tr } | null } (Studio 3: the #1's run to race)
 //
 // STU-A: OFFICIAL — six games by ARCIRCLE (ids goff*) listed from the start; the arcade's list carries a small spec (s) for
@@ -37,6 +38,11 @@ export const OFFICIAL = {
   gofftd: { tpl: "defense", theme: "neon", title: "Crystal Defense", speed: 4, len: 60, coins: 3, walls: 3, gaps: 2, lasers: 2, seed: 5150 },
 };
 const OFF_AT = Date.UTC(2026, 9, 26);
+// STU-C: the weekly creator contest — each Seoul week (from Monday) one template is the theme; that week's plays (by others)
+// and likes ×5 on that template's published games rank them; last week's top 3 stay shown. worldStudioWeek/<monday> { tpl, list }
+export const CONTEST = { TPLS: ["runner", "arena", "climb", "dash", "defense", "puzzle"], LIKE: 5, TOP: 10, KEEP: 60 };
+export const weekOf = (t) => { const d = new Date(t + 9 * 3600e3), wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10); };
+export const contestTpl = (wk) => CONTEST.TPLS[Math.floor(Date.parse(wk + "T00:00:00Z") / (7 * 86400e3)) % CONTEST.TPLS.length];
 /// a small copy of a spec for the arcade's list (the page draws a card's picture from it; a hand-built layout isn't in it)
 export const tinySpec = (sp) => { const o = {}; for (const k of ["tpl", "theme", "speed", "len", "coins", "walls", "gaps", "lasers", "seed"]) o[k] = sp[k]; if (sp.rules) o.rules = sp.rules; return o; };
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
@@ -46,7 +52,7 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })) } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })) } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
     if (g && g.pub) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
@@ -55,6 +61,14 @@ export function makeStudio(deps) {
   }
   /// a game's document, or an official game made up from code the first time it's asked for
   const game = async (id) => { const g = await one(`worldStudio/${id}`); if (g) return g; const o = OFFICIAL[id]; return o ? { w: "arcircle", byName: "ARCIRCLE", official: true, spec: clampSpec(o), pub: true, at: OFF_AT, up: OFF_AT, pubAt: OFF_AT, plays: 0, likes: 0, best: [] } : null; };
+  async function weekBump(id, g, plays, likes) {
+    const wk = weekOf(now()), tpl = contestTpl(wk); if (!g.pub || g.spec.tpl !== tpl) return;
+    const k = `worldStudioWeek/${wk}`, d = (await one(k)) || { tpl, list: {} }, e = d.list[id] || { p: 0, l: 0 };
+    d.list[id] = { p: e.p + plays, l: e.l + likes, title: g.spec.title, byName: g.byName || "", tpl };
+    d.list = Object.fromEntries(Object.entries(d.list).sort((a, b) => (b[1].p + b[1].l * CONTEST.LIKE) - (a[1].p + a[1].l * CONTEST.LIKE)).slice(0, CONTEST.KEEP));
+    await setDoc(k, { tpl, list: d.list });
+  }
+  const weekTop = (d) => Object.entries((d && d.list) || {}).map(([id, x]) => ({ id, ...x, pts: x.p + x.l * CONTEST.LIKE })).sort((a, b) => b.pts - a.pts);
   const mineOf = async (w) => ((await one(`worldStudioBy/${w}`)) || {}).ids || [];
 
   async function save(w, b) {
@@ -66,6 +80,7 @@ export function makeStudio(deps) {
     }
     if (ids.length >= STUDIO.DRAFTS) return json(400, { error: `you can keep ${STUDIO.DRAFTS} games — delete one first` });
     const id = "g" + String(deps.randomId()).replace(/[^a-z0-9]/gi, "").slice(0, 10).toLowerCase(), g = { w, byName: await deps.nameOf(w).catch(() => ""), spec, pub: false, at: now(), up: now(), plays: 0, likes: 0, best: [] };
+    if (b.from && /^g[a-z0-9]{2,12}$/.test(String(b.from))) { const src = await game(String(b.from)); if (src && src.pub && !src.gone) { g.from = { id: String(b.from), title: src.spec.title, byName: src.byName || "" }; src.remixes = (src.remixes || 0) + 1; if (!src.official || (await one(`worldStudio/${b.from}`))) await setDoc(`worldStudio/${b.from}`, src); } } // (STU-C: a remix keeps where it came from)
     await setDoc(`worldStudio/${id}`, g); await setDoc(`worldStudioBy/${w}`, { ids: [...ids, id] });
     return json(200, { ok: true, game: pubOf(id, g, true) });
   }
@@ -93,7 +108,7 @@ export function makeStudio(deps) {
       score = scoreOf(coins, dist, done);
     }
     const counted = (await deps.commit([{ create: `worldStudioRun/${w}_${b.id}_${Math.floor(now() / 20000)}`, data: { at: now() } }])).ok;
-    if (counted && g.w !== w) g.plays = (g.plays || 0) + 1;
+    if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); }
     const name = await deps.nameOf(w).catch(() => "") || "Player", best = (g.best || []).filter((x) => x.w !== w), mine0 = (g.best || []).find((x) => x.w === w);
     const top = mine0 && mine0.score >= score ? mine0 : { w, name, score };
     g.best = [...best, top].sort((p, q) => q.score - p.score).slice(0, STUDIO.BEST);
@@ -120,7 +135,7 @@ export function makeStudio(deps) {
     const g = await game(b.id); if (!g || !g.pub) return json(404, { error: "no such game" });
     if (g.w === w) return json(400, { error: "that's your own game" });
     if (!(await deps.commit([{ create: `worldStudioLike/${b.id}_${w}`, data: { at: now() } }])).ok) return json(200, { ok: true, likes: g.likes || 0, already: true });
-    g.likes = (g.likes || 0) + 1; await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g);
+    g.likes = (g.likes || 0) + 1; await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g); await weekBump(b.id, g, 0, 1).catch(() => {});
     return json(200, { ok: true, likes: g.likes });
   }
   async function callAI(sys, msgs) { // (like the agent's chat: deps.ai in tests, else the Messages API with the server's key; null when it can't)
@@ -165,6 +180,8 @@ export function makeStudio(deps) {
         for (const [id, o] of Object.entries(OFFICIAL)) if (!list[id]) { const sp = clampSpec(o); list[id] = { title: sp.title, tpl: sp.tpl, theme: sp.theme, byName: "ARCIRCLE", plays: 0, likes: 0, at: OFF_AT, s: tinySpec(sp), off: true }; } // (STU-A: the official games are always listed)
         return json(200, { ok: true, games: Object.entries(list).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
       if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); return json(200, { ok: true, game: pubOf(id, g, true) }); }
+      if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`)];
+        return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3) } : null }, "public, max-age=30"); }
       if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioGhost/${id}`) : null; if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
       if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
       return null;

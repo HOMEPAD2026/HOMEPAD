@@ -162,5 +162,18 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   const arc2 = await get("studio-arcade"), e = arc2.games.filter((g) => g.id === "goffrun"); check(e.length === 1 && e[0].plays === 1 && e[0].likes === 1 && e[0].off, "listed once, with its plays and likes");
   const r3 = await call(me, "world-studio-save", { id: "goffrun", spec: g1.spec }), r4 = await call(me, "world-studio-del", { id: "goffrun" }); check(r3.status === 404 && r4.status === 404, "nobody can change or delete an official game");
   check((await get("studio-game&id=goffnope")).ok !== true, "an unknown id isn't made up"); }
+// STU-C: the weekly contest (this week's template: others' plays + likes ×5) and remixes
+{ const { weekOf, contestTpl } = await import("../../api/_world-studio.mjs"); const wk = weekOf(T), tpl = contestTpl(wk);
+  check(wk === "2026-10-19" && weekOf(Date.parse("2026-10-25T14:59:00Z")) === "2026-10-19" && weekOf(Date.parse("2026-10-25T15:00:00Z")) === "2026-10-26", "weeks run Monday to Sunday, Seoul time");
+  const mk = ethers.Wallet.createRandom(); let r = await call(mk, "world-studio-save", { spec: { tpl, title: "Week Entry", seed: 77 } }); const id = r.body.game.id; await call(mk, "world-studio-publish", { id, on: true });
+  const other = tpl === "runner" ? "arena" : "runner"; r = await call(mk, "world-studio-save", { spec: { tpl: other, title: "Off theme", seed: 78 } }); const id2 = r.body.game.id; await call(mk, "world-studio-publish", { id: id2, on: true });
+  const gs = (await get("studio-game&id=" + id)).game, L = G.genLevel(gs.spec);
+  await call(fan, "world-studio-play", { id, coins: 0, dist: 1, done: false, moves: [], hints: 0 }); await call(fan, "world-studio-like", { id }); await call(fan, "world-studio-play", { id: id2, coins: 0, dist: 1, done: false }); await call(mk, "world-studio-play", { id, coins: 0, dist: 1, done: false });
+  const wkb = await get("studio-week"), e = wkb.top.find((x) => x.id === id);
+  check(wkb.ok && wkb.tpl === tpl && e && e.l === 1 && e.pts >= 5 && !wkb.top.some((x) => x.id === id2), "this week's board: the theme's games, likes ×5, other templates left out (" + tpl + ", " + (e && e.pts) + " pts)");
+  T += 7 * 86400e3; const nx = await get("studio-week"); check(nx.week !== wk && nx.last && nx.last.top[0] && nx.last.top[0].id === id && nx.top.length === 0, "a new week starts empty and shows last week's top 3"); T -= 7 * 86400e3;
+  r = await call(fan, "world-studio-save", { spec: gs.spec, from: id }); const rm = r.body.game; check(r.status === 200 && rm.from && rm.from.id === id && rm.from.title === "Week Entry", "a remix keeps where it came from");
+  check(((await get("studio-game&id=" + id)).game.remixes || 0) === 1, "the original counts its remixes");
+  await call(fan, "world-studio-del", { id: rm.id }); await call(mk, "world-studio-del", { id }); await call(mk, "world-studio-del", { id: id2 }); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
