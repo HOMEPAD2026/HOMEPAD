@@ -3,6 +3,7 @@
 // pad to build a Bolt (fast, one target), Frost (slows everything near it) or Cannon (slow, hits a crowd) with your gold,
 // tap a tower to upgrade or sell it; every foe stopped pays gold; ten lives. Hold all the waves to win.
 // env: { ctx, THREE, T, esc, makeFx, result, back(again) }
+import { look as themeLook } from "./world-studio-look.js";
 import { THEMES, DEF, genLevel } from "./world-studio-gen.js";
 
 const TW = [["bolt", "⚡", "Bolt"], ["frost", "❄️", "Frost"], ["cannon", "💣", "Cannon"]];
@@ -19,6 +20,7 @@ export async function makeDefense(o, env) {
   const tileG = new THREE.BoxGeometry(CS * 0.96, 0.3, CS * 0.96), offM = std(th.prop, { roughness: 0.9 }), pathM = std(th.track, { roughness: 0.7 }), onPath = new Set(L.path.map(String));
   for (let c = 0; c < DEF.C; c++) for (let r = 0; r < DEF.R; r++) { const m = new THREE.Mesh(tileG, onPath.has(String([c, r])) ? pathM : offM); const [x, z] = P(c, r); m.position.set(x, onPath.has(String([c, r])) ? -0.2 : -0.1, z); scene.add(m); }
   const pts = L.path.map(([c, r]) => P(c, r)), [sx, sz] = pts[0], [ex, ez] = pts[pts.length - 1];
+  { scene.userData.live = true; themeLook(THREE, o.spec.theme, { ver: ctx.ver || "", low: !!(ctx.low || ctx.coarse) }).then((lk) => { if (!scene.userData.live) return; if (lk.sky) scene.background = lk.sky; if (lk.track) { pathM.map = lk.track; pathM.color.set(0xffffff); pathM.needsUpdate = true; } if (lk.wall) { offM.map = lk.wall; offM.color.lerp(new THREE.Color(0xffffff), 0.35); offM.needsUpdate = true; } }).catch(() => { /* the drawn look stays */ }); } // (STU-B: the theme's sky, path and ground)
   const portal = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.16, 8, 32), glow(0xb48cff)); portal.position.set(sx, 1, sz - CS * 0.6); scene.add(portal);
   const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), std(0x5fd3ff, { emissive: 0x2fa8ff, emissiveIntensity: 0.7, metalness: 0.5, roughness: 0.2 })); crystal.position.set(ex, 1.3, ez + CS * 0.6); scene.add(crystal);
   // pads (where towers go)
@@ -99,7 +101,7 @@ export async function makeDefense(o, env) {
   function leave(again) {
     removeEventListener("pointerdown", pd); st.solo(null); st.view(null); hud.remove(); document.body.classList.remove("wp-studio");
     if (hero) me.remove(hero.obj);
-    scene.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
+    scene.userData.live = false; scene.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
     env.back(again, o);
   }
   st.view(scene, cam); st.solo(tick); frame(); tick(0.016, 0); paintHud();

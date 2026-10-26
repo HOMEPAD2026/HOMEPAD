@@ -3,6 +3,7 @@
 // right — the sides wrap round —, moving platforms slide, breaking ones give one bounce, springs throw you high, spikes hurt;
 // fall below the screen and you lose a heart and come back on the last platform you stood on. Reach the top.
 // env: { ctx, THREE, T, esc, makeFx, makeGhost, result, back(again) }
+import { look as themeLook } from "./world-studio-look.js";
 import { THEMES, CLIMB, genLevel } from "./world-studio-gen.js";
 
 export async function makeClimb(o, env) {
@@ -15,6 +16,7 @@ export async function makeClimb(o, env) {
   const wall = new THREE.Mesh(new THREE.BoxGeometry(CLIMB.W + 3, L.len + 30, 0.6), std(th.track, { roughness: 0.8 })); wall.position.set(0, L.len / 2 + 5, -1.6); scene.add(wall);
   for (let y = 10; y < L.len; y += 10) { const b = new THREE.Mesh(new THREE.BoxGeometry(CLIMB.W + 3, 0.08, 0.1), glow(th.edge, 0.45)); b.position.set(0, y, -1.25); scene.add(b); }
   for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.BoxGeometry(0.12, L.len + 30, 0.12), glow(th.edge, 0.8)); e.position.set(sx * HW, L.len / 2 + 5, -1.2); scene.add(e); }
+  { const wm0 = wall.material; scene.userData.live = true; themeLook(THREE, o.spec.theme, { ver: ctx.ver || "", low: !!(ctx.low || ctx.coarse) }).then((lk) => { if (!scene.userData.live) return; if (lk.sky) scene.background = lk.sky; if (lk.wall) { lk.wall.repeat.set(2, 8); wm0.map = lk.wall; wm0.color.lerp(new THREE.Color(0xffffff), 0.5); wm0.needsUpdate = true; } }).catch(() => { /* the drawn look stays */ }); } // (STU-B: the theme's sky and tower face)
   const ground = new THREE.Mesh(new THREE.BoxGeometry(CLIMB.W + 3, 1, 3), std(th.prop)); ground.position.set(0, -0.5, 0); scene.add(ground);
   const top = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.22, 10, 40), glow(0xffd23a)); top.position.set(0, L.len + 2.2, 0); scene.add(top);
   // the pieces: platforms (one mesh each — a level holds a few hundred at most), coins and hearts
@@ -91,7 +93,7 @@ export async function makeClimb(o, env) {
     removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); removeEventListener("pointerdown", pd); removeEventListener("pointermove", pm); removeEventListener("pointerup", pu); removeEventListener("pointercancel", pu);
     st.solo(null); st.view(null); hud.remove(); document.body.classList.remove("wp-studio");
     if (hero) me.remove(hero.obj);
-    scene.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
+    scene.userData.live = false; scene.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
     env.back(again, o);
   }
   st.view(scene, cam); st.solo(tick); tick(0.016, 0); paintHud();

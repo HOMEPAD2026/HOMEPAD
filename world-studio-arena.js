@@ -5,6 +5,9 @@
 // shown in red (cleanArena — the same rules it plays by), the bots' stars as you go, test from the moment you're on.
 // ctx: { T, esc, toast, spec, onDone(build), onTest(spec, startT), onClose }
 import { ARENA_B, ARENA_R, LENS, cleanArena, clampSpec, estimate, THEMES } from "./world-studio-gen.js";
+/// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
+const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
+const toolIcon = (M, k, ic) => (M[k] ? `<img class="wsb-ic" src="/images/studio/ic/${M[k]}.webp?v=1" alt="" aria-hidden="true" loading="lazy">` : ic);
 
 const TOOLS = [["d", "🛸", "Drone"], ["D", "🟠", "Big drone"], ["L", "⚡", "Laser sweep"], ["c", "🪙", "Coin"], ["p", "🗿", "Pillar"], ["x", "🧽", "Erase"]];
 /// ready-made pieces, from the moment you're on and the side you tap (a: degrees from that side, t: seconds after now)
@@ -38,7 +41,7 @@ export function createArenaBuilder(ctx) {
       <div class="wsb-bar"></div>
       <div class="wsb-main"><canvas class="wsb-cv"></canvas><div class="wsb-side"><button type="button" class="wsb-i" data-dt="-1" aria-label="−1 s">⏪</button><button type="button" class="wsb-i" data-prev aria-label="${esc(T("Preview"))}">▷</button><button type="button" class="wsb-i" data-dt="1" aria-label="+1 s">⏩</button></div></div>
       <div class="wsb-pieces" hidden></div>
-      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${ic}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="pc"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
+      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon({ d: "drone", D: "big-drone", L: "laser", c: "coin", p: "pillar" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="pc"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsb-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu); cv.addEventListener("pointercancel", () => { drag = null; });
@@ -89,7 +92,7 @@ export function createArenaBuilder(ctx) {
   // ---- input: on the timeline a tap or a drag picks the moment; on the arena a tap uses the tool ----
   function pd(e) { const r = cv.getBoundingClientRect(), y = (e.clientY - r.top) / u; drag = { tl: y > tlY() - 8, x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); if (drag.tl) { prevOn = false; paintSide(); setTime(tAt((e.clientX - r.left) / u)); } }
   function pm(e) { if (!drag || !drag.tl) return; const r = cv.getBoundingClientRect(); setTime(tAt((e.clientX - r.left) / u)); }
-  function pu(e) { const d = drag; drag = null; if (!d || d.tl || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10 * u) return; const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); }
+  function pu(e) { const d = drag; drag = null; if (!d || d.tl || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10 * u) return; const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); popAt(e, tool === "x"); }
   function setTime(t) { cur = Math.round(t * 10) / 10; dirty = true; }
   function tap(px, py) {
     const [x, z] = toMap(px, py), rr = Math.hypot(x, z), deg = Math.round(((Math.atan2(z, x) * 180) / Math.PI + 360) % 360), t = Math.round(cur * 10) / 10;

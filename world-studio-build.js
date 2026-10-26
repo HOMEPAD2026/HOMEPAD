@@ -5,6 +5,9 @@
 // stars as you go; test from where you're looking. → onDone(build) with the layout, or nothing on Back.
 // ctx: { T, esc, toast, spec, onDone, onTest(spec, startZ), onClose }
 import { BUILD, CLIMB, cleanBuild, cleanClimb, climbGaps, clampSpec, estimate, THEMES, buildGap } from "./world-studio-gen.js";
+/// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
+const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
+const toolIcon = (M, k, ic) => (M[k] ? `<img class="wsb-ic" src="/images/studio/ic/${M[k]}.webp?v=1" alt="" aria-hidden="true" loading="lazy">` : ic);
 
 const TOOLS = [["w", "🧱", "Wall"], ["m", "🔀", "Moving wall"], ["g", "🕳️", "Gap"], ["l", "⚡", "Laser"], ["b", "✨", "Blinking laser"], ["c", "🪙", "Coin"], ["h", "❤️", "Heart"], ["x", "🧽", "Erase"], ["sel", "⬚", "Select"]];
 /// ready-made pieces: [dz, kind, lane] from where you tap (metres up the track)
@@ -52,7 +55,7 @@ export function createBuilder(ctx) {
       <div class="wsb-main"><canvas class="wsb-cv"></canvas><div class="wsb-side"><button type="button" class="wsb-i" data-zoom="1" aria-label="+">＋</button><button type="button" class="wsb-i" data-zoom="-1" aria-label="−">－</button><button type="button" class="wsb-i" data-go="start" aria-label="${esc(T("Start"))}">⤓</button><button type="button" class="wsb-i" data-go="end" aria-label="${esc(T("Finish"))}">⤒</button></div></div>
       <div class="wsb-sel" hidden></div>
       <div class="wsb-pieces" hidden></div>
-      <nav class="wsb-tools">${TL.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${ic}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="p"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
+      <nav class="wsb-tools">${TL.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon(climb ? { n: "platform", m: "platform", b: "platform", s: "spring", k: "spike", c: "coin", h: "heart" } : { w: "wall", m: "moving-wall", g: "gap", l: "laser", b: "blinking-laser", c: "coin", h: "heart" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="p"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsb-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu); cv.addEventListener("pointercancel", () => { drag = null; });
@@ -112,7 +115,7 @@ export function createBuilder(ctx) {
   // ---- input: a drag scrolls, a tap uses the tool ----
   function pd(e) { drag = { y: e.clientY, x: e.clientX, v0: view, moved: false }; cv.setPointerCapture(e.pointerId); }
   function pm(e) { if (!drag) return; const dy = e.clientY - drag.y; if (Math.abs(dy) > 8 * u || Math.abs(e.clientX - drag.x) > 8 * u) drag.moved = true; if (drag.moved) { view = clampView(drag.v0 + dy / u / ppm()); dirty = true; } }
-  function pu(e) { const d = drag; drag = null; if (!d || d.moved) return; const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); }
+  function pu(e) { const d = drag; drag = null; if (!d || d.moved) return; const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); popAt(e, tool === "x"); }
   function tap(px, py) {
     const z = Math.round(zAt(py) / SNAP) * SNAP, ln = laneAt(px);
     if (z < 0 || z > B.L) return;

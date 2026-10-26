@@ -4,6 +4,9 @@
 // many grunts, runners and tanks. Undo / redo, what the server would drop shown in red (cleanDefense), the bots' stars.
 // ctx: { T, esc, toast, spec, onDone(build, spec), onTest(spec, 0), onClose }
 import { DEF, cleanDefense, clampSpec, estimate, THEMES, defGold } from "./world-studio-gen.js";
+/// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
+const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
+const toolIcon = (M, k, ic) => (M[k] ? `<img class="wsb-ic" src="/images/studio/ic/${M[k]}.webp?v=1" alt="" aria-hidden="true" loading="lazy">` : ic);
 
 const TOOLS = [["path", "✏️", "Path"], ["pad", "🟦", "Tower pad"], ["x", "🧽", "Erase"]];
 
@@ -25,10 +28,10 @@ export function createTdBuilder(ctx) {
       <div class="wsb-bar"></div>
       <div class="wsb-main"><canvas class="wsb-cv"></canvas><div class="wsb-side"><button type="button" class="wsb-i" data-suggest aria-label="${esc(T("Suggest pads"))}" title="${esc(T("Suggest pads"))}">✨</button><button type="button" class="wsb-i" data-clearpath aria-label="${esc(T("Clear the path"))}" title="${esc(T("Clear the path"))}">🗑️</button></div></div>
       <div class="wtd-waves"></div>
-      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${ic}</i><span>${esc(T(n))}</span></button>`).join("")}</nav></div>`;
+      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon({ pad: "tower" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}</nav></div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsb-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick); el.addEventListener("input", onInput);
-    cv.addEventListener("pointerup", (e) => { const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); });
+    cv.addEventListener("pointerup", (e) => { const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); popAt(e, tool === "x"); });
     addEventListener("resize", fit); fit(); paintTools(); paintBar(); paintWaves(); loop();
   }
   function close(done) { cancelAnimationFrame(raf); removeEventListener("resize", fit); if (el) el.remove(); el = null; if (done) ctx.onDone(valid(), spec); if (ctx.onClose) ctx.onClose(); }

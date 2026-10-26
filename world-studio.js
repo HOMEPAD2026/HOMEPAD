@@ -9,6 +9,7 @@
 //                grabs coins; three hearts; the finish arch; a result card (score, your best, your place)
 import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, DEF, clampSpec, toBuild, genLevel, scoreOf, speedOf, dashSpeed, estimate, puzzleScore, climbGaps } from "./world-studio-gen.js";
 import { makePreview } from "./world-studio-prev.js";
+import { look as themeLook, trackUV } from "./world-studio-look.js";
 import { level as ringLevel } from "./world-rings-engine.js";
 // Studio 2 (2026-10-24): two more templates (Infinity Dash: the lanes without a finish, faster and faster; Arena Survival:
 // seen from above, drones from the edge, laser sweeps, coins, last the time), a preview strip of the level in the editor,
@@ -58,6 +59,8 @@ export function createStudio(ctx) {
   const shown = () => !!el && !el.hidden;
   const slider = (k, lab, max, min = 0) => `<label class="wst-sl"><span>${esc(T(lab))} <b>${spec[k]}</b></span><input type="range" min="${min}" max="${max}" step="1" value="${spec[k]}" data-k="${k}"></label>`;
   // Studio 3: the editor in five steps (a bar at the top, Back / Next at the bottom), the live 3D preview over them
+  // STU-B: three steps on screen — Pick (template + look) · Tune · Test & publish (the old pages 1+2 and 4+5 together; step keeps 1 / 3 / 4)
+  const VIS = [[1, "Pick", "Pick a template and a look"], [3, "Tune", "How hard should it be?"], [4, "Test & publish", "Try it, then put it on the arcade"]];
   const STEPS = [["Template", "Pick a template"], ["Theme", "Pick a look"], ["Difficulty", "How hard should it be?"], ["Test", "Try it before anyone else"], ["Publish", "Save it and put it on the arcade"]];
   const PNAME = { easy: "Easy", normal: "Normal", hard: "Hard", extreme: "Extreme" }, WHY = { wall: "walls", gap: "gaps", laser: "lasers", d: "drones", D: "big drones", L: "laser sweeps", mwall: "moving walls", blink: "blinking lasers", g: "grunts", r: "runners", t: "tanks", plat: "platforms", mplat: "moving platforms", break: "breaking platforms", spring: "springs" };
   const starsTxt = (n) => `<span class="wst-stars" aria-label="${n}/5">${"<i>★</i>".repeat(n)}${"<i class=\"off\">★</i>".repeat(5 - n)}</span>`;
@@ -73,13 +76,14 @@ export function createStudio(ctx) {
       ${st.ends && st.ends.some((x) => x) ? `<div class="wst-heat"><small>📍 ${esc(T("Where players' runs ended"))}</small>${heatBar(st.ends)}<em><span>${esc(T("Start"))}</span><span>${esc(T("Finish"))}</span></em></div>` : `<p class="wst-fine">${esc(T(st.runs ? "Every run so far reached the end" : "No runs by other players yet — share your link!"))}</p>`}${rs ? `<p class="wst-fine">⚑ ${esc(T("{n} reports", { n: rs }))}</p>` : ""}</div>`; }
   function paintMake() {
     const th = THEMES[spec.theme], L = genLevel(spec), KN = KNOBS[spec.tpl] || KNOBS.runner, E = estimate(spec), cur = mine.find((g) => g.id === editId);
-    const bar = `<ol class="wst-steps">${STEPS.map(([l], i) => `<li><button type="button" data-step="${i + 1}" class="${step === i + 1 ? "on" : step > i + 1 ? "done" : ""}"><i>${step > i + 1 ? "✓" : i + 1}</i><span>${esc(T(l))}</span></button></li>`).join("")}</ol>`;
+    if (step === 2) step = 1; if (step === 5) step = 4;
+    const bar = `<ol class="wst-steps">${VIS.map(([n, l], i) => `<li><button type="button" data-step="${n}" class="${step === n ? "on" : step > n ? "done" : ""}"><i>${step > n ? "✓" : i + 1}</i><span>${esc(T(l))}</span></button></li>`).join("")}</ol>`;
     const box = step <= 4 ? `<div class="wst-3dbox${step === 4 ? " big" : ""}">${prev ? "" : `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>`}<span class="wst-3dtag">${ICON[spec.tpl] || "🎮"} ${esc(T(TEMPLATES[spec.tpl].name))} · ${esc(T(th.name))}</span></div>` : "";
     let body = "";
     if (step === 1) body = `<div class="wst-tpls">${Object.entries(TEMPLATES).map(([id, t]) => `<button type="button" class="wst-tpl${id === spec.tpl ? " on" : ""}${t.open ? "" : " soon"}" ${t.open ? `data-tpl="${id}"` : "disabled"}><span class="wst-art" style="background-image:url(/images/ui/studio/${id}.webp?v=1)" aria-hidden="true"></span><b>${esc(T(t.name))}</b>${t.open ? "" : `<small>${esc(T("Coming soon"))}</small>`}</button>`).join("")}</div>
       <div class="wst-ai"><b>✨ ${esc(T("Ask {n} to draft it", { n: ctx.agentName() || T("your agent") }))}</b><div class="wst-airow"><input class="wst-aiin" maxlength="240" placeholder="${esc(T("e.g. a fast jungle run with lots of coins"))}"><button type="button" class="wst-go" data-ai ${busy ? "disabled" : ""}>${esc(T("Draft"))}</button></div>${aiNote ? `<small class="wst-ainote">${esc(aiNote)}</small>` : ""}</div>
+      <h4 class="wst-sub">🎨 ${esc(T("Look"))}</h4><div class="wst-themes">${Object.entries(THEMES).map(([id, t]) => `<button type="button" data-theme="${id}" class="wst-thm${id === spec.theme ? " on" : ""}" style="--c:${hex(t.edge)};--b:${hex(t.sky)}"><span class="wst-thi" data-snap="${id}" style="background-image:url(${snaps[spec.tpl + ":" + id] || `/images/studio/th/${id}-sky-768.webp?v=1`})"></span><b>${esc(T(t.name))}</b></button>`).join("")}</div>
       <label class="wst-title"><span>${esc(T("Title"))}</span><input class="wst-tin" maxlength="24" value="${esc(spec.title)}"></label>`;
-    else if (step === 2) body = `<div class="wst-themes">${Object.entries(THEMES).map(([id, t]) => `<button type="button" data-theme="${id}" class="wst-thm${id === spec.theme ? " on" : ""}" style="--c:${hex(t.edge)};--b:${hex(t.sky)}"><span class="wst-thi" data-snap="${id}"${snaps[spec.tpl + ":" + id] ? ` style="background-image:url(${snaps[spec.tpl + ":" + id]})"` : ""}></span><b>${esc(T(t.name))}</b></button>`).join("")}</div>`;
     else if (step === 3 && spec.build) { const B = spec.build, ar = !!B.w, td = !!B.td, n = td ? B.path.length + B.pads.length : ar ? B.w.length + B.c.length + B.p.length : B.r.length; // (Studio 4: a hand-built layout — the speed still applies)
       body = `<div class="wst-build on"><i>🛠️</i><div><b>${esc(T("Hand-built layout"))}</b><small>${esc(td ? T("{p} path cells · {d} pads · {w} waves", { p: B.path.length, d: B.pads.length, w: B.waves.length }) : ar ? T("{n} pieces · {s} s", { n, s: spec.len }) : T("{n} pieces · {m} m", { n, m: B.L }))}</small></div><span><button type="button" class="wst-go" data-build>✏️ ${esc(T("Edit the layout"))}</button><button type="button" class="wst-link" data-unbuild>${esc(T("Back to quick start"))}</button></span></div>
       ${rulesRow()}
@@ -96,22 +100,23 @@ export function createStudio(ctx) {
       <details class="wst-adv"${advOpen ? " open" : ""}><summary>⚙️ ${esc(T("Advanced settings"))}</summary><div class="wst-sls">${slider("speed", KN.speed, 5, 1)}${slider("coins", KN.coins, 5)}${slider("walls", KN.walls, 5)}${slider("gaps", KN.gaps, 3)}${slider("lasers", KN.lasers, 3)}</div>
       <p class="wst-fine" style="--c:${hex(th.edge)}">🎲 ${esc(T("Layout #{n}", { n: spec.seed }))} · <span class="wst-sum">${summary(L)}</span> <button type="button" class="wst-link" data-seed>${esc(T("New layout"))}</button></p></details>`; }
     else if (step === 4) body = `<ul class="wst-recap"><li><i>${ICON[spec.tpl]}</i>${esc(T(TEMPLATES[spec.tpl].name))}</li><li><i>🎨</i>${esc(T(th.name))}</li><li><i>🔥</i>${starsTxt(E.stars)} · ${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</li><li><i>📏</i><span class="wst-sum">${summary(L)}</span></li></ul>
-      ${lastTest ? `<p class="wst-last">${esc(T("Your test: {s} points", { s: lastTest.score }))}${lastTest.done ? " · 🏁" : ""}</p>` : ""}<button type="button" class="wst-go big wst-testbig" data-test>▶ ${esc(T("Test play"))}</button>`;
-    else body = `<div class="wst-pubbox">${cur && cur.pub ? `<p class="wst-ok">🚀 ${esc(T("It's on the Creator Arcade!"))}</p>` : editId ? `<p>💾 ${esc(T("Saved as a draft. Publish it so everyone can play."))}</p>` : `<p>${esc(T("Save it to keep it, then publish it to the Creator Arcade."))}</p>`}
+      ${lastTest ? `<p class="wst-last">${esc(T("Your test: {s} points", { s: lastTest.score }))}${lastTest.done ? " · 🏁" : ""}</p>` : ""}<button type="button" class="wst-go big wst-testbig" data-test>▶ ${esc(T("Test play"))}</button>
+      <div class="wst-pubbox">${cur && cur.pub ? `<p class="wst-ok">🚀 ${esc(T("It's on the Creator Arcade!"))}</p>` : editId ? `<p>💾 ${esc(T("Saved as a draft. Publish it so everyone can play."))}</p>` : `<p>${esc(T("Save it to keep it, then publish it to the Creator Arcade."))}</p>`}
       <label class="wst-title"><span>${esc(T("Title"))}</span><input class="wst-tin" maxlength="24" value="${esc(spec.title)}"></label>
       <div class="wst-acts"><button type="button" class="wst-go alt" data-save ${busy ? "disabled" : ""}>💾 ${esc(T(editId ? "Save changes" : "Save"))}</button>${cur && cur.pub ? `<button type="button" class="wst-go" data-share="${esc(editId)}">🔗 ${esc(T("Copy link"))}</button>` : `<button type="button" class="wst-go big" data-savepub ${busy ? "disabled" : ""}>🚀 ${esc(T(editId ? "Publish" : "Save & publish"))}</button>`}</div>
       ${editId ? `<button type="button" class="wst-link" data-tab="mine">📁 ${esc(T("See it in My games"))}</button>` : ""}</div>`;
-    const nav = `<nav class="wst-nav">${step > 1 ? `<button type="button" class="wst-go alt" data-back>← ${esc(T("Back"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go alt" data-test>▶ ${esc(T("Test"))}</button>` : "<span></span>"}${step < 5 ? `<button type="button" class="wst-go" data-next>${esc(T("Next"))} →</button>` : "<span></span>"}</nav>`;
-    return `${bar}<p class="wst-hint">${esc(T(STEPS[step - 1][1]))}</p>${box}<div class="wst-stepbody s${step}">${body}</div>${nav}`;
+    else body = "";
+    const nav = `<nav class="wst-nav">${step > 1 ? `<button type="button" class="wst-go alt" data-back>← ${esc(T("Back"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go alt" data-test>▶ ${esc(T("Test"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go" data-next>${esc(T("Next"))} →</button>` : "<span></span>"}</nav>`;
+    return `${bar}<p class="wst-hint">${esc(T((VIS.find((v) => v[0] === step) || VIS[0])[2]))}</p>${box}<div class="wst-stepbody s${step}">${body}</div>${nav}`;
   }
   /// the live preview: one renderer for the window's life, its canvas moved into each paint (none on low graphics)
   function attachPreview() {
     if (tab !== "make" || step > 4) { if (prev) prev.stop(); return; }
     if (!prev && !ctx.saver && prevOk) { try { prev = makePreview({ THREE }); } catch { prev = null; } if (!prev) { prevOk = false; return paint(); } }
     const bx = el.querySelector(".wst-3dbox"); if (!prev || !bx) return; bx.prepend(prev.canvas); prev.set(spec);
-    if (step === 2) setTimeout(fillSnaps, 60);
+    /* (STU-B: the theme cards show each theme's Meshy sky; fillSnaps is kept for the old preview pictures) */
   }
-  function fillSnaps() { if (!prev || tab !== "make" || step !== 2) return; for (const id of Object.keys(THEMES)) { const k = spec.tpl + ":" + id; if (!snaps[k]) { snaps[k] = prev.snap({ ...spec, theme: id }); const im = el.querySelector(`[data-snap="${id}"]`); if (im) im.style.backgroundImage = `url(${snaps[k]})`; return setTimeout(fillSnaps, 30); } } }
+  function fillSnaps() { if (!prev || tab !== "make" || step !== 1) return; for (const id of Object.keys(THEMES)) { const k = spec.tpl + ":" + id; if (!snaps[k]) { snaps[k] = prev.snap({ ...spec, theme: id }); const im = el.querySelector(`[data-snap="${id}"]`); if (im) im.style.backgroundImage = `url(${snaps[k]})`; return setTimeout(fillSnaps, 30); } } }
   let prevT = 0; const prevSoon = () => { clearTimeout(prevT); prevT = setTimeout(() => { if (prev && tab === "make") prev.set(spec); }, 160); };
   const summary = (L) => spec.tpl === "defense" ? esc(T("{w} waves · {n} foes · {p} pads", { w: L.waves.length, n: L.coins, p: L.pads.length })) : spec.tpl === "climb" ? esc(T("{m} m up · {c} coins", { m: L.len, c: L.coins })) : spec.tpl === "puzzle" ? (() => { const R = ringOf(L.id); return R ? esc(T("{n} rings · par {p}", { n: R.rings.length, p: R.par })) : ""; })() : spec.tpl === "arena" ? esc(T("{s} s · {d} waves · {c} coins", { s: L.secs, d: L.waves.length, c: L.coins })) : spec.tpl === "dash" ? esc(T("endless · {c} coins on the way", { c: L.coins })) : `${Math.round(L.len)} m · ${L.coins} ${esc(T("coins"))}`;
   /// a ring board drawn small (the preview strip, the S4c board gallery); boards are kept once made (the engine solves each for its par)
@@ -238,8 +243,8 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("studio"); return; }
     if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); return; }
     if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
-    if (b.hasAttribute("data-next")) { step = Math.min(5, step + 1); fxStep(); return paint(); }
-    if (b.hasAttribute("data-back")) { step = Math.max(1, step - 1); return paint(); }
+    if (b.hasAttribute("data-next")) { step = step <= 2 ? 3 : 4; fxStep(); return paint(); }
+    if (b.hasAttribute("data-back")) { step = step >= 4 ? 3 : 1; return paint(); }
     if (b.dataset.rule) { const k = b.dataset.rule, cur = spec.rules || [], on = cur.includes(k); if (!on && cur.length >= 2) { ctx.toast(esc(T("Two rule cards at most — take one off first"))); return; } spec = clampSpec({ ...spec, rules: on ? cur.filter((x) => x !== k) : [...cur, k] }); return paintKeep(); }
     if (b.dataset.speed) { spec.speed = Number(b.dataset.speed); return paintKeep(); }
     if (b.dataset.gal) { spec = clampSpec({ ...spec, seed: Number(b.dataset.gal) }); lastTest = null; fxStep(); return paintKeep(); }
@@ -271,7 +276,7 @@ export function createStudio(ctx) {
     const inp = el.querySelector(".wst-aiin"), t = inp ? inp.value.trim() : ""; if (!t) { if (inp) inp.focus(); return; }
     busy = true; aiNote = T("Thinking…"); paint(); const r = await act({ action: "world-studio-ai", t, tpl: spec.tpl }); busy = false;
     if (!r) { aiNote = ""; paint(); return; }
-    if (r.j && r.j.spec) { spec = clampSpec({ ...r.j.spec, seed: r.j.spec.seed }); editId = ""; lastTest = null; aiNote = r.j.by === "agent" ? T("{n} drafted it — tweak anything, then test it.", { n: ctx.agentName() || T("Your agent") }) : T("Drafted from your words — tweak anything, then test it."); step = 4; ctx.toast("✨ " + esc(aiNote)); paint(); if (ctx.Snd && ctx.Snd.perfect) try { ctx.Snd.perfect(); } catch { /* no sound */ } return; }
+    if (r.j && r.j.spec) { spec = clampSpec({ ...r.j.spec, seed: r.j.spec.seed }); editId = ""; lastTest = null; aiNote = r.j.by === "agent" ? T("{n} drafted it — tweak anything, then test it.", { n: ctx.agentName() || T("Your agent") }) : T("Drafted from your words — tweak anything, then test it."); step = 4; ctx.toast("✨ " + esc(aiNote)); paint(); { const bx = el.querySelector(".wst-3dbox"); if (bx && !ctx.reduce) bx.classList.add("wst-build-in"); } if (ctx.Snd && ctx.Snd.perfect) try { ctx.Snd.perfect(); } catch { /* no sound */ } return; }
     aiNote = ""; paint(); fail(r);
   }
   let localId = "";
@@ -304,6 +309,7 @@ export function createStudio(ctx) {
   async function publish(id) {
     const g = mine.find((x) => x.id === id), on = !(g && g.pub); const r = await act({ action: "world-studio-publish", id, on }); if (!r || !r.ok) return r && fail(r);
     mine = mine.map((x) => (x.id === id ? r.j.game : x)); ctx.toast(on ? "🚀 " + esc(T("On the Creator Arcade!")) : esc(T("Taken off the Creator Arcade"))); paint(); load();
+    if (on) { let first = false; try { first = !localStorage.getItem("arc.studio.pub1"); localStorage.setItem("arc.studio.pub1", "1"); } catch { /* not kept */ } launchFx(first); }
   }
   async function del(id) {
     if (!confirm(T("Delete this game?"))) return; const r = await act({ action: "world-studio-del", id }); if (!r || !r.ok) return r && fail(r);
@@ -359,9 +365,13 @@ export function createStudio(ctx) {
     const gaps = L.rows.filter((r) => r.k === "gap").map((r) => r.z).sort((a, b) => a - b), GAP = 4.6, W = 7.4;
     const trackM = std(th.track, { roughness: 0.6 }), edgeM = glow(th.edge), laneM = glow(th.edge, 0.35);
     let z0 = -20; const ends = [...gaps.map((g) => [g - GAP / 2, g + GAP / 2]), [L.len + 40, L.len + 40]];
-    for (const [a, b] of ends) { const len = a - z0; if (len > 0.5) { const m = new THREE.Mesh(new THREE.BoxGeometry(W, 0.6, len), trackM); m.position.set(0, -0.3, z0 + len / 2); scene.add(m); for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, len), edgeM); e.position.set((s * W) / 2, 0.04, z0 + len / 2); scene.add(e); } for (const x of [-1.1, 1.1]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, len), laneM); l.position.set(x, 0.02, z0 + len / 2); scene.add(l); } } z0 = b; }
+    const topM = std(th.track, { roughness: 0.7 }), floors = []; // (STU-B: the painted floor on top of each piece)
+    for (const [a, b] of ends) { const len = a - z0; if (len > 0.5) { const m = new THREE.Mesh(new THREE.BoxGeometry(W, 0.6, len), trackM); m.position.set(0, -0.3, z0 + len / 2); scene.add(m);
+      const tp = new THREE.Mesh(trackUV(new THREE.PlaneGeometry(W, len), W, len, 4), topM); tp.rotation.x = -Math.PI / 2; tp.position.set(0, 0.005, z0 + len / 2); scene.add(tp); floors.push(tp); for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, len), edgeM); e.position.set((s * W) / 2, 0.04, z0 + len / 2); scene.add(e); } for (const x of [-1.1, 1.1]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, len), laneM); l.position.set(x, 0.02, z0 + len / 2); scene.add(l); } } z0 = b; }
     const PN = Math.ceil((L.len + 160) / 14) * 2, pil = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), std(th.prop, { emissive: th.prop, emissiveIntensity: 0.35 }), PN), mt = new THREE.Matrix4();
-    { let i = 0, s0 = o.spec.seed; const r = () => ((s0 = (s0 * 16807) % 2147483647) / 2147483647); for (let z = -20; i < PN; z += 14) for (const s of [-1, 1]) { if (i >= PN) break; const h = 2 + r() * 9; mt.compose(new THREE.Vector3(s * (W / 2 + 2.5 + r() * 4), h / 2 - 0.6, z), new THREE.Quaternion(), new THREE.Vector3(1.2 + r(), h, 1.2 + r())); pil.setMatrixAt(i++, mt); } }
+    const props = [], every = ctx.low ? 6 : 3; // (STU-B: every 3rd roadside slot gets the theme's Meshy piece, every 6th on low graphics; blocks in between)
+    { let i = 0, k = 0, s0 = o.spec.seed; const r = () => ((s0 = (s0 * 16807) % 2147483647) / 2147483647); for (let z = -20; i < PN; z += 14) for (const s of [-1, 1]) { if (i >= PN) break; const h = 2 + r() * 9, x = s * (W / 2 + 2.5 + r() * 4), w0 = 1.2 + r(), d0 = 1.2 + r();
+      if (k++ % every === 0) { props.push([x + s * 1.5, z, 5 + h * 0.6, r() * 6.28]); mt.makeScale(0, 0, 0); } else mt.compose(new THREE.Vector3(x, h / 2 - 0.6, z), new THREE.Quaternion(), new THREE.Vector3(w0, h, d0)); pil.setMatrixAt(i++, mt); } }
     scene.add(pil);
     // walls, lasers, coins, the finish
     const walls = L.rows.filter((r) => r.k === "wall"), lasers = L.rows.filter((r) => r.k === "laser"), coinRows = L.rows.filter((r) => r.k === "coin"), heartRows = L.rows.filter((r) => r.k === "heart"), hGot = new Uint8Array(heartRows.length);
@@ -373,6 +383,7 @@ export function createStudio(ctx) {
     const hm = heartRows.map((h) => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.42), std(0xff4d6d, { emissive: 0xff2d55, emissiveIntensity: 0.7 })); m.position.set(LANES[h.lane], 1.1, h.z); scene.add(m); return m; }); // (Studio 4: a heart back, up to 3)
     const wm = new THREE.InstancedMesh(new THREE.BoxGeometry(1.9, 1.7, 0.8), std(th.wall, { emissive: th.wall, emissiveIntensity: 0.45 }), Math.max(1, walls.length));
     walls.forEach((w, i) => { mt.makeTranslation(LANES[w.lane], 0.85, w.z); wm.setMatrixAt(i, mt); }); scene.add(wm);
+    scene.userData.live = true; dressRun(scene, o.spec.theme, { floors, walls: [wm, ...mwm], props, night: RU.has("night") });
     for (const l of lasers) { const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, W, 8), glow(0xff3355)); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.25, l.z); scene.add(bar); for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2, 0.3), std(0x2a2f3a)); p.position.set((s * W) / 2, 1, l.z); scene.add(p); } }
     const cm = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 18), std(0xffc94a, { emissive: 0xffa21a, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.25 }), Math.max(1, coinRows.length));
     const got = new Uint8Array(coinRows.length); scene.add(cm);
@@ -400,7 +411,7 @@ export function createStudio(ctx) {
     function lane(d) { if (S.t < 0) return; if (RU.has("mirror")) d = -d; S.lane = Math.max(0, Math.min(2, S.lane + d)); if (ctx.Snd && ctx.Snd.dash) try { ctx.Snd.dash(); } catch { /* no sound */ } }
     function jump() { if (S.t < 0 || S.y > 0.01) return; S.vy = RU.has("low") ? 7.4 : 8.6; S.slide = 0; play("jump", true); if (ctx.Snd && ctx.Snd.jump) try { ctx.Snd.jump(); } catch { /* no sound */ } }
     function slide() { if (S.t < 0) return; if (S.y > 0.01) S.vy = Math.min(S.vy, -10); S.slide = 0.7; play("dodge", true); }
-    function hurt(why) { if (S.inv > 0 || S.over) return; S.hearts--; S.inv = 1.4; play(S.hearts > 0 ? "hit" : "die", true); if (ctx.Snd && ctx.Snd.hurt) try { ctx.Snd.hurt(); } catch { /* no sound */ } paintHud(); if (S.hearts <= 0) end(false); if (why === "gap") { const g = gaps.find((x) => Math.abs(S.z - x) < GAP); S.y = 0; S.vy = 0; if (g != null) S.z = g + GAP / 2 + 0.6; } } // (back on its far side)
+    function hurt(why) { if (S.inv > 0 || S.over) return; S.hearts--; S.inv = 1.4; play(S.hearts > 0 ? "hit" : "die", true); if (ctx.Snd && ctx.Snd.hurt) try { ctx.Snd.hurt(); } catch { /* no sound */ } ouch(hud); paintHud(); if (S.hearts <= 0) end(false); if (why === "gap") { const g = gaps.find((x) => Math.abs(S.z - x) < GAP); S.y = 0; S.vy = 0; if (g != null) S.z = g + GAP / 2 + 0.6; } } // (back on its far side)
     const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, ((o.spec.rules || []).includes("onehp") ? 1 : 3) - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = "🪙 " + S.coins + (dash ? ` · ${Math.round(S.z)} m` : ""); hud.querySelector(".wst-bar em").style.width = dash ? Math.min(100, (S.t / 120) * 100).toFixed(1) + "%" : Math.min(100, (S.z / L.len) * 100).toFixed(1) + "%"; };
     const q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), sc = new THREE.Vector3(1, 1, 1), pv = new THREE.Vector3(), flip = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
     function tick(dt, t) {
@@ -439,14 +450,14 @@ export function createStudio(ctx) {
     hud.querySelector(".wst-hx").addEventListener("click", () => leave());
     async function end(done) {
       if (S.over) return; S.over = true; S.done = done; play(done ? "emote-yes" : "die", true);
-      fx.speed(0);
+      fx.speed(0); if (!done && !dash) { deathMark(scene, S.x, S.z); await beat(hud); } // (STU-B: where it ended, a moment before the card)
       await result(o, hud, { trace: S.tr, coins: S.coins, dist: S.z, done, line: dash ? `🪙 ${S.coins} · ${Math.round(S.z)} m` : `🪙 ${S.coins} / ${L.coins} · ${Math.round(S.z)} / ${Math.round(L.len)} m`, head: dash ? "♾️ " + T("{m} m!", { m: Math.round(S.z) }) : done ? "🏁 " + T("Finished!") : "💥 " + T("Out of hearts"), confetti: done || dash }, leave);
     }
     function leave(again) {
       removeEventListener("keydown", keys, true); removeEventListener("touchstart", ts); removeEventListener("touchend", te); removeEventListener("pointerdown", ts); removeEventListener("pointerup", pu);
       st.solo(null); st.view(null); hud.remove(); document.body.classList.remove("wp-studio");
       if (hero) me.remove(hero.obj); // (the hero's materials are the kit's, shared: only what this run made is let go)
-      scene.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
+      scene.userData.live = false; scene.traverse((m) => { if (m.userData && m.userData.shared) return; if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
       playing = null; if (!again && o.onBack) { o.onBack(); return; } if (!again && el) { el.hidden = false; paint(); load(); }
     }
     st.view(scene, cam); st.solo(tick); tick(0.016, 0); paintHud();
@@ -495,6 +506,29 @@ export function createStudio(ctx) {
     const rc = c.querySelector("[data-rcard]"); if (rc) rc.addEventListener("click", () => shareCard(o.id, score));
     const nx = c.querySelector("[data-nextg]"); if (nx) nx.addEventListener("click", async () => { if (!arcade.length) await load(); const L2 = arcade.filter((g) => g.id !== o.id); if (!L2.length) { ctx.toast(esc(T("That's every game on the arcade for now"))); return; } const seen = nextSeen.add(o.id), pick = L2.find((g) => !seen.has(g.id)) || L2[0]; leave(true); setTimeout(() => playId(pick.id), 50); });
   }
+  /// STU-B: a run dressed in its theme's Meshy look once it's in (the drawn colours until then; nothing breaks without it)
+  function dressRun(scene, theme, o) {
+    themeLook(THREE, theme, { ver: ctx.ver || "", low: !!(ctx.low || ctx.coarse), loader: ctx.K && ctx.K.gltfLoader }).then((lk) => {
+      if (!scene.parent && !scene.userData.live) return; // (the run already left)
+      if (lk.sky && !o.night) scene.background = lk.sky;
+      if (lk.track) for (const m of o.floors || []) { m.material.map = lk.track; m.material.color.set(0xffffff); m.material.needsUpdate = true; }
+      if (lk.wall) for (const m of o.walls || []) { m.material.map = lk.wall; m.material.color.lerp(new THREE.Color(0xffffff), 0.55); m.material.needsUpdate = true; }
+      if (lk.prop && o.props && o.props.length) { const im = new THREE.InstancedMesh(lk.prop.geo, lk.prop.mat, o.props.length), mt2 = new THREE.Matrix4(), q2 = new THREE.Quaternion();
+        o.props.forEach(([x, z, h, ry], i) => { q2.setFromAxisAngle(new THREE.Vector3(0, 1, 0), ry); mt2.compose(new THREE.Vector3(x, -0.6, z), q2, new THREE.Vector3(h, h, h)); im.setMatrixAt(i, mt2); });
+        im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); im.userData.shared = true; im.frustumCulled = false; scene.add(im); if (o.onProps) o.onProps(); }
+    }).catch(() => { /* the drawn look stays */ });
+  }
+  /// STU-B: a heart lost — the screen's edge flashes red; a run lost — a red mark where it ended, then a moment's pause
+  function ouch(hud) { if (ctx.reduce) return; hud.classList.remove("ouch"); void hud.offsetWidth; hud.classList.add("ouch"); }
+  function deathMark(scene, x, z) { try { const g = new THREE.Group(); const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 1.05, 32), new THREE.MeshBasicMaterial({ color: 0xff3355, transparent: true, opacity: 0.9, side: THREE.DoubleSide, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; g.add(ring);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.3, 5, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xff3355, transparent: true, opacity: 0.45, depthWrite: false, toneMapped: false })); beam.position.y = 2.5; g.add(beam);
+    try { const tag = ctx.K.label("💥 " + T("Here"), { accent: "#ff3355", size: 0.55 }); tag.position.y = 5.4; g.add(tag); } catch { /* no tag */ } g.position.set(x, 0, z); scene.add(g); } catch { /* no mark */ } }
+  const beat = (hud) => new Promise((ok) => { if (ctx.reduce) return ok(); hud.classList.add("lost"); setTimeout(() => { hud.classList.remove("lost"); ok(); }, 800); });
+  /// STU-B: a game goes on the arcade — a rocket takes it up; the first time ever, a bigger card
+  function launchFx(first) {
+    if (ctx.reduce) return; const w = document.createElement("div"); w.className = "wst-launch" + (first ? " first" : "");
+    w.innerHTML = `<i>🚀</i>${first ? `<div><b>${esc(T("Your first game is live!"))}</b><small>${esc(T("Share the link — every play and like counts."))}</small></div>` : ""}`; document.body.appendChild(w); if (first) confetti(w); setTimeout(() => w.remove(), first ? 3200 : 1600);
+  }
   function confetti(box) { const cols = ["#5fd3ff", "#7cf5c8", "#ffd23a", "#ff6fae", "#b48cff"]; for (let i = 0; i < 46; i++) { const p = document.createElement("i"); p.className = "wst-conf"; p.style.cssText = `left:${(i * 37) % 100}%;background:${cols[i % 5]};animation-delay:${(i % 9) * 0.06}s;--dx:${((i * 53) % 120) - 60}px;--r:${(i * 71) % 360}deg`; box.appendChild(p); setTimeout(() => p.remove(), 2600); } }
   /// the HUD's effects: speed lines (0–1), the combo (×3 and up), a word that pops (NICE!)
   function makeFx(hud) {
@@ -514,8 +548,11 @@ export function createStudio(ctx) {
     scene.add(new THREE.HemisphereLight(0xffffff, th.track, 1.2)); const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(5, 16, 6); scene.add(sun);
     const std = (c, o2 = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.45, metalness: 0.2, ...o2 }), glow = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, toneMapped: false, depthWrite: op >= 1 });
     const floor = new THREE.Mesh(new THREE.CylinderGeometry(R, R + 0.6, 0.6, 64), std(th.track, { roughness: 0.6 })); floor.position.y = -0.3; scene.add(floor);
+    const ftop = new THREE.Mesh(trackUV(new THREE.CircleGeometry(R, 64), R * 2, R * 2, 5), std(th.track, { roughness: 0.7 })); ftop.rotation.x = -Math.PI / 2; ftop.position.y = 0.006; scene.add(ftop); // (STU-B)
     for (const [r, w, op] of [[R, 0.14, 1], [R * 0.66, 0.05, 0.5], [R * 0.33, 0.05, 0.5]]) { const m = new THREE.Mesh(new THREE.TorusGeometry(r, w, 6, 96), glow(th.edge, op)); m.rotation.x = Math.PI / 2; m.position.y = 0.03; scene.add(m); }
-    for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, h = 1.5 + (i % 3); const p = new THREE.Mesh(new THREE.BoxGeometry(1, h, 1), std(th.prop, { emissive: th.prop, emissiveIntensity: 0.35 })); p.position.set(Math.cos(a) * (R + 2.2), h / 2 - 0.6, Math.sin(a) * (R + 2.2)); scene.add(p); }
+    const ringBoxes = [], ringProps = [];
+    for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, h = 1.5 + (i % 3); const p = new THREE.Mesh(new THREE.BoxGeometry(1, h, 1), std(th.prop, { emissive: th.prop, emissiveIntensity: 0.35 })); p.position.set(Math.cos(a) * (R + 2.2), h / 2 - 0.6, Math.sin(a) * (R + 2.2)); scene.add(p); ringBoxes.push(p); ringProps.push([Math.cos(a) * (R + 3), Math.sin(a) * (R + 3), 2.2 + (i % 3) * 0.6, -a]); }
+    scene.userData.live = true; dressRun(scene, o.spec.theme, { floors: [ftop], props: ringProps, onProps: () => ringBoxes.forEach((b) => { b.visible = false; }) });
     // S4c: the maker's pillars — you can't walk through them, and a drone that hits one is gone
     const pil = A.pillars || []; if (pil.length) { const pG = new THREE.CylinderGeometry(1, 1.1, 2.6, 20), pM = std(th.wall, { emissive: th.wall, emissiveIntensity: 0.25 }), capM = glow(th.edge, 0.9); for (const q of pil) { const m = new THREE.Mesh(pG, pM); m.position.set(q.x, 1.3, q.z); scene.add(m); const cap = new THREE.Mesh(new THREE.TorusGeometry(1.02, 0.06, 6, 28), capM); cap.rotation.x = Math.PI / 2; cap.position.set(q.x, 2.62, q.z); scene.add(cap); } }
     // the hero and its walk
@@ -534,7 +571,7 @@ export function createStudio(ctx) {
     const drones = [], sweeps = [], coins = []; let wi = 0, ci = 0;
     const cM = std(0xffc94a, { emissive: 0xffa21a, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.25 }), cG = new THREE.CylinderGeometry(0.42, 0.42, 0.1, 18);
     const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, ((o.spec.rules || []).includes("onehp") ? 1 : 3) - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = `🪙 ${S.coins} · ${Math.max(0, Math.ceil(A.secs - Math.max(0, S.t)))}s`; hud.querySelector(".wst-bar em").style.width = Math.min(100, (Math.max(0, S.t) / A.secs) * 100).toFixed(1) + "%"; };
-    function hurt() { if (S.inv > 0 || S.over) return; S.hearts--; S.inv = 1.3; play(S.hearts > 0 ? "hit" : "die", { once: true }); if (ctx.Snd && ctx.Snd.hurt) try { ctx.Snd.hurt(); } catch { /* no sound */ } paintHud(); if (S.hearts <= 0) end(false); }
+    function hurt() { if (S.inv > 0 || S.over) return; S.hearts--; S.inv = 1.3; play(S.hearts > 0 ? "hit" : "die", { once: true }); if (ctx.Snd && ctx.Snd.hurt) try { ctx.Snd.hurt(); } catch { /* no sound */ } ouch(hud); paintHud(); if (S.hearts <= 0) end(false); }
     const mv = new THREE.Vector3();
     function tick(dt, t) {
       dt = Math.min(dt, 0.05);
@@ -573,13 +610,13 @@ export function createStudio(ctx) {
       if (cam.aspect !== innerWidth / innerHeight) { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
     }
     hud.querySelector(".wst-hx").addEventListener("click", () => leave());
-    async function end(done) { if (S.over) return; S.over = true; play(done ? "emote-yes" : "die", { once: true }); const secs = Math.min(A.secs, Math.max(0, S.t));
+    async function end(done) { if (S.over) return; S.over = true; play(done ? "emote-yes" : "die", { once: true }); const secs = Math.min(A.secs, Math.max(0, S.t)); if (!done) { deathMark(scene, S.x, S.z); await beat(hud); }
       await result(o, hud, { trace: S.tr, coins: S.coins, dist: secs * 20, done, line: `🪙 ${S.coins} / ${A.coins} · ${Math.round(secs)} / ${A.secs} s`, head: done ? "🛸 " + T("You lasted!") : "💥 " + T("Out of hearts"), confetti: done }, leave); }
     function leave(again) {
       removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); removeEventListener("pointerdown", pd); removeEventListener("pointermove", pm); removeEventListener("pointerup", pu); removeEventListener("pointercancel", pu);
       st.solo(null); st.view(null); hud.remove(); document.body.classList.remove("wp-studio");
       if (hero) me.remove(hero.obj);
-      scene.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
+      scene.userData.live = false; scene.traverse((m) => { if (m.userData && m.userData.shared) return; if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
       playing = null; if (!again && o.onBack) { o.onBack(); return; } if (!again && el) { el.hidden = false; paint(); load(); }
     }
     st.view(scene, cam); st.solo(tick); tick(0.016, 0); paintHud();
