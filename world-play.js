@@ -980,6 +980,9 @@ function paintFace() { const imgs = [$("wc-face-img"), $("wp-lv-face")].filter(B
 const FORM_LV = 300, FORM_PIECES = 6;
 function formOk() { let n = 0; try { n = mythicWorn().length; } catch { /* not loaded */ } return level() >= FORM_LV || n >= FORM_PIECES; }
 function formOf(id) { const h = heroOf(id || ""), f = h + "x"; return P.form && K.HERO_FORMS && K.HERO_FORMS[f] && formOk() ? f : id; }
+// the Crimson Celestial models worn on the hero (mythicModel, below): declared before the first setAvatar — the minified
+// build turns these into vars, and a dress() during loading read MYTH_SIZE while it was still undefined (diag, 2026-10-25)
+const mythGlb = {}, MYTH_SIZE = { weapon: 1.05, shield: 0.72, helm: 0.62 };
 async function setAvatar(id) {
   // an old phone's hero load that never settles (a texture that never decodes, a lost GPU context) held the loading
   // screen at 80 % "Opening the plaza…" (a Mali-T830 in diag, 2026-10-24): after 20 s you go in as the plain robot,
@@ -5609,7 +5612,7 @@ async function mythicUI() {
 async function openMythic(slot) { const u = await mythicUI(); if (u) u.open(slot); } // (a guest opens it too: the set, the odds, the market and the boards to look at; acting asks for the wallet — world-mythic.js needSign)
 // a worn piece on your hero: its packed model (models/world/mythic, ~7 k triangles), fetched once, sized for the slot with
 // its grip / centre where the hand or head holds it; until it's in, the usual piece shows and the hero is dressed again after
-const mythGlb = {}, MYTH_SIZE = { weapon: 1.05, shield: 0.72, helm: 0.62 };
+// (mythGlb / MYTH_SIZE are declared near the top: the hero is dressed while the town loads, before this line runs)
 function mythicModel(slot) {
   if (!MY || !MYTH_SIZE[slot]) return null; const m = mythicWorn().find((p) => MY.pieceOf(p.def).slot === slot); if (!m) return null;
   const P0 = MY.pieceOf(m.def), g = mythGlb[P0.glb];
