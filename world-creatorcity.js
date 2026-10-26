@@ -30,17 +30,24 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   // ---------------- the ground: pale creator paving with a light grid, the plaza, walkways to each building ----------------
   { const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#e7eef8"; x.fillRect(0, 0, w, h); x.strokeStyle = "#5fd3ff"; x.globalAlpha = 0.35; x.lineWidth = 2; for (let k = 0; k <= 8; k++) { x.beginPath(); x.moveTo(k * 64, 0); x.lineTo(k * 64, h); x.stroke(); x.beginPath(); x.moveTo(0, k * 64); x.lineTo(w, k * 64); x.stroke(); } });
     if (tex) { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(16, 16); }
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(land.r + 50, 96), std(0xffffff, { map: tex, roughness: 0.5, metalness: 0.05 })); ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = !low; ground.name = "cc-ground"; g.add(ground); bld.ground = ground;
+    const gm = std(0xffffff, { map: tex, roughness: 0.5, metalness: 0.05 }), ground = new THREE.Mesh(new THREE.CircleGeometry(land.r + 50, 96), gm);
+    try { new THREE.TextureLoader().load(`/images/cc/floor-${low ? 512 : 1024}.webp${ver}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(14, 14); t.anisotropy = 4; gm.map = t; gm.needsUpdate = true; }); } catch { /* the drawn one stays (STU-β: Meshy's cream slabs with glowing joints) */ }
+    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = !low; ground.name = "cc-ground"; g.add(ground); bld.ground = ground;
     const off = { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 };
     const plaza = new THREE.Mesh(new THREE.CircleGeometry(17, 72), std(0xffffff, { roughness: 0.3, metalness: 0.2, ...off })); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.03; g.add(plaza);
     for (const [r, w, c, op] of [[17, 0.12, 0x5fd3ff, 0.95], [land.r, 0.16, 0x7cf5c8, 0.8], [26, 0.06, 0xffd23a, 0.7]]) { const m = new THREE.Mesh(new THREE.TorusGeometry(r, w, 4, 160), neon(c, op)); m.rotation.x = Math.PI / 2; m.position.y = 0.06; g.add(m); }
-    // walkways from the plaza to each door and the way in, glowing at their edges
+    // walkways from the plaza to each door and the way in, glowing at their edges (Meshy's mint tiles)
+    const pathM = std(0xd5e3f3, { roughness: 0.35, metalness: 0.2, ...off }); try { new THREE.TextureLoader().load(`/images/cc/path-512.webp${ver}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 8); pathM.map = t; pathM.color.set(0xffffff); pathM.needsUpdate = true; }); } catch { /* plain */ }
     for (const f of [...FAC.filter((f0) => f0.r), { a: 0, r: land.r - 8, fp: 0, col: 0x7cf5c8 }]) {
       const len = f.r - f.fp / 2 - 2 - 17; if (len < 2) continue; const [cx, cz] = polar(f.a, 17 + len / 2);
-      const w = new THREE.Mesh(new THREE.PlaneGeometry(5, len), std(0xd5e3f3, { roughness: 0.35, metalness: 0.2, ...off })); w.rotation.set(-Math.PI / 2, 0, rad(f.a)); w.position.set(cx, 0.035, cz); g.add(w);
+      const w = new THREE.Mesh(new THREE.PlaneGeometry(5, len), pathM); w.rotation.set(-Math.PI / 2, 0, rad(f.a)); w.position.set(cx, 0.035, cz); g.add(w);
       for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.PlaneGeometry(0.16, len), neon(f.col, 0.85)); e.rotation.set(-Math.PI / 2, 0, rad(f.a)); const [ox, oz] = polar(f.a + 90, s * 2.5); e.position.set(cx + ox, 0.05, cz + oz); g.add(e); }
     }
   }
+  // ---------------- the sky past the city: Meshy's pastel panorama (floating isles and toy cubes) round it ----------------
+  { const tx = new THREE.TextureLoader().load(`/images/cc/sky-${low ? 768 : 1344}.webp${ver}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; }); tx.wrapS = THREE.RepeatWrapping; tx.repeat.set(3, 1);
+    const R = 420, H = ((Math.PI * 2 * R) / 3) * (768 / 1344), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, side: THREE.BackSide, fog: false, depthWrite: false }));
+    cyl.position.y = H / 2 - 60; cyl.renderOrder = -5; cyl.name = "cc-sky"; cyl.frustumCulled = false; g.add(cyl); }
   // ---------------- a sign that turns to face you ----------------
   function board(parent, title, sub, col, y, w = 11) {
     const tex = canvasTex(1024, 300, (x) => { x.beginPath(); if (x.roundRect) x.roundRect(8, 8, 1008, 284, 44); else x.rect(8, 8, 1008, 284); x.fillStyle = "rgba(6,18,40,.9)"; x.fill(); x.lineWidth = 8; x.strokeStyle = col; x.stroke();
@@ -81,10 +88,12 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   function fit(sc, fp) { const box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), k = fp / (Math.max(sz.x, sz.z) || 1); sc.scale.setScalar(k); sc.position.set(-(box.min.x + sz.x / 2) * k, -box.min.y * k, -(box.min.z + sz.z / 2) * k); const w = new THREE.Group(); w.add(sc); return { w, h: sz.y * k }; }
   function loadModels() {
     if (started || !K.gltfLoader) return; started = true;
-    const q = FAC.slice().sort((a, b) => (a.id === "arcade" ? -1 : b.id === "arcade" ? 1 : 0)); let i = 0;
-    const next = () => { const f = q[i++]; if (!f) return; try { K.gltfLoader().load(`/models/world/cc/${f.glb}.glb${ver}`, (gl) => { const o = bld[f.id], m = fit(gl.scene, f.fp); gl.scene.traverse((x) => { if (x.isMesh) { x.castShadow = false; x.receiveShadow = !low; } }); o.add(m.w); o.userData.p.visible = false; loaded[f.id] = true; if (o.userData.board) o.userData.board.position.y = m.h + 3.2; next(); }, undefined, () => next()); } catch { next(); } };
+    const KEY = ["arcade", "tower", "academy", "hall"], q = FAC.filter((f) => !low || KEY.includes(f.id)).sort((a, b) => (KEY.indexOf(a.id) + 9) % 9 - (KEY.indexOf(b.id) + 9) % 9); let i = 0; // (low graphics: those four only, about 2 MB; the rest keep their stand-ins)
+    const next = () => { const f = q[i++]; if (!f) { portalModel(); return; } try { K.gltfLoader().load(`/models/world/cc/${f.glb}.glb${ver}`, (gl) => { const o = bld[f.id], m = fit(gl.scene, f.fp); gl.scene.traverse((x) => { if (x.isMesh) { x.castShadow = false; x.receiveShadow = !low; } }); o.add(m.w); o.userData.p.visible = false; loaded[f.id] = true; if (o.userData.board) o.userData.board.position.y = m.h + 3.2; next(); }, undefined, () => next()); } catch { next(); } };
     next();
   }
+  // the game portals' arch (one Meshy model, tinted per game; its swirl becomes the game's colour)
+  function portalModel() { try { K.gltfLoader().load(`/models/world/cc/game-portal.glb${ver}`, (gl) => { const m = fit(gl.scene, 4.6); portals.forEach((p) => { const c = m.w.clone(true); c.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (x.material.emissive) { x.material.emissive.copy(p.ring.material.color); x.material.emissiveIntensity = 0.6; } } }); p.o.add(c); p.arch = c; p.ring.visible = false; }); }); } catch { /* the rings stay */ } }
   // ---------------- the Game Arcade's portals: the top games, each a door you walk into ----------------
   const portals = [], arc = FAC.find((f) => f.id === "arcade");
   for (let i = 0; i < PORTALS; i++) {
@@ -98,7 +107,7 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   function setGames(list) {
     const L = (list || []).slice(0, PORTALS);
     portals.forEach((p, i) => { const gm = L[i] || null; p.game = gm; p.o.visible = !!gm; if (!gm || !p.tex) return;
-      const col = new THREE.Color(gm.css || "#7cf5c8"); p.ring.material.color.copy(col); p.film.material.color.copy(col);
+      const col = new THREE.Color(gm.css || "#7cf5c8"); p.ring.material.color.copy(col); p.film.material.color.copy(col); if (p.arch) p.arch.traverse((x) => { if (x.isMesh && x.material && x.material.emissive) x.material.emissive.copy(col); });
       const s = 1 + Math.min(0.5, (gm.plays || 0) / 400 + (gm.likes || 0) / 80); p.o.scale.setScalar(s); // (a more played game's portal stands taller)
       const c = p.tex.userData.cv.getContext("2d"); c.clearRect(0, 0, 512, 160); c.beginPath(); if (c.roundRect) c.roundRect(4, 4, 504, 152, 30); else c.rect(4, 4, 504, 152); c.fillStyle = "rgba(4,14,30,.88)"; c.fill(); c.lineWidth = 5; c.strokeStyle = gm.css || "#7cf5c8"; c.stroke();
       c.textAlign = "center"; c.fillStyle = "#fff"; c.font = "900 48px Sora, 'Segoe UI', sans-serif"; c.fillText(gm.title || "", 256, 70, 480); c.fillStyle = "#cfe0f5"; c.font = "800 28px Sora, 'Segoe UI', sans-serif"; c.fillText(`▶ ${gm.plays || 0}  ♥ ${gm.likes || 0} · ${gm.byName || ""}`, 256, 122, 480); p.tex.needsUpdate = true; });
