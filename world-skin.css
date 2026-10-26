@@ -4838,3 +4838,11 @@ html.wp-pcphone .wbr-in{zoom:1.6;max-height:calc((100dvh - 32px) / 1.6)}
 html.wp-pcphone.wp-land .wbr-in{zoom:1.1;max-height:calc((100dvh - 24px) / 1.1);width:min(760px,100%)}
 html.wp-vpfb.wp-land .wbr-in{zoom:var(--fbz,.7);max-height:calc((100dvh - 24px) / var(--fbz,.7))}
 @media (max-width:560px){.wbr{padding:0;align-items:end}.wbr-in{border-radius:22px 22px 0 0;max-height:94dvh}}
+.my-payall{display:block;width:100%;margin:0 0 10px;padding:12px;border-radius:999px;font-weight:900}
+/* ARC3: the contest's USDC prize */
+.wst-prize{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:6px 0;padding:8px 12px;border-radius:12px;background:linear-gradient(90deg,rgba(255,210,58,.16),rgba(53,216,208,.1));border:1px solid rgba(255,210,58,.4);font-size:13px}
+.wst-prize i{width:22px;height:22px;display:inline-grid;place-items:center}.wst-prize i img{width:22px;height:22px}
+.wst-prize b{color:#ffd23a;font-weight:900}.wst-prize span{font-weight:800}.wst-prize a{color:#7cf5c8;text-decoration:none}
+.wst-gmprize{margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.25);font-size:12px}.wst-gmprize summary{cursor:pointer;font-weight:800;color:#ffd23a}
+.wst-gmprize form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}.wst-gmprize input{width:70px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff}
+.wst-gmprize .wst-go{display:block;margin:4px 0}

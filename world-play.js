@@ -5788,7 +5788,7 @@ async function openStudio(tab) {
   try {
     if (!studio) { card = stuCardSeen ? null : gameCard("studio"); stuCardSeen = true; if (card) await paintFrame();
       let M; try { M = await import("./world-studio.js"); } catch (e) { if (card) card.close(true); if (staleReload()) return; throw e; } if (card) card.step(0);
-      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, ver: VER, isGM: () => !!(agentDim && agentDim.state() && agentDim.state().gm), guide: (k) => openAdGuide(k), low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
+      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, ver: VER, tx: (to, data) => walletTx(to, data), isGM: () => !!(agentDim && agentDim.state() && agentDim.state().gm), guide: (k) => openAdGuide(k), low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
         makeHero: () => K.makeCharacter(heroOf(P.char || "custom-aron"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         agentName: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.name : ""; } catch { return ""; } },
         share: (c) => bragCard(c),

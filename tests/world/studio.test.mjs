@@ -22,7 +22,8 @@ let T = Date.parse("2026-10-23T03:00:00Z");
 const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && T - t <= max && T - t >= -60e3; };
 let n = 0; const randomId = () => (0x1000000 + ++n * 7919).toString(16) + "abcdef";
 let aiReply = '{"title":"Dino Dash","theme":"jungle","speed":9,"len":60,"coins":5,"walls":3,"gaps":2,"lasers":1,"evil":"x"}';
-const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId, random: Math.random, ai: async () => aiReply, tokenBalance: async () => "0" });
+const receipts = {};
+const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, randomId, random: Math.random, ai: async () => aiReply, tokenBalance: async () => "0", receipt: async (h) => receipts[h] || null });
 const sign = async (w) => { const issued = new Date(T).toISOString(); return { wallet: w.address, issued, signature: await w.signMessage(loginMessage(w.address, issued)) }; };
 const call = async (w, action, extra = {}) => W.handle({ action, ...(await sign(w)), ...extra });
 const get = async (q) => (await W.read(new URL("https://x/api/social?world=" + q))).body;
@@ -177,6 +178,21 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   const wkb = await get("studio-week"), e = wkb.top.find((x) => x.id === id);
   check(wkb.ok && wkb.tpl === tpl && e && e.l === 1 && e.pts >= 5 && !wkb.top.some((x) => x.id === id2), "this week's board: the theme's games, likes ×5, other templates left out (" + tpl + ", " + (e && e.pts) + " pts)");
   T += 7 * 86400e3; const nx = await get("studio-week"); check(nx.week !== wk && nx.last && nx.last.top[0] && nx.last.top[0].id === id && nx.top.length === 0, "a new week starts empty and shows last week's top 3"); T -= 7 * 86400e3;
+  // ARC3: a GM's USDC prize for the top 3, paid from the GM's own wallet after the week and checked here
+  { const { GM_WALLETS } = await import("../../api/_world-village.mjs"); const gm = ethers.Wallet.createRandom(); GM_WALLETS.push(gm.address.toLowerCase());
+    let z = await call(fan, "world-studio-prize", { op: "set", usd: [1000, 500, 250] }); check(z.status === 403, "only a GM sets a contest prize");
+    z = await call(gm, "world-studio-prize", { op: "set", usd: [1000, 500, 999999999] }); check(z.status === 200 && z.body.prize.usd[0] === 1000 && z.body.prize.usd[2] === 100000, "a GM sets this week's prize (capped at 1,000 USDC a place)");
+    check((await get("studio-week")).prize.usd[1] === 500, "the board shows this week's prize");
+    z = await call(gm, "world-studio-prize", { op: "paid", week: wk, rank: 0, tx: "0x" + "1".repeat(64) }); check(z.status === 400, "no paying before the week ends");
+    T += 7 * 86400e3;
+    const pad = (a) => "0x" + a.toLowerCase().slice(2).padStart(64, "0"), tx = "0x" + "2".repeat(64), TR = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+    receipts[tx] = { status: "0x1", logs: [{ address: "0x3600000000000000000000000000000000000000", topics: [TR, pad(gm.address), pad(mk.address)], data: "0x" + (5000000n).toString(16) }] };
+    z = await call(gm, "world-studio-prize", { op: "paid", week: wk, rank: 0, tx }); check(z.status === 400, "a transfer short of the prize is refused (5 of 10 USDC)");
+    const tx2 = "0x" + "3".repeat(64); receipts[tx2] = { status: "0x1", logs: [{ ...receipts[tx].logs[0], data: "0x" + (10000000n).toString(16) }] };
+    z = await call(gm, "world-studio-prize", { op: "paid", week: wk, rank: 0, tx: tx2 }); check(z.status === 200 && z.body.prize.paid[0].to === mk.address.toLowerCase(), "the winner's prize: GM → the maker's wallet, checked");
+    z = await call(gm, "world-studio-prize", { op: "paid", week: wk, rank: 0, tx: tx2 }); check(z.status === 409, "paid once");
+    const lw = await get("studio-week"); check(lw.last.prize && lw.last.prize.paid[0] && lw.last.prize.paid[0].tx === tx2, "last week's board shows the prize as paid");
+    T -= 7 * 86400e3; }
   r = await call(fan, "world-studio-save", { spec: gs.spec, from: id }); const rm = r.body.game; check(r.status === 200 && rm.from && rm.from.id === id && rm.from.title === "Week Entry", "a remix keeps where it came from");
   check(((await get("studio-game&id=" + id)).game.remixes || 0) === 1, "the original counts its remixes");
   await call(fan, "world-studio-del", { id: rm.id }); await call(mk, "world-studio-del", { id }); await call(mk, "world-studio-del", { id: id2 }); }

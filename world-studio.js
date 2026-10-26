@@ -71,7 +71,7 @@ export function createStudio(ctx) {
   // ---------------- the window ----------------
   function shell() {
     if (el) return el; el = document.createElement("div"); el.className = "wst"; el.hidden = true; document.body.appendChild(el);
-    el.addEventListener("click", onClick); el.addEventListener("input", onInput); el.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches(".wst-adv")) advOpen = e.target.open; }, true);
+    el.addEventListener("click", onClick); el.addEventListener("input", onInput); el.addEventListener("submit", onPrizeSet); el.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches(".wst-adv")) advOpen = e.target.open; }, true);
     el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } else if (e.key === "Enter" && e.target.closest && e.target.closest(".wst-hin")) { e.preventDefault(); saveHandle(); } });
     return el;
   }
@@ -194,13 +194,26 @@ export function createStudio(ctx) {
     if (!w) return loc || `<div class="wst-emptybox"><i>🎮</i><b>${esc(T("No games yet"))}</b><small>${esc(T("Make one in Create — you can save it on this device without signing in."))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`;
     return webBox() + loc + (mine.length ? mine.map((g) => card(g, true)).join("") : L.length ? "" : `<div class="wst-emptybox"><i>🎮</i><b>${esc(T("No games yet"))}</b><small>${esc(T("No games yet — make your first one in Create."))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`);
   }
+  // ARC3: the week's USDC prize (a GM sets it; paid after the week from the GM's own wallet, checked by the server)
+  const usd = (c) => (c / 100).toFixed(c % 100 ? 2 : 0);
+  function prizeLine(pz, last) {
+    if (!pz || !pz.usd) return ""; const medal = ["🥇", "🥈", "🥉"];
+    return `<div class="wst-prize"><i>${IC("ic-trophy")}</i><b>${esc(T("USDC prize"))}</b>${pz.usd.map((c, i) => (c ? `<span>${medal[i]} ${usd(c)} USDC${last && pz.paid && pz.paid[i] ? ` <a href="https://arcscan.app/tx/${esc(pz.paid[i].tx)}" target="_blank" rel="noopener" title="${esc(T("Paid"))}">✓</a>` : ""}</span>` : "")).join("")}</div>`;
+  }
+  function gmPrize() {
+    if (!(ctx.isGM && ctx.isGM())) return ""; const pz = (week && week.prize) || { usd: [0, 0, 0] }, lp = week && week.last && week.last.prize;
+    const due = lp && week.last.top ? week.last.top.slice(0, 3).map((x, i) => ({ x, i, c: lp.usd[i] || 0, paid: lp.paid && lp.paid[i] })).filter((r) => r.c && !r.paid) : [];
+    return `<details class="wst-gmprize"><summary>GM · ${esc(T("USDC prize"))}</summary><form data-prizef>${[0, 1, 2].map((i) => `<label>${["🥇", "🥈", "🥉"][i]}<input type="number" min="0" max="1000" step="1" value="${(pz.usd[i] || 0) / 100}"> USDC</label>`).join("")}<button type="submit" class="wst-go">${esc(T("Set this week's prize"))}</button></form>
+      ${due.length ? `<p>${esc(T("Last week's prizes to pay:"))}</p>${due.map((r) => `<button type="button" class="wst-go" data-prizepay="${r.i}" data-week="${esc(week.last.week)}" data-amt="${r.c}" data-gid="${esc(r.x.id)}">${["🥇", "🥈", "🥉"][r.i]} ${esc(r.x.title)} · ${usd(r.c)} USDC — ${esc(T("Pay from my wallet"))}</button>`).join("")}` : ""}</details>`;
+  }
   function contestBox() {
     if (!week || !week.tpl || !TEMPLATES[week.tpl]) return ""; const left = Math.max(0, week.ends - Date.now()), d = Math.floor(left / 86400e3), h = Math.floor((left % 86400e3) / 3600e3);
     const top = (week.top || []).slice(0, 3), medal = ["🥇", "🥈", "🥉"];
     return `<div class="wst-contest"><div class="wst-cth"><i>${IC("ic-trophy")}</i><div><small>${esc(T("Weekly creator contest"))}</small><b>${ICON[week.tpl] || "🎮"} ${esc(T("{t} week", { t: T(TEMPLATES[week.tpl].name) }))}</b><em>${esc(T("ends in {d}d {h}h", { d, h }))}</em></div><button type="button" class="wst-go" data-ctmake="${esc(week.tpl)}">🛠️ ${esc(T("Enter"))}</button></div>
       <small class="wst-ctrule">${esc(T("Publish a {t} game — plays by others and likes (×5) this week rank it.", { t: T(TEMPLATES[week.tpl].name) }))}</small>
+      ${prizeLine(week.prize)}${gmPrize()}
       ${top.length ? `<ol class="wst-ctop">${top.map((x, i) => `<li data-open="${esc(x.id)}" role="button"><i>${medal[i]}</i><b>${esc(x.title)}</b><span>${esc(x.byName || "?")}</span><em>${x.pts}</em></li>`).join("")}</ol>` : `<p class="wst-ctempty">${esc(T("No entries yet — yours could be #1!"))}</p>`}
-      ${week.last && week.last.top && week.last.top.length ? `<p class="wst-ctlast">${esc(T("Last week's winner"))}: 👑 <b data-open="${esc(week.last.top[0].id)}" role="button">${esc(week.last.top[0].title)}</b> · ${esc(week.last.top[0].byName || "?")}</p>` : ""}</div>`;
+      ${week.last && week.last.top && week.last.top.length ? `<p class="wst-ctlast">${esc(T("Last week's winner"))}: 👑 <b data-open="${esc(week.last.top[0].id)}" role="button">${esc(week.last.top[0].title)}</b> · ${esc(week.last.top[0].byName || "?")}</p>${prizeLine(week.last.prize, true)}` : ""}</div>`;
   }
   const arcTools = () => `<div class="wst-atools"><input class="wst-aq" type="search" maxlength="30" placeholder="🔎 ${esc(T("Search games or makers"))}" value="${esc(aq)}"><div class="wst-chips">${[["pop", "🔥", "Popular"], ["new", "🆕", "New"], ["like", "♥", "Most liked"]].map(([k, ic, l]) => `<button type="button" data-asort="${k}" class="${asort === k ? "on" : ""}">${ic} ${esc(T(l))}</button>`).join("")}</div>
     <div class="wst-chips wst-atpl"><button type="button" data-atpl="" class="${atpl ? "" : "on"}">${esc(T("All"))}</button>${Object.keys(TEMPLATES).map((k) => `<button type="button" data-atpl="${k}" class="${atpl === k ? "on" : ""}" title="${esc(T(TEMPLATES[k].name))}">${ICON[k]} ${esc(T(TEMPLATES[k].name))}</button>`).join("")}</div></div>`;
@@ -257,6 +270,21 @@ export function createStudio(ctx) {
     if (t.matches(".wst-aq")) { aq = t.value; clearTimeout(estT); estT = setTimeout(() => { const pos = t.selectionStart; paintKeep(); const n = el.querySelector(".wst-aq"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { /* not a text field */ } } }, 250); }
     if (t.matches("[data-ghost]")) ghostOn = t.checked;
   }
+  async function onPrizeSet(e) {
+    const f = e.target.closest("[data-prizef]"); if (!f) return; e.preventDefault();
+    const usdv = [...f.querySelectorAll("input")].map((i) => Math.round((Number(i.value) || 0) * 100)); const r = await act({ action: "world-studio-prize", op: "set", usd: usdv });
+    if (!r || !r.ok) return fail(r); week = { ...week, prize: r.j.prize }; ctx.toast("🏆 " + esc(T("Prize set"))); paint();
+  }
+  async function payPrize(b) {
+    if (!ctx.tx) { ctx.toast(esc(T("Wallet connect isn't available here."))); return; }
+    const q = await act({ action: "world-studio-prize", op: "to", week: b.dataset.week, rank: Number(b.dataset.prizepay) }), to = q && q.ok && q.j.to;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(String(to || ""))) { ctx.toast(esc(T("That game has no maker's wallet"))); return; }
+    const cents = Number(b.dataset.amt); if (typeof confirm === "function" && !confirm(T("Send {p} USDC to {w} from your wallet?", { p: (cents / 100).toFixed(2), w: to.slice(0, 6) + "…" + to.slice(-4) }))) return;
+    b.disabled = true; let tx;
+    try { tx = await ctx.tx("0x3600000000000000000000000000000000000000", "0xa9059cbb" + to.slice(2).toLowerCase().padStart(64, "0") + (BigInt(cents) * 10000n).toString(16).padStart(64, "0")); } catch (e2) { b.disabled = false; ctx.toast(esc(e2 && e2.code === 4001 ? T("Cancelled") : (e2 && e2.message) || T("The wallet didn't send it"))); return; }
+    for (let i = 0; i < 16; i++) { const r = await act({ action: "world-studio-prize", op: "paid", week: b.dataset.week, rank: Number(b.dataset.prizepay), tx }); if (r && r.status === 202) { await new Promise((ok) => setTimeout(ok, 4000)); continue; } if (!r || !r.ok) { b.disabled = false; return fail(r); } week = { ...week, last: { ...week.last, prize: r.j.prize } }; ctx.toast("🏆 " + esc(T("Paid — the server checked your transfer"))); paint(); return; }
+    b.disabled = false; ctx.toast(esc(T("The transaction is still not confirmed — it will be checked when you try again.")));
+  }
   async function onClick(e) {
     const op = e.target.closest("[data-open]"); if (op && !e.target.closest("button")) return openGame(op.dataset.open);
     const b = e.target.closest("button"); if (!b || b.disabled) { if (e.target === el) close(); return; }
@@ -274,6 +302,7 @@ export function createStudio(ctx) {
     if (b.dataset.ghide && gdata) { const r = await act({ action: "world-studio-hide", id: gdata.id, on: b.dataset.ghide === "1" }); if (r && r.ok) { gdata = { ...gdata, hidden: r.j.hidden }; ctx.toast(r.j.hidden ? "🙈 " + esc(T("Hidden from the arcade")) : "👁 " + esc(T("Back on the arcade"))); load(); } else if (r) fail(r); return paintKeep(); }
     if (b.hasAttribute("data-tweak")) return tweakIt();
     if (b.dataset.atpl != null && b.hasAttribute("data-atpl")) { atpl = b.dataset.atpl; return paintKeep(); }
+    if (b.dataset.prizepay) { await payPrize(b); return; }
     if (b.dataset.ctmake) { spec = clampSpec({ ...spec, tpl: b.dataset.ctmake, title: "" }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 1; lastTest = null; paint(); return; }
     if (b.dataset.remix) { const g = gdata && gdata.id === b.dataset.remix ? gdata : null; if (!g || !g.spec) return; spec = clampSpec({ ...g.spec, title: (g.title + " " + T("remix")).slice(0, 24), seed: g.spec.seed }); editId = ""; localId = ""; remixFrom = g.id; tab = "make"; step = 3; lastTest = null; paint(); ctx.toast("🔀 " + esc(T("A copy is open — change anything, then save it as yours"))); return; }
     if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("studio"); return; }

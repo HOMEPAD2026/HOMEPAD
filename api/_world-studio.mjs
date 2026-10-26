@@ -70,6 +70,9 @@ export const slugOf = (t) => String(t || "").normalize("NFKD").replace(/[\u0300-
 // and likes ×5 on that template's published games rank them; last week's top 3 stay shown. worldStudioWeek/<monday> { tpl, list }
 export const CONTEST = { TPLS: ["runner", "arena", "climb", "dash", "defense", "puzzle", "rush"], LIKE: 5, TOP: 10, KEEP: 60 };
 export const weekOf = (t) => { const d = new Date(t + 9 * 3600e3), wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10); };
+// ARC3 (2026-10-26, the owner): a USDC prize for the weekly contest's top 3 — set by a GM, paid from the GM's own wallet
+// in USDC on Arc after the week, the transfer checked here (from the GM to the game's maker, at least the prize, once)
+export const PRIZE = { MAX: 100000, PLACES: 3, TOKEN: "0x3600000000000000000000000000000000000000", DEC: 6 }; // (MAX in cents: 1,000 USDC a place)
 export const contestTpl = (wk) => CONTEST.TPLS[Math.floor(Date.parse(wk + "T00:00:00Z") / (7 * 86400e3)) % CONTEST.TPLS.length];
 /// a small copy of a spec for the arcade's list (the page draws a card's picture from it; a hand-built layout isn't in it)
 export const tinySpec = (sp) => { const o = {}; for (const k of ["tpl", "theme", "speed", "len", "coins", "walls", "gaps", "lasers", "seed"]) o[k] = sp[k]; if (sp.rules) o.rules = sp.rules; return o; };
@@ -95,6 +98,34 @@ export function makeStudio(deps) {
     d.list[id] = { p: e.p + plays, l: e.l + likes, title: g.spec.title, byName: g.byName || "", tpl };
     d.list = Object.fromEntries(Object.entries(d.list).sort((a, b) => (b[1].p + b[1].l * CONTEST.LIKE) - (a[1].p + a[1].l * CONTEST.LIKE)).slice(0, CONTEST.KEEP));
     await setDoc(k, { tpl, list: d.list });
+  }
+  const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", p32 = (a) => "0x" + String(a).toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  const moved = (rc, from, to) => ((rc && rc.logs) || []).filter((l) => String(l.address).toLowerCase() === PRIZE.TOKEN && l.topics && String(l.topics[0]).toLowerCase() === TRANSFER && String(l.topics[1]).toLowerCase() === p32(from) && String(l.topics[2]).toLowerCase() === p32(to)).reduce((x, l) => x + BigInt(l.data), 0n);
+  const prizeOf = (d) => (d && Array.isArray(d.usd) && d.usd.some((x) => x > 0) ? { usd: d.usd, paid: d.paid || {} } : null);
+  async function prize(w, b) {
+    if (!(deps.isGM && deps.isGM(w))) return json(403, { error: "for the team" });
+    const cur = weekOf(now()), wk = /^\d{4}-\d{2}-\d{2}$/.test(String(b.week || "")) ? String(b.week) : cur, k = `worldStudioPrize/${wk}`, d = (await one(k)) || { usd: [], paid: {} };
+    if (b.op === "set") {
+      if (wk < cur) return json(400, { error: "that week is over" });
+      const usd = [0, 1, 2].map((i) => Math.max(0, Math.min(PRIZE.MAX, Math.round(Number((b.usd || [])[i]) || 0))));
+      if (Object.keys(d.paid || {}).length) return json(409, { error: "a prize of this week was paid already" });
+      const nd = { ...d, usd, by: w, at: now() }; await setDoc(k, nd); if (deps.audit) deps.audit(w, "studio-prize-set", { week: wk, usd }).catch(() => {});
+      return json(200, { ok: true, week: wk, prize: prizeOf(nd) });
+    }
+    if (b.op === "to") { const e = weekTop(await one(`worldStudioWeek/${wk}`))[Math.floor(Number(b.rank))]; const g = e ? await game(e.id) : null, to = String((g && g.w) || "").toLowerCase(); return /^0x[0-9a-f]{40}$/.test(to) ? json(200, { ok: true, to, id: e.id }) : json(404, { error: "that game has no maker's wallet" }); } // (a GM's pay button: where the prize goes)
+    if (b.op !== "paid") return json(400, { error: "set, to or paid" });
+    if (wk >= cur) return json(400, { error: "pay after the week ends" });
+    const rank = Math.floor(Number(b.rank)); if (!(rank >= 0 && rank < PRIZE.PLACES)) return json(400, { error: "rank 0, 1 or 2" });
+    const cents = (d.usd || [])[rank] || 0; if (!cents) return json(400, { error: "no prize for that place" }); if ((d.paid || {})[rank]) return json(409, { error: "paid already" });
+    const e = weekTop(await one(`worldStudioWeek/${wk}`))[rank]; if (!e) return json(404, { error: "nobody in that place" });
+    const g = await game(e.id), to = String((g && g.w) || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(to)) return json(400, { error: "that game has no maker's wallet" });
+    const tx = String(b.tx || "").toLowerCase(); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "the transaction hash of your USDC transfer" });
+    const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null; if (!rc) return json(202, { pending: true, error: "the transaction isn't confirmed yet" }); if (rc.status !== "0x1") return json(400, { error: "that transaction failed" });
+    if (moved(rc, w, to) < BigInt(cents) * 10n ** BigInt(PRIZE.DEC - 2)) return json(400, { error: "that transfer from your wallet doesn't cover it" });
+    if (deps.commit && !(await deps.commit([{ create: `worldPayTx/${tx}`, data: { w, k: "studio-prize", week: wk, rank, at: now() } }])).ok) return json(409, { error: "this transaction was already used" });
+    const nd = { ...d, paid: { ...(d.paid || {}), [rank]: { to, tx, id: e.id, title: e.title, at: now(), gm: w } } }; await setDoc(k, nd);
+    if (deps.audit) deps.audit(w, "studio-prize-paid", { week: wk, rank, to, cents, tx }).catch(() => {});
+    return json(200, { ok: true, week: wk, prize: prizeOf(nd) });
   }
   const weekTop = (d) => Object.entries((d && d.list) || {}).map(([id, x]) => ({ id, ...x, pts: x.p + x.l * CONTEST.LIKE })).sort((a, b) => b.pts - a.pts);
   const mineOf = async (w) => ((await one(`worldStudioBy/${w}`)) || {}).ids || [];
@@ -332,8 +363,8 @@ export function makeStudio(deps) {
         const f = findIn(await gamesOf(c), sl); if (!f) return json(404, { error: "no such game" }); return json(200, { ok: true, creator: card(c), game: { ...pubOf(f[0], f[1], true), slug: slugFor(f[0], f[1]) } }); }
       if (w === "studio-page") return page(url);
       if (w === "studio-reports") { const d = (await one("worldStats/studioReports")) || {}; return json(200, { ok: true, list: Object.entries(d.list || {}).map(([id, x]) => ({ id, ...x })).sort((a, b) => b.n - a.n) }); }
-      if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`)];
-        return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3) } : null }, "public, max-age=30"); }
+      if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l, pz, lpz] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`), await one(`worldStudioPrize/${wk}`), await one(`worldStudioPrize/${lw}`)];
+        return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), prize: prizeOf(pz), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3), prize: prizeOf(lpz) } : null }, "public, max-age=30"); }
       if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioGhost/${id}`) : null; if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
       if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
       return null;
@@ -343,6 +374,7 @@ export function makeStudio(deps) {
       const s = signer(b); if (s.err) return s.err; const w = s.wallet;
       if (deps.shut && deps.shut(w)) return json(403, { error: "ARCIRCLE Studio is under construction", closed: true });
       if (b.action === "world-studio-save") return save(w, b);
+      if (b.action === "world-studio-prize") return prize(w, b);
       if (b.action === "world-studio-publish") return publish(w, b);
       if (b.action === "world-studio-del") return del(w, b);
       if (b.action === "world-studio-pick") return pick(w, b);

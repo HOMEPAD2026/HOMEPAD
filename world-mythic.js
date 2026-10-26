@@ -199,7 +199,8 @@ export function makeMythicUI(ctx) {
   function gmHtml() {
     if (!gmList) { ctx.post({ action: "world-mythic-usd-admin", ...ctx.sess(), op: "list" }).then((r) => { gmList = (r && r.ok && r.j.list) || []; paint(); }).catch(() => { gmList = []; paint(); }); return `<div class="my-body"><p class="my-empty">…</p></div>`; }
     const sh = (w) => (w ? String(w).slice(0, 6) + "…" + String(w).slice(-4) : "—");
-    return `<div class="my-body"><p class="my-fine">${esc(T("Send the amount from your own wallet in USDC on Arc; the server checks the transfer and marks it."))}</p><div class="my-bids">${gmList.length ? gmList.map((r) => { const P = pieceOf(r.def), to = r.kind === "payout" ? r.seller : r.buyer, amt = r.kind === "payout" ? r.net : r.cents;
+    const due = gmList.filter((r) => r.status === "due"), dueSum = due.reduce((a, r) => a + Number(r.kind === "payout" ? r.net : r.cents) || 0, 0);
+    return `<div class="my-body"><p class="my-fine">${esc(T("Send the amount from your own wallet in USDC on Arc; the server checks the transfer and marks it."))}</p>${due.length > 1 ? `<button type="button" class="go my-payall" data-gmpayall>${esc(T("Pay all {n} ({p} USDC) one after another", { n: due.length, p: (dueSum / 100).toFixed(2) }))}</button>` : ""}<div class="my-bids">${gmList.length ? gmList.map((r) => { const P = pieceOf(r.def), to = r.kind === "payout" ? r.seller : r.buyer, amt = r.kind === "payout" ? r.net : r.cents;
       return `<div class="my-bid"><span><b>${r.kind === "payout" ? "💸 " + esc(T("Payout")) : "↩ " + esc(T("Refund"))} · ${esc(P ? T(P.name) : "—")}</b><small>→ ${esc(sh(to))} · ${esc(new Date(r.at).toLocaleString())} · tx ${esc(sh(r.tx))}</small></span><b class="pr">${(amt / 100).toFixed(2)} USDC</b>
         ${r.status === "due" ? `<button type="button" class="go" data-gmpay="${r.id}" data-to="${esc(to)}" data-amt="${amt}" data-op="${r.kind === "payout" ? "paid" : "refunded"}">${esc(T("Pay from my wallet"))}</button>` : `<small class="st ${r.status}">${esc(r.status)}</small>`}</div>`; }).join("") : `<p class="my-fine">${esc(T("Nothing to settle."))}</p>`}</div>${gmNftHtml()}</div>`;
   }
@@ -222,6 +223,22 @@ export function makeMythicUI(ctx) {
     if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); snd("bad"); return; }
     try { localStorage.removeItem("arc.world.myUsdTx"); } catch { /* fine */ }
     await ctx.refresh(); mkt = null; tab = "set"; paint(); snd("buy"); if (r.j.piece) reveal(r.j.piece);
+  }
+  // a GM settles every waiting payout / refund in a row: one transfer from their own wallet each, each checked by the server
+  async function gmPayAll(btn) {
+    const due = (gmList || []).filter((r) => r.status === "due"); if (!due.length || !ctx.tx) return;
+    const sum = due.reduce((a, r) => a + Number(r.kind === "payout" ? r.net : r.cents) || 0, 0);
+    if (typeof confirm === "function" && !confirm(T("Send {n} transfers ({p} USDC in all) from your wallet? Your wallet asks for each one.", { n: due.length, p: (sum / 100).toFixed(2) }))) return;
+    btn.disabled = true; let ok = 0;
+    for (const r of due) {
+      const to = r.kind === "payout" ? r.seller : r.buyer, amt = r.kind === "payout" ? r.net : r.cents;
+      btn.textContent = T("Paying {i} of {n}…", { i: ok + 1, n: due.length });
+      let tx; try { tx = await ctx.tx(CC.USD.TOKEN, usdcData(to, BigInt(Math.round(amt)) * 10n ** BigInt(CC.USD.DEC - 2))); } catch (e) { ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); break; }
+      const res = await untilConfirmed({ action: "world-mythic-usd-admin", op: r.kind === "payout" ? "paid" : "refunded", id: r.id, gmTx: tx });
+      if (!res || !res.ok) { ctx.toast(esc((res && res.j && res.j.error) ? T(res.j.error) : T("Couldn't change it — try again"))); break; }
+      ok++;
+    }
+    ctx.toast(esc(T("{n} settled — the server checked each transfer", { n: ok }))); gmList = null; paint();
   }
   async function gmPay(btn) {
     if (!ctx.tx) { ctx.toast(esc(T("Wallet connect isn't available here."))); return; }
@@ -337,6 +354,7 @@ export function makeMythicUI(ctx) {
       const cu = e.target.closest("[data-cur]"); if (cu) { sellCur = cu.dataset.cur; paint(); return; }
       const bu = e.target.closest("[data-buyusd]"); if (bu && !bu.disabled) { await buyUsd(bu, bu.dataset.buyusd); return; }
       const gp = e.target.closest("[data-gmpay]"); if (gp && !gp.disabled) { await gmPay(gp); return; }
+      const ga = e.target.closest("[data-gmpayall]"); if (ga && !ga.disabled) { await gmPayAll(ga); return; }
       const na = e.target.closest("[data-nftask]"); if (na && !na.disabled) { if (typeof confirm === "function" && !confirm(T("Take this piece onto Arc as an NFT? It comes off and can't be enhanced or traded here until you bring it back. The team signs your voucher; then you mint it from your wallet."))) return; await act("world-mythic-nft-ask", { id: na.dataset.nftask }, () => esc(T("Asked — the team will sign your voucher"))); return; }
       const nc = e.target.closest("[data-nftcancel]"); if (nc) { await act("world-mythic-nft-cancel", { id: nc.dataset.nftcancel }, () => esc(T("It stays in the game"))); return; }
       const nm = e.target.closest("[data-nftmint]"); if (nm && !nm.disabled) { await nftMint(nm, nm.dataset.nftmint); return; }
