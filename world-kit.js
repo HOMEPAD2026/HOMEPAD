@@ -227,7 +227,7 @@ export function fadeLook(m) {
 export function makeStage(canvas, opts = {}) {
   const q = quality(opts.quality);
   if (opts.look && !q.saver) stylize(opts.look);
-  LABEL_RES = q.coarse ? 0.5 : 1; // name plates at half size on phones (label())
+  LABEL_RES = q.coarse ? (q.weak ? 0.5 : 0.75) : 1; // name plates smaller on phones (label()); 2026-10-27, the owner: names smeared at half size — ¾, half only on the weakest chips
   if (ARC.setSignRes) ARC.setSignRes(q.coarse ? 0.5 : 1); // and the halls' signs
   // opts.post: the game's picture goes through its own chain (world-post.js), which antialiases there, so the canvas
   // itself needs none (b411: a multisampled canvas under the chain was paid for on every frame and never seen)
