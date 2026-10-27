@@ -474,7 +474,7 @@ export function createStudio(ctx) {
   }
   // ---------------- the runner ----------------
   async function run(o) {
-    if (playing) return; const vw = el && !el.hidden; if (el) el.hidden = true;
+    if (playing) return; const vw = el && !el.hidden; if (el) el.hidden = true; if (prev) prev.stop(); /* STB5: the preview rests while you play */
     if (o.spec.tpl === "puzzle") return playPuzzle(o, vw);
     const env = { ctx, THREE, T, esc, makeFx, makeGhost, result, back: (again, oo) => { playing = null; if (!again && oo.onBack) { oo.onBack(); return; } if (!again && el) { el.hidden = false; paint(); load(); } } }; // (the templates in modules of their own: S4d)
     try { playing = JUMPS[o.spec.tpl] ? await (await import("./world-studio-jump.js")).makeJump(o, { ...env, ouch }) : o.spec.tpl === "rhythm" ? await (await import("./world-studio-rhythm.js")).makeBeat(o, env) : o.spec.tpl === "race" ? await (await import("./world-studio-race.js")).makeRace(o, { ...env, ouch }) : o.spec.tpl === "survival" ? await makeSurvRun(o, env) : o.spec.tpl === "climb" ? await (await import("./world-studio-climb.js")).makeClimb(o, env) : o.spec.tpl === "defense" ? await (await import("./world-studio-defense.js")).makeDefense(o, env) : o.spec.tpl === "arena" || o.spec.tpl === "rush" ? await makeArena(o) : await makeRun(o); }

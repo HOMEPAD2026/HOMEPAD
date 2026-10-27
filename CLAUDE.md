@@ -144,6 +144,8 @@ The owner asked for this on every commit (not only when they ask):
 
 ## Before saying a game change is done (checklist)
 
+- Language of the work (the owner, 2026-10-27: "테스트, 스크린샷, 진행시 언어 한글로 하지말고 영어로 해"): screenshots and browser tests run with the English UI (`arcircle.lang` = `en`), and progress notes are written in English.
+
 The owner tests on a real Android phone (Samsung Internet), signed in with a wallet, at high level. Headless desktop
 Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as finished:
 
