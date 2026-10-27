@@ -177,7 +177,7 @@ if (D.game && new URLSearchParams(location.search).has("play") && !WORLD_ONLY.ha
 // ---------------- /studio: ARCIRCLE Studio as a page of its own (2026-10-27, the owner: "the Studio on the web, fast") ----------------
 // The Studio window is the page (under the top bar); the stage's canvas sits behind it for the preview and the runs; a
 // phone held upright sees the sideways card only while a game runs. A deep link: /studio?tab=arcade|mine|make, ?sg=<id>.
-function paintMe() { const b = document.querySelector("[data-signin]"); if (!b) return; const s = sess(); b.hidden = false; b.classList.toggle("on", !!s); b.textContent = s ? "🟢 " + s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) : "👛 " + T("Sign in"); }
+function paintMe() { const b = document.querySelector("[data-signin]"); if (!b) return; const s = sess(); b.hidden = false; b.classList.toggle("on", !!s); b.textContent = s ? "🟢 " + s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) : "👛 " + T("Sign in"); if (s) b.title = s.wallet; }
 async function startApp() {
   const bar = document.querySelector(".sga-boot em"); let pct = 8; const tick = setInterval(() => { pct = Math.min(92, pct + (96 - pct) * 0.12); if (bar) bar.style.width = pct + "%"; }, 120);
   paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });

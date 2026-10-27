@@ -138,3 +138,12 @@ body.sga.sga-on .wst>.wst-card,body.sga.sga-on .wst>div:first-child{box-shadow:0
 body.sga.sga-run .sga-top{display:none}body.sga.sga-run .wst{top:0}
 body.sga .wst-x{display:none}
 @media (max-width:640px){body.sga{--sga-h:56px}.sga-name i,.sga-top .sgw-world{display:none}.sga-name{font-size:16px}.sga-top .sgw-logo img{width:76px;height:auto}}
+/* /studio on a phone held upright: one tidy row — the logo, the name, a short wallet chip, the language */
+@media (max-width:640px){
+  .sga-top{gap:8px;padding:0 10px}
+  .sga-top .sgw-logo{flex:none}.sga-top .sgw-logo img{width:58px;height:auto}
+  .sga-name{font-size:15px;min-width:0;overflow:hidden}
+  .sga-me{margin:0;padding:8px 10px;font-size:12px;white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
+  .sga-top .sgw-lang{flex:none;padding:6px 4px;font-size:12px;max-width:62px}
+}
+@media (max-width:420px){.sga-name b{display:none}.sga-name{font-size:17px}}
