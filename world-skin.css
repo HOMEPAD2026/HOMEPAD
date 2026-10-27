@@ -5037,3 +5037,22 @@ body.wp .wp-hub-grid button .wp-hub-img:is([src*="/i-crew."],[src*="/i-invite."]
 html.wp-land:not(.wp-pcphone) body.wp.wp-in-cc:not(.wp-stu-open) #wp-dock{left:calc(env(safe-area-inset-left,0px) + 150px);right:auto;margin:0}
 .ccw .ccw-x{z-index:6;width:40px;height:40px;background:rgba(4,14,34,.78);border-color:rgba(124,245,226,.6);box-shadow:0 2px 10px rgba(0,0,0,.45)}
 .wst.wide .wst-h>small{display:block;padding-right:96px}.wst.wide .wst-h>.wst-help{top:12px!important;right:56px!important;width:36px!important;height:36px}
+/* STB7: the game's own yes / no card (world-ask.js) */
+.wak{position:fixed;inset:0;z-index:14000;display:grid;place-items:center;padding:16px;background:rgba(2,8,20,.55);backdrop-filter:blur(3px);animation:wakIn .16s ease-out both}
+.wak.out{animation:wakOut .16s ease-in both}
+.wak-in{width:min(380px,100%);padding:20px 18px 16px;border-radius:20px;border:1px solid rgba(124,245,226,.5);background:linear-gradient(180deg,rgba(18,40,86,.97),rgba(6,16,40,.98));box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 24px rgba(124,245,200,.18);animation:wakPop .22s cubic-bezier(.2,1.4,.4,1) both}
+.wak-in p{margin:0 0 16px;color:#eaf4ff;font:700 15px/1.45 Sora,sans-serif;text-align:center}
+.wak-b{display:flex;gap:10px}.wak-b button{flex:1;min-height:44px;border-radius:12px;font:900 14px/1 Sora,sans-serif;cursor:pointer}
+.wak-no{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.07);color:#fff}
+.wak-yes{border:0;background:linear-gradient(90deg,#2f8cff,#5fe6c8);color:#04122a}.wak-yes.danger{background:linear-gradient(90deg,#ff4d6d,#ff8a5c);color:#fff}
+@keyframes wakIn{from{opacity:0}}@keyframes wakOut{to{opacity:0}}@keyframes wakPop{from{transform:scale(.86);opacity:0}}
+html.wp-pcphone .wak-in{zoom:1.6}
+.wst-sv{margin:0 0 8px;display:flex;align-items:center;gap:8px;color:#9fd8ff;font:800 12px/1.2 Sora,sans-serif}.wst-sv.ok{color:#7cf5c8}.wst-sv.err{color:#ff8aa0}
+.wst-sv button{padding:4px 10px;border-radius:8px;border:1px solid rgba(255,138,160,.6);background:rgba(255,59,92,.15);color:#fff;font:800 11px/1.2 Sora,sans-serif;cursor:pointer}
+/* STB7: nothing cut off on a phone held sideways — the row's input takes the room, the chips and categories scroll with a fade */
+.wst-quick .wst-airow{display:flex;gap:8px;align-items:stretch}.wst-quick .wst-aiin{flex:1 1 auto;min-width:0;width:auto}.wst-quick [data-quick]{flex:none}
+.wst-qideas,.wst-tcats{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent);padding-right:24px}
+html.wp-pcphone.wp-land .wst.wide .wst-quick{padding:8px 12px 6px;padding-right:12px;margin-bottom:8px}html.wp-pcphone.wp-land .wst.wide .wst-quick .wst-qsub,html.wp-pcphone.wp-land .wst.wide .wst-quick .wst-ainote,html.wp-pcphone.wp-land .wst.wide .wst-quick .wst-qic{display:none}
+html.wp-pcphone.wp-land .wst.wide .wst-quick>b{font-size:13px}html.wp-pcphone.wp-land .wst.wide .wst-quick .wst-aiin{padding-top:8px;padding-bottom:8px}html.wp-pcphone.wp-land .wst.wide .wst-quick [data-quick]{padding:8px 14px;font-size:14px}
+html.wp-pcphone.wp-land .wst.wide .wst-qideas{margin:6px 0 2px}html.wp-pcphone.wp-land .wst.wide .wst-stepbody.s1 .wst-link{display:none}
+html.wp-pcphone.wp-land .wst.wide .wst-mkr>.wst-hint{margin:6px 0}

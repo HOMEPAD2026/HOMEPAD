@@ -6,6 +6,7 @@
 //   makeRace(o, env)        → the run          (env: { ctx, THREE, T, esc, makeFx, result, back })
 //   createRaceBuilder(ctx)  → the editor: the ground from above — rings in order (tap to add the next), boost pads, orbs,
 //                             pillars, drag to move a thing, erase, laps; the track drawn as a line through the rings
+import { ask } from "./world-ask.js";
 import { makePad } from "./world-studio-pad.js";
 import { THEMES, RACE, genLevel, clampSpec, cleanRace, estimate, raceSpeed } from "./world-studio-gen.js";
 import { look as themeLook } from "./world-studio-look.js";
@@ -125,13 +126,13 @@ export function createRaceBuilder(ctx) {
     after(); }
   function pm(e) { if (!drag) return; const r0 = cv.getBoundingClientRect(), x = wx((e.clientX - r0.left) / u), z = wz((e.clientY - r0.top) / u); if (Math.hypot(x, z) > RACE.R) return; B[drag.L2][drag.i] = [Math.round(x * 2) / 2, Math.round(z * 2) / 2]; dirty = true; }
   function pu() { if (drag) { drag = null; after(); } }
-  function after() { est = null; dirty = true; bar(); }
+  function after() { if (ctx.onChange) try { ctx.onChange(B); } catch { /* (STB7: the Studio's autosave) */ } est = null; dirty = true; bar(); }
   function tools() { if (!el) return; el.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool)); }
   function bar() { if (!el) return; const c = cleanRace(B), E = est || (est = estimate(clampSpec({ ...spec, build: c.r.length >= RACE.MIN ? c : null })));
     el.querySelector(".wsb-bar").innerHTML = `<span class="wsb-len"><button type="button" class="wsb-i" data-laps="-1">－</button><b>${B.laps} ${esc(T("laps"))}</b><button type="button" class="wsb-i" data-laps="1">＋</button></span><span class="wsb-st">${"★".repeat(E.stars)}<i>${"★".repeat(5 - E.stars)}</i> <small>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</small></span><span class="wsb-cnt">⭕ ${c.r.length}/${RACE.RINGS} · 🚀 ${c.p.length} · 🪙 ${c.o.length} · 🗿 ${c.w.length}</span>${c.r.length < RACE.MIN ? `<span class="wsb-bad">⚠️ ${esc(T("A track needs at least {n} rings", { n: RACE.MIN }))}</span>` : c.r.length < B.r.length ? `<span class="wsb-bad">⚠️ ${esc(T("Rings closer than {m} m to the one before don't count", { m: RACE.GAP }))}</span>` : ""}`;
     el.querySelector("[data-undo]").disabled = !undo.length; el.querySelector("[data-redo]").disabled = !redo.length; }
   function onClick(e) { const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
+    if (b.hasAttribute("data-close")) { if (undo.length) { ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true }).then((y) => { if (y) close(false); }); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-undo")) { if (undo.length) { redo.push(snap()); B = JSON.parse(undo.pop()); after(); } return; }
     if (b.hasAttribute("data-redo")) { if (redo.length) { undo.push(snap()); B = JSON.parse(redo.pop()); after(); } return; }

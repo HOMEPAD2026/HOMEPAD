@@ -6,6 +6,7 @@
 // (cleanJump — the same rules it plays by), a stretch you can't reach from the start shows red, and the bots' stars sit
 // at the top. The phone's one-hand set (the owner's plan): place · move · flip · erase · test · done.
 // ctx: { T, esc, toast, spec, onDone(build), onTest(spec, startX), onClose }
+import { ask } from "./world-ask.js";
 import { JW, JEV, cleanJump, cleanEvents, clampSpec, estimate, jwReach, THEMES } from "./world-studio-gen.js";
 // STB5 (2026-10-27): the event blocks' words (WHEN … THEN …)
 const EVW = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column" };
@@ -154,7 +155,7 @@ export function createJumpBuilder(ctx) {
     else { if (piece === "S" || piece === "F") B.c = B.c.filter((c) => c[2] !== piece); if (i >= 0) { if (B.c[i][2] === piece && !(drag && drag.moved)) { B.c.splice(i, 1); } else B.c[i] = [x, y, piece]; } else B.c.push([x, y, piece]); if (navigator.vibrate) try { navigator.vibrate(6); } catch { /* no buzz */ } }
     if (!drag) after(); else { reach = null; dirty = true; }
   }
-  function after() { est = null; reach = null; B.c = B.c.filter((c) => c[0] >= 0 && c[0] < B.W).slice(0, JW.CELLS * 2); dirty = true; paintBar(); paintEv(); }
+  function after() { if (ctx.onChange) try { ctx.onChange(B); } catch { /* (STB7: the Studio's autosave) */ } est = null; reach = null; B.c = B.c.filter((c) => c[0] >= 0 && c[0] < B.W).slice(0, JW.CELLS * 2); dirty = true; paintBar(); paintEv(); }
   const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); };
   // ---- the bars ----
   function paintPal() { if (!el) return; el.querySelectorAll("[data-grp]").forEach((b) => b.classList.toggle("on", b.dataset.grp === group));
@@ -173,7 +174,7 @@ export function createJumpBuilder(ctx) {
     el.querySelector("[data-undo]").disabled = !undo.length; el.querySelector("[data-redo]").disabled = !redo.length; }
   function onClick(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
+    if (b.hasAttribute("data-close")) { if (undo.length) { ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true }).then((y) => { if (y) close(false); }); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-evs")) { evOpen = !evOpen; return paintEv(); }
     if (b.hasAttribute("data-ev-x")) { evOpen = false; return paintEv(); }

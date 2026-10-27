@@ -3,6 +3,7 @@
 // row (your crystal), put tower pads beside it (or let it suggest them), set the starting gold, and write each wave — how
 // many grunts, runners and tanks. Undo / redo, what the server would drop shown in red (cleanDefense), the bots' stars.
 // ctx: { T, esc, toast, spec, onDone(build, spec), onTest(spec, 0), onClose }
+import { ask } from "./world-ask.js";
 import { DEF, cleanDefense, clampSpec, estimate, THEMES, defGold } from "./world-studio-gen.js";
 /// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
 const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
@@ -62,7 +63,7 @@ export function createTdBuilder(ctx) {
     if (tool === "pad") { if (onP >= 0) return; push(); if (padI >= 0) B.pads.splice(padI, 1); else B.pads.push(q); return after(); }
     if (tool === "x" && padI >= 0) { push(); B.pads.splice(padI, 1); after(); }
   }
-  function after() { dirty = true; paintBar(); }
+  function after() { if (ctx.onChange) try { ctx.onChange(B); } catch { /* (STB7: the Studio's autosave) */ } dirty = true; paintBar(); }
   function paintTools() { if (el) el.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool)); }
   function paintBar() { if (!el) return; const v = valid(), E = estimate(clampSpec({ ...spec, build: v })), badP = B.pads.length - v.pads.length;
     el.querySelector(".wsb-bar").innerHTML = `<span class="wsb-len">🪙 ${[0, 1, 2, 3, 4, 5].map((c) => `<button type="button" class="wsb-i${c === spec.coins ? " on" : ""}" data-gold="${c}">${defGold({ coins: c })}</button>`).join("")}</span>
@@ -79,7 +80,7 @@ export function createTdBuilder(ctx) {
     cand.sort((x, y) => y.n - x.n); B.pads = []; for (const c of cand) { if (B.pads.length >= 8) break; if (B.pads.some((p) => Math.hypot(p[0] - c.q[0], p[1] - c.q[1]) < 1.5)) continue; B.pads.push(c.q); } after(); }
   function onClick(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
+    if (b.hasAttribute("data-close")) { if (undo.length) { ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true }).then((y) => { if (y) close(false); }); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-undo")) { if (undo.length) { redo.push(snapshot()); setB(undo.pop()); paintWaves(); } return; }
     if (b.hasAttribute("data-redo")) { if (redo.length) { undo.push(snapshot()); setB(redo.pop()); paintWaves(); } return; }

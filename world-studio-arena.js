@@ -4,6 +4,7 @@
 // and stop drones). Ready-made pieces, undo / redo, the length, a quick preview of who comes when, what the server would drop
 // shown in red (cleanArena — the same rules it plays by), the bots' stars as you go, test from the moment you're on.
 // ctx: { T, esc, toast, spec, onDone(build), onTest(spec, startT), onClose }
+import { ask } from "./world-ask.js";
 import { ARENA_B, ARENA_R, LENS, cleanArena, clampSpec, estimate, THEMES } from "./world-studio-gen.js";
 /// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
 const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
@@ -119,7 +120,7 @@ export function createArenaBuilder(ctx) {
       else { const rr = age <= 0 ? R + 1 : Math.max(0, R + 1 - age * dS() * (w[1] === "D" ? 0.6 : 1)); consider(B.w, i, Math.hypot(Math.cos(a) * rr - x, Math.sin(a) * rr - z)); } });
     return best;
   }
-  function after() { heat = null; B.p = B.p.slice(0, ARENA_B.PILLARS * 3); B.w = B.w.filter((w) => w[0] >= 0 && w[0] <= secs()).slice(0, ARENA_B.WAVES * 2); B.c = B.c.slice(0, ARENA_B.COINS * 2); dirty = true; paintBar(); }
+  function after() { if (ctx.onChange) try { ctx.onChange(B); } catch { /* (STB7: the Studio's autosave) */ } heat = null; B.p = B.p.slice(0, ARENA_B.PILLARS * 3); B.w = B.w.filter((w) => w[0] >= 0 && w[0] <= secs()).slice(0, ARENA_B.WAVES * 2); B.c = B.c.slice(0, ARENA_B.COINS * 2); dirty = true; paintBar(); }
   // ---- the bars ----
   function paintTools() { if (!el) return; el.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool));
     const pc = el.querySelector(".wsb-pieces"); pc.hidden = tool !== "pc";
@@ -133,7 +134,7 @@ export function createArenaBuilder(ctx) {
     el.querySelector("[data-undo]").disabled = !undo.length; el.querySelector("[data-redo]").disabled = !redo.length; }
   function onClick(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
+    if (b.hasAttribute("data-close")) { if (undo.length) { ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true }).then((y) => { if (y) close(false); }); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-undo")) { if (undo.length) { redo.push(snapshot()); setB(undo.pop()); } return; }
     if (b.hasAttribute("data-redo")) { if (redo.length) { undo.push(snapshot()); setB(redo.pop()); } return; }

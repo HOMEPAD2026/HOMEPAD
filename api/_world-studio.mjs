@@ -40,6 +40,7 @@ import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
 /// STB6 (2026-10-27): build together — the owner's code (a day) lets one partner in; whoever holds the pen saves, the pen
 /// frees itself after PEN_MS without a save; the partner never publishes, deletes or renames the web address
+export const THUMB_MAX = 48 * 1024; // (STB7: a card picture, bytes)
 export const CO = { CODE_MS: 24 * 3600e3, PEN_MS: 10 * 60e3, SHARED: 6 };
 // STU-A (2026-10-26, the owner: "스튜디오는 다 진행하자"): the arcade's own games, one a template, made by ARCIRCLE — there
 // from the start so a first visit has something to play and copy; kept in code (no document until someone plays or likes
@@ -87,7 +88,7 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(own && g.co && g.co.length ? { co: { name: g.coName || "", owner: g.byName || "", pen: g.pen && now() - g.pen.at < CO.PEN_MS ? { w: g.pen.w, name: g.pen.name } : null, by: g.lastBy || "" } } : {}), ...(own && g.coCode && g.coExp > now() && !(g.co && g.co.length) ? { coCode: g.coCode } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(g.th ? { th: g.th } : {}), ...(own && g.co && g.co.length ? { co: { name: g.coName || "", owner: g.byName || "", pen: g.pen && now() - g.pen.at < CO.PEN_MS ? { w: g.pen.w, name: g.pen.name } : null, by: g.lastBy || "" } } : {}), ...(own && g.coCode && g.coExp > now() && !(g.co && g.co.length) ? { coCode: g.coCode } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
   // STB5 (2026-10-27): who's playing what right now — each counted run's time kept 15 minutes, per game (≤ 20 a game,
   // ≤ 60 games); the arcade's list carries the count of the last 10 minutes as "now"
   const NOW_KEEP = 15 * 60e3, NOW_WIN = 10 * 60e3;
@@ -98,7 +99,7 @@ export function makeStudio(deps) {
   const nowOf = (d) => { const t = now(), o = {}; for (const [i, a] of Object.entries((d && d.g) || {})) { const n = (a || []).filter((x) => t - x < NOW_WIN).length; if (n) o[i] = n; } return o; };
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
-    if (g && g.pub && !g.hidden) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
+    if (g && g.pub && !g.hidden) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.th ? { th: g.th } : {}), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
     const keep = Object.entries(list).sort((p, q) => (q[1].pick ? 1 : 0) - (p[1].pick ? 1 : 0) || (q[1].plays + q[1].likes * 5) - (p[1].plays + p[1].likes * 5) || q[1].at - p[1].at).slice(0, STUDIO.ARCADE); // (editor's picks are always kept)
     await setDoc(k, { list: Object.fromEntries(keep) });
   }
@@ -218,6 +219,15 @@ export function makeStudio(deps) {
     if (b.from && /^g[a-z0-9]{2,12}$/.test(String(b.from))) { const src = await game(String(b.from)); if (src && src.pub && !src.gone) { g.from = { id: String(b.from), title: src.spec.title, byName: src.byName || "" }; src.remixes = (src.remixes || 0) + 1; if (!src.official || (await one(`worldStudio/${b.from}`))) await setDoc(`worldStudio/${b.from}`, src); } } // (STU-C: a remix keeps where it came from)
     await setDoc(`worldStudio/${id}`, g); await setDoc(`worldStudioBy/${w}`, { ids: [...ids, id] });
     return json(200, { ok: true, game: pubOf(id, g, true) });
+  }
+  // STB7 (2026-10-27): the card's picture, made once by the maker's page when it publishes or saves (a small JPEG / WebP),
+  // so other players' phones fetch a picture instead of drawing every card in 3D
+  async function thumb(w, b) {
+    const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || (g.w !== w && !(g.co || []).includes(w))) return json(404, { error: "not your game" });
+    const m = /^data:image\/(jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(b.img || "")); if (!m) return json(400, { error: "img must be a JPEG or WebP data URL" });
+    if (m[2].length > THUMB_MAX * 4 / 3) return json(400, { error: "that picture is too big" });
+    g.th = now(); await setDoc(`worldStudioThumb/${b.id}`, { mime: "image/" + m[1], data: m[2], at: g.th }); await setDoc(`worldStudio/${b.id}`, g); if (g.pub) await arcadeSet(b.id, g).catch(() => {});
+    return json(200, { ok: true, th: g.th });
   }
   // STB6: build together
   const coIds = async (w) => ((await one(`worldStudioCoBy/${w}`)) || {}).ids || [];
@@ -416,6 +426,8 @@ export function makeStudio(deps) {
       if (w === "studio-reports") { const d = (await one("worldStats/studioReports")) || {}; return json(200, { ok: true, list: Object.entries(d.list || {}).map(([id, x]) => ({ id, ...x })).sort((a, b) => b.n - a.n) }); }
       if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l, pz, lpz] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`), await one(`worldStudioPrize/${wk}`), await one(`worldStudioPrize/${lw}`)];
         return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), prize: prizeOf(pz), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3), prize: prizeOf(lpz) } : null }, "public, max-age=30"); }
+      if (w === "studio-thumb") { const id = String(url.searchParams.get("id") || ""), d = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioThumb/${id}`) : null; if (!d || !d.data) return json(404, { error: "no picture" }, "public, max-age=60");
+        const bin = Buffer.from(d.data, "base64"); return deps.html ? deps.html(200, bin, { "content-type": d.mime || "image/jpeg", "cache-control": "public, max-age=31536000, s-maxage=31536000, immutable", "x-content-type-options": "nosniff" }) : json(200, { __bin: d.data, mime: d.mime }); }
       if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""), pl = Math.round(Number(url.searchParams.get("p")) || 0); if (!/^g[a-z0-9]{2,12}$/.test(id)) return json(200, { ok: true, ghost: null });
         let g = null; if (pl >= 1 && pl <= STUDIO.BEST) { const gm = await game(id), x = gm && (gm.best || [])[pl - 1]; g = x && x.gh ? await one(`worldStudioGhostP/${id}_${x.w}`) : null; if (g && g.score !== x.score) g = null; } // (STB5: the board's place p — the wallet stays on the server)
         else if (!pl) g = await one(`worldStudioGhost/${id}`);
@@ -429,6 +441,7 @@ export function makeStudio(deps) {
       const s = signer(b); if (s.err) return s.err; const w = s.wallet;
       if (deps.shut && deps.shut(w)) return json(403, { error: "ARCIRCLE Studio is under construction", closed: true });
       if (b.action === "world-studio-save") return save(w, b);
+      if (b.action === "world-studio-thumb") return thumb(w, b);
       if (b.action === "world-studio-co-invite") return coInvite(w, b);
       if (b.action === "world-studio-co-join") return coJoin(w, b);
       if (b.action === "world-studio-co-pen") return coPen(w, b);

@@ -278,6 +278,16 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   await call(cr, "world-studio-save", { id: id2, spec: { tpl: "runner", title: "<img src=x onerror=alert(1)>", seed: 8 } }); P = await pg("h=mintqueen");
   check(!/<img src=x/.test(P.body.__html) && !/<\/script><img/.test(P.body.__html), "web: a title can't put markup into the page");
 }
+// STB7: the card's picture kept on the server
+{ const S = await import("../../api/_world-studio.mjs"), mk = ethers.Wallet.createRandom(), ot = ethers.Wallet.createRandom();
+  let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", title: "Pic Run", seed: 3 } }); const id = r.body.game.id, jpg = "data:image/jpeg;base64," + Buffer.from("fakejpegbytes").toString("base64");
+  check((await call(ot, "world-studio-thumb", { id, img: jpg })).status === 404, "thumb: only the maker sets a game's picture");
+  check((await call(mk, "world-studio-thumb", { id, img: "data:image/svg+xml;base64,PHN2Zz4=" })).status === 400, "thumb: a JPEG or WebP only (no SVG)");
+  check((await call(mk, "world-studio-thumb", { id, img: "data:image/jpeg;base64," + "A".repeat(S.THUMB_MAX * 2) })).status === 400, "thumb: at most " + S.THUMB_MAX / 1024 + " KB");
+  r = await call(mk, "world-studio-thumb", { id, img: jpg }); const t = await get("studio-thumb&id=" + id);
+  check(r.status === 200 && r.body.th && t.__bin === Buffer.from("fakejpegbytes").toString("base64") && t.mime === "image/jpeg", "thumb: kept and served as a picture");
+  await call(mk, "world-studio-publish", { id }); const a = await get("studio-arcade");
+  check(a.games.find((g) => g.id === id).th === r.body.th, "thumb: the arcade's card points at it (versioned)"); }
 // STB6: build together — a code, one partner, the pen
 { const S = await import("../../api/_world-studio.mjs"), own = ethers.Wallet.createRandom(), pal = ethers.Wallet.createRandom(), x3 = ethers.Wallet.createRandom();
   let r = await call(own, "world-studio-save", { spec: { tpl: "jump", title: "Duo Jump", seed: 4 } }); const id = r.body.game.id;
