@@ -85,7 +85,10 @@ T += 30e3; r = await call(fan, "world-studio-play", { id, coins: 1, dist: 20 });
   check(r.body.ghost === false && !gh.ghost, "a run that isn't the #1 leaves no ghost");
   r = await call(fan, "world-studio-play", { id, coins: 9999, dist: 1e9, done: true, trace: tr }); gh = await get("studio-ghost&id=" + id);
   T += 30e3; r = await call(third, "world-studio-play", { id, coins: 0, dist: 1, trace: [["x"]] }); check(r.status === 200 && !r.body.ghost, "a broken trace: the run counts, no ghost");
-  check(r.body && gh.ghost && Array.isArray(gh.ghost.tr) && gh.ghost.tr.length === 40 && gh.ghost.score === G.scoreOf(L.coins, L.len, true), "the #1's run is the ghost: " + JSON.stringify(gh.ghost && { n: gh.ghost.name, s: gh.ghost.score, l: gh.ghost.tr.length })); }
+  check(r.body && gh.ghost && Array.isArray(gh.ghost.tr) && gh.ghost.tr.length === 40 && gh.ghost.score === G.scoreOf(L.coins, L.len, true), "the #1's run is the ghost: " + JSON.stringify(gh.ghost && { n: gh.ghost.name, s: gh.ghost.score, l: gh.ghost.tr.length }));
+  const bd = (await get("studio-game&id=" + id)).game.best, pl = bd.findIndex((x) => x.gh && x.score === G.scoreOf(1, 30, false)) + 1, gp = await get("studio-ghost&id=" + id + "&p=" + pl);
+  check(pl > 1 && gp.ghost && gp.ghost.tr.length === 40 && gp.ghost.score === bd[pl - 1].score && !("w" in gp.ghost) && !bd.some((x) => "w" in x), "STB5: a board player's best leaves a ghost too, raced by place (no wallet shown)");
+  check(!(await get("studio-ghost&id=" + id + "&p=99")).ghost, "STB5: a place that isn't on the board has no ghost"); }
 r = await call(me, "world-studio-play", { id, coins: 2, dist: 50 }); check(r.status === 200 && r.body.plays === 5, "the maker's own runs aren't counted as plays (" + r.body.plays + ")");
 let gm = await get("studio-game&id=" + id); check(gm.ok && gm.game.best.length === 3 && gm.game.spec.seed === 7, "the game's page: its spec and the best runs");
 // likes

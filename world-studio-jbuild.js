@@ -38,6 +38,11 @@ export function createJumpBuilder(ctx) {
   const { T, esc } = ctx;
   let spec = clampSpec(ctx.spec), B = spec.build && spec.build.jw ? JSON.parse(JSON.stringify(spec.build)) : { jw: 1, W: 90, c: [] };
   const th = THEMES[spec.theme] || THEMES.neon, hex = (n) => "#" + n.toString(16).padStart(6, "0");
+  // STB5 (2026-10-27): my pieces — an area you saved (two corners), kept on this device, placed like a ready-made one
+  const PF_KEY = "arc.studio.jpf", PF_MAX = 8, PF_CELLS = 80;
+  let myPf = []; try { const v = JSON.parse(localStorage.getItem(PF_KEY) || "[]"); if (Array.isArray(v)) myPf = v.filter((q) => q && Array.isArray(q.c)).slice(0, PF_MAX); } catch { /* none */ }
+  const pfSave = () => { try { localStorage.setItem(PF_KEY, JSON.stringify(myPf)); } catch { /* private window */ } };
+  let grabA = null;
   let group = "block", piece = "g", tool = "put", chunk = "", undo = [], redo = [], vx = 0, zi = 1, el = null, cv = null, g = null, raf = 0, dirty = true, est = null, reach = null, drag = null, pinch = null;
   const imgs = {}; for (const [k, n] of Object.entries(ICON)) { const im = new Image(); im.onload = () => { dirty = true; }; im.src = `/images/studio/jw/icon-${n}.webp?v=1`; imgs[k] = im; }
   const snapshot = () => JSON.stringify(B);
@@ -116,6 +121,9 @@ export function createJumpBuilder(ctx) {
       if (bad.has(x + ":" + y)) { g.strokeStyle = "#ff3b5c"; g.lineWidth = 3; g.beginPath(); g.moveTo(X + 4, Y + 4); g.lineTo(X + C - 4, Y + C - 4); g.moveTo(X + C - 4, Y + 4); g.lineTo(X + 4, Y + C - 4); g.stroke(); } }
     // where the next tap goes
     if (hover && tool !== "hand") { const X = pxOf(hover[0]), Y = pyOf(hover[1]); g.strokeStyle = tool === "erase" ? "#ff8aa0" : "#7cf5c8"; g.lineWidth = 2; g.setLineDash([4, 3]); g.strokeRect(X + 1, Y + 1, C - 2, C - 2); g.setLineDash([]); }
+    // the area being saved: from the first corner to where the next tap goes
+    if (tool === "grab" && grabA) { const b2 = hover || grabA, xa = Math.min(grabA[0], b2[0]), xb = Math.max(grabA[0], b2[0]), ya = Math.min(grabA[1], b2[1]), yb = Math.max(grabA[1], b2[1]);
+      g.fillStyle = "rgba(255,210,58,.16)"; g.fillRect(pxOf(xa), pyOf(yb), (xb - xa + 1) * C, (yb - ya + 1) * C); g.strokeStyle = "#ffd23a"; g.lineWidth = 2; g.setLineDash([6, 4]); g.strokeRect(pxOf(xa) + 1, pyOf(yb) + 1, (xb - xa + 1) * C - 2, (yb - ya + 1) * C - 2); g.setLineDash([]); }
   }
   let hover = null;
   function drawStrip() {
@@ -132,12 +140,17 @@ export function createJumpBuilder(ctx) {
     if (drag.pend) { act(...drag.pend); drag.pend = null; } if (tool === "put" || tool === "erase") act(px, py); }
   function pu(e) { const d = drag; drag = null; if (!d || pinch) return; if (d.pend) { act(...d.pend); } if (d.did) { after(); popAt(e, tool === "erase"); } }
   function act(px, py) {
-    const [x, y] = cellAt(px, py); if (x < 0 || x >= B.W || y < 0 || y >= JW.H) return; const key = x + ":" + y; if (drag && drag.painted.has(key)) return; if (drag) drag.painted.add(key);
+    const [x, y] = cellAt(px, py); if (x < 0 || x >= B.W || y < 0 || y >= JW.H) return; const key = x + ":" + y;
+    if (tool === "grab") { if (!grabA) { grabA = [x, y]; dirty = true; ctx.toast(esc(T("Now tap the other corner"))); return; }
+      const x0 = Math.min(grabA[0], x), x1 = Math.max(grabA[0], x), y0 = Math.min(grabA[1], y), y1 = Math.max(grabA[1], y); grabA = null;
+      const c = B.c.filter((q) => q[0] >= x0 && q[0] <= x1 && q[1] >= y0 && q[1] <= y1 && q[2] !== "S" && q[2] !== "F" && q[2] !== "B").slice(0, PF_CELLS).map((q) => q[3] ? [q[0] - x0, q[1] - y0, q[2], 1] : [q[0] - x0, q[1] - y0, q[2]]);
+      if (!c.length) { tool = "put"; paintTools(); ctx.toast(esc(T("Nothing there to save"))); return; }
+      myPf = [...myPf, { name: T("My piece") + " " + (myPf.length + 1), c }].slice(-PF_MAX); pfSave(); dirty = true; chunk = "my" + (myPf.length - 1); tool = "chunk"; paintTools(); ctx.toast(esc(T("Saved to My pieces — tap where it goes"))); return; } if (drag && drag.painted.has(key)) return; if (drag) drag.painted.add(key);
     const i = B.c.findIndex((c) => c[0] === x && c[1] === y), i2 = B.c.findIndex((c) => c[2] === "B" && x >= c[0] && x <= c[0] + 1 && y >= c[1] && y <= c[1] + 1);
     if (!drag || !drag.did) push(); if (drag) drag.did = true;
     if (tool === "erase") { const j = i >= 0 ? i : i2; if (j >= 0) B.c.splice(j, 1); }
     else if (tool === "flip") { const c = B.c[i]; if (c && FLIP.has(c[2])) { if (c[3]) c.length = 3; else c[3] = 1; } }
-    else if (tool === "chunk") { const P = JCHUNKS[chunk]; if (!P) { ctx.toast(esc(T("Pick a piece first"))); return; } for (const [dx, dy, k, d] of P.c) { const nx = x + dx, ny = y + dy; if (nx >= B.W || ny >= JW.H) continue; const j = B.c.findIndex((c) => c[0] === nx && c[1] === ny); if (j >= 0) B.c.splice(j, 1); B.c.push(d ? [nx, ny, k, 1] : [nx, ny, k]); } if (drag) drag.painted = new Set(["x"]); tool = "put"; paintTools(); }
+    else if (tool === "chunk") { const P = chunk.startsWith("my") ? myPf[Number(chunk.slice(2))] : JCHUNKS[chunk]; if (!P) { ctx.toast(esc(T("Pick a piece first"))); return; } for (const [dx, dy, k, d] of P.c) { const nx = x + dx, ny = y + dy; if (nx >= B.W || ny >= JW.H) continue; const j = B.c.findIndex((c) => c[0] === nx && c[1] === ny); if (j >= 0) B.c.splice(j, 1); B.c.push(d ? [nx, ny, k, 1] : [nx, ny, k]); } if (drag) drag.painted = new Set(["x"]); tool = "put"; paintTools(); }
     else { if (piece === "S" || piece === "F") B.c = B.c.filter((c) => c[2] !== piece); if (i >= 0) { if (B.c[i][2] === piece && !(drag && drag.moved)) { B.c.splice(i, 1); } else B.c[i] = [x, y, piece]; } else B.c.push([x, y, piece]); if (navigator.vibrate) try { navigator.vibrate(6); } catch { /* no buzz */ } }
     if (!drag) after(); else { reach = null; dirty = true; }
   }
@@ -147,6 +160,8 @@ export function createJumpBuilder(ctx) {
   function paintPal() { if (!el) return; el.querySelectorAll("[data-grp]").forEach((b) => b.classList.toggle("on", b.dataset.grp === group));
     const box = el.querySelector(".wsj-items");
     box.innerHTML = group === "chunk" ? Object.entries(JCHUNKS).map(([id, P]) => `<button type="button" data-chunk="${id}" class="${tool === "chunk" && chunk === id ? "on" : ""}"><i>${P.icon}</i><span>${esc(T(P.name))}</span></button>`).join("")
+        + `<p class="wsj-pfh">⭐ ${esc(T("My pieces"))}</p>` + myPf.map((P, i) => `<button type="button" data-chunk="my${i}" class="wsj-pf ${tool === "chunk" && chunk === "my" + i ? "on" : ""}"><i>⭐</i><span>${esc(P.name)} · ${P.c.length}</span><b data-pfdel="${i}" role="button" aria-label="${esc(T("Delete"))}">✕</b></button>`).join("")
+        + `<button type="button" data-pfnew class="wsj-pfnew ${tool === "grab" ? "on" : ""}"><i>＋</i><span>${esc(T(tool === "grab" ? "Tap two corners" : "Save an area"))}</span></button>`
       : Object.entries(JW.K).filter(([k, [, gp]]) => gp === group || (group === "item" && gp === "ore")).filter(([k]) => spec.tpl === "mining" || JW.K[k][1] !== "ore").map(([k, [n]]) => `<button type="button" data-piece="${k}" class="${piece === k && tool === "put" ? "on" : ""}" title="${esc(T(n))}"><i>${ICON[k] ? `<img src="/images/studio/jw/icon-${ICON[k]}.webp?v=1" alt="" onerror="this.replaceWith(document.createTextNode('${EMO[k]}'))">` : EMO[k]}</i><span>${esc(T(n))}</span></button>`).join(""); }
   function paintTools() { if (!el) return; el.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool || (tool === "chunk" && b.dataset.tool === "put"))); paintPal(); }
   function paintBar() { if (!el) return; const v = valid(), sp = clampSpec({ ...spec, build: v.c }), E = est || (est = estimate(sp)), R = reach || (reach = jwReach(v.c)), n = (f) => v.c.c.filter((c) => f(c[2])).length;
@@ -167,8 +182,10 @@ export function createJumpBuilder(ctx) {
     if (b.hasAttribute("data-undo")) { if (undo.length) { redo.push(snapshot()); B = JSON.parse(undo.pop()); after(); } return; }
     if (b.hasAttribute("data-redo")) { if (redo.length) { undo.push(snapshot()); B = JSON.parse(redo.pop()); after(); } return; }
     if (b.hasAttribute("data-test")) { const v = valid(); ctx.onTest(clampSpec({ ...spec, build: v.c }), Math.max(0, Math.round(vx + 2))); return; }
-    if (b.dataset.grp) { group = b.dataset.grp; if (group !== "chunk" && tool === "chunk") tool = "put"; paintPal(); return; }
+    if (b.dataset.grp) { group = b.dataset.grp; if (group !== "chunk" && (tool === "chunk" || tool === "grab")) { tool = "put"; grabA = null; } paintPal(); return; }
     if (b.dataset.piece) { piece = b.dataset.piece; tool = "put"; paintTools(); return; }
+    const del = e.target.closest("[data-pfdel]"); if (del) { const i = Number(del.dataset.pfdel); myPf = myPf.filter((_, k) => k !== i); pfSave(); if (chunk.startsWith("my")) { chunk = ""; if (tool === "chunk") tool = "put"; } paintTools(); return; }
+    if (b.hasAttribute("data-pfnew")) { tool = tool === "grab" ? "put" : "grab"; grabA = null; paintTools(); if (tool === "grab") ctx.toast(esc(T("Tap one corner of the area, then the other"))); return; }
     if (b.dataset.chunk) { chunk = b.dataset.chunk; tool = "chunk"; paintTools(); ctx.toast(esc(T("Tap the grid where it starts (its bottom-left)"))); return; }
     if (b.dataset.tool) { tool = b.dataset.tool; paintTools(); dirty = true; return; }
     if (b.dataset.zoom) { const mid = vx + visC() / 2; zi = Math.max(0, Math.min(ZOOMS.length - 1, zi + Number(b.dataset.zoom))); vx = clampV(mid - visC() / 2); dirty = true; return; }

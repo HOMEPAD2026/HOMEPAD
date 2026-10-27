@@ -83,7 +83,7 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
   // STB5 (2026-10-27): who's playing what right now — each counted run's time kept 15 minutes, per game (≤ 20 a game,
   // ≤ 60 games); the arcade's list carries the count of the last 10 minutes as "now"
   const NOW_KEEP = 15 * 60e3, NOW_WIN = 10 * 60e3;
@@ -246,12 +246,15 @@ export function makeStudio(deps) {
     if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); }
     if (counted) await nowBump(b.id).catch(() => {}); // (STB5: "playing now" on the portals and cabinets)
     const name = await deps.nameOf(w).catch(() => "") || "Player", best = (g.best || []).filter((x) => x.w !== w), mine0 = (g.best || []).find((x) => x.w === w);
-    const top = mine0 && mine0.score >= score ? mine0 : { w, name, score };
+    const tr = traceOf(b.trace), better = !(mine0 && mine0.score >= score);
+    const top = better ? { w, name, score, ...(tr ? { gh: 1 } : {}) } : mine0;
     g.best = [...best, top].sort((p, q) => q.score - p.score).slice(0, STUDIO.BEST);
     await setDoc(`worldStudio/${b.id}`, g); if (g.pub && counted) await arcadeSet(b.id, g).catch(() => {});
     // Studio 3: the game's #1 leaves a ghost (where they were, every 0.2 s) for the next players to race
-    const tr = traceOf(b.trace); let ghost = false;
+    let ghost = false;
     if (tr && g.best[0] && g.best[0].w === w && g.best[0].score === score) { await setDoc(`worldStudioGhost/${b.id}`, { w, name, score, tr, at: now() }); ghost = true; }
+    // STB5: everyone on the board leaves their best run's ghost too, so a friend can race theirs (not only the #1's)
+    if (tr && better && g.best.some((x) => x.w === w)) await setDoc(`worldStudioGhostP/${b.id}_${w}`, { w, name, score, tr, at: now() });
     return json(200, { ok: true, score, best: top.score, plays: g.plays || 0, place: g.best.findIndex((x) => x.w === w) + 1 || null, ghost });
   }
   /// a run's trace: up to STUDIO.TRACE samples of 2 or 3 whole numbers (x×10, y×10, z — or the arena's x×10, z×10)
@@ -375,7 +378,10 @@ export function makeStudio(deps) {
       if (w === "studio-reports") { const d = (await one("worldStats/studioReports")) || {}; return json(200, { ok: true, list: Object.entries(d.list || {}).map(([id, x]) => ({ id, ...x })).sort((a, b) => b.n - a.n) }); }
       if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l, pz, lpz] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`), await one(`worldStudioPrize/${wk}`), await one(`worldStudioPrize/${lw}`)];
         return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), prize: prizeOf(pz), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3), prize: prizeOf(lpz) } : null }, "public, max-age=30"); }
-      if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await one(`worldStudioGhost/${id}`) : null; if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
+      if (w === "studio-ghost") { const id = String(url.searchParams.get("id") || ""), pl = Math.round(Number(url.searchParams.get("p")) || 0); if (!/^g[a-z0-9]{2,12}$/.test(id)) return json(200, { ok: true, ghost: null });
+        let g = null; if (pl >= 1 && pl <= STUDIO.BEST) { const gm = await game(id), x = gm && (gm.best || [])[pl - 1]; g = x && x.gh ? await one(`worldStudioGhostP/${id}_${x.w}`) : null; if (g && g.score !== x.score) g = null; } // (STB5: the board's place p — the wallet stays on the server)
+        else if (!pl) g = await one(`worldStudioGhost/${id}`);
+        if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
       if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
       return null;
     },
