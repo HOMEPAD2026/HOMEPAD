@@ -101,9 +101,9 @@ Stay tuned for what's coming next.
 $ARCIRCLE #ARCIRCLE #Arc #GameFi #PlayToEarn #Web3Gaming
 ```
 
-## After every commit: tweet + reference shots + image prompt
+## After every deploy: tweet + reference shots + image prompt
 
-The owner asked for this on every commit (not only when they ask):
+The owner asked for this on every deploy (2026-10-27: "디플로이 하면 항상 트윗글, 관련 이미지, 이미지 프롬프트는 항상 만들어줘 (간단한 단일 업데이트 이런건 빼고)") — not only when they ask; skip it only for a small single fix:
 
 - A tweet in the style above, its length matched to the update (a small fix: a few lines; a big feature batch: a long
   post). Only claim what was built and verified; say what's next.
