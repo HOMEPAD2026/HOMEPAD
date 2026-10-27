@@ -168,7 +168,7 @@ body.sga .wst-x{display:none}
   .sga-top .sgw-lang{flex:none;padding:6px 4px;font-size:12px;max-width:62px}
 }
 @media (max-width:420px){.sga-name b{display:none}.sga-name{font-size:16px}.sga-top{gap:6px;padding:0 8px}.sga-or{margin-right:0;padding:2px}.sga-or button{padding:7px 7px}.sga-me{padding:0 10px 0 4px}.sga-top .sgw-lang{max-width:54px}}
-@media (max-width:380px){.sga-name{display:none}}
+@media (max-width:420px){.sga-name{display:none}}
 /* /studio on a phone held sideways (2026-10-27, the owner's screenshot: the banner, the Test/Next bar and the tabs left
    ~110 px to work in): a thin top bar, and the window drawn smaller so it has a wide screen's room and takes the
    rail-and-columns layout (world-studio.js isWide divides by the zoom) — like the in-game Studio's 980 px phone page */
