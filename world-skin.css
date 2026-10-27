@@ -4937,3 +4937,32 @@ html:not(.wp-less) body.wp .wp-hub-grid button.wp-hub-m:not(.pri){background:lin
 html:not(.wp-less) body.wp .wp-hub-grid button.wp-hub-m:not(.pri):hover{border-color:#9ff7e6;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 0 18px rgba(124,245,200,.45)}
 html:not(.wp-less) body.wp .wp-hub-grid button.wp-hub-m:not(.pri)::after{border-color:#7cf5e2;filter:drop-shadow(0 0 4px rgba(124,245,226,.9))}
 body.wp .wp-hub-grid button .wp-hub-img:is([src*="/i-crew."],[src*="/i-invite."],[src*="/i-ledger."],[src*="/i-market."],[src*="/i-village."],[src*="/i-defense."]){-webkit-mask-image:none;mask-image:none;border-radius:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+/* STB1 (2026-10-27): the Studio's bottom bar is solid glass — the step's own buttons scrolled under its clear top and
+   showed through the Test button */
+.wst.wide .wst-nav{background:linear-gradient(180deg,rgba(8,22,52,.97),rgba(3,9,24,.99));border-top:1px solid rgba(124,245,226,.22);box-shadow:0 -10px 24px rgba(0,0,0,.35);z-index:5}
+.wst.wide .wst-nav .wst-go{flex:1 1 0;min-width:0}
+/* STB3 (2026-10-27): template categories over the cards, NEW on the latest */
+.wst-tcats{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.wst-tcats::-webkit-scrollbar{display:none}
+.wst-tcats button{flex:none;display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:999px;border:1px solid rgba(124,245,226,.28);background:rgba(10,30,70,.6);color:#cfe0f5;font:800 12px/1 Sora,sans-serif;cursor:pointer;transition:background .2s,transform .15s}
+.wst-tcats button i{font-style:normal;font-size:15px}.wst-tcats button i img{width:20px;height:20px;object-fit:contain;display:block}
+.wst-tcats button.on{background:linear-gradient(135deg,#2f8cff,#7cf5c8);color:#04111f;border-color:transparent;box-shadow:0 0 12px rgba(124,245,200,.45)}
+.wst-tcats button:active{transform:scale(.94)}
+.wst-tpl{position:relative}.wst-new{position:absolute;top:8px;right:8px;z-index:2;padding:3px 7px;border-radius:999px;background:linear-gradient(135deg,#ff5ab4,#ffb02e);color:#fff;font:900 10px/1 Sora,sans-serif;font-style:normal;letter-spacing:.06em;box-shadow:0 2px 8px rgba(255,90,180,.5);animation:wstNew 2.4s ease-in-out infinite}
+@keyframes wstNew{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.wst-tpls .wst-tpl{animation:wstTplIn .32s cubic-bezier(.2,1.3,.4,1) both}.wst-tpls .wst-tpl:nth-child(2){animation-delay:.03s}.wst-tpls .wst-tpl:nth-child(3){animation-delay:.06s}.wst-tpls .wst-tpl:nth-child(4){animation-delay:.09s}.wst-tpls .wst-tpl:nth-child(5){animation-delay:.12s}.wst-tpls .wst-tpl:nth-child(6){animation-delay:.15s}
+@keyframes wstTplIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.wst-new,.wst-tpls .wst-tpl{animation:none}}
+
+.wst-side-ct{position:relative;display:none;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin:0 0 10px;padding:70px 12px 10px;border-radius:16px;border:1px solid rgba(255,210,90,.5);background:linear-gradient(180deg,rgba(10,26,64,0) 30%,rgba(10,26,64,.95) 62%),rgba(10,26,64,.9);color:#fff;text-align:left;cursor:pointer;overflow:hidden;box-shadow:0 0 16px rgba(255,200,80,.18)}
+.wst.wide .wst-side-ct{display:flex}
+.wst-side-art{position:absolute;inset:0 0 auto 0;height:86px;background:center/cover no-repeat;z-index:-1;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
+.wst-side-ct{isolation:isolate}.wst-side-ct small{font:800 10.5px/1.2 Sora,sans-serif;color:#ffe08a}.wst-side-ct b{font:900 14px/1.2 Sora,sans-serif}.wst-side-ct em{font:700 11px/1 Sora,sans-serif;font-style:normal;color:#9fb4c8}
+.wst-side-ct:hover{border-color:#ffe08a}.wst-side-ct:active{transform:scale(.97)}
+/* STB2 (2026-10-27): the quick-make card first in step 1 */
+.wst-quick{position:relative;margin:0 0 12px;padding:12px 14px;border-radius:16px;border:1px solid rgba(255,210,90,.45);background:linear-gradient(120deg,rgba(47,140,255,.28),rgba(124,245,200,.14) 60%,rgba(255,200,80,.16));box-shadow:0 0 18px rgba(124,245,200,.18)}
+.wst-quick>b{font:900 15px/1.2 Sora,sans-serif;color:#fff}.wst-qsub{display:block;margin:3px 0 8px;color:#bcd3ea;font:600 12px/1.35 Sora,sans-serif}
+.wst-quick [data-quick]{background:linear-gradient(135deg,#ffb02e,#ff5ab4)!important;color:#fff!important;white-space:nowrap;animation:wstPulse 1.8s ease-in-out infinite}
+.wst-qideas{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}.wst-qideas button{padding:6px 10px;border-radius:999px;border:1px dashed rgba(124,245,226,.5);background:rgba(3,14,40,.45);color:#dff6ff;font:700 11.5px/1.2 Sora,sans-serif;cursor:pointer}
+.wst-qideas button:active{transform:scale(.95)}
+.wst.wide .wst-facts{grid-template-columns:minmax(0,1fr) auto auto}.wst.wide .wst-facts li:last-child span{overflow:visible}
+.wst.wide .wst-foot>span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:10.5px}

@@ -12,6 +12,8 @@ const JLK = { neon: { g: "metal", s: "metal", gc: 0x2a3d6b, sc: 0x3b2f6b }, jung
 for (const k in JLK) { JLK[k].l = JLK[k].l || "lava"; JLK[k].i = "ice"; }
 const jwTex = {};
 export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) {
+  // STB1 (2026-10-27): Jump World's tiles and sky fetched into the cache now (no GPU upload), so its preview isn't flat colours first
+  try { for (const n of ["grass", "stone", "metal", "ice", "lava", "candy"]) new Image().src = `/images/studio/jw/jw-${n}-256.webp${ver}`; new Image().src = `/images/studio/jw/jw-sky-768.webp${ver}`; } catch { /* the textures load on their own */ }
   const canvas = document.createElement("canvas"); canvas.className = "wst-3d"; canvas.width = w; canvas.height = h;
   let R; try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "low-power" }); } catch { return null; }
   R.setPixelRatio(1); R.setSize(w, h, false); if ("outputColorSpace" in R) R.outputColorSpace = THREE.SRGBColorSpace;

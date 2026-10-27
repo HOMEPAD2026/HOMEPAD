@@ -60,6 +60,8 @@ export function createBuilder(ctx) {
     el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu); cv.addEventListener("pointercancel", () => { drag = null; });
     cv.addEventListener("wheel", (e) => { e.preventDefault(); view = clampView(view - e.deltaY / ZOOMS[zi]); dirty = true; }, { passive: false });
+    // STB1 (2026-10-27): open on the first piece, zoomed out — it opened on the empty run-up and looked like an empty level
+    { const zs = (B.r || []).map((x) => x[0]).filter(Number.isFinite); zi = 0; view = zs.length ? Math.max(-20, Math.min(...zs) - 6) : -20; dirty = true; }
     addEventListener("resize", fit); fit(); paintTools(); paintBar(); loop();
   }
   function close(done) {

@@ -31,6 +31,29 @@ export function createStudio(ctx) {
   const thumbs = new Map(); let thumbQ = [], thumbT = 0;
   // STU-C: the arcade's search / sort / template filter, the weekly contest, a remix's origin
   let aq = "", asort = "pop", atpl = "", week = null, remixFrom = "";
+  // STB1 (2026-10-27): the sidebar's empty space holds this week's contest — one tap starts a game of that template
+  const sideCard = () => { if (!week || !week.tpl || !TEMPLATES[week.tpl]) return ""; const d = Math.max(0, Math.ceil((week.ends - Date.now()) / 86400e3));
+    return `<button type="button" class="wst-side-ct" data-ctgo="${esc(week.tpl)}"><span class="wst-side-art" style="background-image:url(/images/studio/tpl/${esc(week.tpl)}-400.webp${ctx.ver || ""})"></span><small>🏆 ${esc(T("Weekly creator contest"))}</small><b>${ICON[week.tpl] || "🎮"} ${esc(T(TEMPLATES[week.tpl].name))}</b><em>${esc(T("{n} days left", { n: d }))}</em></button>`; };
+  // STB3 (2026-10-27): the templates in categories — 15 cards didn't fit and nothing said there were more; NEW on the latest
+  const TCATS = [["all", "🎮", "All"], ["run", "🏃", "Run"], ["jump", "🍄", "Jump"], ["survive", "🛡️", "Survive"], ["mind", "🧩", "Puzzle"], ["beat", "🎵", "Rhythm & race"]];
+  const TCAT_OF = { runner: "run", dash: "run", rush: "run", jump: "jump", dungeon: "jump", escape: "jump", boss: "jump", mining: "jump", climb: "jump", arena: "survive", survival: "survive", defense: "survive", puzzle: "mind", rhythm: "beat", race: "beat" };
+  const TNEW = new Set(["jump", "dungeon", "escape", "boss", "mining", "survival", "rhythm", "race"]);
+  let tcat = "all";
+  // STB2 (2026-10-27): "make it in 30 seconds" — a sentence → the agent's draft (or our own reading of the words for a guest
+  // or when the agent can't) → straight into a test run
+  const QIDEAS = ["A fast neon run with lots of coins", "A jungle jump level with a dragon boss", "Survive monsters for one minute", "An icy hover race"];
+  const QKEYS = [[/jump|mario|platform|점프|마리오|dragon|드래곤|boss|보스/i, "jump"], [/surviv|monster|몬스터|생존/i, "survival"], [/race|hover|레이스|경주/i, "race"], [/beat|rhythm|music|리듬|음악/i, "rhythm"], [/puzzle|ring|퍼즐/i, "puzzle"], [/defen|tower|디펜스|타워/i, "defense"], [/climb|클라임|올라/i, "climb"], [/coin rush|코인 러시/i, "rush"], [/dash|대시|endless|무한/i, "dash"], [/arena|drone|드론|아레나/i, "arena"], [/dungeon|던전/i, "dungeon"], [/escape|탈출/i, "escape"], [/mine|ore|광산|채굴/i, "mining"]];
+  const THKEYS = [[/neon|city|네온|도시/i, "neon"], [/jungle|forest|정글|숲/i, "jungle"], [/ice|snow|icy|얼음|눈/i, "ice"], [/lava|fire|volcano|용암|불/i, "lava"], [/candy|sweet|사탕|캔디/i, "candy"]];
+  function guessSpec(t) { const tpl = (QKEYS.find(([re]) => re.test(t)) || [0, spec.tpl || "runner"])[1], theme = (THKEYS.find(([re]) => re.test(t)) || [0, spec.theme])[1], hard = /hard|어려|극한|insane/i.test(t) ? 4 : /easy|쉬|초보/i.test(t) ? 1 : 2, coins = /coin|코인/i.test(t) ? 5 : 3;
+    return clampSpec({ ...spec, tpl, theme, speed: hard + 1, coins, walls: hard + 1, gaps: hard, lasers: hard, seed: (Math.random() * 1e6) | 0, title: t.slice(0, 24), build: undefined }); }
+  async function quick() {
+    const inp = el.querySelector(".wst-aiin"), t = inp ? inp.value.trim() : ""; if (!t) { if (inp) inp.focus(); return; }
+    let sp = null;
+    if (wallet()) { busy = true; aiNote = T("Thinking…"); paint(); const r = await act({ action: "world-studio-ai", t, tpl: guessSpec(t).tpl }); busy = false; aiNote = ""; if (r && r.ok && r.j && r.j.spec) sp = clampSpec({ ...r.j.spec, seed: r.j.spec.seed }); }
+    if (!sp) sp = guessSpec(t);
+    spec = sp; editId = ""; lastTest = null; step = 4; ev("tpl"); ev("tune"); paint(); ctx.toast("⚡ " + esc(T("Here it is — have a go!")));
+    return run({ spec, id: "", test: true });
+  }
   let myH = null, hEdit = false; // (the web: your creator ID — your games' page is /game/@<it>; null = not read yet)
   // STU-D: the GM's reported games, a game's numbers open on its card, the report reasons
   let reports = [], statsOpen = "", repOpen = false; const REASONS = [["broken", "🧩", "It doesn't work"], ["unfair", "😤", "Impossible / unfair"], ["rude", "🚫", "Rude name"], ["copy", "📋", "Copied from another game"], ["other", "❓", "Something else"]];
@@ -102,8 +125,7 @@ export function createStudio(ctx) {
     const bar = `<ol class="wst-steps">${VIS.map(([n, l], i) => `<li><button type="button" data-step="${n}" class="${step === n ? "on" : step > n ? "done" : ""}"><i>${step > n ? "✓" : i + 1}</i><span>${esc(T(l))}</span></button></li>`).join("")}</ol>`;
     const box = step <= 4 ? `<div class="wst-3dbox${step === 4 ? " big" : ""}">${prev ? "" : `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>`}<span class="wst-3dtag">${ICON[spec.tpl] || "🎮"} ${esc(T(TEMPLATES[spec.tpl].name))} · ${esc(T(th.name))}</span></div>` : "";
     let body = "";
-    if (step === 1) body = `<div class="wst-tpls">${Object.entries(TEMPLATES).map(([id, t]) => `<button type="button" class="wst-tpl${id === spec.tpl ? " on" : ""}${t.open ? "" : " soon"}" ${t.open ? `data-tpl="${id}"` : "disabled"}><span class="wst-art" style="background-image:url(/images/studio/tpl/${id}-400.webp${ctx.ver || ""})" aria-hidden="true"></span><b>${esc(T(t.name))}</b>${t.open ? "" : `<small>${esc(T("Coming soon"))}</small>`}</button>`).join("")}</div>
-      <div class="wst-ai"><b>${IC("ic-agent")} ${esc(T("Ask {n} to draft it", { n: ctx.agentName() || T("your agent") }))}</b><div class="wst-airow"><input class="wst-aiin" maxlength="240" placeholder="${esc(T("e.g. a fast jungle run with lots of coins"))}"><button type="button" class="wst-go" data-ai ${busy ? "disabled" : ""}>${esc(T("Draft"))}</button></div>${aiNote ? `<small class="wst-ainote">${esc(aiNote)}</small>` : ""}</div>
+    if (step === 1) body = `<div class="wst-ai wst-quick"><b>⚡ ${esc(T("Make it in 30 seconds"))}</b><small class="wst-qsub">${esc(T("Say what you want — {n} makes it and you play it right away.", { n: ctx.agentName() || T("your agent") }))}</small><div class="wst-airow"><input class="wst-aiin" maxlength="240" placeholder="${esc(T("e.g. a fast jungle run with lots of coins"))}"><button type="button" class="wst-go" data-quick ${busy ? "disabled" : ""}>▶ ${esc(T("Make & play"))}</button></div><div class="wst-qideas">${QIDEAS.map((q) => `<button type="button" data-qidea="${esc(q)}">${esc(T(q))}</button>`).join("")}</div><button type="button" class="wst-link" data-ai ${busy ? "disabled" : ""}>${IC("ic-agent")} ${esc(T("Just draft it — I'll tweak it first"))}</button>${aiNote ? `<small class="wst-ainote">${esc(aiNote)}</small>` : ""}</div><div class="wst-tcats" role="tablist">${TCATS.map(([k, ic, l]) => `<button type="button" role="tab" data-tcat="${k}" class="${tcat === k ? "on" : ""}" aria-selected="${tcat === k}"><i>${ic}</i>${esc(T(l))}</button>`).join("")}</div><div class="wst-tpls">${Object.entries(TEMPLATES).filter(([id]) => tcat === "all" || TCAT_OF[id] === tcat).map(([id, t]) => `<button type="button" class="wst-tpl${id === spec.tpl ? " on" : ""}${t.open ? "" : " soon"}" ${t.open ? `data-tpl="${id}"` : "disabled"}><span class="wst-art" style="background-image:url(/images/studio/tpl/${id}-400.webp${ctx.ver || ""})" aria-hidden="true"></span><b>${esc(T(t.name))}</b>${TNEW.has(id) ? `<em class="wst-new">NEW</em>` : ""}${t.open ? "" : `<small>${esc(T("Coming soon"))}</small>`}</button>`).join("")}</div>
       <h4 class="wst-sub">🎨 ${esc(T("Look"))}</h4><div class="wst-themes">${Object.entries(THEMES).map(([id, t]) => `<button type="button" data-theme="${id}" class="wst-thm${id === spec.theme ? " on" : ""}" style="--c:${hex(t.edge)};--b:${hex(t.sky)}"><span class="wst-thi" data-snap="${id}" style="background-image:url(${snaps[spec.tpl + ":" + id] || `/images/studio/th/${id}-sky-768.webp?v=1`})"></span><b>${esc(T(t.name))}</b></button>`).join("")}</div>
       <label class="wst-title"><span>${esc(T("Title"))}</span><input class="wst-tin" maxlength="24" value="${esc(spec.title)}"></label>`;
     else if (step === 3 && spec.build) { const B = spec.build, ln = (x) => (Array.isArray(x) ? x.length : 0), ar = !!B.w && !B.rc, td = !!B.td, n = td ? ln(B.path) + ln(B.pads) : ar ? ln(B.w) + ln(B.c) + ln(B.p) : B.jw ? ln(B.c) : B.bt ? ln(B.n) : B.rc ? ln(B.r) + ln(B.w) + ln(B.o) : ln(B.r); // (SB-2/3: JUMP WORLD's cells, a beat's notes, a race's pieces — a JUMP WORLD layout once stopped this card) // (Studio 4: a hand-built layout — the speed still applies)
@@ -256,7 +278,7 @@ export function createStudio(ctx) {
     el.classList.toggle("wide", isWide()); // (STU-6: a computer or a phone held sideways — the rail-and-columns layout)
     el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Make your own game"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">${IC("ic-guide")}</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <nav class="wst-tabs">${[["make", "tab-make", "Create"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${IC(ic)}</span>${esc(T(l))}</button>`).join("")}</nav>
-      <div class="wst-body">${body}</div><p class="wst-foot">${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</p></div>`;
+      <div class="wst-body">${body}</div><div class="wst-foot">${sideCard()}<span>${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</span></div></div>`;
     if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else { if (prev) prev.stop(); wantThumbs(tab === "arcade" ? arcade : tab === "mine" ? [...mine, ...locals().map((d) => ({ id: d.id, at: d.at, spec: d.spec }))] : []); }
   }
   let estT = 0;
@@ -320,12 +342,16 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-unbuild")) { if (!confirm(T("Go back to the quick-start layout? Your hand-built layout is dropped."))) return; delete spec.build; spec = clampSpec(spec); return paintKeep(); }
     if (b.dataset.preset) { Object.assign(spec, PRESETS[b.dataset.preset]); if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } return paintKeep(); }
     if (b.hasAttribute("data-savepub")) { if (!ctx.sess()) { try { await ctx.signIn(); } catch { return; } if (!ctx.sess()) return; } if (!okToPublish()) return; await save(); if (editId && !(mine.find((g) => g.id === editId) || {}).pub) await publish(editId); return; }
+    if (b.dataset.tcat) { tcat = b.dataset.tcat; return paint(); }
+    if (b.dataset.ctgo) { tab = "make"; step = 1; tcat = "all"; spec = clampSpec({ ...spec, tpl: b.dataset.ctgo }); ev("tpl"); return paint(); }
     if (b.dataset.tpl) { ev("tpl"); spec = clampSpec({ ...spec, tpl: b.dataset.tpl, title: spec.title === "My Sky Run" || spec.title === "My Arena" || spec.title === "My Infinity Dash" ? "" : spec.title }); return paint(); }
     if (b.dataset.theme) { spec.theme = b.dataset.theme; return paintKeep(); }
     if (b.dataset.len) { spec.len = Number(b.dataset.len); return paintKeep(); }
     if (b.hasAttribute("data-seed")) { spec.seed = 1 + Math.floor(Math.random() * 99999); return paintKeep(); }
     if (b.hasAttribute("data-test")) { spec = clampSpec(spec); return run({ spec, id: editId || "", test: true }); }
     if (b.hasAttribute("data-ai")) return draft();
+    if (b.hasAttribute("data-quick")) return quick();
+    if (b.dataset.qidea) { const inp = el.querySelector(".wst-aiin"); if (inp) { inp.value = T(b.dataset.qidea); inp.focus(); } return; }
     if (b.hasAttribute("data-save")) return save();
     if (b.dataset.pub) return publish(b.dataset.pub);
     if (b.dataset.del) return del(b.dataset.del);
