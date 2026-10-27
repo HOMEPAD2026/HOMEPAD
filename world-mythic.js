@@ -116,7 +116,7 @@ export function makeMythicUI(ctx) {
       if (/^NFT/.test(p.state || "")) return nftRow(p, on, low);
       return `<div class="my-pc${on ? " on" : ""}${listed ? " listed" : ""}" data-pc="${p.id}"><span><b>${esc(T(SRC[p.src] || p.src))} · +${p.plus || 0}${stars ? ` <i class="my-star">${"★".repeat(stars)}</i>` : ""}</b><small>${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}${listed ? ` · 🏷 ${p.cur === "usdc" ? (p.price / 100).toFixed(2) + " USDC" : fmtN(p.price) + " ARCL"}` : ""}</small><em>${esc(statLine(mythicStats(p)))}</em>${compare(p)}</span>
         <div class="my-acts">${listed ? `<button type="button" data-unlist="${p.id}">${esc(T("Take back"))}</button>` : `<button type="button" class="go" data-eq="${p.id}" ${low && !on ? "disabled" : ""}>${on ? esc(T("Take off")) : low ? "🔒 Lv " + p.req : esc(T("Wear"))}</button>
-          <button type="button" class="enh" data-enh="${p.id}" ${top ? "disabled" : ""}>${top ? "+" + CC.MAX_PLUS : `⬆ +${(p.plus || 0) + 1} · ${c.ess}💠 ${fmtN(c.arcl)} ARCL · ${Math.round(c.rate * 100)}%${c.up ? ` <small>(+${Math.round(c.up * 100)}%)</small>` : ""}`}</button>
+          <button type="button" class="enh${!top && (st0().ess || 0) < c.ess ? " short" : ""}" data-enh="${p.id}" data-need="${c.ess}" ${top ? "disabled" : ""}>${top ? "+" + CC.MAX_PLUS : `⬆ +${(p.plus || 0) + 1} · ${c.ess}💠 ${fmtN(c.arcl)} ARCL · ${Math.round(c.rate * 100)}%${c.up ? ` <small>(+${Math.round(c.up * 100)}%)</small>` : ""}`}</button>
           ${stars < CC.MAX_STARS && dups.length ? `<button type="button" class="awk" data-awk="${p.id}" data-fod="${dups[0].id}">★ ${esc(T("Awaken with a copy"))} → ${"★".repeat(stars + 1)}</button>` : ""}
           <select data-rfs="${p.id}" aria-label="${esc(T("Reforge into"))}"><option value="">♻ ${esc(T("Reforge into…"))} (${reforgeCost(p)}💠)</option>${CC.PIECES.filter((x) => x.id !== p.def).map((x) => `<option value="${x.slot}">${esc(T(x.name))}</option>`).join("")}</select>
           <button type="button" data-sell="${p.id}">🏷 ${esc(T("Sell"))}</button><button type="button" class="salv" data-salv="${p.id}">♻ ${esc(T("Salvage"))} +${essOf(p)}💠</button>
@@ -347,12 +347,14 @@ export function makeMythicUI(ctx) {
     c.innerHTML = `<div><small>${esc(T("SET BONUS"))}</small><b>${esc(String(n))}</b><strong>${esc(name)}</strong></div>`; document.body.appendChild(c); snd(kind === "big" ? "level" : "perfect");
     setTimeout(() => c.classList.add("out"), kind === "big" ? 2300 : 1500); setTimeout(() => c.remove(), kind === "big" ? 2800 : 2000);
   }
+  /// a short line under a button, inside the window (a toast sits behind it)
+  function note(btn, text) { const old = btn.parentElement && btn.parentElement.querySelector(".my-note"); if (old) old.remove(); const n = document.createElement("p"); n.className = "my-note"; n.setAttribute("role", "alert"); n.textContent = text; btn.insertAdjacentElement("afterend", n); setTimeout(() => n.remove(), 5000); }
   /// the forge's moment: three strikes, then a burst and the + flying in — or a crack that mends (the + stays)
   async function hammer(btn, id) {
     const box = document.createElement("div"); box.className = "my-forge"; box.innerHTML = `<div class="my-forge-in"><i class="hm">🔨</i><b class="pl"></b><i class="cr"></i><i class="bu"></i></div>`; document.body.appendChild(box);
     const strikes = ctx.reduce ? 0 : 3; for (let i = 0; i < strikes; i++) { box.classList.remove("hit"); void box.offsetWidth; box.classList.add("hit"); snd("chink"); await new Promise((ok) => setTimeout(ok, 300)); }
     const before = setBonus(wornNow()), r = await ctx.post({ action: "world-mythic-enhance", ...ctx.sess(), id });
-    if (!r || !r.ok) { box.remove(); ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); snd("bad"); if (btn) btn.disabled = false; return; }
+    if (!r || !r.ok) { const msg = (r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"); box.classList.add("miss"); const pl = box.querySelector(".pl"); pl.textContent = msg; pl.classList.add("msg"); snd("bad"); setTimeout(() => { box.classList.add("out"); setTimeout(() => box.remove(), 350); }, 2200); if (btn) btn.disabled = false; return; } /* (the reason in the forge itself, not a toast behind the window) */
     const j = r.j; box.classList.add(j.hit ? "ok" : "miss"); box.querySelector(".pl").textContent = j.hit ? `+${j.plus}` : T("Still +{n}", { n: j.plus });
     snd(j.hit ? "perfect" : "crumble"); await new Promise((ok) => setTimeout(ok, j.hit ? 1100 : 1300)); box.classList.add("out"); setTimeout(() => box.remove(), 350);
     await ctx.refresh(); if (ctx.purse) ctx.purse(); paint(); afterBonus(before);
@@ -403,7 +405,10 @@ export function makeMythicUI(ctx) {
       if (e.target.closest("[data-mfw]")) { mf.watch = !mf.watch; paint(); return; }
       const wa = e.target.closest("[data-watch]"); if (wa) { const s0 = watchSet(); s0.has(wa.dataset.watch) ? s0.delete(wa.dataset.watch) : s0.add(wa.dataset.watch); setWatch(s0); paint(); return; }
       const hi = e.target.closest("[data-hist]"); if (hi) { histId = histId === hi.dataset.hist ? "" : hi.dataset.hist; paint(); return; }
-      const en = e.target.closest("[data-enh]"); if (en && !en.disabled) { en.disabled = true; await hammer(en, en.dataset.enh); return; }
+      const en = e.target.closest("[data-enh]"); if (en && !en.disabled) {
+        /* (2026-10-27, the owner: the hammer played and nothing happened — 0 Essence; the server's no was a toast behind the window) */
+        const need = Number(en.dataset.need) || 0, have = st0().ess || 0; if (have < need) { note(en, T("{n} Crimson Essence needed (you have {m}). Salvage a spare Mythic piece to get Essence.", { n: need, m: have })); snd("bad"); return; }
+        en.disabled = true; await hammer(en, en.dataset.enh); return; }
       const aw = e.target.closest("[data-awk]"); if (aw) { if (typeof confirm === "function" && !confirm(T("Give up a copy to awaken this piece? The copy is gone for good."))) return; const j = await act("world-mythic-awaken", { id: aw.dataset.awk, fodder: aw.dataset.fod }, (x) => esc(T("Awakened! ★{n}", { n: x.piece.stars }))); if (j) { snd("level"); cutIn("set", "★" + j.piece.stars, T(pieceOf(j.piece.def).name)); } return; }
       const cl = e.target.closest("[data-claim]"); if (cl) { const [src, slot] = cl.dataset.claim.split(":"), P = CC.PIECES.find((x) => x.slot === slot); if (typeof confirm === "function" && !confirm(T("Make {n} from {d} shards?", { n: T(P.name), d: T(SRC[src]) }))) return;
         const j = await act("world-mythic-claim", { src, slot }); if (j && j.piece) { tab = "set"; reveal(j.piece, true); } return; }

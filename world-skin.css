@@ -5165,3 +5165,7 @@ html.wp-pcphone .wst-hint{zoom:1.6}
 @keyframes hbWait{50%{box-shadow:0 0 18px rgba(124,245,200,.35)}}
 .hb-mbar{flex-wrap:wrap}.hb-mbar .hb-mq,.hb-mbar .hb-mact{display:flex;flex-wrap:wrap;gap:6px}.hb-mbar .hb-mact{width:100%}.hb-mbar>small{width:100%;font-size:11px;opacity:.7}
 .hb-tidy{background:linear-gradient(90deg,#ffd23a,#ffb02e)!important;color:#3a2400!important;font-weight:900}.hb-tidy.on{background:rgba(255,255,255,.1)!important;color:#fff!important}
+/* the Mythic enhance without enough Essence (2026-10-27) */
+.my-acts .enh.short{opacity:.6;filter:grayscale(.4)}
+.my-note{flex-basis:100%;margin:4px 0 0;padding:7px 10px;border-radius:10px;background:rgba(255,61,110,.14);border:1px solid rgba(255,61,110,.5);color:#ffd0da;font:600 12px/1.4 Sora,sans-serif}
+.my-forge .pl.msg{opacity:1;font:700 16px/1.4 Sora,sans-serif;max-width:260px;text-align:center;color:#ffd0da;text-shadow:none}
