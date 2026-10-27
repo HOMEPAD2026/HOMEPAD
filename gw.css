@@ -605,3 +605,5 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-adg .gw-adg-part summary { text-align: left; }
 .gw-adg .gw-adg-steps, .gw-adg .gw-adg-tips { text-align: left; }
 .gw-adg-box { max-width: 860px; margin: 0 auto; border-radius: 22px; overflow: hidden; background: linear-gradient(180deg, #0a1430, #060d22); border: 1px solid rgba(95, 211, 255, .3); box-shadow: 0 24px 60px rgba(0, 0, 0, .35); }
+/* the level board's GM tag (2026-10-27) */
+.gw-rlist .gw-gm{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:linear-gradient(90deg,#ffd23a,#ff9a3a);color:#3a2400;font:900 10px/1.2 Sora,sans-serif;font-style:normal;letter-spacing:.06em;vertical-align:2px}

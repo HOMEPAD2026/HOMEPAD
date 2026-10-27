@@ -557,8 +557,8 @@
   var nm = function (x) { return x.name || (x.w ? String(x.w).slice(0, 6) + "…" : "?"); };
   var mmss = function (s) { s = Math.max(0, Math.round(Number(s) || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   var BOARDS = [
-    /* the owner (2026-10-27): the level ranking first — every saved player by level (worldStats/players), GMs left out */
-    { q: "players", icon: "/images/gw/icon-app.webp", tk: "tk.lv", pick: function (j) { return j && Array.isArray(j.list) ? j.list.filter(function (r) { return r && !r.gm && r.name; }).sort(function (a, b) { return (b.lv || 0) - (a.lv || 0); }) : null; }, v: function (x) { return t("rk.lv", { n: fmt(x.lv || 1) }); }, n: function (x) { return fmt(x.lv || 1); } },
+    /* the owner (2026-10-27): the level ranking first — every saved player by level (worldStats/players), GMs too with a GM tag */
+    { q: "players", icon: "/images/gw/icon-app.webp", tk: "tk.lv", pick: function (j) { return j && Array.isArray(j.list) ? j.list.filter(function (r) { return r && r.name; }).sort(function (a, b) { return (b.lv || 0) - (a.lv || 0); }) : null; }, v: function (x) { return t("rk.lv", { n: fmt(x.lv || 1) }); }, n: function (x) { return fmt(x.lv || 1); } },
     { q: "rings-top", icon: "/images/gw/icon-rings.webp", tk: "tk.rings", v: function (x) { return t("rk.stars", { n: fmt(x.stars) }); }, n: function (x) { return fmt(x.stars); } },
     { q: "rings-ta", icon: "/images/gw/icon-rings.webp", tk: "tk.ta", v: function (x) { return t("rk.boards", { n: fmt(x.n) }); }, n: function (x) { return fmt(x.n); } },
     { q: "surv-top", icon: "/images/gw/icon-surv.webp", tk: "tk.surv", v: function (x) { return t("rk.surv", { t: mmss(x.secs), k: fmt(x.kills || 0) }); }, n: function (x) { return mmss(x.secs); } },
@@ -583,7 +583,7 @@
     $("#gw-rtabs").innerHTML = BOARDS.map(function (b, i) { return '<button type="button" role="tab" data-rk="' + i + '" class="' + (i === rk ? "on" : "") + '" aria-selected="' + (i === rk) + '"><img src="' + b.icon + '" alt="">' + esc(tabs[i]) + "</button>"; }).join("");
     var list = boards && boards[rk], ol = $("#gw-rlist");
     if (!boards) { ol.innerHTML = '<li class="none">…</li>'; return; }
-    ol.innerHTML = list && list.length ? list.slice(0, 10).map(function (x, i) { return '<li style="--k:' + i + '"><b>' + esc(nm(x)) + "</b><span>" + esc(BOARDS[rk].v(x)) + "</span></li>"; }).join("") : '<li class="none">' + esc(t("rk.none")) + "</li>";
+    ol.innerHTML = list && list.length ? list.slice(0, 10).map(function (x, i) { return '<li style="--k:' + i + '"><b>' + esc(nm(x)) + (x.gm && BOARDS[rk].q === "players" ? ' <em class="gw-gm">GM</em>' : "") + "</b><span>" + esc(BOARDS[rk].v(x)) + "</span></li>"; }).join("") : '<li class="none">' + esc(t("rk.none")) + "</li>";
   }
   $("#gw-rtabs").addEventListener("click", function (e) { var b = e.target.closest("[data-rk]"); if (!b) return; rk = Number(b.dataset.rk); paintRanks(); });
   // the clocks: the daily reset (00:00 KST), the weekly reset (Monday 00:00 KST), the weekend 2× (Sat–Sun KST)
