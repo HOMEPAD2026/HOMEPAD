@@ -139,7 +139,7 @@ export function quality(force = "auto") {
   const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
   const medium = f === "medium";
   const weak = f === "auto" && coarse && gpuWeak(); // (the phones that sat under 15 fps even on Low: 1× pixels from the start)
-  const dpr = Math.min(window.devicePixelRatio || 1, saver || weak ? 1 : coarse && f !== "ultra" ? 1 : low ? 1 : medium ? 1.5 : f === "ultra" ? 2 : 1.5); /* (PF2 2026-10-27, the owner: phones ran hot at 1.25–1.5×: a phone draws 1× unless you pick Ultra) */ // Auto: 1.5× on phones and computers (b411: computers were 1.75×); phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain); a Low computer 1× (b447: Intel UHD laptops ran 15–20 fps at 1.25× on a big window)
+  const dpr = Math.min(window.devicePixelRatio || 1, saver || weak ? 1 : coarse && f !== "ultra" ? (low ? 1 : 1.25) : low ? 1 : medium ? 1.5 : f === "ultra" ? 2 : 1.5); /* (PF2 2026-10-27, the owner: phones ran hot at 1.25–1.5×: a phone drew 1× unless Ultra — then signs and names smeared (the owner's shot): 1.25×, the 30 fps cap pays for it; the weakest chips stay 1×) */ // Auto: 1.5× on phones and computers (b411: computers were 1.75×); phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain); a Low computer 1× (b447: Intel UHD laptops ran 15–20 fps at 1.25× on a big window)
   return { coarse, low, saver, weak, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : f === "ultra" ? 4096 : 2048 }; // Ultra on a computer: crisper shadows near you
 }
 /// the graphics chip's class from its name: "high", "low", or "" (unknown); asked once
@@ -323,7 +323,7 @@ export function makeStage(canvas, opts = {}) {
     // a second step (a phone warming up over a long session): half-size sun shadows, everything else kept
     softer() { const m = sun.shadow.mapSize.x; if (!sun.castShadow || m <= 512) return false; sun.shadow.mapSize.set(m / 2, m / 2); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } return true; },
     // dynamic resolution: k of the preset's pixel ratio (0.6–1), changed quietly as the frame rate moves
-    scale(k) { const r = Math.max(0.5, cap * Math.max(0.6, Math.min(1, k))); if (Math.abs(r - renderer.getPixelRatio()) < 0.02) return false; renderer.setPixelRatio(r); if (composer) composer.setPixelRatio(r); resize(); return true; },
+    scale(k) { const r = Math.max(Math.min(cap, q.coarse ? (q.weak ? 0.75 : 1) : 0.75), cap * Math.max(0.6, Math.min(1, k))); /* (2026-10-27, the owner's shot: at 1× × 60 % a phone's 3D text smeared — a phone never draws under 1 px a CSS pixel, the weakest chips 0.75) */ if (Math.abs(r - renderer.getPixelRatio()) < 0.02) return false; renderer.setPixelRatio(r); if (composer) composer.setPixelRatio(r); resize(); return true; },
     // slower devices: no bloom, no shadows, fewer pixels
     // b440: no shader is rebuilt here (dropping the chain and the shadows recompiled ~200 programs: a 1–3 s freeze right
     // when the game was already struggling). The chain stays without its bloom; the sun's shadow stays, small and redrawn
