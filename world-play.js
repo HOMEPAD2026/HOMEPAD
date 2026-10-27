@@ -421,7 +421,7 @@ const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomT
   onLost: () => { if (document.querySelector(".wp-lost")) return; const el = document.createElement("div"); el.className = "wp-leave wp-lost"; el.setAttribute("role", "alertdialog"); el.innerHTML = `<div class="wp-card wp-leave-card"><h2>${esc(T("The graphics paused"))}</h2><p>${esc(T("Your phone needed the memory back. Your progress is saved."))}</p><div class="wp-leave-btns"><button type="button" class="wp-cta" data-reload>${esc(T("Reload the game"))}</button></div></div>`; el.addEventListener("click", (e) => { if (e.target.closest("[data-reload]")) location.reload(); }); document.body.appendChild(el); },
   onRestored: () => { document.querySelectorAll(".wp-lost").forEach((e) => e.remove()); },
 });
-st.fps(S.fpsCap || 60); // the frame limit (Settings)
+st.fps(S.fpsCap || (coarse ? 30 : 60)); // the frame limit (Settings; Auto: see capNow — 30 on a phone outside the fast games)
 let autoCap = 0, grassThin = false, tmpV3 = null; if (S.quality === "auto" && st.quality.weak && st.fps) { autoCap = 30; st.fps(30); } /* (the weakest phone chips: an even 30 from the start, K.gpuWeak) */ // grassThin: a slow phone's grass halved (dynRes, b447) // 30 once a slow phone was moved to an even 30 fps (dynRes, b447); declared here because diag reads it
 // b447: on a phone (unless Ultra was picked), no clear-coat layer: glass, crystals and glossy gear keep their colour and
 // shine but skip the second specular layer, which cost each of them about twice the shading. three.js reads clearcoat
@@ -473,6 +473,7 @@ const groundG = K.makeGround(); planet.add(groundG);
 // far culling: whole groups (a hall, a hunting ground's props, a decor cell) more than ~150 m away (110 m on a phone)
 // are skipped — the fog has them mostly hidden anyway, and they were hundreds of draw calls. Anything that needs the
 // whole world (the far-shadow bake, the grass mask, the minimap picture) runs inside farCull.all().
+let nearAll = (f) => f(); /* (PF4: nearCull below sets it — farCull.all shows what it hid too) */
 const farCull = (() => {
   const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles", "pet", "pumpkings"]); // "pet", "pumpkings" (world-pumpking.js): they move, so a scan-time box would hide them
   const CONT = ["decor", "life", "zones"], R = S.quality === "saver" ? 75 : st.quality.coarse && lowGfx ? 90 : st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, /* b5: battery saver and Low phones draw less far (the fog hides it) */ box = new THREE.Box3(), sph = new THREE.Sphere();
@@ -495,10 +496,36 @@ const farCull = (() => {
     for (const it of list) { const far = on && Math.hypot(it.c.x - px, it.c.z - pz) - it.r > R;
       if (far && it.o.visible) { it.o.visible = false; hidden.add(it.o); } else if (!far && hidden.has(it.o)) { it.o.visible = true; hidden.delete(it.o); } }
   }
-  function all(fn) { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); try { return fn(); } finally { was.forEach((o) => { if (hidden.has(o)) o.visible = false; }); } }
+  function all(fn) { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); try { return nearAll(fn); } finally { was.forEach((o) => { if (hidden.has(o)) o.visible = false; }); } }
   return { tick, all, rescan: () => { scanAt = -1e9; }, prep: () => { if (FADE) { scan(); scanAt = performance.now(); sig = sigNow(); } } };
 })();
 st.on(() => { try { farCull.tick(); } catch { /* still loading */ } });
+// PF4 (2026-10-27): on a phone the small things — the walking robots (folk), the
+// market stalls, the bounty board — are drawn only near you (the pumpkins are one instanced mesh now). farCull skips them (they move, or their group spans the
+// town), and in the plaza they were ~70 of the ~240 draw calls a frame. Each child is checked by where it stands now
+const nearCull = (() => {
+  if (!st.quality.coarse) return { tick() {}, all: (f) => f() };
+  const R = S.quality === "saver" || lowGfx ? 35 : 45, KIDS = ["stalls"], SELF = ["folk", "bounty"], hid = new Set(); let at = 0;
+  // the Meshy trees (world-arcstyle.js meshyTrees): ~180 k triangles town-wide in four instanced meshes. A phone keeps
+  // only the instances within TR of you (rewritten once a second, as you move 6 m); allM holds them all
+  const TR = lowGfx || S.quality === "saver" ? 60 : 80; let trees = [], treeAt = 0, tx = 1e9, tz = 1e9;
+  function treeCull(px, pz, full) {
+    const now = performance.now(); if (!trees.length && now - treeAt > 5000) { treeAt = now; planet.traverse((o) => { if (o.isInstancedMesh && o.userData.allM) trees.push(o); }); }
+    if (!trees.length) return; if (!full && Math.hypot(px - tx, pz - tz) < 6) return; tx = full ? 1e9 : px; tz = full ? 1e9 : pz;
+    for (const im of trees) { const A = im.userData.allM, B = im.instanceMatrix.array; let n = 0;
+      for (let i = 0; i < im.userData.allN; i++) { const o = i * 16; if (!full && Math.hypot(A[o + 12] - px, A[o + 14] - pz) > TR) continue; for (let k = 0; k < 16; k++) B[n * 16 + k] = A[o + k]; n++; }
+      im.count = n; im.instanceMatrix.needsUpdate = true; }
+  }
+  return { tick() { const now = performance.now(); if (now - at < 500) return; at = now;
+    const px = -planet.position.x, pz = -planet.position.z, on = mode === "hub"; if (on) treeCull(px, pz, false);
+    const test = (o, x, z) => { const far = on && Math.hypot(x - px, z - pz) > R; if (far && o.visible) { o.visible = false; hid.add(o); } else if (!far && hid.has(o)) { o.visible = true; hid.delete(o); } };
+    for (const c of planet.children) {
+      if (KIDS.includes(c.name)) for (const k of c.children) test(k, c.position.x + k.position.x, c.position.z + k.position.z);
+      else if (SELF.includes(c.name)) { const k = c.name === "folk" && c.children[0] ? c.children[0] : c; const x = c === k ? c.position.x : c.position.x + k.position.x, z = c === k ? c.position.z : c.position.z + k.position.z; test(c, x, z); }
+    } }, all(fn) { const was = [...hid]; was.forEach((o) => { o.visible = true; }); treeCull(0, 0, true); try { return fn(); } finally { was.forEach((o) => { if (hid.has(o)) o.visible = false; }); tx = tz = 1e9; } } }; /* (all: everything back for a whole-world job; the trees refill on the next tick) */
+})();
+nearAll = (f) => nearCull.all ? nearCull.all(f) : f();
+st.on(() => { try { nearCull.tick(); } catch { /* still loading */ } });
 // the frame count, and the sun's shadow map redrawn every other frame below Ultra (the sun stands still; only the
 // things that move need it, and they barely move in a 30th of a second)
 let frameNo = 0; const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : st.quality.coarse ? 3 : 2; /* b448: phones every 3rd frame (the sun stands still; the real shadow only covers the area round you) */
@@ -699,6 +726,10 @@ function cheapen(o) {
   if (Array.isArray(o.material)) { let ch = false; const a = o.material.map((m) => { const n = cheapMat(m); if (n !== m) ch = true; return n; }); if (ch) o.material = a; }
   else { const n = cheapMat(o.material); if (n !== o.material) o.material = n; }
 }
+// PF6 (2026-10-27, diag: phones still built ~50 MeshPhysical shaders after lighten's pass): a thing added to the scene
+// gets its cheaper material at once, before it's ever drawn — lighten() comes by only every 3 s, so a new thing first
+// compiled the heavy shader, then the cheap one (two stalls instead of one)
+if (physToStd) { const add0 = THREE.Object3D.prototype.add; THREE.Object3D.prototype.add = function (...a) { const r = add0.apply(this, a); try { for (const o of a) if (o && o.traverse && o !== this) o.traverse(cheapen); } catch { /* lighten() catches it */ } return r; }; }
 function lighten(root) {
   if (!lambertOn && wantLambert()) { lambertOn = true; root.traverse(cheapen); } // (once it turns on: everything already there too)
   root.traverse((o) => {
@@ -712,7 +743,7 @@ function lighten(root) {
 }
 let lightT = 0; // (by the clock: a slow phone's frames mustn't put it off)
 const lightV = new THREE.Vector3();
-st.on(() => { const nw = performance.now(); if (nw < lightT) return; lightT = nw + 3000; try { lighten(planet); here(lightV); for (const g of lightFar) g.visible = g.position.distanceTo(lightV) < 70; } catch { /* the world isn't up yet */ } });
+st.on(() => { const nw = performance.now(); if (nw < lightT) return; lightT = nw + 3000; try { lighten(planet); here(lightV); for (const g of lightFar) g.visible = g.position.distanceTo(lightV) < (coarse ? 30 : 70); /* (PF4: 30 m on a phone) */ } catch { /* the world isn't up yet */ } });
 let mixLod = 0; const mixV = new THREE.Vector3(), camFr = new THREE.Frustum(), camFrM = new THREE.Matrix4(), camSph = new THREE.Sphere(new THREE.Vector3(), 2.5); // the animation LOD below (the loop)
 const shops = K.SHOPS.map((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); g.position.x += LD.LANDS.ut.x; g.position.z += LD.LANDS.ut.z; planet.add(g); /* b-lpv: in the Utility Village, as they stood round the plaza */ K.shadowy(g); spins.push(...g.userData.spin); return g; });
 shops.forEach((g) => { const cs = LOOK.contactShadow((g.userData.radius || 3) + 2.2, 0.38); cs.position.x = g.position.x; cs.position.z = g.position.z; planet.add(cs); });
@@ -1041,9 +1072,9 @@ async function dressWorld(kit) {
     try { stage = makeStage(g, ac); } catch { stage = null; }
   }
   // town folk: a few ARC Bots walking the ring between the fountain and the halls, stopping now and then to look
-  // round or wave (none on Low; three on a phone, six elsewhere). They're scenery: they don't block you or talk.
+  // round or wave (none on Low; two on a phone, six elsewhere). They're scenery: they don't block you or talk.
   if (!lowGfx) {
-    const ids = ["arc-neo", "arc-luna", "arc-kai", "arc-pixi", "arc-orbit", "arc-mint"], N = st.quality.coarse ? 3 : 6;
+    const ids = ["arc-neo", "arc-luna", "arc-kai", "arc-pixi", "arc-orbit", "arc-mint"], N = st.quality.coarse ? 2 : 6; /* (PF4: two on a phone — each bot is ~11 draw calls) */
     for (let i = 0; i < N; i++) K.makeCharacter(ids[i], VER).then((c) => {
       if (!c) return; const g = new THREE.Group(); g.name = "folk"; g.add(c.obj); planet.add(g); if (c.mixer) mixers.push(c.mixer);
       folk.push({ g, c, r: 9.2 + (i % 3) * 1.1, a: (i / N) * Math.PI * 2 + Math.random() * 0.4, dir: i % 2 ? 1 : -1, sp: 1.0 + Math.random() * 0.5, wait: 1 + Math.random() * 4, walkT: 0, anim: "" });
@@ -2054,6 +2085,34 @@ function landTick(force) {
   if (id && id !== was) { toast(`<b>${esc(landName(id))}</b>`); if (id === "lp" && !P.visited.includes("lpv")) { P.visited.push("lpv"); save(); } if (id === "ut" && !P.visited.includes("utv")) { P.visited.push("utv"); save(); } if (id === "ad" && !P.visited.includes("adc")) { P.visited.push("adc"); save(); } if (id === "rq" && !P.visited.includes("rqx")) { P.visited.push("rqx"); save(); } }
 }
 st.on(() => { try { landTick(false); } catch { /* still loading */ } });
+// PF5 (2026-10-27, diag: 850–1,900 textures alive in the raid's and the Studio's lands on phones): eight seconds into
+// a land (the town included) a phone lets go of the GPU copies of the textures only hidden things use — the town's in
+// a land, a land's once you're back (the raid hall alone held ~300) — three.js uploads a texture again the first time
+// it's drawn, from the picture it still holds; back in town the town's own go up again a few a frame
+const texRest = (() => {
+  if (!coarse) return { tick() {}, count: () => 0 };
+  let rested = [], back = [];
+  const texOf = (m, out) => { for (const k in m) { const v = m[k]; if (v && v.isTexture && !v.isRenderTargetTexture && !v.isVideoTexture) out.add(v); } };
+  const LANDR = /^(land-|rq-hall|rq-sky-realm|rq-back)/;
+  function landTex() { const out = new Set(); for (const c of planet.children) if (LANDR.test(c.name) && !c.visible) c.traverse((o) => { if (o.isMesh || o.isPoints || o.isSprite || o.isLine) for (const m of [].concat(o.material || [])) if (m) texOf(m, out); }); return out; }
+  function rest() {
+    const keep = new Set(), maybe = new Set();
+    const walk = (o, vis) => { const v = vis && o.visible; if (o.isMesh || o.isPoints || o.isSprite || o.isLine) for (const m of [].concat(o.material || [])) if (m) texOf(m, v ? keep : maybe); for (const c of o.children) walk(c, v); };
+    walk(st.scene, true); if (st.scene.background && st.scene.background.isTexture) keep.add(st.scene.background); if (st.scene.environment) keep.add(st.scene.environment);
+    // in town only the other lands' hidden groups let go (the town's own far-culled props come back as you walk, and an
+    // upload then would be the very hitch this is for); in a land, all that's hidden
+    const only = landNow ? null : landTex();
+    for (const t of maybe) if (!keep.has(t) && !t.userData.rested && (!only || only.has(t))) { t.dispose(); t.userData.rested = true; rested.push(t); }
+  }
+  let land0 = null, at0 = 0, done = false; /* (by the clock: a slow phone's frames are clamped) */
+  return { tick() { const now = performance.now();
+    if (mode !== "hub" || landNow !== land0) { const wasLand = land0; land0 = mode === "hub" ? landNow : null; at0 = now; done = false;
+      if (land0 === "" && wasLand && rested.length) try { const L = landTex(); const still = []; for (const t of rested) (L.has(t) ? still : back).push(t); rested = still; } catch { /* they come back when drawn */ } } /* (back in town: the town's own go up again, a few a frame) */
+    if (!done && now - at0 > 8000) { done = true; try { rest(); } catch (e) { console.warn("texRest", e); } }
+    if (back.length) { for (let i = 0; i < 6 && back.length; i++) { const t = back.pop(); t.userData.rested = false; try { st.renderer.initTexture(t); } catch { /* drawn when it's needed */ } } }
+  }, count: () => rested.length };
+})();
+st.on(() => { try { texRest.tick(); } catch { /* still loading */ } });
 /// the quest's target, by the portals when it's in another land: the portal to its land, or the way back to town
 function routeTo(g) {
   if (!g) return g; const p = g.position, L = g.parent === planet ? LD.landAt(p.x, p.z) : null, id = L ? L.id : "";
@@ -3503,7 +3562,7 @@ const setEl = $("wp-setsheet");
 function openSet() {
   setEl.querySelectorAll("#wp-set-q button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.q === (S.quality === "high" ? "ultra" : S.quality))));
   $("wp-set-fps").setAttribute("aria-pressed", String(!!S.fps)); $("wp-set-fps").textContent = S.fps ? TW("On") : T("Show");
-  setEl.querySelectorAll("#wp-set-cap button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.cap) === (S.fpsCap || 60))));
+  setEl.querySelectorAll("#wp-set-cap button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.cap) === (S.fpsCap || 0))));
   setEl.querySelectorAll("#wp-set-lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
   $("wp-set-q-note").textContent = qNote(S.quality === "high" ? "ultra" : S.quality);
   $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-joyk").value = String([0.85, 1, 1.2].includes(+S.joyK) ? +S.joyK : 1); $("wp-set-joyup").value = +S.joyUp || 0; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false; $("wp-set-big").checked = !!S.big; $("wp-set-cb").checked = !!S.cb;
@@ -3532,7 +3591,7 @@ function qNote(q) {
 }
 // the frame rate in a corner (Settings → Frame rate): for checking a preset on your own phone
 // the frame limit: 30 or 45 saves battery and heat on a phone; 60 is the default
-$("wp-set-cap").addEventListener("click", (e) => { const b = e.target.closest("[data-cap]"); if (!b) return; S.fpsCap = Number(b.dataset.cap); saveSet(); st.fps(S.fpsCap); setEl.querySelectorAll("#wp-set-cap button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); });
+$("wp-set-cap").addEventListener("click", (e) => { const b = e.target.closest("[data-cap]"); if (!b) return; S.fpsCap = Number(b.dataset.cap) || 0; saveSet(); st.fps(capNow()); /* (0 = Auto: capNow) */ setEl.querySelectorAll("#wp-set-cap button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); });
 $("wp-set-fps").addEventListener("click", () => { S.fps = !S.fps; saveSet(); $("wp-set-fps").setAttribute("aria-pressed", String(S.fps)); $("wp-set-fps").textContent = S.fps ? TW("On") : T("Show"); $("wp-fps").hidden = !S.fps; });
 { let n = 0, t0 = performance.now(); $("wp-fps").hidden = !S.fps;
   st.on(() => { if (!S.fps) return; n++; const now = performance.now(); if (now - t0 >= 500) { const dr = diag.draw(); $("wp-fps").textContent = `${Math.round((n * 1000) / (now - t0))} fps · ${dr.calls} draws · ${Math.round(dr.tris / 1000)}k tris`; n = 0; t0 = now; } }); }
@@ -4125,7 +4184,7 @@ chatUI = CHAT.createChat({ T, esc, toast, post, sess, Snd, area: chatArea, bubbl
 // b448: compile a list of objects while they're hidden (they're made visible only for the call: compileAsync collects them
 // right away), so each can be shown once its shaders are ready
 const compileHidden = (list) => { if (!st.renderer.compileAsync) return Promise.resolve(); const was = list.map((o) => o.visible); list.forEach((o) => { o.visible = true; }); let ps; try { ps = list.map((o) => st.renderer.compileAsync(o, st.camera, st.scene).catch(() => {})); } finally { list.forEach((o, i) => { o.visible = was[i]; }); } return Promise.race([Promise.all(ps), new Promise((r) => setTimeout(r, 4000))]); };
-decor = DECOR.createDecor({ compile: compileHidden, THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => [[MV.MINE_VILLAGE.x, MV.MINE_VILLAGE.z, MV.MINE_VILLAGE.r + 3], [PV.PARTNER_VILLAGE.x, PV.PARTNER_VILLAGE.z, PV.PARTNER_VILLAGE.r + 3], ...(race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : [])] });
+decor = DECOR.createDecor({ compile: compileHidden, onMore: () => { try { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } catch { /* fine */ } }, /* (PF8: the districts came in after the screen lifted) */ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => [[MV.MINE_VILLAGE.x, MV.MINE_VILLAGE.z, MV.MINE_VILLAGE.r + 3], [PV.PARTNER_VILLAGE.x, PV.PARTNER_VILLAGE.z, PV.PARTNER_VILLAGE.r + 3], ...(race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : [])] });
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
@@ -4678,9 +4737,14 @@ st.on(() => { let on = false; try { on = !!(defenseOn || jumpOn || beatOn); } ca
 const RQ_COOL = { fps: 30, k: 0.85 };
 let rqCool = false, rqK = 0;
 st.on(() => { let on = false; try { on = !!coarse && landNow === "rq"; } catch { return; } if (on === rqCool) return; rqCool = on; dynBad = 0; dynGood = 0;
-  if (!S.fpsCap) st.fps(on ? Math.min(autoCap || 60, RQ_COOL.fps) : autoCap || 60);
   if (S.quality === "auto" && st.scale) { if (on && dynK > RQ_COOL.k) { rqK = dynK; dynK = RQ_COOL.k; st.scale(dynK); } else if (!on && rqK) { dynK = Math.max(dynK, rqK); rqK = 0; st.scale(dynK); } } });
-const capNow = () => S.fpsCap || (rqCool ? Math.min(autoCap || 60, RQ_COOL.fps) : autoCap) || 60;
+// PF1 (2026-10-27, the owner: "렉·발열 전부 진행"): diag showed phones running 60 fps nearly everywhere (140 reports to 11),
+// the GPU never resting. A phone on Auto (no limit picked in Settings) runs an even 30 where you walk, build or read —
+// the town, every land, Creator City, the Studio's windows, menus — and up to 60 only in the fast games (Survivors, the
+// Game Village games, the hoverboard race, a Studio run); a limit you picked stays yours everywhere
+const fastNow = () => { try { return !!(survOn || defenseOn || jumpOn || beatOn || (race && race.racing && race.racing()) || (studio && studio.playing && studio.playing())); } catch { return false; } };
+const capNow = () => S.fpsCap || (coarse ? (fastNow() && !rqCool ? autoCap || 60 : 30) : autoCap || 60);
+{ let capWas = 0; const capTick = () => { const c = capNow(); if (c !== capWas) { capWas = c; st.fps(c); dynBad = 0; dynGood = 0; } }; capTick(); setInterval(capTick, 400); }
 function dynRes(dt) {
   if (S.quality !== "auto" || degraded || photo || navigator.webdriver || !st.scale) return;
   dynAcc += dt; dynN++; if (performance.now() - dynT0 < 4000 || dynAcc < 1.5) return;
@@ -5077,10 +5141,10 @@ const landing = dive();
 // changed: every 2.5 s in a fight or a crowd, a 100–200 ms stall each time)
 { const warmSeen = new WeakSet(); let first = true, busy = false; setInterval(() => {
   if (busy || document.hidden || frozen) return; const fresh = [];
-  st.scene.traverse((o) => { if (!(o.isMesh || o.isPoints || o.isSprite) || !o.material) return; const ms = Array.isArray(o.material) ? o.material : [o.material]; let nw = false; for (const m of ms) if (!warmSeen.has(m)) { warmSeen.add(m); nw = true; } if (nw && fresh.length < 40) fresh.push(o); });
+  st.scene.traverse((o) => { const mt = o.material; if (!mt || !(o.isMesh || o.isPoints || o.isSprite)) return; let nw = false; /* (PF3: no array a mesh — this walks the whole scene) */ if (Array.isArray(mt)) { for (const m of mt) if (!warmSeen.has(m)) { warmSeen.add(m); nw = true; } } else if (!warmSeen.has(mt)) { warmSeen.add(mt); nw = true; } if (nw && fresh.length < 40) fresh.push(o); });
   if (first) { first = false; return; } /* (the loading screen's warm-up compiled these) */ if (!fresh.length) return;
   busy = true; compileHidden(fresh).then(() => { busy = false; }, () => { busy = false; });
-}, 2500); }
+}, coarse ? 4000 : 2500); }
 $("wp-loading").classList.add("done"); fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
 // the most played games' code fetched while the town is quiet, one at a time (entering one then doesn't wait for the
 // download); not on data saver or a slow connection, never in a fight; a failure here is only a later download
@@ -6149,7 +6213,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { openBridge: (o) => openBridge(o), ccGo: () => ccGo(), landGo: (to) => landGo(to), ccTo: (id) => ccTo(id), cc: () => ccL, ccBuilding: (id) => ccBuilding(id), ccStep: (k) => ccStep(k), landNow: () => landNow, armParts: () => (bodyArm ? bodyArm.L.map((p) => p.n + "@" + p.b.name) : []), /* (tests: the armour on the body) */ heroSkin: () => { try { return heroSkin(); } catch (e) { return "ERR " + e.message; } }, /* (tests: the hero's paint) */ mythAura: () => ({ has: !!mythAura, vis: !!(mythAura && mythAura.visible) }), /* (tests: the six's aura) */ mythOn: () => { const L = []; player.traverse((o) => { if (/^mythic:/.test(o.name)) L.push(o.name); }); return L; }, scene3: () => st.scene, cam3: () => st.camera, gl3: () => st.renderer, /* (tests: what the scene draws) */ rqPortalFront: () => rqPortalFront(), mythic: () => mythicNow, mythicTest: (o) => { mythicNow = o; }, /* (tests: a set to show) */ openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { texRest: () => texRest.count(), openBridge: (o) => openBridge(o), ccGo: () => ccGo(), landGo: (to) => landGo(to), ccTo: (id) => ccTo(id), cc: () => ccL, ccBuilding: (id) => ccBuilding(id), ccStep: (k) => ccStep(k), landNow: () => landNow, armParts: () => (bodyArm ? bodyArm.L.map((p) => p.n + "@" + p.b.name) : []), /* (tests: the armour on the body) */ heroSkin: () => { try { return heroSkin(); } catch (e) { return "ERR " + e.message; } }, /* (tests: the hero's paint) */ mythAura: () => ({ has: !!mythAura, vis: !!(mythAura && mythAura.visible) }), /* (tests: the six's aura) */ mythOn: () => { const L = []; player.traverse((o) => { if (/^mythic:/.test(o.name)) L.push(o.name); }); return L; }, scene3: () => st.scene, cam3: () => st.camera, gl3: () => st.renderer, /* (tests: what the scene draws) */ rqPortalFront: () => rqPortalFront(), mythic: () => mythicNow, mythicTest: (o) => { mythicNow = o; }, /* (tests: a set to show) */ openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),

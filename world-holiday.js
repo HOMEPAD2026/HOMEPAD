@@ -3,6 +3,7 @@
 //                  the plaza, twinkling after dark, and a tall tree with baubles and a star
 //   Lunar New Year three days before to a week after (?lunar=1): red lanterns under every lamp, glowing at night
 // and the market stalls on the plaza, all year. Nothing here changes the game's rules or rewards.
+import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 const seoul = (now) => { const d = new Date(now + 9 * 3600e3); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, day: d.getUTCDate(), t: Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) }; };
 const q = (k) => { try { return new URLSearchParams(location.search).get(k); } catch { return null; } };
 export function christmasOn(now = Date.now()) { const v = q("xmas"); if (v === "1") return true; if (v === "0") return false; const s = seoul(now); return s.m === 12 && s.day >= 12; }
@@ -53,16 +54,20 @@ export function createStalls({ THREE, planet, spots = [] }) {
   const AW = [["#ff6b8a", "#fff3f6"], ["#38c8ff", "#effaff"], ["#2ee07a", "#effff6"], ["#ffc861", "#fffaf0"]];
   const wood = new THREE.MeshStandardMaterial({ color: 0xc89a6a, roughness: 0.75 }), top = new THREE.MeshStandardMaterial({ color: 0xe8dccb, roughness: 0.6 });
   const GOODS = [0xff6b6b, 0xffc861, 0x9aff5a, 0x8fe6ff, 0xb48cff];
+  const goodsM = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 });
   const NEON = [["SNACKS", "#ff5fa2"], ["GEAR", "#38e8ff"], ["BOBA", "#9aff5a"], ["MERCH", "#ffc861"]], neons = [];
   spots.forEach(([x, z, ry], i) => {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; root.add(g);
-    const counter = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 0.9), wood); counter.position.y = 0.45; counter.castShadow = true; counter.receiveShadow = true;
     const board = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.06, 1.0), top); board.position.y = 0.93;
     const [ca, cb] = AW[i % AW.length], awn = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.3), new THREE.MeshStandardMaterial({ map: stripe(ca, cb), side: THREE.DoubleSide, roughness: 0.8 }));
     awn.position.set(0, 2.25, 0.25); awn.rotation.x = -Math.PI / 2 + 0.38; awn.castShadow = true;
-    const postG = new THREE.CylinderGeometry(0.04, 0.04, 2.3, 6); [-1.1, 1.1].forEach((px) => { const p = new THREE.Mesh(postG, wood); p.position.set(px, 1.15, -0.4); g.add(p); });
+    // PF4 (2026-10-27): the counter and both posts are one wood mesh, the seven goods one vertex-coloured mesh — each
+    // ball had its own material (28 draw calls for the goods alone)
+    const woodG = mergeGeometries([new THREE.BoxGeometry(2.2, 0.9, 0.9).translate(0, 0.45, 0), ...[-1.1, 1.1].map((px) => new THREE.CylinderGeometry(0.04, 0.04, 2.3, 6).translate(px, 1.15, -0.4).toNonIndexed())].map((x) => (x.index ? x.toNonIndexed() : x)), false);
+    const counter = new THREE.Mesh(woodG, wood); counter.castShadow = true; counter.receiveShadow = true;
     g.add(counter, board, awn);
-    for (let k = 0; k < 7; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.12 + Math.random() * 0.05, 10, 8), new THREE.MeshStandardMaterial({ color: GOODS[(i + k) % GOODS.length], roughness: 0.5 })); s.position.set(-0.85 + k * 0.28, 1.08, (k % 2 ? 0.15 : -0.12)); g.add(s); }
+    { const parts = [], col = new THREE.Color(); for (let k = 0; k < 7; k++) { const sg = new THREE.SphereGeometry(0.12 + Math.random() * 0.05, 10, 8).translate(-0.85 + k * 0.28, 1.08, k % 2 ? 0.15 : -0.12).toNonIndexed(); col.setHex(GOODS[(i + k) % GOODS.length]); const n = sg.attributes.position.count, a = new Float32Array(n * 3); for (let v = 0; v < n; v++) { a[v * 3] = col.r; a[v * 3 + 1] = col.g; a[v * 3 + 2] = col.b; } sg.setAttribute("color", new THREE.BufferAttribute(a, 3)); parts.push(sg); }
+      g.add(new THREE.Mesh(mergeGeometries(parts, false), goodsM)); parts.forEach((x) => x.dispose()); }
     // a neon word over each stall that hums and now and then blinks off
     const word = NEON[i % NEON.length], cv = document.createElement("canvas"); cv.width = 256; cv.height = 72; const c2 = cv.getContext("2d");
     c2.font = "900 52px 'Big Shoulders Display', Sora, sans-serif"; c2.textAlign = "center"; c2.textBaseline = "middle"; c2.shadowColor = word[1]; c2.shadowBlur = 14; c2.fillStyle = word[1]; c2.fillText(word[0], 128, 38); c2.shadowBlur = 0; c2.fillStyle = "#ffffff"; c2.globalAlpha = 0.6; c2.fillText(word[0], 128, 38);

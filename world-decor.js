@@ -297,11 +297,13 @@ export function createDecor(ctx) {
   let started = false, townDone = null; const townReady = new Promise((r) => { townDone = r; });
   async function start() {
     if (started) return; started = true;
+    // PF8 (2026-10-27, diag: "decor timed out at 85%" even on Adreno 740s): the loading screen waits for the town's own
+    // packs only; the districts' six come in behind it, compiled hidden and then shown (staged), so nothing stalls
     try {
     await load("kk-weapons"); ctx.onWeapons && ctx.onWeapons();
     await Promise.all(["kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "q-nature", "q-props"].map(load)); dressTown();
-    await Promise.all(["kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-furniture", "kenney-furniture"].map(load)); dressDistricts();
     } finally { townDone(); } // b443: the loading screen waits for this (the town dressed behind it, not on the plaza)
+    try { await Promise.all(["kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-furniture", "kenney-furniture"].map(load)); await staged(dressDistricts); if (ctx.onMore) ctx.onMore(); } catch (e) { console.warn("decor districts", e); }
     // the hunting grounds' one extra pack downloads while you're still in town, so walking up to a ground only dresses it
     setTimeout(() => { const go = () => load("kenney-survival"); if (globalThis.requestIdleCallback) requestIdleCallback(go, { timeout: 20000 }); else go(); }, 15000);
     await load("kenney-pets"); await staged(addCritters);

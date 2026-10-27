@@ -8,6 +8,7 @@
 // fit this body. The animations are poses blended in code — idle, walk, sprint, jump, fall, sit, drive, die, pick-up,
 // emote-yes (wave), emote-no, interact-right (a swing) and celebrate — with the same play / busy / update API as a
 // loaded character, so world-play.js treats both alike.
+import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 const TAU = Math.PI * 2;
 // palette: shell (the white body), trim (darker parts: joints, feet), accent (ear rings, chest, details), eye (the glow)
 // acc: the accessories (see ACC below)
@@ -155,7 +156,16 @@ export function makeArcBot(THREE, spec) {
     crystals: () => [[-0.22, 0.2, -0.3], [0, 0.3, 0], [0.22, 0.2, 0.3]].forEach(([x, h, r]) => { const c = mesh(new THREE.OctahedronGeometry(0.1, 0), new THREE.MeshStandardMaterial({ color: 0xcff6ff, emissive: 0x6fd8ff, emissiveIntensity: 0.9, roughness: 0.1, metalness: 0.2 }), x, 1.0 + h / 2, -0.04); c.scale.y = 1 + h * 4; c.rotation.z = r; head.add(c); }),
     bulky: () => {},
   };
+  // PF4 (2026-10-27): the base body (legs, torso, arms, helmet, pods) was ~30 meshes: each joint's parts are merged
+  // per material (a robot drew 34 calls in the plaza). Only the base parts — the eyes and the crown change on their
+  // own, and an accessory's spin / spring may hold its mesh, so those stay as they are
+  const baseParts = []; { const keep = new Set(); [eyes, crown].forEach((x) => x.traverse((o) => keep.add(o))); obj.traverse((o) => { if (o.isMesh && !keep.has(o) && !o.children.length) baseParts.push(o); }); }
   spec.acc.forEach((k) => ACC[k] && ACC[k]());
+  { const by = new Map(); for (const m of baseParts) { if (!m.parent || Array.isArray(m.material)) continue; const k = m.parent.uuid + "|" + m.material.uuid + "|" + m.castShadow; if (!by.has(k)) by.set(k, []); by.get(k).push(m); }
+    for (const list of by.values()) { if (list.length < 2) continue; const par = list[0].parent;
+      const geos = list.map((m) => { m.updateMatrix(); let g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(m.matrix); for (const a of Object.keys(g.attributes)) if (a !== "position" && a !== "normal" && a !== "uv") g.deleteAttribute(a); if (!g.attributes.uv) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)); return g; });
+      const mg = mergeGeometries(geos, false); geos.forEach((g) => g.dispose()); if (!mg) continue;
+      const one = new THREE.Mesh(mg, list[0].material); one.castShadow = list[0].castShadow; one.name = "body-merged"; list.forEach((m) => par.remove(m)); par.add(one); } }
 
   // ---------------- poses and animations ----------------
   // a pose: { y, rx, rz (the whole body), tx, ty (torso), hx, hy, hz (head), al, ar ([x, z] arms), ll, lr (legs x) }

@@ -139,7 +139,7 @@ export function quality(force = "auto") {
   const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
   const medium = f === "medium";
   const weak = f === "auto" && coarse && gpuWeak(); // (the phones that sat under 15 fps even on Low: 1× pixels from the start)
-  const dpr = Math.min(window.devicePixelRatio || 1, saver || weak ? 1 : low ? (coarse ? 1.25 : 1) : medium ? 1.5 : f === "ultra" ? 2 : 1.5); // Auto: 1.5× on phones and computers (b411: computers were 1.75×); phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain); a Low computer 1× (b447: Intel UHD laptops ran 15–20 fps at 1.25× on a big window)
+  const dpr = Math.min(window.devicePixelRatio || 1, saver || weak ? 1 : coarse && f !== "ultra" ? 1 : low ? 1 : medium ? 1.5 : f === "ultra" ? 2 : 1.5); /* (PF2 2026-10-27, the owner: phones ran hot at 1.25–1.5×: a phone draws 1× unless you pick Ultra) */ // Auto: 1.5× on phones and computers (b411: computers were 1.75×); phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain); a Low computer 1× (b447: Intel UHD laptops ran 15–20 fps at 1.25× on a big window)
   return { coarse, low, saver, weak, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : f === "ultra" ? 4096 : 2048 }; // Ultra on a computer: crisper shadows near you
 }
 /// the graphics chip's class from its name: "high", "low", or "" (unknown); asked once
@@ -152,7 +152,7 @@ export function gpuTier() {
   let t = "";
   if (/apple/.test(n)) t = "high"; // iPhones and iPads from the A12 on
   else if (/adreno/.test(n)) t = num(/adreno[^0-9]*(\d{3})/) >= 640 ? "high" : "low";
-  else if (/immortalis|mali-g7\d\d|mali-g6[1-9]\d|mali-g7[1-9]/.test(n)) t = "high";
+  else if (/immortalis|mali-g7\d\d|mali-g6[1-9]\d|mali-g7[7-9]/.test(n)) t = "high"; // (PF7 2026-10-27: Mali-G71–G76 sat under 15 fps in diag — low, below)
   else if (/mali|powervr|swiftshader|llvmpipe/.test(n)) t = "low";
   else if (/nvidia|geforce|radeon|amd|intel\(r\) (iris|arc)|apple m\d/.test(n)) t = "high";
   else if (/intel/.test(n)) t = "low"; // Intel UHD / HD (most office laptops): 15–20 fps at Medium in the field (diag), so Low on Auto
@@ -163,7 +163,7 @@ export function gpuTier() {
 /// even on Low): Auto starts them lighter still (world-play.js: 1× pixels, 30 fps, fewer effects)
 export function gpuWeak() {
   gpuTier(); const n = String(GPU_NAME || "").toLowerCase();
-  return /powervr|mali-t|mali-[34]\d\d|mali-g[35]\d\b|mali-g5\d|adreno[^0-9]*[345]\d\d/.test(n);
+  return /powervr|mali-t|mali-[34]\d\d|mali-g[35]\d\b|mali-g5\d|mali-g7[1-6]\b|adreno[^0-9]*([345]\d\d|6[0-3]\d)\b/.test(n); // (PF7: + Mali-G71–G76 and Adreno 600–639, under 15 fps in diag)
 }
 export function webglOk() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
