@@ -2065,6 +2065,12 @@ function goPartnerTower(id = "kairo", k = 10) { // the map's Partner Village lis
 const landName = (id) => (id === "cc" ? TW("Creator City") : id === "rq" ? "RAID QUEENS" : id === "ad" ? TW("Nexus City") : id === "lp" ? TW("Launchpad Village") : id === "ut" ? TW("Utility Village") : id === "pv" ? TW("Partner Village") : id === "gv" ? TW("Game Village") : TW("Town"));
 const cityPrompt = (id, b) => { if (id === "studio") return T("Enter {x}", { x: b(TW("Creator City")) }) + `<small class="adc-sub">ARCIRCLE STUDIO BETA · ${esc(TW("Make your own game"))}</small>`; if (/^(pick|cab\d)$/.test(id)) { const pk = stuHub.pick(id), cb = stuHub.cabs().find((c) => c.id === id); return pk ? TW("Play {x}", { x: b(pk.title) }) + `<small class="adc-sub">${esc(TW(cb ? cb.name : "Studio pick"))} · ${esc(TW("by {name}", { name: pk.byName || "—" }))}</small>` : T("Open {x}", { x: b(TW("ARCIRCLE Studio")) }); } const B = adc && adc.M.BUILDINGS.find((x) => x.id === id); if (!B) return ""; return (B.open ? T("Enter {x}", { x: b(TW(B.name)) }) : b(TW(B.name)) + " · " + esc(TW("Coming soon"))) + `<small class="adc-sub">${esc(TW(B.sub))}</small>`; };
 let landNow = "";
+/// the map's fountain: straight to the plaza from any land (a light, the camera swings in)
+function fountGo() {
+  if (frozen || flying || introOn || mode !== "hub") return;
+  closeAll(); if (boarding) setBoard(false); standAt(-HOME.x, -HOME.z, { x: 0, z: 0 }); /* (HOME is the planet's offset: you stand at its negative) */
+  vfx.teleport(here(), { color: 0x7fe9ff, color2: 0x2f86ff }); if (Snd.dash) Snd.dash(); pullFlash("#7fe9ff"); startSweep(1200); landTick(true); paintPrompt();
+}
 function landGo(to) {
   if (frozen || flying || introOn || mode !== "hub") return;
   if (to === "gv") { goGameVillage(); return; } if (to === "pv") { goPartnerVillage(); return; } if (to === "ad") { cityGo(); return; } if (to === "rq") { rqGo(); return; }
@@ -2263,6 +2269,7 @@ async function openMine() {
 const GAME_CARD = {
   surv: { name: "SURVIVORS ARENA", sub: "12-minute survival", art: "key-surv", tips: ["Walk to dodge — your weapons fire by themselves.", "Pick cards that build toward an evolution: the book shows which pairs.", "Arena coins buy permanent upgrades between runs."] },
   jur: { name: "JURASSIC WORLD", sub: "Survive the Primeval Plains", art: "key-jurassic", tips: ["Chop, mine and pick to fill your pack, then craft at the workbench.", "Boss hour: 12:00 and 20:00 Seoul time — hit it 10 times for a share.", "Nights are dangerous. Light a campfire and sleep in your hut."] },
+  adc: { name: "NEXUS CITY", sub: "AGENT DIMENSION", art: "news-adcity-1200", tips: ["Genesis Lab: pick AURORA, ORION or VEX and give your agent its name.", "Send your agent on errands at the Errand Port — it brings the loot back.", "The Agent Arena opens twice a day: 12:00 and 21:00 Seoul time."] },
   cc: { name: "CREATOR CITY", sub: "ARCIRCLE STUDIO BETA", art: "key-cc", tips: ["The Creator Academy walks you through your first game in 10 minutes.", "Every top game has a portal in front of the Game Arcade — walk in to play.", "Rate the games you play: the makers see what you thought."] },
   studio: { name: "ARCIRCLE STUDIO", sub: "Make your own game", art: "key-studio", tips: ["Pick a template, tune it, test it — publish in a few minutes.", "Build it yourself: place every wall, coin and drone by hand.", "Your agent can draft a game from one sentence.", "Publish a game of the week's template for the creator contest."] },
   poker: { name: "ARCIA POKER LOUNGE", sub: "Hold'em · Blackjack · Sit & Go", art: "key-poker", tips: ["Free chips every day. Chips are play money — never ARCL.", "Sit & Go starts every 2 hours: the top 3 share the prize chips.", "Today's rule changes every Seoul day — check its own board."] },
@@ -2869,7 +2876,9 @@ function openMap() {
   // SB-1 (the owner, 2026-10-26): Creator City at the very top — its gate, then each building
   const CCF = [["hall", "Hall of Fame", "The top creators and games", "#ffd23a"], ["academy", "Creator Academy", "Your first game in 10 minutes", "#7cf5c8"], ["tower", "Studio Tower", "Make and edit your games", "#5fd3ff"], ["arcade", "Game Arcade", "Play what everyone made", "#ff6fae"], ["contest", "Contest Arena", "This week's creator contest", "#b48cff"], ["factory", "Asset Factory", "Parts you unlock as you create", "#39ff88"], ["market", "Creator Market", "Layouts and kits from creators", "#ff9f2e"], ["launch", "Launch Portal", "Your game's launch — coming soon", "#4f9dff"]];
   const ccHtml = `<h3 style="--c:#7cf5c8">🎮 ${esc(TW("Creator City"))}</h3><ul class="wp-maplist"><li><button type="button" data-cc="go"><i style="--c:#7cf5c8"></i><span><b>${esc(TW("Creator City"))} <em class="wp-fit">BETA</em></b><small>ARCIRCLE STUDIO BETA · ${esc(TW("Make your own game"))}${landNow === "cc" ? "" : " · " + esc(TW("By the fountain"))}</small></span></button></li>${CCF.map(([id, n, sub, c]) => `<li><button type="button" data-cc="${id}"><i style="--c:${c}"></i><span><b>${esc(TW(n))}</b><small>${esc(TW(sub))}</small></span></button></li>`).join("")}</ul>`;
-  $("wp-maplist").innerHTML = keyHtml + ccHtml + rqHtml + zoneHtml + adHtml + landsHtml + pvHtml + groups + arclHtml + mineHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(TW("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
+  // the fountain first (2026-10-27, the owner: 'a shortcut to the fountain at the top of the map, always'), from any land
+  const fountHtml = `<button type="button" class="wp-mapfount" data-fount="1"><i aria-hidden="true">⛲</i><span><b>${esc(TW("Fountain plaza"))}</b><small>${esc(TW("Back to the middle of town, from anywhere"))}</small></span><em>›</em></button>`;
+  $("wp-maplist").innerHTML = fountHtml + keyHtml + ccHtml + rqHtml + zoneHtml + adHtml + landsHtml + pvHtml + groups + arclHtml + mineHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(TW("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   decorateMap();
   mapEl.hidden = false; frozen = true; keys.clear(); paintPrompt();
   const first = mapEl.querySelector("button[data-i]"); if (first) first.focus({ preventScroll: true });
@@ -2899,9 +2908,10 @@ $("wp-map-x").addEventListener("click", closeMap);
 mapEl.addEventListener("keydown", (e) => { const g = e.target.closest && e.target.closest(".wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
-  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],button[data-cc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (!b) return;
+  const b = e.target.closest("button[data-fount],button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],button[data-cc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (!b) return;
   if (b.dataset.cc) { closeMap(); ccTo(b.dataset.cc); return; }
   if (b.dataset.pv) { closeMap(); goPartnerVillage(); return; }
+  if (b.dataset.fount) { closeMap(); fountGo(); return; }
   if (b.dataset.land === "rq") { closeMap(); rqPortalFront(); return; } // (the owner, 2026-10-25: the map's RAID QUEENS takes you to the front of its portal building on the far hunting ring)
   if (b.dataset.land) { closeMap(); landGo(b.dataset.land); return; }
   if (b.dataset.adc) { closeMap(); if (b.dataset.adc === "guide") { if (landNow === "ad") cityGuide(false); else cityGo(); } else cityTo(b.dataset.adc); return; }
@@ -5831,7 +5841,7 @@ async function rqGo() {
 async function openRaidQueens() { await rqGo(); }
 // AD-City 1 (world-adcity.js): NEXUS CITY, AGENT DIMENSION's land (LD.LANDS.ad), built the first time you go in
 const CITY_TRY = /[?&]adcity=1/.test(location.search);
-let adc = null, adcWait = null, cityOk = CITY_TRY; const camW = new THREE.Vector3();
+let adc = null, adcWait = null, cityOk = CITY_TRY, adcCardSeen = false; const camW = new THREE.Vector3();
 function ensureCity() {
   if (adc) return Promise.resolve(adc);
   return adcWait || (adcWait = import("./world-adcity.js").then((M) => { adc = M.makeAdCity({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, land: LD.LANDS.ad, demo: /[?&]adwork=demo/.test(location.search), me: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.id : ""; } catch { return ""; } }, onModel: () => { if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } } }); adc.M = M; st.on((dt, t) => { try { adc.tick(dt, t); if (landNow === "ad") adc.seeThrough(st.camera.getWorldPosition(camW), dt); } catch { /* a sign is drawing */ } }); if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } return adc; })
@@ -5839,8 +5849,9 @@ function ensureCity() {
 }
 async function cityGo() {
   if (frozen || flying || introOn || mode !== "hub") return;
-  const c = await ensureCity(); if (!c || frozen || mode !== "hub") return;
-  closeAll(); const a = c.arrival(); standAt(a.x, a.z, a.c);
+  const card = adcCardSeen ? null : gameCard("adc"); adcCardSeen = true; if (card) await paintFrame(); /* (2026-10-27, the owner: a loading card like RAID QUEENS / Jurassic) */
+  const c = await ensureCity(); if (!c || frozen || mode !== "hub") { if (card) card.close(true); return; } if (card) card.step(0);
+  closeAll(); const a = c.arrival(); standAt(a.x, a.z, a.c); if (card) { card.step(1); await sleep(500); card.step(2); card.close(); }
   let first = false; try { first = !localStorage.getItem("arc.adc.seen"); localStorage.setItem("arc.adc.seen", "1"); } catch { /* not kept */ }
   vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); if (Snd.dash) Snd.dash(); pullFlash("#5fd3ff"); startSweep(first ? 3400 : 1400); // (the first time: a long look round the city)
   if (first && !reduce) setTimeout(() => { try { vfx.teleport(here(), { color: 0xb48cff, color2: 0x7cf5c8 }); } catch { /* fine */ } }, 600);
