@@ -128,12 +128,12 @@ export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) 
   }
   let cw = w, ch = h;
   function fit() { const W0 = canvas.clientWidth, H0 = canvas.clientHeight; if (!W0 || !H0) return; const k = Math.min(1, (low ? 720 : 1100) / Math.max(W0, H0)), W1 = Math.round(W0 * k), H1 = Math.round(H0 * k); if (Math.abs(W1 - cw) < 8 && Math.abs(H1 - ch) < 8) return; cw = W1; ch = H1; R.setSize(cw, ch, false); cam.aspect = cw / ch; cam.updateProjectionMatrix(); } // (STU-6: drawn at the size it's shown, not stretched)
-  function frame() { raf = 0; if (!live || !built) return; if (!canvas.isConnected || !canvas.offsetParent || document.hidden || (low && performance.now() - setAt > 1500)) { live = false; return; } /* STB5: not behind a test run or a hidden tab; low graphics: a still once it is drawn */ fit(); built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); raf = requestAnimationFrame(frame); }
-  let setAt = 0;
-  function set(spec) { setAt = performance.now(); const old = built; built = build(spec); scene = built.sc; dress(built, spec); if (old) free(old.sc); live = true; if (!raf) raf = requestAnimationFrame(frame); }
+  function frame() { raf = 0; if (!live || !built) return; if (!canvas.isConnected) { live = false; return; } if (!canvas.offsetParent || document.hidden) { clearTimeout(idleT); idleT = setTimeout(() => { if (live && !raf) raf = requestAnimationFrame(frame); }, 400); return; } if (low && drawn && performance.now() - setAt > 1500) { live = false; return; } /* STB5: no drawing behind a test run or in a hidden tab (it looks again every 0.4 s); low graphics: a still once it is drawn */ fit(); built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); drawn = true; raf = requestAnimationFrame(frame); }
+  let setAt = 0, idleT = 0, drawn = false;
+  function set(spec) { setAt = performance.now(); drawn = false; const old = built; built = build(spec); scene = built.sc; dress(built, spec); if (old) free(old.sc); live = true; if (!raf) raf = requestAnimationFrame(frame); }
   /// a still of a spec (the theme cards): built, drawn once, let go; the live view carries on after
-  function snap(spec) { const b = build(spec); if (lookNow[spec.theme]) dressNow(b, spec, lookNow[spec.theme]); b.tick(1.6); R.render(b.sc, cam); const url = canvas.toDataURL("image/jpeg", 0.8); free(b.sc); if (built) R.render(built.sc, cam); return url; }
-  function stop() { live = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+  function snap(spec) { const b = build(spec); if (lookNow[spec.theme]) dressNow(b, spec, lookNow[spec.theme]); b.tick(1.6); R.render(b.sc, cam); const url = canvas.toDataURL("image/jpeg", 0.8); free(b.sc); if (built) { built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); } /* (its own camera back first: a still on low graphics stays the level's) */ return url; }
+  function stop() { live = false; clearTimeout(idleT); if (raf) cancelAnimationFrame(raf); raf = 0; }
   function dispose() { stop(); if (built) free(built.sc); built = null; scene = null; try { R.dispose(); R.forceContextLoss && R.forceContextLoss(); } catch { /* gone */ } }
   return { canvas, set, snap, stop, dispose, scene: () => scene };
 }

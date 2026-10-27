@@ -278,5 +278,25 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   await call(cr, "world-studio-save", { id: id2, spec: { tpl: "runner", title: "<img src=x onerror=alert(1)>", seed: 8 } }); P = await pg("h=mintqueen");
   check(!/<img src=x/.test(P.body.__html) && !/<\/script><img/.test(P.body.__html), "web: a title can't put markup into the page");
 }
+// STB6: build together — a code, one partner, the pen
+{ const S = await import("../../api/_world-studio.mjs"), own = ethers.Wallet.createRandom(), pal = ethers.Wallet.createRandom(), x3 = ethers.Wallet.createRandom();
+  let r = await call(own, "world-studio-save", { spec: { tpl: "jump", title: "Duo Jump", seed: 4 } }); const id = r.body.game.id;
+  r = await call(pal, "world-studio-co-invite", { id }); check(r.status === 404, "co: only the owner opens a code");
+  r = await call(own, "world-studio-co-invite", { id }); const code = r.body.code; check(r.status === 200 && /^[A-Z0-9]{6}$/.test(code), "co: the owner gets a 6-letter code");
+  check((await call(own, "world-studio-co-invite", { id })).body.code === code, "co: asking again gives the same code while it's open");
+  r = await call(own, "world-studio-co-join", { code }); check(r.status === 400, "co: you can't join your own game");
+  r = await call(pal, "world-studio-co-join", { code: code.toLowerCase() }); check(r.status === 200 && r.body.game.shared && r.body.game.co, "co: a friend joins with the code");
+  r = await call(x3, "world-studio-co-join", { code }); check(r.status === 404, "co: a used code is closed (one partner)");
+  let m = await get("studio-mine&wallet=" + pal.address.toLowerCase()); check(m.shared.length === 1 && m.shared[0].id === id && m.games.length === 0, "co: the game shows in the partner's My games as shared");
+  r = await call(pal, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 9 } }); check(r.status === 200 && r.body.game.co.pen && r.body.game.co.pen.w === pal.address.toLowerCase(), "co: the partner saves and holds the pen");
+  r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 5 } }); check(r.status === 409 && r.body.pen, "co: the other one can't save while the pen is out");
+  r = await call(own, "world-studio-co-pen", { id }); check(r.status === 409, "co: nor take the pen");
+  await call(pal, "world-studio-co-pen", { id, off: true }); r = await call(own, "world-studio-co-pen", { id }); check(r.status === 200 && r.body.pen.w === own.address.toLowerCase(), "co: once it's passed, the other takes it");
+  T += S.CO.PEN_MS + 1000; r = await call(pal, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 11 } }); check(r.status === 200, "co: a pen left alone frees itself after " + S.CO.PEN_MS / 60e3 + " min");
+  check((await call(pal, "world-studio-publish", { id })).status === 404 && (await call(pal, "world-studio-del", { id })).status === 404, "co: the partner can't publish or delete");
+  check((await call(x3, "world-studio-save", { id, spec: { tpl: "jump", seed: 1 } })).status === 404, "co: nobody else saves it");
+  r = await call(pal, "world-studio-co-leave", { id }); m = await get("studio-mine&wallet=" + pal.address.toLowerCase());
+  check(r.status === 200 && m.shared.length === 0 && (await call(pal, "world-studio-save", { id, spec: { tpl: "jump", seed: 2 } })).status === 404, "co: leaving takes it off the partner's list and they can't save it any more");
+  r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 3 } }); check(r.status === 200 && !r.body.game.co, "co: alone again, the owner saves without a pen"); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

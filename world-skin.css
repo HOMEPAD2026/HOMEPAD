@@ -5021,3 +5021,12 @@ body.wp .wp-hub-grid button .wp-hub-img:is([src*="/i-crew."],[src*="/i-invite."]
 .wsj-pfh{grid-column:1/-1;margin:6px 2px 0;color:#ffd23a;font:900 11.5px/1.2 Sora,sans-serif;letter-spacing:.03em}
 .wsj-items button.wsj-pf{position:relative;border-color:rgba(255,210,58,.4)}.wsj-pf b{position:absolute;top:2px;right:4px;width:18px;height:18px;border-radius:9px;background:rgba(255,59,92,.85);color:#fff;font:900 10px/18px Sora,sans-serif;text-align:center}
 .wsj-items button.wsj-pfnew{grid-column:1/-1;flex-direction:row;justify-content:center;border-style:dashed;border-color:rgba(255,210,58,.55);color:#ffd23a}.wsj-items button.wsj-pfnew i{width:22px;height:22px;font-size:18px}.wsj-items button.wsj-pfnew.on{background:rgba(255,210,58,.18)}
+/* STB6: build together */
+.wst-co{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:12px 14px;border-radius:16px;border:1px solid rgba(180,160,255,.45);background:linear-gradient(135deg,rgba(140,110,255,.2),rgba(124,245,226,.08))}
+.wst-co>i{font-size:26px;font-style:normal}.wst-co>div{flex:1;min-width:0}.wst-co b{display:block;color:#fff;font:900 14px/1.2 Sora,sans-serif}.wst-co small{color:#b9c8dc;font:600 11.5px/1.35 Sora,sans-serif}
+.wst-coin{width:96px;padding:9px 10px;border-radius:10px;border:1px solid rgba(124,245,226,.45);background:#071a3a;color:#fff;font:900 15px/1 Sora,sans-serif;letter-spacing:.18em;text-transform:uppercase;text-align:center}
+.wst-coln{margin:6px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:#d6c8ff;font:700 11.5px/1.3 Sora,sans-serif}.wst-coln button{padding:3px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:800 11px/1.2 Sora,sans-serif;cursor:pointer}
+.wst-code{padding:2px 8px;border-radius:7px;background:#071a3a;border:1px dashed #ffd23a;color:#ffd23a;letter-spacing:.16em}
+.wst-pen{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 10px;padding:9px 12px;border-radius:14px;border:1px solid rgba(255,138,160,.45);background:rgba(255,59,92,.1);color:#ffd0da;font:700 12px/1.3 Sora,sans-serif}
+.wst-pen.on{border-color:rgba(124,245,200,.55);background:rgba(22,179,138,.14);color:#c9ffe9}.wst-pen b{color:#fff;font:900 13px/1.2 Sora,sans-serif}.wst-pen small{flex:1;min-width:160px;opacity:.85}
+.wst-pen button{padding:7px 12px;border-radius:10px;border:0;background:linear-gradient(90deg,#3b7bff,#7cf5c8);color:#04122a;font:900 12px/1 Sora,sans-serif;cursor:pointer}

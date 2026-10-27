@@ -5,6 +5,7 @@
 // Open to everyone since 2026-10-24 (the owner: "스튜디오도 전체 오픈해줘"); with STUDIO.OPEN false only GM wallets get in.
 //
 //   POST { action: "world-studio-save",    …signature, spec, id? }        → { game }       (a new draft, or yours changed)
+//   POST { action: "world-studio-co-invite" | "-co-join" | "-co-pen" | "-co-leave", …signature, id | code, off? } (STB6: build together)
 //   POST { action: "world-studio-publish", …signature, id, on }           → { game }       (on the Creator Arcade, or off)
 //   POST { action: "world-studio-del",     …signature, id }               → { ok }
 //   POST { action: "world-studio-play",    …signature, id, coins, dist, done, trace? | moves, hints } → { score, best, plays, ghost } (a run, checked against the level; a puzzle's moves replayed on its board)
@@ -37,6 +38,9 @@
 import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
+/// STB6 (2026-10-27): build together — the owner's code (a day) lets one partner in; whoever holds the pen saves, the pen
+/// frees itself after PEN_MS without a save; the partner never publishes, deletes or renames the web address
+export const CO = { CODE_MS: 24 * 3600e3, PEN_MS: 10 * 60e3, SHARED: 6 };
 // STU-A (2026-10-26, the owner: "스튜디오는 다 진행하자"): the arcade's own games, one a template, made by ARCIRCLE — there
 // from the start so a first visit has something to play and copy; kept in code (no document until someone plays or likes
 // one: then worldStudio/<id> holds its plays, likes and top 10 like any game), never owned by a wallet, never deleted
@@ -83,7 +87,7 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(own && g.co && g.co.length ? { co: { name: g.coName || "", owner: g.byName || "", pen: g.pen && now() - g.pen.at < CO.PEN_MS ? { w: g.pen.w, name: g.pen.name } : null, by: g.lastBy || "" } } : {}), ...(own && g.coCode && g.coExp > now() && !(g.co && g.co.length) ? { coCode: g.coCode } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
   // STB5 (2026-10-27): who's playing what right now — each counted run's time kept 15 minutes, per game (≤ 20 a game,
   // ≤ 60 games); the arcade's list carries the count of the last 10 minutes as "now"
   const NOW_KEEP = 15 * 60e3, NOW_WIN = 10 * 60e3;
@@ -204,8 +208,9 @@ export function makeStudio(deps) {
   async function save(w, b) {
     const spec = clampSpec(b.spec || {}), ids = await mineOf(w);
     if (b.id) {
-      const g = await one(`worldStudio/${b.id}`); if (!g || g.w !== w) return json(404, { error: "not your game" });
-      if (JSON.stringify(g.spec) !== JSON.stringify(spec)) g.vers = [{ at: g.up || g.at, spec: g.spec }, ...(g.vers || [])].slice(0, STUDIO.VERS); /* (Studio 4: the last few saves to go back to) */ const retitled = g.spec.title !== spec.title; g.spec = { ...spec, seed: spec.seed }; g.up = now(); if (g.pub && retitled) await setSlug(w, b.id, g); await setDoc(`worldStudio/${b.id}`, g); if (g.pub) await arcadeSet(b.id, g);
+      const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || (g.w !== w && !(g.co || []).includes(w))) return json(404, { error: "not your game" });
+      if ((g.co || []).length) { const pen = g.pen && now() - g.pen.at < CO.PEN_MS ? g.pen : null; if (pen && pen.w !== w) return json(409, { error: `${pen.name || "your partner"} has the pen — wait for them to pass it`, pen: { name: pen.name } }); g.pen = { w, name: await deps.nameOf(w).catch(() => "") || "Player", at: now() }; g.lastBy = g.pen.name; }
+      if (JSON.stringify(g.spec) !== JSON.stringify(spec)) g.vers = [{ at: g.up || g.at, spec: g.spec }, ...(g.vers || [])].slice(0, STUDIO.VERS); /* (Studio 4: the last few saves to go back to) */ const retitled = g.spec.title !== spec.title; g.spec = { ...spec, seed: spec.seed }; g.up = now(); if (g.pub && retitled) await setSlug(g.w, b.id, g); await setDoc(`worldStudio/${b.id}`, g); if (g.pub) await arcadeSet(b.id, g);
       return json(200, { ok: true, game: pubOf(b.id, g, true, true) });
     }
     if (ids.length >= STUDIO.DRAFTS) return json(400, { error: `you can keep ${STUDIO.DRAFTS} games — delete one first` });
@@ -213,6 +218,39 @@ export function makeStudio(deps) {
     if (b.from && /^g[a-z0-9]{2,12}$/.test(String(b.from))) { const src = await game(String(b.from)); if (src && src.pub && !src.gone) { g.from = { id: String(b.from), title: src.spec.title, byName: src.byName || "" }; src.remixes = (src.remixes || 0) + 1; if (!src.official || (await one(`worldStudio/${b.from}`))) await setDoc(`worldStudio/${b.from}`, src); } } // (STU-C: a remix keeps where it came from)
     await setDoc(`worldStudio/${id}`, g); await setDoc(`worldStudioBy/${w}`, { ids: [...ids, id] });
     return json(200, { ok: true, game: pubOf(id, g, true) });
+  }
+  // STB6: build together
+  const coIds = async (w) => ((await one(`worldStudioCoBy/${w}`)) || {}).ids || [];
+  async function coInvite(w, b) {
+    const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || g.w !== w) return json(404, { error: "not your game" });
+    if ((g.co || []).length) return json(400, { error: "this game already has a partner" });
+    let code = g.coCode && g.coExp > now() ? g.coCode : ""; if (!code) { code = String(deps.randomId()).replace(/[^a-z0-9]/gi, "").toUpperCase().replace(/[O0I1]/g, "X").slice(0, 6).padEnd(6, "Z"); g.coCode = code; g.coExp = now() + CO.CODE_MS; await setDoc(`worldStudioCo/${code}`, { id: b.id, w, exp: g.coExp }); await setDoc(`worldStudio/${b.id}`, g); }
+    return json(200, { ok: true, code, exp: g.coExp });
+  }
+  async function coJoin(w, b) {
+    const code = String(b.code || "").toUpperCase().replace(/[^A-Z0-9]/g, ""), c = /^[A-Z0-9]{6}$/.test(code) ? await one(`worldStudioCo/${code}`) : null;
+    if (!c || c.exp < now()) return json(404, { error: "that code isn't open — ask for a new one" });
+    const g = await one(`worldStudio/${c.id}`); if (!g || g.gone || g.coCode !== code) return json(404, { error: "that code isn't open — ask for a new one" });
+    if (g.w === w) return json(400, { error: "that's your own game" }); if ((g.co || []).length && !g.co.includes(w)) return json(400, { error: "this game already has a partner" });
+    const ids = await coIds(w); if (!ids.includes(c.id) && ids.length >= CO.SHARED) return json(400, { error: `you can build ${CO.SHARED} games with friends at once — leave one first` });
+    g.co = [w]; g.coName = await deps.nameOf(w).catch(() => "") || "Player"; delete g.coCode; delete g.coExp;
+    await setDoc(`worldStudioCo/${code}`, { id: c.id, w: c.w, exp: 0 }); await setDoc(`worldStudio/${c.id}`, g); if (!ids.includes(c.id)) await setDoc(`worldStudioCoBy/${w}`, { ids: [...ids, c.id] });
+    return json(200, { ok: true, game: { ...pubOf(c.id, g, true, true), shared: true } });
+  }
+  async function coPen(w, b) {
+    const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || (g.w !== w && !(g.co || []).includes(w))) return json(404, { error: "not your game" });
+    if (!(g.co || []).length) return json(400, { error: "nobody else is building this game" });
+    const pen = g.pen && now() - g.pen.at < CO.PEN_MS ? g.pen : null;
+    if (b.off) { if (pen && pen.w === w) { delete g.pen; await setDoc(`worldStudio/${b.id}`, g); } return json(200, { ok: true, pen: null }); }
+    if (pen && pen.w !== w) return json(409, { error: `${pen.name || "your partner"} has the pen — wait for them to pass it`, pen: { name: pen.name } });
+    g.pen = { w, name: await deps.nameOf(w).catch(() => "") || "Player", at: now() }; await setDoc(`worldStudio/${b.id}`, g);
+    return json(200, { ok: true, pen: { w, name: g.pen.name }, game: pubOf(b.id, g, true, true) });
+  }
+  async function coLeave(w, b) {
+    const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || (g.w !== w && !(g.co || []).includes(w))) return json(404, { error: "not your game" });
+    const p = (g.co || [])[0]; if (p) await setDoc(`worldStudioCoBy/${p}`, { ids: (await coIds(p)).filter((x) => x !== b.id) });
+    g.co = []; delete g.coName; delete g.pen; await setDoc(`worldStudio/${b.id}`, g);
+    return json(200, { ok: true });
   }
   async function publish(w, b) {
     const g = await one(`worldStudio/${b.id}`); if (!g || g.w !== w) return json(404, { error: "not your game" });
@@ -382,7 +420,8 @@ export function makeStudio(deps) {
         let g = null; if (pl >= 1 && pl <= STUDIO.BEST) { const gm = await game(id), x = gm && (gm.best || [])[pl - 1]; g = x && x.gh ? await one(`worldStudioGhostP/${id}_${x.w}`) : null; if (g && g.score !== x.score) g = null; } // (STB5: the board's place p — the wallet stays on the server)
         else if (!pl) g = await one(`worldStudioGhost/${id}`);
         if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
-      if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), max: STUDIO.DRAFTS }); }
+      if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; const cids = await coIds(a), cdocs = cids.length ? await getDocs(cids.map((i) => `worldStudio/${i}`)) : {}; const shared = cids.map((i) => { const g = cdocs[`worldStudio/${i}`]; return g && !g.gone && (g.co || []).includes(a) ? { ...pubOf(i, g, true, true), shared: true } : null; }).filter(Boolean);
+        return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), shared, max: STUDIO.DRAFTS }); }
       return null;
     },
     async handle(b) {
@@ -390,6 +429,10 @@ export function makeStudio(deps) {
       const s = signer(b); if (s.err) return s.err; const w = s.wallet;
       if (deps.shut && deps.shut(w)) return json(403, { error: "ARCIRCLE Studio is under construction", closed: true });
       if (b.action === "world-studio-save") return save(w, b);
+      if (b.action === "world-studio-co-invite") return coInvite(w, b);
+      if (b.action === "world-studio-co-join") return coJoin(w, b);
+      if (b.action === "world-studio-co-pen") return coPen(w, b);
+      if (b.action === "world-studio-co-leave") return coLeave(w, b);
       if (b.action === "world-studio-prize") return prize(w, b);
       if (b.action === "world-studio-publish") return publish(w, b);
       if (b.action === "world-studio-del") return del(w, b);
