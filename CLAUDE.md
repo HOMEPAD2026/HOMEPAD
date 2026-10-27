@@ -205,6 +205,8 @@ around standing (SURVIVORS ARENA shipped like that). Before using a clip name an
   holds a private key.
 - **Daily caps will keep rising** — keep them as constants in one place per game, not scattered.
 - **Record more:** every ARCL movement goes into the ledger (worldArclTx, kept in full), not only the last-30 log.
+- **Deploy it yourself (2026-10-27, the owner: "이제 다되면 배포 명령어가 아니라 니가 배포해줘"):** when a change is finished
+  and verified, merge it into main and push (that deploys) — don't hand the owner the commands.
 - **A player's problem comes first (2026-10-24):** when the owner passes on a user's / player's report (a screenshot, a
   Telegram message, "a player says …"), fixing it is the top priority. As soon as it's fixed and verified, commit it on its
   own (not mixed with work in progress) and give the owner the deploy commands right away, before going back to anything else.
