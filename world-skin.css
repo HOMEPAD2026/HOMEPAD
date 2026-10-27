@@ -5030,3 +5030,10 @@ body.wp .wp-hub-grid button .wp-hub-img:is([src*="/i-crew."],[src*="/i-invite."]
 .wst-pen{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 10px;padding:9px 12px;border-radius:14px;border:1px solid rgba(255,138,160,.45);background:rgba(255,59,92,.1);color:#ffd0da;font:700 12px/1.3 Sora,sans-serif}
 .wst-pen.on{border-color:rgba(124,245,200,.55);background:rgba(22,179,138,.14);color:#c9ffe9}.wst-pen b{color:#fff;font:900 13px/1.2 Sora,sans-serif}.wst-pen small{flex:1;min-width:160px;opacity:.85}
 .wst-pen button{padding:7px 12px;border-radius:10px;border:0;background:linear-gradient(90deg,#3b7bff,#7cf5c8);color:#04122a;font:900 12px/1 Sora,sans-serif;cursor:pointer}
+/* the owner, 2026-10-27: no way back on the phone — the wide window's × and guide sat under the side menu; now top right, bigger */
+.wst.wide .wst-h .wst-x{top:10px!important;right:10px!important;bottom:auto!important;width:40px;height:40px;z-index:5;background:rgba(4,14,34,.72);border:1px solid rgba(124,245,226,.55);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.wst.wide .wst-h>.wst-help{top:58px!important;right:10px!important;bottom:auto!important;z-index:5}
+/* Creator City: the dock steps left of the Create · My games · Arcade · Hall of Fame bar */
+html.wp-land:not(.wp-pcphone) body.wp.wp-in-cc:not(.wp-stu-open) #wp-dock{left:calc(env(safe-area-inset-left,0px) + 150px);right:auto;margin:0}
+.ccw .ccw-x{z-index:6;width:40px;height:40px;background:rgba(4,14,34,.78);border-color:rgba(124,245,226,.6);box-shadow:0 2px 10px rgba(0,0,0,.45)}
+.wst.wide .wst-h>small{display:block;padding-right:96px}.wst.wide .wst-h>.wst-help{top:12px!important;right:56px!important;width:36px!important;height:36px}

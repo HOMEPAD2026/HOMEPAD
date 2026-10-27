@@ -794,5 +794,16 @@ export function createStudio(ctx) {
     return { S, leave, A, ghost: () => (gh ? 1 : 0), clips: (all) => (hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((x) => x.isRunning() && (all || x.getEffectiveWeight() > 0.5)).map((x) => x.getClip().name) : []), move: (x, z) => { keyOn.clear(); if (x > 0) keyOn.add("d"); if (x < 0) keyOn.add("a"); if (z > 0) keyOn.add("s"); if (z < 0) keyOn.add("w"); } };
   }
   const creator = () => ({ games: mine.length, pub: mine.filter((x) => x.pub).length, plays: mine.reduce((n, x) => n + (x.plays || 0), 0), likes: mine.reduce((n, x) => n + (x.likes || 0), 0), signed: !!ctx.sess() });
-  return { creator, load: () => load(), arcadeList: () => arcade, open, close, shown, playId, remixId, builder: () => builder, openBuilder: () => openBuilder(), step: (n) => { step = n; if (el && !el.hidden) paint(); }, playing: () => playing, last: () => lastRun, spec: () => spec, set: (s) => { spec = clampSpec(s); if (el && !el.hidden) paint(); } };
+  /// one step back (a phone's Back, the × on a wide window): out of a run's result or the run, out of a builder, a step or
+  /// a game's page back, then the window closes — true when something went back
+  function back() {
+    const vis = (q) => [...document.querySelectorAll(q)].find((e) => e.getClientRects().length);
+    const b = vis(".wst-res [data-back]") || vis(".wst-hud .wst-hx") || vis(".wsb-h [data-close]");
+    if (b) { b.click(); return true; }
+    if (!el || el.hidden) return false;
+    if (tab === "game") { tab = "arcade"; paint(); return true; }
+    if (tab === "make" && step > 1) { step = step >= 4 ? 3 : 1; paint(); return true; }
+    close(); return true;
+  }
+  return { back, creator, load: () => load(), arcadeList: () => arcade, open, close, shown, playId, remixId, builder: () => builder, openBuilder: () => openBuilder(), step: (n) => { step = n; if (el && !el.hidden) paint(); }, playing: () => playing, last: () => lastRun, spec: () => spec, set: (s) => { spec = clampSpec(s); if (el && !el.hidden) paint(); } };
 }
