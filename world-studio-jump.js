@@ -10,7 +10,7 @@
 // You run (walk / sprint clips by the speed), jump (a buffered jump, a moment's grace off a ledge, a short hop if you let
 // go), stomp, take three hearts; a clock in Escape Room and Mine Rush. env: { ctx, THREE, T, esc, makeFx, makeGhost, result, back }
 import { makePad } from "./world-studio-pad.js";
-import { THEMES, JW, genLevel, jwTimer } from "./world-studio-gen.js";
+import { THEMES, JW, JEV, genLevel, jwTimer } from "./world-studio-gen.js";
 
 // each theme's blocks (the drawn look; Meshy's textures take their place when they're in: images/studio/jw)
 export const JLOOK = {
@@ -126,7 +126,9 @@ export async function makeJump(o, env) {
   // ---- the solid test: the grid's blocks, the doors and toggles that still stand ----
   const cell = new Map(); for (const c of B.c) cell.set(c[0] + ":" + c[1], c[2]);
   const thingAt = new Map(); for (const t of things) if (t.solid === "door" || t.solid === "toggle") thingAt.set(t.x + ":" + t.y, t);
-  const S = { x: 0, y: 0, vx: 0, vy: 0, on: null, ground: false, coyote: 0, buf: 0, hold: false, hearts: 3, inv: 0, coins: 0, keys: 0, sw: false, face: 1, t: -3, over: false, best: 0, clip: "", combo: 0, lastCoin: -9, tr: [], cp: null, bosses: things.filter((t) => t.boss).length, dig: 0, digCd: 0, oreHp: new Map() };
+  const S = { x: 0, y: 0, vx: 0, vy: 0, on: null, ground: false, coyote: 0, buf: 0, hold: false, hearts: 3, inv: 0, coins: 0, keys: 0, sw: false, face: 1, t: -3, over: false, best: 0, clip: "", combo: 0, lastCoin: -9, tr: [], cp: null, bosses: things.filter((t) => t.boss).length, dig: 0, digCd: 0, oreHp: new Map(), kg: 0, swN: 0, boost: 0, tmB: 0 };
+  // STB5 (2026-10-27): the level's event blocks — WHEN … THEN …, each once a run (B.ev, cleaned by cleanEvents)
+  const EVS = (Array.isArray(B.ev) ? B.ev : []).map((e) => ({ e, done: false })), bossN0 = S.bosses;
   const solidAt = (x, y) => { const k = cell.get(x + ":" + y); if (k === "g" || k === "s" || k === "i" || k === "z" || ((k === "1" || k === "2" || k === "3") && !S.oreHp.has("x" + x + ":" + y))) return k; const t = thingAt.get(x + ":" + y); if (t && !t.gone && (t.solid === "door" || (t.solid === "toggle" && ((t.k === "r") !== S.sw)))) return t.k; return null; };
   const start = B.c.find((c) => c[2] === "S") || [1, 2, "S"]; S.x = start[0] + 0.5; S.y = start[1]; S.cp = { x: S.x, y: S.y };
   if (o.startZ) { const want = Math.max(1, Math.min(B.W - 2, o.startZ)); for (let y = JW.H - 2; y >= 1; y--) if (solidAt(want, y - 1) && !solidAt(want, y) && !solidAt(want, y + 1)) { S.x = want + 0.5; S.y = y; S.cp = { x: S.x, y: S.y }; break; } }
@@ -149,7 +151,7 @@ export async function makeJump(o, env) {
   function jumpPress() { S.buf = 0.14; S.hold = true; }
   function digPress() { if (mode !== "mining") return; S.dig = 0.18; }
   const play = (c, o2) => { if (!hero) return; try { hero.play(c, o2 || {}); } catch { /* no clip */ } S.clip = o2 && o2.once ? "" : c; };
-  const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, 3 - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = `🪙 ${S.coins}`; const hk = hud.querySelector(".wst-hk"); hk.hidden = !S.keys; hk.textContent = "🗝️ " + S.keys; hud.querySelector(".wst-bar em").style.width = Math.min(100, (S.best / Math.max(1, L.len)) * 100).toFixed(1) + "%"; if (tm) hud.querySelector(".wst-ht").textContent = "⏱ " + Math.max(0, Math.ceil(tm - Math.max(0, S.t))); };
+  const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, 3 - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = `🪙 ${S.coins}`; const hk = hud.querySelector(".wst-hk"); hk.hidden = !S.keys; hk.textContent = "🗝️ " + S.keys; hud.querySelector(".wst-bar em").style.width = Math.min(100, (S.best / Math.max(1, L.len)) * 100).toFixed(1) + "%"; if (tm) hud.querySelector(".wst-ht").textContent = "⏱ " + Math.max(0, Math.ceil(tm + S.tmB - Math.max(0, S.t))); };
   const bossBar = () => { const bs = things.filter((t) => t.boss), el = hud.querySelector(".wst-boss"), alive = bs.filter((b2) => !b2.gone); el.hidden = !alive.length || !alive.some((b2) => Math.abs(b2.px - S.x) < 18); if (alive.length) { const tot = bs.reduce((a, b2) => a + b2.max, 0) || 1, left = alive.reduce((a, b2) => a + b2.hp, 0); el.querySelector("em").style.width = ((left / tot) * 100).toFixed(1) + "%"; } };
   things.filter((t) => t.boss).forEach((b2) => { b2.max = b2.hp; });
   const snd = (k) => { try { if (ctx.Snd && ctx.Snd[k]) ctx.Snd[k](); } catch { /* no sound */ } };
@@ -169,6 +171,18 @@ export async function makeJump(o, env) {
     if (S.x < HW) S.x = HW; if (S.x > B.W - HW) S.x = B.W - HW;
   }
   function touchSolid(x, y) { const t = thingAt.get(x + ":" + y); if (t && t.solid === "door" && !t.gone && S.keys > 0) openDoor(t); }
+  function events() {
+    for (const v of EVS) { if (v.done) continue; const [w, a, t, b] = v.e;
+      const hit = w === "coins" ? S.coins >= a : w === "switch" ? S.swN > 0 : w === "key" ? S.kg > 0 : w === "boss" ? bossN0 > 0 && S.bosses <= 0 : w === "time" ? S.t >= a : w === "col" ? S.x >= a : false;
+      if (!hit) continue; v.done = true;
+      if (t === "doors") { const ds = things.filter((q) => q.solid === "door" && !q.gone); ds.forEach((q) => { q.gone = true; q.obj.visible = false; burst(q.x + 0.5, q.y + 0.5, 0xffd23a, 8); }); fx.say("🔓 " + T("Every door is open!")); snd("coin"); }
+      else if (t === "say") fx.say("💬 " + T(JEV.MSGS[b] || JEV.MSGS[0]));
+      else if (t === "time") { S.tmB += b; fx.say("⏱ +" + b + " s"); }
+      else if (t === "heart") { S.hearts = Math.min(5, S.hearts + 1); fx.say("❤️ +1"); }
+      else if (t === "coins") { coin(b, S.x, S.y + 2); fx.say("🪙 +" + b); }
+      else if (t === "speed") { S.boost = 6; fx.say("⚡ " + T("Speed up!")); }
+      burst(S.x, S.y + 1.4, 0x7cf5c8, 10); paintHud(); }
+  }
   function openDoor(t) { S.keys--; const col = things.filter((q) => q.solid === "door" && !q.gone && q.x === t.x && Math.abs(q.y - t.y) <= 8); col.forEach((q) => { q.gone = true; q.obj.visible = false; burst(q.x + 0.5, q.y + 0.5, 0xffd23a, 8); }); fx.say("🔓 " + T("Door open!")); snd("coin"); paintHud(); }
   function collideY(dt, tt, y0) {
     S.ground = false; S.on = null; const xa = Math.floor(S.x - HW + 0.02), xb = Math.floor(S.x + HW - 0.02);
@@ -188,9 +202,9 @@ export async function makeJump(o, env) {
     dt = Math.min(dt, 0.04); lastT = tt;
     if (S.t < 0) { const n0 = Math.ceil(-S.t); S.t += dt; const n1 = Math.ceil(-Math.min(0, S.t)); if (n1 !== n0) { const cd = hud.querySelector(".wst-cd"); if (cd) { cd.textContent = n1 > 0 ? String(n1) : T("GO!"); cd.classList.remove("pop"); void cd.offsetWidth; cd.classList.add("pop"); if (n1 <= 0) setTimeout(() => cd.remove(), 700); } } }
     else if (!S.over) {
-      S.t += dt; S.inv = Math.max(0, S.inv - dt); S.buf = Math.max(0, S.buf - dt); S.coyote = Math.max(0, S.coyote - dt); S.digCd = Math.max(0, S.digCd - dt);
+      S.t += dt; S.boost = Math.max(0, S.boost - dt); events(); S.inv = Math.max(0, S.inv - dt); S.buf = Math.max(0, S.buf - dt); S.coyote = Math.max(0, S.coyote - dt); S.digCd = Math.max(0, S.digCd - dt);
       const ix = (keyOn.has("arrowright") || keyOn.has("d") ? 1 : 0) - (keyOn.has("arrowleft") || keyOn.has("a") ? 1 : 0) || (pad && pad.on ? (Math.abs(pad.x) > 0.18 ? pad.x : 0) : 0);
-      const run = keyOn.has("shift") || (pad && Math.abs(pad.x) > 0.85), top = L.v * (run ? 1.3 : 1) * (Math.abs(ix) < 1 && ix ? Math.max(0.5, Math.abs(ix)) : 1);
+      const run = keyOn.has("shift") || (pad && Math.abs(pad.x) > 0.85), top = L.v * (run ? 1.3 : 1) * (S.boost > 0 ? 1.35 : 1) * (Math.abs(ix) < 1 && ix ? Math.max(0.5, Math.abs(ix)) : 1);
       const ice = S.ground && S.under === "i", acc = S.ground ? (ice ? 7 : 55) : 26, want = ix ? Math.sign(ix) * top : 0;
       S.vx += Math.max(-acc * dt, Math.min(acc * dt, want - S.vx)); if (ix) S.face = Math.sign(ix);
       if (S.ground) S.coyote = 0.1;
@@ -209,11 +223,11 @@ export async function makeJump(o, env) {
       for (const t of things) { if (t.gone) continue; const dx = Math.abs(t.x + 0.5 - S.x), dy = S.y + HH / 2 - (t.y + 0.5);
         if (t.k === "k" && dx < 0.5 + HW && S.y < t.y + 0.55 && S.y + HH > t.y) hurt(false);
         else if (t.k === "o" && dx < 0.75 && Math.abs(dy) < 1.1) { t.gone = true; t.obj.visible = false; coin(1, t.x + 0.5, t.y + 0.5); }
-        else if (t.k === "y" && dx < 0.75 && Math.abs(dy) < 1.1) { t.gone = true; t.obj.visible = false; S.keys++; fx.say("🗝️ " + T("Key!")); snd("coin"); paintHud(); }
+        else if (t.k === "y" && dx < 0.75 && Math.abs(dy) < 1.1) { t.gone = true; t.obj.visible = false; S.keys++; S.kg++; fx.say("🗝️ " + T("Key!")); snd("coin"); paintHud(); }
         else if (t.k === "h" && dx < 0.75 && Math.abs(dy) < 1.1) { t.gone = true; t.obj.visible = false; S.hearts = Math.min(5, S.hearts + 1); fx.say("❤️ +1"); paintHud(); }
         else if (t.k === "q" && dx < 0.8 && Math.abs(dy) < 1.1 && !t.open) { t.open = true; t.lid.rotation.z = -1.1; t.lid.position.x = -0.25; if (t.model) t.model.parent.scale.set(1.15, 0.85, 1.15); coin(JW.CHEST, t.x + 0.5, t.y + 1); fx.say("💰 +" + JW.CHEST); }
         else if (t.k === "c" && dx < 0.8 && Math.abs(dy) < 1.4 && !t.hit) { t.hit = true; S.cp = { x: t.x + 0.5, y: t.y }; if (t.model) tint(t.model, 0x7cf5c8, 0.6); t.flag.material.color.set(0x7cf5c8); t.flag.material.emissive = new THREE.Color(0x2fd39a); fx.say("🚩 " + T("Checkpoint")); snd("coin"); }
-        else if (t.k === "t" && dx < 0.7 && S.y < t.y + 0.4 && S.y >= t.y - 0.1 && S.vy <= 0 && (t.cool || 0) < tt) { t.cool = tt + 0.8; S.sw = !S.sw; t.btn.material = S.sw ? M.blue : M.red; if (t.model) tint(t.model, S.sw ? 0x3b7bff : 0xff3b5c, 0.35); things.forEach((q) => { if (q.solid === "toggle") { const on = (q.k === "r") !== S.sw; q.m.material.opacity = on ? 1 : 0.22; } }); fx.say(S.sw ? "🔵" : "🔴"); snd("jump"); }
+        else if (t.k === "t" && dx < 0.7 && S.y < t.y + 0.4 && S.y >= t.y - 0.1 && S.vy <= 0 && (t.cool || 0) < tt) { t.cool = tt + 0.8; S.sw = !S.sw; S.swN++; t.btn.material = S.sw ? M.blue : M.red; if (t.model) tint(t.model, S.sw ? 0x3b7bff : 0xff3b5c, 0.35); things.forEach((q) => { if (q.solid === "toggle") { const on = (q.k === "r") !== S.sw; q.m.material.opacity = on ? 1 : 0.22; } }); fx.say(S.sw ? "🔵" : "🔴"); snd("jump"); }
         else if (t.k === "F" && dx < 0.9 && Math.abs(dy) < 1.4) { if (S.bosses > 0) { if ((t.warn || 0) < tt) { t.warn = tt + 2; fx.say("🐉 " + T("Defeat the boss first!")); } } else { end(true); break; } }
       }
       // foes
@@ -243,7 +257,7 @@ export async function makeJump(o, env) {
       // the clips: walk / sprint by the speed, jump / fall in the air (CU_AS names only)
       if (hero && !hero.busy()) { const sp = Math.abs(S.vx), want = !S.ground ? (S.vy > 0 ? "jump" : "fall") : sp > L.v * 1.12 ? "sprint" : sp > 0.6 ? "walk" : "idle"; if (S.clip !== want) play(want, want === "walk" ? { speed: Math.max(0.8, sp / 4.2) } : want === "sprint" ? { speed: Math.max(0.9, sp / 7) } : {}); }
       S.best = Math.max(S.best, S.x);
-      if (tm && S.t >= tm) end(false, true);
+      if (tm && S.t >= tm + S.tmB) end(false, true);
       if (((S.t * 4) | 0) !== ((S.t - dt) * 4 | 0)) paintHud();
       while (S.tr.length * 0.2 <= S.t && S.tr.length < 1500) S.tr.push([Math.round(S.x * 10), Math.round(S.y * 10), 0]);
       bossBar();

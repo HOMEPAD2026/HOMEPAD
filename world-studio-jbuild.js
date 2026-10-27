@@ -6,7 +6,10 @@
 // (cleanJump — the same rules it plays by), a stretch you can't reach from the start shows red, and the bots' stars sit
 // at the top. The phone's one-hand set (the owner's plan): place · move · flip · erase · test · done.
 // ctx: { T, esc, toast, spec, onDone(build), onTest(spec, startX), onClose }
-import { JW, cleanJump, clampSpec, estimate, jwReach, THEMES } from "./world-studio-gen.js";
+import { JW, JEV, cleanJump, cleanEvents, clampSpec, estimate, jwReach, THEMES } from "./world-studio-gen.js";
+// STB5 (2026-10-27): the event blocks' words (WHEN … THEN …)
+const EVW = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column" };
+const EVT = { doors: "Every door opens", say: "Show a message", time: "Add seconds to the clock", heart: "Get a heart", coins: "Coins rain down", speed: "Run faster for 6 s" };
 
 // the palette: [kind, emoji, group]; the names are JW.K's
 const GROUPS = [["block", "🧱", "Blocks"], ["move", "🔀", "Motion"], ["thing", "🌀", "Things"], ["item", "🪙", "Items"], ["foe", "👾", "Foes"], ["goal", "🏁", "Goal"]];
@@ -45,7 +48,7 @@ export function createJumpBuilder(ctx) {
     el = document.createElement("div"); el.className = "wsb wsj"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="wsb-in">
       <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🛠️ ${esc(T("Build it yourself"))}</b>
-        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
+        <span class="wsb-hr"><button type="button" class="wsb-b alt wsj-evb" data-evs>⚡ ${esc(T("Events"))} <i class="wsj-evn"></i></button><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>
       <div class="wsj-main"><aside class="wsj-pal"><nav class="wsj-grp">${GROUPS.map(([id, ic, n]) => `<button type="button" data-grp="${id}" title="${esc(T(n))}"><i>${gimg(id, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-grp="chunk" title="${esc(T("Ready-made"))}"><i>${gimg("chunk", "📦")}</i><span>${esc(T("Ready-made"))}</span></button></nav><div class="wsj-items"></div></aside>
@@ -61,7 +64,22 @@ export function createJumpBuilder(ctx) {
     cv.addEventListener("touchmove", (e) => { if (pinch && e.touches.length === 2) { const x = (e.touches[0].clientX + e.touches[1].clientX) / 2; vx = clampV(pinch.v0 - (x - pinch.x) / u / cs()); dirty = true; } }, { passive: true });
     cv.addEventListener("touchend", () => { if (pinch) setTimeout(() => { pinch = null; }, 60); }, { passive: true });
     const strip = el.querySelector(".wsj-strip"); strip.addEventListener("pointerdown", (e) => { const r = strip.getBoundingClientRect(), f = (e.clientX - r.left) / r.width; vx = clampV(f * B.W - visC() / 2); dirty = true; });
-    addEventListener("resize", fit); fit(); paintPal(); paintTools(); paintBar(); loop();
+    addEventListener("resize", fit); fit(); paintPal(); paintTools(); paintBar(); paintEv(); loop();
+  }
+  let evOpen = false;
+  function paintEv() {
+    if (!el) return; const n = (B.ev || []).length, nb = el.querySelector(".wsj-evn"); if (nb) nb.textContent = n ? String(n) : "";
+    let p = el.querySelector(".wsj-evp"); if (!evOpen) { if (p) p.remove(); return; }
+    if (!p) { p = document.createElement("div"); p.className = "wsj-evp"; el.querySelector(".wsb-in").appendChild(p);
+      p.addEventListener("change", (e) => { const t = e.target, i = Number(t.dataset.i); if (!(i >= 0) || !B.ev || !B.ev[i]) return; push(); const r = [...B.ev[i]];
+        if (t.dataset.f === "w") r[0] = t.value; else if (t.dataset.f === "a") r[1] = Number(t.value); else if (t.dataset.f === "t") r[2] = t.value; else if (t.dataset.f === "b") r[3] = Number(t.value);
+        B.ev[i] = r; B.ev = cleanEvents(B.ev, B.W); paintEv(); after(); }); }
+    const opt = (o, v) => Object.entries(o).map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(l))}</option>`).join("");
+    p.innerHTML = `<header><b>⚡ ${esc(T("Events"))}</b><small>${esc(T("WHEN something happens, THEN something else — each once a run"))}</small><button type="button" class="wsb-i" data-ev-x aria-label="${esc(T("Close"))}">✕</button></header>
+      <ol>${(B.ev || []).map(([w, a, t, v], i) => `<li><span class="wsj-evk">${esc(T("WHEN"))}</span><select data-i="${i}" data-f="w">${opt(EVW, w)}</select>${w === "coins" || w === "time" || w === "col" ? `<input type="number" data-i="${i}" data-f="a" value="${a}" min="1" max="300">` : ""}
+        <span class="wsj-evk then">${esc(T("THEN"))}</span><select data-i="${i}" data-f="t">${opt(EVT, t)}</select>${t === "say" ? `<select data-i="${i}" data-f="b">${JEV.MSGS.map((m, k) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(m))}</option>`).join("")}</select>` : t === "time" || t === "coins" ? `<input type="number" data-i="${i}" data-f="b" value="${v}" min="1" max="60">` : ""}
+        <button type="button" class="wsb-i" data-ev-del="${i}" aria-label="${esc(T("Delete"))}">🗑️</button></li>`).join("") || `<p class="wsj-evnone">${esc(T("No events yet — add one, e.g. WHEN 10 coins THEN every door opens."))}</p>`}</ol>
+      ${(B.ev || []).length < JEV.MAX ? `<button type="button" class="wsb-b go" data-ev-add>＋ ${esc(T("Add an event"))}</button>` : ""}`;
   }
   function close(done) { cancelAnimationFrame(raf); removeEventListener("resize", fit); if (el) el.remove(); el = null; if (done) ctx.onDone(cleanJump(B, spec)); if (ctx.onClose) ctx.onClose(); }
   // ---- the canvas: x grows right (columns), y up (rows); vx = the column at the left edge ----
@@ -123,7 +141,7 @@ export function createJumpBuilder(ctx) {
     else { if (piece === "S" || piece === "F") B.c = B.c.filter((c) => c[2] !== piece); if (i >= 0) { if (B.c[i][2] === piece && !(drag && drag.moved)) { B.c.splice(i, 1); } else B.c[i] = [x, y, piece]; } else B.c.push([x, y, piece]); if (navigator.vibrate) try { navigator.vibrate(6); } catch { /* no buzz */ } }
     if (!drag) after(); else { reach = null; dirty = true; }
   }
-  function after() { est = null; reach = null; B.c = B.c.filter((c) => c[0] >= 0 && c[0] < B.W).slice(0, JW.CELLS * 2); dirty = true; paintBar(); }
+  function after() { est = null; reach = null; B.c = B.c.filter((c) => c[0] >= 0 && c[0] < B.W).slice(0, JW.CELLS * 2); dirty = true; paintBar(); paintEv(); }
   const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); };
   // ---- the bars ----
   function paintPal() { if (!el) return; el.querySelectorAll("[data-grp]").forEach((b) => b.classList.toggle("on", b.dataset.grp === group));
@@ -142,6 +160,10 @@ export function createJumpBuilder(ctx) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
+    if (b.hasAttribute("data-evs")) { evOpen = !evOpen; return paintEv(); }
+    if (b.hasAttribute("data-ev-x")) { evOpen = false; return paintEv(); }
+    if (b.hasAttribute("data-ev-add")) { push(); B.ev = cleanEvents([...(B.ev || []), ["coins", 10, "doors", 0]], B.W); paintEv(); return after(); }
+    if (b.dataset.evDel != null) { push(); B.ev = (B.ev || []).filter((_, i) => i !== Number(b.dataset.evDel)); paintEv(); return after(); }
     if (b.hasAttribute("data-undo")) { if (undo.length) { redo.push(snapshot()); B = JSON.parse(undo.pop()); after(); } return; }
     if (b.hasAttribute("data-redo")) { if (redo.length) { undo.push(snapshot()); B = JSON.parse(redo.pop()); after(); } return; }
     if (b.hasAttribute("data-test")) { const v = valid(); ctx.onTest(clampSpec({ ...spec, build: v.c }), Math.max(0, Math.round(vx + 2))); return; }

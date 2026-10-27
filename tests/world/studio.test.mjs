@@ -32,6 +32,10 @@ const me = ethers.Wallet.createRandom(), fan = ethers.Wallet.createRandom();
 // the generator: the same text in the page's copy; clamped; seeded; a free lane at every wall row
 const a = fs.readFileSync(new URL("../../api/_world-studio-gen.mjs", import.meta.url), "utf8").split("\n").slice(1).join("\n"), b = fs.readFileSync(new URL("../../world-studio-gen.js", import.meta.url), "utf8").split("\n").slice(1).join("\n");
 check(a === b, "the page's generator is the server's (same text below the first line)");
+{ const ev = G.cleanEvents([["coins", 9999, "say", 99], ["evil", 1, "doors", 0], ["col", 1, "speed", 0], ["time", 20, "hack", 0], ["switch", 0, "time", 999], "x", ["key", 0, "coins", -5], ["boss", 0, "heart", 0], ["coins", 5, "doors", 0], ["coins", 6, "doors", 0]], 40);
+  check(ev.length === G.JEV.MAX && ev[0][1] === 300 && ev[0][3] === G.JEV.MSGS.length - 1 && ev[1][1] === 2 && ev[2][3] === 60 && ev[3][3] === 1 && ev.every((x) => G.JEV.WHEN.includes(x[0]) && G.JEV.THEN.includes(x[2])), "Jump World events: unknown kinds dropped, numbers clamped, at most " + G.JEV.MAX);
+  const jb = G.cleanJump({ W: 40, c: [[0, 0, "g"]], ev: [["coins", 3, "doors", 0]] }, { tpl: "jump" }), jn = G.cleanJump({ W: 40, c: [[0, 0, "g"]] }, { tpl: "jump" });
+  check(jb.ev && jb.ev.length === 1 && !("ev" in jn), "Jump World events: kept in the build, none means no field"); }
 const sp = G.clampSpec({ tpl: "evil", theme: "x", speed: 99, len: 7, coins: -3, walls: "2", title: "<b>hi</b>  there" + "x".repeat(40), code: "alert(1)" });
 check(sp.tpl === "runner" && sp.theme === "neon" && sp.speed === 5 && sp.len === 45 && sp.coins === 0 && sp.walls === 2 && !("code" in sp) && sp.title.length <= 24 && !/[<>]/.test(sp.title), "a spec is clamped: " + JSON.stringify(sp));
 const L1 = G.genLevel({ seed: 42, walls: 5, gaps: 3, lasers: 3, coins: 5 }), L2 = G.genLevel({ seed: 42, walls: 5, gaps: 3, lasers: 3, coins: 5 });
