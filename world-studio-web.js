@@ -178,6 +178,26 @@ if (D.game && new URLSearchParams(location.search).has("play") && !WORLD_ONLY.ha
 // The Studio window is the page (under the top bar); the stage's canvas sits behind it for the preview and the runs; a
 // phone held upright sees the sideways card only while a game runs. A deep link: /studio?tab=arcade|mine|make, ?sg=<id>.
 function paintMe() { const b = document.querySelector("[data-signin]"); if (!b) return; const s = sess(); b.hidden = false; b.classList.toggle("on", !!s); b.textContent = s ? "🟢 " + s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) : "👛 " + T("Sign in"); if (s) b.title = s.wallet; }
+// the top bar's Portrait | Landscape switch (2026-10-27, the owner: "web Studio in both, a switch at the top"): phones only;
+// the lit half is how the phone is held now; the other one asks for full screen and turns the screen there (Android);
+// where the browser can't (iPhone, auto-rotate off) a toast says how to turn it by hand
+function orientUI() {
+  const g = document.querySelector(".sga-or"); if (!g || !coarse) return; g.hidden = false;
+  const isL = () => matchMedia("(orientation: landscape)").matches;
+  const mark = () => g.querySelectorAll("[data-or]").forEach((b) => { const on = (b.dataset.or === "landscape") === isL(); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  mark(); for (const k of ["resize", "orientationchange"]) addEventListener(k, () => setTimeout(mark, 250));
+  g.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-or]"); if (!b) return; const want = b.dataset.or; if ((want === "landscape") === isL()) return;
+    g.classList.add("busy");
+    try {
+      const de = document.documentElement;
+      if (!document.fullscreenElement && de.requestFullscreen) await de.requestFullscreen({ navigationUI: "hide" });
+      if (!screen.orientation || !screen.orientation.lock) throw new Error("no lock");
+      await screen.orientation.lock(want);
+    } catch { toast("📱 " + esc(T(want === "landscape" ? "Turn your phone sideways — if it doesn't turn, switch on Auto rotate." : "Turn your phone upright — if it doesn't turn, switch on Auto rotate."))); }
+    g.classList.remove("busy"); setTimeout(mark, 400);
+  });
+}
 async function startApp() {
   const bar = document.querySelector(".sga-boot em"); let pct = 8; const tick = setInterval(() => { pct = Math.min(92, pct + (96 - pct) * 0.12); if (bar) bar.style.width = pct + "%"; }, 120);
   paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });
@@ -185,7 +205,8 @@ async function startApp() {
     const h = await makeHost(), q = new URLSearchParams(location.search);
     document.body.classList.add("sga-on"); h.cv.hidden = false;
     if (q.get("sg")) h.studio.playId(q.get("sg"), {}); else h.studio.open(["arcade", "mine", "make"].includes(q.get("tab")) ? q.get("tab") : "make");
-    let on = false; setInterval(() => { const p = !!h.studio.playing(); if (p !== on) { on = p; h.gate.on("web", p); document.body.classList.toggle("sga-run", p); } }, 400);
+    let on = false; setInterval(() => { const p = !!h.studio.playing(); if (p !== on) { on = p; document.body.classList.toggle("sga-run", p); } }, 400); /* (/studio plays held either way — the top bar's switch turns it; the game pages still ask for sideways) */
+    orientUI();
   } catch (e) { console.warn("studio app", e); $m.innerHTML = `<div class="sga-boot err"><b>⚠️ ${esc(T("The Studio couldn't open"))}</b><a class="sgw-play sm" href="/studio">${esc(T("Try again"))}</a><a class="sgw-btn" href="/play">${esc(T("Open it in ARCIRCLE WORLD"))}</a></div>`; }
   finally { clearInterval(tick); if (bar) bar.style.width = "100%"; setTimeout(() => { const b0 = document.querySelector(".sga-boot"); if (b0 && !b0.classList.contains("err")) b0.remove(); }, 300); }
 }

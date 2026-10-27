@@ -123,6 +123,15 @@ body.sga::before{content:"";position:fixed;inset:0;background:radial-gradient(12
 .sga-name em{font-style:normal;background:linear-gradient(90deg,#39d3ff,#5cf2c0);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sga-name i{font:700 11px/1 Sora,sans-serif;font-style:normal;color:var(--ink3);padding:4px 8px;border-radius:999px;border:1px solid var(--edge);margin-left:4px;align-self:center}
 .sga-me{appearance:none;cursor:pointer;font:800 13px/1 Sora,sans-serif;color:var(--ink);padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid var(--edge);margin-right:8px}
+.sga-or{display:flex;flex:none;padding:3px;margin-right:8px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--edge)}
+.sga-or[hidden]{display:none}
+.sga-or button{appearance:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:7px 10px;border:0;border-radius:9px;background:none;color:var(--ink3);font:800 12px/1 Sora,sans-serif;transition:background .2s,color .2s}
+.sga-or button.on{background:linear-gradient(135deg,rgba(57,211,255,.32),rgba(92,242,192,.26));color:#fff;box-shadow:inset 0 0 0 1px rgba(124,245,226,.5)}
+.sga-or i{display:block;box-sizing:border-box;border:2px solid currentColor;border-radius:3px}.sga-or i.p{width:10px;height:15px}.sga-or i.l{width:15px;height:10px}
+.sga-or.busy{opacity:.6;pointer-events:none}
+.sga-me,.sga-top .sgw-world{white-space:nowrap;flex:none}
+@media (max-width:1100px){.sga-name i{display:none}.sga-or span{display:none}.sga-or button{padding:7px 9px}}
+@media (max-width:900px){.sga-name b{display:none}.sga-top .sgw-world{padding-left:14px;padding-right:14px;font-size:13px}}
 .sga-me.on{border-color:rgba(92,242,192,.45);color:#c9ffef}
 .sga-main{position:relative;z-index:1;padding:0;margin:0;max-width:none;min-height:calc(100vh - var(--sga-h))}
 .sga-boot{position:fixed;inset:var(--sga-h) 0 0;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;color:var(--ink);font:800 16px/1.3 Sora,sans-serif}
@@ -146,4 +155,5 @@ body.sga .wst-x{display:none}
   .sga-me{margin:0;padding:8px 10px;font-size:12px;white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
   .sga-top .sgw-lang{flex:none;padding:6px 4px;font-size:12px;max-width:62px}
 }
-@media (max-width:420px){.sga-name b{display:none}.sga-name{font-size:17px}}
+@media (max-width:420px){.sga-name b{display:none}.sga-name{font-size:16px}.sga-top{gap:6px;padding:0 8px}.sga-or{margin-right:0;padding:2px}.sga-or button{padding:7px 7px}.sga-me{padding:8px 9px;max-width:none}.sga-top .sgw-lang{max-width:54px}}
+@media (max-width:380px){.sga-name{display:none}}
