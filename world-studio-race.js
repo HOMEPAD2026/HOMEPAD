@@ -42,6 +42,11 @@ export async function makeRace(o, env) {
   const keyOn = new Set(), kd = (e) => { const k = e.key.toLowerCase(); if (["a", "d", "s", "arrowleft", "arrowright", "arrowdown"].includes(k)) { keyOn.add(k); e.preventDefault(); } }, ku = (e) => keyOn.delete(e.key.toLowerCase());
   addEventListener("keydown", kd, true); addEventListener("keyup", ku, true);
   const a0 = B.r[n - 1], s0 = B.r[0], h0 = Math.atan2(s0[0] - a0[0], s0[1] - a0[1]);
+  // STB7 (2026-10-27): Meshy's start gate where you line up, the finish arch round the last ring (models/world/studio/fx)
+  if (ctx.K && ctx.K.gltfLoader && !ctx.saver) { const ld = ctx.K.gltfLoader(), ver = ctx.ver || "";
+    const put = (name, x, z, h, ry) => ld.loadAsync(`/models/world/studio/fx/${name}.glb${ver}`).then((g) => { if (!scene.userData.live) return; const m = g.scene, bx = new THREE.Box3().setFromObject(m), sz = bx.getSize(new THREE.Vector3()), k = h / (sz.y || 1);
+      m.scale.setScalar(k); const w = new THREE.Group(); w.add(m); m.position.set(-((bx.min.x + bx.max.x) / 2) * k, -bx.min.y * k, -((bx.min.z + bx.max.z) / 2) * k); w.position.set(x, 0, z); w.rotation.y = ry; scene.add(w); }).catch(() => { /* the run goes on without it */ });
+    put("race-start", s0[0] - Math.sin(h0) * 7, s0[1] - Math.cos(h0) * 7, 8.5, h0); if (n > 2) { const b0 = B.r[n - 2], hf = Math.atan2(a0[0] - b0[0], a0[1] - b0[1]); put("race-finish", a0[0], a0[1], 9.5, hf); } }
   const S = { x: s0[0] - Math.sin(h0) * 12, z: s0[1] - Math.cos(h0) * 12, h: h0, v: 0, boost: 0, next: 0, lap: 0, passed: 0, orbs: 0, t: -3, over: false, bump: 0 };
   const snd = (k) => { try { if (ctx.Snd && ctx.Snd[k]) ctx.Snd[k](); } catch { /* no sound */ } };
   const paint = () => { hud.querySelector(".wst-hl").textContent = `🏁 ${Math.min(B.laps, S.lap + 1)}/${B.laps}`; hud.querySelector(".wst-hr0").textContent = `⭕ ${S.next}/${n}`; hud.querySelector(".wst-ht").textContent = "⏱ " + Math.max(0, Math.ceil(L.limit - Math.max(0, S.t))); hud.querySelector(".wst-hc").textContent = "🪙 " + S.orbs; hud.querySelector(".wst-bar em").style.width = Math.min(100, (S.passed / (n * B.laps)) * 100).toFixed(1) + "%"; };
