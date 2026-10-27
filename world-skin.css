@@ -4905,3 +4905,35 @@ body.wp.wp-in-cc:not(.wp-stu-open):not(.wp-first) .wp-ccbar{display:flex;positio
 html.wp-pcphone .wp-ccbar{zoom:1.6}
 @keyframes wpCcBarIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.wp-ccbar{animation:none!important}}
+/* MNU (2026-10-27): the Menu's profile strip and its tiles coming in */
+.wp-hub-me{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 12px;padding:10px 14px;border-radius:18px;border:1px solid rgba(124,245,226,.35);background:linear-gradient(100deg,rgba(47,140,255,.28),rgba(20,60,130,.35) 55%,rgba(124,245,200,.18));box-shadow:inset 0 1px 0 rgba(255,255,255,.18);color:#fff;text-align:left;cursor:pointer}
+.wp-hub-me>img{flex:none;width:52px;height:52px;border-radius:50%;object-fit:cover;background:radial-gradient(circle,#2a5bb0,#0b1d45);box-shadow:0 0 0 2px #7cf5e2,0 0 14px rgba(124,245,226,.45)}
+.wp-hub-me-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.wp-hub-me-t b{font:900 16px/1.1 Sora,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wp-hub-me-t small{font:700 12px/1.1 Sora,sans-serif;color:#a9c8ea}
+.wp-hub-xp{display:block;height:6px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden}.wp-hub-xp>i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#2f8cff,#7cf5c8);box-shadow:0 0 8px rgba(124,245,200,.6)}
+.wp-hub-arcl{flex:none;display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:rgba(3,14,40,.55);border:1px solid rgba(255,210,90,.45);font:900 14px/1 Sora,sans-serif;color:#ffe08a}
+.wp-hub-me:active{transform:scale(.98)}
+.wp-hub:not([hidden]) .wp-hub-g,.wp-hub:not([hidden]) .wp-hub-m,.wp-hub:not([hidden]) .wp-hub-r{animation:wpHubIn .38s cubic-bezier(.2,1.3,.4,1) both}
+.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(2){animation-delay:.03s}.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(3){animation-delay:.06s}.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(4){animation-delay:.09s}.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(5){animation-delay:.12s}.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(6){animation-delay:.15s}.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(7){animation-delay:.18s}.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(8){animation-delay:.21s}.wp-hub:not([hidden]) .wp-hub-main .wp-hub-g:nth-child(9){animation-delay:.24s}
+.wp-hub-g img.wp-hub-img{transition:transform .2s cubic-bezier(.2,1.4,.4,1)}.wp-hub-g:hover img.wp-hub-img{transform:translateY(-4px) scale(1.06)}.wp-hub-g:active img.wp-hub-img{transform:scale(.92)}
+@keyframes wpHubIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.wp-hub .wp-hub-g,.wp-hub .wp-hub-m,.wp-hub .wp-hub-r{animation:none!important}}
+html.wp-pcphone .wp-hub-me{zoom:1.9;margin-bottom:8px}
+/* MNU (2026-10-27, the owner: "the Menu's UI/UX with Meshy"): the remaster loop's parts — Meshy's backdrop with light rays
+   behind the window, its sky-island banner in the header, glass tiles with a hexagon face and a cyan rim for the nine,
+   glass bars with the double chevron for the More rows, a light burst behind a tile you touch (images/ui/menu
+   panel-bg / head2 / tile / row / glow); low graphics keeps the plain look */
+html:not(.wp-less) body.wp .wp-hub-card{background:linear-gradient(180deg,rgba(10,32,84,.62),rgba(5,16,44,.86) 60%),url("/images/ui/menu/panel-bg.webp") center top/cover no-repeat,#071a44}
+html:not(.wp-less) body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g{position:relative;background:none;border:solid transparent;border-width:22px;border-image:url("/images/ui/menu/tile.webp") 26% fill / 22px stretch;padding:0 0 4px;box-shadow:none;isolation:isolate}
+html:not(.wp-less) body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g::before{content:"";position:absolute;inset:-30%;z-index:-1;background:url("/images/ui/menu/glow.webp") center/contain no-repeat;mix-blend-mode:screen;opacity:0;transform:scale(.6);transition:opacity .25s,transform .35s cubic-bezier(.2,1.3,.4,1);pointer-events:none}
+html:not(.wp-less) body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g:hover::before,html:not(.wp-less) body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g:focus-visible::before,html:not(.wp-less) body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g:active::before{opacity:.75;transform:scale(1)}
+html:not(.wp-less) body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g span{text-shadow:0 2px 6px rgba(0,0,0,.6)}
+html.wp-pcphone:not(.wp-less) body.wp .wp-hub-main .wp-hub-grid button.wp-hub-g{border-width:40px;border-image-width:40px}
+
+html:not(.wp-less) body.wp .wp-hub-h{background:none}
+html:not(.wp-less) body.wp .wp-hub-h::after{content:"";position:absolute;right:50px;top:-10px;bottom:-10px;width:66%;background:url("/images/ui/menu/head2.webp") right center/cover no-repeat;-webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 88%,transparent);border-radius:14px;pointer-events:none}
+html:not(.wp-less) body.wp .wp-hub-h::before{display:none}
+html.wp-pcphone:not(.wp-less) body.wp .wp-hub-h::after{right:96px}
+html:not(.wp-less) body.wp .wp-hub-grid button.wp-hub-m:not(.pri){background:linear-gradient(180deg,rgba(46,150,178,.5),rgba(12,52,104,.78));border:1.5px solid rgba(124,245,226,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -8px 14px rgba(0,0,0,.18),0 0 12px rgba(95,211,255,.2)}
+html:not(.wp-less) body.wp .wp-hub-grid button.wp-hub-m:not(.pri):hover{border-color:#9ff7e6;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 0 18px rgba(124,245,200,.45)}
+html:not(.wp-less) body.wp .wp-hub-grid button.wp-hub-m:not(.pri)::after{border-color:#7cf5e2;filter:drop-shadow(0 0 4px rgba(124,245,226,.9))}
+body.wp .wp-hub-grid button .wp-hub-img:is([src*="/i-crew."],[src*="/i-invite."],[src*="/i-ledger."],[src*="/i-market."],[src*="/i-village."],[src*="/i-defense."]){-webkit-mask-image:none;mask-image:none;border-radius:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}

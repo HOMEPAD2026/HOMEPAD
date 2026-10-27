@@ -4012,7 +4012,7 @@ combat = FIGHT.createCombat({ softKO: () => !!(rqL && rqL.running()), alt: (a) =
   onBossRun: (zone, ms) => { const s = sess(); if (s && ms >= 8000) post({ action: "world-bossrun", ...s, zone, ms }).catch(() => {}); },
   onBoss: () => music.victory(),
   buzz: (ms) => buzz(ms), hint: (id) => hint(id, { charge: tapOr(T("Hold J to charge a stronger blow, let go when the ring is full"), T("Hold the attack button to charge a stronger blow")), dodge: tapOr(T("Red on the ground means a strike is coming: step out, or dodge with K"), T("Red on the ground means a strike is coming: step out, or tap dodge")), pond: T("This ground has a pond with a fish of its own") }[id] || id),
-  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n * (liteFx || coarse ? 0.7 : 1)); }, lite: () => liteFx, // a phone's small screen shakes less halloween: HW.halloweenOn(), slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
+  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n * (liteFx || coarse ? 0.7 : 1)); }, lite: () => liteFx, // a phone's small screen shakes less halloween: HW.halloweenOn(), slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; }, finisher: () => finisher(),
   pay: (id, onStatus) => arclShop.pay(id, "", onStatus), ko: (what) => arclShop.ko(what), signedIn: () => !!sess(),
   // knocked out: lie down and wait; back up on the spot (a revive) or on the plaza
   down: (on, where) => {
@@ -4281,7 +4281,11 @@ function paintHub() {
     : `<button type="button" data-hub="${id}" class="wp-hub-m${id === "defense" ? " pri" : ""}">${IC.has(id) ? img("i-" + id) : ICONS.icon(ic, 26)}<span>${esc(TW(label))}</span>${extra(id, key)}</button>`;
   const rec3 = rec.filter((x) => !G.has(x[0])).slice(0, 3), inRec = new Set(rec3.map((x) => x[0]));
   const more = HUB[1][1].filter(ok).filter((x) => !inRec.has(x[0]));
-  hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}<small class="wp-hub-q" aria-live="polite"></small></h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>` +
+  // MNU (2026-10-27, the owner: the Menu's UI/UX): who you are at the top — your hero, name, level and XP, your ARCL — a tap
+  // opens the Character window (the "inv" tile's window)
+  const xq = RPG.xpProgress(P.xp), bal = (() => { try { return (arclShop.arcl() || {}).bal; } catch { return null; } })(), face = $("wp-lv-face");
+  const me = `<button type="button" class="wp-hub-me" data-hub="inv"><img src="${face && face.src ? esc(face.src) : ""}" alt="" width="52" height="52" onerror="this.style.visibility='hidden'"><span class="wp-hub-me-t"><b>${esc(P.name || "ARCIRCLE")}</b><small>Lv ${level()} · ${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")} XP</small><i class="wp-hub-xp"><i style="width:${Math.min(100, (100 * xq.into) / Math.max(1, xq.need)).toFixed(1)}%"></i></i></span>${bal != null ? `<span class="wp-hub-arcl"><img src="/images/arcl2-64.png${VER}" alt="" width="22" height="22">${Number(bal).toLocaleString("en-US")}</span>` : ""}</button>`;
+  hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}<small class="wp-hub-q" aria-live="polite"></small></h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>${me}` +
     (rec3.length ? `<section class="wp-hub-recent"><h3>${esc(TW("Recent"))}</h3><div class="wp-hub-grid">${rec3.map((x) => tile(x, "r")).join("")}</div></section>` : "") +
     `<section class="wp-hub-main"><div class="wp-hub-grid">${HUB[0][1].filter(ok).map((x) => tile(x, "g")).join("")}</div></section>` +
     `<section class="wp-hub-more"><h3>${esc(TW("More"))}</h3><div class="wp-hub-grid">${more.filter((x) => IC.has(x[0])).map((x) => tile(x, "m")).join("")}</div><div class="wp-hub-pills">${more.filter((x) => !IC.has(x[0])).map((x) => tile(x, "p")).join("")}</div></section></div>`;
@@ -4754,6 +4758,8 @@ let slowUntil = 0, punch = 0, stopUntil = 0, prevSpeed = 0;
 // a hit stops the world for a few frames (heavier blows longer) and nudges the camera along the blow
 const hitstop = (ms = 45) => { if (reduce) return; stopUntil = Math.max(stopUntil, performance.now() + Math.min(120, ms)); };
 const camKick = new THREE.Vector3(); const kickCam = (dir, k = 0.08) => { if (reduce || !dir) return; camKick.x += dir.x * k; camKick.z += dir.z * k; if (camKick.length() > 0.35) camKick.setLength(0.35); };
+let finT = 0, finGoal = 1;
+const finisher = () => { if (reduce || finT > 0 || mode !== "hub") return; finT = 1.2; finGoal = camGoal; camGoal = Math.max(0.6, camGoal * 0.72); };
 const slowmo = (ms = 170) => { if (reduce) return; slowUntil = Math.max(slowUntil, performance.now() + ms); replay(document.body, "wc-crit"); };
 st.on((dt0, t) => {
   const now0 = performance.now(), dt = now0 < stopUntil ? dt0 * 0.04 : now0 < slowUntil ? dt0 * 0.3 : dt0;
@@ -4877,6 +4883,8 @@ setInterval(() => { try {
   watchFps(dt);
   if (introOn) return; // the dive drives the camera
   // camera: behind and above the player, orbiting with camYaw / camPitch, wider when running; build mode sits higher
+  // IDEA5 (2026-10-27): a boss's knock-out — the camera leans in and swings round it during the slow motion, then goes back
+  if (finT > 0) { finT -= dt0; camYaw += dt0 * 0.6; if (finT <= 0) camGoal = finGoal; }
   camDist += (camGoal - camDist) * (1 - Math.exp(-dt0 * 10)); // zoom eases toward where the wheel/pinch put it
   const bz = mode === "island" && island.building() ? 1.55 : 1;
   // indoors on an island (the roof overhead already hides): the camera rises over the walls and looks down into the room,

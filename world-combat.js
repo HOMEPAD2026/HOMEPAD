@@ -415,7 +415,7 @@ export function createCombat(ctx) {
     // the knock-out's column of light and its ring (world-vfx.js), motes of light floating up out of it
     if (VX && VX.burst) VX.burst(fxV.copy(p).setY(0), m.rank === "boss" ? 0xff4d6d : m.rank === "elite" || m.rare ? 0xffc861 : 0xffe08a, m.rank === "boss" ? 2.2 : m.rank === "elite" ? 1.4 : 1);
     if (ctx.parts) ctx.parts.emit({ at: p, kind: "glow", n: m.rank === "boss" ? 36 : 14, speed: 2.4, up: 2.4, spread: 0.8, size: 0.32, life: 1.1, grav: -3.5, drag: 1.4, color: 0xfff2c8, color2: 0xffc861, jitter: 0.6 });
-    if (m.rank === "boss" && ctx.slowmo) { ctx.slowmo(700); ctx.punch && ctx.punch(); } // the boss goes down in slow motion
+    if (m.rank === "boss" && ctx.slowmo) { ctx.slowmo(700); ctx.punch && ctx.punch(); if (ctx.finisher) ctx.finisher(); } // the boss goes down in slow motion
     if (m.tgt) { if (m.rank === "boss") hideBossBar(); if (m.tgt.dead) m.tgt.dead(m); return; } // AC Defense: no XP, drops or ARCL claims; the arena pays in scrap
     if (m.ext) { hideBossBar(); try { if (m.ext.down) m.ext.down(m); } catch { /* gone anyway */ } return; } // no XP, drops or claims here: its own reward
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
