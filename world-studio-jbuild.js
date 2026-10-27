@@ -10,6 +10,9 @@ import { JW, cleanJump, clampSpec, estimate, jwReach, THEMES } from "./world-stu
 
 // the palette: [kind, emoji, group]; the names are JW.K's
 const GROUPS = [["block", "🧱", "Blocks"], ["move", "🔀", "Motion"], ["thing", "🌀", "Things"], ["item", "🪙", "Items"], ["foe", "👾", "Foes"], ["goal", "🏁", "Goal"]];
+// STB3 (2026-10-27): Meshy's 3D icons for the tabs and tools (images/studio/ui2), the emoji only if a picture fails
+const GIC = { block: "tab-blocks", move: "tab-motion", thing: "tab-devices", item: "tab-items", foe: "tab-foes", goal: "tab-goal", chunk: "tab-prefabs", put: "tool-place", hand: "tool-move", erase: "tool-erase", test: "tool-test", done: "tool-done" };
+const gimg = (k, ic) => (GIC[k] ? `<img src="/images/studio/ui2/${GIC[k]}.webp?v=1" alt="" class="wsj-ic" onerror="this.replaceWith(document.createTextNode('${ic}'))">` : ic);
 const EMO = { g: "🟩", s: "🧱", i: "🧊", l: "🔥", w: "🪵", m: "↔️", v: "↕️", f: "🍂", b: "✨", p: "🌀", k: "🔺", c: "🚩", o: "🪙", y: "🗝️", d: "🚪", t: "🔘", r: "🟥", u: "🟦", h: "🧪", q: "🎁", e: "🍄", n: "🦇", z: "💣", B: "🐉", S: "🟢", F: "🏁", 1: "🟫", 2: "⬜", 3: "🟨" };
 const ICON = { g: "grass", s: "stone", i: "ice", l: "lava", w: "bridge", m: "moving-platform", v: "moving-platform", f: "falling-platform", b: "blinking-platform", p: "spring", k: "spikes", c: "checkpoint", o: "coin", y: "key", d: "door", t: "switch", e: "walker", n: "flyer", q: "chest", h: "potion", F: "finish", B: "dragon", z: "cannon" }; // (Meshy's glass icons, images/studio/jw/icon-*.webp)
 const FLIP = new Set(["m", "v", "z", "e"]);
@@ -45,10 +48,10 @@ export function createJumpBuilder(ctx) {
         <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>
-      <div class="wsj-main"><aside class="wsj-pal"><nav class="wsj-grp">${GROUPS.map(([id, ic, n]) => `<button type="button" data-grp="${id}" title="${esc(T(n))}"><i>${ic}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-grp="chunk" title="${esc(T("Ready-made"))}"><i>📦</i><span>${esc(T("Ready-made"))}</span></button></nav><div class="wsj-items"></div></aside>
+      <div class="wsj-main"><aside class="wsj-pal"><nav class="wsj-grp">${GROUPS.map(([id, ic, n]) => `<button type="button" data-grp="${id}" title="${esc(T(n))}"><i>${gimg(id, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-grp="chunk" title="${esc(T("Ready-made"))}"><i>${gimg("chunk", "📦")}</i><span>${esc(T("Ready-made"))}</span></button></nav><div class="wsj-items"></div></aside>
         <div class="wsj-stage"><canvas class="wsb-cv wsj-cv"></canvas><canvas class="wsj-strip" aria-label="${esc(T("The whole level"))}"></canvas>
           <div class="wsj-zoom"><button type="button" class="wsb-i" data-zoom="1" aria-label="+">＋</button><button type="button" class="wsb-i" data-zoom="-1" aria-label="−">－</button></div></div></div>
-      <nav class="wsj-tools">${[["put", "✏️", "Place"], ["hand", "✋", "Move"], ["flip", "🔄", "Flip"], ["erase", "🧽", "Erase"]].map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${k === "erase" ? `<img src="/images/studio/jw/icon-eraser.webp?v=1" alt="" style="width:26px;height:26px">` : ic}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-test class="alt"><i>▶</i><span>${esc(T("Test"))}</span></button><button type="button" data-done class="go"><i>✓</i><span>${esc(T("Done"))}</span></button></nav>
+      <nav class="wsj-tools">${[["put", "✏️", "Place"], ["hand", "✋", "Move"], ["flip", "🔄", "Flip"], ["erase", "🧽", "Erase"]].map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${gimg(k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-test class="alt"><i>${gimg("test", "▶")}</i><span>${esc(T("Test"))}</span></button><button type="button" data-done class="go"><i>${gimg("done", "✓")}</i><span>${esc(T("Done"))}</span></button></nav>
     </div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsj-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick);
@@ -121,7 +124,7 @@ export function createJumpBuilder(ctx) {
     if (!drag) after(); else { reach = null; dirty = true; }
   }
   function after() { est = null; reach = null; B.c = B.c.filter((c) => c[0] >= 0 && c[0] < B.W).slice(0, JW.CELLS * 2); dirty = true; paintBar(); }
-  const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; document.body.appendChild(p); setTimeout(() => p.remove(), 650); };
+  const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); };
   // ---- the bars ----
   function paintPal() { if (!el) return; el.querySelectorAll("[data-grp]").forEach((b) => b.classList.toggle("on", b.dataset.grp === group));
     const box = el.querySelector(".wsj-items");

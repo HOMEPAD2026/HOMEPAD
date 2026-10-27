@@ -84,6 +84,14 @@ export function makeStudio(deps) {
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
   const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score })) } : {}) });
+  // STB5 (2026-10-27): who's playing what right now — each counted run's time kept 15 minutes, per game (≤ 20 a game,
+  // ≤ 60 games); the arcade's list carries the count of the last 10 minutes as "now"
+  const NOW_KEEP = 15 * 60e3, NOW_WIN = 10 * 60e3;
+  async function nowBump(id) { const k = "worldStats/studioNow", d = (await one(k)) || {}, t = now(), m = {};
+    for (const [i, a] of Object.entries(d.g || {})) { const v = (a || []).filter((x) => t - x < NOW_KEEP); if (v.length) m[i] = v; }
+    m[id] = [...(m[id] || []), t].slice(-20); const keep = Object.entries(m).sort((p, q) => q[1][q[1].length - 1] - p[1][p[1].length - 1]).slice(0, 60);
+    await setDoc(k, { g: Object.fromEntries(keep) }); }
+  const nowOf = (d) => { const t = now(), o = {}; for (const [i, a] of Object.entries((d && d.g) || {})) { const n = (a || []).filter((x) => t - x < NOW_WIN).length; if (n) o[i] = n; } return o; };
   async function arcadeSet(id, g) {
     const k = "worldStats/studioArcade", d = (await one(k)) || {}, list = d.list || {};
     if (g && g.pub && !g.hidden) list[id] = { title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, s: tinySpec(g.spec), ...(g.pick ? { pick: g.pick } : {}), ...(g.official ? { off: true } : {}) }; else delete list[id];
@@ -236,6 +244,7 @@ export function makeStudio(deps) {
       else if (g.spec.tpl !== "puzzle") { const L = genLevel(g.spec), f = Math.max(0, Math.min(0.999, (Number(b.dist) || 0) / Math.max(1, L.len))); st.ends[Math.floor(f * 10)]++; }
       g.stats = st; }
     if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); }
+    if (counted) await nowBump(b.id).catch(() => {}); // (STB5: "playing now" on the portals and cabinets)
     const name = await deps.nameOf(w).catch(() => "") || "Player", best = (g.best || []).filter((x) => x.w !== w), mine0 = (g.best || []).find((x) => x.w === w);
     const top = mine0 && mine0.score >= score ? mine0 : { w, name, score };
     g.best = [...best, top].sort((p, q) => q.score - p.score).slice(0, STUDIO.BEST);
@@ -354,7 +363,8 @@ export function makeStudio(deps) {
       const w = url.searchParams.get("world");
       if (w === "studio-arcade") { const d = (await one("worldStats/studioArcade")) || {}, list = { ...(d.list || {}) };
         for (const [id, o] of Object.entries(OFFICIAL)) if (!list[id]) { const sp = clampSpec(o); list[id] = { title: sp.title, tpl: sp.tpl, theme: sp.theme, byName: "ARCIRCLE", plays: 0, likes: 0, at: OFF_AT, s: tinySpec(sp), off: true }; } // (STU-A: the official games are always listed)
-        return json(200, { ok: true, games: Object.entries(list).map(([id, g]) => ({ id, ...g })), templates: TEMPLATES }, "public, max-age=30"); }
+        const nw = nowOf(await one("worldStats/studioNow").catch(() => null));
+        return json(200, { ok: true, games: Object.entries(list).map(([id, g]) => ({ id, ...g, ...(nw[id] ? { now: nw[id] } : {}) })), templates: TEMPLATES }, "public, max-age=30"); }
       if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); const h = g.pub ? await handleOf(g.w) : ""; return json(200, { ok: true, game: { ...pubOf(id, g, true), ...(h ? { h, slug: slugFor(id, g) } : {}) } }); }
       if (w === "studio-handle") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const d = (await one(`worldStudioHandleOf/${a}`)) || {}; return json(200, { ok: true, h: d.h || "", left: HANDLE.CHANGES - (d.n || 0) }); }
       if (w === "studio-creator") { const c = await creatorOf(url.searchParams.get("h")); if (!c) return json(404, { error: "no such creator" }); if (c.moved) return json(200, { ok: true, moved: c.moved });

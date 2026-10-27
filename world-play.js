@@ -5135,7 +5135,7 @@ maybeNew();
 setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 setTimeout(async () => { const p = partyUI(), f = p && await p.loadFull(); if (f) quests.bountyNotice((h, c) => feed(esc(h), c), f); }, 12000); // one bounty read: the Log dot, and Sunday's reminder
 // a Studio game's share link (/play?sg=<id>): open the Studio and play that game once the town is up
-{ const g = String(new URLSearchParams(location.search).get("sg") || ""); if (/^[\w-]{4,40}$/.test(g) && P.char) setTimeout(async () => { if (mode !== "hub" || frozen) return; await openStudio(); const q = new URLSearchParams(location.search); if (studio) studio.playId(g, { vs: Math.max(0, Math.floor(Number(q.get("vs")) || 0)), vsBy: String(q.get("by") || "").slice(0, 16) }); }, 1400); } /* (?vs=&by=: a friend's challenge — their score to beat) */
+{ const g = String(new URLSearchParams(location.search).get("sg") || ""); if (/^[\w-]{4,40}$/.test(g) && P.char) setTimeout(async () => { if (mode !== "hub" || frozen) return; await openStudio(); const q = new URLSearchParams(location.search); if (studio && q.get("remix") === "1" && studio.remixId) return studio.remixId(g); if (studio) studio.playId(g, { vs: Math.max(0, Math.floor(Number(q.get("vs")) || 0)), vsBy: String(q.get("by") || "").slice(0, 16) }); }, 1400); } /* (?vs=&by=: a friend's challenge — their score to beat) */
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 // DINO SOULMATE in town (world-dino.js is Jurassic World's): a chip under the purse row while there's something to do —
@@ -5819,7 +5819,7 @@ async function openStudio(tab) {
         makeHero: () => K.makeCharacter(heroOf(P.char || "custom-aron"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         agentName: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.name : ""; } catch { return ""; } },
         share: (c) => bragCard(c),
-        land: stuLand, onEvent: (k) => { ccStep(k); if (k === "rate") ccStep("play"); }, soundOn: () => S.sound !== false,
+        land: stuLand, onEvent: (k) => { ccStep(k); if (k === "rate") ccStep("play"); if (k === "publish") { ccGamesAt = 0; setTimeout(() => { try { ccGames(); } catch { /* the next look */ } }, 2500); } } /* STB4: a published game shows on Creator City's portals without waiting two minutes */, soundOn: () => S.sound !== false,
         survivors: async (cfg) => { try { await survModule(); return await survGame.custom(cfg); } catch (e) { console.warn("studio survival", e); if (String((e && e.message) || e).startsWith("load:") && staleReload()) return null; return null; } }, // (SB-3: MONSTER SURVIVAL on the arena's engine)
         onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); document.body.classList.add("wp-stu-open"); }, onClose: () => { frozen = false; near = null; paintPrompt(); document.body.classList.remove("wp-stu-open"); } });
       if (card) { card.step(1); await Promise.all(["/images/studio/ui/bg-1344.webp", "/images/studio/tpl/runner-400.webp", "/images/studio/ui/tab-make.webp"].map((u) => new Promise((ok) => { const im = new Image(); im.onload = im.onerror = ok; im.src = u + VER; }))); } }

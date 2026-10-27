@@ -6,7 +6,7 @@
 // ctx: { T, esc, toast, spec, onDone(build), onTest(spec, startT), onClose }
 import { ARENA_B, ARENA_R, LENS, cleanArena, clampSpec, estimate, THEMES } from "./world-studio-gen.js";
 /// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
-const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
+const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
 const toolIcon = (M, k, ic) => (M[k] ? `<img class="wsb-ic" src="/images/studio/ic/${M[k]}.webp?v=1" alt="" aria-hidden="true" loading="lazy">` : ic);
 
 const TOOLS = [["d", "🛸", "Drone"], ["D", "🟠", "Big drone"], ["L", "⚡", "Laser sweep"], ["c", "🪙", "Coin"], ["p", "🗿", "Pillar"], ["x", "🧽", "Erase"]];

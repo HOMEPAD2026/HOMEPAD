@@ -219,7 +219,7 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
       const col = new THREE.Color(gm.css || "#7cf5c8"); p.ring.material.color.copy(col); p.film.material.color.copy(col); if (p.arch) p.arch.traverse((x) => { if (x.isMesh && x.material && x.material.emissive) x.material.emissive.copy(col); });
       const s = 1 + Math.min(0.5, (gm.plays || 0) / 400 + (gm.likes || 0) / 80); p.o.scale.setScalar(s); // (a more played game's portal stands taller)
       const c = p.tex.userData.cv.getContext("2d"); c.clearRect(0, 0, 512, 160); c.beginPath(); if (c.roundRect) c.roundRect(4, 4, 504, 152, 30); else c.rect(4, 4, 504, 152); c.fillStyle = "rgba(4,14,30,.88)"; c.fill(); c.lineWidth = 5; c.strokeStyle = gm.css || "#7cf5c8"; c.stroke();
-      c.textAlign = "center"; c.fillStyle = "#fff"; c.font = "900 48px Sora, 'Segoe UI', sans-serif"; c.fillText(gm.title || "", 256, 70, 480); c.fillStyle = "#cfe0f5"; c.font = "800 28px Sora, 'Segoe UI', sans-serif"; c.fillText(`▶ ${gm.plays || 0}  ♥ ${gm.likes || 0} · ${gm.byName || ""}`, 256, 122, 480); p.tex.needsUpdate = true; });
+      c.textAlign = "center"; c.fillStyle = "#fff"; c.font = "900 48px Sora, 'Segoe UI', sans-serif"; c.fillText(gm.title || "", 256, 70, 480); c.fillStyle = "#cfe0f5"; c.font = "800 28px Sora, 'Segoe UI', sans-serif"; c.fillText(gm.now ? `● ${T("{n} playing now", { n: gm.now })}  ·  ▶ ${gm.plays || 0}` : `▶ ${gm.plays || 0}  ♥ ${gm.likes || 0} · ${gm.byName || ""}`, 256, 122, 480); p.tex.needsUpdate = true; });
   }
   // ---------------- the way home ----------------
   const back = K.makePortal(T("Back to town")); back.name = "cc-back"; back.userData.radius = 1.6; back.userData.to = "town"; spins.push(...(back.userData.spin || []));

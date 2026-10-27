@@ -73,6 +73,9 @@ const L = G.genLevel(db.get(`worldStudio/${id}`).spec);
 r = await call(fan, "world-studio-play", { id, coins: 9999, dist: 1e9, done: true }); check(r.status === 200 && r.body.score === G.scoreOf(L.coins, L.len, true) && r.body.plays === 1, "a run can't beat the level: " + r.body.score);
 r = await call(fan, "world-studio-play", { id, coins: 1, dist: 20 }); check(r.body.plays === 1 && r.body.best === G.scoreOf(L.coins, L.len, true), "the same player again within 20 s: not counted twice, the best kept");
 T += 30e3; r = await call(fan, "world-studio-play", { id, coins: 1, dist: 20 }); check(r.body.plays === 2, "later: counted");
+// STB5: the arcade says how many runs were played in the last 10 minutes ("playing now"); older ones drop off
+{ let ar = await get("studio-arcade"); const g = ar.games.find((x) => x.id === id); check(g && g.now === 2, "playing now: the last 10 minutes' runs (" + (g && g.now) + ")");
+  T += 11 * 60e3; ar = await get("studio-arcade"); const g2 = ar.games.find((x) => x.id === id); check(g2 && !g2.now, "playing now: gone after 10 minutes"); }
 // Studio 3b: the #1 leaves a ghost (their run every 0.2 s) for others to race; a bad trace is left out
 { const tr = Array.from({ length: 40 }, (_, i) => [0, 0, i * 3]); T += 30e3; const third = ethers.Wallet.createRandom(); r = await call(third, "world-studio-play", { id, coins: 1, dist: 30, trace: tr }); let gh = await get("studio-ghost&id=" + id);
   check(r.body.ghost === false && !gh.ghost, "a run that isn't the #1 leaves no ghost");
