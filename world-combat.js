@@ -427,7 +427,7 @@ export function createCombat(ctx) {
     else ctx.claim("street", {}, ctx.screenOf(p));
     ctx.onKill && ctx.onKill({ type: m.spec.id, lv: m.lv, rank: m.rank, zone: m.zone && m.zone.id });
     // the drop: a chest with a beam in its rarity's colour
-    const d = rpg.rollDrop(m.lv, m.rank); if (d) dropChest(m.g.position.clone(), d);
+    const d = rpg.rollDrop(m.lv, m.rank); if (d) dropChest(m.g.position.clone(), d, m.rank === "boss");
     if (m.rare) { const d3 = rpg.rollDrop(m.lv, "elite"); if (d3) dropChest(m.g.position.clone().add(new V3(-1.4, 0, 0.6)), d3); ctx.float(T("Golden!"), p.clone().setY(3), "#ffd27a", true); }
     if (Math.random() < 0.18) { const x = m.g.position.clone(); x.y = 1; const it = ITEMS[Math.random() < 0.5 ? 5 : 4]; const g = itemMesh(it); g.position.copy(x).add(new V3(-1, 0, 0.5)); add(g); items.push({ g, it, k: 0 }); }
   }
@@ -436,7 +436,7 @@ export function createCombat(ctx) {
     vertexShader: "varying vec2 vUv; varying float vE; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vec3 n = normalize(normalMatrix * normal); vE = abs(dot(n, normalize(-mv.xyz))); gl_Position = projectionMatrix * mv; }",
     fragmentShader: "uniform vec3 uC; uniform float uO, uT; varying vec2 vUv; varying float vE; void main(){ float up = pow(1.0 - vUv.y, 1.7); float core = pow(vE, 2.5); float rip = 0.85 + 0.15 * sin(vUv.y * 18.0 - uT * 5.0); gl_FragColor = vec4(uC * (0.6 + core * 0.8), up * (0.25 + core * 0.75) * rip * uO); }" });
   const chestWood = new THREE.MeshStandardMaterial({ color: 0x6a4428, roughness: 0.7 });
-  function dropChest(at, item) {
+  function dropChest(at, item, boss) {
     const c = new THREE.Color(RARITY[item.r].color), g = new THREE.Group(); g.position.copy(at).setY(0);
     // the box's shape and wood are shared by every chest; the lid's colour and the beam are its own, freed when it goes
     const box = new THREE.Mesh(geoOf("chestBox", () => new THREE.BoxGeometry(0.8, 0.55, 0.55)), chestWood); box.position.y = 0.3;
@@ -446,13 +446,14 @@ export function createCombat(ctx) {
     puff(at.clone().setY(1), c.getHex(), { n: 16, speed: 4, size: 0.4, life: 0.8, grav: -1 });
     if (item.r >= 4) { ctx.shake(0.3); ctx.legend && ctx.legend(); }
     Snd.drop && Snd.drop(item.r);
-    drops.push({ g, item, t: 0, beam, lid });
+    drops.push({ g, item, t: 0, beam, lid, boss: !!boss });
   }
   function tickDrops(dt, t) {
     ctx.here(me); const reach = Math.max(1.5, ctx.petPull ? ctx.petPull() : 0); // a collector pet picks chests up from farther
     for (let i = drops.length - 1; i >= 0; i--) {
       const d = drops[i]; d.t += dt; const bu = d.beam.material.uniforms; bu.uO.value = (d.item.r >= 3 ? 0.75 : d.item.r >= 2 ? 0.55 : 0.32) + Math.sin(t * 4) * 0.08; bu.uT.value = t; d.lid.rotation.y = Math.sin(t * 2) * 0.1;
       const dist = Math.hypot(d.g.position.x - me.x, d.g.position.z - me.z);
+      if (dist < reach && !d.boss && rpg.bagFull && rpg.bagFull()) { rpg.addItem(d.item, false, "field"); continue; } /* (a full bag: a field chest stays on the ground, with a note; a boss's chest waits for room — rpg.addItem) */
       if (dist < reach || d.t > 120 || dist > 60) {
         root.remove(d.g); drops.splice(i, 1); d.lid.material.dispose(); d.beam.material.dispose();
         if (dist < reach) { const ok = rpg.addItem(d.item); Snd.chest && Snd.chest(d.item.r); ring(d.g.position, new THREE.Color(RARITY[d.item.r].color).getHex(), { r0: 0.3, r1: 2.4, life: 0.4 }); if (ok) ctx.float(rpg.itemName(d.item), d.g.position.clone().setY(2.4), RARITY[d.item.r].color, d.item.r >= 3); ctx.onLoot && ctx.onLoot(d.item); }
