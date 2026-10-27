@@ -83,7 +83,7 @@ export const CSS_PURGED = {
   "studio.min.css": {
     purge: ["style.css", "arc-nav.css", "arc-v9.css", "arc-v10.css", "world-skin.css"],
     keep: [],
-    scan: ["studio-app.html", "studio-web.html", ...withImports(["world-studio-web.js", "world-studio.js", "world-studio-build.js", "world-studio-arena.js", "world-studio-tdbuild.js", "world-studio-jbuild.js", "world-studio-race.js", "world-studio-rhythm.js", "world-studio-jump.js", "world-studio-climb.js", "world-studio-defense.js", "world-studio-pad.js", "world-studio-prev.js", "world-ask.js"])],
+    scan: ["studio-app.html", "studio-web.html", "arc-connect.js", ...withImports(["world-studio-web.js", "world-studio.js", "world-studio-build.js", "world-studio-arena.js", "world-studio-tdbuild.js", "world-studio-jbuild.js", "world-studio-race.js", "world-studio-rhythm.js", "world-studio-jump.js", "world-studio-climb.js", "world-studio-defense.js", "world-studio-pad.js", "world-studio-prev.js", "world-ask.js"])],
   },
   "world.min.css": {
     purge: ["style.css"],
