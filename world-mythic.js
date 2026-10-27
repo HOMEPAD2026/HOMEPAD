@@ -435,6 +435,7 @@ export function makeMythicUI(ctx) {
     const st = st0(), isNew = !(st.pieces || []).some((x) => x.id !== p.id && (pieceOf(x.def) || {}).slot === P.slot);
     const worn = wornNow().filter((x) => (pieceOf(x.def) || {}).slot !== P.slot), after = setBonus([...worn, p]), before = setBonus(wornNow());
     const opens = ctx.level() >= p.req && after.active.length > before.active.length ? after.active[after.active.length - 1] : null;
+    try { if (ctx.buzz) ctx.buzz([40, 60, 40, 60, 140]); } catch { /* no buzz */ } // (a Mythic drop: the phone feels it too)
     const r = document.createElement("div"); r.className = "my-rev" + (ctx.reduce ? " calm" : ""); r.setAttribute("role", "dialog"); r.setAttribute("data-no-i18n", "");
     const name = T(P.name), letters = [...name].map((ch, i) => `<span style="--i:${i}">${ch === " " ? "&nbsp;" : esc(ch)}</span>`).join("");
     r.innerHTML = `<i class="my-rev-beam"></i><div class="my-rev-in"><small>MYTHIC · ${esc(T("Crimson Celestial"))}${made ? " · " + esc(T("made from shards")) : ""}</small>${isNew ? `<em class="my-new">NEW</em>` : ""}<div class="my-rev-art my-3d" data-3d="${P.id}"><img src="${img(P, ctx.ver)}" alt="" onerror="this.style.visibility='hidden'"></div><b class="my-rev-name">${letters}</b><p>${esc(T(SRC[p.src] || p.src))} · ${esc(T("Worn from Lv {n}", { n: p.req }))} · ×${p.mult}</p><em>${esc(statLine(mythicStats(p)))}</em>

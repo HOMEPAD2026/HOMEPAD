@@ -7,6 +7,10 @@ import { THEMES, LANES, CLIMB, DEF, JUMPS, JW, genLevel, speedOf } from "./world
 import { level as ringLevel } from "./world-rings-engine.js";
 import { look as themeLook } from "./world-studio-look.js";
 
+// the Jump World tiles per theme (the run's world-studio-jump.js JLOOK / TEX) and their colours before they're in
+const JLK = { neon: { g: "metal", s: "metal", gc: 0x2a3d6b, sc: 0x3b2f6b }, jungle: { g: "grass", s: "stone", gc: 0x5ed35a, sc: 0xc8a27a }, ice: { g: "ice", s: "ice", gc: 0xcfeaff, sc: 0x9fd0f0 }, lava: { g: "stone", s: "stone", l: "lava", gc: 0x6a4a3a, sc: 0x8a4a34 }, candy: { g: "candy", s: "candy", gc: 0xff9ccf, sc: 0xffc970 } };
+for (const k in JLK) { JLK[k].l = JLK[k].l || "lava"; JLK[k].i = "ice"; }
+const jwTex = {};
 export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) {
   const canvas = document.createElement("canvas"); canvas.className = "wst-3d"; canvas.width = w; canvas.height = h;
   let R; try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "low-power" }); } catch { return null; }
@@ -68,11 +72,15 @@ export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) 
     if (JUMPS[spec.tpl]) { // (SB-2 JUMP WORLD and its modes: the level from the side, the camera panning along it)
       const dark = spec.tpl === "dungeon" || spec.tpl === "mining", B = L.B, box = new THREE.BoxGeometry(1, 1, 1.6), mt = new THREE.Matrix4(), by = {};
       if (dark) { sc.background = new THREE.Color(0x0b0a14); sc.fog = new THREE.Fog(0x0b0a14, 18, 60); }
+      // CCR2 (2026-10-27): the run's own look in the preview — Meshy's tiles on the ground and brick blocks and its sky
+      // behind (images/studio/jw, the same files the run loads, cached for the page); the run's brighter colours until then
+      const JL = JLK[spec.theme] || JLK.neon, tile = (k) => { const nm = JL[k]; if (!nm) return null; return jwTex[nm] || (jwTex[nm] = (() => { try { const t = new THREE.TextureLoader().load(`/images/studio/jw/jw-${nm}-256.webp${ver}`); t.colorSpace = THREE.SRGBColorSpace; return t; } catch { return null; } })()); };
+      let sky = null; if (!dark) { sky = jwTex.sky || (jwTex.sky = (() => { try { const t = new THREE.TextureLoader().load(`/images/studio/jw/jw-sky-768.webp${ver}`); t.colorSpace = THREE.SRGBColorSpace; return t; } catch { return null; } })()); if (sky) { sc.background = sky; sc.fog = null; } }
       const COL = { g: th.track, s: th.wall, i: 0x9fd8ff, l: 0xff5a1a, w: 0xa8744a, m: 0xff9a3d, v: 0x5fd3ff, f: 0xc8a27a, b: 0xff5ad8, p: 0x7cf5c8, k: 0xdfe6f2, o: 0xffc94a, y: 0xffd23a, d: 0xa8744a, t: 0xff3b5c, r: 0xff3b5c, u: 0x3b7bff, h: 0xff4d6d, q: 0xffb02e, e: 0x8b5cf6, n: 0x2a2f3a, z: 0x2a2f3a, B: 0x2fb36a, F: 0xffd23a, S: 0x7cf5c8, 1: 0xd97a3a, 2: 0xdfe6f2, 3: 0xffd23a };
       for (const c of B.c) (by[c[2]] || (by[c[2]] = [])).push(c);
-      for (const [k, list] of Object.entries(by)) { const small = !"gsilwmvfbdzru123".includes(k), g = k === "B" ? new THREE.BoxGeometry(2, 2, 1.4) : small ? new THREE.SphereGeometry(k === "F" ? 0.8 : 0.36, 12, 8) : box, im = new THREE.InstancedMesh(g, std(COL[k] ?? 0xffffff, { emissive: COL[k] ?? 0, emissiveIntensity: small || k === "l" ? 0.5 : 0.08 }), list.length);
+      for (const [k, list] of Object.entries(by)) { const small = !"gsilwmvfbdzru123".includes(k), g = k === "B" ? new THREE.BoxGeometry(2, 2, 1.4) : small ? new THREE.SphereGeometry(k === "F" ? 0.8 : 0.36, 12, 8) : box, tx = k === "g" ? tile("g") : k === "s" ? tile("s") : k === "l" ? tile("l") : k === "i" ? tile("i") : null, im = new THREE.InstancedMesh(g, tx ? std(0xffffff, { map: tx, roughness: 0.7 }) : std(k === "g" ? JL.gc : k === "s" ? JL.sc : COL[k] ?? 0xffffff, { emissive: COL[k] ?? 0, emissiveIntensity: small || k === "l" ? 0.5 : 0.08 }), list.length);
         list.forEach((c, i) => { mt.makeTranslation(c[0] + (k === "B" ? 1 : 0.5), c[1] + (k === "B" ? 1 : 0.5), 0); im.setMatrixAt(i, mt); }); sc.add(im); }
-      const back = new THREE.Mesh(new THREE.PlaneGeometry(B.W + 80, 50), std(dark ? 0x141220 : th.fog, { roughness: 1 })); back.position.set(B.W / 2, 14, -14); sc.add(back);
+      if (!sky) { const back = new THREE.Mesh(new THREE.PlaneGeometry(B.W + 80, 50), std(dark ? 0x141220 : th.fog, { roughness: 1 })); back.position.set(B.W / 2, 14, -14); sc.add(back); }
       const span = Math.max(1, B.W - 24);
       return { sc, tick(t) { const x = 12 + ((t * 3.2) % span); cam.position.set(x, 7.5, 19); cam.lookAt(x, 5, 0); } };
     }

@@ -169,6 +169,8 @@ const STEP = 1 / 60; // the game's own clock: fixed steps, so a slow phone runs 
 
 export function createSurvivors(ctx) {
   const { THREE, st, esc, Snd } = ctx, L = LW[ctx.lang] || {}, T = (s, v) => { let r = L[s] != null ? L[s] : ctx.T(s, v); if (v && L[s] != null) for (const k in v) r = r.split("{" + k + "}").join(v[k]); return r; };
+  // a short buzz on a phone at the moments that matter (the town's buzz: its Settings switch, only while you're playing)
+  const buzzAt = {}, buzz = (p, k = "", gap = 0) => { const n = performance.now(); if (gap && n - (buzzAt[k] || 0) < gap) return; buzzAt[k] = n; try { if (ctx.buzz) ctx.buzz(p); } catch { /* no buzz */ } };
   const reduce = !!ctx.reduce, sndAt = {}, snd = (k, gap = 0) => { const n = performance.now(); if (gap && n - (sndAt[k] || 0) < gap) return; sndAt[k] = n; try { if (Snd && Snd[k]) Snd[k](); } catch { /* no sound */ } };
   const phone = () => document.documentElement.classList.contains("wp-pcphone") || (innerWidth < 700 && innerHeight > innerWidth);
   // quality: 2 full, 1 lighter, 0 lightest; starts from the device and moves with the frame time (adapt)
@@ -644,7 +646,7 @@ export function createSurvivors(ctx) {
     // the entrance: the camera swings to it, time slows, a striped warning banner
     R.focus = { x: m.x, z: m.z, t: 1.6 }; slowMo = 1.6; ring(m.x, m.z, 0.5, 9, 0xff3a5a, 1.2, EASE); disc(m.x, m.z, 4, 0x7a1a3a, 1.4, HOLD, 0.6);
     ui.root.classList.add("boss-in"); setTimeout(() => ui && ui.root.classList.remove("boss-in"), 2400);
-    banner(i === 3 ? T("The Infinity Titan is here!") : T("Boss incoming!"), T(MON[id].boss)); snd("siren"); snd("roar"); paintBoss();
+    banner(i === 3 ? T("The Infinity Titan is here!") : T("Boss incoming!"), T(MON[id].boss)); snd("siren"); snd("roar"); buzz([60, 40, 110]); paintBoss();
   }
 
   // ---------------- the hero ----------------
@@ -652,10 +654,10 @@ export function createSurvivors(ctx) {
     if (R.over || R.dashT > 0 || R.hurtT > 0 || mode !== "play" || R.god) return;
     if (by) R.lastBy = { by: String(by), boss: R.boss ? R.boss.id : "", t: R.t }; // (b-svx: the result says what knocked you out)
     if (R.shield) { R.shield = 0; R.shieldT = 15; R.hurtT = 0.4; const r = 4 + pv("shield") * 0.4; ring(R.x, R.z, 0.5, r, 0x8ff0ff, 0.45, EASE); for (const m of mons) if (m.st !== "die" && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < r * r) hitMon(m, 20 * pv("shield"), "shield", { kb: 8 }); snd("impact"); return; }
-    const d = n * stat.armor(); R.hp -= d; R.hurtT = 0.35; flashUi("hurt"); snd("hurt", 120); if (hero && hero.hurt) try { hero.hurt(); } catch { /* fine */ }
+    const d = n * stat.armor(); R.hp -= d; R.hurtT = 0.35; flashUi("hurt"); snd("hurt", 120); buzz(28, "hurt", 350); if (hero && hero.hurt) try { hero.hurt(); } catch { /* fine */ }
     num(R.x, 2.3, R.z, d, 0xff4d6d, true); shakeK = Math.max(shakeK, 0.2);
     if (R.hp <= 0) {
-      if (pv("revive") && !R.revived) { R.revived = true; R.hp = R.hpMax * 0.5; R.hurtT = 2; banner(T("Revived!"), ""); snd("level"); heroOnce("emote-yes", 1.2); ring(R.x, R.z, 0.5, 8, 0xffd23a, 0.7, EASE); for (const m of mons) if (m.st !== "die" && !m.boss && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < 64) hitMon(m, 999, "revive", { kb: 10 }); return; }
+      if (pv("revive") && !R.revived) { R.revived = true; R.hp = R.hpMax * 0.5; R.hurtT = 2; banner(T("Revived!"), ""); snd("level"); buzz([30, 30, 60]); heroOnce("emote-yes", 1.2); ring(R.x, R.z, 0.5, 8, 0xffd23a, 0.7, EASE); for (const m of mons) if (m.st !== "die" && !m.boss && (m.x - R.x) ** 2 + (m.z - R.z) ** 2 < 64) hitMon(m, 999, "revive", { kb: 10 }); return; }
       R.hp = 0; endRun("dead");
     }
   }
@@ -826,7 +828,7 @@ export function createSurvivors(ctx) {
     if (FX && R.chest0) { const c = n >= 5 ? 0xffd23a : n >= 3 ? 0x38b8ff : 0xffffff; beam(R.chest0.x, 0, R.chest0.z, R.chest0.x, 14, R.chest0.z, n >= 5 ? 2.6 : 1.8, c, 1.4, PULSE, 0.85); ring(R.chest0.x, R.chest0.z, 0.5, n >= 5 ? 6 : 4, c, 0.8, EASE); } // (b-sv7)
     ui.cards.innerHTML = `<div class="sv-roul${gold ? " gold" : ""}"><small>${esc(T("A chest!"))}</small><div class="sv-roul-n">${[1, 3, 5].map((k) => `<b data-k="${k}">×${k}</b>`).join("")}</div><p>${esc(T("Upgrades"))}</p></div>`; ui.cards.hidden = false;
     const bs = [...ui.cards.querySelectorAll(".sv-roul-n b")], seq = []; let k = 0; for (let i = 0; i < 9; i++) seq.push(i % 3); seq.push([1, 3, 5].indexOf(n)); 
-    const step = () => { if (!on || mode !== "open") return; bs.forEach((b, j) => b.classList.toggle("on", j === seq[k])); snd("tap"); if (++k < seq.length) setTimeout(step, 70 + k * 18); else { bs[seq[k - 1]].classList.add("won"); snd(n >= 3 ? "jackpot" : "chest"); setTimeout(() => { if (on && mode === "open") showCards(true, gold); }, 650); } };
+    const step = () => { if (!on || mode !== "open") return; bs.forEach((b, j) => b.classList.toggle("on", j === seq[k])); snd("tap"); if (++k < seq.length) setTimeout(step, 70 + k * 18); else { bs[seq[k - 1]].classList.add("won"); snd(n >= 3 ? "jackpot" : "chest"); buzz(n >= 3 ? [25, 30, 25, 30, 60] : 25); setTimeout(() => { if (on && mode === "open") showCards(true, gold); }, 650); } };
     step();
   }
   function paintCards(chest, loot) {
@@ -1075,7 +1077,7 @@ export function createSurvivors(ctx) {
   }
   function paintJoy() { if (!ui) return; ui.joy.classList.toggle("on", joy.on); if (joy.on) { ui.joy.style.left = joy.x0 + "px"; ui.joy.style.top = joy.y0 + "px"; ui.knob.style.transform = `translate(${joy.dx * 46}px,${joy.dy * 46}px)`; } else { ui.joy.style.left = ""; ui.joy.style.top = ""; ui.knob.style.transform = ""; } }
   function skill() {
-    if (mode !== "play" || !R || R.skillCd > 0) return; const h = R.hero; R.skillCd = h.scd; snd("jackpot"); cutIn(`<img src="models/world/chars/${h.id}.webp?v=1" alt="">`, T(h.sname), T(h.name), h.color);
+    if (mode !== "play" || !R || R.skillCd > 0) return; const h = R.hero; R.skillCd = h.scd; snd("jackpot"); buzz(40); cutIn(`<img src="models/world/chars/${h.id}.webp?v=1" alt="">`, T(h.sname), T(h.name), h.color);
     if (h.skill === "overdrive") { for (let k = 0; k < 12; k++) later(k * 0.02, "laser", (k / 12) * Math.PI * 2, 15 * stat.reach(), 0.7 * stat.area(), 60); R.overT = 4; ring(R.x, R.z, 0.5, 5, 0x38d8ff, 0.5, EASE); }
     else if (h.skill === "bloom") { heal(R.hpMax * 0.3); num(R.x, 2.4, R.z, R.hpMax * 0.3, 0x5aff8a, true); const r = 6 * stat.area(); ring(R.x, R.z, 0.5, r, 0xff6fc8, 0.6, EASE); disc(R.x, R.z, r, 0xff8ad8, 0.6, 0, 0.45);
       for (let k = 0; k < 14; k++) { const a = Math.random() * 6.283, d = Math.random() * r; const g = glow(R.x + Math.cos(a) * d, 0.3, R.z + Math.sin(a) * d, 0.6, k % 2 ? 0xff8ad8 : 0xffffff, 1.0, SHRINK); if (g) g.vy = 1.5; }

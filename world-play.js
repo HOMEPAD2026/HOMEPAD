@@ -2159,7 +2159,7 @@ async function openJurassic() {
     if (!jurGame) {
       if (card) await paintFrame();
       let M; try { M = await import("./world-jurassic.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-      jurGame = M.createJurassic({ input: () => ({ joy: joy ? { dx: joy.dx, dy: joy.dy } : null, run: runToggle || gpad.run, gx: gpad.x, gy: gpad.y, yaw: camYaw, pitch: camPitch, zoom: camGoal }), setView: (v) => { if (v.yaw != null) camYaw = v.yaw; if (v.pitch != null) camPitch = v.pitch; if (v.zoom != null) camGoal = camDist = v.zoom; }, hurt: (n) => (combat ? combat.hurtMe(n) : null), vitals: () => (combat ? combat.vitals() : null), heal: (k) => (combat && combat.heal ? combat.heal(k) : null), coach: (k, steps) => coach(k, steps), tips: (rows, o) => showTips(rows, o), Snd, sess, post, share: (c) => bragCard(c), level, lang: LANG, char: () => P.char || "arc-arc", music: () => music, stats: () => { try { return rpg && rpg.stats ? rpg.stats() : null; } catch { return null; } }, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why), THREE, K, st, ver: VER, makeGate: (n) => JG.makeJurassicGate(THREE, K, n, { low: lowGfx }), T: TW, esc, toast, reduce, low: lowGfx, coarse,
+      jurGame = M.createJurassic({ buzz: (p) => buzz(p), input: () => ({ joy: joy ? { dx: joy.dx, dy: joy.dy } : null, run: runToggle || gpad.run, gx: gpad.x, gy: gpad.y, yaw: camYaw, pitch: camPitch, zoom: camGoal }), setView: (v) => { if (v.yaw != null) camYaw = v.yaw; if (v.pitch != null) camPitch = v.pitch; if (v.zoom != null) camGoal = camDist = v.zoom; }, hurt: (n) => (combat ? combat.hurtMe(n) : null), vitals: () => (combat ? combat.vitals() : null), heal: (k) => (combat && combat.heal ? combat.heal(k) : null), coach: (k, steps) => coach(k, steps), tips: (rows, o) => showTips(rows, o), Snd, sess, post, share: (c) => bragCard(c), level, lang: LANG, char: () => P.char || "arc-arc", music: () => music, stats: () => { try { return rpg && rpg.stats ? rpg.stats() : null; } catch { return null; } }, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why), THREE, K, st, ver: VER, makeGate: (n) => JG.makeJurassicGate(THREE, K, n, { low: lowGfx }), T: TW, esc, toast, reduce, low: lowGfx, coarse,
         makeHero: () => K.makeCharacter(heroOf(P.char || "arc-arc"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         onLeave: () => { jurOn = false; frozen = false; setTimeout(() => dinoTown.look(), 300); try { music.setList(MUS.PLAYLIST); } catch { /* fine */ } keys.clear(); const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 4, g.z - g.z / d * 4, { x: 0, z: 0 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
@@ -2231,7 +2231,7 @@ let survGame = null, survOn = false, survBusy = false;
 async function survModule() {
   if (survGame) return survGame;
   let M; try { M = await import("./world-survivors.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-  survGame = M.createSurvivors({ THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", fam: diag.fam || "", fps: (n) => st.fps(n || S.fpsCap || autoCap || 60), fpsSet: () => !!S.fpsCap, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
+  survGame = M.createSurvivors({ buzz: (p) => buzz(p), THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", fam: diag.fam || "", fps: (n) => st.fps(n || S.fpsCap || autoCap || 60), fpsSet: () => !!S.fpsCap, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }), addSupply: (k, n) => { const ok = !!(rpg && rpg.addSupply && rpg.addSupply(k, n)); try { if (ok && combat && combat.paintPots) combat.paintPots(); } catch { /* shown on the next repaint */ } return ok; },
         onLeave: () => { const veil = $("wp-veil"); survOn = false; frozen = false; svAch = null; keys.clear(); const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
   return survGame;
@@ -3322,6 +3322,10 @@ function paintHud() {
 const TUT = ["Move with W A S D, or the stick on the left", "Jump with Space, or the arrow button", "Follow the gold light to the Launchpad",
   "Knock out the training scammer: J, or the red button", "Open your character: I, or the bag button", "Open the Adventure log: L — today's chest is there", "Visit your own island through the green gate"];
 const TUT_XP = [0, 0, 0, 25, 15, 15, 30];
+// IDEA3 (2026-10-27, the funnel in diag: of 7 new phones that made a hero, 6 moved and only 2 fought): the training
+// fight comes right after moving and jumping — before, the Launchpad step sent you through a portal to another land
+// first. The steps keep their numbers (saved bits); only the order they're asked in changes
+const TUT_ORDER = [0, 1, 3, 2, 4, 5, 6];
 let tutT = 0;
 function tutorialStep(done) {
   // steps can be done in any order (jumping before walking counts); the hint shows the first one not done yet
@@ -3329,7 +3333,7 @@ function tutorialStep(done) {
     const bit = 1 << done; if ((P.tutBits | 0) & bit || P.tut >= TUT.length) return;
     P.tutBits = (P.tutBits | 0) | bit; if (TUT_XP[done] && !P.tutAgain) setTimeout(() => gain(TUT_XP[done], T("Getting started")), 300);
     if (done === 3 && !P.tutAgain) askSave(8); // a guest's first knock-out and its XP: the moment to offer saving it to a wallet (b-fm1: no sign-in before playing)
-    let n = 0; while (n < TUT.length && P.tutBits & (1 << n)) n++;
+    let n = TUT.length; for (const k of TUT_ORDER) if (!(P.tutBits & (1 << k))) { n = k; break; }
     if (n === P.tut) { save(); return; }
     P.tut = n; save();
     if (n >= TUT.length) { checkQuests(); setTimeout(() => { toast(T("You know your way around. Have fun out there!")); burst(0x39ff88); }, 600); if (!P.tutAgain) askSave(8); if (!P.tutAgain) setTimeout(() => { if (!frozen && mode === "hub") maybeNew(); }, 9000); } // a new player sees what's new once, after the tutorial
@@ -3337,7 +3341,7 @@ function tutorialStep(done) {
   const h = $("wp-hint");
   if (P.tut >= TUT.length) { h.hidden = true; return; }
   // b419 hid the top banner (it covered the HUD); now a small chip near the bottom that fades after 8 s
-  h.innerHTML = `<small>${P.tut + 1}/${TUT.length}</small>${esc(T(TUT[P.tut]))}`; h.hidden = false; h.classList.remove("on"); void h.offsetWidth; h.classList.add("on");
+  h.innerHTML = `<small>${TUT_ORDER.indexOf(P.tut) + 1}/${TUT.length}</small>${esc(T(TUT[P.tut]))}`; h.hidden = false; h.classList.remove("on"); void h.offsetWidth; h.classList.add("on");
   clearTimeout(tutT); tutT = setTimeout(() => { h.hidden = true; }, 8000);
   // the training fight: a weak scammer shows up a few steps away
   // (tried again until the scammer robots have loaded: on a slow connection they come a little after the town)
@@ -4659,9 +4663,9 @@ const dynStart = performance.now(); let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = 
 let gameOn = false;
 // b-perf2: the weakest chips (K.gpuWeak, Auto) start where the slow-frame steps would take them anyway: half the grass
 // and 85 % of the pixels (dynRes can still go down to 60 %), so their first minute isn't spent finding it out
-if (S.quality === "auto" && st.quality.weak && !navigator.webdriver) { const wk = st.on(() => { try { if (!grass || !grass.mesh) return; } catch { return; } grassThin = true; try { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = Math.round(g.userData.full * 0.5); } catch { /* no grass */ } if (st.scale && dynK > 0.85) { dynK = 0.85; st.scale(dynK); } if (typeof wk === "function") wk(); }); }
+if (S.quality === "auto" && st.quality.weak && !navigator.webdriver) { const wk = st.on(() => { try { if (!grass || !grass.mesh) return; } catch { return; } grassThin = true; try { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = 0; } catch { /* no grass */ } if (st.scale && dynK > 0.7) { dynK = 0.7; st.scale(dynK); } /* (IDEA2 2026-10-27, diag: PowerVR GE8320 / Mali-G52 still under 15 fps at 85 % and half the grass — their cost is pixels: 70 % and no grass from the start, and dynRes may go to 50 %) */ if (typeof wk === "function") wk(); }); }
 st.on(() => { let on = false; try { on = !!(defenseOn || jumpOn || beatOn); } catch { return; } if (on === gameOn) return; gameOn = on; dynBad = 0;
-  try { if (coarse && grass && grass.mesh) { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = on || grassThin ? Math.round(g.userData.full * 0.5) : g.userData.full; } } catch { /* no grass */ } });
+  try { if (coarse && grass && grass.mesh) { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = st.quality.weak && S.quality === "auto" && !navigator.webdriver ? 0 : on || grassThin ? Math.round(g.userData.full * 0.5) : g.userData.full; } } catch { /* no grass */ } });
 // RAID QUEENS on a phone (2026-10-26, the owner: the phone got hot in raids): a quick phone ran the light raid scene
 // flat out at 60 fps and full pixels for minutes. While you're in its land a phone runs at an even 30 and at most 85 %
 // of the pixels (a frame limit you chose in Settings stays yours); all back on leaving
@@ -4684,7 +4688,8 @@ function dynRes(dt) {
   if (now - dynLast < (gameOn ? 8000 : 20000)) return;
   // b447: on a phone the grass goes to half before the first pixel goes (the blades are back on phones and cost)
   if (dynBad >= (gameOn ? 1 : 2) && st.quality.coarse && !grassThin && grass && grass.mesh) { grassThin = true; try { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = Math.round(g.userData.full * 0.5); } catch { /* no grass */ } dynBad = 0; dynLast = now; return; }
-  if (dynBad >= (gameOn ? 1 : 2) && dynK > 0.6) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(0.6, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
+  const dynMin = st.quality.weak ? 0.5 : 0.6;
+  if (dynBad >= (gameOn ? 1 : 2) && dynK > dynMin) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(dynMin, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(rqCool ? RQ_COOL.k : 1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
 }
 function watchFps(dt) {
@@ -5551,7 +5556,7 @@ async function refreshMythic() {
 let myUI = null;
 async function mythicUI() {
   if (myUI) return myUI;
-  try { const M = await import("./world-mythic.js"); myUI = M.makeMythicUI({ THREE, K, T: TW, esc, post, sess, level, state: () => mythicNow, tx: (to, data) => walletTx(to, data), signTyped: (td) => walletSignTyped(td), isGM: () => rqGM(), usdcArc: async () => { try { const b = await bridgeMod(); return b ? b.arcUsdc() : null; } catch { return null; } }, bridge: (need) => openBridge({ need }), signIn: () => { try { signIn().then(() => refreshMythic()).then(() => { if (myUI && myUI.repaint) myUI.repaint(); }).catch(() => {}); } catch { /* the wallet button is there too */ } }, refresh: () => refreshMythic(), purse: () => refreshPurse(true), toast, reduce, share: (c) => bragCard(c),
+  try { const M = await import("./world-mythic.js"); myUI = M.makeMythicUI({ buzz: (p) => buzz(p), THREE, K, T: TW, esc, post, sess, level, state: () => mythicNow, tx: (to, data) => walletTx(to, data), signTyped: (td) => walletSignTyped(td), isGM: () => rqGM(), usdcArc: async () => { try { const b = await bridgeMod(); return b ? b.arcUsdc() : null; } catch { return null; } }, bridge: (need) => openBridge({ need }), signIn: () => { try { signIn().then(() => refreshMythic()).then(() => { if (myUI && myUI.repaint) myUI.repaint(); }).catch(() => {}); } catch { /* the wallet button is there too */ } }, refresh: () => refreshMythic(), purse: () => refreshPurse(true), toast, reduce, share: (c) => bragCard(c),
     hero: () => { const h = String(heroOf(P.char || "")).replace("custom-", ""); return /^(aron|lumi|nex)$/.test(h) ? h : "aron"; }, eqItem: (slot) => { try { return (rpg && rpg.data().eq || {})[slot] || null; } catch { return null; } }, freeze: (on) => { frozen = !!on; keys.clear(); if (!on) { near = null; paintPrompt(); } }, ver: VER, Snd }); return myUI; }
   catch (e) { console.warn("mythic", e); if (!staleReload()) toast(TW("Couldn't open it — try again")); return null; }
 }

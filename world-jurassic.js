@@ -22,7 +22,7 @@ export function createJurassic(ctx) {
   // draws — a computer 1.6×, a phone 1.25×, the low setting as before
   const MORE = low ? 1 : coarse ? 1.25 : 1.6;
   const J = JURASSIC;
-  const Snd = ctx.Snd || {}; let shakeT = 0, stopUntil = 0; // stopUntil: a hit-stop (b-fx2), the world nearly still for a few ms
+  const Snd = ctx.Snd || {}, buzz = (p) => { try { if (ctx.buzz) ctx.buzz(p); } catch { /* no buzz */ } }; let shakeT = 0, stopUntil = 0; // stopUntil: a hit-stop (b-fx2), the world nearly still for a few ms
   let S = null, ui = null, hero = null, on = false, busy = false, surv = null, dino = null, jx = null, jy = null, raidNow = false;
   let downNow = false, hop = 0, vy = 0, grounded = true, jumpQ = false, px = J.SPAWN.x, pz = J.SPAWN.z, face = Math.PI, camYaw = Math.PI, camPitch = 0.05, camDist = 1, camGoal = 1, camInit = false, speed = 0, nearGate = false, introT = 0;
   const keys = new Set(), stick = { x: 0, y: 0, id: -1, ox: 0, oy: 0 }, look = { id: -1, x: 0, y: 0 }, pinch = { a: -1, b: -1, d: 0, pts: new Map() };
@@ -203,7 +203,7 @@ export function createJurassic(ctx) {
   /// a boss below half its HP: enraged once a life (the boss hour's shared HP counts too)
   function phase2(o) {
     if (!o || !o.alive || o.p2 || !surv) return; const F = surv.FOE[o.kind]; if (!F || o.hpNow == null || o.hpNow > F.hp * 0.5) return;
-    o.p2 = true; o.sweepAt = clock + 2.5; tint(o, 0xb01010, 0.45); if (o.R) o.R.once("roar", 1); if (Snd.roar) Snd.roar(); shakeT = Math.max(shakeT, 0.4);
+    o.p2 = true; o.sweepAt = clock + 2.5; tint(o, 0xb01010, 0.45); if (o.R) o.R.once("roar", 1); if (Snd.roar) Snd.roar(); buzz([50, 40, 90]); shakeT = Math.max(shakeT, 0.4);
     if (jx) { jx.cutin("💢", T("ENRAGED"), T(DINO_N[o.kind] || "Boss")); jx.roar(o); }
   }
   /// the enraged boss's sweep: a red ring on the ground, then everything in it is hit — unless you're in the air
@@ -222,7 +222,7 @@ export function createJurassic(ctx) {
   }
   /// dodged at the last moment: a word over you, a chime, the world slows for a breath
   function perfect() {
-    const t = performance.now(); if (t - perfectAt < 1500) return; perfectAt = t; if (Snd.perfect) Snd.perfect(); if (!reduce) slowUntil = t + 260;
+    const t = performance.now(); if (t - perfectAt < 1500) return; perfectAt = t; if (Snd.perfect) Snd.perfect(); buzz([15, 25, 15]); if (!reduce) slowUntil = t + 260;
     if (surv && surv.pop) surv.pop({ x: px, z: pz, popY: 2.8 }, "✨ " + esc(T("PERFECT!")), "perfect", 0.1);
     try { if (hero && hero.play && grounded) hero.play("dodge", { once: true, fade: 0.05 }); } catch { /* no clip */ }
   }
@@ -302,7 +302,7 @@ export function createJurassic(ctx) {
   }
   /// a bite landed on you: the damage, the flash, the low-HP word (the same for every dinosaur and for the raid's)
   function hitMe(kind, n, v = ctx.vitals ? ctx.vitals() : null) {
-    if (ctx.hurt) ctx.hurt(n); if (Snd.bite) Snd.bite();
+    if (ctx.hurt) ctx.hurt(n); if (Snd.bite) Snd.bite(); buzz(35);
     lastBite = { at: clock, kind, wall: performance.now() }; edge("hit"); if (surv && surv.pop) surv.pop({ x: px, z: pz, popY: 2.4 }, "-" + n, "hurt", 0.1);
     if (v && v.max && v.hp - n <= v.max * 0.35 && performance.now() - lowWarnAt > 20000) { lowWarnAt = performance.now(); toast(`❤️ <b>${esc(T("Low HP!"))}</b> ${esc(T("Drink a potion (the red bottle), or run: the gate and a camp with a fire are safe."))}`); }
   }
