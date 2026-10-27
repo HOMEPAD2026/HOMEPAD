@@ -4699,7 +4699,7 @@ function dynRes(dt) {
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(rqCool ? RQ_COOL.k : 1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
 }
 function watchFps(dt) {
-  if (st.idle) st.idle(!!(frozen && !photo && !introOn && !flying)); // a menu is open: the world behind it rests
+  if (st.idle) st.idle(!!(frozen && !photo && !introOn && !flying), !!(studio && studio.shown())); // a menu is open: the world behind it rests (STB7: the Studio covers it all — 2 fps)
   if (frozen) { fpsAcc = 0; fpsN = 0; fpsT0 = performance.now(); dynAcc = 0; dynN = 0; dynT0 = performance.now(); return; }
   dynRes(dt);
   if (liteFx || S.quality !== "auto" || photo || navigator.webdriver) return;
@@ -5817,13 +5817,13 @@ async function openStudio(tab) {
   try {
     if (!studio) { card = stuCardSeen ? null : gameCard("studio"); stuCardSeen = true; if (card) await paintFrame();
       let M; try { M = await import("./world-studio.js"); } catch (e) { if (card) card.close(true); if (staleReload()) return; throw e; } if (card) card.step(0);
-      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, ver: VER, tx: (to, data) => walletTx(to, data), isGM: () => !!(agentDim && agentDim.state() && agentDim.state().gm), guide: (k) => openAdGuide(k), low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
+      studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, ver: VER, webLink: true, tx: (to, data) => walletTx(to, data), isGM: () => !!(agentDim && agentDim.state() && agentDim.state().gm), guide: (k) => openAdGuide(k), low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
         makeHero: () => K.makeCharacter(heroOf(P.char || "custom-aron"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         agentName: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.name : ""; } catch { return ""; } },
         share: (c) => bragCard(c),
         land: stuLand, onEvent: (k) => { ccStep(k); if (k === "rate") ccStep("play"); if (k === "publish") { ccGamesAt = 0; setTimeout(() => { try { ccGames(); } catch { /* the next look */ } }, 2500); } } /* STB4: a published game shows on Creator City's portals without waiting two minutes */, soundOn: () => S.sound !== false,
         survivors: async (cfg) => { try { await survModule(); return await survGame.custom(cfg); } catch (e) { console.warn("studio survival", e); if (String((e && e.message) || e).startsWith("load:") && staleReload()) return null; return null; } }, // (SB-3: MONSTER SURVIVAL on the arena's engine)
-        onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); document.body.classList.add("wp-stu-open"); }, onClose: () => { frozen = false; near = null; paintPrompt(); document.body.classList.remove("wp-stu-open"); } });
+        onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); document.body.classList.add("wp-stu-open"); }, onClose: () => { frozen = false; near = null; paintPrompt(); document.body.classList.remove("wp-stu-open"); if (st.idle) st.idle(false); } });
       if (card) { card.step(1); await Promise.all(["/images/studio/ui/bg-1344.webp", "/images/studio/tpl/runner-400.webp", "/images/studio/ui/tab-make.webp"].map((u) => new Promise((ok) => { const im = new Image(); im.onload = im.onerror = ok; im.src = u + VER; }))); } }
     closeAll(); studio.open(tab); if (card) { card.step(2); card.close(); }
   } catch (e) { console.warn("studio", e); if (card) card.close(true); frozen = false; stuLand.exit(); toast(TW("Couldn't open it — try again")); }
@@ -5998,7 +5998,7 @@ async function openArena() {
       agArena = M.createAgArena({ T: TW, esc, toast, sess, post, signIn: () => signIn(), Snd, reduce,
         agent: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? { name: s0.agent.name, kind: s0.agent.kind } : null; } catch { return null; } },
         share: (c) => bragCard(c),
-        onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); document.body.classList.add("wp-stu-open"); }, onClose: () => { frozen = false; near = null; paintPrompt(); document.body.classList.remove("wp-stu-open"); } }); }
+        onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); document.body.classList.add("wp-stu-open"); }, onClose: () => { frozen = false; near = null; paintPrompt(); document.body.classList.remove("wp-stu-open"); if (st.idle) st.idle(false); } }); }
     if (!agentDim) await loadAgent().catch(() => null);
     closeAll(); agArena.open();
   } catch (e) { console.warn("agent arena", e); frozen = false; toast(TW("Couldn't open it — try again")); }

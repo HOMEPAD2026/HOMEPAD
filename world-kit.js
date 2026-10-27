@@ -316,7 +316,7 @@ export function makeStage(canvas, opts = {}) {
       return Promise.race([p.catch(() => {}), new Promise((r) => setTimeout(r, ms))]);
     },
     // a full-screen menu is open: the world behind it only needs a few frames a second (saves battery and heat)
-    idle(on) { const e = on ? 4 : base; if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
+    idle(on, deep) { const e = on ? (deep ? 30 : 4) : base; /* deep: a window covers the whole screen (the Studio) — the world behind it barely draws */ if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
     // a first, gentle step for a slow frame rate: fewer pixels, everything else kept
     lighter() { const r = renderer.getPixelRatio(); if (r <= 1) return false; renderer.setPixelRatio(Math.max(1, r - 0.5)); cap = renderer.getPixelRatio(); if (composer) composer.setPixelRatio(cap); resize(); return true; },
     // a second step (a phone warming up over a long session): half-size sun shadows, everything else kept

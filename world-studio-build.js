@@ -4,6 +4,7 @@
 // clear; undo / redo; the length; what the server would drop shown in red (cleanBuild — the same rules it plays by); the bots'
 // stars as you go; test from where you're looking. → onDone(build) with the layout, or nothing on Back.
 // ctx: { T, esc, toast, spec, onDone, onTest(spec, startZ), onClose }
+import { ask } from "./world-ask.js";
 import { BUILD, CLIMB, cleanBuild, cleanClimb, climbGaps, clampSpec, estimate, THEMES, buildGap } from "./world-studio-gen.js";
 /// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
 const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
@@ -49,13 +50,13 @@ export function createBuilder(ctx) {
     el = document.createElement("div"); el.className = "wsb"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="wsb-in">
       <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🛠️ ${esc(T("Build it yourself"))}</b>
-        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
+        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>
       <div class="wsb-main"><canvas class="wsb-cv"></canvas><div class="wsb-side"><button type="button" class="wsb-i" data-zoom="1" aria-label="+">＋</button><button type="button" class="wsb-i" data-zoom="-1" aria-label="−">－</button><button type="button" class="wsb-i" data-go="start" aria-label="${esc(T("Start"))}">⤓</button><button type="button" class="wsb-i" data-go="end" aria-label="${esc(T("Finish"))}">⤒</button></div></div>
       <div class="wsb-sel" hidden></div>
       <div class="wsb-pieces" hidden></div>
-      <nav class="wsb-tools">${TL.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon(climb ? { n: "platform", m: "platform", b: "platform", s: "spring", k: "spike", c: "coin", h: "heart" } : { w: "wall", m: "moving-wall", g: "gap", l: "laser", b: "blinking-laser", c: "coin", h: "heart" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="p"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
+      <nav class="wsb-tools">${TL.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon(climb ? { n: "platform", m: "platform", b: "platform", s: "spring", k: "spike", c: "coin", h: "heart", x: "../ui2/tool-erase", sel: "../ic2/tool-select" } : { w: "wall", m: "moving-wall", g: "gap", l: "laser", b: "blinking-laser", c: "coin", h: "heart", x: "../ui2/tool-erase", sel: "../ic2/tool-select" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="p"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsb-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu); cv.addEventListener("pointercancel", () => { drag = null; });
@@ -129,7 +130,7 @@ export function createBuilder(ctx) {
     push(); if (i >= 0) B.r.splice(i, 1); else { B.r.push([z, tool, lane]); if (navigator.vibrate) try { navigator.vibrate(8); } catch { /* no buzz */ } }
     after();
   }
-  function after() { heat = null; B.r = B.r.filter((x) => x[0] >= 0 && x[0] <= B.L).slice(0, LIM.ROWS * 2); dirty = true; paintBar(); }
+  function after() { if (ctx.onChange) try { ctx.onChange(B); } catch { /* (STB7: the Studio's autosave) */ } heat = null; B.r = B.r.filter((x) => x[0] >= 0 && x[0] <= B.L).slice(0, LIM.ROWS * 2); dirty = true; paintBar(); }
   // ---- the bars ----
   function paintTools() { if (!el) return; el.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool || (tool === "paste" && b.dataset.tool === "sel")));
     const pc = el.querySelector(".wsb-pieces"); pc.hidden = tool !== "p";
@@ -148,7 +149,7 @@ export function createBuilder(ctx) {
     el.querySelector("[data-undo]").disabled = !undo.length; el.querySelector("[data-redo]").disabled = !redo.length; }
   function onClick(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
+    if (b.hasAttribute("data-close")) { if (undo.length) { ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true }).then((y) => { if (y) close(false); }); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-undo")) { if (undo.length) { redo.push(snapshot()); setB(undo.pop()); } return; }
     if (b.hasAttribute("data-redo")) { if (redo.length) { undo.push(snapshot()); setB(redo.pop()); } return; }

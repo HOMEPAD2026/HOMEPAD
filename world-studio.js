@@ -9,6 +9,7 @@
 //                grabs coins; three hearts; the finish arch; a result card (score, your best, your place)
 import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, DEF, JUMPS, clampSpec, toBuild, genLevel, scoreOf, speedOf, dashSpeed, estimate, puzzleScore, climbGaps } from "./world-studio-gen.js";
 import { makePreview } from "./world-studio-prev.js";
+import { ask } from "./world-ask.js";
 import { look as themeLook, trackUV } from "./world-studio-look.js";
 import { level as ringLevel } from "./world-rings-engine.js";
 import { makePad, makeLand } from "./world-studio-pad.js";
@@ -30,7 +31,7 @@ export function createStudio(ctx) {
   // STU-A: each card's picture is its own level drawn by the preview (one a moment, kept for the window's life)
   const thumbs = new Map(); let thumbQ = [], thumbT = 0;
   // STU-C: the arcade's search / sort / template filter, the weekly contest, a remix's origin
-  let aq = "", asort = "pop", atpl = "", week = null, remixFrom = "";
+  let aq = "", asort = "pop", atpl = "", week = null, remixFrom = "", today = null, myPicks = [], gcm = null; // (STB7: the day's challenge, my picks, the open game's comments)
   // STB1 (2026-10-27): the sidebar's empty space holds this week's contest — one tap starts a game of that template
   const sideCard = () => { if (!week || !week.tpl || !TEMPLATES[week.tpl]) return ""; const d = Math.max(0, Math.ceil((week.ends - Date.now()) / 86400e3));
     return `<button type="button" class="wst-side-ct" data-ctgo="${esc(week.tpl)}"><span class="wst-side-art" style="background-image:url(/images/studio/tpl/${esc(week.tpl)}-400.webp${ctx.ver || ""})"></span><small><i class="wst-ctic">${ui2("contest", "🏆")}</i>${esc(T("Weekly creator contest"))}</small><b>${ICON[week.tpl] || "🎮"} ${esc(T(TEMPLATES[week.tpl].name))}</b><em>${esc(T("{n} days left", { n: d }))}</em></button>`; };
@@ -86,6 +87,8 @@ export function createStudio(ctx) {
   async function load() {
     try { const r = await fetch("/api/social?world=studio-arcade", { cache: "no-store" }); if (r.ok) arcade = (await r.json()).games || []; } catch { /* the next look */ }
     try { const r = await fetch("/api/social?world=studio-week", { cache: "no-store" }); if (r.ok) week = await r.json(); } catch { /* the next look */ }
+    try { const r = await fetch("/api/social?world=studio-day", { cache: "no-store" }); if (r.ok) today = await r.json(); } catch { /* the next look */ }
+    if (wallet()) try { const r = await fetch("/api/social?world=studio-picks&wallet=" + wallet(), { cache: "no-store" }); if (r.ok) myPicks = (await r.json()).ids || []; } catch { /* the next look */ }
     if (ctx.isGM && ctx.isGM()) try { const r = await fetch("/api/social?world=studio-reports", { cache: "no-store" }); if (r.ok) reports = (await r.json()).list || []; } catch { /* the next look */ }
     const w = wallet(); if (w) try { const r = await fetch("/api/social?world=studio-mine&wallet=" + w, { cache: "no-store" }); if (r.ok) { const j = await r.json(); mine = j.games || []; shared = j.shared || []; } setTimeout(() => { try { milestones(); } catch { /* fine */ } }, 600); } catch { /* the next look */ }
     if (w && myH == null) try { const r = await fetch("/api/social?world=studio-handle&wallet=" + w, { cache: "no-store" }); if (r.ok) myH = (await r.json()).h || ""; } catch { /* the next look */ }
@@ -154,7 +157,7 @@ export function createStudio(ctx) {
     const nav = `<nav class="wst-nav">${step > 1 ? `<button type="button" class="wst-go alt" data-back>← ${esc(T("Back"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go alt" data-test>${IC("ic-test")} ${esc(T("Test"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go" data-next>${esc(T("Next"))} →</button>` : "<span></span>"}</nav>`;
     // STU-6: two columns where there's room (a computer, a phone held sideways) — the live preview on the left, the step on the right
     const side = step <= 4 ? `<ul class="wst-facts"><li><i>${ICON[spec.tpl] || "🎮"}</i><span>${esc(T(TEMPLATES[spec.tpl].name))}</span></li><li><i>🎨</i><span>${esc(T(th.name))}</span></li><li><i>🔥</i><span>${starsTxt(E.stars)} ${Math.round(E.clear * 100)}%</span></li></ul>` : "";
-    return `<div class="wst-mk s${step}"><div class="wst-mkl">${box}${side}</div><div class="wst-mkr">${bar}<p class="wst-hint">${esc(T((VIS.find((v) => v[0] === step) || VIS[0])[2]))}</p>${penBar()}<div class="wst-stepbody s${step}">${body}</div></div></div>${nav}`;
+    return `<div class="wst-mk s${step}"><div class="wst-mkl">${box}${side}</div><div class="wst-mkr">${bar}<p class="wst-hint">${esc(T((VIS.find((v) => v[0] === step) || VIS[0])[2]))}</p>${penBar()}${saveBar()}<div class="wst-stepbody s${step}">${body}</div></div></div>${nav}`;
   }
   /// the live preview: one renderer for the window's life, its canvas moved into each paint (none on low graphics)
   function attachPreview() {
@@ -200,10 +203,19 @@ export function createStudio(ctx) {
     if (spec.tpl !== "dash") { x.fillStyle = "#fff"; x.fillRect(w - 5, 8, 3, h - 16); }
   }
   const thumbKey = (g) => g.id + ":" + (g.up || g.at || 0);
-  const coverOf = (g) => thumbs.get(thumbKey(g)) || `/images/ui/studio/${TEMPLATES[g.tpl] ? g.tpl : "runner"}.webp?v=1`;
+  const coverOf = (g) => (g.th ? `/api/social?world=studio-thumb&id=${encodeURIComponent(g.id)}&v=${g.th}` : "") || thumbs.get(thumbKey(g)) || `/images/ui/studio/${TEMPLATES[g.tpl] ? g.tpl : "runner"}.webp?v=1`;
   const card = (g, own) => `<div class="wst-card${g.off ? " off" : ""}" style="--c:${hex((THEMES[g.theme] || THEMES.neon).edge)};--b:${hex((THEMES[g.theme] || THEMES.neon).sky)}"><div class="wst-cv" data-open="${esc(g.id)}" data-th="${esc(thumbKey(g))}" role="button" tabindex="0" style="background-image:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${coverOf(g)})"><i aria-hidden="true">${ICON[g.tpl] || "🏃"}</i><em>${esc(T((THEMES[g.theme] || THEMES.neon).name))}</em>${g.pick ? `<b class="wst-pick">⭐ ${esc(T("Editor's pick"))}</b>` : g.off ? `<b class="wst-pick off">✔ ${esc(T("Official"))}</b>` : ""}${g.now ? `<b class="wst-now">● ${esc(T("{n} playing now", { n: g.now }))}</b>` : ""}</div><div class="wst-ci"><b data-open="${esc(g.id)}" role="button">${esc(g.title)}</b><small>${own ? (g.pub ? "🚀 " + esc(T("On the Creator Arcade")) : "📝 " + esc(T("Draft"))) : esc(T("by {n}", { n: g.byName || "?" }))} · ▶ ${g.plays || 0} · ♥ ${g.likes || 0}</small>
     <span class="wst-cb"><button type="button" class="wst-go" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${own && g.shared ? `<button type="button" data-edit="${esc(g.id)}">${esc(T("Edit"))}</button>` : own ? `<button type="button" data-edit="${esc(g.id)}">${esc(T("Edit"))}</button>${!g.co ? `<button type="button" data-coinv="${esc(g.id)}" aria-label="${esc(T("Build together"))}" title="${esc(T("Build together"))}">👥</button>` : ""}<button type="button" data-pub="${esc(g.id)}">${esc(T(g.pub ? "Unpublish" : "Publish"))}</button><button type="button" data-del="${esc(g.id)}" aria-label="${esc(T("Delete"))}">🗑</button>${g.vers && g.vers.length ? `<button type="button" data-vers="${esc(g.id)}" aria-label="${esc(T("Versions"))}">🕘 ${g.vers.length}</button>` : ""}${g.pub ? `<button type="button" data-stats="${esc(g.id)}" class="${statsOpen === g.id ? "on" : ""}">📊 ${esc(T("Stats"))}</button>` : ""}` : `<button type="button" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}${!own && g.pub !== false && ctx.isGM && ctx.isGM() ? `<button type="button" data-gpick="${esc(g.id)}" aria-label="${esc(T("Editor's pick"))}">${g.pick ? "★" : "☆"}</button>` : ""}${g.pub ? `<button type="button" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>` : ""}</span>${own ? coLine(g) : ""}${own && !g.shared && statsOpen === g.id ? statsBox(g) : ""}</div></div>`;
-  function wantThumbs(list) { if (ctx.saver || !prevOk) return; for (const g of list) { const sp = g.spec || g.s; if (sp && !thumbs.has(thumbKey(g))) thumbQ.push([thumbKey(g), sp]); } clearTimeout(thumbT); thumbT = setTimeout(nextThumb, 60); }
+  function wantThumbs(list) { if (ctx.saver || !prevOk) return; for (const g of list) { if (g.th) continue; const sp = g.spec || g.s; if (sp && !thumbs.has(thumbKey(g))) thumbQ.push([thumbKey(g), sp]); } clearTimeout(thumbT); thumbT = setTimeout(nextThumb, 60); }
+  /// STB7: the card's picture is made once here, on the maker's page, and kept on the server (384 × 216 JPEG)
+  async function upThumb(g) {
+    if (!g || !g.id || ctx.saver || !prevOk) return; try {
+      if (!prev) prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); if (!prev) return;
+      const src = prev.snap(clampSpec({ ...(g.spec || spec) })); if (!src) return; const im = new Image(); await new Promise((ok, no) => { im.onload = ok; im.onerror = no; im.src = src; });
+      const c = document.createElement("canvas"); c.width = 384; c.height = 216; const x = c.getContext("2d"), k = Math.max(384 / im.width, 216 / im.height); x.drawImage(im, (384 - im.width * k) / 2, (216 - im.height * k) / 2, im.width * k, im.height * k);
+      const r = await act({ action: "world-studio-thumb", id: g.id, img: c.toDataURL("image/jpeg", 0.72) }); if (r && r.ok && r.j.th) { mine = mine.map((q) => (q.id === g.id ? { ...q, th: r.j.th } : q)); }
+    } catch (e) { console.warn("studio thumb", e); }
+  }
   function nextThumb() {
     if (!el || el.hidden || !thumbQ.length) return; if (!prev) { try { prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); } catch { prev = null; } if (!prev) { prevOk = false; return; } }
     const [k, sp] = thumbQ.shift(); if (!thumbs.has(k)) { let u = ""; try { u = prev.snap(clampSpec({ ...sp })); } catch { /* the template's picture stays */ } if (u) { thumbs.set(k, u); el.querySelectorAll(`[data-th="${CSS.escape(k)}"]`).forEach((c) => { c.style.backgroundImage = `linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${u})`; c.classList.add("snap"); }); } }
@@ -222,6 +234,22 @@ export function createStudio(ctx) {
     if (g.shared) return `<p class="wst-coln">👥 ${esc(T("{n}'s game — you build it together", { n: (g.co && g.co.owner) || g.byName || "?" }))}${g.co && g.co.pen ? ` · ✏️ ${esc(g.co.pen.name)}` : ""} <button type="button" data-coleave="${esc(g.id)}">${esc(T("Leave"))}</button></p>`;
     if (g.co) return `<p class="wst-coln">👥 ${esc(T("Built with {n}", { n: g.co.name || "?" }))}${g.co.pen ? ` · ✏️ ${esc(g.co.pen.name)}` : ""} <button type="button" data-coleave="${esc(g.id)}">${esc(T("Remove"))}</button></p>`;
     const c = coCode[g.id] || g.coCode; return c ? `<p class="wst-coln">👥 ${esc(T("Friend's code"))}: <b class="wst-code">${esc(c)}</b> <button type="button" data-cocopy="${esc(c)}">${esc(T("Copy"))}</button></p>` : "";
+  }
+  // STB7: the save's state stays on screen (a toast was easy to miss), and a shared draft listens for the pen coming back
+  let sv = null, penT = 0;
+  function saveBar() {
+    if (!sv || !editId && sv.k !== "saving") return ""; const hm = sv.at ? new Date(sv.at).toTimeString().slice(0, 5) : "";
+    return sv.k === "saving" ? `<p class="wst-sv">⟳ ${esc(T("Saving…"))}</p>` : sv.k === "err" ? `<p class="wst-sv err">⚠ ${esc(T("Not saved — try again"))} <button type="button" data-resave>${esc(T("Retry"))}</button></p>` : `<p class="wst-sv ok">✓ ${esc(T("Saved {t}", { t: hm }))}</p>`;
+  }
+  function penWatch() {
+    clearInterval(penT); penT = 0; const g = editId && coOf(editId); if (!g || !(g.co || g.shared) || !wallet()) return;
+    penT = setInterval(async () => {
+      if (!el || el.hidden || tab !== "make" || !editId) { clearInterval(penT); penT = 0; return; } if (penMine()) return;
+      try { const r = await fetch("/api/social?world=studio-mine&wallet=" + wallet(), { cache: "no-store" }); if (!r.ok) return; const j = await r.json(), all = [...(j.games || []), ...(j.shared || []).map((x) => ({ ...x, shared: true }))], n = all.find((x) => x.id === editId); if (!n) return;
+        const was = pen && pen.name; mine = j.games || mine; shared = (j.shared || []).map((x) => ({ ...x, shared: true })); pen = n.co ? n.co.pen : null;
+        if (was && !pen) { ctx.toast("✏️ " + esc(T("{n} passed you the pen", { n: was }))); paint(); } else if (pen && pen.name !== was) paint();
+        if (n.spec && !penMine() && JSON.stringify(n.spec) !== JSON.stringify(spec)) { spec = clampSpec(n.spec); paint(); } } catch { /* the next look */ }
+    }, 12000);
   }
   function penBar() {
     const g = editId && coOf(editId); if (!g || !(g.co || g.shared)) return "";
@@ -252,6 +280,23 @@ export function createStudio(ctx) {
     return `<details class="wst-gmprize"><summary>GM · ${esc(T("USDC prize"))}</summary><form data-prizef>${[0, 1, 2].map((i) => `<label>${["🥇", "🥈", "🥉"][i]}<input type="number" min="0" max="1000" step="1" value="${(pz.usd[i] || 0) / 100}"> USDC</label>`).join("")}<button type="submit" class="wst-go">${esc(T("Set this week's prize"))}</button></form>
       ${due.length ? `<p>${esc(T("Last week's prizes to pay:"))}</p>${due.map((r) => `<button type="button" class="wst-go" data-prizepay="${r.i}" data-week="${esc(week.last.week)}" data-amt="${r.c}" data-gid="${esc(r.x.id)}">${["🥇", "🥈", "🥉"][r.i]} ${esc(r.x.title)} · ${usd(r.c)} USDC — ${esc(T("Pay from my wallet"))}</button>`).join("")}` : ""}</details>`;
   }
+  // STB7 (2026-10-27): the day's creator challenge — a template and a theme a Seoul day; a game published today in both
+  // enters, and others' plays + likes ×5 today rank it
+  function dayBox() {
+    if (!today || !TEMPLATES[today.tpl]) return ""; const left = Math.max(0, today.ends - Date.now()), h = Math.floor(left / 3600e3), m = Math.floor((left % 3600e3) / 60e3), th = THEMES[today.theme] || THEMES.neon;
+    const top = (today.top || []).slice(0, 3), medal = ["🥇", "🥈", "🥉"];
+    return `<div class="wst-contest wst-day" style="--c:${hex(th.edge)}"><div class="wst-cth"><i class="wst-dayic">🌞</i><div><small>${esc(T("Today's creator challenge"))}</small><b>${ICON[today.tpl] || "🎮"} ${esc(T(TEMPLATES[today.tpl].name))} · ${esc(T(th.name))}</b><em>${esc(T("ends in {h}h {m}m", { h, m }))}</em></div><button type="button" class="wst-go" data-daymake="${esc(today.tpl)}:${esc(today.theme)}">🛠️ ${esc(T("Enter"))}</button></div>
+      <small class="wst-ctrule">${esc(T("Publish a {t} game in the {th} theme today — the most played wins the day.", { t: T(TEMPLATES[today.tpl].name), th: T(th.name) }))}</small>
+      ${top.length ? `<ol class="wst-ctop">${top.map((x, i) => `<li data-open="${esc(x.id)}" role="button"><i>${medal[i]}</i><b>${esc(x.title)}</b><span>${esc(x.byName || "?")}</span><em>${x.score}</em></li>`).join("")}</ol>` : `<p class="wst-ctempty">${esc(T("No entries yet — yours could be #1!"))}</p>`}
+      ${today.last && today.last.top && today.last.top.length ? `<p class="wst-ctlast">${esc(T("Yesterday's winner"))}: 👑 <b data-open="${esc(today.last.top[0].id)}" role="button">${esc(today.last.top[0].title)}</b> · ${esc(today.last.top[0].byName || "?")}</p>` : ""}</div>`;
+  }
+  const RX = { fire: "🔥", lol: "😂", wow: "😮", hard: "💀", love: "😍" };
+  function socialBox(g, own) {
+    const rx = (gcm && gcm.rx) || g.rx || {}, L = (gcm && gcm.comments) || [], picked = myPicks.includes(g.id);
+    return `<div class="wst-soc"><div class="wst-rx">${Object.entries(RX).map(([k, e]) => `<button type="button" data-rx="${k}">${e}<b>${rx[k] || 0}</b></button>`).join("")}${own ? "" : `<button type="button" class="wst-pick${picked ? " on" : ""}" data-mypick="${esc(g.id)}">⭐ ${esc(T(picked ? "In my picks" : "Add to my picks"))}</button>`}</div>
+      <form class="wst-cmf" data-cmtf><input maxlength="140" autocomplete="off" placeholder="${esc(T("Say something nice about this game…"))}"><button type="submit" class="wst-go alt">${esc(T("Post"))}</button></form>
+      <ul class="wst-cml">${L.length ? L.slice(0, 20).map((c) => `<li${c.maker ? ' class="mk"' : ""}><b>${esc(c.name || "Player")}${c.maker ? ` <em>${esc(T("Maker"))}</em>` : ""}</b><span>${esc(c.t)}</span>${own ? `<button type="button" class="wst-link" data-uncmt="${esc(c.k)}" aria-label="${esc(T("Delete"))}">✕</button>` : ""}</li>`).join("") : `<li class="none">${esc(gcm ? T("No comments yet — be the first!") : T("Loading…"))}</li>`}</ul></div>`;
+  }
   function contestBox() {
     if (!week || !week.tpl || !TEMPLATES[week.tpl]) return ""; const left = Math.max(0, week.ends - Date.now()), d = Math.floor(left / 86400e3), h = Math.floor((left % 86400e3) / 3600e3);
     const top = (week.top || []).slice(0, 3), medal = ["🥇", "🥈", "🥉"];
@@ -273,7 +318,7 @@ export function createStudio(ctx) {
     const pool = arcade.filter((g) => !g.off).sort((p, q) => (q.plays + q.likes * 5) - (p.plays + p.likes * 5)).slice(0, 24), dk = Number(new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, ""));
     const today = filtered || pool.length < 4 ? [] : [0, 1, 2].map((i) => pool[(dk * (i + 7) * 2654435761 >>> 0) % pool.length]).filter((g, i, a) => a.indexOf(g) === i);
     const rows = `${hot.length ? `<h4 class="wst-sec">🔥 ${esc(T("Playing right now"))}</h4><div class="wst-offrow">${hot.map((g) => card(g, false)).join("")}</div>` : ""}${today.length ? `<h4 class="wst-sec">📅 ${esc(T("Today's three"))}</h4><div class="wst-offrow">${today.map((g) => card(g, false)).join("")}</div>` : ""}`;
-    return `${rbox}${contestBox()}${arcTools()}${rows}${off.length ? `<h4 class="wst-sec">✔ ${esc(T("Start here — made by ARCIRCLE"))}</h4><div class="wst-offrow">${off.map((g) => card(g, false)).join("")}</div>` : ""}
+    return `${rbox}${dayBox()}${contestBox()}${arcTools()}${rows}${off.length ? `<h4 class="wst-sec">✔ ${esc(T("Start here — made by ARCIRCLE"))}</h4><div class="wst-offrow">${off.map((g) => card(g, false)).join("")}</div>` : ""}
       <h4 class="wst-sec">🕹️ ${esc(T("Players' games"))}</h4>${rest.length ? `<div class="wst-offrow">${rest.map((g) => card(g, false)).join("")}</div>` : filtered ? `<p class="wst-empty">${esc(T("No games match — try another word or template"))}</p>` : `<div class="wst-emptybox"><i>🚀</i><b>${esc(T("Be the first creator!"))}</b><small>${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`}`;
   }
   // Studio 3: a game's own page — its cover, who made it, how hard, the top 10, play / race the #1's ghost / like / challenge
@@ -290,7 +335,8 @@ export function createStudio(ctx) {
       break; } // (one celebration at a time)
     try { localStorage.setItem("arc.studio.ms", JSON.stringify(seen)); } catch { /* not kept */ } }
   async function openGame(id) {
-    gid = id; gdata = null; tab = "game"; paint();
+    gid = id; gdata = null; gcm = null; tab = "game"; paint();
+    fetch("/api/social?world=studio-comments&id=" + encodeURIComponent(id), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && gid === id) { gcm = j; if (tab === "game") paint(); } }).catch(() => { /* none shown */ });
     try { const [a, b] = await Promise.all([fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id), { cache: "no-store" }), fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(id), { cache: "no-store" })]);
       const g = a.ok ? (await a.json()).game : null, gh = b.ok ? (await b.json()).ghost : null; if (gid !== id) return; gdata = g ? { ...g, ghost: gh } : { gone: true }; } catch { gdata = { gone: true }; }
     if (tab === "game") paint();
@@ -305,8 +351,9 @@ export function createStudio(ctx) {
       ${g.ghost ? `<label class="wst-ghosto"><input type="checkbox" data-ghost ${ghostOn ? "checked" : ""}> 👻 ${esc(T("Race {n}'s ghost ({s})", { n: g.ghost.name || "#1", s: g.ghost.score }))}</label>` : ""}
       <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">${IC("ic-remix")} ${esc(T("Remix"))}</button></div>
       ${own ? "" : `<div class="wst-rep">${repOpen ? `<small>${esc(T("What's wrong with it?"))}</small><div class="wst-chips">${REASONS.map(([k, ic, l]) => `<button type="button" data-report="${k}">${ic} ${esc(T(l))}</button>`).join("")}</div>` : `<button type="button" class="wst-link" data-repopen>${IC("ic-report")} ${esc(T("Report this game"))}</button>`}${ctx.isGM && ctx.isGM() ? ` <button type="button" class="wst-link" data-ghide="${g.hidden ? 0 : 1}">${g.hidden ? "👁 " + esc(T("Show it again")) : "🙈 " + esc(T("Hide from the arcade (GM)"))}</button>` : ""}</div>`}
+      ${socialBox(g, own)}
       <button type="button" class="wst-link" data-tab="arcade">← ${esc(T("Creator Arcade"))}</button></div>
-      <aside class="wst-gpr"><h4>${IC("ic-trophy")} ${esc(T("Top 10"))}</h4>${(g.best || []).length ? `<ol class="wst-board">${g.best.map((x, i) => `<li class="${i === 0 ? "gold" : ""}"><i>${i === 0 ? "👑" : i + 1}</i><b>${esc(x.name || "?")}</b><em>${x.score}</em>${x.gh ? `<button type="button" class="wst-gp" data-gp="${i + 1}" aria-label="${esc(T("Race {n}'s ghost", { n: x.name || "?" }))}">👻</button>` : ""}</li>`).join("")}</ol>` : `<p class="wst-empty">${esc(T("Nobody has played it yet — be the first!"))}</p>`}</aside></div>`;
+      <aside class="wst-gpr"><h4>${IC("ic-trophy")} ${esc(T("Top 10"))}</h4>${(g.best || []).length ? `<ol class="wst-board">${g.best.map((x, i) => `<li class="${i === 0 ? "gold" : ""}"><i>${i === 0 ? "👑" : i + 1}</i><b>${esc(x.name || "?")}</b><em>${x.score}</em>${x.gh ? `<button type="button" class="wst-gpb" data-gp="${i + 1}" aria-label="${esc(T("Race {n}'s ghost", { n: x.name || "?" }))}">👻</button>` : ""}</li>`).join("")}</ol>` : `<p class="wst-empty">${esc(T("Nobody has played it yet — be the first!"))}</p>`}</aside></div>`;
   }
   const localBest = (id) => { try { return Number(localStorage.getItem("arc.studio.best." + id) || 0); } catch { return 0; } };
   const ev = (k) => { try { if (ctx.onEvent) ctx.onEvent(k); } catch { /* fine */ } }; // (Studio Beta: the Academy's 10-minute first game counts these)
@@ -319,7 +366,7 @@ export function createStudio(ctx) {
     el.classList.toggle("wide", isWide()); // (STU-6: a computer or a phone held sideways — the rail-and-columns layout)
     el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Make your own game"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">${IC("ic-guide")}</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
       <nav class="wst-tabs">${[["make", "tab-make", "Create"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${IC(ic)}</span>${esc(T(l))}</button>`).join("")}</nav>
-      <div class="wst-body">${body}</div><div class="wst-foot">${sideCard()}<span>${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</span></div></div>`;
+      <div class="wst-body">${body}</div><div class="wst-foot">${sideCard()}${ctx.webLink ? `<a class="wst-weblink" href="/studio" target="_blank" rel="noopener">🌐 ${esc(T("Open ARCIRCLE Studio on the web — faster"))} ↗</a>` : ""}<span>${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</span></div></div>`;
     estRoll();
     if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else { if (prev) prev.stop(); wantThumbs(tab === "arcade" ? arcade : tab === "mine" ? [...mine, ...locals().map((d) => ({ id: d.id, at: d.at, spec: d.spec }))] : []); }
   }
@@ -343,6 +390,8 @@ export function createStudio(ctx) {
     if (t.matches("[data-ghost]")) ghostOn = t.checked;
   }
   async function onPrizeSet(e) {
+    if (e.target.closest && e.target.closest("[data-cmtf]")) { e.preventDefault(); const f = e.target.closest("[data-cmtf]"), inp = f.querySelector("input"), t = inp.value.trim(); if (t.length < 2 || !gdata) return;
+      const r = await act({ action: "world-studio-comment", id: gdata.id, t }); if (!r || !r.ok) return r && fail(r); gcm = { ...(gcm || {}), comments: r.j.comments }; ctx.toast("💬 " + esc(T("Posted"))); paint(); return; }
     const f = e.target.closest("[data-prizef]"); if (!f) return; e.preventDefault();
     const usdv = [...f.querySelectorAll("input")].map((i) => Math.round((Number(i.value) || 0) * 100)); const r = await act({ action: "world-studio-prize", op: "set", usd: usdv });
     if (!r || !r.ok) return fail(r); week = { ...week, prize: r.j.prize }; ctx.toast("🏆 " + esc(T("Prize set"))); paint();
@@ -351,7 +400,7 @@ export function createStudio(ctx) {
     if (!ctx.tx) { ctx.toast(esc(T("Wallet connect isn't available here."))); return; }
     const q = await act({ action: "world-studio-prize", op: "to", week: b.dataset.week, rank: Number(b.dataset.prizepay) }), to = q && q.ok && q.j.to;
     if (!/^0x[0-9a-fA-F]{40}$/.test(String(to || ""))) { ctx.toast(esc(T("That game has no maker's wallet"))); return; }
-    const cents = Number(b.dataset.amt); if (typeof confirm === "function" && !confirm(T("Send {p} USDC to {w} from your wallet?", { p: (cents / 100).toFixed(2), w: to.slice(0, 6) + "…" + to.slice(-4) }))) return;
+    const cents = Number(b.dataset.amt); if (!(await ask(T, T("Send {p} USDC to {w} from your wallet?", { p: (cents / 100).toFixed(2), w: to.slice(0, 6) + "…" + to.slice(-4) }), { ok: T("Send") }))) return;
     b.disabled = true; let tx;
     try { tx = await ctx.tx("0x3600000000000000000000000000000000000000", "0xa9059cbb" + to.slice(2).toLowerCase().padStart(64, "0") + (BigInt(cents) * 10000n).toString(16).padStart(64, "0")); } catch (e2) { b.disabled = false; ctx.toast(esc(e2 && e2.code === 4001 ? T("Cancelled") : (e2 && e2.message) || T("The wallet didn't send it"))); return; }
     for (let i = 0; i < 16; i++) { const r = await act({ action: "world-studio-prize", op: "paid", week: b.dataset.week, rank: Number(b.dataset.prizepay), tx }); if (r && r.status === 202) { await new Promise((ok) => setTimeout(ok, 4000)); continue; } if (!r || !r.ok) { b.disabled = false; return fail(r); } week = { ...week, last: { ...week.last, prize: r.j.prize } }; ctx.toast("🏆 " + esc(T("Paid — the server checked your transfer"))); paint(); return; }
@@ -365,7 +414,7 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-lup")) return uploadLocals();
     if (b.dataset.ltest) { const d = locals().find((x) => x.id === b.dataset.ltest); if (d) run({ spec: clampSpec(d.spec), test: true }); return; }
     if (b.dataset.ledit) { const d = locals().find((x) => x.id === b.dataset.ledit); if (d) { spec = clampSpec(d.spec); editId = ""; localId = d.id; tab = "make"; step = 3; lastTest = null; paint(); } return; }
-    if (b.dataset.ldel) { if (!confirm(T("Delete this game?"))) return; setLocals(locals().filter((x) => x.id !== b.dataset.ldel)); if (localId === b.dataset.ldel) localId = ""; paint(); return; }
+    if (b.dataset.ldel) { if (!(await ask(T, T("Delete this game?"), { ok: T("Delete"), danger: true }))) return; setLocals(locals().filter((x) => x.id !== b.dataset.ldel)); if (localId === b.dataset.ldel) localId = ""; paint(); return; }
     if (b.dataset.card) return shareCard(b.dataset.card);
     if (b.dataset.asort) { asort = b.dataset.asort; return paintKeep(); }
     if (b.dataset.stats) { statsOpen = statsOpen === b.dataset.stats ? "" : b.dataset.stats; if (statsOpen) await load(); return paintKeep(); }
@@ -375,6 +424,10 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-tweak")) return tweakIt();
     if (b.dataset.atpl != null && b.hasAttribute("data-atpl")) { atpl = b.dataset.atpl; return paintKeep(); }
     if (b.dataset.prizepay) { await payPrize(b); return; }
+    if (b.dataset.daymake) { const [tp, th] = b.dataset.daymake.split(":"); spec = clampSpec({ ...spec, tpl: tp, theme: th, title: "" }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 1; lastTest = null; paint(); return; }
+    if (b.dataset.rx && gdata) { b.disabled = true; const r = await act({ action: "world-studio-react", id: gdata.id, r: b.dataset.rx }); if (!r || !r.ok) { b.disabled = false; return r && fail(r); } gcm = { ...(gcm || { comments: [] }), rx: r.j.rx }; if (r.j.already) ctx.toast(esc(T("You reacted already"))); paint(); const nb = el.querySelector(`[data-rx="${b.dataset.rx}"]`); if (nb) nb.classList.add("pop"); return; }
+    if (b.dataset.mypick) { const id = b.dataset.mypick, on = !myPicks.includes(id), next = on ? [id, ...myPicks] : myPicks.filter((x) => x !== id); const r = await act({ action: "world-studio-picks", ids: next.slice(0, 20) }); if (!r || !r.ok) return r && fail(r); myPicks = r.j.ids || []; ctx.toast(on ? "⭐ " + esc(T("Added to your picks — they show on your web page")) : esc(T("Taken out of your picks"))); paint(); return; }
+    if (b.dataset.uncmt && gdata) { const r = await act({ action: "world-studio-uncomment", id: gdata.id, k: b.dataset.uncmt }); if (!r || !r.ok) return r && fail(r); gcm = { ...(gcm || {}), comments: r.j.comments }; paint(); return; }
     if (b.dataset.ctmake) { spec = clampSpec({ ...spec, tpl: b.dataset.ctmake, title: "" }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 1; lastTest = null; paint(); return; }
     if (b.dataset.remix) { const g = gdata && gdata.id === b.dataset.remix ? gdata : null; if (!g || !g.spec) return; return remixOf(g); }
     if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("studio"); return; }
@@ -389,9 +442,9 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-galall")) { galSeeds(); const keep = spec.seed; gal = gal.map((_, i) => (i ? 1 + Math.floor(Math.random() * 999998) : keep)); return paintKeep(); }
     if (b.dataset.gpick) { const g = arcade.find((x) => x.id === b.dataset.gpick); const r = await act({ action: "world-studio-pick", id: b.dataset.gpick, on: !(g && g.pick) }); if (r && r.ok) { ctx.toast(r.j.pick ? "⭐ " + esc(T("Editor's pick")) : esc(T("Taken off the picks"))); arcade = arcade.map((x) => (x.id === b.dataset.gpick ? { ...x, pick: r.j.pick ? Date.now() : 0 } : x)).sort((x, y) => (y.pick ? 1 : 0) - (x.pick ? 1 : 0)); paint(); } else if (r) fail(r); return; }
     if (b.hasAttribute("data-build")) return openBuilder();
-    if (b.hasAttribute("data-unbuild")) { if (!confirm(T("Go back to the quick-start layout? Your hand-built layout is dropped."))) return; delete spec.build; spec = clampSpec(spec); return paintKeep(); }
+    if (b.hasAttribute("data-unbuild")) { if (!(await ask(T, T("Go back to the quick-start layout? Your hand-built layout is dropped."), { danger: true }))) return; delete spec.build; spec = clampSpec(spec); return paintKeep(); }
     if (b.dataset.preset) { Object.assign(spec, PRESETS[b.dataset.preset]); if (ctx.Snd && ctx.Snd.click) try { ctx.Snd.click(); } catch { /* no sound */ } return paintKeep(); }
-    if (b.hasAttribute("data-savepub")) { if (!ctx.sess()) { try { await ctx.signIn(); } catch { return; } if (!ctx.sess()) return; } if (!okToPublish()) return; await save(); if (editId && !(mine.find((g) => g.id === editId) || {}).pub) await publish(editId); return; }
+    if (b.hasAttribute("data-savepub")) { if (!ctx.sess()) { try { await ctx.signIn(); } catch { return; } if (!ctx.sess()) return; } if (!(await okToPublish())) return; await save(); if (editId && !(mine.find((g) => g.id === editId) || {}).pub) await publish(editId); return; }
     if (b.dataset.tcat) { tcat = b.dataset.tcat; return paint(); }
     if (b.dataset.ctgo) { tab = "make"; step = 1; tcat = "all"; spec = clampSpec({ ...spec, tpl: b.dataset.ctgo }); ev("tpl"); return paint(); }
     if (b.dataset.tpl) { ev("tpl"); spec = clampSpec({ ...spec, tpl: b.dataset.tpl, title: spec.title === "My Sky Run" || spec.title === "My Arena" || spec.title === "My Infinity Dash" ? "" : spec.title }); return paint(); }
@@ -408,13 +461,14 @@ export function createStudio(ctx) {
     if (b.dataset.vers) { const g = mine.find((x) => x.id === b.dataset.vers), card = b.closest(".wst-card") || b.parentElement; if (!g || !card) return; const old = card.querySelector(".wst-vers"); if (old) { old.remove(); return; }
       const box = document.createElement("div"); box.className = "wst-vers"; box.innerHTML = `<small>${esc(T("Earlier saves — open one, then save to keep it"))}</small>` + g.vers.map((v, i) => `<button type="button" data-restore="${esc(g.id)}:${i}"><span>${esc(new Date(v.at).toLocaleString())}</span><b>${v.spec && v.spec.build ? "🛠️ " + v.spec.build.r.length : esc(T(TEMPLATES[(v.spec || {}).tpl] ? TEMPLATES[v.spec.tpl].name : ""))}</b></button>`).join(""); card.appendChild(box); return; }
     if (b.dataset.restore) { const [id, i] = b.dataset.restore.split(":"), g = mine.find((x) => x.id === id), v = g && g.vers && g.vers[Number(i)]; if (!v) return; spec = clampSpec(v.spec); editId = id; tab = "make"; step = 3; lastTest = null; paint(); ctx.toast(esc(T("An earlier save is open — save to keep it"))); return; }
-    if (b.dataset.edit) { repOpen = false; const g = coOf(b.dataset.edit); if (g) { spec = clampSpec(g.spec); editId = g.id; localId = ""; remixFrom = ""; tab = "make"; step = 3; lastTest = null; pen = g.co && g.co.pen ? g.co.pen : null; paint(); if ((g.co || g.shared) && !pen) takePen(true); } return; }
+    if (b.dataset.edit) { repOpen = false; const g = coOf(b.dataset.edit); if (g) { spec = clampSpec(g.spec); editId = g.id; localId = ""; remixFrom = ""; tab = "make"; step = 3; lastTest = null; pen = g.co && g.co.pen ? g.co.pen : null; sv = null; paint(); if ((g.co || g.shared) && !pen) takePen(true); penWatch(); } return; }
     if (b.dataset.copen) return takePen(b.dataset.copen === "on");
+    if (b.hasAttribute("data-resave")) return save();
     if (b.dataset.coinv) { const id = b.dataset.coinv; act({ action: "world-studio-co-invite", id }).then((r) => { if (!r || !r.ok) return r && fail(r); coCode[id] = r.j.code; try { navigator.clipboard.writeText(r.j.code); } catch { /* shown on the card */ } ctx.toast("👥 " + esc(T("Code {c} — send it to one friend (open for a day)", { c: r.j.code }))); paint(); }); return; }
     if (b.dataset.cocopy) { try { navigator.clipboard.writeText(b.dataset.cocopy); ctx.toast("📋 " + esc(T("Copied"))); } catch { /* shown */ } return; }
     if (b.hasAttribute("data-cojoin")) { const inp = el.querySelector(".wst-coin"), code = inp ? inp.value.trim() : ""; if (!/^[a-z0-9]{6}$/i.test(code)) { ctx.toast(esc(T("A code has 6 letters"))); return; }
       act({ action: "world-studio-co-join", code }).then((r) => { if (!r || !r.ok) return r && fail(r); shared = [r.j.game, ...shared.filter((x) => x.id !== r.j.game.id)]; ctx.toast("👥 " + esc(T("You joined {t}", { t: r.j.game.title }))); paint(); }); return; }
-    if (b.dataset.coleave) { const id = b.dataset.coleave; if (!confirm(T("Stop building this game together?"))) return; act({ action: "world-studio-co-leave", id }).then((r) => { if (!r || !r.ok) return r && fail(r); shared = shared.filter((x) => x.id !== id); if (editId === id && !mine.some((x) => x.id === id)) { editId = ""; } pen = null; load(); }); return; }
+    if (b.dataset.coleave) { const id = b.dataset.coleave; if (!(await ask(T, T("Stop building this game together?"), { danger: true }))) return; act({ action: "world-studio-co-leave", id }).then((r) => { if (!r || !r.ok) return r && fail(r); shared = shared.filter((x) => x.id !== id); if (editId === id && !mine.some((x) => x.id === id)) { editId = ""; } pen = null; load(); }); return; }
     if (b.dataset.gp && gdata && gdata.id) { const id = gdata.id; b.disabled = true; // (STB5: race any board player's best, not only the #1's)
       fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(id) + "&p=" + encodeURIComponent(b.dataset.gp), { cache: "no-store" }).then((r) => r.json()).then((j) => { if (j && j.ghost) playId(id, { ghost: j.ghost }); else { b.disabled = false; ctx.toast(esc(T("That ghost isn't there any more"))); } }).catch(() => { b.disabled = false; ctx.toast(esc(T("Couldn't open it — try again"))); });
       return; }
@@ -435,7 +489,7 @@ export function createStudio(ctx) {
   }
   let localId = "";
   /// STU-A: almost nobody finishes it and the maker hasn't either — ask first
-  function okToPublish() { const E = estimate(spec); if (E.clear >= 0.05 || (lastTest && lastTest.done)) return true; return confirm(T("Almost nobody finishes this one. Publish anyway? (Finish it once in a test first to be sure.)")); }
+  async function okToPublish() { const E = estimate(spec); if (E.clear >= 0.05 || (lastTest && lastTest.done)) return true; return ask(T, T("Almost nobody finishes this one. Publish anyway? (Finish it once in a test first to be sure.)")); }
   async function uploadLocals() {
     const L = locals(); if (!L.length) return; busy = true; let n = 0;
     for (const d of L) { const r = await act({ action: "world-studio-save", spec: clampSpec(d.spec) }); if (!r || !r.ok) { if (r) fail(r); break; } mine = [r.j.game, ...mine]; setLocals(locals().filter((x) => x.id !== d.id)); n++; }
@@ -456,17 +510,18 @@ export function createStudio(ctx) {
       localId = id; setLocals([{ id, spec, at }, ...L.filter((x) => x.id !== id)]);
       ctx.toast("📱 " + esc(T("Saved on this device — sign in to keep it everywhere and publish"))); paint(); return;
     }
-    spec = clampSpec(spec); busy = true; paint(); const r = await act({ action: "world-studio-save", spec, id: editId || undefined, ...(!editId && remixFrom ? { from: remixFrom } : {}) }); busy = false;
-    if (!r || !r.ok) { paint(); if (r) fail(r); return; }
-    editId = r.j.game.id; remixFrom = ""; if (shared.some((g) => g.id === editId)) shared = shared.map((g) => (g.id === editId ? { ...r.j.game, shared: true } : g)); else mine = [r.j.game, ...mine.filter((g) => g.id !== editId)]; if (r.j.game.co) pen = r.j.game.co.pen; if (localId) { setLocals(locals().filter((x) => x.id !== localId)); localId = ""; } ctx.toast("💾 " + esc(T("Saved"))); paint();
+    spec = clampSpec(spec); busy = true; sv = { k: "saving" }; paint(); const r = await act({ action: "world-studio-save", spec, id: editId || undefined, ...(!editId && remixFrom ? { from: remixFrom } : {}) }); busy = false;
+    if (!r || !r.ok) { sv = { k: "err" }; paint(); if (r) fail(r); return; }
+    sv = { k: "ok", at: Date.now() };
+    editId = r.j.game.id; remixFrom = ""; if (shared.some((g) => g.id === editId)) shared = shared.map((g) => (g.id === editId ? { ...r.j.game, shared: true } : g)); else mine = [r.j.game, ...mine.filter((g) => g.id !== editId)]; if (r.j.game.co) pen = r.j.game.co.pen; if (r.j.game.pub) upThumb(r.j.game); if (localId) { setLocals(locals().filter((x) => x.id !== localId)); localId = ""; } ctx.toast("💾 " + esc(T("Saved"))); paint();
   }
   async function publish(id) {
     const g = mine.find((x) => x.id === id), on = !(g && g.pub); const r = await act({ action: "world-studio-publish", id, on }); if (!r || !r.ok) return r && fail(r);
-    mine = mine.map((x) => (x.id === id ? r.j.game : x)); links.delete(id); ctx.toast(on ? "🚀 " + esc(T("On the Creator Arcade!")) + (myH && r.j.game.slug ? " · 🌐 /game/@" + esc(myH) + "/" + esc(r.j.game.slug) : myH === "" ? " · 🌐 " + esc(T("Pick a creator ID in My games for its own web page")) : "") : esc(T("Taken off the Creator Arcade"))); paint(); load();
+    mine = mine.map((x) => (x.id === id ? r.j.game : x)); links.delete(id); if (on) upThumb(r.j.game); ctx.toast(on ? "🚀 " + esc(T("On the Creator Arcade!")) + (myH && r.j.game.slug ? " · 🌐 /game/@" + esc(myH) + "/" + esc(r.j.game.slug) : myH === "" ? " · 🌐 " + esc(T("Pick a creator ID in My games for its own web page")) : "") : esc(T("Taken off the Creator Arcade"))); paint(); load();
     if (on) { ev("publish"); let first = false; try { first = !localStorage.getItem("arc.studio.pub1"); localStorage.setItem("arc.studio.pub1", "1"); } catch { /* not kept */ } launchFx(first); }
   }
   async function del(id) {
-    if (!confirm(T("Delete this game?"))) return; const r = await act({ action: "world-studio-del", id }); if (!r || !r.ok) return r && fail(r);
+    if (!(await ask(T, T("Delete this game?"), { ok: T("Delete"), danger: true }))) return; const r = await act({ action: "world-studio-del", id }); if (!r || !r.ok) return r && fail(r);
     mine = mine.filter((x) => x.id !== id); if (editId === id) editId = ""; paint(); load();
   }
   async function like(id) { const r = await act({ action: "world-studio-like", id }); if (!r || !r.ok) return r && fail(r); arcade = arcade.map((g) => (g.id === id ? { ...g, likes: r.j.likes } : g)); ctx.toast(r.j.already ? esc(T("You liked it already")) : "♥ " + esc(T("Liked"))); paint(); }
@@ -493,12 +548,19 @@ export function createStudio(ctx) {
   let builder = null;
   async function openBuilder() {
     const ar = spec.tpl === "arena" || spec.tpl === "rush", td = spec.tpl === "defense", jw = !!JUMPS[spec.tpl], bt = spec.tpl === "rhythm", rc = spec.tpl === "race"; if (spec.tpl === "survival") return; let M; try { M = await import(bt ? "./world-studio-rhythm.js" : rc ? "./world-studio-race.js" : jw ? "./world-studio-jbuild.js" : ar ? "./world-studio-arena.js" : td ? "./world-studio-tdbuild.js" : "./world-studio-build.js"); } catch (e) { console.warn("studio builder", e); ctx.toast(esc(T("Couldn't open it — try again"))); return; }
+    // STB7: what you built is kept on this device as you go (every change, 1.5 s later), until Done — a slip of Back loses nothing
+    const AK = "arc.studio.auto", who = editId || localId || "new"; let auto = null; try { auto = JSON.parse(localStorage.getItem(AK) || "null"); } catch { auto = null; }
+    if (auto && auto.tpl === spec.tpl && auto.who === who && auto.b && JSON.stringify(auto.b) !== JSON.stringify(spec.build || null)) {
+      const t = new Date(auto.at || Date.now()), hm = String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0");
+      if (await ask(T, T("You have changes you didn't keep (from {t}). Bring them back?", { t: hm }), { ok: T("Bring them back"), cancel: T("Start fresh") })) { try { spec = clampSpec({ ...spec, build: auto.b }); } catch { /* the saved one stays */ } }
+      else { try { localStorage.removeItem(AK); } catch { /* fine */ } } }
     if (!spec.build) spec = clampSpec({ ...spec, build: toBuild(spec) });
-    if (el) el.hidden = true;
+    if (el) el.hidden = true; let autoT = 0;
     builder = (bt ? M.createBeatBuilder : rc ? M.createRaceBuilder : jw ? M.createJumpBuilder : ar ? M.createArenaBuilder : td ? M.createTdBuilder : M.createBuilder)({ T, esc, toast: ctx.toast, spec,
-      onDone: (b, sp) => { spec = clampSpec({ ...spec, ...(sp ? { len: sp.len, coins: sp.coins } : {}), build: b }); lastTest = null; },
+      onDone: (b, sp) => { clearTimeout(autoT); try { localStorage.removeItem(AK); } catch { /* fine */ } spec = clampSpec({ ...spec, ...(sp ? { len: sp.len, coins: sp.coins } : {}), build: b }); lastTest = null; },
+      onChange: (b) => { clearTimeout(autoT); autoT = setTimeout(() => { try { localStorage.setItem(AK, JSON.stringify({ tpl: spec.tpl, who, b, at: Date.now() })); } catch { /* full or private */ } }, 1500); },
       onClose: () => { builder = null; if (el) { el.hidden = false; step = 3; paint(); } },
-      onTest: (sp, z) => { const bel = document.querySelector(".wsb"); if (bel) bel.hidden = true; run({ spec: sp, test: true, ...(ar ? { startT: z } : { startZ: z }), onBack: () => { if (bel) bel.hidden = false; if (el) el.hidden = true; } }); } });
+      onTest: (sp, z) => { const bel = document.querySelector(".wsb"); if (bel) bel.hidden = true; run({ spec: sp, test: true, ...(ar ? { startT: z } : { startZ: z }), ...(jw ? { onEdit: (col) => { if (builder && builder.scrollTo) builder.scrollTo(col - 4); } } : {}), onBack: () => { if (bel) bel.hidden = false; if (el) el.hidden = true; } }); } });
     builder.open();
   }
   // ---------------- the runner ----------------
@@ -564,7 +626,7 @@ export function createStudio(ctx) {
     const gh = makeGhost(scene, o.ghost, false);
     // the HUD and the controls
     document.body.classList.add("wp-studio");
-    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(ctx.coarse ? "Stick ← → to switch lanes · ⤒ jump · ⤓ slide (or swipe)" : "← → switch lanes · ↑ / Space jump · ↓ slide"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
+    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-hint">${esc(T(ctx.coarse ? "Stick ← → to switch lanes · ⤒ jump · ⤓ slide (or swipe)" : "← → switch lanes · ↑ / Space jump · ↓ slide"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
     document.body.appendChild(hud);
     const S = { z: Math.max(0, Math.min(L.len - 40, o.startZ || 0)), x: 0, lane: 1, y: 0, vy: 0, slide: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, done: false, over: false, clip: "", combo: 0, lastCoin: -9, slow: 0, nice: new Set(), tr: [] }; // (o.startZ: the editor's "test from here")
     const fx = makeFx(hud), pad = ctx.coarse ? makePad(hud, { mode: "lanes", T, onLane: (d) => lane(d), onJump: () => jump(), onSlide: () => slide() }) : null;
@@ -729,7 +791,7 @@ export function createStudio(ctx) {
     let hero = null; try { hero = await ctx.makeHero(); } catch (e) { console.warn("studio hero", e); }
     const me = new THREE.Group(); scene.add(me); if (hero) { me.add(hero.obj); try { hero.play("idle"); } catch { /* no clip */ } } else { const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 10), std(0xeef4fb)); cap.position.y = 0.9; me.add(cap); }
     document.body.classList.add("wp-studio");
-    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-help">${esc(T(o.spec.tpl === "rush" ? (ctx.coarse ? "Move with the stick · grab every coin" : "WASD / arrows to move · grab every coin") : ctx.coarse ? "Move with the stick · dodge the drones" : "WASD / arrows to move · dodge the drones"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
+    const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-hint">${esc(T(o.spec.tpl === "rush" ? (ctx.coarse ? "Move with the stick · grab every coin" : "WASD / arrows to move · grab every coin") : ctx.coarse ? "Move with the stick · dodge the drones" : "WASD / arrows to move · dodge the drones"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
     document.body.appendChild(hud);
     const off = Math.max(0, Math.min(A.secs - 5, o.startT || 0)), fx = makeFx(hud), S = { x: 0, z: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, over: false, clip: "", face: 0, combo: 0, lastCoin: -9, tr: [] }, gh = makeGhost(scene, o.ghost, true), pad = ctx.coarse ? makePad(hud, { mode: "stick", T }) : null;
     const keyOn = new Set(), kd = (e) => { const k = e.key.toLowerCase(); if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(k)) { keyOn.add(k); e.preventDefault(); } }, ku = (e) => keyOn.delete(e.key.toLowerCase());

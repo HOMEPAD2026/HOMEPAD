@@ -6,17 +6,22 @@
 // (cleanJump — the same rules it plays by), a stretch you can't reach from the start shows red, and the bots' stars sit
 // at the top. The phone's one-hand set (the owner's plan): place · move · flip · erase · test · done.
 // ctx: { T, esc, toast, spec, onDone(build), onTest(spec, startX), onClose }
+import { ask } from "./world-ask.js";
 import { JW, JEV, cleanJump, cleanEvents, clampSpec, estimate, jwReach, THEMES } from "./world-studio-gen.js";
 // STB5 (2026-10-27): the event blocks' words (WHEN … THEN …)
-const EVW = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column" };
-const EVT = { doors: "Every door opens", say: "Show a message", time: "Add seconds to the clock", heart: "Get a heart", coins: "Coins rain down", speed: "Run faster for 6 s" };
+const EVW = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column", every: "Every this many seconds", count: "The counter reaches" };
+const EVA = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column", count: "The counter reaches" };
+const EVT = { doors: "Every door opens", say: "Show a message", time: "Add seconds to the clock", heart: "Get a heart", coins: "Coins rain down", speed: "Run faster for 6 s", add: "Add to the counter", show: "Ghost blocks appear", hide: "Vanish blocks disappear", flip: "Flip red and blue" };
 
 // the palette: [kind, emoji, group]; the names are JW.K's
 const GROUPS = [["block", "🧱", "Blocks"], ["move", "🔀", "Motion"], ["thing", "🌀", "Things"], ["item", "🪙", "Items"], ["foe", "👾", "Foes"], ["goal", "🏁", "Goal"]];
 // STB3 (2026-10-27): Meshy's 3D icons for the tabs and tools (images/studio/ui2), the emoji only if a picture fails
 const GIC = { block: "tab-blocks", move: "tab-motion", thing: "tab-devices", item: "tab-items", foe: "tab-foes", goal: "tab-goal", chunk: "tab-prefabs", put: "tool-place", hand: "tool-move", erase: "tool-erase", test: "tool-test", done: "tool-done" };
+// STB7 (2026-10-27): Meshy's glass icons for the rest (images/studio/ic2), the emoji when a picture can't load
+const IC2 = { r: "blk-red", u: "blk-blue", S: "start", 1: "ore-copper", 2: "ore-silver", 3: "ore-gold" }, CHIC = { stairs: "pc-stairs", lava: "pc-lava", keydoor: "pc-keydoor", gate: "pc-gate", arena: "pc-arena", arch: "pc-arch", patrol: "pc-patrol", tower: "pc-tower", lifts: "pc-lifts", ores: "pc-ores" };
+const ic2 = (n, ic, cls = "wsj-ic") => `<img src="/images/studio/ic2/${n}.webp?v=1" alt="" class="${cls}" onerror="this.replaceWith(document.createTextNode('${ic}'))">`;
 const gimg = (k, ic) => (GIC[k] ? `<img src="/images/studio/ui2/${GIC[k]}.webp?v=1" alt="" class="wsj-ic" onerror="this.replaceWith(document.createTextNode('${ic}'))">` : ic);
-const EMO = { g: "🟩", s: "🧱", i: "🧊", l: "🔥", w: "🪵", m: "↔️", v: "↕️", f: "🍂", b: "✨", p: "🌀", k: "🔺", c: "🚩", o: "🪙", y: "🗝️", d: "🚪", t: "🔘", r: "🟥", u: "🟦", h: "🧪", q: "🎁", e: "🍄", n: "🦇", z: "💣", B: "🐉", S: "🟢", F: "🏁", 1: "🟫", 2: "⬜", 3: "🟨" };
+const EMO = { g: "🟩", s: "🧱", i: "🧊", l: "🔥", w: "🪵", m: "↔️", v: "↕️", f: "🍂", b: "✨", p: "🌀", k: "🔺", c: "🚩", o: "🪙", y: "🗝️", d: "🚪", t: "🔘", r: "🟥", u: "🟦", h: "🧪", q: "🎁", e: "🍄", n: "🦇", z: "💣", B: "🐉", S: "🟢", F: "🏁", 1: "🟫", 2: "⬜", 3: "🟨", x: "👻", j: "💨" };
 const ICON = { g: "grass", s: "stone", i: "ice", l: "lava", w: "bridge", m: "moving-platform", v: "moving-platform", f: "falling-platform", b: "blinking-platform", p: "spring", k: "spikes", c: "checkpoint", o: "coin", y: "key", d: "door", t: "switch", e: "walker", n: "flyer", q: "chest", h: "potion", F: "finish", B: "dragon", z: "cannon" }; // (Meshy's glass icons, images/studio/jw/icon-*.webp)
 const FLIP = new Set(["m", "v", "z", "e"]);
 /// ready-made chunks: [dx, dy, kind, d?] from the cell you tap (its bottom-left)
@@ -53,7 +58,7 @@ export function createJumpBuilder(ctx) {
     el = document.createElement("div"); el.className = "wsb wsj"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="wsb-in">
       <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🛠️ ${esc(T("Build it yourself"))}</b>
-        <span class="wsb-hr"><button type="button" class="wsb-b alt wsj-evb" data-evs>⚡ ${esc(T("Events"))} <i class="wsj-evn"></i></button><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
+        <span class="wsb-hr"><button type="button" class="wsb-b alt wsj-evb" data-evs>${ic2("tool-events", "⚡")} ${esc(T("Events"))} <i class="wsj-evn"></i></button><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>
       <div class="wsj-main"><aside class="wsj-pal"><nav class="wsj-grp">${GROUPS.map(([id, ic, n]) => `<button type="button" data-grp="${id}" title="${esc(T(n))}"><i>${gimg(id, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-grp="chunk" title="${esc(T("Ready-made"))}"><i>${gimg("chunk", "📦")}</i><span>${esc(T("Ready-made"))}</span></button></nav><div class="wsj-items"></div></aside>
@@ -77,12 +82,12 @@ export function createJumpBuilder(ctx) {
     let p = el.querySelector(".wsj-evp"); if (!evOpen) { if (p) p.remove(); return; }
     if (!p) { p = document.createElement("div"); p.className = "wsj-evp"; el.querySelector(".wsb-in").appendChild(p);
       p.addEventListener("change", (e) => { const t = e.target, i = Number(t.dataset.i); if (!(i >= 0) || !B.ev || !B.ev[i]) return; push(); const r = [...B.ev[i]];
-        if (t.dataset.f === "w") r[0] = t.value; else if (t.dataset.f === "a") r[1] = Number(t.value); else if (t.dataset.f === "t") r[2] = t.value; else if (t.dataset.f === "b") r[3] = Number(t.value);
+        if (t.dataset.f === "w") r[0] = t.value; else if (t.dataset.f === "a") r[1] = Number(t.value); else if (t.dataset.f === "t") r[2] = t.value; else if (t.dataset.f === "b") r[3] = Number(t.value); else if (t.dataset.f === "w2") { r[4] = t.value; r[5] = 10; } else if (t.dataset.f === "a2") r[5] = Number(t.value);
         B.ev[i] = r; B.ev = cleanEvents(B.ev, B.W); paintEv(); after(); }); }
     const opt = (o, v) => Object.entries(o).map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(l))}</option>`).join("");
-    p.innerHTML = `<header><b>⚡ ${esc(T("Events"))}</b><small>${esc(T("WHEN something happens, THEN something else — each once a run"))}</small><button type="button" class="wsb-i" data-ev-x aria-label="${esc(T("Close"))}">✕</button></header>
-      <ol>${(B.ev || []).map(([w, a, t, v], i) => `<li><span class="wsj-evk">${esc(T("WHEN"))}</span><select data-i="${i}" data-f="w">${opt(EVW, w)}</select>${w === "coins" || w === "time" || w === "col" ? `<input type="number" data-i="${i}" data-f="a" value="${a}" min="1" max="300">` : ""}
-        <span class="wsj-evk then">${esc(T("THEN"))}</span><select data-i="${i}" data-f="t">${opt(EVT, t)}</select>${t === "say" ? `<select data-i="${i}" data-f="b">${JEV.MSGS.map((m, k) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(m))}</option>`).join("")}</select>` : t === "time" || t === "coins" ? `<input type="number" data-i="${i}" data-f="b" value="${v}" min="1" max="60">` : ""}
+    p.innerHTML = `<header><b>⚡ ${esc(T("Events"))}</b><small>${esc(T("WHEN something happens (AND something else), THEN … — each once a run, \"every\" again and again"))}</small><button type="button" class="wsb-i" data-ev-x aria-label="${esc(T("Close"))}">✕</button></header>
+      <ol>${(B.ev || []).map(([w, a, t, v], i) => `<li><span class="wsj-evk">${esc(T("WHEN"))}</span><select data-i="${i}" data-f="w">${opt(EVW, w)}</select>${w === "coins" || w === "time" || w === "col" || w === "every" || w === "count" ? `<input type="number" data-i="${i}" data-f="a" value="${a}" min="1" max="300">` : ""}<span class="wsj-evk and">${esc(T("AND"))}</span><select data-i="${i}" data-f="w2"><option value="">—</option>${opt(EVA, B.ev[i][4] || "")}</select>${["coins", "time", "col", "count"].includes(B.ev[i][4]) ? `<input type="number" data-i="${i}" data-f="a2" value="${B.ev[i][5]}" min="1" max="300">` : ""}
+        <i class="wsj-br"></i><span class="wsj-evk then">${esc(T("THEN"))}</span><select data-i="${i}" data-f="t">${opt(EVT, t)}</select>${t === "say" ? `<select data-i="${i}" data-f="b">${JEV.MSGS.map((m, k) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(m))}</option>`).join("")}</select>` : t === "time" || t === "coins" || t === "add" ? `<input type="number" data-i="${i}" data-f="b" value="${v}" min="1" max="60">` : ""}
         <button type="button" class="wsb-i" data-ev-del="${i}" aria-label="${esc(T("Delete"))}">🗑️</button></li>`).join("") || `<p class="wsj-evnone">${esc(T("No events yet — add one, e.g. WHEN 10 coins THEN every door opens."))}</p>`}</ol>
       ${(B.ev || []).length < JEV.MAX ? `<button type="button" class="wsb-b go" data-ev-add>＋ ${esc(T("Add an event"))}</button>` : ""}`;
   }
@@ -113,7 +118,7 @@ export function createJumpBuilder(ctx) {
     // the pieces
     for (const c of B.c) { const [x, y, k, d] = c; if (x < xA - 2 || x > xB + 1) continue; const X = pxOf(x), Y = pyOf(y), wd = k === "B" ? 2 : 1;
       const block = "gsilwrud123z".includes(k), im = imgs[k], ok = im && im.complete && im.naturalWidth;
-      if (block && !(ok && "gsilwz".includes(k))) { g.fillStyle = k === "g" ? hex(th.track) : k === "s" ? hex(th.wall) : { i: "#9fd8ff", l: "#ff5a1a", w: "#a8744a", r: "#ff3b5c", u: "#3b7bff", d: "#a8744a", 1: "#d97a3a", 2: "#dfe6f2", 3: "#ffd23a", z: "#2a2f3a" }[k];
+      if (block && !(ok && "gsilwz".includes(k))) { g.fillStyle = k === "g" ? hex(th.track) : k === "s" ? hex(th.wall) : { i: "#9fd8ff", l: "#ff5a1a", w: "#a8744a", r: "#ff3b5c", u: "#3b7bff", x: "rgba(124,245,200,.45)", j: "#ff9ae6", d: "#a8744a", 1: "#d97a3a", 2: "#dfe6f2", 3: "#ffd23a", z: "#2a2f3a" }[k];
         if (k === "w") g.fillRect(X + 1, Y + 1, C - 2, C * 0.28); else g.fillRect(X + 1, Y + 1, C - 2, C - 2); g.fillStyle = "rgba(255,255,255,.18)"; g.fillRect(X + 1, Y + 1, C - 2, 3); if (k === "g") { g.fillStyle = "rgba(120,230,120,.7)"; g.fillRect(X + 1, Y + 1, C - 2, C * 0.22); } }
       if (ok && (!block || "gsilwzd".includes(k))) g.drawImage(im, X - (block ? 1 : 0), Y - (wd - 1) * C - (block ? 1 : 0), C * wd + (block ? 2 : 0), C * wd + (block ? 2 : 0)); // (SB-2: Meshy's glass icon for the cell)
       else if (!block) { g.font = `${Math.round(C * 0.7 * wd)}px sans-serif`; g.textAlign = "center"; g.fillText(EMO[k] || "?", X + (C * wd) / 2, Y + C * 0.78 - (wd - 1) * C * 0.5); }
@@ -154,15 +159,15 @@ export function createJumpBuilder(ctx) {
     else { if (piece === "S" || piece === "F") B.c = B.c.filter((c) => c[2] !== piece); if (i >= 0) { if (B.c[i][2] === piece && !(drag && drag.moved)) { B.c.splice(i, 1); } else B.c[i] = [x, y, piece]; } else B.c.push([x, y, piece]); if (navigator.vibrate) try { navigator.vibrate(6); } catch { /* no buzz */ } }
     if (!drag) after(); else { reach = null; dirty = true; }
   }
-  function after() { est = null; reach = null; B.c = B.c.filter((c) => c[0] >= 0 && c[0] < B.W).slice(0, JW.CELLS * 2); dirty = true; paintBar(); paintEv(); }
+  function after() { if (ctx.onChange) try { ctx.onChange(B); } catch { /* (STB7: the Studio's autosave) */ } est = null; reach = null; B.c = B.c.filter((c) => c[0] >= 0 && c[0] < B.W).slice(0, JW.CELLS * 2); dirty = true; paintBar(); paintEv(); }
   const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); };
   // ---- the bars ----
   function paintPal() { if (!el) return; el.querySelectorAll("[data-grp]").forEach((b) => b.classList.toggle("on", b.dataset.grp === group));
     const box = el.querySelector(".wsj-items");
-    box.innerHTML = group === "chunk" ? Object.entries(JCHUNKS).map(([id, P]) => `<button type="button" data-chunk="${id}" class="${tool === "chunk" && chunk === id ? "on" : ""}"><i>${P.icon}</i><span>${esc(T(P.name))}</span></button>`).join("")
-        + `<p class="wsj-pfh">⭐ ${esc(T("My pieces"))}</p>` + myPf.map((P, i) => `<button type="button" data-chunk="my${i}" class="wsj-pf ${tool === "chunk" && chunk === "my" + i ? "on" : ""}"><i>⭐</i><span>${esc(P.name)} · ${P.c.length}</span><b data-pfdel="${i}" role="button" aria-label="${esc(T("Delete"))}">✕</b></button>`).join("")
+    box.innerHTML = group === "chunk" ? Object.entries(JCHUNKS).map(([id, P]) => `<button type="button" data-chunk="${id}" class="${tool === "chunk" && chunk === id ? "on" : ""}"><i>${CHIC[id] ? ic2(CHIC[id], P.icon, "") : P.icon}</i><span>${esc(T(P.name))}</span></button>`).join("")
+        + `<p class="wsj-pfh">⭐ ${esc(T("My pieces"))}</p>` + myPf.map((P, i) => `<button type="button" data-chunk="my${i}" class="wsj-pf ${tool === "chunk" && chunk === "my" + i ? "on" : ""}"><i>${ic2("tool-mine", "⭐", "")}</i><span>${esc(P.name)} · ${P.c.length}</span><b data-pfdel="${i}" role="button" aria-label="${esc(T("Delete"))}">✕</b></button>`).join("")
         + `<button type="button" data-pfnew class="wsj-pfnew ${tool === "grab" ? "on" : ""}"><i>＋</i><span>${esc(T(tool === "grab" ? "Tap two corners" : "Save an area"))}</span></button>`
-      : Object.entries(JW.K).filter(([k, [, gp]]) => gp === group || (group === "item" && gp === "ore")).filter(([k]) => spec.tpl === "mining" || JW.K[k][1] !== "ore").map(([k, [n]]) => `<button type="button" data-piece="${k}" class="${piece === k && tool === "put" ? "on" : ""}" title="${esc(T(n))}"><i>${ICON[k] ? `<img src="/images/studio/jw/icon-${ICON[k]}.webp?v=1" alt="" onerror="this.replaceWith(document.createTextNode('${EMO[k]}'))">` : EMO[k]}</i><span>${esc(T(n))}</span></button>`).join(""); }
+      : Object.entries(JW.K).filter(([k, [, gp]]) => gp === group || (group === "item" && gp === "ore")).filter(([k]) => spec.tpl === "mining" || JW.K[k][1] !== "ore").map(([k, [n]]) => `<button type="button" data-piece="${k}" class="${piece === k && tool === "put" ? "on" : ""}" title="${esc(T(n))}"><i>${ICON[k] ? `<img src="/images/studio/jw/icon-${ICON[k]}.webp?v=1" alt="" onerror="this.replaceWith(document.createTextNode('${EMO[k]}'))">` : IC2[k] ? ic2(IC2[k], EMO[k], "") : EMO[k]}</i><span>${esc(T(n))}</span></button>`).join(""); }
   function paintTools() { if (!el) return; el.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("on", b.dataset.tool === tool || (tool === "chunk" && b.dataset.tool === "put"))); paintPal(); }
   function paintBar() { if (!el) return; const v = valid(), sp = clampSpec({ ...spec, build: v.c }), E = est || (est = estimate(sp)), R = reach || (reach = jwReach(v.c)), n = (f) => v.c.c.filter((c) => f(c[2])).length;
     el.querySelector(".wsb-bar").innerHTML = `<span class="wsb-len"><button type="button" class="wsb-i" data-len="-1">－</button><b>${B.W} m</b><button type="button" class="wsb-i" data-len="1">＋</button></span>
@@ -173,7 +178,7 @@ export function createJumpBuilder(ctx) {
     el.querySelector("[data-undo]").disabled = !undo.length; el.querySelector("[data-redo]").disabled = !redo.length; }
   function onClick(e) {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
+    if (b.hasAttribute("data-close")) { if (undo.length) { ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true }).then((y) => { if (y) close(false); }); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-evs")) { evOpen = !evOpen; return paintEv(); }
     if (b.hasAttribute("data-ev-x")) { evOpen = false; return paintEv(); }

@@ -62,6 +62,7 @@ function paintGame() {
         <button type="button" class="sgw-btn" data-like>♥ ${esc(T("Like"))}</button>
         <button type="button" class="sgw-btn" data-share>🔗 ${esc(T("Share"))}</button>
       </div>
+      <div class="sgw-rx" data-rx>${rxHtml(g.rx)}</div>
       <p class="sgw-note">${esc(web ? T("Free in your browser — no download.") : T("This kind of game opens in ARCIRCLE WORLD."))} ${sess() ? esc(T("Signed in: your best run goes on the board.")) : esc(T("Sign in to put your score on the board."))}</p>
     </div>
   </section>
@@ -71,25 +72,40 @@ function paintGame() {
       ${g.from ? `<p class="sgw-how sm">♻️ ${esc(T("A remix of"))} <b>${esc(g.from.title)}</b> · ${esc(g.from.byName || "")}</p>` : ""}
       <a class="sgw-link" href="/play?sg=${encodeURIComponent(g.id)}">🌍 ${esc(T("Open it in ARCIRCLE WORLD"))} ›</a></div>
   </section>
+  <section class="sgw-sec sgw-cmts"><h2>💬 ${esc(T("Comments"))} <small data-cn></small></h2>
+    <form class="sgw-cf" data-cf><input name="t" maxlength="140" autocomplete="off" placeholder="${esc(T("Say something nice about this game…"))}"><button type="submit" class="sgw-btn">${esc(T("Post"))}</button></form>
+    <ul class="sgw-cl" data-cl><li class="none">…</li></ul></section>
   ${D.more && D.more.length ? `<section class="sgw-sec"><h2>${esc(T("More by {n}", { n: "@" + c.h }))}</h2><div class="sgw-grid">${D.more.map((x) => cardOf(c.h, x)).join("")}</div><a class="sgw-link" href="${urlOf(c.h)}">${esc(T("All games"))} ›</a></section>` : ""}
   ${ctaHtml()}`;
 }
+// STB7 (2026-10-27): reactions and comments on a game; a creator's level, badges and picks
+const RX = { fire: "🔥", lol: "😂", wow: "😮", hard: "💀", love: "😍" }, RXN = { fire: "Fire", lol: "Funny", wow: "Wow", hard: "So hard", love: "Love it" };
+const rxHtml = (rx) => Object.entries(RX).map(([k, e]) => `<button type="button" class="sgw-rxb" data-r="${k}" title="${esc(T(RXN[k]))}">${e}<b>${num((rx || {})[k] || 0)}</b></button>`).join("");
+const ago = (t) => { const m = Math.max(1, Math.round((Date.now() - t) / 60e3)); return m < 60 ? T("{n} min ago", { n: m }) : m < 1440 ? T("{n} h ago", { n: Math.round(m / 60) }) : T("{n} d ago", { n: Math.round(m / 1440) }); };
+const cmtHtml = (L) => (L && L.length ? L.map((c) => `<li${c.maker ? ' class="mk"' : ""}><i class="sgw-av">${esc((c.name || "?").slice(0, 1).toUpperCase())}</i><div><b>${esc(c.name || "Player")}${c.maker ? ` <em>${esc(T("Maker"))}</em>` : ""}</b><small>${esc(ago(c.at))}</small><p>${esc(c.t)}</p></div></li>`).join("") : `<li class="none">${esc(T("No comments yet — be the first!"))}</li>`);
+async function loadCmts() { if (!D.game) return; try { const r = await fetch(`/api/social?world=studio-comments&id=${encodeURIComponent(D.game.id)}`, { cache: "no-store" }); if (!r.ok) return; const j = await r.json(); paintCmts(j.comments || []); const x = $m.querySelector("[data-rx]"); if (x) x.innerHTML = rxHtml(j.rx); } catch { /* the list waits */ } }
+function paintCmts(L) { const ul = $m.querySelector("[data-cl]"); if (ul) ul.innerHTML = cmtHtml(L); const n = $m.querySelector("[data-cn]"); if (n) n.textContent = L.length ? String(L.length) : ""; }
+const BADGE = { p100: ["🎯", "100 plays"], p1k: ["🚀", "1,000 plays"], p10k: ["🌟", "10,000 plays"], l10: ["💖", "10 likes"], l100: ["💎", "100 likes"], g3: ["🧩", "3 games"], g10: ["🏗️", "10 games"] };
+const levelHtml = (c) => (c && c.lv ? `<div class="sgw-lv"><span class="sgw-lvn">${esc(T("Creator Lv {n}", { n: c.lv }))}</span><i><em style="width:${Math.min(100, Math.round(((c.xp - c.from) / Math.max(1, c.next - c.from)) * 100))}%"></em></i><small>${num(c.xp)} / ${num(c.next)} XP</small></div>
+  ${c.badges && c.badges.length ? `<div class="sgw-badges">${c.badges.map((b) => BADGE[b] ? `<span class="sgw-badge" title="${esc(T(BADGE[b][1]))}">${BADGE[b][0]}<small>${esc(T(BADGE[b][1]))}</small></span>` : "").join("")}</div>` : ""}` : "");
 const boardHtml = (best) => (best && best.length ? best.map((x, i) => `<li${i < 3 ? ` class="m${i + 1}"` : ""}><i>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><span>${esc(x.name || "Player")}</span><b>${num(x.score)}</b></li>`).join("") : `<li class="none">${esc(T("Be the first!"))}</li>`);
 const ctaHtml = () => `<section class="sgw-cta"><div><h2>🛠️ ${esc(T("Make your own game"))}</h2><p>${esc(T("ARCIRCLE Studio: 15 templates, a builder for every one, your own page on the web."))}</p></div><a class="sgw-play sm" href="/play">${esc(T("Open ARCIRCLE Studio"))}</a></section>`;
 function paintCreator() {
   const c = D.creator, L = D.games || [], plays = L.reduce((a, g) => a + (g.plays || 0), 0), likes = L.reduce((a, g) => a + (g.likes || 0), 0);
   $m.innerHTML = `<section class="sgw-hero cr" style="--art:url('/images/gw/key-studio.webp')"><div class="sgw-hero-in">
       <span class="sgw-chip">🎮 ${esc(T("Creator"))}</span>${head(c.h, c.name, c.off)}
+      ${levelHtml(c)}
       <div class="sgw-stats"><span><b>${L.length}</b>${esc(T("Games"))}</span><span><b>${num(plays)}</b>${esc(T("Plays"))}</span><span><b>${num(likes)}</b>${esc(T("Likes"))}</span></div>
       <div class="sgw-acts"><button type="button" class="sgw-btn" data-share>🔗 ${esc(T("Share"))}</button></div></div></section>
-    <section class="sgw-sec"><h2>${esc(T("Games"))}</h2>${L.length ? `<div class="sgw-grid">${L.map((g) => cardOf(c.h, g)).join("")}</div>` : `<p class="sgw-empty">${esc(T("No games published yet."))}</p>`}</section>${ctaHtml()}`;
+    <section class="sgw-sec"><h2>${esc(T("Games"))}</h2>${L.length ? `<div class="sgw-grid">${L.map((g) => cardOf(c.h, g)).join("")}</div>` : `<p class="sgw-empty">${esc(T("No games published yet."))}</p>`}</section>
+    ${D.picks && D.picks.length ? `<section class="sgw-sec"><h2>⭐ ${esc(T("{n}'s picks", { n: "@" + c.h }))}</h2><div class="sgw-grid">${D.picks.map((g) => `<a class="sgw-g" href="/play?sg=${encodeURIComponent(g.id)}" style="--art:url('${art(g.tpl)}')"><span class="sgw-g-art"><em>${ICON[g.tpl] || "🎮"} ${esc(tname(g.tpl))}</em></span><b>${esc(g.title)}</b><small>${esc(g.byName || "")} · ▶ ${num(g.plays)}</small></a>`).join("")}</div></section>` : ""}${ctaHtml()}`;
 }
 function paintMissing() {
   $m.innerHTML = `<section class="sgw-hero miss" style="--art:url('/images/gw/key-studio.webp')"><div class="sgw-hero-in"><span class="sgw-chip">404</span><h1>${esc(T("This game isn't here"))}</h1>
     <p class="sgw-note">${esc(T("It may have been taken down, or the address changed."))}</p><div class="sgw-acts"><a class="sgw-play" href="/game/@arcircle">${esc(T("Play ARCIRCLE's games"))}</a><a class="sgw-btn" href="/play">${esc(T("Play ARCIRCLE WORLD"))}</a></div></div></section>`;
 }
-function paint() { if (D.game) paintGame(); else if (D.creator) paintCreator(); else paintMissing(); document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = T(e.dataset.t); }); }
-paint();
+function paint() { if (D.app) { /* (the Studio's own page: startApp paints it) */ } else if (D.game) paintGame(); else if (D.creator) paintCreator(); else paintMissing(); document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = T(e.dataset.t); }); }
+paint(); if (!D.app) loadCmts();
 { const sel = document.querySelector(".sgw-lang"); if (sel) { sel.value = LANG; sel.addEventListener("change", () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }); } }
 
 async function refresh() { // (after a run or a like: the board and the numbers read again)
@@ -105,6 +121,9 @@ $m.addEventListener("click", async (e) => {
     try { await navigator.clipboard.writeText(u); toast("🔗 " + esc(T("Link copied"))); } catch { toast(esc(u)); }
     window.open("https://x.com/intent/post?text=" + encodeURIComponent(text + "\n" + u), "_blank", "noopener"); return;
   }
+  if (b.dataset.r) { b.disabled = true;
+    try { const r = await signed({ action: "world-studio-react", id: D.game.id, r: b.dataset.r }); if (r.ok) { const x = $m.querySelector("[data-rx]"); if (x) x.innerHTML = rxHtml(r.j.rx); const nb = $m.querySelector(`[data-r="${b.dataset.r}"]`); if (nb) { nb.classList.add("on", "pop"); } if (r.j.already) toast(esc(T("You reacted already"))); } else toast(esc((r.j && r.j.error) || T("Couldn't open it — try again"))); }
+    catch (er) { toast(esc((er && er.message) || T("Sign-in failed"))); } finally { b.disabled = false; } return; }
   if (b.hasAttribute("data-like")) {
     b.disabled = true;
     try { const r = await signed({ action: "world-studio-like", id: D.game.id }); if (r.ok) { b.classList.add("on"); toast(r.j.already ? "♥ " + esc(T("You liked this already")) : "♥ " + esc(T("Liked!"))); refresh(); } else toast(esc((r.j && r.j.error) || T("Couldn't open it — try again"))); }
@@ -112,11 +131,18 @@ $m.addEventListener("click", async (e) => {
   }
 });
 
+$m.addEventListener("submit", async (e) => {
+  const f = e.target.closest("[data-cf]"); if (!f) return; e.preventDefault(); const inp = f.querySelector("input"), t = inp.value.trim(); if (t.length < 2) return;
+  const bt = f.querySelector("button"); bt.disabled = true;
+  try { const r = await signed({ action: "world-studio-comment", id: D.game.id, t }); if (r.ok) { inp.value = ""; paintCmts(r.j.comments || []); const li = $m.querySelector("[data-cl] li"); if (li) li.classList.add("new"); } else toast(esc((r.j && r.j.error) || T("Couldn't open it — try again"))); }
+  catch (er) { toast(esc((er && er.message) || T("Sign-in failed"))); } finally { bt.disabled = false; }
+});
+
 // ---------------- the run: the Studio's engines on this page's canvas ----------------
 let host = null, busy = false;
 async function makeHost() {
   if (host) return host;
-  if (!document.querySelector('link[href^="/world.min.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/world.min.css" + (new URL(import.meta.url).search || ""); document.head.appendChild(l); await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 4000); }); } // (the Studio's HUD, result card and the sideways card)
+  if (!document.querySelector('link[href^="/studio.min.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/studio.min.css" + (new URL(import.meta.url).search || ""); /* (only the Studio's rules — world.min.css is the whole World's) */ document.head.appendChild(l); await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 4000); }); } // (the Studio's HUD, result card and the sideways card)
   const [K, ST, SFX, PAD] = await Promise.all([import("./world-kit.js"), import("./world-studio.js"), import("./world-sfx.js"), import("./world-studio-pad.js")]);
   const cv = document.getElementById("sgw-cv"); cv.hidden = false;
   const S = (() => { const d = { quality: "auto", sound: true, sfx: 70 }; try { return { ...d, ...JSON.parse(localStorage.getItem("arc.world.set") || "{}") }; } catch { return d; } })();
@@ -125,7 +151,8 @@ async function makeHost() {
   const P = (() => { try { return JSON.parse(localStorage.getItem("arc.world") || "{}") || {}; } catch { return {}; } })();
   const gate = PAD.makeGate({ T, esc, coarse, ver: VER, place: D.game ? D.game.title : "ARCIRCLE Studio", line: "This game is made for landscape — turn your phone to play.", back: "Back to the game's page", onBack: () => { const g = host && host.studio.playing && host.studio.playing(); if (g && g.leave) g.leave(); else done(); } });
   const studio = ST.createStudio({ THREE: K.THREE, K, st, T, esc, toast: (m) => toast(m), Snd, reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, ver: VER, isGM: () => false, guide: () => {}, low, saver: S.quality === "saver", coarse,
-    myName: () => P.name || "", sess, post, signIn: () => signIn(), soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
+    myName: () => P.name || "", sess, post, signIn: () => signIn().then((x) => { paintMe(); return x; }),
+    onClose: () => { if (D.app) setTimeout(() => { try { host.studio.open("arcade"); } catch { /* fine */ } }, 0); }, /* (/studio: the window is the page — × goes to the arcade) */ soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
     land: { landscape: () => gate.landscape(), enter() {}, exit() {} },
     makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }) });
   host = { K, st, studio, gate, cv }; return host;
@@ -147,4 +174,20 @@ async function play(btn) {
   finally { ld.classList.add("out"); setTimeout(() => ld.remove(), 500); btn.classList.remove("busy"); }
 }
 if (D.game && new URLSearchParams(location.search).has("play") && !WORLD_ONLY.has(D.game.tpl)) { const b = $m.querySelector("[data-play]"); if (b && !coarse) play(b); } // (?play: straight in, on a computer — a phone waits for the tap it needs for full screen)
+// ---------------- /studio: ARCIRCLE Studio as a page of its own (2026-10-27, the owner: "the Studio on the web, fast") ----------------
+// The Studio window is the page (under the top bar); the stage's canvas sits behind it for the preview and the runs; a
+// phone held upright sees the sideways card only while a game runs. A deep link: /studio?tab=arcade|mine|make, ?sg=<id>.
+function paintMe() { const b = document.querySelector("[data-signin]"); if (!b) return; const s = sess(); b.hidden = false; b.classList.toggle("on", !!s); b.textContent = s ? "🟢 " + s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) : "👛 " + T("Sign in"); }
+async function startApp() {
+  const bar = document.querySelector(".sga-boot em"); let pct = 8; const tick = setInterval(() => { pct = Math.min(92, pct + (96 - pct) * 0.12); if (bar) bar.style.width = pct + "%"; }, 120);
+  paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });
+  try {
+    const h = await makeHost(), q = new URLSearchParams(location.search);
+    document.body.classList.add("sga-on"); h.cv.hidden = false;
+    if (q.get("sg")) h.studio.playId(q.get("sg"), {}); else h.studio.open(["arcade", "mine", "make"].includes(q.get("tab")) ? q.get("tab") : "make");
+    let on = false; setInterval(() => { const p = !!h.studio.playing(); if (p !== on) { on = p; h.gate.on("web", p); document.body.classList.toggle("sga-run", p); } }, 400);
+  } catch (e) { console.warn("studio app", e); $m.innerHTML = `<div class="sga-boot err"><b>⚠️ ${esc(T("The Studio couldn't open"))}</b><a class="sgw-play sm" href="/studio">${esc(T("Try again"))}</a><a class="sgw-btn" href="/play">${esc(T("Open it in ARCIRCLE WORLD"))}</a></div>`; }
+  finally { clearInterval(tick); if (bar) bar.style.width = "100%"; setTimeout(() => { const b0 = document.querySelector(".sga-boot"); if (b0 && !b0.classList.contains("err")) b0.remove(); }, 300); }
+}
+if (D.app) startApp();
 window.__sgw = { host: () => host, play: () => { const b = $m.querySelector("[data-play]"); return b ? play(b) : null; } }; // (tests)

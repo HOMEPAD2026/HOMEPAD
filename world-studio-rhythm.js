@@ -7,6 +7,7 @@
 //   makeBeat(o, env)          → the run           (env: { ctx, THREE, T, esc, makeFx, result, back })
 //   createBeatBuilder(ctx)    → the editor: the song as a timeline, beats down the screen, four lanes across; tap to put
 //                                or take a note, drag to scroll, test from where you're looking; two notes at once at most
+import { ask } from "./world-ask.js";
 import { THEMES, BEAT, genLevel, clampSpec, cleanBeat, estimate, stepsOf, bpmOf } from "./world-studio-gen.js";
 
 const LC = [0xff6fae, 0xffd23a, 0x7cf5c8, 0x5fd3ff], LCS = ["#ff6fae", "#ffd23a", "#7cf5c8", "#5fd3ff"], KEYS = [["d", "arrowleft"], ["f", "arrowdown"], ["j", "arrowup"], ["k", "arrowright"]];
@@ -102,7 +103,7 @@ export function createBeatBuilder(ctx) {
   const snap = () => JSON.stringify(B), push = () => { undo.push(snap()); if (undo.length > 100) undo.shift(); redo = []; };
   function open() {
     el = document.createElement("div"); el.className = "wsb wsbt"; el.setAttribute("role", "dialog");
-    el.innerHTML = `<div class="wsb-in"><header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🎵 ${esc(T("Build it yourself"))}</b><span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button><button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
+    el.innerHTML = `<div class="wsb-in"><header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🎵 ${esc(T("Build it yourself"))}</b><span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button><button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div><div class="wsb-main"><canvas class="wsb-cv"></canvas></div>
       <nav class="wsj-tools wbt-tools"><button type="button" data-fill="beat"><i>🥁</i><span>${esc(T("Fill the beats"))}</span></button><button type="button" data-fill="clear"><i>🧽</i><span>${esc(T("Clear this bar"))}</span></button><button type="button" data-fill="mirror"><i>🪞</i><span>${esc(T("Mirror"))}</span></button><button type="button" data-test class="alt"><i>▶</i><span>${esc(T("Test"))}</span></button><button type="button" data-done class="go"><i>✓</i><span>${esc(T("Done"))}</span></button></nav></div>`;
     document.body.appendChild(el); cv = el.querySelector("canvas"); g = cv.getContext("2d"); el.addEventListener("click", onClick);
@@ -127,10 +128,10 @@ export function createBeatBuilder(ctx) {
     g.fillStyle = "rgba(255,255,255,.6)"; g.font = "800 11px Sora, sans-serif"; g.textAlign = "center"; ["D", "F", "J", "K"].forEach((k, l) => g.fillText(k, X + (l + 0.5) * lw, H - 2));
   }
   function tap(px, py) { const X = X0(), lw = LW(), l = Math.floor((px - X) / lw), s0 = sAt(py); if (l < 0 || l > 3 || s0 < 8 || s0 >= N) return; push(); const i = B.n.findIndex((q) => q[0] === s0 && q[1] === l); if (i >= 0) B.n.splice(i, 1); else { if (B.n.filter((q) => q[0] === s0).length >= 2) { ctx.toast(esc(T("Two notes at once at most"))); undo.pop(); return; } B.n.push([s0, l]); } after(); }
-  function after() { B = cleanBeat(B, spec); est = null; dirty = true; bar(); }
+  function after() { if (ctx.onChange) try { ctx.onChange(B); } catch { /* (STB7: the Studio's autosave) */ } B = cleanBeat(B, spec); est = null; dirty = true; bar(); }
   function bar() { if (!el) return; const E = est || (est = estimate(clampSpec({ ...spec, build: B }))); el.querySelector(".wsb-bar").innerHTML = `<span><b>♩ ${bpm}</b> BPM · ${spec.len} s</span><span class="wsb-st">${"★".repeat(E.stars)}<i>${"★".repeat(5 - E.stars)}</i> <small>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</small></span><span class="wsb-cnt">🎵 ${B.n.length} / ${BEAT.MAX}</span>`; el.querySelector("[data-undo]").disabled = !undo.length; el.querySelector("[data-redo]").disabled = !redo.length; }
   function onClick(e) { const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.hasAttribute("data-close")) { if (undo.length && !confirm(T("Leave without keeping your changes?"))) return; return close(false); }
+    if (b.hasAttribute("data-close")) { if (undo.length) { ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true }).then((y) => { if (y) close(false); }); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-undo")) { if (undo.length) { redo.push(snap()); B = JSON.parse(undo.pop()); after(); } return; }
     if (b.hasAttribute("data-redo")) { if (redo.length) { undo.push(snap()); B = JSON.parse(redo.pop()); after(); } return; }

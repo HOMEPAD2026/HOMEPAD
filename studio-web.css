@@ -97,3 +97,44 @@ body.sgw .sgw-main a,body.sgw .sgw-foot a{color:inherit}body.sgw .sgw-link{color
 /* STB5 (2026-10-27): remix a game from its web page (opens the World's Studio with a copy) */
 .sgw-remix{display:inline-flex;align-items:center;gap:6px;padding:12px 18px;border-radius:999px;border:1px solid rgba(124,245,226,.5);background:rgba(8,24,56,.6);color:#dff6ff;font:800 15px/1 "Exo 2",Sora,sans-serif;text-decoration:none}
 .sgw-remix:hover{border-color:#7cf5e2;box-shadow:0 0 14px rgba(124,245,226,.35)}
+/* STB7 (2026-10-27): reactions, comments, a creator's level, badges and picks */
+.sgw-rx{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.sgw-rxb{appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;font:700 16px/1 Sora,sans-serif;color:var(--ink);background:rgba(255,255,255,.07);border:1px solid var(--edge);transition:transform .15s,background .15s}
+.sgw-rxb b{font-size:13px;color:var(--ink2)}.sgw-rxb:hover{background:rgba(255,255,255,.13);transform:translateY(-2px)}.sgw-rxb.on{border-color:var(--mint);background:rgba(92,242,192,.14)}
+.sgw-rxb.pop{animation:sgwPop .45s cubic-bezier(.2,1.6,.4,1)}@keyframes sgwPop{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(-8deg)}100%{transform:scale(1)}}
+.sgw-cmts h2 small{font-size:14px;color:var(--ink3);margin-left:6px}
+.sgw-cf{display:flex;gap:8px;margin:0 0 14px}.sgw-cf input{flex:1;min-width:0;padding:13px 14px;border-radius:14px;border:1px solid var(--edge);background:rgba(5,12,30,.7);color:var(--ink);font:600 14px/1.2 Sora,sans-serif}
+.sgw-cf input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(57,211,255,.18)}
+.sgw-cl{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.sgw-cl li{display:flex;gap:10px;padding:12px 14px;border-radius:14px;background:var(--glass);border:1px solid var(--edge)}.sgw-cl li.none{color:var(--ink3);justify-content:center}
+.sgw-cl li.mk{border-color:color-mix(in srgb,var(--gold) 45%,transparent)}.sgw-cl li.new{animation:sgwIn .4s ease-out}@keyframes sgwIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.sgw-cl li>div{min-width:0;flex:1}.sgw-cl b{font-size:14px}.sgw-cl b em{font-style:normal;font-size:11px;padding:2px 7px;border-radius:999px;background:rgba(255,210,58,.18);color:var(--gold);margin-left:4px}
+.sgw-cl small{color:var(--ink3);font-size:12px;margin-left:8px}.sgw-cl p{margin:4px 0 0;color:var(--ink2);font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.sgw-lv{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin:14px 0 6px;max-width:460px}
+.sgw-lvn{font:800 13px/1 Sora,sans-serif;padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,var(--cyan),var(--mint));color:#04122a}
+.sgw-lv i{height:8px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}.sgw-lv em{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--cyan),var(--mint));box-shadow:0 0 10px var(--cyan);animation:sgwGrow 1s ease-out}
+@keyframes sgwGrow{from{width:0}}.sgw-lv small{color:var(--ink3);font-size:12px}
+.sgw-badges{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px}.sgw-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:12px;background:rgba(255,210,58,.1);border:1px solid rgba(255,210,58,.35);font-size:16px}.sgw-badge small{font-size:12px;color:var(--ink2)}
+/* ---------------- /studio: ARCIRCLE Studio as a page of its own (2026-10-27) ---------------- */
+body.sga{--sga-h:64px;min-height:100vh;overflow:hidden;background:#050a1a url(/images/studio/ui/bg-1344.webp) center/cover fixed}
+body.sga::before{content:"";position:fixed;inset:0;background:radial-gradient(120% 80% at 50% 0%,rgba(57,211,255,.18),transparent 60%),linear-gradient(180deg,rgba(3,8,22,.35),rgba(3,8,22,.78));pointer-events:none}
+.sga-top{position:fixed;top:0;left:0;right:0;z-index:80;height:var(--sga-h);box-sizing:border-box;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:linear-gradient(180deg,rgba(8,18,42,.88),rgba(8,18,42,.62));border-bottom:1px solid rgba(124,245,226,.22);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.sga-name{display:flex;align-items:baseline;gap:6px;font:900 19px/1 "Exo 2",Sora,sans-serif;letter-spacing:.02em;color:#fff;margin-left:4px;white-space:nowrap}
+.sga-name em{font-style:normal;background:linear-gradient(90deg,#39d3ff,#5cf2c0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sga-name i{font:700 11px/1 Sora,sans-serif;font-style:normal;color:var(--ink3);padding:4px 8px;border-radius:999px;border:1px solid var(--edge);margin-left:4px;align-self:center}
+.sga-me{appearance:none;cursor:pointer;font:800 13px/1 Sora,sans-serif;color:var(--ink);padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid var(--edge);margin-right:8px}
+.sga-me.on{border-color:rgba(92,242,192,.45);color:#c9ffef}
+.sga-main{position:relative;z-index:1;padding:0;margin:0;max-width:none;min-height:calc(100vh - var(--sga-h))}
+.sga-boot{position:fixed;inset:var(--sga-h) 0 0;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;color:var(--ink);font:800 16px/1.3 Sora,sans-serif}
+.sga-boot img{filter:drop-shadow(0 10px 24px rgba(57,211,255,.45));animation:sgaBob 1.6s ease-in-out infinite}
+.sga-boot i{display:block;width:min(320px,70vw);height:6px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}
+.sga-boot i em{display:block;height:100%;width:8%;border-radius:inherit;background:linear-gradient(90deg,#39d3ff,#5cf2c0);box-shadow:0 0 14px #39d3ff;transition:width .2s}
+.sga-boot.err{gap:12px}.sga-boot.err a{min-width:220px}
+@keyframes sgaBob{50%{transform:translateY(-8px) rotate(-3deg)}}
+/* the Studio window is the page, under the bar; the canvas (preview, runs) behind it */
+body.sga .sgw-cv{position:fixed;inset:0;width:100vw;height:100vh;z-index:0}
+body.sga.sga-on .wst{top:var(--sga-h);background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;padding:14px}
+body.sga.sga-on .wst>.wst-card,body.sga.sga-on .wst>div:first-child{box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(124,245,226,.18)}
+body.sga.sga-run .sga-top{display:none}body.sga.sga-run .wst{top:0}
+body.sga .wst-x{display:none}
+@media (max-width:640px){body.sga{--sga-h:56px}.sga-name i,.sga-top .sgw-world{display:none}.sga-name{font-size:16px}.sga-top .sgw-logo img{width:76px;height:auto}}

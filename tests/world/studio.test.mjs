@@ -32,8 +32,13 @@ const me = ethers.Wallet.createRandom(), fan = ethers.Wallet.createRandom();
 // the generator: the same text in the page's copy; clamped; seeded; a free lane at every wall row
 const a = fs.readFileSync(new URL("../../api/_world-studio-gen.mjs", import.meta.url), "utf8").split("\n").slice(1).join("\n"), b = fs.readFileSync(new URL("../../world-studio-gen.js", import.meta.url), "utf8").split("\n").slice(1).join("\n");
 check(a === b, "the page's generator is the server's (same text below the first line)");
-{ const ev = G.cleanEvents([["coins", 9999, "say", 99], ["evil", 1, "doors", 0], ["col", 1, "speed", 0], ["time", 20, "hack", 0], ["switch", 0, "time", 999], "x", ["key", 0, "coins", -5], ["boss", 0, "heart", 0], ["coins", 5, "doors", 0], ["coins", 6, "doors", 0]], 40);
+{ const ev = G.cleanEvents([["coins", 9999, "say", 99], ["evil", 1, "doors", 0], ["col", 1, "speed", 0], ["time", 20, "hack", 0], ["switch", 0, "time", 999], "x", ["key", 0, "coins", -5], ["boss", 0, "heart", 0], ["coins", 5, "doors", 0], ["coins", 6, "doors", 0], ["coins", 7, "doors", 0], ["coins", 8, "doors", 0], ["coins", 9, "doors", 0], ["coins", 11, "doors", 0]], 40);
   check(ev.length === G.JEV.MAX && ev[0][1] === 300 && ev[0][3] === G.JEV.MSGS.length - 1 && ev[1][1] === 2 && ev[2][3] === 60 && ev[3][3] === 1 && ev.every((x) => G.JEV.WHEN.includes(x[0]) && G.JEV.THEN.includes(x[2])), "Jump World events: unknown kinds dropped, numbers clamped, at most " + G.JEV.MAX);
+  const e2 = G.cleanEvents([["every", 1, "add", 99, "coins", 5000], ["count", 3, "show", 7, "evil", 1], ["time", 4, "hide", 0, "count", 0], ["switch", 0, "flip", 0, "every", 5]], 40);
+  check(e2.length === 4 && e2[0][1] === 3 && e2[0][3] === 10 && e2[0][4] === "coins" && e2[0][5] === 300 && e2[1].length === 4 && e2[1][3] === 0 && e2[2][4] === "count" && e2[2][5] === 10 && e2[3].length === 4,
+    "STB7 events: every ≥ 3 s, the counter's +b ≤ 10, an AND kept only for a known condition (never every), numbers clamped");
+  const jx = G.cleanJump({ W: 40, c: [[5, 1, "x"], [6, 1, "j"], [7, 1, "Q"]] }, { tpl: "jump" });
+  check(jx.c.some((c) => c[2] === "x") && jx.c.some((c) => c[2] === "j") && !jx.c.some((c) => c[2] === "Q"), "STB7: ghost and vanish blocks are kept, an unknown kind is not");
   const jb = G.cleanJump({ W: 40, c: [[0, 0, "g"]], ev: [["coins", 3, "doors", 0]] }, { tpl: "jump" }), jn = G.cleanJump({ W: 40, c: [[0, 0, "g"]] }, { tpl: "jump" });
   check(jb.ev && jb.ev.length === 1 && !("ev" in jn), "Jump World events: kept in the build, none means no field"); }
 const sp = G.clampSpec({ tpl: "evil", theme: "x", speed: 99, len: 7, coins: -3, walls: "2", title: "<b>hi</b>  there" + "x".repeat(40), code: "alert(1)" });
@@ -278,6 +283,16 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   await call(cr, "world-studio-save", { id: id2, spec: { tpl: "runner", title: "<img src=x onerror=alert(1)>", seed: 8 } }); P = await pg("h=mintqueen");
   check(!/<img src=x/.test(P.body.__html) && !/<\/script><img/.test(P.body.__html), "web: a title can't put markup into the page");
 }
+// STB7: the card's picture kept on the server
+{ const S = await import("../../api/_world-studio.mjs"), mk = ethers.Wallet.createRandom(), ot = ethers.Wallet.createRandom();
+  let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", title: "Pic Run", seed: 3 } }); const id = r.body.game.id, jpg = "data:image/jpeg;base64," + Buffer.from("fakejpegbytes").toString("base64");
+  check((await call(ot, "world-studio-thumb", { id, img: jpg })).status === 404, "thumb: only the maker sets a game's picture");
+  check((await call(mk, "world-studio-thumb", { id, img: "data:image/svg+xml;base64,PHN2Zz4=" })).status === 400, "thumb: a JPEG or WebP only (no SVG)");
+  check((await call(mk, "world-studio-thumb", { id, img: "data:image/jpeg;base64," + "A".repeat(S.THUMB_MAX * 2) })).status === 400, "thumb: at most " + S.THUMB_MAX / 1024 + " KB");
+  r = await call(mk, "world-studio-thumb", { id, img: jpg }); const t = await get("studio-thumb&id=" + id);
+  check(r.status === 200 && r.body.th && t.__bin === Buffer.from("fakejpegbytes").toString("base64") && t.mime === "image/jpeg", "thumb: kept and served as a picture");
+  await call(mk, "world-studio-publish", { id }); const a = await get("studio-arcade");
+  check(a.games.find((g) => g.id === id).th === r.body.th, "thumb: the arcade's card points at it (versioned)"); }
 // STB6: build together — a code, one partner, the pen
 { const S = await import("../../api/_world-studio.mjs"), own = ethers.Wallet.createRandom(), pal = ethers.Wallet.createRandom(), x3 = ethers.Wallet.createRandom();
   let r = await call(own, "world-studio-save", { spec: { tpl: "jump", title: "Duo Jump", seed: 4 } }); const id = r.body.game.id;
@@ -298,5 +313,27 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   r = await call(pal, "world-studio-co-leave", { id }); m = await get("studio-mine&wallet=" + pal.address.toLowerCase());
   check(r.status === 200 && m.shared.length === 0 && (await call(pal, "world-studio-save", { id, spec: { tpl: "jump", seed: 2 } })).status === 404, "co: leaving takes it off the partner's list and they can't save it any more");
   r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 3 } }); check(r.status === 200 && !r.body.game.co, "co: alone again, the owner saves without a pen"); }
+// STB7 (2026-10-27): comments, reactions, a creator's picks, the day's creator challenge, a creator's level and badges
+{ const S7 = await import("../../api/_world-studio.mjs"), mk = ethers.Wallet.createRandom(), pl = ethers.Wallet.createRandom(), pl2 = ethers.Wallet.createRandom();
+  const d0 = new Date(T + 9 * 3600e3).toISOString().slice(0, 10), ch = S7.dailyOf(d0);
+  let r = await call(mk, "world-studio-save", { spec: { tpl: ch.tpl, theme: ch.theme, title: "Daily One", seed: 77 } }); const gid = r.body.game.id; await call(mk, "world-studio-publish", { id: gid, on: true });
+  r = await call(pl, "world-studio-comment", { id: gid, t: "So <b>fun</b>!\n" + "x".repeat(300) }); const c0 = r.body.comments && r.body.comments[0];
+  check(r.status === 200 && c0 && c0.t.length <= S7.SOCIAL.CMT && !c0.t.includes("<") && !("w" in c0) && c0.by.length === 6, "comments: clipped, no tags, the wallet stays on the server (a short tag)");
+  r = await call(pl, "world-studio-comment", { id: gid, t: "again right away" }); check(r.status === 429, "comments: one every " + S7.SOCIAL.GAP / 1000 + " s");
+  T += S7.SOCIAL.GAP + 1000; r = await call(mk, "world-studio-comment", { id: gid, t: "Thanks for playing!" }); check(r.status === 200 && r.body.comments[0].maker, "comments: the maker's is marked");
+  r = await call(pl2, "world-studio-uncomment", { id: gid, k: c0.k }); check(r.status === 403, "comments: someone else can't remove one");
+  r = await call(mk, "world-studio-uncomment", { id: gid, k: c0.k }); check(r.status === 200 && r.body.comments.length === 1, "comments: the maker removes one on their game");
+  let g7 = await get("studio-comments&id=" + gid); check(g7.comments.length === 1 && g7.comments[0].t === "Thanks for playing!", "comments: read back");
+  r = await call(pl, "world-studio-react", { id: gid, r: "fire" }); const r2 = await call(pl, "world-studio-react", { id: gid, r: "fire" }), r3 = await call(pl, "world-studio-react", { id: gid, r: "nope" });
+  await call(pl2, "world-studio-react", { id: gid, r: "fire" }); g7 = await get("studio-comments&id=" + gid);
+  check(r.body.rx.fire === 1 && r2.body.already && r3.status === 400 && g7.rx.fire === 2, "reactions: once a wallet each, only known ones");
+  r = await call(pl, "world-studio-play", { id: gid, coins: 1, dist: 5, done: false }); r = await call(pl2, "world-studio-like", { id: gid }); const dd = await get("studio-day");
+  check(dd.tpl === ch.tpl && dd.theme === ch.theme && dd.top.some((x) => x.id === gid && x.likes === 1), "the day's challenge: a game published today in its template + theme is on the board (" + ch.tpl + " · " + ch.theme + ")");
+  r = await call(pl, "world-studio-picks", { ids: [gid, "gnope00", gid, "evil/../x"] }); check(r.status === 200 && r.body.ids.length === 1 && r.body.ids[0] === gid, "picks: only real published games, once each");
+  await call(pl, "world-studio-handle", { h: "picker7" }); const cr = await get("studio-creator&h=picker7");
+  check(cr.picks && cr.picks.length === 1 && cr.picks[0].id === gid && cr.creator.lv === 1, "picks: on the creator's page");
+  await call(mk, "world-studio-handle", { h: "maker7" }); const cm = await get("studio-creator&h=maker7");
+  check(cm.creator.lv >= 1 && cm.creator.xp === 1 + 5 + 20 && Array.isArray(cm.creator.badges), "creator level: plays + likes ×5 + games ×20");
+  const lv = S7.creatorLevel(1200, 150, 12); check(lv.badges.includes("p1k") && lv.badges.includes("l100") && lv.badges.includes("g10") && !lv.badges.includes("p10k") && lv.lv > 1 && lv.next > lv.xp, "creator badges at 100 / 1,000 plays, 10 / 100 likes, 3 / 10 games"); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
