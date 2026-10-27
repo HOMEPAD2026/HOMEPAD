@@ -84,6 +84,10 @@ export function createStudio(ctx) {
     myH = r.j.h; hEdit = false; links.clear(); ctx.toast("🌐 " + esc(T("Your page: arcircle.app/game/@{h}", { h: myH }))); paint();
   }
   const fail = (r) => { const e = r && r.j && r.j.error; ctx.toast(e ? (r.j.closed ? "🚧 " + T("Being built") : esc(e)) : T("Couldn't open it — try again")); };
+  // WS5 (2026-10-27): the creators you follow — their new games (worldStudioFeedOf), counted as new since you last looked
+  let feed = null; const FEED_SEEN = "arc.studio.feedSeen";
+  const feedNew = () => { if (!feed || !feed.games) return 0; let t = 0; try { t = Number(localStorage.getItem(FEED_SEEN) || 0); } catch { /* none */ } return feed.games.filter((x) => x.at > t).length; };
+  const feedSeen = () => { try { localStorage.setItem(FEED_SEEN, String(Date.now())); } catch { /* not kept */ } };
   async function load() {
     try { const r = await fetch("/api/social?world=studio-arcade", { cache: "no-store" }); if (r.ok) arcade = (await r.json()).games || []; } catch { /* the next look */ }
     try { const r = await fetch("/api/social?world=studio-week", { cache: "no-store" }); if (r.ok) week = await r.json(); } catch { /* the next look */ }
@@ -91,6 +95,7 @@ export function createStudio(ctx) {
     if (wallet()) try { const r = await fetch("/api/social?world=studio-picks&wallet=" + wallet(), { cache: "no-store" }); if (r.ok) myPicks = (await r.json()).ids || []; } catch { /* the next look */ }
     if (ctx.isGM && ctx.isGM()) try { const r = await fetch("/api/social?world=studio-reports", { cache: "no-store" }); if (r.ok) reports = (await r.json()).list || []; } catch { /* the next look */ }
     const w = wallet(); if (w) try { const r = await fetch("/api/social?world=studio-mine&wallet=" + w, { cache: "no-store" }); if (r.ok) { const j = await r.json(); mine = j.games || []; shared = j.shared || []; } setTimeout(() => { try { milestones(); } catch { /* fine */ } }, 600); } catch { /* the next look */ }
+    if (w) try { const r = await fetch("/api/social?world=studio-feed&wallet=" + w, { cache: "no-store" }); if (r.ok) feed = await r.json(); } catch { /* the next look */ }
     if (w && myH == null) try { const r = await fetch("/api/social?world=studio-handle&wallet=" + w, { cache: "no-store" }); if (r.ok) myH = (await r.json()).h || ""; } catch { /* the next look */ }
     if (el && !el.hidden) { if (tab === "game" && gid) return openGame(gid); paint(); } /* (back from a run on a game's page: its top 10 read again) */
   }
@@ -99,6 +104,13 @@ export function createStudio(ctx) {
   function shell() {
     if (el) return el; el = document.createElement("div"); el.className = "wst"; el.hidden = true; document.body.appendChild(el);
     el.addEventListener("click", onClick); el.addEventListener("input", onInput); el.addEventListener("submit", onPrizeSet); el.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches(".wst-adv")) advOpen = e.target.open; }, true);
+    // WS2 (2026-10-27): a card plays its game for a moment — the mouse over it on a computer, a finger held on it on a
+    // phone (the tap still opens it). The one preview renderer is borrowed (the Create tab's is off screen then)
+    el.addEventListener("pointerover", (e) => { if (e.pointerType !== "mouse") return; const cv = e.target.closest && e.target.closest(".wst-cv[data-open]"); if (cv && cv !== liveCv) cardLive(cv); });
+    el.addEventListener("pointerout", (e) => { if (e.pointerType !== "mouse" || !liveCv) return; if (!e.relatedTarget || !liveCv.contains(e.relatedTarget)) cardStill(); });
+    el.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") return; const cv = e.target.closest && e.target.closest(".wst-cv[data-open]"); clearTimeout(holdT); if (!cv) return; const x0 = e.clientX, y0 = e.clientY; holdT = setTimeout(() => { holdT = 0; cardLive(cv); liveHeld = true; }, 380); const mv = (m) => { if (Math.hypot(m.clientX - x0, m.clientY - y0) > 12) { clearTimeout(holdT); el.removeEventListener("pointermove", mv); } }; el.addEventListener("pointermove", mv); });
+    el.addEventListener("pointerup", () => { clearTimeout(holdT); });
+    el.addEventListener("click", (e) => { if (liveHeld) { liveHeld = false; e.stopPropagation(); e.preventDefault(); setTimeout(cardStill, 2600); } }, true); /* (the hold showed it: the lift isn't a tap) */
     el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } else if (e.key === "Enter" && e.target.closest && e.target.closest(".wst-hin")) { e.preventDefault(); saveHandle(); } });
     return el;
   }
@@ -163,7 +175,7 @@ export function createStudio(ctx) {
   function attachPreview() {
     if (tab !== "make" || step > 4) { if (prev) prev.stop(); return; }
     if (!prev && !ctx.saver && prevOk) { try { prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); } catch { prev = null; } if (!prev) { prevOk = false; return paint(); } }
-    const bx = el.querySelector(".wst-3dbox"); if (!prev || !bx) return; bx.prepend(prev.canvas); prev.set(spec);
+    const bx = el.querySelector(".wst-3dbox"); if (!prev || !bx) return; liveCv = null; prev.canvas.classList.remove("wst-cvlive"); bx.prepend(prev.canvas); prev.set(spec);
     /* (STU-B: the theme cards show each theme's Meshy sky; fillSnaps is kept for the old preview pictures) */
   }
   function fillSnaps() { if (!prev || tab !== "make" || step !== 1) return; for (const id of Object.keys(THEMES)) { const k = spec.tpl + ":" + id; if (!snaps[k]) { snaps[k] = prev.snap({ ...spec, theme: id }); const im = el.querySelector(`[data-snap="${id}"]`); if (im) im.style.backgroundImage = `url(${snaps[k]})`; return setTimeout(fillSnaps, 30); } } }
@@ -204,7 +216,8 @@ export function createStudio(ctx) {
   }
   const thumbKey = (g) => g.id + ":" + (g.up || g.at || 0);
   const coverOf = (g) => (g.th ? `/api/social?world=studio-thumb&id=${encodeURIComponent(g.id)}&v=${g.th}` : "") || thumbs.get(thumbKey(g)) || `/images/ui/studio/${TEMPLATES[g.tpl] ? g.tpl : "runner"}.webp?v=1`;
-  const card = (g, own) => `<div class="wst-card${g.off ? " off" : ""}" style="--c:${hex((THEMES[g.theme] || THEMES.neon).edge)};--b:${hex((THEMES[g.theme] || THEMES.neon).sky)}"><div class="wst-cv" data-open="${esc(g.id)}" data-th="${esc(thumbKey(g))}" role="button" tabindex="0" style="background-image:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${coverOf(g)})"><i aria-hidden="true">${ICON[g.tpl] || "🏃"}</i><em>${esc(T((THEMES[g.theme] || THEMES.neon).name))}</em>${g.pick ? `<b class="wst-pick">⭐ ${esc(T("Editor's pick"))}</b>` : g.off ? `<b class="wst-pick off">✔ ${esc(T("Official"))}</b>` : ""}${g.now ? `<b class="wst-now">● ${esc(T("{n} playing now", { n: g.now }))}</b>` : ""}</div><div class="wst-ci"><b data-open="${esc(g.id)}" role="button">${esc(g.title)}</b><small>${own ? (g.pub ? "🚀 " + esc(T("On the Creator Arcade")) : "📝 " + esc(T("Draft"))) : esc(T("by {n}", { n: g.byName || "?" }))} · ▶ ${g.plays || 0} · ♥ ${g.likes || 0}</small>
+  let freshId = ""; /* the game just published: its arcade card wears NEW for this visit */
+  const card = (g, own) => `<div class="wst-card${g.off ? " off" : ""}${g.id === freshId ? " fresh" : ""}" style="--c:${hex((THEMES[g.theme] || THEMES.neon).edge)};--b:${hex((THEMES[g.theme] || THEMES.neon).sky)}"><div class="wst-cv" data-open="${esc(g.id)}" data-th="${esc(thumbKey(g))}" role="button" tabindex="0" style="background-image:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${coverOf(g)})"><i aria-hidden="true">${ICON[g.tpl] || "🏃"}</i><em>${esc(T((THEMES[g.theme] || THEMES.neon).name))}</em>${g.pick ? `<b class="wst-pick">⭐ ${esc(T("Editor's pick"))}</b>` : g.off ? `<b class="wst-pick off">✔ ${esc(T("Official"))}</b>` : ""}${g.now ? `<b class="wst-now">● ${esc(T("{n} playing now", { n: g.now }))}</b>` : ""}</div><div class="wst-ci"><b data-open="${esc(g.id)}" role="button">${esc(g.title)}</b><small>${own ? (g.pub ? "🚀 " + esc(T("On the Creator Arcade")) : "📝 " + esc(T("Draft"))) : esc(T("by {n}", { n: g.byName || "?" }))} · ▶ ${g.plays || 0} · ♥ ${g.likes || 0}</small>
     <span class="wst-cb"><button type="button" class="wst-go" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${own && g.shared ? `<button type="button" data-edit="${esc(g.id)}">${esc(T("Edit"))}</button>` : own ? `<button type="button" data-edit="${esc(g.id)}">${esc(T("Edit"))}</button>${!g.co ? `<button type="button" data-coinv="${esc(g.id)}" aria-label="${esc(T("Build together"))}" title="${esc(T("Build together"))}">👥</button>` : ""}<button type="button" data-pub="${esc(g.id)}">${esc(T(g.pub ? "Unpublish" : "Publish"))}</button><button type="button" data-del="${esc(g.id)}" aria-label="${esc(T("Delete"))}">🗑</button>${g.vers && g.vers.length ? `<button type="button" data-vers="${esc(g.id)}" aria-label="${esc(T("Versions"))}">🕘 ${g.vers.length}</button>` : ""}${g.pub ? `<button type="button" data-stats="${esc(g.id)}" class="${statsOpen === g.id ? "on" : ""}">📊 ${esc(T("Stats"))}</button>` : ""}` : `<button type="button" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}${!own && g.pub !== false && ctx.isGM && ctx.isGM() ? `<button type="button" data-gpick="${esc(g.id)}" aria-label="${esc(T("Editor's pick"))}">${g.pick ? "★" : "☆"}</button>` : ""}${g.pub ? `<button type="button" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>` : ""}</span>${own ? coLine(g) : ""}${own && !g.shared && statsOpen === g.id ? statsBox(g) : ""}</div></div>`;
   function wantThumbs(list) { if (ctx.saver || !prevOk) return; for (const g of list) { if (g.th) continue; const sp = g.spec || g.s; if (sp && !thumbs.has(thumbKey(g))) thumbQ.push([thumbKey(g), sp]); } clearTimeout(thumbT); thumbT = setTimeout(nextThumb, 60); }
   /// STB7: the card's picture is made once here, on the maker's page, and kept on the server (384 × 216 JPEG)
@@ -216,6 +229,13 @@ export function createStudio(ctx) {
       const r = await act({ action: "world-studio-thumb", id: g.id, img: c.toDataURL("image/jpeg", 0.72) }); if (r && r.ok && r.j.th) { mine = mine.map((q) => (q.id === g.id ? { ...q, th: r.j.th } : q)); }
     } catch (e) { console.warn("studio thumb", e); }
   }
+  let liveCv = null, holdT = 0, liveHeld = false;
+  function cardLive(cv) {
+    if (ctx.saver || !prevOk || tab === "make") return; const id = cv.dataset.open, g = arcade.find((x) => x.id === id) || mine.find((x) => x.id === id), sp = g && (g.spec || g.s); if (!sp) return;
+    if (!prev) { try { prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); } catch { prev = null; } if (!prev) { prevOk = false; return; } }
+    cardStill(); liveCv = cv; prev.canvas.classList.add("wst-cvlive"); cv.appendChild(prev.canvas); cv.classList.add("live"); try { prev.set(clampSpec({ ...sp })); } catch { cardStill(); }
+  }
+  function cardStill() { if (!liveCv) return; liveCv.classList.remove("live"); liveCv = null; if (prev) { prev.stop(); prev.canvas.classList.remove("wst-cvlive"); if (prev.canvas.parentNode && tab !== "make") prev.canvas.remove(); } }
   function nextThumb() {
     if (!el || el.hidden || !thumbQ.length) return; if (!prev) { try { prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); } catch { prev = null; } if (!prev) { prevOk = false; return; } }
     const [k, sp] = thumbQ.shift(); if (!thumbs.has(k)) { let u = ""; try { u = prev.snap(clampSpec({ ...sp })); } catch { /* the template's picture stays */ } if (u) { thumbs.set(k, u); el.querySelectorAll(`[data-th="${CSS.escape(k)}"]`).forEach((c) => { c.style.backgroundImage = `linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55)),url(${u})`; c.classList.add("snap"); }); } }
@@ -317,8 +337,17 @@ export function createStudio(ctx) {
     const hot = filtered ? [] : arcade.filter((g) => g.now > 0).sort((p, q) => q.now - p.now).slice(0, 6);
     const pool = arcade.filter((g) => !g.off).sort((p, q) => (q.plays + q.likes * 5) - (p.plays + p.likes * 5)).slice(0, 24), dk = Number(new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, ""));
     const today = filtered || pool.length < 4 ? [] : [0, 1, 2].map((i) => pool[(dk * (i + 7) * 2654435761 >>> 0) % pool.length]).filter((g, i, a) => a.indexOf(g) === i);
-    const rows = `${hot.length ? `<h4 class="wst-sec">🔥 ${esc(T("Playing right now"))}</h4><div class="wst-offrow">${hot.map((g) => card(g, false)).join("")}</div>` : ""}${today.length ? `<h4 class="wst-sec">📅 ${esc(T("Today's three"))}</h4><div class="wst-offrow">${today.map((g) => card(g, false)).join("")}</div>` : ""}`;
-    return `${rbox}${dayBox()}${contestBox()}${arcTools()}${rows}${off.length ? `<h4 class="wst-sec">✔ ${esc(T("Start here — made by ARCIRCLE"))}</h4><div class="wst-offrow">${off.map((g) => card(g, false)).join("")}</div>` : ""}
+    // WS5: the curated home — new from creators you follow, rising (published this week), the most played, the editors' picks
+    const byId = new Map(arcade.map((g) => [g.id, g])), wk = Date.now() - 7 * 86400e3, shown = new Set([...hot, ...today].map((g) => g.id));
+    const folw = filtered || !feed ? [] : (feed.games || []).map((x) => byId.get(x.id)).filter(Boolean).slice(0, 6); folw.forEach((g) => shown.add(g.id));
+    const rising = filtered ? [] : arcade.filter((g) => !g.off && g.at > wk && !shown.has(g.id)).sort((p, q) => (q.plays + q.likes * 5) - (p.plays + p.likes * 5)).slice(0, 6);
+    const most = filtered ? [] : arcade.filter((g) => !g.off && !shown.has(g.id) && !rising.includes(g)).sort((p, q) => q.plays - p.plays).slice(0, 6).filter((g) => g.plays > 0);
+    const picks = filtered ? [] : arcade.filter((g) => g.pick).slice(0, 6);
+    const curated = `${folw.length ? `<h4 class="wst-sec">🔔 ${esc(T("New from creators you follow"))}</h4><div class="wst-offrow">${folw.map((g) => card(g, false)).join("")}</div>` : ""}${picks.length ? `<h4 class="wst-sec">⭐ ${esc(T("Editors' picks"))}</h4><div class="wst-offrow">${picks.map((g) => card(g, false)).join("")}</div>` : ""}${rising.length ? `<h4 class="wst-sec">🚀 ${esc(T("Rising this week"))}</h4><div class="wst-offrow">${rising.map((g) => card(g, false)).join("")}</div>` : ""}${most.length ? `<h4 class="wst-sec">🏆 ${esc(T("Most played"))}</h4><div class="wst-offrow">${most.map((g) => card(g, false)).join("")}</div>` : ""}`;
+    if (folw.length) setTimeout(feedSeen, 1500); /* (seen once the row is on the screen) */
+    const rows = `${hot.length ? `<h4 class="wst-sec">🔥 ${esc(T("Playing right now"))}</h4><div class="wst-offrow">${hot.map((g) => card(g, false)).join("")}</div>` : ""}${today.length ? `<h4 class="wst-sec">📅 ${esc(T("Today's three"))}</h4><div class="wst-offrow">${today.map((g) => card(g, false)).join("")}</div>` : ""}${curated}`;
+    const join = `<form class="wst-rjoin" data-rjoin><b>🏁 ${esc(T("Live race"))}</b><small>${esc(T("Got a code from a friend?"))}</small><input maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE" aria-label="${esc(T("Race code"))}"><button type="submit" class="wst-go">${esc(T("Join"))}</button></form>`;
+    return `${rbox}${join}${dayBox()}${contestBox()}${arcTools()}${rows}${off.length ? `<h4 class="wst-sec">✔ ${esc(T("Start here — made by ARCIRCLE"))}</h4><div class="wst-offrow">${off.map((g) => card(g, false)).join("")}</div>` : ""}
       <h4 class="wst-sec">🕹️ ${esc(T("Players' games"))}</h4>${rest.length ? `<div class="wst-offrow">${rest.map((g) => card(g, false)).join("")}</div>` : filtered ? `<p class="wst-empty">${esc(T("No games match — try another word or template"))}</p>` : `<div class="wst-emptybox"><i>🚀</i><b>${esc(T("Be the first creator!"))}</b><small>${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</small><button type="button" class="wst-go" data-tab="make">🛠️ ${esc(T("Create"))}</button></div>`}`;
   }
   // Studio 3: a game's own page — its cover, who made it, how hard, the top 10, play / race the #1's ghost / like / challenge
@@ -337,7 +366,7 @@ export function createStudio(ctx) {
   async function openGame(id) {
     gid = id; gdata = null; gcm = null; tab = "game"; paint();
     fetch("/api/social?world=studio-comments&id=" + encodeURIComponent(id), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && gid === id) { gcm = j; if (tab === "game") paint(); } }).catch(() => { /* none shown */ });
-    try { const [a, b] = await Promise.all([fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id), { cache: "no-store" }), fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(id), { cache: "no-store" })]);
+    try { const [a, b] = await Promise.all([fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id) + (wallet() ? "&me=" + wallet() : ""), { cache: "no-store" }), fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(id), { cache: "no-store" })]);
       const g = a.ok ? (await a.json()).game : null, gh = b.ok ? (await b.json()).ghost : null; if (gid !== id) return; gdata = g ? { ...g, ghost: gh } : { gone: true }; } catch { gdata = { gone: true }; }
     if (tab === "game") paint();
   }
@@ -349,7 +378,8 @@ export function createStudio(ctx) {
       <div class="wst-gcv" style="background-image:linear-gradient(180deg,transparent 30%,rgba(2,8,20,.85)),url(/images/studio/tpl/${TEMPLATES[g.tpl] ? g.tpl : "runner"}-768.webp${ctx.ver || ""})"><small>${ICON[g.tpl] || "🎮"} ${esc(T((TEMPLATES[g.tpl] || TEMPLATES.runner).name))} · ${esc(T(th.name))}</small><h3>${esc(g.title)}</h3><span>${esc(T("by {n}", { n: g.byName || "?" }))} · ▶ ${g.plays || 0} · ♥ ${g.likes || 0}${g.remixes ? ` · 🔀 ${g.remixes}` : ""}</span>${g.from ? `<small class="wst-from" data-open="${esc(g.from.id)}" role="button">🔀 ${esc(T("Remix of {t} by {n}", { t: g.from.title, n: g.from.byName || "?" }))}</small>` : ""}</div>
       <div class="wst-est s${E.stars}">${starsTxt(E.stars)}<span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${my ? `<small>${esc(T("Your best here: {n}", { n: my }))}</small>` : ""}</div>
       ${g.ghost ? `<label class="wst-ghosto"><input type="checkbox" data-ghost ${ghostOn ? "checked" : ""}> 👻 ${esc(T("Race {n}'s ghost ({s})", { n: g.ghost.name || "#1", s: g.ghost.score }))}</label>` : ""}
-      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">${IC("ic-remix")} ${esc(T("Remix"))}</button></div>
+      ${!own && !g.off && g.fans != null ? `<div class="wst-fol"><span>👥 ${esc(g.fans === 1 ? T("1 follower") : T("{n} followers", { n: g.fans }))}</span><button type="button" class="wst-go ${g.fol ? "alt" : ""}" data-follow="${esc(g.id)}" data-on="${g.fol ? 0 : 1}">${g.fol ? "✓ " + esc(T("Following")) : "➕ " + esc(g.byName ? T("Follow {n}", { n: g.byName }) : T("Follow"))}</button></div>` : ""}
+      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${RACE_TPLS.includes(g.tpl) && g.pub !== false ? `<button type="button" class="wst-go wst-racebtn" data-racenew="${esc(g.id)}">🏁 ${esc(T("Race friends live"))}</button>` : ""}${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">${IC("ic-remix")} ${esc(T("Remix"))}</button></div>
       ${own ? "" : `<div class="wst-rep">${repOpen ? `<small>${esc(T("What's wrong with it?"))}</small><div class="wst-chips">${REASONS.map(([k, ic, l]) => `<button type="button" data-report="${k}">${ic} ${esc(T(l))}</button>`).join("")}</div>` : `<button type="button" class="wst-link" data-repopen>${IC("ic-report")} ${esc(T("Report this game"))}</button>`}${ctx.isGM && ctx.isGM() ? ` <button type="button" class="wst-link" data-ghide="${g.hidden ? 0 : 1}">${g.hidden ? "👁 " + esc(T("Show it again")) : "🙈 " + esc(T("Hide from the arcade (GM)"))}</button>` : ""}</div>`}
       ${socialBox(g, own)}
       <button type="button" class="wst-link" data-tab="arcade">← ${esc(T("Creator Arcade"))}</button></div>
@@ -365,7 +395,7 @@ export function createStudio(ctx) {
     const body = tab === "mine" ? paintMine() : tab === "game" ? paintGame() : tab === "arcade" ? paintArcade() : paintMake();
     el.classList.toggle("wide", isWide()); // (STU-6: a computer or a phone held sideways — the rail-and-columns layout)
     el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Make your own game"))}</small><h2>🎮 <em>ARCIRCLE</em> Studio</h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">${IC("ic-guide")}</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
-      <nav class="wst-tabs">${[["make", "tab-make", "Create"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${IC(ic)}</span>${esc(T(l))}</button>`).join("")}</nav>
+      <nav class="wst-tabs">${[["make", "tab-make", "Create"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${IC(ic)}</span>${esc(T(l))}${id === "arcade" && feedNew() ? `<em class="wst-badge" title="${esc(T("New from creators you follow"))}">${feedNew()}</em>` : ""}</button>`).join("")}</nav>
       <div class="wst-body">${body}</div><div class="wst-foot">${sideCard()}${ctx.webLink ? `<a class="wst-weblink" href="/studio" target="_blank" rel="noopener">🌐 ${esc(T("Open ARCIRCLE Studio on the web — faster"))} ↗</a>` : ""}<span>${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</span></div></div>`;
     estRoll();
     if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else { if (prev) prev.stop(); wantThumbs(tab === "arcade" ? arcade : tab === "mine" ? [...mine, ...locals().map((d) => ({ id: d.id, at: d.at, spec: d.spec }))] : []); }
@@ -390,6 +420,7 @@ export function createStudio(ctx) {
     if (t.matches("[data-ghost]")) ghostOn = t.checked;
   }
   async function onPrizeSet(e) {
+    if (e.target.closest && e.target.closest("[data-rjoin]")) { e.preventDefault(); const inp = e.target.closest("[data-rjoin]").querySelector("input"); return raceJoin(inp ? inp.value : ""); }
     if (e.target.closest && e.target.closest("[data-cmtf]")) { e.preventDefault(); const f = e.target.closest("[data-cmtf]"), inp = f.querySelector("input"), t = inp.value.trim(); if (t.length < 2 || !gdata) return;
       const r = await act({ action: "world-studio-comment", id: gdata.id, t }); if (!r || !r.ok) return r && fail(r); gcm = { ...(gcm || {}), comments: r.j.comments }; ctx.toast("💬 " + esc(T("Posted"))); paint(); return; }
     const f = e.target.closest("[data-prizef]"); if (!f) return; e.preventDefault();
@@ -474,6 +505,9 @@ export function createStudio(ctx) {
       return; }
     if (b.dataset.play) return playId(b.dataset.play, tab === "game" && gdata && gdata.id === b.dataset.play && ghostOn ? { ghost: gdata.ghost } : {});
     if (b.dataset.like) return like(b.dataset.like);
+    if (b.dataset.racenew) return raceNew(b.dataset.racenew);
+    if (b.dataset.follow) { const on = b.dataset.on === "1"; b.disabled = true; const r = await act({ action: "world-studio-follow", id: b.dataset.follow, on }); b.disabled = false; if (!r || !r.ok) return r && fail(r);
+      if (gdata && gdata.id === b.dataset.follow) gdata = { ...gdata, fol: on, fans: r.j.fans }; ctx.toast(on ? "🔔 " + esc(T("Following — their new games show in your arcade")) : esc(T("Unfollowed"))); paint(); if (on) load(); return; }
     if (b.hasAttribute("data-hsave")) return saveHandle();
     if (b.hasAttribute("data-hedit")) { hEdit = true; paint(); return; }
     if (b.hasAttribute("data-hcancel")) { hEdit = false; paint(); return; }
@@ -518,13 +552,18 @@ export function createStudio(ctx) {
   async function publish(id) {
     const g = mine.find((x) => x.id === id), on = !(g && g.pub); const r = await act({ action: "world-studio-publish", id, on }); if (!r || !r.ok) return r && fail(r);
     mine = mine.map((x) => (x.id === id ? r.j.game : x)); links.delete(id); if (on) upThumb(r.j.game); ctx.toast(on ? "🚀 " + esc(T("On the Creator Arcade!")) + (myH && r.j.game.slug ? " · 🌐 /game/@" + esc(myH) + "/" + esc(r.j.game.slug) : myH === "" ? " · 🌐 " + esc(T("Pick a creator ID in My games for its own web page")) : "") : esc(T("Taken off the Creator Arcade"))); paint(); load();
-    if (on) { ev("publish"); let first = false; try { first = !localStorage.getItem("arc.studio.pub1"); localStorage.setItem("arc.studio.pub1", "1"); } catch { /* not kept */ } launchFx(first); }
+    if (on) { ev("publish"); freshId = id; let first = false; try { first = !localStorage.getItem("arc.studio.pub1"); localStorage.setItem("arc.studio.pub1", "1"); } catch { /* not kept */ } launchFx(first); }
   }
   async function del(id) {
     if (!(await ask(T, T("Delete this game?"), { ok: T("Delete"), danger: true }))) return; const r = await act({ action: "world-studio-del", id }); if (!r || !r.ok) return r && fail(r);
     mine = mine.filter((x) => x.id !== id); if (editId === id) editId = ""; paint(); load();
   }
   async function like(id) { const r = await act({ action: "world-studio-like", id }); if (!r || !r.ok) return r && fail(r); arcade = arcade.map((g) => (g.id === id ? { ...g, likes: r.j.likes } : g)); ctx.toast(r.j.already ? esc(T("You liked it already")) : "♥ " + esc(T("Liked"))); paint(); }
+  async function playChal(code) {
+    let c = null; try { const r = await fetch("/api/social?world=studio-chal&c=" + encodeURIComponent(code), { cache: "no-store" }); if (r.ok) c = (await r.json()).chal; } catch { /* below */ }
+    if (!c) { ctx.toast(esc(T("That challenge has ended — try the game anyway"))); return false; }
+    ctx.toast("⚔️ " + esc(T("{n} challenges you — beat {s}! Their run is the ghost.", { n: c.name, s: c.score }))); return playId(c.id, { ghost: c.tr ? { name: c.name, score: c.score, tr: c.tr } : null, vs: c.score, vsBy: c.name });
+  }
   async function playId(id, opt = {}) {
     let g = mine.find((x) => x.id === id && x.spec);
     if (!g) try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(id), { cache: "no-store" }); if (r.ok) g = (await r.json()).game; } catch { /* below */ }
@@ -629,6 +668,7 @@ export function createStudio(ctx) {
     const hud = document.createElement("div"); hud.className = "wst-hud"; hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || o.spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div><div class="wst-cd">3</div><p class="wst-hint">${esc(T(ctx.coarse ? "Stick ← → to switch lanes · ⤒ jump · ⤓ slide (or swipe)" : "← → switch lanes · ↑ / Space jump · ↓ slide"))}</p><div class="wst-speed" aria-hidden="true"></div>`;
     document.body.appendChild(hud);
     const S = { z: Math.max(0, Math.min(L.len - 40, o.startZ || 0)), x: 0, lane: 1, y: 0, vy: 0, slide: 0, hearts: (o.spec.rules || []).includes("onehp") ? 1 : 3, inv: 0, coins: 0, t: -3, done: false, over: false, clip: "", combo: 0, lastCoin: -9, slow: 0, nice: new Set(), tr: [] }; // (o.startZ: the editor's "test from here")
+    const LV = o.live ? makeLive(scene, o, S, hud) : null; if (LV) { S.t = LV.t0(); hud.querySelector(".wst-cd").textContent = String(Math.max(1, Math.ceil(-S.t))); }
     const fx = makeFx(hud), pad = ctx.coarse ? makePad(hud, { mode: "lanes", T, onLane: (d) => lane(d), onJump: () => jump(), onSlide: () => slide() }) : null;
     const keys = (e) => { if (S.over) return; const k = e.key; if (k === "ArrowLeft" || k === "a" || k === "A") lane(-1); else if (k === "ArrowRight" || k === "d" || k === "D") lane(1); else if (k === "ArrowUp" || k === " " || k === "w" || k === "W") jump(); else if (k === "ArrowDown" || k === "s" || k === "S") slide(); else return; e.preventDefault(); };
     let tx = 0, ty = 0, tt = 0;
@@ -664,7 +704,7 @@ export function createStudio(ctx) {
         if (hero && !hero.busy() && S.clip !== "sprint") play("sprint");
         while (S.tr.length * 0.2 <= S.t && S.tr.length < 900) S.tr.push([Math.round(S.x * 10), Math.round(S.y * 10), Math.round(S.z)]);
       }
-      if (gh) gh.at(Math.max(0, S.t), t);
+      if (gh) gh.at(Math.max(0, S.t), t); if (LV) LV.tick(dt, t);
       S.x += (LANES[S.lane] - S.x) * Math.min(1, dt * 12);
       me.position.set(S.x, S.y, S.z); me.visible = !(S.inv > 0 && ((t * 12) | 0) % 2);
       if (hero) hero.update(dt, t);
@@ -680,18 +720,18 @@ export function createStudio(ctx) {
     hud.querySelector(".wst-hx").addEventListener("click", () => leave());
     async function end(done) {
       if (S.over) return; S.over = true; S.done = done; if (pad) pad.hide(); play(done ? "emote-yes" : "die", true);
-      fx.speed(0); if (!done && !dash) { deathMark(scene, S.x, S.z); await beat(hud); } // (STU-B: where it ended, a moment before the card)
-      await result(o, hud, { trace: S.tr, coins: S.coins, dist: S.z, done, line: dash ? `🪙 ${S.coins} · ${Math.round(S.z)} m` : `🪙 ${S.coins} / ${L.coins} · ${Math.round(S.z)} / ${Math.round(L.len)} m`, head: dash ? "♾️ " + T("{m} m!", { m: Math.round(S.z) }) : done ? "🏁 " + T("Finished!") : "💥 " + T("Out of hearts"), confetti: done || dash }, leave);
+      fx.speed(0); if (LV) LV.end(done); if (!done && !dash) { deathMark(scene, S.x, S.z); await beat(hud); } // (STU-B: where it ended, a moment before the card)
+      await result(o, hud, { live: LV, trace: S.tr, coins: S.coins, dist: S.z, done, line: dash ? `🪙 ${S.coins} · ${Math.round(S.z)} m` : `🪙 ${S.coins} / ${L.coins} · ${Math.round(S.z)} / ${Math.round(L.len)} m`, head: dash ? "♾️ " + T("{m} m!", { m: Math.round(S.z) }) : done ? "🏁 " + T("Finished!") : "💥 " + T("Out of hearts"), confetti: done || dash }, leave);
     }
     function leave(again) {
       removeEventListener("keydown", keys, true); removeEventListener("touchstart", ts); removeEventListener("touchend", te); removeEventListener("pointerdown", ts); removeEventListener("pointerup", pu);
-      st.solo(null); st.view(null); hud.remove(); document.body.classList.remove("wp-studio");
+      st.solo(null); st.view(null); hud.remove(); document.body.classList.remove("wp-studio"); if (LV) LV.stop(!S.over);
       if (hero) me.remove(hero.obj); // (the hero's materials are the kit's, shared: only what this run made is let go)
       scene.userData.live = false; scene.traverse((m) => { if (m.userData && m.userData.shared) return; if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); });
       playing = null; if (!again && o.onBack) { o.onBack(); return; } if (!again && el) { el.hidden = false; paint(); load(); }
     }
     st.view(scene, cam); st.solo(tick); tick(0.016, 0); paintHud();
-    return { S, leave, L, ghost: () => (gh ? 1 : 0), clips: (all) => (hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((x) => x.isRunning() && (all || x.getEffectiveWeight() > 0.5)).map((x) => x.getClip().name) : []), jump, slide, lane };
+    return { S, leave, L, live: LV, ghost: () => (gh ? 1 : 0), clips: (all) => (hero && hero.mixer && hero.mixer._actions ? hero.mixer._actions.filter((x) => x.isRunning() && (all || x.getEffectiveWeight() > 0.5)).map((x) => x.getClip().name) : []), jump, slide, lane };
   }
   /// Studio 3c: a Ring Puzzle is played on INFINITY RINGS' own board (world-rings.js playStudio); the clear's moves come back
   /// here, go to the server (which replays them) and get the Studio's result card
@@ -716,6 +756,95 @@ export function createStudio(ctx) {
     scene.add(g); const tr = gst.tr, P = (p) => (arena ? [p[0] / 10, 0, p[1] / 10] : [p[0] / 10, p[1] / 10, p[2]]);
     return { at(t, tt) { const k = t / 0.2, i = Math.min(tr.length - 2, Math.floor(k)), f = Math.min(1, k - i), a = P(tr[i]), b = P(tr[i + 1]); g.position.set(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f); g.visible = k < tr.length + 5; m.material.opacity = 0.3 + Math.sin(tt * 4) * 0.08; } };
   }
+  // ---------------- WS4 (2026-10-27, the owner: "1, 2번 진행하자"): the live race (api/_world-studio.mjs RACE) ----------------
+  // a code for a Sky Runner / Infinity Dash game, 2–4 racers in a lobby card, the host starts it on the server's clock; in
+  // the run each racer sends where they are every 0.7 s and sees the others as their heroes on the same track (in between
+  // they glide on their last speed), a board of places on the HUD; the result card keeps the places until everyone is in
+  let lobby = null; const RACE_TPLS = ["runner", "dash"];
+  const myW = () => { const s = ctx.sess && ctx.sess(); return s ? String(s.wallet).toLowerCase() : ""; };
+  const myC = () => String((ctx.myChar && ctx.myChar()) || "");
+  const RCOL = ["#ff7ad9", "#7cf5c8", "#ffd23a", "#8fb5ff"];
+  async function raceGet(code) { try { const r = await fetch("/api/social?world=studio-race&code=" + encodeURIComponent(code), { cache: "no-store" }); const j = await r.json().catch(() => ({})); return r.ok ? j.race : { err: j.error || "gone" }; } catch { return null; } }
+  async function raceNew(id, from) { const r = await act({ action: "world-studio-race-new", id, c: myC(), ...(from ? { from } : {}) }); if (!r || !r.ok) return r && fail(r); raceLobby(r.j.race); }
+  async function raceJoin(code) {
+    code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (code.length !== 5) { ctx.toast(esc(T("A race code has 5 letters"))); return; }
+    const r = await act({ action: "world-studio-race-join", code, c: myC() }); if (!r || !r.ok) return r && fail(r); raceLobby(r.j.race);
+  }
+  const raceLink = (code) => `${location.origin}${/^\/(studio|game)/.test(location.pathname) ? "/studio" : "/play"}?race=${code}`;
+  function raceLobby(rc) {
+    if (lobby) lobby.close(false); if (playing) return; const box = document.createElement("div"); box.className = "wst-rl"; document.body.appendChild(box);
+    let cur = rc, off = rc.now - Date.now(), timer = 0, gone = false, joining = false;
+    const close = (leave) => { gone = true; clearTimeout(timer); box.remove(); lobby = null; if (leave) act({ action: "world-studio-race-leave", code: cur.code }); };
+    let drawn = "";
+    const draw = () => { const me = myW(), host = cur.host === me, n = cur.players.length, key = JSON.stringify([cur.host, cur.players.map((p) => p.w + p.name)]); if (key === drawn) return; if (drawn) box.classList.add("shown"); drawn = key; /* (redrawn only when someone comes or goes; the card pops in once) */
+      box.innerHTML = `<div class="wst-rlc"><small>🏁 ${esc(T("Live race"))}</small><h3>${esc(cur.title)}</h3>
+        <div class="wst-rlcode"><span>${esc(T("Race code"))}</span><b>${esc(cur.code)}</b><button type="button" class="wst-go alt" data-rlcopy>🔗 ${esc(T("Copy link"))}</button></div>
+        <ol class="wst-rlp">${[0, 1, 2, 3].map((i) => { const p = cur.players[i]; return p ? `<li class="${p.w === me ? "me" : ""}" style="--c:${RCOL[i]}"><i>${i + 1}</i><b>${esc(p.name)}${p.w === me ? ` <small>(${esc(T("you"))})</small>` : ""}</b>${p.w === cur.host ? "<em>👑</em>" : ""}</li>` : `<li class="empty"><i>${i + 1}</i><b>${esc(T("Waiting for a racer…"))}</b></li>`; }).join("")}</ol>
+        <p class="wst-rlh">${esc(host ? (n < 2 ? T("Send the code to friends — start when someone joins") : T("Everyone here? Start the race!")) : T("Waiting for the host to start…"))}</p>
+        <div class="wst-rla">${host ? `<button type="button" class="wst-go big" data-rlgo ${n < 2 ? "disabled" : ""}>🏁 ${esc(T("Start the race"))}</button>` : ""}<button type="button" class="wst-go alt" data-rlx>${esc(T("Leave"))}</button></div></div>`; };
+    const go = async () => { if (gone) return; gone = true; clearTimeout(timer);
+      let g = null; try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(cur.id), { cache: "no-store" }); if (r.ok) g = (await r.json()).game; } catch { /* below */ }
+      box.remove(); lobby = null; if (!g || !g.spec) { ctx.toast(T("Couldn't open it — try again")); act({ action: "world-studio-race-leave", code: cur.code }); return; }
+      run({ spec: clampSpec(g.spec), id: cur.id, title: g.title, by: g.byName, live: { code: cur.code, start: cur.start, off, players: cur.players, host: cur.host } }); };
+    box.addEventListener("click", async (e) => { const t = e.target.closest("button"); if (!t) return;
+      if (t.matches("[data-rlx]")) return close(true);
+      if (t.matches("[data-rlcopy]")) { const u = raceLink(cur.code); try { await navigator.clipboard.writeText(u); ctx.toast("🔗 " + esc(T("Link copied — friends join with it"))); } catch { prompt(T("Copy link"), u); }
+        if (navigator.share && ctx.coarse) navigator.share({ title: cur.title, text: T("Race me live in \"{t}\"! Code {c}", { t: cur.title, c: cur.code }), url: u }).catch(() => { /* closed */ }); return; }
+      if (t.matches("[data-rlgo]")) { t.disabled = true; const r = await act({ action: "world-studio-race-start", code: cur.code }); if (!r || !r.ok) { t.disabled = false; return r && fail(r); } cur = r.j.race; off = cur.now - Date.now(); go(); } });
+    const poll = async () => { if (gone) return; const r = await raceGet(cur.code); if (gone) return;
+      if (r && r.err) { ctx.toast(esc(T("The race was closed"))); return close(false); }
+      if (r) { cur = r; off = r.now - Date.now(); if (r.start) return go();
+        if (!joining && !r.players.some((p) => p.w === myW())) { joining = true; const j = await act({ action: "world-studio-race-join", code: r.code, c: myC() }); joining = false; if (j && j.ok) cur = j.j.race; else if (j) { fail(j); return close(false); } } // (a seat lost to two joining at once comes back)
+        draw(); }
+      timer = setTimeout(poll, 1500); };
+    draw(); timer = setTimeout(poll, 1500); lobby = { close }; ev("race");
+  }
+  function makeLive(scene, o, S, hud) {
+    const lv = o.live, me = myW(), F = new Map(), fins = new Set(); let off = lv.off, cur = { players: lv.players }, busy2 = false, last = 0, stopped = false, myFin = 0;
+    const board = document.createElement("ol"); board.className = "wst-rbd"; hud.appendChild(board);
+    const sNow = () => Date.now() + off;
+    function fig(p, i) { const g = new THREE.Group(), col = RCOL[i % 4];
+      const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 10), new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: 0.6, emissive: col, emissiveIntensity: 0.25 })); cap.position.y = 0.95; g.add(cap);
+      try { const tag = ctx.K.label(String(p.name || "?").slice(0, 16), { accent: col, size: 0.5 }); tag.position.y = 2.5; g.add(tag); } catch { /* no tag */ }
+      g.position.set(p.x, p.y, p.z); scene.add(g); const f = { g, cap, hero: null, clip: "", z: p.z, x: p.x, y: p.y, p, v: 0, pz: p.z, pat: p.at || 0 };
+      if (p.c && ctx.makeHeroOf && !ctx.saver) ctx.makeHeroOf(p.c).then((h) => { if (!h || stopped) return; f.hero = h; g.add(h.obj); cap.visible = false; f.clip = ""; }).catch(() => { /* the capsule stays */ });
+      return f; }
+    function apply(rc) { if (!rc || rc.err) return; off = rc.now - Date.now(); cur = rc;
+      rc.players.forEach((p, i) => { if (p.w === me) { if (p.fin) myFin = p.fin; return; } let f = F.get(p.w); if (!f) { f = fig(p, i); F.set(p.w, f); }
+        if (p.at && p.at !== f.pat) { const dt2 = (p.at - f.pat) / 1000; if (f.pat && dt2 > 0.05) f.v = Math.max(0, Math.min(60, (p.z - f.pz) / dt2)); f.pz = p.z; f.pat = p.at; } f.p = p;
+        if ((p.fin || p.out) && !fins.has(p.w)) { fins.add(p.w); if (p.fin) ctx.toast("🏁 " + esc(T("{n} crossed the line!", { n: p.name }))); } });
+      paintBoard(); }
+    const order = () => { const L2 = cur.players.map((p) => (p.w === me ? { ...p, z: S.over && (p.fin || p.out) ? p.z : S.z, fin: myFin || p.fin, out: p.out || (S.over && !S.done), you: true } : p));
+      return L2.sort((a, b) => (a.fin && b.fin ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : a.out !== b.out ? (a.out ? 1 : -1) : b.z - a.z)); };
+    const mmss = (ms) => { const t2 = ms / 1000; return Math.floor(t2 / 60) + ":" + (t2 % 60).toFixed(1).padStart(4, "0"); };
+    const row = (p, i, full) => `<li class="${p.you ? "me" : ""}${p.out ? " out" : ""}"><i>${full && p.fin && i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(p.you ? T("You") : p.name)}</b><em>${p.fin ? "🏁 " + mmss(p.fin) : p.out ? "💥 " + Math.round(p.z) + " m" : Math.round(p.z) + " m"}</em></li>`;
+    function paintBoard() { board.innerHTML = order().map((p, i) => row(p, i, false)).join(""); }
+    async function send(extra) { if (busy2 && !extra) return; busy2 = true; last = performance.now();
+      const r = await act({ action: "world-studio-race-tick", code: lv.code, z: +S.z.toFixed(1), x: +S.x.toFixed(2), y: +S.y.toFixed(2), hp: Math.max(0, S.hearts), coins: S.coins, ...(extra || {}) }); busy2 = false; if (r && r.ok) apply(r.j.race); }
+    paintBoard();
+    return {
+      t0: () => Math.max(-6, Math.min(-0.3, -(lv.start - sNow()) / 1000)),
+      others: () => [...F.values()].map((f) => ({ name: f.p.name, c: f.p.c, z: f.z, x: f.x, hero: !!f.hero, vis: f.g.visible, clips: f.hero && f.hero.mixer ? f.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [] })), // (tests: the clip each racer's hero runs)
+      tick(dt, t) {
+        if (!stopped && S.t > -0.5 && !S.over && performance.now() - last > 700) send();
+        const nowS = sNow();
+        for (const f of F.values()) { const p = f.p, run2 = !p.fin && !p.out && nowS >= lv.start, tz = run2 ? p.z + f.v * Math.min(1.5, Math.max(0, (nowS - (p.at || nowS)) / 1000)) : p.z;
+          f.z += (Math.max(f.z, tz) - f.z) * Math.min(1, dt * 6); f.x += (p.x - f.x) * Math.min(1, dt * 8); f.y += (p.y - f.y) * Math.min(1, dt * 10); f.g.position.set(f.x, f.y, f.z);
+          if (f.hero) { const want = p.out ? "die" : p.fin ? "emote-yes" : run2 ? (p.y > 0.3 ? "jump" : "sprint") : "idle"; if (want !== f.clip && !f.hero.busy()) { try { f.hero.play(want, want === "die" || want === "emote-yes" || want === "jump" ? { once: true } : {}); } catch { /* no clip */ } f.clip = want; } f.hero.update(dt, t); } }
+        if (((t * 4) | 0) !== ((((t - dt) * 4) | 0))) paintBoard();
+      },
+      end(done) { const fin = () => (busy2 ? setTimeout(fin, 80) : send(done ? { fin: 1 } : { out: 1 })); fin(); }, // (after a tick still on its way, so it can't land on top)
+      stop(quit) { if (stopped) return; stopped = true; if (quit) act({ action: "world-studio-race-leave", code: lv.code }); for (const f of F.values()) if (f.hero) f.g.remove(f.hero.obj); },
+      result(c, leave) { const box = c.querySelector("[data-rres]"), rm = c.querySelector("[data-rematch]"), host = lv.host === me; let n = 0, next = "";
+        const draw = () => { const L2 = order(), k = L2.findIndex((p) => p.you), all = L2.every((p) => p.fin || p.out);
+          box.innerHTML = `<b>${k === 0 && L2[0].fin ? "🏆 " + esc(T("You won the race!")) : all ? "🏁 " + esc(T("Race over — place {n}", { n: k + 1 })) : "⏳ " + esc(T("Waiting for the others…"))}</b><ol>${L2.map((p, i) => row(p, i, true)).join("")}</ol>`;
+          if (rm) { rm.hidden = !(host || next); rm.textContent = next && !host ? "🏁 " + T("Join the rematch") : "🏁 " + T("Rematch"); }
+          return all; };
+        if (rm) rm.addEventListener("click", () => { leave(true); setTimeout(() => (next && !host ? raceJoin(next) : raceNew(o.id, lv.code)), 50); });
+        draw(); const poll = async () => { if (!c.isConnected || n++ > 80) return; const r = await raceGet(lv.code); if (r && !r.err) { apply(r); if (r.next) next = r.next; } if (!c.isConnected) return; const all = draw(); if (!all || (!host && !next)) setTimeout(poll, 1500); };
+        setTimeout(poll, 800); },
+    };
+  }
   /// the run's end: the score (sent when it's a published game and you're signed in), your best on this device, a card
   async function result(o, hud, r, leave) {
     const score = r.puzzle ? puzzleScore(r.puzzle.par, r.puzzle.count, Math.min(genLevel(o.spec).hints, r.puzzle.hints || 0)) : scoreOf(r.coins, r.dist, r.done); let res = null;
@@ -727,12 +856,19 @@ export function createStudio(ctx) {
     const c = document.createElement("div"); c.className = "wst-res"; c.innerHTML = `<div class="wst-rin">${isBest ? `<em class="wst-best">✨ ${esc(T("New best!"))}</em>` : ""}<small>${esc(o.title || o.spec.title)}</small><h3>${esc(r.head)}</h3><b class="wst-score">${score}</b>
       <p>${esc(r.line)}</p>${o.id && !o.test && !mine.some((x) => x.id === o.id) && !String(o.id).startsWith("goff") ? `<div class="wst-rate" data-rid="${esc(o.id)}"><small>${esc(T("How was it?"))}</small><span><button type="button" data-fun="1">👍 ${esc(T("Fun"))}</button><button type="button" data-fun="-1">👎 ${esc(T("Not for me"))}</button></span><span><button type="button" data-dif="0">${esc(T("Easy"))}</button><button type="button" data-dif="1">${esc(T("Just right"))}</button><button type="button" data-dif="2">${esc(T("Hard"))}</button></span></div>` : ""}${res ? `<p>${esc(T("Your best: {n}", { n: res.best }))}${res.place ? " · " + esc(T("#{n} on this game", { n: res.place })) : ""}</p>` : o.test ? `<p class="wst-fine">${esc(T("A test run isn't counted."))}</p>` : ""}
       ${o.vs ? `<p class="wst-vs ${score > o.vs ? "won" : ""}">${score > o.vs ? "🏆 " + esc(T("You beat {n}'s {s}!", { n: o.vsBy || "?", s: o.vs })) : "⚔️ " + esc(T("{n} scored {s} — {d} to go", { n: o.vsBy || "?", s: o.vs, d: o.vs - score + 1 }))}</p>` : ""}${res && res.ghost ? `<p class="wst-vs won">👻 ${esc(T("You're #1 — your run is the ghost to beat now"))}</p>` : ""}
-      <span><button type="button" class="wst-go big" data-again>↻ ${esc(T("Play again"))}</button><button type="button" class="wst-go alt" data-back>${esc(T(o.test ? "Back to the editor" : "Back"))}</button></span>
+      ${r.live ? `<div class="wst-rres" data-rres></div>` : ""}<span>${r.live ? `<button type="button" class="wst-go big" data-rematch hidden>🏁 ${esc(T("Rematch"))}</button>` : `<button type="button" class="wst-go big" data-again>↻ ${esc(T("Play again"))}${ctx.coarse ? "" : " <kbd>R</kbd>"}</button>`}<button type="button" class="wst-go alt" data-back>${esc(T(o.test ? "Back to the editor" : "Back"))}</button></span>
       ${o.id && !o.test ? `<span><button type="button" class="wst-go alt" data-chal>⚔️ ${esc(T("Challenge a friend"))}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-rcard aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go" data-nextg>${esc(T("Next game"))} ▶</button></span>` : ""}</div>`;
     hud.appendChild(c); if (r.confetti && !ctx.reduce) confetti(hud);
-    c.querySelector("[data-again]").addEventListener("click", () => { leave(true); setTimeout(() => run(o), 50); });
+    // WS3 (2026-10-27): the score counts up, a new best lands as a stamp with a flash, R / Space plays again
+    if (!ctx.reduce) { const sc = c.querySelector(".wst-score"), t0 = performance.now(), D = Math.min(1100, 400 + score * 2); const up = (now) => { const k = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - k, 3); sc.textContent = String(Math.round(score * e)); if (k < 1 && sc.isConnected) requestAnimationFrame(up); else { sc.textContent = String(score); sc.classList.add("done"); } }; sc.textContent = "0"; requestAnimationFrame(up);
+      if (isBest) { const bs = c.querySelector(".wst-best"); if (bs) { bs.classList.add("stamp"); setTimeout(() => { const f = document.createElement("i"); f.className = "wst-flash"; hud.appendChild(f); setTimeout(() => f.remove(), 700); }, D * 0.9); } } }
+    if (r.live) r.live.result(c, leave);
+    const keyAgain = (e) => { if (!c.isConnected || !c.querySelector("[data-again]")) { removeEventListener("keydown", keyAgain); return; } if ((e.key === "r" || e.key === "R" || e.key === " ") && !e.target.closest("input,textarea")) { e.preventDefault(); removeEventListener("keydown", keyAgain); c.querySelector("[data-again]").click(); } };
+    setTimeout(() => addEventListener("keydown", keyAgain), 450); /* (not the jump key still held from the run) */
+    const ag = c.querySelector("[data-again]"); if (ag) ag.addEventListener("click", () => { removeEventListener("keydown", keyAgain); leave(true); setTimeout(() => run(o), 50); });
     c.querySelector("[data-back]").addEventListener("click", () => leave());
-    const ch = c.querySelector("[data-chal]"); if (ch) ch.addEventListener("click", async () => { const me0 = (ctx.myName && ctx.myName()) || ""; const u = `${location.origin}/play?sg=${encodeURIComponent(o.id)}&vs=${score}${me0 ? "&by=" + encodeURIComponent(me0) : ""}`; try { await navigator.clipboard.writeText(u); ctx.toast("⚔️ " + esc(T("Challenge link copied — can they beat {s}?", { s: score }))); } catch { prompt(T("Copy link"), u); } });
+    const ch = c.querySelector("[data-chal]"); if (ch) ch.addEventListener("click", async () => { const me0 = (ctx.myName && ctx.myName()) || "", base = /^\/(studio|game)/.test(location.pathname) ? "/studio" : "/play"; let u = `${location.origin}${base}?sg=${encodeURIComponent(o.id)}&vs=${score}${me0 ? "&by=" + encodeURIComponent(me0) : ""}`;
+      if (ctx.sess() && !r.puzzle && (r.trace || []).length > 1) { ch.disabled = true; const q = await act({ action: "world-studio-chal", id: o.id, coins: r.coins, dist: Math.round(r.dist), done: r.done, trace: r.trace }); ch.disabled = false; if (q && q.ok) u = `${location.origin}${base}?sg=${encodeURIComponent(o.id)}&ch=${q.j.code}`; } /* (WS5: your run comes along as the ghost they race) */ try { await navigator.clipboard.writeText(u); ctx.toast("⚔️ " + esc(T("Challenge link copied — can they beat {s}?", { s: score }))); } catch { prompt(T("Copy link"), u); } });
     const rc = c.querySelector("[data-rcard]"); if (rc) rc.addEventListener("click", () => shareCard(o.id, score));
     const rt = c.querySelector(".wst-rate"); if (rt) { const fb = {}; rt.addEventListener("click", async (e) => { const bt = e.target.closest("button"); if (!bt) return; if (bt.dataset.fun) fb.fun = Number(bt.dataset.fun); if (bt.dataset.dif) fb.dif = Number(bt.dataset.dif); bt.parentElement.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === bt));
       if (fb.fun != null && fb.dif != null && !fb.sent) { fb.sent = true; if (ctx.sess()) await act({ action: "world-studio-rate", id: rt.dataset.rid, fun: fb.fun, dif: fb.dif }); rt.classList.add("done"); rt.querySelector("small").textContent = T("Thanks — the maker sees it"); ev("rate"); } }); }
@@ -867,5 +1003,5 @@ export function createStudio(ctx) {
     if (tab === "make" && step > 1) { step = step >= 4 ? 3 : 1; paint(); return true; }
     close(); return true;
   }
-  return { back, creator, load: () => load(), arcadeList: () => arcade, open, close, shown, playId, remixId, builder: () => builder, openBuilder: () => openBuilder(), step: (n) => { step = n; if (el && !el.hidden) paint(); }, playing: () => playing, last: () => lastRun, spec: () => spec, set: (s) => { spec = clampSpec(s); if (el && !el.hidden) paint(); } };
+  return { back, creator, load: () => load(), arcadeList: () => arcade, open, close, shown, playId, remixId, raceJoin: (c) => raceJoin(c), raceNew: (id) => raceNew(id), playChal: (c) => playChal(c), feedNew: () => feedNew(), builder: () => builder, openBuilder: () => openBuilder(), step: (n) => { step = n; if (el && !el.hidden) paint(); }, playing: () => playing, last: () => lastRun, spec: () => spec, set: (s) => { spec = clampSpec(s); if (el && !el.hidden) paint(); } };
 }

@@ -130,5 +130,15 @@ let kept = 0;
 for (const g of gens.slice(1)) for (const f of g.files) { const p = path.join(OUT, f); if (!fs.existsSync(p) && old.has(f)) { fs.writeFileSync(p, old.get(f)); kept++; } }
 fs.writeFileSync(GENS, JSON.stringify(gens));
 writePlay(true, preloads);
+// /studio (studio-app.html): world-studio-web.js's own imports and the modules its app mode loads at once (the kit, the
+// Studio, its sounds and pads) preloaded side by side — they came one after another, a chain of ~2.5 s on a phone
+{ const want = ["world-kit.js", "world-studio.js", "world-sfx.js", "world-studio-pad.js"], set = new Set();
+  const addDeps = (k) => { if (!k || set.has(rel(k))) return; set.add(rel(k)); for (const im of outs[k].imports) if (im.kind === "import-statement" && !im.external) addDeps(im.path); };
+  const sEntry = Object.keys(outs).find((k) => outs[k].entryPoint === "world-studio-web.js");
+  for (const im of outs[sEntry].imports) if (im.kind === "import-statement" && !im.external) addDeps(im.path);
+  for (const w of want) addDeps(Object.keys(outs).find((k) => outs[k].entryPoint === w || (outs[k].inputs && outs[k].inputs[w])));
+  const APP = path.join(ROOT, "studio-app.html");
+  let html = fs.readFileSync(APP, "utf8"); const a = html.indexOf("<!-- studio-build -->"), b = html.indexOf("<!-- /studio-build -->");
+  if (a >= 0 && b > a) { const lines = [`<link rel="modulepreload" href="${THREE_URL}">`, ...[...set].filter((f) => f.endsWith(".js")).map((f) => `<link rel="modulepreload" href="/w/${f}">`)]; html = html.slice(0, a) + "<!-- studio-build -->\n" + lines.join("\n") + "\n" + html.slice(b); fs.writeFileSync(APP, html); } }
 let total = 0; for (const k of Object.keys(outs)) if (k.endsWith(".js")) total += outs[k].bytes;
 console.log(`world build: ${Object.keys(outs).filter((k) => k.endsWith(".js")).length} files, ${(total / 1024).toFixed(0)} KB (preload ${preloads.length + 1}, ${kept} older chunks kept for pages opened before this deploy)`);

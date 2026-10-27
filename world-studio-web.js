@@ -11,6 +11,7 @@ import { TEMPLATES, THEMES } from "./world-studio-gen.js";
 const D = window.__SG || {}, $m = document.getElementById("sgw-main");
 const LANG = (() => { try { const l = (window.arcI18n && window.arcI18n.get()) || localStorage.getItem("arcircle.lang") || "en"; return ["en", "ko", "zh", "tr"].includes(l) ? l : "en"; } catch { return "en"; } })();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const mark = (n) => { try { performance.mark(n); } catch { /* old browser */ } }; /* (the load's steps, for diag and tests) */
 if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcDict[LANG]); i++) await sleep(100);
 const fill = (t, v) => (v ? String(t).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : t);
 const T = (s, v) => fill((WORDS[LANG] && WORDS[LANG][s]) || (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s, v); // (like world-play.js TW: the game's words, then the site's)
@@ -143,20 +144,23 @@ let host = null, busy = false;
 async function makeHost() {
   if (host) return host;
   if (!document.querySelector('link[href^="/studio.min.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/studio.min.css" + (new URL(import.meta.url).search || ""); /* (only the Studio's rules — world.min.css is the whole World's) */ document.head.appendChild(l); await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 4000); }); } // (the Studio's HUD, result card and the sideways card)
-  const [K, ST, SFX, PAD] = await Promise.all([import("./world-kit.js"), import("./world-studio.js"), import("./world-sfx.js"), import("./world-studio-pad.js")]);
+  const [K, ST, SFX, PAD] = await Promise.all([import("./world-kit.js"), import("./world-studio.js"), import("./world-sfx.js"), import("./world-studio-pad.js")]); mark("sg:mods");
   const cv = document.getElementById("sgw-cv"); cv.hidden = false;
   const S = (() => { const d = { quality: "auto", sound: true, sfx: 70 }; try { return { ...d, ...JSON.parse(localStorage.getItem("arc.world.set") || "{}") }; } catch { return d; } })();
-  const st = K.makeStage(cv, { quality: S.quality }), VER = new URL(import.meta.url).search, low = S.quality === "low" || S.quality === "saver" || st.quality.low;
+  mark("sg:stage0"); const st = K.makeStage(cv, { quality: S.quality, envLater: D.app ? 600 : null }), VER = new URL(import.meta.url).search, low = S.quality === "low" || S.quality === "saver" || st.quality.low;
+  mark("sg:stage1");
   const Snd = SFX.createSfx({ S, coarse });
   const P = (() => { try { return JSON.parse(localStorage.getItem("arc.world") || "{}") || {}; } catch { return {}; } })();
   const gate = PAD.makeGate({ T, esc, coarse, ver: VER, place: D.game ? D.game.title : "ARCIRCLE Studio", line: "This game is made for landscape — turn your phone to play.", back: "Back to the game's page", onBack: () => { const g = host && host.studio.playing && host.studio.playing(); if (g && g.leave) g.leave(); else done(); } });
+  mark("sg:pre-studio");
   const studio = ST.createStudio({ THREE: K.THREE, K, st, T, esc, toast: (m) => toast(m), Snd, reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, ver: VER, isGM: () => false, guide: () => {}, low, saver: S.quality === "saver", coarse,
     myName: () => P.name || "", sess, post, signIn: () => signIn().then((x) => { paintMe(); return x; }),
     onClose: () => { if (D.app) setTimeout(() => { try { host.studio.open("arcade"); } catch { /* fine */ } }, 0); }, /* (/studio: the window is the page — × goes to the arcade) */ soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
     land: { landscape: () => gate.landscape(), enter() {}, exit() {} },
-    makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }) });
+    makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
+    myChar: () => (/^custom-/.test(P.char || "") ? P.char : "custom-aron"), makeHeroOf: (id) => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(id) ? id : "custom-aron") : "custom-aron", VER) }); /* (WS4: the other racers) */
   if (coarse && st.fps) { let was = 0; const cap = () => { const c = studio.playing() ? 60 : 30; if (c !== was) { was = c; st.fps(c); } }; cap(); setInterval(cap, 500); } /* (PF1: a phone draws the Studio windows and preview at 30, a game at 60) */
-  host = { K, st, studio, gate, cv }; return host;
+  mark("sg:host"); host = { K, st, studio, gate, cv }; return host;
 }
 function done() { // (the run's way back: the page again)
   document.body.classList.remove("sgw-on"); if (host) { host.gate.on("web", false); host.cv.hidden = true; } busy = false; refresh();
@@ -216,7 +220,7 @@ async function startApp() {
   try {
     const h = await makeHost(), q = new URLSearchParams(location.search);
     document.body.classList.add("sga-on"); h.cv.hidden = false;
-    if (q.get("sg")) h.studio.playId(q.get("sg"), {}); else h.studio.open(["arcade", "mine", "make"].includes(q.get("tab")) ? q.get("tab") : "make");
+    if (/^[A-Za-z0-9]{5}$/.test(q.get("race") || "")) { h.studio.open("arcade"); h.studio.raceJoin(q.get("race")); } else if (/^[a-z0-9]{8}$/.test(q.get("ch") || "")) h.studio.playChal(q.get("ch")); else if (q.get("sg")) h.studio.playId(q.get("sg"), { vs: Math.max(0, Math.floor(Number(q.get("vs")) || 0)), vsBy: String(q.get("by") || "").slice(0, 16) }); else h.studio.open(["arcade", "mine", "make"].includes(q.get("tab")) ? q.get("tab") : "make"); mark("sg:open");
     let on = false; setInterval(() => { const p = !!h.studio.playing(); if (p !== on) { on = p; document.body.classList.toggle("sga-run", p); } }, 400); /* (/studio plays held either way — the top bar's switch turns it; the game pages still ask for sideways) */
     orientUI();
   } catch (e) { console.warn("studio app", e); $m.innerHTML = `<div class="sga-boot err"><b>⚠️ ${esc(T("The Studio couldn't open"))}</b><a class="sgw-play sm" href="/studio">${esc(T("Try again"))}</a><a class="sgw-btn" href="/play">${esc(T("Open it in ARCIRCLE WORLD"))}</a></div>`; }

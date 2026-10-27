@@ -240,9 +240,10 @@ export function makeStage(canvas, opts = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(C.space);
   scene.fog = new THREE.FogExp2(C.space, opts.fog ?? 0.006);
-  const pm = new THREE.PMREMGenerator(renderer);
-  scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
-  pm.dispose();
+  // the room light for the shiny surfaces (a cube drawn and filtered, its shaders compiled: the slowest part of a new
+  // stage). opts.envLater (ms): made that long after, once the page has painted — /studio shows its window first
+  const makeEnv = () => { const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); };
+  if (opts.envLater != null) setTimeout(() => { try { makeEnv(); } catch { /* no room light */ } }, opts.envLater); else makeEnv();
   const camera = new THREE.PerspectiveCamera(opts.fov ?? 50, 1, 0.1, 1200);
   const hemi = new THREE.HemisphereLight(0x9fd0ff, 0x2a4a36, 0.9); scene.add(hemi); // a green-lit ground bounce keeps shadows soft (ART-SPEC: light and air)
   const sun = new THREE.DirectionalLight(0xffffff, 2.1); sun.position.set(30, 60, 40); scene.add(sun); scene.add(sun.target);
