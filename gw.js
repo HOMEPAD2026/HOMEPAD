@@ -42,7 +42,9 @@
     "cd.d": "d",
     "rk.k": "Leaderboards",
     "rk.h": "This week's best",
-    "rk.tabs": ["Rings ★", "Time Attack", "Survivors", "Poker", "Dino ladder", "Jurassic hunters"],
+    "rk.lv": "Lv {n}",
+    "tk.lv": "🏆 <b>{name}</b> is the top player · Lv {n}",
+    "rk.tabs": ["Level", "Rings ★", "Time Attack", "Survivors", "Poker", "Dino ladder", "Jurassic hunters"],
     "rk.none": "No one on this board yet this week — be the first!",
     "rk.stars": "★ {n}",
     "rk.boards": "{n} boards",
@@ -152,7 +154,9 @@
     "cd.d": "일",
     "rk.k": "리더보드",
     "rk.h": "이번 주 최고 기록",
-    "rk.tabs": ["링 ★", "타임어택", "서바이버", "포커", "공룡 랭킹", "쥬라기 사냥꾼"],
+    "rk.lv": "Lv {n}",
+    "tk.lv": "🏆 레벨 1위 <b>{name}</b> · Lv {n}",
+    "rk.tabs": ["레벨", "링 ★", "타임어택", "서바이버", "포커", "공룡 랭킹", "쥬라기 사냥꾼"],
     "rk.none": "이번 주 기록이 아직 없어요 — 첫 번째가 되어 보세요!",
     "rk.stars": "★ {n}",
     "rk.boards": "보드 {n}개",
@@ -262,7 +266,9 @@
     "cd.d": "天",
     "rk.k": "排行榜",
     "rk.h": "本周最佳",
-    "rk.tabs": ["圆环 ★", "限时挑战", "幸存者", "扑克", "恐龙天梯", "侏罗纪猎手"],
+    "rk.lv": "Lv {n}",
+    "tk.lv": "🏆 等级第一 <b>{name}</b> · Lv {n}",
+    "rk.tabs": ["等级", "圆环 ★", "限时挑战", "幸存者", "扑克", "恐龙天梯", "侏罗纪猎手"],
     "rk.none": "本周榜上还没人——来做第一个吧！",
     "rk.stars": "★ {n}",
     "rk.boards": "{n} 局",
@@ -372,7 +378,9 @@
     "cd.d": "g",
     "rk.k": "Sıralamalar",
     "rk.h": "Haftanın en iyileri",
-    "rk.tabs": ["Halkalar ★", "Zamana Karşı", "Survivors", "Poker", "Dinozorlar", "Jurassic avcıları"],
+    "rk.lv": "Lv {n}",
+    "tk.lv": "🏆 Seviye lideri <b>{name}</b> · Lv {n}",
+    "rk.tabs": ["Seviye", "Halkalar ★", "Zamana Karşı", "Survivors", "Poker", "Dinozorlar", "Jurassic avcıları"],
     "rk.none": "Bu hafta tabloda henüz kimse yok — ilk sen ol!",
     "rk.stars": "★ {n}",
     "rk.boards": "{n} tahta",
@@ -549,6 +557,8 @@
   var nm = function (x) { return x.name || (x.w ? String(x.w).slice(0, 6) + "…" : "?"); };
   var mmss = function (s) { s = Math.max(0, Math.round(Number(s) || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   var BOARDS = [
+    /* the owner (2026-10-27): the level ranking first — every saved player by level (worldStats/players), GMs left out */
+    { q: "players", icon: "/images/gw/icon-app.webp", tk: "tk.lv", pick: function (j) { return j && Array.isArray(j.list) ? j.list.filter(function (r) { return r && !r.gm && r.name; }).sort(function (a, b) { return (b.lv || 0) - (a.lv || 0); }) : null; }, v: function (x) { return t("rk.lv", { n: fmt(x.lv || 1) }); }, n: function (x) { return fmt(x.lv || 1); } },
     { q: "rings-top", icon: "/images/gw/icon-rings.webp", tk: "tk.rings", v: function (x) { return t("rk.stars", { n: fmt(x.stars) }); }, n: function (x) { return fmt(x.stars); } },
     { q: "rings-ta", icon: "/images/gw/icon-rings.webp", tk: "tk.ta", v: function (x) { return t("rk.boards", { n: fmt(x.n) }); }, n: function (x) { return fmt(x.n); } },
     { q: "surv-top", icon: "/images/gw/icon-surv.webp", tk: "tk.surv", v: function (x) { return t("rk.surv", { t: mmss(x.secs), k: fmt(x.kills || 0) }); }, n: function (x) { return mmss(x.secs); } },
@@ -557,7 +567,7 @@
     { q: "jur-top", icon: "/images/gw/icon-jurassic.webp", tk: "tk.jur", v: function (x) { return t("rk.poker", { n: fmt(x.n) }); }, n: function (x) { return fmt(x.n); } },
   ];
   function readBoards() {
-    Promise.all(BOARDS.map(function (b) { return fetch("/api/social?world=" + b.q).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && Array.isArray(j.top) ? j.top : null; }).catch(function () { return null; }); }))
+    Promise.all(BOARDS.map(function (b) { return fetch("/api/social?world=" + b.q).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return b.pick ? b.pick(j) : j && Array.isArray(j.top) ? j.top : null; }).catch(function () { return null; }); }))
       .then(function (r) { boards = r; paintTicker(); paintRanks(); });
   }
   function paintTicker() {
