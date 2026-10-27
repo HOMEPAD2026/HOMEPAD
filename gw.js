@@ -504,7 +504,9 @@
     paintViewer();
     paintRanks();
     // features, steps, controls, FAQ
-    $("#gw-feats").innerHTML = L.feats.map(function (f, i) { return '<div class="gw-feat gw-rv" style="--d:' + (i % 4) + '"><i>' + (f[0] === "💠" ? '<img src="/images/gw/arcl-coin-160.webp" alt="ARCL" width="44" height="44">' : f[0]) + "</i><h3>" + esc(f[1]) + "</h3><p>" + esc(f[2]) + "</p></div>"; }).join("");
+    /* the cards' icons (2026-10-27, the owner: 'more premium than emoji' — Meshy's glass-and-gold set, raw/feat; ARCL keeps its coin) */
+    var FEAT_IC = { "🌍": "world", "👛": "wallet", "🏝️": "island", "🤝": "together", "🦖": "pets", "⚔️": "rpg", "📱": "devices" };
+    $("#gw-feats").innerHTML = L.feats.map(function (f, i) { return '<div class="gw-feat gw-rv" style="--d:' + (i % 4) + '"><i>' + (f[0] === "💠" ? '<img src="/images/gw/arcl-coin-160.webp" alt="ARCL" width="44" height="44">' : FEAT_IC[f[0]] ? '<img class="gw-fic" src="/images/gw/feat/' + FEAT_IC[f[0]] + '.webp" alt="" width="72" height="72" loading="lazy">' : f[0]) + "</i><h3>" + esc(f[1]) + "</h3><p>" + esc(f[2]) + "</p></div>"; }).join("");
     $("#gw-steps").innerHTML = L.steps.map(function (s, i) { return '<li class="gw-step gw-rv" style="--d:' + i + '"><div><h3>' + esc(s[0]) + "</h3><p>" + esc(s[1]) + "</p></div></li>"; }).join("");
     $("#gw-ctl-phone").innerHTML = L.ctlPhone.map(function (c) { return "<li><kbd>" + esc(c[0]) + "</kbd>" + esc(c[1]) + "</li>"; }).join("");
     $("#gw-ctl-pc").innerHTML = L.ctlPc.map(function (c) { return "<li><kbd>" + esc(c[0]) + "</kbd>" + esc(c[1]) + "</li>"; }).join("");
