@@ -5082,3 +5082,7 @@ html.wp-pcphone .wst-edhere{zoom:1.5}
 .wst-cml li{display:flex;gap:8px;align-items:baseline;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.05);font:600 12.5px/1.35 Sora,sans-serif}
 .wst-cml li b{flex:none;color:#7cf5e2}.wst-cml li b em{font-style:normal;font-size:10.5px;color:#ffd23a;margin-left:3px}.wst-cml li span{flex:1;min-width:0;color:#d8e6f5;overflow-wrap:anywhere}
 .wst-cml li.mk{background:rgba(255,210,58,.08)}.wst-cml li.none{color:#9fb4c8;justify-content:center}
+/* STB7: Meshy's glass icons in the builders (images/studio/ic2) */
+.wsb-uic{width:22px;height:22px;object-fit:contain;display:block;margin:auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.wsj-tools i>img:not(.wsj-ic){width:30px;height:30px;object-fit:contain;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.wsj-evb .wsj-ic{width:22px;height:22px;display:inline-block;vertical-align:middle}

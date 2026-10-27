@@ -50,13 +50,13 @@ export function createBuilder(ctx) {
     el = document.createElement("div"); el.className = "wsb"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="wsb-in">
       <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🛠️ ${esc(T("Build it yourself"))}</b>
-        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
+        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>
       <div class="wsb-main"><canvas class="wsb-cv"></canvas><div class="wsb-side"><button type="button" class="wsb-i" data-zoom="1" aria-label="+">＋</button><button type="button" class="wsb-i" data-zoom="-1" aria-label="−">－</button><button type="button" class="wsb-i" data-go="start" aria-label="${esc(T("Start"))}">⤓</button><button type="button" class="wsb-i" data-go="end" aria-label="${esc(T("Finish"))}">⤒</button></div></div>
       <div class="wsb-sel" hidden></div>
       <div class="wsb-pieces" hidden></div>
-      <nav class="wsb-tools">${TL.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon(climb ? { n: "platform", m: "platform", b: "platform", s: "spring", k: "spike", c: "coin", h: "heart" } : { w: "wall", m: "moving-wall", g: "gap", l: "laser", b: "blinking-laser", c: "coin", h: "heart" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="p"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
+      <nav class="wsb-tools">${TL.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon(climb ? { n: "platform", m: "platform", b: "platform", s: "spring", k: "spike", c: "coin", h: "heart", x: "../ui2/tool-erase", sel: "../ic2/tool-select" } : { w: "wall", m: "moving-wall", g: "gap", l: "laser", b: "blinking-laser", c: "coin", h: "heart", x: "../ui2/tool-erase", sel: "../ic2/tool-select" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="p"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsb-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu); cv.addEventListener("pointercancel", () => { drag = null; });

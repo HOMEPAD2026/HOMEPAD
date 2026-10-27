@@ -24,12 +24,12 @@ export function createTdBuilder(ctx) {
     el = document.createElement("div"); el.className = "wsb wsb-td"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="wsb-in">
       <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🛠️ ${esc(T("Build it yourself"))}</b>
-        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
+        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test play"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>
       <div class="wsb-main"><canvas class="wsb-cv"></canvas><div class="wsb-side"><button type="button" class="wsb-i" data-suggest aria-label="${esc(T("Suggest pads"))}" title="${esc(T("Suggest pads"))}">✨</button><button type="button" class="wsb-i" data-clearpath aria-label="${esc(T("Clear the path"))}" title="${esc(T("Clear the path"))}">🗑️</button></div></div>
       <div class="wtd-waves"></div>
-      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon({ pad: "tower" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}</nav></div>`;
+      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon({ path: "../ic2/td-path", pad: "../ic2/td-pad", x: "../ui2/tool-erase" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}</nav></div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsb-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick); el.addEventListener("input", onInput);
     cv.addEventListener("pointerup", (e) => { const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) / u, (e.clientY - r.top) / u); popAt(e, tool === "x"); });

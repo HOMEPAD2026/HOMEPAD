@@ -93,12 +93,13 @@ export function createRaceBuilder(ctx) {
   const th = THEMES[spec.theme] || THEMES.neon, hex = (c) => "#" + c.toString(16).padStart(6, "0");
   let el = null, cv = null, g = null, raf = 0, dirty = true, tool = "r", undo = [], redo = [], drag = null, est = null;
   const snap = () => JSON.stringify(B), push = () => { undo.push(snap()); if (undo.length > 100) undo.shift(); redo = []; };
+  const RIC = { r: "ic2/race-ring", p: "ic2/race-pad", o: "ic2/race-orb", w: "ic/pillar", mv: "ui2/tool-move", x: "ui2/tool-erase" }; // (STB7: Meshy's glass icons)
   const TOOLS = [["r", "⭕", "Ring"], ["p", "🚀", "Boost pad"], ["o", "🪙", "Orb"], ["w", "🗿", "Pillar"], ["mv", "✋", "Move"], ["x", "🧽", "Erase"]];
   function open() {
     el = document.createElement("div"); el.className = "wsb wsrc"; el.setAttribute("role", "dialog");
-    el.innerHTML = `<div class="wsb-in"><header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🏁 ${esc(T("Build it yourself"))}</b><span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button><button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
+    el.innerHTML = `<div class="wsb-in"><header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🏁 ${esc(T("Build it yourself"))}</b><span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button><button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div><div class="wsb-main"><canvas class="wsb-cv"></canvas></div>
-      <nav class="wsj-tools">${TOOLS.map(([k, ic, nm]) => `<button type="button" data-tool="${k}"><i>${ic}</i><span>${esc(T(nm))}</span></button>`).join("")}</nav></div>`;
+      <nav class="wsj-tools">${TOOLS.map(([k, ic, nm]) => `<button type="button" data-tool="${k}"><i>${RIC[k] ? `<img src="/images/studio/${RIC[k]}.webp?v=1" alt="" onerror="this.replaceWith(document.createTextNode('${ic}'))">` : ic}</i><span>${esc(T(nm))}</span></button>`).join("")}</nav></div>`;
     document.body.appendChild(el); cv = el.querySelector("canvas"); g = cv.getContext("2d"); el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu);
     addEventListener("resize", fit); fit(); tools(); bar(); loop();

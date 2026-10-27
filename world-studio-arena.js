@@ -37,12 +37,12 @@ export function createArenaBuilder(ctx) {
     el = document.createElement("div"); el.className = "wsb wsb-ar"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="wsb-in">
       <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🛠️ ${esc(T("Build it yourself"))}</b>
-        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}">↩️</button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}">↪️</button>
+        <span class="wsb-hr"><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>
       <div class="wsb-main"><canvas class="wsb-cv"></canvas><div class="wsb-side"><button type="button" class="wsb-i" data-dt="-1" aria-label="−1 s">⏪</button><button type="button" class="wsb-i" data-prev aria-label="${esc(T("Preview"))}">▷</button><button type="button" class="wsb-i" data-dt="1" aria-label="+1 s">⏩</button></div></div>
       <div class="wsb-pieces" hidden></div>
-      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon({ d: "drone", D: "big-drone", L: "laser", c: "coin", p: "pillar" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="pc"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
+      <nav class="wsb-tools">${TOOLS.map(([k, ic, n]) => `<button type="button" data-tool="${k}"><i>${toolIcon({ d: "drone", D: "big-drone", L: "laser", c: "coin", p: "pillar", x: "../ui2/tool-erase" }, k, ic)}</i><span>${esc(T(n))}</span></button>`).join("")}<button type="button" data-tool="pc"><i>🧩</i><span>${esc(T("Pieces"))}</span></button></nav></div>`;
     document.body.appendChild(el); cv = el.querySelector(".wsb-cv"); g = cv.getContext("2d");
     el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu); cv.addEventListener("pointercancel", () => { drag = null; });
