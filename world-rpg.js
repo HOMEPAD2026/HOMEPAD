@@ -10,6 +10,7 @@ import { WEAPON_KINDS, weaponKind, weapon as weapon3d, offBlade, weaponThumb, ge
 import { art } from "./world-itemart.js";
 import { icon as uiIcon } from "./world-icons.js";
 import { SET_BONUS } from "./world-rpg-data.js";
+import { ask as askCard } from "./world-ask.js";
 const KIND_COST = 5000; // $ARCIRCLE to turn a weapon into another kind (a Weapon kind change; the server checks it on save)
 // the bag: 24 slots, and 8 more for each "Bigger bag" bought with $ARCIRCLE (api/_world-shop.mjs bagSize), up to 120
 const BAG_BASE = 24, BAG_STEP = 8, BAG_MAX = 120;
@@ -48,11 +49,38 @@ export function createRpg(ctx) {
   let upK = "", upS = new Set(), upNow = upS; // ups() below
   let cache = null, bagAsk = 0, storeView = false; // bagAsk: 1 = asking to confirm a bigger bag, or a status line while it's paid for
   const stats = () => (cache = cache || statsOf(ctx.level(), R().eq, ctx.extraStats ? ctx.extraStats() : null));
-  const changed = (why) => { cache = null; upK = ""; ctx.save(); ctx.onStats(stats()); if (open) paint(); dress(); if (why) ctx.toast(why); };
+  // a full bag (2026-10-27, the owner): a reward that doesn't fit (a boss, RAID QUEENS, a quest's gear …) waits here, on
+  // this device (arc.world.wait), while you're asked to make room — Yes opens the bag and each slot you free takes the next
+  // one; No lets them go (they become scrap). A field pickup doesn't fit at all: it stays on the ground (pickup()).
+  const WAIT_KEY = "arc.world.wait", WAIT_MAX = 20;
+  let waitR = (() => { try { const a = JSON.parse(localStorage.getItem(WAIT_KEY) || "[]"); return Array.isArray(a) ? a.filter((x) => x && x.id && x.b).slice(0, WAIT_MAX) : []; } catch { return []; } })();
+  const waitKeep = () => { try { localStorage.setItem(WAIT_KEY, JSON.stringify(waitR)); } catch { /* private */ } };
+  let waitAskT = 0, waitAsking = false, fullAt = 0;
+  function waitFill() {
+    if (!waitR.length) return; const r = R(); if (r.bag.length >= BAG) return; const got = [];
+    while (waitR.length && r.bag.length < BAG) { const it = waitR.shift(); fresh.add(it.id); r.bag.push(it); got.push(it); }
+    waitKeep(); if (got.length) ctx.toast(got.length === 1 ? T("Reward received: {x}", { x: itemName(got[0]) }) : T("{n} waiting rewards received", { n: got.length }));
+  }
+  function waitAsk() {
+    clearTimeout(waitAskT); waitAskT = setTimeout(async () => {
+      if (waitAsking || !waitR.length) return; waitAsking = true;
+      const n = waitR.length, yes = await askCard(T, n === 1 ? T("Your bag is full — {x} can't fit, and the reward will be lost. Tidy your bag now? Free a slot and it's yours.", { x: itemName(waitR[0]) }) : T("Your bag is full — {n} rewards can't fit, and they'll be lost. Tidy your bag now? Each slot you free takes one.", { n }), { ok: T("Yes, tidy the bag"), cancel: T("No, let them go"), danger: false });
+      waitAsking = false;
+      if (yes) { mSel = true; mSet.clear(); show("inv", "equip"); return; }
+      const lost = waitR.splice(0); let sc = 0; for (const it of lost) sc += scrapOf(it); const r = R(); r.scrap += sc; waitKeep(); changed(sc ? T("The rewards were let go: +{n} scrap", { n: sc }) : "");
+    }, 350);
+  }
+  const changed = (why) => { waitFill(); cache = null; upK = ""; ctx.save(); ctx.onStats(stats()); if (open) paint(); dress(); if (why) ctx.toast(why); };
 
   // ---------------- items ----------------
-  function addItem(it, quiet) {
-    const r = R(); if (it && it.id) fresh.add(it.id); // marked new in the bag until you've seen it
+  // how: "field" (a chest on the ground: with the bag full it isn't picked up — the caller leaves it there) or a reward
+  // (anything else: with the bag full it waits for room, see waitR). The old "keep the better piece" swap is only for
+  // how === "swap".
+  function addItem(it, quiet, how) {
+    const r = R(); if (!it) return false;
+    if (r.bag.length >= BAG && how === "field") { if (!quiet && performance.now() - fullAt > 4000) { fullAt = performance.now(); ctx.toast(T("Your bag is full — you can't pick up items. Sell, salvage or store some first.")); } return false; }
+    if (r.bag.length >= BAG && how !== "swap") { if (waitR.length >= WAIT_MAX) { const s = scrapOf(it); r.scrap += s; changed(); if (!quiet) ctx.toast(T("Bag full: {x} became {n} scrap", { x: itemName(it), n: s })); return false; } waitR.push(it); waitKeep(); waitAsk(); return "wait"; }
+    if (it.id) fresh.add(it.id); // marked new in the bag until you've seen it
     if (r.bag.length >= BAG) {
       // a full bag keeps the better piece: the weakest unlocked one goes to scrap instead, if the new one beats it
       const val = (x) => (x.r || 0) * 100 + (x.lv || 1) * 2 + (x.p || 0) * 10, weak = r.bag.filter((x) => !x.lk).sort((a, b) => val(a) - val(b))[0];
@@ -690,16 +718,18 @@ export function createRpg(ctx) {
   let bagQ = "", sortK = 0, mSel = false; const mSet = new Set();
   const SORTS = [["r", "Rarity"], ["lv", "Level"], ["slot", "Slot"]];
   function sortBy(k) { const r = R(); r.bag.sort(k === "lv" ? (a, b) => (b.lv - a.lv) || (b.r - a.r) : k === "slot" ? (a, b) => SLOTS.indexOf(parseBase(a.b).slot) - SLOTS.indexOf(parseBase(b.b).slot) || (b.r - a.r) : (a, b) => (b.r - a.r) || (b.lv - a.lv)); changed(); }
-  async function sellPicked() { const ids = [...mSet].filter((id) => { const it = R().bag.find((x) => x.id === id); return it && !it.lk; }); mSet.clear(); mSel = false; paint(); for (const id of ids) await sellItem(id); }
-  function salvagePicked() { const r = R(), out = []; let s = 0; r.bag = r.bag.filter((x, i) => { if (!mSet.has(x.id) || x.lk) return true; s += scrapOf(x); out.push([x, i]); return false; }); mSet.clear(); mSel = false; r.scrap += s; if (s) { ctx.Snd.salvage && ctx.Snd.salvage(); fx(".hb-inv .hb-cells", "+" + s + " " + T("Scrap"), "#9fe6ff"); undoable(out, s); } changed(s ? T("+{n} scrap", { n: s }) : ""); }
+  async function sellPicked() { const ids = [...mSet].filter((id) => { const it = R().bag.find((x) => x.id === id); return it && !it.lk; }); mSet.clear(); paint(); for (const id of ids) await sellItem(id); }
+  function salvagePicked() { const r = R(), out = []; let s = 0; r.bag = r.bag.filter((x, i) => { if (!mSet.has(x.id) || x.lk) return true; s += scrapOf(x); out.push([x, i]); return false; }); mSet.clear(); r.scrap += s; if (s) { ctx.Snd.salvage && ctx.Snd.salvage(); fx(".hb-inv .hb-cells", "+" + s + " " + T("Scrap"), "#9fe6ff"); undoable(out, s); } changed(s ? T("+{n} scrap", { n: s }) : ""); }
   function invCard(compact) {
     const r = R(), q = bagQ.trim().toLowerCase(), list = (storeView ? r.store : r.bag).filter((it) => { const pb = parseBase(it.b); return (!BAGF[bagF] || (pb && BAGF[bagF].includes(pb.slot))) && (!q || itemName(it).toLowerCase().includes(q)); });
     const size = storeView ? Math.min(STORE, Math.max(12, Math.ceil((list.length + 1) / 6) * 6)) : Math.min(Math.max(BAG, list.length), Math.max(compact ? 6 : 12, Math.ceil((list.length + 1) / 6) * 6)); // (what you have and a row to spare, not 24 empty boxes)
     return `<section class="hb-card hb-inv"><div class="hb-ch"><h4>${esc(storeView ? T("Storage") : T("Inventory"))}</h4><small>${storeView ? `${r.store.length}/${STORE}` : `${r.bag.length}/${BAG}`}</small>${!storeView && ctx.buyBag && BAG < BAG_MAX && !bagAsk ? `<button type="button" class="hb-plus" data-bagplus>${esc(T("+{n} slots", { n: BAG_STEP }))}</button>` : ""}<button type="button" class="hb-plus" data-storeview aria-pressed="${storeView}">${esc(storeView ? T("Back to the bag") : T("Storage"))}</button></div>
       ${bagAsk ? `<div class="wr-bagask" role="group"><p>${esc(bagAsk === 1 ? T("{n} more bag slots, for good, for 10,000 $ARCIRCLE from your wallet (half is burned, half goes to the treasury). Your bag: {a} → {b} slots.", { n: BAG_STEP, a: BAG, b: Math.min(BAG_MAX, BAG + BAG_STEP) }) : bagAsk)}</p>${bagAsk === 1 ? `<button type="button" class="go" data-bagbuy>${esc(T("Buy"))}</button><button type="button" data-bagno>${esc(T("Cancel"))}</button>` : `<button type="button" data-bagno>${esc(T("Close"))}</button>`}</div>` : ""}
       <nav class="hb-filt" role="group">${[["all", "All"], ["weapon", "Weapons"], ["armor", "Armour"], ["acc", "Accessories"]].map(([k, n]) => `<button type="button" data-bagf="${k}" aria-pressed="${bagF === k}">${esc(T(n))}</button>`).join("")}</nav>
-      <div class="hb-tools"><input type="search" class="hb-q" placeholder="${esc(T("Search the bag"))}" value="${esc(bagQ)}" data-bagq><button type="button" class="hb-plus" data-sortk>${esc(T("Sort"))}: ${esc(T(SORTS[sortK][1]))}</button><button type="button" class="hb-plus" data-msel aria-pressed="${mSel}">${esc(mSel ? T("Done") : T("Select"))}</button></div>
-      ${mSel ? `<div class="hb-mbar"><b>${esc(T("{n} picked", { n: mSet.size }))}</b><button type="button" class="hb-plus" data-msell ${mSet.size ? "" : "disabled"}>${esc(T("Sell picked"))}</button><button type="button" class="hb-plus warn" data-msalv ${mSet.size ? "" : "disabled"}>${esc(T("Salvage picked"))}</button></div>` : ""}
+      <div class="hb-tools"><input type="search" class="hb-q" placeholder="${esc(T("Search the bag"))}" value="${esc(bagQ)}" data-bagq><button type="button" class="hb-plus" data-sortk>${esc(T("Sort"))}: ${esc(T(SORTS[sortK][1]))}</button><button type="button" class="hb-plus hb-tidy${mSel ? " on" : ""}" data-msel aria-pressed="${mSel}">${esc(mSel ? T("Done") : T("Bulk tidy"))}</button></div>
+      ${!storeView && waitR.length ? `<div class="hb-wait" role="status"><b>🎁 ${esc(waitR.length === 1 ? T("1 reward is waiting for a free slot") : T("{n} rewards are waiting for free slots", { n: waitR.length }))}</b><small>${esc(waitR.slice(0, 3).map(itemName).join(" · "))}${waitR.length > 3 ? " …" : ""}</small></div>` : ""}
+      ${mSel && !storeView ? `<div class="hb-mbar"><b>${esc(T("{n} picked", { n: mSet.size }))}</b><span class="hb-mq">${[["all", "All"], ["r0", "Commons"], ["r1", "Uncommon and below"], ["r2", "Rare and below"], ["none", "Clear"]].map(([k, n]) => `<button type="button" class="hb-plus" data-mq="${k}">${esc(T(n))}</button>`).join("")}</span>
+        <span class="hb-mact"><button type="button" class="hb-plus" data-msell ${mSet.size ? "" : "disabled"}>${esc(T("Sell picked"))}</button><button type="button" class="hb-plus warn" data-msalv ${mSet.size ? "" : "disabled"}>${esc(T("Salvage picked"))}</button><button type="button" class="hb-plus" data-mstore ${mSet.size ? "" : "disabled"}>${esc(T("To storage"))}</button><button type="button" class="hb-plus" data-mlock ${mSet.size ? "" : "disabled"}>${esc(T("Lock picked"))}</button></span><small>${esc(T("Tap items to pick several. Equipped and locked items are left out."))}</small></div>` : ""}
       ${storeView ? "" : mythRow()}<div class="hb-cells${mSel ? " msel" : ""}">${Array.from({ length: size }, (_, i) => { const it = list[i]; return `<div class="wr-cell${it && fresh.has(it.id) ? " new" : ""}${it && mSet.has(it.id) ? " picked" : ""}">${it ? tile(it, `data-pick="${it.id}"`) : ""}</div>`; }).join("")}</div>
       <p class="hb-res">${art("scrap", 18)}<b>${r.scrap}</b> ${esc(T("Scrap"))} · ${art("hp", 18)}<b>${r.hp}</b> · ${art("sp", 18)}<b>${r.sp}</b>${r.recall > 0 ? ` · <button type="button" class="wr-recall" data-recall>${esc(T("Recall to the plaza ({n})", { n: r.recall }))}</button>` : ""}</p>
       <div class="hb-acts hb-3"><button type="button" class="mint" data-best>${esc(T("Equip best"))}</button><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button></div></section>`;
@@ -967,6 +997,9 @@ export function createRpg(ctx) {
     if (b.hasAttribute("data-sortk")) { sortK = (sortK + 1) % SORTS.length; sortBy(SORTS[sortK][0]); return; }
     if (b.hasAttribute("data-msel")) { mSel = !mSel; mSet.clear(); paint(); return; }
     if (b.hasAttribute("data-msell")) { sellPicked(); return; }
+    if (d.mq) { const r = R(), L = r.bag.filter((x) => !x.lk); mSet.clear(); if (d.mq !== "none") for (const x of L) if (d.mq === "all" || (x.r || 0) <= Number(d.mq.slice(1))) mSet.add(x.id); paint(); return; }
+    if (b.hasAttribute("data-mstore")) { const r = R(); let n = 0; for (const id of [...mSet]) { if (r.store.length >= STORE) break; const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) { r.store.push(r.bag.splice(i, 1)[0]); n++; } } mSet.clear(); changed(n ? T("{n} moved to storage", { n }) : T("Your storage is full")); return; }
+    if (b.hasAttribute("data-mlock")) { const r = R(); let n = 0; for (const x of r.bag) if (mSet.has(x.id)) { x.lk = 1; n++; } mSet.clear(); changed(T("{n} locked", { n })); return; }
     if (b.hasAttribute("data-msalv")) { salvagePicked(); return; }
     if (d.pick && mSel) { const it = R().bag.find((x) => x.id === d.pick); if (it && !it.lk) { if (mSet.has(it.id)) mSet.delete(it.id); else mSet.add(it.id); } else if (it) ctx.toast(T("Unlock it first")); paint(); return; }
     if (d.bossgo != null) { hide(); hub("bossgo:" + d.bossgo); return; }
@@ -1063,6 +1096,7 @@ export function createRpg(ctx) {
     setSkill: (id) => { R().sk = id; ctx.save(); },
     setHigh: (k, id) => { const r = R(); r.x = r.x || {}; r.x[k] = id; ctx.save(); }, // the X slot (sk2) and the ultimate (ult)
     // the 7th day's chest: a Rare (or, one time in four, an Epic) piece at your level
+    bagFull: () => R().bag.length >= BAG, waiting: () => waitR.length,
     giftPiece: (lv, rr) => { const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)], tier = Math.max(0, Math.min(4, TIERS.filter((t) => t.lv <= lv).length - 1)); const it = { id: rid(), b: baseId(slot, tier), r: rr != null ? rr : Math.random() < 0.25 ? 3 : 2, lv: Math.max(1, Math.min(60, lv)), p: 0 }; return addItem(it, true) ? it : null; },
     setLog: (q) => { log = q; }, forgeTab: (t) => { forgeTab = t; seeTab(t); }, pane: (k) => { invPane = k === "bag" ? "bag" : "gear"; storeView = false; }, repaint: () => paint(), view: () => view,
   };

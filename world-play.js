@@ -304,7 +304,7 @@ function loggedIn(r, quiet) {
   if (sv && (sv.xp || 0) > P.xp) { PROGRESS.forEach((k) => { if (sv[k] != null && sv[k] !== "") P[k] = sv[k]; }); try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } toast(T("Welcome back, {name}. Your progress is loaded.", { name: P.name || "" })); }
   else { if (!quiet || r.j.firstTime) toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
   arclShop.refresh().then(() => { arclShop.flushQueue(); arclChecks(); setTimeout(() => arclShop.maybeDaily(), 1500); });
-  setTimeout(() => { village.load(); setNameTag(); }, 600);
+  setTimeout(() => { village.load(); setNameTag(); refreshMythic(); }, 600); /* (the Crimson Celestial pieces read again once signed in) */
   if (r.j.cbt) setTimeout(() => cbtReward(r.j.cbt), 2500);
 }
 // ---- the closed beta's rewards (api/_world-phase.mjs): asked for once signed in to the open beta. The server keeps
@@ -4025,7 +4025,7 @@ rpg = RPG.createRpg({
   buyBag: (onStatus) => arclShop.pay("bagplus", "", onStatus),
   buyRekind: (onStatus) => arclShop.pay("rekind", "", onStatus), own: () => arclShop.own(),
   repairPay: (id, onStatus) => arclShop.pay("repair", id, onStatus), repairFree: (id) => arclShop.repairFree(id), repairLeft: () => arclShop.repairLeft(), atBase: () => mode === "island" && !!island && !island.readOnly(),
-  openCraft: (t, id) => { if (life) life.showSheet(t, id); }, onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclApply: (j) => arclShop.apply(j), arclDelta: (n, d) => arclShop.delta(n, d), arclDay: () => { const a = arclShop.arcl(); return a ? { today: a.today || 0, cap: a.cap || 30000, sold: a.sold || 0, sellCap: a.sellCap || 1500 } : null; }, arclBal: () => (arclShop.arcl() || {}).bal || 0,
+  openCraft: (t, id) => { if (life) life.showSheet(t, id); }, onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => { tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1); if (v === "inv" && sess() && (!mythicNow || Date.now() - mythicAt > 30e3)) refreshMythic(); }, /* (2026-10-27, the owner (a GM): the Crimson Celestial pieces didn't show — they were read once at start; now on opening the window too) */ onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclApply: (j) => arclShop.apply(j), arclDelta: (n, d) => arclShop.delta(n, d), arclDay: () => { const a = arclShop.arcl(); return a ? { today: a.today || 0, cap: a.cap || 30000, sold: a.sold || 0, sellCap: a.sellCap || 1500 } : null; }, arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
 // the GPU particles (world-particles.js): sparks, streaks, glow and smoke for the fights, in one or two draw calls
@@ -5624,10 +5624,10 @@ function agentWarp() {
 }
 // MYTHIC gear (the Crimson Celestial set, world-mythic-data.js + api/_world-mythic.mjs): what the server says you hold and
 // wear; the pieces you wear (and can, at your level) take their slots' place and bring their stats and the set's bonuses
-let mythicNow = null, MY = null;
+let mythicNow = null, MY = null, mythicAt = 0;
 async function refreshMythic() {
   const s0 = sess(); if (!s0) { mythicNow = null; return null; }
-  try { if (!MY) MY = await import("./world-mythic-data.js"); const r = await fetch(`/api/social?world=mythic&wallet=${s0.wallet}`, { cache: "no-store" }); if (r.ok) { mythicNow = await r.json(); try { if (rpg) { rpg.refresh(); if (rpg.dress) rpg.dress(); if (rpg.isOpen && rpg.isOpen() && rpg.repaint) rpg.repaint(); } } catch { /* not built yet */ } } } catch { /* the gear you had stays */ }
+  try { if (!MY) MY = await import("./world-mythic-data.js"); const r = await fetch(`/api/social?world=mythic&wallet=${s0.wallet}`, { cache: "no-store" }); if (r.ok) { mythicNow = await r.json(); mythicAt = Date.now(); try { if (rpg) { rpg.refresh(); if (rpg.dress) rpg.dress(); if (rpg.isOpen && rpg.isOpen() && rpg.repaint) rpg.repaint(); } } catch { /* not built yet */ } } } catch { /* the gear you had stays */ }
   return mythicNow;
 }
 let myUI = null;
