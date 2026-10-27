@@ -115,3 +115,26 @@ body.sgw .sgw-main a,body.sgw .sgw-foot a{color:inherit}body.sgw .sgw-link{color
 .sgw-lv i{height:8px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}.sgw-lv em{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--cyan),var(--mint));box-shadow:0 0 10px var(--cyan);animation:sgwGrow 1s ease-out}
 @keyframes sgwGrow{from{width:0}}.sgw-lv small{color:var(--ink3);font-size:12px}
 .sgw-badges{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px}.sgw-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:12px;background:rgba(255,210,58,.1);border:1px solid rgba(255,210,58,.35);font-size:16px}.sgw-badge small{font-size:12px;color:var(--ink2)}
+/* ---------------- /studio: ARCIRCLE Studio as a page of its own (2026-10-27) ---------------- */
+body.sga{--sga-h:64px;min-height:100vh;overflow:hidden;background:#050a1a url(/images/studio/ui/bg-1344.webp) center/cover fixed}
+body.sga::before{content:"";position:fixed;inset:0;background:radial-gradient(120% 80% at 50% 0%,rgba(57,211,255,.18),transparent 60%),linear-gradient(180deg,rgba(3,8,22,.35),rgba(3,8,22,.78));pointer-events:none}
+.sga-top{position:fixed;top:0;left:0;right:0;z-index:80;height:var(--sga-h);box-sizing:border-box;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:linear-gradient(180deg,rgba(8,18,42,.88),rgba(8,18,42,.62));border-bottom:1px solid rgba(124,245,226,.22);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.sga-name{display:flex;align-items:baseline;gap:6px;font:900 19px/1 "Exo 2",Sora,sans-serif;letter-spacing:.02em;color:#fff;margin-left:4px;white-space:nowrap}
+.sga-name em{font-style:normal;background:linear-gradient(90deg,#39d3ff,#5cf2c0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sga-name i{font:700 11px/1 Sora,sans-serif;font-style:normal;color:var(--ink3);padding:4px 8px;border-radius:999px;border:1px solid var(--edge);margin-left:4px;align-self:center}
+.sga-me{appearance:none;cursor:pointer;font:800 13px/1 Sora,sans-serif;color:var(--ink);padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid var(--edge);margin-right:8px}
+.sga-me.on{border-color:rgba(92,242,192,.45);color:#c9ffef}
+.sga-main{position:relative;z-index:1;padding:0;margin:0;max-width:none;min-height:calc(100vh - var(--sga-h))}
+.sga-boot{position:fixed;inset:var(--sga-h) 0 0;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;color:var(--ink);font:800 16px/1.3 Sora,sans-serif}
+.sga-boot img{filter:drop-shadow(0 10px 24px rgba(57,211,255,.45));animation:sgaBob 1.6s ease-in-out infinite}
+.sga-boot i{display:block;width:min(320px,70vw);height:6px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}
+.sga-boot i em{display:block;height:100%;width:8%;border-radius:inherit;background:linear-gradient(90deg,#39d3ff,#5cf2c0);box-shadow:0 0 14px #39d3ff;transition:width .2s}
+.sga-boot.err{gap:12px}.sga-boot.err a{min-width:220px}
+@keyframes sgaBob{50%{transform:translateY(-8px) rotate(-3deg)}}
+/* the Studio window is the page, under the bar; the canvas (preview, runs) behind it */
+body.sga .sgw-cv{position:fixed;inset:0;width:100vw;height:100vh;z-index:0}
+body.sga.sga-on .wst{top:var(--sga-h);background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;padding:14px}
+body.sga.sga-on .wst>.wst-card,body.sga.sga-on .wst>div:first-child{box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(124,245,226,.18)}
+body.sga.sga-run .sga-top{display:none}body.sga.sga-run .wst{top:0}
+body.sga .wst-x{display:none}
+@media (max-width:640px){body.sga{--sga-h:56px}.sga-name i,.sga-top .sgw-world{display:none}.sga-name{font-size:16px}.sga-top .sgw-logo img{width:76px;height:auto}}

@@ -5088,3 +5088,10 @@ html.wp-pcphone .wst-edhere{zoom:1.5}
 .wsj-evb .wsj-ic{width:22px;height:22px;display:inline-block;vertical-align:middle}
 /* (2026-10-27, the owner: in Creator City the five dock buttons go — the city bar holds what's needed there) */
 body.wp.wp-in-cc #wp-dock{display:none!important}
+/* /studio (2026-10-27): the in-game Studio's link to its web page */
+.wst-weblink{display:flex;align-items:center;justify-content:center;gap:6px;margin:8px 0;padding:9px 10px;border-radius:12px;border:1px solid rgba(124,245,226,.4);background:linear-gradient(135deg,rgba(57,211,255,.16),rgba(92,242,192,.12));color:#dffcf5;font:800 12px/1.25 Sora,sans-serif;text-decoration:none;text-align:center}
+.wst-weblink:hover{filter:brightness(1.15)}
+/* (2026-10-27, the owner: the key line sat at the very top, its words at the top of the pill) — a game's key line is
+   its own class now (.wst-help is the Studio's ? button): low in the middle, the words centred */
+.wst-hint{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2;margin:0;display:flex;align-items:center;justify-content:center;min-height:36px;padding:0 18px;border-radius:999px;border:1px solid rgba(124,245,200,.35);background:rgba(4,12,28,.62);color:#e2fff6;font:700 13px/1.2 Sora,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+html.wp-pcphone .wst-hint{zoom:1.6}

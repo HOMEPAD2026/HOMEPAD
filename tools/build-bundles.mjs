@@ -78,6 +78,13 @@ export const CSS_BUNDLES = { "arc.min.css": ["style.css", "arc-nav.css", "arc-v9
 // "purge" whose classes and ids appear in "scan" (the game's page and scripts), plus "keep" in full. Rules with no
 // class or id (:root, html, body, inputs) and every @keyframes / @font-face stay.
 export const CSS_PURGED = {
+  // (2026-10-27, the owner: "/studio — the Studio on its own web page, fast"): the Studio's web pages (studio-app.html at
+  // /studio, studio-web.html at /game/@…) need only the Studio's rules, not the whole World's
+  "studio.min.css": {
+    purge: ["style.css", "arc-nav.css", "arc-v9.css", "arc-v10.css", "world-skin.css"],
+    keep: [],
+    scan: ["studio-app.html", "studio-web.html", ...withImports(["world-studio-web.js", "world-studio.js", "world-studio-build.js", "world-studio-arena.js", "world-studio-tdbuild.js", "world-studio-jbuild.js", "world-studio-race.js", "world-studio-rhythm.js", "world-studio-jump.js", "world-studio-climb.js", "world-studio-defense.js", "world-studio-pad.js", "world-studio-prev.js", "world-ask.js"])],
+  },
   "world.min.css": {
     purge: ["style.css"],
     keep: ["arc-nav.css", "arc-v9.css", "arc-v10.css", "world-skin.css"],

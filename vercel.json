@@ -65,6 +65,10 @@
       "destination": "/game.html"
     },
     {
+      "source": "/studio",
+      "destination": "/studio-app.html"
+    },
+    {
       "source": "/game/@:h",
       "destination": "/api/social?world=studio-page&h=:h"
     },

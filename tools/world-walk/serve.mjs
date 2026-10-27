@@ -59,6 +59,7 @@ http.createServer(async (req, res) => {
     // the ArcPad launches list (Coin City / the Launchpad Village): from a saved copy of production's /api/c?view=launches
     // (LAUNCHES=file) — this container can't reach Arc's RPC to build it
     if (u.pathname === "/api/c" && u.searchParams.get("view") === "launches" && process.env.LAUNCHES) return send({ status: 200, body: launches() });
+    if (u.pathname === "/studio" || u.pathname === "/studio/") u.pathname = "/studio-app.html"; // (vercel.json: /studio → studio-app.html)
     // the Studio's web pages (vercel.json: /game/@<id>[/<game>] → ?world=studio-page)
     { const m = u.pathname.match(/^\/game\/(?:@|%40)([^/]+)(?:\/([^/]+))?\/?$/); if (m) { u.pathname = "/api/social"; u.searchParams.set("world", "studio-page"); u.searchParams.set("h", decodeURIComponent(m[1])); if (m[2]) u.searchParams.set("g", decodeURIComponent(m[2])); } }
     if (u.pathname === "/api/social") {

@@ -104,8 +104,8 @@ function paintMissing() {
   $m.innerHTML = `<section class="sgw-hero miss" style="--art:url('/images/gw/key-studio.webp')"><div class="sgw-hero-in"><span class="sgw-chip">404</span><h1>${esc(T("This game isn't here"))}</h1>
     <p class="sgw-note">${esc(T("It may have been taken down, or the address changed."))}</p><div class="sgw-acts"><a class="sgw-play" href="/game/@arcircle">${esc(T("Play ARCIRCLE's games"))}</a><a class="sgw-btn" href="/play">${esc(T("Play ARCIRCLE WORLD"))}</a></div></div></section>`;
 }
-function paint() { if (D.game) paintGame(); else if (D.creator) paintCreator(); else paintMissing(); document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = T(e.dataset.t); }); }
-paint(); loadCmts();
+function paint() { if (D.app) { /* (the Studio's own page: startApp paints it) */ } else if (D.game) paintGame(); else if (D.creator) paintCreator(); else paintMissing(); document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = T(e.dataset.t); }); }
+paint(); if (!D.app) loadCmts();
 { const sel = document.querySelector(".sgw-lang"); if (sel) { sel.value = LANG; sel.addEventListener("change", () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }); } }
 
 async function refresh() { // (after a run or a like: the board and the numbers read again)
@@ -142,7 +142,7 @@ $m.addEventListener("submit", async (e) => {
 let host = null, busy = false;
 async function makeHost() {
   if (host) return host;
-  if (!document.querySelector('link[href^="/world.min.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/world.min.css" + (new URL(import.meta.url).search || ""); document.head.appendChild(l); await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 4000); }); } // (the Studio's HUD, result card and the sideways card)
+  if (!document.querySelector('link[href^="/studio.min.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/studio.min.css" + (new URL(import.meta.url).search || ""); /* (only the Studio's rules — world.min.css is the whole World's) */ document.head.appendChild(l); await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 4000); }); } // (the Studio's HUD, result card and the sideways card)
   const [K, ST, SFX, PAD] = await Promise.all([import("./world-kit.js"), import("./world-studio.js"), import("./world-sfx.js"), import("./world-studio-pad.js")]);
   const cv = document.getElementById("sgw-cv"); cv.hidden = false;
   const S = (() => { const d = { quality: "auto", sound: true, sfx: 70 }; try { return { ...d, ...JSON.parse(localStorage.getItem("arc.world.set") || "{}") }; } catch { return d; } })();
@@ -151,7 +151,8 @@ async function makeHost() {
   const P = (() => { try { return JSON.parse(localStorage.getItem("arc.world") || "{}") || {}; } catch { return {}; } })();
   const gate = PAD.makeGate({ T, esc, coarse, ver: VER, place: D.game ? D.game.title : "ARCIRCLE Studio", line: "This game is made for landscape — turn your phone to play.", back: "Back to the game's page", onBack: () => { const g = host && host.studio.playing && host.studio.playing(); if (g && g.leave) g.leave(); else done(); } });
   const studio = ST.createStudio({ THREE: K.THREE, K, st, T, esc, toast: (m) => toast(m), Snd, reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, ver: VER, isGM: () => false, guide: () => {}, low, saver: S.quality === "saver", coarse,
-    myName: () => P.name || "", sess, post, signIn: () => signIn(), soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
+    myName: () => P.name || "", sess, post, signIn: () => signIn().then((x) => { paintMe(); return x; }),
+    onClose: () => { if (D.app) setTimeout(() => { try { host.studio.open("arcade"); } catch { /* fine */ } }, 0); }, /* (/studio: the window is the page — × goes to the arcade) */ soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
     land: { landscape: () => gate.landscape(), enter() {}, exit() {} },
     makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }) });
   host = { K, st, studio, gate, cv }; return host;
@@ -173,4 +174,20 @@ async function play(btn) {
   finally { ld.classList.add("out"); setTimeout(() => ld.remove(), 500); btn.classList.remove("busy"); }
 }
 if (D.game && new URLSearchParams(location.search).has("play") && !WORLD_ONLY.has(D.game.tpl)) { const b = $m.querySelector("[data-play]"); if (b && !coarse) play(b); } // (?play: straight in, on a computer — a phone waits for the tap it needs for full screen)
+// ---------------- /studio: ARCIRCLE Studio as a page of its own (2026-10-27, the owner: "the Studio on the web, fast") ----------------
+// The Studio window is the page (under the top bar); the stage's canvas sits behind it for the preview and the runs; a
+// phone held upright sees the sideways card only while a game runs. A deep link: /studio?tab=arcade|mine|make, ?sg=<id>.
+function paintMe() { const b = document.querySelector("[data-signin]"); if (!b) return; const s = sess(); b.hidden = false; b.classList.toggle("on", !!s); b.textContent = s ? "🟢 " + s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) : "👛 " + T("Sign in"); }
+async function startApp() {
+  const bar = document.querySelector(".sga-boot em"); let pct = 8; const tick = setInterval(() => { pct = Math.min(92, pct + (96 - pct) * 0.12); if (bar) bar.style.width = pct + "%"; }, 120);
+  paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });
+  try {
+    const h = await makeHost(), q = new URLSearchParams(location.search);
+    document.body.classList.add("sga-on"); h.cv.hidden = false;
+    if (q.get("sg")) h.studio.playId(q.get("sg"), {}); else h.studio.open(["arcade", "mine", "make"].includes(q.get("tab")) ? q.get("tab") : "make");
+    let on = false; setInterval(() => { const p = !!h.studio.playing(); if (p !== on) { on = p; h.gate.on("web", p); document.body.classList.toggle("sga-run", p); } }, 400);
+  } catch (e) { console.warn("studio app", e); $m.innerHTML = `<div class="sga-boot err"><b>⚠️ ${esc(T("The Studio couldn't open"))}</b><a class="sgw-play sm" href="/studio">${esc(T("Try again"))}</a><a class="sgw-btn" href="/play">${esc(T("Open it in ARCIRCLE WORLD"))}</a></div>`; }
+  finally { clearInterval(tick); if (bar) bar.style.width = "100%"; setTimeout(() => { const b0 = document.querySelector(".sga-boot"); if (b0 && !b0.classList.contains("err")) b0.remove(); }, 300); }
+}
+if (D.app) startApp();
 window.__sgw = { host: () => host, play: () => { const b = $m.querySelector("[data-play]"); return b ? play(b) : null; } }; // (tests)
