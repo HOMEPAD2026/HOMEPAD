@@ -122,7 +122,20 @@ body.sga::before{content:"";position:fixed;inset:0;background:radial-gradient(12
 .sga-name{display:flex;align-items:baseline;gap:6px;font:900 19px/1 "Exo 2",Sora,sans-serif;letter-spacing:.02em;color:#fff;margin-left:4px;white-space:nowrap}
 .sga-name em{font-style:normal;background:linear-gradient(90deg,#39d3ff,#5cf2c0);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sga-name i{font:700 11px/1 Sora,sans-serif;font-style:normal;color:var(--ink3);padding:4px 8px;border-radius:999px;border:1px solid var(--edge);margin-left:4px;align-self:center}
-.sga-me{appearance:none;cursor:pointer;font:800 13px/1 Sora,sans-serif;color:var(--ink);padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid var(--edge);margin-right:8px}
+.sga-me{appearance:none;cursor:pointer;position:relative;display:inline-flex;align-items:center;gap:9px;height:40px;box-sizing:border-box;padding:0 16px 0 5px;margin-right:8px;border-radius:999px;font:800 13px/1 Sora,sans-serif;color:#fff;border:1.5px solid transparent;background:linear-gradient(180deg,#12244a,#0a1631) padding-box,linear-gradient(120deg,#39d3ff,#5cf2c0 55%,#9b8cff) border-box;box-shadow:0 6px 20px rgba(57,211,255,.22),inset 0 1px 0 rgba(255,255,255,.12);transition:transform .15s,box-shadow .2s}
+.sga-me:hover{box-shadow:0 8px 28px rgba(92,242,192,.38),inset 0 1px 0 rgba(255,255,255,.16)}.sga-me:active{transform:scale(.96)}
+.sga-me::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.18) 50%,transparent 65%) -120% 0/250% 100% no-repeat;animation:sgaShine 3.6s ease-in-out infinite;pointer-events:none}
+.sga-me.on::after{display:none}
+@keyframes sgaShine{0%,60%{background-position:-120% 0}100%{background-position:220% 0}}
+.sga-me-ic{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#39d3ff,#5cf2c0);box-shadow:0 0 12px rgba(57,211,255,.55)}
+.sga-me-ic svg{width:17px;height:17px;fill:#0b1630}
+.sga-me span{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.sga-me span b{font:800 13px/1 Sora,sans-serif;letter-spacing:.01em}
+.sga-me span small{font:700 9px/1 Sora,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7cf5e2}
+.sga-me.on{background:linear-gradient(180deg,#0f2a2b,#0a1a24) padding-box,linear-gradient(120deg,#5cf2c0,#39d3ff) border-box;box-shadow:0 4px 16px rgba(92,242,192,.18)}
+.sga-me.on .sga-me-ic{position:relative;background:conic-gradient(from 40deg,hsl(var(--h1) 85% 60%),hsl(var(--h2) 85% 58%),hsl(var(--h1) 85% 60%));box-shadow:none}
+.sga-me.on .sga-me-ic em{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:#3dff9e;border:2px solid #0a1a24;box-shadow:0 0 8px #3dff9e}
+.sga-me.on span b{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px;color:#d9fff5}
 .sga-or{display:flex;flex:none;padding:3px;margin-right:8px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--edge)}
 .sga-or[hidden]{display:none}
 .sga-or button{appearance:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:7px 10px;border:0;border-radius:9px;background:none;color:var(--ink3);font:800 12px/1 Sora,sans-serif;transition:background .2s,color .2s}
@@ -132,7 +145,6 @@ body.sga::before{content:"";position:fixed;inset:0;background:radial-gradient(12
 .sga-me,.sga-top .sgw-world{white-space:nowrap;flex:none}
 @media (max-width:1100px){.sga-name i{display:none}.sga-or span{display:none}.sga-or button{padding:7px 9px}}
 @media (max-width:900px){.sga-name b{display:none}.sga-top .sgw-world{padding-left:14px;padding-right:14px;font-size:13px}}
-.sga-me.on{border-color:rgba(92,242,192,.45);color:#c9ffef}
 .sga-main{position:relative;z-index:1;padding:0;margin:0;max-width:none;min-height:calc(100vh - var(--sga-h))}
 .sga-boot{position:fixed;inset:var(--sga-h) 0 0;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;color:var(--ink);font:800 16px/1.3 Sora,sans-serif}
 .sga-boot img{filter:drop-shadow(0 10px 24px rgba(57,211,255,.45));animation:sgaBob 1.6s ease-in-out infinite}
@@ -152,8 +164,26 @@ body.sga .wst-x{display:none}
   .sga-top{gap:8px;padding:0 10px}
   .sga-top .sgw-logo{flex:none}.sga-top .sgw-logo img{width:58px;height:auto}
   .sga-name{font-size:15px;min-width:0;overflow:hidden}
-  .sga-me{margin:0;padding:8px 10px;font-size:12px;white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
+  .sga-me{margin:0;height:36px;padding:0 12px 0 4px;gap:7px}.sga-me-ic{width:27px;height:27px}.sga-me span b{font-size:12px}.sga-me span small{display:none}
   .sga-top .sgw-lang{flex:none;padding:6px 4px;font-size:12px;max-width:62px}
 }
-@media (max-width:420px){.sga-name b{display:none}.sga-name{font-size:16px}.sga-top{gap:6px;padding:0 8px}.sga-or{margin-right:0;padding:2px}.sga-or button{padding:7px 7px}.sga-me{padding:8px 9px;max-width:none}.sga-top .sgw-lang{max-width:54px}}
+@media (max-width:420px){.sga-name b{display:none}.sga-name{font-size:16px}.sga-top{gap:6px;padding:0 8px}.sga-or{margin-right:0;padding:2px}.sga-or button{padding:7px 7px}.sga-me{padding:0 10px 0 4px}.sga-top .sgw-lang{max-width:54px}}
 @media (max-width:380px){.sga-name{display:none}}
+/* /studio on a phone held sideways (2026-10-27, the owner's screenshot: the banner, the Test/Next bar and the tabs left
+   ~110 px to work in): a thin top bar, and the window drawn smaller so it has a wide screen's room and takes the
+   rail-and-columns layout (world-studio.js isWide divides by the zoom) — like the in-game Studio's 980 px phone page */
+@media (orientation:landscape) and (max-height:520px){
+  body.sga{--sga-h:48px}
+  .sga-top{gap:8px;padding:0 12px}.sga-top .sgw-logo img{width:58px;height:auto}.sga-name{font-size:15px}
+  .sga-me{height:34px;padding:0 12px 0 4px;gap:7px}.sga-me-ic{width:26px;height:26px}.sga-me span small{display:none}
+  .sga-or button{padding:5px 8px}.sga-top .sgw-world{padding:9px 14px;font-size:12px}.sga-top .sgw-lang{padding:6px 4px}
+  body.sga.sga-on .wst{padding:6px;zoom:.8}
+  body.sga .wst.wide .wst-side-ct{display:none}
+  body.sga .wst.wide .wst-h{padding:12px 14px 10px}body.sga .wst.wide .wst-h small{display:none}body.sga .wst.wide .wst-h h2{font-size:24px;margin:0}
+  body.sga .wst.wide .wst-foot>span{display:none}
+  body.sga .wst.wide .wst-h>.wst-help{top:auto!important;bottom:8px!important;right:8px!important;width:30px!important;height:30px!important}
+  body.sga .wst.wide .wst-tabs{padding:10px;gap:7px}
+  body.sga .wst.wide .wst-tabs button{padding:11px 12px;font-size:15px;border-radius:14px}
+}
+@media (orientation:landscape) and (max-height:520px) and (min-width:901px){body.sga.sga-on .wst{zoom:.86}}
+

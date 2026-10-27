@@ -177,7 +177,13 @@ if (D.game && new URLSearchParams(location.search).has("play") && !WORLD_ONLY.ha
 // ---------------- /studio: ARCIRCLE Studio as a page of its own (2026-10-27, the owner: "the Studio on the web, fast") ----------------
 // The Studio window is the page (under the top bar); the stage's canvas sits behind it for the preview and the runs; a
 // phone held upright sees the sideways card only while a game runs. A deep link: /studio?tab=arcade|mine|make, ?sg=<id>.
-function paintMe() { const b = document.querySelector("[data-signin]"); if (!b) return; const s = sess(); b.hidden = false; b.classList.toggle("on", !!s); b.textContent = s ? "🟢 " + s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) : "👛 " + T("Sign in"); if (s) b.title = s.wallet; }
+const WALLET_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17a1 1 0 0 1 1 1v1.5H6.5a.75.75 0 0 0 0 1.5H19a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 16.5z"/><circle cx="16.4" cy="14" r="1.35" fill="#0b1630"/></svg>';
+function paintMe() { /* (the wallet button: a gradient-ringed pill with a wallet badge; signed in, the badge turns into the wallet's own colours + a live dot, and the address) */
+  const b = document.querySelector("[data-signin]"); if (!b) return; const s = sess(); b.hidden = false; b.classList.toggle("on", !!s);
+  if (s) { const w = s.wallet, h = parseInt(w.slice(2, 8), 16) % 360, h2 = (h + 70 + (parseInt(w.slice(-4), 16) % 120)) % 360;
+    b.innerHTML = `<i class="sga-me-ic" style="--h1:${h};--h2:${h2}"><em></em></i><span><small>${esc(T("Signed in"))}</small><b>${esc(w.slice(0, 6) + "…" + w.slice(-4))}</b></span>`; b.title = w; b.setAttribute("aria-label", w); }
+  else { b.innerHTML = `<i class="sga-me-ic">${WALLET_SVG}</i><span><b>${esc(T("Connect wallet"))}</b></span>`; b.title = ""; b.setAttribute("aria-label", T("Connect wallet")); }
+}
 // the top bar's Portrait | Landscape switch (2026-10-27, the owner: "web Studio in both, a switch at the top"): phones only;
 // the lit half is how the phone is held now; the other one asks for full screen and turns the screen there (Android);
 // where the browser can't (iPhone, auto-rotate off) a toast says how to turn it by hand
@@ -189,13 +195,18 @@ function orientUI() {
   g.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-or]"); if (!b) return; const want = b.dataset.or; if ((want === "landscape") === isL()) return;
     g.classList.add("busy");
-    try {
-      const de = document.documentElement;
-      if (!document.fullscreenElement && de.requestFullscreen) await de.requestFullscreen({ navigationUI: "hide" });
+    const de = document.documentElement, mine = !document.fullscreenElement, cap = (pr, ms) => Promise.race([pr, sleep(ms).then(() => { throw new Error("slow"); })]);
+    try { /* (a browser that never answers the lock mustn't leave the switch dimmed: both steps are capped) */
+      if (mine && de.requestFullscreen) await cap(de.requestFullscreen({ navigationUI: "hide" }), 1500);
       if (!screen.orientation || !screen.orientation.lock) throw new Error("no lock");
-      await screen.orientation.lock(want);
-    } catch { toast("📱 " + esc(T(want === "landscape" ? "Turn your phone sideways — if it doesn't turn, switch on Auto rotate." : "Turn your phone upright — if it doesn't turn, switch on Auto rotate."))); }
-    g.classList.remove("busy"); setTimeout(mark, 400);
+      await cap(screen.orientation.lock(want), 1500);
+    } catch { /* (the check below says what to do) */ }
+    await sleep(500);
+    if ((want === "landscape") !== isL()) { /* (it didn't turn: Samsung Internet / iPhone without a lock, or auto-rotate off — say how, and give the full screen back) */
+      if (mine && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      toast("📱 " + esc(T(want === "landscape" ? "Turn your phone sideways — if it doesn't turn, switch on Auto rotate." : "Turn your phone upright — if it doesn't turn, switch on Auto rotate.")));
+    }
+    g.classList.remove("busy"); mark();
   });
 }
 async function startApp() {
