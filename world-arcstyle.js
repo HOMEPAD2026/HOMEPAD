@@ -245,7 +245,7 @@ function meshyTrees(g, round, pines, cols) {
       src.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(src), sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3()), k = want[name] / Math.max(sz.y, 1e-3);
       const fix = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z));
       src.traverse((m) => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, list.length); im.name = "tree:" + name; im.castShadow = true; im.receiveShadow = true;
-        list.forEach((mx, i) => { mm.multiplyMatrices(mx, fix).multiply(m.matrixWorld); im.setMatrixAt(i, mm); }); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); add.push(im); }); }
+        list.forEach((mx, i) => { mm.multiplyMatrices(mx, fix).multiply(m.matrixWorld); im.setMatrixAt(i, mm); }); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); im.userData.allM = im.instanceMatrix.array.slice(); im.userData.allN = list.length; /* (PF4: a phone draws only the near ones — world-play.js nearCull) */ add.push(im); }); }
     if (!add.length) return;
     g.children.forEach((c) => { c.visible = false; }); add.forEach((m) => g.add(m));
   };

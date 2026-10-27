@@ -23,9 +23,14 @@ export function createPumpkins({ THREE, planet, spots = [], extra = [] }) {
   const body = new THREE.SphereGeometry(0.42, 18, 12); { const p = body.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), a = Math.atan2(z, x), rib = 1 + Math.cos(a * 8) * 0.06; p.setXYZ(i, x * rib * 1.12, p.getY(i) * 0.82, z * rib * 1.12); } body.computeVertexNormals(); }
   const skin = new THREE.MeshStandardMaterial({ color: 0xff8a1e, roughness: 0.6, emissiveMap: face, emissive: 0xffa040, emissiveIntensity: 0 });
   const stemG = new THREE.CylinderGeometry(0.05, 0.08, 0.22, 6), stemM = new THREE.MeshStandardMaterial({ color: 0x4a6a2a, roughness: 0.8 });
-  const put = (x, z, s = 1, ry = 0) => { const g = new THREE.Group(); const b = new THREE.Mesh(body, skin); b.position.y = 0.34; b.castShadow = true; const st = new THREE.Mesh(stemG, stemM); st.position.y = 0.72; st.rotation.z = 0.25; g.add(b, st); g.position.set(x, 0, z); g.rotation.y = ry; g.scale.setScalar(s); root.add(g); };
+  // PF4 (2026-10-27): every pumpkin was two meshes (~20 draw calls in the plaza); now one instanced mesh for the bodies
+  // and one for the stems, two draws for them all
+  const pk = [], o3 = new THREE.Object3D(), bOff = new THREE.Matrix4().makeTranslation(0, 0.34, 0), sOff = new THREE.Matrix4().makeTranslation(0, 0.72, 0).multiply(new THREE.Matrix4().makeRotationZ(0.25));
+  const put = (x, z, s = 1, ry = 0) => { o3.position.set(x, 0, z); o3.rotation.set(0, ry, 0); o3.scale.setScalar(s); o3.updateMatrix(); pk.push(o3.matrix.clone()); };
   // one by every street lamp (a step to its side, facing the plaza), and a few in a ring round the fountain
   spots.forEach(([x, z], i) => { const a = Math.atan2(x, z); put(x + Math.cos(a) * 0.9, z - Math.sin(a) * 0.9, 0.9 + (i % 3) * 0.12, Math.atan2(-x, -z)); });
   extra.forEach(([x, z, s]) => put(x, z, s, Math.atan2(-x, -z)));
+  if (pk.length) { const bi = new THREE.InstancedMesh(body, skin, pk.length), si = new THREE.InstancedMesh(stemG, stemM, pk.length), m = new THREE.Matrix4();
+    pk.forEach((M, i) => { bi.setMatrixAt(i, m.multiplyMatrices(M, bOff)); si.setMatrixAt(i, m.multiplyMatrices(M, sOff)); }); bi.castShadow = true; bi.computeBoundingSphere(); si.computeBoundingSphere(); root.add(bi, si); }
   return { root, glow(k) { skin.emissiveIntensity = 0.15 + k * 2.2; } };
 }

@@ -155,6 +155,7 @@ async function makeHost() {
     onClose: () => { if (D.app) setTimeout(() => { try { host.studio.open("arcade"); } catch { /* fine */ } }, 0); }, /* (/studio: the window is the page — × goes to the arcade) */ soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
     land: { landscape: () => gate.landscape(), enter() {}, exit() {} },
     makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }) });
+  if (coarse && st.fps) { let was = 0; const cap = () => { const c = studio.playing() ? 60 : 30; if (c !== was) { was = c; st.fps(c); } }; cap(); setInterval(cap, 500); } /* (PF1: a phone draws the Studio windows and preview at 30, a game at 60) */
   host = { K, st, studio, gate, cv }; return host;
 }
 function done() { // (the run's way back: the page again)
