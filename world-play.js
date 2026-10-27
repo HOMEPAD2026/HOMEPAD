@@ -4448,6 +4448,8 @@ function backAction() {
   if (photo) { setPhoto(false); return true; }
   if (!wheel.hidden) { wheel.hidden = true; return true; }
   if (mode === "island" && island.keyDown({ key: "Escape", preventDefault() {} })) return true;
+  { const xs = [...document.querySelectorAll(".ccw-x, .my-sheet-x, .my-x, .wx-x, .wmk-x, .wbr-x, .cx-x, .wpt-x, .aga-x, .wag-x, .wa-x, .wr-d-x, .wr-raid-x, .wz-pack-x, .rq-x")].filter((e) => e.getClientRects().length && !e.disabled); if (xs.length) { xs[xs.length - 1].click(); return true; } } /* (the owner, 2026-10-27: Back closes the window on top with its own ×, the newest first) */
+  if (studio && studio.back()) return true; /* (the Studio, its runs and builders: one step back at a time) */
   if (frozen) { closeAll(); return true; }
   if (mode === "island" && island.building()) { island.keyDown({ key: "b", preventDefault() {} }); return true; }
   return false;
