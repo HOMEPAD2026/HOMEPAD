@@ -216,7 +216,7 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
     const a = arc.a - 25 + (50 * i) / (PORTALS - 1), [x, z] = polar(a, 33), o = new THREE.Group(); o.name = "cc-gp" + i; o.position.set(x, 0, z); o.rotation.y = Math.atan2(-x, -z); g.add(o);
     const M = neon(0x7cf5c8, 0.95), ring = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.16, 10, 48), M); ring.position.y = 2.3; o.add(ring);
     const film = new THREE.Mesh(new THREE.CircleGeometry(1.8, 40), new THREE.MeshBasicMaterial({ color: 0x7cf5c8, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, toneMapped: false })); film.position.y = 2.3; o.add(film);
-    const tex = canvasTex(512, 160, () => {}), sign = tex ? new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.12), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false })) : null; if (sign) { sign.position.y = 4.9; o.add(sign); }
+    const tex = canvasTex(1024, 320, () => {}), sign /* (2× its 512 × 160 drawing: the owner saw the names smear on a phone) */ = tex ? new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.12), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false })) : null; if (sign) { sign.position.y = 4.9; o.add(sign); }
     spins.push((dt, t) => { ring.rotation.z = t * 0.6 + i; film.material.opacity = 0.18 + Math.sin(t * 2 + i) * 0.06; });
     const dr = door(o, "gp" + i, 0x7cf5c8, 0.2); o.visible = false; portals.push({ o, ring, film, tex, sign, dr, game: null });
   }
@@ -225,7 +225,7 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
     portals.forEach((p, i) => { const gm = L[i] || null; p.game = gm; p.o.visible = !!gm; if (!gm || !p.tex) return;
       const col = new THREE.Color(gm.css || "#7cf5c8"); p.ring.material.color.copy(col); p.film.material.color.copy(col); if (p.arch) p.arch.traverse((x) => { if (x.isMesh && x.material && x.material.emissive) x.material.emissive.copy(col); });
       const s = 1 + Math.min(0.5, (gm.plays || 0) / 400 + (gm.likes || 0) / 80); p.o.scale.setScalar(s); // (a more played game's portal stands taller)
-      const c = p.tex.userData.cv.getContext("2d"); c.clearRect(0, 0, 512, 160); c.beginPath(); if (c.roundRect) c.roundRect(4, 4, 504, 152, 30); else c.rect(4, 4, 504, 152); c.fillStyle = "rgba(4,14,30,.88)"; c.fill(); c.lineWidth = 5; c.strokeStyle = gm.css || "#7cf5c8"; c.stroke();
+      const c = p.tex.userData.cv.getContext("2d"); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 1024, 320); c.setTransform(2, 0, 0, 2, 0, 0); c.beginPath(); if (c.roundRect) c.roundRect(4, 4, 504, 152, 30); else c.rect(4, 4, 504, 152); c.fillStyle = "rgba(4,14,30,.88)"; c.fill(); c.lineWidth = 5; c.strokeStyle = gm.css || "#7cf5c8"; c.stroke();
       c.textAlign = "center"; c.fillStyle = "#fff"; c.font = "900 48px Sora, 'Segoe UI', sans-serif"; c.fillText(gm.title || "", 256, 70, 480); c.fillStyle = "#cfe0f5"; c.font = "800 28px Sora, 'Segoe UI', sans-serif"; c.fillText(gm.now ? `● ${T("{n} playing now", { n: gm.now })}  ·  ▶ ${gm.plays || 0}` : `▶ ${gm.plays || 0}  ♥ ${gm.likes || 0} · ${gm.byName || ""}`, 256, 122, 480); p.tex.needsUpdate = true; });
   }
   // ---------------- the way home ----------------
