@@ -254,24 +254,28 @@ export const JW = { H: 14, MIN: 30, MAX: 240, CELLS: 2200, ENEMIES: 40, BOSSES: 
     p: ["Spring", "thing"], k: ["Spikes", "thing"], c: ["Checkpoint", "thing"], o: ["Coin", "item"], y: ["Key", "item"], d: ["Door", "thing"],
     t: ["Switch", "thing"], r: ["Red block", "thing"], u: ["Blue block", "thing"], h: ["Potion", "item"], q: ["Chest", "item"],
     e: ["Walker", "foe"], n: ["Flyer", "foe"], z: ["Cannon", "foe"], B: ["Dragon boss", "foe"], S: ["Start", "goal"], F: ["Finish", "goal"],
-    1: ["Copper ore", "ore"], 2: ["Silver ore", "ore"], 3: ["Gold ore", "ore"] },
+    1: ["Copper ore", "ore"], 2: ["Silver ore", "ore"], 3: ["Gold ore", "ore"], x: ["Ghost block", "thing"], j: ["Vanish block", "thing"] },
   ORE: { 1: [2, 2], 2: [3, 5], 3: [4, 10] }, // (hits to break, coins)
   CHEST: 5, FOE: 1, BOSS: 20, BOSS_HP: 3 };
 export const JUMPS = { jump: "jump", dungeon: "dungeon", escape: "escape", boss: "boss", mining: "mining" };
-const SOLID = new Set(["g", "s", "i", "w", "p", "d", "r", "z", "1", "2", "3"]); // (what you stand on in the grid itself; f / b / m / v are solid too, as things)
+const SOLID = new Set(["g", "s", "i", "w", "p", "d", "r", "z", "1", "2", "3", "j"]); // (what you stand on in the grid itself; f / b / m / v are solid too, as things)
 export const jwTimer = (spec) => (spec.tpl === "escape" || spec.tpl === "mining" ? spec.len * 2 : 0); // seconds (0: no clock)
 export const jwSpeed = (spec) => 5.4 + spec.speed * 0.55; // metres a second running
 // STB5 (2026-10-27): event blocks — WHEN something happens THEN something else, at most JEV.MAX a level, each once a run.
 // WHEN coins (a = how many) · switch (pressed) · key (picked up) · boss (all bosses down) · time (a seconds) · col (you reach column a)
 // THEN doors (every door opens) · say (b = one of JEV.MSGS) · time (+b seconds on the clock) · heart (+1) · coins (b coins rain down) · speed (faster for 6 s)
-export const JEV = { MAX: 6, WHEN: ["coins", "switch", "key", "boss", "time", "col"], THEN: ["doors", "say", "time", "heart", "coins", "speed"],
+// STB7 (2026-10-27): WHEN every (each a seconds, again and again) · count (the counter reaches a); AND a second WHEN (x[4], x[5]) that
+// must hold too; THEN add (+b on the counter) · show (the ghost blocks appear) · hide (the vanish blocks go) · flip (red ⇄ blue, like a switch)
+export const JEV = { MAX: 10, WHEN: ["coins", "switch", "key", "boss", "time", "col", "every", "count"], THEN: ["doors", "say", "time", "heart", "coins", "speed", "add", "show", "hide", "flip"],
+  AND: ["coins", "switch", "key", "boss", "time", "col", "count"],
   MSGS: ["Nice work!", "The doors are open!", "Hurry up!", "Watch out!", "Almost there!", "Bonus coins!", "The boss is angry!", "You found a secret!"] };
+const evA = (w, v, W) => (w === "coins" || w === "time" || w === "count" ? Math.max(1, Math.min(300, Math.round(Number(v) || 10))) : w === "every" ? Math.max(3, Math.min(120, Math.round(Number(v) || 10))) : w === "col" ? Math.max(2, Math.min((W || JW.MAX) - 2, Math.round(Number(v) || 10))) : 0);
 export function cleanEvents(ev, W) {
   const out = []; for (const x of (Array.isArray(ev) ? ev : []).slice(0, JEV.MAX * 2)) { if (!Array.isArray(x)) continue; const w = String(x[0]), t = String(x[2]);
     if (!JEV.WHEN.includes(w) || !JEV.THEN.includes(t)) continue;
-    const a = w === "coins" ? Math.max(1, Math.min(300, Math.round(Number(x[1]) || 10))) : w === "time" ? Math.max(1, Math.min(300, Math.round(Number(x[1]) || 10))) : w === "col" ? Math.max(2, Math.min((W || JW.MAX) - 2, Math.round(Number(x[1]) || 10))) : 0;
-    const b = t === "say" ? Math.max(0, Math.min(JEV.MSGS.length - 1, Math.round(Number(x[3]) || 0))) : t === "time" ? Math.max(5, Math.min(60, Math.round(Number(x[3]) || 10))) : t === "coins" ? Math.max(1, Math.min(20, Math.round(Number(x[3]) || 5))) : 0;
-    out.push([w, a, t, b]); if (out.length >= JEV.MAX) break; }
+    const a = evA(w, x[1], W);
+    const b = t === "say" ? Math.max(0, Math.min(JEV.MSGS.length - 1, Math.round(Number(x[3]) || 0))) : t === "time" ? Math.max(5, Math.min(60, Math.round(Number(x[3]) || 10))) : t === "coins" ? Math.max(1, Math.min(20, Math.round(Number(x[3]) || 5))) : t === "add" ? Math.max(1, Math.min(10, Math.round(Number(x[3]) || 1))) : 0;
+    const w2 = String(x[4] || ""); out.push(JEV.AND.includes(w2) ? [w, a, t, b, w2, evA(w2, x[5], W)] : [w, a, t, b]); if (out.length >= JEV.MAX) break; }
   return out;
 }
 export function cleanJump(b, spec) {
@@ -301,7 +305,7 @@ export function jwGrid(B) {
 /// where you can stand and get to (a rough walk: run along, jump up to REACH, fall any way; springs throw higher, doors and
 /// switches are treated as passed) → { ok: the finish is reached, far: the furthest column, dead: [x] columns you can't pass }
 export function jwReach(B) {
-  const G = jwGrid(B), stand = (x, y) => y >= 0 && y < JW.H && x >= 0 && x < B.W && !G.solid(x, y) && !G.solid(x, y + 1) && (y === 0 ? false : G.solid(x, y - 1) || ["m", "v", "f", "b", "r", "u", "w"].includes((G.get(x, y - 1) || [])[2]));
+  const G = jwGrid(B), stand = (x, y) => y >= 0 && y < JW.H && x >= 0 && x < B.W && !G.solid(x, y) && !G.solid(x, y + 1) && (y === 0 ? false : G.solid(x, y - 1) || ["m", "v", "f", "b", "r", "u", "w", "x"].includes((G.get(x, y - 1) || [])[2]));
   const S = B.c.find((c) => c[2] === "S"), F = B.c.find((c) => c[2] === "F"); if (!S) return { ok: false, far: 0 };
   let sy = S[1]; while (sy > 0 && !stand(S[0], sy)) sy--; const seen = new Set([S[0] + ":" + sy]), q = [[S[0], sy]]; let far = S[0], ok = false;
   while (q.length && seen.size < 6000) {

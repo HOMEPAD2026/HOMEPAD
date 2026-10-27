@@ -67,11 +67,11 @@ export async function makeJump(o, env) {
   // the back: far hills and clouds (or a cave wall), the level's floor plate below, the edges
   { const back = new THREE.Mesh(new THREE.PlaneGeometry(B.W * 1.4 + 120, 60), new THREE.MeshBasicMaterial({ color: dark ? 0x0f0d18 : look.bg, fog: false })); back.position.set(B.W / 2, 18, -26); scene.add(back);
     if (!dark) { const hm = std(new THREE.Color(look.bg).multiplyScalar(0.8).getHex(), { roughness: 1 }); for (let x = -20; x < B.W + 40; x += 14) { const h = 6 + ((x * 37) % 9); const hill = new THREE.Mesh(new THREE.SphereGeometry(h, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), hm); hill.scale.set(1.3, 0.8, 0.5); hill.position.set(x, -2, -18 - (x % 3)); scene.add(hill); }
-      try { loader.load(`/images/studio/jw/jw-sky-${low ? 768 : 1344}.webp${ver}`, (t) => { if (!scene.userData.live) { t.dispose(); return; } t.colorSpace = THREE.SRGBColorSpace; back.material.map = t; back.material.color.set(0xffffff); back.material.needsUpdate = true; }); } catch { /* the colour stays */ } } }
+      try { loader.load((JLOOK[spec.theme] && spec.theme !== "jungle" ? `/images/studio/th/${spec.theme}-sky-` : `/images/studio/jw/jw-sky-`) + `${low ? 768 : 1344}.webp${ver}`, (t) => { if (!scene.userData.live) { t.dispose(); return; } t.colorSpace = THREE.SRGBColorSpace; back.material.map = t; back.material.color.set(0xffffff); back.material.needsUpdate = true; }); } catch { /* the colour stays */ } } }
   // ---- the things: each a small group ----
   const things = [], add = (c, obj, extra = {}) => { obj.position.set(c[0] + 0.5, c[1], 0); scene.add(obj); const t = { k: c[2], x: c[0], y: c[1], d: c[3] ? 1 : -1, obj, gone: false, ...extra }; things.push(t); return t; };
   const M = { plat: std(0xff9a3d, { emissive: 0xff7a1a, emissiveIntensity: 0.3 }), lift: std(0x5fd3ff, { emissive: 0x2f8cff, emissiveIntensity: 0.35 }), fall: std(0xc8a27a, { roughness: 0.9 }), blink: std(0xff5ad8, { emissive: 0xff2ab8, emissiveIntensity: 0.5, transparent: true }),
-    gold: std(0xffc94a, { emissive: 0xffa21a, emissiveIntensity: 0.55, metalness: 0.8, roughness: 0.25 }), red: std(0xff3b5c, { emissive: 0xff1a3a, emissiveIntensity: 0.4, transparent: true }), blue: std(0x3b7bff, { emissive: 0x1a4aff, emissiveIntensity: 0.4, transparent: true }),
+    gold: std(0xffc94a, { emissive: 0xffa21a, emissiveIntensity: 0.55, metalness: 0.8, roughness: 0.25 }), red: std(0xff3b5c, { emissive: 0xff1a3a, emissiveIntensity: 0.4, transparent: true }), blue: std(0x3b7bff, { emissive: 0x1a4aff, emissiveIntensity: 0.4, transparent: true }), ghost: std(0xbfe9ff, { emissive: 0x7cf5c8, emissiveIntensity: 0.5, transparent: true, opacity: 0.18, depthWrite: false }), vanish: std(0xffb0f0, { emissive: 0xff5ad8, emissiveIntensity: 0.35 }),
     wood: std(0xa8744a, { roughness: 0.85 }), dark: std(0x2a2f3a, { metalness: 0.5, roughness: 0.4 }), white: std(0xf2f7fd), mint: std(0x7cf5c8, { emissive: 0x2fd39a, emissiveIntensity: 0.5 }) };
   real(TEX.wood, M.wood); real(TEX.wood, M.fall); real(TEX.metal, M.lift); real(TEX.metal, M.plat);
   const slab = (mat, w = 1.6, h = 0.32) => new THREE.Mesh(new THREE.BoxGeometry(w, h, D * 0.9), mat);
@@ -88,6 +88,7 @@ export async function makeJump(o, env) {
     else if (k === "d") { const g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1, D * 0.7), M.wood); m.position.y = 0.5; const lock = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.1), M.gold); lock.position.set(0, 0.5, D * 0.36); g.add(m, lock); add(c, g, { solid: "door" }); }
     else if (k === "t") { const g = new THREE.Group(), base = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.14, 18), M.dark), btn = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.16, 18), M.red); base.position.y = 0.07; btn.position.y = 0.2; g.add(base, btn); add(c, g, { btn }); }
     else if (k === "r" || k === "u") { const g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.96, D * 0.96), k === "r" ? M.red : M.blue); m.position.y = 0.5; g.add(m); add(c, g, { solid: "toggle", m }); }
+    else if (k === "x" || k === "j") { const g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.96, D * 0.96), k === "x" ? M.ghost : M.vanish); m.position.y = 0.5; g.add(m); add(c, g, { solid: "ghost", m, on: k === "j" }); } // (STB7: a ghost block appears on THEN show, a vanish block goes on THEN hide)
     else if (k === "h") { const g = new THREE.Group(), b2 = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10), std(0xff4d6d, { emissive: 0xff1a4a, emissiveIntensity: 0.5, transparent: true, opacity: 0.9 })), neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.18, 10), M.white); b2.position.y = 0.42; neck.position.y = 0.7; g.add(b2, neck); add(c, g, { spin: g }); }
     else if (k === "q") { const g = new THREE.Group(), body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.6), M.wood), lid = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.2, 0.62), M.gold); body.position.y = 0.25; lid.position.y = 0.6; g.add(body, lid); add(c, g, { lid }); }
     else if (k === "e") { const g = new THREE.Group(), body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), std(0x8b5cf6, { emissive: 0x5b2cd6, emissiveIntensity: 0.25 })); body.scale.y = 0.8; body.position.y = 0.36; for (const s of [-1, 1]) { const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), M.white); eye.position.set(0.18, 0.46, s * 0.14); const brow = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.05), M.dark); brow.position.set(0.2, 0.58, s * 0.14); brow.rotation.x = s * 0.4; g.add(eye, brow); } g.add(body); add(c, g, { foe: true, vx: (c[3] ? 1 : -1) * (1.6 + spec.speed * 0.25), vy: 0, px: c[0] + 0.5, py: c[1], body }); }
@@ -125,11 +126,11 @@ export async function makeJump(o, env) {
   }
   // ---- the solid test: the grid's blocks, the doors and toggles that still stand ----
   const cell = new Map(); for (const c of B.c) cell.set(c[0] + ":" + c[1], c[2]);
-  const thingAt = new Map(); for (const t of things) if (t.solid === "door" || t.solid === "toggle") thingAt.set(t.x + ":" + t.y, t);
-  const S = { x: 0, y: 0, vx: 0, vy: 0, on: null, ground: false, coyote: 0, buf: 0, hold: false, hearts: 3, inv: 0, coins: 0, keys: 0, sw: false, face: 1, t: -3, over: false, best: 0, clip: "", combo: 0, lastCoin: -9, tr: [], cp: null, bosses: things.filter((t) => t.boss).length, dig: 0, digCd: 0, oreHp: new Map(), kg: 0, swN: 0, boost: 0, tmB: 0 };
+  const thingAt = new Map(); for (const t of things) if (t.solid === "door" || t.solid === "toggle" || t.solid === "ghost") thingAt.set(t.x + ":" + t.y, t);
+  const S = { x: 0, y: 0, vx: 0, vy: 0, on: null, ground: false, coyote: 0, buf: 0, hold: false, hearts: 3, inv: 0, coins: 0, keys: 0, sw: false, face: 1, t: o.test ? -1 : -3, over: false, best: 0, clip: "", combo: 0, lastCoin: -9, tr: [], cp: null, bosses: things.filter((t) => t.boss).length, dig: 0, digCd: 0, oreHp: new Map(), kg: 0, swN: 0, boost: 0, tmB: 0, cnt: 0 };
   // STB5 (2026-10-27): the level's event blocks — WHEN … THEN …, each once a run (B.ev, cleaned by cleanEvents)
-  const EVS = (Array.isArray(B.ev) ? B.ev : []).map((e) => ({ e, done: false })), bossN0 = S.bosses;
-  const solidAt = (x, y) => { const k = cell.get(x + ":" + y); if (k === "g" || k === "s" || k === "i" || k === "z" || ((k === "1" || k === "2" || k === "3") && !S.oreHp.has("x" + x + ":" + y))) return k; const t = thingAt.get(x + ":" + y); if (t && !t.gone && (t.solid === "door" || (t.solid === "toggle" && ((t.k === "r") !== S.sw)))) return t.k; return null; };
+  const EVS = (Array.isArray(B.ev) ? B.ev : []).map((e) => ({ e, done: false, next: e[0] === "every" ? e[1] : 0 })), bossN0 = S.bosses, useCnt = EVS.some((v) => v.e[0] === "count" || v.e[2] === "add" || v.e[4] === "count");
+  const solidAt = (x, y) => { const k = cell.get(x + ":" + y); if (k === "g" || k === "s" || k === "i" || k === "z" || ((k === "1" || k === "2" || k === "3") && !S.oreHp.has("x" + x + ":" + y))) return k; const t = thingAt.get(x + ":" + y); if (t && !t.gone && (t.solid === "door" || (t.solid === "toggle" && ((t.k === "r") !== S.sw)) || (t.solid === "ghost" && t.on))) return t.k; return null; };
   const start = B.c.find((c) => c[2] === "S") || [1, 2, "S"]; S.x = start[0] + 0.5; S.y = start[1]; S.cp = { x: S.x, y: S.y };
   if (o.startZ) { const want = Math.max(1, Math.min(B.W - 2, o.startZ)); for (let y = JW.H - 2; y >= 1; y--) if (solidAt(want, y - 1) && !solidAt(want, y) && !solidAt(want, y + 1)) { S.x = want + 0.5; S.y = y; S.cp = { x: S.x, y: S.y }; break; } }
   const HW = 0.34, HH = 1.45;
@@ -141,8 +142,8 @@ export async function makeJump(o, env) {
   // ---- the HUD ----
   document.body.classList.add("wp-studio");
   const tm = jwTimer(spec), hud = document.createElement("div"); hud.className = "wst-hud wst-jw";
-  hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-hk" hidden>🗝️ 0</span>${tm ? `<span class="wst-ht">⏱ ${tm}</span>` : ""}<span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div>
-    <div class="wst-boss" hidden><small>🐉 ${esc(T("Dragon boss"))}</small><i><em></em></i></div><div class="wst-cd">3</div>
+  hud.innerHTML = `<div class="wst-top" data-game-hud><b class="wst-hn">${esc(o.title || spec.title)}</b><span class="wst-hp">❤️❤️❤️</span><span class="wst-hc">🪙 0</span><span class="wst-hk" hidden>🗝️ 0</span>${useCnt ? `<span class="wst-hn2">🔢 0</span>` : ""}${tm ? `<span class="wst-ht">⏱ ${tm}</span>` : ""}<span class="wst-combo" hidden></span><button type="button" class="wst-hx" aria-label="${esc(T("Leave"))}">×</button><i class="wst-bar"><em></em></i></div>
+    <div class="wst-boss" hidden><small>🐉 ${esc(T("Dragon boss"))}</small><i><em></em></i></div><div class="wst-cd">${o.test ? 1 : 3}</div>${o.test && o.onEdit ? `<button type="button" class="wst-edhere">✏️ ${esc(T("Edit here"))}</button>` : ""}
     ${ctx.coarse ? "" : `<p class="wst-keys">${esc(T("← → run · Space jump"))}${mode === "mining" ? " · " + esc(T("E dig")) : ""}</p>`}`;
   document.body.appendChild(hud); const fx = makeFx(hud);
   const keyOn = new Set(), kd = (e) => { const k = e.key.toLowerCase(); if (["arrowleft", "arrowright", "a", "d", " ", "arrowup", "w", "e", "j", "shift"].includes(k)) { if (!keyOn.has(k) && (k === " " || k === "arrowup" || k === "w")) jumpPress(); if (!keyOn.has(k) && (k === "e" || k === "j")) digPress(); keyOn.add(k); e.preventDefault(); } }, ku = (e) => { const k = e.key.toLowerCase(); keyOn.delete(k); if (k === " " || k === "arrowup" || k === "w") S.hold = false; };
@@ -151,7 +152,7 @@ export async function makeJump(o, env) {
   function jumpPress() { S.buf = 0.14; S.hold = true; }
   function digPress() { if (mode !== "mining") return; S.dig = 0.18; }
   const play = (c, o2) => { if (!hero) return; try { hero.play(c, o2 || {}); } catch { /* no clip */ } S.clip = o2 && o2.once ? "" : c; };
-  const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, 3 - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = `🪙 ${S.coins}`; const hk = hud.querySelector(".wst-hk"); hk.hidden = !S.keys; hk.textContent = "🗝️ " + S.keys; hud.querySelector(".wst-bar em").style.width = Math.min(100, (S.best / Math.max(1, L.len)) * 100).toFixed(1) + "%"; if (tm) hud.querySelector(".wst-ht").textContent = "⏱ " + Math.max(0, Math.ceil(tm + S.tmB - Math.max(0, S.t))); };
+  const paintHud = () => { hud.querySelector(".wst-hp").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, 3 - Math.max(0, S.hearts))); hud.querySelector(".wst-hc").textContent = `🪙 ${S.coins}`; const hk = hud.querySelector(".wst-hk"); hk.hidden = !S.keys; hk.textContent = "🗝️ " + S.keys; if (useCnt) hud.querySelector(".wst-hn2").textContent = "🔢 " + S.cnt; hud.querySelector(".wst-bar em").style.width = Math.min(100, (S.best / Math.max(1, L.len)) * 100).toFixed(1) + "%"; if (tm) hud.querySelector(".wst-ht").textContent = "⏱ " + Math.max(0, Math.ceil(tm + S.tmB - Math.max(0, S.t))); };
   const bossBar = () => { const bs = things.filter((t) => t.boss), el = hud.querySelector(".wst-boss"), alive = bs.filter((b2) => !b2.gone); el.hidden = !alive.length || !alive.some((b2) => Math.abs(b2.px - S.x) < 18); if (alive.length) { const tot = bs.reduce((a, b2) => a + b2.max, 0) || 1, left = alive.reduce((a, b2) => a + b2.hp, 0); el.querySelector("em").style.width = ((left / tot) * 100).toFixed(1) + "%"; } };
   things.filter((t) => t.boss).forEach((b2) => { b2.max = b2.hp; });
   const snd = (k) => { try { if (ctx.Snd && ctx.Snd[k]) ctx.Snd[k](); } catch { /* no sound */ } };
@@ -171,17 +172,28 @@ export async function makeJump(o, env) {
     if (S.x < HW) S.x = HW; if (S.x > B.W - HW) S.x = B.W - HW;
   }
   function touchSolid(x, y) { const t = thingAt.get(x + ":" + y); if (t && t.solid === "door" && !t.gone && S.keys > 0) openDoor(t); }
+  // STB7: "every" fires each a seconds (again and again), the rest once; an AND (e[4], e[5]) has to hold too
+  const cond = (w, a) => (w === "coins" ? S.coins >= a : w === "switch" ? S.swN > 0 : w === "key" ? S.kg > 0 : w === "boss" ? bossN0 > 0 && S.bosses <= 0 : w === "time" ? S.t >= a : w === "col" ? S.x >= a : w === "count" ? S.cnt >= a : false);
+  function flip() { S.sw = !S.sw; things.forEach((q) => { if (q.solid === "toggle") { const on = (q.k === "r") !== S.sw; q.m.material.opacity = on ? 1 : 0.22; } if (q.k === "t" && q.btn) q.btn.material = S.sw ? M.blue : M.red; }); }
+  function ghosts(kind, on) { const out = []; for (const q of things) if (q.k === kind && q.on !== on) { if (on && Math.abs(q.x + 0.5 - S.x) < HW + 0.5 && S.y < q.y + 1 && S.y + HH > q.y) continue; q.on = on; out.push(q); } // (a ghost block never appears inside you)
+    for (const q of out) { if (on) { q.m.material = M.ghost.clone(); q.m.material.opacity = 1; q.m.material.depthWrite = true; q.m.scale.setScalar(0.2); q.pop = 0.25; } else { q.obj.visible = false; } burst(q.x + 0.5, q.y + 0.5, on ? 0x7cf5c8 : 0xff5ad8, 4); } return out.length; }
   function events() {
-    for (const v of EVS) { if (v.done) continue; const [w, a, t, b] = v.e;
-      const hit = w === "coins" ? S.coins >= a : w === "switch" ? S.swN > 0 : w === "key" ? S.kg > 0 : w === "boss" ? bossN0 > 0 && S.bosses <= 0 : w === "time" ? S.t >= a : w === "col" ? S.x >= a : false;
-      if (!hit) continue; v.done = true;
+    if (S.t < 0) return;
+    for (const v of EVS) { if (v.done) continue; const [w, a, t, b, w2, a2] = v.e;
+      const hit = w === "every" ? S.t >= v.next : cond(w, a);
+      if (!hit || (w2 && !cond(w2, a2))) { if (w === "every" && hit) v.next += a; continue; }
+      if (w === "every") v.next += a; else v.done = true;
       if (t === "doors") { const ds = things.filter((q) => q.solid === "door" && !q.gone); ds.forEach((q) => { q.gone = true; q.obj.visible = false; burst(q.x + 0.5, q.y + 0.5, 0xffd23a, 8); }); fx.say("🔓 " + T("Every door is open!")); snd("coin"); }
       else if (t === "say") fx.say("💬 " + T(JEV.MSGS[b] || JEV.MSGS[0]));
       else if (t === "time") { S.tmB += b; fx.say("⏱ +" + b + " s"); }
       else if (t === "heart") { S.hearts = Math.min(5, S.hearts + 1); fx.say("❤️ +1"); }
       else if (t === "coins") { coin(b, S.x, S.y + 2); fx.say("🪙 +" + b); }
       else if (t === "speed") { S.boost = 6; fx.say("⚡ " + T("Speed up!")); }
-      burst(S.x, S.y + 1.4, 0x7cf5c8, 10); paintHud(); }
+      else if (t === "add") { S.cnt += b; fx.say("🔢 " + S.cnt); }
+      else if (t === "show") { if (ghosts("x", true)) fx.say("✨ " + T("New blocks appeared!")); }
+      else if (t === "hide") { if (ghosts("j", false)) fx.say("💨 " + T("Some blocks vanished!")); }
+      else if (t === "flip") { flip(); fx.say(S.sw ? "🔵" : "🔴"); snd("jump"); }
+      burst(S.x, S.y + 1.4, 0x7cf5c8, w === "every" ? 4 : 10); paintHud(); }
   }
   function openDoor(t) { S.keys--; const col = things.filter((q) => q.solid === "door" && !q.gone && q.x === t.x && Math.abs(q.y - t.y) <= 8); col.forEach((q) => { q.gone = true; q.obj.visible = false; burst(q.x + 0.5, q.y + 0.5, 0xffd23a, 8); }); fx.say("🔓 " + T("Door open!")); snd("coin"); paintHud(); }
   function collideY(dt, tt, y0) {
@@ -252,6 +264,7 @@ export async function makeJump(o, env) {
         if (hitMe || s.life <= 0 || solidAt(Math.floor(px), Math.floor(py)) || py < -3) { burst(px, py, s.fire ? 0xff7a2e : 0x9aa6b8, 5); scene.remove(s.m); s.m.geometry.dispose(); shots.splice(i, 1); } }
       // motion for the platforms and blinkers
       for (const t of plats) { const p = platOf(t, tt); t.obj.position.set(p.x, p.y, 0); if (t.k === "b") { const on = blinkOn(t, tt); t.obj.children[0].material.opacity = on ? 1 : 0.18; } if (t.k === "f" && p.y < -6) t.obj.visible = false; }
+      for (const t of things) if (t.pop > 0) { t.pop -= dt; t.m.scale.setScalar(1 + Math.sin(Math.max(0, t.pop) / 0.25 * Math.PI) * 0.25 - Math.max(0, t.pop) / 0.25 * 0.8); if (t.pop <= 0) t.m.scale.setScalar(1); }
       for (const t of springs) { if (t.sq > 0) { t.sq -= dt; const k = 1 - Math.sin((t.sq / 0.25) * Math.PI) * 0.4; t.top.position.y = 0.7 * k; t.coil.scale.z = k; } }
       if (lavaMat && lavaMat.map) lavaMat.map.offset.y = (tt * 0.06) % 1;
       // the clips: walk / sprint by the speed, jump / fall in the air (CU_AS names only)
@@ -290,6 +303,7 @@ export async function makeJump(o, env) {
     t.head.rotation.z = Math.sin(tt * 3) * 0.1; t.obj.children.forEach((c) => { if (c.material && c.material.emissive) c.material.emissiveIntensity = t.flash > 0 ? 0.6 + Math.sin(tt * 30) * 0.4 : 0.25; });
   }
   hud.querySelector(".wst-hx").addEventListener("click", () => leave());
+  { const eh = hud.querySelector(".wst-edhere"); if (eh) eh.addEventListener("click", () => leave()); } // (STB7 play-while-build: back to the builder where you are)
   async function end(done, timeUp) { if (S.over) return; S.over = true; if (pad) pad.hide(); play(done ? "emote-yes" : timeUp ? "emote-no" : "die", { once: true }); paintHud();
     const dist = done ? L.len : Math.min(L.len, S.best);
     const head = done ? (mode === "boss" ? "🐉 " + T("Boss defeated!") : mode === "escape" ? "🚪 " + T("You escaped!") : "🏁 " + T("Level clear!")) : timeUp ? "⏱ " + T("Time's up") : "💥 " + T("Out of hearts");
@@ -300,6 +314,7 @@ export async function makeJump(o, env) {
     if (hero) me.remove(hero.obj);
     scene.userData.live = false; scene.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => { if (x.map && !Object.values(texCache).includes(x.map)) x.map.dispose(); x.dispose(); }); });
     Object.values(texCache).forEach((t) => t.dispose());
+    if (!again && o.onEdit) try { o.onEdit(Math.floor(S.x)); } catch { /* the builder keeps its view */ }
     env.back(again, o);
   }
   st.view(scene, cam); st.solo(tick); tick(0.016, 0); paintHud(); prefabs().catch(() => { /* the drawn prefabs stay */ });

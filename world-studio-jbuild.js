@@ -9,15 +9,16 @@
 import { ask } from "./world-ask.js";
 import { JW, JEV, cleanJump, cleanEvents, clampSpec, estimate, jwReach, THEMES } from "./world-studio-gen.js";
 // STB5 (2026-10-27): the event blocks' words (WHEN … THEN …)
-const EVW = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column" };
-const EVT = { doors: "Every door opens", say: "Show a message", time: "Add seconds to the clock", heart: "Get a heart", coins: "Coins rain down", speed: "Run faster for 6 s" };
+const EVW = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column", every: "Every this many seconds", count: "The counter reaches" };
+const EVA = { coins: "I have this many coins", switch: "A switch is pressed", key: "I pick up a key", boss: "Every boss is down", time: "This many seconds pass", col: "I reach column", count: "The counter reaches" };
+const EVT = { doors: "Every door opens", say: "Show a message", time: "Add seconds to the clock", heart: "Get a heart", coins: "Coins rain down", speed: "Run faster for 6 s", add: "Add to the counter", show: "Ghost blocks appear", hide: "Vanish blocks disappear", flip: "Flip red and blue" };
 
 // the palette: [kind, emoji, group]; the names are JW.K's
 const GROUPS = [["block", "🧱", "Blocks"], ["move", "🔀", "Motion"], ["thing", "🌀", "Things"], ["item", "🪙", "Items"], ["foe", "👾", "Foes"], ["goal", "🏁", "Goal"]];
 // STB3 (2026-10-27): Meshy's 3D icons for the tabs and tools (images/studio/ui2), the emoji only if a picture fails
 const GIC = { block: "tab-blocks", move: "tab-motion", thing: "tab-devices", item: "tab-items", foe: "tab-foes", goal: "tab-goal", chunk: "tab-prefabs", put: "tool-place", hand: "tool-move", erase: "tool-erase", test: "tool-test", done: "tool-done" };
 const gimg = (k, ic) => (GIC[k] ? `<img src="/images/studio/ui2/${GIC[k]}.webp?v=1" alt="" class="wsj-ic" onerror="this.replaceWith(document.createTextNode('${ic}'))">` : ic);
-const EMO = { g: "🟩", s: "🧱", i: "🧊", l: "🔥", w: "🪵", m: "↔️", v: "↕️", f: "🍂", b: "✨", p: "🌀", k: "🔺", c: "🚩", o: "🪙", y: "🗝️", d: "🚪", t: "🔘", r: "🟥", u: "🟦", h: "🧪", q: "🎁", e: "🍄", n: "🦇", z: "💣", B: "🐉", S: "🟢", F: "🏁", 1: "🟫", 2: "⬜", 3: "🟨" };
+const EMO = { g: "🟩", s: "🧱", i: "🧊", l: "🔥", w: "🪵", m: "↔️", v: "↕️", f: "🍂", b: "✨", p: "🌀", k: "🔺", c: "🚩", o: "🪙", y: "🗝️", d: "🚪", t: "🔘", r: "🟥", u: "🟦", h: "🧪", q: "🎁", e: "🍄", n: "🦇", z: "💣", B: "🐉", S: "🟢", F: "🏁", 1: "🟫", 2: "⬜", 3: "🟨", x: "👻", j: "💨" };
 const ICON = { g: "grass", s: "stone", i: "ice", l: "lava", w: "bridge", m: "moving-platform", v: "moving-platform", f: "falling-platform", b: "blinking-platform", p: "spring", k: "spikes", c: "checkpoint", o: "coin", y: "key", d: "door", t: "switch", e: "walker", n: "flyer", q: "chest", h: "potion", F: "finish", B: "dragon", z: "cannon" }; // (Meshy's glass icons, images/studio/jw/icon-*.webp)
 const FLIP = new Set(["m", "v", "z", "e"]);
 /// ready-made chunks: [dx, dy, kind, d?] from the cell you tap (its bottom-left)
@@ -78,12 +79,12 @@ export function createJumpBuilder(ctx) {
     let p = el.querySelector(".wsj-evp"); if (!evOpen) { if (p) p.remove(); return; }
     if (!p) { p = document.createElement("div"); p.className = "wsj-evp"; el.querySelector(".wsb-in").appendChild(p);
       p.addEventListener("change", (e) => { const t = e.target, i = Number(t.dataset.i); if (!(i >= 0) || !B.ev || !B.ev[i]) return; push(); const r = [...B.ev[i]];
-        if (t.dataset.f === "w") r[0] = t.value; else if (t.dataset.f === "a") r[1] = Number(t.value); else if (t.dataset.f === "t") r[2] = t.value; else if (t.dataset.f === "b") r[3] = Number(t.value);
+        if (t.dataset.f === "w") r[0] = t.value; else if (t.dataset.f === "a") r[1] = Number(t.value); else if (t.dataset.f === "t") r[2] = t.value; else if (t.dataset.f === "b") r[3] = Number(t.value); else if (t.dataset.f === "w2") { r[4] = t.value; r[5] = 10; } else if (t.dataset.f === "a2") r[5] = Number(t.value);
         B.ev[i] = r; B.ev = cleanEvents(B.ev, B.W); paintEv(); after(); }); }
     const opt = (o, v) => Object.entries(o).map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(l))}</option>`).join("");
-    p.innerHTML = `<header><b>⚡ ${esc(T("Events"))}</b><small>${esc(T("WHEN something happens, THEN something else — each once a run"))}</small><button type="button" class="wsb-i" data-ev-x aria-label="${esc(T("Close"))}">✕</button></header>
-      <ol>${(B.ev || []).map(([w, a, t, v], i) => `<li><span class="wsj-evk">${esc(T("WHEN"))}</span><select data-i="${i}" data-f="w">${opt(EVW, w)}</select>${w === "coins" || w === "time" || w === "col" ? `<input type="number" data-i="${i}" data-f="a" value="${a}" min="1" max="300">` : ""}
-        <span class="wsj-evk then">${esc(T("THEN"))}</span><select data-i="${i}" data-f="t">${opt(EVT, t)}</select>${t === "say" ? `<select data-i="${i}" data-f="b">${JEV.MSGS.map((m, k) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(m))}</option>`).join("")}</select>` : t === "time" || t === "coins" ? `<input type="number" data-i="${i}" data-f="b" value="${v}" min="1" max="60">` : ""}
+    p.innerHTML = `<header><b>⚡ ${esc(T("Events"))}</b><small>${esc(T("WHEN something happens (AND something else), THEN … — each once a run, \"every\" again and again"))}</small><button type="button" class="wsb-i" data-ev-x aria-label="${esc(T("Close"))}">✕</button></header>
+      <ol>${(B.ev || []).map(([w, a, t, v], i) => `<li><span class="wsj-evk">${esc(T("WHEN"))}</span><select data-i="${i}" data-f="w">${opt(EVW, w)}</select>${w === "coins" || w === "time" || w === "col" || w === "every" || w === "count" ? `<input type="number" data-i="${i}" data-f="a" value="${a}" min="1" max="300">` : ""}<span class="wsj-evk and">${esc(T("AND"))}</span><select data-i="${i}" data-f="w2"><option value="">—</option>${opt(EVA, B.ev[i][4] || "")}</select>${["coins", "time", "col", "count"].includes(B.ev[i][4]) ? `<input type="number" data-i="${i}" data-f="a2" value="${B.ev[i][5]}" min="1" max="300">` : ""}
+        <i class="wsj-br"></i><span class="wsj-evk then">${esc(T("THEN"))}</span><select data-i="${i}" data-f="t">${opt(EVT, t)}</select>${t === "say" ? `<select data-i="${i}" data-f="b">${JEV.MSGS.map((m, k) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(T(m))}</option>`).join("")}</select>` : t === "time" || t === "coins" || t === "add" ? `<input type="number" data-i="${i}" data-f="b" value="${v}" min="1" max="60">` : ""}
         <button type="button" class="wsb-i" data-ev-del="${i}" aria-label="${esc(T("Delete"))}">🗑️</button></li>`).join("") || `<p class="wsj-evnone">${esc(T("No events yet — add one, e.g. WHEN 10 coins THEN every door opens."))}</p>`}</ol>
       ${(B.ev || []).length < JEV.MAX ? `<button type="button" class="wsb-b go" data-ev-add>＋ ${esc(T("Add an event"))}</button>` : ""}`;
   }
@@ -114,7 +115,7 @@ export function createJumpBuilder(ctx) {
     // the pieces
     for (const c of B.c) { const [x, y, k, d] = c; if (x < xA - 2 || x > xB + 1) continue; const X = pxOf(x), Y = pyOf(y), wd = k === "B" ? 2 : 1;
       const block = "gsilwrud123z".includes(k), im = imgs[k], ok = im && im.complete && im.naturalWidth;
-      if (block && !(ok && "gsilwz".includes(k))) { g.fillStyle = k === "g" ? hex(th.track) : k === "s" ? hex(th.wall) : { i: "#9fd8ff", l: "#ff5a1a", w: "#a8744a", r: "#ff3b5c", u: "#3b7bff", d: "#a8744a", 1: "#d97a3a", 2: "#dfe6f2", 3: "#ffd23a", z: "#2a2f3a" }[k];
+      if (block && !(ok && "gsilwz".includes(k))) { g.fillStyle = k === "g" ? hex(th.track) : k === "s" ? hex(th.wall) : { i: "#9fd8ff", l: "#ff5a1a", w: "#a8744a", r: "#ff3b5c", u: "#3b7bff", x: "rgba(124,245,200,.45)", j: "#ff9ae6", d: "#a8744a", 1: "#d97a3a", 2: "#dfe6f2", 3: "#ffd23a", z: "#2a2f3a" }[k];
         if (k === "w") g.fillRect(X + 1, Y + 1, C - 2, C * 0.28); else g.fillRect(X + 1, Y + 1, C - 2, C - 2); g.fillStyle = "rgba(255,255,255,.18)"; g.fillRect(X + 1, Y + 1, C - 2, 3); if (k === "g") { g.fillStyle = "rgba(120,230,120,.7)"; g.fillRect(X + 1, Y + 1, C - 2, C * 0.22); } }
       if (ok && (!block || "gsilwzd".includes(k))) g.drawImage(im, X - (block ? 1 : 0), Y - (wd - 1) * C - (block ? 1 : 0), C * wd + (block ? 2 : 0), C * wd + (block ? 2 : 0)); // (SB-2: Meshy's glass icon for the cell)
       else if (!block) { g.font = `${Math.round(C * 0.7 * wd)}px sans-serif`; g.textAlign = "center"; g.fillText(EMO[k] || "?", X + (C * wd) / 2, Y + C * 0.78 - (wd - 1) * C * 0.5); }

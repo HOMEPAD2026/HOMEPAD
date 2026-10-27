@@ -5056,3 +5056,15 @@ html.wp-pcphone.wp-land .wst.wide .wst-quick{padding:8px 12px 6px;padding-right:
 html.wp-pcphone.wp-land .wst.wide .wst-quick>b{font-size:13px}html.wp-pcphone.wp-land .wst.wide .wst-quick .wst-aiin{padding-top:8px;padding-bottom:8px}html.wp-pcphone.wp-land .wst.wide .wst-quick [data-quick]{padding:8px 14px;font-size:14px}
 html.wp-pcphone.wp-land .wst.wide .wst-qideas{margin:6px 0 2px}html.wp-pcphone.wp-land .wst.wide .wst-stepbody.s1 .wst-link{display:none}
 html.wp-pcphone.wp-land .wst.wide .wst-mkr>.wst-hint{margin:6px 0}
+/* STB7 (2026-10-27): play-while-build — back to the builder where you are; the event counter */
+.wst-edhere{position:absolute;left:12px;top:calc(env(safe-area-inset-top,0px) + 70px);z-index:4;pointer-events:auto;padding:9px 14px;border-radius:14px;border:1px solid rgba(124,245,200,.55);background:linear-gradient(180deg,rgba(20,44,80,.92),rgba(10,22,44,.92));color:#eafffa;font:800 14px/1 Sora,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35),0 0 14px rgba(124,245,200,.25);cursor:pointer;animation:wst-edin .35s ease-out}
+.wst-edhere:active{transform:scale(.95)}
+@keyframes wst-edin{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+html.wp-pcphone .wst-edhere{zoom:1.5}
+.wst-jw .wst-hn2{font-weight:800}
+.wsj-evk.and{background:rgba(255,210,58,.18);color:#ffd23a}
+/* STB7: an event is two lines now (WHEN … AND … / THEN …), so the choices keep their words */
+.wsj-evp{width:min(680px,calc(100% - 24px))}
+.wsj-evp li{flex-wrap:wrap;row-gap:6px}.wsj-evp li select{flex:1 1 150px;min-width:130px}
+.wsj-evp li .wsj-evk.then{margin-left:0}.wsj-evp li .wsj-evk.then::before{content:"";flex-basis:100%}
+.wsj-evp li .wsj-br{flex-basis:100%;height:0}

@@ -533,7 +533,7 @@ export function createStudio(ctx) {
       onDone: (b, sp) => { clearTimeout(autoT); try { localStorage.removeItem(AK); } catch { /* fine */ } spec = clampSpec({ ...spec, ...(sp ? { len: sp.len, coins: sp.coins } : {}), build: b }); lastTest = null; },
       onChange: (b) => { clearTimeout(autoT); autoT = setTimeout(() => { try { localStorage.setItem(AK, JSON.stringify({ tpl: spec.tpl, who, b, at: Date.now() })); } catch { /* full or private */ } }, 1500); },
       onClose: () => { builder = null; if (el) { el.hidden = false; step = 3; paint(); } },
-      onTest: (sp, z) => { const bel = document.querySelector(".wsb"); if (bel) bel.hidden = true; run({ spec: sp, test: true, ...(ar ? { startT: z } : { startZ: z }), onBack: () => { if (bel) bel.hidden = false; if (el) el.hidden = true; } }); } });
+      onTest: (sp, z) => { const bel = document.querySelector(".wsb"); if (bel) bel.hidden = true; run({ spec: sp, test: true, ...(ar ? { startT: z } : { startZ: z }), ...(jw ? { onEdit: (col) => { if (builder && builder.scrollTo) builder.scrollTo(col - 4); } } : {}), onBack: () => { if (bel) bel.hidden = false; if (el) el.hidden = true; } }); } });
     builder.open();
   }
   // ---------------- the runner ----------------
