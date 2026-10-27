@@ -177,13 +177,17 @@ body.sga .wst-x{display:none}
   .sga-top{gap:8px;padding:0 12px}.sga-top .sgw-logo img{width:58px;height:auto}.sga-name{font-size:15px}
   .sga-me{height:34px;padding:0 12px 0 4px;gap:7px}.sga-me-ic{width:26px;height:26px}.sga-me span small{display:none}
   .sga-or button{padding:5px 8px}.sga-top .sgw-world{padding:9px 14px;font-size:12px}.sga-top .sgw-lang{padding:6px 4px}
-  body.sga.sga-on .wst{padding:6px;zoom:.8}
-  body.sga .wst.wide .wst-side-ct{display:none}
-  body.sga .wst.wide .wst-h{padding:12px 14px 10px}body.sga .wst.wide .wst-h small{display:none}body.sga .wst.wide .wst-h h2{font-size:24px;margin:0}
-  body.sga .wst.wide .wst-foot>span{display:none}
-  body.sga .wst.wide .wst-h>.wst-help{top:auto!important;bottom:8px!important;right:8px!important;width:30px!important;height:30px!important}
-  body.sga .wst.wide .wst-tabs{padding:10px;gap:7px}
-  body.sga .wst.wide .wst-tabs button{padding:11px 12px;font-size:15px;border-radius:14px}
+  /* RM4 (2026-10-27): a phone held sideways gets a layout of its own, not a smaller computer page — no rail: the sections
+     are a tab bar along the bottom, the page uses the whole width, the cards keep their size */
+  body.sga.sga-on .wst{padding:0}
+  body.sga .wst.wide .wst-in{width:100%;height:calc(100dvh - var(--sga-h,48px));border-radius:0;border-width:0;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"b" "t"}
+  body.sga .wst.wide .wst-h,body.sga .wst.wide .wst-foot{display:none}
+  body.sga .wst.wide .wst-body{border-left:0;padding:10px 14px 8px}
+  body.sga .wst.wide .wst-tabs{flex-direction:row;justify-content:center;gap:6px;padding:6px 10px calc(6px + env(safe-area-inset-bottom));border-top:1px solid rgba(124,245,200,.25);background:rgba(4,10,26,.92);backdrop-filter:blur(8px)}
+  body.sga .wst.wide .wst-tabs button{flex:1 1 0;max-width:240px;flex-direction:row;justify-content:center;gap:8px;padding:8px 10px!important;min-height:44px;font-size:14px!important;border-radius:12px!important}
+  body.sga .wst.wide .wst-tabs button .wst-ic{width:24px;height:24px}
+  body.sga .wst.wide .wst-hero{min-height:0;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}body.sga .wst.wide .wst-hero .wst-hcv{min-height:170px}
+  body.sga .wst.wide .wst-hbody h3{font-size:22px}body.sga .wst.wide .wst-hrow{grid-auto-columns:minmax(210px,36%)}
 }
-@media (orientation:landscape) and (max-height:520px) and (min-width:901px){body.sga.sga-on .wst{zoom:.86}}
+
 

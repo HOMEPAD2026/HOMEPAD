@@ -4163,7 +4163,7 @@ function goNear(x, z) {
   planet.position.set(-sx, 0, -sz); hop = 0; vy = 0; grounded = true; facing = Math.atan2(x - sx, z - sz); camYaw = facing - Math.PI;
   Snd.dash && Snd.dash();
 }
-const inbox = INBOX.createInbox({ refresh: () => refreshPurse(true), onDot: (n) => { inboxDot = n; paintMenuDot(); }, T: TW, esc, post, sess, toast, Snd, rpg: () => rpg, island, ghosts: () => ghosts, goIsland: (o) => goIsland(o), goNear,
+const inbox = INBOX.createInbox({ playStudio: (id) => openStudio("arcade").then(() => { if (studio) studio.playId(id); }), refresh: () => refreshPurse(true), onDot: (n) => { inboxDot = n; paintMenuDot(); }, T: TW, esc, post, sess, toast, Snd, rpg: () => rpg, island, ghosts: () => ghosts, goIsland: (o) => goIsland(o), goNear,
   openProfile: (w) => openProfile(w), inHub: () => mode === "hub", bookNew: () => island.bookNew(), save: () => save(), onPots: () => combat && combat.potsCheck() });
 // chat (world-chat.js): local lines in the area you stand in, friends and private messages
 // the area: an island, a hunting ground, or the nearest district of the town

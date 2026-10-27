@@ -9,7 +9,9 @@ const GIFT_LINE = { hp: ["{n} health potion", "{n} health potions"], sp: ["{n} m
 export function createInbox(ctx) {
   const { T, esc } = ctx;
   const $ = (id) => document.getElementById(id);
-  let gifts = 0, open = false, el = null, pollAt = 0, seenFr = null, keep = false;
+  let gifts = 0, open = false, el = null, pollAt = 0, seenFr = null, keep = false, games = [];
+  // RM5 (2026-10-27): new games from the creators you follow (the Studio's feed), newest first, until you've opened the arcade
+  async function feed() { const s = ctx.sess(); if (!s) return; try { const r = await fetch("/api/social?world=studio-feed&wallet=" + String(s.wallet).toLowerCase(), { cache: "no-store" }); if (!r.ok) return; const j = await r.json(); let t = 0; try { t = Number(localStorage.getItem("arc.studio.feedSeen") || 0); } catch { /* none */ } games = (j.games || []).filter((x) => x.at > t).slice(0, 5); if (open) paint(); } catch { /* next time */ } }
   const giftText = (g) => T(GIFT_LINE[g.kind] ? GIFT_LINE[g.kind][g.n === 1 ? 0 : 1] : "{n}", { n: g.n });
 
   // the bell in the top bar, with a count of what's waiting
@@ -47,6 +49,7 @@ export function createInbox(ctx) {
       <section><h3>${esc(T("Gifts"))}</h3>${!s ? `<p class="wp-inbox-empty">${esc(T("Sign in with your wallet to get gifts from other players."))}</p>`
         : gifts ? `<p>${esc(gifts === 1 ? T("A gift is waiting for you.") : T("{n} gifts are waiting for you.", { n: gifts }))}</p><button type="button" class="wp-cta" data-itake>${esc(T("Open gifts"))}</button>`
         : `<p class="wp-inbox-empty">${esc(T("No gifts right now. Players can send you potions or scrap from your card."))}</p>`}</section>
+      ${games.length ? `<section><h3>🎮 ${esc(T("New from creators you follow"))}</h3><ul>${games.map((g) => `<li><button type="button" class="wp-inbox-who" data-igame="${esc(g.id)}"><b>${esc(g.title)}</b><small>${esc(T("by {n}", { n: g.byName || T("A creator") }))}</small></button></li>`).join("")}</ul></section>` : ""}
       <section><h3>${esc(T("Guestbook"))}</h3>${book ? `<p>${esc(book === 1 ? T("A new stamp on your island.") : T("{n} new stamps on your island.", { n: book }))}</p><button type="button" class="wp-btn" data-ibook>${esc(T("Go to my island"))}</button>`
         : `<p class="wp-inbox-empty">${esc(T("No new stamps."))}</p>`}</section>
       <section><h3>${esc(T("Friends playing now"))}</h3>${fr.length ? `<ul>${fr.map((w) => `<li><button type="button" class="wp-inbox-who" data-iprof="${esc(w.wallet)}"><b>${esc(w.name)}</b><small>${esc(T("Lv {n}", { n: w.lv || 1 }))}</small></button>${ctx.inHub() ? `<button type="button" class="wp-btn" data-igo="${esc(w.wallet)}">${esc(T("Go there"))}</button>` : ""}</li>`).join("")}</ul>`
@@ -58,7 +61,7 @@ export function createInbox(ctx) {
       el.addEventListener("click", onClick); document.body.appendChild(el);
       addEventListener("keydown", (e) => { if (open && e.key === "Escape") { e.stopImmediatePropagation(); hide(); } }, true);
     }
-    open = true; keep = false; el.hidden = false; paint(); poll(true);
+    open = true; keep = false; el.hidden = false; paint(); poll(true); feed();
   }
   function hide() { if (!el) return; open = false; el.hidden = true; }
   async function take() {
@@ -80,6 +83,7 @@ export function createInbox(ctx) {
     const b = e.target.closest("button");
     if (e.target === el || (b && b.hasAttribute("data-ix"))) { hide(); return; }
     if (!b) return;
+    if (b.dataset.igame) { const id = b.dataset.igame; hide(); if (ctx.playStudio) ctx.playStudio(id); return; }
     if (b.hasAttribute("data-itake")) { take(); return; }
     if (b.hasAttribute("data-ibook")) { hide(); ctx.goIsland({}); return; }
     if (b.dataset.iprof) { hide(); ctx.openProfile(b.dataset.iprof); return; }

@@ -382,5 +382,28 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   const c = await get("studio-chal&c=" + code); check(/^[a-z0-9]{8}$/.test(code) && c.chal.id === id && c.chal.score === G.scoreOf(L.coins, L.len, true) && c.chal.tr.length === 3, "challenge: a code, the score checked against the level, the run kept as its ghost");
   T += CHAL.DAYS * 86400e3 + 1; const cx = await W.read(new URL("https://x/api/social?world=studio-chal&c=" + code)); check(cx.status === 404, "challenge: gone after " + CHAL.DAYS + " days");
 }
+// RM3: quick races — the race hour's game, a second racer joins the open one, it starts by itself after QWAIT; the watch list
+{ const { RACE, hourGame } = await import("../../api/_world-studio.mjs"); const Q = [ethers.Wallet.createRandom(), ethers.Wallet.createRandom(), ethers.Wallet.createRandom()];
+  let r = await call(Q[0], "world-studio-race-quick", { c: "custom-nex" }); const code = r.body.race && r.body.race.code;
+  check(r.status === 200 && r.body.race.id === hourGame(T) && !r.body.race.start, "quick race: the hour's game (" + hourGame(T) + "), waiting");
+  r = await call(Q[1], "world-studio-race-quick", {}); check(r.body.race.code === code && r.body.race.players.length === 2, "quick race: the next racer lands in the same one");
+  let L = await get("studio-races"); check(L.hour.id === hourGame(T) && L.hour.waiting === 2 && L.open.some((x) => x.code === code), "the race list: the hour's game and who's waiting");
+  r = await call(Q[1], "world-studio-race-leave", { code }); let v = await get("studio-race&code=" + code); check(v.race.players.length === 1, "quick race: leaving the lobby frees the seat, the race stays");
+  r = await call(Q[0], "world-studio-race-leave", { code }); v = await W.read(new URL("https://x/api/social?world=studio-race&code=" + code)); check(v.status === 404, "quick race: empty, it closes");
+  r = await call(Q[2], "world-studio-race-quick", {}); const c2 = r.body.race.code; check(c2 !== code, "quick race: a closed one isn't joined — a new one opens");
+  T += RACE.QWAIT + 1; v = await get("studio-race&code=" + c2); check(v.race.start === T + RACE.CD_MS, "quick race: it starts by itself after " + RACE.QWAIT / 1000 + " s, even alone (ghosts fill the pads)");
+  L = await get("studio-races"); check(L.live.some((x) => x.code === c2) && !L.open.some((x) => x.code === c2), "the race list: it moves to the live ones (to watch)");
+  T += RACE.CD_MS + 5e3; r = await call(Q[2], "world-studio-race-tick", { code: c2, z: 30, hp: 3 }); check(r.status === 200 && r.body.race.players[0].z > 0, "quick race: racing");
+}
+// RM5: the creator season (others' plays + likes ×5 this month) and the maker's daily plays + followers on My games
+{ const { SEASON, monthOf } = await import("../../api/_world-studio.mjs"); const mk = ethers.Wallet.createRandom(), p1 = ethers.Wallet.createRandom(), p2 = ethers.Wallet.createRandom();
+  let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", theme: "candy", title: "Season Star", speed: 2, len: 30, coins: 3, walls: 1, gaps: 0, lasers: 0, seed: 31 } }); const id = r.body.game.id; await call(mk, "world-studio-publish", { id, on: true });
+  await call(p1, "world-studio-play", { id, coins: 1, dist: 10, done: false }); T += 21e3; await call(p2, "world-studio-play", { id, coins: 1, dist: 10, done: false }); await call(mk, "world-studio-play", { id, coins: 1, dist: 10, done: false }); await call(p1, "world-studio-like", { id });
+  const S = await get("studio-season"), me = S.top.find((x) => x.plays === 2 && x.likes === 1);
+  check(S.month === monthOf(T) && me && me.pts === 2 + SEASON.LIKE, "season: others' plays + likes ×" + SEASON.LIKE + " (the maker's own play not counted)");
+  await call(p1, "world-studio-follow", { id }); const M = await get("studio-mine&wallet=" + mk.address.toLowerCase()), g = M.games.find((x) => x.id === id);
+  check(M.fans === 1 && g.dl && Object.values(g.dl).reduce((a, x) => a + x, 0) === 2, "dashboard: followers and the daily plays by others on My games");
+  const pub = (await get("studio-game&id=" + id)).game; check(!pub.dl, "dashboard: the daily plays are the maker's only");
+}
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
