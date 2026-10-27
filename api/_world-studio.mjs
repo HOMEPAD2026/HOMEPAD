@@ -23,6 +23,10 @@
 //   GET  ?world=studio-week                                             → { week, tpl, ends, top, last } (STU-C: the weekly contest)
 //   GET  ?world=studio-ghost&id=…                                        → { ghost: { name, score, tr } | null } (Studio 3: the #1's run to race)
 //   POST { action: "world-studio-handle", …signature, h }                → { h }          (the web: your creator ID, /game/@<h>; HANDLE.CHANGES changes)
+//   POST { action: "world-studio-comment" | "-uncomment", …signature, id, t | k } → { comments } (STB7: ≤ SOCIAL.CMT letters, one every GAP; its writer, the maker or a GM removes one)
+//   POST { action: "world-studio-react",   …signature, id, r ∈ SOCIAL.REACT } → { rx } (once a wallet a reaction)
+//   POST { action: "world-studio-picks",   …signature, ids }              → { ids }        (a creator's picks: ≤ SOCIAL.PICKS published games, anyone's)
+//   GET  ?world=studio-comments&id=… → { comments, rx } · ?world=studio-day → today's creator challenge { tpl, theme, top, last } · ?world=studio-picks&wallet=
 //   GET  ?world=studio-handle&wallet=0x…                                 → { h }
 //   GET  ?world=studio-creator&h=…                                       → { creator, games } | { moved } (a creator's published games)
 //   GET  ?world=studio-at&h=…&g=…                                        → { creator, game } | { moved: { h, g } } (one game by its address)
@@ -81,6 +85,15 @@ export const PRIZE = { MAX: 100000, PLACES: 3, TOKEN: "0x36000000000000000000000
 export const contestTpl = (wk) => CONTEST.TPLS[Math.floor(Date.parse(wk + "T00:00:00Z") / (7 * 86400e3)) % CONTEST.TPLS.length];
 /// a small copy of a spec for the arcade's list (the page draws a card's picture from it; a hand-built layout isn't in it)
 export const tinySpec = (sp) => { const o = {}; for (const k of ["tpl", "theme", "speed", "len", "coins", "walls", "gaps", "lasers", "seed"]) o[k] = sp[k]; if (sp.rules) o.rules = sp.rules; return o; };
+// STB7 (2026-10-27, the owner's Studio plan step 5): the community — comments and reactions on a game, a creator's picks
+// (one list of up to PICKS games, anyone's), the day's creator challenge (a template + a theme a Seoul day: games published
+// that day in both enter; others' plays + likes ×5 that day rank them) and a creator's level and badges from their games
+export const SOCIAL = { CMT: 140, CMTS: 50, GAP: 20e3, REACT: ["fire", "lol", "wow", "hard", "love"], PICKS: 20, DAY_TOP: 10, DAY_KEEP: 60 };
+export const DAILY = { TPLS: ["jump", "runner", "arena", "race", "climb", "boss", "dash", "rhythm", "escape", "rush", "survival", "defense", "mining", "dungeon"], THEMES: ["neon", "jungle", "ice", "lava", "candy"] };
+export const dailyOf = (d) => { const n = Math.floor(Date.parse(d + "T00:00:00Z") / 86400e3); return { tpl: DAILY.TPLS[n % DAILY.TPLS.length], theme: DAILY.THEMES[Math.floor(n / DAILY.TPLS.length) % DAILY.THEMES.length] }; };
+export const BADGES = [["p100", "plays", 100], ["p1k", "plays", 1000], ["p10k", "plays", 10000], ["l10", "likes", 10], ["l100", "likes", 100], ["g3", "games", 3], ["g10", "games", 10]];
+export function creatorLevel(plays, likes, games) { const xp = Math.max(0, plays) + Math.max(0, likes) * 5 + Math.max(0, games) * 20, lv = Math.min(99, 1 + Math.floor(Math.sqrt(xp / 10))), at = (l) => (l - 1) * (l - 1) * 10;
+  const t = { plays, likes, games }; return { lv, xp, next: lv >= 99 ? xp : at(lv + 1), from: at(lv), badges: BADGES.filter(([, k, n]) => t[k] >= n).map(([id]) => id) }; }
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), shut(w), nameOf(w), randomId(), ai?(sys, msgs) }
@@ -88,7 +101,7 @@ export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const now = () => deps.now(), one = async (p) => (await getDocs([p]))[p];
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(g.th ? { th: g.th } : {}), ...(own && g.co && g.co.length ? { co: { name: g.coName || "", owner: g.byName || "", pen: g.pen && now() - g.pen.at < CO.PEN_MS ? { w: g.pen.w, name: g.pen.name } : null, by: g.lastBy || "" } } : {}), ...(own && g.coCode && g.coExp > now() && !(g.co && g.co.length) ? { coCode: g.coCode } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(g.th ? { th: g.th } : {}), ...(g.rx ? { rx: g.rx } : {}), ...(g.cmts ? { cmts: g.cmts } : {}), ...(own && g.co && g.co.length ? { co: { name: g.coName || "", owner: g.byName || "", pen: g.pen && now() - g.pen.at < CO.PEN_MS ? { w: g.pen.w, name: g.pen.name } : null, by: g.lastBy || "" } } : {}), ...(own && g.coCode && g.coExp > now() && !(g.co && g.co.length) ? { coCode: g.coCode } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
   // STB5 (2026-10-27): who's playing what right now — each counted run's time kept 15 minutes, per game (≤ 20 a game,
   // ≤ 60 games); the arcade's list carries the count of the last 10 minutes as "now"
   const NOW_KEEP = 15 * 60e3, NOW_WIN = 10 * 60e3;
@@ -105,6 +118,44 @@ export function makeStudio(deps) {
   }
   /// a game's document, or an official game made up from code the first time it's asked for
   const game = async (id) => { const g = await one(`worldStudio/${id}`); if (g) return g; const o = OFFICIAL[id]; return o ? { w: "arcircle", byName: "ARCIRCLE", official: true, spec: clampSpec(o), pub: true, at: OFF_AT, up: OFF_AT, pubAt: OFF_AT, plays: 0, likes: 0, best: [] } : null; };
+  async function dayBump(id, g, plays, likes) { // (STB7: the day's creator challenge)
+    const d0 = day(now()), ch = dailyOf(d0); if (!g.pub || g.spec.tpl !== ch.tpl || g.spec.theme !== ch.theme || day(g.pubAt || 0) !== d0) return;
+    const k = `worldStudioDay/${d0}`, d = (await one(k)) || { list: {} }, e = (d.list || {})[id] || { p: 0, l: 0 };
+    const list = { ...(d.list || {}), [id]: { p: e.p + plays, l: e.l + likes, title: g.spec.title, byName: g.byName || "" } };
+    await setDoc(k, { ...ch, list: Object.fromEntries(Object.entries(list).sort((a, b) => (b[1].p + b[1].l * CONTEST.LIKE) - (a[1].p + a[1].l * CONTEST.LIKE)).slice(0, SOCIAL.DAY_KEEP)) });
+  }
+  const dayTop = (d) => Object.entries((d && d.list) || {}).map(([id, x]) => ({ id, title: x.title, byName: x.byName, plays: x.p, likes: x.l, score: x.p + x.l * CONTEST.LIKE })).sort((a, b) => b.score - a.score);
+  const clean = (t, n) => String(t || "").replace(/[\u0000-\u001f<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+  const tag = (w) => (String(w).startsWith("0x") ? String(w).slice(2, 8) : String(w).slice(0, 6));
+  async function comment(w, b) {
+    const g = await game(b.id); if (!g || !g.pub || g.hidden) return json(404, { error: "no such game" });
+    const t = clean(b.t, SOCIAL.CMT); if (t.length < 2) return json(400, { error: "write a little more" });
+    const by = (await one(`worldStudioCmtBy/${w}`)) || {}; if (now() - (by.at || 0) < SOCIAL.GAP) return json(429, { error: "a moment before the next one" });
+    const name = clean(await deps.nameOf(w).catch(() => ""), 20) || "Player", k = `worldStudioCmt/${b.id}`, d = (await one(k)) || {};
+    const c = { k: (deps.randomId ? deps.randomId() : String(now())).slice(0, 10), w, name, t, at: now(), ...(w === g.w ? { maker: true } : {}) };
+    const list = [c, ...(d.list || [])].slice(0, SOCIAL.CMTS); await setDoc(k, { list }); await setDoc(`worldStudioCmtBy/${w}`, { at: now() });
+    g.cmts = (g.cmts || 0) + 1; await setDoc(`worldStudio/${b.id}`, g).catch(() => {});
+    return json(200, { ok: true, comments: list.map(cmtOut) });
+  }
+  const cmtOut = (c) => ({ k: c.k, name: c.name, by: tag(c.w), t: c.t, at: c.at, ...(c.maker ? { maker: true } : {}) });
+  async function uncomment(w, b) {
+    const g = await game(b.id), k = `worldStudioCmt/${b.id}`, d = (await one(k)) || {}, c = (d.list || []).find((x) => x.k === String(b.k || ""));
+    if (!g || !c) return json(404, { error: "no such comment" });
+    if (c.w !== w && g.w !== w && !(deps.isGM && deps.isGM(w))) return json(403, { error: "only its writer, the game's maker or a GM" });
+    const list = d.list.filter((x) => x !== c); await setDoc(k, { list }); return json(200, { ok: true, comments: list.map(cmtOut) });
+  }
+  async function react(w, b) {
+    const g = await game(b.id), r = String(b.r || ""); if (!g || !g.pub) return json(404, { error: "no such game" }); if (!SOCIAL.REACT.includes(r)) return json(400, { error: "unknown reaction" });
+    if (!(await deps.commit([{ create: `worldStudioReact/${b.id}_${w}_${r}`, data: { at: now() } }])).ok) return json(200, { ok: true, rx: g.rx || {}, already: true });
+    g.rx = { ...(g.rx || {}), [r]: ((g.rx || {})[r] || 0) + 1 }; await setDoc(`worldStudio/${b.id}`, g); return json(200, { ok: true, rx: g.rx });
+  }
+  async function setPicks(w, b) {
+    const want = [...new Set((Array.isArray(b.ids) ? b.ids : []).map(String).filter((i) => /^g[a-z0-9]{2,12}$/.test(i)))].slice(0, SOCIAL.PICKS), ids = [];
+    for (const i of want) { const g = await game(i); if (g && g.pub && !g.hidden && !g.gone) ids.push(i); }
+    await setDoc(`worldStudioPicks/${w}`, { ids, at: now() }); return json(200, { ok: true, ids });
+  }
+  async function picksOf(w) { const d = (await one(`worldStudioPicks/${w}`)) || {}, out = []; for (const i of (d.ids || []).slice(0, SOCIAL.PICKS)) { const g = await game(i); if (g && g.pub && !g.hidden && !g.gone && g.spec) out.push({ ...pubOf(i, g), s: tinySpec(g.spec) }); } return out; }
+  const levelOf = (list) => creatorLevel(list.reduce((a, [, g]) => a + (g.plays || 0), 0), list.reduce((a, [, g]) => a + (g.likes || 0), 0), list.length);
   async function weekBump(id, g, plays, likes) {
     const wk = weekOf(now()), tpl = contestTpl(wk); if (!g.pub || g.spec.tpl !== tpl) return;
     const k = `worldStudioWeek/${wk}`, d = (await one(k)) || { tpl, list: {} }, e = d.list[id] || { p: 0, l: 0 };
@@ -187,8 +238,8 @@ export function makeStudio(deps) {
     if (c && c.moved) return out(301, "", { location: `/game/@${c.moved}${sl ? "/" + sl : ""}` });
     let data = null, status = 200;
     if (c) { const list = await gamesOf(c);
-      if (sl) { const f = findIn(list, sl); if (f) { const [id, g] = f, canon = slugFor(id, g); if (canon !== sl) return out(301, "", { location: `/game/@${c.h}/${canon}` }); data = { creator: card(c), game: { ...pubOf(id, g, true), slug: canon }, more: list.filter(([i]) => i !== id).slice(0, 6).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }; } else status = 404; }
-      else data = { creator: card(c), games: list.slice(0, 60).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) };
+      if (sl) { const f = findIn(list, sl); if (f) { const [id, g] = f, canon = slugFor(id, g); if (canon !== sl) return out(301, "", { location: `/game/@${c.h}/${canon}` }); data = { creator: { ...card(c), ...levelOf(list) }, game: { ...pubOf(id, g, true), slug: canon }, more: list.filter(([i]) => i !== id).slice(0, 6).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }; } else status = 404; }
+      else data = { creator: { ...card(c), ...levelOf(list) }, picks: c.off ? [] : await picksOf(c.w), games: list.slice(0, 60).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) };
     } else status = 404;
     const origin = url.origin && url.origin !== "null" ? url.origin : "https://www.arcircle.app";
     let tpl = ""; try { tpl = deps.pageTpl ? await deps.pageTpl(url) : await (deps.fetch || fetch)(new URL("/studio-web.html", origin)).then((r) => (r.ok ? r.text() : "")); } catch { tpl = ""; }
@@ -291,7 +342,7 @@ export function makeStudio(deps) {
       const cleared = g.spec.tpl === "puzzle" ? score > 0 : !!b.done; if (cleared) st.clears++;
       else if (g.spec.tpl !== "puzzle") { const L = genLevel(g.spec), f = Math.max(0, Math.min(0.999, (Number(b.dist) || 0) / Math.max(1, L.len))); st.ends[Math.floor(f * 10)]++; }
       g.stats = st; }
-    if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); }
+    if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); await dayBump(b.id, g, 1, 0).catch(() => {}); }
     if (counted) await nowBump(b.id).catch(() => {}); // (STB5: "playing now" on the portals and cabinets)
     const name = await deps.nameOf(w).catch(() => "") || "Player", best = (g.best || []).filter((x) => x.w !== w), mine0 = (g.best || []).find((x) => x.w === w);
     const tr = traceOf(b.trace), better = !(mine0 && mine0.score >= score);
@@ -371,7 +422,7 @@ export function makeStudio(deps) {
     const g = await game(b.id); if (!g || !g.pub) return json(404, { error: "no such game" });
     if (g.w === w) return json(400, { error: "that's your own game" });
     if (!(await deps.commit([{ create: `worldStudioLike/${b.id}_${w}`, data: { at: now() } }])).ok) return json(200, { ok: true, likes: g.likes || 0, already: true });
-    g.likes = (g.likes || 0) + 1; await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g); await weekBump(b.id, g, 0, 1).catch(() => {});
+    g.likes = (g.likes || 0) + 1; await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g); await weekBump(b.id, g, 0, 1).catch(() => {}); await dayBump(b.id, g, 0, 1).catch(() => {});
     return json(200, { ok: true, likes: g.likes });
   }
   async function callAI(sys, msgs) { // (like the agent's chat: deps.ai in tests, else the Messages API with the server's key; null when it can't)
@@ -419,10 +470,15 @@ export function makeStudio(deps) {
       if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); const h = g.pub ? await handleOf(g.w) : ""; return json(200, { ok: true, game: { ...pubOf(id, g, true), ...(h ? { h, slug: slugFor(id, g) } : {}) } }); }
       if (w === "studio-handle") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const d = (await one(`worldStudioHandleOf/${a}`)) || {}; return json(200, { ok: true, h: d.h || "", left: HANDLE.CHANGES - (d.n || 0) }); }
       if (w === "studio-creator") { const c = await creatorOf(url.searchParams.get("h")); if (!c) return json(404, { error: "no such creator" }); if (c.moved) return json(200, { ok: true, moved: c.moved });
-        const list = await gamesOf(c); return json(200, { ok: true, creator: card(c), games: list.map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }, "public, max-age=30"); }
+        const list = await gamesOf(c); return json(200, { ok: true, creator: { ...card(c), ...levelOf(list) }, picks: c.off ? [] : await picksOf(c.w), games: list.map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }, "public, max-age=30"); }
       if (w === "studio-at") { const c = await creatorOf(url.searchParams.get("h")), sl = String(url.searchParams.get("g") || "").toLowerCase(); if (!c) return json(404, { error: "no such creator" }); if (c.moved) return json(200, { ok: true, moved: { h: c.moved, g: sl } });
         const f = findIn(await gamesOf(c), sl); if (!f) return json(404, { error: "no such game" }); return json(200, { ok: true, creator: card(c), game: { ...pubOf(f[0], f[1], true), slug: slugFor(f[0], f[1]) } }); }
       if (w === "studio-page") return page(url);
+      if (w === "studio-comments") { const id = String(url.searchParams.get("id") || ""); if (!/^g[a-z0-9]{2,12}$/.test(id)) return json(400, { error: "id" }); const [d, g] = [await one(`worldStudioCmt/${id}`), await game(id)];
+        return json(200, { ok: true, comments: ((d && d.list) || []).map(cmtOut), rx: (g && g.rx) || {} }, "public, max-age=15"); }
+      if (w === "studio-day") { const d0 = day(now()), y = day(now() - 86400e3), [d, l] = [await one(`worldStudioDay/${d0}`), await one(`worldStudioDay/${y}`)];
+        return json(200, { ok: true, day: d0, ...dailyOf(d0), ends: Date.parse(d0 + "T00:00:00Z") + 86400e3 - 9 * 3600e3, top: dayTop(d).slice(0, SOCIAL.DAY_TOP), last: l ? { day: y, ...dailyOf(y), top: dayTop(l).slice(0, 3) } : null }, "public, max-age=30"); }
+      if (w === "studio-picks") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const d = (await one(`worldStudioPicks/${a}`)) || {}; return json(200, { ok: true, ids: d.ids || [] }); }
       if (w === "studio-reports") { const d = (await one("worldStats/studioReports")) || {}; return json(200, { ok: true, list: Object.entries(d.list || {}).map(([id, x]) => ({ id, ...x })).sort((a, b) => b.n - a.n) }); }
       if (w === "studio-week") { const wk = weekOf(now()), lw = weekOf(now() - 7 * 86400e3), [d, l, pz, lpz] = [await one(`worldStudioWeek/${wk}`), await one(`worldStudioWeek/${lw}`), await one(`worldStudioPrize/${wk}`), await one(`worldStudioPrize/${lw}`)];
         return json(200, { ok: true, week: wk, tpl: contestTpl(wk), ends: Date.parse(wk + "T00:00:00Z") + 7 * 86400e3 - 9 * 3600e3, top: weekTop(d).slice(0, CONTEST.TOP), prize: prizeOf(pz), last: l ? { week: lw, tpl: l.tpl, top: weekTop(l).slice(0, 3), prize: prizeOf(lpz) } : null }, "public, max-age=30"); }
@@ -458,6 +514,10 @@ export function makeStudio(deps) {
       if (b.action === "world-studio-report") return report(w, b);
       if (b.action === "world-studio-hide") return hide(w, b);
       if (b.action === "world-studio-handle") return setHandle(w, b);
+      if (b.action === "world-studio-comment") return comment(w, b);
+      if (b.action === "world-studio-uncomment") return uncomment(w, b);
+      if (b.action === "world-studio-react") return react(w, b);
+      if (b.action === "world-studio-picks") return setPicks(w, b);
       return null;
     },
   };

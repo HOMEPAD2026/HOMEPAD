@@ -313,5 +313,27 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   r = await call(pal, "world-studio-co-leave", { id }); m = await get("studio-mine&wallet=" + pal.address.toLowerCase());
   check(r.status === 200 && m.shared.length === 0 && (await call(pal, "world-studio-save", { id, spec: { tpl: "jump", seed: 2 } })).status === 404, "co: leaving takes it off the partner's list and they can't save it any more");
   r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 3 } }); check(r.status === 200 && !r.body.game.co, "co: alone again, the owner saves without a pen"); }
+// STB7 (2026-10-27): comments, reactions, a creator's picks, the day's creator challenge, a creator's level and badges
+{ const S7 = await import("../../api/_world-studio.mjs"), mk = ethers.Wallet.createRandom(), pl = ethers.Wallet.createRandom(), pl2 = ethers.Wallet.createRandom();
+  const d0 = new Date(T + 9 * 3600e3).toISOString().slice(0, 10), ch = S7.dailyOf(d0);
+  let r = await call(mk, "world-studio-save", { spec: { tpl: ch.tpl, theme: ch.theme, title: "Daily One", seed: 77 } }); const gid = r.body.game.id; await call(mk, "world-studio-publish", { id: gid, on: true });
+  r = await call(pl, "world-studio-comment", { id: gid, t: "So <b>fun</b>!\n" + "x".repeat(300) }); const c0 = r.body.comments && r.body.comments[0];
+  check(r.status === 200 && c0 && c0.t.length <= S7.SOCIAL.CMT && !c0.t.includes("<") && !("w" in c0) && c0.by.length === 6, "comments: clipped, no tags, the wallet stays on the server (a short tag)");
+  r = await call(pl, "world-studio-comment", { id: gid, t: "again right away" }); check(r.status === 429, "comments: one every " + S7.SOCIAL.GAP / 1000 + " s");
+  T += S7.SOCIAL.GAP + 1000; r = await call(mk, "world-studio-comment", { id: gid, t: "Thanks for playing!" }); check(r.status === 200 && r.body.comments[0].maker, "comments: the maker's is marked");
+  r = await call(pl2, "world-studio-uncomment", { id: gid, k: c0.k }); check(r.status === 403, "comments: someone else can't remove one");
+  r = await call(mk, "world-studio-uncomment", { id: gid, k: c0.k }); check(r.status === 200 && r.body.comments.length === 1, "comments: the maker removes one on their game");
+  let g7 = await get("studio-comments&id=" + gid); check(g7.comments.length === 1 && g7.comments[0].t === "Thanks for playing!", "comments: read back");
+  r = await call(pl, "world-studio-react", { id: gid, r: "fire" }); const r2 = await call(pl, "world-studio-react", { id: gid, r: "fire" }), r3 = await call(pl, "world-studio-react", { id: gid, r: "nope" });
+  await call(pl2, "world-studio-react", { id: gid, r: "fire" }); g7 = await get("studio-comments&id=" + gid);
+  check(r.body.rx.fire === 1 && r2.body.already && r3.status === 400 && g7.rx.fire === 2, "reactions: once a wallet each, only known ones");
+  r = await call(pl, "world-studio-play", { id: gid, coins: 1, dist: 5, done: false }); r = await call(pl2, "world-studio-like", { id: gid }); const dd = await get("studio-day");
+  check(dd.tpl === ch.tpl && dd.theme === ch.theme && dd.top.some((x) => x.id === gid && x.likes === 1), "the day's challenge: a game published today in its template + theme is on the board (" + ch.tpl + " · " + ch.theme + ")");
+  r = await call(pl, "world-studio-picks", { ids: [gid, "gnope00", gid, "evil/../x"] }); check(r.status === 200 && r.body.ids.length === 1 && r.body.ids[0] === gid, "picks: only real published games, once each");
+  await call(pl, "world-studio-handle", { h: "picker7" }); const cr = await get("studio-creator&h=picker7");
+  check(cr.picks && cr.picks.length === 1 && cr.picks[0].id === gid && cr.creator.lv === 1, "picks: on the creator's page");
+  await call(mk, "world-studio-handle", { h: "maker7" }); const cm = await get("studio-creator&h=maker7");
+  check(cm.creator.lv >= 1 && cm.creator.xp === 1 + 5 + 20 && Array.isArray(cm.creator.badges), "creator level: plays + likes ×5 + games ×20");
+  const lv = S7.creatorLevel(1200, 150, 12); check(lv.badges.includes("p1k") && lv.badges.includes("l100") && lv.badges.includes("g10") && !lv.badges.includes("p10k") && lv.lv > 1 && lv.next > lv.xp, "creator badges at 100 / 1,000 plays, 10 / 100 likes, 3 / 10 games"); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
