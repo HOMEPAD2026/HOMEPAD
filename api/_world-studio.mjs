@@ -27,6 +27,10 @@
 //   POST { action: "world-studio-react",   …signature, id, r ∈ SOCIAL.REACT } → { rx } (once a wallet a reaction)
 //   POST { action: "world-studio-picks",   …signature, ids }              → { ids }        (a creator's picks: ≤ SOCIAL.PICKS published games, anyone's)
 //   GET  ?world=studio-comments&id=… → { comments, rx } · ?world=studio-day → today's creator challenge { tpl, theme, top, last } · ?world=studio-picks&wallet=
+//   POST { action: "world-studio-race-new" | "-race-join" | "-race-start" | "-race-tick" | "-race-leave", …signature, id | code, z, x, y, hp, coins, fin?, out? } → { race }
+//   POST { action: "world-studio-chal", …signature, id, coins, dist, done, trace } → { code } (WS5: a challenge with your run as the ghost) · GET ?world=studio-chal&c=… → { chal }
+//   POST { action: "world-studio-follow", …signature, id, on } → { on, fans } (follow a game's maker) · GET ?world=studio-feed&wallet=… → { games, following }
+//   GET  ?world=studio-race&code=…                                       → { race: { code, id, title, tpl, host, start, now, players } } (WS4: a live race)
 //   GET  ?world=studio-handle&wallet=0x…                                 → { h }
 //   GET  ?world=studio-creator&h=…                                       → { creator, games } | { moved } (a creator's published games)
 //   GET  ?world=studio-at&h=…&g=…                                        → { creator, game } | { moved: { h, g } } (one game by its address)
@@ -39,13 +43,22 @@
 //            worldStudioAi/<wallet>_<day> { n } · worldStudioRun/<wallet>_<id>_<t/20s> (create-only: a play counted once in 20 s)
 //            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
 //            worldStudioHandle/<h> { w, at, moved? } (create-only; an old ID keeps pointing to its owner's new one) · worldStudioHandleOf/<wallet> { h, n, old }
-import { clampSpec, genLevel, scoreOf, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
+import { clampSpec, genLevel, scoreOf, speedOf, dashSpeed, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
 /// STB6 (2026-10-27): build together — the owner's code (a day) lets one partner in; whoever holds the pen saves, the pen
 /// frees itself after PEN_MS without a save; the partner never publishes, deletes or renames the web address
 export const THUMB_MAX = 48 * 1024; // (STB7: a card picture, bytes)
 export const CO = { CODE_MS: 24 * 3600e3, PEN_MS: 10 * 60e3, SHARED: 6 };
+/// WS4 (2026-10-27, the owner: "1, 2번 진행하자"): a live race — a code for a published Sky Runner / Infinity Dash game, up to
+/// MAX players, the host starts it (CD_MS of countdown on the server's clock), each runner reports where they are every
+/// ~0.7 s (worldStudioRaceP/<code>_<wallet>, bounded by the level's speed), the first over the line wins; nothing is paid
+/// WS5 (2026-10-27): a friend challenge carries your run as a ghost (worldStudioChal/<code>, CHAL.DAYS), and players follow
+/// creators (worldStudioFollow/<wallet> { list: [{ w, name }] } ≤ FOLLOW.MAX, worldStudioFans/<creator> { n }); a publish
+/// adds the game to the creator's feed (worldStudioFeedOf/<creator>, the last FOLLOW.FEED), read back as one list
+export const CHAL = { DAYS: 7 };
+export const FOLLOW = { MAX: 200, FEED: 10, READ: 60, NEW: 7 * 86400e3 };
+export const RACE = { MAX: 4, MIN: 2, TPLS: ["runner", "dash"], LOBBY_MS: 15 * 60e3, CD_MS: 5000, RUN_MS: 5 * 60e3 };
 // STU-A (2026-10-26, the owner: "스튜디오는 다 진행하자"): the arcade's own games, one a template, made by ARCIRCLE — there
 // from the start so a first visit has something to play and copy; kept in code (no document until someone plays or likes
 // one: then worldStudio/<id> holds its plays, likes and top 10 like any game), never owned by a wallet, never deleted
@@ -248,7 +261,8 @@ export function makeStudio(deps) {
     const g = data && data.game, path = `/game/@${c && c.h ? c.h : h}${g ? "/" + g.slug : ""}`;
     const title = g ? `${g.title} — @${c.h} · ARCIRCLE Studio` : c ? `@${c.h} — ${c.name || c.h}'s games · ARCIRCLE Studio` : "Game not found · ARCIRCLE Studio";
     const desc = g ? `Play "${g.title}" by @${c.h} in your browser — a ${(TEMPLATES[g.tpl] || TEMPLATES.runner).name} game made in ARCIRCLE Studio. ${g.plays} plays · ${g.likes} likes.` : c ? `${data.games.length} games made in ARCIRCLE Studio by @${c.h}. Play them free in your browser.` : "This game isn't here. Find more in ARCIRCLE WORLD.";
-    const img = `${origin}/images/${g ? `studio/tpl/${TEMPLATES[g.tpl] ? g.tpl : "runner"}-768.webp` : "gw/key-studio.webp"}`;
+    // WS3 (2026-10-27): a game's share card shows the game itself — the maker's stored picture (384 × 216) when there is one
+    const img = g && g.th ? `${origin}/api/social?world=studio-thumb&id=${encodeURIComponent(g.id)}&v=${g.th}` : `${origin}/images/${g ? `studio/tpl/${TEMPLATES[g.tpl] ? g.tpl : "runner"}-768.webp` : "gw/key-studio.webp"}`;
     const meta = [`<title>${e(title)}</title>`, `<meta name="description" content="${e(desc)}">`, `<link rel="canonical" href="${e(origin + path)}">`,
       `<meta property="og:type" content="website">`, `<meta property="og:site_name" content="ARCIRCLE WORLD">`, `<meta property="og:title" content="${e(title)}">`, `<meta property="og:description" content="${e(desc)}">`, `<meta property="og:url" content="${e(origin + path)}">`, `<meta property="og:image" content="${e(img)}">`,
       `<meta name="twitter:card" content="summary_large_image">`, `<meta name="twitter:title" content="${e(title)}">`, `<meta name="twitter:description" content="${e(desc)}">`, `<meta name="twitter:image" content="${e(img)}">`, ...(status === 404 ? [`<meta name="robots" content="noindex">`] : [])].join("\n");
@@ -317,6 +331,7 @@ export function makeStudio(deps) {
     const g = await one(`worldStudio/${b.id}`); if (!g || g.w !== w) return json(404, { error: "not your game" });
     g.pub = b.on !== false; g.at = g.pub && !g.pubAt ? now() : g.at; if (g.pub) { g.pubAt = g.pubAt || now(); await setSlug(w, b.id, g); } // (the web: its address under /game/@<you>/)
     await setDoc(`worldStudio/${b.id}`, g); await arcadeSet(b.id, g);
+    if (g.pub && !g.hidden) { const fk = `worldStudioFeedOf/${w}`, f = (await one(fk)) || {}; if (!(f.list || []).some((x) => x.id === b.id)) await setDoc(fk, { list: [{ id: b.id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", at: now() }, ...(f.list || [])].slice(0, FOLLOW.FEED) }); } // (WS5: its followers see it)
     return json(200, { ok: true, game: { ...pubOf(b.id, g, true), ...(g.pub && g.slug ? { slug: g.slug } : {}) } });
   }
   async function del(w, b) {
@@ -460,6 +475,80 @@ export function makeStudio(deps) {
     return json(200, { ok: true, spec, by, left: STUDIO.AI_DAY - (d.n || 0) - (by === "agent" ? 1 : 0) });
   }
 
+  // WS4: a live race (RACE) — the room's seats in worldStudioRace/<code>, each runner's place in a document of their own
+  const raceCode = (c) => { const k = String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); return /^[A-Z0-9]{5}$/.test(k) ? k : ""; };
+  const raceLive = (r) => r && !r.gone && (r.start ? now() < r.start + RACE.RUN_MS : now() < r.exp);
+  async function raceOut(code, r) {
+    const ks = r.seats.map((x) => `worldStudioRaceP/${code}_${x.w}`), ps = ks.length ? await getDocs(ks) : {};
+    return { code, id: r.id, title: r.title, tpl: r.tpl, host: r.host, start: r.start || 0, now: now(), ...(r.next ? { next: r.next } : {}), players: r.seats.map((x, i) => { const p = ps[ks[i]] || {};
+      return { w: x.w, name: x.name, c: x.c || "", z: p.z || 0, x: p.x || 0, y: p.y || 0, hp: p.hp == null ? 3 : p.hp, coins: p.coins || 0, fin: p.fin || 0, out: !!p.out, at: p.at || 0 }; }) };
+  }
+  const seatOf = async (w, b) => ({ w, name: clean(await deps.nameOf(w).catch(() => ""), 20) || "Player", c: /^[a-z0-9-]{2,24}$/.test(String(b.c || "")) ? b.c : "" });
+  async function raceNew(w, b) {
+    const id = String(b.id || ""), g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec || !g.pub || g.hidden) return json(404, { error: "no such game" });
+    if (!RACE.TPLS.includes(g.spec.tpl)) return json(400, { error: "live races are for Sky Runner and Infinity Dash games" });
+    let code = ""; for (let i = 0; i < 5 && !code; i++) { const c = String(deps.randomId()).replace(/[^a-z0-9]/gi, "").toUpperCase().replace(/[O0I1]/g, "X").slice(i, i + 5).padEnd(5, "Z"); if (!raceLive(await one(`worldStudioRace/${c}`))) code = c; }
+    if (!code) return json(503, { error: "try again" });
+    const r = { id, title: g.spec.title, tpl: g.spec.tpl, spec: g.spec, host: w, seats: [await seatOf(w, b)], at: now(), start: 0, exp: now() + RACE.LOBBY_MS };
+    await setDoc(`worldStudioRace/${code}`, r); await setDoc(`worldStudioRaceP/${code}_${w}`, { z: 0, at: 0 });
+    const fc = raceCode(b.from), fr = fc ? await one(`worldStudioRace/${fc}`) : null; if (fr && fr.host === w && fr.id === id && !fr.next) { fr.next = code; await setDoc(`worldStudioRace/${fc}`, fr); } // (a rematch: the last race's racers are shown the new code)
+    return json(200, { ok: true, race: await raceOut(code, r) });
+  }
+  async function raceJoin(w, b) {
+    const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r)) return json(404, { error: "that race isn't open — ask for a new code" });
+    if (!r.seats.some((x) => x.w === w)) { if (r.start) return json(409, { error: "that race has started — wait for the next one", started: true }); if (r.seats.length >= RACE.MAX) return json(409, { error: `the race is full (${RACE.MAX})` });
+      r.seats.push(await seatOf(w, b)); await setDoc(`worldStudioRace/${code}`, r); await setDoc(`worldStudioRaceP/${code}_${w}`, { z: 0, at: 0 }); }
+    return json(200, { ok: true, race: await raceOut(code, r) });
+  }
+  async function raceStart(w, b) {
+    const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r)) return json(404, { error: "that race isn't open — ask for a new code" });
+    if (r.host !== w) return json(403, { error: "only the host starts the race" }); if (r.start) return json(200, { ok: true, race: await raceOut(code, r) });
+    if (r.seats.length < RACE.MIN) return json(400, { error: "wait for a friend to join" });
+    r.start = now() + RACE.CD_MS; await setDoc(`worldStudioRace/${code}`, r); return json(200, { ok: true, race: await raceOut(code, r) });
+  }
+  async function raceTick(w, b) {
+    const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r) || !r.start) return json(404, { error: "that race isn't running" });
+    if (!r.seats.some((x) => x.w === w)) return json(403, { error: "you're not in this race" });
+    const k = `worldStudioRaceP/${code}_${w}`, p = (await one(k)) || {}, secs = Math.max(0, (now() - r.start) / 1000);
+    if (!p.fin && !p.out && now() >= r.start) { const sp = clampSpec(r.spec), L = genLevel(sp), end = r.tpl === "dash" ? L.len - 30 : L.len, cap = (r.tpl === "dash" ? dashSpeed(sp, secs) : speedOf(sp) * 1.25) * secs + 8; // (no faster than the level lets you; a little room for the clocks)
+      const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0)), z = Math.max(p.z || 0, num(b.z, 0, Math.min(end, cap)));
+      const q = { z, x: num(b.x, -4, 4), y: num(b.y, 0, 12), hp: b.hp == null ? (p.hp == null ? 3 : p.hp) : Math.round(num(b.hp, 0, 3)), coins: Math.round(num(b.coins, 0, 999)), at: now() };
+      if (b.fin && z >= end - 1.5) q.fin = Math.max(1, now() - r.start); else if (b.out || q.hp <= 0) q.out = true;
+      await setDoc(k, q); }
+    return json(200, { ok: true, race: await raceOut(code, r) });
+  }
+  async function raceLeave(w, b) {
+    const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!r || r.gone) return json(200, { ok: true });
+    if (!r.start) { if (r.host === w) r.gone = true; else r.seats = r.seats.filter((x) => x.w !== w); await setDoc(`worldStudioRace/${code}`, r); }
+    else { const k = `worldStudioRaceP/${code}_${w}`, p = (await one(k)) || {}; if (!p.fin && !p.out) await setDoc(k, { ...p, out: true, at: now() }); }
+    return json(200, { ok: true });
+  }
+
+  // WS5: a challenge — the run you just played (checked like a play), kept CHAL.DAYS for the friend who opens the link
+  async function chal(w, b) {
+    const g = await game(b.id); if (!g || g.gone || !g.spec || !g.pub) return json(404, { error: "no such game" }); if (g.spec.tpl === "puzzle") return json(400, { error: "a puzzle's challenge is its score" });
+    const L = genLevel(g.spec), coins = Math.max(0, Math.min(L.coins, Math.round(Number(b.coins) || 0))), dist = Math.max(0, Math.min(L.len, Number(b.dist) || 0)), done = !!b.done && dist >= L.len - 5, score = scoreOf(coins, dist, done);
+    let code = ""; for (let i = 0; i < 4 && !code; i++) { const c = String(deps.randomId()).replace(/[^a-z0-9]/gi, "").toLowerCase().slice(i, i + 8); const d = await one(`worldStudioChal/${c}`); if (c.length === 8 && (!d || d.exp < now())) code = c; }
+    if (!code) return json(503, { error: "try again" });
+    await setDoc(`worldStudioChal/${code}`, { id: b.id, w, name: clean(await deps.nameOf(w).catch(() => ""), 20) || "Player", score, tr: traceOf(b.trace) || null, exp: now() + CHAL.DAYS * 86400e3 });
+    return json(200, { ok: true, code, score });
+  }
+  // WS5: follow a game's maker (by the game, so no wallet is ever shown); their fans count
+  async function follow(w, b) {
+    const g = await game(String(b.id || "")); if (!g || g.gone || !g.w || g.official || !g.pub) return json(404, { error: "no such creator" }); if (g.w === w) return json(400, { error: "that's your own game" });
+    const k = `worldStudioFollow/${w}`, d = (await one(k)) || {}, list = d.list || [], has = list.some((x) => x.w === g.w), on = b.on !== false;
+    if (on && !has && list.length >= FOLLOW.MAX) return json(400, { error: `you follow ${FOLLOW.MAX} creators — unfollow one first` });
+    const fk = `worldStudioFans/${g.w}`, f = (await one(fk)) || {}; let n = f.n || 0;
+    if (on && !has) { await setDoc(k, { list: [...list, { w: g.w, name: g.byName || "" }] }); n++; await setDoc(fk, { n }); }
+    if (!on && has) { await setDoc(k, { list: list.filter((x) => x.w !== g.w) }); n = Math.max(0, n - 1); await setDoc(fk, { n }); }
+    return json(200, { ok: true, on, fans: n });
+  }
+  async function feedOf(a) {
+    const list = ((await one(`worldStudioFollow/${a}`)) || {}).list || [], ks = list.slice(-FOLLOW.READ).map((x) => `worldStudioFeedOf/${x.w}`), docs = ks.length ? await getDocs(ks) : {};
+    const games = ks.flatMap((k) => ((docs[k] || {}).list || [])).filter((x) => now() - x.at < FOLLOW.NEW * 4).sort((p, q) => q.at - p.at).slice(0, 24);
+    return { games, following: list.map((x) => x.name || "?") };
+  }
+
   return {
     async read(url) {
       const w = url.searchParams.get("world");
@@ -467,13 +556,18 @@ export function makeStudio(deps) {
         for (const [id, o] of Object.entries(OFFICIAL)) if (!list[id]) { const sp = clampSpec(o); list[id] = { title: sp.title, tpl: sp.tpl, theme: sp.theme, byName: "ARCIRCLE", plays: 0, likes: 0, at: OFF_AT, s: tinySpec(sp), off: true }; } // (STU-A: the official games are always listed)
         const nw = nowOf(await one("worldStats/studioNow").catch(() => null));
         return json(200, { ok: true, games: Object.entries(list).map(([id, g]) => ({ id, ...g, ...(nw[id] ? { now: nw[id] } : {}) })), templates: TEMPLATES }, "public, max-age=30"); }
-      if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); const h = g.pub ? await handleOf(g.w) : ""; return json(200, { ok: true, game: { ...pubOf(id, g, true), ...(h ? { h, slug: slugFor(id, g) } : {}) } }); }
+      if (w === "studio-game") { const id = String(url.searchParams.get("id") || ""); const g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec) return json(404, { error: "no such game" }); const h = g.pub ? await handleOf(g.w) : "", me = String(url.searchParams.get("me") || "").toLowerCase(), fo = !g.official && g.w ? await getDocs([`worldStudioFans/${g.w}`, ...(/^0x[0-9a-f]{40}$/.test(me) ? [`worldStudioFollow/${me}`] : [])]) : {};
+        const fans = ((fo[`worldStudioFans/${g.w}`] || {}).n) || 0, fol = !!(((fo[`worldStudioFollow/${me}`] || {}).list || []).some((x) => x.w === g.w)); // (WS5: its maker's followers; whether you're one)
+        return json(200, { ok: true, game: { ...pubOf(id, g, true), ...(h ? { h, slug: slugFor(id, g) } : {}), ...(g.official ? {} : { fans, fol }) } }); }
       if (w === "studio-handle") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const d = (await one(`worldStudioHandleOf/${a}`)) || {}; return json(200, { ok: true, h: d.h || "", left: HANDLE.CHANGES - (d.n || 0) }); }
       if (w === "studio-creator") { const c = await creatorOf(url.searchParams.get("h")); if (!c) return json(404, { error: "no such creator" }); if (c.moved) return json(200, { ok: true, moved: c.moved });
         const list = await gamesOf(c); return json(200, { ok: true, creator: { ...card(c), ...levelOf(list) }, picks: c.off ? [] : await picksOf(c.w), games: list.map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }, "public, max-age=30"); }
       if (w === "studio-at") { const c = await creatorOf(url.searchParams.get("h")), sl = String(url.searchParams.get("g") || "").toLowerCase(); if (!c) return json(404, { error: "no such creator" }); if (c.moved) return json(200, { ok: true, moved: { h: c.moved, g: sl } });
         const f = findIn(await gamesOf(c), sl); if (!f) return json(404, { error: "no such game" }); return json(200, { ok: true, creator: card(c), game: { ...pubOf(f[0], f[1], true), slug: slugFor(f[0], f[1]) } }); }
       if (w === "studio-page") return page(url);
+      if (w === "studio-chal") { const c = String(url.searchParams.get("c") || ""), d = /^[a-z0-9]{8}$/.test(c) ? await one(`worldStudioChal/${c}`) : null; if (!d || d.exp < now()) return json(404, { error: "that challenge has ended" }); return json(200, { ok: true, chal: { id: d.id, name: d.name, score: d.score, tr: d.tr } }, "public, max-age=300"); }
+      if (w === "studio-feed") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); return json(200, { ok: true, ...(await feedOf(a)) }); }
+      if (w === "studio-race") { const code = raceCode(url.searchParams.get("code")), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r)) return json(404, { error: "that race isn't open — ask for a new code" }); return json(200, { ok: true, race: await raceOut(code, r) }); }
       if (w === "studio-comments") { const id = String(url.searchParams.get("id") || ""); if (!/^g[a-z0-9]{2,12}$/.test(id)) return json(400, { error: "id" }); const [d, g] = [await one(`worldStudioCmt/${id}`), await game(id)];
         return json(200, { ok: true, comments: ((d && d.list) || []).map(cmtOut), rx: (g && g.rx) || {} }, "public, max-age=15"); }
       if (w === "studio-day") { const d0 = day(now()), y = day(now() - 86400e3), [d, l] = [await one(`worldStudioDay/${d0}`), await one(`worldStudioDay/${y}`)];
@@ -498,6 +592,13 @@ export function makeStudio(deps) {
       if (deps.shut && deps.shut(w)) return json(403, { error: "ARCIRCLE Studio is under construction", closed: true });
       if (b.action === "world-studio-save") return save(w, b);
       if (b.action === "world-studio-thumb") return thumb(w, b);
+      if (b.action === "world-studio-chal") return chal(w, b);
+      if (b.action === "world-studio-follow") return follow(w, b);
+      if (b.action === "world-studio-race-new") return raceNew(w, b);
+      if (b.action === "world-studio-race-join") return raceJoin(w, b);
+      if (b.action === "world-studio-race-start") return raceStart(w, b);
+      if (b.action === "world-studio-race-tick") return raceTick(w, b);
+      if (b.action === "world-studio-race-leave") return raceLeave(w, b);
       if (b.action === "world-studio-co-invite") return coInvite(w, b);
       if (b.action === "world-studio-co-join") return coJoin(w, b);
       if (b.action === "world-studio-co-pen") return coPen(w, b);

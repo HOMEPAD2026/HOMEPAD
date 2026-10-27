@@ -335,5 +335,52 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   await call(mk, "world-studio-handle", { h: "maker7" }); const cm = await get("studio-creator&h=maker7");
   check(cm.creator.lv >= 1 && cm.creator.xp === 1 + 5 + 20 && Array.isArray(cm.creator.badges), "creator level: plays + likes ×5 + games ×20");
   const lv = S7.creatorLevel(1200, 150, 12); check(lv.badges.includes("p1k") && lv.badges.includes("l100") && lv.badges.includes("g10") && !lv.badges.includes("p10k") && lv.lv > 1 && lv.next > lv.xp, "creator badges at 100 / 1,000 plays, 10 / 100 likes, 3 / 10 games"); }
+// WS4: a live race — a code, up to RACE.MAX, the host starts it, places bounded by the level's speed, the first over the line
+{ const { RACE, OFFICIAL } = await import("../../api/_world-studio.mjs"); const P = [ethers.Wallet.createRandom(), ethers.Wallet.createRandom(), ethers.Wallet.createRandom(), ethers.Wallet.createRandom(), ethers.Wallet.createRandom()];
+  let r = await call(P[0], "world-studio-race-new", { id: "goffarena" }); check(r.status === 400, "race: not for an arena game");
+  r = await call(P[0], "world-studio-race-new", { id: "goffrun", c: "lumi" }); const code = r.body.race && r.body.race.code;
+  check(r.status === 200 && /^[A-Z0-9]{5}$/.test(code) && r.body.race.players.length === 1 && r.body.race.players[0].c === "lumi", "race: a 5-letter code, the host seated (" + code + ")");
+  r = await call(P[0], "world-studio-race-start", { code }); check(r.status === 400, "race: not alone");
+  r = await call(P[1], "world-studio-race-start", { code }); check(r.status === 404 || r.status === 403, "race: a stranger can't start it");
+  for (const p of P.slice(1, 4)) await call(p, "world-studio-race-join", { code: code.toLowerCase() });
+  r = await call(P[4], "world-studio-race-join", { code }); check(r.status === 409, "race: full at " + RACE.MAX);
+  r = await call(P[1], "world-studio-race-join", { code }); check(r.status === 200 && r.body.race.players.length === 4, "race: joining twice keeps one seat");
+  r = await call(P[3], "world-studio-race-leave", { code }); let v = await get("studio-race&code=" + code); check(v.race.players.length === 3, "race: leaving the lobby frees the seat");
+  r = await call(P[1], "world-studio-race-start", { code }); check(r.status === 403, "race: only the host starts it");
+  r = await call(P[1], "world-studio-race-tick", { code, z: 10 }); check(r.status === 404, "race: no places before the start");
+  r = await call(P[0], "world-studio-race-start", { code }); const st = r.body.race.start; check(r.status === 200 && st === T + RACE.CD_MS, "race: the start is the server's clock + the countdown");
+  r = await call(P[3], "world-studio-race-join", { code }); check(r.status === 409 && r.body.started, "race: no joining once it's started");
+  const L = G.genLevel(G.clampSpec(OFFICIAL.goffrun)), sp = G.speedOf(G.clampSpec(OFFICIAL.goffrun));
+  T = st + 10e3; r = await call(P[0], "world-studio-race-tick", { code, z: 99999, x: 2.2, hp: 3, coins: 2 }); let me0 = r.body.race.players.find((x) => x.w === P[0].address.toLowerCase()) || r.body.race.players[0];
+  check(me0.z <= sp * 1.25 * 10 + 8 && me0.z > 0 && !me0.fin, "race: a place no further than the level's speed allows (" + Math.round(me0.z) + " m in 10 s)");
+  r = await call(P[0], "world-studio-race-tick", { code, z: 5 }); me0 = r.body.race.players[0]; check(me0.z > 5, "race: a place never goes back");
+  r = await call(P[0], "world-studio-race-tick", { code, z: 50, fin: true }); check(!r.body.race.players[0].fin, "race: no finish short of the line");
+  T = st + 60e3; r = await call(P[0], "world-studio-race-tick", { code, z: L.len, fin: true, hp: 2 }); check(r.body.race.players[0].fin === 60e3, "race: over the line — the time on the server's clock");
+  r = await call(P[1], "world-studio-race-tick", { code, z: 100, hp: 0 }); check(r.body.race.players[1].out, "race: out of hearts is out");
+  r = await call(P[1], "world-studio-race-tick", { code, z: L.len, fin: true }); check(r.body.race.players[1].out && !r.body.race.players[1].fin, "race: once out, nothing changes");
+  r = await call(P[2], "world-studio-race-leave", { code }); v = await get("studio-race&code=" + code); check(v.race.players[2].out, "race: leaving a running race is out");
+  r = await call(P[1], "world-studio-race-new", { id: "goffrun", from: code }); v = await get("studio-race&code=" + code); check(r.status === 200 && !v.race.next, "race: only the host's new race is the rematch");
+  r = await call(P[0], "world-studio-race-new", { id: "goffrun", from: code }); v = await get("studio-race&code=" + code); check(r.status === 200 && v.race.next === r.body.race.code && v.race.next !== code, "race: the host's rematch code shows on the last race (" + v.race.next + ")");
+  T = st + RACE.RUN_MS + 1; v = await W.read(new URL("https://x/api/social?world=studio-race&code=" + code)); check(v.status === 404, "race: gone after " + RACE.RUN_MS / 60e3 + " minutes");
+}
+// WS5: a challenge carries the run as a ghost; following a maker shows their new games in your feed
+{ const { CHAL } = await import("../../api/_world-studio.mjs"); const mk = ethers.Wallet.createRandom(), fa = ethers.Wallet.createRandom();
+  let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", theme: "neon", title: "Follow Me", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 99 } }); const id = r.body.game.id;
+  r = await call(fa, "world-studio-follow", { id }); check(r.status === 404, "follow: not before it's published… (a draft's maker can't be followed)");
+  await call(mk, "world-studio-publish", { id, on: true });
+  r = await call(mk, "world-studio-follow", { id }); check(r.status === 400, "follow: not yourself");
+  r = await call(fa, "world-studio-follow", { id }); const r2 = await call(fa, "world-studio-follow", { id }); check(r.body.on && r.body.fans === 1 && r2.body.fans === 1, "follow: once, the fans counted");
+  let g = (await get("studio-game&id=" + id + "&me=" + fa.address.toLowerCase())).game; check(g.fans === 1 && g.fol === true, "follow: the game page says you follow its maker");
+  r = await call(fa, "world-studio-follow", { id: "goffrun" }); check(r.status === 404, "follow: not ARCIRCLE's own games");
+  r = await call(mk, "world-studio-save", { spec: { tpl: "dash", theme: "ice", title: "Second One", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 7 } }); const id2 = r.body.game.id; T += 60e3; await call(mk, "world-studio-publish", { id: id2, on: true });
+  let f = await get("studio-feed&wallet=" + fa.address.toLowerCase()); check(f.games.length === 2 && f.games[0].id === id2 && f.games[1].id === id && f.following.length === 1, "feed: the maker's games, newest first");
+  await call(mk, "world-studio-publish", { id: id2, on: false }); await call(mk, "world-studio-publish", { id: id2, on: true }); f = await get("studio-feed&wallet=" + fa.address.toLowerCase()); check(f.games.length === 2, "feed: a game published again isn't listed twice");
+  r = await call(fa, "world-studio-follow", { id, on: false }); g = (await get("studio-game&id=" + id + "&me=" + fa.address.toLowerCase())).game; f = await get("studio-feed&wallet=" + fa.address.toLowerCase());
+  check(r.body.fans === 0 && g.fol === false && f.games.length === 0, "unfollow: fans down, the feed empty");
+  const L = G.genLevel(G.clampSpec({ tpl: "runner", theme: "neon", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 99 }));
+  r = await call(fa, "world-studio-chal", { id, coins: 999, dist: L.len, done: true, trace: [[0, 0, 0], [0, 0, 4], [22, 0, 9]] }); const code = r.body.code;
+  const c = await get("studio-chal&c=" + code); check(/^[a-z0-9]{8}$/.test(code) && c.chal.id === id && c.chal.score === G.scoreOf(L.coins, L.len, true) && c.chal.tr.length === 3, "challenge: a code, the score checked against the level, the run kept as its ghost");
+  T += CHAL.DAYS * 86400e3 + 1; const cx = await W.read(new URL("https://x/api/social?world=studio-chal&c=" + code)); check(cx.status === 404, "challenge: gone after " + CHAL.DAYS + " days");
+}
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

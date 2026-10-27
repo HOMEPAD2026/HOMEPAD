@@ -5095,3 +5095,67 @@ body.wp.wp-in-cc #wp-dock{display:none!important}
    its own class now (.wst-help is the Studio's ? button): low in the middle, the words centred */
 .wst-hint{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2;margin:0;display:flex;align-items:center;justify-content:center;min-height:36px;padding:0 18px;border-radius:999px;border:1px solid rgba(124,245,200,.35);background:rgba(4,12,28,.62);color:#e2fff6;font:700 13px/1.2 Sora,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.3)}
 html.wp-pcphone .wst-hint{zoom:1.6}
+/* WS2: a card's game for a moment (world-studio.js cardLive) — the preview's canvas over the card's picture */
+.wst-cv{position:relative;overflow:hidden}
+.wst-cv>canvas.wst-cvlive{position:absolute;inset:0;width:100%!important;height:100%!important;border-radius:inherit;z-index:1;pointer-events:none;animation:wstLiveIn .35s ease both}
+.wst-cv.live>i,.wst-cv.live>em,.wst-cv.live>b{position:relative;z-index:2}
+.wst-cv.live{box-shadow:0 0 0 2px var(--c) inset,0 0 18px color-mix(in srgb,var(--c) 55%,transparent)}
+@keyframes wstLiveIn{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:none}}
+/* WS3: the result card — the score counting up, a new best stamped in with a flash */
+.wst-res .wst-score.done{animation:wstScorePop .35s cubic-bezier(.3,1.6,.5,1)}
+@keyframes wstScorePop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+.wst-res .wst-best.stamp{display:inline-block;animation:wstStamp .55s cubic-bezier(.2,1.5,.4,1) both;animation-delay:.35s}
+@keyframes wstStamp{0%{opacity:0;transform:scale(2.6) rotate(-14deg)}70%{opacity:1;transform:scale(.92) rotate(-6deg)}100%{opacity:1;transform:scale(1) rotate(-6deg)}}
+.wst-flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 40%,rgba(255,230,140,.55),transparent 60%);animation:wstFlash .7s ease-out both;z-index:5}
+@keyframes wstFlash{from{opacity:1}to{opacity:0}}
+.wst-go kbd{font:800 11px/1 Sora,sans-serif;padding:3px 6px;margin-left:6px;border-radius:6px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3)}
+/* WS3: a game just published shines on its card in the arcade */
+.wst-card.fresh{position:relative;animation:wstFresh 2.4s ease-out 2;box-shadow:0 0 0 2px #ffd23a,0 0 26px rgba(255,210,58,.55)}
+.wst-card.fresh::after{content:"NEW";position:absolute;top:8px;right:8px;z-index:3;font:900 11px/1 Sora,sans-serif;letter-spacing:.06em;color:#1a1200;background:linear-gradient(135deg,#ffe27a,#ffb23a);padding:5px 8px;border-radius:999px;box-shadow:0 4px 12px rgba(255,178,58,.45)}
+@keyframes wstFresh{0%,100%{box-shadow:0 0 0 2px #ffd23a,0 0 26px rgba(255,210,58,.55)}50%{box-shadow:0 0 0 3px #fff3b0,0 0 42px rgba(255,210,58,.85)}}
+
+/* WS4 (2026-10-27): the live race — the lobby card, the join box in the arcade, the places on the HUD and on the result card */
+.wst-rl{position:fixed;inset:0;z-index:12500;display:grid;place-items:center;padding:16px;background:rgba(2,6,18,.62);backdrop-filter:blur(6px);animation:wstRlIn .25s ease-out}
+@keyframes wstRlIn{from{opacity:0}to{opacity:1}}
+.wst-rlc{width:min(420px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:18px 18px 16px;border-radius:20px;background:linear-gradient(160deg,rgba(18,30,62,.97),rgba(8,14,32,.97));border:1px solid rgba(124,245,200,.45);box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 40px rgba(95,211,255,.18);color:#eef4fb;font-family:Sora,sans-serif;text-align:center;animation:wstRlPop .35s cubic-bezier(.2,1.4,.4,1)}
+.wst-rl.shown,.wst-rl.shown .wst-rlc{animation:none}
+@keyframes wstRlPop{from{transform:scale(.92) translateY(10px)}to{transform:none}}
+.wst-rlc>small{display:block;font:800 12px/1 Sora,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7cf5c8}
+.wst-rlc h3{margin:6px 0 12px;font:900 22px/1.2 "Exo 2",Sora,sans-serif}
+.wst-rlcode{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:10px;border-radius:14px;background:rgba(255,255,255,.05);border:1px dashed rgba(255,210,58,.5)}
+.wst-rlcode span{font-size:12px;opacity:.75}
+.wst-rlcode b{font:900 30px/1 "Exo 2",monospace;letter-spacing:.18em;color:#ffd23a;text-shadow:0 0 18px rgba(255,210,58,.45)}
+.wst-rlp{list-style:none;margin:14px 0 8px;padding:0;display:grid;gap:7px}
+.wst-rlp li{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid color-mix(in srgb,var(--c,#5fd3ff) 55%,transparent);text-align:left;animation:wstRlSeat .4s ease-out both}
+@keyframes wstRlSeat{from{transform:translateX(-14px)}to{transform:none}}
+.wst-rlp li i{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:var(--c,#5fd3ff);color:#061022;font:900 12px/1 Sora,sans-serif;font-style:normal}
+.wst-rlp li b{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wst-rlp li b small{opacity:.6;font-weight:600}
+.wst-rlp li.me{background:color-mix(in srgb,var(--c) 16%,transparent)}
+.wst-rlp li.empty{border-style:dashed;border-color:rgba(255,255,255,.18);opacity:.55;animation:wstRlWait 1.6s ease-in-out infinite}
+.wst-rlp li.empty i{background:rgba(255,255,255,.18);color:#eef4fb}
+@keyframes wstRlWait{50%{opacity:.3}}
+.wst-rlh{margin:6px 0 12px;font-size:13px;opacity:.8}
+.wst-rla{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.wst-rla [data-rlgo]:not([disabled]){animation:wstRlGo 1.2s ease-in-out infinite}
+@keyframes wstRlGo{50%{box-shadow:0 0 0 4px rgba(124,245,200,.25),0 0 26px rgba(124,245,200,.55)}}
+.wst-racebtn{background:linear-gradient(135deg,#ffd23a,#ff8a3d)!important;color:#1a0f00!important}
+.wst-rjoin{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(255,210,58,.12),rgba(255,138,61,.08));border:1px solid rgba(255,210,58,.35)}
+.wst-rjoin b{font-size:14px}.wst-rjoin small{flex:1;min-width:120px;opacity:.75;font-size:12px}
+.wst-rjoin input{width:96px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#ffd23a;font:900 16px/1 "Exo 2",monospace;letter-spacing:.14em;text-transform:uppercase;text-align:center}
+.wst-rbd{position:absolute;left:12px;top:86px;z-index:5;list-style:none;margin:0;padding:6px;display:grid;gap:4px;min-width:150px;border-radius:12px;background:rgba(4,10,26,.62);backdrop-filter:blur(4px);font:700 12px/1.2 Sora,sans-serif;color:#eef4fb;pointer-events:none}
+.wst-rbd li,.wst-rres li{display:flex;align-items:center;gap:7px;padding:4px 6px;border-radius:8px;transition:transform .3s}
+.wst-rbd li i,.wst-rres li i{min-width:18px;text-align:center;font-style:normal;font-weight:900;color:#ffd23a}
+.wst-rbd li b,.wst-rres li b{flex:1;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wst-rbd li em,.wst-rres li em{font-style:normal;opacity:.85}
+.wst-rbd li.me,.wst-rres li.me{background:rgba(124,245,200,.18);color:#7cf5c8}
+.wst-rbd li.out,.wst-rres li.out{opacity:.5}
+.wst-rres{margin:6px 0 10px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,210,58,.3);text-align:left}
+.wst-rres>b{display:block;margin-bottom:6px;text-align:center;font-size:14px;color:#ffd23a}
+.wst-rres ol{list-style:none;margin:0;padding:0;display:grid;gap:3px;font:700 13px/1.2 Sora,sans-serif}
+@media (max-width:640px),(max-height:520px){.wst-rbd{top:64px;left:8px;min-width:130px;font-size:11px}}
+/* WS5 (2026-10-27): follow a maker, the arcade tab's count of new games from the makers you follow */
+.wst-fol{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.wst-fol span{font-size:13px;opacity:.8}
+.wst-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:999px;background:#ff4d6d;color:#fff;font:900 11px/1 Sora,sans-serif;font-style:normal;box-shadow:0 0 0 2px rgba(5,10,26,.8);animation:wstBadge 1.6s ease-in-out infinite}
+@keyframes wstBadge{50%{transform:scale(1.15)}}
