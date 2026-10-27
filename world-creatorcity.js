@@ -25,7 +25,7 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   const spins = [], solids = [], doors = [], bld = {};
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.25, ...o });
   const neon = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, depthWrite: op >= 1, toneMapped: false });
-  const canvasTex = (w, h, draw) => { if (typeof document === "undefined") return null; const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.userData = { cv }; return t; };
+  const canvasTex = (w, h, draw) => { if (typeof document === "undefined") return null; const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.userData = { cv }; return t; };
   const WHITE = std(0xf2f7fd, { roughness: 0.3, metalness: 0.15 }), GLASS = std(0x7fd4ff, { roughness: 0.06, metalness: 0.3, transparent: true, opacity: 0.6, emissive: 0x2a8cff, emissiveIntensity: 0.3 });
   // ---------------- the ground: pale creator paving with a light grid, the plaza, walkways to each building ----------------
   { const tex = canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#e7eef8"; x.fillRect(0, 0, w, h); x.strokeStyle = "#5fd3ff"; x.globalAlpha = 0.35; x.lineWidth = 2; for (let k = 0; k <= 8; k++) { x.beginPath(); x.moveTo(k * 64, 0); x.lineTo(k * 64, h); x.stroke(); x.beginPath(); x.moveTo(0, k * 64); x.lineTo(w, k * 64); x.stroke(); } });
@@ -53,16 +53,23 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   // the drawn plate shows until it's in, then every sign is drawn again on it)
   const plate = typeof Image !== "undefined" ? new Image() : null, plates = [];
   if (plate) { plate.onload = () => { for (const f of plates) f(); }; plate.src = `/images/cc/ui/sign-plate.webp${ver}`; }
+  try { if (typeof document !== "undefined" && document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const f of plates) f(); }); } catch { /* the first drawing stays */ } // (a name drawn before Sora loaded is drawn again in it)
   function board(parent, title, sub, col, y, w = 11, z = 0) {
     const draw = (x) => { x.clearRect(0, 0, 1024, 300);
       if (plate && plate.complete && plate.naturalWidth) { x.drawImage(plate, 0, 0, 1024, 300); x.globalCompositeOperation = "source-atop"; x.fillStyle = "rgba(4,14,34,.38)"; x.fillRect(0, 0, 1024, 300); x.globalCompositeOperation = "source-over"; x.lineWidth = 5; x.strokeStyle = col; x.globalAlpha = 0.55; x.beginPath(); if (x.roundRect) x.roundRect(70, 40, 884, 220, 40); x.stroke(); x.globalAlpha = 1; }
       else { x.beginPath(); if (x.roundRect) x.roundRect(8, 8, 1008, 284, 44); else x.rect(8, 8, 1008, 284); x.fillStyle = "rgba(6,18,40,.9)"; x.fill(); x.lineWidth = 8; x.strokeStyle = col; x.stroke(); }
-      x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = col; x.shadowBlur = 22; x.fillStyle = "#fff"; x.font = "900 84px Sora, 'Segoe UI', sans-serif"; x.fillText(title, 512, 118, 840); x.shadowBlur = 0; x.fillStyle = "#d8ecff"; x.font = "800 40px Sora, 'Segoe UI', sans-serif"; x.fillText(sub, 512, 210, 820); };
+      x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round";
+      // (2026-10-27, the owner: the names looked blurry — a soft glow was all round the letters; now a dark outline under
+      // sharp white letters and only a faint glow behind them)
+      x.font = "900 88px Sora, 'Segoe UI', sans-serif"; x.shadowColor = col; x.shadowBlur = 10; x.lineWidth = 12; x.strokeStyle = "rgba(2,8,24,.92)"; x.strokeText(title, 512, 116, 840); x.shadowBlur = 0; x.fillStyle = "#ffffff"; x.fillText(title, 512, 116, 840);
+      x.font = "800 42px Sora, 'Segoe UI', sans-serif"; x.lineWidth = 8; x.strokeText(sub, 512, 210, 820); x.fillStyle = "#e6f3ff"; x.fillText(sub, 512, 210, 820); };
     const tex = canvasTex(1024, 300, draw);
     if (tex) plates.push(() => { draw(tex.userData.cv.getContext("2d")); tex.needsUpdate = true; });;
     if (!tex) return null;
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.293), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.set(0, y, z); m.renderOrder = 11; parent.add(m);
-    const qp = new THREE.Quaternion(); m.onBeforeRender = (r, sc, cam) => { parent.getWorldQuaternion(qp); m.quaternion.copy(qp.invert().multiply(cam.quaternion)); m.updateMatrixWorld(); };
+    const qp = new THREE.Quaternion(); const wp = new THREE.Vector3(), ps = new THREE.Vector3();
+    m.onBeforeRender = (r, sc, cam) => { parent.getWorldQuaternion(qp); m.quaternion.copy(qp.invert().multiply(cam.quaternion));
+      m.getWorldPosition(wp); parent.getWorldScale(ps); const k = Math.min(2.6, Math.max(1, wp.distanceTo(cam.position) / 30)) / (ps.x || 1); m.scale.setScalar(k); m.updateMatrixWorld(); }; // (far off, a name grows so it stays readable: the owner, 2026-10-27)
     const y0 = y, ph = Math.random() * 6; spins.push((dt, t) => { m.position.y = y0 + Math.sin(t * 1.2 + ph) * 0.2; });
     return m;
   }

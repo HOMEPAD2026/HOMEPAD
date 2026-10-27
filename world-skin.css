@@ -5086,3 +5086,5 @@ html.wp-pcphone .wst-edhere{zoom:1.5}
 .wsb-uic{width:22px;height:22px;object-fit:contain;display:block;margin:auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
 .wsj-tools i>img:not(.wsj-ic){width:30px;height:30px;object-fit:contain;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
 .wsj-evb .wsj-ic{width:22px;height:22px;display:inline-block;vertical-align:middle}
+/* (2026-10-27, the owner: in Creator City the five dock buttons go — the city bar holds what's needed there) */
+body.wp.wp-in-cc #wp-dock{display:none!important}
