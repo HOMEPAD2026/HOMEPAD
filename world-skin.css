@@ -4893,3 +4893,15 @@ html.wp-vpfb.wp-land .wbr-in{zoom:var(--fbz,.7);max-height:calc((100dvh - 24px) 
 .wst.wide .wst-facts{display:grid;grid-template-columns:1.2fr auto 1fr}.wst.wide .wst-facts li:nth-child(2) span{overflow:visible}.wst.wide .wst-facts li{font-size:12.5px;padding:10px}
 .wst-steps span{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-align:left}
 .wst.wide .wst-steps button{padding:10px 8px;font-size:13px}
+/* IDEA4 (2026-10-27): Creator City's HUD — no fight there: the combat bar and the HP/SP card make way for the maker's buttons */
+body.wp.wp-in-cc #wc-bar,body.wp.wp-in-cc #wc-vit,body.wp.wp-in-cc .wc-lockon{display:none!important}
+.wp-ccbar{display:none}
+body.wp.wp-in-cc:not(.wp-stu-open):not(.wp-first) .wp-ccbar{display:flex;position:fixed;z-index:40;right:calc(env(safe-area-inset-right,0px) + 132px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);gap:8px;pointer-events:auto;animation:wpCcBarIn .45s cubic-bezier(.2,1.3,.4,1) both}
+.wp-ccbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:74px;height:78px;padding:6px 4px 7px;border-radius:20px;border:1px solid rgba(124,245,226,.55);background:linear-gradient(180deg,rgba(30,74,150,.82),rgba(8,24,64,.9));box-shadow:0 6px 16px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.25),0 0 14px rgba(92,242,210,.18);color:#fff;font:800 11px/1.1 Sora,sans-serif;cursor:pointer;transition:transform .12s}
+.wp-ccbar button:first-child{background:linear-gradient(180deg,rgba(47,140,255,.95),rgba(20,160,150,.92));border-color:#9ff7e6;box-shadow:0 6px 18px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.4),0 0 20px rgba(124,245,200,.45)}
+.wp-ccbar button:active{transform:scale(.92)}
+.wp-ccbar img{width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.wp-ccbar span{max-width:100%;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+html.wp-pcphone .wp-ccbar{zoom:1.6}
+@keyframes wpCcBarIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.wp-ccbar{animation:none!important}}

@@ -2050,7 +2050,7 @@ function landGo(to) {
 function landTick(force) {
   const L = mode === "hub" ? LD.landAt(-planet.position.x, -planet.position.z) : null, id = L ? L.id : "";
   lands.show(id); if (adc) adc.show(id === "ad"); if (rqL) rqL.show(id === "rq"); if (ccL) ccL.show(id === "cc"); if (id === landNow && !force) return;
-  const was = landNow; landNow = id; try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); /* (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) */ if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } /* (no town rain in RAID QUEENS' sky realm) */ try { paintQuests(); } catch { /* the quests aren't up yet */ }
+  const was = landNow; landNow = id; try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); if (id === "cc") try { ccBar(); } catch { /* made on the way in */ } /* (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) */ if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } /* (no town rain in RAID QUEENS' sky realm) */ try { paintQuests(); } catch { /* the quests aren't up yet */ }
   if (id && id !== was) { toast(`<b>${esc(landName(id))}</b>`); if (id === "lp" && !P.visited.includes("lpv")) { P.visited.push("lpv"); save(); } if (id === "ut" && !P.visited.includes("utv")) { P.visited.push("utv"); save(); } if (id === "ad" && !P.visited.includes("adc")) { P.visited.push("adc"); save(); } if (id === "rq" && !P.visited.includes("rqx")) { P.visited.push("rqx"); save(); } }
 }
 st.on(() => { try { landTick(false); } catch { /* still loading */ } });
@@ -5833,11 +5833,21 @@ async function ccGames() {
   try { const r = await fetch("/api/social?world=studio-arcade"); if (!r.ok) return; const j = await r.json();
     ccTop = (j.games || []).filter((x) => x && x.id).map((x) => ({ ...x, css: CC_THC[x.theme] || "#7cf5c8" })).sort((a, b) => (b.plays || 0) + (b.likes || 0) * 3 - (a.plays || 0) - (a.likes || 0) * 3); ccL.setGames(ccTop); } catch { /* the portals keep what they had */ }
 }
+// IDEA4 (2026-10-27, place HUD presets): Creator City has no monsters, so its fight buttons (the combat bar) give way
+// to the maker's four — the Studio's Create / My games / the Creator Arcade, and the Hall of Fame (shown by CSS, body.wp-in-cc)
+const CC_BAR = [["make", "/images/studio/ui/tab-make.webp", "Create"], ["mine", "/images/studio/ui/tab-mine.webp", "My games"], ["arcade", "/images/studio/ui/tab-arcade.webp", "Arcade"], ["hall", "/images/cc/ui/ic-trophy.webp", "Hall of Fame"]];
+let ccBarEl = null;
+function ccBar() {
+  if (ccBarEl) return; ccBarEl = document.createElement("div"); ccBarEl.id = "wp-ccbar"; ccBarEl.className = "wp-ccbar";
+  ccBarEl.innerHTML = CC_BAR.map(([k, ic, l]) => `<button type="button" data-cc="${k}"><img src="${ic}${VER}" alt="" width="44" height="44" decoding="async"><span>${esc(TW(l))}</span></button>`).join("");
+  ccBarEl.addEventListener("click", (e) => { const b = e.target.closest("[data-cc]"); if (!b || mode !== "hub" || frozen || landNow !== "cc") return; try { if (Snd.click) Snd.click(); } catch { /* no sound */ } const k = b.dataset.cc; if (k === "hall") ccBuilding("hall"); else openStudio(k); });
+  document.body.appendChild(ccBarEl);
+}
 async function ccGo() {
   if (frozen || flying || introOn || mode !== "hub") return;
   const card = ccCardSeen ? null : gameCard("cc"); ccCardSeen = true; if (card) await paintFrame();
   const c = await ensureCC(); if (!c || frozen || mode !== "hub") { if (card) card.close(true); return; } if (card) card.step(0);
-  closeAll(); const a = c.arrival(); standAt(a.x, a.z, a.c); landTick(true); if (card) { card.step(1); await sleep(500); card.step(2); card.close(); }
+  ccBar(); closeAll(); const a = c.arrival(); standAt(a.x, a.z, a.c); landTick(true); if (card) { card.step(1); await sleep(500); card.step(2); card.close(); }
   let first = false; try { first = !localStorage.getItem("arc.cc.seen"); localStorage.setItem("arc.cc.seen", "1"); } catch { /* not kept */ }
   vfx.teleport(here(), { color: 0x7cf5c8, color2: 0x5fd3ff }); if (Snd.dash) Snd.dash(); pullFlash("#7cf5c8"); startSweep(first ? 3000 : 1400); paintPrompt();
   ccGamesAt = 0; ccGames(); if (first) setTimeout(() => ccAcademy(true), 3300);

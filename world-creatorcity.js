@@ -193,13 +193,15 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
         const o = new THREE.Group(), [x, z] = polar(f.a + da, Math.max(10, f.r - f.fp / 2 - 4)); o.position.set(x, 0, z); o.rotation.y = Math.atan2(-x, -z); o.add(m); g.add(o);
         const mx = new THREE.AnimationMixer(m), clip = (n2) => gl.animations.find((a) => a.name === n2), idle = clip("idle") ? mx.clipAction(clip("idle")).play() : null;
         let tag = null; try { tag = K.label(T(line), { accent: f.css, size: 0.42 }); tag.position.y = 2.6; tag.visible = false; o.add(tag); } catch { /* no tag */ }
-        const P = { o, mx, idle, gest: gest.map(clip).filter(Boolean), next: 3 + Math.random() * 4, tag, near: false, f }; people.push(P);
+        const P = { o, mx, idle, gest: gest.map(clip).filter(Boolean), wave: clip(gest[0]), next: 3 + Math.random() * 4, tag, near: false, f, home: o.rotation.y, yaw: o.rotation.y }; people.push(P);
       }, undefined, () => { /* the door stays as it is */ }); } catch { /* no people */ } }
   }
   function peopleTick(dt, me) {
     for (const P of people) { P.mx.update(dt); P.next -= dt;
       if (P.next <= 0 && P.gest.length) { P.next = 7 + Math.random() * 5; const c = P.gest[(Math.random() * P.gest.length) | 0], a = P.mx.clipAction(c); a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.fadeIn(0.25).play(); if (P.idle) { P.idle.fadeOut(0.25); setTimeout(() => { if (P.idle) P.idle.reset().fadeIn(0.3).play(); }, Math.max(1200, Math.min(4000, c.duration * 1000 - 300))); } }
-      if (me && P.tag) { const d = Math.hypot(me.x - land.x - P.o.position.x, me.z - land.z - P.o.position.z), near = d < 7; if (near !== P.near) { P.near = near; P.tag.visible = near; if (near) P.o.rotation.y = Math.atan2(me.x - land.x - P.o.position.x, me.z - land.z - P.o.position.z); } } }
+      if (me && P.tag) { const d = Math.hypot(me.x - land.x - P.o.position.x, me.z - land.z - P.o.position.z), near = d < 7; if (near !== P.near) { P.near = near; P.tag.visible = near; if (near && P.wave && P.next > 1.2) P.next = 0.35; }
+        // (IDEA: NPC look-at, 2026-10-27) they turn to you while you're near and back to their door after, not in one snap
+        const want = near ? Math.atan2(me.x - land.x - P.o.position.x, me.z - land.z - P.o.position.z) : P.home; let dy = want - P.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); P.yaw += dy * Math.min(1, dt * 5); P.o.rotation.y = P.yaw; } }
   }
   // ---------------- the Game Arcade's portals: the top games, each a door you walk into ----------------
   const portals = [], arc = FAC.find((f) => f.id === "arcade");
