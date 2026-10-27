@@ -94,3 +94,6 @@ body.sgw{padding:0!important}
 body.sgw .sgw-card h2,body.sgw .sgw-sec h2,body.sgw .sgw-cta h2{color:var(--ink)}
 body.sgw .sgw-main a,body.sgw .sgw-foot a{color:inherit}body.sgw .sgw-link{color:var(--cyan)}
 .sgw-hero.cr .sgw-chip{display:flex;width:max-content}.sgw-hero.cr .sgw-by{display:flex;width:max-content;max-width:100%}
+/* STB5 (2026-10-27): remix a game from its web page (opens the World's Studio with a copy) */
+.sgw-remix{display:inline-flex;align-items:center;gap:6px;padding:12px 18px;border-radius:999px;border:1px solid rgba(124,245,226,.5);background:rgba(8,24,56,.6);color:#dff6ff;font:800 15px/1 "Exo 2",Sora,sans-serif;text-decoration:none}
+.sgw-remix:hover{border-color:#7cf5e2;box-shadow:0 0 14px rgba(124,245,226,.35)}

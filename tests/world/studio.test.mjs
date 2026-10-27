@@ -32,6 +32,10 @@ const me = ethers.Wallet.createRandom(), fan = ethers.Wallet.createRandom();
 // the generator: the same text in the page's copy; clamped; seeded; a free lane at every wall row
 const a = fs.readFileSync(new URL("../../api/_world-studio-gen.mjs", import.meta.url), "utf8").split("\n").slice(1).join("\n"), b = fs.readFileSync(new URL("../../world-studio-gen.js", import.meta.url), "utf8").split("\n").slice(1).join("\n");
 check(a === b, "the page's generator is the server's (same text below the first line)");
+{ const ev = G.cleanEvents([["coins", 9999, "say", 99], ["evil", 1, "doors", 0], ["col", 1, "speed", 0], ["time", 20, "hack", 0], ["switch", 0, "time", 999], "x", ["key", 0, "coins", -5], ["boss", 0, "heart", 0], ["coins", 5, "doors", 0], ["coins", 6, "doors", 0]], 40);
+  check(ev.length === G.JEV.MAX && ev[0][1] === 300 && ev[0][3] === G.JEV.MSGS.length - 1 && ev[1][1] === 2 && ev[2][3] === 60 && ev[3][3] === 1 && ev.every((x) => G.JEV.WHEN.includes(x[0]) && G.JEV.THEN.includes(x[2])), "Jump World events: unknown kinds dropped, numbers clamped, at most " + G.JEV.MAX);
+  const jb = G.cleanJump({ W: 40, c: [[0, 0, "g"]], ev: [["coins", 3, "doors", 0]] }, { tpl: "jump" }), jn = G.cleanJump({ W: 40, c: [[0, 0, "g"]] }, { tpl: "jump" });
+  check(jb.ev && jb.ev.length === 1 && !("ev" in jn), "Jump World events: kept in the build, none means no field"); }
 const sp = G.clampSpec({ tpl: "evil", theme: "x", speed: 99, len: 7, coins: -3, walls: "2", title: "<b>hi</b>  there" + "x".repeat(40), code: "alert(1)" });
 check(sp.tpl === "runner" && sp.theme === "neon" && sp.speed === 5 && sp.len === 45 && sp.coins === 0 && sp.walls === 2 && !("code" in sp) && sp.title.length <= 24 && !/[<>]/.test(sp.title), "a spec is clamped: " + JSON.stringify(sp));
 const L1 = G.genLevel({ seed: 42, walls: 5, gaps: 3, lasers: 3, coins: 5 }), L2 = G.genLevel({ seed: 42, walls: 5, gaps: 3, lasers: 3, coins: 5 });
@@ -73,12 +77,18 @@ const L = G.genLevel(db.get(`worldStudio/${id}`).spec);
 r = await call(fan, "world-studio-play", { id, coins: 9999, dist: 1e9, done: true }); check(r.status === 200 && r.body.score === G.scoreOf(L.coins, L.len, true) && r.body.plays === 1, "a run can't beat the level: " + r.body.score);
 r = await call(fan, "world-studio-play", { id, coins: 1, dist: 20 }); check(r.body.plays === 1 && r.body.best === G.scoreOf(L.coins, L.len, true), "the same player again within 20 s: not counted twice, the best kept");
 T += 30e3; r = await call(fan, "world-studio-play", { id, coins: 1, dist: 20 }); check(r.body.plays === 2, "later: counted");
+// STB5: the arcade says how many runs were played in the last 10 minutes ("playing now"); older ones drop off
+{ let ar = await get("studio-arcade"); const g = ar.games.find((x) => x.id === id); check(g && g.now === 2, "playing now: the last 10 minutes' runs (" + (g && g.now) + ")");
+  T += 11 * 60e3; ar = await get("studio-arcade"); const g2 = ar.games.find((x) => x.id === id); check(g2 && !g2.now, "playing now: gone after 10 minutes"); }
 // Studio 3b: the #1 leaves a ghost (their run every 0.2 s) for others to race; a bad trace is left out
 { const tr = Array.from({ length: 40 }, (_, i) => [0, 0, i * 3]); T += 30e3; const third = ethers.Wallet.createRandom(); r = await call(third, "world-studio-play", { id, coins: 1, dist: 30, trace: tr }); let gh = await get("studio-ghost&id=" + id);
   check(r.body.ghost === false && !gh.ghost, "a run that isn't the #1 leaves no ghost");
   r = await call(fan, "world-studio-play", { id, coins: 9999, dist: 1e9, done: true, trace: tr }); gh = await get("studio-ghost&id=" + id);
   T += 30e3; r = await call(third, "world-studio-play", { id, coins: 0, dist: 1, trace: [["x"]] }); check(r.status === 200 && !r.body.ghost, "a broken trace: the run counts, no ghost");
-  check(r.body && gh.ghost && Array.isArray(gh.ghost.tr) && gh.ghost.tr.length === 40 && gh.ghost.score === G.scoreOf(L.coins, L.len, true), "the #1's run is the ghost: " + JSON.stringify(gh.ghost && { n: gh.ghost.name, s: gh.ghost.score, l: gh.ghost.tr.length })); }
+  check(r.body && gh.ghost && Array.isArray(gh.ghost.tr) && gh.ghost.tr.length === 40 && gh.ghost.score === G.scoreOf(L.coins, L.len, true), "the #1's run is the ghost: " + JSON.stringify(gh.ghost && { n: gh.ghost.name, s: gh.ghost.score, l: gh.ghost.tr.length }));
+  const bd = (await get("studio-game&id=" + id)).game.best, pl = bd.findIndex((x) => x.gh && x.score === G.scoreOf(1, 30, false)) + 1, gp = await get("studio-ghost&id=" + id + "&p=" + pl);
+  check(pl > 1 && gp.ghost && gp.ghost.tr.length === 40 && gp.ghost.score === bd[pl - 1].score && !("w" in gp.ghost) && !bd.some((x) => "w" in x), "STB5: a board player's best leaves a ghost too, raced by place (no wallet shown)");
+  check(!(await get("studio-ghost&id=" + id + "&p=99")).ghost, "STB5: a place that isn't on the board has no ghost"); }
 r = await call(me, "world-studio-play", { id, coins: 2, dist: 50 }); check(r.status === 200 && r.body.plays === 5, "the maker's own runs aren't counted as plays (" + r.body.plays + ")");
 let gm = await get("studio-game&id=" + id); check(gm.ok && gm.game.best.length === 3 && gm.game.spec.seed === 7, "the game's page: its spec and the best runs");
 // likes
@@ -268,5 +278,25 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   await call(cr, "world-studio-save", { id: id2, spec: { tpl: "runner", title: "<img src=x onerror=alert(1)>", seed: 8 } }); P = await pg("h=mintqueen");
   check(!/<img src=x/.test(P.body.__html) && !/<\/script><img/.test(P.body.__html), "web: a title can't put markup into the page");
 }
+// STB6: build together — a code, one partner, the pen
+{ const S = await import("../../api/_world-studio.mjs"), own = ethers.Wallet.createRandom(), pal = ethers.Wallet.createRandom(), x3 = ethers.Wallet.createRandom();
+  let r = await call(own, "world-studio-save", { spec: { tpl: "jump", title: "Duo Jump", seed: 4 } }); const id = r.body.game.id;
+  r = await call(pal, "world-studio-co-invite", { id }); check(r.status === 404, "co: only the owner opens a code");
+  r = await call(own, "world-studio-co-invite", { id }); const code = r.body.code; check(r.status === 200 && /^[A-Z0-9]{6}$/.test(code), "co: the owner gets a 6-letter code");
+  check((await call(own, "world-studio-co-invite", { id })).body.code === code, "co: asking again gives the same code while it's open");
+  r = await call(own, "world-studio-co-join", { code }); check(r.status === 400, "co: you can't join your own game");
+  r = await call(pal, "world-studio-co-join", { code: code.toLowerCase() }); check(r.status === 200 && r.body.game.shared && r.body.game.co, "co: a friend joins with the code");
+  r = await call(x3, "world-studio-co-join", { code }); check(r.status === 404, "co: a used code is closed (one partner)");
+  let m = await get("studio-mine&wallet=" + pal.address.toLowerCase()); check(m.shared.length === 1 && m.shared[0].id === id && m.games.length === 0, "co: the game shows in the partner's My games as shared");
+  r = await call(pal, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 9 } }); check(r.status === 200 && r.body.game.co.pen && r.body.game.co.pen.w === pal.address.toLowerCase(), "co: the partner saves and holds the pen");
+  r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 5 } }); check(r.status === 409 && r.body.pen, "co: the other one can't save while the pen is out");
+  r = await call(own, "world-studio-co-pen", { id }); check(r.status === 409, "co: nor take the pen");
+  await call(pal, "world-studio-co-pen", { id, off: true }); r = await call(own, "world-studio-co-pen", { id }); check(r.status === 200 && r.body.pen.w === own.address.toLowerCase(), "co: once it's passed, the other takes it");
+  T += S.CO.PEN_MS + 1000; r = await call(pal, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 11 } }); check(r.status === 200, "co: a pen left alone frees itself after " + S.CO.PEN_MS / 60e3 + " min");
+  check((await call(pal, "world-studio-publish", { id })).status === 404 && (await call(pal, "world-studio-del", { id })).status === 404, "co: the partner can't publish or delete");
+  check((await call(x3, "world-studio-save", { id, spec: { tpl: "jump", seed: 1 } })).status === 404, "co: nobody else saves it");
+  r = await call(pal, "world-studio-co-leave", { id }); m = await get("studio-mine&wallet=" + pal.address.toLowerCase());
+  check(r.status === 200 && m.shared.length === 0 && (await call(pal, "world-studio-save", { id, spec: { tpl: "jump", seed: 2 } })).status === 404, "co: leaving takes it off the partner's list and they can't save it any more");
+  r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 3 } }); check(r.status === 200 && !r.body.game.co, "co: alone again, the owner saves without a pen"); }
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

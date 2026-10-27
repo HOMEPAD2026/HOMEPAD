@@ -6,7 +6,7 @@
 // ctx: { T, esc, toast, spec, onDone, onTest(spec, startZ), onClose }
 import { BUILD, CLIMB, cleanBuild, cleanClimb, climbGaps, clampSpec, estimate, THEMES, buildGap } from "./world-studio-gen.js";
 /// STU-B: the tools drawn as Meshy's glass icons (images/studio/ic); the emoji stays where there's none
-const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
+const popAt = (e, x) => { const p = document.createElement("i"); p.className = "wsb-pop" + (x ? " x" : ""); p.style.left = e.clientX + "px"; p.style.top = e.clientY + "px"; /* STB4 (2026-10-27): six bits fly out of it — dust when a piece lands, shards when it breaks */ for (let k = 0; k < 6; k++) { const b = document.createElement("b"), a = (k / 6) * Math.PI * 2 + Math.random() * 0.6, d = 18 + Math.random() * 16; b.style.setProperty("--dx", (Math.cos(a) * d).toFixed(1) + "px"); b.style.setProperty("--dy", (Math.sin(a) * d * (x ? 1 : 0.5) + (x ? 0 : 6)).toFixed(1) + "px"); p.appendChild(b); } document.body.appendChild(p); setTimeout(() => p.remove(), 650); }; // (STU-B: a placed piece pops, an erased one puffs)
 const toolIcon = (M, k, ic) => (M[k] ? `<img class="wsb-ic" src="/images/studio/ic/${M[k]}.webp?v=1" alt="" aria-hidden="true" loading="lazy">` : ic);
 
 const TOOLS = [["w", "🧱", "Wall"], ["m", "🔀", "Moving wall"], ["g", "🕳️", "Gap"], ["l", "⚡", "Laser"], ["b", "✨", "Blinking laser"], ["c", "🪙", "Coin"], ["h", "❤️", "Heart"], ["x", "🧽", "Erase"], ["sel", "⬚", "Select"]];
@@ -60,6 +60,8 @@ export function createBuilder(ctx) {
     el.addEventListener("click", onClick);
     cv.addEventListener("pointerdown", pd); cv.addEventListener("pointermove", pm); cv.addEventListener("pointerup", pu); cv.addEventListener("pointercancel", () => { drag = null; });
     cv.addEventListener("wheel", (e) => { e.preventDefault(); view = clampView(view - e.deltaY / ZOOMS[zi]); dirty = true; }, { passive: false });
+    // STB1 (2026-10-27): open on the first piece, zoomed out — it opened on the empty run-up and looked like an empty level
+    { const zs = (B.r || []).map((x) => x[0]).filter(Number.isFinite); zi = 0; view = zs.length ? Math.max(-20, Math.min(...zs) - 6) : -20; dirty = true; }
     addEventListener("resize", fit); fit(); paintTools(); paintBar(); loop();
   }
   function close(done) {

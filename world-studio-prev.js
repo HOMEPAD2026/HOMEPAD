@@ -12,6 +12,8 @@ const JLK = { neon: { g: "metal", s: "metal", gc: 0x2a3d6b, sc: 0x3b2f6b }, jung
 for (const k in JLK) { JLK[k].l = JLK[k].l || "lava"; JLK[k].i = "ice"; }
 const jwTex = {};
 export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) {
+  // STB1 (2026-10-27): Jump World's tiles and sky fetched into the cache now (no GPU upload), so its preview isn't flat colours first
+  try { for (const n of ["grass", "stone", "metal", "ice", "lava", "candy"]) new Image().src = `/images/studio/jw/jw-${n}-256.webp${ver}`; new Image().src = `/images/studio/jw/jw-sky-768.webp${ver}`; } catch { /* the textures load on their own */ }
   const canvas = document.createElement("canvas"); canvas.className = "wst-3d"; canvas.width = w; canvas.height = h;
   let R; try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: "low-power" }); } catch { return null; }
   R.setPixelRatio(1); R.setSize(w, h, false); if ("outputColorSpace" in R) R.outputColorSpace = THREE.SRGBColorSpace;
@@ -35,6 +37,8 @@ export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) 
     if (lookNow[th]) { dressNow(b, spec, lookNow[th]); return; }
     themeLook(THREE, th, { ver, low }).then((lk) => { if (!lk) return; lookNow[th] = lk; if (built === b) dressNow(b, spec, lk); }).catch(() => {});
   }
+  // STB4 (2026-10-27): a little robot runs the preview's level, so it reads as a game being played, not a flyover
+  function bot(sc) { const g = new THREE.Group(), w = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.1 }), body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), w), head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), w), eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8), new THREE.MeshBasicMaterial({ color: 0x29e0ff })); body.scale.set(1, 1.1, 0.9); head.position.y = 0.62; eye.scale.set(1.2, 0.7, 0.5); eye.position.set(0, 0.64, 0.24); g.add(body, head, eye); g.traverse((m) => { m.userData.bot = 1; }); sc.add(g); return g; }
   function free(sc) { if (sc) sc.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => x.dispose()); }); } // (the theme's textures are shared: a material's dispose leaves them)
   function build(spec) {
     const th = THEMES[spec.theme] || THEMES.neon, L = genLevel(spec), sc = new THREE.Scene();
@@ -82,7 +86,8 @@ export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) 
         list.forEach((c, i) => { mt.makeTranslation(c[0] + (k === "B" ? 1 : 0.5), c[1] + (k === "B" ? 1 : 0.5), 0); im.setMatrixAt(i, mt); }); sc.add(im); }
       if (!sky) { const back = new THREE.Mesh(new THREE.PlaneGeometry(B.W + 80, 50), std(dark ? 0x141220 : th.fog, { roughness: 1 })); back.position.set(B.W / 2, 14, -14); sc.add(back); }
       const span = Math.max(1, B.W - 24);
-      return { sc, tick(t) { const x = 12 + ((t * 3.2) % span); cam.position.set(x, 7.5, 19); cam.lookAt(x, 5, 0); } };
+      const top = {}; for (const c of B.c) if ("gsilwmvfbd123".includes(c[2])) top[c[0]] = Math.max(top[c[0]] ?? -9, c[1] + 1); const jb = bot(sc); jb.rotation.y = Math.PI / 2; jb.scale.setScalar(0.85); let jy = 2;
+      return { sc, tick(t) { const x = 12 + ((t * 3.2) % span), bx = x - 3, gy = top[Math.floor(bx)] ?? -6; jy = gy > jy ? gy : Math.max(gy, jy - 0.25); jb.position.set(bx, jy + 0.4 + Math.abs(Math.sin(t * 7)) * 0.25, 0.4); cam.position.set(x, 7.5, 19); cam.lookAt(x, 5, 0); } };
     }
     if (spec.tpl === "climb") { // (S4d: the tower's first stretch — platforms, springs, spikes, coins — the camera rising past it)
       const top = Math.min(L.len, 70), wall = new THREE.Mesh(new THREE.BoxGeometry(CLIMB.W + 3, top + 20, 0.6), std(th.track, { roughness: 0.8 })); wall.position.set(0, top / 2, -1.6); sc.add(wall);
@@ -118,15 +123,17 @@ export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) 
     const pil = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), std(th.prop, { emissive: th.prop, emissiveIntensity: 0.35 }), 80); { let s0 = spec.seed, i = 0; const r = () => ((s0 = (s0 * 16807) % 2147483647) / 2147483647); for (let z = -20; i < 80; z += 12) for (const sd of [-1, 1]) { if (i >= 80) break; const hh = 2 + r() * 9; mt.compose(pv.set(sd * (W / 2 + 2.5 + r() * 4), hh / 2 - 0.6, z), new THREE.Quaternion(), new THREE.Vector3(1.2 + r(), hh, 1.2 + r())); pil.setMatrixAt(i++, mt); } } sc.add(pil);
     if (spec.tpl !== "dash" && len <= view + 40) { const arch = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.3, 10, 40, Math.PI), glow(th.edge)); arch.position.set(0, 0, len); sc.add(arch); }
     const v = Math.min(22, speedOf(spec)) * 0.8;
-    return { sc, tick(t) { const z = (t * v) % Math.max(40, view - 20); cam.position.set(Math.sin(t * 0.7) * 1.4, 4.6, z - 8); cam.lookAt(0, 1, z + 12); } };
+    const rb = bot(sc); rb.rotation.y = 0;
+    return { sc, tick(t) { const z = (t * v) % Math.max(40, view - 20), ln = Math.round(Math.sin(t * 0.9) * 1.2); rb.position.set(rb.position.x + ((LANES[ln + 1] ?? 0) - rb.position.x) * 0.12, 0.45 + Math.abs(Math.sin(t * 9)) * 0.18, z); cam.position.set(Math.sin(t * 0.7) * 1.4, 4.6, z - 8); cam.lookAt(0, 1, z + 12); } };
   }
   let cw = w, ch = h;
   function fit() { const W0 = canvas.clientWidth, H0 = canvas.clientHeight; if (!W0 || !H0) return; const k = Math.min(1, (low ? 720 : 1100) / Math.max(W0, H0)), W1 = Math.round(W0 * k), H1 = Math.round(H0 * k); if (Math.abs(W1 - cw) < 8 && Math.abs(H1 - ch) < 8) return; cw = W1; ch = H1; R.setSize(cw, ch, false); cam.aspect = cw / ch; cam.updateProjectionMatrix(); } // (STU-6: drawn at the size it's shown, not stretched)
-  function frame() { raf = 0; if (!live || !built) return; if (!canvas.isConnected) { live = false; return; } fit(); built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); raf = requestAnimationFrame(frame); }
-  function set(spec) { const old = built; built = build(spec); scene = built.sc; dress(built, spec); if (old) free(old.sc); live = true; if (!raf) raf = requestAnimationFrame(frame); }
+  function frame() { raf = 0; if (!live || !built) return; if (!canvas.isConnected) { live = false; return; } if (!canvas.offsetParent || document.hidden) { clearTimeout(idleT); idleT = setTimeout(() => { if (live && !raf) raf = requestAnimationFrame(frame); }, 400); return; } if (low && drawn && performance.now() - setAt > 1500) { live = false; return; } /* STB5: no drawing behind a test run or in a hidden tab (it looks again every 0.4 s); low graphics: a still once it is drawn */ fit(); built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); drawn = true; raf = requestAnimationFrame(frame); }
+  let setAt = 0, idleT = 0, drawn = false;
+  function set(spec) { setAt = performance.now(); drawn = false; const old = built; built = build(spec); scene = built.sc; dress(built, spec); if (old) free(old.sc); live = true; if (!raf) raf = requestAnimationFrame(frame); }
   /// a still of a spec (the theme cards): built, drawn once, let go; the live view carries on after
-  function snap(spec) { const b = build(spec); if (lookNow[spec.theme]) dressNow(b, spec, lookNow[spec.theme]); b.tick(1.6); R.render(b.sc, cam); const url = canvas.toDataURL("image/jpeg", 0.8); free(b.sc); if (built) R.render(built.sc, cam); return url; }
-  function stop() { live = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+  function snap(spec) { const b = build(spec); if (lookNow[spec.theme]) dressNow(b, spec, lookNow[spec.theme]); b.tick(1.6); R.render(b.sc, cam); const url = canvas.toDataURL("image/jpeg", 0.8); free(b.sc); if (built) { built.tick((performance.now() - t0) / 1000); R.render(built.sc, cam); } /* (its own camera back first: a still on low graphics stays the level's) */ return url; }
+  function stop() { live = false; clearTimeout(idleT); if (raf) cancelAnimationFrame(raf); raf = 0; }
   function dispose() { stop(); if (built) free(built.sc); built = null; scene = null; try { R.dispose(); R.forceContextLoss && R.forceContextLoss(); } catch { /* gone */ } }
   return { canvas, set, snap, stop, dispose, scene: () => scene };
 }

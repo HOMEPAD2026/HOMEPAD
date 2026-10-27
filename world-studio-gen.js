@@ -261,6 +261,19 @@ export const JUMPS = { jump: "jump", dungeon: "dungeon", escape: "escape", boss:
 const SOLID = new Set(["g", "s", "i", "w", "p", "d", "r", "z", "1", "2", "3"]); // (what you stand on in the grid itself; f / b / m / v are solid too, as things)
 export const jwTimer = (spec) => (spec.tpl === "escape" || spec.tpl === "mining" ? spec.len * 2 : 0); // seconds (0: no clock)
 export const jwSpeed = (spec) => 5.4 + spec.speed * 0.55; // metres a second running
+// STB5 (2026-10-27): event blocks — WHEN something happens THEN something else, at most JEV.MAX a level, each once a run.
+// WHEN coins (a = how many) · switch (pressed) · key (picked up) · boss (all bosses down) · time (a seconds) · col (you reach column a)
+// THEN doors (every door opens) · say (b = one of JEV.MSGS) · time (+b seconds on the clock) · heart (+1) · coins (b coins rain down) · speed (faster for 6 s)
+export const JEV = { MAX: 6, WHEN: ["coins", "switch", "key", "boss", "time", "col"], THEN: ["doors", "say", "time", "heart", "coins", "speed"],
+  MSGS: ["Nice work!", "The doors are open!", "Hurry up!", "Watch out!", "Almost there!", "Bonus coins!", "The boss is angry!", "You found a secret!"] };
+export function cleanEvents(ev, W) {
+  const out = []; for (const x of (Array.isArray(ev) ? ev : []).slice(0, JEV.MAX * 2)) { if (!Array.isArray(x)) continue; const w = String(x[0]), t = String(x[2]);
+    if (!JEV.WHEN.includes(w) || !JEV.THEN.includes(t)) continue;
+    const a = w === "coins" ? Math.max(1, Math.min(300, Math.round(Number(x[1]) || 10))) : w === "time" ? Math.max(1, Math.min(300, Math.round(Number(x[1]) || 10))) : w === "col" ? Math.max(2, Math.min((W || JW.MAX) - 2, Math.round(Number(x[1]) || 10))) : 0;
+    const b = t === "say" ? Math.max(0, Math.min(JEV.MSGS.length - 1, Math.round(Number(x[3]) || 0))) : t === "time" ? Math.max(5, Math.min(60, Math.round(Number(x[3]) || 10))) : t === "coins" ? Math.max(1, Math.min(20, Math.round(Number(x[3]) || 5))) : 0;
+    out.push([w, a, t, b]); if (out.length >= JEV.MAX) break; }
+  return out;
+}
 export function cleanJump(b, spec) {
   const W = Math.max(JW.MIN, Math.min(JW.MAX, Math.round(Number(b.W) || 60))), seen = new Set(), out = [], n = {};
   for (const x of (Array.isArray(b.c) ? b.c : []).slice(0, JW.CELLS * 2)) {
@@ -277,7 +290,8 @@ export function cleanJump(b, spec) {
   const top = (cx) => { let y = -1; for (const c of out) if (c[0] === cx && SOLID.has(c[2]) && c[1] > y) y = c[1]; return Math.min(JW.H - 2, y + 1); };
   if (!out.some((c) => c[2] === "S")) { const y = top(1); if (!seen.has("1:" + y)) out.push([1, y, "S"]); }
   if (spec.tpl !== "mining" && !out.some((c) => c[2] === "F")) { const y = top(W - 2); if (!seen.has(W - 2 + ":" + y)) out.push([W - 2, y, "F"]); }
-  return { jw: 1, W, c: out };
+  const ev = cleanEvents(b.ev, W);
+  return ev.length ? { jw: 1, W, c: out, ev } : { jw: 1, W, c: out };
 }
 /// the grid as a lookup: cell → kind, plus the lists the engine and the bots need
 export function jwGrid(B) {

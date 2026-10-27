@@ -58,7 +58,7 @@ function paintGame() {
       ${head(c.h, c.name, c.off)}
       <div class="sgw-stats"><span><b data-plays>${num(g.plays)}</b>${esc(T("Plays"))}</span><span><b data-likes>${num(g.likes)}</b>${esc(T("Likes"))}</span><span><b>${g.best && g.best[0] ? num(g.best[0].score) : "—"}</b>${esc(T("Best"))}</span></div>
       <div class="sgw-acts">
-        ${web ? `<button type="button" class="sgw-play" data-play>▶ ${esc(T("Play now"))}</button>` : `<a class="sgw-play" href="/play?sg=${encodeURIComponent(g.id)}">▶ ${esc(T("Play in ARCIRCLE WORLD"))}</a>`}
+        ${web ? `<button type="button" class="sgw-play" data-play>▶ ${esc(T("Play now"))}</button>` : `<a class="sgw-play" href="/play?sg=${encodeURIComponent(g.id)}">▶ ${esc(T("Play in ARCIRCLE WORLD"))}</a>`}<a class="sgw-remix" href="/play?sg=${encodeURIComponent(g.id)}&remix=1" title="${esc(T("Remix it"))}">🔀 ${esc(T("Remix it"))}</a>
         <button type="button" class="sgw-btn" data-like>♥ ${esc(T("Like"))}</button>
         <button type="button" class="sgw-btn" data-share>🔗 ${esc(T("Share"))}</button>
       </div>
