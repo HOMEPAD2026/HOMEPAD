@@ -4876,3 +4876,16 @@ html.wp-vpfb.wp-land .wbr-in{zoom:var(--fbz,.7);max-height:calc((100dvh - 24px) 
 .my-payall::before{content:"";display:inline-block;width:22px;height:22px;margin-right:6px;vertical-align:-6px;background:url(/images/ui/kit/ic-payout.webp) center/contain no-repeat}
 .wbr-go:not([disabled])::before{content:"";display:inline-block;width:22px;height:22px;margin-right:6px;vertical-align:-6px;background:url(/images/ui/kit/ic-wallet.webp) center/contain no-repeat}
 .wbr-body h4{display:flex;align-items:center;gap:6px}
+/* CCR (2026-10-26): Creator City's windows open with a pop, their header art drifts in slowly, the 3D icon sits beside
+   the kicker, and rows light up as they come in */
+@keyframes ccwIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes ccwHero{from{background-size:112%;filter:saturate(.7) brightness(1.15)}to{background-size:100%;filter:none}}
+@keyframes ccwRow{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.ccw .ccw-in{animation:ccwIn .32s cubic-bezier(.2,1.25,.4,1) both}
+.ccw .ccw-hero{height:132px;background-size:cover;animation:ccwHero .9s ease-out both;position:relative;overflow:hidden}
+.ccw .ccw-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.35) 45%,transparent 60%) -120% 0/60% 100% no-repeat;animation:ccwShine 2.4s .4s ease-out 1 both}
+@keyframes ccwShine{to{background-position:220% 0}}
+.ccw .ccw-k img{vertical-align:-5px;filter:drop-shadow(0 2px 6px rgba(92,242,210,.45))}
+.ccw :is(.ccw-steps,.ccw-rank,.ccw-lvls,.ccw-q)>li{animation:ccwRow .35s ease-out both}
+.ccw :is(.ccw-steps,.ccw-rank,.ccw-lvls,.ccw-q)>li:nth-child(2){animation-delay:.04s}.ccw :is(.ccw-steps,.ccw-rank,.ccw-lvls,.ccw-q)>li:nth-child(3){animation-delay:.08s}.ccw :is(.ccw-steps,.ccw-rank,.ccw-lvls,.ccw-q)>li:nth-child(4){animation-delay:.12s}.ccw :is(.ccw-steps,.ccw-rank,.ccw-lvls,.ccw-q)>li:nth-child(n+5){animation-delay:.16s}
+@media (prefers-reduced-motion:reduce){.ccw .ccw-in,.ccw .ccw-hero,.ccw .ccw-hero::after,.ccw :is(.ccw-steps,.ccw-rank,.ccw-lvls,.ccw-q)>li{animation:none}}

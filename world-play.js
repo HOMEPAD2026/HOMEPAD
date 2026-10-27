@@ -1325,7 +1325,7 @@ function inputs() {
   const run = keys.has("shift") || runToggle || (joy && Math.hypot(joy.dx, joy.dy) > 0.95) || (gpad.on && gpad.run);
   return { x, y, m, run };
 }
-const SOLIDS = () => [gv.solids, mv.solids, shops, [portal, isleGate, fountainCore, agentGate, ...(rqGate.visible ? [rqGate] : [])], pvil.solids, lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live), decor ? decor.solids() : [], holiday.solids, stuHub.solids, adc ? adc.solids : [], rqL ? rqL.solids : []];
+const SOLIDS = () => [gv.solids, mv.solids, shops, [portal, isleGate, fountainCore, agentGate, ...(rqGate.visible ? [rqGate] : [])], pvil.solids, lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live), decor ? decor.solids() : [], holiday.solids, stuHub.solids, adc ? adc.solids : [], rqL ? rqL.solids : [], ccL ? ccL.solids : []]; // (CCR: Creator City's buildings and props were left out — you walked through them)
 const lp = new THREE.Vector3();
 // a point on the ground (the world group's coordinates) inside a building? — the street scammers ask
 const wp0 = new THREE.Vector3();
@@ -5914,6 +5914,8 @@ function ccWin(html, cls = "") {
   const close = () => { el.remove(); frozen = false; near = null; paintPrompt(); };
   el.addEventListener("click", (e) => { if (e.target === el || e.target.closest(".ccw-x")) close(); }); document.body.appendChild(el); return { el, close };
 }
+// CCR (2026-10-26): each building's window opens on Meshy's art for it and its 3D icon (images/cc/ui hdr-* / ic-*)
+const ccHead = (hdr, ic, name) => `<div class="ccw-hero" style="background-image:url('/images/cc/ui/hdr-${hdr}.webp')" aria-hidden="true"></div><small class="ccw-k"><img src="/images/cc/ui/ic-${ic}.webp" alt="" width="22" height="22"> ${esc(TW(name))}</small>`;
 // SB-4: the creator quests (the Academy, after the first game): counted from your games' own numbers, never paid
 const CC_QUESTS = [["Publish your first game", (c) => c.pub, 1], ["Make 3 games", (c) => c.games, 3], ["10 plays by other players", (c) => c.plays, 10], ["10 likes on your games", (c) => c.likes, 10], ["Publish 5 games", (c) => c.pub, 5], ["100 plays by other players", (c) => c.plays, 100]];
 function ccAcademy(first) {
@@ -5930,12 +5932,12 @@ async function ccHall() {
   ccGamesAt = 0; await ccGames(); const by = new Map(); for (const g of ccTop) { if (g.off || !g.byName) continue; const c = by.get(g.byName) || { name: g.byName, games: 0, plays: 0, likes: 0 }; c.games++; c.plays += g.plays || 0; c.likes += g.likes || 0; by.set(g.byName, c); }
   const cr = [...by.values()].sort((a, b) => b.plays + b.likes * 5 - a.plays - a.likes * 5).slice(0, 10), gs = ccTop.slice(0, 5);
   const row = (i, a, b2) => `<li class="r${i}"><i>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(a)}</b><em>${b2}</em></li>`;
-  ccWin(`<small class="ccw-k">🏆 ${esc(TW("Hall of Fame"))}</small><h3>${esc(TW("The top creators"))}</h3>${cr.length ? `<ol class="ccw-rank">${cr.map((c, i) => row(i, c.name, `▶ ${c.plays} · ♥ ${c.likes} · 🎮 ${c.games}`)).join("")}</ol>` : `<p>${esc(TW("No creator here yet — publish a game and your name goes up first."))}</p>`}
+  ccWin(`${ccHead("hall", "trophy", "Hall of Fame")}<h3>${esc(TW("The top creators"))}</h3>${cr.length ? `<ol class="ccw-rank">${cr.map((c, i) => row(i, c.name, `▶ ${c.plays} · ♥ ${c.likes} · 🎮 ${c.games}`)).join("")}</ol>` : `<p>${esc(TW("No creator here yet — publish a game and your name goes up first."))}</p>`}
     ${gs.length ? `<h4>${esc(TW("The most played games"))}</h4><ol class="ccw-rank">${gs.map((g, i) => row(i, g.title, `${esc(g.byName || "")} · ▶ ${g.plays || 0}`)).join("")}</ol>` : ""}`, "ccw-hall");
 }
 function ccFactory() {
   const L = ccLevel(), pct = L.next ? Math.min(100, ((L.xp - L.from) / (L.next - L.from)) * 100) : 100;
-  ccWin(`<small class="ccw-k">🏭 ${esc(TW("Asset Factory"))}</small><h3>${esc(TW("Creator level"))} ${L.lv + 1} · ${esc(TW(CC_LVT[L.lv]))}</h3>
+  ccWin(`${ccHead("factory", "factory", "Asset Factory")}<h3>${esc(TW("Creator level"))} ${L.lv + 1} · ${esc(TW(CC_LVT[L.lv]))}</h3>
     <div class="ccw-bar"><b style="width:${pct}%"></b></div><p class="ccw-fine">${L.xp} XP${L.next ? ` / ${L.next}` : ""} · ${esc(TW("Published games, plays and likes raise it"))}</p>
     <ul class="ccw-lvls">${CC_LVT.map((t, i) => `<li class="${i <= L.lv ? "ok" : ""}"><i>${i + 1}</i><b>${esc(TW(t))}</b><em>${CC_LV[i]} XP</em></li>`).join("")}</ul>
     <p class="ccw-fine">${L.signed ? `🎮 ${L.games} · 🚀 ${L.pub} · ▶ ${L.plays} · ♥ ${L.likes}` : esc(TW("Sign in to count your games."))} · ${esc(TW("New parts and themes arrive here as the beta grows."))}</p>`, "ccw-fac");
@@ -5948,7 +5950,7 @@ async function ccBuilding(id) {
   if (id === "academy") return ccAcademy();
   if (id === "hall") return ccHall();
   if (id === "factory") { if (studio && studio.load && sess()) try { await studio.load(); } catch { /* the counts as they are */ } return ccFactory(); }
-  if (id === "launch") ccWin(`<small class="ccw-k">🚀 ${esc(TW("Launch Portal"))}</small><h3>${esc(TW("Coming soon"))}</h3><p>${esc(TW("When your game has players, you'll be able to launch it from here — with ArcPad, if you choose. Making and publishing games stays free."))}</p>`);
+  if (id === "launch") ccWin(`${ccHead("launch", "rocket", "Launch Portal")}<h3>${esc(TW("Coming soon"))}</h3><p>${esc(TW("When your game has players, you'll be able to launch it from here — with ArcPad, if you choose. Making and publishing games stays free."))}</p>`);
 }
 /// a Nexus City building: the three that are open lead into the agent window's tabs; the rest show what they'll be
 async function cityBuilding(id) {

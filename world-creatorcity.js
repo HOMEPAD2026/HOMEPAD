@@ -49,9 +49,17 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
     const R = 420, H = ((Math.PI * 2 * R) / 3) * (768 / 1344), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, side: THREE.BackSide, fog: false, depthWrite: false }));
     cyl.position.y = H / 2 - 60; cyl.renderOrder = -5; cyl.name = "cc-sky"; cyl.frustumCulled = false; g.add(cyl); }
   // ---------------- a sign that turns to face you ----------------
+  // (CCR 2026-10-26: Meshy's glass nameplate with gold and cyan trim behind each name, images/cc/ui/sign-plate.webp;
+  // the drawn plate shows until it's in, then every sign is drawn again on it)
+  const plate = typeof Image !== "undefined" ? new Image() : null, plates = [];
+  if (plate) { plate.onload = () => { for (const f of plates) f(); }; plate.src = `/images/cc/ui/sign-plate.webp${ver}`; }
   function board(parent, title, sub, col, y, w = 11, z = 0) {
-    const tex = canvasTex(1024, 300, (x) => { x.beginPath(); if (x.roundRect) x.roundRect(8, 8, 1008, 284, 44); else x.rect(8, 8, 1008, 284); x.fillStyle = "rgba(6,18,40,.9)"; x.fill(); x.lineWidth = 8; x.strokeStyle = col; x.stroke();
-      x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = col; x.shadowBlur = 22; x.fillStyle = "#fff"; x.font = "900 88px Sora, 'Segoe UI', sans-serif"; x.fillText(title, 512, 112, 960); x.shadowBlur = 0; x.fillStyle = "#cfe6ff"; x.font = "800 44px Sora, 'Segoe UI', sans-serif"; x.fillText(sub, 512, 222, 940); });
+    const draw = (x) => { x.clearRect(0, 0, 1024, 300);
+      if (plate && plate.complete && plate.naturalWidth) { x.drawImage(plate, 0, 0, 1024, 300); x.globalCompositeOperation = "source-atop"; x.fillStyle = "rgba(4,14,34,.38)"; x.fillRect(0, 0, 1024, 300); x.globalCompositeOperation = "source-over"; x.lineWidth = 5; x.strokeStyle = col; x.globalAlpha = 0.55; x.beginPath(); if (x.roundRect) x.roundRect(70, 40, 884, 220, 40); x.stroke(); x.globalAlpha = 1; }
+      else { x.beginPath(); if (x.roundRect) x.roundRect(8, 8, 1008, 284, 44); else x.rect(8, 8, 1008, 284); x.fillStyle = "rgba(6,18,40,.9)"; x.fill(); x.lineWidth = 8; x.strokeStyle = col; x.stroke(); }
+      x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = col; x.shadowBlur = 22; x.fillStyle = "#fff"; x.font = "900 84px Sora, 'Segoe UI', sans-serif"; x.fillText(title, 512, 118, 840); x.shadowBlur = 0; x.fillStyle = "#d8ecff"; x.font = "800 40px Sora, 'Segoe UI', sans-serif"; x.fillText(sub, 512, 210, 820); };
+    const tex = canvasTex(1024, 300, draw);
+    if (tex) plates.push(() => { draw(tex.userData.cv.getContext("2d")); tex.needsUpdate = true; });;
     if (!tex) return null;
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.293), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.set(0, y, z); m.renderOrder = 11; parent.add(m);
     const qp = new THREE.Quaternion(); m.onBeforeRender = (r, sc, cam) => { parent.getWorldQuaternion(qp); m.quaternion.copy(qp.invert().multiply(cam.quaternion)); m.updateMatrixWorld(); };
@@ -87,11 +95,90 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   // ---------------- the Meshy models, one at a time once you're in (each fitted to its footprint) ----------------
   let started = false; const loaded = {};
   function fit(sc, fp) { const box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), k = fp / (Math.max(sz.x, sz.z) || 1); sc.scale.setScalar(k); sc.position.set(-(box.min.x + sz.x / 2) * k, -box.min.y * k, -(box.min.z + sz.z / 2) * k); const w = new THREE.Group(); w.add(sc); return { w, h: sz.y * k }; }
+  function loadOne(f, done) {
+    try { K.gltfLoader().load(`/models/world/cc/${f.glb}.glb${ver}`, (gl) => { const o = bld[f.id], m = fit(gl.scene, f.fp); gl.scene.traverse((x) => { if (x.isMesh) { x.castShadow = false; x.receiveShadow = !low; } }); o.add(m.w); o.userData.p.visible = false; loaded[f.id] = true; done(); }, undefined, () => done()); } catch { done(); }
+  } // (the name stays at eye height in front of the door: lifting it over the roof put it off a sideways phone's short screen)
+  const KEY = ["arcade", "tower", "academy", "hall"], later = []; // (low graphics: these four at once; the rest once you walk within 45 m of them)
   function loadModels() {
     if (started || !K.gltfLoader) return; started = true;
-    const KEY = ["arcade", "tower", "academy", "hall"], q = FAC.filter((f) => !low || KEY.includes(f.id)).sort((a, b) => (KEY.indexOf(a.id) + 9) % 9 - (KEY.indexOf(b.id) + 9) % 9); let i = 0; // (low graphics: those four only, about 2 MB; the rest keep their stand-ins)
-    const next = () => { const f = q[i++]; if (!f) { portalModel(); if (!low) setTimeout(npcs, 400); return; } try { K.gltfLoader().load(`/models/world/cc/${f.glb}.glb${ver}`, (gl) => { const o = bld[f.id], m = fit(gl.scene, f.fp); gl.scene.traverse((x) => { if (x.isMesh) { x.castShadow = false; x.receiveShadow = !low; } }); o.add(m.w); o.userData.p.visible = false; loaded[f.id] = true; if (o.userData.board) o.userData.board.position.y = m.h + 3.2; next(); }, undefined, () => next()); } catch { next(); } };
+    const q = FAC.filter((f) => !low || KEY.includes(f.id)).sort((a, b) => (KEY.indexOf(a.id) + 9) % 9 - (KEY.indexOf(b.id) + 9) % 9); let i = 0;
+    if (low) later.push(...FAC.filter((f) => !KEY.includes(f.id)));
+    const next = () => { const f = q[i++]; if (!f) { portalModel(); setTimeout(decor, 200); if (!low) setTimeout(npcs, 400); return; } loadOne(f, next); };
     next();
+  }
+  let busyNear = false;
+  function nearLoad(me) { // (2026-10-26: with KTX2 a building is ~0.45 MB and ~2 MB on the GPU, so low graphics gets them too, near)
+    if (!later.length || busyNear || !me || !started) return;
+    const k = later.findIndex((f) => { const o = bld[f.id]; return Math.hypot(me.x - land.x - o.position.x, me.z - land.z - o.position.z) < 45; });
+    if (k < 0) return; const f = later.splice(k, 1)[0]; busyNear = true; loadOne(f, () => { busyNear = false; });
+  }
+  // ---------------- CCR (2026-10-26, the owner: "크리에이터 시티 Meshy를 활용해서 … 좋게"): what Meshy's remaster mock-up had
+  // that the city didn't — lamps along the walkways, potted trees up the way in, benches round the plaza, holo screens,
+  // toy cubes floating over the plaza, a golden robot with a star on the Hall of Fame, the pencil-and-controller landmark
+  // (models/world/cc/props, 1.4–10 k tris, KTX2, 0.08–0.35 MB). Each kind is ONE instanced mesh (one draw call however
+  // many), loaded one after another once the buildings are in; low graphics gets fewer and no floating cubes / screens.
+  const decorM = {};
+  function inst(name, h, at, cb) { // at: [[x, z, rotY, scale?, y?], …] in the city's own space
+    if (!at.length || !K.gltfLoader) { if (cb) cb(); return; }
+    try { K.gltfLoader().load(`/models/world/cc/props/${name}.glb${ver}`, (gl) => {
+      let mesh = null; gl.scene.updateMatrixWorld(true); gl.scene.traverse((x) => { if (x.isMesh && !mesh) mesh = x; }); if (!mesh) { if (cb) cb(); return; }
+      const geo = mesh.geometry.clone();
+      for (const k of ["position", "normal"]) { const at0 = geo.getAttribute(k); if (!at0 || at0.array instanceof Float32Array) continue; const f = new Float32Array(at0.count * at0.itemSize); for (let i = 0; i < at0.count; i++) for (let c = 0; c < at0.itemSize; c++) f[i * at0.itemSize + c] = at0.getComponent(i, c); geo.setAttribute(k, new THREE.BufferAttribute(f, at0.itemSize)); } // (the packed files keep positions as normalized 16-bit numbers: baking the transform into those in place garbled them — floats first)
+      geo.applyMatrix4(mesh.matrixWorld); geo.computeBoundingBox(); const bb = geo.boundingBox, k = h / ((bb.max.y - bb.min.y) || 1);
+      geo.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2); geo.scale(k, k, k); geo.computeBoundingSphere();
+      const im = new THREE.InstancedMesh(geo, mesh.material, at.length), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+      at.forEach((a, i) => { Q.setFromAxisAngle(up, a[2] || 0); S.setScalar(a[3] || 1); P.set(a[0], a[4] || 0, a[1]); M.compose(P, Q, S); im.setMatrixAt(i, M); });
+      im.instanceMatrix.needsUpdate = true; im.castShadow = false; im.receiveShadow = !low; im.name = "cc-" + name; im.frustumCulled = false; g.add(im); decorM[name] = im; if (cb) cb(im, geo);
+    }, undefined, () => { if (cb) cb(); }); } catch { if (cb) cb(); }
+  }
+  const face = (x, z) => Math.atan2(-x, -z); // (turned to look at the plaza's middle)
+  function decor() {
+    if (decorM.started) return; decorM.started = true;
+    const lamps = [], trees = [], benches = [], paths = [...FAC.filter((f) => f.r), { a: 0, r: land.r - 8, fp: 0 }];
+    for (const f of paths) { const end = f.r - f.fp / 2 - 2, rs = [(17 + end) / 2]; // (one each side midway: 16 lamps, one draw call)
+      for (const rr of rs) for (const sd of [-1, 1]) { const [cx, cz] = polar(f.a, rr), [ox, oz] = polar(f.a + 90, sd * 3.6); lamps.push([cx + ox, cz + oz, rad(f.a)]); } }
+    for (let rr = 24; rr < land.r - 12; rr += low ? 18 : 12) for (const sd of [-1, 1]) { const [cx, cz] = polar(0, rr), [ox, oz] = polar(90, sd * 6); trees.push([cx + ox, cz + oz, rr * 0.7, 0.9 + ((rr * 7) % 5) / 20]); }
+    for (const a of [65, 112, 247, 295]) { const [x, z] = polar(a, 36); trees.push([x, z, a, 1.15]); } // (not before the arcade: its game portals stand at 155–205°)
+    for (const a of low ? [20, 202, 340] : [20, 112, 157, 202, 247, 340]) { const [x, z] = polar(a, 21.5); benches.push([x, z, face(x, z)]); }
+    const block = (at, r) => { for (const a of at) { const o = new THREE.Group(); o.position.set(a[0], 0, a[1]); g.add(o); solid(o, r); } }; // (you walk round them, not through)
+    block(trees, 0.8); if (!low) block([polar(-24, land.r - 14), polar(24, land.r - 14)], 2.4);
+    const jobs = [() => inst("lamp", 4.2, lamps, step), () => inst("tree-pot", 3.6, trees, step), () => inst("bench", 1.3, benches, step)];
+    // the Hall of Fame's crown: the golden robot holding up a star (on the hall model, or over the stand-in's star)
+    jobs.push(() => { const hall = bld.hall; let top = 7.5; if (hall) { const bx = new THREE.Box3().setFromObject(hall); if (isFinite(bx.max.y)) top = bx.max.y - 0.3; } inst("trophy-statue", 4.5, [[0, 0, 0, 1, top]], (im) => { if (im) { im.frustumCulled = false; spins.push((dt, t) => { im.rotation.y = t * 0.25; }); } step(); }); });
+    if (!low) {
+      jobs.push(() => { const L = [polar(-24, land.r - 14), polar(24, land.r - 14)].map(([x, z], i) => [x, z, face(x, z) + (i ? -0.5 : 0.5)]); inst("landmark", 9, L, step); });
+      jobs.push(() => { const at = [[65, 27], [295, 27], [112, 27], [247, 27]].map(([a, r]) => { const [x, z] = polar(a, r); return [x, z, face(x, z)]; }); block(at, 1.3); inst("holo-board", 4.6, at, (im, geo) => { if (im && geo) screens(at, geo); step(); }); });
+      jobs.push(() => { const at = []; for (let i = 0; i < 7; i++) { const [x, z] = polar(i * 51 + 10, 9 + (i % 3) * 5); at.push([x, z, i, 1.6 + (i % 3) * 0.5, 13 + (i % 4) * 2.5]); } inst("toy-cubes", 1.6, at, (im) => { if (im) floaters(im, at); step(); }); });
+    }
+    let j = 0; function step() { const f = jobs[j++]; if (f) setTimeout(f, 60); } step();
+    medallion(); sparkles();
+  }
+  // the holo screens: a game's art in front of each board's empty face (the banners made for the buildings' windows)
+  function screens(at, geo) {
+    const bb = geo.boundingBox || (geo.computeBoundingBox(), geo.boundingBox), w = (bb.max.x - bb.min.x) * 0.78, h = (bb.max.y - bb.min.y) * 0.42, y = (bb.max.y - bb.min.y) * 0.62, dz = bb.max.z + 0.06, arts = ["arcade", "contest", "hall", "launch"];
+    at.forEach((a, i) => { const tx = new THREE.TextureLoader().load(`/images/cc/ui/hdr-${arts[i % arts.length]}.webp${ver}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tx, toneMapped: false, fog: false })); const o = new THREE.Group(); o.position.set(a[0], 0, a[1]); o.rotation.y = a[2]; m.position.set(0, y, dz); o.add(m); g.add(o); });
+  }
+  // the toy cubes drift and turn over the plaza (seven instances, their matrices redone every frame — cheap)
+  function floaters(im, at) {
+    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), S = new THREE.Vector3(), P = new THREE.Vector3();
+    spins.push((dt, t) => { at.forEach((a, i) => { E.set(Math.sin(t * 0.4 + i) * 0.4, t * 0.3 + i, 0); Q.setFromEuler(E); S.setScalar(a[3]); P.set(a[0], a[4] + Math.sin(t * 0.8 + i * 1.7) * 0.6, a[1]); M.compose(P, Q, S); im.setMatrixAt(i, M); }); im.instanceMatrix.needsUpdate = true; });
+  }
+  // Meshy's creator emblem as a mosaic on the plaza, round the Hall of Fame
+  function medallion() {
+    try { new THREE.TextureLoader().load(`/images/cc/medallion.webp${ver}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+      const m = new THREE.Mesh(new THREE.CircleGeometry(16.6, 72), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.35, metalness: 0.15, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+      m.rotation.x = -Math.PI / 2; m.position.y = 0.045; m.renderOrder = 1; m.name = "cc-medallion"; g.add(m); }); } catch { /* the plain plaza stays */ }
+  }
+  // sparkles over the plaza: Meshy's star glow on black, added (one Points object — one draw call)
+  function sparkles() {
+    const n = low ? 24 : 60, pos = new Float32Array(n * 3), ph = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 30; pos[i * 3] = Math.cos(a) * r; pos[i * 3 + 1] = 2 + Math.random() * 14; pos[i * 3 + 2] = Math.sin(a) * r; ph[i] = Math.random() * 6; }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const tx = new THREE.TextureLoader().load(`/images/cc/ui/fx-sparkle.webp${ver}`);
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: tx, size: 1.1, sizeAttenuation: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, color: 0xbff6ff }));
+    pts.frustumCulled = false; pts.name = "cc-sparkles"; g.add(pts);
+    const base = pos.slice(); spins.push((dt, t) => { for (let i = 0; i < n; i++) pos[i * 3 + 1] = base[i * 3 + 1] + Math.sin(t * 0.7 + ph[i]) * 0.8; geo.attributes.position.needsUpdate = true; pts.material.opacity = 0.65 + Math.sin(t * 1.3) * 0.2; });
   }
   // the game portals' arch (one Meshy model, tinted per game; its swirl becomes the game's colour)
   function portalModel() { try { K.gltfLoader().load(`/models/world/cc/game-portal.glb${ver}`, (gl) => { const m = fit(gl.scene, 4.6); portals.forEach((p) => { const c = m.w.clone(true); c.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (x.material.emissive) { x.material.emissive.copy(p.ring.material.color); x.material.emissiveIntensity = 0.6; } } }); p.o.add(c); p.arch = c; p.ring.visible = false; }); }); } catch { /* the rings stay */ } }
@@ -139,12 +226,12 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   return {
     group: g, doors, back, solids, FAC,
     show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) loadModels(); },
-    tick(dt, t, me) { if (shown) { for (const f of spins) f(dt, t); peopleTick(dt, me); } },
+    tick(dt, t, me) { if (shown) { for (const f of spins) f(dt, t); peopleTick(dt, me); nearLoad(me); } },
     people: () => people.map((P) => ({ id: P.f.id, near: P.near, clip: P.mx._actions.filter((a) => a.isRunning()).map((a) => a.getClip().name) })),
     arrival: () => ({ x: land.x, z: land.z + land.r - 16, c: { x: land.x, z: land.z } }),
     setGames, portalGame: (i) => (portals[i] ? portals[i].game : null),
     marks: () => FAC.map((f) => ({ g: bld[f.id], css: f.css, s: f.id === "hall" ? 6 : 5.5, ch: f.icon })),
     door: (id) => doors.find((d) => d.userData.b === id) || null,
-    loaded: () => ({ ...loaded }),
+    loaded: () => ({ ...loaded }), decor: () => Object.keys(decorM).filter((k) => k !== "started"),
   };
 }
