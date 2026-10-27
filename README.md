@@ -13,7 +13,7 @@
   <a href="https://www.arcircle.app">arcircle.app</a> ·
   <a href="https://www.arcircle.app/arc">ArcPad</a> ·
   <a href="https://www.arcircle.app/circle">CirclePad</a> ·
-  <a href="https://www.arcircle.app/play">Game World</a> ·
+  <a href="https://www.arcircle.app/game">Game World</a> ·
   <a href="https://www.arcircle.app/arcia">ARCIA</a> ·
   <a href="https://x.com/ARCIRCLEonArc">X</a> ·
   <a href="https://t.me/ARCIRCLEonarc">Telegram</a>
@@ -73,10 +73,44 @@ The old `$ARCIA` on Arc and the ♾ Infinite test coin were retired on 5 October
 ### ARCIA
 ARCIA is ARCIRCLE's virtual idol and AI mascot ([@ARCIAonArc](https://x.com/ARCIAonArc)). She answers questions about the platform in the site chat (`/arcia`), in English, Korean and Chinese, and only from what the platform actually publishes. ARCIA DESK (`/arc#desk`, beta) is her trading desk with on-chain limits the owner sets.
 
-### ARCIRCLE World
-The home page opens on a 3D gate with two ways in: **Platform World** (the site) and **Game World** (`/play`), an open planet split into districts where you walk between the halls, fight scammers in hunting grounds, build your own island, join a weekly raid, collect gear at the Forge and team up in crews. Every island is a village: what you build earns a design score and village XP, a village centre in the middle grows from a cottage to a palace, each level adds a blessing (+2% XP, +1% max HP), levels from 5 are a Village upgrade paid in `$ARCIRCLE` (1,000, 2,000, 4,000, 7,000, …), and a weekly village contest pays ARCL to the winners the GM wallet picks. The town shows the platform live: $ARCIRCLE's price, burns and new ArcPad launches turn on an LED band round the plaza fountain, with fireworks for every launch. A player's card shows the gear they wear and the titles they've earned, and every piece of gear turns in 3D on its card. Six adventurer heroes (knight, mage, rogue, hooded rogue, ranger, barbarian) join the characters, with their own moves for walking, attacking, dodging and emotes; other players walk the town as their own characters; houses and offices fill the green between the districts, and a city skyline sits on the horizon. It runs in the browser on PC and mobile. The first beta (from 11 October 2026) is open to wallets holding 1,000,000+ `$ARCIRCLE` on Arc.
+### ARCIRCLE World — the Game World
+**[arcircle.app/game](https://www.arcircle.app/game)** is the Game World's home (news, games, heroes, guides, live player counts); **[/play](https://www.arcircle.app/play)** opens the game itself. It runs in the browser on PC and mobile, in English, Korean, Chinese and Turkish. You can play first as a guest and connect a wallet later to keep your progress.
 
-In-game points (ARCL) are earned by playing and spent on cosmetics. **ARCL can't be bought, has no exchange and no price**, and what you can earn is capped per day (30,000 in all, with each activity under its own limit). The Forge sells gear for ARCL, up to Masterwork pieces made at your level.
+<p align="center"><img src="images/gw/news/build-together.webp" alt="ARCIRCLE Studio — build together" width="640"></p>
+
+**The world**
+- A town round a dancing fountain plaza, with portals to its own lands: **Launchpad Village** (a lot for every ArcPad coin, sized by its market cap and built by the coin's creator), **Utility Village**, **Partner Village** (the KAIRO Finance Hub first) and the **Game Village**.
+- Three heroes — **ARON, LUMI and NEX** — levels 1–500, gear in 7 slots, a Forge (craft, enhance, fuse, repair), skills up to a Lv 300 ultimate, battle forms and paint jobs.
+- 5 near and 7 far hunting grounds full of crypto scammers, each with a Meshy-made landmark and boss; quests, a 28-day season, daily and weekly missions, achievements, titles and an Item Codex.
+- Your own island (a brick builder up to 64×64), village levels, pets and dinosaurs you hatch, raise and ride, crews, friends, chat, hunting parties and invite rewards.
+
+**Games** (8 in the Games list, plus more inside the world)
+- **Jurassic World** — survival in its own land: gather, craft, build a camp, fish, tame, a boss hour twice a day and night raids.
+- **SURVIVORS ARENA** — 12-minute survival (Classic, Quick 6:00 and Endless modes), weapon evolutions, permanent upgrades, a daily challenge.
+- **ARCIA Poker Lounge** — a walkable 3D lounge: solo Hold'em against four AI levels, server-dealt tables, scheduled Sit & Go tournaments, blackjack. Chips only.
+- **Infinity Rings** — 200 ring puzzles in 10 chapters, a Time Attack mode and weekly puzzles.
+- **ARCL Mine**, **AC Defense**, **Coin Jump**, **Beat Stomp**, and the hoverboard race in town.
+- **RAID QUEENS** — boss runs against three queens in a sky realm (Lv 100–400 and a Throne of Three), with the **Crimson Celestial** Mythic set as the rare drop.
+- Seasonal events such as the Halloween Pumpkin Kings.
+
+**ARCIRCLE Studio and Creator City** — make your own games without code.
+- 15 templates, including Sky Runner, Infinity Dash, Arena Survival, Coin Rush, Sky Climb, Tower Defense, Ring Puzzle, Jump World (and its Dungeon, Escape Room, Boss Battle and Mine Rush modes), Monster Survival, Beat Maker and Hover Race.
+- Make a game in 30 seconds from a sentence, or build every piece yourself in each template's editor: sample levels, undo/redo, your own saved pieces, and WHEN → THEN event blocks in Jump World.
+- **Build together**: share a code and make one game with a friend, taking turns with the pen.
+- Publish to the Creator Arcade; race any top-10 player's ghost; weekly creator contests; remixes; ratings.
+- Every published game gets its own web page at `arcircle.app/game/@<creator>/<game>`.
+- **Creator City** is the makers' own land: Hall of Fame, Academy, Studio Tower, Game Arcade and more, with a 7-step creator tutorial.
+
+**AGENT DIMENSION and Nexus City** — your own AI agent that walks with you, talks (Claude), runs errands, plays the Agent Arena quiz and, later, will trade from a vault you control.
+
+**Points and coins**
+- **ARCL** are in-game points earned by playing, with daily limits per activity. They can be exchanged ⇄ `$ARCIRCLE` by request (a GM settles it from their own wallet). Every movement is recorded in a ledger shown in the Wallet tab.
+- The [/coins](https://www.arcircle.app/coins) page explains `$ARCIRCLE` and ARCL with live numbers.
+- `$ARCIRCLE` buys an agent and a SECRET raid ticket: half is burned, half goes to the treasury.
+- The Crimson Celestial pieces can be traded for ARCL or USDC in the game, or turned into NFTs on Arc: CrimsonCelestialNFT `0x709E1B65c529567Fbe1C79dE278c2ABbA0086ff5`, CrimsonMarket `0xE0f065334A1CD845f7ebf93EcaB1f8c80A04Cd19`.
+- **Bring USDC to Arc** from 14 chains through Circle's CCTP, inside the game.
+
+Graphics are made with [Meshy](https://www.meshy.ai) (models, textures and UI art) and packed small for phones (Draco + KTX2).
 
 ## Repository layout
 
@@ -86,7 +120,9 @@ The site is static HTML, CSS and JavaScript with no build step, plus a few Verce
 |---|---|
 | `*.html` | The pages (`index`, `arcpad`, `circlepad`, `arcircle`, `arcia`, `play`, `docs`, `updates` …) |
 | `arc*.js`, `config*.js` | The Arc and Robinhood Chain app: launch, swap, orders, predict, staking, wallet |
-| `world-*.js` | ARCIRCLE World, the 3D game (three.js, vendored in `vendor/three/`) |
+| `world-*.js`, `w/` | ARCIRCLE World, the 3D game (three.js, vendored in `vendor/three/`); `w/` is its built, content-hashed bundle |
+| `game.html`, `gw.js` | The Game World site at `/game` (news, notices, guides) |
+| `models/`, `images/` | The game's 3D models (GLB, Draco + KTX2) and art |
 | `api/` | Vercel functions: ARCIA, the game's server (saves, rankings, raid, ARCL), stats, alerts |
 | `contracts/` | Solidity sources (Hardhat) for the launchpad, escrows, staking, swap, predict and more |
 | `tests/` | Node tests for the API and game logic |
@@ -96,9 +132,9 @@ The site is static HTML, CSS and JavaScript with no build step, plus a few Verce
 ### Run it locally
 ```bash
 npx serve .                # or any static server, then open http://localhost:3000
-node tests/world/game.test.mjs
+for f in tests/world/*.test.mjs; do node "$f"; done
 ```
-`bump-cache.sh` rebuilds the minified CSS bundles and refreshes the cache-busting version on every page.
+After editing the game: `sh bump-cache.sh && node tools/build-bundles.mjs && node tools/build-world.mjs` (cache versions, CSS bundles and the `w/` game bundle). `node tools/world-walk/walk.mjs` walks the game in a browser on phone and desktop.
 
 ## Safety
 
@@ -109,7 +145,7 @@ node tests/world/game.test.mjs
 
 ## Credits
 
-- 3D characters and props: [Kenney](https://kenney.nl) and [Quaternius](https://quaternius.com) (CC0).
+- 3D characters and props: [Kenney](https://kenney.nl), [KayKit](https://kaylousberg.com/game-assets) and [Quaternius](https://quaternius.com) (CC0), and models and art made with [Meshy](https://www.meshy.ai).
 - Background music: six tracks from Pixabay, listed in [`audio/music/CREDITS.txt`](audio/music/CREDITS.txt).
 - Built on [Arc](https://www.arc.io), [Robinhood Chain](https://docs.robinhood.com/chain), [Uniswap v4](https://docs.uniswap.org/contracts/v4/overview) and [three.js](https://threejs.org).
 
