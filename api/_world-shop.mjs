@@ -25,6 +25,7 @@
 //   POST world-arcl-notify { …signature, on }                     tell me when the exchange opens
 // Firestore: worldArcl/<w> · worldArclOnce/<w>_<kind> · worldArclDay/<w>_<day> · worldArclWeek/<week>_<w> · worldOwn/<w>
 //            worldPayQuote/<id> · worldPayTx/<hash> · worldStats/plaza · worldStats/arclWeek_<week> · worldArclNotify/<w>
+import { HW, clockOf } from "../world-hwrealm-data.js";
 import { xpLevel } from "./_world-village.mjs"; // the village level from its XP
 import { levelOfSave } from "./_world-social.mjs"; // the level from a save, on whichever XP curve it is
 const lc = (a) => String(a || "").toLowerCase();
@@ -415,6 +416,7 @@ export function makeShop(deps) {
         const save = await one(`worldSave/${w}`), level = levelOfSave(save);
         if (level < need) return json(400, { error: `needs level ${need} (your saved level is ${level})` });
         n = kind === "hunt" ? [0, 5, 8, 10, 12][tier] : 30;
+        if (b.hw && clockOf(now()).night) n = Math.round(n * HW.NIGHT.arcl); // the Halloween Realm's Cursed Night: ×1.5 (the day's caps stay)
       }
       const day = seoulDay(now()), slot = Math.floor(now() / (e.repeat.gap * 1000));
       if (!(await commit([{ create: `worldArclGap/${w}_${kind}_${slot}`, data: { at: now() } }])).ok) return json(429, { error: "too fast — a moment between these" });
