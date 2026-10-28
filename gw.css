@@ -667,3 +667,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-cta-btns .gw-ibtns { flex: 1 0 100%; }
 @media (max-width: 640px) { .gw-ibtns { gap: 8px; padding: 0 8px; } .gw-ibtn { flex: 1 1 0; width: auto; } .gw-ibtn-sp b { width: 5px; height: 5px; } }
 @media (prefers-reduced-motion: reduce) { .gw-ibtn, .gw-ibtn-in, .gw-ibtn-sh, .gw-ibtn-sp b { animation: none !important; } .gw-ibtn-sp b { opacity: 0; } }
+/* the same picture buttons, small: the header (PC) and the menu */
+.gw-ibtns-sm { width: auto; max-width: none; margin: 0; gap: 8px; flex: none; }
+.gw-ibtns-sm .gw-ibtn { flex: none; width: 150px; animation: none; }
+.gw-ibtns-sm .gw-ibtn-sp { display: none; }
+.gw-ibtns-sm .gw-ibtn-in { filter: drop-shadow(0 4px 10px var(--ig)) drop-shadow(0 0 6px var(--ig2)); animation: none; }
+.gw-ibtns-sm .gw-ibtn:hover .gw-ibtn-in { transform: translateY(-2px) scale(1.05); filter: drop-shadow(0 8px 16px var(--ig)) drop-shadow(0 0 12px var(--ig2)) brightness(1.08); }
+@media (max-width: 1180px) { .gw-ibtns-sm .gw-ibtn { width: 124px; } }
+.gw-ibtns-menu { flex-wrap: nowrap; gap: 10px; margin-top: 14px; padding: 0; max-width: 520px; }
+.gw-ibtns-menu .gw-ibtn { flex: 1 1 0; width: auto; animation: none; }
+.gw-ibtns-sm.gw-nav-play { padding: 0; font-size: 0; }
+@media (max-width: 760px) { .gw-ibtns-sm.gw-nav-play { display: none; } }
+/* with the two picture buttons the links need the room of a wide screen: below 1440 px they live in the ☰ menu */
+@media (min-width: 1080px) and (max-width: 1439px) { .gw-links { display: none; } .gw-burger { display: grid; } }
+@media (max-width: 1439px) { .gw-ibtns-sm .gw-ibtn { width: 140px; } }
