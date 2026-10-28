@@ -2063,7 +2063,7 @@ function goPartnerTower(id = "kairo", k = 10) { // the map's Partner Village lis
 }
 // b-lpv: a portal's trip (the town's to a land or a village; a land's back to the town, by that land's portal)
 const landName = (id) => (id === "cc" ? TW("Creator City") : id === "rq" ? "RAID QUEENS" : id === "ad" ? TW("Nexus City") : id === "lp" ? TW("Launchpad Village") : id === "ut" ? TW("Utility Village") : id === "pv" ? TW("Partner Village") : id === "gv" ? TW("Game Village") : TW("Town"));
-const cityPrompt = (id, b) => { if (id === "studio") return T("Enter {x}", { x: b(TW("Creator City")) }) + `<small class="adc-sub">ARCIRCLE STUDIO BETA · ${esc(TW("Make your own game"))}</small>`; if (/^(pick|cab\d)$/.test(id)) { const pk = stuHub.pick(id), cb = stuHub.cabs().find((c) => c.id === id); return pk ? TW("Play {x}", { x: b(pk.title) }) + `<small class="adc-sub">${esc(TW(cb ? cb.name : "Studio pick"))} · ${esc(TW("by {name}", { name: pk.byName || "—" }))}</small>` : T("Open {x}", { x: b(TW("ARCIRCLE Studio")) }); } const B = adc && adc.M.BUILDINGS.find((x) => x.id === id); if (!B) return ""; return (B.open ? T("Enter {x}", { x: b(TW(B.name)) }) : b(TW(B.name)) + " · " + esc(TW("Coming soon"))) + `<small class="adc-sub">${esc(TW(B.sub))}</small>`; };
+const cityPrompt = (id, b) => { if (id === "hubk") return T("Open {x}", { x: b(TW("Creator Hub")) }) + `<small class="adc-sub">arcircle.app/studio · ${esc(TW("Your games, forum and alerts"))}</small>`; if (id === "studio") return T("Enter {x}", { x: b(TW("Creator City")) }) + `<small class="adc-sub">ARCIRCLE STUDIO BETA · ${esc(TW("Make your own game"))}</small>`; if (/^(pick|cab\d)$/.test(id)) { const pk = stuHub.pick(id), cb = stuHub.cabs().find((c) => c.id === id); return pk ? TW("Play {x}", { x: b(pk.title) }) + `<small class="adc-sub">${esc(TW(cb ? cb.name : "Studio pick"))} · ${esc(TW("by {name}", { name: pk.byName || "—" }))}</small>` : T("Open {x}", { x: b(TW("ARCIRCLE Studio")) }); } const B = adc && adc.M.BUILDINGS.find((x) => x.id === id); if (!B) return ""; return (B.open ? T("Enter {x}", { x: b(TW(B.name)) }) : b(TW(B.name)) + " · " + esc(TW("Coming soon"))) + `<small class="adc-sub">${esc(TW(B.sub))}</small>`; };
 let landNow = "";
 /// the map's fountain: straight to the plaza from any land (a light, the camera swings in)
 function fountGo() {
@@ -6001,7 +6001,7 @@ async function ccTo(id) {
   const rad = (f.a * Math.PI) / 180, r = f.r ? Math.max(8, f.r - f.fp / 2 - 6) : f.fp / 2 + 7;
   standAt(L.x + Math.sin(rad) * r, L.z + Math.cos(rad) * r, { x: L.x + Math.sin(rad) * f.r, z: L.z + Math.cos(rad) * f.r }); vfx.teleport(here(), { color: f.col, color2: 0x7cf5c8 }); paintPrompt();
 }
-const ccPrompt = (id, b) => { if (/^gp\d$/.test(id)) { const gm = ccL && ccL.portalGame(Number(id.slice(2))); return gm ? TW("Play {x}", { x: b(gm.title) }) + `<small class="adc-sub">${esc(TW("by {name}", { name: gm.byName || "—" }))} · ▶ ${gm.plays || 0} · ♥ ${gm.likes || 0}</small>` : ""; }
+const ccPrompt = (id, b) => { if (id === "hubk") return cityPrompt(id, b); if (/^gp\d$/.test(id)) { const gm = ccL && ccL.portalGame(Number(id.slice(2))); return gm ? TW("Play {x}", { x: b(gm.title) }) + `<small class="adc-sub">${esc(TW("by {name}", { name: gm.byName || "—" }))} · ▶ ${gm.plays || 0} · ♥ ${gm.likes || 0}</small>` : ""; }
   const f = ccL && ccL.FAC.find((x) => x.id === id); return f ? T("Enter {x}", { x: b(TW(f.name)) }) + `<small class="adc-sub">${esc(TW(f.sub))}</small>` : ""; };
 // the 10-minute first game (the Academy): five steps counted from what you do in the Studio; all five → "I MADE MY FIRST GAME!"
 const CC_STEPS = [["tpl", "Pick a template"], ["tune", "Tune it — how hard, how long"], ["test", "Test play it"], ["publish", "Publish it to the arcade"], ["share", "Send the link to a friend"]];
@@ -6100,6 +6100,7 @@ function ccFactory() {
     <p class="ccw-fine">${L.signed ? `🎮 ${L.games} · 🚀 ${L.pub} · ▶ ${L.plays} · ♥ ${L.likes}` : esc(TW("Sign in to count your games."))} · ${esc(TW("New parts and themes arrive here as the beta grows."))}</p>`, "ccw-fac");
 }
 async function ccBuilding(id) {
+  if (id === "hubk") { try { window.open("/studio", "_blank", "noopener"); } catch { location.href = "/studio"; } return; } // (HUB 2: the Creator Hub's kiosk)
   if (/^gp\d$/.test(id)) { const gm = ccL && ccL.portalGame(Number(id.slice(2))); if (!gm) return; await openStudio(); if (studio) { studio.playId(gm.id); ccStep("play"); } return; }
   if (id === "tower") return openStudio("make");
   if (id === "arcade" || id === "contest") return openStudio("arcade");
@@ -6113,6 +6114,7 @@ async function ccBuilding(id) {
 async function cityBuilding(id) {
   // (the owner's call 2026-10-24: AGENT DIMENSION is open to all, ARCIRCLE Studio stays the GMs' for now — others see what it'll be)
   if ((id === "studio" || /^(pick|cab\d)$/.test(id)) && !STUDIO_OPEN && !(agentDim && agentDim.state() && agentDim.state().gm) && !CITY_TRY) { if (!adc || document.querySelector(".adc-card")) return; frozen = true; keys.clear(); if (!adc.M.soonCard({ T: TW, esc }, "studio", () => { frozen = false; })) frozen = false; return; }
+  if (id === "hubk") { try { window.open("/studio", "_blank", "noopener"); } catch { location.href = "/studio"; } return; } // (HUB 2: the Creator Hub's kiosk — the web hub, same session)
   if (id === "studio") { if (stuHub.doors.length && landNow !== "ad") { ccGo(); return; } openStudio(); return; } // (Studio Beta: the Studio by the fountain is Creator City's portal)
   if (id === "arena") { openArena(); return; }
   if (/^(pick|cab\d)$/.test(id)) { const pk = stuHub.pick(id); await openStudio(); if (pk && studio) studio.playId(pk.id); return; }

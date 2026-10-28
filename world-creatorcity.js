@@ -16,6 +16,7 @@ export const FAC = [
   { id: "factory", name: "Asset Factory", sub: "Parts you unlock as you create", a: 270, r: 46, fp: 16, glb: "factory", col: 0x39ff88, css: "#39ff88", icon: "🏭" },
   { id: "launch", name: "Launch Portal", sub: "Your game's launch — coming soon", a: 320, r: 44, fp: 15, glb: "launch", col: 0x4f9dff, css: "#4f9dff", icon: "🚀" },
 ];
+import { kiosk } from "./world-studiohub.js";
 const rad = (a) => (a * Math.PI) / 180;
 const polar = (a, r) => [Math.sin(rad(a)) * r, Math.cos(rad(a)) * r]; // a = 0 is south (+z, the way in), 180 north
 const PORTALS = 6; // game portals before the arcade
@@ -231,6 +232,11 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   // ---------------- the way home ----------------
   const back = K.makePortal(T("Back to town")); back.name = "cc-back"; back.userData.radius = 1.6; back.userData.to = "town"; spins.push(...(back.userData.spin || []));
   { const [x, z] = polar(0, land.r - 6); back.position.set(x, 0, z); back.rotation.y = Math.atan2(-x, -z) + Math.PI; g.add(back); }
+  // HUB 2 (2026-10-28): the Creator Hub's kiosk by the way in (world-studiohub.js kiosk) — walk up → the hub on the web
+  { const o = new THREE.Group(), [x, z] = polar(14, land.r - 14); o.position.set(x, 0, z); o.rotation.y = Math.atan2(-x, -z); g.add(o);
+    const cv = (w, h) => { if (typeof document === "undefined") return null; const c = document.createElement("canvas"); c.width = w; c.height = h; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.userData = { cv: c }; return t; };
+    kiosk(THREE, o, neon, std(0x16233a, { roughness: 0.35, metalness: 0.6 }), std(0x9fb2c8, { roughness: 0.25, metalness: 0.75 }), cv, T, { push: (f) => spins.push((dt, t) => f(t)) });
+    const sd = new THREE.Group(); sd.userData.radius = 0.8; o.add(sd); solids.push(sd); door(o, "hubk", 0x39d3ff, 1.8); }
   let shown = false;
   return {
     group: g, doors, back, solids, FAC,

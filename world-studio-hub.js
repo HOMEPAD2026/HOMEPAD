@@ -9,6 +9,7 @@
 import { TEMPLATES, THEMES } from "./world-studio-gen.js";
 import { makeHubX, XTITLE, XSUBS } from "./world-studio-hubx.js";
 import { ask } from "./world-ask.js";
+import { makeHubFx } from "./world-studio-hubfx.js";
 
 const ICONS = { // (24px line icons, the Studio Pro set's weight)
   home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
@@ -69,6 +70,7 @@ const TDESC = {
 };
 // the Studio's releases (newest first) — the same items /game's news carries
 const UPDATES = [
+  { d: "2026-10-28", tag: "New", img: "/images/gw/news/creator-hub-2.webp", t: "Creator Hub 2", b: "Creator profiles, a forum, one place for your notifications, a full page for every game with an A/B difficulty test and patch notes, a weekly report card to share, Jump World pieces from other creators, sponsor contests, teams of up to 4 and a light mode." },
   { d: "2026-10-28", tag: "New", img: "/images/studio/hub/create-768.webp", t: "The Creator Hub", b: "ARCIRCLE Studio on the web has a front page and menus of its own: your creations, analytics, guides, a store of templates and themes, the community and rewards — on a computer and on a phone." },
   { d: "2026-10-28", tag: "Studio", img: "/images/gw/news/studio-next.webp", t: "Play on, tune with AI, clip it", b: "After a run the next game starts by itself, the test players' report says what ends most runs (with a fix button), auto-tune aims at the clear rate you want, and a 6-second clip of your game is one tap away." },
   { d: "2026-10-28", tag: "Studio", img: "/images/gw/news/studio-pro.webp", t: "Studio Pro", b: "A calmer, sharper Studio: graphite surfaces, thin lines, one accent colour and line icons, the buttons in the window's own bar, and a share sheet with X, Telegram, Discord and an embed code." },
@@ -144,14 +146,14 @@ export function makeHub(o) {
     const n = bellN();
     return `<header class="sgh-top"><button type="button" class="sgh-ib sgh-hb" data-burger aria-label="${esc(T("Menu"))}">${ic(collapsed || !matchMedia("(min-width: 1024px)").matches ? "menu" : "fold")}</button><h1>${esc(T(TITLE[page]))}</h1><span class="sgh-sp"></span>
       <button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>
-      <button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${n ? `<em class="sgh-dot">${n > 9 ? "9+" : n}</em>` : ""}</button>
+      ${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${n ? `<em class="sgh-dot">${n > 9 ? "9+" : n}</em>` : ""}</button>
       <a class="sgh-world" href="/play">${ic("globe")}<span>${esc(T("Play ARCIRCLE WORLD"))}</span></a>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button></header>`;
   }
   function landTop() {
     return `<header class="sgh-ltop"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/favicon-v2-32.png" alt="" width="22" height="22"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
       <nav class="sgh-lnav"><a href="?p=creations" data-go="creations">${esc(T("Dashboard"))}</a><a href="?p=learn" data-go="learn">${esc(T("Learn"))}</a><a href="?p=community" data-go="community">${esc(T("Explore"))}</a><a href="?p=store" data-go="store">${esc(T("Store"))}</a><a href="?p=updates" data-go="updates">${esc(T("Updates"))}</a></nav>
-      <span class="sgh-sp"></span><button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button><button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
+      <span class="sgh-sp"></span><button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button><button type="button" class="sgh-ib sgh-lburger" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button></header>`;
   }
   function drawerHtml() { if (!drawer) return "";
@@ -182,8 +184,8 @@ export function makeHub(o) {
   const moreLink = (p, s, l = "See all") => `<a href="?p=${p}${s ? "&s=" + s : ""}" data-go="${p}" data-s="${s || ""}" class="sgh-more">${esc(T(l))}${ic("right", "sm")}</a>`;
   function gameCard(g, opt = {}) {
     D.cards = D.cards || {}; if (g.id && !D.cards[g.id]) D.cards[g.id] = g; const st = g.pub === false ? "draft" : g.hidden ? "hidden" : "pub";
-    return `<article class="sgh-gc${opt.row ? " row" : ""}" data-gsheet="${esc(g.id)}" tabindex="0"><span class="sgh-gart"><img src="${esc(cover(g))}" alt="" loading="lazy" width="400" height="229" onerror="this.src='${art(g.tpl, 400)}'">${g.now ? `<em class="sgh-now">● ${g.now} ${esc(T("playing"))}</em>` : ""}${g.off ? `<em class="sgh-off">${esc(T("Official"))}</em>` : g.pick ? `<em class="sgh-pick">${ic("star", "sm")} ${esc(T("Editor's pick"))}</em>` : ""}${opt.own ? `<em class="sgh-st ${st}">${esc(T(st === "pub" ? "Published" : st === "draft" ? "Draft" : "Hidden"))}</em>` : ""}<i class="sgh-gplay">${ic("play")}</i></span>
-      <b>${esc(g.title || T("Untitled"))}</b><small>${esc(tname(g.tpl))}${g.byName && !opt.own ? " · " + esc(g.byName) : ""}</small><span class="sgh-gm"><i>${ic("play", "xs")} ${num(g.plays)}</i><i>${ic("heart", "xs")} ${num(g.likes)}</i>${opt.own && g.at ? `<i>${esc(ago(g.at))}</i>` : ""}</span></article>`;
+    return `<article class="sgh-gc${opt.row ? " row" : ""}" data-gsheet="${esc(g.id)}" tabindex="0"><span class="sgh-gart"><img src="${esc(cover(g))}" alt="" loading="lazy" width="400" height="229" onerror="this.src='${art(g.tpl, 400)}'">${g.now ? `<em class="sgh-now"><b class="sgx-pulse"></b>${g.now} ${esc(T("playing"))}</em>` : ""}${FX.badges(g, opt)}${g.off ? `<em class="sgh-off">${esc(T("Official"))}</em>` : g.pick ? `<em class="sgh-pick">${ic("star", "sm")} ${esc(T("Editor's pick"))}</em>` : ""}${opt.own ? `<em class="sgh-st ${st}">${esc(T(st === "pub" ? "Published" : st === "draft" ? "Draft" : "Hidden"))}</em>` : ""}<i class="sgh-gplay">${ic("play")}</i></span>
+      <b>${esc(g.title || T("Untitled"))}</b><small>${esc(tname(g.tpl))}${g.byName && !opt.own ? " · " + esc(g.byName) : ""}</small>${FX.difRow(g)}<span class="sgh-gm"><i>${ic("play", "xs")} ${num(g.plays)}</i><i>${ic("heart", "xs")} ${num(g.likes)}</i>${opt.own && g.at ? `<i>${esc(ago(g.at))}</i>` : ""}</span></article>`;
   }
   function tplCard(id, opt = {}) { const t = TEMPLATES[id];
     return `<article class="sgh-tc${t.open ? "" : " soon"}" ${t.open ? `data-use="${id}"` : ""} tabindex="0"><span class="sgh-gart"><img src="${art(id, 400)}" alt="" loading="lazy" width="400" height="229">${opt.free ? `<em class="sgh-free">${esc(T("Free"))}</em>` : ""}</span><b>${esc(T(t.name))}</b><small>${esc(T(TCAT[id] || "Run"))}</small>${opt.desc ? `<p>${esc(T(TDESC[id] || ""))}</p>` : ""}${t.open ? "" : `<em class="sgh-soon">${esc(T("Coming soon"))}</em>`}</article>`; }
@@ -418,7 +420,7 @@ export function makeHub(o) {
 
   // ---------------- the motion: reveal on scroll, count-up ----------------
   let io = null;
-  function reveal() { if (reduce || !("IntersectionObserver" in window)) { root.querySelectorAll(".rv").forEach((e) => e.classList.add("in")); return; }
+  function reveal() { FX.after(root); if (reduce || !("IntersectionObserver" in window)) { root.querySelectorAll(".rv").forEach((e) => e.classList.add("in")); return; }
     if (!io) io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -6% 0px" });
     root.querySelectorAll(".rv:not(.in)").forEach((e) => io.observe(e)); }
   function countUp(box) { box.querySelectorAll("[data-count]").forEach((b) => { const n = Number(b.dataset.count) || 0; if (reduce || n < 2) { b.textContent = num(n); return; } const t0 = performance.now(), d = 1100;
@@ -457,6 +459,7 @@ export function makeHub(o) {
     if (t.closest("[data-tools]")) { e.preventDefault(); drawer = false; paint(); tools(); return; }
     const u = t.closest("[data-user]"); if (u) { const inDw = drawer; if (inDw) { drawer = false; paint(); } account(inDw ? root.querySelector(".sgh-me") || u : u); return; }
     if (t.closest("[data-search]")) { search(); return; }
+    if (t.closest("[data-htog]")) { FX.toggle(); return; }
     const bl = t.closest("[data-bell]"); if (bl) { bell(bl); return; }
     const ag = t.closest("tr[data-ag]"); if (ag) { D.ag = ag.dataset.ag; go("analytics", "games"); return; }
     if (t.closest("[data-cdir]")) { D.cd = (D.cd || -1) * -1; const el = root.querySelector('[data-fill="creations"]'); if (el) el.innerHTML = await creationsHtml(); return; }
@@ -479,13 +482,14 @@ export function makeHub(o) {
   // the bell's count: new games from creators you follow
   async function feedCount() { const f = await feed(); let t = 0; try { t = Number(localStorage.getItem("arc.studio.feedSeen") || 0); } catch { /* none */ } D.feedN = ((f && f.games) || []).filter((x) => x.at > t).length; if (D.feedN && !root.hidden) root.querySelectorAll("[data-bell]").forEach((b) => { if (!b.querySelector(".sgh-dot")) b.insertAdjacentHTML("beforeend", `<em class="sgh-dot">${bellN()}</em>`); }); }
 
+  const FX = makeHubFx({ T, esc, ic, D, lang: o.lang, ver, num, arcade, mine, handle, wallet, LV, toast, page: () => page, hidden: () => root.hidden, forget: (re) => { for (const k of Object.keys(got)) if (re.test(k)) delete got[k]; } });
   const X = makeHubX({ T, esc, ic, num, ver, D, art, hubArt, cover, tname, thname, ago, left, wallet, me, LV, TDESC, get, arcade, mine, handle, week, feed, sess: o.sess, signed: o.signed, toast, go, paint, countUp,
     sub: () => sub, sec: (...a) => sec(...a), head: (...a) => head(...a), skel: (...a) => skel(...a), empty: (...a) => empty(...a), signCard: (...a) => signCard(...a), gameCard: (...a) => gameCard(...a), kpiT: (...a) => kpiT(...a),
     forget: (re) => { for (const k of Object.keys(got)) if (re.test(k)) delete got[k]; }, openGame, lightbox, ask: (q) => ask(T, q, { ok: T("Delete"), cancel: T("Cancel"), danger: true }) });
-  route(); handle().then((h) => { D.h = h; if (h && !root.hidden) { const u = root.querySelector(".sgh-user"); if (u) u.outerHTML = userRow(); } }); paint(); feedCount(); X.unread().then((n) => { if (n && !root.hidden) root.querySelectorAll("[data-bell]").forEach((b) => { const d = b.querySelector(".sgh-dot"); if (d) d.textContent = bellN() > 9 ? "9+" : bellN(); else b.insertAdjacentHTML("beforeend", `<em class="sgh-dot">${bellN()}</em>`); }); }).catch(() => {});
+  route(); handle().then((h) => { D.h = h; if (h && !root.hidden) { const u = root.querySelector(".sgh-user"); if (u) u.outerHTML = userRow(); } }); paint(); feedCount(); setTimeout(() => FX.milestones().catch(() => {}), 1500); X.unread().then((n) => { if (n && !root.hidden) root.querySelectorAll("[data-bell]").forEach((b) => { const d = b.querySelector(".sgh-dot"); if (d) d.textContent = bellN() > 9 ? "9+" : bellN(); else b.insertAdjacentHTML("beforeend", `<em class="sgh-dot">${bellN()}</em>`); }); }).catch(() => {});
   return {
-    show() { root.hidden = false; document.body.classList.remove("sgh-ws"); fresh(); route(); paint(); },
-    hide() { root.hidden = true; closePops(); document.body.classList.add("sgh-ws"); },
+    show() { root.hidden = false; document.body.classList.remove("sgh-ws"); fresh(); route(); paint(); FX.milestones().catch(() => {}); },
+    hide() { root.hidden = true; closePops(); FX.hide(); document.body.classList.add("sgh-ws"); },
     shown: () => !root.hidden, go, refresh: () => { fresh(); if (!root.hidden) paint(); },
   };
 }

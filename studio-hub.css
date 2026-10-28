@@ -520,3 +520,85 @@ body.sga .wst.pro .wst-h>.wst-x{display:grid!important;place-items:center} /* (t
 .sgx-ginfo .sgh-chip{position:static;margin:0}
 .sgx-rep>header{position:static;height:auto;min-height:0;padding:0;margin:0;border:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 .sgx-rbg{background-size:cover;background-position:right center}
+
+/* ---- HUB 2 look & motion (world-studio-hubfx.js) ---- */
+/* the wall of art follows the mouse / the tilt (the `translate` property adds to the rotation) */
+.sgh-mosaic{translate:var(--px,0) var(--py,0)}
+/* banners: Meshy's still slowly moving (Ken Burns) with a light passing over it; weak phones keep the still */
+.sgh-ban{background:#101317}
+.sgh-ban::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--art) right center/cover no-repeat;transform-origin:70% 50%;animation:sghKB 26s ease-in-out infinite alternate}
+.sgh-ban::before{background:linear-gradient(90deg,rgba(11,13,16,.96) 0%,rgba(11,13,16,.84) 36%,rgba(11,13,16,.2) 72%,transparent),linear-gradient(0deg,rgba(11,13,16,.5),transparent 40%),linear-gradient(105deg,transparent 42%,rgba(255,255,255,.07) 50%,transparent 58%) -150% 0/250% 100% no-repeat;animation:sghGlint 9s ease-in-out infinite}
+@keyframes sghKB{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.12) translate(-2.5%,-1.5%)}}
+@keyframes sghGlint{0%,62%{background-position:0 0,0 0,-150% 0}100%{background-position:0 0,0 0,250% 0}}
+@media (max-width:720px){.sgh-ban::after{background-size:100% auto;background-position:center top}.sgh-ban::before{background:linear-gradient(0deg,rgba(11,13,16,.98) 38%,rgba(11,13,16,.35) 70%,rgba(11,13,16,.05))}}
+html.sgh-lite .sgh-ban::after,html.sgh-lite .sgh-ban::before,html.sgh-lite .sgh-mrow{animation:none}
+/* the card badges */
+.sgh-flag{position:absolute;top:10px;right:10px;z-index:2;padding:4px 8px;border-radius:7px;font:900 10.5px/1 Sora,sans-serif;font-style:normal;letter-spacing:.08em}
+.sgh-flag.new{background:linear-gradient(135deg,var(--h-acc),var(--h-acc2));color:#04141a}
+.sgh-flag.hot{background:linear-gradient(135deg,#ff7a45,#ff3d6e);color:#fff;box-shadow:0 0 14px rgba(255,80,90,.45)}
+.sgh-gc .sgh-gart .sgh-off,.sgh-gc .sgh-gart .sgh-pick{top:auto;bottom:10px}
+.sgh-dif{display:flex;align-items:center;gap:8px;margin:6px 14px 0;min-height:14px;opacity:0;transition:opacity .3s}.sgh-dif.on{opacity:1}
+.sgh-dif .st{font-style:normal;color:var(--h-gold);font-size:11px;letter-spacing:1px;white-space:nowrap}.sgh-dif .st b{color:var(--h-s3);font-weight:400}
+.sgh-dif .cl{flex:1;height:4px;border-radius:4px;background:var(--h-s3);overflow:hidden}.sgh-dif .cl em{display:block;height:100%;background:linear-gradient(90deg,#ff6a5c,#ffc35c 45%,var(--h-acc))}
+.sgh-dif small{color:var(--h-ink3);font:700 11px/1 Sora,sans-serif;margin:0!important}
+.sgh-now .sgx-pulse{width:7px;height:7px;margin-right:5px;vertical-align:1px}
+/* the card plays its level */
+.sgh-cvlive{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;animation:sghFade .25s ease both}
+.sgh-gc.live .sgh-gplay{opacity:0}
+@keyframes sghFade{from{opacity:0}to{opacity:1}}
+/* playing now: a bump when the number changes */
+.sgh-live b.bump{animation:sghBump .6s ease}
+@keyframes sghBump{30%{transform:scale(1.25);color:var(--h-acc)}}
+/* a milestone's cut-in */
+.sgx-cut{position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.66);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);opacity:0;transition:opacity .3s;color:#f1f4f7;font:400 14px/1.5 Sora,"Noto Sans KR",sans-serif}
+.sgx-cut.on{opacity:1}
+.sgx-cutin{position:relative;width:min(440px,100%);padding:44px 28px 28px;border-radius:26px;text-align:center;background:radial-gradient(120% 80% at 50% 0%,#17323a,#101418 70%);border:1px solid rgba(79,227,193,.4);box-shadow:0 40px 110px rgba(0,0,0,.7),0 0 60px rgba(79,227,193,.15);overflow:hidden;transform:scale(.8) translateY(20px);transition:transform .5s cubic-bezier(.2,1.4,.3,1)}
+.sgx-cut.on .sgx-cutin{transform:none}
+.sgx-cutin .rays{position:absolute;left:50%;top:84px;width:520px;height:520px;margin:-260px 0 0 -260px;background:repeating-conic-gradient(rgba(79,227,193,.14) 0 8deg,transparent 8deg 22deg);border-radius:50%;mask-image:radial-gradient(circle,#000 20%,transparent 65%);-webkit-mask-image:radial-gradient(circle,#000 20%,transparent 65%);animation:sgxSpin 18s linear infinite;pointer-events:none}
+@keyframes sgxSpin{to{transform:rotate(360deg)}}
+.sgx-cutin .emb{position:relative;display:grid;place-items:center;width:86px;height:86px;margin:0 auto 14px;border-radius:26px;background:linear-gradient(135deg,var(--h-acc),var(--h-acc2));color:#04141a;box-shadow:0 14px 40px rgba(57,211,255,.45);animation:sgxPop .7s .15s cubic-bezier(.2,1.6,.3,1) both}.sgx-cutin .emb .sgh-ic{width:44px;height:44px}
+@keyframes sgxPop{from{transform:scale(0) rotate(-30deg)}}
+.sgx-cutin small{position:relative;color:var(--h-gold);font:800 12px/1 Sora;text-transform:uppercase;letter-spacing:.12em}
+.sgx-cutin h2{position:relative;margin:8px 0 6px;font:900 30px/1.15 "Exo 2",Sora,"Noto Sans KR",sans-serif;color:#fff}.sgx-cutin p{position:relative;margin:0 0 18px;color:#aeb7c1}
+.sgx-cutin .sgh-cta{position:relative;justify-content:center}
+.sgx-cutin .cf{position:absolute;left:50%;top:84px;width:8px;height:14px;border-radius:2px;background:hsl(var(--h) 85% 62%);transform:rotate(var(--a)) translateY(0);opacity:0;animation:sgxConf 1.4s var(--d) ease-out forwards}
+@keyframes sgxConf{0%{opacity:1;transform:rotate(var(--a)) translateY(0)}100%{opacity:0;transform:rotate(var(--a)) translateY(-210px) rotate(220deg)}}
+html.sgh-lite .sgx-cutin .rays,html.sgh-lite .sgx-cutin .cf{animation:none;display:none}
+/* 한국어 headlines: Noto Sans KR 800 */
+html.sgh-ko .sgh-h1,html.sgh-ko .sgh h1,html.sgh-ko .sgh h2,html.sgh-ko .sgh-ban h2,html.sgh-ko .sgx-ginfo h1,html.sgh-ko .sgx-cutin h2,html.sgh-ko .sgh-sheet h2{font-family:"Noto Sans KR","Exo 2",Sora,sans-serif;font-weight:800;letter-spacing:-.02em}
+/* light theme (the switch in the top bar; arc.hub.theme) */
+html.sgh-tswap .sgh,html.sgh-tswap .sgh *{transition:background-color .35s,color .35s,border-color .35s!important}
+html[data-ht=light]{--h-bg:#f3f5f8;--h-s1:#ffffff;--h-s2:#edf0f4;--h-s3:#e1e6ec;--h-line:rgba(16,24,34,.09);--h-line2:rgba(16,24,34,.16);--h-ink:#111821;--h-ink2:#3f4b58;--h-ink3:#6b7785;--h-acc:#0aa889;--h-acc2:#0897d0;--h-gold:#a87b12;--h-red:#e0364a}
+html[data-ht=light] .sgh-side{background:#fbfcfd}
+html[data-ht=light] .sgh-sub{background:#f7f9fb}
+html[data-ht=light] .sgh-top,html[data-ht=light] .sgh-ltop{background:rgba(255,255,255,.86)}
+html[data-ht=light] .sgh-nav a.on{background:linear-gradient(90deg,rgba(10,168,137,.14),rgba(10,168,137,.03) 70%),var(--h-s2);color:var(--h-ink)}
+html[data-ht=light] .sgh-scroll{scrollbar-color:#c9d0d8 transparent}
+html[data-ht=light] .sgh-hero::before{background:radial-gradient(60% 55% at 50% 50%,rgba(243,245,248,.92),rgba(243,245,248,.6) 60%,rgba(243,245,248,.25)),linear-gradient(180deg,rgba(243,245,248,.6),transparent 20%,transparent 70%,var(--h-bg))}
+html[data-ht=light] .sgh-h1{text-shadow:0 4px 30px rgba(255,255,255,.8)}
+html[data-ht=light] .sgh-new,html[data-ht=light] .sgh-live{background:rgba(255,255,255,.85)}
+html[data-ht=light] .sgh-gart,html[data-ht=light] .sgh-thart{background:#e6eaef}
+html[data-ht=light] .sgh-sk i{background:linear-gradient(100deg,#e6eaef 30%,#f1f4f7 50%,#e6eaef 70%) 0 0/300% 100%}html[data-ht=light] .sgh-sk b,html[data-ht=light] .sgh-sk small{background:#e6eaef}
+html[data-ht=light] .sgh-ban{background:#fff}
+html[data-ht=light] .sgh-ban::before{background:linear-gradient(90deg,rgba(255,255,255,.97) 0%,rgba(255,255,255,.86) 36%,rgba(255,255,255,.15) 72%,transparent),linear-gradient(105deg,transparent 42%,rgba(255,255,255,.25) 50%,transparent 58%) -150% 0/250% 100% no-repeat}
+@media (max-width:720px){html[data-ht=light] .sgh-ban::before{background:linear-gradient(0deg,rgba(255,255,255,.98) 38%,rgba(255,255,255,.4) 70%,rgba(255,255,255,.05))}}
+html[data-ht=light] .sgh-chips button:hover{background:#d7dde4}html[data-ht=light] .sgh-chips button.on{background:#111821;color:#fff!important}
+html[data-ht=light] .sgh-promo{background:linear-gradient(115deg,#ffffff 0%,#f2f5f8 55%,#eef2f6)}
+html[data-ht=light] .sgh-etile{background:linear-gradient(160deg,#eef1f5,#e2e7ed)}
+html[data-ht=light] .sgh-kpi{background:linear-gradient(160deg,#ffffff,#f6f8fa)}
+html[data-ht=light] .sgh-bar,html[data-ht=light] .sgh-dif .cl{background:#dde3e9}
+html[data-ht=light] .sgh-dc::before{background:linear-gradient(90deg,var(--h-s1) 45%,rgba(255,255,255,.7)),var(--art) right center/cover}
+html[data-ht=light] .sgh-steps li{background:linear-gradient(160deg,#ffffff,#f4f6f9)}
+html[data-ht=light] .sgh-pring{background:conic-gradient(var(--h-gold) calc(var(--k) * 360deg),#dde3e9 0)}
+html[data-ht=light] .sgh-dwin{background:#fff}html[data-ht=light] .sgh-rail{background:#f2f4f7}
+html[data-ht=light] .sgh-pop,html[data-ht=light] .sgh-cin,html[data-ht=light] .sgh-tin{background:#fff;color:var(--h-ink)}
+html[data-ht=light] .sgh-pi:hover,html[data-ht=light] .sgh-pall,html[data-ht=light] .sgh-tg2 a{background:#eef1f4}
+html[data-ht=light] .sgh-sheet{color:var(--h-ink)}html[data-ht=light] .sgh-shin{background:#fff;border-color:var(--h-line2)}html[data-ht=light] .sgh-shart::after{background:linear-gradient(180deg,transparent 45%,#fff)}
+html[data-ht=light] .sgh-gsteps li{background:#f1f4f7}
+html[data-ht=light] .sgx-ghero::after{background:linear-gradient(90deg,rgba(255,255,255,.15),rgba(255,255,255,.82))}html[data-ht=light] .sgx-gbg{filter:blur(38px) saturate(1.2) brightness(1.15)}
+html[data-ht=light] .sgx-edit input:not([type=radio]):not([type=checkbox]),html[data-ht=light] .sgx-edit textarea,html[data-ht=light] .sgx-edit select,html[data-ht=light] .sgx-rbox textarea{background:#fff}
+html[data-ht=light] .sgh-flag.new{color:#fff}
+html[data-ht=light] .sgh-foot{background:var(--h-s2)}
+html[data-ht=light] .sgh-h1 span:last-child{background:linear-gradient(92deg,#111821 10%,#0b6f64 45%,var(--h-acc) 70%,var(--h-acc2));-webkit-background-clip:text;background-clip:text}
+html[data-ht=light] .sgh-lead,html[data-ht=light] .sgh-ban p{color:var(--h-ink2)}
+html[data-ht=light] .sgh-hero .sgh-btn:not(.pri){background:#fff}

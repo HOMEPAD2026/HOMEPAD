@@ -53,6 +53,9 @@ export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver
       const mq = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.38), new THREE.MeshBasicMaterial({ map: cb.mq, toneMapped: false })); mq.position.set(0, 2.55, 0.42); o.add(mq);
       const x2 = cb.mq.userData.cv.getContext("2d"); x2.fillStyle = "#06101f"; x2.fillRect(0, 0, 512, 128); x2.fillStyle = cb.css; x2.fillRect(0, 118, 512, 10); x2.textAlign = "center"; x2.font = "900 50px Sora, 'Segoe UI', sans-serif"; x2.fillText(T(cb.name), 256, 80, 480); cb.mq.needsUpdate = true; }
     solid(o, 0.9); door(o, cb.id, cb.col, 1.7); });
+  // HUB 2 (2026-10-28): the Creator Hub's kiosk past the cabinets — walk up → the Creator Hub on the web (/studio: your games,
+  // the forum, notifications, analytics), the same session as the World's
+  { const o = new THREE.Group(); o.name = "stu-kiosk"; o.position.set(-3.8, 0, F / 2 + 5.6); o.rotation.y = -0.3; o.scale.setScalar(1.3); g.add(o); kiosk(THREE, o, neon, DARK, STEEL, canvas, T, spins); solid(o, 0.8); door(o, "hubk", 0x39d3ff, 1.8); }
   function paint() {
     for (const cb of CABS) { if (!cb.tex) continue; const c = cb.tex.userData.cv.getContext("2d"), w = 512, h = 400, p = picks[cb.id];
       const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#0b2346"); gr.addColorStop(1, "#040b18"); c.fillStyle = gr; c.fillRect(0, 0, w, h);
@@ -98,4 +101,24 @@ export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver
         if (n) { o.instanceMatrix.needsUpdate = true; if (o.computeBoundingSphere) o.computeBoundingSphere(); } });
     },
   };
+}
+
+/// the Creator Hub's kiosk: a slim stand with a tilted screen (the hub's name, a line, the address), a glowing rim and a
+/// floating ring over it — also used in Creator City (world-creatorcity.js)
+export function kiosk(THREE, o, neon, DARK, STEEL, canvas, T = (s) => s, spins = null) {
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 0.18, 24), STEEL); base.position.y = 0.09; o.add(base);
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.5, 0.22), DARK); post.position.y = 0.9; o.add(post);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.1, 0.12), DARK); frame.position.set(0, 1.95, 0); frame.rotation.x = -0.2; o.add(frame);
+  const rim = new THREE.Mesh(new THREE.BoxGeometry(1.78, 1.18, 0.06), neon(0x39d3ff)); rim.position.set(0, 1.95, -0.05); rim.rotation.x = -0.2; o.add(rim);
+  const tex = canvas(640, 400);
+  if (tex) { const c = tex.userData.cv.getContext("2d"), gr = c.createLinearGradient(0, 0, 640, 400); gr.addColorStop(0, "#0b1d2a"); gr.addColorStop(1, "#071018"); c.fillStyle = gr; c.fillRect(0, 0, 640, 400);
+    c.strokeStyle = "rgba(79,227,193,.35)"; c.lineWidth = 2; for (let x = 0; x < 640; x += 40) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 400); c.stroke(); }
+    c.textAlign = "center"; c.fillStyle = "#4fe3c1"; c.font = "800 34px Sora, 'Segoe UI', sans-serif"; c.fillText("ARCIRCLE", 320, 92);
+    c.fillStyle = "#fff"; c.shadowColor = "#39d3ff"; c.shadowBlur = 18; c.font = "900 76px Sora, 'Segoe UI', sans-serif"; c.fillText(T("Creator Hub"), 320, 192, 600); c.shadowBlur = 0;
+    c.fillStyle = "#cfe6ff"; c.font = "700 32px Sora, 'Segoe UI', sans-serif"; c.fillText(T("Your games, forum and alerts"), 320, 262, 600);
+    c.fillStyle = "#39d3ff"; c.font = "800 30px Sora, 'Segoe UI', sans-serif"; c.fillText("arcircle.app/studio", 320, 338); tex.needsUpdate = true;
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.56, 0.97), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })); scr.position.set(0, 1.95, 0.07); scr.rotation.x = -0.2; o.add(scr); }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 8, 32), neon(0x4fe3c1)); ring.position.y = 3.0; o.add(ring);
+  if (spins) spins.push((t) => { ring.rotation.y = t * 1.4; ring.position.y = 3.0 + Math.sin(t * 2) * 0.1; });
+  return ring;
 }
