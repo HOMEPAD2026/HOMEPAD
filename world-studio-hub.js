@@ -7,6 +7,8 @@
 // its × comes back here. Everything is read from the server's public reads (studio-arcade, -mine, -week, -day, -season,
 // -races, -feed, -handle) — nothing here is a number we made up; what isn't live yet says so.
 import { TEMPLATES, THEMES } from "./world-studio-gen.js";
+import { makeHubX, XTITLE, XSUBS } from "./world-studio-hubx.js";
+import { ask } from "./world-ask.js";
 
 const ICONS = { // (24px line icons, the Studio Pro set's weight)
   home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
@@ -41,20 +43,21 @@ const ICONS = { // (24px line icons, the Studio Pro set's weight)
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5v.5"/>',
   rocket: '<path d="M12 3c3.5 2.2 5 5.6 5 9.5l-2 3H9l-2-3C7 8.6 8.5 5.2 12 3z"/><circle cx="12" cy="10" r="1.8"/><path d="M9 15.5L7 20l3-1.5M15 15.5l2 4.5-3-1.5"/>',
   city: '<path d="M3 21h18M5 21V9l5-3v15M10 21V4l6 3v14M16 21v-9l3 1.5V21"/>',
+  board: '<path d="M4 5h11v8H8l-4 3z"/><path d="M15 9h5v8l-3-2.4H10V13"/>', sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>', moon: '<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>', user: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
 };
 const ic = (n, c = "") => `<svg class="sgh-ic${c ? " " + c : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ICONS.dots}</svg>`;
 
 // the pages: [id, icon, label, group]; each one's sub column [id, label]
-const NAV = [["home", "home", "Home", 0], ["creations", "folder", "Creations", 0], ["learn", "book", "Learn", 0], ["store", "bag", "Store", 0], ["community", "chat", "Community", 0], ["updates", "mega", "Updates", 0], ["analytics", "chart", "Analytics", 1], ["rewards", "coin", "Rewards", 1]];
+const NAV = [["home", "home", "Home", 0], ["creations", "folder", "Creations", 0], ["learn", "book", "Learn", 0], ["store", "bag", "Store", 0], ["community", "chat", "Community", 0], ["forum", "board", "Forum", 0], ["updates", "mega", "Updates", 0], ["analytics", "chart", "Analytics", 1], ["rewards", "coin", "Rewards", 1]];
 const SUBS = {
   creations: [["games", "My games"], ["shared", "Shared with me"], ["device", "On this device"]],
   learn: [["start", "Get started"], ["guides", "Guides"], ["templates", "Templates"], ["world", "In ARCIRCLE WORLD"]],
-  store: [["all", "Home"], ["templates", "Templates"], ["themes", "Themes"], ["remix", "Remixable games"]],
-  community: [["arcade", "Creator Arcade"], ["contest", "Weekly contest"], ["daily", "Daily challenge"], ["season", "Creator season"], ["races", "Live races"], ["feed", "Following"]],
-  analytics: [["overview", "Overview"], ["games", "By game"]],
+  store: [["all", "Home"], ["templates", "Templates"], ["themes", "Themes"], ["pieces", "Pieces"], ["remix", "Remixable games"]],
+  community: [["arcade", "Creator Arcade"], ["contest", "Weekly contest"], ["sponsor", "Sponsor contests"], ["daily", "Daily challenge"], ["season", "Creator season"], ["races", "Live races"], ["feed", "Following"]],
+  analytics: [["overview", "Overview"], ["games", "By game"], ["report", "Weekly report"], ["ab", "A/B test"]], ...XSUBS,
   rewards: [["overview", "Overview"], ["contest", "Contest prizes"]],
 };
-const TITLE = { home: "Home", creations: "Creations", learn: "Learn", store: "Store", community: "Community", updates: "Updates", analytics: "Analytics", rewards: "Rewards" };
+const TITLE = { home: "Home", creations: "Creations", learn: "Learn", store: "Store", community: "Community", updates: "Updates", analytics: "Analytics", rewards: "Rewards", ...XTITLE };
 const ART = { learn: "learn", store: "store", community: "community", rewards: "rewards", analytics: "analytics", updates: "updates", create: "create" }; // (images/studio/hub/<k>-<w>.webp, Meshy's)
 const TCAT = { runner: "Run", dash: "Run", rush: "Run", race: "Rhythm & race", arena: "Survive", survival: "Survive", defense: "Survive", jump: "Jump", climb: "Jump", dungeon: "Jump", escape: "Jump", boss: "Jump", mining: "Jump", puzzle: "Puzzle", rhythm: "Rhythm & race" };
 const TDESC = {
@@ -115,13 +118,13 @@ export function makeHub(o) {
   const handle = async () => { const w = wallet(); if (!w) return ""; return ((await get("h:" + w, "/api/social?world=studio-handle&wallet=" + w, 300e3)) || {}).h || ""; };
   const week = () => get("week", "/api/social?world=studio-week"), day = () => get("day", "/api/social?world=studio-day"), season = () => get("season", "/api/social?world=studio-season"), races = () => get("races", "/api/social?world=studio-races", 15e3);
   const feed = async () => { const w = wallet(); return w ? get("feed:" + w, "/api/social?world=studio-feed&wallet=" + w) : null; };
-  const fresh = () => { for (const k of Object.keys(got)) if (/^(mine|feed|arcade)/.test(k)) delete got[k]; }; // (back from the workspace: what you made shows)
+  const fresh = () => { for (const k of Object.keys(got)) if (/^(mine|feed|arcade|inbox|gm:)/.test(k)) delete got[k]; }; // (back from the workspace: what you made shows)
 
   // ---------------- the shell ----------------
-  const route = () => { const q = new URLSearchParams(location.search); const p = q.get("p"); page = TITLE[p] ? p : "home"; sub = q.get("s") || ""; if (SUBS[page] && !SUBS[page].some(([k]) => k === sub)) sub = SUBS[page][0][0]; };
-  function go(p, s, push = true) {
-    page = TITLE[p] ? p : "home"; sub = s || (SUBS[page] ? SUBS[page][0][0] : ""); drawer = false; closePops();
-    if (push) { const u = new URL(location.href); for (const k of ["p", "s", "tab", "sg", "race", "ch", "vs", "by"]) u.searchParams.delete(k); if (page !== "home") u.searchParams.set("p", page); if (sub && SUBS[page] && sub !== SUBS[page][0][0]) u.searchParams.set("s", sub); history.pushState({ hub: 1 }, "", u.pathname + u.search); }
+  const route = () => { const q = new URLSearchParams(location.search); const p = q.get("p"); page = TITLE[p] ? p : "home"; sub = q.get("s") || ""; D.q = { h: q.get("h") || "", id: q.get("id") || "", t: q.get("t") || "" }; if (SUBS[page] && !SUBS[page].some(([k]) => k === sub)) sub = SUBS[page][0][0]; };
+  function go(p, s, push = true, x = {}) {
+    page = TITLE[p] ? p : "home"; sub = s || (SUBS[page] ? SUBS[page][0][0] : ""); drawer = false; closePops(); D.q = { h: x.h || "", id: x.id || "", t: x.t || "" }; if (page === "game" && x.id !== (D.lastG || "")) { D.gtab = "about"; D.lastG = x.id; }
+    { const u = new URL(location.href); for (const k of ["p", "s", "tab", "sg", "race", "ch", "vs", "by", "h", "id", "t"]) u.searchParams.delete(k); if (page !== "home") u.searchParams.set("p", page); if (sub && SUBS[page] && sub !== SUBS[page][0][0]) u.searchParams.set("s", sub); for (const k of ["h", "id", "t"]) if (D.q[k]) u.searchParams.set(k, D.q[k]); history[push ? "pushState" : "replaceState"]({ hub: 1 }, "", u.pathname + u.search); }
     paint(); const sc = root.querySelector(".sgh-scroll"); if (sc) sc.scrollTop = 0;
   }
   const me = () => { const s = o.sess(), p = P(); return s ? { w: s.wallet, name: p.name || "", short: s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) } : null; };
@@ -178,7 +181,7 @@ export function makeHub(o) {
   const sec = (title, inner, more = "") => `<section class="sgh-sec rv"><div class="sgh-sech"><h2>${esc(T(title))}</h2>${more}</div>${inner}</section>`;
   const moreLink = (p, s, l = "See all") => `<a href="?p=${p}${s ? "&s=" + s : ""}" data-go="${p}" data-s="${s || ""}" class="sgh-more">${esc(T(l))}${ic("right", "sm")}</a>`;
   function gameCard(g, opt = {}) {
-    const st = g.pub === false ? "draft" : g.hidden ? "hidden" : "pub";
+    D.cards = D.cards || {}; if (g.id && !D.cards[g.id]) D.cards[g.id] = g; const st = g.pub === false ? "draft" : g.hidden ? "hidden" : "pub";
     return `<article class="sgh-gc${opt.row ? " row" : ""}" data-gsheet="${esc(g.id)}" tabindex="0"><span class="sgh-gart"><img src="${esc(cover(g))}" alt="" loading="lazy" width="400" height="229" onerror="this.src='${art(g.tpl, 400)}'">${g.now ? `<em class="sgh-now">● ${g.now} ${esc(T("playing"))}</em>` : ""}${g.off ? `<em class="sgh-off">${esc(T("Official"))}</em>` : g.pick ? `<em class="sgh-pick">${ic("star", "sm")} ${esc(T("Editor's pick"))}</em>` : ""}${opt.own ? `<em class="sgh-st ${st}">${esc(T(st === "pub" ? "Published" : st === "draft" ? "Draft" : "Hidden"))}</em>` : ""}<i class="sgh-gplay">${ic("play")}</i></span>
       <b>${esc(g.title || T("Untitled"))}</b><small>${esc(tname(g.tpl))}${g.byName && !opt.own ? " · " + esc(g.byName) : ""}</small><span class="sgh-gm"><i>${ic("play", "xs")} ${num(g.plays)}</i><i>${ic("heart", "xs")} ${num(g.likes)}</i>${opt.own && g.at ? `<i>${esc(ago(g.at))}</i>` : ""}</span></article>`;
   }
@@ -186,6 +189,7 @@ export function makeHub(o) {
     return `<article class="sgh-tc${t.open ? "" : " soon"}" ${t.open ? `data-use="${id}"` : ""} tabindex="0"><span class="sgh-gart"><img src="${art(id, 400)}" alt="" loading="lazy" width="400" height="229">${opt.free ? `<em class="sgh-free">${esc(T("Free"))}</em>` : ""}</span><b>${esc(T(t.name))}</b><small>${esc(T(TCAT[id] || "Run"))}</small>${opt.desc ? `<p>${esc(T(TDESC[id] || ""))}</p>` : ""}${t.open ? "" : `<em class="sgh-soon">${esc(T("Coming soon"))}</em>`}</article>`; }
 
   function pageHtml() {
+    if (X.has(page, sub)) return X.html(page, sub);
     if (page === "home") return homeHtml();
     if (page === "creations") return `<div data-fill="creations">${skel(6)}</div>`;
     if (page === "analytics") return `${head("analytics", "Analytics", "How your games do: plays, likes, clear rates and where runs end.")}<div data-fill="analytics">${skel(4, "kpi")}</div>`;
@@ -250,6 +254,7 @@ export function makeHub(o) {
       const tr = f("trend"); if (tr) tr.innerHTML = `<div class="sgh-hs">${[...A].sort((a, b) => (b.now || 0) * 50 + (b.plays || 0) - ((a.now || 0) * 50 + (a.plays || 0))).slice(0, 12).map((g) => gameCard(g)).join("")}</div>`;
       const [w, d] = await Promise.all([week(), day()]); if (stale()) return; const hc = f("homecards"); if (hc) hc.innerHTML = contestCard(w) + dailyCard(d);
     }
+    if (X.has(pg, s0)) { await X.fill(pg, s0, root, stale); if (stale()) return; reveal(); return; }
     if (pg === "creations") { const el = f("creations"); if (el) el.innerHTML = await creationsHtml(); }
     if (pg === "analytics") { const el = f("analytics"); if (el) { el.innerHTML = await analyticsHtml(); } }
     if (pg === "rewards") { const el = f("rewards"); if (el) el.innerHTML = await rewardsHtml(); }
@@ -351,7 +356,7 @@ export function makeHub(o) {
       <div class="sgh-shart" style="--art:url('${esc(cover(g))}')"><span class="sgh-chip">${esc(tname(g.tpl))}${g.theme ? " · " + esc(thname(g.theme)) : ""}</span></div>
       <div class="sgh-shbody"><h2>${esc(g.title)}</h2><small>${esc(g.byName || "ARCIRCLE")}</small><div class="sgh-gm big"><i>${ic("play", "xs")} ${num(g.plays)} ${esc(T("Plays"))}</i><i>${ic("heart", "xs")} ${num(g.likes)} ${esc(T("Likes"))}</i>${g.now ? `<i class="nowc">● ${g.now} ${esc(T("playing"))}</i>` : ""}</div>
       <div class="sgh-shbtns"><button type="button" class="sgh-btn pri big" data-play="${esc(id)}">${ic("play")} ${esc(T("Play here"))}</button><a class="sgh-btn big" href="/play?sg=${encodeURIComponent(id)}">${ic("globe")} ${esc(T("Play in ARCIRCLE WORLD"))}</a></div>
-      <div class="sgh-shrow">${own ? `<button type="button" class="sgh-btn" data-edit="${esc(id)}">${ic("edit", "sm")} ${esc(T("Edit"))}</button>` : `<button type="button" class="sgh-btn" data-remix="${esc(id)}">${ic("remix", "sm")} ${esc(T("Remix it"))}</button>`}${page2 ? `<a class="sgh-btn" href="${page2}" target="_blank" rel="noopener">${ic("ext", "sm")} ${esc(T("Game page"))}</a>` : ""}<button type="button" class="sgh-btn" data-copy="${esc(location.origin + (page2 || "/play?sg=" + encodeURIComponent(id)))}">${ic("link", "sm")} ${esc(T("Copy link"))}</button>${own ? `<button type="button" class="sgh-btn" data-go="analytics" data-s="games" data-ag="${esc(id)}">${ic("chart", "sm")} ${esc(T("Analytics"))}</button>` : ""}</div></div></div>`;
+      <div class="sgh-shrow">${own ? `<button type="button" class="sgh-btn" data-edit="${esc(id)}">${ic("edit", "sm")} ${esc(T("Edit"))}</button>` : `<button type="button" class="sgh-btn" data-remix="${esc(id)}">${ic("remix", "sm")} ${esc(T("Remix it"))}</button>`}${page2 ? `<a class="sgh-btn" href="${page2}" target="_blank" rel="noopener">${ic("ext", "sm")} ${esc(T("Game page"))}</a>` : ""}<button type="button" class="sgh-btn" data-copy="${esc(location.origin + (page2 || "/play?sg=" + encodeURIComponent(id)))}">${ic("link", "sm")} ${esc(T("Copy link"))}</button>${own ? `<button type="button" class="sgh-btn" data-go="analytics" data-s="games" data-ag="${esc(id)}">${ic("chart", "sm")} ${esc(T("Analytics"))}</button>` : ""}<button type="button" class="sgh-btn" data-xfull="${esc(id)}">${ic("ext", "sm")} ${esc(T("Full page"))}</button></div></div></div>`;
     document.body.appendChild(wrap); requestAnimationFrame(() => wrap.classList.add("on"));
     const x = () => { wrap.classList.remove("on"); setTimeout(() => wrap.remove(), 260); document.removeEventListener("keydown", kd); }, kd = (e) => { if (e.key === "Escape") x(); };
     document.addEventListener("keydown", kd);
@@ -364,21 +369,30 @@ export function makeHub(o) {
     const x = () => { wrap.classList.remove("on"); setTimeout(() => wrap.remove(), 260); };
     wrap.addEventListener("click", (e) => { if (e.target === wrap || e.target.closest("[data-shx]")) return x(); const b = e.target.closest("[data-make]"); if (b) { x(); o.ws.open("make"); } }); }
 
+  /// a game: on a computer its full page, the card's picture flying into the page's header (a view transition); on a phone the sheet
+  function openGame(id, el, full) {
+    if (!full && !matchMedia("(min-width: 1024px)").matches) { gameSheet(id); return; }
+    const img = el && el.querySelector ? el.querySelector(".sgh-gart img") : null, run = () => go("game", "", true, { id });
+    if (img && document.startViewTransition && !reduce && page !== "game") { img.style.viewTransitionName = "sgh-morph"; try { document.startViewTransition(run); } catch { run(); } } else run();
+  }
+  function lightbox(src) { const w = document.createElement("div"); w.className = "sgh-sheet sgx-lb"; w.innerHTML = `<img src="${esc(src)}" alt="">`; document.body.appendChild(w); requestAnimationFrame(() => w.classList.add("on")); w.onclick = () => { w.classList.remove("on"); setTimeout(() => w.remove(), 260); }; }
+
   // ---------------- the pop-ups: search (Ctrl + K), the bell, the account, all tools ----------------
   let pop = null; function closePops() { if (pop) { pop.remove(); pop = null; } }
   const SEEN = "arc.hub.upd";
-  const bellN = () => { let t = ""; try { t = localStorage.getItem(SEEN) || ""; } catch { /* none */ } return UPDATES.filter((u) => u.d > t).length + (D.feedN || 0); };
+  const bellN = () => { let t = ""; try { t = localStorage.getItem(SEEN) || ""; } catch { /* none */ } return UPDATES.filter((u) => u.d > t).length + (D.feedN || 0) + (D.inboxN || 0); };
   function popAt(anchor, cls, html) { closePops(); pop = document.createElement("div"); pop.className = "sgh-pop " + cls; pop.innerHTML = html; document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect(), w = pop.offsetWidth; pop.style.top = Math.round(r.bottom + 8) + "px"; pop.style.left = Math.round(Math.max(8, Math.min(innerWidth - w - 8, r.right - w))) + "px"; requestAnimationFrame(() => pop && pop.classList.add("on")); return pop; }
   async function bell(a) {
-    const f = await feed(), L = (f && f.games) || []; let t = 0; try { t = Number(localStorage.getItem("arc.studio.feedSeen") || 0); } catch { /* none */ }
-    popAt(a, "bell", `<h4>${esc(T("Notifications"))}</h4>${L.filter((x) => x.at > t).slice(0, 5).map((g) => `<button type="button" class="sgh-pi" data-gsheet="${esc(g.id)}"><img src="${art(g.tpl, 400)}" alt="" width="56" height="32"><span><b>${esc(g.title)}</b><small>${esc(T("New from {n}", { n: g.byName || T("a creator") }))} · ${esc(ago(g.at))}</small></span></button>`).join("")}
+    const [f, xr] = await Promise.all([feed(), X.bellRows().catch(() => "")]), L = (f && f.games) || []; let t = 0; try { t = Number(localStorage.getItem("arc.studio.feedSeen") || 0); } catch { /* none */ }
+    popAt(a, "bell", `<h4>${esc(T("Notifications"))}</h4>${xr}${L.filter((x) => x.at > t).slice(0, 5).map((g) => `<button type="button" class="sgh-pi" data-gsheet="${esc(g.id)}"><img src="${art(g.tpl, 400)}" alt="" width="56" height="32"><span><b>${esc(g.title)}</b><small>${esc(T("New from {n}", { n: g.byName || T("a creator") }))} · ${esc(ago(g.at))}</small></span></button>`).join("")}
       ${UPDATES.slice(0, 4).map((u) => `<button type="button" class="sgh-pi" data-go="updates"><img src="${u.img}${ver}" alt="" width="56" height="32"><span><b>${esc(T(u.t))}</b><small>${esc(T(u.tag))} · ${esc(u.d)}</small></span></button>`).join("")}<a class="sgh-pall" href="?p=updates" data-go="updates">${esc(T("All updates"))}</a>`);
-    try { localStorage.setItem(SEEN, UPDATES[0].d); } catch { /* fine */ } D.feedN = 0; root.querySelectorAll(".sgh-dot").forEach((e) => e.remove());
+    try { localStorage.setItem(SEEN, UPDATES[0].d); } catch { /* fine */ } D.feedN = 0; if (D.inboxN) X.seen().catch(() => {}); root.querySelectorAll(".sgh-dot").forEach((e) => e.remove());
   }
   function account(a) { const m = me();
     popAt(a, "acct", `${m ? `<div class="sgh-acc">${avatar("lg")}<span><b>${esc(D.h ? "@" + D.h : m.name || m.short)}</b><small>${esc(m.short)}</small></span></div>
       ${D.h ? `<a class="sgh-pi" href="/game/@${esc(D.h)}" target="_blank" rel="noopener">${ic("ext")}<span><b>${esc(T("Your creator page"))}</b></span></a>` : `<button type="button" class="sgh-pi" data-ws="mine">${ic("link")}<span><b>${esc(T("Pick a creator ID"))}</b></span></button>`}
+      ${D.h ? `<button type="button" class="sgh-pi" data-go="profile">${ic("user")}<span><b>${esc(T("Your profile"))}</b></span></button>` : ""}<button type="button" class="sgh-pi" data-go="inbox">${ic("bell")}<span><b>${esc(T("Notifications"))}</b></span></button>
       <button type="button" class="sgh-pi" data-go="creations">${ic("folder")}<span><b>${esc(T("My games"))}</b></span></button><button type="button" class="sgh-pi" data-go="analytics">${ic("chart")}<span><b>${esc(T("Analytics"))}</b></span></button>`
       : `<div class="sgh-acc">${avatar("lg")}<span><b>${esc(T("Guest"))}</b><small>${esc(T("Drafts stay on this device"))}</small></span></div><button type="button" class="sgh-btn blue full" data-signin>${ic("wallet")} ${esc(T("Connect wallet"))}</button>`}
       <a class="sgh-pi" href="/play">${ic("globe")}<span><b>${esc(T("Play ARCIRCLE WORLD"))}</b></span></a>`); }
@@ -414,6 +428,7 @@ export function makeHub(o) {
   // ---------------- the clicks ----------------
   async function onAct(b, e) {
     const d = b.dataset;
+    if (await X.act(b, e)) { e && e.preventDefault(); return true; }
     if (d.go != null && !b.hasAttribute("data-gsheet")) { e && e.preventDefault(); if (d.ag) D.ag = d.ag; go(d.go, d.s || ""); return true; }
     if (b.hasAttribute("data-make")) { e && e.preventDefault(); closePops(); drawer = false; o.ws.open("make"); return true; }
     if (d.ws) { closePops(); o.ws.open(d.ws); return true; }
@@ -423,7 +438,8 @@ export function makeHub(o) {
     if (d.ledit) { o.ws.local(d.ledit); return true; }
     if (d.play) { o.ws.play(d.play); return true; }
     if (d.remix) { o.ws.remix(d.remix); return true; }
-    if (d.gsheet) { closePops(); gameSheet(d.gsheet); return true; }
+    if (d.gsheet) { closePops(); openGame(d.gsheet, b); return true; }
+    if (d.xfull) { openGame(d.xfull, null, true); return true; }
     if (d.guide) { closePops(); guideSheet(d.guide); return true; }
     if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast("🔗 " + esc(T("Link copied"))); } catch { toast(esc(d.copy)); } return true; }
     if (b.hasAttribute("data-signin")) { closePops(); try { await o.signIn(); toast("👛 " + esc(T("Signed in"))); fresh(); D.h = await handle(); paint(); } catch (er) { toast(esc((er && er.message) || T("Sign-in failed"))); } return true; }
@@ -445,24 +461,28 @@ export function makeHub(o) {
     const ag = t.closest("tr[data-ag]"); if (ag) { D.ag = ag.dataset.ag; go("analytics", "games"); return; }
     if (t.closest("[data-cdir]")) { D.cd = (D.cd || -1) * -1; const el = root.querySelector('[data-fill="creations"]'); if (el) el.innerHTML = await creationsHtml(); return; }
     const b = t.closest("button,a,article[data-gsheet],article[data-use],article[data-guide],article[data-ledit],article[data-theme],article[data-go]"); if (!b) return;
-    if (b.matches("a[href]") && !b.dataset.go && !b.hasAttribute("data-make") && !b.hasAttribute("data-tools")) return; // (a real link)
+    if (b.matches("a[href]") && !b.dataset.go && !b.dataset.xprof && !b.dataset.xgame && !b.hasAttribute("data-make") && !b.hasAttribute("data-tools")) return; // (a real link)
     if (await onAct(b, e)) e.preventDefault();
   });
   root.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches && e.target.matches("article[tabindex]")) e.target.click(); });
   root.addEventListener("change", async (e) => {
     const t = e.target;
     if (t.matches("[data-cf]")) { D.cf = { ...(D.cf || { pub: true, draft: true }), [t.dataset.cf]: t.checked }; const el = root.querySelector('[data-fill="creations"]'); if (el) el.innerHTML = await creationsHtml(); }
+    if (X.onInput(t)) return;
     if (t.matches("[data-csort]")) { D.cs = t.value; const el = root.querySelector('[data-fill="creations"]'); if (el) el.innerHTML = await creationsHtml(); }
   });
-  let sqT = 0; root.addEventListener("input", (e) => { if (e.target.matches("[data-sq]")) { clearTimeout(sqT); const v = e.target.value; sqT = setTimeout(() => { D.sq = v; const pos = e.target.selectionStart; paint(); const ni = root.querySelector("[data-sq]"); if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch { /* fine */ } } }, 260); } });
-  document.addEventListener("click", (e) => { if (!pop || pop.contains(e.target) || e.target.closest("[data-user],[data-bell],[data-search],[data-tools]")) { if (pop && pop.contains(e.target)) { const b = e.target.closest("button,a"); if (b && (b.dataset.go != null || b.dataset.ws || b.dataset.use || b.dataset.gsheet || b.dataset.guide || b.hasAttribute("data-signin") || b.hasAttribute("data-make"))) { e.preventDefault(); const keep = pop; onAct(b, e); if (pop === keep) closePops(); } else if (e.target.closest("[data-tx]") || e.target === pop) closePops(); } return; } closePops(); });
+  let sqT = 0; root.addEventListener("input", (e) => { if (X.onInput(e.target)) return; if (e.target.matches("[data-sq]")) { clearTimeout(sqT); const v = e.target.value; sqT = setTimeout(() => { D.sq = v; const pos = e.target.selectionStart; paint(); const ni = root.querySelector("[data-sq]"); if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch { /* fine */ } } }, 260); } });
+  document.addEventListener("click", (e) => { if (!pop || pop.contains(e.target) || e.target.closest("[data-user],[data-bell],[data-search],[data-tools]")) { if (pop && pop.contains(e.target)) { const b = e.target.closest("button,a"); if (b && (b.dataset.go != null || b.dataset.ws || b.dataset.use || b.dataset.gsheet || b.dataset.guide || b.dataset.xgame || b.dataset.xpost || b.hasAttribute("data-signin") || b.hasAttribute("data-make"))) { e.preventDefault(); const keep = pop; onAct(b, e); if (pop === keep) closePops(); } else if (e.target.closest("[data-tx]") || e.target === pop) closePops(); } return; } closePops(); });
   document.addEventListener("keydown", (e) => { if (root.hidden) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search(); } else if (e.key === "Escape") { if (pop) closePops(); else if (drawer) { drawer = false; paint(); } } });
   addEventListener("popstate", () => { if (root.hidden) return; route(); paint(); });
 
   // the bell's count: new games from creators you follow
   async function feedCount() { const f = await feed(); let t = 0; try { t = Number(localStorage.getItem("arc.studio.feedSeen") || 0); } catch { /* none */ } D.feedN = ((f && f.games) || []).filter((x) => x.at > t).length; if (D.feedN && !root.hidden) root.querySelectorAll("[data-bell]").forEach((b) => { if (!b.querySelector(".sgh-dot")) b.insertAdjacentHTML("beforeend", `<em class="sgh-dot">${bellN()}</em>`); }); }
 
-  route(); handle().then((h) => { D.h = h; if (h && !root.hidden) { const u = root.querySelector(".sgh-user"); if (u) u.outerHTML = userRow(); } }); paint(); feedCount();
+  const X = makeHubX({ T, esc, ic, num, ver, D, art, hubArt, cover, tname, thname, ago, left, wallet, me, LV, TDESC, get, arcade, mine, handle, week, feed, sess: o.sess, signed: o.signed, toast, go, paint, countUp,
+    sub: () => sub, sec: (...a) => sec(...a), head: (...a) => head(...a), skel: (...a) => skel(...a), empty: (...a) => empty(...a), signCard: (...a) => signCard(...a), gameCard: (...a) => gameCard(...a), kpiT: (...a) => kpiT(...a),
+    forget: (re) => { for (const k of Object.keys(got)) if (re.test(k)) delete got[k]; }, openGame, lightbox, ask: (q) => ask(T, q, { ok: T("Delete"), cancel: T("Cancel"), danger: true }) });
+  route(); handle().then((h) => { D.h = h; if (h && !root.hidden) { const u = root.querySelector(".sgh-user"); if (u) u.outerHTML = userRow(); } }); paint(); feedCount(); X.unread().then((n) => { if (n && !root.hidden) root.querySelectorAll("[data-bell]").forEach((b) => { const d = b.querySelector(".sgh-dot"); if (d) d.textContent = bellN() > 9 ? "9+" : bellN(); else b.insertAdjacentHTML("beforeend", `<em class="sgh-dot">${bellN()}</em>`); }); }).catch(() => {});
   return {
     show() { root.hidden = false; document.body.classList.remove("sgh-ws"); fresh(); route(); paint(); },
     hide() { root.hidden = true; closePops(); document.body.classList.add("sgh-ws"); },

@@ -136,7 +136,7 @@ export function makeHub(deps) {
   /// own one-letter codes; the server only checks its size and shape — the builder cleans what it places, as always
   function pieceOf(p) {
     if (!p || !Array.isArray(p.cells)) return null; if (JSON.stringify(p).length > HUB.PIECE_BYTES) return null;
-    const cells = []; for (const c of p.cells) { if (!Array.isArray(c) || c.length !== 3) return null; const [x, y, k] = c; if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= HUB.PIECE_W || y >= HUB.PIECE_H || typeof k !== "string" || !/^[a-zA-Z0-9]{1,2}$/.test(k)) return null; cells.push([x, y, k]); }
+    const cells = []; for (const c of p.cells) { if (!Array.isArray(c) || (c.length !== 3 && c.length !== 4)) return null; const [x, y, k, d] = c; if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= HUB.PIECE_W || y >= HUB.PIECE_H || typeof k !== "string" || !/^[a-zA-Z0-9]{1,2}$/.test(k)) return null; cells.push(d === 1 ? [x, y, k, 1] : [x, y, k]); }
     if (cells.length < 2) return null; const w = Math.max(...cells.map((c) => c[0])) + 1, h = Math.max(...cells.map((c) => c[1])) + 1; return { cells, w, h };
   }
   async function sharePiece(w, b) {
@@ -173,7 +173,7 @@ export function makeHub(deps) {
     notify,
     async read(url) {
       const w = url.searchParams.get("world");
-      if (w === "hub-inbox") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!W_RE.test(a)) return json(400, { error: "wallet must be an address" }); const d = (await one(`worldHubInbox/${a}`)) || {}; return json(200, { ok: true, items: d.list || [], seen: d.seen || 0 }); }
+      if (w === "hub-inbox") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!W_RE.test(a)) return json(400, { error: "wallet must be an address" }); const d = (await one(`worldHubInbox/${a}`)) || {}; return json(200, { ok: true, items: d.list || [], seen: d.seen || 0, ...(gm(a) ? { gm: true } : {}) }); }
       if (w === "hub-profile") return profile(url.searchParams.get("h"));
       if (w === "hub-board") { const b = String(url.searchParams.get("b") || ""); if (!HUB.BOARDS.includes(b)) return json(400, { error: "no such board" }); const d = (await one(`worldHubBoard/${b}`)) || {}; return json(200, { ok: true, posts: d.list || [] }, "public, max-age=10"); }
       if (w === "hub-post") { const id = String(url.searchParams.get("id") || ""), p = /^t[a-z0-9]{5,12}$/.test(id) ? await one(`worldHubPost/${id}`) : null; if (!p || p.gone) return json(404, { error: "no such post" }); return json(200, { ok: true, post: { ...postCard(id, p), t: p.t }, replies: (p.replies || []).map(repOut) }); }

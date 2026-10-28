@@ -763,6 +763,7 @@ export function createStudio(ctx) {
     if (!spec.build) spec = clampSpec({ ...spec, build: toBuild(spec) });
     if (el) el.hidden = true; let autoT = 0;
     builder = (bt ? M.createBeatBuilder : rc ? M.createRaceBuilder : jw ? M.createJumpBuilder : ar ? M.createArenaBuilder : td ? M.createTdBuilder : M.createBuilder)({ T, esc, toast: ctx.toast, spec,
+      ...(jw ? { share: async (P) => { const nm = String(P.name || "").slice(0, 30); const r = await act({ action: "world-hub-piece", name: nm.length >= 2 ? nm : T("My piece"), piece: { cells: P.c.map((c) => (c[3] ? [c[0], c[1], c[2], 1] : [c[0], c[1], c[2]])) } }); if (!r) return; ctx.toast(r.ok ? "⇪ " + esc(T("Shared — it's in the Creator Hub's piece market")) : esc((r.j && r.j.error) || T("Couldn't open it — try again"))); } } : {}),
       onDone: (b, sp) => { clearTimeout(autoT); try { localStorage.removeItem(AK); } catch { /* fine */ } spec = clampSpec({ ...spec, ...(sp ? { len: sp.len, coins: sp.coins } : {}), build: b }); lastTest = null; },
       onChange: (b) => { ev("build"); clearTimeout(autoT); autoT = setTimeout(() => { try { localStorage.setItem(AK, JSON.stringify({ tpl: spec.tpl, who, b, at: Date.now() })); } catch { /* full or private */ } }, 1500); },
       onClose: () => { builder = null; if (el) { el.hidden = false; step = 3; paint(); } },

@@ -13,7 +13,7 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
 
 const src = fs.readFileSync(path.join(ROOT, "world-play.js"), "utf8");
 // the modules that take TW from world-play.js (their T is TW): their T("…") literals and the names/lines in their tables
-const MODS = ["world-adcity.js", "world-studio.js", "world-studio-web.js", "world-studio-hub.js", "world-studio-gen.js", "world-agarena.js", "world-studio-prev.js", "world-raidq.js", "world-raidq-data.js", "world-mythic.js", "world-mythic-data.js", "world-skills.js", "world-bridge.js"].map((f) => fs.readFileSync(path.join(ROOT, f), "utf8"));
+const MODS = ["world-adcity.js", "world-studio.js", "world-studio-web.js", "world-studio-hub.js", "world-studio-hubx.js", "world-studio-gen.js", "world-agarena.js", "world-studio-prev.js", "world-raidq.js", "world-raidq-data.js", "world-mythic.js", "world-mythic-data.js", "world-skills.js", "world-bridge.js"].map((f) => fs.readFileSync(path.join(ROOT, f), "utf8"));
 const wsrc = fs.readFileSync(path.join(ROOT, "world-words.js"), "utf8"); // (WORDS moved out of world-play.js for the Studio's web page)
 const words = vm.runInNewContext("(" + wsrc.slice(wsrc.indexOf("const WORDS = {") + "const WORDS = ".length, wsrc.indexOf("\n};", wsrc.indexOf("const WORDS = {")) + 2) + ")");
 // later additions: Object.assign(WORDS.ko, { … });

@@ -237,7 +237,7 @@ async function startApp() {
   try {
     const HUB = await import("./world-studio-hub.js");
     const W = (fn, tab) => workspace(fn, tab);
-    hub = HUB.makeHub({ T, esc, toast, num, ver: new URL(import.meta.url).search, lang: LANG, sess, signIn: () => signIn().then((x) => { paintMe(); if (host) host.studio.load(); return x; }),
+    hub = HUB.makeHub({ T, esc, toast, num, ver: new URL(import.meta.url).search, lang: LANG, sess, signed, signIn: () => signIn().then((x) => { paintMe(); if (host) host.studio.load(); return x; }),
       ws: { open: (t) => W((s) => s.open(t), t), use: (tpl, th) => W((s) => s.useTpl(tpl, th), "make"), edit: (id) => W((s) => s.editId(id), "mine"), local: (id) => W((s) => s.editLocal(id), "make"), play: (id) => W((s) => s.playId(id), "arcade"),
         remix: (id) => W((s) => s.remixId(id), "make"), race: (c) => W((s) => { s.open("arcade"); return s.raceJoin(c); }, "arcade"), quick: () => W((s) => { s.open("arcade"); return s.raceQuick(); }, "arcade") } });
     mark("sg:hub"); const b0 = document.querySelector(".sga-boot"); if (b0) b0.remove();
