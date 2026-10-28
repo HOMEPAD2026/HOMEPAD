@@ -637,14 +637,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 /* the owner's PLAY FREE / BUILD FREE art as the hero and closing buttons (2026-10-28): idle float, breathing glow, a light
    sweep clipped to the button's own shape, twinkling sparkles, a lift + tilt on hover, a squash and a burst on press */
-.gw-ibtns { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 18px; width: 100%; }
-.gw-ibtn { position: relative; display: block; width: min(380px, 44vw); aspect-ratio: 960 / 287; border-radius: 999px; -webkit-tap-highlight-color: transparent; outline: none; animation: gw-ifloat 4.2s ease-in-out infinite; }
+.gw-ibtns { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 18px; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; }
+.gw-ibtn { position: relative; display: block; flex: 0 1 380px; width: 380px; min-width: 0; height: auto; align-self: center; padding: 0; border-radius: 999px; line-height: 0; -webkit-tap-highlight-color: transparent; outline: none; animation: gw-ifloat 4.2s ease-in-out infinite; }
 .gw-ibtn-build { animation-delay: -2.1s; }
-.gw-ibtn-in { position: absolute; inset: 0; display: block; transition: transform .28s cubic-bezier(.2, .9, .3, 1.4), filter .28s; filter: drop-shadow(0 10px 22px var(--ig)) drop-shadow(0 0 14px var(--ig2)); animation: gw-iglow 2.8s ease-in-out infinite; }
+.gw-ibtn-in { position: relative; display: block; transition: transform .28s cubic-bezier(.2, .9, .3, 1.4), filter .28s; filter: drop-shadow(0 10px 22px var(--ig)) drop-shadow(0 0 14px var(--ig2)); animation: gw-iglow 2.8s ease-in-out infinite; }
 .gw-ibtn-play { --ig: rgba(30, 110, 255, .45); --ig2: rgba(70, 200, 255, .55); --im: url(/images/gw/btn-play-520.webp); }
 .gw-ibtn-build { --ig: rgba(20, 170, 80, .45); --ig2: rgba(80, 255, 150, .5); --im: url(/images/gw/btn-build-520.webp); }
 .gw-ibtn-build .gw-ibtn-in { animation-delay: -1.4s; }
-.gw-ibtn img { display: block; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+.gw-ibtn img { display: block; width: 100%; height: auto; max-width: none; object-fit: contain; pointer-events: none; user-select: none; } /* (the picture sets the height: an aspect-ratio box was stretched tall on Samsung Internet) */
 .gw-ibtn-sh { position: absolute; inset: 0; -webkit-mask: var(--im) center / 100% 100% no-repeat; mask: var(--im) center / 100% 100% no-repeat; background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .7) 49%, rgba(255, 255, 255, .15) 54%, transparent 62%) no-repeat; background-size: 260% 100%; background-position: 140% 0; mix-blend-mode: screen; animation: gw-isweep 3.8s ease-in-out infinite; pointer-events: none; }
 .gw-ibtn-build .gw-ibtn-sh { animation-delay: 1.9s; }
 .gw-ibtn-sp { position: absolute; inset: -8% -2%; pointer-events: none; }
@@ -665,5 +665,5 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes gw-iburst { 0% { opacity: 1; box-shadow: 0 0 0 0 var(--ig2); } 100% { opacity: 0; box-shadow: 0 0 0 26px rgba(0, 0, 0, 0); } }
 @keyframes gw-ifly { 0% { opacity: 1; transform: translate(0, 0) scale(1.2); } 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(.2); } }
 .gw-cta-btns .gw-ibtns { flex: 1 0 100%; }
-@media (max-width: 640px) { .gw-ibtns { flex-wrap: nowrap; gap: 8px; } .gw-ibtn { width: 48%; max-width: 230px; } .gw-ibtn-sp b { width: 5px; height: 5px; } }
+@media (max-width: 640px) { .gw-ibtns { gap: 8px; padding: 0 8px; } .gw-ibtn { flex: 1 1 0; width: auto; } .gw-ibtn-sp b { width: 5px; height: 5px; } }
 @media (prefers-reduced-motion: reduce) { .gw-ibtn, .gw-ibtn-in, .gw-ibtn-sh, .gw-ibtn-sp b { animation: none !important; } .gw-ibtn-sp b { opacity: 0; } }
