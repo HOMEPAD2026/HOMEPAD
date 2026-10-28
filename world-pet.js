@@ -255,6 +255,8 @@ export function createPets(ctx) {
     mods: () => M, active, title: titleOf, level: lvOf,
     /// the active pet's id once it's drawn
     id: () => (h ? curId : legacy.visible() ? legacy.id() : null),
+    /// a copy of the drawn pet's body (OBBY: it follows your hero in a Studio game)
+    bodyClone: () => (body ? (K.skelClone ? K.skelClone(body) : body.clone(true)) : null),
     visible: () => !!h || legacy.visible(),
     /// how far a collector pulls street items and opens chests (m); 0 for the others
     pull: () => (M.pull && (h || legacy.visible()) ? M.pull : 0),

@@ -45,7 +45,7 @@
 //            worldStudioAi/<wallet>_<day> { n } · worldStudioRun/<wallet>_<id>_<t/20s> (create-only: a play counted once in 20 s)
 //            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
 //            worldStudioHandle/<h> { w, at, moved? } (create-only; an old ID keeps pointing to its owner's new one) · worldStudioHandleOf/<wallet> { h, n, old }
-import { clampSpec, genLevel, scoreOf, speedOf, dashSpeed, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore } from "./_world-studio-gen.mjs";
+import { clampSpec, genLevel, scoreOf, speedOf, dashSpeed, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore, genObbyBuild } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
 /// STB6 (2026-10-27): build together — the owner's code (a day) lets one partner in; whoever holds the pen saves, the pen
@@ -87,6 +87,8 @@ export const OFFICIAL = {
   goffsurv: { tpl: "survival", theme: "lava", title: "Lava Horde", speed: 3, len: 45, coins: 2, walls: 3, gaps: 2, lasers: 1, seed: 6666 }, // (SB-3: the arena's engine, a beat, a race)
   goffbeat: { tpl: "rhythm", theme: "neon", title: "Neon Beat", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 1280 },
   goffrace: { tpl: "race", theme: "ice", title: "Glacier Grand Prix", speed: 3, len: 45, coins: 3, walls: 2, gaps: 2, lasers: 1, seed: 2424 },
+  goffobby: { tpl: "obby", theme: "neon", title: "Neon Sky Obby", speed: 3, len: 60, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 2828 }, // (OBBY 2026-10-28: the 3D course)
+  goffobbyb: { tpl: "obby", theme: "lava", title: "Dragon Tower Obby", speed: 3, len: 60, coins: 3, walls: 3, gaps: 1, lasers: 2, seed: 3939, build: genObbyBuild(clampSpec({ tpl: "obby", theme: "lava", speed: 3, len: 60, coins: 3, walls: 3, gaps: 1, lasers: 2, seed: 3939 }), { boss: 1, shop: 1, doors: 1, elevator: 1, look: "sunset" }) },
 };
 const OFF_AT = Date.UTC(2026, 9, 26);
 // the web (2026-10-26, the owner: "유저가 게임을 만들면 우리 웹 /game 뒤로 유저 이름 해서 실제 연동"): a creator picks an ID and
@@ -126,7 +128,7 @@ export function makeStudio(deps) {
   const day = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
   /// RM1 (2026-10-27): a name for someone who never picked one — "Creator 8DF0" from their wallet, never "?" or a row of "Player"
   const nameFor = async (w) => String((await deps.nameOf(w).catch(() => "")) || "").trim().slice(0, 20) || "Creator " + String(w || "").slice(2, 6).toUpperCase();
-  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.dl ? { dl: g.dl } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(g.th ? { th: g.th } : {}), ...(g.rx ? { rx: g.rx } : {}), ...(g.cmts ? { cmts: g.cmts } : {}), ...(own && g.co && g.co.length ? { co: { name: g.coName || "", n: g.co.length, owner: g.byName || "", pen: g.pen && now() - g.pen.at < CO.PEN_MS ? { w: g.pen.w, name: g.pen.name } : null, by: g.lastBy || "" } } : {}), ...(own && g.coCode && g.coExp > now() && (g.co || []).length < CO.TEAM - 1 ? { coCode: g.coCode } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
+  const pubOf = (id, g, full, own) => ({ ...(own ? { vers: (g.vers || []).map((v) => ({ at: v.at, spec: v.spec })), ...(g.stats ? { stats: g.stats } : {}), ...(g.dl ? { dl: g.dl } : {}), ...(g.fb ? { fb: g.fb } : {}), ...(g.reports ? { reports: g.reports } : {}) } : {}), ...(g.hidden ? { hidden: true } : {}), id, title: g.spec.title, tpl: g.spec.tpl, theme: g.spec.theme, byName: g.byName || "", plays: g.plays || 0, likes: g.likes || 0, at: g.at, pub: !!g.pub, ...(g.official ? { off: true } : {}), ...(g.from ? { from: g.from, ...(g.root && g.root.id !== g.from.id ? { root: g.root } : {}) } : {}), ...(g.remixes ? { remixes: g.remixes } : {}), ...(g.th ? { th: g.th } : {}), ...(g.rx ? { rx: g.rx } : {}), ...(g.cmts ? { cmts: g.cmts } : {}), ...(own && g.co && g.co.length ? { co: { name: g.coName || "", n: g.co.length, owner: g.byName || "", pen: g.pen && now() - g.pen.at < CO.PEN_MS ? { w: g.pen.w, name: g.pen.name } : null, by: g.lastBy || "" } } : {}), ...(own && g.coCode && g.coExp > now() && (g.co || []).length < CO.TEAM - 1 ? { coCode: g.coCode } : {}), ...(full ? { spec: g.spec, best: (g.best || []).map((x) => ({ name: x.name, score: x.score, ...(x.gh ? { gh: 1 } : {}) })) } : {}) });
   // STB5 (2026-10-27): who's playing what right now — each counted run's time kept 15 minutes, per game (≤ 20 a game,
   // ≤ 60 games); the arcade's list carries the count of the last 10 minutes as "now"
   const NOW_KEEP = 15 * 60e3, NOW_WIN = 10 * 60e3;
@@ -300,8 +302,9 @@ export function makeStudio(deps) {
     }
     if (ids.length >= STUDIO.DRAFTS) return json(400, { error: `you can keep ${STUDIO.DRAFTS} games — delete one first` });
     const id = "g" + String(deps.randomId()).replace(/[^a-z0-9]/gi, "").slice(0, 10).toLowerCase(), g = { w, byName: await nameFor(w), spec, pub: false, at: now(), up: now(), plays: 0, likes: 0, best: [] };
-    if (b.from && /^g[a-z0-9]{2,12}$/.test(String(b.from))) { const src = await game(String(b.from)); if (src && src.pub && !src.gone) { g.from = { id: String(b.from), title: src.spec.title, byName: src.byName || "" }; src.remixes = (src.remixes || 0) + 1; if (!src.official || (await one(`worldStudio/${b.from}`))) await setDoc(`worldStudio/${b.from}`, src); } } // (STU-C: a remix keeps where it came from)
+    if (b.from && /^g[a-z0-9]{2,12}$/.test(String(b.from))) { const src = await game(String(b.from)); if (src && src.pub && !src.gone) { g.from = { id: String(b.from), title: src.spec.title, byName: src.byName || "" }; g.fromW = src.w; g.root = src.root || { id: String(b.from), title: src.spec.title, byName: src.byName || "" }; g.rootW = src.rootW || src.w; src.remixes = (src.remixes || 0) + 1; if (!src.official || (await one(`worldStudio/${b.from}`))) await setDoc(`worldStudio/${b.from}`, src); } } // (STU-C: a remix keeps where it came from)
     await setDoc(`worldStudio/${id}`, g); await setDoc(`worldStudioBy/${w}`, { ids: [...ids, id] });
+    if (g.from && deps.remixed) await deps.remixed(id, g).catch(() => {}); // (OBBY 2026-10-28: the remix tree, api/_world-studiox.mjs)
     return json(200, { ok: true, game: pubOf(id, g, true) });
   }
   // STB7 (2026-10-27): the card's picture, made once by the maker's page when it publishes or saves (a small JPEG / WebP),
@@ -385,6 +388,7 @@ export function makeStudio(deps) {
     if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); await dayBump(b.id, g, 1, 0).catch(() => {}); await seasonBump(g, 1, 0).catch(() => {});
       if (!g.official) { const d0 = day(now()), dl = { ...(g.dl || {}) }; dl[d0] = (dl[d0] || 0) + 1; g.dl = Object.fromEntries(Object.entries(dl).sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, SEASON.DL)); } } /* (RM5: the season, the maker's daily plays) */
     if (counted) await nowBump(b.id).catch(() => {}); // (STB5: "playing now" on the portals and cabinets)
+    if (counted && g.w !== w && g.from && deps.remixPlay) await deps.remixPlay(b.id, g).catch(() => {}); // (OBBY: a remix's play counts for its original too)
     const name = await nameFor(w), best = (g.best || []).filter((x) => x.w !== w), mine0 = (g.best || []).find((x) => x.w === w);
     const tr = traceOf(b.trace), better = !(mine0 && mine0.score >= score);
     const top = better ? { w, name, score, ...(tr ? { gh: 1 } : {}) } : mine0;
@@ -597,6 +601,7 @@ export function makeStudio(deps) {
   }
 
   return {
+    callAI, // (OBBY: the director in api/_world-studiox.mjs asks the same model)
     async read(url) {
       const w = url.searchParams.get("world");
       if (w === "studio-arcade") { const d = (await one("worldStats/studioArcade")) || {}, list = { ...(d.list || {}) };

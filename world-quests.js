@@ -65,6 +65,7 @@ export const ACH = [
   { id: "raid1", name: "Raid breaker", line: "Help bring down a weekly raid boss", ev: "raid", n: 1, title: "Raid Breaker" },
   { id: "quiz", name: "Scam spotter", line: "Answer 25 quiz questions right", ev: "quizOk", n: 25, title: "Scam Spotter" },
   { id: "cctut", name: "First game", line: "Finish the Creator tutorial in Creator City", ev: "cctut", n: 1, title: "Rookie Creator" }, // 2026-10-26
+  { id: "obcourse", name: "3D Builder", line: "Finish the Studio course Obby 101", ev: "obcourse", n: 1, title: "3D Builder" }, // 2026-10-28 (OBBY)
   { id: "starter", name: "First day", line: "Finish every step of \"Your first 5 minutes\"", ev: "starter", n: 5, title: "Starter" }, // b-st3
   // the far ring: in each ground, knock out 30 scammers, beat its boss and catch its fish (three steps)
   { id: "gpeaks", name: "Peak warden", line: "In Ponzi Peaks: 30 knock-outs, its boss, its fish", ev: "ground", zone: "peaks", fish: "cod", n: 3, title: "Peak Warden" },

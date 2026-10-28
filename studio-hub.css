@@ -602,3 +602,11 @@ html[data-ht=light] .sgh-foot{background:var(--h-s2)}
 html[data-ht=light] .sgh-h1 span:last-child{background:linear-gradient(92deg,#111821 10%,#0b6f64 45%,var(--h-acc) 70%,var(--h-acc2));-webkit-background-clip:text;background-clip:text}
 html[data-ht=light] .sgh-lead,html[data-ht=light] .sgh-ban p{color:var(--h-ink2)}
 html[data-ht=light] .sgh-hero .sgh-btn:not(.pri){background:#fff}
+/* OBBY (2026-10-28): the remix tree on a game's page */
+.sgx-tree{list-style:none;margin:10px 0;padding:0 0 0 14px;border-left:2px solid var(--h-line2,rgba(255,255,255,.14));display:grid;gap:8px}
+.sgx-tree li{position:relative;padding:8px 12px;border-radius:10px;background:var(--h-s2,rgba(255,255,255,.04));border:1px solid var(--h-line,rgba(255,255,255,.08))}
+.sgx-tree li::before{content:"";position:absolute;left:-15px;top:50%;width:13px;height:2px;background:var(--h-line2,rgba(255,255,255,.14))}
+.sgx-tree li.root{border-color:rgba(230,195,106,.55)}.sgx-tree li.root b::after{content:" ★";color:#e6c36a}
+.sgx-tree li.me{border-color:rgba(79,227,193,.6);background:rgba(79,227,193,.08)}
+.sgx-tree a{color:inherit;text-decoration:none;display:grid;gap:2px}.sgx-tree small{color:var(--h-ink3,#8b96a3)}
+.sgx-tree.kids{border-left-style:dashed}

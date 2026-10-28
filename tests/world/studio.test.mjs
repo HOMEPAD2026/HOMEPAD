@@ -176,7 +176,7 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   await call(mk, "world-studio-del", { id: a }); await call(mk, "world-studio-del", { id: b2 }); }
 // STU-A: the official games — listed from the start, one a template, playable and likeable, never anyone's to change
 { const { OFFICIAL } = await import("../../api/_world-studio.mjs"); const arc = await get("studio-arcade"), off = arc.games.filter((g) => g.off);
-  check(off.length === 15 && new Set(off.map((g) => g.tpl)).size === 15 && off.every((g) => g.byName === "ARCIRCLE" && g.s && g.s.tpl === g.tpl), "fifteen official games on the arcade, one a template, each with its small spec");
+  check(off.length === 17 && new Set(off.map((g) => g.tpl)).size === 16 && off.every((g) => g.byName === "ARCIRCLE" && g.s && g.s.tpl === g.tpl), "seventeen official games on the arcade (every template, Obby World twice), each with its small spec");
   const g1 = (await get("studio-game&id=goffrun")).game; check(g1 && g1.off && g1.spec && g1.spec.title === OFFICIAL.goffrun.title, "an official game opens");
   const L = G.genLevel(g1.spec), r1 = await call(fan, "world-studio-play", { id: "goffrun", coins: 2, dist: L.len, done: true }); check(r1.status === 200 && r1.body.score > 0 && r1.body.place === 1, "an official game is played and scored (#" + r1.body.place + ")");
   const r2 = await call(fan, "world-studio-like", { id: "goffrun" }); check(r2.status === 200 && r2.body.likes === 1, "an official game can be liked");

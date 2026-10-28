@@ -70,6 +70,7 @@ const TDESC = {
 };
 // the Studio's releases (newest first) — the same items /game's news carries
 const UPDATES = [
+  { d: "2026-10-28", tag: "New", img: "/images/gw/news/obby-world.webp", t: "Obby World — the 3D template", b: "Build in a 3D editor (move, turn, size), with smart pieces that just work — doors and buttons, elevators, teleporters, a shop, a boss — logic rules or a short script, one-tap pro looks, a UI kit and cinematics. Tell the Director a game in one sentence; play every course as your own hero." },
   { d: "2026-10-28", tag: "New", img: "/images/gw/news/creator-hub-2.webp", t: "Creator Hub 2", b: "Creator profiles, a forum, one place for your notifications, a full page for every game with an A/B difficulty test and patch notes, a weekly report card to share, Jump World pieces from other creators, sponsor contests, teams of up to 4 and a light mode." },
   { d: "2026-10-28", tag: "New", img: "/images/studio/hub/create-768.webp", t: "The Creator Hub", b: "ARCIRCLE Studio on the web has a front page and menus of its own: your creations, analytics, guides, a store of templates and themes, the community and rewards — on a computer and on a phone." },
   { d: "2026-10-28", tag: "Studio", img: "/images/gw/news/studio-next.webp", t: "Play on, tune with AI, clip it", b: "After a run the next game starts by itself, the test players' report says what ends most runs (with a fix button), auto-tune aims at the clear rate you want, and a 6-second clip of your game is one tap away." },

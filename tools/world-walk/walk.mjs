@@ -94,6 +94,15 @@ for (const dev of (process.env.DEVS ?? "phone,desk").split(",").filter(Boolean))
   // a share card
   await G(() => window.arcWorld.share({ kind: "surv", tag: "SURVIVORS ARENA", title: "VICTORY", sub: "ARON", emoji: "⚔️", rows: [["Time", "12:00", "⏱️"]] })); await p.waitForTimeout(2500);
   check(await G(() => { const i = document.querySelector(".wp-share-img"); return !!(i && i.naturalWidth === 1200); }), `${dev}: a share card (1200×630)`); await shot("share");
+  // OBBY WORLD (2026-10-28): a 3D course in the World — the hero walks with a walk clip, and leaving gives the town back
+  await G(() => document.querySelectorAll(".wp-share .wp-st-x, .wp-share-x").forEach((c) => c.click()));
+  await G(() => window.arcWorld.openStudio()); for (let i = 0; i < 30 && !(await G(() => !!window.__studio)); i++) await p.waitForTimeout(500);
+  await G(() => window.__studio.playId("goffobby")); for (let i = 0; i < 60 && !(await G(() => { const r = window.__studio.playing(); return !!(r && r.S && r.S.t > 0.3); })); i++) await p.waitForTimeout(500);
+  await G(() => { const r = window.__studio.playing(); if (r) r.keys.add("w"); }); await p.waitForTimeout(700);
+  const obc = await G(() => { const r = window.__studio.playing(); return r ? r.clips() : null; }); await shot("obby");
+  check(!!obc && obc.some((c) => /walk|run/i.test(c)), `${dev}: Obby World runs in the World, the hero walks (${(obc || []).join(" ")})`);
+  await G(() => { const r = window.__studio.playing(); if (r) { r.keys.clear(); r.leave(); } window.__studio.close && window.__studio.close(); }); await p.waitForTimeout(1500);
+  check(!(await G(() => !!window.__studio.playing())), `${dev}: leaving the course ends the run`);
   check(!errs.length, `${dev}: no page errors or server failures${errs.length ? " — " + errs.slice(0, 3).join(" | ") : ""}`);
   if (refusals.length) console.log("note", dev, "API refusals (4xx):", [...new Set(refusals)].slice(0, 8).join(" | "));
   await p.close();

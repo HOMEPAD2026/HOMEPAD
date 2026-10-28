@@ -73,6 +73,19 @@ export function makePreview({ THREE, w = 640, h = 300, ver = "", low = false }) 
       for (const q of L.B.w) { const m = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 7, 12), std(th.wall, { emissive: th.wall, emissiveIntensity: 0.3 })); m.position.set(q[0], 3.5, q[1]); sc.add(m); }
       return { sc, tick(t) { const n = L.B.r.length, f = (t * 0.35) % n, i = Math.floor(f), a = L.B.r[i], c = L.B.r[(i + 1) % n], k = f - i, x = a[0] + (c[0] - a[0]) * k, z = a[1] + (c[1] - a[1]) * k, h = Math.atan2(c[0] - a[0], c[1] - a[1]); cam.position.set(x - Math.sin(h) * 12, 6, z - Math.cos(h) * 12); cam.lookAt(x + Math.sin(h) * 8, 1.5, z + Math.cos(h) * 8); rs.forEach((m) => { m.rotation.z = t; }); } };
     }
+    if (spec.tpl === "obby") { // (OBBY 2026-10-28: the 3D course from above and around — the camera circling it; the arcade card's picture and the trailer)
+      const B = L.B, box = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), cyl = new THREE.CylinderGeometry(0.5, 0.5, 1, 20).translate(0, 0.5, 0), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), by = new Map();
+      const LKC = { day: [0x5fb8ff, 0xdff3ff], sunset: [0x3a4a9a, 0xffa860], night: [0x050a1e, 0x1c2a5a], mist: [0x6a7a90, 0xb8c4d0], toon: [0x7fd8ff, 0xfff0fa], space: [0x02030a, 0x140a2a], cine: [0x1a2a3a, 0x8a9aa0] }[B.lk] || [0x5fb8ff, 0xdff3ff];
+      sc.background = new THREE.Color(LKC[1]).lerp(new THREE.Color(LKC[0]), 0.4); sc.fog = new THREE.Fog(new THREE.Color(LKC[1]).getHex(), 60, 260);
+      const COLS = [0x5fd3ff, 0x7cf5c8, 0xffd23a, 0xff6fae, 0xb48cff, 0xff7a2e, 0xeef4fb, 0x3a4a6a, 0x39c46a, 0x9b6b3a, 0x1a2238, 0xff3b5c], KC = { k: 0xff4d1a, s: 0xff3b5c, c: 0x7cf5c8, S: 0x5fd3ff, g: 0xffd23a, o: 0xffd23a, h: 0xff3b5c, d: 0xb48cff, u: 0xff3b5c, t: 0xb48cff, n: 0xffb02e, B: 0xff3b5c, p: 0x7cf5c8, x: 0x39c46a, X: 0x39c46a };
+      for (const o of B.o) { const k = o[0], round = k === "y" || k === "c" || k === "S" || k === "g" || k === "p" || k === "u" || k === "t", col = KC[k] || COLS[o[8]] || 0xeef4fb, key = (round ? "c" : "b") + col; if (!by.has(key)) by.set(key, { round, col, list: [] }); by.get(key).list.push(o); }
+      let cx = 0, cz = 0, cy = 0, ext = 10; if (B.o.length) { const xs = B.o.map((o) => o[1]), zs = B.o.map((o) => o[3]); cx = (Math.min(...xs) + Math.max(...xs)) / 2; cz = (Math.min(...zs) + Math.max(...zs)) / 2; cy = B.o.reduce((a, o) => a + o[2], 0) / B.o.length; ext = Math.max(12, Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)); }
+      for (const { round, col, list } of by.values()) { const glowy = col === 0xff4d1a || col === 0xffd23a || col === 0x7cf5c8, im = new THREE.InstancedMesh(round ? cyl : box, std(col, glowy ? { emissive: col, emissiveIntensity: 0.5 } : {}), list.length);
+        list.forEach((o, i) => { e.set(0, (o[4] * Math.PI) / 180, 0); q.setFromEuler(e); const sm = o[0] === "o" || o[0] === "h" ? 0.8 : 1; mt.compose(new THREE.Vector3(o[1], o[2] + (o[0] === "o" ? 0.4 : 0), o[3]), q, new THREE.Vector3(o[5] * sm, o[6] * sm, (round ? o[5] : o[7]) * sm)); im.setMatrixAt(i, mt); }); sc.add(im); }
+      if (B.bp) { const bp = new THREE.Mesh(new THREE.BoxGeometry(160, 1, 160), std(0x7a8a9a, { roughness: 0.9 })); bp.position.y = -0.5; sc.add(bp); }
+      const ob = bot(sc), st = B.o.find((o) => o[0] === "S"); if (st) ob.position.set(st[1], st[2] + 0.7, st[3]);
+      return { sc, tick(t) { const a = t * 0.25, r = ext * 0.75 + 8; cam.position.set(cx + Math.sin(a) * r, cy + ext * 0.45 + 6, cz + Math.cos(a) * r); cam.lookAt(cx, cy, cz); ob.rotation.y = a + Math.PI; } };
+    }
     if (JUMPS[spec.tpl]) { // (SB-2 JUMP WORLD and its modes: the level from the side, the camera panning along it)
       const dark = spec.tpl === "dungeon" || spec.tpl === "mining", B = L.B, box = new THREE.BoxGeometry(1, 1, 1.6), mt = new THREE.Matrix4(), by = {};
       if (dark) { sc.background = new THREE.Color(0x0b0a14); sc.fog = new THREE.Fog(0x0b0a14, 18, 60); }

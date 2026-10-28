@@ -11,8 +11,8 @@ export const XSUBS = { forum: [["show", "Show & tell"], ["help", "Feedback"], ["
 const BANNERS = ["create", "community", "learn", "store", "rewards", "updates"]; // (= api/_world-hub.mjs HUB.BANNERS, the hub's Meshy banners)
 const BADGE = { p100: "100 plays", p1k: "1,000 plays", p10k: "10,000 plays", l10: "10 likes", l100: "100 likes", g3: "3 games", g10: "10 games" };
 const KIND = { cmt: ["chat", "{by} commented on {t}"], fan: ["users", "{by} started following you"], beat: ["trophy", "{by} took #1 on {t}"], team: ["users", "{by} joined your team on {t}"],
-  reply: ["chat", "{by} replied to “{t}”"], use: ["grid", "{by} added your piece “{t}”"], note: ["mega", "{by} posted an update to {t}"], rank: ["flag", "{t} is #{n} in this week's contest"] };
-const IFILT = [["all", "All"], ["cmt", "Comments"], ["fan", "Followers"], ["beat", "Records"], ["team", "Team"], ["reply", "Forum"], ["rank", "Contest"]];
+  reply: ["chat", "{by} replied to “{t}”"], use: ["grid", "{by} added your piece “{t}”"], note: ["mega", "{by} posted an update to {t}"], rank: ["flag", "{t} is #{n} in this week's contest"], remix: ["grid", "{by} remixed {t}"] };
+const IFILT = [["all", "All"], ["cmt", "Comments"], ["fan", "Followers"], ["beat", "Records"], ["team", "Team"], ["reply", "Forum"], ["rank", "Contest"], ["remix", "Remixes"]];
 const AB_K = ["speed", "walls", "gaps", "lasers", "coins"], AB_R = { speed: [1, 5], coins: [0, 5], walls: [0, 5], gaps: [0, 3], lasers: [0, 3] }; // (= world-studio-gen.js clampBase)
 
 export function makeHubX(c) {
@@ -128,7 +128,7 @@ export function makeHubX(c) {
   }
 
   // ---------------- a game's full page ----------------
-  const GTABS = [["about", "About"], ["rank", "Ranking"], ["cmts", "Comments"], ["notes", "Updates"], ["ab", "A/B test"]];
+  const GTABS = [["about", "About"], ["rank", "Ranking"], ["cmts", "Comments"], ["notes", "Updates"], ["tree", "Remix tree"], ["ab", "A/B test"]];
   /// the header straight away from what the card knew (the card → page morph needs it on the first frame)
   function gameHead(g) {
     return `<section class="sgx-ghero${g.tmp ? " tmp" : ""}" style="--art:url('${esc(c.cover(g))}')"><div class="sgx-gbg"></div><img class="sgx-gcov" src="${esc(c.cover(g))}" alt="" width="640" height="366" onerror="this.src='${c.art(g.tpl, 768)}'">
@@ -165,6 +165,11 @@ export function makeHubX(c) {
       return `${own || team ? `<div class="sgx-rbox" data-xform="note"><textarea name="t" maxlength="280" rows="2" placeholder="${esc(T("What changed? Your followers see it in their feed."))}"></textarea><button type="button" class="sgh-btn pri" data-xnote="${esc(id)}">${ic("mega", "sm")} ${esc(T("Post update"))}</button></div>` : ""}
         <ol class="sgx-notes">${N.map((n) => `<li><time>${esc(new Date(n.at).toISOString().slice(0, 10))}</time><p>${esc(n.t)}</p><small>${esc(n.name || "")}</small></li>`).join("") || `<li class="none"><p class="sgh-fine">${esc(T("No updates posted yet."))}</p></li>`}</ol>
         ${V.length ? `<h4>${esc(T("Saved versions"))}</h4><ul class="sgx-facts">${V.map((v, i) => `<li><span>${esc(T("Version {n}", { n: V.length - i }))}</span><b>${esc(new Date(v.at).toISOString().replace("T", " ").slice(0, 16))}</b></li>`).join("")}</ul><p class="sgh-fine">${esc(T("Bring an older version back from the Studio's Versions list."))}</p>` : ""}`; }
+    if (tb === "tree") { const r = await c.get("rt:" + id, "/api/social?world=studio-remixes&id=" + id, 30e3), ch = (r && r.chain) || [], K = (r && r.kids) || []; // (OBBY 2026-10-28: where it came from and what came of it)
+      const node = (x, cls) => `<li class="${cls}"><a href="?p=game&id=${esc(x.id)}" data-xgame="${esc(x.id)}"><b>${esc(x.title || T("A game"))}</b><small>${esc(T("by {n}", { n: x.byName || T("A creator") }))}${x.plays ? " · ▶ " + num(x.plays) : ""}</small></a></li>`;
+      return `<p class="sgh-fine">${esc(T("A remix keeps its original maker's name, and every play of a remix counts for the original too — the record a share of remix earnings will be read from."))}</p>
+        <ol class="sgx-tree">${ch.slice().reverse().map((x, i) => node(x, i === 0 ? "root" : "up")).join("")}<li class="me"><b>${esc(g.title || "")}</b><small>${esc(T("this game"))}${r && r.rx ? " · " + esc(T("{n} plays through its remixes", { n: num(r.rx) })) : ""}</small></li></ol>
+        ${K.length ? `<h4>${esc(T("Remixes of this game"))}</h4><ul class="sgx-tree kids">${K.map((x) => node(x, "kid")).join("")}</ul>` : `<p class="sgh-fine">${esc(T("No remixes yet — remix it and make it yours."))}</p>`}`; }
     if (tb === "ab") return sp ? abHtml(id, sp) : `<p class="sgh-fine">${esc(T("Couldn't open it — try again"))}</p>`;
     return "";
   }

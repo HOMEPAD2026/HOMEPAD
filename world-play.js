@@ -5951,6 +5951,8 @@ async function openStudio(tab) {
       studio = M.createStudio({ THREE, K, st, T: TW, esc, toast, Snd, reduce, ver: VER, webLink: true, tx: (to, data) => walletTx(to, data), isGM: () => !!(agentDim && agentDim.state() && agentDim.state().gm), guide: (k) => openAdGuide(k), low: lowGfx, saver: S.quality === "saver", coarse, myName: () => P.name || "", rings: () => ensureRings(), sess, post, signIn: () => signIn(),
         makeHero: () => K.makeCharacter(heroOf(P.char || "custom-aron"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         myChar: () => P.char || "custom-aron", makeHeroOf: (id) => K.makeCharacter(heroOf(id), VER), /* (WS4: the other racers in a live race) */
+        heroGear: () => (rpg && rpg.worn ? rpg.worn() : []).filter((x) => x.bone).map((x) => ({ bone: x.bone, obj: x.g.clone(true) })), petBody: () => (pet && pet.bodyClone ? pet.bodyClone() : null), /* (OBBY: your gear and pet in a Studio game) */
+        reward: (xp, why, ach) => { try { gain(xp, why); if (ach && quests) quests.bump(ach); } catch { /* the next time */ } }, buzz: (n) => { try { buzz(n); } catch { /* no vibration */ } },
         agentName: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.name : ""; } catch { return ""; } },
         share: (c) => bragCard(c),
         land: stuLand, onEvent: (k) => { ccStep(k); if (k === "rate") ccStep("play"); if (k === "publish") { ccGamesAt = 0; setTimeout(() => { try { ccGames(); } catch { /* the next look */ } }, 2500); } } /* STB4: a published game shows on Creator City's portals without waiting two minutes */, soundOn: () => S.sound !== false,

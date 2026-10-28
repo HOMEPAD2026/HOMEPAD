@@ -1085,7 +1085,7 @@ export function createRpg(ctx) {
   el.addEventListener("keydown", (e) => { if (e.target && e.target.matches && e.target.matches("input,textarea")) { e.stopPropagation(); if (e.key === "Escape") e.target.blur(); return; } e.stopPropagation(); const k = String(e.key || "").toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
 
   return {
-    stats, swing, tickSwing, addItem, wear, repair: repairPiece, applyRepair, freshN: () => fresh.size, upN: () => ups().size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),
+    stats, swing, tickSwing, addItem, wear, repair: repairPiece, applyRepair, worn: () => worn.map((g) => ({ bone: g.parent ? g.parent.name : "", g })), /* (OBBY: what you wear, copied onto your hero in a Studio game) */ freshN: () => fresh.size, upN: () => ups().size, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg, thumb: (it) => pic(it),
     /// supplies the server handed out (the mine's smelter, the welcome week): potions, scrap or recall scrolls into the save
     addSupply: (kind, n) => { if (!/^(hp|sp|recall|scrap)$/.test(String(kind)) || !(n > 0)) return false; R()[kind] = (R()[kind] || 0) + Math.floor(n); ctx.save(); return true; },
     potions: () => ({ hp: R().hp, sp: R().sp, recall: R().recall }), useRecall: () => { const r = R(); if (!(r.recall > 0)) return false; r.recall--; ctx.save(); return true; },
