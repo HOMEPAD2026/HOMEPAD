@@ -97,4 +97,5 @@ const full = await call(fan, "world-studio-co-join", { code }); check(full.statu
 await call(b3, "world-studio-co-leave", { id }); g = db.get(`worldStudio/${id}`); check(g.co.length === 2 && !g.co.includes(lc(b3)) && !/,.*,/.test(g.coName), "a member leaving leaves the others");
 await call(me, "world-studio-co-leave", { id }); g = db.get(`worldStudio/${id}`); check(!g.co.length, "the owner leaving ends the team");
 
+check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: worldHubPieces once was one)");
 console.log(`\n${ok} pass ${bad} fail`); process.exit(bad ? 1 : 0);

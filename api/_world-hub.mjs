@@ -144,21 +144,21 @@ export function makeHub(deps) {
     if (!(await gap(w))) return json(429, { error: "a moment before the next share" });
     const id = rid("p"), by = await nameFor(w), doc = { name, by, ...pc, own: w, tpl: "jump", uses: 0, at: now() }; // (own: the maker — w is the width)
     await setDoc(`worldHubPiece/${id}`, doc);
-    const d = (await one("worldHubPieces")) || {}; await setDoc("worldHubPieces", { list: [{ id, name, by, w: pc.w, h: pc.h, tpl: "jump", uses: 0, at: doc.at }, ...(d.list || [])].slice(0, HUB.PIECES) });
+    const d = (await one("worldHub/pieces")) || {}; await setDoc("worldHub/pieces", { list: [{ id, name, by, w: pc.w, h: pc.h, tpl: "jump", uses: 0, at: doc.at }, ...(d.list || [])].slice(0, HUB.PIECES) });
     return json(200, { ok: true, id });
   }
   async function usePiece(w, b) {
     const id = String(b.id || ""), p = P_RE.test(id) ? await one(`worldHubPiece/${id}`) : null; if (!p) return json(404, { error: "no such piece" });
     if (p.own === w || !(await deps.commit([{ create: `worldHubPieceUse/${id}_${w}`, data: { at: now() } }])).ok) return json(200, { ok: true, uses: p.uses || 0 });
     p.uses = (p.uses || 0) + 1; await setDoc(`worldHubPiece/${id}`, p);
-    const d = (await one("worldHubPieces")) || {}; await setDoc("worldHubPieces", { list: (d.list || []).map((x) => (x.id === id ? { ...x, uses: p.uses } : x)) });
+    const d = (await one("worldHub/pieces")) || {}; await setDoc("worldHub/pieces", { list: (d.list || []).map((x) => (x.id === id ? { ...x, uses: p.uses } : x)) });
     await notify(p.own, { kind: "use", t: p.name, by: await nameFor(w), id }); return json(200, { ok: true, uses: p.uses });
   }
 
   // ---------------- sponsor contests (set by a GM) ----------------
   async function sponsor(w, b) {
     if (!gm(w)) return json(403, { error: "GM only" });
-    const d = (await one("worldHubSponsors")) || {}; let list = d.list || [];
+    const d = (await one("worldHub/sponsors")) || {}; let list = d.list || [];
     const id = /^s[a-z0-9]{4,12}$/.test(String(b.id || "")) ? b.id : rid("s");
     if (b.off) list = list.filter((x) => x.id !== id);
     else { const ends = Number(b.ends) || 0; if (ends < now()) return json(400, { error: "the end must be in the future" });
@@ -166,7 +166,7 @@ export function makeHub(deps) {
       const tpl = String(b.tpl || "").replace(/[^a-z]/g, "").slice(0, 12);
       const s = { id, title: line(b.title, 60), partner: line(b.partner, 30), prize: line(b.prize, 60), tpl, ends, url, at: now() }; if (s.title.length < 3) return json(400, { error: "give it a title" });
       list = [s, ...list.filter((x) => x.id !== id)].slice(0, HUB.SPONSORS); }
-    await setDoc("worldHubSponsors", { list }); return json(200, { ok: true, list });
+    await setDoc("worldHub/sponsors", { list }); return json(200, { ok: true, list });
   }
 
   return {
@@ -178,9 +178,9 @@ export function makeHub(deps) {
       if (w === "hub-board") { const b = String(url.searchParams.get("b") || ""); if (!HUB.BOARDS.includes(b)) return json(400, { error: "no such board" }); const d = (await one(`worldHubBoard/${b}`)) || {}; return json(200, { ok: true, posts: d.list || [] }, "public, max-age=10"); }
       if (w === "hub-post") { const id = String(url.searchParams.get("id") || ""), p = /^t[a-z0-9]{5,12}$/.test(id) ? await one(`worldHubPost/${id}`) : null; if (!p || p.gone) return json(404, { error: "no such post" }); return json(200, { ok: true, post: { ...postCard(id, p), t: p.t }, replies: (p.replies || []).map(repOut) }); }
       if (w === "hub-notes") { const id = String(url.searchParams.get("id") || ""); if (!G_RE.test(id)) return json(400, { error: "id" }); const d = (await one(`worldStudioNotes/${id}`)) || {}; return json(200, { ok: true, notes: d.list || [] }, "public, max-age=30"); }
-      if (w === "hub-pieces") { const d = (await one("worldHubPieces")) || {}; return json(200, { ok: true, list: d.list || [] }, "public, max-age=30"); }
+      if (w === "hub-pieces") { const d = (await one("worldHub/pieces")) || {}; return json(200, { ok: true, list: d.list || [] }, "public, max-age=30"); }
       if (w === "hub-piece") { const id = String(url.searchParams.get("id") || ""), p = P_RE.test(id) ? await one(`worldHubPiece/${id}`) : null; if (!p) return json(404, { error: "no such piece" }); return json(200, { ok: true, piece: { id, name: p.name, by: p.by, tpl: p.tpl, w: p.w, h: p.h, cells: p.cells, uses: p.uses || 0 } }); }
-      if (w === "hub-sponsors") { const d = (await one("worldHubSponsors")) || {}; return json(200, { ok: true, list: (d.list || []).filter((s) => s.ends > now()) }, "public, max-age=60"); }
+      if (w === "hub-sponsors") { const d = (await one("worldHub/sponsors")) || {}; return json(200, { ok: true, list: (d.list || []).filter((s) => s.ends > now()) }, "public, max-age=60"); }
       return null;
     },
     async handle(b) {
