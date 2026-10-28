@@ -69,13 +69,13 @@ export async function makeObby(o, env) {
   const cam = new THREE.PerspectiveCamera(LK.fov, innerWidth / innerHeight, 0.1, 900);
   scene.add(new THREE.HemisphereLight(LK.hs, LK.hg, LK.hi)); const sun = new THREE.DirectionalLight(LK.sun, LK.si); sun.position.set(40, LK.sy, 25); scene.add(sun);
   const G = obGeos(THREE), MT = obMats(THREE, th, LK), glow = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, toneMapped: false, depthWrite: op >= 1 });
-  themeLook(THREE, spec.theme, { ver, low }).then((lk) => { if (!scene.userData.live || !lk.wall) return; const t = lk.wall.clone(); t.repeat.set(1, 1); t.needsUpdate = true; MT.setTheme(t); if (bpM && lk.track) { const t2 = lk.track.clone(); t2.repeat.set(40, 40); t2.needsUpdate = true; bpM.map = t2; bpM.color.set(0xffffff); bpM.needsUpdate = true; } }).catch(() => {});
+  themeLook(THREE, spec.theme, { ver, low }).then((lk) => { if (!scene.userData.live || !lk.wall) return; const t = lk.wall.clone(); t.repeat.set(1, 1); t.needsUpdate = true; MT.setTheme(t); if (bpM && lk.track && !low) { const t2 = lk.track.clone(); t2.repeat.set(40, 40); t2.needsUpdate = true; bpM.map = t2; bpM.color.set(0xffffff); bpM.needsUpdate = true; } }).catch(() => {});
   const hidden = new Set(B.hg), Q = new THREE.Quaternion(), E = new THREE.Euler(), M4 = new THREE.Matrix4(), V3 = new THREE.Vector3(), S3 = new THREE.Vector3();
   const mat4 = (x, y, z, ry, sx, sy, sz) => { E.set(0, (ry * Math.PI) / 180, 0); Q.setFromEuler(E); return M4.compose(V3.set(x, y, z), Q, S3.set(sx, sy, sz)); };
   // ---- the baseplate ----
-  let bpM = null; if (B.bp) { bpM = new THREE.MeshStandardMaterial({ color: 0x7a8a9a, roughness: 0.9 }); const bp = new THREE.Mesh(new THREE.BoxGeometry(OB.R * 2 + 20, 1, OB.R * 2 + 20), bpM); bp.position.y = -0.5; scene.add(bp); }
+  let bpM = null; if (B.bp) { bpM = low ? new THREE.MeshLambertMaterial({ color: 0x7a8a9a }) : new THREE.MeshStandardMaterial({ color: 0x7a8a9a, roughness: 0.9 }); /* (low graphics / phones: a plain lit floor — the textured one filled the screen at half the frame rate) */ const bp = new THREE.Mesh(new THREE.BoxGeometry(OB.R * 2 + 20, 1, OB.R * 2 + 20), bpM); bp.position.y = -0.5; scene.add(bp); }
   // ---- the static pieces: one InstancedMesh a shape + material (blocks, round platforms, ramps); the rest one by one ----
-  const solids = [], things = [], inst = new Map(), STATIC = new Set(["b", "y", "r"]), tracked = new Set((B.tk || []).map((t) => t[0]));
+  const coinI = [], gemI = [], solids = [], things = [], inst = new Map(), STATIC = new Set(["b", "y", "r"]), tracked = new Set((B.tk || []).map((t) => t[0]));
   B.o.forEach((q, i) => { const [k, x, y, z, ry, sx, sy, sz, c, a, b, g] = q;
     if (STATIC.has(k) && !g && !tracked.has(i)) { const key = k + ":" + c + ":" + a; if (!inst.has(key)) inst.set(key, []); inst.get(key).push(q); solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: true, surf: a }); return; }
     const t = { i, k, q, x, y, z, ry, sx, sy, sz, a, b, g, obj: new THREE.Group(), on: !hidden.has(g) }; t.obj.position.set(x, y, z); t.obj.rotation.y = (ry * Math.PI) / 180; scene.add(t.obj); things.push(t);
@@ -91,6 +91,7 @@ export async function makeObby(o, env) {
       if (k !== "S") { const beam = new THREE.Mesh(new THREE.CylinderGeometry(sx * 0.42, sx * 0.48, k === "g" ? 7 : 3.2, 20, 1, true), glow(k === "g" ? 0xffd23a : 0x7cf5c8, 0.22)); beam.position.y = (k === "g" ? 3.5 : 1.6) + sy; t.obj.add(beam); t.beam = beam; }
       if (k === "g") { const ring = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.16, 12, 40), glow(0xffd23a)); ring.position.y = 2.2; t.obj.add(ring); t.ring = ring; }
       t.solid = solids.push({ i, k, x, y, z, ry, sx, sy, sz: sx, on: t.on, t, surf: 1 }) - 1; }
+    else if ((k === "o" || k === "Q") && !tracked.has(i)) { t.ins = true; (k === "o" ? coinI : gemI).push(t); } // (drawn as one InstancedMesh each, below)
     else if (k === "o") { const m = new THREE.Mesh(coinG || (coinG = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 20).rotateX(Math.PI / 2)), coinM || (coinM = new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0xffa21a, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.25 }))); m.position.y = 0.6; t.obj.add(m); t.spin = m; }
     else if (k === "h") { const m = new THREE.Mesh(new THREE.SphereGeometry(0.4, 14, 10), new THREE.MeshStandardMaterial({ color: 0xff3b5c, emissive: 0xff1a4a, emissiveIntensity: 0.7 })); m.position.y = 0.7; t.obj.add(m); t.spin = m; }
     else if (k === "d") { const door = shape(G.box, MT.get(c, 1), sx, sy, sz); t.door = door; t.open = 0; t.solid = solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: t.on, t, surf: 0 }) - 1; }
@@ -120,6 +121,19 @@ export async function makeObby(o, env) {
   var coinG, coinM, hillG; // (shared once the first coin / hill is made)
   for (const [key, list] of inst) { const [k, c, s] = key.split(":"), im = new THREE.InstancedMesh(k === "y" ? G.cyl : k === "r" ? G.wedge : G.box, MT.get(+c, +s), list.length);
     list.forEach((q, j) => im.setMatrixAt(j, mat4(q[1], q[2], q[3], q[4], q[5], q[6], k === "y" ? q[5] : q[7]))); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); scene.add(im); }
+  // the coins and the gems that don't ride a track: one InstancedMesh each, turned and bobbed in animate() (hundreds of coins = one draw)
+  const insOf = (list, geo, m) => { if (!list.length) return null; const im = new THREE.InstancedMesh(geo, m, list.length); im.frustumCulled = false; list.forEach((t, j) => { t.ij = j; }); scene.add(im); return { im, list }; };
+  const coinIM = insOf(coinI, coinG || (coinG = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 20).rotateX(Math.PI / 2)), coinM || (coinM = new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0xffa21a, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.25 })));
+  const gemIM = insOf(gemI, new THREE.OctahedronGeometry(0.42), new THREE.MeshStandardMaterial({ color: 0x7cf5c8, emissive: 0x2ad6a0, emissiveIntensity: 0.8, metalness: 0.3, roughness: 0.2 }));
+  function insTick(I, tt) { if (!I) return; for (const t of I.list) { const ok = t.on && !t.gone && t.obj.visible !== false, p0 = t.obj.position; I.im.setMatrixAt(t.ij, mat4(p0.x, p0.y + 0.6 + Math.sin(tt * 3 + t.x) * 0.15, p0.z, (tt * 149 + t.x * 20) % 360, ok ? 1 : 0, ok ? 1 : 0, ok ? 1 : 0)); } I.im.instanceMatrix.needsUpdate = true; }
+  // the still solids by 8 m cell (the moving ones — platforms, elevators, crates, tracked pieces — are checked always):
+  // collide / restOf / crateBlocked look only at the cell they stand in instead of every solid in the course
+  const CELL = 8, grid = new Map(), dynS = [], NB1 = [], NB2 = [], NB3 = [], ck = (cx, cz) => cx * 4096 + cz;
+  for (const s of solids) { const t = s.t; if (t && (t.k === "m" || t.k === "e" || t.crate || tracked.has(s.i))) { dynS.push(s); continue; }
+    const r = Math.hypot(s.sx, s.sz) / 2 + 2, x0 = Math.floor((s.x - r) / CELL), x1 = Math.floor((s.x + r) / CELL), z0 = Math.floor((s.z - r) / CELL), z1 = Math.floor((s.z + r) / CELL);
+    if ((x1 - x0 + 1) * (z1 - z0 + 1) > 400) { dynS.push(s); continue; }
+    for (let cx = x0; cx <= x1; cx++) for (let cz = z0; cz <= z1; cz++) { const key = ck(cx, cz); let c = grid.get(key); if (!c) grid.set(key, (c = [])); c.push(s); } }
+  function near(x, z, buf) { buf.length = 0; const c = grid.get(ck(Math.floor(x / CELL), Math.floor(z / CELL))); if (c) for (let i = 0; i < c.length; i++) buf.push(c[i]); for (let i = 0; i < dynS.length; i++) buf.push(dynS[i]); return buf; }
   // ---- Meshy's props (and the maker's own assets) fitted into their boxes, loaded after the run starts ----
   const props = things.filter((t) => t.k === "x" || t.k === "X");
   if (props.length && ctx.K && ctx.K.gltfLoader && !ctx.saver) (async () => { const ld = ctx.K.gltfLoader(), cache = new Map();
@@ -148,6 +162,8 @@ export async function makeObby(o, env) {
   if (hero) { me.add(hero.obj); try { hero.play("idle"); } catch { /* no clip */ }
     if (B.av & OB.AV.gear && ctx.heroGear) try { for (const w of ctx.heroGear()) { let bn = null; hero.obj.traverse((x) => { if (!bn && x.name === w.bone) bn = x; }); if (bn) bn.add(w.obj); } } catch { /* no gear */ } }
   else { const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.9, 4, 10), new THREE.MeshStandardMaterial({ color: 0xeef4fb })); cap.position.y = 0.85; me.add(cap); }
+  // RV: a race rides the town's hoverboard (world-kit.js makeHoverboard): faster, a glide in the turns, a lean; off while you swim
+  let board = null; if (B.md === "race" && ctx.K && ctx.K.makeHoverboard) try { board = ctx.K.makeHoverboard(); me.add(board); if (hero) hero.obj.position.y = 0.45; } catch { board = null; }
   let pet = null; if (B.av & OB.AV.pet && ctx.petBody) try { const pb = ctx.petBody(); if (pb) { pet = new THREE.Group(); pet.add(pb); scene.add(pet); } } catch { pet = null; }
   const HR = 0.38, HH = 1.7, spd = obSpeed(spec);
   // ---- the HUD (the UI kit) ----
@@ -180,13 +196,17 @@ export async function makeObby(o, env) {
   // ---- the state ----
   const start = B.o.find((q) => q[0] === "S"), S = { p: new THREE.Vector3(start[1], start[2] + start[6], start[3]), v: new THREE.Vector3(), ground: null, coyote: 0, jumpQ: 0, jumpHold: false, jumps: 0, face: (start[4] * Math.PI) / 180,
     hearts: B.hp || 0, inv: 0, coins: 0, t: o.test ? -1 : -3, over: false, cp: null, cpN: 0, A: 0, Bv: 0, phase: 1, ch: new Set(), chT: new Map(), boost: 0, dj: false, shield: false, speedK: 1, intro: B.cn & OB.CN.intro && !o.test && !ctx.reduce && !B.cs ? 3.6 : 0, slow: 0, tr: [], bossLeft: bossT.length, extra: 0, clip: "",
-    kills: 0, gems: 0, ri: 0, lap: 0, swim: false, cut: B.cn & OB.CN.intro && !o.test && !ctx.reduce && B.cs ? 0 : null, wait: !o.test && !o.noStart, cont: false };
+    kills: 0, gems: 0, ri: 0, lap: 0, swim: false, cut: B.cn & OB.CN.intro && !o.test && !ctx.reduce && B.cs ? 0 : null, wait: !o.test && !o.noStart, cont: false, acc: 0 };
+  const STEP = 1 / 60;
   // G1/G3: what this course is won by, and its pieces of that kind
   const WIN = B.win || "goal", enemyL = things.filter((t) => t.enemy), gemL = things.filter((t) => t.k === "Q"), ringL = things.filter((t) => t.k === "R").sort((a, b) => a.order - b.order), crates = things.filter((t) => t.crate), actors = things.filter((t) => t.actor), gk = (B.gv || 100) / 100;
   const trackN = []; (B.tk || []).forEach((tk, n) => { const t = things.find((q) => q.i === tk[0]); if (!t) return; t.base = t.base || new THREE.Vector3(t.x, t.y, t.z); t.track = { keys: tk[3], loop: !!tk[1], on: !!tk[2], t: 0 }; trackN[n + 1] = t; });
   const progK = "arc.studio.prog." + (o.id || ""), saved = (() => { if (!B.sv || !o.id || o.test) return null; try { return JSON.parse(localStorage.getItem(progK) || "null"); } catch { return null; } })();
   look.yaw = S.face + Math.PI;
   S.cp = { p: S.p.clone(), face: S.face };
+  // RV: a live room (world-studio.js obLive) — no start card, intro or cutscene; the countdown runs on the server's clock
+  const LV = env.live ? env.live({ scene, hud, S, progress: () => progress() }) : null;
+  if (LV) { S.wait = false; S.intro = 0; S.cut = null; S.t = LV.t0(); const re = hud.querySelector(".wso-re"); if (re) re.hidden = true; }
   if (o.startAt) { const q = o.startAt; S.p.set(q[0], q[1] + 0.2, q[2]); S.cp = { p: S.p.clone(), face: S.face }; }
   const best = (() => { try { return Number(localStorage.getItem("arc.studio.obbest." + (o.id || "t")) || 0); } catch { return 0; } })();
   if ($(".wso-best")) $(".wso-best").textContent = best ? "🏆 " + T("Best {s} s", { s: best.toFixed(1) }) : "";
@@ -227,15 +247,15 @@ export async function makeObby(o, env) {
   // ---- the solid test: each solid's box in its own turned frame (a ramp's top rises along its +z, a round one by radius) ----
   const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
   // a crate can't be pushed into another solid (it would sink into a wall or another crate)
-  function crateBlocked(t, np) { for (const s of solids) { if (!s.on || s.t === t || s.k === "c" || s.k === "S" || s.k === "g" || s.k === "p" || s.k === "H") continue; const o2 = s.t ? s.t.obj.position : s; const top = o2.y + s.sy;
+  function crateBlocked(t, np) { for (const s of near(np.x, np.z, NB2)) { if (!s.on || s.t === t || s.k === "c" || s.k === "S" || s.k === "g" || s.k === "p" || s.k === "H") continue; const o2 = s.t ? s.t.obj.position : s; const top = o2.y + s.sy;
       if (top <= np.y + 0.2 || o2.y >= np.y + t.sy - 0.1) continue; if (Math.abs(np.x - o2.x) < (t.sx + Math.max(s.sx, s.sz)) / 2 - 0.05 && Math.abs(np.z - o2.z) < (t.sz + Math.max(s.sx, s.sz)) / 2 - 0.05) return true; } return false; }
   // what a crate rests on (the highest top under its middle), for its fall
-  function restOf(t, p = t.obj.position) { let y = B.bp ? 0 : -1e9; for (const s of solids) { if (!s.on || s.t === t) continue; const o2 = s.t ? s.t.obj.position : s, top = o2.y + s.sy; if (top > p.y + 0.3) continue;
+  function restOf(t, p = t.obj.position) { let y = B.bp ? 0 : -1e9; for (const s of near(p.x, p.z, NB3)) { if (!s.on || s.t === t) continue; const o2 = s.t ? s.t.obj.position : s, top = o2.y + s.sy; if (top > p.y + 0.3) continue;
       if (s.k === "H") { const d = Math.hypot(p.x - o2.x, p.z - o2.z), Rh = s.sx / 2; if (d < Rh) y = Math.max(y, o2.y + s.sy * Math.sqrt(1 - (d / Rh) ** 2)); continue; }
       if (Math.abs(p.x - o2.x) < Math.max(s.sx, s.sz) / 2 && Math.abs(p.z - o2.z) < Math.max(s.sx, s.sz) / 2) y = Math.max(y, top); } return y; }
   function collide(p, v, dt, prevY) {
     let ground = null;
-    for (const s of solids) { if (!s.on) continue; const t = s.t;
+    for (const s of near(p.x, p.z, NB1)) { if (!s.on) continue; const t = s.t;
       const sx0 = t ? t.obj.position.x : s.x, sy0 = t ? t.obj.position.y : s.y, sz0 = t ? t.obj.position.z : s.z, top0 = sy0 + s.sy;
       if (t && t.k === "d" && t.open >= 0.98) continue;
       if (s.k === "H") { const Rh = s.sx / 2, d = Math.hypot(p.x - sx0, p.z - sz0); if (d > Rh || p.y + HH < sy0) continue; const h = sy0 + s.sy * Math.sqrt(Math.max(0, 1 - (d / Rh) ** 2)); // (a hill: its dome's height under you, walked up and down)
@@ -290,7 +310,7 @@ export async function makeObby(o, env) {
   // ---- each frame ----
   const fwd = new THREE.Vector3(), right = new THREE.Vector3();
   function tick(dt0, tt) {
-    let dt = Math.min(dt0, 0.04); if (S.slow > 0) { S.slow -= dt; dt *= 0.25; }
+    let dt = Math.min(dt0, 0.1); if (S.slow > 0) { S.slow -= dt; dt *= 0.25; }
     if (S.wait) { const a = tt * 0.12, st0 = S.p; cam.position.set(st0.x + Math.sin(a) * 16, st0.y + 7, st0.z + Math.cos(a) * 16); cam.lookAt(st0.x, st0.y + 1.2, st0.z); movers(dt, tt); animate(dt, tt); me.position.copy(S.p); me.rotation.y = S.face; if (hero) hero.update(dt, tt); return; }
     if (S.cut != null) { S.cut += dt0; const K = B.cs, end0 = K[K.length - 1][0]; let j = 0; while (j < K.length - 2 && K[j + 1][0] < S.cut) j++; const a = K[j], b = K[j + 1], f = Math.max(0, Math.min(1, (S.cut - a[0]) / Math.max(0.01, b[0] - a[0]))), e = f * f * (3 - 2 * f);
       bars(true); cam.position.set(a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e, a[3] + (b[3] - a[3]) * e); cam.lookAt(a[4] + (b[4] - a[4]) * e, a[5] + (b[5] - a[5]) * e, a[6] + (b[6] - a[6]) * e);
@@ -300,15 +320,27 @@ export async function makeObby(o, env) {
       bars(true); cam.position.set(mid.x + Math.sin(k * 2.4 + 0.6) * (34 - k * 22), mid.y + 22 - k * 16, mid.z + Math.cos(k * 2.4 + 0.6) * (34 - k * 22)); cam.lookAt(mid.x, mid.y, mid.z);
       if (S.intro <= 0) { bars(!!LK.bars); card(o.title || spec.title, 1.4); } animate(dt, tt); return; }
     if (S.t < 0) { const n0 = Math.ceil(-S.t); S.t += dt; const n1 = Math.ceil(-Math.min(0, S.t)); if (n1 !== n0) { const cd = $(".wst-cd"); if (cd) { cd.textContent = n1 > 0 ? String(n1) : T("GO!"); cd.classList.remove("pop"); void cd.offsetWidth; cd.classList.add("pop"); if (n1 <= 0) { setTimeout(() => cd.remove(), 700); fire("start", 0); } } } }
-    else if (!S.over) { S.t += dt; if (S.bossCut > 0) { S.bossCut -= dt0; animate(dt, tt); camFollow(dt, true); return; }
+    else if (!S.over) { if (S.bossCut > 0) { S.bossCut -= dt0; animate(dt, tt); camFollow(dt, true); return; }
+      // a fixed step (1/60 s, at most 6 a frame): the same jumps and speeds at 20 fps as at 60 (a frame cap of 0.04 s slowed the game below 25 fps)
+      S.acc += dt; let n = 0; while (S.acc >= STEP && n < 6 && !S.over) { sim(STEP, tt); S.acc -= STEP; n++; } if (n >= 6) S.acc = 0;
+    }
+    animate(dt, tt); camFollow(dt);
+    me.position.copy(S.p); me.rotation.y = S.face; me.visible = !(S.inv > 0 && ((tt * 14) | 0) % 2);
+    if (pet) { const want = tmp.set(S.p.x - Math.sin(S.face) * 1.4 + Math.cos(S.face) * 0.9, S.p.y, S.p.z - Math.cos(S.face) * 1.4 - Math.sin(S.face) * 0.9); pet.position.lerp(want, Math.min(1, dt * 5)); pet.position.y = S.p.y + Math.abs(Math.sin(tt * 6)) * 0.12; pet.rotation.y = S.face; }
+    if (LV) LV.tick(dt, tt);
+    if (board) { board.visible = !S.swim; if (hero) hero.obj.position.y = S.swim ? 0 : 0.45; board.userData.update && board.userData.update(tt); const tw = Math.max(-0.35, Math.min(0.35, (S.turnV || 0) * -0.08)); board.rotation.z += (tw - board.rotation.z) * Math.min(1, dt * 6); if (hero) hero.obj.rotation.z = board.rotation.z * 0.6; }
+    if (hero) hero.update(dt, tt);
+    if (mapCv) map();
+  }
+  function sim(dt, tt) { S.t += dt;
       // move: the stick / WASD against the camera's turn; Shift sprints; ice keeps your slide
       const ix = (keyOn.has("d") || keyOn.has("arrowright") ? 1 : 0) - (keyOn.has("a") || keyOn.has("arrowleft") ? 1 : 0) + (pad && pad.on ? pad.x : 0), iz = (keyOn.has("w") || keyOn.has("arrowup") ? 1 : 0) - (keyOn.has("s") || keyOn.has("arrowdown") ? 1 : 0) - (pad && pad.on ? pad.y : 0);
       fwd.set(-Math.sin(look.yaw), 0, -Math.cos(look.yaw)); right.set(-fwd.z, 0, fwd.x); const want = tmp.copy(fwd).multiplyScalar(iz).addScaledVector(right, ix); const mag = Math.min(1, want.length()); if (mag > 0.05) want.normalize();
       S.swim = waterAt(S.p); if (S.swim && !S.wasSwim) { burst(S.p, 0x5fd3ff, 8); snd("dash"); } S.wasSwim = S.swim;
-      const sprint = keyOn.has("shift") || (pad && pad.on && Math.hypot(pad.x, pad.y) > 0.92), top = spd * S.speedK * (sprint ? 1.35 : 1) * (S.boost > 0 ? 1.4 : 1) * (S.swim ? 0.6 : 1) * mag; S.boost = Math.max(0, S.boost - dt);
-      const ice = S.ground && S.ground.surf === 2, accel = S.ground ? (ice ? 2.2 : 14) : 5;
+      const sprint = keyOn.has("shift") || (pad && pad.on && Math.hypot(pad.x, pad.y) > 0.92), top = spd * S.speedK * (board && !S.swim ? 1.45 : 1) * (sprint ? 1.35 : 1) * (S.boost > 0 ? 1.4 : 1) * (S.swim ? 0.6 : 1) * mag; S.boost = Math.max(0, S.boost - dt);
+      const ice = S.ground && S.ground.surf === 2, accel = S.ground ? (ice ? 2.2 : board ? 6 : 14) : 5;
       S.v.x += (want.x * top - S.v.x) * Math.min(1, dt * accel); S.v.z += (want.z * top - S.v.z) * Math.min(1, dt * accel);
-      if (mag > 0.05) { const f = Math.atan2(want.x, want.z); let d = f - S.face; d = Math.atan2(Math.sin(d), Math.cos(d)); S.face += d * Math.min(1, dt * 12); }
+      if (mag > 0.05) { const f = Math.atan2(want.x, want.z); let d = f - S.face; d = Math.atan2(Math.sin(d), Math.cos(d)); S.face += d * Math.min(1, dt * 12); S.turnV = d * 4; } else S.turnV = 0;
       // jump: a moment of grace off an edge, a buffered press, a short hop when let go early; the double jump bought at a shop
       S.coyote = S.ground ? 0.12 : Math.max(0, S.coyote - dt); S.jumpQ = Math.max(0, S.jumpQ - dt);
       if (S.jumpQ > 0 && S.swim) { S.v.y = S.swim.surf - S.p.y < 1.2 ? OBJ.VY * 0.85 : 5; S.jumpQ = 0; snd("jump"); } // (swim up; at the surface, out)
@@ -349,14 +381,8 @@ export async function makeObby(o, env) {
       state();
       if (((S.t * 4) | 0) !== (((S.t - dt) * 4) | 0)) { paint(); if (S.tr.length < 120) S.tr.push([Math.round(S.p.x * 10), Math.round(S.p.z * 10), Math.round(S.p.y)]); }
       // the hero's clip: walk scaled to the speed, sprint when fast, jump / fall in the air (CU_AS names only)
-      if (hero && !(hero.busy && hero.busy())) { const hs = Math.hypot(S.v.x, S.v.z), want2 = S.swim ? (hs > 0.6 ? "walk" : "idle") : !S.ground && (S.air > 0.15 || S.v.y > 1) ? (S.v.y > 0 ? "jump" : "fall") : hs > spd * 1.15 ? "sprint" : hs > 0.6 ? "walk" : "idle";
+      if (hero && !(hero.busy && hero.busy())) { const hs = Math.hypot(S.v.x, S.v.z), want2 = S.swim ? (hs > 0.6 ? "walk" : "idle") : board && S.ground ? "idle" : !S.ground && (S.air > 0.15 || S.v.y > 1) ? (S.v.y > 0 ? "jump" : "fall") : hs > spd * 1.15 ? "sprint" : hs > 0.6 ? "walk" : "idle";
         if (want2 !== S.clip || want2 === "walk") { S.clip = want2; try { hero.play(want2, want2 === "walk" ? { speed: Math.max(0.8, hs / 6.5) } : {}); } catch { /* no clip */ } } }
-    }
-    animate(dt, tt); camFollow(dt);
-    me.position.copy(S.p); me.rotation.y = S.face; me.visible = !(S.inv > 0 && ((tt * 14) | 0) % 2);
-    if (pet) { const want = tmp.set(S.p.x - Math.sin(S.face) * 1.4 + Math.cos(S.face) * 0.9, S.p.y, S.p.z - Math.cos(S.face) * 1.4 - Math.sin(S.face) * 0.9); pet.position.lerp(want, Math.min(1, dt * 5)); pet.position.y = S.p.y + Math.abs(Math.sin(tt * 6)) * 0.12; pet.rotation.y = S.face; }
-    if (hero) hero.update(dt, tt);
-    if (mapCv) map();
   }
   let minY = Math.min(0, ...B.o.map((q) => q[2])); if (B.bp) minY = Math.min(minY, -2);
   const mapCv = $(".wso-map"), mg = mapCv ? mapCv.getContext("2d") : null;
@@ -379,27 +405,44 @@ export async function makeObby(o, env) {
   function ringNext(t) { S.ri++; snd("coin"); buzz(15); burst(tmp.copy(t.obj.position).setY(t.obj.position.y + t.rr - 1), 0x5fd3ff, 12); fire("ring", t.order);
     if (S.ri >= ringL.length) { S.lap++; if (S.lap >= B.lp) { if (WIN === "race") { paint(); end(true); return; } } else { S.ri = 0; card("🔁 " + T("Lap {n}", { n: S.lap + 1 }), 1.2); } } else fx.say("💫 " + S.ri + "/" + ringL.length);
     paint(); }
+  // the enemies (RV, the review): asleep they patrol — along their track if the maker gave them one, else back and forth
+  // round home (a walker turns at an edge it can't step down); awake (within 15 m) they come for you: a walker hops up a step
+  // (≤ 1.3 m) and drops down a ledge (≤ 4 m), a flyer dives, a shooter draws a red aim line for 0.8 s before it fires
+  // (locked for the last 0.25 s, so a sidestep dodges it); a hit leans them back and stuns them for a moment
+  const aimG = new THREE.BoxGeometry(0.07, 0.07, 1).translate(0, 0, 0.5);
   function enemies(dt) {
-    for (const t of enemyL) { if (t.gone || !t.on) continue; const pos = t.obj.position, d = Math.hypot(S.p.x - pos.x, S.p.z - pos.z), awake = d < 15; t.flash = Math.max(0, t.flash - dt);
-      const face = Math.atan2(S.p.x - pos.x, S.p.z - pos.z); if (awake) t.obj.rotation.y += Math.atan2(Math.sin(face - t.obj.rotation.y), Math.cos(face - t.obj.rotation.y)) * Math.min(1, dt * 4);
-      if (t.type === 0 && awake && d > 0.9) { const nx = pos.x + Math.sin(face) * dt * (2.4 + spec.speed * 0.3), nz = pos.z + Math.cos(face) * dt * (2.4 + spec.speed * 0.3), y = restOf(t, tmp2.set(nx, pos.y + 0.5, nz)); if (y > t.home.y - 0.6 && y < pos.y + 0.6) { pos.x = nx; pos.z = nz; pos.y = y; } } // (a walker keeps to the ground it stands on)
-      else if (t.type === 1) { const want = awake ? (d < 5 ? S.p.y + 0.6 : t.home.y + 2.4) : t.home.y + 2.4 + Math.sin(S.t * 2 + t.x) * 0.4; pos.y += (want - pos.y) * Math.min(1, dt * 2); if (awake && d > 1) { pos.x += Math.sin(face) * dt * 3.2; pos.z += Math.cos(face) * dt * 3.2; } }
-      else if (t.type === 2 && awake) { t.cd -= dt; if (t.cd <= 0 && d < 18) { t.cd = 2.6 - Math.min(1, spec.speed * 0.15); const b = new THREE.Mesh(ballG || (ballG = new THREE.SphereGeometry(0.32, 10, 8)), glow(0xff7a2e)); b.position.set(pos.x, pos.y + 1, pos.z); scene.add(b); const dir = tmp.set(S.p.x - b.position.x, S.p.y + 0.9 - b.position.y, S.p.z - b.position.z).normalize(); balls.push({ m: b, v: dir.clone().multiplyScalar(9), t: 2.4 }); if (t.playC) t.playC("attack", true); } }
+    for (const t of enemyL) { if (t.gone || !t.on) { if (t.aim) t.aim.visible = false; continue; } const pos = t.obj.position, d = Math.hypot(S.p.x - pos.x, S.p.z - pos.z), awake = d < 15; t.flash = Math.max(0, t.flash - dt); t.recoil = Math.max(0, (t.recoil || 0) - dt);
+      const ctr = t.trackP || t.home, face = Math.atan2(S.p.x - pos.x, S.p.z - pos.z), stun = t.recoil > 0;
+      let fa = face; if (!awake) { if (t.trackP) { const dx = t.trackP.x - pos.x, dz = t.trackP.z - pos.z; fa = Math.hypot(dx, dz) > 0.05 ? Math.atan2(dx, dz) : t.obj.rotation.y; } else if (t.type !== 2) { t.pt = (t.pt || 0) + dt; if (t.pt > 3.2) { t.pt = 0; t.pdir = -(t.pdir || 1); } fa = (t.ry * Math.PI) / 180 + (t.pdir === -1 ? Math.PI : 0); } }
+      if (!stun) t.obj.rotation.y += Math.atan2(Math.sin(fa - t.obj.rotation.y), Math.cos(fa - t.obj.rotation.y)) * Math.min(1, dt * 4);
+      const sp0 = awake ? 2.4 + spec.speed * 0.3 : 1.3;
+      if (t.type === 0 && !stun) { const go = awake ? d > 0.9 : t.trackP ? Math.hypot(t.trackP.x - pos.x, t.trackP.z - pos.z) > 0.1 : true;
+        if (go) { const nx = pos.x + Math.sin(fa) * dt * sp0, nz = pos.z + Math.cos(fa) * dt * sp0, y = restOf(t, tmp2.set(nx, pos.y + 1.3, nz)), fall = pos.y - y;
+          if (fall <= (awake ? 4 : 0.6) && fall >= -1.3) { pos.x = nx; pos.z = nz; if (y > pos.y + 0.05 && (t.vy || 0) <= 0) t.vy = Math.sqrt(2 * OBJ.G * (y - pos.y + 0.35)); } else if (!awake) { t.pdir = -(t.pdir || 1); t.pt = 0; } } }
+      if (t.type === 0) { const y = restOf(t, tmp2.set(pos.x, pos.y + 0.3, pos.z)); t.vy = (t.vy || 0) - OBJ.G * gk * dt; pos.y += t.vy * dt; if (pos.y <= y) { pos.y = y; t.vy = 0; } if (pos.y < minY - 12) { pos.copy(t.home); t.vy = 0; } }
+      else if (t.type === 1) { const want = awake ? (d < 5 ? S.p.y + 0.6 : ctr.y + 2.4) : ctr.y + 2.4 + Math.sin(S.t * 2 + t.x) * 0.4; pos.y += (want - pos.y) * Math.min(1, dt * 2); if (!stun) { if (awake && d > 1) { pos.x += Math.sin(face) * dt * 3.2; pos.z += Math.cos(face) * dt * 3.2; } else if (!awake) { pos.x += Math.sin(fa) * dt * 1.4; pos.z += Math.cos(fa) * dt * 1.4; } } }
+      else if (t.type === 2) { t.cd -= awake ? dt : 0; const aimOn = awake && d < 18 && t.cd < 0.8 && !stun;
+        if (aimOn) { if (!t.aim) { t.aim = new THREE.Mesh(aimG, glow(0xff3b3b, 0.5)); t.aim.material.depthWrite = false; scene.add(t.aim); } t.aim.visible = true; t.aim.position.set(pos.x, pos.y + 1, pos.z);
+          if (t.cd > 0.25 || !t.lock) t.lock = (t.lock || new THREE.Vector3()).set(S.p.x, S.p.y + 0.9, S.p.z); t.aim.lookAt(t.lock); t.aim.scale.set(1, 1, t.aim.position.distanceTo(t.lock)); t.aim.material.opacity = t.cd < 0.25 ? 0.9 : 0.3 + Math.sin(S.t * 30) * 0.15; }
+        else if (t.aim) t.aim.visible = false;
+        if (t.cd <= 0 && awake && d < 18 && !stun) { t.cd = 2.6 - Math.min(1, spec.speed * 0.15); const b = new THREE.Mesh(ballG || (ballG = new THREE.SphereGeometry(0.32, 10, 8)), glow(0xff7a2e)); b.position.set(pos.x, pos.y + 1, pos.z); scene.add(b); const dir = tmp.copy(t.lock || tmp2.set(S.p.x, S.p.y + 0.9, S.p.z)).sub(b.position).normalize(); balls.push({ m: b, v: dir.clone().multiplyScalar(9), t: 2.4 }); t.lock = null; if (t.aim) t.aim.visible = false; if (t.playC) t.playC("attack", true); } }
       pos.x += t.vx * dt; pos.z += t.vz * dt; t.vx *= 0.88; t.vz *= 0.88;
-      const hd = Math.hypot(pos.x - t.home.x, pos.z - t.home.z), lim = t.type === 2 ? 0.01 : 9; if (hd > lim) { pos.x = t.home.x + ((pos.x - t.home.x) / hd) * lim; pos.z = t.home.z + ((pos.z - t.home.z) / hd) * lim; } // (each stays near home)
+      const hd = Math.hypot(pos.x - ctr.x, pos.z - ctr.z), lim = t.type === 2 && !t.trackP ? 0.01 : 9; if (hd > lim) { pos.x = ctr.x + ((pos.x - ctr.x) / hd) * lim; pos.z = ctr.z + ((pos.z - ctr.z) / hd) * lim; } // (each stays near home, or near its place on the track)
+      if (t.type === 2 && t.trackP && !awake) { pos.x += (t.trackP.x - pos.x) * Math.min(1, dt * 4); pos.z += (t.trackP.z - pos.z) * Math.min(1, dt * 4); pos.y += (t.trackP.y - pos.y) * Math.min(1, dt * 4); }
       const top = pos.y + (t.type === 1 ? 1.2 : 1.6), dy = S.p.y - pos.y;
       if (d < 1.0 && S.p.y >= top - 0.5 && S.p.y <= top + 0.5 && S.v.y < 0) { hitEnemy(t); S.v.y = 8.5; continue; } // (a stomp)
-      if (d < 0.75 + HR && dy > -HH && dy < (t.type === 1 ? 1.1 : 1.5) && S.inv <= 0) { hurt(); const away = tmp.set(S.p.x - pos.x, 0, S.p.z - pos.z).normalize(); S.v.x = away.x * 8; S.v.z = away.z * 8; S.v.y = 5; }
-      if (t.model) t.model.scale.setScalar((t.flash > 0 ? 1.15 : 1) * t.model.userData.k0); else if (t.body) t.body.scale.setScalar(t.flash > 0 ? 1.15 : 1); }
+      if (d < 0.75 + HR && dy > -HH && dy < (t.type === 1 ? 1.1 : 1.5) && S.inv <= 0 && !stun) { hurt(); const away = tmp.set(S.p.x - pos.x, 0, S.p.z - pos.z).normalize(); S.v.x = away.x * 8; S.v.z = away.z * 8; S.v.y = 5; }
+      const pop = t.flash > 0 ? 1.15 : 1, lean = -Math.min(1, t.recoil / 0.35) * 0.55, bd = t.model || t.body; if (bd) { bd.scale.setScalar(pop * (t.model ? t.model.userData.k0 : 1)); bd.rotation.x = lean; } }
   }
   var ballG;
-  function hitEnemy(t) { if (t.flash > 0 || t.gone) return; t.hp--; t.flash = 0.35; snd("hit"); buzz(20); const away = tmp.copy(t.obj.position).sub(S.p).setY(0).normalize(); t.vx = away.x * 7; t.vz = away.z * 7;
+  function hitEnemy(t) { if (t.flash > 0 || t.gone) return; t.hp--; t.flash = 0.35; t.recoil = 0.35; t.cd = Math.max(t.cd, 0.9); if (t.type === 1) t.obj.position.y += 0.6; snd("hit"); buzz(20); const away = tmp.copy(t.obj.position).sub(S.p).setY(0).normalize(); t.vx = away.x * 7; t.vz = away.z * 7;
     if (t.hp > 0) { fx.say("💥 " + t.hp); return; }
     t.gone = true; t.obj.visible = false; S.kills++; S.coins += OB.EC; burst(t.obj.position, 0x7cf5c8, 16); fx.say("👾 +" + OB.EC + " 🪙"); paint();
     if (enemyL.every((q) => q.gone)) { fire("enemies", 0); card("👾 " + T("Every enemy defeated!"), 1.4); if (WIN === "enemies" && S.bossLeft <= 0) end(true); } }
   function tracks(dt) {
     for (const t of things) { const tr = t.track; if (!tr || !tr.on) continue; const K = tr.keys, last = K[K.length - 1][0]; tr.t += dt; if (tr.t > last) { if (tr.loop) tr.t %= Math.max(0.1, last); else { tr.t = last; tr.on = false; } }
       let j = 0; while (j < K.length - 2 && K[j + 1][0] < tr.t) j++; const a = K[j], b = K[j + 1], f = Math.max(0, Math.min(1, (tr.t - a[0]) / Math.max(0.01, b[0] - a[0]))), e = f * f * (3 - 2 * f);
+      if (t.enemy) { (t.trackP || (t.trackP = new THREE.Vector3())).set(t.base.x + a[1] + (b[1] - a[1]) * e, t.base.y + a[2] + (b[2] - a[2]) * e, t.base.z + a[3] + (b[3] - a[3]) * e); continue; } // (an enemy patrols toward its place on the track; awake, it leaves it to chase you)
       const ox = t.obj.position.x, oz = t.obj.position.z; t.obj.position.set(t.base.x + a[1] + (b[1] - a[1]) * e, t.base.y + a[2] + (b[2] - a[2]) * e, t.base.z + a[3] + (b[3] - a[3]) * e); t.obj.rotation.y = ((t.ry + a[4] + (b[4] - a[4]) * e) * Math.PI) / 180;
       if (t.actor && t.playC) { const mv = Math.hypot(t.obj.position.x - ox, t.obj.position.z - oz) / Math.max(0.001, dt); if (!t.near) t.playC(mv > 0.3 ? "walk" : "idle"); if (mv > 0.3) t.obj.rotation.y = Math.atan2(t.obj.position.x - ox, t.obj.position.z - oz); } }
   }
@@ -457,6 +500,7 @@ export async function makeObby(o, env) {
       if (t.k === "k" && t.lava) t.lava.material.emissiveIntensity = 0.9 + Math.sin(tt * 5 + t.x) * 0.25;
       if (t.k === "R") { const nx = ringL[S.ri] === t, past = ringL.indexOf(t) < S.ri; t.ring.material.color.set(nx ? 0xffd23a : past ? 0x3a4a6a : 0x5fd3ff); t.disc.material.opacity = nx ? 0.18 + Math.sin(tt * 5) * 0.08 : 0.06; t.ring.rotation.z += dt * (nx ? 1.2 : 0.2); }
       if (t.k === "W" && t.water) t.water.material.opacity = 0.5 + Math.sin(tt * 1.6 + t.x) * 0.06; }
+    insTick(coinIM, tt); insTick(gemIM, tt);
     animF = (animF + 1) & 3; for (const mx of mixers) { const own = mxOwner.get(mx); if (own && own.obj.position.distanceToSquared(S.p) > 1600) { if (!animF) mx.update(dt * 4); } else mx.update(dt); }
     for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.t -= dt; p.v.y -= 14 * dt; p.m.position.addScaledVector(p.v, dt); p.m.scale.setScalar(Math.max(0.01, p.t)); if (p.t <= 0) { scene.remove(p.m); p.m.material.dispose(); parts.splice(i, 1); } }
   }
@@ -478,7 +522,7 @@ export async function makeObby(o, env) {
   hud.querySelector(".wst-hx:not(.wso-re)").addEventListener("click", () => leave());
   hud.querySelector(".wso-re").addEventListener("click", () => { if (S.over) return; leave(true); if (env.restart) env.restart(o); });
   async function end(done) {
-    if (S.over) return; S.over = true; S.won = done; if (pad) pad.hide(); paint();
+    if (S.over) return; S.over = true; S.won = done; if (pad) pad.hide(); paint(); if (LV) LV.end(done);
     if (hero) try { hero.play(done ? "emote-yes" : "die", { once: !done }); } catch { /* no clip */ }
     if (done && B.cn & OB.CN.clear && !ctx.reduce) { S.slow = 1.2; bars(true); burst(S.p, 0xffd23a, 26); await new Promise((r) => setTimeout(r, 1500)); }
     if (done && !o.test) try { const k = "arc.studio.obbest." + (o.id || "t"); if (!best || S.t < best) localStorage.setItem(k, S.t.toFixed(1)); } catch { /* not kept */ }
@@ -487,7 +531,7 @@ export async function makeObby(o, env) {
     await result(o, hud, { trace: S.tr, coins: S.coins, dist, done, line: `${WIN === "enemies" ? `👾 ${S.kills}/${enemyL.length}` : WIN === "collect" ? `💎 ${S.gems}/${gemL.length}` : WIN === "race" ? `💫 ${S.lap * ringL.length + S.ri}/${ringL.length * B.lp}` : `🚩 ${S.cpN}/${L.cps.length}`} · 🪙 ${S.coins} · ⏱ ${S.t.toFixed(1)} s${bossT.length ? ` · 👑 ${bossT.length - S.bossLeft}/${bossT.length}` : ""}${S.cont ? " · ⏩ " + T("continued") : ""}`, head: done ? "🏆 " + T(WIN === "race" ? "Race finished!" : WIN === "enemies" ? "Victory!" : WIN === "collect" ? "Every gem found!" : "Course cleared!") : "💀 " + T(B.tl && S.t > B.tl + S.extra ? "Time's up" : "Out of hearts"), confetti: done }, leave);
   }
   function leave(again) {
-    removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); removeEventListener("pointermove", pmv); removeEventListener("pointerup", pup);
+    removeEventListener("keydown", kd, true); removeEventListener("keyup", ku, true); removeEventListener("pointermove", pmv); removeEventListener("pointerup", pup); if (LV) LV.stop(true);
     if (cv) cv.style.filter = cvF;
     st.solo(null); st.view(null); hud.remove(); document.body.classList.remove("wp-studio"); if (hero) me.remove(hero.obj); if (pet) scene.remove(pet);
     scene.userData.live = false; for (const mx of mixers) mx.stopAllAction();
@@ -496,6 +540,6 @@ export async function makeObby(o, env) {
     env.back(again, o);
   }
   st.view(scene, cam); st.solo(tick); tick(0.016, 0); paint(); if (S.wait) startCard(); if (ctx.saver) S.wait = false;
-  return { S, L, leave, isObby: true, keys: keyOn, look, things, act, start: () => { if (!S.wait) return; const b0 = hud.querySelector(".wso-start [data-play]"); if (b0) b0.click(); else { S.wait = false; const c0 = $(".wso-start"); if (c0) c0.hidden = true; } }, jump: () => { S.jumpQ = 0.15; S.jumpHold = true; setTimeout(() => { S.jumpHold = false; }, 300); },
+  return { S, L, leave, isObby: true, live: LV, ride: () => !!board, keys: keyOn, look, things, act, start: () => { if (!S.wait) return; const b0 = hud.querySelector(".wso-start [data-play]"); if (b0) b0.click(); else { S.wait = false; const c0 = $(".wso-start"); if (c0) c0.hidden = true; } }, jump: () => { S.jumpQ = 0.15; S.jumpHold = true; setTimeout(() => { S.jumpHold = false; }, 300); },
     clips: () => (hero && hero.mixer ? hero.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : []) };
 }

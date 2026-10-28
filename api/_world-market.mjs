@@ -144,6 +144,7 @@ export function makeMarket(deps) {
     const pend = (C.pending || []).map((k) => d[`worldMktSale/${k}`]).filter(Boolean), sum = (f) => pend.reduce((a, x) => a + (x[f] || 0), 0);
     const S = ((await one(`worldSettleMine/${w}`)) || {}).ids || [], sd = S.length ? await getDocs(S.slice(0, 20).map((i) => `worldSettle/${i}`)) : {};
     return json(200, { ok: true, owned, listings, earnings: { pendingElig: sum("elig"), pendingPlay: sum("play"), nextAt: pend.length ? Math.min(...pend.map((x) => x.matureAt)) : 0, soldN: C.soldN || 0, gross: C.gross || 0, elig: C.elig || 0, play: C.play || 0 },
+      sales: pend.slice(-30).reverse().map((x) => ({ t: x.title || "", price: x.price || 0, elig: x.elig || 0, play: x.play || 0, at: x.at || 0, matureAt: x.matureAt || 0, item: x.item || "" })), // (RV: the Creator Hub's revenue page — the sales still in their hold)
       buckets: await L.buckets(w), settles: S.slice(0, 20).map((i) => sd[`worldSettle/${i}`]).filter(Boolean).map(pubSettle), min: MARKET.MIN, cut: MARKET.CUT, hold: MARKET.HOLD }, "no-store");
   }
 

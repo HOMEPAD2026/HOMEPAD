@@ -55,7 +55,7 @@ const SUBS = {
   learn: [["start", "Get started"], ["guides", "Guides"], ["templates", "Templates"], ["world", "In ARCIRCLE WORLD"]],
   store: [["all", "Home"], ["templates", "Templates"], ["themes", "Themes"], ["prefabs", "Prefabs"], ["pieces", "Pieces"], ["remix", "Remixable games"]],
   community: [["arcade", "Creator Arcade"], ["contest", "Weekly contest"], ["sponsor", "Sponsor contests"], ["daily", "Daily challenge"], ["season", "Creator season"], ["races", "Live races"], ["feed", "Following"]],
-  analytics: [["overview", "Overview"], ["games", "By game"], ["report", "Weekly report"], ["ab", "A/B test"]], ...XSUBS,
+  analytics: [["overview", "Overview"], ["games", "By game"], ["revenue", "Revenue"], ["report", "Weekly report"], ["ab", "A/B test"]], ...XSUBS,
   rewards: [["overview", "Overview"], ["contest", "Contest prizes"]],
 };
 const TITLE = { home: "Home", creations: "Creations", learn: "Learn", store: "Store", community: "Community", updates: "Updates", analytics: "Analytics", rewards: "Rewards", ...XTITLE };
@@ -158,11 +158,11 @@ export function makeHub(o) {
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button><button type="button" class="sgh-ib sgh-lburger" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button></header>`;
   }
   function drawerHtml() { if (!drawer) return "";
-    return `<div class="sgh-dw" data-dwx><div class="sgh-dwin" role="dialog" aria-label="${esc(T("Menu"))}"><div class="sgh-rail"><a class="sgh-mark" href="/studio" data-go="home"><img src="/images/brand/favicon-v2-32.png" alt="" width="22" height="22"></a><button type="button" class="sgh-rme" data-user>${avatar()}</button>
+    return `<div class="sgh-dw" data-dwx><div class="sgh-dwin${SUBS[cpage || page] ? "" : " solo"}" role="dialog" aria-label="${esc(T("Menu"))}"><div class="sgh-rail"><a class="sgh-mark" href="/studio" data-go="home"><img src="/images/brand/favicon-v2-32.png" alt="" width="22" height="22"></a><button type="button" class="sgh-rme" data-user>${avatar()}</button>
       ${NAV.map(([id, i, l]) => `<a href="?p=${id}" data-go="${id}" data-peek="${id}" class="${(cpage || page) === id ? "on" : ""}">${ic(i)}<small>${esc(T(l))}</small></a>`).join("")}<a href="#" data-tools>${ic("dots")}<small>${esc(T("All tools"))}</small></a><a href="/play">${ic("globe")}<small>WORLD</small></a></div>
-      <div class="sgh-dwsub"><div class="sgh-dwh"><b>${esc(T(TITLE[cpage || page]))}</b><button type="button" class="sgh-ib" data-dwclose aria-label="${esc(T("Close"))}">${ic("close")}</button></div>
-      ${(SUBS[cpage || page] || [["", TITLE[cpage || page]]]).map(([k, l]) => `<a href="?p=${cpage || page}${k ? "&s=" + k : ""}" data-go="${cpage || page}" data-s="${k}" class="${(cpage || page) === page && sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}
-      <a class="sgh-mk" href="#" data-make>${ic("plus")}<span>${esc(T("Create a game"))}</span></a></div></div></div>`; }
+      ${!SUBS[cpage || page] ? `</div></div>` : ""}${SUBS[cpage || page] ? `<div class="sgh-dwsub"><div class="sgh-dwh"><b>${esc(T(TITLE[cpage || page]))}</b><button type="button" class="sgh-ib" data-dwclose aria-label="${esc(T("Close"))}">${ic("close")}</button></div>
+      ${SUBS[cpage || page].map(([k, l]) => `<a href="?p=${cpage || page}${k ? "&s=" + k : ""}" data-go="${cpage || page}" data-s="${k}" class="${(cpage || page) === page && sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}
+      <a class="sgh-mk" href="#" data-make>${ic("plus")}<span>${esc(T("Create a game"))}</span></a></div></div></div>` : ""}`; } // (a page with no sub-pages — Home — shows the rail alone: no second column repeating "Home")
 
   function paint() {
     const land = page === "home";
