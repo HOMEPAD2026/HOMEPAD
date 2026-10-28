@@ -9,20 +9,27 @@
 const SLOT_IC = { weapon: "blade", armor: "armor", helm: "crown", ring: "ring", necklace: "pendant", boots: "boots" };
 const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-export function makeHwUI({ T, esc, M, post, sess, toast, signIn, buzz = () => {}, itemStats, onSet = () => {}, mythicSlot = () => null, ver = "" }) {
+export function makeHwUI({ crowd = () => false, journey = () => [], T, esc, M, post, sess, toast, signIn, buzz = () => {}, itemStats, onSet = () => {}, mythicSlot = () => null, ver = "" }) {
   const { HW, SET, pieceOf, pieceStats, setBonus } = M;
-  let S = { pieces: [], eq: {}, frag: 0 }, gotAt = 0, busy = false, win = null, tab = "set", pick = "";
+  let S = { pieces: [], eq: {}, frag: 0 }, pity = 0, gotAt = 0, busy = false, win = null, tab = "set", pick = "";
   const icon = (k) => `/images/hwrealm/ic-${k}.webp${ver}`;
   // ---- the strip at the top ----
   const strip = document.createElement("div"); strip.className = "hwr-strip"; strip.hidden = true; document.body.appendChild(strip);
   strip.addEventListener("click", (e) => { if (e.target.closest("[data-hwset]")) open("set"); });
   let last = "";
   function hud(clk, zone, on) {
-    strip.hidden = !on; document.body.classList.toggle("wp-in-hw", !!on); document.body.classList.toggle("wp-hw-night", !!(on && clk.night)); if (!on) return;
-    const n = worn().length, key = `${clk.night}|${clk.left}|${zone ? zone.id : ""}|${n}`; if (key === last) return; last = key;
-    strip.innerHTML = `<b class="hwr-time${clk.night ? " night" : clk.warn ? " warn" : ""}">${clk.night ? "🌕 " + esc(T("Cursed Night")) : "🎃 " + esc(T("Day"))} <i>${fmt(clk.left)}</i></b>`
-      + (clk.night ? `<span class="hwr-k">${esc(T("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5"))}</span>` : clk.warn ? `<span class="hwr-k warn">${esc(T("The night falls in {t}", { t: fmt(clk.left) }))}</span>` : "")
+    strip.hidden = !on; document.body.classList.toggle("wp-in-hw", !!on); document.body.classList.toggle("wp-hw-night", !!(on && clk.night)); document.body.classList.toggle("wp-hw-blood", !!(on && clk.blood)); if (!on) return;
+    const n = worn().length, key = `${clk.night}|${clk.left}|${zone ? zone.id : ""}|${n}|${S.frag}|${pity}`; if (key === last) return; last = key;
+    const fp = Math.min(100, Math.round((S.frag / HW.FRAG.CRAFT) * 100));
+    const KT = clk.blood ? T("Monsters ×1.8 · EXP ×3 · ARCL ×2 · drops ×2") : T("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5");
+    strip.classList.toggle("blood", !!clk.blood);
+    const part = clk.night ? clk.left / (HW.CYCLE - HW.DAY) : clk.left / HW.DAY; // (the dial: how much of this day / night is left)
+    strip.innerHTML = `<b class="hwr-time${clk.night ? " night" : clk.warn ? " warn" : ""}"><i class="hwr-dial" style="--p:${Math.round(part * 100)}%"></i>${clk.blood ? "🩸 " + esc(T("Blood Moon")) : clk.night ? "🌕 " + esc(T("Cursed Night")) : "🎃 " + esc(T("Day"))} <i>${fmt(clk.left)}</i></b>`
+      + (clk.night ? `<span class="hwr-k">${esc(KT)}</span>` : clk.warn ? `<span class="hwr-k warn">${esc(clk.nextBlood === 0 ? T("A BLOOD MOON rises in {t}", { t: fmt(clk.left) }) : T("The night falls in {t}", { t: fmt(clk.left) }))}</span>` : "")
       + (zone ? `<span class="hwr-z">${esc(T(zone.name))} · ${esc(T("Lv {a}–{b}", { a: zone.lv[0], b: zone.lv[1] }))}</span>` : `<span class="hwr-z">${esc(T("Pumpkin Village"))} · ${esc(T("safe"))}</span>`)
+      + (clk.night && crowd() ? `<span class="hwr-nb pt">👥 EXP +10%</span>` : "")
+      + (clk.night ? `<span class="hwr-nb" title="${esc(KT)}">${clk.blood ? "×1.8 · EXP×3" : "×1.5 · EXP×2"}</span>` : "")
+      + `<button type="button" class="hwr-fr" data-hwset title="${esc(T("Pumpkin Soul Fragments: {n} of {m} to craft a piece", { n: S.frag, m: HW.FRAG.CRAFT }))}"><i style="--p:${fp}%"></i><b>🎃 ${S.frag}/${HW.FRAG.CRAFT}</b>${pity ? `<small>${esc(T("sure one in {n}", { n: pity }))}</small>` : ""}</button>`
       + `<button type="button" class="hwr-set" data-hwset><img src="${icon("blade")}" alt="" width="22" height="22">${n}/6</button>`;
   }
   // ---- the night's cut-in and the warning ----
@@ -30,7 +37,7 @@ export function makeHwUI({ T, esc, M, post, sess, toast, signIn, buzz = () => {}
     const c = document.createElement("div"); c.className = "hwr-cut " + (cls || ""); c.innerHTML = `<b>${esc(big)}</b>${small ? `<small>${esc(small)}</small>` : ""}`; document.body.appendChild(c);
     requestAnimationFrame(() => c.classList.add("on")); setTimeout(() => { c.classList.remove("on"); setTimeout(() => c.remove(), 600); }, 2600);
   }
-  const night = (on) => { if (on) { cut(T("THE CURSE HAS AWAKENED!"), T("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5"), "night"); buzz([40, 60, 120]); } else cut(T("Dawn breaks"), T("The monsters are back to their day strength"), "day"); };
+  const night = (on, blood) => { if (on) { if (blood) cut(T("A BLOOD MOON RISES!"), T("Monsters ×1.8 · EXP ×3 · ARCL ×2 · drops ×2"), "night blood"); else cut(T("THE CURSE HAS AWAKENED!"), T("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5"), "night"); buzz([40, 60, 120]); } else cut(T("Dawn breaks"), T("The monsters are back to their day strength"), "day"); };
   const warn = () => toast(T("The Cursed Night falls in a minute — the monsters will grow stronger"));
   // ---- the server's set ----
   async function refresh(force) {
@@ -50,8 +57,16 @@ export function makeHwUI({ T, esc, M, post, sess, toast, signIn, buzz = () => {}
     if (flushing) return; flushing = true;
     try { while (queue.length) { const q = queue.shift(), s0 = sess(); if (!s0) break; const r = await post({ action: "world-hw-kill", ...s0, ...q }); const j = r && r.j;
       if (r && r.status === 429) { queue.unshift(q); await new Promise((ok) => setTimeout(ok, 800)); continue; }
-      if (j && j.set) { S = j.set; gotAt = Date.now(); onSet(S); } if (j && j.frag) toast(T("+{n} Pumpkin Soul Fragments", { n: j.frag })); if (j && j.drop) reveal(j.drop);
+      if (j && j.pity) { pity = j.pity; last = ""; }
+      if (j && j.set) { S = j.set; gotAt = Date.now(); onSet(S); } if (j && j.frag) { toast(j.sure ? T("+{n} Pumpkin Soul Fragments (a sure one for {m} knock-outs)", { n: j.frag, m: HW.FRAG.PITY }) : T("+{n} Pumpkin Soul Fragments", { n: j.frag })); fragFly(j.frag); } if (j && j.drop) reveal(j.drop);
       await new Promise((ok) => setTimeout(ok, HW.KILL_GAP + 50)); } } catch { /* the next one tries again */ } finally { flushing = false; }
+  }
+  // fragments: little soul flames fly from the middle of the screen to the strip's counter, which pops
+  function fragFly(n) {
+    const to = strip.querySelector(".hwr-fr"); if (!to || strip.hidden) return; const r = to.getBoundingClientRect();
+    for (let i = 0; i < Math.min(5, n); i++) { const f = document.createElement("i"); f.className = "hwr-fly"; f.style.left = innerWidth / 2 + (Math.random() - 0.5) * 80 + "px"; f.style.top = innerHeight / 2 + (Math.random() - 0.5) * 60 + "px"; document.body.appendChild(f);
+      setTimeout(() => { f.style.transform = `translate(${r.left + r.width / 2 - parseFloat(f.style.left)}px, ${r.top + r.height / 2 - parseFloat(f.style.top)}px) scale(.5)`; f.style.opacity = ".2"; }, 30 + i * 70);
+      setTimeout(() => { f.remove(); to.classList.remove("pop"); void to.offsetWidth; to.classList.add("pop"); }, 700 + i * 70); }
   }
   // ---- a piece dropped: its card ----
   function reveal(p) {
@@ -63,8 +78,20 @@ export function makeHwUI({ T, esc, M, post, sess, toast, signIn, buzz = () => {}
   }
   // ---- the set's window ----
   const statLine = (o) => Object.entries(o).filter(([k]) => ["atk", "def", "hp", "sp", "crit", "spd", "hwXp"].includes(k)).map(([k, v]) => `${{ atk: T("Attack"), def: T("Defense"), hp: T("Max HP"), sp: T("Max SP"), crit: T("Critical"), spd: T("Speed"), hwXp: T("Realm EXP %") }[k]} +${v}`).join(" · ");
+  // HX3: the window's three tabs — the set, the realm journey, this week's hunters
+  let topV = null, topAt = 0;
+  async function loadTop() { if (Date.now() - topAt < 30e3 && topV) return; topAt = Date.now(); try { const s0 = sess(), r = await fetch("/api/social?world=hw-top" + (s0 ? "&wallet=" + s0.wallet : ""), { cache: "no-store" }); if (r.ok) { topV = await r.json(); if (tab === "top") paint(); } } catch { /* the next open */ } }
+  const tabsHtml = () => `<nav class="hwr-tabs">${[["set", T("The set")], ["journey", T("Realm journey")], ["top", T("Hunters this week")]].map(([k, n]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}">${esc(n)}</button>`).join("")}</nav>`;
+  function paintJourney() {
+    const J = journey(), n = J.filter((x) => x.done).length;
+    win.querySelector(".hwr-body").innerHTML = tabsHtml() + `<p class="hwr-tip">${esc(T("{n} of {m} steps — each one pays EXP the first time", { n, m: J.length }))}</p><ol class="hwr-journey">${J.map((x) => `<li class="${x.done ? "on" : ""}"><b>${x.done ? "✓" : "·"}</b><span>${esc(x.name)}<small>${esc(x.line || "")}</small></span><em>+${x.xp} EXP</em></li>`).join("")}</ol>`;
+  }
+  function paintTop() {
+    const s0 = sess(), me = s0 ? s0.wallet.toLowerCase() : ""; loadTop();
+    win.querySelector(".hwr-body").innerHTML = tabsHtml() + (topV ? `<p class="hwr-tip">${esc(T("Knock-outs in the Halloween Realm since Monday (Seoul) · you: {n}", { n: (topV.mine || 0).toLocaleString() }))}</p><ol class="hwr-top10">${(topV.top || []).map((x, i) => `<li class="${x.w === me ? "me" : ""}"><b>${i + 1}</b><span>${esc(x.name || "")}</span><em>${Math.round(x.n).toLocaleString()}</em></li>`).join("") || `<li><span>${esc(T("Be the first!"))}</span></li>`}</ol>` : `<p class="hwr-tip">${esc(T("Loading…"))}</p>`);
+  }
   function paint() {
-    if (!win) return; const w = worn(), b = setBonus(w), my = Object.keys(SLOT_IC).filter((sl) => mythicSlot(sl));
+    if (!win) return; if (tab === "journey") return paintJourney(); if (tab === "top") return paintTop(); const w = worn(), b = setBonus(w), my = Object.keys(SLOT_IC).filter((sl) => mythicSlot(sl));
     const slots = SET.PIECES.map((P) => { const on = (S.pieces || []).find((p) => p.id === (S.eq || {})[P.slot]), held = (S.pieces || []).filter((p) => p.k === P.id), cr = mythicSlot(P.slot);
       return `<button type="button" class="hwr-slot${on ? " on" : ""}${pick === P.slot ? " pick" : ""}" data-slot="${P.slot}"><img src="${icon(P.id)}" alt="" width="64" height="64"><b>${esc(T(P.name))}</b><small>${on ? "+" + (on.p || 0) + " · " + esc(T("worn")) : held.length ? esc(T("{n} held", { n: held.length })) : esc(T("not found yet"))}</small>${cr ? `<i class="hwr-cc" title="${esc(T("A Crimson Celestial piece is worn in this slot: it comes first"))}">CC</i>` : ""}</button>`; }).join("");
     const bonus = SET.BONUS.map(([need, name]) => `<li class="${b.n >= need ? "on" : ""}"><b>${need}</b>${esc(T(name))}${need === 6 ? `<small>${esc(T("5 % a hit: a pumpkin blast of 180 % attack round it, once in 8 s — the realm's monsters only"))}</small>` : ""}</li>`).join("");
@@ -74,7 +101,7 @@ export function makeHwUI({ T, esc, M, post, sess, toast, signIn, buzz = () => {}
         return `<div class="hwr-row"><b>+${p.p || 0}</b><span>${esc(statLine(st))}</span><div>${isOn ? `<button type="button" data-off="${P.slot}">${esc(T("Take off"))}</button>` : `<button type="button" class="go" data-wear="${p.id}" data-s="${P.slot}">${esc(T("Wear"))}</button>`}${(p.p || 0) < HW.ENH.MAX ? `<button type="button" data-enh="${p.id}" ${S.frag < c ? "disabled" : ""}>${esc(T("Enhance"))} · ${c} 🎃 · ${Math.round(HW.ENH.rate(p.p || 0) * 100)}%</button>` : ""}<button type="button" data-salv="${p.id}">${esc(T("Salvage"))} → ${HW.FRAG.SALVAGE + (p.p || 0) * 2} 🎃</button></div></div>`; }).join("")
         : `<p class="hwr-none">${esc(T("You don't hold this piece yet. It drops in the realm's grounds — more at night — or craft it below."))}</p>`}
       <button type="button" class="hwr-craft" data-craft="${P.slot}" ${S.frag < HW.FRAG.CRAFT ? "disabled" : ""}>${esc(T("Craft {x}", { x: T(P.name) }))} · ${HW.FRAG.CRAFT} 🎃</button></div>` : `<p class="hwr-tip">${esc(T("Pick a slot to see its pieces."))}</p>`;
-    win.querySelector(".hwr-body").innerHTML = `<div class="hwr-top"><span class="hwr-frag">🎃 ${S.frag} <small>${esc(T("Pumpkin Soul Fragments"))}</small></span><span class="hwr-n">${b.n}/6 ${esc(T("worn"))}</span></div>
+    win.querySelector(".hwr-body").innerHTML = tabsHtml() + `<div class="hwr-top"><span class="hwr-frag">🎃 ${S.frag} <small>${esc(T("Pumpkin Soul Fragments"))}</small></span><span class="hwr-n">${b.n}/6 ${esc(T("worn"))}</span></div>
       <div class="hwr-slots">${slots}</div><ul class="hwr-bonus">${bonus}</ul>${detail}
       <p class="hwr-note">${esc(T("Legendary: below the Crimson Celestial set (Mythic) — you can wear both, one piece a slot; a Crimson piece in a slot comes first."))}${my.length ? " " + esc(T("Crimson worn now: {n}", { n: my.length })) : ""} ${esc(T("These pieces can't be traded for now."))}</p>`;
   }
@@ -82,6 +109,7 @@ export function makeHwUI({ T, esc, M, post, sess, toast, signIn, buzz = () => {}
     tab = t || "set"; if (!win) { win = document.createElement("div"); win.className = "hwr-win"; win.innerHTML = `<div class="hwr-card"><header><img src="${icon("crown")}" alt="" width="36" height="36"><b>${esc(T("Inferno Jack set"))}</b><small>LEGENDARY</small><button type="button" class="hwr-x" data-close aria-label="${esc(T("Close"))}">×</button></header><div class="hwr-body"></div></div>`; document.body.appendChild(win);
       win.addEventListener("click", async (e) => { const q = (s) => e.target.closest(s);
         if (q("[data-close]") || e.target === win) { win.classList.remove("on"); return; }
+        const tb = q("[data-tab]"); if (tb) { tab = tb.dataset.tab; paint(); return; }
         const sl = q("[data-slot]"); if (sl) { pick = sl.dataset.slot; paint(); return; }
         const we = q("[data-wear]"); if (we) { const r = await act("world-hw-equip", { slot: we.dataset.s, id: we.dataset.wear }); if (r && r.ok) { buzz(20); toast(T("Worn: {x}", { x: T(pieceOf((S.pieces.find((p) => p.id === we.dataset.wear) || {}).k).name) })); } return; }
         const of = q("[data-off]"); if (of) { await act("world-hw-equip", { slot: of.dataset.off, id: null }); return; }
@@ -91,5 +119,13 @@ export function makeHwUI({ T, esc, M, post, sess, toast, signIn, buzz = () => {}
       }); }
     paint(); requestAnimationFrame(() => win.classList.add("on")); refresh(true).then(paint);
   }
-  return { hud, open, reveal, night, warn, refresh, kill, set: () => S, worn, isOpen: () => !!(win && win.classList.contains("on")), close: () => win && win.classList.remove("on"), cutIn: cut };
+  // HX2: the night's shared Jack — his HP for everyone, the top three, what you hit (under the strip while he's up)
+  const jb = document.createElement("div"); jb.className = "hwr-jb"; jb.hidden = true; document.body.appendChild(jb); let jbKey = "";
+  function jackBoard(v) {
+    if (!v) { jb.hidden = true; jbKey = ""; return; } const s0 = sess(), me = s0 ? s0.wallet.toLowerCase() : "", k = `${v.hp}|${(v.top || []).map((x) => x.w + x.n).join()}|${v.mine}`; jb.hidden = false; if (k === jbKey) return; jbKey = k;
+    const p = Math.max(0, Math.min(100, (v.hp / v.max) * 100));
+    jb.innerHTML = `<b>${esc(T("Inferno Jack · everyone's HP"))}</b><i class="hwr-jbar"><em style="width:${p.toFixed(1)}%"></em></i><ol>${(v.top || []).slice(0, 3).map((x, i) => `<li class="${x.w === me ? "me" : ""}"><span>${["🥇", "🥈", "🥉"][i]} ${esc(x.name || "")}</span><span>${Math.round(x.n).toLocaleString()}</span></li>`).join("") || `<li><span>${esc(T("Be the first to hit him!"))}</span></li>`}</ol>${v.mine ? `<small>${esc(T("You: {n}", { n: Math.round(v.mine).toLocaleString() }))}</small>` : ""}`;
+  }
+  const setSet = (s1) => { S = s1; gotAt = Date.now(); onSet(S); last = ""; };
+  return { hud, open, reveal, night, warn, refresh, kill, jackBoard, setSet, set: () => S, worn, isOpen: () => !!(win && win.classList.contains("on")), close: () => win && win.classList.remove("on"), cutIn: cut };
 }

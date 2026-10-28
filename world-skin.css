@@ -5845,6 +5845,15 @@ body>.wse-form{position:fixed;z-index:13050}.wse-form .wse-chk{align-items:flex-
 .hwr-z{color:#cfe8ff;font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .hwr-set{display:flex;align-items:center;gap:5px;border:1px solid rgba(255,138,31,.6);background:rgba(255,138,31,.16);color:#fff;border-radius:999px;padding:3px 10px 3px 4px;font:800 12px Sora,sans-serif;cursor:pointer}
 .hwr-set img{width:22px;height:22px;object-fit:contain}
+.hwr-jb{position:fixed;z-index:60;top:calc(env(safe-area-inset-top,0px) + 150px);left:50%;transform:translateX(-50%);width:min(300px,78vw);padding:8px 10px;border-radius:12px;background:rgba(26,10,40,.82);border:1px solid rgba(255,138,31,.55);color:#fff;font:600 11px Sora,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none}
+.hwr-jb b{display:block;font-weight:800;color:#ffb24a;letter-spacing:.04em;font-size:11px}.hwr-jbar{display:block;height:6px;border-radius:4px;background:rgba(255,255,255,.12);margin:5px 0;overflow:hidden}.hwr-jbar em{display:block;height:100%;background:linear-gradient(90deg,#ff4d2a,#ffb24a);transition:width .6s}
+.hwr-jb ol{list-style:none;margin:0;padding:0}.hwr-jb li{display:flex;justify-content:space-between;gap:8px;padding:1px 0}.hwr-jb li.me{color:#7cf5c8}.hwr-jb small{color:#e6d8ff}
+@media (max-width:640px){.hwr-jb{top:calc(env(safe-area-inset-top,0px) + 128px);font-size:10px}}html.wp-pcphone .hwr-jb{top:calc(env(safe-area-inset-top,0px) + 230px);transform:translateX(-50%) scale(1.6);transform-origin:top center}
+.hwr-fr{position:relative;display:flex;align-items:center;gap:5px;border:1px solid rgba(180,140,255,.55);background:rgba(40,20,70,.55);color:#fff;border-radius:999px;padding:3px 9px;font:800 11px Sora,sans-serif;cursor:pointer;overflow:hidden}
+.hwr-fr i{position:absolute;inset:0 auto 0 0;width:var(--p);background:linear-gradient(90deg,rgba(255,138,31,.45),rgba(255,200,90,.55));transition:width .5s}.hwr-fr b,.hwr-fr small{position:relative}.hwr-fr small{font-weight:600;color:#e6d8ff;opacity:.85}
+.hwr-fr.pop{animation:hwrPop .35s}@keyframes hwrPop{40%{transform:scale(1.18)}}
+.hwr-nb{display:none;color:#1a0b2e;background:#ffb24a;border-radius:999px;padding:2px 8px;font-weight:800;white-space:nowrap}
+.hwr-fly{position:fixed;z-index:9000;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:radial-gradient(circle,#fff 0 20%,#ffb24a 45%,rgba(255,120,30,0) 72%);box-shadow:0 0 12px #ff8a1f;pointer-events:none;transition:transform .62s cubic-bezier(.5,-.3,.6,1),opacity .62s}
 @keyframes hwrPulse{50%{opacity:.55}}
 body.wp-hw-night::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at 50% 42%,rgba(70,20,120,.22) 0%,rgba(40,0,70,.32) 55%,rgba(20,0,40,.55) 100%);mix-blend-mode:multiply}
 .hwr-cut{position:fixed;left:0;right:0;top:30%;z-index:120;display:grid;justify-items:center;gap:6px;pointer-events:none;opacity:0;transform:scale(1.15);transition:opacity .45s,transform .6s cubic-bezier(.2,.9,.2,1)}
@@ -5888,6 +5897,19 @@ body.wp-hw-night::after{content:"";position:fixed;inset:0;pointer-events:none;z-
 .hwr-row button{border:1px solid rgba(255,138,31,.45);background:transparent;color:#fff;border-radius:10px;padding:7px 10px;font:700 12px Sora;cursor:pointer}
 .hwr-row button[disabled],.hwr-craft[disabled]{opacity:.45;cursor:default}
 .hwr-none,.hwr-tip,.hwr-note{margin:0;color:#d8bfae;font-size:12px}
-@media (max-width:640px){.hwr-slots{grid-template-columns:repeat(3,1fr)}.hwr-strip{top:calc(env(safe-area-inset-top,0px) + 50px);font-size:11px;padding:4px 6px 4px 9px;gap:6px}.hwr-k,.hwr-strip .hwr-z{display:none}.hwr-time b,.hwr-time{gap:4px}}
-html.wp-pcphone .hwr-k,html.wp-pcphone .hwr-strip .hwr-z{display:none}
+@media (max-width:640px){.hwr-slots{grid-template-columns:repeat(3,1fr)}.hwr-strip{top:calc(env(safe-area-inset-top,0px) + 50px);font-size:11px;padding:4px 6px 4px 9px;gap:6px}.hwr-k,.hwr-strip .hwr-z,.hwr-fr small{display:none}.hwr-nb{display:inline}.hwr-time b,.hwr-time{gap:4px}}
+html.wp-pcphone .hwr-k,html.wp-pcphone .hwr-strip .hwr-z,html.wp-pcphone .hwr-fr small{display:none}html.wp-pcphone .hwr-nb{display:inline}
 html.wp-pcphone .hwr-slots{grid-template-columns:repeat(3,1fr)}
+
+/* HX2: the Cursed Night's call in town */
+.wp-hwcall{position:fixed;z-index:9500;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translate(-50%,-20px);opacity:0;transition:.35s;display:grid;gap:4px;justify-items:center;padding:10px 16px;border-radius:14px;background:linear-gradient(160deg,rgba(60,20,90,.95),rgba(30,8,40,.95));border:1px solid rgba(255,138,31,.7);color:#fff;font:600 12px Sora,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4),0 0 24px rgba(255,120,30,.35);text-align:center}
+.wp-hwcall.on{opacity:1;transform:translate(-50%,0)}.wp-hwcall b{font-weight:800;font-size:13px;color:#ffb24a}.wp-hwcall span{color:#e6d8ff}.wp-hwcall button{margin-top:4px;border:0;border-radius:999px;padding:6px 14px;background:#ff8a1f;color:#1a0b2e;font:800 12px Sora,sans-serif;cursor:pointer}
+.hwr-strip.blood{border-color:rgba(255,40,40,.75);box-shadow:0 0 18px rgba(255,30,30,.35)}.hwr-cut.blood b{color:#ff3a2a;text-shadow:0 0 24px rgba(255,0,0,.8)}
+body.wp-hw-night.wp-hw-blood::after{background:radial-gradient(120% 90% at 50% 40%,rgba(120,0,0,0) 55%,rgba(110,0,10,.42))}
+.hwr-tabs{display:flex;gap:4px;margin:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}.hwr-tabs button{border:0;background:none;color:#cbb8ff;font:700 12px Sora,sans-serif;padding:7px 10px;border-bottom:2px solid transparent;cursor:pointer}.hwr-tabs button.on{color:#ffb24a;border-color:#ffb24a}
+.hwr-journey,.hwr-top10{list-style:none;margin:0;padding:0;display:grid;gap:6px}.hwr-journey li,.hwr-top10 li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.hwr-journey li.on{border-color:rgba(124,245,200,.5);background:rgba(124,245,200,.08)}.hwr-journey b{width:20px;text-align:center;color:#7cf5c8}.hwr-journey span{flex:1;display:grid}.hwr-journey small{color:#b9a8e0;font-weight:500}.hwr-journey em,.hwr-top10 em{font-style:normal;color:#ffb24a;font-weight:800}
+.hwr-top10 b{width:22px;color:#ffb24a}.hwr-top10 span{flex:1}.hwr-top10 li.me{border-color:#7cf5c8}
+.hwr-time .hwr-dial{width:18px;height:18px;border-radius:50%;flex:none;background:conic-gradient(#ffb04a var(--p),rgba(255,255,255,.14) 0);box-shadow:inset 0 0 0 3px rgba(26,10,40,.85);padding:0!important}.hwr-time.night .hwr-dial{background:conic-gradient(#b48cff var(--p),rgba(255,255,255,.14) 0)}.hwr-strip.blood .hwr-dial{background:conic-gradient(#ff3a2a var(--p),rgba(255,255,255,.14) 0)}
+.hwr-drop.on .hwr-dropin img{animation:hwrFall .9s cubic-bezier(.2,1.4,.4,1) both,hwrFloat 2.4s ease-in-out .9s infinite}@keyframes hwrFall{0%{transform:translateY(-220px) rotate(-30deg) scale(.6);opacity:0}60%{opacity:1}100%{transform:none}}
+.hwr-drop.on .hwr-beam{animation:hwrBeam .9s ease-out both,hwrPulse 1.6s ease-in-out .9s infinite}@keyframes hwrBeam{0%{height:0;opacity:0}40%{opacity:1}100%{height:260px}}

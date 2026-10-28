@@ -8,9 +8,9 @@
 // KTX2 ≤ 1024 px), repeats instanced, loaded the first time you're in; the drawn stand-ins until then.
 //   makeHwRealm({ THREE, K, planet, T, low, ver, esc }) → { group, doors, back, solids, show(on), tick(dt, t, me), arrival(),
 //     marks(), clock(), onNight(fn), grounds }
-import { HW, GROUNDS, groundXZ, clockOf, RARE, SET, pieceOf, pieceStats, setBonus } from "./world-hwrealm-data.js";
+import { HW, GROUNDS, groundXZ, clockOf, nightOf, RARE, SET, pieceOf, pieceStats, setBonus } from "./world-hwrealm-data.js";
 import { XZONES } from "./world-rpg-data.js";
-export { HW, GROUNDS, SET, clockOf, pieceOf, pieceStats, setBonus };
+export { HW, GROUNDS, SET, clockOf, nightOf, pieceOf, pieceStats, setBonus };
 
 const rad = (a) => (a * Math.PI) / 180;
 const polar = (a, r) => [Math.sin(rad(a)) * r, Math.cos(rad(a)) * r]; // a = 0 is south (+z, the way in), 90 east
@@ -51,7 +51,10 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
   }
   // ---------------- the sky past the land: Meshy's dusk and night backdrops round it, a red moon at night ----------------
   const skyM = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide, fog: false, depthWrite: false }), skyT = {};
+  // HX2: the night's sky on a second cylinder just inside the first, faded in over a few seconds (the curse's arrival)
+  const skyN = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide, fog: false, depthWrite: false, transparent: true, opacity: 0 });
   { const R = 560, H = ((Math.PI * 2 * R) / 3) * (768 / 1344), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 64, 1, true), skyM); cyl.position.y = H / 2 - 80; cyl.renderOrder = -5; cyl.frustumCulled = false; cyl.name = "hw-sky"; g.add(cyl);
+    const cyl2 = new THREE.Mesh(cyl.geometry, skyN); cyl2.scale.setScalar(0.995); cyl2.position.copy(cyl.position); cyl2.renderOrder = -4; cyl2.frustumCulled = false; g.add(cyl2);
     for (const k of ["day", "night"]) try { tl.load(`/images/hwrealm/sky-${k}-${low ? 768 : 1344}.webp${ver}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.repeat.set(3, 1); skyT[k] = t; paintSky(); }); } catch { /* the plain sky */ } }
   const moon = new THREE.Mesh(new THREE.CircleGeometry(38, 48), new THREE.MeshBasicMaterial({ color: 0xff3a2a, fog: false, toneMapped: false, transparent: true, opacity: 0.92 })); moon.position.set(-140, 210, -480); moon.lookAt(0, 20, 0); moon.visible = false; g.add(moon);
   // ---------------- a sign that turns to face you ----------------
@@ -73,13 +76,13 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
   const SPOTS = [
     { id: "hwshop", glb: "shop", a: 300, d: 17, fp: 9, name: "Pumpkin Merchant", sub: "The Inferno Jack set · what you hold", col: 0xff8a1f },
     { id: "hwforge", glb: "forge", a: 60, d: 17, fp: 9, name: "Soul Forge", sub: "Craft · enhance · salvage", col: 0xb48cff },
-    { id: "hwtreat", glb: "chest", a: 180, d: 12, fp: 3.2, name: "Trick or Treat", sub: "The realm's clock and its rules", col: 0x7cf5c8 },
-    { id: "", glb: "house", a: 120, d: 19, fp: 8 }, { id: "", glb: "house", a: 240, d: 19, fp: 8, turn: 0.4 },
+    { id: "hwtreat", glb: "chest", a: 180, d: 12, fp: 3.2, name: "Trick or Treat", sub: "Knock once a day · the realm's clock", col: 0x7cf5c8 },
+    { id: "hwhouse1", glb: "house", a: 120, d: 19, fp: 8, col: 0xff9a2e }, { id: "hwhouse2", glb: "house", a: 240, d: 19, fp: 8, turn: 0.4, col: 0xff9a2e }, // (HX2: their doors are knocked on)
   ];
   const holders = SPOTS.map((S) => {
     const o = new THREE.Group(), [x, z] = polar(S.a, S.d); o.position.set(x, 0, z); o.rotation.y = Math.atan2(-x, -z) + (S.turn || 0); g.add(o); S.o = o;
     const stand = new THREE.Mesh(new THREE.BoxGeometry(S.fp * 0.7, S.fp * 0.55, S.fp * 0.7), std(S.col || 0x6a3a1a, { emissive: S.col || 0x2a1008, emissiveIntensity: 0.15 })); stand.position.y = S.fp * 0.275; stand.name = "hw-stand"; o.add(stand); S.stand = stand;
-    solid(o, S.fp * 0.42); if (S.id) { door(o, S.id, S.col, S.fp * 0.5 + 1.6); const b = board(T(S.name), T(S.sub), "#" + S.col.toString(16).padStart(6, "0"), 8); if (b) { b.position.set(0, S.fp * 0.9 + 1.4, 0); o.add(b); } marks.push({ g: o, css: "#" + S.col.toString(16).padStart(6, "0"), s: 4, ch: S.id === "hwshop" ? "🛍️" : S.id === "hwforge" ? "🔥" : "🍬" }); }
+    solid(o, S.fp * 0.42); if (S.id) door(o, S.id, S.col, S.fp * 0.5 + 1.6); if (S.id && S.name) { const b = board(T(S.name), T(S.sub), "#" + S.col.toString(16).padStart(6, "0"), 8); if (b) { b.position.set(0, S.fp * 0.9 + 1.4, 0); o.add(b); } marks.push({ g: o, css: "#" + S.col.toString(16).padStart(6, "0"), s: 4, ch: S.id === "hwshop" ? "🛍️" : S.id === "hwforge" ? "🔥" : "🍬" }); }
     return S;
   });
   // ---------------- the way home ----------------
@@ -104,7 +107,8 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
   // one InstancedMesh a mesh of the model, a matrix each spot (the model's own transform under it)
   function instance(scene, h, list, name) {
     const holder = new THREE.Group(); fit(scene, h); holder.add(scene); holder.updateMatrixWorld(true); const M = new THREE.Matrix4(), out = new THREE.Group(); out.name = "hw-props:" + name;
-    holder.traverse((m) => { if (!m.isMesh) return; const im = new THREE.InstancedMesh(m.geometry, m.material, list.length); im.castShadow = !low && h > 3; im.receiveShadow = false;
+    holder.traverse((m) => { if (!m.isMesh) return; if (/lantern|tree/.test(name) && m.material && m.material.emissive && !m.material.userData.lit) { const mt = m.material; mt.userData.lit = 1; mt.userData.e0 = mt.emissiveIntensity || 0; mt.emissive.set(0xff8a1f); lanterns.push(mt); }
+      const im = new THREE.InstancedMesh(m.geometry, m.material, list.length); im.castShadow = !low && h > 3; im.receiveShadow = false;
       list.forEach(([x, z, r], i) => { M.makeRotationY(r).setPosition(x, 0, z).multiply(m.matrixWorld); im.setMatrixAt(i, M); }); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); out.add(im); });
     g.add(out); return out;
   }
@@ -118,11 +122,38 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
   }
   // ---------------- the clock: 20 minutes of day, 10 of night (the server's: clockOf), for everyone the same ----------------
   let clk = clockOf(Date.now()), skew = 0, nightOn = null;
-  function paintSky() { const t = skyT[clk.night ? "night" : "day"]; if (t) { skyM.map = t; skyM.color.set(0xffffff); } else skyM.color.set(clk.night ? 0x2a1440 : 0xd88a4a); skyM.needsUpdate = true; moon.visible = clk.night; }
+  // the day's sky stays under; the night's fades over it (nightK 0 → 1), the moon rises, the lanterns light one by one,
+  // the soul wisps and the low fog come out — and go again at dawn
+  let nightK = -1; // (the first frame snaps to the clock; after that it fades)
+  function paintSky() { const d = skyT.day, n = skyT.night; if (d) { skyM.map = d; skyM.color.set(0xffffff); } else skyM.color.set(0xd88a4a); skyM.needsUpdate = true; if (n && skyN.map !== n) { skyN.map = n; skyN.needsUpdate = true; } else if (!n) skyN.color.set(0x2a1440); }
+  function nightLook(dt) {
+    const want = clk.night ? 1 : 0; if (nightK === want && dt) return; nightK = nightK < 0 ? want : dt ? (want > nightK ? Math.min(want, nightK + dt / 4) : Math.max(want, nightK - dt / 4)) : want;
+    skyN.opacity = nightK; skyN.color.set(clk.blood ? 0xff9a8a : 0xffffff); moon.material.color.set(clk.blood ? 0xff1a0a : 0xff3a2a); moon.scale.setScalar(clk.blood ? 1.35 : 1); moon.visible = nightK > 0.02; moon.position.y = 120 + nightK * 90; moon.material.opacity = 0.92 * nightK;
+    lanterns.forEach((m, i) => { const k = Math.max(0, Math.min(1, nightK * lanterns.length - i * 0.6)); m.emissiveIntensity = m.userData.e0 + k * 2.2; });
+    if (wisps) { wisps.visible = nightK > 0.05; wisps.material.opacity = 0.9 * nightK; } fogs.forEach((f) => { f.visible = nightK > 0.05; f.material.opacity = 0.32 * nightK; });
+  }
+  const lanterns = []; // (the lanterns' and the houses' glowing materials, lit at night)
+  // HX3: the square's great jack-o'-lantern on a stone pedestal, its carved face lit (brighter at night: lanterns[])
+  { const o = new THREE.Group(); o.name = "hw-statue"; const ped = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.4, 1.2, 8), std(0x4a4256)); ped.position.y = 0.6; o.add(ped);
+    const pg = new THREE.SphereGeometry(1.7, 24, 16); pg.scale(1, 0.82, 1); const pm = std(0xff7a14, { emissive: 0x6a2a00, emissiveIntensity: 0.25 }); for (let i = 0; i < 8; i++) { const r = new THREE.Mesh(pg, pm); r.scale.set(0.6, 1, 1); r.rotation.y = (i / 8) * Math.PI; r.position.y = 2.6; o.add(r); }
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 0.8, 6), std(0x2f6a2a)); stem.position.y = 4.1; stem.rotation.z = 0.25; o.add(stem);
+    const fm = new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0xffa21a, emissiveIntensity: 0.6, side: THREE.DoubleSide }); fm.userData.lit = 1; fm.userData.e0 = 0.6; lanterns.push(fm);
+    const tri = new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-0.32, 0), new THREE.Vector2(0.32, 0), new THREE.Vector2(0, 0.42)]));
+    for (const sx of [-1, 1]) { const e = new THREE.Mesh(tri, fm); e.position.set(sx * 0.55, 2.85, 1.42); e.rotation.x = -0.2; o.add(e); }
+    const mouth = new THREE.Shape(); mouth.moveTo(-0.9, 0); for (let i = 0; i <= 6; i++) mouth.lineTo(-0.9 + i * 0.3, i % 2 ? -0.22 : 0); mouth.quadraticCurveTo(0, -0.75, -0.9, 0); const mo = new THREE.Mesh(new THREE.ShapeGeometry(mouth), fm); mo.position.set(0, 2.35, 1.48); mo.rotation.x = -0.1; o.add(mo);
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.9, 5, 1, true), std(0x2a1440, { emissive: 0x6a2fd8, emissiveIntensity: 0.4 })); crown.position.y = 4.5; o.add(crown);
+    o.rotation.y = 0; o.position.set(0, 0, -1); g.add(o); solid(o, 2.3); spins.push((dt, t) => { o.rotation.y = Math.sin(t * 0.25) * 0.25; }); }
   paintSky();
   // the grounds, for the fights (world-combat.js reads zoneAt → XZONES)
-  const grounds = GROUNDS.map((G) => { const [x, z] = groundXZ(G); return { ...G, x, z, realm: "hw", realmName: "Halloween Realm", fit: true, claimTier: 4, rskin: RARE.skin, rname: RARE.name, nightK: () => (clk.night ? HW.NIGHT : null), rareP: () => RARE.chance * (clk.night ? HW.NIGHT.rare : 1) }; });
+  const grounds = GROUNDS.map((G) => { const [x, z] = groundXZ(G); return { ...G, x, z, realm: "hw", realmName: "Halloween Realm", fit: true, claimTier: 4, rskin: RARE.skin, rname: RARE.name, nightK: () => nightOf(clk), rareP: () => RARE.chance * (nightOf(clk) ? nightOf(clk).rare : 1), ...(G.jack ? { noBoss: () => clk.night } : {}) }; }); // (HX2: by night the throne's Jack is everyone's: world-hwjack.js)
   for (const z of grounds) if (!XZONES.some((q) => q.id === z.id)) XZONES.push(z);
+  // soul wisps (one Points, additive; none on low graphics) and four flat fog discs low over the grounds
+  let wisps = null; const fogs = [];
+  if (!low) { const N = 90, P = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const a = Math.random() * Math.PI * 2, d = 10 + Math.random() * (HW.LAND.r - 30); P[i * 3] = Math.sin(a) * d; P[i * 3 + 1] = 0.3 + Math.random() * 6; P[i * 3 + 2] = Math.cos(a) * d; /* (the land's own frame) */ }
+    const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.BufferAttribute(P, 3));
+    wisps = new THREE.Points(gg, new THREE.PointsMaterial({ color: 0x9fffd0, size: 0.55, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); wisps.frustumCulled = false; wisps.visible = false; wisps.name = "hw-wisps"; g.add(wisps); }
+  { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const c2 = cv.getContext("2d"), gr = c2.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, "rgba(190,150,255,1)"); gr.addColorStop(1, "rgba(190,150,255,0)"); c2.fillStyle = gr; c2.fillRect(0, 0, 128, 128);
+    const ft = new THREE.CanvasTexture(cv); for (const G of GROUNDS.slice(1, low ? 3 : 6)) { const [x, z] = groundXZ(G), f = new THREE.Mesh(new THREE.PlaneGeometry(G.r * 2.6, G.r * 2.6), new THREE.MeshBasicMaterial({ map: ft, transparent: true, opacity: 0, depthWrite: false, fog: false })); f.rotation.x = -Math.PI / 2; f.position.set(x - L.x, 0.6, z - L.z); f.visible = false; f.renderOrder = 2; g.add(f); fogs.push(f); } }
   let shown = false;
   return {
     groundAt: (x, z) => grounds.find((g) => Math.hypot(x - g.x, z - g.z) < g.r) || null, // (the strip reads where you stand now, not the fight's last check)
@@ -130,7 +161,7 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
     show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) loadModels(); },
     tick(dt, t) {
       clk = clockOf(Date.now() + skew); if (nightOn !== clk.night) { const was = nightOn; nightOn = clk.night; paintSky(); if (was != null) for (const f of nightFns) try { f(clk.night); } catch { /* fine */ } }
-      if (shown) for (const f of spins) f(dt, t);
+      if (shown) { for (const f of spins) f(dt, t); nightLook(dt); if (wisps && wisps.visible) { const a = wisps.geometry.attributes.position, A = a.array; for (let i = 0; i < A.length; i += 3) { A[i + 1] += dt * (0.25 + (i % 7) * 0.05); if (A[i + 1] > 7) A[i + 1] = 0.3; A[i] += Math.sin(t + i) * dt * 0.3; } a.needsUpdate = true; } }
     },
     setSkew(ms) { skew = Number(ms) || 0; },
     clock: () => clk, onNight(fn) { nightFns.push(fn); },

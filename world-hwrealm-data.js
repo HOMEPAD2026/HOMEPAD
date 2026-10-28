@@ -12,24 +12,42 @@
 export const HW = {
   ID: "hw", NAME: "Halloween Realm", CYCLE: 1800, DAY: 1200, WARN: 60,
   NIGHT: { hp: 1.5, atk: 1.5, def: 1.5, xp: 2, arcl: 1.5, drop: 1.5, rare: 2 },
+  // HX3: every EVERY-th Cursed Night (the cycle's number % EVERY === AT) is a BLOOD MOON: these instead of NIGHT's
+  BLOOD: { EVERY: 6, AT: 3, hp: 1.8, atk: 1.6, def: 1.6, xp: 3, arcl: 2, drop: 2, rare: 3 },
   LAND: { x: 2400, z: 2400, r: 165 }, VILLAGE_R: 26,
   // the chance a knock-out drops one of the six pieces (night ×1.5): the spec's 10.1 table
   DROP: { "": 0.0003, elite: 0.003, boss: 0.02, jack: 0.05 },
   // Pumpkin Soul Fragments: a piece salvaged gives SALVAGE (+ its + × 2), CRAFT of them make a piece of the slot you pick;
   // a field boss gives BOSS, Inferno Jack JACK, an elite one now and then (ELITE)
-  FRAG: { SALVAGE: 20, CRAFT: 100, BOSS: [1, 3], JACK: [5, 10], ELITE: 0.03 },
+  // HX1: every PITY-th knock-out of a Seoul day gives one sure fragment as well (the drop rates stay the spec's)
+  FRAG: { SALVAGE: 20, CRAFT: 100, BOSS: [1, 3], JACK: [5, 10], ELITE: 0.03, PITY: 50 },
   // enhancing a piece: +1 … +10 for fragments; a miss keeps the +
   ENH: { MAX: 10, cost: (p) => 5 + p * 5, rate: (p) => (p < 3 ? 1 : p < 6 ? 0.7 : p < 8 ? 0.5 : 0.3) },
   KILL_GAP: 700, KILL_DAY: 4000, // the server counts at most one knock-out each 0.7 s, 4,000 a Seoul day
   SOUL: { chance: 0.05, k: 1.8, cd: 8, r: 4.5 },
   JACK: { lv: 400, hpK: 60, phases: [0.7, 0.3], every: 20 * 60e3 }, // the realm's Inferno Jack: three phases (100–70 %, 70–30 %, 30–0 %)
+  // HX2: by night the throne's Inferno Jack is everyone's — one HP each Cursed Night (the cycle's number), damage reported
+  // every GAP s (≤ CAP_K × your level, your level ≥ 340); when he falls the top three get TOP fragments and everyone with
+  // ≥ MIN_SHARE of his HP gets SHARE (once a night each). By day he stays each player's own, as before.
+  // HX2: Trick or Treat — knock on the village's houses once a Seoul day each (HOUSES): a treat (fragments or a little ARCL,
+  // outside the daily cap as "hwtreat") or a trick (monsters jump out — the game spawns them); TRICK of the knocks are tricks
+  TREAT: { HOUSES: ["hwhouse1", "hwhouse2", "hwtreat"], FRAG: [2, 4], ARCL: [20, 60], P_ARCL: 0.35, TRICK: 0.25 },
+  // HX3: the grounds' gimmicks that pay (once a Seoul day each): the Whispering Forest's hidden chest, the Graveyard's tomb
+  // puzzle; the rest (pumpkins to smash, candies, the clock's slow circles) only help the fight
+  GIMMICK: { chest: { frag: 3, zone: "hw-forest" }, tomb: { frag: 5, zone: "hw-grave" } },
+  NJACK: { hp: 900000, lv: 395, GAP: 5, CAP_K: 60, LV_MIN: 340, MIN_SHARE: 0.02, TOP: [30, 20, 10], SHARE: 5 },
 };
 /// the realm's clock: { night, left (seconds to the change), warn (the last minute of the day), cycle (its number) }
 export function clockOf(ms = Date.now()) {
   const s = Math.floor(ms / 1000), t = ((s % HW.CYCLE) + HW.CYCLE) % HW.CYCLE, night = t >= HW.DAY;
   const left = night ? HW.CYCLE - t : HW.DAY - t;
-  return { night, left, warn: !night && left <= HW.WARN, cycle: Math.floor(s / HW.CYCLE), t };
+  const cycle = Math.floor(s / HW.CYCLE), blood = night && ((cycle % HW.BLOOD.EVERY) + HW.BLOOD.EVERY) % HW.BLOOD.EVERY === HW.BLOOD.AT;
+  return { night, blood, left, warn: !night && left <= HW.WARN, cycle, t, nextBlood: bloodNext(cycle) };
 }
+/// the multipliers in force: null by day, the Cursed Night's, or a Blood Moon's
+export const nightOf = (c) => (!c || !c.night ? null : c.blood ? HW.BLOOD : HW.NIGHT);
+/// how many cycles until the next Blood Moon night (0 = this one)
+function bloodNext(cycle) { const E = HW.BLOOD.EVERY; return (((HW.BLOOD.AT - cycle) % E) + E) % E; }
 // a = the direction from the village's middle (0 = south, the way in; 90 = east), d = how far, r = the ground's size
 export const GROUNDS = [
   { id: "hw-patch", name: "Pumpkin Patch", a: 45, d: 62, r: 20, lv: [15, 50], color: 0xff9a2e, mobs: ["drop", "spam"], skins: { drop: "HwSlime", spam: "HwScarecrow" }, names: { drop: "Pumpkin Slime", spam: "Cursed Scarecrow" }, eskin: "HwScarecrow", elite: 0.1, pow: 1.1,
@@ -78,4 +96,4 @@ export function setBonus(worn) {
   return { n, active, stats };
 }
 /// the drop's chance for a knock-out: rank "" / elite / boss / jack, at night ×1.5
-export const dropChance = (rank, night) => (HW.DROP[rank] != null ? HW.DROP[rank] : HW.DROP[""]) * (night ? HW.NIGHT.drop : 1);
+export const dropChance = (rank, night, blood) => (HW.DROP[rank] != null ? HW.DROP[rank] : HW.DROP[""]) * (blood ? HW.BLOOD.drop : night ? HW.NIGHT.drop : 1);

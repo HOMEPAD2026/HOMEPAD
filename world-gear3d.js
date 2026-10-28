@@ -327,10 +327,24 @@ export function meshyExtras(kit, loader, ver = "") {
 // clips renamed to the fights' (Idle / Run / Attack / Hit / TurnOff / BackFlip). Loaded when the realm is first built.
 const MESHY_HW = { HwSlime: ["slime", false], HwScarecrow: ["scarecrow", false], HwGhost: ["ghost", true], HwTreant: ["treant", false], HwSkeleton: ["skeleton", false], HwWitch: ["witch", true] };
 const JACK_CLIP = { Idle_02: "Idle", Running: "Run", Attack: "Attack", Fall_Dead: "TurnOff", Wall_Push_Jump_and_Flip: "BackFlip" };
+// HX1 (2026-10-28): four of them are Meshy's rigs with their own clips (models/world/hwrealm/mobs/<file>-rig.glb, 0.45–0.7 MB:
+// Walk / Run / Attack / Hit / TurnOff, the witch's Cast too; the treant only walks) — walking is their Run (the fights loop
+// "Run"), a slow walk their Idle, and a clip a rig lacks comes from the keyed moves on its v-body; the slime and the ghost
+// keep the keyed bounce / float (no bones to move). The still body stands in if a rig file doesn't come.
+const HW_RIG = { HwScarecrow: "scarecrow", HwSkeleton: "skeleton", HwWitch: "witch", HwTreant: "treant" };
+function rigged(g, fly) {
+  const keyed = meshyVillain(g.scene, fly), have = new Map(g.animations.map((c) => [c.name, c])), out = [], add = (n, c) => { if (!c) return; const k = c.clone(); k.name = n; out.push(k); };
+  const walk = have.get("Walk") || have.get("Run");
+  add("Run", walk); if (walk) { const idle = walk.clone(); idle.name = "Idle"; for (const t of idle.tracks) t.scale(2.6); idle.resetDuration(); out.push(idle); }
+  add("Attack", have.get("Cast") || have.get("Attack")); add("Hit", have.get("Hit")); { const h = out.find((o) => o.name === "Hit"); if (h) h.duration = Math.min(h.duration, 0.7); } add("TurnOff", have.get("TurnOff")); add("BackFlip", have.get("Attack"));
+  for (const c of keyed.clips) if (!out.some((o) => o.name === c.name)) out.push(c);
+  return { scene: keyed.scene, clips: out, rig: true };
+}
 export function meshyHw(kit, loader, ver = "") {
   if (!kit || !loader || kit.hwAsked) return Promise.resolve(kit); kit.hwAsked = true;
+  const still = (name, file, fly, ok) => loader().load(`/models/world/hwrealm/mobs/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, fly)); } catch (e) { console.warn("hw mob", file, e); } ok(); }, undefined, () => ok());
   const jobs = Object.entries(MESHY_HW).map(([name, [file, fly]]) => new Promise((ok) => {
-    try { loader().load(`/models/world/hwrealm/mobs/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, fly)); } catch (e) { console.warn("hw mob", file, e); } ok(); }, undefined, () => ok()); } catch { ok(); }
+    try { if (HW_RIG[name]) loader().load(`/models/world/hwrealm/mobs/${file}-rig.glb${ver}`, (g) => { try { place(kit, name, rigged(g, fly)); ok(); } catch (e) { console.warn("hw rig", file, e); still(name, file, fly, ok); } }, undefined, () => still(name, file, fly, ok)); else still(name, file, fly, ok); } catch { ok(); }
   }));
   jobs.push(new Promise((ok) => { try { loader().load(`/models/world/halloween/inferno-jack.glb${ver}`, (g) => { try {
     const clips = []; for (const c of g.animations) { const n = JACK_CLIP[c.name]; if (n) { const k = c.clone(); k.name = n; clips.push(k); if (n === "Attack") { const h = c.clone(); h.name = "Hit"; h.duration = Math.min(h.duration, 0.35); clips.push(h); } } }

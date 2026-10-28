@@ -48,6 +48,7 @@ const ITEMS = [
   { id: "potion", name: "Health potion", w: 12, color: 0xff5f73 },
   { id: "shield", name: "Shield", w: 8, color: 0x4fa8ff, secs: 30 },
   { id: "magnet", name: "Magnet", w: 8, color: 0xff4d6d, secs: 20 },
+  { id: "fury", name: "Candy fury", w: 0, color: 0xff6fae, secs: 20 }, // (HX3: only from the Witch's Candy Factory's candies — w 0, never dropped at random; damage ×1.2)
 ];
 const BOSS_FIRST = 2 * 60e3, BKEY = "arc.world.boss";
 const bossEvery = () => (weekEvent() === "boss" ? 15 : 30) * 60e3; // a boss rush week brings them back twice as fast
@@ -287,7 +288,7 @@ export function createCombat(ctx) {
     // the far grounds hit harder (their pow): more HP, attack and defence, and a little more XP for it
     const pow = (o.zone && o.zone.pow) || 1; if (pow !== 1 && !o.raid) { st.hp = Math.round(st.hp * pow); st.atk = Math.round(st.atk * pow); st.def = Math.round(st.def * (1 + (pow - 1) * 0.6)); st.xp = Math.round(st.xp * (1 + (pow - 1) * 0.5)); }
     const nk = o.zone && o.zone.nightK ? o.zone.nightK() : null; // the Halloween Realm's Cursed Night: HP / attack / defence ×1.5, XP ×2
-    if (nk && !o.ext) { st.hp = Math.round(st.hp * nk.hp); st.atk = Math.round(st.atk * nk.atk); st.def = Math.round(st.def * nk.def); st.xp = Math.round(st.xp * nk.xp); }
+    if (nk && !o.ext) { o.hwK = nk; st.hp = Math.round(st.hp * nk.hp); st.atk = Math.round(st.atk * nk.atk); st.def = Math.round(st.def * nk.def); st.xp = Math.round(st.xp * nk.xp); }
     if (o.def != null) st.def = o.def; // AC Defense: its Defense is the wave's own
     if (o.raid) { st.hp = o.max; st.atk = Math.round(st.atk * 0.85); } // the shared weekly raid keeps a little gentler bite
     if (o.ext) { st.hp = o.max; if (o.atkK) st.atk = Math.round(st.atk * o.atkK); } // a shared boss from another module: its HP is the server's
@@ -312,7 +313,7 @@ export function createCombat(ctx) {
     if (rank) { const rr = new THREE.Mesh(geoOf("ring" + !!bs, () => new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48)), rank === "boss" ? ringBoss : ringElite); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
     if (VX && rank && !o.raid) VX.summon(p, rank === "boss");
-    const m = { tgt: o.tgt || null, spd: o.spd || 1, g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: o.reach || (bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0)), y: baseY, glow: skin ? 0.05 : 0.18 };
+    const m = { tgt: o.tgt || null, spd: o.spd || 1, g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: o.reach || (bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0)), y: baseY, glow: skin ? 0.05 : 0.18, hwK: o.hwK || null };
     // a golden scammer: rare, runs from you, gone in 25 seconds; five times the XP and a better chest
     // an elite comes with an element: frost, blazing or toxic — its own colour, motes round it and a name to match
     if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
@@ -353,7 +354,7 @@ export function createCombat(ctx) {
   function hit(m, raw, from, kind, crit, light) {
     if (m.dead) return 0;
     const realm = !!(m.zone && m.zone.realm && !m.ext && !m.raid), hs0 = realm ? stats() : null; // (the Inferno Jack set: +10 % on the realm's monsters with five worn)
-    const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1) * (m.vulnUntil > performance.now() ? 1.25 : 1) * (hs0 && hs0.hwDmg ? 1 + hs0.hwDmg / 100 : 1))); // (Chrono Field: +25% taken)
+    const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1) * (m.vulnUntil > performance.now() ? 1.25 : 1) * (hs0 && hs0.hwDmg ? 1 + hs0.hwDmg / 100 : 1) * (buffs.fury > 0 && kind !== "pet" ? 1.2 : 1))); // (Chrono Field: +25% taken; a candy's fury +20 %)
     if (hs0 && hs0.soul && kind !== "pet" && kind !== "soul" && soulT <= 0 && Math.random() < SOUL.chance) { soulT = SOUL.cd; setTimeout(() => pumpkinSoul(m, hs0), 0); } // (after this blow is done: the blast's own hits knock out what they knock out)
     if (kind !== "pet" && ctx.level() >= ULT_LV) gainUlt(light ? 0.35 : 2);
     const quiet = light && !crit;
@@ -410,14 +411,24 @@ export function createCombat(ctx) {
   // Pumpkin Soul (the Inferno Jack set, all six worn): a hit on one of the Halloween Realm's monsters bursts into a pumpkin
   // blast now and then — 180 % of your attack round it, at most once in 8 s; never on a shared boss or the raid
   const SOUL = { chance: 0.05, k: 1.8, cd: 8, r: 4.5 }; let soulT = 0;
+  // HX3: the Pumpkin Soul's grin — a jack-o'-lantern face (drawn once on a canvas) swells over the blast and fades
+  let faceTex = null;
+  function soulFace(at) {
+    if (ctx.reduce) return; if (!faceTex) { const c = document.createElement("canvas"); c.width = c.height = 128; const g2 = c.getContext("2d"); g2.fillStyle = "#ff8a1f"; g2.beginPath(); g2.ellipse(64, 70, 58, 50, 0, 0, Math.PI * 2); g2.fill(); g2.fillStyle = "#ffe27a";
+      for (const sx of [-1, 1]) { g2.beginPath(); g2.moveTo(64 + sx * 14, 58); g2.lineTo(64 + sx * 38, 58); g2.lineTo(64 + sx * 26, 36); g2.fill(); } g2.beginPath(); g2.moveTo(30, 82); for (let i = 0; i <= 8; i++) g2.lineTo(30 + i * 8.5, i % 2 ? 98 : 86); g2.lineTo(98, 82); g2.quadraticCurveTo(64, 112, 30, 82); g2.fill();
+      g2.fillStyle = "#2f7a2a"; g2.fillRect(58, 10, 12, 18); faceTex = new THREE.CanvasTexture(c); faceTex.colorSpace = THREE.SRGBColorSpace; }
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: faceTex, transparent: true, depthWrite: false, toneMapped: false })); sp.position.copy(at).setY(2.4); sp.scale.setScalar(0.5); add(sp);
+    const t0 = performance.now(); const step = () => { const k = (performance.now() - t0) / 650; if (k >= 1) { root.remove(sp); sp.material.dispose(); return; } sp.scale.setScalar(0.5 + k * 3.2); sp.material.opacity = 1 - k * k; sp.position.y = 2.4 + k * 1.2; requestAnimationFrame(step); }; requestAnimationFrame(step);
+  }
   function pumpkinSoul(m, st0) {
     const at = m.g.position.clone(); if (VX && VX.burst) VX.burst(fxV.copy(at).setY(0), 0xff8a1f, 1.6);
     ring(at, 0xff8a1f, { r0: 0.4, r1: SOUL.r, life: 0.5, y: 0.2 }); puff(at.clone().setY(1), 0xffa63a, { n: 28, speed: 6, size: 0.45, life: 0.7, grav: 3 }); ctx.shake(0.25);
-    ctx.float(T("Pumpkin Soul!"), at.clone().setY(3.2), "#ff9a2e", true); Snd.boom && Snd.boom();
+    ctx.float(T("Pumpkin Soul!"), at.clone().setY(3.2), "#ff9a2e", true); Snd.boom && Snd.boom(); soulFace(at);
     for (const o of mobs) if (!o.dead && o.zone && o.zone.realm && !o.ext && !o.raid && Math.hypot(o.g.position.x - at.x, o.g.position.z - at.z) < SOUL.r) hit(o, st0.atk * SOUL.k, at, "soul", false, true);
   }
   function kill(m) {
-    m.dead = 0.001; if (ctx.level() >= ULT_LV) gainUlt(4 + (hs ? hs.onKill() : 0)); Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
+    m.dead = 0.001; if (m.e.rig && m.e.has && m.e.has("TurnOff") && !m.tgt) { m.fall = 1; m.bar.visible = false; m.e.play("TurnOff", { once: true, fade: 0.08 }); } // a rigged body (the Halloween Realm's) falls with its own clip
+    if (ctx.level() >= ULT_LV) gainUlt(4 + (hs ? hs.onKill() : 0)); Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
     if (rpg.wear) rpg.wear("kill"); // Epic and Legendary weapons wear out: 1 a knock-out (world-rpg.js)
     const p = m.g.position.clone().setY(m.y + 0.4);
     if (m.tgt) { // AC Defense: a wave drops many at once, so a lighter knock-out: its cubes and a little scrap pop (no shards, no shake but a boss's)
@@ -488,10 +499,11 @@ export function createCombat(ctx) {
       const far = m.rank !== "boss" && !m.dead && Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) > 30;
       if (far) { m.acc = (m.acc || 0) + dt; const ev = Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) > 40 ? 6 : 3; if ((m.fc = (m.fc || 0) + 1) % ev === 0) { m.e.mixer.update(Math.min(m.acc, 0.5)); m.acc = 0; } } /* b441: past 40 m every 6th frame */ else { m.e.mixer.update(dt + (m.acc || 0)); m.acc = 0; }
       if (!m.raid) m.bar.visible = !far && !(m.tgt && m.hp >= m.max);
+      if (m.dead && m.fall) { m.dead += dt; m.bar.visible = false; if (m.dead > 0.9) { m.g.scale.setScalar(Math.max(0.01, 1 - (m.dead - 0.9) * 3.4)); m.g.position.y -= dt * 0.5; } if (m.dead > 1.2) retire(m, i); continue; }
       if (m.dead) { m.dead += dt; if (m.e && m.e.dis && !ctx.reduce) { m.e.dis.value = Math.min(1, m.dead / 0.45); if (m.e.outlines) m.e.outlines.forEach((o) => { o.visible = false; }); m.g.position.y += dt * 0.8; if (m.dead > 0.5) { m.e.dis.value = 0; retire(m, i); } } else { m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); } continue; } // breaks up into data cubes
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
       if (!m.tgt && !m.ext && d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
-      m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
+      m.slow = Math.max(0, m.slow - dt); if (m.tslow) m.tslow = Math.max(0, m.tslow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
       if (m.tgt) { m.lblT = (m.lblT || 0) - dt; if (m.lbl && m.lblT <= 0) { const lo = lowQ(); m.lbl = 0; m.lblT = lo ? 0.25 : 0.1; if (lo) m.trail = Math.max(0, m.hp / m.max); label(m); } } // a defence walker's bar redraws at most 10 (low: 4) times a second
       if (!(m.tgt && lowQ())) tickTrail(m, dt);
       if (m.burn > 0) { m.burn -= dt; m.burnT = (m.burnT || 0) - dt; if (m.burnT <= 0) { m.burnT = 0.5; m.hp -= m.burnD; label(m); puff(m.g.position.clone().setY(m.y + 0.3), 0xff7a2a, { n: 3, speed: 1, size: 0.5, life: 0.4, grav: -3 }); if (m.raid) { ctx.raidHit && ctx.raidHit(m.burnD); m.hp = Math.max(1, m.hp); } if (m.rank === "boss") bossBar(m); if (m.hp <= 0) { kill(m); continue; } } }
@@ -520,7 +532,7 @@ export function createCombat(ctx) {
         if (Math.hypot(me.x - m.home.x, me.z - m.home.z) > m.home.r + 4 || hd > m.home.r) { if (hd > 1) { tmp.set(hx / hd, 0, hz / hd); tryStep(m, tmp, m.spec.speed * dt); m.g.rotation.y = Math.atan2(tmp.x, tmp.z); } m.wu = 0; continue; } }
       if (m.rank === "boss" && !m.raid && bossAI(m, dt, t, d)) { m.wu = 0; continue; } // a boss winding up a move stands its ground
       if (behave(m, dt, t, d, i)) { m.wu = 0; continue; } // a ranged, charging or fleeing scammer doing its own thing
-      const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1) * (m.rage ? 1.3 : 1);
+      const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1) * (m.rage ? 1.3 : 1) * (m.tslow > 0 ? 0.45 : 1); // (tslow: the Midnight Clocktower's slow circles)
       if (d < 15 && d > m.reach * 0.9) { tmp.divideScalar(d); if (!tryStep(m, tmp, sp * dt)) { tmp2.set(-tmp.z, 0, tmp.x); tryStep(m, tmp2, sp * dt); } m.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
       else if (d >= 15) { m.wander += (Math.random() - 0.5) * dt; tmp.set(Math.cos(m.wander), 0, Math.sin(m.wander)); tryStep(m, tmp, sp * 0.4 * dt); m.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
       const r = Math.hypot(m.g.position.x, m.g.position.z); if (r < 14) m.g.position.multiplyScalar(14 / r);
@@ -1469,7 +1481,7 @@ export function createCombat(ctx) {
         if (m0 && type === "drop" && z.lv[0] >= 30 && !rare && alive <= 2) for (let k = 0; k < 2; k++) { const a = Math.random() * TAU; spawnMob({ type, lv, zone: z, at: m0.g.position.clone().add(new V3(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2)) }); }
       } }
       const next = bossAt()[z.id] || 0;
-      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + bossEvery()); spawnMob({ rank: "boss", lv: z.fit ? Math.max(z.lv[0], Math.min(z.lv[1], ctx.level() + 2)) : z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
+      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead) && !(z.noBoss && z.noBoss())) { setBoss(z.id, Date.now() + bossEvery()); spawnMob({ rank: "boss", lv: z.fit ? Math.max(z.lv[0], Math.min(z.lv[1], ctx.level() + 2)) : z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
     } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid()) && !(ctx.noStreet && ctx.noStreet())) { // (RAID QUEENS' land brings its own)
       if ((spawnT -= dt) <= 0) { spawnT = 22 + Math.random() * 30; if (mobs.filter((m) => !m.dead && !m.zone).length < 3) spawnMob({ lv: 1 + Math.floor(Math.random() * 3) }); }
     }
@@ -1590,7 +1602,7 @@ export function createCombat(ctx) {
     softUp: () => { if (down) getUp("here"); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100) * hs.moveK(), gauge: () => gauge, fillUlt: () => { gauge = ULT_MAX; }, skillStep: (sec) => { for (let i = 0; i < Math.round(sec * 30); i++) hs.tick(1 / 30, performance.now() / 1000 + i / 30); }, castBusy: () => hs.busy(), /* (fillUlt: tests) */ jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
-    spawnMob, spawnItem, mobsRaw: () => mobs, zoneNow: () => zone,
+    spawnMob, spawnItem, mobsRaw: () => mobs, zoneNow: () => zone, buff: (id, secs) => { if (!ITEMS.some((x) => x.id === id && x.secs)) return; buffs[id] = secs; paintBuffs(); }, // (HX3: the realm's candies) rezone: () => { zoneT = 0; }, // (a land change: look again at once, so no ground's card is left from the land you left)
     /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
     locked: () => lockAlive(), lockAt: (out) => (lockAlive() ? out.copy(lockT.g.position) : null),
     bossNear: (r = 40) => { ctx.here(me); return mobs.some((m) => !m.dead && m.rank === "boss" && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < r); },
