@@ -32,11 +32,12 @@
 //   POST world-studio-remix-buy   { …sig, id, expectedPrice }               → { ok, bal }
 //   POST world-studio-prog        { …sig, id, d | clear }                   → { ok }
 //   GET  ?world=studio-prefabs[&q=&k=&sort=new|top&by=0x…&wallet=0x…]     → { items: [cards], owned: [ids] }
+//   GET  ?world=studio-prefab-top                                           → { week: [cards + wk], creators: [{ by, n, uses, sold, score, wk }] }
 //   GET  ?world=studio-prog&id=&wallet=                                     → { d }
 //   GET  ?world=studio-remix-ok&id=&wallet=                                 → { ok, fee, lic }
 // Firestore: worldStudioPrefab/<id> · worldStudioPrefabs/<w> { ids } · worldStudioPrefabIdx/all { ids } ·
 // worldStudioPfOwn/<w>_<id> · worldStudioPfUse/<id>_<w> · worldStudioRxOwn/<w>_<game> · worldStudioProg/<game>_<w> ·
-// worldStudioCredit/<w>_<day>
+// worldStudioCredit/<w>_<day> · worldStudioPfWeek/<monday> { c: { id: uses + 3 × sales } }
 import { clampSpec, genObbyBuild, obWants, obTweak, cleanObby, cleanPrefab, OB, PF } from "./_world-studio-gen.mjs";
 
 export const ASSET = { DAY: 2, ALL_DAY: 40, MAX: 20, POLYS: 5000, NAME: 40, MESHY: "https://api.meshy.ai/openapi/v2/text-to-3d", GLB_MAX: 4.4e6 };
@@ -119,7 +120,9 @@ export function makeStudioX(deps) {
   const pid = () => "p" + String(deps.randomId()).replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 12).padEnd(8, "0");
   const idOk = (id) => /^p[a-z0-9]{6,14}$/.test(String(id || ""));
   const short = (a) => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
-  const card = (id, p) => ({ id, n: p.n, k: p.k, lic: p.lic, price: p.price || 0, by: p.byName || short(p.w), byW: short(p.w), uses: p.uses || 0, sold: p.sold || 0, at: p.at, meta: p.meta, ...(p.orig ? { orig: { name: p.origName || "", id: p.origId || "" } } : {}) });
+  // RV: th — up to 48 of its pieces in short (kind, place, size, colour) for the card's picture (world-studio-pfthumb.js)
+  const r1 = (v) => Math.round((Number(v) || 0) * 2) / 2, thin = (o) => (o || []).slice(0, 48).map((q) => [q[0], r1(q[1]), r1(q[2]), r1(q[3]), r1(q[5]), r1(q[6]), r1(q[7]), q[8] | 0]);
+  const card = (id, p) => ({ id, n: p.n, k: p.k, lic: p.lic, price: p.price || 0, by: p.byName || short(p.w), byW: short(p.w), uses: p.uses || 0, sold: p.sold || 0, at: p.at, meta: p.meta, th: thin(p.pf && p.pf.o), ...(p.orig ? { orig: { name: p.origName || "", id: p.origId || "" } } : {}) });
   async function pfSave(w, b) {
     const P = cleanPrefab({ ...(b.pf || {}), n: b.name, k: b.k }); if (!P) return json(400, { error: "a prefab needs a name and at least one piece" });
     if (JSON.stringify(P).length > PREFAB.BYTES) return json(400, { error: "that prefab is too big" });
@@ -138,10 +141,20 @@ export function makeStudioX(deps) {
   async function pfDel(w, b) { if (!idOk(b.id)) return json(400, { error: "no such prefab" }); const p = await one(`worldStudioPrefab/${b.id}`); if (!p || p.gone || (p.w !== w && !(deps.isGM && deps.isGM(w)))) return json(404, { error: "no such prefab" });
     await setDoc(`worldStudioPrefab/${b.id}`, { ...p, gone: true }); const mk = `worldStudioPrefabs/${p.w}`, m = (await one(mk)) || {}; await setDoc(mk, { ids: (m.ids || []).filter((x) => x !== b.id) });
     const ix = (await one("worldStudioPrefabIdx/all")) || {}; await setDoc("worldStudioPrefabIdx/all", { ids: (ix.ids || []).filter((x) => x !== b.id) }); return json(200, { ok: true }); } // (those who own it keep what they placed)
+  // RV: this week's uses and sales per prefab (a Seoul week from Monday) for the market's "popular this week"
+  const monday = (t) => { const d = new Date(t + 9 * 3600e3), wd = (d.getUTCDay() + 6) % 7; return new Date(d.getTime() - wd * 86400e3).toISOString().slice(0, 10); };
+  async function weekBump(id, n) { const k = `worldStudioPfWeek/${monday(now())}`, d = (await one(k)) || {}, c = d.c || {}; c[id] = (c[id] || 0) + n; const keep = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 200); await setDoc(k, { c: Object.fromEntries(keep) }); }
+  async function pfTop() {
+    const [wk, ix] = [(await one(`worldStudioPfWeek/${monday(now())}`)) || {}, (((await one("worldStudioPrefabIdx/all")) || {}).ids || []).slice(0, PREFAB.IDX)], d = ix.length ? await getDocs(ix.map((i) => `worldStudioPrefab/${i}`)) : {};
+    const live = ix.map((i) => [i, d[`worldStudioPrefab/${i}`]]).filter(([, p]) => p && !p.gone), wc = wk.c || {};
+    const week = live.filter(([i]) => wc[i]).sort((a, b) => wc[b[0]] - wc[a[0]]).slice(0, 10).map(([i, p]) => ({ ...card(i, p), wk: wc[i] }));
+    const by = new Map(); for (const [i, p] of live) { const x = by.get(p.w) || { by: p.byName || short(p.w), byW: short(p.w), n: 0, uses: 0, sold: 0, wk: 0 }; x.n++; x.uses += p.uses || 0; x.sold += p.sold || 0; x.wk += wc[i] || 0; by.set(p.w, x); }
+    const creators = [...by.values()].map((x) => ({ ...x, score: x.uses + x.sold * 3 })).sort((a, b) => b.score - a.score || b.n - a.n).slice(0, 10);
+    return json(200, { ok: true, week, creators, from: monday(now()) }, "public, max-age=30, s-maxage=60"); }
   async function pfGet(w, b) {
     if (!idOk(b.id)) return json(400, { error: "no such prefab" }); const p = await one(`worldStudioPrefab/${b.id}`); if (!p || p.gone) return json(404, { error: "no such prefab" });
     if (p.price > 0 && p.w !== w && !(await one(`worldStudioPfOwn/${w}_${b.id}`))) return json(402, { error: "buy it first", price: p.price });
-    if (p.w !== w && deps.commit) { const r = await deps.commit([{ create: `worldStudioPfUse/${b.id}_${w}`, data: { at: now() } }]); if (r && r.ok) { await setDoc(`worldStudioPrefab/${b.id}`, { ...p, uses: (p.uses || 0) + 1 }); if (deps.notify) await deps.notify(p.w, { kind: "pfuse", t: p.n, by: await (deps.nameOf ? deps.nameOf(w).catch(() => "") : ""), id: b.id }).catch(() => {}); } } // (installed: counted once a wallet, the author told)
+    if (p.w !== w && deps.commit) { const r = await deps.commit([{ create: `worldStudioPfUse/${b.id}_${w}`, data: { at: now() } }]); if (r && r.ok) { await setDoc(`worldStudioPrefab/${b.id}`, { ...p, uses: (p.uses || 0) + 1 }); await weekBump(b.id, 1); if (deps.notify) await deps.notify(p.w, { kind: "pfuse", t: p.n, by: await (deps.nameOf ? deps.nameOf(w).catch(() => "") : ""), id: b.id }).catch(() => {}); } } // (installed: counted once a wallet, the author told)
     return json(200, { ok: true, prefab: { ...card(b.id, p), pf: p.pf } });
   }
   async function pfBuy(w, b) {
@@ -151,7 +164,7 @@ export function makeStudioX(deps) {
     if (await one(`worldStudioPfOwn/${w}_${b.id}`)) return pfGet(w, b);
     if (!deps.pay) return json(503, { error: "the market is closed right now" });
     const r = await deps.pay(w, { id: "pf" + b.id, title: p.n, price: p.price, creator: p.w, kind: "prefab", orig: p.origW || "" }, `worldStudioPfOwn/${w}_${b.id}`); if (r.error) return json(r.bal != null ? 402 : 409, { error: r.error, price: p.price });
-    await setDoc(`worldStudioPrefab/${b.id}`, { ...p, sold: (p.sold || 0) + 1 }); if (deps.notify) await deps.notify(p.w, { kind: "sale", t: p.n, by: await (deps.nameOf ? deps.nameOf(w).catch(() => "") : ""), id: b.id }).catch(() => {});
+    await setDoc(`worldStudioPrefab/${b.id}`, { ...p, sold: (p.sold || 0) + 1 }); await weekBump(b.id, 3); if (deps.notify) await deps.notify(p.w, { kind: "sale", t: p.n, by: await (deps.nameOf ? deps.nameOf(w).catch(() => "") : ""), id: b.id }).catch(() => {});
     const g = await pfGet(w, b), j = g && g.body; return j && j.ok ? json(200, { ...j, bal: r.bal }) : g;
   }
   async function pfList(url) {
@@ -220,6 +233,7 @@ export function makeStudioX(deps) {
       const w = url.searchParams.get("world");
       if (w === "studio-remixes") return tree(url.searchParams.get("id"));
       if (w === "studio-prefabs") return pfList(url);
+      if (w === "studio-prefab-top") return pfTop();
       if (w === "studio-prog" || w === "studio-remix-ok") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(), id = String(url.searchParams.get("id") || ""); if (!/^0x[0-9a-f]{40}$/.test(a) || !/^g[a-z0-9]{2,12}$/.test(id)) return json(400, { error: "wallet and id" });
         if (w === "studio-prog") { const d = await one(`worldStudioProg/${id}_${a}`); return json(200, { ok: true, d: d && !d.gone ? d : null }, "no-store"); }
         const g = await one(`worldStudio/${id}`); if (!g) return json(404, { error: "no such game" }); const own = g.w === a || !(g.rfee > 0) || !!(await one(`worldStudioRxOwn/${a}_${id}`)); return json(200, { ok: g.lic !== "personal" && own, fee: g.rfee || 0, lic: g.lic || "cc-by" }, "no-store"); }

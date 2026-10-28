@@ -45,7 +45,7 @@
 //            worldStudioAi/<wallet>_<day> { n } · worldStudioRun/<wallet>_<id>_<t/20s> (create-only: a play counted once in 20 s)
 //            worldStudioGhost/<id> { w, name, score, tr: [[x10, y10, z] | [x10, z10]] every 0.2 s } (the #1's run)
 //            worldStudioHandle/<h> { w, at, moved? } (create-only; an old ID keeps pointing to its owner's new one) · worldStudioHandleOf/<wallet> { h, n, old }
-import { clampSpec, genLevel, scoreOf, speedOf, dashSpeed, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore, genObbyBuild } from "./_world-studio-gen.mjs";
+import { clampSpec, genLevel, scoreOf, speedOf, dashSpeed, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore, genObbyBuild, OB } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
 /// STB6 (2026-10-27): build together — the owner's code (a day) lets one partner in; whoever holds the pen saves, the pen
@@ -65,7 +65,7 @@ export const FOLLOW = { MAX: 200, FEED: 10, READ: 60, NEW: 7 * 86400e3 };
 /// its last DL days of plays by others (g.dl { <day>: n }) for its maker's dashboard
 export const SEASON = { LIKE: 5, TOP: 10, KEEP: 200, DL: 14 };
 export const monthOf = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 7);
-export const RACE = { MAX: 4, MIN: 2, TPLS: ["runner", "dash"], LOBBY_MS: 15 * 60e3, CD_MS: 5000, RUN_MS: 5 * 60e3,
+export const RACE = { MAX: 4, OBMAX: 8, MIN: 2, TPLS: ["runner", "dash", "obby"], LOBBY_MS: 15 * 60e3, CD_MS: 5000, RUN_MS: 5 * 60e3,
   QWAIT: 25e3, HOUR: ["goffrun", "goffdash"], LIST: 12 }; // (RM3: a quick race starts QWAIT after it opens, whoever is in — the board's ghosts fill the empty pads; the race hour's game turns each hour)
 export const hourGame = (t) => RACE.HOUR[Math.floor(t / 3600e3) % RACE.HOUR.length];
 // STU-A (2026-10-26, the owner: "스튜디오는 다 진행하자"): the arcade's own games, one a template, made by ARCIRCLE — there
@@ -89,6 +89,10 @@ export const OFFICIAL = {
   goffrace: { tpl: "race", theme: "ice", title: "Glacier Grand Prix", speed: 3, len: 45, coins: 3, walls: 2, gaps: 2, lasers: 1, seed: 2424 },
   goffobby: { tpl: "obby", theme: "neon", title: "Neon Sky Obby", speed: 3, len: 60, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 2828 }, // (OBBY 2026-10-28: the 3D course)
   goffobbyb: { tpl: "obby", theme: "lava", title: "Dragon Tower Obby", speed: 3, len: 60, coins: 3, walls: 3, gaps: 1, lasers: 2, seed: 3939, build: genObbyBuild(clampSpec({ tpl: "obby", theme: "lava", speed: 3, len: 60, coins: 3, walls: 3, gaps: 1, lasers: 2, seed: 3939 }), { boss: 1, shop: 1, doors: 1, elevator: 1, look: "sunset" }) },
+  // RV (2026-10-28, the review): one official game for each new genre of the obby engine
+  goffcombat: { tpl: "obby", theme: "lava", title: "Monster Arena", speed: 3, len: 60, coins: 3, walls: 4, gaps: 1, lasers: 1, seed: 4141, build: genObbyBuild(clampSpec({ tpl: "obby", theme: "lava", speed: 3, len: 60, coins: 3, walls: 4, gaps: 1, lasers: 1, seed: 4141 }), { md: "combat", boss: 1, look: "sunset" }) },
+  goffrings: { tpl: "obby", theme: "neon", title: "Ring Rush", speed: 4, len: 60, coins: 3, walls: 1, gaps: 1, lasers: 0, seed: 5252, build: genObbyBuild(clampSpec({ tpl: "obby", theme: "neon", speed: 4, len: 60, coins: 3, walls: 1, gaps: 1, lasers: 0, seed: 5252 }), { md: "race", look: "night" }) },
+  goffexplore: { tpl: "obby", theme: "jungle", title: "Gem Valley", speed: 2, len: 45, coins: 3, walls: 1, gaps: 1, lasers: 0, seed: 6363, build: genObbyBuild(clampSpec({ tpl: "obby", theme: "jungle", speed: 2, len: 45, coins: 3, walls: 1, gaps: 1, lasers: 0, seed: 6363 }), { md: "explore", look: "day" }) },
 };
 const OFF_AT = Date.UTC(2026, 9, 26);
 // the web (2026-10-26, the owner: "유저가 게임을 만들면 우리 웹 /game 뒤로 유저 이름 해서 실제 연동"): a creator picks an ID and
@@ -510,10 +514,11 @@ export function makeStudio(deps) {
   // WS4: a live race (RACE) — the room's seats in worldStudioRace/<code>, each runner's place in a document of their own
   const raceCode = (c) => { const k = String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); return /^[A-Z0-9]{5}$/.test(k) ? k : ""; };
   const raceLive = (r) => r && !r.gone && (r.start ? now() < r.start + RACE.RUN_MS : now() < r.exp);
+  const seatsMax = (r) => (r && r.tpl === "obby" ? RACE.OBMAX : RACE.MAX); // (RV: an Obby World room holds 8 — a race or a run together on one 3D course)
   async function raceOut(code, r) {
     const ks = r.seats.map((x) => `worldStudioRaceP/${code}_${x.w}`), ps = ks.length ? await getDocs(ks) : {};
     return { code, id: r.id, title: r.title, tpl: r.tpl, host: r.host, start: r.start || 0, now: now(), ...(r.next ? { next: r.next } : {}), ...(r.quick ? { quick: 1, auto: r.auto } : {}), players: r.seats.map((x, i) => { const p = ps[ks[i]] || {};
-      return { w: x.w, name: x.name, c: x.c || "", z: p.z || 0, x: p.x || 0, y: p.y || 0, hp: p.hp == null ? 3 : p.hp, coins: p.coins || 0, fin: p.fin || 0, out: !!p.out, at: p.at || 0 }; }) };
+      return { w: x.w, name: x.name, c: x.c || "", z: p.z || 0, x: p.x || 0, y: p.y || 0, hp: p.hp == null ? 3 : p.hp, coins: p.coins || 0, fin: p.fin || 0, out: !!p.out, at: p.at || 0, ...(r.tpl === "obby" ? { f: p.f || 0, k: p.k || 0, pr: p.pr || 0 } : {}) }; }), max: seatsMax(r) };
   }
   const seatOf = async (w, b) => ({ w, name: clean(await nameFor(w), 20), c: /^[a-z0-9-]{2,24}$/.test(String(b.c || "")) ? b.c : "" });
   // RM3: the races going on — worldStats/studioRaces { list: { <code>: { id, title, n, at, start, quick } } } for the arcade's banner and the watch list
@@ -531,23 +536,23 @@ export function makeStudio(deps) {
   }
   async function raceQuick(w, b) {
     const id = hourGame(now()), g = await game(id), d = (await one(RIDX)) || {};
-    const open = Object.entries(d.list || {}).filter(([, x]) => x.quick && !x.start && x.id === id && x.n < RACE.MAX && now() < x.auto).sort((a, b) => a[1].at - b[1].at);
+    const open = Object.entries(d.list || {}).filter(([, x]) => x.quick && !x.start && x.id === id && x.n < RACE.OBMAX && now() < x.auto).sort((a, b) => a[1].at - b[1].at);
     for (const [code] of open) { const r = await one(`worldStudioRace/${code}`); if (!raceLive(r) || r.start || !r.quick) continue;
-      if (!r.seats.some((x) => x.w === w)) { if (r.seats.length >= RACE.MAX) continue; r.seats.push(await seatOf(w, b)); await setDoc(`worldStudioRace/${code}`, r); await setDoc(`worldStudioRaceP/${code}_${w}`, { z: 0, at: 0 }); await raceIdx(code, r); }
+      if (!r.seats.some((x) => x.w === w)) { if (r.seats.length >= seatsMax(r)) continue; r.seats.push(await seatOf(w, b)); await setDoc(`worldStudioRace/${code}`, r); await setDoc(`worldStudioRaceP/${code}_${w}`, { z: 0, at: 0 }); await raceIdx(code, r); }
       return json(200, { ok: true, race: await raceOut(code, r) }); }
     const m = await newRace(w, b, g, id, { quick: 1, auto: now() + RACE.QWAIT }); if (!m) return json(503, { error: "try again" });
     return json(200, { ok: true, race: await raceOut(m.code, m.r) });
   }
   async function raceNew(w, b) {
     const id = String(b.id || ""), g = /^g[a-z0-9]{2,12}$/.test(id) ? await game(id) : null; if (!g || g.gone || !g.spec || !g.pub || g.hidden) return json(404, { error: "no such game" });
-    if (!RACE.TPLS.includes(g.spec.tpl)) return json(400, { error: "live races are for Sky Runner and Infinity Dash games" });
+    if (!RACE.TPLS.includes(g.spec.tpl)) return json(400, { error: "live races are for Sky Runner, Infinity Dash and Obby World games" });
     const m = await newRace(w, b, g, id); if (!m) return json(503, { error: "try again" }); const { code, r } = m;
     const fc = raceCode(b.from), fr = fc ? await one(`worldStudioRace/${fc}`) : null; if (fr && fr.host === w && fr.id === id && !fr.next) { fr.next = code; await setDoc(`worldStudioRace/${fc}`, fr); } // (a rematch: the last race's racers are shown the new code)
     return json(200, { ok: true, race: await raceOut(code, r) });
   }
   async function raceJoin(w, b) {
     const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r)) return json(404, { error: "that race isn't open — ask for a new code" });
-    if (!r.seats.some((x) => x.w === w)) { if (r.start) return json(409, { error: "that race has started — wait for the next one", started: true }); if (r.seats.length >= RACE.MAX) return json(409, { error: `the race is full (${RACE.MAX})` });
+    if (!r.seats.some((x) => x.w === w)) { if (r.start) return json(409, { error: "that race has started — wait for the next one", started: true }); if (r.seats.length >= seatsMax(r)) return json(409, { error: `the race is full (${seatsMax(r)})` });
       r.seats.push(await seatOf(w, b)); await setDoc(`worldStudioRace/${code}`, r); await setDoc(`worldStudioRaceP/${code}_${w}`, { z: 0, at: 0 }); await raceIdx(code, r); }
     return json(200, { ok: true, race: await raceOut(code, await autoStart(code, r)) });
   }
@@ -561,6 +566,11 @@ export function makeStudio(deps) {
     const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r) || !r.start) return json(404, { error: "that race isn't running" });
     if (!r.seats.some((x) => x.w === w)) return json(403, { error: "you're not in this race" });
     const k = `worldStudioRaceP/${code}_${w}`, p = (await one(k)) || {}, secs = Math.max(0, (now() - r.start) / 1000);
+    if (r.tpl === "obby" && !p.fin && !p.out && now() >= r.start) { // (RV: a 3D course — where you are on it, which way you face, your clip, how far through the game you are; never back)
+      const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0)), pr = Math.max(p.pr || 0, num(b.pr, 0, 1));
+      const q = { x: num(b.x, -OB.R - 12, OB.R + 12), y: num(b.y, -30, OB.Y + 20), z: num(b.z, -OB.R - 12, OB.R + 12), f: Math.round(num(b.f, -7, 7) * 100) / 100, k: Math.round(num(b.k, 0, 6)), pr, hp: Math.round(num(b.hp, 0, 5)), coins: Math.round(num(b.coins, 0, 999)), at: now() };
+      if (b.fin && pr >= 0.99 && secs >= 3) q.fin = Math.max(1, now() - r.start); else if (b.out) q.out = true;
+      await setDoc(k, q); return json(200, { ok: true, race: await raceOut(code, r) }); }
     if (!p.fin && !p.out && now() >= r.start) { const sp = clampSpec(r.spec), L = genLevel(sp), end = r.tpl === "dash" ? L.len - 30 : L.len, cap = (r.tpl === "dash" ? dashSpeed(sp, secs) : speedOf(sp) * 1.25) * secs + 8; // (no faster than the level lets you; a little room for the clocks)
       const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0)), z = Math.max(p.z || 0, num(b.z, 0, Math.min(end, cap)));
       const q = { z, x: num(b.x, -4, 4), y: num(b.y, 0, 12), hp: b.hp == null ? (p.hp == null ? 3 : p.hp) : Math.round(num(b.hp, 0, 3)), coins: Math.round(num(b.coins, 0, 999)), at: now() };

@@ -5,6 +5,7 @@
 // World piece market and the partners' sponsor contests. world-studio-hub.js calls html() / fill() / act() for these
 // pages; the server side is api/_world-hub.mjs (hub-*) and api/_world-studio.mjs (studio-*). No number here is made up.
 import { TEMPLATES, THEMES, KNOBS, estimate, clampSpec } from "./world-studio-gen.js";
+import { pfThumb } from "./world-studio-pfthumb.js";
 
 export const XTITLE = { profile: "Creator profile", forum: "Forum", inbox: "Notifications", game: "Game" };
 export const XSUBS = { forum: [["show", "Show & tell"], ["help", "Feedback"], ["bugs", "Bug reports"], ["team", "Team up"]] };
@@ -272,7 +273,8 @@ export function makeHubX(c) {
   const PKN = { boss: "Boss", enemy: "Enemy", building: "Building", device: "Device", terrain: "Terrain", set: "Set" };
   async function prefabsHtml() {
     const w = c.wallet(), r = await c.get("pfs:" + (D.pfs || "top") + ":" + (D.pfk || "") + ":" + w, `/api/social?world=studio-prefabs&sort=${D.pfs === "new" ? "new" : "top"}${D.pfk ? "&k=" + D.pfk : ""}${w ? "&wallet=" + w : ""}`, 20e3), L = (r && r.items) || [], own = new Set((r && r.owned) || []);
-    const card = (p) => { const L2 = LIC[p.lic] || LIC["cc-by"], m = p.meta || {}; return `<article class="sgh-card sgx-pf"><span class="sgh-kick">${esc(T(PKN[p.k] || p.k))}</span><h3>${esc(p.n)}</h3>
+    const top = await c.get("pftop", "/api/social?world=studio-prefab-top", 60e3), wk = (top && top.week) || [], cr = (top && top.creators) || [];
+    const card = (p) => { const L2 = LIC[p.lic] || LIC["cc-by"], m = p.meta || {}, img = pfThumb(p.th, "pf:" + p.id); return `<article class="sgh-card sgx-pf">${img ? `<img class="sgx-pfimg" src="${img}" alt="" loading="lazy">` : ""}<span class="sgh-kick">${esc(T(PKN[p.k] || p.k))}</span><h3>${esc(p.n)}</h3>
       <small>${esc(T("by {n}", { n: p.by }))}${p.orig ? " · " + esc(T("based on {n}'s", { n: p.orig.name })) : ""}</small>
       <span class="sgh-gm"><i>${m.pieces || 0} ${esc(T("pieces"))}</i>${m.hp ? `<i>❤️ ${m.hp}</i>` : ""}${m.reward ? `<i>🪙 ${m.reward}</i>` : ""}${m.rules ? `<i>⚙️ ${m.rules}</i>` : ""}${m.tracks ? `<i>▶ ${m.tracks}</i>` : ""}<i>⬇ ${p.uses || 0}</i></span>
       <p class="sgx-lic lic-${esc(p.lic)}"><b>${esc(T(L2[0]))}</b> ${esc(T(L2[1]))}</p>
@@ -280,6 +282,8 @@ export function makeHubX(c) {
     return `${c.head("store", "Prefabs for 3D games", "Parts other creators saved once — a boss with its health, attacks and reward, a house, a cave — ready to drop into any Obby World game.")}
       <div class="sgh-fbar"><div class="sgh-chips"><button type="button" data-xpfs="top" class="${D.pfs !== "new" ? "on" : ""}">${esc(T("Most used"))}</button><button type="button" data-xpfs="new" class="${D.pfs === "new" ? "on" : ""}">${esc(T("Newest"))}</button></div>
         <div class="sgh-chips">${[["", "All"], ...Object.entries(PKN)].map(([k, n]) => `<button type="button" data-xpfk="${k}" class="${(D.pfk || "") === k ? "on" : ""}">${esc(T(n))}</button>`).join("")}</div><span class="sgh-sp"></span><button type="button" class="sgh-btn" data-use="obby">${ic("plus", "sm")} ${esc(T("Open the 3D editor"))}</button></div>
+      ${wk.length || cr.length ? `<div class="sgh-two sgx-pftop">${wk.length ? `<section class="sgh-panel"><h3>${ic("bolt", "sm")} ${esc(T("Popular this week"))}</h3><ol class="sgx-rank">${wk.slice(0, 5).map((p) => `<li><img src="${pfThumb(p.th, "pf:" + p.id, 96, 56)}" alt=""><span><b>${esc(p.n)}</b><small>${esc(T("by {n}", { n: p.by }))}</small></span><em>+${p.wk}</em></li>`).join("")}</ol></section>` : ""}
+        ${cr.length ? `<section class="sgh-panel"><h3>${ic("trophy", "sm")} ${esc(T("Top prefab creators"))}</h3><ol class="sgx-rank">${cr.slice(0, 5).map((x) => `<li><i>${x.by.slice(0, 1).toUpperCase()}</i><span><b>${esc(x.by)}</b><small>${esc(T("{n} prefabs", { n: x.n }))} · ⬇ ${x.uses} · 🛒 ${x.sold}</small></span><em>${x.score}</em></li>`).join("")}</ol></section>` : ""}</div>` : ""}
       ${L.length ? `<div class="sgh-grid g3">${L.map(card).join("")}</div>` : c.empty("grid", "No prefabs shared yet", "In the 3D editor's Scene tab, save a group as a prefab (🧩) and tick 'Share it on the creators' market'.")}
       <p class="sgh-fine">${ic("check", "xs")} ${esc(T("Prices are in ARCL, the game's points. 80 % goes to the creator (it waits 14 days), 20 % to the platform. Only the share paid with purchased ARCL can later be settled by the creator; ARCL spent in the game and the $ARCIRCLE exchange are separate policies."))}</p>`;
   }
@@ -289,6 +293,18 @@ export function makeHubX(c) {
     b.disabled = true; const r = await act(price ? { action: "world-studio-prefab-buy", id, expectedPrice: price } : { action: "world-studio-prefab-get", id }); b.disabled = false; if (!r.ok) return;
     const P = r.j.prefab, L = (LS("arc.studio.pf2") || []).filter((x) => x && x.id !== P.id); LS("arc.studio.pf2", [{ ...P.pf, id: P.id, lic: P.lic, by: P.by }, ...L].slice(0, 30)); drop(/^pfs:/);
     c.toast("🧩 " + esc(T("Added — it's in the 3D editor's Scene tab under Mine"))); c.paint();
+  }
+
+  // ---------------- RV (the review): Analytics → Revenue — what your games and prefabs sold (api/_world-market.mjs market-me) ----------------
+  async function revenueHtml() {
+    const w = c.wallet(); if (!w) return c.empty("chart", "Sign in to see your revenue", "Sales of your prefabs and premium templates, what's still waiting its 14 days, and what you can settle.");
+    const r = await c.get("rev:" + w, "/api/social?world=market-me&wallet=" + w, 20e3); if (!r || !r.ok) return `<p class="sgh-fine">${esc(T("Couldn't open it — try again"))}</p>`;
+    const E = r.earnings || {}, Bk = r.buckets || {}, S = r.sales || [], n = (v) => num(Math.floor(v || 0)), day = (t) => new Date(t).toLocaleDateString();
+    const kpi = (ico, lab, v, sub) => `<div class="sgh-kpi"><span>${ic(ico, "sm")} ${esc(T(lab))}</span><b data-count="${Math.floor(v || 0)}">${n(v)}</b><small>${esc(sub)}</small></div>`;
+    return `<div class="sgh-kpis">${kpi("bag", "Sales", E.soldN, T("all time"))}${kpi("coin", "Gross", E.gross, "ARCL")}${kpi("bell", "Waiting", (E.pendingElig || 0) + (E.pendingPlay || 0), E.nextAt ? T("next on {d}", { d: day(E.nextAt) }) : T("nothing waiting"))}${kpi("check", "Settleable", Bk.cavail, T("paid with purchased ARCL"))}</div>
+      <div class="sgh-two"><section class="sgh-panel"><h3>${esc(T("Your creator balance"))}</h3><ul class="sgx-bk"><li><span>${esc(T("Settleable (from purchased ARCL)"))}</span><b>${n(Bk.cavail)} ARCL</b></li><li><span>${esc(T("Spendable in the game (from play ARCL)"))}</span><b>${n(Bk.cplay)} ARCL</b></li><li><span>${esc(T("Still waiting its 14 days"))}</span><b>${n(E.pendingElig)} + ${n(E.pendingPlay)} ARCL</b></li></ul>
+        <p class="sgh-fine">${esc(T("80 % of each sale is yours, 20 % goes to the platform. Only the share a buyer paid with purchased ARCL becomes settleable; you ask to settle it in the game's Market → Wallet."))}</p></section>
+        <section class="sgh-panel"><h3>${esc(T("Waiting sales"))}</h3>${S.length ? `<table class="sgh-tb"><thead><tr><th>${esc(T("Item"))}</th><th>${esc(T("Price"))}</th><th>${esc(T("Yours"))}</th><th>${esc(T("Ready"))}</th></tr></thead><tbody>${S.map((x) => `<tr><td>${esc(x.t)}</td><td>${n(x.price)}</td><td>${n(x.elig + x.play)}</td><td>${day(x.matureAt)}</td></tr>`).join("")}</tbody></table>` : `<p class="sgh-fine">${esc(T("No sale is waiting right now."))}</p>`}</section></div>`;
   }
 
   // ---------------- sponsor contests ----------------
@@ -309,17 +325,17 @@ export function makeHubX(c) {
   }
 
   // ---------------- what the hub asks of this module ----------------
-  const has = (page, sub) => !!XTITLE[page] || (page === "analytics" && (sub === "report" || sub === "ab")) || (page === "store" && (sub === "pieces" || sub === "prefabs")) || (page === "community" && sub === "sponsor");
+  const has = (page, sub) => !!XTITLE[page] || (page === "analytics" && (sub === "report" || sub === "ab" || sub === "revenue")) || (page === "store" && (sub === "pieces" || sub === "prefabs")) || (page === "community" && sub === "sponsor");
   function html(page, sub) {
     if (page === "game") return gameShell();
     const k = page === "analytics" ? sub : page === "store" ? sub : page === "community" ? "sponsor" : page;
-    return `${page === "analytics" ? c.head("analytics", sub === "ab" ? "A/B difficulty test" : "Weekly report", sub === "ab" ? "Two versions of your game against the same 40 test players." : "Your week as a creator, ready to share.") : page === "community" ? c.head("community", "Sponsor contests", "Partners' contests with their own prizes.") : ""}<div data-fill="x-${k}">${c.skel(page === "inbox" || page === "forum" ? 2 : 4)}</div>`;
+    return `${page === "analytics" ? c.head("analytics", sub === "ab" ? "A/B difficulty test" : sub === "revenue" ? "Revenue" : "Weekly report", sub === "ab" ? "Two versions of your game against the same 40 test players." : sub === "revenue" ? "What your prefabs and premium templates sold, what's waiting and what you can settle." : "Your week as a creator, ready to share.") : page === "community" ? c.head("community", "Sponsor contests", "Partners' contests with their own prizes.") : ""}<div data-fill="x-${k}">${c.skel(page === "inbox" || page === "forum" ? 2 : 4)}</div>`;
   }
   async function fill(page, sub, root, stale) {
     const k = page === "analytics" ? sub : page === "store" ? sub : page === "community" ? "sponsor" : page, el = root.querySelector(`[data-fill="x-${k}"]`); if (!el) return;
     if (page === "game") { await gameBody(el); return; }
-    const h = await ({ profile: profileHtml, forum: forumHtml, inbox: inboxHtml, report: reportHtml, ab: abPage, pieces: piecesHtml, prefabs: prefabsHtml, sponsor: sponsorHtml }[k] || (async () => ""))();
-    if (stale() || !el.isConnected) return; el.innerHTML = h; if (k === "pieces") drawPieces(el); if (k === "report") c.countUp(el);
+    const h = await ({ profile: profileHtml, forum: forumHtml, inbox: inboxHtml, report: reportHtml, ab: abPage, revenue: revenueHtml, pieces: piecesHtml, prefabs: prefabsHtml, sponsor: sponsorHtml }[k] || (async () => ""))();
+    if (stale() || !el.isConnected) return; el.innerHTML = h; if (k === "pieces") drawPieces(el); if (k === "report" || k === "revenue") c.countUp(el);
   }
   const val = (b, sel) => { const box = b.closest("[data-xform]") || b.closest("section,div"); return ((box && box.querySelector(sel)) || {}).value || ""; };
   async function onAct(b) {

@@ -532,7 +532,7 @@ export function createStudio(ctx) {
       <div class="wst-est s${E.stars}">${starsTxt(E.stars)}<span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${my ? `<small>${esc(T("Your best here: {n}", { n: my }))}</small>` : ""}</div>
       ${g.ghost ? `<label class="wst-ghosto"><input type="checkbox" data-ghost ${ghostOn ? "checked" : ""}> 👻 ${esc(T("Race {n}'s ghost ({s})", { n: g.ghost.name || "#1", s: g.ghost.score }))}</label>` : ""}
       ${!own && !g.off && g.fans != null ? `<div class="wst-fol"><span>👥 ${esc(g.fans === 1 ? T("1 follower") : T("{n} followers", { n: g.fans }))}</span><button type="button" class="wst-go ${g.fol ? "alt" : ""}" data-follow="${esc(g.id)}" data-on="${g.fol ? 0 : 1}">${g.fol ? "✓ " + esc(T("Following")) : IR("ic-follow") + " " + esc(g.byName ? T("Follow {n}", { n: g.byName }) : T("Follow"))}</button></div>` : ""}
-      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${RACE_TPLS.includes(g.tpl) && g.pub !== false ? `<button type="button" class="wst-go wst-racebtn" data-racenew="${esc(g.id)}">${pi("race")} ${esc(T("Race friends live"))}</button>` : ""}${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">${IC("ic-remix")} ${esc(T("Remix"))}</button></div>
+      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${RACE_TPLS.includes(g.tpl) && g.pub !== false ? `<button type="button" class="wst-go wst-racebtn" data-racenew="${esc(g.id)}">${pi("race")} ${esc(T(g.tpl === "obby" ? "Play together live (up to 8)" : "Race friends live"))}</button>` : ""}${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">${IC("ic-remix")} ${esc(T("Remix"))}</button></div>
       ${own ? "" : `<div class="wst-rep">${repOpen ? `<small>${esc(T("What's wrong with it?"))}</small><div class="wst-chips">${REASONS.map(([k, ic, l]) => `<button type="button" data-report="${k}">${ic} ${esc(T(l))}</button>`).join("")}</div>` : `<button type="button" class="wst-link" data-repopen>${IC("ic-report")} ${esc(T("Report this game"))}</button>`}${ctx.isGM && ctx.isGM() ? ` <button type="button" class="wst-link" data-ghide="${g.hidden ? 0 : 1}">${g.hidden ? "👁 " + esc(T("Show it again")) : "🙈 " + esc(T("Hide from the arcade (GM)"))}</button>` : ""}</div>`}
       ${socialBox(g, own)}
       <button type="button" class="wst-link" data-tab="arcade">← ${esc(T("Creator Arcade"))}</button></div>
@@ -823,7 +823,7 @@ export function createStudio(ctx) {
     if (playing) return; const vw = el && !el.hidden; if (el) el.hidden = true; if (prev) prev.stop(); /* STB5: the preview rests while you play */
     if (o.spec.tpl === "puzzle") return playPuzzle(o, vw);
     const env = { ctx, THREE, T, esc, makeFx, makeGhost, result, back: (again, oo) => { playing = null; if (!again && oo.onBack) { oo.onBack(); return; } if (!again && el) { el.hidden = false; paint(); load(); } } }; // (the templates in modules of their own: S4d)
-    try { playing = o.spec.tpl === "obby" ? await (await import("./world-studio-obby.js")).makeObby(o, { ...env, ouch, assetUrl: (id) => assetGlb(id), prog: progApi, restart: (oo) => setTimeout(() => run(oo), 60) }) : JUMPS[o.spec.tpl] ? await (await import("./world-studio-jump.js")).makeJump(o, { ...env, ouch }) : o.spec.tpl === "rhythm" ? await (await import("./world-studio-rhythm.js")).makeBeat(o, env) : o.spec.tpl === "race" ? await (await import("./world-studio-race.js")).makeRace(o, { ...env, ouch }) : o.spec.tpl === "survival" ? await makeSurvRun(o, env) : o.spec.tpl === "climb" ? await (await import("./world-studio-climb.js")).makeClimb(o, env) : o.spec.tpl === "defense" ? await (await import("./world-studio-defense.js")).makeDefense(o, env) : o.spec.tpl === "arena" || o.spec.tpl === "rush" ? await makeArena(o) : await makeRun(o); }
+    try { playing = o.spec.tpl === "obby" ? await (await import("./world-studio-obby.js")).makeObby(o, { ...env, ouch, assetUrl: (id) => assetGlb(id), prog: progApi, restart: (oo) => setTimeout(() => run(oo), 60), live: o.live ? (a) => obLive(o, a) : null }) : JUMPS[o.spec.tpl] ? await (await import("./world-studio-jump.js")).makeJump(o, { ...env, ouch }) : o.spec.tpl === "rhythm" ? await (await import("./world-studio-rhythm.js")).makeBeat(o, env) : o.spec.tpl === "race" ? await (await import("./world-studio-race.js")).makeRace(o, { ...env, ouch }) : o.spec.tpl === "survival" ? await makeSurvRun(o, env) : o.spec.tpl === "climb" ? await (await import("./world-studio-climb.js")).makeClimb(o, env) : o.spec.tpl === "defense" ? await (await import("./world-studio-defense.js")).makeDefense(o, env) : o.spec.tpl === "arena" || o.spec.tpl === "rush" ? await makeArena(o) : await makeRun(o); }
     catch (e) { console.warn("studio run", e); playing = null; ctx.st.solo(null); ctx.st.view(null); document.body.classList.remove("wp-studio"); ctx.toast(T("The game couldn't start") + " — " + esc(String((e && e.message) || e).slice(0, 60))); if (vw && el) el.hidden = false; }
   }
   /// SB-3 MONSTER SURVIVAL: SURVIVORS ARENA's own engine runs the maker's numbers (world-play.js lends it: ctx.survivors);
@@ -976,7 +976,7 @@ export function createStudio(ctx) {
   // a code for a Sky Runner / Infinity Dash game, 2–4 racers in a lobby card, the host starts it on the server's clock; in
   // the run each racer sends where they are every 0.7 s and sees the others as their heroes on the same track (in between
   // they glide on their last speed), a board of places on the HUD; the result card keeps the places until everyone is in
-  let lobby = null; const RACE_TPLS = ["runner", "dash"];
+  let lobby = null; const RACE_TPLS = ["runner", "dash", "obby"];
   const myW = () => { const s = ctx.sess && ctx.sess(); return s ? String(s.wallet).toLowerCase() : ""; };
   const myC = () => String((ctx.myChar && ctx.myChar()) || "");
   const RCOL = ["#ff7ad9", "#7cf5c8", "#ffd23a", "#8fb5ff"];
@@ -1044,13 +1044,13 @@ export function createStudio(ctx) {
       if (stage) stage.set(cur.players);
       box.innerHTML = `<div class="wst-rlc"><small>🏁 ${esc(T(cur.quick ? "Quick race" : "Live race"))}</small><h3>${esc(cur.title)}</h3>
         <div class="wst-rlcode"><span>${esc(T("Race code"))}</span><b>${esc(cur.code)}</b><button type="button" class="wst-go alt" data-rlcopy>🔗 ${esc(T("Copy link"))}</button></div>
-        <ol class="wst-rlp">${[0, 1, 2, 3].map((i) => { const p = cur.players[i]; return p ? `<li class="${p.w === me ? "me" : ""}" style="--c:${RCOL[i]}"><i>${i + 1}</i><b>${esc(p.name)}${p.w === me ? ` <small>(${esc(T("you"))})</small>` : ""}</b>${p.w === cur.host ? "<em>👑</em>" : ""}</li>` : `<li class="empty"><i>${i + 1}</i><b>${esc(T("Waiting for a racer…"))}</b></li>`; }).join("")}</ol>
+        <ol class="wst-rlp">${Array.from({ length: Math.max(4, Math.min(cur.max || 4, n + 1)) }, (_, i) => i).map((i) => { const p = cur.players[i]; return p ? `<li class="${p.w === me ? "me" : ""}" style="--c:${RCOL[i]}"><i>${i + 1}</i><b>${esc(p.name)}${p.w === me ? ` <small>(${esc(T("you"))})</small>` : ""}</b>${p.w === cur.host ? "<em>👑</em>" : ""}</li>` : `<li class="empty"><i>${i + 1}</i><b>${esc(T("Waiting for a racer…"))}</b></li>`; }).join("")}</ol>
         ${cur.quick ? `<p class="wst-rlq">⚡ ${esc(T("Quick race — starts in"))} <b>${Math.max(0, Math.ceil((cur.auto - (Date.now() + off)) / 1000))}</b>s · ${esc(T("ghosts fill the empty pads"))}</p>` : ""}
         <p class="wst-rlh">${esc(cur.quick ? T("Anyone who taps Quick race now joins you") : host ? (n < 2 ? T("Send the code to friends — start when someone joins") : T("Everyone here? Start the race!")) : T("Waiting for the host to start…"))}</p>
         <div class="wst-rla">${host ? `<button type="button" class="wst-go big" data-rlgo ${n < 2 ? "disabled" : ""}>🏁 ${esc(T("Start the race"))}</button>` : ""}<button type="button" class="wst-go alt" data-rlx>${esc(T("Leave"))}</button></div></div>`; };
     const go = async () => { if (gone) return; gone = true; clearTimeout(timer); clearInterval(qt);
       let g = null; try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(cur.id), { cache: "no-store" }); if (r.ok) g = (await r.json()).game; } catch { /* below */ }
-      const want = Math.max(0, Math.min(3, RACE_PADS - cur.players.length)), ghosts = want ? (await Promise.all([1, 2, 3].slice(0, want).map((pl) => fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(cur.id) + "&p=" + pl, { cache: "no-store" }).then((r) => r.json()).then((j) => j && j.ghost).catch(() => null)))).filter(Boolean) : [];
+      const want = cur.tpl === "obby" ? 0 : Math.max(0, Math.min(3, RACE_PADS - cur.players.length)), ghosts = want ? (await Promise.all([1, 2, 3].slice(0, want).map((pl) => fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(cur.id) + "&p=" + pl, { cache: "no-store" }).then((r) => r.json()).then((j) => j && j.ghost).catch(() => null)))).filter(Boolean) : [];
       box.remove(); lobby = null; if (stage) stage.dispose(); if (!g || !g.spec) { ctx.toast(T("Couldn't open it — try again")); act({ action: "world-studio-race-leave", code: cur.code }); if (el && wasOpen) { el.hidden = false; paint(); } return; }
       run({ spec: clampSpec(g.spec), id: cur.id, title: g.title, by: g.byName, ghosts, live: { code: cur.code, start: cur.start, off, players: cur.players, host: cur.host, quick: !!cur.quick } }); };
     box.addEventListener("click", async (e) => { const t = e.target.closest("button"); if (!t) return;
@@ -1065,6 +1065,40 @@ export function createStudio(ctx) {
         draw(); }
       timer = setTimeout(poll, 1500); };
     draw(); timer = setTimeout(poll, 1500); lobby = { close }; ev("race");
+  }
+  /// RV (the review): a live room on an Obby World course — up to 8 players race (or just play) the same 3D course: each sends
+  /// where they are (x, y, z, facing, clip, how far through the game) every 0.4 s and sees the others as their own heroes there,
+  /// gliding to where they last were; the board orders everyone by finish time, then by how far through the game they are
+  function obLive(o, { scene, hud, S, progress }) {
+    const lv = o.live, me = myW(), F = new Map(), fins = new Set(), CL = ["idle", "walk", "sprint", "jump", "fall", "die", "emote-yes"]; let off = lv.off, cur = { players: lv.players }, busy2 = false, last = 0, stopped = false, myFin = 0;
+    const board = document.createElement("ol"); board.className = "wst-rbd wso-rbd"; hud.appendChild(board); const sNow = () => Date.now() + off;
+    function fig(p, i) { const g = new THREE.Group(), col = RCOL[i % 4];
+      const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.9, 4, 10), new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: 0.6, emissive: col, emissiveIntensity: 0.25 })); cap.position.y = 0.85; g.add(cap);
+      try { const tag = ctx.K.label(String(p.name || "?").slice(0, 16), { accent: col, size: 0.45 }); tag.position.y = 2.3; g.add(tag); } catch { /* no tag */ }
+      g.position.set(p.x, p.y, p.z); scene.add(g); const f = { g, cap, hero: null, clip: "", p, x: p.x, y: p.y, z: p.z, f: p.f || 0 };
+      if (p.c && ctx.makeHeroOf && !ctx.saver) ctx.makeHeroOf(p.c).then((h) => { if (!h || stopped) return; f.hero = h; g.add(h.obj); cap.visible = false; f.clip = ""; }).catch(() => { /* the capsule stays */ });
+      return f; }
+    function apply(rc) { if (!rc || rc.err) return; off = rc.now - Date.now(); cur = rc;
+      rc.players.forEach((p, i) => { if (p.w === me) { if (p.fin) myFin = p.fin; return; } let f = F.get(p.w); if (!f) { f = fig(p, i); F.set(p.w, f); } f.p = p;
+        if ((p.fin || p.out) && !fins.has(p.w)) { fins.add(p.w); if (p.fin) ctx.toast("🏁 " + esc(T("{n} finished!", { n: p.name }))); } });
+      paintBoard(); }
+    const order = () => cur.players.map((p) => (p.w === me ? { ...p, pr: S.over ? p.pr : progress(), fin: myFin || p.fin, you: true } : p)).sort((a, b) => (a.fin && b.fin ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : (b.pr || 0) - (a.pr || 0)));
+    const mmss = (ms) => { const t2 = ms / 1000; return Math.floor(t2 / 60) + ":" + (t2 % 60).toFixed(1).padStart(4, "0"); };
+    function paintBoard() { board.innerHTML = order().map((p, i) => `<li class="${p.you ? "me" : ""}${p.out ? " out" : ""}"><i>${p.fin && i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(p.you ? T("You") : p.name)}</b><em>${p.fin ? "🏁 " + mmss(p.fin) : Math.round((p.pr || 0) * 100) + "%"}</em></li>`).join(""); }
+    async function send(extra) { if (busy2 && !extra) return; busy2 = true; last = performance.now(); const k = Math.max(0, CL.indexOf(S.clip));
+      const r = await act({ action: "world-studio-race-tick", code: lv.code, x: +S.p.x.toFixed(2), y: +S.p.y.toFixed(2), z: +S.p.z.toFixed(2), f: +S.face.toFixed(2), k, pr: +Math.min(1, progress()).toFixed(3), hp: Math.max(0, S.hearts | 0), coins: S.coins, ...(extra || {}) }); busy2 = false; if (r && r.ok) apply(r.j.race); }
+    paintBoard();
+    return {
+      t0: () => Math.max(-6, Math.min(-0.3, -(lv.start - sNow()) / 1000)),
+      others: () => [...F.values()].map((f) => ({ name: f.p.name, x: f.x, z: f.z, hero: !!f.hero, clips: f.hero && f.hero.mixer ? f.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [] })),
+      tick(dt, t) {
+        if (!stopped && S.t > -0.5 && !S.over && performance.now() - last > 400) send();
+        for (const f of F.values()) { const p = f.p, k = Math.min(1, dt * 8); f.x += (p.x - f.x) * k; f.y += (p.y - f.y) * Math.min(1, dt * 10); f.z += (p.z - f.z) * k; let d = (p.f || 0) - f.f; d = Math.atan2(Math.sin(d), Math.cos(d)); f.f += d * Math.min(1, dt * 10); f.g.position.set(f.x, f.y, f.z); f.g.rotation.y = f.f;
+          if (f.hero) { const want = p.out ? "die" : p.fin ? "emote-yes" : CL[p.k] || "idle"; if (want !== f.clip && !f.hero.busy()) { try { f.hero.play(want, want === "die" || want === "emote-yes" ? { once: true } : want === "walk" ? { speed: 1 } : {}); } catch { /* no clip */ } f.clip = want; } f.hero.update(dt, t); } }
+        if (((t * 4) | 0) !== ((((t - dt) * 4) | 0))) paintBoard(); },
+      end(done) { const fin = () => (busy2 ? setTimeout(fin, 80) : send(done ? { fin: 1, pr: 1 } : { out: 1 })); fin(); },
+      stop(quit) { if (stopped) return; stopped = true; if (quit) act({ action: "world-studio-race-leave", code: lv.code }); for (const f of F.values()) { if (f.hero) f.g.remove(f.hero.obj); scene.remove(f.g); } },
+    };
   }
   function makeLive(scene, o, S, hud) {
     const lv = o.live, me = myW(), F = new Map(), fins = new Set(); let off = lv.off, cur = { players: lv.players }, busy2 = false, last = 0, stopped = false, myFin = 0;

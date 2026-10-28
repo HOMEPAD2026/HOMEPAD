@@ -5760,6 +5760,15 @@ html.wp-pcphone .wso-quest,html.wp-pcphone .wso-boss{zoom:1.5}
 .wse-opts{display:grid;gap:6px}
 .wse-chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--p-ink)}.wse-chks{display:grid;gap:5px}
 .wse-grps,.wse-chips,.wse-props{display:flex;flex-wrap:wrap;gap:4px}
+/* RV (the review): the editor's multi-pick, the animation timeline */
+.wse-modes button[data-n]:not([data-n=""]){position:relative}.wse-modes button[data-n]:not([data-n=""])::after{content:attr(data-n);position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;background:var(--p-acc);color:#06221b;font:800 10px/16px Sora,sans-serif;text-align:center}
+.wse-multi{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:8px 10px;border:1px solid var(--p-acc);border-radius:8px;background:var(--p-accd);color:var(--p-ink);font:600 12px/1.35 Sora,sans-serif}.wse-multi .wsb-b{height:26px;font-size:11px}
+.wse-tl{position:relative;height:34px;margin:6px 4px 16px;border-radius:7px;background:repeating-linear-gradient(90deg,var(--p-line2) 0 1px,transparent 1px calc(100% / var(--n,4))),var(--p-s2);border:1px solid var(--p-line2)}
+.wse-tl button{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:2px solid #ffd23a;background:var(--p-s1);color:#ffd23a;font:800 10px/1 Sora,sans-serif;cursor:pointer;padding:0;transition:transform .15s}
+.wse-tl button.on{background:#ffd23a;color:#2a1e00;transform:scale(1.18)}.wse-tl em{position:absolute;bottom:-15px;left:0;font:600 9.5px/1 Sora,sans-serif;color:var(--p-ink3);font-style:normal}.wse-tl em.r{left:auto;right:0}
+.wse-tlh{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--p-acc);box-shadow:0 0 8px var(--p-acc);pointer-events:none}
+.wse-kfs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:0 0 6px}.wse-num{display:flex;flex-direction:column;gap:3px;font:600 10px/1.2 Sora,sans-serif;color:var(--p-ink2)}.wse-num input{width:100%;height:28px;padding:0 5px;border-radius:6px;border:1px solid var(--p-line2);background:var(--p-s2);color:var(--p-ink);font:600 12px/1 Sora,sans-serif}
+@media (max-width:900px){.wse-kfs{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .wse-grps button,.wse-chips button,.wse-props button{height:28px;padding:0 9px;border-radius:7px;border:1px solid var(--p-line2);background:transparent;color:var(--p-ink);font:600 11.5px/1 Sora,sans-serif;cursor:pointer}
 .wse-grps button.on{border-color:#b48cff;background:rgba(180,140,255,.18)}.wse-chips button:hover,.wse-props button:hover{border-color:var(--p-acc)}
 .wse-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
@@ -5826,3 +5835,4 @@ body>.wse-form{position:fixed;z-index:13050}.wse-form .wse-chk{align-items:flex-
 .wse-node{flex-wrap:wrap}.wse-node>button{flex:1 1 100%}.wse-nact{flex:1 1 100%;padding:3px 0 4px calc(var(--d) * 14px + 8px)}
 .wso-start:not([hidden])~.wst-cd{display:none}
 @media (max-width:520px){.wso-hud .wst-hn{display:none}}
+.wse-pf img{width:100%;aspect-ratio:20/11;object-fit:cover;border-radius:6px;margin-bottom:3px;background:#0d1220}

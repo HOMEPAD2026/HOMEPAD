@@ -55,7 +55,7 @@ const SUBS = {
   learn: [["start", "Get started"], ["guides", "Guides"], ["templates", "Templates"], ["world", "In ARCIRCLE WORLD"]],
   store: [["all", "Home"], ["templates", "Templates"], ["themes", "Themes"], ["prefabs", "Prefabs"], ["pieces", "Pieces"], ["remix", "Remixable games"]],
   community: [["arcade", "Creator Arcade"], ["contest", "Weekly contest"], ["sponsor", "Sponsor contests"], ["daily", "Daily challenge"], ["season", "Creator season"], ["races", "Live races"], ["feed", "Following"]],
-  analytics: [["overview", "Overview"], ["games", "By game"], ["report", "Weekly report"], ["ab", "A/B test"]], ...XSUBS,
+  analytics: [["overview", "Overview"], ["games", "By game"], ["revenue", "Revenue"], ["report", "Weekly report"], ["ab", "A/B test"]], ...XSUBS,
   rewards: [["overview", "Overview"], ["contest", "Contest prizes"]],
 };
 const TITLE = { home: "Home", creations: "Creations", learn: "Learn", store: "Store", community: "Community", updates: "Updates", analytics: "Analytics", rewards: "Rewards", ...XTITLE };
@@ -135,7 +135,7 @@ export function makeHub(o) {
   function userRow() { const m = me();
     return `<button type="button" class="sgh-user" data-user>${avatar()}<span><b>${esc(m ? (D.h ? "@" + D.h : m.name || m.short) : T("Connect wallet"))}</b><small>${esc(m ? (D.h ? m.short : T("Signed in")) : T("Guest"))}</small></span>${ic("down", "sm")}</button>`; }
   function side() {
-    return `<aside class="sgh-side"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/favicon-v2-32.png" alt="" width="22" height="22"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
+    return `<aside class="sgh-side"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
       ${userRow()}
       <nav class="sgh-nav">${NAV.map(([id, i, l, g], k) => `${k && NAV[k - 1][3] !== g ? "<hr>" : ""}<a href="?p=${id}" data-go="${id}" class="${page === id ? "on" : ""}" title="${esc(T(l))}">${ic(i)}<span>${esc(T(l))}</span></a>`).join("")}
       <hr><a href="#" data-tools title="${esc(T("All tools"))}">${ic("dots")}<span>${esc(T("All tools"))}</span></a><a href="/play" data-world title="ARCIRCLE WORLD">${ic("globe")}<span>ARCIRCLE WORLD</span></a></nav>
@@ -152,13 +152,13 @@ export function makeHub(o) {
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button></header>`;
   }
   function landTop() {
-    return `<header class="sgh-ltop"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/favicon-v2-32.png" alt="" width="22" height="22"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
+    return `<header class="sgh-ltop"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
       <nav class="sgh-lnav"><a href="?p=creations" data-go="creations">${esc(T("Dashboard"))}</a><a href="?p=learn" data-go="learn">${esc(T("Learn"))}</a><a href="?p=community" data-go="community">${esc(T("Explore"))}</a><a href="?p=store" data-go="store">${esc(T("Store"))}</a><a href="?p=updates" data-go="updates">${esc(T("Updates"))}</a></nav>
       <span class="sgh-sp"></span><button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button><button type="button" class="sgh-ib sgh-lburger" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button></header>`;
   }
   function drawerHtml() { if (!drawer) return "";
-    return `<div class="sgh-dw" data-dwx><div class="sgh-dwin${SUBS[cpage || page] ? "" : " solo"}" role="dialog" aria-label="${esc(T("Menu"))}"><div class="sgh-rail"><a class="sgh-mark" href="/studio" data-go="home"><img src="/images/brand/favicon-v2-32.png" alt="" width="22" height="22"></a><button type="button" class="sgh-rme" data-user>${avatar()}</button>
+    return `<div class="sgh-dw" data-dwx><div class="sgh-dwin${SUBS[cpage || page] ? "" : " solo"}" role="dialog" aria-label="${esc(T("Menu"))}"><div class="sgh-rail"><a class="sgh-mark" href="/studio" data-go="home"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></a><button type="button" class="sgh-rme" data-user>${avatar()}</button>
       ${NAV.map(([id, i, l]) => `<a href="?p=${id}" data-go="${id}" data-peek="${id}" class="${(cpage || page) === id ? "on" : ""}">${ic(i)}<small>${esc(T(l))}</small></a>`).join("")}<a href="#" data-tools>${ic("dots")}<small>${esc(T("All tools"))}</small></a><a href="/play">${ic("globe")}<small>WORLD</small></a></div>
       ${!SUBS[cpage || page] ? `</div></div>` : ""}${SUBS[cpage || page] ? `<div class="sgh-dwsub"><div class="sgh-dwh"><b>${esc(T(TITLE[cpage || page]))}</b><button type="button" class="sgh-ib" data-dwclose aria-label="${esc(T("Close"))}">${ic("close")}</button></div>
       ${SUBS[cpage || page].map(([k, l]) => `<a href="?p=${cpage || page}${k ? "&s=" + k : ""}" data-go="${cpage || page}" data-s="${k}" class="${(cpage || page) === page && sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}

@@ -168,6 +168,10 @@ check(rs.status === 200 && db.get(`worldStudioPrefab/${pf3}`).origW === lc(me), 
 db.set(`worldArclBal/${lc(them)}`, { bal: 5000 }); db.set(`worldArclBkt/${lc(them)}`, { purchased: 5000 });
 T += 3000; await call(them, "world-studio-prefab-buy", { id: pf3, expectedPrice: 1000 }); const s3 = db.get(`worldMktSale/pf${pf3}_${lc(them)}`), s3o = db.get(`worldMktSale/pf${pf3}_${lc(them)}_o`);
 check(s3 && s3o && s3o.creator === lc(me) && s3.elig + s3o.elig === 800 && s3o.elig === 200, "a remix's sale: the original maker gets their share of the creator's 80 %");
+// RV: the cards carry a picture's worth of pieces; this week's popular prefabs and the creators' board; the maker's waiting sales
+check(plist.items.every((c) => Array.isArray(c.th) && c.th.length === 5 && c.th[0].length === 8), "a card carries its pieces in short for its picture");
+const top = (await get("studio-prefab-top")).body; check(top.ok && top.week.length >= 2 && top.week[0].wk >= top.week[1].wk && top.creators[0].byW && top.creators.some((x) => x.sold >= 1), "this week's popular prefabs (a sale counts ×3) and the creators' board");
+const mme = (await get("market-me&wallet=" + lc(me))).body; check(mme.sales && mme.sales.some((x) => x.price === 500 && x.elig === 400 && x.matureAt > x.at), "the maker sees each sale still waiting its 14 days");
 // premium templates: a remix fee in ARCL; a personal game can't be remixed
 await call(me, "world-studio-game-lic", { id: gid, lic: "remix", fee: 300 });
 check((await call(them, "world-studio-save", { spec: { tpl: "obby", seed: 4 }, from: gid })).status === 402, "a premium template: remixing it waits for its fee");

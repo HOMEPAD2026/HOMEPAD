@@ -176,7 +176,7 @@ check(r.status === 200 && !ar.games.some((g) => g.id === id) && mine.games.lengt
   await call(mk, "world-studio-del", { id: a }); await call(mk, "world-studio-del", { id: b2 }); }
 // STU-A: the official games — listed from the start, one a template, playable and likeable, never anyone's to change
 { const { OFFICIAL } = await import("../../api/_world-studio.mjs"); const arc = await get("studio-arcade"), off = arc.games.filter((g) => g.off);
-  check(off.length === 17 && new Set(off.map((g) => g.tpl)).size === 16 && off.every((g) => g.byName === "ARCIRCLE" && g.s && g.s.tpl === g.tpl), "seventeen official games on the arcade (every template, Obby World twice), each with its small spec");
+  check(off.length === 20 && new Set(off.map((g) => g.tpl)).size === 16 && off.every((g) => g.byName === "ARCIRCLE" && g.s && g.s.tpl === g.tpl), "twenty official games on the arcade (every template; Obby World five times: obby, boss, combat, race, explore), each with its small spec");
   const g1 = (await get("studio-game&id=goffrun")).game; check(g1 && g1.off && g1.spec && g1.spec.title === OFFICIAL.goffrun.title, "an official game opens");
   const L = G.genLevel(g1.spec), r1 = await call(fan, "world-studio-play", { id: "goffrun", coins: 2, dist: L.len, done: true }); check(r1.status === 200 && r1.body.score > 0 && r1.body.place === 1, "an official game is played and scored (#" + r1.body.place + ")");
   const r2 = await call(fan, "world-studio-like", { id: "goffrun" }); check(r2.status === 200 && r2.body.likes === 1, "an official game can be liked");
@@ -364,6 +364,16 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   r = await call(P[0], "world-studio-race-new", { id: "goffrun", from: code }); v = await get("studio-race&code=" + code); check(r.status === 200 && v.race.next === r.body.race.code && v.race.next !== code, "race: the host's rematch code shows on the last race (" + v.race.next + ")");
   T = st + RACE.RUN_MS + 1; v = await W.read(new URL("https://x/api/social?world=studio-race&code=" + code)); check(v.status === 404, "race: gone after " + RACE.RUN_MS / 60e3 + " minutes");
 }
+// RV: an Obby World room — up to 8 on one 3D course: where each is, which way they face, their clip, how far through; never back
+{ const { RACE } = await import("../../api/_world-studio.mjs"); const P = Array.from({ length: 9 }, () => ethers.Wallet.createRandom());
+  let r = await call(P[0], "world-studio-race-new", { id: "goffcombat", c: "nex" }); const code = r.body.race && r.body.race.code; check(r.status === 200 && r.body.race.max === RACE.OBMAX, "obby room: open, room for " + RACE.OBMAX);
+  for (const p of P.slice(1, 8)) await call(p, "world-studio-race-join", { code }); r = await call(P[8], "world-studio-race-join", { code }); check(r.status === 409, "obby room: full at 8");
+  r = await call(P[0], "world-studio-race-start", { code }); const st = r.body.race.start; T = st + 8e3;
+  r = await call(P[0], "world-studio-race-tick", { code, x: 12.5, y: 3, z: -40, f: 1.2, k: 2, pr: 0.4, hp: 3, coins: 5 }); let me0 = r.body.race.players[0];
+  check(me0.x === 12.5 && me0.z === -40 && me0.f === 1.2 && me0.k === 2 && me0.pr === 0.4, "obby room: a player's place on the course");
+  r = await call(P[0], "world-studio-race-tick", { code, x: 99999, y: 1, z: 0, pr: 0.1 }); me0 = r.body.race.players[0]; check(me0.x <= 120 && me0.pr === 0.4, "obby room: kept on the course, progress never back");
+  r = await call(P[0], "world-studio-race-tick", { code, pr: 0.6, fin: true }); check(!r.body.race.players[0].fin, "obby room: no finish before the game is done");
+  r = await call(P[0], "world-studio-race-tick", { code, pr: 1, fin: true }); check(r.body.race.players[0].fin === 8e3, "obby room: done — the time on the server's clock"); }
 // WS5: a challenge carries the run as a ghost; following a maker shows their new games in your feed
 { const { CHAL } = await import("../../api/_world-studio.mjs"); const mk = ethers.Wallet.createRandom(), fa = ethers.Wallet.createRandom();
   let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", theme: "neon", title: "Follow Me", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 99 } }); const id = r.body.game.id;
