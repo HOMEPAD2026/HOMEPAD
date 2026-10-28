@@ -5173,3 +5173,22 @@ html.wp-pcphone .wst-hint{zoom:1.6}
 .wp-mapfount{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 12px;padding:12px 14px;border-radius:16px;border:1px solid rgba(127,233,255,.55);background:linear-gradient(100deg,rgba(47,134,255,.28),rgba(127,233,255,.14));color:#fff;text-align:left;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.25),inset 0 0 18px rgba(127,233,255,.15)}
 .wp-mapfount>i{font-style:normal;font-size:30px;line-height:1}.wp-mapfount span{flex:1;display:grid;gap:2px}.wp-mapfount b{font:800 15px/1.2 Sora,sans-serif}.wp-mapfount small{font-size:12px;opacity:.8}.wp-mapfount em{font-style:normal;font-size:22px;opacity:.7}
 .wp-mapfount:hover{border-color:#7fe9ff;transform:translateY(-1px)}
+/* MAP2 (2026-10-27): tabs, search, Popular tiles, Recent */
+.wp-mtabs{position:sticky;top:-1px;z-index:3;display:grid;gap:8px;margin:0 -4px 10px;padding:6px 4px 8px;background:linear-gradient(180deg,rgba(9,26,66,.99) 80%,rgba(9,26,66,0))}
+.wp-mq{width:100%;box-sizing:border-box;padding:10px 12px 10px 34px;border-radius:12px;border:1px solid rgba(127,233,255,.28);background:rgba(4,12,30,.6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239fe6ff' stroke-width='2'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='m11 11 4 4'/%3E%3C/svg%3E") 11px 50%/15px no-repeat;color:#eef3f7;font:600 14px Sora,sans-serif;outline:none}
+.wp-mq:focus{border-color:#7fe9ff}
+.wp-mtabs nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:3px;border-radius:12px;background:rgba(0,0,0,.28)}
+.wp-mtabs nav button{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;border:0;border-radius:9px;background:transparent;color:#b9cbe0;font:800 12.5px Sora,sans-serif;cursor:pointer}
+.wp-mtabs nav button i{font-style:normal;font-size:14px}
+.wp-mtabs nav button[aria-selected="true"]{background:linear-gradient(135deg,#2f86ff,#35d8d0);color:#fff;box-shadow:0 4px 14px rgba(47,134,255,.35)}
+#wp-maplist.searching .wp-mtabs nav{opacity:.45}
+.wp-mtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.wp-mtile{position:relative;aspect-ratio:1/1;border-radius:14px;border:1px solid rgba(127,233,255,.25);background:#0b1a38 var(--art) center/cover no-repeat;overflow:hidden;cursor:pointer;padding:0;transition:transform .15s,border-color .15s}
+.wp-mtile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(3,8,22,.92))}
+.wp-mtile b{position:absolute;left:8px;right:8px;bottom:7px;z-index:1;color:#fff;font:800 12px/1.2 Sora,sans-serif;text-align:left;text-shadow:0 1px 3px #000}
+.wp-mtile:hover,.wp-mtile:focus-visible{transform:translateY(-2px);border-color:#7fe9ff}
+.wp-mrec{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.wp-mrec button{padding:7px 12px;border-radius:999px;border:1px solid rgba(255,200,97,.45);background:rgba(255,200,97,.1);color:#ffe7b0;font:700 12px Sora,sans-serif;cursor:pointer}
+.wp-mnone{text-align:center;opacity:.7;padding:18px 0}
+.wp-msec[hidden]{display:none}
+@media (min-width:700px){.wp-mtiles{grid-template-columns:repeat(4,1fr)}}
