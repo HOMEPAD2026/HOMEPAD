@@ -47,7 +47,10 @@
   try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) { /* old browser */ }
   function wallets() {
     var list = Array.from(provs.values());
-    if (!list.length && window.ethereum) list.push({ info: { name: window.ethereum.isMetaMask ? "MetaMask" : window.ethereum.isRabby ? "Rabby" : L("Browser wallet", "브라우저 지갑", "浏览器钱包"), rdns: "injected", icon: "" }, provider: window.ethereum });
+    // (2026-10-28, the owner: "지갑연결이 이렇게만 나와" — a wallet that injects late or only as window.ethereum, or several
+    // under window.ethereum.providers, still shows)
+    var nm = function (p) { return p.isRabby ? "Rabby" : p.isOkxWallet || p.isOKExWallet ? "OKX Wallet" : p.isCoinbaseWallet ? "Coinbase Wallet" : p.isBitKeep || p.isBitgetWallet ? "Bitget Wallet" : p.isTrust || p.isTrustWallet ? "Trust Wallet" : p.isPhantom ? "Phantom" : p.isBraveWallet ? "Brave Wallet" : p.isMetaMask ? "MetaMask" : L("Browser wallet", "브라우저 지갑", "浏览器钱包"); };
+    if (!list.length && window.ethereum) { var ps = Array.isArray(window.ethereum.providers) && window.ethereum.providers.length ? window.ethereum.providers : [window.ethereum]; ps.forEach(function (p, i) { list.push({ info: { name: nm(p), rdns: "injected" + (i ? i : ""), icon: "" }, provider: p }); }); }
     return list;
   }
 
@@ -105,9 +108,13 @@
       if (typeof setUserDisconnected === "function") setUserDisconnected(false);
       return Promise.resolve(connectWallet());
     }
-    var list = wallets();
-    if (list.length === 1) return use(list[0]);
-    return chooser(list);
+    // ask the browser's wallets once more and give a late one a moment to answer before choosing
+    try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) { /* old browser */ }
+    return wait(wallets().length ? 0 : 450).then(function () {
+      var list = wallets();
+      if (list.length === 1) return use(list[0]);
+      return chooser(list);
+    });
   };
   // the wallet's address. Some wallets answer the request with an empty list (Bitget Wallet on a non-EVM network,
   // a WalletConnect session that didn't include Arc, a phone coming back from the wallet app a moment early): ask
@@ -238,15 +245,18 @@
         '<a class="cw-w" href="https://bkcode.vip?action=dapp&url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi bg" aria-hidden="true"></span><b>Bitget Wallet</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" : "";
       ch.innerHTML = '<div class="cw-scrim" data-x></div><div class="cw-card">' +
         '<div class="cw-card-h"><b>' + esc(L("Connect a wallet", "지갑 연결", "连接钱包")) + '</b><button type="button" class="cw-x" data-x aria-label="' + esc(L("Close", "닫기", "关闭")) + '">×</button></div>' +
-        (rows ? '<div class="cw-list">' + rows + "</div>" : '<p class="cw-none">' + esc(L("No wallet in this browser yet.", "이 브라우저에 지갑이 없어요.", "此浏览器还没有钱包。")) + "</p>") +
+        (rows ? '<div class="cw-list">' + rows + "</div>" : '<p class="cw-none">' + esc(L("No wallet in this browser yet.", "이 브라우저에 지갑이 없어요.", "此浏览器还没有钱包。")) + " " + esc(phone ? L("Open this page in your wallet app below, or use WalletConnect.", "아래에서 지갑 앱으로 이 페이지를 열거나 WalletConnect를 쓰세요.", "请在下方用钱包应用打开本页，或使用 WalletConnect。") : L("Scan a QR code with your phone's wallet (WalletConnect), sign in with ARCIRCLE Wallet, or add a wallet to this browser.", "휴대폰 지갑으로 QR을 찍거나(WalletConnect), ARCIRCLE Wallet으로 로그인하거나, 이 브라우저에 지갑을 설치하세요.", "用手机钱包扫码（WalletConnect）、用 ARCIRCLE Wallet 登录，或为此浏览器添加钱包。")) + "</p>") +
         '<p class="cw-err" role="alert" hidden></p>' +
         apps +
         '<div class="cw-sec">' + esc(L("More ways", "다른 방법", "更多方式")) + "</div>" +
         '<button type="button" class="cw-w" data-wc><span class="cw-wi wc" aria-hidden="true"></span><b>WalletConnect</b><small>' + esc(L("QR code, any wallet app", "QR 코드, 모든 지갑 앱", "二维码,任意钱包应用")) + "</small></button>" +
         // ARCIRCLE Wallet (email, Google, Apple or X): listed above where this page loads it, otherwise opened on /wallet
         (list.some(function (w) { return w.info && w.info.rdns === "app.arcircle.wallet"; }) ? "" : '<a class="cw-w" href="/wallet"><span class="cw-wi arc" aria-hidden="true"></span><b>ARCIRCLE Wallet</b><small>' + esc(L("Email, Google, Apple or X", "이메일·구글·애플·X", "邮箱、Google、Apple 或 X")) + "</small></a>") +
+        (rows || phone ? "" : '<div class="cw-sec">' + esc(L("Add a wallet to this browser", "이 브라우저에 지갑 설치", "为此浏览器添加钱包")) + '</div><div class="cw-get">' + [["MetaMask", "https://metamask.io/download/", "mm"], ["Rabby", "https://rabby.io/", "rb"], ["OKX Wallet", "https://www.okx.com/web3", "ok"], ["Coinbase Wallet", "https://www.coinbase.com/wallet/downloads", "cb"], ["Bitget Wallet", "https://web3.bitget.com/en/wallet-download", "bg"]].map(function (w) { return '<a class="cw-g" href="' + w[1] + '" target="_blank" rel="noopener"><span class="cw-wi ' + w[2] + '" aria-hidden="true"></span>' + esc(w[0]) + "</a>"; }).join("") + '</div><p class="cw-hint">' + esc(L("After installing, reload this page.", "설치한 뒤 이 페이지를 새로고침하세요.", "安装后请刷新本页。")) + "</p>") +
         "</div>";
       D.body.appendChild(ch);
+      // a wallet that announces itself while this is open: show the list again with it
+      if (!rows) { var seen0 = provs.size, late = setInterval(function () { if (!ch) { clearInterval(late); return; } if (provs.size > seen0 || (window.ethereum && !seen0)) { clearInterval(late); var l2 = wallets(); if (l2.length) { closeChooser(); chooser(l2).then(resolve); } } }, 400); setTimeout(function () { clearInterval(late); }, 8000); }
       ch.addEventListener("click", function (e) {
         if (e.target.closest("[data-x]")) { closeChooser(); resolve(""); return; }
         var b = e.target.closest("[data-i]");
