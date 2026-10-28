@@ -294,14 +294,14 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   await call(mk, "world-studio-publish", { id }); const a = await get("studio-arcade");
   check(a.games.find((g) => g.id === id).th === r.body.th, "thumb: the arcade's card points at it (versioned)"); }
 // STB6: build together — a code, one partner, the pen
-{ const S = await import("../../api/_world-studio.mjs"), own = ethers.Wallet.createRandom(), pal = ethers.Wallet.createRandom(), x3 = ethers.Wallet.createRandom();
+{ const S = await import("../../api/_world-studio.mjs"), own = ethers.Wallet.createRandom(), pal = ethers.Wallet.createRandom(), x3 = ethers.Wallet.createRandom(), x4 = ethers.Wallet.createRandom();
   let r = await call(own, "world-studio-save", { spec: { tpl: "jump", title: "Duo Jump", seed: 4 } }); const id = r.body.game.id;
   r = await call(pal, "world-studio-co-invite", { id }); check(r.status === 404, "co: only the owner opens a code");
   r = await call(own, "world-studio-co-invite", { id }); const code = r.body.code; check(r.status === 200 && /^[A-Z0-9]{6}$/.test(code), "co: the owner gets a 6-letter code");
   check((await call(own, "world-studio-co-invite", { id })).body.code === code, "co: asking again gives the same code while it's open");
   r = await call(own, "world-studio-co-join", { code }); check(r.status === 400, "co: you can't join your own game");
   r = await call(pal, "world-studio-co-join", { code: code.toLowerCase() }); check(r.status === 200 && r.body.game.shared && r.body.game.co, "co: a friend joins with the code");
-  r = await call(x3, "world-studio-co-join", { code }); check(r.status === 404, "co: a used code is closed (one partner)");
+  r = await call(x3, "world-studio-co-join", { code }); check(r.status === 200 && r.body.game.co.n === 2, "co: a second friend joins the same code (a team of " + S.CO.TEAM + ")");
   let m = await get("studio-mine&wallet=" + pal.address.toLowerCase()); check(m.shared.length === 1 && m.shared[0].id === id && m.games.length === 0, "co: the game shows in the partner's My games as shared");
   r = await call(pal, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 9 } }); check(r.status === 200 && r.body.game.co.pen && r.body.game.co.pen.w === pal.address.toLowerCase(), "co: the partner saves and holds the pen");
   r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 5 } }); check(r.status === 409 && r.body.pen, "co: the other one can't save while the pen is out");
@@ -309,9 +309,10 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   await call(pal, "world-studio-co-pen", { id, off: true }); r = await call(own, "world-studio-co-pen", { id }); check(r.status === 200 && r.body.pen.w === own.address.toLowerCase(), "co: once it's passed, the other takes it");
   T += S.CO.PEN_MS + 1000; r = await call(pal, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 11 } }); check(r.status === 200, "co: a pen left alone frees itself after " + S.CO.PEN_MS / 60e3 + " min");
   check((await call(pal, "world-studio-publish", { id })).status === 404 && (await call(pal, "world-studio-del", { id })).status === 404, "co: the partner can't publish or delete");
-  check((await call(x3, "world-studio-save", { id, spec: { tpl: "jump", seed: 1 } })).status === 404, "co: nobody else saves it");
+  check((await call(x4, "world-studio-save", { id, spec: { tpl: "jump", seed: 1 } })).status === 404, "co: nobody else saves it");
   r = await call(pal, "world-studio-co-leave", { id }); m = await get("studio-mine&wallet=" + pal.address.toLowerCase());
   check(r.status === 200 && m.shared.length === 0 && (await call(pal, "world-studio-save", { id, spec: { tpl: "jump", seed: 2 } })).status === 404, "co: leaving takes it off the partner's list and they can't save it any more");
+  await call(x3, "world-studio-co-leave", { id });
   r = await call(own, "world-studio-save", { id, spec: { tpl: "jump", title: "Duo Jump", seed: 3 } }); check(r.status === 200 && !r.body.game.co, "co: alone again, the owner saves without a pen"); }
 // STB7 (2026-10-27): comments, reactions, a creator's picks, the day's creator challenge, a creator's level and badges
 { const S7 = await import("../../api/_world-studio.mjs"), mk = ethers.Wallet.createRandom(), pl = ethers.Wallet.createRandom(), pl2 = ethers.Wallet.createRandom();

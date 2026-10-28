@@ -42,6 +42,7 @@ import { makeWelcome } from "./_world-welcome.mjs";
 import { makeJur } from "./_world-jur.mjs";
 import { makeAgentDim, AGENT } from "./_world-agent.mjs";
 import { makeStudio, STUDIO } from "./_world-studio.mjs";
+import { makeHub } from "./_world-hub.mjs";
 import { makeAgArena } from "./_world-agarena.mjs";
 import { makeAgentVault } from "./_world-agentvault.mjs";
 import { makeSwap } from "./_world-swap.mjs";
@@ -359,7 +360,8 @@ export function make(deps) {
   const agentDim = makeAgentDim({ ...deps, json, now, signer, isGM, debit: shop.debit, jur: { give: (w, m) => jur.give(w, m) }, mine: { addOre: (w, o) => mine.addOre(w, o) },
     level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) });
   const codex = makeCodex({ ...deps, json, now, signer, award: shop.award }); // the item codex (api/_world-codex.mjs)
-  const studio = makeStudio({ ...deps, json, now, signer, isGM, shut: (w) => !STUDIO.OPEN && !isGM(w), /* (open to all since 2026-10-24; STUDIO.OPEN false would keep it to the GMs) */ nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), randomId: deps.randomId || (() => Math.random().toString(36).slice(2)) }); // AD-City 3: ARCIRCLE Studio Lite (api/_world-studio.mjs)
+  const hub = makeHub({ ...deps, json, now, signer, isGM, saveOf, levelOfSave, nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), randomId: deps.randomId || (() => Math.random().toString(36).slice(2)) }); // HUB 2: the Creator Hub's profiles, forum, inbox (api/_world-hub.mjs)
+  const studio = makeStudio({ ...deps, json, now, signer, isGM, notify: (w, it) => hub.notify(w, it).catch(() => {}), shut: (w) => !STUDIO.OPEN && !isGM(w), /* (open to all since 2026-10-24; STUDIO.OPEN false would keep it to the GMs) */ nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), randomId: deps.randomId || (() => Math.random().toString(36).slice(2)) }); // AD-City 3: ARCIRCLE Studio Lite (api/_world-studio.mjs)
   const agArena = makeAgArena({ ...deps, json, now, signer, shut: (w) => !AGENT.OPEN && !isGM(w), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), random: deps.random || Math.random }); // AD-City 4: the Agent Arena (api/_world-agarena.mjs)
   const agentVault = makeAgentVault({ getDocs: deps.getDocs, setDoc: deps.setDoc, json, now, signer, io: deps.agentVaultIo, sel: deps.agentVaultSel, shut: (w) => !AGENT.OPEN && !isGM(w) }); // AD3: the agent trades from the player's own vault (api/_world-agentvault.mjs)
   // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
@@ -651,6 +653,7 @@ export function make(deps) {
       if (w === "agent-top") return agentDim.top();
       if (w === "agent-city") return agentDim.city();
       if (String(w).startsWith("studio-")) { const r = await studio.read(url); if (r) return r; }
+      if (String(w).startsWith("hub-")) { const r = await hub.read(url); if (r) return r; }
       if (w === "codex") return codex.read(url);
       if (w === "agarena-top") { const r = await agArena.read(url); if (r) return r; }
       if (w === "agent-vault") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return agentVault.view(lc(a)); }
@@ -687,7 +690,7 @@ export function make(deps) {
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
       if (b.action === "world-lot-tier") return lotTier(b);
-      const r = (await mythic.handle(b)) || (await codex.handle(b)) || (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await studio.handle(b)) || (await agArena.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await pk.handle(b)) || (await rq.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
+      const r = (await mythic.handle(b)) || (await codex.handle(b)) || (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await studio.handle(b)) || (await hub.handle(b)) || (await agArena.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await pk.handle(b)) || (await rq.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };
