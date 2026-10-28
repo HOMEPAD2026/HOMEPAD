@@ -611,3 +611,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-feat i:has(.gw-fic) { width: 76px; height: 76px; border-radius: 22px; background: radial-gradient(circle at 50% 38%, #ffffff, #e9fbff 55%, #d6f5ff); box-shadow: inset 0 0 0 1.5px rgba(255, 200, 97, .55), 0 10px 24px rgba(56, 160, 216, .22); }
 .gw-feat .gw-fic { width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(11, 40, 80, .22)); transition: transform .35s cubic-bezier(.2, 1.4, .4, 1); }
 .gw-feat:hover .gw-fic { transform: translateY(-4px) scale(1.06) rotate(-3deg); }
+/* Updates & notices: the newest five, the rest behind More (2026-10-28) */
+.gw-notices li.gw-nx { display: none; }
+.gw-notices.open li.gw-nx { display: grid; }
+.gw-nmore { display: block; margin: 14px auto 0; padding: 11px 22px; border-radius: 999px; border: 1px solid var(--line); background: rgba(6, 14, 40, .55); color: var(--cy); font: 700 14px/1 var(--ui); cursor: pointer; transition: background .15s, border-color .15s; }
+.gw-nmore:hover { background: rgba(57, 211, 255, .1); border-color: var(--cy); }
+.gw-nmore[hidden] { display: none; }
+.gw-notices:not(.open) li:nth-child(5) { border-bottom: 0; }
