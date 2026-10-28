@@ -130,6 +130,8 @@ export const CATALOG = [
   { id: "paint-gunmetal", cat: "style", name: "Gunmetal paint", line: "Steel grey armour with orange lights.", usd: 3, arcl: 3000 },
   { id: "paint-whitegold", cat: "style", name: "White Gold paint", line: "Pearl white with gold panels and a gold crown.", usd: 5, arcl: 5000 },
   { id: "paint-void", cat: "style", name: "Void paint", line: "Deep violet with a violet crown and glowing eyes.", usd: 8, arcl: 8000 },
+  { id: "paint-pumpkin", cat: "style", name: "Pumpkin paint", line: "Jack-o'-lantern orange on a charred shell — the Halloween Realm's own.", usd: 4, arcl: 4000 },
+  { id: "paint-phantom", cat: "style", name: "Phantom paint", line: "Ghost white with mint soul-lights — the Halloween Realm's own.", usd: 6, arcl: 6000 },
   // the old ARCL name change: no longer sold (a character change covers the name now); bought ones still work
   { id: "rename", cat: "retired", name: "Name change", line: "Change your name once more.", usd: null, arcl: null, use: true },
   // plaza: be seen in the hub
@@ -416,7 +418,7 @@ export function makeShop(deps) {
         const save = await one(`worldSave/${w}`), level = levelOfSave(save);
         if (level < need) return json(400, { error: `needs level ${need} (your saved level is ${level})` });
         n = kind === "hunt" ? [0, 5, 8, 10, 12][tier] : 30;
-        if (b.hw && clockOf(now()).night) n = Math.round(n * HW.NIGHT.arcl); // the Halloween Realm's Cursed Night: ×1.5 (the day's caps stay)
+        if (b.hw) { const ck = clockOf(now()); if (ck.night) n = Math.round(n * (ck.blood ? HW.BLOOD.arcl : HW.NIGHT.arcl)); } // the Halloween Realm's Cursed Night: ×1.5 (the day's caps stay)
       }
       const day = seoulDay(now()), slot = Math.floor(now() / (e.repeat.gap * 1000));
       if (!(await commit([{ create: `worldArclGap/${w}_${kind}_${slot}`, data: { at: now() } }])).ok) return json(429, { error: "too fast — a moment between these" });

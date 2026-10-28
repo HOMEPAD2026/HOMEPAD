@@ -881,7 +881,7 @@ export function enemy(kit, name) {
   };
   // a one-off (a hit, a bite) goes back to what it was doing
   mixer.addEventListener("finished", (ev) => { if (loop && ev.action === cur) play(loop, { fade: 0.15 }); });
-  return { obj: o, mixer, play };
+  return { obj: o, mixer, play, rig: !!src.rig, has: (n) => src.clips.some((x) => x.name === n) };
 }
 // what stands around each shop, in the shop's own frame (+Z faces the spawn point, the plinth is r = 3)
 const BUILDING = { "arcl-shop": "building-h", "arcl-ex": "building-s", forge: "building-k", reward: "chimney-large", launch: "building-e", quantum: "building-n", swap: "building-a", orders: "building-d", staking: "building-o", locker: "building-g", scanner: "building-f", predict: "building-m", arcia: "building-t" };
@@ -1392,6 +1392,9 @@ export const PAINTS = {
   "paint-gunmetal": { shell: 0x5a6068, panel: 0x2b2f36, glow: 0xff8a2a, halo: 0xff8a2a, k: 1 },
   "paint-whitegold": { shell: 0xf2ede2, panel: 0xc9a24a, glow: 0xffd27a, halo: 0xffd27a, crown: 0xffd27a, k: 1 },
   "paint-void": { shell: 0x1a1030, panel: 0x6b2fd8, glow: 0xc49bff, halo: 0xb48cff, crown: 0xb48cff, k: 1 },
+  // HX3 (2026-10-28): the Halloween Realm's two
+  "paint-pumpkin": { shell: 0x2a1408, panel: 0xff8a1f, glow: 0xffb24a, halo: 0xff8a1f, crown: 0xff8a1f, k: 1 },
+  "paint-phantom": { shell: 0xe8f4ff, panel: 0x7cf5c8, glow: 0x9fffd0, halo: 0x9fffd0, crown: 0x9fffd0, k: 1 },
 };
 export const HERO_TINTS = [null, 0x2ee0b0, 0xff6fb5, 0xffc23a, 0x9b6bff, 0xff5a5a, 0xff9a3a, 0x5ad65a]; // 0: ARON's own blue
 export const TIER_HALO = [null, 0x35d8d0, 0x39ff88, 0xffc861]; // holder tiers (world-play.js paintCrown): none, holder, 100k, 1M

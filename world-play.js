@@ -23,6 +23,8 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
   document.getElementById("wp-loading").hidden = false;
 }
 import { WORDS } from "./world-words.js";
+import { ask as askCard } from "./world-ask.js";
+import { clockOf as hwClock } from "./world-hwrealm-data.js";
 const VER = new URL(import.meta.url).search;
 // the game's modules (world-all.js): one file in the build, side by side from the source folder
 const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB, HW, DIAG, LIVE, HOL, TRK, CREW, VILL, SFX, PET, CHAT, GV, MV, JG, LANDM, PV, LD, SHUB, SPAD] = (await import("./world-all.js")).default;
@@ -1297,6 +1299,11 @@ function say(i) {
 // play together: a link with your wanderer tag; whoever opens it sees you as a friend (and you them), and near each other you both get +10% XP
 const myTag = SOC.tagOf(vid);
 const together = () => !!(ghosts && ghosts.palNear && ghosts.palNear(20));
+// HX2: hunting the Halloween Realm with someone else by night (anyone within 25 m): EXP +10 % (a crowd check once a second)
+let hwCrowdAt = 0, hwCrowdOn = false;
+const hwCrowd = () => { const t = performance.now(); if (t - hwCrowdAt < 1000) return hwCrowdOn; hwCrowdAt = t; hwCrowdOn = false;
+  try { if (landNow !== "hw" || !hwL || !hwL.clock().night || !ghosts) return false; const p = here(new THREE.Vector3()); ghosts.each((g, w) => { if (!w.gone && Math.hypot(p.x - g.position.x, p.z - g.position.z) < 25) hwCrowdOn = true; }); } catch { /* alone */ }
+  return hwCrowdOn; };
 // a hunting party: you and up to three friends, kept by the server (world-party.js, api/_world-rank.mjs: the leader invites
 // friends from the chat's Friends tab or their profile card). Their figures show their HP and where they are; with one
 // of them within 30 m, knock-outs give +15% XP (instead of the +10% for a friend nearby)
@@ -2088,7 +2095,7 @@ function landGo(to) {
 function landTick(force) {
   const L = mode === "hub" ? LD.landAt(-planet.position.x, -planet.position.z) : null, id = L ? L.id : "";
   lands.show(id); if (adc) adc.show(id === "ad"); if (rqL) rqL.show(id === "rq"); if (ccL) ccL.show(id === "cc"); if (hwL) hwL.show(id === "hw"); if (id === landNow && !force) return;
-  const was = landNow; landNow = id; try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); if (id === "cc") try { ccBar(); } catch { /* made on the way in */ } /* (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) */ if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } /* (no town rain in RAID QUEENS' sky realm) */ try { paintQuests(); } catch { /* the quests aren't up yet */ }
+  const was = landNow; landNow = id; try { if (combat && combat.rezone) combat.rezone(); } catch { /* the fights aren't up yet */ } try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); if (id === "cc") try { ccBar(); } catch { /* made on the way in */ } /* (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) */ if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } /* (no town rain in RAID QUEENS' sky realm) */ try { paintQuests(); } catch { /* the quests aren't up yet */ }
   if (id && id !== was) { toast(`<b>${esc(landName(id))}</b>`); if (id === "lp" && !P.visited.includes("lpv")) { P.visited.push("lpv"); save(); } if (id === "ut" && !P.visited.includes("utv")) { P.visited.push("utv"); save(); } if (id === "ad" && !P.visited.includes("adc")) { P.visited.push("adc"); save(); } if (id === "rq" && !P.visited.includes("rqx")) { P.visited.push("rqx"); save(); } if (id === "hw" && !P.visited.includes("hwr")) { P.visited.push("hwr"); save(); } }
 }
 st.on(() => { try { landTick(false); } catch { /* still loading */ } });
@@ -3747,8 +3754,15 @@ function plazaEvents(now = Date.now()) {
   if (co) for (const h of [3, 12]) { let t = day0 + h * 3600e3; if (t + 60 * 60e3 < now) t += 864e5; ev.push({ ic: "🏟️", t: TW("Agent Arena hour"), at: t, live: t <= now }); } /* (12:00 and 21:00 Seoul: api/_world-agarena.mjs ARENA.HOURS) */
   let pk = null; try { pk = pumpKings; } catch { /* not declared yet: still loading */ }
   if (pk) { const eh = etHour(now), live = eh >= 20 || eh < 5; ev.push({ ic: "🎃", t: TW("The Pumpkin Kings wake"), at: live ? now : now + (20 - eh) * 3600e3, live }); }
+  { const c = hwClock(now); ev.push({ ic: "🌕", t: TW("The Cursed Night (Halloween Realm)"), at: c.night ? now : now + c.left * 1000, live: c.night }); } // HX2
   return ev.sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0) || a.at - b.at);
 }
+// HX2: in town (or any other land) a minute before the Cursed Night: a toast that takes you to the realm's gate; once a cycle
+let hwCalled = -1;
+every(5000, () => { try { if (mode !== "hub" || landNow === "hw" || introOn || level() < 15) return; const c = hwClock(Date.now()); if (!c.warn || hwCalled === c.cycle) return; hwCalled = c.cycle;
+  const el = document.createElement("div"); el.className = "wp-toast wp-hwcall"; el.innerHTML = `<b>🌕 ${esc(TW("The Cursed Night falls in a minute"))}</b><span>${esc(TW("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5"))}</span><button type="button">${esc(TW("Take me there"))}</button>`;
+  document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on")); const bye = () => { el.classList.remove("on"); setTimeout(() => el.remove(), 400); };
+  el.querySelector("button").onclick = () => { bye(); hwGo(); }; setTimeout(bye, 12000); if (Snd.bell) Snd.bell(); } catch { /* the next time */ } });
 const evLeft = (at) => { const m = Math.max(0, Math.round((at - Date.now()) / 60e3)); return m >= 60 ? TW("in {h} h {m} min", { h: Math.floor(m / 60), m: m % 60 }) : TW("in {m} min", { m }); };
 // on a phone the top row is full (brand, level, buttons): the pill goes just under the quest card (or the HP card),
 // centred, where it clears the minimap; a computer has room at the top centre
@@ -4086,7 +4100,8 @@ rpg = RPG.createRpg({
   openMythic: (k) => openMythic(k),
   THREE, T: TW, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd, reduce, scene: () => st.scene,
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar, openProfile: (w) => openProfile(w),
-  onRealmKill: (m) => { try { if (hwUI) hwUI.kill(m); } catch { /* the next one */ } },
+  onRealmKill: (m) => { try { hwKillFx(m); } catch { /* only the look */ } try { if (hwUI) hwUI.kill(m); const z = m.zone.id; if (z === "hw-patch") hwStep("patch"); if (z === "hw-grave") hwStep("grave"); if (hwL && hwL.clock().night) { hwStep("night"); if (quests) quests.bump("hwnight"); }
+    let gs = []; try { gs = JSON.parse(localStorage.getItem("arc.hw.gr") || "[]"); } catch { /* none yet */ } if (!gs.includes(z)) { gs.push(z); try { localStorage.setItem("arc.hw.gr", JSON.stringify(gs)); } catch { /* fine */ } if (quests) quests.bump("hwgr"); } } catch { /* the next one */ } },
   extraStats: () => withHw(withMythic((() => { const t = quests ? quests.titleBonus() : null, h = bless().hp, pm = pet ? pet.mods() : null, cx = cxBonus; if (!h && !(pm && (pm.hp || pm.spd)) && !cx) return t; const o = { ...(t || {}) }; if (h || (pm && pm.hp)) o.hpPct = h + (pm ? pm.hp : 0); if (pm && pm.spd) o.spd = (o.spd || 0) + pm.spd;
     if (cx) { for (const k of ["crit", "spd"]) if (cx[k]) o[k] = (o[k] || 0) + cx[k];  for (const k of ["atkPct", "defPct", "hpPct"]) if (cx[k]) o[k] = (o[k] || 0) + cx[k]; } return o; })())), // + a Swift pet's speed, a Sturdy pet's HP and the item codex's full columns (cxBonus)
   dropLuck: () => petLuck,
@@ -4117,9 +4132,9 @@ combat = FIGHT.createCombat({ softKO: () => !!(rqL && rqL.running()), alt: (a) =
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); if (avatar && avatar.kk && grounded) avatar.play("dodge", { once: true, speed: 1.4, fade: 0.05 }); },
-  onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); if (z) arciaOn("zone", z); },
+  onZone: (z) => { if (z && z.realm && level() < z.lv[0] - 10 && !hwWarned.has(z.id)) { hwWarned.add(z.id); toast(TW("⚠ {n}: Lv {a}–{b} — you're Lv {l}", { n: TW(z.name), a: z.lv[0], b: z.lv[1], l: level() }), 4200); } nightK = -1; dayNight(); if (quests) quests.on.zone(z); if (z) arciaOn("zone", z); },
   onKill: (k) => { fun("fight"); if (quests) quests.on.kill(k); arciaOn("kill", k); tutorialStep(3); if (k.rank === "boss" && k.zone && rpg) { const d = rpg.data(); d.x = d.x || {}; d.x.bk = d.x.bk || {}; d.x.bk[k.zone] = Math.min(9999, (d.x.bk[k.zone] || 0) + 1); } }, /* the boss trophies on My Island */ onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
-  xpBoost: (zid) => RPG.xpBoost(zid) * (/^hw-/.test(zid || "") ? 1 + ((rpg && rpg.stats().hwXp) || 0) / 100 : 1) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), noStreet: () => landNow === "rq" || landNow === "cc" || landNow === "hw", raidHit: (n) => raid && raid.hit(n),
+  xpBoost: (zid) => RPG.xpBoost(zid) * (/^hw-/.test(zid || "") ? (1 + ((rpg && rpg.stats().hwXp) || 0) / 100) * (hwCrowd() ? 1.1 : 1) : 1) * (partyNear() ? 1.15 : together() ? 1.1 : 1), inRaid: () => !!(raid && raid.inside()), noStreet: () => landNow === "rq" || landNow === "cc" || landNow === "hw", raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
   onLoot: (it) => { if (quests) quests.on.loot(it); arciaOn("loot", it); if (it.r >= 3) shareDrop(it); if (it.r >= 2) lootCard(it); },
   legend: () => { replay(document.body, "wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
@@ -4992,7 +5007,7 @@ setInterval(() => { try {
   if (combat) combat.tick(dt, t);
   if (pet) pet.tick(dt, t, mode === "hub" && !introOn && !flying);
   if (raid) raid.tick(dt, t);
-  Snd.scene(mode !== "hub" || introOn ? "" : raid && raid.inside() ? "raid" : (combat && combat.zone() && combat.zone().id) || "");
+  Snd.scene(mode !== "hub" || introOn ? "" : raid && raid.inside() ? "raid" : landNow === "hw" && hwL ? (hwJackNear() ? "hwjack" : hwL.clock().night ? "hwnight" : "hwday") : (combat && combat.zone() && combat.zone().id) || "");
   music.set(mode !== "hub" || introOn || !combat ? "calm" : (raid && raid.inside()) || combat.bossNear(40) ? "boss" : combat.zone() ? "hunt" : "calm");
   if (ghosts) ghosts.tick(dt, t);
   if (dinoTown3d) dinoTown3d.tick(dt);
@@ -5725,13 +5740,16 @@ async function openMythic(slot) { const u = await mythicUI(); if (u) u.open(slot
 // its grip / centre where the hand or head holds it; until it's in, the usual piece shows and the hero is dressed again after
 // (mythGlb / MYTH_SIZE are declared near the top: the hero is dressed while the town loads, before this line runs)
 function mythicModel(slot) {
-  if (!MY || !MYTH_SIZE[slot]) return null; const m = mythicWorn().find((p) => MY.pieceOf(p.def).slot === slot); if (!m) return null;
-  const P0 = MY.pieceOf(m.def), g = mythGlb[P0.glb];
+  if (!MYTH_SIZE[slot]) return null; const m = MY ? mythicWorn().find((p) => MY.pieceOf(p.def).slot === slot) : null;
+  // HX2: no Crimson piece there — the Inferno Jack set's blade / crown worn in the slot is on the hero (models/world/hwrealm/gear)
+  let P0 = m ? MY.pieceOf(m.def) : null, url = P0 ? `/models/world/mythic/${P0.glb}.glb${VER}` : "", glow = 0xff3d6e;
+  if (!m) { const h = HWM ? hwWorn().find((p) => HWM.pieceOf(p.k).slot === slot) : null; if (!h) return null; const hp = HWM.pieceOf(h.k); P0 = { glb: "hw-" + hp.id }; url = `/models/world/hwrealm/gear/${hp.id}.glb${VER}`; glow = 0xff8a1f; }
+  const g = mythGlb[P0.glb];
   if (g && g !== "loading") { const c = g.clone(true); c.userData = { ...g.userData }; return c; }
-  if (!g) { mythGlb[P0.glb] = "loading"; K.gltfLoader().load(`/models/world/mythic/${P0.glb}.glb${VER}`, (gl) => {
+  if (!g) { mythGlb[P0.glb] = "loading"; K.gltfLoader().load(url, (gl) => {
     const o = gl.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = MYTH_SIZE[slot] / Math.max(sz.x, sz.y, sz.z, 1e-3), c = box.getCenter(new THREE.Vector3());
     o.scale.setScalar(k); o.position.set(-c.x * k, slot === "weapon" ? -box.min.y * k - sz.y * k * 0.18 : -c.y * k, -c.z * k); // (a blade held a little above its foot; a shield and a helmet by their middle)
-    o.traverse((n) => { if (n.isMesh) { n.castShadow = false; if (n.material && n.material.emissive) { n.material.emissive.set(0xff3d6e); n.material.emissiveIntensity = 0.25; } } });
+    o.traverse((n) => { if (n.isMesh) { n.castShadow = false; if (n.material && n.material.emissive) { n.material.emissive.set(glow); n.material.emissiveIntensity = 0.25; } } });
     const grp = new THREE.Group(); grp.name = "mythic:" + slot; grp.add(o); grp.userData = { hold: slot === "weapon" ? "up" : "", size: sz.clone().multiplyScalar(k) }; mythGlb[P0.glb] = grp;
     try { if (rpg && rpg.dress) rpg.dress(); } catch { /* next dress */ } }, undefined, () => { delete mythGlb[P0.glb]; }); }
   return null;
@@ -6015,14 +6033,20 @@ async function ccTo(id) {
 let hwL = null, hwWait = null, hwUI = null, hwSet = null, hwCardSeen = false, HWM = null;
 function ensureHw() {
   if (hwL) return Promise.resolve(hwL);
-  return hwWait || (hwWait = Promise.all([import("./world-hwrealm.js"), import("./world-hwrealm-ui.js")]).then(([M, U]) => {
+  return hwWait || (hwWait = Promise.all([import("./world-hwrealm.js"), import("./world-hwrealm-ui.js"), import("./world-hwjack.js"), import("./world-hwgimmick.js")]).then(([M, U, J, GM]) => {
     HWM = M; hwL = M.makeHwRealm({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, esc });
-    hwUI = U.makeHwUI({ T: TW, esc, M, post, sess, toast, signIn: () => signIn(), buzz: (p) => buzz(p), itemStats: RPG.itemStats, ver: VER, mythicSlot: (k) => { try { return mythicWorn().some((x) => MY.pieceOf(x.def).slot === k); } catch { return false; } },
-      onSet: (st0) => { hwSet = st0; try { rpg.refresh(); } catch { /* not built yet */ } } });
+    hwUI = U.makeHwUI({ crowd: () => hwCrowd(), journey: () => hwJourney(), T: TW, esc, M, post, sess, toast, signIn: () => signIn(), buzz: (p) => buzz(p), itemStats: RPG.itemStats, ver: VER, mythicSlot: (k) => { try { return mythicWorn().some((x) => MY.pieceOf(x.def).slot === k); } catch { return false; } },
+      onSet: (st0) => { const was = JSON.stringify((hwSet && hwSet.eq) || {}); hwSet = st0; try { if (Object.keys(st0.eq || {}).length >= 6 && quests) quests.bump("hwset"); } catch { /* fine */ } try { rpg.refresh(); if (JSON.stringify(st0.eq || {}) !== was && rpg.dress) rpg.dress(); } catch { /* not built yet */ } } });
     hwL.onNight((n) => hwNight(n));
+    hwG = GM.makeHwGimmicks({ THREE, root: hwL.group, low: lowGfx, here, combat: () => combat, level: () => level(), post, sess, toast, T: TW, parts, vfx, night: () => hwL.clock().night, zone: (id) => hwL.grounds.find((g) => g.id === id), gainXp: (n) => gain(n, TW("Halloween Realm")), onSet: (s1) => hwUI.setSet(s1), step: (k) => hwStep(k),
+      cut: (a, b, c) => hwUI.cutIn(a, b, c), snd: { candy: () => Snd.candy && Snd.candy(), pumpkin: () => Snd.pumpkin && Snd.pumpkin(), pop: () => Snd.pop && Snd.pop(), coin: () => Snd.coin && Snd.coin(), bad: () => Snd.bad && Snd.bad() } }); // HX3: each ground's own thing to do
+    { const tg = hwL.grounds.find((g) => g.jack); // HX2: the night's shared Inferno Jack on the throne
+      hwJ = J.makeHwJack({ THREE, K, T: TW, esc, post, sess, toast, combat: () => combat, kit: () => kit, here, level: () => level(), clock: () => hwL.clock(), laugh: () => Snd.laugh && Snd.laugh(),
+        throne: { x: tg.x, z: tg.z, r: tg.r, zone: tg }, cut: (a, b, c) => hwUI.cutIn(a, b, c), onStrike: () => hwStep("jack"), burst: (p, end) => { try { vfx.burst(p.clone().setY(1), end ? 0xffd23a : 0xff5a1a, true); parts.emit({ at: p.clone().setY(end ? 2 : 0.5), kind: "glow", n: end ? 60 : 40, speed: end ? 7 : 5, up: end ? 9 : 6, spread: 0.8, size: 0.4, life: 1.2, grav: end ? 8 : -1, color: end ? 0xff8a1f : 0xff3a10, color2: end ? 0xb48cff : 0xffd23a, jitter: 0.5 }); if (!reduce) shake = Math.max(shake, end ? 0.7 : 0.5); if (end && Snd.candy) for (let i = 0; i < 8; i++) setTimeout(() => Snd.candy(), i * 70); } catch { /* only the look */ } },
+        onFell: (o) => { if (quests) quests.bump("hwjack"); if (o.set) hwUI.setSet(o.set); hwUI.cutIn(o.rank >= 0 && o.rank < 3 ? TW("#{n} AGAINST INFERNO JACK", { n: o.rank + 1 }) : TW("INFERNO JACK FELL"), TW("+{n} Pumpkin Soul Fragments", { n: o.frag }), "day"); if (Snd.level) Snd.level(); } }); }
     let warned = -1;
     st.on((dt, t) => { try { hwL.tick(dt, t); const c = hwL.clock(), on = landNow === "hw" && mode === "hub";
-      let gz = null; if (on) { const v = here(new THREE.Vector3()); gz = hwL.groundAt(v.x, v.z); } hwUI.hud(c, gz, on);
+      let gz = null; if (on) { const v = here(new THREE.Vector3()); gz = hwL.groundAt(v.x, v.z); } hwUI.hud(c, gz, on); if (hwJ) { hwJ.tick(dt, on); hwUI.jackBoard(on && hwJ.live() ? hwJ.view() : null); } if (hwG) hwG.tick(dt, t, on);
       if (on && c.warn && warned !== c.cycle) { warned = c.cycle; hwUI.warn(); } if (on) hwJackTick(); } catch { /* fine */ } });
     try { if (kit) Promise.resolve(kit.enemiesReady).then(() => GEAR.meshyHw(kit, K.gltfLoader, VER)); } catch { /* the scammers' bodies stand in */ }
     if (sess()) hwUI.refresh(true);
@@ -6032,34 +6056,72 @@ function ensureHw() {
 setTimeout(async () => { try { const s0 = sess(); if (!s0 || hwSet) return; if (!HWM) HWM = await import("./world-hwrealm.js"); const r = await fetch(`/api/social?world=hw&wallet=${s0.wallet}`, { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j.set && !hwSet) { hwSet = j.set; rpg.refresh(); } } } catch { /* the realm reads it again */ } }, 10000);
 // Inferno Jack on his throne (the spec's 7.2): phase 2 at 70 % calls three Inferno Ghosts round him, phase 3 at 30 % enrages
 // him (faster, a quarter harder); each phase once, with its cut-in (his patterns are the town bosses' full set: world-combat.js)
+function hwJackNear() { if (!combat) return false; const v = here(new THREE.Vector3()); return combat.mobsRaw().some((m) => !m.dead && m.rank === "boss" && m.zone && m.zone.jack && Math.hypot(m.g.position.x - v.x, m.g.position.z - v.z) < 45); }
 function hwJackTick() {
   if (!combat) return;
   for (const m of combat.mobsRaw()) { if (m.dead || m.rank !== "boss" || !m.zone || !m.zone.jack) continue;
     const r = m.hp / m.max, ph = r <= HWM.HW.JACK.phases[1] ? 3 : r <= HWM.HW.JACK.phases[0] ? 2 : 1; if ((m.hwPh || 1) >= ph) continue; m.hwPh = ph;
-    if (!reduce) shake = Math.max(shake, 0.5); if (Snd.boss) Snd.boss();
+    if (!reduce) shake = Math.max(shake, 0.5); if (Snd.boss) Snd.boss(); if (Snd.laugh) Snd.laugh();
     if (ph === 2) { hwUI.cutIn(TW("PHASE 2"), TW("Inferno Jack calls up his ghosts"), "night"); for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2; combat.spawnMob({ type: "spam", lv: Math.max(m.zone.lv[0], m.lv - 5), zone: m.zone, at: new THREE.Vector3(m.g.position.x + Math.cos(a) * 5, 0, m.g.position.z + Math.sin(a) * 5) }); } }
     else { hwUI.cutIn(TW("PHASE 3 — ENRAGED"), TW("Faster, harder — keep moving!"), "night"); m.spd = (m.spd || 1) * 1.35; m.atk = Math.round(m.atk * 1.25); }
   }
 }
 // the night falls or breaks: the realm's monsters keep their share of HP (×1.5 / ÷1.5), the cut-in, the music's mood
 function hwNight(n) {
-  try { if (combat) for (const m of combat.mobsRaw()) if (!m.dead && m.zone && m.zone.realm && !m.ext) { const k = n ? HWM.HW.NIGHT.hp : 1 / HWM.HW.NIGHT.hp; m.max = Math.round(m.max * k); m.hp = Math.max(1, Math.round(m.hp * k)); m.atk = Math.round(m.atk * (n ? HWM.HW.NIGHT.atk : 1 / HWM.HW.NIGHT.atk)); m.def = Math.round(m.def * (n ? HWM.HW.NIGHT.def : 1 / HWM.HW.NIGHT.def)); } } catch { /* the next ones are made right */ }
-  if (landNow === "hw" && hwUI) { hwUI.night(n); if (Snd.boss && n) Snd.boss(); }
+  // (each monster remembers the factor it was made or last rescaled with — m.hwK, the spawn's own when it came at night — so a Blood Moon's ×1.8 and its dawn come out right)
+  try { const N = HWM.nightOf(hwL.clock()) || { hp: 1, atk: 1, def: 1 }; if (combat) for (const m of combat.mobsRaw()) if (!m.dead && m.zone && m.zone.realm && !m.ext) { const was = m.hwK || (n ? { hp: 1, atk: 1, def: 1 } : HWM.HW.NIGHT); m.max = Math.round(m.max * N.hp / was.hp); m.hp = Math.max(1, Math.round(m.hp * N.hp / was.hp)); m.atk = Math.round(m.atk * N.atk / was.atk); m.def = Math.round(m.def * N.def / was.def); m.hwK = N; } } catch { /* the next ones are made right */ }
+  if (landNow === "hw" && hwUI) { hwUI.night(n, hwL.clock().blood); if (n && Snd.bell) Snd.bell(); }
 }
+// HX3: the realm journey — seven first times, EXP for each (kept on the device, arc.hw.j)
+const HW_JOURNEY = [["village", "Arrive in Pumpkin Village", "Through the Haunted Pumpkin Gate", 200], ["patch", "A knock-out in the Pumpkin Patch", "Lv 15–50", 300], ["knock", "Knock on a pumpkin house", "Trick or treat?", 200],
+  ["grave", "A knock-out in the Graveyard of the Lost", "Lv 100–200", 600], ["tomb", "Light the tombs in order", "The Graveyard's puzzle", 800], ["night", "A knock-out under the Cursed Night", "Monsters ×1.5 · EXP ×2", 500], ["jack", "Strike the Cursed Night's Inferno Jack", "The Inferno Pumpkin Throne · Lv 350–400", 2000]];
+const hwJGet = () => { try { return JSON.parse(localStorage.getItem("arc.hw.j") || "{}") || {}; } catch { return {}; } };
+function hwStep(id) { const J = hwJGet(); if (J[id]) return; const S0 = HW_JOURNEY.find((x) => x[0] === id); if (!S0) return; J[id] = Date.now(); try { localStorage.setItem("arc.hw.j", JSON.stringify(J)); } catch { /* this visit only */ }
+  gain(S0[3], TW("Realm journey")); if (hwUI) hwUI.cutIn(TW("JOURNEY STEP"), `${TW(S0[1])} · +${S0[3]} EXP`, "day"); }
+const hwJourney = () => { const J = hwJGet(); return HW_JOURNEY.map(([id, n, l, xp]) => ({ id, name: TW(n), line: TW(l), xp, done: !!J[id] })); };
+// HX3: each of the realm's monsters goes its own way — candy pops for all; a Pumpkin Slime splits into two small ones (once),
+// a Skeleton Knight elite pulls itself back together once (40 % HP), a scarecrow bursts into straw and crows, a witch into smoke
+function hwKillFx(m) {
+  const p = m.g.position.clone().setY(1), key = (m.e && m.e.key) || "", lv = m.lv;
+  parts.emit({ at: p, kind: "glow", n: lowGfx ? 6 : 14, speed: 3.5, up: 4.5, spread: 0.5, size: 0.26, life: 0.8, grav: 9, color: 0xff8a1f, color2: 0xb48cff, jitter: 0.4 }); if (Snd.candy && Math.random() < 0.4) Snd.candy();
+  if (key === "HwScarecrow") { parts.emit({ at: p, kind: "glow", n: 16, speed: 3, up: 3, spread: 0.7, size: 0.3, life: 0.9, grav: 6, color: 0xe8c86a, color2: 0xb08a3a, jitter: 0.5 }); parts.emit({ at: p.clone().setY(1.8), kind: "smoke", n: 4, speed: 5, up: 6, size: 0.5, life: 1.2, grav: -2, drag: 0.5, color: 0x1a1a22, color2: 0x2a2a33, jitter: 0.6 }); }
+  if (key === "HwWitch") parts.emit({ at: p, kind: "smoke", n: 10, speed: 1.6, up: 1.2, size: 1, life: 1.1, grav: -0.5, drag: 1.6, color: 0x8a4ad8, color2: 0x3a1a5a, jitter: 0.6 });
+  if (!combat || m.rank === "boss") return;
+  if (key === "HwSlime" && !m.hwSplit && !m.rank) for (let i = 0; i < 2; i++) { const a = Math.random() * 6.28, mm = combat.spawnMob({ type: m.spec.id, lv: Math.max(1, lv - 3), zone: m.zone, scale: 0.42, at: new THREE.Vector3(p.x + Math.cos(a) * 1.4, 0, p.z + Math.sin(a) * 1.4) }); if (mm) { mm.hwSplit = 1; mm.max = mm.hp = Math.max(1, Math.round(mm.max * 0.35)); mm.xp = Math.round((mm.xp || 0) * 0.3); } }
+  if (key === "HwSkeleton" && m.rank === "elite" && !m.hwBack) setTimeout(() => { try { if (landNow !== "hw") return; const mm = combat.spawnMob({ type: m.spec.id, lv, rank: "elite", zone: m.zone, at: p.clone().setY(0) }); if (mm) { mm.hwBack = 1; mm.hp = Math.round(mm.max * 0.4); mm.xp = Math.round((mm.xp || 0) * 0.5); flt(TW("It pulls itself back together!"), p.clone().setY(3), "#cfd8ff"); } } catch { /* gone */ } }, 1500);
+}
+// the realm's ghosts shimmer — fading out and back (their bodies share one material, so one value a frame does them all)
+st.on((dt, t) => { if (landNow !== "hw" || !kit || !kit.enemies || !kit.enemies.HwGhost) return; const src = kit.enemies.HwGhost.scene; if (!src.userData.mats) { const L2 = []; src.traverse((o) => { if (o.isMesh && o.material && !Array.isArray(o.material)) { o.material.transparent = true; L2.push(o.material); } }); src.userData.mats = L2; } for (const mt of src.userData.mats) mt.opacity = 0.62 + Math.sin(t * 2.2) * 0.28; });
+let hwJ = null, hwG = null; const hwWarned = new Set(); // (the grounds you were warned about this visit)
 async function hwGo(to) {
   if (frozen || flying || introOn || mode !== "hub") return;
-  const card = hwCardSeen ? null : gameCard("hw"); hwCardSeen = true; if (card) await paintFrame();
-  const h = await ensureHw(); if (!h || frozen || mode !== "hub") { if (card) card.close(true); return; } if (card) card.step(0);
+  let card = hwCardSeen ? null : gameCard("hw"); hwCardSeen = true; if (card) await paintFrame();
+  const h = await ensureHw(); if (!h || frozen || mode !== "hub") { if (card) card.close(true); return; }
+  { const G = to && h.grounds.find((g) => g.id === to); if (G && level() < G.lv[0] - 10) { if (card) card.close(true); card = null; if (!(await askCard(TW, TW("{n} is for Lv {a}–{b} and you're Lv {l}: the monsters there will hit hard. Go anyway?", { n: TW(G.name), a: G.lv[0], b: G.lv[1], l: level() }), { ok: TW("Go anyway"), cancel: TW("Stay") }))) return; } } // HX1: a ground far above you asks first
+  if (card) card.step(0);
   closeAll(); const a = (to && h.groundTo(to)) || h.arrival(); standAt(a.x, a.z, a.c); landTick(true); if (card) { card.step(1); await sleep(500); card.step(2); card.close(); }
   vfx.teleport(here(), { color: 0xff8a1f, color2: 0xb48cff }); if (Snd.dash) Snd.dash(); pullFlash("#ff8a1f"); startSweep(1600); paintPrompt();
-  let first = false; try { first = !localStorage.getItem("arc.hw.seen"); localStorage.setItem("arc.hw.seen", "1"); } catch { /* not kept */ }
+  hwStep("village"); let first = false; try { first = !localStorage.getItem("arc.hw.seen"); localStorage.setItem("arc.hw.seen", "1"); } catch { /* not kept */ }
   if (first && hwUI) setTimeout(() => hwUI.cutIn(TW("HALLOWEEN REALM"), TW("Six hunting grounds · Lv 15–400 · the Cursed Night every 30 minutes"), "day"), 900);
 }
 function hwBuilding(id) {
   if (!hwUI) return; if (id === "hwshop" || id === "hwforge") { hwUI.open("set"); return; }
-  if (id === "hwtreat") { const c = hwL.clock(); toast(`${c.night ? TW("The Cursed Night: {t} left", { t: Math.ceil(c.left / 60) + "m" }) : TW("Day: the Cursed Night in {t}", { t: Math.ceil(c.left / 60) + "m" })} · ${TW("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5")}`); }
+  if (id === "hwtreat" || id === "hwhouse1" || id === "hwhouse2") { hwKnock(id); if (id !== "hwtreat") return; const c = hwL.clock(); toast(`${c.night ? TW("The Cursed Night: {t} left", { t: Math.ceil(c.left / 60) + "m" }) : TW("Day: the Cursed Night in {t}", { t: Math.ceil(c.left / 60) + "m" })} · ${TW("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5")}`); }
 }
-const hwPrompt = (id, b) => id === "hwshop" ? T("Open {x}", { x: b(TW("Pumpkin Merchant")) }) + `<small class="adc-sub">${esc(TW("The Inferno Jack set · what you hold"))}</small>` : id === "hwforge" ? T("Open {x}", { x: b(TW("Soul Forge")) }) + `<small class="adc-sub">${esc(TW("Craft · enhance · salvage"))}</small>` : T("Read {x}", { x: b(TW("Trick or Treat")) }) + `<small class="adc-sub">${esc(TW("The realm's clock and its rules"))}</small>`;
+// HX2: Trick or Treat — knock on a house (or the treat chest) once a Seoul day: a treat (candy bursts out: fragments or a
+// little ARCL) or a trick (three of the patch's monsters jump out round you)
+let hwKnocking = false;
+async function hwKnock(id) {
+  if (hwKnocking) return; const s0 = sess(); if (!s0) { toast(TW("Sign in to knock — the treats are kept with your wallet")); signIn(); return; }
+  hwKnocking = true; try { if (Snd.tap) Snd.tap(); const r = await post({ action: "world-hw-treat", ...s0, house: id }), j = (r && r.j) || {}; const at = here(new THREE.Vector3());
+    if (j.again) { toast(TW("Nobody answers — knock again tomorrow")); return; } if (j.ok) hwStep("knock");
+    if (j.trick) { hwUI.cutIn(TW("TRICK!"), TW("Monsters jump out of the door!"), "night"); if (Snd.laugh) Snd.laugh(); const G = hwL.grounds[0]; for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2; combat.spawnMob({ type: i ? "drop" : "spam", lv: Math.max(G.lv[0], Math.min(G.lv[1], level())), zone: G, at: new THREE.Vector3(at.x + Math.cos(a) * 4, 0, at.z + Math.sin(a) * 4) }); } return; }
+    if (j.set) hwUI.setSet(j.set); if (Snd.candy) for (let i = 0; i < 4; i++) setTimeout(() => Snd.candy(), i * 90);
+    if (vfx && vfx.burst) vfx.burst(at, 0xff8a1f, 1.2); if (parts) parts.emit({ at: at.clone().setY(1.4), kind: "glow", n: 26, speed: 4, up: 5, spread: 0.6, size: 0.32, life: 0.9, grav: 9, color: 0xff8a1f, color2: 0xb48cff, jitter: 0.4 });
+    hwUI.cutIn(TW("TREAT!"), j.arcl ? TW("+{n} ARCL", { n: j.arcl }) : TW("+{n} Pumpkin Soul Fragments", { n: j.frag || 0 }), "day"); if (j.arcl) refreshPurse(true);
+  } catch { toast(TW("Couldn't do that — try again")); } finally { hwKnocking = false; }
+}
+const hwPrompt = (id, b) => id === "hwhouse1" || id === "hwhouse2" ? TW("Knock on {x}", { x: b(TW("the pumpkin house")) }) + `<small class="adc-sub">${esc(TW("Trick or treat? Once a day"))}</small>` : id === "hwshop" ? T("Open {x}", { x: b(TW("Pumpkin Merchant")) }) + `<small class="adc-sub">${esc(TW("The Inferno Jack set · what you hold"))}</small>` : id === "hwforge" ? T("Open {x}", { x: b(TW("Soul Forge")) }) + `<small class="adc-sub">${esc(TW("Craft · enhance · salvage"))}</small>` : TW("Knock: {x}", { x: b(TW("Trick or Treat")) }) + `<small class="adc-sub">${esc(TW("Knock once a day · the realm's clock"))}</small>`;
 /// the Inferno Jack set worn (the server's pieces): its slots skip the bag's gear unless a Crimson Celestial piece is there (that one comes first)
 function hwWorn() { if (!hwSet || !HWM) return []; const cc = new Set(mythicWorn().map((x) => { try { return MY.pieceOf(x.def).slot; } catch { return ""; } })); return Object.entries(hwSet.eq || {}).map(([sl, id]) => (hwSet.pieces || []).find((p) => p.id === id && HWM.pieceOf(p.k) && HWM.pieceOf(p.k).slot === sl && !cc.has(sl))).filter(Boolean); }
 function withHw(o) {
@@ -6349,7 +6411,7 @@ const dinoTown = (() => {
   setInterval(() => { walkers().catch(() => {}); }, 2000);
   return { look, paint, state: () => st };
 })();
-window.arcWorld = { hwDbg: () => { const v = here(new THREE.Vector3()); return { mode, frozen, flying, introOn, photo, zone: combat && combat.zoneNow() ? combat.zoneNow().id : "", at: (ZN.zoneAt(v.x, v.z) || {}).id || "", mobs: combat ? combat.mobsRaw().length : -1, rest: combat && combat.resting ? combat.resting() : "?" }; }, hw: () => hwL, hwUI: () => hwUI, hwMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead && m.zone && m.zone.realm).map((m) => ({ n: m.spec.name, lv: m.lv, hp: Math.round(m.hp), max: m.max, key: m.e.key || "", rank: m.rank, z: m.zone.id })) : []), hwGo: (to) => hwGo(to), hwWorn: () => hwWorn(), texRest: () => texRest.count(), openBridge: (o) => openBridge(o), ccGo: () => ccGo(), landGo: (to) => landGo(to), ccTo: (id) => ccTo(id), cc: () => ccL, ccBuilding: (id) => ccBuilding(id), ccStep: (k) => ccStep(k), landNow: () => landNow, armParts: () => (bodyArm ? bodyArm.L.map((p) => p.n + "@" + p.b.name) : []), /* (tests: the armour on the body) */ heroSkin: () => { try { return heroSkin(); } catch (e) { return "ERR " + e.message; } }, /* (tests: the hero's paint) */ mythAura: () => ({ has: !!mythAura, vis: !!(mythAura && mythAura.visible) }), /* (tests: the six's aura) */ mythOn: () => { const L = []; player.traverse((o) => { if (/^mythic:/.test(o.name)) L.push(o.name); }); return L; }, scene3: () => st.scene, cam3: () => st.camera, gl3: () => st.renderer, /* (tests: what the scene draws) */ rqPortalFront: () => rqPortalFront(), mythic: () => mythicNow, mythicTest: (o) => { mythicNow = o; }, /* (tests: a set to show) */ openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
+window.arcWorld = { hwDbg: () => { const v = here(new THREE.Vector3()); return { mode, frozen, flying, introOn, photo, zone: combat && combat.zoneNow() ? combat.zoneNow().id : "", at: (ZN.zoneAt(v.x, v.z) || {}).id || "", mobs: combat ? combat.mobsRaw().length : -1, rest: combat && combat.resting ? combat.resting() : "?" }; }, hw: () => hwL, hwUI: () => hwUI, hwJ: () => hwJ, hwG: () => hwG, hwKnock: (id) => hwKnock(id), hwMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead && m.zone && m.zone.realm).map((m) => ({ n: m.spec.name, lv: m.lv, hp: Math.round(m.hp), max: m.max, key: m.e.key || "", rank: m.rank, z: m.zone.id, rig: !!m.e.rig, clip: m.e.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join("+") })) : []), hwGo: (to) => hwGo(to), hwWorn: () => hwWorn(), texRest: () => texRest.count(), openBridge: (o) => openBridge(o), ccGo: () => ccGo(), landGo: (to) => landGo(to), ccTo: (id) => ccTo(id), cc: () => ccL, ccBuilding: (id) => ccBuilding(id), ccStep: (k) => ccStep(k), landNow: () => landNow, armParts: () => (bodyArm ? bodyArm.L.map((p) => p.n + "@" + p.b.name) : []), /* (tests: the armour on the body) */ heroSkin: () => { try { return heroSkin(); } catch (e) { return "ERR " + e.message; } }, /* (tests: the hero's paint) */ mythAura: () => ({ has: !!mythAura, vis: !!(mythAura && mythAura.visible) }), /* (tests: the six's aura) */ mythOn: () => { const L = []; player.traverse((o) => { if (/^mythic:/.test(o.name)) L.push(o.name); }); return L; }, scene3: () => st.scene, cam3: () => st.camera, gl3: () => st.renderer, /* (tests: what the scene draws) */ rqPortalFront: () => rqPortalFront(), mythic: () => mythicNow, mythicTest: (o) => { mythicNow = o; }, /* (tests: a set to show) */ openMythic: (s0) => openMythic(s0), mythicUI: () => mythicUI(), refreshMythic: () => refreshMythic(), statsNow: () => rpg && rpg.stats && rpg.stats(), nearNow: () => { const n = nearest(); return n ? n.kind + ":" + (n.to || "") : ""; }, rq: () => rqL, rqGo: (id) => rqGo(id), raidQueens: () => openRaidQueens(), rqGate: (k = 18) => { const g = rqGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!rqGate.userData.model }; }, codex: () => itemCodex, openCodex: () => openCodex(), snd: Snd, adGuide: (k) => openAdGuide(k), adPromo: () => adPromo(true), goAgentTower: () => goAgentTower(), studio: () => studio, ringsNow: () => ringsGame, arena: () => agArena, openArena: () => openArena(), openStudio: () => openStudio(), near: () => (near ? near.kind + ":" + (near.b || near.to || "") : ""), frozen: () => frozen, city: () => adc, cityGo: () => cityGo(), cityBuilding: (id) => cityBuilding(id), welcome: () => welcomeBurst(), fountainBurst: (k = 8) => fountain.userData.burst(k), pk: () => pumpKings, standAt: (x, z, c) => standAt(x, z, c || { x: 0, z: 0 }), combatMobs: () => (combat ? combat.mobsRaw().filter((m) => !m.dead).map((m) => ({ n: m.bossName || m.spec.id, lv: m.lv, hp: Math.round(m.hp), max: m.max, ext: !!m.ext, x: +m.g.position.x.toFixed(1), z: +m.g.position.z.toFixed(1) })) : []), fight: (on) => { if (combat && combat.attack) combat.attack(); }, quests: () => quests, svAch: () => svAch, openLog: (t) => { quests.setTab(t); rpg.show("log"); }, agent: () => agentDim, openAgent: () => openAgent(), partner: (k = 14) => { const d0 = pvil.door("kairo"), g = d0.getWorldPosition(new THREE.Vector3()).sub(planet.position), c = pvil.center, dx = g.x - c.x, dz = g.z - c.z, d = Math.hypot(dx, dz) || 1; standAt(g.x - dx / d * k, g.z - dz / d * k, { x: g.x, z: g.z }); return { model: pvil.ready("kairo") }; }, openMap: () => openMap(), myXZ: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, pvil: () => pvil, goPartnerVillage: () => goPartnerVillage(), openPartner: (id) => openPartner(id || "kairo"), agentGate: (k = 20) => { const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * k, g.z - g.z / d * k, { x: g.x, z: g.z }); return { model: !!agentGate.userData.model }; },
   launch: () => launchUI,
   refer: () => referUI, share: (c) => bragCard(c), games: () => openGames(), start: () => openStart(true), autoQ: () => [...autoQ.keys()], toast: (m) => toast(m),
   dinoTown: () => ({ look: dinoTown.look, d3: dinoTown3d ? dinoTown3d.debug() : null, chip: (document.querySelector(".wp-dinochip") || {}).textContent || "" }),

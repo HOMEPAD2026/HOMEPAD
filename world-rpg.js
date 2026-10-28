@@ -801,7 +801,7 @@ export function createRpg(ctx) {
   }
   function paintsHTML() {
     const L = hub("paints") || []; if (!L.length) return "";
-    const NM = { "paint-onyx": T("Onyx paint"), "paint-gunmetal": T("Gunmetal paint"), "paint-whitegold": T("White Gold paint"), "paint-void": T("Void paint") };
+    const NM = { "paint-onyx": T("Onyx paint"), "paint-gunmetal": T("Gunmetal paint"), "paint-whitegold": T("White Gold paint"), "paint-void": T("Void paint"), "paint-pumpkin": T("Pumpkin paint"), "paint-phantom": T("Phantom paint") };
     return `<section class="hb-card hb-paints"><h4>${esc(T("Paint jobs"))}</h4><div class="hb-pgrid">${L.map((x) => `<button type="button" class="hb-paint${x.on ? " on" : ""}${x.own ? "" : " off"}" ${x.own ? `data-hubdo="paint:${x.id}"` : 'data-hubgo="shop"'}><img src="/images/shop/style-${x.id}.webp${ctx.ver || ""}" alt=""><b>${esc(NM[x.id] || x.id)}</b><small>${esc(x.on ? T("In use") : x.own ? T("Use") : T("In the shop"))}</small></button>`).join("")}</div></section>`;
   }
   function eventsHTML() {

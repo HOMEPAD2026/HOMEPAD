@@ -108,9 +108,14 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
       else if (k === "jnight") { if (b % 2 === 0) for (let i = 0; i < 3; i++) tone(4600, 0.025, { type: "square", v: 0.005, at: i * 0.06, lp: 7000 }); if (Math.random() < 0.08) tone(210 + Math.random() * 60, 0.16, { to: 150, v: 0.02 }); if (b % 22 === 0) { tone(420, 0.3, { type: "triangle", v: 0.014, to: 380 }); tone(400, 0.45, { type: "triangle", v: 0.012, to: 360, at: 0.4 }); } }
       else if (k === "basin") { if (b % 3 === 0) tone(42, 1.5, { v: 0.04, to: 36 }); if (Math.random() < 0.3) noise(0.05, 0.03, 900 + Math.random() * 900, { type: "lowpass" }); }
       else if (k === "jboss") { const s = b % 8; if (s === 0 || s === 3 || s === 5) { tone(64, 0.3, { to: 42, v: 0.14 }); noise(0.06, 0.06, 160, { type: "lowpass" }); } if (s === 6) noise(0.09, 0.05, 2400); if (s % 4 === 2) tone(s === 2 ? 98 : 110, 0.35, { type: "sawtooth", v: 0.018, lp: 900 }); }
+      // the Halloween Realm (HX1): by day a breeze, creaking boughs and a music box now and then; the Cursed Night's wind
+      // howls, an owl, chains and a far bell; Inferno Jack's throne a slow drum under fire's crackle
+      else if (k === "hwday") { if (b % 8 === 0) noise(3, 0.02, 520 + Math.random() * 300); if (Math.random() < 0.05) tone(140 + Math.random() * 40, 0.5, { type: "triangle", v: 0.012, to: 120 }); if (b % 26 === 0) [659, 784, 988, 784].forEach((f, i) => tone(f, 0.4, { type: "triangle", v: 0.012, at: i * 0.32 })); }
+      else if (k === "hwnight") { if (b % 6 === 0) noise(3.4, 0.035, 300 + Math.random() * 250, { to: 700, a: 0.8 }); if (Math.random() < 0.06) { tone(392, 0.35, { v: 0.022, to: 330 }); tone(330, 0.5, { v: 0.018, at: 0.42, to: 300 }); } if (Math.random() < 0.07) for (let i = 0; i < 3; i++) noise(0.04, 0.03, 3400, { at: i * 0.07 }); if (b % 30 === 0) tone(98, 3.5, { type: "triangle", v: 0.04, a: 0.01 }); }
+      else if (k === "hwjack") { const s = b % 8; if (s === 0 || s === 4) { tone(55, 0.42, { to: 38, v: 0.14 }); noise(0.07, 0.06, 150, { type: "lowpass" }); } if (s === 6) tone(73, 0.3, { to: 50, v: 0.09 }); if (Math.random() < 0.6) noise(0.04, 0.03, 1400 + Math.random() * 2400); }
       else if (k === "void") { if (b % 6 === 0) [523, 784, 1175].forEach((f, i) => tone(f * (Math.random() < 0.5 ? 1 : 1.5), 1.2, { v: 0.008, at: i * 0.3 })); if (b % 12 === 0) tone(55, 3, { v: 0.03 }); }
       quiet = false;
-    }, k === "raid" || k === "jboss" ? 250 : 500);
+    }, k === "raid" || k === "jboss" || k === "hwjack" ? 250 : 500);
   }
   // a drop's shimmer: more partials, higher and longer the rarer it is; an Epic sparkles, a Legendary swells under it
   function shimmer(r, k = 1) {
@@ -203,6 +208,11 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     hurt: () => { tone(200, 0.16, { type: "square", to: 110, v: 0.07 }); noise(0.1, 0.1, 900); },
     charge: (k) => tone(260 + k * 520, 0.08, { type: "triangle", v: 0.03 + k * 0.03 }),
     charged: () => { noise(0.35, 0.16, 900); tone(140, 0.4, { type: "sawtooth", to: 50, v: 0.07 }); tone(880, 0.25, { type: "triangle", to: 1320, v: 0.05 }); },
+    // the Halloween Realm: the night's bell (three tolls), Inferno Jack's laugh, a pumpkin bursting, a candy pop
+    bell: () => { duck(0.5, 3); [0, 1.1, 2.2].forEach((at) => { tone(196, 2.4, { type: "triangle", v: 0.09, at, a: 0.005 }); tone(392 * 1.19, 1.6, { v: 0.03, at, a: 0.005 }); tone(98, 2.6, { v: 0.05, at }); }); },
+    laugh: () => gap("laugh", 2500) && [0, 0.2, 0.4, 0.62].forEach((at, i) => { tone(260 - i * 26, 0.17, { type: "sawtooth", v: 0.05, at, to: 190 - i * 20, lp: 1400 }); noise(0.12, 0.03, 900, { at }); }),
+    pumpkin: () => gap("pumpkin", 120) && (tone(140, 0.25, { to: 60, v: 0.12 }), noise(0.2, 0.1, 700, { type: "lowpass" }), tone(880, 0.12, { type: "triangle", v: 0.03, at: 0.05, to: 1320 })),
+    candy: () => gap("candy", 60) && (tone(1320, 0.08, { type: "triangle", v: 0.05, to: 1760 }), tone(1980, 0.1, { v: 0.025, at: 0.05 })),
     roar: () => { tone(110, 0.9, { type: "sawtooth", to: 55, v: 0.08 }); noise(0.7, 0.12, 400); },
     warn: () => tone(520, 0.16, { type: "square", v: 0.03, to: 480 }),
     // an AC Defense tower's arc, a countdown click (last: the brighter 1; go: a chord), a gather node struck
