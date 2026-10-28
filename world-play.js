@@ -6022,7 +6022,7 @@ function ensureHw() {
     hwL.onNight((n) => hwNight(n));
     let warned = -1;
     st.on((dt, t) => { try { hwL.tick(dt, t); const c = hwL.clock(), on = landNow === "hw" && mode === "hub";
-      hwUI.hud(c, on && combat && combat.zoneNow ? combat.zoneNow() : null, on);
+      let gz = null; if (on) { const v = here(new THREE.Vector3()); gz = hwL.groundAt(v.x, v.z); } hwUI.hud(c, gz, on);
       if (on && c.warn && warned !== c.cycle) { warned = c.cycle; hwUI.warn(); } if (on) hwJackTick(); } catch { /* fine */ } });
     try { if (kit) Promise.resolve(kit.enemiesReady).then(() => GEAR.meshyHw(kit, K.gltfLoader, VER)); } catch { /* the scammers' bodies stand in */ }
     if (sess()) hwUI.refresh(true);

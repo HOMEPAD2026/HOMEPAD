@@ -125,6 +125,7 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
   for (const z of grounds) if (!XZONES.some((q) => q.id === z.id)) XZONES.push(z);
   let shown = false;
   return {
+    groundAt: (x, z) => grounds.find((g) => Math.hypot(x - g.x, z - g.z) < g.r) || null, // (the strip reads where you stand now, not the fight's last check)
     group: g, doors, back, solids, grounds,
     show(on) { on = !!on; if (on === shown) return; shown = on; g.visible = on; if (on) loadModels(); },
     tick(dt, t) {
