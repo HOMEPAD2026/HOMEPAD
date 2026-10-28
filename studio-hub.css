@@ -18,7 +18,7 @@
 .sgh-side::-webkit-scrollbar{display:none}
 .sgh-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 12px;white-space:nowrap}
 .sgh-mark{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#1c2a30,#101519);border:1px solid rgba(79,227,193,.35);box-shadow:0 0 18px rgba(79,227,193,.18)}
-.sgh-mark img{width:22px;height:22px;border-radius:5px}
+.sgh-mark img{width:26px;height:auto;max-height:22px;object-fit:contain;display:block}
 .sgh-brand span{display:flex;flex-direction:column;line-height:1.05}.sgh-brand b{font:900 17px/1 "Exo 2",Sora,sans-serif;letter-spacing:.03em}.sgh-brand em{font-style:normal;font:700 11px/1.4 Sora,sans-serif;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(90deg,var(--h-acc),var(--h-acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .sgh-user{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:12px;background:none;text-align:left;transition:background .2s}
 .sgh-user:hover{background:var(--h-s2)}
@@ -401,7 +401,7 @@ html.wp-pcphone .sgh-side,html.wp-pcphone .sgh-sub{display:none}
 body.sga .wst.pro .wst-h>.wst-x{display:grid!important;place-items:center} /* (the Studio window's × again: it goes back to the Creator Hub) */
 .sgh h1,.sgh h2,.sgh h3,.sgh h4,.sgh-sheet h2,.sgh-tools h3,.sgh-tools h4{color:var(--h-ink,#f1f4f7)}
 .sgh-foot nav a{padding:0;background:none;border:0}
-.sgh-rail a.sgh-mark{width:44px;height:44px;padding:0;margin-bottom:10px}
+.sgh-rail a.sgh-mark{width:44px;height:44px;padding:0;margin-bottom:10px;justify-content:center;gap:0}.sgh-rail a.sgh-mark img{width:30px;max-height:24px}
 .sgh-fbar.f2{margin-top:-8px}
 @media (max-width:720px){.sgh-fbar.f2 .sgh-sp{display:block}.sgh-fbar.f2 .sgh-tg{width:auto}.sgh-fbar.f2{flex-wrap:wrap}.sgh-fbar.f2 .sgh-sel{order:3}}
 .sgh-kpis{grid-template-columns:repeat(auto-fit,minmax(142px,1fr))}
