@@ -2895,12 +2895,65 @@ function decorateMap() {
     const src = d.cc ? `/images/${d.cc === "go" ? "gw/key-cc-416" : "cc/b-" + d.cc}.webp${VER}` : MAP_ART[k] ? `/images/ui/${MAP_ART[k]}.webp${VER}` : d.mine ? `/images/games/mine-art-300.webp${VER}` : d.race ? `/images/games/jump-art-300.webp${VER}` : "";
     if (src) { b.style.setProperty("--art", `url("${src}")`); b.classList.add("art"); }
   });
-  // the section chips: a tap scrolls to it (the list stays one list, so a search or the keyboard still walks all of it)
-  const heads = [...box.querySelectorAll(":scope > h3")]; if (heads.length < 3) return;
-  const bar = document.createElement("div"); bar.className = "wp-mapchips";
-  bar.innerHTML = heads.map((h, i) => `<button type="button" data-sec="${i}" style="${h.getAttribute("style") || ""}">${esc(h.textContent.replace(/^[^\p{L}\p{N}$]+/u, "").trim())}</button>`).join("");
-  bar.addEventListener("click", (e) => { const c = e.target.closest("[data-sec]"); if (!c) return; e.stopPropagation(); const h = heads[Number(c.dataset.sec)]; if (h) h.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); });
-  const key = box.querySelector(".wp-mapkey"); (key || box.firstChild) ? box.insertBefore(bar, key ? key.nextSibling : box.firstChild) : box.appendChild(bar);
+  mapTabs(box);
+}
+// MAP2 (2026-10-27, the owner: 'the map is too busy — make it quick to use'): the long list becomes four tabs —
+// Popular (big tiles for the main places + where you went last), Hunting (the ring map and the grounds), Lands (Creator
+// City, Nexus City, the villages and their buildings) and Town (the districts' halls, ways out, the minimap key) — and a
+// search box that looks through all of them. The sections are still built by openMap(); here they're only sorted.
+const MAP_TOP = [
+  ['data-cc="go"', "Creator City", "gw/key-cc-416"], ['data-land="rq"', "RAID QUEENS", "ui/map/rq"], ['data-land="ad"', "Nexus City", "ui/map/nexus"],
+  ['data-land="gv"', "Game Village", "games/jurassic-art-300"], ['data-land="lp"', "Launchpad Village", "ui/map/lp"], ['data-land="ut"', "Utility Village", "ui/map/ut"],
+  ['data-pv="1"', "Partner Village", "ui/map/pv"], ['data-mine="1"', "ARCL Mine", "games/mine-art-300"], ['data-isle="1"', "My Island", "gw/news-villages-1200"],
+];
+const MAP_RECENT = "arc.world.mapRecent", MAP_TAB = "arc.world.mapTab";
+const MAP_KEYS = ["fount", "i", "c", "f", "n", "isle", "isles", "z", "race", "mine", "pv", "pvk", "pvh", "land", "adc", "cc"];
+function mapRemember(b) {
+  try { if (!b || !b.matches || !b.matches("button")) return; const d = {}; for (const k of MAP_KEYS) if (b.dataset[k] != null) d[k] = b.dataset[k]; if (!Object.keys(d).length || d.fount) return;
+    const name = (b.querySelector("b") || b).textContent.trim().slice(0, 28); if (!name) return;
+    const L = JSON.parse(localStorage.getItem(MAP_RECENT) || "[]").filter((x) => x && x.name !== name); L.unshift({ name, d }); localStorage.setItem(MAP_RECENT, JSON.stringify(L.slice(0, 4)));
+  } catch { /* not kept */ }
+}
+function mapTabs(box) {
+  const kids = [...box.children], secs = []; let cur = null;
+  for (const el of kids) {
+    if (el.classList.contains("wp-mapfount")) continue;
+    if (el.classList.contains("wp-mapkey")) { secs.push({ tab: "town", els: [el] }); cur = null; continue; }
+    if (el.tagName === "H3") { cur = { tab: "", els: [el] }; secs.push(cur); continue; }
+    if (cur) cur.els.push(el);
+  }
+  for (const sc of secs) {
+    if (sc.tab) continue; const q = (a) => sc.els.some((e) => e.matches && (e.matches(a) || e.querySelector(a)));
+    sc.tab = q(".wp-ringmap") || q("[data-z]") || q('[data-land="rq"]') ? "hunt" : q("[data-cc]") || q("[data-adc]") || q("[data-land]") || q("[data-pv]") || q("[data-mine]") || q("[data-c]") ? "lands" : "town";
+  }
+  const sec = (tab) => { const w = document.createElement("section"); w.className = "wp-msec"; w.dataset.tab = tab; return w; };
+  const wraps = { hunt: sec("hunt"), lands: sec("lands"), town: sec("town") };
+  for (const sc of secs) for (const el of sc.els) wraps[sc.tab].appendChild(el);
+  // Popular: the big places as tiles (same data-* as the rows, so the map's one click handler takes them), and the recent ones
+  const pop = sec("pop"); let rec = []; try { rec = JSON.parse(localStorage.getItem(MAP_RECENT) || "[]"); } catch { /* none */ }
+  const attrs = (d) => Object.entries(d || {}).filter(([k]) => MAP_KEYS.includes(k)).map(([k, v]) => `data-${k}="${esc(String(v))}"`).join(" ");
+  pop.innerHTML = (rec.length ? `<h3 style="--c:#ffc861">🕘 ${esc(TW("Recent"))}</h3><div class="wp-mrec">${rec.map((r) => `<button type="button" ${attrs(r.d)}>${esc(r.name)}</button>`).join("")}</div>` : "")
+    + `<h3 style="--c:#7fe9ff">⭐ ${esc(TW("Popular places"))}</h3><div class="wp-mtiles">${MAP_TOP.filter(([a]) => a !== 'data-land="ad"' || cityOk || adc).map(([a, n, art]) => `<button type="button" class="wp-mtile" ${a} style="--art:url('/images/${art}.webp${VER}')"><b>${esc(TW(n))}</b></button>`).join("")}</div>`;
+  const TABS = [["pop", "⭐", "Popular"], ["hunt", "⚔️", "Hunting"], ["lands", "🏙️", "Lands"], ["town", "🏪", "Town"]];
+  let tab = "pop"; try { const t = localStorage.getItem(MAP_TAB); if (TABS.some(([k]) => k === t)) tab = t; } catch { /* first time */ }
+  const bar = document.createElement("div"); bar.className = "wp-mtabs"; bar.setAttribute("role", "tablist");
+  bar.innerHTML = `<input type="search" class="wp-mq" placeholder="${esc(TW("Search places"))}" aria-label="${esc(TW("Search places"))}"><nav>${TABS.map(([k, ic, n]) => `<button type="button" role="tab" data-mtab="${k}"><i>${ic}</i>${esc(TW(n))}</button>`).join("")}</nav>`;
+  const fount = box.querySelector(".wp-mapfount"); box.innerHTML = ""; if (fount) box.appendChild(fount); box.appendChild(bar); box.appendChild(pop); for (const k of ["hunt", "lands", "town"]) box.appendChild(wraps[k]);
+  const none = document.createElement("p"); none.className = "wp-mnone"; none.textContent = TW("Nothing by that name"); none.hidden = true; box.appendChild(none);
+  const show = (t) => { tab = t; try { localStorage.setItem(MAP_TAB, t); } catch { /* not kept */ } bar.querySelectorAll("[data-mtab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mtab === t))); box.querySelectorAll(".wp-msec").forEach((w) => { w.hidden = w.dataset.tab !== t; }); };
+  const input = bar.querySelector(".wp-mq");
+  const find = () => { const q = input.value.trim().toLowerCase(); box.classList.toggle("searching", !!q);
+    const vis = (e, on) => { e.style.display = on ? "" : "none"; }; /* (style, not hidden: an svg ignores the hidden attribute) */
+    if (!q) { box.querySelectorAll(".wp-msec li, .wp-msec h3, .wp-msec ul, .wp-msec svg, .wp-msec .wp-mapkey").forEach((e) => vis(e, true)); none.hidden = true; show(tab); return; }
+    let any = 0; box.querySelectorAll(".wp-msec").forEach((w) => { if (w.dataset.tab === "pop") { w.hidden = true; return; } w.hidden = false;
+      w.querySelectorAll("li").forEach((li) => { const hit = li.textContent.toLowerCase().includes(q); vis(li, hit); if (hit) any++; });
+      w.querySelectorAll("ul").forEach((ul) => vis(ul, [...ul.children].some((li) => li.style.display !== "none")));
+      w.querySelectorAll("svg, .wp-mapkey").forEach((e) => vis(e, false));
+      w.querySelectorAll("h3").forEach((h) => { let n = h.nextElementSibling, has = false; while (n && n.tagName !== "H3") { if (n.tagName === "UL" && n.style.display !== "none") has = true; n = n.nextElementSibling; } vis(h, has); }); });
+    none.hidden = any > 0; };
+  input.addEventListener("input", find); input.addEventListener("keydown", (e) => e.stopPropagation());
+  bar.addEventListener("click", (e) => { const t = e.target.closest("[data-mtab]"); if (!t) return; e.stopPropagation(); input.value = ""; find(); show(t.dataset.mtab); box.scrollTop = 0; });
+  show(tab);
 }
 function closeMap() { if (mapEl.hidden) return; mapEl.hidden = true; frozen = false; }
 $("wp-map-btn").addEventListener("click", openMap);
@@ -2908,7 +2961,7 @@ $("wp-map-x").addEventListener("click", closeMap);
 mapEl.addEventListener("keydown", (e) => { const g = e.target.closest && e.target.closest(".wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
-  const b = e.target.closest("button[data-fount],button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],button[data-cc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (!b) return;
+  const b = e.target.closest("button[data-fount],button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],button[data-cc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (!b) return; mapRemember(b);
   if (b.dataset.cc) { closeMap(); ccTo(b.dataset.cc); return; }
   if (b.dataset.pv) { closeMap(); goPartnerVillage(); return; }
   if (b.dataset.fount) { closeMap(); fountGo(); return; }
