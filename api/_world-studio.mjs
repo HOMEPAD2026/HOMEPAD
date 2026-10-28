@@ -263,11 +263,11 @@ export function makeStudio(deps) {
   async function page(url) {
     const h = normHandle(url.searchParams.get("h")), sl = String(url.searchParams.get("g") || "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 60);
     const out = (status, text, headers = {}) => (deps.html ? deps.html(status, text, headers) : json(status, { __html: text, headers }));
-    const c = await creatorOf(h);
-    if (c && c.moved) return out(301, "", { location: `/game/@${c.moved}${sl ? "/" + sl : ""}` });
+    const c = await creatorOf(h), emb = url.searchParams.get("embed") === "1" ? "/embed" : ""; // (PRO: /embed/game/@… — the same page for another site's frame, without the site's bar)
+    if (c && c.moved) return out(301, "", { location: `${emb}/game/@${c.moved}${sl ? "/" + sl : ""}` });
     let data = null, status = 200;
     if (c) { const list = await gamesOf(c);
-      if (sl) { const f = findIn(list, sl); if (f) { const [id, g] = f, canon = slugFor(id, g); if (canon !== sl) return out(301, "", { location: `/game/@${c.h}/${canon}` }); data = { creator: { ...card(c), ...levelOf(list) }, game: { ...pubOf(id, g, true), slug: canon }, more: list.filter(([i]) => i !== id).slice(0, 6).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }; } else status = 404; }
+      if (sl) { const f = findIn(list, sl); if (f) { const [id, g] = f, canon = slugFor(id, g); if (canon !== sl) return out(301, "", { location: `${emb}/game/@${c.h}/${canon}` }); data = { creator: { ...card(c), ...levelOf(list) }, game: { ...pubOf(id, g, true), slug: canon }, more: list.filter(([i]) => i !== id).slice(0, 6).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) }; } else status = 404; }
       else data = { creator: { ...card(c), ...levelOf(list) }, picks: c.off ? [] : await picksOf(c.w), games: list.slice(0, 60).map(([i, x]) => ({ ...pubOf(i, x), slug: slugFor(i, x), s: tinySpec(x.spec) })) };
     } else status = 404;
     const origin = url.origin && url.origin !== "null" ? url.origin : "https://www.arcircle.app";
@@ -283,7 +283,8 @@ export function makeStudio(deps) {
       `<meta property="og:type" content="website">`, `<meta property="og:site_name" content="ARCIRCLE WORLD">`, `<meta property="og:title" content="${e(title)}">`, `<meta property="og:description" content="${e(desc)}">`, `<meta property="og:url" content="${e(origin + path)}">`, `<meta property="og:image" content="${e(img)}">`,
       `<meta name="twitter:card" content="summary_large_image">`, `<meta name="twitter:title" content="${e(title)}">`, `<meta name="twitter:description" content="${e(desc)}">`, `<meta name="twitter:image" content="${e(img)}">`, ...(status === 404 ? [`<meta name="robots" content="noindex">`] : [])].join("\n");
     const js = JSON.stringify(data ? { ...data, path } : { missing: { h, g: sl } }).replace(/</g, "\\u003c").replace(/\u2028|\u2029/g, "");
-    const html = tpl.replace("<!--META-->", meta).replace("<!--DATA-->", `<script>window.__SG = ${js};</script>`);
+    let html = tpl.replace("<!--META-->", meta).replace("<!--DATA-->", `<script>window.__SG = ${js};</script>`);
+    if (emb) html = html.replace('<body class="sgw">', '<body class="sgw sgw-embed">');
     return out(status, html, { "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300" });
   }
 

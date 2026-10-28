@@ -191,3 +191,25 @@ body.sga .wst-x{display:none}
 }
 
 
+/* PRO (2026-10-28): the /studio bar in Studio Pro's graphite — one line, thin edge, one filled button */
+body.sga{background:#07090c}
+body.sga::before{background:radial-gradient(80% 50% at 50% 0%,rgba(79,227,193,.06),transparent 70%)}
+.sga-top{background:rgba(11,14,18,.94);border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none}
+.sga-name{font:700 16px/1 Sora,sans-serif;letter-spacing:0}.sga-name em{background:none;-webkit-background-clip:initial;background-clip:initial;color:#e9eef3;font-weight:700}
+.sga-name i{border-color:rgba(255,255,255,.13);color:#68737e;font-weight:600;border-radius:5px}
+.sga-me{height:36px;border-radius:8px;box-shadow:none;background:transparent;border:1px solid rgba(255,255,255,.13);font:600 12.5px/1 Sora,sans-serif}
+.sga-me::after{display:none}.sga-me:hover{box-shadow:none;border-color:rgba(255,255,255,.3)}
+.sga-me-ic{width:24px;height:24px;border-radius:6px;box-shadow:none;background:#4fe3c1}.sga-me-ic svg{width:14px;height:14px}
+.sga-me.on{background:transparent;border:1px solid rgba(79,227,193,.4);box-shadow:none}
+.sga-top .sgw-world{border-radius:8px;background:#4fe3c1;color:#04130f;box-shadow:none;font-weight:700}
+.sga-top .sgw-lang{border-radius:8px;background:transparent;border-color:rgba(255,255,255,.13)}
+.sga-or{border-radius:8px;border-color:rgba(255,255,255,.13);background:transparent}.sga-or button{border-radius:6px}.sga-or button.on{background:rgba(79,227,193,.12);box-shadow:inset 0 0 0 1px rgba(79,227,193,.45)}
+body.sga.sga-on .wst.pro.wide .wst-in{height:calc(100dvh - var(--sga-h) - 28px)}
+body.sga .wst.pro>div:first-child{box-shadow:0 24px 70px rgba(0,0,0,.6)!important}
+.sga-boot img{filter:none}.sga-boot i em{background:#4fe3c1;box-shadow:none}
+/* PRO: on a phone the window fills the page under the bar (it was a full screen tall under a 56 px bar, so the bar of
+   Back / Test / Next sat below the screen) */
+@media (max-width:900px){body.sga.sga-on .wst.pro:not(.wide){padding:0;align-items:stretch}body.sga .wst.pro:not(.wide) .wst-in{width:100%;height:calc(100dvh - var(--sga-h));max-height:none;min-height:0;border-radius:0;border-width:0!important}}
+/* PRO: a game's page in another site's frame (/embed/game/@…) — no site bar or footer, the game first */
+body.sgw-embed .sgw-top,body.sgw-embed .sgw-foot,body.sgw-embed footer,body.sgw-embed .sgw-cta{display:none}
+body.sgw-embed .sgw-main{padding-top:12px}

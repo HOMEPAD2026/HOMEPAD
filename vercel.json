@@ -69,6 +69,10 @@
       "destination": "/studio-app.html"
     },
     {
+      "source": "/embed/game/@:h/:g",
+      "destination": "/api/social?world=studio-page&h=:h&g=:g&embed=1"
+    },
+    {
       "source": "/game/@:h",
       "destination": "/api/social?world=studio-page&h=:h"
     },
