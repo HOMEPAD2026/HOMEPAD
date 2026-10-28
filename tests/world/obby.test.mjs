@@ -6,9 +6,9 @@ import { ethers } from "ethers";
 const G = await import("../../api/_world-studio-gen.mjs");
 const { make, loginMessage } = await import("../../api/_world.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
-const { ASSET } = await import("../../api/_world-studiox.mjs");
+const { ASSET, CREDIT, PREFAB } = await import("../../api/_world-studiox.mjs");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
-const { OB, clampSpec, cleanObby, obReach, genLevel, genObbyBuild, estimate, obParse, obScript, obTweak, obWants, scoreOf } = G;
+const { OB, clampSpec, cleanObby, obReach, genLevel, genObbyBuild, estimate, obParse, obScript, obTweak, obWants, scoreOf, packPrefab, placePrefab, cleanPrefab, PF } = G;
 
 // ---- the data ----
 const junk = cleanObby({ o: [["b", 999, 999, -999, 1000, 99, 0, -4, 77, 9, 9, 99], ["zz", 0, 0, 0], ["o", 1, 1, 1, 0, 50, 50, 50], "x", ["S", 1, 2, 3], ["S", 9, 9, 9], ["d", 0, 0, 0, 0, 3, 4, 0.5, 0, 42, 7, 0]], lg: [["coins", 10, "open", 99, 0], ["nope", 1, "win", 0], ["every", 0, "toggle", 1, 0], ["start", 0, "rm -rf", 0]], lk: "evil", ui: 9999, as: ["ok123456", "../../x", "<script>"] });
@@ -59,9 +59,36 @@ check(tw.did.includes("boss") && tw.did.includes("coins") && tw.did.includes("ha
 check(obReach(tw.build).ok, "the tweaked course can still be finished");
 check(obWants("보스와 상점이 있는 용암 탑, 밤").boss && obWants("보스와 상점이 있는 용암 탑, 밤").shop && obWants("용암").theme === "lava", "the director reads Korean too");
 
+// ---- G1/G3 (2026-10-28): every genre on the same engine — modes, wins, terrain, tracks, the hierarchy ----
+for (const md of ["combat", "race", "explore"]) { const sp = clampSpec({ tpl: "obby", seed: 77, len: 60 }), b = genObbyBuild(sp, { md }), S2 = clampSpec({ ...sp, build: b }), Rr = obReach(b, S2), Lm = genLevel(S2);
+  check(b.md === md && b.win === { combat: "enemies", race: "race", explore: "collect" }[md] && Rr.ok && estimate(S2).clear > 0, `a quick-start ${md} game: its own win, every target reachable, the bots can win it`);
+  if (md === "combat") check(Lm.coins === b.o.filter((q) => q[0] === "o").length + b.o.filter((q) => q[0] === "E").length * OB.EC, "the run's ceiling counts the coins enemies drop");
+  if (md === "explore") check(b.bp === 1 && b.o.some((q) => q[0] === "H") && b.o.some((q) => q[0] === "W"), "an explore world: a baseplate, hills, water"); }
+check(obWants("a monster fight arena").md === "combat" && obWants("링 레이스").md === "race" && obWants("보석 찾는 탐험").md === "explore", "the director reads the genre (and in Korean)");
+const ringOut = cleanObby({ o: [["S", 0, 0, 0], ["b", 0, -1, 0, 0, 4, 1, 4], ["R", 0, 0, 40, 0, 5, 5, 0.4, 0, 1]], win: "race" });
+check(!obReach(ringOut).ok && obReach(cleanObby({ ...ringOut, o: [...ringOut.o, ["b", 0, -1, 6, 0, 4, 1, 4], ["b", 0, -1, 12, 0, 4, 1, 4], ["b", 0, -1, 18, 0, 4, 1, 4], ["b", 0, -1, 24, 0, 4, 1, 4], ["b", 0, -1, 30, 0, 4, 1, 4], ["b", 0, -1, 36, 0, 4, 1, 4]] })).ok, "a race ring out of reach fails the check; a path to it passes");
+check(obReach(cleanObby({ o: [["S", 0, 0, 0], ["H", 8, 0, 0, 0, 12, 6], ["Q", 8, 6.4, 0]], win: "collect", bp: 1 })).ok, "a gem on a hill's top: walked up from its foot");
+check(!obReach(cleanObby({ o: [["S", 0, 0, 0], ["b", 0, -1, 0, 0, 4, 1, 4], ["b", 0, 3, 8, 0, 4, 1, 4], ["g", 0, 4, 8]] })).ok && obReach(cleanObby({ o: [["S", 0, 0, 0], ["b", 0, -1, 0, 0, 4, 1, 4], ["b", 0, 3, 8, 0, 4, 1, 4], ["g", 0, 4, 8]], gv: 40 })).ok, "low gravity: a ledge out of reach becomes reachable");
+const X = cleanObby({ o: [["S", 0, 0, 0], ["b", 0, -1, 0]], gn: [[1, "Castle", 2], [2, "Keep", 1], [3, "Gate", 1]], tk: [[1, 1, 1, [[0, 0, 0, 0, 0], [2, 0, 3, 0, 90], [4, 0, 0, 0, 0]]], [5, 0, 0, [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0]]]], cs: [[0, 0, 20, 30, 0, 0, 0], [3, 30, 10, 0, 0, 0, 0]], md: "nope", gv: 999, sv: 1 });
+check(X.gn.length === 3 && X.gn.every((g) => g[0] !== g[2]) && X.gn.filter((g) => g[2]).length < 3, "the hierarchy: named groups with parents, no loops");
+check(X.tk.length === 1 && X.tk[0][3].length === 3 && X.cs.length === 2 && X.md === "obby" && X.gv === 200 && X.sv === 1, "a track on a real piece, a cutscene's camera keys, clamped mode / gravity / saves");
+const sc2 = obParse("when enemies down then cutscene\nwhen ring 3 then track 2\nwhen collect 5 then win"); check(!sc2.errs.length && sc2.lg.length === 3 && obScript(sc2.lg).includes("enemies down"), "the script knows the new events and actions");
+// G2 prefabs: a boss bundle packed with its rules, placed twice into another game with fresh channels, groups and tracks
+const host = cleanObby({ o: [["S", 0, 0, 0], ["y", 20, -1, 0, 0, 16, 1, 16], ["B", 20, 0, 0, 0, 3, 3, 3, 11, 12, 1], ["u", 14, 0, 4, 0, 1.6, 0.3, 1.6, 0, 2], ["d", 26, 0, 0, 0, 4, 4, 0.5, 4, 2], ["m", 30, 0, 0, 0, 3.5, 0.6, 3.5, 2]],
+  lg: [["bosshalf", 0, "say", 6, 0], ["boss", 0, "open", 2, 0], ["button", 2, "say", 1, 0], ["start", 0, "track", 1, 0], ["every", 5, "say", 2, 1]], tk: [[5, 1, 1, [[0, 0, 0, 0, 0], [2, 0, 2, 0, 0]]]] });
+const PB = packPrefab(host, [1, 2, 3, 4, 5], "Dragon gate", "boss");
+check(PB && PB.k === "boss" && PB.o.length === 5 && PB.meta.hp === 12 && PB.meta.atk === 1 && PB.meta.reward === 60 && PB.lg.length === 4 && PB.tk.length === 1, "a boss prefab keeps its health, attack, reward, its rules and its track (not the course's other rules)");
+const tgt = cleanObby({ o: [["S", 0, 0, 0], ["d", 5, 0, 5, 0, 4, 4, 0.5, 4, 2], ["b", 9, -1, 9, 0, 3, 3, 3, 0, 0, 0, 1]], gn: [[1, "Start area", 0]], tk: [[2, 0, 1, [[0, 0, 0, 0, 0], [1, 0, 1, 0, 0]]]] });
+const p1 = placePrefab(tgt, PB, [-30, 0, 20], 90, "pabcdef1"), p2 = placePrefab(p1.B, PB, [30, 0, -20], 0, "pabcdef1");
+const ch1 = p1.B.o.filter((q) => q[0] === "d" && q[11] === p1.g)[0][9], ch2 = p2.B.o.filter((q) => q[0] === "d" && q[11] === p2.g)[0][9];
+check(p1.ok && p2.ok && p1.g !== p2.g && p1.g !== 1 && ch1 !== 2 && ch2 !== ch1, "placed twice: each copy gets its own group and channel (the host's channel 2 untouched)");
+check(p2.B.gn.filter((g) => g[1] === "Dragon gate").length === 2 && p2.B.pi.length === 2 && p2.B.tk.length === 3 && p2.B.lg.some((r) => r[2] === "track" && r[3] === 2), "each copy shows in the hierarchy, remembers its prefab, brings its track and the rule that starts it");
+check(!placePrefab(cleanObby({ o: Array.from({ length: 299 }, (_, i) => ["b", i % 80, -1, Math.floor(i / 80) * 5]) }), PB).ok, "a full course refuses a prefab");
+check(cleanPrefab({ n: "x", o: [["b", 0, 0, 0]] }) === null && cleanPrefab({ n: "Ok", o: [] }) === null, "a prefab needs a name and a piece");
+
 // ---- the server ----
 const db = new Map();
-const store = { getDocs: async (ps) => Object.fromEntries(ps.map((p) => [p, db.has(p) ? structuredClone(db.get(p)) : null])), setDoc: async (p, d) => { db.set(p, JSON.parse(JSON.stringify(d))); }, commit: async (ws) => { for (const x of ws) { if (x.create && db.has(x.create)) return { ok: false, conflict: true }; } for (const x of ws) { if (x.create) db.set(x.create, x.data); else if (x.set) db.set(x.set, x.data); } return { ok: true }; } };
+const store = { getDocs: async (ps) => Object.fromEntries(ps.map((p) => [p, db.has(p) ? structuredClone(db.get(p)) : null])), setDoc: async (p, d) => { db.set(p, JSON.parse(JSON.stringify(d))); }, commit: async (ws) => { for (const x of ws) { if (x.create && db.has(x.create)) return { ok: false, conflict: true }; } for (const x of ws) { if (x.create) db.set(x.create, x.data); else if (x.set) db.set(x.set, x.data); else if (x.inc) { const d = { ...(db.get(x.inc) || {}) }; for (const [f, v] of Object.entries(x.fields)) d[f] = (d[f] || 0) + v; db.set(x.inc, d); } } return { ok: true }; } };
 const json = (status, b, cache) => ({ status, body: b, cache });
 let T = Date.parse("2026-10-28T03:00:00Z"); const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && T - t <= max && T - t >= -60e3; };
 let n = 0; const randomId = () => (0x1000000 + ++n * 7919).toString(16) + "abcdef";
@@ -112,8 +139,47 @@ pa = await call(me, "world-studio-asset-poll", { id: aid }); check(pa.body.asset
 check((await call(you, "world-studio-asset-poll", { id: aid })).status === 404, "someone else can't touch it");
 const glb = await get("studio-asset-glb&id=" + aid); check(glb.status === 200 && glb.raw && glb.headers["content-type"] === "model/gltf-binary", "its model is served through our own address");
 await call(me, "world-studio-asset-make", { t: "a red mushroom house" }); const a3 = await call(me, "world-studio-asset-make", { t: "a third one today" });
-check(a3.status === 429, ASSET.DAY + " a day");
-const lst = (await get("studio-assets&wallet=" + lc(me))).body; check(lst.assets.length === 2 && lst.open, "the maker's list");
+check(a3.status === 402 && a3.body.credit === CREDIT.ASSET, ASSET.DAY + " free a day — then an offer of a paid credit");
+const a4 = await call(me, "world-studio-asset-make", { t: "a third one today", pay: 1 }); check(a4.status === 402 && /not enough/.test(a4.body.error), "a paid credit needs the ARCL");
+db.set(`worldArclBal/${lc(me)}`, { bal: 100000 }); const mc = meshyCalls.length, a5 = await call(me, "world-studio-asset-make", { t: "a third one today", pay: 1 });
+check(a5.status === 200 && meshyCalls.length === mc + 1 && db.get(`worldArclBal/${lc(me)}`).bal === 100000 - CREDIT.ASSET && db.get("worldArclBal/platform").bal >= CREDIT.ASSET, "paid: Meshy makes it, the ARCL goes to the platform");
+aiReply = '{"boss": false}'; for (let i = 0; i < 9; i++) await call(me, "world-studio-obby-ai", { t: "a tower " + i, spec: { tpl: "obby", seed: 2 } });
+const dOver = await call(me, "world-studio-obby-ai", { t: "one more", spec: { tpl: "obby", seed: 2 } }); check(dOver.body.over && dOver.body.credit === CREDIT.DIRECTOR && dOver.body.by === "rules", "the director past the free ones: the rules, and an offer");
+T += 3000; aiReply = '{"boss": true}'; const dPaid = await call(me, "world-studio-obby-ai", { t: "one more", spec: { tpl: "obby", seed: 2 }, pay: 1 }); check(dPaid.body.by === "agent" && !dPaid.body.over, "paid: the agent's model again");
+
+// G2/G4 prefabs: free (installed, the author credited and told), paid (80/20 through the market), licences
+const hostB = clampSpec({ tpl: "obby", seed: 5, build: host }), Pk = packPrefab(host, [1, 2, 3, 4, 5], "Dragon gate", "boss");
+const ps1 = await call(me, "world-studio-prefab-save", { name: "Dragon gate", k: "boss", lic: "remix", price: 0, pf: Pk }), pf1 = ps1.body.prefab.id;
+check(ps1.status === 200 && ps1.body.prefab.meta.hp === 12 && ps1.body.prefab.lic === "remix", "a prefab saved with its licence and facts");
+const ps2 = await call(me, "world-studio-prefab-save", { name: "Royal boss", k: "boss", lic: "personal", price: 500, pf: Pk }), pf2 = ps2.body.prefab.id;
+const plist = (await get("studio-prefabs&k=boss&wallet=" + lc(you))).body; check(plist.items.length === 2 && plist.items.every((c) => !c.pf) && plist.owned.length === 0, "the market lists cards without their pieces");
+const g1 = await call(you, "world-studio-prefab-get", { id: pf1 }); check(g1.status === 200 && g1.body.prefab.pf.o.length === 5 && db.get(`worldStudioPrefab/${pf1}`).uses === 1, "a free prefab: installed, counted");
+await call(you, "world-studio-prefab-get", { id: pf1 }); check(db.get(`worldStudioPrefab/${pf1}`).uses === 1, "counted once a wallet");
+check((await get("hub-inbox&wallet=" + lc(me))).body.items.some((x) => x.kind === "pfuse"), "its author hears of it");
+check((await call(you, "world-studio-prefab-get", { id: pf2 })).status === 402, "a paid one: not before it's bought");
+check((await call(you, "world-studio-prefab-buy", { id: pf2, expectedPrice: 500 })).status === 402, "buying needs the ARCL");
+db.set(`worldArclBal/${lc(you)}`, { bal: 2000 }); db.set(`worldArclBkt/${lc(you)}`, { purchased: 2000 });
+const bz = await call(you, "world-studio-prefab-buy", { id: pf2, expectedPrice: 500 }); const sale = db.get(`worldMktSale/pf${pf2}_${lc(you)}`);
+check(bz.status === 200 && bz.body.prefab.pf && bz.body.bal === 1500 && sale && sale.elig === 400 && sale.platform === 100 && sale.status === "pending", "bought: 80 % to its maker (pending 14 days, from purchased ARCL so settleable), 20 % to the platform");
+check((await get("studio-prefabs&wallet=" + lc(you))).body.owned.includes(pf2) && (await call(you, "world-studio-prefab-get", { id: pf2 })).status === 200, "owned from then on");
+check((await call(you, "world-studio-prefab-save", { name: "My royal boss", lic: "cc-by", pf: Pk, from: pf2 })).status === 403, "a personal licence can't be shared again");
+const rs = await call(you, "world-studio-prefab-save", { name: "Dragon gate II", lic: "remix", price: 1000, pf: Pk, from: pf1 }), pf3 = rs.body.prefab.id;
+check(rs.status === 200 && db.get(`worldStudioPrefab/${pf3}`).origW === lc(me), "a remix of a remix-licensed prefab keeps its original maker");
+db.set(`worldArclBal/${lc(them)}`, { bal: 5000 }); db.set(`worldArclBkt/${lc(them)}`, { purchased: 5000 });
+T += 3000; await call(them, "world-studio-prefab-buy", { id: pf3, expectedPrice: 1000 }); const s3 = db.get(`worldMktSale/pf${pf3}_${lc(them)}`), s3o = db.get(`worldMktSale/pf${pf3}_${lc(them)}_o`);
+check(s3 && s3o && s3o.creator === lc(me) && s3.elig + s3o.elig === 800 && s3o.elig === 200, "a remix's sale: the original maker gets their share of the creator's 80 %");
+// premium templates: a remix fee in ARCL; a personal game can't be remixed
+await call(me, "world-studio-game-lic", { id: gid, lic: "remix", fee: 300 });
+check((await call(them, "world-studio-save", { spec: { tpl: "obby", seed: 4 }, from: gid })).status === 402, "a premium template: remixing it waits for its fee");
+check(!(await get(`studio-remix-ok&id=${gid}&wallet=${lc(them)}`)).body.ok, "…and says so");
+T += 3000; const rb = await call(them, "world-studio-remix-buy", { id: gid, expectedPrice: 300 }); check(rb.status === 200 && db.get(`worldMktSale/rx${gid}_${lc(them)}`).platform === 60, "the fee paid: the same 80/20");
+check((await call(them, "world-studio-save", { spec: { tpl: "obby", seed: 4 }, from: gid })).status === 200, "then the remix saves");
+await call(me, "world-studio-game-lic", { id: gid, lic: "personal" }); check((await call(you, "world-studio-save", { spec: { tpl: "obby", seed: 4 }, from: gid })).status === 403, "a personal game can't be remixed");
+// saves: a player's progress kept for a course
+await call(you, "world-studio-prog", { id: gid, d: { cp: 7, n: 2, c: 99999999, q: [1, 2], dj: 1, sk: 9 } }); const pg = (await get(`studio-prog&id=${gid}&wallet=${lc(you)}`)).body.d;
+check(pg && pg.n === 2 && pg.c === 99999 && pg.sk === 1.25 && pg.q.length === 2, "progress saved (clamped)");
+await call(you, "world-studio-prog", { id: gid, clear: 1 }); check((await get(`studio-prog&id=${gid}&wallet=${lc(you)}`)).body.d === null, "and cleared on a win");
+const lst = (await get("studio-assets&wallet=" + lc(me))).body; check(lst.assets.length === 3 && lst.open, "the maker's list (the paid one too)");
 
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id");
 console.log(`\n${ok} pass ${bad} fail`); process.exit(bad ? 1 : 0);

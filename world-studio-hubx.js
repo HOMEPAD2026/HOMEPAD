@@ -265,6 +265,32 @@ export function makeHubX(c) {
     c.toast("⭐ " + esc(T("Added — find it in the Jump World builder's ⭐ My pieces")));
   }
 
+  // ---------------- G2/G4 (2026-10-28): the prefab market — parts of 3D games (a boss with its health, attacks, reward and
+  // rules, a house, a cave …), each with its licence; free ones install for anyone with the maker's name, paid ones for ARCL
+  // (80 % to the maker after 14 days, 20 % to the platform: api/_world-studiox.mjs, api/_world-market.mjs paySale)
+  const LIC = { "cc-by": ["Free · credit", "Anyone may use and remix it; the creator's name stays on it."], remix: ["Remix · share", "Use and remix inside ARCIRCLE; a remix that sells shares 25 % of its creator share with the original."], personal: ["Personal use", "Use in your own games only — it can't be shared again or listed."] };
+  const PKN = { boss: "Boss", enemy: "Enemy", building: "Building", device: "Device", terrain: "Terrain", set: "Set" };
+  async function prefabsHtml() {
+    const w = c.wallet(), r = await c.get("pfs:" + (D.pfs || "top") + ":" + (D.pfk || "") + ":" + w, `/api/social?world=studio-prefabs&sort=${D.pfs === "new" ? "new" : "top"}${D.pfk ? "&k=" + D.pfk : ""}${w ? "&wallet=" + w : ""}`, 20e3), L = (r && r.items) || [], own = new Set((r && r.owned) || []);
+    const card = (p) => { const L2 = LIC[p.lic] || LIC["cc-by"], m = p.meta || {}; return `<article class="sgh-card sgx-pf"><span class="sgh-kick">${esc(T(PKN[p.k] || p.k))}</span><h3>${esc(p.n)}</h3>
+      <small>${esc(T("by {n}", { n: p.by }))}${p.orig ? " · " + esc(T("based on {n}'s", { n: p.orig.name })) : ""}</small>
+      <span class="sgh-gm"><i>${m.pieces || 0} ${esc(T("pieces"))}</i>${m.hp ? `<i>❤️ ${m.hp}</i>` : ""}${m.reward ? `<i>🪙 ${m.reward}</i>` : ""}${m.rules ? `<i>⚙️ ${m.rules}</i>` : ""}${m.tracks ? `<i>▶ ${m.tracks}</i>` : ""}<i>⬇ ${p.uses || 0}</i></span>
+      <p class="sgx-lic lic-${esc(p.lic)}"><b>${esc(T(L2[0]))}</b> ${esc(T(L2[1]))}</p>
+      <div class="sgh-cta"><button type="button" class="sgh-btn ${p.price && !own.has(p.id) ? "pri" : ""}" data-xpf="${esc(p.id)}" data-price="${p.price || 0}">${p.price ? (own.has(p.id) ? "✓ " + esc(T("Owned")) + " · " + esc(T("Add to my library")) : `${ic("plus", "sm")} ${esc(T("Buy for {p} ARCL", { p: p.price.toLocaleString() }))}`) : `${ic("plus", "sm")} ${esc(T("Get it free"))}`}</button></div></article>`; };
+    return `${c.head("store", "Prefabs for 3D games", "Parts other creators saved once — a boss with its health, attacks and reward, a house, a cave — ready to drop into any Obby World game.")}
+      <div class="sgh-fbar"><div class="sgh-chips"><button type="button" data-xpfs="top" class="${D.pfs !== "new" ? "on" : ""}">${esc(T("Most used"))}</button><button type="button" data-xpfs="new" class="${D.pfs === "new" ? "on" : ""}">${esc(T("Newest"))}</button></div>
+        <div class="sgh-chips">${[["", "All"], ...Object.entries(PKN)].map(([k, n]) => `<button type="button" data-xpfk="${k}" class="${(D.pfk || "") === k ? "on" : ""}">${esc(T(n))}</button>`).join("")}</div><span class="sgh-sp"></span><button type="button" class="sgh-btn" data-use="obby">${ic("plus", "sm")} ${esc(T("Open the 3D editor"))}</button></div>
+      ${L.length ? `<div class="sgh-grid g3">${L.map(card).join("")}</div>` : c.empty("grid", "No prefabs shared yet", "In the 3D editor's Scene tab, save a group as a prefab (🧩) and tick 'Share it on the creators' market'.")}
+      <p class="sgh-fine">${ic("check", "xs")} ${esc(T("Prices are in ARCL, the game's points. 80 % goes to the creator (it waits 14 days), 20 % to the platform. Only the share paid with purchased ARCL can later be settled by the creator; ARCL spent in the game and the $ARCIRCLE exchange are separate policies."))}</p>`;
+  }
+  async function getPrefab(b) {
+    const id = b.dataset.xpf, price = +b.dataset.price || 0;
+    if (price && !/Owned/.test(b.textContent) && !(await c.confirm(T("Buy this prefab for {p} ARCL?", { p: price.toLocaleString() })))) return;
+    b.disabled = true; const r = await act(price ? { action: "world-studio-prefab-buy", id, expectedPrice: price } : { action: "world-studio-prefab-get", id }); b.disabled = false; if (!r.ok) return;
+    const P = r.j.prefab, L = (LS("arc.studio.pf2") || []).filter((x) => x && x.id !== P.id); LS("arc.studio.pf2", [{ ...P.pf, id: P.id, lic: P.lic, by: P.by }, ...L].slice(0, 30)); drop(/^pfs:/);
+    c.toast("🧩 " + esc(T("Added — it's in the 3D editor's Scene tab under Mine"))); c.paint();
+  }
+
   // ---------------- sponsor contests ----------------
   const sponsors = () => c.get("sps", "/api/social?world=hub-sponsors", 60e3);
   const sponsorCard = (s) => `<article class="sgh-card rv sgx-sp" style="--art:url('${c.art(TEMPLATES[s.tpl] ? s.tpl : "runner")}')"><span class="sgh-kick">${ic("trophy", "sm")} ${esc(T("Sponsor contest"))}${s.partner ? " · " + esc(s.partner) : ""}</span><h3>${esc(s.title)}</h3>${s.prize ? `<em class="sgh-usd">${esc(T("Prize"))}: ${esc(s.prize)}</em>` : ""}<p>${esc(TEMPLATES[s.tpl] ? T("Make a {t} game and publish it before the end.", { t: c.tname(s.tpl) }) : T("Publish a game before the end."))}</p><small class="sgh-left">${ic("clock", "xs")} ${esc(c.left(s.ends))}</small>
@@ -283,16 +309,16 @@ export function makeHubX(c) {
   }
 
   // ---------------- what the hub asks of this module ----------------
-  const has = (page, sub) => !!XTITLE[page] || (page === "analytics" && (sub === "report" || sub === "ab")) || (page === "store" && sub === "pieces") || (page === "community" && sub === "sponsor");
+  const has = (page, sub) => !!XTITLE[page] || (page === "analytics" && (sub === "report" || sub === "ab")) || (page === "store" && (sub === "pieces" || sub === "prefabs")) || (page === "community" && sub === "sponsor");
   function html(page, sub) {
     if (page === "game") return gameShell();
-    const k = page === "analytics" ? sub : page === "store" ? "pieces" : page === "community" ? "sponsor" : page;
+    const k = page === "analytics" ? sub : page === "store" ? sub : page === "community" ? "sponsor" : page;
     return `${page === "analytics" ? c.head("analytics", sub === "ab" ? "A/B difficulty test" : "Weekly report", sub === "ab" ? "Two versions of your game against the same 40 test players." : "Your week as a creator, ready to share.") : page === "community" ? c.head("community", "Sponsor contests", "Partners' contests with their own prizes.") : ""}<div data-fill="x-${k}">${c.skel(page === "inbox" || page === "forum" ? 2 : 4)}</div>`;
   }
   async function fill(page, sub, root, stale) {
-    const k = page === "analytics" ? sub : page === "store" ? "pieces" : page === "community" ? "sponsor" : page, el = root.querySelector(`[data-fill="x-${k}"]`); if (!el) return;
+    const k = page === "analytics" ? sub : page === "store" ? sub : page === "community" ? "sponsor" : page, el = root.querySelector(`[data-fill="x-${k}"]`); if (!el) return;
     if (page === "game") { await gameBody(el); return; }
-    const h = await ({ profile: profileHtml, forum: forumHtml, inbox: inboxHtml, report: reportHtml, ab: abPage, pieces: piecesHtml, sponsor: sponsorHtml }[k] || (async () => ""))();
+    const h = await ({ profile: profileHtml, forum: forumHtml, inbox: inboxHtml, report: reportHtml, ab: abPage, pieces: piecesHtml, prefabs: prefabsHtml, sponsor: sponsorHtml }[k] || (async () => ""))();
     if (stale() || !el.isConnected) return; el.innerHTML = h; if (k === "pieces") drawPieces(el); if (k === "report") c.countUp(el);
   }
   const val = (b, sel) => { const box = b.closest("[data-xform]") || b.closest("section,div"); return ((box && box.querySelector(sel)) || {}).value || ""; };
@@ -322,6 +348,7 @@ export function makeHubX(c) {
     if (d.xrep) { await reportAct(d.xrep); return true; }
     if (d.xps) { D.ps = d.xps; c.paint(); return true; }
     if (d.xpuse) { await usePiece(d.xpuse); return true; }
+    if (d.xpf) { await getPrefab(b); return true; } if (d.xpfs) { D.pfs = d.xpfs; c.paint(); return true; } if (d.xpfk != null) { D.pfk = d.xpfk; c.paint(); return true; }
     if (b.hasAttribute("data-xspsave")) { await sponsorSave(b.closest("[data-xform]")); return true; }
     if (d.xspoff) { const r = await act({ action: "world-hub-sponsor", id: d.xspoff, off: true }); if (r.ok) { drop(/^sps$/); c.paint(); } return true; }
     return false;

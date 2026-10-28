@@ -610,3 +610,9 @@ html[data-ht=light] .sgh-hero .sgh-btn:not(.pri){background:#fff}
 .sgx-tree li.me{border-color:rgba(79,227,193,.6);background:rgba(79,227,193,.08)}
 .sgx-tree a{color:inherit;text-decoration:none;display:grid;gap:2px}.sgx-tree small{color:var(--h-ink3,#8b96a3)}
 .sgx-tree.kids{border-left-style:dashed}
+/* G4 (2026-10-28): the prefab market's cards with their licence */
+.sgx-pf h3{margin:4px 0 2px}.sgx-pf small{color:var(--h-ink3,#8a94a6)}
+.sgx-lic{margin:8px 0 0;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.4;background:rgba(124,245,200,.08);border:1px solid rgba(124,245,200,.25)}
+.sgx-lic b{display:block;margin-bottom:2px;color:#4fd6a8}
+.sgx-lic.lic-remix{background:rgba(180,140,255,.08);border-color:rgba(180,140,255,.3)}.sgx-lic.lic-remix b{color:#a98bff}
+.sgx-lic.lic-personal{background:rgba(255,210,58,.08);border-color:rgba(255,210,58,.3)}.sgx-lic.lic-personal b{color:#d8a91a}

@@ -449,19 +449,20 @@ export function genRace(spec) {
 /// A run's dist: 100 a checkpoint reached (in the course's order), the whole at the goal; its coins: coins, the boss's
 /// hits ×5 and what the logic gives.
 export const OB = {
-  R: 80, Y: 60, MAX: 300, LG: 16, SZ: 30, AS: 16,
+  R: 80, Y: 60, MAX: 300, LG: 16, SZ: 30, AS: 16, G: 32, TK: 16, KEYS: 8, EC: 3, /* (coins an enemy drops) */ MODES: ["obby", "combat", "race", "explore"], WINS: ["goal", "enemies", "collect", "race", "varA"],
   K: { b: [1, 4, 1, 4], r: [1, 4, 2, 6], y: [1, 4, 1, 4], k: [0, 4, 0.4, 4], s: [0, 8, 0.6, 0.6], m: [1, 4, 0.6, 4], p: [1, 2, 0.3, 2], c: [1, 3, 0.3, 3], S: [1, 3, 0.3, 3], g: [1, 3, 0.3, 3],
-    o: [0, 1, 1, 1], h: [0, 1, 1, 1], d: [1, 3, 4, 0.5], u: [0, 1.6, 0.3, 1.6], e: [1, 3, 0.5, 3], t: [0, 2, 0.2, 2], n: [0, 1.2, 2, 1.2], B: [0, 3, 3, 3], x: [0, 2, 2, 2], X: [0, 2, 2, 2] }, // (solid?, its size when placed)
-  CAP: { S: 1, g: 4, o: 200, h: 10, n: 4, B: 2, x: 40, X: 16, t: 16, d: 16, u: 16, e: 12, m: 30, s: 30 },
+    o: [0, 1, 1, 1], h: [0, 1, 1, 1], d: [1, 3, 4, 0.5], u: [0, 1.6, 0.3, 1.6], e: [1, 3, 0.5, 3], t: [0, 2, 0.2, 2], n: [0, 1.2, 2, 1.2], B: [0, 3, 3, 3], x: [0, 2, 2, 2], X: [0, 2, 2, 2],
+    E: [0, 1.2, 1.6, 1.2], R: [0, 5, 5, 0.4], Q: [0, 1, 1, 1], H: [1, 16, 5, 16], W: [0, 10, 2, 10], P: [1, 1.5, 1.5, 1.5], A: [0, 1, 1.8, 1] }, // (G1/G3 2026-10-28: enemies, race rings, collectibles, hills, water, crates to push, actors) // (solid?, its size when placed)
+  CAP: { S: 1, g: 4, o: 200, h: 10, n: 4, B: 2, x: 40, X: 16, t: 16, d: 16, u: 16, e: 12, m: 30, s: 30, E: 40, R: 30, Q: 100, H: 20, W: 12, P: 20, A: 12 },
   // the two options a kind has: [label, min, max, default]
-  OPT: { b: [["Surface", 0, 3, 0]], y: [["Surface", 0, 3, 0]], r: [["Surface", 0, 3, 0]], s: [["Speed", 1, 5, 2], ["Direction", 0, 1, 0]], m: [["Axis", 0, 2, 0], ["Distance", 2, 20, 6]], p: [["Strength", 1, 3, 2]],
+  OPT: { b: [["Surface", 0, 4, 0]], y: [["Surface", 0, 4, 0]], r: [["Surface", 0, 4, 0]], H: [["Surface", 0, 4, 0]], E: [["Health", 1, 20, 3], ["Type", 0, 2, 0]], R: [["Order", 1, 30, 1]], A: [["Look", 0, 2, 0], ["Says", 0, 11, 0]], s: [["Speed", 1, 5, 2], ["Direction", 0, 1, 0]], m: [["Axis", 0, 2, 0], ["Distance", 2, 20, 6]], p: [["Strength", 1, 3, 2]],
     d: [["Channel", 1, 8, 1], ["Opens", 0, 1, 0]], u: [["Channel", 1, 8, 1], ["Open for (s, 0 = stays)", 0, 60, 0]], e: [["Height", 2, 30, 8], ["Speed", 1, 5, 2]], t: [["Pair", 1, 8, 1], ["One way", 0, 1, 0]],
     n: [["Sells", 0, 3, 0], ["Price", 1, 50, 10]], B: [["Health", 3, 30, 8], ["Attack", 0, 2, 0]], x: [["Model", 0, 23, 0], ["Solid", 0, 1, 1]], X: [["Asset", 0, 15, 0], ["Solid", 0, 1, 1]] },
   COLORS: [0x5fd3ff, 0x7cf5c8, 0xffd23a, 0xff6fae, 0xb48cff, 0xff7a2e, 0xeef4fb, 0x3a4a6a, 0x39c46a, 0x9b6b3a, 0x1a2238, 0xff3b5c],
-  WHEN: ["start", "button", "coins", "every", "after", "varA", "varB", "phase", "bosshalf", "boss", "checkpoint"],
-  THEN: ["open", "close", "toggle", "say", "addA", "addB", "setA", "setB", "phase", "show", "hide", "heart", "coins", "time", "speed", "win", "hurt"],
+  WHEN: ["start", "button", "coins", "every", "after", "varA", "varB", "phase", "bosshalf", "boss", "checkpoint", "enemies", "collect", "ring"],
+  THEN: ["open", "close", "toggle", "say", "addA", "addB", "setA", "setB", "phase", "show", "hide", "heart", "coins", "time", "speed", "win", "hurt", "track", "cutscene"],
   MSGS: ["Nice work!", "A door opened!", "Hurry up!", "Watch out!", "Almost there!", "Bonus coins!", "The boss is angry!", "You found a secret!", "Phase 2!", "Checkpoint!", "The shop is open!", "A new path opened!"],
-  QUESTS: ["Reach the goal!", "Collect every coin!", "Defeat the boss!", "Find the hidden door!", "Escape before time runs out!", "Climb to the top!", "Press every button!", "Survive the spinners!"],
+  QUESTS: ["Reach the goal!", "Collect every coin!", "Defeat the boss!", "Find the hidden door!", "Escape before time runs out!", "Climb to the top!", "Press every button!", "Survive the spinners!", "Defeat every enemy!", "Fly through every ring!", "Find every gem!"],
   VARL: ["Score", "Keys", "Gems", "Kills", "Stars", "Points"],
   SHOP: [["speed", "⚡", "Speed boost"], ["djump", "🪽", "Double jump"], ["heart", "❤️", "Extra heart"], ["shield", "🛡️", "Shield"]],
   LOOKS: ["day", "sunset", "night", "mist", "toon", "space", "cine"],
@@ -484,52 +485,132 @@ export function cleanObby(b) {
     if (!Array.isArray(x)) continue; const k = String(x[0]), K = OB.K[k]; if (!K) continue;
     if ((n[k] || 0) >= (OB.CAP[k] || OB.MAX)) continue;
     const px = q4(x[1], -OB.R, OB.R), py = q4(x[2], -10, OB.Y), pz = q4(x[3], -OB.R, OB.R); if (![px, py, pz].every(Number.isFinite)) continue;
-    const fix = k === "o" || k === "h" || k === "n" || k === "u" || k === "t" || k === "c" || k === "S" || k === "g" || k === "p"; // (these keep their own size)
-    const sx = fix ? K[1] : q4(x[5] || K[1], 0.25, OB.SZ), sy = fix ? K[2] : q4(x[6] || K[2], 0.25, OB.SZ), sz = fix ? K[3] : k === "y" ? sx : q4(x[7] || K[3], 0.25, OB.SZ);
+    const fix = k === "o" || k === "h" || k === "n" || k === "u" || k === "t" || k === "c" || k === "S" || k === "g" || k === "p" || k === "Q" || k === "A" || k === "E"; // (these keep their own size)
+    const sx = fix ? K[1] : q4(x[5] || K[1], 0.25, OB.SZ), sy = fix ? K[2] : q4(x[6] || K[2], 0.25, OB.SZ), sz = fix ? K[3] : k === "y" || k === "H" ? sx : q4(x[7] || K[3], 0.25, OB.SZ);
     const O = OB.OPT[k] || [], a = O[0] ? iv(x[9], O[0][1], O[0][2], O[0][3]) : 0, bb = O[1] ? iv(x[10], O[1][1], O[1][2], O[1][3]) : 0;
-    out.push([k, px, py, pz, ((iv(x[4], -720, 720, 0) % 360) + 360) % 360, sx, sy, sz, iv(x[8], 0, OB.COLORS.length - 1, 0), a, bb, iv(x[11], 0, 8, 0)]); n[k] = (n[k] || 0) + 1;
+    out.push([k, px, py, pz, ((iv(x[4], -720, 720, 0) % 360) + 360) % 360, sx, sy, sz, iv(x[8], 0, OB.COLORS.length - 1, 0), a, bb, iv(x[11], 0, OB.G, 0)]); n[k] = (n[k] || 0) + 1;
     if (out.length >= OB.MAX) break;
   }
   if (!n.S) { if (out.length >= OB.MAX) out.pop(); out.unshift(["S", 0, 0, 0, 0, 3, 0.3, 3, 1, 0, 0, 0]); } // (a start, always)
   const lg = [];
   for (const r of (Array.isArray(b.lg) ? b.lg : []).slice(0, OB.LG * 2)) { if (!Array.isArray(r)) continue; const w = String(r[0]), t = String(r[2]); if (!OB.WHEN.includes(w) || !OB.THEN.includes(t)) continue;
-    const wa = w === "button" ? iv(r[1], 1, 8, 1) : w === "coins" || w === "varA" || w === "varB" ? iv(r[1], 1, 999, 10) : w === "every" ? iv(r[1], 2, 120, 10) : w === "after" ? iv(r[1], 1, 600, 10) : w === "phase" ? iv(r[1], 1, 5, 2) : w === "checkpoint" ? iv(r[1], 1, 30, 1) : 0;
+    const wa = w === "button" ? iv(r[1], 1, 8, 1) : w === "coins" || w === "varA" || w === "varB" ? iv(r[1], 1, 999, 10) : w === "every" ? iv(r[1], 2, 120, 10) : w === "after" ? iv(r[1], 1, 600, 10) : w === "phase" ? iv(r[1], 1, 5, 2) : w === "checkpoint" || w === "ring" ? iv(r[1], 1, 30, 1) : w === "collect" ? iv(r[1], 1, 999, 5) : 0;
     const ta = t === "open" || t === "close" || t === "toggle" ? iv(r[3], 1, 8, 1) : t === "say" ? iv(r[3], 0, OB.MSGS.length - 1, 0) : t === "addA" || t === "addB" ? iv(r[3], -10, 10, 1) || 1 : t === "setA" || t === "setB" ? iv(r[3], 0, 999, 0)
-      : t === "phase" ? iv(r[3], 1, 5, 2) : t === "show" || t === "hide" ? iv(r[3], 1, 8, 1) : t === "heart" ? iv(r[3], 1, 3, 1) : t === "coins" ? iv(r[3], 1, 20, 5) : t === "time" ? iv(r[3], 5, 60, 10) : t === "speed" ? iv(r[3], 2, 10, 4) : 0;
+      : t === "phase" ? iv(r[3], 1, 5, 2) : t === "show" || t === "hide" ? iv(r[3], 1, OB.G, 1) : t === "track" ? iv(r[3], 1, OB.TK, 1) : t === "heart" ? iv(r[3], 1, 3, 1) : t === "coins" ? iv(r[3], 1, 20, 5) : t === "time" ? iv(r[3], 5, 60, 10) : t === "speed" ? iv(r[3], 2, 10, 4) : 0;
     lg.push([w, wa, t, ta, w === "every" ? 1 : Number(r[4]) === 1 ? 1 : 0]); if (lg.length >= OB.LG) break; }
   const as = (Array.isArray(b.as) ? b.as : []).map(String).filter((s) => /^[a-z0-9]{6,40}$/.test(s)).slice(0, OB.AS);
-  return { ob: 1, bp: Number(b.bp) === 1 ? 1 : 0, o: out, lg, hg: [...new Set((Array.isArray(b.hg) ? b.hg : []).map((g) => iv(g, 1, 8, 0)).filter((g) => g))].slice(0, 8),
-    lk: OB.LOOKS.includes(b.lk) ? b.lk : "day", ui: iv(b.ui, 0, 255, OB.UI0), cn: iv(b.cn, 0, 7, OB.CN0), av: iv(b.av, 0, 3, OB.AV0), hp: iv(b.hp, 0, 5, 3), tl: iv(b.tl, 0, 900, 0), q: iv(b.q, 0, OB.QUESTS.length - 1, 0), vl: iv(b.vl, 0, OB.VARL.length - 1, 0), as };
+  return { ob: 1, bp: Number(b.bp) === 1 ? 1 : 0, o: out, lg, hg: [...new Set((Array.isArray(b.hg) ? b.hg : []).map((g) => iv(g, 1, OB.G, 0)).filter((g) => g))].slice(0, OB.G),
+    lk: OB.LOOKS.includes(b.lk) ? b.lk : "day", ui: iv(b.ui, 0, 255, OB.UI0), cn: iv(b.cn, 0, 7, OB.CN0), av: iv(b.av, 0, 3, OB.AV0), hp: iv(b.hp, 0, 5, 3), tl: iv(b.tl, 0, 900, 0), q: iv(b.q, 0, OB.QUESTS.length - 1, 0), vl: iv(b.vl, 0, OB.VARL.length - 1, 0), as, ...cleanObbyX(b, out.length) };
 }
+/// G1/G3 (2026-10-28, the owner's "one making system for every genre"): the course's mode (obby / combat / race /
+/// explore) and how it's won, laps, gravity, progress saved for each player, the hierarchy (named groups with a parent),
+/// animation tracks (an object's moves over time, looped or played by the logic), a camera cutscene, prefab instances
+function cleanObbyX(b, n) {
+  const f = (v, a, z) => Math.max(a, Math.min(z, Math.round((Number(v) || 0) * 4) / 4)), md = OB.MODES.includes(b.md) ? b.md : "obby";
+  const gn = []; for (const g of (Array.isArray(b.gn) ? b.gn : []).slice(0, OB.G * 2)) { if (!Array.isArray(g)) continue; const id = iv(g[0], 1, OB.G, 0); if (!id || gn.some((x) => x[0] === id)) continue;
+    const par = iv(g[2], 0, OB.G, 0); gn.push([id, String(g[1] || "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, 24) || "Group " + id, par === id ? 0 : par]); }
+  for (const g of gn) { let p = g[2], hops = 0; while (p && hops < OB.G) { if (p === g[0]) { g[2] = 0; break; } const q = gn.find((x) => x[0] === p); p = q ? q[2] : 0; hops++; } } // (no loops in the tree)
+  const tk = []; for (const t of (Array.isArray(b.tk) ? b.tk : []).slice(0, OB.TK * 2)) { if (!Array.isArray(t)) continue; const oi = Math.round(Number(t[0])); if (!(oi >= 0 && oi < n) || tk.some((x) => x[0] === oi) || !Array.isArray(t[3])) continue; // (a real piece, one track each)
+    const keys = t[3].filter(Array.isArray).slice(0, OB.KEYS).map((k) => [f(k[0], 0, 60), f(k[1], -40, 40), f(k[2], -20, 40), f(k[3], -40, 40), iv(k[4], -720, 720, 0)]).sort((a, c) => a[0] - c[0]);
+    if (keys.length < 2) continue; tk.push([oi, Number(t[1]) === 1 ? 1 : 0, Number(t[2]) === 1 ? 1 : 0, keys]); if (tk.length >= OB.TK) break; }
+  const cs = (Array.isArray(b.cs) ? b.cs : []).filter(Array.isArray).slice(0, OB.KEYS).map((k) => [f(k[0], 0, 30), f(k[1], -120, 120), f(k[2], -10, 90), f(k[3], -120, 120), f(k[4], -120, 120), f(k[5], -10, 90), f(k[6], -120, 120)]).sort((a, c) => a[0] - c[0]);
+  const pi = (Array.isArray(b.pi) ? b.pi : []).filter((x) => Array.isArray(x) && /^[a-z0-9]{6,24}$/.test(String(x[1]))).slice(0, OB.G).map((x) => [iv(x[0], 1, OB.G, 1), String(x[1])]);
+  return { md, win: OB.WINS.includes(b.win) ? b.win : md === "combat" ? "enemies" : md === "race" ? "race" : md === "explore" ? "collect" : "goal", lp: iv(b.lp, 1, 5, 1), gv: iv(b.gv, 30, 200, 100), sv: Number(b.sv) === 1 ? 1 : 0,
+    gn, tk, ...(cs.length >= 2 ? { cs } : {}), pi };
+}
+/// G2 PREFABS (the owner: "a boss made once — its health, attacks, animation, reward and UI as one bundle, used again in
+/// any game"): a set of pieces round an origin, with the rules and tracks that belong to them and a few facts for the
+/// market card. pack: the chosen pieces of a course → a prefab; place: a prefab into a course at a point and a turn — its
+/// pieces get a new group of their own (the prefab's parent in the hierarchy), free channels, free teleporter pairs and
+/// free track numbers, and its rules follow them.
+export const PF = { MAX: 120, LG: 8, KINDS: ["boss", "enemy", "building", "device", "terrain", "set"], LIC: ["cc-by", "remix", "personal"], NAME: 30 };
+export function cleanPrefab(p) {
+  if (!p || typeof p !== "object") return null; const name = String(p.n || "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, PF.NAME); if (name.length < 2) return null;
+  const C = cleanObby({ o: (Array.isArray(p.o) ? p.o : []).slice(0, PF.MAX).map((q) => (Array.isArray(q) && q[0] === "S" ? null : q)).filter(Boolean), lg: (p.lg || []).slice(0, PF.LG), tk: p.tk || [] });
+  const o = C.o.filter((q) => q[0] !== "S" || (p.o || []).some((x) => x && x[0] === "S")); if (!o.length || o.length > PF.MAX) return null;
+  const tk = (C.tk || []).map((t) => [t[0] - (C.o.length - o.length), t[1], t[2], t[3]]).filter((t) => t[0] >= 0);
+  const boss = o.find((q) => q[0] === "B"), en = o.filter((q) => q[0] === "E");
+  const kind = PF.KINDS.includes(p.k) ? p.k : boss ? "boss" : en.length ? "enemy" : o.some((q) => q[0] === "H" || q[0] === "W") ? "terrain" : o.some((q) => "dutne".includes(q[0])) ? "device" : "building";
+  const reward = C.lg.reduce((a, r) => a + (r[2] === "coins" ? r[3] : 0), 0) + (boss ? boss[9] * 5 : 0) + en.reduce((a, q) => a + q[9] * 3, 0);
+  return { pf: 1, n: name, k: kind, o, lg: C.lg, tk, meta: { pieces: o.length, hp: boss ? boss[9] : en.reduce((a, q) => a + q[9], 0), atk: boss ? boss[10] : 0, reward, rules: C.lg.length, tracks: tk.length } };
+}
+/// the chosen pieces (indexes into B.o) as a prefab, round their bottom centre
+export function packPrefab(B, idx, name, kind) {
+  const set = [...new Set(idx)].filter((i) => B.o[i] && B.o[i][0] !== "S").sort((a, b) => a - b); if (!set.length) return null;
+  const xs = set.map((i) => B.o[i][1]), zs = set.map((i) => B.o[i][3]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2, cy = Math.min(...set.map((i) => B.o[i][2]));
+  const o = set.map((i) => { const q = B.o[i].slice(); q[1] = Math.round((q[1] - cx) * 4) / 4; q[2] = Math.round((q[2] - cy) * 4) / 4; q[3] = Math.round((q[3] - cz) * 4) / 4; q[11] = 0; return q; });
+  const chans = new Set(set.map((i) => B.o[i]).filter((q) => q[0] === "d" || q[0] === "u").map((q) => q[9])), hasB = set.some((i) => B.o[i][0] === "B"), hasE = set.some((i) => B.o[i][0] === "E");
+  const tkMap = new Map(); (B.tk || []).forEach((t, n) => { if (set.includes(t[0])) tkMap.set(n + 1, tkMap.size + 1); });
+  const tk = (B.tk || []).filter((t) => set.includes(t[0])).map((t) => [set.indexOf(t[0]), t[1], t[2], t[3]]);
+  // the rules that belong to these pieces: their channels, their boss / enemies, their tracks
+  const mine = (r) => (r[0] === "button" && chans.has(r[1])) || (["open", "close", "toggle"].includes(r[2]) && chans.has(r[3])) || ((r[0] === "bosshalf" || r[0] === "boss") && hasB) || (r[0] === "enemies" && hasE) || (r[2] === "track" && tkMap.has(r[3]));
+  const lg = (B.lg || []).filter(mine).map((r) => (r[2] === "track" ? [r[0], r[1], r[2], tkMap.get(r[3]) || 1, r[4]] : r.slice())).slice(0, PF.LG);
+  return cleanPrefab({ n: name, k: kind, o, lg, tk });
+}
+export function placePrefab(B0, P0, at = [0, 0, 0], turn = 0, id = "") {
+  const B = JSON.parse(JSON.stringify(B0)), P = cleanPrefab(P0); if (!P) return { B, ok: false, why: "bad" };
+  if (B.o.length + P.o.length > OB.MAX) return { B, ok: false, why: "full" };
+  const used = (k, ix) => new Set(B.o.filter((q) => q[0] === k || (Array.isArray(k) && k.includes(q[0]))).map((q) => q[ix]));
+  const freeOf = (taken, max) => { for (let i = 1; i <= max; i++) if (!taken.has(i)) return i; return 0; };
+  const gUsed = new Set([...B.o.map((q) => q[11]), ...(B.gn || []).map((g) => g[0])]), g = freeOf(gUsed, OB.G); if (!g) return { B, ok: false, why: "groups" };
+  const chMap = new Map(), chTaken = used(["d", "u"], 9); for (const q of P.o) if ((q[0] === "d" || q[0] === "u") && !chMap.has(q[9])) { const c = freeOf(chTaken, 8) || q[9]; chMap.set(q[9], c); chTaken.add(c); }
+  const tpMap = new Map(), tpTaken = used("t", 9); for (const q of P.o) if (q[0] === "t" && !tpMap.has(q[9])) { const c = freeOf(tpTaken, 8) || q[9]; tpMap.set(q[9], c); tpTaken.add(c); }
+  const r = (turn * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r), base = B.o.length;
+  for (const q0 of P.o) { const q = q0.slice(), x = q[1], z = q[3]; q[1] = Math.round((at[0] + x * c + z * s) * 4) / 4; q[3] = Math.round((at[2] - x * s + z * c) * 4) / 4; q[2] = Math.round((at[1] + q[2]) * 4) / 4; q[4] = (((q[4] + turn) % 360) + 360) % 360; q[11] = g;
+    if (q[0] === "d" || q[0] === "u") q[9] = chMap.get(q[9]); if (q[0] === "t") q[9] = tpMap.get(q[9]); B.o.push(q); }
+  const tk0 = (B.tk || []).length;
+  for (const r0 of P.lg) { if (B.lg.length >= OB.LG) break; const rr = r0.slice(); if (rr[0] === "button") rr[1] = chMap.get(rr[1]) || rr[1]; if (["open", "close", "toggle"].includes(rr[2])) rr[3] = chMap.get(rr[3]) || rr[3]; if (rr[2] === "track") rr[3] = tk0 + rr[3]; B.lg.push(rr); }
+  B.tk = [...(B.tk || []), ...(P.tk || []).map((t) => [base + t[0], t[1], t[2], t[3]])].slice(0, OB.TK);
+  B.gn = [...(B.gn || []), [g, P.n, 0]]; if (id) B.pi = [...(B.pi || []), [g, id]];
+  return { B: cleanObby(B), ok: true, g };
+}
+/// G2: ARCIRCLE's own prefabs — ready bundles for any course (the editor's library, the director's "add a cave / a house /
+/// an enemy camp"): each a set of pieces round its bottom centre with its rules
+const pk = (k, x, y, z, sx, sy, sz, c = 0, a, b, ry = 0) => { const O = OB.OPT[k] || [], K = OB.K[k]; return [k, x, y, z, ry, sx || K[1], sy || K[2], sz || K[3], c, a != null ? a : O[0] ? O[0][3] : 0, b != null ? b : O[1] ? O[1][3] : 0, 0]; };
+export const PREFABS = {
+  bxarena: { n: "Boss arena", k: "boss", o: [pk("y", 0, -1, 0, 18, 1, 18, 4), pk("B", 0, 0, 0, 3, 3, 3, 11, 10, 1), pk("k", -6, 0, 6, 2.5, 0.3, 2.5, 5), pk("k", 6, 0, -6, 2.5, 0.3, 2.5, 5), pk("h", -7, 0.2, -7), pk("o", 7, 0.6, 7), pk("o", -7, 0.6, 7), pk("o", 7, 0.6, -7)], lg: [["bosshalf", 0, "say", 6, 0], ["bosshalf", 0, "phase", 2, 0]] },
+  bxcamp: { n: "Enemy camp", k: "enemy", o: [pk("b", 0, -1, 0, 14, 1, 14, 9), pk("E", -3, 0, 2, 0, 0, 0, 0, 3, 0), pk("E", 3, 0, 2, 0, 0, 0, 0, 3, 0), pk("E", 0, 0, -3, 0, 0, 0, 0, 4, 2), pk("P", -5, 0, -5, 1.5, 1.5, 1.5, 9), pk("P", 5, 0, -5, 1.5, 1.5, 1.5, 9), pk("x", -6, 0, 5, 1.2, 1.2, 1.2, 0, 7, 1), pk("x", 6, 0, 5, 1.2, 1.2, 1.2, 0, 7, 1)], lg: [["enemies", 0, "say", 0, 0], ["enemies", 0, "coins", 10, 0]] },
+  bxhouse: { n: "House", k: "building", o: [pk("b", 0, -1, 0, 10, 1, 8, 9), pk("b", 0, 0, -3.75, 10, 4, 0.5, 6), pk("b", -4.75, 0, 0, 0.5, 4, 8, 6), pk("b", 4.75, 0, 0, 0.5, 4, 8, 6), pk("b", -3.25, 0, 3.75, 3.5, 4, 0.5, 6), pk("b", 3.25, 0, 3.75, 3.5, 4, 0.5, 6), pk("b", 0, 3, 3.75, 3, 1, 0.5, 6), pk("r", 0, 4, -2, 10.5, 2, 4.5, 11, 0, 0, 180), pk("r", 0, 4, 2, 10.5, 2, 4.5, 11), pk("A", 0, 0, -1, 0, 0, 0, 0, 0, 0), pk("x", 3, 0, -2, 1, 1, 1, 0, 4, 1)], lg: [] },
+  bxcave: { n: "Cave", k: "terrain", o: [pk("b", 0, -1, 0, 16, 1, 12, 7), pk("b", 0, 0, -5.5, 16, 5, 1, 7), pk("b", -7.5, 0, 0, 1, 5, 12, 7), pk("b", 7.5, 0, 0, 1, 5, 12, 7), pk("b", 0, 5, 0, 16, 1.5, 12, 7), pk("b", -4.5, 0, 5.5, 7, 5, 1, 7), pk("b", 4.5, 0, 5.5, 3, 5, 1, 7), pk("Q", -4, 0.4, -3), pk("Q", 4, 0.4, -3), pk("k", 0, 0, -1, 3, 0.3, 2, 5), pk("E", -4, 0, 1, 0, 0, 0, 0, 2, 1), pk("x", 5.5, 0, -4, 1, 1, 1, 0, 17, 1)], lg: [] },
+  bxgates: { n: "Race gates", k: "set", o: [pk("b", 0, -1, 0, 6, 1, 30, 6, 4), pk("R", 0, 0, -10, 5, 5, 0.4, 0, 1), pk("R", 0, 0, 0, 5, 5, 0.4, 0, 2), pk("R", 0, 0, 10, 5, 5, 0.4, 0, 3), pk("p", 0, 0, 13.5, 2, 0.3, 2, 1, 1)], lg: [] },
+  bxvault: { n: "Treasure vault", k: "device", o: [pk("b", 0, -1, 0, 10, 1, 10, 7), pk("b", 0, 0, -4.75, 10, 4, 0.5, 7), pk("b", -4.75, 0, 0, 0.5, 4, 10, 7), pk("b", 4.75, 0, 0, 0.5, 4, 10, 7), pk("b", -3.25, 0, 4.75, 3.5, 4, 0.5, 7), pk("b", 3.25, 0, 4.75, 3.5, 4, 0.5, 7), pk("d", 0, 0, 4.75, 3, 4, 0.5, 4, 1, 0), pk("u", 0, 0, 8, 0, 0, 0, 0, 1, 0), pk("x", 0, 0, -2, 1, 1, 1, 0, 17, 1), pk("Q", -2, 0.4, -2), pk("Q", 2, 0.4, -2), pk("o", 0, 0.6, 0)], lg: [["button", 1, "say", 1, 0]] },
+};
 /// a solid thing's top as a rectangle on the ground (its turn folded into the box round it): what you stand on
 export function obTops(B) {
   const T = [];
-  B.o.forEach((o, i) => { const [k, x, y, z, ry, sx, sy, sz, , a, bb] = o; if (!OB.K[k][0] && !((k === "x" || k === "X") && bb)) return; if (k === "d") return; // (a door is a wall, not a floor)
+  B.o.forEach((o, i) => { const [k, x, y, z, ry, sx, sy, sz, , a, bb] = o; if (!OB.K[k][0] && !((k === "x" || k === "X") && bb) && k !== "W") return; if (k === "d") return; // (a door is a wall, not a floor; water is swum across)
     const r = (ry * Math.PI) / 180, c = Math.abs(Math.cos(r)), s = Math.abs(Math.sin(r)); let hw = (sx * c + sz * s) / 2, hd = (sx * s + sz * c) / 2, top = y + sy, top2 = top;
     if (k === "m") { if (a === 0) hw += bb / 2; else if (a === 2) hd += bb / 2; else top2 = top + bb; } // (a mover's reach along its axis)
     if (k === "e") top2 = top + a;
-    T.push({ i, k, x, z, hw, hd, top, top2 }); });
-  if (B.bp) T.push({ i: -1, k: "bp", x: 0, z: 0, hw: OB.R, hd: OB.R, top: 0, top2: 0 });
+    T.push({ i, k, x, z, hw, hd, top, top2, bot: k === "H" ? y : top }); }); // (a hill is walked up from its foot)
+  if (B.bp) T.push({ i: -1, k: "bp", x: 0, z: 0, hw: OB.R, hd: OB.R, top: 0, top2: 0, bot: 0 });
   return T;
 }
 const gapOf = (p, q) => Math.hypot(Math.max(0, Math.abs(p.x - q.x) - p.hw - q.hw), Math.max(0, Math.abs(p.z - q.z) - p.hd - q.hd));
 /// can the goal be reached from the start, hopping top to top (a sprinting jump, a pad's lift, an elevator's ride, a
 /// teleporter's pair)? → { ok, seen: the tops reached, path: the tops from the start to a goal, far: the thing indexes out of reach }
 export function obReach(B, spec = { speed: 3 }) {
-  const T = obTops(B), far = obFar(spec), on = (o) => T.findIndex((t) => Math.abs(o[1] - t.x) <= t.hw + 0.3 && Math.abs(o[3] - t.z) <= t.hd + 0.3 && o[2] >= t.top - 0.6 && o[2] <= t.top2 + 0.8);
+  const gk = 100 / (B.gv || 100), T = obTops(B), far = obFar(spec) * gk, on = (o) => T.findIndex((t) => Math.abs(o[1] - t.x) <= t.hw + 0.3 && Math.abs(o[3] - t.z) <= t.hd + 0.3 && o[2] >= t.top - 0.6 && o[2] <= t.top2 + 0.8);
   const S = B.o.find((o) => o[0] === "S"), s0 = S ? on(S) : -1, tele = new Map();
   B.o.forEach((o) => { if (o[0] === "t") { const ti = on(o); if (ti >= 0) { const l = tele.get(o[9]) || []; l.push({ ti, one: o[10] }); tele.set(o[9], l); } } });
   const pads = new Map(); B.o.forEach((o) => { if (o[0] === "p") { const ti = on(o); if (ti >= 0) pads.set(ti, Math.max(pads.get(ti) || 0, o[9])); } });
   const prev = new Map(), Q = []; if (s0 >= 0) { prev.set(s0, -1); Q.push(s0); }
-  while (Q.length) { const i = Q.shift(), p = T[i], lift = OBJ.UP + (pads.get(i) || 0) * OBJ.PAD, hi = p.top2;
+  while (Q.length) { const i = Q.shift(), p = T[i], lift = (OBJ.UP + (pads.get(i) || 0) * OBJ.PAD) * gk + (p.k === "W" ? 1.5 : 0), hi = p.top2;
     const go = (j) => { if (!prev.has(j)) { prev.set(j, i); Q.push(j); } };
-    for (let j = 0; j < T.length; j++) { if (prev.has(j)) continue; const q = T[j], up = q.top - hi, d = gapOf(p, q); if (up > lift) continue; if (d <= far + Math.min(4, Math.max(0, -up) * 0.5) + (pads.get(i) ? 2 : 0)) go(j); }
+    for (let j = 0; j < T.length; j++) { if (prev.has(j)) continue; const q = T[j], up = q.bot - hi, d = gapOf(p, q); if (up > lift) continue; if (d <= far + Math.min(4, Math.max(0, -up) * 0.5) + (pads.get(i) ? 2 : 0)) go(j); }
     for (const l of tele.values()) { const me = l.findIndex((t) => t.ti === i); if (me < 0 || l.length < 2 || (l.some((t) => t.one) && me !== 0)) continue; l.forEach((t, k) => { if (k !== me) go(t.ti); }); } } // (a one-way pair sends only from its first)
-  const goals = T.map((t, j) => (t.k === "g" ? j : -1)).filter((j) => j >= 0), gi = goals.find((j) => prev.has(j));
+  // G1: what wins the game — the goal, every enemy, every collectible, the race's rings, or the rules alone (then the start is enough)
+  const win = B.win || "goal", tk = win === "enemies" ? "EB" : win === "collect" ? "Q" : win === "race" ? "R" : "", reachT = (o) => { let best = -1, bd = 1e9; prev.forEach((_, j) => { const t = T[j], d = Math.hypot(Math.max(0, Math.abs(o[1] - t.x) - t.hw), Math.max(0, Math.abs(o[3] - t.z) - t.hd)), up = o[2] - t.top2;
+      if (d <= far + 1 && up <= (OBJ.UP + 1) * gk + (o[0] === "R" ? 1 : 0) && up >= -6 && d < bd) { bd = d; best = j; } }); return best; };
+  let gi = null;
+  if (win === "goal") { const goals = T.map((t, j) => (t.k === "g" ? j : -1)).filter((j) => j >= 0); gi = goals.find((j) => prev.has(j)); }
+  else if (tk) { const at = B.o.filter((o) => tk.includes(o[0])).map(reachT); /* (the enemies' win: bosses count too) */ if (at.length && at.every((j) => j >= 0)) gi = at.reduce((a, j) => (order(prev, j) > order(prev, a) ? j : a), at[0]); if (!at.length) gi = null; }
+  else if (s0 >= 0) gi = [...prev.keys()].pop();
   const path = []; if (gi != null) { let j = gi; while (j >= 0) { path.unshift(j); j = prev.get(j); } }
   const farI = []; B.o.forEach((o, i) => { if (OB.K[o[0]][0] || o[0] === "x" || o[0] === "X") { const t = T.findIndex((q) => q.i === i); if (t >= 0 && !prev.has(t)) farI.push(i); } });
   return { ok: gi != null, seen: prev, path, T, far: farI };
 }
+const order = (prev, j) => { let n = 0, k = j; while (k >= 0 && n < 400) { k = prev.get(k); n++; } return n; }; // (hops from the start)
 /// the course's order: the start, then each checkpoint as the way to the goal passes it (or by how far it is from the start)
 export function obOrder(B, R) {
   const T = R.T, at = (o) => T.findIndex((t) => Math.abs(o[1] - t.x) <= t.hw + 0.3 && Math.abs(o[3] - t.z) <= t.hd + 0.3 && Math.abs(o[2] - t.top) < 0.9);
@@ -540,13 +621,13 @@ export function obOrder(B, R) {
 export function genObby(spec) {
   const B = spec.build && spec.build.ob ? spec.build : genObbyBuild(spec), R = obReach(B, spec), cps = obOrder(B, R), n = (k) => B.o.filter((o) => o[0] === k).length;
   const bossHp = B.o.filter((o) => o[0] === "B").reduce((s, o) => s + o[9], 0), give = B.lg.reduce((s, r) => s + (r[2] === "coins" ? r[3] * (r[4] ? 20 : 1) : 0), 0);
-  return { obby: true, built: !!(spec.build && spec.build.ob), B, R, cps, len: (cps.length + 1) * 100, coins: n("o") + bossHp * 5 + give, v: obSpeed(spec), tl: B.tl };
+  return { obby: true, built: !!(spec.build && spec.build.ob), B, R, cps, len: (cps.length + 1) * 100, coins: n("o") + bossHp * 5 + give + n("E") * OB.EC, v: obSpeed(spec), tl: B.tl };
 }
 /// a quick-start course from the knobs (and the director's wishes): sections of hops, lava bridges, spinners, movers, pads
 /// and stairs, a checkpoint after each, the goal at the end; turns keep it inside the map
 export function genObbyBuild(spec, want = {}) {
   let s = spec.seed >>> 0 || 1; const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const o = [], far = obFar(spec) * 0.8, secs = want.secs || ({ 30: 4, 45: 6, 60: 8, 90: 11 })[spec.len] || 6, col = () => Math.floor(rnd() * 6);
+  const md = OB.MODES.includes(want.md) ? want.md : "obby", o = [], far = obFar(spec) * 0.8, secs = want.secs || ({ 30: 4, 45: 6, 60: 8, 90: 11 })[spec.len] || 6, col = () => Math.floor(rnd() * 6);
   let x = 0, y = 0, z = 0, h = 0, cp = 0; const dir = () => [Math.sin(h), Math.cos(h)];
   const put = (k, px, py, pz, sx, sy, sz, c = 0, a, b, ry = Math.round((h * 180) / Math.PI), g = 0) => { const O = OB.OPT[k] || []; o.push([k, px, py, pz, ry, sx, sy, sz, c, a != null ? a : O[0] ? O[0][3] : 0, b != null ? b : O[1] ? O[1][3] : 0, g]); };
   const fwd = (d) => { const [dx, dz] = dir(); x += dx * d; z += dz * d; };
@@ -566,12 +647,17 @@ export function genObbyBuild(spec, want = {}) {
     if (want.doors && i === Math.floor(secs / 2)) { fwd(2); const [dx, dz] = dir(); put("b", x, y - 1, z, 6, 1, 6, 6); put("u", x - dz * 2, y, z + dx * 2, 1.6, 0.3, 1.6, 2, 1, 0); fwd(3); put("d", x, y, z, 4, 4, 0.5, 4, 1, 0); fwd(1); }
     if (want.shop && i === 1) { const [dx, dz] = dir(); put("b", x + dz * 5, y - 1, z - dx * 5, 4, 1, 4, 6); put("n", x + dz * 5, y, z - dx * 5, 1.2, 2, 1.2, 0, 1, 10); }
     if (want.elevator && i === Math.floor(secs / 3)) { fwd(3); put("e", x, y - 0.5, z, 3, 0.5, 3, 1, 8, 2); fwd(3); y += 8; put("b", x, y - 1, z, 5, 1, 5, col()); fwd(2.5); }
+    if (md === "combat" && i % 2 === 1 && i < secs - 1) { fwd(7); put("y", x, y - 1, z, 11, 1, 11, col()); const n = 1 + Math.floor(rnd() * 2) + (spec.walls > 3 ? 1 : 0); for (let j = 0; j < n; j++) { const a = (j / n) * 6.28 + rnd(); put("E", x + Math.cos(a) * 3, y + (j === 2 ? 2 : 0), z + Math.sin(a) * 3, 1.2, 1.6, 1.2, 0, Math.min(6, 2 + spec.speed - 2 + Math.floor(i / 3)), i < 2 ? 0 : j === 2 ? 1 : Math.floor(rnd() * 3)); } fwd(6); }
+    if (md === "race") { fwd(1.5); put("R", x, y, z, 5, 5, 0.4, 0, i + 1); fwd(1.5); }
     fwd(3); put("b", x, y - 1, z, 5, 1, 5, 6); put(i === secs - 1 ? "g" : "c", x, y, z, 3, 0.3, 3, i === secs - 1 ? 2 : 1); cp++; fwd(2.5);
+    if (md === "explore" && rnd() < 0.7) put("Q", x + (rnd() - 0.5) * 3, y + 0.4, z + (rnd() - 0.5) * 3, 1, 1, 1);
   }
+  if (md === "explore") { for (let i = 0; i < 6; i++) { const a = rnd() * 6.28, r = 18 + rnd() * 45, hx = Math.cos(a) * r, hz = Math.sin(a) * r; const hh = Math.round((3 + rnd() * 4) * 4) / 4; put("H", hx, 0, hz, 12 + rnd() * 10, hh, 0, 8, 0); put("Q", hx, hh + 0.4, hz, 1, 1, 1); }
+    for (let i = 0; i < 3; i++) { const a = rnd() * 6.28, r = 20 + rnd() * 40; put("W", Math.cos(a) * r, 0, Math.sin(a) * r, 10, 1.6, 10, 0); put("Q", Math.cos(a) * r, 0.4, Math.sin(a) * r, 1, 1, 1); } } // (pools on the baseplate: swum through)
   for (let i = 0; i < (want.props != null ? want.props : 6); i++) { const a = rnd() * 6.28, r = 10 + rnd() * 60; put("x", Math.cos(a) * r, -4 - rnd() * 3, Math.sin(a) * r, 1, 1, 1, 0, Math.floor(rnd() * 4), 0, Math.floor(rnd() * 360)); } // (trees far below, round the course)
   const lg = want.boss ? [["bosshalf", 0, "say", 6, 0], ["boss", 0, "say", 0, 0]] : [];
   if (want.doors) lg.push(["button", 1, "say", 1, 0]);
-  return cleanObby({ o, lg, bp: want.bp ? 1 : 0, lk: want.look || ({ neon: "night", jungle: "day", ice: "mist", lava: "sunset", candy: "toon" })[spec.theme] || "day", ui: OB.UI0 | (want.boss ? OB.UI.boss : 0), cn: OB.CN0, hp: spec.speed >= 4 ? 3 : 0, q: want.boss ? 2 : 0, tl: want.timer || 0 });
+  return cleanObby({ o, lg, md, bp: want.bp || md === "explore" ? 1 : 0, lk: want.look || ({ neon: "night", jungle: "day", ice: "mist", lava: "sunset", candy: "toon" })[spec.theme] || "day", ui: OB.UI0 | (want.boss ? OB.UI.boss : 0) | (md !== "obby" ? OB.UI.map : 0), cn: OB.CN0, hp: spec.speed >= 4 || md === "combat" ? 3 : 0, q: want.boss ? 2 : ({ combat: 8, race: 9, explore: 10 })[md] || 0, tl: want.timer || (md === "race" ? 120 : 0) });
 }
 /// the bots on a course: each hop on the way there (how far, how high, a mover, a pad) and what is near it (lava,
 /// spinners) can cost a try — back to the last checkpoint, a heart gone when hearts count; a boss takes its hits; the clock
@@ -591,6 +677,7 @@ function estimateObby(spec, L, N, fails, why, rnd) {
       while (rnd() < h.pr * (1.5 - sk)) { falls++; t += 4 + (h.dist - back) / v; if (hp0) hearts--; if ((hp0 && hearts <= 0) || falls > patience) { end = h.dist / total; why[h.k] = (why[h.k] || 0) + 1; break; } }
       t += (h.dist - (i ? hops[i - 1].dist : 0)) / (v * (0.7 + sk * 0.4)) + 0.4; if (h.cp) back = h.dist;
       if (tl && t > tl && end < 0) { end = h.dist / total; why.time = (why.time || 0) + 1; } }
+    if (end < 0) for (const o of B.o) if (o[0] === "E") for (let k = 0; k < o[9] && end < 0; k++) if (rnd() < (0.022 + o[10] * 0.012) * (1.5 - sk)) { if (hp0) { hearts--; if (hearts <= 0) { end = 0.9; why.E = (why.E || 0) + 1; } } t += 2; } // (G1: each enemy's hits can cost a heart)
     if (end < 0) for (const o of boss) { for (let k = 0; k < o[9] && end < 0; k++) if (rnd() < (0.05 + o[10] * 0.02) * (1.5 - sk)) { if (hp0) { hearts--; if (hearts <= 0) { end = 0.97; why.B = (why.B || 0) + 1; } } t += 3; } t += o[9] * 1.2; }
     if (end < 0 && tl && t > tl) { end = 0.98; why.time = (why.time || 0) + 1; }
     if (end < 0) clears++; else fails[Math.min(9, Math.floor(end * 10))]++; }
@@ -608,7 +695,8 @@ export function obWants(text) {
     look: has(/night|neon|밤|네온/) ? "night" : has(/sunset|노을|저녁/) ? "sunset" : has(/fog|mist|spooky|안개|으스스/) ? "mist" : has(/space|galaxy|우주/) ? "space" : has(/cartoon|toon|cute|귀여|만화/) ? "toon" : has(/cinematic|epic|movie|영화|웅장/) ? "cine" : "",
     secs: has(/short|quick|짧/) ? 4 : has(/long|epic|huge|길|거대/) ? 10 : 0,
     theme: has(/lava|fire|volcano|용암|불/) ? "lava" : has(/ice|snow|frozen|얼음|눈/) ? "ice" : has(/jungle|forest|정글|숲/) ? "jungle" : has(/candy|sweet|사탕/) ? "candy" : has(/neon|cyber|네온|사이버/) ? "neon" : "",
-    hard: has(/hard|brutal|insane|어렵|극악/) ? 1 : has(/easy|kid|chill|쉬|초보/) ? -1 : 0 };
+    hard: has(/hard|brutal|insane|어렵|극악/) ? 1 : has(/easy|kid|chill|쉬|초보/) ? -1 : 0,
+    md: has(/fight|enem|combat|monster|battle|전투|몬스터|적 |싸움/) ? "combat" : has(/\brace|racing|ring|lap|레이스|경주|링/) ? "race" : has(/explor|adventure|open world|gems?\b|탐험|모험|보석/) ? "explore" : "" };
 }
 /// the director's second step: a change asked in words on a course that's already there ("add a boss", "harder ending",
 /// "more coins", "add a shop", "night look" …) → { build, did: [what changed] }
@@ -624,19 +712,21 @@ export function obTweak(spec, text) {
   if (/shop|상점|가게/.test(t) && !B.o.some((o) => o[0] === "n") && T[R.path[1]]) { const q = T[R.path[1]]; add(["n", q.x + q.hw - 0.8, q.top, q.z, 0, 1.2, 2, 1.2, 0, 1, 10, 0]); did.push("shop"); }
   if (/checkpoint|체크/.test(t)) { for (let k = 2; k < R.path.length - 1; k += 4) { const q = T[R.path[k]]; if (q.i >= 0 && !B.o.some((o) => o[0] === "c" && Math.hypot(o[1] - q.x, o[3] - q.z) < 2)) add(["c", q.x, q.top, q.z, 0, 3, 0.3, 3, 1, 0, 0, 0]); } did.push("checkpoints"); }
   if (/spinner|스피너|회전/.test(t)) { for (const q of late.slice(0, 3)) if (q.hw >= 2) add(["s", q.x, q.top + 0.4, q.z, 0, Math.min(10, q.hw * 2), 0.5, 0.5, 11, 2, 0, 0]); did.push("spinners"); }
+  for (const [id, re, d] of [["bxhouse", /house|home|집/, "house"], ["bxcave", /cave|동굴/, "cave"], ["bxcamp", /enemy camp|enemies|monsters?|적 |몬스터/, "camp"], ["bxvault", /vault|treasure|보물/, "vault"], ["bxgates", /race gates?|rings?|레이스|링/, "gates"]]) if (re.test(t) && !(B.pi || []).some((x) => x[1] === id)) { // (G2: the director places ARCIRCLE's own prefabs beside the way)
+    const q = late[0] || end; if (!q) continue; const side = did.length % 2 ? -1 : 1, r = placePrefab(B, PREFABS[id], [q.x + side * (q.hw + 10), (q.top || 0) - 0, q.z], 0, id); if (r.ok) { Object.assign(B, r.B); did.push(d); } }
   if (/timer|time|시간|타이머/.test(t)) { B.tl = B.tl || 180; B.ui |= OB.UI.timer; did.push("timer"); }
   for (const lk of OB.LOOKS) if (t.includes(lk) || (lk === "night" && /밤|neon|네온/.test(t)) || (lk === "sunset" && /노을/.test(t)) || (lk === "mist" && /안개|fog/.test(t)) || (lk === "space" && /우주/.test(t)) || (lk === "toon" && /cartoon|만화/.test(t)) || (lk === "cine" && /cinematic|영화/.test(t))) { B.lk = lk; did.push("look"); break; }
   return { build: cleanObby(B), did };
 }
 /// OB5: the logic as a small script for those who like to type — one rule a line, `when <event> then <action> [again]`
 /// (events: start · button N · coins N · every N · after N · A >= N · B >= N · phase N · boss half · boss down ·
-/// checkpoint N; actions: open N · close N · toggle N · say N · A += N · A -= N · B += N · A = N · B = N · phase N · show N ·
+/// checkpoint N · enemies down · collect N · ring N; actions: track N · cutscene · open N · close N · toggle N · say N · A += N · A -= N · B += N · A = N · B = N · phase N · show N ·
 /// hide N · heart N · coins N · time N · speed N · win · hurt). Nothing in it runs as code: it reads into the same rules
 /// the blocks make (and the server cleans), so a game can't do anything the blocks can't.
-const SW = { button: "button", coins: "coins", every: "every", after: "after", phase: "phase", checkpoint: "checkpoint" }, ST = { open: "open", close: "close", toggle: "toggle", say: "say", phase: "phase", show: "show", hide: "hide", heart: "heart", coins: "coins", time: "time", speed: "speed" };
+const SW = { button: "button", coins: "coins", every: "every", after: "after", phase: "phase", checkpoint: "checkpoint", collect: "collect", ring: "ring" }, ST = { open: "open", close: "close", toggle: "toggle", say: "say", phase: "phase", show: "show", hide: "hide", heart: "heart", coins: "coins", time: "time", speed: "speed", track: "track" };
 export function obScript(lg) {
-  const ev = (w, a) => (w === "start" ? "start" : w === "varA" ? `A >= ${a}` : w === "varB" ? `B >= ${a}` : w === "bosshalf" ? "boss half" : w === "boss" ? "boss down" : `${w} ${a}`);
-  const ac = (t, a) => (t === "addA" ? (a < 0 ? `A -= ${-a}` : `A += ${a}`) : t === "addB" ? (a < 0 ? `B -= ${-a}` : `B += ${a}`) : t === "setA" ? `A = ${a}` : t === "setB" ? `B = ${a}` : t === "win" || t === "hurt" ? t : `${t} ${a}`);
+  const ev = (w, a) => (w === "start" ? "start" : w === "varA" ? `A >= ${a}` : w === "varB" ? `B >= ${a}` : w === "bosshalf" ? "boss half" : w === "boss" ? "boss down" : w === "enemies" ? "enemies down" : `${w} ${a}`);
+  const ac = (t, a) => (t === "addA" ? (a < 0 ? `A -= ${-a}` : `A += ${a}`) : t === "addB" ? (a < 0 ? `B -= ${-a}` : `B += ${a}`) : t === "setA" ? `A = ${a}` : t === "setB" ? `B = ${a}` : t === "win" || t === "hurt" || t === "cutscene" ? t : `${t} ${a}`);
   return (lg || []).map((r) => `when ${ev(r[0], r[1])} then ${ac(r[2], r[3])}${r[4] && r[0] !== "every" ? " again" : ""}`).join("\n");
 }
 export function obParse(text) {
@@ -646,10 +736,10 @@ export function obParse(text) {
     const m = /^when\s+(.+?)\s+then\s+(.+?)(\s+again)?$/.exec(line); if (!m) { errs.push(i + 1); return; }
     let w = null, wa = 0, t = null, ta = 0; const e = m[1].replace(/\s+/g, " "), a = m[2].replace(/\s+/g, " ");
     let q;
-    if (e === "start") w = "start"; else if (e === "boss half") w = "bosshalf"; else if (e === "boss down" || e === "boss") w = "boss";
+    if (e === "start") w = "start"; else if (e === "boss half") w = "bosshalf"; else if (e === "boss down" || e === "boss") w = "boss"; else if (e === "enemies down" || e === "enemies") w = "enemies";
     else if ((q = /^([ab]) ?>= ?(\d+)$/.exec(e))) { w = q[1] === "a" ? "varA" : "varB"; wa = +q[2]; }
     else if ((q = /^([a-z]+) (\d+)$/.exec(e)) && SW[q[1]]) { w = SW[q[1]]; wa = +q[2]; }
-    if (a === "win" || a === "hurt") t = a;
+    if (a === "win" || a === "hurt" || a === "cutscene") t = a;
     else if ((q = /^([ab]) ?(\+=|-=|=) ?(\d+)$/.exec(a))) { t = (q[2] === "=" ? "set" : "add") + q[1].toUpperCase(); ta = q[2] === "-=" ? -q[3] : +q[3]; }
     else if ((q = /^([a-z]+) (\d+)$/.exec(a)) && ST[q[1]]) { t = ST[q[1]]; ta = +q[2]; }
     if (!w || !t) { errs.push(i + 1); return; }

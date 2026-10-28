@@ -53,7 +53,7 @@ const NAV = [["home", "home", "Home", 0], ["creations", "folder", "Creations", 0
 const SUBS = {
   creations: [["games", "My games"], ["shared", "Shared with me"], ["device", "On this device"]],
   learn: [["start", "Get started"], ["guides", "Guides"], ["templates", "Templates"], ["world", "In ARCIRCLE WORLD"]],
-  store: [["all", "Home"], ["templates", "Templates"], ["themes", "Themes"], ["pieces", "Pieces"], ["remix", "Remixable games"]],
+  store: [["all", "Home"], ["templates", "Templates"], ["themes", "Themes"], ["prefabs", "Prefabs"], ["pieces", "Pieces"], ["remix", "Remixable games"]],
   community: [["arcade", "Creator Arcade"], ["contest", "Weekly contest"], ["sponsor", "Sponsor contests"], ["daily", "Daily challenge"], ["season", "Creator season"], ["races", "Live races"], ["feed", "Following"]],
   analytics: [["overview", "Overview"], ["games", "By game"], ["report", "Weekly report"], ["ab", "A/B test"]], ...XSUBS,
   rewards: [["overview", "Overview"], ["contest", "Contest prizes"]],
@@ -486,7 +486,7 @@ export function makeHub(o) {
   const FX = makeHubFx({ T, esc, ic, D, lang: o.lang, ver, num, arcade, mine, handle, wallet, LV, toast, page: () => page, hidden: () => root.hidden, forget: (re) => { for (const k of Object.keys(got)) if (re.test(k)) delete got[k]; } });
   const X = makeHubX({ T, esc, ic, num, ver, D, art, hubArt, cover, tname, thname, ago, left, wallet, me, LV, TDESC, get, arcade, mine, handle, week, feed, sess: o.sess, signed: o.signed, toast, go, paint, countUp,
     sub: () => sub, sec: (...a) => sec(...a), head: (...a) => head(...a), skel: (...a) => skel(...a), empty: (...a) => empty(...a), signCard: (...a) => signCard(...a), gameCard: (...a) => gameCard(...a), kpiT: (...a) => kpiT(...a),
-    forget: (re) => { for (const k of Object.keys(got)) if (re.test(k)) delete got[k]; }, openGame, lightbox, ask: (q) => ask(T, q, { ok: T("Delete"), cancel: T("Cancel"), danger: true }) });
+    forget: (re) => { for (const k of Object.keys(got)) if (re.test(k)) delete got[k]; }, openGame, lightbox, ask: (q) => ask(T, q, { ok: T("Delete"), cancel: T("Cancel"), danger: true }), confirm: (q) => ask(T, q, { ok: T("Buy"), cancel: T("Cancel") }) });
   route(); handle().then((h) => { D.h = h; if (h && !root.hidden) { const u = root.querySelector(".sgh-user"); if (u) u.outerHTML = userRow(); } }); paint(); feedCount(); setTimeout(() => FX.milestones().catch(() => {}), 1500); X.unread().then((n) => { if (n && !root.hidden) root.querySelectorAll("[data-bell]").forEach((b) => { const d = b.querySelector(".sgh-dot"); if (d) d.textContent = bellN() > 9 ? "9+" : bellN(); else b.insertAdjacentHTML("beforeend", `<em class="sgh-dot">${bellN()}</em>`); }); }).catch(() => {});
   return {
     show() { root.hidden = false; document.body.classList.remove("sgh-ws"); fresh(); route(); paint(); FX.milestones().catch(() => {}); },

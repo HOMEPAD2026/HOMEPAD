@@ -26,7 +26,7 @@
 // worldMktSale/<id>_<buyer> · worldMktCreator/<w> { items, pending: [saleKey], soldN, gross, elig, play } ·
 // worldSettle/<id> · worldStats/settleIndex { ids } · worldSettleTx/<tx> · worldEconAudit/<id> · worldArclBal/platform
 import { ARCIRCLE } from "./_world-shop.mjs";
-export const MARKET = { CUT: 0.8, HOLD: 14 * 864e5, MIN: 30000, PRICE: [100, 1_000_000], MAX_LISTINGS: 20, CODE_MAX: 120_000, TITLE_MAX: 40, INDEX_MAX: 500 };
+export const MARKET = { CUT: 0.8, REMIX_ORIG: 0.25, HOLD: 14 * 864e5, MIN: 30000, PRICE: [100, 1_000_000], MAX_LISTINGS: 20, CODE_MAX: 120_000, TITLE_MAX: 40, INDEX_MAX: 500 };
 const lc = (a) => String(a || "").toLowerCase();
 const pad32 = (a) => "0x" + lc(a).replace(/^0x/, "").padStart(64, "0");
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -93,6 +93,37 @@ export function makeMarket(deps) {
     if (deps.note) await deps.note(w, "spend", "market:" + it.id, -it.price, { parts, ref: it.creator }).catch(() => {});
     if (L) await L.record("platform", "fee", "market-cut", platform, { ref: sk }).catch(() => {});
     return json(200, { ok: true, owned: it.id, code: it.code, title: it.title, bal: v.bal - it.price });
+  }
+  /// OBBY / studio assets (2026-10-28, the owner): the same payment for the Studio's prefabs, premium templates and assets —
+  /// the buyer pays it all at once (PURCHASED first), 80 % goes to the creator(s) on the same 14-day hold and buckets, 20 %
+  /// to the platform. A remix's creator share is split with its original maker (REMIX_ORIG of it, the original's own
+  /// pending sale). own: the marker that the buyer owns it (created once). → { ok } | { error }
+  async function paySale(w, it, own) {
+    if (!(it.price > 0)) return { error: "free" }; if (it.creator === w) return { error: "it's yours already" };
+    const v = await L.buckets(w); if (v.bal < it.price) return { error: "not enough ARCL", bal: v.bal };
+    const parts = L.split(v, it.price, ["purchased", "play", "cplay", "cavail"]), paidPurchased = (parts.purchased || 0) + (parts.cavail || 0);
+    const elig = Math.floor(paidPurchased * MARKET.CUT), play = Math.floor(it.price * MARKET.CUT) - elig, platform = it.price - elig - play, t = now(), sk = `${it.id}_${w}`;
+    const orig = it.orig && it.orig !== it.creator ? it.orig : "", oE = orig ? Math.floor(elig * MARKET.REMIX_ORIG) : 0, oP = orig ? Math.floor(play * MARKET.REMIX_ORIG) : 0;
+    const sale = { id: sk, item: it.id, title: it.title, buyer: w, creator: it.creator, price: it.price, parts, elig: elig - oE, play: play - oP, platform, at: t, matureAt: t + MARKET.HOLD, status: "pending", kind: it.kind || "studio" };
+    const r = await commit([{ create: own, data: { at: t, price: it.price } }, { create: `worldArclSpend/${w}_${Math.floor(t / 1500)}`, data: { at: t } },
+      { inc: `worldArclBal/${w}`, fields: { bal: -it.price, spent: it.price } }, ...L.bucketOps(w, parts, -1),
+      { inc: "worldArclBal/platform", fields: { bal: platform, earned: platform } }, { set: `worldMktSale/${sk}`, data: sale },
+      ...(orig ? [{ set: `worldMktSale/${sk}_o`, data: { ...sale, id: sk + "_o", creator: orig, elig: oE, play: oP, platform: 0, remixOf: it.creator } }] : []), { inc: "worldStats/econ", fields: { sales: it.price, platform } }]);
+    if (!r.ok) return { error: "one moment — or you own it already" };
+    for (const [c, key] of [[it.creator, sk], ...(orig ? [[orig, sk + "_o"]] : [])]) { const C = (await one(`worldMktCreator/${c}`)) || {}; await setDoc(`worldMktCreator/${c}`, { ...C, pending: [...(C.pending || []), key], soldN: (C.soldN || 0) + 1, gross: (C.gross || 0) + it.price }); }
+    if (deps.note) await deps.note(w, "spend", (it.kind || "studio") + ":" + it.id, -it.price, { parts, ref: it.creator }).catch(() => {});
+    if (L) await L.record("platform", "fee", "studio-cut", platform, { ref: sk }).catch(() => {});
+    return { ok: true, bal: v.bal - it.price };
+  }
+  /// a platform charge (AI credits over the free quota): the ARCL goes to the platform, in the ledger. → { ok } | { error }
+  async function charge(w, n, ref) {
+    n = Math.floor(Number(n)); if (!(n > 0)) return { error: "nothing to pay" }; const v = await L.buckets(w); if (v.bal < n) return { error: "not enough ARCL", bal: v.bal };
+    const parts = L.split(v, n, ["play", "purchased", "cplay", "cavail"]), t = now();
+    const r = await commit([{ create: `worldArclSpend/${w}_${Math.floor(t / 1500)}`, data: { at: t } }, { inc: `worldArclBal/${w}`, fields: { bal: -n, spent: n } }, ...L.bucketOps(w, parts, -1), { inc: "worldArclBal/platform", fields: { bal: n, earned: n } }]);
+    if (!r.ok) return { error: "one moment — try again" };
+    if (deps.note) await deps.note(w, "spend", String(ref || "credit").slice(0, 40), -n, { parts }).catch(() => {});
+    if (L) await L.record("platform", "fee", "ai-credit", n, { ref: w }).catch(() => {});
+    return { ok: true, bal: v.bal - n };
   }
   // a creator's sales past their hold: into the balance (cavail and cplay), each once (a create marker)
   async function mature(w) {
@@ -179,6 +210,7 @@ export function makeMarket(deps) {
   }
 
   return {
+    paySale, charge,
     async read(v, url) {
       const w = lc(url && url.searchParams ? url.searchParams.get("wallet") : "");
       if (v === "market") return browse(url);

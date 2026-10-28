@@ -97,7 +97,7 @@ for (const dev of (process.env.DEVS ?? "phone,desk").split(",").filter(Boolean))
   // OBBY WORLD (2026-10-28): a 3D course in the World — the hero walks with a walk clip, and leaving gives the town back
   await G(() => document.querySelectorAll(".wp-share .wp-st-x, .wp-share-x").forEach((c) => c.click()));
   await G(() => window.arcWorld.openStudio()); for (let i = 0; i < 30 && !(await G(() => !!window.__studio)); i++) await p.waitForTimeout(500);
-  await G(() => window.__studio.playId("goffobby")); for (let i = 0; i < 60 && !(await G(() => { const r = window.__studio.playing(); return !!(r && r.S && r.S.t > 0.3); })); i++) await p.waitForTimeout(500);
+  await G(() => window.__studio.playId("goffobby")); for (let i = 0; i < 60 && !(await G(() => { const r = window.__studio.playing(); if (r && r.start) r.start(); return !!(r && r.S && r.S.t > 0.3); })); i++) await p.waitForTimeout(500); // (G3: the start card's Play)
   await G(() => { const r = window.__studio.playing(); if (r) r.keys.add("w"); }); await p.waitForTimeout(700);
   const obc = await G(() => { const r = window.__studio.playing(); return r ? r.clips() : null; }); await shot("obby");
   check(!!obc && obc.some((c) => /walk|run/i.test(c)), `${dev}: Obby World runs in the World, the hero walks (${(obc || []).join(" ")})`);
