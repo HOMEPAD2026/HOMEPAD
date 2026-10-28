@@ -14,7 +14,11 @@ export const HW = {
   NIGHT: { hp: 1.5, atk: 1.5, def: 1.5, xp: 2, arcl: 1.5, drop: 1.5, rare: 2 },
   // HX3: every EVERY-th Cursed Night (the cycle's number % EVERY === AT) is a BLOOD MOON: these instead of NIGHT's
   BLOOD: { EVERY: 6, AT: 3, hp: 1.8, atk: 1.6, def: 1.6, xp: 3, arcl: 2, drop: 2, rare: 3 },
-  LAND: { x: 2400, z: 2400, r: 165 }, VILLAGE_R: 26,
+  LAND: { x: 2400, z: 2400, r: 262 }, VILLAGE_R: 26,
+  // HT1 (2026-10-28, the owner: "no ground pads — a wide spooky land to hunt in, like Jurassic"): the land is one rolling
+  // terrain (world-hwterrain.js); each ground is a region of it (its lift / flat below shape the hills), the swamp's black
+  // water between the village and the forest slows you, the ridges past EDGE wall it in
+  SWAMP: { a: 300, d: 72, r: 22, slow: 0.62 }, EDGE: 232,
   // the chance a knock-out drops one of the six pieces (night ×1.5): the spec's 10.1 table
   DROP: { "": 0.0003, elite: 0.003, boss: 0.02, jack: 0.05 },
   // Pumpkin Soul Fragments: a piece salvaged gives SALVAGE (+ its + × 2), CRAFT of them make a piece of the slot you pick;
@@ -48,19 +52,21 @@ export function clockOf(ms = Date.now()) {
 export const nightOf = (c) => (!c || !c.night ? null : c.blood ? HW.BLOOD : HW.NIGHT);
 /// how many cycles until the next Blood Moon night (0 = this one)
 function bloodNext(cycle) { const E = HW.BLOOD.EVERY; return (((HW.BLOOD.AT - cycle) % E) + E) % E; }
-// a = the direction from the village's middle (0 = south, the way in; 90 = east), d = how far, r = the ground's size
+// a = the direction from the village's middle (0 = south, the way in; 90 = east), d = how far, r = the ground's size (the
+// fights' leash: no pad is drawn any more), lift = its height (a hill, a plateau, a basin), flat = how much of the land's
+// roll is left inside it
 export const GROUNDS = [
-  { id: "hw-patch", name: "Pumpkin Patch", a: 45, d: 62, r: 20, lv: [15, 50], color: 0xff9a2e, mobs: ["drop", "spam"], skins: { drop: "HwSlime", spam: "HwScarecrow" }, names: { drop: "Pumpkin Slime", spam: "Cursed Scarecrow" }, eskin: "HwScarecrow", elite: 0.1, pow: 1.1,
+  { id: "hw-patch", name: "Pumpkin Patch", a: 45, d: 80, r: 38, lift: 0, flat: 0.55, lv: [15, 50], color: 0xff9a2e, mobs: ["drop", "spam"], skins: { drop: "HwSlime", spam: "HwScarecrow" }, names: { drop: "Pumpkin Slime", spam: "Cursed Scarecrow" }, eskin: "HwScarecrow", elite: 0.1, pow: 1.1,
     boss: { name: "The Pumpkin Brute", line: "Rolls over everything in the patch", skin: "HwSlime", skinH: 1.8, tint: 0xff8a1f, model: "QuadShell", scale: 1.8, y: 0.9 } },
-  { id: "hw-forest", name: "Whispering Forest", a: 270, d: 82, r: 30, lv: [50, 100], color: 0x7cf5c8, mobs: ["spam", "rug"], skins: { spam: "HwGhost", rug: "HwScarecrow" }, names: { spam: "Phantom Ghost", rug: "Cursed Scarecrow" }, eskin: "HwTreant", ename: "Cursed Treant", elite: 0.16, pow: 1.25,
+  { id: "hw-forest", name: "Whispering Forest", a: 270, d: 130, r: 55, lift: 1, flat: 0.9, lv: [50, 100], color: 0x7cf5c8, mobs: ["spam", "rug"], skins: { spam: "HwGhost", rug: "HwScarecrow" }, names: { spam: "Phantom Ghost", rug: "Cursed Scarecrow" }, eskin: "HwTreant", ename: "Cursed Treant", elite: 0.16, pow: 1.25,
     boss: { name: "The Elder Treant", line: "Its roots hold the whole forest", skin: "HwTreant", skinH: 2.6, tint: 0x39ff88, model: "QuadShell", scale: 2.0, y: 1.0 } },
-  { id: "hw-grave", name: "Graveyard of the Lost", a: 90, d: 82, r: 30, lv: [100, 200], color: 0xb48cff, mobs: ["rug", "spam"], skins: { rug: "HwSkeleton", spam: "HwGhost" }, names: { rug: "Skeleton Knight", spam: "Phantom Ghost" }, eskin: "HwSkeleton", ename: "Skeleton Knight", elite: 0.22, pow: 1.45,
+  { id: "hw-grave", name: "Graveyard of the Lost", a: 100, d: 140, r: 46, lift: 6, flat: 0.3, lv: [100, 200], color: 0xb48cff, mobs: ["rug", "spam"], skins: { rug: "HwSkeleton", spam: "HwGhost" }, names: { rug: "Skeleton Knight", spam: "Phantom Ghost" }, eskin: "HwSkeleton", ename: "Skeleton Knight", elite: 0.22, pow: 1.45,
     boss: { name: "The Grave Lord", line: "Raises the lost every midnight", skin: "HwSkeleton", skinH: 2.4, tint: 0xb48cff, model: "Trilobite", scale: 2.2, y: 1.0 } },
-  { id: "hw-candy", name: "Witch's Candy Factory", a: 0, d: 80, r: 28, lv: [150, 250], color: 0xff6fae, mobs: ["drop", "spam"], skins: { drop: "HwSlime", spam: "HwScarecrow" }, names: { drop: "Jelly Slime", spam: "Candy Scarecrow" }, eskin: "HwWitch", ename: "Midnight Witch", elite: 0.2, pow: 1.6,
+  { id: "hw-candy", name: "Witch's Candy Factory", a: 330, d: 140, r: 42, lift: -0.5, flat: 0.4, lv: [150, 250], color: 0xff6fae, mobs: ["drop", "spam"], skins: { drop: "HwSlime", spam: "HwScarecrow" }, names: { drop: "Jelly Slime", spam: "Candy Scarecrow" }, eskin: "HwWitch", ename: "Midnight Witch", elite: 0.2, pow: 1.6,
     boss: { name: "The Candy Witch", line: "Every sweet has a spell inside", skin: "HwWitch", skinH: 2.2, tint: 0xff6fae, model: "QuadShell", scale: 2.0, y: 1.0 } },
-  { id: "hw-clock", name: "Midnight Clocktower", a: 180, d: 70, r: 26, lv: [250, 350], color: 0x5fd3ff, mobs: ["rug", "spam", "drop"], skins: { rug: "HwSkeleton", spam: "HwGhost", drop: "HwScarecrow" }, names: { rug: "Clockwork Knight", spam: "Midnight Ghost", drop: "Gear Scarecrow" }, eskin: "HwSkeleton", ename: "Clockwork Knight", elite: 0.26, pow: 1.8,
+  { id: "hw-clock", name: "Midnight Clocktower", a: 160, d: 150, r: 38, lift: 9, flat: 0.25, lv: [250, 350], color: 0x5fd3ff, mobs: ["rug", "spam", "drop"], skins: { rug: "HwSkeleton", spam: "HwGhost", drop: "HwScarecrow" }, names: { rug: "Clockwork Knight", spam: "Midnight Ghost", drop: "Gear Scarecrow" }, eskin: "HwSkeleton", ename: "Clockwork Knight", elite: 0.26, pow: 1.8,
     boss: { name: "The Midnight Warden", line: "When the bell rings twelve, it wakes", skin: "HwTreant", skinH: 2.8, tint: 0x5fd3ff, model: "Trilobite", scale: 2.4, y: 1.0 } },
-  { id: "hw-throne", name: "Inferno Pumpkin Throne", a: 180, d: 128, r: 28, lv: [350, 400], color: 0xff4d2a, mobs: ["spam", "rug", "drop"], skins: { spam: "HwGhost", rug: "HwSkeleton", drop: "HwWitch" }, names: { spam: "Inferno Ghost", rug: "Inferno Knight", drop: "Inferno Witch" }, eskin: "HwTreant", ename: "Burning Treant", elite: 0.3, pow: 2.0, jack: true,
+  { id: "hw-throne", name: "Inferno Pumpkin Throne", a: 200, d: 200, r: 34, lift: -5, flat: 0.3, lv: [350, 400], color: 0xff4d2a, mobs: ["spam", "rug", "drop"], skins: { spam: "HwGhost", rug: "HwSkeleton", drop: "HwWitch" }, names: { spam: "Inferno Ghost", rug: "Inferno Knight", drop: "Inferno Witch" }, eskin: "HwTreant", ename: "Burning Treant", elite: 0.3, pow: 2.0, jack: true,
     boss: { name: "Inferno Jack", line: "King of the Cursed Night", skin: "HwJack", skinH: 2.8, tint: 0xff5a1a, model: "Trilobite", scale: 2.6, y: 1.0 } },
 ];
 export const groundXZ = (g) => [HW.LAND.x + Math.sin((g.a * Math.PI) / 180) * g.d, HW.LAND.z + Math.cos((g.a * Math.PI) / 180) * g.d];

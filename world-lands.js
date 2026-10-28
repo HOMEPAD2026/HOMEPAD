@@ -17,7 +17,7 @@ export const LANDS = {
   ad: { id: "ad", name: "Nexus City", x: 0, z: 2400, r: 92, color: 0x5fd3ff, css: "#5fd3ff" }, // AD-City 1: AGENT DIMENSION's city (world-adcity.js), by the Citadel
   rq: { id: "rq", name: "RAID QUEENS", x: 0, z: -2400, r: 63, color: 0xff4d8d, css: "#ff4d8d" },
   cc: { id: "cc", name: "Creator City", x: -2400, z: 2400, r: 78, color: 0x7cf5c8, css: "#7cf5c8" },
-  hw: { id: "hw", name: "Halloween Realm", x: 2400, z: 2400, r: 165, color: 0xff8a1f, css: "#ff8a1f" }, // the HALLOWEEN REALM (world-hwrealm.js): through the Haunted Pumpkin Gate on the plaza's ring // ARCIRCLE STUDIO BETA (world-creatorcity.js): through the Studio by the fountain // RAID QUEENS (world-raidq.js): the high levels' land, through the Crimson Citadel
+  hw: { id: "hw", name: "Halloween Realm", x: 2400, z: 2400, r: 262, color: 0xff8a1f, css: "#ff8a1f" }, // the HALLOWEEN REALM (world-hwrealm.js): through the Haunted Pumpkin Gate on the plaza's ring // ARCIRCLE STUDIO BETA (world-creatorcity.js): through the Studio by the fountain // RAID QUEENS (world-raidq.js): the high levels' land, through the Crimson Citadel
 };
 export const LOT_TIERS = [
   { id: "starter", name: "Starter", min: 0, N: 16, max: 2000, color: 0x9fb4c8, css: "#9fb4c8" },
