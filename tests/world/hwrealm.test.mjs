@@ -119,4 +119,14 @@ r = await call(A, "world-hw-kill", { zone: "hw-patch" }); check(r.body.capped, "
   r = await call(low, "world-hw-gimmick", { kind: "tomb" }); check(r.status === 403, "the graveyard's puzzle needs its level"); }
 // HX3: the week's board
 { const v3 = (await W.read(new URL("https://x/api/social?world=hw-top&wallet=" + A.address))).body; check(v3.week && v3.top.length >= 1 && v3.mine >= 1, `the week's hunters (${v3.top.length}, you ${v3.mine})`); }
+// HT1: the land is one terrain — no pads; the regions don't overlap, the village is flat, the Graveyard a hill, the
+// Clocktower a plateau, the Throne a basin, the swamp wet, the ridges wall it in, every region inside the land
+{ const { makeHwHeight } = await import("../../world-hwterrain.js"), H = makeHwHeight(D.HW, D.GROUNDS), R = Object.fromEntries(H.regs.map((g) => [g.id, g]));
+  check(Math.abs(H.h(0, 0)) < 0.01 && Math.abs(H.h(15, -12)) < 0.01, "the village's square is flat");
+  check(H.h(R["hw-grave"].x, R["hw-grave"].z) > 4 && H.h(R["hw-clock"].x, R["hw-clock"].z) > 7 && H.h(R["hw-throne"].x, R["hw-throne"].z) < -3, "the Graveyard a hill, the Clocktower a plateau, the Throne a basin");
+  check(H.wet(H.swamp.x, H.swamp.z) && !H.wet(0, 0), "the swamp's water");
+  check(H.h(D.HW.LAND.r - 2, 0) > 15 && H.h(0, -(D.HW.LAND.r - 2)) > 15, "the ridges past the edge wall it in");
+  let over = 0; for (const a of D.GROUNDS) for (const b of D.GROUNDS) if (a !== b) { const [ax, az] = D.groundXZ(a), [bx, bz] = D.groundXZ(b); if (Math.hypot(ax - bx, az - bz) < a.r + b.r) over++; } check(!over, "no two hunting regions overlap");
+  check(D.GROUNDS.every((g) => g.d + g.r <= D.HW.EDGE + 4 && g.d - g.r > D.HW.VILLAGE_R + 8), "every region sits between the village and the ridges");
+  let st = 0; for (let i = 0; i < 4000; i++) { const x = (i * 37 % 440) - 220, z = (i * 53 % 440) - 220; if (Math.hypot(x, z) > D.HW.EDGE) continue; st = Math.max(st, Math.hypot(H.h(x + 1, z) - H.h(x, z), H.h(x, z + 1) - H.h(x, z))); } check(st < 1, `the slopes inside can be walked (steepest ${st.toFixed(2)})`); }
 console.log(`\n${ok} passed, ${bad} failed`); if (bad) process.exit(1);
