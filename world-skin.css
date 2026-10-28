@@ -5836,3 +5836,58 @@ body>.wse-form{position:fixed;z-index:13050}.wse-form .wse-chk{align-items:flex-
 .wso-start:not([hidden])~.wst-cd{display:none}
 @media (max-width:520px){.wso-hud .wst-hn{display:none}}
 .wse-pf img{width:100%;aspect-ratio:20/11;object-fit:cover;border-radius:6px;margin-bottom:3px;background:#0d1220}
+/* ---- the HALLOWEEN REALM (world-hwrealm-ui.js): the strip at the top, the night, the cut-in, the drop card, the set's window ---- */
+.hwr-strip{position:fixed;top:calc(env(safe-area-inset-top,0px) + 62px);left:50%;transform:translateX(-50%);z-index:46;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border-radius:999px;background:linear-gradient(90deg,rgba(40,14,4,.86),rgba(34,10,46,.86));border:1px solid rgba(255,138,31,.55);box-shadow:0 6px 22px rgba(0,0,0,.35),0 0 18px rgba(255,138,31,.18);font:700 12.5px/1.2 Sora,"Noto Sans KR",sans-serif;color:#ffe9d2;white-space:nowrap;max-width:calc(100vw - 24px);overflow:hidden}
+.hwr-strip[hidden]{display:none}
+.hwr-time{display:flex;gap:6px;align-items:center;color:#ffb04a}.hwr-time i{font-style:normal;font-variant-numeric:tabular-nums;color:#fff;background:rgba(0,0,0,.35);padding:2px 7px;border-radius:8px}
+.hwr-time.night{color:#d9b8ff}.hwr-time.warn{color:#ffd23a;animation:hwrPulse 1s ease-in-out infinite}
+.hwr-k{color:#ffd9a8;font-weight:600;overflow:hidden;text-overflow:ellipsis}.hwr-k.warn{color:#ffd23a}
+.hwr-z{color:#cfe8ff;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.hwr-set{display:flex;align-items:center;gap:5px;border:1px solid rgba(255,138,31,.6);background:rgba(255,138,31,.16);color:#fff;border-radius:999px;padding:3px 10px 3px 4px;font:800 12px Sora,sans-serif;cursor:pointer}
+.hwr-set img{width:22px;height:22px;object-fit:contain}
+@keyframes hwrPulse{50%{opacity:.55}}
+body.wp-hw-night::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at 50% 42%,rgba(70,20,120,.22) 0%,rgba(40,0,70,.32) 55%,rgba(20,0,40,.55) 100%);mix-blend-mode:multiply}
+.hwr-cut{position:fixed;left:0;right:0;top:30%;z-index:120;display:grid;justify-items:center;gap:6px;pointer-events:none;opacity:0;transform:scale(1.15);transition:opacity .45s,transform .6s cubic-bezier(.2,.9,.2,1)}
+.hwr-cut.on{opacity:1;transform:scale(1)}
+.hwr-cut b{font:900 clamp(26px,6vw,58px)/1 "Exo 2",Sora,sans-serif;letter-spacing:.04em;color:#fff;text-shadow:0 0 18px #ff5a1a,0 0 42px #b42aff,0 4px 0 #3a0a00;padding:10px 26px;background:linear-gradient(90deg,transparent,rgba(30,0,40,.75) 20%,rgba(30,0,40,.75) 80%,transparent)}
+.hwr-cut.day b{text-shadow:0 0 18px #ffb04a,0 4px 0 #5a2a00}
+.hwr-cut small{font:700 13px Sora,sans-serif;color:#ffd9a8;text-shadow:0 2px 6px #000}
+.hwr-drop{position:fixed;inset:0;z-index:125;display:grid;place-items:center;background:rgba(12,4,18,0);transition:background .35s;padding:16px}
+.hwr-drop.on{background:rgba(12,4,18,.6)}
+.hwr-dropin{position:relative;display:grid;justify-items:center;gap:8px;padding:26px 26px 20px;min-width:min(320px,92vw);border-radius:22px;background:linear-gradient(180deg,#2a1206,#160818);border:1px solid #ff8a1f;box-shadow:0 0 40px rgba(255,138,31,.45);text-align:center;color:#fff;transform:translateY(30px) scale(.9);opacity:0;transition:transform .5s cubic-bezier(.2,1.2,.3,1),opacity .35s}
+.hwr-drop.on .hwr-dropin{transform:none;opacity:1}
+.hwr-dropin img{width:160px;height:160px;object-fit:contain;filter:drop-shadow(0 0 22px rgba(255,138,31,.7));animation:hwrFloat 2.4s ease-in-out infinite}
+.hwr-dropin small{font:800 11px Sora,sans-serif;letter-spacing:.12em;color:#ffb04a}.hwr-dropin b{font:900 24px "Exo 2",Sora,sans-serif}.hwr-dropin em{font:500 13px/1.4 Sora,sans-serif;color:#ffd9c0;font-style:normal;max-width:290px}
+.hwr-dropin button,.hwr-detail button.go,.hwr-craft{border:0;border-radius:12px;padding:10px 16px;background:linear-gradient(180deg,#ffb04a,#ff7a1a);color:#2a0e00;font:800 13px Sora,sans-serif;cursor:pointer}
+.hwr-beam{position:absolute;left:50%;top:-40px;width:120px;height:260px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 60%,rgba(255,170,60,.55),transparent 70%);pointer-events:none;animation:hwrPulse 1.6s ease-in-out infinite}
+@keyframes hwrFloat{50%{transform:translateY(-8px) rotate(-3deg)}}
+.hwr-win{position:fixed;inset:0;z-index:110;display:none;place-items:center;background:rgba(10,4,14,.6);padding:12px}
+.hwr-win.on{display:grid}
+.hwr-card{width:min(760px,100%);max-height:calc(100vh - 24px);overflow:auto;border-radius:20px;background:linear-gradient(180deg,#24100a,#140a1c);border:1px solid rgba(255,138,31,.5);box-shadow:0 20px 60px rgba(0,0,0,.5);color:#fbeee2;font:500 13px/1.4 Sora,"Noto Sans KR",sans-serif}
+.hwr-card header{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(90deg,#3a1606,#2a0e36);border-bottom:1px solid rgba(255,138,31,.35)}
+.hwr-card header b{font:900 18px "Exo 2",Sora,sans-serif}.hwr-card header small{font:800 10px Sora;letter-spacing:.14em;color:#ffb04a;border:1px solid #ffb04a;border-radius:6px;padding:2px 6px}
+.hwr-x{margin-left:auto;border:0;background:rgba(255,255,255,.08);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer}
+.hwr-body{padding:14px;display:grid;gap:12px}
+.hwr-top{display:flex;justify-content:space-between;align-items:center;gap:10px}.hwr-frag{font:800 15px Sora}.hwr-frag small{font:600 11px Sora;color:#ffc89a}.hwr-n{font:800 13px Sora;color:#ffb04a}
+.hwr-slots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.hwr-slot{position:relative;display:grid;justify-items:center;gap:3px;padding:10px 4px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;cursor:pointer;opacity:.75}
+.hwr-slot img{width:56px;height:56px;object-fit:contain;filter:grayscale(.6) brightness(.85)}.hwr-slot b{font:800 11px Sora;text-align:center}.hwr-slot small{font:600 10px Sora;color:#ffc89a}
+.hwr-slot.on{opacity:1;border-color:#ff8a1f;background:rgba(255,138,31,.14);box-shadow:0 0 16px rgba(255,138,31,.3)}.hwr-slot.on img{filter:none}
+.hwr-slot.pick{outline:2px solid #7cf5c8}
+.hwr-cc{position:absolute;top:4px;right:4px;font:800 9px Sora;font-style:normal;background:#ff3d6e;color:#fff;border-radius:5px;padding:1px 4px}
+.hwr-bonus{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.hwr-bonus li{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.04);color:#a99;flex-wrap:wrap}
+.hwr-bonus li b{flex:none;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.08);font:800 11px Sora}
+.hwr-bonus li small{width:100%;padding-left:30px;font-size:11px;color:inherit;opacity:.85}
+.hwr-bonus li.on{color:#fff;background:rgba(255,138,31,.14)}.hwr-bonus li.on b{background:#ff8a1f;color:#2a0e00}
+.hwr-detail{display:grid;gap:8px;padding:12px;border-radius:14px;background:rgba(0,0,0,.25)}
+.hwr-detail h4{display:flex;align-items:center;gap:8px;margin:0;font:800 15px Sora}
+.hwr-row{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:8px;border-radius:10px;background:rgba(255,255,255,.04)}
+.hwr-row>b{font:900 16px "Exo 2",Sora;color:#ffb04a}.hwr-row>span{font-size:12px;color:#ffe0c8}
+.hwr-row>div{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+.hwr-row button{border:1px solid rgba(255,138,31,.45);background:transparent;color:#fff;border-radius:10px;padding:7px 10px;font:700 12px Sora;cursor:pointer}
+.hwr-row button[disabled],.hwr-craft[disabled]{opacity:.45;cursor:default}
+.hwr-none,.hwr-tip,.hwr-note{margin:0;color:#d8bfae;font-size:12px}
+@media (max-width:640px){.hwr-slots{grid-template-columns:repeat(3,1fr)}.hwr-strip{top:calc(env(safe-area-inset-top,0px) + 50px);font-size:11px;padding:4px 6px 4px 9px;gap:6px}.hwr-k,.hwr-strip .hwr-z{display:none}.hwr-time b,.hwr-time{gap:4px}}
+html.wp-pcphone .hwr-k,html.wp-pcphone .hwr-strip .hwr-z{display:none}
+html.wp-pcphone .hwr-slots{grid-template-columns:repeat(3,1fr)}

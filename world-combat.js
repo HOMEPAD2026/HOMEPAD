@@ -37,6 +37,7 @@ const SKIN = {
   Spider: { h: 0.8, y: 0 }, Slime: { h: 0.85, y: 0 }, Skeleton: { h: 1.85, y: 0 }, Dragon: { h: 3.4, y: 1.1 },
   Boss_spam: { h: 1, y: 0 }, Boss_fields: { h: 1, y: 0 }, Boss_swamp: { h: 1, y: 0 }, Boss_canyon: { h: 1, y: 0 }, Boss_depths: { h: 1, y: 0 },
   Angler: { h: 0.95, y: 0.55 }, Balloon: { h: 0.85, y: 1.0 }, BotDrone: { h: 0.7, y: 1.2 }, /* (b-nx4: Meshy scammers, sized like the robots they stand in for) */
+  HwSlime: { h: 0.55, y: 0 }, HwScarecrow: { h: 1.0, y: 0 }, HwGhost: { h: 0.85, y: 0.5 }, HwTreant: { h: 1.35, y: 0 }, HwSkeleton: { h: 1.0, y: 0 }, HwWitch: { h: 0.95, y: 0.25 }, HwJack: { h: 1.6, y: 0 }, /* (the Halloween Realm's Meshy monsters, world-hwrealm.js: a 2 m box × h) */
 };
 const ITEMS = [
   { id: "coin", name: "ARCL coin", w: 30, color: 0xffc861 },
@@ -268,7 +269,10 @@ export function createCombat(ctx) {
     const bs = o.rank === "boss" ? o.boss : null;
     // a creature's look in this ground, once its pack is in (the robot until then)
     const mskin = bs && bs.mskin && kit.enemies[bs.mskin] ? bs.mskin : null; /* (b-nx4: a near ground's Meshy boss body, once it's in) */
-    const skinId = o.ent ? null : mskin || (bs ? bs.skin : o.zone && o.zone.skins ? o.zone.skins[spec.id] : null), skin = skinId && kit.enemies[skinId] ? SKIN[skinId] : null;
+    // a land's grounds (the Halloween Realm) dress an elite and a rare one as their own (eskin, rskin) and name each kind (names)
+    const zsk = o.zone && !bs ? (o.rank === "elite" && o.zone.eskin) || (o.rare && o.zone.rskin) || (o.zone.skins ? o.zone.skins[spec.id] : null) : null;
+    const skinId = o.ent ? null : mskin || (bs ? bs.skin : zsk), skin = skinId && kit.enemies[skinId] ? SKIN[skinId] : null;
+    if (!o.name && o.zone && o.zone.names && !bs) o.name = (o.rank === "elite" && o.zone.ename) || (o.rare && o.zone.rname) || o.zone.names[spec.id];
     const e = o.ent || takeEnemy(kit, skin ? skinId : bs ? bs.model : spec.model); if (!e) return null; // o.ent: a body another module made and keeps (world-pumpking.js)
     ctx.here(me);
     let p = o.at || null;
@@ -282,6 +286,8 @@ export function createCombat(ctx) {
     const lv = Math.max(1, o.lv || 1), rank = o.rank || "", st = mobStats(lv, rank);
     // the far grounds hit harder (their pow): more HP, attack and defence, and a little more XP for it
     const pow = (o.zone && o.zone.pow) || 1; if (pow !== 1 && !o.raid) { st.hp = Math.round(st.hp * pow); st.atk = Math.round(st.atk * pow); st.def = Math.round(st.def * (1 + (pow - 1) * 0.6)); st.xp = Math.round(st.xp * (1 + (pow - 1) * 0.5)); }
+    const nk = o.zone && o.zone.nightK ? o.zone.nightK() : null; // the Halloween Realm's Cursed Night: HP / attack / defence ×1.5, XP ×2
+    if (nk && !o.ext) { st.hp = Math.round(st.hp * nk.hp); st.atk = Math.round(st.atk * nk.atk); st.def = Math.round(st.def * nk.def); st.xp = Math.round(st.xp * nk.xp); }
     if (o.def != null) st.def = o.def; // AC Defense: its Defense is the wave's own
     if (o.raid) { st.hp = o.max; st.atk = Math.round(st.atk * 0.85); } // the shared weekly raid keeps a little gentler bite
     if (o.ext) { st.hp = o.max; if (o.atkK) st.atk = Math.round(st.atk * o.atkK); } // a shared boss from another module: its HP is the server's
@@ -310,7 +316,8 @@ export function createCombat(ctx) {
     // a golden scammer: rare, runs from you, gone in 25 seconds; five times the XP and a better chest
     // an elite comes with an element: frost, blazing or toxic — its own colour, motes round it and a name to match
     if (rank === "elite" && !o.raid) { const A = AFFIX[Math.floor(Math.random() * AFFIX.length)]; m.affix = A; m.glow = 0.45; m.spec = { ...m.spec, color: A.color }; }
-    if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
+    if (o.rare && !rank && o.zone && o.zone.rskin) { m.rare = 40; m.xp *= 5; m.realmRare = true; m.spec = { ...m.spec, color: "#b48cff" }; }
+    else if (o.rare && !rank) { m.rare = 25; m.xp *= 5; m.glow = 0.7; m.spec = { ...spec, color: "#ffc861", speed: spec.speed * 1.5 }; e.obj.traverse((x) => { if (x.isMesh && x.material && x.material.emissive && !x.material.userData.glow) { x.material.emissive.set(0xffc861); x.material.emissiveIntensity = 0.7; } }); }
     if (o.name) m.spec = { ...m.spec, name: o.name, ...(o.color ? { color: o.color } : {}) }; // (world-raidq.js: an Imp, a Puglin)
     if (o.ext) { m.ext = o.ext; m.extLabel = o.extLabel || ""; m.home = o.home || null; m.hp = Math.max(1, o.hp != null ? o.hp : o.max); if (o.pats) m.pats = o.pats; label(m); }
     if (o.raid) {
@@ -345,7 +352,9 @@ export function createCombat(ctx) {
   // crit, a number at most every 0.2 s a scammer — so a long skill over a crowd doesn't stall a phone
   function hit(m, raw, from, kind, crit, light) {
     if (m.dead) return 0;
-    const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1) * (m.vulnUntil > performance.now() ? 1.25 : 1))); // (Chrono Field: +25% taken)
+    const realm = !!(m.zone && m.zone.realm && !m.ext && !m.raid), hs0 = realm ? stats() : null; // (the Inferno Jack set: +10 % on the realm's monsters with five worn)
+    const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1) * (m.vulnUntil > performance.now() ? 1.25 : 1) * (hs0 && hs0.hwDmg ? 1 + hs0.hwDmg / 100 : 1))); // (Chrono Field: +25% taken)
+    if (hs0 && hs0.soul && kind !== "pet" && kind !== "soul" && soulT <= 0 && Math.random() < SOUL.chance) { soulT = SOUL.cd; setTimeout(() => pumpkinSoul(m, hs0), 0); } // (after this blow is done: the blast's own hits knock out what they knock out)
     if (kind !== "pet" && ctx.level() >= ULT_LV) gainUlt(light ? 0.35 : 2);
     const quiet = light && !crit;
     if (m.trail == null || m.trailHold <= 0) m.trail = Math.max(0, m.hp / m.max); m.trailHold = 0.4; m.hp -= dmg; m.hitT = 0.18; if (m.tgt) m.lbl = 1; else label(m); if (m.rank === "boss") bossBar(m);
@@ -398,6 +407,15 @@ export function createCombat(ctx) {
     if (ctx.blocked(stepV)) { m.wander += Math.PI * 0.6; return false; }
     m.g.position.copy(stepV); return true;
   }
+  // Pumpkin Soul (the Inferno Jack set, all six worn): a hit on one of the Halloween Realm's monsters bursts into a pumpkin
+  // blast now and then — 180 % of your attack round it, at most once in 8 s; never on a shared boss or the raid
+  const SOUL = { chance: 0.05, k: 1.8, cd: 8, r: 4.5 }; let soulT = 0;
+  function pumpkinSoul(m, st0) {
+    const at = m.g.position.clone(); if (VX && VX.burst) VX.burst(fxV.copy(at).setY(0), 0xff8a1f, 1.6);
+    ring(at, 0xff8a1f, { r0: 0.4, r1: SOUL.r, life: 0.5, y: 0.2 }); puff(at.clone().setY(1), 0xffa63a, { n: 28, speed: 6, size: 0.45, life: 0.7, grav: 3 }); ctx.shake(0.25);
+    ctx.float(T("Pumpkin Soul!"), at.clone().setY(3.2), "#ff9a2e", true); Snd.boom && Snd.boom();
+    for (const o of mobs) if (!o.dead && o.zone && o.zone.realm && !o.ext && !o.raid && Math.hypot(o.g.position.x - at.x, o.g.position.z - at.z) < SOUL.r) hit(o, st0.atk * SOUL.k, at, "soul", false, true);
+  }
   function kill(m) {
     m.dead = 0.001; if (ctx.level() >= ULT_LV) gainUlt(4 + (hs ? hs.onKill() : 0)); Snd.kill ? Snd.kill(m.rank) : Snd.coin && Snd.coin();
     if (rpg.wear) rpg.wear("kill"); // Epic and Legendary weapons wear out: 1 a knock-out (world-rpg.js)
@@ -421,8 +439,9 @@ export function createCombat(ctx) {
     if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
     ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
-    if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + bossEvery()); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
-    else if (m.zone && m.zone.claimTier) ctx.claim("hunt", { tier: m.zone.claimTier }, ctx.screenOf(p)); // (RAID QUEENS' grounds: a hunt of the top tier)
+    if (m.zone && m.zone.realm && ctx.onRealmKill) ctx.onRealmKill(m); // (the Halloween Realm: the server rolls its own drops for a knock-out there)
+    if (m.rank === "boss") { ctx.claim("boss", { zone: m.zone && m.zone.realm ? 4 : zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + bossEvery()); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); if (m.born && ctx.onBossRun) ctx.onBossRun(m.zone.id, Math.round(performance.now() - m.born)); }
+    else if (m.zone && m.zone.claimTier) ctx.claim("hunt", { tier: m.zone.claimTier, ...(m.zone.realm ? { hw: 1 } : {}) }, ctx.screenOf(p)); // (RAID QUEENS' grounds: a hunt of the top tier)
     else if (zi >= 0 && tier >= 2) ctx.claim("hunt", { tier }, ctx.screenOf(p));
     else ctx.claim("street", {}, ctx.screenOf(p));
     ctx.onKill && ctx.onKill({ type: m.spec.id, lv: m.lv, rank: m.rank, zone: m.zone && m.zone.id });
@@ -578,7 +597,7 @@ export function createCombat(ctx) {
   // ---------------- bosses: a move list per ground, a red warning before each move, a second phase at half HP ----------------
   // slam: a circle round the boss · cone: a fan in front of it · line: a charge straight at you · rain: circles under your feet
   const PATTERNS = ["slam", "cone", "line", "rain"];
-  const patsOf = (m) => { const zi = m.zone ? ZONES.indexOf(m.zone) : 0; return PATTERNS.slice(0, zi >= 5 ? 4 : zi >= 3 ? 3 : zi >= 1 ? 2 : 1); };
+  const patsOf = (m) => { if (m.zone && m.zone.realm) return PATTERNS.slice(0, m.zone.lv[0] >= 100 ? 4 : 3); const zi = m.zone ? ZONES.indexOf(m.zone) : 0; return PATTERNS.slice(0, zi >= 5 ? 4 : zi >= 3 ? 3 : zi >= 1 ? 2 : 1); }; // (the Halloween Realm's bosses: every pattern from the Graveyard on)
   const WIND = { slam: 1.1, cone: 0.95, line: 0.85, rain: 1.15 };
   function warnDisc(at, r, life) { const disc = new THREE.Mesh(sgeo(`Circle|${[r, 40]}`, () => new THREE.CircleGeometry(r, 40)), additive(warnCol(), warnOp())); disc.rotation.x = -Math.PI / 2; disc.position.copy(at).setY(0.08); add(disc); fx.push({ o: disc, life, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.3 * k + (ctx.reduce ? 0 : Math.sin(k * 30) * 0.05); disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); return disc; }
   function bossAI(m, dt, t, d) {
@@ -780,9 +799,9 @@ export function createCombat(ctx) {
     const boost = ctx.xpBoost ? ctx.xpBoost(z.id) : 1, lv = ctx.level(), under = lv < z.lv[0], deadly = lv < z.lv[0] - 10;
     const s0 = seen(), first = !s0.includes(z.id); if (first) { s0.push(z.id); try { localStorage.setItem(ZSEEN, JSON.stringify(s0)); } catch { /* private */ } }
     // the name comes in letter by letter (one span a letter, a little later each)
-    const letters = [...z.name].map((ch, i) => `<i style="--d:${i * 32}ms">${ch === " " ? "&nbsp;" : ctx.esc(ch)}</i>`).join("");
+    const letters = [...(z.realm ? T(z.name) : z.name)].map((ch, i) => `<i style="--d:${i * 32}ms">${ch === " " ? "&nbsp;" : ctx.esc(ch)}</i>`).join("");
     const tags = [first ? `<span class="wc-new">${T("New ground")}</span>` : "", boost > 1 ? `<span class="wc-xpev">${T("XP ×{k} today", { k: boost })}</span>` : "", under ? `<span class="wc-warn">${T("Recommended from level {n}", { n: z.lv[0] })}</span>` : ""].join("");
-    bannerEl.innerHTML = `<small>${T("Hunting ground {n} of {m}", { n: ZONES.indexOf(z) + 1, m: ZONES.length })}</small><b>${letters}</b><hr><em>${T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] })} · ${T("Boss")}: ${ctx.esc(z.boss.name)}</em>${tags ? `<p>${tags}</p>` : ""}`;
+    bannerEl.innerHTML = `<small>${z.realm ? T(z.realmName || "Halloween Realm") : T("Hunting ground {n} of {m}", { n: ZONES.indexOf(z) + 1, m: ZONES.length })}</small><b>${letters}</b><hr><em>${T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] })} · ${T("Boss")}: ${ctx.esc(z.realm ? T(z.boss.name) : z.boss.name)}</em>${tags ? `<p>${tags}</p>` : ""}`;
     bannerEl.classList.toggle("danger", deadly); // every ground is open to every level; far above yours, the banner just says so in red
     bannerEl.classList.remove("on"); void bannerEl.offsetWidth; bannerEl.classList.add("on"); clearTimeout(bannerEl._t); bannerEl._t = setTimeout(() => { bannerEl.hidden = true; }, 3600);
     const b = bossAt(); if (!b[z.id]) setBoss(z.id, Date.now() + BOSS_FIRST);
@@ -1443,13 +1462,14 @@ export function createCombat(ctx) {
     if (z) {
       const alive = mobs.filter((m) => !m.dead && m.zone === z && m.rank !== "boss").length;
       if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) {
-        const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) * (weekEvent() === "elite" ? 2 : 1) ? "elite" : "", rare = !rank && Math.random() < 0.03 * goldenRush();
+        // (a wide ground — the Halloween Realm's, 100 levels across — fits its scammers to you: your level −4 … +2, inside its range)
+        const lv = z.fit ? Math.max(z.lv[0], Math.min(z.lv[1], ctx.level() - 4 + Math.floor(Math.random() * 7))) : z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)), type = z.mobs[Math.floor(Math.random() * z.mobs.length)], rank = Math.random() < (z.elite || 0.12) * (weekEvent() === "elite" ? 2 : 1) ? "elite" : "", rare = !rank && Math.random() < (z.rareP ? z.rareP() : 0.03 * goldenRush());
         const m0 = spawnMob({ type, lv, rank, zone: z, rare });
         // in the far ring the fake airdrops come in threes
         if (m0 && type === "drop" && z.lv[0] >= 30 && !rare && alive <= 2) for (let k = 0; k < 2; k++) { const a = Math.random() * TAU; spawnMob({ type, lv, zone: z, at: m0.g.position.clone().add(new V3(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2)) }); }
       } }
       const next = bossAt()[z.id] || 0;
-      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + bossEvery()); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
+      if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + bossEvery()); spawnMob({ rank: "boss", lv: z.fit ? Math.max(z.lv[0], Math.min(z.lv[1], ctx.level() + 2)) : z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
     } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid()) && !(ctx.noStreet && ctx.noStreet())) { // (RAID QUEENS' land brings its own)
       if ((spawnT -= dt) <= 0) { spawnT = 22 + Math.random() * 30; if (mobs.filter((m) => !m.dead && !m.zone).length < 3) spawnMob({ lv: 1 + Math.floor(Math.random() * 3) }); }
     }
@@ -1458,7 +1478,7 @@ export function createCombat(ctx) {
     const on = ctx.active();
     bar.hidden = !ctx.inHub(); vit.hidden = !ctx.inHub();
     if ((placeT -= dt) <= 0) { placeT = 1; place(); }
-    for (const k in cd) cd[k] = Math.max(0, cd[k] - dt);
+    for (const k in cd) cd[k] = Math.max(0, cd[k] - dt); if (soulT > 0) soulT -= dt;
     if (reaperT > 0) reaperT = Math.max(0, reaperT - dt);
     if (dodgeBuf && cd.dodge <= 0) { const ok = performance.now() - dodgeBuf < 150; dodgeBuf = 0; if (ok) dodge(); }
     if (atkBuf && cd.attack <= 0) { const ok = performance.now() - atkBuf < 150; atkBuf = 0; if (ok) attack(); }
@@ -1570,7 +1590,7 @@ export function createCombat(ctx) {
     softUp: () => { if (down) getUp("here"); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100) * hs.moveK(), gauge: () => gauge, fillUlt: () => { gauge = ULT_MAX; }, skillStep: (sec) => { for (let i = 0; i < Math.round(sec * 30); i++) hs.tick(1 / 30, performance.now() / 1000 + i / 30); }, castBusy: () => hs.busy(), /* (fillUlt: tests) */ jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
-    spawnMob, spawnItem, mobsRaw: () => mobs,
+    spawnMob, spawnItem, mobsRaw: () => mobs, zoneNow: () => zone,
     /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
     locked: () => lockAlive(), lockAt: (out) => (lockAlive() ? out.copy(lockT.g.position) : null),
     bossNear: (r = 40) => { ctx.here(me); return mobs.some((m) => !m.dead && m.rank === "boss" && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < r); },

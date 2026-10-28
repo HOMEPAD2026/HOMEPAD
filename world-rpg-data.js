@@ -96,7 +96,7 @@ export function statsOf(level, eq, extra) {
   s.crit = Math.min(60, Math.round(s.crit * 10) / 10); s.spd = Math.min(40, s.spd);
   // the Crimson Celestial set's own stats: critical damage %, skill damage %, damage reduction % (world-combat.js reads them)
   s.critDmg = (extra && extra.critDmg) || 0; s.skillPct = (extra && extra.skillPct) || 0; s.dr = Math.min(50, (extra && extra.dr) || 0);
-  if (extra && extra.mythic) s.mythic = extra.mythic; if (extra && extra.reaper) s.reaper = extra.reaper; if (extra && extra.aura) s.aura = true; // (flags: a Mythic piece worn, the Reaper's spin, the six's aura)
+  if (extra && extra.mythic) s.mythic = extra.mythic; if (extra && extra.reaper) s.reaper = extra.reaper; if (extra && extra.aura) s.aura = true; if (extra && extra.hwSet) { s.hwSet = extra.hwSet; s.hwXp = extra.hwXp || 0; s.hwDmg = extra.hwDmg || 0; s.soul = !!extra.soul; } // (the Inferno Jack set: the realm's EXP, its monsters' damage, Pumpkin Soul — world-hwrealm-data.js) // (flags: a Mythic piece worn, the Reaper's spin, the six's aura)
   s.sets = active;
   return s;
 }
@@ -155,7 +155,10 @@ export const ZONES = [
   { id: "abyss", name: "Bridge Hack Abyss", lv: [80, 90], x: -177, z: -16, r: 28, color: 0xff4d2a, ground: 0x2a0e0a, fog: 0x5a1a10, mobs: ["spam", "rug", "drop"], skins: { spam: "Bat", rug: "Snake", drop: "Skeleton" }, boss: { name: "The Bridge Breaker", line: "Took the bridge and all it carried", model: "Trilobite", scale: 2.4, y: 1.3, tint: 0xff4d2a, skin: "Dragon", skinH: 5.2 }, deco: "lava", pow: 1.7, elite: 0.28 },
   { id: "void", name: "The Last Rug", lv: [90, 100], x: -126, z: 126, r: 28, color: 0xff4dd2, ground: 0x14081e, fog: 0x2a1040, mobs: ["rug", "spam", "drop"], skins: { rug: "Skeleton", spam: "Wasp", drop: "Spider" }, boss: { name: "The Final Rug", line: "The last pull of all", model: "Trilobite", scale: 2.6, y: 1.4, tint: 0xff4dd2, skin: "Dragon", skinH: 6.2 }, deco: "void", pow: 1.9, elite: 0.32 },
 ];
-export const zoneAt = (x, z) => ZONES.find((zn) => Math.hypot(x - zn.x, z - zn.z) < zn.r) || null;
+// grounds a land brings with it (the Halloween Realm's: world-hwrealm.js pushes them when its land is built): the fights treat
+// them as hunting grounds, but they stay out of the town's numbered list (the codex, the map's twelve, "ground n of 12")
+export const XZONES = [];
+export const zoneAt = (x, z) => ZONES.find((zn) => Math.hypot(x - zn.x, z - zn.z) < zn.r) || XZONES.find((zn) => Math.hypot(x - zn.x, z - zn.z) < zn.r) || null;
 /// a far ground's fishing pond (world-life.js draws it, world-zones-far.js keeps props off it): to the side of the
 /// ground, away from its gate
 export const pondOf = (zn) => { if (!zn || zn.lv[0] < 30) return null; const a = Math.atan2(zn.z, zn.x) + 1.9, d = zn.r * 0.52; return { x: zn.x + Math.cos(a) * d, z: zn.z + Math.sin(a) * d, r: 2.6 }; };

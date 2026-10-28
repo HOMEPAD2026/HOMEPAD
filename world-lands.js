@@ -16,7 +16,8 @@ export const LANDS = {
   ut: { id: "ut", name: "Utility Village", x: -2400, z: 0, r: 56, color: 0x4f9dff, css: "#4f9dff" },
   ad: { id: "ad", name: "Nexus City", x: 0, z: 2400, r: 92, color: 0x5fd3ff, css: "#5fd3ff" }, // AD-City 1: AGENT DIMENSION's city (world-adcity.js), by the Citadel
   rq: { id: "rq", name: "RAID QUEENS", x: 0, z: -2400, r: 63, color: 0xff4d8d, css: "#ff4d8d" },
-  cc: { id: "cc", name: "Creator City", x: -2400, z: 2400, r: 78, color: 0x7cf5c8, css: "#7cf5c8" }, // ARCIRCLE STUDIO BETA (world-creatorcity.js): through the Studio by the fountain // RAID QUEENS (world-raidq.js): the high levels' land, through the Crimson Citadel
+  cc: { id: "cc", name: "Creator City", x: -2400, z: 2400, r: 78, color: 0x7cf5c8, css: "#7cf5c8" },
+  hw: { id: "hw", name: "Halloween Realm", x: 2400, z: 2400, r: 165, color: 0xff8a1f, css: "#ff8a1f" }, // the HALLOWEEN REALM (world-hwrealm.js): through the Haunted Pumpkin Gate on the plaza's ring // ARCIRCLE STUDIO BETA (world-creatorcity.js): through the Studio by the fountain // RAID QUEENS (world-raidq.js): the high levels' land, through the Crimson Citadel
 };
 export const LOT_TIERS = [
   { id: "starter", name: "Starter", min: 0, N: 16, max: 2000, color: 0x9fb4c8, css: "#9fb4c8" },
@@ -181,6 +182,8 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
     // high levels hunt (the owner, 2026-10-25: "move it away from the fountain, out by the far hunting grounds"); its
     // own spot (at: x, z) rather than the shops' ring, no plaza line or path out to it, a citadel 12 m tall
     { id: "rq", name: "RAID QUEENS", col: 0xff4d8d, at: [-168, 62], h: 12 },
+    // the Haunted Pumpkin Gate (2026-10-28, the owner's Halloween Realm spec: a giant pumpkin with a portal in its mouth) on the ring
+    { id: "hw", name: T("Halloween Realm"), col: 0xff8a1f, phi: 225, h: 9 },
   ];
   const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id;
     if (d.at) { p.position.set(d.at[0], 0, d.at[1]); p.rotation.set(0, Math.atan2(-d.at[0], -d.at[1]), 0); p.userData.far = true; } else K.placeOn(p, K.dirOf(d.th || 21, d.phi));
@@ -199,7 +202,7 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
   spins.push((dt, t) => { lineU.value = t; });
   // the two villages' portals are the owner's models (models/world/lands, Meshy, packed by tools/pack-prop.mjs): 6.5 m
   // tall, in place of the rings, loaded a few seconds after the town (about 1 MB each)
-  const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb", pv: "/models/world/lands/portal-partnership.glb", gv: "/models/world/lands/portal-arcade.glb", /* (b-nx3: Partner and Game Village from Meshy too) */ rq: "/models/world/raid/gate.glb" }, MODEL_H = 6.5;
+  const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb", pv: "/models/world/lands/portal-partnership.glb", gv: "/models/world/lands/portal-arcade.glb", /* (b-nx3: Partner and Game Village from Meshy too) */ rq: "/models/world/raid/gate.glb", hw: "/models/world/hwrealm/gate.glb" }, MODEL_H = 6.5;
   setTimeout(() => { for (const [id, url] of Object.entries(MODELS)) { const p = portals.find((q) => q.userData.to === id); if (!p || !K.gltfLoader) continue;
     try { K.gltfLoader().load(url + ver, (g) => {
       const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), H = (DEST.find((d) => d.id === id) || {}).h || MODEL_H, k = H / (sz.y || 1);

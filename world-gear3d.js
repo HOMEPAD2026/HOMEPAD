@@ -322,6 +322,21 @@ export function meshyExtras(kit, loader, ver = "") {
     try { loader().load(`/models/world/scammers/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, fly)); } catch (e) { console.warn("scammer", file, e); } ok(); }, undefined, () => ok()); } catch { ok(); }
   }))).then(() => kit);
 }
+// the Halloween Realm's monsters (2026-10-28, Meshy, raw/hr → models/world/hwrealm/mobs, ~4.5 k tris, 512 px KTX2): still
+// bodies keyed with the same moves as the scammers'; Inferno Jack is the town's rigged one (models/world/halloween), its own
+// clips renamed to the fights' (Idle / Run / Attack / Hit / TurnOff / BackFlip). Loaded when the realm is first built.
+const MESHY_HW = { HwSlime: ["slime", false], HwScarecrow: ["scarecrow", false], HwGhost: ["ghost", true], HwTreant: ["treant", false], HwSkeleton: ["skeleton", false], HwWitch: ["witch", true] };
+const JACK_CLIP = { Idle_02: "Idle", Running: "Run", Attack: "Attack", Fall_Dead: "TurnOff", Wall_Push_Jump_and_Flip: "BackFlip" };
+export function meshyHw(kit, loader, ver = "") {
+  if (!kit || !loader || kit.hwAsked) return Promise.resolve(kit); kit.hwAsked = true;
+  const jobs = Object.entries(MESHY_HW).map(([name, [file, fly]]) => new Promise((ok) => {
+    try { loader().load(`/models/world/hwrealm/mobs/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, fly)); } catch (e) { console.warn("hw mob", file, e); } ok(); }, undefined, () => ok()); } catch { ok(); }
+  }));
+  jobs.push(new Promise((ok) => { try { loader().load(`/models/world/halloween/inferno-jack.glb${ver}`, (g) => { try {
+    const clips = []; for (const c of g.animations) { const n = JACK_CLIP[c.name]; if (n) { const k = c.clone(); k.name = n; clips.push(k); if (n === "Attack") { const h = c.clone(); h.name = "Hit"; h.duration = Math.min(h.duration, 0.35); clips.push(h); } } }
+    place(kit, "HwJack", { scene: g.scene, clips }); } catch (e) { console.warn("hw jack", e); } ok(); }, undefined, () => ok()); } catch { ok(); } }));
+  return Promise.all(jobs).then(() => kit);
+}
 // the near grounds' bosses (b-nx4, Meshy, models/world/bosses/<zone>.glb, 4.8 k tris, 0.25–0.4 MB): a body of their own,
 // standing on the ground (a 2 m box from its feet), fetched as you come near the ground; the old look stays until then
 const BOSS_BODIES = new Set(["spam", "fields", "swamp", "canyon", "depths"]), bossAsked = new Set();
