@@ -68,12 +68,12 @@ function paintGame() {
     </div>
   </section>
   <section class="sgw-row">
-    <div class="sgw-card"><h2>🏆 ${esc(T("Top 10"))}</h2><ol class="sgw-board" data-board>${boardHtml(g.best)}</ol></div>
-    <div class="sgw-card"><h2>🎮 ${esc(T("How to play"))}</h2><p class="sgw-how">${esc(T(HOW[g.tpl] || HOW.runner))}</p>${coarse ? `<p class="sgw-how sm">📱 ${esc(T("Turn your phone sideways — the buttons appear on screen."))}</p>` : ""}
+    <div class="sgw-card"><h2>${esc(T("Top 10"))}</h2><ol class="sgw-board" data-board>${boardHtml(g.best)}</ol></div>
+    <div class="sgw-card"><h2>${esc(T("How to play"))}</h2><p class="sgw-how">${esc(T(HOW[g.tpl] || HOW.runner))}</p>${coarse ? `<p class="sgw-how sm">📱 ${esc(T("Turn your phone sideways — the buttons appear on screen."))}</p>` : ""}
       ${g.from ? `<p class="sgw-how sm">♻️ ${esc(T("A remix of"))} <b>${esc(g.from.title)}</b> · ${esc(g.from.byName || "")}</p>` : ""}
       <a class="sgw-link" href="/play?sg=${encodeURIComponent(g.id)}">🌍 ${esc(T("Open it in ARCIRCLE WORLD"))} ›</a></div>
   </section>
-  <section class="sgw-sec sgw-cmts"><h2>💬 ${esc(T("Comments"))} <small data-cn></small></h2>
+  <section class="sgw-sec sgw-cmts"><h2>${esc(T("Comments"))} <small data-cn></small></h2>
     <form class="sgw-cf" data-cf><input name="t" maxlength="140" autocomplete="off" placeholder="${esc(T("Say something nice about this game…"))}"><button type="submit" class="sgw-btn">${esc(T("Post"))}</button></form>
     <ul class="sgw-cl" data-cl><li class="none">…</li></ul></section>
   ${D.more && D.more.length ? `<section class="sgw-sec"><h2>${esc(T("More by {n}", { n: "@" + c.h }))}</h2><div class="sgw-grid">${D.more.map((x) => cardOf(c.h, x)).join("")}</div><a class="sgw-link" href="${urlOf(c.h)}">${esc(T("All games"))} ›</a></section>` : ""}
@@ -90,7 +90,7 @@ const BADGE = { p100: ["🎯", "100 plays"], p1k: ["🚀", "1,000 plays"], p10k:
 const levelHtml = (c) => (c && c.lv ? `<div class="sgw-lv"><span class="sgw-lvn">${esc(T("Creator Lv {n}", { n: c.lv }))}</span><i><em style="width:${Math.min(100, Math.round(((c.xp - c.from) / Math.max(1, c.next - c.from)) * 100))}%"></em></i><small>${num(c.xp)} / ${num(c.next)} XP</small></div>
   ${c.badges && c.badges.length ? `<div class="sgw-badges">${c.badges.map((b) => BADGE[b] ? `<span class="sgw-badge" title="${esc(T(BADGE[b][1]))}">${BADGE[b][0]}<small>${esc(T(BADGE[b][1]))}</small></span>` : "").join("")}</div>` : ""}` : "");
 const boardHtml = (best) => (best && best.length ? best.map((x, i) => `<li${i < 3 ? ` class="m${i + 1}"` : ""}><i>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><span>${esc(x.name || "Player")}</span><b>${num(x.score)}</b></li>`).join("") : `<li class="none">${esc(T("Be the first!"))}</li>`);
-const ctaHtml = () => `<section class="sgw-cta"><div><h2>🛠️ ${esc(T("Make your own game"))}</h2><p>${esc(T("ARCIRCLE Studio: 15 templates, a builder for every one, your own page on the web."))}</p></div><a class="sgw-play sm" href="/play">${esc(T("Open ARCIRCLE Studio"))}</a></section>`;
+const ctaHtml = () => `<section class="sgw-cta"><div><h2>${esc(T("Make your own game"))}</h2><p>${esc(T("ARCIRCLE Studio: 15 templates, a builder for every one, your own page on the web."))}</p></div><a class="sgw-play sm" href="/play">${esc(T("Open ARCIRCLE Studio"))}</a></section>`;
 function paintCreator() {
   const c = D.creator, L = D.games || [], plays = L.reduce((a, g) => a + (g.plays || 0), 0), likes = L.reduce((a, g) => a + (g.likes || 0), 0);
   $m.innerHTML = `<section class="sgw-hero cr" style="--art:url('/images/gw/key-studio.webp')"><div class="sgw-hero-in">
@@ -99,7 +99,7 @@ function paintCreator() {
       <div class="sgw-stats"><span><b>${L.length}</b>${esc(T("Games"))}</span><span><b>${num(plays)}</b>${esc(T("Plays"))}</span><span><b>${num(likes)}</b>${esc(T("Likes"))}</span></div>
       <div class="sgw-acts"><button type="button" class="sgw-btn" data-share>🔗 ${esc(T("Share"))}</button></div></div></section>
     <section class="sgw-sec"><h2>${esc(T("Games"))}</h2>${L.length ? `<div class="sgw-grid">${L.map((g) => cardOf(c.h, g)).join("")}</div>` : `<p class="sgw-empty">${esc(T("No games published yet."))}</p>`}</section>
-    ${D.picks && D.picks.length ? `<section class="sgw-sec"><h2>⭐ ${esc(T("{n}'s picks", { n: "@" + c.h }))}</h2><div class="sgw-grid">${D.picks.map((g) => `<a class="sgw-g" href="/play?sg=${encodeURIComponent(g.id)}" style="--art:url('${art(g.tpl)}')"><span class="sgw-g-art"><em>${ICON[g.tpl] || "🎮"} ${esc(tname(g.tpl))}</em></span><b>${esc(g.title)}</b><small>${esc(g.byName || "")} · ▶ ${num(g.plays)}</small></a>`).join("")}</div></section>` : ""}${ctaHtml()}`;
+    ${D.picks && D.picks.length ? `<section class="sgw-sec"><h2>${esc(T("{n}'s picks", { n: "@" + c.h }))}</h2><div class="sgw-grid">${D.picks.map((g) => `<a class="sgw-g" href="/play?sg=${encodeURIComponent(g.id)}" style="--art:url('${art(g.tpl)}')"><span class="sgw-g-art"><em>${ICON[g.tpl] || "🎮"} ${esc(tname(g.tpl))}</em></span><b>${esc(g.title)}</b><small>${esc(g.byName || "")} · ▶ ${num(g.plays)}</small></a>`).join("")}</div></section>` : ""}${ctaHtml()}`;
 }
 function paintMissing() {
   $m.innerHTML = `<section class="sgw-hero miss" style="--art:url('/images/gw/key-studio.webp')"><div class="sgw-hero-in"><span class="sgw-chip">404</span><h1>${esc(T("This game isn't here"))}</h1>

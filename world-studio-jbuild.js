@@ -57,7 +57,7 @@ export function createJumpBuilder(ctx) {
   function open() {
     el = document.createElement("div"); el.className = "wsb wsj"; el.setAttribute("role", "dialog");
     el.innerHTML = `<div class="wsb-in">
-      <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>🛠️ ${esc(T("Build it yourself"))}</b>
+      <header class="wsb-h"><button type="button" class="wsb-b" data-close>← ${esc(T("Back"))}</button><b>${esc(T("Build it yourself"))}</b>
         <span class="wsb-hr"><button type="button" class="wsb-b alt wsj-evb" data-evs>${ic2("tool-events", "⚡")} ${esc(T("Events"))} <i class="wsj-evn"></i></button><button type="button" class="wsb-i" data-undo aria-label="${esc(T("Undo"))}"><img src="/images/studio/ic2/tool-undo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↩️'))"></button><button type="button" class="wsb-i" data-redo aria-label="${esc(T("Redo"))}"><img src="/images/studio/ic2/tool-redo.webp?v=1" alt="" class="wsb-uic" onerror="this.replaceWith(document.createTextNode('↪️'))"></button>
         <button type="button" class="wsb-b alt" data-test>▶ ${esc(T("Test from here"))}</button><button type="button" class="wsb-b go" data-done>✓ ${esc(T("Done"))}</button></span></header>
       <div class="wsb-bar"></div>

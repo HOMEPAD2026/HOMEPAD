@@ -213,3 +213,42 @@ body.sga .wst.pro>div:first-child{box-shadow:0 24px 70px rgba(0,0,0,.6)!importan
 /* PRO: a game's page in another site's frame (/embed/game/@…) — no site bar or footer, the game first */
 body.sgw-embed .sgw-top,body.sgw-embed .sgw-foot,body.sgw-embed footer,body.sgw-embed .sgw-cta{display:none}
 body.sgw-embed .sgw-main{padding-top:12px}
+body.sga .wsb{top:var(--sga-h,64px)}
+/* ===== PRO (2026-10-28, SP1): a game's / creator's web page in Studio Pro's graphite — thin lines, one mint accent, gold marks */
+body.sgw{--bg:#0b0e12;--ink:#e9eef3;--ink2:#9ba7b3;--ink3:#68737e;--glass:#12161b;--edge:rgba(255,255,255,.09);--cyan:#4fe3c1;--mint:#4fe3c1;--gold:#e6c36a;background:#0b0e12;font-family:Sora,system-ui,sans-serif}
+body.sgw::before{background:radial-gradient(70% 40% at 50% 0%,rgba(79,227,193,.05),transparent 70%)}
+.sgw-top{background:rgba(11,14,18,.94);border-bottom:1px solid rgba(255,255,255,.08)}
+.sgw-world{border-radius:8px;background:#4fe3c1;color:#04130f;box-shadow:none;font-weight:700}
+.sgw-lang{border-radius:8px;background:transparent}
+.sgw-hero{border-radius:14px;border:1px solid var(--edge);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.sgw-hero::after{background:linear-gradient(90deg,rgba(11,14,18,.96) 0%,rgba(11,14,18,.78) 42%,rgba(11,14,18,.1) 78%),linear-gradient(0deg,rgba(11,14,18,.92),transparent 55%)}
+.sgw-hero h1{font:800 clamp(32px,5.5vw,54px)/1.04 Sora,sans-serif;letter-spacing:-.02em;text-shadow:none}
+.sgw-chip{border-radius:6px;background:rgba(11,14,18,.8);border:1px solid rgba(79,227,193,.45);color:var(--mint);font:600 11px/1 Sora,sans-serif;letter-spacing:.08em}
+.sgw-by{border-radius:8px;background:rgba(11,14,18,.7);border-color:var(--edge)}
+.sgw-av{background:#1f252c;color:var(--mint);border:1px solid rgba(79,227,193,.4)}
+.sgw-off{border-radius:5px;border-color:rgba(230,195,106,.5);color:var(--gold)}
+.sgw-stats span{border-radius:8px;background:rgba(11,14,18,.75);border-color:var(--edge)}
+.sgw-stats b{font:700 20px/1.1 ui-monospace,"SF Mono",Menlo,monospace}
+.sgw-play{border-radius:8px;background:#4fe3c1!important;color:#04130f;box-shadow:none;font:700 16px/1 Sora,sans-serif;letter-spacing:0;padding:15px 28px}
+.sgw-play::after{display:none}.sgw-play:hover{transform:none;box-shadow:none;background:#6ff0d2!important}
+.sgw-btn,.sgw-remix,.sgw-rxb{border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,.14);color:var(--ink);font:600 13.5px/1 Sora,sans-serif;box-shadow:none}
+.sgw-btn:hover,.sgw-remix:hover,.sgw-rxb:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.28);box-shadow:none;transform:none}
+.sgw-btn.on{color:#ff8fb6;border-color:rgba(255,120,170,.5)}.sgw-rxb.on{border-color:var(--mint);background:rgba(79,227,193,.1)}
+.sgw-card,.sgw-g,.sgw-cl li{border-radius:12px;background:#12161b;border:1px solid var(--edge);box-shadow:none;backdrop-filter:none}
+.sgw-card h2,.sgw-sec h2,.sgw-cta h2{font:700 16px/1.2 Sora,sans-serif;letter-spacing:0}
+.sgw-board li{border-radius:8px;background:#181d23}.sgw-board li b{font:600 15px/1 ui-monospace,"SF Mono",Menlo,monospace}
+.sgw-board li.m1{background:#181d23;border:1px solid rgba(230,195,106,.45)}.sgw-board li.m1 i{color:var(--gold)}
+.sgw-g:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2);box-shadow:none}
+.sgw-g b{font:700 15px/1.2 Sora,sans-serif}.sgw-g-art em{border-radius:5px;background:rgba(11,14,18,.82)}
+.sgw-cta{border-radius:14px;background:#12161b;border:1px solid var(--edge)}
+.sgw-cf input{border-radius:8px;background:#0b0e12;border-color:rgba(255,255,255,.14)}.sgw-cf input:focus{border-color:var(--mint);box-shadow:0 0 0 3px rgba(79,227,193,.12)}
+.sgw-lvn{border-radius:6px;background:transparent;border:1px solid rgba(79,227,193,.5);color:var(--mint)}
+.sgw-lv i{height:4px}.sgw-lv em{background:var(--mint);box-shadow:none}
+.sgw-badge{border-radius:8px;background:rgba(230,195,106,.08);border-color:rgba(230,195,106,.35)}
+.sgw-load{background:linear-gradient(0deg,rgba(11,14,18,.94),rgba(11,14,18,.7)),var(--art) center/cover}.sgw-load b{font:800 clamp(24px,4.5vw,38px)/1.1 Sora,sans-serif}.sgw-load em{background:var(--mint)}
+.sgw-toast{border-radius:8px;background:#12161b}
+/* the embed: just the game — a big Play, no site bar, footer or call to action */
+body.sgw-embed .sgw-main{padding:10px}
+body.sgw-embed .sgw-row,body.sgw-embed .sgw-sec,body.sgw-embed .sgw-cmts{display:none}
+body.sgw-embed .sgw-hero{min-height:calc(100vh - 20px)}
+body.sgw-embed .sgw-hero-in::after{content:"ARCIRCLE Studio";display:block;margin-top:16px;color:var(--ink3);font:600 11px/1 Sora,sans-serif;letter-spacing:.12em;text-transform:uppercase}

@@ -5575,3 +5575,137 @@ html.wp-pcphone .wst.pro .wst-tabs button{padding:13px 8px 12px!important;font-s
 @media (max-width:420px){.wst.pro:not(.wide) .wst-tabs button .wst-pi{display:none}.wst.pro:not(.wide) .wst-tabs button{padding:12px 4px 11px!important}}
 .wst.pro .wst-foot .wst-weblink{display:flex;justify-content:flex-start;margin:0 0 8px;padding:9px 10px;border-radius:8px;border:1px solid var(--p-line2);background:transparent!important;box-shadow:none!important;color:var(--p-acc);font:600 11.5px/1.3 Sora,sans-serif;text-align:left}
 .wst.pro .wst-foot .wst-weblink:hover{border-color:rgba(79,227,193,.45)}
+/* ===== PRO (2026-10-28, SP1): the builders in Studio Pro's graphite — header, bars, palettes, tools, panels */
+.wsb{--p-bg:#0b0e12;--p-s1:#12161b;--p-s2:#181d23;--p-s3:#1f252c;--p-line:rgba(255,255,255,.07);--p-line2:rgba(255,255,255,.13);--p-ink:#e9eef3;--p-ink2:#9ba7b3;--p-ink3:#68737e;--p-acc:#4fe3c1;--p-accd:rgba(79,227,193,.12);--p-gold:#e6c36a;background:var(--p-bg)}
+.wsb .wsb-in{color:var(--p-ink)}
+.wsb .wsb-h{gap:10px;padding:9px 12px;background:var(--p-s1);border-bottom:1px solid var(--p-line)}
+.wsb .wsb-h>b{font:700 14px/1 Sora,sans-serif;letter-spacing:0}
+.wsb .wsb-b,.wsb .wsb-i{height:34px;border-radius:8px;border:1px solid var(--p-line2);background:transparent;color:var(--p-ink);font:600 12.5px/1 Sora,sans-serif;box-shadow:none}
+.wsb .wsb-i{width:34px}
+.wsb .wsb-b:hover,.wsb .wsb-i:hover{border-color:var(--p-ink3);background:rgba(255,255,255,.03)}
+.wsb .wsb-b.alt{border-color:var(--p-line2);color:var(--p-ink)}
+.wsb .wsb-b.go,.wsb .wsb-i.on{background:var(--p-acc);border-color:transparent;color:#04130f}
+.wsb .wsb-uic{width:18px;height:18px;filter:grayscale(1) brightness(1.7)}
+.wsb .wsb-bar{gap:8px 16px;padding:7px 12px;background:var(--p-bg);border-bottom:1px solid var(--p-line);color:var(--p-ink2);font:500 12px/1.2 Sora,sans-serif}
+.wsb .wsb-len b{font:600 13px/1 ui-monospace,"SF Mono",Menlo,monospace;color:var(--p-ink)}
+.wsb .wsb-st{color:var(--p-gold)}.wsb .wsb-st small{color:var(--p-ink2)}
+.wsb .wsb-cnt{color:var(--p-ink2)}.wsb .wsb-ok{color:var(--p-acc)}.wsb .wsb-bad{color:#ff8a98}
+.wsb .wsb-sel,.wsb .wsb-pieces{background:var(--p-s1);border-top:1px solid var(--p-line);font:500 12.5px/1.2 Sora,sans-serif}
+.wsb .wsb-sel span{color:var(--p-ink2)}
+.wsb .wsb-sel button,.wsb .wsb-pieces button{height:32px;border-radius:7px;border:1px solid var(--p-line2);background:transparent;color:var(--p-ink);font:600 12px/1 Sora,sans-serif}
+.wsb .wsb-pieces button.on{border-color:var(--p-acc);background:var(--p-accd)}
+.wsb .wsb-pieces small{color:var(--p-ink3)}
+.wsb .wsb-tools,.wsb .wsj-tools{gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--p-s1);border-top:1px solid var(--p-line)}
+.wsb .wsb-tools button,.wsb .wsj-tools button{gap:4px;border-radius:8px;border:1px solid transparent;color:var(--p-ink3);font:600 11px/1.1 Sora,sans-serif}
+.wsb .wsb-tools button:hover,.wsb .wsj-tools button:hover{color:var(--p-ink2)}
+.wsb .wsb-tools button.on,.wsb .wsj-tools button.on{background:var(--p-accd);border-color:rgba(79,227,193,.45);color:var(--p-ink)}
+.wsb .wsj-tools button.go{background:var(--p-acc);color:#04130f}.wsb .wsj-tools button.alt{border-color:var(--p-line2);color:var(--p-ink)}
+.wsb .wsb-tools i .wsb-ic,.wsb .wsj-tools .wsj-ic{width:26px;height:26px;filter:saturate(.75) drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.wsb .wsj-pal{background:var(--p-s1);border-right:1px solid var(--p-line)}
+.wsb .wsj-grp{border-right:1px solid var(--p-line)}
+.wsb .wsj-grp button{border-radius:8px;color:var(--p-ink3);font:600 9.5px/1.1 Sora,sans-serif}
+.wsb .wsj-grp button.on{background:var(--p-accd);border-color:rgba(79,227,193,.45);color:var(--p-ink)}
+.wsb .wsj-items button{border-radius:8px;border:1px solid var(--p-line);background:var(--p-s2);color:var(--p-ink2);font:600 11px/1.1 Sora,sans-serif;box-shadow:none}
+.wsb .wsj-items button:hover{border-color:var(--p-line2)}
+.wsb .wsj-items button.on{border-color:var(--p-acc);background:var(--p-accd);color:var(--p-ink);box-shadow:0 0 0 1px var(--p-acc)}
+.wsb .wsj-pfh{color:var(--p-gold);font:600 11px/1.2 Sora,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.wsb .wsj-strip{border-top:1px solid var(--p-line)}
+.wsb .wsb-side .wsb-i,.wsb .wsj-zoom .wsb-i{background:rgba(11,14,18,.85);backdrop-filter:blur(4px)}
+.wsb .wsj-evp{border-radius:12px;border:1px solid var(--p-line2);background:var(--p-bg)!important;background-image:none!important;box-shadow:0 20px 50px rgba(0,0,0,.55)}
+.wsb .wsj-evp li{border-radius:8px;background:var(--p-s1);border:1px solid var(--p-line)}
+.wsb .wsj-evk{border-radius:5px;background:transparent;border:1px solid rgba(79,227,193,.5);color:var(--p-acc);font:700 10px/1 Sora,sans-serif}
+.wsb .wsj-evk.then{border-color:rgba(230,195,106,.55);color:var(--p-gold);background:transparent}
+.wsb select,.wsb input:not([type=range]){min-height:32px;border-radius:7px;border:1px solid var(--p-line2);background:var(--p-bg);color:var(--p-ink);font:500 12.5px/1.2 Sora,sans-serif}
+.wsb input[type=range]{accent-color:var(--p-acc)}
+.wsb-pop{border-color:var(--p-acc,#4fe3c1)}
+/* /studio: the builder sits under the site's bar (its header was hidden behind it) */
+body.sga .wsb{top:var(--sga-h,64px)}
+/* SP2 (2026-10-28): the result card's reaction stamps, the next game counting down, today's three's progress */
+.wst-res.pro .wst-rxst{display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 0 12px}
+.wst-res.pro .wst-rxst small{margin-right:4px}
+.wst-res.pro .wst-rxst button{width:38px;height:38px;border-radius:9px;border:1px solid var(--p-line2);background:transparent;font-size:18px;line-height:1;cursor:pointer;transition:transform .15s,border-color .15s}
+.wst-res.pro .wst-rxst button:hover:not(:disabled){transform:translateY(-2px);border-color:var(--p-ink3)}
+.wst-res.pro .wst-rxst button:disabled{opacity:.35;cursor:default}.wst-res.pro .wst-rxst button.on{opacity:1;border-color:var(--p-gold);background:var(--p-goldd)}
+.wst-res.pro .wst-rxst button.stamp{animation:wstStamp .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes wstStamp{0%{transform:scale(1.8) rotate(-14deg);opacity:.2}60%{transform:scale(.92) rotate(3deg);opacity:1}100%{transform:none}}
+.wst-res.pro .wst-upnext{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid var(--p-line2);background:var(--p-s1);text-align:left;animation:wstUpIn .35s ease-out both}
+.wst-res.pro .wst-upnext.off{opacity:.45}.wst-res.pro .wst-upnext.off .wst-unr .p{animation-play-state:paused}
+.wst-res.pro .wst-upnext span{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.wst-res.pro .wst-upnext span b{font:700 13.5px/1.2 Sora,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wst-unr{position:relative;flex:none;width:36px;height:36px}.wst-unr svg{width:36px;height:36px;transform:rotate(-90deg)}
+.wst-unr circle{fill:none;stroke:var(--p-line2);stroke-width:2.5}.wst-unr .p{stroke:var(--p-acc);stroke-dasharray:97.4;stroke-dashoffset:0;animation:wstUnr 5s linear forwards}
+.wst-unr b{position:absolute;inset:0;display:grid;place-items:center;font:700 13px/1 ui-monospace,monospace;color:var(--p-ink)}
+@keyframes wstUnr{to{stroke-dashoffset:97.4}}@keyframes wstUpIn{from{opacity:0;transform:translateY(6px)}}
+.wst.pro .wst-t3n{margin-left:8px;padding:3px 7px;border-radius:5px;border:1px solid var(--p-line2);color:var(--p-ink2);font:700 10.5px/1 ui-monospace,monospace}
+.wst.pro .wst-t3n.done{border-color:rgba(230,195,106,.55);color:var(--p-gold)}
+@media (prefers-reduced-motion:reduce){.wst-res.pro .wst-rxst button.stamp,.wst-res.pro .wst-upnext{animation:none}}
+.wst-res.pro .wst-rin{width:min(420px,calc(100vw - 32px))}
+.wst-res.pro .wst-res1 .wst-go{white-space:nowrap}
+html.wp-pcphone .wst-res.pro .wst-rin{width:min(420px,calc(100vw / 1.5 - 24px))}
+/* SP3 (2026-10-28): the test players' report, auto-tune, the designer chat */
+.wst.pro .wst-rep{margin:12px 0;padding:12px 14px;border-radius:var(--p-r);border:1px solid var(--p-line);background:var(--p-s1)}
+.wst.pro .wst-rep>b{display:flex;align-items:center;gap:7px;font:700 13px/1.2 Sora,sans-serif}.wst.pro .wst-rep>b .wst-pi{color:var(--p-acc)}
+.wst.pro .wst-rep p{margin:6px 0 0;color:var(--p-ink2);font:500 12.5px/1.45 Sora,sans-serif}
+.wst.pro .wst-repfix{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.wst.pro .wst-repfix:empty{display:none}.wst.pro .wst-repfix .wst-go{min-height:32px;font-size:12px}
+.wst.pro .wst-tune{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--p-line)}
+.wst.pro .wst-tune label{flex:1;display:flex;align-items:center;gap:8px;min-width:0}.wst.pro .wst-tune label span{color:var(--p-ink2);font:600 12px/1 Sora,sans-serif;white-space:nowrap}
+.wst.pro .wst-tune input{flex:1;min-width:60px}.wst.pro .wst-tune b{min-width:38px;text-align:right;font:700 12.5px/1 ui-monospace,monospace;color:var(--p-acc)}
+.wst.pro .wst-tune .wst-go{min-height:34px;font-size:12.5px}
+.wst.pro .wst-chatl{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:200px;overflow:auto}
+.wst.pro .wst-chatl li{max-width:86%;padding:8px 11px;border-radius:10px;font:500 12.5px/1.4 Sora,sans-serif;animation:wstUpIn .25s ease-out both}
+.wst.pro .wst-chatl li.me{align-self:flex-end;background:var(--p-accd);border:1px solid rgba(79,227,193,.35);color:var(--p-ink);border-bottom-right-radius:3px}
+.wst.pro .wst-chatl li.ai{align-self:flex-start;background:var(--p-s2);border:1px solid var(--p-line);color:var(--p-ink2);border-bottom-left-radius:3px}
+/* SP4 (2026-10-28): layout — missions on one line, a sticky preview on phones, the undo bar, the template dropdown, empty-state starts */
+.wst.pro .wst-miss summary{grid-template-columns:auto auto 1fr auto!important;column-gap:10px}
+.wst.pro .wst-miss summary .wst-pi{color:var(--p-gold)}
+.wst.pro .wst-missnx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--p-ink3);font:500 12px/1 Sora,sans-serif;font-style:normal}
+.wst.pro .wst-miss:not([open]) summary i{display:none}
+.wst.pro .wst-miss:not([open]){padding-top:0;padding-bottom:0}
+.wst.pro:not(.wide) .wst-mk:not(.s4) .wst-mkl{position:sticky;top:-14px;z-index:3;margin:0 -16px 8px;padding:8px 16px;background:linear-gradient(180deg,var(--p-bg) 85%,transparent)}
+.wst.pro:not(.wide) .wst-mk:not(.s4) .wst-3dbox{aspect-ratio:16/6;margin:0}
+.wst.pro .wst-undo{position:absolute;left:50%;bottom:76px;z-index:20;display:flex;align-items:center;gap:12px;padding:9px 10px 9px 14px;border-radius:9px;border:1px solid var(--p-line2);background:var(--p-s2);box-shadow:0 12px 30px rgba(0,0,0,.5);color:var(--p-ink);font:500 12.5px/1.2 Sora,sans-serif;transform:translate(-50%,12px);opacity:0;transition:transform .2s,opacity .2s;white-space:nowrap}
+.wst.pro .wst-undo.on{transform:translate(-50%,0);opacity:1}
+.wst.pro .wst-undo button{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:6px;border:0;background:var(--p-accd);color:var(--p-acc);font:700 12px/1 Sora,sans-serif;cursor:pointer}
+.wst.pro .wst-atplsel{display:flex;align-items:center;gap:8px;align-self:flex-start;padding-left:10px;border-radius:8px;border:1px solid var(--p-line2);background:var(--p-bg);color:var(--p-ink3)}
+.wst.pro .wst-atplsel select{border:0!important;background:transparent!important;padding:0 10px 0 2px!important;min-height:34px;color:var(--p-ink);font:600 12.5px/1 Sora,sans-serif;box-shadow:none!important}
+.wst.pro .wst-atplsel select option{background:#12161b}
+.wst.pro .wst-starts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;margin-top:14px}
+.wst.pro .wst-start{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:9px;border:1px solid var(--p-line);background:var(--p-s2);color:var(--p-ink);cursor:pointer;transition:border-color .15s,transform .15s}
+.wst.pro .wst-start:hover{border-color:var(--p-acc);transform:translateY(-2px)}
+.wst.pro .wst-start .wst-art{display:block;aspect-ratio:16/9;background-size:cover;background-position:center}
+.wst.pro .wst-start b{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 4px;font:600 12px/1.1 Sora,sans-serif}
+.wst.pro .wst-rules>span{color:var(--p-ink2);font:600 12px/1 Sora,sans-serif}
+.wst.pro .wst-rules .wst-chips{flex-wrap:wrap;gap:4px;padding:3px}
+.wst.pro .wst-rules .wst-chips button{display:inline-flex;align-items:center;gap:5px}
+.wst.pro .wst-side-ct small{display:inline-flex;align-items:center;gap:5px}.wst.pro .wst-side-ct small .wst-pi{width:13px;height:13px}
+/* SP5 (2026-10-28): motion in the Pro look */
+.wst.pro .wst-stepbody.fwd{animation:wstSlideL .28s cubic-bezier(.2,.8,.3,1) both}.wst.pro .wst-stepbody.back{animation:wstSlideR .28s cubic-bezier(.2,.8,.3,1) both}
+@keyframes wstSlideL{from{opacity:0;transform:translateX(24px)}}@keyframes wstSlideR{from{opacity:0;transform:translateX(-24px)}}
+.wst.pro .wst-steps::after{transition:width .35s cubic-bezier(.2,.8,.3,1)}
+/* the clear rate's bar: mint when fair, gold when hard, red when brutal */
+.wst.pro .wst-est .wst-estbar>i{transition:width .45s cubic-bezier(.2,.8,.3,1),background .3s}
+.wst.pro .wst-est.s4 .wst-estbar>i{background:var(--p-gold)}.wst.pro .wst-est.s5 .wst-estbar>i{background:#ff6b7f}
+.wst.pro .wst-est.s1 .wst-estbar>i{background:#7cc8ff}
+.wst.pro .wst-est.up b,.wst.pro .wst-est.down b{animation:wstNudge .45s ease-out}@keyframes wstNudge{40%{transform:scale(1.12)}}
+/* the save status: a small chip with a tick that draws itself */
+.wst.pro .wst-sv{display:inline-flex;align-items:center;gap:6px;margin:6px 0;padding:4px 9px;border-radius:999px;border:1px solid var(--p-line2);color:var(--p-ink2);font:600 11px/1 Sora,sans-serif}
+.wst.pro .wst-sv.ok{border-color:rgba(79,227,193,.35);color:var(--p-acc);animation:wstSaved .5s ease-out}.wst.pro .wst-sv.err{border-color:rgba(255,107,127,.45);color:#ff8a98}
+.wst.pro .wst-sv button{border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
+@keyframes wstSaved{0%{transform:scale(.9);opacity:.3}60%{transform:scale(1.05)}100%{transform:none;opacity:1}}
+/* the race hour's ring: how much of the hour is left */
+.wst-hring{display:inline-block;width:13px;height:13px;border-radius:50%;background:conic-gradient(var(--p-gold,#e6c36a) calc(var(--k) * 360deg),rgba(255,255,255,.14) 0);-webkit-mask:radial-gradient(circle,transparent 3.5px,#000 4px);mask:radial-gradient(circle,transparent 3.5px,#000 4px);vertical-align:-2px;margin-right:2px}
+/* cards and rows come in one after another; a card lifts and its edge lights on hover */
+.wst.pro .wst-hrow .wst-card,.wst.pro .wst-offrow .wst-card{animation:wstUpIn .35s ease-out both}
+.wst.pro .wst-hrow .wst-card:nth-child(2),.wst.pro .wst-offrow .wst-card:nth-child(2){animation-delay:.04s}.wst.pro .wst-hrow .wst-card:nth-child(3),.wst.pro .wst-offrow .wst-card:nth-child(3){animation-delay:.08s}.wst.pro .wst-hrow .wst-card:nth-child(4),.wst.pro .wst-offrow .wst-card:nth-child(4){animation-delay:.12s}.wst.pro .wst-hrow .wst-card:nth-child(n+5),.wst.pro .wst-offrow .wst-card:nth-child(n+5){animation-delay:.16s}
+.wst.pro .wst-card{transition:transform .18s cubic-bezier(.2,.8,.3,1),border-color .18s}
+.wst.pro .wst-card:hover{transform:translateY(-3px);border-color:rgba(79,227,193,.4)!important}
+/* the countdown in Pro type: 3 · 2 · 1 · GO! */
+.wst-cd{font:800 92px/1 Sora,sans-serif;letter-spacing:-.03em;color:#fff;text-shadow:0 0 28px rgba(79,227,193,.55),0 4px 10px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:reduce){.wst.pro .wst-stepbody.fwd,.wst.pro .wst-stepbody.back,.wst.pro .wst-hrow .wst-card,.wst.pro .wst-offrow .wst-card,.wst.pro .wst-sv.ok{animation:none}}
+/* SP6 (2026-10-28): the 6-second clip */
+.wst-clip .wst-shc{width:min(560px,100%)}
+.wst-clipv{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;border:1px solid var(--p-line2);background:#000}
+.wst-clipv canvas,.wst-clipv video{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:cover;display:block}
+.wst-clipbar{display:block;height:3px;margin-top:10px;border-radius:2px;background:var(--p-s3);overflow:hidden}.wst-clipbar em{display:block;height:100%;width:0;background:var(--p-acc)}
+@keyframes wstClipBar{to{width:100%}}
+.wst-clipacts{margin-top:12px}.wst-clipacts .wst-go{flex:1;justify-content:center;text-decoration:none}

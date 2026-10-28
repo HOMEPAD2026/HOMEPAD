@@ -41,6 +41,11 @@ const P = {
   trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/>',
   chart: '<path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>',
   pen: '<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="m14 7 3 3"/>',
+  feather: '<path d="M20 4c-6 0-12 4-14 12l-2 4"/><path d="M8.5 13.5H15M11 10h6"/><path d="M20 4c0 7-4 12-11 12"/>',
+  swap: '<path d="M4 8h14l-3-3M20 16H6l3 3"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  film: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/>',
   // templates
   runner: '<circle cx="14" cy="4.5" r="1.8"/><path d="m7 21 3-6 3 2.5V21M10 15l1.5-6 4 3.5 3 .5M11.5 9 7 10.5 5.5 14"/>',
   dash: '<path d="M7.5 15.5a4.5 4.5 0 1 1 0-7c2 1 3.5 3.5 4.5 3.5s2.5-2.5 4.5-3.5a4.5 4.5 0 1 1 0 7c-2-1-3.5-3.5-4.5-3.5s-2.5 2.5-4.5 3.5z"/>',

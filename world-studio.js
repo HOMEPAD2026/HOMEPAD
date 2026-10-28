@@ -24,7 +24,12 @@ const LEN_NAME = { defense: { 30: "5 waves", 45: "8 waves", 60: "10 waves", 90: 
 /// ctx: { THREE, K, st, T, esc, toast, Snd, reduce, low, coarse, sess, post, signIn, makeHero(), agentName(), onOpen, onClose }
 export function createStudio(ctx) {
   const { THREE, T, esc } = ctx;
-  const nextSeen = new Set(); let el = null, tab = "make", gid = "", gdata = null, ghostOn = true, step = 1, prev = null, prevOk = true, snaps = {}, lastTest = null, advOpen = false, spec = clampSpec({ seed: 1 + Math.floor(Math.random() * 99999) }), editId = "", mine = [], arcade = [], busy = false, playing = null, lastRun = null, aiNote = "";
+  let lastStep = 1; const nextSeen = new Set(), todayIds = new Set(); // (SP2: today's three, as the arcade last drew them)
+  // SP2 (2026-10-28, the owner: the Studio's next step): today's three — play all three (a Seoul day) for a badge on this device
+  const t3Day = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const t3Done = () => { try { const j = JSON.parse(localStorage.getItem("arc.studio.t3") || "{}"); return new Set(j.d === t3Day() ? j.ids || [] : []); } catch { return new Set(); } };
+  const t3Mark = (id) => { if (!todayIds.has(id)) return false; const d = t3Done(); if (d.has(id)) return false; d.add(id); try { localStorage.setItem("arc.studio.t3", JSON.stringify({ d: t3Day(), ids: [...d] })); } catch { /* not kept */ } return [...todayIds].every((x) => d.has(x)); };
+  const autoOn = () => { try { return localStorage.getItem("arc.studio.autonext") !== "0"; } catch { return true; } }; let el = null, tab = "make", gid = "", gdata = null, ghostOn = true, step = 1, prev = null, prevOk = true, snaps = {}, lastTest = null, advOpen = false, spec = clampSpec({ seed: 1 + Math.floor(Math.random() * 99999) }), editId = "", mine = [], arcade = [], busy = false, playing = null, lastRun = null, aiNote = "";
   const wallet = () => { const s = ctx.sess(); return s ? String(s.wallet).toLowerCase() : ""; };
   // STU-A (2026-10-26): a guest's drafts live on this device until they sign in (then they go up with one tap)
   const LKEY = "arc.studio.local", locals = () => { try { const a = JSON.parse(localStorage.getItem(LKEY) || "[]"); return Array.isArray(a) ? a.filter((d) => d && d.id && d.spec) : []; } catch { return []; } };
@@ -35,7 +40,7 @@ export function createStudio(ctx) {
   let aq = "", asort = "pop", atpl = "", week = null, remixFrom = "", today = null, myPicks = [], gcm = null; // (STB7: the day's challenge, my picks, the open game's comments)
   // STB1 (2026-10-27): the sidebar's empty space holds this week's contest — one tap starts a game of that template
   const sideCard = () => { if (!week || !week.tpl || !TEMPLATES[week.tpl]) return ""; const d = Math.max(0, Math.ceil((week.ends - Date.now()) / 86400e3));
-    return `<button type="button" class="wst-side-ct" data-ctgo="${esc(week.tpl)}"><span class="wst-side-art" style="background-image:url(/images/studio/tpl/${esc(week.tpl)}-400.webp${ctx.ver || ""})"></span><small><i class="wst-ctic">${ui2("contest", "🏆")}</i>${esc(T("Weekly creator contest"))}</small><b>${ICON[week.tpl] || "🎮"} ${esc(T(TEMPLATES[week.tpl].name))}</b><em>${esc(T("{n} days left", { n: d }))}</em></button>`; };
+    return `<button type="button" class="wst-side-ct" data-ctgo="${esc(week.tpl)}"><span class="wst-side-art" style="background-image:url(/images/studio/tpl/${esc(week.tpl)}-400.webp${ctx.ver || ""})"></span><small>${pi("trophy")} ${esc(T("Weekly creator contest"))}</small><b>${esc(T(TEMPLATES[week.tpl].name))}</b><em>${esc(T("{n} days left", { n: d }))}</em></button>`; };
   // STB3 (2026-10-27): the templates in categories — 15 cards didn't fit and nothing said there were more; NEW on the latest
   const TCATS = [["all", "🎮", "All"], ["run", "🏃", "Run"], ["jump", "🍄", "Jump"], ["survive", "🛡️", "Survive"], ["mind", "🧩", "Puzzle"], ["beat", "🎵", "Rhythm & race"]];
   const TCAT_IC = { all: "cat-all", run: "cat-run", jump: "cat-jump", survive: "cat-survive", mind: "cat-puzzle", beat: "cat-rhythm" }, ui2 = (n, alt) => `<img src="/images/studio/ui2/${n}.webp${ctx.ver || ""}" alt="" onerror="this.replaceWith(document.createTextNode('${alt}'))">`;
@@ -112,7 +117,8 @@ export function createStudio(ctx) {
   function missTick(k) { if (!MISSIONS.some(([m]) => m === k)) return; const d = msDone(); if (d.has(k)) return; d.add(k); try { localStorage.setItem("arc.studio.miss", JSON.stringify([...d])); } catch { /* not kept */ }
     const left = MISSIONS.filter(([m]) => !d.has(m)).length; if (!left) setTimeout(() => cutIn("🏆 " + T("Every creator mission done!"), T("You know the whole Studio now.")), 400); else ctx.toast("✅ " + esc(T("Mission done: {m}", { m: T(MISSIONS.find(([m]) => m === k)[2]) })) + ` · ${MISSIONS.length - left}/${MISSIONS.length}`); }
   function missBox() { const d = msDone(); if (d.size >= MISSIONS.length) return ""; const n = MISSIONS.filter(([m]) => d.has(m)).length;
-    return `<details class="wst-miss"${n < 2 && isWide() ? " open" : ""}><summary>${IR("ic-mission")} <b>${esc(T("Creator missions"))}</b><span>${n}/${MISSIONS.length}</span><i><em style="width:${Math.round((n / MISSIONS.length) * 100)}%"></em></i></summary>
+    const nx0 = MISSIONS.find(([m]) => !d.has(m)); // (SP4: folded to one line — the next mission and the progress; open it for the list)
+    return `<details class="wst-miss"><summary>${pi("flag")} <b>${esc(T("Creator missions"))}</b>${nx0 ? `<em class="wst-missnx">${esc(T("Next: {m}", { m: T(nx0[2]) }))}</em>` : ""}<span>${n}/${MISSIONS.length}</span><i><em style="width:${Math.round((n / MISSIONS.length) * 100)}%"></em></i></summary>
       <ol>${MISSIONS.map(([m, ic, l]) => `<li class="${d.has(m) ? "done" : ""}"><i>${d.has(m) ? "✓" : ic}</i>${esc(T(l))}</li>`).join("")}</ol></details>`; }
   function seasonBox() { if (!season) return ""; const left = Math.max(0, season.ends - Date.now()), dd = Math.floor(left / 86400e3), medal = ["🥇", "🥈", "🥉"];
     return `<div class="wst-contest wst-season"><div class="wst-cth"><i>${IR("ic-season")}</i><div><small>${esc(T("Creator season"))}</small><b>${esc(new Date(season.month + "-01T00:00:00Z").toLocaleString(LANGC(), { month: "long", year: "numeric", timeZone: "UTC" }))}</b><em>${esc(T("ends in {d}d", { d: dd }))}</em></div></div>
@@ -158,7 +164,7 @@ export function createStudio(ctx) {
     el.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") return; const cv = e.target.closest && e.target.closest(".wst-cv[data-open]"); clearTimeout(holdT); if (!cv) return; const x0 = e.clientX, y0 = e.clientY; holdT = setTimeout(() => { holdT = 0; cardLive(cv); liveHeld = true; }, 380); const mv = (m) => { if (Math.hypot(m.clientX - x0, m.clientY - y0) > 12) { clearTimeout(holdT); el.removeEventListener("pointermove", mv); } }; el.addEventListener("pointermove", mv); });
     el.addEventListener("pointerup", () => { clearTimeout(holdT); });
     el.addEventListener("click", (e) => { if (liveHeld) { liveHeld = false; e.stopPropagation(); e.preventDefault(); setTimeout(cardStill, 2600); } }, true); /* (the hold showed it: the lift isn't a tap) */
-    el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } else if (e.key === "Enter" && e.target.closest && e.target.closest(".wst-hin")) { e.preventDefault(); saveHandle(); } });
+    el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } else if (e.key === "Enter" && e.target.closest && e.target.closest(".wst-hin")) { e.preventDefault(); saveHandle(); } else if (e.key === "Enter" && e.target.matches && e.target.matches(".wst-twin")) { e.preventDefault(); tweakIt(); } });
     return el;
   }
   const land = ctx.land || makeLand({ T, esc, coarse: !!ctx.coarse }); // (phones: the Studio sideways while it's open — world-studio-pad.js)
@@ -173,11 +179,33 @@ export function createStudio(ctx) {
   const PNAME = { easy: "Easy", normal: "Normal", hard: "Hard", extreme: "Extreme" }, WHY = { crowd: "the crowd", boss: "a boss", notes: "the notes", e: "walkers", n: "flyers", z: "cannonballs", k: "spikes", l: "lava", B: "the dragon boss", f: "falling platforms", b: "blinking platforms", m: "moving platforms", v: "lifts", i: "ice", pit: "pits", time: "the clock", reach: "a stretch you can't reach", wall: "walls", gap: "gaps", laser: "lasers", d: "drones", D: "big drones", L: "laser sweeps", mwall: "moving walls", blink: "blinking lasers", g: "grunts", r: "runners", t: "tanks", plat: "platforms", mplat: "moving platforms", break: "breaking platforms", spring: "springs" };
   const starsTxt = (n) => `<span class="wst-stars" aria-label="${n}/5">${"<i>★</i>".repeat(n)}${"<i class=\"off\">★</i>".repeat(5 - n)}</span>`;
   const presetOf = () => Object.keys(PRESETS).find((k) => Object.entries(PRESETS[k]).every(([f, v]) => spec[f] === v)) || "";
-  const RULE_UI = [["low", "🪶", "Low gravity"], ["mirror", "🔁", "Mirrored controls"], ["night", "🌙", "Night run"], ["onehp", "💔", "One heart"], ["speedup", "🚀", "Speeds up"]];
-  const rulesRow = () => (spec.tpl === "runner" || spec.tpl === "dash" ? `<div class="wst-rules"><span>🃏 ${esc(T("Rule cards (up to 2)"))}</span><div class="wst-chips">${RULE_UI.map(([k, ic, n]) => `<button type="button" data-rule="${k}" class="${(spec.rules || []).includes(k) ? "on" : ""}">${ic} ${esc(T(n))}</button>`).join("")}</div></div>` : "");
+  const RULE_UI = [["low", "feather", "Low gravity"], ["mirror", "swap", "Mirrored controls"], ["night", "moon", "Night run"], ["onehp", "heart", "One heart"], ["speedup", "rocket", "Speeds up"]]; /* (PRO: line icons) */
+  const rulesRow = () => (spec.tpl === "runner" || spec.tpl === "dash" ? `<div class="wst-rules"><span>${esc(T("Rule cards (up to 2)"))}</span><div class="wst-chips">${RULE_UI.map(([k, ic, n]) => `<button type="button" data-rule="${k}" class="${(spec.rules || []).includes(k) ? "on" : ""}">${pi(ic)} ${esc(T(n))}</button>`).join("")}</div></div>` : "");
   /// STU-D: where the 40 test players' runs end along the level (red = many), and where real players' runs ended (the maker's numbers)
   const heatBar = (b) => { const m = Math.max(1, ...b); return `<span class="wst-heatb">${b.map((n, i) => `<i style="--k:${(n / m).toFixed(2)}" title="${i * 10}–${i * 10 + 10}%: ${n}"></i>`).join("")}</span>`; };
   const heatRow = (E) => spec.tpl === "puzzle" || !E.fails || !E.fails.some((x) => x) ? "" : `<div class="wst-heat"><small>🔥 ${esc(T("Where test players fail"))}</small>${heatBar(E.fails)}<em><span>${esc(T("Start"))}</span><span>${esc(T("Finish"))}</span></em></div>`;
+  // SP3 (2026-10-28): the test players' report in words, with a fix for what stops most runs, and the clear rate you aim for
+  const WHY_KNOB = { wall: "walls", gap: "gaps", laser: "lasers", d: "walls", D: "walls", L: "lasers", k: "walls", pit: "gaps", e: "walls", n: "walls" };
+  const tuneKnobs = () => spec.build ? ["speed"] : ["speed", "walls", "gaps", "lasers"].filter((k) => (KNOBS[spec.tpl] || KNOBS.runner)[k] != null || k === "speed");
+  let tuneTo = 50, tuning = false;
+  const reportRow = (E) => { if (spec.tpl === "puzzle") return ""; const p = Math.round(E.clear * 100), f = E.fails || [], mx = f.length ? f.indexOf(Math.max(...f)) : -1, at = mx >= 0 && f[mx] ? Math.round(((mx + 0.5) / f.length) * 100) : null, kn = E.why && WHY_KNOB[E.why] && !spec.build ? WHY_KNOB[E.why] : "";
+    const lines = [p >= 90 ? T("Almost everyone finishes — it may feel too easy.") : p <= 15 ? T("Very few finish — most players will give up.") : p <= 35 ? T("A real challenge: about one in {n} finishes.", { n: Math.max(2, Math.round(100 / Math.max(1, p))) }) : T("A fair challenge: {p}% of test players finish.", { p }),
+      at != null ? T("Most runs end around {a}% of the way{w}.", { a: at, w: E.why ? " — " + T(WHY[E.why] || E.why) : "" }) : ""].filter(Boolean);
+    return `<div class="wst-rep"><b>${pi("chart")} ${esc(T("Test players' report"))}</b>${lines.map((l) => `<p>${esc(l)}</p>`).join("")}<span class="wst-repfix">${p > 15 && kn && (spec[kn] || 0) > 0 && p < 90 ? `<button type="button" class="wst-go alt" data-fixk="${kn}" data-fixd="-1">${esc(T("Fewer {w}", { w: T(WHY[E.why] || kn) }))}</button>` : ""}${p <= 15 ? `<button type="button" class="wst-go alt" data-fixk="${kn || "speed"}" data-fixd="-1">${esc(T("Make it easier"))}</button>` : ""}${p >= 90 ? `<button type="button" class="wst-go alt" data-fixk="${spec.build ? "speed" : "walls"}" data-fixd="1">${esc(T("Make it harder"))}</button>` : ""}</span>
+      <div class="wst-tune"><label><span>${esc(T("Aim for"))}</span><input type="range" min="10" max="90" step="5" value="${tuneTo}" data-tuneto><b data-tunev>${tuneTo}%</b></label><button type="button" class="wst-go" data-tune ${tuning ? "disabled" : ""}>${pi("tune")} ${esc(T(tuning ? "Tuning…" : "Auto-tune"))}</button></div></div>`; };
+  /// SP3: auto-tune — step the knobs one at a time toward the clear rate you aim for (the same 40 bots; a few frames at a time)
+  function autoTune() { if (tuning) return; tuning = true; paintKeep(); const target = tuneTo / 100, keys = tuneKnobs(), MAX = { speed: 5, walls: 5, gaps: 3, lasers: 3 }, MIN = { speed: 1, walls: 0, gaps: 0, lasers: 0 };
+    // (the bots' rate has flat stretches: a tie is broken toward harder or easier as the aim needs, so it walks across them)
+    const sum = (c) => keys.reduce((a, k) => a + (c[k] || 0), 0), score = (c) => { const e = estimate(c).clear; return Math.abs(e - target) + (e > target ? -0.002 : 0.002) * sum(c); };
+    let cur = { ...spec }, curS = score(cur), n = 0;
+    const stepOnce = () => { let best = null, bestS = curS; for (const k of keys) for (const d of [-1, 1]) { const v = (cur[k] || 0) + d; if (v < MIN[k] || v > MAX[k]) continue; const c2 = { ...cur, [k]: v }, s2 = score(c2); if (s2 < bestS - 0.0005) { bestS = s2; best = c2; } }
+      if (best && n++ < 24) { cur = best; curS = bestS; setTimeout(stepOnce, 0); return; }
+      const before = JSON.stringify(spec); Object.assign(spec, cur); tuning = false; lastTest = null; paintKeep(); prevSoon(); const p = Math.round(estimate(spec).clear * 100);
+      ctx.toast(esc(before === JSON.stringify(spec) ? T("Already as close as these settings go ({p}%)", { p }) : T("Tuned to {p}% — test it to feel it", { p }))); };
+    setTimeout(stepOnce, 30); }
+  /// SP3: the designer chat — your words and the agent's answers, the last few kept for this draft; one change can be undone
+  let chat = [], chatUndo = null;
+  const chatRow = () => `<div class="wst-ai wst-tweak wst-chat"><b>${pi("agent")} ${esc(T("Design with {n}", { n: ctx.agentName() || T("your agent") }))}</b>${chat.length ? `<ol class="wst-chatl">${chat.slice(-6).map((m) => `<li class="${m.me ? "me" : "ai"}">${esc(m.t)}</li>`).join("")}</ol>` : `<small class="wst-qsub">${esc(T("Say what to change — it edits the level and tells you what it did."))}</small>`}<div class="wst-airow"><input class="wst-twin" maxlength="240" placeholder="${esc(T("e.g. fewer lasers, harder at the end, more coins"))}"><button type="button" class="wst-go" data-tweak ${busy ? "disabled" : ""}>${esc(T("Send"))}</button></div>${chatUndo ? `<button type="button" class="wst-link" data-chatundo>${pi("back")} ${esc(T("Undo the last change"))}</button>` : ""}<div class="wst-qideas">${["Make the start easier", "More coins", "Harder at the end", "Fewer lasers"].map((q) => `<button type="button" data-chatq="${esc(q)}">${esc(T(q))}</button>`).join("")}</div></div>`;
   const tweakRow = () => `<div class="wst-ai wst-tweak"><b>✨ ${esc(T("Tell {n} what to change", { n: ctx.agentName() || T("your agent") }))}</b><div class="wst-airow"><input class="wst-twin" maxlength="240" placeholder="${esc(T("e.g. fewer lasers, harder at the end, more coins"))}"><button type="button" class="wst-go" data-tweak ${busy ? "disabled" : ""}>${esc(T("Change it"))}</button></div></div>`;
   function statsBox(g) { const st = g.stats || { runs: 0, clears: 0, sum: 0, ends: [] }, rs = g.reports ? Object.values(g.reports).reduce((a, x) => a + x, 0) : 0;
     const dd = [...Array(14)].map((_, i) => new Date(Date.now() + 9 * 3600e3 - (13 - i) * 86400e3).toISOString().slice(0, 10)), dv = dd.map((d) => (g.dl || {})[d] || 0), dm = Math.max(1, ...dv);
@@ -186,7 +214,7 @@ export function createStudio(ctx) {
   function paintMake() { return missBox() + paintMake0(); }
   function paintMake0() {
     const th = THEMES[spec.theme], L = genLevel(spec), KN = KNOBS[spec.tpl] || KNOBS.runner, E = estimate(spec), cur = mine.find((g) => g.id === editId);
-    if (step === 2) step = 1; if (step === 5) step = 4;
+    if (step === 2) step = 1; if (step === 5) step = 4; const dir = step > lastStep ? "fwd" : step < lastStep ? "back" : ""; lastStep = step; // (SP5: the step's body slides in from the side it came from)
     const bar = `<ol class="wst-steps" style="--k:${Math.max(0, VIS.findIndex(([n]) => n === step)) / (VIS.length - 1)}">${VIS.map(([n, l], i) => `<li><button type="button" data-step="${n}" class="${step === n ? "on" : step > n ? "done" : ""}"><i>${step > n ? "✓" : i + 1}</i><span>${esc(T(l))}</span></button></li>`).join("")}</ol>`;
     const box = step <= 4 ? `<div class="wst-3dbox${step === 4 ? " big" : ""}">${prev ? "" : `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>`}<span class="wst-3dtag">${tplIc(spec.tpl)} ${esc(T(TEMPLATES[spec.tpl].name))} · ${esc(T(th.name))}</span></div>` : "";
     let body = "";
@@ -198,14 +226,14 @@ export function createStudio(ctx) {
       ${rulesRow()}
       <div class="wst-row"><span>${esc(T(KN.speed))}</span><div class="wst-chips">${[1, 2, 3, 4, 5].map((x) => `<button type="button" data-speed="${x}" class="${x === spec.speed ? "on" : ""}">${x}</button>`).join("")}</div></div>
       <div class="wst-est s${E.stars}" data-p="${Math.round(E.clear * 100)}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span><i class="wst-estbar"><i></i></i>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
-      ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}${heatRow(E)}`; }
+      ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}${heatRow(E)}${reportRow(E)}${chatRow()}`; }
     else if (step === 3) { const pk = presetOf();
       body = `${spec.tpl !== "puzzle" && spec.tpl !== "survival" ? `<div class="wst-build"><i>🛠️</i><div><b>${esc(T("Build it yourself"))}</b><small>${esc(T(spec.tpl === "arena" || spec.tpl === "rush" ? "Send every drone, sweep and coin when and where you want, and stand pillars — starting from this arena." : spec.tpl === "climb" ? "Place every platform, spring, spike and coin up the tower by hand — starting from this one." : spec.tpl === "defense" ? "Draw the path, place the tower pads and set every wave by hand — starting from this map." : JUMPS[spec.tpl] ? "Place every block, platform, spring, key, door, enemy and the boss on the grid — starting from this level." : spec.tpl === "rhythm" ? "Place every note on the beat, lane by lane — starting from this song." : spec.tpl === "race" ? "Lay out every ring, boost pad, orb and pillar on the ground — starting from this track." : "Place every wall, gap, laser, coin and heart by hand — starting from this layout."))}</small></div><span><button type="button" class="wst-go" data-build>${pi("build")} ${esc(T("Open the builder"))}</button></span></div>` : ""}${rulesRow()}${galleryRow()}`;
       body += `<div class="wst-pres">${Object.keys(PRESETS).map((k) => { const e = estimate({ ...spec, ...PRESETS[k] }); return `<button type="button" data-preset="${k}" class="${pk === k ? "on" : ""} p-${k}"><b>${esc(T(PNAME[k]))}</b><small>${starsTxt(e.stars)}</small><em>${Math.round(e.clear * 100)}%</em></button>`; }).join("")}</div><p class="wst-pcap">${esc(T("% = how many of 40 test players finish it"))}</p>
       <div class="wst-row"><span>${esc(T(KN.len))}</span><div class="wst-chips">${LENS.map((x) => `<button type="button" data-len="${x}" class="${x === spec.len ? "on" : ""}">${LEN_NAME[spec.tpl] ? esc(T(LEN_NAME[spec.tpl][x])) : x + "s"}</button>`).join("")}</div></div>
       <div class="wst-est s${E.stars}" data-p="${Math.round(E.clear * 100)}"><b>${starsTxt(E.stars)}</b><span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span><i class="wst-estbar"><i></i></i>${E.why ? `<small>${esc(T("Most runs end at: {x}", { x: T(WHY[E.why] || E.why) }))}</small>` : ""}</div>
       ${prev ? `<canvas class="wst-prev" width="640" height="76" aria-label="${esc(T("Preview"))}"></canvas>` : ""}
-      ${heatRow(E)}${tweakRow()}
+      ${heatRow(E)}${reportRow(E)}${chatRow()}
       <details class="wst-adv"${advOpen ? " open" : ""}><summary>${pi("tune")} ${esc(T("Advanced settings"))}</summary><div class="wst-sls">${slider("speed", KN.speed, 5, 1)}${slider("coins", KN.coins, 5)}${slider("walls", KN.walls, 5)}${slider("gaps", KN.gaps, 3)}${slider("lasers", KN.lasers, 3)}</div>
       <p class="wst-fine" style="--c:${hex(th.edge)}">🎲 ${esc(T("Layout #{n}", { n: spec.seed }))} · <span class="wst-sum">${summary(L)}</span> <button type="button" class="wst-link" data-seed>${esc(T("New layout"))}</button></p></details>`; }
     else if (step === 4) body = `<ul class="wst-recap"><li><i>${tplIc(spec.tpl)}</i>${esc(T(TEMPLATES[spec.tpl].name))}</li><li><i>${pi("look")}</i>${esc(T(th.name))}</li><li><i>${pi("fire")}</i>${starsTxt(E.stars)} · ${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</li><li><i>${pi("ruler")}</i><span class="wst-sum">${summary(L)}</span></li></ul>
@@ -218,7 +246,7 @@ export function createStudio(ctx) {
     const nav = `<nav class="wst-nav">${step > 1 ? `<button type="button" class="wst-go alt" data-back>${pi("back")} ${esc(T("Back"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go alt" data-test>${IC("ic-test")} ${esc(T("Test"))}</button>` : "<span></span>"}${step < 4 ? `<button type="button" class="wst-go" data-next>${esc(T("Next"))} ${pi("next")}</button>` : "<span></span>"}</nav>`;
     // STU-6: two columns where there's room (a computer, a phone held sideways) — the live preview on the left, the step on the right
     const side = step <= 4 ? `<ul class="wst-facts"><li><i>${tplIc(spec.tpl)}</i><span>${esc(T(TEMPLATES[spec.tpl].name))}</span></li><li><i>${pi("look")}</i><span>${esc(T(th.name))}</span></li><li><i>${pi("fire")}</i><span>${starsTxt(E.stars)} ${Math.round(E.clear * 100)}%</span></li></ul>` : "";
-    return `<div class="wst-mk s${step}"><div class="wst-mkl">${box}${side}</div><div class="wst-mkr">${bar}<p class="wst-hint">${esc(T((VIS.find((v) => v[0] === step) || VIS[0])[2]))}</p>${penBar()}${saveBar()}<div class="wst-stepbody s${step}">${body}</div></div></div>${nav}`;
+    return `<div class="wst-mk s${step}"><div class="wst-mkl">${box}${side}</div><div class="wst-mkr">${bar}<p class="wst-hint">${esc(T((VIS.find((v) => v[0] === step) || VIS[0])[2]))}</p>${penBar()}${saveBar()}<div class="wst-stepbody s${step}${dir ? " " + dir : ""}">${body}</div></div></div>${nav}`;
   }
   /// the live preview: one renderer for the window's life, its canvas moved into each paint (none on low graphics)
   function attachPreview() {
@@ -331,11 +359,17 @@ export function createStudio(ctx) {
     else { pen = r && r.j && r.j.pen ? { name: r.j.pen.name } : pen; if (r) fail(r); }
     paint();
   }
+  /// SP4: an empty My games offers three ways to start, each straight into Create with that template
+  const startTpls = () => `<div class="wst-starts">${["runner", "jump", "arena"].filter((k) => TEMPLATES[k]).map((k) => `<button type="button" class="wst-start" data-starttpl="${k}"><span class="wst-art" style="background-image:url(/images/studio/tpl/${k}-400.webp${ctx.ver || ""})"></span><b>${tplIc(k)} ${esc(T(TEMPLATES[k].name))}</b></button>`).join("")}</div>`;
+  /// SP4: a short-lived bar with Undo (a template switch)
+  let undoT = 0;
+  function undoBar(msg, keep) { clearTimeout(undoT); let u = el.querySelector(".wst-undo"); if (!u) { u = document.createElement("div"); u.className = "wst-undo"; } u.innerHTML = `<span>${esc(msg)}</span><button type="button">${pi("undo")} ${esc(T("Undo"))}</button>`; (el.querySelector(".wst-in") || el).appendChild(u); requestAnimationFrame(() => u.classList.add("on"));
+    u.querySelector("button").onclick = () => { spec = keep; u.remove(); paint(); }; undoT = setTimeout(() => { u.classList.remove("on"); setTimeout(() => u.remove(), 250); }, 5000); }
   function paintMine() {
     const L = locals(), w = wallet();
     const loc = L.length ? `<div class="wst-local"><b>📱 ${esc(T("{n} drafts on this device", { n: L.length }))}</b><small>${esc(T(w ? "Put them in your account to keep them everywhere and publish them." : "They stay on this phone or computer. Sign in to keep them everywhere and publish them."))}</small><button type="button" class="wst-go" data-${w ? "lup" : "signin"}>${esc(T(w ? "Put them in my account" : "Sign in"))}</button></div>${L.map(localCard).join("")}` : "";
-    if (!w) return loc || `<div class="wst-emptybox"><i>${pi("arcade")}</i><b>${esc(T("No games yet"))}</b><small>${esc(T("Make one in Create — you can save it on this device without signing in."))}</small><button type="button" class="wst-go" data-tab="make">${pi("make")} ${esc(T("Create"))}</button></div>`;
-    return (mine.some((g) => g.pub) ? dashBox() : "") + webBox() + coBox() + loc + (shared.length ? `<h4 class="wst-sub">👥 ${esc(T("Built with friends"))}</h4>` + shared.map((g) => card(g, true)).join("") + `<h4 class="wst-sub">🎮 ${esc(T("My games"))}</h4>` : "") + (mine.length ? mine.map((g) => card(g, true)).join("") : L.length ? "" : `<div class="wst-emptybox"><i>${pi("arcade")}</i><b>${esc(T("No games yet"))}</b><small>${esc(T("No games yet — make your first one in Create."))}</small><button type="button" class="wst-go" data-tab="make">${pi("make")} ${esc(T("Create"))}</button></div>`);
+    if (!w) return loc || `<div class="wst-emptybox"><i>${pi("arcade")}</i><b>${esc(T("No games yet"))}</b><small>${esc(T("Make one in Create — you can save it on this device without signing in."))}</small>${startTpls()}</div>`;
+    return (mine.some((g) => g.pub) ? dashBox() : "") + webBox() + coBox() + loc + (shared.length ? `<h4 class="wst-sub">👥 ${esc(T("Built with friends"))}</h4>` + shared.map((g) => card(g, true)).join("") + `<h4 class="wst-sub">🎮 ${esc(T("My games"))}</h4>` : "") + (mine.length ? mine.map((g) => card(g, true)).join("") : L.length ? "" : `<div class="wst-emptybox"><i>${pi("arcade")}</i><b>${esc(T("No games yet"))}</b><small>${esc(T("No games yet — make your first one in Create."))}</small>${startTpls()}</div>`);
   }
   // ARC3: the week's USDC prize (a GM sets it; paid after the week from the GM's own wallet, checked by the server)
   const usd = (c) => (c / 100).toFixed(c % 100 ? 2 : 0);
@@ -360,7 +394,7 @@ export function createStudio(ctx) {
     const h = races && races.hour, g = (h && arcade.find((x) => x.id === h.id)) || arcade.find((x) => x.pick) || arcade.find((x) => x.off); if (!g) return "";
     const left = h ? Math.max(0, h.ends - (Date.now() + (races.off || 0))) : 0, mm = Math.floor(left / 60e3), live = (races && races.live) || [];
     return `<div class="wst-hero" style="--c:${hex((THEMES[g.theme] || THEMES.neon).edge)}"><div class="wst-hcv" data-open="${esc(g.id)}" data-th="${esc(thumbKey(g))}" role="button" tabindex="0" style="background-image:url(${coverOf(g)})"></div>
-      <div class="wst-hbody"><small>${h ? pi("clock") + " " + esc(T("Race hour")) + ` · ${esc(T("{m} min left", { m: mm }))}` : pi("star") + " " + esc(T("Featured"))}</small><h3 data-open="${esc(g.id)}" role="button">${esc(g.title)}</h3>
+      <div class="wst-hbody"><small>${h ? `<i class="wst-hring" style="--k:${Math.max(0, Math.min(1, left / 3600e3)).toFixed(3)}" aria-hidden="true"></i>` + esc(T("Race hour")) + ` · ${esc(T("{m} min left", { m: mm }))}` : pi("star") + " " + esc(T("Featured"))}</small><h3 data-open="${esc(g.id)}" role="button">${esc(g.title)}</h3>
         <p>${tplIc(g.tpl)} ${esc(T((TEMPLATES[g.tpl] || TEMPLATES.runner).name))} · ${esc(T("by {n}", { n: g.byName || T("A creator") }))} · ▶ ${g.plays || 0}</p>${starsOf(g)}
         <div class="wst-hbtn"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${h ? `<button type="button" class="wst-go wst-racebtn" data-rquick>${pi("race")} ${esc(T("Quick race"))}${h.waiting ? ` <em>${esc(T("{n} waiting", { n: h.waiting }))}</em>` : ""}</button>` : ""}</div>
         <form class="wst-rjoin" data-rjoin><small>${esc(T("Got a code from a friend?"))}</small><input maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE" aria-label="${esc(T("Race code"))}"><button type="submit" class="wst-go alt">${esc(T("Join"))}</button></form></div>
@@ -397,7 +431,7 @@ export function createStudio(ctx) {
       ${week.last && week.last.top && week.last.top.length ? `<p class="wst-ctlast">${esc(T("Last week's winner"))}: 👑 <b data-open="${esc(week.last.top[0].id)}" role="button">${esc(week.last.top[0].title)}</b> · ${esc(week.last.top[0].byName || "?")}</p>${prizeLine(week.last.prize, true)}` : ""}</div>`;
   }
   const arcTools = () => `<div class="wst-atools"><input class="wst-aq" type="search" maxlength="30" placeholder="${esc(T("Search games or makers"))}" value="${esc(aq)}"><div class="wst-chips">${[["pop", "fire", "Popular"], ["new", "clock", "New"], ["like", "heart", "Most liked"]].map(([k, ic, l]) => `<button type="button" data-asort="${k}" class="${asort === k ? "on" : ""}">${pi(ic)} ${esc(T(l))}</button>`).join("")}</div>
-    <div class="wst-chips wst-atpl"><button type="button" data-atpl="" class="${atpl ? "" : "on"}">${esc(T("All"))}</button>${Object.keys(TEMPLATES).map((k) => `<button type="button" data-atpl="${k}" class="${atpl === k ? "on" : ""}" title="${esc(T(TEMPLATES[k].name))}">${tplIc(k)} ${esc(T(TEMPLATES[k].name))}</button>`).join("")}</div></div>`;
+    <label class="wst-atplsel">${pi("grid")}<select data-atplsel aria-label="${esc(T("Template"))}"><option value="">${esc(T("All templates"))}</option>${Object.keys(TEMPLATES).map((k) => `<option value="${k}"${atpl === k ? " selected" : ""}>${esc(T(TEMPLATES[k].name))}</option>`).join("")}</select></label></div>`; /* (SP4: one dropdown instead of fifteen chips) */
   const arcList = (L) => { const q = aq.trim().toLowerCase(); let out = L.filter((g) => (!atpl || g.tpl === atpl) && (!q || String(g.title).toLowerCase().includes(q) || String(g.byName || "").toLowerCase().includes(q)));
     out = [...out].sort((a, b) => (b.pick ? 1 : 0) - (a.pick ? 1 : 0) || (asort === "new" ? b.at - a.at : asort === "like" ? (b.likes || 0) - (a.likes || 0) || b.at - a.at : (b.plays + b.likes * 5) - (a.plays + a.likes * 5) || b.at - a.at)); return out; };
   function paintArcade() {
@@ -415,7 +449,7 @@ export function createStudio(ctx) {
     const picks = filtered ? [] : arcade.filter((g) => g.pick).slice(0, 6);
     const curated = `${folw.length ? hrow("🔔", "New from creators you follow", folw) : ""}${picks.length ? hrow("⭐", "Editors' picks", picks) : ""}${rising.length ? hrow("🚀", "Rising this week", rising) : ""}${most.length ? hrow("🏆", "Most played", most) : ""}`;
     if (folw.length) setTimeout(feedSeen, 1500); /* (seen once the row is on the screen) */
-    const rows = `${hot.length ? hrow("🔥", "Playing right now", hot) : ""}${curated}`;
+    const t3 = t3Done(), rows = `${hot.length ? hrow("🔥", "Playing right now", hot) : ""}${today.length === 3 ? hrow("✔", "Today's three", today).replace("</h4>", `<em class="wst-t3n${t3.size >= 3 ? " done" : ""}">${Math.min(3, today.filter((g) => t3.has(g.id)).length)}/3</em></h4>`) : ""}${curated}`; today.forEach((g) => { todayIds.add(g.id); });
     return `${rbox}${filtered ? "" : heroBanner()}${filtered ? "" : evStrip()}${arcTools()}${rows}${off.length ? hrow("✔", "Start here — made by ARCIRCLE", off) : ""}
       <h4 class="wst-sec">${pi("arcade")} ${esc(T("Players' games"))}</h4>${rest.length ? `<div class="wst-offrow">${rest.map((g) => card(g, false)).join("")}</div>` : filtered ? `<p class="wst-empty">${esc(T("No games match — try another word or template"))}</p>` : `<div class="wst-emptybox"><i>${pi("rocket")}</i><b>${esc(T("Be the first creator!"))}</b><small>${esc(T("The Creator Arcade is waiting for its first game — publish yours!"))}</small><button type="button" class="wst-go" data-tab="make">${pi("make")} ${esc(T("Create"))}</button></div>`}`;
   }
@@ -476,7 +510,7 @@ export function createStudio(ctx) {
   let estT = 0, estLast = null;
   // STB4 (2026-10-27): the clear rate rolls to its new number and its bar fills from where it was
   function estRoll() {
-    const ee = el && el.querySelector(".wst-est[data-p]"); if (!ee) return; const p = Number(ee.dataset.p), from = estLast == null ? p : estLast, bar = ee.querySelector(".wst-estbar>i"), sp = ee.querySelector("span"); estLast = p;
+    const ee = el && el.querySelector(".wst-est[data-p]"); if (!ee) return; const p = Number(ee.dataset.p), from = estLast == null ? p : estLast, bar = ee.querySelector(".wst-estbar>i"), sp = ee.querySelector(":scope>span"); /* (not the stars' span inside the <b>: the rolling number once wrote over the stars) */ estLast = p;
     if (bar) bar.style.width = from + "%"; if (from === p || ctx.reduce) { if (bar) bar.style.width = p + "%"; return; }
     ee.classList.add(p > from ? "up" : "down"); const t0 = performance.now(), txt = (v) => T("Estimated clear rate {p}%", { p: v });
     const tick = (now) => { const k = Math.min(1, (now - t0) / 450), v = Math.round(from + (p - from) * (1 - (1 - k) ** 3)); if (sp && sp.isConnected) sp.textContent = txt(v); if (k < 1 && ee.isConnected) requestAnimationFrame(tick); };
@@ -489,6 +523,8 @@ export function createStudio(ctx) {
     const t = e.target;
     if (t.matches("[data-k]")) { ev("tune"); spec[t.dataset.k] = Number(t.value); const b = t.parentElement.querySelector("b"); if (b) b.textContent = t.value; const f = el.querySelector(".wst-sum"); if (f) f.innerHTML = summary(genLevel(spec)); drawPrev(); prevSoon(); clearTimeout(estT); estT = setTimeout(() => { if (tab === "make" && step === 3) paintKeep(); }, 450); }
     if (t.matches(".wst-tin")) spec.title = t.value;
+    if (t.matches("[data-atplsel]")) { atpl = t.value; return paintKeep(); }
+    if (t.matches("[data-tuneto]")) { tuneTo = Number(t.value); const v = el.querySelector("[data-tunev]"); if (v) v.textContent = tuneTo + "%"; }
     if (t.matches(".wst-aq")) { aq = t.value; clearTimeout(estT); estT = setTimeout(() => { const pos = t.selectionStart; paintKeep(); const n = el.querySelector(".wst-aq"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { /* not a text field */ } } }, 250); }
     if (t.matches("[data-ghost]")) ghostOn = t.checked;
   }
@@ -526,7 +562,12 @@ export function createStudio(ctx) {
     if (b.dataset.report && gdata) { const r = await act({ action: "world-studio-report", id: gdata.id, why: b.dataset.report }); repOpen = false; if (r && r.ok) ctx.toast(r.j.already ? esc(T("You reported it already")) : "⚑ " + esc(T("Thanks — a GM will look at it"))); else if (r) fail(r); return paintKeep(); }
     if (b.dataset.ghide && gdata) { const r = await act({ action: "world-studio-hide", id: gdata.id, on: b.dataset.ghide === "1" }); if (r && r.ok) { gdata = { ...gdata, hidden: r.j.hidden }; ctx.toast(r.j.hidden ? "🙈 " + esc(T("Hidden from the arcade")) : "👁 " + esc(T("Back on the arcade"))); load(); } else if (r) fail(r); return paintKeep(); }
     if (b.hasAttribute("data-tweak")) return tweakIt();
+    if (b.dataset.chatq) { const ci = el.querySelector(".wst-twin"); if (ci) { ci.value = T(b.dataset.chatq); } return tweakIt(); }
+    if (b.hasAttribute("data-chatundo") && chatUndo) { spec = clampSpec(chatUndo); chatUndo = null; chat.push({ t: T("Undone — back to how it was.") }); lastTest = null; paintKeep(); prevSoon(); return; }
+    if (b.hasAttribute("data-tune")) return autoTune();
+    if (b.dataset.fixk) { const k = b.dataset.fixk, MAX = { speed: 5, walls: 5, gaps: 3, lasers: 3 }; spec[k] = Math.max(k === "speed" ? 1 : 0, Math.min(MAX[k] || 5, (spec[k] || 0) + Number(b.dataset.fixd))); lastTest = null; paintKeep(); prevSoon(); return; }
     if (b.dataset.atpl != null && b.hasAttribute("data-atpl")) { atpl = b.dataset.atpl; return paintKeep(); }
+    if (b.dataset.starttpl) { spec = clampSpec({ ...spec, tpl: b.dataset.starttpl }); editId = ""; step = 1; tab = "make"; ev("tpl"); return paint(); }
     if (b.dataset.prizepay) { await payPrize(b); return; }
     if (b.dataset.daymake) { const [tp, th] = b.dataset.daymake.split(":"); spec = clampSpec({ ...spec, tpl: tp, theme: th, title: "" }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 1; lastTest = null; paint(); return; }
     if (b.dataset.rx && gdata) { b.disabled = true; const r = await act({ action: "world-studio-react", id: gdata.id, r: b.dataset.rx }); if (!r || !r.ok) { b.disabled = false; return r && fail(r); } gcm = { ...(gcm || { comments: [] }), rx: r.j.rx }; if (r.j.already) ctx.toast(esc(T("You reacted already"))); paint(); const nb = el.querySelector(`[data-rx="${b.dataset.rx}"]`); if (nb) nb.classList.add("pop"); return; }
@@ -551,7 +592,7 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-savepub")) { if (!ctx.sess()) { try { await ctx.signIn(); } catch { return; } if (!ctx.sess()) return; } if (!(await okToPublish())) return; await save(); if (editId && !(mine.find((g) => g.id === editId) || {}).pub) await publish(editId); return; }
     if (b.dataset.tcat) { tcat = b.dataset.tcat; return paint(); }
     if (b.dataset.ctgo) { tab = "make"; step = 1; tcat = "all"; spec = clampSpec({ ...spec, tpl: b.dataset.ctgo }); ev("tpl"); return paint(); }
-    if (b.dataset.tpl) { ev("tpl"); spec = clampSpec({ ...spec, tpl: b.dataset.tpl, title: spec.title === "My Sky Run" || spec.title === "My Arena" || spec.title === "My Infinity Dash" ? "" : spec.title }); return paint(); }
+    if (b.dataset.tpl) { ev("tpl"); if (b.dataset.tpl !== spec.tpl) undoBar(T("Switched to {t}", { t: T((TEMPLATES[b.dataset.tpl] || {}).name || "") }), clampSpec({ ...spec })); spec = clampSpec({ ...spec, tpl: b.dataset.tpl, title: spec.title === "My Sky Run" || spec.title === "My Arena" || spec.title === "My Infinity Dash" ? "" : spec.title }); return paint(); }
     if (b.dataset.theme) { spec.theme = b.dataset.theme; return paintKeep(); }
     if (b.dataset.len) { spec.len = Number(b.dataset.len); return paintKeep(); }
     if (b.hasAttribute("data-seed")) { spec.seed = 1 + Math.floor(Math.random() * 99999); return paintKeep(); }
@@ -608,10 +649,12 @@ export function createStudio(ctx) {
   }
   async function tweakIt() {
     const inp = el.querySelector(".wst-twin"), t = inp ? inp.value.trim() : ""; if (!t) { if (inp) inp.focus(); return; }
-    const before = JSON.stringify(spec); busy = true; paintKeep(); const r = await act({ action: "world-studio-tweak", t, spec: clampSpec(spec) }); busy = false;
-    if (!r || !r.ok || !r.j.spec) { paintKeep(); if (r) fail(r); return; }
-    spec = clampSpec({ ...r.j.spec, ...(spec.build ? { build: spec.build } : {}) }); lastTest = null; paintKeep(); prevSoon();
-    const changed = before !== JSON.stringify(spec); ctx.toast("✨ " + esc(r.j.say || (changed ? T("Changed — test it to feel the difference") : T("Nothing to change from those words — try saying it another way"))));
+    const before = JSON.stringify(spec), keep = clampSpec({ ...spec }); chat.push({ me: 1, t }); busy = true; paintKeep(); const r = await act({ action: "world-studio-tweak", t, spec: clampSpec(spec) }); busy = false;
+    if (!r || !r.ok || !r.j.spec) { chat.push({ t: T("I couldn't change it this time — try again in a moment.") }); paintKeep(); if (r) fail(r); return; }
+    spec = clampSpec({ ...r.j.spec, ...(spec.build ? { build: spec.build } : {}) }); lastTest = null;
+    const changed = before !== JSON.stringify(spec), say = r.j.say || (changed ? T("Changed — test it to feel the difference") : T("Nothing to change from those words — try saying it another way"));
+    chat.push({ t: say }); chatUndo = changed ? { ...keep, ...(keep.build ? { build: spec.build } : {}) } : chatUndo; paintKeep(); prevSoon();
+    { const ci = el.querySelector(".wst-twin"); if (ci) ci.focus(); } { const cl = el.querySelector(".wst-chatl"); if (cl) cl.scrollTop = cl.scrollHeight; }
     const box = el.querySelector(".wst-3dbox, .wst-est"); if (box && changed && !ctx.reduce) { box.classList.remove("wst-flash"); void box.offsetWidth; box.classList.add("wst-flash"); }
   }
   async function save() {
@@ -658,7 +701,7 @@ export function createStudio(ctx) {
     const old = document.querySelector(".wst-shs"); if (old) old.remove();
     const w = document.createElement("div"); w.className = "wst-shs"; w.innerHTML = `<div class="wst-shc" role="dialog" aria-label="${esc(T("Share"))}"><header><b>${pi("share")} ${esc(T("Share"))}</b>${title ? `<small>${esc(title)}</small>` : ""}<button type="button" class="wst-shx" data-shx aria-label="${esc(T("Close"))}">${pi("close")}</button></header>
       <label class="wst-shl"><span>${esc(T("Link"))}</span><span class="wst-shrow"><input readonly value="${esc(u)}"><button type="button" class="wst-go" data-shcp="link">${pi("copy")} ${esc(T("Copy"))}</button></span></label>
-      <div class="wst-shg"><a class="wst-shb" href="https://twitter.com/intent/tweet?text=${enc(say)}&url=${enc(u)}" target="_blank" rel="noopener">${pi("x")}<span>X</span></a><a class="wst-shb" href="https://t.me/share/url?url=${enc(u)}&text=${enc(say)}" target="_blank" rel="noopener">${pi("telegram")}<span>Telegram</span></a><button type="button" class="wst-shb" data-shcp="discord">${pi("discord")}<span>Discord</span></button>${emb ? `<button type="button" class="wst-shb" data-shemb>${pi("embed")}<span>${esc(T("Embed"))}</span></button>` : ""}${ctx.share ? `<button type="button" class="wst-shb" data-shcard>${pi("trophy")}<span>${esc(T("Share card"))}</span></button>` : ""}</div>
+      <div class="wst-shg"><a class="wst-shb" href="https://twitter.com/intent/tweet?text=${enc(say)}&url=${enc(u)}" target="_blank" rel="noopener">${pi("x")}<span>X</span></a><a class="wst-shb" href="https://t.me/share/url?url=${enc(u)}&text=${enc(say)}" target="_blank" rel="noopener">${pi("telegram")}<span>Telegram</span></a><button type="button" class="wst-shb" data-shcp="discord">${pi("discord")}<span>Discord</span></button>${emb ? `<button type="button" class="wst-shb" data-shemb>${pi("embed")}<span>${esc(T("Embed"))}</span></button>` : ""}${ctx.share ? `<button type="button" class="wst-shb" data-shcard>${pi("trophy")}<span>${esc(T("Share card"))}</span></button>` : ""}${typeof MediaRecorder !== "undefined" && !ctx.saver && prevOk ? `<button type="button" class="wst-shb" data-shclip>${pi("film")}<span>${esc(T("6 s clip"))}</span></button>` : ""}</div>
       ${emb ? `<label class="wst-shl wst-she" hidden><span>${esc(T("Embed code"))}</span><span class="wst-shrow"><input readonly value="${esc(emb)}"><button type="button" class="wst-go alt" data-shcp="embed">${pi("copy")} ${esc(T("Copy"))}</button></span></label>` : ""}</div>`;
     document.body.appendChild(w); requestAnimationFrame(() => w.classList.add("on"));
     const shut = () => { w.classList.remove("on"); setTimeout(() => w.remove(), 200); };
@@ -670,7 +713,25 @@ export function createStudio(ctx) {
       if (t.dataset.shcp === "discord") return copy(u, T("Link copied — paste it in Discord"));
       if (t.dataset.shcp === "embed") return copy(emb, T("Embed code copied"));
       if (t.dataset.shemb != null) { const e2 = w.querySelector(".wst-she"); if (e2) { e2.hidden = !e2.hidden; t.classList.toggle("on", !e2.hidden); } return; }
-      if (t.dataset.shcard != null) { shut(); shareCard(id, score); } });
+      if (t.dataset.shcard != null) { shut(); shareCard(id, score); }
+      if (t.dataset.shclip != null) { shut(); clipOf(g, title); } });
+  }
+  /// SP6 (2026-10-28): a 6-second clip of the level playing (the preview renderer, recorded in the browser) to post with the link — MP4 where the browser can, WebM elsewhere
+  async function clipOf(g, title) {
+    let sp = g && (g.spec || g.s); if (!sp && g && g.id) { try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(g.id), { cache: "no-store" }); if (r.ok) { const j = (await r.json()).game; sp = j && j.spec; } } catch { /* below */ } }
+    if (!sp) { ctx.toast(esc(T("Couldn't open it — try again"))); return; }
+    try { if (!prev) prev = makePreview({ THREE, ver: ctx.ver || "", low: !!ctx.low }); } catch { prev = null; } if (!prev || !prev.canvas.captureStream) { ctx.toast(esc(T("This browser can't record a clip"))); return; }
+    const w = document.createElement("div"); w.className = "wst-shs on wst-clip"; w.innerHTML = `<div class="wst-shc"><header><b>${pi("film")} ${esc(T("Recording 6 s…"))}</b><small>${esc(title || "")}</small></header><div class="wst-clipv"></div><i class="wst-clipbar"><em></em></i></div>`; document.body.appendChild(w);
+    const box = w.querySelector(".wst-clipv"), home = prev.canvas.parentElement; box.appendChild(prev.canvas); prev.set(clampSpec({ ...sp }));
+    const type = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((x) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(x)) || "video/webm";
+    const chunks = []; let rec; try { rec = new MediaRecorder(prev.canvas.captureStream(30), { mimeType: type, videoBitsPerSecond: 4e6 }); } catch { w.remove(); ctx.toast(esc(T("This browser can't record a clip"))); return; }
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => { const blob = new Blob(chunks, { type: type.split(";")[0] }), url = URL.createObjectURL(blob), ext = type.includes("mp4") ? "mp4" : "webm", name = String(title || "arcircle-studio").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "clip";
+      w.querySelector("header b").innerHTML = `${pi("check")} ${esc(T("Your clip is ready"))}`; box.innerHTML = `<video src="${url}" autoplay loop muted playsinline></video>`; w.querySelector(".wst-clipbar").remove();
+      const row = document.createElement("div"); row.className = "wst-shrow wst-clipacts"; row.innerHTML = `<a class="wst-go" href="${url}" download="${name}.${ext}">${pi("save")} ${esc(T("Save the clip"))}</a><button type="button" class="wst-go alt" data-clipx>${esc(T("Close"))}</button>`; w.querySelector(".wst-shc").appendChild(row);
+      const done = () => { URL.revokeObjectURL(url); w.remove(); if (home && home.isConnected) home.prepend(prev.canvas); else if (el && !el.hidden) paint(); };
+      row.querySelector("[data-clipx]").onclick = done; w.addEventListener("click", (e) => { if (e.target === w) done(); }); ev("share"); };
+    rec.start(250); const em = w.querySelector(".wst-clipbar em"); if (em) em.style.animation = "wstClipBar 6s linear forwards"; setTimeout(() => { try { rec.stop(); } catch { /* stopped */ } }, 6000);
   }
   /// STU-A: a 1200×630 share card for a game (its level's picture, who made it, its numbers; the game's own link in the words)
   async function shareCard(id, score) {
@@ -1004,6 +1065,8 @@ export function createStudio(ctx) {
     };
   }
   /// the run's end: the score (sent when it's a published game and you're signed in), your best on this device, a card
+  /// SP2: the game to play next — one of the same kind first, then any you haven't played this visit
+  async function pickNext(o) { if (!arcade.length) await load(); const L2 = arcade.filter((g) => g.id !== o.id && g.pub !== false); if (!L2.length) return null; nextSeen.add(o.id); const fresh = L2.filter((g) => !nextSeen.has(g.id)), tpl = o.spec && o.spec.tpl; return fresh.find((g) => g.tpl === tpl) || fresh[0] || L2[0]; }
   async function result(o, hud, r, leave) {
     const score = r.puzzle ? puzzleScore(r.puzzle.par, r.puzzle.count, Math.min(genLevel(o.spec).hints, r.puzzle.hints || 0)) : scoreOf(r.coins, r.dist, r.done); let res = null;
     if (o.id && !o.test && ctx.sess()) { const q = await act({ action: "world-studio-play", id: o.id, ...(r.puzzle ? { moves: r.puzzle.moves, hints: r.puzzle.hints || 0 } : { coins: r.coins, dist: Math.round(r.dist), done: r.done, trace: r.trace || [] }) }); if (q && q.ok) res = q.j; }
@@ -1030,7 +1093,22 @@ export function createStudio(ctx) {
     const rc = c.querySelector("[data-rcard]"); if (rc) rc.addEventListener("click", () => shareSheet(o.id, score)); /* (PRO: the share sheet, its card with this score) */
     const rt = c.querySelector(".wst-rate"); if (rt) { const fb = {}; rt.addEventListener("click", async (e) => { const bt = e.target.closest("button"); if (!bt) return; if (bt.dataset.fun) fb.fun = Number(bt.dataset.fun); if (bt.dataset.dif) fb.dif = Number(bt.dataset.dif); bt.parentElement.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === bt));
       if (fb.fun != null && fb.dif != null && !fb.sent) { fb.sent = true; if (ctx.sess()) await act({ action: "world-studio-rate", id: rt.dataset.rid, fun: fb.fun, dif: fb.dif }); rt.classList.add("done"); rt.querySelector("small").textContent = T("Thanks — the maker sees it"); ev("rate"); } }); }
-    const nx = c.querySelector("[data-nextg]"); if (nx) nx.addEventListener("click", async () => { if (!arcade.length) await load(); const L2 = arcade.filter((g) => g.id !== o.id); if (!L2.length) { ctx.toast(esc(T("That's every game on the arcade for now"))); return; } const seen = nextSeen.add(o.id), pick = L2.find((g) => !seen.has(g.id)) || L2[0]; leave(true); setTimeout(() => playId(pick.id), 50); });
+    const nx = c.querySelector("[data-nextg]"); if (nx) nx.addEventListener("click", async () => { const pick = await pickNext(o); if (!pick) { ctx.toast(esc(T("That's every game on the arcade for now"))); return; } stopNext(); leave(true); setTimeout(() => playId(pick.id), 50); });
+    // SP2 (2026-10-28): after a counted run — react with a stamp, today's three, and the next game starting by itself (5 s; any touch on the card stops it)
+    let nextT = 0; const stopNext = () => { clearInterval(nextT); nextT = 0; const u = c.querySelector(".wst-upnext"); if (u) u.classList.add("off"); };
+    if (o.id && !o.test && !r.live) {
+      const row = document.createElement("div"); row.className = "wst-rxst"; row.innerHTML = `<small>${esc(T("React"))}</small>` + Object.entries(RX).map(([k, e]) => `<button type="button" data-rxs="${k}" aria-label="${esc(k)}">${e}</button>`).join("");
+      const r1 = c.querySelector(".wst-res1"); if (r1) r1.before(row);
+      row.addEventListener("click", async (e) => { const bt = e.target.closest("[data-rxs]"); if (!bt) return; if (!ctx.sess()) { ctx.toast(esc(T("Sign in with your wallet (free) to like games."))); return; } row.querySelectorAll("button").forEach((x) => { x.disabled = true; }); bt.classList.add("on", "stamp"); const q = await act({ action: "world-studio-react", id: o.id, r: bt.dataset.rxs }); if (!q || !q.ok) { row.querySelectorAll("button").forEach((x) => { x.disabled = false; }); bt.classList.remove("on", "stamp"); return; } ctx.toast(esc(T(q.j && q.j.already ? "You reacted already" : "Sent to the creator"))); });
+      if (t3Mark(o.id)) setTimeout(() => cutIn("✔ " + T("Today's three — done!"), T("Three new ones tomorrow.")), 900);
+      if (autoOn()) setTimeout(async () => { if (!c.isConnected) return; const pick = await pickNext(o); if (!pick || !c.isConnected) return;
+        const u = document.createElement("div"); u.className = "wst-upnext"; u.innerHTML = `<i class="wst-unr"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15.5"/><circle class="p" cx="18" cy="18" r="15.5"/></svg><b>5</b></i><span><small>${esc(T("Up next"))}</small><b>${esc(pick.title || "")}</b></span><button type="button" class="wst-lk" data-unstop>${esc(T("Stay"))}</button><button type="button" class="wst-lk" data-unoff>${esc(T("Autoplay off"))}</button>`;
+        const r2 = c.querySelector(".wst-res2"); (r2 || c.querySelector(".wst-rin")).after(u); let n = 5; const nb = u.querySelector(".wst-unr b");
+        nextT = setInterval(() => { n -= 1; if (nb) nb.textContent = String(Math.max(0, n)); if (n <= 0) { stopNext(); if (c.isConnected) { leave(true); setTimeout(() => playId(pick.id), 50); } } }, 1000);
+        u.querySelector("[data-unstop]").addEventListener("click", (e) => { e.stopPropagation(); stopNext(); });
+        u.querySelector("[data-unoff]").addEventListener("click", (e) => { e.stopPropagation(); try { localStorage.setItem("arc.studio.autonext", "0"); } catch { /* not kept */ } stopNext(); ctx.toast(esc(T("Autoplay off — the next game waits for you"))); });
+        c.querySelector(".wst-rin").addEventListener("pointerdown", (e) => { if (!e.target.closest(".wst-upnext")) stopNext(); }, { once: true }); }, 1400);
+    }
   }
   /// STU-B: a run dressed in its theme's Meshy look once it's in (the drawn colours until then; nothing breaks without it)
   function dressRun(scene, theme, o) {
