@@ -155,7 +155,7 @@ async function makeHost() {
   mark("sg:pre-studio");
   const studio = ST.createStudio({ THREE: K.THREE, K, st, T, esc, toast: (m) => toast(m), Snd, reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, ver: VER, isGM: () => false, guide: () => {}, low, saver: S.quality === "saver", coarse,
     myName: () => P.name || "", sess, post, signIn: () => signIn().then((x) => { paintMe(); return x; }),
-    onClose: () => { if (D.app) setTimeout(() => { try { host.studio.open("arcade"); } catch { /* fine */ } }, 0); }, /* (/studio: the window is the page — × goes to the arcade) */ soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
+    onClose: () => { if (D.app) setTimeout(() => { try { toHub(); } catch { /* fine */ } }, 0); }, /* (/studio: × goes back to the Creator Hub) */ soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
     land: { landscape: () => gate.landscape(), enter() {}, exit() {} },
     makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
     myChar: () => (/^custom-/.test(P.char || "") ? P.char : "custom-aron"), makeHeroOf: (id) => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(id) ? id : "custom-aron") : "custom-aron", VER) }); /* (WS4: the other racers) */
@@ -214,17 +214,37 @@ function orientUI() {
     g.classList.remove("busy"); mark();
   });
 }
-async function startApp() {
-  const bar = document.querySelector(".sga-boot em"); let pct = 8; const tick = setInterval(() => { pct = Math.min(92, pct + (96 - pct) * 0.12); if (bar) bar.style.width = pct + "%"; }, 120);
-  paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });
+// HUB (2026-10-28, the owner: Roblox's Creator Hub as the reference): /studio opens on the Creator Hub (world-studio-hub.js) —
+// its own front page and menus, painted at once without three.js; the Studio window is the workspace it opens (Create,
+// Edit, Play, a race), and the window's × or the browser's Back comes back to the hub. A deep link (?tab= / ?sg= / ?race=
+// / ?ch=) still goes straight into the workspace.
+let hub = null, ran = false;
+function toHub() { if (!hub) return; document.body.classList.remove("sga-on", "sga-run"); hub.show(); if (history.state && history.state.ws === 1) history.back(); else history.replaceState(null, "", "/studio" + (new URLSearchParams(location.search).get("p") ? location.search : "")); }
+async function workspace(fn, tab, direct) {
+  let ld = null; if (!host) { ld = document.createElement("div"); ld.className = "sga-boot sgh-boot"; ld.innerHTML = `<img src="/images/studio/ui/tab-make.webp" alt="" width="96" height="96"><b>${esc(T("Opening ARCIRCLE Studio…"))}</b><i><em style="width:30%"></em></i>`; document.body.appendChild(ld); }
   try {
-    const h = await makeHost(), q = new URLSearchParams(location.search);
-    document.body.classList.add("sga-on"); h.cv.hidden = false;
-    if (/^[A-Za-z0-9]{5}$/.test(q.get("race") || "")) { h.studio.open("arcade"); h.studio.raceJoin(q.get("race")); } else if (/^[a-z0-9]{8}$/.test(q.get("ch") || "")) h.studio.playChal(q.get("ch")); else if (q.get("sg")) h.studio.playId(q.get("sg"), { vs: Math.max(0, Math.floor(Number(q.get("vs")) || 0)), vsBy: String(q.get("by") || "").slice(0, 16) }); else h.studio.open(["arcade", "mine", "make"].includes(q.get("tab")) ? q.get("tab") : "make"); mark("sg:open");
-    let on = false; setInterval(() => { const p = !!h.studio.playing(); if (p !== on) { on = p; document.body.classList.toggle("sga-run", p); } }, 400); /* (/studio plays held either way — the top bar's switch turns it; the game pages still ask for sideways) */
-    orientUI();
-  } catch (e) { console.warn("studio app", e); $m.innerHTML = `<div class="sga-boot err"><b>⚠️ ${esc(T("The Studio couldn't open"))}</b><a class="sgw-play sm" href="/studio">${esc(T("Try again"))}</a><a class="sgw-btn" href="/play">${esc(T("Open it in ARCIRCLE WORLD"))}</a></div>`; }
-  finally { clearInterval(tick); if (bar) bar.style.width = "100%"; setTimeout(() => { const b0 = document.querySelector(".sga-boot"); if (b0 && !b0.classList.contains("err")) b0.remove(); }, 300); }
+    const h = await makeHost(); if (hub) hub.hide(); document.body.classList.add("sga-on"); h.cv.hidden = false;
+    if (direct) history.replaceState({ ws: 2 }, "", location.href); else if (!(history.state && history.state.ws)) history.pushState({ ws: 1 }, "", "/studio?tab=" + (tab || "make")); /* (ws 2: the page was opened at the workspace — × replaces the address instead of going back off the site) */
+    if (!ran) { ran = true; let on = false; setInterval(() => { const p = !!h.studio.playing(); if (p !== on) { on = p; document.body.classList.toggle("sga-run", p); } }, 400); orientUI(); } /* (/studio plays held either way — the top bar's switch turns it) */
+    await fn(h.studio); mark("sg:open");
+  } catch (e) { console.warn("studio app", e); toast("⚠️ " + esc(T("The Studio couldn't open")) + " — " + esc(T("Try again"))); if (hub) hub.show(); else $m.innerHTML = `<div class="sga-boot err"><b>⚠️ ${esc(T("The Studio couldn't open"))}</b><a class="sgw-play sm" href="/studio">${esc(T("Try again"))}</a><a class="sgw-btn" href="/play">${esc(T("Open it in ARCIRCLE WORLD"))}</a></div>`; }
+  finally { if (ld) { ld.classList.add("out"); setTimeout(() => ld.remove(), 300); } }
+}
+async function startApp() {
+  paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); if (hub) hub.refresh(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });
+  const hb = document.querySelector("[data-tohub]"); if (hb) hb.addEventListener("click", () => { try { host && host.studio.shown() ? host.studio.close() : toHub(); } catch { toHub(); } });
+  const q = new URLSearchParams(location.search), deep = /^[A-Za-z0-9]{5}$/.test(q.get("race") || "") || /^[a-z0-9]{8}$/.test(q.get("ch") || "") || !!q.get("sg") || ["arcade", "mine", "make"].includes(q.get("tab"));
+  try {
+    const HUB = await import("./world-studio-hub.js");
+    const W = (fn, tab) => workspace(fn, tab);
+    hub = HUB.makeHub({ T, esc, toast, num, ver: new URL(import.meta.url).search, lang: LANG, sess, signIn: () => signIn().then((x) => { paintMe(); if (host) host.studio.load(); return x; }),
+      ws: { open: (t) => W((s) => s.open(t), t), use: (tpl, th) => W((s) => s.useTpl(tpl, th), "make"), edit: (id) => W((s) => s.editId(id), "mine"), local: (id) => W((s) => s.editLocal(id), "make"), play: (id) => W((s) => s.playId(id), "arcade"),
+        remix: (id) => W((s) => s.remixId(id), "make"), race: (c) => W((s) => { s.open("arcade"); return s.raceJoin(c); }, "arcade"), quick: () => W((s) => { s.open("arcade"); return s.raceQuick(); }, "arcade") } });
+    mark("sg:hub"); const b0 = document.querySelector(".sga-boot"); if (b0) b0.remove();
+    addEventListener("popstate", () => { if (hub.shown() || !host) return; if (!(history.state && history.state.ws)) { try { host.studio.close(); } catch { /* fine */ } document.body.classList.remove("sga-on", "sga-run"); hub.show(); } });
+    if (deep) { hub.hide(); await workspace((s) => { if (/^[A-Za-z0-9]{5}$/.test(q.get("race") || "")) { s.open("arcade"); s.raceJoin(q.get("race")); } else if (/^[a-z0-9]{8}$/.test(q.get("ch") || "")) s.playChal(q.get("ch")); else if (q.get("sg")) s.playId(q.get("sg"), { vs: Math.max(0, Math.floor(Number(q.get("vs")) || 0)), vsBy: String(q.get("by") || "").slice(0, 16) }); else s.open(q.get("tab")); }, q.get("tab") || "arcade", true); }
+    else setTimeout(() => { Promise.all([import("./world-kit.js"), import("./world-studio.js"), import("./world-sfx.js"), import("./world-studio-pad.js")]).catch(() => {}); }, 2500); /* (the workspace's code, fetched while you look round: Create opens at once) */
+  } catch (e) { console.warn("studio hub", e); $m.innerHTML = `<div class="sga-boot err"><b>⚠️ ${esc(T("The Studio couldn't open"))}</b><a class="sgw-play sm" href="/studio">${esc(T("Try again"))}</a><a class="sgw-btn" href="/play">${esc(T("Open it in ARCIRCLE WORLD"))}</a></div>`; }
 }
 if (D.app) startApp();
 window.__sgw = { host: () => host, play: () => { const b = $m.querySelector("[data-play]"); return b ? play(b) : null; } }; // (tests)

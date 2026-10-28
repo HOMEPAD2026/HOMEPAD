@@ -16,7 +16,7 @@ const langs = ["en", "ko", "zh", "tr"];
 check(news.length === 4 && notices.length === 4 && nbody.length === 4, "four languages");
 langs.forEach((l, k) => {
   check(news[k].length === NEWS.length, `${l}: ${news[k].length} news = ${NEWS.length} in NEWS`);
-  check(nbody[k].length <= news[k].length && nbody[k].length >= 1, `${l}: ${nbody[k].length} news bodies, lined up from the front`);
+  check(nbody[k].length === news[k].length, `${l}: ${nbody[k].length} news bodies = ${news[k].length} news (one each, "" for none: nbody[i] is news[i]'s long body — three news once showed the wrong body)`);
   check(notices[k].length === NOTE_D.length, `${l}: ${notices[k].length} notices = ${NOTE_D.length} dates`);
 });
 console.log(`\n${ok} pass ${bad} fail`); process.exit(bad ? 1 : 0);

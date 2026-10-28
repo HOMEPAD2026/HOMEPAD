@@ -7,8 +7,8 @@
      web too, fast, linked with the game"). The same Studio as in ARCIRCLE WORLD (world-studio.js, run by
      world-studio-web.js in its app mode) without the town: only the Studio's styles (studio.min.css) and scripts load, the
      same wallet session (arc.world.sess) and the same server, so a game made here is in the World's arcade and back. -->
-<title>ARCIRCLE Studio — make a game in your browser</title>
-<meta name="description" content="Make your own game in ARCIRCLE Studio: 15 templates, a builder for each, test play, publish to the Creator Arcade and your own page. Free in your browser.">
+<title>ARCIRCLE Creator Hub — make a game in your browser</title>
+<meta name="description" content="The ARCIRCLE Creator Hub: make your own game in ARCIRCLE Studio (15 templates, a builder for each, AI help), see your analytics, learn, race and enter the weekly contest. Free in your browser.">
 <meta property="og:title" content="ARCIRCLE Studio — make a game in your browser">
 <meta property="og:description" content="15 templates, a builder for each, test play and publish — your game in ARCIRCLE WORLD and on the web.">
 <meta property="og:image" content="https://www.arcircle.app/images/gw/og-studio-web.jpg">
@@ -25,11 +25,12 @@
 <link rel="preload" as="image" href="/images/studio/ui/bg-1344.webp">
 <link rel="stylesheet" href="/studio-web.css?v=1793161718">
 <link rel="stylesheet" href="/studio.min.css?v=1793161718">
+<link rel="stylesheet" href="/studio-hub.css?v=1793161718">
 <script>window.__SG = { app: 1 };</script>
 <!-- studio-build -->
 <link rel="modulepreload" href="/vendor/three/three-0.186.1.module.min.js">
 <link rel="modulepreload" href="/w/c-VQBHJQLH.js">
-<link rel="modulepreload" href="/w/c-MS3B7H7G.js">
+<link rel="modulepreload" href="/w/c-B6SESFYY.js">
 <link rel="modulepreload" href="/w/c-VHNSBD2M.js">
 <link rel="modulepreload" href="/w/c-OZICONSI.js">
 <link rel="modulepreload" href="/w/c-A37VBOZ2.js">
@@ -37,7 +38,7 @@
 <link rel="modulepreload" href="/w/c-UFC2P34X.js">
 <link rel="modulepreload" href="/w/c-HTD7Z7T6.js">
 <link rel="modulepreload" href="/w/c-73CSNOR7.js">
-<link rel="modulepreload" href="/w/c-UAQXQDLR.js">
+<link rel="modulepreload" href="/w/c-U6QKS3CZ.js">
 <link rel="modulepreload" href="/w/c-FCCRGUXH.js">
 <link rel="modulepreload" href="/w/c-WV5Q4KEC.js">
 <link rel="modulepreload" href="/w/c-6H4ORWCO.js">
@@ -47,8 +48,9 @@
 <link rel="modulepreload" href="/w/c-HDHAQM4M.js">
 <!-- /studio-build -->
 </head>
-<body class="sgw sga">
+<body class="sgw sga sgh-ws">
 <header class="sgw-top sga-top">
+  <button type="button" class="sga-hub" data-tohub aria-label="Creator Hub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg><span data-t="Creator Hub">Creator Hub</span></button>
   <a class="sgw-logo" href="/game"><img src="/images/gw/logo-540.webp" alt="ARCIRCLE WORLD" width="108" height="61"></a>
   <span class="sga-name"><b>ARCIRCLE</b> <em>Studio</em><i data-t="on the web">on the web</i></span>
   <span class="sgw-sp"></span>

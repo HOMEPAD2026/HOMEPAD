@@ -36,14 +36,17 @@ async function open(dev, { route } = {}) {
   const G = async (f, a) => { for (let i = 0; i < 3; i++) { try { return await p.evaluate(f, a); } catch (e) { if (!/context was destroyed|navigation/i.test(String(e))) throw e; await p.waitForTimeout(1500); } } return null; };
   for (let i = 0; i < 180; i++) { await p.waitForTimeout(1000); if (await p.isVisible("#wp-make-name").catch(() => false)) break; if (await G(() => !!(window.arcWorld && window.arcWorld.jurassic) && !document.body.classList.contains("wp-intro"))) break; }
   for (let i = 0; i < 8 && !(await p.isVisible("#wp-make-name").catch(() => false)); i++) await p.waitForTimeout(500); // (a first visit's maker opens after the welcome, 1.5 s in)
-  if (await p.isVisible("#wp-make-name").catch(() => false)) { await p.fill("#wp-make-name", "Ranger"); await G(() => document.getElementById("wp-make-go").click()); }
+  // (the seeded save is newer than this browser's: the game takes it and reloads once — on a slow machine that reload can land
+  // while the name is being typed, so a fill that times out waits for the page and the maker is finished again below)
+  const fillName = async () => { try { await p.fill("#wp-make-name", "Ranger", { timeout: 15000 }); await G(() => document.getElementById("wp-make-go").click()); return true; } catch { return false; } };
+  if (await p.isVisible("#wp-make-name").catch(() => false)) await fillName();
   await p.waitForTimeout(12000); // (the seeded save is newer than this browser's: the game takes it and reloads once)
   for (let i = 0; i < 120 && !(await G(() => !!(window.arcWorld && window.arcWorld.jurassic) && !document.body.classList.contains("wp-intro"))); i++) await p.waitForTimeout(1000);
   await G(() => { window.arcWorld.P.guideSeen = true; });
   const skip = () => G(() => { for (const s of ["#wp-guide-go", ".wp-qs [data-qs=go]", ".wp-tips-go", ".wp-coach-skip", ".wp-st .wp-st-x", ".wp-adp [data-later]"]) document.querySelectorAll(s).forEach((c) => c.click()); });
   for (let i = 0; i < 6; i++) { await p.waitForTimeout(800); await skip(); }
   // (the AD launch card sits over the maker until it's closed: a maker still up is finished now)
-  if (await p.isVisible("#wp-make-name").catch(() => false)) { await p.fill("#wp-make-name", "Ranger"); await G(() => document.getElementById("wp-make-go").click()); for (let i = 0; i < 6; i++) { await p.waitForTimeout(800); await skip(); } }
+  for (let k = 0; k < 3 && (await p.isVisible("#wp-make-name").catch(() => false)); k++) { if (await fillName()) for (let i = 0; i < 6; i++) { await p.waitForTimeout(800); await skip(); } else await p.waitForTimeout(5000); }
   const shot = (n) => p.screenshot({ path: path.join(OUT, `${dev}-${n}.png`), timeout: 120000 });
   const vis = (sel) => G((s) => { const e = document.querySelector(s); return !!(e && e.getClientRects().length && !e.hidden); }, sel);
   return { p, G, shot, vis, errs, refusals, loads: () => loads };
@@ -55,6 +58,7 @@ for (const dev of (process.env.DEVS ?? "phone,desk").split(",").filter(Boolean))
   const top = await G(() => [...document.querySelectorAll(".wp-hud-btns>.wp-btn")].filter((x) => x.getClientRects().length).map((x) => x.id));
   check(top.includes("wp-rew-btn") && !top.includes("wp-gift-btn") && !top.includes("wp-shop-btn"), `${dev}: the top bar folds the rewards into one button (${top.join(" ")})`);
   check((await G(() => [...document.querySelectorAll("#wp-dock .wp-dk")].filter((x) => x.getClientRects().length).map((x) => x.id)))[0] === "wp-dk-games", `${dev}: Games is the dock's first button`);
+  await G(() => document.querySelectorAll(".wp-st .wp-st-x, .wp-qs [data-qs=go], #wp-guide-go").forEach((c) => c.click())); await p.waitForTimeout(400); /* (a slow machine reaches here past the minute the "first 5 minutes" card waits: it would sit over the Menu) */
   await G(() => document.getElementById("wp-more-btn").click()); await p.waitForTimeout(800);
   check((await G(() => document.querySelectorAll(".wp-hub-main [data-hub]").length)) === 9, `${dev}: the Menu's nine big tiles`); await shot("menu");
   await G(() => document.querySelector("[data-hub-x]").click()); await p.waitForTimeout(400);
