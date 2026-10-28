@@ -597,7 +597,7 @@ export function createCombat(ctx) {
   // ---------------- bosses: a move list per ground, a red warning before each move, a second phase at half HP ----------------
   // slam: a circle round the boss · cone: a fan in front of it · line: a charge straight at you · rain: circles under your feet
   const PATTERNS = ["slam", "cone", "line", "rain"];
-  const patsOf = (m) => { const zi = m.zone ? ZONES.indexOf(m.zone) : 0; return PATTERNS.slice(0, zi >= 5 ? 4 : zi >= 3 ? 3 : zi >= 1 ? 2 : 1); };
+  const patsOf = (m) => { if (m.zone && m.zone.realm) return PATTERNS.slice(0, m.zone.lv[0] >= 100 ? 4 : 3); const zi = m.zone ? ZONES.indexOf(m.zone) : 0; return PATTERNS.slice(0, zi >= 5 ? 4 : zi >= 3 ? 3 : zi >= 1 ? 2 : 1); }; // (the Halloween Realm's bosses: every pattern from the Graveyard on)
   const WIND = { slam: 1.1, cone: 0.95, line: 0.85, rain: 1.15 };
   function warnDisc(at, r, life) { const disc = new THREE.Mesh(sgeo(`Circle|${[r, 40]}`, () => new THREE.CircleGeometry(r, 40)), additive(warnCol(), warnOp())); disc.rotation.x = -Math.PI / 2; disc.position.copy(at).setY(0.08); add(disc); fx.push({ o: disc, life, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.3 * k + (ctx.reduce ? 0 : Math.sin(k * 30) * 0.05); disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); return disc; }
   function bossAI(m, dt, t, d) {
@@ -1590,7 +1590,7 @@ export function createCombat(ctx) {
     softUp: () => { if (down) getUp("here"); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100) * hs.moveK(), gauge: () => gauge, fillUlt: () => { gauge = ULT_MAX; }, skillStep: (sec) => { for (let i = 0; i < Math.round(sec * 30); i++) hs.tick(1 / 30, performance.now() / 1000 + i / 30); }, castBusy: () => hs.busy(), /* (fillUlt: tests) */ jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
-    spawnMob, spawnItem, mobsRaw: () => mobs,
+    spawnMob, spawnItem, mobsRaw: () => mobs, zoneNow: () => zone,
     /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
     locked: () => lockAlive(), lockAt: (out) => (lockAlive() ? out.copy(lockT.g.position) : null),
     bossNear: (r = 40) => { ctx.here(me); return mobs.some((m) => !m.dead && m.rank === "boss" && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < r); },
