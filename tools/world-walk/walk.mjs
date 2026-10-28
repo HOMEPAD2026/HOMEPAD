@@ -96,7 +96,7 @@ for (const dev of (process.env.DEVS ?? "phone,desk").split(",").filter(Boolean))
   check(await G(() => { const i = document.querySelector(".wp-share-img"); return !!(i && i.naturalWidth === 1200); }), `${dev}: a share card (1200×630)`); await shot("share");
   // OBBY WORLD (2026-10-28): a 3D course in the World — the hero walks with a walk clip, and leaving gives the town back
   await G(() => document.querySelectorAll(".wp-share .wp-st-x, .wp-share-x").forEach((c) => c.click()));
-  await G(() => window.arcWorld.openStudio()); for (let i = 0; i < 30 && !(await G(() => !!window.__studio)); i++) await p.waitForTimeout(500);
+  for (let i = 0; i < 40 && !(await G(() => !!window.__studio)); i++) { if (i % 6 === 0) await G(() => window.arcWorld.openStudio()); await p.waitForTimeout(500); } /* (asked again: right after the share card closes the World can still be frozen, and openStudio then does nothing) */
   if (!(await G(() => !!window.__studio))) { throw new Error(`${dev}: the Studio did not open in the World (errors: ${errs.slice(-5).join(" | ") || "none"})`); }
   await G(() => window.__studio.playId("goffobby")); for (let i = 0; i < 60 && !(await G(() => { const r = window.__studio.playing(); if (r && r.start) r.start(); return !!(r && r.S && r.S.t > 0.3); })); i++) await p.waitForTimeout(500); // (G3: the start card's Play)
   await G(() => { const r = window.__studio.playing(); if (r) r.keys.add("w"); }); await p.waitForTimeout(700);

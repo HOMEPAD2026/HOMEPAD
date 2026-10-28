@@ -374,6 +374,32 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   r = await call(P[0], "world-studio-race-tick", { code, x: 99999, y: 1, z: 0, pr: 0.1 }); me0 = r.body.race.players[0]; check(me0.x <= 120 && me0.pr === 0.4, "obby room: kept on the course, progress never back");
   r = await call(P[0], "world-studio-race-tick", { code, pr: 0.6, fin: true }); check(!r.body.race.players[0].fin, "obby room: no finish before the game is done");
   r = await call(P[0], "world-studio-race-tick", { code, pr: 1, fin: true }); check(r.body.race.players[0].fin === 8e3, "obby room: done — the time on the server's clock"); }
+// SM1: a live room's mode — the host picks Race / Teams / Survival / Co-op in the lobby; Survival's lost heart is the end;
+// the standing (world-studio-modes.js) scores teams, the last one standing and a room cleared together
+{ const M = await import("../../world-studio-modes.js"); const P = Array.from({ length: 4 }, () => ethers.Wallet.createRandom());
+  let r = await call(P[0], "world-studio-race-new", { id: "goffcombat", mode: "survive" }); const code = r.body.race.code; check(r.body.race.mode === "survive", "mode: a room opened as Survival");
+  r = await call(P[0], "world-studio-race-new", { id: "goffcombat", mode: "nope" }); check(r.body.race.mode === "race", "mode: an unknown mode is a race");
+  for (const p of P.slice(1)) await call(p, "world-studio-race-join", { code });
+  r = await call(P[1], "world-studio-race-mode", { code, mode: "team" }); check(r.status === 403, "mode: only the host picks it");
+  r = await call(P[0], "world-studio-race-mode", { code, mode: "team" }); check(r.status === 200 && r.body.race.mode === "team", "mode: the host switches it to Teams");
+  r = await call(P[0], "world-studio-race-mode", { code, mode: "survive" });
+  r = await call(P[0], "world-studio-race-start", { code }); const st = r.body.race.start; T = st + 6e3;
+  r = await call(P[0], "world-studio-race-mode", { code, mode: "coop" }); check(r.status === 409, "mode: fixed once it starts");
+  r = await call(P[1], "world-studio-race-tick", { code, x: 1, y: 1, z: 1, pr: 0.2, hp: 0 }); check(r.body.race.players[1].out && r.body.race.players[1].outAt === T, "survival: no hearts left — out, and when");
+  T += 4e3; r = await call(P[2], "world-studio-race-tick", { code, pr: 0.5, hp: 0 }); T += 1e3; r = await call(P[0], "world-studio-race-tick", { code, pr: 0.3, hp: 1 });
+  let sd = M.standing(r.body.race.mode, r.body.race.players); check(sd.alive === 2 && sd.order[2].w === P[2].address.toLowerCase() && sd.order[3].w === P[1].address.toLowerCase(), "survival: the one out later ranks above the one out first");
+  T += 1e3; r = await call(P[3], "world-studio-race-leave", { code }); r = await call(P[0], "world-studio-race-tick", { code, pr: 0.35, hp: 1 }); sd = M.standing("survive", r.body.race.players);
+  check(sd.alive === 1 && sd.winner === P[0].address.toLowerCase(), "survival: the last one standing wins");
+  // the standing on its own
+  const pl = (w, o) => ({ w, ...o }); let t = M.standing("team", [pl("a", { fin: 9000 }), pl("b", { fin: 8000 }), pl("c", { out: true, pr: 0.5 }), pl("d", { out: true, pr: 1 })]);
+  check(t.teams[0].pts === 8 + 3 && t.teams[1].pts === 10 + 5 && t.winner === 1, "teams: places score for the team (Red " + t.teams[0].pts + " · Blue " + t.teams[1].pts + ")");
+  t = M.standing("team", [pl("a", { fin: 1 }), pl("b", {})]); check(t.winner === "" && !t.done, "teams: no winner while someone still runs");
+  t = M.standing("team", [pl("a", { out: true, pr: 0.03 }), pl("b", { out: true, pr: 0.08 })]); check(t.teams[0].pts === t.teams[1].pts && t.winner === 1, "teams: a tie on points goes to the team that got further");
+  t = M.standing("team", [pl("a", { out: true, pr: 0.05 }), pl("b", { out: true, pr: 0.05 })]); check(t.winner === -1, "teams: a draw only when that ties too");
+  let c = M.standing("coop", [pl("a", { fin: 9000, coins: 3 }), pl("b", { fin: 12000, coins: 4 }), pl("c", { out: true, coins: 1 })]); check(c.cleared && c.coins === 8, "co-op: cleared by those still in (one who fell or left doesn't hold it back), coins pooled");
+  c = M.standing("coop", [pl("a", { fin: 9000 }), pl("b", { pr: 0.4 })]); check(!c.cleared && !c.done, "co-op: not cleared while one of you still runs");
+  c = M.standing("coop", [pl("a", { fin: 9000 }), pl("b", { fin: 12000 })]); check(c.cleared && c.time === 12000 && c.winner === "all", "co-op: cleared together — the room's time is the last one in");
+  const rc = M.standing("race", [pl("a", { fin: 9000 }), pl("b", { fin: 8000 })]); check(rc.winner === "b" && rc.order[0].place === 1, "race: the fastest finish wins"); }
 // WS5: a challenge carries the run as a ghost; following a maker shows their new games in your feed
 { const { CHAL } = await import("../../api/_world-studio.mjs"); const mk = ethers.Wallet.createRandom(), fa = ethers.Wallet.createRandom();
   let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", theme: "neon", title: "Follow Me", speed: 3, len: 45, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 99 } }); const id = r.body.game.id;

@@ -47,6 +47,7 @@
 //            worldStudioHandle/<h> { w, at, moved? } (create-only; an old ID keeps pointing to its owner's new one) · worldStudioHandleOf/<wallet> { h, n, old }
 import { clampSpec, genLevel, scoreOf, speedOf, dashSpeed, TEMPLATES, THEMES, LENS, KNOBS, puzzleId, puzzleHints, puzzleScore, genObbyBuild, OB } from "./_world-studio-gen.mjs";
 import { level as ringLevel, replay as ringReplay } from "./_world-rings-engine.mjs";
+import { modeOf } from "../world-studio-modes.js"; // (SM1: what a live room plays — race / team / survive / coop)
 export const STUDIO = { OPEN: true, VERS: 5, DRAFTS: 12, ARCADE: 200, AI_DAY: 10, BEST: 10, PROMPT: 240, TRACE: 900, PICKS: 6 };
 /// STB6 (2026-10-27): build together — the owner's code (a day) lets one partner in; whoever holds the pen saves, the pen
 /// frees itself after PEN_MS without a save; the partner never publishes, deletes or renames the web address
@@ -517,8 +518,8 @@ export function makeStudio(deps) {
   const seatsMax = (r) => (r && r.tpl === "obby" ? RACE.OBMAX : RACE.MAX); // (RV: an Obby World room holds 8 — a race or a run together on one 3D course)
   async function raceOut(code, r) {
     const ks = r.seats.map((x) => `worldStudioRaceP/${code}_${x.w}`), ps = ks.length ? await getDocs(ks) : {};
-    return { code, id: r.id, title: r.title, tpl: r.tpl, host: r.host, start: r.start || 0, now: now(), ...(r.next ? { next: r.next } : {}), ...(r.quick ? { quick: 1, auto: r.auto } : {}), players: r.seats.map((x, i) => { const p = ps[ks[i]] || {};
-      return { w: x.w, name: x.name, c: x.c || "", z: p.z || 0, x: p.x || 0, y: p.y || 0, hp: p.hp == null ? 3 : p.hp, coins: p.coins || 0, fin: p.fin || 0, out: !!p.out, at: p.at || 0, ...(r.tpl === "obby" ? { f: p.f || 0, k: p.k || 0, pr: p.pr || 0 } : {}) }; }), max: seatsMax(r) };
+    return { code, id: r.id, title: r.title, tpl: r.tpl, mode: modeOf(r.mode), host: r.host, start: r.start || 0, now: now(), ...(r.next ? { next: r.next } : {}), ...(r.quick ? { quick: 1, auto: r.auto } : {}), players: r.seats.map((x, i) => { const p = ps[ks[i]] || {};
+      return { w: x.w, name: x.name, c: x.c || "", z: p.z || 0, x: p.x || 0, y: p.y || 0, hp: p.hp == null ? 3 : p.hp, coins: p.coins || 0, fin: p.fin || 0, out: !!p.out, outAt: p.outAt || 0, at: p.at || 0, ...(r.tpl === "obby" ? { f: p.f || 0, k: p.k || 0, pr: p.pr || 0 } : {}) }; }), max: seatsMax(r) };
   }
   const seatOf = async (w, b) => ({ w, name: clean(await nameFor(w), 20), c: /^[a-z0-9-]{2,24}$/.test(String(b.c || "")) ? b.c : "" });
   // RM3: the races going on — worldStats/studioRaces { list: { <code>: { id, title, n, at, start, quick } } } for the arcade's banner and the watch list
@@ -531,7 +532,7 @@ export function makeStudio(deps) {
   async function newRace(w, b, g, id, extra) {
     let code = ""; for (let i = 0; i < 5 && !code; i++) { const c = String(deps.randomId()).replace(/[^a-z0-9]/gi, "").toUpperCase().replace(/[O0I1]/g, "X").slice(i, i + 5).padEnd(5, "Z"); if (!raceLive(await one(`worldStudioRace/${c}`))) code = c; }
     if (!code) return null;
-    const r = { id, title: g.spec.title, tpl: g.spec.tpl, spec: g.spec, host: w, seats: [await seatOf(w, b)], at: now(), start: 0, exp: now() + RACE.LOBBY_MS, ...(extra || {}) };
+    const r = { id, title: g.spec.title, tpl: g.spec.tpl, spec: g.spec, host: w, seats: [await seatOf(w, b)], at: now(), start: 0, exp: now() + RACE.LOBBY_MS, mode: extra && extra.quick ? "race" : modeOf(b.mode), ...(extra || {}) };
     await setDoc(`worldStudioRace/${code}`, r); await setDoc(`worldStudioRaceP/${code}_${w}`, { z: 0, at: 0 }); await raceIdx(code, r); return { code, r };
   }
   async function raceQuick(w, b) {
@@ -562,6 +563,12 @@ export function makeStudio(deps) {
     if (r.seats.length < RACE.MIN) return json(400, { error: "wait for a friend to join" });
     r.start = now() + RACE.CD_MS; await setDoc(`worldStudioRace/${code}`, r); await raceIdx(code, r); return json(200, { ok: true, race: await raceOut(code, r) });
   }
+  // SM1: the host picks what the room plays while it waits (not a quick race: that one is always a race)
+  async function raceMode(w, b) {
+    const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r)) return json(404, { error: "that race isn't open — ask for a new code" });
+    if (r.host !== w) return json(403, { error: "only the host picks the mode" }); if (r.start) return json(409, { error: "it has started" }); if (r.quick) return json(400, { error: "a quick race is always a race" });
+    r.mode = modeOf(b.mode); await setDoc(`worldStudioRace/${code}`, r); return json(200, { ok: true, race: await raceOut(code, r) });
+  }
   async function raceTick(w, b) {
     const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!raceLive(r) || !r.start) return json(404, { error: "that race isn't running" });
     if (!r.seats.some((x) => x.w === w)) return json(403, { error: "you're not in this race" });
@@ -569,19 +576,19 @@ export function makeStudio(deps) {
     if (r.tpl === "obby" && !p.fin && !p.out && now() >= r.start) { // (RV: a 3D course — where you are on it, which way you face, your clip, how far through the game you are; never back)
       const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0)), pr = Math.max(p.pr || 0, num(b.pr, 0, 1));
       const q = { x: num(b.x, -OB.R - 12, OB.R + 12), y: num(b.y, -30, OB.Y + 20), z: num(b.z, -OB.R - 12, OB.R + 12), f: Math.round(num(b.f, -7, 7) * 100) / 100, k: Math.round(num(b.k, 0, 6)), pr, hp: Math.round(num(b.hp, 0, 5)), coins: Math.round(num(b.coins, 0, 999)), at: now() };
-      if (b.fin && pr >= 0.99 && secs >= 3) q.fin = Math.max(1, now() - r.start); else if (b.out) q.out = true;
+      if (b.fin && pr >= 0.99 && secs >= 3) q.fin = Math.max(1, now() - r.start); else if (b.out || (r.mode === "survive" && q.hp <= 0 && secs >= 3)) { q.out = true; q.outAt = now(); } // (SM1: in Survival a lost heart is the end)
       await setDoc(k, q); return json(200, { ok: true, race: await raceOut(code, r) }); }
     if (!p.fin && !p.out && now() >= r.start) { const sp = clampSpec(r.spec), L = genLevel(sp), end = r.tpl === "dash" ? L.len - 30 : L.len, cap = (r.tpl === "dash" ? dashSpeed(sp, secs) : speedOf(sp) * 1.25) * secs + 8; // (no faster than the level lets you; a little room for the clocks)
       const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0)), z = Math.max(p.z || 0, num(b.z, 0, Math.min(end, cap)));
       const q = { z, x: num(b.x, -4, 4), y: num(b.y, 0, 12), hp: b.hp == null ? (p.hp == null ? 3 : p.hp) : Math.round(num(b.hp, 0, 3)), coins: Math.round(num(b.coins, 0, 999)), at: now() };
-      if (b.fin && z >= end - 1.5) q.fin = Math.max(1, now() - r.start); else if (b.out || q.hp <= 0) q.out = true;
+      if (b.fin && z >= end - 1.5) q.fin = Math.max(1, now() - r.start); else if (b.out || q.hp <= 0) { q.out = true; q.outAt = now(); }
       await setDoc(k, q); }
     return json(200, { ok: true, race: await raceOut(code, r) });
   }
   async function raceLeave(w, b) {
     const code = raceCode(b.code), r = code ? await one(`worldStudioRace/${code}`) : null; if (!r || r.gone) return json(200, { ok: true });
     if (!r.start) { if (r.host === w && !r.quick) r.gone = true; else r.seats = r.seats.filter((x) => x.w !== w); if (!r.seats.length) r.gone = true; else if (r.host === w) r.host = r.seats[0].w; await setDoc(`worldStudioRace/${code}`, r); await raceIdx(code, r.gone ? null : r); } /* (a quick race goes on without whoever left) */
-    else { const k = `worldStudioRaceP/${code}_${w}`, p = (await one(k)) || {}; if (!p.fin && !p.out) await setDoc(k, { ...p, out: true, at: now() }); }
+    else { const k = `worldStudioRaceP/${code}_${w}`, p = (await one(k)) || {}; if (!p.fin && !p.out) await setDoc(k, { ...p, out: true, outAt: now(), at: now() }); }
     return json(200, { ok: true });
   }
 
@@ -665,6 +672,7 @@ export function makeStudio(deps) {
       if (b.action === "world-studio-race-quick") return raceQuick(w, b);
       if (b.action === "world-studio-race-join") return raceJoin(w, b);
       if (b.action === "world-studio-race-start") return raceStart(w, b);
+      if (b.action === "world-studio-race-mode") return raceMode(w, b);
       if (b.action === "world-studio-race-tick") return raceTick(w, b);
       if (b.action === "world-studio-race-leave") return raceLeave(w, b);
       if (b.action === "world-studio-co-invite") return coInvite(w, b);

@@ -818,7 +818,7 @@ function rqGateModel() { if (rqGate.userData.loading) return; rqGate.userData.lo
 { const holoTex = {}, ld = new THREE.TextureLoader();
   ["aurora", "orion", "vex", "aurora", "orion"].forEach((k, i) => {
     const f = 0.28 + i * 0.13, x = AGW.x * f, z = AGW.z * f, side = i % 2 ? 1 : -1, d = Math.hypot(AGW.x, AGW.z) || 1, nx = -AGW.z / d * side * 3.2, nz = AGW.x / d * side * 3.2;
-    const g = new THREE.Group(); g.name = "agent-holo"; K.placeOn(g, K.dirOf(Math.hypot(x + nx, z + nz) / (K.FLAT * K.R) * 180 / Math.PI, (Math.atan2(x + nx, -(z + nz)) * 180 / Math.PI + 360) % 360)); planet.add(g);
+    const g = new THREE.Group(); g.name = "agent-holo"; g.position.set(x + nx, 0, z + nz); g.rotation.y = Math.atan2(-(x + nx), -(z + nz)); planet.add(g); /* (K.FLAT isn't exported: through placeOn all five stood stacked in the fountain, 15 draw calls of glow in the plaza) */
     const tx = holoTex[k] || (holoTex[k] = ld.load(`/images/agents/${k}-400.webp${VER}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; }));
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7), new THREE.MeshBasicMaterial({ map: tx, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, toneMapped: false })); pl.position.y = 2.2; g.add(pl);
     const col = K.AGENTS[k].color, base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.25, 20), new THREE.MeshBasicMaterial({ color: col, toneMapped: false })); base.position.y = 0.12; g.add(base);
@@ -1076,7 +1076,7 @@ async function dressWorld(kit) {
   // town folk: a few ARC Bots walking the ring between the fountain and the halls, stopping now and then to look
   // round or wave (none on Low; two on a phone, six elsewhere). They're scenery: they don't block you or talk.
   if (!lowGfx) {
-    const ids = ["arc-neo", "arc-luna", "arc-kai", "arc-pixi", "arc-orbit", "arc-mint"], N = st.quality.coarse ? 2 : 6; /* (PF4: two on a phone — each bot is ~11 draw calls) */
+    const ids = ["arc-neo", "arc-luna", "arc-kai", "arc-pixi", "arc-orbit", "arc-mint"], N = st.quality.coarse ? (S.quality === "high" || S.quality === "ultra" ? 1 : 0) : 6; /* (2026-10-28, measured: one bot is 28 draw calls — none on a phone unless High / Ultra is picked) */
     for (let i = 0; i < N; i++) K.makeCharacter(ids[i], VER).then((c) => {
       if (!c) return; const g = new THREE.Group(); g.name = "folk"; g.add(c.obj); planet.add(g); if (c.mixer) mixers.push(c.mixer);
       folk.push({ g, c, r: 9.2 + (i % 3) * 1.1, a: (i / N) * Math.PI * 2 + Math.random() * 0.4, dir: i % 2 ? 1 : -1, sp: 1.0 + Math.random() * 0.5, wait: 1 + Math.random() * 4, walkT: 0, anim: "" });
@@ -5208,7 +5208,7 @@ loadbar(0.85, TW("Dressing the town…"));
 // b443: the town's set dressing (trees, lamps, the districts' props) is placed before the screen lifts, up to 8 s
 // (2026-10-25, the funnel: a third of new browsers left before the town showed) a phone on low graphics, or a load
 // already slow (past 25 s), gets half these waits: what isn't ready goes on in the background, behind the town
-const quickIn = (coarse && lowGfx) || performance.now() > 25000, weakIn = S.quality === "auto" && !!st.quality.weak, qk = (ms) => (weakIn ? Math.round(ms / 4) : quickIn ? Math.round(ms / 2) : ms); // (b-perf2: the weakest chips a quarter: the town shows, the rest comes in behind it)
+const quickIn = coarse || performance.now() > 25000, /* (2026-10-28, diag: "Dressing the town" ran its full 8 s on 31 phones, Adreno 740 among them — every phone gets the half waits now) */ weakIn = S.quality === "auto" && !!st.quality.weak, qk = (ms) => (weakIn ? Math.round(ms / 4) : quickIn ? Math.round(ms / 2) : ms); // (b-perf2: the weakest chips a quarter: the town shows, the rest comes in behind it)
 if (decorOn && decor && decor.townReady) await capWait(Promise.resolve(decor.townReady).catch(() => {}), qk(8000), "decor");
 try { farCull.prep(); } catch (e) { console.warn("far cull", e); } // (again for what came in since: the fade's shaders made before warm compiles everything)
 loadbar(0.9, TW("Waking the scammers…"));
