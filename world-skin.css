@@ -5845,10 +5845,10 @@ body>.wse-form{position:fixed;z-index:13050}.wse-form .wse-chk{align-items:flex-
 .hwr-z{color:#cfe8ff;font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .hwr-set{display:flex;align-items:center;gap:5px;border:1px solid rgba(255,138,31,.6);background:rgba(255,138,31,.16);color:#fff;border-radius:999px;padding:3px 10px 3px 4px;font:800 12px Sora,sans-serif;cursor:pointer}
 .hwr-set img{width:22px;height:22px;object-fit:contain}
-.hwr-jb{position:fixed;z-index:60;top:calc(env(safe-area-inset-top,0px) + 108px);left:50%;transform:translateX(-50%);width:min(300px,78vw);padding:8px 10px;border-radius:12px;background:rgba(26,10,40,.82);border:1px solid rgba(255,138,31,.55);color:#fff;font:600 11px Sora,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none}
+.hwr-jb{position:fixed;z-index:60;top:calc(env(safe-area-inset-top,0px) + 150px);left:50%;transform:translateX(-50%);width:min(300px,78vw);padding:8px 10px;border-radius:12px;background:rgba(26,10,40,.82);border:1px solid rgba(255,138,31,.55);color:#fff;font:600 11px Sora,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none}
 .hwr-jb b{display:block;font-weight:800;color:#ffb24a;letter-spacing:.04em;font-size:11px}.hwr-jbar{display:block;height:6px;border-radius:4px;background:rgba(255,255,255,.12);margin:5px 0;overflow:hidden}.hwr-jbar em{display:block;height:100%;background:linear-gradient(90deg,#ff4d2a,#ffb24a);transition:width .6s}
 .hwr-jb ol{list-style:none;margin:0;padding:0}.hwr-jb li{display:flex;justify-content:space-between;gap:8px;padding:1px 0}.hwr-jb li.me{color:#7cf5c8}.hwr-jb small{color:#e6d8ff}
-@media (max-width:640px){.hwr-jb{top:calc(env(safe-area-inset-top,0px) + 86px);font-size:10px}}
+@media (max-width:640px){.hwr-jb{top:calc(env(safe-area-inset-top,0px) + 128px);font-size:10px}}html.wp-pcphone .hwr-jb{top:calc(env(safe-area-inset-top,0px) + 230px);transform:translateX(-50%) scale(1.6);transform-origin:top center}
 .hwr-fr{position:relative;display:flex;align-items:center;gap:5px;border:1px solid rgba(180,140,255,.55);background:rgba(40,20,70,.55);color:#fff;border-radius:999px;padding:3px 9px;font:800 11px Sora,sans-serif;cursor:pointer;overflow:hidden}
 .hwr-fr i{position:absolute;inset:0 auto 0 0;width:var(--p);background:linear-gradient(90deg,rgba(255,138,31,.45),rgba(255,200,90,.55));transition:width .5s}.hwr-fr b,.hwr-fr small{position:relative}.hwr-fr small{font-weight:600;color:#e6d8ff;opacity:.85}
 .hwr-fr.pop{animation:hwrPop .35s}@keyframes hwrPop{40%{transform:scale(1.18)}}
