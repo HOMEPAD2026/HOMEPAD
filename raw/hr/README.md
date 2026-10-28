@@ -24,6 +24,12 @@ Each animated GLB holds the full skinned mesh + one clip; the same skeleton is u
 | hw-treant.glb | 5205 | 5.8 MB | no | — | preview 01a18218-5df4-72e5-9cb9-814f75ee64c1 · refine 01a18219-2de9-744b-a3d6-a2ae4b193154 |
 | hw-skeleton.glb | 5175 | 7.6 MB | no | — | preview 01a18218-5dfb-7552-802c-fd3e01475884 · refine 01a18219-42e0-777f-9a63-7ad6462b830f |
 | hw-witch.glb | 5173 | 6.5 MB | no | — | preview 01a18218-5e6c-7649-8ddf-779fee27aa55 · refine 01a18219-314e-7172-b464-9314c4ef0b91 |
+| hw-blade.glb | 5891 | 7.1 MB | no | — | preview 01a1821d-99c1-75e2-b625-05a0a371e3b5 · refine 01a1821e-3290-73b1-821a-150e518f39b8 |
+| hw-armor.glb | 6212 | 6.1 MB | no | — | preview 01a1821d-99e6-7055-90af-b0e2e0a265a1 · refine 01a1821e-93c0-7032-8282-1c46dc3304f8 |
+| hw-crown.glb | 6253 | 4.9 MB | no | — | preview 01a1821d-998c-713a-b299-8fbd3126c17b · refine 01a1821e-7e6d-7322-9e68-f6c693bcfac3 |
+| hw-ring.glb | 6067 | 5.0 MB | no | — | preview 01a1821d-99fb-7403-b1b8-e7908bf0b7b8 · refine 01a1821e-5931-703c-b4ec-5f8ac29448cd |
+| hw-pendant.glb | 6207 | 6.1 MB | no | — | preview 01a1821d-99f4-76c3-aa47-f6d34327c0ee · refine 01a1821e-8038-74e3-90df-bd59e09c63cd |
+| hw-boots.glb | 6174 | 6.5 MB | no | — | preview 01a1821d-998d-77dd-ac25-530b40f428da · refine 01a1821e-a71f-71fb-aa60-f04157d4d24c |
 | hw-scarecrow-rigged.glb | 5093 | 8.6 MB | yes | `Armature\|clip0\|baselayer` | rigging 01a1821a-4986-77ca-acda-c67cd5951e23 |
 | hw-scarecrow-walk.glb | 5093 | 8.5 MB | yes | `Armature\|walking_man\|baselayer` | rigging 01a1821a-4986-77ca-acda-c67cd5951e23 (its basic walk/run) |
 | hw-scarecrow-run.glb | 5093 | 8.5 MB | yes | `Armature\|running\|baselayer` | rigging 01a1821a-4986-77ca-acda-c67cd5951e23 (its basic walk/run) |
@@ -47,6 +53,30 @@ Each animated GLB holds the full skinned mesh + one clip; the same skeleton is u
 | hw-witch-hit.glb | 5173 | 6.9 MB | yes | `Armature\|Hit_Reaction\|baselayer` | animations 01a1821a-dba9-76ce-a925-93981d41a1f6 (action 178, rig 01a18219-fc09-71b4-88bf-0f3528405c7e) |
 | hw-witch-death.glb | 5173 | 7.0 MB | yes | `Armature\|Dead\|baselayer` | animations 01a1821b-1b9b-700d-bc12-d17391cb00c4 (action 8, rig 01a18219-fc09-71b4-88bf-0f3528405c7e) |
 
+## Images
+
+| File | Size | Prompt | Meshy task id |
+|---|---|---|---|
+| hw-ic-blade.png | 0.2 MB | Inferno Blade game icon: a flaming pumpkin-orange sword, cute stylized 3D render, bright soft lighting, orange purple black Halloween palette with cyan glow accents, centered, on a pure flat solid #00ff00 green background, no text, no shadow on background | 01a1821f-52bc-7679-87ba-a04543a9104d |
+| hw-ic-armor.png | 0.3 MB | Cursed Armor chest piece, orange and black, cute stylized 3D render game icon, bright soft lighting, orange purple black Halloween palette with cyan glow accents, single centered object, on a pure flat solid #00ff00 green background, no text, no shadow on background | 01a1821f-b33e-7203-8276-b4081f12b62c |
+| hw-ic-crown.png | 0.3 MB | Jack's Crown, a pumpkin crown, cute stylized 3D render game icon, bright soft lighting, orange purple black Halloween palette with cyan glow accents, single centered object, on a pure flat solid #00ff00 green background, no text, no shadow on background | 01a1821f-b31e-7080-8c71-adbac87083aa |
+| hw-ic-ring.png | 0.2 MB | Phantom Ring, a ghostly ring with a glowing cyan gem, cute stylized 3D render game icon, bright soft lighting, orange purple black Halloween palette with cyan glow accents, single centered object, on a pure flat solid #00ff00 green background, no text, no shadow on background | 01a1821f-b398-740e-ab43-2a364ea1e146 |
+| hw-ic-pendant.png | 0.2 MB | Soul Pendant with a glowing pumpkin gem, cute stylized 3D render game icon, bright soft lighting, orange purple black Halloween palette with cyan glow accents, single centered object, on a pure flat solid #00ff00 green background, no text, no shadow on background | 01a1821f-b38e-7130-8c0b-41894fc1d82c |
+| hw-ic-boots.png | 0.2 MB | Shadow Boots, dark purple and black boots with orange trim, cute stylized 3D render game icon, bright soft lighting, orange purple black Halloween palette with cyan glow accents, single centered object, on a pure flat solid #00ff00 green background, no text, no shadow on background | 01a1821f-b34a-7354-ad2a-974f8d08f967 |
+| hw-key-wide.png | 1.8 MB | Wide game key art landscape: a cute Halloween pumpkin village with glowing jack-o'-lanterns and crooked little houses under a huge red moon, a cute round white-and-cyan robot hero in the foreground, bright cute stylized 3D, orange purple black palette with cyan and mint glow, full-bleed image filling the entire frame edge to edge, no circle, no frame, no border, no vignette, no transparency checkerboard, no text | 01a18220-68bd-776d-9f70-c2d2717ab209 |
+| hw-key-tall.png | 1.6 MB | Halloween Realm, a pumpkin village under a red moon, cute stylized 3D, ARCIRCLE robot hero: a cute round white-and-cyan robot standing in front, bright stylized game key art, orange purple black palette with cyan and mint glow, no text, no logos, vertical composition | 01a1821f-b3a9-772b-85dd-b239c387b2b9 |
+| hw-sky-night.png | 1.0 MB | Flat wide sky backdrop painting seen from the ground looking at the horizon: deep purple night sky, a big red moon, soft layered clouds, stars, no ground, no buildings, stylized, full-bleed image filling the entire frame edge to edge, no circle, no frame, no border, no vignette, no transparency checkerboard, no text | 01a18220-6898-7514-972a-86323dd43f02 |
+| hw-sky-day.png | 1.2 MB | Flat wide sky backdrop painting seen from the ground looking at the horizon: warm orange Halloween dusk sky, a low sun glow, soft layered clouds, no ground, no buildings, stylized, full-bleed image filling the entire frame edge to edge, no circle, no frame, no border, no vignette, no transparency checkerboard, no text | 01a18220-6892-75d7-a147-bf61087654fa |
+| hw-ground.png | 2.3 MB | seamless tileable autumn grass with fallen orange leaves, top-down, flat even lighting, stylized game texture, no perspective | 01a1821f-df7a-77a2-99ff-cc643509cf43 |
+| hw-ground-grave.png | 1.6 MB | seamless tileable graveyard dirt with small stones, top-down, flat even lighting, stylized game texture, no perspective | 01a1821f-df42-748b-abf5-614dda01ed8e |
+| hw-ground-candy.png | 1.4 MB | Seamless tileable texture, top-down orthographic: a floor of square purple candy tiles in a regular grid covering the whole square, glossy, flat even lighting, stylized game texture, full-bleed image filling the entire frame edge to edge, no circle, no frame, no border, no vignette, no transparency checkerboard, no text | 01a18220-68b5-70cb-89b2-886816cd8bf7 |
+
 ## Notes
 
 Animation library ids used: 4 Attack, 219 Right_Hand_Sword_Slash, 125 Charged_Spell_Cast, 178 Hit_Reaction, 8 Dead. Walk (`walking_man`) and run (`running`) come with each rig. The treant got no extra clips (none were asked for it).
+
+Images: the six gear icons are on flat #00ff00 green (key by hue), resized from 1024 to 512 px. Key art 1344×768 / 768×1344, skies 1344×768, grounds 1024×1024.
+
+Retries: the first hw-key-wide came out inside a glowing circle, both skies came out as round 'planets' (the day one on a fake transparency checkerboard), and hw-ground-candy as a cluster of hex tiles on grey — all four were made again once with a 'full-bleed, no circle / frame' prompt (the second versions are the ones here). hw-ground was retried too, but the retry also had a grey border and looked less like ground, so the **first** version is kept: **it has a thin grey border (~2 %) — crop it before use; seamless tiling is not verified** for any of the three grounds. The skies are flat backdrops, not equirectangular panoramas.
+
+Credits: 855 at the start; each text-to-3D (preview + PBR refine) cost 30, a rig 5 (walk + run included), an animation 3, an image 3; 61 left after this batch.
