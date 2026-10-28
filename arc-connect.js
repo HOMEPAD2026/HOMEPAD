@@ -112,7 +112,8 @@
     try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) { /* old browser */ }
     return wait(wallets().length ? 0 : 450).then(function () {
       var list = wallets();
-      if (list.length === 1) return use(list[0]);
+      // one browser wallet: straight to it; ARCIRCLE Wallet alone (no extension) still shows the list, WalletConnect with it
+      if (list.length === 1 && list[0].info.rdns !== "app.arcircle.wallet") return use(list[0]);
       return chooser(list);
     });
   };
@@ -252,7 +253,7 @@
         '<button type="button" class="cw-w" data-wc><span class="cw-wi wc" aria-hidden="true"></span><b>WalletConnect</b><small>' + esc(L("QR code, any wallet app", "QR 코드, 모든 지갑 앱", "二维码,任意钱包应用")) + "</small></button>" +
         // ARCIRCLE Wallet (email, Google, Apple or X): listed above where this page loads it, otherwise opened on /wallet
         (list.some(function (w) { return w.info && w.info.rdns === "app.arcircle.wallet"; }) ? "" : '<a class="cw-w" href="/wallet"><span class="cw-wi arc" aria-hidden="true"></span><b>ARCIRCLE Wallet</b><small>' + esc(L("Email, Google, Apple or X", "이메일·구글·애플·X", "邮箱、Google、Apple 或 X")) + "</small></a>") +
-        (rows || phone ? "" : '<div class="cw-sec">' + esc(L("Add a wallet to this browser", "이 브라우저에 지갑 설치", "为此浏览器添加钱包")) + '</div><div class="cw-get">' + [["MetaMask", "https://metamask.io/download/", "mm"], ["Rabby", "https://rabby.io/", "rb"], ["OKX Wallet", "https://www.okx.com/web3", "ok"], ["Coinbase Wallet", "https://www.coinbase.com/wallet/downloads", "cb"], ["Bitget Wallet", "https://web3.bitget.com/en/wallet-download", "bg"]].map(function (w) { return '<a class="cw-g" href="' + w[1] + '" target="_blank" rel="noopener"><span class="cw-wi ' + w[2] + '" aria-hidden="true"></span>' + esc(w[0]) + "</a>"; }).join("") + '</div><p class="cw-hint">' + esc(L("After installing, reload this page.", "설치한 뒤 이 페이지를 새로고침하세요.", "安装后请刷新本页。")) + "</p>") +
+        (phone || list.some(function (w) { return w.info && w.info.rdns !== "app.arcircle.wallet"; }) ? "" : '<div class="cw-sec">' + esc(L("Add a wallet to this browser", "이 브라우저에 지갑 설치", "为此浏览器添加钱包")) + '</div><div class="cw-get">' + [["MetaMask", "https://metamask.io/download/", "mm"], ["Rabby", "https://rabby.io/", "rb"], ["OKX Wallet", "https://www.okx.com/web3", "ok"], ["Coinbase Wallet", "https://www.coinbase.com/wallet/downloads", "cb"], ["Bitget Wallet", "https://web3.bitget.com/en/wallet-download", "bg"]].map(function (w) { return '<a class="cw-g" href="' + w[1] + '" target="_blank" rel="noopener"><span class="cw-wi ' + w[2] + '" aria-hidden="true"></span>' + esc(w[0]) + "</a>"; }).join("") + '</div><p class="cw-hint">' + esc(L("After installing, reload this page.", "설치한 뒤 이 페이지를 새로고침하세요.", "安装后请刷新本页。")) + "</p>") +
         "</div>";
       D.body.appendChild(ch);
       // a wallet that announces itself while this is open: show the list again with it
