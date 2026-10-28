@@ -618,3 +618,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-nmore:hover { background: rgba(57, 211, 255, .1); border-color: var(--cy); }
 .gw-nmore[hidden] { display: none; }
 .gw-notices:not(.open) li:nth-child(5) { border-bottom: 0; }
+/* 2026-10-28 (the owner): PLAY FREE 💙 on the left, BUILD FREE 💚 on the right (→ /studio), on PC and phones */
+.gw-hero-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 12px; }
+.gw-hero .gw-hero-btns .gw-btn-xl { margin-top: 0; }
+.gw-hero-btns .gw-btn, .gw-cta-btns .gw-btn-play, .gw-cta-btns .gw-btn-build { min-width: 240px; }
+.gw-btn-play { color: #fff; background: linear-gradient(135deg, #6fc3ff 0%, #2f86ff 45%, #1d5cff 100%); box-shadow: 0 0 0 1.5px rgba(200, 228, 255, .8) inset, 0 10px 30px rgba(40, 110, 255, .4), 0 0 22px rgba(60, 150, 255, .5); text-shadow: 0 1px 2px rgba(0, 20, 80, .35); }
+.gw-btn-play:hover { box-shadow: 0 0 0 1.5px #fff inset, 0 16px 40px rgba(40, 110, 255, .55), 0 0 34px rgba(80, 160, 255, .75); }
+.gw-btn-build { color: #fff; background: linear-gradient(135deg, #8ff0a8 0%, #2ecf6a 45%, #12a650 100%); box-shadow: 0 0 0 1.5px rgba(210, 255, 220, .8) inset, 0 10px 30px rgba(30, 190, 90, .4), 0 0 22px rgba(60, 220, 120, .45); text-shadow: 0 1px 2px rgba(0, 60, 20, .35); }
+.gw-btn-build::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .7) 48%, transparent 66%); transform: translateX(-120%); animation: gw-shine 3.6s ease-in-out 1.8s infinite; }
+.gw-btn-build:hover { transform: translateY(-2px); box-shadow: 0 0 0 1.5px #fff inset, 0 16px 40px rgba(30, 190, 90, .55), 0 0 34px rgba(80, 230, 140, .7); }
+.gw-btn-build svg { width: 20px; height: 20px; fill: currentColor; }
+@media (max-width: 640px) {
+  .gw-hero-btns { flex-wrap: nowrap; gap: 10px; width: 100%; max-width: 440px; margin-left: auto; margin-right: auto; }
+  .gw-hero-btns .gw-btn { flex: 1 1 0; min-width: 0; padding: 18px 10px; font-size: 16px; letter-spacing: .5px; gap: 6px; }
+  .gw-hero-btns .gw-btn svg { width: 16px; height: 16px; }
+  .gw-cta-btns .gw-btn-play, .gw-cta-btns .gw-btn-build { min-width: 0; flex: 1 1 0; }
+  .gw-sticky .gw-btn { padding: 11px 12px; font-size: 13px; }
+}
