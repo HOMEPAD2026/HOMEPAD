@@ -740,6 +740,9 @@
     e.preventDefault(); dive.hidden = false; setTimeout(function () { location.href = "/play"; }, 600);
   });
   addEventListener("pageshow", function () { dive.hidden = true; });
+  // the image buttons (PLAY FREE / BUILD FREE): a burst of light on the press; Build waits for it before /studio
+  document.addEventListener("pointerdown", function (e) { var b = e.target.closest(".gw-ibtn"); if (!b || reduce) return; b.classList.remove("hit"); void b.offsetWidth; b.classList.add("hit"); setTimeout(function () { b.classList.remove("hit"); }, 650); });
+  document.addEventListener("click", function (e) { var a = e.target.closest('a.gw-ibtn[href="/studio"]'); if (!a || e.defaultPrevented || reduce || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); setTimeout(function () { location.href = "/studio"; }, 320); });
 
   // ---------------- the trailer (portrait on a phone), its sound ----------------
   var saveData = navigator.connection && navigator.connection.saveData;
