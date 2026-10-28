@@ -14,6 +14,7 @@ import { look as themeLook, trackUV } from "./world-studio-look.js";
 import { level as ringLevel } from "./world-rings-engine.js";
 import { makePad, makeLand } from "./world-studio-pad.js";
 import { pi, tplIc } from "./world-studio-icons.js";
+import { MODES, MODE, TEAM, teamOf, standing, modeOf } from "./world-studio-modes.js"; // (SM1: Race / Teams / Survival / Co-op)
 // Studio 2 (2026-10-24): two more templates (Infinity Dash: the lanes without a finish, faster and faster; Arena Survival:
 // seen from above, drones from the edge, laser sweeps, coins, last the time), a preview strip of the level in the editor,
 // a share link (/play?sg=<id>), and the runs' effects (coin pops and a combo, speed lines, a slow-mo near miss under a
@@ -532,7 +533,7 @@ export function createStudio(ctx) {
       <div class="wst-est s${E.stars}">${starsTxt(E.stars)}<span>${esc(T("Estimated clear rate {p}%", { p: Math.round(E.clear * 100) }))}</span>${my ? `<small>${esc(T("Your best here: {n}", { n: my }))}</small>` : ""}</div>
       ${g.ghost ? `<label class="wst-ghosto"><input type="checkbox" data-ghost ${ghostOn ? "checked" : ""}> 👻 ${esc(T("Race {n}'s ghost ({s})", { n: g.ghost.name || "#1", s: g.ghost.score }))}</label>` : ""}
       ${!own && !g.off && g.fans != null ? `<div class="wst-fol"><span>👥 ${esc(g.fans === 1 ? T("1 follower") : T("{n} followers", { n: g.fans }))}</span><button type="button" class="wst-go ${g.fol ? "alt" : ""}" data-follow="${esc(g.id)}" data-on="${g.fol ? 0 : 1}">${g.fol ? "✓ " + esc(T("Following")) : IR("ic-follow") + " " + esc(g.byName ? T("Follow {n}", { n: g.byName }) : T("Follow"))}</button></div>` : ""}
-      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${RACE_TPLS.includes(g.tpl) && g.pub !== false ? `<button type="button" class="wst-go wst-racebtn" data-racenew="${esc(g.id)}">${pi("race")} ${esc(T(g.tpl === "obby" ? "Play together live (up to 8)" : "Race friends live"))}</button>` : ""}${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">${IC("ic-remix")} ${esc(T("Remix"))}</button></div>
+      <div class="wst-acts"><button type="button" class="wst-go big" data-play="${esc(g.id)}">${IC("ic-play")} ${esc(T("Play"))}</button>${RACE_TPLS.includes(g.tpl) && g.pub !== false ? `<button type="button" class="wst-go wst-racebtn" data-racenew="${esc(g.id)}">${pi("race")} ${esc(T(g.tpl === "obby" ? "Play together live (up to 8)" : "Play live with friends (up to 4)"))}</button>` : ""}${own ? "" : `<button type="button" class="wst-go alt" data-like="${esc(g.id)}">${IC("ic-like")} ${esc(T("Like"))}</button>`}<button type="button" class="wst-go alt" data-share="${esc(g.id)}" aria-label="${esc(T("Copy link"))}">${IC("ic-share")}</button>${ctx.share ? `<button type="button" class="wst-go alt" data-card="${esc(g.id)}" aria-label="${esc(T("Share card"))}">📸</button>` : ""}<button type="button" class="wst-go alt" data-remix="${esc(g.id)}">${IC("ic-remix")} ${esc(T("Remix"))}</button></div>
       ${own ? "" : `<div class="wst-rep">${repOpen ? `<small>${esc(T("What's wrong with it?"))}</small><div class="wst-chips">${REASONS.map(([k, ic, l]) => `<button type="button" data-report="${k}">${ic} ${esc(T(l))}</button>`).join("")}</div>` : `<button type="button" class="wst-link" data-repopen>${IC("ic-report")} ${esc(T("Report this game"))}</button>`}${ctx.isGM && ctx.isGM() ? ` <button type="button" class="wst-link" data-ghide="${g.hidden ? 0 : 1}">${g.hidden ? "👁 " + esc(T("Show it again")) : "🙈 " + esc(T("Hide from the arcade (GM)"))}</button>` : ""}</div>`}
       ${socialBox(g, own)}
       <button type="button" class="wst-link" data-tab="arcade">← ${esc(T("Creator Arcade"))}</button></div>
@@ -1028,7 +1029,7 @@ export function createStudio(ctx) {
     const poll = async () => { if (done || !box.isConnected || n++ > 400) return; const q = await raceGet(code); if (q && !q.err) r = q; const all = draw(); if (q && q.err) return; setTimeout(poll, all ? 4000 : 1000); };
     draw(); setTimeout(poll, 1000);
   }
-  async function raceNew(id, from) { const r = await act({ action: "world-studio-race-new", id, c: myC(), ...(from ? { from } : {}) }); if (!r || !r.ok) return r && fail(r); raceLobby(r.j.race); }
+  async function raceNew(id, from, mode) { const r = await act({ action: "world-studio-race-new", id, c: myC(), ...(from ? { from } : {}), ...(mode ? { mode } : {}) }); if (!r || !r.ok) return r && fail(r); raceLobby(r.j.race); }
   async function raceJoin(code) {
     code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (code.length !== 5) { ctx.toast(esc(T("A race code has 5 letters"))); return; }
     const r = await act({ action: "world-studio-race-join", code, c: myC() }); if (!r || !r.ok) return r && fail(r); raceLobby(r.j.race);
@@ -1040,21 +1041,23 @@ export function createStudio(ctx) {
     const qt = setInterval(() => { const q = box.querySelector(".wst-rlq b"); if (q && cur.quick && !cur.start) q.textContent = String(Math.max(0, Math.ceil((cur.auto - (Date.now() + off)) / 1000))); }, 250);
     const close = (leave) => { gone = true; clearTimeout(timer); clearInterval(qt); box.remove(); lobby = null; if (stage) stage.dispose(); if (leave) act({ action: "world-studio-race-leave", code: cur.code }); if (el && wasOpen && !playing) { el.hidden = false; paint(); } };
     let drawn = "";
-    const draw = () => { const me = myW(), host = cur.host === me, n = cur.players.length, key = JSON.stringify([cur.host, cur.players.map((p) => p.w + p.name)]); if (key === drawn) return; if (drawn) box.classList.add("shown"); drawn = key; /* (redrawn only when someone comes or goes; the card pops in once) */
+    const draw = () => { const me = myW(), host = cur.host === me, n = cur.players.length, md = modeOf(cur.mode), key = JSON.stringify([cur.host, md, cur.players.map((p) => p.w + p.name)]); if (key === drawn) return; if (drawn) box.classList.add("shown"); drawn = key; /* (redrawn only when someone comes or goes; the card pops in once) */
       if (stage) stage.set(cur.players);
-      box.innerHTML = `<div class="wst-rlc"><small>🏁 ${esc(T(cur.quick ? "Quick race" : "Live race"))}</small><h3>${esc(cur.title)}</h3>
+      box.innerHTML = `<div class="wst-rlc"><small>${cur.quick ? "🏁 " + esc(T("Quick race")) : md === "race" ? "🏁 " + esc(T("Live race")) : MODE[md].icon + " " + esc(T("Live room")) + " · " + esc(T(MODE[md].name))}</small><h3>${esc(cur.title)}</h3>
         <div class="wst-rlcode"><span>${esc(T("Race code"))}</span><b>${esc(cur.code)}</b><button type="button" class="wst-go alt" data-rlcopy>🔗 ${esc(T("Copy link"))}</button></div>
-        <ol class="wst-rlp">${Array.from({ length: Math.max(4, Math.min(cur.max || 4, n + 1)) }, (_, i) => i).map((i) => { const p = cur.players[i]; return p ? `<li class="${p.w === me ? "me" : ""}" style="--c:${RCOL[i]}"><i>${i + 1}</i><b>${esc(p.name)}${p.w === me ? ` <small>(${esc(T("you"))})</small>` : ""}</b>${p.w === cur.host ? "<em>👑</em>" : ""}</li>` : `<li class="empty"><i>${i + 1}</i><b>${esc(T("Waiting for a racer…"))}</b></li>`; }).join("")}</ol>
+        ${cur.quick ? "" : `<div class="wst-rlm" role="radiogroup" aria-label="${esc(T("Mode"))}">${MODES.map((m) => `<button type="button" role="radio" aria-checked="${m === md}" data-rlmode="${m}" ${host ? "" : "disabled"}>${MODE[m].icon} ${esc(T(MODE[m].name))}</button>`).join("")}</div><p class="wst-rlml">${esc(T(MODE[md].line))}</p>`}
+        <ol class="wst-rlp${md === "team" ? " team" : ""}">${Array.from({ length: Math.max(4, Math.min(cur.max || 4, n + 1)) }, (_, i) => i).map((i) => { const p = cur.players[i], col = md === "team" ? TEAM[teamOf(i)].col : RCOL[i % 4]; return p ? `<li class="${p.w === me ? "me" : ""}" style="--c:${col}"><i>${i + 1}</i><b>${esc(p.name)}${p.w === me ? ` <small>(${esc(T("you"))})</small>` : ""}</b>${md === "team" ? `<u>${esc(T(TEAM[teamOf(i)].name))}</u>` : ""}${p.w === cur.host ? "<em>👑</em>" : ""}</li>` : `<li class="empty"><i>${i + 1}</i><b>${esc(T("Waiting for a racer…"))}</b></li>`; }).join("")}</ol>
         ${cur.quick ? `<p class="wst-rlq">⚡ ${esc(T("Quick race — starts in"))} <b>${Math.max(0, Math.ceil((cur.auto - (Date.now() + off)) / 1000))}</b>s · ${esc(T("ghosts fill the empty pads"))}</p>` : ""}
         <p class="wst-rlh">${esc(cur.quick ? T("Anyone who taps Quick race now joins you") : host ? (n < 2 ? T("Send the code to friends — start when someone joins") : T("Everyone here? Start the race!")) : T("Waiting for the host to start…"))}</p>
-        <div class="wst-rla">${host ? `<button type="button" class="wst-go big" data-rlgo ${n < 2 ? "disabled" : ""}>🏁 ${esc(T("Start the race"))}</button>` : ""}<button type="button" class="wst-go alt" data-rlx>${esc(T("Leave"))}</button></div></div>`; };
+        <div class="wst-rla">${host ? `<button type="button" class="wst-go big" data-rlgo ${n < 2 ? "disabled" : ""}>${MODE[md].icon} ${esc(T(md === "race" ? "Start the race" : "Start"))}</button>` : ""}<button type="button" class="wst-go alt" data-rlx>${esc(T("Leave"))}</button></div></div>`; };
     const go = async () => { if (gone) return; gone = true; clearTimeout(timer); clearInterval(qt);
       let g = null; try { const r = await fetch("/api/social?world=studio-game&id=" + encodeURIComponent(cur.id), { cache: "no-store" }); if (r.ok) g = (await r.json()).game; } catch { /* below */ }
-      const want = cur.tpl === "obby" ? 0 : Math.max(0, Math.min(3, RACE_PADS - cur.players.length)), ghosts = want ? (await Promise.all([1, 2, 3].slice(0, want).map((pl) => fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(cur.id) + "&p=" + pl, { cache: "no-store" }).then((r) => r.json()).then((j) => j && j.ghost).catch(() => null)))).filter(Boolean) : [];
+      const want = cur.tpl === "obby" || modeOf(cur.mode) !== "race" ? 0 : Math.max(0, Math.min(3, RACE_PADS - cur.players.length)), ghosts = want ? (await Promise.all([1, 2, 3].slice(0, want).map((pl) => fetch("/api/social?world=studio-ghost&id=" + encodeURIComponent(cur.id) + "&p=" + pl, { cache: "no-store" }).then((r) => r.json()).then((j) => j && j.ghost).catch(() => null)))).filter(Boolean) : [];
       box.remove(); lobby = null; if (stage) stage.dispose(); if (!g || !g.spec) { ctx.toast(T("Couldn't open it — try again")); act({ action: "world-studio-race-leave", code: cur.code }); if (el && wasOpen) { el.hidden = false; paint(); } return; }
-      run({ spec: clampSpec(g.spec), id: cur.id, title: g.title, by: g.byName, ghosts, live: { code: cur.code, start: cur.start, off, players: cur.players, host: cur.host, quick: !!cur.quick } }); };
+      run({ spec: clampSpec(g.spec), id: cur.id, title: g.title, by: g.byName, ghosts, live: { code: cur.code, start: cur.start, off, players: cur.players, host: cur.host, quick: !!cur.quick, mode: modeOf(cur.mode) } }); };
     box.addEventListener("click", async (e) => { const t = e.target.closest("button"); if (!t) return;
       if (t.matches("[data-rlx]")) return close(true);
+      if (t.matches("[data-rlmode]")) { if (cur.host !== myW() || modeOf(cur.mode) === t.dataset.rlmode) return; const r = await act({ action: "world-studio-race-mode", code: cur.code, mode: t.dataset.rlmode }); if (r && r.ok) { cur = r.j.race; draw(); } else if (r) fail(r); return; }
       if (t.matches("[data-rlcopy]")) { const u = raceLink(cur.code); try { await navigator.clipboard.writeText(u); ctx.toast("🔗 " + esc(T("Link copied — friends join with it"))); } catch { prompt(T("Copy link"), u); }
         if (navigator.share && ctx.coarse) navigator.share({ title: cur.title, text: T("Race me live in \"{t}\"! Code {c}", { t: cur.title, c: cur.code }), url: u }).catch(() => { /* closed */ }); return; }
       if (t.matches("[data-rlgo]")) { t.disabled = true; const r = await act({ action: "world-studio-race-start", code: cur.code }); if (!r || !r.ok) { t.disabled = false; return r && fail(r); } cur = r.j.race; off = cur.now - Date.now(); go(); } });
@@ -1066,13 +1069,27 @@ export function createStudio(ctx) {
       timer = setTimeout(poll, 1500); };
     draw(); timer = setTimeout(poll, 1500); lobby = { close }; ev("race");
   }
+  /// SM1: the room's mode over the board while it runs, and as the result card's headline at the end (world-studio-modes.js)
+  const mmss2 = (ms) => { const t2 = ms / 1000; return Math.floor(t2 / 60) + ":" + (t2 % 60).toFixed(1).padStart(4, "0"); };
+  function modeHead(st, me, end) {
+    const n = st.order.length, nm = (w) => { const p = st.order.find((x) => x.w === w); return p ? (p.w === me ? T("You") : p.name) : "?"; };
+    if (st.mode === "team") { const [a, b] = st.teams, mine = st.order.find((p) => p.w === me), myT = mine ? mine.team : -1, sc = `<b style="color:${TEAM[0].col}">${esc(T("Red"))} ${a.pts}</b> — <b style="color:${TEAM[1].col}">${esc(T("Blue"))} ${b.pts}</b>`;
+      if (!st.done || !end) return `⚔️ ${sc}`; return st.winner === -1 ? `🤝 ${esc(T("A draw!"))} ${sc}` : `🏆 ${esc(st.winner === myT ? T("Your team wins!") : T("{t} wins!", { t: T(TEAM[st.winner].name) }))} ${sc}`; }
+    if (st.mode === "survive") { if (!st.winner || !end) return `💀 ${esc(T("Alive {a}/{n}", { a: st.alive, n }))}`; return st.winner === me ? `🏆 ${esc(T("You're the last one standing!"))}` : `💀 ${esc(T("{n} survived longest", { n: nm(st.winner) }))}`; }
+    if (st.mode === "coop") { const f = st.order.filter((p) => p.fin).length; if (!st.done || !end) return `🤝 ${esc(T("At the goal {f}/{n}", { f, n }))} · 🪙 ${st.coins}`;
+      return st.cleared ? `🤝 ${esc(T("Cleared together in {t}", { t: mmss2(st.time) }))} · 🪙 ${st.coins}` : `🤝 ${esc(T("Not everyone made it — try again together"))}`; }
+    return "";
+  }
+  const modeBar = (hud, mode) => { if (modeOf(mode) === "race") return null; const b = document.createElement("div"); b.className = "wst-mbar m-" + mode; hud.appendChild(b); return b; };
   /// RV (the review): a live room on an Obby World course — up to 8 players race (or just play) the same 3D course: each sends
   /// where they are (x, y, z, facing, clip, how far through the game) every 0.4 s and sees the others as their own heroes there,
   /// gliding to where they last were; the board orders everyone by finish time, then by how far through the game they are
   function obLive(o, { scene, hud, S, progress }) {
-    const lv = o.live, me = myW(), F = new Map(), fins = new Set(), CL = ["idle", "walk", "sprint", "jump", "fall", "die", "emote-yes"]; let off = lv.off, cur = { players: lv.players }, busy2 = false, last = 0, stopped = false, myFin = 0;
-    const board = document.createElement("ol"); board.className = "wst-rbd wso-rbd"; hud.appendChild(board); const sNow = () => Date.now() + off;
-    function fig(p, i) { const g = new THREE.Group(), col = RCOL[i % 4];
+    const lv = o.live, me = myW(), F = new Map(), fins = new Set(), CL = ["idle", "walk", "sprint", "jump", "fall", "die", "emote-yes"], md = modeOf(lv.mode); let off = lv.off, cur = { players: lv.players }, busy2 = false, last = 0, stopped = false, myFin = 0;
+    const board = document.createElement("ol"); board.className = "wst-rbd wso-rbd"; hud.appendChild(board); const sNow = () => Date.now() + off, mbar = modeBar(hud, md);
+    if (md === "survive" && S.hearts > 1) S.hearts = 1; // (SM1: Survival — one heart each)
+    const seatL = () => cur.players.map((p) => (p.w === me ? { ...p, pr: S.over ? p.pr : progress(), fin: myFin || p.fin, out: p.out || (S.over && !myFin && !p.fin) } : p)), stand = () => standing(md, seatL(), (p) => p.pr || 0);
+    function fig(p, i) { const g = new THREE.Group(), col = md === "team" ? TEAM[teamOf(i)].col : RCOL[i % 4];
       const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.9, 4, 10), new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: 0.6, emissive: col, emissiveIntensity: 0.25 })); cap.position.y = 0.85; g.add(cap);
       try { const tag = ctx.K.label(String(p.name || "?").slice(0, 16), { accent: col, size: 0.45 }); tag.position.y = 2.3; g.add(tag); } catch { /* no tag */ }
       g.position.set(p.x, p.y, p.z); scene.add(g); const f = { g, cap, hero: null, clip: "", p, x: p.x, y: p.y, z: p.z, f: p.f || 0 };
@@ -1084,7 +1101,8 @@ export function createStudio(ctx) {
       paintBoard(); }
     const order = () => cur.players.map((p) => (p.w === me ? { ...p, pr: S.over ? p.pr : progress(), fin: myFin || p.fin, you: true } : p)).sort((a, b) => (a.fin && b.fin ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : (b.pr || 0) - (a.pr || 0)));
     const mmss = (ms) => { const t2 = ms / 1000; return Math.floor(t2 / 60) + ":" + (t2 % 60).toFixed(1).padStart(4, "0"); };
-    function paintBoard() { board.innerHTML = order().map((p, i) => `<li class="${p.you ? "me" : ""}${p.out ? " out" : ""}"><i>${p.fin && i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(p.you ? T("You") : p.name)}</b><em>${p.fin ? "🏁 " + mmss(p.fin) : Math.round((p.pr || 0) * 100) + "%"}</em></li>`).join(""); }
+    const tcol = (p) => (md === "team" ? ` style="--tc:${TEAM[teamOf(cur.players.findIndex((x) => x.w === p.w))].col}"` : "");
+    function paintBoard() { board.innerHTML = order().map((p, i) => `<li class="${p.you ? "me" : ""}${p.out ? " out" : ""}${md === "team" ? " tm" : ""}"${tcol(p)}><i>${p.fin && i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(p.you ? T("You") : p.name)}</b><em>${p.fin ? "🏁 " + mmss(p.fin) : p.out && md === "survive" ? "💀" : Math.round((p.pr || 0) * 100) + "%"}</em></li>`).join(""); if (mbar) mbar.innerHTML = modeHead(stand(), me, false); }
     async function send(extra) { if (busy2 && !extra) return; busy2 = true; last = performance.now(); const k = Math.max(0, CL.indexOf(S.clip));
       const r = await act({ action: "world-studio-race-tick", code: lv.code, x: +S.p.x.toFixed(2), y: +S.p.y.toFixed(2), z: +S.p.z.toFixed(2), f: +S.face.toFixed(2), k, pr: +Math.min(1, progress()).toFixed(3), hp: Math.max(0, S.hearts | 0), coins: S.coins, ...(extra || {}) }); busy2 = false; if (r && r.ok) apply(r.j.race); }
     paintBoard();
@@ -1098,15 +1116,25 @@ export function createStudio(ctx) {
         if (((t * 4) | 0) !== ((((t - dt) * 4) | 0))) paintBoard(); },
       end(done) { const fin = () => (busy2 ? setTimeout(fin, 80) : send(done ? { fin: 1, pr: 1 } : { out: 1 })); fin(); },
       stop(quit) { if (stopped) return; stopped = true; if (quit) act({ action: "world-studio-race-leave", code: lv.code }); for (const f of F.values()) { if (f.hero) f.g.remove(f.hero.obj); scene.remove(f.g); } },
+      // SM1: the room's end on the result card — the mode's headline and everyone's place, until all are in
+      result(c, leave) { const box = c.querySelector("[data-rres]"), rm = c.querySelector("[data-rematch]"), host = lv.host === me; let n = 0, next = "";
+        const draw = () => { const st = stand(), all = st.done; box.innerHTML = `<b>${all ? (md === "race" ? (st.order[0] && st.order[0].w === me && st.order[0].fin ? "🏆 " + esc(T("You won the race!")) : "🏁 " + esc(T("Race over — place {n}", { n: (st.order.findIndex((p) => p.w === me) + 1) || 1 }))) : modeHead(st, me, true)) : "⏳ " + esc(T("Waiting for the others…"))}</b>
+          <ol>${st.order.map((p, i) => `<li class="${p.w === me ? "me" : ""}${p.out ? " out" : ""}"${md === "team" ? ` style="--tc:${TEAM[p.team].col}"` : ""}><i>${i + 1}</i><b>${esc(p.w === me ? T("You") : p.name)}</b><em>${p.fin ? "🏁 " + mmss(p.fin) : p.out ? "💀" : Math.round(p.g * 100) + "%"}${md === "team" ? ` · ${p.pts}` : ""}</em></li>`).join("")}</ol>`;
+          if (rm) { rm.hidden = !(host || next); rm.textContent = (next && !host ? "🏁 " + T("Join the rematch") : MODE[md].icon + " " + T("Rematch")); } return all; };
+        if (rm) rm.addEventListener("click", () => { leave(true); setTimeout(() => (next && !host ? raceJoin(next) : raceNew(o.id, lv.code, md)), 50); });
+        draw(); const poll = async () => { if (!c.isConnected || n++ > 80) return; const r = await raceGet(lv.code); if (r && !r.err) { apply(r); if (r.next) next = r.next; } if (!c.isConnected) return; const all = draw(); if (!all || (!host && !next)) setTimeout(poll, 1500); };
+        setTimeout(poll, 800); },
     };
   }
   function makeLive(scene, o, S, hud) {
-    const lv = o.live, me = myW(), F = new Map(), fins = new Set(); let off = lv.off, cur = { players: lv.players }, busy2 = false, last = 0, stopped = false, myFin = 0;
-    const board = document.createElement("ol"); board.className = "wst-rbd"; hud.appendChild(board);
+    const lv = o.live, me = myW(), F = new Map(), fins = new Set(), md = modeOf(lv.mode), LEN = Math.max(1, genLevel(o.spec).len); let off = lv.off, cur = { players: lv.players }, busy2 = false, last = 0, stopped = false, myFin = 0;
+    const board = document.createElement("ol"); board.className = "wst-rbd"; hud.appendChild(board); const mbar = modeBar(hud, md);
+    if (md === "survive" && S.hearts > 1) S.hearts = 1; // (SM1: Survival — one heart each)
+    const seatL = () => cur.players.map((p) => (p.w === me ? { ...p, z: S.over && (p.fin || p.out) ? p.z : S.z, fin: myFin || p.fin, out: p.out || (S.over && !S.done) } : p)), stand = () => standing(md, seatL(), (p) => (p.z || 0) / LEN);
     const lights = document.createElement("div"); lights.className = "wst-lights"; lights.innerHTML = "<i></i>".repeat(5); hud.appendChild(lights); let lit = -1, myK = -1, goT = 0; /* (RM3: five start lights, then GO) */
     const burst = (cls, txt) => { if (ctx.reduce) return; const b = document.createElement("b"); b.className = "wst-burst " + cls; if (/^en/.test(LANGC())) { b.classList.add("pic"); b.innerHTML = `<img src="/images/studio/rm/fx-${cls === "ovt" ? "overtake" : "finish"}.webp${ctx.ver || ""}" alt="${esc(txt)}">`; } else b.textContent = txt; /* the English art, else the words */ hud.appendChild(b); setTimeout(() => b.remove(), 1400); };
     const sNow = () => Date.now() + off;
-    function fig(p, i) { const g = new THREE.Group(), col = RCOL[i % 4];
+    function fig(p, i) { const g = new THREE.Group(), col = md === "team" ? TEAM[teamOf(i)].col : RCOL[i % 4];
       const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 10), new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: 0.6, emissive: col, emissiveIntensity: 0.25 })); cap.position.y = 0.95; g.add(cap);
       try { const tag = ctx.K.label(String(p.name || "?").slice(0, 16), { accent: col, size: 0.5 }); tag.position.y = 2.5; g.add(tag); } catch { /* no tag */ }
       g.position.set(p.x, p.y, p.z); scene.add(g); const f = { g, cap, hero: null, clip: "", z: p.z, x: p.x, y: p.y, p, v: 0, pz: p.z, pat: p.at || 0 };
@@ -1121,7 +1149,7 @@ export function createStudio(ctx) {
       return L2.sort((a, b) => (a.fin && b.fin ? a.fin - b.fin : a.fin ? -1 : b.fin ? 1 : a.out !== b.out ? (a.out ? 1 : -1) : b.z - a.z)); };
     const mmss = (ms) => { const t2 = ms / 1000; return Math.floor(t2 / 60) + ":" + (t2 % 60).toFixed(1).padStart(4, "0"); };
     const row = (p, i, full) => `<li class="${p.you ? "me" : ""}${p.out ? " out" : ""}"><i>${full && p.fin && i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(p.you ? T("You") : p.name)}</b><em>${p.fin ? "🏁 " + mmss(p.fin) : p.out ? "💥 " + Math.round(p.z) + " m" : Math.round(p.z) + " m"}</em></li>`;
-    function paintBoard() { const L2 = order(), k = L2.findIndex((p) => p.you); board.innerHTML = L2.map((p, i) => row(p, i, false)).join("");
+    function paintBoard() { const L2 = order(), k = L2.findIndex((p) => p.you); board.innerHTML = L2.map((p, i) => row(p, i, false)).join(""); if (mbar) mbar.innerHTML = modeHead(stand(), me, false);
       if (myK >= 0 && k >= 0 && k < myK && S.t > 1 && !S.over) { burst("ovt", T("OVERTAKE!")); if (ctx.Snd && ctx.Snd.dash) try { ctx.Snd.dash(); } catch { /* no sound */ } } myK = k; }
     async function send(extra) { if (busy2 && !extra) return; busy2 = true; last = performance.now();
       const r = await act({ action: "world-studio-race-tick", code: lv.code, z: +S.z.toFixed(1), x: +S.x.toFixed(2), y: +S.y.toFixed(2), hp: Math.max(0, S.hearts), coins: S.coins, ...(extra || {}) }); busy2 = false; if (r && r.ok) apply(r.j.race); }
@@ -1144,10 +1172,10 @@ export function createStudio(ctx) {
       result(c, leave) { const box = c.querySelector("[data-rres]"), rm = c.querySelector("[data-rematch]"), host = lv.host === me; let n = 0, next = "";
         const draw = () => { const L2 = order(), k = L2.findIndex((p) => p.you), all = L2.every((p) => p.fin || p.out);
           const pod = L2.slice(0, 3), podH = [1, 0, 2].filter((i) => pod[i]).map((i) => `<div class="p${i + 1}${pod[i].you ? " me" : ""}"><small>${esc(pod[i].you ? T("You") : pod[i].name)}</small><img class="wst-medal" src="/images/studio/rm/medal-${["gold", "silver", "bronze"][i]}.webp${ctx.ver || ""}" alt="${["🥇", "🥈", "🥉"][i]}"><b>${i + 1}</b></div>`).join("");
-          box.innerHTML = `<b>${k === 0 && L2[0].fin ? "🏆 " + esc(T("You won the race!")) : all ? "🏁 " + esc(T("Race over — place {n}", { n: k + 1 })) : "⏳ " + esc(T("Waiting for the others…"))}</b>${all && L2.length > 1 ? `<div class="wst-pod">${podH}</div>` : ""}<ol>${L2.map((p, i) => row(p, i, true)).join("")}</ol>`;
+          box.innerHTML = `<b>${md !== "race" ? (all ? modeHead(stand(), me, true) : "⏳ " + esc(T("Waiting for the others…"))) : k === 0 && L2[0].fin ? "🏆 " + esc(T("You won the race!")) : all ? "🏁 " + esc(T("Race over — place {n}", { n: k + 1 })) : "⏳ " + esc(T("Waiting for the others…"))}</b>${all && L2.length > 1 ? `<div class="wst-pod">${podH}</div>` : ""}<ol>${L2.map((p, i) => row(p, i, true)).join("")}</ol>`;
           if (rm) { rm.hidden = !(host || next); rm.textContent = next && !host ? "🏁 " + T("Join the rematch") : "🏁 " + T("Rematch"); }
           return all; };
-        if (rm) rm.addEventListener("click", () => { leave(true); setTimeout(() => (next && !host ? raceJoin(next) : raceNew(o.id, lv.code)), 50); });
+        if (rm) rm.addEventListener("click", () => { leave(true); setTimeout(() => (next && !host ? raceJoin(next) : raceNew(o.id, lv.code, md)), 50); });
         draw(); const poll = async () => { if (!c.isConnected || n++ > 80) return; const r = await raceGet(lv.code); if (r && !r.err) { apply(r); if (r.next) next = r.next; } if (!c.isConnected) return; const all = draw(); if (!all || (!host && !next)) setTimeout(poll, 1500); };
         setTimeout(poll, 800); },
     };

@@ -108,7 +108,7 @@ export function createAgentDim(ctx) {
     for (const j of done) { if (notified.has(j.id)) continue; notified.add(j.id);
       const msg = T("{n} is back! See what it brought", { n: a.name });
       if (document.hidden && typeof Notification !== "undefined" && Notification.permission === "granted") { try { new Notification("AGENT DIMENSION", { body: msg, icon: PORTRAIT(a.kind), tag: "agent-" + j.id }); } catch { /* not on this browser */ } }
-      else if (ctx.calm()) ctx.toast(`${ICON[a.kind]} ${msg}`); }
+      }
   }
   const A = () => (st && st.agent) || null;
   const GUEST_PAY = { price: 100000, list: 200000 }; // (shown before sign-in; the server's AGENT.PRICE_ARC / LIST_ARC decide once signed in)
@@ -167,10 +167,10 @@ export function createAgentDim(ctx) {
     if (!chip) { chip = document.createElement("button"); chip.type = "button"; chip.className = "wag-chip"; chip.hidden = true; document.body.appendChild(chip); chip.addEventListener("click", () => open(backs().length ? "jobs" : undefined)); }
     const a = A(), calm = ctx.calm(); let txt = "", k = "";
     if (!a) { chip.hidden = true; return; } // no agent yet: no chip (the owner's call, 2026-10-23): the Citadel and Menu → AI Agent lead to the Genesis Lab
-    if (backs().length) { txt = `${ICON[a.kind]} ${T("{n} is back! See what it brought", { n: a.name })}`; k = "back"; }
+    if (backs().length) { txt = `${ICON[a.kind]} ${T("{n} is back! See what it brought", { n: a.name })}`; k = "back"; } /* not shown (the owner, 2026-10-28: it sat over the HUD) — the Agent window still lists it */
     else if (away()) { const j = a.jobs.filter((x) => Date.now() < x.end).sort((p, q) => p.end - q.end)[0]; txt = `${ICON[a.kind]} ${a.name} · ${T(st.jobs[j.job] ? st.jobs[j.job].name : j.job)} · ${left(j.end - Date.now())}`; k = "away"; }
     else { txt = `${ICON[a.kind]} ${T("Talk to {n}", { n: a.name })}`; k = "here"; }
-    chip.hidden = !calm; chip.textContent = txt; chip.className = "wag-chip " + k + " " + (a ? a.kind : "");
+    chip.hidden = !calm || k === "back"; chip.textContent = txt; chip.className = "wag-chip " + k + " " + (a ? a.kind : "");
   }
 
   // ---------------- the window ----------------

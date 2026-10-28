@@ -44,11 +44,13 @@ export function createAmbient({ THREE, planet, low = false, fountainY = 0.3, bat
   for (let i = 0; i < NF; i++) flies.push({ ph: hash(i * 3.1) * TAU, rad: 4 + hash(i * 5.3) * 9, sp: 0.3 + hash(i * 2.7) * 0.4, home: new THREE.Vector3(), set: false });
 
   /* fish: dark shapes turning slowly under the fountain's water */
-  const fish = [];
+  const fish = [], fishO = new THREE.Object3D();
   if (!low) {
     const fg = new THREE.CircleGeometry(0.28, 14); fg.scale(1, 0.38, 1); fg.rotateX(-Math.PI / 2);
     const fm = new THREE.MeshBasicMaterial({ color: 0x0a2a3a, transparent: true, opacity: 0.45, depthWrite: false });
-    for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(fg, fm); m.position.y = fountainY - 0.05; m.userData = { r: 2.4 + hash(i) * 1.2, ph: i * 1.3, sp: 0.25 + hash(i + 2) * 0.2 }; m.renderOrder = 0; root.add(m); fish.push(m); }
+    // (2026-10-28: one instanced mesh, not five — a draw call each in the plaza)
+    const fI = new THREE.InstancedMesh(fg, fm, 5); fI.frustumCulled = false; fI.renderOrder = 0; root.add(fI); fish.im = fI;
+    for (let i = 0; i < 5; i++) fish.push({ r: 2.4 + hash(i) * 1.2, ph: i * 1.3, sp: 0.25 + hash(i + 2) * 0.2 });
   }
 
   /* b-st2: fireflies at night, drifting round a spot near you, each blinking on its own beat (added on, so they glow) */
@@ -89,7 +91,7 @@ export function createAmbient({ THREE, planet, low = false, fountainY = 0.3, bat
           ffC[i * 3] = 0.85 * k; ffC[i * 3 + 1] = 1.0 * k; ffC[i * 3 + 2] = 0.45 * k; }
         ffG.attributes.position.needsUpdate = true; ffG.attributes.color.needsUpdate = true;
       }
-      for (const m of fish) { const u = m.userData, a = t * u.sp + u.ph; m.position.x = Math.cos(a) * u.r; m.position.z = Math.sin(a) * u.r; m.rotation.y = -a - Math.PI / 2 + Math.sin(t * 3 + u.ph) * 0.15; }
+      if (fish.im) { fish.forEach((u, i) => { const a = t * u.sp + u.ph; fishO.position.set(Math.cos(a) * u.r, fountainY - 0.05, Math.sin(a) * u.r); fishO.rotation.set(0, -a - Math.PI / 2 + Math.sin(t * 3 + u.ph) * 0.15, 0); fishO.updateMatrix(); fish.im.setMatrixAt(i, fishO.matrix); }); fish.im.instanceMatrix.needsUpdate = true; }
     },
   };
 }

@@ -5127,6 +5127,16 @@ html.wp-pcphone .wst-hint{zoom:1.6}
 .wst-rlcode span{font-size:12px;opacity:.75}
 .wst-rlcode b{font:900 30px/1 "Exo 2",monospace;letter-spacing:.18em;color:#ffd23a;text-shadow:0 0 18px rgba(255,210,58,.45)}
 .wst-rlp{list-style:none;margin:14px 0 8px;padding:0;display:grid;gap:7px}
+/* SM1: the room's mode — chips in the lobby (the host picks), the mode's line, team badges; the banner over the board in the run */
+.wst-rlm{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0 2px}
+.wst-rlm button{flex:1 1 auto;min-width:0;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#e8f2ff;font:800 12.5px/1 Sora,sans-serif;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.wst-rlm button[aria-checked="true"]{background:linear-gradient(135deg,#5fd3ff,#7cf5c8);border-color:transparent;color:#061022;transform:translateY(-1px)}
+.wst-rlm button:disabled:not([aria-checked="true"]){opacity:.45;cursor:default}
+.wst-rlml{margin:6px 0 0;font:600 12.5px/1.35 Sora,sans-serif;color:#9fb3cc;text-align:center}
+.wst-rlp li u{margin-left:auto;text-decoration:none;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--c) 30%,transparent);color:#fff;font:800 11px/1 Sora,sans-serif}
+.wst-mbar{position:absolute;top:calc(58px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:3;padding:7px 14px;border-radius:999px;background:rgba(6,12,28,.72);border:1px solid rgba(255,255,255,.14);color:#fff;font:800 13px/1.2 Sora,sans-serif;white-space:nowrap;pointer-events:none;backdrop-filter:blur(6px)}
+.wst-mbar:empty{display:none}
+.wst-rbd li.tm,.wst-rres li[style*="--tc"]{box-shadow:inset 3px 0 0 var(--tc)}
 .wst-rlp li{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid color-mix(in srgb,var(--c,#5fd3ff) 55%,transparent);text-align:left;animation:wstRlSeat .4s ease-out both}
 @keyframes wstRlSeat{from{transform:translateX(-14px)}to{transform:none}}
 .wst-rlp li i{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:var(--c,#5fd3ff);color:#061022;font:900 12px/1 Sora,sans-serif;font-style:normal}
@@ -5898,7 +5908,9 @@ body.wp-hw-night::after{content:"";position:fixed;inset:0;pointer-events:none;z-
 .hwr-row button[disabled],.hwr-craft[disabled]{opacity:.45;cursor:default}
 .hwr-none,.hwr-tip,.hwr-note{margin:0;color:#d8bfae;font-size:12px}
 @media (max-width:640px){.hwr-slots{grid-template-columns:repeat(3,1fr)}.hwr-strip{top:calc(env(safe-area-inset-top,0px) + 50px);font-size:11px;padding:4px 6px 4px 9px;gap:6px}.hwr-k,.hwr-strip .hwr-z,.hwr-fr small{display:none}.hwr-nb{display:inline}.hwr-time b,.hwr-time{gap:4px}}
-html.wp-pcphone .hwr-k,html.wp-pcphone .hwr-strip .hwr-z,html.wp-pcphone .hwr-fr small{display:none}html.wp-pcphone .hwr-nb{display:inline}
+html.wp-pcphone .hwr-k,html.wp-pcphone .hwr-strip .hwr-z,html.wp-pcphone .hwr-fr small{display:none}
+/* the owner (2026-10-28): above the level card, not over it */
+html.wp-pcphone .hwr-strip{top:calc(env(safe-area-inset-top,0px) + 4px)}html.wp-pcphone .hwr-nb{display:inline}
 html.wp-pcphone .hwr-slots{grid-template-columns:repeat(3,1fr)}
 
 /* HX2: the Cursed Night's call in town */
