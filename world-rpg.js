@@ -718,6 +718,21 @@ export function createRpg(ctx) {
   let bagQ = "", sortK = 0, mSel = false; const mSet = new Set();
   const SORTS = [["r", "Rarity"], ["lv", "Level"], ["slot", "Slot"]];
   function sortBy(k) { const r = R(); r.bag.sort(k === "lv" ? (a, b) => (b.lv - a.lv) || (b.r - a.r) : k === "slot" ? (a, b) => SLOTS.indexOf(parseBase(a.b).slot) - SLOTS.indexOf(parseBase(b.b).slot) || (b.r - a.r) : (a, b) => (b.r - a.r) || (b.lv - a.lv)); changed(); }
+  // picking several: the cells, the count and the buttons change where they are — no repaint, so the bag stays where you scrolled
+  function mRefresh() {
+    if (!el.querySelector(".hb-mbar")) { paint(); return; }
+    el.querySelectorAll(".hb-cells .wr-cell").forEach((c) => { const t = c.querySelector("[data-pick]"); c.classList.toggle("picked", !!t && mSet.has(t.dataset.pick)); });
+    const b = el.querySelector(".hb-mbar > b"); if (b) b.textContent = T("{n} picked", { n: mSet.size });
+    el.querySelectorAll("[data-msell],[data-msalv],[data-mstore],[data-mlock]").forEach((x) => { x.disabled = !mSet.size; });
+    if (ctx.buzz) try { ctx.buzz(8); } catch { /* fine */ }
+  }
+  // phones: hold a piece in the bag to start picking several (it's the first one picked); tap the others to add them
+  let lpAt = 0, lpT = 0, lpXY = null;
+  el.addEventListener("pointerdown", (e) => { const t = e.target.closest(".hb-cells [data-pick]"); if (!t || e.pointerType === "mouse" || mSel || storeView) return; lpXY = [e.clientX, e.clientY]; clearTimeout(lpT);
+    lpT = setTimeout(() => { const it = R().bag.find((x) => x.id === t.dataset.pick); if (!it) return; lpAt = Date.now(); hideTip(); mSel = true; mSet.clear(); if (!it.lk) mSet.add(it.id); paint(); mRefresh(); ctx.toast(T("Picking — tap more pieces, then choose what to do")); }, 520); });
+  el.addEventListener("pointermove", (e) => { if (lpXY && Math.hypot(e.clientX - lpXY[0], e.clientY - lpXY[1]) > 12) { clearTimeout(lpT); lpXY = null; } });
+  ["pointerup", "pointercancel"].forEach((ty) => el.addEventListener(ty, () => { clearTimeout(lpT); lpXY = null; }));
+  el.addEventListener("contextmenu", (e) => { if (e.target.closest(".hb-cells [data-pick]")) e.preventDefault(); }); // (no browser menu on a long press)
   async function sellPicked() { const ids = [...mSet].filter((id) => { const it = R().bag.find((x) => x.id === id); return it && !it.lk; }); mSet.clear(); paint(); for (const id of ids) await sellItem(id); }
   function salvagePicked() { const r = R(), out = []; let s = 0; r.bag = r.bag.filter((x, i) => { if (!mSet.has(x.id) || x.lk) return true; s += scrapOf(x); out.push([x, i]); return false; }); mSet.clear(); r.scrap += s; if (s) { ctx.Snd.salvage && ctx.Snd.salvage(); fx(".hb-inv .hb-cells", "+" + s + " " + T("Scrap"), "#9fe6ff"); undoable(out, s); } changed(s ? T("+{n} scrap", { n: s }) : ""); }
   function invCard(compact) {
@@ -855,7 +870,8 @@ export function createRpg(ctx) {
   let paintKey = "";
   function paint() {
     if (!open) return; upNow = ups();
-    const sc = sec(), k = sideOn(sc), bd = el.querySelector(".wr-body"), key = sc + k + forgeTab + invPane + storeView, sy = bd && !opening && key === paintKey ? bd.scrollTop : 0; paintKey = key;
+    const sc = sec(), k = sideOn(sc), key = sc + k + forgeTab + invPane + storeView, same = !opening && key === paintKey; paintKey = key;
+    const SCR = [".wr-body", ".hb-row", ".hb-main", ".hb-cells", ".hb-fcells"], sy = same ? SCR.map((q) => { const n = el.querySelector(q); return n ? n.scrollTop : 0; }) : null; // (a phone scrolls .hb-row, not .wr-body: every scroller keeps its place when the same pane paints again)
     const hd = HEAD[k] || ["", ""], artK = ART[k], body = paneHTML(sc, k), arc = hub("arc"), pend = log && log.pending ? log.pending() : 0;
     el.innerHTML = `<div class="wr-card hb hbs-${sc} hb-p-${k}${sc === "inv" && (k === "overview" || k === "equip") ? " hb-stg" : ""}${opening ? " opening" : ""}">
       <header class="hb-top"><span class="hb-brand"><img src="/images/arcircle-mark-sm.webp" alt=""><b>ARCIRCLE<br>WORLD</b></span>
@@ -865,7 +881,7 @@ export function createRpg(ctx) {
       <div class="hb-row"><aside class="hb-nav">${SIDE[sc].map(([id, n, ic]) => `<button type="button" data-side="${id}" aria-pressed="${id === k}">${uiIcon(ic, 24)}<span>${esc(T(n))}</span>${id === "fuse" && isNewTab("fuse") ? '<i class="nb">NEW</i>' : ""}</button>`).join("")}${artK && !WIDE.has(k) ? `<img class="hb-art" src="/images/ui/menu2/${artK}.webp${ctx.ver || ""}" alt="">` : ""}</aside>
         <main class="hb-main">${artK ? `<div class="hb-banner${WIDE.has(k) ? "" : " narrow"}" style="--art:url('/images/ui/menu2/${artK}.webp${ctx.ver || ""}')"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}${hd[0] && !(artK && WIDE.has(k)) ? `<div class="hb-head${artK ? " has-art" : ""}"><h2>${esc(T(hd[0]))}</h2><p>${esc(T(hd[1]))}</p></div>` : ""}<div class="wr-body">${body}</div></main></div>
       ${docked() && picked() ? `<div class="wr-dock">${detail(picked())}</div>` : ""}</div>`;
-    if (sy) el.querySelector(".wr-body").scrollTop = sy;
+    if (sy) SCR.forEach((q, i) => { const n = el.querySelector(q); if (n && sy[i]) n.scrollTop = sy[i]; });
     if (key !== lastSec) { const m = el.querySelector(".hb-main"); if (m && !opening) m.classList.add("hb-in"); lastSec = key; }
     if (scrollDet) { scrollDet = false; const dt = docked() && el.querySelector(".hb-fdet"); if (dt) dt.scrollIntoView({ behavior: "smooth", block: "start" }); }
     if (fxQ.length) setTimeout(runFx, 0); /* (not on the next frame: a slow phone's frame comes late) */
@@ -997,11 +1013,11 @@ export function createRpg(ctx) {
     if (b.hasAttribute("data-sortk")) { sortK = (sortK + 1) % SORTS.length; sortBy(SORTS[sortK][0]); return; }
     if (b.hasAttribute("data-msel")) { mSel = !mSel; mSet.clear(); paint(); return; }
     if (b.hasAttribute("data-msell")) { sellPicked(); return; }
-    if (d.mq) { const r = R(), L = r.bag.filter((x) => !x.lk); mSet.clear(); if (d.mq !== "none") for (const x of L) if (d.mq === "all" || (x.r || 0) <= Number(d.mq.slice(1))) mSet.add(x.id); paint(); return; }
+    if (d.mq) { const r = R(), L = r.bag.filter((x) => !x.lk); mSet.clear(); if (d.mq !== "none") for (const x of L) if (d.mq === "all" || (x.r || 0) <= Number(d.mq.slice(1))) mSet.add(x.id); mRefresh(); return; }
     if (b.hasAttribute("data-mstore")) { const r = R(); let n = 0; for (const id of [...mSet]) { if (r.store.length >= STORE) break; const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) { r.store.push(r.bag.splice(i, 1)[0]); n++; } } mSet.clear(); changed(n ? T("{n} moved to storage", { n }) : T("Your storage is full")); return; }
     if (b.hasAttribute("data-mlock")) { const r = R(); let n = 0; for (const x of r.bag) if (mSet.has(x.id)) { x.lk = 1; n++; } mSet.clear(); changed(T("{n} locked", { n })); return; }
     if (b.hasAttribute("data-msalv")) { salvagePicked(); return; }
-    if (d.pick && mSel) { const it = R().bag.find((x) => x.id === d.pick); if (it && !it.lk) { if (mSet.has(it.id)) mSet.delete(it.id); else mSet.add(it.id); } else if (it) ctx.toast(T("Unlock it first")); paint(); return; }
+    if (d.pick && mSel) { if (Date.now() - lpAt < 600) return; /* (the long press that started picking already took this one) */ const it = R().bag.find((x) => x.id === d.pick); if (it && !it.lk) { if (mSet.has(it.id)) mSet.delete(it.id); else mSet.add(it.id); } else if (it) ctx.toast(T("Unlock it first")); mRefresh(); return; }
     if (d.bossgo != null) { hide(); hub("bossgo:" + d.bossgo); return; }
     if (d.fpick) { fpick = d.fpick; askBuy = ""; scrollDet = true; paint(); return; }
     if (d.sec) { goSec(d.sec); return; }
