@@ -556,11 +556,9 @@ export function createStudio(ctx) {
   // (2026-10-29, the owner: "3D Builder on the web Studio → a 'use a PC' notice; a phone's screen is too small") a phone
   // (touch, short side under 700 px — tablets keep it) sees the card below instead of the editor, and the editor never opens there
   const phone3d = () => { try { return matchMedia("(pointer: coarse)").matches && Math.min(screen.width || innerWidth, screen.height || innerHeight) < 700; } catch { return false; } };
-  const PC3 = "https://www.arcircle.app/studio?tab=3d";
   function paint3dPhone() {
     return `<div class="wst-3d wst-3dpc"><div class="wst-3dban"><img src="${G3IMG("banner")}" alt="" loading="lazy"><div><small>${esc(T("Expert mode"))}</small><b>${esc(T("3D Builder"))}</b></div></div>
       <div class="wst-pccard"><i aria-hidden="true">💻</i><b>${esc(T("The 3D Builder works on a computer"))}</b><p>${esc(T("Building in 3D needs a big screen and a mouse. Open ARCIRCLE Studio on your PC and sign in with the same wallet — your games are waiting there."))}</p>
-      <div class="wst-pcl"><input readonly value="${esc(PC3)}" aria-label="${esc(T("Link"))}"><button type="button" class="wst-go" data-pc3copy>${esc(T("Copy link"))}</button>${navigator.share ? `<button type="button" class="wst-go alt" data-pc3share>${esc(T("Share"))}</button>` : ""}</div>
       <p class="wst-3dnote">${esc(T("On this phone you can still make games with the templates, and play every 3D game."))}</p><button type="button" class="wst-go" data-tab="make">${pi("plus")} ${esc(T("Make a game with a template"))}</button></div></div>`;
   }
   function paint3d() {
@@ -690,8 +688,6 @@ export function createStudio(ctx) {
     if (b.hasAttribute("data-g3guide")) return guide3d();
     if (b.dataset.g3lvl) { setCoachLevel(b.dataset.g3lvl); paint(); ctx.toast(esc(T(b.dataset.g3lvl === "expert" ? "Expert: the coach stays hidden" : "Beginner: the coach shows the next step in the 3D editor"))); return; }
     if (b.dataset.new3d) return start3d(b.dataset.new3d);
-    if (b.hasAttribute("data-pc3copy")) { (async () => { try { await navigator.clipboard.writeText(PC3); ctx.toast("✓ " + esc(T("Link copied"))); } catch { const i = el.querySelector(".wst-pcl input"); if (i) i.select(); } })(); return; }
-    if (b.hasAttribute("data-pc3share")) { try { navigator.share({ title: "ARCIRCLE Studio", text: T("Build 3D games in ARCIRCLE Studio"), url: PC3 }).catch(() => {}); } catch { /* closed */ } return; }
     if (b.dataset.ed3) { await editById(b.dataset.ed3); if (spec.tpl === "obby") openBuilder(); return; }
     if (b.dataset.el3) { editLocal(b.dataset.el3); if (spec.tpl === "obby") openBuilder(); return; }
     if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
