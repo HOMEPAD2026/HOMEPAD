@@ -21,7 +21,7 @@ export function makeAssets(ctx, { T, esc, act, ask, wallet, pi, repaint, use3d }
   function card(it) {
     const mine = it.free || owned(it.id), k = STORE.CATS.find((c) => c[0] === it.cat) || ["", "", ""];
     return `<article class="wsa-c${it.free ? " free" : " prem"}${mine ? " own" : ""}" data-sa="${it.id}">
-      <div class="wsa-img"><img src="${storeImg(it, ctx.ver || "")}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('i'),{textContent:'${k[1]}'}))"><em class="wsa-tag">${it.free ? esc(T("Free")) : mine ? esc(T("Owned")) : "★ " + esc(T("Premium"))}</em></div>
+      <div class="wsa-img" data-saview="${it.id}" role="button" tabindex="0" aria-label="${esc(T("Preview in 3D"))}"><span class="wsa-3d">⟳ 3D</span><img src="${storeImg(it, ctx.ver || "")}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('i'),{textContent:'${k[1]}'}))"><em class="wsa-tag">${it.free ? esc(T("Free")) : mine ? esc(T("Owned")) : "★ " + esc(T("Premium"))}</em></div>
       <b>${esc(T(it.name))}</b><small>${esc(T(it.line))}</small>
       <div class="wsa-act">${mine ? `<button type="button" class="wst-go" data-sause="${it.id}">${pi("cube")} ${esc(T("Use in 3D Builder"))}</button><button type="button" class="wst-go alt" data-sadl="${it.id}" aria-label="${esc(T("Download"))}" title="${esc(T("Download .glb"))}">⬇ .glb</button>`
         : `<button type="button" class="wst-go gold" data-sabuy="${it.id}"${busy === it.id ? " disabled" : ""}>${busy === it.id ? "⏳ " + esc(T("Checking on Arc…")) : `${esc(T("Buy"))} · ${price} $ARCIRCLE`}</button>`}</div></article>`;
@@ -74,6 +74,7 @@ export function makeAssets(ctx, { T, esc, act, ask, wallet, pi, repaint, use3d }
   let resumed = false;
   function resume() { if (resumed || !wallet()) return; resumed = true; let p = null; try { p = JSON.parse(localStorage.getItem(PEND) || "null"); } catch { p = null; } if (p && p.id && p.tx && !owned(p.id)) confirm(p.id, p.tx); }
   function click(e) {
+    const v = e.target.closest("[data-saview]"); if (v) { const it = storeItem(v.dataset.saview); if (it) import("./world-store-view.js").then((m) => m.openPreview(it, { T, esc, ver: ctx.ver || "" })).catch(() => ctx.toast(esc(T("Couldn't load the model — try again")))); return true; }
     const b = e.target.closest("button"); if (!b) return false;
     if (b.dataset.sacat != null) { cat = b.dataset.sacat; repaint(); return true; }
     if (b.dataset.sabuy) { buy(b.dataset.sabuy); return true; }

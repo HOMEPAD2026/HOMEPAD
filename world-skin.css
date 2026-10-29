@@ -6311,3 +6311,14 @@ html.wp-pcphone .wk-card{width:30%;min-width:96px}html.wp-pcphone .wk-card small
 .wsa .wsa-act{flex-wrap:wrap}.wsa .wsa-act .wst-go{white-space:nowrap;font-size:11.5px}
 .wsa .wst-go.gold,.wst.pro .wsa .wst-go.gold{background:linear-gradient(90deg,#f5d47a,#e6a93a);color:#2a1a00;border-color:transparent}
 @media (max-width:600px){.wsa .wsa-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.wsa-c small{display:none}.wsa .wsa-act .wst-go{font-size:10.5px;padding:5px 6px}}
+/* the Asset Store's 3D preview (world-store-view.js) */
+.wsa-img{cursor:zoom-in}.wsa-3d{position:absolute;right:6px;top:6px;z-index:1;padding:3px 7px;border-radius:6px;background:rgba(8,14,30,.72);color:#9fe9ff;font:800 10px/1 Sora,sans-serif;letter-spacing:.05em}
+.wsv{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;background:rgba(3,7,18,.72);backdrop-filter:blur(4px)}
+.wsv-in{width:min(560px,94vw);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#121a2e,#0a0f1e);border:1px solid rgba(56,216,255,.35);box-shadow:0 20px 60px rgba(0,0,0,.5);color:#eaf2ff}
+.wsv-in header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:14px 48px 10px 16px;position:relative}.wsv-in header b{font-size:18px}.wsv-in header small{opacity:.72;font-size:12px;width:100%}
+.wsv-x{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;cursor:pointer}
+.wsv-stage{position:relative;aspect-ratio:1;max-height:62vh;width:100%;background:radial-gradient(circle at 50% 45%,#243457,#0b1222 70%)}
+.wsv-stage canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}.wsv-stage canvas:active{cursor:grabbing}
+.wsv-load,.wsv-hint{position:absolute;left:0;right:0;text-align:center;margin:0;font-size:12px;opacity:.75;pointer-events:none}.wsv-load{top:48%}.wsv-hint{bottom:8px}
+.wsv-clips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 14px}.wsv-clips:empty{display:none}
+.wsv-clips button{padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#eaf2ff;font-weight:700;cursor:pointer}.wsv-clips button.on{border-color:#2ee0b0;background:rgba(46,224,176,.16)}
