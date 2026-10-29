@@ -186,4 +186,31 @@ await call(you, "world-studio-prog", { id: gid, clear: 1 }); check((await get(`s
 const lst = (await get("studio-assets&wallet=" + lc(me))).body; check(lst.assets.length === 3 && lst.open, "the maker's list (the paid one too)");
 
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id");
+
+// ---- ED1–ED3 (2026-10-29): entities + components, the converter, conditions, the developer's script ----
+{ const { CMP, entsOf, entsToOb, compOf, edParse, condParse, OBN } = G;
+  const base = genObbyBuild(clampSpec({ tpl: "obby", seed: 7 })), old = cleanObby(base);
+  check(JSON.stringify(entsToOb(entsOf(old), old).o) === JSON.stringify(old.o), "an existing course → entities → back is the same course");
+  const ents = entsOf(old); check(ents.some((e) => e.c.kind === "S") && ents.every((e) => e.c.visible === 1 && Array.isArray(e.t) && e.t.length === 9) && entsOf({ o: [["k", 0, 0, 0, 0, 4, 0.4, 4, 0, 0, 0, 0]] })[0].c.damage === 1, "each kind shows its preset components (lava: Damage)");
+  const B = cleanObby({ ob: 1, o: [["S", 0, 0, 0, 0, 3, 0.3, 3, 1, 0, 0, 0], ["b", 4, 0, 0, 0, 4, 1, 4, 0, 0, 0, 0, { n: "Platform 01", mv: [0, 50, 9], sp: [2, 1], dm: [9], hl: [4], lt: [3, 2], junk: 1 }],
+    ["b", 8, 0, 0, 0, 4, 1, 4, 0, 0, 0, 0, { sc: "onTouch(player) { this.hp -= 2; coins += 5 }", sw: [5, 3, 1] }], ["o", 0, 1, 4, 0, 1, 1, 1, 0, 0, 0, 0, { nc: 1 }], ["b", 0, 0, 9, 0, 4, 1, 4, 0, 0, 0, 0, { pk: [0, 7] }]] });
+  const x1 = B.o[1][12], x2 = B.o[2][12];
+  check(x1.n === "Platform 01" && x1.mv[1] === 20 && x1.mv[2] === 5 && x1.dm[0] === 3 && !("junk" in x1) && x1.id >= 1, "components are clamped, unknown keys dropped, a piece with Health gets a tag");
+  check(x2.id && x2.id !== x1.id && !B.o[3][12], "tags stay unique; 'no collision' only on a solid piece");
+  const R = compOf(B), pool = R.o.filter((q) => q[12] && q[12].po === x2.id);
+  check(pool.length === 3 && pool.every((q) => q[0] === "E" && q[10] === 1), "a spawner's enemies wait hidden beside it");
+  check(R.lg.some((r) => r[0] === "touch" && r[1] === x2.id && r[2] === "dmg" && r[3] === x2.id && r[6] === 2) && R.lg.some((r) => r[0] === "touch" && r[2] === "coins" && r[3] === 5), "the piece's script becomes rules tagged to it");
+  const L = genLevel(clampSpec({ tpl: "obby", build: B })), L0 = genLevel(clampSpec({ tpl: "obby", build: { ...B, o: B.o.map((q) => q.slice(0, 12)) } }));
+  check(L.coins >= L0.coins + 7 && L.R.T && !L.B.o.some((q, i) => q[12] && q[12].po && L.R.far.includes(i)), "the server's coin bound counts pickups and script coins; pooled enemies aren't 'out of reach'");
+  const P = edParse('onStart() { A = 0; say("Nice work!") }\nevery(4) { toggle(2) }\nonTouch(p) {\n  if (A >= 3) win()\n  blah()\n}\nonCoins() { win() }\nstray', 4);
+  check(P.lg.length === 4 && P.lg[2][0] === "every" && P.lg[2][4] === 1 && P.lg[3][0] === "touch" && P.lg[3][1] === 4 && JSON.stringify(P.lg[3][5]) === "[0,0,3]", "the script reads handlers, an if, and 'every' repeats");
+  check(P.errs.length === 3 && P.errs.some((e) => e.line === 5) && P.errs.some((e) => /needs a number/.test(e.msg)) && P.errs.some((e) => /outside/.test(e.msg) && e.line === 8), "bad lines are named with their line numbers");
+  check(edParse("say(\"hello there\")").errs.length === 1 && edParse("onStart() { fetch('x') }").errs.length === 1 && edParse("onStart() { eval(1) }").lg.length === 0, "nothing outside the allowed statements is read (never run as code)");
+  check(JSON.stringify(condParse("coins < 10")) === "[2,1,10]" && condParse("x > 1") === null, "conditions read");
+  const sc = obParse("when touch 3 then dmg 3 2\nwhen start then open 1 if A >= 2 again\nwhen broken 3 then lose"); check(!sc.errs.length && sc.lg.length === 3 && sc.lg[0][6] === 2 && JSON.stringify(sc.lg[1][5]) === "[0,0,2]" && sc.lg[1][4] === 1, "the one-line script knows touch / broken / dmg / lose and 'if'");
+  check(JSON.stringify(obParse(obScript(sc.lg)).lg) === JSON.stringify(sc.lg), "and round-trips them");
+  check(Object.keys(CMP).length === 10 && OBN.b === "Block", "ten components");
+  const many = cleanObby({ ob: 1, o: Array.from({ length: 9 }, (_, i) => ["b", i * 5, 0, 0, 0, 4, 1, 4, 0, 0, 0, 0, { lt: [1, 2], sw: [5, 2, 0] }]) });
+  check(many.o.filter((q) => q[12] && q[12].lt).length === 6 && many.o.filter((q) => q[12] && q[12].sw).length === 6, "at most 6 lights and 6 spawners a course"); }
+console.log("");
 console.log(`\n${ok} pass ${bad} fail`); process.exit(bad ? 1 : 0);

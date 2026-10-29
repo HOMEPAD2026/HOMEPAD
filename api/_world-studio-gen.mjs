@@ -449,7 +449,7 @@ export function genRace(spec) {
 /// A run's dist: 100 a checkpoint reached (in the course's order), the whole at the goal; its coins: coins, the boss's
 /// hits ×5 and what the logic gives.
 export const OB = {
-  R: 80, Y: 60, MAX: 300, LG: 16, SZ: 30, AS: 16, G: 32, TK: 16, KEYS: 8, EC: 3, /* (coins an enemy drops) */ MODES: ["obby", "combat", "race", "explore"], WINS: ["goal", "enemies", "collect", "race", "varA"],
+  R: 80, Y: 60, MAX: 300, LG: 16, TAGS: 32, SZ: 30, AS: 16, G: 32, TK: 16, KEYS: 8, EC: 3, /* (coins an enemy drops) */ MODES: ["obby", "combat", "race", "explore"], WINS: ["goal", "enemies", "collect", "race", "varA"],
   K: { b: [1, 4, 1, 4], r: [1, 4, 2, 6], y: [1, 4, 1, 4], k: [0, 4, 0.4, 4], s: [0, 8, 0.6, 0.6], m: [1, 4, 0.6, 4], p: [1, 2, 0.3, 2], c: [1, 3, 0.3, 3], S: [1, 3, 0.3, 3], g: [1, 3, 0.3, 3],
     o: [0, 1, 1, 1], h: [0, 1, 1, 1], d: [1, 3, 4, 0.5], u: [0, 1.6, 0.3, 1.6], e: [1, 3, 0.5, 3], t: [0, 2, 0.2, 2], n: [0, 1.2, 2, 1.2], B: [0, 3, 3, 3], x: [0, 2, 2, 2], X: [0, 2, 2, 2],
     E: [0, 1.2, 1.6, 1.2], R: [0, 5, 5, 0.4], Q: [0, 1, 1, 1], H: [1, 16, 5, 16], W: [0, 10, 2, 10], P: [1, 1.5, 1.5, 1.5], A: [0, 1, 1.8, 1] }, // (G1/G3 2026-10-28: enemies, race rings, collectibles, hills, water, crates to push, actors) // (solid?, its size when placed)
@@ -459,8 +459,8 @@ export const OB = {
     d: [["Channel", 1, 8, 1], ["Opens", 0, 1, 0]], u: [["Channel", 1, 8, 1], ["Open for (s, 0 = stays)", 0, 60, 0]], e: [["Height", 2, 30, 8], ["Speed", 1, 5, 2]], t: [["Pair", 1, 8, 1], ["One way", 0, 1, 0]],
     n: [["Sells", 0, 3, 0], ["Price", 1, 50, 10]], B: [["Health", 3, 30, 8], ["Attack", 0, 2, 0]], x: [["Model", 0, 23, 0], ["Solid", 0, 1, 1]], X: [["Asset", 0, 15, 0], ["Solid", 0, 1, 1]] },
   COLORS: [0x5fd3ff, 0x7cf5c8, 0xffd23a, 0xff6fae, 0xb48cff, 0xff7a2e, 0xeef4fb, 0x3a4a6a, 0x39c46a, 0x9b6b3a, 0x1a2238, 0xff3b5c],
-  WHEN: ["start", "button", "coins", "every", "after", "varA", "varB", "phase", "bosshalf", "boss", "checkpoint", "enemies", "collect", "ring"],
-  THEN: ["open", "close", "toggle", "say", "addA", "addB", "setA", "setB", "phase", "show", "hide", "heart", "coins", "time", "speed", "win", "hurt", "track", "cutscene"],
+  WHEN: ["start", "button", "coins", "every", "after", "varA", "varB", "phase", "bosshalf", "boss", "checkpoint", "enemies", "collect", "ring", "touch", "broken"],
+  THEN: ["open", "close", "toggle", "say", "addA", "addB", "setA", "setB", "phase", "show", "hide", "heart", "coins", "time", "speed", "win", "hurt", "track", "cutscene", "lose", "dmg", "sound", "spawn", "on", "off"],
   MSGS: ["Nice work!", "A door opened!", "Hurry up!", "Watch out!", "Almost there!", "Bonus coins!", "The boss is angry!", "You found a secret!", "Phase 2!", "Checkpoint!", "The shop is open!", "A new path opened!"],
   QUESTS: ["Reach the goal!", "Collect every coin!", "Defeat the boss!", "Find the hidden door!", "Escape before time runs out!", "Climb to the top!", "Press every button!", "Survive the spinners!", "Defeat every enemy!", "Fly through every ring!", "Find every gem!"],
   VARL: ["Score", "Keys", "Gems", "Kills", "Stars", "Points"],
@@ -488,16 +488,19 @@ export function cleanObby(b) {
     const fix = k === "o" || k === "h" || k === "n" || k === "u" || k === "t" || k === "c" || k === "S" || k === "g" || k === "p" || k === "Q" || k === "A" || k === "E"; // (these keep their own size)
     const sx = fix ? K[1] : q4(x[5] || K[1], 0.25, OB.SZ), sy = fix ? K[2] : q4(x[6] || K[2], 0.25, OB.SZ), sz = fix ? K[3] : k === "y" || k === "H" ? sx : q4(x[7] || K[3], 0.25, OB.SZ);
     const O = OB.OPT[k] || [], a = O[0] ? iv(x[9], O[0][1], O[0][2], O[0][3]) : 0, bb = O[1] ? iv(x[10], O[1][1], O[1][2], O[1][3]) : 0;
-    out.push([k, px, py, pz, ((iv(x[4], -720, 720, 0) % 360) + 360) % 360, sx, sy, sz, iv(x[8], 0, OB.COLORS.length - 1, 0), a, bb, iv(x[11], 0, OB.G, 0)]); n[k] = (n[k] || 0) + 1;
+    const q = [k, px, py, pz, ((iv(x[4], -720, 720, 0) % 360) + 360) % 360, sx, sy, sz, iv(x[8], 0, OB.COLORS.length - 1, 0), a, bb, iv(x[11], 0, OB.G, 0)], ex = cleanX(x[12], k, n); if (ex) q.push(ex);
+    out.push(q); n[k] = (n[k] || 0) + 1;
     if (out.length >= OB.MAX) break;
   }
   if (!n.S) { if (out.length >= OB.MAX) out.pop(); out.unshift(["S", 0, 0, 0, 0, 3, 0.3, 3, 1, 0, 0, 0]); } // (a start, always)
+  tagUp(out);
   const lg = [];
   for (const r of (Array.isArray(b.lg) ? b.lg : []).slice(0, OB.LG * 2)) { if (!Array.isArray(r)) continue; const w = String(r[0]), t = String(r[2]); if (!OB.WHEN.includes(w) || !OB.THEN.includes(t)) continue;
-    const wa = w === "button" ? iv(r[1], 1, 8, 1) : w === "coins" || w === "varA" || w === "varB" ? iv(r[1], 1, 999, 10) : w === "every" ? iv(r[1], 2, 120, 10) : w === "after" ? iv(r[1], 1, 600, 10) : w === "phase" ? iv(r[1], 1, 5, 2) : w === "checkpoint" || w === "ring" ? iv(r[1], 1, 30, 1) : w === "collect" ? iv(r[1], 1, 999, 5) : 0;
-    const ta = t === "open" || t === "close" || t === "toggle" ? iv(r[3], 1, 8, 1) : t === "say" ? iv(r[3], 0, OB.MSGS.length - 1, 0) : t === "addA" || t === "addB" ? iv(r[3], -10, 10, 1) || 1 : t === "setA" || t === "setB" ? iv(r[3], 0, 999, 0)
+    const wa = w === "touch" || w === "broken" ? iv(r[1], 1, OB.TAGS, 1) : w === "button" ? iv(r[1], 1, 8, 1) : w === "coins" || w === "varA" || w === "varB" ? iv(r[1], 1, 999, 10) : w === "every" ? iv(r[1], 2, 120, 10) : w === "after" ? iv(r[1], 1, 600, 10) : w === "phase" ? iv(r[1], 1, 5, 2) : w === "checkpoint" || w === "ring" ? iv(r[1], 1, 30, 1) : w === "collect" ? iv(r[1], 1, 999, 5) : 0;
+    const ta = t === "open" || t === "close" || t === "toggle" ? iv(r[3], 1, 8, 1) : t === "say" ? iv(r[3], 0, OB.MSGS.length - 1, 0) : t === "dmg" || t === "spawn" || t === "on" || t === "off" ? iv(r[3], 1, OB.TAGS, 1) : t === "sound" ? iv(r[3], 0, CMP_SND.length - 1, 0) : t === "addA" || t === "addB" ? iv(r[3], -10, 10, 1) || 1 : t === "setA" || t === "setB" ? iv(r[3], 0, 999, 0)
       : t === "phase" ? iv(r[3], 1, 5, 2) : t === "show" || t === "hide" ? iv(r[3], 1, OB.G, 1) : t === "track" ? iv(r[3], 1, OB.TK, 1) : t === "heart" ? iv(r[3], 1, 3, 1) : t === "coins" ? iv(r[3], 1, 20, 5) : t === "time" ? iv(r[3], 5, 60, 10) : t === "speed" ? iv(r[3], 2, 10, 4) : 0;
-    lg.push([w, wa, t, ta, w === "every" ? 1 : Number(r[4]) === 1 ? 1 : 0]); if (lg.length >= OB.LG) break; }
+    const rr = [w, wa, t, ta, w === "every" || w === "touch" ? 1 : Number(r[4]) === 1 ? 1 : 0], cd = condOf(r[5]); if (cd || t === "dmg") rr.push(cd || 0); if (t === "dmg") rr.push(iv(r[6], 1, 20, 1));
+    lg.push(rr); if (lg.length >= OB.LG) break; }
   const as = (Array.isArray(b.as) ? b.as : []).map(String).filter((s) => /^[a-z0-9]{6,40}$/.test(s)).slice(0, OB.AS);
   return { ob: 1, bp: Number(b.bp) === 1 ? 1 : 0, o: out, lg, hg: [...new Set((Array.isArray(b.hg) ? b.hg : []).map((g) => iv(g, 1, OB.G, 0)).filter((g) => g))].slice(0, OB.G),
     lk: OB.LOOKS.includes(b.lk) ? b.lk : "day", ui: iv(b.ui, 0, 255, OB.UI0), cn: iv(b.cn, 0, 7, OB.CN0), av: iv(b.av, 0, 3, OB.AV0), hp: iv(b.hp, 0, 5, 3), tl: iv(b.tl, 0, 900, 0), q: iv(b.q, 0, OB.QUESTS.length - 1, 0), vl: iv(b.vl, 0, OB.VARL.length - 1, 0), as, ...cleanObbyX(b, out.length) };
@@ -604,7 +607,7 @@ export function obReach(B, spec = { speed: 3 }) {
       if (d <= far + 1 && up <= (OBJ.UP + 1) * gk + (o[0] === "R" ? 1 : 0) && up >= -6 && d < bd) { bd = d; best = j; } }); return best; };
   let gi = null;
   if (win === "goal") { const goals = T.map((t, j) => (t.k === "g" ? j : -1)).filter((j) => j >= 0); gi = goals.find((j) => prev.has(j)); }
-  else if (tk) { const at = B.o.filter((o) => tk.includes(o[0])).map(reachT); /* (the enemies' win: bosses count too) */ if (at.length && at.every((j) => j >= 0)) gi = at.reduce((a, j) => (order(prev, j) > order(prev, a) ? j : a), at[0]); if (!at.length) gi = null; }
+  else if (tk) { const at = B.o.filter((o) => tk.includes(o[0]) && !(o[12] && o[12].po)).map(reachT); /* (the enemies' win: bosses count too) */ if (at.length && at.every((j) => j >= 0)) gi = at.reduce((a, j) => (order(prev, j) > order(prev, a) ? j : a), at[0]); if (!at.length) gi = null; }
   else if (s0 >= 0) gi = [...prev.keys()].pop();
   const path = []; if (gi != null) { let j = gi; while (j >= 0) { path.unshift(j); j = prev.get(j); } }
   const farI = []; B.o.forEach((o, i) => { if (OB.K[o[0]][0] || o[0] === "x" || o[0] === "X") { const t = T.findIndex((q) => q.i === i); if (t >= 0 && !prev.has(t)) farI.push(i); } });
@@ -619,9 +622,10 @@ export function obOrder(B, R) {
   return cps.sort((a, b) => step(a) - step(b));
 }
 export function genObby(spec) {
-  const B = spec.build && spec.build.ob ? spec.build : genObbyBuild(spec), R = obReach(B, spec), cps = obOrder(B, R), n = (k) => B.o.filter((o) => o[0] === k).length;
+  const B = compOf(spec.build && spec.build.ob ? spec.build : genObbyBuild(spec)), R = obReach(B, spec), cps = obOrder(B, R), n = (k) => B.o.filter((o) => o[0] === k && !(o[12] && o[12].po)).length;
   const bossHp = B.o.filter((o) => o[0] === "B").reduce((s, o) => s + o[9], 0), give = B.lg.reduce((s, r) => s + (r[2] === "coins" ? r[3] * (r[4] ? 20 : 1) : 0), 0);
-  return { obby: true, built: !!(spec.build && spec.build.ob), B, R, cps, len: (cps.length + 1) * 100, coins: n("o") + bossHp * 5 + give + n("E") * OB.EC, v: obSpeed(spec), tl: B.tl };
+  const pkC = B.o.reduce((s0, o) => s0 + (o[12] && o[12].pk && o[12].pk[0] === 0 ? o[12].pk[1] : 0), 0);
+  return { obby: true, built: !!(spec.build && spec.build.ob), B, R, cps, len: (cps.length + 1) * 100, coins: n("o") + bossHp * 5 + give + n("E") * OB.EC + pkC, v: obSpeed(spec), tl: B.tl };
 }
 /// a quick-start course from the knobs (and the director's wishes): sections of hops, lava bridges, spinners, movers, pads
 /// and stairs, a checkpoint after each, the goal at the end; turns keep it inside the map
@@ -723,29 +727,147 @@ export function obTweak(spec, text) {
 /// checkpoint N · enemies down · collect N · ring N; actions: track N · cutscene · open N · close N · toggle N · say N · A += N · A -= N · B += N · A = N · B = N · phase N · show N ·
 /// hide N · heart N · coins N · time N · speed N · win · hurt). Nothing in it runs as code: it reads into the same rules
 /// the blocks make (and the server cleans), so a game can't do anything the blocks can't.
-const SW = { button: "button", coins: "coins", every: "every", after: "after", phase: "phase", checkpoint: "checkpoint", collect: "collect", ring: "ring" }, ST = { open: "open", close: "close", toggle: "toggle", say: "say", phase: "phase", show: "show", hide: "hide", heart: "heart", coins: "coins", time: "time", speed: "speed", track: "track" };
+const SW = { button: "button", coins: "coins", every: "every", after: "after", phase: "phase", checkpoint: "checkpoint", collect: "collect", ring: "ring", touch: "touch", broken: "broken" }, ST = { open: "open", close: "close", toggle: "toggle", say: "say", phase: "phase", show: "show", hide: "hide", heart: "heart", coins: "coins", time: "time", speed: "speed", track: "track", sound: "sound", spawn: "spawn", on: "on", off: "off" };
 export function obScript(lg) {
   const ev = (w, a) => (w === "start" ? "start" : w === "varA" ? `A >= ${a}` : w === "varB" ? `B >= ${a}` : w === "bosshalf" ? "boss half" : w === "boss" ? "boss down" : w === "enemies" ? "enemies down" : `${w} ${a}`);
-  const ac = (t, a) => (t === "addA" ? (a < 0 ? `A -= ${-a}` : `A += ${a}`) : t === "addB" ? (a < 0 ? `B -= ${-a}` : `B += ${a}`) : t === "setA" ? `A = ${a}` : t === "setB" ? `B = ${a}` : t === "win" || t === "hurt" || t === "cutscene" ? t : `${t} ${a}`);
-  return (lg || []).map((r) => `when ${ev(r[0], r[1])} then ${ac(r[2], r[3])}${r[4] && r[0] !== "every" ? " again" : ""}`).join("\n");
+  const ac = (t, a, r) => (t === "addA" ? (a < 0 ? `A -= ${-a}` : `A += ${a}`) : t === "addB" ? (a < 0 ? `B -= ${-a}` : `B += ${a}`) : t === "setA" ? `A = ${a}` : t === "setB" ? `B = ${a}` : t === "win" || t === "hurt" || t === "cutscene" || t === "lose" ? t : t === "dmg" ? `dmg ${a} ${r[6] || 1}` : `${t} ${a}`);
+  return (lg || []).map((r) => `when ${ev(r[0], r[1])} then ${ac(r[2], r[3], r)}${r[5] ? " if " + condText(r[5]) : ""}${r[4] && r[0] !== "every" && r[0] !== "touch" ? " again" : ""}`).join("\n");
 }
 export function obParse(text) {
   const lg = [], errs = [];
   String(text || "").split(/\r?\n/).slice(0, 60).forEach((line0, i) => {
     const line = line0.replace(/\/\/.*$|#.*$/, "").trim().toLowerCase(); if (!line) return;
-    const m = /^when\s+(.+?)\s+then\s+(.+?)(\s+again)?$/.exec(line); if (!m) { errs.push(i + 1); return; }
+    const m = /^when\s+(.+?)\s+then\s+(.+?)(?:\s+if\s+(.+?))?(\s+again)?$/.exec(line); if (!m) { errs.push(i + 1); return; }
     let w = null, wa = 0, t = null, ta = 0; const e = m[1].replace(/\s+/g, " "), a = m[2].replace(/\s+/g, " ");
     let q;
     if (e === "start") w = "start"; else if (e === "boss half") w = "bosshalf"; else if (e === "boss down" || e === "boss") w = "boss"; else if (e === "enemies down" || e === "enemies") w = "enemies";
     else if ((q = /^([ab]) ?>= ?(\d+)$/.exec(e))) { w = q[1] === "a" ? "varA" : "varB"; wa = +q[2]; }
     else if ((q = /^([a-z]+) (\d+)$/.exec(e)) && SW[q[1]]) { w = SW[q[1]]; wa = +q[2]; }
-    if (a === "win" || a === "hurt" || a === "cutscene") t = a;
+    let amt = 0; if (a === "win" || a === "hurt" || a === "cutscene" || a === "lose") t = a; else if ((q = /^dmg (\d+)(?: (\d+))?$/.exec(a))) { t = "dmg"; ta = +q[1]; amt = +(q[2] || 1); }
     else if ((q = /^([ab]) ?(\+=|-=|=) ?(\d+)$/.exec(a))) { t = (q[2] === "=" ? "set" : "add") + q[1].toUpperCase(); ta = q[2] === "-=" ? -q[3] : +q[3]; }
     else if ((q = /^([a-z]+) (\d+)$/.exec(a)) && ST[q[1]]) { t = ST[q[1]]; ta = +q[2]; }
-    if (!w || !t) { errs.push(i + 1); return; }
-    lg.push([w, wa, t, ta, m[3] ? 1 : 0]);
+    const cd = m[3] ? condParse(m[3]) : 0; if (!w || !t || cd === null) { errs.push(i + 1); return; }
+    const rr = [w, wa, t, ta, m[4] ? 1 : 0]; if (cd || t === "dmg") rr.push(cd || 0); if (t === "dmg") rr.push(amt || 1); lg.push(rr);
   });
   return { lg: cleanObby({ o: [], lg }).lg, errs };
+}
+/// ED1 (2026-10-29, the owner: "a pro 3D editor — objects as entities and components"): every piece of a course is an
+/// entity. Its kind is a bundle of preset components (lava = a block + Damage, a spinner = a bar + Spinner …); more
+/// components ride on any piece in its 13th slot, an object: n its name, id its tag (1–TAGS, for rules and scripts),
+/// nc no collision, iv invisible, lk / eh locked / hidden in the editor, and the components below ([fields] each).
+/// The run reads them (world-studio-obby.js), the reach check and the server's coin bound count them; nothing is code.
+export const CMP = {
+  mv: ["Mover", [["Axis", 0, 2, 0], ["Distance", 1, 20, 6], ["Speed", 1, 5, 2]]],
+  sp: ["Spinner", [["Speed", 1, 5, 2], ["Direction", 0, 1, 0]]],
+  dm: ["Damage", [["Hearts", 1, 3, 1]]],
+  pk: ["Pickup", [["Gives", 0, 2, 0], ["Amount", 1, 20, 1]]],
+  tg: ["Trigger", [["Channel (0 = rules only)", 0, 8, 0], ["Once", 0, 1, 0]]],
+  hl: ["Health", [["Hits", 1, 20, 3]]],
+  sn: ["Sound", [["Sound", 0, 5, 0]]],
+  lt: ["Light", [["Colour", 0, 11, 1], ["Strength", 1, 3, 2]]],
+  sw: ["Spawner", [["Every (s)", 2, 30, 6], ["At most", 1, 6, 3], ["Enemy", 0, 2, 0]]],
+  sc: ["Script", null],
+};
+export const CMP_CAP = { lt: 6, sw: 6, sc: 16 }, CMP_SND = ["coin", "jump", "hit", "dash", "hurt", "perfect"], CMP_PK = ["Coins", "Counter A", "A heart"];
+export const SC_MAX = 800; // (a script's characters)
+/// a rule's condition [what (0 A · 1 B · 2 coins · 3 phase), how (0 ≥ · 1 < · 2 =), the number] — or 0
+export function condOf(c) { if (!Array.isArray(c)) return 0; const v = iv(c[0], 0, 3, -1), o = iv(c[1], 0, 2, -1); if (v < 0 || o < 0) return 0; return [v, o, iv(c[2], 0, 999, 0)]; }
+const CV = ["a", "b", "coins", "phase"], CO = [">=", "<", "=="];
+export const condText = (c) => `${["A", "B", "coins", "phase"][c[0]]} ${CO[c[1]]} ${c[2]}`;
+/// "A >= 3" · "coins < 10" · "phase == 2" → the condition, null when it can't be read
+export function condParse(t) { const m = /^\s*(a|b|coins|phase)\s*(>=|<|==|=)\s*(\d+)\s*$/i.exec(String(t || "")); if (!m) return null; return [CV.indexOf(m[1].toLowerCase()), m[2] === "=" ? 2 : CO.indexOf(m[2]), Math.min(999, +m[3])]; }
+function cleanX(x, k, n) {
+  if (!x || typeof x !== "object" || Array.isArray(x)) return null; const out = {};
+  if (typeof x.n === "string") { const nm = x.n.replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, 24); if (nm) out.n = nm; }
+  const t = iv(x.id, 0, OB.TAGS, 0); if (t) out.id = t;
+  for (const f of ["nc", "iv", "lk", "eh"]) if (Number(x[f]) === 1) out[f] = 1;
+  if (out.nc && !OB.K[k][0] && k !== "x" && k !== "X") delete out.nc; // (only a solid piece has a collision to switch off)
+  for (const [c, [, F]] of Object.entries(CMP)) { if (x[c] == null) continue;
+    if (c === "sc") { if (typeof x.sc === "string" && x.sc.trim() && (n.$sc || 0) < CMP_CAP.sc) { out.sc = x.sc.replace(/\r/g, "").slice(0, SC_MAX); n.$sc = (n.$sc || 0) + 1; } continue; }
+    if (!Array.isArray(x[c]) || (CMP_CAP[c] && (n["$" + c] || 0) >= CMP_CAP[c])) continue;
+    out[c] = F.map((f, j) => iv(x[c][j], f[1], f[2], f[3])); if (CMP_CAP[c]) n["$" + c] = (n["$" + c] || 0) + 1; }
+  if (Number(x.po) >= 1) out.po = iv(x.po, 1, OB.TAGS, 1); // (a spawner's pooled enemy — made by compOf, never saved by the editor)
+  return Object.keys(out).length ? out : null;
+}
+/// tags: unique; a piece that needs one (a trigger, health, a script, a spawner) gets the lowest free one
+const NEEDS = ["tg", "hl", "sc", "sw"];
+function tagUp(o) {
+  const seen = new Set(); for (const q of o) { const x = q[12]; if (!x || !x.id || x.po) continue; if (seen.has(x.id)) delete x.id; else seen.add(x.id); }
+  for (const q of o) { const x = q[12]; if (!x || x.id || x.po || !NEEDS.some((c) => x[c] != null)) continue; let t = 1; while (seen.has(t) && t <= OB.TAGS) t++; if (t > OB.TAGS) continue; x.id = t; seen.add(t); }
+}
+/// what the run plays: the course with every piece's script read into rules (tagged to it) and each spawner's enemies
+/// waiting hidden beside it (po: the spawner's tag) — the editor keeps the course as it is
+export function compOf(B0) {
+  const B = JSON.parse(JSON.stringify(B0)); B.lg = (B.lg || []).slice(); const errs = [];
+  for (const q of B.o) { const x = q[12]; if (!x || !x.sc || !x.id) continue; const r = edParse(x.sc, x.id); for (const e of r.errs) errs.push({ ...e, tag: x.id }); for (const rr of r.lg) if (B.lg.length < OB.LG + 32) B.lg.push(rr); }
+  const add = []; for (const q of B.o) { const x = q[12]; if (!x || !x.sw || !x.id) continue; const [, max, ty] = x.sw;
+    for (let j = 0; j < max; j++) add.push(["E", q[1], q[2] + q[6], q[3], 0, 1.2, 1.6, 1.2, 0, 2, ty, 0, { po: x.id }]); }
+  B.o = B.o.concat(add); B.cerr = errs; return B;
+}
+/// the entity view of a course (the inspector's, and the format a developer reads): { id, i, name, parent, t: [x, y, z,
+/// rx, ry, rz, sx, sy, sz], c: { the kind's preset components, then the piece's own } }
+const PRESET = { b: ["mesh", "collider"], r: ["mesh", "collider"], y: ["mesh", "collider"], H: ["mesh", "collider"], k: ["mesh", "damage"], s: ["mesh", "spinner", "knock"], m: ["mesh", "collider", "mover"], p: ["mesh", "collider", "jump"],
+  c: ["mesh", "collider", "checkpoint"], S: ["mesh", "collider", "spawn"], g: ["mesh", "collider", "goal"], o: ["pickup"], h: ["pickup"], Q: ["pickup"], d: ["mesh", "collider", "door"], u: ["trigger"], e: ["mesh", "collider", "elevator"],
+  t: ["teleport"], n: ["shop"], B: ["mesh", "health", "ai", "boss"], E: ["mesh", "health", "ai"], R: ["ring"], W: ["water"], P: ["mesh", "collider", "rigidbody"], A: ["mesh", "npc"], x: ["mesh", "collider"], X: ["mesh", "collider"] };
+export const OBN = { b: "Block", r: "Ramp", y: "Round platform", k: "Lava", s: "Spinner", m: "Moving platform", p: "Jump pad", c: "Checkpoint", S: "Start", g: "Goal", o: "Coin", h: "Heart", d: "Door", u: "Button", e: "Elevator", t: "Teleporter", n: "Shop", B: "Boss", x: "Prop", X: "My asset", E: "Enemy", R: "Race ring", Q: "Gem", H: "Hill", W: "Water", P: "Crate", A: "Character" };
+export const presetOf = (k) => PRESET[k] || ["mesh"];
+export function entsOf(B) {
+  const cnt = {};
+  return (B.o || []).map((q, i) => { const x = q[12] || {}, k = q[0]; cnt[k] = (cnt[k] || 0) + 1; const c = { kind: k, opt: [q[9], q[10]], colour: q[8] };
+    for (const p of presetOf(k)) c[p] = p === "collider" ? (x.nc ? 0 : 1) : 1; c.visible = x.iv ? 0 : 1;
+    for (const key of Object.keys(CMP)) if (x[key] != null) c[key] = Array.isArray(x[key]) ? x[key].slice() : x[key];
+    return { id: x.id ? "t" + x.id : "e" + i, i, tag: x.id || 0, name: x.n || OBN[k] + " " + cnt[k], parent: q[11] || 0, t: [q[1], q[2], q[3], 0, q[4], 0, q[5], q[6], q[7]], c, lock: x.lk ? 1 : 0, hide: x.eh ? 1 : 0 }; });
+}
+/// …and back: entities → the course's pieces (cleaned like any course)
+export function entsToOb(ents, B = {}) {
+  const o = (Array.isArray(ents) ? ents : []).filter((e) => e && e.c && OB.K[e.c.kind]).map((e) => { const c = e.c, t = Array.isArray(e.t) ? e.t : [], x = {};
+    if (e.name && !(e.name === OBN[c.kind] || new RegExp("^" + OBN[c.kind] + " \\d+$").test(e.name))) x.n = e.name; if (e.tag) x.id = e.tag; if (c.collider === 0) x.nc = 1; if (c.visible === 0) x.iv = 1; if (e.lock) x.lk = 1; if (e.hide) x.eh = 1;
+    for (const key of Object.keys(CMP)) if (c[key] != null) x[key] = c[key];
+    const q = [c.kind, t[0], t[1], t[2], t[4], t[6], t[7], t[8], c.colour, (c.opt || [])[0], (c.opt || [])[1], e.parent || 0]; if (Object.keys(x).length) q.push(x); return q; });
+  return cleanObby({ ...B, ob: 1, o });
+}
+/// ED3: the developer's script — handlers with a few statements, read (never run as code) into the same rules, tagged to
+/// the piece it sits on:  onTouch(player) { this.hp -= 1; coins += 5; say("Nice work!") }  ·  every(5) { toggle(2) }
+const HANDLERS = { onstart: "start", ontouch: "touch", onbreak: "broken", every: "every", after: "after", oncoins: "coins", onbutton: "button", ona: "varA", onb: "varB", onphase: "phase", onbosshalf: "bosshalf", onboss: "boss", onenemies: "enemies", oncheckpoint: "checkpoint", onring: "ring", oncollect: "collect" };
+export const SC_HELP = ["onStart() { … }", "onTouch(player) { … }", "onBreak() { … }", "every(5) { … }", "after(10) { … }", "onCoins(10) { … }", "onButton(1) { … }", "onA(3) { … }", "onPhase(2) { … }", "onBoss() { … }"];
+export const SC_DO = ["this.hp -= 1", "this.hide()", "this.show()", "player.hurt()", "player.heal(1)", "coins += 5", "A += 1", "A = 0", "B += 1", "say(\"Nice work!\")", "open(1)", "close(1)", "toggle(1)", "showGroup(1)", "hideGroup(1)", "phase(2)", "track(1)", "speed(5)", "time(10)", "sound(\"coin\")", "spawn()", "win()", "lose()", "cutscene()", "if (A >= 3) win()"];
+export function edParse(text, tag = 1) {
+  const lg = [], errs = [], src = String(text || "").slice(0, SC_MAX).replace(/\/\/[^\n]*/g, "");
+  const at = (pos) => src.slice(0, pos).split("\n").length; // (the line a place in the text is on)
+  const re = /([A-Za-z]+)\s*\(([^)]*)\)\s*(repeat\s*)?\{([^{}]*)\}/g; let m, last = 0;
+  const stray = (a, b) => { const bit = src.slice(a, b); if (bit.trim()) errs.push({ line: at(a + bit.search(/\S/)), msg: "outside a handler: " + bit.trim().slice(0, 30) }); };
+  while ((m = re.exec(src))) { stray(last, m.index); last = m.index + m[0].length;
+    const h = HANDLERS[m[1].toLowerCase()], ln = at(m.index); if (!h) { errs.push({ line: ln, msg: "unknown handler " + m[1] + "()" }); continue; }
+    const arg = m[2].trim(), num = /^\d+$/.test(arg) ? +arg : 0, needN = ["every", "after", "coins", "button", "varA", "varB", "phase", "checkpoint", "ring", "collect"].includes(h);
+    if (needN && !num) { errs.push({ line: ln, msg: m[1] + "(N) needs a number" }); continue; }
+    const wa = h === "touch" || h === "broken" ? tag : num, again = m[3] || h === "every" || h === "touch" ? 1 : 0;
+    const body = m[4], off = m.index + m[0].indexOf("{") + 1; let p0 = 0;
+    for (const st0 of body.split(/;|\n/)) { const pos = body.indexOf(st0, p0); p0 = pos + st0.length; const st = st0.trim(); if (!st) continue;
+      const r = stmt(st, tag); if (r.err) { errs.push({ line: at(off + pos + st0.search(/\S/)), msg: r.err }); continue; }
+      lg.push([h, wa, r.t, r.ta, again, ...(r.cd || r.t === "dmg" ? [r.cd || 0] : []), ...(r.t === "dmg" ? [r.amt] : [])]); } }
+  stray(last, src.length);
+  if (lg.length > OB.LG) errs.push({ line: 1, msg: "at most " + OB.LG + " statements" });
+  return { lg: cleanObby({ o: [], lg: lg.slice(0, OB.LG) }).lg, errs };
+}
+function stmt(s0, tag) {
+  let s = s0, cd = 0; const ifm = /^if\s*\((.+?)\)\s*(.+)$/.exec(s); if (ifm) { cd = condParse(ifm[1]); if (!cd) return { err: "can't read the condition " + ifm[1] }; s = ifm[2].trim(); }
+  const k = s.replace(/\s+/g, " ").replace(/\s*\(\s*/g, "(").replace(/\s*\)/g, ")");
+  let q;
+  if ((q = /^this\.hp ?-= ?(\d+)$/.exec(k))) return { t: "dmg", ta: tag, amt: +q[1], cd };
+  if (/^this\.hide\(\)$/.test(k)) return { t: "off", ta: tag, cd }; if (/^this\.show\(\)$/.test(k)) return { t: "on", ta: tag, cd };
+  if ((q = /^(?:target|piece)\((\d+)\)\.hp ?-= ?(\d+)$/.exec(k))) return { t: "dmg", ta: +q[1], amt: +q[2], cd };
+  if (/^(?:player\.)?hurt\(\)$/.test(k)) return { t: "hurt", ta: 0, cd };
+  if ((q = /^(?:player\.)?heal\((\d*)\)$/.exec(k))) return { t: "heart", ta: q[1] ? +q[1] : 1, cd };
+  if ((q = /^coins ?\+= ?(\d+)$/.exec(k)) || (q = /^addcoins\((\d+)\)$/i.exec(k))) return { t: "coins", ta: +q[1], cd };
+  if ((q = /^([AB]) ?(\+=|-=|=) ?(\d+)$/i.exec(k))) return { t: (q[2] === "=" ? "set" : "add") + q[1].toUpperCase(), ta: q[2] === "-=" ? -q[3] : +q[3], cd };
+  if ((q = /^say\((?:"([^"]*)"|'([^']*)'|(\d+))\)$/.exec(k))) { const txt = (q[1] ?? q[2] ?? "").toLowerCase(), i = q[3] != null ? +q[3] : OB.MSGS.findIndex((mm) => mm.toLowerCase() === txt); if (i < 0 || i >= OB.MSGS.length) return { err: "say() knows only the course's messages: " + OB.MSGS.slice(0, 3).join(" · ") + " …" }; return { t: "say", ta: i, cd }; }
+  if ((q = /^sound\((?:"([a-z]+)"|'([a-z]+)'|(\d+))\)$/.exec(k))) { const i = q[3] != null ? +q[3] : CMP_SND.indexOf(q[1] || q[2]); if (i < 0 || i >= CMP_SND.length) return { err: "sound() is one of " + CMP_SND.join(", ") }; return { t: "sound", ta: i, cd }; }
+  if ((q = /^spawn\((\d*)\)$/.exec(k))) return { t: "spawn", ta: q[1] ? +q[1] : tag, cd };
+  if ((q = /^(open|close|toggle|phase|track|speed|time)\((\d+)\)$/.exec(k))) return { t: q[1], ta: +q[2], cd };
+  if ((q = /^(show|hide)group\((\d+)\)$/i.exec(k))) return { t: q[1].toLowerCase(), ta: +q[2], cd };
+  if ((q = /^(on|off)\((\d+)\)$/.exec(k))) return { t: q[1], ta: +q[2], cd };
+  if (/^(win|lose|cutscene)\(\)$/.test(k)) return { t: k.slice(0, -2), ta: 0, cd };
+  return { err: "can't read: " + s0.slice(0, 40) };
 }
 /// OB6 (the AI test players' second report): the tenths of a level with nothing in the way (dull) and a level the bots
 /// all clear with little to do (too easy) — the obby counts its own hops; the lane runs count their rows

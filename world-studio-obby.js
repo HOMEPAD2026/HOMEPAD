@@ -11,7 +11,7 @@
 // THEN … rules on two counters, a phase, the channels and the groups. The look preset sets the sky, light, fog, a grade
 // and the camera; the UI kit picks the HUD's pieces; the cinematics an intro fly-over, a boss's entrance and the clear's
 // slow motion.
-import { OB, OBJ, THEMES, genLevel, obSpeed } from "./world-studio-gen.js";
+import { OB, OBJ, THEMES, genLevel, obSpeed, CMP_SND } from "./world-studio-gen.js";
 import { makePad } from "./world-studio-pad.js";
 import { look as themeLook } from "./world-studio-look.js";
 
@@ -75,9 +75,21 @@ export async function makeObby(o, env) {
   // ---- the baseplate ----
   let bpM = null; if (B.bp) { bpM = low ? new THREE.MeshLambertMaterial({ color: 0x7a8a9a }) : new THREE.MeshStandardMaterial({ color: 0x7a8a9a, roughness: 0.9 }); /* (low graphics / phones: a plain lit floor — the textured one filled the screen at half the frame rate) */ const bp = new THREE.Mesh(new THREE.BoxGeometry(OB.R * 2 + 20, 1, OB.R * 2 + 20), bpM); bp.position.y = -0.5; scene.add(bp); }
   // ---- the static pieces: one InstancedMesh a shape + material (blocks, round platforms, ramps); the rest one by one ----
+  // ED1 (the editor's components on any piece: world-studio-gen.js CMP): a piece that carries one is drawn on its own
+  const tagT = [], swL = [], brkL = []; let nLights = 0;
+  function busyX(x) { return !!x && ["mv", "sp", "dm", "pk", "tg", "hl", "sn", "lt", "sw", "nc", "iv", "po", "sc"].some((c) => x[c] != null) || !!(x && x.id); }
+  function compSet(t, x) { t.cx = x; if (x.id && !x.po) tagT[x.id] = t;
+    if (x.iv) { t.inv = true; t.obj.children.forEach((c) => { if (!c.isLight) c.visible = false; }); }
+    if (x.nc && t.solid != null) { t.nc = true; solids[t.solid].on = false; }
+    if (x.mv) { t.cm = x.mv; t.base = t.base || new THREE.Vector3(t.x, t.y, t.z); }
+    if (x.sp) t.cs = (0.5 + x.sp[0] * 0.45) * (x.sp[1] ? -1 : 1);
+    if (x.hl) { t.bhp = x.hl[0]; t.bhp0 = x.hl[0]; brkL.push(t); }
+    if (x.sw) { t.swT = Math.min(2, x.sw[0]); swL.push(t); }
+    if (x.lt && !low && nLights < 6) { nLights++; const L0 = new THREE.PointLight(OB.COLORS[x.lt[0]] || 0xffffff, x.lt[1] * 1.4, 16, 1.6); L0.position.y = t.sy + 1.2; t.obj.add(L0); }
+    if (x.po) { t.pool = x.po; t.on = false; t.gone = true; } }
   const coinI = [], gemI = [], solids = [], things = [], inst = new Map(), STATIC = new Set(["b", "y", "r"]), tracked = new Set((B.tk || []).map((t) => t[0]));
   B.o.forEach((q, i) => { const [k, x, y, z, ry, sx, sy, sz, c, a, b, g] = q;
-    if (STATIC.has(k) && !g && !tracked.has(i)) { const key = k + ":" + c + ":" + a; if (!inst.has(key)) inst.set(key, []); inst.get(key).push(q); solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: true, surf: a }); return; }
+    if (STATIC.has(k) && !g && !tracked.has(i) && !busyX(q[12])) { const key = k + ":" + c + ":" + a; if (!inst.has(key)) inst.set(key, []); inst.get(key).push(q); solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: true, surf: a }); return; }
     const t = { i, k, q, x, y, z, ry, sx, sy, sz, a, b, g, obj: new THREE.Group(), on: !hidden.has(g) }; t.obj.position.set(x, y, z); t.obj.rotation.y = (ry * Math.PI) / 180; scene.add(t.obj); things.push(t);
     const shape = (geo, m, w, h, d) => { const me = new THREE.Mesh(geo, m); me.scale.set(w, h, d); t.obj.add(me); return me; };
     if (STATIC.has(k)) { shape(k === "y" ? G.cyl : k === "r" ? G.wedge : G.box, MT.get(c, a), sx, sy, k === "y" ? sx : sz); t.solid = solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: t.on, surf: a, t }) - 1; }
@@ -91,7 +103,7 @@ export async function makeObby(o, env) {
       if (k !== "S") { const beam = new THREE.Mesh(new THREE.CylinderGeometry(sx * 0.42, sx * 0.48, k === "g" ? 7 : 3.2, 20, 1, true), glow(k === "g" ? 0xffd23a : 0x7cf5c8, 0.22)); beam.position.y = (k === "g" ? 3.5 : 1.6) + sy; t.obj.add(beam); t.beam = beam; }
       if (k === "g") { const ring = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.16, 12, 40), glow(0xffd23a)); ring.position.y = 2.2; t.obj.add(ring); t.ring = ring; }
       t.solid = solids.push({ i, k, x, y, z, ry, sx, sy, sz: sx, on: t.on, t, surf: 1 }) - 1; }
-    else if ((k === "o" || k === "Q") && !tracked.has(i)) { t.ins = true; (k === "o" ? coinI : gemI).push(t); } // (drawn as one InstancedMesh each, below)
+    else if ((k === "o" || k === "Q") && !tracked.has(i) && !busyX(q[12])) { t.ins = true; (k === "o" ? coinI : gemI).push(t); } // (drawn as one InstancedMesh each, below)
     else if (k === "o") { const m = new THREE.Mesh(coinG || (coinG = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 20).rotateX(Math.PI / 2)), coinM || (coinM = new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0xffa21a, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.25 }))); m.position.y = 0.6; t.obj.add(m); t.spin = m; }
     else if (k === "h") { const m = new THREE.Mesh(new THREE.SphereGeometry(0.4, 14, 10), new THREE.MeshStandardMaterial({ color: 0xff3b5c, emissive: 0xff1a4a, emissiveIntensity: 0.7 })); m.position.y = 0.7; t.obj.add(m); t.spin = m; }
     else if (k === "d") { const door = shape(G.box, MT.get(c, 1), sx, sy, sz); t.door = door; t.open = 0; t.solid = solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: t.on, t, surf: 0 }) - 1; }
@@ -116,6 +128,7 @@ export async function makeObby(o, env) {
     else if (k === "P") { shape(G.box, MT.get(c || 9, 0), sx, sy, sz); t.home = new THREE.Vector3(x, y, z); t.vy = 0; t.crate = true; t.solid = solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: t.on, t, surf: 0 }) - 1; }
     else if (k === "A") { const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 0.9, 4, 10), new THREE.MeshStandardMaterial({ color: [0x5fd3ff, 0xffd23a, 0xff6fae][a] || 0x5fd3ff })); cap.position.y = 0.85; t.obj.add(cap); t.body = cap; t.actor = true; t.says = b; t.near = false; }
     else if (k === "x" || k === "X") { const ph = shape(G.box, new THREE.MeshStandardMaterial({ color: 0x8aa0b8, transparent: true, opacity: 0.25 }), sx, sy, sz); t.ph = ph; if (b) t.solid = solids.push({ i, k, x, y, z, ry, sx, sy, sz, on: t.on, t, surf: 0 }) - 1; }
+    if (q[12]) compSet(t, q[12]);
     if (!t.on) t.obj.visible = false;
   });
   var coinG, coinM, hillG; // (shared once the first coin / hill is made)
@@ -129,7 +142,7 @@ export async function makeObby(o, env) {
   // the still solids by 8 m cell (the moving ones — platforms, elevators, crates, tracked pieces — are checked always):
   // collide / restOf / crateBlocked look only at the cell they stand in instead of every solid in the course
   const CELL = 8, grid = new Map(), dynS = [], NB1 = [], NB2 = [], NB3 = [], ck = (cx, cz) => cx * 4096 + cz;
-  for (const s of solids) { const t = s.t; if (t && (t.k === "m" || t.k === "e" || t.crate || tracked.has(s.i))) { dynS.push(s); continue; }
+  for (const s of solids) { const t = s.t; if (t && (t.k === "m" || t.k === "e" || t.crate || t.cm || t.cs || tracked.has(s.i))) { dynS.push(s); continue; }
     const r = Math.hypot(s.sx, s.sz) / 2 + 2, x0 = Math.floor((s.x - r) / CELL), x1 = Math.floor((s.x + r) / CELL), z0 = Math.floor((s.z - r) / CELL), z1 = Math.floor((s.z + r) / CELL);
     if ((x1 - x0 + 1) * (z1 - z0 + 1) > 400) { dynS.push(s); continue; }
     for (let cx = x0; cx <= x1; cx++) for (let cz = z0; cz <= z1; cz++) { const key = ck(cx, cz); let c = grid.get(key); if (!c) grid.set(key, (c = [])); c.push(s); } }
@@ -199,7 +212,7 @@ export async function makeObby(o, env) {
     kills: 0, gems: 0, ri: 0, lap: 0, swim: false, cut: B.cn & OB.CN.intro && !o.test && !ctx.reduce && B.cs ? 0 : null, wait: !o.test && !o.noStart, cont: false, acc: 0 };
   const STEP = 1 / 60;
   // G1/G3: what this course is won by, and its pieces of that kind
-  const WIN = B.win || "goal", enemyL = things.filter((t) => t.enemy), gemL = things.filter((t) => t.k === "Q"), ringL = things.filter((t) => t.k === "R").sort((a, b) => a.order - b.order), crates = things.filter((t) => t.crate), actors = things.filter((t) => t.actor), gk = (B.gv || 100) / 100;
+  const WIN = B.win || "goal", foeL = things.filter((t) => t.enemy), enemyL = foeL.filter((t) => !t.pool), touchTags = new Set(B.lg.filter((r) => r[0] === "touch").map((r) => r[1])), gemL = things.filter((t) => t.k === "Q"), ringL = things.filter((t) => t.k === "R").sort((a, b) => a.order - b.order), crates = things.filter((t) => t.crate), actors = things.filter((t) => t.actor), gk = (B.gv || 100) / 100;
   const trackN = []; (B.tk || []).forEach((tk, n) => { const t = things.find((q) => q.i === tk[0]); if (!t) return; t.base = t.base || new THREE.Vector3(t.x, t.y, t.z); t.track = { keys: tk[3], loop: !!tk[1], on: !!tk[2], t: 0 }; trackN[n + 1] = t; });
   const progK = "arc.studio.prog." + (o.id || ""), saved = (() => { if (!B.sv || !o.id || o.test) return null; try { return JSON.parse(localStorage.getItem(progK) || "null"); } catch { return null; } })();
   look.yaw = S.face + Math.PI;
@@ -224,11 +237,12 @@ export async function makeObby(o, env) {
   function progress() { return WIN === "enemies" ? S.kills / Math.max(1, enemyL.length) : WIN === "collect" ? S.gems / Math.max(1, gemL.length) : WIN === "race" ? (S.lap * ringL.length + S.ri) / Math.max(1, ringL.length * B.lp) : S.cpN / Math.max(1, L.cps.length + 1); }
   // ---- the logic (B.lg): WHEN … THEN …, once unless "again"; state ones fire on the rising edge ----
   const RULES = B.lg.map((r) => ({ r, done: false, was: false, next: r[0] === "every" ? r[1] : 0 }));
-  function fire(w, a) { for (const R of RULES) { if (R.done || R.r[0] !== w || (R.r[1] && R.r[1] !== a && w !== "start" && w !== "bosshalf" && w !== "boss" && w !== "enemies")) continue; doThen(R.r); if (!R.r[4]) R.done = true; } }
+  function fire(w, a) { for (const R of RULES) { if (R.done || R.r[0] !== w || (R.r[1] && R.r[1] !== a && w !== "start" && w !== "bosshalf" && w !== "boss" && w !== "enemies")) continue; if (doThen(R.r) !== false && !R.r[4]) R.done = true; } }
+  const condOk = (c) => { const v = [S.A, S.Bv, S.coins, S.phase][c[0]]; return c[1] === 0 ? v >= c[2] : c[1] === 1 ? v < c[2] : v === c[2]; };
   function state() { for (const R of RULES) { const [w, n] = R.r; if (R.done || !["coins", "varA", "varB", "phase", "after", "collect"].includes(w)) { if (w === "every" && S.t >= R.next) { R.next += n; doThen(R.r); } continue; }
     const on = w === "coins" ? S.coins >= n : w === "varA" ? S.A >= n : w === "varB" ? S.Bv >= n : w === "phase" ? S.phase === n : w === "collect" ? S.gems >= n : S.t >= n;
-    if (on && !R.was) { doThen(R.r); if (!R.r[4]) R.done = true; } R.was = on; } }
-  function doThen(r) { const [, , t, a] = r;
+    if (on && !R.was) { if (doThen(R.r) !== false && !R.r[4]) R.done = true; } R.was = on; } }
+  function doThen(r) { const [, , t, a] = r; if (r[5] && !condOk(r[5])) return false;
     if (t === "open") chOpen(a, true); else if (t === "close") chOpen(a, false); else if (t === "toggle") chOpen(a, !S.ch.has(a));
     else if (t === "say") fx.say(T(OB.MSGS[a] || OB.MSGS[0]));
     else if (t === "addA") S.A = Math.max(0, Math.min(999, S.A + a)); else if (t === "addB") S.Bv = Math.max(0, Math.min(999, S.Bv + a)); else if (t === "setA") S.A = a; else if (t === "setB") S.Bv = a;
@@ -241,9 +255,29 @@ export async function makeObby(o, env) {
     else if (t === "win") end(true); else if (t === "hurt") hurt();
     else if (t === "track") { const tt = trackN[a]; if (tt) { tt.track.on = true; tt.track.t = 0; } }
     else if (t === "cutscene") { if (B.cs && S.cut == null) S.cut = 0; }
+    else if (t === "lose") end(false);
+    else if (t === "sound") snd(CMP_SND[a] || "coin");
+    else if (t === "spawn") spawnFrom(a);
+    else if (t === "dmg") { const tt = tagT[a]; if (tt && tt.bhp != null) hitBrk(tt, r[6] || 1); else if (tt && tt.enemy) for (let j = 0; j < (r[6] || 1); j++) { tt.flash = 0; hitEnemy(tt); } else if (tt && tt.boss) { tt.flash = 0; hitBoss(tt); } }
+    else if (t === "on" || t === "off") { const tt = tagT[a]; if (tt && !(tt.gone && tt.bhp != null)) { const on = t === "on"; tt.on = on; tt.obj.visible = on; if (tt.solid != null && !tt.nc) solids[tt.solid].on = on; } }
     paint(); }
+  // ---- ED1: the components' moments — touch (Damage / Pickup / Trigger / Sound / the 'touch' rules), Health, Spawner ----
+  function compTouch(t) { const x = t.cx; if (!(x.dm || x.pk || x.tg || x.sn || (x.id && touchTags.has(x.id)))) return;
+    const inside = inBox(t, S.p, 0.25, 0.6); if (!inside) { t.touching = false; return; } if (t.touching) return; t.touching = true;
+    if (x.dm) for (let j = 0; j < x.dm[0]; j++) { S.inv = 0; hurt(); if (S.over) return; }
+    if (x.pk) { const [gv, n] = x.pk; if (gv === 0) { S.coins += n; fx.say("🪙 +" + n); } else if (gv === 1) { S.A = Math.min(999, S.A + n); fx.say(T(OB.VARL[B.vl]) + " +" + n); } else { if (B.hp) S.hearts = Math.min(5, S.hearts + n); fx.say("❤️ +" + n); }
+      snd("coin"); burst(t.obj.position, 0xffd23a, 10); t.gone = true; t.obj.visible = false; if (t.solid != null) solids[t.solid].on = false; paint(); }
+    if (x.tg && !(x.tg[1] && t.fired)) { t.fired = true; if (x.tg[0]) { chOpen(x.tg[0], true); fire("button", x.tg[0]); } }
+    if (x.sn) snd(CMP_SND[x.sn[0]] || "coin");
+    if (x.id) fire("touch", x.id); }
+  function hitBrk(t, n) { if (t.gone || t.bhp == null) return; t.bhp -= n; snd("hit"); buzz(20); t.obj.scale.setScalar(1.12); setTimeout(() => t.obj.scale.setScalar(1), 120);
+    if (t.bhp > 0) { fx.say("💥 " + t.bhp); return; } t.gone = true; t.obj.visible = false; if (t.solid != null) solids[t.solid].on = false; burst(t.obj.position, 0xffd23a, 18); if (t.cx.id) fire("broken", t.cx.id); paint(); }
+  function spawnFrom(tag) { const sp = tagT[tag]; if (!sp || !sp.cx || !sp.cx.sw || sp.gone || !sp.on) return; if (foeL.filter((e) => e.pool === tag && !e.gone).length >= sp.cx.sw[1]) return;
+    const e = foeL.find((q) => q.pool === tag && q.gone); if (!e) return; e.gone = false; e.on = true; e.obj.visible = true; e.hp = e.hp0; e.flash = 0; e.vy = 0; e.vx = e.vz = 0;
+    e.obj.position.set(sp.obj.position.x, sp.obj.position.y + sp.sy, sp.obj.position.z); e.home.copy(e.obj.position); burst(e.obj.position, 0xb48cff, 10); }
+  function spawners(dt) { for (const t of swL) { if (!t.on || t.gone || t.obj.position.distanceTo(S.p) > 45) continue; if ((t.swT -= dt) > 0) continue; t.swT = t.cx.sw[0]; spawnFrom(t.cx.id); } }
   function chOpen(c, on) { if (on) S.ch.add(c); else S.ch.delete(c); }
-  function groupOn(g, on) { for (const t of things) if (t.g === g) { t.on = on; t.obj.visible = on; if (t.solid != null) solids[t.solid].on = on; } }
+  function groupOn(g, on) { for (const t of things) if (t.g === g && !t.pool && !(t.gone && t.bhp != null)) { t.on = on; t.obj.visible = on; if (t.solid != null && !t.nc) solids[t.solid].on = on; } }
   // ---- the solid test: each solid's box in its own turned frame (a ramp's top rises along its +z, a round one by radius) ----
   const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
   // a crate can't be pushed into another solid (it would sink into a wall or another crate)
@@ -297,7 +331,8 @@ export async function makeObby(o, env) {
       S.coins -= price; snd("coin"); if (id === "speed") S.speedK = 1.25; else if (id === "djump") S.dj = true; else if (id === "heart") { if (B.hp) S.hearts = Math.min(5, S.hearts + 1); } else if (id === "shield") S.shield = true; fx.say(ic + " " + T(nm)); paint(); return; }
     if (hero) try { hero.play("attack", { once: true }); } catch { /* no clip */ }
     for (const t of bossT) if (!t.gone && t.on && t.obj.position.distanceTo(S.p) < t.sx * 0.6 + 2.2) hitBoss(t);
-    for (const t of enemyL) if (!t.gone && t.on && t.obj.position.distanceTo(S.p) < 2.4) hitEnemy(t);
+    for (const t of foeL) if (!t.gone && t.on && t.obj.position.distanceTo(S.p) < 2.4) hitEnemy(t);
+    for (const t of brkL) if (!t.gone && t.on && t.obj.position.distanceTo(S.p) < Math.max(2.4, Math.max(t.sx, t.sz) * 0.6 + 1.4)) hitBrk(t, 1);
   }
   function hitBoss(t) { if (t.flash > 0) return; t.hp--; t.flash = 0.5; snd("hit"); buzz(25); fx.say(t.hp > 0 ? "💥 " + t.hp : "🏆");
     const away = tmp.copy(t.obj.position).sub(S.p).setY(0).normalize(); t.vx = away.x * 6; t.vz = away.z * 6;
@@ -349,7 +384,7 @@ export async function makeObby(o, env) {
       if (S.swim) { S.v.y -= OBJ.G * gk * dt * 0.18; S.v.y *= 1 - Math.min(0.9, dt * 2.6); if (S.p.y < S.swim.surf - 1.1) S.v.y += 14 * dt; } else S.v.y -= OBJ.G * gk * dt; if (S.v.y < -32) S.v.y = -32; if (S.v.y <= 0) S.padUp = false;
       const prevY = S.p.y; S.p.addScaledVector(S.v, dt);
       // the moving things first (they carry you)
-      const was = S.ground; let carry = null; if (was && was.t && (was.t.k === "m" || was.t.k === "e" || was.t.track || was.t.crate)) carry = was.t.obj.position.clone();
+      const was = S.ground; let carry = null; if (was && was.t && (was.t.k === "m" || was.t.k === "e" || was.t.track || was.t.crate || was.t.cm)) carry = was.t.obj.position.clone();
       movers(dt, tt); if (carry) { S.p.x += was.t.obj.position.x - carry.x; S.p.z += was.t.obj.position.z - carry.z; S.p.y += Math.max(0, was.t.obj.position.y - carry.y); }
       let g = collide(S.p, S.v, dt, prevY);
       if (!g && was && S.v.y <= 0 && !S.padUp) { const y0 = S.p.y; S.p.y -= 0.45; g = collide(S.p, S.v, dt, y0); if (!g) S.p.y = y0; else S.v.y = 0; } // (a small step down keeps your feet on the ground)
@@ -357,7 +392,7 @@ export async function makeObby(o, env) {
       if (g && g.t && g.t.k === "p") { S.v.y = Math.sqrt(2 * OBJ.G * (OBJ.UP + g.t.a * OBJ.PAD)); S.padUp = true; S.ground = null; snd("dash"); g.t.ring.scale.setScalar(1.6); }
       if (g && g.t && g.t.k === "c") checkpoint(g.t); if (g && g.t && g.t.k === "g") goal(g.t); if (S.swim && !g) S.jumps = 0;
       // what you touch
-      for (const t of things) { if (!t.on || t.gone) continue;
+      for (const t of things) { if (!t.on || t.gone) continue; if (t.cx) { compTouch(t); if (t.gone || S.over) continue; }
         if (t.k === "o" && t.obj.position.distanceTo(tmp.copy(S.p).setY(S.p.y + 0.4)) < 1.2) { t.gone = true; t.obj.visible = false; S.coins++; snd("coin"); paint(); }
         else if (t.k === "h" && t.obj.position.distanceTo(S.p) < 1.3) { t.gone = true; t.obj.visible = false; if (B.hp) S.hearts = Math.min(5, S.hearts + 1); fx.say("❤️"); paint(); }
         else if (t.k === "k" && inBox(t, S.p, 0.1, 0.2)) hurt(true);
@@ -370,7 +405,7 @@ export async function makeObby(o, env) {
         else if (t.k === "s" && spinHit(t)) { const tg = tmp.set(-Math.sin(t.ang + Math.PI / 2), 0, -Math.cos(t.ang + Math.PI / 2)); S.v.x = tg.x * 11 * (t.b ? -1 : 1); S.v.z = tg.z * 11 * (t.b ? -1 : 1); S.v.y = 6; S.ground = null; if (S.inv <= 0) { snd("hurt"); S.inv = 0.6; buzz(30); } } }
       S.tpCd = Math.max(0, (S.tpCd || 0) - dt);
       for (const [c, at] of S.chT) if (S.t >= at) { S.ch.delete(c); S.chT.delete(c); for (const t of things) if (t.k === "u" && t.a === c) t.pressed = false; }
-      boss(dt); enemies(dt);
+      boss(dt); enemies(dt); if (swL.length) spawners(dt);
       for (let i = balls.length - 1; i >= 0; i--) { const b = balls[i]; b.t -= dt;
         if (b.ring) { b.r += dt * 9; b.m.scale.setScalar(b.r); b.m.material.opacity = Math.max(0, b.t); const d = Math.hypot(S.p.x - b.m.position.x, S.p.z - b.m.position.z); if (Math.abs(d - b.r) < 0.6 && S.p.y - b.m.position.y < 0.6 && !b.hit) { b.hit = true; hurt(); } }
         else { b.m.position.addScaledVector(b.v, dt); if (b.m.position.distanceTo(tmp.copy(S.p).setY(S.p.y + 0.9)) < 0.9) { b.t = 0; hurt(); } }
@@ -394,7 +429,10 @@ export async function makeObby(o, env) {
     mg.fillStyle = "#5fd3ff"; mg.beginPath(); mg.arc(60 + S.p.x * k, 60 + S.p.z * k, 4, 0, 7); mg.fill(); }
   function movers(dt, tt) {
     tracks(dt); cratesFall(dt);
-    for (const t of things) { if (t.track) continue; if (t.k === "m") { const w = (spec.speed * 0.25 + 0.4) * (6 / Math.max(3, t.b)), s = Math.sin(tt * w) * t.b / 2; t.obj.position.copy(t.base); if (t.a === 0) t.obj.position.x += s; else if (t.a === 1) t.obj.position.y += s + t.b / 2; else t.obj.position.z += s; }
+    for (const t of things) { if (t.track) continue;
+      if (t.cm) { const [ax, d, sp] = t.cm, w = (0.3 + sp * 0.35) * (6 / Math.max(3, d)), s = Math.sin(tt * w) * d / 2; t.obj.position.copy(t.base); if (ax === 0) t.obj.position.x += s; else if (ax === 1) t.obj.position.y += s + d / 2; else t.obj.position.z += s; }
+      if (t.cs) { t.obj.rotation.y += dt * t.cs; const deg = (((t.obj.rotation.y * 180) / Math.PI) % 360 + 360) % 360; t.ry = deg; if (t.solid != null) solids[t.solid].ry = deg; }
+      if (t.k === "m") { const w = (spec.speed * 0.25 + 0.4) * (6 / Math.max(3, t.b)), s = Math.sin(tt * w) * t.b / 2; t.obj.position.copy(t.base); if (t.a === 0) t.obj.position.x += s; else if (t.a === 1) t.obj.position.y += s + t.b / 2; else t.obj.position.z += s; }
       else if (t.k === "e") { const on = S.ground && S.ground.t === t; if (on) t.wait = 1.5; else t.wait = Math.max(0, t.wait - dt); const goUp = on || t.wait > 0 && t.lift >= t.a - 0.01; t.lift = Math.max(0, Math.min(t.a, t.lift + (on || goUp ? 1 : -1) * dt * (1 + t.b))); t.obj.position.set(t.base.x, t.base.y + t.lift, t.base.z); } }
   }
   // ---- G1/G3: water, the race's rings, the enemies, the tracks ----
@@ -411,7 +449,7 @@ export async function makeObby(o, env) {
   // (locked for the last 0.25 s, so a sidestep dodges it); a hit leans them back and stuns them for a moment
   const aimG = new THREE.BoxGeometry(0.07, 0.07, 1).translate(0, 0, 0.5);
   function enemies(dt) {
-    for (const t of enemyL) { if (t.gone || !t.on) { if (t.aim) t.aim.visible = false; continue; } const pos = t.obj.position, d = Math.hypot(S.p.x - pos.x, S.p.z - pos.z), awake = d < 15; t.flash = Math.max(0, t.flash - dt); t.recoil = Math.max(0, (t.recoil || 0) - dt);
+    for (const t of foeL) { if (t.gone || !t.on) { if (t.aim) t.aim.visible = false; continue; } const pos = t.obj.position, d = Math.hypot(S.p.x - pos.x, S.p.z - pos.z), awake = d < 15; t.flash = Math.max(0, t.flash - dt); t.recoil = Math.max(0, (t.recoil || 0) - dt);
       const ctr = t.trackP || t.home, face = Math.atan2(S.p.x - pos.x, S.p.z - pos.z), stun = t.recoil > 0;
       let fa = face; if (!awake) { if (t.trackP) { const dx = t.trackP.x - pos.x, dz = t.trackP.z - pos.z; fa = Math.hypot(dx, dz) > 0.05 ? Math.atan2(dx, dz) : t.obj.rotation.y; } else if (t.type !== 2) { t.pt = (t.pt || 0) + dt; if (t.pt > 3.2) { t.pt = 0; t.pdir = -(t.pdir || 1); } fa = (t.ry * Math.PI) / 180 + (t.pdir === -1 ? Math.PI : 0); } }
       if (!stun) t.obj.rotation.y += Math.atan2(Math.sin(fa - t.obj.rotation.y), Math.cos(fa - t.obj.rotation.y)) * Math.min(1, dt * 4);
@@ -437,6 +475,7 @@ export async function makeObby(o, env) {
   var ballG;
   function hitEnemy(t) { if (t.flash > 0 || t.gone) return; t.hp--; t.flash = 0.35; t.recoil = 0.35; t.cd = Math.max(t.cd, 0.9); if (t.type === 1) t.obj.position.y += 0.6; snd("hit"); buzz(20); const away = tmp.copy(t.obj.position).sub(S.p).setY(0).normalize(); t.vx = away.x * 7; t.vz = away.z * 7;
     if (t.hp > 0) { fx.say("💥 " + t.hp); return; }
+    if (t.pool) { t.gone = true; t.obj.visible = false; burst(t.obj.position, 0xb48cff, 12); fx.say("👾"); return; } // (a spawner's enemy: no coins, and the win doesn't wait for it)
     t.gone = true; t.obj.visible = false; S.kills++; S.coins += OB.EC; burst(t.obj.position, 0x7cf5c8, 16); fx.say("👾 +" + OB.EC + " 🪙"); paint();
     if (enemyL.every((q) => q.gone)) { fire("enemies", 0); card("👾 " + T("Every enemy defeated!"), 1.4); if (WIN === "enemies" && S.bossLeft <= 0) end(true); } }
   function tracks(dt) {
