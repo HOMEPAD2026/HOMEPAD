@@ -46,7 +46,10 @@ export function createSceneBuilder(ctx) {
   let TD = null, terr = null; const brush = { tool: "raise", size: 10, str: 2, paint: 0 }; // (ED4: the terrain and its brush)
   let G = null, MT = null, objs = [], grid = null, bp = null, gizmo = null, selBox = null, redBoxes = null, chat = [];
   const R = (d) => (d * Math.PI) / 180;
-  // ---------------- open / close ----------------
+  // S6 (2026-10-29): what the creator does, for the coach (world-studio-coach.js): select, move, rotate, scale, add, delete,
+  // duplicate, addComponent, test, save, publish, aiApply — the coach waits for the real action instead of a Next button
+  const subs = new Set(), fire = (k) => { for (const f of [...subs]) try { f(k); } catch { /* a listener's own trouble */ } };
+  let ghost = null, guides = null, selFade = 0, lastSel = -1, qbar = null, pend = null, diffG = null;
   function open() {
     el = document.createElement("div"); el.className = "wsb wse wse-pro" + (phone() ? " wse-ph" : ""); el.setAttribute("role", "dialog");
     const ib = (attr, ic, tip) => `<button type="button" ${attr} title="${esc(T(tip))}" aria-label="${esc(T(tip))}">${ic}</button>`;
@@ -58,6 +61,9 @@ export function createSceneBuilder(ctx) {
         <section class="wse-pal"><h5>${esc(T("Objects"))} <small>${esc(T(phone() ? "tap to add" : "drag into the view, or click"))}</small></h5>${PAL.map(([g, ks]) => `<small>${esc(T(g))}</small><div class="wse-pg">${ks.map((k) => `<button type="button" data-add="${k}" draggable="true" title="${esc(T(NAMES[k]))}"><i>${ICONS[k]}</i><span>${esc(T(NAMES[k]))}</span></button>`).join("")}</div>`).join("")}
           <small>${esc(T("Ready-made"))}</small><div class="wse-pg">${SETS.map(([id, ic, n]) => `<button type="button" data-set="${id}" draggable="true" title="${esc(T(n))}"><i>${ic}</i><span>${esc(T(n))}</span></button>`).join("")}</div></section></aside>
         <div class="wse-view"><canvas class="wse-cv"></canvas><div class="wse-stat" hidden></div>
+          <div class="wse-qbar" hidden>${[["move", "✥", "Move"], ["rot", "⟳", "Turn"], ["scale", "⤢", "Size"]].map(([m, ic, n]) => `<button type="button" data-qb="${m}" title="${esc(T(n))}">${ic}<span>${esc(T(n))}</span></button>`).join("")}<i></i><button type="button" data-qb="dup" title="${esc(T("Duplicate"))}">⧉<span>${esc(T("Copy"))}</span></button><button type="button" data-qb="del" title="${esc(T("Delete"))}">🗑<span>${esc(T("Delete"))}</span></button><button type="button" data-qb="lock" title="${esc(T("Lock"))}">🔒<span>${esc(T("Lock"))}</span></button>
+            <div class="wse-qn">${[["x-", "◀"], ["x+", "▶"], ["z-", "▲"], ["z+", "▼"], ["y+", "⤒"], ["y-", "⤓"], ["r-", "⟲"], ["r+", "⟳"], ["s-", "−"], ["s+", "＋"]].map(([k, ic]) => `<button type="button" data-qn="${k}">${ic}</button>`).join("")}</div></div>
+          <div class="wse-aipv" hidden></div>
           <nav class="wse-modes">${[["select", "⬚", "Select (Q)"], ["move", "✥", "Move (W)"], ["rot", "⟳", "Turn (E)"], ["scale", "⤢", "Size (R)"]].map(([m, ic, n]) => `<button type="button" data-mode="${m}" title="${esc(T(n))}">${ic}<span>${esc(T(n.replace(/ \(.\)$/, "")))}</span></button>`).join("")}<i></i>
             <button type="button" data-local title="${esc(T("Move along the piece's own axes, or the world's"))}"><span class="wse-lw">${esc(T("World"))}</span></button><label class="wse-snp" title="${esc(T("Snap"))}">#<select data-snapv>${[["0", "Snap auto"], ["0.25", "0.25 m"], ["0.5", "0.5 m"], ["1", "1 m"], ["2", "2 m"], ["off", "Snap off"]].map(([v, n]) => `<option value="${v}">${esc(T(n))}</option>`).join("")}</select></label><i></i>
             ${ib("data-dup", "⧉", "Duplicate (Ctrl+D)")}${ib("data-del", "🗑", "Delete")}${ib("data-madd", "⊕", "Pick more pieces (or Shift + click)")}${ib("data-focus", "◎", "Focus (F)")}<i></i>${ib("data-dbg", "🐞", "Debug view: colliders, triggers, paths, frame rate")}<button type="button" data-sim title="${esc(T("Simulate: the moving pieces move, here in the editor"))}">⏯<span>${esc(T("Simulate"))}</span></button></nav>
@@ -95,6 +101,8 @@ export function createSceneBuilder(ctx) {
   function fit() { if (!cv || !rd) return; const r = cv.getBoundingClientRect(); rd.setSize(Math.max(1, r.width), Math.max(1, r.height), false); cam.aspect = Math.max(0.2, r.width / Math.max(1, r.height)); cam.updateProjectionMatrix(); dirty = true; }
   let csPrev = null;
   function loop() { raf = requestAnimationFrame(loop); const now = performance.now();
+    if (selFade && selBox) { const k = Math.min(1, (now - selFade) / 150); selBox.material.opacity = k; if (k >= 1) selFade = 0; dirty = true; } /* (S6: the mint outline fades in over 0.15 s) */
+    if (dirty || (qbar && !qbar.hidden && sel < 0)) qbarPlace();
     if (flyKeys.size && act && act.kind === "fly") { const dt = Math.min(0.05, (now - (flyT || now)) / 1000), sp = (flyKeys.has("shift") ? 36 : 14) * dt, cp = Math.cos(orbit.pitch), f = new THREE.Vector3(-Math.sin(orbit.yaw) * cp, -Math.sin(orbit.pitch), -Math.cos(orbit.yaw) * cp), r = new THREE.Vector3(Math.cos(orbit.yaw), 0, -Math.sin(orbit.yaw));
       const m = new THREE.Vector3(); if (flyKeys.has("w")) m.add(f); if (flyKeys.has("s")) m.sub(f); if (flyKeys.has("d")) m.add(r); if (flyKeys.has("a")) m.sub(r); if (flyKeys.has("e")) m.y += 1; if (flyKeys.has("q")) m.y -= 1;
       if (m.lengthSq()) { m.normalize().multiplyScalar(sp); orbit.tx += m.x; orbit.ty += m.y; orbit.tz += m.z; dirty = true; } } flyT = now;
@@ -177,7 +185,8 @@ export function createSceneBuilder(ctx) {
   // moves and turns all of them together (size stays one piece's), the arrows nudge them, delete removes them
   const msel = new Set(); let madd = false, mbox = null;
   const many = () => { const out = [...new Set([sel, ...msel])].filter((i) => i >= 0 && B.o[i]); return out; };
-  function selShow() { const o = objs[sel]; if (!o) { msel.clear(); selBox.visible = false; gizmo.root.visible = false; return; } selBox.box.setFromObject(o); for (const i of many()) if (i !== sel && objs[i]) selBox.box.union((mbox || (mbox = new THREE.Box3())).setFromObject(objs[i])); selBox.visible = true; gizmo.root.visible = true; dirty = true;
+  function selShow() { const o = objs[sel]; if (!o) { msel.clear(); selBox.visible = false; gizmo.root.visible = false; lastSel = -1; if (qbar) qbar.hidden = true; return; }
+    if (sel !== lastSel) { lastSel = sel; selBox.material.transparent = true; selBox.material.opacity = 0; selFade = performance.now(); } selBox.box.setFromObject(o); for (const i of many()) if (i !== sel && objs[i]) selBox.box.union((mbox || (mbox = new THREE.Box3())).setFromObject(objs[i])); selBox.visible = true; gizmo.root.visible = true; dirty = true;
     const mb = el && el.querySelector("[data-madd]"); if (mb) { mb.classList.toggle("on", madd); mb.dataset.n = many().length > 1 ? many().length : ""; } }
   // ---------------- the gizmo: arrows (move along an axis), a flat square (on the ground), a ring (turn), cubes (size) ----------------
   function makeGizmo() {
@@ -207,7 +216,7 @@ export function createSceneBuilder(ctx) {
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; act = { kind: "pinch", d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; return; }
     ray.setFromCamera(ndc(e), cam);
     if (sel >= 0 && gizmo.root.visible && !e.altKey && e.button === 0) { const hit = ray.intersectObjects(gizmo.handles.filter((h) => { let p = h; while (p && p !== gizmo.root) { if (p.visible === false) return false; p = p.parent; } return true; }), false)[0];
-      if (hit) { const h = hit.object.userData.h, q = B.o[sel], M = many(); push(); act = { kind: h.kind, h, q0: q.slice(), o: new THREE.Vector3(q[1], q[2], q[3]) }; if (h.kind === "move" && local) act.ax = h.axis.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), R(q[4]));
+      if (hit) { const h = hit.object.userData.h, q = B.o[sel], M = many(); push(); act = { kind: h.kind, h, q0: q.slice(), o: new THREE.Vector3(q[1], q[2], q[3]) }; ghostOn(); if (h.kind === "move" && local) act.ax = h.axis.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), R(q[4]));
         if (M.length > 1 && h.kind !== "scale") { act.many = M.map((i) => [i, B.o[i].slice()]); if (h.kind === "rot") { const xs = M.map((i) => B.o[i][1]), zs = M.map((i) => B.o[i][3]); act.o.set((Math.min(...xs) + Math.max(...xs)) / 2, q[2], (Math.min(...zs) + Math.max(...zs)) / 2); } } act.plane = planeFor(h, act.o); act.p0 = hitPlane(act.plane); if (!act.p0) act = null; return; } }
     act = { kind: e.button === 2 ? "fly" : e.button === 1 || e.shiftKey ? "pan" : "orbit", x: e.clientX, y: e.clientY };
   }
@@ -216,7 +225,7 @@ export function createSceneBuilder(ctx) {
     const ax = h.kind === "scale" || (h.kind === "move" && local) ? h.axis.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), R(B.o[sel][4])) : h.axis.clone(), n = ax.clone().cross(camDir).cross(ax).normalize(); if (n.lengthSq() < 1e-6) n.copy(camDir); return new THREE.Plane().setFromNormalAndCoplanarPoint(n, o); }
   function hitPlane(pl) { const p = new THREE.Vector3(); return ray.ray.intersectPlane(pl, p) ? p : null; }
   const sn = (v, st) => { const k = snapV || st; return snap ? Math.round(v / k) * k : Math.round(v * 4) / 4; };
-  function pm(e) {
+  function pm(e) { if (guides) guideAt();
     if (!ptrs.has(e.pointerId)) return; const last = ptrs.get(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (!act) return;
     if (act.kind === "pinch" && ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, ang = Math.atan2(b.y - a.y, b.x - a.x); orbit.dist = Math.max(6, Math.min(220, orbit.dist * (act.d / Math.max(10, d)))); panBy(mx - act.mx, my - act.my);
       if (act.ang != null) { let da = ang - act.ang; da = Math.atan2(Math.sin(da), Math.cos(da)); orbit.yaw -= da; } act.ang = ang; act.d = d; act.mx = mx; act.my = my; dirty = true; return; } // (two fingers: pinch zooms, slide pans, twist turns)
@@ -244,10 +253,10 @@ export function createSceneBuilder(ctx) {
   function pu(e) {
     const tap = downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 6 && performance.now() - downAt.t < 450; ptrs.delete(e.pointerId);
     if (act && act.kind === "brush") { B.hf = hfEnc(TD.h, TD.p); if (terr) terr.geometry.computeBoundingSphere(); act = null; marks(); changed(); evt("ob-terrain"); return; }
-    if (act && (act.kind === "move" || act.kind === "flat" || act.kind === "rot" || act.kind === "scale")) { if (!act.moved) undo.pop(); else { marks(); changed(); pane(); evt("ob-move"); } act = null; return; }
+    if (act && (act.kind === "move" || act.kind === "flat" || act.kind === "rot" || act.kind === "scale")) { ghostOff(); if (!act.moved) undo.pop(); else { marks(); changed(); pane(); evt("ob-move"); fire(act.kind === "rot" ? "rotate" : act.kind === "scale" ? "scale" : "move"); } act = null; return; }
     if (tap && act && act.kind !== "pinch" && act.kind !== "fly") { ray.setFromCamera(ndc(e), cam); const hit = ray.intersectObjects(objs, true).find(pickable), hi = hit ? hit.object.userData.i : -1;
       if ((e.shiftKey || madd) && hi >= 0 && sel >= 0) { if (hi === sel) { const rest = many().filter((i) => i !== sel); msel.clear(); rest.forEach((i) => msel.add(i)); sel = rest.length ? rest[0] : -1; } else if (msel.has(hi)) msel.delete(hi); else msel.add(hi); }
-      else { msel.clear(); sel = hi; } selShow(); if (tab !== "prop" && sel >= 0) tab = "prop"; paintTabs(); pane(); }
+      else { msel.clear(); sel = hi; } selShow(); if (tab !== "prop" && sel >= 0) tab = "prop"; paintTabs(); pane(); if (sel >= 0) fire("select"); }
     if (ptrs.size < 2) { act = null; flyKeys.clear(); }
   }
   /// a hit the pointer may pick: a piece's own mesh, shown, not locked or hidden in the editor
@@ -275,14 +284,14 @@ export function createSceneBuilder(ctx) {
     let p = hit ? hit.point : th ? th.point : hitPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)) || new THREE.Vector3(orbit.tx, 0, orbit.tz); if (hit) { const q0 = B.o[hit.object.userData.i]; p = new THREE.Vector3(hit.point.x, q0[2] + q0[6], hit.point.z); }
     const K = OB.K[k], O = OB.OPT[k] || [], q = [k, clampAx(1, sn(p.x, 0.5)), clampAx(2, sn(p.y, 0.5)), clampAx(3, sn(p.z, 0.5)), 0, K[1], K[2], K[3], k === "b" ? 0 : 1, O[0] ? O[0][3] : 0, O[1] ? O[1][3] : 0, 0];
     if (k === "t") { const pairs = B.o.filter((x) => x[0] === "t"); const open1 = [1, 2, 3, 4, 5, 6, 7, 8].find((a) => pairs.filter((x) => x[9] === a).length === 1); q[9] = open1 || ([1, 2, 3, 4, 5, 6, 7, 8].find((a) => !pairs.some((x) => x[9] === a)) || 1); }
-    push(); B.o.push(q); sel = B.o.length - 1; rebuild(); pop(objs[sel]); changed(); evt("build"); evt("ob-place"); if ("dutnBe".includes(k)) evt("ob-smart"); if (tab !== "prop") { tab = "prop"; paintTabs(); } pane();
+    push(); B.o.push(q); sel = B.o.length - 1; rebuild(); pop(objs[sel]); changed(); evt("build"); evt("ob-place"); fire("add"); if ("dutnBe".includes(k)) evt("ob-smart"); if (tab !== "prop") { tab = "prop"; paintTabs(); } pane();
   }
   function pop(o) { if (!o) return; const t0 = performance.now(), go = () => { const k = Math.min(1, (performance.now() - t0) / 260), s = 1 + Math.sin(k * Math.PI) * 0.18; o.scale.setScalar(s); dirty = true; if (k < 1 && el) requestAnimationFrame(go); else o.scale.setScalar(1); }; go(); }
   function dup() { if (sel < 0) return; const q = B.o[sel].slice(); if (q[0] === "S") return; if (OB.CAP[q[0]] && B.o.filter((x) => x[0] === q[0]).length >= OB.CAP[q[0]]) { ctx.toast(esc(T("No more of this piece ({n} at most)", { n: OB.CAP[q[0]] }))); return; }
-    push(); q[1] = clampAx(1, q[1] + Math.max(1, q[5]) + 0.5); B.o.push(q); sel = B.o.length - 1; rebuild(); pop(objs[sel]); changed(); pane(); }
+    push(); q[1] = clampAx(1, q[1] + Math.max(1, q[5]) + 0.5); B.o.push(q); sel = B.o.length - 1; rebuild(); pop(objs[sel]); changed(); pane(); fire("duplicate"); }
   function del() { if (sel < 0) return; const M = many().filter((i) => B.o[i][0] !== "S"); if (!M.length) { ctx.toast(esc(T("A course always has its start"))); return; } push();
     const gone = new Set(M), map = []; let n = 0; B.o.forEach((_, i) => { map[i] = gone.has(i) ? -1 : n++; }); B.o = B.o.filter((_, i) => !gone.has(i)); B.tk = (B.tk || []).filter((t) => map[t[0]] >= 0).map((t) => [map[t[0]], t[1], t[2], t[3]]);
-    sel = -1; msel.clear(); rebuild(); changed(); pane(); }
+    sel = -1; msel.clear(); rebuild(); changed(); pane(); fire("delete"); }
   function focusSel() { const q = B.o[sel]; if (!q) return focusAll(); orbit.tx = q[1]; orbit.ty = q[2]; orbit.tz = q[3]; orbit.dist = Math.max(10, Math.max(q[5], q[7]) * 3); dirty = true; }
   function focusAll() { if (!B.o.length) return; let a = [1e9, 1e9, 1e9], b = [-1e9, -1e9, -1e9]; for (const q of B.o) { a = [Math.min(a[0], q[1]), Math.min(a[1], q[2]), Math.min(a[2], q[3])]; b = [Math.max(b[0], q[1]), Math.max(b[1], q[2]), Math.max(b[2], q[3])]; }
     orbit.tx = (a[0] + b[0]) / 2; orbit.ty = (a[1] + b[1]) / 2; orbit.tz = (a[2] + b[2]) / 2; orbit.dist = Math.max(20, Math.min(200, Math.hypot(b[0] - a[0], b[2] - a[2]) * 0.9 + 12)); dirty = true; }
@@ -445,7 +454,7 @@ export function createSceneBuilder(ctx) {
       <p class="wse-help">${esc(T("Everyone plays your course as their own ARCIRCLE hero — ARON, LUMI or NEX."))}</p>`;
   }
   function aiPane() {
-    return `<p class="wse-help">${esc(T("Describe a game in one sentence and the director builds the map, the hazards, the rules, the look and the HUD. Then keep talking to change it."))}</p>
+    return `${aipvHtml()}<p class="wse-help">${esc(T("Describe a game in one sentence and the director builds the map, the hazards, the rules, the look and the HUD. Then keep talking to change it."))}</p>
       <div class="wse-chat">${chat.map((m) => `<p class="${m.me ? "me" : ""}">${esc(m.t)}</p>`).join("") || `<p>${esc(T("Try: “a lava tower with a dragon boss and a shop, night look”"))}</p>`}</div>
       <textarea data-ai rows="2" maxlength="200" placeholder="${esc(T("A long ice course with doors, a shop and a boss…"))}"></textarea>
       <div class="wse-acts"><button type="button" class="wsb-b go" data-aimake>✨ ${esc(T("Make a new course"))}</button><button type="button" class="wsb-b alt" data-aitweak>🛠 ${esc(T("Change this one"))}</button></div>
@@ -487,6 +496,10 @@ export function createSceneBuilder(ctx) {
     if (b.hasAttribute("data-local")) { local = !local; b.classList.toggle("on", local); b.querySelector(".wse-lw").textContent = T(local ? "Local" : "World"); dirty = true; return; }
     if (b.hasAttribute("data-save")) return doSave();
     if (b.hasAttribute("data-pub")) return doPublish();
+    if (b.dataset.qb) { const k = b.dataset.qb; if (k === "move" || k === "rot" || k === "scale") { setMode(k); qbarPaint(); } else if (k === "dup") dup(); else if (k === "del") del(); else if (k === "lock" && sel >= 0) { push(); const x = xOf(sel); if (x.lk) delete x.lk; else x.lk = 1; xTidy(sel); changed(); gizmoPlace(); paintTree(); ctx.toast(esc(T(x.lk ? "Locked — it can't be picked in the view until you unlock it in the Scene list" : "Unlocked"))); qbarPaint(); } return; }
+    if (b.dataset.qn) return nudge(b.dataset.qn);
+    if (b.hasAttribute("data-aiok")) return applyP();
+    if (b.hasAttribute("data-aino")) return discardP();
     if (b.hasAttribute("data-hist")) return histOpen();
     if (b.dataset.handoff) return handoff(b.dataset.handoff === "script" ? "Scripts are easier with a keyboard." : b.dataset.handoff === "terrain" ? "The terrain brush is made for a mouse." : "The logic graph is roomier on a computer.");
     if (b.dataset.lv) { lv = b.dataset.lv; pane(); return; }
@@ -504,7 +517,7 @@ export function createSceneBuilder(ctx) {
     if (b.hasAttribute("data-close")) { if (undo.length) { if (await ask(T, T("Leave without keeping your changes?"), { ok: T("Leave"), danger: true })) close(false); return; } return close(false); }
     if (b.hasAttribute("data-done")) return close(true);
     if (b.hasAttribute("data-undo")) return doUndo(false); if (b.hasAttribute("data-redo")) return doUndo(true);
-    if (b.hasAttribute("data-test") || b.hasAttribute("data-testsel")) { const c = cleanObby(B), q = b.hasAttribute("data-testsel") && B.o[sel]; ctx.onTest(clampSpec({ ...spec, build: c }), q && OB.K[q[0]][0] ? [q[1], q[2] + q[6], q[3]] : null); return; }
+    if (b.hasAttribute("data-test") || b.hasAttribute("data-testsel")) { fire("test"); const c = cleanObby(B), q = b.hasAttribute("data-testsel") && B.o[sel]; ctx.onTest(clampSpec({ ...spec, build: c }), q && OB.K[q[0]][0] ? [q[1], q[2] + q[6], q[3]] : null); return; }
     if (b.dataset.add) { addAt(b.dataset.add); if (phone()) { el.dataset.sheet = ""; setTimeout(fit, 30); } return; }
     if (b.dataset.mode) return setMode(b.dataset.mode);
     if (b.hasAttribute("data-dup")) return dup(); if (b.hasAttribute("data-del")) return del();
@@ -618,7 +631,7 @@ export function createSceneBuilder(ctx) {
   function addComp(i, c2) { if (!B.o[i] || !CMP[c2]) return; if (CMP_CAP[c2] && B.o.filter((q) => q[12] && q[12][c2] != null).length >= CMP_CAP[c2]) { ctx.toast(esc(T("A course holds up to {n} of these", { n: CMP_CAP[c2] }))); return; }
     if (c2 === "sc" && phone()) return handoff("Scripts are easier with a keyboard.");
     push(); const x = xOf(i); x[c2] = c2 === "sc" ? "onTouch(player) {\n  say(\"Nice work!\")\n}" : CMP[c2][1].map((f) => f[3]);
-    B = cleanObby(B); refresh(i); marks(); changed(); tab = "prop"; paintTabs(); pane(); evt("ob-comp"); ctx.toast(CICON[c2] + " " + esc(T("{c} added", { c: T(CMP[c2][0]) }))); }
+    B = cleanObby(B); refresh(i); marks(); changed(); tab = "prop"; paintTabs(); pane(); evt("ob-comp"); fire("addComponent"); ctx.toast(CICON[c2] + " " + esc(T("{c} added", { c: T(CMP[c2][0]) }))); }
   /// the palette's ready-made sets: a few pieces and the rules between them, where the view's middle (or the drop) lands
   function applySet(id, at) {
     ray.setFromCamera(at || new THREE.Vector2(0, 0), cam); const hit = ray.intersectObjects(objs, true).find(pickable); let p = hit ? hit.point : hitPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)) || new THREE.Vector3(orbit.tx, 0, orbit.tz);
@@ -685,11 +698,11 @@ export function createSceneBuilder(ctx) {
   function histOpen() { histPush(true); const L = hist(), f = document.createElement("div"); f.className = "wse-form";
     f.innerHTML = `<form><b>🕘 ${esc(T("Version history"))}</b><p class="wse-help">${esc(T("The last 5 versions on this device, kept as you work. Your saved games keep their own last 5 in My games."))}</p><ol class="wse-hl">${L.map((h, j) => `<li><span>${new Date(h.at).toLocaleString()}</span><small>${esc(T("{n} pieces", { n: h.n }))}</small>${j ? `<button type="button" class="wsb-b alt" data-hres="${j}">${esc(T("Restore"))}</button>` : `<em>${esc(T("now"))}</em>`}</li>`).join("")}</ol><span class="wse-acts"><button type="button" class="wsb-b" data-no>${esc(T("Close"))}</button></span></form>`;
     el.appendChild(f); f.addEventListener("click", (e2) => { const r = e2.target.closest("[data-hres]"); if (r) { const h = L[+r.dataset.hres]; if (h) { push(); B = JSON.parse(h.b); sel = -1; msel.clear(); rebuild(); changed(); pane(); ctx.toast("🕘 " + esc(T("Restored — Undo brings it back"))); } f.remove(); return; } if (e2.target === f || e2.target.closest("[data-no]")) f.remove(); }); }
-  async function doSave() { histPush(true); if (!ctx.save) { ctx.toast(esc(T("Saved on this device"))); return; } const b0 = el.querySelector("[data-save]"); if (b0) b0.disabled = true; let ok = false; try { ok = await ctx.save(cleanObby(B)); } catch { ok = false; } if (b0) b0.disabled = false; if (ok) ctx.toast("💾 " + esc(T("Saved"))); }
+  async function doSave() { histPush(true); if (!ctx.save) { ctx.toast(esc(T("Saved on this device"))); return; } const b0 = el.querySelector("[data-save]"); if (b0) b0.disabled = true; let ok = false; try { ok = await ctx.save(cleanObby(B)); } catch { ok = false; } if (b0) b0.disabled = false; if (ok) { ctx.toast("💾 " + esc(T("Saved"))); fire("save"); } }
   async function doPublish() { const c = cleanObby(B), BU = obBudget(c);
     if (BU.heavy && !(await ask(T, T("This game may run slowly on phones — {t} triangles (budget {m}), {l} lights, {v} moving pieces. Publish anyway, or make it lighter first?", { t: BU.tris.toLocaleString(), m: OB_BUDGET.tris.toLocaleString(), l: BU.lights, v: BU.moving }), { ok: T("Publish anyway"), cancel: T("Make it lighter") }))) return;
     const R0 = reach || obReach(c, spec); if (!R0.ok && !(await ask(T, T(winMsg(c)) + " — " + T("Publish anyway?"), { ok: T("Publish anyway"), cancel: T("Fix it first") }))) return;
-    try { await ctx.onPublish(c); } catch { ctx.toast(esc(T("Couldn't open it — try again"))); } }
+    try { await ctx.onPublish(c); fire("publish"); } catch { ctx.toast(esc(T("Couldn't open it — try again"))); } }
   /// ED1 (the owner: "on a phone, heavy work goes to the web Studio on a PC"): save the draft, hand over its link
   async function handoff(why) {
     const f = document.createElement("div"); f.className = "wse-form wse-pc";
@@ -709,12 +722,59 @@ export function createSceneBuilder(ctx) {
   async function director(text, tweak) {
     chat.push({ me: true, t: text }); pane(); evt("ob-ai");
     let out = null; if (ctx.director) try { out = await ctx.director(text, tweak ? cleanObby(B) : null, spec); } catch { out = null; }
-    push();
-    if (tweak) { const r = out && out.build ? { build: out.build, did: out.did || ["changes"] } : obTweak(clampSpec({ ...spec, build: cleanObby(B) }), text); B = JSON.parse(JSON.stringify(r.build)); chat.push({ t: r.did.length ? "✓ " + r.did.map((d) => T(DID[d] || d)).join(" · ") : T("I couldn't tell what to change — try “add a boss” or “harder ending”.") }); }
-    else { const w = obWants(text); if (w.theme) spec = clampSpec({ ...spec, theme: w.theme }); const sp = clampSpec({ ...spec, speed: Math.max(1, Math.min(5, spec.speed + w.hard)), walls: Math.max(0, Math.min(5, spec.walls + w.hard)), lasers: Math.max(0, Math.min(3, spec.lasers + (w.hard > 0 ? 1 : 0))), seed: (spec.seed * 7 + text.length * 13) % 999999 || 1 });
-      B = out && out.build ? out.build : genObbyBuild(sp, w); chat.push({ t: "✨ " + T("A course with {n} pieces", { n: B.o.length }) + [w.boss && T("a boss"), w.shop && T("a shop"), w.doors && T("doors and buttons"), w.elevator && T("an elevator"), w.look && T((LOOKS[w.look] || {}).name || "")].filter(Boolean).map((x) => " · " + x).join("") }); }
-    sel = -1; MT = obMats(THREE, THEMES[spec.theme] || THEMES.neon, LOOKS[B.lk]); rebuild(); focusAll(); changed(); pane();
+    if (pend) discardP(); // (a new ask replaces a proposal still waiting)
+    let nb = null, nsp = spec, say = "";
+    if (tweak) { const r = out && out.build ? { build: out.build, did: out.did || ["changes"] } : obTweak(clampSpec({ ...spec, build: cleanObby(B) }), text); if (!r.did.length) { chat.push({ t: T("I couldn't tell what to change — try “add a boss” or “harder ending”.") }); pane(); return; } nb = JSON.parse(JSON.stringify(r.build)); say = "✓ " + r.did.map((d) => T(DID[d] || d)).join(" · "); }
+    else { const w = obWants(text); if (w.theme) nsp = clampSpec({ ...spec, theme: w.theme }); const sp = clampSpec({ ...nsp, speed: Math.max(1, Math.min(5, nsp.speed + w.hard)), walls: Math.max(0, Math.min(5, nsp.walls + w.hard)), lasers: Math.max(0, Math.min(3, nsp.lasers + (w.hard > 0 ? 1 : 0))), seed: (nsp.seed * 7 + text.length * 13) % 999999 || 1 });
+      nb = out && out.build ? out.build : genObbyBuild(sp, w); say = "✨ " + T("A course with {n} pieces", { n: nb.o.length }) + [w.boss && T("a boss"), w.shop && T("a shop"), w.doors && T("doors and buttons"), w.elevator && T("an elevator"), w.look && T((LOOKS[w.look] || {}).name || "")].filter(Boolean).map((x) => " · " + x).join(""); }
+    propose(nb, nsp, say);
   }
+  // S6 (2026-10-29): Preview → Diff → Apply → Undo. The director's answer shows in the scene with what it changed lit (added green,
+  // changed yellow, removed as a red ghost) and a short list; Apply keeps it as ONE undo step and a version, Discard puts yours back.
+  function diffO(a, b) {
+    const key = (q) => JSON.stringify(q), cnt = new Map(); for (const q of a) cnt.set(key(q), (cnt.get(key(q)) || 0) + 1);
+    const added = []; for (const q of b) { const k = key(q), n = cnt.get(k) || 0; if (n) cnt.set(k, n - 1); else added.push(q); }
+    const removed = []; for (const q of a) { const k = key(q), n = cnt.get(k) || 0; if (n) { cnt.set(k, n - 1); removed.push(q); } }
+    const changed2 = []; for (let i = removed.length - 1; i >= 0; i--) { const r = removed[i], j = added.findIndex((x) => x[0] === r[0] && Math.hypot(x[1] - r[1], x[3] - r[3]) < 2.5); if (j >= 0) { changed2.push(added[j]); added.splice(j, 1); removed.splice(i, 1); } }
+    return { added, removed, changed: changed2 };
+  }
+  function diffShow(d) { diffClear(); diffG = new THREE.Group(); const box = new THREE.BoxGeometry(1, 1, 1);
+    const put = (q, col, wire) => { const m = new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: wire ? 0.55 : 0.32, depthWrite: false, wireframe: !!wire })); m.scale.set(Math.max(0.6, q[5] + 0.3), Math.max(0.4, q[6] + 0.3), Math.max(0.6, q[7] + 0.3)); m.position.set(q[1], q[2] + q[6] / 2, q[3]); m.rotation.y = R(q[4] || 0); m.renderOrder = 900; diffG.add(m); };
+    d.added.forEach((q) => put(q, 0x4ade80)); d.changed.forEach((q) => put(q, 0xffd23a)); d.removed.forEach((q) => put(q, 0xff4d5e, true)); scene.add(diffG); dirty = true; }
+  function diffClear() { if (!diffG) return; scene.remove(diffG); diffG.traverse((m) => { if (m.material) m.material.dispose(); }); diffG = null; dirty = true; }
+  function propose(nb, nsp, say) {
+    const d = diffO(B.o, nb.o); pend = { old: snapS(), oldSpec: spec, say, d };
+    B = JSON.parse(JSON.stringify(nb)); spec = nsp; sel = -1; msel.clear(); MT = obMats(THREE, THEMES[spec.theme] || THEMES.neon, LOOKS[B.lk]); rebuild(); diffShow(d); focusAll(); selShow(); pane(); aipvPaint(); evt("ob-ai");
+  }
+  function applyP() { if (!pend) return; undo.push(pend.old); if (undo.length > 120) undo.shift(); redo = []; chat.push({ t: pend.say + " — " + T("applied (one Undo takes it all back)") }); diffClear(); pend = null; changed(); histPush(true); pane(); aipvPaint(); fire("aiApply"); }
+  function discardP() { if (!pend) return; B = JSON.parse(pend.old); spec = pend.oldSpec; chat.push({ t: T("Discarded — your course is as it was") }); diffClear(); pend = null; MT = obMats(THREE, THEMES[spec.theme] || THEMES.neon, LOOKS[B.lk]); rebuild(); selShow(); pane(); aipvPaint(); }
+  const NM = (k) => T((NAMES && NAMES[k]) || k);
+  function aipvHtml() { if (!pend) return ""; const d = pend.d, L = [...d.added.map((q) => ["＋", "add", NM(q[0])]), ...d.changed.map((q) => ["~", "chg", NM(q[0])]), ...d.removed.map((q) => ["−", "rem", NM(q[0])])];
+    const grp = {}; for (const [ic, c, n] of L) { const k = c + n; grp[k] = grp[k] || { ic, c, n, k: 0 }; grp[k].k++; }
+    return `<div class="wse-pv"><b>${esc(T("The director's proposal"))}</b><p>${esc(pend.say)}</p><p class="wse-pvn"><span class="add">＋${d.added.length} ${esc(T("added"))}</span><span class="chg">~${d.changed.length} ${esc(T("changed"))}</span><span class="rem">−${d.removed.length} ${esc(T("removed"))}</span></p>
+      <ul>${Object.values(grp).slice(0, 8).map((g) => `<li class="${g.c}"><i>${g.ic}</i>${esc(g.n)}${g.k > 1 ? ` ×${g.k}` : ""}</li>`).join("")}</ul><div class="wse-acts"><button type="button" class="wsb-b go" data-aiok>✓ ${esc(T("Apply"))}</button><button type="button" class="wsb-b alt" data-aino>✕ ${esc(T("Discard"))}</button></div></div>`; }
+  function aipvPaint() { const v = el && el.querySelector(".wse-aipv"); if (v) { v.innerHTML = aipvHtml(); v.hidden = !pend; } }
+  // ---- S6: the drag's ghost (where it was) and snap guides (lines through where it is), the quick bar beside the selection ----
+  function ghostOn() { ghostOff(); const o = objs[sel]; if (!o) return; const bx = new THREE.Box3().setFromObject(o), c = bx.getCenter(new THREE.Vector3()), sz = bx.getSize(new THREE.Vector3());
+    ghost = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x4fe3c1, transparent: true, opacity: 0.22, depthWrite: false })); ghost.scale.copy(sz.max(new THREE.Vector3(0.2, 0.2, 0.2))); ghost.position.copy(c); ghost.renderOrder = 899; scene.add(ghost);
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(18), 3)); guides = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x9ff3e1, transparent: true, opacity: 0.7, depthTest: false })); guides.renderOrder = 998; scene.add(guides); guideAt(); }
+  function guideAt() { if (!guides || sel < 0 || !B.o[sel]) return; const q = B.o[sel], L = 60, a = guides.geometry.attributes.position, y = q[2] + 0.05;
+    [[q[1] - L, y, q[3], q[1] + L, y, q[3]], [q[1], y, q[3] - L, q[1], y, q[3] + L], [q[1], 0, q[3], q[1], q[2] + q[6], q[3]]].forEach((v, j) => { for (let k = 0; k < 6; k++) a.array[j * 6 + k] = v[k]; }); a.needsUpdate = true; guides.geometry.computeBoundingSphere(); }
+  function ghostOff() { for (const o of [ghost, guides]) if (o) { scene.remove(o); o.geometry.dispose(); o.material.dispose(); } ghost = null; guides = null; dirty = true; }
+  const PV = new THREE.Vector3();
+  function qbarPlace() { if (!qbar && el) qbar = el.querySelector(".wse-qbar"); if (!qbar) return; const q = B.o[sel];
+    if (!q || simOn || act || pend || !cv) { if (!qbar.hidden) qbar.hidden = true; return; }
+    PV.set(q[1], q[2] + Math.max(0.5, q[6]) + 0.6, q[3]).project(cam); if (PV.z > 1) { qbar.hidden = true; return; }
+    const r = cv.getBoundingClientRect(), x = (PV.x * 0.5 + 0.5) * r.width, y = (-PV.y * 0.5 + 0.5) * r.height;
+    if (qbar.hidden) { qbar.hidden = false; qbarPaint(); } qbar.style.transform = `translate(${Math.round(Math.max(8, Math.min(r.width - qbar.offsetWidth - 8, x - qbar.offsetWidth / 2)))}px,${Math.round(Math.max(8, Math.min(r.height - qbar.offsetHeight - 8, y - qbar.offsetHeight - 14)))}px)`; }
+  function qbarPaint() { if (!qbar) return; qbar.querySelectorAll("[data-qb]").forEach((b) => b.classList.toggle("on", b.dataset.qb === mode)); const q = B.o[sel], lk = !!(q && q[12] && q[12].lk); const lb = qbar.querySelector('[data-qb="lock"]'); if (lb) lb.classList.toggle("on", lk);
+    qbar.dataset.mode = mode; qbar.classList.toggle("ph", phone()); }
+  /// the phone's way (and anyone's): small steps from the quick bar, no gizmo needed — 1 m (the snap's step), 15°, ×1.25
+  function nudge(k) { const M = many(); if (!M.length) return; push(); const st = snapV || 1;
+    for (const i of M) { const q = B.o[i]; if (q[12] && q[12].lk) continue;
+      if (k[0] === "x") q[1] = clampAx(1, q[1] + (k[1] === "+" ? st : -st)); else if (k[0] === "z") q[3] = clampAx(3, q[3] + (k[1] === "+" ? st : -st)); else if (k[0] === "y") q[2] = clampAx(2, q[2] + (k[1] === "+" ? st : -st));
+      else if (k[0] === "r") q[4] = (((q[4] + (k[1] === "+" ? 15 : -15)) % 360) + 360) % 360; else if (k[0] === "s") { const f = k[1] === "+" ? 1.25 : 0.8; q[5] = Math.max(0.5, Math.min(40, Math.round(q[5] * f * 4) / 4)); q[7] = Math.max(0.5, Math.min(40, Math.round(q[7] * f * 4) / 4)); } }
+    B = cleanObby(B); rebuild(); selShow(); marks(); changed(); pane(); fire(k[0] === "r" ? "rotate" : k[0] === "s" ? "scale" : "move"); }
   const DID = { boss: "Added a boss arena before the goal", harder: "Made the ending harder", easier: "Made it easier", coins: "Added coins along the way", shop: "Added a shop", checkpoints: "Added checkpoints", spinners: "Added spinners", timer: "Added a timer", look: "Changed the look", changes: "Changed it" };
-  return { open, close, state: () => ({ B, sel, mode }), select: (i) => { sel = i; selShow(); pane(); }, add: addAt, setMode, dup, del, director, spec: () => spec, est: () => est || estimate(clampSpec({ ...spec, build: cleanObby(B) })) };
+  return { open, close, on: (f) => { subs.add(f); return () => subs.delete(f); }, el: () => el, proposal: () => (pend ? { ...pend.d } : null), applyP, discardP, propose: (b, say) => propose(b, spec, say || ""), state: () => ({ B, sel, mode }), select: (i) => { sel = i; selShow(); pane(); }, add: addAt, setMode, dup, del, director, spec: () => spec, est: () => est || estimate(clampSpec({ ...spec, build: cleanObby(B) })) };
 }

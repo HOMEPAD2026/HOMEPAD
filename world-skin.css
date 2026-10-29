@@ -6191,3 +6191,44 @@ body.rq-phase canvas{animation:rqGrey 1.4s ease both}
 .wse.wse-pro{align-items:stretch;justify-content:stretch}.wse.wse-pro>.wsb-in{width:100%;min-width:0;max-width:100%;height:auto;align-self:stretch}
 .wse-pro.wse-ph .wsb-h{flex-wrap:wrap;gap:6px;padding:6px 8px}.wse-pro.wse-ph .wsb-h>b{font-size:14px}.wse-pro.wse-ph .wsb-h .wsb-hr{margin-left:0;width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}.wse-pro.wse-ph .wsb-bar{max-height:40px;overflow:hidden}
 .wse-pro .wse-sheets{box-sizing:border-box;width:100%;min-width:0}.wse-pro .wse-sheets button{min-width:0;padding:0 2px}
+
+/* S6 (2026-10-29): the 3D editor's quick bar beside the selection, the director's proposal, the coach */
+.wse-view{position:relative}
+.wse-qbar{position:absolute;left:0;top:0;z-index:6;display:flex;flex-wrap:wrap;align-items:center;gap:3px;max-width:340px;padding:5px;border-radius:12px;background:rgba(14,17,21,.92);border:1px solid rgba(79,227,193,.35);box-shadow:0 10px 26px rgba(0,0,0,.45);backdrop-filter:blur(8px);animation:wseQb .15s ease-out;will-change:transform}
+@keyframes wseQb{from{opacity:0}}
+.wse-qbar>i{width:1px;align-self:stretch;margin:2px 3px;background:rgba(255,255,255,.12)}
+.wse-qbar button{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 8px;border-radius:8px;border:0;background:none;color:#cfd6de;font:700 12px/1 Sora,"Noto Sans KR",sans-serif;cursor:pointer}
+.wse-qbar button:hover{background:rgba(255,255,255,.07);color:#fff}.wse-qbar button.on{background:rgba(79,227,193,.18);color:#4fe3c1}
+.wse-qbar button span{display:none}.wse-qbar:hover button span{display:inline}
+.wse-qn{display:none;width:100%;gap:3px;padding-top:4px;border-top:1px solid rgba(255,255,255,.08);margin-top:2px}
+.wse-qbar[data-mode=move] .wse-qn,.wse-qbar[data-mode=rot] .wse-qn,.wse-qbar[data-mode=scale] .wse-qn{display:flex}
+.wse-qbar[data-mode=move] [data-qn^=r],.wse-qbar[data-mode=move] [data-qn^=s],.wse-qbar[data-mode=rot] [data-qn^=x],.wse-qbar[data-mode=rot] [data-qn^=y],.wse-qbar[data-mode=rot] [data-qn^=z],.wse-qbar[data-mode=rot] [data-qn^=s],.wse-qbar[data-mode=scale] [data-qn^=x],.wse-qbar[data-mode=scale] [data-qn^=y],.wse-qbar[data-mode=scale] [data-qn^=z],.wse-qbar[data-mode=scale] [data-qn^=r]{display:none}
+.wse-qn button{flex:1;justify-content:center;min-width:32px;background:rgba(255,255,255,.05)}
+.wse-qbar.ph{max-width:none;padding:7px}.wse-qbar.ph button{height:42px;min-width:44px;padding:0 10px;font-size:13px}.wse-qbar.ph button span{display:inline}.wse-qbar.ph .wse-qn button{height:44px;font-size:17px}
+.wse-aipv{position:absolute;right:12px;top:12px;z-index:7;width:min(320px,calc(100% - 24px))}
+.wse-pv{padding:12px 14px;border-radius:14px;background:rgba(14,17,21,.94);border:1px solid rgba(255,210,58,.45);box-shadow:0 14px 34px rgba(0,0,0,.5);color:#e8edf2;font:500 13px/1.4 Sora,"Noto Sans KR",sans-serif;animation:wseQb .2s ease-out}
+.wse-pane .wse-pv{margin-bottom:12px}
+.wse-pv>b{display:block;font-weight:800;font-size:14px;color:#ffd23a}.wse-pv p{margin:4px 0}
+.wse-pvn{display:flex;flex-wrap:wrap;gap:6px}.wse-pvn span{padding:3px 8px;border-radius:999px;font-weight:800;font-size:12px}
+.wse-pv .add{color:#4ade80}.wse-pvn .add{background:rgba(74,222,128,.14)}.wse-pv .chg{color:#ffd23a}.wse-pvn .chg{background:rgba(255,210,58,.14)}.wse-pv .rem{color:#ff6b78}.wse-pvn .rem{background:rgba(255,77,94,.14)}
+.wse-pv ul{list-style:none;margin:6px 0 8px;padding:0;display:grid;gap:2px;font-size:12.5px}.wse-pv li i{display:inline-block;width:16px;font-style:normal;font-weight:900}
+.wse-pv .wse-acts{display:flex;gap:6px}
+.wse-coachhi{position:relative;z-index:5;outline:2px solid #4fe3c1!important;outline-offset:2px;border-radius:10px;animation:wseCoach 1.2s ease-in-out infinite}
+@keyframes wseCoach{50%{box-shadow:0 0 0 6px rgba(79,227,193,.25),0 0 24px rgba(79,227,193,.45)}}
+.wsc{position:fixed;left:16px;bottom:16px;z-index:12050;display:flex;align-items:flex-end;gap:10px;max-width:min(470px,calc(100vw - 32px));pointer-events:none}
+.wsc>*{pointer-events:auto}
+.wsc-who{flex:none;width:92px;height:120px;background:center bottom/contain no-repeat;filter:drop-shadow(0 8px 18px rgba(0,0,0,.5));animation:wscIn .4s cubic-bezier(.2,1.3,.4,1)}
+@keyframes wscIn{from{opacity:0;transform:translateY(16px) scale(.9)}}
+.wsc-card{flex:1;padding:12px 14px;border-radius:16px;background:rgba(14,17,21,.95);border:1px solid rgba(79,227,193,.4);box-shadow:0 18px 40px rgba(0,0,0,.5);color:#e8edf2;font:500 13.5px/1.45 Sora,"Noto Sans KR",sans-serif;animation:wscIn .35s ease-out}
+.wsc-card small{display:flex;justify-content:space-between;gap:8px;font:800 11px/1 Sora,sans-serif;letter-spacing:.06em;color:#4fe3c1;text-transform:uppercase}
+.wsc-card b{display:block;margin:6px 0 2px;font:800 15px/1.3 Sora,"Noto Sans KR",sans-serif;color:#fff}
+.wsc-bar{height:4px;margin:8px 0;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}.wsc-bar i{display:block;height:100%;background:linear-gradient(90deg,#4fe3c1,#39d3ff);transition:width .4s}
+.wsc-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.wsc-acts button{height:30px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#cfd6de;font:700 12px/1 Sora,"Noto Sans KR",sans-serif;cursor:pointer}
+.wsc-acts button:hover{color:#fff;border-color:#4fe3c1}.wsc-acts .wsc-x{margin-left:auto}
+.wsc-done .wsc-card{border-color:#ffd23a}.wsc-ok{animation:wscOk .5s ease}
+@keyframes wscOk{30%{transform:scale(1.04);border-color:#4ade80}}
+@media (max-width:760px){.wsc{left:8px;right:8px;bottom:8px;max-width:none}.wsc-who{width:64px;height:84px}}
+
+.wst-lvl{display:inline-flex;gap:0;margin-left:8px;border:1px solid rgba(255,255,255,.14);border-radius:999px;overflow:hidden;vertical-align:middle}
+.wst-lvl button{height:30px;padding:0 12px;border:0;background:none;color:#aeb7c1;font:700 12px/1 Sora,"Noto Sans KR",sans-serif;cursor:pointer}.wst-lvl button.on{background:rgba(79,227,193,.18);color:#4fe3c1}

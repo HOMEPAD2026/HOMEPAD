@@ -10,6 +10,7 @@
 import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, DEF, JUMPS, genObbyBuild, clampSpec, toBuild, genLevel, scoreOf, speedOf, dashSpeed, estimate, puzzleScore, climbGaps } from "./world-studio-gen.js";
 import { makePreview } from "./world-studio-prev.js";
 import { ask } from "./world-ask.js";
+import { makeCoach, coachLevel, setCoachLevel } from "./world-studio-coach.js";
 import { look as themeLook, trackUV } from "./world-studio-look.js";
 import { level as ringLevel } from "./world-rings-engine.js";
 import { makePad, makeLand } from "./world-studio-pad.js";
@@ -555,7 +556,7 @@ export function createStudio(ctx) {
   function paint3d() {
     const mine3 = [...mine.filter((g) => g.spec && g.spec.tpl === "obby").map((g) => ({ id: g.id, t: g.spec.title || T("My 3D game"), pub: !!g.pub, at: g.at || 0, own: 1 })), ...locals().filter((d) => d.spec && d.spec.tpl === "obby").map((d) => ({ id: d.id, t: d.spec.title || T("My 3D game"), at: d.at || 0, loc: 1 }))].sort((a, b) => b.at - a.at).slice(0, 8);
     return `<div class="wst-3d"><div class="wst-3dban"><img src="${G3IMG("banner")}" alt="" loading="lazy"><div><small>${esc(T("Expert mode"))}</small><b>${esc(T("3D Builder"))}</b><p>${esc(T("Build a real 3D game piece by piece — place, move, turn and size every block, add enemies, bosses and rules, then play it with your own hero."))}</p>
-      <button type="button" class="wst-go" data-g3guide>📖 ${esc(T("How to use — ARON, LUMI and NEX show you"))}</button></div></div>
+      <button type="button" class="wst-go" data-g3guide>📖 ${esc(T("How to use — ARON, LUMI and NEX show you"))}</button><span class="wst-lvl" role="group" aria-label="${esc(T("Coach"))}">${["beginner", "expert"].map((v) => `<button type="button" data-g3lvl="${v}" class="${coachLevel() === v ? "on" : ""}">${esc(T(v === "beginner" ? "Beginner" : "Expert"))}</button>`).join("")}</span></div></div>
       <h4 class="wst-sec">${pi("cube")} ${esc(T("Start a new 3D game"))}</h4><div class="wst-3dgrid">${G3.map(([k, ic, n, l]) => `<button type="button" class="wst-3dc" data-new3d="${k}"><i aria-hidden="true">${ic}</i><b>${esc(T(n))}</b><small>${esc(T(l))}</small></button>`).join("")}</div>
       ${mine3.length ? `<h4 class="wst-sec">${pi("pen")} ${esc(T("Keep building"))}</h4><div class="wst-3dmine">${mine3.map((g) => `<button type="button" data-${g.loc ? "el3" : "ed3"}="${esc(g.id)}"><b>${esc(g.t)}</b><small>${g.pub ? esc(T("Published")) : g.loc ? esc(T("On this device")) : esc(T("Draft"))}</small></button>`).join("")}</div>` : ""}
       <p class="wst-3dnote">${esc(T("Tip: a computer with a mouse is the easiest place to build; on a phone hold it sideways."))}</p></div>`;
@@ -566,28 +567,19 @@ export function createStudio(ctx) {
     spec = clampSpec({ ...base, build: b }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 3; lastTest = null; paint(); ev("tpl"); openBuilder();
   }
   // the guide: nine steps, each told by one of the three heroes (the owner's full-body art, images/studio/guide3d/*-full)
-  const G3STEPS = [
-    ["aron", "Welcome to the 3D Builder!", "I'm ARON. Here you make a real 3D game: blocks, ramps, lava, enemies and bosses. Everything you place is played with your own hero — let's build one together!"],
-    ["lumi", "1 · Pick how to start", "Blank 3D gives you just a start pad and a goal. Obby, Combat, Race and Explore start you with a ready course — change anything you like. You can't break it: Undo is always there."],
-    ["nex", "2 · Look around", "Drag empty space to turn the view, use the wheel (or pinch) to zoom, right-drag (or two fingers) to slide. Press Focus to fly to the piece you picked."],
-    ["aron", "3 · Place pieces", "The pieces are on the left: blocks, ramps, lava, jump pads, coins, checkpoints, enemies, a boss, doors and buttons… Tap one and it drops in front of you."],
-    ["lumi", "4 · Move, turn and size", "Tap a piece to pick it. Move (W) drags the arrows, Turn (E) the ring, Size (R) the little cubes. Snap keeps it on the grid, Copy makes a twin, Delete removes it. Shift + click picks several."],
-    ["nex", "5 · Make it smart", "Properties sets the picked piece. Game sets the genre, how to win, gravity and laps. Logic says WHEN something happens THEN what — a button opens a door, the boss falls and you win."],
-    ["aron", "6 · Test it", "Press Test from here and play it as your hero. The 40 test players show how many reach the goal, and red boxes mark spots nobody can reach — move those pieces closer."],
-    ["lumi", "7 · Make it pretty and ask for help", "Look & UI changes the sky, the light and what's on screen. The Director takes words: “add a boss at the end”, “make it easier”. Assets holds ready-made pieces and prefabs."],
-    ["nex", "8 · Save and publish", "Done brings you back to Create: Save keeps a draft, Publish puts it in the Creator Arcade and in ARCIRCLE WORLD, where everyone can play it — and race you live."],
-  ];
+  // S6 (2026-10-29, the owner: "learn by doing"): the guide is one card now — the coach (world-studio-coach.js) walks you through
+  // the editor itself, waiting for each real action; Expert hides it (the switch on the 3D Builder tab brings it back)
+  let coach = null;
   function guide3d() {
-    let i = 0; const g = document.createElement("div"); g.className = "wst-g3"; g.setAttribute("role", "dialog"); g.setAttribute("aria-modal", "true");
-    const draw = () => { const [h, t, p] = G3STEPS[i], name = h.toUpperCase();
-      g.innerHTML = `<div class="wst-g3in ${{ aron: "h-aron", lumi: "h-lumi", nex: "h-nex" }[h]}"><button type="button" class="wst-g3x" data-g3x aria-label="${esc(T("Close"))}">${pi("close")}</button>
-        <div class="wst-g3who"><img src="${G3IMG(h + "-full")}" alt="${name}"><em>${name}</em></div>
-        <div class="wst-g3say"><small>${esc(T("3D Builder guide"))} · ${i + 1}/${G3STEPS.length}</small><b>${esc(T(t))}</b><p>${esc(T(p))}</p></div>
-        <div class="wst-g3dots">${G3STEPS.map((_, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</div>
-        <div class="wst-g3nav"><button type="button" class="wst-go alt" data-g3b ${i ? "" : "disabled"}>${esc(T("Back"))}</button>${i < G3STEPS.length - 1 ? `<button type="button" class="wst-go" data-g3n>${esc(T("Next"))}</button>` : `<button type="button" class="wst-go" data-g3go>🧱 ${esc(T("Start building"))}</button>`}</div></div>`; };
+    const g = document.createElement("div"); g.className = "wst-g3"; g.setAttribute("role", "dialog"); g.setAttribute("aria-modal", "true");
+    g.innerHTML = `<div class="wst-g3in h-aron"><button type="button" class="wst-g3x" data-g3x aria-label="${esc(T("Close"))}">${pi("close")}</button>
+      <div class="wst-g3who"><img src="${G3IMG("aron-full")}" alt="ARON"><em>ARON · LUMI · NEX</em></div>
+      <div class="wst-g3say"><small>${esc(T("3D Builder guide"))}</small><b>${esc(T("Learn by doing"))}</b><p>${esc(T("We'll build a course together. Each step shows you one control — you do it, and the next step opens by itself. About three minutes."))}</p></div>
+      <div class="wst-g3nav"><button type="button" class="wst-go alt" data-g3ex>${esc(T("I'm an expert"))}</button><button type="button" class="wst-go" data-g3go>🧱 ${esc(T("Start with the coach"))}</button></div></div>`;
     g.addEventListener("click", (e) => { const b = e.target.closest("button"); if (e.target === g || (b && b.hasAttribute("data-g3x"))) { g.remove(); return; } if (!b) return;
-      if (b.hasAttribute("data-g3n")) { i = Math.min(G3STEPS.length - 1, i + 1); draw(); } else if (b.hasAttribute("data-g3b")) { i = Math.max(0, i - 1); draw(); } else if (b.hasAttribute("data-g3go")) { g.remove(); start3d("obby"); } });
-    draw(); document.body.appendChild(g); try { localStorage.setItem("arc.studio.g3d", "1"); } catch { /* every time */ }
+      if (b.hasAttribute("data-g3ex")) { setCoachLevel("expert"); g.remove(); if (el && !el.hidden) paint(); return; }
+      if (b.hasAttribute("data-g3go")) { setCoachLevel("beginner"); try { localStorage.setItem("arc.studio.coach", "0"); } catch { /* fine */ } g.remove(); start3d("obby"); } });
+    document.body.appendChild(g); try { localStorage.setItem("arc.studio.g3d", "1"); } catch { /* every time */ }
   }
   // the side menu (2026-10-29, the owner): « folds it to its icons and back (arc.studio.rail), Shortcuts to the Game World
   // and the platform, and Customer support — the Hub's question and bug boards, and email to contact@arcircle.app
@@ -684,6 +676,7 @@ export function createStudio(ctx) {
     if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); if (tab === "3d") { let seen = false; try { seen = !!localStorage.getItem("arc.studio.g3d"); } catch { /* not kept */ } if (!seen) setTimeout(guide3d, 350); } return; }
     if (b.hasAttribute("data-railx")) { try { localStorage.setItem("arc.studio.rail", railMin() ? "" : "min"); } catch { /* this visit only */ } return paint(); }
     if (b.hasAttribute("data-g3guide")) return guide3d();
+    if (b.dataset.g3lvl) { setCoachLevel(b.dataset.g3lvl); paint(); ctx.toast(esc(T(b.dataset.g3lvl === "expert" ? "Expert: the coach stays hidden" : "Beginner: the coach shows the next step in the 3D editor"))); return; }
     if (b.dataset.new3d) return start3d(b.dataset.new3d);
     if (b.dataset.ed3) { await editById(b.dataset.ed3); if (spec.tpl === "obby") openBuilder(); return; }
     if (b.dataset.el3) { editLocal(b.dataset.el3); if (spec.tpl === "obby") openBuilder(); return; }
@@ -877,9 +870,10 @@ export function createStudio(ctx) {
         handoff: async (b) => { spec = clampSpec({ ...spec, build: b }); if (!ctx.sess()) return null; await save(); return editId ? location.origin + "/studio?tab=3d&edit=" + encodeURIComponent(editId) : null; } } : {}),
       onDone: (b, sp) => { clearTimeout(autoT); try { localStorage.removeItem(AK); } catch { /* fine */ } spec = clampSpec({ ...spec, ...(sp ? { len: sp.len, coins: sp.coins } : {}), build: b }); lastTest = null; },
       onChange: (b) => { ev("build"); clearTimeout(autoT); autoT = setTimeout(() => { try { localStorage.setItem(AK, JSON.stringify({ tpl: spec.tpl, who, b, at: Date.now() })); } catch { /* full or private */ } }, 1500); },
-      onClose: () => { builder = null; if (el) { el.hidden = false; step = 3; paint(); } },
+      onClose: () => { builder = null; if (coach) { coach.stop(); coach = null; } if (el) { el.hidden = false; step = 3; paint(); } },
       onTest: (sp, z) => { const bel = document.querySelector(".wsb"); if (bel) bel.hidden = true; run({ spec: sp, test: true, ...(Array.isArray(z) ? { startAt: z } : ob ? {} : ar ? { startT: z } : { startZ: z }), ...(jw ? { onEdit: (col) => { if (builder && builder.scrollTo) builder.scrollTo(col - 4); } } : {}), onBack: () => { if (bel) bel.hidden = false; if (el) el.hidden = true; } }); } });
     builder.open();
+    if (ob && !coach) { let st = ""; try { st = localStorage.getItem("arc.studio.coach") || ""; } catch { /* fine */ } if (st !== "done") coach = makeCoach({ T, esc, img: G3IMG, builder, onEnd: () => { coach = null; } }); } // (S6: learn by doing)
   }
   // ---------------- the runner ----------------
   async function run(o) {
