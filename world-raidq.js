@@ -694,6 +694,9 @@ export function makeRaidQueens(ctx) {
     bb.innerHTML = run.queens.map((q) => { const hp = q.m && !q.dead ? q.m.hp : 0, f = Math.max(0, hp / q.max), brk = q.brkT > 0;
       return `<div class="rq-bq${q.dead ? " dead" : ""}${brk ? " brk" : ""}" style="--rq:${q.V.css}"><img src="${art(q.id, "full")}" alt=""><div><p><b>${esc(T(q.V.name))}</b><small>${q.dead ? "✓" : `${esc(T("Phase {n}", { n: q.phase }))}${run.hard ? " · 🔥" : ""}`}</small><em>${Math.ceil(f * 100)}%</em></p>
         <i class="rq-bhp"><s style="width:${f * 100}%"></s><b style="width:${f * 100}%"></b><u style="left:60%"></u><u style="left:25%"></u></i><i class="rq-bgd"><b style="width:${brk ? 100 : Math.round((q.brk || 0) * 100)}%"></b>${brk ? `<span>BREAK</span>` : ""}</i></div></div>`; }).join("");
+    // (2026-10-29, the owner: the bars sat over the level / HP card and the purse row on a phone) on the phone layout they
+    // stand right under the run panel, which is under the HP card — never over another window
+    if (document.documentElement.classList.contains("wp-pcphone") && hud) { const t = hud.offsetTop + hud.offsetHeight + 10; if (t > 20) bb.style.top = t + "px"; } else bb.style.top = "";
   }
   let lobby = null, lobbyFocus = "";
   function closeLobby() { if (lobby) { lobby.remove(); lobby = null; ctx.freeze(false); } }

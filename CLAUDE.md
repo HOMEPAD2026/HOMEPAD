@@ -159,6 +159,11 @@ Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as 
   Games list → into a game and out twice, the invite sheet's drag-close, a share card, a stale chunk's reload). PASS/FAIL per check;
   screenshots in OUT. Needs playwright (PW=dir with node_modules/playwright) and Chromium (CHROME=path).
 - Screenshot the change on the phone layout (390x844, touch: the 980px-wide `wp-pcphone` page) and on desktop.
+- **No window or bar over another (the owner, 2026-10-29, a raid's three boss bars sat over the level / HP card and the purse
+  row):** every new or changed in-game panel, bar, card or banner gets its place from the HUD that is already there (stack it
+  under / beside the neighbour it follows, as world-raidq.js bossBar does from the run panel), on the phone layout and on
+  desktop, and the browser check measures it: list every visible fixed element whose box intersects the new one (a few px of
+  shadow aside) — the list must be empty. A screenshot alone isn't the proof.
 - Walk the whole flow, not one frame: enter → play → leave → enter again (twice). Check the HUD isn't covered by the
   minimap, wallet/purse row, quest card or joystick.
 - Think through the paths the test can't take: signed in (server calls), level 90+, a second run in the same session,

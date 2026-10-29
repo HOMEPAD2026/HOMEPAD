@@ -6242,3 +6242,5 @@ html.wp-pcphone .wst .wst-slinks{display:none}
 .wst-pccard>p{margin:0;color:var(--p-ink2,#a9b3bd);font-size:14px;line-height:1.5}
 .wst-pcl{display:flex;gap:8px;flex-wrap:wrap}.wst-pcl input{flex:1 1 180px;min-width:0;height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--p-line,rgba(255,255,255,.14));background:rgba(0,0,0,.25);color:inherit;font:500 13px/1 Sora,sans-serif}
 .wst-3dpc .wst-3dban p{display:none}
+/* the queens' bars on a phone: left, under the run panel (world-raidq.js sets top from the panel) — not over the top HUD (2026-10-29) */
+html.wp-pcphone .rq-bb{left:20px;transform:none;width:min(600px,calc(100% - 40px))}

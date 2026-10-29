@@ -534,7 +534,7 @@ nearAll = (f) => nearCull.all ? nearCull.all(f) : f();
 st.on(() => { try { nearCull.tick(); } catch { /* still loading */ } });
 // the frame count, and the sun's shadow map redrawn every other frame below Ultra (the sun stands still; only the
 // things that move need it, and they barely move in a 30th of a second)
-let frameNo = 0; const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : st.quality.coarse ? 3 : 2; /* b448: phones every 3rd frame (the sun stands still; the real shadow only covers the area round you) */
+let frameNo = 0; const shPrev = new THREE.Vector3(); const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : st.quality.coarse ? 3 : 2; /* b448: phones every 3rd frame (the sun stands still; the real shadow only covers the area round you) */
 if (st.renderer.shadowMap.enabled && shadowEvery > 1) st.renderer.shadowMap.autoUpdate = false;
 // b447: a phone still slow at the fewest pixels stops drawing the live shadow (one less pass over the town each
 // time it updated): the baked town shade (gshadow) then reaches right up to you, and a soft spot sits under your feet.
@@ -557,7 +557,10 @@ function ensureFootSpot() {
   if (footSpot) footSpot.material.opacity = liveShOff ? 1 : 0.5;
 }
 st.on(() => { if (!footSpot) return; footSpot.visible = mode === "hub" && player.visible; if (footSpot.visible) { footSpot.position.set(player.position.x, 0.04, player.position.z); footSpot.scale.setScalar(1 / (1 + Math.max(0, hop) * 0.35)); } });
-st.on(() => { frameNo++; if (liveShOff) { if (st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = liveShOff === 1 || !st.sun.shadow.map; liveShOff = 2; return; } const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = frameNo % ev === 0; });
+st.on(() => { frameNo++; if (liveShOff) { if (st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = liveShOff === 1 || !st.sun.shadow.map; liveShOff = 2; return; } const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) { const moved = shPrev.distanceToSquared(planet.position) > 1e-6; shPrev.copy(planet.position); st.renderer.shadowMap.needsUpdate = moved || frameNo % ev === 0; } });
+// (2026-10-29, the owner: "trees' shadows move oddly, over and over, as I walk") the world moves under the hero (planet.position),
+// so a shadow map kept for 2–3 frames lagged behind the ground and snapped back each time: while the ground moves it is
+// redrawn every frame; standing still it keeps the every-Nth-frame saving
 const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir, around: (f) => farCull.all(f) }) : null;
 if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
 // the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
