@@ -137,6 +137,15 @@ The owner asked for this on every deploy (2026-10-27: "디플로이 하면 항�
   5. screenshot again and compare with the mock-up; show the owner both.
   The cloud session that runs Meshy must be on the "기본" environment (this one's network blocks api.meshy.ai): a
   worker session there makes the files and pushes them to a side branch; this session packs and places them.
+  **I open that worker myself (the owner, 2026-10-29: "Meshy는 니가 새 세션 열어서 했었고 똑같이 해주면 되고, 이건 앞으로도 기억해둬"):**
+  create_session on the "기본" environment (env_01PPxr2cCA4NJMCnLooF43dY) with the repo and a full brief (what to make,
+  budgets, the side branch to push to), check on it with list_events, then pack and place what it pushed — never ask the
+  owner to start it. The same goes for any tool this session's network can't reach (Arc Studio at studio.arc.io too).
+- **Arc Studio is used on purpose and shown (the owner, 2026-10-29: @Arc and @Circle should see ARCIRCLE uses Arc Studio):**
+  onchain work — writing, auditing, testing, deploying contracts — goes through Arc Studio (the arc-studio CLI, a worker
+  session where the network allows studio.arc.io); every contract it wrote or audited says so in its header comment
+  ("Written / audited with Arc Studio — studio.arc.io", the session id), in contracts/README, on /game's news and the
+  release tweet ("built and audited with @Arc Studio, powered by @Circle"). Never claim an audit Arc Studio didn't do.
 - Pictures can also come from OpenAI's image model (`tools/openai-image.mjs gen|edit`, gpt-image-1, `OPENAI_API_KEY` from the environment, `api.openai.com` allowed): key art, backgrounds, icons, transparent cut-outs, edits that follow reference shots; convert to WebP and size for a phone before they go in.
 - **Keep it smooth without being asked:** every new model gets a triangle budget (props 3–8 k, statues 10–20 k, monsters
   ≤ 5 k), Meshy's remesh to it, then the town's packer (Draco + KTX2, textures ≤ 1024 px); repeats are instanced; far
