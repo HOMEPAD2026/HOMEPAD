@@ -230,7 +230,7 @@ export function makeHub(o) {
       <div class="sgh-mosaic" aria-hidden="true">${rows.map((row, r) => `<div class="sgh-mrow${r % 2 ? " rev" : ""}" style="--sp:${70 + r * 12}s">${[...row, ...row].map((id) => `<span style="background-image:url(${art(id, 400)})"></span>`).join("")}</div>`).join("")}</div>
       <div class="sgh-hin">
         <a class="sgh-new" href="?p=updates" data-go="updates"><em>${esc(T("New"))}</em><span><b>${esc(T("The Creator Hub is here"))}</b><small>${esc(T("Your games, analytics, guides, a store of templates and the community — on any screen."))}</small></span><i class="sgh-btn sm">${esc(T("Learn more"))}</i></a>
-        <h1 class="sgh-h1">${T("Make anything you imagine —|right now!").split("|").map((w, i) => `<span style="--d:${120 + i * 140}ms">${esc(w)}</span>`).join(" ")}</h1>
+        <h1 class="sgh-h1">${T("Make anything you imagine —|right now!").split("|").map((w, i) => `<span style="--d:${120 + i * 140}ms">${esc(w.replace(/ ([—–-])$/, "\u00a0$1"))}</span>`).join(" ")}</h1>
         <p class="sgh-lead">${esc(T("Everything you need to make a game is ready: 15 templates, a builder for each, AI help and players in ARCIRCLE WORLD."))}<br>${esc(T("Join a busy community of creators!"))}</p>
         <div class="sgh-cta"><button type="button" class="sgh-btn big pri" data-make>${esc(T("Start creating"))}</button><button type="button" class="sgh-btn big" data-go="community">${ic("play")} ${esc(T("Explore games"))}</button></div>
         <div class="sgh-live" data-fill="live"><span><b>—</b><small>${esc(T("Games"))}</small></span><span><b>—</b><small>${esc(T("Plays"))}</small></span><span><b>—</b><small>${esc(T("Creators"))}</small></span><span><b>—</b><small>${esc(T("Playing now"))}</small></span></div>
