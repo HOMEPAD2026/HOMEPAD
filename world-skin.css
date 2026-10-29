@@ -6244,3 +6244,27 @@ html.wp-pcphone .wst .wst-slinks{display:none}
 .wst-3dpc .wst-3dban p{display:none}
 /* the queens' bars on a phone: left, under the run panel (world-raidq.js sets top from the panel) — not over the top HUD (2026-10-29) */
 html.wp-pcphone .rq-bb{left:20px;transform:none;width:min(600px,calc(100% - 40px))}
+/* ARCIRCLE KART (world-kart.js): its own HUD; the town's HUD hides while a race is on (body.wp-kart) */
+body.wp-kart>*:not(.wk):not(canvas):not(#wp-cv):not(#wp-toast):not(.wp-toast){visibility:hidden}
+.wk{position:fixed;inset:0;z-index:950;pointer-events:none;font-family:Sora,"Noto Sans KR",sans-serif;color:#fff}
+.wk button{pointer-events:auto;font:inherit;cursor:pointer}
+.wk-top{position:absolute;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;align-items:center;gap:14px;padding:8px 10px 8px 16px;border-radius:14px;background:rgba(8,14,34,.78);border:1px solid rgba(56,216,255,.35)}
+.wk-pos{font-size:26px;font-weight:900;color:#ffc23c;min-width:52px}.wk-lap,.wk-time{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.wk-x{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff}
+.wk-spd{position:absolute;right:16px;bottom:calc(150px + env(safe-area-inset-bottom,0px));text-align:right;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.wk-spd b{font-size:40px;font-weight:900;font-variant-numeric:tabular-nums}.wk-spd small{display:block;font-size:12px;opacity:.75}
+.wk-ni{display:flex;gap:4px;justify-content:flex-end;margin-top:6px}.wk-ni s{width:44px;height:8px;border-radius:4px;background:linear-gradient(90deg,#ffa63a calc(var(--f,0)*100%),rgba(255,255,255,.15) 0)}
+.wk-msg{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%) scale(.6);font-size:34px;font-weight:900;color:#ffc23c;text-shadow:0 0 18px rgba(255,166,58,.7);opacity:0;transition:opacity .2s,transform .25s}
+.wk-msg.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.wk-cd{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-size:110px;font-weight:900;color:#fff;text-shadow:0 0 30px #38d8ff}
+.wk-cd.on{animation:wkCd .9s ease-out both}@keyframes wkCd{from{transform:translate(-50%,-50%) scale(1.6);opacity:0}30%{opacity:1}to{transform:translate(-50%,-50%) scale(1);opacity:.85}}
+.wk-help{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);margin:0;padding:6px 12px;border-radius:10px;background:rgba(8,14,34,.6);font-size:12px;opacity:.85;white-space:nowrap}
+.wk-pad{position:absolute;left:0;right:0;bottom:calc(40px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;padding:0 16px}
+.wk-pad button{width:78px;height:78px;border-radius:50%;border:2px solid rgba(56,216,255,.55);background:rgba(8,14,34,.55);color:#fff;font-size:15px;font-weight:800;touch-action:none;user-select:none;-webkit-user-select:none}
+.wk-pad button.on{background:rgba(56,216,255,.45)}.wk-steer,.wk-act{display:flex;gap:12px;align-items:flex-end}.wk-steer button{font-size:30px}
+.wk-act .wk-dr{width:92px;height:92px;border-color:#ff6fc8}.wk-act .wk-bo{border-color:#ffa63a}
+.wk-res{position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,8,22,.55);pointer-events:auto}
+.wk-res-in{width:min(380px,92vw);padding:22px;border-radius:20px;background:linear-gradient(180deg,rgba(18,40,92,.97),rgba(8,20,52,.98));border:1px solid rgba(56,216,255,.4);text-align:center}
+.wk-res-in small{opacity:.75}.wk-res-in h2{margin:6px 0 12px;font-size:44px;color:#ffc23c}.wk-res-in p{display:flex;justify-content:space-between;margin:8px 4px;font-size:16px}.wk-res-in em{color:#2ee0b0;font-style:normal;font-weight:800;margin-left:8px}
+.wk-res-in div{display:flex;gap:10px;margin-top:16px}.wk-res-in div button{flex:1;height:48px;border-radius:12px;border:0;font-weight:800}.wk-go{background:#2ee0b0;color:#04130f}.wk-out{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)!important}
+html.wp-pcphone .wk{zoom:2.2;inset:auto;left:0;top:0;width:calc(100vw / 2.2);height:calc(100vh / 2.2)} /* (the 980 px phone page: the HUD at a phone's size) */

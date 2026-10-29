@@ -2310,6 +2310,26 @@ const paintFrame = () => new Promise((ok) => requestAnimationFrame(() => setTime
 // SURVIVORS ARENA (world-survivors.js): the Game Village's 12-minute survival game, loaded the first time its door is used.
 // Like the mine, its scene is drawn instead of the town (st.view) while you're in; the town waits, frozen, and you come
 // back out in front of the arena's door. What pays is the server's (api/_world-survivors.mjs).
+// ARCIRCLE KART (world-kart.js, 2026-10-29, the owner's KART plan, stage 1): a kart race in its own scene, opened from the Games list
+let kartGame = null, kartOn = false, kartBusy = false;
+async function openKart() {
+  if (kartOn || kartBusy || survOn || mineOn || defenseOn || jumpOn || beatOn || jurOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
+  kartBusy = true; closeAll(); const veil = $("wp-veil");
+  try {
+    if (!kartGame) { let M; try { M = await import("./world-kart.js"); } catch (e) { throw new Error("load: " + ((e && e.message) || e)); }
+      kartGame = M.createKart({ THREE, K, st, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, heroId: K.heroOf ? K.heroOf(P.char || "") : P.char,
+        makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint && id === P.char) c.setTint(P.tint || 0); return c; }),
+        onLeave: () => { kartOn = false; frozen = false; keys.clear(); near = null; paintPrompt(); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } } }); }
+    if (veil && !reduce) { veil.style.opacity = "1"; await sleep(300); }
+    frozen = true; keys.clear(); near = null; paintPrompt();
+    const ok = await kartGame.enter(); kartOn = !!ok; if (!ok) frozen = false; try { quests.bump("game"); } catch { /* counted next time */ }
+    if (veil) veil.style.opacity = "0";
+  } catch (e) { // never fail silently: a short reason, the town back, the next tap tries again
+    console.warn("kart", e); if (diag && diag.err) diag.err("kart: " + String((e && e.message) || e), "openKart"); kartOn = false; frozen = false; if (veil) veil.style.opacity = "0";
+    try { if (kartGame) kartGame.leave(); st.view(null); st.solo(null); document.body.classList.remove("wp-kart"); } catch { /* the town draws again */ }
+    const why = String((e && e.message) || e); if (why.startsWith("load:") && staleReload()) return; toast(TW("ARCIRCLE KART couldn't start") + " — " + esc(why.slice(0, 80)));
+  } finally { kartBusy = false; }
+}
 let survGame = null, survOn = false, survBusy = false;
 // the arena's module, made once: the Game Village's door and the Studio's MONSTER SURVIVAL games (SB-3: survGame.custom) share it
 async function survModule() {
@@ -4846,7 +4866,7 @@ st.on(() => { let on = false; try { on = !!coarse && landNow === "rq"; } catch {
 // the GPU never resting. A phone on Auto (no limit picked in Settings) runs an even 30 where you walk, build or read —
 // the town, every land, Creator City, the Studio's windows, menus — and up to 60 only in the fast games (Survivors, the
 // Game Village games, the hoverboard race, a Studio run); a limit you picked stays yours everywhere
-const fastNow = () => { try { return !!(survOn || defenseOn || jumpOn || beatOn || (race && race.racing && race.racing()) || (studio && studio.playing && studio.playing())); } catch { return false; } };
+const fastNow = () => { try { return !!(kartOn || survOn || defenseOn || jumpOn || beatOn || (race && race.racing && race.racing()) || (studio && studio.playing && studio.playing())); } catch { return false; } };
 const capNow = () => S.fpsCap || (coarse ? (fastNow() && !rqCool ? autoCap || 60 : 30) : autoCap || 60);
 { let capWas = 0; const capTick = () => { const c = capNow(); if (c !== capWas) { capWas = c; st.fps(c); dynBad = 0; dynGood = 0; } }; capTick(); setInterval(capTick, 400); }
 function dynRes(dt) {
@@ -5557,6 +5577,7 @@ const referUI = (() => {
 // (api/_world-shop.mjs EARN); the day's ARCL so far comes from the server.
 const GAME_LIST = [
   { id: "jurassic", warp: ["#3dff9a", "#1fae5c", "#c8ff6a"], genre: "Adventure", name: "JURASSIC WORLD", tag: "Raise · Ride · Survive", pay: "Dinosaur eggs, a companion and XP", open: () => openJurassic() },
+  { id: "kart", warp: ["#38d8ff", "#ffc23c", "#ff6fc8"], genre: "Racing", name: "ARCIRCLE KART", tag: "Drift · Boost · Race", pay: "Your best lap time (rewards come later)", open: () => openKart() },
   { id: "surv", warp: ["#ff8a3a", "#ff4d6d", "#ffd75e"], genre: "Action", name: "SURVIVORS ARENA", tag: "Survive 12 minutes", pay: "Up to 3,000 ARCL a run · 3 paid runs a day", door: "surv", open: () => openSurvivors() },
   { id: "poker", warp: ["#b46cff", "#ffd23a", "#7a4dff"], genre: "Cards", name: "ARCIA POKER LOUNGE", tag: "Hold'em · Blackjack · free chips", pay: "300 ARCL a daily mission (never for winning)", door: "poker", open: () => openPoker() },
   { id: "rings", warp: ["#2ee0b0", "#38d8ff", "#9fe6ff"], genre: "Puzzle", name: "INFINITY RINGS", tag: "Ring puzzles · daily boards", pay: "100 ARCL a new star", door: "rings", open: () => openRings() },
@@ -5570,7 +5591,7 @@ const playedAny = () => { try { return !!localStorage.getItem(PLAYED); } catch {
 setInterval(() => { if ((jurOn || survOn || pokerOn || ringsOn || mineOn || defenseOn || jumpOn || beatOn) && !playedAny()) try { localStorage.setItem(PLAYED, String(Date.now())); } catch { /* private */ } }, 5000);
 function goGame(g) {
   if (mode !== "hub" || introOn || flying) { toast(TW("Go back to the town first")); return; }
-  if (jurOn || survOn || pokerOn || ringsOn || mineOn || defenseOn || jumpOn || beatOn) { toast(TW("Leave this game first")); return; }
+  if (kartOn || jurOn || survOn || pokerOn || ringsOn || mineOn || defenseOn || jumpOn || beatOn) { toast(TW("Leave this game first")); return; }
   closeAll(); frozen = false;
   // b-fx1: a portal swirl round the game's picture, which zooms in, then the game (less motion: none)
   fun("game"); try { if (quests && quests.bump) quests.bump("game"); } catch { /* counted next time */ } if (!reduce) { const w = document.createElement("div"); w.className = "wp-warp"; if (g.warp) g.warp.forEach((c, k) => w.style.setProperty("--w" + (k + 1), c)); w.innerHTML = `<i></i><img src="/images/games/${g.id}-art.webp" alt="">`; document.body.appendChild(w); setTimeout(() => w.classList.add("out"), 900); setTimeout(() => w.remove(), 1400); }
@@ -6455,6 +6476,7 @@ window.arcWorld = { hwDbg: () => { const v = here(new THREE.Vector3()); return {
   level: () => level(), purse: (f) => refreshPurse(f), bakedShadows: () => bakedShadows(), // b447: the slow-phone shadow step, for tests
   poker: () => ({ game: pokerGame, on: pokerOn, open: openPoker, door: () => { const e = gv.exitOf("poker"); standAt(e.x, e.z, gv.center); }, view: () => { const e = gv.exitOf("poker"), c = gv.center; standAt(c.x + (e.x - c.x) * 0.3, c.z + (e.z - c.z) * 0.3, { x: e.x * 2 - c.x, z: e.z * 2 - c.z }); } }),
   rings: () => ({ game: ringsGame, on: ringsOn, open: openRings, door: () => { const e = gv.exitOf("rings"); standAt(e.x, e.z, gv.center); }, view: () => { const e = gv.exitOf("rings"), c = gv.center; standAt(c.x + (e.x - c.x) * 0.3, c.z + (e.z - c.z) * 0.3, { x: e.x * 2 - c.x, z: e.z * 2 - c.z }); } }),
+  kart: () => ({ game: kartGame, on: kartOn, open: openKart }),
   surv: () => ({ game: survGame, on: survOn, open: openSurvivors, door: () => { const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); } }),
   land: () => land,
   jurassic: () => ({ game: jurGame, on: jurOn, open: openJurassic, allowed: jurAllowed(), gate: () => jurGateGo() }),
