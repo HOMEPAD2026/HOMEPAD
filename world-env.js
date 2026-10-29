@@ -72,7 +72,7 @@ const BLADE_VS = /* glsl */`
   void main() {
     vec2 off = fract(aRnd.xy - uCenter / uSize + 0.5) - 0.5;
     vec2 p = uCenter + off * uSize;
-    float edge = 1.0 - smoothstep(0.24, 0.5, length(off)); // a round, soft edge (a square one shows as a diamond from above)
+    float edge = 1.0 - smoothstep(0.40, 0.5, length(off)); // a round, soft edge (a square one shows as a diamond from above); 2026-10-30, the owner: from 0.24 the blades visibly grew ~15 m round you as you walked — now they only thin out in the last few metres, out in the haze
     float m = texture2D(uMask, p / uMaskExt + 0.5).r;
     float h = (0.28 + aRnd.w * 0.36) * smoothstep(0.35, 0.8, m) * edge;
     float rot = aRnd.z * 6.2831;

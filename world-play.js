@@ -5284,7 +5284,7 @@ const landing = dive();
   if (first) { first = false; return; } /* (the loading screen's warm-up compiled these) */ if (!fresh.length) return;
   busy = true; compileHidden(fresh).then(() => { busy = false; }, () => { busy = false; });
 }, coarse ? 4000 : 2500); }
-$("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; if (loadReadyRes) loadReadyRes(); }, 700); fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
+$("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; const t0 = Date.now(), iv = setInterval(() => { const calm = !introOn && !flying && Date.now() - t0 > 2500; if (calm || Date.now() - t0 > 15000) { clearInterval(iv); setTimeout(() => { if (loadReadyRes) loadReadyRes(); }, calm ? 1800 : 0); } }, 300); }, 700); /* (2026-10-30, the owner: the arrival stuttered — the portals, gates and Studio hall only start loading once you've landed and stood a moment, not under the fly-in) */ fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
 // the most played games' code fetched while the town is quiet, one at a time (entering one then doesn't wait for the
 // download); not on data saver or a slow connection, never in a fight; a failure here is only a later download
 { const nc = navigator.connection || {}, slow = nc.saveData || /(^|-)2g|3g/.test(String(nc.effectiveType || ""));

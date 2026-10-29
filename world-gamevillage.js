@@ -318,7 +318,7 @@ export function makeGameVillage({ THREE, K, planet, T, low = false, look = null,
         if (n) { o.instanceMatrix.needsUpdate = true; if (o.computeBoundingSphere) o.computeBoundingSphere(); } });
     },
     /// where to stand when you come out of a game: in front of its door, facing the square
-    exitOf(id) { const i = GAMES.findIndex((g) => g.id === id), p = plotAt(Math.max(0, i)), d = id === "surv" || id === "kart" ? 9 : id === "rings" || id === "poker" ? 8.6 : 6.5; return { x: V.x + p.x - Math.sin(p.a) * d, z: V.z + p.z - Math.cos(p.a) * d }; },
+    exitOf(id) { const i = GAMES.findIndex((g) => g.id === id), p = plotAt(Math.max(0, i)), d = id === "kart" ? 13 : id === "surv" ? 9 : id === "rings" || id === "poker" ? 8.6 : 6.5; return { x: V.x + p.x - Math.sin(p.a) * d, z: V.z + p.z - Math.cos(p.a) * d }; },
     /// the player's planet position: build the buildings when near, hide them when far
     tick(dt, t, px, pz) {
       const d = Math.hypot(px - V.x, pz - V.z);
