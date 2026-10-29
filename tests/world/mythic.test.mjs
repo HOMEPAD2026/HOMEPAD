@@ -180,6 +180,8 @@ r = await call(A, "world-mythic-equip", { slot: "weapon", id: null }); check(r.s
   r = await call(A, "world-mythic-nft-admin", { op: "sign", id: pid, deadline, sig: sigGM }); check(r.status === 400 && /another wallet/.test(r.body.error), "the contract takes another wallet's vouchers: the GM's signature is refused (it would fail on Arc)");
   EC[CC.NFT.SEL.signer] = padW(a);
   r = await call(A, "world-mythic-nft-admin", { op: "sign", id: pid, deadline, sig: sigGM }); check(r.status === 200 && db.get(`worldMythic/${pid}`).nft.sig === sigGM, "the GM's own signature: kept with the piece");
+  { const far = Math.floor(T / 1000) + 3 * 86400; r = await call(A, "world-mythic-nft-admin", { op: "sign", id: pid, deadline: far, sig: sigGM }); check(r.status === 400, "a voucher good for three days: refused (a day at most — Arc Studio audit CC-3)"); }
+  r = await call(A, "world-mythic-nft-cancel", { id: pid }); check(r.status === 409 && db.get(`worldMythic/${pid}`).state === "NFT_PENDING", "a signed voucher still good: the piece can't be taken back into the game (it could be minted too)");
   const pad = (x) => "0x" + BigInt(x).toString(16).padStart(64, "0"), padA = (x) => "0x" + x.replace(/^0x/, "").toLowerCase().padStart(64, "0");
   const mtx = "0x" + "d1".repeat(32); RC[mtx] = { status: "0x1", logs: [{ address: CC.NFT.ADDR, topics: [CC.NFT.TOPIC.minted, pad(v.tokenId), padA(b)], data: "0x" }] };
   r = await call(A, "world-mythic-nft-minted", { id: pid, tx: mtx }); check(r.status === 400, "a mint to someone else: not this piece's");
@@ -198,6 +200,8 @@ r = await call(A, "world-mythic-equip", { slot: "weapon", id: null }); check(r.s
     const ltx = "0x" + "f1".repeat(32); RC[ltx] = { status: "0x1", logs: [{ address: CC.NFTMKT.ADDR, topics: [CC.NFTMKT.TOPIC.listed, pad(tid), padA(a)], data: pad(25000000n) }] };
     r = await call(A, "world-mythic-nftmkt-note", { tx: ltx }); let L = (await W.read(new URL("https://x/api/social?world=mythic-nftmkt"))).body;
     check(r.status === 200 && L.on && L.list.length === 1 && L.list[0].price === 2500 && L.list[0].seller === a, "a listing on Arc shows in the game's NFT market (25 USDC)");
+    { const q = db.get(`worldMythic/${pid}`); db.set(`worldMythic/${pid}`, { ...q, nft: { ...q.nft, mintedAt: T + 1 } }); L = (await W.read(new URL("https://x/api/social?world=mythic-nftmkt"))).body;
+      check(!L.list.length, "a listing from before the token was minted again: hidden (Arc Studio audit CM-1)"); db.set(`worldMythic/${pid}`, q); }
     const stx = "0x" + "f2".repeat(32); RC[stx] = { status: "0x1", logs: [{ address: CC.NFTMKT.ADDR, topics: [CC.NFTMKT.TOPIC.sold, pad(tid), padA(a), padA(b)], data: pad(25000000n) + pad(500000n).slice(2) }] };
     r = await call(B, "world-mythic-nftmkt-note", { tx: stx }); L = (await W.read(new URL("https://x/api/social?world=mythic-nftmkt"))).body;
     check(r.status === 200 && !L.list.length && L.sales.length === 1 && db.get(`worldMythic/${pid}`).owner === b && db.get(`worldMythicOwn/${b}`).ids.includes(pid) && !db.get(`worldMythicOwn/${a}`).ids.includes(pid), "sold on Arc: off the list, in the sales, the piece is the buyer's in the game");

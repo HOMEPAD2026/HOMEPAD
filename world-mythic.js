@@ -292,7 +292,11 @@ export function makeMythicUI(ctx) {
   }
   async function nftBack(btn, tokenId) {
     if (!ctx.tx) return; if (typeof confirm === "function" && !confirm(T("Bring this NFT back into the game? It burns on Arc and the piece comes back to your set."))) return;
-    btn.disabled = true; let tx; try { tx = await ctx.tx(CC.NFT.ADDR, nftToGameData(tokenId)); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
+    btn.disabled = true;
+    // (Arc Studio audit CM-1: a listing would outlive the burn — take it off the market first)
+    try { const j = nmk || (await fetch("/api/social?world=mythic-nftmkt", { cache: "no-store" }).then((r) => r.json())); const me = String((ctx.sess() || {}).wallet || "").toLowerCase();
+      if (j && (j.list || []).some((x) => String(x.tid) === String(tokenId) && x.seller === me)) { const c = await call(MK.ADDR, MK.SEL.cancel + u256(tokenId)); if (!c) { btn.disabled = false; return; } await nmNote(c); } } catch {}
+    let tx; try { tx = await ctx.tx(CC.NFT.ADDR, nftToGameData(tokenId)); } catch (e) { btn.disabled = false; ctx.toast(esc(e && e.code === 4001 ? T("Cancelled") : (e && e.message) || T("The wallet didn't send it"))); return; }
     const r = await untilConfirmed({ action: "world-mythic-nft-back", tokenId, tx });
     if (!r || !r.ok) { btn.disabled = false; ctx.toast(esc((r && r.j && r.j.error) ? T(r.j.error) : T("Couldn't change it — try again"))); return; }
     await ctx.refresh(); paint(); snd("equip"); ctx.toast(esc(T("Back in the game — enhance, trade or wear it here")));

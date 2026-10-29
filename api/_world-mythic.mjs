@@ -348,6 +348,8 @@ export function makeMythic(deps) {
   }
   async function nftCancel(b) {
     const m = await mine(b, false); if (m.err) return m.err; const { id, p } = m; if (p.state !== "NFT_PENDING") return json(409, { error: "it isn't waiting to be an NFT" });
+    // (Arc Studio audit CC-3: a signed voucher stays mintable until its deadline — cancelling then would let one piece be an NFT and back in the game at once)
+    if (p.nft && p.nft.sig && Number(p.nft.deadline || 0) > now() / 1000) return json(409, { error: "its voucher is signed — mint it, or cancel after it runs out", until: p.nft.deadline });
     await setDoc(`worldMythic/${id}`, { ...p, state: "GAME_OWNED", nft: null }); return json(200, { ok: true });
   }
   /// the wallet the contract takes vouchers from (and one waiting to take over, from when); null when it can't be read
@@ -364,7 +366,7 @@ export function makeMythic(deps) {
     if (op !== "sign") return json(400, { error: "list or sign" });
     if (!NFT_ON()) return json(503, { error: "the NFT contract isn't set yet" });
     const id = String(b.id || ""), p = await one(`worldMythic/${id}`); if (!p || p.state !== "NFT_PENDING") return json(404, { error: "it isn't waiting to be an NFT" });
-    const deadline = Math.floor(Number(b.deadline) || 0); if (!(deadline > now() / 1000 && deadline <= now() / 1000 + 7 * 86400)) return json(400, { error: "a deadline within a week" });
+    const deadline = Math.floor(Number(b.deadline) || 0); if (!(deadline > now() / 1000 && deadline <= now() / 1000 + CC.NFT.DEADLINE_S + 600)) return json(400, { error: "a deadline within a day" });
     const v = nftVoucher(p, p.owner, p.nft.nonce, deadline), who = recoverDigest(voucherDigest(v, CC.NFT.ADDR), String(b.sig || ""));
     if (!who || !(deps.isGM && deps.isGM(who))) return json(400, { error: "that signature isn't a GM wallet's for this voucher" });
     const cs = await chainSigner(); if (cs && cs.signer !== who) return json(400, { error: "the contract takes vouchers from another wallet: make your wallet its signer first (GM · NFT)" }); // (a voucher it would refuse on Arc)
@@ -415,7 +417,7 @@ export function makeMythic(deps) {
   async function nftMkt() {
     const M = (await one(MKQ)) || { list: {}, sales: [] }, tids = Object.keys(M.list || {}).slice(0, 200), refs = tids.length ? await getDocs(tids.map((t) => `worldMythicNft/${t}`)) : {};
     const ids = tids.map((t) => refs[`worldMythicNft/${t}`] && refs[`worldMythicNft/${t}`].id).filter(Boolean), P = ids.length ? await getDocs(ids.map((i) => `worldMythic/${i}`)) : {};
-    const rows = tids.map((t) => { const r = refs[`worldMythicNft/${t}`], p = r && P[`worldMythic/${r.id}`]; return p && p.state === "NFT_ACTIVE" ? { tid: t, id: p.id, def: p.def, plus: p.plus || 0, stars: p.stars || 0, src: p.src, price: M.list[t].price, seller: M.list[t].seller, at: M.list[t].at } : null; }).filter(Boolean);
+    const rows = tids.map((t) => { const r = refs[`worldMythicNft/${t}`], p = r && P[`worldMythic/${r.id}`]; return p && p.state === "NFT_ACTIVE" && (M.list[t].at || 0) >= ((p.nft && p.nft.mintedAt) || 0) && M.list[t].seller === p.owner ? { tid: t, id: p.id, def: p.def, plus: p.plus || 0, stars: p.stars || 0, src: p.src, price: M.list[t].price, seller: M.list[t].seller, at: M.list[t].at } : null; }).filter(Boolean);
     return json(200, { on: MKT_ON(), addr: CC.NFTMKT.ADDR, feeBps: CC.NFTMKT.FEE_BPS, list: rows.sort((a, b) => b.at - a.at), sales: (M.sales || []).slice(-30).reverse() }, "no-store");
   }
   async function nftSync(b) {
@@ -435,6 +437,8 @@ export function makeMythic(deps) {
     if (!(await commit([{ create: `worldPayTx/${tx}`, data: { w, k: "mythic-nft-back", id: p.id, at: now() } }])).ok) return json(409, { error: "this transaction was already used" });
     const old = p.owner; if (old !== w) { const oo = await ownOf(old), eqO = { ...(oo.eq || {}) }; for (const [k, v] of Object.entries(eqO)) if (v === p.id) delete eqO[k]; await setDoc(`worldMythicOwn/${old}`, { ...oo, ids: (oo.ids || []).filter((x) => x !== p.id), eq: eqO }); }
     const no = await ownOf(w); await setDoc(`worldMythicOwn/${w}`, { ...no, ids: [...new Set([...(no.ids || []), p.id])] });
+    // (Arc Studio audit CM-1: a listing outlives the burn on Arc — the token id comes back on a re-mint — so the index forgets it here)
+    const MK = await one(MKQ); if (MK && MK.list && MK.list[tid]) { delete MK.list[tid]; await setDoc(MKQ, MK); }
     const np = { ...p, owner: w, state: "GAME_OWNED", nft: null, nftPast: [...(p.nftPast || []), { tokenId: tid, back: tx, at: now() }].slice(-10), log: logOf(p, "back", tid), ...(old !== w ? { hist: [...(p.hist || []), { from: old, to: w, nft: true, at: now() }].slice(-20) } : {}) };
     await setDoc(`worldMythic/${p.id}`, np); touch(w).catch(() => {}); if (old !== w) touch(old).catch(() => {});
     return json(200, { ok: true, piece: np });

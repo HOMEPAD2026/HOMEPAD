@@ -6,6 +6,10 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @custom:audit Audited with Arc Studio — studio.arc.io (2026-10-29, balanced rigor; session crimson-audit, app
+///         4f2ec0cc-8e7e-44f0-92b6-1e4b26e01961, thread 7a50b058-44fe-4470-ad9c-d3d7276f06ae): 1 medium · 3 low · 4 info, no critical / high.
+///         Report and the game's mitigations: contracts/audits/arc-studio-2026-10-29.md. (This comment was added after the
+///         deployment; the deployed bytecode is from the source before it.)
 /// @title Crimson Celestial — ARCIRCLE WORLD's MYTHIC gear as NFTs (step C)
 /// @notice A piece of the set lives in the game (the server keeps it); its holder can take it onto Arc as an NFT with a
 ///         voucher signed by the team's wallet (the GM signs it in their own wallet — no key on any server), and bring it

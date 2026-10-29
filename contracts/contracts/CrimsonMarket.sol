@@ -7,6 +7,10 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+/// @custom:audit Audited with Arc Studio — studio.arc.io (2026-10-29, balanced rigor; session crimson-audit, app
+///         4f2ec0cc-8e7e-44f0-92b6-1e4b26e01961, thread 7a50b058-44fe-4470-ad9c-d3d7276f06ae): 1 medium · 3 low · 5 info, no critical / high.
+///         Report and the game's mitigations: contracts/audits/arc-studio-2026-10-29.md. (This comment was added after the
+///         deployment; the deployed bytecode is from the source before it.)
 /// @title Crimson Market — buy and sell Crimson Celestial NFTs for USDC on Arc (ARCIRCLE WORLD, the owner's call 2026-10-26)
 /// @notice Nothing is held here: a seller lists a piece they hold (and lets this contract move it), a buyer pays the
 ///         price in USDC and the piece moves from the seller straight to the buyer in the same transaction. The platform
