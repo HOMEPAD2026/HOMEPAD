@@ -160,6 +160,7 @@ async function makeHost() {
     makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
     myChar: () => (/^custom-/.test(P.char || "") ? P.char : "custom-aron"), makeHeroOf: (id) => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(id) ? id : "custom-aron") : "custom-aron", VER) }); /* (WS4: the other racers) */
   if (coarse && st.fps) { let was = 0; const cap = () => { const c = studio.playing() ? 60 : 30; if (c !== was) { was = c; st.fps(c); } }; cap(); setInterval(cap, 500); } /* (PF1: a phone draws the Studio windows and preview at 30, a game at 60) */
+  if (st.idle) { let rest = null; const idle = () => { const r = !studio.playing(); if (r !== rest) { rest = r; st.idle(r, true); } }; idle(); setInterval(idle, 200); } /* (2026-10-29, the owner: the arcade stuttered — the stage behind the Studio window drew every frame while nothing ran on it; it rests now unless a game is playing) */
   mark("sg:host"); host = { K, st, studio, gate, cv }; return host;
 }
 function done() { // (the run's way back: the page again)

@@ -600,7 +600,7 @@ export function createStudio(ctx) {
     { const nv = el.querySelector(".wst-body > .wst-nav"); if (nv) el.querySelector(".wst-in").insertBefore(nv, el.querySelector(".wst-foot")); } // (PRO: Back / Test / Next as the window's own bar under the page, so it never sits on what you're reading)
     estRoll();
     if (tab === "arcade" || tab === "mine") setTimeout(estFill, 60);
-    if (tab === "arcade" && !ctx.coarse) setTimeout(() => { const hc = el && el.querySelector(".wst-hcv"); if (hc && !liveCv) cardLive(hc); }, 400); /* (RM2: the banner's level runs) */
+    /* (2026-10-29, the owner: the arcade stuttered — the banner no longer plays its level by itself; its picture stays until you point at it, like the cards) */
     if (tab === "make") { drawPrev(); attachPreview(); if (step === 3) setTimeout(fillGallery, 30); } else { if (prev) prev.stop(); wantThumbs(tab === "arcade" ? arcade : tab === "mine" ? [...mine, ...locals().map((d) => ({ id: d.id, at: d.at, spec: d.spec }))] : []); }
   }
   let estT = 0, estLast = null;
