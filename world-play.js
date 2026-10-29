@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
   else { (window.__arcFrame ? window.top : window).location.replace("/?skip"); await new Promise(() => {}); }
   document.getElementById("wp-loading").hidden = false;
 }
-import { WORDS } from "./world-words.js";
+import { WORDS, loadWords } from "./world-words-load.js"; // (the player's language only — gen/words-<lang>.js, made from world-words.js by the build)
 import { ask as askCard } from "./world-ask.js";
 import { clockOf as hwClock } from "./world-hwrealm-data.js";
 const VER = new URL(import.meta.url).search;
@@ -68,6 +68,10 @@ const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n
 // (the game's words live in world-words.js: WORDS)
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 // for the newer modules: a single word from WORDS, anything longer from the site dictionary
+if (LANG !== "en") await loadWords(LANG); // (preloaded by play.html's build block, so this is a cache hit)
+// what waits for the loading screen to be gone (the far gates' models, the Citadel, the Studio hub: 1 MB each, they
+// used to come in during loading on phones, behind the town's own files)
+let loadReadyRes = null; const loadReady = new Promise((r) => { loadReadyRes = r; });
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
 /// the opening week's launch card (24 – 31 Oct, Seoul): on every visit, for everyone (guests and agent owners too), on top of
 /// everything, the moment the loading screen is done and you're in the town (not over the loading screen: the owner, 2026-10-24).
@@ -598,7 +602,7 @@ const amb = AMB.createAmbient({ THREE, planet, low: lowGfx, bats: HW.halloweenOn
 // b-st3: the first minutes, counted (world-diag.js funnel): each step once a visit; nw = this browser's first visit
 const FUN_NEW = (() => { try { const k = "arc.world.fun0"; const was = localStorage.getItem(k); if (!was) localStorage.setItem(k, String(Date.now())); return !was; } catch { return false; } })();
 const funSent = new Set(); const fun = (ev) => { if (funSent.has(ev)) return; funSent.add(ev); try { if (diag && diag.funnel) diag.funnel(ev, FUN_NEW); } catch { /* fine */ } };
-const diag = DIAG.createDiag({ who: () => { const s0 = sess(); return s0 ? { w: s0.wallet, nm: (typeof P !== "undefined" && P && P.name) || "" } : {}; }, ver: VER, post, active: () => !(st.resting && st.resting()), renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => { try { return capNow(); } catch { return S.fpsCap || autoCap || 60; } }, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : landNow === "rq" ? (rqL && rqL.running() ? "raid" : "rqhall") : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo; } catch { return false; } } });
+const diag = DIAG.createDiag({ who: () => { const s0 = sess(); return s0 ? { w: s0.wallet, nm: (typeof P !== "undefined" && P && P.name) || "" } : {}; }, ver: VER, post, renderer: st.renderer, quality: S.quality || "auto", coarse: !!st.quality.coarse, tier: K.gpuTier ? K.gpuTier() : "", cap: () => { try { return capNow(); } catch { return S.fpsCap || autoCap || 60; } }, work: () => (st.work ? st.work.last : -1), where: () => (survOn ? "surv" : ringsOn ? "rings" : pokerOn ? "poker" : mineOn ? "mine" : defenseOn ? "def" : jumpOn ? "jump" : beatOn ? "beat" : mode === "island" ? "isle" : combat && combat.zone() ? "zone" : (() => { try { return landNow === "ad" ? "city" : landNow === "rq" ? (rqL && rqL.running() ? "raid" : "rqhall") : "hub"; } catch { return "hub"; } })()), busy: () => !!(combat && combat.dangerNear && combat.dangerNear(14)), active: () => { try { return mode === "hub" && !frozen && !photo && !(st.resting && st.resting()); } catch { return false; } } }); /* (a resting stage's long gaps aren't hitches) */
 // a phone turned sideways or back: what its browser did with the page's scale (play.html window.__arcVp), in the player's
 // log — a phone in full screen once kept the upright layout and drew the HUD huge, and this container can't hold one
 if (document.documentElement.classList.contains("wp-pcphone")) { let was = document.documentElement.classList.contains("wp-land"), vpT = 0; // (the turn's log line ends "→ phone layout" when the page fell back to the phone's own width)
@@ -633,7 +637,7 @@ st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* stil
 // b-lpv (the owner's call, 2026-10-23): the Launchpad Village and the Utility Village are lands of their own past the
 // town (world-lands.js), reached by the portals that stand where the shops' ring was; the plaza is open now. The town
 // keeps the Dark Market's sign; the roads run from the plaza to the portals
-const lands = LD.makeLands({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, groundMat: (groundG.children.find((m) => m.isMesh && m.material && m.material.map) || {}).material || null, onModel: () => { if (labels) labels.dirty = true; farCull.rescan(); if (gshadow) gshadow.rebakeSoon(); } });
+const lands = LD.makeLands({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, ready: loadReady, where: () => { const v = here(new THREE.Vector3()); return { x: v.x, z: v.z }; }, groundMat: (groundG.children.find((m) => m.isMesh && m.material && m.material.map) || {}).material || null, onModel: () => { if (labels) labels.dirty = true; farCull.rescan(); if (gshadow) gshadow.rebakeSoon(); } });
 planet.add(K.makePaths(lands.spokes)); planet.add(K.makeDistrictSigns(["dark"])); planet.add(K.makeDistrictTints(["dark"]));
 st.on((dt, t) => { try { lands.tick(dt, t); } catch { /* a land's sign is drawing */ } });
 const lamps = K.makeLamps(); planet.add(lamps);
@@ -780,11 +784,11 @@ K.placeOn(agentGate, K.dirOf(K.spreadTheta(K.AGENT_GATE.theta), K.AGENT_GATE.phi
   const qp = new THREE.Quaternion(); board.onBeforeRender = (r, sc, cam) => { agentGate.getWorldQuaternion(qp); board.quaternion.copy(qp.invert().multiply(cam.quaternion)); board.updateMatrixWorld(); };
   const beam = K.makeBeacon ? K.makeBeacon(0x5fd3ff, 70) : null; if (beam) { agentGate.add(beam); spins.push(beam.userData.spin); }
   spins.push((dt, t) => { rim.material.color.setHSL(0.55 + Math.sin(t * 0.8) * 0.04, 1, 0.6); board.position.y = H * 0.7 + Math.sin(t * 1.3) * 0.25; }); }
-setTimeout(() => { try { K.gltfLoader().load(`/models/world/agents/citadel.glb${VER}`, (g) => {
+loadReady.then(() => setTimeout(() => { try { K.gltfLoader().load(`/models/world/agents/citadel.glb${VER}`, (g) => {
   const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), k = K.AGENT_GATE.h / (sz.y || 1);
   o.scale.setScalar(k); o.position.set(-(box.min.x + sz.x / 2) * k, 0.3 - box.min.y * k, -(box.min.z + sz.z / 2) * k);
   o.traverse((m) => { if (m.isMesh) { m.castShadow = !lowGfx; m.receiveShadow = false; } }); agentGate.add(o); agentGate.userData.model = o; if (labels) labels.dirty = true; farCull.rescan(); if (gshadow) gshadow.rebakeSoon();
-}, undefined, (e) => console.warn("citadel", e)); } catch (e) { console.warn("citadel", e); } }, 9000); // after the town's own models: it's 1.2 MB and far off the plaza
+}, undefined, (e) => console.warn("citadel", e)); } catch (e) { console.warn("citadel", e); } }, 2500)); // after the loading screen (2026-10-29; was a 9 s timer, inside the loading on phones): it's 1.2 MB and 78 m off the plaza
 // RAID QUEENS (world-raidq.js, the owner's design 2026-10-24): the Crimson Eternity Citadel (the owner's GLB) north-west,
 // past The Last Rug (open ground ~150 m out), facing the plaza; a sign, a red beam. Walk up → a warp → the land (LD.LANDS.rq)
 const RQ_TRY = /[?&]rq=1/.test(location.search); // RAID QUEENS: open to GM wallets only for now (the owner, 2026-10-25); ?rq=1 to look as a guest
@@ -844,7 +848,7 @@ if (!lowGfx && !reduce && K.wind) st.on((dt) => { K.wind.value += dt; });
 const gvLook = { hexFloor: (m, r) => LOOK.hexFloorLook(m, { r, low: lowGfx }), pond: (m) => LOOK.pondLook(m, { low: lowGfx }) }; // (contact shade is everywhere now: installContactShade)
 const gv = GV.makeGameVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook, compile: (o) => { try { return compileHidden([o]); } catch { return null; } } }); gv.clear(groundG);
 // ARCIRCLE Studio by the plaza (2026-10-26, the owner: moved from Nexus City to the fountain): the building, its door and four arcade cabinets
-const stuHub = SHUB.makeStudioHub({ THREE, K, planet, T: TW, low: lowGfx, ver: VER }); stuHub.clear(groundG);
+const stuHub = SHUB.makeStudioHub({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, ready: loadReady }); stuHub.clear(groundG);
 let stuPollT = -9;
 st.on((dt, t) => { if (mode !== "hub") return; stuHub.tick(t); if (t - stuPollT > 5) { stuPollT = t; if (Math.hypot(-planet.position.x - stuHub.center.x, -planet.position.z - stuHub.center.z) < 60) stuHub.poll(); } });
 // b447: the clearing was one flat pale green: now the town ground's patches, fine grain and drifting cloud shade, and the baked town shade
@@ -4863,12 +4867,17 @@ function dynRes(dt) {
 // rests the world behind it, not only the ones that freeze the town — five points of the screen are looked up every
 // 0.4 s; three covered by a fixed panel → a few frames a second, all five → about two. Only in town with no game on
 // (a game may draw through the world's renderer under its own full-screen overlay).
-let covered = 0, loadOver = false;
+let covered = 0, loadOver = false, makerOn = false;
 { const PTS = [[0.5, 0.5], [0.3, 0.36], [0.7, 0.36], [0.3, 0.66], [0.7, 0.66]], cv = st.renderer.domElement;
-  const big = (el) => { for (let e = el, i = 0; e && e !== document.body && i < 14; e = e.parentElement, i++) { const cs = getComputedStyle(e); if (cs.position === "fixed" || cs.position === "absolute" && e.parentElement === document.body) { const r = e.getBoundingClientRect(); return r.width > innerWidth * 0.55 && r.height > innerHeight * 0.45 && cs.visibility !== "hidden" && +cs.opacity > 0.3; } } return false; };
-  setInterval(() => { let n = 0; try { if (document.hidden || introOn || photo || !loadOver) { covered = 0; return; } /* the loading screen isn't a window: the town must keep drawing (and warming up) behind it */ let game = false; try { game = !!(fastNow() || ringsOn || pokerOn || mineOn || jurOn); } catch { game = true; } if (game) { covered = 0; return; } for (const [x, y] of PTS) { const el = document.elementFromPoint(innerWidth * x, innerHeight * y); if (el && el !== cv && big(el)) n++; } } catch { n = 0; } covered = n; }, 400); }
+  // a sample point counts as covered only when the pixel there is opaque — a card's body, not a see-through backdrop
+  // (2026-10-29: the AD card, the how-to cards and the maker's gradient covered all five points, the world behind them
+  // dropped to a frame in 30 and looked frozen; the heroes in the maker stand on the stage itself)
+  const alphas = (t) => { const out = []; const re = /rgba?\(([^)]+)\)|\btransparent\b/g; let m; while ((m = re.exec(t || ""))) { if (m[1] == null) out.push(0); else { const a = m[1].split(",")[3]; out.push(a == null ? 1 : +a); } } return out; };
+  const opaque = (e, cs) => { const a = alphas(cs.backgroundColor); if (a.length && a[0] >= 0.85) return true; const bi = cs.backgroundImage; if (!bi || bi === "none") return (e.tagName === "IMG" || e.tagName === "VIDEO" || e.tagName === "CANVAS") && +cs.opacity > 0.9; if (/url\(/.test(bi)) return true; const g = alphas(bi); return g.length > 0 && Math.min(...g) >= 0.85; };
+  const big = (el) => { let solid = false; for (let e = el, i = 0; e && e !== document.body && i < 14; e = e.parentElement, i++) { const cs = getComputedStyle(e); if (!solid && opaque(e, cs)) solid = true; if (cs.position === "fixed" || cs.position === "absolute" && e.parentElement === document.body) { const r = e.getBoundingClientRect(); return solid && r.width > innerWidth * 0.55 && r.height > innerHeight * 0.45 && cs.visibility !== "hidden" && +cs.opacity > 0.3; } } return false; };
+  setInterval(() => { let n = 0; try { const mk = document.getElementById("wp-make"); makerOn = !!(mk && !mk.hidden); if (document.hidden || introOn || photo || !loadOver || makerOn) { covered = 0; return; } /* the loading screen isn't a window: the town must keep drawing (and warming up) behind it */ let game = false; try { game = !!(fastNow() || ringsOn || pokerOn || mineOn || jurOn); } catch { game = true; } if (game) { covered = 0; return; } for (const [x, y] of PTS) { const el = document.elementFromPoint(innerWidth * x, innerHeight * y); if (el && el !== cv && big(el)) n++; } } catch { n = 0; } covered = n; }, 400); }
 function watchFps(dt) {
-  if (st.idle) st.idle(!!((frozen && !photo && !introOn && !flying) || covered >= 3), !!((studio && studio.shown()) || covered >= 5)); // a menu is open: the world behind it rests (STB7: the Studio covers it all — 2 fps)
+  if (st.idle) st.idle(!!((frozen && !photo && !introOn && !flying && !makerOn) || covered >= 3), !!(studio && studio.shown())); // a menu is open: the world behind it rests (STB7: the Studio covers it all — 2 fps; deep rest only there: a card's backdrop still shows the world)
   if (frozen) { fpsAcc = 0; fpsN = 0; fpsT0 = performance.now(); dynAcc = 0; dynN = 0; dynT0 = performance.now(); return; }
   dynRes(dt);
   if (liteFx || S.quality !== "auto" || photo || navigator.webdriver) return;
@@ -5250,7 +5259,7 @@ const landing = dive();
   if (first) { first = false; return; } /* (the loading screen's warm-up compiled these) */ if (!fresh.length) return;
   busy = true; compileHidden(fresh).then(() => { busy = false; }, () => { busy = false; });
 }, coarse ? 4000 : 2500); }
-$("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; }, 700); fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
+$("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; if (loadReadyRes) loadReadyRes(); }, 700); fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
 // the most played games' code fetched while the town is quiet, one at a time (entering one then doesn't wait for the
 // download); not on data saver or a slow connection, never in a fight; a failure here is only a later download
 { const nc = navigator.connection || {}, slow = nc.saveData || /(^|-)2g|3g/.test(String(nc.effectiveType || ""));

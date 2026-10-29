@@ -9,7 +9,7 @@ export const CABS = [{ id: "pick", col: 0xffd23a, css: "#ffd23a", name: "Most pl
 const ICO = { runner: "🏃", dash: "⚡", arena: "🛸", climb: "🧗", defense: "🏰", puzzle: "🧩", rush: "💰" };
 export function hubXZ(phi = HUB.phi, r = HUB.r) { const a = (phi * Math.PI) / 180; return { x: Math.sin(a) * r, z: -Math.cos(a) * r }; }
 
-export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver = "" }) {
+export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver = "", ready = null }) {
   const { x, z } = hubXZ(), g = new THREE.Group(); g.name = "studio-hub"; g.position.set(x, 0, z); g.rotation.y = Math.atan2(-x, -z); planet.add(g); // (its front, +z, faces the fountain)
   const doors = [], solids = [], spins = [], picks = {};
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.3, ...o });
@@ -83,10 +83,10 @@ export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver
   paint();
   // the Citadel's model, a moment after the town stands
   let model = false;
-  setTimeout(() => { try { if (!K.gltfLoader) return; K.gltfLoader().load(`/models/world/adcity/studio.glb${ver}`, (gl) => {
+  (ready || Promise.resolve()).then(() => setTimeout(() => { try { if (!K.gltfLoader) return; K.gltfLoader().load(`/models/world/adcity/studio.glb${ver}`, (gl) => {
     const o = gl.scene; o.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = !low; if (m.material && m.material.emissiveMap) m.material.emissiveIntensity = Math.max(m.material.emissiveIntensity || 1, 1.2); } });
     const bx = new THREE.Box3().setFromObject(o), sz = bx.getSize(new THREE.Vector3()), k = F / (Math.max(sz.x, sz.z) || 1);
-    o.scale.setScalar(k); o.position.set(-(bx.min.x + sz.x / 2) * k, -bx.min.y * k, -(bx.min.z + sz.z / 2) * k); g.add(o); P.visible = false; model = true; }, undefined, (e) => console.warn("studio hub model", e)); } catch (e) { console.warn("studio hub model", e); } }, low ? 9000 : 4000);
+    o.scale.setScalar(k); o.position.set(-(bx.min.x + sz.x / 2) * k, -bx.min.y * k, -(bx.min.z + sz.z / 2) * k); g.add(o); P.visible = false; model = true; }, undefined, (e) => console.warn("studio hub model", e)); } catch (e) { console.warn("studio hub model", e); } }, low ? 4000 : 1500)); // (2026-10-29: after the loading screen, not a timer inside it)
   return {
     group: g, doors, solids, center: { x, z },
     tick(t) { for (const f of spins) f(t); },

@@ -5,14 +5,14 @@
 // pressed, and the run is the Studio's own (the same scenes, HUD and result card as in ARCIRCLE WORLD) drawn on a canvas of
 // the page — no town behind it. Signed in in ARCIRCLE WORLD on this browser = signed in here (the same session): the run
 // goes on the game's board and a like counts. Monster Survival and Ring Puzzle need the World's own games: they open there.
-import { WORDS } from "./world-words.js";
+import { WORDS, loadWords } from "./world-words-load.js";
 import { TEMPLATES, THEMES } from "./world-studio-gen.js";
 
 const D = window.__SG || {}, $m = document.getElementById("sgw-main");
 const LANG = (() => { try { const l = (window.arcI18n && window.arcI18n.get()) || localStorage.getItem("arcircle.lang") || "en"; return ["en", "ko", "zh", "tr"].includes(l) ? l : "en"; } catch { return "en"; } })();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const mark = (n) => { try { performance.mark(n); } catch { /* old browser */ } }; /* (the load's steps, for diag and tests) */
-if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcDict[LANG]); i++) await sleep(100);
+if (LANG !== "en") { await loadWords(LANG); for (let i = 0; i < 30 && !(window.__arcDict && window.__arcDict[LANG]); i++) await sleep(100); }
 const fill = (t, v) => (v ? String(t).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : t);
 const T = (s, v) => fill((WORDS[LANG] && WORDS[LANG][s]) || (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s, v); // (like world-play.js TW: the game's words, then the site's)
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m]);

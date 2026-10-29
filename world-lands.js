@@ -52,7 +52,7 @@ export function layoutLots(coins, tierOf) {
 }
 
 /// the land groups and the town's portals. ctx: { THREE, K, planet, T, low }
-export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel = null, groundMat = null }) {
+export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel = null, groundMat = null, ready = null, where = null }) {
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, ...o });
   const glow = (c, k = 1.8) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
   const basic = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, depthWrite: op >= 1, toneMapped: false });
@@ -203,15 +203,24 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
   // the two villages' portals are the owner's models (models/world/lands, Meshy, packed by tools/pack-prop.mjs): 6.5 m
   // tall, in place of the rings, loaded a few seconds after the town (about 1 MB each)
   const MODELS = { lp: "/models/world/lands/portal-launchpad.glb", ut: "/models/world/lands/portal-utility.glb", pv: "/models/world/lands/portal-partnership.glb", gv: "/models/world/lands/portal-arcade.glb", /* (b-nx3: Partner and Game Village from Meshy too) */ rq: "/models/world/raid/gate.glb", hw: "/models/world/hwrealm/gate.glb" }, MODEL_H = 6.5;
-  setTimeout(() => { for (const [id, url] of Object.entries(MODELS)) { const p = portals.find((q) => q.userData.to === id); if (!p || !K.gltfLoader) continue;
+  // 2026-10-29: the models come after the loading screen, the nearest first, one at a time, and only within reach — the
+  // raid and Halloween gates stand 120–180 m out; the six (4 MB) used to arrive together 6 s in, inside a phone's loading
+  const pending = Object.entries(MODELS), R = low ? 95 : 140;
+  const loadOne = (id, url, p, then) => { let fin = false; const done = () => { if (!fin) { fin = true; then(); } };
+
     try { K.gltfLoader().load(url + ver, (g) => {
       const o = g.scene, box = new THREE.Box3().setFromObject(o), sz = box.getSize(new THREE.Vector3()), H = (DEST.find((d) => d.id === id) || {}).h || MODEL_H, k = H / (sz.y || 1);
       o.scale.setScalar(k); o.position.set(-(box.min.x + sz.x / 2) * k, 0.18 - box.min.y * k, -(box.min.z + sz.z / 2) * k); o.rotation.y = 0;
       o.traverse((m) => { if (m.isMesh) { m.castShadow = !low; m.receiveShadow = false; } });
       p.children.forEach((c) => { if (c.isMesh && c.geometry && c.geometry.type === "TorusGeometry" && c.position.y > 1) c.visible = false; if (c.isMesh && c.geometry && c.geometry.type === "CircleGeometry") c.visible = false; }); // (the rings and their veil give way to the model)
       p.children.forEach((c) => { if (c.isSprite) c.position.y += H - 3.6; }); if (p.userData.subTag) p.userData.subTag.position.y = H + 0.25;
-      p.add(o); p.userData.model = o; p.userData.radius = Math.max(1.6, Math.max(sz.x, sz.z) * k * 0.4); if (onModel) onModel(p);
-    }, undefined, (e) => console.warn("land portal", e)); } catch (e) { console.warn("land portal", e); } } }, 6000);
+      p.add(o); p.userData.model = o; p.userData.radius = Math.max(1.6, Math.max(sz.x, sz.z) * k * 0.4); if (onModel) onModel(p); done();
+    }, undefined, (e) => { console.warn("land portal", e); done(); }); } catch (e) { console.warn("land portal", e); done(); } 
+  };
+  const next = () => { if (!pending.length || !K.gltfLoader) return; const me = where ? where() : { x: 0, z: 0 }; let best = -1, bd = Infinity;
+    for (let i = 0; i < pending.length; i++) { const p = portals.find((q) => q.userData.to === pending[i][0]); if (!p) { pending.splice(i--, 1); continue; } const d = Math.hypot(p.position.x - me.x, p.position.z - me.z); if (d < bd) { bd = d; best = i; } }
+    if (best < 0 || bd > R) { setTimeout(next, 2500); return; } const [id, url] = pending.splice(best, 1)[0]; loadOne(id, url, portals.find((q) => q.userData.to === id), () => setTimeout(next, 400)); };
+  (ready || Promise.resolve()).then(() => setTimeout(next, 1200));
   const town = new THREE.Group(); town.name = "land-portals"; // (the paths to them: world-play.js asks K.makePaths for these spokes)
 
   /// where you arrive in a land: by its portal back, facing in
