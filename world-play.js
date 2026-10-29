@@ -4859,8 +4859,16 @@ function dynRes(dt) {
   if (dynBad >= (gameOn ? 1 : 2) && dynK > dynMin) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(dynMin, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(rqCool ? RQ_COOL.k : 1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
 }
+// 2026-10-29 (the owner: "nothing draws behind a window, everywhere"): any window or sheet that covers most of the screen
+// rests the world behind it, not only the ones that freeze the town — five points of the screen are looked up every
+// 0.4 s; three covered by a fixed panel → a few frames a second, all five → about two. Only in town with no game on
+// (a game may draw through the world's renderer under its own full-screen overlay).
+let covered = 0;
+{ const PTS = [[0.5, 0.5], [0.3, 0.36], [0.7, 0.36], [0.3, 0.66], [0.7, 0.66]], cv = st.renderer.domElement;
+  const big = (el) => { for (let e = el, i = 0; e && e !== document.body && i < 14; e = e.parentElement, i++) { const cs = getComputedStyle(e); if (cs.position === "fixed" || cs.position === "absolute" && e.parentElement === document.body) { const r = e.getBoundingClientRect(); return r.width > innerWidth * 0.55 && r.height > innerHeight * 0.45 && cs.visibility !== "hidden" && +cs.opacity > 0.3; } } return false; };
+  setInterval(() => { let n = 0; try { if (document.hidden || introOn || photo) { covered = 0; return; } let game = false; try { game = !!(fastNow() || ringsOn || pokerOn || mineOn || jurOn); } catch { game = true; } if (game) { covered = 0; return; } for (const [x, y] of PTS) { const el = document.elementFromPoint(innerWidth * x, innerHeight * y); if (el && el !== cv && big(el)) n++; } } catch { n = 0; } covered = n; }, 400); }
 function watchFps(dt) {
-  if (st.idle) st.idle(!!(frozen && !photo && !introOn && !flying), !!(studio && studio.shown())); // a menu is open: the world behind it rests (STB7: the Studio covers it all — 2 fps)
+  if (st.idle) st.idle(!!((frozen && !photo && !introOn && !flying) || covered >= 3), !!((studio && studio.shown()) || covered >= 5)); // a menu is open: the world behind it rests (STB7: the Studio covers it all — 2 fps)
   if (frozen) { fpsAcc = 0; fpsN = 0; fpsT0 = performance.now(); dynAcc = 0; dynN = 0; dynT0 = performance.now(); return; }
   dynRes(dt);
   if (liteFx || S.quality !== "auto" || photo || navigator.webdriver) return;
