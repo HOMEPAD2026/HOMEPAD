@@ -20,6 +20,17 @@ Notes
 - gantry: Meshy modelled a "START" sign into the beam. I removed it by hand: the letter relief is flattened into the sign face, and the sign's UVs and normals point at one plain cyan texel, so the sign is now a blank cyan light panel. I tried one regeneration without the sign (`01a1898c-3a7f-71af-bcd4-f5f7d65b4518`), but it no longer spanned the road, so I dropped it.
 - boostpad: the top shows a cyan X / diamond pattern, not real chevrons. A regeneration aimed at chevrons (`01a1898c-64e4-7222-b1f6-797c4679add1`) came out as an upright panel, so I dropped it. Lay `img/boost.webp` (additive) on the pad if chevrons are needed.
 
+## Game Village building
+
+| file | Meshy task | tris | size |
+|---|---|---|---|
+| kart-arena.glb | text-to-3d refine `01a189c0-25d5-7673-a9e3-676f1e58bd7b` (preview `01a189bf-2a69-7503-9556-4a88e5ee379a`) | 10,875 | 1.09 MB |
+
+- The kart arena building players walk into to start ARCIRCLE KART. It has a wide low entrance hall with a big arched gate, a checkered canopy over the gate, a glowing ∞ sign (no letters) on the checkered upper band, a raised round deck with a railing on the roof (read as the track loop: it is a ring, not a real banked track), yellow flags, cyan neon strips round the base and the roof edge, white / graphite walls and blue glass.
+- The gate faces +Z (as generated; checked in renders from all four sides). I moved the base down to y = 0 (it was −0.477). Footprint 1.9 × 1.72 units, height 0.95: scale it in the game. One 1024 px JPEG base-colour texture.
+- I made two versions with the same prompt and kept the second; the first (preview `01a189bf-2a69-7501-88e4-69ebdf32f7aa`, refine `01a189bf-e853-75a6-b5ca-b8e1d292c1d1`: a plain glass office block) was dropped.
+- img/arena.png (512 × 512): Meshy's own preview thumbnail of the kept task, from the front-left.
+
 ## The five racers (CRYPTO LEGENDS)
 
 References are on `claude/meshy-kart-ref` (`raw/kart/ref/`: kart-cast.jpg plus one crop per racer). They aren't committed on this branch.
