@@ -648,3 +648,13 @@ body.sga.sgh-ws .sga-burg{display:inline-grid}body.sga:not(.sgh-ws) .sga-burg{di
   .sgh:not(.land) .sgh-top .sgh-hb{display:none}
 }
 html[data-ht=light] .sgh-edge{background:#fff;color:#5b6573;box-shadow:0 2px 8px rgba(20,30,40,.12)}
+/* one menu everywhere (2026-10-29, the owner): the drawer shows the page's own side menu (labels, account, Create a game),
+   the sub-pages beside it on a wide screen; All tools opens right beside whichever menu is showing */
+.sgh-tin{left:0}
+.sgh-dwin.full{width:auto;max-width:100vw}
+.sgh-dwin .sgh-side,html.wp-pcphone .sgh-dwin .sgh-side{display:flex!important;position:relative;height:100%;width:min(var(--h-side),calc(100vw - 48px))}
+.sgh-dwin .sgh-sub,html.wp-pcphone .sgh-dwin .sgh-sub{display:block!important;height:100%;animation:none}
+.sgh-dwx{position:absolute;right:8px;top:16px;width:34px;height:34px}
+.sgh-dside .sgh-brand{padding-right:40px}
+@media (max-width:620px){.sgh-dwin .sgh-sub{display:none!important}}
+.sgh-dside>*,.sgh-dside .sgh-nav{order:0!important}.sgh-dside .sgh-nav{flex:none;width:auto}.sgh-dside .sgh-nav a{justify-content:flex-start!important;width:auto}.sgh-dside .sgh-mk{margin-top:auto}
