@@ -712,3 +712,8 @@ html[data-ht=light] .sgh-tlang>button{background:#fff}html[data-ht=light] .sgh-l
 /* narrow phones: the brand keeps its mark only — with the web font loaded the row was ~20 px too wide and the avatar went off the edge (2026-10-29) */
 @media (max-width:440px){.sgh-ltop .sgh-brand>span{display:none}.sgh-ltop .sgh-brand{margin-right:2px}.sgh-ltop .sgh-lang,.sgh-ltop select{max-width:70px}}
 .sgh-ltop>*{flex-shrink:0}.sgh-ltop .sgh-sp{flex:1 1 0;min-width:0}
+
+/* the Store's 'coming' row */
+.sgh-soon{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:24px}
+.sgh-soon>div{display:flex;flex-direction:column;gap:3px;padding:14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:rgba(255,255,255,.02);opacity:.85}
+.sgh-soon i{font-style:normal;font-size:24px}.sgh-soon b{font-size:14px}.sgh-soon small{font-size:11px;opacity:.7}

@@ -243,11 +243,11 @@ async function startApp() {
   paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); if (hub) hub.refresh(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });
   const hm = document.querySelector("[data-hubmenu]"); if (hm) hm.addEventListener("click", () => { if (hub && hub.menu) hub.menu(); else location.href = "/studio"; }); // (the workspace's ≡ opens the Creator Hub's menu, 2026-10-29)
   const hb = document.querySelector("[data-tohub]"); if (hb) hb.addEventListener("click", () => { try { host && host.studio.shown() ? host.studio.close() : toHub(); } catch { toHub(); } });
-  const q = new URLSearchParams(location.search), deep = /^[A-Za-z0-9]{5}$/.test(q.get("race") || "") || /^[a-z0-9]{8}$/.test(q.get("ch") || "") || !!q.get("sg") || /^[A-Za-z0-9_-]{4,40}$/.test(q.get("edit") || "") || ["arcade", "mine", "make", "3d"].includes(q.get("tab"));
+  const q = new URLSearchParams(location.search), deep = /^[A-Za-z0-9]{5}$/.test(q.get("race") || "") || /^[a-z0-9]{8}$/.test(q.get("ch") || "") || !!q.get("sg") || /^[A-Za-z0-9_-]{4,40}$/.test(q.get("edit") || "") || ["arcade", "mine", "make", "3d", "assets"].includes(q.get("tab"));
   try {
     const HUB = await import("./world-studio-hub.js");
     const W = (fn, tab) => workspace(fn, tab);
-    hub = HUB.makeHub({ T, esc, toast, num, ver: new URL(import.meta.url).search, lang: LANG, sess, signed, signIn: () => signIn().then((x) => { paintMe(); if (host) host.studio.load(); return x; }),
+    hub = HUB.makeHub({ T, esc, toast, num, ver: new URL(import.meta.url).search, lang: LANG, sess, signed, tx: (to, data) => walletTx(to, data), signIn: () => signIn().then((x) => { paintMe(); if (host) host.studio.load(); return x; }),
       ws: { open: (t) => W((s) => s.open(t), t), use: (tpl, th) => W((s) => s.useTpl(tpl, th), "make"), edit: (id) => W((s) => s.editId(id), "mine"), local: (id) => W((s) => s.editLocal(id), "make"), resume: (id, loc) => W((s) => s.resume(id, loc), loc ? "make" : "mine"), ai: () => W((s) => s.aiFocus(), "make"), play: (id) => W((s) => s.playId(id), "arcade"),
         remix: (id) => W((s) => s.remixId(id), "make"), race: (c) => W((s) => { s.open("arcade"); return s.raceJoin(c); }, "arcade"), quick: () => W((s) => { s.open("arcade"); return s.raceQuick(); }, "arcade") } });
     mark("sg:hub"); const b0 = document.querySelector(".sga-boot"); if (b0) b0.remove();

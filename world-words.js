@@ -331,3 +331,12 @@ Object.assign(WORDS.tr, {"Assets": "Varlıklar", "Asset Store": "Varlık Mağaza
 Object.assign(WORDS.ko, { "Race in ARCIRCLE KART": "ARCIRCLE KART 레이스", "Kart racing · walk in to play": "카트 레이싱 · 걸어 들어가 플레이" });
 Object.assign(WORDS.zh, { "Race in ARCIRCLE KART": "参加 ARCIRCLE KART 比赛", "Kart racing · walk in to play": "卡丁车竞速 · 走进去开玩" });
 Object.assign(WORDS.tr, { "Race in ARCIRCLE KART": "ARCIRCLE KART'ta yarış", "Kart racing · walk in to play": "Kart yarışı · oynamak için içeri gir" });
+Object.assign(WORDS.ko, { "Picking — tap more pieces, then choose what to do": "선택 모드 — 다른 아이템도 눌러 고른 뒤 할 일을 고르세요" });
+Object.assign(WORDS.zh, { "Picking — tap more pieces, then choose what to do": "多选中——再点其他物品，然后选择操作" });
+Object.assign(WORDS.tr, { "Picking — tap more pieces, then choose what to do": "Seçiliyor — başka parçalara dokun, sonra ne yapacağını seç" });
+Object.assign(WORDS.ko, { "All assets": "전체 에셋" });
+Object.assign(WORDS.zh, { "All assets": "全部素材" });
+Object.assign(WORDS.tr, { "All assets": "Tüm varlıklar" });
+Object.assign(WORDS.ko, { "Coming to the Store": "스토어에 곧 추가돼요", "Sounds & music": "사운드·음악", "Effects": "이펙트", "UI packs": "UI 팩", "Prefab packs": "프리팹 팩" });
+Object.assign(WORDS.zh, { "Coming to the Store": "即将上架", "Sounds & music": "音效与音乐", "Effects": "特效", "UI packs": "UI 包", "Prefab packs": "预制件包" });
+Object.assign(WORDS.tr, { "Coming to the Store": "Mağazaya yakında", "Sounds & music": "Sesler ve müzik", "Effects": "Efektler", "UI packs": "UI paketleri", "Prefab packs": "Prefab paketleri" });

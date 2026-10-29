@@ -9,6 +9,8 @@
 import { TEMPLATES, THEMES, estimate } from "./world-studio-gen.js";
 import { makeHubX, XTITLE, XSUBS } from "./world-studio-hubx.js";
 import { ask } from "./world-ask.js";
+import { makeAssets } from "./world-studio-assets.js";
+import { STORE } from "./world-store-data.js";
 import { makeHubFx } from "./world-studio-hubfx.js";
 
 const ICONS = { // (24px line icons, the Studio Pro set's weight)
@@ -55,7 +57,7 @@ const NAV = [["home", "home", "Home", 0], ["creations", "folder", "Creations", 0
 const SUBS = {
   creations: [["games", "My games"], ["shared", "Shared with me"], ["device", "On this device"]],
   learn: [["start", "Get started"], ["guides", "Guides"], ["templates", "Templates"], ["world", "In ARCIRCLE WORLD"]],
-  store: [["all", "Home"], ["templates", "Templates"], ["themes", "Themes"], ["prefabs", "Prefabs"], ["pieces", "Pieces"], ["remix", "Remixable games"]],
+  store: [["all", "All assets"], ...STORE.CATS.map(([id, , n]) => [id, n]), ["arcplus", "Arc Studio+"]], // (2026-10-29, the owner: the Store is the Asset Store now; more kinds join this list later)
   community: [["arcade", "Creator Arcade"], ["contest", "Weekly contest"], ["sponsor", "Sponsor contests"], ["daily", "Daily challenge"], ["season", "Creator season"], ["races", "Live races"], ["feed", "Following"]],
   analytics: [["overview", "Overview"], ["games", "By game"], ["revenue", "Revenue"], ["report", "Weekly report"], ["ab", "A/B test"]], ...XSUBS,
   rewards: [["overview", "Overview"], ["contest", "Contest prizes"]],
@@ -235,7 +237,7 @@ export function makeHub(o) {
         <div class="sgh-cta"><button type="button" class="sgh-btn big pri" data-make>${esc(T("Start creating"))}</button><button type="button" class="sgh-btn big" data-go="community">${ic("play")} ${esc(T("Explore games"))}</button></div>
         <div class="sgh-live" data-fill="live"><span><b>—</b><small>${esc(T("Games"))}</small></span><span><b>—</b><small>${esc(T("Plays"))}</small></span><span><b>—</b><small>${esc(T("Creators"))}</small></span><span><b>—</b><small>${esc(T("Playing now"))}</small></span></div>
       </div></section>
-      ${sec("Start from a template", `<div class="sgh-hs">${tiles.filter((id) => TEMPLATES[id].open).map((id) => tplCard(id)).join("")}</div>`, moreLink("store", "templates"))}
+      ${sec("Start from a template", `<div class="sgh-hs">${tiles.filter((id) => TEMPLATES[id].open).map((id) => tplCard(id)).join("")}</div>`, moreLink("make", ""))}
       ${sec("Trending in the Creator Arcade", `<div data-fill="trend">${skel(5, "hs")}</div>`, moreLink("community", "arcade"))}
       <section class="sgh-sec rv"><div class="sgh-sech"><h2>${esc(T("How it works"))}</h2></div><ol class="sgh-steps">${[["grid", "Pick a template", "Runner, platformer, tower defense, rhythm, racing — 15 to start from."], ["edit", "Tune it or build it", "Sliders for the quick way, a builder for every piece when you take care."], ["rocket", "Test and publish", "Play it yourself, let AI test players report, then publish to the arcade and the web."]].map(([i, t, p], k) => `<li style="--d:${k * 90}ms"><i>${ic(i)}</i><em>${k + 1}</em><b>${esc(T(t))}</b><p>${esc(T(p))}</p></li>`).join("")}</ol></section>
       <section class="sgh-sec rv sgh-wl"><div class="sgh-wlart" style="--art:url('/images/gw/key-cc.webp${ver}')"></div><div class="sgh-wltx"><span class="sgh-kick">${ic("city", "sm")} ${esc(T("Linked with the game"))}</span><h2>${esc(T("Your game lives in ARCIRCLE WORLD"))}</h2>
@@ -255,16 +257,21 @@ export function makeHub(o) {
       : S === "guides" ? sec("Guides", guides) : S === "templates" ? sec("Templates", tpls) : sec("In ARCIRCLE WORLD", world)}`;
   }
 
+  // the Store (2026-10-29, the owner: "only the assets on the Store page, laid out for more to come"): the Asset Store
+  // (world-studio-assets.js, the same cards and buying as the Studio's Assets tab); the side column picks a kind
+  let assets = null;
+  function storeApi() {
+    if (assets) return assets;
+    const act = async (body) => { try { return await o.signed(body); } catch { return null; } };
+    assets = makeAssets({ toast: (m) => toast(m), tx: o.tx, ver }, { T, esc, act, ask, wallet, pi: (n) => ic(n === "cube" ? "grid" : n, "xs"), repaint: () => { if (page === "store") paint(); },
+      use3d: (id) => { toast("🧱 " + esc(T("“{n}” is in the 3D Builder's Assets → From the Asset Store", { n: T((STORE.ITEMS.find((x) => x.id === id) || {}).name || "") }))); o.ws.open("3d"); } });
+    return assets;
+  }
   function storeHtml() {
-    const S = sub || "all", q = (D.sq || "").toLowerCase();
-    const tp = Object.keys(TEMPLATES).filter((id) => !q || T(TEMPLATES[id].name).toLowerCase().includes(q));
-    const th = Object.keys(THEMES).filter((id) => !q || T(THEMES[id].name).toLowerCase().includes(q));
-    const themes = `<div class="sgh-grid g5">${th.map((id) => { const t = THEMES[id], c = (n) => "#" + Number(n).toString(16).padStart(6, "0"); return `<article class="sgh-thc" data-theme="${id}" tabindex="0" style="--a:${c(t.sky)};--b:${c(t.edge)};--c:${c(t.wall)}"><span class="sgh-thart"><img src="/images/studio/th/${id}-sky-768.webp${ver}" alt="" loading="lazy" width="400" height="229" onerror="this.remove()"><i></i><em class="sgh-free">${esc(T("Free"))}</em></span><b>${esc(T(t.name))}</b><small>${esc(T("Theme"))}</small></article>`; }).join("")}</div>`;
-    const tpls = `<div class="sgh-grid g5">${tp.map((id) => tplCard(id, { free: 1 })).join("")}</div>`;
-    return `<div class="sgh-stbar"><label class="sgh-sbox">${ic("search")}<input type="search" data-sq placeholder="${esc(T("Search templates, themes and games"))}" value="${esc(D.sq || "")}"></label></div>
-      ${S === "all" ? sec("Trending templates", `<div class="sgh-hs">${tp.map((id) => tplCard(id, { free: 1 })).join("")}</div>`, moreLink("store", "templates")) + sec("Themes", themes, moreLink("store", "themes")) + sec("Remixable games", `<div data-fill="remix">${skel(5, "hs")}</div>`, moreLink("store", "remix"))
-      : S === "templates" ? sec("Templates", tpls) : S === "themes" ? sec("Themes", themes) : sec("Remixable games", `<div data-fill="remix">${skel(8)}</div>`)}
-      <p class="sgh-fine">${ic("check", "xs")} ${esc(T("Everything in the store is free to use. Remix copies a published game into your drafts — the original stays its maker's."))}</p>`;
+    const A = storeApi(), S = sub || "all";
+    if (S === "arcplus") { setTimeout(() => A.arcPlus(), 0); A.setCat(""); } else A.setCat(S === "all" ? "" : S);
+    const soon = [["🎵", "Sounds & music"], ["✨", "Effects"], ["🧩", "UI packs"], ["🧱", "Prefab packs"]];
+    return `<div class="sgh-store">${A.paint({ chips: false })}<h4 class="wst-sec">${esc(T("Coming to the Store"))}</h4><div class="sgh-soon">${soon.map(([i, n]) => `<div><i aria-hidden="true">${i}</i><b>${esc(T(n))}</b><small>${esc(T("Coming soon"))}</small></div>`).join("")}</div></div>`;
   }
 
   // ---------------- the pages that read the server ----------------
@@ -282,7 +289,7 @@ export function makeHub(o) {
     if (pg === "creations") { const el = f("creations"); if (el) el.innerHTML = await creationsHtml(); }
     if (pg === "analytics") { const el = f("analytics"); if (el) { el.innerHTML = await analyticsHtml(); } }
     if (pg === "rewards") { const el = f("rewards"); if (el) el.innerHTML = await rewardsHtml(); }
-    if (pg === "store") { const el = f("remix"); if (el) { const A = await arcade(); if (stale()) return; const q = (D.sq || "").toLowerCase(), L = A.filter((g) => !q || String(g.title).toLowerCase().includes(q)).sort((a, b) => (b.off ? 1 : 0) - (a.off ? 1 : 0) || (b.remixes || 0) - (a.remixes || 0) || (b.plays || 0) - (a.plays || 0)).slice(0, s0 === "remix" ? 40 : 12);
+    if (pg === "store" && false) { const el = f("remix"); if (el) { const A = await arcade(); if (stale()) return; const q = (D.sq || "").toLowerCase(), L = A.filter((g) => !q || String(g.title).toLowerCase().includes(q)).sort((a, b) => (b.off ? 1 : 0) - (a.off ? 1 : 0) || (b.remixes || 0) - (a.remixes || 0) || (b.plays || 0) - (a.plays || 0)).slice(0, s0 === "remix" ? 40 : 12);
       el.innerHTML = L.length ? `<div class="${s0 === "remix" ? "sgh-grid" : "sgh-hs"}">${L.map((g) => gameCard(g)).join("")}</div>` : empty("search", "Nothing found", "Try another word."); } }
     if (pg === "community") { const el = f("community"); if (el) el.innerHTML = await communityHtml(s0); }
     if (stale()) return; reveal(); D.lastFill = Date.now();
@@ -431,7 +438,7 @@ export function makeHub(o) {
       : `<div class="sgh-acc">${avatar("lg")}<span><b>${esc(T("Guest"))}</b><small>${esc(T("Drafts stay on this device"))}</small></span></div><button type="button" class="sgh-btn blue full" data-signin>${ic("wallet")} ${esc(T("Connect wallet"))}</button>`}
       <a class="sgh-pi" href="/play">${ic("globe")}<span><b>${esc(T("Play ARCIRCLE WORLD"))}</b></span></a>`); }
   function tools() {
-    closePops(); const G = [["Creations", [["My games", "creations", "games"], ["Shared with me", "creations", "shared"], ["On this device", "creations", "device"], ["Create a game", "", "make"]]], ["Store", [["Templates", "store", "templates"], ["Themes", "store", "themes"], ["Remixable games", "store", "remix"]]],
+    closePops(); const G = [["Creations", [["My games", "creations", "games"], ["Shared with me", "creations", "shared"], ["On this device", "creations", "device"], ["Create a game", "", "make"]]], ["Store", [["All assets", "store", "all"], ["Characters", "store", "character"], ["Buildings", "store", "building"], ["Nature", "store", "nature"], ["Backgrounds", "store", "background"], ["Structures", "store", "structure"], ["Arc Studio+", "store", "arcplus"]]],
       ["Community", [["Creator Arcade", "community", "arcade"], ["Weekly contest", "community", "contest"], ["Daily challenge", "community", "daily"], ["Creator season", "community", "season"], ["Live races", "community", "races"], ["Following", "community", "feed"]]], ["Learn", [["Get started", "learn", "start"], ["Guides", "learn", "guides"], ["Templates", "learn", "templates"]]],
       ["Analytics", [["Overview", "analytics", "overview"], ["By game", "analytics", "games"]]], ["Rewards", [["Overview", "rewards", "overview"], ["Contest prizes", "rewards", "contest"]]], ["ARCIRCLE WORLD", [["Play ARCIRCLE WORLD", "@", "/play"], ["Game World site", "@", "/game"], ["Official games' page", "@", "/game/@arcircle"]]]];
     pop = document.createElement("div"); pop.className = "sgh-tools"; pop.innerHTML = `<div class="sgh-tin" role="dialog" aria-label="${esc(T("All tools"))}"><div class="sgh-sech"><h3>${esc(T("All tools"))}</h3><button type="button" class="sgh-ib" data-tx aria-label="${esc(T("Close"))}">${ic("close")}</button></div><div class="sgh-tg2">${G.map(([h, L]) => `<div><h4>${esc(T(h))}</h4>${L.map(([l, p, s]) => (p === "@" ? `<a href="${s}">${esc(T(l))}${ic("ext", "xs")}</a>` : p ? `<a href="?p=${p}&s=${s}" data-go="${p}" data-s="${s}">${esc(T(l))}</a>` : `<a href="#" data-make>${esc(T(l))}</a>`)).join("")}</div>`).join("")}</div></div>`;
@@ -488,6 +495,7 @@ export function makeHub(o) {
     return false;
   }
   root.addEventListener("click", async (e) => {
+    if (page === "store" && assets && assets.click(e)) return; // (the Asset Store's own buttons: buy, download, use, Arc Studio+)
     const t = e.target;
     if (peek) { // (over the workspace: closing hides the hub again, a page link leaves the workspace for that page)
       if ((t.closest("[data-dwx]") && !t.closest(".sgh-dwin")) || t.closest("[data-dwclose]")) { unpeek(); return; }

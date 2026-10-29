@@ -696,8 +696,17 @@ export function makeRaidQueens(ctx) {
         <i class="rq-bhp"><s style="width:${f * 100}%"></s><b style="width:${f * 100}%"></b><u style="left:60%"></u><u style="left:25%"></u></i><i class="rq-bgd"><b style="width:${brk ? 100 : Math.round((q.brk || 0) * 100)}%"></b>${brk ? `<span>BREAK</span>` : ""}</i></div></div>`; }).join("");
     // (2026-10-29, the owner: the bars sat over the level / HP card and the purse row on a phone) on the phone layout they
     // stand right under the run panel, which is under the HP card — never over another window
-    if (document.documentElement.classList.contains("wp-pcphone") && hud) { const t = hud.offsetTop + hud.offsetHeight + 10; if (t > 20) bb.style.top = t + "px"; } else bb.style.top = "";
+    placeBar();
   }
+  // (2026-10-29, again: a phone still showed SECRET's three bars over the HP card — the offset read 0 there) the bars go
+  // under the run panel's real box, measured on screen, every time they paint and whenever the screen changes
+  function placeBar() {
+    if (!bb) return; const pc = document.documentElement.classList.contains("wp-pcphone");
+    const r = hud && hud.getClientRects().length ? hud.getBoundingClientRect() : null;
+    if (!r || r.height < 4) { bb.style.top = ""; return; }
+    bb.style.top = Math.round(r.bottom + 8) + "px"; if (pc) { bb.style.left = Math.round(r.left) + "px"; bb.style.width = Math.round(Math.max(r.width, 300)) + "px"; bb.style.transform = "none"; bb.style.animation = "none"; }
+  }
+  if (typeof addEventListener === "function") addEventListener("resize", () => placeBar());
   let lobby = null, lobbyFocus = "";
   function closeLobby() { if (lobby) { lobby.remove(); lobby = null; ctx.freeze(false); } }
   async function openLobby(focus) {

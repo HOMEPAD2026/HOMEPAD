@@ -5236,7 +5236,7 @@ let tipsUp = false;
 // once a day each (o.day: its own key; Seoul's date)
 const tipDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 function showTips(rows, o = {}) {
-  if (survOn || survBusy || ringsOn || ringsBusy || pokerOn || pokerBusy || tipsUp || document.querySelector(".wp-tips")) return;
+  if (survOn || survBusy || ringsOn || ringsBusy || pokerOn || pokerBusy || kartOn || tipsUp || document.querySelector(".wp-tips, .rq-hud, .rq-lobby, .wst:not([hidden])")) return; /* (not over a raid run, its lobby, KART or the Studio) */
   const dk = "arc.tips." + (o.day || "town"); try { if (localStorage.getItem(dk) === tipDay()) return; localStorage.setItem(dk, tipDay()); } catch { /* private: every visit */ }
   tipsUp = true;
   let pick = rows; if (!pick) { const pool = TIPS.slice(); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } pick = pool.slice(0, 3); }

@@ -6307,3 +6307,7 @@ html.wp-pcphone .wk-card{width:30%;min-width:96px}html.wp-pcphone .wk-card small
 .wsa-arcmark{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b6bff,#38d8ff);color:#fff;font-size:20px;flex:0 0 auto}
 .wsa-arcmark.big{width:56px;height:56px;font-size:28px;margin:0 auto 8px}
 .wsa-pop .wak-in{text-align:center;max-width:420px}.wsa-pop h3{margin:0 0 6px}.wsa-pop p{line-height:1.5}
+.wsa .wsa-grid{grid-template-columns:repeat(auto-fill,minmax(196px,1fr))}
+.wsa .wsa-act{flex-wrap:wrap}.wsa .wsa-act .wst-go{white-space:nowrap;font-size:11.5px}
+.wsa .wst-go.gold,.wst.pro .wsa .wst-go.gold{background:linear-gradient(90deg,#f5d47a,#e6a93a);color:#2a1a00;border-color:transparent}
+@media (max-width:600px){.wsa .wsa-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.wsa-c small{display:none}.wsa .wsa-act .wst-go{font-size:10.5px;padding:5px 6px}}

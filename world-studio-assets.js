@@ -26,11 +26,11 @@ export function makeAssets(ctx, { T, esc, act, ask, wallet, pi, repaint, use3d }
       <div class="wsa-act">${mine ? `<button type="button" class="wst-go" data-sause="${it.id}">${pi("cube")} ${esc(T("Use in 3D Builder"))}</button><button type="button" class="wst-go alt" data-sadl="${it.id}" aria-label="${esc(T("Download"))}" title="${esc(T("Download .glb"))}">⬇ .glb</button>`
         : `<button type="button" class="wst-go gold" data-sabuy="${it.id}"${busy === it.id ? " disabled" : ""}>${busy === it.id ? "⏳ " + esc(T("Checking on Arc…")) : `${esc(T("Buy"))} · ${price} $ARCIRCLE`}</button>`}</div></article>`;
   }
-  function paint() {
+  function paint(o = {}) {
     if (!data) load();
     const list = STORE.ITEMS.filter((it) => !cat || it.cat === cat);
     return `<div class="wsa"><div class="wsa-ban"><div><small>${esc(T("3D Builder"))} · ${esc(T("Assets"))}</small><b>${esc(T("Asset Store"))}</b><p>${esc(T("3D models made with Meshy, packed light for phones. One free model in every kind; premium models are {p} $ARCIRCLE each — half is burned, half goes to the treasury.", { p: price }))}</p></div></div>
-      <div class="wst-chips wsa-cats"><button type="button" data-sacat="" class="${cat ? "" : "on"}">${esc(T("All"))}</button>${STORE.CATS.map(([id, ic, n]) => `<button type="button" data-sacat="${id}" class="${cat === id ? "on" : ""}">${ic} ${esc(T(n))}</button>`).join("")}</div>
+      ${o.chips === false ? "" : `<div class="wst-chips wsa-cats"><button type="button" data-sacat="" class="${cat ? "" : "on"}">${esc(T("All"))}</button>${STORE.CATS.map(([id, ic, n]) => `<button type="button" data-sacat="${id}" class="${cat === id ? "on" : ""}">${ic} ${esc(T(n))}</button>`).join("")}</div>`}
       <div class="wsa-grid">${list.map(card).join("")}</div>
       <p class="wst-3dnote">${esc(T("A model you place in a game is drawn for everyone who plays it. Premium models are for their buyers to build with and download."))}</p>
       <h4 class="wst-sec">${pi("cube")} Arc Studio+</h4>
@@ -82,5 +82,5 @@ export function makeAssets(ctx, { T, esc, act, ask, wallet, pi, repaint, use3d }
     if (b.hasAttribute("data-arcplus")) { arcPlus(); return true; }
     return false;
   }
-  return { paint, click, load, usable, owned };
+  return { paint, click, load, usable, owned, arcPlus, setCat: (c) => { cat = c || ""; } };
 }
