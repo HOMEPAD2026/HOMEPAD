@@ -147,7 +147,9 @@ export function makeHub(o) {
   function subCol() { const L = SUBS[page]; if (!L) return "";
     return `<aside class="sgh-sub"><h3>${esc(T(TITLE[page]))}</h3>${L.map(([k, l]) => `<a href="?p=${page}&s=${k}" data-go="${page}" data-s="${k}" class="${sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}</aside>`; }
   /// the language picker in the top bar (2026-10-29, the owner: not only in the footer)
-  const langPick = () => `<label class="sgh-tlang" title="Language">${ic("globe")}<select class="sgh-lang" aria-label="Language">${[["en", "EN"], ["ko", "한국어"], ["zh", "中文"], ["tr", "TR"]].map(([v, l]) => `<option value="${v}"${o.lang === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  const LANGS = [["en", "EN", "English"], ["ko", "KO", "한국어"], ["zh", "ZH", "中文"], ["tr", "TR", "Türkçe"]];
+  const langPick = () => { const cur = LANGS.find((x) => x[0] === o.lang) || LANGS[0];
+    return `<div class="sgh-tlang"><button type="button" data-langbtn aria-haspopup="listbox" aria-label="Language">${ic("globe")}<b>${cur[1]}</b>${ic("down", "sm")}</button><div class="sgh-lmenu" role="listbox" hidden>${LANGS.map(([v, k, n]) => `<button type="button" role="option" data-setlang="${v}" class="${v === cur[0] ? "on" : ""}"><b>${n}</b><small>${k}</small>${v === cur[0] ? ic("check", "sm") : ""}</button>`).join("")}</div></div>`; }; // (our own menu: a native list can't wear the Hub's look)
   function topBar() {
     const n = bellN();
     return `<header class="sgh-top"><button type="button" class="sgh-ib sgh-hb" data-burger aria-label="${esc(T("Menu"))}">${ic(collapsed || !matchMedia("(min-width: 1024px)").matches ? "menu" : "fold")}</button><h1>${esc(T(TITLE[page]))}</h1><span class="sgh-sp"></span>
@@ -430,7 +432,9 @@ export function makeHub(o) {
     root.querySelectorAll(".rv:not(.in)").forEach((e) => io.observe(e)); }
   function countUp(box) { box.querySelectorAll("[data-count]").forEach((b) => { const n = Number(b.dataset.count) || 0; if (reduce || n < 2) { b.textContent = num(n); return; } const t0 = performance.now(), d = 1100;
     const step = (t) => { const k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3); b.textContent = num(Math.round(n * e)); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }); }
-  function after() { reveal(); fill().catch((e) => console.warn("hub fill", e)); root.querySelectorAll(".sgh-lang").forEach((sel) => { sel.onchange = () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }; }); } // (the footer's and the top bar's language pickers)
+  function after() { reveal();
+    root.querySelectorAll("[data-langbtn]").forEach((b) => { b.onclick = (e) => { e.stopPropagation(); const m = b.nextElementSibling, open = m.hidden; root.querySelectorAll(".sgh-lmenu").forEach((x) => { x.hidden = true; }); m.hidden = !open; b.classList.toggle("on", open); }; });
+    root.querySelectorAll("[data-setlang]").forEach((b) => { b.onclick = () => { try { localStorage.setItem("arcircle.lang", b.dataset.setlang); } catch { /* fine */ } location.reload(); }; }); fill().catch((e) => console.warn("hub fill", e)); root.querySelectorAll(".sgh-lang").forEach((sel) => { sel.onchange = () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }; }); } // (the footer's and the top bar's language pickers)
 
   // ---------------- the clicks ----------------
   async function onAct(b, e) {
@@ -490,6 +494,7 @@ export function makeHub(o) {
   });
   let sqT = 0; root.addEventListener("input", (e) => { if (X.onInput(e.target)) return; if (e.target.matches("[data-sq]")) { clearTimeout(sqT); const v = e.target.value; sqT = setTimeout(() => { D.sq = v; const pos = e.target.selectionStart; paint(); const ni = root.querySelector("[data-sq]"); if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch { /* fine */ } } }, 260); } });
   document.addEventListener("click", (e) => { if (!pop || pop.contains(e.target) || e.target.closest("[data-user],[data-bell],[data-search],[data-tools]")) { if (pop && pop.contains(e.target)) { const b = e.target.closest("button,a"); if (b && (b.dataset.go != null || b.dataset.ws || b.dataset.use || b.dataset.gsheet || b.dataset.guide || b.dataset.xgame || b.dataset.xpost || b.hasAttribute("data-signin") || b.hasAttribute("data-make"))) { e.preventDefault(); const keep = pop; onAct(b, e); if (pop === keep) closePops(); } else if (e.target.closest("[data-tx]") || e.target === pop) closePops(); } return; } closePops(); });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".sgh-tlang")) root.querySelectorAll(".sgh-lmenu").forEach((x) => { if (!x.hidden) { x.hidden = true; x.previousElementSibling.classList.remove("on"); } }); });
   document.addEventListener("keydown", (e) => { if (root.hidden) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search(); } else if (e.key === "Escape") { if (pop) closePops(); else if (peek) unpeek(); else if (drawer) { drawer = false; paint(); } } });
   addEventListener("popstate", () => { if (root.hidden) return; route(); paint(); });
 
