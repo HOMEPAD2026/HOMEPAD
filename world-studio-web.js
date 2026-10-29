@@ -232,6 +232,7 @@ async function workspace(fn, tab, direct) {
 }
 async function startApp() {
   paintMe(); document.querySelector("[data-signin]").addEventListener("click", async () => { if (sess()) return; try { await signIn(); paintMe(); toast("👛 " + esc(T("Signed in"))); if (host) host.studio.load(); if (hub) hub.refresh(); } catch (e) { toast(esc((e && e.message) || T("Sign-in failed"))); } });
+  const hm = document.querySelector("[data-hubmenu]"); if (hm) hm.addEventListener("click", () => { if (hub && hub.menu) hub.menu(); else location.href = "/studio"; }); // (the workspace's ≡ opens the Creator Hub's menu, 2026-10-29)
   const hb = document.querySelector("[data-tohub]"); if (hb) hb.addEventListener("click", () => { try { host && host.studio.shown() ? host.studio.close() : toHub(); } catch { toHub(); } });
   const q = new URLSearchParams(location.search), deep = /^[A-Za-z0-9]{5}$/.test(q.get("race") || "") || /^[a-z0-9]{8}$/.test(q.get("ch") || "") || !!q.get("sg") || ["arcade", "mine", "make"].includes(q.get("tab"));
   try {

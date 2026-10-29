@@ -2209,6 +2209,7 @@ function ensureMine() { if (mineGame) return Promise.resolve(mineGame); if (mine
 // ---------------- Jurassic World (world-jurassic.js), loaded the first time a GM walks through the portal ----------------
 // the gate is shut to everyone else: a short note, nothing loaded. (The land has no rewards yet; when it does, the server
 // checks the GM wallet too.)
+function jurGateGo() { const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 3, g.z - g.z / d * 3, { x: g.x, z: g.z }); } // in front of the Jurassic portal, facing it (the map, the egg chip)
 const jurAllowed = () => true; // open to everyone (guests walk and look; gathering, crafting and a camp need a signed-in wallet)
 setInterval(() => { if ((jurOn || survOn || ringsOn || pokerOn) && !frozen) { frozen = true; keys.clear(); } }, 250); // in Jurassic World the town stays frozen (a window closing there unfroze it)
 // b-jy3: the boss hour's call in town — five minutes before 12:00 and 20:00 (Seoul) and as it starts, a card with the way
@@ -2884,13 +2885,14 @@ function openMap() {
   const adHtml = cityOk && adc ? `<h3 style="--c:#5fd3ff">🌆 ${esc(TW("Nexus City"))}</h3><ul class="wp-maplist"><li><button type="button" data-adc="guide"><i style="--c:#5fd3ff"></i><span><b>${esc(TW("Nexus City"))}</b><small>${esc(TW("AGENT DIMENSION's city: five buildings and agents at work"))}</small></span></button></li>${adc.M.BUILDINGS.map((B) => `<li><button type="button" data-adc="${B.id}"><i style="--c:${B.css}"></i><span><b>${esc(TW(B.name))}</b><small>${esc(TW(B.sub))}${B.open ? "" : " · " + esc(TW("Coming soon"))}</small></span></button></li>`).join("")}</ul>` : cityOk ? `<h3 style="--c:#5fd3ff">🌆 ${esc(TW("Nexus City"))}</h3><ul class="wp-maplist"><li><button type="button" data-adc="guide"><i style="--c:#5fd3ff"></i><span><b>${esc(TW("Nexus City"))}</b><small>${esc(TW("AGENT DIMENSION's city: five buildings and agents at work"))}</small></span></button></li></ul>` : "";
   // RAID QUEENS first, the hunting grounds next (the owner, 2026-10-25)
   const hwHtml = `<h3 style="--c:#ff8a1f">🎃 ${esc(TW("Halloween Realm"))}</h3><ul class="wp-maplist"><li><button type="button" data-land="hw"><i style="--c:#ff8a1f"></i><span><b>${esc(TW("Pumpkin Village"))}</b><small>${esc(TW("Six hunting grounds · Lv 15–400 · the Cursed Night every 30 minutes"))}</small></span></button></li>${(HWM ? HWM.GROUNDS : []).map((g) => `<li><button type="button" data-hwg="${g.id}"><i style="--c:#${g.color.toString(16).padStart(6, "0")}"></i><span><b>${esc(TW(g.name))}</b><small>${esc(TW("Lv {a}–{b}", { a: g.lv[0], b: g.lv[1] }))}</small></span></button></li>`).join("")}</ul>`;
+  const jurHtml = `<h3 style="--c:#3dff9a">🦖 ${esc(TW("Jurassic World"))}</h3><ul class="wp-maplist"><li><button type="button" data-jur="1"><i style="--c:#3dff9a"></i><span><b>${esc(TW("Jurassic World"))}</b><small>${esc(TW("Step into the Jurassic World portal"))}</small></span></button></li></ul>`; // (2026-10-29, the owner: the map had no Jurassic entry, and its picture sat on the Game Village tile)
   const rqHtml = `<h3 style="--c:#ff4d8d">♛ RAID QUEENS</h3><ul class="wp-maplist"><li><button type="button" data-land="rq"><i style="--c:#ff4d8d"></i><span><b>RAID QUEENS</b><small>${esc(TW("Lv 100+ · Waves, then a queen · 3 runs a day"))}${rqOn() ? "" : " · " + esc(TW("Under construction"))}</small></span></button></li></ul>`;
   // SB-1 (the owner, 2026-10-26): Creator City at the very top — its gate, then each building
   const CCF = [["hall", "Hall of Fame", "The top creators and games", "#ffd23a"], ["academy", "Creator Academy", "Your first game in 10 minutes", "#7cf5c8"], ["tower", "Studio Tower", "Make and edit your games", "#5fd3ff"], ["arcade", "Game Arcade", "Play what everyone made", "#ff6fae"], ["contest", "Contest Arena", "This week's creator contest", "#b48cff"], ["factory", "Asset Factory", "Parts you unlock as you create", "#39ff88"], ["market", "Creator Market", "Layouts and kits from creators", "#ff9f2e"], ["launch", "Launch Portal", "Your game's launch — coming soon", "#4f9dff"]];
   const ccHtml = `<h3 style="--c:#7cf5c8">🎮 ${esc(TW("Creator City"))}</h3><ul class="wp-maplist"><li><button type="button" data-cc="go"><i style="--c:#7cf5c8"></i><span><b>${esc(TW("Creator City"))} <em class="wp-fit">BETA</em></b><small>ARCIRCLE STUDIO BETA · ${esc(TW("Make your own game"))}${landNow === "cc" ? "" : " · " + esc(TW("By the fountain"))}</small></span></button></li>${CCF.map(([id, n, sub, c]) => `<li><button type="button" data-cc="${id}"><i style="--c:${c}"></i><span><b>${esc(TW(n))}</b><small>${esc(TW(sub))}</small></span></button></li>`).join("")}</ul>`;
   // the fountain first (2026-10-27, the owner: 'a shortcut to the fountain at the top of the map, always'), from any land
   const fountHtml = `<button type="button" class="wp-mapfount" data-fount="1"><i aria-hidden="true">⛲</i><span><b>${esc(TW("Fountain plaza"))}</b><small>${esc(TW("Back to the middle of town, from anywhere"))}</small></span><em>›</em></button>`;
-  $("wp-maplist").innerHTML = fountHtml + keyHtml + ccHtml + hwHtml + rqHtml + zoneHtml + adHtml + landsHtml + pvHtml + groups + arclHtml + mineHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(TW("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
+  $("wp-maplist").innerHTML = fountHtml + keyHtml + ccHtml + hwHtml + jurHtml + rqHtml + zoneHtml + adHtml + landsHtml + pvHtml + groups + arclHtml + mineHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(TW("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   decorateMap();
   mapEl.hidden = false; frozen = true; keys.clear(); paintPrompt();
   const first = mapEl.querySelector("button[data-i]"); if (first) first.focus({ preventScroll: true });
@@ -2904,7 +2906,7 @@ function decorateMap() {
     const d = b.dataset, spec = d.i != null && d.i !== "portal" ? (shops[Number(d.i)] || { userData: {} }).userData.spec : null;
     const zn = d.z != null ? [...ZN.ZONES, SOC.RAID][+d.z] : null; // the grounds, Nexus City and the Research district: Meshy's art (2026-10-25)
     const k = d.land || (d.pv ? "pv" : d.pvk ? "kairo-tower" : d.pvh ? "kairo-hub" : zn ? "z-" + zn.id : d.adc === "guide" ? "nexus" : spec ? (spec.district === "Research" ? "research" : spec.id) : "");
-    const src = d.cc ? `/images/${d.cc === "go" ? "gw/key-cc-416" : "cc/b-" + d.cc}.webp${VER}` : MAP_ART[k] ? `/images/ui/${MAP_ART[k]}.webp${VER}` : d.mine ? `/images/games/mine-art-300.webp${VER}` : d.race ? `/images/games/jump-art-300.webp${VER}` : "";
+    const src = d.cc ? `/images/${d.cc === "go" ? "gw/key-cc-416" : "cc/b-" + d.cc}.webp${VER}` : MAP_ART[k] ? `/images/ui/${MAP_ART[k]}.webp${VER}` : d.mine ? `/images/games/mine-art-300.webp${VER}` : d.race ? `/images/games/jump-art-300.webp${VER}` : d.jur ? `/images/games/jurassic-art-300.webp${VER}` : "";
     if (src) { b.style.setProperty("--art", `url("${src}")`); b.classList.add("art"); }
   });
   mapTabs(box);
@@ -2915,11 +2917,11 @@ function decorateMap() {
 // search box that looks through all of them. The sections are still built by openMap(); here they're only sorted.
 const MAP_TOP = [
   ['data-land="hw"', "Halloween Realm", "hwrealm/key-wide-768"], ['data-cc="go"', "Creator City", "gw/key-cc-416"], ['data-land="rq"', "RAID QUEENS", "ui/map/rq"], ['data-land="ad"', "Nexus City", "ui/map/nexus"],
-  ['data-land="gv"', "Game Village", "games/jurassic-art-300"], ['data-land="lp"', "Launchpad Village", "ui/map/lp"], ['data-land="ut"', "Utility Village", "ui/map/ut"],
+  ['data-jur="1"', "Jurassic World", "gw/key-jurassic-416"], ['data-land="gv"', "Game Village", "games/defense-art-300"], ['data-land="lp"', "Launchpad Village", "ui/map/lp"], ['data-land="ut"', "Utility Village", "ui/map/ut"],
   ['data-pv="1"', "Partner Village", "ui/map/pv"], ['data-mine="1"', "ARCL Mine", "games/mine-art-300"], ['data-isle="1"', "My Island", "gw/news-villages-1200"],
 ];
 const MAP_RECENT = "arc.world.mapRecent", MAP_TAB = "arc.world.mapTab";
-const MAP_KEYS = ["fount", "i", "c", "f", "n", "isle", "isles", "z", "race", "mine", "pv", "pvk", "pvh", "land", "adc", "cc"];
+const MAP_KEYS = ["fount", "i", "c", "f", "n", "isle", "isles", "z", "race", "mine", "pv", "pvk", "pvh", "land", "adc", "cc", "jur"];
 function mapRemember(b) {
   try { if (!b || !b.matches || !b.matches("button")) return; const d = {}; for (const k of MAP_KEYS) if (b.dataset[k] != null) d[k] = b.dataset[k]; if (!Object.keys(d).length || d.fount) return;
     const name = (b.querySelector("b") || b).textContent.trim().slice(0, 28); if (!name) return;
@@ -2936,7 +2938,7 @@ function mapTabs(box) {
   }
   for (const sc of secs) {
     if (sc.tab) continue; const q = (a) => sc.els.some((e) => e.matches && (e.matches(a) || e.querySelector(a)));
-    sc.tab = q(".wp-ringmap") || q("[data-z]") || q('[data-land="rq"]') ? "hunt" : q("[data-cc]") || q("[data-adc]") || q("[data-land]") || q("[data-pv]") || q("[data-mine]") || q("[data-c]") ? "lands" : "town";
+    sc.tab = q(".wp-ringmap") || q("[data-z]") || q('[data-land="rq"]') ? "hunt" : q("[data-cc]") || q("[data-jur]") || q("[data-adc]") || q("[data-land]") || q("[data-pv]") || q("[data-mine]") || q("[data-c]") ? "lands" : "town";
   }
   const sec = (tab) => { const w = document.createElement("section"); w.className = "wp-msec"; w.dataset.tab = tab; return w; };
   const wraps = { hunt: sec("hunt"), lands: sec("lands"), town: sec("town") };
@@ -2973,9 +2975,10 @@ $("wp-map-x").addEventListener("click", closeMap);
 mapEl.addEventListener("keydown", (e) => { const g = e.target.closest && e.target.closest(".wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); g.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
-  const b = e.target.closest("button[data-hwg],button[data-fount],button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],button[data-cc],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (!b) return; mapRemember(b);
+  const b = e.target.closest("button[data-hwg],button[data-fount],button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race],button[data-mine],button[data-pv],button[data-pvk],button[data-pvh],button[data-land],button[data-adc],button[data-cc],button[data-jur],.wp-ringmap g[data-z],.wp-ringmap g[data-mine],.wp-ringmap g[data-pv],.wp-ringmap g[data-cc]"); if (!b) return; mapRemember(b);
   if (b.dataset.cc) { closeMap(); ccTo(b.dataset.cc); return; }
   if (b.dataset.pv) { closeMap(); goPartnerVillage(); return; }
+  if (b.dataset.jur) { closeMap(); jurGateGo(); return; }
   if (b.dataset.fount) { closeMap(); fountGo(); return; }
   if (b.dataset.land === "rq") { closeMap(); rqPortalFront(); return; } // (the owner, 2026-10-25: the map's RAID QUEENS takes you to the front of its portal building on the far hunting ring)
   if (b.dataset.hwg) { closeMap(); hwGo(b.dataset.hwg); return; } // (the Halloween Realm: straight to a ground's edge)
@@ -6426,7 +6429,7 @@ window.arcWorld = { hwDbg: () => { const v = here(new THREE.Vector3()); return {
   rings: () => ({ game: ringsGame, on: ringsOn, open: openRings, door: () => { const e = gv.exitOf("rings"); standAt(e.x, e.z, gv.center); }, view: () => { const e = gv.exitOf("rings"), c = gv.center; standAt(c.x + (e.x - c.x) * 0.3, c.z + (e.z - c.z) * 0.3, { x: e.x * 2 - c.x, z: e.z * 2 - c.z }); } }),
   surv: () => ({ game: survGame, on: survOn, open: openSurvivors, door: () => { const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); } }),
   land: () => land,
-  jurassic: () => ({ game: jurGame, on: jurOn, open: openJurassic, allowed: jurAllowed(), gate: () => { const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 3, g.z - g.z / d * 3, { x: g.x, z: g.z }); } }),
+  jurassic: () => ({ game: jurGame, on: jurOn, open: openJurassic, allowed: jurAllowed(), gate: () => jurGateGo() }),
   mine: () => ({ game: mineGame, on: mineOn, rest: mineRest, open: openMine, door: () => { const e = mv.exit(); standAt(e.x, e.z, { x: e.x + Math.sin(e.face) * 5, z: e.z + Math.cos(e.face) * 5 }); } }),
   jump: () => jumpRace, beat: () => beatGame, mode: () => mode, input: () => ({ joy: joy ? { dx: +joy.dx.toFixed(2), dy: +joy.dy.toFixed(2), fixed: joy.fixed } : null, look: !!look, pinch: !!pinch, touches: touches.size, cam: +camGoal.toFixed(2) }), gv: () => gv, liftTo: (y) => { hop = y; at.y = y; vy = 0; grounded = true; } /* tests: stand at a height (a Coin Jump platform) */, goGameVillage: () => goGameVillage(), island: () => island.debug(), isle: () => island, village: () => village, setVillage: (v) => setVillage(v), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   lands: { go: (id) => landGo(id), now: () => landNow, lots: () => coinBuildings.map((g) => ({ sym: g.userData.coin.symbol, tier: g.userData.tier, x: g.position.x, z: g.position.z, size: g.userData.size })), portals: () => lands.portals.map((p) => ({ to: p.userData.to, model: !!p.userData.model, x: p.position.x, z: p.position.z })), shops: () => shops.map((g) => ({ id: g.userData.spec.id, x: g.position.x, z: g.position.z })), stand: (x, z, cx, cz) => standAt(x, z, cx != null ? { x: cx, z: cz } : undefined), out: () => outOfBounds(), coins: (list) => { coinData = list; coinData.mine = 0; buildCoinCity(list); return coinBuildings.length; },

@@ -95,7 +95,7 @@ const GUIDES = [
 export function makeHub(o) {
   const { T, esc, toast } = o, num = o.num || ((n) => String(n || 0)), ver = o.ver || "";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const D = {}; let page = "home", sub = "", collapsed = false, drawer = false, cpage = null;
+  const D = {}; let page = "home", sub = "", collapsed = false, drawer = false, cpage = null, peek = false; // (peek: the menu drawer over the workspace — /studio?tab=make's ≡, 2026-10-29)
   try { collapsed = localStorage.getItem("arc.hub.fold") === "1"; } catch { /* fine */ }
   const root = document.createElement("div"); root.className = "sgh"; root.id = "sgh"; document.body.appendChild(root); document.body.classList.remove("sgh-ws");
   const art = (tpl, w = 768) => `/images/studio/tpl/${TEMPLATES[tpl] ? tpl : "runner"}-${w}.webp${ver}`;
@@ -164,9 +164,10 @@ export function makeHub(o) {
       ${SUBS[cpage || page].map(([k, l]) => `<a href="?p=${cpage || page}${k ? "&s=" + k : ""}" data-go="${cpage || page}" data-s="${k}" class="${(cpage || page) === page && sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}
       <a class="sgh-mk" href="#" data-make>${ic("plus")}<span>${esc(T("Create a game"))}</span></a></div></div></div>` : ""}`; } // (a page with no sub-pages — Home — shows the rail alone: no second column repeating "Home")
 
+  function unpeek() { peek = false; drawer = false; cpage = null; root.hidden = true; root.classList.remove("peek"); }
   function paint() {
     const land = page === "home";
-    root.className = `sgh${land ? " land" : ""}${collapsed ? " fold" : ""}${SUBS[page] ? " has-sub" : ""}`;
+    root.className = `sgh${land ? " land" : ""}${collapsed ? " fold" : ""}${SUBS[page] ? " has-sub" : ""}${peek ? " peek" : ""}`;
     root.innerHTML = land
       ? `${landTop()}<div class="sgh-scroll"><main class="sgh-page pg-home">${pageHtml()}</main>${foot()}</div>${drawerHtml()}`
       : `${side()}${subCol()}<div class="sgh-main">${topBar()}<div class="sgh-scroll"><main class="sgh-page pg-${page}">${pageHtml()}</main>${foot()}</div></div>${drawerHtml()}`;
@@ -453,6 +454,15 @@ export function makeHub(o) {
   }
   root.addEventListener("click", async (e) => {
     const t = e.target;
+    if (peek) { // (over the workspace: closing hides the hub again, a page link leaves the workspace for that page)
+      if ((t.closest("[data-dwx]") && !t.closest(".sgh-dwin")) || t.closest("[data-dwclose]")) { unpeek(); return; }
+      const pk0 = t.closest("[data-peek]"); if (pk0 && SUBS[pk0.dataset.peek] && cpage !== pk0.dataset.peek) { e.preventDefault(); cpage = pk0.dataset.peek; paint(); return; }
+      if (t.closest("[data-make]")) { e.preventDefault(); unpeek(); o.ws.open("make"); return; }
+      const lk = t.closest("a[href]"); if (lk && lk.getAttribute("href") !== "#") { e.preventDefault(); const h = lk.getAttribute("href"); location.href = h.startsWith("?") ? "/studio" + h : h; return; }
+      if (t.closest("[data-tools]")) { e.preventDefault(); location.href = "/studio?p=home"; return; }
+      if (t.closest("[data-user]")) { unpeek(); return; }
+      return;
+    }
     if (t.closest("[data-dwx]") && !t.closest(".sgh-dwin")) { drawer = false; cpage = null; paint(); return; }
     if (t.closest("[data-dwclose]")) { drawer = false; cpage = null; paint(); return; }
     const pk = t.closest("[data-peek]"); if (pk && drawer && SUBS[pk.dataset.peek] && cpage !== pk.dataset.peek && (cpage || page) !== pk.dataset.peek) { e.preventDefault(); cpage = pk.dataset.peek; paint(); return; } // (a phone: the rail's first tap shows that page's sub column, like Roblox's)
@@ -477,7 +487,7 @@ export function makeHub(o) {
   });
   let sqT = 0; root.addEventListener("input", (e) => { if (X.onInput(e.target)) return; if (e.target.matches("[data-sq]")) { clearTimeout(sqT); const v = e.target.value; sqT = setTimeout(() => { D.sq = v; const pos = e.target.selectionStart; paint(); const ni = root.querySelector("[data-sq]"); if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch { /* fine */ } } }, 260); } });
   document.addEventListener("click", (e) => { if (!pop || pop.contains(e.target) || e.target.closest("[data-user],[data-bell],[data-search],[data-tools]")) { if (pop && pop.contains(e.target)) { const b = e.target.closest("button,a"); if (b && (b.dataset.go != null || b.dataset.ws || b.dataset.use || b.dataset.gsheet || b.dataset.guide || b.dataset.xgame || b.dataset.xpost || b.hasAttribute("data-signin") || b.hasAttribute("data-make"))) { e.preventDefault(); const keep = pop; onAct(b, e); if (pop === keep) closePops(); } else if (e.target.closest("[data-tx]") || e.target === pop) closePops(); } return; } closePops(); });
-  document.addEventListener("keydown", (e) => { if (root.hidden) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search(); } else if (e.key === "Escape") { if (pop) closePops(); else if (drawer) { drawer = false; paint(); } } });
+  document.addEventListener("keydown", (e) => { if (root.hidden) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search(); } else if (e.key === "Escape") { if (pop) closePops(); else if (peek) unpeek(); else if (drawer) { drawer = false; paint(); } } });
   addEventListener("popstate", () => { if (root.hidden) return; route(); paint(); });
 
   // the bell's count: new games from creators you follow
@@ -491,6 +501,7 @@ export function makeHub(o) {
   return {
     show() { root.hidden = false; document.body.classList.remove("sgh-ws"); fresh(); route(); paint(); FX.milestones().catch(() => {}); },
     hide() { root.hidden = true; closePops(); FX.hide(); document.body.classList.add("sgh-ws"); },
-    shown: () => !root.hidden, go, refresh: () => { fresh(); if (!root.hidden) paint(); },
+    shown: () => !root.hidden && !peek, go,
+    menu() { peek = true; drawer = true; cpage = null; root.hidden = false; paint(); }, /* (the workspace's ≡: the hub's menu drawer over the Studio) */ refresh: () => { fresh(); if (!root.hidden) paint(); },
   };
 }
