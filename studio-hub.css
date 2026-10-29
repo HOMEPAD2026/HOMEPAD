@@ -667,3 +667,10 @@ html[data-ht=light] .sgh-edge{background:#fff;color:#5b6573;box-shadow:0 2px 8px
   .sgh-lsc .sgh-ic{width:17px;height:17px}
 }
 html[data-ht=light] .sgh-lsc a{background:#fff}
+.sgh-lsc{overflow:visible;padding:3px 2px;margin:-3px 0}.sgh-lsc a{flex:none}
+.sgh-tlang{position:relative;display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 6px 0 10px;margin:0 2px;border-radius:10px;border:1px solid var(--h-line);color:var(--h-ink2);cursor:pointer}
+.sgh-tlang:hover{border-color:var(--h-acc);color:var(--h-ink)}.sgh-tlang .sgh-ic{width:16px;height:16px}
+.sgh-tlang select.sgh-lang{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:inherit;font:700 13px/1 Sora,"Noto Sans KR",sans-serif;padding:0 4px;height:100%;cursor:pointer;outline:none}
+.sgh-tlang select.sgh-lang option{background:#111418;color:#f1f4f7}
+@media (max-width:560px){.sgh-tlang .sgh-ic{display:none}.sgh-tlang{padding:0 4px}}
+html[data-ht=light] .sgh-tlang select.sgh-lang option{background:#fff;color:#111}

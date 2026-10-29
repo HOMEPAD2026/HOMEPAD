@@ -146,18 +146,20 @@ export function makeHub(o) {
   }
   function subCol() { const L = SUBS[page]; if (!L) return "";
     return `<aside class="sgh-sub"><h3>${esc(T(TITLE[page]))}</h3>${L.map(([k, l]) => `<a href="?p=${page}&s=${k}" data-go="${page}" data-s="${k}" class="${sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}</aside>`; }
+  /// the language picker in the top bar (2026-10-29, the owner: not only in the footer)
+  const langPick = () => `<label class="sgh-tlang" title="Language">${ic("globe")}<select class="sgh-lang" aria-label="Language">${[["en", "EN"], ["ko", "한국어"], ["zh", "中文"], ["tr", "TR"]].map(([v, l]) => `<option value="${v}"${o.lang === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>`;
   function topBar() {
     const n = bellN();
     return `<header class="sgh-top"><button type="button" class="sgh-ib sgh-hb" data-burger aria-label="${esc(T("Menu"))}">${ic(collapsed || !matchMedia("(min-width: 1024px)").matches ? "menu" : "fold")}</button><h1>${esc(T(TITLE[page]))}</h1><span class="sgh-sp"></span>
       <button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>
-      ${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${n ? `<em class="sgh-dot">${n > 9 ? "9+" : n}</em>` : ""}</button>
+      ${langPick()}${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${n ? `<em class="sgh-dot">${n > 9 ? "9+" : n}</em>` : ""}</button>
       <a class="sgh-world" href="/play">${ic("globe")}<span>${esc(T("Play ARCIRCLE WORLD"))}</span></a>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button></header>`;
   }
   function landTop() {
     return `<header class="sgh-ltop"><button type="button" class="sgh-ib sgh-lb2" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
       <nav class="sgh-lnav"><a href="?p=creations" data-go="creations">${esc(T("Dashboard"))}</a><a href="?p=learn" data-go="learn">${esc(T("Learn"))}</a><a href="?p=community" data-go="community">${esc(T("Explore"))}</a><a href="?p=store" data-go="store">${esc(T("Store"))}</a><a href="?p=updates" data-go="updates">${esc(T("Updates"))}</a></nav>
-      <span class="sgh-sp"></span><nav class="sgh-lsc"><a href="/game">${ic("play")}<span>${esc(T("Game World"))}</span></a><a href="/">${ic("globe")}<span>${esc(T("ARCIRCLE Platform"))}</span></a></nav><button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
+      <span class="sgh-sp"></span><nav class="sgh-lsc"><a href="/game">${ic("play")}<span>${esc(T("Game World"))}</span></a><a href="/">${ic("globe")}<span>${esc(T("ARCIRCLE Platform"))}</span></a></nav>${langPick()}<button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button><button type="button" class="sgh-ib sgh-lburger" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button></header>`;
   }
   function drawerHtml() { if (!drawer) return ""; const pg = cpage || page, L = SUBS[pg];
@@ -428,7 +430,7 @@ export function makeHub(o) {
     root.querySelectorAll(".rv:not(.in)").forEach((e) => io.observe(e)); }
   function countUp(box) { box.querySelectorAll("[data-count]").forEach((b) => { const n = Number(b.dataset.count) || 0; if (reduce || n < 2) { b.textContent = num(n); return; } const t0 = performance.now(), d = 1100;
     const step = (t) => { const k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3); b.textContent = num(Math.round(n * e)); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }); }
-  function after() { reveal(); fill().catch((e) => console.warn("hub fill", e)); const sel = root.querySelector(".sgh-lang"); if (sel) sel.onchange = () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }; }
+  function after() { reveal(); fill().catch((e) => console.warn("hub fill", e)); root.querySelectorAll(".sgh-lang").forEach((sel) => { sel.onchange = () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }; }); } // (the footer's and the top bar's language pickers)
 
   // ---------------- the clicks ----------------
   async function onAct(b, e) {
