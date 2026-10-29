@@ -6394,7 +6394,7 @@ const dinoTown = (() => {
     if (soon) { const l = soon.e.closesAt - t; return { k: l < 4 * 3600e3 ? "warn" : "care", t: "🥚 " + TW("Egg care open · {t} left", { t: left(l) }), key: "c" + soon.eg.id + (soon.eg.done || []).length + (l < 3600e3 ? "1h" : l < 4 * 3600e3 ? "4h" : "") }; }
     if (st.canClaim === false || (st.canClaim == null && st.buddy)) return null;
     if (st.first) return { k: "first", t: "🥚 " + TW("Your first egg is waiting in Jurassic World") };
-    const e = nests.find((x) => x.to > t); if (e) return { k: "out", t: "🥚 " + TW("A rare egg is out in Jurassic World · {t} left", { t: left(e.to - t) }), key: "o" + e.nest + e.to };
+    // (2026-10-29, the owner: no "A rare egg is out" banner or toast any more — the nests still show in Jurassic World)
     return null;
   }
   function paint() {
