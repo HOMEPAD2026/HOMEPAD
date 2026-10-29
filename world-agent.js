@@ -363,7 +363,7 @@ export function createAgentDim(ctx) {
     const L = LESSONS[n % LESSONS.length], [t, line, q, ch, ok] = L, ans = lessonPick;
     return `<div class="wag-lesson"><small>🎓 ${esc(T("Agent Academy"))} · ${esc(T("Lesson {n}", { n: (n % LESSONS.length) + 1 }))}</small><h3>${esc(T(t))}</h3><p>${esc(T(line))}</p>
       <b class="wag-lq">${esc(T(q))}</b><div class="wag-lch">${ch.map((c, i) => `<button type="button" data-ans="${i}" class="${ans < 0 ? "" : i === ok ? "ok" : i === ans ? "no" : "dim"}" ${ans >= 0 ? "disabled" : ""}>${esc(T(c))}</button>`).join("")}</div>
-      ${ans < 0 ? "" : ans === ok ? `<p class="wag-lres ok">✨ ${esc(T("Correct!"))}${guest ? "" : " " + esc(T("+{n} XP for your agent", { n: st.studyXp || 25 }))}</p>` : `<p class="wag-lres no">${esc(T("Not quite — the right answer is lit. Try the next lesson tomorrow."))}</p>`}</div>`;
+      ${ans < 0 ? "" : ans === ok ? `<p class="wag-lres ok">✨ ${esc(T("Correct!"))}${guest ? "" : " " + esc(T("+{n} XP for your agent", { n: st.studyXp || 25 }))}</p>` : `<p class="wag-lres no">${esc(T("Not quite — the right answer is the green one. Try the next lesson tomorrow."))}</p>`}</div>`;
   }
   function paintAcademy(a) {
     const n = a.studied ? Math.max(0, (a.lessons || 1) - 1) : a.lessons || 0;
