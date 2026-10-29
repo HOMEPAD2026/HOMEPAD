@@ -3777,7 +3777,7 @@ function placePill(pill) {
 addEventListener("resize", () => { const p = document.getElementById("wp-evt"); if (p && !p.hidden) placePill(p); });
 // phone HUD (the owner's call 2026-10-24): one notice at a time, in one place under the top cards (the boss call, the egg,
 // the agent, the events pill take turns, 6 s each); while a boss's bar is up it has that place to itself
-const NQ = [".wp-bosscall", ".wp-dinochip", ".wag-chip", "#wp-evt"]; let nqI = 0, nqAt = 0, nqTop = 0;
+const NQ = [".wp-bosscall", ".wz-call", ".wp-dinochip", ".wag-chip", "#wp-evt"]; /* (2026-10-29: + the Jurassic boss call — a call goes first) */ let nqI = 0, nqAt = 0, nqTop = 0;
 function noticeSlot() { let y = 0; for (const e of [...document.querySelectorAll(".wp-hud-l > *"), document.getElementById("wp-qmini"), document.getElementById("wc-vit"), document.querySelector(".wp-chips")]) { /* (everything in the left column, the folded quest button too: the boss bar sat on it, the owner's phone 2026-10-24) */ if (!e || !e.getClientRects().length) continue; const r = e.getBoundingClientRect(); if (r.height > 0) y = Math.max(y, r.bottom); } return y ? Math.round(y + 20) : 0; }
 const nqSeen = new WeakSet(), nqObs = typeof MutationObserver === "function" ? new MutationObserver(() => nqRun()) : null; /* (a notice or the boss bar shown or hidden: the slot is sorted at once, not on the next second) */
 every(1000, () => nqRun());
@@ -3788,8 +3788,8 @@ function nqRun() { try {
   const y = noticeSlot(); if (y && y !== nqTop) { nqTop = y; document.documentElement.style.setProperty("--nq-top", y + "px"); }
   { const mm = document.querySelector(".wp-mini"), r = mm && mm.getClientRects().length ? mm.getBoundingClientRect() : null, right = r && r.bottom > y && r.top < y + 90 ? Math.round(r.left - 14) : innerWidth - 18; /* (the room left of the minimap) */
     const R = document.documentElement.style; if (R.getPropertyValue("--nq-r") !== right + "px") { R.setProperty("--nq-r", right + "px"); R.setProperty("--nq-cx", Math.round((18 + right) / 2) + "px"); R.setProperty("--nq-w", (right - 18) + "px"); } }
-  const boss = document.getElementById("wc-boss"), bossOn = !!(boss && !boss.hidden), live = els.filter((e) => !e.hidden);
-  const call = live.find((e) => e.matches(".wp-bosscall")); let show = null;
+  const boss = document.getElementById("wc-boss"), rqb = document.querySelector(".rq-bb"), bossOn = !!(boss && !boss.hidden) || !!(rqb && !rqb.hidden && rqb.getClientRects().length), live = els.filter((e) => !e.hidden); /* (2026-10-29: a raid queen's bar counts as a boss bar — the egg notice sat on it) */
+  const call = live.find((e) => e.matches(".wp-bosscall, .wz-call")); let show = null;
   if (call) show = call; else if (!bossOn && live.length) { if (Date.now() - nqAt > 6000) { nqI++; nqAt = Date.now(); } show = live[nqI % live.length]; }
   for (const e of els) { const off = e !== show; if (e.classList.contains("wp-nq-off") !== off) e.classList.toggle("wp-nq-off", off); }
   if (show && y) { const z = Number(getComputedStyle(show).zoom) || 1, t = Math.round(y / z) + "px"; if (show.style.top !== t) show.style.top = t; }
