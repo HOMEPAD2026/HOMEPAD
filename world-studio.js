@@ -553,7 +553,18 @@ export function createStudio(ctx) {
   // (world-studio-scene.js), the 3D games you're making, and the step-by-step guide told by ARON, LUMI and NEX
   const G3 = [["blank", "⬚", "Blank 3D", "A start pad and a goal — you build the rest"], ["obby", "🧗", "Obby course", "Jumps, lava, spinners and checkpoints"], ["combat", "⚔️", "Combat arena", "Enemies and a boss — knock them all out to win"], ["race", "🏁", "Race track", "Rings in order and laps, on a hoverboard"], ["explore", "💎", "Explore world", "Hills, pools and gems to find"]];
   const G3IMG = (h) => `/images/studio/guide3d/${h}.webp${ctx.ver || ""}`;
+  // (2026-10-29, the owner: "3D Builder on the web Studio → a 'use a PC' notice; a phone's screen is too small") a phone
+  // (touch, short side under 700 px — tablets keep it) sees the card below instead of the editor, and the editor never opens there
+  const phone3d = () => { try { return matchMedia("(pointer: coarse)").matches && Math.min(screen.width || innerWidth, screen.height || innerHeight) < 700; } catch { return false; } };
+  const PC3 = "https://www.arcircle.app/studio?tab=3d";
+  function paint3dPhone() {
+    return `<div class="wst-3d wst-3dpc"><div class="wst-3dban"><img src="${G3IMG("banner")}" alt="" loading="lazy"><div><small>${esc(T("Expert mode"))}</small><b>${esc(T("3D Builder"))}</b></div></div>
+      <div class="wst-pccard"><i aria-hidden="true">💻</i><b>${esc(T("The 3D Builder works on a computer"))}</b><p>${esc(T("Building in 3D needs a big screen and a mouse. Open ARCIRCLE Studio on your PC and sign in with the same wallet — your games are waiting there."))}</p>
+      <div class="wst-pcl"><input readonly value="${esc(PC3)}" aria-label="${esc(T("Link"))}"><button type="button" class="wst-go" data-pc3copy>${esc(T("Copy link"))}</button>${navigator.share ? `<button type="button" class="wst-go alt" data-pc3share>${esc(T("Share"))}</button>` : ""}</div>
+      <p class="wst-3dnote">${esc(T("On this phone you can still make games with the templates, and play every 3D game."))}</p><button type="button" class="wst-go" data-tab="make">${pi("plus")} ${esc(T("Make a game with a template"))}</button></div></div>`;
+  }
   function paint3d() {
+    if (phone3d()) return paint3dPhone();
     const mine3 = [...mine.filter((g) => g.spec && g.spec.tpl === "obby").map((g) => ({ id: g.id, t: g.spec.title || T("My 3D game"), pub: !!g.pub, at: g.at || 0, own: 1 })), ...locals().filter((d) => d.spec && d.spec.tpl === "obby").map((d) => ({ id: d.id, t: d.spec.title || T("My 3D game"), at: d.at || 0, loc: 1 }))].sort((a, b) => b.at - a.at).slice(0, 8);
     return `<div class="wst-3d"><div class="wst-3dban"><img src="${G3IMG("banner")}" alt="" loading="lazy"><div><small>${esc(T("Expert mode"))}</small><b>${esc(T("3D Builder"))}</b><p>${esc(T("Build a real 3D game piece by piece — place, move, turn and size every block, add enemies, bosses and rules, then play it with your own hero."))}</p>
       <button type="button" class="wst-go" data-g3guide>📖 ${esc(T("How to use — ARON, LUMI and NEX show you"))}</button><span class="wst-lvl" role="group" aria-label="${esc(T("Coach"))}">${["beginner", "expert"].map((v) => `<button type="button" data-g3lvl="${v}" class="${coachLevel() === v ? "on" : ""}">${esc(T(v === "beginner" ? "Beginner" : "Expert"))}</button>`).join("")}</span></div></div>
@@ -562,6 +573,7 @@ export function createStudio(ctx) {
       <p class="wst-3dnote">${esc(T("Tip: a computer with a mouse is the easiest place to build; on a phone hold it sideways."))}</p></div>`;
   }
   function start3d(md) {
+    if (phone3d()) { tab = "3d"; paint(); return; }
     const base = clampSpec({ tpl: "obby", theme: md === "explore" ? "jungle" : md === "combat" ? "lava" : "neon", title: T("My 3D game"), speed: 3, len: 60, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 1 + Math.floor(Math.random() * 999998) });
     const b = md === "blank" ? genObbyBuild(base, { md: "obby", secs: 1, props: 0 }) : genObbyBuild(base, { md, boss: md === "combat" });
     spec = clampSpec({ ...base, build: b }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 3; lastTest = null; paint(); ev("tpl"); openBuilder();
@@ -673,11 +685,13 @@ export function createStudio(ctx) {
     if (b.dataset.ctmake) { spec = clampSpec({ ...spec, tpl: b.dataset.ctmake, title: "" }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 1; lastTest = null; paint(); return; }
     if (b.dataset.remix) { const g = gdata && gdata.id === b.dataset.remix ? gdata : null; if (!g || !g.spec) return; return remixOf(g); }
     if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("studio"); return; }
-    if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); if (tab === "3d") { let seen = false; try { seen = !!localStorage.getItem("arc.studio.g3d"); } catch { /* not kept */ } if (!seen) setTimeout(guide3d, 350); } return; }
+    if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); if (tab === "3d" && !phone3d()) { let seen = false; try { seen = !!localStorage.getItem("arc.studio.g3d"); } catch { /* not kept */ } if (!seen) setTimeout(guide3d, 350); } return; }
     if (b.hasAttribute("data-railx")) { try { localStorage.setItem("arc.studio.rail", railMin() ? "" : "min"); } catch { /* this visit only */ } return paint(); }
     if (b.hasAttribute("data-g3guide")) return guide3d();
     if (b.dataset.g3lvl) { setCoachLevel(b.dataset.g3lvl); paint(); ctx.toast(esc(T(b.dataset.g3lvl === "expert" ? "Expert: the coach stays hidden" : "Beginner: the coach shows the next step in the 3D editor"))); return; }
     if (b.dataset.new3d) return start3d(b.dataset.new3d);
+    if (b.hasAttribute("data-pc3copy")) { (async () => { try { await navigator.clipboard.writeText(PC3); ctx.toast("✓ " + esc(T("Link copied"))); } catch { const i = el.querySelector(".wst-pcl input"); if (i) i.select(); } })(); return; }
+    if (b.hasAttribute("data-pc3share")) { try { navigator.share({ title: "ARCIRCLE Studio", text: T("Build 3D games in ARCIRCLE Studio"), url: PC3 }).catch(() => {}); } catch { /* closed */ } return; }
     if (b.dataset.ed3) { await editById(b.dataset.ed3); if (spec.tpl === "obby") openBuilder(); return; }
     if (b.dataset.el3) { editLocal(b.dataset.el3); if (spec.tpl === "obby") openBuilder(); return; }
     if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
@@ -853,7 +867,7 @@ export function createStudio(ctx) {
   // ---------------- Studio 4: the builder (world-studio-build.js) ----------------
   let builder = null;
   async function openBuilder() {
-    const ar = spec.tpl === "arena" || spec.tpl === "rush", td = spec.tpl === "defense", jw = !!JUMPS[spec.tpl], bt = spec.tpl === "rhythm", rc = spec.tpl === "race", ob = spec.tpl === "obby"; if (spec.tpl === "survival") return; let M; try { M = await import(ob ? "./world-studio-scene.js" : bt ? "./world-studio-rhythm.js" : rc ? "./world-studio-race.js" : jw ? "./world-studio-jbuild.js" : ar ? "./world-studio-arena.js" : td ? "./world-studio-tdbuild.js" : "./world-studio-build.js"); } catch (e) { console.warn("studio builder", e); ctx.toast(esc(T("Couldn't open it — try again"))); return; }
+    const ar = spec.tpl === "arena" || spec.tpl === "rush", td = spec.tpl === "defense", jw = !!JUMPS[spec.tpl], bt = spec.tpl === "rhythm", rc = spec.tpl === "race", ob = spec.tpl === "obby"; if (spec.tpl === "survival") return; if (ob && phone3d()) { tab = "3d"; paint(); ctx.toast("💻 " + esc(T("The 3D Builder works on a computer"))); return; } let M; try { M = await import(ob ? "./world-studio-scene.js" : bt ? "./world-studio-rhythm.js" : rc ? "./world-studio-race.js" : jw ? "./world-studio-jbuild.js" : ar ? "./world-studio-arena.js" : td ? "./world-studio-tdbuild.js" : "./world-studio-build.js"); } catch (e) { console.warn("studio builder", e); ctx.toast(esc(T("Couldn't open it — try again"))); return; }
     // STB7: what you built is kept on this device as you go (every change, 1.5 s later), until Done — a slip of Back loses nothing
     const AK = "arc.studio.auto", who = editId || localId || "new"; let auto = null; try { auto = JSON.parse(localStorage.getItem(AK) || "null"); } catch { auto = null; }
     if (auto && auto.tpl === spec.tpl && auto.who === who && auto.b && JSON.stringify(auto.b) !== JSON.stringify(spec.build || null)) {
