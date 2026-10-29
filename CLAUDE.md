@@ -222,6 +222,7 @@ around standing (SURVIVORS ARENA shipped like that). Before using a clip name an
   creator balance that spends in the game but isn't settled. 80 % creator / 20 % platform, 14 days pending (proposals).
 - **Settlements are signed by a GM's own wallet**; the server only records and verifies the tx on Arc. The server never
   holds a private key.
+- **$ARCIRCLE spent in a new game's shop splits 50 % burned / 50 % treasury (the owner, 2026-10-29, for ARCIRCLE KART — the same as the AI agent's FEE_BURN split); keep the split as one constant.**
 - **Daily caps will keep rising** — keep them as constants in one place per game, not scattered.
 - **Record more:** every ARCL movement goes into the ledger (worldArclTx, kept in full), not only the last-30 log.
 - **Deploy it yourself (2026-10-27, the owner: "이제 다되면 배포 명령어가 아니라 니가 배포해줘"):** when a change is finished
