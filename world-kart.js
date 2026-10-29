@@ -6,16 +6,32 @@
 // (2 stocks, Space / the boost button), a start boost for pressing the throttle right on GO, off-road slows you, the road's
 // walls push you back, a slipstream behind a kart. The computer racers follow the racing line with their own lane,
 // skill and small mistakes. No ARCL yet (stage 1): a personal best per device (arc.kart.best).
+// 1.5 (2026-10-29, the owner's key art + "the five racers matter most — make them with Meshy, carefully"): the CRYPTO
+// LEGENDS — PEPE, DOGE, PENGU, WIF, BONK — Meshy bodies rigged by Meshy (models/world/kart/char-<id>-rig.glb: Idle,
+// Chair_Sit_Idle_M = drive, Seated_Fist_Pump, Victory_Cheer, Big_Wave_Hello, Head_Hold_in_Pain, PEPE's thumbs up), each
+// in its own Meshy kart (kart-<id>.glb, the ∞ on the nose); you pick one, the other four race you. The track's arches,
+// gantry, towers and pads are Meshy models too (low graphics keeps the drawn ones). A model that doesn't load falls back
+// to the drawn kart, never a stop.
 //
 // ctx: { THREE, K, st, T, lang, esc, toast, Snd, reduce, low, coarse, heroId, makeHero(id) → Promise<hero>, onLeave() }
 const LAPS = 3, ROAD = 16, WALL = ROAD / 2 + 3.2, STEP = 1 / 60, BEST = "arc.kart.best";
 const TOP = 34, ACC = 19, BRAKE = 34, DRAG = 0.35, BOOST_TOP = 47;
 const LW = {
-  ko: { "Lap": "랩", "Best": "최고 기록", "GO!": "출발!", "Start boost!": "스타트 부스터!", "Mini turbo": "미니 터보", "Super turbo!": "슈퍼 터보!", "Nitro!": "니트로!", "Final lap!": "마지막 랩!", "Finish!": "골인!", "Race again": "다시 달리기", "Leave": "나가기", "New best!": "최고 기록 경신!", "Place": "순위", "Time": "기록", "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro": "조향 ◀ ▶ · W 가속 · S 브레이크 · Shift 드리프트 · Space 니트로", "Drift": "드리프트", "Nitro": "니트로", "Brake": "브레이크", "ARCIRCLE Nexus Circuit": "ARCIRCLE 넥서스 서킷", "Hold drift in a corner, let go for a turbo.": "코너에서 드리프트를 누르고 있다가 놓으면 터보가 나가요.", "1st": "1위", "2nd": "2위", "3rd": "3위", "4th": "4위", "Off road": "도로 밖" },
-  zh: { "Lap": "圈", "Best": "最佳", "GO!": "出发！", "Start boost!": "起步加速！", "Mini turbo": "小涡轮", "Super turbo!": "超级涡轮！", "Nitro!": "氮气！", "Final lap!": "最后一圈！", "Finish!": "冲线！", "Race again": "再来一局", "Leave": "离开", "New best!": "新纪录！", "Place": "名次", "Time": "用时", "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro": "转向 ◀ ▶ · W 加速 · S 刹车 · Shift 漂移 · Space 氮气", "Drift": "漂移", "Nitro": "氮气", "Brake": "刹车", "ARCIRCLE Nexus Circuit": "ARCIRCLE 枢纽赛道", "Hold drift in a corner, let go for a turbo.": "在弯道按住漂移，松开就能涡轮加速。", "1st": "第1名", "2nd": "第2名", "3rd": "第3名", "4th": "第4名", "Off road": "出赛道" },
-  tr: { "Lap": "Tur", "Best": "En iyi", "GO!": "BAŞLA!", "Start boost!": "Kalkış turbosu!", "Mini turbo": "Mini turbo", "Super turbo!": "Süper turbo!", "Nitro!": "Nitro!", "Final lap!": "Son tur!", "Finish!": "Bitiş!", "Race again": "Tekrar yarış", "Leave": "Çık", "New best!": "Yeni rekor!", "Place": "Sıra", "Time": "Süre", "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro": "Dön ◀ ▶ · W gaz · S fren · Shift drift · Space nitro", "Drift": "Drift", "Nitro": "Nitro", "Brake": "Fren", "ARCIRCLE Nexus Circuit": "ARCIRCLE Nexus Pisti", "Hold drift in a corner, let go for a turbo.": "Virajda drifti basılı tut, bırakınca turbo çıkar.", "1st": "1.", "2nd": "2.", "3rd": "3.", "4th": "4.", "Off road": "Yol dışı" },
+  ko: { "Pick your racer": "레이서를 고르세요", "Race!": "출발하기", "5th": "5위", "Standings": "순위표", "Frog of the fast lane": "추월 차선의 개구리", "Much speed. Very drift.": "엄청 빠름. 아주 드리프트.", "Cool on every corner": "어느 코너에서도 침착하게", "The hat stays on": "모자는 절대 안 벗어요", "Bonks the line": "결승선을 쾅!", "Loading racers…": "레이서 준비 중…", "Lap": "랩", "Best": "최고 기록", "GO!": "출발!", "Start boost!": "스타트 부스터!", "Mini turbo": "미니 터보", "Super turbo!": "슈퍼 터보!", "Nitro!": "니트로!", "Final lap!": "마지막 랩!", "Finish!": "골인!", "Race again": "다시 달리기", "Leave": "나가기", "New best!": "최고 기록 경신!", "Place": "순위", "Time": "기록", "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro": "조향 ◀ ▶ · W 가속 · S 브레이크 · Shift 드리프트 · Space 니트로", "Drift": "드리프트", "Nitro": "니트로", "Brake": "브레이크", "ARCIRCLE Nexus Circuit": "ARCIRCLE 넥서스 서킷", "Hold drift in a corner, let go for a turbo.": "코너에서 드리프트를 누르고 있다가 놓으면 터보가 나가요.", "1st": "1위", "2nd": "2위", "3rd": "3위", "4th": "4위", "Off road": "도로 밖" },
+  zh: { "Pick your racer": "选择你的赛车手", "Race!": "开赛", "5th": "第5名", "Standings": "名次表", "Frog of the fast lane": "超车道上的青蛙", "Much speed. Very drift.": "超快。超会漂移。", "Cool on every corner": "每个弯道都很冷静", "The hat stays on": "帽子永远不摘", "Bonks the line": "一击冲线", "Loading racers…": "赛车手准备中…", "Lap": "圈", "Best": "最佳", "GO!": "出发！", "Start boost!": "起步加速！", "Mini turbo": "小涡轮", "Super turbo!": "超级涡轮！", "Nitro!": "氮气！", "Final lap!": "最后一圈！", "Finish!": "冲线！", "Race again": "再来一局", "Leave": "离开", "New best!": "新纪录！", "Place": "名次", "Time": "用时", "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro": "转向 ◀ ▶ · W 加速 · S 刹车 · Shift 漂移 · Space 氮气", "Drift": "漂移", "Nitro": "氮气", "Brake": "刹车", "ARCIRCLE Nexus Circuit": "ARCIRCLE 枢纽赛道", "Hold drift in a corner, let go for a turbo.": "在弯道按住漂移，松开就能涡轮加速。", "1st": "第1名", "2nd": "第2名", "3rd": "第3名", "4th": "第4名", "Off road": "出赛道" },
+  tr: { "Pick your racer": "Yarışçını seç", "Race!": "Yarış!", "5th": "5.", "Standings": "Sıralama", "Frog of the fast lane": "Hızlı şeridin kurbağası", "Much speed. Very drift.": "Çok hız. Çok drift.", "Cool on every corner": "Her virajda sakin", "The hat stays on": "Şapka hep yerinde", "Bonks the line": "Çizgiye bonk!", "Loading racers…": "Yarışçılar hazırlanıyor…", "Lap": "Tur", "Best": "En iyi", "GO!": "BAŞLA!", "Start boost!": "Kalkış turbosu!", "Mini turbo": "Mini turbo", "Super turbo!": "Süper turbo!", "Nitro!": "Nitro!", "Final lap!": "Son tur!", "Finish!": "Bitiş!", "Race again": "Tekrar yarış", "Leave": "Çık", "New best!": "Yeni rekor!", "Place": "Sıra", "Time": "Süre", "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro": "Dön ◀ ▶ · W gaz · S fren · Shift drift · Space nitro", "Drift": "Drift", "Nitro": "Nitro", "Brake": "Fren", "ARCIRCLE Nexus Circuit": "ARCIRCLE Nexus Pisti", "Hold drift in a corner, let go for a turbo.": "Virajda drifti basılı tut, bırakınca turbo çıkar.", "1st": "1.", "2nd": "2.", "3rd": "3.", "4th": "4.", "Off road": "Yol dışı" },
 };
-const COLORS = [0x38d8ff, 0xff6fc8, 0x9b6bff, 0xffc23c];
+const COLORS = [0x38d8ff, 0xff6fc8, 0x9b6bff, 0xffc23c, 0x5fe05a];
+// the five racers (the owner's CRYPTO LEGENDS key art); clip names as the Meshy rigs have them
+export const RACERS = [
+  { id: "pepe", name: "PEPE", color: 0x5fe05a, line: "Frog of the fast lane", yes: "Half_Squat_with_Thumb_Up" },
+  { id: "doge", name: "DOGE", color: 0xffc23c, line: "Much speed. Very drift." },
+  { id: "pengu", name: "PENGU", color: 0x38a8ff, line: "Cool on every corner" },
+  { id: "wif", name: "WIF", color: 0xff6fc8, line: "The hat stays on" },
+  { id: "bonk", name: "BONK", color: 0xff7a2e, line: "Bonks the line" },
+];
+const CLIP = { idle: "Idle", drive: "Chair_Sit_Idle_M", win: "Seated_Fist_Pump", cheer: "Victory_Cheer", wave: "Big_Wave_Hello", lose: "Head_Hold_in_Pain" }, PICK = "arc.kart.racer";
+const SEAT = { h: 1.25, y: 0.18, z: -0.15 }, KART_LEN = 3.1; // (a racer stands 1.25 m; the seated clip's hips land on the seat)
 
 export function createKart(ctx) {
   const { THREE, esc } = ctx, L = LW[ctx.lang] || {}, T = (s, v) => (L[s] != null ? L[s] : ctx.T(s, v));
@@ -49,7 +65,7 @@ export function createKart(ctx) {
     track = buildTrack();
     const ground = new THREE.Mesh(new THREE.CircleGeometry(520, 48), new THREE.MeshLambertMaterial({ color: 0x173a3a })); ground.rotation.x = -Math.PI / 2; ground.position.set(20, -0.05, 110); scene.add(ground);
     const grid = new THREE.GridHelper(1000, 100, 0x2ee0b0, 0x1f5a5a); grid.position.set(20, 0, 110); grid.material.transparent = true; grid.material.opacity = 0.18; scene.add(grid);
-    const rt = roadTex(); rt.repeat.set(1, 1); scene.add(ribbon(-ROAD / 2, ROAD / 2, 0.02, new THREE.MeshLambertMaterial({ map: rt })));
+    const rt = roadTex(); rt.repeat.set(1, 1); const road = ribbon(-ROAD / 2, ROAD / 2, 0.02, new THREE.MeshLambertMaterial({ map: rt })); scene.add(road);
     const ct = curbTex(); for (const [a, b] of [[-ROAD / 2 - 1.2, -ROAD / 2], [ROAD / 2, ROAD / 2 + 1.2]]) scene.add(ribbon(a, b, 0.04, new THREE.MeshLambertMaterial({ map: ct })));
     // the walls: low glowing rails
     const railM = new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
@@ -67,6 +83,21 @@ export function createKart(ctx) {
     const towers = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x24305a, emissive: 0x1a2a6a }), ctx.low ? 40 : 90);
     for (let k = 0; k < towers.count; k++) { const a = (k / towers.count) * Math.PI * 2, r = 320 + (k * 37) % 120, h = 20 + (k * 53) % 70; o.position.set(20 + Math.cos(a) * r, h / 2, 110 + Math.sin(a) * r); o.rotation.set(0, a, 0); o.scale.set(10 + (k % 5) * 3, h, 10 + (k % 3) * 4); o.updateMatrix(); towers.setMatrixAt(k, o.matrix); }
     scene.add(towers);
+    // the sky: Meshy's neon city round the circuit on a tall open cylinder
+    try { const sky = new THREE.TextureLoader().load("/images/kart/sky.webp"); sky.colorSpace = THREE.SRGBColorSpace; sky.wrapS = THREE.RepeatWrapping; sky.repeat.set(3, 1);
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(700, 700, 420, 40, 1, true), new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide, fog: false, depthWrite: false })); cyl.position.set(20, 150, 110); scene.add(cyl); } catch { /* the plain night colour */ }
+    try { const rd = new THREE.TextureLoader().load("/images/kart/road.webp", () => { road.material.map = rd; road.material.needsUpdate = true; }); rd.colorSpace = THREE.SRGBColorSpace; rd.wrapS = rd.wrapT = THREE.RepeatWrapping; rd.repeat.set(2, 1); rd.anisotropy = 4; } catch { /* the drawn road */ }
+    if (!ctx.low) props(arch, gantry, towers).catch((e) => console.warn("kart props:", e && e.message));
+  }
+  // one model → instanced copies (its fitted transform baked into the geometry)
+  function instOf(gl, n, opts) { const w = fit(gl.scene, opts); w.updateMatrixWorld(true); const out = []; w.traverse((o) => { if (o.isMesh) { const g = o.geometry.clone().applyMatrix4(o.matrixWorld); out.push(new THREE.InstancedMesh(g, o.material, n)); } }); return out; }
+  async function props(arch, gantry, towers) {
+    const [A, G, Tw, B] = await Promise.all(["arch", "gantry", "tower", "boostpad"].map((f) => load(f).catch(() => null))); if (!on && !scene) return;
+    const o = new THREE.Object3D();
+    if (A) { const n = arch.count, ms = instOf(A, n, { len: ROAD + 5 }); for (const im of ms) { for (let k = 0; k < n; k++) { arch.getMatrixAt(k, o.matrix); im.setMatrixAt(k, o.matrix); } scene.add(im); } arch.visible = false; }
+    if (G) { const g = fit(G.scene, { len: ROAD + 6 }); g.position.copy(gantry.position); g.quaternion.copy(gantry.quaternion); scene.add(g); for (const c of gantry.children) if (c.geometry && c.geometry.type === "BoxGeometry") c.visible = false; }
+    if (Tw) { const n = towers.count, ms = instOf(Tw, n, { h: 1 }); for (const im of ms) { for (let k = 0; k < n; k++) { towers.getMatrixAt(k, o.matrix); o.matrix.decompose(o.position, o.quaternion, o.scale); const hh = o.scale.y; o.scale.set(hh * 0.5, hh, hh * 0.5); o.position.y = 0; o.updateMatrix(); im.setMatrixAt(k, o.matrix); } scene.add(im); } towers.visible = false; }
+    if (B) for (const p of track.pads) { const g = fit(B.scene.clone(), { len: 6 }); g.position.copy(p.m.position).setY(0.02); g.rotation.y = p.m.rotation.z; scene.add(g); p.m.material.opacity = 0.35; }
   }
 
   // ---------- a kart: body, wheels, exhaust glow; the hero sits on it ----------
@@ -78,13 +109,38 @@ export function createKart(ctx) {
     for (const [x, z] of [[-1.05, 1.0], [1.05, 1.0], [-1.05, -1.0], [1.05, -1.0]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.4, 12), wM); w.rotation.z = Math.PI / 2; w.position.set(x, 0.42, z); g.add(w); wheels.push(w); }
     const flame = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.4, 8), new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); flame.rotation.x = -Math.PI / 2; flame.position.set(0, 0.6, -1.9); g.add(flame);
     const glow = new THREE.Mesh(new THREE.CircleGeometry(1.6, 20), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.04; g.add(glow);
-    return { g, wheels, flame, glow };
+    return { g, wheels, flame, glow, drawn: [body, nose, wing, ...wheels] };
   }
-  async function makeRacer(i, heroId, isMe) {
-    const m = kartMesh(COLORS[i % COLORS.length]), s = track.S[track.N - 6 - Math.floor(i / 2) * 7], lat = (i % 2 ? 3.6 : -3.6);
+  // ---------- the Meshy models: a racer's kart + rigged body, the track's props ----------
+  const url = (f) => `/models/world/kart/${f}.glb${ctx.ver || ""}`; // (ctx.ver: the build's ?v= query)
+  let LD = null; const load = (f) => { try { if (!LD) LD = ctx.K.gltfLoader(); return LD.loadAsync(url(f)); } catch (e) { return Promise.reject(e); } };
+  // fit a model: longest horizontal side → len (or its height → h), on the ground, centred
+  function fit(obj, { len = 0, h = 0, turn = 0 } = {}) {
+    obj.rotation.y = turn; obj.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(obj), sz = b.getSize(V(0, 0, 0));
+    const k = h ? h / (sz.y || 1) : len / (Math.max(sz.x, sz.z) || 1); obj.scale.multiplyScalar(k); obj.updateMatrixWorld(true);
+    const b2 = new THREE.Box3().setFromObject(obj), c = b2.getCenter(V(0, 0, 0)); obj.position.x -= c.x; obj.position.z -= c.z; obj.position.y -= b2.min.y;
+    const w = new THREE.Group(); w.add(obj); return w;
+  }
+  async function racerBody(r) {
+    try {
+      const [kg, cg] = await Promise.all([load("kart-" + r.id), load("char-" + r.id + "-rig")]);
+      const kart = fit(kg.scene, { len: KART_LEN, turn: Math.PI / 2 }); // (Meshy's kart: nose at −X → +Z, our forward)
+      const body = fit(cg.scene, { h: SEAT.h }), mixer = new THREE.AnimationMixer(cg.scene), acts = {};
+      for (const c of cg.animations || []) acts[c.name] = mixer.clipAction(c);
+      cg.scene.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
+      let cur = null, oneT = 0;
+      const hero = { obj: body, mixer, has: (n) => !!acts[n],
+        play(n, { once = false, fade = 0.25 } = {}) { const a = acts[n] || acts[CLIP.idle]; if (!a || a === cur) return; a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once; a.fadeIn(fade).play(); if (cur) cur.fadeOut(fade); cur = a; oneT = once ? a.getClip().duration : 0; },
+        update(dt) { mixer.update(dt); if (oneT > 0 && (oneT -= dt) <= 0 && hero.after) { const n = hero.after; hero.after = null; hero.play(n); } } };
+      return { kart, hero };
+    } catch (e) { console.warn("kart racer " + r.id + ":", e && e.message); return null; }
+  }
+  async function makeRacer(i, heroId, isMe, racer) {
+    const m = kartMesh(racer ? racer.color : COLORS[i % COLORS.length]), s = track.S[track.N - 6 - Math.floor(i / 2) * 7], lat = (i % 2 ? 3.6 : -3.6);
     const pos = s.p.clone().addScaledVector(s.r, lat), yaw = Math.atan2(s.t.x, s.t.z);
     const k = { i, me: isMe, m, pos, yaw, vh: yaw, speed: 0, idx: track.N - 6 - Math.floor(i / 2) * 7, lap: 0, prog: 0, best: 0, drift: 0, driftDir: 0, charge: 0, boostT: 0, boostK: 0, nitro: 0, stall: 0, slip: 0, finish: 0, hero: null, lane: (i % 3 - 1) * 2.6, skill: 0.9 + ((i * 37) % 10) / 100, wob: 0, startSpeed: 0 };
-    m.g.position.copy(pos); m.g.rotation.y = yaw; scene.add(m.g);
+    m.g.position.copy(pos); m.g.rotation.y = yaw; scene.add(m.g); k.racer = racer || null;
+    if (racer) { const b = await racerBody(racer); if (b) { for (const d of m.drawn) d.visible = false; m.g.add(b.kart); b.hero.obj.position.set(0, SEAT.y, SEAT.z); m.g.add(b.hero.obj); b.hero.play(CLIP.drive); k.hero = b.hero; return k; } }
     const h = await sit(heroId); if (h && h.obj) { h.obj.scale.multiplyScalar(0.78); h.obj.position.set(0, 0.62, -0.25); m.g.add(h.obj); try { h.play("sit"); } catch { /* standing is fine */ } k.hero = h; }
     return k;
   }
@@ -140,11 +196,14 @@ export function createKart(ctx) {
     const N = track.N; if (prevIdx > N * 0.8 && k.idx < N * 0.2) { k.lap++; if (k.me && k.lap === LAPS) flash(T("Final lap!")); }
     else if (prevIdx < N * 0.2 && k.idx > N * 0.8) k.lap--;
     k.prog = k.lap * track.len + track.S[k.idx].s;
-    if (k.lap > LAPS && !k.finish) { k.finish = clock; finished.push(k); if (k.me) done(); }
+    if (k.lap > LAPS && !k.finish) { k.finish = clock; finished.push(k); const pl = finished.length;
+      if (k.hero && k.hero.has) { k.hero.after = CLIP.drive; k.hero.play(pl <= 3 ? CLIP.win : CLIP.lose, { once: true }); }
+      if (k.me) done(); }
   }
 
   function tick(dt, t) {
     if (!on) return; dt = Math.min(dt, 0.1);
+    if (phase === "pick") { pickCam(dt); for (const k of karts) if (k.hero && k.hero.update) k.hero.update(dt, t); return; }
     if (phase === "count") { cd -= dt; paintCount(); if (cd <= 0) { phase = "race"; clock = 0; flash(T("GO!")); for (const k of karts) if (!k.me) k.speed = 6; const inp = input(); if (inp.gas && me.startSpeed > 0.9 && me.startSpeed < 1.6) boost(me, 1.0, 0.9, "Start boost!"); else if (me.startSpeed >= 1.6) me.stall = 0.7; } else { const inp = input(); me.startSpeed = inp.gas ? me.startSpeed + dt : 0; } }
     if (phase === "race" || phase === "done") {
       acc += dt; while (acc >= STEP) { acc -= STEP; clock += STEP;
@@ -167,7 +226,7 @@ export function createKart(ctx) {
 
   // ---------- HUD ----------
   const fmt = (s) => { const m = Math.floor(s / 60), r = s - m * 60; return `${m}:${r < 10 ? "0" : ""}${r.toFixed(2)}`; };
-  const ord = (n) => T(["1st", "2nd", "3rd", "4th"][n - 1] || n + "th");
+  const ord = (n) => T(["1st", "2nd", "3rd", "4th", "5th"][n - 1] || n + "th");
   function place() { return [...karts].sort((a, b) => (b.finish ? 1e9 - b.finish : b.prog) - (a.finish ? 1e9 - a.finish : a.prog)).indexOf(me) + 1; }
   function makeUi() {
     ui = document.createElement("div"); ui.className = "wk"; ui.setAttribute("data-no-i18n", "");
@@ -192,34 +251,66 @@ export function createKart(ctx) {
   function done() {
     phase = "done"; flash(T("Finish!")); const pl = place(), time = me.finish; let best = 0; try { best = +localStorage.getItem(BEST) || 0; } catch { best = 0; } const nb = !best || time < best; if (nb) try { localStorage.setItem(BEST, String(time)); } catch { /* private */ }
     setTimeout(() => { if (!on || !ui) return; const c = document.createElement("div"); c.className = "wk-res";
-      c.innerHTML = `<div class="wk-res-in"><small>${esc(T("ARCIRCLE Nexus Circuit"))}</small><h2>${esc(ord(pl))}</h2><p><span>${esc(T("Time"))}</span><b>${fmt(time)}</b></p><p><span>${esc(T("Best"))}</span><b>${fmt(nb ? time : best)}</b>${nb ? `<em>${esc(T("New best!"))}</em>` : ""}</p><div><button type="button" class="wk-go" data-again>${esc(T("Race again"))}</button><button type="button" class="wk-out" data-leave>${esc(T("Leave"))}</button></div></div>`;
+      c.innerHTML = `<div class="wk-res-in"><small>${esc(T("ARCIRCLE Nexus Circuit"))}</small><h2>${esc(ord(pl))}</h2><p><span>${esc(T("Time"))}</span><b>${fmt(time)}</b></p><p><span>${esc(T("Best"))}</span><b>${fmt(nb ? time : best)}</b>${nb ? `<em>${esc(T("New best!"))}</em>` : ""}</p>${standings()}<div><button type="button" class="wk-go" data-again>${esc(T("Race again"))}</button><button type="button" class="wk-out" data-leave>${esc(T("Leave"))}</button></div></div>`;
       ui.appendChild(c); c.querySelector("[data-again]").onclick = () => { c.remove(); reset(); }; if (ctx.Snd && ctx.Snd.win) ctx.Snd.win(); }, 1600);
   }
 
+  function standings() {
+    const rows = [...karts].sort((a, b) => (a.finish || 1e9) - (b.finish || 1e9) || b.prog - a.prog).map((k, n) => `<li class="${k.me ? "me" : ""}"><b>${n + 1}</b>${k.racer ? `<img src="/images/kart/card-${k.racer.id}.webp" alt="" width="28" height="36">` : ""}<span>${esc(k.racer ? k.racer.name : "—")}</span><i>${k.finish ? fmt(k.finish) : ""}</i></li>`).join("");
+    return `<h4>${esc(T("Standings"))}</h4><ol class="wk-st">${rows}</ol>`;
+  }
   async function reset() {
     finished = []; clock = 0; acc = 0; for (const k of karts) { const i = track.N - 6 - Math.floor(k.i / 2) * 7, s = track.S[i]; k.idx = i; k.pos.copy(s.p).addScaledVector(s.r, k.i % 2 ? 3.6 : -3.6); k.yaw = k.vh = Math.atan2(s.t.x, s.t.z); Object.assign(k, { speed: 0, lap: 0, prog: 0, drift: 0, charge: 0, boostT: 0, nitro: 0, stall: 0, slip: 0, finish: 0, startSpeed: 0 }); }
+    for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); }
     phase = "count"; cd = 3.2; lastCd = -1;
   }
 
   async function enter() {
     if (on) return true;
     buildScene(); makeUi();
-    const ids = ["custom-aron", "custom-lumi", "custom-nex"], mine = ctx.heroId || ids[0], others = ids.filter((x) => x !== mine);
-    karts = []; me = await makeRacer(0, mine, true); karts.push(me);
-    for (let i = 1; i < 4; i++) karts.push(await makeRacer(i, others[(i - 1) % others.length] || ids[i % 3], false));
+    const ids = ["custom-aron", "custom-lumi", "custom-nex"];
+    flash(T("Loading racers…"));
+    karts = await Promise.all(RACERS.map((r, i) => makeRacer(i, ids[i % 3], false, r))); me = karts[0];
     addEventListener("keydown", kd); addEventListener("keyup", ku); addEventListener("resize", onResize);
-    on = true; document.body.classList.add("wp-kart"); onResize(); ctx.st.view(scene, cam); ctx.st.solo(tick); reset();
+    on = true; document.body.classList.add("wp-kart"); onResize(); ctx.st.view(scene, cam); ctx.st.solo(tick);
+    let saved = ""; try { saved = localStorage.getItem(PICK) || ""; } catch { saved = ""; }
+    showPick(RACERS.some((r) => r.id === saved) ? saved : RACERS[0].id);
     return true;
   }
+  // ---------- the racer pick: five cards over the grid; the chosen one waves in 3D ----------
+  let pickEl = null, picked = "";
+  function showPick(id) {
+    phase = "pick"; picked = id;
+    pickEl = document.createElement("div"); pickEl.className = "wk-pick";
+    pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
+      <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
+      <button type="button" class="wk-go" data-race>${esc(T("Race!"))}</button>`;
+    ui.appendChild(pickEl);
+    pickEl.addEventListener("click", (e) => { const c = e.target.closest("[data-r]"); if (c) choose(c.dataset.r); if (e.target.closest("[data-race]")) pick(picked); });
+    choose(id);
+  }
+  function choose(id) {
+    picked = id; if (pickEl) pickEl.querySelectorAll("[data-r]").forEach((b) => b.classList.toggle("on", b.dataset.r === id));
+    const k = karts.find((x) => x.racer && x.racer.id === id); if (k && k.hero && k.hero.has) { const r = k.racer; k.hero.after = CLIP.drive; k.hero.play(r.yes && k.hero.has(r.yes) ? r.yes : CLIP.wave, { once: true }); }
+    if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick();
+  }
+  function pick(id) {
+    if (phase !== "pick") return; try { localStorage.setItem(PICK, id); } catch { /* private */ }
+    const mine = karts.find((x) => x.racer && x.racer.id === id) || karts[0], rest = karts.filter((x) => x !== mine);
+    mine.i = 0; mine.me = true; rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest];
+    if (pickEl) { pickEl.remove(); pickEl = null; } reset();
+  }
+  // the pick's camera: in front of the chosen kart, a little above
+  function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; tmp.set(k.pos.x + Math.sin(k.yaw) * 5.2 + Math.cos(k.yaw) * 1.2, 2.1, k.pos.z + Math.cos(k.yaw) * 5.2 - Math.sin(k.yaw) * 1.2); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, 1.0, k.pos.z); }
   const onResize = () => { if (!cam) return; cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); };
   function leave() {
     if (!on) return; on = false; phase = "idle";
     try { ctx.st.solo(null); ctx.st.view(null); } catch { /* the world draws again */ }
     removeEventListener("keydown", kd); removeEventListener("keyup", ku); removeEventListener("resize", onResize); keys.clear();
-    if (ui) { ui.remove(); ui = null; } document.body.classList.remove("wp-kart");
+    pickEl = null; if (ui) { ui.remove(); ui = null; } document.body.classList.remove("wp-kart");
     if (scene) scene.traverse((o) => { if (o.geometry && !o.isSkinnedMesh) o.geometry.dispose(); const m = o.material; if (m && !o.isSkinnedMesh) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } });
     scene = null; karts = []; me = null;
     if (ctx.onLeave) ctx.onLeave();
   }
-  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [] } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; }, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; } };
+  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [] } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; } };
 }
