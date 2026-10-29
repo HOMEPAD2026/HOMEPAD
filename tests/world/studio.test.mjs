@@ -442,5 +442,23 @@ for (const tpl of ["survival", "rhythm", "race"]) { const sp = G.clampSpec({ tpl
   check(M.fans === 1 && g.dl && Object.values(g.dl).reduce((a, x) => a + x, 0) === 2, "dashboard: followers and the daily plays by others on My games");
   const pub = (await get("studio-game&id=" + id)).game; check(!pub.dl, "dashboard: the daily plays are the maker's only");
 }
+// S6 (2026-10-29): real players' numbers — starts, players, phone / computer, returners, clears, under-a-minute ends, time
+{ const mk = ethers.Wallet.createRandom(), p1 = ethers.Wallet.createRandom(), p2 = ethers.Wallet.createRandom();
+  let r = await call(mk, "world-studio-save", { spec: { tpl: "runner", title: "Metric Run", seed: 52 } }); const id = r.body.game.id;
+  r = await call(p1, "world-studio-start", { id }); check(r.status === 404, "metrics: a draft takes no starts");
+  await call(mk, "world-studio-publish", { id, on: true });
+  r = await call(mk, "world-studio-start", { id }); check(r.body.own === true, "metrics: the maker's own start isn't counted");
+  await call(p1, "world-studio-start", { id, ph: true }); r = await call(p1, "world-studio-start", { id, ph: true }); check(r.body.dup === true, "metrics: a second start within 20 s is one start");
+  await call(p2, "world-studio-start", { id });
+  const L = G.genLevel((await get("studio-game&id=" + id)).game.spec);
+  await call(p1, "world-studio-play", { id, coins: 0, dist: 3, secs: 12 }); T += 21000;
+  await call(p2, "world-studio-play", { id, coins: 0, dist: L.len, done: true, secs: 99999 });
+  let m = await get("studio-metrics&id=" + id), d = m.days[0];
+  check(m.kind === "real" && d.st === 2 && d.u === 2 && d.ph === 1 && d.pc === 1 && d.n === 2 && d.cl === 1 && d.q1 === 1 && d.t === 12 + 3600, "metrics: 2 starts by 2 players (phone + computer), 2 runs, 1 clear, 1 out before a minute, time clamped to an hour");
+  T += 86400e3; await call(p1, "world-studio-start", { id }); T += 21000; await call(p1, "world-studio-start", { id });
+  m = await get("studio-metrics&id=" + id); d = m.days[0];
+  check(d.u === 1 && d.d1 === 1 && d.st === 2 && m.d1Base === 2 && m.sum.st === 4 && m.days.length === 14, "metrics: the next day a returner counts once as D1 (yesterday's 2 players the base), 14 days kept");
+  r = await (W.read(new URL("https://x/api/social?world=studio-metrics&id=bad!"))); check(r.status === 400, "metrics: a bad id is refused");
+}
 check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is collection/id (Firestore refuses a bare name: the arcade once was one)");
 console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

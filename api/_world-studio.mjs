@@ -126,6 +126,10 @@ export function creatorLevel(plays, likes, games) { const xp = Math.max(0, plays
 const MODELS = () => [...new Set([(globalThis.process && process.env && process.env.AGENT_MODEL) || "claude-haiku-5-5", "claude-haiku-4-5-20251001"])];
 
 /// deps: { getDocs, setDoc, commit, json, now, signer(b), shut(w), nameOf(w), randomId(), ai?(sys, msgs) }
+/// S6 (2026-10-29, the owner: "측정부터"): real players' numbers per published game per Seoul day — starts (st), players that
+/// day (u), phone / computer starts (ph / pc), returners from yesterday (d1), ended runs (n), clears (cl), runs ended before a
+/// minute without a clear (q1), seconds played (t). Kept apart from the AI test players' estimate; the maker's own plays don't count.
+export const METRIC = { DAYS: 14, SECS_MAX: 3600, Q1: 60 };
 export function makeStudio(deps) {
   const { getDocs, setDoc, json, signer } = deps;
   const notify = (w, it) => (deps.notify ? deps.notify(w, it) : Promise.resolve()); // (HUB 2: the Creator Hub's inbox)
@@ -390,6 +394,8 @@ export function makeStudio(deps) {
       const cleared = g.spec.tpl === "puzzle" ? score > 0 : !!b.done; if (cleared) st.clears++;
       else if (g.spec.tpl !== "puzzle") { const L = genLevel(g.spec), f = Math.max(0, Math.min(0.999, (Number(b.dist) || 0) / Math.max(1, L.len))); st.ends[Math.floor(f * 10)]++; }
       g.stats = st; }
+    if (counted && g.w !== w && g.pub) { const secs = Math.max(0, Math.min(METRIC.SECS_MAX, Math.round(Number(b.secs) || 0))), cl = g.spec.tpl === "puzzle" ? score > 0 : !!b.done;
+      await deps.commit([{ inc: `worldStudioM/${b.id}_${day(now())}`, fields: { n: 1, t: secs, ...(cl ? { cl: 1 } : secs < METRIC.Q1 ? { q1: 1 } : {}) } }]).catch(() => {}); } // (S6: the run's end for the real players' numbers)
     if (counted && g.w !== w) { g.plays = (g.plays || 0) + 1; await weekBump(b.id, g, 1, 0).catch(() => {}); await dayBump(b.id, g, 1, 0).catch(() => {}); await seasonBump(g, 1, 0).catch(() => {});
       if (!g.official) { const d0 = day(now()), dl = { ...(g.dl || {}) }; dl[d0] = (dl[d0] || 0) + 1; g.dl = Object.fromEntries(Object.entries(dl).sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, SEASON.DL)); } } /* (RM5: the season, the maker's daily plays) */
     if (counted) await nowBump(b.id).catch(() => {}); // (STB5: "playing now" on the portals and cabinets)
@@ -407,6 +413,23 @@ export function makeStudio(deps) {
     // STB5: everyone on the board leaves their best run's ghost too, so a friend can race theirs (not only the #1's)
     if (tr && better && g.best.some((x) => x.w === w)) await setDoc(`worldStudioGhostP/${b.id}_${w}`, { w, name, score, tr, at: now() });
     return json(200, { ok: true, score, best: top.score, plays: g.plays || 0, place: g.best.findIndex((x) => x.w === w) + 1 || null, ghost });
+  }
+  /// S6: a run starts — once in 20 s a player; the first start of a Seoul day counts the player (u), a player back from yesterday d1
+  async function mStart(w, b) {
+    const g = await game(b.id); if (!g || g.gone || !g.pub) return json(404, { error: "no such published game" });
+    if (g.w === w) return json(200, { ok: true, own: true });
+    if (!(await deps.commit([{ create: `worldStudioMS/${w}_${b.id}_${Math.floor(now() / 20000)}`, data: { at: now() } }])).ok) return json(200, { ok: true, dup: true });
+    const d0 = day(now()), y = day(now() - 86400e3), pk = `worldStudioMP/${b.id}_${w}`, p = (await one(pk)) || {}, first = p.d !== d0;
+    await deps.commit([{ inc: `worldStudioM/${b.id}_${d0}`, fields: { st: 1, [b.ph ? "ph" : "pc"]: 1, ...(first ? { u: 1 } : {}), ...(first && p.d === y ? { d1: 1 } : {}) } }]);
+    if (first) await setDoc(pk, { d: d0 });
+    return json(200, { ok: true });
+  }
+  /// S6: the last METRIC.DAYS days of a game's real players, newest first, and their sum (rates are the page's)
+  async function metrics(id) {
+    const ds = Array.from({ length: METRIC.DAYS }, (_, i) => day(now() - i * 86400e3)), docs = await getDocs(ds.map((d) => `worldStudioM/${id}_${d}`)), K = ["st", "u", "ph", "pc", "d1", "n", "cl", "q1", "t"];
+    const days = ds.map((d) => { const x = docs[`worldStudioM/${id}_${d}`] || {}; return { d, ...Object.fromEntries(K.map((k) => [k, Math.max(0, Math.round(Number(x[k]) || 0))])) }; });
+    const sum = Object.fromEntries(K.map((k) => [k, days.reduce((a, x) => a + x[k], 0)])), prevU = days.slice(1).reduce((a, x) => a + x.u, 0);
+    return { days, sum, d1Base: prevU };
   }
   /// a run's trace: up to STUDIO.TRACE samples of 2 or 3 whole numbers (x×10, y×10, z — or the arena's x×10, z×10)
   function traceOf(t) {
@@ -656,6 +679,7 @@ export function makeStudio(deps) {
         let g = null; if (pl >= 1 && pl <= STUDIO.BEST) { const gm = await game(id), x = gm && (gm.best || [])[pl - 1]; g = x && x.gh ? await one(`worldStudioGhostP/${id}_${x.w}`) : null; if (g && g.score !== x.score) g = null; } // (STB5: the board's place p — the wallet stays on the server)
         else if (!pl) g = await one(`worldStudioGhost/${id}`);
         if (!g) return json(200, { ok: true, ghost: null }); return json(200, { ok: true, ghost: { name: g.name, score: g.score, tr: g.tr } }, "public, max-age=30"); }
+      if (w === "studio-metrics") { const id = String(url.searchParams.get("id") || ""); if (!/^g[a-z0-9]{2,12}$/.test(id)) return json(400, { error: "id" }); return json(200, { ok: true, id, kind: "real", ...(await metrics(id)) }, "public, max-age=60"); }
       if (w === "studio-mine") { const a = String(url.searchParams.get("wallet") || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) return json(400, { error: "wallet must be an address" }); const ids = await mineOf(a); const docs = ids.length ? await getDocs(ids.map((i) => `worldStudio/${i}`)) : {}; const cids = await coIds(a), cdocs = cids.length ? await getDocs(cids.map((i) => `worldStudio/${i}`)) : {}; const shared = cids.map((i) => { const g = cdocs[`worldStudio/${i}`]; return g && !g.gone && (g.co || []).includes(a) ? { ...pubOf(i, g, true, true), shared: true } : null; }).filter(Boolean);
         return json(200, { ok: true, games: ids.map((i) => docs[`worldStudio/${i}`] && !docs[`worldStudio/${i}`].gone ? pubOf(i, docs[`worldStudio/${i}`], true, true) : null).filter(Boolean), shared, max: STUDIO.DRAFTS, fans: (((await one(`worldStudioFans/${a}`)) || {}).n) || 0 }); }
       return null;
@@ -684,6 +708,7 @@ export function makeStudio(deps) {
       if (b.action === "world-studio-del") return del(w, b);
       if (b.action === "world-studio-pick") return pick(w, b);
       if (b.action === "world-studio-play") return play(w, b);
+      if (b.action === "world-studio-start") return mStart(w, b);
       if (b.action === "world-studio-like") return like(w, b);
       if (b.action === "world-studio-rate") return rate(w, b);
       if (b.action === "world-studio-ai") return ai(w, b);

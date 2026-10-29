@@ -884,6 +884,7 @@ export function createStudio(ctx) {
   // ---------------- the runner ----------------
   async function run(o) {
     if (playing) return; const vw = el && !el.hidden; if (el) el.hidden = true; if (prev) prev.stop(); /* STB5: the preview rests while you play */
+    o.t0 = Date.now(); if (o.id && !o.test && ctx.sess()) act({ action: "world-studio-start", id: o.id, ph: typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches }).catch(() => {}); /* (S6: a real player's start, for the maker's numbers) */
     if (o.spec.tpl === "puzzle") return playPuzzle(o, vw);
     const env = { ctx, THREE, T, esc, makeFx, makeGhost, result, back: (again, oo) => { playing = null; if (!again && oo.onBack) { oo.onBack(); return; } if (!again && el) { el.hidden = false; paint(); load(); } } }; // (the templates in modules of their own: S4d)
     try { playing = o.spec.tpl === "obby" ? await (await import("./world-studio-obby.js")).makeObby(o, { ...env, ouch, assetUrl: (id) => assetGlb(id), prog: progApi, restart: (oo) => setTimeout(() => run(oo), 60), live: o.live ? (a) => obLive(o, a) : null }) : JUMPS[o.spec.tpl] ? await (await import("./world-studio-jump.js")).makeJump(o, { ...env, ouch }) : o.spec.tpl === "rhythm" ? await (await import("./world-studio-rhythm.js")).makeBeat(o, env) : o.spec.tpl === "race" ? await (await import("./world-studio-race.js")).makeRace(o, { ...env, ouch }) : o.spec.tpl === "survival" ? await makeSurvRun(o, env) : o.spec.tpl === "climb" ? await (await import("./world-studio-climb.js")).makeClimb(o, env) : o.spec.tpl === "defense" ? await (await import("./world-studio-defense.js")).makeDefense(o, env) : o.spec.tpl === "arena" || o.spec.tpl === "rush" ? await makeArena(o) : await makeRun(o); }
@@ -1247,7 +1248,7 @@ export function createStudio(ctx) {
   async function pickNext(o) { if (!arcade.length) await load(); const L2 = arcade.filter((g) => g.id !== o.id && g.pub !== false); if (!L2.length) return null; nextSeen.add(o.id); const fresh = L2.filter((g) => !nextSeen.has(g.id)), tpl = o.spec && o.spec.tpl; return fresh.find((g) => g.tpl === tpl) || fresh[0] || L2[0]; }
   async function result(o, hud, r, leave) {
     const score = r.puzzle ? puzzleScore(r.puzzle.par, r.puzzle.count, Math.min(genLevel(o.spec).hints, r.puzzle.hints || 0)) : scoreOf(r.coins, r.dist, r.done); let res = null;
-    if (o.id && !o.test && ctx.sess()) { const q = await act({ action: "world-studio-play", id: o.id, ...(r.puzzle ? { moves: r.puzzle.moves, hints: r.puzzle.hints || 0 } : { coins: r.coins, dist: Math.round(r.dist), done: r.done, trace: r.trace || [] }) }); if (q && q.ok) res = q.j; }
+    if (o.id && !o.test && ctx.sess()) { const q = await act({ action: "world-studio-play", id: o.id, ...(r.puzzle ? { moves: r.puzzle.moves, hints: r.puzzle.hints || 0 } : { coins: r.coins, dist: Math.round(r.dist), done: r.done, trace: r.trace || [] }), secs: o.t0 ? Math.round((Date.now() - o.t0) / 1000) : 0 }); if (q && q.ok) res = q.j; }
     let best = 0; const key = "arc.studio.best." + (o.id || "test:" + o.spec.tpl + ":" + o.spec.seed); try { best = Number(localStorage.getItem(key) || 0); if (score > best) localStorage.setItem(key, String(score)); } catch { /* not kept */ }
     const isBest = score > best && best > 0;
     lastRun = { score, coins: r.coins, dist: Math.round(r.dist), done: r.done, res, isBest };

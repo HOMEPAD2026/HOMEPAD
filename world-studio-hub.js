@@ -6,7 +6,7 @@
 // phone. The Studio window itself (world-studio.js) is the workspace: Create / Edit / Play / a race open it (ws.*), and
 // its × comes back here. Everything is read from the server's public reads (studio-arcade, -mine, -week, -day, -season,
 // -races, -feed, -handle) — nothing here is a number we made up; what isn't live yet says so.
-import { TEMPLATES, THEMES } from "./world-studio-gen.js";
+import { TEMPLATES, THEMES, estimate } from "./world-studio-gen.js";
 import { makeHubX, XTITLE, XSUBS } from "./world-studio-hubx.js";
 import { ask } from "./world-ask.js";
 import { makeHubFx } from "./world-studio-hubfx.js";
@@ -313,7 +313,16 @@ export function makeHub(o) {
       <h4>${esc(T("Plays by others, the last 14 days"))}</h4>${chart(days.map((d) => (g.dl || {})[d] || 0), "Plays")}</div>
       <div><h4>${esc(T("What players said"))}</h4><ul class="sgh-fb"><li><i>${ic("heart", "sm")}</i>${esc(T("Fun"))}<b>${fb.up || 0}</b></li><li><i>${ic("close", "sm")}</i>${esc(T("Not for me"))}<b>${fb.down || 0}</b></li>${["Easy", "Just right", "Hard"].map((l, i) => `<li><i>${ic("flag", "sm")}</i>${esc(T(l))}<b>${(fb.d || [])[i] || 0}</b></li>`).join("")}</ul>
       <h4>${esc(T("Reactions"))}</h4><p class="sgh-rx">${Object.entries(g.rx || {}).map(([k, n]) => `<span>${esc(k)} <b>${n}</b></span>`).join("") || `<small class="sgh-fine">${esc(T("None yet"))}</small>`}</p></div></div></section>`;
-    return S === "overview" ? over + table : table + one;
+    // S6 (2026-10-29): the real players' numbers (?world=studio-metrics), and apart from them the AI test players' guess — never one number
+    const M = await get("met:" + sel, "/api/social?world=studio-metrics&id=" + sel, 60e3), ms = (M && M.sum) || {}, pc = (a, b) => (b ? Math.round((a / b) * 100) + "%" : "—");
+    let est = null; try { est = g.spec ? estimate(g.spec) : null; } catch { /* no guess for this one */ }
+    const real = `<section class="sgh-panel rv sgh-real"><div class="sgh-sech"><h3>${esc(T("Real players · the last 14 days"))}</h3><span class="sgh-sp"></span><em class="sgh-tag real">${ic("users", "sm")} ${esc(T("Real players"))}</em></div>
+      <div class="sgh-kpis">${kpiT("play", num(ms.st || 0), "Starts")}${kpiT("users", num(ms.u || 0), "Players")}${kpiT("close", pc(ms.q1 || 0, ms.n || 0), "Out in the first minute")}${kpiT("flag", pc(ms.cl || 0, ms.n || 0), "Clear rate")}${kpiT("bolt", ms.n ? Math.round((ms.t || 0) / ms.n) + "s" : "—", "Average play time")}${kpiT("heart", pc(ms.d1 || 0, (M && M.d1Base) || 0), "Back the next day")}${kpiT("grid", pc(ms.ph || 0, (ms.ph || 0) + (ms.pc || 0)), "On phones")}</div>
+      <p class="sgh-fine">${esc(T("Counted from people who played your published game — not you, not the AI test players."))}</p></section>
+      <section class="sgh-panel rv sgh-aitest"><div class="sgh-sech"><h3>${esc(T("AI test players (an estimate)"))}</h3><span class="sgh-sp"></span><em class="sgh-tag ai">${ic("bolt", "sm")} ${esc(T("Simulation"))}</em></div>
+      <div class="sgh-kpis">${kpiT("flag", est ? Math.round(est.clear * 100) + "%" : "—", "Estimated clear rate")}${kpiT("star", est ? "★".repeat(est.stars || 0) || "—" : "—", "Estimated difficulty")}</div>
+      <p class="sgh-fine">${esc(T("40 simulated players run your level before anyone else does. A guess — never added to the real players' numbers."))}</p></section>`;
+    return S === "overview" ? over + table : table + real + one;
   }
 
   async function rewardsHtml() {
