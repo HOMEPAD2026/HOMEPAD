@@ -709,3 +709,6 @@ html[data-ht=light] .sgh-tlang>button{background:#fff}html[data-ht=light] .sgh-l
 /* phones: the top bar fits — the theme switch moves into the menu drawer (2026-10-29) */
 .sgh-dtheme{display:none!important}
 @media (max-width:560px){.sgh-ltop{padding:0 8px;gap:2px}.sgh-ltop .sgh-brand{margin-right:4px}.sgh-ltop .sgh-lb2{margin-right:2px}.sgh-ltop>[data-htog]{display:none}.sgh-dtheme{display:flex!important}.sgh-ltop .sgh-brand em{display:none}}
+/* narrow phones: the brand keeps its mark only — with the web font loaded the row was ~20 px too wide and the avatar went off the edge (2026-10-29) */
+@media (max-width:440px){.sgh-ltop .sgh-brand>span{display:none}.sgh-ltop .sgh-brand{margin-right:2px}.sgh-ltop .sgh-lang,.sgh-ltop select{max-width:70px}}
+.sgh-ltop>*{flex-shrink:0}.sgh-ltop .sgh-sp{flex:1 1 0;min-width:0}
