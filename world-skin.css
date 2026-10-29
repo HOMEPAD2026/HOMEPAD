@@ -6064,7 +6064,7 @@ body.wp-hw-night.wp-hw-blood::after{background:radial-gradient(120% 90% at 50% 4
 .rq-cr button{padding:6px;border-radius:8px;border:1px solid var(--rq);background:transparent;color:#fff;font:800 11px Sora,system-ui,sans-serif;cursor:pointer}.rq-cr button.on{background:var(--rq);color:#1a0a14}
 @media (max-width:560px){.rq-crowns>div{grid-template-columns:1fr}.rq-cr{flex-direction:row;align-items:center}.rq-crg{flex:1}}
 /* the queens' bar */
-.rq-bb{position:fixed;left:50%;top:calc(84px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:899;width:min(560px,calc(100vw - 24px));display:grid;gap:6px;pointer-events:none;animation:rqBbIn .5s cubic-bezier(.2,1.3,.4,1) both}
+.rq-bb{position:fixed;left:50%;top:calc(110px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:899;width:min(560px,calc(100vw - 24px));display:grid;gap:6px;pointer-events:none;animation:rqBbIn .5s cubic-bezier(.2,1.3,.4,1) both}
 @keyframes rqBbIn{from{opacity:0;transform:translate(-50%,-14px)}}
 .rq-bq{display:flex;gap:10px;align-items:center;padding:6px 10px 7px 6px;border-radius:14px;background:linear-gradient(90deg,rgba(14,4,16,.9),rgba(8,3,12,.78));border:1px solid color-mix(in srgb,var(--rq) 45%,#c9a24a);box-shadow:0 6px 24px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.04)}
 .rq-bq>img{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:50% 12%;border:2px solid var(--rq);box-shadow:0 0 14px var(--rq);flex:none;background:#120610}

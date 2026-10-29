@@ -6408,7 +6408,7 @@ const dinoTown = (() => {
   function paint() {
     if (!el) { el = document.createElement("button"); el.type = "button"; el.className = "wp-dinochip"; el.hidden = true; document.body.appendChild(el);
       el.addEventListener("click", () => { if (mode !== "hub" || jurOn || frozen) return; window.arcWorld.jurassic().gate(); toast(TW("Step into the Jurassic World portal")); }); }
-    const w = what(), show = !!w && mode === "hub" && !jurOn && !survOn && !ringsOn && !pokerOn && !mineOn && !defenseOn && !jumpOn && !beatOn && !introOn;
+    const w = what(), show = !!w && mode === "hub" && !jurOn && !survOn && !ringsOn && !pokerOn && !mineOn && !defenseOn && !jumpOn && !beatOn && !introOn && landNow !== "rq"; /* (not over a raid's boss bar) */
     el.hidden = !show; if (!w) return; if (el.textContent !== w.t) el.textContent = w.t; { const c = "wp-dinochip " + w.k + (el.classList.contains("wp-nq-off") ? " wp-nq-off" : ""); if (el.className !== c) el.className = c; } /* (the phone notice queue's wp-nq-off kept) */
     if (w.key && !seen[w.key]) { seen[w.key] = 1; if (w.k === "warn" || w.k === "out") { if (!jurOn) toast(w.t); note("DINO SOULMATE", w.t.replace(/^\S+\s/, "")); } }
   }
