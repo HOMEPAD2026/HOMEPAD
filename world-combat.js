@@ -894,11 +894,12 @@ export function createCombat(ctx) {
   // b447 (players asked): the lock stays on until you turn it off. While it's on, a target that falls or gets away hands
   // over to the nearest scammer in reach, and with none near it waits (the button stays lit) for the next one.
   let lockT = null, lockMark = null, lockMode = false, lockScan = 0;
-  const lockAlive = () => !!(lockT && !lockT.dead && mobs.includes(lockT) && lockT.g.position.distanceTo(tmp3.copy(me).setY(lockT.g.position.y)) < 22);
+  const lockR = (m) => (m.rank === "boss" ? 8 : m.rank === "elite" ? 3 : 0); /* (2026-10-28: a big body counts from its edge, not its middle — a raid queen in the arena's middle was out of reach) */
+  const lockAlive = () => !!(lockT && !lockT.dead && mobs.includes(lockT) && lockT.g.position.distanceTo(tmp3.copy(me).setY(lockT.g.position.y)) < 24 + lockR(lockT));
   const tmp3 = new V3();
   // the cycle keeps one order (nearest first when it starts) so Tab walks the pack instead of hopping as you move
   let lockList = [];
-  const lockOk = (m) => !m.dead && mobs.includes(m) && m.g.position.distanceTo(tmp3.copy(me).setY(m.g.position.y)) < 16;
+  const lockOk = (m) => !m.dead && mobs.includes(m) && m.g.position.distanceTo(tmp3.copy(me).setY(m.g.position.y)) < 18 + lockR(m);
   function lockOn() {
     ctx.here(me);
     if (!(lockAlive() && lockList.includes(lockT))) lockList = mobs.filter(lockOk).sort((a, b) => a.g.position.distanceToSquared(me) - b.g.position.distanceToSquared(me));
@@ -923,7 +924,7 @@ export function createCombat(ctx) {
     const on = lockAlive(); if (lockBtn) lockBtn.classList.toggle("on", on || lockMode);
     if (!on) { if (lockMark) lockMark.visible = false; return; }
     if (!lockMark) {
-      lockMark = new THREE.Group(); const mat = additive(0xff6a4d, 0.85); mat.side = THREE.DoubleSide;
+      lockMark = new THREE.Group(); const mat = additive(0xff6a4d, 0.85); mat.side = THREE.DoubleSide; mat.depthTest = false; /* (seen on a slope too, not cut by the ground) */
       const ringM = new THREE.Mesh(new THREE.RingGeometry(0.92, 1.02, 48), mat); ringM.rotation.x = -Math.PI / 2; lockMark.add(ringM);
       for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 3), mat); c.rotation.z = Math.PI / 2; const a = (i / 3) * TAU; c.position.set(Math.cos(a) * 1.25, 0, Math.sin(a) * 1.25); c.rotation.y = -a; c.rotation.x = -Math.PI / 2; lockMark.add(c); }
       lockMark.renderOrder = 4; add(lockMark);
@@ -939,7 +940,7 @@ export function createCombat(ctx) {
       lockT = nx; if (nx && !lockList.includes(nx)) lockList.push(nx); paintLock(); if (!nx) return;
     }
     const big = lockT.rank === "boss" ? 2.6 : lockT.rank === "elite" ? 1.4 : 1;
-    lockMark.position.copy(lockT.g.position).setY(0.09); lockMark.scale.setScalar(big * (1 + Math.sin(performance.now() / 160) * 0.04)); lockMark.rotation.y += dt * 1.6;
+    lockMark.position.copy(lockT.g.position); lockMark.position.y += 0.12 + (ctx.liftAt ? ctx.liftAt(lockT.g.position.x, lockT.g.position.z) : 0); /* (2026-10-28, the owner: no ring under the target — it stood at y 0.09, inside the Halloween Realm's hills and any raised floor) */ lockMark.scale.setScalar(big * (1 + Math.sin(performance.now() / 160) * 0.04)); lockMark.rotation.y += dt * 1.6;
   }
   function aim(out) {
     ctx.here(me); fwdOf(out);

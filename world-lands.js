@@ -183,7 +183,7 @@ export function makeLands({ THREE, K, planet, T, low = false, ver = "", onModel 
     // own spot (at: x, z) rather than the shops' ring, no plaza line or path out to it, a citadel 12 m tall
     { id: "rq", name: "RAID QUEENS", col: 0xff4d8d, at: [-168, 62], h: 12 },
     // the Haunted Pumpkin Gate (2026-10-28, the owner's Halloween Realm spec: a giant pumpkin with a portal in its mouth) on the ring
-    { id: "hw", name: T("Halloween Realm"), col: 0xff8a1f, phi: 225, h: 9 },
+    { id: "hw", name: T("Halloween Realm"), col: 0xff8a1f, at: [116, 6], h: 9 }, /* (2026-10-28, the owner: it stood on the Jurassic gate (−11, 11 against −6, 13) — moved to the open meadow behind the AD Citadel) */
   ];
   const portals = DEST.map((d) => { const p = portalOf(d.name, d.col); p.name = "land-portal:" + d.id; p.userData.to = d.id;
     if (d.at) { p.position.set(d.at[0], 0, d.at[1]); p.rotation.set(0, Math.atan2(-d.at[0], -d.at[1]), 0); p.userData.far = true; } else K.placeOn(p, K.dirOf(d.th || 21, d.phi));
