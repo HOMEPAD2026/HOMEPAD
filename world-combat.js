@@ -906,7 +906,7 @@ export function createCombat(ctx) {
     else lockList = lockList.filter((m) => m === lockT || lockOk(m));
     if (!lockList.length) { if (lockMode) { lockMode = false; lockT = null; paintLock(); ctx.toast(T("Lock-on off")); return; } lockT = null; paintLock(); ctx.toast(T("No scammer close enough to lock on")); return; }
     const i = lockAlive() ? lockList.indexOf(lockT) : -1;
-    lockT = i < 0 ? lockList[0] : i + 1 < lockList.length ? lockList[i + 1] : null; // past the last one: the lock lets go
+    lockT = i < 0 ? lockList[0] : lockList.length > 1 ? lockList[(i + 1) % lockList.length] : null; /* (2026-10-28, the owner: "it doesn't work well" — the next tap went past the last and let go; now it goes round, and lets go only with one in reach) */
     const was = lockMode; lockMode = !!lockT; if (!lockT) ctx.toast(T("Lock-on off")); else if (!was) ctx.toast(T("Lock-on on: tap again for the next target"));
     paintLock(); Snd.pop && Snd.pop();
   }
