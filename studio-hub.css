@@ -687,3 +687,22 @@ html[data-ht=light] .sgh-tlang>button{background:#fff}html[data-ht=light] .sgh-l
 .sgh-tag.real{background:rgba(79,227,193,.14);color:var(--h-acc);border:1px solid rgba(79,227,193,.35)}
 .sgh-tag.ai{background:rgba(230,195,106,.12);color:var(--h-gold,#e6c36a);border:1px dashed rgba(230,195,106,.45)}
 .sgh-aitest{border-style:dashed}.sgh-aitest .sgh-kpis{opacity:.92}
+
+/* S6: continue first — the last three projects, then the four starts */
+.sgh-resume{max-width:1180px;margin:0 auto;padding:26px 28px 6px}.sgh-resume .sgh-sech h2{font:800 22px/1.2 Sora,"Noto Sans KR",sans-serif;margin:0}
+.sgh-rc3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:14px 0 18px}
+.sgh-rc{display:flex;flex-direction:column;border-radius:16px;overflow:hidden;background:var(--h-s1);border:1px solid var(--h-line);animation:sghRise .5s var(--d,0ms) cubic-bezier(.2,.8,.2,1) both;transition:border-color .2s,transform .2s}
+.sgh-rc:hover{border-color:rgba(79,227,193,.4);transform:translateY(-2px)}
+.sgh-rcart{position:relative;aspect-ratio:16/8;background:#0c0f13 center/cover no-repeat}.sgh-rcart em{position:absolute;left:10px;top:10px;padding:4px 9px;border-radius:999px;background:rgba(0,0,0,.6);font:700 11px/1 Sora,"Noto Sans KR",sans-serif;font-style:normal;color:#fff}
+.sgh-rctx{display:flex;flex-direction:column;gap:4px;padding:12px 14px 14px}.sgh-rctx b{font:800 15.5px/1.25 Sora,"Noto Sans KR",sans-serif;color:var(--h-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sgh-rctx small{color:var(--h-ink2);font-size:12.5px}
+.sgh-rctx .sgh-btn{align-self:flex-start;margin-top:8px}
+.sgh-start4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.sgh-s4{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;border-radius:16px;border:1px solid var(--h-line);background:linear-gradient(160deg,rgba(79,227,193,.07),rgba(57,211,255,.02) 60%),var(--h-s1);text-align:left;color:var(--h-ink);animation:sghRise .5s var(--d,0ms) cubic-bezier(.2,.8,.2,1) both;transition:border-color .2s,transform .2s,box-shadow .2s}
+.sgh-s4:hover{border-color:var(--h-acc);transform:translateY(-2px);box-shadow:0 14px 30px rgba(57,211,255,.12)}
+.sgh-s4 i{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(79,227,193,.12);color:var(--h-acc)}.sgh-s4 i .sgh-ic{width:21px;height:21px}
+.sgh-s4 b{font:800 15.5px/1.2 Sora,"Noto Sans KR",sans-serif}.sgh-s4 small{font-size:12.5px;line-height:1.35;color:var(--h-ink2)}
+.sgh-start4.big .sgh-s4{padding:26px 22px;min-height:180px}.sgh-start4.big .sgh-s4 i{width:54px;height:54px;border-radius:16px}.sgh-start4.big .sgh-s4 b{font-size:19px}
+.sgh-resume.first{padding-top:38px}.sgh-resume.first .sgh-sech h2{font-size:30px}
+.sgh-hero.compact{min-height:0;padding-top:34px;padding-bottom:34px}.sgh-hero.compact .sgh-h1{font-size:clamp(30px,4.4vw,52px)}.sgh-hero.compact .sgh-new{display:none}
+.sgh-page.pg-creations .sgh-resume{padding:0 0 18px;max-width:none}
+@media (max-width:860px){.sgh-rc3{grid-template-columns:1fr}.sgh-rc{flex-direction:row}.sgh-rcart{width:38%;aspect-ratio:auto;min-height:104px}.sgh-start4{grid-template-columns:repeat(2,minmax(0,1fr))}.sgh-resume{padding:18px 16px 4px}.sgh-start4.big .sgh-s4{min-height:140px;padding:18px}}

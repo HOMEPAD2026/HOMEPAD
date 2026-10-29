@@ -208,9 +208,27 @@ export function makeHub(o) {
     return "";
   }
 
+  // S6 (2026-10-29, the owner: "continue first"): your last 3 projects (published, drafts, this device's), each with its saved
+  // time and Continue editing, then exactly four ways to start; a first visit sees only the four, large
+  const START4 = [["bolt", "Create with AI", "Say it in a sentence — a playable draft in seconds", "data-ws=\"make\" data-ai=\"1\""], ["grid", "3D Builder", "Build a 3D world piece by piece", "data-ws=\"3d\""], ["store", "Templates", "16 ready games to start from", "data-go=\"store\" data-s=\"templates\""], ["folder", "My games", "Everything you've made", "data-go=\"creations\""]];
+  const start4 = (big) => `<div class="sgh-start4${big ? " big" : ""}">${START4.map(([i, t, p, a], k) => `<button type="button" class="sgh-s4" ${a} style="--d:${k * 60}ms"><i>${ic(i)}</i><b>${esc(T(t))}</b><small>${esc(T(p))}</small></button>`).join("")}</div>`;
+  function recent() {
+    let auto = null; try { auto = JSON.parse(localStorage.getItem("arc.studio.auto") || "null"); } catch { auto = null; }
+    const m = (D.mineNow || { games: [] }), at = (id, t) => Math.max(t || 0, auto && auto.who === id ? auto.at || 0 : 0);
+    const L = [...(m.games || []).map((g) => ({ id: g.id, title: g.title || (g.spec && g.spec.title) || "", tpl: g.tpl || (g.spec && g.spec.tpl), th: g.th, pub: g.pub, at: at(g.id, g.up || g.at), local: 0 })),
+      ...locals().map((d) => ({ id: d.id, title: d.spec.title, tpl: d.spec.tpl, at: at(d.id, d.at), local: 1 }))];
+    return L.filter((x) => x.id).sort((a, b) => b.at - a.at).slice(0, 3);
+  }
+  function resumeHtml() {
+    const R = recent();
+    if (!R.length) return `<section class="sgh-resume first"><div class="sgh-sech"><h2>${esc(T("Make your first game"))}</h2></div>${start4(true)}</section>`;
+    return `<section class="sgh-resume"><div class="sgh-sech"><h2>${esc(T("Continue where you left off"))}</h2></div><div class="sgh-rc3">${R.map((x, k) => `<article class="sgh-rc" style="--d:${k * 70}ms"><div class="sgh-rcart" style="background-image:url('${esc(cover(x))}')"><em>${esc(T(x.local ? "On this device" : x.pub ? "Published" : "Draft"))}</em></div>
+      <div class="sgh-rctx"><b>${esc(x.title || T("Untitled game"))}</b><small>${esc((TEMPLATES[x.tpl] || {}).name ? T(TEMPLATES[x.tpl].name) : x.tpl || "")} · ${x.at ? esc(T("Saved {t}", { t: ago(x.at) })) : esc(T("Not saved yet"))}</small>
+      <button type="button" class="sgh-btn pri sm" data-resume="${esc(x.id)}"${x.local ? " data-rlocal=\"1\"" : ""}>${ic("edit", "sm")} ${esc(T("Continue editing"))}</button></div></article>`).join("")}</div>${start4(false)}</section>`;
+  }
   function homeHtml() {
     const tiles = Object.keys(TEMPLATES), rows = [0, 1, 2, 3].map((r) => [...tiles.slice(r * 4), ...tiles.slice(0, r * 4)].concat(tiles).slice(0, 10));
-    return `<section class="sgh-hero">
+    return `<div data-fill="resume">${resumeHtml()}</div><section class="sgh-hero compact">
       <div class="sgh-mosaic" aria-hidden="true">${rows.map((row, r) => `<div class="sgh-mrow${r % 2 ? " rev" : ""}" style="--sp:${70 + r * 12}s">${[...row, ...row].map((id) => `<span style="background-image:url(${art(id, 400)})"></span>`).join("")}</div>`).join("")}</div>
       <div class="sgh-hin">
         <a class="sgh-new" href="?p=updates" data-go="updates"><em>${esc(T("New"))}</em><span><b>${esc(T("The Creator Hub is here"))}</b><small>${esc(T("Your games, analytics, guides, a store of templates and the community — on any screen."))}</small></span><i class="sgh-btn sm">${esc(T("Learn more"))}</i></a>
@@ -260,6 +278,7 @@ export function makeHub(o) {
       const lv = f("live"); if (lv) { lv.innerHTML = [[A.length, "Games"], [plays, "Plays"], [creators, "Creators"], [nowN, "Playing now"]].map(([n, l]) => `<span><b data-count="${n}">0</b><small>${esc(T(l))}</small></span>`).join(""); countUp(lv); }
       const tr = f("trend"); if (tr) tr.innerHTML = `<div class="sgh-hs">${[...A].sort((a, b) => (b.now || 0) * 50 + (b.plays || 0) - ((a.now || 0) * 50 + (a.plays || 0))).slice(0, 12).map((g) => gameCard(g)).join("")}</div>`;
       const [w, d] = await Promise.all([week(), day()]); if (stale()) return; const hc = f("homecards"); if (hc) hc.innerHTML = contestCard(w) + dailyCard(d);
+      if (wallet()) { D.mineNow = await mine(); if (stale()) return; const rs = f("resume"); if (rs) rs.innerHTML = resumeHtml(); } /* (S6: your server-kept games join this device's drafts) */
     }
     if (X.has(pg, s0)) { await X.fill(pg, s0, root, stale); if (stale()) return; reveal(); return; }
     if (pg === "creations") { const el = f("creations"); if (el) el.innerHTML = await creationsHtml(); }
@@ -289,7 +308,8 @@ export function makeHub(o) {
       return `<div class="sgh-kpis sm">${kpiT("star", "Lv " + lv.lv, "Creator level", Math.round(((lv.xp - lv.from) / Math.max(1, lv.next - lv.from)) * 100))}${kpiT("play", num(p), "Plays by others")}${kpiT("heart", num(l), "Likes")}${kpiT("users", num(m.fans || 0), "Followers")}${kpiT("rocket", pub.length, "Published")}</div>`; })() : "";
     const grid = L.length ? `<div class="sgh-grid g4">${L.map((g) => g.local ? localCard(g) : gameCard(g, { own: 1 })).join("")}</div>`
       : empty("plus", S === "shared" ? "Nothing shared with you yet" : S === "device" ? "No drafts on this device" : "Create a game", S === "shared" ? "When a friend gives you a build-together code, the game shows here." : "Pick a template, tune it, test it and publish — no code. It takes about five minutes.", `<button type="button" class="sgh-btn pri" data-make>${ic("plus")} ${esc(T("Create a game"))}</button>`);
-    return `${bar}${promo}${kpi}${grid}`;
+    if (m) D.mineNow = m; const top = S === "games" || S === "device" ? resumeHtml() : "";
+    return `${top}${bar}${promo}${kpi}${grid}`;
   }
   const localCard = (g) => `<article class="sgh-gc" data-ledit="${esc(g.id)}" tabindex="0"><span class="sgh-gart"><img src="${art(g.tpl, 400)}" alt="" loading="lazy" width="400" height="229"><em class="sgh-st draft">${esc(T("On this device"))}</em><i class="sgh-gplay">${ic("edit")}</i></span><b>${esc(g.title || T("Untitled"))}</b><small>${esc(tname(g.tpl))}</small><span class="sgh-gm"><i>${g.at ? esc(ago(g.at)) : ""}</i></span></article>`;
   const kpiT = (i, v, l, bar) => `<div class="sgh-kpi"><i>${ic(i)}</i><b>${esc(String(v))}</b><small>${esc(T(l))}</small>${bar != null ? `<span class="sgh-bar"><em style="width:${bar}%"></em></span>` : ""}</div>`;
@@ -451,11 +471,12 @@ export function makeHub(o) {
     if (await X.act(b, e)) { e && e.preventDefault(); return true; }
     if (d.go != null && !b.hasAttribute("data-gsheet")) { e && e.preventDefault(); if (d.ag) D.ag = d.ag; go(d.go, d.s || ""); return true; }
     if (b.hasAttribute("data-make")) { e && e.preventDefault(); closePops(); drawer = false; o.ws.open("make"); return true; }
-    if (d.ws) { closePops(); o.ws.open(d.ws); return true; }
+    if (d.ws) { closePops(); if (d.ai) o.ws.ai(); else o.ws.open(d.ws); return true; }
     if (d.use) { closePops(); o.ws.use(d.use, d.th || ""); return true; }
     if (d.theme) { o.ws.use("", d.theme); return true; }
     if (d.edit) { closePops(); o.ws.edit(d.edit); return true; }
     if (d.ledit) { o.ws.local(d.ledit); return true; }
+    if (d.resume) { closePops(); o.ws.resume(d.resume, !!d.rlocal); return true; } /* (S6: straight into that project's own editor) */
     if (d.play) { o.ws.play(d.play); return true; }
     if (d.remix) { o.ws.remix(d.remix); return true; }
     if (d.gsheet) { closePops(); openGame(d.gsheet, b); return true; }

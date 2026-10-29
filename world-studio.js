@@ -1418,7 +1418,10 @@ export function createStudio(ctx) {
     if (tab === "make" && step > 1) { step = step >= 4 ? 3 : 1; paint(); return true; }
     close(); return true;
   }
-  const API = { run: (o) => run(o), back, creator, editId: (id) => editById(id), editLocal, useTpl, mine: () => mine, shared: () => shared, myHandle: () => myH, load: () => load(), arcadeList: () => arcade, open, close, shown, playId, remixId, raceJoin: (c) => raceJoin(c), raceNew: (id) => raceNew(id), raceQuick: () => raceQuick(), watchRace: (c) => watchRace(c), playChal: (c) => playChal(c), feedNew: () => feedNew(), builder: () => builder, openBuilder: () => openBuilder(), step: (n) => { step = n; if (el && !el.hidden) paint(); }, playing: () => playing, last: () => lastRun, spec: () => spec, set: (s) => { spec = clampSpec(s); if (el && !el.hidden) paint(); } };
+  /// S6: "Continue editing" from the Hub — the project opens, and a built game (3D, Jump World, arena…) goes straight to its builder
+  async function resume(id, loc) { if (loc) editLocal(id); else await editById(id); if (spec && spec.build) setTimeout(() => openBuilder(), 60); }
+  function aiFocus() { open("make"); step = 1; paint(); setTimeout(() => { const i = el && el.querySelector(".wst-aiin"); if (i) { i.focus(); i.scrollIntoView({ block: "center" }); } }, 120); }
+  const API = { run: (o) => run(o), back, creator, resume, aiFocus, editId: (id) => editById(id), editLocal, useTpl, mine: () => mine, shared: () => shared, myHandle: () => myH, load: () => load(), arcadeList: () => arcade, open, close, shown, playId, remixId, raceJoin: (c) => raceJoin(c), raceNew: (id) => raceNew(id), raceQuick: () => raceQuick(), watchRace: (c) => watchRace(c), playChal: (c) => playChal(c), feedNew: () => feedNew(), builder: () => builder, openBuilder: () => openBuilder(), step: (n) => { step = n; if (el && !el.hidden) paint(); }, playing: () => playing, last: () => lastRun, spec: () => spec, set: (s) => { spec = clampSpec(s); if (el && !el.hidden) paint(); } };
   if (navigator.webdriver) window.__studio = API; // (the browser tests)
   return API;
 }
