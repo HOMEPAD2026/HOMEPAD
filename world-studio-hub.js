@@ -210,8 +210,6 @@ export function makeHub(o) {
 
   // S6 (2026-10-29, the owner: "continue first"): your last 3 projects (published, drafts, this device's), each with its saved
   // time and Continue editing, then exactly four ways to start; a first visit sees only the four, large
-  const START4 = [["bolt", "Create with AI", "Say it in a sentence — a playable draft in seconds", "data-ws=\"make\" data-ai=\"1\""], ["grid", "3D Builder", "Build a 3D world piece by piece", "data-ws=\"3d\""], ["store", "Templates", "16 ready games to start from", "data-go=\"store\" data-s=\"templates\""], ["folder", "My games", "Everything you've made", "data-go=\"creations\""]];
-  const start4 = (big) => `<div class="sgh-start4${big ? " big" : ""}">${START4.map(([i, t, p, a], k) => `<button type="button" class="sgh-s4" ${a} style="--d:${k * 60}ms"><i>${ic(i)}</i><b>${esc(T(t))}</b><small>${esc(T(p))}</small></button>`).join("")}</div>`;
   function recent() {
     let auto = null; try { auto = JSON.parse(localStorage.getItem("arc.studio.auto") || "null"); } catch { auto = null; }
     const m = (D.mineNow || { games: [] }), at = (id, t) => Math.max(t || 0, auto && auto.who === id ? auto.at || 0 : 0);
@@ -221,10 +219,10 @@ export function makeHub(o) {
   }
   function resumeHtml() {
     const R = recent();
-    if (!R.length) return `<section class="sgh-resume first"><div class="sgh-sech"><h2>${esc(T("Make your first game"))}</h2></div>${start4(true)}</section>`;
+    if (!R.length) return ""; // (2026-10-29, the owner: no "Make your first game" block on the home — the hero's Start creating is the way in)
     return `<section class="sgh-resume"><div class="sgh-sech"><h2>${esc(T("Continue where you left off"))}</h2></div><div class="sgh-rc3">${R.map((x, k) => `<article class="sgh-rc" style="--d:${k * 70}ms"><div class="sgh-rcart" style="background-image:url('${esc(cover(x))}')"><em>${esc(T(x.local ? "On this device" : x.pub ? "Published" : "Draft"))}</em></div>
       <div class="sgh-rctx"><b>${esc(x.title || T("Untitled game"))}</b><small>${esc((TEMPLATES[x.tpl] || {}).name ? T(TEMPLATES[x.tpl].name) : x.tpl || "")} · ${x.at ? esc(T("Saved {t}", { t: ago(x.at) })) : esc(T("Not saved yet"))}</small>
-      <button type="button" class="sgh-btn pri sm" data-resume="${esc(x.id)}"${x.local ? " data-rlocal=\"1\"" : ""}>${ic("edit", "sm")} ${esc(T("Continue editing"))}</button></div></article>`).join("")}</div>${start4(false)}</section>`;
+      <button type="button" class="sgh-btn pri sm" data-resume="${esc(x.id)}"${x.local ? " data-rlocal=\"1\"" : ""}>${ic("edit", "sm")} ${esc(T("Continue editing"))}</button></div></article>`).join("")}</div></section>`;
   }
   function homeHtml() {
     const tiles = Object.keys(TEMPLATES), rows = [0, 1, 2, 3].map((r) => [...tiles.slice(r * 4), ...tiles.slice(0, r * 4)].concat(tiles).slice(0, 10));
