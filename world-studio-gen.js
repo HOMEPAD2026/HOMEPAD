@@ -869,6 +869,16 @@ function stmt(s0, tag) {
   if (/^(win|lose|cutscene)\(\)$/.test(k)) return { t: k.slice(0, -2), ta: 0, cd };
   return { err: "can't read: " + s0.slice(0, 40) };
 }
+/// ED5: what a course costs a phone — triangles the run draws (a kind's shape, Meshy props and bodies by their packed
+/// budgets), lights, moving pieces — against the budget the town's rules set (CLAUDE.md: about 150 k triangles a scene)
+export const OB_BUDGET = { tris: 150000, lights: 6, moving: 60 };
+const TRI = { b: 12, r: 8, y: 64, k: 12, s: 76, m: 24, p: 128, c: 192, S: 192, g: 320, o: 80, h: 220, d: 12, u: 128, t: 360, n: 40, B: 700, x: 3500, X: 5000, E: 3000, R: 720, Q: 8, H: 720, W: 12, P: 12, A: 4000 };
+export function obBudget(B) {
+  let tris = 0, lights = 0, moving = 0; const kinds = new Set(), tk = new Set((B.tk || []).map((t) => t[0]));
+  (B.o || []).forEach((q, i) => { tris += TRI[q[0]] || 50; const x = q[12] || {}; if (x.lt) lights++; if (x.mv || x.sp || tk.has(i) || "mesEB".includes(q[0])) moving++; if ("byr".includes(q[0]) && !x.mv && !x.sp && !tk.has(i)) kinds.add(q[0] + q[8] + q[9]); });
+  const k = Math.max(tris / OB_BUDGET.tris, lights / OB_BUDGET.lights, moving / OB_BUDGET.moving);
+  return { tris, lights, moving, pieces: (B.o || []).length, batches: kinds.size, k, heavy: k > 1 };
+}
 /// OB6 (the AI test players' second report): the tenths of a level with nothing in the way (dull) and a level the bots
 /// all clear with little to do (too easy) — the obby counts its own hops; the lane runs count their rows
 function paceOf(spec, L, clear) {
