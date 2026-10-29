@@ -2,6 +2,7 @@
 // one cyan/mint accent + gold, line icons instead of emoji). 24×24, stroke = currentColor, so a button's colour paints
 // its icon. pi(name) → an inline <svg>; tplIc(tpl) → a template's own mark.
 const P = {
+  cube: '<path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M12 12 20 7.5M12 12v9M12 12 4 7.5"/>',
   make: '<path d="M4 20 14.5 9.5"/><path d="m13 5 1-2 1 2 2 1-2 1-1 2-1-2-2-1z"/><path d="m19 11 .6-1.4L21 9l-1.4-.6L19 7l-.6 1.4L17 9l1.4.6z"/>',
   mine: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   arcade: '<rect x="2.5" y="7" width="19" height="10" rx="5"/><path d="M7 10.5v3M5.5 12h3"/><circle cx="15.5" cy="11" r=".9" fill="currentColor"/><circle cx="17.8" cy="13.2" r=".9" fill="currentColor"/>',

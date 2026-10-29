@@ -6034,7 +6034,7 @@ let hwL = null, hwWait = null, hwUI = null, hwSet = null, hwCardSeen = false, HW
 function ensureHw() {
   if (hwL) return Promise.resolve(hwL);
   return hwWait || (hwWait = Promise.all([import("./world-hwrealm.js"), import("./world-hwrealm-ui.js"), import("./world-hwjack.js"), import("./world-hwgimmick.js")]).then(([M, U, J, GM]) => {
-    HWM = M; hwL = M.makeHwRealm({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, esc });
+    HWM = M; hwL = M.makeHwRealm({ THREE, K, planet, T: TW, low: lowGfx, coarse: !!st.quality.coarse, ver: VER, esc });
     hwUI = U.makeHwUI({ crowd: () => hwCrowd(), journey: () => hwJourney(), T: TW, esc, M, post, sess, toast, signIn: () => signIn(), buzz: (p) => buzz(p), itemStats: RPG.itemStats, ver: VER, mythicSlot: (k) => { try { return mythicWorn().some((x) => MY.pieceOf(x.def).slot === k); } catch { return false; } },
       onSet: (st0) => { const was = JSON.stringify((hwSet && hwSet.eq) || {}); hwSet = st0; try { if (Object.keys(st0.eq || {}).length >= 6 && quests) quests.bump("hwset"); } catch { /* fine */ } try { rpg.refresh(); if (JSON.stringify(st0.eq || {}) !== was && rpg.dress) rpg.dress(); } catch { /* not built yet */ } } });
     hwL.onNight((n) => hwNight(n));

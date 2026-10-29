@@ -624,3 +624,6 @@ html[data-ht=light] .sgh-hero .sgh-btn:not(.pri){background:#fff}
 .sgx-rank span{display:flex;flex-direction:column;min-width:0;flex:1}.sgx-rank b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sgx-rank small{opacity:.65;font-size:11.5px}.sgx-rank em{font-style:normal;font-weight:800;color:#e6c36a}
 .sgx-bk{list-style:none;margin:0 0 10px;padding:0}.sgx-bk li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px}.sgx-bk b{white-space:nowrap}
 .sgh-dwin.solo{width:auto}
+/* (2026-10-29, the owner: the hovered button's green border lost its top edge — the row scrolled (overflow:auto) and the
+   button rises 1px on hover; the row now leaves room round it) */
+.sgh-lnav{overflow:visible;padding:3px 2px;margin:-3px 0}

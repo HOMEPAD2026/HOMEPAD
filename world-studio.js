@@ -7,7 +7,7 @@
 //   the runner   its own scene drawn instead of the town (st.view / st.solo, like the Game Village's games): three lanes,
 //                your hero runs (sprint), jumps the gaps (jump), slides under lasers (dodge), switches lanes past walls,
 //                grabs coins; three hearts; the finish arch; a result card (score, your best, your place)
-import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, DEF, JUMPS, clampSpec, toBuild, genLevel, scoreOf, speedOf, dashSpeed, estimate, puzzleScore, climbGaps } from "./world-studio-gen.js";
+import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, DEF, JUMPS, genObbyBuild, clampSpec, toBuild, genLevel, scoreOf, speedOf, dashSpeed, estimate, puzzleScore, climbGaps } from "./world-studio-gen.js";
 import { makePreview } from "./world-studio-prev.js";
 import { ask } from "./world-ask.js";
 import { look as themeLook, trackUV } from "./world-studio-look.js";
@@ -214,7 +214,7 @@ export function createStudio(ctx) {
   async function editById(id) { open("mine"); if (!coOf(id)) await load(); const g = coOf(id); if (g) editG(g); else ctx.toast(esc(T("Couldn't open it — try again"))); }
   function editLocal(id) { const d = locals().find((x) => x.id === id); if (!d) return; shell(); spec = clampSpec(d.spec); editId = ""; localId = d.id; remixFrom = ""; step = 3; lastTest = null; open("make"); }
   function useTpl(tpl, theme) { shell(); spec = clampSpec({ ...spec, tpl: TEMPLATES[tpl] ? tpl : spec.tpl, ...(theme ? { theme } : {}) }); editId = ""; tab = "make"; step = 2; open("make"); ev("tpl"); }
-  const slider = (k, lab, max, min = 0) => `<label class="wst-sl"><span>${esc(T(lab))} <b>${spec[k]}</b></span><input type="range" min="${min}" max="${max}" step="1" value="${spec[k]}" data-k="${k}"></label>`;
+  const slider = (k, lab, max, min = 0) => `<label class="wst-lnk"><span>${esc(T(lab))} <b>${spec[k]}</b></span><input type="range" min="${min}" max="${max}" step="1" value="${spec[k]}" data-k="${k}"></label>`;
   // Studio 3: the editor in five steps (a bar at the top, Back / Next at the bottom), the live 3D preview over them
   // STU-B: three steps on screen — Pick (template + look) · Tune · Test & publish (the old pages 1+2 and 4+5 together; step keeps 1 / 3 / 4)
   const VIS = [[1, "Pick", "Pick a template and a look"], [3, "Tune", "How hard should it be?"], [4, "Test & publish", "Try it, then put it on the arcade"]];
@@ -315,6 +315,8 @@ export function createStudio(ctx) {
     const cv = el && el.querySelector(".wst-prev"); if (!cv) return; const x = cv.getContext("2d"), w = cv.width, h = cv.height, th = THEMES[spec.theme], L = genLevel(spec);
     x.clearRect(0, 0, w, h); x.fillStyle = hex(th.track); x.globalAlpha = 0.9; x.fillRect(0, 8, w, h - 16); x.globalAlpha = 1;
     if (spec.tpl === "puzzle") { const R = ringOf(L.id); if (R) drawRings(x, w, h, R); return; }
+    if (L.obby) { x.fillStyle = "#070b14"; x.fillRect(0, 0, w, h); const P = L.B.o.filter((o) => o[0] !== "x"), xs = P.map((o) => o[1]), zs = P.map((o) => o[3]), x0 = Math.min(...xs, 0), x1 = Math.max(...xs, 1), z0 = Math.min(...zs, 0), z1 = Math.max(...zs, 1), k = Math.min((w - 16) / (z1 - z0 || 1), (h - 16) / (x1 - x0 || 1)); /* (3D BUILDER, 2026-10-29: an obby has no lanes — the course from above; a hand-built obby once threw here: L.rows) */
+      for (const o of P) { x.fillStyle = o[0] === "k" ? "#ff5a2a" : o[0] === "g" ? "#ffd23a" : o[0] === "c" ? "#7cf5c8" : o[0] === "E" || o[0] === "B" ? "#ff4d8d" : o[0] === "o" || o[0] === "Q" ? "#ffe066" : hex(th.edge); x.fillRect(8 + (o[3] - z0) * k - 2, 8 + (o[1] - x0) * k - 2, Math.max(3, o[7] * k * 0.6), Math.max(3, o[5] * k * 0.6)); } return; }
     if (L.survival) { x.fillStyle = "#1a0f1a"; x.fillRect(0, 0, w, h); const X2 = (t) => (t / L.secs) * (w - 16) + 8; for (let i = 0; i < 60; i++) { const t = (i / 60) * L.secs, k = 0.25 + (t / L.secs) * L.rate * 0.6; x.fillStyle = `rgba(255,90,120,${Math.min(0.9, k)})`; x.fillRect(X2(t), h - 10 - k * (h - 30), (w - 16) / 60 - 1, k * (h - 30)); } x.font = "18px sans-serif"; x.textAlign = "center"; for (const b of L.bossAt) x.fillText("👑", X2(b), 22); return; }
     if (L.beat) { x.fillStyle = "#070b1c"; x.fillRect(0, 0, w, h); const X2 = (s0) => (s0 / L.steps) * (w - 8) + 4, cols = ["#ff6fae", "#ffd23a", "#7cf5c8", "#5fd3ff"]; for (const [s0, l] of L.B.n) { x.fillStyle = cols[l]; x.fillRect(X2(s0), 10 + l * ((h - 20) / 4), 2, (h - 20) / 4 - 3); } return; }
     if (L.race) { x.fillStyle = "#060c1e"; x.fillRect(0, 0, w, h); const k = Math.min(w, h) / 160, sx = (v) => w / 2 + v * k, sz = (v) => h / 2 + v * k; x.strokeStyle = hex(th.edge); x.lineWidth = 2; x.beginPath(); L.B.r.forEach((q, i) => (i ? x.lineTo(sx(q[0]), sz(q[1])) : x.moveTo(sx(q[0]), sz(q[1])))); x.closePath(); x.stroke(); x.fillStyle = "#ffd23a"; for (const q of L.B.r) { x.beginPath(); x.arc(sx(q[0]), sz(q[1]), 3, 0, 7); x.fill(); } return; }
@@ -541,17 +543,68 @@ export function createStudio(ctx) {
   }
   const localBest = (id) => { try { return Number(localStorage.getItem("arc.studio.best." + id) || 0); } catch { return 0; } };
   const ev = (k) => { try { missTick(k); } catch { /* fine */ } try { courseTick(k); } catch { /* fine */ } try { if (ctx.onEvent) ctx.onEvent(k); } catch { /* fine */ } }; // (Studio Beta: the Academy's 10-minute first game counts these)
-  const PRO_IC = { "ic-agent": "agent", "ic-guide": "guide", "ic-like": "heart", "ic-play": "play", "ic-publish": "publish", "ic-remix": "copy", "ic-report": "flag", "ic-share": "share", "ic-test": "test", "ic-trophy": "trophy", "tab-make": "make", "tab-mine": "mine", "tab-arcade": "arcade" };
+  const PRO_IC = { "ic-agent": "agent", "ic-guide": "guide", "ic-like": "heart", "ic-play": "play", "ic-publish": "publish", "ic-remix": "copy", "ic-report": "flag", "ic-share": "share", "ic-test": "test", "ic-trophy": "trophy", "tab-make": "make", "tab-3d": "cube", "tab-mine": "mine", "tab-arcade": "arcade" };
   const IC = (n) => PRO_IC[n] ? pi(PRO_IC[n]) : `<img class="wst-ic" src="/images/studio/ui/${n}.webp${ctx.ver || ""}" alt="" aria-hidden="true">`; /* (PRO, 2026-10-28: Studio Pro's line icons for the shell's and the actions' marks) */ const IR = (n) => `<img class="wst-ic" src="/images/studio/rm/${n}.webp${ctx.ver || ""}" alt="" aria-hidden="true">`; /* RM: Meshy's race / creator icons */ // (STU-6b: Meshy's glass icons)
   const isWide = () => { const z = (el && parseFloat(getComputedStyle(el).zoom)) || 1; return innerWidth / z >= 820 && innerWidth > innerHeight * 1.15; }; // (z: a sideways phone at its own width draws the Studio smaller — world-skin.css html.wp-vpfb — so it has the room of a wide screen)
   addEventListener("resize", () => { if (el && !el.hidden && el.classList.contains("wide") !== isWide()) paint(); });
+  // ---------------- 3D BUILDER (2026-10-29, the owner: "Obby World as its own entry under Create, with a guide the three
+  // heroes explain"): the expert's way in — a start (blank or a genre's ready course) straight into the 3D scene editor
+  // (world-studio-scene.js), the 3D games you're making, and the step-by-step guide told by ARON, LUMI and NEX
+  const G3 = [["blank", "⬚", "Blank 3D", "A start pad and a goal — you build the rest"], ["obby", "🧗", "Obby course", "Jumps, lava, spinners and checkpoints"], ["combat", "⚔️", "Combat arena", "Enemies and a boss — knock them all out to win"], ["race", "🏁", "Race track", "Rings in order and laps, on a hoverboard"], ["explore", "💎", "Explore world", "Hills, pools and gems to find"]];
+  const G3IMG = (h) => `/images/studio/guide3d/${h}.webp${ctx.ver || ""}`;
+  function paint3d() {
+    const mine3 = [...mine.filter((g) => g.spec && g.spec.tpl === "obby").map((g) => ({ id: g.id, t: g.spec.title || T("My 3D game"), pub: !!g.pub, at: g.at || 0, own: 1 })), ...locals().filter((d) => d.spec && d.spec.tpl === "obby").map((d) => ({ id: d.id, t: d.spec.title || T("My 3D game"), at: d.at || 0, loc: 1 }))].sort((a, b) => b.at - a.at).slice(0, 8);
+    return `<div class="wst-3d"><div class="wst-3dban"><img src="${G3IMG("banner")}" alt="" loading="lazy"><div><small>${esc(T("Expert mode"))}</small><b>${esc(T("3D Builder"))}</b><p>${esc(T("Build a real 3D game piece by piece — place, move, turn and size every block, add enemies, bosses and rules, then play it with your own hero."))}</p>
+      <button type="button" class="wst-go" data-g3guide>📖 ${esc(T("How to use — ARON, LUMI and NEX show you"))}</button></div></div>
+      <h4 class="wst-sec">${pi("cube")} ${esc(T("Start a new 3D game"))}</h4><div class="wst-3dgrid">${G3.map(([k, ic, n, l]) => `<button type="button" class="wst-3dc" data-new3d="${k}"><i aria-hidden="true">${ic}</i><b>${esc(T(n))}</b><small>${esc(T(l))}</small></button>`).join("")}</div>
+      ${mine3.length ? `<h4 class="wst-sec">${pi("pen")} ${esc(T("Keep building"))}</h4><div class="wst-3dmine">${mine3.map((g) => `<button type="button" data-${g.loc ? "el3" : "ed3"}="${esc(g.id)}"><b>${esc(g.t)}</b><small>${g.pub ? esc(T("Published")) : g.loc ? esc(T("On this device")) : esc(T("Draft"))}</small></button>`).join("")}</div>` : ""}
+      <p class="wst-3dnote">${esc(T("Tip: a computer with a mouse is the easiest place to build; on a phone hold it sideways."))}</p></div>`;
+  }
+  function start3d(md) {
+    const base = clampSpec({ tpl: "obby", theme: md === "explore" ? "jungle" : md === "combat" ? "lava" : "neon", title: T("My 3D game"), speed: 3, len: 60, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 1 + Math.floor(Math.random() * 999998) });
+    const b = md === "blank" ? genObbyBuild(base, { md: "obby", secs: 1, props: 0 }) : genObbyBuild(base, { md, boss: md === "combat" });
+    spec = clampSpec({ ...base, build: b }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 3; lastTest = null; paint(); ev("tpl"); openBuilder();
+  }
+  // the guide: nine steps, each told by one of the three heroes (the owner's full-body art, images/studio/guide3d/*-full)
+  const G3STEPS = [
+    ["aron", "Welcome to the 3D Builder!", "I'm ARON. Here you make a real 3D game: blocks, ramps, lava, enemies and bosses. Everything you place is played with your own hero — let's build one together!"],
+    ["lumi", "1 · Pick how to start", "Blank 3D gives you just a start pad and a goal. Obby, Combat, Race and Explore start you with a ready course — change anything you like. You can't break it: Undo is always there."],
+    ["nex", "2 · Look around", "Drag empty space to turn the view, use the wheel (or pinch) to zoom, right-drag (or two fingers) to slide. Press Focus to fly to the piece you picked."],
+    ["aron", "3 · Place pieces", "The pieces are on the left: blocks, ramps, lava, jump pads, coins, checkpoints, enemies, a boss, doors and buttons… Tap one and it drops in front of you."],
+    ["lumi", "4 · Move, turn and size", "Tap a piece to pick it. Move (W) drags the arrows, Turn (E) the ring, Size (R) the little cubes. Snap keeps it on the grid, Copy makes a twin, Delete removes it. Shift + click picks several."],
+    ["nex", "5 · Make it smart", "Properties sets the picked piece. Game sets the genre, how to win, gravity and laps. Logic says WHEN something happens THEN what — a button opens a door, the boss falls and you win."],
+    ["aron", "6 · Test it", "Press Test from here and play it as your hero. The 40 test players show how many reach the goal, and red boxes mark spots nobody can reach — move those pieces closer."],
+    ["lumi", "7 · Make it pretty and ask for help", "Look & UI changes the sky, the light and what's on screen. The Director takes words: “add a boss at the end”, “make it easier”. Assets holds ready-made pieces and prefabs."],
+    ["nex", "8 · Save and publish", "Done brings you back to Create: Save keeps a draft, Publish puts it in the Creator Arcade and in ARCIRCLE WORLD, where everyone can play it — and race you live."],
+  ];
+  function guide3d() {
+    let i = 0; const g = document.createElement("div"); g.className = "wst-g3"; g.setAttribute("role", "dialog"); g.setAttribute("aria-modal", "true");
+    const draw = () => { const [h, t, p] = G3STEPS[i], name = h.toUpperCase();
+      g.innerHTML = `<div class="wst-g3in ${{ aron: "h-aron", lumi: "h-lumi", nex: "h-nex" }[h]}"><button type="button" class="wst-g3x" data-g3x aria-label="${esc(T("Close"))}">${pi("close")}</button>
+        <div class="wst-g3who"><img src="${G3IMG(h + "-full")}" alt="${name}"><em>${name}</em></div>
+        <div class="wst-g3say"><small>${esc(T("3D Builder guide"))} · ${i + 1}/${G3STEPS.length}</small><b>${esc(T(t))}</b><p>${esc(T(p))}</p></div>
+        <div class="wst-g3dots">${G3STEPS.map((_, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</div>
+        <div class="wst-g3nav"><button type="button" class="wst-go alt" data-g3b ${i ? "" : "disabled"}>${esc(T("Back"))}</button>${i < G3STEPS.length - 1 ? `<button type="button" class="wst-go" data-g3n>${esc(T("Next"))}</button>` : `<button type="button" class="wst-go" data-g3go>🧱 ${esc(T("Start building"))}</button>`}</div></div>`; };
+    g.addEventListener("click", (e) => { const b = e.target.closest("button"); if (e.target === g || (b && b.hasAttribute("data-g3x"))) { g.remove(); return; } if (!b) return;
+      if (b.hasAttribute("data-g3n")) { i = Math.min(G3STEPS.length - 1, i + 1); draw(); } else if (b.hasAttribute("data-g3b")) { i = Math.max(0, i - 1); draw(); } else if (b.hasAttribute("data-g3go")) { g.remove(); start3d("obby"); } });
+    draw(); document.body.appendChild(g); try { localStorage.setItem("arc.studio.g3d", "1"); } catch { /* every time */ }
+  }
+  // the side menu (2026-10-29, the owner): « folds it to its icons and back (arc.studio.rail), Shortcuts to the Game World
+  // and the platform, and Customer support — the Hub's question and bug boards, and email to contact@arcircle.app
+  const railMin = () => { try { return localStorage.getItem("arc.studio.rail") === "min"; } catch { return false; } };
+  const MAIL = "contact@arcircle.app";
+  function railLinks() {
+    const L = (href, ic, t, sub, out) => `<a class="wst-lnk" href="${href}"${out ? ' target="_blank" rel="noopener"' : ""} title="${esc(T(t))}${sub ? " — " + esc(sub) : ""}"><i aria-hidden="true">${ic}</i><span><b>${esc(T(t))}</b>${sub ? `<em>${esc(sub)}</em>` : ""}</span>${out ? '<u aria-hidden="true">↗</u>' : ""}</a>`;
+    return `<div class="wst-slinks"><small>${esc(T("Shortcuts"))}</small>${L("/game", "🎮", "Game World", T("Play ARCIRCLE WORLD"), 1)}${L("/", "🌐", "ARCIRCLE Platform", T("Launchpad, coins and more"), 1)}</div>
+      <div class="wst-slinks"><small>${esc(T("Customer support"))}</small>${L("/studio?p=forum&s=help", "💬", "Questions & feedback", T("Ask on the board"), 1)}${L("/studio?p=forum&s=bugs", "🐞", "Report a bug or error", T("Tell us what went wrong"), 1)}${L(`mailto:${MAIL}?subject=${encodeURIComponent("ARCIRCLE Studio")}`, "✉️", "Email us", MAIL, 0)}</div>`;
+  }
   function paint() {
     if (!el) return;
-    const body = tab === "mine" ? paintMine() : tab === "game" ? paintGame() : tab === "arcade" ? paintArcade() : paintMake();
-    el.classList.toggle("wide", isWide()); // (STU-6: a computer or a phone held sideways — the rail-and-columns layout)
+    const body = tab === "3d" ? paint3d() : tab === "mine" ? paintMine() : tab === "game" ? paintGame() : tab === "arcade" ? paintArcade() : paintMake();
+    el.classList.toggle("wide", isWide()); el.classList.toggle("rmin", isWide() && railMin()); // (STU-6: a computer or a phone held sideways — the rail-and-columns layout)
     el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Make your own game"))}</small><h2><i class="wst-mark" aria-hidden="true"></i><em>ARCIRCLE</em> Studio<span class="wst-beta">BETA</span></h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">${IC("ic-guide")}</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">${pi("close")}</button></header>
-      <nav class="wst-tabs">${[["make", "tab-make", "Create"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${IC(ic)}</span>${esc(T(l))}${id === "arcade" && feedNew() ? `<em class="wst-badge" title="${esc(T("New from creators you follow"))}">${feedNew()}</em>` : ""}</button>`).join("")}</nav>
-      <div class="wst-body">${body}</div><div class="wst-foot">${sideCard()}${ctx.webLink ? `<a class="wst-weblink" href="/studio" target="_blank" rel="noopener">${pi("web")} ${esc(T("Open the Creator Hub on the web"))} ↗</a>` : ""}<span>${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</span></div></div>`;
+      <nav class="wst-tabs"><button type="button" class="wst-railx" data-railx aria-label="${esc(T(railMin() ? "Show the menu" : "Hide the menu"))}" title="${esc(T(railMin() ? "Show the menu" : "Hide the menu"))}">${railMin() ? "»" : "«"}</button>${[["make", "tab-make", "Create"], ["3d", "tab-3d", "3D Builder"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}" title="${esc(T(l))}"><span aria-hidden="true">${IC(ic)}</span><b class="wst-tl">${esc(T(l))}</b>${id === "arcade" && feedNew() ? `<em class="wst-badge" title="${esc(T("New from creators you follow"))}">${feedNew()}</em>` : ""}</button>`).join("")}</nav>
+      <div class="wst-body">${body}</div><div class="wst-foot">${railLinks()}${sideCard()}${ctx.webLink ? `<a class="wst-weblink" href="/studio" target="_blank" rel="noopener">${pi("web")} ${esc(T("Open the Creator Hub on the web"))} ↗</a>` : ""}<span>${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</span></div></div>`;
     { const nv = el.querySelector(".wst-body > .wst-nav"); if (nv) el.querySelector(".wst-in").insertBefore(nv, el.querySelector(".wst-foot")); } // (PRO: Back / Test / Next as the window's own bar under the page, so it never sits on what you're reading)
     estRoll();
     if (tab === "arcade" || tab === "mine") setTimeout(estFill, 60);
@@ -628,7 +681,12 @@ export function createStudio(ctx) {
     if (b.dataset.ctmake) { spec = clampSpec({ ...spec, tpl: b.dataset.ctmake, title: "" }); editId = ""; localId = ""; remixFrom = ""; tab = "make"; step = 1; lastTest = null; paint(); return; }
     if (b.dataset.remix) { const g = gdata && gdata.id === b.dataset.remix ? gdata : null; if (!g || !g.spec) return; return remixOf(g); }
     if (b.hasAttribute("data-guide")) { if (ctx.guide) ctx.guide("studio"); return; }
-    if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); return; }
+    if (b.dataset.tab) { tab = b.dataset.tab; paint(); if (tab !== "make") load(); if (tab === "3d") { let seen = false; try { seen = !!localStorage.getItem("arc.studio.g3d"); } catch { /* not kept */ } if (!seen) setTimeout(guide3d, 350); } return; }
+    if (b.hasAttribute("data-railx")) { try { localStorage.setItem("arc.studio.rail", railMin() ? "" : "min"); } catch { /* this visit only */ } return paint(); }
+    if (b.hasAttribute("data-g3guide")) return guide3d();
+    if (b.dataset.new3d) return start3d(b.dataset.new3d);
+    if (b.dataset.ed3) { await editById(b.dataset.ed3); if (spec.tpl === "obby") openBuilder(); return; }
+    if (b.dataset.el3) { editLocal(b.dataset.el3); if (spec.tpl === "obby") openBuilder(); return; }
     if (b.dataset.step) { step = Number(b.dataset.step); return paintKeep(); }
     if (b.hasAttribute("data-next")) { step = step <= 2 ? 3 : 4; if (step === 3) ev("tune"); fxStep(); return paint(); }
     if (b.hasAttribute("data-back")) { step = step >= 4 ? 3 : 1; return paint(); }

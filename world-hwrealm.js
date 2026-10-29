@@ -16,7 +16,7 @@ export { HW, GROUNDS, SET, clockOf, nightOf, pieceOf, pieceStats, setBonus };
 const rad = (a) => (a * Math.PI) / 180;
 const polar = (a, r) => [Math.sin(rad(a)) * r, Math.cos(rad(a)) * r]; // a = 0 is south (+z, the way in), 90 east
 
-export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver = "", esc = (s) => s }) {
+export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, coarse = false, ver = "", esc = (s) => s }) {
   const L = HW.LAND, g = new THREE.Group(); g.name = "land-hw"; g.position.set(L.x, 0, L.z); g.visible = false; planet.add(g);
   const spins = [], solids = [], doors = [], marks = [], nightFns = [];
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, metalness: 0.05, ...o });
@@ -105,7 +105,8 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
     const holder = new THREE.Group(); fit(scene, h); holder.add(scene); holder.updateMatrixWorld(true); const M = new THREE.Matrix4(), out = new THREE.Group(); out.name = "hw-props:" + name;
     holder.traverse((m) => { if (!m.isMesh) return; if (/lantern|tree/.test(name) && m.material && m.material.emissive && !m.material.userData.lit) { const mt = m.material; mt.userData.lit = 1; mt.userData.e0 = mt.emissiveIntensity || 0; mt.emissive.set(0xff8a1f); lanterns.push(mt); }
       const im = new THREE.InstancedMesh(m.geometry, m.material, list.length); im.castShadow = !low && h > 3; im.receiveShadow = false;
-      list.forEach(([x, z, r], i) => { M.makeRotationY(r).setPosition(x, hAt(x, z) - 0.08, z).multiply(m.matrixWorld); im.setMatrixAt(i, M); }); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); out.add(im); });
+      list.forEach(([x, z, r], i) => { M.makeRotationY(r).setPosition(x, hAt(x, z) - 0.08, z).multiply(m.matrixWorld); im.setMatrixAt(i, M); }); im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); out.add(im);
+      im.frustumCulled = false; im.userData.allM = im.instanceMatrix.array.slice(); im.userData.allN = list.length; im.userData.xz = list.map(([x, z]) => [x, z]); propIMs.push(im); }); propX = 1e9; /* (2026-10-28: drawn only near you — propCull; a model that comes in later is culled on the next look) */
     g.add(out); return out;
   }
   async function loadModels() {
@@ -153,7 +154,14 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, ver =
   // HT1: the trees' trunks block you — a few stand-ins follow you round to the nearest trees (the town's solids check)
   const proxies = []; for (let i = 0; i < 18; i++) { const s0 = new THREE.Group(); s0.userData.radius = 0.4; s0.position.set(0, -999, 0); g.add(s0); solids.push(s0); proxies.push(s0); }
   let proxT = 0; const nearL = [];
-  function nearTick(dt, me) { if ((proxT -= dt) > 0 || !me) return; proxT = 0.25; const x = me.x - L.x, z = me.z - L.z; TR.nearTrees(x, z, proxies.length, nearL); proxies.forEach((p, i) => { const t = nearL[i]; if (t) { p.position.set(t.x, 0, t.z); p.userData.radius = t.kind === "p" ? 0.35 * t.s : 0.3 * t.s; } else p.position.set(0, -999, 0); }); TR.cull(x, z, low ? 95 : 140); }
+  // the Meshy lanterns / tombs / trees along the roads: ~200 k triangles land-wide — only the ones within PROP_R of you are
+  // written into each InstancedMesh (once a second at most, as you move 6 m); the owner, 2026-10-28: "렉도 심하고"
+  const propIMs = [], PROP_R = low ? 55 : coarse ? 75 : 120; let propX = 1e9, propZ = 1e9, propT = 0;
+  function propCull(x, z) { if (!propIMs.length || Math.hypot(x - propX, z - propZ) < 6) return; propX = x; propZ = z;
+    for (const im of propIMs) { const A = im.userData.allM, B = im.instanceMatrix.array, P = im.userData.xz; let n = 0;
+      for (let i = 0; i < im.userData.allN; i++) { if (Math.hypot(P[i][0] - x, P[i][1] - z) > PROP_R) continue; const o = i * 16; for (let k = 0; k < 16; k++) B[n * 16 + k] = A[o + k]; n++; }
+      im.count = n; im.instanceMatrix.needsUpdate = true; } }
+  function nearTick(dt, me) { if (me && (propT -= dt) <= 0) { propT = 1; propCull(me.x - L.x, me.z - L.z); } if ((proxT -= dt) > 0 || !me) return; proxT = 0.25; const x = me.x - L.x, z = me.z - L.z; TR.nearTrees(x, z, proxies.length, nearL); proxies.forEach((p, i) => { const t = nearL[i]; if (t) { p.position.set(t.x, 0, t.z); p.userData.radius = t.kind === "p" ? 0.35 * t.s : 0.3 * t.s; } else p.position.set(0, -999, 0); }); TR.cull(x, z, low ? 95 : 140); }
   let shown = false;
   return {
     heightAt: (x, z) => hAt(x - L.x, z - L.z), wet: (x, z) => TR.wet(x - L.x, z - L.z), slow: HW.SWAMP.slow, trees: () => TR.trees.length, // (HT1: world coordinates; the land's own frame inside)
