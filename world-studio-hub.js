@@ -24,6 +24,8 @@ const ICONS = { // (24px line icons, the Studio Pro set's weight)
   globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5z"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   fold: '<path d="M4 7h10M4 12h7M4 17h10"/><path d="M20 9l-3 3 3 3"/>',
+  pane: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M9.5 5v14"/><path d="M15.5 10l-2 2 2 2"/>',
+  paneo: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M9.5 5v14"/><path d="M13.5 10l2 2-2 2"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
@@ -170,7 +172,7 @@ export function makeHub(o) {
     root.className = `sgh${land ? " land" : ""}${collapsed ? " fold" : ""}${SUBS[page] ? " has-sub" : ""}${peek ? " peek" : ""}`;
     root.innerHTML = land
       ? `${landTop()}<div class="sgh-scroll"><main class="sgh-page pg-home">${pageHtml()}</main>${foot()}</div>${drawerHtml()}`
-      : `${side()}${subCol()}<div class="sgh-main">${topBar()}<div class="sgh-scroll"><main class="sgh-page pg-${page}">${pageHtml()}</main>${foot()}</div></div>${drawerHtml()}`;
+      : `${side()}<button type="button" class="sgh-edge" data-burger aria-label="${esc(T(collapsed ? "Show the menu" : "Hide the menu"))}" title="${esc(T(collapsed ? "Show the menu" : "Hide the menu"))}">${ic(collapsed ? "paneo" : "pane")}</button>${subCol()}<div class="sgh-main">${topBar()}<div class="sgh-scroll"><main class="sgh-page pg-${page}">${pageHtml()}</main>${foot()}</div></div>${drawerHtml()}`;
     document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = T(e.dataset.t); });
     document.title = (page === "home" ? "ARCIRCLE Creator Hub — " + T("make a game in your browser") : T(TITLE[page]) + " · ARCIRCLE Creator Hub");
     after();

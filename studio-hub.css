@@ -638,3 +638,13 @@ body.sga.sgh-ws .sga-burg{display:inline-grid}body.sga:not(.sgh-ws) .sga-burg{di
 /* the landing's ≡ on the left on every screen (2026-10-29, the owner: "메인에도 버거 메뉴 좌측에"); the right one it replaces stays hidden */
 .sgh-ltop .sgh-lb2{display:inline-grid;place-items:center;flex:none;margin-right:6px}
 .sgh-ltop .sgh-lburger{display:none!important}
+
+/* the fold button on the side menu's own edge (2026-10-29, the owner: next to the menu, not far off in the top bar) */
+.sgh-edge{display:none}
+@media (min-width:1024px){
+  .sgh-edge{display:grid;place-items:center;position:absolute;z-index:6;left:calc(var(--h-side) - 14px);top:20px;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--h-line);background:#14171b;color:var(--h-ink2,#aab3bf);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:left .25s ease,color .15s,border-color .15s,background .15s}
+  .sgh-edge:hover{color:var(--h-ink);border-color:var(--h-acc);background:#1a1e23}
+  .sgh-edge svg{width:16px;height:16px}
+  .sgh:not(.land) .sgh-top .sgh-hb{display:none}
+}
+html[data-ht=light] .sgh-edge{background:#fff;color:#5b6573;box-shadow:0 2px 8px rgba(20,30,40,.12)}
