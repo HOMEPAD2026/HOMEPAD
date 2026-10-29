@@ -105,7 +105,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gw-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 26px; }
 .gw-kicker { margin: 0 auto 6px; text-align: center; font: 800 13px/1.2 var(--ui); letter-spacing: 3px; text-transform: uppercase; color: var(--cy); }
 .gw-light .gw-kicker { color: #0f8fb8; }
-.gw-h2 { margin: 0; font: italic 900 clamp(30px, 7vw, 46px)/1.02 var(--disp); letter-spacing: -.5px; }
+.gw-h2 { margin-top: 0; margin-bottom: 0; font: italic 900 clamp(30px, 7vw, 46px)/1.02 var(--disp); letter-spacing: -.5px; }
 .gw-big { text-align: center; font-size: clamp(38px, 10vw, 76px); margin-bottom: 26px; }
 .gw-dark .gw-big { background: linear-gradient(180deg, #fff 30%, #9ff6ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 22px rgba(56, 216, 255, .25)); }
 .gw-light .gw-big { color: var(--dark-ink); }
@@ -535,7 +535,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (pointer: coarse) { .gw-cursor { display: none; } }
 
 /* titles come in word by word */
-.gw-h2 .w { display: inline-block; overflow: hidden; vertical-align: bottom; padding: 0 .04em .08em; margin-bottom: -.08em; }
+.gw-h2 .w { display: inline-block; overflow: hidden; vertical-align: bottom; padding: .04em .14em .22em .06em; margin: -.04em -.1em -.22em -.06em; } /* (room for the italic slant and the g / y tails: they were cut off) */
 .gw-h2 .w > i { display: inline-block; font-style: inherit; transform: translateY(105%); transition: transform .7s var(--ease); transition-delay: calc(var(--wi) * 70ms); }
 .gw-h2.in .w > i, .gw-h2:not(.gw-rv) .w > i { transform: none; }
 .gw-big.gw-rv { opacity: 1; transform: none; }

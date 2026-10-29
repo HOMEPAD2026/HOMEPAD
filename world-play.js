@@ -2095,7 +2095,7 @@ function landGo(to) {
 function landTick(force) {
   const L = mode === "hub" ? LD.landAt(-planet.position.x, -planet.position.z) : null, id = L ? L.id : "";
   lands.show(id); if (adc) adc.show(id === "ad"); if (rqL) rqL.show(id === "rq"); if (ccL) ccL.show(id === "cc"); if (hwL) hwL.show(id === "hw"); if (id === landNow && !force) return;
-  const was = landNow; landNow = id; try { if (combat && combat.rezone) combat.rezone(); } catch { /* the fights aren't up yet */ } try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); if (id === "cc") try { ccBar(); } catch { /* made on the way in */ } /* (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) */ if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } /* (no town rain in RAID QUEENS' sky realm) */ try { paintQuests(); } catch { /* the quests aren't up yet */ }
+  const was = landNow; landNow = id; if (was !== id && (was === "hw" || id === "hw")) setTimeout(() => { try { nightK = -1; dayNight(); } catch { /* set up later */ } }, 0); /* (the realm keeps its own clock's light) */ try { if (combat && combat.rezone) combat.rezone(); } catch { /* the fights aren't up yet */ } try { stuGate().on("cc", id === "cc"); } catch { /* not on this browser */ } document.body.classList.toggle("wp-in-cc", id === "cc"); if (id === "cc") try { ccBar(); } catch { /* made on the way in */ } /* (2026-10-26, the owner: Creator City has no monsters, and its top-left is the way home) */ if (labels) labels.dirty = true; try { rain.visible = mood === "rain" && id !== "rq"; } catch { /* not made yet */ } /* (no town rain in RAID QUEENS' sky realm) */ try { paintQuests(); } catch { /* the quests aren't up yet */ }
   if (id && id !== was) { toast(`<b>${esc(landName(id))}</b>`); if (id === "lp" && !P.visited.includes("lpv")) { P.visited.push("lpv"); save(); } if (id === "ut" && !P.visited.includes("utv")) { P.visited.push("utv"); save(); } if (id === "ad" && !P.visited.includes("adc")) { P.visited.push("adc"); save(); } if (id === "rq" && !P.visited.includes("rqx")) { P.visited.push("rqx"); save(); } if (id === "hw" && !P.visited.includes("hwr")) { P.visited.push("hwr"); save(); } }
 }
 st.on(() => { try { landTick(false); } catch { /* still loading */ } });
@@ -4724,7 +4724,11 @@ function etHour(t = Date.now()) {
   const d = new Date(t - 5 * 3600e3); return d.getUTCHours() + d.getUTCMinutes() / 60; // no time-zone data: Eastern standard time
 }
 function dayNight() {
-  const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : etHour();
+  // (2026-10-29, the owner's phone: "Day" on the Halloween Realm's strip over a land lit as deep night — the town's sun
+  // follows US Eastern time, the realm runs its own 30-minute clock; inside the realm its clock sets the light: a dusky
+  // late afternoon by day, the night by night)
+  const hwH = (() => { try { return landNow === "hw" ? (hwClock(Date.now()).night ? 23 : 17.6) : null; } catch { return null; } })(); /* (try: an early call meets landNow before its line) */
+  const h = photoHour != null ? photoHour : Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : hwH != null ? hwH : etHour();
   const k = h >= 20 || h < 5 ? 1 : h >= 17 ? (h - 17) / 3 : h < 7 ? 1 - (h - 5) / 2 : 0;
   if (Math.abs(k - nightK) < 0.01) return; nightK = k;
   // skyEnv is made further down the module, past awaits: a first call that comes too early tries again next time
@@ -4771,6 +4775,7 @@ function dayNight() {
   const zz = combat && combat.zone(); if (zz && st.scene.fog && mode === "hub") { st.scene.fog.color.lerp(new THREE.Color(zz.fog), 0.65); if (zz.id === "depths") { skyU.top.value.lerp(new THREE.Color(0x0a0618), 0.6); skyU.mid.value.lerp(new THREE.Color(0x1a1030), 0.6); } }
 }
 setInterval(dayNight, 60000);
+{ let hwN = null; setInterval(() => { if (landNow !== "hw") { hwN = null; return; } const n = hwClock(Date.now()).night; if (n !== hwN) { hwN = n; nightK = -1; try { dayNight(); } catch { /* set up later */ } } }, 3000); } // (the realm's day ↔ night turns the light at once)
 
 // ---------------- camera: a building between the camera and the player turns see-through ----------------
 const ray = new THREE.Raycaster(); ray.camera = st.camera; let camFit = 1, colT = 0;
@@ -6397,7 +6402,7 @@ const dinoTown = (() => {
     if (soon) { const l = soon.e.closesAt - t; return { k: l < 4 * 3600e3 ? "warn" : "care", t: "🥚 " + TW("Egg care open · {t} left", { t: left(l) }), key: "c" + soon.eg.id + (soon.eg.done || []).length + (l < 3600e3 ? "1h" : l < 4 * 3600e3 ? "4h" : "") }; }
     if (st.canClaim === false || (st.canClaim == null && st.buddy)) return null;
     if (st.first) return { k: "first", t: "🥚 " + TW("Your first egg is waiting in Jurassic World") };
-    const e = nests.find((x) => x.to > t); if (e) return { k: "out", t: "🥚 " + TW("A rare egg is out in Jurassic World · {t} left", { t: left(e.to - t) }), key: "o" + e.nest + e.to };
+    // (2026-10-29, the owner: no "A rare egg is out" banner or toast any more — the nests still show in Jurassic World)
     return null;
   }
   function paint() {

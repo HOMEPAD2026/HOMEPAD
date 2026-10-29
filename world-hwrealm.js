@@ -32,7 +32,7 @@ export function makeHwRealm({ THREE, K, planet, T = (s) => s, low = false, coars
   g.add(TR.mesh, TR.forest); if (TR.water) g.add(TR.water);
   { const sq = std(0x8a7a64, off(2)), plaza = new THREE.Mesh(new THREE.CircleGeometry(HW.VILLAGE_R, 64), sq); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.03; g.add(plaza);
     tex("ground-grave", 5, (t) => { sq.map = t; sq.color.set(0xd8b890); sq.needsUpdate = true; });
-    const vr = new THREE.Mesh(new THREE.TorusGeometry(HW.VILLAGE_R, 0.14, 4, 160), neon(0xff8a1f, 0.9)); vr.rotation.x = Math.PI / 2; vr.position.y = 0.06; g.add(vr);
+    const vr = new THREE.Mesh(new THREE.TorusGeometry(HW.VILLAGE_R, 0.05, 3, 160), neon(0xff8a1f, 0.35)); /* (2026-10-29: a hairline now — the thick glowing ring read as a stray orange band across the land) */ vr.rotation.x = Math.PI / 2; vr.position.y = 0.06; g.add(vr);
     // a magic circle in the square's middle: a glowing pumpkin rune that breathes
     const rune = canvasTex(512, 512, (x, w) => { x.translate(w / 2, w / 2); x.strokeStyle = "#ffb04a"; x.lineWidth = 10; x.globalAlpha = 0.9; x.beginPath(); x.arc(0, 0, 230, 0, 7); x.stroke(); x.lineWidth = 4; x.beginPath(); x.arc(0, 0, 196, 0, 7); x.stroke();
       for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2 - Math.PI / 2, b = ((i + 2) / 5) * Math.PI * 2 - Math.PI / 2; x.beginPath(); x.moveTo(Math.cos(a) * 196, Math.sin(a) * 196); x.lineTo(Math.cos(b) * 196, Math.sin(b) * 196); x.stroke(); }
