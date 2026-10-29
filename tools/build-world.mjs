@@ -55,6 +55,22 @@ function writePlay(useBuild, preloads) {
   fs.writeFileSync(PLAY, html);
 }
 
+// 2026-10-29: every chunk the live deploy has (origin/main's w/) stays, listed in a generation or not — local builds
+// between two deploys (and a merge that kept one side's .gens.json) used to drop shipped chunks that pages opened
+// before the deploy still ask for. Deploys, not local builds, decide what goes; a chunk with merge marks is never put back.
+async function keepShipped() {
+  let n = 0;
+  try {
+    const { execFileSync } = await import("node:child_process"), git = (a, enc) => execFileSync("git", a, { cwd: ROOT, maxBuffer: 64 << 20, stdio: ["ignore", "pipe", "ignore"], ...(enc ? { encoding: "utf8" } : {}) });
+    let ref = "origin/main"; try { git(["rev-parse", "--verify", ref], true); } catch { ref = "HEAD"; }
+    for (const f of git(["ls-tree", "--name-only", ref, "w/"], true).split("\n").map((l) => l.trim().replace(/^w\//, "")).filter((l) => /^c-[A-Z0-9]+\.js$/.test(l))) {
+      const p = path.join(OUT, f); if (fs.existsSync(p)) continue;
+      let buf = null; try { buf = git(["show", ref + ":w/" + f]); } catch { buf = null; }
+      if (buf && !/^(<{7}|>{7}) /m.test(buf.toString("utf8", 0, Math.min(buf.length, 2e6)))) { fs.writeFileSync(p, buf); n++; }
+    }
+  } catch { /* not a git checkout: the generations alone */ }
+  return n;
+}
 const check = process.argv.includes("--check");
 const want = srcHash();
 if (check) {
@@ -74,7 +90,8 @@ if (!esbuild) {
 if (stamp() === want && fs.existsSync(path.join(OUT, "world-play.js")) && !process.argv.includes("--force")) {
   const keep = JSON.parse(fs.readFileSync(path.join(OUT, ".preload.json"), "utf8"));
   writePlay(true, keep);
-  console.log("world build: up to date");
+  const back = await keepShipped();
+  console.log("world build: up to date" + (back ? ` (${back} shipped chunks put back)` : ""));
   process.exit(0);
 }
 
@@ -128,6 +145,7 @@ gens = gens.map((g) => (g.at ? g : { ...g, at: nowMs })) // (a generation from b
   .filter((g, i) => i < KEEP_GENS || nowMs - g.at < KEEP_DAYS * 864e5).slice(0, MAX_GENS);
 let kept = 0;
 for (const g of gens.slice(1)) for (const f of g.files) { const p = path.join(OUT, f); if (!fs.existsSync(p) && old.has(f)) { fs.writeFileSync(p, old.get(f)); kept++; } }
+kept += await keepShipped();
 fs.writeFileSync(GENS, JSON.stringify(gens));
 writePlay(true, preloads);
 // /studio (studio-app.html): world-studio-web.js's own imports and the modules its app mode loads at once (the kit, the

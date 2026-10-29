@@ -151,6 +151,10 @@ The owner tests on a real Android phone (Samsung Internet), signed in with a wal
 Chrome as a guest is not enough. Before reporting a change to ARCIRCLE World as finished:
 
 - Run every tests/world/*.test.mjs, then rebuild (bump-cache.sh + tools/build-bundles.mjs) and load play.html.
+- Before every push to main: `node tools/predeploy.mjs` (no merge marks in any tracked file — a merge once shipped them inside two
+  built chunks and /studio couldn't open —, w/ matches the sources, every test passes). Deploy small and often: one
+  feature or fix a deploy, so a problem points at one change. tools/build-world.mjs now keeps every chunk the live
+  deploy (origin/main's w/) has, so local builds no longer drop shipped chunks; never restore them by hand.
 - Then run the browser walk: `node tools/world-walk/walk.mjs` (phone + desktop, signed in: top bar, dock, Menu, launch gift → box → coins,
   Games list → into a game and out twice, the invite sheet's drag-close, a share card, a stale chunk's reload). PASS/FAIL per check;
   screenshots in OUT. Needs playwright (PW=dir with node_modules/playwright) and Chromium (CHROME=path).
