@@ -634,3 +634,7 @@ html[data-ht=light] .sgh-hero .sgh-btn:not(.pri){background:#fff}
 body.sga.sgh-ws .sga-burg{display:inline-grid}body.sga:not(.sgh-ws) .sga-burg{display:none}
 .sgh.peek{position:fixed;inset:0;z-index:200;background:none!important;pointer-events:none}
 .sgh.peek>:not(.sgh-dw){display:none!important}.sgh.peek .sgh-dw{z-index:200;pointer-events:auto}
+
+/* the landing's ≡ on the left on every screen (2026-10-29, the owner: "메인에도 버거 메뉴 좌측에"); the right one it replaces stays hidden */
+.sgh-ltop .sgh-lb2{display:inline-grid;place-items:center;flex:none;margin-right:6px}
+.sgh-ltop .sgh-lburger{display:none!important}

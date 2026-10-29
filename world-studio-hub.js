@@ -152,7 +152,7 @@ export function makeHub(o) {
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button></header>`;
   }
   function landTop() {
-    return `<header class="sgh-ltop"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
+    return `<header class="sgh-ltop"><button type="button" class="sgh-ib sgh-lb2" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
       <nav class="sgh-lnav"><a href="?p=creations" data-go="creations">${esc(T("Dashboard"))}</a><a href="?p=learn" data-go="learn">${esc(T("Learn"))}</a><a href="?p=community" data-go="community">${esc(T("Explore"))}</a><a href="?p=store" data-go="store">${esc(T("Store"))}</a><a href="?p=updates" data-go="updates">${esc(T("Updates"))}</a></nav>
       <span class="sgh-sp"></span><button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button><button type="button" class="sgh-ib sgh-lburger" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button></header>`;
