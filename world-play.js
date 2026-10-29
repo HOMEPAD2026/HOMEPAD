@@ -6476,7 +6476,7 @@ window.arcWorld = { hwDbg: () => { const v = here(new THREE.Vector3()); return {
   level: () => level(), purse: (f) => refreshPurse(f), bakedShadows: () => bakedShadows(), // b447: the slow-phone shadow step, for tests
   poker: () => ({ game: pokerGame, on: pokerOn, open: openPoker, door: () => { const e = gv.exitOf("poker"); standAt(e.x, e.z, gv.center); }, view: () => { const e = gv.exitOf("poker"), c = gv.center; standAt(c.x + (e.x - c.x) * 0.3, c.z + (e.z - c.z) * 0.3, { x: e.x * 2 - c.x, z: e.z * 2 - c.z }); } }),
   rings: () => ({ game: ringsGame, on: ringsOn, open: openRings, door: () => { const e = gv.exitOf("rings"); standAt(e.x, e.z, gv.center); }, view: () => { const e = gv.exitOf("rings"), c = gv.center; standAt(c.x + (e.x - c.x) * 0.3, c.z + (e.z - c.z) * 0.3, { x: e.x * 2 - c.x, z: e.z * 2 - c.z }); } }),
-  kart: () => ({ game: kartGame, on: kartOn, open: openKart }),
+  kart: () => ({ game: kartGame, on: kartOn, open: openKart, why: () => ({ kartBusy, frozen, flying, introOn, mode, surv: survOn, jur: jurOn }) }),
   surv: () => ({ game: survGame, on: survOn, open: openSurvivors, door: () => { const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); } }),
   land: () => land,
   jurassic: () => ({ game: jurGame, on: jurOn, open: openJurassic, allowed: jurAllowed(), gate: () => jurGateGo() }),
