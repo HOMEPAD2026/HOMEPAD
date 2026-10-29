@@ -74,6 +74,11 @@ const inv = db.get(`worldJurInv/${lc}`); check(inv && inv.mat.meat === r.body.lo
 r = await call(me, "world-agent-claim", { id: j1.id }); check(r.status === 404, "claimed once");
 r = await call(me, "world-agent-job", { job: "mine" }); const j2 = r.body.agent.jobs[0]; T += AGENT.JOBS.mine.min * 60e3;
 r = await call(me, "world-agent-claim", { id: j2.id }); check(r.status === 200 && !r.body.best && r.body.ore && r.body.ore.cu >= 2, "mine: ore in the Mine's bag " + JSON.stringify(r.body.ore));
+// ADX1: totals and the Academy's lesson of the day
+{ const v0 = (await view(me)).agent; check(v0.byJob.scout === 1 && v0.byJob.mine === 1 && v0.spent === AGENT.JOBS.scout.arcl + AGENT.JOBS.mine.arcl && v0.tot.meat >= 3 && v0.tot.cu >= 2, "totals: errands by kind, ARCL spent, everything brought back " + JSON.stringify(v0.tot));
+  const xp0 = v0.xp; r = await call(me, "world-agent-study", {}); check(r.status === 200 && r.body.xp === AGENT.STUDY_XP && r.body.agent.xp === xp0 + AGENT.STUDY_XP && r.body.agent.studied && r.body.lesson === 1, "the Academy: today's lesson +" + AGENT.STUDY_XP + " XP");
+  r = await call(me, "world-agent-study", {}); check(r.status === 409, "one lesson a day");
+  T += 24 * 3600e3; r = await call(me, "world-agent-study", {}); check(r.status === 200 && r.body.lesson === 2, "the next day: lesson 2"); }
 // level and the second slot
 check(agentLevel(0) === 1 && agentLevel(160) === 5 && AGENT.SLOTS(5) === 2, "level 5 at 160 XP opens a second slot");
 const a = db.get(`worldAgent/${lc}`); a.xp = 160; db.set(`worldAgent/${lc}`, a);

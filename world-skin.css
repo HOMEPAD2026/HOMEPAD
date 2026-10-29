@@ -6006,3 +6006,112 @@ body.wp-hw-night.wp-hw-blood::after{background:radial-gradient(120% 90% at 50% 4
 .wst.wide .wst-foot .wst-lnk u{display:none}.wst .wst-foot .wst-lnk:hover b{color:var(--p-acc,#4fe3c1)}
 .wst.wide .wst-foot .wst-lnk b{white-space:normal;line-height:1.25}
 @media (max-height:520px){.wst.wide .wst-railx{display:none}}html.wp-pcphone .wst.wide .wst-railx{display:none}
+/* ADX1 (2026-10-29, the owner): the agent window's Home (today, what it has done), the Academy's lesson, a softer stop for chat, tab counts */
+.wag-tn{font-style:normal;min-width:20px;height:18px;padding:0 5px;border-radius:9px;background:rgba(124,245,200,.18);color:#7cf5c8;font:800 11px/18px var(--f-ui)}.wag-tn.out{background:rgba(255,120,140,.18);color:#ff9aa8}
+.wag-soon{font-style:normal;padding:1px 6px;border-radius:6px;background:rgba(255,200,97,.18);color:#ffd27a;font:800 10px/16px var(--f-ui);letter-spacing:.04em;text-transform:uppercase}
+.wag-today,.wag-sum2,.wag-lesson{margin:0 0 10px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(160deg,color-mix(in srgb,var(--ac) 12%,transparent),rgba(255,255,255,.02));animation:wagIn .35s ease-out}
+.wag-today h3,.wag-sum2 h3{margin:0 0 8px}
+.wag-today ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.wag-today li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.18)}
+.wag-today li>i{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:color-mix(in srgb,var(--ac) 22%,transparent);font-style:normal;font-size:16px}
+.wag-today li.done{opacity:.62}.wag-today li.done>i{background:rgba(124,245,200,.2);color:#7cf5c8;font-weight:900}
+.wag-today li span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.wag-today li b{color:#fff;font:800 13.5px var(--f-ui)}.wag-today li small{color:#b9c8dc;font-size:12px}
+.wag-today li button{flex:none;height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--ac);background:color-mix(in srgb,var(--ac) 24%,transparent);color:#fff;font:800 12.5px var(--f-ui);cursor:pointer}
+.wag-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}.wag-kpi span{display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:10px;background:rgba(0,0,0,.2)}
+.wag-kpi b{color:#fff;font:900 19px var(--f-ui)}.wag-kpi small{color:#9fb2cc;font-size:11px;text-align:center}
+.wag-by{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.wag-by span{padding:4px 9px;border-radius:8px;background:rgba(255,255,255,.06);color:#dce7f8;font-size:12px}.wag-by b{color:#fff}
+.wag-rest{display:flex;flex-direction:column;gap:6px;margin:8px 0;padding:12px;border-radius:12px;border:1px dashed rgba(255,255,255,.22);background:rgba(255,255,255,.04);color:#cfdcef;font-size:13px}.wag-rest b{color:#fff;font:800 15px var(--f-ui)}
+.wag-rest-go{display:flex;gap:6px;flex-wrap:wrap}.wag-rest-go button{height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:800 12.5px var(--f-ui);cursor:pointer}
+.wag-lesson small{color:#c9b3ff;font:800 11.5px var(--f-ui);letter-spacing:.04em}.wag-lesson h3{margin:6px 0 4px;color:#fff}.wag-lesson p{margin:0 0 10px;color:#dce7f8;font-size:13.5px;line-height:1.45}
+.wag-lq{display:block;margin-bottom:8px;color:#fff;font:800 14px var(--f-ui)}.wag-lch{display:grid;gap:6px}
+.wag-lch button{min-height:40px;padding:6px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.2);color:#fff;font:700 13.5px var(--f-ui);text-align:left;cursor:pointer;transition:transform .12s,background .2s}
+.wag-lch button:hover:not([disabled]){background:color-mix(in srgb,var(--ac) 22%,transparent);transform:translateX(3px)}
+.wag-lch button.ok{border-color:#7cf5c8;background:rgba(124,245,200,.2);animation:wagPop .4s ease}.wag-lch button.no{border-color:#ff7a8a;background:rgba(255,122,138,.16);animation:wagShake .35s}.wag-lch button.dim{opacity:.45}
+.wag-lres{margin:8px 0 0!important;font-weight:800}.wag-lres.ok{color:#7cf5c8!important}.wag-lres.no{color:#ffb0ba!important}
+.wag-lesson.done h3{color:#7cf5c8}
+@keyframes wagPop{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes wagShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+/* ADX2: the birth cut-in — turning light rays behind the agent, its number stamped in like an engraving */
+.wag-rays{position:absolute;left:50%;top:45%;width:180vmax;height:180vmax;transform:translate(-50%,-50%);background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--ac) 34%,transparent) 0 6deg,transparent 6deg 18deg);mask:radial-gradient(circle,#000 0,transparent 55%);-webkit-mask:radial-gradient(circle,#000 0,transparent 55%);opacity:0;animation:wagRays 4s ease-out .2s both;pointer-events:none}
+@keyframes wagRays{0%{opacity:0;transform:translate(-50%,-50%) rotate(0) scale(.6)}25%{opacity:.9}100%{opacity:.35;transform:translate(-50%,-50%) rotate(40deg) scale(1)}}
+.wag-birth .wag-no.stamp{display:inline-block;padding:4px 12px;border:2px solid currentColor;border-radius:8px;font:900 22px/1 var(--f-ui);letter-spacing:.18em;text-shadow:0 0 14px var(--ac);animation:wagStamp .55s cubic-bezier(.2,1.6,.4,1) 1.25s both}
+@keyframes wagStamp{0%{opacity:0;transform:scale(2.4) rotate(-8deg);filter:blur(6px)}60%{opacity:1;filter:blur(0)}100%{transform:scale(1) rotate(0)}}
+@media (prefers-reduced-motion:reduce){.wag-rays,.wag-birth .wag-no.stamp{animation:none;opacity:.5}}
+/* ADX2: the arena's answers come in one by one, the agent reacting to each */
+.aga-res .aga-rev li{opacity:0;transform:translateX(-12px);transition:opacity .25s,transform .25s}.aga-res .aga-rev li.in{opacity:1;transform:none}
+.aga-agent.big.yes img{animation:agaJump .5s cubic-bezier(.2,1.6,.4,1)}.aga-agent.big.no img{animation:agaNo .5s ease}
+@keyframes agaJump{0%,100%{transform:translateY(0)}40%{transform:translateY(-18px) scale(1.05)}}
+@keyframes agaNo{0%,100%{transform:rotate(0)}20%{transform:rotate(-9deg)}50%{transform:rotate(8deg)}80%{transform:rotate(-5deg)}}
+@media (prefers-reduced-motion:reduce){.aga-res .aga-rev li{opacity:1;transform:none}}
+/* RQX1–2 (2026-10-29): HARD, crowns, the queens' bar, the entrance title, the phase's grey-and-crack, BREAK, the finisher,
+   the result card's best-time line and spinning pieces, the chronicle's chapters and page turn */
+.rq-hd{color:#ff8a3d;letter-spacing:.08em}.rq-hud-in>b.rq-late{color:#ff5d6c;animation:rqLate .6s ease-in-out infinite alternate}
+@keyframes rqLate{to{transform:scale(1.08)}}
+.rq-btns{display:flex;gap:6px;margin:0}.rq-btns button{flex:1}
+.rq-mode .rq-btns .rq-hard{flex:0 0 auto;padding:11px 12px;background:linear-gradient(180deg,#ff9a4d,#d2462a);color:#fff;font-weight:900}
+.rq-mode .rq-btns .rq-hard[disabled]{background:rgba(255,255,255,.06);color:#a99fb3;font-weight:700;font-size:11px}
+.rq-mode li.rq-hl,.rq-1st.rq-hl{color:#ffb27a}
+.rq-mode.focus{outline:2px solid var(--rq);box-shadow:0 0 0 6px color-mix(in srgb,var(--rq) 25%,transparent),0 0 40px color-mix(in srgb,var(--rq) 45%,transparent);animation:rqFocus 1.6s ease-in-out 2}
+@keyframes rqFocus{50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--rq) 15%,transparent),0 0 60px color-mix(in srgb,var(--rq) 60%,transparent)}}
+.rq-crowns{margin:0 0 12px;padding:10px 12px;border-radius:14px;background:linear-gradient(180deg,rgba(255,211,106,.08),rgba(255,255,255,.02));border:1px solid rgba(255,211,106,.22)}
+.rq-crowns h4{margin:0 0 8px;font:900 13px/1.2 Cinzel,Georgia,serif;letter-spacing:.06em;color:#ffd98a}.rq-crowns h4 small{display:block;margin-top:3px;font:600 11px/1.35 system-ui,sans-serif;letter-spacing:0;color:#d9cbe4}
+.rq-crowns>div{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rq-cr{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:11px;background:rgba(0,0,0,.25);border:1px solid color-mix(in srgb,var(--rq) 30%,transparent)}
+.rq-cr span b{display:block;font:800 11.5px/1.2 Sora,system-ui,sans-serif;color:#fff}.rq-cr span small{font:700 11px/1 system-ui,sans-serif;color:var(--rq)}
+.rq-crg{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}.rq-crg b,.rq-crg u{height:8px;border-radius:2px;transform:skewX(-12deg)}
+.rq-crg b{background:linear-gradient(180deg,#fff,var(--rq));box-shadow:0 0 6px var(--rq)}.rq-crg u{background:rgba(255,255,255,.1)}
+.rq-cr.done{background:linear-gradient(180deg,color-mix(in srgb,var(--rq) 22%,transparent),rgba(0,0,0,.25))}
+.rq-cr button{padding:6px;border-radius:8px;border:1px solid var(--rq);background:transparent;color:#fff;font:800 11px Sora,system-ui,sans-serif;cursor:pointer}.rq-cr button.on{background:var(--rq);color:#1a0a14}
+@media (max-width:560px){.rq-crowns>div{grid-template-columns:1fr}.rq-cr{flex-direction:row;align-items:center}.rq-crg{flex:1}}
+/* the queens' bar */
+.rq-bb{position:fixed;left:50%;top:calc(84px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:899;width:min(560px,calc(100vw - 24px));display:grid;gap:6px;pointer-events:none;animation:rqBbIn .5s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes rqBbIn{from{opacity:0;transform:translate(-50%,-14px)}}
+.rq-bq{display:flex;gap:10px;align-items:center;padding:6px 10px 7px 6px;border-radius:14px;background:linear-gradient(90deg,rgba(14,4,16,.9),rgba(8,3,12,.78));border:1px solid color-mix(in srgb,var(--rq) 45%,#c9a24a);box-shadow:0 6px 24px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.04)}
+.rq-bq>img{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:50% 12%;border:2px solid var(--rq);box-shadow:0 0 14px var(--rq);flex:none;background:#120610}
+.rq-bq>div{flex:1;min-width:0}.rq-bq p{display:flex;align-items:baseline;gap:8px;margin:0 0 4px}
+.rq-bq p b{font:700 14px/1 Cinzel,Georgia,serif;letter-spacing:.06em;color:#fff;text-shadow:0 0 10px var(--rq);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rq-bq p small{font:800 10px/1 Sora,system-ui,sans-serif;letter-spacing:.12em;color:var(--rq);text-transform:uppercase}.rq-bq p em{margin-left:auto;font:900 13px/1 Sora,system-ui,sans-serif;font-style:normal;color:#fff;font-variant-numeric:tabular-nums}
+.rq-bhp{position:relative;display:block;height:13px;border-radius:7px;overflow:hidden;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.rq-bhp s{position:absolute;inset:0 auto 0 0;background:rgba(255,255,255,.55);transition:width .8s ease .25s}
+.rq-bhp b{position:absolute;inset:0 auto 0 0;background:linear-gradient(180deg,color-mix(in srgb,var(--rq) 50%,#fff),var(--rq) 55%,color-mix(in srgb,var(--rq) 60%,#000));box-shadow:0 0 12px var(--rq);transition:width .15s linear}
+.rq-bhp u{position:absolute;top:-1px;bottom:-1px;width:2px;background:#ffd98a;box-shadow:0 0 4px #000}
+.rq-bgd{position:relative;display:block;height:5px;margin-top:3px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.07)}
+.rq-bgd b{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#c9a24a,#ffd36a);transition:width .2s}
+.rq-bq.brk .rq-bgd{height:14px;overflow:visible}.rq-bq.brk .rq-bgd b{animation:rqBrk .35s ease-in-out infinite alternate}.rq-bgd span{position:absolute;inset:0;display:grid;place-items:center;font:900 10px/1 Sora,system-ui,sans-serif;letter-spacing:.3em;color:#1a0a14}
+@keyframes rqBrk{to{filter:brightness(1.5)}}
+.rq-bq.dead{opacity:.45;filter:grayscale(.7)}
+.rq-bb.trio .rq-bq{padding:4px 8px 5px 4px}.rq-bb.trio .rq-bq>img{width:32px;height:32px}.rq-bb.trio .rq-bhp{height:9px}
+html.wp-pcphone .rq-bb{top:calc(72px + env(safe-area-inset-top,0px))}
+/* her name as she lands */
+.rq-ttl{position:fixed;left:0;right:0;top:30%;z-index:61;text-align:center;pointer-events:none;animation:rqTtl 3.4s ease both}
+.rq-ttl::before,.rq-ttl::after{content:"";position:absolute;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,var(--rq),transparent)}.rq-ttl::before{top:-12px}.rq-ttl::after{bottom:-12px}
+.rq-ttl small{display:block;font:800 12px/1 Sora,system-ui,sans-serif;letter-spacing:.4em;color:var(--rq)}
+.rq-ttl b{display:block;margin:8px 0 6px;font:700 clamp(30px,6vw,64px)/1 Cinzel,Georgia,serif;letter-spacing:.12em;color:#fff;text-shadow:0 0 26px var(--rq),0 4px 0 rgba(0,0,0,.4)}
+.rq-ttl em{font:italic 700 clamp(13px,2vw,18px)/1 Cinzel,Georgia,serif;color:#ffd98a}
+@keyframes rqTtl{0%{opacity:0;letter-spacing:.5em;transform:scale(1.15)}12%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+/* a phase: grey, cracks, the colour back */
+body.rq-phase canvas{animation:rqGrey 1.4s ease both}
+@keyframes rqGrey{0%{filter:none}18%{filter:grayscale(1) contrast(1.35) brightness(.8)}60%{filter:grayscale(.9) contrast(1.25)}100%{filter:none}}
+.rq-crk{position:fixed;inset:0;z-index:58;pointer-events:none;background:center/cover no-repeat;mix-blend-mode:screen;opacity:0;animation:rqCrk 1.5s ease both}
+@keyframes rqCrk{0%{opacity:0;transform:scale(1.25)}20%{opacity:.85;transform:scale(1)}55%{opacity:.6}100%{opacity:0;transform:scale(.98)}}
+/* BREAK and the finisher */
+.rq-ban.big b{font-size:clamp(60px,13vw,140px);animation:rqBanBig .5s cubic-bezier(.2,1.6,.4,1) both}.rq-ban.big small{display:block;margin-top:8px;font-size:15px;text-shadow:0 2px 8px #000}
+.rq-ban.fin b{font:700 clamp(36px,7vw,76px)/1 Cinzel,Georgia,serif;font-style:normal;letter-spacing:.1em;-webkit-text-stroke:0;color:#fff}.rq-ban.fin{animation-duration:2.2s}
+@keyframes rqBanBig{from{transform:scale(2.4);opacity:0}}
+.rq-flash{position:fixed;inset:0;z-index:62;pointer-events:none;background:radial-gradient(circle at 50% 45%,#fff,rgba(255,255,255,.7) 40%,rgba(255,255,255,0) 75%);animation:rqFlash .9s ease-out both}
+@keyframes rqFlash{from{opacity:1}to{opacity:0}}
+/* the result card */
+.rq-cmp{margin:6px 0 0;font:700 12.5px/1.3 Sora,system-ui,sans-serif;color:#d9cbe4}.rq-cmp b{color:#fff}.rq-cmp small{margin-left:4px;font-weight:900;color:#ff9a8a}.rq-cmp.up small{color:#6cf0b0}
+.rq-grade{animation:rqStamp .6s cubic-bezier(.2,1.6,.4,1) .2s both}
+@keyframes rqStamp{from{transform:scale(3) rotate(-14deg);opacity:0}}
+.rq-item.rq-spin{animation:rqSpin .9s cubic-bezier(.2,1.2,.4,1) var(--d,.5s) both;transform-style:preserve-3d}.rq-item.rq-spin i{animation:rqSpinI 3.2s linear var(--d,.5s) infinite}
+@keyframes rqSpin{from{transform:perspective(600px) rotateY(-100deg);opacity:0}}
+@keyframes rqSpinI{to{transform:perspective(200px) rotateY(360deg)}}
+.rq-crwin{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}.rq-crwin span{padding:5px 9px;border-radius:999px;border:1px solid var(--rq);background:color-mix(in srgb,var(--rq) 14%,transparent);font:800 12px/1 Sora,system-ui,sans-serif;color:#fff}.rq-crwin small{margin-left:4px;color:var(--rq)}
+/* the chronicle's chapters, the page's turn */
+.rq-chs{display:flex;gap:4px}.rq-chs button{min-width:38px}
+.rq-flip .rq-pin{animation:rqPageIn .55s cubic-bezier(.2,1,.3,1) both;transform-origin:0 50%}
+.rq-flip.rq-turn .rq-pin{animation:rqPageOut .38s ease-in both}
+@keyframes rqPageIn{from{transform:perspective(1400px) rotateY(-70deg);opacity:0}}
+@keyframes rqPageOut{to{transform:perspective(1400px) rotateY(80deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.rq-ttl,.rq-crk,.rq-flash,.rq-flip .rq-pin,.rq-item.rq-spin,.rq-item.rq-spin i,.rq-grade,.rq-mode.focus,body.rq-phase canvas{animation:none}}

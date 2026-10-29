@@ -12,7 +12,7 @@ export const BUILDINGS = [
   { id: "genesis", name: "Genesis Lab", sub: "Create and meet your agent", a: 45, r: 46, fp: 20, glb: "nexus", col: 0x5fd3ff, css: "#5fd3ff", open: true },
   { id: "port", name: "Errand Port", sub: "Send your agent on errands", a: 315, r: 46, fp: 20, glb: "launch", col: 0x39ff88, css: "#39ff88", open: true },
   { id: "vault", name: "Vault Tower", sub: "Your agent's trading vault", a: 225, r: 46, fp: 21, glb: "vault", col: 0xffc861, css: "#ffc861", open: true },
-  { id: "academy", name: "Agent Academy", sub: "Skills, traits and lessons", a: 135, r: 46, fp: 22, glb: "library", col: 0xb48cff, css: "#b48cff" },
+  { id: "academy", name: "Agent Academy", sub: "A lesson a day · free for everyone", a: 135, r: 46, fp: 22, glb: "library", col: 0xb48cff, css: "#b48cff", open: true }, // (ADX1: open — the lesson of the day)
   { id: "arena", name: "Agent Arena", sub: "Quiz duels with your agent", a: 180, r: 70, fp: 26, glb: "arena", col: 0xff6fae, css: "#ff6fae", open: true }, // (AD-City 4: world-agarena.js)
 ];
 // the owner's Meshy models (models/world/adcity, packed by tools/pack-prop.mjs; +z is each one's front): the buildings
@@ -39,7 +39,7 @@ const rad = (d) => (d * Math.PI) / 180;
 const polar = (a, r) => [Math.sin(rad(a)) * r, Math.cos(rad(a)) * r]; // a = 0 is south (+z, the way in), 180 north
 
 /// the city. ctx: { THREE, K, planet, T, low, land: { x, z, r } }
-export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = "", land, onModel = null, me = () => "", demo = false }) {
+export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = "", land, onModel = null, me = () => "", demo = false, where = null }) {
   const g = new THREE.Group(); g.name = "land-ad"; g.position.set(land.x, 0, land.z); g.visible = false; planet.add(g);
   const spins = [], solids = [], doors = [];
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.3, ...o });
@@ -135,6 +135,12 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     const pad = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.45, 40), neon(b.col, 0.85)); pad.rotation.x = -Math.PI / 2; pad.position.y = 0.07; dr.add(pad);
     const pl = new THREE.Mesh(new THREE.CircleGeometry(1.1, 40), neon(b.col, 0.18)); pl.rotation.x = -Math.PI / 2; pl.position.y = 0.065; dr.add(pl);
     spins.push((dt, t) => { pad.scale.setScalar(1 + Math.sin(t * 3) * 0.06); });
+    // ADX2 (2026-10-29, the owner: 'where's the way in?'): one look for every entrance — a soft light column on the pad and
+    // three chevrons on the ground pointing in, lit one after another
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 3.2, 24, 1, true), neon(b.col, 0.16)); col.material.side = THREE.DoubleSide; col.material.depthWrite = false; col.material.blending = THREE.AdditiveBlending; col.position.y = 1.6; dr.add(col);
+    const chev = []; const cg = new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-0.7, 0), new THREE.Vector2(0, -0.55), new THREE.Vector2(0.7, 0), new THREE.Vector2(0.7, 0.28), new THREE.Vector2(0, -0.27), new THREE.Vector2(-0.7, 0.28)]));
+    for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(cg, neon(b.col, 0.7)); c.material.depthWrite = false; c.rotation.x = -Math.PI / 2; c.position.set(0, 0.075, 2.4 + i * 1.1); dr.add(c); chev.push(c); }
+    spins.push((dt, t) => { col.material.opacity = 0.12 + (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.12; for (let i = 0; i < 3; i++) chev[i].material.opacity = 0.25 + 0.65 * Math.max(0, Math.sin(t * 3 - (2 - i) * 0.9)); });
     if (!b.open) { const s = K.label("🚧 " + T("Coming soon"), { accent: "#ffe066", size: 0.6 }); s.position.y = 2.6; dr.add(s); }
     return dr;
   }
@@ -424,6 +430,16 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
   }
 
   let shown = false;
+  // ADX2: the nearest entrance within 60 m shows how far it is ("Genesis Lab · 25 m", in 5 m steps; redrawn only when the step changes)
+  let tagAt = 0, tag = null, tagK = "", tagDoor = null; const dv = new THREE.Vector3();
+  function distTag(t) {
+    if (t - tagAt < 0.25) return; tagAt = t; const me0 = where(); if (!me0) return;
+    let best = null, bd = 1e9; for (const d of doors) { d.getWorldPosition(dv); planet.worldToLocal(dv); const dd = Math.hypot(dv.x - me0.x, dv.z - me0.z); if (dd < bd) { bd = dd; best = d; } }
+    const B = best && BUILDINGS.find((x) => x.id === best.userData.b), k = best && bd > 5 && bd < 60 && B ? B.id + ":" + Math.ceil(bd / 5) * 5 : "";
+    if (k === tagK) return; tagK = k;
+    if (tag) { tag.parent && tag.parent.remove(tag); if (tag.material.map) tag.material.map.dispose(); tag.material.dispose(); tag = null; }
+    if (!k) return; tag = K.label(`${T(B.name)} · ${Math.ceil(bd / 5) * 5} m`, { accent: B.css, size: 0.5 }); tag.position.y = 3.9; best.add(tag); tagDoor = best;
+  }
   return {
     group: g, doors, back, solids, spins, buildings: bld, loadModels, seeThrough,
     occluders: () => occ,
@@ -438,7 +454,7 @@ export function makeAdCity({ THREE, K, planet, T = (s) => s, low = false, ver = 
     stations: stG,
     models: () => Object.fromEntries(BUILDINGS.map((b) => [b.id, !!bld[b.id].userData.model]).concat([["spire", !core.userData.p || !core.userData.p.visible], ["ring", !mag.visible]])),
     shown: () => shown,
-    tick(dt, t) { if (!shown) return; for (const f of spins) f(dt, t); },
+    tick(dt, t) { if (!shown) return; for (const f of spins) f(dt, t); if (where) distTag(t); },
   };
 }
 

@@ -42,7 +42,7 @@ const TRAIL = { aurora: { c: "#ffd36a", s: "heart" }, orion: { c: "#7fd8ff", s: 
 
 export function createAgentDim(ctx) {
   const { THREE, K, planet, here, T, esc } = ctx;
-  let st = null, last = 0, el = null, chip = null, tab = "talk", sending = false, pick = null, busy = false, report = null;
+  let st = null, last = 0, el = null, chip = null, tab = "home", sending = false, pick = null, busy = false, report = null;
   const root = new THREE.Group(); root.name = "pet"; planet.add(root); // (named "pet": the far-cull leaves moving things alone)
   let body = null, bodyKind = "", tag = null, face = 0, labStep = 1, suggest = "", topList = null, topAt = 0, briefSeen = "", briefOn = false, lvUp = 0;
   const draft = { id: "", name: "", persona: "" };
@@ -128,11 +128,44 @@ export function createAgentDim(ctx) {
       const b = await K.makeAgent(want, ctx.ver || ""); here(me); const f = ctx.facing();
       b.obj.position.set(me.x + Math.cos(f) * 1.8, 0, me.z - Math.sin(f) * 1.8); root.add(b.obj); body = b; bodyKind = want; face = f;
       const C = K.AGENTS[want]; tag = K.label(a.name, { accent: C.color, size: 0.5, sub: a.id ? "@" + a.id : T(ROLE[want]) }); tag.position.y = 2.75; b.obj.add(tag);
-      const how = arrive || (firstLook ? "" : "light"); arrive = "";
+      const how = arrive || (firstLook ? "" : "light"); arrive = ""; if (how === "light") flyIn(b.obj.position);
       if (how) { b.obj.scale.setScalar(0.01); const g = (grow = { t: 0, dur: how === "birth" ? 1.6 : 0.7, to: 1 }); setTimeout(() => { if (grow === g) { grow = null; b.obj.scale.setScalar(1); } }, 2500); fx.beam(b.obj.position.x, b.obj.position.z, C.color, how === "birth" ? 2.6 : 1.2, how === "birth" ? 26 : 9); fx.ring(b.obj.position.x, b.obj.position.z, C.color, how === "birth" ? 4.5 : 2.4); }
       if (lvUp) { const X = b.obj.position.x, Z = b.obj.position.z; setTimeout(() => { fx.ring(X, Z, "#ffd75e", 5); fx.beam(X, Z, "#ffd75e", 1.6, 14); bubble(T("Level up! Lv {n}", { n: lvUp }), 3500); lvUp = 0; }, 800); }
       if (b.play) setTimeout(() => { try { if (body === b && !b.busy() && moving < 0.4) b.play("emote-yes", { once: true, speed: 1.5 }); } catch { /* no clip */ } }, how === "birth" ? 1700 : 600);
     } catch (e) { console.warn("agent", e); } finally { busy = false; firstLook = false; }
+  }
+  // ADX2 (2026-10-29, the owner): errands leave and come back by Neon Skyblade — the city's flying car swoops down, the
+  // agent steps aboard in light and it climbs away; coming back it drops the agent off. One model for both (models/world/
+  // adcity/skyblade.glb, 0.4 MB, fetched the first time); no car on reduced motion, and the old light alone if it fails.
+  let skyP = null; const flights = [];
+  function skyModel() {
+    if (skyP) return skyP;
+    skyP = new Promise((ok, no) => { try { K.gltfLoader().load("/models/world/adcity/skyblade.glb" + (ctx.ver || ""), (gl) => { const sc = gl.scene, box = new THREE.Box3().setFromObject(sc), sz = box.getSize(new THREE.Vector3()), k = 3.4 / (Math.max(sz.x, sz.z) || 1); sc.scale.setScalar(k); sc.position.set(-(box.min.x + sz.x / 2) * k, -box.min.y * k, -(box.min.z + sz.z / 2) * k); const inner = new THREE.Group(); inner.add(sc); inner.rotation.y = Math.PI / 2; ok(inner); }, undefined, no); } catch (e) { no(e); } });
+    skyP.catch(() => { skyP = null; }); return skyP;
+  }
+  /// a car's path: from a to b (Vector3s) over dur s, easing, facing where it goes; then() when it lands
+  function fly(car, a, b, dur, then) { const w = new THREE.Group(); w.add(car.clone()); w.position.copy(a); root.add(w); const f = { w, a: a.clone(), b: b.clone(), t: 0, dur, then }; flights.push(f); return f; }
+  function flightsTick(dt) {
+    for (let i = flights.length - 1; i >= 0; i--) { const f = flights[i]; f.t += dt; const k = Math.min(1, f.t / f.dur), e = k * k * (3 - 2 * k);
+      const nx = f.a.x + (f.b.x - f.a.x) * e, ny = f.a.y + (f.b.y - f.a.y) * e + Math.sin(k * Math.PI) * 0.6, nz = f.a.z + (f.b.z - f.a.z) * e;
+      const dx = f.b.x - f.a.x, dz = f.b.z - f.a.z; if (Math.hypot(dx, dz) > 0.5) f.w.rotation.y = Math.atan2(dx, dz); f.w.rotation.z = Math.sin(f.t * 3) * 0.05; f.w.position.set(nx, ny, nz);
+      if (k >= 1) { flights.splice(i, 1); if (f.then) f.then(f); } }
+  }
+  const dropCar = (f) => { root.remove(f.w); };
+  /// out: the car comes down beside the agent, it steps in (the light), the car climbs away
+  function flyOut(done) {
+    if (!body || ctx.reduce) { depart(done); return; }
+    const P = body.obj.position.clone(), f0 = ctx.facing(), side = new THREE.Vector3(Math.sin(f0 + 1.2), 0, Math.cos(f0 + 1.2));
+    skyModel().then((car) => { if (!body) { done(); return; }
+      const hover = P.clone().add(new THREE.Vector3(0, 1.2, 0)), from = hover.clone().add(side.clone().multiplyScalar(-26)).add(new THREE.Vector3(0, 14, 0)), away = hover.clone().add(side.clone().multiplyScalar(40)).add(new THREE.Vector3(0, 22, 0));
+      fly(car, from, hover, 1.1, (f) => { depart(() => { done(); }); setTimeout(() => { root.remove(f.w); fly(car, hover, away, 1.8, dropCar); try { if (ctx.Snd && ctx.Snd.dash) ctx.Snd.dash(); } catch { /* no sound */ } }, 450); });
+    }).catch(() => depart(done));
+  }
+  /// back: the car swoops in and lifts off again as the agent appears where it stopped
+  function flyIn(P) {
+    if (ctx.reduce) return; const f0 = ctx.facing(), side = new THREE.Vector3(Math.sin(f0 - 1.2), 0, Math.cos(f0 - 1.2));
+    skyModel().then((car) => { const hover = P.clone().add(new THREE.Vector3(0, 1.3, 0)), from = hover.clone().add(side.clone().multiplyScalar(30)).add(new THREE.Vector3(0, 18, 0)), away = hover.clone().add(side.clone().multiplyScalar(-36)).add(new THREE.Vector3(0, 20, 0));
+      fly(car, from, hover, 0.9, (f) => { setTimeout(() => { root.remove(f.w); fly(car, hover, away, 1.6, dropCar); }, 600); }); }).catch(() => {});
   }
   /// it leaves on an errand: steps into light and fades, then the town is without it until it's back
   function depart(done) {
@@ -145,7 +178,7 @@ export function createAgentDim(ctx) {
   let ticks = 0;
   function tick(dt, t) {
     ticks++;
-    const on = ctx.inHub(); root.visible = on; fx.tick(dt); if (!on || !body) return;
+    const on = ctx.inHub(); root.visible = on; fx.tick(dt); if (flights.length) flightsTick(dt); if (!on || !body) return;
     here(me); const f = ctx.facing();
     if (grow) { grow.t += dt; const k = Math.min(1, grow.t / grow.dur), e = grow.to ? 1 - Math.pow(1 - k, 3) : 1 - k; body.obj.scale.setScalar(Math.max(0.01, grow.to ? e * (1 + Math.sin(k * Math.PI) * 0.12) : e)); if (k >= 1) { const d = grow.done; grow = null; if (d) d(); if (!body) return; } }
     // its place: a step to your right and a little behind (the dinosaur companion keeps your left)
@@ -183,7 +216,7 @@ export function createAgentDim(ctx) {
   }
   function open(t) {
     shell(); if (t) tab = t; report = null; view = ""; el.hidden = false;
-    const a = A(); if (a && a.brief && a.brief.day !== briefSeen) { briefOn = true; tab = t || "talk"; briefSeen = a.brief.day; try { localStorage.setItem("arc.agent.brief", briefSeen); } catch { /* not kept */ } }
+    if (t === "me") tab = "home"; const a = A(); if (a && a.brief && a.brief.day !== briefSeen) { briefOn = true; tab = t || "home"; briefSeen = a.brief.day; try { localStorage.setItem("arc.agent.brief", briefSeen); } catch { /* not kept */ } }
     paint(); if (Date.now() - last > 15e3) look();
     if (A() && body && body.play && !body.busy()) try { body.play("emote-yes", { once: true }); } catch { /* no clip */ }
   }
@@ -216,14 +249,14 @@ export function createAgentDim(ctx) {
   function paint() {
     if (closed()) { if (wallet() && !st) { el.innerHTML = `<div class="wag-card lab"><section class="wag-main"><div class="wag-body"><p class="wag-fine">${esc(T("Loading…"))}</p></div></section></div>`; return; } return paintBuild(); }
     const a = A();
-    if (!a) return paintLab();
+    if (!a) return tab === "academy" ? paintAcademyGuest() : paintLab();
     if (!view) view = a.kind;
-    const C = K.AGENTS[a.kind], tabs = [["talk", "💬", "Talk"], ["jobs", "📋", "Errands"], ["vault", "💼", "Vault"], ["me", "🤖", "Agent"]];
+    const C = K.AGENTS[a.kind], tabs = [["home", "🏠", "Home"], ["jobs", "📋", "Errands"], ["talk", "💬", "Talk"], ["vault", "💼", "Vault"]]; // (ADX1, the owner 2026-10-29: four tabs — Home is the status, today's to-do and the agent itself)
     const head = `<header class="wag-h"><div class="wag-nm"><h2>${esc(a.name)}</h2><b class="wag-lv">${esc(T("Lv {n}", { n: a.lv }))}</b></div>
       ${a.id ? `<p class="wag-at">@${esc(a.id)}${a.no ? ` <span class="wag-no${a.founder ? " gold" : ""}">${no4(a.no)}${a.founder ? " · " + esc(T("Genesis Founder")) : ""}</span>` : ""}</p>` : ""}<p class="wag-role">${esc(T(ROLE[a.kind]))}</p><q class="wag-quote">${esc(T(LINE[a.kind]))}</q><i class="wag-heart" aria-hidden="true">${ICON[a.kind]}</i>
       <button type="button" class="wag-help" data-guide>📖 ${esc(T("How to use"))}</button><button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>`;
-    const tb = `<nav class="wag-tabs">${tabs.map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}${id === "jobs" && backs().length ? ' <i class="wag-dot"></i>' : ""}</button>`).join("")}</nav>`;
-    el.innerHTML = `<div class="wag-card ${a.kind}" style="--ac:${C.color}">${showcase(view, view === a.kind ? undefined : false)}<section class="wag-main">${head}${tb}<div class="wag-body">${report ? paintReport(a) : tab === "talk" ? paintTalk(a) : tab === "jobs" ? paintJobs(a) : tab === "vault" ? paintVault(a) : paintMe(a)}</div></section></div>`;
+    const tb = `<nav class="wag-tabs">${tabs.map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}"><span aria-hidden="true">${ic}</span>${esc(T(l))}${id === "jobs" && backs().length ? ' <i class="wag-dot"></i>' : ""}${id === "talk" ? ` <em class="wag-tn${a.chatLeft <= 0 ? " out" : ""}">${Math.max(0, a.chatLeft)}</em>` : ""}${id === "vault" && (!vst || !vst.factory) ? ` <em class="wag-soon">${esc(T("Soon"))}</em>` : ""}</button>`).join("")}</nav>`;
+    el.innerHTML = `<div class="wag-card ${a.kind}" style="--ac:${C.color}">${showcase(view, view === a.kind ? undefined : false)}<section class="wag-main">${head}${tb}<div class="wag-body">${report ? paintReport(a) : tab === "talk" ? paintTalk(a) : tab === "jobs" ? paintJobs(a) : tab === "vault" ? paintVault(a) : tab === "academy" ? paintAcademy(a) : paintHome(a)}</div></section></div>`;
     const log = el.querySelector(".wag-log"); if (log) log.scrollTop = log.scrollHeight;
     const inp = el.querySelector(".wag-in"); if (inp && !ctx.coarse) inp.focus({ preventScroll: true });
   }
@@ -251,24 +284,28 @@ export function createAgentDim(ctx) {
   /// the birth: a cut-in over the window (its art forming in light, its number, its name)
   function birthCard(a) {
     const C = K.AGENTS[a.kind], d = document.createElement("div"); d.className = "wag-birth " + a.kind; d.style.setProperty("--ac", C.color); d.setAttribute("data-no-i18n", "");
-    d.innerHTML = `<div><img src="${BIG(a.kind)}" alt=""><small>${esc(T("AGENT DIMENSION"))}</small><h2>${esc(a.name)}</h2><p>@${esc(a.id)}</p>${a.no ? `<b class="wag-no${a.founder ? " gold" : ""}">${no4(a.no)}${a.founder ? " · " + esc(T("Genesis Founder")) : ""}</b>` : ""}<em>${esc(T("{n} is online!", { n: a.name }))}</em><button type="button" data-share>📸 ${esc(T("Share card"))}</button></div>`;
-    document.body.appendChild(d); const end = () => d.remove(); d.addEventListener("click", (e) => { if (e.target.closest("[data-share]")) shareCard(); end(); }); setTimeout(end, ctx.reduce ? 2600 : 4200);
+    d.innerHTML = `<i class="wag-rays" aria-hidden="true"></i><div><img src="${BIG(a.kind)}" alt=""><small>${esc(T("AGENT DIMENSION"))}</small><h2>${esc(a.name)}</h2><p>@${esc(a.id)}</p>${a.no ? `<b class="wag-no stamp${a.founder ? " gold" : ""}">${no4(a.no)}${a.founder ? " · " + esc(T("Genesis Founder")) : ""}</b>` : ""}<em>${esc(T("{n} is online!", { n: a.name }))}</em><button type="button" data-share>📸 ${esc(T("Share card"))}</button></div>`;
+    document.body.appendChild(d); if (ctx.sweep && !ctx.reduce) ctx.sweep(3200); /* (ADX2: the camera swings round the new agent) */ const end = () => d.remove(); d.addEventListener("click", (e) => { if (e.target.closest("[data-share]")) shareCard(); end(); }); setTimeout(end, ctx.reduce ? 2600 : 4200);
   }
   function shareCard() {
     const a = A(); if (!a || !ctx.share) return; const C = K.AGENTS[a.kind];
     ctx.share({ kind: "agent", accent: C.color, art: BIG(a.kind), tag: T("My AI agent"), title: a.name, sub: `@${a.id} · ${T(ROLE[a.kind])}`, badge: a.founder ? T("Genesis Founder") : "",
       rows: [[T("Agent"), C.name, ICON[a.kind]], [T("Number"), no4(a.no), "#"], [T("Level"), T("Lv {n}", { n: a.lv }), "⭐"], [T("Errands done"), String(a.done || 0), "📋"]], text: T("Meet {n}, my AI agent in ARCIRCLE WORLD's AGENT DIMENSION!", { n: a.name }), foot: "AGENT DIMENSION" });
   }
-  function paintTalk(a) {
+  function paintTalk(a) { return talkBody(a, ""); } // (the day's briefing moved to Home)
+  function briefHtml(a) {
+    const b = a.brief, by = b && b.yesterday;
+    return briefOn && b ? `<div class="wag-brief"><b>☀️ ${esc(T("Today's briefing"))}</b><span>${by && by.n ? esc(T("Yesterday: {n} errand(s)", { n: by.n })) + " · " + lootLine(by.loot) : esc(T("No errands yesterday — send me out today!"))}</span><span>${esc(T("Today: {d} errands and {c} messages left", { d: Math.max(0, b.jobsLeft), c: Math.max(0, b.chatLeft) }))}</span><button type="button" data-brief aria-label="${esc(T("Close"))}">×</button></div>` : "";
+  }
+  function talkBody(a, brief) {
     const lines = (a.log || []).flatMap((m) => [`<p class="me">${esc(m.q)}</p>`, `<p class="it">${esc(m.a)}</p>`]);
     const empty = `<p class="it">${esc(T("Hi! I'm {n}. Ask me anything about ARCIRCLE World — or send me on an errand.", { n: a.name }))}</p>`;
-    const b = a.brief, by = b && b.yesterday;
-    const brief = briefOn && b ? `<div class="wag-brief"><b>☀️ ${esc(T("Today's briefing"))}</b><span>${by && by.n ? esc(T("Yesterday: {n} errand(s)", { n: by.n })) + " · " + lootLine(by.loot) : esc(T("No errands yesterday — send me out today!"))}</span><span>${esc(T("Today: {d} errands and {c} messages left", { d: Math.max(0, b.jobsLeft), c: Math.max(0, b.chatLeft) }))}</span><button type="button" data-brief aria-label="${esc(T("Close"))}">×</button></div>` : "";
     const J = suggest && st.jobs && st.jobs[suggest], free = a.jobs.length < a.slots && a.jobsLeft > 0;
     const sug = J ? `<div class="wag-sug"><b>${JOB_IC[suggest] || "•"} ${esc(T("Send {n}: {j}?", { n: a.name, j: T(J.name) }))}</b><small>${J.arcl} ARCL · ⏱ ${esc(left(J.min * 60e3))}</small>${free ? `<span><button type="button" class="wag-go" data-job="${suggest}">${esc(T("Send"))}</button><button type="button" data-nosug>${esc(T("Not now"))}</button></span>` : `<small>${esc(T("No free errand slot right now."))}</small><span><button type="button" data-nosug>${esc(T("OK"))}</button></span>`}</div>` : "";
     return `${brief}<div class="wag-log">${lines.length ? lines.join("") : empty}${sending ? `<p class="it wag-typing"><i></i><i></i><i></i></p>` : ""}</div>${sug}
       <div class="wag-asks">${ASK.map((q) => `<button type="button" data-ask="${esc(T(q))}">${esc(T(q))}</button>`).join("")}</div>
-      <div class="wag-send"><input class="wag-in" maxlength="280" placeholder="${esc(T("Say something to {n}", { n: a.name }))}" ${a.chatLeft <= 0 || sending ? "disabled" : ""}><button type="button" data-send ${a.chatLeft <= 0 || sending ? "disabled" : ""}>${esc(T("Send"))}</button></div>
+      ${a.chatLeft <= 0 ? `<div class="wag-rest"><b>😴 ${esc(T("{n} is resting", { n: a.name }))}</b><span>${esc(T("Today's {m} messages are used up — talk again in {t}.", { m: st.chatDay || 20, t: left(nextDay() - Date.now()) }))}</span><span class="wag-rest-go"><button type="button" data-tab="jobs">📋 ${esc(T("Send on an errand"))}</button><button type="button" data-tab="academy">🎓 ${esc(T("Today's lesson"))}</button></span></div>` : ""}
+      <div class="wag-send"${a.chatLeft <= 0 ? " hidden" : ""}><input class="wag-in" maxlength="280" placeholder="${esc(T("Say something to {n}", { n: a.name }))}" ${a.chatLeft <= 0 || sending ? "disabled" : ""}><button type="button" data-send ${a.chatLeft <= 0 || sending ? "disabled" : ""}>${esc(T("Send"))}</button></div>
       <p class="wag-fine">${esc(T("{n} of {m} messages left today", { n: Math.max(0, a.chatLeft), m: st.chatDay || 20 }))}</p>`;
   }
   function paintJobs(a) {
@@ -291,6 +328,65 @@ export function createAgentDim(ctx) {
       ${note ? `<p class="wag-qnote">${esc(note)}</p>` : ""}<div class="wag-qadd">${Object.entries(J).map(([id, j]) => `<button type="button" data-qadd="${id}" ${q.length >= qm ? "disabled" : ""}>+ ${JOB_IC[id] || "•"} ${esc(T(j.name))}</button>`).join("")}</div></div>`;
     return `${run ? `<h3>${esc(T("On the way"))}</h3>${run}` : ""}${board}<h3>${esc(T("Send {n} on an errand", { n: a.name }))}</h3>${cards}
       <p class="wag-fine">${esc(T("Errands cost ARCL and bring back materials, not ARCL. {k} errand slot(s) · {d} errands left today.", { k: a.slots, d: Math.max(0, a.jobsLeft) }))}${a.lv < 5 ? " " + esc(T("A second slot opens at agent level 5.")) : ""}</p>`;
+  }
+  const nextDay = () => { const t = Date.now() + 9 * 3600e3; return t - (t % 864e5) + 864e5 - 9 * 3600e3; }; // (the next Seoul midnight: the day's counts start over)
+  /// ADX1: Home — what's on today, what it has done so far, then the agent itself
+  function paintHome(a) {
+    vLook();
+    const J = st.jobs || {}, now = Date.now(), run = a.jobs.length, back = a.jobs.filter((j) => now >= j.end).length, soon = a.jobs.filter((j) => now < j.end).sort((x, y) => x.end - y.end)[0];
+    const row = (ic, t, sub, btn, done) => `<li class="${done ? "done" : ""}"><i aria-hidden="true">${done ? "✓" : ic}</i><span><b>${t}</b><small>${sub}</small></span>${btn || ""}</li>`;
+    const today = `<div class="wag-today"><h3>☀️ ${esc(T("Today"))}</h3><ul>
+      ${row("📋", esc(T("Errands")), back ? esc(T("{n} back — bring them in", { n: back })) : run ? esc(T("{n} out · back in {t}", { n: run, t: left(soon.end - now) })) : esc(T("{d} errands left today", { d: Math.max(0, a.jobsLeft) })), `<button type="button" data-tab="jobs">${esc(back ? T("Bring back") : T("Send"))}</button>`, a.jobsLeft <= 0 && !run)}
+      ${row("🎓", esc(T("Agent Academy")), a.studied ? esc(T("Today's lesson done · +{n} XP", { n: st.studyXp || 25 })) : esc(T("Today's lesson: +{n} XP", { n: st.studyXp || 25 })), a.studied ? "" : `<button type="button" data-tab="academy">${esc(T("Go to class"))}</button>`, a.studied)}
+      ${row("💬", esc(T("Talk")), esc(T("{n} of {m} messages left today", { n: Math.max(0, a.chatLeft), m: st.chatDay || 20 })), `<button type="button" data-tab="talk">${esc(T("Talk"))}</button>`, a.chatLeft <= 0)}
+      ${row("🏟️", esc(T("Agent Arena")), esc(T("Quiz duels · arena hour 12:00 and 21:00 KST")), ctx.arena ? `<button type="button" data-arena>${esc(T("Go"))}</button>` : "")}
+      </ul></div>`;
+    const tot = Object.entries(a.tot || {}).filter(([, n]) => n > 0).sort((x, y) => y[1] - x[1]);
+    const by = Object.entries(a.byJob || {}).map(([k, n]) => `<span>${JOB_IC[k] || "•"} ${esc(T((J[k] || {}).name || k))} <b>${n}</b></span>`).join("");
+    const sum = `<div class="wag-sum2"><h3>📈 ${esc(T("What {n} has done for you", { n: a.name }))}</h3><div class="wag-kpi"><span><b>${a.done || 0}</b><small>${esc(T("errands"))}</small></span><span><b>${tot.reduce((x, [, n]) => x + n, 0).toLocaleString()}</b><small>${esc(T("materials brought"))}</small></span><span><b>${(a.lessons || 0)}</b><small>${esc(T("lessons"))}</small></span><span><b>${(a.spent || 0).toLocaleString()}</b><small>ARCL ${esc(T("spent"))}</small></span></div>
+      ${by ? `<div class="wag-by">${by}</div>` : ""}${tot.length ? `<div class="wag-chips">${tot.map(([m, n]) => `<span>${MAT[m] || "•"} ${n}</span>`).join("")}</div>` : `<p class="wag-fine">${esc(T("Nothing brought back yet — send {n} on a first errand.", { n: a.name }))}</p>`}</div>`;
+    return briefHtml(a) + today + sum + paintMe(a);
+  }
+  // the Agent Academy's lessons (the lesson of the day by number; the server counts the day and gives the XP)
+  const LESSONS = [
+    ["Errands while you're away", "Line up to 4 errands on the job board — the next one starts by itself when a slot frees.", "How many errands can wait on the job board?", ["2", "4", "10"], 1],
+    ["Your agent's specialty", "AURORA gathers, ORION mines and VEX scouts — each brings back a quarter more on its own errand.", "Which agent brings back more from mining?", ["AURORA", "ORION", "VEX"], 1],
+    ["A second errand slot", "At agent level 5 a second slot opens: two errands at once.", "At what level does the second slot open?", ["Lv 3", "Lv 5", "Lv 10"], 1],
+    ["Where the loot goes", "Gathered and hunted things go to your Jurassic pack; ore goes to the ARCL Mine's bag.", "Where does mined ore go?", ["The Mine's bag", "Your island", "The shop"], 0],
+    ["The Agent Arena", "Seven quiz questions, 15 seconds each — the arena hour (12:00 and 21:00 KST) counts double.", "When does the arena count double?", ["At the arena hour", "On Sundays", "Never"], 0],
+    ["Talk to your agent", "Ask your agent for an errand in chat and it puts a card in front of you to confirm.", "What happens when you ask for an errand in chat?", ["It starts at once", "A card asks you to confirm", "Nothing"], 1],
+    ["Stay safe", "No real agent of ARCIRCLE ever asks for your seed phrase. Every on-chain step is signed in your own wallet.", "Who should ever see your seed phrase?", ["An agent", "A GM", "Nobody"], 2],
+    ["The daily briefing", "The first time you open the window each day, your agent tells you what it did yesterday and what's left today.", "When does the briefing show?", ["Every hour", "Once a day", "After a raid"], 1],
+  ];
+  let lessonPick = -1, studying = false;
+  function lessonHtml(n, guest) {
+    const L = LESSONS[n % LESSONS.length], [t, line, q, ch, ok] = L, ans = lessonPick;
+    return `<div class="wag-lesson"><small>🎓 ${esc(T("Agent Academy"))} · ${esc(T("Lesson {n}", { n: (n % LESSONS.length) + 1 }))}</small><h3>${esc(T(t))}</h3><p>${esc(T(line))}</p>
+      <b class="wag-lq">${esc(T(q))}</b><div class="wag-lch">${ch.map((c, i) => `<button type="button" data-ans="${i}" class="${ans < 0 ? "" : i === ok ? "ok" : i === ans ? "no" : "dim"}" ${ans >= 0 ? "disabled" : ""}>${esc(T(c))}</button>`).join("")}</div>
+      ${ans < 0 ? "" : ans === ok ? `<p class="wag-lres ok">✨ ${esc(T("Correct!"))}${guest ? "" : " " + esc(T("+{n} XP for your agent", { n: st.studyXp || 25 }))}</p>` : `<p class="wag-lres no">${esc(T("Not quite — the right answer is lit. Try the next lesson tomorrow."))}</p>`}</div>`;
+  }
+  function paintAcademy(a) {
+    const n = a.studied ? Math.max(0, (a.lessons || 1) - 1) : a.lessons || 0;
+    if (a.studied && lessonPick < 0) return `<div class="wag-acad"><div class="wag-lesson done"><small>🎓 ${esc(T("Agent Academy"))}</small><h3>✓ ${esc(T("Today's lesson is done"))}</h3><p>${esc(T("{n} learned something new today. The next lesson opens in {t}.", { n: a.name, t: left(nextDay() - Date.now()) }))}</p></div><p class="wag-fine">${esc(T("{n} lessons so far", { n: a.lessons || 0 }))}</p><button type="button" class="wag-go" data-tab="home">${esc(T("OK"))}</button></div>`;
+    return `<div class="wag-acad">${lessonHtml(n, false)}<p class="wag-fine">${esc(T("One lesson a day · +{n} XP for your agent", { n: st.studyXp || 25 }))}</p>${lessonPick >= 0 ? `<button type="button" class="wag-go" data-tab="home">${esc(T("Back to Home"))}</button>` : ""}</div>`;
+  }
+  /// a guest (or a player without an agent) in the Academy: a free lesson, then the way to the Genesis Lab
+  function paintAcademyGuest() {
+    const k = view && K3.includes(view) ? view : "aurora", C = K.AGENTS[k], n = new Date().getUTCDate() % LESSONS.length;
+    el.innerHTML = `<div class="wag-card lab ${k}" style="--ac:${C.color}">${showcase(k)}<section class="wag-main"><header class="wag-h"><small class="wag-kick">${esc(T("Agent Academy"))} · ${esc(T("Free for everyone"))}</small>
+      <div class="wag-nm"><h2>🎓 ${esc(T("Agent Academy"))}</h2></div><p class="wag-role">${esc(T("Learn how AI agents work in ARCIRCLE WORLD — no agent or wallet needed."))}</p>
+      <button type="button" class="wag-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+      <div class="wag-body"><div class="wag-acad">${lessonHtml(n, true)}</div>${lessonPick >= 0 ? `<div class="wag-event"><b>🤖 ${esc(T("Ready for your own agent?"))}</b><span>${esc(T("With your own agent, every lesson also gives it XP."))}</span></div><button type="button" class="wag-go" data-tab="home">${esc(T("Meet the agents in the Genesis Lab"))}</button>` : ""}</div></section></div>`;
+  }
+  async function study(i) {
+    const a = A(), n = a ? a.lessons || 0 : new Date().getUTCDate() % LESSONS.length, L = LESSONS[n % LESSONS.length]; lessonPick = i; paint();
+    if (i !== L[4] || !a || a.studied || studying) { try { if (i !== L[4] && ctx.Snd && ctx.Snd.miss) ctx.Snd.miss(); } catch { /* no sound */ } return; }
+    studying = true; const r = await act({ action: "world-agent-study" }); studying = false; if (!r) return;
+    if (!r.ok) { if (r.j && r.j.agent) st.agent = r.j.agent; paint(); return; }
+    st.agent = r.j.agent; if (r.j.up) lvUp = r.j.lv; paint(); paintChip();
+    ctx.toast("🎓 " + esc(T("+{n} XP for {a}", { n: r.j.xp, a: st.agent.name })) + (r.j.up ? " · " + esc(T("Lv {n}", { n: r.j.lv })) : ""));
+    if (ctx.burst) ctx.burst(parseInt(K.AGENTS[st.agent.kind].color.slice(1), 16));
+    if (body && body.play && !body.busy()) try { body.play("emote-yes", { once: true }); } catch { /* no clip */ }
   }
   function paintMe(a) {
     const lv = a.lv, x0 = 10 * (lv - 1) ** 2, x1 = 10 * lv ** 2, p = Math.min(1, (a.xp - x0) / Math.max(1, x1 - x0));
@@ -465,7 +561,7 @@ export function createAgentDim(ctx) {
     st.agent = r.j.agent; suggest = ""; ctx.toast(T("{n} set off — back in {t}", { n: r.j.agent.name, t: left(st.jobs[id].min * 60e3) })); if (ctx.purse) ctx.purse(true);
     try { if (typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch { /* not on this browser */ }
     if (body && body.play) try { body.play("emote-yes", { once: true }); } catch { /* no clip */ }
-    bubble(T("On my way!"), 1200); setTimeout(() => depart(() => spawn()), 700); paint(); paintChip();
+    bubble(T("On my way!"), 1200); setTimeout(() => flyOut(() => spawn()), 700); paint(); paintChip();
   }
   async function board(o) {
     if (busy) return; busy = true; const r = await act({ action: "world-agent-queue", ...o }); busy = false; if (!r) return;
@@ -496,7 +592,9 @@ export function createAgentDim(ctx) {
   function onClick(e) {
     if (e.target === el || e.target.closest("[data-x]")) return close();
     const b = e.target.closest("button"); if (!b || b.disabled) return;
-    if (b.dataset.tab) { tab = b.dataset.tab; report = null; return paint(); }
+    if (b.dataset.tab) { tab = b.dataset.tab; report = null; if (tab === "academy") lessonPick = -1; return paint(); }
+    if (b.dataset.ans != null) return study(Number(b.dataset.ans));
+    if (b.hasAttribute("data-arena")) { close(); if (ctx.arena) ctx.arena(); return; }
     if (b.dataset.pick) { pick = b.dataset.pick; labStep = 2; draft.name = ""; return paint(); }
     if (b.hasAttribute("data-next")) { keepDraft(); if (!ID_RE.test(draft.id)) { idState(T("3–16 letters, numbers or _"), "bad"); return; } labStep = 3; return paint(); }
     if (b.hasAttribute("data-back")) { keepDraft(); if (labStep <= 2) { pick = null; labStep = 1; } else labStep = 2; return paint(); }
@@ -522,6 +620,6 @@ export function createAgentDim(ctx) {
   setInterval(() => { if (Date.now() - last > (document.hidden ? 180e3 : 90e3)) look(); else { paintChip(); notify(); if (!away() && A() && !bodyKind) spawn(); if (shown() && tab === "jobs" && !report) paint(); } }, 5000);
   /// AD-City 1: may this player go into Nexus City? (everyone, guests too; GM wallets only while the server says closed)
   async function canEnter() { if (!wallet()) return true; /* (a guest looks round Nexus City too: the owner, 2026-10-24; buying, the arena and errands ask for the wallet there) */ if (!st || Date.now() - last > 60e3) await look(); return !closed(); }
-  return { open, close, shown, look, tick, paintChip, canEnter, state: () => st,
+  return { open, close, shown, look, tick, paintChip, canEnter, state: () => st, react: (k) => { if (body && body.play && !body.busy() && ["emote-yes", "emote-no", "cast", "attack"].includes(k)) try { body.play(k, { once: true }); } catch { /* no clip */ } }, /* (ADX2: the arena's answer in town) */
     debug: () => ({ kind: bodyKind, agent: A() && { name: A().name, lv: A().lv, jobs: A().jobs.length, chatLeft: A().chatLeft }, clips: body && body.mixer && body.mixer._actions ? body.mixer._actions.filter((x) => x.isRunning() && x.getEffectiveWeight() > 0.5).map((x) => x.getClip().name) : [], pos: body ? [+body.obj.position.x.toFixed(1), +body.obj.position.z.toFixed(1)] : null, on: ctx.inHub(), ticks, mt: body && body.mixer ? +body.mixer.time.toFixed(2) : 0, chip: chip ? chip.textContent : "", chipShown: chip ? !chip.hidden : false }) };
 }

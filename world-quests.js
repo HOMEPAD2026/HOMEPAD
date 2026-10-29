@@ -272,7 +272,7 @@ export function createQuests(ctx) {
   // b-sv7: SURVIVORS ARENA's six achievements (world-survivors-data.js ACH) are titles here too, worn as "sv-<id>"
   const SVT = [["first", "First Survivor", "Survive 12 minutes"], ["boss", "Boss Slayer", "Defeat 10 bosses in all"], ["k1000", "Crowd Breaker", "1,000 knock-outs in one run"], ["evo", "Evolver", "Discover 3 evolutions"], ["hard", "Arena Master", "Survive 12 minutes on Hard"], ["legend", "Legend", "Survive 12 minutes on Hard 5 times"]];
   // RAID QUEENS: a title for each run's first win (from the server's clears: ctx.rqAch)
-  const RQT = [["lysitha", "Starbreaker", "Defeat Celestial Lysitha"], ["solvira", "Sunbreaker", "Defeat Radiant Solvira"], ["nyxara", "Bloodbane", "Defeat Crimson Nyxara"], ["throne", "Queen of Queens", "Win the Throne of Three"], ["secret", "Secret Keeper", "Clear the SECRET dungeon"]];
+  const RQT = [["lysitha", "Starbreaker", "Defeat Celestial Lysitha"], ["solvira", "Sunbreaker", "Defeat Radiant Solvira"], ["nyxara", "Bloodbane", "Defeat Crimson Nyxara"], ["throne", "Queen of Queens", "Win the Throne of Three"], ["secret", "Secret Keeper", "Clear the SECRET dungeon"], ["crown-lysitha", "Silver Crown", "Forge Lysitha's crown from 12 fragments"], ["crown-solvira", "Golden Crown", "Forge Solvira's crown from 12 fragments"], ["crown-nyxara", "Crimson Crown", "Forge Nyxara's crown from 12 fragments"]];
   const rqName = (t) => { const a = /^rq-/.test(t || "") && RQT.find((y) => "rq-" + y[0] === t); return a ? T(a[1]) : ""; };
   const svName = (t) => { const a = /^sv-/.test(t || "") && SVT.find((y) => "sv-" + y[0] === t); return a ? T(a[1]) : ""; };
   // the item codex's titles (api/_world-codex.mjs CODEX.STEPS: 100 and 175 kinds), worn as "cx-<id>"

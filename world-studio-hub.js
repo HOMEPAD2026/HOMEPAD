@@ -24,6 +24,8 @@ const ICONS = { // (24px line icons, the Studio Pro set's weight)
   globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5z"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   fold: '<path d="M4 7h10M4 12h7M4 17h10"/><path d="M20 9l-3 3 3 3"/>',
+  pane: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M9.5 5v14"/><path d="M15.5 10l-2 2 2 2"/>',
+  paneo: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M9.5 5v14"/><path d="M13.5 10l2 2-2 2"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
@@ -134,43 +136,44 @@ export function makeHub(o) {
   const avatar = (cls = "") => { const m = me(), h = m ? parseInt(m.w.slice(2, 8), 16) % 360 : 190; return `<i class="sgh-av ${cls}${m ? " on" : ""}" style="--h:${h}"><img src="/images/studio/hub/avatar-160.webp${ver}" alt="" width="40" height="40" loading="lazy"></i>`; };
   function userRow() { const m = me();
     return `<button type="button" class="sgh-user" data-user>${avatar()}<span><b>${esc(m ? (D.h ? "@" + D.h : m.name || m.short) : T("Connect wallet"))}</b><small>${esc(m ? (D.h ? m.short : T("Signed in")) : T("Guest"))}</small></span>${ic("down", "sm")}</button>`; }
-  function side() {
-    return `<aside class="sgh-side"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
+  /// the side menu — the same one in the page and in the drawer (2026-10-29, the owner: one menu everywhere; the drawer's icon rail is gone)
+  function side(pg = page, dw = false) {
+    return `<aside class="sgh-side${dw ? " sgh-dside" : ""}"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>${dw ? `<button type="button" class="sgh-ib sgh-dwx" data-dwclose aria-label="${esc(T("Close"))}">${ic("close")}</button>` : ""}
       ${userRow()}
-      <nav class="sgh-nav">${NAV.map(([id, i, l, g], k) => `${k && NAV[k - 1][3] !== g ? "<hr>" : ""}<a href="?p=${id}" data-go="${id}" class="${page === id ? "on" : ""}" title="${esc(T(l))}">${ic(i)}<span>${esc(T(l))}</span></a>`).join("")}
+      <nav class="sgh-nav">${NAV.map(([id, i, l, g], k) => `${k && NAV[k - 1][3] !== g ? "<hr>" : ""}<a href="?p=${id}" data-go="${id}"${dw ? ` data-peek="${id}"` : ""} class="${pg === id ? "on" : ""}" title="${esc(T(l))}">${ic(i)}<span>${esc(T(l))}</span></a>`).join("")}
       <hr><a href="#" data-tools title="${esc(T("All tools"))}">${ic("dots")}<span>${esc(T("All tools"))}</span></a><a href="/play" data-world title="ARCIRCLE WORLD">${ic("globe")}<span>ARCIRCLE WORLD</span></a></nav>
       <a class="sgh-mk" href="#" data-make>${ic("plus")}<span>${esc(T("Create a game"))}</span></a></aside>`;
   }
   function subCol() { const L = SUBS[page]; if (!L) return "";
     return `<aside class="sgh-sub"><h3>${esc(T(TITLE[page]))}</h3>${L.map(([k, l]) => `<a href="?p=${page}&s=${k}" data-go="${page}" data-s="${k}" class="${sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}</aside>`; }
+  /// the language picker in the top bar (2026-10-29, the owner: not only in the footer)
+  const LANGS = [["en", "EN", "English"], ["ko", "KO", "한국어"], ["zh", "ZH", "中文"], ["tr", "TR", "Türkçe"]];
+  const langPick = () => { const cur = LANGS.find((x) => x[0] === o.lang) || LANGS[0];
+    return `<div class="sgh-tlang"><button type="button" data-langbtn aria-haspopup="listbox" aria-label="Language">${ic("globe")}<b>${cur[1]}</b>${ic("down", "sm")}</button><div class="sgh-lmenu" role="listbox" hidden>${LANGS.map(([v, k, n]) => `<button type="button" role="option" data-setlang="${v}" class="${v === cur[0] ? "on" : ""}"><b>${n}</b><small>${k}</small>${v === cur[0] ? ic("check", "sm") : ""}</button>`).join("")}</div></div>`; }; // (our own menu: a native list can't wear the Hub's look)
   function topBar() {
     const n = bellN();
     return `<header class="sgh-top"><button type="button" class="sgh-ib sgh-hb" data-burger aria-label="${esc(T("Menu"))}">${ic(collapsed || !matchMedia("(min-width: 1024px)").matches ? "menu" : "fold")}</button><h1>${esc(T(TITLE[page]))}</h1><span class="sgh-sp"></span>
       <button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>
-      ${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${n ? `<em class="sgh-dot">${n > 9 ? "9+" : n}</em>` : ""}</button>
+      ${langPick()}${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${n ? `<em class="sgh-dot">${n > 9 ? "9+" : n}</em>` : ""}</button>
       <a class="sgh-world" href="/play">${ic("globe")}<span>${esc(T("Play ARCIRCLE WORLD"))}</span></a>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button></header>`;
   }
   function landTop() {
-    return `<header class="sgh-ltop"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
+    return `<header class="sgh-ltop"><button type="button" class="sgh-ib sgh-lb2" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>
       <nav class="sgh-lnav"><a href="?p=creations" data-go="creations">${esc(T("Dashboard"))}</a><a href="?p=learn" data-go="learn">${esc(T("Learn"))}</a><a href="?p=community" data-go="community">${esc(T("Explore"))}</a><a href="?p=store" data-go="store">${esc(T("Store"))}</a><a href="?p=updates" data-go="updates">${esc(T("Updates"))}</a></nav>
-      <span class="sgh-sp"></span><button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
+      <span class="sgh-sp"></span><nav class="sgh-lsc"><a href="/game">${ic("play")}<span>${esc(T("Game World"))}</span></a><a href="/">${ic("globe")}<span>${esc(T("ARCIRCLE Platform"))}</span></a></nav>${langPick()}<button type="button" class="sgh-ib" data-search aria-label="${esc(T("Search"))}">${ic("search")}</button>${FX.themeBtn()}<button type="button" class="sgh-ib" data-bell aria-label="${esc(T("Notifications"))}">${ic("bell")}${bellN() ? `<em class="sgh-dot">${bellN()}</em>` : ""}</button>
       <button type="button" class="sgh-me" data-user aria-label="${esc(T("Account"))}">${avatar("lg")}</button><button type="button" class="sgh-ib sgh-lburger" data-burger aria-label="${esc(T("Menu"))}">${ic("menu")}</button></header>`;
   }
-  function drawerHtml() { if (!drawer) return "";
-    return `<div class="sgh-dw" data-dwx><div class="sgh-dwin${SUBS[cpage || page] ? "" : " solo"}" role="dialog" aria-label="${esc(T("Menu"))}"><div class="sgh-rail"><a class="sgh-mark" href="/studio" data-go="home"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></a><button type="button" class="sgh-rme" data-user>${avatar()}</button>
-      ${NAV.map(([id, i, l]) => `<a href="?p=${id}" data-go="${id}" data-peek="${id}" class="${(cpage || page) === id ? "on" : ""}">${ic(i)}<small>${esc(T(l))}</small></a>`).join("")}<a href="#" data-tools>${ic("dots")}<small>${esc(T("All tools"))}</small></a><a href="/play">${ic("globe")}<small>WORLD</small></a></div>
-      ${!SUBS[cpage || page] ? `</div></div>` : ""}${SUBS[cpage || page] ? `<div class="sgh-dwsub"><div class="sgh-dwh"><b>${esc(T(TITLE[cpage || page]))}</b><button type="button" class="sgh-ib" data-dwclose aria-label="${esc(T("Close"))}">${ic("close")}</button></div>
-      ${SUBS[cpage || page].map(([k, l]) => `<a href="?p=${cpage || page}${k ? "&s=" + k : ""}" data-go="${cpage || page}" data-s="${k}" class="${(cpage || page) === page && sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}
-      <a class="sgh-mk" href="#" data-make>${ic("plus")}<span>${esc(T("Create a game"))}</span></a></div></div></div>` : ""}`; } // (a page with no sub-pages — Home — shows the rail alone: no second column repeating "Home")
+  function drawerHtml() { if (!drawer) return ""; const pg = cpage || page, L = SUBS[pg];
+    return `<div class="sgh-dw" data-dwx><div class="sgh-dwin full${L ? "" : " solo"}" role="dialog" aria-label="${esc(T("Menu"))}">${side(pg, true)}${L ? `<aside class="sgh-sub sgh-dsub"><h3>${esc(T(TITLE[pg]))}</h3>${L.map(([k, l]) => `<a href="?p=${pg}${k ? "&s=" + k : ""}" data-go="${pg}" data-s="${k}" class="${pg === page && sub === k ? "on" : ""}">${esc(T(l))}</a>`).join("")}</aside>` : ""}</div></div>`; } // (a page with sub-pages shows them beside the menu, as on a computer; Home shows the menu alone)
 
   function unpeek() { peek = false; drawer = false; cpage = null; root.hidden = true; root.classList.remove("peek"); }
   function paint() {
     const land = page === "home";
-    root.className = `sgh${land ? " land" : ""}${collapsed ? " fold" : ""}${SUBS[page] ? " has-sub" : ""}${peek ? " peek" : ""}`;
+    root.className = `sgh${land ? " land" : ""}${collapsed && !land && !drawer ? " fold" : ""}${SUBS[page] ? " has-sub" : ""}${peek ? " peek" : ""}`;
     root.innerHTML = land
       ? `${landTop()}<div class="sgh-scroll"><main class="sgh-page pg-home">${pageHtml()}</main>${foot()}</div>${drawerHtml()}`
-      : `${side()}${subCol()}<div class="sgh-main">${topBar()}<div class="sgh-scroll"><main class="sgh-page pg-${page}">${pageHtml()}</main>${foot()}</div></div>${drawerHtml()}`;
+      : `${side()}<button type="button" class="sgh-edge" data-burger aria-label="${esc(T(collapsed ? "Show the menu" : "Hide the menu"))}" title="${esc(T(collapsed ? "Show the menu" : "Hide the menu"))}">${ic(collapsed ? "paneo" : "pane")}</button>${subCol()}<div class="sgh-main">${topBar()}<div class="sgh-scroll"><main class="sgh-page pg-${page}">${pageHtml()}</main>${foot()}</div></div>${drawerHtml()}`;
     document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = T(e.dataset.t); });
     document.title = (page === "home" ? "ARCIRCLE Creator Hub — " + T("make a game in your browser") : T(TITLE[page]) + " · ARCIRCLE Creator Hub");
     after();
@@ -405,6 +408,8 @@ export function makeHub(o) {
       ["Community", [["Creator Arcade", "community", "arcade"], ["Weekly contest", "community", "contest"], ["Daily challenge", "community", "daily"], ["Creator season", "community", "season"], ["Live races", "community", "races"], ["Following", "community", "feed"]]], ["Learn", [["Get started", "learn", "start"], ["Guides", "learn", "guides"], ["Templates", "learn", "templates"]]],
       ["Analytics", [["Overview", "analytics", "overview"], ["By game", "analytics", "games"]]], ["Rewards", [["Overview", "rewards", "overview"], ["Contest prizes", "rewards", "contest"]]], ["ARCIRCLE WORLD", [["Play ARCIRCLE WORLD", "@", "/play"], ["Game World site", "@", "/game"], ["Official games' page", "@", "/game/@arcircle"]]]];
     pop = document.createElement("div"); pop.className = "sgh-tools"; pop.innerHTML = `<div class="sgh-tin" role="dialog" aria-label="${esc(T("All tools"))}"><div class="sgh-sech"><h3>${esc(T("All tools"))}</h3><button type="button" class="sgh-ib" data-tx aria-label="${esc(T("Close"))}">${ic("close")}</button></div><div class="sgh-tg2">${G.map(([h, L]) => `<div><h4>${esc(T(h))}</h4>${L.map(([l, p, s]) => (p === "@" ? `<a href="${s}">${esc(T(l))}${ic("ext", "xs")}</a>` : p ? `<a href="?p=${p}&s=${s}" data-go="${p}" data-s="${s}">${esc(T(l))}</a>` : `<a href="#" data-make>${esc(T(l))}</a>`)).join("")}</div>`).join("")}</div></div>`;
+    const sd = [...document.querySelectorAll(".sgh-side")].find((x) => x.offsetParent), x0 = sd && innerWidth >= 760 ? Math.round(sd.getBoundingClientRect().right) : 0;
+    pop.style.left = x0 + "px"; pop.style.setProperty("--tx", "0px"); /* (the panel opens right beside the menu; the menu stays lit and usable) */
     document.body.appendChild(pop); requestAnimationFrame(() => pop && pop.classList.add("on"));
   }
   function search() {
@@ -427,7 +432,9 @@ export function makeHub(o) {
     root.querySelectorAll(".rv:not(.in)").forEach((e) => io.observe(e)); }
   function countUp(box) { box.querySelectorAll("[data-count]").forEach((b) => { const n = Number(b.dataset.count) || 0; if (reduce || n < 2) { b.textContent = num(n); return; } const t0 = performance.now(), d = 1100;
     const step = (t) => { const k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3); b.textContent = num(Math.round(n * e)); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }); }
-  function after() { reveal(); fill().catch((e) => console.warn("hub fill", e)); const sel = root.querySelector(".sgh-lang"); if (sel) sel.onchange = () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }; }
+  function after() { reveal();
+    root.querySelectorAll("[data-langbtn]").forEach((b) => { b.onclick = (e) => { e.stopPropagation(); const m = b.nextElementSibling, open = m.hidden; root.querySelectorAll(".sgh-lmenu").forEach((x) => { x.hidden = true; }); m.hidden = !open; b.classList.toggle("on", open); }; });
+    root.querySelectorAll("[data-setlang]").forEach((b) => { b.onclick = () => { try { localStorage.setItem("arcircle.lang", b.dataset.setlang); } catch { /* fine */ } location.reload(); }; }); fill().catch((e) => console.warn("hub fill", e)); root.querySelectorAll(".sgh-lang").forEach((sel) => { sel.onchange = () => { try { localStorage.setItem("arcircle.lang", sel.value); } catch { /* fine */ } location.reload(); }; }); } // (the footer's and the top bar's language pickers)
 
   // ---------------- the clicks ----------------
   async function onAct(b, e) {
@@ -467,7 +474,7 @@ export function makeHub(o) {
     if (t.closest("[data-dwclose]")) { drawer = false; cpage = null; paint(); return; }
     const pk = t.closest("[data-peek]"); if (pk && drawer && SUBS[pk.dataset.peek] && cpage !== pk.dataset.peek && (cpage || page) !== pk.dataset.peek) { e.preventDefault(); cpage = pk.dataset.peek; paint(); return; } // (a phone: the rail's first tap shows that page's sub column, like Roblox's)
     if (t.closest("[data-burger]")) { if (matchMedia("(min-width: 1024px)").matches && page !== "home") { collapsed = !collapsed; try { localStorage.setItem("arc.hub.fold", collapsed ? "1" : "0"); } catch { /* fine */ } paint(); } else { drawer = true; cpage = null; paint(); } return; }
-    if (t.closest("[data-tools]")) { e.preventDefault(); drawer = false; paint(); tools(); return; }
+    if (t.closest("[data-tools]")) { e.preventDefault(); const own = [...document.querySelectorAll(".sgh>.sgh-side")].some((x) => x.offsetParent); if (innerWidth < 760) { if (drawer) { drawer = false; paint(); } } else if (!own && !drawer) { drawer = true; paint(); } tools(); return; } // (a computer: the panel beside the menu — the page's own, or the drawer's on Home; a phone: the panel alone)
     const u = t.closest("[data-user]"); if (u) { const inDw = drawer; if (inDw) { drawer = false; paint(); } account(inDw ? root.querySelector(".sgh-me") || u : u); return; }
     if (t.closest("[data-search]")) { search(); return; }
     if (t.closest("[data-htog]")) { FX.toggle(); return; }
@@ -487,6 +494,7 @@ export function makeHub(o) {
   });
   let sqT = 0; root.addEventListener("input", (e) => { if (X.onInput(e.target)) return; if (e.target.matches("[data-sq]")) { clearTimeout(sqT); const v = e.target.value; sqT = setTimeout(() => { D.sq = v; const pos = e.target.selectionStart; paint(); const ni = root.querySelector("[data-sq]"); if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch { /* fine */ } } }, 260); } });
   document.addEventListener("click", (e) => { if (!pop || pop.contains(e.target) || e.target.closest("[data-user],[data-bell],[data-search],[data-tools]")) { if (pop && pop.contains(e.target)) { const b = e.target.closest("button,a"); if (b && (b.dataset.go != null || b.dataset.ws || b.dataset.use || b.dataset.gsheet || b.dataset.guide || b.dataset.xgame || b.dataset.xpost || b.hasAttribute("data-signin") || b.hasAttribute("data-make"))) { e.preventDefault(); const keep = pop; onAct(b, e); if (pop === keep) closePops(); } else if (e.target.closest("[data-tx]") || e.target === pop) closePops(); } return; } closePops(); });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".sgh-tlang")) root.querySelectorAll(".sgh-lmenu").forEach((x) => { if (!x.hidden) { x.hidden = true; x.previousElementSibling.classList.remove("on"); } }); });
   document.addEventListener("keydown", (e) => { if (root.hidden) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search(); } else if (e.key === "Escape") { if (pop) closePops(); else if (peek) unpeek(); else if (drawer) { drawer = false; paint(); } } });
   addEventListener("popstate", () => { if (root.hidden) return; route(); paint(); });
 

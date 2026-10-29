@@ -15,6 +15,12 @@ export const RQ = {
   // the first win of each run in a Seoul day: its ARCL × (1 + FIRST.arcl) and one more piece of gear (b4, 2026-10-25)
   FIRST: { arcl: 0.5, items: 1 },
   TOP_N: 20, // each run's week board (the fastest wins, one line a player)
+  // RQX1 (2026-10-29, the owner): HARD — a run you've cleared once, again with the queen at ×1.6 HP and ×1.4 damage, more
+  // monsters and a clock (limit s); a win pays XP ×1.5, ARCL ×1.6 and one more piece; its own best, clears and week board
+  HARD: { xp: 1.5, arcl: 1.6, items: 1, limit: 420, hp: 1.6, atk: 1.4, mobs: 1.3 },
+  // CROWN fragments: every win brings a queen's fragments (hard 3, the day's first +1; the Throne and the SECRET one for each
+  // of the three); need of them make her crown — a look worn in the raid and in town
+  CROWN: { need: 12, win: 1, hard: 3, first: 1, queens: ["lysitha", "solvira", "nyxara"] },
   SECRET: { id: "secret", PRICE: 1000000, lv: 70, bosses: [72, 75, 78], min: 60, xp: 410010, items: [{ r: 4, p: 5 }, { r: 4, p: 4 }, { r: 3, p: 5 }] },
 };
 export const modeOf = (id) => (id === "secret" ? RQ.SECRET : RQ.MODES.find((m) => m.id === id) || null);

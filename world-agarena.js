@@ -85,7 +85,17 @@ export function createAgArena(ctx) {
       <ol class="aga-rev">${R.qs.map((q, i) => { const ok = R.picks[i] === j.right[i]; return `<li class="${ok ? "ok" : "no"}"><i>${ok ? "✓" : "✗"}</i><span><b>${esc(T(q.q))}</b><small>${esc(T(q.opts[j.right[i]]))}</small></span></li>`; }).join("")}</ol>
       <span class="aga-row"><button type="button" class="aga-go" data-start>↻ ${esc(T("Another run"))}</button><button type="button" data-lobby>${esc(T("Board"))}</button></span></div>`;
     if (!ctx.reduce && j.correct >= 5) burst(el);
+    reveal(R, j);
     loadTop();
+  }
+  /// ADX2 (2026-10-29, the owner): the answers come in one by one — the agent jumps for each right one and shakes its
+  /// head at a miss — and your agent in town answers the run with emote-yes / emote-no
+  function reveal(R, j) {
+    const rows = [...el.querySelectorAll(".aga-rev li")], pic = el.querySelector(".aga-agent.big"); if (ctx.reduce) { rows.forEach((x) => x.classList.add("in")); return; }
+    rows.forEach((li, i) => setTimeout(() => { if (!li.isConnected) return; li.classList.add("in"); const ok = li.classList.contains("ok");
+      if (pic) { pic.classList.remove("yes", "no"); void pic.offsetWidth; pic.classList.add(ok ? "yes" : "no"); }
+      try { if (ctx.Snd && (ok ? ctx.Snd.coin : ctx.Snd.miss)) (ok ? ctx.Snd.coin : ctx.Snd.miss)(); } catch { /* no sound */ } }, 450 + i * 380));
+    setTimeout(() => { try { if (ctx.emote) ctx.emote(j.correct >= Math.ceil(R.qs.length / 2) ? "emote-yes" : "emote-no"); } catch { /* no agent in town */ } }, 600 + rows.length * 380);
   }
   function burst(box) { if (!box) return; const cols = ["#ff6fae", "#ffd23a", "#7cf5c8", "#5fd3ff"]; for (let i = 0; i < 28; i++) { const p = document.createElement("i"); p.className = "aga-conf"; p.style.cssText = `left:${(i * 37) % 100}%;background:${cols[i % 4]};animation-delay:${(i % 7) * 0.05}s;--dx:${((i * 53) % 90) - 45}px`; box.appendChild(p); setTimeout(() => p.remove(), 2200); } }
   async function onClick(e) {

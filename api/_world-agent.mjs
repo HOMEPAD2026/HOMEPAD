@@ -54,6 +54,8 @@ export const AGENT = {
   QUEUE: 4, WORK: 60, AUTO: 10,
   HIST: 20, TOP: 30, BEST_K: 1.25, DAY_JOBS: 6, CHAT_DAY: 20, CHAT_IN: 280, CHAT_OUT: 600, LOG: 12, NAME: 14, PERSONA: 160, LV_MAX: 30,
   SLOTS: (lv) => (lv >= 5 ? 2 : 1),
+  // the Agent Academy (ADX1, 2026-10-29): one lesson a Seoul day gives the agent XP (the lesson's cards and quiz are the game's own)
+  STUDY_XP: 25, LESSONS: 8,
 };
 export const agentLevel = (xp) => Math.min(AGENT.LV_MAX, 1 + Math.floor(Math.sqrt(Math.max(0, xp || 0) / 10)));
 
@@ -75,7 +77,7 @@ export function makeAgentDim(deps) {
     return { kind: a.kind, id: a.id || "", name: a.name, persona: a.persona || "", xp: a.xp || 0, lv, slots: AGENT.SLOTS(lv), at: a.at,
       jobs: (a.jobs || []).map((j) => ({ ...j, done: now() >= j.end })), jobsLeft: AGENT.DAY_JOBS - (a.day === d ? a.jobsDay || 0 : 0),
       chatLeft: AGENT.CHAT_DAY - (a.chatDay === d ? a.chatN || 0 : 0), log: (a.log || []).slice(-AGENT.LOG),
-      no: a.no || 0, founder: !!a.pre, done: a.done || 0, hist: (a.hist || []).slice(-8), brief: brief(a),
+      no: a.no || 0, founder: !!a.pre, done: a.done || 0, tot: a.tot || {}, byJob: a.byJob || {}, spent: a.spent || 0, studied: a.studyDay === d, lessons: a.lessons || 0, hist: (a.hist || []).slice(-8), brief: brief(a),
       queue: (a.queue || []).map((q) => q.job), qMax: AGENT.QUEUE, qNote: a.qNote || "", auto: (a.auto || []).slice(-AGENT.AUTO) };
   };
   // the day's briefing (the first time the window opens in a day): what it did yesterday, what's left today
@@ -234,6 +236,8 @@ export function makeAgentDim(deps) {
     const J = AGENT.JOBS[j.job], k = AGENT.KINDS[a.kind].best === j.job ? AGENT.BEST_K : 1, got = {};
     for (const [m, r] of Object.entries(J.loot)) { const n = Math.round(between(r) * k); if (n > 0) got[m] = n; }
     const lv0 = agentLevel(a.xp); a.xp = (a.xp || 0) + J.xp; a.done = (a.done || 0) + 1;
+    a.tot = a.tot || {}; for (const [m, n] of Object.entries(got)) a.tot[m] = (a.tot[m] || 0) + n; // (ADX1: everything it ever brought back, by kind)
+    a.byJob = { ...(a.byJob || {}), [j.job]: ((a.byJob || {})[j.job] || 0) + 1 }; a.spent = (a.spent || 0) + (J.arcl || 0);
     a.hist = [...(a.hist || []), { job: j.job, loot: got, at: now() }].slice(-AGENT.HIST);
     let ore = null;
     if (J.to === "mine" && deps.mine) ore = await deps.mine.addOre(w, got).catch(() => null);
@@ -301,6 +305,15 @@ export function makeAgentDim(deps) {
     return json(200, { ok: true, job: j.job, loot: r.got, best: r.k > 1, xp: r.xp, lv: agentLevel(a.xp), up: agentLevel(a.xp) > r.lv0, ore: r.ore, agent: pub(a) });
   }
 
+  /// the Agent Academy's lesson of the day: +STUDY_XP once a Seoul day, the lesson number moving on through LESSONS
+  async function study(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, a = await load(w); if (!a) return json(404, { error: "no agent yet" });
+    const d = day(now()); if (a.studyDay === d) return json(409, { error: "today's lesson is done — the next one opens tomorrow", agent: pub(a) });
+    const lv0 = agentLevel(a.xp); a.studyDay = d; a.lessons = (a.lessons || 0) + 1; a.xp = (a.xp || 0) + AGENT.STUDY_XP;
+    await setDoc(`worldAgent/${w}`, a);
+    return json(200, { ok: true, xp: AGENT.STUDY_XP, lesson: ((a.lessons - 1) % AGENT.LESSONS) + 1, lv: agentLevel(a.xp), up: agentLevel(a.xp) > lv0, agent: pub(a) });
+  }
+
   return {
     view, load, idFree, top, city,
     async handle(b) {
@@ -312,6 +325,7 @@ export function makeAgentDim(deps) {
       if (b.action === "world-agent-job") return job(b);
       if (b.action === "world-agent-claim") return claim(b);
       if (b.action === "world-agent-queue") return queue(b);
+      if (b.action === "world-agent-study") return study(b);
       return null;
     },
   };

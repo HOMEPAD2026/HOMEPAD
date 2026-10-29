@@ -60,6 +60,16 @@ r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 200
 r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 429, "a fourth is refused (three a day)");
 let v = await view(A); check(v.day.used === 3 && v.day.max === 3 && v.clears.lysitha === 2 && v.best.lysitha >= 150 && v.firstDone.includes("lysitha"), "the view: 3/3 used, the clears, the best time, today's first done");
 T += 864e5; r = await call(A, "world-rq-start", { mode: "lysitha" }); check(r.status === 200, "the next Seoul day: runs again");
+// RQX1: crown fragments, HARD, the crews' fastest
+{ const w = A.address.toLowerCase(); check((db.get(`worldRqCrown/${w}`) || {}).lysitha === 3, "crown fragments: the day's first win 2, the next 1");
+  check(RQ.HARD && RQ.CROWN && RQ.CROWN.need === 12, "HARD and CROWN in the rules");
+  const cl = db.get(`worldRqClear/${w}`); db.set(`worldRqClear/${w}`, {}); r = await call(A, "world-rq-start", { mode: "lysitha", hard: true }); check(r.status === 403, "HARD waits for a clear"); db.set(`worldRqClear/${w}`, cl);
+  r = await call(A, "world-rq-start", { mode: "lysitha", hard: true }); check(r.status === 200 && r.body.hard, "HARD opens after a clear"); const hr = r.body.run;
+  T += 160e3; r = await call(A, "world-rq-end", { run: hr, won: true });
+  check(r.status === 200 && r.body.hard && r.body.xp === xpOf("lysitha", 160, true) && r.body.items.length === 3 && r.body.arcl === Math.round(2000 * 1.5 * RQ.HARD.arcl) && r.body.crown.lysitha === RQ.CROWN.hard + RQ.CROWN.first, `HARD's win: XP ×1.5, a piece more, ARCL ×1.6, crown +${r.body.crown && r.body.crown.lysitha}`);
+  const vv = await view(A); check(vv.clears.lysithaH === 1 && vv.best.lysithaH > 0 && vv.crown.lysitha === 7, "HARD's own clears and best; the crown in the view");
+  { const tb = (await W.read(new URL("https://x/api/social?world=rq-top&mode=lysithaH"))).body; check(tb.mode === "lysithaH" && tb.top.length === 1, "HARD's own week board"); }
+  r = await call(A, "world-rq-start", { mode: "lysitha", hard: true }); const hr2 = r.body.run; T += (RQ.HARD.limit + 60) * 1000; r = await call(A, "world-rq-end", { run: hr2, won: true }); check(r.status === 400, "HARD's clock: a win past it isn't taken"); T += 864e5; }
 // the XP grant: a save past the pace takes it, once
 { const w = A.address.toLowerCase(), sv = db.get(`worldSave/${w}`); sv.at = T - 60e3; sv.xb = 0; db.set(`worldSave/${w}`, sv); T += 9000;
   const grant = db.get(`worldXpGrant/${w}`).n, want = sv.xp + grant, S = await sign(A);

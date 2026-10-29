@@ -1932,7 +1932,7 @@ function nearest() {
   consider(isleGate, "isle", {}, 2.4);
   consider(jurGate, "jurassic", {}, 2.6);
   consider(agentGate, "agentdim", {}, 3.2);
-  if (rqL && landNow === "rq" && rqL.hall.visible) { consider(rqL.door, "rqgate", {}, 4); consider(rqL.back, "lport", { to: "town" }, 2.6); } // RAID QUEENS' sky realm: the Citadel's door, the way home
+  if (rqL && landNow === "rq" && rqL.hall.visible) { consider(rqL.door, "rqgate", {}, 4); consider(rqL.back, "lport", { to: "town" }, 2.6); for (const qd of rqL.qdoors || []) consider(qd.o, "rqgate", { q: qd.id, qn: qd.name }, 3.4); } // (RQX2: each queen's statue on the Spireway is her run's own door) // RAID QUEENS' sky realm: the Citadel's door, the way home
   if (!landNow) stuHub.doors.forEach((d) => consider(d, "adb", { b: d.userData.b }, 2.4)); // the Studio by the plaza and its cabinets
   if (hwL && landNow === "hw") { hwL.doors.forEach((d) => consider(d, "hwb", { b: d.userData.b }, 2.4)); consider(hwL.back, "lport", { to: "town" }, 2.6); } // the Halloween Realm
   if (ccL && landNow === "cc") { ccL.doors.forEach((d) => { if (d.parent && d.parent.visible !== false) consider(d, "ccb", { b: d.userData.b }, 2.4); }); consider(ccL.back, "lport", { to: "town" }, 2.6); } // Studio Beta: Creator City
@@ -1958,7 +1958,7 @@ function paintPrompt() {
   if (p.hidden) { p.hidden = false; void p.offsetWidth; }
   p.classList.add("on");
   const b = (s) => `<b>${esc(s)}</b>`;
-  $("wp-enter-t").innerHTML = near.kind === "fountain" ? esc(TW("Toss a coin in the fountain")) : near.kind === "lport" ? (near.to === "town" ? b(TW("Back to town")) : near.to === "rq" && !rqOn() ? b("RAID QUEENS") + " · " + esc(TW("Under construction")) : TW("Go to {x}", { x: b(landName(near.to)) })) : near.kind === "land" ? land.promptHTML(near.n) : near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "village" ? (near.mine ? T("Open {x}", { x: b(T("My village")) }) : T("Village centre · Lv {n}", { n: near.level })) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "defense" ? esc(TW("Start AC Defense")) : near.kind === "jump" ? esc(TW("Start Coin Jump")) : near.kind === "miner" ? T("Talk to {x}", { x: b(TW("the miner")) }) : near.kind === "mine" ? (mineRest > Date.now() ? esc(TW("ARCL Mine · opens in {t}", { t: restLeft(mineRest) })) : esc(TW("Enter the ARCL Mine"))) : near.kind === "rqgate" ? (rqOn() ? T("Enter {x}", { x: b("RAID QUEENS") }) : b("RAID QUEENS") + " · " + esc(TW("Under construction"))) : near.kind === "agentdim" ? T("Enter {x}", { x: b(TW("AGENT DIMENSION")) }) : near.kind === "adb" ? cityPrompt(near.b, b) : near.kind === "ccb" ? ccPrompt(near.b, b) : near.kind === "hwb" ? hwPrompt(near.b, b) : near.kind === "kairo" ? T("Enter {x}", { x: b(TW("KAIRO Finance Hub")) }) : near.kind === "jurassic" ? (jurAllowed() ? T("Enter {x}", { x: b(TW("Jurassic World")) }) : esc(TW("Jurassic World · Coming soon"))) : near.kind === "beat" ? esc(TW("Start Beat Stomp")) : near.kind === "surv" ? esc(TW("Enter Survivors Arena")) : near.kind === "rings" ? esc(TW("Play INFINITY RINGS")) : near.kind === "poker" ? esc(TW("Enter ARCIA Poker Lounge")) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
+  $("wp-enter-t").innerHTML = near.kind === "fountain" ? esc(TW("Toss a coin in the fountain")) : near.kind === "lport" ? (near.to === "town" ? b(TW("Back to town")) : near.to === "rq" && !rqOn() ? b("RAID QUEENS") + " · " + esc(TW("Under construction")) : TW("Go to {x}", { x: b(landName(near.to)) })) : near.kind === "land" ? land.promptHTML(near.n) : near.kind === "bounty" ? T("Read {x}", { x: b(T("the bounty board")) }) : near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "village" ? (near.mine ? T("Open {x}", { x: b(T("My village")) }) : T("Village centre · Lv {n}", { n: near.level })) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "defense" ? esc(TW("Start AC Defense")) : near.kind === "jump" ? esc(TW("Start Coin Jump")) : near.kind === "miner" ? T("Talk to {x}", { x: b(TW("the miner")) }) : near.kind === "mine" ? (mineRest > Date.now() ? esc(TW("ARCL Mine · opens in {t}", { t: restLeft(mineRest) })) : esc(TW("Enter the ARCL Mine"))) : near.kind === "rqgate" ? (rqOn() ? (near.q ? TW("Challenge {x}", { x: b(TW(near.qn)) }) : T("Enter {x}", { x: b("RAID QUEENS") })) : b("RAID QUEENS") + " · " + esc(TW("Under construction"))) : near.kind === "agentdim" ? T("Enter {x}", { x: b(TW("AGENT DIMENSION")) }) : near.kind === "adb" ? cityPrompt(near.b, b) : near.kind === "ccb" ? ccPrompt(near.b, b) : near.kind === "hwb" ? hwPrompt(near.b, b) : near.kind === "kairo" ? T("Enter {x}", { x: b(TW("KAIRO Finance Hub")) }) : near.kind === "jurassic" ? (jurAllowed() ? T("Enter {x}", { x: b(TW("Jurassic World")) }) : esc(TW("Jurassic World · Coming soon"))) : near.kind === "beat" ? esc(TW("Start Beat Stomp")) : near.kind === "surv" ? esc(TW("Enter Survivors Arena")) : near.kind === "rings" ? esc(TW("Play INFINITY RINGS")) : near.kind === "poker" ? esc(TW("Enter ARCIA Poker Lounge")) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
   { const e2 = $("wp-enter2"), on = near.kind === "isle"; e2.hidden = !on; if (on) e2.innerHTML = `<span>${esc(T("Visit a friend's island"))}</span><small>${esc(island.friendCount() ? T("{n} friends, one at random", { n: island.friendCount() }) : T("No friends yet: a random island"))}</small>`; }
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
@@ -2489,7 +2489,7 @@ function enter(n) {
   if (n.kind === "adb") { cityBuilding(n.b); return; }
   if (n.kind === "ccb") { ccBuilding(n.b); return; }
   if (n.kind === "hwb") { hwBuilding(n.b); return; }
-  if (n.kind === "rqgate") { rqWarp(); return; }
+  if (n.kind === "rqgate") { rqWarp(n.q); return; }
   if (n.kind === "kairo") { openPartner("kairo"); return; }
   if (n.kind === "land") { land.refresh().then(() => land.detail(n.n)); return; }
   if (n.kind === "miner") { if (frozen) return; frozen = true; keys.clear(); ensureMine().then((g) => g.openShop("picks")).catch((e) => { frozen = false; toast(TW("The ARCL Mine couldn't load. Refresh the page and try again.") + " — " + esc(String((e && e.message) || e).slice(0, 60))); }); return; }
@@ -3427,7 +3427,7 @@ function arclChecks() {
 function tierOf() { let a = 0; try { a = bal.arc || 0; } catch { /* the purse is declared further down (a TDZ before it) */ } return a >= 1e6 ? 3 : a >= 1e5 ? 2 : a > 0 ? 1 : 0; }
 function paintCrown() {
   if (!avatar || !avatar.setCrown) return;
-  if (avatar.hero) { const sk = heroSkin(); avatar.setCrown(sk && sk.halo ? sk.halo : K.TIER_HALO ? K.TIER_HALO[tierOf()] : null); if (avatar.crownSpikes) avatar.crownSpikes(sk && sk.crown ? sk.crown : null); return; }
+  if (avatar.hero) { const sk = heroSkin(); avatar.setCrown(sk && sk.halo ? sk.halo : K.TIER_HALO ? K.TIER_HALO[tierOf()] : null); if (avatar.crownSpikes) avatar.crownSpikes(sk && sk.crown ? sk.crown : rqCrownCol()); return; }
   const a = bal.arc || 0;
   if (a >= 1e6) avatar.setCrown(0xffc861, 0xffe7a8); else if (a >= 1e5) avatar.setCrown(0x39ff88, 0x35d8d0); else if (a > 0) avatar.setCrown(0x35d8d0, 0x4f9dff); else avatar.setCrown(0x3f9bff, 0x39ff88);
 }
@@ -4179,7 +4179,10 @@ setTimeout(function warmLoop() { try { if (combat && mode === "hub" && !frozen &
 // the Adventure log (daily hunts, achievements and titles, the codex, top hunters) and the companion drone
 // b-sv7: SURVIVORS ARENA's achievements, worn as titles in town (the server's meta for a wallet, this phone's for a guest; read again after a run)
 let rqAch = null, rqAchP = null; // RAID QUEENS: the runs you've won (titles), from the server's clears
-const rqAchLoad = (force) => { if (rqAchP && !force) return rqAchP; const s = sess(); rqAchP = (s ? fetch("/api/social?world=rq&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => Object.keys((j && j.clears) || {}).filter((k) => j.clears[k] > 0)) : Promise.resolve([])).then((l) => { rqAch = l; return l; }).catch(() => { rqAchP = null; return []; }); return rqAchP; };
+const rqAchLoad = (force) => { if (rqAchP && !force) return rqAchP; const s = sess(); rqAchP = (s ? fetch("/api/social?world=rq&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => [...Object.keys((j && j.clears) || {}).filter((k) => j.clears[k] > 0), ...Object.keys((j && j.crown) || {}).filter((k) => j.crown[k] >= 12).map((k) => "crown-" + k)]) : Promise.resolve([])).then((l) => { rqAch = l; try { paintCrown(); } catch { /* the avatar comes later */ } return l; }).catch(() => { rqAchP = null; return []; }); return rqAchP; };
+// RAID QUEENS' crowns (RQX1): a forged crown worn on the halo, picked in the raid's lobby (arc.rq.crown); one you don't hold shows nothing
+const RQ_CROWN_COL = { lysitha: "#cfe0ff", solvira: "#ffd36b", nyxara: "#ff3d5e" };
+function rqCrownCol() { try { const k = localStorage.getItem("arc.rq.crown") || ""; return k && rqAch && rqAch.includes("crown-" + k) ? RQ_CROWN_COL[k] : null; } catch { return null; } } /* (try: called before these lines run, a TDZ) */
 let svAch = null, svAchP = null;
 const svAchLoad = () => { if (svAchP) return svAchP; const s = sess();
   svAchP = (s ? fetch("/api/social?world=surv&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.meta && j.meta.ach) || []) : Promise.resolve().then(() => { try { return Object.keys((JSON.parse(localStorage.getItem("arc.surv.meta") || "null") || {}).ach || {}); } catch { return []; } }))
@@ -5688,8 +5691,8 @@ let agentDim = null, agentFails = 0;
 const agentCalm = () => mode === "hub" && !jurOn && !survOn && !ringsOn && !pokerOn && !mineOn && !defenseOn && !jumpOn && !beatOn && !introOn && !document.body.classList.contains("wp-intro");
 async function loadAgent() {
   if (agentDim || agentFails > 2) return agentDim;
-  try { const M = await import("./world-agent.js"); agentDim = M.createAgentDim({ guide: (k) => openAdGuide(k), THREE, K, planet, here: (v) => here(v), facing: () => facing, ver: VER, inHub: () => mode === "hub" && !introOn && !jurOn, calm: agentCalm,
-    T: TW, esc, toast, sess, post, signIn: () => signIn(), purse: (f) => refreshPurse(f), coarse, reduce, low: lowGfx, burst: (c) => burst(c), share: (c) => bragCard(c),
+  try { const M = await import("./world-agent.js"); agentDim = M.createAgentDim({ guide: (k) => openAdGuide(k), arena: () => { if (landNow === "ad") openArena(); else cityTo("arena"); }, /* (ADX1: Home's arena row) */ THREE, K, planet, here: (v) => here(v), facing: () => facing, ver: VER, inHub: () => mode === "hub" && !introOn && !jurOn, calm: agentCalm,
+    T: TW, esc, toast, sess, post, signIn: () => signIn(), purse: (f) => refreshPurse(f), coarse, reduce, low: lowGfx, burst: (c) => burst(c), share: (c) => bragCard(c), Snd, sweep: (ms) => startSweep(ms), /* (ADX2: the Skyblade's sound, the birth's camera swing) */
     tx: (to, data) => walletTx(to, data), arcircle: /^0x[0-9a-fA-F]{40}$/.test(CFG.ARCIRCLE_TOKEN || "") ? CFG.ARCIRCLE_TOKEN : "" }); }
   catch (e) { agentFails++; console.warn("agent", e); if (staleReload()) return null; }
   return agentDim;
@@ -5838,7 +5841,7 @@ function withMythic(o) {
 function ensureRq() {
   if (rqL) return Promise.resolve(rqL);
   return rqWait || (rqWait = import("./world-raidq.js").then((M) => {
-    rqL = M.makeRaidQueens({ THREE, K, planet, cam: () => cam.position, brag: (c) => bragCard(c), onWin: () => { try { quests.bump("raidq"); } catch { /* the mission waits */ } rqAchLoad(true); }, knock: (x, z, p) => { knockV.set(x, 0, z).multiplyScalar(p); }, slowmo: (ms) => slowmo(ms), heroClip: (n) => { if (avatar && !(avatar.busy && avatar.busy())) avatar.play(n, { once: true }); }, T: TW, esc, toast, Snd, ver: VER, low: lowGfx, reduce, coarse, land: LD.LANDS.rq, combat: () => combat, here: (v) => here(v), level, sess, post,
+    rqL = M.makeRaidQueens({ THREE, K, planet, cam: () => cam.position, wearCrown: (k) => { try { if (k) localStorage.setItem("arc.rq.crown", k); else localStorage.removeItem("arc.rq.crown"); } catch { /* not kept */ } rqAchLoad(true); }, worn: () => { try { return localStorage.getItem("arc.rq.crown") || ""; } catch { return ""; } }, brag: (c) => bragCard(c), onWin: () => { try { quests.bump("raidq"); } catch { /* the mission waits */ } rqAchLoad(true); }, knock: (x, z, p) => { knockV.set(x, 0, z).multiplyScalar(p); }, slowmo: (ms) => slowmo(ms), heroClip: (n) => { if (avatar && !(avatar.busy && avatar.busy())) avatar.play(n, { once: true }); }, T: TW, esc, toast, Snd, ver: VER, low: lowGfx, reduce, coarse, land: LD.LANDS.rq, combat: () => combat, here: (v) => here(v), level, sess, post,
       addItem: (it) => { rpg.addItem(it); save(); }, refresh: () => refreshPurse(true), itemName: (it) => rpg.itemName(it), parts, shake: (n) => { if (!reduce) shake = Math.max(shake, n); },
       stand: (x, z, c) => standAt(x, z, c), freeze: (on) => { frozen = !!on; keys.clear(); if (!on) { near = null; paintPrompt(); } }, compile: (l) => compileHidden(l), active: () => mode === "hub" && !frozen && !introOn && !flying,
       grantXp: (n) => { const before = level(); P.xp += n; save(); paintHud(); xpFloat(n); if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } badges(); }, // (the server's grant: no boosts on top, it's already counted)
@@ -5848,19 +5851,19 @@ function ensureRq() {
       const off = landNow === "rq"; if (off) { sky.visible = false; clouds.visible = false; skyPlanets.visible = false; halo.visible = false; rqSkyOff = true; } else if (rqSkyOff) { rqSkyOff = false; sky.visible = true; clouds.visible = true; halo.visible = true; nightK = -1; dayNight(); } }); /* (halo: the town sky's big ARCIRCLE rings — a blue ring and a green bar over the Citadel, the owner's screenshot 2026-10-25) */ if (labels) labels.dirty = true; return rqL; })
     .catch((e) => { rqWait = null; console.warn("raid queens", e); if (!staleReload()) toast(TW("Couldn't open it — try again")); return null; }));
 }
-function rqWarp() {
+function rqWarp(q) {
   if (!rqOn()) { rqSoon(); return; } // (not open yet: the construction card)
   const u = rqGate.userData; if (u.warp) return; u.warp = 1;
   if (!reduce) { const f = document.createElement("div"); f.className = "wag-warp rq-warp"; document.body.appendChild(f); setTimeout(() => f.remove(), 900); }
   try { if (Snd.perfect) Snd.perfect(); } catch { /* no sound */ }
-  setTimeout(() => { u.warp = 0; rqLobby(); }, reduce ? 0 : 380);
+  setTimeout(() => { u.warp = 0; rqLobby(q); }, reduce ? 0 : 380);
 }
 /// the one building for every run: 100 / 200 / 300 / 400 / SECRET (the owner, 2026-10-25: like SURVIVORS ARENA's building)
-async function rqLobby() {
+async function rqLobby(q) {
   if (frozen || flying || introOn || mode !== "hub") return;
   const card = rqL && rqL.prepared() ? null : rqLoadCard();
   const r = await ensureRq(); if (!r) { if (card) card.close(); return; } await rqReady(r, card); if (frozen || mode !== "hub") return;
-  closeAll(); r.openLobby();
+  closeAll(); r.openLobby(q);
 }
 /// the Citadel before RAID QUEENS opens (anyone but a GM): what's being built, no way in yet
 function rqSoon() {
@@ -5926,7 +5929,7 @@ const CITY_TRY = /[?&]adcity=1/.test(location.search);
 let adc = null, adcWait = null, cityOk = CITY_TRY, adcCardSeen = false; const camW = new THREE.Vector3();
 function ensureCity() {
   if (adc) return Promise.resolve(adc);
-  return adcWait || (adcWait = import("./world-adcity.js").then((M) => { adc = M.makeAdCity({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, land: LD.LANDS.ad, demo: /[?&]adwork=demo/.test(location.search), me: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.id : ""; } catch { return ""; } }, onModel: () => { if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } } }); adc.M = M; st.on((dt, t) => { try { adc.tick(dt, t); if (landNow === "ad") adc.seeThrough(st.camera.getWorldPosition(camW), dt); } catch { /* a sign is drawing */ } }); if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } return adc; })
+  return adcWait || (adcWait = import("./world-adcity.js").then((M) => { adc = M.makeAdCity({ THREE, K, planet, T: TW, low: lowGfx, ver: VER, land: LD.LANDS.ad, where: () => (landNow === "ad" ? here(new THREE.Vector3()) : null), /* (ADX2: the entrances' distance tags) */ demo: /[?&]adwork=demo/.test(location.search), me: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? s0.agent.id : ""; } catch { return ""; } }, onModel: () => { if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } } }); adc.M = M; st.on((dt, t) => { try { adc.tick(dt, t); if (landNow === "ad") adc.seeThrough(st.camera.getWorldPosition(camW), dt); } catch { /* a sign is drawing */ } }); if (labels) labels.dirty = true; try { farCull.rescan(); } catch { /* fine */ } return adc; })
     .catch((e) => { adcWait = null; console.warn("nexus city", e); if (!staleReload()) toast(TW("Couldn't open it — try again")); return null; }));
 }
 async function cityGo() {
@@ -6253,7 +6256,7 @@ async function cityBuilding(id) {
   if (id === "studio") { if (stuHub.doors.length && landNow !== "ad") { ccGo(); return; } openStudio(); return; } // (Studio Beta: the Studio by the fountain is Creator City's portal)
   if (id === "arena") { openArena(); return; }
   if (/^(pick|cab\d)$/.test(id)) { const pk = stuHub.pick(id); await openStudio(); if (pk && studio) studio.playId(pk.id); return; }
-  if (id === "genesis" || id === "port" || id === "vault") { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(id === "port" ? "jobs" : id === "vault" ? "vault" : undefined); return; }
+  if (id === "genesis" || id === "port" || id === "vault" || id === "academy") { const a = await loadAgent(); if (!a) { toast(TW("Couldn't open your agent — try again")); return; } closeAll(); a.open(id === "port" ? "jobs" : id === "vault" ? "vault" : id === "academy" ? "academy" : undefined); return; } // (ADX1: the Academy's lesson of the day — free for guests too)
   if (!adc || document.querySelector(".adc-card")) return; frozen = true; keys.clear();
   try { if (Snd.click) Snd.click(); } catch { /* no sound */ }
   if (!adc.M.soonCard({ T: TW, esc }, id, () => { frozen = false; })) frozen = false;
@@ -6264,7 +6267,7 @@ async function openArena() {
   if (agArenaBusy || frozen || mode !== "hub") return; agArenaBusy = true;
   try {
     if (!agArena) { let M; try { M = await import("./world-agarena.js"); } catch (e) { if (staleReload()) return; throw e; }
-      agArena = M.createAgArena({ T: TW, esc, toast, sess, post, signIn: () => signIn(), Snd, reduce,
+      agArena = M.createAgArena({ T: TW, esc, toast, sess, post, signIn: () => signIn(), Snd, reduce, emote: (k) => { if (agentDim && agentDim.react) agentDim.react(k); },
         agent: () => { try { const s0 = agentDim && agentDim.state(); return s0 && s0.agent ? { name: s0.agent.name, kind: s0.agent.kind } : null; } catch { return null; } },
         share: (c) => bragCard(c),
         onOpen: () => { frozen = true; keys.clear(); near = null; paintPrompt(); document.body.classList.add("wp-stu-open"); }, onClose: () => { frozen = false; near = null; paintPrompt(); document.body.classList.remove("wp-stu-open"); if (st.idle) st.idle(false); } }); }

@@ -179,6 +179,7 @@ export function makeRaidQueens(ctx) {
   const back = new THREE.Group(); back.name = "rq-back"; back.position.set(land.x + 9, 0, land.z + HALL.back - 4); back.userData.radius = 0; planet.add(back); back.visible = false;
   { const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.16, 10, 64), neon(0xff7ab8)); ring.position.y = 2.6; back.add(ring); const veil = new THREE.Mesh(new THREE.CircleGeometry(2.1, 40), neon(0xffd6ec, 0.35)); veil.position.y = 2.6; back.add(veil); spins.push((dt, t) => { ring.rotation.z = t * 0.8; veil.material.opacity = 0.28 + Math.sin(t * 2) * 0.08; }); }
   // the Citadel's door: what you walk up to (world-play's "rqgate" prompt) and a body you can't walk through
+  const qdoors = []; // (RQX2: the three statues' doors — walk up → that queen's card in the lobby)
   const door = new THREE.Object3D(); door.name = "rq-door"; door.position.set(land.x, 0, land.z + HALL.door + 9); planet.add(door);
   const wall = new THREE.Object3D(); wall.position.set(land.x, 0, land.z + HALL.door); wall.userData.radius = 8; planet.add(wall);
   let hallP = null;
@@ -245,7 +246,9 @@ export function makeRaidQueens(ctx) {
           spins.push((dt, t) => { if (!H.visible) return; holder.position.y = 1.4 + Math.sin(t * 1.1 + i) * 0.15; rune.rotation.z += dt * 0.15; runeM2.opacity = 0.7 + Math.sin(t * 2 + i) * 0.15; glow.material.opacity = 0.6 + Math.sin(t * 1.6 + i) * 0.15;
             const cp = ctx.cam && ctx.cam(); if (cp) { st.getWorldPosition(cw); holder.rotation.y = Math.atan2(cp.x - cw.x, cp.z - cw.z); }
             if (motes) { const a = motes.geometry.attributes.position; for (let k = 0; k < a.count; k++) { let y = a.getY(k) + dt * (0.8 + (k % 4) * 0.25); if (y > 11) y = 0; a.setY(k, y); } a.needsUpdate = true; } });
-          H.add(st); }); }
+          H.add(st); const qd = new THREE.Object3D(); qd.position.set(land.x + x * 0.55, 0, land.z + z); planet.add(qd); qdoors.push({ id, name: V.name, o: qd });
+          const mark = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.35, 40), new THREE.MeshBasicMaterial(add({ color: V.tint, opacity: 0.8, side: THREE.DoubleSide }))); mark.rotation.x = -Math.PI / 2; mark.position.set(x * 0.55, 0.12, z); H.add(mark); /* (her door: a ring of her colour on the road's edge, under her statue) */
+          spins.push((dt, t) => { if (H.visible) { const k = 1 + Math.sin(t * 2.4 + i) * 0.08; mark.scale.set(k, k, k); mark.material.opacity = 0.55 + Math.sin(t * 2.4 + i) * 0.25; } }); }); }
       { const box = new THREE.Box3().setFromObject(isle.scene), hh = box.max.y - box.min.y || 1;
         // [x, z, height of the spire (m), how high it floats]: big ones far off, small ones near the road; none on the road
         const ISLES = [[-19, 22, 9, 5], [21, 8, 11, 7], [-22, -8, 13, 9], [-44, -60, 40, 4], [48, -66, 36, 8], [24, -20, 9, 12], [-62, 30, 22, 14], [66, 34, 20, 16], [-86, -14, 34, 12], [88, 2, 34, 10], [-30, -110, 30, 24], [34, -114, 28, 28]].slice(0, ctx.low ? 7 : 12); // (near ones first: low graphics keeps the first seven)
@@ -434,11 +437,11 @@ export function makeRaidQueens(ctx) {
   function dpsAt(lv) { const s = ctx.stats ? ctx.stats() : { atk: 20 }, def = Math.round(lv * 1.5 * 1.5); return Math.max(5, ((s.atk || 20) - def * 0.5) * 2.1); }
   function spawnQueen(id, lv, at, secs) {
     const c = ctx.combat(); if (!c || !c.spawnExt || !qsrc[id]) return null;
-    const V = QV[id], max = Math.max(5000, Math.round(dpsAt(lv) * secs)), e = warmQ[id] || queenEnt(id); delete warmQ[id];
+    const HK = run && run.hard ? RQ.HARD : null, V = QV[id], max = Math.max(5000, Math.round(dpsAt(lv) * secs * (HK ? HK.hp : 1))), e = warmQ[id] || queenEnt(id); delete warmQ[id];
     const q = { id, V, lv, max, phase: 1, fightT: 0, e, m: null, dead: false, lastP: at.clone(), spS: 0 };
     q.m = c.spawnExt({ ent: e, at, lv, max, hp: max, home: { x: land.x, z: land.z, r: ARENA_R - 2 }, pats: V.pats[0], atkK: 1.05, extLabel: "RAID QUEENS",
       reach: 4.6, boss: { name: T(V.name), scale: V.h, y: 0, tint: V.tint }, ext: { hit: (mm) => onQueenHit(q, mm), down: (mm) => queenFell(q, mm) } });
-    if (!q.m) return null; q.base = q.m.atk;
+    if (!q.m) return null; q.base = Math.round(q.m.atk * (HK ? HK.atk : 1)); q.m.atk = q.base;
     if (V.arise) playOn(e, V.arise, { once: true, fade: 0 });
     q.drop = 1.8; q.baseY = e.obj.position.y; e.obj.position.y = q.baseY + 30; pillarFx(at, V.tint, 40, 3, 2); q.m.stun = 2; // (she comes down from the sky in a column of light)
     if (typeof document !== "undefined") { document.body.classList.add("rq-cine"); setTimeout(() => document.body.classList.remove("rq-cine"), 2600); }
@@ -453,8 +456,9 @@ export function makeRaidQueens(ctx) {
   }
   function queenTick(q, dt) {
     const m = q.m, e = q.e; if (!m || q.dead) return;
-    if (q.drop > 0) { q.drop -= dt; const k = Math.max(0, q.drop / 1.8); e.obj.position.y = q.baseY + k * k * 30; if (q.drop <= 0) { e.obj.position.y = q.baseY; ringFx(m.g.position, q.V.tint, 16, 0.9); ringFx(m.g.position, 0xffffff, 9, 0.5); knockFrom(m.g.position, 10); if (ctx.shake) ctx.shake(0.8); try { if (ctx.Snd && ctx.Snd.svDrum) ctx.Snd.svDrum(1); } catch { /* no sound */ } } }
+    if (q.drop > 0) { q.drop -= dt; const k = Math.max(0, q.drop / 1.8); e.obj.position.y = q.baseY + k * k * 30; if (q.drop <= 0) { e.obj.position.y = q.baseY; title(q); ringFx(m.g.position, q.V.tint, 16, 0.9); ringFx(m.g.position, q.V.tint, 28, 1.6, 2); ringFx(m.g.position, 0xffffff, 9, 0.5); knockFrom(m.g.position, 10); if (ctx.shake) ctx.shake(0.8); try { if (ctx.Snd && ctx.Snd.svDrum) ctx.Snd.svDrum(1); } catch { /* no sound */ } } }
     if (q.brkT > 0) { q.brkT -= dt; if (q.brkT <= 0) { m.def = q.def0; q.brk = 0; q.brkCd = 8; } } else if (q.brkCd > 0) q.brkCd -= dt;
+    { const want = q.brkT > 0 ? -0.9 : 0; q.kneelY = (q.kneelY || 0) + (want - (q.kneelY || 0)) * Math.min(1, dt * 6); if (q.drop <= 0 && q.baseY != null) e.obj.position.y = q.baseY + q.kneelY; } /* (the break: she sinks to a knee and rises after) */
     trickTick(q, dt);
     if ((q.subT = (q.subT ?? 14) - dt) <= 0 && q.drop <= 0) { q.subT = 20 + Math.random() * 8; subtitle(q); }
     const p = m.g.position, sp = Math.hypot(p.x - q.lastP.x, p.z - q.lastP.z) / Math.max(1e-3, dt); q.lastP.copy(p);
@@ -473,7 +477,13 @@ export function makeRaidQueens(ctx) {
     const wp = m.g.position.clone(); m.g.remove(e.obj); e.obj.position.copy(wp).sub(g.position).setY(0); e.obj.rotation.y = m.g.rotation.y; e.obj.scale.setScalar(q.V.h); g.add(e.obj);
     playOn(e, q.V.die, { once: true, fade: 0.1 }); q.corpse = { t0: performance.now() };
     cutIn(q, 3, true); if (ctx.shake) ctx.shake(0.6); pillarFx(wp, q.V.tint, 60, 2.6, 2.4); ringFx(wp, 0xffffff, 18, 1);
-    if (run && run.queens.every((x) => x.dead)) { if (ctx.slowmo) ctx.slowmo(1100); zonesClear(); setTimeout(() => { if (ctx.heroClip) ctx.heroClip("emote-yes"); }, 1300); setTimeout(() => win(), 2600); }
+    if (run && run.queens.every((x) => x.dead)) { if (ctx.slowmo) ctx.slowmo(1400); zonesClear(); finisher(wp, q); setTimeout(() => { if (ctx.heroClip) ctx.heroClip("emote-yes"); }, 1300); setTimeout(() => win(), 2600); }
+  }
+  /// RQX2: the last queen down — a white flash, crystals bursting from her, rings of every colour, a FINISH word
+  function finisher(at, q) {
+    burst(at, q.V.tint, true); for (let i = 0; i < 3; i++) setTimeout(() => { ringFx(at, [0xffffff, q.V.tint, 0xffd36a][i], 12 + i * 8, 1.1); if (ctx.parts) ctx.parts.emit({ at: tmp.copy(at).setY(3 + i * 2), kind: "glow", n: ctx.low ? 12 : 36, speed: 9, up: 6, spread: 1.4, size: 0.55, life: 1.3, grav: -7, color: q.V.tint, color2: 0xffffff, jitter: 0.6 }); }, i * 220);
+    if (typeof document === "undefined") return; const f = document.createElement("div"); f.className = "rq-flash"; document.body.appendChild(f); setTimeout(() => f.remove(), 900);
+    setTimeout(() => banner(T("QUEEN DEFEATED"), q.V.css, run && run.trio ? T("The throne is yours") : T(q.V.title), "big fin"), 500);
   }
   function burst(at, col, big) {
     if (ctx.parts) ctx.parts.emit({ at: tmp.copy(at).setY(2), kind: "glow", n: big ? 50 : 20, speed: big ? 7 : 3, up: 3, spread: 1.2, size: 0.6, life: 1.1, grav: -2, color: col, color2: 0xffffff, jitter: 0.5 });
@@ -509,12 +519,13 @@ export function makeRaidQueens(ctx) {
     const fill = new THREE.Mesh(discGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
     for (const m of [edge, fill]) { m.rotation.x = -Math.PI / 2; const p = loc(at); m.position.set(p.x, 0.11, p.z); m.scale.setScalar(r); g.add(m); }
     zones.push({ q, at: at.clone(), r, kind, edge, fill, t: 0, warn: 1.3, life: 6.5, hitT: 0 });
+    try { if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick(); } catch { /* no sound */ }
   }
   function zonesTick(dt) {
     ctx.here(me);
     for (let i = zones.length - 1; i >= 0; i--) { const z = zones[i]; z.t += dt;
       const live = z.t > z.warn, k = Math.min(1, z.t / z.warn);
-      z.edge.material.opacity = live ? 0.55 : 0.4 + 0.5 * Math.abs(Math.sin(z.t * 9)); z.fill.material.opacity = live ? 0.42 * Math.min(1, (z.life - z.t) * 2) : 0.12 * k;
+      z.edge.material.opacity = live ? 0.55 : 0.4 + 0.5 * Math.abs(Math.sin(z.t * 9)); z.fill.material.opacity = live ? 0.42 * Math.min(1, (z.life - z.t) * 2) : 0.18 + 0.2 * k; if (!live) z.fill.scale.setScalar(z.r * Math.max(0.05, k)); else if (!z.full) { z.full = 1; z.fill.scale.setScalar(z.r); } /* (the warning fills inward → outward: when it reaches the edge, it hurts) */
       if (live && Math.hypot(me.x - z.at.x, me.z - z.at.z) < z.r && (z.hitT -= dt) <= 0) { z.hitT = 0.5; hurt(z.kind === "blood" ? 0.05 : 0.04); if (ctx.parts) ctx.parts.emit({ at: tmp.copy(me).setY(0.5), kind: "glow", n: 6, speed: 2, up: 1, spread: 0.4, size: 0.3, life: 0.5, grav: -1, color: z.kind === "blood" ? 0xff2d4d : 0xbfe6ff, color2: 0xffffff, jitter: 0.3 }); }
       if (live && z.kind === "blood" && z.q.m && !z.q.dead) { const p = z.q.m.g.position; if (Math.hypot(p.x - z.at.x, p.z - z.at.z) < z.r + 1 && (z.healT = (z.healT || 0) - dt) <= 0) { z.healT = 1; z.q.m.hp = Math.min(z.q.m.max, z.q.m.hp + z.q.m.max * 0.01); } }
       if (z.t > z.life) { g.remove(z.edge); g.remove(z.fill); z.edge.material.dispose(); z.fill.material.dispose(); zones.splice(i, 1); } }
@@ -550,11 +561,12 @@ export function makeRaidQueens(ctx) {
     if (q.brk < 1) return;
     q.brkT = 4; q.def0 = m.def; m.def = Math.round(m.def * 0.3); m.stun = Math.max(m.stun || 0, 4);
     ringFx(m.g.position, 0xffd36a, 7, 0.7); if (ctx.parts) ctx.parts.emit({ at: tmp.copy(m.g.position).setY(q.V.h * 0.5), kind: "glow", n: 40, speed: 6, up: 2, spread: 1.2, size: 0.5, life: 0.9, grav: -2, color: 0xffd36a, color2: 0xffffff, jitter: 0.4 });
-    banner("BREAK!", q.V.css); try { if (ctx.Snd && ctx.Snd.perfect) ctx.Snd.perfect(); } catch { /* no sound */ } if (ctx.slowmo) ctx.slowmo(260);
+    banner("BREAK!", q.V.css, T("Her guard is broken — strike now!"), "big"); try { if (ctx.Snd && ctx.Snd.perfect) ctx.Snd.perfect(); } catch { /* no sound */ } if (ctx.slowmo) ctx.slowmo(520); if (ctx.shake) ctx.shake(0.5);
+    if (q.V.hit) { playOn(q.e, q.V.hit, { once: true, fade: 0.1 }); q.e.onceT = 1.6; } q.kneel = 0.5; /* (she sinks a little: kneels while the guard is down) */
   }
-  function banner(text, css, sub) {
+  function banner(text, css, sub, cls) {
     if (typeof document === "undefined") return; document.querySelectorAll(".rq-ban").forEach((x) => x.remove());
-    const el = document.createElement("div"); el.className = "rq-ban"; el.setAttribute("data-no-i18n", ""); el.style.setProperty("--rq", css || "#ff7ab8"); el.innerHTML = `<b>${esc(text)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}`;
+    const el = document.createElement("div"); el.className = "rq-ban" + (cls ? " " + cls : ""); el.setAttribute("data-no-i18n", ""); el.style.setProperty("--rq", css || "#ff7ab8"); el.innerHTML = `<b>${esc(text)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}`;
     document.body.appendChild(el); setTimeout(() => el.remove(), 1500);
   }
   // her words now and then, as a line at the bottom
@@ -565,8 +577,19 @@ export function makeRaidQueens(ctx) {
   }
   // a phase: a shockwave from her (it throws you back), the floor flares, the crystals round the edge burst and grow back; and she calls two elites
   let crysT = 0, flare = 0;
+  /// RQX2: her name over the screen as she lands (letterbox, Cinzel, her title under it)
+  function title(q) {
+    if (typeof document === "undefined") return; document.querySelectorAll(".rq-ttl").forEach((x) => x.remove());
+    const el = document.createElement("div"); el.className = "rq-ttl"; el.setAttribute("data-no-i18n", ""); el.style.setProperty("--rq", q.V.css);
+    el.innerHTML = `<small>${run && run.hard ? "🔥 HARD · " : ""}Lv ${q.lv}</small><b>${esc(T(q.V.name))}</b><em>${esc(T(q.V.title))}</em>`; document.body.appendChild(el); setTimeout(() => el.remove(), 3400);
+  }
+  /// RQX2: a phase — the screen drains to grey, cracks run over it, then the colour floods back
+  function phaseFx(q) {
+    if (typeof document === "undefined" || ctx.reduce) return; const b = document.body; b.classList.remove("rq-phase"); void b.offsetWidth; b.classList.add("rq-phase"); b.style.setProperty("--rqp", q.V.css);
+    const el = document.createElement("div"); el.className = "rq-crk"; el.style.backgroundImage = `url(/images/raid/cracks.webp${ctx.ver || ""})`; b.appendChild(el); setTimeout(() => { el.remove(); b.classList.remove("rq-phase"); }, 1500);
+  }
   function shock(q) {
-    const m = q.m; if (!m) return; ringFx(m.g.position, q.V.tint, 22, 0.9); ringFx(m.g.position, 0xffffff, 14, 0.6); knockFrom(m.g.position, 16); flare = 1; crackTo = Math.min(1, crackTo + 0.55);
+    const m = q.m; if (!m) return; phaseFx(q); ringFx(m.g.position, q.V.tint, 22, 0.9); ringFx(m.g.position, 0xffffff, 14, 0.6); knockFrom(m.g.position, 16); flare = 1; crackTo = Math.min(1, crackTo + 0.55);
     if (ctx.parts) for (const c of crys) { c.getWorldPosition(cw); ctx.parts.emit({ at: tmp.copy(cw), kind: "glow", n: ctx.low ? 4 : 10, speed: 5, up: 3, spread: 0.6, size: 0.4, life: 0.9, grav: -6, color: q.V.tint, color2: 0xffffff, jitter: 0.4 }); }
     crysT = 6; for (const c of crys) c.visible = false;
     if (run && !run.isS) for (let i = 0; i < 2; i++) spawnOne({ elite: true, near: m.g.position });
@@ -574,7 +597,7 @@ export function makeRaidQueens(ctx) {
   // ---------------- a run ----------------
   let hud = null, info = null, busy = false;
   async function refreshInfo() { try { const s = ctx.sess(); const r = await fetch("/api/social?world=rq" + (s ? "&wallet=" + s.wallet : ""), { cache: "no-store" }); if (r.ok) info = await r.json(); } catch { /* the lobby says so */ } return info; }
-  async function start(mode) {
+  async function start(mode, hard = false) {
     if (busy || run) return; busy = true;
     try {
       if (!ctx.sess()) { try { await ctx.signIn(); } catch { return; } if (!ctx.sess()) return; }
@@ -583,14 +606,15 @@ export function makeRaidQueens(ctx) {
       const trio = mode === "secret" || !!(modeOf(mode) || {}).trio, qs = trio ? ["lysitha", "solvira", "nyxara"] : [mode];
       const [ok, ...gls] = await Promise.all([loadMobs(), ...qs.map(loadQueen)]); if (!ok || gls.some((x) => !x)) { ctx.toast(esc(T("Couldn't open it — try again"))); return; }
       await warmRun(qs, trio ? "red" : QV[qs[0]].skin, trio);
-      const r = await ctx.post({ action: "world-rq-start", ...ctx.sess(), mode });
+      const r = await ctx.post({ action: "world-rq-start", ...ctx.sess(), mode, ...(hard ? { hard: true } : {}) });
       if (!r || !r.ok) { const j = (r && r.j) || {}; if (r && r.status === 402) { closeLobby(); if (!info) await refreshInfo(); payCard(); return; } ctx.toast(esc(j.error ? T(j.error) : T("Couldn't open it — try again"))); return; }
       closeLobby();
       const V = QV[qs[0]], isS = mode === "secret", pink = trio; // (the Throne and the SECRET: the three queens, the trinity's colours)
       theme(pink ? "#ff7ab8" : V.css, pink ? 0x2a1830 : V.ground, pink ? 0xffbcd4 : ({ lysitha: 0xd6e0ff, solvira: 0xffe9b8, nyxara: 0xffa0a0 })[qs[0]]); backdrop(pink ? "nyxara" : qs[0]); medalOf(pink ? "" : qs[0]); // (the marble floor tinted like the queen's realm: silver-blue, gold, crimson)
-      run = { id: r.j.run, mode, isS, trio, plan: isS ? PLAN.secret : PLAN.normal, t: 0, kills: 0, mobs: [], dying: [], lost: 0, queens: [], stage: "waves", qs, spawnT: 0, done: false, skin: pink ? "red" : V.skin };
+      run = { id: r.j.run, mode, isS, trio, plan: isS ? PLAN.secret : PLAN.normal, t: 0, kills: 0, mobs: [], dying: [], lost: 0, queens: [], stage: "waves", qs, spawnT: 0, done: false, skin: pink ? "red" : V.skin, hard: !!r.j.hard, prev: ((info && info.best) || {})[mode + (r.j.hard ? "H" : "")] || 0 };
+      run.limit = run.hard ? RQ.HARD.limit : TIME_LIMIT; /* (HARD: the queen ×1.6 HP and ×1.4 damage, ×1.3 at once, against a clock) */
       shown = true; vis(); ctx.stand(land.x, land.z + ARENA_R - 8, { x: land.x, z: land.z }); paintHud(); if (ctx.music) ctx.music("waves"); if (ctx.Snd && ctx.Snd.siren) try { ctx.Snd.siren(); } catch { /* no sound */ }
-      ctx.toast(`<b>${esc(isS ? "SECRET" : trio ? T("THRONE OF THREE") : T(V.name))}</b> · ${esc(T(trio ? "Clear the waves — then they come." : "Clear the waves — then she comes."))}`);
+      ctx.toast(`<b>${run.hard ? "🔥 HARD · " : ""}${esc(isS ? "SECRET" : trio ? T("THRONE OF THREE") : T(V.name))}</b> · ${esc(T(trio ? "Clear the waves — then they come." : "Clear the waves — then she comes."))}`);
     } finally { busy = false; }
   }
   function mobTick(dt) {
@@ -599,7 +623,7 @@ export function makeRaidQueens(ctx) {
     run.dying = run.dying.filter((m) => { if (raw.includes(m)) return true; mobBack(m.e); return false; }); /* (down but still falling: back to the pool once the combat lets it go) */ // (gone = knocked out: the arena's leash keeps them in)
     if (run.t >= run.plan.waveEnd) return;
     const [a0, a1] = run.plan.alive, want = Math.round(a0 + (a1 - a0) * Math.min(1, run.t / run.plan.waveEnd));
-    const cap = Math.round(want * (ctx.low ? 0.65 : 1)); /* low graphics: fewer at once */
+    const cap = Math.round(want * (ctx.low ? 0.65 : 1) * (run.hard ? RQ.HARD.mobs : 1)); /* low graphics: fewer at once */
     if ((run.spawnT -= dt) > 0 || run.mobs.length >= cap) return; run.spawnT = 0.45 + Math.random() * 0.45;
     for (let n = run.mobs.length < cap - 3 ? 2 : 1; n > 0; n--) spawnOne();
   }
@@ -643,7 +667,7 @@ export function makeRaidQueens(ctx) {
     const c = ctx.combat(), r0 = run; if (!r0) return;
     if (c) { for (const m of r0.mobs) if (!m.dead) try { c.extGone(m); } catch { /* gone */ } for (const q of r0.queens) { if (q.m && !q.dead) try { c.extGone(q.m); } catch { /* gone */ } if (q.e && q.e.obj.parent === g) g.remove(q.e.obj); } }
     zonesClear(); fxClear(); rises.length = 0; crysT = 0; for (const c0 of crys) c0.visible = true; if (typeof document !== "undefined") document.body.classList.remove("rq-low", "rq-cine");
-    run = null; paintHud(); vis(); if (ctx.music) ctx.music("");
+    run = null; paintHud(); bossBar(); vis(); if (ctx.music) ctx.music("");
   }
   function leave() { if (run && !run.done) { if (typeof confirm === "function" && !confirm(T("Leave the run? It counts as lost."))) return; lose("left"); } else toHall(true); }
 
@@ -657,20 +681,30 @@ export function makeRaidQueens(ctx) {
     const V = QV[run.qs[0]], css = run.trio ? "#ff7ab8" : V.css;
     const qline = run.queens.map((q) => `<i style="--rq:${q.V.css}"><b style="width:${Math.max(0, (100 * (q.m && !q.dead ? q.m.hp : 0)) / q.max)}%"></b><u style="left:60%"></u><u style="left:25%"></u><s class="${q.brkT > 0 ? "on" : ""}" style="width:${q.brkT > 0 ? 100 : Math.round((q.brk || 0) * 100)}%"></s><span>${esc(T(q.V.name))}${q.dead ? " ✓" : ` · ${esc(T("Phase {n}", { n: q.phase }))}`}</span></i>`).join("");
     hud.style.setProperty("--rq", css);
-    hud.innerHTML = `<div class="rq-hud-in"><small>RAID QUEENS · ${esc(run.isS ? "SECRET" : T(modeOf(run.mode).region))}</small><b>${fmt(run.t)}</b>
-      <span>${run.stage === "waves" ? esc(T("Waves · {n} knocked out", { n: run.kills })) + ` <em>${esc(T("She comes in {t}", { t: fmt(Math.max(0, run.plan.waveEnd - run.t)) }))}</em>` + `<p class="rq-wbar"><b style="width:${Math.min(100, (100 * run.t) / run.plan.waveEnd)}%"></b></p>` : esc(note || T("The queen is here!"))}</span>${qline}
+    bossBar();
+    hud.innerHTML = `<div class="rq-hud-in"><small>RAID QUEENS · ${esc(run.isS ? "SECRET" : T(modeOf(run.mode).region))}${run.hard ? ' · <span class="rq-hd">🔥 HARD</span>' : ""}</small><b class="${run.hard && run.limit - run.t < 60 ? "rq-late" : ""}">${run.hard ? fmt(Math.max(0, run.limit - run.t)) : fmt(run.t)}</b>
+      <span>${run.stage === "waves" ? esc(T("Waves · {n} knocked out", { n: run.kills })) + ` <em>${esc(T("She comes in {t}", { t: fmt(Math.max(0, run.plan.waveEnd - run.t)) }))}</em>` + `<p class="rq-wbar"><b style="width:${Math.min(100, (100 * run.t) / run.plan.waveEnd)}%"></b></p>` : esc(note || T("The queen is here!"))}</span>${bb ? "" : qline}
       <button type="button" data-leave>${esc(T("Leave"))}</button></div>`;
   }
-  let lobby = null;
+  // RQX2: the queens' bar at the top middle — her face, her name in Cinzel, HP with the 60 % / 25 % marks, the guard under it
+  let bb = null;
+  function bossBar() {
+    if (!run || !run.queens.length) { if (bb) { bb.remove(); bb = null; } return; }
+    if (!bb) { bb = document.createElement("div"); bb.className = "rq-bb" + (run.queens.length > 1 ? " trio" : ""); bb.setAttribute("data-no-i18n", ""); document.body.appendChild(bb); }
+    bb.innerHTML = run.queens.map((q) => { const hp = q.m && !q.dead ? q.m.hp : 0, f = Math.max(0, hp / q.max), brk = q.brkT > 0;
+      return `<div class="rq-bq${q.dead ? " dead" : ""}${brk ? " brk" : ""}" style="--rq:${q.V.css}"><img src="${art(q.id, "full")}" alt=""><div><p><b>${esc(T(q.V.name))}</b><small>${q.dead ? "✓" : `${esc(T("Phase {n}", { n: q.phase }))}${run.hard ? " · 🔥" : ""}`}</small><em>${Math.ceil(f * 100)}%</em></p>
+        <i class="rq-bhp"><s style="width:${f * 100}%"></s><b style="width:${f * 100}%"></b><u style="left:60%"></u><u style="left:25%"></u></i><i class="rq-bgd"><b style="width:${brk ? 100 : Math.round((q.brk || 0) * 100)}%"></b>${brk ? `<span>BREAK</span>` : ""}</i></div></div>`; }).join("");
+  }
+  let lobby = null, lobbyFocus = "";
   function closeLobby() { if (lobby) { lobby.remove(); lobby = null; ctx.freeze(false); } }
-  async function openLobby() {
-    if (typeof document === "undefined" || lobby || run) return;
+  async function openLobby(focus) {
+    if (typeof document === "undefined" || lobby || run) return; lobbyFocus = typeof focus === "string" ? focus : "";
     lobby = document.createElement("div"); lobby.className = "rq-lobby"; lobby.setAttribute("role", "dialog"); lobby.setAttribute("data-no-i18n", ""); document.body.appendChild(lobby); ctx.freeze(true);
     lobby.innerHTML = `<div class="rq-lb"><p class="rq-load">…</p></div>`;
     lobby.addEventListener("click", (e) => { const b = e.target.closest("[data-go]"), cr = e.target.closest("[data-chron]"); if (e.target.closest("[data-myth]")) { closeLobby(); ctx.openMythic(); return; }
-      if (b && !b.disabled) { start(b.dataset.go); return; } if (cr) { closeLobby(); chronicle(); return; } if (e.target.closest("[data-board]")) { closeLobby(); board("lysitha"); return; } if (e.target.closest(".rq-x") || e.target === lobby) closeLobby(); });
+      if (b && !b.disabled) { start(b.dataset.go, b.hasAttribute("data-h")); return; } const cw0 = e.target.closest("[data-crown]"); if (cw0 && ctx.wearCrown) { const k = cw0.dataset.crown; ctx.wearCrown(ctx.worn && ctx.worn() === k ? "" : k); setTimeout(paintLobby, 50); return; } if (cr) { closeLobby(); chronicle(); return; } if (e.target.closest("[data-board]")) { closeLobby(); board("lysitha"); return; } if (e.target.closest(".rq-x") || e.target === lobby) closeLobby(); });
     loadMobs(); for (const M of RQ.MODES) if (!M.trio && ctx.level() >= M.lv) loadQueen(M.id); /* (fetched while you choose, so Enter starts at once) */
-    await refreshInfo(); if (lobby) paintLobby();
+    await refreshInfo(); if (lobby) { paintLobby(); const f = lobbyFocus && lobby.querySelector(`.rq-mode[data-mode="${lobbyFocus}"]`); if (f && f.scrollIntoView) f.scrollIntoView({ block: "center", behavior: ctx.reduce ? "auto" : "smooth" }); }
   }
   /// how hard a run looks from your level against its queen's: Safe (60+ above), Fair (at or above), Hard (below)
   const danger = (M) => { const d = ctx.level() - M.boss; return d >= 60 ? ["Safe", "ok"] : d >= 0 ? ["Fair", "mid"] : ["Hard", "hard"]; };
@@ -680,13 +714,16 @@ export function makeRaidQueens(ctx) {
   function paintLobby() {
     if (!lobby) return; const lv = ctx.level(), d = (info && info.day) || { used: 0, max: RQ.DAY_RUNS }, best = (info && info.best) || {}, clears = (info && info.clears) || {}, gm = ctx.isGM(), left = Math.max(0, d.max - d.used);
     const card = (M) => { const V = QV[M.id] || TRI, lock = lv < M.lv, none = !gm && left <= 0;
-      return `<div class="rq-mode${lock ? " lock" : ""}" style="--rq:${V.css}"><img src="${M.trio ? `/images/raid/trinity-page.webp${ctx.ver || ""}` : `/images/raid/${M.id}-full.webp${ctx.ver || ""}`}" alt=""><div><small>${esc(T(M.region))} · Lv ${M.lv}+</small><b>${esc(T(V.name))}</b><em>${esc(T(V.title))}</em>
+      return `<div class="rq-mode${lock ? " lock" : ""}${lobbyFocus === M.id ? " focus" : ""}" data-mode="${M.id}" style="--rq:${V.css}"><img src="${M.trio ? `/images/raid/trinity-page.webp${ctx.ver || ""}` : `/images/raid/${M.id}-full.webp${ctx.ver || ""}`}" alt=""><div><small>${esc(T(M.region))} · Lv ${M.lv}+</small><b>${esc(T(V.name))}</b><em>${esc(T(V.title))}</em>
         <p class="rq-chips"><span class="rq-dg ${danger(M)[1]}">${esc(T(danger(M)[0]))}</span><span class="rq-st">${stars(M, best[M.id])}</span>${CC.DROP[M.id] ? `<span class="rq-my">💠 ${esc(T("Mythic {p}%", { p: +(CC.DROP[M.id].rate * 100).toFixed(1) }))}</span>` : ""}${info && info.firstDone && !info.firstDone.includes(M.id) ? `<span class="rq-1st">🎁 ${esc(T("First win today: ARCL ×1.5 + 1 gear"))}</span>` : ""}</p>
-        <ul><li>⚔️ ${esc(T(M.trio ? "Waves, then all three queens at once" : "Waves of Imps, elite Puglins, then the queen"))}</li><li>🎁 XP · ${esc(T(M.item.n > 1 ? "{n} pieces of gear" : "1 piece of gear", { n: M.item.n }))} · ${M.arcl.toLocaleString("en-US")} ARCL</li>${best[M.id] ? `<li>⏱ ${esc(T("Best {t}", { t: fmt(best[M.id]) }))} · ${esc(T("Cleared ×{n}", { n: clears[M.id] || 0 }))}</li>` : ""}</ul>
-        <button type="button" data-go="${M.id}" ${lock || none ? "disabled" : ""}>${lock ? "🔒 Lv " + M.lv : none ? esc(T("Back tomorrow")) : esc(T("Enter"))}</button></div></div>`; };
+        <ul><li>⚔️ ${esc(T(M.trio ? "Waves, then all three queens at once" : "Waves of Imps, elite Puglins, then the queen"))}</li><li>🎁 XP · ${esc(T(M.item.n > 1 ? "{n} pieces of gear" : "1 piece of gear", { n: M.item.n }))} · ${M.arcl.toLocaleString("en-US")} ARCL</li>${best[M.id] ? `<li>⏱ ${esc(T("Best {t}", { t: fmt(best[M.id]) }))} · ${esc(T("Cleared ×{n}", { n: clears[M.id] || 0 }))}</li>` : ""}${best[M.id + "H"] ? `<li class="rq-hl">🔥 ${esc(T("HARD best {t}", { t: fmt(best[M.id + "H"]) }))} · ${esc(T("Cleared ×{n}", { n: clears[M.id + "H"] || 0 }))}</li>` : ""}</ul>
+        <p class="rq-btns"><button type="button" data-go="${M.id}" ${lock || none ? "disabled" : ""}>${lock ? "🔒 Lv " + M.lv : none ? esc(T("Back tomorrow")) : esc(T("Enter"))}</button>${!lock ? `<button type="button" class="rq-hard" data-go="${M.id}" data-h ${none || !(clears[M.id] > 0 || gm) ? "disabled" : ""} title="${esc(T("Queen ×1.6 HP · ×1.4 damage · more at once · a 7-minute clock. XP ×1.5 · ARCL ×1.6 · +1 piece · 3 crown fragments"))}">${clears[M.id] > 0 || gm ? "🔥 " + esc(T("HARD")) : "🔒 " + esc(T("HARD: clear it once"))}</button>` : ""}</p></div></div>`; };
+    const cr = (info && info.crown) || {}, wornK = ctx.worn ? ctx.worn() : "", need = RQ.CROWN.need;
+    const crowns = `<div class="rq-crowns"><h4>👑 ${esc(T("Crown fragments"))}<small>${esc(T("{n} fragments forge a queen's crown — worn on your halo. A win brings 1, HARD 3, the day's first +1."))}</small></h4><div>${RQ.CROWN.queens.map((q) => { const n = Math.min(need, cr[q] || 0), done = (cr[q] || 0) >= need, V = QV[q];
+      return `<div class="rq-cr${done ? " done" : ""}" style="--rq:${V.css}"><i class="rq-crg">${"<b></b>".repeat(n)}${"<u></u>".repeat(need - n)}</i><span><b>${esc(T(V.name))}</b><small>${done ? esc(T("Crown forged")) : `${n} / ${need}`}</small></span>${done ? `<button type="button" data-crown="${q}" class="${wornK === q ? "on" : ""}">${esc(T(wornK === q ? "Worn ✓" : "Wear"))}</button>` : ""}</div>`; }).join("")}</div></div>`;
     const S = RQ.SECRET, tk = (info && info.tickets) || 0, slock = lv < S.lv;
     lobby.innerHTML = `<div class="rq-lb"><header><img src="/images/raid/key-sm.webp${ctx.ver || ""}" alt=""><div><small>RAID QUEENS</small><h3>${esc(T("Choose your queen"))}</h3><p>${esc(T("Runs today: {a} / {b}", { a: left, b: d.max }))}${gm ? " · GM" : ""}</p></div><button type="button" class="rq-x" aria-label="${esc(T("Close"))}">✕</button></header>
-      <div class="rq-modes">${RQ.MODES.map(card).join("")}
+      ${crowns}<div class="rq-modes">${RQ.MODES.map(card).join("")}
       <div class="rq-mode rq-secret${slock ? " lock" : ""}"><div class="rq-q">?</div><div><small>🔒 SECRET · Lv ${S.lv}+</small><b>??? ${esc(T("SECRET DUNGEON"))}</b><em>${esc(T("Nobody knows what waits inside."))}</em>
         <ul><li>❓ ${esc(T("Only the brave find out"))}</li><li>💎 ${S.PRICE.toLocaleString("en-US")} $ARCIRCLE · ${esc(T("one run"))}${tk ? ` · ${esc(T("Tickets: {n}", { n: tk }))}` : ""}</li></ul>
         <button type="button" data-go="secret" ${slock ? "disabled" : ""}>${slock ? "🔒 Lv " + S.lv : esc(T("Enter"))}</button></div></div></div>
@@ -728,9 +765,11 @@ export function makeRaidQueens(ctx) {
     el.innerHTML = `<div class="rq-wcard"><img src="${r0.trio ? `/images/raid/trinity-page.webp${ctx.ver || ""}` : `/images/raid/${r0.qs[0]}-full.webp${ctx.ver || ""}`}" alt=""><div class="rq-wtx"><small>RAID QUEENS · ${esc(r0.isS ? "SECRET" : T(modeOf(r0.mode).region))}</small>
       ${won && j && j.ok ? `<div class="rq-grade g-${gradeOf(r0, j)}">${gradeOf(r0, j)}</div>` : ""}
       <h3>${won ? "👑 " + esc(T("Victory")) : "💀 " + esc(why === "left" ? T("You left the run") : why === "time" ? T("Time's up") : T("Knocked out"))}</h3>
-      ${won && j && j.ok ? `<p class="rq-stat">⏱ ${fmt(j.t)}${j.best ? ` · ${esc(T("New best!"))}` : ""} · ${esc(T("{n} knocked out", { n: r0.kills }))}${j.rank ? ` · 🏆 ${esc(T("#{n} this week", { n: j.rank }))}` : ""}</p>${j.first ? `<p class="rq-1st">🎁 ${esc(T("The day's first win: ARCL ×1.5 and one more piece"))}</p>` : ""}
+      ${won && j && j.ok && r0.prev ? `<p class="rq-cmp ${j.t < r0.prev ? "up" : ""}">${esc(T("Best {a}", { a: fmt(r0.prev) }))} → <b>${fmt(j.t)}</b> <small>${j.t < r0.prev ? "−" + (r0.prev - j.t) : "+" + (j.t - r0.prev)} s</small></p>` : ""}
+      ${won && j && j.ok ? `<p class="rq-stat">⏱ ${fmt(j.t)}${j.best ? ` · ${esc(T("New best!"))}` : ""} · ${esc(T("{n} knocked out", { n: r0.kills }))}${j.rank ? ` · 🏆 ${esc(T("#{n} this week", { n: j.rank }))}` : ""}</p>${j.first ? `<p class="rq-1st">🎁 ${esc(T("The day's first win: ARCL ×1.5 and one more piece"))}</p>` : ""}${j.hard ? `<p class="rq-1st rq-hl">🔥 ${esc(T("HARD cleared: XP ×1.5 · ARCL ×1.6 · +1 piece"))}</p>` : ""}
+        ${j.crown && Object.keys(j.crown).length ? `<p class="rq-crwin">${Object.keys(j.crown).map((q) => `<span style="--rq:${QV[q].css}">👑 ${esc(T(QV[q].name).split(" ").pop())} +${j.crown[q]} <small>${Math.min(RQ.CROWN.need, (j.crowns || {})[q] || 0)} / ${RQ.CROWN.need}</small></span>`).join("")}</p>` : ""}
         <div class="rq-gain"><b>+${Number(j.xp || 0).toLocaleString("en-US")}</b><span>XP</span></div>${j.arcl ? `<div class="rq-gain sm"><b>+${Number(j.arcl).toLocaleString("en-US")}</b><span>ARCL</span></div>` : ""}
-        ${items.map((it) => `<div class="rq-item" style="--rc:${RC[it.r] || "#ffc861"}"><i></i><span><b>${esc(ctx.itemName(it))}</b><small>${esc(T(RN[it.r] || ""))} · +${it.p} · Lv ${it.lv}</small></span></div>`).join("")}${items.length ? `<p>${esc(T("It's in your bag."))}</p>` : ""}`
+        ${items.map((it, i) => `<div class="rq-item rq-spin" style="--rc:${RC[it.r] || "#ffc861"};--d:${0.5 + i * 0.25}s"><i></i><span><b>${esc(ctx.itemName(it))}</b><small>${esc(T(RN[it.r] || ""))} · +${it.p} · Lv ${it.lv}</small></span></div>`).join("")}${items.length ? `<p>${esc(T("It's in your bag."))}</p>` : ""}`
         : `<p>${esc(won ? T("Couldn't save the result — try again") : T("Nothing is won this time. Runs left today are on the lobby."))}</p>`}
       <div class="rq-acts">${won && j && j.ok && ctx.brag ? `<button type="button" data-share>📸 ${esc(T("Share"))}</button>` : ""}<button type="button" data-again>${esc(T("Lobby"))}</button><button type="button" class="rq-go" data-home>${esc(T("Back to town"))}</button></div></div></div>`;
     document.body.appendChild(el); ctx.freeze(true);
@@ -748,20 +787,22 @@ export function makeRaidQueens(ctx) {
   const art = (q, k) => `/images/raid/${q}-${k}.webp${ctx.ver || ""}`;
   const seen = () => ls.get(SEEN, []), see = (k) => { const s = seen(); if (!s.includes(k)) { s.push(k); ls.set(SEEN, s); } };
   let pageEl = null;
-  function page(k, { onDone, cta } = {}) {
+  // RQX2: each queen's story in three chapters — I when you meet her, II after a win, III after a HARD win
+  const CH = { lysitha: ["The stars chose her before she could speak. She has judged every soul that climbed the Spireway.", "Defeated, she smiled — as if losing were a gift she'd waited centuries to receive."], solvira: ["Her sun never sets on the Golden Dominion. Those who look at her too long go blind with longing.", "Even the sun bows, once a day. She bowed to you — and swore it would never happen again."], nyxara: ["Born from the blood of the first broken crown, she feeds on every war fought in her name.", "Her blood pools dried. For the first time in an age, the Crimson Abyss was silent."] };
+  function page(k, { onDone, cta, ch = 0, back = false } = {}) {
     if (pageEl || typeof document === "undefined") { if (onDone) onDone(); return; } see(k);
     const isQ = !!QV[k], V = QV[k], src = k === "prologue" ? `/images/raid/key.webp${ctx.ver || ""}` : k === "trinity" ? `/images/raid/trinity-page.webp${ctx.ver || ""}` : art(k, "page");
-    const lines = k === "prologue" ? PROLOGUE : k === "trinity" ? ["Three crowns. One throne.", "Kneel, if you wish to survive."] : [V.lines[0]];
-    const el = document.createElement("div"); el.className = "rq-page" + (k === "prologue" ? " rq-wide" : ""); el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); el.style.setProperty("--rq", isQ ? V.css : "#ff7ab8");
+    const lines = k === "prologue" ? PROLOGUE : k === "trinity" ? ["Three crowns. One throne.", "Kneel, if you wish to survive."] : ch === 1 ? [CH[k][0], V.lines[2]] : ch === 2 ? [CH[k][1], V.lines[3]] : [V.lines[0]];
+    const el = document.createElement("div"); el.className = "rq-page rq-flip" + (k === "prologue" ? " rq-wide" : ""); el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); el.style.setProperty("--rq", isQ ? V.css : "#ff7ab8");
     el.innerHTML = `<div class="rq-pin"><div class="rq-scroll"><img src="${src}" alt=""></div>
-      <div class="rq-cap"><small>RAID QUEENS${isQ ? " · Lv " + modeOf(k).boss : ""}</small><b>${esc(isQ ? T(V.name) : k === "trinity" ? T("THRONE OF THREE") : T("The Broken Crown"))}</b>${isQ ? `<em>${esc(T(V.title))}</em>` : ""}${lines.map((l) => `<p>${esc(T(l))}</p>`).join("")}
+      <div class="rq-cap"><small>RAID QUEENS${isQ ? " · Lv " + modeOf(k).boss : ""}</small><b>${esc(isQ ? T(V.name) : k === "trinity" ? T("THRONE OF THREE") : T("The Broken Crown"))}</b>${isQ ? `<em>${ch ? `${["I", "II", "III"][ch]} · ` : ""}${esc(T(V.title))}</em>` : ""}${lines.map((l) => `<p>${esc(T(l))}</p>`).join("")}
       <div class="rq-acts"><button type="button" class="rq-skip">${esc(T("Skip"))}</button><button type="button" class="rq-go">${esc(T(cta || (onDone ? "Fight!" : "Continue")))}</button></div></div></div>`;
     document.body.appendChild(el); pageEl = el; ctx.freeze(true);
     const sc = el.querySelector(".rq-scroll"), img = el.querySelector("img"); let raf = 0, t0 = 0;
     const roll = (t) => { if (!t0) t0 = t; const max = sc.scrollHeight - sc.clientHeight; if (max > 4 && !el.dataset.user) sc.scrollTop = Math.min(max, ((t - t0) / (ctx.reduce ? 1 : 11000)) * max); if (t - t0 < 11500) raf = requestAnimationFrame(roll); };
     img.addEventListener("load", () => { raf = requestAnimationFrame(roll); });
     sc.addEventListener("pointerdown", () => { el.dataset.user = "1"; }, { passive: true });
-    let shut = false; const close = () => { if (shut) return; shut = true; cancelAnimationFrame(raf); el.remove(); pageEl = null; ctx.freeze(false); if (onDone) onDone(); }; /* once: Skip and Fight! tapped together brought the queens twice */
+    let shut = false; const close = () => { if (shut) return; shut = true; cancelAnimationFrame(raf); const done = () => { el.remove(); pageEl = null; ctx.freeze(false); if (onDone) onDone(); else if (back) chronicle(); }; if (ctx.reduce) done(); else { el.classList.add("rq-turn"); setTimeout(done, 380); } }; /* (the page turns away) */ /* once: Skip and Fight! tapped together brought the queens twice */
     el.addEventListener("click", (e) => { if (e.target.closest(".rq-skip, .rq-go")) close(); });
   }
   function cutIn(q, i, fall) {
@@ -777,15 +818,15 @@ export function makeRaidQueens(ctx) {
   async function board(mode) {
     if (typeof document === "undefined") return; document.querySelectorAll(".rq-chron.rq-bd").forEach((x) => x.remove());
     const el = document.createElement("div"); el.className = "rq-chron rq-bd"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", ""); document.body.appendChild(el); ctx.freeze(true);
-    const ids = [...RQ.MODES.map((m) => m.id), "secret"], me0 = ((ctx.sess() || {}).wallet || "").toLowerCase();
+    let hardB = /H$/.test(mode); mode = mode.replace(/H$/, ""); const ids = [...RQ.MODES.map((m) => m.id), "secret"], me0 = ((ctx.sess() || {}).wallet || "").toLowerCase();
     const paint = (j) => { const V = QV[mode], css = V ? V.css : "#ff7ab8";
       el.innerHTML = `<div class="rq-cin2" style="--rq:${css}"><header><img src="/images/raid/key-sm.webp${ctx.ver || ""}" alt=""><div><small>RAID QUEENS · ${esc(T("This week"))}</small><h3>${esc(T("This week's fastest"))}</h3><p>${esc(T("The fastest win of each player this week. Monday starts a new week (Seoul)."))}</p></div><button type="button" class="rq-x" aria-label="${esc(T("Close"))}">✕</button></header>
-        <div class="rq-tabs">${ids.map((id) => `<button type="button" data-m="${id}" class="${id === mode ? "on" : ""}">${esc(id === "secret" ? "SECRET" : id === "throne" ? T("Throne") : T((QV[id] || {}).name || id).split(" ").pop())}</button>`).join("")}</div>
+        <div class="rq-tabs">${ids.map((id) => `<button type="button" data-m="${id}" class="${id === mode ? "on" : ""}">${esc(id === "secret" ? "SECRET" : id === "throne" ? T("Throne") : T((QV[id] || {}).name || id).split(" ").pop())}</button>`).join("")}${mode !== "secret" ? `<button type="button" data-hb class="rq-hard${hardB ? " on" : ""}">🔥 ${esc(T("HARD"))}</button>` : ""}</div>
         <ol class="rq-top">${!j ? `<li class="rq-load">…</li>` : j.top.length ? j.top.map((x, i) => `<li class="${me0 && me0.startsWith(x.w.slice(0, 6).toLowerCase()) && me0.endsWith(x.w.slice(-4).toLowerCase()) ? "me" : ""}"><i>${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</i><b>${esc(x.name || x.w)}</b><em>${fmt(x.t)}</em></li>`).join("") : `<li class="rq-empty">${esc(T("Be the first!"))}</li>`}</ol>
-        ${j && j.crews && j.crews.length ? `<h4>${esc(T("Crews this week"))}</h4><ol class="rq-top sm">${j.crews.map((c, i) => `<li><i>${i + 1}</i><b>[${esc(c.tag || "")}] ${esc(c.name || "")}</b><em>${esc(T("{n} clears", { n: c.n }))}</em></li>`).join("")}</ol>` : ""}
+        ${j && j.crews && j.crews.length ? `<h4>${esc(T("Crews this week"))}</h4><ol class="rq-top sm">${j.crews.map((c, i) => `<li><i>${i + 1}</i><b>[${esc(c.tag || "")}] ${esc(c.name || "")}</b><em>${esc(T("{n} clears", { n: c.n }))}${c.t ? ` · ⏱ ${fmt(c.t)}${c.by ? " " + esc(c.by) : ""}` : ""}</em></li>`).join("")}</ol>` : ""}
         <div class="rq-foot"><button type="button" class="go" data-lobby>${esc(T("Lobby"))}</button></div></div>`; };
-    paint(null); const load0 = async () => { try { const r = await fetch("/api/social?world=rq-top&mode=" + mode, { cache: "no-store" }); paint(r.ok ? await r.json() : { top: [] }); } catch { paint({ top: [] }); } }; load0();
-    el.addEventListener("click", (e) => { const m = e.target.closest("[data-m]"); if (m) { mode = m.dataset.m; paint(null); load0(); return; }
+    paint(null); const load0 = async () => { try { const r = await fetch("/api/social?world=rq-top&mode=" + mode + (hardB && mode !== "secret" ? "H" : ""), { cache: "no-store" }); paint(r.ok ? await r.json() : { top: [] }); } catch { paint({ top: [] }); } }; load0();
+    el.addEventListener("click", (e) => { const m = e.target.closest("[data-m]"); if (m) { mode = m.dataset.m; paint(null); load0(); return; } if (e.target.closest("[data-hb]")) { hardB = !hardB; paint(null); load0(); return; }
       if (e.target.closest("[data-lobby]")) { el.remove(); ctx.freeze(false); openLobby(); return; }
       if (e.target === el || e.target.closest(".rq-x")) { el.remove(); ctx.freeze(false); } });
   }
@@ -794,14 +835,14 @@ export function makeRaidQueens(ctx) {
     const s = seen(), clears = (info && info.clears) || {};
     const el = document.createElement("div"); el.className = "rq-chron"; el.setAttribute("role", "dialog"); el.setAttribute("data-no-i18n", "");
     const qrow = (M) => { const V = QV[M.id]; return `<div class="rq-qrow" style="--rq:${V.css}"><img src="${art(M.id, "full")}" alt=""><span><small>${esc(T(M.region))} · Lv ${M.lv}+</small><b>${esc(T(V.name))}</b><em>${esc(T(V.title))}</em><i>${esc(T("Cleared ×{n}", { n: clears[M.id] || 0 }))}</i></span>
-      <span class="rq-qb">${s.includes(M.id) ? `<button type="button" data-page="${M.id}">${esc(T("Story"))}</button>` : `<button type="button" disabled>🔒</button>`}</span></div>`; };
+      <span class="rq-qb rq-chs">${[["I", s.includes(M.id), ""], ["II", (clears[M.id] || 0) > 0, "Win once"], ["III", (clears[M.id + "H"] || 0) > 0, "Win HARD"]].map(([n, ok, need], c) => ok ? `<button type="button" data-page="${M.id}" data-ch="${c}">${n}</button>` : `<button type="button" disabled title="${esc(T(need || "Meet her first"))}">🔒 ${n}</button>`).join("")}</span></div>`; };
     el.innerHTML = `<div class="rq-cin2"><header><img src="/images/raid/key-sm.webp${ctx.ver || ""}" alt=""><div><small>${esc(T("RAID QUEENS CHRONICLE"))}</small><h3>${esc(T("The Broken Crown"))}</h3><p>${esc(T("A new hunting ground for Lv 100+. Three queens — and the Throne of Three."))}</p></div><button type="button" class="rq-x" aria-label="${esc(T("Close"))}">✕</button></header>
       <div class="rq-list">${RQ.MODES.filter((M) => !M.trio).map(qrow).join("")}<div class="rq-qrow rq-tri" style="--rq:#ff7ab8"><img src="/images/raid/trinity-page.webp${ctx.ver || ""}" alt=""><span><small>SECRET</small><b>???</b><i>${s.includes("trinity") ? esc(T("Cleared ×{n}", { n: clears.secret || 0 })) : esc(T("Nobody knows what waits inside."))}</i></span><span class="rq-qb">${s.includes("trinity") ? `<button type="button" data-page="trinity">${esc(T("Story"))}</button>` : `<button type="button" disabled>🔒</button>`}</span></div></div>
       <div class="rq-foot"><button type="button" data-page="prologue">${esc(T("Prologue"))}</button><button type="button" class="go" data-lobby>${esc(T("Lobby"))}</button></div></div>`;
     document.body.appendChild(el); ctx.freeze(true);
     const close = () => { el.remove(); ctx.freeze(false); };
     el.addEventListener("click", (e) => { const p = e.target.closest("[data-page]");
-      if (p) { close(); page(p.dataset.page, { cta: "Close" }); return; }
+      if (p) { close(); page(p.dataset.page, { cta: "Close", ch: +(p.dataset.ch || 0), back: true }); return; }
       if (e.target.closest("[data-lobby]")) { close(); openLobby(); return; }
       if (e.target === el || e.target.closest(".rq-x")) close(); });
     refreshInfo();
@@ -820,7 +861,7 @@ export function makeRaidQueens(ctx) {
     if (pageEl || !ctx.active()) return; // (a window open: the clock waits)
     run.t += dt;
     if (c && c.vitals) { const v = c.vitals(); if (run.hp0 != null && v.hp < run.hp0) run.lost += run.hp0 - v.hp; run.hp0 = v.hp; run.maxHp = v.max; } /* (for the grade) */
-    if (run.t > TIME_LIMIT) { lose("time"); return; }
+    if (run.t > (run.limit || TIME_LIMIT)) { lose("time"); return; }
     fxTick(dt); risesTick(dt); zonesTick(dt); beamTick(dt);
     if (crysT > 0 && (crysT -= dt) <= 0) for (const c0 of crys) c0.visible = true;
     if (flare > 0) { flare = Math.max(0, flare - dt * 1.4); floorM.emissiveIntensity = floorBase + flare * 0.9; }
@@ -833,7 +874,7 @@ export function makeRaidQueens(ctx) {
     const dx = me.x - land.x, dz = me.z - land.z, d = Math.hypot(dx, dz); if (d > ARENA_R - 0.6) ctx.stand(land.x + (dx / d) * (ARENA_R - 1.2), land.z + (dz / d) * (ARENA_R - 1.2), { x: land.x, z: land.z });
   }
   return {
-    group: g, hall: H, door, back, solids, toHall, arrival: () => ({ x: land.x, z: land.z + HALL.start, c: { x: land.x, z: land.z + HALL.door } }), loadHall, prepare, prepared: () => prepDone, tick, show, openLobby, chronicle, board, page, start, leave, loadMobs,
+    group: g, hall: H, door, back, solids, qdoors, toHall, arrival: () => ({ x: land.x, z: land.z + HALL.start, c: { x: land.x, z: land.z + HALL.door } }), loadHall, prepare, prepared: () => prepDone, tick, show, openLobby, chronicle, board, page, start, leave, loadMobs,
     shown: () => shown, running: () => !!run && !run.done, info: () => info, refreshInfo,
     /// for the minimap: the queens in the arena
     marks: () => (run ? run.queens.filter((q) => q.m && !q.dead).map((q) => ({ g: q.m.g, css: q.V.css, s: 8, ch: "♛" })) : []),
