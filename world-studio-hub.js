@@ -141,7 +141,7 @@ export function makeHub(o) {
     return `<aside class="sgh-side${dw ? " sgh-dside" : ""}"><a class="sgh-brand" href="/studio" data-go="home"><i class="sgh-mark"><img src="/images/brand/mark-sm-v2.webp" alt="" width="26" height="18"></i><span><b>ARCIRCLE</b><em>${esc(T("Creator Hub"))}</em></span></a>${dw ? `<button type="button" class="sgh-ib sgh-dwx" data-dwclose aria-label="${esc(T("Close"))}">${ic("close")}</button>` : ""}
       ${userRow()}
       <nav class="sgh-nav">${NAV.map(([id, i, l, g], k) => `${k && NAV[k - 1][3] !== g ? "<hr>" : ""}<a href="?p=${id}" data-go="${id}"${dw ? ` data-peek="${id}"` : ""} class="${pg === id ? "on" : ""}" title="${esc(T(l))}">${ic(i)}<span>${esc(T(l))}</span></a>`).join("")}
-      <hr><a href="#" data-tools title="${esc(T("All tools"))}">${ic("dots")}<span>${esc(T("All tools"))}</span></a><a href="/play" data-world title="ARCIRCLE WORLD">${ic("globe")}<span>ARCIRCLE WORLD</span></a></nav>
+      <hr><a href="#" data-tools title="${esc(T("All tools"))}">${ic("dots")}<span>${esc(T("All tools"))}</span></a><a href="/play" data-world title="ARCIRCLE WORLD">${ic("globe")}<span>ARCIRCLE WORLD</span></a>${dw ? `<a href="#" class="sgh-dtheme" data-htog>${ic("sun")}<span>${esc(T("Light mode"))} / ${esc(T("Dark mode"))}</span></a>` : ""}</nav>
       <a class="sgh-mk" href="#" data-make>${ic("plus")}<span>${esc(T("Create a game"))}</span></a></aside>`;
   }
   function subCol() { const L = SUBS[page]; if (!L) return "";
@@ -491,7 +491,7 @@ export function makeHub(o) {
     const t = e.target;
     if (peek) { // (over the workspace: closing hides the hub again, a page link leaves the workspace for that page)
       if ((t.closest("[data-dwx]") && !t.closest(".sgh-dwin")) || t.closest("[data-dwclose]")) { unpeek(); return; }
-      const pk0 = t.closest("[data-peek]"); if (pk0 && SUBS[pk0.dataset.peek] && cpage !== pk0.dataset.peek) { e.preventDefault(); cpage = pk0.dataset.peek; paint(); return; }
+      /* (2026-10-29, the owner: on a phone a tap in the menu did nothing — the first tap only picked the page's sub list, which the full menu no longer shows; a tap goes there now) */
       if (t.closest("[data-make]")) { e.preventDefault(); unpeek(); o.ws.open("make"); return; }
       const lk = t.closest("a[href]"); if (lk && lk.getAttribute("href") !== "#") { e.preventDefault(); const h = lk.getAttribute("href"); location.href = h.startsWith("?") ? "/studio" + h : h; return; }
       if (t.closest("[data-tools]")) { e.preventDefault(); location.href = "/studio?p=home"; return; }
@@ -500,7 +500,7 @@ export function makeHub(o) {
     }
     if (t.closest("[data-dwx]") && !t.closest(".sgh-dwin")) { drawer = false; cpage = null; paint(); return; }
     if (t.closest("[data-dwclose]")) { drawer = false; cpage = null; paint(); return; }
-    const pk = t.closest("[data-peek]"); if (pk && drawer && SUBS[pk.dataset.peek] && cpage !== pk.dataset.peek && (cpage || page) !== pk.dataset.peek) { e.preventDefault(); cpage = pk.dataset.peek; paint(); return; } // (a phone: the rail's first tap shows that page's sub column, like Roblox's)
+    // (the phone menu's tap goes straight to the page — the 'first tap shows the subs' step is gone with the icon rail, 2026-10-29)
     if (t.closest("[data-burger]")) { if (matchMedia("(min-width: 1024px)").matches && page !== "home") { collapsed = !collapsed; try { localStorage.setItem("arc.hub.fold", collapsed ? "1" : "0"); } catch { /* fine */ } paint(); } else { drawer = true; cpage = null; paint(); } return; }
     if (t.closest("[data-tools]")) { e.preventDefault(); const own = [...document.querySelectorAll(".sgh>.sgh-side")].some((x) => x.offsetParent); if (innerWidth < 760) { if (drawer) { drawer = false; paint(); } } else if (!own && !drawer) { drawer = true; paint(); } tools(); return; } // (a computer: the panel beside the menu — the page's own, or the drawer's on Home; a phone: the panel alone)
     const u = t.closest("[data-user]"); if (u) { const inDw = drawer; if (inDw) { drawer = false; paint(); } account(inDw ? root.querySelector(".sgh-me") || u : u); return; }

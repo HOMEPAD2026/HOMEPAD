@@ -706,3 +706,6 @@ html[data-ht=light] .sgh-tlang>button{background:#fff}html[data-ht=light] .sgh-l
 .sgh-hero.compact{min-height:0;padding-top:34px;padding-bottom:34px}.sgh-hero.compact .sgh-hin{max-width:1320px}.sgh-hero.compact .sgh-h1{font-size:clamp(40px,5.2vw,88px)}.sgh-hero.compact .sgh-new{display:none}
 .sgh-page.pg-creations .sgh-resume{padding:0 0 18px;max-width:none}
 @media (max-width:860px){.sgh-rc3{grid-template-columns:1fr}.sgh-rc{flex-direction:row}.sgh-rcart{width:38%;aspect-ratio:auto;min-height:104px}.sgh-start4{grid-template-columns:repeat(2,minmax(0,1fr))}.sgh-resume{padding:18px 16px 4px}.sgh-start4.big .sgh-s4{min-height:140px;padding:18px}}
+/* phones: the top bar fits — the theme switch moves into the menu drawer (2026-10-29) */
+.sgh-dtheme{display:none!important}
+@media (max-width:560px){.sgh-ltop{padding:0 8px;gap:2px}.sgh-ltop .sgh-brand{margin-right:4px}.sgh-ltop .sgh-lb2{margin-right:2px}.sgh-ltop>[data-htog]{display:none}.sgh-dtheme{display:flex!important}.sgh-ltop .sgh-brand em{display:none}}

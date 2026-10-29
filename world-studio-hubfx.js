@@ -18,7 +18,7 @@ export function makeHubFx(c) {
   const apply = () => { html.dataset.ht = theme(); const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = theme() === "light" ? "#f4f6f8" : "#0b0d10"; };
   apply();
   const themeBtn = () => `<button type="button" class="sgh-ib" data-htog aria-label="${esc(T(theme() === "light" ? "Dark mode" : "Light mode"))}" title="${esc(T(theme() === "light" ? "Dark mode" : "Light mode"))}">${ic(theme() === "light" ? "moon" : "sun")}</button>`;
-  function toggle() { LS("arc.hub.theme", theme() === "light" ? "dark" : "light"); html.classList.add("sgh-tswap"); apply(); document.querySelectorAll("[data-htog]").forEach((b) => { b.outerHTML = themeBtn(); }); setTimeout(() => html.classList.remove("sgh-tswap"), 450); }
+  function toggle() { LS("arc.hub.theme", theme() === "light" ? "dark" : "light"); html.classList.add("sgh-tswap"); apply(); document.querySelectorAll("button[data-htog]").forEach((b) => { b.outerHTML = themeBtn(); }); setTimeout(() => html.classList.remove("sgh-tswap"), 450); }
 
   // ---- 한국어: Noto Sans KR 800 for the headlines ----
   if (c.lang === "ko" && !document.querySelector("link[data-krfont]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.dataset.krfont = "1"; l.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@800&display=swap"; document.head.appendChild(l); html.classList.add("sgh-ko"); }

@@ -6232,3 +6232,6 @@ body.rq-phase canvas{animation:rqGrey 1.4s ease both}
 
 .wst-lvl{display:inline-flex;gap:0;margin-left:8px;border:1px solid rgba(255,255,255,.14);border-radius:999px;overflow:hidden;vertical-align:middle}
 .wst-lvl button{height:30px;padding:0 12px;border:0;background:none;color:#aeb7c1;font:700 12px/1 Sora,"Noto Sans KR",sans-serif;cursor:pointer}.wst-lvl button.on{background:rgba(79,227,193,.18);color:#4fe3c1}
+/* phones: no room for the side menu's shortcuts and support links (the owner, 2026-10-29) */
+@media (max-width:820px){.wst .wst-slinks{display:none}}
+html.wp-pcphone .wst .wst-slinks{display:none}
