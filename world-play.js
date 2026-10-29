@@ -2313,6 +2313,7 @@ const paintFrame = () => new Promise((ok) => requestAnimationFrame(() => setTime
 // ARCIRCLE KART (world-kart.js, 2026-10-29, the owner's KART plan, stage 1): a kart race in its own scene, opened from the Games list
 let kartGame = null, kartOn = false, kartBusy = false;
 async function openKart() {
+  if (frozen && !kartOn && !kartBusy && !flying && !introOn) { closeAll(); await sleep(60); } // (a window that froze the town: the Games list's tap closes it first)
   if (kartOn || kartBusy || survOn || mineOn || defenseOn || jumpOn || beatOn || jurOn || frozen || flying || introOn || mode !== "hub" || (combat && combat.vitals().down)) return;
   kartBusy = true; closeAll(); const veil = $("wp-veil");
   try {
