@@ -6285,3 +6285,5 @@ html.wp-pcphone .wk{zoom:2.2;inset:auto;left:0;top:0;width:calc(100vw / 2.2);hei
 .wk-st li b{width:18px;color:#ffc23c}.wk-st li img{border-radius:6px;object-fit:cover;background:#dfe5ee}.wk-st li span{flex:1;text-align:left;font-weight:700}.wk-st li i{font-style:normal;opacity:.75;font-variant-numeric:tabular-nums}
 @media (max-width:600px){.wk-card{width:30%;min-width:96px}.wk-card small{display:none}.wk-logo{width:62vw}}
 html.wp-pcphone .wk-card{width:30%;min-width:96px}html.wp-pcphone .wk-card small{display:none}
+.wk.picking .wk-top,.wk.picking .wk-spd,.wk.picking .wk-help,.wk.picking .wk-pad{display:none}
+.wk-pick .wk-logo{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:min(320px,62vw)}

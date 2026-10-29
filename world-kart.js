@@ -35,7 +35,7 @@ const SEAT = { h: 1.25, y: 0.18, z: -0.15 }, KART_LEN = 3.1; // (a racer stands 
 
 export function createKart(ctx) {
   const { THREE, esc } = ctx, L = LW[ctx.lang] || {}, T = (s, v) => (L[s] != null ? L[s] : ctx.T(s, v));
-  let autoMe = false, on = false, scene = null, cam = null, ui = null, track = null, karts = [], me = null, phase = "idle", clock = 0, cd = 0, acc = 0, finished = [], keys = new Set(), touch = { l: 0, r: 0, gas: 0, brake: 0, drift: 0, boost: 0 }, fxPool = [], shake = 0;
+  let autoMe = false, topView = false, on = false, scene = null, cam = null, ui = null, track = null, karts = [], me = null, phase = "idle", clock = 0, cd = 0, acc = 0, finished = [], keys = new Set(), touch = { l: 0, r: 0, gas: 0, brake: 0, drift: 0, boost: 0 }, fxPool = [], shake = 0;
   const V = (x, y, z) => new THREE.Vector3(x, y, z), tmp = V(0, 0, 0), tmp2 = V(0, 0, 0);
   const sit = (id) => { try { return ctx.makeHero(id); } catch { return Promise.resolve(null); } };
 
@@ -92,9 +92,9 @@ export function createKart(ctx) {
   // one model → instanced copies (its fitted transform baked into the geometry)
   function instOf(gl, n, opts) { const w = fit(gl.scene, opts); w.updateMatrixWorld(true); const out = []; w.traverse((o) => { if (o.isMesh) { const g = o.geometry.clone().applyMatrix4(o.matrixWorld); out.push(new THREE.InstancedMesh(g, o.material, n)); } }); return out; }
   async function props(arch, gantry, towers) {
-    const [A, G, Tw, B] = await Promise.all(["arch", "gantry", "tower", "boostpad"].map((f) => load(f).catch(() => null))); if (!on && !scene) return;
+    const [A, Tw, B] = await Promise.all(["arch", "tower", "boostpad"].map((f) => load(f).catch(() => null))); const G = null; /* (Meshy's truss arch stands on the line as the gantry too) */ if (!on && !scene) return;
     const o = new THREE.Object3D();
-    if (A) { const n = arch.count, ms = instOf(A, n, { len: ROAD + 5 }); for (const im of ms) { for (let k = 0; k < n; k++) { arch.getMatrixAt(k, o.matrix); im.setMatrixAt(k, o.matrix); } scene.add(im); } arch.visible = false; }
+    if (A) { const n = arch.count; A.scene.scale.z = 0.22; /* (Meshy's arch is as deep as it is wide: flattened along the road) */ const ms = instOf(A, n, { len: ROAD + 5 }); for (const im of ms) { for (let k = 0; k < n; k++) { arch.getMatrixAt(k, o.matrix); im.setMatrixAt(k, o.matrix); } scene.add(im); } arch.visible = false; for (const c of gantry.children) if (c.geometry && c.geometry.type === "BoxGeometry") c.visible = false; }
     if (G) { const g = fit(G.scene, { len: ROAD + 6 }); g.position.copy(gantry.position); g.quaternion.copy(gantry.quaternion); scene.add(g); for (const c of gantry.children) if (c.geometry && c.geometry.type === "BoxGeometry") c.visible = false; }
     if (Tw) { const n = towers.count, ms = instOf(Tw, n, { h: 1 }); for (const im of ms) { for (let k = 0; k < n; k++) { towers.getMatrixAt(k, o.matrix); o.matrix.decompose(o.position, o.quaternion, o.scale); const hh = o.scale.y; o.scale.set(hh * 0.5, hh, hh * 0.5); o.position.y = 0; o.updateMatrix(); im.setMatrixAt(k, o.matrix); } scene.add(im); } towers.visible = false; }
     if (B) for (const p of track.pads) { const g = fit(B.scene.clone(), { len: 6 }); g.position.copy(p.m.position).setY(0.02); g.rotation.y = p.m.rotation.z; scene.add(g); p.m.material.opacity = 0.35; }
@@ -221,6 +221,7 @@ export function createKart(ctx) {
     }
     // the camera behind and above you, wider at speed, a shake on hits and boosts
     if (me) { const back = 7.2 + me.speed * 0.04, h = 3.1; tmp.set(me.pos.x - Math.sin(me.yaw) * back, h, me.pos.z - Math.cos(me.yaw) * back); cam.position.lerp(tmp, Math.min(1, dt * 8)); if (shake > 0 && !ctx.reduce) { cam.position.x += (Math.random() - 0.5) * shake; cam.position.y += (Math.random() - 0.5) * shake; shake = Math.max(0, shake - dt); } cam.lookAt(me.pos.x + Math.sin(me.yaw) * 6, 1.2, me.pos.z + Math.cos(me.yaw) * 6); const f = 62 + Math.min(14, me.speed * 0.25) + (me.boostT > 0 ? 6 : 0); if (Math.abs(cam.fov - f) > 0.3) { cam.fov += (f - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix(); } }
+    if (topView && me) { cam.position.set(me.pos.x - Math.sin(me.yaw) * 18, 16, me.pos.z - Math.cos(me.yaw) * 18); cam.lookAt(me.pos.x + Math.sin(me.yaw) * 10, 0, me.pos.z + Math.cos(me.yaw) * 10); } // (the tests' look from above)
     paintHud();
   }
 
@@ -280,7 +281,7 @@ export function createKart(ctx) {
   // ---------- the racer pick: five cards over the grid; the chosen one waves in 3D ----------
   let pickEl = null, picked = "";
   function showPick(id) {
-    phase = "pick"; picked = id;
+    phase = "pick"; picked = id; ui.classList.add("picking");
     pickEl = document.createElement("div"); pickEl.className = "wk-pick";
     pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
       <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
@@ -290,7 +291,7 @@ export function createKart(ctx) {
     choose(id);
   }
   function choose(id) {
-    picked = id; if (pickEl) pickEl.querySelectorAll("[data-r]").forEach((b) => b.classList.toggle("on", b.dataset.r === id));
+    picked = id; for (const k of karts) k.m.g.visible = !k.racer || k.racer.id === id; if (pickEl) pickEl.querySelectorAll("[data-r]").forEach((b) => b.classList.toggle("on", b.dataset.r === id));
     const k = karts.find((x) => x.racer && x.racer.id === id); if (k && k.hero && k.hero.has) { const r = k.racer; k.hero.after = CLIP.drive; k.hero.play(r.yes && k.hero.has(r.yes) ? r.yes : CLIP.wave, { once: true }); }
     if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick();
   }
@@ -298,10 +299,10 @@ export function createKart(ctx) {
     if (phase !== "pick") return; try { localStorage.setItem(PICK, id); } catch { /* private */ }
     const mine = karts.find((x) => x.racer && x.racer.id === id) || karts[0], rest = karts.filter((x) => x !== mine);
     mine.i = 0; mine.me = true; rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest];
-    if (pickEl) { pickEl.remove(); pickEl = null; } reset();
+    if (pickEl) { pickEl.remove(); pickEl = null; } ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; reset();
   }
   // the pick's camera: in front of the chosen kart, a little above
-  function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; tmp.set(k.pos.x + Math.sin(k.yaw) * 5.2 + Math.cos(k.yaw) * 1.2, 2.1, k.pos.z + Math.cos(k.yaw) * 5.2 - Math.sin(k.yaw) * 1.2); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, 1.0, k.pos.z); }
+  function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; const sw = Math.sin(performance.now() / 2400) * 0.6; tmp.set(k.pos.x + Math.sin(k.yaw + sw) * 4.2, 1.35, k.pos.z + Math.cos(k.yaw + sw) * 4.2); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, innerHeight > innerWidth ? -1.1 : -0.7, k.pos.z); } // (aimed below the kart: it sits in the frame's upper half, over the cards)
   const onResize = () => { if (!cam) return; cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); };
   function leave() {
     if (!on) return; on = false; phase = "idle";
@@ -312,5 +313,5 @@ export function createKart(ctx) {
     scene = null; karts = []; me = null;
     if (ctx.onLeave) ctx.onLeave();
   }
-  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [] } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; } };
+  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [] } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; } };
 }
