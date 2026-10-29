@@ -519,7 +519,7 @@ function cleanObbyX(b, n) {
   const cs = (Array.isArray(b.cs) ? b.cs : []).filter(Array.isArray).slice(0, OB.KEYS).map((k) => [f(k[0], 0, 30), f(k[1], -120, 120), f(k[2], -10, 90), f(k[3], -120, 120), f(k[4], -120, 120), f(k[5], -10, 90), f(k[6], -120, 120)]).sort((a, c) => a[0] - c[0]);
   const pi = (Array.isArray(b.pi) ? b.pi : []).filter((x) => Array.isArray(x) && /^[a-z0-9]{6,24}$/.test(String(x[1]))).slice(0, OB.G).map((x) => [iv(x[0], 1, OB.G, 1), String(x[1])]);
   return { md, win: OB.WINS.includes(b.win) ? b.win : md === "combat" ? "enemies" : md === "race" ? "race" : md === "explore" ? "collect" : "goal", lp: iv(b.lp, 1, 5, 1), gv: iv(b.gv, 30, 200, 100), sv: Number(b.sv) === 1 ? 1 : 0,
-    gn, tk, ...(cs.length >= 2 ? { cs } : {}), pi };
+    gn, tk, ...(cs.length >= 2 ? { cs } : {}), pi, ...(cleanHf(b.hf) ? { hf: cleanHf(b.hf) } : {}) };
 }
 /// G2 PREFABS (the owner: "a boss made once — its health, attacks, animation, reward and UI as one bundle, used again in
 /// any game"): a set of pieces round an origin, with the rules and tracks that belong to them and a few facts for the
@@ -586,7 +586,7 @@ export function obTops(B) {
     if (k === "m") { if (a === 0) hw += bb / 2; else if (a === 2) hd += bb / 2; else top2 = top + bb; } // (a mover's reach along its axis)
     if (k === "e") top2 = top + a;
     T.push({ i, k, x, z, hw, hd, top, top2, bot: k === "H" ? y : top }); }); // (a hill is walked up from its foot)
-  if (B.bp) T.push({ i: -1, k: "bp", x: 0, z: 0, hw: OB.R, hd: OB.R, top: 0, top2: 0, bot: 0 });
+  if (B.bp || B.hf) T.push({ i: -1, k: "bp", x: 0, z: 0, hw: OB.R, hd: OB.R, top: 0, top2: 0, bot: 0 });
   return T;
 }
 const gapOf = (p, q) => Math.hypot(Math.max(0, Math.abs(p.x - q.x) - p.hw - q.hw), Math.max(0, Math.abs(p.z - q.z) - p.hd - q.hd));
@@ -869,6 +869,32 @@ function stmt(s0, tag) {
   if (/^(win|lose|cutscene)\(\)$/.test(k)) return { t: k.slice(0, -2), ta: 0, cd };
   return { err: "can't read: " + s0.slice(0, 40) };
 }
+/// ED4 (2026-10-29): terrain — a heightfield over the course's ground, HF.N vertices a side across −R…R, each height in
+/// half metres (HF.MIN…HF.MAX) and a painted ground (HF.PAINT) per vertex, kept as two short strings (b.hf = { h, p }).
+/// The run stands players and walkers on it; the reach check counts it as a floor (like the baseplate).
+export const HF = { N: 33, MIN: -16, MAX: 60, PAINT: ["Grass", "Sand", "Rock", "Snow", "Dirt"] };
+const HCH = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+,-./:;=?@[]^_{|}~";
+/// the heights in metres (N×N, row by row from −R z) and the paint, or null
+export function hfDec(hf) { if (!hf || typeof hf.h !== "string") return null; const n = HF.N * HF.N, h = new Float32Array(n), p = new Uint8Array(n);
+  for (let i = 0; i < n; i++) { const v = HCH.indexOf(hf.h[i]); h[i] = (v < 0 ? -HF.MIN : v) + HF.MIN; h[i] /= 2; const q = typeof hf.p === "string" ? hf.p.charCodeAt(i) - 48 : 0; p[i] = q >= 0 && q < HF.PAINT.length ? q : 0; } return { h, p }; }
+export function hfEnc(h, p) { let a = "", b = ""; for (let i = 0; i < HF.N * HF.N; i++) { const v = Math.max(HF.MIN, Math.min(HF.MAX, Math.round((h[i] || 0) * 2))); a += HCH[v - HF.MIN]; b += String.fromCharCode(48 + Math.max(0, Math.min(HF.PAINT.length - 1, p ? p[i] | 0 : 0))); } return { h: a, p: b }; }
+export const cleanHf = (hf) => { const d = hfDec(hf); return d ? hfEnc(d.h, d.p) : null; };
+/// the ground's height at x, z (bilinear), and the paint under it
+export function hfAt(d, x, z) { if (!d) return -1e9; const N = HF.N, s = (2 * OB.R) / (N - 1), fx = (x + OB.R) / s, fz = (z + OB.R) / s; if (fx < 0 || fz < 0 || fx > N - 1 || fz > N - 1) return -1e9;
+  const i = Math.min(N - 2, Math.floor(fx)), j = Math.min(N - 2, Math.floor(fz)), u = fx - i, w = fz - j, H = d.h;
+  return (H[j * N + i] * (1 - u) + H[j * N + i + 1] * u) * (1 - w) + (H[(j + 1) * N + i] * (1 - u) + H[(j + 1) * N + i + 1] * u) * w; }
+/// ready-made grounds: flat, rolling hills, a valley, an island, ridges (seeded so a course looks the same each time)
+export function hfPreset(kind, seed = 1) {
+  const N = HF.N, h = new Float32Array(N * N), p = new Uint8Array(N * N); let s0 = seed >>> 0 || 1; const rnd = () => ((s0 = (s0 * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const bumps = Array.from({ length: 7 }, () => [rnd() * 2 - 1, rnd() * 2 - 1, 0.12 + rnd() * 0.25, 2 + rnd() * 5]);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = (i / (N - 1)) * 2 - 1, z = (j / (N - 1)) * 2 - 1, r = Math.hypot(x, z); let y = 0;
+    if (kind === "hills") for (const [bx, bz, br, bh] of bumps) y += bh * Math.exp(-((x - bx) ** 2 + (z - bz) ** 2) / (br * br));
+    else if (kind === "valley") y = Math.min(12, r * r * 14) - 2;
+    else if (kind === "island") y = r < 0.7 ? 1.5 + Math.cos((r / 0.7) * Math.PI) * 1.5 : -4 - (r - 0.7) * 6;
+    else if (kind === "ridges") y = Math.abs(Math.sin(x * 4 + rnd() * 0.2)) * 4 + Math.abs(Math.sin(z * 3)) * 2;
+    h[j * N + i] = Math.round(y * 2) / 2; p[j * N + i] = kind === "island" && y < 0.2 ? 1 : y > 7 ? 3 : y > 4 ? 2 : 0; }
+  return hfEnc(h, p);
+}
 /// ED5: what a course costs a phone — triangles the run draws (a kind's shape, Meshy props and bodies by their packed
 /// budgets), lights, moving pieces — against the budget the town's rules set (CLAUDE.md: about 150 k triangles a scene)
 export const OB_BUDGET = { tris: 150000, lights: 6, moving: 60 };
@@ -876,6 +902,7 @@ const TRI = { b: 12, r: 8, y: 64, k: 12, s: 76, m: 24, p: 128, c: 192, S: 192, g
 export function obBudget(B) {
   let tris = 0, lights = 0, moving = 0; const kinds = new Set(), tk = new Set((B.tk || []).map((t) => t[0]));
   (B.o || []).forEach((q, i) => { tris += TRI[q[0]] || 50; const x = q[12] || {}; if (x.lt) lights++; if (x.mv || x.sp || tk.has(i) || "mesEB".includes(q[0])) moving++; if ("byr".includes(q[0]) && !x.mv && !x.sp && !tk.has(i)) kinds.add(q[0] + q[8] + q[9]); });
+  if (B.hf) tris += HF.N * HF.N * 2; // (the terrain's mesh)
   const k = Math.max(tris / OB_BUDGET.tris, lights / OB_BUDGET.lights, moving / OB_BUDGET.moving);
   return { tris, lights, moving, pieces: (B.o || []).length, batches: kinds.size, k, heavy: k > 1 };
 }

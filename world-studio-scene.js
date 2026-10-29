@@ -11,9 +11,9 @@
 //   createSceneBuilder(ctx) — ctx: { THREE, T, esc, toast, spec, onDone, onChange, onClose, onTest, K, ver, coarse, assets }
 import { pfThumb, thinPf } from "./world-studio-pfthumb.js";
 import { ask } from "./world-ask.js";
-import { OB, PF, PREFABS, clampSpec, cleanObby, estimate, obReach, obScript, obParse, genObbyBuild, obWants, obTweak, packPrefab, placePrefab, cleanPrefab, THEMES, CMP, CMP_CAP, CMP_SND, CMP_PK, entsOf, presetOf, edParse, obBudget, OB_BUDGET, SC_HELP, SC_DO, compOf } from "./world-studio-gen.js";
+import { OB, PF, PREFABS, clampSpec, cleanObby, estimate, obReach, obScript, obParse, genObbyBuild, obWants, obTweak, packPrefab, placePrefab, cleanPrefab, THEMES, CMP, CMP_CAP, CMP_SND, CMP_PK, entsOf, presetOf, edParse, obBudget, OB_BUDGET, SC_HELP, SC_DO, compOf, HF, hfDec, hfEnc, hfPreset } from "./world-studio-gen.js";
 import { graphHtml, graphWire, graphTag } from "./world-studio-graph.js";
-import { LOOKS, obGeos, obMats, obSurfaces } from "./world-studio-obby.js";
+import { LOOKS, obGeos, obMats, obSurfaces, obTerrain, obTerrainCol } from "./world-studio-obby.js";
 
 const NAMES = { b: "Block", r: "Ramp", y: "Round platform", k: "Lava", s: "Spinner", m: "Moving platform", p: "Jump pad", c: "Checkpoint", S: "Start", g: "Goal", o: "Coin", h: "Heart", d: "Door", u: "Button", e: "Elevator", t: "Teleporter", n: "Shop", B: "Boss", x: "Prop", X: "My asset", E: "Enemy", R: "Race ring", Q: "Gem", H: "Hill", W: "Water", P: "Crate", A: "Character" };
 const ICONS = { b: "🧱", r: "📐", y: "⭕", k: "🌋", s: "🌀", m: "↔️", p: "🦘", c: "🚩", S: "🟢", g: "🏁", o: "🪙", h: "❤️", d: "🚪", u: "🔘", e: "🛗", t: "🌀", n: "🛒", B: "👑", x: "🌳", X: "✨", E: "👾", R: "💫", Q: "💎", H: "⛰️", W: "🌊", P: "📦", A: "🧑" };
@@ -43,6 +43,7 @@ export function createSceneBuilder(ctx) {
   const orbit = { tx: 0, ty: 0, tz: 0, yaw: 0.7, pitch: 0.75, dist: 46 };
   let simOn = false, simT0 = 0, dbg = false, dbgG = null, treeQ = "", lv = "list", local = false, snapV = 0, fps = 0, fpsN = 0, fpsT = 0, histT = 0, GHOST = null, warned = false;
   const phone = () => !!ctx.coarse || innerWidth < 760, flyKeys = new Set(); let flyT = 0;
+  let TD = null, terr = null; const brush = { tool: "raise", size: 10, str: 2, paint: 0 }; // (ED4: the terrain and its brush)
   let G = null, MT = null, objs = [], grid = null, bp = null, gizmo = null, selBox = null, redBoxes = null, chat = [];
   const R = (d) => (d * Math.PI) / 180;
   // ---------------- open / close ----------------
@@ -61,7 +62,7 @@ export function createSceneBuilder(ctx) {
             <button type="button" data-local title="${esc(T("Move along the piece's own axes, or the world's"))}"><span class="wse-lw">${esc(T("World"))}</span></button><label class="wse-snp" title="${esc(T("Snap"))}">#<select data-snapv>${[["0", "Snap auto"], ["0.25", "0.25 m"], ["0.5", "0.5 m"], ["1", "1 m"], ["2", "2 m"], ["off", "Snap off"]].map(([v, n]) => `<option value="${v}">${esc(T(n))}</option>`).join("")}</select></label><i></i>
             ${ib("data-dup", "⧉", "Duplicate (Ctrl+D)")}${ib("data-del", "🗑", "Delete")}${ib("data-madd", "⊕", "Pick more pieces (or Shift + click)")}${ib("data-focus", "◎", "Focus (F)")}<i></i>${ib("data-dbg", "🐞", "Debug view: colliders, triggers, paths, frame rate")}<button type="button" data-sim title="${esc(T("Simulate: the moving pieces move, here in the editor"))}">⏯<span>${esc(T("Simulate"))}</span></button></nav>
           <p class="wse-hint">${esc(T(phone() ? "Tap a piece to pick it · drag to look around · two fingers to zoom, pan and turn" : "Click to pick · drag to orbit · Alt + drag orbits over a piece · middle-drag pans · right-drag + WASD flies · wheel zooms"))}</p></div>
-        <aside class="wse-side"><nav class="wse-tabs">${[["prop", "Properties"], ["logic", "Logic"], ["game", "Game"], ["look", "Look & UI"], ["scene", "Prefabs"], ["ai", "Director"], ["assets", "Assets"]].map(([k, n]) => `<button type="button" data-tab="${k}">${esc(T(n))}</button>`).join("")}</nav><div class="wse-pane"></div></aside></div>
+        <aside class="wse-side"><nav class="wse-tabs">${[["prop", "Properties"], ["logic", "Logic"], ["terrain", "Terrain"], ["game", "Game"], ["look", "Look & UI"], ["scene", "Prefabs"], ["ai", "Director"], ["assets", "Assets"]].map(([k, n]) => `<button type="button" data-tab="${k}">${esc(T(n))}</button>`).join("")}</nav><div class="wse-pane"></div></aside></div>
       ${phone() ? `<nav class="wse-sheets"><button type="button" data-sheet="tree">🌳<span>${esc(T("Scene"))}</span></button><button type="button" data-sheet="pal">＋<span>${esc(T("Add"))}</span></button><button type="button" data-sheet="side">⚙<span>${esc(T("Properties"))}</span></button><button type="button" data-sim>⏯<span>${esc(T("Simulate"))}</span></button></nav>` : ""}</div>`;
     document.body.appendChild(el); cv = el.querySelector(".wse-cv");
     el.addEventListener("click", onClick); el.addEventListener("input", onInput); el.addEventListener("change", onInput);
@@ -162,7 +163,8 @@ export function createSceneBuilder(ctx) {
   function rebuild() {
     for (const o of objs) drop(o); objs = B.o.map((q, i) => { const m = meshOf(q, i); scene.add(m); return m; }); instBuild();
     if (bp) { scene.remove(bp); bp.geometry.dispose(); bp.material.dispose(); bp = null; }
-    if (B.bp) { bp = new THREE.Mesh(new THREE.BoxGeometry(OB.R * 2, 1, OB.R * 2), new THREE.MeshStandardMaterial({ color: 0x7a8a9a, roughness: 0.9 })); bp.position.y = -0.5; scene.add(bp); }
+    if (terr) { scene.remove(terr); terr.geometry.dispose(); terr.material.dispose(); terr = null; } TD = hfDec(B.hf); if (TD) { terr = obTerrain(THREE, TD, false); scene.add(terr); }
+    if (B.bp && !TD) { bp = new THREE.Mesh(new THREE.BoxGeometry(OB.R * 2, 1, OB.R * 2), new THREE.MeshStandardMaterial({ color: 0x7a8a9a, roughness: 0.9 })); bp.position.y = -0.5; scene.add(bp); }
     const lk = LOOKS[B.lk] || LOOKS.day; scene.background = new THREE.Color(lk.bot).lerp(new THREE.Color(lk.top), 0.35);
     marks(); if (sel >= B.o.length) sel = -1; for (const i of [...msel]) if (i >= B.o.length) msel.delete(i); selShow(); dirty = true;
   }
@@ -201,6 +203,7 @@ export function createSceneBuilder(ctx) {
   const ray = new THREE.Raycaster(); ray.layers.enableAll(); // (the instanced pieces' pick meshes live on layer 1)
   function pd(e) {
     cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+    if (tab === "terrain" && e.button === 0 && !e.altKey && !phone() && ptrs.size === 1) { if (!TD) { TD = { h: new Float32Array(HF.N * HF.N), p: new Uint8Array(HF.N * HF.N) }; B.hf = hfEnc(TD.h, TD.p); } push(); act = { kind: "brush", h0: null }; brushAt(e); return; } // (ED4: the brush paints the ground)
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; act = { kind: "pinch", d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; return; }
     ray.setFromCamera(ndc(e), cam);
     if (sel >= 0 && gizmo.root.visible && !e.altKey && e.button === 0) { const hit = ray.intersectObjects(gizmo.handles.filter((h) => { let p = h; while (p && p !== gizmo.root) { if (p.visible === false) return false; p = p.parent; } return true; }), false)[0];
@@ -219,6 +222,7 @@ export function createSceneBuilder(ctx) {
       if (act.ang != null) { let da = ang - act.ang; da = Math.atan2(Math.sin(da), Math.cos(da)); orbit.yaw -= da; } act.ang = ang; act.d = d; act.mx = mx; act.my = my; dirty = true; return; } // (two fingers: pinch zooms, slide pans, twist turns)
     if (act.kind === "fly") { const cp0 = cam.position.clone(); orbit.yaw -= (e.clientX - last.x) * 0.005; orbit.pitch = Math.max(-1.2, Math.min(1.5, orbit.pitch + (e.clientY - last.y) * 0.004)); const c = Math.cos(orbit.pitch);
       orbit.tx = cp0.x - Math.sin(orbit.yaw) * orbit.dist * c; orbit.ty = cp0.y - Math.sin(orbit.pitch) * orbit.dist; orbit.tz = cp0.z - Math.cos(orbit.yaw) * orbit.dist * c; dirty = true; return; } // (right-drag looks round from where the camera is; WASD / Q E fly)
+    if (act.kind === "brush") { brushAt(e); return; }
     if (act.kind === "orbit") { orbit.yaw -= (e.clientX - last.x) * 0.006; orbit.pitch = Math.max(0.08, Math.min(1.5, orbit.pitch + (e.clientY - last.y) * 0.005)); dirty = true; return; }
     if (act.kind === "pan") { panBy(e.clientX - last.x, e.clientY - last.y); dirty = true; return; }
     ray.setFromCamera(ndc(e), cam); const p = hitPlane(act.plane); if (!p) return; const q = B.o[sel], d = p.clone().sub(act.p0);
@@ -239,6 +243,7 @@ export function createSceneBuilder(ctx) {
   function panBy(dx, dy) { const k = orbit.dist * 0.0016, r = new THREE.Vector3(Math.cos(orbit.yaw), 0, -Math.sin(orbit.yaw)), f = new THREE.Vector3(-Math.sin(orbit.yaw), 0, -Math.cos(orbit.yaw)); orbit.tx -= (r.x * dx - f.x * dy) * k; orbit.tz -= (r.z * dx - f.z * dy) * k; }
   function pu(e) {
     const tap = downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 6 && performance.now() - downAt.t < 450; ptrs.delete(e.pointerId);
+    if (act && act.kind === "brush") { B.hf = hfEnc(TD.h, TD.p); if (terr) terr.geometry.computeBoundingSphere(); act = null; marks(); changed(); evt("ob-terrain"); return; }
     if (act && (act.kind === "move" || act.kind === "flat" || act.kind === "rot" || act.kind === "scale")) { if (!act.moved) undo.pop(); else { marks(); changed(); pane(); evt("ob-move"); } act = null; return; }
     if (tap && act && act.kind !== "pinch" && act.kind !== "fly") { ray.setFromCamera(ndc(e), cam); const hit = ray.intersectObjects(objs, true).find(pickable), hi = hit ? hit.object.userData.i : -1;
       if ((e.shiftKey || madd) && hi >= 0 && sel >= 0) { if (hi === sel) { const rest = many().filter((i) => i !== sel); msel.clear(); rest.forEach((i) => msel.add(i)); sel = rest.length ? rest[0] : -1; } else if (msel.has(hi)) msel.delete(hi); else msel.add(hi); }
@@ -266,7 +271,8 @@ export function createSceneBuilder(ctx) {
     const n = B.o.filter((q) => q[0] === k).length; if (OB.CAP[k] && n >= OB.CAP[k]) { ctx.toast(esc(T("No more of this piece ({n} at most)", { n: OB.CAP[k] }))); return; }
     if (k === "S" && n) { sel = B.o.findIndex((q) => q[0] === "S"); selShow(); focusSel(); pane(); return; }
     ray.setFromCamera(at || new THREE.Vector2(0, 0), cam); const hit = ray.intersectObjects(objs, true).find(pickable);
-    let p = hit ? hit.point : hitPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)) || new THREE.Vector3(orbit.tx, 0, orbit.tz); if (hit) { const q0 = B.o[hit.object.userData.i]; p = new THREE.Vector3(hit.point.x, q0[2] + q0[6], hit.point.z); }
+    const th = !hit && terr ? ray.intersectObject(terr)[0] : null;
+    let p = hit ? hit.point : th ? th.point : hitPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)) || new THREE.Vector3(orbit.tx, 0, orbit.tz); if (hit) { const q0 = B.o[hit.object.userData.i]; p = new THREE.Vector3(hit.point.x, q0[2] + q0[6], hit.point.z); }
     const K = OB.K[k], O = OB.OPT[k] || [], q = [k, clampAx(1, sn(p.x, 0.5)), clampAx(2, sn(p.y, 0.5)), clampAx(3, sn(p.z, 0.5)), 0, K[1], K[2], K[3], k === "b" ? 0 : 1, O[0] ? O[0][3] : 0, O[1] ? O[1][3] : 0, 0];
     if (k === "t") { const pairs = B.o.filter((x) => x[0] === "t"); const open1 = [1, 2, 3, 4, 5, 6, 7, 8].find((a) => pairs.filter((x) => x[9] === a).length === 1); q[9] = open1 || ([1, 2, 3, 4, 5, 6, 7, 8].find((a) => !pairs.some((x) => x[9] === a)) || 1); }
     push(); B.o.push(q); sel = B.o.length - 1; rebuild(); pop(objs[sel]); changed(); evt("build"); evt("ob-place"); if ("dutnBe".includes(k)) evt("ob-smart"); if (tab !== "prop") { tab = "prop"; paintTabs(); } pane();
@@ -283,7 +289,7 @@ export function createSceneBuilder(ctx) {
   // ---------------- the side panel ----------------
   function paintTabs() { if (!el) return; el.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab)); setMode(mode); const sv = el.querySelector("[data-snapv]"); if (sv) sv.value = !snap ? "off" : String(snapV); }
   const num = (k, v, a, b, st = 0.5, lab = "") => `<label class="wse-num"><span>${esc(lab || k)}</span><input type="number" data-f="${k}" value="${v}" min="${a}" max="${b}" step="${st}"></label>`;
-  function pane() { if (!el) return; const P = el.querySelector(".wse-pane"); P.innerHTML = tab === "prop" ? propPane() : tab === "game" ? gamePane() : tab === "scene" ? scenePane() : tab === "logic" ? logicPane() : tab === "look" ? lookPane() : tab === "ai" ? aiPane() : assetPane(); el.querySelector(".wse-side").dataset.tab = tab;
+  function pane() { if (!el) return; const P = el.querySelector(".wse-pane"); P.innerHTML = tab === "prop" ? propPane() : tab === "game" ? gamePane() : tab === "scene" ? scenePane() : tab === "logic" ? logicPane() : tab === "terrain" ? terrainPane() : tab === "look" ? lookPane() : tab === "ai" ? aiPane() : assetPane(); el.querySelector(".wse-side").dataset.tab = tab;
     if (tab === "logic" && lv === "graph") requestAnimationFrame(() => { graphTag(P, B, NOARG_W); graphWire(P); }); paintTree(); }
   function propPane() {
     const q = B.o[sel]; if (!q) return `<p class="wse-empty">${esc(T("Pick a piece in the view, or add one from the left."))}</p><p class="wse-cnt">${esc(T("{n} of {m} pieces", { n: B.o.length, m: OB.MAX }))}</p>`;
@@ -482,8 +488,11 @@ export function createSceneBuilder(ctx) {
     if (b.hasAttribute("data-save")) return doSave();
     if (b.hasAttribute("data-pub")) return doPublish();
     if (b.hasAttribute("data-hist")) return histOpen();
-    if (b.dataset.handoff) return handoff(b.dataset.handoff === "script" ? "Scripts are easier with a keyboard." : "The logic graph is roomier on a computer.");
+    if (b.dataset.handoff) return handoff(b.dataset.handoff === "script" ? "Scripts are easier with a keyboard." : b.dataset.handoff === "terrain" ? "The terrain brush is made for a mouse." : "The logic graph is roomier on a computer.");
     if (b.dataset.lv) { lv = b.dataset.lv; pane(); return; }
+    if (b.dataset.hfp) { push(); B.hf = b.dataset.hfp === "flat" ? hfEnc(new Float32Array(HF.N * HF.N), null) : hfPreset(b.dataset.hfp, spec.seed || 1); rebuild(); marks(); changed(); pane(); evt("ob-terrain"); return; }
+    if (b.hasAttribute("data-hfoff")) { push(); delete B.hf; rebuild(); marks(); changed(); pane(); return; }
+    if (b.dataset.tool) { brush.tool = b.dataset.tool; pane(); return; }
     if (b.dataset.set) return applySet(b.dataset.set);
     if (b.dataset.feat && sel >= 0) return addComp(sel, b.dataset.feat);
     if (b.dataset.crm && sel >= 0) { push(); const x = xOf(sel); delete x[b.dataset.crm]; xTidy(sel); B = cleanObby(B); refresh(sel); changed(); pane(); return; }
@@ -553,6 +562,7 @@ export function createSceneBuilder(ctx) {
     if (f.hasAttribute("data-sc")) { if (sel < 0) return; const x = xOf(sel), r = edParse(f.value, x.id || 1), ul = el.querySelector(".wse-scerr"); if (ul) ul.innerHTML = r.errs.map((e2) => `<li>${esc(T("Line {n}", { n: e2.line }))}: ${esc(e2.msg)}</li>`).join("") || `<li class="ok">✓ ${esc(T("{n} rules from this script", { n: r.lg.length }))}</li>`; if (e.type === "change") { push(); x.sc = f.value.slice(0, 800); changed(); } return; }
     if (f.hasAttribute("data-tq")) { treeQ = f.value.trim().slice(0, 30); paintTree(); return; }
     if (e.type === "input" && f.tagName === "TEXTAREA") return; if (e.type === "input" && f.type === "number") return; // (numbers apply on change)
+    if (f.hasAttribute("data-bsize")) { brush.size = Math.max(2, Math.min(30, +f.value || 10)); return; } if (f.hasAttribute("data-bstr")) { brush.str = Math.max(1, Math.min(5, +f.value || 2)); return; } if (f.hasAttribute("data-bpaint")) { brush.paint = +f.value || 0; brush.tool = "paint"; pane(); return; }
     if (f.hasAttribute("data-snapv")) { const v = f.value; snap = v !== "off"; snapV = v === "off" ? 0 : +v; return; }
     if (f.hasAttribute("data-cadd")) { const c2 = f.value; f.value = ""; if (c2 && sel >= 0) addComp(sel, c2); return; }
     if (f.dataset.cf && sel >= 0) { const [c2, j] = f.dataset.cf.split(":"); push(); const x = xOf(sel); if (!x[c2]) return; x[c2][+j] = f.type === "checkbox" ? (f.checked ? 1 : 0) : Number(f.value) || 0; B = cleanObby(B); refresh(sel); marks(); changed(); if (f.tagName === "SELECT" || f.type === "checkbox") pane(); return; }
@@ -621,6 +631,25 @@ export function createSceneBuilder(ctx) {
     if (B.o.length + add.length > OB.MAX) { ctx.toast(esc(T("A course holds up to {n} pieces", { n: OB.MAX }))); return; }
     push(); const n0 = B.o.length; B.o.push(...add); B = cleanObby(B); sel = Math.min(B.o.length - 1, n0); msel.clear(); for (let j = n0 + 1; j < B.o.length; j++) msel.add(j); rebuild(); changed(); tab = "prop"; paintTabs(); pane(); evt("ob-set");
     if (id === "doorbtn") ctx.toast("🚪 " + esc(T("Step on the button to open the door — they share channel {c}", { c: ch }))); }
+  // ---------------- ED4: the terrain — presets, the brush (raise · lower · flatten · smooth · paint) ----------------
+  function terrainPane() {
+    const tools = [["raise", "⬆", "Raise"], ["lower", "⬇", "Lower"], ["flat", "▬", "Flatten"], ["smooth", "≈", "Smooth"], ["paint", "🖌", "Paint"]];
+    return `<p class="wse-help">${esc(T(phone() ? "Pick a ready-made ground here; shaping it with the brush is easier on a computer." : "Pick a ready-made ground, then hold the left button in the view and paint: raise, lower, flatten, smooth or paint the ground. Alt + drag still turns the camera."))}</p>
+      <h5>${esc(T("Ready-made grounds"))}</h5><div class="wse-chips">${[["flat", "Flat"], ["hills", "Rolling hills"], ["valley", "Valley"], ["island", "Island"], ["ridges", "Ridges"]].map(([k, n]) => `<button type="button" data-hfp="${k}">${esc(T(n))}</button>`).join("")}${B.hf ? `<button type="button" data-hfoff>✕ ${esc(T("No terrain"))}</button>` : ""}</div>
+      ${phone() ? `<p class="wse-pcn">💻 ${esc(T("The terrain brush is made for a mouse."))} <button type="button" class="wsb-b alt" data-handoff="terrain">${esc(T("Continue on a PC"))}</button></p>` : `<h5>${esc(T("Brush"))}</h5><div class="wse-chips wse-tools">${tools.map(([k, ic, n]) => `<button type="button" data-tool="${k}" class="${brush.tool === k ? "on" : ""}">${ic} ${esc(T(n))}</button>`).join("")}</div>
+      <div class="wse-row3">${num("bsize", brush.size, 2, 30, 1, T("Size (m)")).replace('data-f="bsize"', "data-bsize")}${num("bstr", brush.str, 1, 5, 1, T("Strength")).replace('data-f="bstr"', "data-bstr")}<label class="wse-sel"><span>${esc(T("Paint"))}</span><select data-bpaint>${HF.PAINT.map((n, j) => `<option value="${j}"${j === brush.paint ? " selected" : ""}>${esc(T(n))}</option>`).join("")}</select></label></div>`}
+      <p class="wse-cnt">${esc(T(B.hf ? "The ground is a terrain: players and walkers stand on it, and it replaces the baseplate." : "No terrain yet — the course floats (or stands on the baseplate)."))}</p>`; }
+  function brushAt(e) {
+    if (!TD) return; ray.setFromCamera(ndc(e), cam); const hit = terr ? ray.intersectObject(terr)[0] : null, pt = hit ? hit.point : hitPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)); if (!pt) return;
+    const N = HF.N, st = (2 * OB.R) / (N - 1), r = brush.size, k0 = brush.str * 0.06, H = TD.h, pos = terr && terr.geometry.attributes.position, col = terr && terr.geometry.attributes.color, c = new THREE.Color();
+    if (act && act.h0 == null) act.h0 = pt.y;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = -OB.R + i * st, z = -OB.R + j * st, d = Math.hypot(x - pt.x, z - pt.z); if (d > r) continue; const n = j * N + i, f = (1 - d / r) ** 2 * k0;
+      if (brush.tool === "raise") H[n] += f * 2; else if (brush.tool === "lower") H[n] -= f * 2; else if (brush.tool === "flat") H[n] += ((act ? act.h0 : pt.y) - H[n]) * Math.min(1, f * 3);
+      else if (brush.tool === "smooth") { let s2 = 0, m = 0; for (const [a, b] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { const ii = i + a, jj = j + b; if (ii >= 0 && jj >= 0 && ii < N && jj < N) { s2 += H[jj * N + ii]; m++; } } H[n] += (s2 / m - H[n]) * Math.min(1, f * 4); }
+      else if (brush.tool === "paint") TD.p[n] = brush.paint;
+      H[n] = Math.max(HF.MIN / 2, Math.min(HF.MAX / 2, H[n])); if (pos) pos.setY(n, H[n]); if (col) { obTerrainCol(n, TD, c); col.setXYZ(n, c.r, c.g, c.b); } }
+    if (!terr) { terr = obTerrain(THREE, TD, false); scene.add(terr); } else { pos.needsUpdate = true; col.needsUpdate = true; terr.geometry.computeVertexNormals(); }
+    if (bp) bp.visible = false; dirty = true; }
   // ---------------- ED2: simulate in the view (the moving pieces move; stop puts everything back) ----------------
   function simToggle() { simOn = !simOn; simT0 = performance.now(); if (!simOn) rebuild(); else { selBox.visible = false; gizmo.root.visible = false; } el.querySelectorAll("[data-sim]").forEach((x) => x.classList.toggle("on", simOn)); if (simOn) evt("ob-sim"); dirty = true; }
   function simTick(t) {

@@ -11,7 +11,7 @@
 // THEN … rules on two counters, a phase, the channels and the groups. The look preset sets the sky, light, fog, a grade
 // and the camera; the UI kit picks the HUD's pieces; the cinematics an intro fly-over, a boss's entrance and the clear's
 // slow motion.
-import { OB, OBJ, THEMES, genLevel, obSpeed, CMP_SND } from "./world-studio-gen.js";
+import { OB, OBJ, THEMES, genLevel, obSpeed, CMP_SND, HF, hfDec, hfAt } from "./world-studio-gen.js";
 import { makePad } from "./world-studio-pad.js";
 import { look as themeLook } from "./world-studio-look.js";
 
@@ -61,6 +61,15 @@ export function obMats(THREE, th, lk) {
   return { get, setTheme(t) { themeTex = t; for (const m of cache.values()) if (m.userData.surf === 3) { m.map = t; m.needsUpdate = true; } }, all: () => [...cache.values()], th };
 }
 
+/// ED4: the terrain's mesh (the editor's and the run's): the heightfield's grid, coloured by its paint
+const HF_COL = [0x5aa05a, 0xe2c98a, 0x8a8f99, 0xf2f6fb, 0x8a6a48];
+export function obTerrain(THREE, d, low) {
+  const N = HF.N, geo = new THREE.PlaneGeometry(OB.R * 2, OB.R * 2, N - 1, N - 1).rotateX(-Math.PI / 2), pos = geo.attributes.position, col = new Float32Array(N * N * 3), c = new THREE.Color();
+  for (let i = 0; i < N * N; i++) { pos.setY(i, d.h[i]); c.setHex(HF_COL[d.p[i]] || HF_COL[0]); c.multiplyScalar(0.85 + ((i * 7919) % 13) / 80); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, low ? new THREE.MeshLambertMaterial({ vertexColors: true }) : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 })); m.userData.terrain = true; return m;
+}
+export const obTerrainCol = (i, d, c) => c.setHex(HF_COL[d.p[i]] || HF_COL[0]).multiplyScalar(0.85 + ((i * 7919) % 13) / 80);
 export async function makeObby(o, env) {
   const { ctx, THREE, T, esc, makeFx, result } = env, { st } = ctx, spec = o.spec, L = genLevel(spec), B = L.B, th = THEMES[spec.theme] || THEMES.neon;
   const LK = LOOKS[B.lk] || LOOKS.day, ver = ctx.ver || "", low = !!(ctx.low || ctx.coarse);
@@ -72,7 +81,8 @@ export async function makeObby(o, env) {
   themeLook(THREE, spec.theme, { ver, low }).then((lk) => { if (!scene.userData.live || !lk.wall) return; const t = lk.wall.clone(); t.repeat.set(1, 1); t.needsUpdate = true; MT.setTheme(t); if (bpM && lk.track && !low) { const t2 = lk.track.clone(); t2.repeat.set(40, 40); t2.needsUpdate = true; bpM.map = t2; bpM.color.set(0xffffff); bpM.needsUpdate = true; } }).catch(() => {});
   const hidden = new Set(B.hg), Q = new THREE.Quaternion(), E = new THREE.Euler(), M4 = new THREE.Matrix4(), V3 = new THREE.Vector3(), S3 = new THREE.Vector3();
   const mat4 = (x, y, z, ry, sx, sy, sz) => { E.set(0, (ry * Math.PI) / 180, 0); Q.setFromEuler(E); return M4.compose(V3.set(x, y, z), Q, S3.set(sx, sy, sz)); };
-  // ---- the baseplate ----
+  // ---- the terrain (ED4) or the baseplate ----
+  const TD = hfDec(B.hf); if (TD) { B.bp = 0; scene.add(obTerrain(THREE, TD, low)); }
   let bpM = null; if (B.bp) { bpM = low ? new THREE.MeshLambertMaterial({ color: 0x7a8a9a }) : new THREE.MeshStandardMaterial({ color: 0x7a8a9a, roughness: 0.9 }); /* (low graphics / phones: a plain lit floor — the textured one filled the screen at half the frame rate) */ const bp = new THREE.Mesh(new THREE.BoxGeometry(OB.R * 2 + 20, 1, OB.R * 2 + 20), bpM); bp.position.y = -0.5; scene.add(bp); }
   // ---- the static pieces: one InstancedMesh a shape + material (blocks, round platforms, ramps); the rest one by one ----
   // ED1 (the editor's components on any piece: world-studio-gen.js CMP): a piece that carries one is drawn on its own
@@ -284,7 +294,7 @@ export async function makeObby(o, env) {
   function crateBlocked(t, np) { for (const s of near(np.x, np.z, NB2)) { if (!s.on || s.t === t || s.k === "c" || s.k === "S" || s.k === "g" || s.k === "p" || s.k === "H") continue; const o2 = s.t ? s.t.obj.position : s; const top = o2.y + s.sy;
       if (top <= np.y + 0.2 || o2.y >= np.y + t.sy - 0.1) continue; if (Math.abs(np.x - o2.x) < (t.sx + Math.max(s.sx, s.sz)) / 2 - 0.05 && Math.abs(np.z - o2.z) < (t.sz + Math.max(s.sx, s.sz)) / 2 - 0.05) return true; } return false; }
   // what a crate rests on (the highest top under its middle), for its fall
-  function restOf(t, p = t.obj.position) { let y = B.bp ? 0 : -1e9; for (const s of near(p.x, p.z, NB3)) { if (!s.on || s.t === t) continue; const o2 = s.t ? s.t.obj.position : s, top = o2.y + s.sy; if (top > p.y + 0.3) continue;
+  function restOf(t, p = t.obj.position) { let y = B.bp ? 0 : TD ? hfAt(TD, p.x, p.z) : -1e9; for (const s of near(p.x, p.z, NB3)) { if (!s.on || s.t === t) continue; const o2 = s.t ? s.t.obj.position : s, top = o2.y + s.sy; if (top > p.y + 0.3) continue;
       if (s.k === "H") { const d = Math.hypot(p.x - o2.x, p.z - o2.z), Rh = s.sx / 2; if (d < Rh) y = Math.max(y, o2.y + s.sy * Math.sqrt(1 - (d / Rh) ** 2)); continue; }
       if (Math.abs(p.x - o2.x) < Math.max(s.sx, s.sz) / 2 && Math.abs(p.z - o2.z) < Math.max(s.sx, s.sz) / 2) y = Math.max(y, top); } return y; }
   function collide(p, v, dt, prevY) {
@@ -310,6 +320,7 @@ export async function makeObby(o, env) {
       const ox = hw + HR - Math.abs(lx), oz = hd + HR - Math.abs(lz); let nx = lx, nz = lz; if (ox < oz) nx = Math.sign(lx || 1) * (hw + HR); else nz = Math.sign(lz || 1) * (hd + HR);
       const bx0 = t ? t.obj.position.x : sx0, bz0 = t ? t.obj.position.z : sz0; p.x = bx0 + nx * c + nz * sn; p.z = bz0 - nx * sn + nz * c; }
     if (B.bp && p.y <= 0 && Math.abs(p.x) < OB.R + 10 && Math.abs(p.z) < OB.R + 10) { p.y = 0; if (v.y < 0) v.y = 0; ground = ground || { k: "bp", surf: 0 }; }
+    if (TD) { const h = hfAt(TD, p.x, p.z); if (h > -1e8 && p.y <= h + 0.05 && (p.y >= h - 1.6 || prevY >= h - 0.9) && v.y <= 0.5 && (!ground || p.y <= h + 0.05)) { p.y = h; v.y = Math.min(0, v.y); ground = ground || { k: "T", surf: 0 }; } } // (the terrain under you)
     return ground;
   }
   const inBox = (t, p, pad = 0, h = 1.2) => { const r = (t.ry * Math.PI) / 180, c = Math.cos(r), sn = Math.sin(r), dx = p.x - t.obj.position.x, dz = p.z - t.obj.position.z, lx = dx * c - dz * sn, lz = dx * sn + dz * c;
@@ -419,7 +430,7 @@ export async function makeObby(o, env) {
       if (hero && !(hero.busy && hero.busy())) { const hs = Math.hypot(S.v.x, S.v.z), want2 = S.swim ? (hs > 0.6 ? "walk" : "idle") : board && S.ground ? "idle" : !S.ground && (S.air > 0.15 || S.v.y > 1) ? (S.v.y > 0 ? "jump" : "fall") : hs > spd * 1.15 ? "sprint" : hs > 0.6 ? "walk" : "idle";
         if (want2 !== S.clip || want2 === "walk") { S.clip = want2; try { hero.play(want2, want2 === "walk" ? { speed: Math.max(0.8, hs / 6.5) } : {}); } catch { /* no clip */ } } }
   }
-  let minY = Math.min(0, ...B.o.map((q) => q[2])); if (B.bp) minY = Math.min(minY, -2);
+  let minY = Math.min(0, ...B.o.map((q) => q[2])); if (B.bp) minY = Math.min(minY, -2); if (TD) minY = Math.min(minY, Math.min(...TD.h) - 2);
   const mapCv = $(".wso-map"), mg = mapCv ? mapCv.getContext("2d") : null;
   function map() { if (((performance.now() / 120) | 0) === map.f) return; map.f = (performance.now() / 120) | 0; const k = 60 / OB.R; mg.clearRect(0, 0, 120, 120); mg.fillStyle = "rgba(6,12,30,.6)"; mg.beginPath(); mg.arc(60, 60, 58, 0, 7); mg.fill();
     for (const q of B.o) { if (q[0] === "o" || q[0] === "x") continue; mg.fillStyle = q[0] === "g" ? "#ffd23a" : q[0] === "c" ? "#7cf5c8" : q[0] === "k" ? "#ff5a2a" : q[0] === "B" ? "#ff3b5c" : q[0] === "W" ? "rgba(60,140,255,.6)" : q[0] === "H" ? "rgba(80,190,110,.6)" : "rgba(220,235,255,.55)"; const w = Math.max(2, q[5] * k), h = Math.max(2, q[7] * k); mg.fillRect(60 + q[1] * k - w / 2, 60 + q[3] * k - h / 2, w, h); }

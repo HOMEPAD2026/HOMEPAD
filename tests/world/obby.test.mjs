@@ -211,6 +211,15 @@ check([...db.keys()].every((k) => /^[^/]+\/[^/]+$/.test(k)), "every document is 
   check(JSON.stringify(obParse(obScript(sc.lg)).lg) === JSON.stringify(sc.lg), "and round-trips them");
   check(Object.keys(CMP).length === 10 && OBN.b === "Block", "ten components");
   const many = cleanObby({ ob: 1, o: Array.from({ length: 9 }, (_, i) => ["b", i * 5, 0, 0, 0, 4, 1, 4, 0, 0, 0, 0, { lt: [1, 2], sw: [5, 2, 0] }]) });
-  check(many.o.filter((q) => q[12] && q[12].lt).length === 6 && many.o.filter((q) => q[12] && q[12].sw).length === 6, "at most 6 lights and 6 spawners a course"); }
+  check(many.o.filter((q) => q[12] && q[12].lt).length === 6 && many.o.filter((q) => q[12] && q[12].sw).length === 6, "at most 6 lights and 6 spawners a course");
+  // ED4: terrain
+  const { HF, hfDec, hfEnc, hfAt, hfPreset, obBudget } = G;
+  const hp = hfPreset("hills", 3), dh = hfDec(hp); check(hp.h.length === HF.N * HF.N && dh.h.some((v) => v > 1), "a hills preset has height");
+  check(JSON.stringify(hfEnc(dh.h, dh.p)) === JSON.stringify(hp), "the terrain round-trips");
+  const z = new Float32Array(HF.N * HF.N); z[HF.N * 16 + 16] = 10; const dz = hfDec(hfEnc(z, null)); check(Math.abs(hfAt(dz, 0, 0) - 10) < 0.01 && hfAt(dz, 0, 2.5) < 10 && hfAt(dz, 0, 2.5) > 0 && hfAt(dz, 500, 0) < -1e8, "the height under a point is blended between vertices");
+  const CB = cleanObby({ ob: 1, o: [["S", 0, 0, 0, 0, 3, 0.3, 3, 1, 0, 0, 0]], hf: { h: "zz<>" + "0".repeat(5000), p: "9" } });
+  check(CB.hf && CB.hf.h.length === HF.N * HF.N && !/[<>]/.test(CB.hf.h) && /^[0-4]+$/.test(CB.hf.p), "a course keeps a cleaned terrain");
+  check(!cleanObby({ ob: 1, o: [] }).hf && obReach(cleanObby({ ob: 1, o: [["S", 0, 0, 0, 0, 3, 0.3, 3, 1, 0, 0, 0], ["E", 20, 0, 0, 0, 1, 1, 1, 0, 3, 0, 0]], win: "enemies", md: "combat", hf: hp }), clampSpec({ tpl: "obby" })).T.some((t) => t.k === "bp"), "no terrain unless made; a terrain counts as a floor for the reach check");
+  check(obBudget({ o: [], hf: hp }).tris === HF.N * HF.N * 2, "the terrain counts in the phone budget"); }
 console.log("");
 console.log(`\n${ok} pass ${bad} fail`); process.exit(bad ? 1 : 0);
