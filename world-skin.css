@@ -6204,7 +6204,7 @@ body.rq-phase canvas{animation:rqGrey 1.4s ease both}
 .wse-qbar[data-mode=move] .wse-qn,.wse-qbar[data-mode=rot] .wse-qn,.wse-qbar[data-mode=scale] .wse-qn{display:flex}
 .wse-qbar[data-mode=move] [data-qn^=r],.wse-qbar[data-mode=move] [data-qn^=s],.wse-qbar[data-mode=rot] [data-qn^=x],.wse-qbar[data-mode=rot] [data-qn^=y],.wse-qbar[data-mode=rot] [data-qn^=z],.wse-qbar[data-mode=rot] [data-qn^=s],.wse-qbar[data-mode=scale] [data-qn^=x],.wse-qbar[data-mode=scale] [data-qn^=y],.wse-qbar[data-mode=scale] [data-qn^=z],.wse-qbar[data-mode=scale] [data-qn^=r]{display:none}
 .wse-qn button{flex:1;justify-content:center;min-width:32px;background:rgba(255,255,255,.05)}
-.wse-qbar.ph{max-width:none;padding:7px}.wse-qbar.ph button{height:42px;min-width:44px;padding:0 10px;font-size:13px}.wse-qbar.ph button span{display:inline}.wse-qbar.ph .wse-qn button{height:44px;font-size:17px}
+.wse-qbar.ph{max-width:calc(100% - 16px);box-sizing:border-box;padding:7px}.wse-qbar.ph .wse-qn{flex:1 1 100%;gap:4px}.wse-qbar.ph .wse-qn button{flex:1 1 0;min-width:0;padding:0 2px}.wse-qbar.ph button{height:42px;min-width:44px;padding:0 10px;font-size:13px}.wse-qbar.ph button span{display:inline}.wse-qbar.ph .wse-qn button{height:44px;font-size:17px}
 .wse-aipv{position:absolute;right:12px;top:12px;z-index:7;width:min(320px,calc(100% - 24px))}
 .wse-pv{padding:12px 14px;border-radius:14px;background:rgba(14,17,21,.94);border:1px solid rgba(255,210,58,.45);box-shadow:0 14px 34px rgba(0,0,0,.5);color:#e8edf2;font:500 13px/1.4 Sora,"Noto Sans KR",sans-serif;animation:wseQb .2s ease-out}
 .wse-pane .wse-pv{margin-bottom:12px}

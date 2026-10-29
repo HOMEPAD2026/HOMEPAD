@@ -24,7 +24,8 @@ export function makeCoach({ T, esc, img, builder, onEnd }) {
   let i = Math.max(0, Math.min(COACH.length - 1, Number(get(KEY, 0)) || 0)), lit = [], gone = false;
   const el = document.createElement("div"); el.className = "wsc"; el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite"); document.body.appendChild(el);
   const unlight = () => { for (const x of lit) x.classList.remove("wse-coachhi"); lit = []; };
-  const light = (sel) => { unlight(); const root = (builder.el && builder.el()) || document; root.querySelectorAll(sel).forEach((x) => { x.classList.add("wse-coachhi"); lit.push(x); }); };
+  const light = (sel, n = 0) => { unlight(); if (gone) return; const root = (builder.el && builder.el()) || document; root.querySelectorAll(sel).forEach((x) => { x.classList.add("wse-coachhi"); lit.push(x); });
+    if (!lit.length && n < 60) setTimeout(() => { if (COACH[i] && COACH[i][2] === sel) light(sel, n + 1); }, 250); }; // (the canvas / a pane may still be on its way)
   function paint(ok) {
     if (gone) return; const [h, , sel, t, line] = COACH[i];
     el.innerHTML = `<div class="wsc-who" style="background-image:url('${img(h + "-full")}')"></div><div class="wsc-card${ok ? " wsc-ok" : ""}"><small><span>${esc(h.toUpperCase())} · ${esc(T("Step {a} of {b}", { a: i + 1, b: COACH.length }))}</span><span>${esc(T("Learn by doing"))}</span></small>
