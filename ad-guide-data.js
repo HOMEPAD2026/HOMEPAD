@@ -6,7 +6,7 @@
 // Each guide: { title, lead, parts: [{ icon, h, p?, steps?: [[icon, title, text]], tips?: [text] }] }
 window.ARC_AD_GUIDE = {
   en: {
-    tabs: { ad: "AGENT DIMENSION", beta: "Studio Beta" }, title: "How to use", open: "Open", close: "Close", more: "More",
+    tabs: { ad: "AGENT DIMENSION", beta: "Studio" }, title: "How to use", open: "Open", close: "Close", more: "More",
     ad: {
       title: "AGENT DIMENSION — the guide",
       lead: "Your own AI agent: it walks with you, talks with you, runs errands and plays in the Agent Arena. Here's everything in a few minutes.",
@@ -32,7 +32,7 @@ window.ARC_AD_GUIDE = {
           ["🛰️", "Errand Port", "Send errands and watch the job board. Working agents are seen at the Bio Garden, Ore Refinery and Scout Deck."],
           ["🏦", "Vault Tower", "The vault (coming soon)."],
           ["🏟️", "Agent Arena", "Quiz duels with your agent (below)."],
-          ["🎮", "ARCIRCLE Studio", "Make your own games — the Studio is in Creator City now (the Studio by the fountain): see the Studio Beta guide."],
+          ["🎮", "ARCIRCLE Studio", "Make your own games — the Studio is in Creator City now (the Studio by the fountain): see the Studio guide."],
           ["📚", "Agent Academy", "Lessons, coming soon."] ] },
         { icon: "🏟️", h: "5. Agent Arena", steps: [
           ["❓", "How it works", "7 questions, 15 seconds each. Fast and right scores the most."],
@@ -43,7 +43,7 @@ window.ARC_AD_GUIDE = {
       ],
     },
     beta: {
-      title: "ARCIRCLE STUDIO BETA — the guide",
+      title: "ARCIRCLE STUDIO — the guide",
       lead: "Make your own game with no code, publish it, and let the whole world play it — in Creator City, the makers' own land. Here's everything, step by step.",
       parts: [
         { icon: "🚪", h: "1. Getting to Creator City", steps: [
@@ -99,12 +99,12 @@ window.ARC_AD_GUIDE = {
           "Your stats show where runs end — fix that spot first.",
           "Give it a title that says what it is: \"Lava Run\", \"Ice Maze 3\".",
           "Share your page and challenge friends: plays and likes lift your game in the arcade.",
-          "It's a beta: games don't pay ARCL yet; plays, likes and best runs are counted from day one." ] },
+          "Games don't pay ARCL yet; plays, likes and best runs are counted from day one." ] },
       ],
     },
   },
   ko: {
-    tabs: { ad: "AGENT DIMENSION", beta: "스튜디오 베타" }, title: "사용 방법", open: "열기", close: "닫기", more: "더 보기",
+    tabs: { ad: "AGENT DIMENSION", beta: "스튜디오" }, title: "사용 방법", open: "열기", close: "닫기", more: "더 보기",
     ad: {
       title: "AGENT DIMENSION 사용 설명서",
       lead: "나만의 AI 에이전트: 함께 걷고, 대화하고, 심부름을 하고, 에이전트 아레나에서 겨뤄요. 몇 분이면 다 알 수 있어요.",
@@ -141,7 +141,7 @@ window.ARC_AD_GUIDE = {
       ],
     },
     beta: {
-      title: "ARCIRCLE STUDIO BETA — 가이드",
+      title: "ARCIRCLE STUDIO — 가이드",
       lead: "코드 없이 나만의 게임을 만들고, 공개하고, 전 세계가 플레이하게 하세요. 제작자들의 땅, 크리에이터 시티에서. 처음부터 끝까지 차근차근 알려드릴게요.",
       parts: [
         { icon: "🚪", h: "1. 크리에이터 시티 가는 법", steps: [
@@ -197,12 +197,12 @@ window.ARC_AD_GUIDE = {
           "통계에 사람들이 어디서 끝나는지 나와요. 거기부터 고치세요.",
           "제목은 무슨 게임인지 알 수 있게: \"용암 질주\", \"얼음 미로 3\".",
           "내 페이지를 공유하고 친구에게 도전하세요. 플레이와 좋아요가 아케이드 순위를 올려요.",
-          "베타라서 아직 게임으로 ARCL이 지급되지 않아요. 플레이, 좋아요, 최고 기록은 첫날부터 집계돼요." ] },
+          "아직 게임으로 ARCL이 지급되지 않아요. 플레이, 좋아요, 최고 기록은 첫날부터 집계돼요." ] },
       ],
     },
   },
   zh: {
-    tabs: { ad: "AGENT DIMENSION", beta: "Studio Beta" }, title: "使用方法", open: "打开", close: "关闭", more: "更多",
+    tabs: { ad: "AGENT DIMENSION", beta: "Studio" }, title: "使用方法", open: "打开", close: "关闭", more: "更多",
     ad: {
       title: "AGENT DIMENSION 使用指南",
       lead: "你自己的 AI 智能体：陪你同行、和你聊天、替你跑任务，还能在智能体竞技场比拼。几分钟就能全部了解。",
@@ -228,7 +228,7 @@ window.ARC_AD_GUIDE = {
           ["🛰️", "任务港", "派出任务、查看任务板。工作中的智能体会出现在生物花园、矿石精炼厂和侦察台。"],
           ["🏦", "金库塔", "金库（即将推出）。"],
           ["🏟️", "智能体竞技场", "和智能体一起答题对决（见下）。"],
-          ["🎮", "ARCIRCLE Studio", "制作你自己的游戏——工作室现在在 Creator City（喷泉旁的工作室）：见 Studio Beta 指南。"],
+          ["🎮", "ARCIRCLE Studio", "制作你自己的游戏——工作室现在在 Creator City（喷泉旁的工作室）：见 Studio 指南。"],
           ["📚", "智能体学院", "课程，即将推出。"] ] },
         { icon: "🏟️", h: "5. 智能体竞技场", steps: [
           ["❓", "玩法", "7 道题，每题 15 秒。答得又快又对得分最高。"],
@@ -239,7 +239,7 @@ window.ARC_AD_GUIDE = {
       ],
     },
     beta: {
-      title: "ARCIRCLE STUDIO BETA — 指南",
+      title: "ARCIRCLE STUDIO — 指南",
       lead: "无需代码，制作属于你的游戏，发布出去，让全世界来玩——就在创作者的城市 Creator City。下面一步一步告诉你全部内容。",
       parts: [
         { icon: "🚪", h: "1. 前往 Creator City", steps: [
@@ -295,12 +295,12 @@ window.ARC_AD_GUIDE = {
           "统计会显示大家在哪里结束——先改那里。",
           "标题要说明是什么游戏：「熔岩跑酷」「冰雪迷宫 3」。",
           "分享你的页面、挑战朋友：游玩和点赞会让你的游戏在街机厅排名上升。",
-          "这是测试版：游戏暂不发放 ARCL；游玩、点赞和最佳成绩从第一天起就会统计。" ] },
+          "游戏暂不发放 ARCL；游玩、点赞和最佳成绩从第一天起就会统计。" ] },
       ],
     },
   },
   tr: {
-    tabs: { ad: "AGENT DIMENSION", beta: "Stüdyo Beta" }, title: "Nasıl kullanılır", open: "Aç", close: "Kapat", more: "Daha fazla",
+    tabs: { ad: "AGENT DIMENSION", beta: "Stüdyo" }, title: "Nasıl kullanılır", open: "Aç", close: "Kapat", more: "Daha fazla",
     ad: {
       title: "AGENT DIMENSION rehberi",
       lead: "Kendi yapay zekâ ajanın: seninle yürür, konuşur, görevlere gider ve Ajan Arenası'nda yarışır. Hepsi birkaç dakikada.",
@@ -326,7 +326,7 @@ window.ARC_AD_GUIDE = {
           ["🛰️", "Görev Limanı", "Görev gönder, iş panosunu izle. Çalışan ajanlar Biyo Bahçe, Cevher Rafinerisi ve Keşif Güvertesi'nde görünür."],
           ["🏦", "Kasa Kulesi", "Kasa (yakında)."],
           ["🏟️", "Ajan Arenası", "Ajanınla bilgi yarışması (aşağıda)."],
-          ["🎮", "ARCIRCLE Studio", "Kendi oyunlarını yap — Stüdyo artık Creator City'de (çeşmenin yanındaki Stüdyo): Stüdyo Beta rehberine bak."],
+          ["🎮", "ARCIRCLE Studio", "Kendi oyunlarını yap — Stüdyo artık Creator City'de (çeşmenin yanındaki Stüdyo): Stüdyo rehberine bak."],
           ["📚", "Ajan Akademisi", "Dersler, yakında."] ] },
         { icon: "🏟️", h: "5. Ajan Arenası", steps: [
           ["❓", "Nasıl oynanır", "7 soru, her biri 15 saniye. Hızlı ve doğru olan en çok puanı alır."],
@@ -337,7 +337,7 @@ window.ARC_AD_GUIDE = {
       ],
     },
     beta: {
-      title: "ARCIRCLE STUDIO BETA — rehber",
+      title: "ARCIRCLE STUDIO — rehber",
       lead: "Kod yazmadan kendi oyununu yap, yayınla ve tüm dünya oynasın — yapımcıların kendi diyarı Creator City'de. Her şey adım adım burada.",
       parts: [
         { icon: "🚪", h: "1. Creator City'ye gitmek", steps: [
@@ -393,7 +393,7 @@ window.ARC_AD_GUIDE = {
           "İstatistiklerin koşuların nerede bittiğini gösterir — önce orayı düzelt.",
           "Başlık ne olduğunu söylesin: \"Lav Koşusu\", \"Buz Labirenti 3\".",
           "Sayfanı paylaş ve arkadaşlarına meydan oku: oynanma ve beğeniler oyununu salonda yukarı taşır.",
-          "Bu bir beta: oyunlar henüz ARCL ödemiyor; oynanma, beğeni ve en iyi koşular ilk günden sayılıyor." ] },
+          "Oyunlar henüz ARCL ödemiyor; oynanma, beğeni ve en iyi koşular ilk günden sayılıyor." ] },
       ],
     },
   },

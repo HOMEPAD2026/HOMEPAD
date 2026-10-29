@@ -462,7 +462,8 @@ export function createSceneBuilder(ctx) {
   }
   function assetPane() {
     const mine = ctx.assets && ctx.assets.list ? ctx.assets.list() : [];
-    return `<h5>${esc(T("Meshy props"))}</h5><p class="wse-help">${esc(T("Made with Meshy and packed light for phones. Tap one to place it."))}</p><div class="wse-props">${OB.PROPS.map((p, j) => `<button type="button" data-prop="${j}">${esc(p[0])}</button>`).join("")}</div>
+    const shop = ctx.assets && ctx.assets.store ? ctx.assets.store() : [];
+    return `${shop.length ? `<h5>${esc(T("From the Asset Store"))}</h5><p class="wse-help">${esc(T("Free models and the premium ones you own. Tap one to place it."))}</p><div class="wse-props">${shop.map((a) => `<button type="button" data-myasset="${esc(a.id)}">${esc(a.name)}</button>`).join("")}</div>` : ""}<h5>${esc(T("Meshy props"))}</h5><p class="wse-help">${esc(T("Made with Meshy and packed light for phones. Tap one to place it."))}</p><div class="wse-props">${OB.PROPS.map((p, j) => `<button type="button" data-prop="${j}">${esc(p[0])}</button>`).join("")}</div>
       <h5>${esc(T("Make your own with Meshy"))}</h5>${ctx.assets ? `<p class="wse-help">${esc(T("Describe a prop — it is made as a light 3D model (a triangle budget for phones) and lands in this list. A few a day."))}</p>
       <textarea data-asset rows="2" maxlength="160" placeholder="${esc(T("a glowing crystal tree"))}"></textarea><div class="wse-acts"><button type="button" class="wsb-b go" data-amake>✨ ${esc(T("Make it"))}</button><span class="wse-astat"></span></div>
       <div class="wse-props">${mine.map((a) => `<button type="button" data-myasset="${esc(a.id)}"${a.ready ? "" : " disabled"}>${esc(a.name)}${a.ready ? "" : " ⏳"}</button>`).join("") || `<p class="wse-empty">${esc(T("Nothing made yet."))}</p>`}</div>` : `<p class="wse-empty">${esc(T("Sign in to make your own."))}</p>`}`;

@@ -28,7 +28,7 @@ export function makeGate({ T = (s) => s, esc = (s) => s, coarse = false, onBack 
     el = document.createElement("div"); el.className = "wsg" + (canLock() ? "" : " manual"); el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
     el.style.setProperty("--art", `url("/images/cc/gate-tall.webp${ver}"), url("/images/gw/key-cc.webp${ver}")`);
     el.innerHTML = `<div class="wsg-art" aria-hidden="true"></div><div class="wsg-glow" aria-hidden="true"></div>
-      <div class="wsg-top"><small>ARCIRCLE STUDIO BETA</small><span>${esc(T(place))}</span></div>
+      <div class="wsg-top"><small>ARCIRCLE STUDIO</small><span>${esc(T(place))}</span></div>
       <div class="wsg-in">
         <div class="wsg-ph" aria-hidden="true"><i class="wsg-phone"><em></em></i><svg viewBox="0 0 120 120"><path d="M20 70 A44 44 0 0 1 86 26" /><path class="hd" d="M78 16 L90 26 L76 34" /></svg></div>
         <b>${esc(T("Turn your phone sideways"))}</b>

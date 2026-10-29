@@ -44,6 +44,14 @@ async function signIn() {
   if (!r.ok) throw new Error((r.j && r.j.error) || T("Sign-in failed"));
   localStorage.setItem(SESS, JSON.stringify({ wallet: a, issued, signature })); return true;
 }
+// a transaction from the signed-in wallet on Arc (the Studio's asset store pays with it)
+async function walletTx(to, data) {
+  const AC = window.arcConnect, s = sess(); if (!AC || !s) throw new Error(T("Wallet connect isn't available here."));
+  if (!AC.live || !AC.live()) await AC.connect();
+  const a = String((AC.address && AC.address()) || "").toLowerCase(); if (a !== String(s.wallet).toLowerCase()) throw new Error(T("Switch your wallet to the one you signed in with ({w})", { w: String(s.wallet).slice(0, 6) + "…" + String(s.wallet).slice(-4) }));
+  const prov = await AC.provider(); try { await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x13b2" }] }); } catch (e2) { if (e2 && e2.code === 4001) throw e2; }
+  return prov.request({ method: "eth_sendTransaction", params: [{ from: a, to, data }] });
+}
 const signed = async (body) => { let s = sess(); if (!s) { await signIn(); s = sess(); } return post({ ...body, wallet: s.wallet, issued: s.issued, signature: s.signature }); };
 
 // ---------------- the page ----------------
@@ -154,7 +162,7 @@ async function makeHost() {
   const gate = PAD.makeGate({ T, esc, coarse, ver: VER, place: D.game ? D.game.title : "ARCIRCLE Studio", line: "This game is made for landscape — turn your phone to play.", back: "Back to the game's page", onBack: () => { const g = host && host.studio.playing && host.studio.playing(); if (g && g.leave) g.leave(); else done(); } });
   mark("sg:pre-studio");
   const studio = ST.createStudio({ THREE: K.THREE, K, st, T, esc, toast: (m) => toast(m), Snd, reduce: matchMedia("(prefers-reduced-motion: reduce)").matches, ver: VER, isGM: () => false, guide: () => {}, low, saver: S.quality === "saver", coarse,
-    myName: () => P.name || "", sess, post, signIn: () => signIn().then((x) => { paintMe(); return x; }),
+    myName: () => P.name || "", sess, post, tx: (to, data) => walletTx(to, data), signIn: () => signIn().then((x) => { paintMe(); return x; }),
     onClose: () => { if (D.app) setTimeout(() => { try { toHub(); } catch { /* fine */ } }, 0); }, /* (/studio: × goes back to the Creator Hub) */ soundOn: () => S.sound !== false, agentName: () => "", share: null, onEvent: () => {},
     land: { landscape: () => gate.landscape(), enter() {}, exit() {} },
     makeHero: () => K.makeCharacter(K.heroOf ? K.heroOf(/^custom-/.test(P.char || "") ? P.char : "custom-aron") : "custom-aron", VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),

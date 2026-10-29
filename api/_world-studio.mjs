@@ -303,6 +303,7 @@ export function makeStudio(deps) {
 
   async function save(w, b) {
     const spec = clampSpec(b.spec || {}), ids = await mineOf(w);
+    if (deps.storeMissing && spec.build && Array.isArray(spec.build.as)) { const miss = await deps.storeMissing(w, spec.build.as); if (miss.length) return json(403, { error: "this course uses a premium asset you haven't bought", miss }); } // (the asset store: premium models are their buyers' to build with)
     if (b.id) {
       const g = await one(`worldStudio/${b.id}`); if (!g || g.gone || (g.w !== w && !(g.co || []).includes(w))) return json(404, { error: "not your game" });
       if ((g.co || []).length) { const pen = g.pen && now() - g.pen.at < CO.PEN_MS ? g.pen : null; if (pen && pen.w !== w) return json(409, { error: `${pen.name || "your partner"} has the pen — wait for them to pass it`, pen: { name: pen.name } }); g.pen = { w, name: await nameFor(w), at: now() }; g.lastBy = g.pen.name; }

@@ -6287,3 +6287,23 @@ html.wp-pcphone .wk{zoom:2.2;inset:auto;left:0;top:0;width:calc(100vw / 2.2);hei
 html.wp-pcphone .wk-card{width:30%;min-width:96px}html.wp-pcphone .wk-card small{display:none}
 .wk.picking .wk-top,.wk.picking .wk-spd,.wk.picking .wk-help,.wk.picking .wk-pad{display:none}
 .wk-pick .wk-logo{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:min(320px,62vw)}
+/* the Studio's ASSET STORE (world-studio-assets.js) and the Arc Studio+ card */
+.wsa-ban{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:14px;border:1px solid var(--p-line,rgba(255,255,255,.12));background:linear-gradient(120deg,rgba(46,224,176,.16),rgba(56,216,255,.08) 55%,rgba(230,195,106,.12))}
+.wsa-ban small{opacity:.7;font-size:11px;letter-spacing:.08em;text-transform:uppercase}.wsa-ban b{display:block;font-size:22px;margin:2px 0 4px}.wsa-ban p{margin:0;font-size:13px;opacity:.85;line-height:1.45}
+.wsa-cats{margin:12px 0}
+.wsa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.wsa-c{display:flex;flex-direction:column;gap:4px;padding:8px 8px 10px;border-radius:12px;border:1px solid var(--p-line,rgba(255,255,255,.12));background:rgba(255,255,255,.03);transition:transform .15s,border-color .15s}
+.wsa-c:hover{transform:translateY(-2px);border-color:rgba(56,216,255,.45)}
+.wsa-c.prem{border-color:rgba(230,195,106,.35)}.wsa-c.own{border-color:rgba(46,224,176,.45)}
+.wsa-img{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#25324e,#10172a);display:grid;place-items:center}
+.wsa-img img{width:100%;height:100%;object-fit:cover}.wsa-img>i{font-size:46px;font-style:normal}
+.wsa-tag{position:absolute;left:6px;top:6px;padding:3px 7px;border-radius:6px;font:800 10px/1 Sora,sans-serif;letter-spacing:.06em;font-style:normal;background:rgba(46,224,176,.92);color:#04130f}
+.wsa-c.prem .wsa-tag{background:linear-gradient(90deg,#f5d47a,#e6a93a);color:#2a1a00}.wsa-c.own .wsa-tag{background:rgba(46,224,176,.92);color:#04130f}
+.wsa-c b{font-size:14px}.wsa-c small{font-size:11.5px;opacity:.72;line-height:1.35;min-height:2.6em}
+.wsa-act{display:flex;gap:6px;margin-top:auto}.wsa-act .wst-go{flex:1;min-height:34px;font-size:12px;padding:6px 8px}.wsa-act .wst-go.alt{flex:0 0 auto}
+.wst-go.gold{background:linear-gradient(90deg,#f5d47a,#e6a93a);color:#2a1a00;border-color:transparent}
+.wsa-arc{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:14px;border:1px dashed rgba(120,170,255,.45);background:linear-gradient(120deg,rgba(60,90,255,.14),rgba(56,216,255,.08));color:inherit;text-align:left;cursor:pointer}
+.wsa-arc div{flex:1}.wsa-arc b{display:block;font-size:16px}.wsa-arc small{opacity:.75;font-size:12px}.wsa-arc em{font-style:normal;font-weight:800;font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(255,194,60,.18);color:#ffc23c}
+.wsa-arcmark{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b6bff,#38d8ff);color:#fff;font-size:20px;flex:0 0 auto}
+.wsa-arcmark.big{width:56px;height:56px;font-size:28px;margin:0 auto 8px}
+.wsa-pop .wak-in{text-align:center;max-width:420px}.wsa-pop h3{margin:0 0 6px}.wsa-pop p{line-height:1.5}

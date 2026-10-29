@@ -10,6 +10,8 @@
 import { TEMPLATES, THEMES, LENS, LANES, KNOBS, PRESETS, DEF, JUMPS, genObbyBuild, clampSpec, toBuild, genLevel, scoreOf, speedOf, dashSpeed, estimate, puzzleScore, climbGaps } from "./world-studio-gen.js";
 import { makePreview } from "./world-studio-prev.js";
 import { ask } from "./world-ask.js";
+import { makeAssets } from "./world-studio-assets.js";
+import { isStoreId, storeItem, storeGlb } from "./world-store-data.js";
 import { makeCoach, coachLevel, setCoachLevel } from "./world-studio-coach.js";
 import { look as themeLook, trackUV } from "./world-studio-look.js";
 import { level as ringLevel } from "./world-rings-engine.js";
@@ -95,12 +97,12 @@ export function createStudio(ctx) {
     clear: (id) => { const s0 = ctx.sess(); if (s0) ctx.post({ action: "world-studio-prog", id, clear: 1, wallet: s0.wallet, issued: s0.issued, signature: s0.signature }).catch(() => {}); },
     load: async (id) => { const w = wallet(); if (!w) return null; const r = await fetch(`/api/social?world=studio-prog&id=${encodeURIComponent(id)}&wallet=${w}`, { cache: "no-store" }); return r.ok ? (await r.json()).d : null; } };
   let myAssets = [], assetsAt = 0, assetPoll = 0;
-  const assetGlb = (id) => (id ? "/api/social?world=studio-asset-glb&id=" + encodeURIComponent(id) : null);
+  const assetGlb = (id) => (!id ? null : isStoreId(id) ? storeGlb(storeItem(id), ctx.ver || "") : "/api/social?world=studio-asset-glb&id=" + encodeURIComponent(id)); // (the asset store's models are files of ours; a maker's own come through the server)
   function assetsApi() {
     const load = async () => { const w = wallet(); if (!w || Date.now() - assetsAt < 8000) return; assetsAt = Date.now(); try { const r = await fetch("/api/social?world=studio-assets&wallet=" + w, { cache: "no-store" }); if (r.ok) myAssets = (await r.json()).assets || []; } catch { /* next time */ } };
     load();
     const poll = () => { clearTimeout(assetPoll); const busy = myAssets.filter((a) => !a.ready && !a.failed); if (!busy.length) return; assetPoll = setTimeout(async () => { for (const a of busy) { const r = await act({ action: "world-studio-asset-poll", id: a.id }); if (r && r.ok) { const i = myAssets.findIndex((x) => x.id === a.id); if (i >= 0) myAssets[i] = r.j.asset; if (r.j.asset.ready) ctx.toast("✨ " + esc(T("Your asset “{n}” is ready — it's in Assets", { n: r.j.asset.name }))); } } poll(); }, 12000); };
-    return { list: () => myAssets, url: assetGlb, async make(t) { let r = await act({ action: "world-studio-asset-make", t }); if (!r) return null;
+    return { list: () => myAssets, store: () => store.usable().map((it) => ({ id: it.id, name: T(it.name), ready: true, store: 1 })), url: assetGlb, async make(t) { let r = await act({ action: "world-studio-asset-make", t }); if (!r) return null;
       if (!r.ok && r.j && r.j.credit && /free/.test(r.j.error || "") && (await ask(T, T("Today's free Meshy assets are used. Make this one for {n} ARCL?", { n: r.j.credit.toLocaleString() }), { ok: T("Use {n} ARCL", { n: r.j.credit.toLocaleString() }), cancel: T("Not now") }))) r = await act({ action: "world-studio-asset-make", t, pay: 1 }) || r; // (G4: past the free ones, a paid credit)
       if (r.ok) { myAssets = [r.j.asset, ...myAssets]; poll(); return { ok: true }; } return { ok: false, error: (r.j && r.j.error) || "" }; } };
   }
@@ -570,6 +572,9 @@ export function createStudio(ctx) {
       ${mine3.length ? `<h4 class="wst-sec">${pi("pen")} ${esc(T("Keep building"))}</h4><div class="wst-3dmine">${mine3.map((g) => `<button type="button" data-${g.loc ? "el3" : "ed3"}="${esc(g.id)}"><b>${esc(g.t)}</b><small>${g.pub ? esc(T("Published")) : g.loc ? esc(T("On this device")) : esc(T("Draft"))}</small></button>`).join("")}</div>` : ""}
       <p class="wst-3dnote">${esc(T("Tip: a computer with a mouse is the easiest place to build; on a phone hold it sideways."))}</p></div>`;
   }
+  // the asset store (world-studio-assets.js): "Use in 3D Builder" opens a blank course; the asset waits in the editor's Assets
+  const store = makeAssets(ctx, { T, esc, act, ask, wallet, pi, repaint: () => { if (el && !el.hidden && tab === "assets") paint(); },
+    use3d: (id) => { if (phone3d()) { tab = "3d"; paint(); return; } ctx.toast("🧱 " + esc(T("“{n}” is in the 3D Builder's Assets → From the Asset Store", { n: T((storeItem(id) || {}).name || "") }))); start3d("blank"); } });
   function start3d(md) {
     if (phone3d()) { tab = "3d"; paint(); return; }
     const base = clampSpec({ tpl: "obby", theme: md === "explore" ? "jungle" : md === "combat" ? "lava" : "neon", title: T("My 3D game"), speed: 3, len: 60, coins: 3, walls: 2, gaps: 1, lasers: 1, seed: 1 + Math.floor(Math.random() * 999998) });
@@ -602,10 +607,10 @@ export function createStudio(ctx) {
   }
   function paint() {
     if (!el) return;
-    const body = tab === "3d" ? paint3d() : tab === "mine" ? paintMine() : tab === "game" ? paintGame() : tab === "arcade" ? paintArcade() : paintMake();
+    const body = tab === "assets" ? store.paint() : tab === "3d" ? paint3d() : tab === "mine" ? paintMine() : tab === "game" ? paintGame() : tab === "arcade" ? paintArcade() : paintMake();
     el.classList.toggle("wide", isWide()); el.classList.toggle("rmin", isWide() && railMin()); // (STU-6: a computer or a phone held sideways — the rail-and-columns layout)
-    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Make your own game"))}</small><h2><i class="wst-mark" aria-hidden="true"></i><em>ARCIRCLE</em> Studio<span class="wst-beta">BETA</span></h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">${IC("ic-guide")}</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">${pi("close")}</button></header>
-      <nav class="wst-tabs"><button type="button" class="wst-railx" data-railx aria-label="${esc(T(railMin() ? "Show the menu" : "Hide the menu"))}" title="${esc(T(railMin() ? "Show the menu" : "Hide the menu"))}">${railMin() ? "»" : "«"}</button>${[["make", "tab-make", "Create"], ["3d", "tab-3d", "3D Builder"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}" title="${esc(T(l))}"><span aria-hidden="true">${IC(ic)}</span><b class="wst-tl">${esc(T(l))}</b>${id === "arcade" && feedNew() ? `<em class="wst-badge" title="${esc(T("New from creators you follow"))}">${feedNew()}</em>` : ""}</button>`).join("")}</nav>
+    el.innerHTML = `<div class="wst-in"><header class="wst-h"><small>${esc(T("Make your own game"))}</small><h2><i class="wst-mark" aria-hidden="true"></i><em>ARCIRCLE</em> Studio<span class="wst-beta">LIVE</span></h2><button type="button" class="wst-help" data-guide aria-label="${esc(T("How to use"))}" title="${esc(T("How to use"))}">${IC("ic-guide")}</button><button type="button" class="wst-x" data-x aria-label="${esc(T("Close"))}">${pi("close")}</button></header>
+      <nav class="wst-tabs"><button type="button" class="wst-railx" data-railx aria-label="${esc(T(railMin() ? "Show the menu" : "Hide the menu"))}" title="${esc(T(railMin() ? "Show the menu" : "Hide the menu"))}">${railMin() ? "»" : "«"}</button>${[["make", "tab-make", "Create"], ["3d", "tab-3d", "3D Builder"], ["assets", "tab-3d", "Assets"], ["mine", "tab-mine", "My games"], ["arcade", "tab-arcade", "Creator Arcade"]].map(([id, ic, l]) => `<button type="button" data-tab="${id}" class="${tab === id ? "on" : ""}" title="${esc(T(l))}"><span aria-hidden="true">${IC(ic)}</span><b class="wst-tl">${esc(T(l))}</b>${id === "arcade" && feedNew() ? `<em class="wst-badge" title="${esc(T("New from creators you follow"))}">${feedNew()}</em>` : ""}</button>`).join("")}</nav>
       <div class="wst-body">${body}</div><div class="wst-foot">${railLinks()}${sideCard()}${ctx.webLink ? `<a class="wst-weblink" href="/studio" target="_blank" rel="noopener">${pi("web")} ${esc(T("Open the Creator Hub on the web"))} ↗</a>` : ""}<span>${esc(T("Games are made from templates — no code. Plays, likes and best runs are counted; no ARCL is paid for games yet."))}</span></div></div>`;
     { const nv = el.querySelector(".wst-body > .wst-nav"); if (nv) el.querySelector(".wst-in").insertBefore(nv, el.querySelector(".wst-foot")); } // (PRO: Back / Test / Next as the window's own bar under the page, so it never sits on what you're reading)
     estRoll();
@@ -653,6 +658,7 @@ export function createStudio(ctx) {
     b.disabled = false; ctx.toast(esc(T("The transaction is still not confirmed — it will be checked when you try again.")));
   }
   async function onClick(e) {
+    if (tab === "assets" && store.click(e)) return;
     const op = e.target.closest("[data-open]"); if (op && !e.target.closest("button")) return openGame(op.dataset.open);
     const b = e.target.closest("button"); if (!b || b.disabled) { if (e.target === el) close(); return; }
     if (b.hasAttribute("data-x")) return close();
