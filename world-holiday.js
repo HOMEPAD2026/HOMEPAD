@@ -88,9 +88,11 @@ export function createBountyBoard({ THREE, planet, at = [0, 0, 0] }) {
   x.fillStyle = "#ffe7b0"; x.font = "900 54px 'Big Shoulders Display', Sora, sans-serif"; x.textAlign = "center"; x.fillText("BOUNTIES", 256, 62);
   [[60, 96, -0.06], [200, 104, 0.05], [340, 92, -0.03], [120, 196, 0.04], [270, 200, -0.05], [400, 190, 0.06]].forEach(([px, py, r]) => { x.save(); x.translate(px + 50, py + 45); x.rotate(r); x.fillStyle = "#f4ead2"; x.fillRect(-48, -42, 96, 84); x.fillStyle = "#b03a2e"; x.beginPath(); x.arc(0, -36, 5, 0, 7); x.fill(); x.fillStyle = "#5a4630"; for (let l = 0; l < 4; l++) x.fillRect(-36, -18 + l * 14, 72 - (l % 2) * 20, 4); x.restore(); });
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-  const board = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 0.1), [wood, wood, wood, wood, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }), wood]); board.position.y = 1.55; board.castShadow = true;
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 0.5), wood); roof.position.set(0, 2.32, 0.1); roof.rotation.x = 0.25;
-  const postG = new THREE.CylinderGeometry(0.06, 0.07, 2.3, 6); [-1.05, 1.05].forEach((px) => { const p = new THREE.Mesh(postG, wood); p.position.set(px, 1.15, -0.02); g.add(p); });
-  g.add(board, roof); g.userData.radius = 1.2;
+  // perf batch 5: the box, the roof and the posts are one wood mesh, the papers a plane on the board's face (5 draw calls → 2)
+  const woodG = mergeGeometries([new THREE.BoxGeometry(2.2, 1.4, 0.1).translate(0, 1.55, 0), new THREE.BoxGeometry(2.5, 0.08, 0.5).rotateX(0.25).translate(0, 2.32, 0.1),
+    ...[-1.05, 1.05].map((px) => new THREE.CylinderGeometry(0.06, 0.07, 2.3, 6).translate(px, 1.15, -0.02))].map((x) => (x.index ? x.toNonIndexed() : x)), false);
+  const board = new THREE.Mesh(woodG, wood); board.castShadow = true;
+  const paper = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.4), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })); paper.position.set(0, 1.55, 0.051);
+  g.add(board, paper); g.userData.radius = 1.2;
   return g;
 }

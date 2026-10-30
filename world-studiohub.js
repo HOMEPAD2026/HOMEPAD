@@ -11,7 +11,7 @@ export function hubXZ(phi = HUB.phi, r = HUB.r) { const a = (phi * Math.PI) / 18
 
 export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver = "", ready = null }) {
   const { x, z } = hubXZ(), g = new THREE.Group(); g.name = "studio-hub"; g.position.set(x, 0, z); g.rotation.y = Math.atan2(-x, -z); planet.add(g); // (its front, +z, faces the fountain)
-  const doors = [], solids = [], spins = [], picks = {};
+  const doors = [], solids = [], spins = [], picks = {}, padMats = [];
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.3, ...o });
   const neon = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, toneMapped: false, depthWrite: op >= 1 });
   const DARK = std(0x16233a, { roughness: 0.35, metalness: 0.6 }), STEEL = std(0x9fb2c8, { roughness: 0.25, metalness: 0.75 });
@@ -19,24 +19,24 @@ export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver
   const solid = (o, r, px = 0, pz = 0) => { const s = new THREE.Group(); s.position.set(px, 0, pz); s.userData.radius = r; o.add(s); solids.push(s); };
   function door(o, id, col, d, px = 0) {
     const dr = new THREE.Group(); dr.name = "stu-door:" + id; dr.position.set(px, 0, d); dr.userData.radius = 1; dr.userData.b = id; o.add(dr); doors.push(dr);
-    const pad = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.45, 40), neon(col, 0.85)); pad.rotation.x = -Math.PI / 2; pad.position.y = 0.07; dr.add(pad);
+    const pad = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.45, 40), neon(col, 0.85)); pad.rotation.x = -Math.PI / 2; pad.position.y = 0.07; dr.add(pad); padMats.push(pad.material);
     const pl = new THREE.Mesh(new THREE.CircleGeometry(1.1, 40), neon(col, 0.18)); pl.rotation.x = -Math.PI / 2; pl.position.y = 0.065; dr.add(pl);
-    spins.push((t) => { pad.scale.setScalar(1 + Math.sin(t * 3) * 0.06); });
     return dr;
   }
   // the building: a stand-in (a white cube, glass front, a turning play mark) until the Citadel's model is in
   const F = HUB.fp, P = new THREE.Group(); P.name = "stand-in"; g.add(P);
   { const cube = new THREE.Mesh(new THREE.BoxGeometry(F * 0.8, 7, F * 0.8), std(0xeef4fb, { roughness: 0.32, metalness: 0.18 })); cube.position.y = 3.5; P.add(cube);
     const front = new THREE.Mesh(new THREE.PlaneGeometry(F * 0.5, 4), std(0x8fe9ff, { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.55, emissive: 0x2a8cff, emissiveIntensity: 0.35 })); front.position.set(0, 3.2, F * 0.4 + 0.02); P.add(front); }
+  P.userData.keep = true; /* (hidden when the model is in: never merged into the rest) */
   const tri = new THREE.Shape(); tri.moveTo(-1.1, -1.3); tri.lineTo(1.5, 0); tri.lineTo(-1.1, 1.3); tri.closePath();
-  const play = new THREE.Mesh(new THREE.ShapeGeometry(tri), neon(0x7cf5c8, 0.9)); play.material.side = THREE.DoubleSide; play.position.y = 12; g.add(play);
+  const play = new THREE.Mesh(new THREE.ShapeGeometry(tri), neon(0x7cf5c8, 0.9)); play.material.side = THREE.DoubleSide; play.position.y = 12; play.userData.keep = true; g.add(play);
   spins.push((t) => { play.rotation.y = t * 0.9; play.position.y = 12 + Math.sin(t * 1.4) * 0.25; });
   // the sign over the door (it turns to face the camera)
   const sign = canvas(1024, 300);
   if (sign) { const c = sign.userData.cv.getContext("2d"); c.beginPath(); if (c.roundRect) c.roundRect(8, 8, 1008, 284, 44); else c.rect(8, 8, 1008, 284); c.fillStyle = "rgba(4,14,30,.9)"; c.fill(); c.lineWidth = 8; const bd = c.createLinearGradient(0, 0, 1024, 0); bd.addColorStop(0, "#2f8cff"); bd.addColorStop(0.5, "#7cf5c8"); bd.addColorStop(1, "#ff6fae"); c.strokeStyle = bd; c.stroke();
     c.textAlign = "center"; c.textBaseline = "middle"; c.shadowColor = "#7cf5c8"; c.shadowBlur = 22; c.fillStyle = "#fff"; c.font = "900 92px Sora, 'Segoe UI', sans-serif"; c.fillText("🎮 " + T("ARCIRCLE Studio"), 512, 112, 960);
     c.shadowBlur = 0; c.fillStyle = "#cfe6ff"; c.font = "800 46px Sora, 'Segoe UI', sans-serif"; c.fillText(T("Make your own game"), 512, 222, 940); sign.needsUpdate = true;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(8, 8 * 0.293), new THREE.MeshBasicMaterial({ map: sign, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.y = 9.4; m.renderOrder = 11; g.add(m);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(8, 8 * 0.293), new THREE.MeshBasicMaterial({ map: sign, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.y = 9.4; m.renderOrder = 11; m.userData.keep = true; g.add(m);
     const qp = new THREE.Quaternion(); m.onBeforeRender = (r, sc, cam) => { g.getWorldQuaternion(qp); m.quaternion.copy(qp.invert().multiply(cam.quaternion)); m.updateMatrixWorld(); }; }
   door(g, "studio", 0x7cf5c8, F / 2 + 1.4); solid(g, F / 2 - 0.8);
   // the four cabinets, two each side of the door, screens to the fountain
@@ -55,7 +55,11 @@ export function makeStudioHub({ THREE, K, planet, T = (s) => s, low = false, ver
     solid(o, 0.9); door(o, cb.id, cb.col, 1.7); });
   // HUB 2 (2026-10-28): the Creator Hub's kiosk past the cabinets — walk up → the Creator Hub on the web (/studio: your games,
   // the forum, notifications, analytics), the same session as the World's
-  { const o = new THREE.Group(); o.name = "stu-kiosk"; o.position.set(-3.8, 0, F / 2 + 5.6); o.rotation.y = -0.3; o.scale.setScalar(1.3); g.add(o); kiosk(THREE, o, neon, DARK, STEEL, canvas, T, spins); solid(o, 0.8); door(o, "hubk", 0x39d3ff, 1.8); }
+  { const o = new THREE.Group(); o.name = "stu-kiosk"; o.position.set(-3.8, 0, F / 2 + 5.6); o.rotation.y = -0.3; o.scale.setScalar(1.3); g.add(o); kiosk(THREE, o, neon, DARK, STEEL, canvas, T, spins).userData.keep = true; solid(o, 0.8); door(o, "hubk", 0x39d3ff, 1.8); }
+  // perf batch 5: the door pads breathe by one shared opacity (not a scale a pad), so the cabinets, the pads and the kiosk merge
+  // into one mesh a material (~50 draw calls down to ~15); the stand-in, the play mark, the sign and the kiosk's ring stay apart
+  spins.push((t) => { const op = 0.72 + Math.sin(t * 3) * 0.13; for (const m of padMats) m.opacity = op; });
+  if (K.mergeStatic) K.mergeStatic(g);
   function paint() {
     for (const cb of CABS) { if (!cb.tex) continue; const c = cb.tex.userData.cv.getContext("2d"), w = 512, h = 400, p = picks[cb.id];
       const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#0b2346"); gr.addColorStop(1, "#040b18"); c.fillStyle = gr; c.fillRect(0, 0, w, h);

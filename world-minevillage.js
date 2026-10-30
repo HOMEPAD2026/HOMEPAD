@@ -5,12 +5,12 @@
 export const MINE_VILLAGE = { x: 83, z: -106, r: 22 };
 const BUILD_AT = 80, HIDE_AT = 100;
 
-export function makeMineVillage({ THREE, K, planet, T, low = false, look = null, ver = "", compile = null }) {
+export function makeMineVillage({ THREE, K, planet, T, low = false, light = !low, look = null, ver = "", compile = null }) {
   const cs = (m) => (look && look.contact ? look.contact(m) : m);
   const V = MINE_VILLAGE, root = new THREE.Group(); root.name = "minevillage"; root.position.set(V.x, 0, V.z); planet.add(root);
   // the cart's light lives on the planet from the start, dark until the cart is built: a light coming and going (with the
   // cart, or hidden with a far-culled group) changes the light count, and every lit shader in town is made again
-  const cartGlow = low ? null : new THREE.PointLight(0xffc861, 0, 6, 2); if (cartGlow) { cartGlow.position.set(V.x, 1.8, V.z); planet.add(cartGlow); }
+  const cartGlow = !light ? null : new THREE.PointLight(0xffc861, 0, 6, 2); if (cartGlow) { cartGlow.position.set(V.x, 1.8, V.z); planet.add(cartGlow); }
   const std = (c, o = {}) => cs(new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true, ...o }));
   const glow = (c, k = 1.8) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
   let sd = 731; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);

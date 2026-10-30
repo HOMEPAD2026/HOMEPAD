@@ -485,7 +485,7 @@ const groundG = K.makeGround(); planet.add(groundG);
 // whole world (the far-shadow bake, the grass mask, the minimap picture) runs inside farCull.all().
 let nearAll = (f) => f(); /* (PF4: nearCull below sets it — farCull.all shows what it hid too) */
 const farCull = (() => {
-  const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles", "pet", "pumpkings"]); // "pet", "pumpkings" (world-pumpking.js): they move, so a scan-time box would hide them
+  const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles", "pet", "pumpkings", "partnervillage-sky"]); // "pet", "pumpkings" (world-pumpking.js): they move, so a scan-time box would hide them
   const CONT = ["decor", "life", "zones"], R = S.quality === "saver" ? 75 : st.quality.coarse && lowGfx ? 90 : st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, /* b5: battery saver and Low phones draw less far (the fog hides it) */ box = new THREE.Box3(), sph = new THREE.Sphere();
   // b420: on a computer at Medium / Ultra what's culled dissolves over its last 10 m instead of popping (K.fadeLook)
   const FADE = !st.quality.coarse && (postLevel === "medium" || postLevel === "ultra") && K.fadeLook;
@@ -780,7 +780,7 @@ const portal = K.makePortal(T("Platform World")); K.placeOn(portal, K.dirOf(K.PO
 // the way to the islands
 // the Jurassic Portal (world-jurassic.js): an old stone gate with a swirl of ARCIRCLE blue and mint; GM wallets go in,
 // (open to everyone since launch)
-const jurGate = JG.makeJurassicGate(THREE, K, TW("Jurassic World"), { low: lowGfx });
+const jurGate = JG.makeJurassicGate(THREE, K, TW("Jurassic World"), { low: lowGfx || st.quality.coarse }); /* (perf batch 5: no PointLight on phones — decided here, never toggled, so the light count and shaders stay put) */
 K.placeOn(jurGate, K.dirOf(K.spreadTheta(14), 205)); planet.add(jurGate); spins.push(...jurGate.userData.spin);
 // the gate's light hangs on the planet itself: inside the gate it went out whenever far culling hid the gate, and a light
 // coming and going makes every lit shader in town again (on a phone a blank, half-drawn screen near the portal)
@@ -883,7 +883,7 @@ pvil.clear(groundG);
 st.on((dt, t) => { pvil.tick(dt, t, -planet.position.x, -planet.position.z); });
 
 // the Mining Village (world-minevillage.js): the ARCL Mine's tunnel in a clearing south-east of the plaza
-const mv = MV.makeMineVillage({ THREE, K, planet, T: TW, low: lowGfx, look: gvLook, ver: VER, compile: (o) => { try { return compileHidden([o]); } catch { return null; } } }); mv.clear(groundG);
+const mv = MV.makeMineVillage({ THREE, K, planet, T: TW, low: lowGfx, light: !(lowGfx || st.quality.coarse), look: gvLook, ver: VER, compile: (o) => { try { return compileHidden([o]); } catch { return null; } } }); mv.clear(groundG);
 { const mg = mv.root.getObjectByName("mv-ground"); if (mg) { LOOK.groundLook(mg.material, { low: lowGfx }); mg.material.color.set(0xd8b98a); if (gshadow) gshadow.receive(mg.material); } }
 st.on((dt, t) => { mv.tick(dt, t, -planet.position.x, -planet.position.z); });
 planet.traverse((o) => { if (o.isMesh && o.material && o.material.transparent) o.castShadow = false; });
@@ -1076,15 +1076,27 @@ async function dressWorld(kit) {
     if (!g) return; const tw = /^town:/.test(g.name); smokes.push(K.smoke(g, tw ? new THREE.Vector3(0, 5.6 * (g.children[0] ? g.children[0].scale.x : 1), 0) : new THREE.Vector3(-1.5, 6.6, -0.9)));
   });
   // scammers: the first one not yet beaten roams; the rest wait in cages
+  const tinted = new Map(); /* (perf batch 6: one tinted copy a source material and tint, not one a mesh) */
   K.SCAMMERS.forEach((spec) => {
     if (P.beaten.includes(spec.id)) return;
     const g = new THREE.Group(); g.name = "scam:" + spec.id;
     // the robots load after the town (world-kit.js), so a scammer may get its body a moment later
-    const body = () => { const e = K.enemy(kit, spec.model); if (!e) return null; e.obj.scale.setScalar(spec.scale); e.obj.position.y = spec.y; if (spec.tint) e.obj.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.color.lerp(new THREE.Color(spec.tint), 0.55); } }); g.add(e.obj); mixers.push(e.mixer); e.play(P.beaten.includes(spec.id) ? "TurnOff" : "Idle"); g.userData.enemy = e; return e; };
-    const e = body(); if (!e && kit.enemiesReady) kit.enemiesReady.then(body);
+    const body = () => { const src = kit.enemies[spec.model], e = K.enemy(kit, spec.model); if (!e) return null; e.obj.scale.setScalar(spec.scale); e.obj.position.y = spec.y;
+      if (spec.tint) e.obj.traverse((m) => { if (m.isMesh && m.material && !Array.isArray(m.material)) { const k = m.material.uuid + ":" + spec.tint; let t = tinted.get(k); if (!t) { t = m.material.clone(); t.color.lerp(new THREE.Color(spec.tint), 0.55); tinted.set(k, t); } m.material = t; } });
+      g.add(e.obj); mixers.push(e.mixer); e.play(P.beaten.includes(spec.id) ? "TurnOff" : "Idle"); g.userData.enemy = e; g.userData.src = src; return e; };
+    const e = body(); if (!e && kit.enemiesReady) kit.enemiesReady.then(() => { if (!g.userData.enemy) body(); });
+    // perf batch 6: Meshy's bodies (one mesh each, world-gear3d.js meshyVillains) mostly land after the code-drawn stand-in was
+    // given out (the race's 5 s): swap them in when they're all here — never mid-fight; a caged one stays switched off
+    if (kit.meshyScamReady) kit.meshyScamReady.then(() => { const swap = () => { try {
+      if (!g.parent || !kit.enemies[spec.model] || kit.enemies[spec.model] === g.userData.src) return;
+      if (fighting === g) { setTimeout(swap, 2000); return; }
+      const old = g.userData.enemy; if (old) { g.remove(old.obj); old.mixer.stopAllAction(); const i = mixers.indexOf(old.mixer); if (i >= 0) mixers.splice(i, 1); }
+      const e2 = body(); if (!e2) return; if (g.userData.cage) { const a = e2.play("TurnOff", { once: true }); if (a) a.time = a.getClip().duration; }
+      farCull.rescan(); if (gshadow) gshadow.rebakeSoon(); if (labels) labels.dirty = true;
+    } catch (err) { console.warn("scammer body", spec.id, err); } }; swap(); });
     const sign = K.label(spec.sign, { accent: "#ff4d6d", color: "#ffc861", size: 0.6 }); sign.position.y = spec.y + 1.9 * spec.scale + 0.6; g.add(sign);
     const ring = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.25, 40), new THREE.MeshBasicMaterial({ color: spec.color, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; g.add(ring);
-    g.userData = { spec, enemy: e || g.userData.enemy || null, radius: 1.3 + spec.scale * 0.5, ring };
+    g.userData = { spec, enemy: e || g.userData.enemy || null, src: g.userData.src || null, radius: 1.3 + spec.scale * 0.5, ring };
     K.placeOn(g, K.dirOf(spec.theta, spec.phi)); planet.add(g); fighters.push(g);
   });
   arrangeFighters();
@@ -2264,7 +2276,7 @@ async function openJurassic() {
     if (!jurGame) {
       if (card) await paintFrame();
       let M; try { M = await import("./world-jurassic.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-      jurGame = M.createJurassic({ buzz: (p) => buzz(p), input: () => ({ joy: joy ? { dx: joy.dx, dy: joy.dy } : null, run: runToggle || gpad.run, gx: gpad.x, gy: gpad.y, yaw: camYaw, pitch: camPitch, zoom: camGoal }), setView: (v) => { if (v.yaw != null) camYaw = v.yaw; if (v.pitch != null) camPitch = v.pitch; if (v.zoom != null) camGoal = camDist = v.zoom; }, hurt: (n) => (combat ? combat.hurtMe(n) : null), vitals: () => (combat ? combat.vitals() : null), heal: (k) => (combat && combat.heal ? combat.heal(k) : null), coach: (k, steps) => coach(k, steps), tips: (rows, o) => showTips(rows, o), Snd, sess, post, share: (c) => bragCard(c), level, lang: LANG, char: () => P.char || "arc-arc", music: () => music, stats: () => { try { return rpg && rpg.stats ? rpg.stats() : null; } catch { return null; } }, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why), THREE, K, st, ver: VER, makeGate: (n) => JG.makeJurassicGate(THREE, K, n, { low: lowGfx }), T: TW, esc, toast, reduce, low: lowGfx, coarse,
+      jurGame = M.createJurassic({ buzz: (p) => buzz(p), input: () => ({ joy: joy ? { dx: joy.dx, dy: joy.dy } : null, run: runToggle || gpad.run, gx: gpad.x, gy: gpad.y, yaw: camYaw, pitch: camPitch, zoom: camGoal }), setView: (v) => { if (v.yaw != null) camYaw = v.yaw; if (v.pitch != null) camPitch = v.pitch; if (v.zoom != null) camGoal = camDist = v.zoom; }, hurt: (n) => (combat ? combat.hurtMe(n) : null), vitals: () => (combat ? combat.vitals() : null), heal: (k) => (combat && combat.heal ? combat.heal(k) : null), coach: (k, steps) => coach(k, steps), tips: (rows, o) => showTips(rows, o), Snd, sess, post, share: (c) => bragCard(c), level, lang: LANG, char: () => P.char || "arc-arc", music: () => music, stats: () => { try { return rpg && rpg.stats ? rpg.stats() : null; } catch { return null; } }, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why), THREE, K, st, ver: VER, makeGate: (n) => JG.makeJurassicGate(THREE, K, n, { low: lowGfx || st.quality.coarse }), T: TW, esc, toast, reduce, low: lowGfx, coarse,
         makeHero: () => K.makeCharacter(heroOf(P.char || "arc-arc"), VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }),
         onLeave: () => { jurOn = false; frozen = false; setTimeout(() => dinoTown.look(), 300); try { music.setList(MUS.PLAYLIST); } catch { /* fine */ } keys.clear(); const g = jurGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - g.x / d * 4, g.z - g.z / d * 4, { x: 0, z: 0 }); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
     }
@@ -3346,7 +3358,7 @@ function fadeLabels(dt) {
     // a sign that has to give way goes at once; one that may show comes in gently (two never sit on each other)
     l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, want < l.material.opacity ? (room ? 0.3 : 0.6) : 0.12); l.visible = l.material.opacity > 0.02;
     if (isBig && l.parent) {
-      const pw = (l.userData.rank < NAME_MAX ? THREE.MathUtils.clamp((d - NAME_FAR + 6) / 8, 0, 1) : 1) * THREE.MathUtils.clamp((PIN_FAR - d) / 20, 0, 1) * (l.userData.pinClear === false ? 0 : 1) * (l.userData.rank < 14 ? 1 : 0);
+      const pw = (l.userData.rank < NAME_MAX ? THREE.MathUtils.clamp((d - NAME_FAR + 6) / 8, 0, 1) : 1) * THREE.MathUtils.clamp((PIN_FAR - d) / 20, 0, 1) * (l.userData.pinClear === false ? 0 : 1) * (l.userData.rank < (st.quality.coarse ? 6 : 14) ? 1 : 0); /* (perf batch 5: 6 far pins on a phone, 14 on a computer) */
       if (pw > 0.01 || l.userData.pin) { const p = pinOf(l); p.material.opacity = THREE.MathUtils.lerp(p.material.opacity, pw, pw < p.material.opacity ? 0.5 : 0.1 * (l.material.opacity < 0.2 ? 1 : 0.2)); p.visible = p.material.opacity > 0.02; const s = d * 0.024; p.scale.set(s, s, 1); }
     }
   }

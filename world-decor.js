@@ -198,14 +198,15 @@ export function createDecor(ctx) {
     // the skyline: low-detail towers, instanced (one draw per model), never solid (nobody walks that far)
     const TOW = ["low-detail-building-a", "low-detail-building-b", "low-detail-building-c", "low-detail-building-d", "low-detail-building-e", "low-detail-building-f", "low-detail-building-g", "low-detail-building-h", "low-detail-building-i", "low-detail-building-j", "low-detail-building-k", "low-detail-building-l", "low-detail-building-m", "low-detail-building-n", "low-detail-building-wide-a", "low-detail-building-wide-b"];
     const pk = packs["k-commercial"]; if (!pk) return;
-    const per = new Map(); TOW.forEach((n) => per.set(n, []));
+    const TW4 = ctx.lite ? TOW.slice(0, 4) : TOW; /* (perf batch 5: phones keep the horizon with 4 tower models — one draw each, never culled — not 14) */
+    const per = new Map(); TW4.forEach((n) => per.set(n, []));
     // two stretches of city on the horizon (behind Finance and behind Research), in one hazy blue-grey: a far
     // silhouette that the fog and the evening take, not a wall of white towers
     const M = ctx.lite ? 26 : 44, ARCS = [[62, 150], [205, 268]];
     for (let i = 0; i < M; i++) {
       const [b0, b1] = ARCS[i % 2], b = ((b0 + r() * (b1 - b0)) * Math.PI) / 180, d = 262 + r() * 34, x = Math.sin(b) * d, z = -Math.cos(b) * d;
       if (inZone(x, z, 8)) continue;
-      const nm = TOW[Math.floor(r() * TOW.length)], k = 0.8 + r() * 0.5, m = new THREE.Matrix4();
+      const nm = TW4[Math.floor(r() * TW4.length)], k = 0.8 + r() * 0.5, m = new THREE.Matrix4();
       m.compose(new THREE.Vector3(x, -1, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(-x, -z) + (r() - 0.5)), new THREE.Vector3(k, k * (0.8 + r() * 0.8), k));
       per.get(nm).push(m);
     }
