@@ -49,6 +49,7 @@ import { makeAgArena } from "./_world-agarena.mjs";
 import { makeAgentVault } from "./_world-agentvault.mjs";
 import { makeSwap } from "./_world-swap.mjs";
 import { makeSurvivors } from "./_world-survivors.mjs";
+import { makeKart } from "./_world-kart.mjs";
 import { makeHalloween } from "./_world-halloween.mjs";
 import { makeHwRealm } from "./_world-hwrealm.mjs";
 import { makeRaidQueens } from "./_world-raidq.mjs";
@@ -388,6 +389,7 @@ export function make(deps) {
   const mythic = makeMythic({ ...deps, json, now, signer, isGM, save: (w) => saveOf(w), debit: shop.debit, award: shop.award }); // MYTHIC gear held here: the Crimson Celestial set (api/_world-mythic.mjs)
   const rq = makeRaidQueens({ ...deps, json, now, signer, isGM, isoWeek: shop.isoWeek, award: shop.award, save: (w) => saveOf(w), mythic }); // RAID QUEENS: runs, the day's three, the SECRET's tickets (api/_world-raidq.mjs)
   const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
+  const kart = makeKart({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // ARCIRCLE KART: races checked and paid by their end (api/_world-kart.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -647,6 +649,7 @@ export function make(deps) {
       if (w === "mythic-nftmkt") return mythic.nftMkt();
       if (w === "mythic-worn") return mythic.worn(url);
       if (w === "surv" || w === "surv-top" || w === "surv-daily" || w === "surv-endless") return surv.read(w, url);
+      if (w === "kart" || w === "kart-top" || w === "kart-daily" || w === "kart-ghost") return kart.read(w, url);
       if (w === "rings" || w === "rings-top" || w === "rings-ta" || w === "rings-chal") return rings.read(w, url);
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest" || w === "poker-rule") return poker.read(w, url);
       if (w === "dino" || w === "dino-nests" || w === "dino-ladder") return dino.read(w, url);
@@ -697,7 +700,7 @@ export function make(deps) {
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
       if (b.action === "world-lot-tier") return lotTier(b);
-      const r = (await mythic.handle(b)) || (await hwr.handle(b)) || (await codex.handle(b)) || (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await store.handle(b)) || (await studio.handle(b)) || (await studioX.handle(b)) || (await hub.handle(b)) || (await agArena.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await pk.handle(b)) || (await rq.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
+      const r = (await mythic.handle(b)) || (await hwr.handle(b)) || (await codex.handle(b)) || (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await store.handle(b)) || (await studio.handle(b)) || (await studioX.handle(b)) || (await hub.handle(b)) || (await agArena.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await kart.handle(b)) || (await pk.handle(b)) || (await rq.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

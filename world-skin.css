@@ -6383,6 +6383,26 @@ html.wp-less .wk-race,html.wp-less .wk-race::before,html.wp-less .wk-race em{ani
 @keyframes wkLines{0%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.04) rotate(1.2deg)}100%{transform:scale(1) rotate(0deg)}}
 html.wp-less .wk-lines{display:none}
 .wk-pos.up{animation:wkPosUp .55s cubic-bezier(.2,1.6,.4,1)}.wk-pos.down{animation:wkPosDown .45s ease-out}
+/* KART K2: the mode pills over the Race button, the ghosts' line, the result card's laps / ARCL / titles / week board */
+.wk-modes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.wk-mode{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:104px;height:44px;padding:0 16px;border-radius:999px;border:1.5px solid rgba(255,255,255,.3);background:rgba(8,20,52,.72);color:#e8f6ff;cursor:pointer;line-height:1.1}
+.wk-mode b{font-size:14px;font-weight:900;letter-spacing:.03em}.wk-mode small{font-size:10.5px;opacity:.8;font-weight:700;color:#ffc23c}
+.wk-mode.on{background:linear-gradient(180deg,#38d8ff,#2ee0b0);border-color:#fff;color:#04201a;box-shadow:0 6px 18px rgba(46,224,176,.35)}.wk-mode.on small{color:#04201a}
+.wk-mode-l{margin:-2px 0 0;font-size:12.5px;opacity:.85;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+html.wp-pcphone .wk-mode{min-width:0;flex:1;height:40px;padding:0 8px}html.wp-pcphone .wk-modes{width:min(360px,94%);flex-wrap:nowrap}html.wp-pcphone .wk-mode-l{font-size:11.5px}
+.wk-gh{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:12.5px;pointer-events:none}
+.wk-gh span{padding:4px 10px;border-radius:999px;background:rgba(6,14,38,.66);border:1px solid rgba(56,216,255,.35);white-space:nowrap}.wk-gh b{color:#ffc23c;font-variant-numeric:tabular-nums;margin-left:4px}
+.wk.picking .wk-gh{display:none}
+.wk-res-in{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+.wk-laps{list-style:none;display:flex;gap:6px;margin:10px 0 0;padding:0}.wk-laps li{flex:1;padding:6px 4px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;flex-direction:column;gap:2px;font-size:12px}
+.wk-laps li span{opacity:.7}.wk-laps li b{font-size:14px;font-variant-numeric:tabular-nums}.wk-laps li.fast{outline:1px solid rgba(255,194,60,.7)}.wk-laps li.fast b{color:#ffc23c}
+.wk-arcl{margin:12px 0 0;padding:10px;border-radius:12px;background:rgba(255,194,60,.08);border:1px solid rgba(255,194,60,.3);display:flex;flex-direction:column;gap:3px}
+.wk-arcl b{font-size:15px}.wk-arcl b.paid{font-size:22px;color:#ffc23c}.wk-arcl small{font-size:12px;opacity:.8}
+.wk-ach{margin-top:8px}.wk-ach p{justify-content:center!important;margin:4px 0!important;color:#2ee0b0;font-weight:800;font-size:14px!important}
+.wk-week .wk-empty,.wk-week .wk-mine{justify-content:center!important;font-size:13px!important;opacity:.85}
+.wk-res-btns button{cursor:pointer}
+.wk-res-in .wk-best{font-style:normal}
+.wk-chg{margin-top:10px;background:none;border:0;color:#9fe8ff;font-weight:700;font-size:13px;text-decoration:underline;cursor:pointer}
 @keyframes wkPosUp{0%{transform:scale(1)}35%{transform:scale(1.6);color:#5dffb0;text-shadow:0 0 16px rgba(93,255,176,.9)}100%{transform:scale(1)}}
 @keyframes wkPosDown{0%,100%{transform:none}30%{transform:translateY(3px);color:#ff6e7e}}
 html.wp-pcphone .wk{height:calc(100dvh / 2.2)} /* (2026-10-30, the owner's phone: 100vh is the height with the browser's bar hidden, so the Race button and the controls sat under it) */
