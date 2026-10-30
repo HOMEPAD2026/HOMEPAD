@@ -119,7 +119,7 @@ export function makePodium(THREE, logoTex) {
     const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const side = new THREE.MeshLambertMaterial({ color: COL[n], emissive: COL[n], emissiveIntensity: 0.25 }), front = new THREE.MeshLambertMaterial({ map: t, emissive: 0x222222 });
     const b = new THREE.Mesh(new THREE.BoxGeometry(2.3, h, 2.2), [side, side, side, side, front, side]); b.position.set(X[n], h / 2, 0); b.userData.drawn = true; g.add(b); });
   const base = new THREE.Mesh(new THREE.CylinderGeometry(5.4, 5.6, 0.12, 32), new THREE.MeshBasicMaterial({ color: 0x2ee0b0, transparent: true, opacity: 0.35 })); base.position.y = 0.06; g.add(base);
-  if (logoTex) { const lg = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.95), new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, depthWrite: false })); lg.position.set(0, 4.6, -1.8); g.add(lg); }
+  if (logoTex) { const lg = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.95), new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, depthWrite: false })); lg.position.set(0, 5.9, -3.2); /* (high and back: over the racers' heads, not on them) */ g.add(lg); }
   return { g, spots: [[X[0], H[0]], [X[1], H[1]], [X[2], H[2]]], last: [5.2, 0] };
 }
 

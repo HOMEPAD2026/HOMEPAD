@@ -37,7 +37,7 @@
 // the kart, the racer waves, and landing it gives a mini turbo; the computer racers trick sometimes. The racers react (only
 // the rig's own clips, never over a one-shot, back to driving after): a pass → Seated_Fist_Pump, a wall or a kart hit →
 // Head_Hold_in_Pain, the win → Victory_Cheer. Taking 1st: a 0.3 s slow motion and a 1ST! cut-in (10 s apart); a finish
-// within 0.15 s of another racer: a freeze-frame PHOTO FINISH; within 1 s of someone on the last corner of the last lap a
+// within 0.06 s of another racer (0.15 s fired nearly every race: the pack runs close) — a freeze-frame PHOTO FINISH; within 1 s of someone on the last corner of the last lap a
 // side camera for 1.5 s; after the line the top three on a podium (1st cheers, 2nd and 3rd wave, the last holds their head)
 // with confetti for ~3 s (a tap skips), then the result card. Settings (⚙ on the pick screen, arc.kart.opts): steering
 // assist (a gentle nudge off the walls, on by default on phones), auto-gas (Gas becomes a switch), tilt steering, button
@@ -61,7 +61,7 @@ export const markAt = (marks, from, prog, now) => { const b = Math.min(marks.len
 /// the time gap: how long ago the leader passed the progress `prog` the trailer is at now (null if it never did)
 export const gapTo = (marks, prog, now) => { const b = Math.floor(prog / GAP_M); return b >= 0 && b < marks.length && marks[b] >= 0 ? Math.max(0, now - marks[b]) : null; };
 /// a photo finish: another racer over the line within `win` s of you, or about to be at its speed (rem metres to go)
-export const photoFinish = (meT, others, win = 0.15) => others.some((o) => (o.finish > 0 ? Math.abs(meT - o.finish) <= win : o.rem >= 0 && o.rem / Math.max(1, o.speed) <= win));
+export const photoFinish = (meT, others, win = 0.06) => others.some((o) => (o.finish > 0 ? Math.abs(meT - o.finish) <= win : o.rem >= 0 && o.rem / Math.max(1, o.speed) <= win));
 /// the player's KART settings (arc.kart.opts): steering assist on by default on phones, the rest off, buttons M
 export const OPTS = "arc.kart.opts";
 export const optsOf = (raw, coarse) => { let j = null; try { j = JSON.parse(raw || "null"); } catch { j = null; } j = j && typeof j === "object" ? j : {}; return { assist: typeof j.assist === "boolean" ? j.assist : !!coarse, autogas: j.autogas === true, tilt: j.tilt === true, size: ["s", "m", "l"].includes(j.size) ? j.size : "m" }; };
@@ -464,7 +464,7 @@ export function createKart(ctx) {
   /// the camera's K6 moments: the drone over the grid in the countdown, the last corner's side camera, the podium
   function camK6(dt) {
     const fx0 = Math.sin(me.yaw), fz0 = Math.cos(me.yaw);
-    if (podCam) { podCam.t += dt; const hf = Math.atan(Math.tan((25 * Math.PI) / 180) * cam.aspect), d = Math.max(10, 6.6 / Math.tan(hf)) - Math.min(1, podCam.t / 3.2) * 2.2; /* (far enough that the podium and the last beside it fit an upright phone) */ cam.position.set(podCam.c.x + podCam.f.x * d, 1.6 + d * 0.13, podCam.c.z + podCam.f.z * d); cam.lookAt(podCam.c.x, 1.7, podCam.c.z); /* (higher the farther: over the road's rails) */ if (cam.fov !== 50) { cam.fov = 50; cam.updateProjectionMatrix(); } return; }
+    if (podCam) { podCam.t += dt; const hf = Math.atan(Math.tan((25 * Math.PI) / 180) * cam.aspect), d = Math.max(7.2, 5.6 / Math.tan(hf)) - Math.min(1, podCam.t / 3.2) * 1.6; /* (close enough that the racers read on an upright phone; the last one beside it may sit at the edge) */ cam.position.set(podCam.c.x + podCam.f.x * d, 1.6 + d * 0.13, podCam.c.z + podCam.f.z * d); cam.lookAt(podCam.c.x, 2.4, podCam.c.z); /* (higher the farther: over the road's rails) */ if (cam.fov !== 50) { cam.fov = 50; cam.updateProjectionMatrix(); } return; }
     if (phase === "count" && droneOn && !ctx.reduce) { const u = Math.max(0, Math.min(1, (3.2 - cd) / 2.9)), e = u * u * (3 - 2 * u), th = me.yaw + Math.PI * e, R = 30 + (7.2 - 30) * e, gx = gridC.x + (me.pos.x - gridC.x) * e, gz = gridC.z + (me.pos.z - gridC.z) * e;
       cam.position.set(gx + Math.sin(th) * R, 22 + (3.1 - 22) * e, gz + Math.cos(th) * R); cam.lookAt(gx + fx0 * 6 * e, 1.2, gz + fz0 * 6 * e); return; } // (from high in front of the grid round to your place behind the kart)
     if (cineT > 0 && phase === "race") { cineT -= dt; const px = fz0 * cineSide, pz = -fx0 * cineSide; cam.position.set(me.pos.x + px * 6.5 + fx0 * 3, 1.5, me.pos.z + pz * 6.5 + fz0 * 3); cam.lookAt(me.pos.x + fx0, 0.9, me.pos.z + fz0); if (cam.fov !== 48) { cam.fov = 48; cam.updateProjectionMatrix(); } }
