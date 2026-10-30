@@ -561,10 +561,23 @@ function ensureFootSpot() {
   if (footSpot) footSpot.material.opacity = liveShOff ? 1 : 0.5;
 }
 st.on(() => { if (!footSpot) return; footSpot.visible = mode === "hub" && player.visible; if (footSpot.visible) { footSpot.position.set(player.position.x, 0.04, player.position.z); footSpot.scale.setScalar(1 / (1 + Math.max(0, hop) * 0.35)); } });
-st.on(() => { frameNo++; if (liveShOff) { if (st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = liveShOff === 1 || !st.sun.shadow.map; liveShOff = 2; return; } const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) { const moved = shPrev.distanceToSquared(planet.position) > 1e-6; shPrev.copy(planet.position); st.renderer.shadowMap.needsUpdate = moved || frameNo % ev === 0; } });
+st.on(() => { frameNo++; if (liveShOff) { if (st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = liveShOff === 1 || !st.sun.shadow.map; liveShOff = 2; return; } const ev = st.shadowEvery || shadowEvery; if (ev > 1 && st.renderer.shadowMap.enabled) { const moved = !st.quality.coarse && shPrev.distanceToSquared(planet.position) > 1e-6; shPrev.copy(planet.position); st.renderer.shadowMap.needsUpdate = moved || frameNo % ev === 0; } });
 // (2026-10-29, the owner: "trees' shadows move oddly, over and over, as I walk") the world moves under the hero (planet.position),
-// so a shadow map kept for 2–3 frames lagged behind the ground and snapped back each time: while the ground moves it is
-// redrawn every frame; standing still it keeps the every-Nth-frame saving
+// so a shadow map kept for 2–3 frames lagged behind the ground and snapped back each time. It was then redrawn every frame
+// while walking (80–200 draw calls more a frame on a phone; computers still do); now on phones (perf batch 2) the kept map is slid with the ground instead:
+// on a frame that skips the redraw, the sun's shadow matrix is the last drawn one moved by how far the planet has gone since,
+// so the town's shadows stay put. Only what moves with you would lag, so on a phone the hero stops casting while the soft
+// spot under your feet is up (heroCast). Checked once a frame, just before the first render (a reflection face may come first).
+const shM0 = new THREE.Matrix4(), shT = new THREE.Matrix4(), shP0 = new THREE.Vector3(); let shFrame = -1, shHave = false, shGrab = false, heroOff = false;
+function heroCast(on) { heroOff = !on; footSpot.material.opacity = on ? 0.5 : 1; /* (the spot stands in for the hero's own shadow, as in bakedShadows) */ player.traverse((o) => { if (!o.isMesh) return; if (on && o.userData.shOff) { o.castShadow = true; o.userData.shOff = false; } else if (!on && o.castShadow) { o.castShadow = false; o.userData.shOff = true; } }); }
+st.scene.onBeforeRender = () => {
+  if (shFrame === frameNo) return; shFrame = frameNo; const sm = st.renderer.shadowMap, sh = st.sun && st.sun.shadow;
+  if (st.quality.coarse && footSpot && !liveShOff) { const off = footSpot.visible; if (off !== heroOff || frameNo % 20 === 0) heroCast(!off); }
+  if (!sh || !sm.enabled || sm.autoUpdate || liveShOff) { shHave = false; return; }
+  if (shGrab) { shM0.copy(sh.matrix); shHave = true; shGrab = false; } /* the matrix three.js worked out on the last drawn frame */
+  if (sm.needsUpdate || !sh.map) { shP0.copy(planet.position); shGrab = true; return; }
+  if (shHave) sh.matrix.copy(shM0).multiply(shT.makeTranslation(shP0.x - planet.position.x, shP0.y - planet.position.y, shP0.z - planet.position.z));
+};
 const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir, around: (f) => farCull.all(f) }) : null;
 if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick());
   const rb0 = gshadow.rebakeSoon; gshadow.rebakeSoon = (ms) => { if (arriving) loadReady.then(() => rb0(ms || 1200)); else rb0(ms); }; /* (re-bakes asked for during the arrival come together once, after it) */
@@ -5272,7 +5285,8 @@ if (sess()) setTimeout(() => village.load(), 3500); // your village level and bl
 // start of the dive (never the town first and then a jump back out to space), and from the home gate, which has
 // already dived down to the robot, the camera only comes down the last stretch to land behind you
 // every wait from here on has an end, and the loading screen's "Enter now" (bootSkip, after 20 s on one step) ends them all
-await capWait(Promise.resolve().then(() => setAvatar(P.char || "arc-arc")), 30000, "avatar", false); // (not skipped: the town needs its hero) try { ensureFootSpot(); } catch (e) { console.warn("foot spot", e); } // b447: the spot under your feet
+await capWait(Promise.resolve().then(() => setAvatar(P.char || "arc-arc")), 30000, "avatar", false); /* (not skipped: the town needs its hero) */
+if (st.quality.coarse) try { ensureFootSpot(); } catch (e) { console.warn("foot spot", e); } /* b447: the spot under your feet — it sat inside the comment above and never ran; perf batch 2 brings it back on phones, where it stands in for the hero's own shadow (heroCast); computers keep the look they had */
 loadbar(0.85, TW("Dressing the town…"));
 // b443: the town's set dressing (trees, lamps, the districts' props) is placed before the screen lifts, up to 8 s
 // (2026-10-25, the funnel: a third of new browsers left before the town showed) a phone on low graphics, or a load
