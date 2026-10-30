@@ -2384,7 +2384,7 @@ async function openKart() {
   kartBusy = true; closeAll(); const veil = $("wp-veil");
   try {
     if (!kartGame) { let M; try { M = await import("./world-kart.js"); } catch (e) { throw new Error("load: " + ((e && e.message) || e)); }
-      kartGame = M.createKart({ THREE, K, st, T: TW, lang: LANG, ver: VER, esc, toast, Snd, reduce, low: lowGfx, coarse, heroId: K.heroOf ? K.heroOf(P.char || "") : P.char,
+      kartGame = M.createKart({ THREE, K, st, T: TW, lang: LANG, ver: VER, esc, toast, Snd, buzz: (p) => { lastInput = performance.now(); buzz(p); } /* (the kart only buzzes while a control is held: holding Gas sends no new taps) */, reduce, low: lowGfx, coarse, heroId: K.heroOf ? K.heroOf(P.char || "") : P.char,
         makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint && id === P.char) c.setTint(P.tint || 0); return c; }),
         onLeave: () => { kartOn = false; frozen = false; keys.clear(); near = null; try { const e = gv.exitOf("kart"); standAt(e.x, e.z, gv.center); } catch { /* where you were */ } paintPrompt(); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } } }); }
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(300); }
