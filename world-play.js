@@ -3012,7 +3012,7 @@ function decorateMap() {
 // search box that looks through all of them. The sections are still built by openMap(); here they're only sorted.
 const MAP_TOP = [
   ['data-land="hw"', "Halloween Realm", "hwrealm/key-wide-768"], ['data-cc="go"', "Creator City", "gw/key-cc-416"], ['data-land="rq"', "RAID QUEENS", "ui/map/rq"], ['data-land="ad"', "Nexus City", "ui/map/nexus"],
-  ['data-jur="1"', "Jurassic World", "games/jurassic-art"], ['data-kart="1"', "ARCIRCLE KART", "games/kart"], ['data-land="gv"', "Game Village", "games/defense-art"], /* (2026-10-30, the owner: the games' tiles use the Games list's own pictures) */ ['data-land="lp"', "Launchpad Village", "ui/map/lp"], ['data-land="ut"', "Utility Village", "ui/map/ut"],
+  ['data-jur="1"', "Jurassic World", "games/jurassic-art"], ['data-kart="1"', "ARCIRCLE KART", "games/kart-art"], ['data-land="gv"', "Game Village", "games/defense-art"], /* (2026-10-30, the owner: the games' tiles use the Games list's own pictures) */ ['data-land="lp"', "Launchpad Village", "ui/map/lp"], ['data-land="ut"', "Utility Village", "ui/map/ut"],
   ['data-pv="1"', "Partner Village", "ui/map/pv"], ['data-mine="1"', "ARCL Mine", "games/mine-art"], ['data-isle="1"', "My Island", "gw/news-villages-1200"],
 ];
 const MAP_RECENT = "arc.world.mapRecent", MAP_TAB = "arc.world.mapTab";
