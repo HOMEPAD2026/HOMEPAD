@@ -24,6 +24,13 @@ import { villainize, meshyVillains, meshyExtras, meshyBoss, physMat } from "./wo
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 export const makeTrees = (...a) => ARC.makeTrees(...a); // the town's round, wind-swayed trees (the Game Village gardens use them, b447)
+import ASSET_VER from "./gen/asset-ver.js";
+// perf batch 11 (2026-10-30): every loader on three.js's default manager (models, KTX2, textures) asks for a model or a
+// picture by its content, not by the deploy: ?v=<digits> on /models/ and /images/ becomes ?v=h<8 hex of the file's sha1>
+// (gen/asset-ver.js, written by tools/build-world.mjs), so the first load after a deploy finds unchanged files in the
+// cache. A file the map doesn't know keeps the URL it was given. play.html's preloads carry the same hashes.
+const AV_RE = /^((?:https?:\/\/[^/]+)?\/)((?:models|images)\/[^?#]+)\?v=\d+$/;
+THREE.DefaultLoadingManager.setURLModifier((u) => { const m = typeof u === "string" ? AV_RE.exec(u) : null, h = m && ASSET_VER[m[2]]; return h ? `${m[1]}${m[2]}?v=h${h}` : u; });
 
 // compiled shaders are kept (b413). three.js deletes a shader program when the last material using it is disposed, so
 // an effect that made a material, played, and disposed it (a spark, a ring, a beam, a summon) compiled its shader again
@@ -178,7 +185,7 @@ export function webglOk() {
 let RENDERER = null, ktx2 = null;
 export function gltfLoader() {
   const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
-  if (RENDERER && !ktx2 && ktx2 !== false) { try { ktx2 = new KTX2Loader().setTranscoderPath("/vendor/three/basis/").detectSupport(RENDERER); } catch (e) { console.warn("ktx2:", e); ktx2 = false; } }
+  if (RENDERER && !ktx2 && ktx2 !== false) { try { ktx2 = new KTX2Loader().setTranscoderPath("/vendor/three/basis/").detectSupport(RENDERER); ktx2.init().catch(() => {}); /* (perf batch 11: the transcoder's workers start now — play.html preloads its two files — not with the first KTX2 texture) */ } catch (e) { console.warn("ktx2:", e); ktx2 = false; } }
   if (ktx2) L.setKTX2Loader(ktx2);
   return L;
 }

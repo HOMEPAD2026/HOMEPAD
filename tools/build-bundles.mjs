@@ -310,7 +310,10 @@ export async function build({ check = false, force = false } = {}) {
   for (const [out, cfg] of Object.entries(CSS_PURGED)) {
     const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
     const scanned = cfg.scan.map(read).join("\n").replace(/\?v=\d+/g, ""); // the cache version changes on every bump; the classes don't
-    const srcAll = [...cfg.purge, ...cfg.keep].map((f) => `/* ${f} */\n` + read(f)).join("\n") + "\n/* scan */\n" + scanned;
+    // perf batch 12: @keyframes no rule, page or game script names go too — the names are looked for in every world-*.js
+    // (an animation set from code: el.style.animation = "…") on top of the scan
+    const worldJs = fs.readdirSync(ROOT).filter((f) => /^world-[a-z0-9-]+\.js$/.test(f)).sort().map(read).join("\n").replace(/\?v=\d+/g, "");
+    const srcAll = "kf-v1\n" + [...cfg.purge, ...cfg.keep].map((f) => `/* ${f} */\n` + read(f)).join("\n") + "\n/* scan */\n" + scanned + "\n/* world */\n" + worldJs;
     const hash = crypto.createHash("sha256").update(srcAll).digest("hex").slice(0, 16);
     const banner = `/* ${out} — built by tools/build-bundles.mjs: ${cfg.purge.join(", ")} cut to what the game uses, then ${cfg.keep.join(", ")}. Do not edit; edit the sources. src:${hash} */\n`;
     const dest = path.join(ROOT, out);
@@ -319,7 +322,8 @@ export async function build({ check = false, force = false } = {}) {
     if (check) { if (curHash !== hash) stale.push(out); continue; }
     if (!force && curHash === hash && cur.length) { console.log(`${out}: up to date`); continue; }
     const used = new Set(scanned.match(/[_a-zA-Z][\w-]*/g));
-    const src = cfg.purge.map((f) => purgeCss(read(f), used)).join("\n") + "\n" + cfg.keep.map(read).join("\n");
+    const kfUsed = new Set([...used, ...(worldJs.match(/[_a-zA-Z][\w-]*/g) || [])]);
+    const src = dropUnusedKeyframes(cfg.purge.map((f) => purgeCss(read(f), used)).join("\n") + "\n" + cfg.keep.map(read).join("\n"), kfUsed);
     let code = src;
     if (esbuild) { const r = await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none", charset: "utf8" }); code = r.code; }
     fs.writeFileSync(dest, banner + code);

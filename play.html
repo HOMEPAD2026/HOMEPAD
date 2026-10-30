@@ -162,26 +162,28 @@
 <link rel="modulepreload" href="/w/c-WV5Q4KEC.js">
 <link rel="modulepreload" href="/w/c-MH5UEANH.js">
 <link rel="modulepreload" href="/w/c-VHNSBD2M.js">
-<link rel="modulepreload" href="/w/c-HT7T5SYE.js">
+<link rel="modulepreload" href="/w/c-CJBWRKV3.js">
 <link rel="modulepreload" href="/w/c-QGSASZRD.js">
 <link rel="modulepreload" href="/w/c-66D25FFJ.js">
 <link rel="modulepreload" href="/w/c-4EJG4ZZZ.js">
 <link rel="modulepreload" href="/w/c-3XWSJCXD.js">
 <link rel="modulepreload" href="/w/c-GQY2WJVK.js">
 <link rel="modulepreload" href="/w/c-E5XUHVXY.js">
-<link rel="modulepreload" href="/w/c-ZIPNNDG3.js">
+<link rel="modulepreload" href="/w/c-XHL7JPOP.js">
 <link rel="modulepreload" href="/w/c-EBVL2N5Y.js">
 <link rel="modulepreload" href="/w/c-UFC2P34X.js">
 <link rel="modulepreload" href="/w/c-73CSNOR7.js">
 <link rel="modulepreload" href="/w/c-7YB4HXHE.js">
 <link rel="modulepreload" href="/w/c-HTD7Z7T6.js">
 <script>(function(){var m={"ko":"c-J4HEYOC5.js","zh":"c-2EWJB34U.js","tr":"c-VUAXCECG.js"};try{var q=/[?&]lang=(en|ko|zh|tr)(?:&|$)/.exec(location.search),n=(navigator.language||"").toLowerCase(),l=q?q[1]:localStorage.getItem("arcircle.lang")||(n.indexOf("ko")===0?"ko":n.indexOf("zh")===0?"zh":n.indexOf("tr")===0?"tr":"en"),f=m[l];if(f){var k=document.createElement("link");k.rel="modulepreload";k.href="/w/"+f;document.head.appendChild(k);}}catch(e){}})();</script>
+<script>(function(){var m={"custom-aron":"52ccbbf3","custom-aronx":"49495acb","custom-lumi":"d98db822","custom-lumix":"2109c8fc","custom-nex":"fd868216","custom-nexx":"174347a8"};try{var p=JSON.parse(localStorage.getItem("arc.world")||"null")||{},c=p.char||localStorage.getItem("arc.world.prepick")||"custom-aron";if(!/^custom-(aron|lumi|nex)x?$/.test(c))c="custom-aron";if(p.form&&p.char&&!/x$/.test(c))c+="x";var h=m[c];if(h){var l=document.createElement("link");l.rel="preload";l.as="fetch";l.crossOrigin="anonymous";l.href="/models/world/chars/character-"+c+".glb?v=h"+h;document.head.appendChild(l);}}catch(e){}})();</script>
+<link rel="preload" as="fetch" crossorigin href="/vendor/three/basis/basis_transcoder.js">
+<link rel="preload" as="fetch" crossorigin href="/vendor/three/basis/basis_transcoder.wasm">
 <!-- /world-build -->
-<link rel="preload" as="fetch" crossorigin href="/models/world/scifi-props.glb?v=1793330957">
-<link rel="preload" as="fetch" crossorigin href="/models/world/kenney-city.glb?v=1793330957">
-<link rel="preload" as="image" crossorigin href="/models/world/planet-surface.jpg?v=1793330957">
+<link rel="preload" as="fetch" crossorigin href="/models/world/scifi-props.glb?v=h9abc8d0a">
+<link rel="preload" as="fetch" crossorigin href="/models/world/kenney-city.glb?v=he08b9f61">
+<link rel="preload" as="image" crossorigin href="/models/world/planet-surface.jpg?v=h2df39b5b">
 <link rel="preload" as="image" href="/images/load/hq-world-pc.webp?v=1793330957" media="(min-aspect-ratio: 4/5)" fetchpriority="high"><link rel="preload" as="image" href="/images/load/hq-world-m.webp?v=1793330957" media="(max-aspect-ratio: 4/5)" fetchpriority="high">
-<script>(function () { try { var c = (JSON.parse(localStorage.getItem("arc.world") || "null") || {}).char, k = document.querySelector('link[href*="world-play.js"]'); if (k && /^(male|female)-[a-f]$/.test(c || "")) { var l = document.createElement("link"); l.rel = "preload"; l.as = "fetch"; l.crossOrigin = "anonymous"; l.href = "/models/world/chars/character-" + c + ".glb" + k.href.slice(k.href.indexOf("?")); document.head.appendChild(l); } } catch (e) { /* the game loads it anyway */ } })();</script>
 </head>
 <body class="wp">
 <canvas id="wp-cv" class="wp-cv" aria-label="ARCIRCLE World — W A S D to walk, Space to jump, Shift to run, E to enter, drag to look around"></canvas>

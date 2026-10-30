@@ -609,6 +609,10 @@ if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material &&
   [3000, 20000].forEach((ms) => setTimeout(() => (arriving ? gshadow.rebakeSoon(0) : gshadow.bake()), ms)); }
 // the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
 const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
+// perf batch 12: the plain window look (html.wp-less: no Meshy frames, glows or looping UI animations) also on Low,
+// Saver and an Auto that chose low or a weak chip, not only with less motion; Settings' quality buttons set it at once
+function lessUi(q = S.quality) { document.documentElement.classList.toggle("wp-less", reduce || q === "low" || q === "saver" || (q === "auto" && !!(st.quality.low || st.quality.weak)) || /[?&]weakgpu\b/.test(location.search)); }
+lessUi();
 // b447: contact shade on everything that stands on the ground, in every place (world-look.js); not on Low
 if (!lowGfx) try { LOOK.installContactShade(); } catch { /* the plain look */ }
 if (!lowGfx) { const pf = planet.getObjectByName("plaza-floor"); if (pf) LOOK.stoneGrain(pf.material); }
@@ -3777,7 +3781,7 @@ $("wp-set-x").addEventListener("click", closeSet);
 setEl.addEventListener("click", (e) => { if (e.target === setEl) closeSet(); if (e.target.id === "wp-set-reload") location.reload(); });
 $("wp-set-q").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-q]"); if (!b) return;
-  S.quality = b.dataset.q; saveSet();
+  S.quality = b.dataset.q; saveSet(); lessUi();
   setEl.querySelectorAll("#wp-set-q button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   $("wp-set-q-note").innerHTML = `${esc(qNote(b.dataset.q))} ${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`;
 });
