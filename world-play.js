@@ -1416,9 +1416,13 @@ function blockedAt(v) {
   return false;
 }
 let hitDepth = 0;
-function blockedBy() {
+// (perf: getWorldPosition / worldToLocal bring each solid's own chain up to date, so no full planet matrix pass here;
+// a direct child of the planet that is plainly too far off is skipped before that)
+function blockedBy(solids = SOLIDS()) {
   let hit = null, best = Infinity;
-  for (const list of SOLIDS()) for (const g of list) {
+  const hx = -planet.position.x, hz = -planet.position.z;
+  for (const list of solids) for (const g of list) {
+    if (g.parent === planet) { const r = (g.userData.box ? 9 : (g.userData.radius || 1) + 1) + 3; if (Math.abs(g.position.x - hx) > r || Math.abs(g.position.z - hz) > r) continue; }
     g.getWorldPosition(tmp);
     const bx = g.userData.box;
     if (bx) {
@@ -1449,13 +1453,13 @@ function outOfBounds() { const x = -planet.position.x, z = -planet.position.z, L
 function tryMove(d, dist) {
   prevP.copy(planet.position);
   // already standing inside something (a respawn, a landing): any step that takes you further out is allowed
-  let was = null, d0 = 0;
-  if (mode !== "island") { planet.updateMatrixWorld(true); was = blockedBy(); d0 = hitDepth; }
+  let was = null, d0 = 0; const solids = mode !== "island" ? SOLIDS() : null;
+  if (mode !== "island") { was = blockedBy(solids); d0 = hitDepth; }
   planet.position.addScaledVector(d, -dist);
   let hit = null;
   if (mode === "island") hit = island.blocked(here(tmp2)) ? { axis: true } : null;
   else if (arenaR ? (planet.position.x + gv.center.x) ** 2 + (planet.position.z + gv.center.z) ** 2 > arenaR * arenaR : outOfBounds()) hit = { edge: true };
-  else { planet.updateMatrixWorld(true); hit = blockedBy(); if (hit && hit === was && hitDepth > d0 + 1e-4) hit = null; }
+  else { hit = blockedBy(solids); if (hit && hit === was && hitDepth > d0 + 1e-4) hit = null; }
   if (hit) planet.position.copy(prevP);
   return hit;
 }
