@@ -56,7 +56,7 @@ out as a red wax candle with a flame on a small base, not a chart bar with wicks
 | ice/road.png | 01a18c00-97fb-702b-a7c9-1dcac0c5e7c2 | 1538490 |
 | volcano/road.png | 01a18bff-e026-7565-a624-9866f389a676 | 1930266 |
 
-Not checked for seamless tiling; the moon road's dashed lines aren't centred (two lines, one off the middle).
+Not checked for seamless tiling; the moon road has two double cyan dashed lines, no edge lines.
 
 ## Retries (not kept)
 
