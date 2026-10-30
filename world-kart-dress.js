@@ -3,8 +3,9 @@
 // Grandstands with a crowd and flags along the two straights, the big standings screen, a tunnel, a second set of neon
 // arches, the two jump ramps, the start-light gantry, the podium, and two small effects (boost-pad rings, a checkered-flag
 // burst). Repeats are one InstancedMesh each; `few` (low graphics or a phone) builds about half.
-// Every place is a sample index of the track's table (900 samples round the 1,079 m loop) and a lateral offset, so a
-// mirrored race (world.scale.x = −1) carries them with the rest of the track.
+// Every place is a sample index of the track's table (900 samples round the loop) and a lateral offset, so a
+// mirrored race (world.scale.x = −1) carries them with the rest of the track. K5 (2026-10-30): the constants below are the
+// Nexus Circuit's; every track passes its own places (world-kart.js TRACKS: stands, tunnel or none, ramps, screen, centre).
 export const STANDS = [[12, 72], [470, 550]];    // the two straights (the start straight, the back straight)
 export const TUNNEL = [196, 246];                // the long right-hand straight
 export const RAMPS = [{ i: 520, lat: 0 }, { i: 96, lat: 0 }];
@@ -13,16 +14,16 @@ export const SCREEN_I = 22, PODIUM_I = 44;
 export const OUTSIDE = [20, 110];                       // (about the circuit's middle: "outside" = away from it)
 
 /// the side of the track away from the circuit's middle at sample i (+1 = the right-hand vector r)
-export function outSide(S, i, cx = OUTSIDE[0]) { const s = S[i]; return Math.sign((s.p.x - cx) * s.r.x + (s.p.z - OUTSIDE[1]) * s.r.z) || 1; }
+export function outSide(S, i, cx = OUTSIDE[0], cz = OUTSIDE[1]) { const s = S[i]; return Math.sign((s.p.x - cx) * s.r.x + (s.p.z - cz) * s.r.z) || 1; }
 
-export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false }) {
+export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false, stands: STANDS_ = STANDS, tunnel: TUNNEL_ = TUNNEL, ramps: RAMPS_ = RAMPS, screen: SCREEN_ = SCREEN_I, c: mid = OUTSIDE }) {
   const { S, N } = track, o = new THREE.Object3D(), g = new THREE.Group(), col = new THREE.Color(), up = (i) => S[(i + N) % N];
-  const yawOf = (s) => Math.atan2(s.t.x, s.t.z);
-  const out = { g, flags: null, screen: null, tunnelAt: (i) => i >= TUNNEL[0] && i <= TUNNEL[1] };
+  const yawOf = (s) => Math.atan2(s.t.x, s.t.z), outS = (S0, i) => outSide(S0, i, mid[0], mid[1]);
+  const out = { g, flags: null, screen: null, tunnelAt: (i) => !!TUNNEL_ && i >= TUNNEL_[0] && i <= TUNNEL_[1] };
 
   // ---- grandstands: a stepped block per 8 samples (one InstancedMesh), a roof, the crowd as small boxes with colours ----
   const step = 8, prof = new THREE.Shape(); prof.moveTo(0, 0); for (let k = 0; k < 4; k++) { prof.lineTo(k * 2.2, 1 + k * 1.3); prof.lineTo((k + 1) * 2.2, 1 + k * 1.3); } prof.lineTo(8.8, 0); prof.lineTo(0, 0);
-  const segs = []; for (const [a, b] of STANDS) for (let i = a; i < b; i += step) segs.push(i);
+  const segs = []; for (const [a, b] of STANDS_) for (let i = a; i < b; i += step) segs.push(i);
   const standG = new THREE.ExtrudeGeometry(prof, { depth: 1, bevelEnabled: false }); standG.translate(0, 0, -0.5);
   const stands = new THREE.InstancedMesh(standG, new THREE.MeshLambertMaterial({ color: 0x2a3560, side: THREE.DoubleSide }), segs.length);
   const roof = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x1a2140, emissive: 0x0c1a3a }), segs.length);
@@ -31,7 +32,7 @@ export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false }
   const flagPts = [], X = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(), tmpV = new THREE.Vector3();
   let c = 0;
   segs.forEach((i, n) => {
-    const s = up(i), side = outSide(S, i), len = 1.2 * step + 0.2, yaw = yawOf(s);
+    const s = up(i), side = outS(S, i), len = 1.2 * step + 0.2, yaw = yawOf(s);
     // the profile's x runs outward (side × r), its depth along the track (t): a basis of its own, so the block is drawn double-sided
     const m = new THREE.Matrix4().makeBasis(X.copy(s.r).multiplyScalar(side), Y, Z.copy(s.t)); m.scale(new THREE.Vector3(1, 1, len)); m.setPosition(tmpV.copy(s.p).addScaledVector(s.r, side * (WALL + 1.6))); stands.setMatrixAt(n, m);
     o.position.copy(s.p).addScaledVector(s.r, side * (WALL + 1.6 + 4.4)).setY(8.2); o.rotation.set(0, yaw, 0); o.scale.set(9.4, 0.3, len); o.updateMatrix(); roof.setMatrixAt(n, o.matrix);
@@ -51,7 +52,7 @@ export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false }
   out.wave(0); poles.frustumCulled = flags.frustumCulled = false; g.add(poles, flags);
 
   // ---- the big standings screen on the infield by the line, facing the karts coming out of the last corner ----
-  { const s = up(SCREEN_I), side = -outSide(S, SCREEN_I), cv = document.createElement("canvas"); cv.width = 512; cv.height = 256;
+  { const s = up(SCREEN_), side = -outS(S, SCREEN_), cv = document.createElement("canvas"); cv.width = 512; cv.height = 256;
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
     const scr = new THREE.Mesh(new THREE.PlaneGeometry(14, 7), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
     const frame = new THREE.Mesh(new THREE.BoxGeometry(15, 8, 0.6), new THREE.MeshLambertMaterial({ color: 0x141a33, emissive: 0x0a1030 }));
@@ -70,7 +71,7 @@ export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false }
   }
 
   // ---- the tunnel: walls + roof per 3 samples (one InstancedMesh), cyan strips along the walls, light panels in the roof ----
-  { const segT = []; for (let i = TUNNEL[0]; i <= TUNNEL[1]; i += 3) segT.push(i);
+  if (TUNNEL_) { const segT = []; for (let i = TUNNEL_[0]; i <= TUNNEL_[1]; i += 3) segT.push(i);
     const box = new THREE.BoxGeometry(1, 1, 1), body = new THREE.InstancedMesh(box, new THREE.MeshLambertMaterial({ color: 0x18203f, emissive: 0x070b1c }), segT.length * 3);
     const strip = new THREE.InstancedMesh(box, new THREE.MeshBasicMaterial({ color: 0x38d8ff }), segT.length * 2), lamp = new THREE.InstancedMesh(box, new THREE.MeshBasicMaterial({ color: 0xff6fc8 }), Math.ceil(segT.length / 2));
     let b = 0, st = 0, lp = 0; const W = WALL + 0.5;
@@ -83,7 +84,7 @@ export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false }
   }
 
   // ---- more neon arches: thin rings halfway between the first set's, not in the tunnel (not on low graphics) ----
-  if (!low) { const n0 = Math.floor(track.len / 60), at = []; for (let k = 0; k < n0; k++) { const i = Math.floor(((k + 0.5) / n0) * N); if (!out.tunnelAt(i) && Math.abs(i - SCREEN_I) > 10) at.push(i); }
+  if (!low) { const n0 = Math.floor(track.len / 60), at = []; for (let k = 0; k < n0; k++) { const i = Math.floor(((k + 0.5) / n0) * N); if (!out.tunnelAt(i) && Math.abs(i - SCREEN_) > 10) at.push(i); }
     const ring = new THREE.InstancedMesh(new THREE.TorusGeometry(ROAD / 2 + 3.4, 0.2, 5, 28, Math.PI), new THREE.MeshBasicMaterial({ color: 0xffffff }), at.length);
     at.forEach((i, k) => { const s = up(i); o.position.copy(s.p); o.rotation.set(0, yawOf(s), 0); o.scale.set(1, 1, 1); o.updateMatrix(); ring.setMatrixAt(k, o.matrix); ring.setColorAt(k, col.setHex(k % 2 ? 0x9b6bff : 0x38d8ff)); });
     ring.frustumCulled = false; g.add(ring); }
@@ -94,7 +95,7 @@ export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false }
     const cv = document.createElement("canvas"); cv.width = 64; cv.height = 64; const x = cv.getContext("2d"); x.fillStyle = "#1b2440"; x.fillRect(0, 0, 64, 64); x.strokeStyle = "#ffc23c"; x.lineWidth = 7; for (let k = -1; k < 4; k++) { x.beginPath(); x.moveTo(4, k * 20 + 22); x.lineTo(32, k * 20 + 4); x.lineTo(60, k * 20 + 22); x.stroke(); }
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2, 2);
     const mat = new THREE.MeshLambertMaterial({ map: tex, emissive: 0x0b1530 }), lipM = new THREE.MeshBasicMaterial({ color: 0x2ee0b0 });
-    out.ramps = RAMPS.map((r) => { const s = up(r.i), rg = new THREE.Group(), w = new THREE.Mesh(wg, mat), lip = new THREE.Mesh(new THREE.BoxGeometry(RAMP.w, 0.12, 0.2), lipM); lip.position.set(0, H, L);
+    out.ramps = RAMPS_.map((r) => { const s = up(r.i), rg = new THREE.Group(), w = new THREE.Mesh(wg, mat), lip = new THREE.Mesh(new THREE.BoxGeometry(RAMP.w, 0.12, 0.2), lipM); lip.position.set(0, H, L);
       w.userData.drawn = lip.userData.drawn = true; rg.add(w, lip); rg.position.copy(s.p).addScaledVector(s.r, r.lat).setY(0.01); rg.rotation.y = yawOf(s); g.add(rg); return rg; });
   }
 

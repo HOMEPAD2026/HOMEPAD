@@ -19,7 +19,32 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
 { const curve = new THREE.CatmullRomCurve3(C.TRACK_PTS.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal"), len = curve.getLength();
   check(KART.TRACKS.nexus.minLap === Math.floor((len / C.BOOST_TOP) * 0.85), `minLap ${KART.TRACKS.nexus.minLap} = floor(${len.toFixed(1)} m / ${C.BOOST_TOP} m/s × 0.85)`);
   check(KART.TRACKS.nexus.laps === C.LAPS, "the laps match the game's"); }
-{ let same = true; for (let t = Date.parse("2026-10-30T00:00:00Z"), i = 0; i < 40; i++, t += 7 * 3600e3) { const a = dailyOf(t), b = C.dailyOf(t); if (a.day !== b.day || a.seed !== b.seed || a.rule !== b.rule) same = false; }
+// ---- K5: four tracks — each one's minLap from its own spline, the places on it, the daily's track ----
+const curveOf = (id) => new THREE.CatmullRomCurve3(C.TRACKS[id].pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal");
+check(JSON.stringify(C.TRACK_IDS) === JSON.stringify(KART.TRACK_IDS) && C.TRACK_IDS.every((id) => KART.TRACKS[id] && C.TRACKS[id]) && Object.keys(KART.TRACKS).length === C.TRACK_IDS.length, "K5: the same four tracks on both sides (" + C.TRACK_IDS.join(", ") + ")");
+for (const id of C.TRACK_IDS) { const len = curveOf(id).getLength();
+  check(KART.TRACKS[id].minLap === Math.floor((len / C.BOOST_TOP) * 0.85) && KART.TRACKS[id].laps === C.LAPS, `${id}: minLap ${KART.TRACKS[id].minLap} = floor(${len.toFixed(1)} m / ${C.BOOST_TOP} m/s × 0.85), ${C.LAPS} laps`);
+  check(len >= 1000 && len <= 1300 && len <= C.MAX_LEN, `${id}: ${len.toFixed(0)} m long (1,000–1,300, under MAX_LEN for the gaps' marks)`);
+  check(len / (C.BOOST_TOP * 1.15) >= KART.TRACKS[id].minLap, `${id}: the fastest lap items or the turbo rule allow (${(len / (C.BOOST_TOP * 1.15)).toFixed(1)} s) is no faster than minLap`); }
+{ const D = await import("../../world-kart-dress.js"), N = 900, WALL = 8 + 3.2;
+  for (const id of C.TRACK_IDS) { const T0 = C.TRACKS[id], curve = curveOf(id), P = curve.getSpacedPoints(N), len = curve.getLength();
+    const S = P.slice(0, N).map((p, i) => { const t = P[(i + 1) % N].clone().sub(p).normalize(); return { p, t, r: new THREE.Vector3(-t.z, 0, t.x) }; });
+    const yaw = (i) => { const s0 = S[((i % N) + N) % N]; return Math.atan2(s0.t.x, s0.t.z); }, turn = (a, b) => Math.abs(Math.atan2(Math.sin(yaw(a) - yaw(b)), Math.cos(yaw(a) - yaw(b))));
+    const near = (a, b, n) => Math.min(Math.abs(a - b), N - Math.abs(a - b)) < n, inT = (i, m) => !!T0.tunnel && i >= T0.tunnel[0] - m && i <= T0.tunnel[1] + m, inL = (i) => i > T0.last[0] && i < T0.last[1];
+    const fly = Math.ceil((((C.TOP * 1.1) / 6 + 1.6) * 2) / T0.feel.grav * C.TOP / (len / N)); // (samples flown off a ramp at top speed)
+    check(T0.ramps.length >= 1 && T0.ramps.every((r) => !T0.pads.some((p) => near(r.i, p, 25)) && !inT(r.i, 20) && !near(r.i, 0, 60) && !inL(r.i) && Math.abs(r.lat) + D.RAMP.w / 2 <= 8 && turn(r.i, r.i + fly) < 0.45), `${id}: ${T0.ramps.length} ramp(s) on the road, on a straight (lands within 0.45 rad over ${fly} samples), clear of the pads, a tunnel, the line and the last corner`);
+    check(T0.rows.length === 3 && T0.rows.every((r) => !T0.ramps.some((x) => near(r, x.i, 30)) && !T0.pads.some((p) => near(r, p, 25)) && !inT(r, 10) && !inL(r) && !near(r, 0, 60)), `${id}: three item-box rows clear of the ramps, pads, tunnel, last corner and line`);
+    check(T0.pads.length === 3 && T0.pads.every((p) => !inT(p, 0)), `${id}: three boost pads, none in a tunnel`);
+    const clear = (x, z, i0, m) => { for (let j = 0; j < N; j += 2) { if (near(j, i0, 45)) continue; const dx = S[j].p.x - x, dz = S[j].p.z - z; if (dx * dx + dz * dz < m * m) return false; } return true; }, at = (i, l) => [S[i].p.x + S[i].r.x * l, S[i].p.z + S[i].r.z * l];
+    const off = []; for (const [a, b] of T0.stands) for (let i = a; i < b; i += 4) { const sd = D.outSide(S, i, T0.c[0], T0.c[1]); for (const l of [WALL + 1.6, WALL + 6, WALL + 11]) if (!clear(...at(i, sd * l), i, WALL + 1)) off.push("stand " + i); }
+    { const sd = -D.outSide(S, T0.screen, T0.c[0], T0.c[1]); if (!clear(...at(T0.screen, sd * (WALL + 7)), T0.screen, WALL + 4)) off.push("screen"); }
+    { const sd = -D.outSide(S, T0.podium, T0.c[0], T0.c[1]); if (!clear(...at(T0.podium, sd * (WALL + 9)), T0.podium, WALL + 6)) off.push("podium"); }
+    check(T0.stands.length === 2 && !off.length, `${id}: the grandstands, the screen and the podium stand off every other stretch of road${off.length ? ": " + off.slice(0, 6).join(", ") : ""}`);
+    let sep = 1e9; for (let i = 0; i < N; i += 3) for (let j = 0; j < N; j += 3) if (!near(i, j, Math.ceil(60 / (len / N)))) sep = Math.min(sep, S[i].p.distanceTo(S[j].p));
+    check(sep > 2 * WALL + 8, `${id}: no two stretches of road closer than ${(2 * WALL + 8).toFixed(1)} m (${sep.toFixed(1)} m)`); }
+  const F = C.TRACKS; check(F.moon.feel.grav < F.nexus.feel.grav && F.ice.feel.grip < 1 && F.volcano.feel.lava && !F.nexus.feel.lava && F.nexus.feel.grip === 1, "each new track has its feel: the moon's low gravity, the ice's grip, the volcano's lava"); }
+{ let same = true; for (let t = Date.parse("2026-10-30T00:00:00Z"), i = 0; i < 40; i++, t += 7 * 3600e3) { const a = dailyOf(t), b = C.dailyOf(t); if (a.day !== b.day || a.seed !== b.seed || a.rule !== b.rule || a.track !== b.track) same = false; }
+  { const tr = new Set(); for (let i = 0; i < 60; i++) tr.add(dailyOf(Date.parse("2026-11-01T00:00:00Z") + i * 864e5).track); check(tr.size === 4, "K5: every track comes up as the daily's over two months"); }
   check(same && JSON.stringify(KART.RULES) === JSON.stringify(C.RULES), "the daily rule is the same day, seed and rule on both sides");
   const rules = new Set(); for (let i = 0; i < 60; i++) rules.add(dailyOf(Date.parse("2026-11-01T00:00:00Z") + i * 864e5).rule); check(rules.size === 5, "every rule comes up over two months"); }
 { const s = [[12.34, -56.78, 3.1], [-0.05, 1000.1, -3.14159], [200.5, 240.25, 7]], g = C.ghostEnc(s), d = C.ghostDec(g);
@@ -30,6 +55,7 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
   for (const m of src.matchAll(/\bT\("((?:[^"\\]|\\.)*)"/g)) want.add(JSON.parse('"' + m[1] + '"'));
   for (const name of ["RULE_NAME", "RULE_LINE", "MODE_NAME", "MODE_LINE", "ACH_NAME"]) { const m = src.match(new RegExp("(?:const |, )" + name + " = \\{([^}]*)\\}")); for (const x of m[1].matchAll(/: "((?:[^"\\]|\\.)*)"/g)) want.add(JSON.parse('"' + x[1] + '"')); }
   for (const r of C.RACERS) want.add(r.line);
+  for (const id of C.TRACK_IDS) { want.add(C.TRACKS[id].name); want.add(C.TRACKS[id].line); if (C.TRACKS[id].short) want.add(C.TRACKS[id].short); } // (K5: the tracks' names and lines)
   const miss = []; for (const s of want) for (const l of ["ko", "zh", "tr"]) if (C.LW[l][s] == null) miss.push(l + "|" + s);
   check(want.size > 60 && miss.length === 0, `world-kart.js's ${want.size} strings are in ko/zh/tr${miss.length ? ": " + miss.slice(0, 12).join(", ") : ""}`); }
 // ---- K6's helpers: the gaps, the photo finish, the settings, tilt, where the ramps and the tunnel sit ----
@@ -89,7 +115,7 @@ const G1 = C.ghostEnc([[0, 0, 0], [1, 1, 0.1], [2, 2, 0.2], [3, 3, 0.3], [4, 4, 
 
 let r = await call(p1, "world-kart-start", { track: "nexus", mode: "race", racer: "pepe" }); const r1 = r.body;
 check(r.status === 200 && r1.raceId && r1.mode === "race" && !r1.daily, "a race starts");
-check((await call(p1, "world-kart-start", { track: "moon", mode: "race" })).status === 400, "no such track: refused");
+check((await call(p1, "world-kart-start", { track: "mars", mode: "race" })).status === 400, "no such track: refused");
 r = await call(p1, "world-kart-start", { track: "nexus", mode: "race", racer: "pepe" }); const r1b = r.body;
 T += 95e3;
 check((await call(p1, "world-kart-end", { raceId: r1.raceId, place: 1, ...L3() })).status === 409, "a replaced race can't end (one active race a wallet)");
@@ -135,5 +161,16 @@ const dv = await read("world=kart-daily"); check(dv.status === 200 && KART.RULES
 const v = await read("world=kart&wallet=" + p1.address.toLowerCase()); check(v.status === 200 && v.body.today === KART.DAY_ARCL && v.body.racesLeft === 0 && v.body.dailyPaid && v.body.meta.ach.length === 5 && v.body.meta.lv >= 2, "your view: today's ARCL, races left, all five titles, a level");
 const v0 = await read("world=kart"); check(v0.body.racesLeft === KART.DAY_RACES && v0.body.cap === KART.DAY_ARCL, "a guest's view: the day's rules");
 r = await call(p1, "world-arcl-claim", { kind: "kart" }); check(r.status === 400, "KART's ARCL can't be claimed");
+// K5: the new tracks — each its own minLap, its own week board and ghost; the daily runs on the day's track whatever is sent
+{ const p4 = ethers.Wallet.createRandom(), L = KART.TRACKS.moon.minLap;
+  let s = await call(p4, "world-kart-start", { track: "moon", mode: "race", racer: "pengu" }); T += 120e3;
+  check((await call(p4, "world-kart-end", { raceId: s.body.raceId, place: 1, laps: [L - 1, 40, 40], time: L + 79 })).status === 400, `Lunar Loop: a ${L - 1} s lap is under its minLap ${L}: refused`);
+  r = await call(p4, "world-kart-end", { raceId: s.body.raceId, place: 2, ...L3(L, 33, 33), ghost: G2 });
+  check(r.status === 200 && r.body.credited === 350 && r.body.rank === 1 && r.body.best === L + 66 && db.get(`worldKartGhost/moon_${p4.address.toLowerCase()}`).g === G2 && !db.has(`worldKartGhost/nexus_${p4.address.toLowerCase()}`), "Lunar Loop: paid by the same PAY table, #1 on its own week board, its own ghost");
+  const tm = await read("world=kart-top&track=moon"), tn = await read("world=kart-top&track=nexus"); check(tm.body.track === "moon" && tm.body.top.length === 1 && !tn.body.top.some((x) => x.t === L + 66), "the week's boards are per track");
+  check((await read("world=kart-ghost&track=moon&who=top")).body.g === G2 && (await read("world=kart-ghost&track=volcano&who=top")).status === 404, "the #1's ghost per track (none yet on Magma Run)");
+  for (const id of ["ice", "volcano"]) { s = await call(p4, "world-kart-start", { track: id, mode: "ta", racer: "pengu" }); T += 100e3; r = await call(p4, "world-kart-end", { raceId: s.body.raceId, place: 0, ...L3(KART.TRACKS[id].minLap, 30, 30) }); check(r.status === 200 && r.body.credited === 0 && r.body.newBest && r.body.meta.best[id] > 0, `${id}: a time attack at its minLap is accepted, a best of its own`); }
+  const dd = dailyOf(T), other = KART.TRACK_IDS.find((x) => x !== dd.track); s = await call(p4, "world-kart-start", { track: other, mode: "daily", racer: "pengu" });
+  check(s.body.track === dd.track && s.body.daily.track === dd.track && db.get(`worldKartRace/${p4.address.toLowerCase()}`).track === dd.track && (await read("world=kart-daily")).body.track === dd.track, `the daily runs on the day's track (${dd.track}) even when another (${other}) is sent`); }
 { const p3 = ethers.Wallet.createRandom(), lap = Math.ceil(1079 / C.BOOST_TOP); r = await race(p3, "race", 1, L3(lap, lap, lap)); check(r.status === 200 && r.body.credited === 500, `K3: an honest race at the items' top pace (${lap} s laps — a pump or a magnet can't beat BOOST_TOP) is accepted and paid`); }
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);
