@@ -192,9 +192,12 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
   }
   return Promise.resolve(finish(null));
 
+  // perf batch 4: on phones (lite) the bloom's mip chain starts at a quarter of the screen's pixels instead of half
+  // (its blur is soft anyway; the glow reaches a little wider)
+  function halfBloom(bl) { if (!lite) return; const set = bl.setSize.bind(bl); bl.setSize = (w, h) => set(Math.max(1, Math.round(w / 2)), Math.max(1, Math.round(h / 2))); }
   // b448: medium in one final pass (FinalShader); edge / air / grade are the same pass, so the controls below work as before
   function finishMerged(depth) {
-    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); bl.heavy = true; comp.addPass(bl);
+    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); bl.heavy = true; halfBloom(bl); comp.addPass(bl);
     bl.materialHighPassFilter.fragmentShader = bl.materialHighPassFilter.fragmentShader.replace("vec4 texel = texture2D( tDiffuse, vUv );",
       "vec4 texel = texture2D( tDiffuse, vUv ); if (!(texel.r == texel.r) || !(texel.g == texel.g) || !(texel.b == texel.b)) texel = vec4(0.0, 0.0, 0.0, 1.0); texel.rgb = min(texel.rgb, vec3(6.0));");
     bl.materialHighPassFilter.needsUpdate = true;
@@ -218,7 +221,7 @@ export function buildPost(st, { level = "medium", bloom = [0.28, 0.25, 1.15], li
     } else { const sp = new ScenePass(scene, cam); comp.addPass(sp); depth = () => sp.depth || rt.depthTexture; }
     if (gl2 && !N8AOPass && !/[?&]post=split\b/.test(location.search)) return finishMerged(depth); // ?post=split: the old chain, to compare
     const edge = new DepthPass(EdgeShader, depth); edge.before = (u) => { u.near.value = cam.near; u.far.value = cam.far; }; comp.addPass(edge);
-    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); bl.heavy = true; comp.addPass(bl);
+    const bl = new UnrealBloomPass(new THREE.Vector2(256, 256), bloom[0], bloom[1], bloom[2]); bl.heavy = true; halfBloom(bl); comp.addPass(bl);
     // what the bloom takes in is cleaned first: a pixel that isn't a number (one bad shader result on some phone GPUs)
     // and a pinpoint far brighter than anything should be (a specular glint on a glossy part) spread through the
     // bloom's small mips into big black or white squares. Not-a-number becomes black, and nothing goes above 6.

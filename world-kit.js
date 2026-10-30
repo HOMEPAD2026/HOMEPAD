@@ -139,10 +139,14 @@ export function quality(force = "auto") {
   const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
   const medium = f === "medium";
   const weak = f === "auto" && (coarse || /basic render|swiftshader|llvmpipe|software/.test(GPU_NAME.toLowerCase())) && gpuWeak(); // (a computer drawing without a graphics chip too) // (the phones that sat under 15 fps even on Low: 1× pixels from the start)
-  const dpr = Math.min(window.devicePixelRatio || 1, saver || weak ? 1 : coarse && f !== "ultra" ? (low ? 1 : 1.25) : low ? 1 : medium ? 1.5 : f === "ultra" ? 2 : 1.5); /* (PF2 2026-10-27, the owner: phones ran hot at 1.25–1.5×: a phone drew 1× unless Ultra — then signs and names smeared (the owner's shot): 1.25×, the 30 fps cap pays for it; the weakest chips stay 1×) */ // Auto: 1.5× on phones and computers (b411: computers were 1.75×); phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain); a Low computer 1× (b447: Intel UHD laptops ran 15–20 fps at 1.25× on a big window)
+  const mid = f === "auto" && coarse && tier === "mid"; /* (perf batch 4: Adreno 70x–72x, Mali-G77–79 / G6x0, Xclipse — 1× pixels on Auto, like Low) */
+  let dpr = Math.min(window.devicePixelRatio || 1, saver || weak || mid ? 1 : coarse && f !== "ultra" ? (low ? 1 : 1.25) : low ? 1 : medium ? 1.5 : f === "ultra" ? 2 : 1.5); /* (PF2 2026-10-27, the owner: phones ran hot at 1.25–1.5×: a phone drew 1× unless Ultra — then signs and names smeared (the owner's shot): 1.25×, the 30 fps cap pays for it; the weakest chips stay 1×) */ // Auto: 1.5× on phones and computers (b411: computers were 1.75×); phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain); a Low computer 1× (b447: Intel UHD laptops ran 15–20 fps at 1.25× on a big window)
+  // the phone layout (html.wp-pcphone) is a 980 px page scaled to the screen: past the screen's own pixels a frame
+  // only draws pixels the screen throws away (a 1080 px phone: 1.10×, not 1.25×)
+  if (coarse && f !== "ultra" && document.documentElement.classList.contains("wp-pcphone") && screen.width && screen.height) dpr = Math.min(dpr, Math.max(1, Math.min(screen.width, screen.height) * (window.devicePixelRatio || 1) / 980));
   return { coarse, low, saver, weak, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : f === "ultra" ? 4096 : 2048 }; // Ultra on a computer: crisper shadows near you
 }
-/// the graphics chip's class from its name: "high", "low", or "" (unknown); asked once
+/// the graphics chip's class from its name: "high", "mid", "low", or "" (unknown); asked once
 let GPU_TIER = null, GPU_NAME = "";
 export function gpuTier() {
   if (GPU_TIER !== null) return GPU_TIER;
@@ -151,6 +155,7 @@ export function gpuTier() {
   const n = name.toLowerCase(), num = (re) => { const m = n.match(re); return m ? Number(m[1]) : 0; };
   let t = "";
   if (/apple/.test(n)) t = "high"; // iPhones and iPads from the A12 on
+  else if (/adreno[^0-9]*7[0-2]\d|mali-g7[7-9](?!\d)|mali-g6[1-9]\d|xclipse/.test(n)) t = "mid"; /* (perf batch 4: the mid-range phone chips — fine at 1× pixels, short of the flagships at more) */
   else if (/adreno/.test(n)) t = num(/adreno[^0-9]*(\d{3})/) >= 640 ? "high" : "low";
   else if (/immortalis|mali-g7\d\d|mali-g6[1-9]\d|mali-g7[7-9]/.test(n)) t = "high"; // (PF7 2026-10-27: Mali-G71–G76 sat under 15 fps in diag — low, below)
   else if (/mali|powervr|swiftshader|llvmpipe|basic render|software/.test(n)) t = "low"; // (2026-10-29, diag: a PC on "Microsoft Basic Render Driver" — no graphics chip at all — counted as unknown and sat in 500 ms+ frames)

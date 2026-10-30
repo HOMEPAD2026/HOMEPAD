@@ -52,7 +52,7 @@ export function createDiag({ post, renderer, quality = "", coarse = false, activ
   // the frame rate and the GPU memory, measured while you play (not in menus, not while the tab is hidden)
   let acc = 0, n = 0, last = 0, base = null, memSent = false, t0 = performance.now();
   // frame times in ms (a gap over a second is a pause, not a frame); sent after 60 s of play, then every 180 s
-  const fam = gpuFamily(gpu), tr = tier === "high" ? "h" : tier === "low" ? "l" : "u";
+  const fam = gpuFamily(gpu), tr = tier === "high" ? "h" : tier === "mid" ? "m" : tier === "low" ? "l" : "u";
   let ft = [], prev = 0, play = 0, nextAt = 60e3, frames = 0;
   // b441: hitches. A frame over 100 ms is counted with where you were (hub / zone / isle / def / jump) and its likely
   // cause: a shader built in that frame, textures or geometry uploaded, a place change or a fight starting in the last
