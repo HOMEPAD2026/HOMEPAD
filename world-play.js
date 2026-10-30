@@ -3894,6 +3894,7 @@ $("wp-set-music").addEventListener("change", () => { saveSet(); music.start(); }
 // only while you're playing: nothing buzzes when the phone just sits there (a scammer wandering up, a boss's miss)
 let lastInput = 0; for (const ev of ["pointerdown", "keydown", "touchstart"]) addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true, capture: true });
 const buzz = (ms) => { if (S.vib === false || !navigator.vibrate || performance.now() - lastInput > 4000 || document.hidden) return; try { navigator.vibrate(ms); } catch { /* not allowed */ } };
+if (!lowGfx) { const gr = $("wp-set-grass"); $("wp-set-grassrow").hidden = false; gr.checked = grassWanted(); gr.addEventListener("change", (e) => { S.grass = e.target.checked; saveSet(); if (S.grass && worldReady) makeMeadow(); }); }
 if (navigator.vibrate && matchMedia("(pointer: coarse)").matches) { $("wp-set-vibrow").hidden = false; $("wp-set-vib").checked = S.vib !== false; $("wp-set-vib").addEventListener("change", (e) => { S.vib = e.target.checked; saveSet(); if (S.vib) buzz(30); }); }
 $("wp-set-showname").addEventListener("change", (e) => { S.showName = !!e.target.checked; saveSet(); });
 // easier to read: larger text across the HUD and the windows; colours that don't lean on red against green
@@ -4327,13 +4328,16 @@ if (!lowGfx) {
 // the meadow (world-env.js): blades round you that sway and lie down where you walk (none on Low / Saver). Built once
 // the town is up (the mask is painted from what stands on the ground) and repainted once more when the coin city is in
 let grass = null, gmask = null;
+// 2026-10-30, the owner: on a phone the blades' square (36 m) showed as grass growing in round you as you walked — the
+// blades are off on phones unless Settings → Grass blades turns them on (the ground's own grass picture stays)
+const grassWanted = () => !lowGfx && (S.grass != null ? !!S.grass : !st.quality.coarse);
 function makeMeadow() {
-  if (lowGfx || grass) return;
+  if (!grassWanted() || grass) return;
   gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }, { x: GV.VILLAGE.x, z: GV.VILLAGE.z, r: GV.VILLAGE.arenaR + 2.2 } /* b447: the Game Village square (the blades grew through its tiles) */, { x: MV.MINE_VILLAGE.x, z: MV.MINE_VILLAGE.z, r: MV.MINE_VILLAGE.r + 1 } /* the Mining Village clearing */, { x: AGW.x, z: AGW.z, r: AGW.r + 2.5 } /* AGENT DIMENSION's Citadel */, { x: PV.PARTNER_VILLAGE.x, z: PV.PARTNER_VILLAGE.z, r: PV.PARTNER_VILLAGE.r + 1 } /* the Partner Village */], paths: WORN_PATHS }));
   const big = S.quality === "ultra" || S.quality === "high"; // 60,000 blades only when asked for (b411)
-  grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 8000 : 32000, /* b447: phones 8,000 (Adreno 7xx fell to 30–40 fps once the blades were back) (the blades hadn't drawn on phones since 13 October, a shader that didn't link; the frame rates since were measured without them) */ size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
+  grass = ENV.makeGrass({ count: big ? 86000 : st.quality.coarse ? 8000 : 48000, /* (2026-10-30: computers' square wider, the same density, so its edge sits out in the haze) */ /* b447: phones 8,000 (Adreno 7xx fell to 30–40 fps once the blades were back) (the blades hadn't drawn on phones since 13 October, a shader that didn't link; the frame rates since were measured without them) */ size: big ? 60 : st.quality.coarse ? 36 : 54, mask: gmask, gshadow, mediump: !!st.quality.coarse }); // phones: the blade colour in half precision (b404)
   planet.add(grass.mesh); reflHide.push(grass.mesh);
-  st.on((dt) => { const on = mode === "hub"; grass.mesh.visible = on; if (on) grass.tick(dt, -planet.position.x, -planet.position.z); });
+  st.on((dt) => { const on = mode === "hub" && grassWanted(); grass.mesh.visible = on; if (on) grass.tick(dt, -planet.position.x, -planet.position.z); });
   setTimeout(() => farCull.all(() => gmask.paint()), 20000);
   nightK = -1; dayNight();
 }
