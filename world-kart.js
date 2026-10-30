@@ -286,7 +286,7 @@ export function createKart(ctx) {
     pickEl = document.createElement("div"); pickEl.className = "wk-pick";
     pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
       <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
-      <button type="button" class="wk-go" data-race>${esc(T("Race!"))}</button>`;
+      <button type="button" class="wk-go wk-race" data-race><i class="wk-flag"></i><span>${esc(T("Race!"))}</span><em></em></button>`;
     ui.appendChild(pickEl);
     pickEl.addEventListener("click", (e) => { const c = e.target.closest("[data-r]"); if (c) choose(c.dataset.r); if (e.target.closest("[data-race]")) pick(picked); });
     choose(id);
@@ -303,8 +303,8 @@ export function createKart(ctx) {
     if (pickEl) { pickEl.remove(); pickEl = null; } if (pickFill) pickFill.visible = false; ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; reset();
   }
   // the pick's camera: in front of the chosen kart, a little above
-  function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; const tall = innerHeight > innerWidth, d = tall ? 6.6 : 4.4, sw = Math.sin(performance.now() / 2400) * 0.5; tmp.set(k.pos.x + Math.sin(k.yaw + sw) * d, tall ? 2.3 : 1.6, k.pos.z + Math.cos(k.yaw + sw) * d); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, tall ? -0.55 : -0.45, k.pos.z);
-    if (pickFill) { pickFill.position.copy(cam.position).add(new THREE.Vector3(0, 2, 0)); pickFill.target.position.set(k.pos.x, 0.8, k.pos.z); } } // (2026-10-30, the owner's phone: the kart filled the screen and stood dark — farther back on an upright screen, a little above, and a light from the camera's side, so the racer shows in the band between the logo and the cards)
+  function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; const tall = innerHeight > innerWidth, d = tall ? 6.6 : 5.9, sw = (tall ? 0 : 0.5) + Math.sin(performance.now() / 2400) * (tall ? 0.5 : 0.3); tmp.set(k.pos.x + Math.sin(k.yaw + sw) * d, tall ? 2.3 : 2.4, k.pos.z + Math.cos(k.yaw + sw) * d); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, tall ? -0.55 : -1.0, k.pos.z);
+    if (pickFill) { pickFill.position.copy(cam.position).add(new THREE.Vector3(0, 2, 0)); pickFill.target.position.set(k.pos.x, 0.8, k.pos.z); } } // (2026-10-30, the owner's phone: the kart filled the screen and stood dark — farther back on an upright screen, a little above, and a light from the camera's side, so the racer shows in the band between the logo and the cards; on a wide screen too — farther, higher and turned a little so the driver shows over the nose)
   const onResize = () => { if (!cam) return; cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); };
   function leave() {
     if (!on) return; on = false; phase = "idle";
