@@ -6292,6 +6292,32 @@ html.wp-pcphone .wk{zoom:2.2;inset:auto;left:0;top:0;width:calc(100vw / 2.2);hei
 html.wp-pcphone .wk-card{width:calc(20% - 5px);min-width:0;padding:3px 3px 5px;border-radius:10px;gap:1px}html.wp-pcphone .wk-card small{display:none}html.wp-pcphone .wk-card b{font-size:11px;letter-spacing:.02em}html.wp-pcphone .wk-card img{border-radius:7px}html.wp-pcphone .wk-cards{gap:5px;flex-wrap:nowrap}html.wp-pcphone .wk-card.on{transform:translateY(-4px)}html.wp-pcphone .wk-pick{gap:8px;padding:10px 8px calc(14px + env(safe-area-inset-bottom))}html.wp-pcphone .wk-pick h3{font-size:14px}html.wp-pcphone .wk-pick>.wk-go{min-width:0;width:min(300px,88%);height:46px}
 /* (2026-10-30, the owner's phone: five racers in one row so Race! stays on screen — it was under the fold) */
 .wk.picking .wk-top,.wk.picking .wk-spd,.wk.picking .wk-help,.wk.picking .wk-pad{display:none}
+/* KART 1.6 (2026-10-30, the owner's phone: the lap window sat mid-screen and the five round buttons ran off the edge) —
+   a slim race bar at the very top, steering on the left, Gas / Brake / Drift / Nitro as a thumb cluster on the right */
+.wk [data-game-hud].wk-top,html.wp-pcphone .wk [data-game-hud].wk-top{zoom:1;top:calc(6px + env(safe-area-inset-top,0px))}
+.wk-top{gap:10px;padding:4px 6px 4px 12px;border-radius:999px;background:linear-gradient(180deg,rgba(14,26,62,.82),rgba(6,12,30,.82));border:1px solid rgba(56,216,255,.45);box-shadow:0 4px 16px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12)}
+.wk-pos{font-size:20px;min-width:0;text-shadow:0 0 10px rgba(255,194,60,.45)}.wk-lap,.wk-time{font-size:12.5px}.wk-lap{opacity:.85}
+.wk-x{width:26px;height:26px;border-radius:50%;font-size:12px;line-height:1;padding:0}
+.wk-pad{bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:0 12px;align-items:flex-end}
+.wk-pad .wk-b{position:relative;width:70px;height:70px;padding:0;border:0;border-radius:50%;color:#fff;background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.28),transparent 48%),radial-gradient(circle at 50% 60%,var(--b1,#1d6bff),var(--b2,#0a2a6e));box-shadow:0 0 0 2px rgba(255,255,255,.18),0 0 14px var(--g,rgba(56,216,255,.55)),0 6px 14px rgba(0,0,0,.45);display:grid;place-items:center;transition:transform .08s,filter .08s;touch-action:none;user-select:none;-webkit-user-select:none}
+.wk-pad .wk-b.on{transform:scale(.92);filter:brightness(1.3)}
+.wk-pad .wk-b i{width:44%;height:44%;background:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.wk-pad .wk-b span{position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 3px #000;opacity:.9}
+.wk-steer{gap:12px}.wk-l{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 4 7 12l8 8' fill='none' stroke='%23fff' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.wk-r{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m9 4 8 8-8 8' fill='none' stroke='%23fff' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.wk-act{display:grid;grid-template-columns:auto auto;grid-template-areas:"bo dr" "br gas";gap:20px 10px;align-items:end;justify-items:center}
+.wk-pad .wk-gas{grid-area:gas;width:84px;height:84px;--b1:#2ee0b0;--b2:#0b6b52;--g:rgba(46,224,176,.6);--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 5 7 7-7 7M12 5l7 7-7 7' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.wk-pad .wk-br{grid-area:br;width:64px;height:64px;--b1:#ff5a6e;--b2:#7a1424;--g:rgba(255,90,110,.5);--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='6' width='12' height='12' rx='2.5' fill='%23fff'/%3E%3C/svg%3E")}
+.wk-pad .wk-dr{grid-area:dr;width:64px;height:64px;--b1:#ff6fc8;--b2:#6e1456;--g:rgba(255,111,200,.55);--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 16c4 0 6-8 12-8M14 5l3 3-3 3' fill='none' stroke='%23fff' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M4 20h6' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' opacity='.6'/%3E%3C/svg%3E")}
+.wk-pad .wk-bo{grid-area:bo;width:54px;height:54px;--b1:#ffb43a;--b2:#7a3a06;--g:rgba(255,166,58,.55);--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-7 0 3 1 4 2 4 0-3-1-6 1-9z' fill='%23fff'/%3E%3C/svg%3E")}
+.wk-spd{right:12px;bottom:auto;top:calc(48px + env(safe-area-inset-top,0px));padding:4px 10px;border-radius:12px;background:rgba(6,12,30,.55);border:1px solid rgba(56,216,255,.3)}
+.wk-spd b{font-size:24px}.wk-spd small{font-size:10px}
+.wk-help{bottom:auto;top:calc(48px + env(safe-area-inset-top,0px));left:12px;transform:none;max-width:52%;white-space:normal;font-size:10.5px;line-height:1.3;padding:5px 9px;animation:wkHelpOut .6s 7s forwards}
+@keyframes wkHelpOut{to{opacity:0;visibility:hidden}}
+/* the racer pick on a phone: room to breathe — smaller logo, smaller cards, Race! always on screen */
+html.wp-pcphone .wk-pick .wk-logo{width:min(250px,56vw);top:8px}
+html.wp-pcphone .wk-pick{gap:6px;padding:8px 8px calc(12px + env(safe-area-inset-bottom,0px))}
+html.wp-pcphone .wk-card{padding:3px 3px 4px}html.wp-pcphone .wk-card img{aspect-ratio:160/190}
 .wk-pick .wk-logo{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:min(320px,62vw)}
 /* the Studio's ASSET STORE (world-studio-assets.js) and the Arc Studio+ card */
 .wsa-ban{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:14px;border:1px solid var(--p-line,rgba(255,255,255,.12));background:linear-gradient(120deg,rgba(46,224,176,.16),rgba(56,216,255,.08) 55%,rgba(230,195,106,.12))}
