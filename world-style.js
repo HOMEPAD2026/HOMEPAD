@@ -8,6 +8,7 @@
 //            arcadia), painted on canvases here so there are no image files to load.
 // Everything is generated: no models, no textures to download.
 import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
+import { physMat } from "./world-gear3d.js";
 
 // a small seeded random, so every island of a style looks the same for everyone
 function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -57,11 +58,11 @@ export function brickMats(THREE, fixed) {
     mWood: std({ map: wood, roughness: 0.75 }),
     mMetal: std({ map: metal, metalness: 0.4, roughness: 0.35 }),
     mGlowB: fixed(new THREE.MeshBasicMaterial({ color: new THREE.Color(0.4, 1.6, 3.2) })),
-    mGlass: fixed(new THREE.MeshPhysicalMaterial({ color: 0xcfeeff, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false, clearcoat: 1 })),
+    mGlass: fixed(physMat({ color: 0xcfeeff, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false, clearcoat: 1 })),
     mFrame: std({ color: 0xe8f4ff, metalness: 0.4, roughness: 0.25 }),
     mNeonBody: std({ color: 0x1a1030, metalness: 0.4, roughness: 0.35 }),
     mNeonEdge: fixed(new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.7, 3.0) })),
-    mCrystal: fixed(new THREE.MeshPhysicalMaterial({ color: 0xb48cff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.62, flatShading: true, clearcoat: 1, emissive: 0x3a1a8a, emissiveIntensity: 0.6, depthWrite: false })),
+    mCrystal: fixed(physMat({ color: 0xb48cff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.62, flatShading: true, clearcoat: 1, emissive: 0x3a1a8a, emissiveIntensity: 0.6, depthWrite: false })),
     mCrystalCore: fixed(new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.2, 3.0) })),
     mGoldB: std({ map: gold, metalness: 0.5, roughness: 0.28, emissive: 0x4a3000, emissiveIntensity: 0.35 }),
     mCyber: std({ map: cyberMap, metalness: 0.7, roughness: 0.35, emissive: 0xffffff, emissiveMap: cyberGlow, emissiveIntensity: 1.8 }),
@@ -115,7 +116,7 @@ export function createStyler({ THREE, K, reduce = false }) {
     pagoda(B, r) { const red = mat(0xc8323a), dark = mat(0x3a2a2a); for (let i = 0; i < 3; i++) { const w = 2.4 - i * 0.55; B.add(red, T(box(w, 0.95, w), 0, i * 1.25, 0)); B.add(dark, T(new THREE.ConeGeometry(w * 0.95, 0.5, 4).translate(0, 0.25, 0), 0, i * 1.25 + 0.95, 0, Math.PI / 4)); } B.add(mat(0xffc861, { metalness: 0.8, roughness: 0.3 }), T(cyl(0.05, 0.05, 0.9, 6), 0, 3.95, 0)); B.add(red, T(box(0.18, 2.2, 0.18), -2.6, 0, 1.6)); B.add(red, T(box(0.18, 2.2, 0.18), -1.2, 0, 1.6)); B.add(dark, T(box(1.9, 0.18, 0.3), -1.9, 2.2, 1.6)); B.add(red, T(box(1.6, 0.14, 0.24), -1.9, 1.85, 1.6)); P.sakura(B, 2.2, 1.4, 0.9, r); },
     pyramid(B, r) { B.add(mat(0xd8a860), T(new THREE.ConeGeometry(2.6, 3.2, 4).translate(0, 1.6, 0), 0, 0, -0.3, Math.PI / 4)); B.add(mat(0xc89850), T(new THREE.ConeGeometry(1.2, 1.5, 4).translate(0, 0.75, 0), 2.1, 0, 1.6, Math.PI / 4)); P.palm(B, -2.3, 1.6, 0.85, r); P.cactus(B, 1.6, -2.2, 0.8, r); },
     lighthouse(B, r) { for (let i = 0; i < 5; i++) B.add(mat(i % 2 ? 0xd8323a : 0xf4f4f4), T(cyl(0.85 - i * 0.08, 0.9 - i * 0.08, 0.9, 14), 0, i * 0.9, 0)); B.add(mat(0x2a3442), T(cyl(0.6, 0.6, 0.12, 14), 0, 4.5, 0)); B.add(glow(3.0, 2.6, 1.3), T(cyl(0.42, 0.42, 0.55, 12), 0, 4.62, 0)); B.add(mat(0x2a3442), T(cone(0.62, 0.6, 14), 0, 5.17, 0)); B.add(mat(0x8a5a36), T(box(1.0, 0.2, 3.2), 0, 0, 2.4)); },
-    spire(B, r) { const m = new THREE.MeshPhysicalMaterial({ color: 0x9a6cff, emissive: 0x5a2aff, emissiveIntensity: 1.1, roughness: 0.1, flatShading: true, transparent: true, opacity: 0.85 }); spin.push(m); for (let i = 0; i < 5; i++) { const g = new THREE.OctahedronGeometry(0.5, 0); g.scale(0.8, 4 - i * 0.55, 0.8); B.add(m, T(g, (i % 2 ? 1 : -1) * i * 0.35, 1.5 + (4 - i) * 0.2, (i - 2) * 0.3, i, 0, (i - 2) * 0.25, 1)); } P.pine(B, 2.3, 1.3, 0.9, r, 0x183a3a); P.pine(B, -2.3, -1.2, 0.8, r, 0x183a3a); },
+    spire(B, r) { const m = physMat({ color: 0x9a6cff, emissive: 0x5a2aff, emissiveIntensity: 1.1, roughness: 0.1, flatShading: true, transparent: true, opacity: 0.85 }); spin.push(m); for (let i = 0; i < 5; i++) { const g = new THREE.OctahedronGeometry(0.5, 0); g.scale(0.8, 4 - i * 0.55, 0.8); B.add(m, T(g, (i % 2 ? 1 : -1) * i * 0.35, 1.5 + (4 - i) * 0.2, (i - 2) * 0.3, i, 0, (i - 2) * 0.25, 1)); } P.pine(B, 2.3, 1.3, 0.9, r, 0x183a3a); P.pine(B, -2.3, -1.2, 0.8, r, 0x183a3a); },
     temple(B, r) { const w = mat(0xf6f2e8), gold = mat(0xffc861, { metalness: 0.9, roughness: 0.25 }); B.add(w, T(cyl(2.4, 2.6, 0.4, 24), 0, 0, 0)); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; B.add(w, T(cyl(0.22, 0.24, 2.6, 10), Math.cos(a) * 1.8, 0.4, Math.sin(a) * 1.8)); } B.add(w, T(cyl(2.1, 2.1, 0.3, 24), 0, 3.0, 0)); const dome = new THREE.SphereGeometry(1.5, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2); B.add(gold, T(dome, 0, 3.3, 0)); B.add(gold, T(cyl(0.06, 0.06, 0.9, 6), 0, 4.75, 0)); },
     volcano(B, r) { B.add(mat(0x2a2220), T(new THREE.CylinderGeometry(0.9, 3.0, 3.6, 9, 1, true).translate(0, 1.8, 0), 0, 0, 0)); B.add(lavaMat, T(new THREE.CircleGeometry(0.85, 12).rotateX(-Math.PI / 2), 0, 3.35, 0)); for (let i = 0; i < 4; i++) { const a = i * 1.7; const g = box(0.25, 3.0, 0.06); g.rotateX(-0.6); B.add(lavaMat, T(g, Math.cos(a) * 1.6, 0.2, Math.sin(a) * 1.6, -a + Math.PI / 2)); } P.rock(B, 2.4, 1.2, 1.2, r, 0x2a2220); },
   };
@@ -180,7 +181,7 @@ export function createStyler({ THREE, K, reduce = false }) {
     if (st.lavaBands) { for (let i = 1; i <= 4; i++) { const w = W * (1 - i * 0.15) + 0.08; const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.14, w), lavaMat); m.position.y = -0.3 - i * 1.3; m.rotation.y = i * 0.12; g.add(m); } }
     // props along the edge (out of the build area; the portal corner stays clear)
     const B = Batch(), n = Math.round(W * 0.85), lampM = glow(2.4, 1.9, 1.0);
-    const crystalM = new THREE.MeshPhysicalMaterial({ color: st.decor === "celestial" ? 0xbfe8ff : 0x8a5cff, emissive: st.decor === "celestial" ? 0x6ab8ff : 0x6a2aff, emissiveIntensity: 0.9, roughness: 0.1, flatShading: true, transparent: true, opacity: 0.88 });
+    const crystalM = physMat({ color: st.decor === "celestial" ? 0xbfe8ff : 0x8a5cff, emissive: st.decor === "celestial" ? 0x6ab8ff : 0x6a2aff, emissiveIntensity: 0.9, roughness: 0.1, flatShading: true, transparent: true, opacity: 0.88 });
     for (let i = 0; i < n; i++) {
       const t = (i + r() * 0.6) / n * 4, side = Math.floor(t) % 4, f = (t % 1) * (W - 2) - (W - 2) / 2, d = h + 0.9 + r() * 1.5;
       const [x, z] = [[f, -d], [d, f], [-f, d], [-d, -f]][side];

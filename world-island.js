@@ -14,6 +14,7 @@ import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
 import { createShowcase } from "./world-showcase.js";
 import { groundLook } from "./world-look.js";
+import { physMat } from "./world-gear3d.js";
 
 export const ISLAND_N = 36, LOT_N = 9, HMAX = 24, MAX_BRICKS = 12000, LAND_BRICKS = 20000; // (an ARCIRCLE LAND owner builds up to LAND_BRICKS)
 export const COLORS = [
@@ -42,7 +43,7 @@ export function createIsland(ctx) {
   const M = {
     paint: std({ color: 0xffffff, roughness: 0.42 }),
     neon: new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 2.2, 2.2) }),
-    glass: fixedPatch(new THREE.MeshPhysicalMaterial({ color: 0xbfe6ff, roughness: 0.06, metalness: 0.1, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false })),
+    glass: fixedPatch(physMat({ color: 0xbfe6ff, roughness: 0.06, metalness: 0.1, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false })),
     wood: fixedPatch(std({ color: 0x8a5a36, roughness: 0.8 })),
     dark: fixedPatch(std({ color: 0x2a3442, metalness: 0.5 })),
     gold: fixedPatch(std({ color: 0xffc861, metalness: 0.9, roughness: 0.25 })),

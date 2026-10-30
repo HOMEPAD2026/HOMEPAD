@@ -302,7 +302,7 @@ export function createDecor(ctx) {
     // packs only; the districts' six come in behind it, compiled hidden and then shown (staged), so nothing stalls
     try {
     await load("kk-weapons"); ctx.onWeapons && ctx.onWeapons();
-    await Promise.all(["kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "q-nature", "q-props"].map(load)); dressTown();
+    await Promise.all(["kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "q-nature", "q-props"].map(load)); await staged(dressTown); if (ctx.onMore) ctx.onMore(); /* (perf batch 7: compiled hidden, then shown — no stall when it lands after the loading screen) */
     } finally { townDone(); } // b443: the loading screen waits for this (the town dressed behind it, not on the plaza)
     // (2026-10-30, the owner: the arrival stuttered — a stage that isn't done behind the loading screen waits until you've
     // landed and stood a moment: ctx.calm, so nothing is placed and compiled under the fly-in)
