@@ -485,7 +485,7 @@
 
   // ---------------- painting the page in the chosen language ----------------
   var gi = 0, stats = null, boards = null, rk = 0;
-  var KEYART = { hw: "hwrealm", raid: 1, jurassic: 1, surv: 1, rings: 1, poker: 1, kart: 1 }; // the owner's key art (images/gw/key-*.webp); the others show their game card
+  var KEYART = { hw: "hwrealm", raid: 1, jurassic: 1, surv: 1, rings: 1, poker: 1, kart: "kart2" }; /* (KQ: KART's card = Meshy's volcano key art, raw/kart-kq keyart/key-2-volcano) */ // the owner's key art (images/gw/key-*.webp); the others show their game card
   var gArt = function (g, small) { return KEYART[g.id] ? "/images/gw/key-" + (typeof KEYART[g.id] === "string" ? KEYART[g.id] : g.id) + (small ? "-416" : "") + ".webp" : "/images/games/" + g.img + ".webp"; };
   var gIcon = function (g) { return KEYART[g.id] ? "/images/gw/icon-" + (typeof KEYART[g.id] === "string" ? KEYART[g.id] : g.id) + ".webp" : "/images/games/" + g.img + ".webp"; };
   var VER = (function () { var s = $('script[src*="gw.js"]'), m = s && /[?&]v=(\w+)/.exec(s.getAttribute("src")); return m ? m[1] : "1"; })();

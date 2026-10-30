@@ -173,4 +173,18 @@ r = await call(p1, "world-arcl-claim", { kind: "kart" }); check(r.status === 400
   const dd = dailyOf(T), other = KART.TRACK_IDS.find((x) => x !== dd.track); s = await call(p4, "world-kart-start", { track: other, mode: "daily", racer: "pengu" });
   check(s.body.track === dd.track && s.body.daily.track === dd.track && db.get(`worldKartRace/${p4.address.toLowerCase()}`).track === dd.track && (await read("world=kart-daily")).body.track === dd.track, `the daily runs on the day's track (${dd.track}) even when another (${other}) is sent`); }
 { const p3 = ethers.Wallet.createRandom(), lap = Math.ceil(1079 / C.BOOST_TOP); r = await race(p3, "race", 1, L3(lap, lap, lap)); check(r.status === 200 && r.body.credited === 500, `K3: an honest race at the items' top pace (${lap} s laps — a pump or a magnet can't beat BOOST_TOP) is accepted and paid`); }
+// ---- KQ (the premium remaster): every track's props stand off the road, clear of the line, the screen, the podium; fewer on a phone, a quarter and no landmarks on low; the flames and the speed lines grow with speed ----
+{ const Q = await import("../../world-kart-kq.js"), N = 900, WALL = 8 + 3.2, ROAD = 16, fs2 = await import("node:fs");
+  for (const id of C.TRACK_IDS) { const T0 = C.TRACKS[id], P = curveOf(id).getSpacedPoints(N), S = []; for (let i = 0; i < N; i++) { const p = P[i], q = P[(i + 1) % N], t = q.clone().sub(p).normalize(); S.push({ p, t, r: new THREE.Vector3(-t.z, 0, t.x) }); }
+    const archN = Math.floor(curveOf(id).getLength() / 60), arches = []; for (let k = 0; k < archN; k++) arches.push(Math.floor((k / archN) * N));
+    const all = Q.propSpots(S, N, T0, Q.KQ[id], { WALL, ROAD, arches }), ph = Q.propSpots(S, N, T0, Q.KQ[id], { WALL, ROAD, arches, coarse: true }), lo = Q.propSpots(S, N, T0, Q.KQ[id], { WALL, ROAD, arches, low: true });
+    const cnt = (o) => Object.values(o).reduce((n, a) => n + a.length, 0), over = ["gate", "blimp", "ice/ice-arch", "moon/float-rock"];
+    let worst = 1e9, at = ""; for (const [k, a] of Object.entries(all)) { if (over.includes(k)) continue; for (const [x, z] of a) for (let j = 0; j < N; j += 2) { const d = Math.hypot(S[j].p.x - x, S[j].p.z - z); if (d < worst) { worst = d; at = k; } } }
+    check(worst > WALL, `KQ ${id}: no prop on the road or the rail (nearest ${worst.toFixed(1)} m from the line's middle, ${at}; the rail at ${WALL})`);
+    check(cnt(ph) <= cnt(all) * 0.75 && cnt(lo) <= cnt(all) * 0.45 && !lo.gate && !lo.blimp && !lo["nexus/billboard"] && !lo["moon/float-rock"] && !lo.stand, `KQ ${id}: ${cnt(all)} props on a computer, ${cnt(ph)} on a phone, ${cnt(lo)} on low (no landmarks, no Meshy stands)`);
+    check(Object.keys(all).every((k) => fs2.existsSync(`${ROOT}/models/world/kart/${{ stand: "shared/grandstand", fence: "shared/fence", gate: "shared/arch-gate", blimp: "shared/blimp" }[k] || k}.glb`)), `KQ ${id}: every kind's model is packed (${Object.keys(all).join(", ")})`);
+    check(fs2.existsSync(`${ROOT}/images/kart/tracks/${id}-sky.webp`) && fs2.existsSync(`${ROOT}/images/kart/tracks/${id}-road.webp`) && T0.look.sky.endsWith(`${id}-sky.webp`) && T0.look.road.endsWith(`${id}-road.webp`), `KQ ${id}: its own Meshy sky and road`); }
+  const f0 = Q.flameOf({ sp: 0.3 }), f1 = Q.flameOf({ sp: 1 }), fb = Q.flameOf({ sp: 1, boost: true, lv: 3 });
+  check(f0.len < f1.len && f1.len < fb.len && f0.op < f1.op && fb.op === 1, `KQ: the flames grow with speed and a boost (${f0.len.toFixed(2)} → ${f1.len.toFixed(2)} → ${fb.len.toFixed(2)} m)`);
+  check(Q.streakOf(0.6, false) === 0 && Q.streakOf(1, false) === 1 && Q.streakOf(0.5, true, 1) > 0.5, "KQ: speed lines from 70 % of the top speed, a boost lifts them"); }
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);

@@ -41,7 +41,7 @@ export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false, 
       o.rotation.set(0, yaw + side * Math.PI / 2, 0); o.scale.set(1, 0.85 + ((k * 37) % 10) / 30, 1); o.updateMatrix(); crowd.setMatrixAt(c, o.matrix); crowd.setColorAt(c, col.setHex(CROWD[(k * 5 + n) % CROWD.length])); c++; }
     if (n % (few ? 2 : 1) === 0) flagPts.push([s.p.x + s.r.x * side * (WALL + 11), s.p.z + s.r.z * side * (WALL + 11), yaw, n]);
   });
-  crowd.count = c; stands.frustumCulled = roof.frustumCulled = crowd.frustumCulled = false; g.add(stands, roof, crowd);
+  crowd.count = c; stands.frustumCulled = roof.frustumCulled = crowd.frustumCulled = false; g.add(stands, roof, crowd); out.standMeshes = [stands, roof, crowd]; // (KQ: hidden once Meshy's grandstands are in)
 
   // ---- flags on poles behind the stands: they wave (world-kart.js calls out.wave(t) ≤ 15 times a second) ----
   const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.1, 9, 5), new THREE.MeshLambertMaterial({ color: 0xcfd8ea }), flagPts.length);
