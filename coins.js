@@ -36,7 +36,7 @@
     "ig.k": "$ARCIRCLE in the game", "ig.h": "Paid, burned and exchanged in ARCIRCLE WORLD", "ig.p": "What players have done with $ARCIRCLE inside the game: items paid for (half of each payment is burned), LAND villages bought, and the exchange with ARCL.",
     "t.shop": "Items paid in $ARCIRCLE", "t.shop.e": "{a} $ARCIRCLE paid", "t.gburn": "Burned through the game", "t.gburn.e": "half of every in-game payment", "t.land": "ARCIRCLE LAND villages", "t.land.e": "{a} $ARCIRCLE to the treasury", "t.land.v": "{n} of {m} sold", "t.mkt": "Blueprints for sale", "t.mkt.e": "in the Creator Market",
     "use.k": "Where to use them", "use.h": "Earn, spend, exchange", "u.earn": "Earn ARCL", "u.spend": "Spend ARCL", "u.arc": "Use $ARCIRCLE",
-    "e.surv": "<b>SURVIVORS ARENA</b> — up to 3,000 a run", "e.jump": "<b>COIN JUMP</b> — 3,000 once a day", "e.def": "<b>AC DEFENSE</b> — 5 a wave, up to 150 a day", "e.rings": "<b>INFINITY RINGS</b> — 100 a new star (50 for levels 101–200)", "e.mine": "<b>ARCL MINE</b> — 10 to 10,000 a rock", "e.jur": "<b>JURASSIC WORLD</b> — 3 daily missions, 300 each", "e.poker": "<b>POKER LOUNGE</b> — 3 daily missions (never for winning)", "e.daily": "<b>Every day</b> — check-in, quests, hunts, your island",
+    "e.surv": "<b>SURVIVORS ARENA</b> — up to 3,000 a run", "e.kart": "<b>ARCIRCLE KART</b> — 500 / 350 / 250 / 150 / 100 by place, 5 races a day, up to 2,500 a day", "e.jump": "<b>COIN JUMP</b> — 3,000 once a day", "e.def": "<b>AC DEFENSE</b> — 5 a wave, up to 150 a day", "e.rings": "<b>INFINITY RINGS</b> — 100 a new star (50 for levels 101–200)", "e.mine": "<b>ARCL MINE</b> — 10 to 10,000 a rock", "e.jur": "<b>JURASSIC WORLD</b> — 3 daily missions, 300 each", "e.poker": "<b>POKER LOUNGE</b> — 3 daily missions (never for winning)", "e.daily": "<b>Every day</b> — check-in, quests, hunts, your island",
     "s.shop": "<b>Shop</b> — styles, potions, items", "s.forge": "<b>Forge</b> — enhance and repair your gear", "s.pick": "<b>Pickaxes</b> — better tiers in the ARCL Mine", "s.chips": "<b>Poker chips</b> — ARCL → chips, one way", "s.mkt": "<b>Creator Market</b> — buy island blueprints from players", "s.swap": "<b>Exchange</b> — ARCL → $ARCIRCLE by request",
     "a.shop": "<b>Pay for items</b> in $ARCIRCLE — half is burned, half goes to the treasury", "a.land": "<b>ARCIRCLE LAND</b> — buy one of the 20 villages", "a.swap": "<b>Exchange</b> — $ARCIRCLE → ARCL (bought ARCL can pay creators)", "a.pay": "<b>Creator payouts</b> — creators' settled sales are paid in $ARCIRCLE from a GM's own wallet", "a.hold": "<b>Hold it</b> in your own wallet on Arc",
     "flow.k": "How they connect", "flow.h": "From play to the chain",
@@ -51,7 +51,7 @@
     "cta.h": "Start earning ARCL", "cta.p": "Free on phone and PC. Play, build, battle — and watch the numbers grow.",
     "foot.fine": "ARCL are in-game points. Rewards are for play and are never guaranteed. Nothing on this page is financial advice.",
     "k.vote": "Burn-to-vote", "k.mine": "Builder Mine", "k.scanner": "Token Scanner", "k.secret": "ARCIA's secret file", "k.desk": "ARCIA DESK", "k.agent": "ARCIA AGENT vaults", "k.orders": "Orders & Predict fees", "k.omni": "OMNI rewards", "k.buyback": "Buyback", "k.team": "Team & treasury", "k.wallet": "Direct burn", "k.pending": "Being labeled",
-    "g.daily": "Daily & welcome", "g.island": "Island & village", "g.town": "Town & RPG", "g.sell": "Selling loot", "g.defense": "AC Defense", "g.mine": "ARCL Mine", "g.surv": "Survivors Arena", "g.poker": "Poker missions", "g.rings": "Infinity Rings", "g.jur": "Jurassic World", "g.jump": "Coin Jump", "g.swapbuy": "Bought with $ARCIRCLE", "g.sale": "Creator sales", "g.gm": "GM rewards", "g.other": "Other",
+    "g.daily": "Daily & welcome", "g.island": "Island & village", "g.town": "Town & RPG", "g.sell": "Selling loot", "g.defense": "AC Defense", "g.mine": "ARCL Mine", "g.surv": "Survivors Arena", "g.kart": "ARCIRCLE KART", "g.poker": "Poker missions", "g.rings": "Infinity Rings", "g.jur": "Jurassic World", "g.jump": "Coin Jump", "g.swapbuy": "Bought with $ARCIRCLE", "g.sale": "Creator sales", "g.gm": "GM rewards", "g.other": "Other",
     "g.market": "Creator Market", "g.forge": "Forge", "g.pick": "Pickaxes", "g.chips": "Poker chips", "g.shop": "Shop items", "g.swap": "Exchange → $ARCIRCLE",
   };
   var KO = {
@@ -79,7 +79,7 @@
     "ig.k": "게임 속 $ARCIRCLE", "ig.h": "ARCIRCLE WORLD에서 결제·소각·교환된 양", "ig.p": "플레이어가 게임 안에서 $ARCIRCLE로 한 일: 아이템 결제(결제액의 절반은 소각), LAND 마을 구매, ARCL과의 교환.",
     "t.shop": "$ARCIRCLE로 결제한 아이템", "t.shop.e": "{a} $ARCIRCLE 결제", "t.gburn": "게임을 통해 소각", "t.gburn.e": "게임 내 결제액의 절반", "t.land": "ARCIRCLE LAND 마을", "t.land.e": "트레저리로 {a} $ARCIRCLE", "t.land.v": "{m}개 중 {n}개 판매", "t.mkt": "판매 중인 블루프린트", "t.mkt.e": "크리에이터 마켓",
     "use.k": "사용처", "use.h": "벌고, 쓰고, 교환하기", "u.earn": "ARCL 벌기", "u.spend": "ARCL 쓰기", "u.arc": "$ARCIRCLE 쓰기",
-    "e.surv": "<b>SURVIVORS ARENA</b> — 한 판에 최대 3,000", "e.jump": "<b>COIN JUMP</b> — 하루 한 번 3,000", "e.def": "<b>AC DEFENSE</b> — 웨이브당 5, 하루 최대 150", "e.rings": "<b>INFINITY RINGS</b> — 새 별마다 100 (101–200레벨은 50)", "e.mine": "<b>ARCL MINE</b> — 바위 하나에 10~10,000", "e.jur": "<b>JURASSIC WORLD</b> — 일일 미션 3개, 각 300", "e.poker": "<b>POKER LOUNGE</b> — 일일 미션 3개 (승리 보상 아님)", "e.daily": "<b>매일</b> — 출석, 퀘스트, 사냥, 내 섬",
+    "e.surv": "<b>SURVIVORS ARENA</b> — 한 판에 최대 3,000", "e.kart": "<b>ARCIRCLE KART</b> — 순위별 500 / 350 / 250 / 150 / 100, 하루 5판, 하루 최대 2,500", "e.jump": "<b>COIN JUMP</b> — 하루 한 번 3,000", "e.def": "<b>AC DEFENSE</b> — 웨이브당 5, 하루 최대 150", "e.rings": "<b>INFINITY RINGS</b> — 새 별마다 100 (101–200레벨은 50)", "e.mine": "<b>ARCL MINE</b> — 바위 하나에 10~10,000", "e.jur": "<b>JURASSIC WORLD</b> — 일일 미션 3개, 각 300", "e.poker": "<b>POKER LOUNGE</b> — 일일 미션 3개 (승리 보상 아님)", "e.daily": "<b>매일</b> — 출석, 퀘스트, 사냥, 내 섬",
     "s.shop": "<b>상점</b> — 스타일, 포션, 아이템", "s.forge": "<b>대장간</b> — 장비 강화와 수리", "s.pick": "<b>곡괭이</b> — ARCL 광산의 상위 등급", "s.chips": "<b>포커 칩</b> — ARCL → 칩 (한 방향)", "s.mkt": "<b>크리에이터 마켓</b> — 다른 플레이어의 섬 블루프린트 구매", "s.swap": "<b>교환</b> — ARCL → $ARCIRCLE 신청",
     "a.shop": "<b>아이템 결제</b> — $ARCIRCLE로 결제, 절반은 소각·절반은 트레저리", "a.land": "<b>ARCIRCLE LAND</b> — 20개 마을 중 하나 구매", "a.swap": "<b>교환</b> — $ARCIRCLE → ARCL (구매한 ARCL은 크리에이터에게 지급될 수 있어요)", "a.pay": "<b>크리에이터 정산</b> — 정산된 판매 수익은 GM 본인 지갑에서 $ARCIRCLE로 지급", "a.hold": "<b>보유</b> — Arc의 내 지갑에",
     "flow.k": "어떻게 연결되나요", "flow.h": "플레이에서 체인까지",
@@ -94,7 +94,7 @@
     "cta.h": "지금 ARCL을 모아보세요", "cta.p": "폰과 PC에서 무료. 플레이하고, 짓고, 싸우며 — 숫자가 커지는 걸 지켜보세요.",
     "foot.fine": "ARCL은 게임 내 포인트입니다. 보상은 플레이에 대한 것이며 보장되지 않습니다. 이 페이지의 어떤 내용도 투자 조언이 아닙니다.",
     "k.vote": "소각 투표", "k.mine": "빌더 광산", "k.scanner": "토큰 스캐너", "k.secret": "ARCIA 비밀 파일", "k.desk": "ARCIA DESK", "k.agent": "ARCIA AGENT 금고", "k.orders": "Orders & Predict 수수료", "k.omni": "OMNI 보상", "k.buyback": "바이백", "k.team": "팀 & 트레저리", "k.wallet": "직접 소각", "k.pending": "분류 중",
-    "g.daily": "출석 & 웰컴", "g.island": "섬 & 마을", "g.town": "마을 & RPG", "g.sell": "전리품 판매", "g.defense": "AC 디펜스", "g.mine": "ARCL 광산", "g.surv": "서바이버즈 아레나", "g.poker": "포커 미션", "g.rings": "인피니티 링즈", "g.jur": "쥬라기 월드", "g.jump": "코인 점프", "g.swapbuy": "$ARCIRCLE로 구매", "g.sale": "크리에이터 판매", "g.gm": "GM 보상", "g.other": "기타",
+    "g.daily": "출석 & 웰컴", "g.island": "섬 & 마을", "g.town": "마을 & RPG", "g.sell": "전리품 판매", "g.defense": "AC 디펜스", "g.mine": "ARCL 광산", "g.surv": "서바이버즈 아레나", "g.kart": "ARCIRCLE KART", "g.poker": "포커 미션", "g.rings": "인피니티 링즈", "g.jur": "쥬라기 월드", "g.jump": "코인 점프", "g.swapbuy": "$ARCIRCLE로 구매", "g.sale": "크리에이터 판매", "g.gm": "GM 보상", "g.other": "기타",
     "g.market": "크리에이터 마켓", "g.forge": "대장간", "g.pick": "곡괭이", "g.chips": "포커 칩", "g.shop": "상점 아이템", "g.swap": "교환 → $ARCIRCLE",
   };
   var ZH = {
@@ -122,7 +122,7 @@
     "ig.k": "游戏中的 $ARCIRCLE", "ig.h": "在 ARCIRCLE WORLD 中支付、销毁与兑换", "ig.p": "玩家在游戏中用 $ARCIRCLE 做了什么：购买物品（每笔支付的一半被销毁）、购买 LAND 村庄，以及与 ARCL 的兑换。",
     "t.shop": "用 $ARCIRCLE 购买的物品", "t.shop.e": "支付 {a} $ARCIRCLE", "t.gburn": "通过游戏销毁", "t.gburn.e": "每笔游戏内支付的一半", "t.land": "ARCIRCLE LAND 村庄", "t.land.e": "{a} $ARCIRCLE 进入金库", "t.land.v": "已售 {n} / {m}", "t.mkt": "在售蓝图", "t.mkt.e": "创作者市场",
     "use.k": "用途", "use.h": "赚取、花费、兑换", "u.earn": "赚取 ARCL", "u.spend": "花费 ARCL", "u.arc": "使用 $ARCIRCLE",
-    "e.surv": "<b>SURVIVORS ARENA</b> —— 每局最多 3,000", "e.jump": "<b>COIN JUMP</b> —— 每天一次 3,000", "e.def": "<b>AC DEFENSE</b> —— 每波 5，每天最多 150", "e.rings": "<b>INFINITY RINGS</b> —— 每颗新星 100（101–200 关为 50）", "e.mine": "<b>ARCL MINE</b> —— 每块岩石 10 到 10,000", "e.jur": "<b>JURASSIC WORLD</b> —— 3 个每日任务，各 300", "e.poker": "<b>POKER LOUNGE</b> —— 3 个每日任务（不奖励输赢）", "e.daily": "<b>每天</b> —— 签到、任务、狩猎、你的岛屿",
+    "e.surv": "<b>SURVIVORS ARENA</b> —— 每局最多 3,000", "e.kart": "<b>ARCIRCLE KART</b> —— 按名次 500 / 350 / 250 / 150 / 100，每天 5 场，每天最多 2,500", "e.jump": "<b>COIN JUMP</b> —— 每天一次 3,000", "e.def": "<b>AC DEFENSE</b> —— 每波 5，每天最多 150", "e.rings": "<b>INFINITY RINGS</b> —— 每颗新星 100（101–200 关为 50）", "e.mine": "<b>ARCL MINE</b> —— 每块岩石 10 到 10,000", "e.jur": "<b>JURASSIC WORLD</b> —— 3 个每日任务，各 300", "e.poker": "<b>POKER LOUNGE</b> —— 3 个每日任务（不奖励输赢）", "e.daily": "<b>每天</b> —— 签到、任务、狩猎、你的岛屿",
     "s.shop": "<b>商店</b> —— 外观、药水、物品", "s.forge": "<b>锻造</b> —— 强化与修理装备", "s.pick": "<b>镐</b> —— ARCL 矿场的高级镐", "s.chips": "<b>扑克筹码</b> —— ARCL → 筹码（单向）", "s.mkt": "<b>创作者市场</b> —— 购买其他玩家的岛屿蓝图", "s.swap": "<b>兑换</b> —— 申请 ARCL → $ARCIRCLE",
     "a.shop": "<b>购买物品</b> —— 用 $ARCIRCLE 支付，一半销毁、一半进入金库", "a.land": "<b>ARCIRCLE LAND</b> —— 购买 20 个村庄之一", "a.swap": "<b>兑换</b> —— $ARCIRCLE → ARCL（购买的 ARCL 可支付给创作者）", "a.pay": "<b>创作者结算</b> —— 已结算的销售额由 GM 本人钱包以 $ARCIRCLE 支付", "a.hold": "<b>持有</b> —— 在 Arc 上你自己的钱包里",
     "flow.k": "它们如何连接", "flow.h": "从游玩到链上",
@@ -137,7 +137,7 @@
     "cta.h": "开始赚取 ARCL", "cta.p": "手机和电脑免费。游玩、建造、战斗——看着数字增长。",
     "foot.fine": "ARCL 是游戏内积分。奖励针对游玩，并不保证。本页内容均不构成投资建议。",
     "k.vote": "销毁投票", "k.mine": "建造者矿场", "k.scanner": "代币扫描器", "k.secret": "ARCIA 秘密文件", "k.desk": "ARCIA DESK", "k.agent": "ARCIA AGENT 金库", "k.orders": "Orders 与 Predict 手续费", "k.omni": "OMNI 奖励", "k.buyback": "回购", "k.team": "团队与金库", "k.wallet": "直接销毁", "k.pending": "分类中",
-    "g.daily": "签到与欢迎", "g.island": "岛屿与村庄", "g.town": "城镇与 RPG", "g.sell": "出售战利品", "g.defense": "AC 塔防", "g.mine": "ARCL 矿场", "g.surv": "幸存者竞技场", "g.poker": "扑克任务", "g.rings": "无限之环", "g.jur": "侏罗纪世界", "g.jump": "金币跳跃", "g.swapbuy": "用 $ARCIRCLE 购买", "g.sale": "创作者销售", "g.gm": "GM 奖励", "g.other": "其他",
+    "g.daily": "签到与欢迎", "g.island": "岛屿与村庄", "g.town": "城镇与 RPG", "g.sell": "出售战利品", "g.defense": "AC 塔防", "g.mine": "ARCL 矿场", "g.surv": "幸存者竞技场", "g.kart": "ARCIRCLE KART", "g.poker": "扑克任务", "g.rings": "无限之环", "g.jur": "侏罗纪世界", "g.jump": "金币跳跃", "g.swapbuy": "用 $ARCIRCLE 购买", "g.sale": "创作者销售", "g.gm": "GM 奖励", "g.other": "其他",
     "g.market": "创作者市场", "g.forge": "锻造", "g.pick": "镐", "g.chips": "扑克筹码", "g.shop": "商店物品", "g.swap": "兑换 → $ARCIRCLE",
   };
   var TR = {
@@ -165,7 +165,7 @@
     "ig.k": "Oyunda $ARCIRCLE", "ig.h": "ARCIRCLE WORLD'de ödenen, yakılan ve takas edilen", "ig.p": "Oyuncuların oyun içinde $ARCIRCLE ile yaptıkları: ödenen eşyalar (her ödemenin yarısı yakılır), alınan LAND köyleri ve ARCL ile takas.",
     "t.shop": "$ARCIRCLE ile ödenen eşyalar", "t.shop.e": "{a} $ARCIRCLE ödendi", "t.gburn": "Oyun üzerinden yakılan", "t.gburn.e": "her oyun içi ödemenin yarısı", "t.land": "ARCIRCLE LAND köyleri", "t.land.e": "hazineye {a} $ARCIRCLE", "t.land.v": "{m} köyden {n} satıldı", "t.mkt": "Satıştaki planlar", "t.mkt.e": "Yaratıcı Pazarı'nda",
     "use.k": "Nerede kullanılır", "use.h": "Kazan, harca, takas et", "u.earn": "ARCL kazan", "u.spend": "ARCL harca", "u.arc": "$ARCIRCLE kullan",
-    "e.surv": "<b>SURVIVORS ARENA</b> — bir oyunda en fazla 3.000", "e.jump": "<b>COIN JUMP</b> — günde bir kez 3.000", "e.def": "<b>AC DEFENSE</b> — dalga başına 5, günde en fazla 150", "e.rings": "<b>INFINITY RINGS</b> — yeni yıldız başına 100 (101–200 seviyeleri 50)", "e.mine": "<b>ARCL MINE</b> — kaya başına 10 ile 10.000", "e.jur": "<b>JURASSIC WORLD</b> — 3 günlük görev, her biri 300", "e.poker": "<b>POKER LOUNGE</b> — 3 günlük görev (kazanmak için asla değil)", "e.daily": "<b>Her gün</b> — giriş, görevler, avlar, adan",
+    "e.surv": "<b>SURVIVORS ARENA</b> — bir oyunda en fazla 3.000", "e.kart": "<b>ARCIRCLE KART</b> — sıraya göre 500 / 350 / 250 / 150 / 100, günde 5 yarış, günde en fazla 2.500", "e.jump": "<b>COIN JUMP</b> — günde bir kez 3.000", "e.def": "<b>AC DEFENSE</b> — dalga başına 5, günde en fazla 150", "e.rings": "<b>INFINITY RINGS</b> — yeni yıldız başına 100 (101–200 seviyeleri 50)", "e.mine": "<b>ARCL MINE</b> — kaya başına 10 ile 10.000", "e.jur": "<b>JURASSIC WORLD</b> — 3 günlük görev, her biri 300", "e.poker": "<b>POKER LOUNGE</b> — 3 günlük görev (kazanmak için asla değil)", "e.daily": "<b>Her gün</b> — giriş, görevler, avlar, adan",
     "s.shop": "<b>Mağaza</b> — stiller, iksirler, eşyalar", "s.forge": "<b>Demirci</b> — ekipmanını güçlendir ve onar", "s.pick": "<b>Kazmalar</b> — ARCL Madeni'nde daha iyi seviyeler", "s.chips": "<b>Poker fişleri</b> — ARCL → fiş, tek yön", "s.mkt": "<b>Yaratıcı Pazarı</b> — oyunculardan ada planları al", "s.swap": "<b>Takas</b> — istekle ARCL → $ARCIRCLE",
     "a.shop": "<b>Eşya öde</b> — $ARCIRCLE ile; yarısı yakılır, yarısı hazineye", "a.land": "<b>ARCIRCLE LAND</b> — 20 köyden birini al", "a.swap": "<b>Takas</b> — $ARCIRCLE → ARCL (satın alınan ARCL yaratıcılara ödeyebilir)", "a.pay": "<b>Yaratıcı ödemeleri</b> — sonuçlanan satışlar bir GM'in kendi cüzdanından $ARCIRCLE ile ödenir", "a.hold": "<b>Tut</b> — Arc'taki kendi cüzdanında",
     "flow.k": "Nasıl bağlanırlar", "flow.h": "Oyundan zincire",
@@ -180,7 +180,7 @@
     "cta.h": "ARCL kazanmaya başla", "cta.p": "Telefonda ve PC'de ücretsiz. Oyna, inşa et, savaş — ve rakamların büyümesini izle.",
     "foot.fine": "ARCL oyun içi puanlardır. Ödüller oyun içindir ve asla garanti edilmez. Bu sayfadaki hiçbir şey yatırım tavsiyesi değildir.",
     "k.vote": "Yakarak oy", "k.mine": "Builder Mine", "k.scanner": "Token Tarayıcı", "k.secret": "ARCIA'nın gizli dosyası", "k.desk": "ARCIA DESK", "k.agent": "ARCIA AGENT kasaları", "k.orders": "Orders & Predict ücretleri", "k.omni": "OMNI ödülleri", "k.buyback": "Geri alım", "k.team": "Ekip & hazine", "k.wallet": "Doğrudan yakım", "k.pending": "Etiketleniyor",
-    "g.daily": "Günlük & hoş geldin", "g.island": "Ada & köy", "g.town": "Kasaba & RPG", "g.sell": "Ganimet satışı", "g.defense": "AC Defense", "g.mine": "ARCL Madeni", "g.surv": "Survivors Arena", "g.poker": "Poker görevleri", "g.rings": "Infinity Rings", "g.jur": "Jurassic World", "g.jump": "Coin Jump", "g.swapbuy": "$ARCIRCLE ile alındı", "g.sale": "Yaratıcı satışları", "g.gm": "GM ödülleri", "g.other": "Diğer",
+    "g.daily": "Günlük & hoş geldin", "g.island": "Ada & köy", "g.town": "Kasaba & RPG", "g.sell": "Ganimet satışı", "g.defense": "AC Defense", "g.mine": "ARCL Madeni", "g.surv": "Survivors Arena", "g.kart": "ARCIRCLE KART", "g.poker": "Poker görevleri", "g.rings": "Infinity Rings", "g.jur": "Jurassic World", "g.jump": "Coin Jump", "g.swapbuy": "$ARCIRCLE ile alındı", "g.sale": "Yaratıcı satışları", "g.gm": "GM ödülleri", "g.other": "Diğer",
     "g.market": "Yaratıcı Pazarı", "g.forge": "Demirci", "g.pick": "Kazmalar", "g.chips": "Poker fişleri", "g.shop": "Mağaza eşyaları", "g.swap": "Takas → $ARCIRCLE",
   };
   var LANGS = { en: EN, ko: KO, zh: ZH, tr: TR }, KEY = "arc.gw.lang", lang = "en";
@@ -205,7 +205,7 @@
   function paintUse() {
     var col = function (icon, h, rows) { return '<article class="cn-card"><h3>' + icon + esc(t(h)) + '</h3><ul class="cn-list">' + rows.map(function (r) { return "<li><i>" + r[0] + "</i><span>" + t(r[1]) + "</span></li>"; }).join("") + "</ul></article>"; };
     $("#cn-use").innerHTML =
-      col('<img src="/images/arcl2-64.png" alt="">', "u.earn", [["⚔️", "e.surv"], ["🪙", "e.jump"], ["🛡️", "e.def"], ["⭕", "e.rings"], ["⛏️", "e.mine"], ["🦖", "e.jur"], ["🃏", "e.poker"], ["📅", "e.daily"]]) +
+      col('<img src="/images/arcl2-64.png" alt="">', "u.earn", [["⚔️", "e.surv"], ["🏎️", "e.kart"], ["🪙", "e.jump"], ["🛡️", "e.def"], ["⭕", "e.rings"], ["⛏️", "e.mine"], ["🦖", "e.jur"], ["🃏", "e.poker"], ["📅", "e.daily"]]) +
       col('<img src="/images/arcl2-64.png" alt="">', "u.spend", [["🛍️", "s.shop"], ["🔨", "s.forge"], ["⛏️", "s.pick"], ["🎰", "s.chips"], ["🏗️", "s.mkt"], ["🔁", "s.swap"]]) +
       col('<img src="/images/arcircle-mark-sm.webp" alt="">', "u.arc", [["🔥", "a.shop"], ["🏘️", "a.land"], ["🔁", "a.swap"], ["💠", "a.pay"], ["👛", "a.hold"]]);
   }
@@ -238,7 +238,7 @@
   }
   var grp = function (dir, k) {
     var E = { daily: "daily", hold: "daily", launch: "daily", welcome: "daily", stamp: "daily", isle20: "island", isle100: "island", isle300: "island", res1: "island", res5: "island", vill2: "island", vquest9: "island", liked1: "island", liked10: "island", liked50: "island", vwin: "island",
-      street: "town", pickup: "town", hunt: "town", boss: "town", heart: "town", raid: "town", bounty: "town", party: "town", sell: "sell", defense: "defense", defweek: "defense", mine: "mine", surv: "surv", poker: "poker", poker_fest: "poker", rings: "rings", jur: "jur", jump: "jump", swap_buy: "swapbuy", market_sale: "sale", gm: "gm" };
+      street: "town", pickup: "town", hunt: "town", boss: "town", heart: "town", raid: "town", bounty: "town", party: "town", sell: "sell", defense: "defense", defweek: "defense", mine: "mine", surv: "surv", kart: "kart", poker: "poker", poker_fest: "poker", rings: "rings", jur: "jur", jump: "jump", swap_buy: "swapbuy", market_sale: "sale", gm: "gm" };
     var S = { market: "market", forge: "forge", mine: "pick", mine_up: "pick", pick: "pick", chips: "chips", poker: "chips", swap: "swap" };
     return dir === "earn" ? E[k] || "other" : S[k] || "shop";
   };

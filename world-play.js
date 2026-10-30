@@ -2384,9 +2384,9 @@ async function openKart() {
   kartBusy = true; closeAll(); const veil = $("wp-veil");
   try {
     if (!kartGame) { let M; try { M = await import("./world-kart.js"); } catch (e) { throw new Error("load: " + ((e && e.message) || e)); }
-      kartGame = M.createKart({ THREE, K, st, T: TW, lang: LANG, ver: VER, esc, toast, Snd, buzz: (p) => { lastInput = performance.now(); buzz(p); } /* (the kart only buzzes while a control is held: holding Gas sends no new taps) */, reduce, low: lowGfx, coarse, heroId: K.heroOf ? K.heroOf(P.char || "") : P.char,
+      kartGame = M.createKart({ THREE, K, st, T: TW, lang: LANG, ver: VER, esc, toast, Snd, sess, post, share: (c) => bragCard(c), refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why), name: () => P.name || "", onAch: () => { ktAch = null; }, /* (K2: the race's server calls, the share card, the purse; new titles read again) */ buzz: (p) => { lastInput = performance.now(); buzz(p); } /* (the kart only buzzes while a control is held: holding Gas sends no new taps) */, reduce, low: lowGfx, coarse, heroId: K.heroOf ? K.heroOf(P.char || "") : P.char,
         makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint && id === P.char) c.setTint(P.tint || 0); return c; }),
-        onLeave: () => { kartOn = false; frozen = false; keys.clear(); near = null; try { const e = gv.exitOf("kart"); standAt(e.x, e.z, gv.center); } catch { /* where you were */ } paintPrompt(); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } } }); }
+        onLeave: () => { kartOn = false; frozen = false; ktAch = null; keys.clear(); near = null; try { const e = gv.exitOf("kart"); standAt(e.x, e.z, gv.center); } catch { /* where you were */ } paintPrompt(); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } } }); }
     if (veil && !reduce) { veil.style.opacity = "1"; await sleep(300); }
     frozen = true; keys.clear(); near = null; paintPrompt();
     const ok = await kartGame.enter(); kartOn = !!ok; if (!ok) frozen = false; try { quests.bump("game"); } catch { /* counted next time */ }
@@ -4307,11 +4307,15 @@ const rqAchLoad = (force) => { if (rqAchP && !force) return rqAchP; const s = se
 // RAID QUEENS' crowns (RQX1): a forged crown worn on the halo, picked in the raid's lobby (arc.rq.crown); one you don't hold shows nothing
 const RQ_CROWN_COL = { lysitha: "#cfe0ff", solvira: "#ffd36b", nyxara: "#ff3d5e" };
 function rqCrownCol() { try { const k = localStorage.getItem("arc.rq.crown") || ""; return k && rqAch && rqAch.includes("crown-" + k) ? RQ_CROWN_COL[k] : null; } catch { return null; } } /* (try: called before these lines run, a TDZ) */
-let svAch = null, svAchP = null;
+let svAch = null, svAchP = null, ktAch = null, ktAchP = null;
+// ARCIRCLE KART's titles (api/_world-kart.mjs meta.ach → world-quests.js KTT, worn as "kt-<id>"); signed in only
+const ktAchLoad = () => { if (ktAchP) return ktAchP; const s = sess();
+  ktAchP = (s ? fetch("/api/social?world=kart&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.meta && j.meta.ach) || []) : Promise.resolve([]))
+    .catch(() => []).then((a) => { ktAch = Array.isArray(a) ? a : []; ktAchP = null; if (rpg.isOpen()) rpg.repaint(); }); return ktAchP; };
 const svAchLoad = () => { if (svAchP) return svAchP; const s = sess();
   svAchP = (s ? fetch("/api/social?world=surv&wallet=" + s.wallet, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.meta && j.meta.ach) || []) : Promise.resolve().then(() => { try { return Object.keys((JSON.parse(localStorage.getItem("arc.surv.meta") || "null") || {}).ach || {}); } catch { return []; } }))
     .catch(() => []).then((a) => { svAch = Array.isArray(a) ? a : []; svAchP = null; if (rpg.isOpen()) rpg.repaint(); }); return svAchP; };
-quests = QST.createQuests({ isGM: (w) => VILL.isGM(w), cxTitles: () => cxTitles, rqAch: () => { if (!rqAch) rqAchLoad(); return rqAch; }, gate: (k) => (k === "rq" ? rqOn() : true), openItems: () => { closeAll(); openCodex(); }, svAch: () => svAch, svAchLoad, starterDone: () => { try { const st0 = startSteps(), d = st0.filter((x) => x.done).length; return d >= st0.length ? 5 : Math.min(4, d); } catch { return 0; } },
+quests = QST.createQuests({ isGM: (w) => VILL.isGM(w), cxTitles: () => cxTitles, rqAch: () => { if (!rqAch) rqAchLoad(); return rqAch; }, gate: (k) => (k === "rq" ? rqOn() : true), openItems: () => { closeAll(); openCodex(); }, svAch: () => svAch, svAchLoad, ktAch: () => ktAch, ktAchLoad, starterDone: () => { try { const st0 = startSteps(), d = st0.filter((x) => x.done).length; return d >= st0.length ? 5 : Math.min(4, d); } catch { return 0; } },
   T: TW, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why), fishList: LIFE.FISH,
   // Rankings → Players: portraits, who's around now, a player's card
   charThumb: (id) => thumbCache[id] || "", needThumbs: (ids) => renderThumbsFor(ids).then(() => rpg.isOpen() && rpg.repaint()),
