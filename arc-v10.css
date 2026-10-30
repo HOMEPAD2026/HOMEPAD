@@ -1330,6 +1330,7 @@ html.in-world{--anav-h:0px!important;--anav-bot:0px!important;--anav-top:0px!imp
 .wp-qmark{position:fixed;left:0;top:0;z-index:18;display:flex;flex-direction:column;align-items:center;gap:2px;margin:-22px 0 0 -22px;pointer-events:none}
 .wp-qmark[hidden]{display:none}
 .wp-qmark svg{width:22px;height:22px;fill:#ffc861;filter:drop-shadow(0 0 6px rgba(255,200,97,.7));transition:transform .15s}
+html.wp-pcphone .wp-qmark svg{transition:none}
 .wp-qmark b{padding:2px 7px;border-radius:999px;background:rgba(10,14,22,.8);font:700 11px var(--f-num);color:#ffc861}
 .wp-hint{position:fixed;left:50%;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 34px);z-index:21;translate:-50% 0;padding:9px 16px;border-radius:999px;background:rgba(10,14,22,.86);border:1px solid rgba(53,216,208,.45);font:600 13.5px var(--f-ui);color:#e6fbf8;white-space:nowrap;pointer-events:none}
 .wp-hint[hidden]{display:none}
@@ -1940,6 +1941,8 @@ html:not(.wp-pcphone) .wc-bar.coarse{transform:scale(1.1);transform-origin:100% 
 .wc-v em{min-width:56px;text-align:right;font:700 11.5px var(--f-ui);font-style:normal;color:#eef3f7}
 .wc-vit.danger .wc-v.hp i b{animation:wcDanger .8s ease-in-out infinite}
 @keyframes wcDanger{50%{filter:brightness(1.6)}}
+html.wp-pcphone .wc-vit.danger .wc-v.hp i b{animation-name:wcDangerO}
+@keyframes wcDangerO{50%{opacity:.6}}
 .wc-vit.hit{animation:wcHit .35s ease}
 @keyframes wcHit{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .wc-vit.low .wc-v.sp{animation:wcHit .35s ease}
@@ -2100,8 +2103,8 @@ html.wp-pcphone .wr-bagask p{font-size:18px}html.wp-pcphone .wr-bagask button{he
 .wc-v i b{z-index:1}
 .wp-float-n.crit{font-size:34px;color:#ffe066!important;animation:wpFloatCrit 1s ease-out forwards}
 @keyframes wpFloatCrit{0%{transform:translate(-50%,0) scale(.4);opacity:0}15%{transform:translate(-50%,-14px) scale(1.4);opacity:1}100%{transform:translate(-50%,-70px) scale(1);opacity:0}}
-body.wc-low::after{content:"";position:fixed;inset:0;z-index:10;pointer-events:none;box-shadow:inset 0 0 140px 30px rgba(255,30,60,.45);animation:wcLow .85s ease-in-out infinite}
-@keyframes wcLow{50%{box-shadow:inset 0 0 90px 10px rgba(255,30,60,.25)}}
+body.wc-low::after{content:"";position:fixed;inset:0;z-index:10;pointer-events:none;box-shadow:inset 0 0 140px 30px rgba(255,30,60,.45);will-change:opacity;animation:wcLow .85s ease-in-out infinite}
+@keyframes wcLow{50%{opacity:.55}}
 body.wc-legend::before{content:"";position:fixed;inset:0;z-index:15;pointer-events:none;box-shadow:inset 0 0 160px 40px rgba(255,200,97,.75);animation:wpHurt 1.6s ease-out forwards}
 .wp-bag-btn svg{fill:none}
 /* the music button: a note, struck through when off */
