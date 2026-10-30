@@ -51,6 +51,9 @@ export function makeRaidQueens(ctx) {
   const { THREE, K, planet, T, esc, land } = ctx, V3 = THREE.Vector3;
   const g = new THREE.Group(); g.name = "land-rq"; g.position.set(land.x, 0, land.z); g.visible = false; planet.add(g);
   const spins = [], solids = [], me = new V3(), tmp = new V3();
+  // (2026-10-30) the sky realm's far layers — panorama, sunset band, sun, moon, mist, far clouds — sit behind the arena's
+  // own backdrop (R 95) in a run; on a phone they are hidden then (each was a big layer drawn under everything else)
+  const FAR = [];
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.3, ...o });
   const neon = (c, op = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: op < 1, opacity: op, depthWrite: op >= 1, toneMapped: false });
   const flat = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.rotation.x = -Math.PI / 2; m.position.y = y; m.receiveShadow = true; g.add(m); return m; };
@@ -77,7 +80,11 @@ export function makeRaidQueens(ctx) {
   // the queen's realm round the arena (the owner's pictures: silver, golden, crimson), four mirrored times round
   const bgTx = {}, bgM = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false });
   { const R = 95, H = ((Math.PI * 2 * R) / 4) * (941 / 1672), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 64, 1, true), bgM);
-    cyl.position.y = H / 2 - 6; cyl.renderOrder = -5; cyl.name = "rq-sky"; cyl.frustumCulled = false; cyl.visible = false; g.add(cyl); bgM.userData.cyl = cyl; }
+    cyl.position.y = H / 2 - 6; cyl.renderOrder = -5; cyl.name = "rq-sky"; cyl.frustumCulled = false; cyl.visible = false; g.add(cyl); bgM.userData.cyl = cyl;
+    // (2026-10-30) its skirt: the picture's bottom row drawn on down, shown only while the far layers are hidden on a phone
+    // (the sky realm's panorama used to fill the band under the backdrop's foot, past the floor's edge: a black seam without it)
+    const sg = new THREE.CylinderGeometry(R, R, 120, 64, 1, true), uv = sg.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, 0.004);
+    const skirt = new THREE.Mesh(sg, bgM); skirt.position.y = -66; skirt.renderOrder = -5; skirt.name = "rq-sky-skirt"; skirt.frustumCulled = false; skirt.visible = false; g.add(skirt); bgM.userData.skirt = skirt; }
   const bgLoad = (id) => { if (!bgTx[id]) { const t = new THREE.TextureLoader().load(`/images/raid/bg-${id}.webp${ctx.ver || ""}`, () => { const cyl = bgM.userData.cyl; if (cyl && bgM.map === t) cyl.visible = true; }); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.MirroredRepeatWrapping; t.repeat.set(4, 1); bgTx[id] = t; } return bgTx[id]; };
   function backdrop(id) {
     const cyl = bgM.userData.cyl; if (!id) { cyl.visible = false; return; }
@@ -86,21 +93,24 @@ export function makeRaidQueens(ctx) {
   }
   // the arena's floor: the sky realm's black marble with its gold rings (the owner's mock-up: a dark glossy floor that
   // takes the queen's light), loaded once; the old pale marble until it's in
-  let darkMap = null, darkE = null, floorBase = 0.06;
-  { const tl = new THREE.TextureLoader(); tl.load(`/images/raid/plaza-floor.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; darkMap = t; if (g.visible) { floorM.map = t; floorM.needsUpdate = true; } });
-    tl.load(`/images/raid/plaza-floor-e.webp${ctx.ver || ""}`, (t) => { t.anisotropy = 8; darkE = t; }); }
+  // (2026-10-30: a phone takes the floor at 1024 px — the 2048 one was 22 MB on the GPU, sampled 8× anisotropic over most of a
+  // portrait screen — and 4× anisotropy; the hall's plaza shares it)
+  const FLOOR = ctx.coarse ? "plaza-floor-1024" : "plaza-floor", ANISO = ctx.coarse ? 4 : 8;
+  let darkMap = null, darkE = null, floorBase = 0.06; const darkWait = [];
+  { const tl = new THREE.TextureLoader(); tl.load(`/images/raid/${FLOOR}.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANISO; darkMap = t; if (g.visible) { floorM.map = t; floorM.needsUpdate = true; } for (const f of darkWait) f(); }, undefined, () => {});
+    tl.load(`/images/raid/plaza-floor-e.webp${ctx.ver || ""}`, (t) => { t.anisotropy = ANISO; darkE = t; for (const f of darkWait) f(); }, undefined, () => {}); }
   // her realm's stone in the middle of the arena (Meshy, 2026-10-25: Lysitha silver-white marble with frost stars, Solvira
   // white and gold suns, Nyxara black with crimson veins; the Throne and the SECRET crimson), a gold ring round it; and the
   // floor cracking open in lines of fire as she turns (one more phase, wider and brighter: cracks())
   const medalM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.25, transparent: true, opacity: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
-  const medal = flat(new THREE.CircleGeometry(12.5, 72), medalM, 0.045); medal.receiveShadow = true;
+  const medal = flat(new THREE.CircleGeometry(12.5, 72), medalM, 0.045); medal.receiveShadow = true; medal.visible = false; /* (a layer at opacity 0 is still drawn: hidden until its stone is in) */
   const medalRing = flat(new THREE.RingGeometry(12.5, 13.1, 96), std(0xd9b25e, { metalness: 0.9, roughness: 0.25, emissive: 0x6a4a10, emissiveIntensity: 0.8 }), 0.05); medalRing.visible = false;
   const crackM = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, toneMapped: false, opacity: 0 });
-  const crack = flat(new THREE.CircleGeometry(15, 48), crackM, 0.09); crack.renderOrder = 2; let crackK = 0, crackTo = 0;
+  const crack = flat(new THREE.CircleGeometry(15, 48), crackM, 0.09); crack.renderOrder = 2; crack.visible = false; let crackK = 0, crackTo = 0;
   { const t = new THREE.TextureLoader().load(`/images/raid/cracks.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; crackM.map = t; }
   const medalTx = {};
-  function medalOf(id) { const f = { lysitha: "silver", solvira: "gold" }[id] || "crimson"; crackTo = crackK = 0; crackM.opacity = 0; crack.scale.setScalar(0.6);
-    const put = (t) => { medalM.map = t; medalM.opacity = 0.92; medalM.needsUpdate = true; medalRing.visible = true; };
+  function medalOf(id) { const f = { lysitha: "silver", solvira: "gold" }[id] || "crimson"; crackTo = crackK = 0; crackM.opacity = 0; crack.visible = false; crack.scale.setScalar(0.6);
+    const put = (t) => { medalM.map = t; medalM.opacity = 0.92; medalM.needsUpdate = true; medal.visible = medalRing.visible = true; };
     if (medalTx[f] && medalTx[f].image) return put(medalTx[f]);
     medalLoad(f, put); }
   function medalLoad(f, put) { if (medalTx[f]) { if (put) { const t = medalTx[f]; if (t.image) put(t); else t.userData.put = put; } return; }
@@ -123,23 +133,23 @@ export function makeRaidQueens(ctx) {
     // the warm band: orange at the horizon (the cloud line), pink above, gone by half the sky
     const band = cv(4, 256, (c, w, h) => { const g = c.createLinearGradient(0, h, 0, 0); g.addColorStop(0, "rgba(255,170,90,.75)"); g.addColorStop(0.22, "rgba(255,120,120,.42)"); g.addColorStop(0.55, "rgba(190,90,160,.12)"); g.addColorStop(1, "rgba(0,0,0,0)"); c.fillStyle = g; c.fillRect(0, 0, w, h); });
     const bh = Hh * 0.62, b = new THREE.Mesh(new THREE.CylinderGeometry(R - 3, R - 3, bh, 48, 1, true), new THREE.MeshBasicMaterial({ ...add, map: band, side: THREE.BackSide }));
-    b.position.y = bh / 2 - 34; b.renderOrder = -5; b.frustumCulled = false; SKY.add(b);
+    b.position.y = bh / 2 - 34; b.renderOrder = -5; b.frustumCulled = false; SKY.add(b); FAR.push(b);
     // the sun low behind the Citadel (the hall's -z), a soft glow round it and the rays turning slowly
     const SUN = new V3(0, 98, -R + 30); /* (just over the Citadel's crown from where you arrive) */
     const glowT = cv(128, 128, (c) => { const g = c.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, "rgba(255,236,200,.95)"); g.addColorStop(0.25, "rgba(255,180,110,.5)"); g.addColorStop(1, "rgba(255,120,80,0)"); c.fillStyle = g; c.fillRect(0, 0, 128, 128); });
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: glowT, opacity: 0.9 })); glow.scale.setScalar(190); glow.position.copy(SUN); glow.renderOrder = -4; SKY.add(glow);
-    const sun = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: tx("sun") })); sun.scale.setScalar(70); sun.position.copy(SUN); sun.renderOrder = -3; SKY.add(sun);
-    if (!ctx.low) { const rays = cv(512, 512, (c) => { c.translate(256, 256); for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2 + (i % 3) * 0.05, wd = 0.04 + (i % 4) * 0.025, g = c.createLinearGradient(0, 0, Math.cos(a) * 256, Math.sin(a) * 256);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: glowT, opacity: 0.9 })); glow.scale.setScalar(190); glow.position.copy(SUN); glow.renderOrder = -4; SKY.add(glow); FAR.push(glow);
+    const sun = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: tx("sun") })); sun.scale.setScalar(70); sun.position.copy(SUN); sun.renderOrder = -3; SKY.add(sun); FAR.push(sun);
+    if (!ctx.low && !ctx.coarse) { /* (not on phones: a 420 m additive sprite that covered the whole screen looking toward the Citadel) */ const rays = cv(512, 512, (c) => { c.translate(256, 256); for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2 + (i % 3) * 0.05, wd = 0.04 + (i % 4) * 0.025, g = c.createLinearGradient(0, 0, Math.cos(a) * 256, Math.sin(a) * 256);
         g.addColorStop(0, "rgba(255,230,190,.55)"); g.addColorStop(1, "rgba(255,200,150,0)"); c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 256, a - wd, a + wd); c.closePath(); c.fill(); } });
       const rm = new THREE.SpriteMaterial({ ...add, map: rays, opacity: 0.55 }), ray = new THREE.Sprite(rm); ray.scale.setScalar(420); ray.position.copy(SUN); ray.renderOrder = -4; SKY.add(ray);
       spins.push((dt, t) => { if (SKY.visible) { rm.rotation += dt * 0.012; rm.opacity = 0.45 + Math.sin(t * 0.4) * 0.1; } }); }
     // the red moon with its golden ring, high on the right
-    const moon = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: tx("moon"), opacity: 0.95 })); moon.scale.setScalar(64); moon.position.set(R * 0.6, 64, -R * 0.6); moon.renderOrder = -3; SKY.add(moon);
+    const moon = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: tx("moon"), opacity: 0.95 })); moon.scale.setScalar(64); moon.position.set(R * 0.6, 64, -R * 0.6); moon.renderOrder = -3; SKY.add(moon); FAR.push(moon);
     // mist pouring off the plaza's edge into the clouds (round the rim, clear of the road's two ends)
     { const mt = tl.load(`/images/raid/mist.webp${ctx.ver || ""}`); mt.colorSpace = THREE.SRGBColorSpace; mt.wrapT = THREE.RepeatWrapping;
       const mm = new THREE.MeshBasicMaterial({ ...add, map: mt, opacity: 0.55, side: THREE.DoubleSide });
       for (const d of [25, 62, 118, 155, 205, 242, 298, 335].slice(0, ctx.low ? 4 : 8)) { const a = (d * Math.PI) / 180, r = 64.6, f = new THREE.Mesh(new THREE.PlaneGeometry(10, 26), mm);
-        f.position.set(Math.cos(a) * r, -13, Math.sin(a) * r); f.rotation.y = Math.PI / 2 - a; SKY.add(f); }
+        f.position.set(Math.cos(a) * r, -13, Math.sin(a) * r); f.rotation.y = Math.PI / 2 - a; SKY.add(f); FAR.push(f); }
       spins.push((dt) => { if (SKY.visible) mt.offset.y += dt * 0.12; }); }
   }
   const H = new THREE.Group(); H.name = "rq-hall"; H.position.set(land.x, 0, land.z); H.visible = false; planet.add(H);
@@ -147,8 +157,8 @@ export function makeRaidQueens(ctx) {
   const HALL = { door: -36, start: 48, road: [-24, 44], back: 56 }; // local z: the Citadel, where you arrive, the road's two ends, the way home
   { const R = 260, tx = new THREE.TextureLoader().load(`/images/raid/sky.webp${ctx.ver || ""}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; }); tx.wrapS = THREE.MirroredRepeatWrapping; tx.repeat.set(3, 1);
     const Hh = ((Math.PI * 2 * R) / 3) * (941 / 1672), cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, Hh, 64, 1, true), new THREE.MeshBasicMaterial({ map: tx, color: 0xffcfb4, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); /* (the owner's panorama warmed to a sunset, 2026-10-25) */
-    cyl.position.y = Hh / 2 - 70; cyl.renderOrder = -6; cyl.frustumCulled = false; SKY.add(cyl);
-    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x4a3f8e, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 70; SKY.add(top);
+    cyl.position.y = Hh / 2 - 70; cyl.renderOrder = -6; cyl.frustumCulled = false; SKY.add(cyl); FAR.push(cyl);
+    const top = new THREE.Mesh(new THREE.CircleGeometry(R, 48), new THREE.MeshBasicMaterial({ color: 0x4a3f8e, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false })); top.rotation.x = -Math.PI / 2; top.position.y = Hh - 70; SKY.add(top); FAR.push(top);
     sunset(R, Hh); }
   { // the clouds underfoot: soft pink-white blobs on lavender, drawn once
     const cv = typeof document !== "undefined" ? document.createElement("canvas") : null;
@@ -169,8 +179,7 @@ export function makeRaidQueens(ctx) {
     // the plaza itself: black marble with gold rings and blue-crystal stars (the owner's floor picture, 2026-10-25, drawn top-down:
     // images/raid/plaza-floor.webp, the gold and crystals lit by plaza-floor-e.webp); the canvas marble until it's in
     const plazaM = new THREE.MeshStandardMaterial({ color: 0xffffff, map, roughness: 0.3, metalness: 0.2, envMapIntensity: 0.6, fog: false, emissive: 0xffc878, emissiveIntensity: 0 });
-    { const tl = new THREE.TextureLoader(), tex = (f, srgb, ok) => tl.load(`/images/raid/${f}.webp${ctx.ver || ""}`, (t) => { if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; ok(t); }, undefined, () => {});
-      tex("plaza-floor", true, (t) => { plazaM.map = t; plazaM.needsUpdate = true; }); tex("plaza-floor-e", false, (t) => { plazaM.emissiveMap = t; plazaM.emissiveIntensity = 0.55; plazaM.needsUpdate = true; }); }
+    { /* (the arena's floor and the plaza share one copy of each picture: they were loaded twice, two GPU copies) */ const put = () => { if (darkMap && plazaM.map !== darkMap) { plazaM.map = darkMap; plazaM.needsUpdate = true; } if (darkE && plazaM.emissiveMap !== darkE) { plazaM.emissiveMap = darkE; plazaM.emissiveIntensity = 0.55; plazaM.needsUpdate = true; } }; darkWait.push(put); put(); }
     const plaza = new THREE.Mesh(new THREE.CircleGeometry(PLAZA_R, 96), plazaM); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; plaza.receiveShadow = true; H.add(plaza);
     const edge = new THREE.Mesh(new THREE.RingGeometry(PLAZA_R - 0.5, PLAZA_R, 128), neon(0xffc46a, 0.85)); edge.rotation.x = -Math.PI / 2; edge.position.y = 0.05; H.add(edge);
     const side = new THREE.Mesh(new THREE.CylinderGeometry(PLAZA_R, PLAZA_R - 6, 9, 96, 1, true), new THREE.MeshStandardMaterial({ color: 0x1e1a22, roughness: 0.8, side: THREE.DoubleSide })); side.position.y = -4.5; H.add(side); // (the stone under its edge)
@@ -307,8 +316,8 @@ export function makeRaidQueens(ctx) {
         spins.push((dt, t) => { if (H.visible) { rc.rotation.z += dt * 0.08; rm.opacity = 0.7 + Math.sin(t * 1.5) * 0.15; } }); }
       // clouds drifting below the plaza's edge, sprites round the sea of cloud
       { const cm = new THREE.SpriteMaterial({ map: tex("cloud"), color: 0xffd2bc, transparent: true, depthWrite: false, fog: false, opacity: 0.95 }); let sd = 3; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
-        for (let i = 0; i < n(8, 18); i++) { const a = rnd() * Math.PI * 2, r = 78 + rnd() * 120, sc = 26 + rnd() * 34, c = new THREE.Sprite(cm), a0 = a;
-          c.scale.set(sc, sc * 0.78, 1); c.position.set(Math.cos(a) * r, -16 + rnd() * 12, Math.sin(a) * r); SKY.add(c);
+        for (let i = 0; i < (ctx.coarse ? 8 : n(8, 18)); i++) { const a = rnd() * Math.PI * 2, r = 78 + rnd() * 120, sc = 26 + rnd() * 34, c = new THREE.Sprite(cm), a0 = a;
+          c.scale.set(sc, sc * 0.78, 1); c.position.set(Math.cos(a) * r, -16 + rnd() * 12, Math.sin(a) * r); SKY.add(c); if (r > 100) FAR.push(c);
           spins.push((dt, t) => { if (SKY.visible) { const aa = a0 + t * 0.004; c.position.x = Math.cos(aa) * r; c.position.z = Math.sin(aa) * r; } }); } }
       return true;
     }));
@@ -358,15 +367,47 @@ export function makeRaidQueens(ctx) {
     if (mobsP) return mobsP;
     const sv = load("/models/world/survivors/monsters.glb").then((gl) => { for (const [k, M] of Object.entries(MOB)) { if (!M.sv) continue; const root = gl.scene.getObjectByName(k); if (!root) continue;
         if (root.parent) root.parent.remove(root); root.position.set(0, 0, 0); const by = {}; for (const c of gl.animations) if (c.name.startsWith(k + ":")) by[c.name.split(":")[1]] = c;
-        msrc[k] = { scene: root }; mclips[k] = { run: by.move, walk: by.move, attack: by.atk, die: by.die }; for (const n of Object.keys(mclips[k])) if (!mclips[k][n]) delete mclips[k][n]; } })
+        try { oneSkin(root); } catch (e) { console.warn("raid oneSkin", k, e); } msrc[k] = { scene: root }; mclips[k] = { run: by.move, walk: by.move, attack: by.atk, die: by.die }; for (const n of Object.keys(mclips[k])) if (!mclips[k][n]) delete mclips[k][n]; } })
       .catch((e) => console.warn("raid monsters (survivors)", e)); /* the run still has its Imps without them */
-    mobsP = Promise.all([...Object.entries(MOB).filter(([, M]) => M.glb).map(async ([k, M]) => { const gl = await load(`/models/world/raid/${M.glb}.glb`); msrc[k] = gl; mclips[k] = await K.borrowMoves(gl, K.KK_MONSTER, ctx.ver || ""); }), sv])
+    mobsP = Promise.all([...Object.entries(MOB).filter(([, M]) => M.glb).map(async ([k, M]) => { const gl = await load(`/models/world/raid/${M.glb}.glb`); try { oneSkin(gl.scene); } catch (e) { console.warn("raid oneSkin", k, e); } msrc[k] = gl; mclips[k] = await K.borrowMoves(gl, K.KK_MONSTER, ctx.ver || ""); }), sv])
       .then(() => true).catch((e) => { console.warn("raid monsters", e); mobsP = null; return false; });
     return mobsP;
   }
   const texOf = (kind, skin) => { const key = kind + "-" + skin; if (mtex[key] !== undefined) return mtex[key]; mtex[key] = null;
     new THREE.TextureLoader().load(`/models/world/raid/tex/${key}.webp${ctx.ver || ""}`, (t) => { t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; mtex[key] = t; for (const m of run ? run.mobs : []) if (m.e && m.e.kind === kind && m.e.skin === skin) m.e.paint(t); }, undefined, () => {});
     return null; };
+  /// one draw a monster, not one a part (2026-10-30, measured on the phone layout: an Imp is five skinned parts — body,
+  /// chains, mace, shorts, collar — each its own skeleton of the same 55 bones, so eighteen Imps were ninety draws and
+  /// ninety bone uploads a frame). Parts on the same bones with the same material become one geometry, once a source:
+  /// gltfpack's quantization lives in each part's inverse bind matrices, so a part's vertices are moved into the first
+  /// part's space (M = IBM_first⁻¹ · IBM_part, the same for every bone or the parts are left alone) as plain floats.
+  function oneSkin(root) {
+    if (!root || root.userData.rqOne) return; root.userData.rqOne = true;
+    const groups = new Map();
+    root.traverse((o) => { if (!o.isSkinnedMesh || Array.isArray(o.material) || !o.geometry.index || !o.skeleton) return; const k = o.parent.uuid + "|" + o.material.uuid + "|" + o.skeleton.bones.map((b) => b.uuid).join(","); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(o); });
+    const M = new THREE.Matrix4(), M2 = new THREE.Matrix4(), N = new THREE.Matrix3(), v = new V3();
+    const near = (a, b) => a.elements.every((x, i) => Math.abs(x - b.elements[i]) <= 1e-3 * Math.max(1, Math.abs(x)));
+    for (const list of groups.values()) {
+      if (list.length < 2) continue; const a = list[0], names = Object.keys(a.geometry.attributes).sort().join();
+      if (!list.every((o) => Object.keys(o.geometry.attributes).sort().join() === names && near(o.bindMatrix, a.bindMatrix) && !Object.keys(o.geometry.morphAttributes).length)) continue;
+      const Ms = []; let ok = true;
+      for (const o of list) { const A = a.skeleton.boneInverses, B = o.skeleton.boneInverses; if (A.length !== B.length) { ok = false; break; }
+        M.copy(A[0]).invert().multiply(B[0]); for (let j = 1; j < A.length && ok; j++) { M2.copy(A[j]).invert().multiply(B[j]); ok = near(M2, M); } Ms.push(M.clone()); }
+      if (!ok) continue;
+      let nv = 0, ni = 0; for (const o of list) { nv += o.geometry.attributes.position.count; ni += o.geometry.index.count; }
+      const geo = new THREE.BufferGeometry(), idx = new Uint32Array(ni), out = {};
+      for (const name of Object.keys(a.geometry.attributes)) { const s = a.geometry.attributes[name]; out[name] = name === "skinIndex" ? new Uint16Array(nv * s.itemSize) : new Float32Array(nv * s.itemSize); }
+      let vo = 0, io = 0;
+      list.forEach((o, n) => { const G = o.geometry, cnt = G.attributes.position.count; N.getNormalMatrix(Ms[n]);
+        for (const name of Object.keys(out)) { const s = G.attributes[name], d = out[name], w = s.itemSize, get = [s.getX, s.getY, s.getZ, s.getW]; for (let i = 0; i < cnt; i++) for (let c = 0; c < w; c++) d[(vo + i) * w + c] = get[c].call(s, i); /* (getX…getW denormalize, interleaved or not) */
+          if (name === "position") for (let i = 0; i < cnt; i++) { v.fromArray(d, (vo + i) * 3).applyMatrix4(Ms[n]); v.toArray(d, (vo + i) * 3); }
+          if (name === "normal") for (let i = 0; i < cnt; i++) { v.fromArray(d, (vo + i) * 3).applyMatrix3(N).normalize(); v.toArray(d, (vo + i) * 3); } }
+        const I = G.index; for (let i = 0; i < I.count; i++) idx[io + i] = I.getX(i) + vo; vo += cnt; io += I.count; });
+      for (const name of Object.keys(out)) geo.setAttribute(name, new THREE.BufferAttribute(out[name], a.geometry.attributes[name].itemSize));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1)); geo.computeBoundingBox(); geo.computeBoundingSphere();
+      a.geometry = geo; for (const o of list.slice(1)) o.parent.remove(o);
+    }
+  }
   // bodies kept for reuse (keep: the combat hands them back whole instead of freeing their materials): a fresh copy of
   // a skinned model every half second was a hitch on phones with eighteen about
   const mpool = {};
@@ -864,7 +905,9 @@ export function makeRaidQueens(ctx) {
   let shown = false;
   function show(on) { on = !!on; if (on === shown) return; shown = on; vis(); }
   const cw = new V3();
+  let farOff = false;
   function tick(dt, t) {
+    { const off = !!(ctx.coarse && g.visible && bgM.userData.cyl.visible); if (off !== farOff) { farOff = off; for (const o of FAR) o.visible = !off; bgM.userData.skirt.visible = off; } }
     if (g.visible && ctx.cam && !(crysT > 0)) { const cp = ctx.cam(); if (cp) for (const c of crys) { c.getWorldPosition(cw); c.visible = Math.hypot(cw.x - cp.x, cw.z - cp.z) > 7; } }
     if (shown) for (const f of spins) f(dt, t);
     if (!run || run.done) return;
@@ -877,7 +920,7 @@ export function makeRaidQueens(ctx) {
     fxTick(dt); risesTick(dt); zonesTick(dt); beamTick(dt);
     if (crysT > 0 && (crysT -= dt) <= 0) for (const c0 of crys) c0.visible = true;
     if (flare > 0) { flare = Math.max(0, flare - dt * 1.4); floorM.emissiveIntensity = floorBase + flare * 0.9; }
-    if (crackK < crackTo) { crackK = Math.min(crackTo, crackK + dt * 0.8); crack.scale.setScalar(0.6 + crackK * 0.75); } if (crackTo > 0) crackM.opacity = crackK * (0.75 + Math.sin(t * 3) * 0.2);
+    if (crackK < crackTo) { crackK = Math.min(crackTo, crackK + dt * 0.8); crack.scale.setScalar(0.6 + crackK * 0.75); } if (crackTo > 0) { crackM.opacity = crackK * (0.75 + Math.sin(t * 3) * 0.2); crack.visible = true; }
     if (c && c.vitals) { const v = c.vitals(), low = v.hp / Math.max(1, v.max) < 0.3 && !v.down; if (typeof document !== "undefined") document.body.classList.toggle("rq-low", low); if (low && ctx.Snd && ctx.Snd.svHeart) try { ctx.Snd.svHeart(); } catch { /* no sound */ } }
     if (run.stage === "waves") { mobTick(dt); if (run.t >= run.plan.waveEnd) queensIn(); }
     else for (const q of run.queens) { if (q.corpse) { q.e.mixer.update(dt); if (performance.now() - q.corpse.t0 > 4200 && q.e.obj.parent === g) { g.remove(q.e.obj); q.corpse = null; } } else queenTick(q, dt); }
