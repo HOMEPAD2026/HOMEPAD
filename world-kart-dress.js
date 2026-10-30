@@ -1,5 +1,5 @@
 // world-kart-dress.js — ARCIRCLE KART K6 (2026-10-30, the owner's list): the circuit's dressing and the race's stage pieces,
-// all drawn geometry for now (world-kart.js K6_GLB names the Meshy models that may replace them later: lights, podium, ramp).
+// drawn geometry, with Meshy's start-lights board, ramp and podium taking over once loaded (KX1: world-kart.js K6_GLB; low graphics keeps the drawn ones).
 // Grandstands with a crowd and flags along the two straights, the big standings screen, a tunnel, a second set of neon
 // arches, the two jump ramps, the start-light gantry, the podium, and two small effects (boost-pad rings, a checkered-flag
 // burst). Repeats are one InstancedMesh each; `few` (low graphics or a phone) builds about half.
@@ -108,9 +108,31 @@ export function makeDress(THREE, track, { WALL, ROAD, few = false, low = false, 
     for (let k = 0; k < 5; k++) for (const row of [0, 1]) { const m = new THREE.Mesh(lampG, new THREE.MeshBasicMaterial({ color: 0x2a1014, fog: false })); m.position.set(-2.5 + k * 1.25, 4.65 + row * 0.85, -0.32); m.rotation.y = Math.PI; lg.add(m); lamps.push({ m, k }); }
     lg.position.copy(s.p).addScaledVector(s.t, 8); lg.rotation.y = yawOf(s); g.add(lg);
     // n: lamps lit red (1–3 of the five columns grow to all five on 3), 'go' all green, 0 all dark
-    out.lights = { g: lg, set(n) { for (const { m, k } of lamps) m.material.color.setHex(n === "go" ? 0x2eff7a : k < Math.round((n * 5) / 3) ? 0xff2436 : 0x2a1014); } };
+    let cur = 0, three = null; // (KX1: Meshy's board — its three lamps: one more red a second, all green on GO)
+    out.lights = { g: lg, set(n) { cur = n; for (const { m, k } of lamps) m.material.color.setHex(n === "go" ? 0x2eff7a : k < Math.round((n * 5) / 3) ? 0xff2436 : 0x2a1014);
+        if (three) three.forEach(([m, h], k) => { const lit = n === "go" || k < n; m.material.color.setHex(n === "go" ? 0x2eff7a : lit ? 0xff2436 : 0x3a1418); h.visible = lit; h.material.color.setHex(n === "go" ? 0x2eff7a : 0xff3446); }); },
+      /// KX1: Meshy's start-lights board (models/world/kart/lights.glb, raw/kart-k2) in place of the drawn gantry: its posts on the
+      /// curbs (model x ±0.815), the board over the road facing the grid; our own lamp discs on its three lamps (model x −0.59 / 0 / 0.59,
+      /// y 0.235, its face at z 0.27), so red → green still shows; a soft halo behind a lit one
+      colors: () => (three ? three.map(([m]) => m.material.color.getHexString()) : null), /* (the browser test reads the lamps) */
+      useModel(obj) { const k = (ROAD / 2 + 1.2) / 0.815; obj.scale.setScalar(k); obj.rotation.y = Math.PI; obj.position.set(0, 0.57 * k, 0);
+        const dg = new THREE.CircleGeometry(0.165, 20), hg = new THREE.CircleGeometry(0.24, 20); three = [-0.59, 0, 0.59].map((x) => { const m = new THREE.Mesh(dg, new THREE.MeshBasicMaterial({ color: 0x3a1418, fog: false })), h = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({ color: 0xff3446, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+          m.position.set(x, 0.235, 0.285); h.position.set(x, 0.235, 0.29); h.visible = false; obj.add(m, h); return [m, h]; });
+        for (const c of lg.children) c.visible = false; lg.add(obj); this.set(cur); } };
   }
   return out;
+}
+
+/// KX1: Meshy's ramp (models/world/kart/ramp.glb) laid on the physics' wedge: its up-slope (model z 0.7 → −0.3, y −0.53 → 0.24)
+/// stretched to RAMP.len × RAMP.h, its width to RAMP.w, turned to rise along +z; the cross bar and the rails' tops over the lip
+/// (model y > 0.3) cut away once (the karts fly through there). `src` is the loaded scene; returns a copy to add to a ramp's group.
+export function rampModel(THREE, src) {
+  if (!src.userData.cut) { src.userData.cut = true; src.updateMatrixWorld(true); const v = new THREE.Vector3();
+    src.traverse((o) => { if (!o.isMesh || !o.geometry.index) return; const g = o.geometry, P = g.attributes.position, I = g.index.array, keep = [];
+      for (let i = 0; i < I.length; i += 3) { let lo = Infinity; for (let j = 0; j < 3; j++) { v.fromBufferAttribute(P, I[i + j]).applyMatrix4(o.matrixWorld); lo = Math.min(lo, v.y); } if (lo <= 0.3) keep.push(I[i], I[i + 1], I[i + 2]); }
+      g.setIndex(keep); }); }
+  const obj = src.clone(true), kx = RAMP.w / 1.9, ky = RAMP.h / 0.77, kz = RAMP.len / 1.0;
+  obj.scale.set(kx, ky, kz); obj.rotation.y = Math.PI; obj.position.set(0, 0.53 * ky, 0.7 * kz); return obj;
 }
 
 /// the podium: three blocks (1st in the middle), the KART logo behind, a spot for the last place beside it
@@ -121,7 +143,13 @@ export function makePodium(THREE, logoTex) {
     const b = new THREE.Mesh(new THREE.BoxGeometry(2.3, h, 2.2), [side, side, side, side, front, side]); b.position.set(X[n], h / 2, 0); b.userData.drawn = true; g.add(b); });
   const base = new THREE.Mesh(new THREE.CylinderGeometry(5.4, 5.6, 0.12, 32), new THREE.MeshBasicMaterial({ color: 0x2ee0b0, transparent: true, opacity: 0.35 })); base.position.y = 0.06; g.add(base);
   if (logoTex) { const lg = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.95), new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, depthWrite: false })); lg.position.set(0, 5.9, -3.2); /* (high and back: over the racers' heads, not on them) */ g.add(lg); }
-  return { g, spots: [[X[0], H[0]], [X[1], H[1]], [X[2], H[2]]], last: [5.2, 0] };
+  const P = { g, spots: [[X[0], H[0], 0], [X[1], H[1], 0], [X[2], H[2], 0]], last: [5.2, 0, 0],
+    /// KX1: Meshy's podium (models/world/kart/podium.glb) fitted to 7.2 m in place of the blocks: the three steps' tops found by
+    /// casting down on it at each place (a few depths, the highest), so the racers stand on its steps
+    useModel(obj) { g.add(obj); g.updateMatrixWorld(true); const rc = new THREE.Raycaster(), dn = new THREE.Vector3(0, -1, 0), o = new THREE.Vector3();
+      P.spots = X.map((x, n) => { let best = null; for (const z of [-0.9, -0.4, 0, 0.4]) { rc.set(g.localToWorld(o.set(x, 12, z)), dn); const h = rc.intersectObject(obj, true)[0]; if (h) { const y = g.worldToLocal(h.point.clone()).y; if (!best || y > best[1] + 0.02) best = [x, y, z]; } } return best || [x, H[n], 0]; });
+      for (const c of g.children) if (c.userData.drawn) c.visible = false; } };
+  return P;
 }
 
 /// the boost-pad ring: a few expanding rings in a pool
