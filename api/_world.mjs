@@ -171,7 +171,7 @@ export function make(deps) {
     if (b.kind === "frames") {
       // the frame-rate bands from real devices (world-diag.js): per device, quality, chip class and family
       const band = (v) => Math.max(0, Math.min(7, Math.floor(Number(v) || 0)));
-      const tier = /^[hlu]$/.test(String(b.tier)) ? b.tier : "u", fam = /^[a-z0-9]{2,12}$/.test(String(b.fam)) ? b.fam : "other";
+      const tier = /^[hlmu]$/.test(String(b.tier)) ? b.tier : "u", fam = /^[a-z0-9]{2,12}$/.test(String(b.fam)) ? b.fam : "other";
       const cap = [30, 45, 60].includes(Number(b.cap)) ? Number(b.cap) : 60, dpr = Math.max(0.5, Math.min(3, Math.round((Number(b.dpr) || 1) * 4) / 4));
       const p50 = band(b.p50), p10 = band(b.p10), k = `${dev}_${q}_${tier}`;
       await commit([{ inc: day, fields: { [`f50_${k}_${p50}`]: 1, [`f10_${k}_${p10}`]: 1, [`fam_${dev}_${fam}_${p50}`]: 1, [`cap_${dev}_${cap}`]: 1, [`dpr_${dev}_${String(dpr).replace(".", "p")}`]: 1 } }]).catch(() => {});

@@ -4904,7 +4904,7 @@ let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false, liteFx = 
 // dynamic resolution (Auto). A change resizes every render target, which is itself a hitch, so it changes rarely:
 // down a step after two slow 4-second spells in a row (under 38 fps), back up only after 20 s of 58+, and never
 // within 20 s of the last change (at most twice up a session, so it can't see-saw)
-const dynStart = performance.now(); let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0, capBad = 0;
+const dynStart = performance.now(); let pxFloor = false, bloomOff = false; /* perf batch 4: a phone at its fewest pixels and still slow drops the bloom once (pixels first, then the bloom, then the live shadow) */ let dynK = 1, dynAcc = 0, dynN = 0, dynT0 = performance.now(), dynGood = 0, dynBad = 0, dynLast = 0, dynUps = 0, capBad = 0;
 // b441: AC Defense and Coin Jump on a phone: half the grass (its blades are in random order, so it thins evenly) and
 // a quicker dynamic resolution while the game is on; all back on leaving
 let gameOn = false;
@@ -4934,14 +4934,16 @@ function dynRes(dt) {
   // b411: slow means under 80% of the limit on a phone (48 of 60: phones sat at 40–50 and never eased off) and 70% on
   // a computer; it was 63% for both
   // b447: a phone already at the fewest pixels and still under 40 fps judders between 30 and 45: an even 30 looks smoother
-  if (st.quality.coarse && dynK <= 0.6 && fps < (S.fpsCap || 60) * 0.8 && !liveShOff && now - dynLast > 20000 && bakedShadows()) { dynLast = now; dynBad = 0; return; } // b447: then the live shadow goes
+  const heavy = st.quality.coarse && !bloomOff && st.composer && st.composer.passes ? st.composer.passes.filter((p) => p.heavy && p.enabled) : [];
+  if (heavy.length && (pxFloor || dynK <= 0.6) && fps < capNow() * 0.8 && now - dynLast > 20000) { bloomOff = true; heavy.forEach((p) => { p.enabled = false; }); dynLast = now; dynBad = 0; return; }
+  if (st.quality.coarse && dynK <= 0.6 && (bloomOff || !heavy.length) && fps < (S.fpsCap || 60) * 0.8 && !liveShOff && now - dynLast > 20000 && bakedShadows()) { dynLast = now; dynBad = 0; return; } // b447: then the live shadow goes
   if (st.quality.coarse && !S.fpsCap && !autoCap && liveShOff && dynK <= 0.6 && fps < 40) { if (++capBad >= 2) { autoCap = 30; st.fps(30); } } else capBad = 0;
   const capF = capNow(); dynBad = fps < capF * (st.quality.coarse ? (now - dynStart > 600000 ? 0.9 : 0.8) : 0.7) ? dynBad + 1 : 0; /* b448: after 10 minutes a phone is warm: ease off a step earlier */ dynGood = fps > capF * 0.96 ? dynGood + 1 : 0; // relative to the frame limit
   if (now - dynLast < (gameOn ? 8000 : 20000)) return;
   // b447: on a phone the grass goes to half before the first pixel goes (the blades are back on phones and cost)
   if (dynBad >= (gameOn ? 1 : 2) && st.quality.coarse && !grassThin && grass && grass.mesh) { grassThin = true; try { const g = grass.mesh.geometry; if (g.userData.full == null) g.userData.full = g.instanceCount; g.instanceCount = Math.round(g.userData.full * 0.5); } catch { /* no grass */ } dynBad = 0; dynLast = now; return; }
   const dynMin = st.quality.weak ? 0.5 : 0.6;
-  if (dynBad >= (gameOn ? 1 : 2) && dynK > dynMin) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(dynMin, dynK - 0.15); dynBad = 0; dynLast = now; st.scale(dynK); }
+  if (dynBad >= (gameOn ? 1 : 2) && dynK > dynMin) { /* b441: in a Game Village game one slow spell is enough */ dynK = Math.max(dynMin, dynK - 0.15); dynBad = 0; dynLast = now; if (!st.scale(dynK) && st.quality.coarse) pxFloor = true; }
   else if (dynGood >= 5 && dynK < 1 && dynUps < 2) { dynK = Math.min(rqCool ? RQ_COOL.k : 1, dynK + 0.15); dynGood = 0; dynUps++; dynLast = now; st.scale(dynK); }
 }
 // 2026-10-29 (the owner: "nothing draws behind a window, everywhere"): any window or sheet that covers most of the screen
