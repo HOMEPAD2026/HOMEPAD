@@ -34,11 +34,11 @@ export function makeAssets(ctx, { T, esc, act, ask, wallet, pi, repaint, use3d }
       <div class="wsa-grid">${list.map(card).join("")}</div>
       <p class="wst-3dnote">${esc(T("A model you place in a game is drawn for everyone who plays it. Premium models are for their buyers to build with and download."))}</p>
       <h4 class="wst-sec">${pi("cube")} Arc Studio+</h4>
-      <button type="button" class="wsa-arc" data-arcplus><span class="wsa-arcmark" aria-hidden="true">◆</span><div><b>Arc Studio+</b><small>${esc(T("Onchain tools for your games, built with Arc Studio — powered by Circle"))}</small></div><em>${esc(T("Coming soon"))}</em></button></div>`;
+      <button type="button" class="wsa-arc" data-arcplus><img class="wsa-arcmark" src="/images/studio/arc-logo-96.webp" alt="" width="40" height="40"><div><b>Arc Studio+</b><small>${esc(T("Onchain tools for your games, built with Arc Studio — powered by Circle"))}</small></div><em>${esc(T("Coming soon"))}</em></button></div>`;
   }
   function arcPlus() {
     const g = document.createElement("div"); g.className = "wak wsa-pop"; g.setAttribute("role", "alertdialog"); g.setAttribute("aria-modal", "true");
-    g.innerHTML = `<div class="wak-in"><span class="wsa-arcmark big" aria-hidden="true">◆</span><h3>Arc Studio+</h3><p><b>🚧 ${esc(T("Under construction"))}</b></p>
+    g.innerHTML = `<div class="wak-in"><img class="wsa-arclogo" src="/images/studio/arc-logo.webp" alt="Arc" width="72" height="72"><h3>Arc Studio+</h3><p><b>🚧 ${esc(T("Under construction"))}</b></p>
       <p>${esc(T("We're building Arc Studio+ into the Studio: onchain items, rewards and contracts for your games, made with Arc Studio and powered by Circle. We're talking with the Arc team now — it opens here as soon as it's ready."))}</p>
       <div class="wak-b"><button type="button" class="wak-yes">${esc(T("OK"))}</button></div></div>`;
     const end = () => { g.classList.add("out"); setTimeout(() => g.remove(), 160); };

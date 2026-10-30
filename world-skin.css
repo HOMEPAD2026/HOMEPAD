@@ -6310,6 +6310,9 @@ html.wp-pcphone .wk-card{width:30%;min-width:96px}html.wp-pcphone .wk-card small
 .wsa-arc div{flex:1}.wsa-arc b{display:block;font-size:16px}.wsa-arc small{opacity:.75;font-size:12px}.wsa-arc em{font-style:normal;font-weight:800;font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(255,194,60,.18);color:#ffc23c}
 .wsa-arcmark{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b6bff,#38d8ff);color:#fff;font-size:20px;flex:0 0 auto}
 .wsa-arcmark.big{width:56px;height:56px;font-size:28px;margin:0 auto 8px}
+img.wsa-arcmark{object-fit:cover;background:#0f2242}.wsa-arclogo{display:block;width:72px;height:72px;border-radius:16px;margin:0 auto 10px;box-shadow:0 8px 24px rgba(15,34,66,.55),0 0 0 1px rgba(255,255,255,.14)}
+/* Arc Studio+ in the Studio's side menu, under the Creator Arcade (2026-10-30, the owner) */
+.wst-tabs .wst-arcrail img{width:20px;height:20px;border-radius:5px;display:block}.wst-tabs .wst-arcrail .wst-soon{margin-left:auto;font-style:normal;font-size:10px;font-weight:800;letter-spacing:.04em;padding:2px 7px;border-radius:99px;color:#e6c36a;border:1px solid rgba(230,195,106,.45);text-transform:uppercase}.wst.rmin .wst-arcrail .wst-soon{display:none}
 .wsa-pop .wak-in{text-align:center;max-width:420px}.wsa-pop h3{margin:0 0 6px}.wsa-pop p{line-height:1.5}
 .wsa .wsa-grid{grid-template-columns:repeat(auto-fill,minmax(196px,1fr))}
 .wsa .wsa-act{flex-wrap:wrap}.wsa .wsa-act .wst-go{white-space:nowrap;font-size:11.5px}
