@@ -6364,3 +6364,16 @@ img.wsa-arcmark{object-fit:cover;background:#0f2242}.wsa-arclogo{display:block;w
 .wsv-load,.wsv-hint{position:absolute;left:0;right:0;text-align:center;margin:0;font-size:12px;opacity:.75;pointer-events:none}.wsv-load{top:48%}.wsv-hint{bottom:8px}
 .wsv-clips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 14px}.wsv-clips:empty{display:none}
 .wsv-clips button{padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#eaf2ff;font-weight:700;cursor:pointer}.wsv-clips button.on{border-color:#2ee0b0;background:rgba(46,224,176,.16)}
+/* KART: the Race button (2026-10-30, the owner: a higher-quality button) */
+.wk-pick>.wk-race{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:12px;min-width:280px;height:60px;padding:0 34px;border-radius:999px;border:2px solid rgba(255,255,255,.55);color:#04201a;font-size:22px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(180deg,#9dfff0 0%,#3ef0c4 42%,#13c39a 58%,#0aa585 100%);box-shadow:0 0 0 4px rgba(4,30,40,.65),0 0 0 6px rgba(80,240,220,.55),0 0 28px rgba(60,240,210,.6),0 10px 24px rgba(0,0,0,.45),inset 0 -5px 0 rgba(0,60,50,.35),inset 0 3px 0 rgba(255,255,255,.6);text-shadow:0 1px 0 rgba(255,255,255,.5);transition:transform .12s,filter .12s;animation:wkRacePulse 1.8s ease-in-out infinite}
+.wk-pick>.wk-race:hover{filter:brightness(1.08);transform:translateY(-2px)}.wk-pick>.wk-race:active{transform:translateY(2px) scale(.98)}
+.wk-race::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.7) 45%,transparent 60%);transform:translateX(-120%);animation:wkRaceShine 2.6s ease-in-out infinite;pointer-events:none}
+.wk-race::after{content:"";position:absolute;left:10%;right:10%;top:3px;height:42%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.55),transparent);pointer-events:none}
+.wk-race span{position:relative;z-index:1}
+.wk-race .wk-flag{position:relative;z-index:1;width:26px;height:26px;flex:none;border-radius:4px;background:conic-gradient(#0b1c2a 25%,#fff 0 50%,#0b1c2a 0 75%,#fff 0) 0 0/13px 13px;box-shadow:0 0 0 2px #0b1c2a;transform:rotate(-8deg)}
+.wk-race em{position:relative;z-index:1;width:30px;height:20px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 20'%3E%3Cpath d='M2 2l8 8-8 8M12 2l8 8-8 8M22 2l6 8-6 8' fill='none' stroke='%2304201a' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;animation:wkRaceGo 0.9s ease-in-out infinite}
+@keyframes wkRacePulse{50%{box-shadow:0 0 0 4px rgba(4,30,40,.65),0 0 0 6px rgba(120,255,235,.85),0 0 44px rgba(60,240,210,.85),0 10px 24px rgba(0,0,0,.45),inset 0 -5px 0 rgba(0,60,50,.35),inset 0 3px 0 rgba(255,255,255,.6)}}
+@keyframes wkRaceShine{60%,100%{transform:translateX(120%)}}
+@keyframes wkRaceGo{50%{transform:translateX(4px)}}
+html.wp-pcphone .wk-pick>.wk-race{min-width:0;width:min(320px,90%);height:54px;font-size:20px}
+html.wp-less .wk-race,html.wp-less .wk-race::before,html.wp-less .wk-race em{animation:none}
