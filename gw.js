@@ -12,7 +12,8 @@
 
   // ---------------- the words ----------------
   var GAMES_ALL = [
-    { id: "hw", img: "hw", c: "#ff8a1f" }, { id: "raid", img: "raid", c: "#ff4d8d" }, { id: "jurassic", img: "jurassic", c: "#4ade80" }, { id: "surv", img: "surv", c: "#ff8a3a" }, { id: "poker", img: "poker", c: "#b46cff" }, { id: "rings", img: "rings", c: "#38d8ff" }, { id: "kart", img: "kart-art", c: "#38d8ff" },
+    { id: "kart", img: "kart-art", c: "#38d8ff" }, /* (2026-10-30, the owner: the newest game goes first — leftmost, and the one shown when the page opens) */
+    { id: "hw", img: "hw", c: "#ff8a1f" }, { id: "raid", img: "raid", c: "#ff4d8d" }, { id: "jurassic", img: "jurassic", c: "#4ade80" }, { id: "surv", img: "surv", c: "#ff8a3a" }, { id: "poker", img: "poker", c: "#b46cff" }, { id: "rings", img: "rings", c: "#38d8ff" },
     { id: "mine", img: "mine", c: "#ffd23a" }, { id: "defense", img: "defense", c: "#5aa8ff" }, { id: "jump", img: "jump", c: "#2ee0b0" }, { id: "beat", img: "beat", c: "#ff6fc8" },
   ];
   var GAMES = GAMES_ALL.slice(0, 7); // (2026-10-30, the owner: ARCIRCLE KART joins the strip after Infinity Rings) (2026-10-29, the owner: the Games strip shows up to Infinity Rings; the Mine, AC Defense, Coin Jump and Beat Stomp stay in the World's Games list)

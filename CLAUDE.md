@@ -114,6 +114,7 @@ The owner asked for this on every deploy (2026-10-27: "디플로이 하면 항�
   ARCIRCLE look (bright stylized 3D, blue glass UI, cyan/mint glow, cute robot hero), exact on-image English text, aspect
   ratio, and what to avoid (no fake UI, no unreadable text, no other brands).
 
+- /game's Choose your game (gw.js GAMES_ALL): the newest game goes first — the leftmost tab and the one shown when the page opens (the owner, 2026-10-30, for ARCIRCLE KART: "그게 순서니까 기억해둬"); a new game is added at the front, not the end.
 - /game's Featured news and Updates & notices (gw.js NEWS + each language's `news`, `nbody`, `notices`, en/ko/zh/tr):
   add every release that players can see, newest first (the owner asked for this on 2026-10-23: "keep reflecting the
   updates there"). `nbody` lines up with `news` by index, so a new item goes in front of both (an item without a long body still gets a `""` there — three news once showed the wrong body; tests/world/gwlists.test.mjs now checks the counts match); NOTE_D (gw.js) holds each notice's date by its place, so a new notice's date goes in front of NOTE_D too (it was skipped once and every date shifted).
