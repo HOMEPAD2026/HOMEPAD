@@ -484,27 +484,52 @@ const groundG = K.makeGround(); planet.add(groundG);
 // are skipped — the fog has them mostly hidden anyway, and they were hundreds of draw calls. Anything that needs the
 // whole world (the far-shadow bake, the grass mask, the minimap picture) runs inside farCull.all().
 let nearAll = (f) => f(); /* (PF4: nearCull below sets it — farCull.all shows what it hid too) */
+// perf batch 10: the frame's matrix walk (the renderer's scene.updateMatrixWorld and the step's planet walk below) skips
+// a hidden child of the planet or of a CONT group — over half the nodes sit under far-culled cells, hidden lands and
+// the town while you're away. Only those two walks (mwLite); any other call (a bake, a merge, clear(), clearYaw) still
+// updates everything, and a skipped child is forced on its first walk once shown (its matrices are stale till then)
+let mwLite = false;
+const MW0 = THREE.Object3D.prototype.updateMatrixWorld;
+function mwSkip(g) {
+  if (!g || g.userData.mwSkip) return; g.userData.mwSkip = true;
+  g.updateMatrixWorld = function (force) {
+    if (!mwLite) return MW0.call(this, force);
+    if (this.matrixAutoUpdate) this.updateMatrix();
+    if (this.matrixWorldNeedsUpdate || force) { if (this.matrixWorldAutoUpdate) { if (this.parent === null) this.matrixWorld.copy(this.matrix); else this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix); } this.matrixWorldNeedsUpdate = false; force = true; }
+    const ch = this.children;
+    for (let i = 0; i < ch.length; i++) { const c = ch[i]; if (!c.visible) { c.mwOld = true; continue; } if (c.mwOld) { c.mwOld = false; c.updateMatrixWorld(true); } else c.updateMatrixWorld(force); }
+  };
+}
+const mwFrame = (o, f) => { mwLite = true; try { o.updateMatrixWorld(f); } finally { mwLite = false; } };
+{ const su = st.scene.updateMatrixWorld; st.scene.updateMatrixWorld = function (f) { mwLite = true; try { return su.call(this, f); } finally { mwLite = false; } }; }
+mwSkip(planet);
 const farCull = (() => {
   const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles", "pet", "pumpkings", "partnervillage-sky"]); // "pet", "pumpkings" (world-pumpking.js): they move, so a scan-time box would hide them
   const CONT = ["decor", "life", "zones"], R = S.quality === "saver" ? 75 : st.quality.coarse && lowGfx ? 90 : st.quality.coarse ? 110 : postLevel === "ultra" ? 150 : 130, /* b5: battery saver and Low phones draw less far (the fog hides it) */ box = new THREE.Box3(), sph = new THREE.Sphere();
   // b420: on a computer at Medium / Ultra what's culled dissolves over its last 10 m instead of popping (K.fadeLook)
   const FADE = !st.quality.coarse && (postLevel === "medium" || postLevel === "ultra") && K.fadeLook;
-  let list = [], at = 0, scanAt = -1e9, hidden = new Set(), sig = "";
-  // what's in the world, cheaply: a new scan only when this changes (b413: a full scan every 15 s walked every object in
-  // the world, a regular stutter while moving), or at most once a minute
+  // perf batch 10: one entry an object (its centre, radius and child count when boxed); a change in what's there boxes
+  // only the new or changed ones (scanInc), a full scan only on rescan() (a model came in) or every 5 minutes
+  const ents = new Map(); let at = 0, scanAt = -1e9, hidden = new Set(), sig = "";
+  const contOf = () => CONT.map((n) => planet.children.find((x) => x.name === n)).filter(Boolean);
   const sigNow = () => planet.children.length + ":" + CONT.map((n) => { const c = planet.children.find((x) => x.name === n); return c ? c.children.length : 0; }).join(",");
-  function scan() {
-    list = []; planet.updateMatrixWorld(true);
-    const inv = new THREE.Matrix4().copy(planet.matrixWorld).invert();
-    const add = (o) => { if (!o.visible && !hidden.has(o)) return; box.setFromObject(o); if (box.isEmpty()) return; box.applyMatrix4(inv); box.getBoundingSphere(sph); if (sph.radius > 60) return; list.push({ o, c: sph.center.clone(), r: sph.radius }); if (FADE) o.traverse((m) => { if (m.isMesh && m.material) [].concat(m.material).forEach(K.fadeLook); }); };
-    for (const c of planet.children) { if (SKIP.has(c.name)) { if (CONT.includes(c.name)) c.children.forEach(add); continue; } add(c); }
+  const inv = new THREE.Matrix4();
+  function entOf(o) { o.updateWorldMatrix(false, true, true); /* (a still prop keeps matrixAutoUpdate off: forced, from its parent) */ box.setFromObject(o); if (box.isEmpty()) return null; box.applyMatrix4(inv); box.getBoundingSphere(sph); if (sph.radius > 60) return null; return { c: sph.center.clone(), r: sph.radius, n: o.children.length }; }
+  function add(o) { if (!o.visible && !hidden.has(o)) return; const e = entOf(o); if (!e) return; ents.set(o, e); if (FADE) o.traverse((m) => { if (m.isMesh && m.material) [].concat(m.material).forEach(K.fadeLook); }); }
+  function each(f) { for (const c of planet.children) { if (SKIP.has(c.name)) { if (CONT.includes(c.name)) c.children.forEach(f); continue; } f(c); } }
+  function prepM() { planet.updateWorldMatrix(false, false); contOf().forEach((c) => c.updateWorldMatrix(false, false)); inv.copy(planet.matrixWorld).invert(); }
+  function scan() { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); hidden.clear(); ents.clear(); prepM(); contOf().forEach(mwSkip); each(add); }
+  function scanInc() {
+    prepM(); contOf().forEach(mwSkip); const now = new Set(); each((o) => now.add(o));
+    for (const o of [...ents.keys()]) if (!now.has(o)) { ents.delete(o); if (hidden.delete(o)) o.visible = true; } /* (gone from the world: shown again, as the full scan did) */
+    for (const o of now) { const e = ents.get(o); if (!e) add(o); else if (e.n !== o.children.length) { const e2 = entOf(o); if (e2) ents.set(o, e2); else { ents.delete(o); if (hidden.delete(o)) o.visible = true; } } }
   }
   function tick() {
     const now = performance.now(); if (now - at < 400) return; at = now;
-    if (now - scanAt > 60000 || (now - scanAt > 2000 && sigNow() !== sig)) { sig = sigNow(); const was = [...hidden]; was.forEach((o) => { o.visible = true; }); hidden.clear(); scan(); scanAt = now; }
+    if (now - scanAt > 300000) { sig = sigNow(); scan(); scanAt = now; } else if (now - scanAt > 2000 && sigNow() !== sig) { sig = sigNow(); scanInc(); scanAt = now; }
     const px = -planet.position.x, pz = -planet.position.z, on = mode === "hub"; if (FADE) K.FADE.value = on ? R : 1e6;
-    for (const it of list) { const far = on && Math.hypot(it.c.x - px, it.c.z - pz) - it.r > R;
-      if (far && it.o.visible) { it.o.visible = false; hidden.add(it.o); } else if (!far && hidden.has(it.o)) { it.o.visible = true; hidden.delete(it.o); } }
+    for (const [o, it] of ents) { const far = on && Math.hypot(it.c.x - px, it.c.z - pz) - it.r > R;
+      if (far && o.visible) { o.visible = false; hidden.add(o); } else if (!far && hidden.has(o)) { o.visible = true; hidden.delete(o); } }
   }
   function all(fn) { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); try { return nearAll(fn); } finally { was.forEach((o) => { if (hidden.has(o)) o.visible = false; }); } }
   return { tick, all, rescan: () => { scanAt = -1e9; }, prep: () => { if (FADE) { scan(); scanAt = performance.now(); sig = sigNow(); } } };
@@ -5046,7 +5071,7 @@ st.on((dt0, t) => {
   spins.forEach((f) => f(dt, t));
   smokes.forEach((f) => f(dt));
   moveScammers(t);
-  planet.updateMatrixWorld(true);
+  mwFrame(planet, true); /* (perf batch 10: hidden children skipped, as in the renderer's walk) */
   if (avatar) {
     // pushing off from a standstill: a little squash and a puff of dust at the feet
     if (grounded && !boarding && speedNow > 9 && prevSpeed < 3 && !reduce) { if (avatar.land) avatar.land(0.45); parts.emit({ at: new THREE.Vector3(-planet.position.x, 0.15, -planet.position.z), kind: "smoke", n: 6, speed: 1.6, up: 0.6, size: 0.7, life: 0.7, grav: -0.5, drag: 2, color: 0xb8b0a0, jitter: 0.4 }); }
@@ -5343,7 +5368,12 @@ loadbar(0.9, TW("Waking the scammers…"));
 // the plaza stuttered. At most 6 s here; anything left (packs that load later) the warm loop below still does.
 if (combat && combat.warm) { const w0 = performance.now(); try { while (!bootSkipped && performance.now() - w0 < qk(6000) && await capWait(combat.warm(st, 6), 2500, "warm")); } catch { /* the loop below tries again */ } }
 loadbar(0.95, TW("Polishing the light…"));
-try { await capWait(st.warm(quickIn ? 2500 : 4000), qk(6000), "light"); } catch (e) { console.warn("warm", e); } // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
+// perf batch 9: the plaza first (its ground, fountain, portals, you, the hunting grounds and the dressing), then the
+// rest of the world, the far lands last, a group at a time; what the time didn't reach goes to the loop below
+const warmList = () => { const first = [groundG, fountain, planet.getObjectByName("land-portals"), player, zoneRoot, decor && planet.getObjectByName("decor")].filter(Boolean), far = planet.children.filter((c) => /^land-/.test(c.name) && c.name !== "land-portals");
+  return [...first, ...planet.children.filter((c) => !first.includes(c) && !far.includes(c)), ...far, ...st.scene.children.filter((c) => c !== planet && c !== player)]; };
+let warmLeft = [];
+try { const wp = st.warm(Math.min(quickIn ? 2500 : 4000, qk(6000)), warmList()); wp.then((l) => { warmLeft = l || []; }, () => {}); await capWait(wp, qk(6000), "light"); } catch (e) { console.warn("warm", e); } // every shader compiled behind the loading screen: no hitch the first time a fight, a skill or a zone shows
 loadbar(1); try { diag.ready(performance.now() / 1000); } catch { /* no report */ }
 const landing = dive();
 // b440: what arrives after loading (a zone's props, the Game Village, an island, a pet) is compiled in the background as
@@ -5351,12 +5381,17 @@ const landing = dive();
 // new things in the scene get their shaders compiled before they're seen — only the objects whose materials are new (it
 // used to recompile the whole scene, every hidden land and ground switched on for the call, whenever the count of meshes
 // changed: every 2.5 s in a fight or a crowd, a 100–200 ms stall each time)
-{ const warmSeen = new WeakSet(); let first = true, busy = false; setInterval(() => {
-  if (busy || document.hidden || frozen) return; const fresh = [];
-  st.scene.traverse((o) => { const mt = o.material; if (!mt || !(o.isMesh || o.isPoints || o.isSprite)) return; let nw = false; /* (PF3: no array a mesh — this walks the whole scene) */ if (Array.isArray(mt)) { for (const m of mt) if (!warmSeen.has(m)) { warmSeen.add(m); nw = true; } } else if (!warmSeen.has(mt)) { warmSeen.add(mt); nw = true; } if (nw && fresh.length < 40) fresh.push(o); });
-  if (first) { first = false; return; } /* (the loading screen's warm-up compiled these) */ if (!fresh.length) return;
-  busy = true; compileHidden(fresh).then(() => { busy = false; }, () => { busy = false; });
-}, coarse ? 4000 : 2500); }
+// perf batch 9: what's found is compiled one object a frame, and a frame where the programs grew by 2 or more is let be
+// (it was a batch of 40 at once: a 50–150 ms hitch the first time something showed). The loading screen's leftovers
+// (warmLeft: groups its time didn't reach) are queued on the first look instead of counted as done
+{ const warmSeen = new WeakSet(), q = []; let first = true, nP = 0; setInterval(() => {
+  if (q.length || document.hidden || frozen) return; const fresh = [], leftO = new Set();
+  if (first) for (const g of warmLeft) if (g && g.traverse) g.traverse((o) => { if (o.material) leftO.add(o); });
+  st.scene.traverse((o) => { const mt = o.material; if (!mt || !(o.isMesh || o.isPoints || o.isSprite)) return; if (first && !leftO.has(o)) { [].concat(mt).forEach((m) => warmSeen.add(m)); return; } if (fresh.length >= 40) return; /* (the rest on the next look: counted only once queued) */ let nw = false; /* (PF3: no array a mesh — this walks the whole scene) */ if (Array.isArray(mt)) { for (const m of mt) if (!warmSeen.has(m)) { warmSeen.add(m); nw = true; } } else if (!warmSeen.has(mt)) { warmSeen.add(mt); nw = true; } if (nw) fresh.push(o); });
+  first = false; /* (the loading screen's warm-up compiled the rest) */ q.push(...fresh);
+}, coarse ? 4000 : 2500);
+st.on(() => { if (!q.length || !st.renderer.compileAsync) return; const n = (st.renderer.info.programs || []).length, grew = n - nP; nP = n; if (grew >= 2) return;
+  const o = q.shift(); if (!o.parent) return; try { st.renderer.compileAsync(o, st.camera, st.scene).catch(() => {}); } catch { /* drawn when it shows */ } }); }
 arriving = true; $("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; const t0 = Date.now(), iv = setInterval(() => { const calm = !introOn && !flying && Date.now() - t0 > 2500; if (calm || Date.now() - t0 > 15000) { clearInterval(iv); setTimeout(() => { if (loadReadyRes) loadReadyRes(); }, calm ? 1800 : 0); } }, 300); }, 700); /* (2026-10-30, the owner: the arrival stuttered — the portals, gates and Studio hall only start loading once you've landed and stood a moment, not under the fly-in) */ fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
 // the most played games' code fetched while the town is quiet, one at a time (entering one then doesn't wait for the
 // download); not on data saver or a slow connection, never in a fight; a failure here is only a later download
