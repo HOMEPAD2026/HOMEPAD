@@ -315,7 +315,20 @@ export function makeStage(canvas, opts = {}) {
     solo(fn) { solo = typeof fn === "function" ? fn : null; clock.getDelta(); },
     // the first frames without hitches: every material in the scene compiled while the loading screen is up (hidden
     // things too, shown for the moment of the call), the GPU doing it in parallel where it can
-    warm(ms = 5000) {
+    // perf batch 9: with a list, one group at a time (the plaza first, the far lands last), a frame's yield between
+    // them, and what the time didn't reach is handed back (the background loop does it); compiling reaches hidden
+    // meshes anyway, so only a hidden light is switched on for the moment of each call (its programs then match)
+    async warm(ms = 5000, list = null) {
+      if (list && renderer.compileAsync) {
+        const t0 = performance.now(), left = list.filter(Boolean);
+        while (left.length && performance.now() - t0 < ms) {
+          const g = left.shift(), lit = []; scene.traverse((o) => { if (o.isLight) for (let p = o; p && p !== scene; p = p.parent) if (!p.visible) { lit.push(p); p.visible = true; } });
+          let p; try { p = renderer.compileAsync(g, camera, scene); } catch { p = Promise.resolve(); } finally { lit.forEach((o) => { o.visible = false; }); }
+          await Promise.race([p.catch(() => {}), new Promise((r) => setTimeout(r, Math.max(0, ms - (performance.now() - t0))))]);
+          await new Promise((r) => { requestAnimationFrame(() => r()); setTimeout(r, 50); }); /* (a frame between groups; a hidden tab gets none) */
+        }
+        return left;
+      }
       const hidden = []; scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
       let p; try { p = renderer.compileAsync ? renderer.compileAsync(scene, camera) : Promise.resolve(renderer.compile(scene, camera)); } catch { p = Promise.resolve(); }
       hidden.forEach((o) => { o.visible = false; });
