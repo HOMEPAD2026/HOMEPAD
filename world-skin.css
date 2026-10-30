@@ -6314,6 +6314,13 @@ html.wp-pcphone .wk-card{width:calc(20% - 5px);min-width:0;padding:3px 3px 5px;b
 .wk-spd b{font-size:24px}.wk-spd small{font-size:10px}
 .wk-help{bottom:auto;top:calc(48px + env(safe-area-inset-top,0px));left:12px;transform:none;max-width:52%;white-space:normal;font-size:10.5px;line-height:1.3;padding:5px 9px;animation:wkHelpOut .6s 7s forwards}
 @keyframes wkHelpOut{to{opacity:0;visibility:hidden}}
+/* Meshy's art for the race HUD (images/kart/hud, raw/kart-hud on claude/meshy-kart-hud) */
+.wk-top{background:none;border:0;box-shadow:none;border-style:solid;border-width:0 20px;border-image:url(/images/kart/hud/panel-lap.webp) 0 103 fill / 0 20px stretch;padding:6px 0 6px 18px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
+.wk-pad .wk-b{background:var(--art) center/contain no-repeat;box-shadow:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}.wk-pad .wk-b.on{background:var(--art) center/contain no-repeat;filter:drop-shadow(0 0 12px var(--g)) brightness(1.15)}
+.wk-pad .wk-b i{display:none}
+.wk-l{--art:url(/images/kart/hud/btn-left.webp)}.wk-r{--art:url(/images/kart/hud/btn-right.webp)}.wk-pad .wk-gas{--art:url(/images/kart/hud/btn-gas.webp)}.wk-pad .wk-br{--art:url(/images/kart/hud/btn-brake.webp)}.wk-pad .wk-dr{--art:url(/images/kart/hud/btn-drift.webp)}.wk-pad .wk-bo{--art:url(/images/kart/hud/btn-nitro.webp)}
+.wk-spd{width:74px;height:74px;padding:0;border:0;border-radius:50%;background:url(/images/kart/hud/dial-speed.webp) center/contain no-repeat;display:grid;place-content:center;text-align:center;right:10px}
+.wk-spd b{font-size:22px;line-height:1}.wk-spd small{font-size:9px;margin-top:1px}.wk-spd .wk-ni{position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);justify-content:center}.wk-spd .wk-ni s{width:28px;height:6px}
 /* the racer pick on a phone: room to breathe — smaller logo, smaller cards, Race! always on screen */
 html.wp-pcphone .wk-pick .wk-logo{width:min(250px,56vw);top:8px}
 html.wp-pcphone .wk-pick{gap:6px;padding:8px 8px calc(12px + env(safe-area-inset-bottom,0px))}
