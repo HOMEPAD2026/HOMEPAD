@@ -32,6 +32,25 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
   for (const r of C.RACERS) want.add(r.line);
   const miss = []; for (const s of want) for (const l of ["ko", "zh", "tr"]) if (C.LW[l][s] == null) miss.push(l + "|" + s);
   check(want.size > 60 && miss.length === 0, `world-kart.js's ${want.size} strings are in ko/zh/tr${miss.length ? ": " + miss.slice(0, 12).join(", ") : ""}`); }
+// ---- K6's helpers: the gaps, the photo finish, the settings, tilt, where the ramps and the tunnel sit ----
+{ const M = new Float32Array(40).fill(-1); let mk = 0; mk = C.markAt(M, mk, 0, 0); mk = C.markAt(M, mk, 23, 1); mk = C.markAt(M, mk, 51, 2); // (0 m at 0 s, 23 m at 1 s, 51 m at 2 s)
+  check(M[0] === 0 && M[1] === 1 && M[4] === 1 && M[5] === 2 && M[10] === 2 && M[11] === -1 && mk === 11, "markAt fills every bin it passes, once (" + Array.from(M.slice(0, 12)).join(",") + ")");
+  const again = C.markAt(M, mk, 52, 9); check(M[10] === 2 && again === 11, "markAt never moves a bin that is filled");
+  check(Math.abs(C.gapTo(M, 24, 2.8) - 1.8) < 1e-9 && C.gapTo(M, 0, 0.5) === 0.5 && C.gapTo(M, 60, 3) === null && C.gapTo(M, -3, 1) === null, "gapTo: how long ago the leader passed where the trailer is; null where it never was");
+  check(Math.abs(C.gapTo(M, 5 * C.GAP_M, 2.5) - 0.5) < 1e-9 && Math.abs(C.gapTo(M, 5 * C.GAP_M - 0.01, 2.5) - 1.5) < 1e-9, "gapTo reads the bin of GAP_M metres the trailer is in"); }
+{ const o = (finish, rem, speed) => ({ finish, rem, speed });
+  check(C.photoFinish(60, [o(59.9, 0, 30)]) && C.photoFinish(60, [o(0, 3, 30)]) && C.photoFinish(60, [o(60.15, 0, 0)]), "a photo finish: one over the line 0.1 s before, one 3 m behind at 30 m/s, one 0.15 s after");
+  check(!C.photoFinish(60, [o(59.7, 0, 30), o(0, 8, 30), o(0, 200, 34)]) && !C.photoFinish(60, []), "no photo finish 0.3 s apart, 8 m behind at 30 m/s, or alone");
+  check(!C.photoFinish(60, [o(0, 1, 0)]), "a stopped kart 1 m short isn't a photo finish (speed floor 1 m/s)"); }
+{ const d = C.optsOf(null, true), p = C.optsOf(null, false), j = C.optsOf('{"assist":false,"autogas":true,"tilt":1,"size":"xl"}', true), bad = C.optsOf("{oops", false);
+  check(d.assist && !d.autogas && !d.tilt && d.size === "m" && !p.assist, "settings: steering assist on by default on a phone, off on a computer; the rest off, buttons M");
+  check(!j.assist && j.autogas && !j.tilt && j.size === "m" && !bad.assist && bad.size === "m", "settings: saved choices kept, odd values back to the default, broken JSON → the defaults"); }
+check(C.tiltSteer(2) === 0 && C.tiltSteer(24) === 1 && C.tiltSteer(-40) === -1 && Math.abs(C.tiltSteer(14) - 0.5) < 1e-9 && C.tiltSteer(null) === 0, "tilt: a 4° dead zone, full lock at 24°, both ways");
+{ const D = await import("../../world-kart-dress.js"), pads = [180, 420, 650];
+  const near = (a, b, n) => Math.min(Math.abs(a - b), 900 - Math.abs(a - b)) < n;
+  check(D.RAMPS.every((r) => pads.every((p) => !near(r.i, p, 25)) && !(r.i >= D.TUNNEL[0] - 20 && r.i <= D.TUNNEL[1] + 20) && !near(r.i, 0, 60) && Math.abs(r.lat) + D.RAMP.w / 2 <= 8), "the ramps: on the road, clear of the boost pads, the tunnel and the start line");
+  check(D.RAMPS.every((r) => !(r.i > 760 && r.i < 890)), "no ramp in the last corner (the side camera's place)");
+  check(pads.every((p) => !(p > D.TUNNEL[0] && p < D.TUNNEL[1])) && C.K6_GLB.every((n) => ["lights", "podium", "ramp"].includes(n)), "no pad in the tunnel; K6_GLB names only the three hooks"); }
 check(kartLv(0) === 1 && kartLv(100) === 2 && kartLv(400) === 3 && kartLv(1e9) === KART.LV.max, "the racer's level from XP");
 
 // ---- the server ----
