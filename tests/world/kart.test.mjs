@@ -51,6 +51,19 @@ check(C.tiltSteer(2) === 0 && C.tiltSteer(24) === 1 && C.tiltSteer(-40) === -1 &
   check(D.RAMPS.every((r) => pads.every((p) => !near(r.i, p, 25)) && !(r.i >= D.TUNNEL[0] - 20 && r.i <= D.TUNNEL[1] + 20) && !near(r.i, 0, 60) && Math.abs(r.lat) + D.RAMP.w / 2 <= 8), "the ramps: on the road, clear of the boost pads, the tunnel and the start line");
   check(D.RAMPS.every((r) => !(r.i > 760 && r.i < 890)), "no ramp in the last corner (the side camera's place)");
   check(pads.every((p) => !(p > D.TUNNEL[0] && p < D.TUNNEL[1])) && C.K6_GLB.every((n) => ["lights", "podium", "ramp"].includes(n)), "no pad in the tunnel; K6_GLB names only the three hooks"); }
+// ---- K3's items: weighted by place, none in Time Attack, the server's minLap still true with them ----
+{ const N = 2000, avg = [], seen = []; for (let pl = 1; pl <= 5; pl++) { let sum = 0; const got = new Set(); for (let i = 0; i < N; i++) { const it = C.itemFor(pl, 5, (i + 0.5) / N); got.add(it); sum += C.ITEM_POW[it]; } avg.push(sum / N); seen.push(got); }
+  check(avg.every((v, i) => i === 0 || v >= avg[i - 1] - 1e-9) && avg[4] - avg[0] > 1, "items: the further back, the stronger (" + avg.map((v) => v.toFixed(2)).join(" ≤ ") + ")");
+  check(!seen[0].has("rocket") && !seen[0].has("pump") && !seen[4].has("rug") && seen[4].has("rocket") && seen[4].has("pump"), "1st never draws a rocket or a pump; last never a rug, but rockets and pumps");
+  check([...Array(5)].every((_, i) => C.ITEMS.every((it) => C.ITEM_POW[it] > 0)) && seen.reduce((a, s) => a + s.size, 0) >= 20 && new Set(seen.flatMap((s) => [...s])).size === 6, "all six items come out of the boxes");
+  check(C.itemFor(1, 1, 0.5) && C.tierOf(1, 5) === "front" && C.tierOf(5, 5) === "back" && C.tierOf(3, 5) === "mid" && C.ITEMS.includes(C.itemFor(3, 5, 1)) && C.ITEMS.includes(C.itemFor(3, 5, 0)), "itemFor's edges: alone, r = 0 and r = 1"); }
+check(C.itemsOn("race") && C.itemsOn("daily") && !C.itemsOn("ta"), "items in Race and the Daily, never in Time Attack");
+{ const D = await import("../../world-kart-dress.js"), near = (a, b, n) => Math.min(Math.abs(a - b), 900 - Math.abs(a - b)) < n;
+  check(C.ITEM.rows.every((r) => D.RAMPS.every((x) => !near(r, x.i, 30)) && [180, 420, 650].every((p) => !near(r, p, 25)) && !(r >= D.TUNNEL[0] - 10 && r <= D.TUNNEL[1] + 10) && !(r > 760 && r < 890) && !near(r, 0, 60)), "the box rows: clear of the ramps, the pads, the tunnel, the last corner and the line");
+  check(((C.ITEM.per - 1) / 2) * C.ITEM.gap + 0.8 <= 8, "the boxes sit on the road"); }
+{ const curve = new THREE.CatmullRomCurve3(C.TRACK_PTS.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal"), len = curve.getLength();
+  check(C.ITEM.pump.k <= 1 && C.TOP * C.ITEM.magnet.top < C.BOOST_TOP, `the pump is a boost (≤ BOOST_TOP ${C.BOOST_TOP} m/s) and the magnet pulls to ${(C.TOP * C.ITEM.magnet.top).toFixed(1)} m/s — under it`);
+  check(len / (C.BOOST_TOP * 1.15) >= KART.TRACKS.nexus.minLap, `the fastest lap items allow (BOOST_TOP the whole way, even under the turbo rule ×1.15: ${(len / (C.BOOST_TOP * 1.15)).toFixed(1)} s) is no faster than minLap ${KART.TRACKS.nexus.minLap} s`); }
 check(kartLv(0) === 1 && kartLv(100) === 2 && kartLv(400) === 3 && kartLv(1e9) === KART.LV.max, "the racer's level from XP");
 
 // ---- the server ----
@@ -122,4 +135,5 @@ const dv = await read("world=kart-daily"); check(dv.status === 200 && KART.RULES
 const v = await read("world=kart&wallet=" + p1.address.toLowerCase()); check(v.status === 200 && v.body.today === KART.DAY_ARCL && v.body.racesLeft === 0 && v.body.dailyPaid && v.body.meta.ach.length === 5 && v.body.meta.lv >= 2, "your view: today's ARCL, races left, all five titles, a level");
 const v0 = await read("world=kart"); check(v0.body.racesLeft === KART.DAY_RACES && v0.body.cap === KART.DAY_ARCL, "a guest's view: the day's rules");
 r = await call(p1, "world-arcl-claim", { kind: "kart" }); check(r.status === 400, "KART's ARCL can't be claimed");
+{ const p3 = ethers.Wallet.createRandom(), lap = Math.ceil(1079 / C.BOOST_TOP); r = await race(p3, "race", 1, L3(lap, lap, lap)); check(r.status === 200 && r.body.credited === 500, `K3: an honest race at the items' top pace (${lap} s laps — a pump or a magnet can't beat BOOST_TOP) is accepted and paid`); }
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);

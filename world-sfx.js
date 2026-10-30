@@ -218,6 +218,17 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
     kartBump: (k = 0.5) => { if (!gap("kartBump", 140)) return; tone(110, 0.16, { type: "triangle", to: 55, v: 0.08 + k * 0.06 }); noise(0.12, 0.12 + k * 0.08, 700, { type: "lowpass", to: 200 }); noise(0.08, 0.05, 4200, { type: "highpass" }); },
     kartLap: (last = false) => { [784, 1047, last ? 1568 : 1319].forEach((f, i) => tone(f, 0.16, { type: "triangle", v: 0.08, at: i * 0.08 })); },
     kartPass: () => { if (!gap("kartPass", 600)) return; tone(880, 0.08, { type: "triangle", v: 0.06 }); tone(1320, 0.12, { type: "triangle", v: 0.06, at: 0.07 }); },
+    // KART K3's items: the box's pop, the roulette's tick and its landing, the rocket, the bomb, the shield, the rug's spin, the magnet, the pump
+    kartBox: () => { if (!gap("kartBox", 90)) return; tone(660, 0.07, { type: "square", v: 0.05, lp: 2400 }); tone(990, 0.1, { type: "triangle", v: 0.07, at: 0.05 }); noise(0.08, 0.06, 3200, { type: "highpass" }); },
+    kartRoll: () => { if (!gap("kartRoll", 60)) return; tone(1400 + Math.random() * 300, 0.035, { type: "square", v: 0.025, lp: 3000 }); },
+    kartItem: () => { tone(1047, 0.1, { type: "triangle", v: 0.07 }); tone(1568, 0.16, { type: "triangle", v: 0.07, at: 0.07 }); },
+    kartRocket: () => { if (!gap("kartRocket", 150)) return; noise(0.7, 0.12, 600, { to: 2600, a: 0.04, q: 0.8 }); tone(220, 0.5, { type: "sawtooth", to: 660, v: 0.04, lp: 1800 }); },
+    kartBlast: (k = 1) => { if (!gap("kartBlast", 120)) return; noise(0.7, 0.16 * k, 900, { type: "lowpass", to: 120 }); tone(90, 0.45, { type: "triangle", to: 38, v: 0.14 * k }); noise(0.15, 0.08 * k, 3600, { type: "highpass" }); },
+    kartShield: () => { tone(520, 0.35, { type: "sine", to: 1040, v: 0.07 }); tone(780, 0.3, { type: "triangle", to: 1560, v: 0.04, at: 0.05 }); },
+    kartShieldPop: () => { if (!gap("kartShieldPop", 150)) return; tone(1320, 0.18, { type: "triangle", to: 440, v: 0.08 }); noise(0.12, 0.08, 2800, { type: "highpass" }); },
+    kartSpin: () => { if (!gap("kartSpin", 200)) return; tone(700, 0.7, { type: "triangle", to: 160, v: 0.07 }); noise(0.5, 0.06, 1200, { to: 300, q: 2 }); },
+    kartMagnet: () => { tone(300, 0.6, { type: "sine", to: 600, v: 0.06 }); tone(302, 0.6, { type: "sine", to: 604, v: 0.05, at: 0.02 }); },
+    kartPump: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, { type: "square", v: 0.04, lp: 2600, at: i * 0.06 })); },
     kartStall: () => { noise(0.6, 0.09, 300, { type: "lowpass", to: 120 }); tone(90, 0.5, { type: "sawtooth", to: 40, v: 0.04, lp: 500 }); },
     // ---- the older set (kept as they were) ----
     enter: () => { tone(520, 0.1, { type: "triangle", v: 0.12 }); tone(780, 0.14, { type: "triangle", v: 0.1, at: 0.07 }); },
