@@ -4330,7 +4330,8 @@ if (!lowGfx) {
 let grass = null, gmask = null;
 // 2026-10-30, the owner: on a phone the blades' square (36 m) showed as grass growing in round you as you walked — the
 // blades are off on phones unless Settings → Grass blades turns them on (the ground's own grass picture stays)
-const grassWanted = () => !lowGfx && (S.grass != null ? !!S.grass : !st.quality.coarse);
+// (a function declaration: Settings reads it at start, long before this line runs — as a const it threw 'is not a function')
+function grassWanted() { return !lowGfx && (S.grass != null ? !!S.grass : !st.quality.coarse); }
 function makeMeadow() {
   if (!grassWanted() || grass) return;
   gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }, { x: GV.VILLAGE.x, z: GV.VILLAGE.z, r: GV.VILLAGE.arenaR + 2.2 } /* b447: the Game Village square (the blades grew through its tiles) */, { x: MV.MINE_VILLAGE.x, z: MV.MINE_VILLAGE.z, r: MV.MINE_VILLAGE.r + 1 } /* the Mining Village clearing */, { x: AGW.x, z: AGW.z, r: AGW.r + 2.5 } /* AGENT DIMENSION's Citadel */, { x: PV.PARTNER_VILLAGE.x, z: PV.PARTNER_VILLAGE.z, r: PV.PARTNER_VILLAGE.r + 1 } /* the Partner Village */], paths: WORN_PATHS }));
