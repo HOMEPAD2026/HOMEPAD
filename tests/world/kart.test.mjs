@@ -39,8 +39,8 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
   check(Math.abs(C.gapTo(M, 24, 2.8) - 1.8) < 1e-9 && C.gapTo(M, 0, 0.5) === 0.5 && C.gapTo(M, 60, 3) === null && C.gapTo(M, -3, 1) === null, "gapTo: how long ago the leader passed where the trailer is; null where it never was");
   check(Math.abs(C.gapTo(M, 5 * C.GAP_M, 2.5) - 0.5) < 1e-9 && Math.abs(C.gapTo(M, 5 * C.GAP_M - 0.01, 2.5) - 1.5) < 1e-9, "gapTo reads the bin of GAP_M metres the trailer is in"); }
 { const o = (finish, rem, speed) => ({ finish, rem, speed });
-  check(C.photoFinish(60, [o(59.9, 0, 30)]) && C.photoFinish(60, [o(0, 3, 30)]) && C.photoFinish(60, [o(60.15, 0, 0)]), "a photo finish: one over the line 0.1 s before, one 3 m behind at 30 m/s, one 0.15 s after");
-  check(!C.photoFinish(60, [o(59.7, 0, 30), o(0, 8, 30), o(0, 200, 34)]) && !C.photoFinish(60, []), "no photo finish 0.3 s apart, 8 m behind at 30 m/s, or alone");
+  check(C.photoFinish(60, [o(59.95, 0, 30)]) && C.photoFinish(60, [o(0, 1.5, 30)]) && C.photoFinish(60, [o(60.05, 0, 0)]), "a photo finish: one over the line 0.05 s before, one 1.5 m behind at 30 m/s, one 0.15 s after");
+  check(!C.photoFinish(60, [o(59.85, 0, 30), o(0, 4, 30), o(0, 200, 34)]) && !C.photoFinish(60, []), "no photo finish 0.3 s apart, 8 m behind at 30 m/s, or alone");
   check(!C.photoFinish(60, [o(0, 1, 0)]), "a stopped kart 1 m short isn't a photo finish (speed floor 1 m/s)"); }
 { const d = C.optsOf(null, true), p = C.optsOf(null, false), j = C.optsOf('{"assist":false,"autogas":true,"tilt":1,"size":"xl"}', true), bad = C.optsOf("{oops", false);
   check(d.assist && !d.autogas && !d.tilt && d.size === "m" && !p.assist, "settings: steering assist on by default on a phone, off on a computer; the rest off, buttons M");
