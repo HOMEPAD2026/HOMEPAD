@@ -189,6 +189,36 @@ export function createSfx({ S, saveSet = () => {}, music = () => null, coarse = 
       if (rank === "elite") { tone(98, 0.4, { to: 49, v: 0.1 }); noise(0.3, 0.08, 500, { type: "lowpass" }); }
       if (rank === "boss") { tone(55, 1.2, { to: 30, v: 0.15 }); noise(0.9, 0.12, 300, { type: "lowpass" }); [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, { type: "triangle", v: 0.06, at: 0.4 + i * 0.09 })); }
     },
+    // ---- ARCIRCLE KART (2026-10-30, the owner: "Kart 손맛 패치") ----
+    // the engine: two detuned saws through a low-pass that opens with the revs, and a band of noise for the tyres in a
+    // drift; set(rpm 0..1, load 0..1, screech 0..1, boost) every frame, stop() when the race ends. null without sound.
+    kartEngine: () => {
+      if (!ac || !S.sound) return null;
+      try {
+        const g = ac.createGain(), lp = ac.createBiquadFilter(), a = ac.createOscillator(), b = ac.createOscillator(), sub = ac.createOscillator(), sg = ac.createGain();
+        g.gain.value = 0; lp.type = "lowpass"; lp.frequency.value = 500; lp.Q.value = 2.5; a.type = b.type = "sawtooth"; sub.type = "square"; b.detune.value = 14; sg.gain.value = 0.35;
+        a.connect(lp); b.connect(lp); sub.connect(sg); sg.connect(lp); lp.connect(g); g.connect(out);
+        let tg = null, tf = null, tn = null;
+        if (nbuf) { tn = ac.createBufferSource(); tn.buffer = nbuf; tn.loop = true; tf = ac.createBiquadFilter(); tf.type = "bandpass"; tf.frequency.value = 2400; tf.Q.value = 3; tg = ac.createGain(); tg.gain.value = 0; tn.connect(tf); tf.connect(tg); tg.connect(out); tn.start(); }
+        a.start(); b.start(); sub.start(); let dead = false;
+        return {
+          set(rpm, load, screech = 0, boost = false) {
+            if (dead) return; const t = ac.currentTime, r = Math.max(0, Math.min(1.25, rpm)), f = 46 + r * 120 + (boost ? 26 : 0);
+            a.frequency.setTargetAtTime(f, t, 0.06); b.frequency.setTargetAtTime(f * 1.005, t, 0.06); sub.frequency.setTargetAtTime(f / 2, t, 0.06);
+            lp.frequency.setTargetAtTime(380 + r * 1500 + load * 700 + (boost ? 900 : 0), t, 0.08);
+            g.gain.setTargetAtTime(hidden() ? 0 : 0.05 + load * 0.035 + r * 0.025, t, 0.08);
+            if (tg) { tg.gain.setTargetAtTime(hidden() ? 0 : screech * 0.05, t, 0.05); tf.frequency.setTargetAtTime(1900 + screech * 1400 + r * 400, t, 0.1); }
+          },
+          stop() { if (dead) return; dead = true; const t = ac.currentTime; g.gain.setTargetAtTime(0, t, 0.15); if (tg) tg.gain.setTargetAtTime(0, t, 0.1); setTimeout(() => { try { a.stop(); b.stop(); sub.stop(); if (tn) tn.stop(); g.disconnect(); if (tg) tg.disconnect(); } catch { /* gone */ } }, 900); },
+        };
+      } catch { return null; }
+    },
+    kartSpark: (lv = 1) => { if (!gap("kartSpark", 120)) return; tone([0, 1175, 1568, 2093][lv] || 1175, 0.12, { type: "triangle", v: 0.06 }); tone(([0, 1175, 1568, 2093][lv] || 1175) * 1.5, 0.1, { v: 0.03, at: 0.05 }); },
+    kartTurbo: (lv = 1) => { if (!gap("kartTurbo", 150)) return; noise(0.35 + lv * 0.12, 0.1 + lv * 0.03, 900, { to: 4200, a: 0.02, q: 0.9 }); tone(180, 0.3 + lv * 0.1, { type: "sawtooth", to: 520 + lv * 160, v: 0.05, lp: 2400 }); },
+    kartBump: (k = 0.5) => { if (!gap("kartBump", 140)) return; tone(110, 0.16, { type: "triangle", to: 55, v: 0.08 + k * 0.06 }); noise(0.12, 0.12 + k * 0.08, 700, { type: "lowpass", to: 200 }); noise(0.08, 0.05, 4200, { type: "highpass" }); },
+    kartLap: (last = false) => { [784, 1047, last ? 1568 : 1319].forEach((f, i) => tone(f, 0.16, { type: "triangle", v: 0.08, at: i * 0.08 })); },
+    kartPass: () => { if (!gap("kartPass", 600)) return; tone(880, 0.08, { type: "triangle", v: 0.06 }); tone(1320, 0.12, { type: "triangle", v: 0.06, at: 0.07 }); },
+    kartStall: () => { noise(0.6, 0.09, 300, { type: "lowpass", to: 120 }); tone(90, 0.5, { type: "sawtooth", to: 40, v: 0.04, lp: 500 }); },
     // ---- the older set (kept as they were) ----
     enter: () => { tone(520, 0.1, { type: "triangle", v: 0.12 }); tone(780, 0.14, { type: "triangle", v: 0.1, at: 0.07 }); },
     rocket: () => { noise(1.6, 0.16, 180); tone(90, 1.4, { type: "sawtooth", to: 40, v: 0.05 }); },

@@ -6377,3 +6377,12 @@ img.wsa-arcmark{object-fit:cover;background:#0f2242}.wsa-arclogo{display:block;w
 @keyframes wkRaceGo{50%{transform:translateX(4px)}}
 html.wp-pcphone .wk-pick>.wk-race{min-width:0;width:min(320px,90%);height:54px;font-size:20px}
 html.wp-less .wk-race,html.wp-less .wk-race::before,html.wp-less .wk-race em{animation:none}
+/* KART 1.7 — the feel: speed lines, the position pop (2026-10-30, the owner: "Kart 손맛 패치") */
+.wk-lines{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .18s;background:repeating-conic-gradient(from 0deg at 50% 52%,rgba(255,255,255,0) 0deg 4deg,rgba(220,245,255,.55) 4deg 4.5deg,rgba(255,255,255,0) 4.5deg 9deg,rgba(220,245,255,.3) 9deg 9.4deg);-webkit-mask:radial-gradient(ellipse at 50% 52%,transparent 34%,#000 78%);mask:radial-gradient(ellipse at 50% 52%,transparent 34%,#000 78%);animation:wkLines .22s linear infinite}
+.wk-lines.boost{background:repeating-conic-gradient(from 0deg at 50% 52%,rgba(255,255,255,0) 0deg 3.5deg,rgba(255,190,90,.65) 3.5deg 4.2deg,rgba(255,255,255,0) 4.2deg 8deg,rgba(120,220,255,.45) 8deg 8.5deg)}
+@keyframes wkLines{0%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.04) rotate(1.2deg)}100%{transform:scale(1) rotate(0deg)}}
+html.wp-less .wk-lines{display:none}
+.wk-pos.up{animation:wkPosUp .55s cubic-bezier(.2,1.6,.4,1)}.wk-pos.down{animation:wkPosDown .45s ease-out}
+@keyframes wkPosUp{0%{transform:scale(1)}35%{transform:scale(1.6);color:#5dffb0;text-shadow:0 0 16px rgba(93,255,176,.9)}100%{transform:scale(1)}}
+@keyframes wkPosDown{0%,100%{transform:none}30%{transform:translateY(3px);color:#ff6e7e}}
+html.wp-pcphone .wk{height:calc(100dvh / 2.2)} /* (2026-10-30, the owner's phone: 100vh is the height with the browser's bar hidden, so the Race button and the controls sat under it) */
