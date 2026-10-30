@@ -72,13 +72,17 @@ if (LANG !== "en") await loadWords(LANG); // (preloaded by play.html's build blo
 // what waits for the loading screen to be gone (the far gates' models, the Citadel, the Studio hub: 1 MB each, they
 // used to come in during loading on phones, behind the town's own files)
 let loadReadyRes = null; const loadReady = new Promise((r) => { loadReadyRes = r; });
+// 2026-10-30 (the owner: the screen stuttered from the loading screen's end until the hero stood): between the loading
+// screen lifting and loadReady (landed + a moment), nothing heavy starts — the far models, the districts' decor, the
+// ground shadow's re-bake (it draws the whole world into a 2048² map) all wait for it
+let arriving = false; loadReady.then(() => { arriving = false; });
 const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s].replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)) : WORDS[LANG][s]) : T(s, v));
 /// the opening week's launch card (24 – 31 Oct, Seoul): on every visit, for everyone (guests and agent owners too), on top of
 /// everything, the moment the loading screen is done and you're in the town (not over the loading screen: the owner, 2026-10-24).
 /// "Go to the AD Tower" pressed before the town is ready waits for it (adpGo).
 const AD_PROMO_END = Date.parse("2026-10-31T15:00:00Z");
 let adpDone = false, adpGo = false;
-const adpReady = () => { try { const l = document.getElementById("wp-loading"), mk = document.getElementById("wp-make"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && mode === "hub" && !introOn && !(mk && !mk.hidden) && !!(typeof P !== "undefined" && P && P.name) /* (not over the character maker: a first visit saw it before making a hero — the funnel lost half there, 2026-10-25; it shows once Go is pressed) */; } catch { return false; /* (still loading) */ } };
+const adpReady = () => { try { const l = document.getElementById("wp-loading"), mk = document.getElementById("wp-make"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && !arriving && mode === "hub" && !introOn && !(mk && !mk.hidden) && !!(typeof P !== "undefined" && P && P.name) /* (not over the character maker: a first visit saw it before making a hero — the funnel lost half there, 2026-10-25; it shows once Go is pressed) */; } catch { return false; /* (still loading) */ } };
 function adPromo(force) {
   if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
   adpDone = true;
@@ -562,7 +566,9 @@ st.on(() => { frameNo++; if (liveShOff) { if (st.renderer.shadowMap.enabled) st.
 // so a shadow map kept for 2–3 frames lagged behind the ground and snapped back each time: while the ground moves it is
 // redrawn every frame; standing still it keeps the every-Nth-frame saving
 const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir, around: (f) => farCull.all(f) }) : null;
-if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
+if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick());
+  const rb0 = gshadow.rebakeSoon; gshadow.rebakeSoon = (ms) => { if (arriving) loadReady.then(() => rb0(ms || 1200)); else rb0(ms); }; /* (re-bakes asked for during the arrival come together once, after it) */
+  [3000, 20000].forEach((ms) => setTimeout(() => (arriving ? gshadow.rebakeSoon(0) : gshadow.bake()), ms)); }
 // the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
 const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
 // b447: contact shade on everything that stands on the ground, in every place (world-look.js); not on Low
@@ -2935,7 +2941,7 @@ function decorateMap() {
     const d = b.dataset, spec = d.i != null && d.i !== "portal" ? (shops[Number(d.i)] || { userData: {} }).userData.spec : null;
     const zn = d.z != null ? [...ZN.ZONES, SOC.RAID][+d.z] : null; // the grounds, Nexus City and the Research district: Meshy's art (2026-10-25)
     const k = d.land || (d.pv ? "pv" : d.pvk ? "kairo-tower" : d.pvh ? "kairo-hub" : zn ? "z-" + zn.id : d.adc === "guide" ? "nexus" : spec ? (spec.district === "Research" ? "research" : spec.id) : "");
-    const src = d.cc ? `/images/${d.cc === "go" ? "gw/key-cc-416" : "cc/b-" + d.cc}.webp${VER}` : MAP_ART[k] ? `/images/ui/${MAP_ART[k]}.webp${VER}` : d.mine ? `/images/games/mine-art-300.webp${VER}` : d.race ? `/images/games/jump-art-300.webp${VER}` : d.jur ? `/images/games/jurassic-art-300.webp${VER}` : "";
+    const src = d.cc ? `/images/${d.cc === "go" ? "gw/key-cc-416" : "cc/b-" + d.cc}.webp${VER}` : MAP_ART[k] ? `/images/ui/${MAP_ART[k]}.webp${VER}` : d.mine ? `/images/games/mine-art-300.webp${VER}` : d.race ? `/images/games/jump-art-300.webp${VER}` : d.jur ? `/images/games/jurassic-art-300.webp${VER}` : d.kart ? `/images/games/kart-art-300.webp${VER}` : "";
     if (src) { b.style.setProperty("--art", `url("${src}")`); b.classList.add("art"); }
   });
   mapTabs(box);
@@ -2946,11 +2952,11 @@ function decorateMap() {
 // search box that looks through all of them. The sections are still built by openMap(); here they're only sorted.
 const MAP_TOP = [
   ['data-land="hw"', "Halloween Realm", "hwrealm/key-wide-768"], ['data-cc="go"', "Creator City", "gw/key-cc-416"], ['data-land="rq"', "RAID QUEENS", "ui/map/rq"], ['data-land="ad"', "Nexus City", "ui/map/nexus"],
-  ['data-jur="1"', "Jurassic World", "gw/key-jurassic-416"], ['data-land="gv"', "Game Village", "games/defense-art-300"], ['data-land="lp"', "Launchpad Village", "ui/map/lp"], ['data-land="ut"', "Utility Village", "ui/map/ut"],
-  ['data-pv="1"', "Partner Village", "ui/map/pv"], ['data-mine="1"', "ARCL Mine", "games/mine-art-300"], ['data-isle="1"', "My Island", "gw/news-villages-1200"],
+  ['data-jur="1"', "Jurassic World", "games/jurassic-art"], ['data-kart="1"', "ARCIRCLE KART", "games/kart"], ['data-land="gv"', "Game Village", "games/defense-art"], /* (2026-10-30, the owner: the games' tiles use the Games list's own pictures) */ ['data-land="lp"', "Launchpad Village", "ui/map/lp"], ['data-land="ut"', "Utility Village", "ui/map/ut"],
+  ['data-pv="1"', "Partner Village", "ui/map/pv"], ['data-mine="1"', "ARCL Mine", "games/mine-art"], ['data-isle="1"', "My Island", "gw/news-villages-1200"],
 ];
 const MAP_RECENT = "arc.world.mapRecent", MAP_TAB = "arc.world.mapTab";
-const MAP_KEYS = ["fount", "i", "c", "f", "n", "isle", "isles", "z", "race", "mine", "pv", "pvk", "pvh", "land", "adc", "cc", "jur"];
+const MAP_KEYS = ["fount", "i", "c", "f", "n", "isle", "isles", "z", "race", "mine", "pv", "pvk", "pvh", "land", "adc", "cc", "jur", "kart"];
 function mapRemember(b) {
   try { if (!b || !b.matches || !b.matches("button")) return; const d = {}; for (const k of MAP_KEYS) if (b.dataset[k] != null) d[k] = b.dataset[k]; if (!Object.keys(d).length || d.fount) return;
     const name = (b.querySelector("b") || b).textContent.trim().slice(0, 28); if (!name) return;
@@ -3008,6 +3014,7 @@ mapEl.addEventListener("click", (e) => {
   if (b.dataset.cc) { closeMap(); ccTo(b.dataset.cc); return; }
   if (b.dataset.pv) { closeMap(); goPartnerVillage(); return; }
   if (b.dataset.jur) { closeMap(); jurGateGo(); return; }
+  if (b.dataset.kart) { closeMap(); const e2 = gv.exitOf("kart"); flyTo({ position: new THREE.Vector3(e2.x, 0, e2.z), userData: { radius: 0.5 } }); return; } /* to the speedway's door in the Game Village */
   if (b.dataset.fount) { closeMap(); fountGo(); return; }
   if (b.dataset.land === "rq") { closeMap(); rqPortalFront(); return; } // (the owner, 2026-10-25: the map's RAID QUEENS takes you to the front of its portal building on the far hunting ring)
   if (b.dataset.hwg) { closeMap(); hwGo(b.dataset.hwg); return; } // (the Halloween Realm: straight to a ground's edge)
@@ -4306,7 +4313,7 @@ chatUI = CHAT.createChat({ T, esc, toast, post, sess, Snd, area: chatArea, bubbl
 // b448: compile a list of objects while they're hidden (they're made visible only for the call: compileAsync collects them
 // right away), so each can be shown once its shaders are ready
 const compileHidden = (list) => { if (!st.renderer.compileAsync) return Promise.resolve(); const was = list.map((o) => o.visible); list.forEach((o) => { o.visible = true; }); let ps; try { ps = list.map((o) => st.renderer.compileAsync(o, st.camera, st.scene).catch(() => {})); } finally { list.forEach((o, i) => { o.visible = was[i]; }); } return Promise.race([Promise.all(ps), new Promise((r) => setTimeout(r, 4000))]); };
-decor = DECOR.createDecor({ compile: compileHidden, onMore: () => { try { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } catch { /* fine */ } }, /* (PF8: the districts came in after the screen lifted) */ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => [[MV.MINE_VILLAGE.x, MV.MINE_VILLAGE.z, MV.MINE_VILLAGE.r + 3], [PV.PARTNER_VILLAGE.x, PV.PARTNER_VILLAGE.z, PV.PARTNER_VILLAGE.r + 3], ...(race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : [])] });
+decor = DECOR.createDecor({ compile: compileHidden, calm: () => (arriving ? loadReady : null), onMore: () => { try { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } catch { /* fine */ } }, /* (PF8: the districts came in after the screen lifted) */ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: lowGfx, lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => [[MV.MINE_VILLAGE.x, MV.MINE_VILLAGE.z, MV.MINE_VILLAGE.r + 3], [PV.PARTNER_VILLAGE.x, PV.PARTNER_VILLAGE.z, PV.PARTNER_VILLAGE.r + 3], ...(race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : [])] });
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
@@ -5288,7 +5295,7 @@ const landing = dive();
   if (first) { first = false; return; } /* (the loading screen's warm-up compiled these) */ if (!fresh.length) return;
   busy = true; compileHidden(fresh).then(() => { busy = false; }, () => { busy = false; });
 }, coarse ? 4000 : 2500); }
-$("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; const t0 = Date.now(), iv = setInterval(() => { const calm = !introOn && !flying && Date.now() - t0 > 2500; if (calm || Date.now() - t0 > 15000) { clearInterval(iv); setTimeout(() => { if (loadReadyRes) loadReadyRes(); }, calm ? 1800 : 0); } }, 300); }, 700); /* (2026-10-30, the owner: the arrival stuttered — the portals, gates and Studio hall only start loading once you've landed and stood a moment, not under the fly-in) */ fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
+arriving = true; $("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; const t0 = Date.now(), iv = setInterval(() => { const calm = !introOn && !flying && Date.now() - t0 > 2500; if (calm || Date.now() - t0 > 15000) { clearInterval(iv); setTimeout(() => { if (loadReadyRes) loadReadyRes(); }, calm ? 1800 : 0); } }, 300); }, 700); /* (2026-10-30, the owner: the arrival stuttered — the portals, gates and Studio hall only start loading once you've landed and stood a moment, not under the fly-in) */ fun("ready"); setTimeout(() => { if (sess()) loadCodex().then((c) => c.load()).catch(() => {}); }, 8000); /* the item codex's set bonus and titles, once signed in */
 // the most played games' code fetched while the town is quiet, one at a time (entering one then doesn't wait for the
 // download); not on data saver or a slow connection, never in a fight; a failure here is only a later download
 { const nc = navigator.connection || {}, slow = nc.saveData || /(^|-)2g|3g/.test(String(nc.effectiveType || ""));
@@ -5297,7 +5304,7 @@ $("wp-loading").classList.add("done"); setTimeout(() => { loadOver = true; const
   const next = () => { if (!pre.length) return; if (document.hidden || mode !== "hub" || frozen || document.body.classList.contains("wc-fight")) { setTimeout(next, 8000); return; } idle(() => { const f = pre.shift(); f().catch(() => {}).finally(() => setTimeout(next, 6000)); }); };
   if (!slow && S.quality !== "saver") setTimeout(next, 25000); }
 // b-st3: back on another day (this browser was here before, on an earlier Seoul day)
-try { const k = "arc.world.funday", d0 = localStorage.getItem(k), d1 = tipDay(); if (d0 && d0 !== d1) { fun("back"); if (P.char) landing.then(() => setTimeout(() => welcomeBack(Math.round((Date.parse(d1) - Date.parse(d0)) / 864e5)), 2200)); } localStorage.setItem(k, d1); } catch { /* private */ }
+try { const k = "arc.world.funday", d0 = localStorage.getItem(k), d1 = tipDay(); if (d0 && d0 !== d1) { fun("back"); if (P.char) loadReady.then(() => setTimeout(() => welcomeBack(Math.round((Date.parse(d1) - Date.parse(d0)) / 864e5)), 600)); } localStorage.setItem(k, d1); } catch { /* private */ }
 // weekend 2×: say so once a session, a few seconds in
 if (weekend2x()) setTimeout(() => { if (!introOn) toast(TW("Weekend 2×: double XP and double ARCL from play")); else setTimeout(() => toast(TW("Weekend 2×: double XP and double ARCL from play")), 4000); }, 6000);
 // a friend's INFINITY RINGS challenge (?rings=<board>&vs=<moves>&by=<name>, world-rings.js share()): to the palace, and

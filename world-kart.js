@@ -279,9 +279,10 @@ export function createKart(ctx) {
     return true;
   }
   // ---------- the racer pick: five cards over the grid; the chosen one waves in 3D ----------
-  let pickEl = null, picked = "";
+  let pickEl = null, picked = "", pickFill = null;
   function showPick(id) {
     phase = "pick"; picked = id; ui.classList.add("picking");
+    if (!pickFill) { pickFill = new THREE.DirectionalLight(0xffffff, 1.5); scene.add(pickFill, pickFill.target); } pickFill.visible = true;
     pickEl = document.createElement("div"); pickEl.className = "wk-pick";
     pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
       <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
@@ -299,16 +300,17 @@ export function createKart(ctx) {
     if (phase !== "pick") return; try { localStorage.setItem(PICK, id); } catch { /* private */ }
     const mine = karts.find((x) => x.racer && x.racer.id === id) || karts[0], rest = karts.filter((x) => x !== mine);
     mine.i = 0; mine.me = true; rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest];
-    if (pickEl) { pickEl.remove(); pickEl = null; } ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; reset();
+    if (pickEl) { pickEl.remove(); pickEl = null; } if (pickFill) pickFill.visible = false; ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; reset();
   }
   // the pick's camera: in front of the chosen kart, a little above
-  function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; const sw = Math.sin(performance.now() / 2400) * 0.6; tmp.set(k.pos.x + Math.sin(k.yaw + sw) * 4.2, 1.35, k.pos.z + Math.cos(k.yaw + sw) * 4.2); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, innerHeight > innerWidth ? -1.1 : -0.7, k.pos.z); } // (aimed below the kart: it sits in the frame's upper half, over the cards)
+  function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; const tall = innerHeight > innerWidth, d = tall ? 6.6 : 4.4, sw = Math.sin(performance.now() / 2400) * 0.5; tmp.set(k.pos.x + Math.sin(k.yaw + sw) * d, tall ? 2.3 : 1.6, k.pos.z + Math.cos(k.yaw + sw) * d); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, tall ? -0.55 : -0.45, k.pos.z);
+    if (pickFill) { pickFill.position.copy(cam.position).add(new THREE.Vector3(0, 2, 0)); pickFill.target.position.set(k.pos.x, 0.8, k.pos.z); } } // (2026-10-30, the owner's phone: the kart filled the screen and stood dark — farther back on an upright screen, a little above, and a light from the camera's side, so the racer shows in the band between the logo and the cards)
   const onResize = () => { if (!cam) return; cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); };
   function leave() {
     if (!on) return; on = false; phase = "idle";
     try { ctx.st.solo(null); ctx.st.view(null); } catch { /* the world draws again */ }
     removeEventListener("keydown", kd); removeEventListener("keyup", ku); removeEventListener("resize", onResize); keys.clear();
-    pickEl = null; if (ui) { ui.remove(); ui = null; } document.body.classList.remove("wp-kart");
+    pickEl = null; pickFill = null; if (ui) { ui.remove(); ui = null; } document.body.classList.remove("wp-kart");
     if (scene) scene.traverse((o) => { if (o.geometry && !o.isSkinnedMesh) o.geometry.dispose(); const m = o.material; if (m && !o.isSkinnedMesh) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } });
     scene = null; karts = []; me = null;
     if (ctx.onLeave) ctx.onLeave();

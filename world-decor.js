@@ -303,11 +303,14 @@ export function createDecor(ctx) {
     await load("kk-weapons"); ctx.onWeapons && ctx.onWeapons();
     await Promise.all(["kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "q-nature", "q-props"].map(load)); dressTown();
     } finally { townDone(); } // b443: the loading screen waits for this (the town dressed behind it, not on the plaza)
-    try { await Promise.all(["kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-furniture", "kenney-furniture"].map(load)); await staged(dressDistricts); if (ctx.onMore) ctx.onMore(); } catch (e) { console.warn("decor districts", e); }
+    // (2026-10-30, the owner: the arrival stuttered — a stage that isn't done behind the loading screen waits until you've
+    // landed and stood a moment: ctx.calm, so nothing is placed and compiled under the fly-in)
+    const calm = () => (ctx.calm ? ctx.calm() : null);
+    try { await Promise.all(["kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-furniture", "kenney-furniture"].map(load)); await calm(); await staged(dressDistricts); if (ctx.onMore) ctx.onMore(); } catch (e) { console.warn("decor districts", e); }
     // the hunting grounds' one extra pack downloads while you're still in town, so walking up to a ground only dresses it
     setTimeout(() => { const go = () => load("kenney-survival"); if (globalThis.requestIdleCallback) requestIdleCallback(go, { timeout: 20000 }); else go(); }, 15000);
-    await load("kenney-pets"); await staged(addCritters);
-    await Promise.all(["k-suburban", "k-commercial"].map(load)); await staged(dressNeighbourhoods);
+    await load("kenney-pets"); await calm(); await staged(addCritters);
+    await Promise.all(["k-suburban", "k-commercial"].map(load)); await calm(); await staged(dressNeighbourhoods);
     setInterval(nearZones, 3000); nearZones();
   }
   return { root, start, townReady, solids: () => solids, tick: (dt) => tickCritters(dt), gear, ready: (n) => !!packs[n], debug: () => ({ packs: Object.keys(packs), critters: critters.length, solids: solids.length, zones: [...dressed], homes }) };
