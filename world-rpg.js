@@ -727,9 +727,9 @@ export function createRpg(ctx) {
     if (ctx.buzz) try { ctx.buzz(8); } catch { /* fine */ }
   }
   // phones: hold a piece in the bag to start picking several (it's the first one picked); tap the others to add them
-  let lpAt = 0, lpT = 0, lpXY = null;
-  el.addEventListener("pointerdown", (e) => { const t = e.target.closest(".hb-cells [data-pick]"); if (!t || e.pointerType === "mouse" || mSel || storeView) return; lpXY = [e.clientX, e.clientY]; clearTimeout(lpT);
-    lpT = setTimeout(() => { const it = R().bag.find((x) => x.id === t.dataset.pick); if (!it) return; lpAt = Date.now(); hideTip(); mSel = true; mSet.clear(); if (!it.lk) mSet.add(it.id); paint(); mRefresh(); ctx.toast(T("Picking — tap more pieces, then choose what to do")); }, 520); });
+  let lpAt = 0, lpT = 0, lpXY = null, lpEat = false; /* (2026-10-30, the owner: a long press didn't keep its piece — held past 0.6 s, the click on letting go took it off again; now the one click after the press is eaten whenever it comes) */
+  el.addEventListener("pointerdown", (e) => { const t = e.target.closest(".hb-cells [data-pick]"); lpEat = false; if (!t || e.pointerType === "mouse" || mSel || storeView) return; lpXY = [e.clientX, e.clientY]; clearTimeout(lpT);
+    lpT = setTimeout(() => { const it = R().bag.find((x) => x.id === t.dataset.pick); if (!it) return; lpAt = Date.now(); lpEat = true; hideTip(); mSel = true; try { navigator.vibrate && navigator.vibrate(18); } catch { /* not allowed */ } mSet.clear(); if (!it.lk) mSet.add(it.id); paint(); mRefresh(); ctx.toast(T("Picking — tap more pieces, then choose what to do")); }, 520); });
   el.addEventListener("pointermove", (e) => { if (lpXY && Math.hypot(e.clientX - lpXY[0], e.clientY - lpXY[1]) > 12) { clearTimeout(lpT); lpXY = null; } });
   ["pointerup", "pointercancel"].forEach((ty) => el.addEventListener(ty, () => { clearTimeout(lpT); lpXY = null; }));
   el.addEventListener("contextmenu", (e) => { if (e.target.closest(".hb-cells [data-pick]")) e.preventDefault(); }); // (no browser menu on a long press)
@@ -1017,7 +1017,7 @@ export function createRpg(ctx) {
     if (b.hasAttribute("data-mstore")) { const r = R(); let n = 0; for (const id of [...mSet]) { if (r.store.length >= STORE) break; const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) { r.store.push(r.bag.splice(i, 1)[0]); n++; } } mSet.clear(); changed(n ? T("{n} moved to storage", { n }) : T("Your storage is full")); return; }
     if (b.hasAttribute("data-mlock")) { const r = R(); let n = 0; for (const x of r.bag) if (mSet.has(x.id)) { x.lk = 1; n++; } mSet.clear(); changed(T("{n} locked", { n })); return; }
     if (b.hasAttribute("data-msalv")) { salvagePicked(); return; }
-    if (d.pick && mSel) { if (Date.now() - lpAt < 600) return; /* (the long press that started picking already took this one) */ const it = R().bag.find((x) => x.id === d.pick); if (it && !it.lk) { if (mSet.has(it.id)) mSet.delete(it.id); else mSet.add(it.id); } else if (it) ctx.toast(T("Unlock it first")); mRefresh(); return; }
+    if (d.pick && mSel) { if (lpEat) { lpEat = false; return; } /* (the long press that started picking already took this one) */ const it = R().bag.find((x) => x.id === d.pick); if (it && !it.lk) { if (mSet.has(it.id)) mSet.delete(it.id); else mSet.add(it.id); } else if (it) ctx.toast(T("Unlock it first")); mRefresh(); return; }
     if (d.bossgo != null) { hide(); hub("bossgo:" + d.bossgo); return; }
     if (d.fpick) { fpick = d.fpick; askBuy = ""; scrollDet = true; paint(); return; }
     if (d.sec) { goSec(d.sec); return; }

@@ -4005,7 +4005,11 @@ html.wp-pcphone .hb .wq-chests{gap:6px}
 .hb-colc>div{flex:1;min-width:0}.hb-bonl{list-style:none;margin:0;padding:0;display:grid;gap:6px}.hb-bonl li{padding:8px 12px;border-radius:10px;background:rgba(47,208,138,.12);border:1px solid rgba(47,208,138,.4);color:#7cf5c8;font-weight:800}
 .hb-tools{display:flex;gap:8px;margin:0 0 10px}.hb-q{flex:1;min-width:0;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid rgba(110,180,255,.3);background:rgba(4,10,26,.8);color:#fff;font:600 14px/1 Sora,sans-serif}
 .hb-mbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(255,200,97,.12);border:1px solid rgba(255,200,97,.4)}.hb-mbar b{margin-right:auto;color:#ffe49a}.hb-plus.warn{border-color:#ff8a8a;color:#ffb3b3}.hb-plus[disabled]{opacity:.45}
-.hb-cells.msel .wr-cell{outline:1px dashed rgba(255,255,255,.25)}.hb-cells .wr-cell.picked{outline:3px solid #ffc861;outline-offset:1px;box-shadow:0 0 14px rgba(255,200,97,.5)}
+.hb-cells.msel .wr-cell{outline:1px dashed rgba(255,255,255,.25)}.hb-cells [data-pick]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* 2026-10-30, the owner: a picked piece in bright blue (the gold didn't stand out) — a blue ring, a blue wash and a ✓ badge */
+.hb-cells .wr-cell.picked{position:relative;outline:none;box-shadow:0 0 0 2px #fff,0 0 0 5px #2f8cff,0 0 22px 4px rgba(47,140,255,.9)!important;transform:scale(.96)}
+.hb-cells .wr-cell.picked::before{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(47,140,255,.42);border:3px solid #4aa3ff;z-index:1;pointer-events:none}
+.hb-cells .wr-cell.picked::after{content:"✓";position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:#2f8cff;color:#fff;font:900 13px/20px system-ui,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);z-index:2;pointer-events:none}
 html.wp-pcphone .hb .wr-body>.hb-cmh{display:block}html.wp-pcphone .hb-cmh>*{display:flow-root;margin-bottom:10px}html.wp-pcphone .hb-qas{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}html.wp-pcphone .hb-qa{font-size:11.5px;padding:10px 2px}
 /* RAID QUEENS (world-raidq.js): the story page (the owner's picture scrolling slowly), the phase cut-in, the reward card, the chronicle */
 .rq-page{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:14px;background:radial-gradient(circle at 50% 30%,rgba(60,10,40,.75),rgba(4,2,10,.94));animation:rqIn .35s ease-out}
