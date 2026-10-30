@@ -11,7 +11,7 @@
 //   node tools/meshy.mjs rig     <task id | glb url> [--height 1.8] [--out file.glb]      (humanoids: walk + run come with it)
 //   node tools/meshy.mjs anim    <rig task id> <action id> [--out file.glb]
 //   node tools/meshy.mjs image   "<prompt>" [--ratio 16:9] [--model nano-banana] [--out file.png]
-//   node tools/meshy.mjs img2img "<prompt>" <ref1.png> [ref2 …] [--model nano-banana] [--out file.png]   (a picture that follows
+//   node tools/meshy.mjs img2img "<prompt>" <ref1.png> [ref2 …] [--ratio 16:9] [--model nano-banana] [--out file.png]   (a picture that follows
 //        reference images: our own screenshot remastered as a target mock-up, or one part cut from it — see CLAUDE.md)
 //   node tools/meshy.mjs get     <kind> <task id>        (kind: text-to-3d | image-to-3d | multi-image-to-3d | remesh | retexture | rigging | animations | text-to-image | image-to-image)
 //
@@ -113,7 +113,7 @@ const topo = () => (flag("quad", false) ? "quad" : "triangle");
     }
     case "img2img": {
       const refs = args.slice(1, 6); if (!args[0] || !refs.length) throw new Error("img2img needs a prompt and at least one reference image");
-      const { id, t } = await run("image-to-image", "v1", { ai_model: flag("model", "nano-banana"), prompt: args[0], reference_image_urls: refs.map(imageRef) }, { prompt: args[0], refs });
+      const { id, t } = await run("image-to-image", "v1", { ai_model: flag("model", "nano-banana"), prompt: args[0], reference_image_urls: refs.map(imageRef), aspect_ratio: flag("ratio", undefined) }, { prompt: args[0], refs });
       const u = (t.image_urls && t.image_urls[0]) || t.image_url; await save(u, flag("out", path.join(OUT, id + ".png"))); break;
     }
     case "get": { const ver = args[0] === "text-to-3d" ? "v2" : "v1"; console.log(JSON.stringify(await api("GET", `/${ver}/${args[0]}/${args[1]}`), null, 1)); break; }
