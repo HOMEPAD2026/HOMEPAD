@@ -1342,12 +1342,16 @@ export function createCombat(ctx) {
   // the bar nodes, found once (paintVit runs on every hit and regen step); text is only written when it changes
   const vq = (id) => vit.querySelector("#" + id), VB = { hpB: vq("wc-hp-b"), spB: vq("wc-sp-b"), hpG: vq("wc-hp-g"), hpN: vq("wc-hp-n"), spN: vq("wc-sp-n"), xpB: vq("wc-xp-b"), xpN: vq("wc-xp-n") };
   const setTx = (el, s) => { if (el.textContent !== s) el.textContent = s; };
+  // a bar's width in half-percent steps, written only when it changes (the regen and the ghost bar repaint often)
+  const VW = new Map(), setW = (el, pc) => { const w = Math.round(pc * 2) / 2 + "%"; if (VW.get(el) !== w) { VW.set(el, w); el.style.width = w; } };
+  let vitT = 0, vitDirty = false;
   function paintVit() {
+    vitDirty = false;
     const mh = maxHp(), ms = maxSp(); hp = Math.min(hp, mh); sp = Math.min(sp, ms);
-    VB.hpB.style.width = (100 * hp / mh) + "%"; VB.spB.style.width = (100 * sp / ms) + "%";
-    VB.hpG.style.width = (100 * Math.max(hp, ghostHp) / mh) + "%";
+    setW(VB.hpB, 100 * hp / mh); setW(VB.spB, 100 * sp / ms);
+    setW(VB.hpG, 100 * Math.max(hp, ghostHp) / mh);
     setTx(VB.hpN, `${Math.ceil(hp)} / ${mh}`); setTx(VB.spN, `${Math.floor(sp)} / ${ms}`);
-    const q = ctx.xpProg ? ctx.xpProg() : { into: (ctx.xp ? ctx.xp() : 0) % 100, need: 100 }; VB.xpB.style.width = Math.min(100, (100 * q.into) / q.need).toFixed(1) + "%"; setTx(VB.xpN, `${q.into.toLocaleString("en-US")} / ${q.need.toLocaleString("en-US")}`);
+    const q = ctx.xpProg ? ctx.xpProg() : { into: (ctx.xp ? ctx.xp() : 0) % 100, need: 100 }; setW(VB.xpB, Math.min(100, (100 * q.into) / q.need)); setTx(VB.xpN, `${q.into.toLocaleString("en-US")} / ${q.need.toLocaleString("en-US")}`);
     vit.classList.toggle("danger", hp / mh < 0.3); nudge(); document.body.classList.toggle("wc-low", hp / mh < 0.3 && !down && ctx.inHub());
   }
   let drFlash = 0;
@@ -1500,7 +1504,7 @@ export function createCombat(ctx) {
     let changed = false; for (const k in buffs) { if (buffs[k] > 0) { buffs[k] = Math.max(0, buffs[k] - dt); if (!buffs[k]) changed = true; } }
     if (VX && (buffs.shield > 0) !== shieldShown) { shieldShown = buffs.shield > 0; VX.shield(shieldShown); }
     if ((buffPaint -= dt) <= 0 || changed) { buffPaint = 0.5; paintBuffs(); potsCheck(); }
-    if (ghostHp > hp) { ghostHp = Math.max(hp, ghostHp - dt * maxHp() * 0.5); paintVit(); }
+    if (ghostHp > hp) { ghostHp = Math.max(hp, ghostHp - dt * maxHp() * 0.5); vitDirty = true; } /* (painted at most 10 times a second below; a hit, a heal or a level paints at once) */
     if ((restPaint -= dt) <= 0) { restPaint = 20; if (restEl) paintRest(); }
     else {
       guardT = Math.max(0, guardT - dt); calmT = Math.max(0, calmT - dt);
@@ -1512,9 +1516,10 @@ export function createCombat(ctx) {
       const fight = mobs.some((m) => !m.dead && m.g.position.distanceTo(me) < 14);
       if (fight !== fightOn) { fightOn = fight; document.body.classList.toggle("wc-fight", fight); if (fight && ctx.hint) setTimeout(() => ctx.hint("charge"), 1500); }
       const mh = maxHp(), ms = maxSp(), h0 = hp, s0 = sp; if (calmT <= 0) hp = Math.min(mh, hp + mh * 0.025 * dt); sp = Math.min(ms, sp + ms * 0.06 * dt);
-      if (Math.floor(h0) !== Math.floor(hp) || Math.floor(s0) !== Math.floor(sp)) paintVit();
+      if (Math.floor(h0) !== Math.floor(hp) || Math.floor(s0) !== Math.floor(sp)) vitDirty = true;
       if (hp / mh < 0.3 && ctx.inHub()) { heartT -= dt; if (heartT <= 0) { heartT = 0.85; Snd.heart && Snd.heart(); } }
     }
+    if ((vitT -= dt) <= 0 && vitDirty) { vitT = 0.1; paintVit(); }
     tickFx(dt); chargeTick(dt); hs.tick(dt, t);
     if (stopT > 0) { stopT -= dt; return; } // hit-stop: everything in the fight holds still for a beat
     tickShots(dt);

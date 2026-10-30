@@ -3083,6 +3083,23 @@ function bakeMiniMap() {
 let miniZoom = 1; // the minimap's zoom button: 1 or 2
 $("wp-mini-zoom").addEventListener("click", (e) => { miniZoom = miniZoom === 1 ? 2 : 1; e.currentTarget.setAttribute("aria-pressed", String(miniZoom === 2)); });
 $("wp-mini-full").addEventListener("click", () => { closeAll(); openMap(); });
+// the minimap's words and marks drawn once into small canvases and stamped after (fillText / strokeText each redraw cost
+// most of the minimap's time on phones); kept only once the font has loaded, so a fallback face isn't kept
+const miniTx = new Map();
+function miniText(tx, font, fill, stroke, lw, x, y) {
+  const key = font + "|" + fill + "|" + (stroke || "") + "|" + tx; let cv = miniTx.get(key);
+  if (!cv) {
+    const ok = !document.fonts || document.fonts.check(font), size = parseFloat(font.split(" ")[1]) || 12;
+    if (!ok) { mg.font = font; mg.textAlign = "center"; mg.textBaseline = "middle"; if (stroke) { mg.lineWidth = lw; mg.strokeStyle = stroke; mg.strokeText(tx, x, y); } mg.fillStyle = fill; mg.fillText(tx, x, y); return; }
+    cv = document.createElement("canvas"); const g = cv.getContext("2d"); g.font = font; const pad = (stroke ? lw : 0) + 2;
+    cv.width = Math.ceil(g.measureText(tx).width + pad * 2); cv.height = Math.ceil(size * 1.5 + pad * 2);
+    g.font = font; g.textAlign = "center"; g.textBaseline = "middle"; const cx = cv.width / 2, cy = cv.height / 2;
+    if (stroke) { g.lineWidth = lw; g.strokeStyle = stroke; g.strokeText(tx, cx, cy); } g.fillStyle = fill; g.fillText(tx, cx, cy);
+    miniTx.set(key, cv);
+  }
+  mg.drawImage(cv, x - cv.width / 2, y - cv.height / 2);
+}
+function miniArrow() { mg.beginPath(); mg.moveTo(0, -22); mg.lineTo(15, 16); mg.lineTo(0, 8); mg.lineTo(-15, 16); mg.closePath(); }
 function drawMini() {
   const W = mini.width, c = W / 2, range = (mode === "island" ? 26 : 40) / miniZoom, sc = (c - 10) / range;
   mg.clearRect(0, 0, W, W);
@@ -3100,7 +3117,7 @@ function drawMini() {
     let px = c + rx * sc, py = c + rz * sc; const dd = Math.hypot(px - c, py - c), edge = c - 12;
     const out = dd > edge; if (out) { px = c + (px - c) / dd * edge; py = c + (py - c) / dd * edge; }
     if (r) { mg.fillStyle = color; mg.beginPath(); mg.arc(px, py, out ? r * 0.7 : r, 0, 6.283); mg.fill(); }
-    if (glyph && !out) { mg.fillStyle = "#04121a"; mg.font = "700 13px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.fillText(glyph, px, py + 0.5); }
+    if (glyph && !out) miniText(glyph, "700 13px Sora, sans-serif", "#04121a", null, 0, px, py + 0.5);
     return { px, py };
   };
   if (mode === "island") island.mini(put);
@@ -3113,7 +3130,7 @@ function drawMini() {
       mg.strokeStyle = col; mg.globalAlpha = 0.55; mg.lineWidth = 2; mg.setLineDash([5, 4]); mg.beginPath(); mg.arc(px, py, zn.r * sc, 0, 6.283); mg.stroke(); mg.setLineDash([]);
       mg.globalAlpha = 0.12; mg.fillStyle = col; mg.fill(); mg.globalAlpha = 1;
       // its levels, written in the middle while it's on the map
-      if (zn.lv && Math.hypot(px - c, py - c) < c - 18) { mg.font = "800 10px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.lineWidth = 3; mg.strokeStyle = "rgba(4,10,18,.85)"; const tx = `Lv ${zn.lv[0]}–${zn.lv[1]}`; mg.strokeText(tx, px, py + (bossUp.includes(zn.id) ? 14 : 0)); mg.fillStyle = col; mg.fillText(tx, px, py + (bossUp.includes(zn.id) ? 14 : 0)); }
+      if (zn.lv && Math.hypot(px - c, py - c) < c - 18) miniText(`Lv ${zn.lv[0]}–${zn.lv[1]}`, "800 10px Sora, sans-serif", col, "rgba(4,10,18,.85)", 3, px, py + (bossUp.includes(zn.id) ? 14 : 0));
       if (bossUp.includes(zn.id)) { const pr = 8 + Math.sin(performance.now() / 180) * 2; mg.fillStyle = "#ff4d6d"; mg.beginPath(); mg.arc(px, py, pr, 0, 6.283); mg.fill(); mg.fillStyle = "#fff"; mg.font = "900 12px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.fillText("!", px, py + 0.5); }
     }
     // other players: friends in gold and a little bigger
@@ -3145,17 +3162,24 @@ function drawMini() {
   if (questTarget && mode === "hub") { const p = put(questTarget, "", 0); if (p) { mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(p.px, p.py, 12, 0, 6.283); mg.stroke(); } }
   mg.restore();
   const fa = facing - Math.PI - camYaw;
-  mg.save(); mg.translate(c, c); mg.rotate(-fa); mg.beginPath(); mg.moveTo(0, -22); mg.lineTo(15, 16); mg.lineTo(0, 8); mg.lineTo(-15, 16); mg.closePath(); mg.shadowColor = "rgba(0,0,0,.6)"; mg.shadowBlur = 8; mg.fillStyle = "#ffffff"; mg.fill(); mg.shadowBlur = 0; mg.lineWidth = 2.5; mg.strokeStyle = "#0c1534"; mg.stroke(); mg.restore();
+  mg.save(); mg.translate(c, c + 2); mg.rotate(-fa); miniArrow(); mg.fillStyle = "rgba(0,0,0,.4)"; mg.fill(); mg.restore(); /* its shadow: an offset dark copy (a blur each redraw cost a full-canvas pass on phones) */
+  mg.save(); mg.translate(c, c); mg.rotate(-fa); miniArrow(); mg.fillStyle = "#ffffff"; mg.fill(); mg.lineWidth = 2.5; mg.strokeStyle = "#0c1534"; mg.stroke(); mg.restore();
   mg.strokeStyle = "rgba(255,255,255,.18)"; mg.lineWidth = 2; mg.beginPath(); mg.arc(c, c, c - 2, 0, 6.283); mg.stroke();
   // north, on the rim: it turns with the camera
-  { const r = c - 24, nx = c + r * sn, ny = c - r * cs; mg.font = "900 30px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.lineWidth = 6; mg.strokeStyle = "rgba(6,12,30,.85)"; mg.strokeText("N", nx, ny + 1); mg.fillStyle = "#ffffff"; mg.fillText("N", nx, ny + 1); }
+  { const r = c - 24; miniText("N", "900 30px Sora, sans-serif", "#ffffff", "rgba(6,12,30,.85)", 6, c + r * sn, c - r * cs + 1); }
   let dn = "", bd = Infinity;
   if (mode === "island") { dn = island.title(); bd = 0; }
   else if (landNow) { dn = landName(landNow); bd = 0; }
   else K.DISTRICTS.forEach((d) => { if (d.id !== "dark") return; const v = K.spot(d.theta, d.phi).add(planet.position); const dd = v.length(); if (dd < bd) { bd = dd; dn = d.name; } }); // (b-lpv: the other districts are in the Utility Village)
   $("wp-mini-n").textContent = bd < 22 ? dn : "";
 }
-const qm = $("wp-qmark"), proj = new THREE.Vector3(); let qmZ = 0; addEventListener("resize", () => { qmZ = 0; });
+const qm = $("wp-qmark"), proj = new THREE.Vector3(); let qmZ = 0, qmSvg = null, qmD = null, qmPan = null, qmPanAt = -1e9, qmTx = "", qmRot = NaN, qmDist = -1, qmEdge = null; addEventListener("resize", () => { qmZ = 0; qmPanAt = -1e9; qmBotAt = -1e9; });
+// the panels the marker steps out of, their boxes read twice a second (a layout read every frame costs, and made every other DOM write that frame lay out again)
+function qmPanels() {
+  const now = performance.now(); if (qmPan && now - qmPanAt < 500) return qmPan; qmPanAt = now; qmPan = [];
+  for (const id of ["wr-raid", "wp-quests", "wc-boss", "wp-mini"]) { const e = $(id); if (!e || e.hidden || !e.offsetParent) continue; qmPan.push((id === "wp-mini" ? e.parentElement : e).getBoundingClientRect()); }
+  return qmPan;
+}
 // the way to the goal on the ground at your feet (b405, a player's idea): three gold chevrons pointing toward the
 // quest's target, pulsing outward; gone within 8 m of it, in menus and in photo mode
 const footGuide = (() => {
@@ -3183,7 +3207,7 @@ function qmFloor() { // the top of the bottom controls, read once a second (a la
 function paintMarker() {
   if (!questTarget || frozen || photo || mode !== "hub" || (rqL && rqL.running())) { if (!qm.hidden) qm.hidden = true; return; } /* (not in a RAID QUEENS run: it pointed 2 km off and read the panels' boxes every frame) */
   questTarget.getWorldPosition(proj); const dist = proj.distanceTo(at);
-  if (dist < 5) { qm.hidden = true; return; }
+  if (dist < 5) { if (!qm.hidden) qm.hidden = true; return; }
   proj.y += 3; proj.project(cam);
   const behind = proj.z > 1, W = innerWidth, H = innerHeight;
   let x = (proj.x * 0.5 + 0.5) * W, y = (-proj.y * 0.5 + 0.5) * H;
@@ -3193,14 +3217,17 @@ function paintMarker() {
   // nor under the bottom controls (the dock, the joystick, the action buttons): it stays above them
   if (y > qmFloor()) y = qmFloor();
   // the marker never sits on a panel (the raid card, the minimap, the quests, the boss bar): it steps out beside it
-  for (const id of ["wr-raid", "wp-quests", "wc-boss", "wp-mini"]) {
-    const e = $(id); if (!e || e.hidden || !e.offsetParent) continue; const r = (id === "wp-mini" ? e.parentElement : e).getBoundingClientRect(), p = 28;
+  for (const r of qmPanels()) {
+    const p = 28;
     if (x > r.left - p && x < r.right + p && y > r.top - p && y < r.bottom + p) { const toL = x - (r.left - p), toR = r.right + p - x, toT = y - (r.top - p), toB = r.bottom + p - y, mn = Math.min(r.left > p * 2 ? toL : 1e9, r.right < W - p * 2 ? toR : 1e9, r.top > p * 2 ? toT : 1e9, toB); if (mn === toL) x = r.left - p; else if (mn === toR) x = r.right + p; else if (mn === toT) y = r.top - p; else y = r.bottom + p; }
   }
-  qm.hidden = false; qm.classList.toggle("edge", !inside);
-  if (!qmZ) qmZ = parseFloat(getComputedStyle(qm).zoom) || 1; const qz = qmZ; qm.style.transform = `translate(${x / qz}px,${y / qz}px)`; // a zoomed marker (phones) moves in its own units
-  qm.querySelector("svg").style.transform = inside ? "rotate(180deg)" : `rotate(${Math.atan2(y - H / 2, x - W / 2) * 180 / Math.PI + 90}deg)`;
-  $("wp-qmark-d").textContent = Math.round(dist) + " m";
+  // each write only when it changes (whole pixels, 2° steps, whole metres): a standing player writes nothing
+  if (qm.hidden) qm.hidden = false; if (qmEdge !== !inside) { qmEdge = !inside; qm.classList.toggle("edge", qmEdge); }
+  if (!qmZ) qmZ = parseFloat(getComputedStyle(qm).zoom) || 1; const qz = qmZ, tx = `translate(${Math.round(x / qz)}px,${Math.round(y / qz)}px)`; /* a zoomed marker (phones) moves in its own units */
+  if (tx !== qmTx) { qmTx = tx; qm.style.transform = tx; }
+  const rot = inside ? 180 : Math.round((Math.atan2(y - H / 2, x - W / 2) * 180 / Math.PI + 90) / 2) * 2;
+  if (rot !== qmRot) { qmRot = rot; (qmSvg || (qmSvg = qm.querySelector("svg"))).style.transform = `rotate(${rot}deg)`; }
+  const dm = Math.round(dist); if (dm !== qmDist) { qmDist = dm; (qmD || (qmD = $("wp-qmark-d"))).textContent = dm + " m"; }
 }
 
 // ---------------- scammers: six stages, each a real trick and how to beat it ----------------
@@ -5112,7 +5139,7 @@ setInterval(() => { try {
   fadeLabels(dt);
   pickCards();
   lockedCheck(dt);
-  if ((miniT += dt) > (coarse ? 0.14 : 0.1)) { miniT = 0; drawMini(); } // b413: 7–10 times a second (it was 12)
+  if ((miniT += dt) > (coarse ? 0.2 : 0.1)) { miniT = 0; drawMini(); } // b413: 5 (phones) – 10 times a second (it was 12)
   paintMarker(); paintFootGuide();
   watchFps(dt);
   if (introOn) return; // the dive drives the camera
