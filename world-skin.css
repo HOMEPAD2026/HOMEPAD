@@ -6377,3 +6377,4 @@ img.wsa-arcmark{object-fit:cover;background:#0f2242}.wsa-arclogo{display:block;w
 @keyframes wkRaceGo{50%{transform:translateX(4px)}}
 html.wp-pcphone .wk-pick>.wk-race{min-width:0;width:min(320px,90%);height:54px;font-size:20px}
 html.wp-less .wk-race,html.wp-less .wk-race::before,html.wp-less .wk-race em{animation:none}
+html.wp-pcphone .wk{height:calc(100dvh / 2.2)} /* (2026-10-30, the owner's phone: 100vh is the height with the browser's bar hidden, so the Race button and the controls sat under it) */
