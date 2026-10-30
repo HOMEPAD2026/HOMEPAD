@@ -20,11 +20,14 @@ export function makeZones({ THREE, K, planet, kit, T, low = false, onBuilt = nul
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, flatShading: true, ...o });
   const glowM = (c, k = 2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
   const spins = [], signs = [], gates = [], lazy = [], marks = [];
+  // (perf batch 7) the painted grounds start with a 1×1 white map, so the floor's shader already has a map when texNear
+  // swaps the real one in (no new program compiled right as you walk up)
+  const white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); white.colorSpace = THREE.SRGBColorSpace; white.needsUpdate = true;
   ZONES.forEach((zn, zi) => {
     const g = new THREE.Group(); g.position.set(zn.x, 0, zn.z); root.add(g);
     const r = rnd(97 + zi * 13);
     // the ground and its border
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(zn.r, 64), new THREE.MeshStandardMaterial({ color: zn.ground, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(zn.r, 64), new THREE.MeshStandardMaterial({ color: zn.ground, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, map: GROUND_TEX.includes(zn.id) ? white : null }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; ground.userData.keep = true; ground.name = "zone-ground"; g.add(ground);
     const border = new THREE.Mesh(new THREE.TorusGeometry(zn.r, 0.12, 8, 128), glowM(zn.color, 1.6)); border.rotation.x = Math.PI / 2; border.position.y = 0.08; border.userData.keep = true; g.add(border);
     for (let i = 0; i < 28; i++) { const a = (i / 28) * Math.PI * 2; const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.1, 6), std(0x2a3442, { metalness: 0.5 })); post.position.set(Math.cos(a) * zn.r, 0.55, Math.sin(a) * zn.r); const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), glowM(zn.color, 2.4)); cap.position.y = 0.62; post.add(cap); g.add(post); }

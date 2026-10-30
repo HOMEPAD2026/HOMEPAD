@@ -23,11 +23,22 @@ export function weaponKind(it) {
   return h % 5;
 }
 
-const shellMat = () => new THREE.MeshPhysicalMaterial({ color: 0xf2f6fa, roughness: 0.28, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.12 });
+// (perf batch 7) phones get a MeshStandard where a MeshPhysical is asked for, its own keys (clearcoat, sheen …) dropped:
+// the glowing and see-through ones world-play.js's add-time swap leaves alone compiled the heavy shader on phones
+const PHYS_KEYS = ["clearcoat", "clearcoatRoughness", "clearcoatMap", "clearcoatRoughnessMap", "clearcoatNormalMap", "clearcoatNormalScale", "sheen", "sheenColor", "sheenColorMap", "sheenRoughness", "sheenRoughnessMap",
+  "transmission", "transmissionMap", "thickness", "thicknessMap", "attenuationDistance", "attenuationColor", "ior", "reflectivity", "specularIntensity", "specularIntensityMap", "specularColor", "specularColorMap",
+  "iridescence", "iridescenceMap", "iridescenceIOR", "iridescenceThicknessRange", "iridescenceThicknessMap", "anisotropy", "anisotropyRotation", "anisotropyMap", "dispersion"];
+let physCoarse = null;
+export function physMat(o = {}) {
+  if (physCoarse === null) { try { physCoarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches; } catch { physCoarse = false; } }
+  if (!physCoarse) return new THREE.MeshPhysicalMaterial(o);
+  const s = { ...o }; for (const k of PHYS_KEYS) delete s[k]; return new THREE.MeshStandardMaterial(s);
+}
+const shellMat = () => physMat({ color: 0xf2f6fa, roughness: 0.28, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.12 });
 const darkMat = () => new THREE.MeshStandardMaterial({ color: 0x1b2433, roughness: 0.45, metalness: 0.5 });
 const trimMat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.3, metalness: 0.7 });
 const glowMat = (c, k = 2.2) => { const m = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.25, metalness: 0.1 }); m.userData.glow = true; return m; }; // glow: left alone by hit flashes and tints
-const crystalMat = (c) => new THREE.MeshPhysicalMaterial({ color: c, emissive: c, emissiveIntensity: 0.9, roughness: 0.05, transparent: true, opacity: 0.9, flatShading: true });
+const crystalMat = (c) => physMat({ color: c, emissive: c, emissiveIntensity: 0.9, roughness: 0.05, transparent: true, opacity: 0.9, flatShading: true });
 const rbox = (w, h, d, r = 0.03) => new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001));
 const mesh = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; return m; };
 const done = (g, hold) => { const b = new THREE.Box3().setFromObject(g); g.userData.size = b.getSize(new THREE.Vector3()); g.userData.hold = hold; return g; };
@@ -42,7 +53,7 @@ function sword(c, tier, glow) {
   // the blade: a long flat diamond, a line of light down its middle
   const s = new THREE.Shape(); s.moveTo(-0.07, 0); s.lineTo(0.07, 0); s.lineTo(0.075, L * 0.82); s.lineTo(0, L); s.lineTo(-0.075, L * 0.82); s.closePath();
   const bg = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 1 }); bg.translate(0, 0, -0.015);
-  g.add(mesh(bg, new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0xe6f6ff).lerp(new THREE.Color(c), 0.35), roughness: 0.12, metalness: 0.55, clearcoat: 1, emissive: c, emissiveIntensity: 0.25 + glow }), 0, 0.17, 0));
+  g.add(mesh(bg, physMat({ color: new THREE.Color(0xe6f6ff).lerp(new THREE.Color(c), 0.35), roughness: 0.12, metalness: 0.55, clearcoat: 1, emissive: c, emissiveIntensity: 0.25 + glow }), 0, 0.17, 0));
   g.add(mesh(new THREE.BoxGeometry(0.035, L * 0.8, 0.07), glowMat(c, 3 + glow), 0, 0.17 + L * 0.42, 0));
   return done(g, "down");
 }
@@ -88,7 +99,7 @@ function staff(c, tier, glow) {
   const top = new THREE.Group(); top.position.y = L - 0.36;
   const crescent = new THREE.TorusGeometry(0.2, 0.03, 8, 28, Math.PI * 1.5); crescent.rotateZ(-Math.PI * 0.25);
   top.add(mesh(crescent, trimMat(0xd9a640)));
-  top.add(mesh(new THREE.SphereGeometry(0.15, 20, 16), new THREE.MeshPhysicalMaterial({ color: c, emissive: c, emissiveIntensity: 1.4 + glow, roughness: 0.05, transparent: true, opacity: 0.92 }), 0, 0.03, 0));
+  top.add(mesh(new THREE.SphereGeometry(0.15, 20, 16), physMat({ color: c, emissive: c, emissiveIntensity: 1.4 + glow, roughness: 0.05, transparent: true, opacity: 0.92 }), 0, 0.03, 0));
   top.add(mesh(new THREE.SphereGeometry(0.07, 12, 10), glowMat(0xffffff, 2.6), 0, 0.03, 0));
   for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2; top.add(mesh(new THREE.OctahedronGeometry(0.04, 0), crystalMat(c), Math.cos(a) * 0.3, 0.05 + (i - 1) * 0.06, Math.sin(a) * 0.3)); }
   g.add(top); g.userData.spinTop = top;
@@ -122,7 +133,7 @@ export function hoverboard(color = 0x38e8ff) {
 export function miniDrone() {
   const g = new THREE.Group();
   const head = mesh(new THREE.SphereGeometry(0.26, 24, 18), shellMat()); head.scale.set(1.08, 0.95, 1); g.add(head);
-  const visor = mesh(new THREE.SphereGeometry(0.25, 28, 16, Math.PI * 0.12, Math.PI * 0.76, Math.PI * 0.3, Math.PI * 0.36), new THREE.MeshPhysicalMaterial({ color: 0x0a0f18, roughness: 0.1, clearcoat: 1 }));
+  const visor = mesh(new THREE.SphereGeometry(0.25, 28, 16, Math.PI * 0.12, Math.PI * 0.76, Math.PI * 0.3, Math.PI * 0.36), physMat({ color: 0x0a0f18, roughness: 0.1, clearcoat: 1 }));
   visor.scale.set(1.08, 0.95, 1.06); visor.position.z = 0.02; g.add(visor);
   for (const s of [-1, 1]) {
     const eye = mesh(new THREE.CapsuleGeometry(0.03, 0.05, 4, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 2.2, 2.6) }), s * 0.08, 0.01, 0.285); g.add(eye);
@@ -143,7 +154,7 @@ export function infinityStatue(scale = 1) {
   const pts = []; for (let i = 0; i <= 160; i++) { const t = (i / 160) * Math.PI * 2, d = 1 + Math.sin(t) ** 2; pts.push(new THREE.Vector3((2.2 * Math.cos(t)) / d, (2.2 * Math.sin(t) * Math.cos(t)) / d, Math.sin(t * 2) * 0.12)); }
   const curve = new THREE.CatmullRomCurve3(pts, true);
   const loop = new THREE.Group(); loop.position.y = 3.2;
-  loop.add(mesh(new THREE.TubeGeometry(curve, 240, 0.28, 16, true), new THREE.MeshPhysicalMaterial({ color: 0x2f86ff, roughness: 0.15, metalness: 0.3, clearcoat: 1, emissive: 0x0d3c8a, emissiveIntensity: 0.6 })));
+  loop.add(mesh(new THREE.TubeGeometry(curve, 240, 0.28, 16, true), physMat({ color: 0x2f86ff, roughness: 0.15, metalness: 0.3, clearcoat: 1, emissive: 0x0d3c8a, emissiveIntensity: 0.6 })));
   loop.add(mesh(new THREE.TubeGeometry(curve, 240, 0.1, 8, true), glowMat(0x9ff6ff, 2.6)));
   g.add(loop); g.userData.loop = loop;
   g.add(mesh(new THREE.CylinderGeometry(0.2, 0.32, 2.2, 16), shellMat(), 0, 2.15, 0));
@@ -171,7 +182,7 @@ export function gateFrame(color = 0x38e8ff, w = 2.8, h = 3.5) {
 // ---------------- a potion: a round glass flask, coloured liquid, a white cap and a glowing mark (heart or bolt) ----------------
 export function potion(color = 0xff4d6d, mark = "heart") {
   const g = new THREE.Group();
-  const glass = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.35, clearcoat: 1 });
+  const glass = physMat({ color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.35, clearcoat: 1 });
   g.add(mesh(new THREE.SphereGeometry(0.3, 24, 18), glass, 0, 0, 0));
   g.add(mesh(new THREE.SphereGeometry(0.26, 24, 18, 0, Math.PI * 2, Math.PI * 0.32, Math.PI * 0.68), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.9, roughness: 0.2 }), 0, 0, 0));
   g.add(mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.18, 16), glass, 0, 0.33, 0));
@@ -203,7 +214,7 @@ export function token(color = 0xffb83d, faceTex = null, star = false) {
 // They take the place of the three robot models (EyeDrone → the spam drone, QuadShell → the fake airdrop crate,
 // Trilobite → the rug crawler), at the same size, with their own clips (Idle, Run, Attack, Hit, TurnOff, BackFlip), so
 // every scammer, stage boss, gatekeeper and raid boss that used those models wears the new look.
-const vShell = () => new THREE.MeshPhysicalMaterial({ color: 0x232b3a, roughness: 0.3, metalness: 0.35, clearcoat: 1, clearcoatRoughness: 0.15 });
+const vShell = () => physMat({ color: 0x232b3a, roughness: 0.3, metalness: 0.35, clearcoat: 1, clearcoatRoughness: 0.15 });
 const vRed = (k = 2.4) => glowMat(0xff1f3d, Math.min(1.6, k * 0.6));
 const part = (name, ...kids) => { const g = new THREE.Group(); g.name = name; kids.forEach((k) => g.add(k)); return g; };
 const Q = (x, y, z) => new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)).toArray();
@@ -214,7 +225,7 @@ function spamDrone() {
   const body = part("v-body");
   body.add(mesh(new THREE.SphereGeometry(0.5, 28, 20), vShell()));
   body.add(mesh(new THREE.TorusGeometry(0.5, 0.04, 8, 40), shellMat()).rotateX(Math.PI / 2));
-  const eye = part("v-eye", mesh(new THREE.SphereGeometry(0.22, 20, 16), new THREE.MeshPhysicalMaterial({ color: 0x0a0d14, roughness: 0.1, clearcoat: 1 })), mesh(new THREE.SphereGeometry(0.12, 16, 12), vRed(3), 0, 0, 0.13), mesh(new THREE.TorusGeometry(0.24, 0.03, 8, 32), vRed(2)));
+  const eye = part("v-eye", mesh(new THREE.SphereGeometry(0.22, 20, 16), physMat({ color: 0x0a0d14, roughness: 0.1, clearcoat: 1 })), mesh(new THREE.SphereGeometry(0.12, 16, 12), vRed(3), 0, 0, 0.13), mesh(new THREE.TorusGeometry(0.24, 0.03, 8, 32), vRed(2)));
   eye.position.set(0, 0.04, 0.42); body.add(eye);
   for (const s of [-1, 1]) { const fin = part(s < 0 ? "v-finL" : "v-finR", mesh(rbox(0.5, 0.06, 0.26, 0.03), shellMat(), s * 0.25, 0, 0), mesh(new THREE.BoxGeometry(0.36, 0.07, 0.04), vRed(2), s * 0.27, 0, 0.12)); fin.position.set(s * 0.45, 0.05, 0); body.add(fin); }
   const ant = part("v-ant", mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.32, 6), shellMat(), 0, 0.16, 0), mesh(new THREE.SphereGeometry(0.06, 10, 8), vRed(3), 0, 0.34, 0)); ant.position.y = 0.46; body.add(ant);
@@ -440,7 +451,7 @@ export function weaponThumb(kind, tier, color) {
 export function rover(color = 0x38e8ff) {
   const g = new THREE.Group();
   g.add(mesh(rbox(1.3, 0.42, 2.0, 0.16), shellMat(), 0, 0.62, 0));
-  g.add(mesh(rbox(1.0, 0.34, 0.6, 0.14), new THREE.MeshPhysicalMaterial({ color: 0x0a0f18, roughness: 0.1, clearcoat: 1 }), 0, 0.98, 0.62)); // the windscreen in front; you stand on the deck behind it
+  g.add(mesh(rbox(1.0, 0.34, 0.6, 0.14), physMat({ color: 0x0a0f18, roughness: 0.1, clearcoat: 1 }), 0, 0.98, 0.62)); // the windscreen in front; you stand on the deck behind it
   for (const s of [-1, 1]) { g.add(mesh(new THREE.BoxGeometry(0.04, 0.08, 1.9), glowMat(color, 2.4), s * 0.66, 0.6, 0)); g.add(mesh(new THREE.CapsuleGeometry(0.07, 0.12, 4, 8), glowMat(0xffffff, 2.6), s * 0.42, 0.66, 1.0).rotateZ(Math.PI / 2)); }
   const wheels = [];
   for (const [x, z] of [[-0.72, 0.68], [0.72, 0.68], [-0.72, -0.68], [0.72, -0.68]]) {

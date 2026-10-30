@@ -17,7 +17,7 @@
 // each limited per day, because the server can't watch a fight.
 import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT, goldenRush, weekEvent, skillDmgK, skillCdK, SLOT2_LV, ULT_LV, ULT_MAX, SKILL_LINE } from "./world-rpg-data.js";
 import { makeSkills, HIGH } from "./world-skills.js";
-import { weaponKind, potion as potion3d, token as token3d } from "./world-gear3d.js";
+import { weaponKind, potion as potion3d, token as token3d, physMat } from "./world-gear3d.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
   { id: "ice", name: "Ice Ball", key: "Z", lv: 10, cd: 2.6, sp: 15, color: 0x8fe6ff, mult: 1.4 },
@@ -1160,7 +1160,7 @@ export function createCombat(ctx) {
     else if (it.id === "star") g.add(token3d(0x38c8ff, null, true));
     else if (it.id === "potion") g.add(potion3d(0xff4d6d, "heart")); // world-gear3d.js
     else if (it.id === "mana") g.add(potion3d(0x6f8cff, "bolt"));
-    else if (it.id === "shield") { const m = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 14), new THREE.MeshPhysicalMaterial({ color: c, emissive: c, emissiveIntensity: 0.6, transparent: true, opacity: 0.55, roughness: 0.05 })); const r = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.04, 8, 32), glowM(1.5)); g.add(m, r); }
+    else if (it.id === "shield") { const m = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 14), physMat({ color: c, emissive: c, emissiveIntensity: 0.6, transparent: true, opacity: 0.55, roughness: 0.05 })); const r = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.04, 8, 32), glowM(1.5)); g.add(m, r); }
     else { const m = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 10, 24, Math.PI), glowM(0.9)); m.rotation.z = Math.PI; const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.2), new THREE.MeshStandardMaterial({ color: 0xdfe6ee, metalness: 0.8, roughness: 0.2 })); t1.position.set(-0.3, 0.1, 0); const t2 = t1.clone(); t2.position.x = 0.3; g.add(m, t1, t2); }
     const halo = new THREE.Sprite(spriteMat(c, 0.55)); halo.scale.setScalar(1.6); g.add(halo);
     const base = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.55, 32), additive(c, 0.6)); base.rotation.x = -Math.PI / 2; base.position.y = -0.95; g.add(base);

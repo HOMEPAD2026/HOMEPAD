@@ -20,7 +20,7 @@ import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js"
 import { KTX2Loader } from "./vendor/three/addons/KTX2Loader.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 export const skelClone = (o) => SkeletonUtils.clone(o); // a rigged model's copy with its own bones (Jurassic World's herds)
-import { villainize, meshyVillains, meshyExtras, meshyBoss } from "./world-gear3d.js"; // the scammers as villain bots
+import { villainize, meshyVillains, meshyExtras, meshyBoss, physMat } from "./world-gear3d.js"; // the scammers as villain bots
 import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 export const makeTrees = (...a) => ARC.makeTrees(...a); // the town's round, wind-swayed trees (the Game Village gardens use them, b447)
@@ -347,7 +347,7 @@ export function makeStage(canvas, opts = {}) {
 // ---------------- materials ----------------
 const glow = (color, intensity = 2) => new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: intensity, roughness: 0.4, metalness: 0.1 });
 const solid = (color, { flat, ...o } = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.15, flatShading: !!flat, ...o });
-const glossy = (color, o = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.18, metalness: 0.65, clearcoat: 1, clearcoatRoughness: 0.15, ...o });
+const glossy = (color, o = {}) => physMat({ color, roughness: 0.18, metalness: 0.65, clearcoat: 1, clearcoatRoughness: 0.15, ...o });
 
 // a crisp text label that always faces the camera
 // name plates are drawn at half resolution on phones (b404): a 1024-wide plate is ~1 MB of graphics memory each and a
@@ -1193,7 +1193,7 @@ const KK_TO_MIX = { hips: "Hips", spine: "Spine", chest: "Spine2", head: "Head",
   "upperleg.l": "LeftUpLeg", "lowerleg.l": "LeftLeg", "foot.l": "LeftFoot", "upperleg.r": "RightUpLeg", "lowerleg.r": "RightLeg", "foot.r": "RightFoot" };
 // (the heroes' heads are big: the KayKit head's turns at 40 %, or a wave twists the whole face away)
 const KK_DAMP = { head: 0.4, chest: 0.85 }, I0 = new THREE.Quaternion();
-const KK_BORROW = { sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle", "emote-yes": "Waving", celebrate: "Cheering", dodge: "Dodge_Forward", hit: "Hit_A" }; // (only where a hero has none of its own: b-sv7 SURVIVORS' dash plays dodge)
+const KK_BORROW = { hit: "Hit_A", dodge: "Dodge_Forward", "emote-yes": "Waving", celebrate: "Cheering", sit: "Sit_Floor_Idle", drive: "Sit_Chair_Idle" }; // (only where a hero has none of its own: b-sv7 SURVIVORS' dash plays dodge)
 const kkBorrowed = new WeakMap();
 async function kkBorrow(src, idleClip, ver, map = KK_BORROW) {
   if (kkBorrowed.has(src)) return kkBorrowed.get(src);
@@ -1223,8 +1223,12 @@ async function kkBorrow(src, idleClip, ver, map = KK_BORROW) {
     const kFoot = kkB["foot.l"] ? kkB["foot.l"].getWorldPosition(new THREE.Vector3()).y : 0, hFoot = hB["foot.l"] ? hB["foot.l"].getWorldPosition(new THREE.Vector3()).y : 0;
     const ratio = Math.abs(hHip0.y - hFoot) / Math.max(1e-4, Math.abs(kHip0.y - kFoot));
     const out = {}, d = new THREE.Quaternion(), w = new THREE.Quaternion(), pw = new THREE.Quaternion(), v = new THREE.Vector3();
+    // (perf batch 7: a hero's six are baked one a task, so another hero showing up is a few short tasks instead of one
+    // 100–150 ms freeze on a phone; the agent's long list stays in one go — it waits for its moves before it walks)
+    const slow = map === KK_BORROW; let first = true;
     for (const [as, name] of Object.entries(map)) {
       const c = g.animations.find((x) => x.name === name); if (!c) continue;
+      if (slow && !first) await new Promise((r) => setTimeout(r, 0)); first = false;
       const n = Math.max(2, Math.round(c.duration * 30) + 1), times = new Float32Array(n), q = {}, hp = new Float32Array(n * 3);
       for (const k of order) q[k] = new Float32Array(n * 4);
       for (let i = 0; i < n; i++) {
