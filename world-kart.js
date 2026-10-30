@@ -44,6 +44,7 @@
 // size. Low graphics / phones: fewer props, no side camera on low; reduce-motion: no slow motion, no drone sweep.
 // ctx: { THREE, K, st, T, lang, esc, toast, Snd, buzz, reduce, low, coarse, heroId, makeHero(id) → Promise<hero>, onLeave(),
 //        sess() → the signed session or null, post(body) → { ok, status, j }, share(card), refresh() (the purse), gain(n, why), name() }
+import { KQ, KQ_SHARED, PAINT, flameOf, flameSet, flameMesh, nozzles, shadowMesh, makePuffs, makeStreaks, skyEnv, propSpots, streakOf } from "./world-kart-kq.js";
 import { makeDress, makePodium, makeRings, makeChecker, outSide, rampModel, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
 export const LAPS = 3;
 export const TRACK_PTS = [[0, 0], [120, -10], [190, 40], [200, 130], [140, 190], [60, 170], [20, 230], [-70, 240], [-150, 180], [-160, 90], [-100, 40], [-60, -40]];
@@ -59,22 +60,22 @@ export const TRACKS = {
   nexus: { name: "ARCIRCLE Nexus Circuit", short: "Nexus Circuit", line: "Neon city · the classic", pts: TRACK_PTS, c: OUTSIDE,
     pads: [180, 420, 650], rows: [140, 330, 600], ramps: RAMPS, stands: STANDS, tunnel: TUNNEL, screen: SCREEN_I, podium: PODIUM_I, last: [760, 890],
     feel: { grav: 21, grip: 1, lava: false },
-    look: { bg: 0x0b1638, ground: 0x173a3a, grid: 0x2ee0b0, gridO: 0.18, rail: 0x38d8ff, arch: [0x2ee0b0, 0xff6fc8], hemi: [0x9fd8ff, 0x1a2244], sky: "/images/kart/sky.webp", skyRep: 3, road: "/images/kart/road.webp", roadRep: 2, edge: 0, skyline: true } },
+    look: { bg: 0x8b5063, ground: 0x2a2236, grid: 0x2ee0b0, gridO: 0.14, rail: 0x38d8ff, arch: [0x2ee0b0, 0xff6fc8], hemi: [0x9fd8ff, 0x1a2244], sky: "/images/kart/tracks/nexus-sky.webp", skyRep: 3, road: "/images/kart/tracks/nexus-road.webp", roadRep: 1, roadRepV: 0.5, edge: 0, skyline: true } },
   moon: { name: "Lunar Loop", line: "Low gravity · long jumps", pts: [[0, 0], [140, 0], [220, 40], [240, 130], [190, 200], [100, 190], [60, 120], [-10, 110], [-80, 170], [-170, 150], [-190, 60], [-120, -10]], c: [25, 95],
     pads: [250, 500, 700], rows: [190, 400, 620], ramps: [{ i: 64, lat: 0 }, { i: 112, lat: 0 }], stands: [[14, 74], [530, 558]], tunnel: null, screen: 22, podium: 44, last: [740, 830],
     feel: { grav: 11, grip: 1, lava: false },
-    look: { bg: 0x070a1c, ground: 0x4a4e5a, grid: 0x9b8cff, gridO: 0.07, rail: 0x7ff6ff, arch: [0x9b6bff, 0x38d8ff], hemi: [0xdfe6ff, 0x262a3a], sky: "/images/kart/tracks/moon-sky.webp", skyRep: 3, road: "/images/kart/tracks/moon-road.webp", roadRep: 1, edge: 0x6c707c,
+    look: { bg: 0x384b8b, ground: 0x4a4e66, grid: 0x9b8cff, gridO: 0.07, rail: 0x7ff6ff, arch: [0x9b6bff, 0x38d8ff], hemi: [0xdfe6ff, 0x262a3a], sky: "/images/kart/tracks/moon-sky.webp", skyRep: 3, road: "/images/kart/tracks/moon-road.webp", roadRep: 1, roadRepV: 0.5, edge: 0x6c707c,
       props: { a: "moon/crystal-pylon", ah: 9, b: "moon/moon-rock", bl: 5 }, atmo: "stars" } },
   ice: { name: "Frost Drift", line: "Slippery grip · long drifts", pts: [[0, 0], [117, 0], [171, -36], [207, 9], [180, 63], [99, 72], [54, 117], [90, 171], [27, 216], [-54, 180], [-81, 99], [-153, 81], [-162, 18], [-90, -9]], c: [22, 90],
     pads: [190, 350, 600], rows: [120, 460, 680], ramps: [{ i: 278, lat: 0 }], stands: [[12, 72], [843, 893]], tunnel: [500, 550], screen: 22, podium: 44, last: [730, 830],
     feel: { grav: 21, grip: 0.62, lava: false },
-    look: { bg: 0x0d2448, ground: 0x9cbfd6, grid: 0x7fd0ff, gridO: 0.12, rail: 0x2f9dff, railO: 0.9, arch: [0x7ff6ff, 0xffffff], hemi: [0xe6f6ff, 0x3a5a7a], sky: "/images/kart/tracks/ice-sky.webp", skyRep: 3, road: "/images/kart/tracks/ice-road.webp", roadRep: 1, edge: 0xeaf6ff,
-      roadTint: 0x56708e, curb: ["#1450e6", "#f4f9ff"], atmo: "snow", /* (KX1: the road a deeper blue-grey ice-asphalt against the pale snow, blue / white curbs, solid rails — the racing line reads at a glance) */
+    look: { bg: 0xa4c5d3, ground: 0xdcecf6, grid: 0x7fd0ff, gridO: 0.12, rail: 0x2f9dff, railO: 0.9, arch: [0x7ff6ff, 0xffffff], hemi: [0xe6f6ff, 0x3a5a7a], sky: "/images/kart/tracks/ice-sky.webp", skyRep: 3, road: "/images/kart/tracks/ice-road.webp", roadRep: 1, roadRepV: 0.5, edge: 0xeaf6ff,
+      roadTint: 0xd6e2f2, curb: ["#1450e6", "#f4f9ff"], atmo: "snow", /* (KX1: the road a deeper blue-grey ice-asphalt against the pale snow, blue / white curbs, solid rails — the racing line reads at a glance) */
       props: { a: "ice/chain-pylon", ah: 10, b: "ice/ice-crystal", bl: 4.5 } } },
   volcano: { name: "Magma Run", line: "Lava edges · stay on the road", pts: [[0, 0], [135, -18], [189, 27], [144, 81], [198, 135], [153, 198], [54, 180], [0, 126], [-54, 180], [-144, 153], [-135, 72], [-99, 18], [-54, -9]], c: [27, 90],
     pads: [250, 560, 700], rows: [140, 330, 620], ramps: [{ i: 80, lat: 0 }, { i: 775, lat: 0 }], stands: [[12, 72], [715, 755]], tunnel: [407, 459], screen: 22, podium: 44, last: [800, 890],
     feel: { grav: 21, grip: 1, lava: true },
-    look: { bg: 0x1a0806, ground: 0x1d1512, grid: 0xff5a1a, gridO: 0.08, rail: 0xff7a2e, arch: [0xff5a1a, 0xffc23c], hemi: [0xffd0b0, 0x2a0a05], sky: "/images/kart/tracks/volcano-sky.webp", skyRep: 3, road: "/images/kart/tracks/volcano-road.webp", roadRep: 1, edge: -1,
+    look: { bg: 0xa56354, ground: 0x1d1512, grid: 0xff5a1a, gridO: 0.08, rail: 0xff7a2e, arch: [0xff5a1a, 0xffc23c], hemi: [0xffd0b0, 0x2a0a05], sky: "/images/kart/tracks/volcano-sky.webp", skyRep: 3, road: "/images/kart/tracks/volcano-road.webp", roadRep: 1, roadRepV: 0.5, edge: -1,
       props: { a: "volcano/candle-pillar", ah: 8, b: "volcano/lava-rock", bl: 5.5 }, atmo: "embers" } },
 };
 /// the longest a track may be (the gaps' marks are sized for it)
@@ -167,6 +168,8 @@ export function createKart(ctx) {
   // K5: the track picked (tid → TD), its scene pieces (tg, rebuilt on a change), a token for its async loads
   let tid = "nexus", TD = TRACKS.nexus, tg = null, trackTok = 0, lavaTex = null, lavaAt = 0, ownTrack = "nexus";
   // KX1: the track's air (one Points + an aurora / heat sheet), the Meshy stage pieces in (for the test), the podium model loaded ahead, the box glow's clock, the pick's best / rank line
+  // KQ: the track sky's environment maps (one a track, made once a visit), the effects' pictures, the puffs / streaks pools, the stage's exposure + the canvas grade to give back, the props that move (blimp, floating rocks), the pick's turntable
+  let envs = {}, fxTex = null, puffs = null, streaks = null, expo0 = null, grade0 = null, kqMove = [], pickStage = null, kqIn = {};
   const lightLog = []; let atmo = null, glbIn = { lights: false, ramp: 0, podium: false }, podGl = null, boxU = { uT: { value: 0 } }, grabN = 0, topCache = {};
   let boxes = null, iPool = null, iOrd = [], slotShown = "", rollIc = -1, meItems = true, itemLog = { box: 0, used: {}, hits: 0, spins: 0, spinReact: 0, blocked: 0, spinClips: [] };
   const NOINP = Object.freeze({ steer: 0, gas: 0, brake: 0, drift: 0, boost: 0, trick: false }), BRAKEINP = Object.freeze({ steer: 0, gas: 0, brake: 1, drift: 0, boost: 0, trick: false });
@@ -237,14 +240,17 @@ export function createKart(ctx) {
     if (tg) { world.remove(tg); tg.traverse((o) => { if (o.geometry) o.geometry.dispose(); const m = o.material; if (m) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } }); }
     if (atmo) atmo.dispose(); tg = new THREE.Group(); world.add(tg); dress = null; skyCyl = null; lavaTex = null; mapFor = null; atmo = null;
     tracks = [buildTrack(false), buildTrack(true)]; track = tracks[0];
-    scene.background.setHex(LK.bg); scene.fog.color.setHex(LK.bg); hemi.color.setHex(LK.hemi[0]); hemi.groundColor.setHex(LK.hemi[1]);
+    scene.background.setHex(LK.bg); scene.fog.color.setHex(LK.bg); const Q = KQ[tid]; hemi.color.setHex(Q.hemi[0]); hemi.groundColor.setHex(Q.hemi[1]); kqMove = []; kqIn = {};
+    { const [col, , az, el] = Q.sun, a = (az * Math.PI) / 180, e = (el * Math.PI) / 180; sun.color.setHex(col); sun.position.set(TD.c[0] + Math.cos(a) * Math.cos(e) * 300, Math.sin(e) * 300, TD.c[1] + Math.sin(a) * Math.cos(e) * 300); sun.target.position.set(TD.c[0], 0, TD.c[1]); } // (KQ: one warm key light from the sky's sun side)
+    scene.environment = envs[tid] || null; try { const r = ctx.st.renderer; if (r && expo0 != null) { r.toneMappingExposure = Q.exp; if (!ctx.low) r.domElement.style.filter = Q.grade; } } catch { /* the stage's own */ } // (KQ: brighter, a little more colour — given back on leave)
     const [cx, cz] = TD.c, add = (m) => { tg.add(m); return m; };
     const ground = add(new THREE.Mesh(new THREE.CircleGeometry(520, 48), new THREE.MeshLambertMaterial({ color: LK.ground }))); ground.rotation.x = -Math.PI / 2; ground.position.set(cx, -0.05, cz);
     const grid = add(new THREE.GridHelper(1000, 100, LK.grid, LK.grid)); grid.position.set(cx, 0, cz); grid.material.transparent = true; grid.material.opacity = LK.gridO;
-    const rt = roadTex(); rt.repeat.set(1, 1); const road = add(ribbon(-ROAD / 2, ROAD / 2, 0.02, new THREE.MeshLambertMaterial({ map: rt, color: LK.roadTint || 0xffffff })));
+    const rt = roadTex(); rt.repeat.set(1, 1); const road = add(ribbon(-ROAD / 2, ROAD / 2, 0.02, ctx.low ? new THREE.MeshLambertMaterial({ map: rt, color: LK.roadTint || 0xffffff }) : new THREE.MeshStandardMaterial({ map: rt, color: LK.roadTint || 0xffffff, roughness: Q.road[0], metalness: 0, envMapIntensity: Q.road[1] }))); // (KQ: a darker, wet-glossy road with the sky in it)
     const ct = curbTex(LK.curb); for (const [a, b] of [[-ROAD / 2 - 1.2, -ROAD / 2], [ROAD / 2, ROAD / 2 + 1.2]]) add(ribbon(a, b, 0.04, new THREE.MeshLambertMaterial({ map: ct })));
     // K5: the strip between the curb and the wall — moon dust, snow, or (Magma Run) flowing lava that slows and bounces you
-    if (LK.edge === -1) { lavaTex = lavaTexOf(); const lm = new THREE.MeshBasicMaterial({ map: lavaTex }); for (const [a, b] of [[-WALL - 0.6, -ROAD / 2 - 1.2], [ROAD / 2 + 1.2, WALL + 0.6]]) add(ribbon(a, b, 0.03, lm)); }
+    if (LK.edge === -1) { lavaTex = lavaTexOf(); const lm = new THREE.MeshBasicMaterial({ map: lavaTex }); lm.color.setRGB(1.45, 1.2, 1.05); for (const [a, b] of [[-WALL - 0.6, -ROAD / 2 - 1.2], [ROAD / 2 + 1.2, WALL + 0.6]]) add(ribbon(a, b, 0.03, lm));
+      for (const [a, b] of [[-WALL - 7.5, -WALL - 0.6], [WALL + 0.6, WALL + 7.5]]) { const rv = add(ribbon(a, b, 0.025, lm)); cutRibbon(rv, (i) => TD.stands.some(([x, y]) => i > x - 4 && i < y + 4)); } } // (KQ: a glowing lava river beside the road, past the walls — not under the grandstands)
     else if (LK.edge) { const em = new THREE.MeshLambertMaterial({ color: LK.edge }); for (const [a, b] of [[-WALL - 0.6, -ROAD / 2 - 1.2], [ROAD / 2 + 1.2, WALL + 0.6]]) add(ribbon(a, b, 0.03, em)); }
     // the walls: low glowing rails
     const railM = new THREE.MeshBasicMaterial({ color: LK.rail, transparent: true, opacity: LK.railO || 0.55, side: THREE.DoubleSide });
@@ -252,7 +258,7 @@ export function createKart(ctx) {
     // neon arches every ~60 m (one InstancedMesh), the start gantry, boost pads
     const archN = Math.floor(track.len / 60), arch = new THREE.InstancedMesh(new THREE.TorusGeometry(ROAD / 2 + 2, 0.35, 6, 32, Math.PI), new THREE.MeshBasicMaterial({ color: 0xffffff }), archN), o = new THREE.Object3D();
     for (let k = 0; k < archN; k++) { const s = track.S[Math.floor((k / archN) * track.N)]; o.position.copy(s.p); o.lookAt(tmp.copy(s.p).add(s.t)); o.updateMatrix(); arch.setMatrixAt(k, o.matrix); arch.setColorAt(k, new THREE.Color(LK.arch[k % 2])); }
-    add(arch);
+    add(arch); const archAt = []; for (let k = 0; k < archN; k++) archAt.push(Math.floor((k / archN) * track.N));
     const s0 = track.S[0], gantry = new THREE.Group(); for (const w of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.8, 7, 0.8), new THREE.MeshLambertMaterial({ color: 0x1b2440 })); post.position.set(w * (ROAD / 2 + 1.5), 3.5, 0); gantry.add(post); }
     const bar = new THREE.Mesh(new THREE.BoxGeometry(ROAD + 4, 1.4, 0.6), new THREE.MeshBasicMaterial({ color: 0xffc23c })); bar.position.y = 7; gantry.add(bar);
     const chk = new THREE.Mesh(new THREE.PlaneGeometry(ROAD, 2), new THREE.MeshBasicMaterial({ map: (() => { const c = document.createElement("canvas"); c.width = 128; c.height = 16; const g = c.getContext("2d"); for (let x = 0; x < 16; x++) for (let y = 0; y < 2; y++) { g.fillStyle = (x + y) % 2 ? "#fff" : "#111"; g.fillRect(x * 8, y * 8, 8, 8); } const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; return t; })() }));
@@ -267,11 +273,12 @@ export function createKart(ctx) {
       for (let k = 0; k < towers.count; k++) { const a = (k / towers.count) * Math.PI * 2, r = 320 + (k * 37) % 120, h = 20 + (k * 53) % 70; o.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r); o.rotation.set(0, a, 0); o.scale.set(10 + (k % 5) * 3, h, 10 + (k % 3) * 4); o.updateMatrix(); towers.setMatrixAt(k, o.matrix); }
       add(towers); }
     // the sky: Meshy's panorama round the circuit on a tall open cylinder (the new tracks' are mirrored, so they wrap without a seam)
-    try { const sky = new THREE.TextureLoader().load(LK.sky + (ctx.ver || "")); sky.colorSpace = THREE.SRGBColorSpace; sky.wrapS = THREE.RepeatWrapping; sky.repeat.set(LK.skyRep, 1);
+    try { const sky = new THREE.TextureLoader().load(LK.sky + (ctx.ver || ""), () => { if (tok !== trackTok || !scene || envs[tid]) return; try { const rt0 = skyEnv(THREE, ctx.st.renderer, sky.image, LK.ground); envs[tid] = rt0.texture; envs[tid].userData.rt = rt0; scene.environment = rt0.texture; } catch (e) { console.warn("kart env:", e && e.message); } }); sky.colorSpace = THREE.SRGBColorSpace; sky.wrapS = THREE.RepeatWrapping; sky.repeat.set(LK.skyRep, 1);
       const cyl = new THREE.Mesh(new THREE.CylinderGeometry(700, 700, 420, 40, 1, true), new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide, fog: false, depthWrite: false })); cyl.position.set(cx, 150, cz); add(cyl); skyCyl = cyl; } catch { /* the plain colour */ }
-    try { const rd = new THREE.TextureLoader().load(LK.road + (ctx.ver || ""), () => { if (tok !== trackTok) return; road.material.map = rd; road.material.needsUpdate = true; rt.dispose(); }); rd.colorSpace = THREE.SRGBColorSpace; rd.wrapS = THREE.RepeatWrapping; rd.wrapT = THREE.MirroredRepeatWrapping; rd.repeat.set(LK.roadRep, 1); rd.anisotropy = 4; } catch { /* the drawn road */ }
+    try { const rd = new THREE.TextureLoader().load(LK.road + (ctx.ver || ""), () => { if (tok !== trackTok) return; road.material.map = rd; road.material.needsUpdate = true; rt.dispose(); }); rd.colorSpace = THREE.SRGBColorSpace; rd.wrapS = THREE.RepeatWrapping; rd.wrapT = LK.roadRepV ? THREE.RepeatWrapping : THREE.MirroredRepeatWrapping; rd.repeat.set(LK.roadRep, LK.roadRepV || 1); /* (KQ: the roads are seamless tiles now, square pixels) */ rd.anisotropy = 4; } catch { /* the drawn road */ }
     if (LK.skyline) { if (!ctx.low) props(arch, gantry, towers, tok).catch((e) => console.warn("kart props:", e && e.message)); }
     else themeProps(tok).catch((e) => console.warn("kart props:", e && e.message));
+    kqDress(tok, arch, archAt).catch((e) => console.warn("kart kq props:", e && e.message)); // (KQ: Meshy's trackside props, grandstands, fences, the gate, the blimp)
     if (!ctx.low && LK.atmo) try { atmo = makeAtmo(LK.atmo, tg); } catch (e) { atmo = null; console.warn("kart atmo:", e && e.message); } // (KX1: the track's air — stardust, snow + aurora, embers + heat)
     if (rule) applyRule(); else applyLook();
   }
@@ -342,6 +349,33 @@ export function createKart(ctx) {
     put(A, sa, { h: 1 }); put(B, sb, { len: 1 });
     load("boostpad").then((Bp) => { if (tok !== trackTok || !tg) return; for (const p of tracks[0].pads) { const g = fit(Bp.scene.clone(), { len: 6 }); g.position.copy(p.m.position).setY(0.02); g.rotation.y = p.m.rotation.z; tg.add(g); p.m.material.opacity = 0.35; } }).catch(() => { /* the drawn pads */ });
   }
+
+  /// KQ: a ribbon's segments where skip(i) dropped (the lava river leaves the grandstands' ground alone)
+  function cutRibbon(mesh, skip) { const ix = mesh.geometry.index.array, keep = []; for (let i = 0; i < track.N; i++) { if (skip(i)) continue; for (let j = 0; j < 6; j++) keep.push(ix[i * 6 + j]); } mesh.geometry.setIndex(keep); }
+  /// KQ: Meshy's trackside props for the picked track (world-kart-kq.js propSpots: where; here: load, fit, instance — each kind ONE
+  /// InstancedMesh per part); Meshy's grandstands replace the drawn blocks, the ice arches the drawn rings; glowing kinds lit by their own colours
+  const KQ_FIT = { "shared/grandstand": [1, 1, 1], "shared/fence": [1, 2.2 / 4 / 0.72, 1], "shared/arch-gate": [1, 0.55, 0.5], "ice/ice-arch": [1, 0.8, 0.45] };
+  const KQ_GLOW = { "nexus/neon-tree": 0.7, "moon/crystal": 0.75, "volcano/obsidian": 0.45, "volcano/lava-lantern": 0.6, "ice/ice-arch": 0.4, "nexus/banner-pole": 0.25 };
+  async function kqDress(tok, arch, archAt) {
+    const Q = KQ[tid], sp = propSpots(tracks[0].S, tracks[0].N, TD, Q, { coarse: !!ctx.coarse, low: !!ctx.low, WALL, ROAD, arches: archAt }), keys = Object.keys(sp).filter((k) => sp[k].length);
+    const file = (k) => (k === "stand" ? KQ_SHARED.stand : k === "fence" ? KQ_SHARED.fence : k === "gate" ? KQ_SHARED.gate : k === "blimp" ? KQ_SHARED.blimp : k);
+    const gls = await Promise.all(keys.map((k) => load(file(k)).catch(() => null))); if (tok !== trackTok || !scene || !tg) return;
+    const o = new THREE.Object3D(), d0 = dress;
+    keys.forEach((k, n) => { const gl = gls[n], spots = sp[k], f = file(k); if (!gl) return;
+      gl.scene.traverse((x) => { if (x.isMesh) for (const m of [].concat(x.material)) { if (!m || !("roughness" in m)) continue; m.envMapIntensity = 0.6; const gw = KQ_GLOW[f]; if (gw && m.map && !m.emissiveMap) { m.emissiveMap = m.map; m.emissive.setRGB(gw, gw, gw); m.needsUpdate = true; } } });
+      if (k === "blimp") { const b = fit(gl.scene, { len: 1 }); b.scale.setScalar(spots[0][3]); tg.add(b); kqMove.push({ kind: "blimp", o: b, c: spots[0] }); kqIn[k] = 1; return; }
+      const flat = k === "stand" || k === "fence" || k === "gate" || f === "ice/ice-arch", sc = KQ_FIT[f] || [1, 1, 1], ims = instOf(gl, spots.length, flat ? { len: 1 } : { h: 1 });
+      const set = (im, j, [x, z, yaw, size], y = 0) => { o.position.set(x, y, z); o.rotation.set(0, yaw, 0); o.scale.set(size * sc[0], size * sc[1], size * sc[2]); o.updateMatrix(); im.setMatrixAt(j, o.matrix); };
+      for (const im of ims) { spots.forEach((q, j) => set(im, j, q, f === "moon/float-rock" ? q[4] : 0)); im.frustumCulled = false; tg.add(im); }
+      if (f === "moon/float-rock") kqMove.push({ kind: "rocks", ims, spots, set });
+      kqIn[k] = spots.length;
+      if (k === "stand" && d0 && d0.standMeshes && dress === d0) for (const m of d0.standMeshes) m.visible = false; // (Meshy's stands in place of the drawn blocks)
+      if (f === "ice/ice-arch" && arch) arch.visible = false; });
+  }
+  /// KQ: the blimp's slow lap of the sky, the floating rocks' bob (a few matrices a frame)
+  function kqTick(dt) { if (!kqMove.length) return; const t = performance.now() / 1000;
+    for (const m of kqMove) { if (m.kind === "blimp") { const a = t * 0.025, r = 210; m.o.position.set(m.c[0] + Math.cos(a) * r, 64 + Math.sin(t * 0.3) * 2, m.c[1] + Math.sin(a) * r); m.o.rotation.y = -a - Math.PI / 2; }
+      else if (m.kind === "rocks") { for (const im of m.ims) { m.spots.forEach((q, j) => m.set(im, j, [q[0], q[1], q[2] + t * 0.05 * (j % 2 ? 1 : -1), q[3]], q[4] + Math.sin(t * 0.6 + j) * 1.6)); im.instanceMatrix.needsUpdate = true; } } } }
   // K6's hook: a Meshy model listed in K6_GLB replaces the drawn start lights' frame / a ramp's wedge (the drawn lamps stay)
   function glbSwap() {
     if (ctx.low || !dress) return;
@@ -356,7 +390,7 @@ export function createKart(ctx) {
     const o = new THREE.Object3D();
     if (A) { const n = arch.count; A.scene.scale.z = 0.22; /* (Meshy's arch is as deep as it is wide: flattened along the road) */ const ms = instOf(A, n, { len: ROAD + 5 }); for (const im of ms) { for (let k = 0; k < n; k++) { arch.getMatrixAt(k, o.matrix); im.setMatrixAt(k, o.matrix); } world.add(im); } arch.visible = false; for (const c of gantry.children) if (c.geometry && c.geometry.type === "BoxGeometry") c.visible = false; }
     if (G) { const g = fit(G.scene, { len: ROAD + 6 }); g.position.copy(gantry.position); g.quaternion.copy(gantry.quaternion); world.add(g); for (const c of gantry.children) if (c.geometry && c.geometry.type === "BoxGeometry") c.visible = false; }
-    if (Tw) { const n = towers.count, ms = instOf(Tw, n, { h: 1 }); for (const im of ms) { for (let k = 0; k < n; k++) { towers.getMatrixAt(k, o.matrix); o.matrix.decompose(o.position, o.quaternion, o.scale); const hh = o.scale.y; o.scale.set(hh * 0.5, hh, hh * 0.5); o.position.y = 0; o.updateMatrix(); im.setMatrixAt(k, o.matrix); } world.add(im); } towers.visible = false; }
+    if (Tw) { Tw.scene.traverse((x) => { if (x.isMesh) for (const m of [].concat(x.material)) if (m && "envMapIntensity" in m) m.envMapIntensity = 0.2; }); /* (KQ: the sky's env map turned the glass towers white) */ const n = towers.count, ms = instOf(Tw, n, { h: 1 }); for (const im of ms) { for (let k = 0; k < n; k++) { towers.getMatrixAt(k, o.matrix); o.matrix.decompose(o.position, o.quaternion, o.scale); const hh = o.scale.y; o.scale.set(hh * 0.5, hh, hh * 0.5); o.position.y = 0; o.updateMatrix(); im.setMatrixAt(k, o.matrix); } world.add(im); } towers.visible = false; }
     if (B) for (const p of tracks[0].pads) { const g = fit(B.scene.clone(), { len: 6 }); g.position.copy(p.m.position).setY(0.02); g.rotation.y = p.m.rotation.z; world.add(g); p.m.material.opacity = 0.35; }
   }
 
@@ -370,7 +404,8 @@ export function createKart(ctx) {
     const flame = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.4, 8), new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); flame.rotation.x = -Math.PI / 2; flame.position.set(0, 0.6, -1.9); g.add(flame);
     const glow = new THREE.Mesh(new THREE.CircleGeometry(1.6, 20), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.04; g.add(glow);
     const beam = new THREE.Mesh(new THREE.CircleGeometry(5, 18, -0.42, 0.84), new THREE.MeshBasicMaterial({ color: 0xcfeeff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false })); beam.rotation.x = -Math.PI / 2; beam.rotation.z = -Math.PI / 2; beam.position.set(0, 0.06, 1.4); beam.visible = false; g.add(beam); // (the night rule's headlights on the road)
-    return { g, wheels, flame, glow, beam, drawn: [body, nose, wing, ...wheels] };
+    glow.visible = false; flame.visible = false; const sh = shadowMesh(THREE); g.add(sh); const fl = fxTex ? flameMesh(THREE, fxTex.flame) : null; if (fl) g.add(fl); // (KQ: a soft contact shadow, Meshy's boost flames)
+    return { g, wheels, flame, glow, beam, sh, fl, drawn: [body, nose, wing, ...wheels] };
   }
   // ---------- the Meshy models: a racer's kart + rigged body, the track's props ----------
   const url = (f) => `/models/world/kart/${f}.glb${ctx.ver || ""}`; // (ctx.ver: the build's ?v= query)
@@ -386,7 +421,7 @@ export function createKart(ctx) {
     try {
       const [kg, cg] = await Promise.all([load("kart-" + r.id), load("char-" + r.id + "-rig")]);
       const kart = fit(kg.scene, { len: KART_LEN, turn: Math.PI / 2 }); // (Meshy's kart: nose at −X → +Z, our forward)
-      kg.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (m && "roughness" in m) { m.roughness = Math.min(m.roughness, 0.36); m.metalness = Math.max(m.metalness || 0, 0.12); } }); // (KX1: glossier, toy-like karts — the sun's highlight reads on the body)
+      kg.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (m && "roughness" in m) { if (m.emissiveMap) { m.roughness = Math.min(m.roughness, 0.36); continue; } m.roughness = PAINT.rough; m.metalness = PAINT.metal; m.envMapIntensity = PAINT.env; } }); // (KQ: the gloss retexture's candy paint — low roughness, the track's sky in it; the ∞ keeps its glow)
       const body = fit(cg.scene, { h: SEAT.h }), mixer = new THREE.AnimationMixer(cg.scene), acts = {};
       for (const c of cg.animations || []) acts[c.name] = mixer.clipAction(c);
       cg.scene.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
@@ -648,6 +683,7 @@ export function createKart(ctx) {
     const rdt = dt; if (slowT > 0) { slowT -= dt; dt *= 0.3; } // (K6: taking 1st — a short slow motion)
     if (lavaTex) lavaTex.offset.y -= dt * 0.18; // (K5: Magma Run's lava flows)
     if (atmo) atmo.step(dt, performance.now() / 1000); // (KX1: the track's air)
+    if (expo0 != null) try { ctx.st.renderer.toneMappingExposure = KQ[tid].exp; } catch { /* the stage's own */ } // (KQ: the town's day / night clock keeps writing its own exposure — the race holds the track's)
     if (phase === "pick") { pickCam(dt); for (const k of karts) if (k.hero && k.hero.update) k.hero.update(dt, t); return; }
     if (phase === "count") { cd -= dt; paintCount(); if (cd <= 0) { phase = "race"; clock = 0; goWall = performance.now(); lightsOff = 2.2; for (const k of karts) if (!k.me) k.speed = 6; const inp = input(); if (inp.gas && me.startSpeed > 0.9 && me.startSpeed < 1.6) boost(me, 1.0, 0.9, "Start boost!"); else if (me.startSpeed >= 1.6) { me.stall = 0.7; flash(T("Stalled!")); snd("kartStall"); buzz(60); if (fx) for (let j = 0; j < 14; j++) fx.emit(at(me, (Math.random() - 0.5) * 0.8, -1.7, tmp2), (Math.random() - 0.5) * 2, 1.5 + Math.random(), (Math.random() - 0.5) * 2, 0x777c88, 0.9); } if (opts.autogas && ctx.coarse) { gasLatch = true; paintGas(); } } else { const inp = input(); me.startSpeed = inp.gas ? me.startSpeed + dt : 0; } }
     if (phase === "race" || phase === "done") {
@@ -683,15 +719,18 @@ export function createKart(ctx) {
         if (skid && k.drift && clock - (k.skidAt || 0) > 0.05) { k.skidAt = clock; for (const lx of [-0.85, 0.85]) skid.add(at(k, lx, -1.15, tmp2), k.vh); }
       }
       for (const w of k.m.wheels) w.rotation.x += k.speed * dt / 0.42; k.m.wheels[0].rotation.y = k.m.wheels[1].rotation.y = k.stV * -0.4;
-      const fl = k.m.flame.material; fl.opacity = k.boostT > 0 ? 0.6 : k.drift ? Math.min(0.7, k.charge * 0.35) : 0; fl.color.setHex(k.boostT > 0 ? 0xffa63a : k.charge > 1.9 ? 0xff8a3a : 0x38d8ff); k.m.flame.scale.setScalar(k.boostT > 0 ? 1.1 : 0.8); /* (K6: smaller — with tricks a boost is often on, and the big cone hid the racer) */
+      if (k.m.fl && g.visible) { const bo = k.boostT > 0; flameSet(k.m.fl, flameOf({ sp, boost: bo, lv: k.boostLv || 1, charge: k.drift ? k.charge : 0, racing }), k.boostLv || 1, bo, 0.88 + Math.random() * 0.24); } // (KQ: two blue-white jets, long and bright on a boost)
+      k.m.sh.position.y = 0.03 - (k.y + k.hopY) ; k.m.sh.visible = g.visible; // (the contact shadow stays on the road under a jump)
+      if (puffs && g.visible && (!racing || k.speed < 5 || k.stall > 0) && (k.me || (me && k.pos.distanceToSquared(me.pos) < 900)) && Math.random() < (k.stall > 0 ? 0.7 : 0.16)) { const nz = nozzles()[Math.random() < 0.5 ? 0 : 1], c = Math.cos(k.yaw), sn = Math.sin(k.yaw); tmp2.set(k.pos.x + nz[0] * c + nz[2] * sn, k.y + nz[1], k.pos.z - nz[0] * sn + nz[2] * c); puffs.emit(tmp2, -sn * 0.8 + (Math.random() - 0.5) * 0.4, 0.5 + Math.random() * 0.4, -c * 0.8 + (Math.random() - 0.5) * 0.4, k.stall > 0 ? 1.1 : 0.8, k.stall > 0 ? 1.1 : 0.7); } // (KQ: exhaust puffs at idle, a cough on a stall)
       if (k.hero && k.hero.update && g.visible) k.hero.update(dt, t);
     }
     // the camera behind and above you, wider at speed, a shake on hits and boosts
     camBack = Math.max(0, camBack - dt * 1.8); camRoll += ((me && me.drift ? me.driftDir * 0.035 : 0) - camRoll) * Math.min(1, dt * 5);
     if (me) { const back = 7.2 + me.speed * 0.04 + camBack, h = 3.1; tmp.set(me.pos.x - Math.sin(me.yaw) * back, h, me.pos.z - Math.cos(me.yaw) * back); cam.position.lerp(tmp, Math.min(1, dt * 8)); if (shake > 0 && !ctx.reduce) { cam.position.x += (Math.random() - 0.5) * shake; cam.position.y += (Math.random() - 0.5) * shake; shake = Math.max(0, shake - dt); } cam.lookAt(me.pos.x + Math.sin(me.yaw) * 6, 1.2, me.pos.z + Math.cos(me.yaw) * 6); const f = 62 + Math.min(14, me.speed * 0.25) + (me.boostT > 0 ? 6 : 0); if (Math.abs(cam.fov - f) > 0.3) { cam.fov += (f - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix(); } if (!ctx.reduce && Math.abs(camRoll) > 0.001) cam.rotateZ(camRoll); }
     if (me) camK6(rdt);
+    if (streaks && me) { const v = phase === "race" ? streakOf(me.speed / TOP, me.boostT > 0, me.boostLv || 1) : 0; streaks.step(dt, v, (i) => { const j = (me.idx + 8 + Math.floor(Math.random() * 26)) % track.N, q = track.S[j], sd = i % 2 ? 1 : -1, l = sd * (ROAD / 2 - 0.6 - Math.random() * 2.4); return [q.p.x + q.r.x * l, q.p.z + q.r.z * l, Math.atan2(q.t.x, q.t.z)]; }); } // (KQ: thin streaks whip past along the road's edges at speed)
     if (topView && me) { cam.position.set(me.pos.x - Math.sin(me.yaw) * 18, 16, me.pos.z - Math.cos(me.yaw) * 18); cam.lookAt(me.pos.x + Math.sin(me.yaw) * 10, 0, me.pos.z + Math.cos(me.yaw) * 10); } // (the tests' look from above)
-    if (fx) fx.step(dt); if (rings) rings.step(dt); if (checker) checker.step(dt); if (racing || phase === "count") drawBoxes(dt);
+    if (fx) fx.step(dt); if (puffs) puffs.step(dt); kqTick(dt); if (rings) rings.step(dt); if (checker) checker.step(dt); if (racing || phase === "count") drawBoxes(dt);
     k6Tick(rdt);
     if (racing || phase === "count") ghostTick();
     if (nightLight && me && rule === "night") { nightLight.position.set(me.pos.x + Math.sin(me.yaw) * 5, 3.2, me.pos.z + Math.cos(me.yaw) * 5); }
@@ -735,7 +774,7 @@ export function createKart(ctx) {
     if (phase === "race" && lastPlace && pl !== lastPlace && clock > 2) { posEl.classList.remove("up", "down"); void posEl.offsetWidth; posEl.classList.add(pl < lastPlace ? "up" : "down");
       if (pl < lastPlace) { snd("kartPass"); buzz(12); if (pl === 1 && clock - cutAt > 10) { cutAt = clock; cutIn(T("1ST!")); if (!ctx.reduce) slowT = 0.3; buzz([20, 30, 40]); } } } // (K6: taking 1st — a 0.3 s slow motion and the cut-in, 10 s apart)
     lastPlace = pl;
-    if (!ctx.low && !ctx.reduce) { const ln = ui.querySelector(".wk-lines"), v = phase !== "race" ? 0 : Math.max(me.boostT > 0 ? 0.55 + 0.15 * (me.boostLv || 1) : 0, Math.min(1, (me.speed / TOP - 0.82) * 3.5), me.slip > 0.5 ? 0.35 : 0); ln.style.opacity = v.toFixed(2); ln.classList.toggle("boost", me.boostT > 0); } ui.querySelector(".wk-lap").textContent = `${T("Lap")} ${Math.max(1, Math.min(LAPS, me.lap))}/${LAPS}`; ui.querySelector(".wk-time").textContent = fmt(phase === "count" ? 0 : me.finish || clock);
+    if (!ctx.low && !ctx.reduce) { const ln = ui.querySelector(".wk-lines"), v = phase !== "race" ? 0 : Math.max(streakOf(me.speed / TOP, me.boostT > 0, me.boostLv || 1), me.slip > 0.5 ? 0.35 : 0); /* (KQ: Meshy's speed lines from 70 % of the top speed) */ ln.style.opacity = v.toFixed(2); ln.classList.toggle("boost", me.boostT > 0); } ui.querySelector(".wk-lap").textContent = `${T("Lap")} ${Math.max(1, Math.min(LAPS, me.lap))}/${LAPS}`; ui.querySelector(".wk-time").textContent = fmt(phase === "count" ? 0 : me.finish || clock);
     ui.querySelector(".wk-spd b").textContent = Math.round(me.speed * 3.6); ui.querySelector(".wk-spd").style.setProperty("--s", Math.min(1, me.speed / BOOST_TOP).toFixed(3)); /* (KX1: the dial's arc fills with the speed) */ const s = ui.querySelectorAll(".wk-ni s"); s[0].style.setProperty("--f", Math.min(1, me.nitro)); s[1].style.setProperty("--f", Math.max(0, Math.min(1, me.nitro - 1))); }
   let lastCd = -1;
   function paintCount() { const n = Math.ceil(cd); if (n === lastCd || !ui) return; lastCd = n; const el = ui.querySelector(".wk-cd"); el.textContent = n > 3 ? "" : n > 0 ? String(n) : T("GO!"); el.classList.toggle("go", n <= 0); el.classList.remove("on"); void el.offsetWidth; if (n <= 3) el.classList.add("on"); if (n <= 0) setTimeout(() => { if (el.classList.contains("go")) { el.classList.remove("on"); el.textContent = ""; } }, 1100);
@@ -796,11 +835,11 @@ export function createKart(ctx) {
     R = rule === "turbo" ? { top: 1.15, acc: 1.2 } : { top: 1, acc: 1 };
     const night = rule === "night", bg = night ? 0x02040c : TD.look.bg;
     scene.background.setHex(bg); scene.fog.color.setHex(bg); scene.fog.far = night ? 210 : ctx.low ? 320 : 520;
-    if (hemi) hemi.intensity = night ? 0.3 : 1.25;
-    if (sun) sun.intensity = night ? 0.15 : 1.6;
+    if (hemi) hemi.intensity = night ? 0.3 : KQ[tid].hemi[2];
+    if (sun) sun.intensity = night ? 0.15 : KQ[tid].sun[1];
     if (skyCyl) skyCyl.material.color.setHex(night ? 0x283050 : 0xffffff);
     if (nightLight) nightLight.intensity = night ? 90 : 0;
-    for (const k of karts) { k.m.glow.material.opacity = night ? 0.9 : 0.35; k.m.beam.visible = night; }
+    for (const k of karts) { k.m.glow.material.opacity = 0.9; k.m.glow.visible = night; k.m.beam.visible = night; } // (KQ: by day a soft contact shadow, the colour pool only lights the night)
     if (dress && dress.screen) dress.screen.mesh.scale.x = mir; // (K6: the standings screen reads the right way round in a mirrored race)
   }
   const ghostOf = (gs) => { const a = ghostDec(gs); return a.length > 5 ? a : null; };
@@ -808,7 +847,7 @@ export function createKart(ctx) {
   function makeGhost(data, tint, label) {
     const pts = ghostOf(data.g); if (!pts || !scene) return null;
     const src = karts.find((k) => k.racer && k.racer.id === data.racer) || karts.find((k) => k.me), col = new THREE.Color(tint);
-    let obj; if (src && src.kartObj) obj = src.kartObj.clone(true); else { const m = kartMesh(tint); m.flame.visible = m.glow.visible = m.beam.visible = false; obj = m.g; }
+    let obj; if (src && src.kartObj) obj = src.kartObj.clone(true); else { const m = kartMesh(tint); m.flame.visible = m.glow.visible = m.beam.visible = m.sh.visible = false; if (m.fl) m.fl.visible = false; obj = m.g; }
     obj.traverse((o) => { if (o.isMesh) { const m0 = [].concat(o.material)[0]; o.material = new THREE.MeshBasicMaterial({ color: col, map: (m0 && m0.map) || null, transparent: true, opacity: 0.45, depthWrite: false }); o.castShadow = false; } });
     const g = new THREE.Group(); g.add(obj); scene.add(g);
     return { g, pts, t: data.t, label, name: data.name || "" };
@@ -935,7 +974,11 @@ export function createKart(ctx) {
 
   async function enter() {
     if (on) return true;
-    buildScene(); makeUi(); try { fx = makeFx(); skid = makeSkid(); rings = makeRings(THREE, scene); checker = makeChecker(THREE, scene, ctx.low ? 20 : 36); } catch (e) { fx = skid = null; console.warn("kart fx:", e && e.message); }
+    try { const TL = new THREE.TextureLoader(), tx = (f) => { const t = TL.load(`/images/kart/fx/${f}.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; return t; }; fxTex = { flame: tx("boost-flame"), puff: tx("exhaust-puff") }; } catch { fxTex = null; } // (KQ: before the karts are made)
+    try { const r = ctx.st.renderer; expo0 = r.toneMappingExposure; grade0 = r.domElement.style.filter; } catch { expo0 = null; }
+    buildScene(); makeUi();
+    try { if (fxTex) puffs = makePuffs(THREE, scene, fxTex.puff, ctx.low ? 24 : 48); if (!ctx.low && !ctx.reduce) streaks = makeStreaks(THREE, scene, ctx.coarse ? 10 : 16); } catch (e) { puffs = streaks = null; console.warn("kart kq fx:", e && e.message); }
+    try { fx = makeFx(); skid = makeSkid(); rings = makeRings(THREE, scene); checker = makeChecker(THREE, scene, ctx.low ? 20 : 36); } catch (e) { fx = skid = null; console.warn("kart fx:", e && e.message); }
     try { boxes = makeBoxes(); iPool = makePool(); } catch (e) { boxes = iPool = null; console.warn("kart items:", e && e.message); } // (K3: no items rather than no race)
     const ids = ["custom-aron", "custom-lumi", "custom-nex"];
     flash(T("Loading racers…"));
@@ -952,7 +995,11 @@ export function createKart(ctx) {
   function showPick(id) {
     phase = "pick"; picked = id; ui.classList.add("picking"); clearItems(); if (boxes) for (const im of boxes.ims) im.visible = false; mode = mode || "race"; rule = ""; world.scale.x = 1; mir = 1; track = tracks[0]; clearGhosts();
     if (wantTrack() !== tid) { setTrack(wantTrack()); grid(); } // (K5: the Daily races the day's track)
-    if (!pickFill) { pickFill = new THREE.DirectionalLight(0xffffff, 1.5); scene.add(pickFill, pickFill.target); } pickFill.visible = true;
+    if (!pickFill) { pickFill = new THREE.DirectionalLight(0xffffff, 1.9); scene.add(pickFill, pickFill.target); } pickFill.visible = true;
+    if (!pickStage) { pickStage = new THREE.Group(); const top = new THREE.Mesh(new THREE.CylinderGeometry(2.75, 2.9, 0.08, 48), new THREE.MeshStandardMaterial({ color: 0x1b2440, metalness: 0.75, roughness: 0.2 })); top.position.y = 0.02;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(2.78, 3.02, 64), new THREE.MeshBasicMaterial({ color: 0x38e8ff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.07;
+      const halo = new THREE.Mesh(new THREE.RingGeometry(3.02, 3.9, 64), new THREE.MeshBasicMaterial({ color: 0x38e8ff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.065;
+      pickStage.add(top, ring, halo); scene.add(pickStage); } pickStage.visible = true; // (KQ: a glossy turntable with a glowing cyan ring under the chosen kart)
     pickEl = document.createElement("div"); pickEl.className = "wk-pick";
     pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
       <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
@@ -995,7 +1042,7 @@ export function createKart(ctx) {
     if (phase !== "pick") return; try { localStorage.setItem(PICK, id); } catch { /* private */ }
     const mine = karts.find((x) => x.racer && x.racer.id === id) || karts[0], rest = karts.filter((x) => x !== mine);
     mine.i = 0; mine.me = true; rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest];
-    if (pickEl) { pickEl.remove(); pickEl = null; } ui.querySelectorAll(".wk-side, .wk-opts").forEach((e) => e.remove()); if (pickFill) pickFill.visible = false; ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; applyRule(); reset();
+    if (pickEl) { pickEl.remove(); pickEl = null; } ui.querySelectorAll(".wk-side, .wk-opts").forEach((e) => e.remove()); if (pickFill) pickFill.visible = false; if (pickStage) pickStage.visible = false; ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; applyRule(); reset();
   }
   // ---------- K6: the settings (⚙), the sideways hint, tilt ----------
   function saveOpts() { try { localStorage.setItem(OPTS, JSON.stringify(opts)); } catch { /* this visit only */ } }
@@ -1018,16 +1065,17 @@ export function createKart(ctx) {
     try { localStorage.setItem(SIDE, "1"); } catch { /* shown again next time */ } const el = document.createElement("div"); el.className = "wk-side"; el.innerHTML = `<i aria-hidden="true">📱↻</i><span>${esc(T("Turn your phone sideways — it plays better"))}</span><button type="button" data-side>${esc(T("OK"))}</button>`; ui.appendChild(el); el.querySelector("[data-side]").onclick = () => el.remove(); }
   // the pick's camera: in front of the chosen kart, a little above
   function pickCam(dt) { const k = karts.find((x) => x.racer && x.racer.id === picked) || karts[0]; if (!k) return; const tall = innerHeight > innerWidth, d = tall ? 6.6 : 5.9, sw = (tall ? 0 : 0.5) + Math.sin(performance.now() / 2400) * (tall ? 0.5 : 0.3); tmp.set(k.pos.x + Math.sin(k.yaw + sw) * d, tall ? 2.3 : 2.4, k.pos.z + Math.cos(k.yaw + sw) * d); cam.position.lerp(tmp, Math.min(1, dt * 4)); cam.lookAt(k.pos.x, tall ? -0.55 : -1.0, k.pos.z);
-    if (pickFill) { pickFill.position.copy(cam.position).add(new THREE.Vector3(0, 2, 0)); pickFill.target.position.set(k.pos.x, 0.8, k.pos.z); } } // (2026-10-30, the owner's phone: the kart filled the screen and stood dark — farther back on an upright screen, a little above, and a light from the camera's side, so the racer shows in the band between the logo and the cards; on a wide screen too — farther, higher and turned a little so the driver shows over the nose)
+    if (pickFill) { pickFill.position.copy(cam.position).add(new THREE.Vector3(0, 2, 0)); pickFill.target.position.set(k.pos.x, 0.8, k.pos.z); } if (pickStage) { pickStage.position.set(k.pos.x, 0, k.pos.z); pickStage.rotation.y += dt * 0.4; } } // (2026-10-30, the owner's phone: the kart filled the screen and stood dark — farther back on an upright screen, a little above, and a light from the camera's side, so the racer shows in the band between the logo and the cards; on a wide screen too — farther, higher and turned a little so the driver shows over the nose)
   const onResize = () => { if (!cam) return; cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); };
   function leave() {
     if (!on) return; on = false; phase = "idle"; if (eng) { eng.stop(); eng = null; } fx = skid = null; seqTok++; pod = null; podCam = null; dress = null; rings = checker = null; boxes = iPool = null; iOrd = []; freezeUntil = 0; slowT = 0; keysEl = null; mapFor = null; removeEventListener("deviceorientation", onTilt); ghosts = []; ghostTok++; raceP = null; rule = ""; R = { top: 1, acc: 1 };
     try { ctx.st.solo(null); ctx.st.view(null); } catch { /* the world draws again */ }
+    try { const r = ctx.st.renderer; if (expo0 != null) r.toneMappingExposure = expo0; r.domElement.style.filter = grade0 || ""; } catch { /* the stage's own */ } for (const e of Object.values(envs)) try { e.userData.rt.dispose(); } catch { /* gone */ } envs = {}; puffs = streaks = null; kqMove = []; pickStage = null; if (fxTex) { fxTex.flame.dispose(); fxTex.puff.dispose(); fxTex = null; }
     removeEventListener("keydown", kd); removeEventListener("keyup", ku); removeEventListener("resize", onResize); keys.clear();
     pickEl = null; pickFill = null; if (ui) { ui.remove(); ui = null; } document.body.classList.remove("wp-kart");
     if (scene) scene.traverse((o) => { if (o.geometry && !o.isSkinnedMesh) o.geometry.dispose(); const m = o.material; if (m && !o.isSkinnedMesh) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } });
     scene = null; karts = []; me = null; world = null; tracks = null; tg = null; lavaTex = null; trackTok++; nightLight = hemi = sun = skyCyl = null; atmo = null; podGl = null;
     if (ctx.onLeave) ctx.onLeave();
   }
-  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r, tr) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule, track: TRACKS[tr] ? tr : daily.track }; if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => TD.ramps.map((r) => r.i), /* K5 */ track: () => tid, tracks: () => TRACK_IDS.slice(), _track: (id) => { if (TRACKS[id] && phase === "pick") chooseTrack(id); return tid; }, mapLen: () => +track.len.toFixed(1), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, /* KX1 */ kx1: () => ({ glb: { ...glbIn }, atmo: atmo ? { kind: atmo.kind, n: atmo.n, sheet: !!atmo.sheet } : null, spots: pod ? pod.spots.map((p) => p.map((v) => +(+v).toFixed(2))) : null, grab: !!(ui && [...ui.querySelectorAll(".wk-grab")].some((e) => !e.hidden)), lamps: dress && dress.lights.colors ? dress.lights.colors() : null, lightLog: lightLog.slice(), rows: TD.rows.slice(), ramps: TD.ramps.map((r) => r.i) }), podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
+  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r, tr) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule, track: TRACKS[tr] ? tr : daily.track }; if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => TD.ramps.map((r) => r.i), /* K5 */ track: () => tid, tracks: () => TRACK_IDS.slice(), _track: (id) => { if (TRACKS[id] && phase === "pick") chooseTrack(id); return tid; }, mapLen: () => +track.len.toFixed(1), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, /* KQ */ kq: () => ({ track: tid, props: { ...kqIn }, env: !!(scene && scene.environment), exposure: (() => { try { return ctx.st.renderer.toneMappingExposure; } catch { return null; } })(), grade: (() => { try { return ctx.st.renderer.domElement.style.filter; } catch { return null; } })(), flames: karts.filter((k) => k.m.fl && k.m.fl.visible).map((k) => +k.m.fl.scale.z.toFixed(2)), shadows: karts.filter((k) => k.m.sh && k.m.sh.visible).length, glowDay: karts.some((k) => k.m.glow.visible), puffs: !!puffs, streaks: !!(streaks && streaks.im.visible), stage: !!(pickStage && pickStage.visible), roadStd: !!(tg && tg.children.some((m) => m.material && m.material.isMeshStandardMaterial && m.material.envMapIntensity === KQ[tid].road[1])) }), _boost: (lv = 3) => { if (me) boost(me, 2, 1, "", lv); }, /* KX1 */ kx1: () => ({ glb: { ...glbIn }, atmo: atmo ? { kind: atmo.kind, n: atmo.n, sheet: !!atmo.sheet } : null, spots: pod ? pod.spots.map((p) => p.map((v) => +(+v).toFixed(2))) : null, grab: !!(ui && [...ui.querySelectorAll(".wk-grab")].some((e) => !e.hidden)), lamps: dress && dress.lights.colors ? dress.lights.colors() : null, lightLog: lightLog.slice(), rows: TD.rows.slice(), ramps: TD.ramps.map((r) => r.i) }), podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
 }
